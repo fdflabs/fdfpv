@@ -5,13 +5,14 @@
  * "two page shots"), by hand, against a running rooms Worker:
  *
  *   npx wrangler dev --config edge/rooms/wrangler.toml --port 8797
- *   SIM_GPU=1 node scripts/rooms-two-page.js http://127.0.0.1:8797 [outdir]
+ *   SIM_GPU=1 node scripts/rooms-two-page.js http://127.0.0.1:8797 [outdir] [airframe]
  *
  * Page A flies a Cub painted red with the lights and the smoke fitted,
- * page B a P-51 painted blue. A makes a room, B joins it with the code.
+ * page B a P-51 (or the airframe named) painted blue. A makes a room, B joins it with the code.
  * Both fly. Then, on each page: the other pilot is in the room, drawn, on
  * the other seat's spawn slot, as its own airframe, in its own colours,
- * with its pilot standing at its station. Then B is put 40 m up ahead of
+ * with its pilot standing at its station. B's aircraft can be named, so
+ * each new airframe is seen drawn as a peer: `zagi1219` puts B in a Zagi. Then B is put 40 m up ahead of
  * A and A must see it there, moving. Pictures of each in outdir, which is
  * not in the repository: a picture is evidence for one round.
  *
@@ -37,11 +38,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { regionsFor } from '../configs/liveries.js';
 import { slotSpawn } from '../src/game/slots.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const rooms = process.argv[2] || 'http://127.0.0.1:8797';
 const outDir = process.argv[3] || join(root, 'build', 'rooms-two-page');
+const B_AF = process.argv[4] || 'p51d1450';
+const B_NAME = airframeById(B_AF).short;
 
 let failed = 0;
 let passed = 0;
@@ -56,6 +60,14 @@ function check(name, ok, detail = '') {
 
 const RED = '#d8432f';
 const BLUE = '#2f6fd6';
+const SEEDED = ['wing', 'fuselage', 'tail'];
+
+/* Every seeded region this aircraft has is drawn in the colour: a Zagi has
+ * no fuselage or tail, so it is judged on its wing alone. */
+function painted(paint, id, colour) {
+  const own = regionsFor(id).map((r) => r.id).filter((r) => SEEDED.includes(r));
+  return Boolean(paint) && own.length > 0 && own.every((r) => paint[r] === colour);
+}
 function seedFor(id, colour, addons) {
   const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
   s.map = 'swiss2';
@@ -64,7 +76,7 @@ function seedFor(id, colour, addons) {
   s.flightMode = 'angle';
   s.fpsCap = 0;
   s.airframeAsked = true;
-  s.livery = { [id]: { regions: { wing: colour, fuselage: colour, tail: colour } } };
+  s.livery = { [id]: { regions: Object.fromEntries(SEEDED.map((r) => [r, colour])) } };
   s.parts = addons.length ? { [id]: { prop: 'stock', addons } } : {};
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
@@ -97,7 +109,7 @@ async function lookAtPeer(page, dx, dy, dz) {
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`two pages in one room, rooms at ${rooms}`);
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400', RED, ['lights', 'smoke']) });
-const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('p51d1450', BLUE, []) });
+const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor(B_AF, BLUE, []) });
 try {
   for (const p of [a, b]) {
     await p.until('window.__shellReady === true', 300000);
@@ -115,7 +127,7 @@ try {
   const ra = await a.evaluate('window.__rooms()');
   const rb = await b.evaluate('window.__rooms()');
   check('A has seat 1 and B seat 2, each its own slot', ra.seat === 1 && rb.seat === 2 && ra.slot === 0 && rb.slot === 1, `${ra.seat}/${ra.slot} ${rb.seat}/${rb.slot}`);
-  check('each knows the other\'s airframe from its profile', ra.peers[0].airframe === 'p51d1450' && rb.peers[0].airframe === 'cub1400');
+  check('each knows the other\'s airframe from its profile', ra.peers[0].airframe === B_AF && rb.peers[0].airframe === 'cub1400');
 
   for (const p of [a, b]) {
     await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
@@ -128,10 +140,10 @@ try {
   }
   const pa = (await a.evaluate('window.__rooms()')).peers[0];
   const pb = (await b.evaluate('window.__rooms()')).peers[0];
-  check('A draws B as a P-51', pa.drawnAirframe === 'p51d1450', pa.drawnAirframe);
+  check(`A draws B as a ${B_NAME}`, pa.drawnAirframe === B_AF, pa.drawnAirframe);
   check('B draws A as a Cub', pb.drawnAirframe === 'cub1400', pb.drawnAirframe);
-  check('in B\'s blue', pa.paint && pa.paint.fuselage === BLUE && pa.paint.wing === BLUE, JSON.stringify(pa.paint));
-  check('in A\'s red', pb.paint && pb.paint.fuselage === RED && pb.paint.wing === RED, JSON.stringify(pb.paint));
+  check('in B\'s blue', painted(pa.paint, B_AF, BLUE), JSON.stringify(pa.paint));
+  check('in A\'s red', painted(pb.paint, 'cub1400', RED), JSON.stringify(pb.paint));
   const spawn = await a.evaluate('window.__craftState().spawn || null');
   const mapSpawn = await a.evaluate('(() => { const m = window.__map(); return m.spawn || null; })()');
   const sp = mapSpawn || spawn;
@@ -145,11 +157,11 @@ try {
     aSelf ? `${Math.hypot(aSelf.worldX - pb.at[0], aSelf.worldZ - pb.at[2]).toFixed(2)} m between A's own and B's drawing of it` : '');
   check('each pilot stands at a station', Array.isArray(pa.figure) && Array.isArray(pb.figure));
   await lookAtPeer(a, -6, 2.5, 5);
-  await shot(a, 'a-sees-b-p51-blue');
+  await shot(a, `a-sees-b-${B_AF}-blue`);
   await lookAtPeer(b, 5, 2.5, 5);
   await shot(b, 'b-sees-a-cub-red');
   /* B's pilot on the flight line behind the row, seen from A's side,
-   * with B's P-51 beyond: the head turned to its aircraft. */
+   * with B's aircraft beyond: the head turned to its aircraft. */
   await a.evaluate(`(() => {
     const p = window.__rooms().peers[0];
     const f = p.figure;

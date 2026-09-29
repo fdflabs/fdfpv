@@ -66,8 +66,12 @@ jobs:
       - run: npm run p51:stab
       - run: npm run extra:gates
       - run: npm run extra:stab
+      - run: npm run zagi:gates
+      - run: npm run zagi:stab
       - run: npm run uglystik:gates
       - run: npm run uglystik:stab
+      - run: npm run dlg:gates
+      - run: npm run dlg:stab
       - run: npm run quickie:gates
       - run: npm run quickie:stab
       - run: npm run input:selftest

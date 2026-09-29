@@ -121,6 +121,8 @@ function trimAlpha(fw, cm) {
 
 /* plant_wing.c's motor: the stick to thrust along body x at forward speed u. */
 function thrust(fw, stick, u) {
+  /* No motor at all (the DLG): no thrust, as the plant has it. */
+  if (!(fw.thrust_static > 0)) return 0;
   if (fw.fold_duty > 0 && stick < fw.fold_duty) return 0;
   let duty = fw.throttle_idle > 0 ? fw.throttle_idle + (1 - fw.throttle_idle) * stick : stick;
   duty = Math.min(1, Math.max(fw.duty_min, duty));
@@ -193,7 +195,10 @@ export async function deriveAll() {
   return (await tables()).map((p) => {
     const gl = glide(p);
     return {
-      name: p.name, fw: p.fw, glide: gl, cruise: cruise(p),
+      /* An aircraft with no motor has no cruise throttle: the stick is
+       * never over zero, so its pitch down never acts and its table's
+       * stab_trim_throttle is zero. */
+      name: p.name, fw: p.fw, glide: gl, cruise: p.fw.thrust_static > 0 ? cruise(p) : { V: null, stick: 0 },
       alphaStall: coeffs(p.fw, 0).aStall,
       /* ArduPilot's range is 0 to 15 deg: a pitch down. An airframe whose
        * glide is nose higher than its trim pitch already asks for less

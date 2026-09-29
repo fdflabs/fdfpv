@@ -243,6 +243,11 @@ planes.FW_UGLYSTIK1567 = {
   note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
 };
 
+/* OA Composites' NRJ, scripts/dlg-derive.js: the manual's 66 mm CG on
+ * the elliptic planform's mean chord, 0.1378 m, whose leading edge is
+ * 24.5 mm behind the root's; the tail measured off Hyperflight's
+ * photograph. */
+planes.FW_NRJ1490 = tailed({ b: 1.49, S: 0.190, c: 0.1378, hCG: 0.301, Sh: 0.020, lh: 0.56, bh: 0.30 });
 /* The Quickie 500, docs/QUICKIE-STAGE1.md and scripts/quickie-derive.js:
  * its own arms, the plan's CG 2.8 in behind the leading edge of the 10 in
  * chord, 0.3 in behind the wing's aerodynamic centre, and the tail's share
@@ -314,6 +319,9 @@ const STRIPS = {
   /* Constant chord; the raked tips over the outer 2.9 of 30.9 in are left
    * out, as the Kadet's rounding is. */
   FW_UGLYSTIK1567: strips(rect),
+  /* The NRJ's elliptic chord, the tips' last few millimetres of rounding
+   * left out. */
+  FW_NRJ1490: strips((eta) => Math.sqrt(1 - eta * eta)),
   /* Constant chord; the soft block tips, the outer 1.5 of 25.5 in, are
    * left out. */
   FW_QUICKIE1293: strips(rect),
@@ -369,6 +377,11 @@ const SECTION = {
    * on its 0.33 m chord): the NACA 2415's at 2e5, the thick section here
    * that stalls from the trailing edge, held +4.2 deg then 0.76. */
   FW_UGLYSTIK1567: { sec: 'NACA 2415 at 2e5', top: 4.2, k: 0.76 },
+  /* A 6 percent F3K section at 5e4, thinner than the SD7037 (9.2
+   * percent), which at 6e4 holds 1.8 deg: a thin section's bubble bursts
+   * at its leading edge, so ESTIMATED sharper, held 1 deg and falling to
+   * 0.80. No UIUC section this thin was tested at this Reynolds number. */
+  FW_NRJ1490: { sec: '6 percent F3K section at 5e4, ESTIMATED', top: 1.0, k: 0.80 },
   /* RCM's "15% Symmetrical" at 1.7e5 (10 m/s on 0.254 m): the Extra's
    * thick symmetric section at 2e5, ESTIMATED as its is. */
   FW_QUICKIE1293: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },

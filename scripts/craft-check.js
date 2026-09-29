@@ -74,6 +74,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   cub1400   a 1400 mm Piper J-3 Cub: the span is FMS's, and the reach is
  *             the tip, the tail being 0.6 m aft on the centreline.
  *             src/render/cubcraft.js draws it.
+ *   nrj1490   OA Composites' 1490 mm NRJ: the span is Lindinger's, and
+ *             the reach is the tip's trailing corner, 96 mm aft of the
+ *             CG on the straight trailing edge, 751.2 mm; the rudder's
+ *             0.70 m aft is short of it. src/render/dlgcraft.js draws it.
  *   radian2000 a 2000 mm E-flite Radian: the span is E-flite's, and the
  *             reach is the tip's trailing corner, 137 mm aft of the CG,
  *             since the fin's is 0.83 m aft on the centreline.
@@ -143,6 +147,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             measures and the reach are both the rudder's, 1667 mm, and
  *             FMS's 1450 mm is held by craft-preview.js's half span row.
  *             src/render/p51craft.js draws it.
+ *   zagi1219  Zagi's 48 in Zagi HP, whose winglets' top trailing corners,
+ *             0.2675 m aft of the CG at the tips, reach further than the
+ *             half span: the width is Zagi's 1219 mm, the reach 1331 mm.
+ *             src/render/zagicraft.js draws it.
  *   uglystik1567 RCM's 62 in Das Ugly Stik, whose rudder's trailing edge,
  *             0.884 m behind the CG on the plan (station 50.82 against the
  *             CG's 16.00), reaches further than its tips, 0.784 m out, so
@@ -179,7 +187,9 @@ const REAL = {
   edge1524: { spanMm: 1930.4, sweepMm: 1930.4, tolMm: 6 },
   extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
+  zagi1219: { spanMm: 1219.2, sweepMm: 1331.4, tolMm: 6 },
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
+  nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
   quickie1293: { spanMm: 1432.6, sweepMm: 1432.6, tolMm: 6 },
 };
 

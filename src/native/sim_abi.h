@@ -362,18 +362,23 @@ int sim_set_flight_style(int arcade);
  * taildragger whose thrust is two and a half times its weight, which
  * hangs on its prop with its surfaces in the slipstream, 15 FMS's
  * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
- * flaps on retracting taildragger gear, and 16 Freewing's F-16 V3
+ * flaps on retracting taildragger gear, 16 Freewing's F-16 V3
  * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
- * the stick, on a tricycle gear, and 19 Phil Kraft's Das Ugly Stik as RCM
- * published Jim Jensen's kit of it (docs/UGLYSTIK-STAGE1.md), a 62 in
+ * the stick, on a tricycle gear, 17 Zagi's 48 in Zagi HP
+ * (docs/ZAGI-STAGE1.md), an EPP flying wing with elevons and winglets and
+ * no rudder, thrown by hand and landed on its belly, 19 Phil
+ * Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it
+ * (docs/UGLYSTIK-STAGE1.md), a 62 in
  * balsa sport aerobat on a .61 two stroke glow engine, a shoulder wing on
  * a section near enough symmetric to fly on its back, on a tricycle gear,
- * and 22 Glen Spickler's Quickie 500 (docs/QUICKIE-STAGE1.md), the 1972
- * club pylon racer the class is named after, a 51 in low wing box on a
- * K&B 40 glow engine, on wire gear and a tail skid. 17, 18, 20, 21 and 23
- * are reserved for the aircraft being added alongside them. Returns
- * SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 16, 19 and 22 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * and 21 OA Composites' NRJ (docs/DLG-STAGE1.md), a 1490 mm F3K discus
+ * launch glider with no motor, thrown by its wingtip (sim_wing_discus) into
+ * the thermals of sim_air_lift, and 22 Glen Spickler's Quickie 500
+ * (docs/QUICKIE-STAGE1.md), the 1972 club pylon racer the class is named
+ * after, a 51 in low wing box on a K&B 40 glow engine, on wire gear and a
+ * tail skid. 18, 20 and 23 are reserved for the aircraft being added
+ * alongside them. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 2 to 17, 19, 21 and 22 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -407,7 +412,9 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_EXTRA1308_ID 14
 #define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
+#define SIM_AIRFRAME_ZAGI1219_ID 17
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
+#define SIM_AIRFRAME_NRJ1490_ID 21
 #define SIM_AIRFRAME_QUICKIE1293_ID 22
 int sim_set_airframe(int id);
 
@@ -505,6 +512,14 @@ double sim_gravity(void);
  * thrust, force body x y z, moment body x y z, u v w, delta_e, delta_a.
  */
 int sim_wing_launch(double speed);
+/* THE DISCUS LAUNCH, docs/DLG-STAGE1.md, on an aircraft thrown by its
+ * wingtip (airframe 21): sim_wing_discus() starts the pilot's one turn
+ * from where the aircraft is, to let it go there, facing the way it
+ * faces, climbing; SIM_ERR_BAD_ARG on any other aircraft.
+ * sim_wing_discus_phase(): 0 none, 1 the turn, 2 the zoom, while the
+ * launch preset flies the climb. A reset ends either. */
+int sim_wing_discus(void);
+int sim_wing_discus_phase(void);
 int sim_wing_set_stab(int mode);
 int sim_wing_stab(void);
 int sim_wing_surfaces(double *out);
@@ -781,7 +796,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 16, 19 and 22): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 17, 19, 21 and 22): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

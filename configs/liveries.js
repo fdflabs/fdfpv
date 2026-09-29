@@ -214,6 +214,18 @@ export const LIVERIES = {
       { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
     ],
   },
+  nrj1490: {
+    /* OA Composites' own colourways, spread tow carbon under a painted
+     * design: the wing's dark carbon, two bands of colour and the nose
+     * cone, the tail bare carbon. Hyperflight's and Lindinger's listings
+     * name them by colour and number. */
+    regions: [r('wing', '#2b2d31'), r('stripe', '#e8358f'), r('band', '#39b3e6'), r('cone', '#3a9ad9'), r('tail', '#1a1b1d')],
+    schemes: [
+      { id: 'stock', source: src('Hyperflight, NRJ 1.5m DLG, "Blue #5"', 'https://www.hyperflight.co.uk/products.asp?code=NRJ&name=nrj-dlg'), colours: {} },
+      { id: 'red2', source: src('Lindinger, OA-Composites NRJ F3K RED #2', 'https://www.lindinger.at/en/Airplanes/Aircraft-Models/Electric-gliders-Hotliners/OA-COMPOSITES-NRJ-F3K-RED-2-CW40-CENTRIFUGAL-GLIDER/9776531'), colours: { wing: '#9a9ea3', stripe: '#e8358f', band: '#5a5d62', cone: '#e0314a' } },
+      { id: 'orange18', source: src('Lindinger, OA-Composites NRJ F3K ORANGE #18', 'https://www.lindinger.at/en/Airplanes/Aircraft-Models/Electric-gliders-Hotliners/OA-COMPOSITES-NRJ-F3K-ORANGE-18-EXTREME-60-SPIN-GLIDER/9776534'), colours: { stripe: '#f07a1c', band: '#f3d02a', cone: '#f07a1c' } },
+    ],
+  },
   f16878: {
     /* Painted foam, not film: Freewing's "modern three tone gray US Air
      * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270
@@ -222,6 +234,17 @@ export const LIVERIES = {
     schemes: [
       { id: 'stock', source: src('Freewing F-16 Falcon V3 6S High Performance, FJ21115P', `${FREEWING}freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html`), colours: {} },
       { id: 'arctic', source: src('Freewing F-16 V3 Arctic Camo, FJ21125P', 'https://motionrc.com/products/freewing-f-16-v3-arctic-camo-high-performance-70mm-edf-jet-pnp-fj21125p'), colours: { dark: '#3b3f44', medium: '#c9ced2', light: '#eef0f1' } },
+    ],
+  },
+  zagi1219: {
+    /* Zagi's HP as zagi.com photographs it: orange covering tape all
+     * over, black winglets, the charcoal canopy and tray; and the 5C
+     * combat wing's scheme, yellow with black tape on the leading edge
+     * and black winglets. */
+    regions: [r('wing', '#f0561e'), r('trim', '#f0561e'), r('winglets', '#17191b'), r('canopy', '#34383c')],
+    schemes: [
+      { id: 'stock', source: src('Zagi, Zagi HP product photograph', 'https://web.archive.org/web/2019/https://zagi.com/product/hp/'), colours: {} },
+      { id: 'combat', source: src('Zagi, Zagi 5C product photograph', 'https://web.archive.org/web/2017/https://zagi.com/category/kits/'), colours: { wing: '#f0db2c', trim: '#17191b' } },
     ],
   },
 };

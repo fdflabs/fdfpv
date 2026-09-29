@@ -120,6 +120,7 @@ const POWER_CHOICE = {
   sky1800: { option: 'stock', pack: '4s6000' },
   kadet1981: { option: 'electric', pack: '5s5000' },
   edge1524: { option: 'stock', pack: '6s3300' },
+  zagi1219: { option: 'stock', pack: '3s1500' },
   bombshell1118: { option: 'stock', pack: '5.1cc' },
 };
 

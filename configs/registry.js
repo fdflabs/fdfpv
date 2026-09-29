@@ -146,6 +146,28 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder; closing the throttle folds the prop.',
   },
   {
+    /* The NRJ's three, the Radian's: the stabiliser's modes on its own
+     * plant. There is no throttle to close; the stick up throws it. */
+    id: 'nrj-stab',
+    airframe: 'nrj1490',
+    name: 'Stabilised',
+    note: 'A gyro holds the glider. Roll stick asks for a bank up to 50 degrees, pitch stick for a pitch up to 30, centred sticks glide level, and the rudder is coordinated for you. The launch preset holds the climb after the throw.',
+    wingStab: 1,
+  },
+  {
+    id: 'nrj-acro',
+    airframe: 'nrj1490',
+    name: 'Acro',
+    note: 'A gyro holds the glider where you leave it. Sticks ask for a roll and a pitch rate, centred sticks hold the attitude, and the rudder stick is the rudder alone. After the throw it holds the climb until you push over.',
+    wingStab: 2,
+  },
+  {
+    id: 'nrj-manual',
+    airframe: 'nrj1490',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the flaperons, the elevator and the rudder; the launch preset trims the elevator down for the climb and lets go at the top.',
+  },
+  {
     id: 'betaflight-default',
     airframe: '5inch',
     name: 'Betaflight default',
@@ -411,6 +433,28 @@ export const TUNES = [
     airframe: 'f16878',
     name: 'Manual',
     note: 'No flight controller. The sticks work the ailerons, the all moving stabilators and the rudder, which also steers the nose wheel. The fan spools behind the throttle stick and stops when it is closed.',
+  },
+  {
+    /* The Zagi's three, the flying wing's modes on its own plant. It has
+     * no rudder, so the yaw stick does nothing in any of them. */
+    id: 'zagi-stab',
+    airframe: 'zagi1219',
+    name: 'Stabilised',
+    note: 'A gyro holds the wing. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, and centred sticks fly level. It has no rudder: the yaw stick does nothing.',
+    wingStab: 1,
+  },
+  {
+    id: 'zagi-acro',
+    airframe: 'zagi1219',
+    name: 'Acro',
+    note: 'A gyro holds the wing where you leave it. Sticks ask for a roll rate up to 220 degrees a second and a pitch rate up to 100, and centred sticks hold the attitude. No rudder.',
+    wingStab: 2,
+  },
+  {
+    id: 'zagi-manual',
+    airframe: 'zagi1219',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the elevons, 14.5 degrees each way on both: it rolls fast, and a small touch of up is a lot, so be gentle in pitch. No rudder: it turns on the bank alone.',
   },
 ];
 

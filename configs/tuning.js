@@ -60,7 +60,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { powerBlock, powerOption } from './power.js';
+import { TABLE, powerBlock, powerOption } from './power.js';
 
 /* sim_abi.h's SIM_TUNE_* layout. */
 export const SIM_TUNE = {
@@ -101,8 +101,10 @@ const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
+const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
+const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
 const EDGE_SHEET = 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf';
@@ -237,11 +239,25 @@ export const TUNING = {
     throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
     flaps: null,
   },
+  nrj1490: {
+    chord: 0.1378, area: 0.190, margin: 0.170,
+    cg: { mm: 66, datum: 'tuning.datum.root_le', range: [64.5, 66.5], source: `OA Composites' manual, "CG between 64.5 and 66.5mm", 66 for the empty glider; ${NRJ_MANUAL}` },
+    packKg: 0.015, nose: 0.23, tail: -0.66,
+    throws: { high: [19.0, 17.5, 15.5], low: [13.3, 12.25, 10.85], source: `OA Composites' manual: ailerons 13 mm each way, elevator 8 to 10 mm, rudder 12 mm, on the 40, 30 and 45 mm surfaces at the horn (docs/DLG-STAGE1.md); no low rate is published, so it is 70 percent; ${NRJ_MANUAL}` },
+    flaps: null,
+  },
   f16878: {
     chord: 0.2856, area: 0.21484, margin: 0.115,
     cg: { mm: 90, datum: 'tuning.datum.root_le', range: null, source: `Freewing V3 manual p. 9, "90mm (3-1/2")" from the wing's leading edge at the root, no range; ${F16_MANUAL}` },
     packKg: 0.566, nose: 0.60, tail: -0.55,
     throws: { high: [21.5, 25, 30], low: [13.975, 20, 25.5], source: `high: the full size F-16's surface limits (NASA TP-1538), Freewing's high rate, 100 percent; low: the manual's own dual rates p. 11, "D/R Rate: 65%", "80%", "85%" of it; ${F16_MANUAL}` },
+    flaps: null,
+  },
+  zagi1219: {
+    chord: 0.21335338, area: 0.26012851, margin: 0.099,
+    cg: { mm: 203.2, datum: 'tuning.datum.root_le', range: null, source: `Zagi HP manual, "designed to balance at 8" measured back from the nose", the "suggested starting point", moved back in 1/8 in steps "until it is almost unflyable (too elevator sensitive)", no range; ${ZAGI_HP_MANUAL}` },
+    packKg: 0.185, nose: 0.19, tail: -0.10, elevons: true,
+    throws: { high: [14.4775, 14.4775, 0], low: [10.1, 10.1, 0], source: `Zagi manuals: the elevon throw "3/8" in each direction measured 1" from the tip" on either stick, one set, on the 1.5 in elevon (docs/ZAGI-STAGE1.md); ${LOW_70}; ${ZAGI_HP_MANUAL}` },
     flaps: null,
   },
 };
@@ -289,6 +305,12 @@ export function throwsFor(airframeId, rate) {
  */
 export function setupFor(airframeId, choice) {
   const opt = powerOption(airframeId, choice && choice.option);
+  /* No power system (the DLG): the table's own mass and its receiver
+   * pack, fixed in the nose, so only lead balances it. */
+  if (!opt) {
+    const massKg = TABLE[airframeId].massKg;
+    return { massKg, packKg: TUNING[airframeId].packKg, electric: false, limits: limitsFor(airframeId, massKg, false) };
+  }
   const packId = (choice && choice.pack) || opt.pack;
   const massKg = powerBlock(airframeId, opt.id, packId)[1];
   const electric = opt.kind === 'electric';

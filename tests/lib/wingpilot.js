@@ -38,6 +38,8 @@ export const CUB_AIRFRAME = 4;
 export const GLIDER_AIRFRAME = 6;
 export const BRAMOR_AIRFRAME = 8;
 export const RC_STEP_MS = 4;
+/* OA Composites' NRJ discus launch glider, docs/DLG-STAGE1.md. */
+export const DLG_AIRFRAME = 21;
 
 export function must(code, where) {
   if (code !== SIM_OK) {
@@ -1660,6 +1662,71 @@ export function recordExtraFlight(sim) {
 }
 
 /*
+ * The Zagi HP, docs/ZAGI-STAGE1.md: airframe 17, a flying wing with
+ * elevons and no rudder, thrown by hand and landed on its belly. Its
+ * throw is the shell's (src/main.js throwWing): level at 10 m/s, 1.36
+ * times its trimmed stall, 1.2 m over where it rests on its 12 mm belly,
+ * the motor off as Zagi's manual says; 600 m to the side of the field's
+ * thermals, the ground raised as the shell raises it.
+ */
+export const ZAGI_AIRFRAME = 17;
+export const ZAGI_THROW = { speed: 10, height: 0.012 + 1.2 };
+export function zagiPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(ZAGI_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 600, ZAGI_THROW.height, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_wing_launch(ZAGI_THROW.speed), 'sim_wing_launch');
+}
+
+/* Wings level on the roll stick, and the nose held at a pitch on the
+ * elevons, gently: the Zagi answers a tenth of its stick. */
+export function zagiHold(s, { bank = 0, pitch = 0 } = {}) {
+  const a = attitude(s);
+  const roll = Math.max(-1, Math.min(1, -1.0 * (a.bank - bank) - 0.08 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 1.2 * (pitch - a.pitch) - 0.10 * -s[12]));
+  return [roll, pitchStick];
+}
+
+/*
+ * The Zagi's recording, for zagi-gates.js S18: the throw with the motor
+ * off, then full throttle climbing out, level at 60 percent, a full
+ * elevon roll to the right and level again, the throttle closed into a
+ * glide, full up held into the stall's mush, and the recovery.
+ */
+export function recordZagiFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  zagiPrelude(sim);
+  const samples = [];
+  for (let ms = 0; ms < 25000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    let sticks;
+    if (ms < 1000) {
+      sticks = [...zagiHold(s, { pitch: 0.03 }), 0, 0];
+    } else if (ms < 7000) {
+      sticks = [...zagiHold(s, { pitch: 0.35 }), 0, 1];
+    } else if (ms < 11000) {
+      sticks = [...zagiHold(s, { pitch: 0.02 }), 0, 0.6];
+    } else if (ms < 12200) {
+      sticks = [1, 0, 0, 0.6];
+    } else if (ms < 15000) {
+      sticks = [...zagiHold(s, { pitch: 0.02 }), 0, 0.6];
+    } else if (ms < 18000) {
+      sticks = [...zagiHold(s, { pitch: -0.05 }), 0, 0];
+    } else if (ms < 22000) {
+      sticks = [0, 1, 0, 0];
+    } else {
+      sticks = [...zagiHold(s, { pitch: -0.05 }), 0, 0.5];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
  * Phil Kraft's Das Ugly Stik, airframe 19, docs/UGLYSTIK-STAGE1.md: a
  * sport aerobat on a tricycle gear whose nose wheel steers with the
  * rudder. On the strip it stands on its three wheels at the pose the plant
@@ -1744,6 +1811,104 @@ export function recordUglystikFlight(sim) {
       sticks = [0, 0.5, 0, 1];
     } else {
       sticks = [edgeRoll(s), 0, 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
+ * OA Composites' NRJ, airframe 21 (DLG_AIRFRAME above): lying on its
+ * belly on the grass, the pod's belly 0.042 m under the CG, facing thermal
+ * A (110, 70), and thrown from there by the discus launch.
+ */
+export const DLG_REST_Z = 0.042;
+export const DLG_THERMAL_A = [110, 70];
+export function dlgGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(DLG_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  /* The half angle's cos and sin from the heading's by the half angle
+   * formulas, in + - * / and sqrt, which IEEE rounds exactly: a
+   * recording's prelude is hashed, and JS Math.cos is not specified to
+   * the bit. */
+  const [ax, ay] = DLG_THERMAL_A;
+  const c = ax / Math.sqrt(ax * ax + ay * ay);
+  must(sim.e.sim_set_pose(0, 0, DLG_REST_Z, Math.sqrt((1 + c) / 2), 0, 0, Math.sqrt((1 - c) / 2)), 'sim_set_pose');
+}
+
+/* What a replay of the NRJ's recording does before its first sample: on
+ * the grass, and the throw begun. */
+export function dlgRecPrelude(sim) {
+  dlgGroundPrelude(sim);
+  must(sim.e.sim_wing_discus(), 'sim_wing_discus');
+}
+
+/*
+ * The NRJ's recording for the cross-host check: the flight a DLG is for.
+ * Thrown in Manual from the grass toward thermal A, the turn and the zoom
+ * on the launch preset with the sticks centred, then from the top an
+ * airspeed hold steering for the thermal, thirty seconds circling in it at
+ * 35 degrees, out of it level, half a second of full right roll, two
+ * seconds of full right rudder, and a glide to the end at sixty seconds,
+ * all of it clear of the ground. So the turn, the release, the preset, the
+ * drag across the Reynolds numbers and the rising air are all in the
+ * hashed trace. The pilot is the harness pilot's bank and airspeed hold, a
+ * glider's (recordGliderFlight's).
+ */
+export function recordDlgFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  dlgRecPrelude(sim);
+  const samples = [];
+  let trim = 0;
+  let circleFrom = null;
+  let topAt = null;
+  for (let ms = 0; ms < 60000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const v = Math.hypot(s[4], s[5], s[6]);
+    const holdBank = (target) => Math.max(-1, Math.min(1, -1.0 * (bank - target) - 0.08 * p));
+    const holdSpeed = (vT) => {
+      trim += 0.00002 * (v - vT);
+      trim = Math.max(-0.15, Math.min(0.15, trim));
+      const pitchT = Math.max(-0.35, Math.min(0.1, 0.04 * (v - vT) + trim));
+      return Math.max(-0.4, Math.min(0.4, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+    };
+    if (topAt === null && ms > 600 && sim.e.sim_wing_discus_phase() === 0) {
+      topAt = ms;
+    }
+    const dx = DLG_THERMAL_A[0] - s[1];
+    const dy = DLG_THERMAL_A[1] - s[2];
+    if (topAt !== null && circleFrom === null && Math.hypot(dx, dy) < 12) {
+      circleFrom = ms;
+      trim = 0;
+    }
+    const t = circleFrom === null ? -1 : ms - circleFrom;
+    let sticks;
+    if (topAt === null) {
+      sticks = [0, 0, 0, 0];
+    } else if (circleFrom === null) {
+      const w = s[7], x = s[8], y = s[9], z = s[10];
+      const heading = Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z));
+      let err = Math.atan2(dy, dx) - heading;
+      err = Math.atan2(Math.sin(err), Math.cos(err));
+      sticks = [holdBank(Math.max(-0.4, Math.min(0.4, -1.2 * err))), holdSpeed(6.5), 0, 0];
+    } else if (t < 30000) {
+      sticks = [holdBank(35 * Math.PI / 180), holdSpeed(6), 0, 0];
+    } else if (t < 34000) {
+      sticks = [holdBank(0), holdSpeed(6.5), 0, 0];
+    } else if (t < 34500) {
+      sticks = [1, 0, 0, 0];
+    } else if (t < 36500) {
+      sticks = [holdBank(0), 0, 1, 0];
+    } else {
+      sticks = [holdBank(0), holdSpeed(6.5), 0, 0];
     }
     const [roll, pitchStick, yaw, duty] = sticks;
     samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });

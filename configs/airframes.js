@@ -1348,6 +1348,115 @@ export const AIRFRAMES = [
       bodyHeight: 0.405,
     },
   },
+  {
+    /*
+     * Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md: the slope soaring and
+     * combat classic as Zagi sells it today, an EPP flying wing on a 3100
+     * kV inrunner and a 5 x 5 carbon pusher on 3S, 723 g, simId 17 on the
+     * fixed wing plant. Elevons and no rudder; thrown by hand and landed
+     * on its belly, as the Radian is, and it rises in the thermals over
+     * the field as the gliders do.
+     */
+    id: 'zagi1219',
+    simId: 17,
+    fixedWing: true,
+    /* Trimmed stall, m/s, with the elevons holding the wing at its CL max:
+     * tests/zagi-thresholds.json z2_stall. */
+    stall: 7.36,
+    /* Level speed at full throttle, m/s: tests/zagi-thresholds.json z4_top, derived. */
+    topSpeed: 29.69,
+    name: 'Zagi HP',
+    short: 'Zagi',
+    blurb: 'A 48 in Zagi HP on 3S, the EPP flying wing that taught a generation to fly on the slope and in combat. Throw it hard, and go easy on the elevons: it rolls fast and it answers the smallest touch in pitch. No rudder. It glides a long way and slides in on its belly.',
+    facts: ['3S', '1219 mm', 'Flying wing'],
+    sizeMm: 1219,
+    grams: 722.9,
+    trackClass: 'wing',
+    cells: 3,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'zagi-stab',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/zagicraft.js ZAGI_DIMS: the furthest
+     * reach in plan is the winglet's top trailing corner, the lowest
+     * drawn point the belly at the root and the highest the winglets'
+     * tops. */
+    dims: {
+      arm: 0,
+      propR: 0.0635,
+      hullR: 0.6657,
+      vHalfDown: 0.012,
+      vHalfUp: 0.1267,
+      bodyLength: 0.4707,
+      bodyWidth: 1.2192,
+      bodyHeight: 0.1387,
+    },
+  },
+  {
+    /*
+     * OA Composites' NRJ, docs/DLG-STAGE1.md: a 1490 mm F3K discus launch
+     * glider of 213 g, simId 21 on the fixed wing plant, flaperons, an
+     * elevator and a rudder, and no motor at all. `discus` is its launch:
+     * L, or the throttle stick up, and the pilot turns once with it by
+     * the peg on its left wingtip and lets it go climbing at 41 m/s
+     * (sim_wing_discus), to about 60 m, where it has to find a thermal,
+     * the Radian's, to stay up. `noMotor`: the hangar has no power to
+     * offer, and says so. It comes home on its belly, or into the hand.
+     */
+    id: 'nrj1490',
+    simId: 21,
+    fixedWing: true,
+    discus: true,
+    noMotor: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/dlg-thresholds.json d3_stall. */
+    stall: 4.35,
+    /* The release, m/s: the fastest it flies is the throw. */
+    topSpeed: 41,
+    name: 'NRJ DLG',
+    short: 'DLG',
+    blurb: 'A 1490 mm OA Composites NRJ, a 213 g carbon discus launch glider with no motor. Spin and throw it by the wingtip to 60 m, then work the thermals to stay up; bring it home on its belly or catch it.',
+    facts: ['No motor', '1490 mm', '213 g'],
+    sizeMm: 1490,
+    grams: 213,
+    trackClass: 'wing',
+    cells: 1,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'nrj-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/dlgcraft.js DLG_DIMS: the tips'
+     * trailing corners 0.7512 m from the CG, the rudder's trailing edge
+     * 0.700 m aft, the pod's belly 0.042 m under the CG and the fin's top
+     * 0.180 m over it. */
+    dims: {
+      arm: 0,
+      propR: 0,
+      hullR: 0.7512,
+      vHalfDown: 0.042,
+      vHalfUp: 0.180,
+      bodyLength: 0.959,
+      bodyWidth: 1.49,
+      bodyHeight: 0.222,
+    },
+  },
 ];
 
 

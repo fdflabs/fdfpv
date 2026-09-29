@@ -1439,6 +1439,72 @@ static const PartDef PARTS_P51D1450[] = {
     .npts = 2, .pts = { { -0.35, 0.0, 0.08 }, { -0.35, 0.0, 0.15 } } },
 };
 
+/* ------------------------------------------------------------------------
+ * ZAGI HP 48 IN, SIM_AIRFRAME_ZAGI1219, zagicraft.js. 0.723 kg of EPP,
+ * docs/ZAGI-STAGE1.md: one CNC cut EPP wing on flat carbon spars, taped,
+ * with a styrene motor tray and canopy over the bay at the root, balsa
+ * elevons on tape hinges, plastic winglets taped to the tips, a 3100 kV
+ * inrunner and a 5 x 5 carbon pusher in the bay's cutout. The panels are
+ * one piece with the root, so their joint is the spars' and the foam's.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_ZAGI1219[] = {
+  /* 0 the centre section between the servo bays, the motor tray and
+   * canopy on it, the ESC and receiver in it: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_EPP, .motor = -1, .wheel = -1,
+    .k = 2.0e5, .crush_s = EPP_CRUSH, .crush_a = 0.0040, .crush_d = 0.06,
+    BOX(-0.098, 0.2032, -0.0635, 0.0635, -0.012, 0.025) },
+  /* 1, 2 the panels, root chord 0.28 m at the bay's edge to 0.125 m at
+   * the tip, 27 mm thick at the root and 11 at the tip, on the 3 mm flat
+   * carbon spar at the CG. A part's mass sits at its hull's centroid,
+   * 82 mm behind the CG for a swept panel whose foam is mostly forward
+   * of it, so each carries 0.10 kg and the root the rest of the foam. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPP, .motor = -1, .wheel = -1,
+    .mass = 0.10, .joint = { 0.0, 0.0635, 0.0 }, CARBON_SPAR(0.0015), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.28, 0.027), .f_max = 400.0, .k = 3000.0,
+    .crush_s = EPP_CRUSH, .crush_a = 0.0012, .crush_d = 0.10,
+    .npts = 8, .pts = { { 0.1687, 0.0635, -0.012 }, { -0.1143, 0.0635, -0.012 }, { -0.1278, 0.6096, -0.005 }, { -0.2531, 0.6096, -0.005 },
+                        { 0.1687, 0.0635, 0.015 }, { -0.1143, 0.0635, 0.015 }, { -0.1278, 0.6096, 0.006 }, { -0.2531, 0.6096, 0.006 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPP, .motor = -1, .wheel = -1,
+    .mass = 0.10, .joint = { 0.0, -0.0635, 0.0 }, CARBON_SPAR(0.0015), .m_max = 21.0, .m_max_z = SLAB_M(EPP_TENSILE, 0.28, 0.027), .f_max = 400.0, .k = 3000.0,
+    .crush_s = EPP_CRUSH, .crush_a = 0.0012, .crush_d = 0.10,
+    .npts = 8, .pts = { { 0.1687, -0.0635, -0.012 }, { -0.1143, -0.0635, -0.012 }, { -0.1278, -0.6096, -0.005 }, { -0.2531, -0.6096, -0.005 },
+                        { 0.1687, -0.0635, 0.015 }, { -0.1143, -0.0635, 0.015 }, { -0.1278, -0.6096, 0.006 }, { -0.2531, -0.6096, 0.006 } } },
+  /* 3, 4 the 1.5 in balsa elevons along the swept trailing edges. */
+  { .kind = SIM_PART_ELEVON, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.1456, 0.336, 0.0 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    .npts = 8, .pts = { { -0.0762, 0.0635, -0.004 }, { -0.1143, 0.0635, -0.004 }, { -0.2150, 0.608, -0.003 }, { -0.2531, 0.608, -0.003 },
+                        { -0.0762, 0.0635, 0.004 }, { -0.1143, 0.0635, 0.004 }, { -0.2150, 0.608, 0.003 }, { -0.2531, 0.608, 0.003 } } },
+  { .kind = SIM_PART_ELEVON, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.1456, -0.336, 0.0 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
+    .npts = 8, .pts = { { -0.0762, -0.0635, -0.004 }, { -0.1143, -0.0635, -0.004 }, { -0.2150, -0.608, -0.003 }, { -0.2531, -0.608, -0.003 },
+                        { -0.0762, -0.0635, 0.004 }, { -0.1143, -0.0635, 0.004 }, { -0.2150, -0.608, 0.003 }, { -0.2531, -0.608, 0.003 } } },
+  /* 5, 6 the winglets, 1 mm plastic taped to the tips. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
+    .mass = 0.010, .joint = { -0.19, 0.6096, 0.006 }, .m_max = 0.8, .f_max = 12.0, .k = 2000.0,
+    .npts = 8, .pts = { { -0.1278, 0.6096, 0.006 }, { -0.2531, 0.6096, 0.006 }, { -0.2040, 0.6096, 0.133 }, { -0.2675, 0.6096, 0.133 },
+                        { -0.1278, 0.6081, 0.006 }, { -0.2531, 0.6081, 0.006 }, { -0.2040, 0.6081, 0.133 }, { -0.2675, 0.6081, 0.133 } } },
+  { .kind = SIM_PART_FIN, .parent = 2, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
+    .mass = 0.010, .joint = { -0.19, -0.6096, 0.006 }, .m_max = 0.8, .f_max = 12.0, .k = 2000.0,
+    .npts = 8, .pts = { { -0.1278, -0.6096, 0.006 }, { -0.2531, -0.6096, 0.006 }, { -0.2040, -0.6096, 0.133 }, { -0.2675, -0.6096, 0.133 },
+                        { -0.1278, -0.6081, 0.006 }, { -0.2531, -0.6081, 0.006 }, { -0.2040, -0.6081, 0.133 }, { -0.2675, -0.6081, 0.133 } } },
+  /* 7 the 28 x 35 inrunner on the tray's ply hard point. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.070, .joint = { -0.060, 0.0, 0.010 }, .m_max = PL_MOTOR_M, .f_max = 400.0, .k = 1.0e6,
+    BOX(-0.093, -0.058, -0.014, 0.014, -0.004, 0.024) },
+  /* 8 the 5 x 5 carbon pusher in the cutout. */
+  { .kind = SIM_PART_PROP, .parent = 7, .mat = SIM_MAT_CF_PLATE, .motor = 0, .wheel = -1, .shape = SH_DISCX,
+    .mass = 0.008, .joint = { -0.096, 0.0, 0.010 }, .m_max = 2.0, .f_max = 150.0, .k = 1500.0,
+    .npts = 8, .pts = { { -0.098, 0.0, 0.010 }, { 0.0635, 0.0, 0.0 } } },
+  /* 9 the 3S 2200, across the bay ahead of the CG on Velcro. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.180, .joint = { 0.089, 0.0, 0.0 }, .m_max = 4.0, .f_max = VELCRO_12, .k = 3.0e5,
+    BOX(0.071, 0.107, -0.052, 0.052, -0.010, 0.012) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.010, .joint = { 0.165, 0.0, 0.020 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.155, 0.180, -0.01, 0.01, 0.012, 0.032) },
+  { .kind = SIM_PART_ANTENNA, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.04, 0.0, 0.025 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.04, 0.0, 0.025 }, { -0.04, 0.0, 0.075 } } },
+};
 
 /* ------------------------------------------------------------------------
  * DAS UGLY STIK, RCM PLAN 939, SIM_AIRFRAME_UGLYSTIK1567, uglystikcraft.js.
@@ -1544,6 +1610,64 @@ static const PartDef PARTS_UGLYSTIK1567[] = {
   { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
     .mass = 0.004, .joint = { -0.30, 0.0, 0.033 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
     .npts = 2, .pts = { { -0.30, 0.0, 0.033 }, { -0.28, 0.0, 0.12 } } },
+};
+
+/* ------------------------------------------------------------------------
+ * NRJ DLG 1490, SIM_AIRFRAME_NRJ1490, dlgcraft.js. 213 g, Hyperflight's
+ * typical standard layup: a moulded carbon pod with a slip on nose cone
+ * over the pack and receiver, a 9 mm carbon boom, spread tow carbon skins
+ * on a foam core wing screwed on as one piece over the pod (the NRJ's
+ * published weights: wing 97 g, fuselage 38 g, fin 5.4 g, tailplane 4.7
+ * g, pack 15 g). No motor and no prop. The wing's own section, its 10 mm
+ * root, rings on its skins; 30 N m at its root is chosen: 30 g on the
+ * aircraft's 2.1 N with the lift at the half span's 40 percent, which the
+ * launch's pull alone asks of an F3K wing, as no maker publishes one.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_NRJ1490[] = {
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .k = 5.0e5, BOX(-0.07, 0.19, -0.013, 0.013, -0.042, -0.012) },
+  /* 1 the boom, 9 mm on 8 mm: Z (D^4 - d^4) pi / (32 D) = 2.69e-8 m^3 at
+   * 600 MPa, 16 N m. */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_CF_TUBE, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.07, 0.0, -0.020 }, .m_max = 16.0, .f_max = 400.0, .k = 2.0e4,
+    BOX(-0.70, -0.07, -0.0045, 0.0045, -0.0245, -0.0155) },
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.0032, .joint = { -0.56, 0.0, -0.028 }, .m_max = 1.5, .f_max = 40.0, .k = 2000.0,
+    BOX(-0.587, -0.532, -0.15, 0.15, -0.030, -0.026) },
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.0015, .joint = { -0.587, 0.0, -0.028 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 1500.0,
+    BOX(-0.617, -0.587, -0.13, 0.13, -0.0295, -0.0265) },
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.0039, .joint = { -0.60, 0.0, -0.016 }, .m_max = 1.5, .f_max = 40.0, .k = 2000.0,
+    BOX(-0.650, -0.560, -0.002, 0.002, -0.016, 0.180) },
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.0015, .joint = { -0.650, 0.0, 0.08 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 1500.0,
+    BOX(-0.700, -0.650, -0.002, 0.002, -0.008, 0.160) },
+  /* 6, 7 the panels, 7 deg of dihedral, the straight trailing edge
+   * 0.096 m behind the CG, the leading edge sweeping back to the tip. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.0425, .joint = { -0.015, 0.013, -0.009 }, SHELL_SECTION(0.005), .m_max = 30.0, .m_max_z = SHELL_IN(30.0, 0.162, 0.010), .f_max = 400.0, .k = 1.0e4,
+    .npts = 8, .pts = { { 0.066, 0.013, -0.012 }, { -0.096, 0.013, -0.012 }, { -0.041, 0.745, 0.079 }, { -0.096, 0.745, 0.079 },
+                        { 0.066, 0.013, -0.002 }, { -0.096, 0.013, -0.006 }, { -0.041, 0.745, 0.083 }, { -0.096, 0.745, 0.081 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.0425, .joint = { -0.015, -0.013, -0.009 }, SHELL_SECTION(0.005), .m_max = 30.0, .m_max_z = SHELL_IN(30.0, 0.162, 0.010), .f_max = 400.0, .k = 1.0e4,
+    .npts = 8, .pts = { { 0.066, -0.013, -0.012 }, { -0.096, -0.013, -0.012 }, { -0.041, -0.745, 0.079 }, { -0.096, -0.745, 0.079 },
+                        { 0.066, -0.013, -0.002 }, { -0.096, -0.013, -0.006 }, { -0.041, -0.745, 0.083 }, { -0.096, -0.745, 0.081 } } },
+  /* 8, 9 the flaperons, a quarter of the chord from 0.08 to 0.70 m out. */
+  { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.006, .joint = { -0.075, 0.39, 0.035 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 1500.0,
+    BOX(-0.096, -0.056, 0.08, 0.70, -0.004, 0.080) },
+  { .kind = SIM_PART_AILERON, .parent = 7, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.006, .joint = { -0.075, -0.39, 0.035 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 1500.0,
+    BOX(-0.096, -0.056, -0.70, -0.08, -0.004, 0.080) },
+  /* 10 the 1S 350 in the nose, under the cone. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+    .mass = 0.015, .joint = { 0.20, 0.0, -0.032 }, .m_max = 1.0, .f_max = 30.0, .k = 3.0e5,
+    BOX(0.17, 0.235, -0.008, 0.008, -0.039, -0.025) },
+  /* 11 the nose cone, a slip fit. */
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { 0.19, 0.0, -0.026 }, .m_max = 0.3, .f_max = 8.0, .k = 2.0e4,
+    BOX(0.19, 0.259, -0.012, 0.012, -0.038, -0.014) },
 };
 
 /* ------------------------------------------------------------------------
