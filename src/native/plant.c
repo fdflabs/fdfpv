@@ -1551,6 +1551,43 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.4064, 0.0, -0.1567 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * OA Composites' NRJ discus launch glider, docs/DLG-STAGE1.md: Hyperflight's
+ * typical 213 g standard layup, on the 1S 350 mAh receiver pack they
+ * recommend, which is all it carries: there is no motor, no prop and no
+ * ESC. It is thrown and caught or landed on its belly, so the hull is what
+ * it rests on: the pod's belly 42 mm under the CG (src/render/dlgcraft.js
+ * DLG_DIMS), the wing's top 40 mm over it (the CG is over the wing's root:
+ * the dihedral carries the panels' mass up); 0.35 m fore and aft, the nose
+ * 0.26 m ahead and the tail 0.70 m behind, and 0.40 m across, which the
+ * dihedral lifts 0.05 m at its edge, the Radian's reasoning. The camera
+ * sits on the pod's nose, where a DLG's own would.
+ */
+[SIM_AIRFRAME_NRJ1490] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 0.213,
+  .inertia = { 0.01602, 0.00865, 0.02467 },
+  .gravity = 9.81,
+  .cells = 1.0,
+  .r_cell = 0.10,
+  .pack_c = 350.0 * 3.6,
+  .lvc = 0.0,
+  .rho = 1.225,
+  .prop_r = 0.0,
+  .spin = { 0.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.0, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.35,
+  .hull_hy = 0.40,
+  .hull_hz_down = 0.042,
+  .hull_hz_up = 0.04,
+  .contact_patch_r = 0.05,
+  .contact_arm_max = 0.72,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.16,
+  .camera_y = 0.0,
+  .camera_z = -0.002,
+  .fw = &FW_NRJ1490,
+},
 };
 
 /*

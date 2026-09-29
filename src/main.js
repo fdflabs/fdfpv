@@ -158,6 +158,7 @@ import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
+import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
@@ -177,6 +178,7 @@ const WING_MOUNTS = {
   edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
   extra1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
+  nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
@@ -3894,6 +3896,9 @@ export async function boot({
     if (airframeById(runAirframe).catapult) {
       return catapultLaunch(stNow);
     }
+    if (airframeById(runAirframe).discus) {
+      return discusLaunch(stNow);
+    }
     /* Into the hand first: a hull on the grass is held by friction the
      * moment it moves. Level, too: a wing that came to rest on a wingtip
      * is picked up before it is thrown. */
@@ -3951,6 +3956,85 @@ export async function boot({
     statePrev = stateCurr;
     notice = { text: str('main.catapulted_keep_it_flying'), untilMs: performance.now() + 2200 };
     return true;
+  }
+
+  /*
+   * THE DISCUS LAUNCH, on a glider thrown by its wingtip (airframes.js
+   * `discus`, the NRJ): L, or the throttle stick up, and the pilot picks
+   * it up where it lies, turns once with it by the peg and lets it go
+   * there, climbing, facing the way it faced (sim_wing_discus). The turn
+   * and the release are the plant's, so a replay throws the same throw.
+   * discusCue below says what is happening on the HUD: the spin, the
+   * release, and the height the launch reached at the top of the zoom.
+   * Where it was thrown from is where the pilot stands, which is where it
+   * can be caught.
+   */
+  let discusAt = null;
+  function discusLaunch(stNow) {
+    const yaw = Math.atan2(2 * (stNow[7] * stNow[10] + stNow[8] * stNow[9]), 1 - 2 * (stNow[9] * stNow[9] + stNow[10] * stNow[10]));
+    const ground = stNow[3] - REST_HEIGHT;
+    sim.e.sim_set_pose(stNow[1], stNow[2], stNow[3] + 1.2, Math.cos(yaw / 2), 0, 0, Math.sin(yaw / 2));
+    if (typeof sim.e.sim_wing_discus !== 'function' || sim.e.sim_wing_discus() !== SIM_OK) {
+      return false;
+    }
+    landed = false;
+    takingOff = false;
+    flownThisRun = true;
+    adoptSimClock();
+    stateCurr = readState();
+    statePrev = stateCurr;
+    discusAt = { x: stNow[1], y: stNow[2], ground, phase: 1, top: -Infinity, releasedMs: null };
+    notice = { text: str('main.discus_spin'), untilMs: performance.now() + 1200 };
+    return true;
+  }
+
+  /*
+   * The HUD's cue for the discus launch, every frame, from the plant's
+   * phase: the release, and the top of the zoom, where the launch preset
+   * lets go and the height the throw reached is said, which is the number
+   * a DLG pilot reads off the altimeter after every launch. And THE CATCH:
+   * back at the pilot, slow and at hand height, the glider is caught, and
+   * held there until the next throw.
+   */
+  const CATCH_REACH = 1.5;
+  const CATCH_LOW = 0.6;
+  const CATCH_HIGH = 2.3;
+  const CATCH_SPEED = 8;
+  const CATCH_AFTER_MS = 5000;
+  function discusCue(nowWall) {
+    if (!discusAt || !stateCurr || !airframeById(runAirframe).discus || typeof sim.e.sim_wing_discus_phase !== 'function') {
+      return;
+    }
+    const phase = sim.e.sim_wing_discus_phase();
+    const h = stateCurr[3] - discusAt.ground;
+    if (phase === 2 && discusAt.phase === 1) {
+      discusAt.releasedMs = nowWall;
+      const v = Math.hypot(stateCurr[4], stateCurr[5], stateCurr[6]);
+      notice = { text: str('main.discus_released', { speed: Math.round(v) }), untilMs: performance.now() + 1600 };
+    }
+    if (phase === 2) {
+      discusAt.top = Math.max(discusAt.top, h);
+    }
+    if (phase === 0 && discusAt.phase === 2) {
+      notice = { text: str('main.discus_top', { m: Math.round(Math.max(discusAt.top, h)) }), untilMs: performance.now() + 3000 };
+    }
+    discusAt.phase = phase;
+    if (phase !== 0 || landed || crashed || discusAt.releasedMs === null || nowWall - discusAt.releasedMs < CATCH_AFTER_MS) {
+      return;
+    }
+    const off = Math.hypot(stateCurr[1] - discusAt.x, stateCurr[2] - discusAt.y);
+    const v = Math.hypot(stateCurr[4], stateCurr[5], stateCurr[6]);
+    if (off <= CATCH_REACH && h >= CATCH_LOW && h <= CATCH_HIGH && v <= CATCH_SPEED) {
+      sim.rest();
+      landed = true;
+      takingOff = false;
+      adoptSimClock();
+      stateCurr = readState();
+      statePrev = stateCurr;
+      acc = 0;
+      discusAt.releasedMs = null;
+      notice = { text: str('main.discus_caught'), untilMs: performance.now() + 2200 };
+    }
   }
 
   /*
@@ -5335,6 +5419,17 @@ export async function boot({
     if (!af.fixedWing || typeof sim.e.sim_set_power !== 'function') {
       return;
     }
+    /* No power system at all (airframes.js `noMotor`, the DLG): the
+     * plant's own table, its receiver pack's cells, and the wind alone. */
+    if (!POWER[af.id]) {
+      const none = sim.clearPower();
+      if (none !== SIM_OK) {
+        throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(none)}`);
+      }
+      runCells = af.cells;
+      setFlownVoice(af.voice ?? 'wing');
+      return;
+    }
     const { option, pack } = powerChoice(af.id, s.power);
     /* The hangar's prop rides the power block; the stock prop leaves the
      * option's own block, or the table's, exactly as it was. */
@@ -5363,6 +5458,14 @@ export async function boot({
     const af = airframeById(runAirframe);
     smokeOn = false;
     if (!af.fixedWing || typeof sim.e.sim_set_addons !== 'function') {
+      return;
+    }
+    /* A plane with no power system has no hangar parts to fit either. */
+    if (!POWER[af.id]) {
+      const none = sim.clearAddons();
+      if (none !== SIM_OK) {
+        throw new Error(`sim_addons_clear refused on ${af.id}: ${simErrorName(none)}`);
+      }
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
@@ -11709,6 +11812,7 @@ export async function boot({
       shell.setGear(sim.e.sim_wing_gear());
     }
     poseBramorExtras();
+    discusCue(nowWall);
     roomFrame(nowWall, dt / 1000);
     /* The others as the room just drew them, into the row the crash cam
      * began above (src/replay/peers.js). */
@@ -13447,6 +13551,14 @@ export async function boot({
     /* The plant's own clock, s, so a probe times what the aircraft did on
      * the sim's time and not the page's, which headless runs slower. */
     simS: stateCurr ? stateCurr[0] : 0,
+    /* The plant's own position, its world frame (z up, the map's spawn at
+     * the origin facing +x), where its thermals are placed; the rising air
+     * there; the discus launch's phase; and the HUD's notice, so a probe
+     * can read what the pilot is told. */
+    plantPos: stateCurr ? { x: stateCurr[1], y: stateCurr[2], z: stateCurr[3] } : null,
+    airLift: stateCurr && typeof sim.e.sim_air_lift === 'function' ? sim.e.sim_air_lift(stateCurr[1], stateCurr[2], stateCurr[3]) : 0,
+    discusPhase: typeof sim.e.sim_wing_discus_phase === 'function' ? sim.e.sim_wing_discus_phase() : 0,
+    notice: notice ? notice.text : '',
     descentRate: lastDescent,
     tiltDeg: lastTiltDeg,
     lastHitKind,

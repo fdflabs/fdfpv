@@ -171,6 +171,9 @@ export const TABLE = {
     flightTime: { kind: 'timer', minutesLow: 4, minutesHigh: 7, note: 'E-flite, as the Timber on wheels', source: TIMBER_MANUAL },
   },
   bombshell1118: { simId: 11, massKg: 0.5599, cells: 3, rCell: 0.030, propIn: 7, cruiseMs: 8, flightTime: null },
+  /* No motor and no POWER entry: the NRJ's plant table, its 1S receiver
+   * pack, and its best glide for a cruise (docs/DLG-STAGE1.md). */
+  nrj1490: { simId: 21, massKg: 0.213, cells: 1, rCell: 0.10, propIn: 0, cruiseMs: 5.14, flightTime: null },
   edge1524: { simId: 13, massKg: 2.4948, cells: 6, rCell: 0.003, propIn: 16, cruiseMs: 22, flightTime: null },
   extra1308: {
     simId: 14, massKg: 1.51, cells: 4, rCell: 0.008, propIn: 13, cruiseMs: 15,

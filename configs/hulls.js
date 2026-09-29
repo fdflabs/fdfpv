@@ -423,4 +423,21 @@ export const HULLS = {
       { kind: 'antenna', mat: 'wire', min: [-0.04, 0, 0.025], max: [-0.04, 0, 0.075] },
     ],
   },
+  'nrj1490': {
+    mass: 0.21300000000000002,
+    parts: [
+      { kind: 'fuselage', mat: 'cf-plate', min: [-0.07, -0.013, -0.042], max: [0.19, 0.013, -0.012] },
+      { kind: 'boom', mat: 'cf-tube', min: [-0.7, -0.0045, -0.0245], max: [-0.07, 0.0045, -0.0155] },
+      { kind: 'hstab', mat: 'cf-plate', min: [-0.587, -0.15, -0.03], max: [-0.532, 0.15, -0.026] },
+      { kind: 'elevator', mat: 'cf-plate', min: [-0.617, -0.13, -0.0295], max: [-0.587, 0.13, -0.0265] },
+      { kind: 'fin', mat: 'cf-plate', min: [-0.65, -0.002, -0.016], max: [-0.56, 0.002, 0.18] },
+      { kind: 'rudder', mat: 'cf-plate', min: [-0.7, -0.002, -0.008], max: [-0.65, 0.002, 0.16] },
+      { kind: 'wing', mat: 'cf-plate', min: [-0.096, 0.013, -0.012], max: [0.066, 0.745, 0.083] },
+      { kind: 'wing', mat: 'cf-plate', min: [-0.096, -0.745, -0.012], max: [0.066, -0.013, 0.083] },
+      { kind: 'aileron', mat: 'cf-plate', min: [-0.096, 0.08, -0.004], max: [-0.056, 0.7, 0.08] },
+      { kind: 'aileron', mat: 'cf-plate', min: [-0.096, -0.7, -0.004], max: [-0.056, -0.08, 0.08] },
+      { kind: 'battery', mat: 'lipo', min: [0.17, -0.008, -0.039], max: [0.235, 0.008, -0.025] },
+      { kind: 'canopy', mat: 'pc', min: [0.19, -0.012, -0.038], max: [0.259, 0.012, -0.014] },
+    ],
+  },
 };

@@ -99,8 +99,14 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * no rudder, rolls fast and answers the smallest touch in pitch, but
  * before the Radian's thermals and the heavier machines, because it is
  * light, slow to stall, and slides in on its belly anywhere; Zagi sold it
- * to beginners as much as to combat pilots. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, radian2000: 5, bramor2300: 6, p51d1450: 7, extra1308: 8, edge1524: 9, f16878: 10 };
+ * to beginners as much as to combat pilots. The NRJ at 6, beside the
+ * Bramor: the Radian at 5 teaches the thermals with a motor to climb back
+ * on, and the discus launch glider takes the motor away. It is gentle to
+ * fly (docs/DLG-STAGE1.md) and hard to keep up, which is a soaring skill
+ * and not a stick one, so it sits after the Radian and ahead of the fast
+ * and the aerobatic. Shared rather than slotted in, so no plane a pilot
+ * already has goes back behind a lock. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, extra1308: 8, edge1524: 9, f16878: 10 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

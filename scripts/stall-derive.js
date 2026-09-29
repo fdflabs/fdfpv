@@ -243,6 +243,12 @@ planes.FW_UGLYSTIK1567 = {
   note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
 };
 
+/* OA Composites' NRJ, scripts/dlg-derive.js: the manual's 66 mm CG on
+ * the elliptic planform's mean chord, 0.1378 m, whose leading edge is
+ * 24.5 mm behind the root's; the tail measured off Hyperflight's
+ * photograph. */
+planes.FW_NRJ1490 = tailed({ b: 1.49, S: 0.190, c: 0.1378, hCG: 0.301, Sh: 0.020, lh: 0.56, bh: 0.30 });
+
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
 function strips(chord) {
@@ -302,6 +308,9 @@ const STRIPS = {
   /* Constant chord; the raked tips over the outer 2.9 of 30.9 in are left
    * out, as the Kadet's rounding is. */
   FW_UGLYSTIK1567: strips(rect),
+  /* The NRJ's elliptic chord, the tips' last few millimetres of rounding
+   * left out. */
+  FW_NRJ1490: strips((eta) => Math.sqrt(1 - eta * eta)),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -354,6 +363,11 @@ const SECTION = {
    * on its 0.33 m chord): the NACA 2415's at 2e5, the thick section here
    * that stalls from the trailing edge, held +4.2 deg then 0.76. */
   FW_UGLYSTIK1567: { sec: 'NACA 2415 at 2e5', top: 4.2, k: 0.76 },
+  /* A 6 percent F3K section at 5e4, thinner than the SD7037 (9.2
+   * percent), which at 6e4 holds 1.8 deg: a thin section's bubble bursts
+   * at its leading edge, so ESTIMATED sharper, held 1 deg and falling to
+   * 0.80. No UIUC section this thin was tested at this Reynolds number. */
+  FW_NRJ1490: { sec: '6 percent F3K section at 5e4, ESTIMATED', top: 1.0, k: 0.80 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

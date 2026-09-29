@@ -54,6 +54,7 @@ import {
   tuneBlock, tuningFor,
 } from '../../configs/tuning.js';
 import { TABLE, powerCells, powerOption, powerParams } from '../../configs/power.js';
+import { airframeById } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
 
 const SECTIONS = ['balance', 'rates', 'stand'];
@@ -199,10 +200,15 @@ function segmented(h, { key, items, on, focus, pick }) {
   return row;
 }
 
+/* A glider with no motor (airframes.js `noMotor`) has no bench to run. */
+function sectionsFor(id) {
+  return airframeById(id).noMotor ? SECTIONS.filter((s) => s !== 'stand') : SECTIONS;
+}
+
 function sectionNav(h) {
   const nav = segmented(h, {
     key: 'tuning',
-    items: SECTIONS.map((s) => ({ id: s, label: str(`tuning.section.${s}`) })),
+    items: sectionsFor(T.id).map((s) => ({ id: s, label: str(`tuning.section.${s}`) })),
     on: T.section,
     focus: FOCUS[T.section],
     pick: (s) => {
