@@ -4226,12 +4226,15 @@ typedef struct {
 
 typedef struct {
   double x, y, z0, tr, cz0, cz1, cr;
+  int ncl; /* clumps in CL[its index], 0 for a crown that is its cylinder */
 } Tree;
 
 static Obstacle OB[SIM_OBSTACLES_MAX];
 static int g_nob = 0;
 static Tree TR[SIM_TREES_MAX];
 static int g_ntr = 0;
+/* Each tree's clumps, x y z r, plant frame (sim_tree_clump_add). */
+static double CL[SIM_TREES_MAX][SIM_TREE_CLUMPS_MAX][4];
 
 static int finite(double x) {
   return x == x && x - x == 0.0;
@@ -4520,8 +4523,43 @@ SIM_EXPORT int sim_tree_add(double x, double y, double z0, double trunk_r,
   t->cz0 = crown_z0;
   t->cz1 = crown_z1;
   t->cr = crown_r;
+  t->ncl = 0;
   g_ntr += 1;
   return g_ntr - 1;
+}
+
+SIM_EXPORT int sim_tree_clump_add(int tree, double x, double y, double z, double r) {
+  if (tree < 0 || tree >= g_ntr || !finite(x) || !finite(y) || !finite(z) || !finite(r) || !(r > 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  Tree *t = &TR[tree];
+  if (t->ncl == SIM_TREE_CLUMPS_MAX) {
+    return SIM_ERR_BAD_STATE;
+  }
+  double *c = CL[tree][t->ncl];
+  c[0] = x;
+  c[1] = y;
+  c[2] = z;
+  c[3] = r;
+  t->ncl += 1;
+  return SIM_OK;
+}
+
+/* Whether a point already inside tree k's cylinder is in its leaves: in
+ * one of its clumps, or anywhere in a crown that has none. */
+static int crown_leaves(int k, const double p[3]) {
+  const Tree *tr = &TR[k];
+  if (tr->ncl == 0) {
+    return 1;
+  }
+  for (int j = 0; j < tr->ncl; j += 1) {
+    const double *c = CL[k][j];
+    const double dx = p[0] - c[0], dy = p[1] - c[1], dz = p[2] - c[2];
+    if (dx * dx + dy * dy + dz * dz < c[3] * c[3]) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 /* A world point inside an obstacle: the way out (normal) and how deep. */
@@ -5212,7 +5250,7 @@ static void craft_crowns(SimState *s) {
         qrot(s->quat, pl, r);
         const double p[3] = { s->pos[0] + r[0], s->pos[1] + r[1], s->pos[2] + r[2] };
         const double ex = p[0] - tr->x, ey = p[1] - tr->y;
-        if (ex * ex + ey * ey > tr->cr * tr->cr || p[2] < tr->cz0 || p[2] > tr->cz1) {
+        if (ex * ex + ey * ey > tr->cr * tr->cr || p[2] < tr->cz0 || p[2] > tr->cz1 || !crown_leaves(c, p)) {
           continue;
         }
         in_part = 1;
@@ -5575,7 +5613,7 @@ static void fb_step(FreeBody *f, const SimState *s, int ground_on, const double 
         for (int a = 0; a < 3; a += 1) f->pos[a] += nrm[a] * pen * 0.2;
       }
       const double ex = p[0] - tr->x, ey = p[1] - tr->y;
-      if (ex * ex + ey * ey < tr->cr * tr->cr && p[2] > tr->cz0 && p[2] < tr->cz1) {
+      if (ex * ex + ey * ey < tr->cr * tr->cr && p[2] > tr->cz0 && p[2] < tr->cz1 && crown_leaves(c, p)) {
         /* Twigs: drag on the point's share of its area, and a body that
          * has slowed in them stays. */
         const double share = f->cda / (double)f->npts;

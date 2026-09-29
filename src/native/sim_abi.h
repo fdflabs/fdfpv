@@ -1253,6 +1253,21 @@ int sim_tree_clear(void);
 int sim_tree_add(double x, double y, double z0, double trunk_r,
                  double crown_z0, double crown_z1, double crown_r);
 
+/*
+ * A CROWN OF CLUMPS. sim_tree_clump_add(tree, x, y, z, r): tree `tree`'s
+ * crown is leaves in clumps with air between them, and this is one, a
+ * sphere of radius r at (x, y, z), plant frame. A tree given clumps drags
+ * and holds only the parts inside one of them (and inside its cylinder,
+ * which stays the crown's bound); a tree given none is its whole cylinder,
+ * as before, which is a conifer's crown. At most SIM_TREE_CLUMPS_MAX a
+ * tree: a swiss2 broadleaf is drawn with 26 to 31. SIM_ERR_BAD_ARG for a
+ * tree not added since sim_tree_clear or a value not finite or r not
+ * positive, SIM_ERR_BAD_STATE past the most a tree holds. Additive ABI,
+ * version unchanged: a host that never calls it has the cylinders it had.
+ */
+#define SIM_TREE_CLUMPS_MAX 32
+int sim_tree_clump_add(int tree, double x, double y, double z, double r);
+
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);
 
