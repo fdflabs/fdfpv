@@ -77,7 +77,7 @@ import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import {
-  B, hold, key, leave, lookAlong, placeHere, takeMouse,
+  B, hold, leave, lookAlong, placeHere, saveKey, takeMouse,
 } from '../tests/lib/buildkeys.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
@@ -254,7 +254,7 @@ async function hangRing(page, types, R, offset) {
 
 /* Ctrl+S, and the builder's own word that it saved. */
 async function save(page) {
-  await key(page, 'KeyS', { ctrl: true });
+  await saveKey(page);
   await page.until(`/Saved/.test(${B('.message')})`, 10000).catch(() => {});
   return page.evaluate(B('.message'));
 }

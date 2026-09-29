@@ -85,6 +85,7 @@ const PLANES = {
   kadet: { sim: 12, Vs: 7.15, alphaStall: 1.15 / 5.029, rudder: true },
   edge: { sim: 13, Vs: 9.58, alphaStall: 0.90 / 4.797, rudder: true },
   f16: { sim: 16, Vs: 12.33, alphaStall: 1.1 / 3.310, rudder: true },
+  uglystik: { sim: 19, Vs: 9.48, alphaStall: 0.95 / 4.824, rudder: true },
   wot4: { sim: 20, Vs: 10.05, alphaStall: 1.098 / 4.752, rudder: true },
 };
 

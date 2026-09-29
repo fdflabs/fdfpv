@@ -230,6 +230,19 @@ planes.FW_F16878 = {
   note: 'a_w 3.142, a_t 2.644, V_H 0.294, deps/dalpha 0.647 (Nelson), its own arms',
 };
 
+/* The Ugly Stik, docs/UGLYSTIK-STAGE1.md and scripts/uglystik-derive.js:
+ * its own arms, the plan's CG 4.69 in behind the leading edge of the
+ * 13.68 in chord with its strip ailerons, 1.27 in behind the wing's
+ * aerodynamic centre, and the tail's share from the derivation's a_w, a_t,
+ * V_H and DATCOM's downwash. */
+planes.FW_UGLYSTIK1567 = {
+  arm_ac: 0.0991,
+  arm_cp: 0.0610,
+  dw: 0.9 * 0.435 * 3.880 * 0.416 / 4.427,
+  asym: TE_TOLERANCE / 0.3256,
+  note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
+};
+
 /* The Wot 4, docs/WOT4-STAGE1.md and scripts/wot4-derive.js: the
  * manual's 82 mm CG, 11 mm behind the constant chord's aerodynamic centre,
  * and the tail's share from the derivation's a_w, a_t, V_H and DATCOM's
@@ -298,6 +311,9 @@ const STRIPS = {
   /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
    * the tip; the strakes ahead of it are left out. */
   FW_F16878: strips(taper(0.201)),
+  /* Constant chord; the raked tips over the outer 2.9 of 30.9 in are left
+   * out, as the Kadet's rounding is. */
+  FW_UGLYSTIK1567: strips(rect),
   /* Constant chord; the rounded tips left out, as the Kadet's are. */
   FW_WOT41334: strips(rect),
 };
@@ -348,6 +364,10 @@ const SECTION = {
    * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,
    * to Freewing's 30 deg of alpha, then 0.8 of it. */
   FW_F16878: { sec: 'the strakes\' vortex, ESTIMATED', top: 10.0, k: 0.80 },
+  /* A 16 percent section within a percent of symmetric at 2.3e5 (10 m/s
+   * on its 0.33 m chord): the NACA 2415's at 2e5, the thick section here
+   * that stalls from the trailing edge, held +4.2 deg then 0.76. */
+  FW_UGLYSTIK1567: { sec: 'NACA 2415 at 2e5', top: 4.2, k: 0.76 },
   /* A semi-symmetrical sport section of about 14 percent at 1.8e5 (9.3
    * m/s on 0.285 m), the NACA 2415 standing for it: held +2.9 deg at 1e5
    * and +4.2 at 2e5, interpolated +3.94; 0.765 and 0.76 of the peak after,

@@ -116,12 +116,19 @@
 
 import * as THREE from 'three';
 import { str } from '../strings/index.js';
+import en from '../strings/en.js';
+import { readPilotName } from '../share/pilot.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { KINDS } from '../game/collide.js';
 import { ELEMENTS, KIND } from '../trackbuilder/elements.js';
-import { elementById, normalize, touch } from '../trackbuilder/model.js';
-import { listMapTracks, makeAutosaver, readMapAutosave, saveTrack } from '../trackbuilder/storage.js';
-import { TRACK_SYNC_EVENT } from '../share/cloud.js';
+import {
+  elementById, normalize, toPlain, touch,
+} from '../trackbuilder/model.js';
+import {
+  listMapTracks, loadMapTrack, makeAutosaver, readMapAutosave, readOnlineStates, saveTrack,
+} from '../trackbuilder/storage.js';
+import { TRACK_SYNC_EVENT, tracksConfigured } from '../share/cloud.js';
+import { TRACK_NAME_MAX } from '../../tracks-api/limits.js';
 import {
   colourTargetSide, disposeStandaloneGate, dressGate, lightTarget,
 } from '../render/scene.js';
@@ -130,7 +137,7 @@ import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
   CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, WING_FIRST, casualCourse, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, chainPose,
   createHistory, gateFlags, gateSpec, gizmoAxes, isHoop, makeStart, newCourse, offeredPiece, openingsOf, orderOf, pieceById, pieceGate, pieceOf,
-  poseOf, raceGatesOf, readoutFor, removeGate, restoreHotbar, scoringOf, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
+  poseOf, raceGatesOf, readoutFor, removeGate, restoreHotbar, createSaveMark, saveState, scoringOf, trackNameFor, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
 import { craftLimits, lineWarnings, openingBlocked, racingLine } from './line.js';
 import { createHud } from './hud.js';
@@ -431,6 +438,11 @@ export function createBuildMode(host) {
   let hud = null;
   let icons = new Map();
   let hudText = '';
+  /* The Save button's state is read out of local storage only when
+   * something it depends on changed: the track, an edit, an upload. */
+  let syncCount = 0;
+  let saveKey = '';
+  const saveMark = createSaveMark();
   let dressKey = '';
   let hidden = [];
   /* The view's own course, put back after a test flight. */
@@ -1366,9 +1378,22 @@ export function createBuildMode(host) {
    * are all built again from the document as it is. */
   function commit(before) {
     history.record(before);
+    edited();
+    rebuildAll();
+  }
+
+  /* The document changed: a new revision for the Save button, the time,
+   * and the autosave. */
+  function edited() {
+    saveMark.edited();
     touch(doc);
     autosave.schedule(doc);
-    rebuildAll();
+  }
+
+  /* A track put in the builder: saved if the library holds it as it is. */
+  function seatSaveMark() {
+    const lib = loadMapTrack(doc.id);
+    saveMark.seat(Boolean(lib) && JSON.stringify(toPlain(lib)) === JSON.stringify(toPlain(doc)));
   }
 
   /* The exact surface for the moment it matters: the crosshair's reading
@@ -1545,8 +1570,7 @@ export function createBuildMode(host) {
     doc = JSON.parse(to);
     carry = null;
     order = null;
-    touch(doc);
-    autosave.schedule(doc);
+    edited();
     rebuildAll();
     say(str(back ? 'build.undone' : 'build.redone'), 1400);
   }
@@ -1732,8 +1756,87 @@ export function createBuildMode(host) {
     }
   }
 
-  function save() {
-    say(saveTrack(doc) ? str('build.saved', { name: doc.name }) : str('build.save_failed'));
+  /*
+   * Ctrl S, the Save button and a pad's Start. Every saved track is public
+   * (cloud.js), so the FIRST save of a track still under the builder's
+   * placeholder name asks for one, in the dialog publish and Rename use;
+   * a blank answer takes a generated name, never the placeholder. Saves
+   * after the first do not ask: Rename on My tracks is for that.
+   */
+  let naming = false;
+  async function save() {
+    if (naming) {
+      return;
+    }
+    const d = doc;
+    if (!loadMapTrack(d.id) && untitled(d)) {
+      unlock();
+      naming = true;
+      let name = null;
+      try {
+        name = await askTrackName(generatedName());
+      } finally {
+        naming = false;
+      }
+      if (d !== doc || state !== 'building') {
+        return;
+      }
+      if (!name) {
+        say(str('build.save_cancelled'));
+        return;
+      }
+      d.name = name;
+    }
+    if (!saveTrack(d)) {
+      say(str('build.save_failed'));
+      return;
+    }
+    saveMark.saved();
+    say(str('build.saved', { name: d.name }));
+  }
+
+  /* The builder's placeholder, in the language it was made in: English or
+   * the one showing now. */
+  function untitled(d) {
+    const name = String(d.name || '').trim();
+    return !name || name === str('build.untitled') || name === en['build.untitled'];
+  }
+
+  function generatedName() {
+    const n = listMapTracks().length + 1;
+    const pilot = readPilotName();
+    return pilot ? str('build.auto_name', { pilot, n }) : str('build.auto_name_anon', { n });
+  }
+
+  /* The saves nobody pressed a key for, leaving the builder and N, do not
+   * stop to ask: they give a placeholder the generated name instead. */
+  function saveQuietly() {
+    if (!loadMapTrack(doc.id) && untitled(doc)) {
+      doc.name = generatedName();
+    }
+    if (saveTrack(doc)) {
+      saveMark.saved();
+    }
+  }
+
+  /* The name typed, cleaned the way the tracks server checks it, or null
+   * when the pilot cancelled. */
+  async function askTrackName(fallback) {
+    const values = await ui.askForm({
+      title: str('build.name_title'),
+      detail: str('build.name_detail'),
+      confirmLabel: str('ui.save'),
+      fields: [{
+        key: 'name',
+        label: str('main.track_name'),
+        value: '',
+        maxLength: TRACK_NAME_MAX,
+        placeholder: fallback,
+        rules: str('build.name_rules', { name: fallback }),
+        save: (raw) => trackNameFor(raw, fallback),
+      }],
+    });
+    return values ? values.name : null;
   }
 
   /*
@@ -1784,7 +1887,7 @@ export function createBuildMode(host) {
 
   function fresh() {
     if (doc.elements.length) {
-      saveTrack(doc);
+      saveQuietly();
     }
     adopt(newCourse(view.id, str('build.untitled')));
     say(str('build.new_track'));
@@ -1797,6 +1900,7 @@ export function createBuildMode(host) {
     carry = null;
     order = null;
     history.clear();
+    seatSaveMark();
     autosave.schedule(doc);
     rebuildAll();
   }
@@ -1836,6 +1940,7 @@ export function createBuildMode(host) {
     }
     const saved = next === undefined ? readMapAutosave(view.id) : null;
     doc = next || (saved ? saved.doc : newCourse(view.id, str('build.untitled')));
+    seatSaveMark();
     history.clear();
     root = new THREE.Group();
     root.name = 'build-track';
@@ -2053,7 +2158,7 @@ export function createBuildMode(host) {
     }
     const wasTesting = state === 'testing';
     if (state !== 'racing' && doc.elements.length) {
-      saveTrack(doc);
+      saveQuietly();
     }
     fromMenu = false;
     autosave.flush();
@@ -2268,6 +2373,7 @@ export function createBuildMode(host) {
    * this builder carries on editing (storage.js forkTrack).
    */
   window.addEventListener(TRACK_SYNC_EVENT, (e) => {
+    syncCount += 1;
     const d = e.detail || {};
     if (state === 'off' || !doc || d.id !== doc.id) {
       return;
@@ -2563,6 +2669,8 @@ export function createBuildMode(host) {
     if (on && !hud) {
       hud = createHud({
         onSlot: (i) => setSlot(i),
+        /* The very save Ctrl S and a pad's Start make. */
+        onSave: save,
         onAssign: (id, i) => {
           const at = i >= 0 ? i : slot;
           hotbar[at] = id;
@@ -2630,6 +2738,23 @@ export function createBuildMode(host) {
     };
   }
 
+  function paintSave() {
+    const key = `${doc.id}|${saveMark.key}|${doc.name}|${syncCount}|${str('build.save_button')}`;
+    if (key === saveKey) {
+      return;
+    }
+    saveKey = key;
+    const mark = saveState(saveMark.dirty, tracksConfigured(), readOnlineStates()[doc.id]);
+    hud.setSave({
+      label: str('build.save_button'),
+      key: str('build.save_key'),
+      tip: str('build.save_tip'),
+      name: doc.name,
+      state: mark,
+      text: str(`build.save_${mark}`),
+    });
+  }
+
   function updateHud() {
     if (!hud) {
       return;
@@ -2674,6 +2799,7 @@ export function createBuildMode(host) {
     if (message.text && performance.now() < message.until) {
       lines.push(message.text);
     }
+    paintSave();
     const s = statusLine();
     hud.setPanel(lines.join('\n'));
     hud.setStatus(s.text, Boolean(s.warn));
@@ -2861,8 +2987,7 @@ export function createBuildMode(host) {
     library: () => (view ? listMapTracks(view.id).map((d) => ({ id: d.id, name: d.name, gates: d.sequence.length })) : []),
     rename(name) {
       doc.name = String(name);
-      touch(doc);
-      autosave.schedule(doc);
+      edited();
       return doc.name;
     },
   };

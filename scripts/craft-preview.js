@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|edge|f16|wot4] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|edge|f16|zagi|wot4] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -164,6 +164,25 @@ const BRAMOR_VIEWS = [
   ['chute-down', NEUTRAL, [-60, 30, 6.0, 0, 0, 1.0], false, false, 0, 'window.__preview.chute(1, true)'],
   ['launcher', NEUTRAL, [-110, 12, 7.0, 0, 0.6, 1.2], false, false, 0, 'window.__preview.launcher(true)'],
   ['launcher-front', NEUTRAL, [-25, 10, 6.0, 0, 0.8, 0.6], false, false, 0, 'window.__preview.launcher(true)'],
+];
+
+/*
+ * The Zagi's own set: a 48 in wing, its nose at z = -0.20 and its winglets'
+ * tops at +0.27, the elevons, the pusher behind the bay and the belly it
+ * rests on.
+ */
+const ZAGI_VIEWS = [
+  ['front', NEUTRAL, [0, 4, 3.0, 0, 0, 0]],
+  ['three-quarter', NEUTRAL, [-140, 28, 2.8, 0, 0, 0.05]],
+  ['three-quarter-front', NEUTRAL, [-35, 25, 2.8, 0, 0, 0]],
+  ['side', NEUTRAL, [90, 0, 2.2, 0, 0, 0.03]],
+  ['side-rest', NEUTRAL, [90, 2, 2.2, 0, 0, 0.03], false, true],
+  ['top', NEUTRAL, [0, 90, 3.0, 0, 0, 0.03]],
+  ['below', NEUTRAL, [0, -90, 3.0, 0, 0, 0.03]],
+  ['deflected-rear', B_DEFLECT, [180, 12, 2.6, 0, 0, 0.05]],
+  ['nose-close', NEUTRAL, [-30, 18, 0.8, 0, 0.0, -0.12]],
+  ['tail-close', NEUTRAL, [-150, 22, 0.9, 0, 0.03, 0.10]],
+  ['winglet', NEUTRAL, [-110, 15, 0.9, 0.55, 0.05, 0.18]],
 ];
 
 /*
@@ -411,6 +430,7 @@ try {
     edge: EDGE_VIEWS,
     wot4: WOT4_VIEWS,
     f16: F16_VIEWS,
+    zagi: ZAGI_VIEWS,
     p51: P51_VIEWS,
     timberf: floatViews(-0.33, 0.62), cubf: floatViews(-0.26, 0.55),
   }[craft] ?? VIEWS;
@@ -452,6 +472,10 @@ try {
       ['elevator', [0, 0, FULL, 0], up],
       ['rudder-left', [0, 0, 0, FULL], left],
       ['rudder-right', [0, 0, 0, FULL], left],
+    ],
+    zagi: [
+      ['elevon-left', [FULL, 0, 0, 0], up],
+      ['elevon-right', [0, FULL, 0, 0], up],
     ],
     bramor: [
       ['elevon-left', [FULL, 0, 0, 0], up],
@@ -547,7 +571,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet', 'p51', 'edge', 'f16', 'wot4'].includes(craft)) {
+  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet', 'p51', 'edge', 'f16', 'zagi', 'wot4'].includes(craft)) {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
