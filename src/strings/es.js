@@ -2733,4 +2733,10 @@ export default {
   "war.where.reservoir_surface": "SOBRE EL EMBALSE",
   "war.where.reservoir_jam": "SOBRE EL EMBALSE, AL ESTE",
   "war.where.gorge": "SUBIENDO POR EL CAÑÓN",
+  "war.intro.defend": "DEFENDER ITAIPU",
+  "war.intro.mission": "Misión {n}",
+  "war.intro.skip": "Cualquier tecla para saltar",
+  "war.intro.briefing": "Instrucciones: {s} s",
+  "war.intro.music": "Música: \"Cinematic Suspense Trailer\" de Gregor Quendel (www.gregorquendel.com), CC BY 4.0",
+  "war.intro.watch": "Ver introducción",
 };

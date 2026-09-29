@@ -2729,4 +2729,10 @@ export default {
   "war.where.reservoir_surface": "ON THE RESERVOIR",
   "war.where.reservoir_jam": "ON THE RESERVOIR, EAST",
   "war.where.gorge": "UP THE GORGE",
+  "war.intro.defend": "DEFEND ITAIPU",
+  "war.intro.mission": "Mission {n}",
+  "war.intro.skip": "Any key to skip",
+  "war.intro.briefing": "Briefing: {s} s",
+  "war.intro.music": "Music: \"Cinematic Suspense Trailer\" by Gregor Quendel (www.gregorquendel.com), CC BY 4.0",
+  "war.intro.watch": "Watch intro",
 };
