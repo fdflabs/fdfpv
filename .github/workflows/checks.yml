@@ -81,6 +81,7 @@ jobs:
       - run: npm run crash:handoff
       - run: npm run crashcam:selftest
       - run: npm run edit:selftest
+      - run: npm run export:selftest
       - run: npm run link:selftest
       - run: npm run music:selftest
       - run: npm run test:edge

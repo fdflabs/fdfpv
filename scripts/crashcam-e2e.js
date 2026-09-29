@@ -13,9 +13,10 @@
  *  2. V opens the editor; the plant stops. A scrub; slow motion; the
  *     follow camera on the wing; two cuts (K), the last shot pushed in; a
  *     PNG; the replay saved to My clips with its three shots, a range of an
- *     odd number of frames on purpose. (The movie export is checked by
- *     npm run export:check, and the frame loop that drives it by
- *     npm run edit:play.)
+ *     odd number of frames on purpose; C and Enter export the range as a
+ *     movie holding every frame of its plan. (The movie file itself is
+ *     checked by npm run export:check, and the frame loop that drives it
+ *     by npm run edit:play.)
  *  3. TAKE OVER at a frame after the wing came off and before the crash:
  *     the plant's state hash after the restore is the one the frame
  *     recorded, and the craft flies on from there.
@@ -355,6 +356,16 @@ async function main() {
       await page.tap('KeyO');
     }
     const rangeFrames = await page.evaluate(`${H}.api.rangeFrames()`);
+    /* The movie of that range, the way the pilot makes one: C opens the
+     * dialog, Enter exports with its defaults (src/replay/export.js). */
+    await page.tap('KeyC');
+    await page.until("(() => { const b = document.querySelector('.cc-export .cc-btn.primary'); return b && !b.disabled && !b.closest('.cc-modal').hidden; })()", 20000);
+    await page.tap('Enter');
+    await page.until('window.__crashCamLast && window.__crashCamLast.movie', 600000);
+    const movie = await page.evaluate('window.__crashCamLast.movie');
+    const movieFrames = await page.evaluate(`${H}.plan().n`);
+    check('C then Enter: a movie of the range, every frame of its plan', movie.size > 1000 && /^video\//.test(movie.type) && movie.frames === movieFrames,
+      `${movie.name}, ${movie.frames} frames, ${movie.size} bytes ${movie.type}`);
     await page.tap('KeyG');
     await page.until(`${H}.api.listClips().then((l) => l.length > 0)`, 20000);
     const saved = await page.evaluate(`${H}.api.listClips()`);

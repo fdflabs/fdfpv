@@ -974,8 +974,11 @@ export async function boot({
   window.addEventListener('resize', () => {
     resizeDirty = true;
   });
+  /* The movie export's surface while one is set, else null: see
+   * setExportSurface. A resize waits for it to go. */
+  let exportShot = null;
   function applyResizeIfDirty() {
-    if (!resizeDirty) {
+    if (!resizeDirty || exportShot) {
       return;
     }
     resizeDirty = false;
@@ -1003,6 +1006,39 @@ export async function boot({
     if (view && view.post && mapReady) {
       view.post.setSize(d.w, d.h);
     }
+  }
+  /*
+   * THE MOVIE EXPORT DRAWS AT THE MOVIE'S SIZE, NOT THE WINDOW'S.
+   *
+   * src/replay/export.js takes each frame off this canvas, so for an export
+   * the drawing buffer is w x h exactly (pixel ratio 1) while the page keeps
+   * its CSS size, and the world's own clock (grass, water) is the movie's:
+   * clock() is the movie time of the frame being drawn, so a frame held
+   * while the encoder catches up does not move the grass. Returns the
+   * restore, which re-applies the window's size and ratio, and any resize
+   * that arrived meanwhile.
+   */
+  function setExportSurface(w, h, clock) {
+    if (exportShot) {
+      throw new Error('an export surface is already set');
+    }
+    exportShot = { clock, wind0: performance.now() * 0.001, waves0: renderSimT };
+    shell.pixelRatio = 1;
+    shell.renderer.setPixelRatio(1);
+    shell.renderer.setSize(w, h, false);
+    shell.camera.aspect = w / h;
+    shell.camera.updateProjectionMatrix();
+    if (view && view.post && mapReady) {
+      view.post.setSize(w, h);
+    }
+    return () => {
+      if (!exportShot) {
+        return;
+      }
+      exportShot = null;
+      resizeDirty = true;
+      applyResizeIfDirty();
+    };
   }
   const audio = new MotorAudio();
   audio.music.onChange = (st) => {
@@ -8112,7 +8148,8 @@ export async function boot({
     if (view && view.post && view.post.userScale != null) {
       view.post.userScale = userScale;
     }
-    if (shell.pixelRatio !== wantPr || userChanged) {
+    /* An export surface re-applies the settings' size when it goes. */
+    if (!exportShot && (shell.pixelRatio !== wantPr || userChanged)) {
       if (shell.pixelRatio !== wantPr) {
         applyPixelRatio(shell, s.graphics, userScale);
       }
@@ -12374,10 +12411,10 @@ export async function boot({
       const wash = (mode === 'title' || mode === 'results')
         ? 0.85
         : Math.min(1.3, meanRpm / 9000);
-      view.updateWind(nowWall * 0.001, focus, wash);
+      view.updateWind(exportShot ? exportShot.wind0 + exportShot.clock() : nowWall * 0.001, focus, wash);
       showWaves();
       if (view.updateWaves) {
-        view.updateWaves(renderSimT, craftOnWater());
+        view.updateWaves(exportShot ? exportShot.waves0 + exportShot.clock() : renderSimT, craftOnWater());
       }
     }
     /* info is accumulated across the whole frame (prepass, shadow map,
@@ -12394,7 +12431,8 @@ export async function boot({
      */
     const capHz = Number(ui.settings.fpsCap) || 0;
     let drawThis = !harnessNoDraw;
-    if (capHz > 0 && worldLive) {
+    /* An export draws every iteration: the movie's frame rate is its own. */
+    if (capHz > 0 && worldLive && !exportShot) {
       if (nowWall - capLastDraw < 1000 / capHz - 1.0) {
         drawThis = false;
       } else {
@@ -14810,6 +14848,7 @@ export async function boot({
     ground: pieceGround,
     scene: () => shell.quad.parent,
     takeOver: replayTakeOver,
+    exportSurface: setExportSurface,
     swapMap,
     knownAirframe: (id) => AIRFRAMES.some((a) => a.id === id),
     knownMap: (id) => MAPS.some((m) => m.id === id),
@@ -14838,6 +14877,7 @@ export async function boot({
     live: () => crashCam.live,
     setRecording: (on) => crashCam.setRecording(on),
     h: () => crashCam.harness(),
+    exportSurface: setExportSurface,
   };
   requestAnimationFrame(frame);
   /* A map track seated before this page loaded (a board link, or the Track
