@@ -1,5 +1,7 @@
 # fdfpv-rooms.service: the rooms server (edge/rooms/node.js) on the VM.
-# Installed into /etc/systemd/system by deploy/vm/deploy.sh.
+# Installed into /etc/systemd/system by deploy/vm/deploy.sh. ADMIN_SECRET,
+# the key to GET /v2/admin/health (edge/rooms/health.js), is the tracks
+# server's, from the same root only file: one secret for the owner to hold.
 #
 # This file is part of WebFPVSimulator.
 #
@@ -26,6 +28,7 @@ User=fdfpv-rooms
 Group=fdfpv-rooms
 WorkingDirectory=/opt/fdfpv
 Environment=HOST=127.0.0.1 PORT=8797 PUBLIC_ROOMS=on ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db
+EnvironmentFile=/etc/fdfpv/tracks.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
 # start; the journal does not need to hear it.
 ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 edge/rooms/node.js

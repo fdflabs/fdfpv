@@ -121,11 +121,19 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
     return [heading, ...rows];
   }
 
+  /* While the server is full it makes no new public room, so a quick join
+   * with no room of this world to land in is said, not tried. */
+  function quickRow(world) {
+    const seat = (list.rooms() || []).some((r) => r.map === here() && r.n < r.cap);
+    if (list.busy() && !seat) {
+      return { label: str('roombrowser.quick'), value: world, note: str('roombrowser.busy'), info: true };
+    }
+    return { label: str('roombrowser.quick'), value: world, note: str('roombrowser.quick_note', { world }), action: 'friends-quick' };
+  }
+
   function browserRows() {
     const world = mapById(here()).name;
-    const quick = list.open() === false ? [] : [{
-      label: str('roombrowser.quick'), value: world, note: str('roombrowser.quick_note', { world }), action: 'friends-quick',
-    }];
+    const quick = list.open() === false ? [] : [quickRow(world)];
     return [
       ...listRows(),
       { label: str('roombrowser.more_section'), section: true },
@@ -182,7 +190,7 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
         }),
       {
         label: str(busy ? 'roombrowser.making' : 'roombrowser.make'),
-        note: error || str(draft.public ? 'roombrowser.make_public_note' : 'roombrowser.make_private_note'),
+        note: error || str(draft.public ? (list.busy() ? 'roombrowser.busy' : 'roombrowser.make_public_note') : 'roombrowser.make_private_note'),
         action: 'friends-make',
         primary: true,
       },
@@ -233,7 +241,7 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
       link.join(code);
       ui.show('friends');
     } catch (e) {
-      error = str(e.message === 'name' ? 'roombrowser.bad_name' : 'roombrowser.make_failed');
+      error = str(e.message === 'name' ? 'roombrowser.bad_name' : e.message === 'busy' ? 'roombrowser.busy' : 'roombrowser.make_failed');
     }
     busy = false;
     ui.refreshFriends();

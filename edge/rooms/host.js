@@ -143,7 +143,9 @@ export class RoomHost {
     const open = body.public === true;
     await this.ctx.storage.put('meta', {
       code: body.code,
-      cap: open ? PUBLIC_CAP : PRIVATE_CAP,
+      /* ROOM_CAP is rooms:load's, to measure rooms past the public cap on
+       * a server of its own (node.js startRooms); nothing deployed sets it. */
+      cap: this.env.ROOM_CAP || (open ? PUBLIC_CAP : PRIVATE_CAP),
       friendly: Boolean(body.friendly),
       map: body.map,
       epoch: Date.now(),

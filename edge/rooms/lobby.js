@@ -147,7 +147,8 @@ export class LobbyBook {
    * seat, the older of two as busy; or, when there is none, `fresh`, a new
    * code the caller must make the room for, booked here first so the
    * joiners right behind this one land in it rather than each making
-   * their own. null when the map cannot be had.
+   * their own. null when the map cannot be had, or when there is no room
+   * with a seat and `fresh` is null (the server is busy, front.js).
    */
   quick(map, now, fresh) {
     if (!MAP_RE.test(map)) {
@@ -170,7 +171,7 @@ export class LobbyBook {
       best.pending.push(now);
       return { code: best.code, fresh: false };
     }
-    if (Object.keys(this.rooms).length >= MAX_ROOMS) {
+    if (!fresh || Object.keys(this.rooms).length >= MAX_ROOMS) {
       return null;
     }
     /* No pick yet, so not listed until the room made for it reports. */
