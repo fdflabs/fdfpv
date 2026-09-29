@@ -1222,6 +1222,63 @@ export const AIRFRAMES = [
       bodyHeight: 0.405,
     },
   },
+  {
+    /*
+     * The Ripmax Wot 4 Mk2 ARTF, docs/WOT4-STAGE1.md: Chris Foss's club
+     * sport aerobat, the UK's answer to the Ugly Stik, 2.27 kg on Foss's
+     * own electric conversion (an AXI 4120/14 and an APC 13 x 8 on 4S),
+     * simId 20 on the fixed wing plant. A flat constant chord wing on top
+     * of a slab sided box, strip ailerons, a big rudder, the ARTF manual's
+     * throws: it rolls crisply, loops big, mushes wings level when it
+     * stalls, spins on the rudder and stops when let go. A taildragger on
+     * an aluminium strap; `gear` is the plant's settled pose, which the
+     * drawn wheels in src/render/wot4craft.js match: the CG 0.2127 m over
+     * the ground and 12.56 degrees nose up.
+     */
+    id: 'wot41334',
+    simId: 20,
+    fixedWing: true,
+    /* Clean stall, m/s, sqrt(2W / rho S CLmax): tests/wot4-thresholds.json w2_stall. */
+    stall: 9.32,
+    /* Level speed at full throttle, m/s: tests/wot4-thresholds.json w4_top, derived. */
+    topSpeed: 23.59,
+    gear: { restHeight: 0.2127, restPitch: 12.56 * Math.PI / 180 },
+    name: 'Wot 4',
+    short: 'Wot 4',
+    blurb: 'A 1334 mm Ripmax Wot 4 Mk2, Chris Foss\'s club sport aerobat, on his electric conversion: 4S and a 13 x 8, one and a half times its weight in thrust. It does everything well and forgives mistakes: crisp rolls, big loops, a stall that mushes wings level, a spin that stops when you let go. A taildragger with a big rudder.',
+    facts: ['4S', '1334 mm', 'Sport aerobat'],
+    sizeMm: 1334,
+    grams: 2268,
+    trackClass: 'wing',
+    cells: 4,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'wot4-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine, src/render/wot4craft.js WOT4_DIMS: the furthest
+     * reach in plan is the rudder's trailing edge, 0.833 m aft, further
+     * than the tips' 0.667; the lowest drawn point the wheels' and the
+     * highest the fin's top. */
+    dims: {
+      arm: 0,
+      propR: 0.1651,
+      hullR: 0.833,
+      vHalfDown: 0.23375,
+      vHalfUp: 0.258,
+      bodyLength: 1.163,
+      bodyWidth: 1.334,
+      bodyHeight: 0.49175,
+    },
+  },
 ];
 
 

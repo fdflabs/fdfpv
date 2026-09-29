@@ -102,6 +102,7 @@ const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
 const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
+const WOT4_MANUAL = 'https://web.archive.org/web/20240712155211id_/http://www.ripmax.com/Instructions/a-cf002-elp.pdf';
 const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
@@ -218,6 +219,13 @@ export const TUNING = {
     cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
     packKg: 0.27, nose: 0.26, tail: -0.83,
     throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
+    flaps: null,
+  },
+  wot41334: {
+    chord: 0.2853, area: 0.38064, margin: 0.159,
+    cg: { mm: 82, datum: 'tuning.datum.root_le', range: null, source: `Ripmax Wot 4 Mk2 manual p. 21, "82mm (3-1/4") back from the leading edge of the wing at the root", no range; ${WOT4_MANUAL}` },
+    packKg: 0.40, nose: 0.26, tail: -0.78,
+    throws: { high: [12.08, 15.26, 30.37], low: [8.02, 9.08, 30.37], source: `Ripmax Wot 4 Mk2 manual p. 21, "each measured at the widest point of the surface": ailerons 6 to 9 mm, elevator 9 to 15 mm, rudder 45 mm, on the 43, 57 and 89 mm surfaces (docs/WOT4-STAGE1.md); the top of each range high, the bottom low; ${WOT4_MANUAL}` },
     flaps: null,
   },
   f16878: {

@@ -9,7 +9,7 @@
  * surfaces at full throw, and prints what the model costs in draws and
  * triangles.
  *
- *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|edge|f16] [outDir] [--lite]
+ *   node scripts/craft-preview.js [sky|cub|glider|bramor|stick|timber|timberf|cubf|bombshell|kadet|p51|edge|f16|wot4] [outDir] [--lite]
  *
  * Pictures go to outDir, by default a directory under the system temp,
  * and are not committed (CLAUDE.md).
@@ -268,6 +268,27 @@ const EDGE_VIEWS = [
 ];
 
 /*
+ * The Wot 4's own set: its spinner at z = -0.33, its rudder at +0.83, on
+ * its tailwheel, the bands of its scheme from above and the side.
+ */
+const WOT4_VIEWS = [
+  ['front', NEUTRAL, [0, 4, 3.6, 0, 0, 0]],
+  ['three-quarter', NEUTRAL, [-140, 24, 3.2, 0, 0, 0.2]],
+  ['three-quarter-front', NEUTRAL, [-35, 20, 3.2, 0, 0, 0.1]],
+  ['side', NEUTRAL, [90, 0, 3.2, 0, 0, 0.2]],
+  ['side-rest', NEUTRAL, [90, 3, 3.2, 0, 0, 0.2], false, true],
+  ['three-quarter-rest', NEUTRAL, [-45, 12, 2.8, 0, 0, 0.15], false, true],
+  ['top', NEUTRAL, [0, 90, 3.6, 0, 0, 0.2]],
+  ['below', NEUTRAL, [0, -90, 3.6, 0, 0, 0.2]],
+  ['deflected-three-quarter', DEFLECT, [-150, 25, 3.2, 0, 0, 0.2]],
+  ['deflected-rear', DEFLECT, [180, 12, 3.2, 0, 0, 0.2]],
+  ['cowl-close', NEUTRAL, [-40, 12, 1.0, 0, 0, -0.25]],
+  ['prop-blur', NEUTRAL, [-20, 10, 1.2, 0, 0, -0.35], true],
+  ['tail-close', DEFLECT, [-145, 20, 1.1, 0, 0.1, 0.7]],
+  ['gear-front', NEUTRAL, [0, -5, 1.4, 0, -0.15, -0.1]],
+];
+
+/*
  * The P-51's own set: its spinner at z = -0.43, its rudder at +0.83,
  * resting on three points, the gear up and on its way, the flaps down,
  * and the side the kit manual's view is drawn from.
@@ -388,6 +409,7 @@ try {
     bombshell: BOMBSHELL_VIEWS,
     kadet: KADET_VIEWS,
     edge: EDGE_VIEWS,
+    wot4: WOT4_VIEWS,
     f16: F16_VIEWS,
     p51: P51_VIEWS,
     timberf: floatViews(-0.33, 0.62), cubf: floatViews(-0.26, 0.55),
@@ -476,6 +498,13 @@ try {
       ['rudder', [0, 0, 0, FULL], left],
       ['tailwheel', [0, 0, 0, FULL], left],
     ],
+    wot4: [
+      ['aileron-left', [FULL, 0, 0, 0], up],
+      ['aileron-right', [0, FULL, 0, 0], up],
+      ['elevator', [0, 0, FULL, 0], up],
+      ['rudder', [0, 0, 0, FULL], left],
+      ['tailwheel', [0, 0, 0, FULL], left],
+    ],
     p51: [
       ['aileron-left', [FULL, 0, 0, 0], up],
       ['aileron-right', [0, FULL, 0, 0], up],
@@ -518,7 +547,7 @@ try {
     }
   }
   /* The published numbers against the drawn vertices, to 2 mm. */
-  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet', 'p51', 'edge', 'f16'].includes(craft)) {
+  if (['sky', 'cub', 'glider', 'bramor', 'stick', 'timber', 'timberf', 'cubf', 'bombshell', 'kadet', 'p51', 'edge', 'f16', 'wot4'].includes(craft)) {
     await page.evaluate('window.__preview.launcher(false); window.__preview.chute(0)');
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     await page.evaluate('window.__preview.prop(0)');
@@ -545,10 +574,10 @@ try {
    * spin: a blade pointing up must go right, +x, under a positive step of
    * the shell's spin, which is clockwise seen from the cockpit.
    */
-  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell' || craft === 'kadet' || craft === 'p51' || craft === 'edge' || craft === 'f16') {
+  if (craft === 'cub' || craft === 'stick' || craft === 'timber' || craft === 'bombshell' || craft === 'kadet' || craft === 'p51' || craft === 'edge' || craft === 'f16' || craft === 'wot4') {
     await page.evaluate('window.__preview.surfaces(0, 0, 0, 0)');
     const d = await page.evaluate('window.__preview.dims');
-    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black', kadet: 'kadet-tyres', edge: 'edge-tyres' }[craft];
+    const blackMesh = { cub: 'cub-black', stick: 'slowstick-black', timber: 'timber-tyres', bombshell: 'bombshell-black', kadet: 'kadet-tyres', edge: 'edge-tyres', wot4: 'wot4-tyres' }[craft];
     /* The P-51's and the F-16's mains are a mesh each, on their retract
      * pivots. */
     const mainMesh = (side) => (craft === 'p51' || craft === 'f16' ? `tyre-main-${side < 0 ? 'left' : 'right'}` : blackMesh);

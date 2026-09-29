@@ -143,6 +143,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             measures and the reach are both the rudder's, 1667 mm, and
  *             FMS's 1450 mm is held by craft-preview.js's half span row.
  *             src/render/p51craft.js draws it.
+ *   wot41334  the Ripmax Wot 4 Mk2, 1334 mm, whose big rudder's trailing
+ *             edge, 0.833 m aft of the CG (Ripmax's 1185 mm length and
+ *             the cover's side view), reaches further than its tips,
+ *             0.667 m out, so the width this file measures and the reach
+ *             are both the rudder's, 1666 mm, and Ripmax's 1334 mm is held
+ *             by craft-preview.js's half span row. src/render/wot4craft.js
+ *             draws it.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -167,6 +174,7 @@ const REAL = {
   edge1524: { spanMm: 1930.4, sweepMm: 1930.4, tolMm: 6 },
   extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
+  wot41334: { spanMm: 1666.0, sweepMm: 1666.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

@@ -178,6 +178,7 @@ export const TABLE = {
     simId: 12, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 10,
     flightTime: { kind: 'mixed', minutesLow: 19.4, minutesHigh: 19.4, note: "O.S.'s 'around 12 minutes' on 220 cc for the FSa-56II, the FS-52S's successor, is 19.4 min on SIG's 355 cc", source: OS_56_MANUAL },
   },
+  wot41334: { simId: 20, massKg: 2.268, cells: 4, rCell: 0.005, propIn: 13, cruiseMs: 17.3, flightTime: { kind: 'mixed', minutesLow: 12, minutesHigh: 12, note: "Chris Foss's electric conversion: 'For typical Wot 4 spirited aerobatics expect a flight duration, per battery charge, of around 12 minutes' on the 4S 3700", source: 'https://www.dropbox.com/s/iskfu6w46a2y9ub/Wot4-Elec-Conv.pdf' } },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
@@ -539,6 +540,31 @@ const EXTRA = [
   },
 ];
 
+/* The Wot 4, docs/WOT4-STAGE1.md: Chris Foss's own electric conversion,
+ * "AXI 4120/14 brushless motor, or equivalent, and APC 13 x 8
+ * propeller", a "60 amp speed controller" and a "3700 mah 4 cell 14.8v
+ * Li-Poly battery"; AXI's 3,500 g of thrust and 55 A for the 4120/14 on
+ * 4S with a 13 x 8, the no load speed its 660 rpm/V times 3.7 V a cell.
+ * Foss names no pack's maker: the 3700 is Overlander's 4S 25C Sport, the
+ * UK club flyer's pack, 312 g; CNHL's 4S 4000 is the other. The pack slides on its carrier to the balance
+ * ("Adjust position of battery on carrier, as necessary"), so no pack
+ * shifts the CG. Ripmax's own recommendation for the ARTF, a Quantum II
+ * 40, publishes no figures found, so it is not offered. */
+const WOT4 = [
+  {
+    id: 'stock', name: 'power.wot4.stock', kind: 'electric', voice: 'wing',
+    kv: 660, propIn: 13, pitchIn: 8, blades: 2,
+    thrustN: 34.323, currentA: 55, rpmNoLoad: 9768, pitchSpeedMs: 28.119, lvcV: 3.0,
+    massKg: 2.268, cgShiftM: 0,
+    packs: [
+      lipo('4s3700', 4, 3700, 312, 'https://wheelspinmodels.co.uk/i/3700mah-4s-14.8v-25c-lipo-battery-overlander-262221/'),
+      lipo('4s4000', 4, 4000, 429, `${CNHL}cnhl-4000mah-14-8v-4s-40c-lipo-battery-with-xt90-plug`),
+    ],
+    pack: '4s3700',
+    source: ['https://www.dropbox.com/s/iskfu6w46a2y9ub/Wot4-Elec-Conv.pdf', 'https://www.modelmotors.cz/product/detail/272/'],
+  },
+];
+
 /* FMS's P-51D 1450, docs/P51-STAGE1.md: the 4250 540 kV on the 14 x 8
  * four blade and an 80 A ESC, FMS's one listing, on the 4S 2600 it
  * recommends (Dynam's 4S 2600 25C, 295 g, for the mass). The alternative
@@ -620,6 +646,7 @@ export const POWER = {
   extra1308: EXTRA,
   f16878: F16,
   p51d1450: P51,
+  wot41334: WOT4,
 };
 
 /* ------------------------------------------------------------------ */

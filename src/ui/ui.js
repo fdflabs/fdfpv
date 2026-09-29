@@ -2944,7 +2944,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'edge1524', 'extra1308', 'f16878'],
+    airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'p51d1450', 'edge1524', 'extra1308', 'f16878', 'wot41334'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
