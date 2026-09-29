@@ -90,6 +90,7 @@
     "waves:selftest": "node scripts/waves-selftest.js",
     "river:check": "node scripts/river-water-check.js",
     "river:page": "node scripts/river-page-check.js",
+    "grid:check": "node scripts/grid-check.js",
     "wing:math": "node scripts/wing-math-selftest.js",
     "wing:gates": "node scripts/wing-gates.js",
     "wing:record": "node scripts/wing-record.js",
