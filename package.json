@@ -171,6 +171,7 @@
     "builder:check": "node scripts/build-check.js",
     "builder:share": "node scripts/map-share-check.js",
     "builder:plane": "node scripts/map-plane-check.js",
+    "builder:save": "node scripts/build-save-check.js",
     "pick:selftest": "node scripts/craft-pick-selftest.js",
     "hotswap:check": "node scripts/hotswap-check.js",
     "hangar:check": "node scripts/hangar-check.js",

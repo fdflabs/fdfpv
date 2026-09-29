@@ -47,6 +47,8 @@ import { createElement, createMapTrack, elementById, newSequenceId } from '../tr
 import { BUILT_FRAME_TUBE_OD, gateScaleFor } from '../game/track.js';
 import { IN } from '../units.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../render/frame.js';
+import { badWordIn } from '../../tracks-api/words.js';
+import { TRACK_NAME_MAX } from '../../tracks-api/limits.js';
 
 /*
  * What can be placed. The field's aperture types that stand as one frame
@@ -1214,6 +1216,23 @@ export function createHistory(limit = 200) {
       return { undo: back.length, redo: ahead.length };
     },
   };
+}
+
+/*
+ * The name a track is saved under, from what the pilot typed: blank is
+ * `fallback`, and a name the tracks server would refuse (worker.js
+ * inspectTrackName: its length rule and the word filter) is '', so the
+ * dialog asks again instead of the upload failing later where nobody looks.
+ */
+export function trackNameFor(raw, fallback) {
+  const name = String(raw ?? '').trim().replace(/\s+/g, ' ');
+  if (!name) {
+    return fallback;
+  }
+  if (name.length > TRACK_NAME_MAX || /[\u0000-\u001f\u007f]/.test(name) || badWordIn(name)) {
+    return '';
+  }
+  return name;
 }
 
 /*

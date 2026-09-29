@@ -60,6 +60,13 @@
  * gate facing the wrong way round the lap, and a line too tight for a
  * wing.
  *
+ * The Save button (src/builder/hud.js, on a stand in DOM): it is on the
+ * builder's screen, a click on it is the builder's own save, the one Ctrl S
+ * and a pad's Start call, the name its first save asks for is checked by
+ * the tracks server's own rules, and what it says follows the save: not saved,
+ * saved in this browser, saved and waiting to go online, online, refused;
+ * and an edit after the save is not saved again.
+ *
  * The browser half, the builder itself in the real page, is
  * scripts/build-check.js.
  *
@@ -104,6 +111,10 @@ import {
   AIRFRAMES, BRAMOR_CATAPULT, airStartSpeed, airframeById,
 } from '../configs/airframes.js';
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../src/render/frame.js';
+import { readFileSync } from 'node:fs';
+import { createHud } from '../src/builder/hud.js';
+import { saveState, trackNameFor } from '../src/builder/course.js';
+import { badWordIn } from '../tracks-api/words.js';
 
 let failed = 0;
 let passed = 0;
@@ -1150,6 +1161,98 @@ console.log('the seat and the board');
   check('one of your own by its id and when it last changed, so playing it after an edit seats the edit',
     courseSeatKey({ id: plainDoc.id, local: true, document: plainDoc }) !== courseSeatKey({ id: plainDoc.id, local: true, document: edited }));
   check('and nothing seated has no key', courseSeatKey(null) === '');
+}
+
+/*
+ * Just enough DOM for hud.js to build itself on: elements that nest, take
+ * listeners and text, and fire what is dispatched on them.
+ */
+function fakeDom() {
+  class El {
+    constructor(tag) {
+      this.tagName = tag.toUpperCase();
+      this.children = [];
+      this.style = {};
+      this.dataset = {};
+      this.listeners = {};
+      this.textContent = '';
+      this.className = '';
+      const cls = new Set();
+      this.classList = {
+        add: (c) => cls.add(c), remove: (c) => cls.delete(c), toggle: (c, on) => (on ? cls.add(c) : cls.delete(c)), contains: (c) => cls.has(c),
+      };
+    }
+    append(...kids) { this.children.push(...kids); }
+    replaceChildren() { this.children = []; }
+    remove() {}
+    addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
+    fire(type, e = {}) {
+      const ev = { preventDefault() { this.prevented = true; }, stopPropagation() {}, button: 0, ...e };
+      for (const fn of this.listeners[type] || []) fn(ev);
+      return ev;
+    }
+    querySelector() { return null; }
+    querySelectorAll() { return []; }
+    getBoundingClientRect() { return { left: 0, top: 0, width: 10, height: 10 }; }
+    find(pred) {
+      if (pred(this)) return this;
+      for (const k of this.children) {
+        const f = k.find ? k.find(pred) : null;
+        if (f) return f;
+      }
+      return null;
+    }
+  }
+  const body = new El('body');
+  globalThis.document = {
+    createElement: (t) => new El(t),
+    getElementById: () => null,
+    head: new El('head'),
+    body,
+  };
+  return body;
+}
+
+console.log('\nThe Save button');
+{
+  const body = fakeDom();
+  let saves = 0;
+  const hud = createHud({ onSlot: () => {}, onAssign: () => {}, onSave: () => { saves += 1; } });
+  const button = body.find((e) => e.tagName === 'BUTTON' && e.className === 'bh-save');
+  check('the builder\'s screen has a Save button', Boolean(button));
+  const down = button.fire('mousedown');
+  button.fire('click');
+  check('a click on it saves, once, and the press takes no focus from the builder\'s keys', saves === 1 && down.prevented === true);
+  hud.setSave({ label: 'Save', key: 'Ctrl S', tip: 't', name: 'Ring', state: 'pending', text: 'Saved, not online yet' });
+  let r = hud.rects().save;
+  check('it says what became of the save, and the track\'s name', r.state === 'pending' && r.text === 'Saved, not online yet' && r.name === 'Ring');
+  hud.setSave({ label: 'Save', key: 'Ctrl S', tip: 't', name: 'Ring', state: 'online', text: 'Saved and online' });
+  r = hud.rects().save;
+  check('and changes when the upload lands', r.state === 'online' && r.text === 'Saved and online');
+  delete globalThis.document;
+
+  /* The same save as Ctrl S: the key, the pad and the button all name
+   * the one function, so there is no second save to drift from it. */
+  const src = readFileSync(new URL('../src/builder/buildmode.js', import.meta.url), 'utf8');
+  check('Ctrl S, Start and the button all call the one save()',
+    /KeyS: save,/.test(src) && /pressed\(PAD\.start\)\) \{\s*save\(\);/.test(src) && /onSave: save,/.test(src)
+    && (src.match(/function save\(\)/g) || []).length === 1);
+
+  const d = { id: 't1', modifiedUtc: '2026-09-28T10:00:00.000Z' };
+  const same = { ...d };
+  check('never saved is not saved', saveState(d, null, true, null) === 'unsaved');
+  check('saved with no tracks server is saved in this browser', saveState(d, same, false, { state: 'pending' }) === 'saved');
+  check('saved and not uploaded yet is pending', saveState(d, same, true, { state: 'pending' }) === 'pending' && saveState(d, same, true, undefined) === 'pending');
+  check('uploaded is online', saveState(d, same, true, { state: 'online' }) === 'online');
+  check('refused by the server says so', saveState(d, same, true, { state: 'failed', error: 'x' }) === 'refused');
+  /* The first save's name, checked the way the tracks server checks it. */
+  const bad = readFileSync(new URL('../tracks-api/words.js', import.meta.url), 'utf8').match(/const ANYWHERE = \[\s*'([^']+)'/)[1];
+  check('a typed name is trimmed and its spaces folded', trackNameFor('  Ridge   Run ', 'Ada\'s track 3') === 'Ridge Run');
+  check('a blank name is the generated one', trackNameFor('   ', 'Ada\'s track 3') === 'Ada\'s track 3');
+  check('a name the server\'s word filter refuses is refused here', Boolean(badWordIn(`the ${bad} ring`)) && trackNameFor(`the ${bad} ring`, 'x') === '');
+  check('and so is one over 80 characters', trackNameFor('a'.repeat(81), 'x') === '' && trackNameFor('a'.repeat(80), 'x') === 'a'.repeat(80));
+  check('an edit after the save is not saved, whatever the server holds',
+    saveState({ ...d, modifiedUtc: '2026-09-28T10:00:01.000Z' }, same, true, { state: 'online' }) === 'unsaved');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

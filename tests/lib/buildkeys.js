@@ -271,3 +271,24 @@ export async function leave(page) {
     await frames(page, 2);
   }
 }
+
+/* The dialog the first save of an unnamed track opens (buildmode.js save),
+ * answered with `name`, blank for the generated one, and Enter. True when
+ * it was asked; a save that did not ask leaves nothing to answer. */
+export const NAME_ASKED = "Boolean(document.querySelector('.name-dialog-input')) && !document.querySelector('.name-dialog').hidden";
+export async function answerName(page, name = '') {
+  await frames(page, 1);
+  if (!(await page.evaluate(NAME_ASKED))) {
+    return false;
+  }
+  await page.evaluate(`(() => { const f = document.querySelector('.name-dialog-input'); f.focus(); f.value = ${JSON.stringify(name)}; return true; })()`);
+  await page.tap('Enter');
+  await page.until(`!(${NAME_ASKED})`, 5000);
+  return true;
+}
+
+/* Ctrl S the way a pilot saves, naming the track if the save asks. */
+export async function saveKey(page, name = '') {
+  await key(page, 'KeyS', { ctrl: true });
+  return answerName(page, name);
+}
