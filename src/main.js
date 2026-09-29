@@ -105,6 +105,7 @@ import { PeerTrack, nearWeight } from './game/peer.js';
 import { applyHit, checkHit, sideFor } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
+import { bubbleLevel, createAceBubble } from './render/acebubble.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
@@ -2378,6 +2379,8 @@ export async function boot({
   let roomAutoJoined = false;
   function roomFrame(wallMs, dt) {
     raceHoldMs = 0;
+    /* Put up again below when there is a live match to put it round. */
+    roomTagBubble.set(0);
     /* A ?room= link, or the room this tab was in before a reload: joined
      * once the shell is up, never during boot, because the hello reads
      * the seated aircraft. */
@@ -2423,6 +2426,7 @@ export async function boot({
       roomDrawPeer(peer, now, scene, dt, simT);
     }
     tagMarkPeers();
+    tagBubble(now, wallMs, scene);
     roomCombat.seated(link.welcome ? link.welcome.seat : 0, runAirframe);
     combatFrame(now, wallMs, scene, dt);
   }
@@ -3272,6 +3276,7 @@ export async function boot({
   const roomTagHud = new RoomRaceHud(ui.root);
   /* The seat the peer marks crown now, or null. */
   let roomTagMarked = null;
+  const roomTagBubble = createAceBubble();
 
   function roomTagHoldMs(now) {
     return roomTagRunId != null && roomTagRunId === roomTag.view().id ? roomTag.holdMs(now) : 0;
@@ -3349,6 +3354,43 @@ export async function boot({
     roomTagMarked = ace;
   }
 
+  /*
+   * The Ace's bubble (src/render/acebubble.js), round the Ace as this
+   * screen draws it: its own craft for the Ace, the peer's model for
+   * everybody else. Only for a room that judges by it (roomTag.bubble),
+   * never in a replay, which draws the one it recorded. Brighter as the
+   * nearest hunter drawn here closes in, half as bright while the Ace is
+   * protected.
+   */
+  function tagBubble(now, wallMs, scene) {
+    const r = roomTag.bubble();
+    const ace = roomTag.ace();
+    const mine = ace === roomTag.seat();
+    const peer = mine ? null : roomPeers.get(ace);
+    let at = null;
+    if (mine && mode === 'flight') {
+      at = shell.quad.position;
+    } else if (peer && peer.rig && peer.rig.group.visible) {
+      at = peer.rig.group.position;
+    }
+    if (!r || !at || !scene || mode === 'replay') {
+      return;
+    }
+    let near = Infinity;
+    for (const p of roomPeers.values()) {
+      if (p.seat !== ace && p.rig && p.rig.group.visible) {
+        near = Math.min(near, p.rig.group.position.distanceTo(at));
+      }
+    }
+    if (!mine && mode === 'flight') {
+      near = Math.min(near, shell.quad.position.distanceTo(at));
+    }
+    if (roomTagBubble.mesh.parent !== scene) {
+      scene.add(roomTagBubble.mesh);
+    }
+    roomTagBubble.set(r, at.x, at.y, at.z, bubbleLevel(r, near, wallMs / 1000, roomTag.protectedNow(now)), ace);
+  }
+
   function roomTagResultsRows() {
     const host = roomLinkState.state().welcome && roomLinkState.state().welcome.host === roomTag.seat();
     return [
@@ -3401,11 +3443,26 @@ export async function boot({
       run: roomTagRunId,
       marked: roomTagMarked,
       banner: roomTagBanner,
+      bubble: roomTagBubble.mesh.visible ? { ...roomTagBubble.drawn() } : null,
       hud: roomTagHud.key ? JSON.parse(roomTagHud.key) : null,
       results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'tag'),
       error: roomTag.error(),
       roomNow: now,
     };
+  };
+  /* Every Ace's bubble in the scene as drawn this frame, the live one or
+   * a replay's (src/replay/peerscene.js): where, how big, how bright. */
+  window.__aceBubbles = () => {
+    const out = [];
+    const scene = shell.quad.parent;
+    if (scene) {
+      scene.traverse((o) => {
+        if (o.name === 'ace-bubble' && o.visible) {
+          out.push({ at: o.position.toArray(), r: o.scale.x, level: o.material.uniforms.uLevel.value });
+        }
+      });
+    }
+    return out;
   };
   window.__roomTagDo = (action, goal) => {
     if (goal != null) {
@@ -11896,7 +11953,7 @@ export async function boot({
     /* The others as the room just drew them, into the row the crash cam
      * began above (src/replay/peers.js). */
     if (crashCam) {
-      crashCam.recordPeers(roomPeers);
+      crashCam.recordPeers(roomPeers, roomTagBubble.drawn());
     }
 
     /* The lens sits where herocraft.js bolts it, forward AND up, not at the

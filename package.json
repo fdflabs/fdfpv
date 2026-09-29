@@ -73,6 +73,7 @@
     "rooms:restart": "node scripts/rooms-restart-check.js",
     "tag:harness": "node scripts/tag-harness.js",
     "tag:twopage": "node scripts/tag-two-page.js",
+    "tag:bubble": "node scripts/tag-bubble-two-page.js",
     "rooms:safety": "node scripts/rooms-safety-two-page.js",
     "streamer:selftest": "node scripts/streamer-selftest.js",
     "rooms:server": "node scripts/rooms-server-check.js",

@@ -44,6 +44,12 @@
  * a version 5 file the peers are there when anybody else was drawn. A
  * clip without paper is written as it was before: version 4 with peers,
  * version 3 alone. Versions 1 to 4 are read without paper.
+ *
+ * Version 6 added Catch the Ace's bubble (src/render/acebubble.js), in
+ * the peers: their header's layout gains BUBBLE_N, and after their pieces
+ * come the bubble's rows, f32[n x BUBBLE_N] (src/replay/peers.js BUBBLE).
+ * A version 6 file always has its peers and may have paper. A clip whose
+ * rows drew no bubble is written as it was before, version 5, 4 or 3.
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -73,22 +79,27 @@ import { normalisePlane } from '../../configs/hangar-parts.js';
 import { RIGS } from './cameras.js';
 import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
 import {
-  PEER, PEER_N, PEERS_MAX, PIECE_N,
+  BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N,
 } from './peers.js';
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
 import { checkPaper, rowsOf } from './paper.js';
 
-export const FILE_VERSION = 5;
+export const FILE_VERSION = 6;
+/* A clip without the Ace's bubble: the version before it, unchanged. */
+const PAPER_VERSION = 5;
 /* A clip without paper: the version before paper, unchanged. */
 const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5];
+const READS = [1, 2, 3, 4, 5, 6];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
-  if (clip.paper) {
+  if (clip.peers && clip.peers.bubble) {
     return FILE_VERSION;
+  }
+  if (clip.paper) {
+    return PAPER_VERSION;
   }
   return clip.peers ? PEERS_VERSION : SOLO_VERSION;
 }
@@ -102,6 +113,11 @@ function layoutOf(version) {
 /* The smoke column's bytes: none before version 3. */
 function smokeBytes(n, version) {
   return version >= 3 ? n * SMOKE_N * 4 : 0;
+}
+
+/* The peers' column layout a version holds: the bubble's from 6. */
+function peersLayoutOf(version) {
+  return version >= 6 ? [PEER_N, PIECE_N, BUBBLE_N] : [PEER_N, PIECE_N];
 }
 
 /* The pose column's bytes with its padding to 8. */
@@ -166,7 +182,7 @@ export function encodeReplay(clip) {
   };
   if (peers) {
     header.peers = {
-      slots: peers.slots, layout: [PEER_N, PIECE_N], pieces: pieceCount, who: peers.who, tables: peers.tables,
+      slots: peers.slots, layout: peersLayoutOf(version), pieces: pieceCount, who: peers.who, tables: peers.tables,
     };
   }
   if (paper) {
@@ -177,6 +193,7 @@ export function encodeReplay(clip) {
   const pad = (8 - (pre % 8)) % 8;
   const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + smokeBytes(n, version)
     + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0)
+    + (version >= 6 ? n * BUBBLE_N * 4 : 0)
     + (paper ? paper.bytes.byteLength : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
@@ -210,6 +227,10 @@ export function encodeReplay(clip) {
     o += n * peers.slots * PEER_N * 4;
     new Float32Array(buf, o, pieceCount * PIECE_N).set(peers.pieces.subarray(0, pieceCount * PIECE_N));
     o += pieceCount * PIECE_N * 4;
+  }
+  if (version >= 6) {
+    new Float32Array(buf, o, n * BUBBLE_N).set(peers.bubble.subarray(0, n * BUBBLE_N));
+    o += n * BUBBLE_N * 4;
   }
   if (paper) {
     u8.set(paper.bytes, o);
@@ -436,11 +457,14 @@ export function decodeReplay(buf, known = null) {
   if (version < 4 && header.peers !== undefined) {
     throw new ReplayFileError('peers in a file older than version 4');
   }
-  if (version === 4 && header.peers === undefined) {
-    throw new ReplayFileError('a version 4 file without its peers');
+  if ((version === 4 || version >= 6) && header.peers === undefined) {
+    throw new ReplayFileError(`a version ${version} file without its peers`);
   }
-  if ((version >= 5) !== (header.paper !== undefined)) {
-    throw new ReplayFileError(version >= 5 ? 'a version 5 file without its paper' : 'paper in a file older than version 5');
+  if (version === 5 && header.paper === undefined) {
+    throw new ReplayFileError('a version 5 file without its paper');
+  }
+  if (version < 5 && header.paper !== undefined) {
+    throw new ReplayFileError('paper in a file older than version 5');
   }
   if (header.paper !== undefined) {
     onlyKeys(header.paper, PAPER_KEYS, 'paper');
@@ -449,7 +473,7 @@ export function decodeReplay(buf, known = null) {
     }
   }
   if (header.peers !== undefined) {
-    checkPeersHeader(header.peers, header.meta.map);
+    checkPeersHeader(header.peers, header.meta.map, version);
   }
 
   const pre = 12 + hl;
@@ -484,7 +508,8 @@ export function decodeReplay(buf, known = null) {
     rows += np;
   }
   const P = header.peers;
-  const peerBytes = P ? (n * P.slots * PEER_N + P.pieces * PIECE_N) * 4 : 0;
+  const bubbleBytes = version >= 6 ? n * BUBBLE_N * 4 : 0;
+  const peerBytes = P ? (n * P.slots * PEER_N + P.pieces * PIECE_N) * 4 + bubbleBytes : 0;
   const paperBytes = header.paper ? header.paper.bytes : 0;
   if (o + rows * PART_N * 4 + peerBytes + paperBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
@@ -517,6 +542,10 @@ export function decodeReplay(buf, known = null) {
       slots: P.slots, cols, pieceAt: checkPeerColumns(cols, pieces, n, P), pieces, who: P.who, tables: P.tables,
     };
     o += P.pieces * PIECE_N * 4;
+    if (bubbleBytes) {
+      clip.peers.bubble = checkBubble(new Float32Array(buf.slice(o, o + bubbleBytes)));
+      o += bubbleBytes;
+    }
   }
   if (header.paper) {
     const bytes = new Uint8Array(buf.slice(o, o + paperBytes));
@@ -533,12 +562,12 @@ export function decodeReplay(buf, known = null) {
 
 /* The peers' header: who they were and the tables their wrecks were cut
  * by, each checked as the room checks it (src/share/roomwire.js). */
-function checkPeersHeader(P, map) {
+function checkPeersHeader(P, map, version) {
   onlyKeys(P, PEERS_KEYS, 'peers');
   if (!Number.isInteger(P.slots) || P.slots < 1 || P.slots > PEERS_MAX) {
     throw new ReplayFileError('peers.slots is out of range');
   }
-  if (!Array.isArray(P.layout) || P.layout.join() !== [PEER_N, PIECE_N].join()) {
+  if (!Array.isArray(P.layout) || P.layout.join() !== peersLayoutOf(version).join()) {
     throw new ReplayFileError('the peers\' column layout does not match this build');
   }
   if (!Number.isInteger(P.pieces) || P.pieces < 0 || P.pieces > CAPACITY * PEERS_MAX * PARTS_MAX) {
@@ -576,6 +605,22 @@ function checkPeersHeader(P, map) {
     }
     return table;
   });
+}
+
+/* The Ace's bubble, row by row: nothing, or a sphere no bigger than a
+ * room could draw, at a finite place, a level the pulse gives and a seat.
+ * Returns the column. */
+function checkBubble(bubble) {
+  for (let o = 0; o < bubble.length; o += BUBBLE_N) {
+    const r = bubble[o + BUBBLE.r];
+    const level = bubble[o + BUBBLE.level];
+    const seat = bubble[o + BUBBLE.seat];
+    const at = [0, 1, 2].map((i) => bubble[o + BUBBLE.pos + i]);
+    if (!(r >= 0 && r <= 50) || !at.every(Number.isFinite) || !(level >= 0 && level <= 2) || !Number.isInteger(seat) || seat < 0 || seat > 64) {
+      throw new ReplayFileError(`frame ${o / BUBBLE_N} has a bad bubble`);
+    }
+  }
+  return bubble;
 }
 
 /* The peers' columns against their header: every id a profile, every
