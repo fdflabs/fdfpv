@@ -69,13 +69,15 @@ import { str, currentLocale } from '../strings/index.js';
  * over the default.
  *
  * "Origin" is now generous: the production value carries a path, because the
- * board is a mount on fdfpv.example rather than a host of its own. Everything
- * below concatenates onto it and trims a trailing slash, so a prefix works
- * exactly where a bare origin used to, and the only thing that would not is
- * `new URL('/some/path', board)`, which is not done anywhere here.
+ * board is a mount at /board on the owner's VM (deploy/vm/README.md), the
+ * same address the tracks and rooms servers answer at, rather than a host
+ * of its own. Everything below concatenates onto it and trims a trailing
+ * slash, so a prefix works exactly where a bare origin used to, and the
+ * only thing that would not is `new URL('/some/path', board)`, which is not
+ * done anywhere here.
  */
 export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3180';
-export const PRODUCTION_BOARD_ORIGIN = 'https://fdfpv.example/board';
+export const PRODUCTION_BOARD_ORIGIN = 'https://129.151.39.48/board';
 export const DEFAULT_LANDING_ORIGIN = 'http://127.0.0.1:8080';
 export const PRODUCTION_LANDING_ORIGIN = 'https://fdflabs.github.io/fdfpv';
 const ORIGIN_KEY = 'webfpv.board.origin';
@@ -84,12 +86,16 @@ const ORIGIN_KEY = 'webfpv.board.origin';
 const LOOPBACK_HOSTS = new Set(['', 'localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0']);
 
 /*
- * Whether there is a board to ask. Not while this page is deployed and the
- * production host above is still the placeholder no board answers at: My
- * tracks lists the pilot's own tracks then, and asks nobody.
+ * Whether there is a board to ask. A fork that has no board sets the
+ * production host above to PLACEHOLDER_BOARD_ORIGIN, and My tracks then
+ * lists the pilot's own tracks and asks nobody. This used to compare with
+ * the production host itself, which was the placeholder until the board
+ * was deployed, and so kept the deployed page from ever asking it.
  */
+const PLACEHOLDER_BOARD_ORIGIN = 'https://fdfpv.example/board';
+
 export function boardConfigured() {
-  return boardOrigin() !== PRODUCTION_BOARD_ORIGIN;
+  return boardOrigin() !== PLACEHOLDER_BOARD_ORIGIN;
 }
 
 export function defaultBoardOrigin() {
@@ -135,9 +141,6 @@ export function landingOrigin() {
     const host = window.location.hostname;
     if (LOOPBACK_HOSTS.has(host)) {
       return DEFAULT_LANDING_ORIGIN;
-    }
-    if (host === 'fdfpv.example' || host === 'www.fdfpv.example') {
-      return `${window.location.protocol}//fdfpv.example`;
     }
     return PRODUCTION_LANDING_ORIGIN;
   } catch (e) {

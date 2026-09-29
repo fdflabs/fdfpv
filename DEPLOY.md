@@ -1,21 +1,28 @@
 # Deploying FDFPV
 
-Four resources, three of them live. The rest of this file after the tracks
-server is the upstream walkthrough for the Render half, kept because it is
-still accurate for the board.
+Four resources, all live. The rest of this file after the tracks server is
+the upstream walkthrough for the Render half, kept because it is still a
+working way to host the board somewhere else.
 
 | Resource | Where | How |
 | --- | --- | --- |
 | Simulator | GitHub Pages, https://fdflabs.github.io/fdfpv/ | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
 | Tracks server | The owner's VM, https://129.151.39.48/api | `deploy/vm/deploy.sh`, see `deploy/vm/README.md`. The Cloudflare Worker plus D1 below is still deployed, as the way back. |
 | Rooms server | The owner's VM, https://129.151.39.48/v2 | The same deploy. `edge/rooms/README.md` is the code; the Worker `fdfpv-rooms` is still deployed. |
-| Board | Render, Node web service plus Postgres | `render.yaml` in the board repo as a Blueprint. Set `SIM_ORIGIN` to the Pages URL. Not deployed. |
+| Board | The owner's VM, https://129.151.39.48/board/ | `deploy/vm/deploy-board.sh` with a checkout of fdflabs/fdfpv-leaderboard beside this one, see `deploy/vm/README.md`. Postgres 16 on the same VM. Tracks and lap times, bug tickets, site statistics, live ghost rooms. |
 
 The simulator finds the board through `PRODUCTION_BOARD_ORIGIN` in
-`src/share/board.js`, and the board finds the simulator through
-`SIM_ORIGIN` in its environment. Both are placeholders until the board
-exists. The Cloudflare Worker under `edge/` is not deployed: it joined
-three deploys under one domain, and there is no domain yet.
+`src/share/board.js` (https://129.151.39.48/board), and the board finds the
+simulator through `SIM_ORIGIN` in its unit (https://fdflabs.github.io/fdfpv).
+The Cloudflare Worker under `edge/` is not deployed: it joined three
+deploys under one domain, fdfpv.example, which never existed.
+
+`npm run board:live` is the proof that every board feature works from the
+page: it files a bug through F8, sends the flight feel form, publishes a
+track from the builder, posts a verified lap, opens a live room from two
+pages, counts a visit, loads the board and its bugs page, and takes back
+what it made. See its header, and `deploy/vm/README.md` for the sign in
+file it needs.
 
 # The tracks server
 
@@ -86,8 +93,8 @@ curl -X DELETE -H "authorization: Bearer $ADMIN_SECRET" \
 
 ## What it does not do yet
 
-Lap times, ghosts and leaderboards stay on the board, which is not
-deployed. Moving them here needs the board's lap verification
+Lap times, ghosts and leaderboards stay on the board, which runs beside
+this server on the VM. Moving them here needs the board's lap verification
 (`src/game/verify.js checkLap`, already DOM free) run in the Worker on each
 posted time, a times table keyed by track and layout hash, and the ghost
 bytes in R2 or D1 under a size cap; `src/share/board.js` would then point
@@ -306,6 +313,13 @@ Then in a browser, in this order:
    `BOARD_URL/bugs`.
 
 ## 5. One domain in front of the three
+
+**Never deployed.** `fdfpv.example` is a placeholder that was never
+registered, so nothing below is live, and the values it names were
+changed on 2026-09-29: `PRODUCTION_BOARD_ORIGIN` is the VM's board at
+https://129.151.39.48/board and the board's `/board` mount means the
+simulator on GitHub Pages. It stays as the design for a domain if one is
+ever bought.
 
 Everything above deploys the three services to three addresses. This section
 puts one domain in front of them, so that a visitor arriving at the front door
