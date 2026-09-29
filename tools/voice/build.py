@@ -13,11 +13,15 @@
 #      the delivery's exaggeration, from a seed derived from the line's id,
 #      language and attempt number.
 #   3. Whisper large v3 turbo (MIT) transcribes the take. A take is thrown
-#      away if its word error rate is over MAX_WER or Whisper heard any word
-#      the script does not have (Chatterbox's failure is a babbled tail, and
-#      an insertion is how that reads); the next attempt runs, and a line
-#      with no good take in ATTEMPTS fails the build, loudly. A line whose
-#      correct reading Whisper spells differently says so in `heard`.
+#      away (script.judge) if any content word of the line is missing
+#      from the transcript, case and accents folded, if its word error rate
+#      is over MAX_WER, or if Whisper heard any word the script does not have
+#      (Chatterbox's failure is a babbled tail, and an insertion is how
+#      that reads). The next attempt runs, and a line with no good take in
+#      ATTEMPTS fails the build, loudly, and its old take is removed. A
+#      line whose correct reading Whisper spells differently lists that
+#      spelling in `heard`; a homophone of a different word is rephrased
+#      instead, because a listener cannot tell them apart either.
 #   4. radio.py puts it through the radio; ffmpeg writes Opus in WebM and
 #      an mp3 fallback, bit exact, as scripts/music.js does for the crate.
 #
@@ -48,11 +52,9 @@
 import argparse
 import hashlib
 import json
-import re
 import subprocess
 import sys
 import time
-import unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -77,8 +79,7 @@ CHATTERBOX_FILES = ['ve.pt', 't3_mtl23ls_v2.safetensors', 's3gen.pt',
 G2P = {'en-us': ('a', None), 'es-419': ('e', 'es-419')}
 
 SR = 24000               # Kokoro and Chatterbox both speak at 24 kHz
-ATTEMPTS = 4
-MAX_WER = 0.15
+ATTEMPTS = 8
 THREADS = 4              # the host runs other jobs; see the pull request
 OPUS_KBPS = 32
 LAME_Q = 7
@@ -88,34 +89,6 @@ BITEXACT = ['-fflags', '+bitexact', '-flags:a', '+bitexact']
 def seed_for(line_id, lang, attempt):
     h = hashlib.sha256(f'{line_id}:{lang}:{attempt}'.encode()).digest()
     return int.from_bytes(h[:4], 'little')
-
-
-# Whisper writes a small spoken number as a digit about half the time.
-DIGITS = {'en': {'1': 'one', '2': 'two', '3': 'three'}, 'es': {'1': 'uno', '2': 'dos', '3': 'tres'}}
-
-
-def words(text, lang):
-    text = unicodedata.normalize('NFC', text.lower())
-    text = re.sub(r'\b[123]\b', lambda m: DIGITS[lang][m.group(0)], text)
-    text = re.sub(r"[^\w\s]", ' ', text.replace("'", ''))
-    return text.split()
-
-
-def score(ref, hyp, lang):
-    """Word error rate, and how many words were heard that the script does
-    not have. Each cell is (edits, insertions); the cheapest path wins and a
-    tie goes to the one with fewer insertions."""
-    r, h = words(ref, lang), words(hyp, lang)
-    d = [(j, j) for j in range(len(h) + 1)]
-    for i, rw in enumerate(r, 1):
-        prev, d[0] = d[0], (i, 0)
-        for j, hw in enumerate(h, 1):
-            delete = (d[j][0] + 1, d[j][1])
-            insert = (d[j - 1][0] + 1, d[j - 1][1] + 1)
-            swap = (prev[0] + (rw != hw), prev[1])
-            prev, d[j] = d[j], min(delete, insert, swap)
-    edits, inserted = d[len(h)]
-    return edits / max(1, len(r)), inserted
 
 
 def encode(wav_path, out_base):
@@ -204,7 +177,7 @@ def main():
         (out / 'voice' / lang).mkdir(parents=True, exist_ok=True)
         for line in todo:
             text = line[lang]
-            want = line.get('heard', {}).get(lang, text)
+            readings = [text, *line.get('heard', {}).get(lang, [])]
             d = doc['delivery'][line['delivery']]
             takes = []
             for attempt in range(ATTEMPTS):
@@ -214,14 +187,21 @@ def main():
                                     cfg_weight=d['cfg_weight']).squeeze(0).numpy()
                 heard = asr({'raw': take.copy(), 'sampling_rate': SR},
                             generate_kwargs={'language': lang, 'task': 'transcribe'})['text'].strip()
-                e, extra = score(want, heard, lang)
-                takes.append({'attempt': attempt, 'seed': seed, 'heard': heard, 'wer': round(e, 3), 'extra': extra})
-                if e <= MAX_WER and extra == 0:
+                v = script.judge(readings, heard, lang)
+                takes.append({'attempt': attempt, 'seed': seed, 'heard': heard,
+                              'wer': v['wer'], 'extra': v['extra'], 'missing': v['missing']})
+                if v['ok']:
                     break
             else:
-                fails.append(f'{line["id"]}.{lang}: no take under WER {MAX_WER} with no extra words: ' +
-                             '; '.join(f'{t["heard"]!r} ({t["wer"]})' for t in takes))
-                print(f'FAIL {line["id"]:14s} {lang} | ' + ' / '.join(t['heard'] for t in takes), flush=True)
+                fails.append(f'{line["id"]}.{lang}: no good take in {ATTEMPTS}: ' +
+                             '; '.join(f'{t["heard"]!r} (wer {t["wer"]}, missing {t["missing"]})' for t in takes))
+                print(f'FAIL {line["id"]:14s} {lang} | ' +
+                      ' / '.join(f'{t["heard"]} {t["missing"]}' for t in takes), flush=True)
+                # A take from an earlier, looser build must not stay behind
+                # looking valid: drop it, so voice:check fails until fixed.
+                manifest['voice'].pop(f'{line["id"]}.{lang}', None)
+                for fmt in script.FORMATS:
+                    (out / 'voice' / lang / f'{line["id"]}.{fmt}').unlink(missing_ok=True)
                 continue
             wav = work / f'{line["id"]}-{lang}.wav'
             y = radio.radio(take, SR, seed)

@@ -20,12 +20,12 @@
   },
   "lines": [
     { "id": "intro-1", "group": "intro", "delivery": "calm", "notes": "Shot 1, title card. Two words over black, heavy and slow, like opening a file. Whisper writes the year as digits.",
-      "heard": { "en": "2030", "es": "2030" },
+      "heard": { "en": ["2030"], "es": ["2030"] },
       "en": "Twenty thirty.",
       "es": "Dos mil treinta." },
     { "id": "intro-2", "group": "intro", "delivery": "firm", "notes": "Shot 2, the Strikers cross the water. Tired certainty, a beat between the last three words.",
       "en": "Wars aren't won with jets anymore. They're won with swarms. Cheap. Fast. Endless.",
-      "es": "Las guerras ya no se ganan con cazas. Se ganan con enjambres. Baratos. Rápidos. Interminables." },
+      "es": "Las guerras ya no se ganan con aviones de combate. Se ganan con enjambres. Baratos. Rápidos. Interminables." },
     { "id": "intro-3", "group": "intro", "delivery": "calm", "notes": "Shot 3, along the crest. Quiet, almost to himself; lands on 'this one'.",
       "en": "Every country's lights hang on a few structures. Ours hang on this one.",
       "es": "La luz de cada país cuelga de un puñado de estructuras. La nuestra cuelga de esta." },
@@ -44,7 +44,7 @@
 
     { "id": "start", "group": "mission", "delivery": "firm", "notes": "Mission start, after the countdown.",
       "en": "Pilots of both banks, this is Crest Control. Warheads armed. Good hunting.",
-      "es": "Pilotos de las dos márgenes, aquí Control Cresta. Ojivas armadas. Buena caza." },
+      "es": "Pilotos de las dos márgenes, aquí Control Cresta. Ojivas armadas. Buena cacería." },
 
     { "id": "wave-scout", "group": "wave", "delivery": "firm", "notes": "A Scout wave is born. Matter of fact.",
       "en": "Scout up high, circling. Kill it and the next wave flies blind.",
@@ -78,7 +78,7 @@
       "en": "Intake's hit! We're losing output!",
       "es": "¡Impacto en una toma! ¡Estamos perdiendo generación!" },
     { "id": "hit-penstock", "group": "hit", "delivery": "shout", "notes": "An attacker reached a penstock. Whisper splits the word in two.",
-      "heard": { "en": "Penn stock hit! We just lost a unit!" },
+      "heard": { "en": ["Penn stock hit! We just lost a unit!"] },
       "en": "Penstock hit! We just lost a unit!",
       "es": "¡Le dieron a una tubería forzada! ¡Perdimos una unidad!" },
     { "id": "hit-gate", "group": "hit", "delivery": "shout", "notes": "An attacker reached a spillway gate.",

@@ -10,7 +10,9 @@
 # implies; every music file has a credit row; every audio file in the
 # folder is credited and is in manifest.json with the same sha256; every
 # credited file exists; and every take in the manifest was spoken from the
-# text lines.json has now, so a line edited without a rebuild fails. CI
+# text lines.json has now, so a line edited without a rebuild fails; and
+# what Whisper heard of every take, kept in the manifest, still passes
+# build.py's gate (script.judge), so a loosened or bypassed gate fails. CI
 # runs it: no GPU, no model, no download.
 #
 # This file is part of WebFPVSimulator.
@@ -102,6 +104,14 @@ def main():
         elif v['text'] != spoken[key]:
             faults.append(f'voice/{lang}/{line_id}: spoken as {v["text"]!r}, but lines.json says '
                           f'{spoken[key]!r}; rebuild it with build.py --only {line_id}')
+        else:
+            line = next(l for l in doc['lines'] if l['id'] == line_id)
+            heard = v['takes'][-1]['heard']
+            verdict = script.judge([line[lang], *line.get('heard', {}).get(lang, [])], heard, lang)
+            if not verdict['ok']:
+                faults.append(f'voice/{lang}/{line_id}: Whisper heard {heard!r}, which fails the gate '
+                              f'(missing {verdict["missing"]}, wer {verdict["wer"]}, extra {verdict["extra"]}); '
+                              f'rebuild it with build.py --only {line_id}')
         for fmt, f in v['files'].items():
             shas[f'voice/{lang}/{line_id}.{fmt}'] = f['sha256']
     for name, v in manifest.get('music', {}).items():

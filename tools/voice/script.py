@@ -20,6 +20,7 @@
 import json
 import os
 import re
+import unicodedata
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -40,7 +41,6 @@ ID = re.compile(r'^[a-z][a-z0-9-]*$')
 # the fiction's date, not a figure, and is spelled out.
 DIGIT = re.compile(r'\d')
 DASHES = (chr(0x2013), chr(0x2014))
-
 
 def load():
     """lines.json, checked. Raises ValueError naming every fault at once."""
@@ -68,6 +68,9 @@ def load():
                 faults.append(f'{where}: no {lang} text')
             if DIGIT.search(text):
                 faults.append(f'{where}.{lang}: a digit is a spoken figure, and none is sourced')
+        for lang, readings in line.get('heard', {}).items():
+            if lang not in LANGS or not isinstance(readings, list) or not all(isinstance(r, str) for r in readings):
+                faults.append(f'{where}.heard.{lang}: must be a list of strings')
         for field in ('en', 'es', 'notes'):
             if any(d in line.get(field, '') for d in DASHES):
                 faults.append(f'{where}.{field}: en or em dash')
@@ -80,3 +83,70 @@ def voice_files(doc):
     """Every voice file the build writes, as paths relative to the output root."""
     return [f'voice/{lang}/{line["id"]}.{fmt}'
             for line in doc['lines'] for lang in LANGS for fmt in FORMATS]
+
+
+# The acceptance gate for a take, from Whisper's transcript of it. It lives
+# here, not in build.py, so check.py can hold every committed take to it
+# with no model: the manifest keeps what Whisper heard.
+MAX_WER = 0.15
+
+# Whisper writes a small spoken number as a digit about half the time.
+DIGITS = {'en': {'1': 'one', '2': 'two', '3': 'three'}, 'es': {'1': 'uno', '2': 'dos', '3': 'tres'}}
+
+
+# Words a line can lose without changing what it says. Every other word of
+# the script must be in Whisper's transcript, exactly, after case and
+# accents are folded: the word error rate alone let "cada abuelo cuente"
+# through for "cada vuelo cuente", one wrong word in eight, and a native
+# speaker heard nonsense. "no" is not here on purpose.
+FUNCTION = {
+    'en': set('a an the and or of to in on at for is are be it its this that as by with'.split()),
+    'es': set('el la los las lo un una unos unas de del a al y o en por para con que se le les su sus es'.split()),
+}
+
+
+def words(text, lang):
+    text = unicodedata.normalize('NFD', text.lower())
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    text = re.sub(r'\b[123]\b', lambda m: DIGITS[lang][m.group(0)], text)
+    text = re.sub(r"[^\w\s]", ' ', text.replace("'", ''))
+    return text.split()
+
+
+def missing(ref, hyp, lang):
+    """The script's content words that Whisper did not hear."""
+    heard = set(words(hyp, lang))
+    return [w for w in words(ref, lang) if w not in FUNCTION[lang] and w not in heard]
+
+
+def judge(readings, hyp, lang):
+    """Score a transcript against every accepted reading of a line; the
+    take passes if any one reading passes all three tests."""
+    best = None
+    for want in readings:
+        e, extra = score(want, hyp, lang)
+        lost = missing(want, hyp, lang)
+        verdict = {'wer': round(e, 3), 'extra': extra, 'missing': lost,
+                   'ok': e <= MAX_WER and extra == 0 and not lost}
+        if best is None or verdict['ok'] or len(lost) < len(best['missing']):
+            best = verdict
+        if verdict['ok']:
+            break
+    return best
+
+
+def score(ref, hyp, lang):
+    """Word error rate, and how many words were heard that the script does
+    not have. Each cell is (edits, insertions); the cheapest path wins and a
+    tie goes to the one with fewer insertions."""
+    r, h = words(ref, lang), words(hyp, lang)
+    d = [(j, j) for j in range(len(h) + 1)]
+    for i, rw in enumerate(r, 1):
+        prev, d[0] = d[0], (i, 0)
+        for j, hw in enumerate(h, 1):
+            delete = (d[j][0] + 1, d[j][1])
+            insert = (d[j - 1][0] + 1, d[j - 1][1] + 1)
+            swap = (prev[0] + (rw != hw), prev[1])
+            prev, d[j] = d[j], min(delete, insert, swap)
+    edits, inserted = d[len(h)]
+    return edits / max(1, len(r)), inserted
