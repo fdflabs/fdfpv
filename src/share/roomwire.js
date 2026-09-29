@@ -929,7 +929,7 @@ export function checkRuns(runs) {
  * carries): { war } the view, { op: 'born', agents }, { op: 'dead', ids,
  * at, by, why, p }, { op: 'boom', seat, at, p }, { error }. Client to room,
  * the host only, in a private room only: { op: 'start', mission } and
- * { op: 'end' }.
+ * { op: 'end' }; any pilot, about its own airframe: { op: 'lost' }.
  */
 export const TYPE_AGENTS = 0xA0;
 export const AGENTS_HEAD = 6;

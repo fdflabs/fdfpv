@@ -21,7 +21,7 @@
  */
 
 import {
-  AGENTS_ENTRY, AGENTS_HEAD, FLAG_AIRBORNE, FLAG_CRASHED, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
+  AGENTS_ENTRY, AGENTS_HEAD, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
   checkProfile, decodeAgents, encodeAgents, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
@@ -332,6 +332,43 @@ export function warSection(check) {
     const v = e.view();
     check('a crash takes one off the rack, and an empty rack with a jammer parked loses', v.rack === 0 && v.state === 'lost' && v.why === 'rack'
       && e.r.war.log.filter((x) => x.what === 'crash').length === 1, JSON.stringify(v));
+  }
+
+  console.log('war: a lost link');
+  {
+    const m = testMission([{ at: 1, kind: 'jammer', n: 1, route: 'r' }], { r: [[-1200, Y, 0], [-1100, Y, 0]] });
+    const e = warRoom({ mission: m, start: false });
+    e.paths[0] = hover([500, Y, 500]);
+    e.paths[1] = hover([520, Y, 500]);
+    e.fly(200);
+    e.say(1, { type: 'war', op: 'lost' });
+    check('"lost" outside a war is refused "off"', e.errors(1).join() === 'off');
+    e.say(0, { type: 'war', op: 'start', mission: 'test-1' });
+    check('the room browser\'s activity says a war is counting down', JSON.stringify(e.r.activity(e.clock)) === '{"game":"war","state":"countdown"}');
+    e.say(1, { type: 'war', op: 'lost' });
+    check('and during the countdown too, before there is a rack', e.errors(1).join() === 'off,off');
+    /* Seat 2 is spawning from 7 s to 8 s: a respawn, as its client flags it. */
+    e.flags[1] = (t) => (t >= 7000 && t < 8000 ? FLAG_AIRBORNE | FLAG_SPAWNING : FLAG_AIRBORNE);
+    e.fly(7500);
+    check('and "on" once it is live', JSON.stringify(e.r.activity(e.clock)) === '{"game":"war","state":"on"}');
+    e.say(1, { type: 'war', op: 'lost' });
+    check('"lost" while spawning is refused "spawning", and takes nothing', e.errors(1).at(-1) === 'spawning' && e.view().rack === 4);
+    e.fly(8500);
+    e.say(1, { type: 'war', op: 'lost' });
+    const after = e.view().rack;
+    e.say(1, { type: 'war', op: 'lost' });
+    check('a pilot\'s own lost airframe takes one off the rack, once however often it says so', after === 3 && e.view().rack === 3
+      && e.r.war.log.filter((x) => x.what === 'lost').length === 1, `${after} then ${e.view().rack}`);
+    /* Its wreck follows (8.8 s to 9.5 s), then it is clean again. */
+    e.flags[1] = (t) => (t >= 8800 && t < 9500 ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.fly(10500);
+    check('its wreck is the loss\'s, not another crash', e.view().rack === 3 && !e.r.war.log.some((x) => x.what === 'crash'), JSON.stringify(e.r.war.log));
+    e.say(1, { type: 'war', op: 'lost' });
+    check('the next airframe, clean again, can be lost in its turn', e.view().rack === 2);
+    e.flags[0] = (t) => (t >= 11000 ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.fly(11500);
+    e.say(0, { type: 'war', op: 'lost' });
+    check('a wreck is refused "wreck": its crash already took it', e.errors(0).at(-1) === 'wreck' && e.view().rack === 1, JSON.stringify(e.view()));
   }
 
   console.log('war: output');

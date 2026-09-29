@@ -426,6 +426,9 @@ export class RoomCore {
     if (this.combat.on()) {
       return { game: 'combat', state: this.combat.round.state };
     }
+    if (this.war.on()) {
+      return { game: 'war', state: this.war.match.state === 'live' ? 'on' : 'countdown' };
+    }
     return { game: this.meta.mode ?? null, state: 'waiting' };
   }
 
