@@ -47,6 +47,7 @@ import { buildDlgCraft } from './dlgcraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
+import { buildZagiCraft } from './zagicraft.js';
 import { airframeById } from '../../configs/airframes.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
@@ -77,6 +78,7 @@ const BUILDERS = {
   uglystik1567: buildUglystikCraft,
   nrj1490: buildDlgCraft,
   p51d1450: buildP51Craft,
+  zagi1219: buildZagiCraft,
   timber1500: buildTimberCraft,
   /* On floats, the same builders with the float set in place of the gear. */
   timber1500f: (opts) => buildTimberCraft({ ...opts, floats: true }),

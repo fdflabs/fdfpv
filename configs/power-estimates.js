@@ -415,5 +415,21 @@ export const ESTIMATES = {
         minutes: 13
       }
     }
+  },
+  zagi1219: {
+    stock: {
+      '3s1300': {
+        topSpeed: 28.43,
+        minutes: 48.1
+      },
+      '3s1500': {
+        topSpeed: 28.61,
+        minutes: 54.1
+      },
+      '3s2200': {
+        topSpeed: 28.91,
+        minutes: 70.5
+      }
+    }
   }
 };

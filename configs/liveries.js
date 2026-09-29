@@ -225,6 +225,17 @@ export const LIVERIES = {
       { id: 'arctic', source: src('Freewing F-16 V3 Arctic Camo, FJ21125P', 'https://motionrc.com/products/freewing-f-16-v3-arctic-camo-high-performance-70mm-edf-jet-pnp-fj21125p'), colours: { dark: '#3b3f44', medium: '#c9ced2', light: '#eef0f1' } },
     ],
   },
+  zagi1219: {
+    /* Zagi's HP as zagi.com photographs it: orange covering tape all
+     * over, black winglets, the charcoal canopy and tray; and the 5C
+     * combat wing's scheme, yellow with black tape on the leading edge
+     * and black winglets. */
+    regions: [r('wing', '#f0561e'), r('trim', '#f0561e'), r('winglets', '#17191b'), r('canopy', '#34383c')],
+    schemes: [
+      { id: 'stock', source: src('Zagi, Zagi HP product photograph', 'https://web.archive.org/web/2019/https://zagi.com/product/hp/'), colours: {} },
+      { id: 'combat', source: src('Zagi, Zagi 5C product photograph', 'https://web.archive.org/web/2017/https://zagi.com/category/kits/'), colours: { wing: '#f0db2c', trim: '#17191b' } },
+    ],
+  },
 };
 
 /* Extreme Flight's two schemes for the 60 in Edge, from its data sheet's

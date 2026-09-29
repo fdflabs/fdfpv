@@ -15,10 +15,11 @@
  * its three wheels, ?plane=edge the Edge 540's, from standing on its three
  * wheels, ?plane=extra the Extra 300's, from standing on its wheels,
  * through a hover and a torque roll, ?plane=uglystik the Ugly Stik's,
- * from standing on its three wheels, ?plane=dlg the NRJ's, thrown by its
- * wingtip from the grass into a thermal, and ?plane=f16 the F-16's, from
- * standing on its three wheels with its fan stopped; with no query it
- * is the wing's, exactly as it always was.
+ * from standing on its three wheels, ?plane=f16 the F-16's, from
+ * standing on its three wheels with its fan stopped, ?plane=zagi the
+ * Zagi's, thrown by hand, and ?plane=dlg the NRJ's, thrown by its wingtip
+ * from the grass into a thermal; with no query it is the wing's, exactly
+ * as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -40,7 +41,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, uglystikGroundPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, uglystikGroundPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -64,6 +65,7 @@ const PLANES = {
   f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
   'p51-air': { rec: '/tests/inputs/p51-air.rec', prelude: p51AirPrelude },
+  zagi: { rec: '/tests/inputs/zagi-baseline.rec', prelude: (sim) => zagiPrelude(sim) },
 };
 
 async function fetchBytes(url) {
