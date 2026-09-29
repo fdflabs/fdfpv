@@ -45,7 +45,7 @@ const MIN_PX = 2.5;
 const CONFETTI = 192;
 const GLINT_S = 0.45;
 const GLINT_M = 4;
-const CONFETTI_S = 4;
+export const CONFETTI_S = 4;
 const GONE = new THREE.Matrix4().makeScale(0, 0, 0);
 
 /* Each seat's colour as linear RGB, made once. */

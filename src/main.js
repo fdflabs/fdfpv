@@ -2078,7 +2078,9 @@ export async function boot({
     }
     if (wallMs > combatHudAt) {
       combatHudAt = wallMs + 200;
-      combatHud.update(roomCombat.round(), roomCombat.seat(), now, paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow);
+      /* Not over the crash cam's replay, which is another moment. */
+      combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
+        paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow);
     }
     if (!roomCombat.out()) {
       if (combatLayer.count()) {
@@ -2089,10 +2091,9 @@ export async function boot({
     if (scene && combatLayer.group.parent !== scene) {
       scene.add(combatLayer.group);
     }
-    /* The crash cam's replay draws the room as it was and keeps no paper,
-     * so the paper as it is now is put away with the live peers
-     * (roomDrawPeer) until flight resumes, rather than trailing behind
-     * nothing. */
+    /* The crash cam's replay draws the room as it was, its paper too
+     * (src/replay/paperscene.js), so the paper as it is now is put away
+     * with the live peers (roomDrawPeer) until flight resumes. */
     combatLayer.group.visible = mode !== 'replay';
     if (!combatStepped) {
       roomCombat.idle(dt * 1000, pCurr.x, pCurr.y, pCurr.z, qPrev.x, qPrev.y, qPrev.z, qPrev.w, groundAt);
@@ -2784,6 +2785,9 @@ export async function boot({
           section: true,
         },
         ...roomEndRows(host, w),
+        /* Who starts the games, for everybody else: without it a pilot
+         * who is not the host sees rows that do nothing and no reason. */
+        ...(w && !host ? [{ label: str('friends.host_starts', { name: roomSeatName(w.host) }), info: true }] : []),
         ...order.flatMap((g) => blocks[g]),
         { label: str('roomrace.room_section'), section: true },
       ];
@@ -2801,22 +2805,27 @@ export async function boot({
           note: str('friends.here_note'),
           info: true,
         },
-        { label: str('friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+        { label: str(host ? 'friends.you_host' : 'friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
         ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
         const craft = airframeById(peer.profile.airframe).name;
         const muted = roomSafety.isMuted(peer.seat);
+        const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
         rows.push({
-          label: muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name),
+          label: w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown,
           value: craft,
           note: str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
           current: '',
           pickOnly: true,
-          options: roomSafety.peerOptions(peer.seat, kicks),
+          /* The host hands the room over from any pilot's row. */
+          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
           pick: (v) => {
-            if (roomSafety.peerPick(peer.seat, v) === 'kick') {
+            const picked = roomSafety.peerPick(peer.seat, v);
+            if (picked === 'kick') {
               roomLinkState.kick(peer.seat);
+            } else if (picked === 'handhost') {
+              roomLinkState.send({ type: 'handhost', seat: peer.seat });
             }
             ui.refreshFriends();
           },
@@ -14506,6 +14515,8 @@ export async function boot({
     },
   });
   crashCam.tap(debris);
+  /* Combat's paper and its SCHWING, for the replay (src/replay/paper.js). */
+  crashCam.tapPaper(combatLayer);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

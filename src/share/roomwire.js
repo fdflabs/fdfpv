@@ -509,6 +509,9 @@ export const PUBLIC_CAP = 16;
 export const ROOM_NAME_MIN = 3;
 export const ROOM_NAME_MAX = 32;
 export const ROOM_MODES = ['race', 'tag', 'combat'];
+/* How often an open Rooms screen asks for the list (src/share/roomlist.js);
+ * here because the server sizes its per address list limit from it. */
+export const LIST_EVERY_MS = 4000;
 const ROOM_NAME_RE = /^[A-Za-z0-9\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u00ff .,\u0027!?\u00a1\u00bf#&_-]+$/;
 
 /* A typed room name, its spaces collapsed and trimmed, or null when it
