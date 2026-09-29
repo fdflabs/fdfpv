@@ -7,6 +7,9 @@ plant capability it derives, the aileron on each strip past the stall
 (`strip_tau`), is flown by the Zagi HP and the Ugly Stik, and the
 aerobat's hands it wrote (`edgeHeading`, `edgeRoll`, `edgeLevel` in
 tests/lib/wingpilot.js) fly the Ugly Stik's and the Tiger Moth's gates.
+The surface's knee it added (`surf_knee`), which no aircraft that is left
+sets, went with it, as did the Extra 300's slipstream, high angle tail and
+slow rotation terms (`slip_*`, `hi_alpha`, `tail_*`, `side_cda`, `rot_k`).
 The scripts and checks it names for the Edge itself are in git history.
 
 The owner asked for eleven all time great RC aeroplanes, and this is id
