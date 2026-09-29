@@ -4,9 +4,12 @@
  *
  * In headless Chromium, on the Swiss valley, a Skyhunter thrown four
  * times to fill the replay's half minute, then a fifth time, its right
- * wing broken off in the air and flown on into the ground. V opens the replay, which is saved and read back as the clip
- * the export renders from. Then, with an edit of three shots (Chase, an
- * Orbit at 0.25x round the wing leaving, a Follow of the wing):
+ * wing broken off in the air and flown on into the ground. V opens the
+ * replay, and the edit is made through the crash cam's own api: three
+ * shots, Chase, an Orbit at 0.25x blending in round the wing leaving, a
+ * Follow of the wing. Every export is the api's exportMovie, driven by
+ * the crash cam's frame loop and edit clock (src/replay/crashcam.js), as
+ * the dialog's Export is:
  *
  *  1. 720p30 MP4 and WebM, sound on: the file holds exactly plan.n video
  *     frames at round(i * 1e6 / 30) microseconds (WebM keeps whole
@@ -21,21 +24,11 @@
  *  5. No page errors.
  *
  * With --movie=<dir>, also the owner's movie: the whole clip, six shots
- * (Chase, Orbit, a Follow of the wing at 0.25x, Chase, Onboard at 0.25x
- * into the crash, an Orbit to the end) at 1080p60 MP4 with sound, written to <dir>,
- * with the peak memory of the browser's processes (their summed PSS, read
- * from /proc) and the page's JS heap while it exports.
- *
- * THE DRIVER HERE IS A STAND-IN. docs/EDITOR-PLAN.md 4.3 puts the export
- * driver in crashcam.js (package B: frame() asks the job for the frame,
- * afterRender() captures it) with its edit clock. Until that lands this
- * page script plays its part over the real edit.js edit and plan: a
- * requestAnimationFrame callback that runs after the shell's own each
- * frame captures what the shell just drew, then moves the playhead to the
- * next movie frame and switches the camera at each shot.
- * So what is proved is the job, the encoders, the muxers, the sound and
- * the shell's export surface; the camera blend and the debris stepped by
- * the edit clock are B's, and the debris here hangs where it was thrown.
+ * (Chase, an Orbit blending in, a Follow of the wing at 0.25x, Chase,
+ * Onboard at 0.25x into the crash, an Orbit blending in to the end) at
+ * 1080p60 MP4 with sound, written to <dir>, with the peak memory of the
+ * browser's processes (their summed PSS, read from /proc) and the page's
+ * JS heap while it exports.
  *
  * SIM_GPU=1 draws on this machine's GPU (tests/lib/page.js); the owner's
  * movie is meant to be made that way.
@@ -125,55 +118,50 @@ async function frames(page, n) {
 }
 
 /*
- * The page side: the edit built with edit.js from a list of shots, its
- * plan, and the stand-in driver described in the header. Installed as
- * source.
+ * The page side, installed as source. __buildEdit makes the edit through
+ * the crash cam's own api, as the pilot's keys do (a cut at the playhead,
+ * the shot's camera, its speed, how it starts). __exportRun calls the
+ * api's exportMovie, which runs the export from the crash cam's frame
+ * loop, and watches it from a requestAnimationFrame callback that runs
+ * after the shell's each frame: the canvas size, a few pictures' mean
+ * brightness, the page's heap, and on request a busy wait or a cancel.
  */
 function pageDriver() {
-  window.__exportRun = async (o) => {
-    const { createExportJob } = await import('/src/replay/export.js');
-    const store = await import('/src/replay/store.js');
-    const E = await import('/src/replay/edit.js');
-    const { defaults } = await import('/src/replay/cameras.js');
-    const cam = (s) => ({ rig: s.rig, target: s.target ?? -1, watch: 0, p: defaults(s.rig, 1) });
-    let edit = E.defaultEdit(window.__exportClip.time[window.__exportClip.n - 1], cam(o.shots[0]));
-    edit = E.setIn(E.setOut(edit, o.out), o.shots[0].t0);
-    o.shots.forEach((s, k) => {
-      if (k > 0) {
-        edit = E.setCam(E.cut(edit, s.t0), k, cam(s));
-      }
-      edit = E.setSpeed(edit, k, s.speed);
-    });
-    if (edit.shots.length !== o.shots.length) {
-      throw new Error(`the edit has ${edit.shots.length} shots, not ${o.shots.length}`);
-    }
+  window.__buildEdit = (shots, out) => {
     const h = window.__crashCam.h();
+    const { api } = h;
+    while (h.edit().shots.length > 1) {
+      api.removeCut(h.edit().shots.length - 1);
+    }
+    api.setEdge('in', 0);
+    api.setEdge('out', out);
+    api.setEdge('in', shots[0].t0);
+    shots.forEach((s, k) => {
+      api.jumpTo(s.t0);
+      if (k > 0) {
+        api.cut();
+      }
+      if (s.rig === 'follow') {
+        api.follow(s.target);
+      } else {
+        api.setRig(s.rig);
+      }
+      api.setSpeed(s.speed);
+      if (s.enter) {
+        api.setEnter(k, s.enter);
+      }
+    });
+    const e = h.edit();
+    return e.shots.map((x) => `${x.cam.rig}${x.speed !== 1 ? ` ${x.speed}x` : ''} from ${x.t0.toFixed(2)} s`
+      + `${x.enter.type !== 'cut' ? ` (${x.enter.type}${x.enter.d ? ` ${x.enter.d} s` : ''})` : ''}`).join(', ');
+  };
+
+  window.__exportRun = async (o) => {
+    const store = await import('/src/replay/store.js');
+    const h = window.__crashCam.h();
+    const { api } = h;
     const canvas = document.getElementById('view');
     const before = [canvas.width, canvas.height];
-    const plan = E.planMovie(edit, o.fps);
-    const heap0 = performance.memory ? performance.memory.usedJSHeapSize : 0;
-    const ac = new AbortController();
-    const t0 = performance.now();
-    /* A browser without WebCodecs, for the real time recorder. */
-    const encoder = window.VideoEncoder;
-    if (o.hideWebCodecs) {
-      window.VideoEncoder = undefined;
-    }
-    const job = await createExportJob({
-      clip: window.__exportClip,
-      edit,
-      plan,
-      size: o.size,
-      fps: o.fps,
-      format: o.format,
-      sound: o.sound,
-      audio: window.__audio,
-      surface: window.__crashCam.exportSurface,
-      signal: ac.signal,
-    }).finally(() => {
-      window.VideoEncoder = encoder;
-    });
-    const tFrames = performance.now();
     const probe = document.createElement('canvas');
     probe.width = 32;
     probe.height = 18;
@@ -181,84 +169,85 @@ function pageDriver() {
     const lumaOf = () => {
       g.drawImage(canvas, 0, 0, 32, 18);
       const d = g.getImageData(0, 0, 32, 18).data;
-      let s = 0;
+      let sum = 0;
       for (let k = 0; k < d.length; k += 4) {
-        s += d[k] + d[k + 1] + d[k + 2];
+        sum += d[k] + d[k + 1] + d[k + 2];
       }
-      return s / ((d.length / 4) * 3);
+      return sum / ((d.length / 4) * 3);
     };
-    let pending = -1;
-    let lastShot = -1;
-    let captured = 0;
-    let holds = 0;
-    let peakHeap = 0;
+    const heap0 = performance.memory ? performance.memory.usedJSHeapSize : 0;
+    let peakHeap = heap0;
+    const sizes = new Set();
     const luma = [];
-    const drawnSize = [];
-    const result = await new Promise((done, fail) => {
-      const tick = () => {
-        try {
-          if (pending >= 0) {
-            if (o.busyMs) {
-              const until = performance.now() + o.busyMs;
-              while (performance.now() < until) { /* The slow machine. */ }
-            }
-            if (pending === 0 || pending === plan.n >> 1) {
-              luma.push(lumaOf());
-              drawnSize.push([canvas.width, canvas.height]);
-            }
-            job.capture(canvas);
-            captured += 1;
-            pending = -1;
-            if (o.cancelAt && captured === o.cancelAt) {
-              ac.abort();
-            }
-          }
-          if (performance.memory) {
-            peakHeap = Math.max(peakHeap, performance.memory.usedJSHeapSize);
-          }
-          const i = job.next();
-          if (i === null) {
-            job.finish().then(done, fail);
-            return;
-          }
-          if (i < 0) {
-            holds += 1;
-          } else {
-            const s = plan.shot[i];
-            h.api.jumpTo(plan.clipT[i]);
-            if (s !== lastShot) {
-              h.setRig(edit.shots[s].cam.rig, edit.shots[s].cam.target);
-              lastShot = s;
-            }
-            pending = i;
-          }
-          requestAnimationFrame(tick);
-        } catch (e) {
-          job.cancel();
-          fail(e);
+    let last = null;
+    let watching = true;
+    let cancelled = false;
+    const watch = () => {
+      if (!watching) {
+        return;
+      }
+      const x = h.view().exporting;
+      if (x) {
+        last = x;
+        sizes.add(`${canvas.width}x${canvas.height}`);
+        const at = [1, x.total >> 1, x.total - 2];
+        if (luma.length < at.length && x.done >= at[luma.length]) {
+          luma.push(lumaOf());
         }
-      };
-      requestAnimationFrame(tick);
+        if (o.busyMs) {
+          const until = performance.now() + o.busyMs;
+          while (performance.now() < until) { /* The slow machine. */ }
+        }
+        if (o.cancelAt && x.done >= o.cancelAt && !cancelled) {
+          cancelled = true;
+          api.cancelExport();
+        }
+      }
+      if (performance.memory) {
+        peakHeap = Math.max(peakHeap, performance.memory.usedJSHeapSize);
+      }
+      requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    /* A browser without WebCodecs, for the real time recorder: hidden
+     * until the job has been made. */
+    const encoder = window.VideoEncoder;
+    if (o.hideWebCodecs) {
+      window.VideoEncoder = undefined;
+    }
+    const t0 = performance.now();
+    let settled = false;
+    const run = api.exportMovie({
+      size: o.size, fps: o.fps, format: o.format, sound: o.sound,
+    }).finally(() => {
+      settled = true;
     });
+    while (!settled && !h.view().exporting) {
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    window.VideoEncoder = encoder;
+    let res;
+    try {
+      res = await run;
+    } finally {
+      watching = false;
+    }
     const wallMs = performance.now() - t0;
-    if (result && o.download) {
-      store.downloadBlob(result.name, result.bytes);
+    if (res && o.download) {
+      store.downloadBlob(res.name, res.bytes);
     }
     return {
-      n: plan.n,
-      captured,
-      holds,
+      n: h.plan().n,
+      captured: res ? h.plan().n : (last ? last.done : 0),
+      realtime: Boolean(last && last.realtime),
       wallMs,
-      soundMs: tFrames - t0,
-      codecs: job.codecs,
-      realtime: job.realtime,
-      cancelled: !result,
-      name: result ? result.name : '',
-      bytes: result ? result.bytes.size : 0,
-      type: result ? result.bytes.type : '',
+      cancelled: !res,
+      name: res ? res.name : '',
+      bytes: res ? res.bytes.size : 0,
+      type: res ? res.bytes.type : '',
       before,
       after: [canvas.width, canvas.height],
-      drawnSize,
+      drawnSize: [...sizes],
       luma,
       heap0,
       peakHeap,
@@ -400,24 +389,16 @@ async function main() {
     if (!off) {
       throw new Error('no wing marker; nothing further can be checked');
     }
-    /* The clip the export renders from, as My clips keeps it. */
-    const id = await page.evaluate(`${H}.api.saveReplay('export check')`);
-    const n = await page.evaluate(`(async () => {
-      const store = await import('/src/replay/store.js');
-      const { decodeReplay } = await import('/src/replay/file.js');
-      const row = await store.getClip(${JSON.stringify(id)});
-      window.__exportClip = decodeReplay(row.bytes);
-      return window.__exportClip.n;
-    })()`);
-    check('saved and read back as the clip to render', n > 100, `${n} frames`);
     await page.evaluate(`(${pageDriver.toString()})()`);
 
-    const shots = [
+    const built = await page.evaluate(`window.__buildEdit(${JSON.stringify([
       { t0: off.t - 1, rig: 'chase', speed: 1 },
-      { t0: off.t - 0.2, rig: 'orbit', speed: 0.25 },
+      { t0: off.t - 0.2, rig: 'orbit', speed: 0.25, enter: { type: 'blend', d: 0.5 } },
       { t0: off.t + 0.3, rig: 'follow', target: wing, speed: 1 },
-    ];
-    const short = { shots, out: off.t + 1.3, size: 720, fps: 30, sound: true, download: true };
+    ])}, ${off.t + 1.3})`);
+    console.log(`     the edit: ${built}`);
+    check('an edit of three shots, a 0.25x shot and a blend', /orbit 0\.25x .*blend 0\.5 s.*follow/.test(built), built);
+    const short = { size: 720, fps: 30, sound: true, download: true };
     const exported = async (label, opts) => {
       const t = Date.now();
       const run = await page.evaluate(`window.__exportRun(${JSON.stringify(opts)})`);
@@ -426,20 +407,19 @@ async function main() {
       if (file) {
         renameSync(join(outDir, file.guid), path);
       }
-      console.log(`     ${label}: ${run.n} frames in ${(run.wallMs / 1000).toFixed(1)} s, ${(run.wallMs / Math.max(1, run.captured)).toFixed(1)} ms a frame`
-        + ` (sound first ${(run.soundMs / 1000).toFixed(2)} s), ${run.holds} holds, ${run.codecs.video} ${run.codecs.audio || 'no sound'},`
-        + ` ${(run.bytes / 1048576).toFixed(2)} MB, wall ${((Date.now() - t) / 1000).toFixed(1)} s; ${load()}`);
+      console.log(`     ${label}: ${run.n} frames in ${(run.wallMs / 1000).toFixed(1)} s, ${(run.wallMs / Math.max(1, run.captured)).toFixed(1)} ms a frame,`
+        + ` ${run.realtime ? 'real time' : 'offline'}, ${run.type || 'no file'} ${(run.bytes / 1048576).toFixed(2)} MB, wall ${((Date.now() - t) / 1000).toFixed(1)} s; ${load()}`);
       return { run, path };
     };
 
     console.log('1. 720p30, MP4 and WebM, with sound');
     for (const format of ['mp4', 'webm']) {
       const { run, path } = await exported(`720p30-${format}`, { ...short, format });
-      check(`${format}: offline, every frame captured, the canvas drawn at the movie's size and restored after`,
-        !run.realtime && run.captured === run.n && run.drawnSize.every(([w, h]) => w === 1280 && h === 720)
+      check(`${format}: offline, the canvas drawn at the movie's size and restored after`,
+        !run.realtime && !run.cancelled && run.drawnSize.join() === '1280x720'
         && run.after[0] === run.before[0] && run.after[1] === run.before[1],
-        `${run.captured} of ${run.n}, drawn ${run.drawnSize.map((s) => s.join('x')).join(' ')}, canvas ${run.before.join('x')} then ${run.after.join('x')}`);
-      check(`${format}: the picture is not black`, run.luma.every((l) => l > 8), run.luma.map((l) => l.toFixed(1)).join(', '));
+        `${run.n} frames, drawn ${run.drawnSize.join(' ')}, canvas ${run.before.join('x')} then ${run.after.join('x')}`);
+      check(`${format}: the picture is not black`, run.luma.length === 3 && run.luma.every((l) => l > 8), run.luma.map((l) => l.toFixed(1)).join(', '));
       verify(format, path, run, 30, 1280, 720);
     }
 
@@ -459,7 +439,7 @@ async function main() {
     check('real time: a WebM of about the movie\'s frames, with the live mix, the canvas restored',
       rt.run.realtime && rtVideo && rtVideo.frames > rt.run.n / 2 && rtVideo.frames < rt.run.n * 1.5 && rtAudio
       && rt.run.after[0] === rt.run.before[0] && rt.run.after[1] === rt.run.before[1],
-      `${rt.run.codecs.video}, ${rtVideo ? rtVideo.frames : 0} frames for a plan of ${rt.run.n}, ${rtVideo ? `${rtVideo.width} x ${rtVideo.height}` : ''}, audio ${rtAudio ? rtAudio.codec : 'none'}`);
+      `${rt.run.type}, ${rtVideo ? rtVideo.frames : 0} frames for a plan of ${rt.run.n}, ${rtVideo ? `${rtVideo.width} x ${rtVideo.height}` : ''}, audio ${rtAudio ? rtAudio.codec : 'none'}`);
 
     console.log('4. cancelled midway');
     const before = dl.begun;
@@ -474,12 +454,13 @@ async function main() {
       console.log('5. the owner\'s movie, the whole clip at 1080p60');
       const movieShots = [
         { t0: 0, rig: 'chase', speed: 1 },
-        { t0: off.t - 2, rig: 'orbit', speed: 1 },
-        { t0: off.t - 0.3, rig: 'follow', target: wing, speed: 0.25 },
-        { t0: off.t + 0.7, rig: 'chase', speed: 1 },
+        { t0: off.t - 2, rig: 'orbit', speed: 1, enter: { type: 'blend', d: 1 } },
+        { t0: off.t - 0.3, rig: 'follow', target: wing, speed: 0.25, enter: { type: 'blend', d: 0.5 } },
+        { t0: off.t + 0.7, rig: 'chase', speed: 1, enter: { type: 'blend', d: 0.5 } },
         { t0: down - 0.6, rig: 'fpv', speed: 0.25 },
-        { t0: down + 0.4, rig: 'orbit', speed: 1 },
+        { t0: down + 0.4, rig: 'orbit', speed: 1, enter: { type: 'blend', d: 1 } },
       ].filter((s, k, a) => k === 0 || s.t0 > a[k - 1].t0 + 0.05);
+      const movieEdit = await page.evaluate(`window.__buildEdit(${JSON.stringify(movieShots)}, ${v.dur})`);
       const baseline = treePssMb(page.proc.pid);
       let peak = baseline;
       const sampler = setInterval(() => {
@@ -488,7 +469,7 @@ async function main() {
       let movie;
       try {
         movie = await exported('movie-1080p60', {
-          shots: movieShots, out: v.dur, size: 1080, fps: 60, format: 'mp4', sound: true, download: true,
+          size: 1080, fps: 60, format: 'mp4', sound: true, download: true,
         });
       } finally {
         clearInterval(sampler);
@@ -500,7 +481,7 @@ async function main() {
       rmSync(movie.path);
       verify('1080p60 movie', final, movie.run, 60, 1920, 1080);
       console.log(`     ${final}`);
-      console.log(`     shots: ${movieShots.map((s) => `${s.rig}${s.speed !== 1 ? ` ${s.speed}x` : ''} from ${s.t0.toFixed(2)} s`).join(', ')}`);
+      console.log(`     shots: ${movieEdit}`);
       console.log(`     memory: the browser's processes ${baseline.toFixed(0)} MB before, ${peak.toFixed(0)} MB at the peak`
         + ` (+${(peak - baseline).toFixed(0)} MB); page JS heap ${(movie.run.heap0 / 1048576).toFixed(0)} MB before, ${(movie.run.peakHeap / 1048576).toFixed(0)} MB at the peak; file ${(movie.run.bytes / 1048576).toFixed(1)} MB`);
     }

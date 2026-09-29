@@ -42,6 +42,7 @@
 import { MOVIE_MAX_S } from './edit.js';
 import { renderSoundtrack, SAMPLE_RATE } from './soundtrack.js';
 import { stampedName } from './store.js';
+import { str } from '../strings/index.js';
 
 /* next() holds the loop while more frames than this wait to be encoded. */
 export const QUEUE_MAX = 4;
@@ -201,12 +202,10 @@ function browserCan(size, fps) {
 }
 
 /*
- * What the export dialog can offer. `why` is a reason code, which
- * crashcam.js exportOptions() words from src/strings before the dialog
- * shows it: 'no-video' (nothing encodes this container here), 'no-audio'
- * (the sound cannot be encoded or recorded). This file stays free of the
- * page's strings so it runs in Node. Probed at the largest size and rate,
- * so an option offered works at all.
+ * What the export dialog can offer, `why` worded for it when an option
+ * is not: a format nothing here encodes or records, or sound that cannot
+ * be encoded. Probed at the largest size and rate, so an option offered
+ * works at all.
  */
 export async function exportCapabilities() {
   const webcodecs = hasWebCodecs();
@@ -222,7 +221,9 @@ export async function exportCapabilities() {
       }
     }
     const mime = recorderMime(id);
-    formats.push({ id, ok: Boolean(mime), why: mime ? '' : 'no-video', video: mime, audio: '' });
+    formats.push({
+      id, ok: Boolean(mime), why: mime ? '' : str('replay.export_no_format', { format: id.toUpperCase() }), video: mime, audio: '',
+    });
     anySound = anySound || Boolean(mime);
   }
   return {
@@ -230,7 +231,7 @@ export async function exportCapabilities() {
     sizes: [720, 1080],
     fps: FPS.slice(),
     formats,
-    sound: { ok: anySound, why: anySound ? '' : 'no-audio' },
+    sound: { ok: anySound, why: anySound ? '' : str('replay.export_no_sound') },
   };
 }
 
@@ -430,7 +431,7 @@ async function offlineJob(o, codecs) {
         return;
       }
       if (canvas.width !== w || canvas.height !== h) {
-        fail(new ExportError(`the canvas is ${canvas.width} x ${canvas.height}, the movie ${w} x ${h}`));
+        fail(new ExportError(str('replay.export_wrong_size', { got: `${canvas.width} x ${canvas.height}`, want: `${w} x ${h}` })));
         return;
       }
       const i = schedule.captured();
