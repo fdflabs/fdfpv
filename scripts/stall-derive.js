@@ -203,6 +203,7 @@ planes.FW_EDGE1524 = {
   dw: 0.9 * 0.487 * 3.754 * 0.549 / 4.435,
   asym: TE_TOLERANCE / 0.3175,
   note: 'a_w 4.435, a_t 3.754, V_H 0.487, deps/dalpha 0.549 (DATCOM), its own arms',
+};
 /* The Extra 300 3D, scripts/extra-derive.js: E-flite's 95 mm CG on the
  * measured taper's mean chord, the manual's CG at the wing's aerodynamic
  * centre within 2 mm, and the tail's share from the derivation's a_w,
