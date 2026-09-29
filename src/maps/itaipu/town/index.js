@@ -7,17 +7,18 @@
  *               is streamed (plan.js buildings, roads.js roads and
  *               bridges, power.js towers and wires, bridge.js the
  *               Friendship Bridge, drape.js the roads on the ground)
- *   mesh.js     the faces into a few meshes a quarter of the hero
+ *   mesh.js     the faces into a batch a surface, in chunks each pass culls
  *
  * The part interface is the one every part is built against:
  *
  *   export async function buildPart(ctx) -> { group, update(stepIndex), dispose(), stats() }
  *
  * and this part adds `stream`, the map's seam for the streamed set
- * (src/maps/itaipu.js). The roofs and
- * the bridges' decks go into ctx.roofs and the decks' walls into
- * ctx.colliders during buildPart; the buildings' walls and the power
- * lines are only ever in the streamed set.
+ * (src/maps/itaipu.js), and `view`, which once a frame gives each chunk
+ * its near or far detail by its distance from the camera (mesh.js
+ * NEAR). The roofs and the bridges' decks go into ctx.roofs and the
+ * decks' walls into ctx.colliders during buildPart; the buildings' walls
+ * and the power lines are only ever in the streamed set.
  *
  * The data is OpenStreetMap's, ODbL: "(c) OpenStreetMap contributors",
  * credited where the map is shown (src/ui/credits.js and the world card,
@@ -69,6 +70,9 @@ export async function buildPart(ctx) {
   return {
     group,
     update() {},
+    view(target, camera) {
+      sink.view(camera);
+    },
     dispose() {},
     stream: town.stream,
     /* The model, for the checks (scripts/town-check.js). */

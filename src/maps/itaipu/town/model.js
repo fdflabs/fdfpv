@@ -78,6 +78,33 @@ const STEEL = [0.46, 0.47, 0.48];
 
 const EMPTY = Object.freeze([]);
 
+/*
+ * A brace [ax, ay, az, bx, by, bz, r] of structure `s` as it is drawn far
+ * off (mesh.js NEAR): a flat strip in its face of the tower, facing out
+ * from the tower's middle, as wide as the square bar's diagonal (its
+ * widest outline). Two triangles where the bar is eight.
+ */
+function braceStrip(p, s) {
+  const dx = p[3] - p[0];
+  const dy = p[4] - p[1];
+  const dz = p[5] - p[2];
+  const n = [(p[0] + p[3]) / 2 - s.x, 0, (p[2] + p[5]) / 2 - s.z];
+  let wx = dy * n[2];
+  let wy = dz * n[0] - dx * n[2];
+  let wz = -dy * n[0];
+  const k = (p[6] * Math.SQRT2) / Math.sqrt(wx * wx + wy * wy + wz * wz);
+  wx *= k;
+  wy *= k;
+  wz *= k;
+  return {
+    pts: [
+      [p[0] - wx, p[1] - wy, p[2] - wz], [p[0] + wx, p[1] + wy, p[2] + wz],
+      [p[3] + wx, p[4] + wy, p[5] + wz], [p[3] - wx, p[4] - wy, p[5] - wz],
+    ],
+    n,
+  };
+}
+
 function need(data, name) {
   const d = data[name];
   if (!d) {
@@ -202,7 +229,9 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
       pieces.push(p);
     }
     for (const p of bracesOf(s)) {
-      sink.bar('metal', STEEL, p.slice(0, 3), p.slice(3, 6), p[6], { cast: true, caps: false });
+      sink.bar('metal', STEEL, p.slice(0, 3), p.slice(3, 6), p[6], { cast: true, caps: false, lod: 'near' });
+      const far = braceStrip(p, s);
+      sink.face('metal', STEEL, far.pts, far.n, { cast: true, lod: 'far' });
       pieces.push(p);
     }
   }
