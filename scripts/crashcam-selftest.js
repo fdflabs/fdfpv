@@ -48,7 +48,8 @@
  * 13. Catch the Ace's bubble (src/replay/peers.js BUBBLE): each row holds
  *    the bubble that frame drew or none; eased round one Ace, a jump when
  *    the crown changes hands; a trim; the version 6 file with and without
- *    paper, version 4 still written without a bubble, and its refusals.
+ *    paper and with and without the movie editor's edit, version 4 still
+ *    written without either, and its refusals.
  *
  * Run: npm run crashcam:selftest
  *
@@ -84,6 +85,7 @@ import {
   addKey, createPose, defaults, easeInOut, evaluate, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
+import { cut, defaultEdit, setSpeed } from '../src/replay/edit.js';
 import {
   BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N, PIECES_MAX, bubbleAt, createPeerRing, createPeerSample, peerPose, samplePeers,
 } from '../src/replay/peers.js';
@@ -1546,6 +1548,20 @@ function bubbleRecord() {
   const withPaper = decodeReplay(encodeReplay({ ...clip, paper: paperFlight(64, 60).clip.paper }));
   check(same(withPaper.peers.bubble, B) && withPaper.paper, 'and with combat\'s paper as well');
   check(new DataView(encodeReplay(gap)).getUint32(4, true) === 4, 'a clip whose rows drew no bubble is written as before, version 4');
+  /* Version 6 is the movie editor's too (src/replay/edit.js): an edit, a
+   * bubble, or both, each written only when the clip has it. */
+  const dur = clip.time[clip.n - 1];
+  const edit = cut(setSpeed(defaultEdit(dur, { rig: 'orbit', target: -1, watch: 0, p: defaults('orbit', 1.8) }), 0, 0.5), dur / 2);
+  const edited = decodeReplay(encodeReplay({ ...clip, edit }));
+  check(edited.edit && JSON.stringify(edited.edit) === JSON.stringify(edit) && edited.edit.shots.length === 2 && same(edited.peers.bubble, B),
+    'an edited clip with a bubble saves as one version 6 file and reloads with both');
+  const keyed = decodeReplay(encodeReplay({ ...clip, keys: [{ t: 0.2, rig: 'orbit', target: -1, p: defaults('orbit', 1.8) }] }));
+  check(keyed.edit === undefined && keyed.keys.length === 1 && same(keyed.peers.bubble, B),
+    'a bubble without an edit keeps its camera keys, as the version before did');
+  const plain = roomFlight(64, 60).clip;
+  const editedNoBubble = { ...plain, edit: setSpeed(defaultEdit(plain.time[plain.n - 1], { rig: 'chase', target: -1, watch: 0, p: defaults('chase', 1.8) }), 0, 2) };
+  const eb = decodeReplay(encodeReplay(editedNoBubble));
+  check(eb.edit && eb.peers && eb.peers.bubble === undefined, 'an edit without a bubble is version 6 with the peers as before');
   const refused = (mut, why) => {
     try {
       decodeReplay(mut());
@@ -1564,7 +1580,7 @@ function bubbleRecord() {
     bubble[3 * BUBBLE_N + BUBBLE.seat] = 2.5;
     return encodeReplay({ ...clip, peers: { ...clip.peers, bubble } });
   }, 'a bubble round a seat that is not one');
-  refused(() => reheader(buf, 5), 'a bubble in a file that says version 5');
+  refused(() => reheader(buf, 4), 'a bubble in a file that says version 4');
 }
 
 ring();
