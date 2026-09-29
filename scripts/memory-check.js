@@ -61,7 +61,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * world, since the title always has a world behind it. */
 const BASE = 'alps';
 /* The lazily loaded worlds. */
-const HEAVY = ['yellowstone', 'swiss2'];
+const HEAVY = ['yellowstone', 'swiss2', 'itaipu'];
 
 /*
  * Worlds built from another world's code on purpose, and whose graph that
@@ -73,7 +73,9 @@ const HEAVY = ['yellowstone', 'swiss2'];
  * fault, and so is the Alps pulling in swiss2, which the boot half below
  * catches with the Alps as the baseline.
  */
-const SHARES = { swiss2: ['alps'] };
+/* Itaipu is Yellowstone's terrain engine under swiss2's look, on purpose
+ * (docs/ITAIPU-PLAN.md section 1, point 5). */
+const SHARES = { swiss2: ['alps'], itaipu: ['yellowstone', 'swiss2'] };
 
 /*
  * Every URL the page has fetched, as a plain list. Resource timing is the
