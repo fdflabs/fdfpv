@@ -34,6 +34,13 @@
  * Settings has Pilot markers: On, Minimal (the shapes, no type) or Off.
  * A game mode can mark one pilot harder with setRole (MARK_ROLES).
  *
+ * A PILOT IN THE ROOM WHO IS NOT DRAWN is never simply missing: paused,
+ * in a menu, in another world, they are named in a line of their own
+ * (away), top left and clear of the readouts, "Brave Turtle 17 is here
+ * but not flying". There is nothing to point at, so a line is all it is,
+ * and it keeps its type under Minimal, where it would otherwise say
+ * nothing; Off turns it off with the rest.
+ *
  * COST. One canvas, cleared and drawn once a frame while anything is on
  * it and left alone while nothing is. Everything a frame touches is
  * allocated up front: a record per seat, the keep out rectangles in a
@@ -222,6 +229,12 @@ export function makeMark(seat = 0) {
     distKey: -1,
     distOsd: null,
     distText: '',
+    /* The away line (PeerMarks.away): this frame's, its words, their width. */
+    awayUsed: false,
+    awayText: '',
+    awayW: 0,
+    awayX: 0,
+    awayY: 0,
   };
 }
 
@@ -544,6 +557,27 @@ export function clearRects(m, screen) {
 }
 
 /*
+ * Where an away line of w by h goes at x: the first y from `y` down at
+ * which it covers no readout, moved below each one it would.
+ */
+export function awayRow(screen, x, y, w, h) {
+  const r = screen.rects;
+  for (let pass = 0; pass <= screen.nRects; pass += 1) {
+    let moved = false;
+    for (let k = 0; k < screen.nRects * 4; k += 4) {
+      if (r[k] < x + w && x < r[k] + r[k + 2] && r[k + 1] < y + h && y < r[k + 1] + r[k + 3]) {
+        y = r[k + 1] + r[k + 3] + MARK.PAD;
+        moved = true;
+      }
+    }
+    if (!moved) {
+      break;
+    }
+  }
+  return y;
+}
+
+/*
  * Arrows on the same edge whose footprints overlap are spread along it,
  * the later one moved past the earlier, so two pilots behind the same
  * ridge are two arrows and not one arrow drawn twice.
@@ -715,6 +749,7 @@ export class PeerMarks {
     this.dt = Math.max(0, Math.min(0.1, dt));
     for (const m of this.marks) {
       m.used = false;
+      m.awayUsed = false;
     }
     if (!this.live) {
       return;
@@ -733,10 +768,12 @@ export class PeerMarks {
     if (osdOn !== this.osd) {
       this.osd = osdOn;
       this.keepOutAt = 0;
+      this.remeasureAway();
     }
     if (osdOn && osd.textPx && osd.textPx !== this.osdPx) {
       this.osdPx = osd.textPx;
       this.fontOsd = '';
+      this.remeasureAway();
     }
     setScreen(this.screen, w, h);
     if (nowMs >= this.keepOutAt) {
@@ -809,6 +846,27 @@ export class PeerMarks {
     }
   }
 
+  /* The away lines' widths belong to the type they were measured in. */
+  remeasureAway() {
+    for (const m of this.marks) {
+      m.awayW = 0;
+    }
+  }
+
+  /* A pilot in the room who is not drawn this frame, and why, in words
+   * ("... is here but not flying"): a line of its own, see the header. */
+  away(seat, text) {
+    if (!this.live || this.style === 'off' || seat < 1 || seat > PUBLIC_CAP) {
+      return;
+    }
+    const m = this.marks[seat];
+    m.awayUsed = true;
+    if (text !== m.awayText) {
+      m.awayText = text;
+      m.awayW = 0;
+    }
+  }
+
   /* Plan every mark and draw them. heightAt(x, z) is the terrain's top. */
   end(heightAt) {
     const g = this.g;
@@ -841,7 +899,7 @@ export class PeerMarks {
       if (m.used && m.kind === KIND_EDGE) {
         clearRects(m, this.screen);
       }
-      any = any || (m.used && m.alpha >= MARK.MIN_ALPHA);
+      any = any || (m.used && m.alpha >= MARK.MIN_ALPHA) || m.awayUsed;
     }
     if (!any) {
       this.clear();
@@ -868,6 +926,7 @@ export class PeerMarks {
       }
     }
     g.globalAlpha = 1;
+    this.drawAway(g, s);
     g.setTransform(1, 0, 0, 1, 0, 0);
     this.stats.drawn += over + edge;
     this.stats.over = over;
@@ -953,6 +1012,47 @@ export class PeerMarks {
     }
     g.strokeText(m.distText, x, yy);
     g.fillText(m.distText, x, yy);
+  }
+
+  /* The away lines, top left under the readouts: a dot in the pilot's
+   * colour and the words, one line each, in seat order. */
+  drawAway(g, s) {
+    const osd = this.osd;
+    const line = (osd ? this.osdPx * 1.25 : 13) + MARK.PAD;
+    const dot = 4;
+    let y = this.screen.minY;
+    g.setTransform(s, 0, 0, s, 0, 0);
+    g.font = this.font();
+    g.textAlign = 'left';
+    g.textBaseline = 'middle';
+    g.lineJoin = 'round';
+    for (let i = 1; i < this.marks.length; i += 1) {
+      const m = this.marks[i];
+      if (!m.awayUsed) {
+        continue;
+      }
+      const words = osd ? m.awayText.toUpperCase() : m.awayText;
+      if (!m.awayW) {
+        m.awayW = g.measureText(words).width;
+      }
+      const x = this.screen.minX;
+      y = awayRow(this.screen, x, y, dot * 3 + m.awayW, line);
+      m.awayX = x;
+      m.awayY = y;
+      const cy = y + line * 0.5;
+      g.beginPath();
+      g.arc(x + dot, cy, dot, 0, Math.PI * 2);
+      g.strokeStyle = HALO;
+      g.lineWidth = 3;
+      g.stroke();
+      g.fillStyle = m.colour;
+      g.fill();
+      g.lineWidth = osd ? 2 : 3;
+      g.strokeText(words, x + dot * 3, cy);
+      g.fillStyle = osd ? '#ffffff' : LABEL;
+      g.fillText(words, x + dot * 3, cy);
+      y += line;
+    }
   }
 
   /* A small caret pointing down at the aircraft, hollow while the terrain
@@ -1061,8 +1161,9 @@ export class PeerMarks {
         box: m.kind === KIND_EDGE ? [m.sx + m.fx0, m.sy + m.fy0, m.sx + m.fx1, m.sy + m.fy1] : null,
       });
     }
+    const away = this.marks.filter((m) => m.awayUsed).map((m) => ({ seat: m.seat, text: m.awayText, x: m.awayX, y: m.awayY }));
     return {
-      live: this.live, style: this.style, osd: this.osd, stats: { ...this.stats }, cam: { ...this.cam },
+      live: this.live, style: this.style, osd: this.osd, stats: { ...this.stats }, cam: { ...this.cam }, away,
       screen: { w: this.screen.w, h: this.screen.h, rects: Array.from(this.screen.rects.subarray(0, this.screen.nRects * 4)) },
       marks: out,
     };

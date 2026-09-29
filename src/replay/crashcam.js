@@ -80,7 +80,7 @@ import { dressParts } from '../render/partsfit.js';
 import { powerOption } from '../../configs/power.js';
 import { simPosToThree, simQuatToThree } from '../render/frame.js';
 import { partLabel, PART_KINDS } from '../../configs/parts.js';
-import { airframeById } from '../../configs/airframes.js';
+import { airframeById, retiredAirframe } from '../../configs/airframes.js';
 import { str } from '../strings/index.js';
 
 /* The keyboard key and the standard pad button that open the replay. */
@@ -1693,7 +1693,13 @@ export function createCrashCam(host) {
       if (err instanceof ReplayFileError) {
         console.warn('replay refused:', err.message);
         const retired = err.map && host.retiredMapName(err.map);
-        throw new Error(retired ? str('replay.map_retired', { map: retired }) : str('replay.not_a_replay'));
+        if (retired) {
+          throw new Error(str('replay.map_retired', { map: retired }));
+        }
+        /* A clip flown on a retired aircraft is refused by its name: the
+         * clip holds that aircraft's crash parts, which no other model has. */
+        const gone = retiredAirframe(err.airframe);
+        throw new Error(gone ? str('replay.aircraft_retired', { aircraft: gone.name }) : str('replay.not_a_replay'));
       }
       throw err;
     }

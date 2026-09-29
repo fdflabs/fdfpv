@@ -305,72 +305,6 @@ export const PROP_ESTIMATES = {
       }
     }
   },
-  edge1524: {
-    stock: {
-      "16x8e": {
-        thrustN: 81.376,
-        pitchSpeedMs: 33.551,
-        currentA: 76.6
-      },
-      "16x10e": {
-        thrustN: 85.8826,
-        pitchSpeedMs: 40.7318,
-        currentA: 89.092
-      }
-    }
-  },
-  extra1308: {
-    stock: {
-      "13x8e": {
-        thrustN: 39.9451,
-        pitchSpeedMs: 37.7268,
-        currentA: 74.256
-      },
-      "12x6e": {
-        thrustN: 30.9451,
-        pitchSpeedMs: 30.2635,
-        currentA: 49.539
-      }
-    },
-    "3s": {
-      "13x8e": {
-        thrustN: 22.5523,
-        pitchSpeedMs: 28.2787,
-        currentA: 41.885
-      },
-      "12x6e": {
-        thrustN: 17.4222,
-        pitchSpeedMs: 22.6897,
-        currentA: 27.941
-      }
-    }
-  },
-  pitts850: {
-    stock: {
-      "11x8e": {
-        thrustN: 16.5317,
-        pitchSpeedMs: 27.6951,
-        currentA: 29.74
-      },
-      "10x7e": {
-        thrustN: 12.9873,
-        pitchSpeedMs: 25.5558,
-        currentA: 21.394
-      }
-    },
-    "4s": {
-      "11x8e": {
-        thrustN: 26.4374,
-        pitchSpeedMs: 36.9354,
-        currentA: 45.855
-      },
-      "10x7e": {
-        thrustN: 20.7677,
-        pitchSpeedMs: 34.0824,
-        currentA: 32.967
-      }
-    }
-  },
   uglystik1567: {
     stock: {
       "12x7": {
@@ -394,20 +328,6 @@ export const PROP_ESTIMATES = {
         thrustN: 31.5508,
         pitchSpeedMs: 32.1093,
         rpmNoLoad: 11154.2
-      }
-    }
-  },
-  wot41334: {
-    stock: {
-      "12x6e": {
-        thrustN: 26.0555,
-        pitchSpeedMs: 22.3697,
-        currentA: 36.076
-      },
-      "12x8e": {
-        thrustN: 28.7309,
-        pitchSpeedMs: 29.0184,
-        currentA: 45.031
       }
     }
   },

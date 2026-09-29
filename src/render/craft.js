@@ -40,19 +40,14 @@ import { buildBramorCraft } from './bramorcraft.js';
 import { buildSlowStickCraft } from './slowstickcraft.js';
 import { buildBombshellCraft } from './bombshellcraft.js';
 import { buildKadetCraft } from './kadetcraft.js';
-import { buildEdgeCraft } from './edgecraft.js';
-import { buildExtraCraft } from './extracraft.js';
-import { buildPittsCraft } from './pittscraft.js';
 import { buildUglystikCraft } from './uglystikcraft.js';
-import { buildWot4Craft } from './wot4craft.js';
 import { buildTigermothCraft } from './tigermothcraft.js';
 import { buildDlgCraft } from './dlgcraft.js';
-import { buildQuickieCraft } from './quickiecraft.js';
 import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
 import { buildZagiCraft } from './zagicraft.js';
-import { airframeById } from '../../configs/airframes.js';
+import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 
@@ -77,14 +72,9 @@ const BUILDERS = {
   bombshell1118: buildBombshellCraft,
   f16878: buildF16Craft,
   kadet1981: buildKadetCraft,
-  edge1524: buildEdgeCraft,
-  extra1308: buildExtraCraft,
-  pitts850: buildPittsCraft,
   uglystik1567: buildUglystikCraft,
-  wot41334: buildWot4Craft,
   tigermoth1803: buildTigermothCraft,
   nrj1490: buildDlgCraft,
-  quickie1293: buildQuickieCraft,
   p51d1450: buildP51Craft,
   zagi1219: buildZagiCraft,
   timber1500: buildTimberCraft,
@@ -94,7 +84,7 @@ const BUILDERS = {
 };
 
 export function craftBuilderFor(airframeId) {
-  return BUILDERS[airframeById(airframeId).id] ?? buildHeroCraft;
+  return BUILDERS[airframeById(currentAirframeId(airframeId)).id] ?? buildHeroCraft;
 }
 
 /*
