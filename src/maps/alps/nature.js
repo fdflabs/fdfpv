@@ -42,10 +42,6 @@ import {
 import { makeWaves, patchGeometry, placePatch, injectWaves, starLoops, outlineBox, probeSurface } from '../../render/lakewaves.js';
 import { buildSpray } from '../../render/spray.js';
 
-/* Colliders and the fine detail stop here: further out the hillside is
- * the first thing a wing hits. */
-const COLLIDE_R = 700;
-
 /* The valley is cut into this many bands along z; every instanced thing
  * is one mesh per band, so the bands behind the camera cull. */
 const BANDS = 4;
@@ -322,7 +318,6 @@ export function natureSites(ctx) {
     }
     return z > -2720 && z < 1980 && Math.abs(x - (valleyAxis(z) + 55)) < 9;
   };
-  const near = (x, z) => Math.hypot(x, z) < COLLIDE_R;
 
   /*
    * THE LAKE. The basin's shore is wherever the terrain crosses the
@@ -394,7 +389,7 @@ export function natureSites(ctx) {
   const belowFall = upper.filter((p) => !onLedge(p));
   return {
     slopeAt, trough, fallZ, BAND, inBand, faceDx, BACK_DX, bandTop, groundAt, lipY, fallX,
-    keepOff, near, lakeCx, lakeCz, RAYS, shore, wet, shallow, deep,
+    keepOff, lakeCx, lakeCz, RAYS, shore, wet, shallow, deep,
     upper, lower, streamPts, onLedge, aboveFall, belowFall,
   };
 }
@@ -867,7 +862,7 @@ export function buildFoam(ctx, sites) {
  */
 export function buildForests(ctx, sites) {
   const { scene, heightAt, valleyAxis, rng, colliders, look } = ctx;
-  const { slopeAt, keepOff, near, lower } = sites;
+  const { slopeAt, keepOff, lower } = sites;
   const treeMat = look.parts('trees', { rim: 0.16 });
   const species = {
     spruceTall: { geo: spruceTall(), h: 16 },
@@ -886,20 +881,16 @@ export function buildForests(ctx, sites) {
     stands[name][bandOf(z)].push({ x, y: y - 0.15, z, yaw, sx: s, sy: s * tall, sz: s });
     if (name === 'beech') {
       broadleaf += 1;
-      if (near(x, z)) {
-        colliders.addPost('tree', x, z, y, y + 4.4 * s, 0.4 * s);
-        const c = Math.cos(yaw);
-        const sn = Math.sin(yaw);
-        for (const [r, bx, by, bz] of BEECH_BLOBS) {
-          colliders.addSphere('canopy', x + (bx * c + bz * sn) * s, y + by * s, z + (-bx * sn + bz * c) * s, r * s);
-        }
+      colliders.addPost('tree', x, z, y, y + 4.4 * s, 0.4 * s);
+      const c = Math.cos(yaw);
+      const sn = Math.sin(yaw);
+      for (const [r, bx, by, bz] of BEECH_BLOBS) {
+        colliders.addSphere('canopy', x + (bx * c + bz * sn) * s, y + by * s, z + (-bx * sn + bz * c) * s, r * s);
       }
       return;
     }
     conifers += 1;
-    if (near(x, z)) {
-      colliders.addPost('tree', x, z, y, y + species[name].h * s * tall * 0.9, 1.3 * s);
-    }
+    colliders.addPost('tree', x, z, y, y + species[name].h * s * tall * 0.9, 1.3 * s);
   };
   let tries = 0;
   while (conifers + broadleaf < 3300 && tries < 260000) {
@@ -971,14 +962,13 @@ export function buildForests(ctx, sites) {
 /*
  * BOULDERS. Three sizes of icosahedron, seeded onto the steep ground
  * and the scree, thickest under the cliffs, with a scatter along the
- * torrent in the side valley. Rocks within reach of the strip get a
- * sphere. Twenty faces a rock rather than a dodecahedron's thirty six,
+ * torrent in the side valley. Every rock gets a sphere. Twenty faces a rock rather than a dodecahedron's thirty six,
  * which over a thousand rocks is sixteen thousand triangles.
  * Returns how many.
  */
 export function buildRocks(ctx, sites) {
   const { scene, heightAt, rng, colliders, look } = ctx;
-  const { slopeAt, keepOff, near, upper } = sites;
+  const { slopeAt, keepOff, upper } = sites;
   const rockMat = look.material('rock', { color: 0x8b8880, rim: 0.26 });
   const sizes = [0.9, 1.7, 3.0];
   const rockGeos = sizes.map((r) => new THREE.IcosahedronGeometry(r, 0));
@@ -989,9 +979,7 @@ export function buildRocks(ctx, sites) {
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rng() * 3, rng() * 3, rng() * 3));
     const cy = y + r * 0.3 * sy;
     rocks[size][bandOf(z)].push({ x, y: cy, z, quat: q, sx: 1, sy, sz: 1 });
-    if (near(x, z)) {
-      colliders.addSphere('rock', x, cy, z, r * 0.9);
-    }
+    colliders.addSphere('rock', x, cy, z, r * 0.9);
   };
   let rockCount = 0;
   for (let tries = 0; tries < 120000 && rockCount < 1000; tries += 1) {

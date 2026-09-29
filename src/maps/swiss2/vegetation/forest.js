@@ -69,8 +69,6 @@ import { meadowCuts } from './zones.js';
 
 const V = Object.fromEntries(VARIANTS.map((v, k) => [v.name, k]));
 const OPEN = VARIANTS.map((v) => v.name.endsWith('-open') || v.kind === 'maple');
-/* Colliders stop here, as nature.js's do. */
-const COLLIDE_R = 700;
 
 /*
  * A broadleaf's crown as colliders: a 'canopy' sphere round each of its
@@ -256,7 +254,7 @@ export function plantForest({
     vs.push(v);
     opens.push(open ? 1 : 0);
     counts[VARIANTS[v].kind] += 1;
-    if (colliders && Math.hypot(x, z) < COLLIDE_R) {
+    if (colliders) {
       const spec = VARIANTS[v];
       const h = spec.h * s;
       if (spec.kind === 'beech' || spec.kind === 'maple') {

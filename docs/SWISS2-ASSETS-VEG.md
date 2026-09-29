@@ -84,7 +84,7 @@ soft sprites cycling in the shader.
 | `heightAt(x, z)` | both | the alps heightfield, `buildHeightfield().height`, the triangles the terrain mesh draws |
 | `envMap` | optional | the sky's image based light (PMREM or equirect texture). Without it three uses `scene.environment` |
 | `rng` | optional | the vegetation's seeded rng, `makeRng(20260924)` by default |
-| `colliders` | optional | a `Colliders`: trees within 700 m of the strip get a post (and beeches and sycamores a canopy sphere round each drawn clump of leaves, species.js crownClumps), rocks and stones over half a metre a sphere, as nature.js does. 3,756 trees fall inside that radius on High (round 3) |
+| `colliders` | optional | a `Colliders`: every tree gets a post (and beeches and sycamores a canopy sphere round each drawn clump of leaves, species.js crownClumps), rocks and stones over half a metre a sphere, as nature.js does, however far from the strip (scripts/collider-audit.js). On High that is 69,402 posts and 139,448 canopy spheres |
 | `footprints` | optional | the buildings as `{ minX, minZ, maxX, maxZ }` boxes; the meadow keeps 2 m off each. Without them it keeps off a box round the village core |
 | `gardens` | optional | the footprints that are houses, which get a garden tree or two; the rest (swiss2's hay huts) only keep the trees and the meadow off. Defaults to `footprints` |
 | `margins` | optional | hand placed fence lines as `{ ax, az, bx, bz }` (swiss2's props give them); the meadow grows long, with the verge's weeds, a metre either side of each, as it does along the lines between the fields and on the road's verge |

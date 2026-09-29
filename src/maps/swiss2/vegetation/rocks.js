@@ -49,7 +49,6 @@ import { assetUrl } from './atlas.js';
 import { DITHER_GLSL } from './plantmat.js';
 
 const SHAPES = ['rock1', 'rock3', 'rock4', 'rock6'];
-const COLLIDE_R = 700;
 /* The near level's room per shape. */
 const NEAR_CAP = 1200;
 /* A stone under this size in metres is drawn at the far scan's detail
@@ -115,7 +114,7 @@ function placeRocks({ heightAt, layout, rng, count, colliders, extra }) {
       return;
     }
     rocks.push({ x, y, z, q, s, sy, shape });
-    if (colliders && Math.hypot(x, z) < COLLIDE_R && s > 0.45) {
+    if (colliders && s > 0.45) {
       colliders.addSphere('rock', x, y + 0.25 * s * sy, z, 0.42 * s);
     }
   };
