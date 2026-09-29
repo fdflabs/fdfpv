@@ -144,11 +144,28 @@ class Conn {
     this.ws = ws;
     this.counters = counters;
     this.attachment = null;
+    this.corked = false;
   }
 
   send(data) {
     this.counters.outMsgs += 1;
     this.counters.outBytes += typeof data === 'string' ? Buffer.byteLength(data) : data.byteLength;
+    /* Everything this socket is sent in one turn of the loop goes out in
+     * one write: ws writes every message on its own, and a combat round's
+     * relay is 31 streamers a pilot a tenth of a second, each a syscall
+     * that cost more than the rest of the room's work (rooms:load's
+     * profile, 2026-09-29). Nothing waits: the turn ends, the write goes.
+     * _socket is ws's own field (ws is pinned, package.json); ws corks it
+     * round each frame, and corks nest. */
+    const socket = this.ws._socket;
+    if (!this.corked && socket) {
+      this.corked = true;
+      socket.cork();
+      setImmediate(() => {
+        this.corked = false;
+        socket.uncork();
+      });
+    }
     this.ws.send(data);
   }
 
