@@ -86,6 +86,9 @@ jobs:
       - run: npm run export:selftest
       - run: npm run link:selftest
       - run: npm run music:selftest
+      # The war audio against its script, credits and manifest: python3's
+      # standard library only, no GPU and no model download.
+      - run: npm run voice:check
       - run: npm run test:edge
       - run: npm run test:tracks
       - run: npm run cloud:selftest

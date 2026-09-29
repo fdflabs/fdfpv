@@ -1,0 +1,1864 @@
+{
+ "voice": {
+  "bird-lost.en": {
+   "text": "We lost a bird. Next one up.",
+   "seconds": 3.015,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2509635639,
+     "heard": "We lost a bird. Next one up.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13791,
+     "sha256": "74c64909235e7036ee5a4caad924e76f4abc5156ee9f12bd780eafdf0b291734"
+    },
+    "mp3": {
+     "bytes": 12356,
+     "sha256": "47b77b7c5faecfc5ab0ff63a5ed6347336d0a256e40cb3bf9d9222b53cced164"
+    }
+   }
+  },
+  "bird-lost.es": {
+   "text": "Perdimos un aparato. Que salga el siguiente.",
+   "seconds": 2.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1315652417,
+     "heard": "Perdimos un aparato que salga al siguiente.",
+     "wer": 0.143,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13463,
+     "sha256": "d09a03988096a2d2ccc5939ee476096d8b2f599e47531f481b12b1c351322c83"
+    },
+    "mp3": {
+     "bytes": 13148,
+     "sha256": "317e5aae20b19a1b1de116ddc68236b3907fc5f76fed1dca00037b23ff95de61"
+    }
+   }
+  },
+  "hit-gate.en": {
+   "text": "Spillway gate's hit! Keep them off the crest!",
+   "seconds": 2.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 960228906,
+     "heard": "Spillway Gates hit, keeps him off the crest.",
+     "wer": 0.25,
+     "extra": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2803074691,
+     "heard": "Spillway gates hit keep them off the crest.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12642,
+     "sha256": "2a52100fb51bd733c0bb95b05858c17750ce177e5510fdc833f8a79936cd8e11"
+    },
+    "mp3": {
+     "bytes": 11780,
+     "sha256": "23b4841d16c2476cd84cb0c2459f649af916be13b0afdc597bcf1e7b3289e487"
+    }
+   }
+  },
+  "hit-gate.es": {
+   "text": "¡Impacto en una compuerta del vertedero! ¡Que no lleguen a la cresta!",
+   "seconds": 3.655,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1027981321,
+     "heard": "Impacto en una compuerta del vertedero que no lleguen a la cresta.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16900,
+     "sha256": "0fc10b6444821fea46c60f8674d2aeb1dfff55c4dc830f180d4abaed70df545e"
+    },
+    "mp3": {
+     "bytes": 15860,
+     "sha256": "342b7d32a4a33602b5396b801a325519f676f2af419e4cff51329657c3cdb747"
+    }
+   }
+  },
+  "hit-intake.en": {
+   "text": "Intake's hit! We're losing output!",
+   "seconds": 2.295,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 371608399,
+     "heard": "Intakes hit, we're losing output.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10758,
+     "sha256": "fead18d29f52398b01e28838550bc6fdb2b58abfe559b255f34327762751ef3f"
+    },
+    "mp3": {
+     "bytes": 10292,
+     "sha256": "73481ba6abb445b5bf1f381c8ce191f69f89878a0b8c023a3d39af8045947bdd"
+    }
+   }
+  },
+  "hit-intake.es": {
+   "text": "¡Impacto en una toma! ¡Estamos perdiendo generación!",
+   "seconds": 3.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3151431972,
+     "heard": "Impacto en una toma. Estamos perdiendo generación.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14678,
+     "sha256": "260a72ba71e3d21861851efc89c46dfbef36b7fc81277885b05a4fbae8bd0bb1"
+    },
+    "mp3": {
+     "bytes": 13340,
+     "sha256": "66a767797f02de0050c331a7d573a3060bb7e2bf92c79965109b76589f60716d"
+    }
+   }
+  },
+  "hit-penstock.en": {
+   "text": "Penstock hit! We just lost a unit!",
+   "seconds": 3.535,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4203696771,
+     "heard": "Penn stock hit, we just lost a unit.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16188,
+     "sha256": "7eba08f5dc2431b61892be423706ef3d1821251c00372c14c20bd8eab67a4d60"
+    },
+    "mp3": {
+     "bytes": 14396,
+     "sha256": "c80008fdedd138c705c82ebced323405ceba1bf18aba195051e41975c26bd7a4"
+    }
+   }
+  },
+  "hit-penstock.es": {
+   "text": "¡Le dieron a una tubería forzada! ¡Perdimos una unidad!",
+   "seconds": 3.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3976923869,
+     "heard": "Le dieron a una tubería forzada, perdimos una unidad,",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17026,
+     "sha256": "e34a7dd151f5e1163ddd79ce66fdff68bb29ea08f804ef6348ceba122fdf498f"
+    },
+    "mp3": {
+     "bytes": 15932,
+     "sha256": "4e7b2a26b7dccfbe0363be56cc2dab6cd2de7e9cd74a112f92cea6cba6e02601"
+    }
+   }
+  },
+  "hit-yard.en": {
+   "text": "Switchyard's hit! The right bank's going dark!",
+   "seconds": 3.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2122671813,
+     "heard": "Switchyards hit. The right bank's going dark.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15045,
+     "sha256": "df9e0e7c06dfa684c37d2252e06882dad37603df16c378327d8c846ca5d8297c"
+    },
+    "mp3": {
+     "bytes": 14084,
+     "sha256": "f2eb876507978ccd064be904d1aafd31189f1a5561da401c24a240c810a31d9e"
+    }
+   }
+  },
+  "hit-yard.es": {
+   "text": "¡Impacto en la subestación! ¡La margen derecha se queda a oscuras!",
+   "seconds": 4.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3016737438,
+     "heard": "Impacto en la subestación. La margen derecha se queda a oscuras.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21834,
+     "sha256": "3757dc8398ff1133217d0c84bb38f09698fde64c261e35ffcc941927a5dc98d2"
+    },
+    "mp3": {
+     "bytes": 19652,
+     "sha256": "e263e2d53d208aa5c0c65123ee7afff921adf0b71ac657b435998fe8da41658f"
+    }
+   }
+  },
+  "intro-1.en": {
+   "text": "Twenty thirty.",
+   "seconds": 1.125,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1629440765,
+     "heard": "2030.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 5511,
+     "sha256": "078ff423f223efc4f6a983545ade97fcdad2fc0d88e87c6db681f0bdda4e735c"
+    },
+    "mp3": {
+     "bytes": 6092,
+     "sha256": "378dfdb5c0adb2d8d5c4df1401c1a410e388795df4a308bc3e959e62cdf976ad"
+    }
+   }
+  },
+  "intro-1.es": {
+   "text": "Dos mil treinta.",
+   "seconds": 1.555,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2969761641,
+     "heard": "2030.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7420,
+     "sha256": "8c81ea04382e381cb1d69dcfe3826949613698e09b0b0fa3caa349701e471835"
+    },
+    "mp3": {
+     "bytes": 7700,
+     "sha256": "35dfe8936af507dce6cb2b0eb294bf52958c94c96dbe54fa306e111a6cf4f044"
+    }
+   }
+  },
+  "intro-2.en": {
+   "text": "Wars aren't won with jets anymore. They're won with swarms. Cheap. Fast. Endless.",
+   "seconds": 5.625,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4221049265,
+     "heard": "Wars aren't one with jets anymore, they're one with swarms. Cheap, fast, endless.",
+     "wer": 0.154,
+     "extra": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 2472711426,
+     "heard": "Wars aren't won with jets anymore, they're won with swarms, cheap, fast, endless.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25616,
+     "sha256": "082399ab071baafa36c78be6add455fa36edbb96234bf9eb24e0ebae2978c723"
+    },
+    "mp3": {
+     "bytes": 22628,
+     "sha256": "1639cacf8deb57fe4e45105fa144437170f421e98fd8274db3edf3bcec8303af"
+    }
+   }
+  },
+  "intro-2.es": {
+   "text": "Las guerras ya no se ganan con cazas. Se ganan con enjambres. Baratos. Rápidos. Interminables.",
+   "seconds": 6.265,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 515285757,
+     "heard": "Las guerras de ancianos se ganan con casas, se ganan con enjambres, baratos, rápidos, interminables.",
+     "wer": 0.2,
+     "extra": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3299197673,
+     "heard": "Las guerras ya no se ganan con casas. Se ganan con enjambres. Baratos, rápidos, interminables.",
+     "wer": 0.067,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28435,
+     "sha256": "23cdae321e2ab66da548ea6c570881719cf9724d31d6865736b196492ac65b29"
+    },
+    "mp3": {
+     "bytes": 25724,
+     "sha256": "d85eaccb306b37ef8f07ea292e7f12f40190fc116f641fc8344864ff0d36060d"
+    }
+   }
+  },
+  "intro-3.en": {
+   "text": "Every country's lights hang on a few structures. Ours hang on this one.",
+   "seconds": 4.155,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3164815959,
+     "heard": "Every country's lights hang on a few structures. Ours hang on this one.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19115,
+     "sha256": "b710d6a49ef63d2bb306411d0d46f141ea789525f9c171547b48e48c4c7292c5"
+    },
+    "mp3": {
+     "bytes": 17516,
+     "sha256": "35c384024f9fabe2d18641909c421d1b53cde20bdc893ee0b1a3b66c07860f61"
+    }
+   }
+  },
+  "intro-3.es": {
+   "text": "La luz de cada país cuelga de un puñado de estructuras. La nuestra cuelga de esta.",
+   "seconds": 4.915,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 145703202,
+     "heard": "La luz de cada país cuelga de un puñado de estructuras. La nuestra cuelga de ésta.",
+     "wer": 0.062,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22496,
+     "sha256": "1fbbfe95cd76164301c115d63a2953340b522b02736ea74e583e6ec5fd295234"
+    },
+    "mp3": {
+     "bytes": 20180,
+     "sha256": "256a791ee5756848e0dcc274c1b39ab80d37af575820304f8eb3fe2615c7c5f5"
+    }
+   }
+  },
+  "intro-4.en": {
+   "text": "The interceptors ran out in the first week. What we have left... is you.",
+   "seconds": 4.295,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 229730429,
+     "heard": "The interceptors ran out in the first week. What we have left is you.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19684,
+     "sha256": "13ee69a47bf366426e740d33097e30344a08ce6a02fbad6741c701f2f093db91"
+    },
+    "mp3": {
+     "bytes": 18020,
+     "sha256": "764f51c8a58ce9bce4588e9a979c8dd0429a96c01fcad52b38423668175e33a7"
+    }
+   }
+  },
+  "intro-4.es": {
+   "text": "Los interceptores se acabaron la primera semana. Lo que nos queda... son ustedes.",
+   "seconds": 4.845,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1913808050,
+     "heard": "Los interceptores se acabaron la primera semana. Lo que nos queda son ustedes.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22134,
+     "sha256": "189661b17b28ac75108cc9da2676ed653fa964ca4991bb0f29419223886f2cf1"
+    },
+    "mp3": {
+     "bytes": 20348,
+     "sha256": "0755713e3461d4abfd62ada07cd0635982938a5aac59f58df155935e4a47e6a0"
+    }
+   }
+  },
+  "intro-5.en": {
+   "text": "Every aircraft in your hangar carries a warhead now. One flight. One kill. Make it count.",
+   "seconds": 5.475,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2113973502,
+     "heard": "Every aircraft in your hangar carries a warhead now, one flight, one kill, make it count.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25036,
+     "sha256": "74bbfc33d33c5a4976a8685d1c470053f3aeb65ad1f3c3a7ac484f5d70f15828"
+    },
+    "mp3": {
+     "bytes": 22724,
+     "sha256": "ea9df1c9abc08c1e987c84d79976d6b3f61f09416f488571cf00b41112447d8c"
+    }
+   }
+  },
+  "intro-5.es": {
+   "text": "Cada aparato de tu hangar lleva una ojiva. Un vuelo. Un derribo. Que cuente.",
+   "seconds": 4.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3148143328,
+     "heard": "Cada aparato de tu hangar lleva una ojiva, un vuelo, un derribo, que cuente.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19747,
+     "sha256": "b90d9cb4af89c9ecf441d2af10274ee5691b924aa447cafdda4e46a4ddc36639"
+    },
+    "mp3": {
+     "bytes": 18308,
+     "sha256": "fbdc062b83842681df6af97e256a4241dd27f5e9dc49b587b1d3b6fc9fec77de"
+    }
+   }
+  },
+  "intro-6.en": {
+   "text": "Lose your signal, you lose your bird. Stay high. Stay in line of sight.",
+   "seconds": 4.665,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3069191705,
+     "heard": "Lose your signal. You lose your bird. Stay high. Stay in line of sight.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21225,
+     "sha256": "056d580394806c0f34b23e2ddd82ad147e8a19c9528613a59b9705df390f9e80"
+    },
+    "mp3": {
+     "bytes": 19196,
+     "sha256": "daf597e5dfc368a8f5f9b3b85d2717c435b108a189645f4a7e7308995c5c9ee9"
+    }
+   }
+  },
+  "intro-6.es": {
+   "text": "Si pierdes la señal, pierdes el aparato. Mantente alto. Mantente en línea de vista.",
+   "seconds": 5.885,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3537919182,
+     "heard": "Si pierdes la señal, pierdes el aparato, mantente alto, mantente en línea de vista.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26848,
+     "sha256": "a9ca13b3a73de9d18e603d89e78535caecd95ca91c0db7e93f3b9359bb2906ba"
+    },
+    "mp3": {
+     "bytes": 24404,
+     "sha256": "2db2593c9cd875cc1301977d2ca730f41bca855eceea5d41256a24c55b14df7a"
+    }
+   }
+  },
+  "intro-7.en": {
+   "text": "Contacts north, over the water. All pilots... get up there.",
+   "seconds": 5.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4276690683,
+     "heard": "Contacts north, over the water. All pilots get up there.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23072,
+     "sha256": "8e31b7267e9697545c914fc7e3b9bf3885972a6381a6061a5b7cc3d065c3a14d"
+    },
+    "mp3": {
+     "bytes": 20324,
+     "sha256": "1e0e9c6635f1eca64c4aa7c99995683b6eeaf9a288efc26d88fe4323bdb6d82f"
+    }
+   }
+  },
+  "intro-7.es": {
+   "text": "Contactos al norte, sobre el agua. Todos los pilotos... ¡arriba!",
+   "seconds": 3.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 667815435,
+     "heard": "Contactos al norte sobre el agua. Todos los pilotos arriba.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18022,
+     "sha256": "76fd3f40c548d3c8a7cc78d3b9b9361aea1cb80848262806b35a5a42b9d222d8"
+    },
+    "mp3": {
+     "bytes": 16460,
+     "sha256": "2bb286024ca5380afd1888709c5cf5da7f37429c09d9855256bdace673ff9346"
+    }
+   }
+  },
+  "jammer-down.en": {
+   "text": "Jammer's down. Your video should clear.",
+   "seconds": 2.755,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2750727273,
+     "heard": "Stammers down, your video should clear.",
+     "wer": 0.167,
+     "extra": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3166971553,
+     "heard": "Jammers down. Your video should clear.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12856,
+     "sha256": "28a8c7e51f7af2525f9101573af3ca8bcd65225ee0f07afa1b3a2accb454d66f"
+    },
+    "mp3": {
+     "bytes": 12116,
+     "sha256": "3e9ee3c2ff555b6ade3c2cf5d7ce8be849b0a3a28d48a32ba1bc605563d756ce"
+    }
+   }
+  },
+  "jammer-down.es": {
+   "text": "Inhibidor abatido. Se les debería limpiar el video.",
+   "seconds": 4.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 406360526,
+     "heard": "Inhibidor abatido. Se les debería limpiar el video.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19034,
+     "sha256": "90ef88b9778989ea192494af17bfc8b28b61896ba9840ca78ef135437e68ca2c"
+    },
+    "mp3": {
+     "bytes": 17348,
+     "sha256": "4f7331fcdbc22ba62adb947ef90e941d28b63b9c40454f0b874e8223d7be0fb2"
+    }
+   }
+  },
+  "kill-1.en": {
+   "text": "Splash one.",
+   "seconds": 1.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3189715124,
+     "heard": "Splash One.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6343,
+     "sha256": "8eae8a4cda0379482b3ccfc0c6e0fd794db493a58a6c234a921e708910e70f5a"
+    },
+    "mp3": {
+     "bytes": 6284,
+     "sha256": "e36db87eeb1d6b3fc62b17547f722ed04f9677b787b074f2c7843d5fe5f13246"
+    }
+   }
+  },
+  "kill-1.es": {
+   "text": "Uno menos. Bien hecho.",
+   "seconds": 1.845,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3389801043,
+     "heard": "Uno menos. Bien hecho.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8696,
+     "sha256": "2f7f911aa53b9a8df2afeffa21deaf2918d37be0c5c42967ccc617a06d83efdb"
+    },
+    "mp3": {
+     "bytes": 8420,
+     "sha256": "e82be437749834522d13356bfd35bba5f2fce53db94055f4cdb464ea8a3a2b48"
+    }
+   }
+  },
+  "kill-2.en": {
+   "text": "Good kill.",
+   "seconds": 1.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3275251821,
+     "heard": "good kill.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 8830,
+     "sha256": "0212d44c46fc22a1c008485652d3dd67404762ce96300ec63b478571c7d43b90"
+    },
+    "mp3": {
+     "bytes": 8228,
+     "sha256": "4857f67091206b2efe0e2a859a7beb9dab203db784bc7bef1d56850fe429c680"
+    }
+   }
+  },
+  "kill-2.es": {
+   "text": "Buen derribo.",
+   "seconds": 3.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2345857225,
+     "heard": "Buen derribo.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13601,
+     "sha256": "923b2d03a7e643e6cabd6acb782b8c532f666e47fe0f9611de46d2458760ccf5"
+    },
+    "mp3": {
+     "bytes": 11492,
+     "sha256": "fcf9922104bb2d0696fd9257c9692bb1c899c3eb4467605017e37bdd67416aef"
+    }
+   }
+  },
+  "kill-multi.en": {
+   "text": "Multiple kills! That's how it's done!",
+   "seconds": 2.765,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2523283314,
+     "heard": "Multiple kills, that's how it's done.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12769,
+     "sha256": "7b42958689540a05aee40a5963bc904289aae06c6a30753fd2205b7053f3da10"
+    },
+    "mp3": {
+     "bytes": 11708,
+     "sha256": "125592696bc97b5bce21bf823ff5de7e10274b95c3af0a13c7c93d383c77d9b2"
+    }
+   }
+  },
+  "kill-multi.es": {
+   "text": "¡Derribo múltiple! ¡Así se hace!",
+   "seconds": 2.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3473805492,
+     "heard": "Derribo múltiple, así se hace.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11601,
+     "sha256": "0575172f61a2f7e37dee4cbea5b295a68f5a92e9ab8990bf57e7410160c8e1ba"
+    },
+    "mp3": {
+     "bytes": 10796,
+     "sha256": "bfad574550afc193cf28e23e735035dc2966d0496dd13ac1197684a0d0a05a47"
+    }
+   }
+  },
+  "lose-output.en": {
+   "text": "We're below the floor. The grid's gone dark... All pilots, pull back.",
+   "seconds": 4.365,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3111459677,
+     "heard": "We're below the floor. The grid's gone dark. All pilots pull back.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19932,
+     "sha256": "b1c8e5cd2b637e01be855078e3a30d99e04a6d07e59f80613117b69c26bf73f7"
+    },
+    "mp3": {
+     "bytes": 18572,
+     "sha256": "c9337268074ae6b8ec2dcd2dc20f8c9e17b17500076086872c02849b6a3c35bb"
+    }
+   }
+  },
+  "lose-output.es": {
+   "text": "Estamos bajo el mínimo. La red se apagó... Todos los pilotos, repliéguense.",
+   "seconds": 5.195,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 136377679,
+     "heard": "Estamos bajo el mínimo. La red se apagó. Todos los pilotos replieguense.",
+     "wer": 0.083,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23763,
+     "sha256": "9453965cbd62c9f06fd943dc79f121f96e3576ffc19b5ab2417d0d9ef0659c94"
+    },
+    "mp3": {
+     "bytes": 21020,
+     "sha256": "486186a7182e8fccc03da615b25378fd61dc678d759c3c1603a1555abd2936db"
+    }
+   }
+  },
+  "lose-rack.en": {
+   "text": "No birds left. We can't hold it... All pilots, pull back.",
+   "seconds": 3.885,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 508681130,
+     "heard": "No birds left. We can't hold it. All pilots pull back.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17709,
+     "sha256": "9f958ccaadbe8ff1d8d3b10a428ad589f41ab2a7aca329341063261d844a8f84"
+    },
+    "mp3": {
+     "bytes": 16220,
+     "sha256": "9e30062bfe05942fa36eee496a95ddc9a57ebd2e56f4e13a54a8af102662c5e9"
+    }
+   }
+  },
+  "lose-rack.es": {
+   "text": "No quedan aparatos. No podemos sostenerla... Todos los pilotos, repliéguense.",
+   "seconds": 5.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 46334087,
+     "heard": "No quedan aparatos. No podemos sostenerla todos los pilotos, repléguense.",
+     "wer": 0.1,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23404,
+     "sha256": "e3e303c0abbbe28e614d0f6afdeff1e27acfe0ca9e49502b238508d9c1b4c00d"
+    },
+    "mp3": {
+     "bytes": 21380,
+     "sha256": "46270bb6425eea0e30bdf2f527d7ef2d053840d54b8633c4d8bf12f6328b8c6f"
+    }
+   }
+  },
+  "output-low.en": {
+   "text": "We're right on the edge. One more hit and the grid goes.",
+   "seconds": 3.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 872703255,
+     "heard": "We're right on the edge. One more hit and the grid goes.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17879,
+     "sha256": "2a3d2a2da2602b33a3e87e74fc8d086dd71e3ae7f48ea57fcd91c676e1e73402"
+    },
+    "mp3": {
+     "bytes": 15908,
+     "sha256": "5314ed66b15d6369d7ba4fdb4caf6b1ccab8f57749c0ff3af7b3288c8d672d3e"
+    }
+   }
+  },
+  "output-low.es": {
+   "text": "Estamos al límite. Un impacto más y se cae la red.",
+   "seconds": 3.855,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2985976815,
+     "heard": "Estamos al límite, un impacto más y se cae la red.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17758,
+     "sha256": "39be8da55bff045aff120a6df6f3b62ee004c5f783ffd95b78ee111721360fa4"
+    },
+    "mp3": {
+     "bytes": 16340,
+     "sha256": "b1b66154247a34b5f3db7f455f52ea207b084a58255b8cefe8f018273d5d8685"
+    }
+   }
+  },
+  "rack-last.en": {
+   "text": "Last airframe. Don't waste it.",
+   "seconds": 2.265,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4236948336,
+     "heard": "Last airframe. Don't waste it.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10542,
+     "sha256": "b6f1565bd9e42d73d1191d54f837622e31c74547375964789c7bcac136a7130c"
+    },
+    "mp3": {
+     "bytes": 9620,
+     "sha256": "b33d8be9499c1ee6b143ebf345fdb7cbe3b03ad12d3ad5cc5621378a91597445"
+    }
+   }
+  },
+  "rack-last.es": {
+   "text": "Último aparato. No lo desperdicien.",
+   "seconds": 2.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 197360560,
+     "heard": "Último aparato, no lo desperdicien.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10563,
+     "sha256": "03148feaeea8ff4189e796dab5f57ce5d2ccfcb52c8a90e5e28a474cb28af622"
+    },
+    "mp3": {
+     "bytes": 10100,
+     "sha256": "3ebe7acbba12675bc77cf61ee225cb1ad1312c883cb2cff95dd3d1fae8ac801d"
+    }
+   }
+  },
+  "rack-low.en": {
+   "text": "Rack's running low. Make every flight count.",
+   "seconds": 3.285,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 141821364,
+     "heard": "Racks running low, make every flight count.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15107,
+     "sha256": "ac362c8ae57a9a62a9cf4c38b532efdad1622a0fb6fca8c5638198a7dec3e2aa"
+    },
+    "mp3": {
+     "bytes": 14036,
+     "sha256": "20fe9e71c0fd8cee6a576c528df519eeb2cb3bf9dc7f0f12958ab809b1a3b182"
+    }
+   }
+  },
+  "rack-low.es": {
+   "text": "Nos quedan pocos aparatos. Que cada vuelo cuente.",
+   "seconds": 3.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2533394954,
+     "heard": "Nos quedan pocos aparatos que cada abuelo cuente.",
+     "wer": 0.125,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15264,
+     "sha256": "ab4f763131f0e13ba6b9a00db5a621fa12d83cb4e884357396161dba024db3d7"
+    },
+    "mp3": {
+     "bytes": 14204,
+     "sha256": "820e0a1f201efc48304f344cfa3d16108e588e46e4b79f2b89615f8bcbf8b368"
+    }
+   }
+  },
+  "relay-down.en": {
+   "text": "Relay's down! Get another one up high!",
+   "seconds": 2.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 437667116,
+     "heard": "Relays down. Get another one up high.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12697,
+     "sha256": "72544cc3440aa816f524cac14e7accc00d98387789e00a2dacc53bd03c940767"
+    },
+    "mp3": {
+     "bytes": 11804,
+     "sha256": "3d08b1667dda948f2cf8a016ea8b16b7f034fa4e755ebedfa77a6331700cc5a3"
+    }
+   }
+  },
+  "relay-down.es": {
+   "text": "¡Cayó el repetidor! ¡Suban otro, bien alto!",
+   "seconds": 3.225,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2706112137,
+     "heard": "Cayó el repetidor. Suban otro bien alto. Y...",
+     "wer": 0.143,
+     "extra": 1
+    },
+    {
+     "attempt": 1,
+     "seed": 2477314995,
+     "heard": "cayó el repetidor suban otro bien alto",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14898,
+     "sha256": "26df9c08a348daaf5d0363cbdb0a338c039c4cf1d594e9da54cdbaa025fbd12b"
+    },
+    "mp3": {
+     "bytes": 14444,
+     "sha256": "2138873225f3c7ff25e90ee902a04677ea8f6b1d2cabc75b54c13adb153e0e3f"
+    }
+   }
+  },
+  "relay-up.en": {
+   "text": "Relay's up. Anyone down in the gorge, you've got signal.",
+   "seconds": 3.445,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2028321841,
+     "heard": "Relays up. Anyone down in the gorge, you got signal.",
+     "wer": 0.1,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15877,
+     "sha256": "6769977a7c3dbd640d14d82aa12a71f4d3be43c6af77321d4fa8d23b16effc16"
+    },
+    "mp3": {
+     "bytes": 15020,
+     "sha256": "059866521bb4a9b978e568876437f577c42937edc77ea44d2f30af24e91691b5"
+    }
+   }
+  },
+  "relay-up.es": {
+   "text": "Repetidor arriba. Los que estén en el cañón, ya tienen señal.",
+   "seconds": 3.845,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1721132743,
+     "heard": "Petidor arriba. Los que estén en el cañón ya tienen señal.",
+     "wer": 0.091,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17747,
+     "sha256": "c093ec75ce7413944687dfa21fcb273e67af2a0eb6fc05ab156074fa8fa96a81"
+    },
+    "mp3": {
+     "bytes": 16652,
+     "sha256": "4cebabc1ea3fbf8cb635d8722aeeacaa22e49f9729042234c26fc49405c3e0d8"
+    }
+   }
+  },
+  "scouts-down.en": {
+   "text": "Scout's down. They're flying blind now.",
+   "seconds": 2.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3128160197,
+     "heard": "Scouts down. They're flying blind now.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13084,
+     "sha256": "1abc8dad476ea0d8ce01c20d1e7e74b57f4f760b259946cf5c3f3784ad5c777b"
+    },
+    "mp3": {
+     "bytes": 12500,
+     "sha256": "eb1aad6ba28031024b54116a98450076118e29c58cfb5377b64f4eaa65887dd0"
+    }
+   }
+  },
+  "scouts-down.es": {
+   "text": "Explorador abatido. Ahora vuelan a ciegas.",
+   "seconds": 3.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 317179986,
+     "heard": "Explorador abatido. Ahora vuelan a ciegas.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15990,
+     "sha256": "8319660ec26bdd658c66abe76018be441ee9d8e96db88d7aef0d4a5709fe7e77"
+    },
+    "mp3": {
+     "bytes": 14756,
+     "sha256": "9dde41d1435fdb0aa4e6df219bb10694dd5c2562ac4be871ff015d586f6fffe7"
+    }
+   }
+  },
+  "signal-back.en": {
+   "text": "Link's back. You're flying.",
+   "seconds": 2.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1669953440,
+     "heard": "Links back, you're flying.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10062,
+     "sha256": "09956d3fbf6f183ddcb22ddc4c984cde1de111fb2b6da0d44022b2ee72db4a6c"
+    },
+    "mp3": {
+     "bytes": 10052,
+     "sha256": "fdc02062ec5ebc1d6cfaccfeb0c86a8f0108c98554f82b7f247234883dd27484"
+    }
+   }
+  },
+  "signal-back.es": {
+   "text": "Enlace recuperado. Vuelves a tener el control.",
+   "seconds": 3.185,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3709728410,
+     "heard": "Enlace recuperado. Vuelves a tener el control.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14757,
+     "sha256": "f30473aa140e9740fa8b6b784d7bd6a473d9dd91e8973004745a642bb9185e6f"
+    },
+    "mp3": {
+     "bytes": 14204,
+     "sha256": "b6d3403560818b21b016f4034c1c73df7702fc5c03ce57ee9f58064478ba88d7"
+    }
+   }
+  },
+  "signal-lost.en": {
+   "text": "Lost your link! Your bird's on its own!",
+   "seconds": 2.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1117324906,
+     "heard": "Lost your link, your bird's on its own.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11641,
+     "sha256": "b09f07b4b89e849d21935b47320778d19aefc3e0d712ea56c125ad11d9c3a08d"
+    },
+    "mp3": {
+     "bytes": 10460,
+     "sha256": "ca41dfe82b46cc20d445d121764afe3d7eb72c53ccc12ef11a79e2b6f0f3cc6c"
+    }
+   }
+  },
+  "signal-lost.es": {
+   "text": "¡Perdiste el enlace! ¡El aparato está solo!",
+   "seconds": 4.335,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 687951604,
+     "heard": "Perdiste el enlace. El aparato está solo.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19728,
+     "sha256": "4a4122bc7abee62bb19150f28fd7eb3ed1372b6d4f5637c8045e960f82efd26f"
+    },
+    "mp3": {
+     "bytes": 17828,
+     "sha256": "8ac2f5326436fa6f382149cc0b905362fc8491c187e09e1fae3183635b5904bf"
+    }
+   }
+  },
+  "signal-weak.en": {
+   "text": "Your signal's breaking up. Climb!",
+   "seconds": 2.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3556725301,
+     "heard": "Your signal's breaking up. Climb.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12589,
+     "sha256": "7c3bd27be74b4bd3550c0aed4b1232d09d5754cae1390d18afda2e1580459d1b"
+    },
+    "mp3": {
+     "bytes": 11252,
+     "sha256": "ae882f1e154209bbabbbae187a76d0fde2a68843625dc0d42760ca53b4d7eb78"
+    }
+   }
+  },
+  "signal-weak.es": {
+   "text": "Se te corta la señal. ¡Sube!",
+   "seconds": 2.525,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 405396614,
+     "heard": "Se te corta la señal. Sube.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11706,
+     "sha256": "9bef7dae3984e014489ab5eea50a36a82c90199dae04521432c2a5dd8cd31033"
+    },
+    "mp3": {
+     "bytes": 11180,
+     "sha256": "37ddd11a2f7b3d262371625d6ebb8f03ce45bdba81e7298074511191328c2622"
+    }
+   }
+  },
+  "start.en": {
+   "text": "Pilots of both banks, this is Crest Control. Warheads armed. Good hunting.",
+   "seconds": 5.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1018003512,
+     "heard": "Pilots of both banks, this is crest control. Warheads armed, good hunting.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24721,
+     "sha256": "96b741aa484d586d7d81becb4b5d14e2f80dfde3553715652cfdccba6d3a71e7"
+    },
+    "mp3": {
+     "bytes": 21548,
+     "sha256": "5a21ac35b88af6431415e3ca0643138c92893e77067b6555fdee5ae4e7cf6f2e"
+    }
+   }
+  },
+  "start.es": {
+   "text": "Pilotos de las dos márgenes, aquí Control Cresta. Ojivas armadas. Buena caza.",
+   "seconds": 5.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 157940205,
+     "heard": "Pilotos de las dos márgenes, aquí control cresta, ojivas armadas, buena casa.",
+     "wer": 0.083,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26574,
+     "sha256": "2733419edaad2579863db6582219b38bcc99131f3785e263e2b57a49ca10178f"
+    },
+    "mp3": {
+     "bytes": 24860,
+     "sha256": "1ede032c84b218bd371f360af04e9e08700be80ae152971107c8943117cbdcaa"
+    }
+   }
+  },
+  "wave-boat.en": {
+   "text": "Sea drones on the reservoir, heading for the dam. Get down on the water.",
+   "seconds": 4.735,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 906197187,
+     "heard": "Sea drones on the reservoir, heading for the dam, get down on the water.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21690,
+     "sha256": "6b952bfb2cbdd0ae6ddccb9b568b5b6ac7bc81cc37fd9d7f8960ae9b02383b8b"
+    },
+    "mp3": {
+     "bytes": 20228,
+     "sha256": "8a20237981ab0ad14fe7ec6e232a1e1c72f1ab8d9ef355259ce52213d2d00659"
+    }
+   }
+  },
+  "wave-boat.es": {
+   "text": "Drones navales en el embalse, rumbo a la represa. Bajen al agua.",
+   "seconds": 4.395,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4185190833,
+     "heard": "Drones navales en el embalse, rumbo a la represa, bajen al agua.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20198,
+     "sha256": "aeab6575d8155e7b3937b33778974a33ecf0a80609841281da2c2e2d074cabc7"
+    },
+    "mp3": {
+     "bytes": 18356,
+     "sha256": "c6624e460262409009a39bdd05cccc5ef77617e17e16f078678fe8d441028de8"
+    }
+   }
+  },
+  "wave-clear.en": {
+   "text": "Wave down. Reset and climb. More coming.",
+   "seconds": 3.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 720615596,
+     "heard": "Wave down. Reset and climb. More coming. More cover.",
+     "wer": 0.286,
+     "extra": 2
+    },
+    {
+     "attempt": 1,
+     "seed": 4085618978,
+     "heard": "Wave down, reset and climb. More coming.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16904,
+     "sha256": "d026074163597f441e90c69634ad5a9fe8cfa28f35d43a46091786d3f647a6ab"
+    },
+    "mp3": {
+     "bytes": 15836,
+     "sha256": "4b42f6404debde31f36aa3a31ca28d7fac1c545c5479f08c4228e8b67b7cf0a0"
+    }
+   }
+  },
+  "wave-clear.es": {
+   "text": "Oleada abatida. Reagrúpense y suban. Vienen más.",
+   "seconds": 5.005,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2218334506,
+     "heard": "Oleada batida. Reaglúpense y suban. Vienen más.",
+     "wer": 0.286,
+     "extra": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3558904488,
+     "heard": "Oleada abatida. Regrúpense y suban. Vienen más.",
+     "wer": 0.143,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22672,
+     "sha256": "54200301fdd7b01a10e62beeecb2e866d8ff29f8169e5477a2fb448990758b42"
+    },
+    "mp3": {
+     "bytes": 20444,
+     "sha256": "b1fd63dbb4f4095c312fe33fde7506657979079b87f78ed12635e6a72b50555d"
+    }
+   }
+  },
+  "wave-fpv.en": {
+   "text": "Swarm coming up the gorge. FPVs, low and weaving. Go meet them.",
+   "seconds": 5.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1396408579,
+     "heard": "Swarm coming up the gorge. FPVs low and weaving. Go meet them. Go meet them.",
+     "wer": 0.25,
+     "extra": 3
+    },
+    {
+     "attempt": 1,
+     "seed": 4116058207,
+     "heard": "Swarm coming up the gorge. FPVs, low and weaving. Go meet them.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24666,
+     "sha256": "021f8f0b0257efb6f358a16d26979a7e96c6e9072aec873b5be9571b09d26117"
+    },
+    "mp3": {
+     "bytes": 21428,
+     "sha256": "e8bc5315422757c5fef414458b105ef5bdfe172e04974ed3afdbc0ca8bbd34c3"
+    }
+   }
+  },
+  "wave-fpv.es": {
+   "text": "Enjambre subiendo por el cañón. Vienen bajos y zigzagueando. Salgan a recibirlos.",
+   "seconds": 5.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3462604834,
+     "heard": "Enjambre, subiendo por el cañón, vienen bajos y zigzagueando salgan a recibirlos.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24846,
+     "sha256": "cd9305ce7cea9be10d1c494d3dd03ed13ec54cff19682aefd5f98afdfe0adced"
+    },
+    "mp3": {
+     "bytes": 22604,
+     "sha256": "2e54b057d7999f0200a9bb56e2bb9eccd3f021c6264db476caf050a8cee81d4e"
+    }
+   }
+  },
+  "wave-hunter.en": {
+   "text": "Hunters inbound. They're coming for you, not the dam. Watch your backs.",
+   "seconds": 5.165,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 922164426,
+     "heard": "Hunters inbound, they're coming for you, not the dam, watch your backs, watch your",
+     "wer": 0.167,
+     "extra": 2
+    },
+    {
+     "attempt": 1,
+     "seed": 1869427716,
+     "heard": "Hunters inbound. They're coming for you, not the dam. Watch your backs.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23529,
+     "sha256": "1639d0baf8848e209690beadd0310857133735ff94376c16ab0f691bb39515dc"
+    },
+    "mp3": {
+     "bytes": 21980,
+     "sha256": "b48dc642e05f234f84533e1d2c34e0b6b9cc57289535f03a91b2fe240e3d9ece"
+    }
+   }
+  },
+  "wave-hunter.es": {
+   "text": "Cazadores en camino. Vienen por ustedes, no por la represa. Cuiden sus espaldas.",
+   "seconds": 5.995,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1630674248,
+     "heard": "Cazadores en camino, vienen por ustedes, no por la depresa, cuiden sus espaldas.",
+     "wer": 0.077,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27283,
+     "sha256": "f17e3daca1744fabbffc9f1d45737b6c593e962a653b9842dd7138ef74e52bfb"
+    },
+    "mp3": {
+     "bytes": 24740,
+     "sha256": "b8d3c7939eff57a5105bc6afacfe1d494d48f6b471c779d891cb7498ed8db35c"
+    }
+   }
+  },
+  "wave-jammer.en": {
+   "text": "Jammer on the field. Your video's about to get ugly. Hunt it down.",
+   "seconds": 4.055,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2634515560,
+     "heard": "Jammer on the field. Your video's about to get ugly, hunt it down.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18651,
+     "sha256": "ed2b302ce624bd782a50b9e658093b697fe0162c72ef80c5e26d3095f208128b"
+    },
+    "mp3": {
+     "bytes": 17468,
+     "sha256": "017cfe6f689d0713adab0d1b256f6093e4fd952875ce14be4e24fc4346cdb2c5"
+    }
+   }
+  },
+  "wave-jammer.es": {
+   "text": "Hay un inhibidor activo. Se les va a ensuciar el video. Encuéntrenlo y elimínenlo.",
+   "seconds": 5.235,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3147606647,
+     "heard": "Hay un inhibidor activo. Se les va a ensuciar el video. Encuéntrenlo y elimínenlo.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24004,
+     "sha256": "88566da86cdd9d5cdc1b148fd60ca2ea0bbd0c38e299f0ebf771254c869f06e9"
+    },
+    "mp3": {
+     "bytes": 21956,
+     "sha256": "922cb358b816e24db34c3c88cd968bde25f1968256360502fa501b58e0ee140d"
+    }
+   }
+  },
+  "wave-last.en": {
+   "text": "Last wave. Everything they've got. Hold the line.",
+   "seconds": 4.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3985134274,
+     "heard": "Last wave. Everything they've got, hold the line.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18355,
+     "sha256": "4c080b832bcf12485329a3124041240d65af96ba1a1e74f21a47a11056c4be74"
+    },
+    "mp3": {
+     "bytes": 16844,
+     "sha256": "d5b3007d47dfb8c27e05d605969f77d032ea242cb92653cd79434ca01452dfe2"
+    }
+   }
+  },
+  "wave-last.es": {
+   "text": "Última oleada. Vienen con todo. Aguanten.",
+   "seconds": 3.595,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3622357418,
+     "heard": "Última oleada. Vienen con todo. Aguanten.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16493,
+     "sha256": "c169f3870c121997542f148d0f4acb96908892902548df167d837c7d217c0739"
+    },
+    "mp3": {
+     "bytes": 14900,
+     "sha256": "68034dfe3c6ba5e42d6f580b5cbc3dcb8b4820bd1d4e1505301405cd4e686bfb"
+    }
+   }
+  },
+  "wave-loiter.en": {
+   "text": "Loiterers, high, circling. They'll dive on the intakes. Get above them.",
+   "seconds": 5.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 853339876,
+     "heard": "Loiterers, high, circling, they'll dive on the intakes, get above them.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23233,
+     "sha256": "a9a3580e9d560d435bbcd07c62a17b0a874652379fd0e00ee786567bedeeeeb4"
+    },
+    "mp3": {
+     "bytes": 20204,
+     "sha256": "597601048ed4262ceb88eefef3ac6b10cf55c3afd892e76b4a6be6d45257e566"
+    }
+   }
+  },
+  "wave-loiter.es": {
+   "text": "Merodeadores en altura, orbitando. Van a picar sobre las tomas. Pónganse encima.",
+   "seconds": 6.025,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2034961239,
+     "heard": "Merodeadores en altura, orbitando, van a picar sobre las tomas. Pónganse encima.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27390,
+     "sha256": "e62ffd80383d134bf261147009a96d82289a7236dffc517d95a5912446383199"
+    },
+    "mp3": {
+     "bytes": 24188,
+     "sha256": "5cff0b6f3f4ee9606720e5f8baeba0acf615cb66f8b2b41da16f40410f9e54d3"
+    }
+   }
+  },
+  "wave-scout.en": {
+   "text": "Scout up high, circling. Kill it and the next wave flies blind.",
+   "seconds": 4.675,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3388713806,
+     "heard": "Scout up high, circling, kill it and the next wave flies blind.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21421,
+     "sha256": "7f83fb75a83326573cff33dda58c6622a7cbc710e4182809e6149ed269dfaec6"
+    },
+    "mp3": {
+     "bytes": 19268,
+     "sha256": "e238ea9c1c6402021d9bf515653f569051a4aabf563cb654d6fdbc6bb12ac2ce"
+    }
+   }
+  },
+  "wave-scout.es": {
+   "text": "Explorador en altura, dando vueltas. Derríbenlo y la próxima oleada vuela a ciegas.",
+   "seconds": 5.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3507880109,
+     "heard": "Explorador en altura, dando vueltas. Derríbenlo y la próxima oleada vuela ciegas.",
+     "wer": 0.077,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25051,
+     "sha256": "ca2252b8e5864d8eadbc93977fe4aa65f4f92c47f03e8df1ead1df27af320e1e"
+    },
+    "mp3": {
+     "bytes": 23276,
+     "sha256": "4bd2d69aae085a40868a8e4a27d9735b0787239bf40ae15e2c8fb910e97700fe"
+    }
+   }
+  },
+  "wave-strike.en": {
+   "text": "Strikers, low, over the reservoir. Fast movers. Cut them off.",
+   "seconds": 4.605,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1391416508,
+     "heard": "Strikers, low, over the reservoir, fast movers, cut them off.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21027,
+     "sha256": "528c800d373c773f6517e6d6a9f6ef932efe80b6599b610162305148f2781f6a"
+    },
+    "mp3": {
+     "bytes": 18764,
+     "sha256": "111dc7c86cd2ea275fee3dcfda1d48fa1add6bd27f3d469684a09f9414d455be"
+    }
+   }
+  },
+  "wave-strike.es": {
+   "text": "Drones de ataque, bajos, sobre el embalse. Vienen rápido. Córtenles el paso.",
+   "seconds": 6.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2858114739,
+     "heard": "Drones de ataque bajos sobre el embalse vienen rápido, córtenles el paso.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 28571,
+     "sha256": "0379fe28bd0f6ffe3a05821d29169cd7572c0a566dbd3a2f6ec613c760abba55"
+    },
+    "mp3": {
+     "bytes": 25388,
+     "sha256": "29c313aae7273a03e4fcdebc4f7dd04fbbe074d6289c7ba2284eb180cdb8cbce"
+    }
+   }
+  },
+  "win.en": {
+   "text": "All contacts down. The dam holds. Good work, both banks. The lights stay on tonight.",
+   "seconds": 5.455,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2793110406,
+     "heard": "All contacts down. The dam holds. Good work, both banks. The lights stay on tonight.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24915,
+     "sha256": "6879997e3efa8d723e50f9dea4d191d5ef32bb893a9ae93ee817a0603eaf17dc"
+    },
+    "mp3": {
+     "bytes": 21980,
+     "sha256": "3e928954b2b4081f3809e65ac870ffafa92c4cfad77c33c9b9bd799b9a4f437d"
+    }
+   }
+  },
+  "win.es": {
+   "text": "Todos los contactos abatidos. La represa resiste. Buen trabajo, las dos márgenes. Esta noche no se apaga la luz.",
+   "seconds": 8.125,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 895167507,
+     "heard": "Todos los contactos abatidos. La represa resiste. Buen trabajo, las dos márgenes. Esta noche no se apaga la luz.",
+     "wer": 0.0,
+     "extra": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 36799,
+     "sha256": "dbec50f3c1211feba08b4d24b91d7253e4eab85ff5c2ae0ee2607854ae18022f"
+    },
+    "mp3": {
+     "bytes": 32780,
+     "sha256": "1fb12b78494cbc44615e727f6a6b4035b3c31f62f3cf62aef9b64f49f857d288"
+    }
+   }
+  }
+ },
+ "models": {
+  "kokoro": [
+   "hexgrad/Kokoro-82M",
+   "f3ff3571791e39611d31c381e3a41a3af07b4987"
+  ],
+  "chatterbox": [
+   "ResembleAI/chatterbox",
+   "5bb1f6ee58e50c3b8d408bc82a6d3740c2db6e18"
+  ],
+  "whisper": [
+   "openai/whisper-large-v3-turbo",
+   "41f01f3fe87f28c78e2fbf8b568835947dd65ed9"
+  ],
+  "torch": "2.6.0+cu124"
+ },
+ "music": {
+  "intro": {
+   "source": "https://opengameart.org/sites/default/files/gregor_quendel_-_cinematic_trailer_music_-_14_-_cinematic_suspense_trailer.mp3",
+   "source_sha256": "f177a515fe3a4640311f87aa1d4263e2562cf1ed8782c63f031e8c393a94fee7",
+   "seconds": 70.0,
+   "loop": false,
+   "files": {
+    "webm": {
+     "bytes": 755624,
+     "sha256": "94620c11f5284d0156cbe12d7cece41b795d6453bfdab9f206e23ff21f6641a2"
+    },
+    "mp3": {
+     "bytes": 663788,
+     "sha256": "64774e570e6c0ca1aa66a82a79250b8f9b1c9edb2b1ee380bfe0acc06eebc2fb"
+    }
+   }
+  },
+  "combat": {
+   "source": "https://opengameart.org/sites/default/files/Enemy%20spotted.mp3",
+   "source_sha256": "b92302f5207effff4db81a7b65f1e041e4c65c96ddc49c52eca361f85eb0d562",
+   "seconds": 165.046,
+   "loop": true,
+   "files": {
+    "webm": {
+     "bytes": 1606299,
+     "sha256": "2b6eaf1fe7ae0a279001c8fff24dfeb0f049b3f9bab303e36577653a5dc547cf"
+    },
+    "mp3": {
+     "bytes": 2204756,
+     "sha256": "631e0018d60f4b77751c68a51c3433089d1a686c7bb76727763374c01a3e6f1a"
+    }
+   }
+  }
+ }
+}
