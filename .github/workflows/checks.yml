@@ -30,6 +30,7 @@ jobs:
       - run: npm run lint:nouns
       - run: npm run lint:copy
       - run: npm run strings:selftest
+      - run: npm run version:check
       - run: npm run lap:selftest
       - run: npm run identity:selftest
       - run: npm run live:selftest

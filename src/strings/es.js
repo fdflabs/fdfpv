@@ -2680,4 +2680,6 @@ export default {
   "cloud.saved_as_copy": "Esa pista es de otro piloto, así que tu edición se guarda como tu propia copia: {name}",
   "cloud.is_online": "{name} está en línea para todos",
   "cloud.strip_label": "Las tuyas primero, luego las de todos, las más nuevas primero",
+  "update.new_version": "Hay una versión nueva.",
+  "update.reload": "Recargar",
 };

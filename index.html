@@ -4317,6 +4317,28 @@
       .touch-fly-on .swap-chip { display: none; }
       .touch-fly .touch-swap { top: 88px; }
 
+      /* A newer deploy is out: src/ui/update.js. Bottom centre over the
+         command bar, away from the chip stack in the top right, in the same
+         chip family. Menus and Paused only; syncChips hides it in flight. */
+      .update-bar {
+        position: absolute; left: 50%; bottom: calc(var(--bar-bot) + 12px); z-index: 7;
+        transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box;
+        display: flex; align-items: center; gap: 12px;
+        pointer-events: auto;
+        border: 1px solid rgba(232, 168, 184, 0.45);
+        background: rgba(16, 22, 17, 0.9); color: var(--cream);
+        font: 600 12px/1.3 var(--ui-font); letter-spacing: 0.06em;
+        padding: 6px 6px 6px 14px; border-radius: 4px;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+      }
+      .update-bar[hidden] { display: none; }
+      .update-reload {
+        appearance: none; border: 1px solid var(--sakura); border-radius: 3px;
+        background: transparent; color: var(--sakura); cursor: pointer;
+        font: inherit; padding: 5px 10px;
+      }
+      .update-reload:hover { background: var(--sakura); color: #101611; }
+
       /*
        * THE AIRCRAFT PICKER (src/ui/carousel.js). The models are drawn in
        * the canvas UNDER all of this (src/render/carousel3d.js), so the

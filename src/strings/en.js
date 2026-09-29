@@ -2676,4 +2676,6 @@ export default {
   "cloud.saved_as_copy": "That track is another pilot's, so your edit is saved as your own copy: {name}",
   "cloud.is_online": "{name} is online for everybody",
   "cloud.strip_label": "Yours first, then everybody's, newest first",
+  "update.new_version": "A new version is out.",
+  "update.reload": "Reload",
 };

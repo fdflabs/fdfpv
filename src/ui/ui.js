@@ -138,6 +138,7 @@ import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, WIKI_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { createShotTray } from './bugshots.js';
+import { watchVersion } from './update.js';
 import { nameRules, readPilotName, writePilotName } from '../share/pilot.js';
 import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
 import { activeCourseSummary } from '../share/summary.js';
@@ -4289,6 +4290,20 @@ export class Ui {
     this.swapChip.title = str('carousel.tab_also_opens_it');
     this.swapChip.addEventListener('click', () => this.openSwap('flight'));
 
+    /* A newer deploy is out. Shown on menus and on Paused, never over a
+     * flight: syncChips holds it until the pilot is off the sticks. */
+    this.updateReady = false;
+    this.updateBar = el('div', 'update-bar');
+    this.updateBar.setAttribute('role', 'status');
+    this.updateBar.hidden = true;
+    const reload = btn('update-reload', str('update.reload'));
+    reload.addEventListener('click', () => window.location.reload());
+    this.updateBar.append(el('span', null, str('update.new_version')), reload);
+    watchVersion((stale) => {
+      this.updateReady = stale;
+      this.syncChips();
+    });
+
     this.musicDock = el('div', 'music-dock');
     this.musicDock.setAttribute('role', 'group');
     this.musicDock.setAttribute('aria-label', str('ui.music'));
@@ -4346,7 +4361,7 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.updateBar, this.musicDock, this.nameDialog);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
@@ -4927,6 +4942,9 @@ export class Ui {
     }
     if (this.swapChip) {
       this.swapChip.hidden = dialog || this.screen !== 'flight' || !this.onHotSwap;
+    }
+    if (this.updateBar) {
+      this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight';
     }
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
