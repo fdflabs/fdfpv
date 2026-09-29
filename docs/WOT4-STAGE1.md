@@ -351,7 +351,7 @@ runs (a straight run of 15 s at 23 m/s left the valley). All hold:
 | --- | --- | --- |
 | take off on the rudder, heading to 3 m | w14_straight, 5 deg | 1.9 deg, off at 12.8 m/s |
 | hands off, recorded | none | off at 10.5 m/s 0.7 deg left, then the prop's torque rolls it: 18 deg of bank and 16 deg of heading left by 3 m up |
-| a loop, half stick, full throttle | w9_loop, 30 m, 12.1 m/s over the top | 31.1 m, 14.7 m/s |
+| a loop, half stick, full throttle | w9_loop, 30 m, 12.1 m/s over the top | 31.1 m, 14.6 m/s |
 | on its back, full throttle | w8_inverted, a push of 0.22 to 0.37 | 0.314 (stick -0.444 against -0.130 upright), 22.92 against 23.00 m/s |
 | the stall held full back | w10_stall, bank under 10, yaw under 20 deg/s | bank 9.2 at most, yaw 5.2 deg/s |
 | full up and full rudder 4 s, let go | w11_spin, 90 deg, stopped in 0.5 s and 90 deg | right 151 deg, left 159; under 30 deg/s at once, 0.5 deg on |
