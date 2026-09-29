@@ -349,7 +349,7 @@ export class Hangar {
    * and onLibrary(list) stores a changed list at once
    * (src/ui/hangar-paint.js).
    */
-  open({ airframe, livery = null, power = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
+  open({ airframe, livery = null, power = null, floats = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
     this.id = airframe;
     this.family = liveryKey(airframe);
@@ -379,6 +379,26 @@ export class Hangar {
     this.factsEl.textContent = '';
     for (const f of [sizeText(airframe), weightText(airframe)]) {
       this.factsEl.append(el('span', 'carousel-fact', f));
+    }
+    /* A plane with a float version has the Floats toggle beside its span and
+     * weight (`floats`: { on, set(on) }, src/ui/ui.js openHangar). Flipping
+     * it opens the hangar again on the other version, so an unsaved change
+     * here would be lost: it asks for a save first instead. */
+    if (floats) {
+      const b = button(`hangar-floats${floats.on ? ' on' : ''}`, str('hangar.floats'));
+      b.dataset.key = 'floats';
+      b.setAttribute('role', 'switch');
+      b.setAttribute('aria-checked', String(floats.on));
+      b.addEventListener('click', () => {
+        if (this.dirty()) {
+          this.warnEl.textContent = str('hangar.floats_save_first');
+          this.warnEl.hidden = false;
+          return;
+        }
+        this.sound('select');
+        floats.set(!floats.on);
+      });
+      this.factsEl.append(b);
     }
     this.warnEl.textContent = warn || '';
     this.warnEl.hidden = !warn;

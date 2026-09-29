@@ -36,12 +36,12 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { readPartTable } from './lib/crash.js';
-import { AIRFRAMES, airframeById } from '../configs/airframes.js';
+import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../configs/airframes.js';
 import { tunesFor } from '../configs/registry.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
 import { cycleCraft, kindOf, pickList, slotOf, slotX } from '../src/ui/carousel.js';
-import { seatAirframe } from '../src/ui/ui.js';
+import { normaliseFloats, seatAirframe, withFloats } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -81,18 +81,22 @@ for (const af of AIRFRAMES) {
 
 console.log('2. the lists and the cycle');
 check('the quads are the quads', pickList('quad').every((id) => !airframeById(id).fixedWing) && pickList('quad').length === 2);
-check('the planes are the planes', pickList('plane').every((id) => airframeById(id).fixedWing) && pickList('plane').length === AIRFRAMES.filter((a) => a.fixedWing).length, `${pickList('plane').length} of ${AIRFRAMES.filter((a) => a.fixedWing).length}`);
-check('all is every aircraft, in the table\'s order', pickList('all').join() === AIRFRAMES.map((a) => a.id).join());
+/* A float version is its land plane's Floats toggle, not a card. */
+const CARDS = AIRFRAMES.filter((a) => !isFloatVersion(a.id));
+check('the float versions are the Timber\'s and the Cub\'s', AIRFRAMES.filter((a) => isFloatVersion(a.id)).map((a) => `${landPlaneOf(a.id)}>${a.id}`).join() === 'timber1500>timber1500f,cub1400>cub1400f');
+check('the planes are the planes, a float version not a card of its own', pickList('plane').every((id) => airframeById(id).fixedWing) && pickList('plane').length === CARDS.filter((a) => a.fixedWing).length && !pickList('plane').some(isFloatVersion), `${pickList('plane').length} of ${CARDS.filter((a) => a.fixedWing).length}`);
+check('all is every card, in the table\'s order', pickList('all').join() === CARDS.map((a) => a.id).join());
 check('kindOf agrees', kindOf('5inch') === 'quad' && kindOf('cub1400f') === 'plane');
 {
   const seen = [];
   let id = '5inch';
-  for (let k = 0; k < AIRFRAMES.length; k += 1) {
+  for (let k = 0; k < CARDS.length; k += 1) {
     id = cycleCraft(id, 1);
     seen.push(id);
   }
-  check('] visits every aircraft once and comes back to the first', new Set(seen).size === AIRFRAMES.length && id === '5inch', seen.join(' '));
-  check('[ goes the other way', cycleCraft('5inch', -1) === AIRFRAMES[AIRFRAMES.length - 1].id && cycleCraft(cycleCraft('cub1400', 1), -1) === 'cub1400');
+  check('] visits every card once and comes back to the first', new Set(seen).size === CARDS.length && id === '5inch', seen.join(' '));
+  check('[ goes the other way', cycleCraft('5inch', -1) === CARDS[CARDS.length - 1].id && cycleCraft(cycleCraft('cub1400', 1), -1) === 'cub1400');
+  check('from a float version ] goes on from its land plane', cycleCraft('cub1400f', 1) === cycleCraft('cub1400', 1), cycleCraft('cub1400f', 1));
 }
 
 console.log('3. the layout');
@@ -117,6 +121,35 @@ console.log('4. the tune goes with the aircraft');
   s.tuneFor = { ...s.tuneFor, sky1800: 'no-such-tune' };
   seatAirframe(s, 'sky1800');
   check('a remembered tune the aircraft no longer offers falls back to its default', s.tune === airframeById('sky1800').defaultTune, s.tune);
+}
+
+console.log('5. the Floats toggle');
+{
+  check('a profile seated on a float version has that plane\'s toggle on', JSON.stringify(normaliseFloats({}, 'timber1500f')) === '{"timber1500":true}');
+  check('a stored toggle is kept for a plane with floats and dropped for one without, or not a boolean',
+    JSON.stringify(normaliseFloats({ cub1400: true, sky1800: true, timber1500: 'yes' }, 'sky1800')) === '{"cub1400":true}');
+  const s = { airframe: '5inch', rates: airframeById('5inch').rates, floats: { cub1400: true }, power: {}, parts: {}, tuning: {} };
+  check('a card with its toggle on seats the float version, one with it off the land plane',
+    withFloats(s, 'cub1400') === 'cub1400f' && withFloats(s, 'timber1500') === 'timber1500' && withFloats(s, 'sky1800') === 'sky1800');
+  seatAirframe(s, 'timber1500');
+  s.power = { timber1500: { option: '3s', pack: '3s2200' } };
+  s.parts = { timber1500: { prop: '11x7e', addons: [], damage: null } };
+  s.tuning = { timber1500: { rate: 'low' } };
+  const tune = tunesFor('timber1500').map((t) => t.id).find((t) => t !== airframeById('timber1500').defaultTune);
+  s.tune = tune;
+  seatAirframe(s, floatVersionOf('timber1500'));
+  check('the toggle follows the seat', s.airframe === 'timber1500f' && s.floats.timber1500 === true && s.floats.cub1400 === true, JSON.stringify(s.floats));
+  check('the tune, the power, the prop and the bench setup go across to the floats',
+    s.tune === tune && JSON.stringify(s.power.timber1500f) === JSON.stringify(s.power.timber1500)
+      && s.parts.timber1500f && s.parts.timber1500f.prop === '11x7e' && s.tuning.timber1500f && s.tuning.timber1500f.rate === 'low',
+    `${s.tune} ${JSON.stringify(s.power.timber1500f)} ${JSON.stringify(s.parts.timber1500f)} ${JSON.stringify(s.tuning.timber1500f)}`);
+  s.power = { ...s.power, timber1500f: { option: 'stock', pack: '4s3200' } };
+  seatAirframe(s, 'timber1500');
+  check('and back to the wheels, the toggle off and the choice made on floats carried back',
+    s.airframe === 'timber1500' && s.floats.timber1500 === false && JSON.stringify(s.power.timber1500) === JSON.stringify(s.power.timber1500f),
+    `${JSON.stringify(s.floats)} ${JSON.stringify(s.power)}`);
+  seatAirframe(s, 'sky1800');
+  check('another plane leaves the toggles as they were', JSON.stringify(s.floats) === '{"cub1400":true,"timber1500":false}', JSON.stringify(s.floats));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
