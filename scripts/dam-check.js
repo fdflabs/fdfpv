@@ -625,8 +625,9 @@ async function main() {
       if (!ok1) {
         fail('a Timber flown out between two penstocks met something');
       }
-      /* Let down onto penstock k from over it. */
-      const on = along(a.a, a.b, 168);
+      /* Let down onto penstock k from over it, halfway down the run that
+       * shows between its hood's cowl and the powerhouse roof. */
+      const on = along(a.a, a.b, (a.exitY + f.roofY) / 2);
       const drop = {
         x: on[0], y: on[1] + a.r + 6, z: on[2], yaw: yawOf(f.n), pitch: 0, vx: f.n[0] * 4, vy: -8, vz: f.n[1] * 4,
       };

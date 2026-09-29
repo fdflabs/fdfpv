@@ -187,8 +187,16 @@ const TONE = {
 
 /* The penstocks' exit hoods on the face (the dam-downstream photograph):
  * a block over each penstock, HOOD.width along the dam, reaching
- * HOOD.reach out from where its flat top meets the face. */
-const HOOD = { width: 16, reach: 13, top: 196 };
+ * HOOD.reach out from where its flat top meets the face, and from its
+ * front a cowl down the penstock HOOD.extend metres further, so only the
+ * last short run of each shows white above the powerhouse roof, as in the
+ * photographs. The cowl is a capsule of radius HOOD.cowl coaxial with the
+ * penstock, drawn as a ten sided prism inside it and closed at its foot by
+ * a faceted lip on the capsule's end, so what is drawn is what a craft
+ * meets to within 0.4 m. */
+const HOOD = {
+  width: 16, reach: 13, top: 196, extend: 25, cowl: 7.5, sides: 10,
+};
 /* Street lamps along the crest roads, metres apart, and the white intake
  * columns on the main dam's upstream edge, one a unit's pitch. */
 const LAMP = { spacing: 30, height: 10, arm: 2.4, r: 0.12 };
@@ -1463,7 +1471,6 @@ export async function buildPart(ctx) {
     }
     const s1 = faceS(top);
     const s2 = s1 + HOOD.reach;
-    hoodFront[k] = s2;
     const t0 = t - HOOD.width / 2;
     const t1 = t + HOOD.width / 2;
     const col = shade(TONE.hood, 7000 + k, 0.05);
@@ -1479,6 +1486,56 @@ export async function buildPart(ctx) {
     flatBlock([F.at(t0, s1), F.at(t1, s1), F.at(t1, s2), F.at(t0, s2)], mainBase, top, 'hood', hoodRun, F.a);
     face('penstock hood front', 'wall', [P(t0, s2, foot), P(t1, s2, foot), P(t1, s2, top), P(t0, s2, top)]);
     face('penstock hood top', 'roof', [P(t0, s1, top), P(t1, s1, top), P(t1, s2, top), P(t0, s2, top)]);
+    /* The cowl, from just inside the block's front down the penstock. */
+    const len = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]);
+    const e = [(B[0] - A[0]) / len, (B[1] - A[1]) / len, (B[2] - A[2]) / len];
+    const along = (m) => [A[0] + e[0] * m, A[1] + e[1] * m, A[2] + e[2] * m];
+    const m0 = ((s2 - sA) / (sB - sA)) * len;
+    const R = HOOD.cowl;
+    const rIn = penR + 0.05;
+    const lip = Math.sqrt(R * R - rIn * rIn);
+    const exit = m0 + HOOD.extend;
+    const C0 = along(m0 - 2);
+    const C1 = along(exit - lip);
+    const X = along(exit);
+    hoodFront[k] = F.local(X[0], X[2])[1];
+    let side = [e[2], 0, -e[0]];
+    const sl = Math.hypot(side[0], side[2]);
+    side = side.map((v) => v / sl);
+    const upv = [side[1] * e[2] - side[2] * e[1], side[2] * e[0] - side[0] * e[2], side[0] * e[1] - side[1] * e[0]];
+    const upOut = upv[1] > 0 ? upv : upv.map((v) => -v);
+    const radial = (phi) => [0, 1, 2].map((q) => side[q] * Math.cos(phi) + upOut[q] * Math.sin(phi));
+    const ring = (C, ax, rr, phi) => {
+      const w = radial(phi);
+      return [0, 1, 2].map((q) => C[q] + e[q] * ax + w[q] * rr);
+    };
+    /* A facet wholly under the face is inside the dam, and not drawn. */
+    const buried = (pts) => pts.every(([x, y, z]) => y < faceY(F.local(x, z)[1]) - 0.5);
+    const cowlCol = col.map((v, q) => v * RIB.tone[q]);
+    const rings = [[0, R], [Math.sqrt(R * R - ((R + rIn) / 2) ** 2), (R + rIn) / 2], [lip, rIn]];
+    for (let j = 0; j < HOOD.sides; j += 1) {
+      const p0 = Math.PI / 2 + ((j - 0.5) * 2 * Math.PI) / HOOD.sides;
+      const p1 = p0 + (2 * Math.PI) / HOOD.sides;
+      const mid = radial((p0 + p1) / 2);
+      const lit = 0.75 + 0.25 * Math.max(0, mid[1]);
+      const skin = [ring(C0, 0, R, p0), ring(C1, 0, R, p0), ring(C1, 0, R, p1), ring(C0, 0, R, p1)];
+      if (!buried(skin)) {
+        concrete.quad(...skin, cowlCol.map((v) => v * lit), mid);
+        face('penstock hood cowl', 'wall', skin);
+      }
+      for (let i = 0; i + 1 < rings.length; i += 1) {
+        const [a0, r0] = rings[i];
+        const [a1, r1] = rings[i + 1];
+        const q = [ring(C1, a0, r0, p0), ring(C1, a1, r1, p0), ring(C1, a1, r1, p1), ring(C1, a0, r0, p1)];
+        if (buried(q)) {
+          continue;
+        }
+        const n = [0, 1, 2].map((c) => mid[c] + e[c] * ((a0 + a1) / 2 / R));
+        concrete.quad(...q, cowlCol.map((v) => v * lit * 0.9), n);
+        face('penstock hood cowl', 'wall', q);
+      }
+    }
+    addCapsule('wall', C0, C1, R);
   });
   closeRun(hoodRun);
   drawPenstocks();
@@ -1670,7 +1727,10 @@ export async function buildPart(ctx) {
     }
     figures.penstockGap = least;
   }
-  sites.penstocks = penEnds.map(([a, b], k) => ({ a, b, r: penR, index: penIndex[k] }));
+  /* `exitY`: the axis's height where it leaves its hood's cowl. */
+  sites.penstocks = penEnds.map(([a, b], k) => ({
+    a, b, r: penR, index: penIndex[k], exitY: targets[`penstock-${k}`].a[1],
+  }));
   sites.face = {
     crestDown: MAIN.crestDown, bandY: MAIN.bandY, roofY: ph.figures.roofY, n: F.n, a: F.a,
   };
