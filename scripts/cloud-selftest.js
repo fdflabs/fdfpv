@@ -10,6 +10,12 @@
  * Found through tracks:e2e, where B renamed its copy and saved while the
  * copy's first upload was in flight, and the server kept the old name.
  *
+ * And an edit made while an upload is on the wire is not saved when that
+ * upload answers: the builder's Save box reads "Not saved" (course.js
+ * saveState over the save mark), and the next save sends the edit. The box
+ * used to read "Saved and online" there, because it took an edit in the
+ * same whole second as the save for no edit at all (model.js nowUtc).
+ *
  * Nothing here touches a network: fetch is a stand in whose answers the
  * test releases, and the page's window and storage are stand ins too.
  *
@@ -59,7 +65,8 @@ globalThis.fetch = (url, init = {}) => {
 
 const { startTrackSync } = await import('../src/share/cloud.js');
 const { readOnlineStates, saveTrack } = await import('../src/trackbuilder/storage.js');
-const { newCourse } = await import('../src/builder/course.js');
+const { createSaveMark, newCourse, saveState } = await import('../src/builder/course.js');
+const { touch } = await import('../src/trackbuilder/model.js');
 
 let failed = 0;
 let passed = 0;
@@ -106,6 +113,38 @@ if (second) {
 }
 check('and only then is the track online', await until(() => readOnlineStates()[doc.id].state === 'online'),
   JSON.stringify(readOnlineStates()[doc.id]));
+
+/* The builder's side of it, as buildmode.js does it: a save marks the
+ * revision it wrote, an edit is a new revision. */
+console.log('An edit made while an upload is on the wire');
+{
+  const mark = createSaveMark();
+  const track = newCourse('swiss2', 'Valley Loop');
+  mark.seat(false);
+  const box = () => saveState(mark.dirty, true, readOnlineStates()[track.id]);
+  /* At the start of a whole second, so the edit below falls in the same
+   * second as the save: the case the old box took for no edit. */
+  await sleep(1000 - (Date.now() % 1000) + 5);
+  const before = puts.length;
+  saveTrack(track);
+  mark.saved();
+  track.name = 'Valley Loop edited';
+  touch(track);
+  mark.edited();
+  check('the save is sent', await until(() => puts.length === before + 1) && puts[before].name === 'Valley Loop');
+  puts[before].answer();
+  await until(() => readOnlineStates()[track.id].state === 'online');
+  check('when it answers, the server holds the save and the box still says the edit is not saved',
+    readOnlineStates()[track.id].state === 'online' && box() === 'unsaved', box());
+  saveTrack(track);
+  mark.saved();
+  const sent = await until(() => puts.length === before + 2);
+  check('and the next save sends the edit', sent && puts[before + 1].name === 'Valley Loop edited');
+  if (sent) {
+    puts[before + 1].answer();
+  }
+  check('then the box says saved and online', await until(() => box() === 'online'), box());
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

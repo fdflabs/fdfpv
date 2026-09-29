@@ -121,7 +121,9 @@ import { readPilotName } from '../share/pilot.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
 import { KINDS } from '../game/collide.js';
 import { ELEMENTS, KIND } from '../trackbuilder/elements.js';
-import { elementById, normalize, touch } from '../trackbuilder/model.js';
+import {
+  elementById, normalize, toPlain, touch,
+} from '../trackbuilder/model.js';
 import {
   listMapTracks, loadMapTrack, makeAutosaver, readMapAutosave, readOnlineStates, saveTrack,
 } from '../trackbuilder/storage.js';
@@ -135,7 +137,7 @@ import { createPicker, marchHeight, PICK_RANGE } from './pick.js';
 import {
   CHAIN, DEFAULT_HOTBAR, DEFAULT_WING_HOTBAR, WING_FIRST, casualCourse, HOTBAR_SLOTS, PIECES, PIECE_CATS, TURN_STEP, GRID_STEP, addGate, capsAt, capsOverlap, chainPose,
   createHistory, gateFlags, gateSpec, gizmoAxes, isHoop, makeStart, newCourse, offeredPiece, openingsOf, orderOf, pieceById, pieceGate, pieceOf,
-  poseOf, raceGatesOf, readoutFor, removeGate, restoreHotbar, saveState, scoringOf, trackNameFor, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
+  poseOf, raceGatesOf, readoutFor, removeGate, restoreHotbar, createSaveMark, saveState, scoringOf, trackNameFor, setOrder, setPose, snapPose, startFor, stepOf, turnGate, worldCaps,
 } from './course.js';
 import { craftLimits, lineWarnings, openingBlocked, racingLine } from './line.js';
 import { createHud } from './hud.js';
@@ -440,6 +442,7 @@ export function createBuildMode(host) {
    * something it depends on changed: the track, an edit, an upload. */
   let syncCount = 0;
   let saveKey = '';
+  const saveMark = createSaveMark();
   let dressKey = '';
   let hidden = [];
   /* The view's own course, put back after a test flight. */
@@ -1375,9 +1378,22 @@ export function createBuildMode(host) {
    * are all built again from the document as it is. */
   function commit(before) {
     history.record(before);
+    edited();
+    rebuildAll();
+  }
+
+  /* The document changed: a new revision for the Save button, the time,
+   * and the autosave. */
+  function edited() {
+    saveMark.edited();
     touch(doc);
     autosave.schedule(doc);
-    rebuildAll();
+  }
+
+  /* A track put in the builder: saved if the library holds it as it is. */
+  function seatSaveMark() {
+    const lib = loadMapTrack(doc.id);
+    saveMark.seat(Boolean(lib) && JSON.stringify(toPlain(lib)) === JSON.stringify(toPlain(doc)));
   }
 
   /* The exact surface for the moment it matters: the crosshair's reading
@@ -1554,8 +1570,7 @@ export function createBuildMode(host) {
     doc = JSON.parse(to);
     carry = null;
     order = null;
-    touch(doc);
-    autosave.schedule(doc);
+    edited();
     rebuildAll();
     say(str(back ? 'build.undone' : 'build.redone'), 1400);
   }
@@ -1772,7 +1787,12 @@ export function createBuildMode(host) {
       }
       d.name = name;
     }
-    say(saveTrack(d) ? str('build.saved', { name: d.name }) : str('build.save_failed'));
+    if (!saveTrack(d)) {
+      say(str('build.save_failed'));
+      return;
+    }
+    saveMark.saved();
+    say(str('build.saved', { name: d.name }));
   }
 
   /* The builder's placeholder, in the language it was made in: English or
@@ -1794,7 +1814,9 @@ export function createBuildMode(host) {
     if (!loadMapTrack(doc.id) && untitled(doc)) {
       doc.name = generatedName();
     }
-    saveTrack(doc);
+    if (saveTrack(doc)) {
+      saveMark.saved();
+    }
   }
 
   /* The name typed, cleaned the way the tracks server checks it, or null
@@ -1878,6 +1900,7 @@ export function createBuildMode(host) {
     carry = null;
     order = null;
     history.clear();
+    seatSaveMark();
     autosave.schedule(doc);
     rebuildAll();
   }
@@ -1917,6 +1940,7 @@ export function createBuildMode(host) {
     }
     const saved = next === undefined ? readMapAutosave(view.id) : null;
     doc = next || (saved ? saved.doc : newCourse(view.id, str('build.untitled')));
+    seatSaveMark();
     history.clear();
     root = new THREE.Group();
     root.name = 'build-track';
@@ -2715,12 +2739,12 @@ export function createBuildMode(host) {
   }
 
   function paintSave() {
-    const key = `${doc.id}|${doc.modifiedUtc}|${doc.name}|${syncCount}|${str('build.save_button')}`;
+    const key = `${doc.id}|${saveMark.key}|${doc.name}|${syncCount}|${str('build.save_button')}`;
     if (key === saveKey) {
       return;
     }
     saveKey = key;
-    const mark = saveState(doc, loadMapTrack(doc.id), tracksConfigured(), readOnlineStates()[doc.id]);
+    const mark = saveState(saveMark.dirty, tracksConfigured(), readOnlineStates()[doc.id]);
     hud.setSave({
       label: str('build.save_button'),
       key: str('build.save_key'),
@@ -2963,8 +2987,7 @@ export function createBuildMode(host) {
     library: () => (view ? listMapTracks(view.id).map((d) => ({ id: d.id, name: d.name, gates: d.sequence.length })) : []),
     rename(name) {
       doc.name = String(name);
-      touch(doc);
-      autosave.schedule(doc);
+      edited();
       return doc.name;
     },
   };

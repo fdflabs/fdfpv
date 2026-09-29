@@ -113,7 +113,7 @@ import {
 import { docPosToThree, docQuatToThree, threePosToDoc, threeQuatToDoc } from '../src/render/frame.js';
 import { readFileSync } from 'node:fs';
 import { createHud } from '../src/builder/hud.js';
-import { saveState, trackNameFor } from '../src/builder/course.js';
+import { createSaveMark, saveState, trackNameFor } from '../src/builder/course.js';
 import { badWordIn } from '../tracks-api/words.js';
 
 let failed = 0;
@@ -1238,21 +1238,27 @@ console.log('\nThe Save button');
     /KeyS: save,/.test(src) && /pressed\(PAD\.start\)\) \{\s*save\(\);/.test(src) && /onSave: save,/.test(src)
     && (src.match(/function save\(\)/g) || []).length === 1);
 
-  const d = { id: 't1', modifiedUtc: '2026-09-28T10:00:00.000Z' };
-  const same = { ...d };
-  check('never saved is not saved', saveState(d, null, true, null) === 'unsaved');
-  check('saved with no tracks server is saved in this browser', saveState(d, same, false, { state: 'pending' }) === 'saved');
-  check('saved and not uploaded yet is pending', saveState(d, same, true, { state: 'pending' }) === 'pending' && saveState(d, same, true, undefined) === 'pending');
-  check('uploaded is online', saveState(d, same, true, { state: 'online' }) === 'online');
-  check('refused by the server says so', saveState(d, same, true, { state: 'failed', error: 'x' }) === 'refused');
+  check('never saved is not saved', saveState(true, true, null) === 'unsaved');
+  check('saved with no tracks server is saved in this browser', saveState(false, false, { state: 'pending' }) === 'saved');
+  check('saved and not uploaded yet is pending', saveState(false, true, { state: 'pending' }) === 'pending' && saveState(false, true, undefined) === 'pending');
+  check('uploaded is online', saveState(false, true, { state: 'online' }) === 'online');
+  check('refused by the server says so', saveState(false, true, { state: 'failed', error: 'x' }) === 'refused');
+  const mark = createSaveMark();
+  mark.seat(false);
+  const fresh = mark.dirty;
+  mark.saved();
+  const afterSave = mark.dirty;
+  mark.edited();
+  check('the save mark: a new track is not saved, a save is, and the next edit is not again', fresh && !afterSave && mark.dirty);
+  mark.seat(true);
+  check('and a track seated as the library holds it is saved', !mark.dirty);
   /* The first save's name, checked the way the tracks server checks it. */
   const bad = readFileSync(new URL('../tracks-api/words.js', import.meta.url), 'utf8').match(/const ANYWHERE = \[\s*'([^']+)'/)[1];
   check('a typed name is trimmed and its spaces folded', trackNameFor('  Ridge   Run ', 'Ada\'s track 3') === 'Ridge Run');
   check('a blank name is the generated one', trackNameFor('   ', 'Ada\'s track 3') === 'Ada\'s track 3');
   check('a name the server\'s word filter refuses is refused here', Boolean(badWordIn(`the ${bad} ring`)) && trackNameFor(`the ${bad} ring`, 'x') === '');
   check('and so is one over 80 characters', trackNameFor('a'.repeat(81), 'x') === '' && trackNameFor('a'.repeat(80), 'x') === 'a'.repeat(80));
-  check('an edit after the save is not saved, whatever the server holds',
-    saveState({ ...d, modifiedUtc: '2026-09-28T10:00:01.000Z' }, same, true, { state: 'online' }) === 'unsaved');
+  check('an edit after the save is not saved, whatever the server holds', saveState(true, true, { state: 'online' }) === 'unsaved');
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -1236,15 +1236,51 @@ export function trackNameFor(raw, fallback) {
 }
 
 /*
- * What the Save button says about the track being built, as a key under
- * build.save_ in the string tables. `stored` is the library's copy of it
- * or null, `server` whether a tracks server is configured (cloud.js), and
- * `online` its entry in storage.js readOnlineStates. An edit since the save
- * is unsaved whatever the server holds, because what the server holds is
- * the save and not the edit. With no server a save is the whole story.
+ * WHETHER THE TRACK IN THE BUILDER IS THE ONE SAVED, as revisions: every
+ * edit is a new revision, and a save records the one it wrote. It is not
+ * read off the document's modifiedUtc, because that is whole seconds
+ * (model.js nowUtc), so an edit in the same second as a save looked
+ * saved, and the box said "Saved and online" over unsaved edits. Nothing an
+ * upload does can touch it: an upload answering late says what the server
+ * holds, never that the builder's edits are saved.
+ *
+ * `seat(same)` is a track put in the builder, `same` whether the library
+ * already holds it exactly as it is.
  */
-export function saveState(doc, stored, server, online) {
-  if (!stored || stored.modifiedUtc !== doc.modifiedUtc) {
+export function createSaveMark() {
+  let revision = 0;
+  let saved = -1;
+  return {
+    edited() {
+      revision += 1;
+    },
+    saved() {
+      saved = revision;
+    },
+    seat(same) {
+      revision += 1;
+      saved = same ? revision : -1;
+    },
+    get dirty() {
+      return saved !== revision;
+    },
+    /* Changes whenever `dirty` may have, for a cache key. */
+    get key() {
+      return `${revision}/${saved}`;
+    },
+  };
+}
+
+/*
+ * What the Save button says about the track being built, as a key under
+ * build.save_ in the string tables. `dirty` is the save mark's, `server`
+ * whether a tracks server is configured (cloud.js), and `online` the
+ * track's entry in storage.js readOnlineStates. An edit since the save is
+ * unsaved whatever the server holds, because what the server holds is the
+ * save and not the edit. With no server a save is the whole story.
+ */
+export function saveState(dirty, server, online) {
+  if (dirty) {
     return 'unsaved';
   }
   if (!server) {
