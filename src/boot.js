@@ -32,11 +32,16 @@ import { Loading, planStages } from './ui/loading.js';
 import { MAP_BUILD_MS } from './maps/build-cost.js';
 import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
+import { watchPageErrors } from './share/crashrecord.js';
 
 /* P6: navigation to the first interactive frame. Stamped in the first module
  * the page runs so it covers every fetch and every module evaluation, and
  * read back through window.__boot. */
 const BOOT_START = performance.now();
+
+/* From the first module on, so an error anywhere in the load is one the
+ * next F8 report can carry. See share/crashrecord.js. */
+watchPageErrors(window);
 
 /* This tab is the simulator, and there is only ever one of it. Claimed in
  * the first module the page runs, so the board's Fly this track finds it
