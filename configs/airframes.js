@@ -1154,7 +1154,7 @@ export const AIRFRAMES = [
     cells: 2,
     packVoltages: [4.2, 3.8, 3.5],
     packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'tigermoth-stab',
+    defaultTune: 'tigermoth-acro',
     gravityBase: 1.0,
     rates: {
       type: 'ACTUAL',
@@ -1493,7 +1493,7 @@ export const AIRFRAMES = [
     cells: 3,
     packVoltages: [4.2, 3.8, 3.5],
     packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
-    defaultTune: 'zagi-stab',
+    defaultTune: 'zagi-acro',
     gravityBase: 1.0,
     rates: {
       type: 'ACTUAL',
