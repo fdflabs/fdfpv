@@ -163,6 +163,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             the width and the reach this file measures are both the
  *             rudder's, 1769 mm, and the plan's 61.7 in span is held by
  *             src/render/uglystikcraft.js UGLYSTIK_DIMS.
+ *   quickie1293 Spickler's 51 in Quickie 500, whose elevator's trailing
+ *             edge, 0.719 m behind the CG on the plan (station 42.3
+ *             against the CG's 14.0), reaches further than its tips, 0.647
+ *             m out, so the width this file measures is the elevator's,
+ *             1438 mm, and the reach its tip corner's, 8 in out, 1494 mm;
+ *             the plan's 50.9 in span is held by
+ *             src/render/quickiecraft.js QUICKIE_DIMS.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -191,6 +198,7 @@ const REAL = {
   zagi1219: { spanMm: 1219.2, sweepMm: 1331.4, tolMm: 6 },
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
+  quickie1293: { spanMm: 1437.6, sweepMm: 1494.0, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */

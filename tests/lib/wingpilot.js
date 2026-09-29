@@ -2038,3 +2038,123 @@ export function recordPittsFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * Glen Spickler's Quickie 500, airframe 22, docs/QUICKIE-STAGE1.md: a
+ * club pylon racer on wire gear and a tail skid, which takes off from the
+ * ground as the class does (AMA: "All takeoffs shall be ROG"). On the
+ * strip it stands on its mains and skid at the pose the plant settles to
+ * with the engine idling, 6.47 deg nose up and the CG 0.1326 m up (the
+ * drawn model's is 6.50 deg, src/render/quickiecraft.js), the
+ * quaternion's half angle's cos and sin written out to 17 digits because a
+ * recording's prelude is hashed and JS Math.cos is not specified to the
+ * bit; thrown, at its race speed.
+ */
+export const QUICKIE_AIRFRAME = 22;
+export const QUICKIE_REST = { z: 0.1326, pitchDeg: 6.47 };
+const QUICKIE_REST_C = 0.99840786985807850;
+const QUICKIE_REST_S = 0.056406785101211547;
+export function quickiePrelude(sim) {
+  must(sim.e.sim_set_airframe(QUICKIE_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(39), 'sim_wing_launch');
+}
+export function quickieGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(QUICKIE_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 0, QUICKIE_REST.z, QUICKIE_REST_C, 0, -QUICKIE_REST_S, 0), 'sim_set_pose');
+}
+
+/*
+ * The Quickie's take off, a taildragger's with no steerable wheel, held
+ * three point (RCM: "extremely easy tail dragger take-offs"): full
+ * throttle, the wings held level on the ailerons and the heading on the
+ * rudder in the prop's blast, and the rest attitude held on the elevator
+ * until the wing lifts it off. The racer's elevator is a big one for its
+ * speed, so the hand is the Edge's scaled down by the dynamic pressure
+ * past 12 m/s, with an integral: on the ground the wheels' drag under the
+ * CG and the thrust line over it push the nose down, and a pilot holds it.
+ * `hold` keeps the integral between steps. Returns roll, pitch and yaw
+ * sticks.
+ */
+export function quickieTakeoffSticks(s, { hold, pitchDeg = QUICKIE_REST.pitchDeg } = {}) {
+  const { pitch } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const soft = v > 12 ? (12 / v) ** 2 : 1;
+  const pitchT = pitchDeg * Math.PI / 180;
+  hold.i = Math.max(-0.8, Math.min(0.8, (hold.i ?? 0.4) + 0.05 * (pitchT - pitch)));
+  const pitchStick = Math.max(-1, Math.min(1, soft * (4.0 * (pitchT - pitch) - 0.25 * qAero) + hold.i));
+  const yaw = Math.max(-1, Math.min(1, 2.0 * edgeHeading(s) + 0.3 * s[13]));
+  return [edgeRoll(s), pitchStick, yaw];
+}
+
+/*
+ * The Quickie's hands in a level pylon turn at a load factor n: the bank
+ * that holds the height at n on the ailerons, trimmed by the climb rate;
+ * on the elevator the lift coefficient that load needs at this speed,
+ * against the plant's own (sim_wing_debug's CL, which the elevator's own
+ * lift takes a share of), with an integral. `turn` keeps the slow part
+ * between steps. Returns roll and pitch sticks.
+ */
+export function quickieTurnSticks(s, cl, { n, turn, clAlpha = 4.866, wOverS = 47.82 }) {
+  const qbar = 0.5 * 1.225 * (s[4] * s[4] + s[5] * s[5] + s[6] * s[6]);
+  const bankT = Math.acos(1 / n) + Math.max(-0.15, Math.min(0.15, 0.02 * s[6]));
+  const e = Math.atan2(Math.sin(fullBank(s) - bankT), Math.cos(fullBank(s) - bankT));
+  const roll = Math.max(-1, Math.min(1, -0.8 * e - 0.05 * s[11]));
+  const err = (n * wOverS / qbar - cl) / clAlpha;
+  turn.i = Math.max(-1, Math.min(1, (turn.i ?? 0) + 0.1 * err));
+  const pitch = Math.max(-1, Math.min(1, turn.i + 3.0 * err + 0.05 * s[12]));
+  return [roll, pitch];
+}
+
+/*
+ * The Quickie's recording for the cross-host check: from standing on the
+ * strip, a second at idle, the take off above and a climb, then level
+ * flat out, a full aileron roll, a 6 g pylon turn, level on its back,
+ * rolled upright and the throttle closed: twenty two seconds, the gear, the roll, the turn's load and the
+ * inverted trim all in the hashed trace, still flying at the end.
+ */
+export function recordQuickieFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  quickieGroundPrelude(sim);
+  const samples = [];
+  const trim = { v: 0 };
+  const turn = {};
+  const hold = {};
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch } = attitude(s);
+    const qAero = -s[12];
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 4000) {
+      sticks = [...quickieTakeoffSticks(s, { hold }), 1];
+    } else if (ms < 7000) {
+      sticks = [edgeRoll(s), Math.max(-1, Math.min(1, 0.5 * (0.3 - pitch) - 0.05 * qAero)), 0, 1];
+    } else if (ms < 11000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 1];
+    } else if (ms < 11900) {
+      sticks = [1, 0, 0, 1];
+    } else if (ms < 13000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 1];
+    } else if (ms < 15000) {
+      sticks = [...quickieTurnSticks(s, wingDebug(sim)[3], { n: 6, turn }), 0, 1];
+    } else if (ms < 16000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 1];
+    } else if (ms < 16450) {
+      sticks = [1, 0, 0, 1];
+    } else if (ms < 19000) {
+      sticks = [...edgeLevel(s, { b: Math.PI, trim }), 0, 1];
+    } else {
+      sticks = [...edgeLevel(s, { trim }), 0, 0];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

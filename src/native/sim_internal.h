@@ -272,6 +272,7 @@ typedef struct {
 #define SIM_AIRFRAME_PITTS850 18
 #define SIM_AIRFRAME_UGLYSTIK1567 19
 #define SIM_AIRFRAME_NRJ1490 21
+#define SIM_AIRFRAME_QUICKIE1293 22
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -949,6 +950,7 @@ extern const FixedWingParams FW_PITTS850;
 extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
+extern const FixedWingParams FW_QUICKIE1293;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);

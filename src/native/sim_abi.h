@@ -375,10 +375,13 @@ int sim_set_flight_style(int arcade);
  * launch glider with no motor, thrown by its wingtip (sim_wing_discus) into
  * the thermals of sim_air_lift, and 18 E-flite's Pitts S-1S 850mm
  * (docs/PITTS-STAGE1.md), a foam aerobatic biplane, its two wings each in
- * the other's flow, on a taildragger's gear. 20, 22 and 23 are reserved
- * for the aircraft being added alongside them. Returns SIM_ERR_BAD_ARG
- * for any id without an aircraft.
- * 2 to 19 and 21 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * the other's flow, on a taildragger's gear, and 22 Glen Spickler's
+ * Quickie 500 (docs/QUICKIE-STAGE1.md), the 1972 club pylon racer the
+ * class is named after, a 51 in low wing box on a K&B 40 glow engine, on
+ * wire gear and a tail skid. 20 and 23 are reserved for the aircraft being
+ * added alongside them. Returns SIM_ERR_BAD_ARG for any id without an
+ * aircraft.
+ * 2 to 19, 21 and 22 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -416,6 +419,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_PITTS850_ID 18
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
 #define SIM_AIRFRAME_NRJ1490_ID 21
+#define SIM_AIRFRAME_QUICKIE1293_ID 22
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -802,7 +806,7 @@ int sim_addons_clear(void);
 int sim_addons_state(double *out);
 
 /*
- * THE PILOT'S TUNING, fixed wings only (airframes 2 to 19 and 21): what the
+ * THE PILOT'S TUNING, fixed wings only (airframes 2 to 19, 21 and 22): what the
  * hangar's Tuning tab sets up on the bench, src/ui/hangar-tuning.js and
  * configs/tuning.js.
  *

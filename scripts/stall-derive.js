@@ -261,6 +261,17 @@ planes.FW_UGLYSTIK1567 = {
  * 24.5 mm behind the root's; the tail measured off Hyperflight's
  * photograph. */
 planes.FW_NRJ1490 = tailed({ b: 1.49, S: 0.190, c: 0.1378, hCG: 0.301, Sh: 0.020, lh: 0.56, bh: 0.30 });
+/* The Quickie 500, docs/QUICKIE-STAGE1.md and scripts/quickie-derive.js:
+ * its own arms, the plan's CG 2.8 in behind the leading edge of the 10 in
+ * chord, 0.3 in behind the wing's aerodynamic centre, and the tail's share
+ * from the derivation's a_w, a_t, V_H and DATCOM's downwash. */
+planes.FW_QUICKIE1293 = {
+  arm_ac: 0.0303,
+  arm_cp: 0.1211,
+  dw: 0.9 * 0.460 * 3.590 * 0.405 / 4.500,
+  asym: TE_TOLERANCE / 0.2518,
+  note: 'a_w 4.500, a_t 3.590, V_H 0.460, deps/dalpha 0.405 (DATCOM), its own arms',
+};
 
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
@@ -326,6 +337,9 @@ const STRIPS = {
   /* The NRJ's elliptic chord, the tips' last few millimetres of rounding
    * left out. */
   FW_NRJ1490: strips((eta) => Math.sqrt(1 - eta * eta)),
+  /* Constant chord; the soft block tips, the outer 1.5 of 25.5 in, are
+   * left out. */
+  FW_QUICKIE1293: strips(rect),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -387,6 +401,9 @@ const SECTION = {
    * at its leading edge, so ESTIMATED sharper, held 1 deg and falling to
    * 0.80. No UIUC section this thin was tested at this Reynolds number. */
   FW_NRJ1490: { sec: '6 percent F3K section at 5e4, ESTIMATED', top: 1.0, k: 0.80 },
+  /* RCM's "15% Symmetrical" at 1.7e5 (10 m/s on 0.254 m): the Extra's
+   * thick symmetric section at 2e5, ESTIMATED as its is. */
+  FW_QUICKIE1293: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

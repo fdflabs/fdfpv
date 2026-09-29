@@ -36,7 +36,7 @@ const AIRFRAMES = [
   ['5 inch', 0, 0], ['whoop, true scale', 1, 0], ['whoop as the shell flies it (SIM_PARTS_WHOOP_SCALED)', 0, 1],
   ['flying wing 1000', 2, 0], ['Skyhunter 1800', 3, 0], ['Cub 1400', 4, 0], ['Slow Stick', 5, 0],
   ['Radian 2000', 6, 0], ['Timber 1500', 7, 0], ['Bramor 2300', 8, 0], ['Timber on floats', 9, 0], ['Cub on floats', 10, 0],
-  ['Buzzard Bombshell', 11, 0], ['Kadet Senior', 12, 0], ['Edge 540', 13, 0], ['Extra 300 3D', 14, 0], ['P-51D Mustang', 15, 0], ['Zagi HP', 17, 0], ['Pitts S-1S', 18, 0], ['Ugly Stik', 19, 0], ['NRJ DLG', 21, 0],
+  ['Buzzard Bombshell', 11, 0], ['Kadet Senior', 12, 0], ['Edge 540', 13, 0], ['Extra 300 3D', 14, 0], ['P-51D Mustang', 15, 0], ['Zagi HP', 17, 0], ['Pitts S-1S', 18, 0], ['Ugly Stik', 19, 0], ['NRJ DLG', 21, 0], ['Quickie 500', 22, 0],
 ];
 const f = (v, d = 3) => v.toFixed(d);
 for (const [name, id, table] of AIRFRAMES) {

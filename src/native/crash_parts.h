@@ -1767,4 +1767,106 @@ static const PartDef PARTS_NRJ1490[] = {
     BOX(0.19, 0.259, -0.012, 0.012, -0.038, -0.014) },
 };
 
+/* ------------------------------------------------------------------------
+ * QUICKIE 500, AAM DECEMBER 1972, SIM_AIRFRAME_QUICKIE1293, quickiecraft.js.
+ * 1.59 kg of balsa, spruce and ply under film or silk, docs/QUICKIE-STAGE1.md:
+ * nothing foam, so nothing crushes; a joint past its onset cracks, as the
+ * Stik's balsa does. A box of 3/16 in balsa sides and 1/8 in sheet on a
+ * 1/8 in ply nose; a one piece wing under the fuselage on two 1/4 in
+ * dowels and two 10-24 nylon bolts, its panels a pair of spruce spars with
+ * vertical grain webs, joined at the centre under 3 in of glass cloth; a
+ * flat 1/4 in sheet stab on the fuselage's top and a 1/4 in sheet fin; a
+ * K&B 40 on a Kraft-Hayes mount on the firewall; 5/32 in wire legs in
+ * metal straps and a wire tail skid.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_QUICKIE1293[] = {
+  /* 0 the fuselage from the firewall to the wing's trailing edge: the two
+   * 1/8 in ply formers of the nose, the 3/16 in sides, the tank, the
+   * servos and the receiver: the rest of the mass. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .k = 3.0e5, BOX(-0.183, 0.2235, -0.038, 0.038, -0.043, 0.049) },
+  /* 1 the rear fuselage, 3/16 in sides and 1/8 in sheet top and bottom,
+   * judged ahead of the fin where it is 2.1 in deep and 1.2 in wide: I
+   * 0.52 in^4, Z 8.0e-6 m^3, 160 N m at balsa's 20 MPa, taken at two
+   * thirds for its glue joints and the sheet's buckling, 100 N m,
+   * ESTIMATED. Its mass carries the tail weight the plan's CG needs, 2.4
+   * oz (docs/QUICKIE-STAGE1.md). */
+  { .kind = SIM_PART_BOOM, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.12, .joint = { -0.183, 0.0, 0.005 }, .m_max = 100.0, .f_max = 500.0, .k = 3.0e4,
+    .npts = 8, .pts = { { -0.183, 0.038, -0.030 }, { -0.183, -0.038, -0.030 }, { -0.183, 0.038, 0.047 }, { -0.183, -0.038, 0.047 },
+                        { -0.682, 0.008, -0.030 }, { -0.682, -0.008, -0.030 }, { -0.682, 0.008, 0.021 }, { -0.682, -0.008, 0.021 } } },
+  /* 2 the stab, flat 1/4 in sheet glued to the fuselage's top: the sheet
+   * on edge across its 7 in root, Z 1.2e-6 m^3, 24 N m at 20 MPa; its
+   * glue line, 15 N m, ESTIMATED. */
+  { .kind = SIM_PART_HSTAB, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.035, .joint = { -0.60, 0.0, 0.023 }, .m_max = 15.0, .f_max = 120.0, .k = 2500.0,
+    BOX(-0.681, -0.537, -0.2032, 0.2032, 0.020, 0.027) },
+  /* 3 the elevator, 1/4 in sheet on its hinges, ESTIMATED at 1.5 N m. */
+  { .kind = SIM_PART_ELEVATOR, .parent = 2, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { -0.681, 0.0, 0.023 }, .m_max = 1.5, .f_max = 30.0, .k = 2000.0,
+    BOX(-0.719, -0.681, -0.2032, 0.2032, 0.020, 0.027) },
+  /* 4 the fin, 1/4 in sheet on the fuselage's top with 1/4 in diagonal
+   * fillets: its 7.9 in foot on edge, Z 1.3e-6 m^3, 27 N m at 20 MPa, and
+   * its glue, 12 N m, ESTIMATED. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.02, .joint = { -0.58, 0.0, 0.025 }, .m_max = 12.0, .f_max = 80.0, .k = 2000.0,
+    BOX(-0.682, -0.483, -0.003, 0.003, 0.021, 0.1656) },
+  /* 5 the rudder, 1/4 in sheet on its hinges from the fin's top to the
+   * fuselage's bottom, ESTIMATED at 1.0 N m. */
+  { .kind = SIM_PART_RUDDER, .parent = 4, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.008, .joint = { -0.66, 0.0, 0.06 }, .m_max = 1.0, .f_max = 25.0, .k = 1500.0,
+    BOX(-0.716, -0.631, -0.003, 0.003, -0.030, 0.1656) },
+  /* 6 the wing's glassed centre on the fuselage's bottom: two 1/4 in
+   * dowels ahead and two 10-24 nylon bolts behind, which shear first by
+   * design, ESTIMATED at 250 N each: 500 N, and 50 N m about the dowels
+   * 8 in ahead of them. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.03, .joint = { -0.06, 0.0, -0.040 }, .m_max = 50.0, .f_max = 500.0, .k = 3000.0,
+    BOX(-0.183, 0.071, -0.038, 0.038, -0.045, -0.007) },
+  /* 7, 8 the panels on the centre. Up and down, the 1/8 x 1/4 in spruce
+   * spars 1.3 in apart with their vertical grain webs and the 3/32 in
+   * sheeting, a box of Z 4.8e-6 m^3, 144 N m at 30 MPa between spruce's
+   * and balsa's, taken at 80 N m for the glass joint at the root,
+   * ESTIMATED; fore and aft the sheeted 10 in chord, 60 N m. */
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.135, .joint = { -0.04, 0.038, -0.026 }, .m_max = 80.0, .m_max_z = 60.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.071, 0.038, -0.026 }, { -0.183, 0.038, -0.026 }, { 0.071, 0.038, -0.007 }, { -0.183, 0.038, -0.045 },
+                        { 0.071, 0.609, 0.014 }, { -0.183, 0.609, 0.014 }, { 0.050, 0.6467, 0.018 }, { -0.160, 0.6467, 0.018 } } },
+  { .kind = SIM_PART_WING, .parent = 6, .mat = SIM_MAT_BALSA, .motor = -1, .wheel = -1,
+    .mass = 0.135, .joint = { -0.04, -0.038, -0.026 }, .m_max = 80.0, .m_max_z = 60.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { 0.071, -0.038, -0.026 }, { -0.183, -0.038, -0.026 }, { 0.071, -0.038, -0.007 }, { -0.183, -0.038, -0.045 },
+                        { 0.071, -0.609, 0.014 }, { -0.183, -0.609, 0.014 }, { 0.050, -0.6467, 0.018 }, { -0.160, -0.6467, 0.018 } } },
+  /* 9 the K&B 40, 264 g, and the Kraft-Hayes mount: four bolts through
+   * the two 1/8 in ply formers, 600 N and 20 N m, ESTIMATED under the
+   * Stik's 1/4 in ply. On its side, the cylinder out to the right. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 0.30, .joint = { 0.2235, 0.0, 0.012 }, .m_max = 20.0, .f_max = 600.0, .k = 1.0e6,
+    BOX(0.2235, 0.315, -0.075, 0.022, -0.012, 0.036) },
+  /* 10 the APC 9 x 6, glass filled nylon: the planes' bound. */
+  { .kind = SIM_PART_PROP, .parent = 9, .mat = SIM_MAT_NYLON_GF, .motor = 0, .wheel = 3, .shape = SH_DISCX,
+    .mass = 0.016, .joint = { 0.325, 0.0, 0.012 }, .m_max = PL_PROP_M, .f_max = 300.0, .k = PL_PROP_K,
+    .npts = 8, .pts = { { 0.3327, 0.0, 0.012 }, { 0.1143, 0.0, 0.0 } } },
+  /* 11 the receiver pack ahead of former D, in foam. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
+    .mass = 0.10, .joint = { 0.0, 0.0, -0.01 }, .m_max = 2.0, .f_max = 0.6 * VELCRO_12, .k = 3.0e5,
+    BOX(-0.03, 0.02, -0.02, 0.02, -0.035, -0.005) },
+  /* 12, 13 the 5/32 in wire legs in their metal straps and the 2 1/4 in
+   * wheels; 14 the tail skid on 1/16 in wire. */
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 0,
+    .mass = 0.0375, .joint = { 0.081, 0.02, -0.043 }, .m_max = WIRE_M(0.00397), .f_max = 250.0, .k = 1330.0,
+    BOX(0.075, 0.110, 0.0, 0.175, -0.150, -0.043) },
+  { .kind = SIM_PART_GEAR, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 1,
+    .mass = 0.0375, .joint = { 0.081, -0.02, -0.043 }, .m_max = WIRE_M(0.00397), .f_max = 250.0, .k = 1330.0,
+    BOX(0.075, 0.110, -0.175, 0.0, -0.150, -0.043) },
+  { .kind = SIM_PART_GEAR, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = 2,
+    .mass = 0.004, .joint = { -0.66, 0.0, -0.030 }, .m_max = WIRE_M(0.0016), .f_max = 40.0, .k = 455.0,
+    BOX(-0.700, -0.655, -0.003, 0.003, -0.060, -0.030) },
+  { .kind = SIM_PART_CAMERA, .parent = 0, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.012, .joint = { 0.127, 0.0, 0.049 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(0.115, 0.140, -0.010, 0.010, 0.049, 0.069) },
+  { .kind = SIM_PART_ANTENNA, .parent = 1, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
+    .mass = 0.004, .joint = { -0.30, 0.0, 0.040 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
+    .npts = 2, .pts = { { -0.30, 0.0, 0.040 }, { -0.28, 0.0, 0.12 } } },
+};
+
 #endif /* CRASH_PARTS_H */
