@@ -7,10 +7,12 @@
  *   (swiss2/water/surface.js): Fresnel at water's index, the sun's
  *   glitter, ripples drifting with the wind (on the river, downstream
  *   with the current), shore foam, and the body's colour deepening away
- *   from the shore. Past the ring each body carries on over the apron
- *   (APRON_REACH), so from the air the lake fades into the haze.
+ *   from the shore; calmer than swiss2's lake, and without its patches
+ *   over the bed (LOOK mottle and gust). Past the ring each body carries
+ *   on over the apron (APRON_REACH), so from the air the lake fades into
+ *   the haze. Each body is one sheet, its apron strips and all: one draw.
  *
- *   The spillway's three chutes running white, a sheet CHUTE_SHEET deep
+ *   The spillway's three chutes running (spill.js), a sheet CHUTE_SHEET deep
  *   over package D's chute floors (the dam part's roof records of kind
  *   `spillway chute`, which are built before this part), so the water
  *   lies between D's training walls on D's floor, whatever profile D
@@ -20,8 +22,9 @@
  *   craft that touches the chute rides the floor, the crash world reads
  *   water there (the map's surfaceAt), and it never floats.
  *
- *   White water where the chute plunges into the river, and the churn
- *   of the draft tubes along the powerhouse's downstream face.
+ *   The jets off the flip buckets, the plume and mist where they land and
+ *   the plunge pool's broken water (spill.js), and the churn of the draft
+ *   tubes along the powerhouse's downstream face.
  *
  *   ONE planar mirror, following the body under the camera: over the
  *   reservoir the reservoir mirrors the dam and its shores, down in the
@@ -29,7 +32,9 @@
  *   sky's light only. At swiss2's own scales (WATER_TIERS), and drawn at
  *   most once a frame, from the scene's onBeforeRender, since the part
  *   is handed no renderer: the map's first scene draw each frame after
- *   update() draws it.
+ *   update() draws it. Not drawn at all while none of its body is in the
+ *   camera's view (inView): it draws the scene a second time, and from
+ *   the chute or the switchyard that was all for water behind the camera.
  *
  *   The plant's waves (src/render/lakewaves.js), once the shell hands
  *   them over (setWaves, updateWaves, from the map): each body's
@@ -62,14 +67,15 @@
  */
 
 import { insideWater } from '../../../game/water.js';
+import { SUN_COLOR, SUN_IRRADIANCE } from '../../swiss2/light.js';
+import { sunDirection } from '../look/light.js';
+import {
+  bays, chuteMaterial, plume, PLUNGE_GLSL,
+} from './spill.js';
 
 /* The drawn sheet of water running down the chute over D's floor, m: a
  * spillway's flow at speed is a few decimetres to a metre deep. */
 const CHUTE_SHEET = 0.4;
-/* The roughness the chute's water is drawn with, as a bed slope (the
- * stream shader's measure of white water): the whole chute runs white at
- * speed, its level reach included, not only where the floor is steep. */
-const CHUTE_ROUGH = 0.32;
 /* D's roof records for the chute floors (dam/index.js slopeRoof). */
 const CHUTE_KIND = 'spillway chute';
 
@@ -97,8 +103,13 @@ const MIRROR_REACH = 2000;
  * this far, m. The face is half the powerhouse's published width off its
  * axis (dam.json figures.width). */
 const CHURN_REACH = 170;
-/* The white water where the chute's jet comes down, m round the foot. */
-const PLUNGE_R = 170;
+/* The way the map's wind blows, from the north east. */
+const WIND_TO = [Math.sin(Math.PI * 1.25), -Math.cos(Math.PI * 1.25)];
+/* The river's way where the jets land: down the canyon, south. */
+const PLUNGE_DOWN = [0, 1];
+/* The sky's light on the spray, linear: swiss2's fall's mist's
+ * (swiss2/water/index.js mistLight), under Itaipu's clearer sky. */
+const SPRAY_SKY = [0.7, 0.74, 0.8];
 
 /*
  * The colours, linear. Itaipu's water is a tropical reservoir's, not a
@@ -109,15 +120,12 @@ const PLUNGE_R = 170;
  */
 const LOOK = {
   reservoir: {
-    body: [0.02, 0.075, 0.085], shallow: [0.05, 0.1, 0.075], deep: [0.012, 0.05, 0.07], clarity: 0.9, ripple: 0.35, roughness: 0.035,
+    body: [0.018, 0.055, 0.09], shallow: [0.04, 0.07, 0.06], deep: [0.012, 0.042, 0.078], clarity: 0.9, ripple: 0.15, roughness: 0.03, mottle: 0.15, gust: 0.4,
   },
   river: {
-    body: [0.035, 0.07, 0.062], shallow: [0.06, 0.085, 0.065], deep: [0.028, 0.06, 0.058], clarity: 1.2, ripple: 0.55, roughness: 0.05,
+    body: [0.024, 0.036, 0.03], shallow: [0.05, 0.047, 0.032], deep: [0.018, 0.03, 0.028], clarity: 2.5, ripple: 0.25, roughness: 0.05, mottle: 0, gust: 0.5,
   },
 };
-/* A spillway at speed is air as much as water: white, a little green
- * grey in its troughs (chute-running). */
-const CHUTE_BODY = [0.55, 0.58, 0.55];
 
 /* ----------------------------------------------------------- the chute */
 
@@ -151,23 +159,20 @@ export function chuteFloors(roofs) {
 }
 
 /* The sheet over D's floors: per floor a quad CHUTE_SHEET over it, with
- * the stream material's aWater (depth, metres down the chute, across -1
- * to 1, the roughness as a slope) and aFlow. */
+ * spill.js chuteMaterial's aChute (metres down the chute from the gates,
+ * metres across from the bay's middle). */
 function chuteGeometry(THREE, floors, axis) {
   const pos = [];
-  const water = [];
-  const flow = [];
+  const chute = [];
   const idx = [];
   const down = (p) => (p[0] - axis.origin[0]) * axis.along[0] + (p[2] - axis.origin[1]) * axis.along[1];
   for (const { quad } of floors) {
     const [a, b, c, d] = quad;
-    const run = Math.max(1e-6, down(d) - down(a));
-    const slope = Math.max(CHUTE_ROUGH, Math.min(0.8, (a[1] - d[1]) / run));
+    const half = Math.hypot(b[0] - a[0], b[2] - a[2]) / 2;
     const k = pos.length / 3;
     for (const [p, t] of [[a, -1], [b, 1], [c, 1], [d, -1]]) {
       pos.push(p[0], p[1] + CHUTE_SHEET, p[2]);
-      water.push(CHUTE_SHEET, down(p), t, slope);
-      flow.push(axis.along[0], axis.along[1]);
+      chute.push(down(p), t * half);
     }
     /* Up facing whichever way D wound it. */
     const ux = b[0] - a[0];
@@ -179,8 +184,7 @@ function chuteGeometry(THREE, floors, axis) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, k) => (k % 3 === 1 ? 1 : 0)), 3));
-  g.setAttribute('aWater', new THREE.Float32BufferAttribute(water, 4));
-  g.setAttribute('aFlow', new THREE.Float32BufferAttribute(flow, 2));
+  g.setAttribute('aChute', new THREE.Float32BufferAttribute(chute, 2));
   g.setIndex(idx);
   g.computeBoundingSphere();
   return g;
@@ -188,7 +192,22 @@ function chuteGeometry(THREE, floors, axis) {
 
 /* ----------------------------------------------------- the two bodies */
 
-/* A body's outline as a mesh at its level, holes and all. */
+/* A body's outline as a mesh at its level, holes and all, and its strips
+ * past the ring: one geometry, so one draw. */
+function sheet(THREE, body, half) {
+  const parts = [surface(THREE, body), ...strips(body, half)];
+  const pos = new Float32Array(parts.reduce((n, p) => n + p.pos.length, 0));
+  const idx = [];
+  let at = 0;
+  for (const p of parts) {
+    pos.set(p.pos, at);
+    idx.push(...p.idx.map((k) => k + at / 3));
+    at += p.pos.length;
+  }
+  return flatGeometry(THREE, pos, idx);
+}
+
+/* A body's outline at its level, holes and all, as { pos, idx }. */
 function surface(THREE, body) {
   const pts = body.outline.map(([x, z]) => new THREE.Vector2(x, z));
   const holes = (body.holes || []).map((h) => h.map(([x, z]) => new THREE.Vector2(x, z)));
@@ -206,11 +225,11 @@ function surface(THREE, body) {
     const cross = (all[b].x - all[a].x) * (all[c].y - all[a].y) - (all[b].y - all[a].y) * (all[c].x - all[a].x);
     idx.push(...(cross < 0 ? [a, b, c] : [a, c, b]));
   }
-  return flatGeometry(THREE, pos, idx);
+  return { pos, idx };
 }
 
-/* The strips past the ring's edge where `body` meets it. */
-function strips(THREE, body, half) {
+/* The strips past the ring's edge where `body` meets it, as { pos, idx }. */
+function strips(body, half) {
   const out = [];
   for (const [axis, sign] of [['x', -1], ['x', 1], ['z', -1], ['z', 1]]) {
     const along = body.outline.filter((p) => Math.abs((axis === 'x' ? p[0] : p[1]) - sign * half) < 1)
@@ -224,7 +243,7 @@ function strips(THREE, body, half) {
     const d1 = sign * (half + APRON_REACH);
     const [x0, x1, z0, z1] = axis === 'x' ? [Math.min(d0, d1), Math.max(d0, d1), a0, a1] : [a0, a1, Math.min(d0, d1), Math.max(d0, d1)];
     const y = body.y;
-    out.push(flatGeometry(THREE, new Float32Array([x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1]), [0, 3, 1, 1, 3, 2]));
+    out.push({ pos: [x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1], idx: [0, 3, 1, 1, 3, 2] });
   }
   return out;
 }
@@ -339,7 +358,12 @@ const FIELD_GLSL = /* glsl */ `
   uniform float uItLevel;
   uniform vec4 uItChurn;
   uniform vec3 uItChurnN;
+  uniform vec2 uItCalm;
   const float s2Sun = 1.0;
+  float itMottle(float mott) {
+    return mix(1.0 - 0.28 * uItCalm.x, 1.0 + 0.22 * uItCalm.x, smoothstep(0.3, 0.7, mott));
+  }
+  ${PLUNGE_GLSL}
   vec4 itWater(vec2 p) {
     vec2 g = (p - uItGrid.xy) / uItGrid.z;
     if (g.x < 0.0 || g.y < 0.0 || g.x > 1.0 || g.y > 1.0) {
@@ -373,6 +397,13 @@ function withField(THREE, mat, uniforms) {
   const baseKey = mat.customProgramCacheKey();
   const DECL = 'varying vec4 vWater;';
   const FOAM = 'diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.82, 0.86, 0.88), wFoam);';
+  /* swiss2's lake's broad patches over its bed, and its gusts and slicks:
+   * scaled by uItCalm (x the patches, y the gusts' contrast), since from
+   * the air a big warm reservoir reads one even colour, calmed and not
+   * blotched, and a turbid river shows nothing of its bed. A pattern, as
+   * MAIN below. */
+  const MOTT = /mix\(0\.72, 1\.22, smoothstep\(0\.3, 0\.7, mott\)\)/;
+  const WINDY = 'float windy = max(0.4 * (1.0 - slick), gust);';
   /* The fragment shader's main, where the field's depth is read once. A
    * pattern, not a string: it is the shader's text, not copy. */
   const MAIN = /void main\(\) \{/;
@@ -380,7 +411,7 @@ function withField(THREE, mat, uniforms) {
     base.call(this, shader, renderer);
     Object.assign(shader.uniforms, uniforms);
     const fs = shader.fragmentShader;
-    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MAIN.test(fs)) {
+    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MOTT.test(fs) || !fs.includes(WINDY) || !MAIN.test(fs)) {
       throw new Error('itaipu water: swiss2\'s water shader no longer has the lines the depth field is spliced at');
     }
     shader.fragmentShader = fs
@@ -388,7 +419,35 @@ function withField(THREE, mat, uniforms) {
       .replace(/\bvWater\b/g, 'iWater')
       .replace('@DECL@', `${DECL}\n${FIELD_GLSL}`)
       .replace(MAIN, (m) => `${m}\n  vec4 iWater = itWater(vWaterWorld.xz);`)
+      .replace(MOTT, 'itMottle(mott)')
+      .replace(WINDY, 'float windy = mix(0.4, max(0.4 * (1.0 - slick), gust), uItCalm.y);')
       .replace(FOAM, `{
+          /* The plunge pool: pale, aerated water, and foam torn into
+           * streaks and swirls that the current carries off. */
+          float spill = itPlunge(vWaterWorld.xz);
+          if (spill > 0.0) {
+            vec2 sq = vWaterWorld.xz - uItDown * uTime * 4.0;
+            vec2 sw = vec2(-uItDown.y, uItDown.x);
+            float lace = texture2D(uWaves, vec2(dot(sq, sw) / 23.0, dot(sq, uItDown) / 61.0)).a;
+            float rag = texture2D(uWaves, sq / 7.9 + vec2(uTime * 0.05, 0.0)).a;
+            float fine = texture2D(uWaves, sq / 2.3 - vec2(0.0, uTime * 0.3)).a;
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.16, 0.12), smoothstep(0.0, 0.6, spill) * 0.7);
+            /* Far off, a pixel holds many of the rags and the fine lace
+             * and the foam is a paler sheet torn only at its edges: the
+             * fine terms alone alias into a regular grain. */
+            float far = smoothstep(150.0, 900.0, distance(cameraPosition, vWaterWorld));
+            /* Downstream of the boil the foam lies in lines, the edges
+             * of the eddies the current tears off it: ridges of the
+             * lace, thickest where the water is most churned. */
+            float ridge = 1.0 - abs(lace * 2.0 - 1.0);
+            float lines = smoothstep(0.93 - 0.35 * spill, 0.99 - 0.2 * spill, ridge * 0.8 + rag * 0.2 + fine * 0.1);
+            float lift = mix(lace * 0.45 + rag * 0.35 + fine * 0.2, lace * 0.7 + 0.15, far);
+            float boiled = smoothstep(0.66 - 0.5 * spill, mix(0.8, 0.9, far) - 0.35 * spill, lift) * smoothstep(0.45, 0.9, spill);
+            wFoam = max(wFoam, max(boiled * (1.0 - 0.35 * far), mix(lines, 0.25 * spill, far)) * min(1.0, spill * 1.4));
+            wSlope *= 1.0 + 3.0 * spill * (1.0 - 0.8 * far);
+          }
+        }
+        {
           float churn = itChurn(vWaterWorld.xz);
           if (churn > 0.0) {
             float boil = texture2D(uWaves, vWaterWorld.xz / 4.1 + vec2(uTime * 0.21, -uTime * 0.17)).a;
@@ -439,6 +498,41 @@ export function mirrorBody(bodies, x, y, z) {
     }
   });
   return best;
+}
+
+/*
+ * inView(b, camera): whether any of body `b` ({ y, lake }) is in the
+ * camera's view, by rays on a VIEW_RAYS grid over the frame, each down to
+ * the body's level within VIEW_REACH. Nothing in the way is asked about,
+ * so it says yes to water behind a hill, and water in sight between the
+ * rays is a sliver too thin for its reflection to show.
+ */
+const VIEW_RAYS = [12, 8];
+const VIEW_REACH = 30000;
+function viewTest(THREE) {
+  const eye = new THREE.Vector3();
+  const ray = { p: new THREE.Vector3(), d: new THREE.Vector3() };
+  return (b, camera) => {
+    eye.setFromMatrixPosition(camera.matrixWorld);
+    if (eye.y <= b.y) {
+      return false;
+    }
+    const [nx, ny] = VIEW_RAYS;
+    for (let j = 0; j <= ny; j += 1) {
+      for (let i = 0; i <= nx; i += 1) {
+        ray.d.set((i / nx) * 2 - 1, (j / ny) * 2 - 1, 0.5).unproject(camera).sub(eye);
+        if (ray.d.y >= 0) {
+          continue;
+        }
+        const t = (b.y - eye.y) / ray.d.y;
+        ray.p.copy(ray.d).multiplyScalar(t).add(eye);
+        if (Math.hypot(ray.p.x - eye.x, ray.p.z - eye.z) < VIEW_REACH && insideWater(b.lake, ray.p.x, ray.p.z)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
 }
 
 /* ------------------------------------------------------------ the part */
@@ -493,9 +587,13 @@ export async function buildPart(ctx) {
   if (!floors.length) {
     throw new Error(`itaipu water: no ${CHUTE_KIND} roof records; the dam part must be built before the water`);
   }
-  /* Where the jets come down: past the longest bay's flip bucket. */
-  const reach = Math.max(...floors.map(({ quad }) => (quad[3][0] - axis.origin[0]) * axis.along[0] + (quad[3][2] - axis.origin[1]) * axis.along[1]));
-  const foot = { x: axis.origin[0] + axis.along[0] * (reach + 40), z: axis.origin[1] + axis.along[1] * (reach + 40) };
+  /* Where the jets come down, off each bay's flip bucket. */
+  const river = bodies.find((b) => b.name === 'river');
+  const spill = bays(floors, axis, river.y);
+  if (spill.length !== 3) {
+    throw new Error(`itaipu water: ${spill.length} spillway bays; the plunge pool (spill.js PLUNGE_GLSL) is drawn for three`);
+  }
+  const plunge = spill.map((b) => new THREE.Vector4(b.land.x, b.land.z, b.half, 1));
 
   const tier = MIRROR_SCALE[ctx.quality] != null ? ctx.quality : 'high';
   const scale = MIRROR_SCALE[tier];
@@ -503,7 +601,7 @@ export async function buildPart(ctx) {
     const look = LOOK[body.name] || LOOK.reservoir;
     const colour = new THREE.Color(...look.body);
     const sea = makeWaves();
-    const to = body.name === 'river' ? [0, 1] : [Math.sin(Math.PI * 1.25), -Math.cos(Math.PI * 1.25)];
+    const to = body.name === 'river' ? [0, 1] : WIND_TO;
     const opts = {
       waves,
       time,
@@ -518,7 +616,6 @@ export async function buildPart(ctx) {
       roughness: look.roughness,
       envMap,
       shoreFoam: 0.6,
-      foamAt: body.name === 'river' ? [foot.x, foot.z, PLUNGE_R, 1] : null,
       field: sea,
     };
     const uniforms = {
@@ -527,6 +624,9 @@ export async function buildPart(ctx) {
       uItLevel: { value: body.y },
       uItChurn: { value: churn },
       uItChurnN: { value: new THREE.Vector3(pn[0], pn[1], body.name === 'river' ? CHURN_REACH : 0) },
+      uItCalm: { value: new THREE.Vector2(look.mottle, look.gust) },
+      uItPlunge: { value: body.name === 'river' ? plunge : plunge.map(() => new THREE.Vector4()) },
+      uItDown: { value: new THREE.Vector2(...PLUNGE_DOWN) },
     };
     const env = withField(THREE, waterMaterial(opts), uniforms);
     env.name = `itaipu-water-${body.name}`;
@@ -538,28 +638,29 @@ export async function buildPart(ctx) {
       y: body.y,
       outline: body.outline,
     };
-    for (const geo of [surface(THREE, body), ...strips(THREE, body, half)]) {
-      const mesh = new THREE.Mesh(geo, env);
-      mesh.name = `itaipu-water-${body.name}`;
-      mesh.receiveShadow = true;
-      group.add(mesh);
-      state.meshes.push(mesh);
-    }
+    const mesh = new THREE.Mesh(sheet(THREE, body, half), env);
+    mesh.name = `itaipu-water-${body.name}`;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    state.meshes.push(mesh);
     return state;
   });
   ctx.progress(0.8);
 
-  /* The chutes, drawn over D's floors, whose crash surface is water. */
-  const q0 = floors[0].quad;
-  const bayWidth = Math.hypot(q0[1][0] - q0[0][0], q0[1][2] - q0[0][2]);
-  const chuteMat = waterMaterial({
-    waves, time, wind: { value: new THREE.Vector2(axis.along[0], axis.along[1]) }, flow: true, colour: new THREE.Color(...CHUTE_BODY), clarity: 6, ripple: 1.2, roughness: 0.35, envMap, width: bayWidth,
-  });
-  chuteMat.name = 'itaipu-water-chute';
+  /* The chutes, drawn over D's floors, whose crash surface is water;
+   * the jets off their flip buckets, and the plume where they land. */
+  const chuteMat = chuteMaterial(THREE, { waves, time, envMap });
   const chute = new THREE.Mesh(chuteGeometry(THREE, floors, axis), chuteMat);
   chute.name = 'itaipu-chute';
   chute.receiveShadow = true;
   group.add(chute);
+  const sun = {
+    direction: sunDirection(), color: SUN_COLOR, irradiance: SUN_IRRADIANCE, sky: SPRAY_SKY,
+  };
+  const spray = plume(THREE, spill, axis, PLUNGE_DOWN, WIND_TO, {
+    waves, time, sun, riverY: river.y,
+  });
+  group.add(spray);
   const records = floors.map(({ rec }) => rec);
   for (const rec of records) {
     rec.material = 'water';
@@ -571,6 +672,7 @@ export async function buildPart(ctx) {
     chuteFloors: records.length, fieldSize: f.n,
   };
   const eye = new THREE.Vector3();
+  const inView = viewTest(THREE);
   const choose = (k) => {
     made.forEach((m, j) => {
       if (j !== k && m.mirror) {
@@ -605,6 +707,17 @@ export async function buildPart(ctx) {
     }
     stats.mirrorDrawn = false;
     if (k < 0) {
+      return false;
+    }
+    /* The mirror draws the whole scene again: not for a body the camera
+     * cannot see, which then takes the sky's light as the other does. */
+    const shown = inView(made[k], camera);
+    for (const mesh of made[k].meshes) {
+      mesh.material = shown ? made[k].planar : made[k].env;
+    }
+    if (!shown) {
+      stats.mirrorCalls = 0;
+      stats.mirrorTriangles = 0;
       return false;
     }
     const info = renderer.info.render;
@@ -670,6 +783,8 @@ export async function buildPart(ctx) {
         m.env.dispose();
       }
       chuteMat.dispose();
+      spray.geometry.dispose();
+      spray.material.dispose();
       fieldTex.dispose();
       waves.dispose();
     },
