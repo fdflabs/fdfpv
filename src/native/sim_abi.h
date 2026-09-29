@@ -303,6 +303,35 @@ int sim_set_launch_control(int on);
 int sim_launch_control_state(void);
 
 /*
+ * The radio link, for Betaflight's failsafe. ok non-zero: the link is up
+ * and every sim_input sample the module consumes is a packet that arrived.
+ * ok zero: the link is down and a consumed sample is a packet that never
+ * arrived; it does not reach the controller. Holds until called again,
+ * across sim_reset.
+ *
+ * Until the first call nothing about the link is judged, and a replay that
+ * never calls this is bit-identical to one from before it existed. From
+ * the first call Betaflight's flight/failsafe.c and rx/rx.c judge it as a
+ * real receiver's: 100 ms without a packet is signal loss (stage 1: the
+ * channels hold, then go to centred sticks and low throttle), and
+ * failsafe_delay of it is stage 2, which failsafe_procedure makes a DROP
+ * (disarm, motors stop) or an AUTO-LAND. So once the host calls this with
+ * the link up it must queue samples at a radio's frame rate, as the live
+ * shell does, and not hold sticks by queueing one sample and stepping.
+ *
+ * A dropped craft stays disarmed until sim_reset: there is no arm switch.
+ *
+ * Returns the state after the call: failsafe.c's phase in the low four bits
+ * (0 idle, 1 rx loss detected, 2 landing, 3 landed, 4 rx loss monitoring,
+ * 5 recovered), plus SIM_RX_FAILSAFE_ACTIVE while stage 2 is on and
+ * SIM_RX_ARMED while the craft is armed. Additive ABI, version unchanged.
+ * Quads only: a fixed wing runs no flight controller, and ignores it.
+ */
+#define SIM_RX_FAILSAFE_ACTIVE 0x10
+#define SIM_RX_ARMED 0x20
+int sim_rx_signal(int ok);
+
+/*
  * Mechanical launch stand. Off (0) is the default. On (non-zero) holds
  * the craft on a hinge at the rear underside: linear velocity is killed,
  * roll and yaw rates are killed, attitude is projected onto pitch about

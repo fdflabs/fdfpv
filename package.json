@@ -22,6 +22,7 @@
     "lint:boot": "node scripts/boot-check.js",
     "lint:memory": "node scripts/memory-check.js",
     "lint:fc": "node scripts/fc-trace.js",
+    "failsafe:trace": "node scripts/failsafe-trace.js",
     "lint:frame": "node scripts/frame-check.js",
     "check:wall": "node scripts/wall-check.js",
     "check:roof": "node scripts/roof-check.js --map=swiss2 && node scripts/roof-check.js --map=alps",

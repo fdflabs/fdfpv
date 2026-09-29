@@ -1259,7 +1259,7 @@ export const VALUE_TABLE = [
     "min": 'PERIOD_RXDATA_RECOVERY / MILLIS_PER_TENTH_SECOND',
     "max": "200",
     "array": false,
-    "live": false
+    "live": true
   },
   {
     "key": "failsafe_off_delay",
@@ -1269,7 +1269,7 @@ export const VALUE_TABLE = [
     "min": "0",
     "max": "200",
     "array": false,
-    "live": false
+    "live": true
   },
   {
     "key": "failsafe_throttle",
@@ -1279,7 +1279,7 @@ export const VALUE_TABLE = [
     "min": "PWM_PULSE_MIN",
     "max": "PWM_PULSE_MAX",
     "array": false,
-    "live": false
+    "live": true
   },
   {
     "key": "failsafe_switch_mode",
@@ -1299,7 +1299,7 @@ export const VALUE_TABLE = [
     "min": "0",
     "max": "300",
     "array": false,
-    "live": false
+    "live": true
   },
   {
     "key": "failsafe_procedure",
@@ -1309,7 +1309,7 @@ export const VALUE_TABLE = [
     "min": null,
     "max": null,
     "array": false,
-    "live": false
+    "live": true
   },
   {
     "key": "failsafe_recovery_delay",
@@ -1319,7 +1319,7 @@ export const VALUE_TABLE = [
     "min": "1",
     "max": "200",
     "array": false,
-    "live": false
+    "live": true
   },
   {
     "key": "failsafe_stick_threshold",
