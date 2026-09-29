@@ -11,10 +11,10 @@
  *
  *   export async function buildPart(ctx) -> { group, update(stepIndex), dispose(), stats() }
  *
- * plus `yard`: the sphere the target yard-right can take ({ at, r }), the
+ * plus `yard`: the sphere of the target yard-right ({ at, r }), the
  * collider indices of the transformers (`solids`, not the fence, which
- * does not burn), and the points a hit yard burns at (`fires`). The
- * targets themselves, and their smoke, are the dam part's.
+ * does not burn), the points a hit yard burns at (`fires`) and the OSM
+ * outline. takeYard puts it on the map as map.targets['yard-right'].
  *
  * Everything is in the static set: the yard is one of Itaipu's structures
  * (docs/ITAIPU-PLAN.md section 7). What a craft meets is what is drawn: a
@@ -128,7 +128,7 @@ export async function buildPart(ctx) {
     group,
     update() {},
     dispose() {},
-    yard: { ...yard.site, solids: equipment },
+    yard: { ...yard.site, solids: equipment, outline: yard.outline },
     stats: () => ({
       transformers: yard.transformers.length,
       fence: yard.fence.length,
@@ -137,4 +137,50 @@ export async function buildPart(ctx) {
       buildMs: Math.round(buildMs),
     }),
   };
+}
+
+/* What a target can be (docs/WARFARE-PLAN.md section 8), as the dam
+ * part's TARGET_STATES. */
+const STATES = ['ok', 'smoke', 'fire', 'destroyed'];
+
+/*
+ * The map's yard-right is this part's yard: called on the built map, it
+ * replaces the entry the dam part names (a placeholder at the outline's
+ * centroid, no colliders) with { at, r, part, colliders, fires, outline }
+ * from the yard as built. The dam part freezes its targets, so this is a
+ * new object with the dam's other entries as they are, not an edit of
+ * the dam's. map.setTargetState stays the dam's where there is one: it
+ * knows yard-right by id and draws its smoke over its own entry. Where
+ * the dam names no targets yet (main before its version 2), the map gets
+ * yard-right alone and a setTargetState that keeps the state and throws
+ * on an unknown id or state, as the dam's does, and draws nothing. The result is on scene.userData.itaipu for the
+ * check (tools/itaipu/war-check.js).
+ */
+export function takeYard(map) {
+  const it = map.scene.userData.itaipu;
+  const { yard } = it.parts.war;
+  const entry = Object.freeze({
+    at: Object.freeze(yard.at.slice()),
+    r: yard.r,
+    part: 'yard',
+    colliders: Object.freeze(yard.solids.slice()),
+    fires: Object.freeze(yard.fires.map((p) => Object.freeze(p.slice()))),
+    outline: Object.freeze(yard.outline.map((p) => Object.freeze(p.slice()))),
+  });
+  map.targets = Object.freeze({ ...(map.targets ?? {}), 'yard-right': entry });
+  if (!map.setTargetState) {
+    const states = { 'yard-right': 'ok' };
+    map.setTargetState = (id, state) => {
+      if (!(id in states)) {
+        throw new Error(`itaipu war: no target ${id}`);
+      }
+      if (!STATES.includes(state)) {
+        throw new Error(`itaipu war: a target is ${STATES.join(', ')}, not ${state}`);
+      }
+      states[id] = state;
+    };
+  }
+  it.targets = map.targets;
+  it.setTargetState = map.setTargetState;
+  return map;
 }

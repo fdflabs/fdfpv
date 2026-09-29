@@ -14,6 +14,12 @@
  *   built       the part is Node's plan, its transformers are solid where
  *               they stand, and the static colliders are at most 15 000
  *               (docs/ITAIPU-PLAN.md section 13);
+ *   target      map.targets['yard-right'] is this yard's: its sphere, its
+ *               transformers' colliders, its fires and outline; every
+ *               other target is the dam part's own entry, untouched; and
+ *               map.setTargetState('yard-right', state) sets the state
+ *               (in the dam's damage where the dam has targets), and
+ *               throws on an unknown id or state;
  *   fence       a Timber flown level into the fence at 15 m/s meets it;
  *   shots       with --shots=DIR, the yard from the air and from low, and
  *               the frame's draw calls in each view with and without the
@@ -187,6 +193,48 @@ async function pageChecks(page, plan) {
   check(s.staticCount <= SOLIDS_MAX, `built: ${s.staticCount} static colliders, at most ${SOLIDS_MAX}`, `built: ${s.staticCount} static colliders, over ${SOLIDS_MAX}`);
 }
 
+async function targetChecks(page) {
+  const s = await js(page, `(() => {
+    const it = window.__mapScene().userData.itaipu;
+    const T = it.targets;
+    const y = T && T['yard-right'];
+    const w = it.parts.war.yard;
+    const dam = it.parts.dam;
+    const theirs = dam.targets || null;
+    const out = {
+      has: Boolean(y),
+      same: Boolean(y) && y.r === w.r && y.part === 'yard' && y.at.every((v, i) => v === w.at[i])
+        && y.colliders.length === w.solids.length && y.colliders.every((c, i) => c === w.solids[i])
+        && y.fires.length === w.fires.length && y.outline.length === w.outline.length,
+      r: y ? y.r : null, colliders: y ? y.colliders.length : 0, fires: y ? y.fires.length : 0, outline: y ? y.outline.length : 0,
+      frozen: Object.isFrozen(T) && Boolean(y) && Object.isFrozen(y),
+      ids: T ? Object.keys(T).length : 0,
+      dam: theirs ? Object.keys(theirs).length : 0,
+      others: theirs ? Object.keys(theirs).filter((id) => id !== 'yard-right').every((id) => T[id] === theirs[id]) && Object.keys(T).every((id) => id in theirs) : Object.keys(T).length === 1,
+      placeholder: theirs && theirs['yard-right'] ? { at: theirs['yard-right'].at, r: theirs['yard-right'].r } : null,
+    };
+    const throws = (f) => { try { f(); return false; } catch (e) { return true; } };
+    out.setOk = !throws(() => it.setTargetState('yard-right', 'fire'));
+    out.damState = dam.targetState ? dam.targetState('yard-right') : null;
+    out.burning = dam.stats().burning ?? null;
+    out.badState = throws(() => it.setTargetState('yard-right', 'melted'));
+    out.badId = throws(() => it.setTargetState('yard-left', 'fire'));
+    it.setTargetState('yard-right', 'ok');
+    out.back = dam.targetState ? dam.targetState('yard-right') : null;
+    return out;
+  })()`);
+  check(s.has && s.same && s.frozen,
+    `target: yard-right is this yard's, r ${s.r}, ${s.colliders} transformer colliders, ${s.fires} fires, an outline of ${s.outline}, frozen`,
+    `target: yard-right is ${s.has ? 'not this yard\'s' : 'missing'} (r ${s.r}, ${s.colliders} colliders, frozen ${s.frozen})`);
+  check(s.others, s.dam ? `target: the other ${s.dam - 1} targets are the dam part's own entries, ${s.ids} in all; the dam's placeholder was at (${s.placeholder.at.map((v) => v.toFixed(0)).join(', ')}), r ${s.placeholder.r}`
+    : 'target: the dam part names no targets on this tree, so the map holds yard-right alone',
+  `target: the map's targets are not the dam's plus yard-right (${s.ids} of them, the dam's ${s.dam})`);
+  const damOk = s.damState === null || (s.damState === 'fire' && s.burning === 1 && s.back === 'ok');
+  check(s.setOk && damOk && s.badState && s.badId,
+    `target: setTargetState('yard-right', 'fire') ${s.damState ? 'is the dam\'s state, 1 burning, and back to ok after' : 'is kept (no dam damage on this tree)'}; an unknown state and an unknown id throw`,
+    `target: setTargetState ok ${s.setOk}, dam state ${s.damState}, burning ${s.burning}, back ${s.back}, bad state threw ${s.badState}, bad id threw ${s.badId}`);
+}
+
 /* A Timber level into the middle of the fence's longest piece, from
  * outside the yard. */
 async function fence(page, plan) {
@@ -293,6 +341,7 @@ async function main() {
     await page.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
     await page.evaluate('window.__drawOff(true)');
     await pageChecks(page, plan);
+    await targetChecks(page);
     await fence(page, plan);
     if (SHOTS) {
       await shots(page);
