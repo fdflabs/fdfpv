@@ -134,6 +134,11 @@ export function createRoomCombat(link) {
     return round.state !== 'idle' && seat > 0;
   }
 
+  /* A round counting down or on: the only time paper is towed. */
+  function live() {
+    return round.state === 'countdown' || round.state === 'on';
+  }
+
   /* The room's round, on its every change. */
   function onRound(m) {
     const was = round.state;
@@ -150,6 +155,12 @@ export function createRoomCombat(link) {
       return;
     }
     follow();
+    /* The round is over: every pilot's paper comes off and falls, here and,
+     * from this owner's next frames, on every screen. No paper is towed
+     * again until the next round lays fresh. */
+    if (m.state === 'over' && was !== 'over' && paper) {
+      paper.cutTo(0);
+    }
     if (m.state === 'countdown' && laidRound !== m.round) {
       wantLay = true;
       laidRound = m.round;
@@ -171,12 +182,16 @@ export function createRoomCombat(link) {
       return;
     }
     const owed = runsLinks(me.runs);
-    if (paper && owedWas > 0) {
+    if (paper && paper.attached && owedWas > 0) {
       if (owed > owedWas) {
         paper.extendTo(paper.length() + (owed - owedWas));
       } else if (paper.length() > owed) {
         paper.cutTo(owed);
       }
+    } else if (live() && owed > owedWas) {
+      /* No paper on the tail (torn, or cut at the knot) and some captured:
+       * a new streamer starts on the tail, in the captured colours. */
+      wantLay = true;
     }
     owedWas = owed;
     if (paper) {
@@ -280,6 +295,13 @@ export function createRoomCombat(link) {
    */
   function step(px, py, pz, qx, qy, qz, qw, v, groundAt) {
     if (!out()) {
+      return;
+    }
+    /* Between rounds only the pieces fall; nothing is laid. */
+    if (!live()) {
+      if (paper) {
+        paper.step(px, py, pz, groundAt);
+      }
       return;
     }
     if (!paper || wantLay) {

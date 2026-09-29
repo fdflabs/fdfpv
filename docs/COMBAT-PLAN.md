@@ -173,27 +173,30 @@ If the owner wants the pull, it is an additive ABI call
 whose absence leaves the plant as it is; that is its own phase, with
 `crash:identity` and `verify` 16 of 16 as its proof.
 
-### 2.5 What fifty metres of toilet paper does in the air
+### 2.5 When the paper tears: the owner's rule
 
-The honest result, and the one the owner should know before flying it:
-**at full length it tears off at the tail above about 22 m/s.** A
-streamer that is shorter holds more speed (weight left out):
+Real two ply paper, towed at full length, tears off at the tail above
+about 22 m/s (the drag in 2.2 against 13.3 N of dry strength; 100 m at
+17.9 m/s), and that is how the first build flew. In the owner's room a
+Skyhunter cruising past it lost all its paper and could no longer score,
+so the owner decided, **2026-09-28**: **"the paper only gets dropped
+over 120 km/h."** It is now a game rule, not a strength
+(`src/game/streamer.js TEAR_SPEED_MPS, TEAR_HOLD_S`):
 
-| Length left | Tear speed |
-| --- | --- |
-| 50 m | 22 m/s |
-| 30 m | 25 m/s |
-| 10 m | 29 m/s |
-
-Quads race at 25 to 35 m/s; the Cub and the trainers cruise at 12 to
-18. So in this mode the paper rewards flying smoothly, and a pilot who
-guns it loses their streamer, which is how real combat's own rule reads:
-a streamer "broken in any way other than being cut by an opponent" is
-lost, and the pilot is "denied any positive scoring until a new streamer
-is attached" [AMA-RC] 5.1. Section 5 turns that into the respawn rule.
-
-Where the drag law sits is the least certain number here (the band in
-2.2, 15 to 33 m/s). It is the first thing to fly.
+- The paper tears when the tow point has gone faster than 120 km/h
+  (33.3 m/s) for **0.3 s** together; a brief spike through it is not
+  flight at that speed. It tears at the link pulling hardest, the tow
+  point's, so all of it goes, whatever its length or colours.
+- Below 120 km/h it never tears, at any length up to the 100 m cap. The
+  drag, the weight and the tension are still the physics of 2.2 and 2.3,
+  shown on the HUD and shaping the paper.
+- So that no paper stretches further than paper does, a link stretches
+  its measured 19.9 percent at the hardest pull the rule allows (100 m
+  at 120 km/h, 44.2 N) and linearly below it; 100 m at 32 m/s stretches
+  18 percent at the tow point.
+- The HUD's paper line turns amber from 100 km/h and red from 112, and a
+  tear says so big: "Your paper tore off at 122 km/h! Keep under 120
+  km/h".
 
 ### 2.6 How it looks
 
@@ -321,12 +324,12 @@ samples move the pair's covered span forward:
    flat prop disc cannot step over the paper).
 5. **The test.** A link is cut when any of A's part boxes
    (`configs/hulls.js`: props, wings, fuselage, every part) comes within
-   **1.0 m** of the paper's centre line. **The owner's decision,
-   2026-09-28**, verbatim: "for the combat mode I need to be very win
-   friendly: if you get even within 1 m of the other person's line, it
-   must make a special effect, say a SCHWING sound byte, and then cut it;
-   also scoring must be enabled for this." (The first build cut only on
-   touching the paper, 3.1 cm.) The distance from a segment to a box is
+   **3.0 m** of the paper's centre line. **The owner's decisions,
+   2026-09-28**: first, verbatim, "for the combat mode I need to be very
+   win friendly: if you get even within 1 m of the other person's line,
+   it must make a special effect, say a SCHWING sound byte, and then cut
+   it; also scoring must be enabled for this"; then three times that, 3 m.
+   (The first build cut only on touching the paper, 3.1 cm.) The distance from a segment to a box is
    convex along the segment and is found by golden section search,
    exactly, with no trigonometry.
 6. **Excluded:** a cutter or a victim flagged `spawning` or `crashed`
@@ -338,7 +341,7 @@ samples move the pair's covered span forward:
    air, and their paper with them: the rule needs the victim's own flags
    for the moment, and a pilot who is not flying has none).
 
-**The metre under lag.** The metre is not grown for lag, because lag
+**The reach under lag.** The reach is not grown for lag, because lag
 cannot change the decision: the room judges on the samples' own times.
 What it can change is what the cutter saw. The room's picture of the
 paper is within 1.1 cm (codec) and 2 cm (a turn between 10 Hz frames) of
@@ -348,9 +351,13 @@ newest frame to the present (`src/share/roomcombat.js`), and
 at the pass. With the aircraft's 250 ms cap on carrying forward, a 300 ms
 link drew it 15 to 20 cm off; paper moves along its own path, so its cap
 is 600 ms, and every link set up to 300 ms each way draws it within 7.4
-cm (worst). So a pass that looked 0.9 m from the line on the cutter's
-screen is under a metre in the room, and cuts; the harness's band is
-0.9 m always cut, 1.1 m never.
+cm (worst). So a pass that looked 2.9 m from the line on the cutter's
+screen is inside 3 m in the room, and cuts; the harness holds 2.9 m
+always cut and 3.1 m never, and rooms:selftest 2.7 m cut, 3.3 m not. The
+one pass rule (1.5 s) still fits the wider reach: a pass across the
+paper is inside it for 6 m of its path, 0.4 s at 15 m/s, one at 30
+degrees 12 m, 0.8 s; a pilot flying along another's paper cuts it again
+every 1.5 s, which is chasing, not one pass.
 
 ### 4.2 Both screens agree, and nobody fakes a cut
 
@@ -400,7 +407,7 @@ Association's [RCCA-2009], score a five minute round:
 | "Remaining streamer +4 points per foot ... (+120 max.)" on a 30 ft streamer, "rounded down to the nearest foot" | +2.4 a whole metre left at the end: the same 120 for a whole streamer, scaled to fifty metres. |
 | "Continuous 5 minute flight +20" | +20 for a round with no crash; a crash from a mid air (a Phase 3 `hit`) keeps it, as the rules say. |
 | "Launch within 90 second launch window ... airborne with a complete streamer when Start Combat is called +20" | +20 for being airborne with the whole streamer at the go. |
-| A streamer lost other than by a cut: "denied any positive scoring until a new streamer is attached" | A tear stops the pilot's scoring until they respawn (5.2). |
+| A streamer lost other than by a cut: "denied any positive scoring until a new streamer is attached" | **Not followed** (the lead's decision, confirmed by the owner, 2026-09-28): a pilot can always cut and score, paper or none. A tear costs only the torn paper, gone for good, and so the end of round paper bonus. Paper captured by a pilot with none starts a new streamer on their tail, in the captured colours. |
 | Non engagement, safety lines, judges | Not modelled: there are no lines on a map. |
 | Intertwined streamers | Not modelled: streamers do not touch each other. |
 
@@ -421,13 +428,21 @@ consequence without ending anyone's round.
 - **Cuts stay.** A streamer cut short stays short for the round, through
   every respawn.
 - **Respawn** (a crash, or R) lays the streamer again behind the aircraft
-  at the referee's length: what a tear took comes back, and the pilot may
-  score again (the rules' "new streamer attached"); what a cut took does
-  not. For five seconds after, Phase 5's spawning flag makes the pilot
+  at the referee's length, what the pilot tows: neither what a cut took
+  nor what a tear took comes back. For five seconds after, Phase 5's spawning flag makes the pilot
   untouchable both ways.
+- **The clock** is big on screen through the round, and its last ten
+  seconds are counted big.
 - **The end.** At the clock, the room adds the remaining streamer and
-  flight bonuses and sends the results; streamers stay out until the host
-  starts another round or stops.
+  flight bonuses and sends the results. Every pilot's paper comes off and
+  falls on every screen, the results stand as a card in the middle for
+  ten seconds, then in the corner. No paper is towed outside a round's
+  countdown and play: seen live, a round that had ended with only a small
+  "Round over" in the corner left pilots cutting dead paper for minutes.
+- **Continuous play** (the lead's decision, 2026-09-28): 15 s after the
+  end the next round of the same length counts down, fresh fifty metres
+  each, unless the host pressed Stop (the host's room screen shows "Next
+  round in 0:12" and a Stop row) or fewer than two pilots are here.
 - **Joining mid round.** A pilot who joins during a round tows a streamer
   from their spawn and scores from then on.
 
@@ -496,11 +511,10 @@ consequence without ending anyone's round.
 - **The cap: 100 m, the lead's decision, 2026-09-28.** Past it, the far
   end of the cutter's list falls as a piece. `STREAMER_SEGS` is 100 so a
   frame carries it (321 bytes at the cap).
-- **Real paper still tears** (the owner's choice, 9.1), and a longer
-  streamer tears slower: 100 m pulls twice the friction and weighs twice
-  as much at the tow point, so it goes at **17.9 m/s** (the selftest tore
-  it at 18.7) against 50 m's 22.3. The HUD shows the pull. A self tear's
-  piece falls to nobody.
+- **Tearing** is the owner's 120 km/h rule (2.5) at every length up to
+  the cap; as real paper, 100 m would have gone at 17.9 m/s against 50
+  m's 22.3. The HUD shows the pull. A self tear's piece falls to nobody,
+  and the torn paper is gone from the pilot's list.
 - **Scoring:** 100 a cut as before; the end of round paper bonus counts
   every metre towed, captured included (2.4 a metre, 240 at the cap).
 
@@ -563,13 +577,18 @@ consequence without ending anyone's round.
    about 22 m/s. Fly it as real paper, or give it the strength of
    something tougher (doubled paper holds twice the pull, about 31 m/s at
    full length)? **Decided by the owner, 2026-09-28: real paper.** It
-   tears at about 22 m/s at fifty metres, as built.
+   tears at about 22 m/s at fifty metres, as built. Superseded by answer 7.
 2. **Should the paper pull the aircraft?** **Decided by the owner,
    2026-09-28: no.** The pull at the tail is shown on the HUD and not
    applied to the plant, as built (2.4).
 3. **Round length:** 3 or 5 minutes offered, 5 by default. Open.
 4. **How near is a cut?** **Decided by the owner, 2026-09-28: within 1 m
-   of the line, with a SCHWING, and it scores.** As built (4.1, 5.4).
+   of the line, with a SCHWING, and it scores; then 3 m.** As built (4.1,
+   5.4).
+7. **When does paper tear?** **Decided by the owner, 2026-09-28: only
+   over 120 km/h**, superseding answer 1. As built (2.5).
+8. **Can a pilot with no paper cut?** **The lead's decision, confirmed by
+   the owner, 2026-09-28: always.** As built (5.1).
 5. **Does cut paper change hands?** **Decided by the owner, 2026-09-28:
    yes, colours and all, onto the cutter's far end; capped at 100 m by
    the lead.** As built (5.5).

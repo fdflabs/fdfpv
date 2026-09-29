@@ -2072,14 +2072,15 @@ export async function boot({
     const paper = roomCombat.paper();
     for (const n of paper ? paper.news.splice(0, paper.news.length) : []) {
       if (n.kind === 'tear') {
-        combatHud.say(str('combat.tore'));
+        /* The owner's rule, said out loud: over 120 km/h the paper goes. */
+        combatHud.shout(str('combat.tore', { speed: Math.round((n.speed || 0) * 3.6) }), 'warn');
       }
     }
     if (wallMs > combatHudAt) {
       combatHudAt = wallMs + 200;
       /* Not over the crash cam's replay, which is another moment. */
       combatHud.update(mode === 'replay' ? { state: 'idle', scores: [] } : roomCombat.round(), roomCombat.seat(), now,
-        paper ? paper.length() : 0, paper ? paper.towTension() : 0);
+        paper ? paper.length() : 0, paper ? paper.towTension() : 0, speedNow);
     }
     if (!roomCombat.out()) {
       if (combatLayer.count()) {
@@ -2125,11 +2126,18 @@ export async function boot({
     }
     const r = roomCombat.round();
     const now = roomLinkState.roomNow();
+    /* Continuous play: between rounds the next one is counting down, and
+     * the host's row stops it. */
+    const next = r.state === 'over' && r.nextAt > 0 && now != null;
+    const mmss = (ms) => {
+      const sec = Math.max(0, Math.ceil(ms / 1000));
+      return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    };
     const state = r.state === 'on' && now != null
       ? str('combat.state_on', { minutes: Math.max(0, Math.ceil((r.endsAt - now) / 60000)) })
-      : str(`combat.state_${r.state}`);
+      : (next ? str('combat.state_next', { time: mmss(r.nextAt - now) }) : str(`combat.state_${r.state}`));
     const head = { label: str('combat.card'), section: true };
-    if (host && (r.state === 'idle' || r.state === 'over')) {
+    if (host && (r.state === 'idle' || (r.state === 'over' && !next))) {
       return [head, ...[5, 3].map((minutes, i) => ({
         label: str('combat.start', { minutes }),
         note: str('combat.row_note'),

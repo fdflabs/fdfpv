@@ -15,15 +15,15 @@
  * THE TRUTH is the same pass with nothing on the wire: B's streamer at
  * every quarter millisecond, A's analytic pose, and the least distance
  * between any of A's part boxes and the paper's centre line. The owner's
- * rule (2026-09-28) cuts within a metre of it.
+ * rule (2026-09-28) cuts within REACH_M of it, three metres.
  *
  * What it holds (the bands of the plan's section 7):
  *   - both clients receive the same cuts, and B's paper as A decodes it is
  *     the length the room left
  *   - every run whose links, with a frame's 100 ms wait, are under
  *     COMBAT_LATE_MS decides what the zero latency run decided
- *   - a truth pass further than 1.1 m from the line is never cut, and one
- *     nearer than 0.9 m is never missed
+ *   - a truth pass further than REACH_M + 0.1 from the line is never cut,
+ *     and one nearer than REACH_M - 0.1 is never missed
  *   - and it reports how far A's own screen drew B's paper from the truth
  *     at the pass, per link set: what a pass that LOOKED within a metre
  *     can be off by
@@ -486,7 +486,7 @@ for (let gi = 0; gi < GEOMETRIES; gi += 1) {
 }
 check('both pilots receive the same cuts, in the same order, every run', agree);
 check(`every run whose links are under COMBAT_LATE_MS (${COMBAT_LATE_MS} ms) with a frame's wait decides what the zero latency run decided`, sameAsZero, detail.slice(0, 3).join('; '));
-check(`the owner's metre: a truth pass further than ${REACH_M + 0.1} m from the line is never cut`, falseCuts === 0, `${falseCuts} of ${GEOMETRIES}`);
+check(`the owner's reach: a truth pass further than ${REACH_M + 0.1} m from the line is never cut`, falseCuts === 0, `${falseCuts} of ${GEOMETRIES}`);
 check(`and one nearer than ${REACH_M - 0.1} m is never missed`, misses === 0, `${misses} of ${GEOMETRIES}`);
 check('B\'s paper on A\'s screen is the length the room left it', lengthsAgree);
 check('A sees the cut piece fall', pieceSeen > 0 && pieceFalls, `${pieceSeen} runs showed a piece`);
@@ -496,7 +496,7 @@ check('decision delay over the slower link, p95, under 250 ms', delays.length > 
 band.sort((x, y) => x.d - y.d);
 const lastCut = band.filter((b) => b.cut).map((b) => b.d).pop();
 const firstClear = band.find((b) => !b.cut);
-console.log(`  truth within the metre in ${hits} geometries, beyond it in ${clears}; nearest part to the line: the widest cut ${lastCut != null ? `${(lastCut * 100).toFixed(1)} cm` : 'none'}, the nearest left uncut ${firstClear ? `${(firstClear.d * 100).toFixed(1)} cm` : 'none'}`);
+console.log(`  truth within the reach in ${hits} geometries, beyond it in ${clears}; nearest part to the line: the widest cut ${lastCut != null ? `${(lastCut * 100).toFixed(1)} cm` : 'none'}, the nearest left uncut ${firstClear ? `${(firstClear.d * 100).toFixed(1)} cm` : 'none'}`);
 let drawnWorst = 0;
 for (const [name, errs] of drawnErrs) {
   errs.sort((x, y) => x - y);
@@ -508,7 +508,7 @@ for (const [name, errs] of drawnErrs) {
 skewBand.sort((x, y) => x.d - y.d);
 const skewCut = skewBand.filter((b) => b.cut).map((b) => b.d).pop();
 const skewClear = skewBand.find((b) => !b.cut);
-check('what A drew of B\'s line at the pass is within 10 cm of the truth on every link set, so a pass that looked within 0.9 m counts', drawnWorst < 0.1, `worst ${(drawnWorst * 100).toFixed(1)} cm`);
+check(`what A drew of B's line at the pass is within 10 cm of the truth on every link set, so a pass that looked within ${REACH_M - 0.1} m counts`, drawnWorst < 0.1, `worst ${(drawnWorst * 100).toFixed(1)} cm`);
 const skewFalse = skewBand.filter((b) => b.cut && b.d > REACH_M + 0.1).length;
 check(`with clocks off by up to 10 ms each, still no cut past ${REACH_M + 0.1} m`, skewFalse === 0, `${skewFalse}`);
 console.log(`  with clocks off by up to 10 ms each: the widest truth distance cut ${skewCut != null ? `${(skewCut * 100).toFixed(1)} cm` : 'none'}, the nearest left uncut ${skewClear ? `${(skewClear.d * 100).toFixed(1)} cm` : 'none'}`);

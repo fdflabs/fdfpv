@@ -3,8 +3,8 @@
  * (docs/COMBAT-PLAN.md section 7). Two headless pages in one private room
  * on the Swiss valley: A flies the five inch in red, B the Cub in blue.
  * A starts a round; both tow their toilet paper. B hangs still sixty
- * metres up with its paper straight down; A flies past it 1.4 m off (no
- * cut), then 0.8 m off, and the owner's metre cuts it.
+ * metres up with its paper straight down; A flies past it 3.4 m off (no
+ * cut), then 2.7 m off, and the owner's three metres cut it.
  * Both screens must show the same cut from the room, the piece falling,
  * and the score. By hand, against a running rooms Worker:
  *
@@ -165,9 +165,9 @@ try {
   await shot(b, 'b-sees-own-paper');
 
   /*
-   * The owner's metre (docs/COMBAT-PLAN.md 4.1): A flies past B's hanging
-   * paper at 10 m/s along -x, first with its nearest part 1.4 m from the
-   * paper's line (no cut), then 0.8 m (a cut). The five inch flying -x
+   * The owner's three metres (docs/COMBAT-PLAN.md 4.1): A flies past B's
+   * hanging paper at 10 m/s along -x, first with its nearest part 3.4 m
+   * from the paper's line (no cut), then 2.7 m (a cut). The five inch flying -x
    * reaches `side` across its path. A is put at its start and held there
    * first: a throw is a teleport, which makes A untouchable both ways for
    * Phase 5's five seconds, and at 10 m/s its own paper's snatch stays
@@ -189,12 +189,12 @@ try {
     await a.evaluate('window.__releasePose(); true');
     return { thrown, cutsBefore };
   }
-  const far = await passBeside(1.4, 15);
+  const far = await passBeside(3.4, 15);
   await a.sleep(2500);
   const farCuts = (await a.evaluate('window.__combat()')).cuts.length;
-  check('A flies past B\'s paper 1.4 m off: no cut', far.thrown && far.thrown.ok && farCuts === far.cutsBefore, `${farCuts} cuts`);
-  const near = await passBeside(0.8, 25);
-  check('then 0.8 m off, the owner\'s near miss', near.thrown && near.thrown.ok, JSON.stringify(near.thrown).slice(0, 80));
+  check('A flies past B\'s paper 3.4 m off: no cut', far.thrown && far.thrown.ok && farCuts === far.cutsBefore, `${farCuts} cuts`);
+  const near = await passBeside(2.7, 25);
+  check('then 2.7 m off, inside the owner\'s three metres', near.thrown && near.thrown.ok, JSON.stringify(near.thrown).slice(0, 80));
   await a.until('window.__combat().cuts.length > 0', 8000).catch(() => {});
   /* The shout goes up on the next frame and stays 1.6 s. */
   await a.until('window.__combat().hud.big !== \'\'', 2000).catch(() => {});
@@ -328,6 +328,66 @@ try {
   await shot(b, 'b-tows-both-colours');
   await a.evaluate('window.__setCam(null); true');
   await b.evaluate('window.__setCam(null); true');
+
+  /*
+   * THE END OF A ROUND AND THE NEXT (continuous play, the lead's decision
+   * after the owner flew dead paper for minutes in a round that had
+   * ended). The round's clock is on screen; its last ten seconds are
+   * counted big; at the end every pilot's paper comes off and falls on
+   * both screens and the results stand big in the middle; fifteen seconds
+   * later the next round counts down with fresh paper, and a cut works in
+   * it. The three minute round started above runs out here.
+   */
+  const during = await a.evaluate('window.__combat()');
+  check('the round\'s clock is on screen, big', /^\d:\d\d$/.test(during.hud.clock), during.hud.clock);
+  const roundOne = during.round.round;
+  await a.until('window.__combat().hud.final !== \'\'', 200000).catch(() => {});
+  const fin = (await a.evaluate('window.__combat()')).hud.final;
+  check('its last seconds are counted big', /^(10|[1-9])$/.test(fin), fin);
+  for (const p of [a, b]) {
+    await p.until("window.__combat().round.state === 'over'", 20000).catch(() => {});
+  }
+  await a.sleep(2500);
+  const ended = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
+  check('the round ends on both screens', ended.every((c) => c.round.state === 'over'), ended.map((c) => c.round.state).join(' '));
+  check('every pilot\'s paper came off: nobody tows any, on either screen', ended.every((c) => (!c.paper || !c.paper.chains.some((x) => x.id === 0))
+    && c.peers.every((p) => !p.chains.some((x) => x.id === 0 && x.n > 1))), ended.map((c) => JSON.stringify(c.paper && c.paper.chains.map((x) => x.id))).join(' '));
+  check('and it falls: each screen draws the pieces coming down', ended.every((c) => c.paper && c.paper.chains.some((x) => x.id !== 0)));
+  check('the results stand big in the middle of both screens, with the next round\'s clock', ended.every((c) => c.hud.card && /Results|Resultados/.test(c.hud.board) && /Next round|próxima/.test(c.hud.head)), ended.map((c) => c.hud.head).join(' | '));
+  const hostRows = await a.evaluate("window.__ui.friendsRows().filter((r) => r.action === 'friends-combat-stop' || /Next round/.test(String(r.value))).map((r) => r.action || r.value)");
+  check('the host\'s room screen says when the next round starts, with a Stop row', hostRows.includes('friends-combat-stop'), JSON.stringify(hostRows));
+  await a.evaluate(`window.__setCam(${high.x + 25}, ${high.y - 30}, ${high.z + 35}, ${high.x}, ${high.y - 50}, ${high.z}, 70); true`);
+  await a.sleep(400);
+  await shot(a, 'a-round-over');
+  await a.evaluate('window.__setCam(null); true');
+  for (const p of [a, b]) {
+    await p.until(`window.__combat().round.state === 'countdown' && window.__combat().round.round === ${roundOne + 1}`, 30000).catch(() => {});
+  }
+  /* B hangs its fresh paper for A to pass. */
+  await b.evaluate(`(() => {
+    const s = window.__craftState();
+    const x = s.worldX + 30, z = s.worldZ - 30;
+    const y = window.__heightAt(x, z) + 62;
+    window.__crashThrow({ x, y, z, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: false });
+    return true;
+  })()`);
+  await b.sleep(2500);
+  const nextRound = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
+  check('fifteen seconds on, the next round counts down on both screens, the same length', nextRound.every((c) => c.round.state === 'countdown' && c.round.round === roundOne + 1 && c.round.minutes === 3),
+    nextRound.map((c) => `${c.round.state} ${c.round.round}`).join(' | '));
+  check('with fresh paper for both, fifty metres each, and the results put away', nextRound.every((c) => c.paper && c.paper.links === 50 && !c.hud.card),
+    nextRound.map((c) => c.paper && c.paper.links).join(' '));
+  for (const p of [a, b]) {
+    await p.until("window.__combat().round.state === 'on'", 30000).catch(() => {});
+  }
+  const cutsBeforeNext = (await a.evaluate('window.__combat()')).cuts.length;
+  await passBeside(2.7, 25);
+  await a.until(`window.__combat().cuts.length > ${cutsBeforeNext}`, 8000).catch(() => {});
+  await a.sleep(600);
+  const again = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
+  const cut3 = again[0].cuts[again[0].cuts.length - 1] || {};
+  check('and a cut works in it: the same cut on both screens, scored in the new round', cut3.round === roundOne + 1 && cut3.cutter === 1 && cut3.points === 100
+    && JSON.stringify(again[1].cuts[again[1].cuts.length - 1]) === JSON.stringify(cut3), JSON.stringify(cut3).slice(0, 140));
 
   /* Sixteen streamers drawn, as a full room would: the shaping and upload
    * of every ribbon, per frame, in this page. */
