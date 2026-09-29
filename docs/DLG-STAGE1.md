@@ -357,8 +357,7 @@ again."
 The hull and the craft: `npm run check:craft` 164 of 164 (the NRJ's span
 1490 mm, its reach the tips' trailing corners, 751.2 mm, the hull's
 0.180 m up and 0.042 m down against the drawing); `npm run hangar:check`
-164 passed (its five colour regions); two pages in one room, a copy of
-scripts/rooms-two-page.js with page B on the NRJ against a local
-edge/rooms/node.js: A draws B as the NRJ in its paint, parked on its slot
-and flying 40 m up (the copy's one failure is its colour check, written
-for the P-51's `fuselage` region, which the NRJ does not have).
+164 passed (its five colour regions); two pages in one room,
+`node scripts/rooms-two-page.js <local rooms> <outdir> nrj1490` against a
+local edge/rooms/node.js, 13 passed: A draws B as the NRJ in its paint,
+parked on its slot and flying 40 m up.
