@@ -194,6 +194,7 @@ export function createCrashCam(host) {
     paperRing.begin(i);
     paperRing.prune(rec.now(), WINDOW_S);
     const quad = shell.quad;
+    rec.anim(i, host.animMs());
     rec.pose(i, quad.position, quad.quaternion);
     rec.drive(i, st[14], st[15], st[16], st[17], host.surfaces(), host.flaps(), st[14]);
     rec.plant(i, st);
@@ -532,6 +533,8 @@ export function createCrashCam(host) {
       osd: true,
       bare: false,
       sample: createSample(),
+      /* The clip's animation clock at the frame drawn (show). */
+      animMs: null,
       probe: createSample(),
       pose: createPose(),
       scene: buildScene(clip),
@@ -951,6 +954,7 @@ export function createCrashCam(host) {
     const moving = running && step > 0;
     S.t = t;
     const s = sampleAt(S.clip, t, S.sample);
+    S.animMs = s.anim;
     events(from, t, speed);
     smokeTo(from, t);
     if (moving) {
@@ -1980,6 +1984,10 @@ export function createCrashCam(host) {
     get live() {
       return S !== null;
     },
+    /* The map's animation clock at the frame on screen, which the shell
+     * draws the world at (src/main.js), or null: no replay open, or a
+     * clip saved before rows kept it. */
+    animMs: () => (S ? S.animMs : null),
     /* Harness only: switch recording and the journal's notes off, for the
      * proof that the flight is the same with them off. */
     setRecording(on) {
@@ -2038,6 +2046,8 @@ export function createCrashCam(host) {
         return k < S.clip.n ? k : -1;
       },
       clipTime: (k) => (S ? S.clip.time[k] : null),
+      /* The map's animation clock row k was drawn at, or null. */
+      clipAnim: (k) => (S && S.clip.anim ? S.clip.anim[k] : null),
       /* Every peer the recorder takes from now on, with its ring row. */
       peerLog: (on) => {
         peerLog = on ? [] : null;

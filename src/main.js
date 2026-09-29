@@ -4552,6 +4552,31 @@ export async function boot({
   let crashCam = null;
   let simTimeMs = 0;
   /*
+   * THE TRAFFIC'S CLOCK. The map's moving things (view.updateAnim: the
+   * cars, the PostAuto, the gondola, the geysers) are pure functions of a
+   * clock, and alone that clock is the lap clock. In a room every pilot's
+   * lap clock is their own, zeroed by their own R, so each saw the cars in
+   * different places: one pilot landed on a car the others saw nowhere
+   * near. So in a room the traffic runs on the lap clock plus an offset
+   * that puts it on the room's clock (src/share/rooms.js roomNow), which
+   * every seat shares. It still advances by the steps the lap clock does,
+   * so the contact pass meets the cars at a function of the step count
+   * (life.js sweepSolids); the offset is only taken up again once the two
+   * have drifted TRAFFIC_SLACK_MS apart (an R, a stalled tab, joining).
+   * Out of a room the offset is zero and the traffic is the lap clock's,
+   * as every check that throws at a lap clock needs.
+   */
+  let trafficOffsetMs = 0;
+  const TRAFFIC_SLACK_MS = 100;
+  const trafficMs = (lapMs) => lapMs + trafficOffsetMs;
+  function alignTraffic() {
+    const room = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
+    const want = room === null ? 0 : room - simTimeMs;
+    if (Math.abs(want - trafficOffsetMs) > TRAFFIC_SLACK_MS) {
+      trafficOffsetMs = want;
+    }
+  }
+  /*
    * Milliseconds the INTEGRATOR has actually stepped since reset: a mirror
    * of the module's own step_index, and the only valid timebase for input
    * timestamps. simTimeMs is the LAP clock and keeps running while the
@@ -11067,8 +11092,8 @@ export async function boot({
     return readState();
   }
 
-  /* `atMs` is the lap clock at the end of the step just taken, the clock
-   * the town's traffic runs on (view.updateAnim). */
+  /* `atMs` is the traffic's clock (trafficMs) at the end of the step just
+   * taken, the clock the town's traffic runs on (view.updateAnim). */
   function obstacleContactPass(st, atMs) {
     obsResolved = false;
     obsKindIndex = -1;
@@ -11599,6 +11624,8 @@ export async function boot({
    */
   let titleAcc = 0;
   let titleStepMs = 0;
+  /* The clock the last drawn frame's world was animated at. */
+  let animDrawnMs = 0;
   /* Wall time of the last frame the cap let through. */
   let capLastDraw = -1e9;
 
@@ -11659,6 +11686,7 @@ export async function boot({
       return;
     }
     dressCraft();
+    alignTraffic();
     const blockStart = performance.now();
     const dt = Math.min(nowWall - prevWall, 100);
     prevWall = nowWall;
@@ -12023,7 +12051,7 @@ export async function boot({
               obsPhase = 0;
               stNow = jellyPass(stNow);
               stateCurr = stNow;
-              stNow = obstacleContactPass(stNow, simTimeMs + (i + 1) * MS_PER_STEP);
+              stNow = obstacleContactPass(stNow, trafficMs(simTimeMs + (i + 1) * MS_PER_STEP));
               if (obsResolved) {
                 /* The pose moved under the interpolator. Collapse it
                  * rather than lerping the craft back through the wall
@@ -13085,11 +13113,19 @@ export async function boot({
       titleStepMs += ts > 100 ? 100 : ts;
     }
     if (worldLive) {
-      view.updateAnim(
-        mode === 'title'
-          ? titleStepMs
-          : (mode === 'results' ? simTimeMs + Math.max(0, finishCamMs) : simTimeMs),
-      );
+      let animMs = titleStepMs;
+      if (mode === 'replay') {
+        /* The clip's own clock at the playhead, so the car under the
+         * craft is where it was then; a clip saved before it had one is
+         * drawn at the live clock. */
+        animMs = crashCam.animMs() ?? trafficMs(simTimeMs);
+      } else if (mode === 'results') {
+        animMs = trafficMs(simTimeMs + Math.max(0, finishCamMs));
+      } else if (mode !== 'title') {
+        animMs = trafficMs(simTimeMs);
+      }
+      view.updateAnim(animMs);
+      animDrawnMs = animMs;
 
       const focus = camOverride || (build && build.cameraLive) || mode === 'replay'
         ? shell.camera.position
@@ -15222,6 +15258,15 @@ export async function boot({
     view.updateAnim(step);
     return view.stats ? (view.stats().trainOffset ?? null) : null;
   };
+  /* The clocks the traffic is drawn on: the one the last frame's world was
+   * animated at, the lap clock, and the room's (null out of a room), for
+   * scripts/traffic-sync-check.js. Harness only. */
+  window.__traffic = () => ({
+    drawn: animDrawnMs,
+    lap: simTimeMs,
+    offset: trafficOffsetMs,
+    room: roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null,
+  });
   /* The active map's scene graph, for measurement. tests/lib/checks.js walks
    * it to assert that reference objects measure what this project claims they
    * measure, which is the only way a scale error gets caught by a check
@@ -15536,6 +15581,8 @@ export async function boot({
         ? { finishes: look.finishes, decals: look.decals } : null;
     },
     mapId: () => view.id,
+    /* The clock this frame's world is animated at, for the row. */
+    animMs: () => trafficMs(simTimeMs),
     /* What the replay's paper is drawn lying on, as the live paper is. */
     paperFloor: paperFloorAt,
     spawn: (out) => {

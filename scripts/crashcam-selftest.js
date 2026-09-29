@@ -61,6 +61,12 @@
  *    sim_rx_signal until Betaflight's stage 2 drops it, the link back,
  *    then its warhead breaking every part; frames all through put back
  *    from the journal bit for bit, as in 3.
+ * 16. The map's animation clock (the traffic's): each row keeps the clock
+ *    its frame was drawn at, a sample between two rows runs it on and a
+ *    reset of it (R) is a jump, not a drive; a clip with a row that never
+ *    had one carries none; a trim keeps it; the version 8 file round trip
+ *    bit for bit with a crown and without, version 7 and 3 still written
+ *    without the clock, and its refusals.
  *
  * Run: npm run crashcam:selftest
  *
@@ -1832,8 +1838,7 @@ function bubbleRecord() {
  * the recorder's clock, beside the bubble's rows, whose seat 0 is the
  * free orb.
  */
-function crownRecord() {
-  console.log('14. Catch the Ace\'s crown and coin are recorded, played and saved');
+function crownFlight() {
   const { clip } = bubbleFlight(64, 60);
   const ring = createPaperRing(64);
   const t0 = clip.time[0];
@@ -1841,7 +1846,20 @@ function crownRecord() {
   ring.crown(tc, [300, 50, -3], [129, 50, -3], 1);
   ring.coin(tc, 0.4);
   ring.crown(tc + 1000, [1, 2, 3], null, 0.7);
-  const P = ring.clip(0, clip.n, t0, clip.time[clip.n - 1]);
+  return { clip, tc, t0, P: ring.clip(0, clip.n, t0, clip.time[clip.n - 1]) };
+}
+
+/* A room's clip with its bubble and a crown in its paper. */
+function crownedClip() {
+  const { clip, P } = crownFlight();
+  return { ...clip, paper: P };
+}
+
+function crownRecord() {
+  console.log('14. Catch the Ace\'s crown and coin are recorded, played and saved');
+  const {
+    clip, tc, t0, P,
+  } = crownFlight();
   const ev = P ? P.events : [];
   check(ev.length === 2 && ev[0].type === 'crown' && ev[0].t === tc - t0 && JSON.stringify(ev[0].from) === '[129,50,-3]' && ev[1].type === 'coin' && ev[1].level === 0.4,
     'the burst and the coin, and nothing past the clip, on the clip\'s clock', JSON.stringify(ev));
@@ -1873,6 +1891,81 @@ function crownRecord() {
   refused(() => encodeReplay({ ...clip, paper: { ...P, events: [{ ...ev[1], level: 3 }] } }), 'a coin louder than 1');
 }
 
+/* A flight whose map clock runs a step behind the recorder's, with R
+ * pressed at frame 30: the lap clock back to zero. */
+function animFlight(frames, skip = -1) {
+  const r = createRecorder(64);
+  const pp = { x: 0, y: 0, z: 0 };
+  const qq = { x: 0, y: 0, z: 0, w: 1 };
+  const st = new Float64Array(20);
+  const sp = r.spawnIndex(1, 2, 3, 0, 0, 0, 1, 0.045);
+  const clock = [];
+  for (let f = 0; f < frames; f += 1) {
+    const i = r.begin(f / 60, (f * 1000) / 60);
+    const ms = f < 30 ? 90000 + f * 16 : (f - 30) * 16;
+    if (f !== skip) {
+      r.anim(i, ms);
+    }
+    clock.push(ms);
+    r.pose(i, pp, qq);
+    r.plant(i, st);
+    r.status(i, [0, 0], sp, 0, false, 0, 0, 0);
+  }
+  const clip = r.clip({
+    name: 'On a car', created: 1790000000000, airframe: 'sky1800', livery: null,
+    map: 'swiss2', scale: 1, size: 1.8, duration: 0, parts: [], fpv: { fwd: 0.1, up: 0.02, tilt: 0.3, fov: 120 },
+  });
+  return { clip, clock };
+}
+
+function animRecord() {
+  console.log('16. the map\'s animation clock is recorded, played and saved');
+  const { clip, clock } = animFlight(50);
+  check(clip.anim && clip.anim.length === clip.n && clip.anim.every((x, k) => x === clock[k]),
+    'each row keeps the clock its frame was drawn at', clip.anim ? `${clip.anim[0]} .. ${clip.anim[clip.n - 1]}` : 'no column');
+  const mid = sampleAt(clip, (clip.time[10] + clip.time[11]) / 2);
+  check(Math.abs(mid.anim - (clock[10] + clock[11]) / 2) < 1e-9, 'between two rows the clock runs on', `${mid.anim}`);
+  const reset = sampleAt(clip, (clip.time[29] + clip.time[30]) / 2);
+  check(reset.anim === clock[29], 'between the rows either side of R the clock is the row before\'s, not a drive back', `${reset.anim}`);
+  check(sampleAt(clip, clip.time[clip.n - 1]).anim === clock[clip.n - 1], 'the last row\'s clock at the end');
+  const holed = animFlight(50, 17).clip;
+  check(holed.anim === undefined && sampleAt(holed, 0.1).anim === null, 'a clip with a row that had no clock carries none, and a sample says none');
+  const trimmed = trimClip(clip, clip.time[20], clip.time[40]);
+  check(trimmed.anim && trimmed.anim.length === trimmed.n && trimmed.anim[0] === clock[20] && trimmed.anim[trimmed.n - 1] === clock[40],
+    'a trim keeps the clock of the rows it keeps', trimmed.anim ? `${trimmed.n} rows` : 'no column');
+
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 8 && back.anim && same(back.anim, clip.anim) && same(back.pose, clip.pose) && same(back.smoke, clip.smoke),
+    'a clip with the clock is saved as version 8 and every column comes back as it was', `${buf.byteLength} bytes`);
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  const bare = { ...clip };
+  delete bare.anim;
+  const bareBuf = encodeReplay(bare);
+  check(new DataView(bareBuf).getUint32(4, true) === 3 && decodeReplay(bareBuf).anim === undefined,
+    'the same clip without the clock is still version 3, and reads back without one');
+  const crowned = crownedClip();
+  const withClock = { ...crowned, anim: new Float64Array(crowned.n).map((x, k) => 1000 + k) };
+  const cBuf = encodeReplay(withClock);
+  const cBack = decodeReplay(cBuf);
+  check(new DataView(cBuf).getUint32(4, true) === 8 && same(cBack.anim, withClock.anim) && JSON.stringify(cBack.paper.events) === JSON.stringify(crowned.paper.events)
+    && same(cBack.peers.bubble, crowned.peers.bubble) && same(cBack.peers.cols, crowned.peers.cols),
+  'with peers, a bubble and a crown, version 8 keeps them all beside the clock', `${cBuf.byteLength} bytes`);
+  check(new DataView(encodeReplay(crowned)).getUint32(4, true) === 7, 'the crowned clip without the clock is still version 7');
+  const refused = (mut, why) => {
+    try {
+      decodeReplay(mut());
+      check(false, `refused: ${why}`, 'it was accepted');
+    } catch (err) {
+      check(err instanceof ReplayFileError, `refused: ${why}`, err.message);
+    }
+  };
+  refused(() => reheader(cBuf, 7), 'a clock in a file that says version 7');
+  refused(() => reheader(bareBuf, 8), 'a version 8 file without its clock');
+  refused(() => encodeReplay({ ...clip, anim: clip.anim.map((x, k) => (k === 5 ? NaN : x)) }), 'a clock that is not a number');
+  refused(() => buf.slice(0, buf.byteLength - 8), 'a version 8 file cut short');
+}
+
 ring();
 interpolation();
 cameras();
@@ -1883,6 +1976,7 @@ peersRecord();
 paperRecord();
 bubbleRecord();
 crownRecord();
+animRecord();
 await pureReaders();
 await flyTakeOver();
 await flyWarTakeOver();
