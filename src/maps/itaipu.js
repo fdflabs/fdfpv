@@ -82,6 +82,81 @@ const PARTS = [
   ['vegetation', buildVegetation, 0.2],
 ];
 
+/*
+ * THE STREAMED COLLIDERS (docs/ITAIPU-PLAN.md sections 7, 9 and 13): what
+ * the parts keep only near the pilot (the town's walls, the near trees),
+ * in the one streamed set Colliders has (src/game/collide.js
+ * streamFill). One set, so one owner: the map starts a refill when any
+ * part's stream wants one, every streaming part adds its colliders round
+ * the pilot to it, and it advances one slice a frame: a part's fill (a
+ * generator) to its next yield, then one StreamFill.step at a time. Until
+ * the step that swaps it in, the set before it is the one in force, whole.
+ *
+ * A part's stream is { wants(x, z), fill(list, x, z) }: wants says the
+ * pilot has left what the part's set covers, and fill adds the part's
+ * colliders round (x, z) to `list`, yielding between slices of its work.
+ */
+function makeStreamer(colliders, parts) {
+  const streams = parts.map((p) => p.stream).filter(Boolean);
+  let fill = null;
+  let adds = [];
+  let frames = 0;
+  const stats = {
+    refills: 0, frames: 0, maxSliceMs: 0, lastSlicesMs: [],
+  };
+  const begin = (x, z) => {
+    fill = colliders.streamFill();
+    adds = streams.map((s) => s.fill(fill, x, z));
+    frames = 0;
+    stats.lastSlicesMs = [];
+  };
+  /* One slice of the refill in progress; true on the one that swapped
+   * the new set in. */
+  const slice = () => {
+    frames += 1;
+    if (adds.length) {
+      if (adds[0].next().done) {
+        adds.shift();
+      }
+      return false;
+    }
+    if (!fill.step()) {
+      return false;
+    }
+    fill = null;
+    stats.refills += 1;
+    stats.frames = frames;
+    return true;
+  };
+  return {
+    stats,
+    /* At load, round the spawn, all at once. */
+    fillNow(x, z) {
+      if (!streams.length) {
+        return;
+      }
+      begin(x, z);
+      while (!slice()) {
+        /* Each slice is bounded; the loop ends when the set is in. */
+      }
+    },
+    /* Once a frame, with the pilot. */
+    update(x, z) {
+      if (!fill) {
+        if (!streams.some((s) => s.wants(x, z))) {
+          return;
+        }
+        begin(x, z);
+      }
+      const t0 = performance.now();
+      slice();
+      const ms = performance.now() - t0;
+      stats.lastSlicesMs.push(Math.round(ms * 100) / 100);
+      stats.maxSliceMs = Math.max(stats.maxSliceMs, ms);
+    },
+  };
+}
+
 export function dataBase() {
   const loc = window.location;
   const param = new URLSearchParams(loc.search).get('itdata');
@@ -195,6 +270,20 @@ async function buildItaipu(shell, progress, q) {
     await yieldToPaint();
   }
   colliders.build();
+  const streamer = makeStreamer(colliders, Object.values(parts));
+  streamer.fillNow(SPAWN.x, SPAWN.z);
+  /* The forest volume (section 9): the highest canopy any part answers
+   * for, for the contact pass's canopy call (src/main.js). */
+  const canopies = Object.values(parts).map((p) => p.canopyAt).filter(Boolean);
+  const canopyAt = canopies.length
+    ? (x, z) => {
+      let top = -Infinity;
+      for (const c of canopies) {
+        top = Math.max(top, c(x, z));
+      }
+      return top;
+    }
+    : undefined;
   const roofs = makeRoofs(roofRecords);
   look.setHeights(ground, HERO_HALF, 10);
   look.finish();
@@ -276,7 +365,14 @@ async function buildItaipu(shell, progress, q) {
     updateShadowFocus(target) {
       look.updateShadowFocus(target);
       terrain.update(target, camera.position);
+      streamer.update(target.x, target.z);
+      for (const p of Object.values(parts)) {
+        if (p.view) {
+          p.view(target, camera);
+        }
+      }
     },
+    canopyAt,
     updateWind() {},
     updateAnim(step) {
       for (const p of Object.values(parts)) {
@@ -294,6 +390,7 @@ async function buildItaipu(shell, progress, q) {
       terrain: terrain.stats(),
       reconciled: terrain.reconciled,
       colliders: colliders.stats(),
+      stream: streamer.stats,
       parts: Object.fromEntries(Object.entries(parts).map(([n, p]) => [n, p.stats()])),
     }),
     /* The terrain frees its chunks and leaves the scene; the graph frees
