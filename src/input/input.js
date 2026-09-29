@@ -69,6 +69,48 @@ const DEFAULT_MAP = {
   throttle: { axis: 2, low: -1, high: 1 },
 };
 
+/*
+ * A GAMEPAD IS NOT A RADIO, AND THE BROWSER SAYS WHICH ONE IT IS.
+ *
+ * DEFAULT_MAP is AETR because that is what a transmitter in joystick mode
+ * sends. An Xbox pad sends something else entirely, and the browser tells
+ * us so: `gamepad.mapping === 'standard'` promises the W3C layout, axes 0
+ * and 1 the left stick, 2 and 3 the right, down and right positive. Flown
+ * through AETR that pad had roll and pitch on the left stick, throttle on
+ * the right stick's horizontal sprung to half, and yaw on the right stick's
+ * vertical: "am having a hard time finding the order of sticks".
+ *
+ * So a standard pad's default puts the channels where the pilot's stick
+ * mode puts them, read out of the same table the thumb sticks and the
+ * keyboard use. Right is right. Pitch is +1 pulled back, which on this
+ * layout is the positive end. Throttle is the whole of a stick that springs
+ * to its middle: nought at the bottom, half at rest, full at the top, the
+ * way drone sims treat a gamepad. A radio never reports 'standard', so it
+ * never gets here, and a pilot's own saved calibration wins over both.
+ */
+const STANDARD_STICKS = {
+  left: { horiz: 0, vert: 1 },
+  right: { horiz: 2, vert: 3 },
+};
+
+export function standardPadMap(mode) {
+  const sticks = stickChannels(mode);
+  const map = {};
+  for (const side of ['left', 'right']) {
+    const axes = STANDARD_STICKS[side];
+    map[sticks[side].horiz] = { axis: axes.horiz, center: 0, full: 1 };
+    map[sticks[side].vert] = sticks[side].vert === 'throttle'
+      ? { axis: axes.vert, low: 1, high: -1 }
+      : { axis: axes.vert, center: 0, full: 1 };
+  }
+  return map;
+}
+
+/* The built in map for whatever is plugged in. */
+function defaultMapFor(gp, mode) {
+  return gp && gp.mapping === 'standard' ? standardPadMap(mode) : DEFAULT_MAP;
+}
+
 export const CAL_STEPS = ['center', 'sweep', 'throttle', 'roll', 'pitch', 'yaw', 'confirm'];
 
 /*
@@ -952,6 +994,10 @@ export class InputManager {
     this.guessSpan = null;
     this.guessYawAlive = false;
     this.guessWrongOrder = false;
+    /* Which built in map this.map is while nothing is stored: the stick
+     * mode it was built for when the pad is a standard one, 0 for AETR.
+     * See followDefaultMap. */
+    this.defaultMode = 0;
     /* The hold-to-select bootstrap for a radio reporting zero buttons.
      * See SELECT_STEP. */
     this.holdMs = 0;
@@ -1165,7 +1211,7 @@ export class InputManager {
    * than either answer.
    */
   noteThrottleParked(gp) {
-    if (this.mapSeenParked || this.map.stored) {
+    if (this.mapSeenParked || this.mapKnown()) {
       return;
     }
     const spec = this.map.throttle;
@@ -1225,7 +1271,7 @@ export class InputManager {
    * wrong thing to offer them.
    */
   noteGuessOrder(gp) {
-    if (this.map.stored || this.guessYawAlive) {
+    if (this.mapKnown() || this.guessYawAlive) {
       return;
     }
     const n = Math.min(gp.axes.length, 8);
@@ -1289,6 +1335,43 @@ export class InputManager {
    * whether the front page says anything at all. */
   mapUsable() {
     return Boolean(this.map.stored || this.mapSeenParked);
+  }
+
+  /*
+   * Is the map in force known to describe this device, rather than a guess
+   * waiting on evidence: the pilot's own, or a standard pad's default,
+   * whose layout the browser vouches for. The two radio heuristics above
+   * do not run on a known map, because a gamepad's sprung sticks would feed
+   * them a parked throttle or a stray gimbal that is neither. It is
+   * deliberately NOT mapUsable: that one also decides how the menus read
+   * the sticks, and a standard pad's menus stay as they were.
+   */
+  mapKnown() {
+    return Boolean(this.map.stored || this.defaultMode);
+  }
+
+  /*
+   * Keep the built in map matched to the pad and the stick mode, while
+   * nothing is stored. Run from poll, so a pad swapped for a radio, or a
+   * mode changed in Settings, takes effect on the next sample. The guess's
+   * evidence is dropped with the map it was gathered against, as
+   * acceptCalibration drops it.
+   */
+  followDefaultMap(gp) {
+    if (!gp || this.map.stored) {
+      return;
+    }
+    const mode = gp.mapping === 'standard' ? this.stickMode : 0;
+    if (mode === this.defaultMode) {
+      return;
+    }
+    this.defaultMode = mode;
+    this.map = cloneMap({ ...defaultMapFor(gp, this.stickMode), stored: false });
+    this.mapSeenParked = false;
+    this.guessSpan = null;
+    this.guessYawAlive = false;
+    this.guessWrongOrder = false;
+    this.forgetAxisResolution();
   }
 
   firstGamepad() {
@@ -1662,6 +1745,9 @@ export class InputManager {
        *            pilot has no yaw and does not know why. See
        *            noteGuessOrder. */
       guessNoYaw: this.guessWrongOrder,
+      /* mapKnown   the pilot's own map, or a standard pad's default. See
+       *            mapKnown. Neither is a guess to warn about. */
+      mapKnown: this.mapKnown(),
     };
   }
 
@@ -2107,7 +2193,7 @@ export class InputManager {
         });
       }
       if (c.step === 'center' || c.step === 'sweep') {
-        channels = this.readGamepad(gp, DEFAULT_MAP);
+        channels = this.readGamepad(gp, defaultMapFor(gp, this.stickMode));
       } else {
         channels = this.readGamepad(gp, c.draft);
         /*
@@ -2752,6 +2838,7 @@ export class InputManager {
 
     const gp = this.firstGamepad();
     this.notePadRoster();
+    this.followDefaultMap(gp);
     /* The Gamepad object's own timestamp is the only honest statement of when
      * the browser last refreshed it. Counting its changes is how we find out
      * whether polling faster than the frame rate buys anything at all. */
@@ -2796,7 +2883,7 @@ export class InputManager {
       next = this.readGamepad(gp);
       this.noteThrottleParked(gp);
       this.noteGuessOrder(gp);
-      this.source = this.mapUsable() ? str('input.a_radio') : str('input.a_radio_whose_stick_order_is');
+      this.source = this.mapUsable() || this.mapKnown() ? str('input.a_radio') : str('input.a_radio_whose_stick_order_is');
       /* Keyboard still works while a pad is plugged in: any held stick
        * key overrides that channel. */
       const kb = this.readKeyboard(dtMs, false);
