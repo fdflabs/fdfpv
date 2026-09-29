@@ -268,6 +268,31 @@ export const TUNES = [
     note: 'No flight controller. The roll and yaw sticks both work the rudder, which also steers the nose wheel, and the pitch stick the elevator. Let go and the dihedral levels the wings. Throttle closed, the four stroke idles.',
   },
   {
+    /* The Ugly Stik's three, the Cub's on its own plant: ailerons,
+     * elevator and rudder at RCM's travel limits; on its wheels every mode
+     * flies as Manual, and the rudder steers the nose wheel. Manual is
+     * where a sport aerobat is flown: it holds a bank, rolls on its
+     * ailerons and wants a push on its back. */
+    id: 'uglystik-stab',
+    airframe: 'uglystik1567',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. Throttle closed, it lowers the nose onto its glide.',
+    wingStab: 1,
+  },
+  {
+    id: 'uglystik-acro',
+    airframe: 'uglystik1567',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 80 degrees a second and a pitch rate up to 60, centred sticks hold the attitude, upright or on its back, and the rudder stick is the rudder alone.',
+    wingStab: 2,
+  },
+  {
+    id: 'uglystik-manual',
+    airframe: 'uglystik1567',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the nose wheel, at RCM\'s travel limits. It goes where you point it and stays there: it holds a bank, loops round at full throttle and flies on its back with half the stick pushed. Throttle closed, the two stroke idles.',
+  },
+  {
     /* The Edge's three, the Cub's on its own plant: ailerons, elevator and
      * rudder at Extreme Flight's 3D throws. On its wheels every mode flies
      * as Manual. Manual is where the aerobat is: yank the stick at the edge

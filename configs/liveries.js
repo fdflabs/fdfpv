@@ -174,6 +174,16 @@ export const LIVERIES = {
       { id: 'sport_blue', source: SIG_ARF, colours: { wing: '#f2f2f2', wing_trim: '#335a9a', fuselage: '#335a9a', fuse_trim: '#f2f2f2' } },
     ],
   },
+  uglystik1567: {
+    /* RCM's own model as its May 1985 photographs show it: red all over,
+     * the wing's outer panels, a band round the fuselage behind the wing
+     * and the fin white, and black crosses on them, as the plan labels
+     * them "(WHITE)" and "(BLACK CROSS & BANDS)". */
+    regions: [r('wing', '#c8161a'), r('fuselage', '#c8161a'), r('tail', '#c8161a'), r('panels', '#f2efe6'), r('crosses', '#141416')],
+    schemes: [
+      { id: 'stock', source: src('RCM, Das Ugly Stik, plan 939, May 1985 (Outerzone oz6801)', 'https://outerzone.co.uk/plan_details.asp?ID=6801'), colours: {} },
+    ],
+  },
   p51d1450: {
     /* FMS's natural metal P-51 as its manual photographs it: silver all
      * over, the red of the nose band, the spinner and the fin's top, and

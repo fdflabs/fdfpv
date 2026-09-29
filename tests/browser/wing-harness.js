@@ -14,9 +14,11 @@
  * retracts in the air, ?plane=kadet the Kadet Senior's, from standing on
  * its three wheels, ?plane=edge the Edge 540's, from standing on its three
  * wheels, ?plane=extra the Extra 300's, from standing on its wheels,
- * through a hover and a torque roll, and ?plane=f16 the F-16's, from
- * standing on its three wheels with its fan stopped, and ?plane=zagi the Zagi's, thrown by
- * hand; with no query it is the wing's, exactly as it always was.
+ * through a hover and a torque roll, ?plane=uglystik the Ugly Stik's,
+ * from standing on its three wheels, and ?plane=f16 the F-16's, from
+ * standing on its three wheels with its fan stopped, and ?plane=zagi
+ * the Zagi's, thrown by hand; with no query it is the wing's, exactly
+ * as it always was.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -38,7 +40,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, zagiPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, uglystikGroundPrelude, zagiPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -57,6 +59,7 @@ const PLANES = {
   kadet: { rec: '/tests/inputs/kadet-baseline.rec', prelude: (sim) => kadetGroundPrelude(sim) },
   edge: { rec: '/tests/inputs/edge-baseline.rec', prelude: (sim) => edgeGroundPrelude(sim) },
   extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
+  uglystik: { rec: '/tests/inputs/uglystik-baseline.rec', prelude: (sim) => uglystikGroundPrelude(sim) },
   f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
   'p51-air': { rec: '/tests/inputs/p51-air.rec', prelude: p51AirPrelude },

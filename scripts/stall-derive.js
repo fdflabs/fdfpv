@@ -203,6 +203,8 @@ planes.FW_EDGE1524 = {
   dw: 0.9 * 0.487 * 3.754 * 0.549 / 4.435,
   asym: TE_TOLERANCE / 0.3175,
   note: 'a_w 4.435, a_t 3.754, V_H 0.487, deps/dalpha 0.549 (DATCOM), its own arms',
+};
+
 /* The Extra 300 3D, scripts/extra-derive.js: E-flite's 95 mm CG on the
  * measured taper's mean chord, the manual's CG at the wing's aerodynamic
  * centre within 2 mm, and the tail's share from the derivation's a_w,
@@ -226,6 +228,19 @@ planes.FW_F16878 = {
   dw: 0.9 * 0.2942 * 2.644 * 0.647 / 3.142,
   asym: TE_TOLERANCE / 0.2856,
   note: 'a_w 3.142, a_t 2.644, V_H 0.294, deps/dalpha 0.647 (Nelson), its own arms',
+};
+
+/* The Ugly Stik, docs/UGLYSTIK-STAGE1.md and scripts/uglystik-derive.js:
+ * its own arms, the plan's CG 4.69 in behind the leading edge of the
+ * 13.68 in chord with its strip ailerons, 1.27 in behind the wing's
+ * aerodynamic centre, and the tail's share from the derivation's a_w, a_t,
+ * V_H and DATCOM's downwash. */
+planes.FW_UGLYSTIK1567 = {
+  arm_ac: 0.0991,
+  arm_cp: 0.0610,
+  dw: 0.9 * 0.435 * 3.880 * 0.416 / 4.427,
+  asym: TE_TOLERANCE / 0.3256,
+  note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
 };
 
 /* The four strips' chords over the mean chord, from a planform chord(eta),
@@ -284,6 +299,9 @@ const STRIPS = {
   /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
    * the tip; the strakes ahead of it are left out. */
   FW_F16878: strips(taper(0.201)),
+  /* Constant chord; the raked tips over the outer 2.9 of 30.9 in are left
+   * out, as the Kadet's rounding is. */
+  FW_UGLYSTIK1567: strips(rect),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -332,6 +350,10 @@ const SECTION = {
    * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,
    * to Freewing's 30 deg of alpha, then 0.8 of it. */
   FW_F16878: { sec: 'the strakes\' vortex, ESTIMATED', top: 10.0, k: 0.80 },
+  /* A 16 percent section within a percent of symmetric at 2.3e5 (10 m/s
+   * on its 0.33 m chord): the NACA 2415's at 2e5, the thick section here
+   * that stalls from the trailing edge, held +4.2 deg then 0.76. */
+  FW_UGLYSTIK1567: { sec: 'NACA 2415 at 2e5', top: 4.2, k: 0.76 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;

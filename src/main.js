@@ -157,6 +157,7 @@ import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
 import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
 import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
+import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
@@ -175,6 +176,7 @@ const WING_MOUNTS = {
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
   edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
   extra1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
+  uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
@@ -4478,6 +4480,8 @@ export async function boot({
     contactLog.push({
       t: st[0],
       kind: lastHitKind,
+      /* The moving box met (a car, a cabin), or -1 for a static solid. */
+      moving: view.colliders.hitMoving,
       part: view.colliders.hitArm ? view.colliders.hitPart : -1,
       arm: [
         (1 - 2 * (y * y + z * z)) * arm.x + 2 * (x * y + w * z) * arm.y + 2 * (x * z - w * y) * arm.z,
@@ -10140,7 +10144,9 @@ export async function boot({
     return readState();
   }
 
-  function obstacleContactPass(st, dtSurface) {
+  /* `atMs` is the lap clock at the end of the step just taken, the clock
+   * the town's traffic runs on (view.updateAnim). */
+  function obstacleContactPass(st, atMs) {
     obsResolved = false;
     obsKindIndex = -1;
     if (!view.colliders || mode !== 'flight' || crashed || poseLock || launchStaging) {
@@ -10160,6 +10166,13 @@ export async function boot({
     /* Seed the next pass from where this one actually arrived, whatever
      * the contacts below do to it. */
     obsPrev.copy(obsTo);
+    /* The moving boxes over this pass's own stretch of the clock, not
+     * where the last drawn frame left them (life.js sweepSolids). A map
+     * with moving boxes and no sweepSolids throws here, which it should:
+     * its traffic would be met at frame times. */
+    if (view.colliders.movingCount > 0) {
+      view.sweepSolids(atMs - OBSTACLE_STEP, atMs);
+    }
     /* A roof that is the craft's ground is its contact, not the walls
      * under it, which the swept hull would otherwise reach through the
      * shell (src/maps/alps/roofs.js). Same fromY as the ground plane. */
@@ -10251,16 +10264,15 @@ export async function boot({
       let vsy = 0;
       let vsz = 0;
       const moving = col.hitMoving;
-      if (moving >= 0 && dtSurface > 0) {
+      if (moving >= 0) {
         /*
-         * The moving centres are a pair one FRAME apart, because that is
-         * how often the map animates them, so the difference has to be
-         * divided by the frame's own sim duration and not by this pass's
-         * 4 ms cadence. Dividing by the cadence overstated the city's
-         * 23.5 m/s train by the ratio of the two, four times over at
-         * 60 fps, which pushes it past SURFACE_SPEED_MAX and the guard
-         * below then zeroes it: the train would have hit like a wall.
+         * The moving centres are a pair one PASS apart, swept above, so
+         * the difference is divided by the pass's own OBSTACLE_STEP. They
+         * used to be a pair one frame apart, divided by the frame's sim
+         * duration, which made the car's speed and where it met the craft
+         * a function of the frame rate.
          */
+        const dtSurface = OBSTACLE_STEP * 0.001;
         const msx = (col.movingCx[moving] - col.movingPx[moving]) / dtSurface;
         const msy = (col.movingCy[moving] - col.movingPy[moving]) / dtSurface;
         const msz = (col.movingCz[moving] - col.movingPz[moving]) / dtSurface;
@@ -11067,7 +11079,7 @@ export async function boot({
               obsPhase = 0;
               stNow = jellyPass(stNow);
               stateCurr = stNow;
-              stNow = obstacleContactPass(stNow, steps * 0.001);
+              stNow = obstacleContactPass(stNow, simTimeMs + (i + 1) * MS_PER_STEP);
               if (obsResolved) {
                 /* The pose moved under the interpolator. Collapse it
                  * rather than lerping the craft back through the wall
@@ -13649,6 +13661,17 @@ export async function boot({
      * that the wall clock allowed. */
     if (o.fresh) {
       resetCraft(null);
+    }
+    /* `clockMs` sets the lap clock, which resetCraft leaves running and
+     * the town's traffic is a function of (view.updateAnim): two throws
+     * that are to trace the same meet the same cars only if they start at
+     * the same ms of it. Stamps held on that clock go back with it, as in
+     * reset(). */
+    if (o.clockMs != null) {
+      simTimeMs = o.clockMs;
+      simClockPrevMs = simTimeMs;
+      trickTouchAtSimMs = -1e9;
+      race.prevSimMs = null;
     }
     const placed = window.__placeCraft(o.x, o.y, o.z);
     if (!placed || placed.ok === false) {

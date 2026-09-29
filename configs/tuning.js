@@ -108,6 +108,7 @@ const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
 const EDGE_SHEET = 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf';
 const EDGE_REVIEW = 'https://flyingrc.net/ef540rvu.html';
+const STIK_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
 /*
@@ -205,6 +206,13 @@ export const TUNING = {
     cg: { mm: 98.4, datum: 'tuning.datum.spar', range: null, source: `SIG, "Center of Gravity 3 7/8 inch At Main Spar", no range (the kit manual: "shown on the plan"); ${KADET_KIT}` },
     packKg: 0.10, nose: 0.335, tail: -0.95,
     throws: { high: [0, 14.4775, 14.4775], low: [0, 10.1, 10.1], source: `SIG kit manual p. 24: elevator 3/4 in up and down, rudder 7/8 in each way, one set; ${LOW_70}; ${KADET_MANUAL}` },
+    flaps: null,
+  },
+  uglystik1567: {
+    chord: 0.3256, area: 0.51055, margin: 0.101,
+    cg: { mm: 119.1, datum: 'tuning.datum.root_le', range: null, source: `RCM plan 939, its C.G. mark 4.69 in behind the leading edge, and Kraft's "It should balance approximately on the main spar", no range; ${STIK_PLAN}` },
+    packKg: 0.10, nose: 0.2985, tail: -0.785,
+    throws: { high: [12.5969, 12.9765, 14.6270], low: [8.8, 9.1, 10.2], source: `RCM plan 939's "Control Surface Travel Limits (measured at trailing edge)": ailerons 5/16 in up and 1/4 down on the 1.29 in strip aileron, their mean, elevator 3/8 in on its 1.67 in, rudder 1 in on its 3.96 in (docs/UGLYSTIK-STAGE1.md), one set; ${LOW_70}; ${STIK_PLAN}` },
     flaps: null,
   },
   p51d1450: {

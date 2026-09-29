@@ -169,8 +169,16 @@ export async function freeMouse(page, x, y) {
  * the frame the camera stops on, one past REST_MS, the request's and the
  * fence's, a handful in all, and on the software rasteriser a frame of a
  * wide valley view is three or four seconds, so a wall clock wait was a
- * guess at the machine. */
+ * guess at the machine.
+ *
+ * And not in frames alone either, because the rest the builder waits for is
+ * wall time (buildmode.js REST_MS, 150 ms): on a page drawing at 60 Hz twelve
+ * frames are 200 ms, which is the rest, the request and the fence with
+ * nothing to spare, and a frame or two of jitter threw "never settled" on
+ * a reading that was simply not due yet. So the budget is both: twelve
+ * frames AND SETTLE_MIN_MS, whichever ends later. */
 const SETTLE_FRAMES = 12;
+const SETTLE_MIN_MS = 5000;
 export async function settleCrosshair(page) {
   const settled = `(() => {
     const s = window.__build.state();
@@ -181,10 +189,11 @@ export async function settleCrosshair(page) {
     const f = s.camera.forward;
     return Math.hypot(o[0] - c[0], o[1] - c[1], o[2] - c[2]) < 1e-6 && Math.hypot(d[0] - f[0], d[1] - f[1], d[2] - f[2]) < 1e-6;
   })()`;
+  const t0 = Date.now();
   for (let k = 0; !(await page.evaluate(settled)); k += 1) {
-    if (k >= SETTLE_FRAMES) {
+    if (k >= SETTLE_FRAMES && Date.now() - t0 >= SETTLE_MIN_MS) {
       const s = await page.evaluate(`(() => { const s = window.__build.state(); return { hitRay: s.hitRay, camera: s.camera, velocity: s.velocity, locked: s.locked, state: s.state }; })()`);
-      throw new Error(`the crosshair never settled in ${SETTLE_FRAMES} frames: ${JSON.stringify(s)}, page errors ${JSON.stringify(page.errors.slice(-3))}`);
+      throw new Error(`the crosshair never settled in ${k} frames and ${Date.now() - t0} ms: ${JSON.stringify(s)}, page errors ${JSON.stringify(page.errors.slice(-3))}`);
     }
     await frames(page, 1);
   }
@@ -270,4 +279,25 @@ export async function leave(page) {
     await key(page, 'Escape');
     await frames(page, 2);
   }
+}
+
+/* The dialog the first save of an unnamed track opens (buildmode.js save),
+ * answered with `name`, blank for the generated one, and Enter. True when
+ * it was asked; a save that did not ask leaves nothing to answer. */
+export const NAME_ASKED = "Boolean(document.querySelector('.name-dialog-input')) && !document.querySelector('.name-dialog').hidden";
+export async function answerName(page, name = '') {
+  await frames(page, 1);
+  if (!(await page.evaluate(NAME_ASKED))) {
+    return false;
+  }
+  await page.evaluate(`(() => { const f = document.querySelector('.name-dialog-input'); f.focus(); f.value = ${JSON.stringify(name)}; return true; })()`);
+  await page.tap('Enter');
+  await page.until(`!(${NAME_ASKED})`, 5000);
+  return true;
+}
+
+/* Ctrl S the way a pilot saves, naming the track if the save asks. */
+export async function saveKey(page, name = '') {
+  await key(page, 'KeyS', { ctrl: true });
+  return answerName(page, name);
 }

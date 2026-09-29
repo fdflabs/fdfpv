@@ -62,6 +62,10 @@ const PLANES = [
   { name: 'zagi', id: 17, hx: 0.23, hy: 0.6096, down: 0.012, up: 0.127, land: 8, nose: 10, toss: 10.3, tossSticks: [0, 0.05, 0, 0.7] },
   { name: 'timber', id: 7, hx: 0.30, hy: 0.60, down: 0.05, up: 0.12, land: 9, nose: 10, toss: 10, tossSticks: [0, 0.1, 0, 0.8], wheels: { restPitchDeg: 11.81, restZ: 0.2117 } },
   { name: 'extra', id: 14, hx: 0.35, hy: 0.654, down: 0.10, up: 0.09, land: 10, nose: 11, toss: 10, tossSticks: [0, 0.1, 0, 0.7], wheels: { restPitchDeg: 6.7, restZ: 0.2221 } },
+  /* The Ugly Stik stands 2.06 deg nose down idling; it arrives at 11 m/s
+   * and its 2,000 rpm idle pushes 1.22 N against the grass's 2.14, so it
+   * rolls out for 25 s. */
+  { name: 'uglystik', id: 19, hx: 0.45, hy: 0.7841, down: 0.053, up: 0.077, land: 11, rollMs: 25000, nose: 13, toss: 12, tossSticks: [0, 0.1, 0, 1], wheels: { restPitchDeg: -2.06, restZ: 0.2024 } },
   /* The F-16 lands fast and rolls long: a clean jet on small wheels. */
   { name: 'f16', id: 16, hx: 0.42, hy: 0.439, down: 0.06, up: 0.07, land: 14, rollMs: 30000, nose: 16, toss: 16, tossSticks: [0, 0.2, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.140 } },
 ];

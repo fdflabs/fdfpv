@@ -336,6 +336,20 @@ export const ESTIMATES = {
       }
     }
   },
+  uglystik1567: {
+    stock: {
+      '355cc': {
+        topSpeed: 22.09,
+        minutes: 16.3
+      }
+    },
+    fx46: {
+      '355cc': {
+        topSpeed: 22.31,
+        minutes: 22.6
+      }
+    }
+  },
   edge1524: {
     stock: {
       '6s4000': {

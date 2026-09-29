@@ -1494,6 +1494,63 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_z = 0.025,
   .fw = &FW_ZAGI1219,
 },
+/*
+ * Phil Kraft's Das Ugly Stik, RCM plan 939, docs/UGLYSTIK-STAGE1.md:
+ * RCM's 96 oz ready to fly, an O.S. 61FX on a 12 x 6 0.406 m ahead of the
+ * CG, its crankshaft 4.3 mm under it. The pack is a 4.8 V receiver pack on
+ * the radio, which the engine draws nothing from. The hull is the contact
+ * code's centred box and only what a crash lands on: the flat bottom
+ * 0.053 m under the CG and the wing's top at the root 0.077 m over it, the
+ * half span wide; the fin and the tail skid stand outside it. The camera
+ * is on the hatch ahead of the wing.
+ */
+[SIM_AIRFRAME_UGLYSTIK1567] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 2.7216,
+  .inertia = { 0.1279, 0.2858, 0.3942 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.1524,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.4064, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.45,
+  .hull_hy = 0.7841,
+  .hull_hz_down = 0.053,
+  .hull_hz_up = 0.077,
+  .contact_patch_r = 0.10,
+  .contact_arm_max = 1.2,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.1778,
+  .camera_y = 0.0,
+  .camera_z = 0.058,
+  .fw = &FW_UGLYSTIK1567,
+  /*
+   * The tricycle gear, as src/render/uglystikcraft.js draws it off the
+   * plan: a Goldberg 5/32 in nose leg on the firewall to a 2 3/4 in Du-Bro
+   * wheel 0.274 m ahead of the CG, and the dural strap, Great Planes'
+   * L-4, to 3 1/2 in Du-Bro wheels 25 mm behind it on a 0.408 m track.
+   * Each axle is lowered by 6 mm of static deflection, so under its own
+   * weight the plant settles onto the drawn pose: 1.48 deg nose down (the
+   * mains reach 0.31 in lower than the nose wheel), the CG 0.2025 m over
+   * the grass, 10.2 percent of the weight on the nose.
+   * Stiffness for that deflection, damping 0.6 of critical, the Cub's
+   * rule. The nose wheel steers with the rudder, 0.6 of its angle, as the
+   * Kadet's does (steer negative for a wheel ahead of the CG); brakes on
+   * the mains, the brake key's, which RCM's kit does not have (Kraft's
+   * 1966 Grid Leaks plan drew a pair).
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { -0.0254, 0.2042, -0.1648 }, .r = 0.04445, .k = 1997.0, .c = 62.56, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.0254, -0.2042, -0.1648 }, .r = 0.04445, .k = 1997.0, .c = 62.56, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.2743, 0.0, -0.1665 }, .r = 0.034925, .k = 455.0, .c = 45.83, .mu_roll = 0.08, .mu_side = 0.70, .steer = -0.6, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.1524 m under the crankshaft: 35 mm
+     * over the grass at rest. */
+    { .pos = { 0.4064, 0.0, -0.1567 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*
