@@ -134,10 +134,20 @@ const view = (page) => page.evaluate(`JSON.stringify(${H}.view())`).then(JSON.pa
 /* A hands off Skyhunter thrown from 20 m over the pad at 18 m/s, 25 deg
  * nose down, into the grass, from the plant's first step: held, the sticks
  * set, then let go, the way scripts/crash-feel.js stages a rerun. The step
- * trace of the first 3 s, hashed, and where two traces part. */
+ * trace of the first 3 s, hashed, and where two traces part.
+ *
+ * At lap clock 0 every time. The Swiss valley's traffic is a function of
+ * that clock, which a throw otherwise leaves running, and the pad is
+ * wherever the craft stood at boot, on some boots by the road, which the
+ * Skyhunter then glides down: the three throws met the cars at three
+ * different times. A car that strikes one wreck and misses the next parts
+ * the traces on a contact pass step, state in, which is how this check
+ * was seen to fail on a loaded machine (steps 2601 and 2969, both after a
+ * pass) with the recorder having nothing to do with it. The traffic is
+ * an input like the sticks. */
 async function tracedThrow(page, pad) {
   await page.evaluate('window.__stick(0, 0, 0, 0)');
-  const r = await page.evaluate(`window.__crashThrow({ fresh: true, hold: true, x: ${pad.x}, y: ${pad.g + 20}, z: ${pad.z}, yaw: 0, pitch: -25, vx: 0, vy: 0, vz: -18, showCraft: true }).ok`);
+  const r = await page.evaluate(`window.__crashThrow({ fresh: true, hold: true, clockMs: 0, x: ${pad.x}, y: ${pad.g + 20}, z: ${pad.z}, yaw: 0, pitch: -25, vx: 0, vy: 0, vz: -18, showCraft: true }).ok`);
   await frames(page, 2);
   await page.evaluate('window.__releasePose()');
   await afterSteps(page, 3000);
