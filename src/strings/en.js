@@ -2754,4 +2754,5 @@ export default {
   "war.consent_detail": "This is a simulated drone war. The room defends a dam against attack drones, and every aircraft you fly carries a warhead that destroys it with its target. Aircraft break and structures burn; no people are shown and nobody is harmed. It runs only in private rooms.",
   "war.consent_yes": "Continue",
   "war.consent_no": "Back",
+  "war.other_world": "Defend Itaipu is fought in {world}, so you are seated there.",
 };

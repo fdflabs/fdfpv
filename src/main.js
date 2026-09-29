@@ -2305,6 +2305,7 @@ export async function boot({
    * bit; the crash cam's replay draws what it recorded and none of this.
    */
   const WAR_MISSION = 'itaipu-1';
+  const WAR_STATES = ['lobby', 'countdown', 'live', 'won', 'lost', 'ended'];
   /* sim_abi.h: the craft is armed, in sim_rx_signal's answer. */
   const SIM_RX_ARMED = 0x20;
   /* A hit target burns, then smokes, for the rest of the war. */
@@ -2340,10 +2341,11 @@ export async function boot({
     }
     const v = roomWar.view();
     const head = { label: str('war.card'), section: true };
-    const state = str(`war.state_${v.state}`);
+    /* A state this build has no words for (a later build's) says none. */
+    const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on()) {
       return [head, {
-        label: str('war.start'), ...(v.state === 'lobby' ? {} : { value: state }), note: str('war.row_note'), action: 'friends-war-start',
+        label: str('war.start'), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
       }];
     }
     if (host) {
@@ -2425,15 +2427,35 @@ export async function boot({
     warCrashDue = true;
     audio.setWarBed(v.state === 'countdown' ? 'intro' : 'combat');
     const w = roomLinkState.state().welcome;
-    if (!w) {
+    if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
+      ui.onAction('restart');
+    } else {
+      warUp = true;
+    }
+  }
+
+  /* A pilot waiting on a room screen when the war began goes up with it,
+   * as combat's countdown takes one: seated in the room's world first if
+   * the seat is another, then flown once nothing is loading. One who has
+   * gone to another screen since, or is flying, is left alone. */
+  let warUp = false;
+  function warUpFrame() {
+    const w = roomLinkState.state().welcome;
+    if (!warUp || !w || !roomWar.on() || mode === 'flight' || !ROOM_SEAT_SCREENS.includes(ui.screen)) {
+      warUp = false;
       return;
     }
-    if (mode === 'flight' && roomTagWorldReady(w.map)) {
-      ui.onAction('restart');
-    } else if ((mode === 'title' || mode === 'results') && ROOM_SEAT_SCREENS.includes(ui.screen)
-      && view && view.id === w.map && mapReady && !swapInFlight) {
-      ui.onAction('fly', ui.settings);
+    if (!mapReady || swapInFlight || ui.nameWait) {
+      return;
     }
+    if (ui.settings.map !== w.map) {
+      notice = { text: str('war.other_world', { world: mapById(w.map).name }), untilMs: performance.now() + 3000 };
+      ui.mode = 'freestyle';
+      ui.seatMap(w.map, { stay: true });
+      return;
+    }
+    warUp = false;
+    ui.onAction('fly', ui.settings);
   }
 
   /* The war is over, or this pilot left it: the music stops, the dam is
@@ -2514,6 +2536,7 @@ export async function boot({
       warLog.splice(0, warLog.length - WAR_LOG_MAX);
     }
     warTargetsFrame(wallMs);
+    warUpFrame();
     if (replay) {
       warHud.update(null);
       return;

@@ -2758,4 +2758,5 @@ export default {
   "war.consent_detail": "Esto es una guerra de drones simulada. La sala defiende una represa de drones de ataque, y cada aparato que vuelas lleva una ojiva que lo destruye junto con su blanco. Los aparatos se rompen y las estructuras arden; no se muestran personas y nadie sale herido. Se juega solo en salas privadas.",
   "war.consent_yes": "Continuar",
   "war.consent_no": "Volver",
+  "war.other_world": "Defender Itaipú se juega en {world}, así que te llevamos allí.",
 };
