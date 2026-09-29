@@ -248,6 +248,10 @@ export class RoomSafety {
     }
     this.core.keepOut(s, now, REMOVE_MS);
     this.core.seats.delete(conn);
+    /* Gone from the games as a kick is (core.js kick). */
+    this.core.referee.leave(s.seat);
+    this.core.combat.leave(s.seat);
+    this.core.war.leave(s.seat);
     this.reports = this.reports.filter((r) => r.target !== s.token);
     return [
       { close: conn, code: CLOSE_REMOVED, reason: 'removed' },

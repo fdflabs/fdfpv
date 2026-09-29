@@ -53,6 +53,7 @@ import { RoomSafety } from './safety.js';
 import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
+import { RoomWar } from './war.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
@@ -212,6 +213,7 @@ export class RoomCore {
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
+    this.war = new RoomWar(meta); /* Defend Itaipu, edge/rooms/war.js */
     this.hosting = new Hosting();
     /* game id -> room ms since it has had too few players. Memory only. */
     this.abandoned = new Map();
@@ -306,6 +308,7 @@ export class RoomCore {
       { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: 1, end: () => this.race.end(this) },
       { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: 2, end: () => this.tag.abandon(this, now) },
       { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: 2, end: () => this.combat.stop(this) },
+      { id: 'war', on: this.war.on(), players: this.war.players(this), min: 1, end: () => this.war.abandon(this, now) },
     ];
   }
 
@@ -345,7 +348,7 @@ export class RoomCore {
    * the host to come back, even with nobody flying, and never in an empty
    * room, which the next arrival settles. */
   waiting() {
-    return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting());
+    return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting() || this.war.on());
   }
 
   wake() {
@@ -365,7 +368,7 @@ export class RoomCore {
   /*
    * A host's action (starting, ending or loading a game; a kick), checked
    * once here for every mode, so a refused one always says why:
-   * { type: 'refused', why: 'public'|'host'|'race'|'tag'|'combat' }. Returns
+   * { type: 'refused', why: 'public'|'private'|'host'|'race'|'tag'|'combat'|'war' }. Returns
    * the actions of a refusal, or null to let the mode handle it. `start`
    * is the mode it would start; a game with too few players is ended
    * first rather than refused.
@@ -373,9 +376,10 @@ export class RoomCore {
   hostCheck(conn, s, msg, now) {
     const start = (msg.type === 'tag' && msg.op === 'start') ? 'tag'
       : (msg.type === 'combat' && msg.op === 'start') ? 'combat'
-        : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
+        : (msg.type === 'war' && msg.op === 'start') ? 'war'
+          : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
     const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
-      || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop');
+      || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && msg.op === 'end');
     if (!hostOnly) {
       return null;
     }
@@ -385,6 +389,11 @@ export class RoomCore {
      * handle a public room's trouble. */
     if (this.meta.public && msg.type === 'kick') {
       return refuse('public');
+    }
+    /* The war mode is not for a room children may be in
+     * (docs/WARFARE-PLAN.md section 9). */
+    if (this.meta.public && start === 'war') {
+      return refuse('private');
     }
     if (s.seat !== this.host()) {
       return refuse('host');
@@ -416,6 +425,9 @@ export class RoomCore {
     }
     if (this.combat.on()) {
       return { game: 'combat', state: this.combat.round.state };
+    }
+    if (this.war.on()) {
+      return { game: 'war', state: this.war.match.state === 'live' ? 'on' : 'countdown' };
     }
     return { game: this.meta.mode ?? null, state: 'waiting' };
   }
@@ -600,6 +612,7 @@ export class RoomCore {
         peers: this.peerList(conn),
         ...this.race.welcome(),
         ...this.tag.welcome(this),
+        ...this.war.welcome(this),
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
@@ -607,6 +620,7 @@ export class RoomCore {
     actions.push(...this.race.join(this, seat));
     this.combat.seat(seat, profile.airframe);
     actions.push(...this.combat.join(this, conn));
+    actions.push(...this.war.join(this, conn));
     actions.push(...this.settle(now));
     return actions;
   }
@@ -676,6 +690,9 @@ export class RoomCore {
     if (msg.type === 'combat') {
       return [...first, ...this.combat.message(this, conn, s, msg, now)];
     }
+    if (msg.type === 'war') {
+      return [...first, ...this.war.message(this, conn, s, msg, now)];
+    }
     const safe = this.safety.text(conn, s, msg, now);
     if (safe) {
       return safe;
@@ -706,6 +723,7 @@ export class RoomCore {
         this.seats.delete(conn);
         this.referee.leave(seat);
         this.combat.leave(seat);
+        this.war.leave(seat);
         return [
           { close: conn, code: CLOSE.kicked, reason: 'kicked' },
           ...this.others(conn, JSON.stringify({ type: 'leave', seat, host: this.host() })),
@@ -738,6 +756,7 @@ export class RoomCore {
     hits.push(...this.tag.pose(this, s, checked.bytes, now));
     /* After the referee: a crash from a hit it just decided is a mid air's. */
     hits.push(...this.combat.pose(this, s, now));
+    hits.push(...this.war.pose(this, s, checked.bytes, now));
     if (this.ticking) {
       return hits;
     }
@@ -756,7 +775,7 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     this.tickNo += 1;
-    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now)];
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
     const flying = [...this.seats.values()].filter((f) => f.pose);
     const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));
@@ -796,6 +815,7 @@ export class RoomCore {
     this.seats.delete(conn);
     this.referee.leave(s.seat);
     this.combat.leave(s.seat);
+    this.war.leave(s.seat);
     for (const [token, r] of this.recent) {
       if (r.until <= now) {
         this.recent.delete(token);
