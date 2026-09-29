@@ -63,7 +63,8 @@ import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { scaleSection } from './rooms-selftest-scale.js';
-import { DROP_MS } from '../edge/rooms/tag.js';
+import { DROP_MS, RoomTag } from '../edge/rooms/tag.js';
+import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
 import { RoomHost } from '../edge/rooms/host.js';
 import {
   BUBBLE_M, GOALS, GOAL_MAX, GOAL_MIN, PROTECT_MS, createRoomTag, goalOf,
@@ -1242,6 +1243,23 @@ console.log('catch the ace: starting a match');
   const level = (z, x0 = 0) => (t) => ({
     px: x0 + 15 * t / 1000, py: Y, pz: z, vx: 15, qy: -Math.SQRT1_2, qw: Math.SQRT1_2, flags: FLAG_AIRBORNE,
   });
+  /* Seat i + 1 of room env flies from where it is at t0 straight to
+   * `to` at 20 m/s and holds there with `flags`: flown, not thrown, so
+   * the room does not make it spawning. Returns when it gets there. */
+  const flyTo = (env, i, t0, to, flags = FLAG_AIRBORNE) => {
+    const p0 = env.paths[i](t0);
+    const d = Math.hypot(to.px - p0.px, to.py - p0.py, to.pz - p0.pz);
+    const ms = Math.max(1, (d / 20) * 1000);
+    env.paths[i] = (t) => {
+      const u = Math.max(0, Math.min(1, (t - t0) / ms));
+      const k = u < 1 && d > 0 ? 20 / d : 0;
+      return {
+        ...p0, px: p0.px + (to.px - p0.px) * u, py: p0.py + (to.py - p0.py) * u, pz: p0.pz + (to.pz - p0.pz) * u,
+        vx: (to.px - p0.px) * k, vy: (to.py - p0.py) * k, vz: (to.pz - p0.pz) * k, flags,
+      };
+    };
+    return t0 + ms;
+  };
   /*
    * A room of n Cubs, seat i + 1 flying paths[i](t) (room ms), sampled
    * every 33 ms on a phase of its own, its samples lag[i] ms late. The
@@ -1400,8 +1418,10 @@ console.log('catch the ace: starting a match');
    * B itself: it enters the bubble first and takes the crown, then the two
    * hulls meet and the referee sends the hit, to every seat. Both are then
    * wrecks, as their clients make them, and the tag rules for a wreck
-   * apply: the new Ace scores nothing while it is one, and the old Ace,
-   * wrecked inside its bubble, takes nothing back.
+   * apply: the new Ace scores nothing and drops the crown (the owner,
+   * 2026-09-29: "when a person crashes, their orb just stays in that spot,
+   * nobody is ace"), and the old Ace, a wreck inside that orb, takes
+   * nothing back.
    */
   console.log('catch the ace: a collision is a crash');
   {
@@ -1426,16 +1446,108 @@ console.log('catch the ace: starting a match');
     check('the tag came first, the crash after it, as the two closed', kTag && kHit && kTag.t < kHit.tc, kTag && kHit ? `${kHit.tc - kTag.t} ms apart` : '');
     check('a crash like any other: at 20 m/s across, parts break on both', kHit && checkHit(kHit) && kHit.A.brk > 0 && kHit.B.brk > 0);
     const wreckAt = k.clock;
-    const msAt = k.view(0).scores.find((r) => r.seat === 1).ms;
     for (const i of [0, 1]) {
       const was = k.paths[i](wreckAt);
       k.paths[i] = () => ({ ...was, vx: 0, flags: FLAG_CRASHED });
     }
     k.fly(wreckAt + PROTECT_MS + 1000);
     const kv = k.view(0);
-    const kAce = kv.scores.find((r) => r.seat === 1).ms;
-    check('the new Ace, a wreck, scores nothing while it is one', kv.ace === 1 && kAce - msAt <= 40, `${kAce - msAt} ms added`);
-    check('and the old Ace, a wreck inside its bubble, takes nothing back', k.r.tag.log.filter((c) => c.why === 'tag').length === 1);
+    /* The room's own count, not the view's, which is sent on whole
+     * points: A scored its reign up to the wreck and nothing after. */
+    const kAce = k.r.tag.match.players[1].ms;
+    const kDrop = k.r.tag.drops[0];
+    check('the new Ace, a wreck, scores nothing after it and drops the crown: nobody is the Ace, the orb is free', kv.ace === null && kv.orb && kDrop
+      && Math.abs(kAce - (kDrop.t - kTag.t)) <= 40 && kDrop.from === 1 && Math.abs(kDrop.t - wreckAt) <= 40,
+    kDrop ? `${kAce} ms for a reign of ${kDrop.t - kTag.t} ms, dropped ${kDrop.t - wreckAt} ms after the wreck` : 'not dropped');
+    check('and the old Ace, a wreck inside that orb, takes nothing back', k.r.tag.log.length === 2 && k.r.tag.match.ace === null);
+  }
+
+  /*
+   * A crashed Ace (the owner, 2026-09-29: "ok when a person crashes,
+   * their orb just stays in that spot, nobody is ace, and whoever goes and
+   * catches it, is the new ace"): the millisecond the Ace is a wreck the
+   * crown drops, nobody is the Ace or scores, and its orb stays where it
+   * went down, for the first pilot flying (not crashed, not spawning, off
+   * the ground) into it. Seat 2 is the Ace at z 40 and crashes at `at`;
+   * seats 1 and 3 fly on at z 0 and z 80, 40 m off.
+   */
+  console.log('catch the ace: a crashed Ace');
+  const downRoom = () => {
+    const d = tagRoom();
+    d.fly(1000);
+    d.say(0, { type: 'tag', op: 'start', goal: 60 });
+    d.fly(d.view(0).goAt + PROTECT_MS + 1000);
+    const at = d.clock;
+    const was = d.paths[1](at);
+    d.paths[1] = (t) => (t < at ? level(40)(t) : { ...was, vx: 0, flags: FLAG_CRASHED });
+    d.fly(at + 500);
+    return { d, at, was };
+  };
+  /* Seat i + 1 flies in to `dz` beside the orb from now, with `flags`;
+   * returns when it is there. */
+  const into = (d, i, orb, flags, dz = 3) => flyTo(d, i, d.clock, { px: orb.px, py: orb.py, pz: orb.pz + dz }, flags);
+  const total = (d) => Object.values(d.r.tag.match.players).reduce((n, p) => n + p.ms, 0);
+  {
+    const { d, at, was } = downRoom();
+    const v = d.view(0);
+    const dr = d.r.tag.drops[0];
+    check('the Ace crashes: the crown drops at once, nobody is the Ace on any screen, the orb is free where it went down',
+      dr && dr.from === 2 && Math.abs(dr.t - at) <= 40 && [0, 1, 2].every((i) => d.view(i).ace === null && d.view(i).orb && d.view(i).orb.t === dr.t)
+      && Math.hypot(v.orb.px - was.px, v.orb.py - was.py, v.orb.pz - was.pz) < 0.5 && d.r.tag.log.length === 1,
+    dr ? `${dr.t - at} ms after the crash, ${Math.hypot(v.orb.px - was.px, v.orb.pz - was.pz).toFixed(2)} m from the wreck` : 'none');
+    const n0 = total(d);
+    d.fly(d.clock + 2000);
+    check('and nobody scores while the orb is free, and nobody far from it catches it', total(d) === n0 && d.r.tag.match.ace === null, `${total(d) - n0} ms scored`);
+    const inAt = d.clock;
+    d.fly(into(d, 2, v.orb, FLAG_AIRBORNE) + 200);
+    const c = d.r.tag.log.at(-1);
+    /* The Cub's nearest part is inside 6 m of the orb's centre within 6.8 m
+     * of its own: the catch is as it passes 6.8 m, flying in at 20 m/s. */
+    const due = inAt + ((Math.hypot(80 - 40, d.paths[2](inAt - 1).px - v.orb.px) - 6.8) / 20) * 1000;
+    check('a pilot flying into the orb catches the crown, with protection', c.why === 'catch' && c.seat === 3 && c.from === 2 && c.t > inAt && c.t <= due + 100
+      && [0, 1, 2].every((i) => d.view(i).ace === 3 && d.view(i).orb === null) && d.view(0).protectUntil === c.t + PROTECT_MS,
+    `${c.why} by ${c.seat}, ${c.t - inAt} ms after it went in`);
+  }
+  {
+    const { d, was } = downRoom();
+    const orb = d.view(0).orb;
+    for (const [what, flags] of [['crashed', FLAG_CRASHED], ['spawning', FLAG_AIRBORNE | FLAG_SPAWNING], ['on the ground', 0]]) {
+      d.fly(into(d, 2, orb, flags) + 1000);
+      check(`a pilot ${what} inside the orb does not catch it`, d.r.tag.match.ace === null && d.r.tag.log.length === 1);
+    }
+    /* The crashed Ace itself, respawned: spawning, then flying. */
+    const sat = d.paths[2](d.clock);
+    d.paths[2] = () => ({ ...sat, flags: FLAG_CRASHED });
+    d.paths[1] = () => ({ ...was, flags: FLAG_AIRBORNE | FLAG_SPAWNING });
+    d.fly(d.clock + 1000);
+    check('nor the crashed Ace, respawned but still spawning', d.r.tag.match.ace === null);
+    d.paths[1] = () => ({ ...was, flags: FLAG_AIRBORNE });
+    const upAt = d.clock;
+    d.fly(upAt + 500);
+    const c = d.r.tag.log.at(-1);
+    check('and it catches its own orb once its protection is over', c.why === 'catch' && c.seat === 2 && c.from === 2 && c.t > upAt && c.t <= upAt + 40,
+      `${c.why} by ${c.seat}, ${c.t - upAt} ms after`);
+  }
+  {
+    /* Two pilots into the orb on the same millisecond, sampled on the
+     * same clock: the lower seat has it, whichever order they come in. */
+    const t = new RoomTag();
+    const orb = { px: 0, py: 80, pz: 0 };
+    t.match = { orb: { t: 0, from: 2, ...orb } };
+    const hull = tagHullFor('cub1400');
+    const pilot = (seat) => {
+      const track = new Track();
+      for (let ms = 0; ms <= 400; ms += 33) {
+        track.push({
+          t: ms, px: 0, py: 80, pz: ms < 200 ? 30 : 3, vx: 0, vy: 0, vz: 0, qx: 0, qy: -Math.SQRT1_2, qz: 0, qw: Math.SQRT1_2, flags: FLAG_AIRBORNE,
+        });
+      }
+      return { seat, hull, track };
+    };
+    const a = t.catchOrb([pilot(3), pilot(5)], 0, 400);
+    const b = t.catchOrb([pilot(5), pilot(3)], 0, 400);
+    check('two pilots into the orb on the same millisecond: the lower seat catches it', a && b && a.seat === 3 && b.seat === 3 && a.tc === b.tc,
+      `${JSON.stringify(a)} ${JSON.stringify(b)}`);
   }
 
   console.log('catch the ace: two clients');
@@ -1465,16 +1577,28 @@ console.log('catch the ace: starting a match');
   const re = e.view(0);
   check('the host starts again from the results: a new match, everybody at nothing', re.state === 'countdown' && re.id === end.id + 1 && re.scores.every((r) => r.ms === 0));
   e.fly(re.goAt + 1000);
-  /* The Ace (seat 2 again) is a wreck from here: it scores nothing and the
-   * crown drops to a hunter DROP_MS later. */
+  /* The Ace (seat 2 again) goes quiet from here, a tab on a menu: it
+   * scores nothing, and DROP_MS later the orb is freed where it was last
+   * seen, with nobody the Ace. (A crashed Ace drops it at once: 'a
+   * crashed Ace', below.) */
   const crashAt = e.clock;
-  e.paths[1] = (t) => ({ ...level(40)(crashAt), flags: t > crashAt ? FLAG_CRASHED : FLAG_AIRBORNE });
+  const lastSeen = level(40)(crashAt);
+  e.paths[1] = null;
   e.fly(crashAt + DROP_MS + 500);
-  const drop = e.r.tag.log.find((c) => c.why === 'drop');
-  check(`an Ace nobody can catch drops the crown after ${DROP_MS / 1000} s`, drop && drop.from === 2 && drop.seat !== 2 && Math.abs(drop.t - (crashAt + DROP_MS)) <= 40,
-    drop ? `${drop.t - crashAt} ms after the crash` : 'none');
+  const drop = e.r.tag.drops[0];
+  const freed = e.view(0);
+  check(`an Ace nobody can catch for ${DROP_MS / 1000} s frees the orb where it was last seen, and nobody is the Ace`, drop && drop.from === 2
+    && Math.abs(drop.t - (crashAt + DROP_MS)) <= 40 && freed.ace === null && freed.orb && Math.hypot(freed.orb.px - lastSeen.px, freed.orb.pz - lastSeen.pz) < 1,
+  drop ? `${drop.t - crashAt} ms after it went quiet, ${Math.hypot(drop.px - lastSeen.px, drop.pz - lastSeen.pz).toFixed(2)} m from where it was last seen` : 'none');
   const wrecked = e.view(0).scores.find((r) => r.seat === 2).ms;
-  check('and scores nothing while it is a wreck', Math.abs(wrecked - (crashAt - re.goAt)) <= 40, `${wrecked} ms for ${crashAt - re.goAt} flown`);
+  check('and scored nothing while it was not seen', Math.abs(wrecked - (crashAt - re.goAt)) <= 40, `${wrecked} ms for ${crashAt - re.goAt} flown`);
+  e.paths[1] = level(40);
+  /* Seat 3 flies to 3 m beside the free orb: it is the Ace. */
+  e.fly(flyTo(e, 2, e.clock, { ...lastSeen, pz: lastSeen.pz + 3 }) + 200);
+  const caught = e.r.tag.log.at(-1);
+  check('and the pilot that flies into it catches it', caught.why === 'catch' && caught.seat === 3 && caught.from === 2 && e.view(0).ace === 3 && e.view(0).orb === null,
+    JSON.stringify(caught));
+  e.paths[2] = level(80);
   const saved = e.stored;
   const ace = e.view(0).ace;
   e.apply(e.r.close(e.socks[ace - 1], e.clock));

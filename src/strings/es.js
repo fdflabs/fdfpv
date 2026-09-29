@@ -2396,7 +2396,7 @@ export default {
   "roomrace.fly_on_note": "Por tu cuenta, desde tu lugar en la línea, hasta la próxima carrera.",
   "roomtag.section": "¡Atrapa al As!",
   "roomtag.rules": "Cómo se juega",
-  "roomtag.rules_note": "Un piloto es el As y suma un punto por segundo, dentro de una burbuja brillante que llega a {m} m de él. Los demás lo cazan: mete cualquier parte de tu aeronave en la burbuja y la corona es tuya. No hace falta tocarlo, y si chocas con él, se estrellan los dos, como en vuelo libre. Un As nuevo está a salvo unos segundos, mientras su burbuja se ve tenue. Gana el primero que llega a la meta.",
+  "roomtag.rules_note": "Un piloto es el As y suma un punto por segundo, dentro de una burbuja brillante que llega a {m} m de él. Los demás lo cazan: mete cualquier parte de tu aeronave en la burbuja y la corona es tuya. No hace falta tocarlo, y si chocas con él, se estrellan los dos, como en vuelo libre. Si el As se estrella, nadie es el As: su burbuja se queda donde cayó, y el primero que entra en ella se queda con la corona. Un As nuevo está a salvo unos segundos, mientras su burbuja se ve tenue. Gana el primero que llega a la meta.",
   "roomtag.wait": "Un piloto es el As y suma un punto por segundo; los demás lo cazan, y quien entra en su burbuja de {m} m se queda con la corona. El piloto que creó esta sala empieza la partida.",
   "roomtag.on_value": "Meta {goal}",
   "roomtag.goal_lightning": "Meta: Relámpago",
