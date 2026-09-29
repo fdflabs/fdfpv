@@ -36,6 +36,7 @@ import { buildEdgeCraft, EDGE_DIMS } from '../../src/render/edgecraft.js';
 import { buildF16Craft, F16_DIMS } from '../../src/render/f16craft.js';
 import { buildZagiCraft, ZAGI_DIMS } from '../../src/render/zagicraft.js';
 import { buildP51Craft, P51_DIMS } from '../../src/render/p51craft.js';
+import { buildWot4Craft, WOT4_DIMS } from '../../src/render/wot4craft.js';
 
 /* On floats, the float variants: the same aircraft, its reach down and up
  * and its rest the floats', its nose the floats' bows where they reach
@@ -51,6 +52,7 @@ const BUILDERS = {
   edge: buildEdgeCraft,
   zagi: buildZagiCraft,
   p51: buildP51Craft,
+  wot4: buildWot4Craft,
 };
 const DIMS = {
   sky: SKY_DIMS, cub: CUB_DIMS, glider: GLIDER_DIMS, bramor: BRAMOR_DIMS, stick: SLOWSTICK_DIMS, timber: TIMBER_DIMS,
@@ -62,6 +64,7 @@ const DIMS = {
   edge: EDGE_DIMS,
   zagi: ZAGI_DIMS,
   p51: P51_DIMS,
+  wot4: WOT4_DIMS,
 };
 const params = new URLSearchParams(location.search);
 const which = params.get('craft') ?? 'sky';

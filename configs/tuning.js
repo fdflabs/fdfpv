@@ -105,6 +105,7 @@ const PITTS_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
+const WOT4_MANUAL = 'https://web.archive.org/web/20240712155211id_/http://www.ripmax.com/Instructions/a-cf002-elp.pdf';
 const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
@@ -246,6 +247,13 @@ export const TUNING = {
     cg: { mm: 70, datum: 'tuning.datum.top_le', range: [67, 73], source: `The CG for the BL15 motor, "70 mm, plus or minus 3 mm, from the leading edge of the top wing" (Park Pilot's review, the corrected figure; the manual's 86 mm was the BL10's); ${PITTS_REVIEW}` },
     packKg: 0.225, nose: 0.19, tail: -0.50,
     throws: { high: [22.02, 27.20, 25.10], low: [14.48, 20.05, 17.64], source: `E-flite manual p. 4: high 18, 32 and 28 mm, low 12, 24 and 20 mm, at the surfaces' widest chords, 48, 70 and 66 mm (docs/PITTS-STAGE1.md); ${PITTS_MANUAL}` },
+    flaps: null,
+  },
+  wot41334: {
+    chord: 0.2853, area: 0.38064, margin: 0.159,
+    cg: { mm: 82, datum: 'tuning.datum.root_le', range: null, source: `Ripmax Wot 4 Mk2 manual p. 21, "82mm (3-1/4") back from the leading edge of the wing at the root", no range; ${WOT4_MANUAL}` },
+    packKg: 0.40, nose: 0.26, tail: -0.78,
+    throws: { high: [12.08, 15.26, 30.37], low: [8.02, 9.08, 30.37], source: `Ripmax Wot 4 Mk2 manual p. 21, "each measured at the widest point of the surface": ailerons 6 to 9 mm, elevator 9 to 15 mm, rudder 45 mm, on the 43, 57 and 89 mm surfaces (docs/WOT4-STAGE1.md); the top of each range high, the bottom low; ${WOT4_MANUAL}` },
     flaps: null,
   },
   nrj1490: {

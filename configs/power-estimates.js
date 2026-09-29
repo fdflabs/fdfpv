@@ -459,5 +459,17 @@ export const ESTIMATES = {
         minutes: 70.5
       }
     }
+  },
+  wot41334: {
+    stock: {
+      '4s3700': {
+        topSpeed: 23.24,
+        minutes: 17.6
+      },
+      '4s4000': {
+        topSpeed: 23.24,
+        minutes: 17.6
+      }
+    }
   }
 };

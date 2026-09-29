@@ -1702,6 +1702,66 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
     { .pos = { 0.3327, 0.0, -0.1023 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
   },
 },
+/*
+ * The Ripmax Wot 4 Mk2, docs/WOT4-STAGE1.md: Chris Foss's 70 to 90 oz,
+ * the middle, on his electric conversion's 4S 3700, an AXI 4120/14 on an
+ * APC 13 x 8 0.308 m ahead of the CG on a thrust line through it,
+ * balanced at the manual's 82 mm. The hull is the contact code's centred
+ * box, only what a crash lands on: the box's belly 0.06 m under the CG and
+ * the wing's top 0.09 m over it, the half span wide, 0.40 m fore and aft,
+ * its aft lower edge 0.067 m clear of the grass at rest; the tail and the
+ * fin stand outside it. The camera on the cowl's top at the firewall.
+ */
+[SIM_AIRFRAME_WOT41334] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 2.2680,
+  .inertia = { 0.0802, 0.1587, 0.2310 },
+  .gravity = 9.81,
+  .cells = 4.0,
+  /* 5 mOhm a cell, ESTIMATED: a 25C 3700, between the five inch's race
+   * pack and the Cub's 3S 2200. */
+  .r_cell = 0.005,
+  /* Foss's "3700 mah 4 cell 14.8v Li-Poly battery"; the 60 A controller's
+   * cutoff is taken at 3.0 V a cell. */
+  .pack_c = 3700.0 * 3.6,
+  .lvc = 3.0,
+  .rho = 1.225,
+  .prop_r = 0.1651,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { 0.308, 0.0, 0.0, 0.0 },
+  .hull_hx = 0.40,
+  .hull_hy = 0.667,
+  .hull_hz_down = 0.06,
+  .hull_hz_up = 0.09,
+  .contact_patch_r = 0.08,
+  .contact_arm_max = 0.9,
+  .vib_ref_w = 1000.0,
+  .camera_x = 0.17,
+  .camera_y = 0.0,
+  .camera_z = 0.058,
+  .fw = &FW_WOT41334,
+  /*
+   * The gear, as src/render/wot4craft.js draws it off the manual's cover:
+   * an aluminium strap to 2 1/2 in wheels, the axles 74 mm ahead of the CG
+   * and 202 mm under it on a 300 mm track (ESTIMATED), the wire
+   * tailwheel's 1 in wheel 0.781 m behind and 31 mm under. Each axle is
+   * lowered by its 6 mm of static deflection, so the plant settles onto
+   * the drawn pose: 12.5 deg nose up, the CG 0.2121 m over the grass, 13.3
+   * percent on the tail. Stiffness for that, damping at 0.6 of critical,
+   * the Cub's rule (scripts/wot4-derive.js). The tailwheel's wire is
+   * epoxied into the rudder (the manual's step 34), so it steers at the
+   * rudder's own angle.
+   */
+  .wheel_count = 4,
+  .wheel = {
+    { .pos = { 0.074, 0.150, -0.2080 }, .r = 0.03175, .k = 1607.0, .c = 51.23, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { 0.074, -0.150, -0.2080 }, .r = 0.03175, .k = 1607.0, .c = 51.23, .mu_roll = 0.08, .mu_side = 0.70, .steer = 0.0, .brake = 1.0, .slide = TYRE_SLIDE },
+    { .pos = { -0.781, 0.0, -0.0370 }, .r = 0.0127, .k = 494.0, .c = 13.31, .mu_roll = 0.08, .mu_side = 0.60, .steer = 1.0, .slide = TYRE_SLIDE },
+    /* The prop's lowest tip, a skid, 0.1651 m under the hub on the thrust
+     * line: 69 mm over the grass level on the mains, 0.114 m at rest. */
+    { .pos = { 0.308, 0.0, -0.1651 }, .r = 0.0, .k = 3000.0, .c = 40.0, .mu_roll = 0.80, .mu_side = 0.80, .steer = 0.0 },
+  },
+},
 };
 
 /*

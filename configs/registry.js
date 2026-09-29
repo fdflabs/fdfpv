@@ -410,6 +410,29 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at E-flite\'s 3D throws. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons, which work in the slipstream at no airspeed at all.',
   },
   {
+    /* The Wot 4's three, the Cub's pattern on its own plant: ailerons,
+     * elevator and rudder at the ARTF manual's throws. On its wheels every
+     * mode flies as Manual, the rudder steering the tailwheel. */
+    id: 'wot4-stab',
+    airframe: 'wot41334',
+    name: 'Stabilised',
+    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
+    wingStab: 1,
+  },
+  {
+    id: 'wot4-acro',
+    airframe: 'wot41334',
+    name: 'Acro',
+    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 70, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
+    wingStab: 2,
+  },
+  {
+    id: 'wot4-manual',
+    airframe: 'wot41334',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the ailerons, the elevator and the big rudder at the manual\'s throws, the rudder steering the tailwheel. Hold full up and it mushes down wings level; add full rudder and it spins, let go and it stops.',
+  },
+  {
     /* The Pitts's three, the Cub's: on its wheels every mode flies as
      * Manual. Acro is where an aerobat is flown; Manual has the snap. */
     id: 'pitts-stab',

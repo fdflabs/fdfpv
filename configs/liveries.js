@@ -223,6 +223,18 @@ export const LIVERIES = {
       { id: 'stock', source: src('E-flite Pitts S-1S 850mm, EFL35500', 'https://www.horizonhobby.com/product/pitts-s-1s-bnf-basic-with-as3x-and-safe-select-850mm/EFL35500.html'), colours: {} },
     ],
   },
+  wot41334: {
+    /* Ripmax's white film with the Wot 4's box scheme bands, red, orange
+     * and yellow round the tips, along the fuselage and over the fin, the
+     * canopy black (the manual's cover); and the other decal set Ripmax
+     * sells for the Wot 4 Foam-E Mk2+, blue and black (Z-CF020/12B, the
+     * Foam-E manual's "Optional Decal Schemes"). */
+    regions: [r('wing', '#f2f1ec'), r('fuselage', '#f2f1ec'), r('tail', '#f2f1ec'), r('trim', '#d8232a'), r('stripe', '#f07c1e'), r('swoop', '#f6d418'), r('canopy', '#15171a')],
+    schemes: [
+      { id: 'stock', source: src('Ripmax Wot 4 Mk2 ARTF manual, its cover', 'https://web.archive.org/web/20240712155211id_/http://www.ripmax.com/Instructions/a-cf002-elp.pdf'), colours: {} },
+      { id: 'foam_blue', source: src('Ripmax Wot 4 Foam-E Mk2+ manual, the blue and black decals Z-CF020/12B', 'https://web.archive.org/web/20250121072146id_/http://www.ripmax.com/Instructions/a-cf020a.pdf'), colours: { trim: '#1c3f9e', stripe: '#16181a', swoop: '#3f7fd8' } },
+    ],
+  },
   nrj1490: {
     /* OA Composites' own colourways, spread tow carbon under a painted
      * design: the wing's dark carbon, two bands of colour and the nose

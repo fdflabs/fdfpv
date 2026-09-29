@@ -147,6 +147,9 @@ export const PROPS = {
   extra1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   pitts850: [STOCK, apcProp('11x8e', '11x8E', 11, 8, 2), apcProp('10x7e', '10x7E', 10, 7, 2)],
   uglystik1567: [STOCK, apcProp('12x7', '12x7', 12, 7, 2), apcProp('12x8', '12x8', 12, 8, 2)],
+  /* AXI's two suggestions for the 4120/14, "13"x8" / 12"x6"", and APC's
+   * 12 x 8E for its 5S row. */
+  wot41334: [STOCK, apcProp('12x6e', '12x6E', 12, 6, 2), apcProp('12x8e', '12x8E', 12, 8, 2)],
   /* A racer's prop is its engine's in flight, and the derivation that
    * swaps a prop (scripts/parts-derive.js) reads the loaded rpm off the
    * pitch speed, which on the Quickie is the unloading engine's line, not
@@ -197,6 +200,7 @@ export const ANCHORS = {
   f16878: { prop: [-0.24, 0, 0], belly: [0, 0, -0.061], tail: [-0.59, 0, -0.038], tank: [-0.01, 0, -0.02], led: [[0.080, 0.13, -0.006], [-0.139, 0.40, -0.006]] },
   bramor2300: { prop: [-0.35, 0, 0.087], belly: [0, 0, -0.044], tail: [-0.19, 0, 0.0], tank: [-0.01, 0, 0.0], led: [[0.008, 0.35, -0.004], [-0.276, 1.03, 0.004]] },
   slowstick1180: { prop: [0.31, 0, 0], belly: [0.02, 0, -0.007], tail: [-0.56, 0, -0.012], tank: [-0.01, 0, -0.01], led: [[0.080, 0.18, 0.064], [0.080, 0.41, 0.114]] },
+  wot41334: { prop: [0.308, 0, 0], belly: [0, 0, -0.062], tail: [-0.78, 0, 0.0], tank: [-0.01, 0, -0.03], led: [[0.075, 0.12, 0.048], [0.060, 0.62, 0.048]] },
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
   edge1524: { prop: [0.4826, 0, 0], belly: [0, 0, -0.114], tail: [-0.80, 0, -0.015], tank: [-0.01, 0, -0.05], led: [[0.08, 0.12, -0.016], [-0.02, 0.70, -0.013]] },

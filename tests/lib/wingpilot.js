@@ -2158,3 +2158,98 @@ export function recordQuickieFlight(sim) {
   }
   return samples;
 }
+
+/*
+ * The Ripmax Wot 4 Mk2, docs/WOT4-STAGE1.md: airframe 20, Chris Foss's club
+ * sport aerobat on a taildragger's aluminium strap. On the strip at the
+ * pose the plant settles to, the drawn model's (src/render/wot4craft.js):
+ * the CG 0.2127 m up and 12.56 deg nose up, the half angle's cos and sin
+ * written out to 17 digits because a recording's prelude is hashed. No
+ * steps here.
+ */
+export const WOT4_AIRFRAME = 20;
+export const WOT4_REST = { z: 0.2127, pitchDeg: 12.56 };
+const WOT4_REST_C = 0.99399919939945702;
+const WOT4_REST_S = 0.10938734658651553;
+export function wot4Prelude(sim) {
+  must(sim.e.sim_set_airframe(WOT4_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(17), 'sim_wing_launch');
+}
+export function wot4GroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(WOT4_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  must(sim.e.sim_set_pose(0, 0, WOT4_REST.z, WOT4_REST_C, 0, -WOT4_REST_S, 0), 'sim_set_pose');
+}
+
+/*
+ * The Wot 4's take off, a club taildragger's: the throttle opened over a
+ * second and a half, the tail lifted to 2 deg of pitch once it runs, the
+ * wings held on the ailerons, the heading on the rudder and the tailwheel
+ * it steers, and at `vRotate` 8 deg of pitch. `yawHold` is the pilot's
+ * feet; `ms` the time since the throttle started to open.
+ */
+export function wot4TakeoffSticks(s, ms, { vRotate = 12.1, yawHold = 1 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const pitchT = (v < vRotate ? 2 : 8) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -1.2 * bank - 0.08 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 2.5 * (pitchT - pitch) - 0.25 * qAero));
+  const yaw = Math.max(-1, Math.min(1, yawHold * (2.0 * edgeHeading(s) + 0.3 * s[13])));
+  return [roll, pitchStick, yaw, Math.min(1, ms / 1500)];
+}
+
+/*
+ * The Wot 4's recording for the cross-host check: from standing on the
+ * strip, a second at idle, the take off and a climb to about 70 m, level
+ * at three quarter throttle, a full aileron roll, a loop at full
+ * throttle, a power off stall held full back, a spin entered on full up
+ * and full right rudder and let go, and a climb away: thirty six seconds,
+ * the gear, the roll, the loop, the mush and the hands off recovery in the
+ * hashed trace, and still flying at the end.
+ */
+export function recordWot4Flight(sim) {
+  must(sim.reset(), 'sim_reset');
+  wot4GroundPrelude(sim);
+  const samples = [];
+  const trim = { v: 0 };
+  for (let ms = 0; ms < 36000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch } = attitude(s);
+    const qAero = -s[12];
+    const nose = (t) => Math.max(-1, Math.min(1, 2.5 * (t - pitch) - 0.25 * qAero));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 6000) {
+      sticks = wot4TakeoffSticks(s, ms - 1000);
+    } else if (ms < 16000) {
+      sticks = [edgeRoll(s), nose(0.35), 0, 1];
+    } else if (ms < 19000) {
+      sticks = [...edgeLevel(s, { trim }), 0, 0.75];
+    } else if (ms < 21200) {
+      sticks = [1, 0, 0, 0.75];
+    } else if (ms < 22500) {
+      sticks = [...edgeLevel(s, { trim }), 0, 1];
+    } else if (ms < 26000) {
+      sticks = [0, 0.8, 0, 1];
+    } else if (ms < 27500) {
+      sticks = [edgeRoll(s), nose(0), 0, 0.75];
+    } else if (ms < 29500) {
+      sticks = [0, 1, 0, 0];
+    } else if (ms < 32000) {
+      sticks = [0, 1, 1, 0];
+    } else if (ms < 33500) {
+      sticks = [0, 0, 0, 0];
+    } else {
+      sticks = [edgeRoll(s), nose(0.1), 0, 1];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}

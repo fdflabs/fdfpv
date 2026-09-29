@@ -83,7 +83,12 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * "no hands off inherent stability like a J-3 Cub", "not a beginner's
  * trainer"), but on RCM's travel limits it rolls at under 100 deg/s,
  * stalls straight and lands on a tricycle at 11 m/s: nothing it does
- * needs the P-51's rudder or the aerobats' hands. The Quickie 500 at 7,
+ * needs the P-51's rudder or the aerobats' hands. The Wot 4 at 4, with the
+ * Bombshell and the Zagi: the Stik's British counterpart, but a
+ * taildragger that rolls a quarter faster (pb/2V 0.094 against 0.074 on
+ * the manual's throws) and spins on its big rudder; forgiving, its stall
+ * mushes wings level and the spin stops when the sticks are let go
+ * (docs/WOT4-STAGE1.md). The Quickie 500 at 7,
  * with the P-51: Spickler's "I don't consider the Quicky 500 a trainer,
  * but anyone who has advanced to the aileron stage shouldn't have any
  * problems", and FM's "not intended for the beginner ... someone who has
@@ -117,7 +122,7 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * and not a stick one, so it sits after the Radian and ahead of the fast
  * and the aerobatic. Shared rather than slotted in, so no plane a pilot
  * already has goes back behind a lock. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, quickie1293: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, wot41334: 4, radian2000: 5, bramor2300: 6, nrj1490: 6, p51d1450: 7, quickie1293: 7, pitts850: 8, extra1308: 9, edge1524: 10, f16878: 11 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;

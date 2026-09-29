@@ -396,5 +396,19 @@ export const PROP_ESTIMATES = {
         rpmNoLoad: 11154.2
       }
     }
+  },
+  wot41334: {
+    stock: {
+      "12x6e": {
+        thrustN: 26.0555,
+        pitchSpeedMs: 22.3697,
+        currentA: 36.076
+      },
+      "12x8e": {
+        thrustN: 28.7309,
+        pitchSpeedMs: 29.0184,
+        currentA: 45.031
+      }
+    }
   }
 };

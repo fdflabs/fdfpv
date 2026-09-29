@@ -72,6 +72,7 @@ const PLANES = [
    * grass's 1.86, so it rolls out for 25 s. */
   { name: 'quickie', id: 22, hx: 0.40, hy: 0.6467, down: 0.041, up: 0.050, land: 12, rollMs: 25000, nose: 13, toss: 13, tossSticks: [0, 0.05, 0, 1], wheels: { restPitchDeg: 6.47, restZ: 0.1326 } },
   /* The F-16 lands fast and rolls long: a clean jet on small wheels. */
+  { name: 'wot4', id: 20, hx: 0.40, hy: 0.667, down: 0.06, up: 0.09, land: 10, nose: 11, toss: 11, tossSticks: [0, 0.1, 0, 0.7], wheels: { restPitchDeg: 12.56, restZ: 0.2127 } },
   { name: 'f16', id: 16, hx: 0.42, hy: 0.439, down: 0.06, up: 0.07, land: 14, rollMs: 30000, nose: 16, toss: 16, tossSticks: [0, 0.2, 0, 1], wheels: { restPitchDeg: 0, restZ: 0.140 } },
 ];
 

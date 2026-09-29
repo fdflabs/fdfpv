@@ -256,6 +256,17 @@ planes.FW_UGLYSTIK1567 = {
   note: 'a_w 4.427, a_t 3.880, V_H 0.435, deps/dalpha 0.416 (DATCOM), its own arms',
 };
 
+/* The Wot 4, docs/WOT4-STAGE1.md and scripts/wot4-derive.js: the
+ * manual's 82 mm CG, 11 mm behind the constant chord's aerodynamic centre,
+ * and the tail's share from the derivation's a_w, a_t, V_H and DATCOM's
+ * downwash. */
+planes.FW_WOT41334 = {
+  arm_ac: 0.0374,
+  arm_cp: 0.1126,
+  dw: 0.9 * 0.405 * 4.138 * 0.427 / 4.401,
+  asym: TE_TOLERANCE / 0.2853,
+  note: 'a_w 4.401, a_t 4.138, V_H 0.405, deps/dalpha 0.427 (DATCOM), its own arms',
+};
 /* OA Composites' NRJ, scripts/dlg-derive.js: the manual's 66 mm CG on
  * the elliptic planform's mean chord, 0.1378 m, whose leading edge is
  * 24.5 mm behind the root's; the tail measured off Hyperflight's
@@ -334,6 +345,8 @@ const STRIPS = {
   /* Constant chord; the raked tips over the outer 2.9 of 30.9 in are left
    * out, as the Kadet's rounding is. */
   FW_UGLYSTIK1567: strips(rect),
+  /* Constant chord; the rounded tips left out, as the Kadet's are. */
+  FW_WOT41334: strips(rect),
   /* The NRJ's elliptic chord, the tips' last few millimetres of rounding
    * left out. */
   FW_NRJ1490: strips((eta) => Math.sqrt(1 - eta * eta)),
@@ -396,6 +409,11 @@ const SECTION = {
    * on its 0.33 m chord): the NACA 2415's at 2e5, the thick section here
    * that stalls from the trailing edge, held +4.2 deg then 0.76. */
   FW_UGLYSTIK1567: { sec: 'NACA 2415 at 2e5', top: 4.2, k: 0.76 },
+  /* A semi-symmetrical sport section of about 14 percent at 1.8e5 (9.3
+   * m/s on 0.285 m), the NACA 2415 standing for it: held +2.9 deg at 1e5
+   * and +4.2 at 2e5, interpolated +3.94; 0.765 and 0.76 of the peak after,
+   * 0.76. */
+  FW_WOT41334: { sec: 'NACA 2415 at 1.8e5', top: 3.94, k: 0.76 },
   /* A 6 percent F3K section at 5e4, thinner than the SD7037 (9.2
    * percent), which at 6e4 holds 1.8 deg: a thin section's bubble bursts
    * at its leading edge, so ESTIMATED sharper, held 1 deg and falling to

@@ -271,6 +271,7 @@ typedef struct {
 #define SIM_AIRFRAME_ZAGI1219 17
 #define SIM_AIRFRAME_PITTS850 18
 #define SIM_AIRFRAME_UGLYSTIK1567 19
+#define SIM_AIRFRAME_WOT41334 20
 #define SIM_AIRFRAME_NRJ1490 21
 #define SIM_AIRFRAME_QUICKIE1293 22
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
@@ -949,6 +950,7 @@ extern const FixedWingParams FW_F16878;
 extern const FixedWingParams FW_PITTS850;
 extern const FixedWingParams FW_ZAGI1219;
 extern const FixedWingParams FW_UGLYSTIK1567;
+extern const FixedWingParams FW_WOT41334;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_QUICKIE1293;
 

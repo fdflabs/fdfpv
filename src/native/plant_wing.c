@@ -3946,6 +3946,116 @@ const FixedWingParams FW_PITTS850 = {
   .bip_kx = { 0.02256, 0.02256 },
 };
 
+/* The Wot 4, Chris Foss's club sport aerobat, docs/WOT4-STAGE1.md, where
+ * each number has its formula and source and the estimated ones say so:
+ * the Ripmax Wot 4 Mk2 ARTF's 1334 mm constant chord wing, flat and on top
+ * of a slab sided box, strip ailerons, a big rudder, at the ARTF manual's
+ * throws, on Foss's own electric conversion (an AXI 4120/14 and an APC 13
+ * x 8 on 4S), 1.5 times its weight in thrust; a semi-symmetrical section
+ * whose rectangular wing stalls at the root first, so it mushes wings
+ * level. A taildragger on an aluminium strap. */
+const FixedWingParams FW_WOT41334 = {
+  .mix = FW_MIX_TAIL,
+  .span = 1.334,          /* Ripmax, 1334 mm */
+  .area = 0.38064,        /* Chris Foss, 590 sq in */
+  .chord = 0.2853,        /* S/b */
+  .cl_alpha = 4.752,      /* wing and tail, DATCOM downwash */
+  .cl_max = 1.098,        /* 0.9 of the NACA 2415's 1.22 at 2e5, the section's class */
+  /* The zero lift line 1.96 deg under the body axis: the section's -2.0
+   * deg at no incidence, less the tail's share. sin and cos of it, to 17
+   * digits. */
+  .alpha_zl = -0.03424594374823366,
+  .sin_zl = -0.034239250287810941,
+  .cos_zl = 0.99941366497548378,
+  .cd0 = 0.040,           /* film on a built up frame, an open cowl, bare wheels on a strap */
+  .k_induced = 0.08729,   /* 1/(pi 0.78 4.675) */
+  .cl_de = -0.3683,
+  .cy_beta = -0.3879,
+  .cy_dr = 0.2335,
+  .cl_beta = -0.0504,     /* no dihedral: the shoulder wing's and the fin's */
+  .cl_p = -0.5501,
+  .cl_da = 0.2910,
+  .cl_r_per_cl = 0.25,
+  .cl_dr = 0.0224,
+  .cm_0 = 0.0505,         /* level at 3/4 throttle with the elevator neutral */
+  .cm_alpha = -0.7573,    /* static margin 0.159 at the manual's 82 mm */
+  .cm_q = -7.430,
+  .cm_de = 0.9060,
+  .cn_beta = 0.1643,      /* the big fin and rudder, less the box's */
+  .cn_r = -0.2161,
+  .cn_p_per_cl = -0.125,
+  .cn_da_per_cl = -0.12,
+  .cn_dr = -0.1316,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The ARTF manual's throws at the surfaces' widest chords: ailerons 9
+   * mm on 43, elevator 15 on 57, rudder 45 on 89. */
+  .throw_a = 12.08 * WING_PI / 180.0,
+  .throw_e = 15.26 * WING_PI / 180.0,
+  .throw_r = 30.37 * WING_PI / 180.0,
+  .surface_max = 12.08 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 34.323, /* N, AXI's 3,500 g for the 4120/14 on 4S with a 13 x 8 */
+  .pitch_speed = 28.119,
+  .rpm_no_load = 9768.0,
+  .torque_arm = 0.01471,  /* 439 W of disc power at 8,303 rpm is 0.505 N m at 34.3 N */
+  .thrust_z = 0.0,        /* the thrust line through the CG, ESTIMATED */
+  .pfactor = 1.89,        /* the Extra's blade element figure on a 13 in prop */
+  .current_full = 55.0,   /* AXI's 55 A for 60 s */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  /* The Cub's loops, the roll's doubled for ailerons half as strong for
+   * the roll inertia they turn. */
+  .stab_roll_kp = 2.4,
+  .stab_roll_kd = 0.24,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 8.89 * WING_PI / 180.0, /* to its power off glide, npm run stab:glide */
+  .stab_trim_throttle = 0.748, /* the stick that flies it level, elevator neutral */
+  .acro_roll_rate = 180.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 70.0 * WING_PI / 180.0, /* under the accelerated stall at the trim, 80 deg/s */
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 6.0,
+  .acro_roll_kd = 0.50,
+  .acro_roll_ff = 0.50,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 4.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.5,     /* the Cub's 3.0 over a rudder six times its authority */
+  /* Past the stall, docs/STALL-STAGE1.md and scripts/stall-derive.js. */
+  .stall_arm_ac = 0.0374, /* the manual's 82 mm, 11 mm behind the wing's aerodynamic centre */
+  .stall_arm_cp = 0.1126,
+  .stall_dw = 0.1463,
+  .stall_asym = 0.003505,
+  .stall_k = 0.76,
+  .stall_top = 3.94 * WING_PI / 180.0,
+  .strip_c = { 1.0, 1.0, 1.0, 1.0 },
+  .washout = 0.0,         /* a flat wing, untwisted */
+  .strip_tau = { 0.126, 0.330, 0.330, 0.209 }, /* the strip ailerons' share of each strip */
+  .surf_knee = 0.5,       /* DATCOM's K', the Edge's */
+  /* The slipstream, the Extra's (scripts/wot4-derive.js): the 13 in prop;
+   * the stabiliser's half span, the rudder over the thrust line, the
+   * ailerons' span; the tail's shares, its zero lift at the trim. */
+  .slip_r = 0.1651,
+  .slip_yh = 0.246,
+  .slip_hv = { 0.258, 0.0 },
+  .slip_ya = { 0.103, 0.606 },
+  .slip_a0 = 0.0325,
+  .slip_cl_a = 0.3519,
+  .slip_cm_a = -0.8657,
+  .slip_cn_b = 0.1828,
+  .slip_cn_r = -0.2061,
+  .slip_cy_b = -0.3243,
+  .slip_cl_b = -0.0311,
+  .side_cda = 0.1092,     /* the box's side at the crossflow's 1.2 times 0.7 */
+};
+
 /* Glen Spickler's Quickie 500 as American Aircraft Modeler published it
  * in December 1972 and Glen Spickler Radiomodels kitted it,
  * docs/QUICKIE-STAGE1.md, where each number has its formula and source
