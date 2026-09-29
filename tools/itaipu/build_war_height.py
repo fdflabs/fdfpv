@@ -23,8 +23,11 @@
 # to the rise within 50 m on slopes, which only makes a hunter cautious;
 # scripts/warhunt-check.js measures both against finestAt.
 #
-# Run: uv run python build_war_height.py (reads ITAIPU_DATA, by default
-# ~/Desktop/fdfpv-itaipu-data, and writes into this repository).
+# Run: uv run python build_war_height.py. It reads the data folder named
+# by FDFPV_ITAIPU_DATA (the override scripts/serve.js and
+# scripts/warhunt-check.js read), else the pipeline's ITAIPU_DATA
+# (common.py), else ~/Desktop/fdfpv-itaipu-data, and writes into this
+# repository.
 #
 # This file is part of WebFPVSimulator.
 #
@@ -42,13 +45,16 @@
 # along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
 
 import json
+import os
+import sys
 from pathlib import Path
 
 import numpy as np
 import shapely
 from scipy import ndimage
 
-from common import DATA, HERO_CELL, HERO_HALF, HERO_I, HERO_J, RESERVOIR_Y, RIVER_Y, TILE_CELLS, TILE_SAMPLES
+import common
+from common import HERO_CELL, HERO_HALF, HERO_I, HERO_J, RESERVOIR_Y, RIVER_Y, TILE_CELLS, TILE_SAMPLES
 
 CELL = 40.0
 N = int(2 * HERO_HALF / CELL)
@@ -58,6 +64,17 @@ FAN = int(CELL / HERO_CELL)
 REACH = FAN + 1
 OUT = Path(__file__).resolve().parents[2] / 'src' / 'share' / 'war' / 'itaipu-height.bin'
 LEVELS = {'reservoir': RESERVOIR_Y, 'river': RIVER_Y}
+DATA = Path(os.environ.get('FDFPV_ITAIPU_DATA') or common.DATA).expanduser().resolve()
+
+
+def need_data():
+    """Exit with the folder named when it lacks a file this build reads."""
+    need = ['manifest.json', 'water.json', 'dam.json'] + [f'hero/{i}_{j}.bin' for j in HERO_J for i in HERO_I]
+    missing = [f for f in need if not (DATA / f).is_file()]
+    if missing:
+        sys.exit(f'build_war_height: {DATA} has no {missing[0]}'
+                 f'{f" (and {len(missing) - 1} more)" if len(missing) > 1 else ""}; '
+                 'point FDFPV_ITAIPU_DATA at a complete copy of fdfpv-itaipu-data')
 
 
 def hero_heights():
@@ -101,6 +118,7 @@ def fold_dam(h):
 
 
 def main():
+    need_data()
     h = fold_dam(fold_water(hero_heights()))
     peak = ndimage.maximum_filter(h, size=2 * REACH + 1, mode='nearest')
     centre = FAN // 2
