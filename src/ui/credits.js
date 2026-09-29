@@ -391,6 +391,19 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
   park.append(parkList);
   host.append(park);
 
+  /*
+   * Itaipu is built from open data under four licences, each of which
+   * asks for its notice where the map is shown (docs/ITAIPU-PLAN.md
+   * section 15). The notices are given as their licensors wrote them.
+   */
+  const dam = section(str('credits.itaipu'), str('credits.itaipu_heading'));
+  const damList = el('div', 'credit-rooms');
+  for (const key of ['credits.it_anadem', 'credits.it_glo30', 'credits.it_sentinel', 'credits.it_osm']) {
+    damList.append(el('p', 'credit-room', str(key)));
+  }
+  dam.append(damList);
+  host.append(dam);
+
   const horde = section(str('credits.the_horde'), str('credits.written_with_grok_built_with_claude'));
   const ai = el('div', 'credit-row pair');
   const grokBody = el('p');
