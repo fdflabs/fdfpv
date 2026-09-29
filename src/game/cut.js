@@ -231,6 +231,24 @@ const Q = new Float64Array(3);
 const SB = { d: 0, u: 0 };
 const UNION = new Float64Array(6);
 
+/* Metres a part's sphere test leaves to segmentBox: far above rounding,
+ * far below anything a cut is decided by. */
+const SPHERE_SLACK_M = 1e-6;
+
+/* The squared distance from the point c to the segment p..q. */
+function pointSegment2(c, p, q) {
+  const dx = q[0] - p[0];
+  const dy = q[1] - p[1];
+  const dz = q[2] - p[2];
+  const len2 = dx * dx + dy * dy + dz * dz;
+  const along = len2 > 0 ? ((c[0] - p[0]) * dx + (c[1] - p[1]) * dy + (c[2] - p[2]) * dz) / len2 : 0;
+  const u = Math.min(1, Math.max(0, along));
+  const ex = p[0] + dx * u - c[0];
+  const ey = p[1] + dy * u - c[1];
+  const ez = p[2] + dz * u - c[2];
+  return ex * ex + ey * ey + ez * ez;
+}
+
 /* Node i of the streamer at t, between frames fa and fb, into out. */
 function nodeAt(fa, fb, t, i, out) {
   const span = fb.t - fa.t;
@@ -346,6 +364,14 @@ export function judgeCut(hA, tA, tB, sB, t0, t1, links, reach = REACH_M) {
           CEN[0] = PA.px + bx * AX[0] + by * AX[3] + bz * AX[6];
           CEN[1] = PA.py + bx * AX[1] + by * AX[4] + bz * AX[7];
           CEN[2] = PA.pz + bx * AX[2] + by * AX[5] + bz * AX[8];
+          /* The part's sphere (half diagonal rho) is a bound on the box:
+           * a link that clears the sphere by the reach clears the box, and
+           * segmentBox would only say so forty rounds later. SPHERE_SLACK_M
+           * keeps rounding from ever skipping a box segmentBox would cut. */
+          const clear = H.rho[j] + reach + SPHERE_SLACK_M;
+          if (pointSegment2(CEN, P, Q) > clear * clear) {
+            continue;
+          }
           HALF[0] = H.hx[j];
           HALF[1] = H.hy[j];
           HALF[2] = H.hz[j];
