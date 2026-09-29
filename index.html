@@ -4465,6 +4465,22 @@
         margin-top: 8px; font-size: clamp(28px, 4vw, 46px); font-weight: 800; letter-spacing: 0.005em; line-height: 1;
       }
       .hangar-facts { justify-content: flex-start; margin-top: 12px; }
+      /* The Floats toggle, a pill beside the span and the weight: outlined
+         off, filled on. */
+      .hangar-floats {
+        display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+        font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; color: var(--cream);
+        padding: 6px 12px; border-radius: 999px;
+        background: rgba(12, 18, 14, 0.55); border: 1px solid rgba(243, 234, 212, 0.45);
+      }
+      .hangar-floats::before {
+        content: ''; width: 22px; height: 12px; border-radius: 999px;
+        background: rgba(243, 234, 212, 0.25) radial-gradient(circle at 6px 6px, var(--cream) 4px, transparent 5px);
+        transition: background-color 160ms;
+      }
+      .hangar-floats.on { color: var(--amber); border-color: rgba(255, 212, 92, 0.7); }
+      .hangar-floats.on::before { background: var(--amber) radial-gradient(circle at 16px 6px, #10160f 4px, transparent 5px); }
+      .hangar-floats:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
       .hangar-tabs { position: relative; }
       .hangar-tab-pill {
         position: absolute; top: 3px; left: 3px; height: calc(100% - 6px); width: 0;
@@ -4605,8 +4621,6 @@
         border: 1px solid rgba(243, 234, 212, 0.35); transition: background 160ms, box-shadow 160ms;
       }
       .parts-toggle.on::after { background: var(--mint); border-color: var(--mint); box-shadow: 0 0 10px rgba(125, 255, 180, 0.7); }
-      .parts-link { border-style: dashed; }
-      .parts-link:disabled { opacity: 0.5; cursor: default; transform: none; }
       .parts-damage { display: flex; flex-direction: column; gap: 6px; }
       .parts-damage-row {
         display: flex; align-items: center; justify-content: space-between; gap: 10px;
@@ -4810,13 +4824,13 @@
         .hangar-body { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 32vh) minmax(0, 1fr); gap: 10px; }
         .hangar-schemes { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
         .hangar-panel { gap: 8px; padding-left: 16px; padding-right: 16px; }
-        .hangar-facts { display: none; }
+        .hangar-facts:not(:has(.hangar-floats)), .hangar-facts .carousel-fact { display: none; }
       }
       /* A short screen, a phone on its side: the words give way. */
       @media (max-height: 520px) {
         .hangar-panel { gap: 6px; padding-top: max(8px, env(safe-area-inset-top)); padding-bottom: max(8px, env(safe-area-inset-bottom)); }
         .hangar-name { font-size: 22px; margin-top: 4px; }
-        .hangar-facts, .hangar .carousel-hint { display: none; }
+        .hangar-facts:not(:has(.hangar-floats)), .hangar-facts .carousel-fact, .hangar .carousel-hint { display: none; }
         .hangar .carousel-choose, .hangar .carousel-back { padding: 9px 22px; }
       }
 

@@ -35,7 +35,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
+import { AIRFRAMES, airframeById, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
 import { paintable } from '../../configs/liveries.js';
 
@@ -48,18 +48,21 @@ export function kindOf(id) {
 }
 
 /* The aircraft a tab shows, in configs/airframes.js order, which is the
- * order the menus have always listed them in. */
+ * order the menus have always listed them in. A float version is not a
+ * card of its own: it is its land plane with the hangar's Floats toggle
+ * on (configs/airframes.js floatVersionOf). */
 export function pickList(filter) {
   return AIRFRAMES
-    .filter((a) => filter === 'all' || kindOf(a.id) === filter)
+    .filter((a) => !isFloatVersion(a.id) && (filter === 'all' || kindOf(a.id) === filter))
     .map((a) => a.id);
 }
 
 /* The next aircraft for the direct cycle, [ and ]: every aircraft, round
- * and round, so two keys reach all of them without an overlay. */
+ * and round, so two keys reach all of them without an overlay. It answers
+ * with the card's id, the land plane; the caller seats its floats. */
 export function cycleCraft(id, dir) {
   const ids = pickList('all');
-  const i = Math.max(0, ids.indexOf(id));
+  const i = Math.max(0, ids.indexOf(landPlaneOf(id)));
   return ids[(i + dir + ids.length) % ids.length];
 }
 
@@ -346,7 +349,7 @@ export class Carousel {
     this.warnEl.hidden = !warn;
     this.filter = PICK_FILTERS.includes(filter) ? filter : 'all';
     this.ids = pickList(this.filter);
-    const at = this.ids.indexOf(current);
+    const at = this.ids.indexOf(landPlaneOf(current));
     this.index = at >= 0 ? at : 0;
     this.pos = this.index;
     this.vel = 0;

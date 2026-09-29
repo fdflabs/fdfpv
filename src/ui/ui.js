@@ -69,15 +69,15 @@ const CAL_LABELS = {
 };
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
-import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, retiredAirframe, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
+import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
 import { normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
-import { normaliseParts } from '../../configs/hangar-parts.js';
+import { normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
 import './hangar-tuning.js';
-import { setPartsLinks } from './hangar-parts.js';
+import './hangar-parts.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
@@ -771,6 +771,11 @@ const DEFAULTS = {
    * the fields the pilot moved off stock. Written by the hangar's Tuning
    * tab (src/ui/hangar-tuning.js); a plane with no entry flies its table. */
   tuning: {},
+  /* The hangar's Floats toggle, by land plane id, true for on: a land plane
+   * chosen with it on is seated as its float version
+   * (configs/airframes.js floatVersionOf). Kept in step with the seat by
+   * seatAirframe; only planes that have a float version have an entry. */
+  floats: {},
   /*
    * How heavy the quad is, as a percentage of the weight the airframe is
    * flown at. See WEIGHT_STOCK above. 100 is the shipped machine and the
@@ -1043,6 +1048,7 @@ export function loadSettings() {
    * are dropped back to stock (configs/power.js). */
   s.power = normalizePower(s.power);
   s.parts = normaliseParts(s.parts);
+  s.floats = normaliseFloats(s.floats, s.airframe);
   /* And the tuning, against the limits that power choice gives: a glow
    * engine has no pack to slide. */
   s.tuning = normalizeTuning(s.tuning, (id) => setupFor(id, powerChoice(id, s.power)).limits);
@@ -1335,9 +1341,57 @@ function reseatIfForeign(s) {
  */
 export const FIRST_AIRFRAME = 'timber1500';
 
+/*
+ * The Floats toggles as loadSettings keeps them: true or false for a land
+ * plane that has a float version, nothing else. A profile seated on a
+ * float version, as every one that chose the float card before the toggle
+ * existed is, has that plane's toggle on.
+ */
+export function normaliseFloats(stored, airframe) {
+  const out = {};
+  if (stored && typeof stored === 'object' && !Array.isArray(stored)) {
+    for (const [id, on] of Object.entries(stored)) {
+      if (floatVersionOf(id) && typeof on === 'boolean') {
+        out[id] = on;
+      }
+    }
+  }
+  if (isFloatVersion(airframe)) {
+    out[landPlaneOf(airframe)] = true;
+  }
+  return out;
+}
+
+/* The airframe a picked card seats: the land plane, or its float version
+ * when that plane's Floats toggle is on. */
+export function withFloats(s, id) {
+  const f = floatVersionOf(id);
+  return f && s.floats && s.floats[id] ? f : id;
+}
+
 export function seatAirframe(s, id) {
   const from = airframeById(s.airframe);
   const to = airframeById(id);
+  /*
+   * ONE PLANE, ON ITS WHEELS OR ITS FLOATS. Between a land plane and its
+   * float version the Floats toggle follows the seat, and the pilot's
+   * power, prop and bench setup go across where the other one takes them
+   * (paint is already shared, by liveryKey, and the tune by tunesOf). The
+   * normalisers are the judges of "takes them", so nothing the other
+   * cannot fly is carried.
+   */
+  if (floatVersionOf(to.id) || isFloatVersion(to.id)) {
+    s.floats = { ...(s.floats && typeof s.floats === 'object' ? s.floats : {}), [landPlaneOf(to.id)]: isFloatVersion(to.id) };
+  }
+  if (from.id !== to.id && landPlaneOf(from.id) === landPlaneOf(to.id)) {
+    const carry = (o) => (o && Object.hasOwn(o, from.id) ? { ...o, [to.id]: o[from.id] } : o);
+    s.power = normalizePower(carry(s.power));
+    const part = normalisePlane(to.id, s.parts && s.parts[from.id]);
+    if (part) {
+      s.parts = { ...s.parts, [to.id]: part };
+    }
+    s.tuning = normalizeTuning(carry(s.tuning), (x) => setupFor(x, powerChoice(x, s.power)).limits);
+  }
   /* The tune goes with the aircraft it was flown on and comes back with it.
    * A fresh object every time: the stored one may be DEFAULTS' own. */
   const tuneFor = { ...(s.tuneFor && typeof s.tuneFor === 'object' ? s.tuneFor : {}), [from.id]: s.tune };
@@ -13176,7 +13230,8 @@ export class Ui {
       title: way.label,
       hint: this.pickHint(),
       onCustomise: (id, reopen) => this.openHangar(id, reopen),
-      onChoose: (id) => {
+      onChoose: (card) => {
+        const id = withFloats(s, card);
         const chosen = way.airframes.includes(id) ? way : (WAYS.find((w) => w.airframes.includes(id)) ?? way);
         this.act(chosen.action, id);
       },
@@ -13193,7 +13248,8 @@ export class Ui {
       filter: kindOf(s.airframe),
       hint: this.pickHint(),
       onCustomise: (id, reopen) => this.openHangar(id, reopen),
-      onChoose: (id) => {
+      onChoose: (card) => {
+        const id = withFloats(s, card);
         if (id === s.airframe) {
           this.renderMenu();
           return;
@@ -13236,8 +13292,8 @@ export class Ui {
       warn: this.swapWarning ? this.swapWarning() : '',
       hint: this.pickHint(),
       onCustomise: (id, reopen) => this.openHangar(id, reopen),
-      onChoose: (id) => {
-        this.swapTo(id).then(() => this.act('resume'));
+      onChoose: (card) => {
+        this.swapTo(withFloats(this.settings, card)).then(() => this.act('resume'));
       },
       onCancel: () => {
         if (from === 'flight') {
@@ -13259,7 +13315,10 @@ export class Ui {
    * shut either way: the picker opens again on the same plane, the pause
    * menu redraws.
    */
-  openHangar(id, after = null) {
+  openHangar(card, after = null) {
+    /* A plane with a float version opens on the version its toggle names,
+     * whichever of the two it was asked for. */
+    const id = withFloats(this.settings, landPlaneOf(card));
     if (!paintable(id) || this.hangar.isOpen) {
       return;
     }
@@ -13276,17 +13335,42 @@ export class Ui {
       }
     };
     const power = this.hangarPower ? this.hangarPower(id) : null;
-    /* The Parts tab's floats: the hangar again on the twin, shut quietly
-     * so `after` waits for that one. */
-    setPartsLinks((to) => {
-      if (this.hangar.isOpen) {
-        this.hangar.close();
-        preview(null);
-        this.openHangar(to, after);
+    /*
+     * THE FLOATS TOGGLE, beside the span and the weight: remembered for this
+     * plane, and when it is the seated one it seats the other version at
+     * once, in place in a run as the picker's swap does. The hangar then
+     * opens again on the version the toggle names, shut quietly first so
+     * `after` waits for that one.
+     */
+    const land = landPlaneOf(id);
+    const onFloats = floatVersionOf(land) ? (on) => {
+      const to = on ? floatVersionOf(land) : land;
+      s.floats = { ...s.floats, [land]: on };
+      this.hangar.close();
+      preview(null);
+      const reopen = () => this.openHangar(to, after);
+      if (landPlaneOf(s.airframe) !== land || s.airframe === to) {
+        this.persistSettings();
+        reopen();
+      } else if (this.returnTo === 'paused' && this.onHotSwap) {
+        /* A swap the run refuses leaves the plane as it was, and the toggle
+         * with it, so the hangar never says floats on a plane on wheels. */
+        this.swapTo(to).then((ok) => {
+          if (ok !== true) {
+            s.floats = { ...s.floats, [land]: !on };
+          }
+          this.persistSettings();
+          reopen();
+        });
+      } else {
+        seatAirframe(s, to);
+        this.writeSettings();
+        reopen();
       }
-    });
+    } : null;
     this.hangar.open({
       airframe: id,
+      floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: s.livery[family],
       onLibrary: (list) => {
         const saves = { ...s.liverySaves };
@@ -13354,7 +13438,7 @@ export class Ui {
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
     if (this.onHotSwap && this.screen === 'flight') {
-      this.swapTo(cycleCraft(this.settings.airframe, dir));
+      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir)));
     }
   }
 

@@ -295,8 +295,14 @@ async function partsCheck(page) {
   await page.evaluate(click('tab-parts'));
   await page.until("window.__ui.hangar.tab === 'parts'", 5000);
   const cards = await page.evaluate("[...document.querySelectorAll('.hangar-side [data-key]')].map((b) => b.dataset.key)");
-  say(['prop-stock', `prop-${prop}`, 'prop-11x55e', ...fit.map((a) => `addon-${a}`), 'addon-floats'].every((k) => cards.includes(k)),
-    `the Parts tab offers the Cub's props, its add-ons and its floats: ${cards.join(', ')}`);
+  say(['prop-stock', `prop-${prop}`, 'prop-11x55e', ...fit.map((a) => `addon-${a}`)].every((k) => cards.includes(k)) && !cards.includes('addon-floats'),
+    `the Parts tab offers the Cub's props and its add-ons, and the floats are not a part: ${cards.join(', ')}`);
+  const toggle = await page.evaluate(`(() => {
+    const b = document.querySelector('.hangar-facts [data-key="floats"]');
+    return b ? { on: b.getAttribute('aria-checked'), beside: [...b.parentNode.children].filter((c) => c.classList.contains('carousel-fact')).length } : null;
+  })()`);
+  say(Boolean(toggle) && toggle.on === 'false' && toggle.beside === 2,
+    `the Cub on its wheels has the Floats toggle, off, beside its span and weight: ${JSON.stringify(toggle)}`);
   for (const a of fit) {
     await page.evaluate(click(`addon-${a}`));
   }
