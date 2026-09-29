@@ -13,6 +13,13 @@
  *     rest on the roof, not on the road beside it, and stays there. (It
  *     rests there held by the car's box in the colliders; the shell's
  *     `landed` is the judgement for ground and roofs, so it is not asked.)
+ *  b. In a room the traffic runs on the room's clock. The pilot's own lap
+ *     clock is zeroed by R, and the traffic used to be a function of it,
+ *     so a pilot who pressed R saw every car jump back to where it starts
+ *     while everyone else in the room saw it drive on. In a room (a rooms
+ *     server started here, edge/rooms/node.js), R leaves the PostAuto
+ *     where the room's clock puts it, and the clock the world is drawn at
+ *     is the room's.
  *  c. The replay draws the traffic at the clock each frame was flown at.
  *     It used to draw the world at the lap clock frozen when the replay
  *     opened, so every frame of the clip had the cars where they were at
@@ -39,12 +46,15 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { dirname } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { startRooms } from '../edge/rooms/node.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -218,27 +228,58 @@ async function replay(page) {
   await page.until('!window.__crashCam.live()', WAIT);
   await frames(page, 3);
   const back = await traffic(page);
-  check('closed, the world is drawn at the live clock again', back && back.drawn === back.lap, back ? JSON.stringify(back) : 'no __traffic');
+  check('closed, the world is drawn at the live clock again', back && back.drawn === back.lap + back.offset, back ? JSON.stringify(back) : 'no __traffic');
+}
+
+async function room(page) {
+  console.log('b. in a room the traffic runs on the room\'s clock');
+  const code = await page.evaluate('window.__roomCreate()');
+  await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", WAIT);
+  check('a room made and joined', /^[A-Z0-9]{6}$/.test(code), code);
+  /* The PostAuto at its stop on the room's clock, whatever the lap clock. */
+  await page.until(`window.__rooms().roomNow >= ${BUS_STOP_MS}`, WAIT);
+  await frames(page, 3);
+  const t0 = await traffic(page);
+  check('the world is drawn at the room\'s clock', t0 && Math.abs(t0.drawn - t0.room) < 250, t0 ? `drawn ${t0.drawn.toFixed(0)} ms, room ${t0.room.toFixed(0)} ms, lap ${t0.lap} ms` : 'no __traffic');
+  const before = await bus(page);
+  await page.tap('KeyR');
+  await page.until('window.__traffic ? window.__traffic().lap < 2000 : true', WAIT);
+  await frames(page, 3);
+  const after = await bus(page);
+  const t1 = await traffic(page);
+  const room1 = await page.evaluate('window.__rooms().roomNow');
+  check('R zeroes the lap clock and the PostAuto stays where the room has it', dist(before, after) < 1 && room1 < 28000,
+    `${dist(before, after).toFixed(2)} m from ${fmt(before)} to ${fmt(after)}, room clock ${room1.toFixed(0)} ms`);
+  check('after R the world is still drawn at the room\'s clock, not the lap\'s', t1 && Math.abs(t1.drawn - t1.room) < 250 && t1.lap < 2000,
+    t1 ? `drawn ${t1.drawn.toFixed(0)} ms, room ${t1.room.toFixed(0)} ms, lap ${t1.lap} ms` : 'no __traffic');
 }
 
 async function main() {
-  console.log('traffic in sync, on the real page');
-  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=swiss2', seed: seed() });
+  const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-traffic-rooms-'));
+  const rooms = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+  const origin = `http://127.0.0.1:${rooms.port}`;
+  console.log(`traffic in sync, on the real page (rooms at ${origin})`);
+  const page = await openPage({ root, width: 960, height: 540, url: `/index.html?map=swiss2&rooms=${encodeURIComponent(origin)}`, seed: seed() });
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready && window.__crashCam && window.__boot', 300000);
     await frames(page, 3);
     await landing(page);
     await replay(page);
+    await room(page);
     const errors = page.errors.filter((e) => !/ERR_CONNECTION_REFUSED/.test(e));
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await page.close();
+    await rooms.stop();
+    rmSync(scratch, { recursive: true, force: true });
   }
   if (failed) {
     console.log(`check:traffic-sync FAILED (${failed})`);
     process.exit(1);
   }
   console.log('check:traffic-sync ok');
+  /* The emptied room's purge alarm would hold the process ten minutes. */
+  process.exit(0);
 }
 
 await main();
