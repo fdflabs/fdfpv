@@ -422,6 +422,91 @@ function roundSection(check) {
     check('and the paper it took is its new streamer, in the colours it took', JSON.stringify(me.runs) === JSON.stringify([[2, FULL_LINKS - c.keep]]), JSON.stringify(me.runs));
   }
 
+  console.log('combat: a restart gives the tail back (the lead\'s rule, 2026-09-29)');
+  {
+    const r = started();
+    fly(r, 1, 7600, passAt(7000));
+    const recA = r.room.combat.seats.get(1);
+    const recB = r.room.combat.seats.get(2);
+    check('A cuts B: B keeps 19 m, A tows 81', JSON.stringify(recB.runs) === '[[2,19]]' && recA.owed === 81, `${JSON.stringify(recB.runs)} ${recA.owed}`);
+    const views = r.socks.A.got.length;
+    r.send('B', { type: 'combat', op: 'respawn' }, 7700);
+    const told = texts({ got: r.socks.A.got.slice(views) }, 'combat').pop();
+    const bTold = told && told.scores.find((x) => x.seat === 2);
+    check(`B restarts: ${FULL_LINKS} m again, in B's colour, and everyone is told`, JSON.stringify(recB.runs) === JSON.stringify([[2, FULL_LINKS]]) && recB.owed === FULL_LINKS
+      && bTold && bTold.owed === FULL_LINKS && JSON.stringify(bTold.runs) === JSON.stringify([[2, FULL_LINKS]]), JSON.stringify(bTold && bTold.runs));
+    const aWas = JSON.stringify(recA.runs);
+    r.send('A', { type: 'combat', op: 'respawn' }, 7800);
+    check('A restarts towing 81 m, 31 of them captured: it keeps all 81, colours and all', JSON.stringify(recA.runs) === aWas && aWas === '[[1,50],[2,31]]', JSON.stringify(recA.runs));
+    capture(recA, recB, 0);
+    check('A cuts B at the knot: B has nothing left', recB.owed === 0 && recB.runs.length === 0, JSON.stringify(recB.runs));
+    r.send('B', { type: 'combat', op: 'respawn' }, 7900);
+    check(`B, cut to nothing, restarts with ${FULL_LINKS} m`, JSON.stringify(recB.runs) === JSON.stringify([[2, FULL_LINKS]]), JSON.stringify(recB.runs));
+    recB.runs = [[2, 10], [3, 30]];
+    recB.owed = 40;
+    r.send('B', { type: 'combat', op: 'respawn' }, 8000);
+    check('B, cut to 10 m of its own and 30 captured, restarts with 50: its own colour made up at the tow point', JSON.stringify(recB.runs) === '[[2,20],[3,30]]' && recB.owed === 50, JSON.stringify(recB.runs));
+    recA.runs = [[1, 50], [2, 30]];
+    recA.owed = 80;
+    r.send('A', { type: 'combat', op: 'respawn' }, 8100);
+    check('a pilot with 80 m, 30 captured, restarts with 80 m', JSON.stringify(recA.runs) === '[[1,50],[2,30]]' && recA.owed === 80, JSON.stringify(recA.runs));
+    capture(recB, recA, 5);
+    check('and a cut after a restart splits the list the room holds', JSON.stringify(recA.runs) === '[[1,5]]' && JSON.stringify(recB.runs) === '[[2,20],[3,30],[1,45],[2,5]]', `${JSON.stringify(recA.runs)} ${JSON.stringify(recB.runs)}`);
+    let kept = null;
+    for (const x of r.room.combat.broadcast(r.room)) {
+      if (x.store === 'combat') {
+        kept = JSON.parse(JSON.stringify(x.value));
+      }
+    }
+    const fresh = new RoomCore({ ...r.room.meta });
+    fresh.combat.restore(kept);
+    check('a restored tail is kept across a server restart', JSON.stringify(fresh.combat.seats.get(2).runs) === JSON.stringify(recB.runs));
+  }
+  {
+    /* A tear costs the paper for that life; the restart gives it back,
+     * and the owner's short frames until its streamer grows are no tear. */
+    const r = started();
+    fly(r, 1, 3000, away);
+    fly(r, 3001, 4000, away, { links: 10 });
+    const recB = r.room.combat.seats.get(2);
+    check('B tears to 10 m: the room takes the rest off its list', recB.owed === 10, `${recB.owed}`);
+    r.send('B', { type: 'combat', op: 'respawn' }, 4001);
+    fly(r, 4002, 5000, away, { links: 10 });
+    check(`B restarts: ${FULL_LINKS} m, and its 10 m frames until it has grown them are not a tear`, recB.owed === FULL_LINKS && JSON.stringify(recB.runs) === JSON.stringify([[2, FULL_LINKS]]), `${recB.owed}`);
+    fly(r, 5001, 6000, away);
+    check('then it tows them all', recB.owed === FULL_LINKS && recB.links === FULL_LINKS, `${recB.links}`);
+  }
+  {
+    /* Round after round, each with a cut to nothing and a restart. */
+    const r = started();
+    const c = r.room.combat;
+    let every = true;
+    const seen = [];
+    for (let k = 0; k < 6; k += 1) {
+      const t = 10000 + k * 1000;
+      if (k > 0) {
+        c.begin(r.room, t, 3);
+        every &&= [...c.seats.values()].every((x) => x.owed === FULL_LINKS);
+        c.round.state = 'on';
+      }
+      capture(c.seats.get(1), c.seats.get(2), 0);
+      r.send('B', { type: 'combat', op: 'respawn' }, t + 10);
+      seen.push(c.seats.get(2).owed);
+      every &&= JSON.stringify(c.seats.get(2).runs) === JSON.stringify([[2, FULL_LINKS]]);
+    }
+    check(`six rounds, each with B cut to nothing and restarted: ${FULL_LINKS} m every round and every restart`, every, seen.join(','));
+  }
+  {
+    const r = started();
+    capture(r.room.combat.seats.get(1), r.room.combat.seats.get(2), 0);
+    r.room.combat.round.state = 'over';
+    r.send('B', { type: 'combat', op: 'respawn' }, 2000);
+    check('between rounds a restart lays nothing: no paper is towed then', r.room.combat.seats.get(2).owed === 0);
+    r.room.combat.round.state = 'idle';
+    r.send('B', { type: 'combat', op: 'respawn' }, 2100);
+    check('nor with no round', r.room.combat.seats.get(2).owed === 0 && texts(r.socks.B, 'refused').length === 0);
+  }
+
   console.log('combat: the clock and the bonuses');
   {
     const r = makeRoom({}, [['A', '5inch'], ['B', 'cub1400']]);

@@ -19,9 +19,19 @@
  * links its cuts left, so a client that ignored the cut still shows the
  * short streamer. A streamer the owner's frames show shorter than the room
  * owes tore by itself (only above 120 km/h, src/game/streamer.js): the
- * room's list is cut to it, and the torn paper is simply gone. A pilot
- * can always cut and score, paper or none (the lead's and the owner's
- * decision, 2026-09-28).
+ * room's list is cut to it, and the torn paper is gone for that life. A
+ * pilot can always cut and score, paper or none (the lead's and the
+ * owner's decision, 2026-09-28).
+ *
+ * A RESTART GIVES THE TAIL BACK (the lead's rule, 2026-09-29, after the
+ * owner's "after a while, even after restarts, everyone starts back up
+ * without a tail"). The owner's client says { op: 'respawn' } when its
+ * plant starts again (a crash and restart, R, a fresh flight), and the
+ * room tops its list up to FULL_LINKS in the pilot's own colour, at the
+ * tow point; captured paper past that is kept. The room says so to
+ * everyone, so every screen draws the same length and the next cut
+ * splits the right runs. A cut or a tear still costs the paper for the
+ * rest of that life.
  *
  * WHAT OWNS WHAT. The RoomCore owns this object (core.combat); a Durable
  * Object runs one event at a time, so nothing here is shared. The round
@@ -283,10 +293,13 @@ export class RoomCombat {
     return [];
   }
 
-  /* { type: 'combat', op: 'start', minutes } or { op: 'stop' }, the
-   * room's host only, public or private. */
+  /* { type: 'combat', op: 'respawn' } from any pilot; { op: 'start',
+   * minutes } or { op: 'stop' }, the room's host only, public or private. */
   message(core, conn, s, msg, now) {
     const out = this.advance(core, now);
+    if (msg.op === 'respawn') {
+      return [...out, ...this.respawn(core, s.seat)];
+    }
     if (s.seat !== core.host()) {
       return out;
     }
@@ -300,6 +313,21 @@ export class RoomCombat {
       return out;
     }
     return [...out, ...this.begin(core, now, msg.minutes)];
+  }
+
+  /* A pilot's plant started again: its list topped up to FULL_LINKS, the
+   * new links its own colour at the tow point, where a fresh roll's are.
+   * The owner's streamer grows to it from the view (roomcombat.js
+   * follow()), as it does for a capture, so a client that never sends
+   * this still draws what the room holds. */
+  respawn(core, seat) {
+    const rec = this.seats.get(seat);
+    if (!this.on() || !rec || rec.owed >= FULL_LINKS) {
+      return [];
+    }
+    [rec.runs] = appendRuns([[seat, FULL_LINKS - rec.owed]], rec.runs);
+    rec.owed = FULL_LINKS;
+    return this.broadcast(core);
   }
 
   /* A STREAMER frame from seat s: kept, trimmed to what the room owes it,
