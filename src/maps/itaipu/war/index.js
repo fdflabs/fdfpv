@@ -150,7 +150,8 @@ const STATES = ['ok', 'smoke', 'fire', 'destroyed'];
  * from the yard as built. The dam part freezes its targets, so this is a
  * new object with the dam's other entries as they are, not an edit of
  * the dam's. map.setTargetState stays the dam's where there is one: it
- * knows yard-right by id and draws its smoke over its own entry. Where
+ * reads the map's entry when a state is set, so yard-right's smoke and
+ * fire spread over this yard's `fires`. Where
  * the dam names no targets yet (main before its version 2), the map gets
  * yard-right alone and a setTargetState that keeps the state and throws
  * on an unknown id or state, as the dam's does, and draws nothing. The result is on scene.userData.itaipu for the
@@ -181,6 +182,6 @@ export function takeYard(map) {
     };
   }
   it.targets = map.targets;
-  it.setTargetState = map.setTargetState;
+  it.setTargetState = (id, state) => map.setTargetState(id, state);
   return map;
 }

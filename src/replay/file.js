@@ -61,6 +61,13 @@
  * written only when the clip has it, so a clip with neither is still the
  * version before, byte for byte.
  *
+ * Version 7 lets the paper's events carry Catch the Ace's crowns
+ * (src/replay/paper.js CROWN_EVENTS: each crown's burst and each coin).
+ * The layout is version 6's; a clip is written as version 7 only when its
+ * paper holds one of them, so a build before this one refuses such a file
+ * by its version rather than by an event it does not know, and every other
+ * clip is written as before, byte for byte.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -94,9 +101,12 @@ import {
   BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N,
 } from './peers.js';
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
-import { checkPaper, rowsOf } from './paper.js';
+import { CROWN_EVENTS, checkPaper, rowsOf } from './paper.js';
 
-export const FILE_VERSION = 6;
+export const FILE_VERSION = 7;
+/* A clip with an edit of its own or a bubble, and no crown: the version
+ * before crowns. */
+const EDIT_VERSION = 6;
 /* A clip with no edit of its own and no bubble, with paper: the version
  * before those. */
 const PAPER_VERSION = 5;
@@ -105,11 +115,14 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6];
+const READS = [1, 2, 3, 4, 5, 6, 7];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
-  if (realEdit(clip) || bubbleOf(clip)) {
+  if (clip.paper && crowned(clip.paper.events)) {
     return FILE_VERSION;
+  }
+  if (realEdit(clip) || bubbleOf(clip)) {
+    return EDIT_VERSION;
   }
   if (clip.paper) {
     return PAPER_VERSION;
@@ -120,6 +133,11 @@ function versionFor(clip) {
 /* Whether a clip has an edit of its own, not the default one. */
 function realEdit(clip) {
   return Boolean(clip.edit) && !isDefault(clip.edit, clip.time[clip.n - 1], defaultCam(clip.meta.size));
+}
+
+/* Whether a clip's paper events hold a Catch the Ace crown or coin. */
+function crowned(events) {
+  return events.some((e) => e && CROWN_EVENTS.includes(e.type));
 }
 
 /* A clip's bubble column, or null. */
@@ -509,8 +527,15 @@ export function decodeReplay(buf, known = null) {
   if (version < 6 && (header.edit !== undefined || bubbled)) {
     throw new ReplayFileError(header.edit !== undefined ? 'an edit in a file older than version 6' : 'a bubble in a file older than version 6');
   }
-  if (version >= 6 && header.edit === undefined && !bubbled) {
+  if (version === 6 && header.edit === undefined && !bubbled) {
     throw new ReplayFileError('a version 6 file without its edit or a bubble');
+  }
+  const crowns = header.paper !== undefined && Array.isArray(header.paper.events) && crowned(header.paper.events);
+  if (version < 7 && crowns) {
+    throw new ReplayFileError('a crown in a file older than version 7');
+  }
+  if (version >= 7 && !crowns) {
+    throw new ReplayFileError('a version 7 file without a crown');
   }
   if (header.edit !== undefined && header.keys.length) {
     throw new ReplayFileError('a version 6 file with camera keys');

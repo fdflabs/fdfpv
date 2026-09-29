@@ -93,7 +93,9 @@ import { createRoomSafety } from './share/roomsafety.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
-import { tagHudView, tagResultsView, tagRows } from './ui/roomtaghud.js';
+import {
+  createTagShout, tagHudView, tagResultsView, tagRows,
+} from './ui/roomtaghud.js';
 import {
   RoomRaceHud, hudView, raceRows, resultsView, trackName,
 } from './ui/roomhud.js';
@@ -106,6 +108,7 @@ import { applyHit, checkHit, sideFor } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
+import { createCrownFx } from './render/acecrown.js';
 import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
@@ -534,11 +537,12 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 21 (the town is 8 of them,
- * the vegetation 3). The Yellowstone terrain engine and the swiss2 look
- * it is built with are under their own prefixes, as the Alps' modules
- * are for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 23 };
+ * itaipu: itaipu.js and src/maps/itaipu/, 25 (the town is 8 of them,
+ * the vegetation 3, the spawns and the title's flight 2, the war's
+ * switchyard 2). The Yellowstone terrain engine and the swiss2 look it
+ * is built with are under their own prefixes, as the Alps' modules are
+ * for swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 25 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -1547,17 +1551,29 @@ export async function boot({
     return roomSlotSpawn(mapSpawn());
   }
   /* The water body an aircraft on floats starts on when flown free, an
-   * index into view.water: the pilot's choice where a map has more than one
-   * body with a spawn (Itaipu's reservoir and river). Nothing in the shell
-   * offers the choice yet, so it is the map's first body. */
+   * index into view.water: the map's first body on a map that does not
+   * choose its own spawns (spawnFor, below). */
   let floatBody = 0;
+  /*
+   * A map with more than one start (Itaipu: a crest road for the planes, a
+   * field for the quads, the reservoir and the river for the floats, and
+   * one in the air) answers spawnFor(spawn, kind, wish) with the one for
+   * this aircraft, given the view's spawn, which it hands back when that
+   * is a course's start rather than its own. `wish` is the page's ?spawn=,
+   * the one way a pilot picks among them until the shell has a row for it.
+   */
+  const spawnWish = new URLSearchParams(window.location.search).get('spawn');
   function mapSpawn() {
     const sp = view.spawn;
+    if (sp && sp.lift && floatsOnWater()) {
+      return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
+    }
+    if (sp && view.spawnFor) {
+      const kind = floatsOnWater() ? 'float' : airframeById(runAirframe).fixedWing ? 'plane' : 'quad';
+      return view.spawnFor(sp, kind, spawnWish);
+    }
     if (!sp || !floatsOnWater()) {
       return sp;
-    }
-    if (sp.lift) {
-      return floatStart(sp, (x, z) => Boolean(waterAt(x, z)));
     }
     return sp.air ? sp : floatSpawn(view.water, floatBody);
   }
@@ -2402,6 +2418,7 @@ export async function boot({
     raceHoldMs = 0;
     /* Put up again below when there is a live match to put it round. */
     roomTagBubble.set(0);
+    tagBoost();
     /* A ?room= link, or the room this tab was in before a reload: joined
      * once the shell is up, never during boot, because the hello reads
      * the seated aircraft. */
@@ -2446,6 +2463,7 @@ export async function boot({
     }
     tagMarkPeers();
     tagBubble(now, wallMs, scene);
+    tagCrownFrame(scene, dt);
     roomCombat.seated(link.welcome ? link.welcome.seat : 0, runAirframe);
     combatFrame(now, wallMs, scene, dt);
   }
@@ -3294,10 +3312,14 @@ export async function boot({
    * The room judges every touch and counts every point; this screen puts
    * the pilot on their slot for the countdown and holds them there (the
    * race's hold, raceHoldMs), crowns the Ace (tagMarkPeers), shows the
-   * scoreboard (the race's box: a room runs one game at a time) and a
-   * banner at each new crown, and the results when the room says the match
-   * is over. A touch is never a crash: the room sends no mid air hit while
-   * a match is on, so nothing here touches the plant.
+   * scoreboard (the race's box: a room runs one game at a time), and at
+   * each new crown the owner's "almost gamelike" moment: the coin, a gold
+   * burst and ring where it was taken, a crown flying from the old Ace to
+   * the new (src/render/acecrown.js), the bubble snapping over with a
+   * bright pulse, a big banner and an edge flash (tagShout); and the
+   * results when the room says the match is over. A collision in a match
+   * is a mid air crash like any other, judged by the room's referee; the
+   * one thing here that touches the plant is the chase boost (tagBoost).
    */
   /* The host's goal: a preset of GOALS, or 'custom' with its points. */
   let roomTagPick = { preset: GOALS[0].id, custom: 30 };
@@ -3312,10 +3334,108 @@ export async function boot({
   /* The seat the peer marks crown now, or null. */
   let roomTagMarked = null;
   const roomTagBubble = createAceBubble();
+  const tagFx = createCrownFx();
+  const tagShout = createTagShout();
+  /* The newest crown this screen showed: its seat, and the wall ms it
+   * came, for the bubble's pulse. The free orb as last seen, for the
+   * crown that flies out of it when it is caught. */
+  let roomTagCrownSeat = null;
+  let roomTagCrownWall = -Infinity;
+  let roomTagOrbAt = null;
+  const roomTagAt = new THREE.Vector3();
+  /* The bubble's pulse at a new crown: up to twice its brightest, gone
+   * over a few tenths of a second. 2 is the level a replay file allows. */
+  const CROWN_PULSE = 2;
+  const CROWN_PULSE_S = 0.2;
 
   function roomTagHoldMs(now) {
     return roomTagRunId != null && roomTagRunId === roomTag.view().id ? roomTag.holdMs(now) : 0;
   }
+  /*
+   * THE CHASE BOOST (src/share/roomtag.js CHASE_BOOST): every pilot who is
+   * not the Ace flies a live match with the plant's sim_set_boost, set here
+   * on the flight frame the role changes on the room clock, and put back to
+   * 1 the frame the match or the room is over. A call into the plant, so
+   * the crash cam's journal keeps it and a take over flies it again.
+   */
+  function tagBoost() {
+    if (mode !== 'flight' || typeof sim.e.sim_set_boost !== 'function') {
+      return;
+    }
+    const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
+    const want = now == null ? 1 : roomTag.boost(now);
+    if (sim.e.sim_boost() === want) {
+      return;
+    }
+    const code = sim.e.sim_set_boost(want);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_boost refused ${want}: ${simErrorName(code)}`);
+    }
+  }
+
+  /* Where a seat's aircraft is drawn on this screen, or null. */
+  function roomTagSeatAt(seat) {
+    if (seat == null) {
+      return null;
+    }
+    if (seat === roomTag.seat()) {
+      return mode === 'flight' ? shell.quad.position : null;
+    }
+    const peer = roomPeers.get(seat);
+    return peer && peer.rig && peer.rig.group.visible ? peer.rig.group.position : null;
+  }
+
+  /*
+   * A new crown on this screen: the coin, loudest for the new Ace; the
+   * banner; gold round the edge for the new Ace and red for the one it
+   * was taken from; the burst where the new Ace is, and the crown flying
+   * to it from the old Ace, or from the orb it was caught out of.
+   */
+  function roomTagCrowned(crown, text, wallMs) {
+    const me = roomTag.seat();
+    const mine = crown.seat === me;
+    roomTagCrownSeat = crown.seat;
+    roomTagCrownWall = wallMs;
+    if (mode === 'replay') {
+      return;
+    }
+    audio.coin(mine ? 1 : 0.4);
+    tagShout.shout(text);
+    if (mine) {
+      tagShout.flash('gold');
+    } else if (crown.from === me && crown.why === 'tag') {
+      tagShout.flash('red');
+    }
+    const at = roomTagSeatAt(crown.seat);
+    let from = null;
+    if (crown.why === 'catch' && roomTagOrbAt) {
+      from = [roomTagOrbAt.px, roomTagOrbAt.py, roomTagOrbAt.pz];
+    } else {
+      const was = crown.why === 'tag' ? roomTagSeatAt(crown.from) : null;
+      from = was ? [was.x, was.y, was.z] : null;
+    }
+    if (at) {
+      tagFx.play([at.x, at.y, at.z], from, mine ? 1 : 0.7);
+    } else if (from) {
+      tagFx.play(from, null, mine ? 1 : 0.7);
+    }
+  }
+
+  /* The crown's burst, flown on every frame the room is open, after the
+   * bubble: to the new Ace as the bubble is drawn round it. */
+  function tagCrownFrame(scene, dt) {
+    if (!scene) {
+      return;
+    }
+    if (tagFx.group.parent !== scene) {
+      scene.add(tagFx.group);
+    }
+    tagFx.group.visible = mode !== 'replay';
+    const b = roomTagBubble.drawn();
+    const at = b.r > 0 && b.seat !== 0 ? roomTagAt.set(b.x, b.y, b.z) : roomTagSeatAt(roomTagCrownSeat);
+    tagFx.frame(dt, shell.camera, at);
+  }
+
   /* A pilot's name tag, crowned while they are the Ace. */
   function roomTagName(seat, name) {
     return roomTag.ace() === seat ? str('roomtag.ace_name', { name }) : name;
@@ -3344,15 +3464,26 @@ export async function boot({
     const crown = roomTag.takeCrown();
     if (crown) {
       const me = roomTag.seat();
-      let text = str('roomtag.banner_other', { name: roomSeatName(crown.seat) });
+      const caught = crown.why === 'catch';
+      let text = str(caught ? 'roomtag.banner_caught' : 'roomtag.banner_other', { name: roomSeatName(crown.seat) });
       if (crown.seat === me) {
-        text = str('roomtag.banner_you');
+        text = str(caught ? 'roomtag.banner_caught_you' : 'roomtag.banner_you');
       } else if (crown.from === me && crown.why === 'tag') {
         text = str('roomtag.banner_lost', { name: roomSeatName(crown.seat) });
       }
-      notice = { text, untilMs: performance.now() + 2500 };
       roomTagBanner = { ...crown, text };
+      roomTagCrowned(crown, text, wallMs);
     }
+    /* A crashed Ace dropped the crown: said big, red round the edge for
+     * the pilot who dropped it. */
+    const drop = roomTag.takeDrop();
+    if (drop && mode !== 'replay') {
+      tagShout.shout(str('roomtag.hud_loose'));
+      if (drop.from === roomTag.seat()) {
+        tagShout.flash('red');
+      }
+    }
+    roomTagOrbAt = roomTag.orb() || (crown ? null : roomTagOrbAt);
     const done = roomTag.takeResults();
     if (done && (mode === 'flight' || ROOM_SEAT_SCREENS.includes(ui.screen))) {
       if (mode === 'flight') {
@@ -3400,13 +3531,15 @@ export async function boot({
   function tagBubble(now, wallMs, scene) {
     const r = roomTag.bubble();
     const ace = roomTag.ace();
-    const mine = ace === roomTag.seat();
-    const peer = mine ? null : roomPeers.get(ace);
+    const orb = roomTag.orb();
+    const mine = ace != null && ace === roomTag.seat();
     let at = null;
-    if (mine && mode === 'flight') {
-      at = shell.quad.position;
-    } else if (peer && peer.rig && peer.rig.group.visible) {
-      at = peer.rig.group.position;
+    if (orb) {
+      /* Nobody is the Ace: the free orb, where it was dropped, with its
+       * crown (seat 0, src/render/acebubble.js). */
+      at = roomTagAt.set(orb.px, orb.py, orb.pz);
+    } else {
+      at = roomTagSeatAt(ace);
     }
     if (!r || !at || !scene || mode === 'replay') {
       return;
@@ -3423,7 +3556,13 @@ export async function boot({
     if (roomTagBubble.mesh.parent !== scene) {
       scene.add(roomTagBubble.mesh);
     }
-    roomTagBubble.set(r, at.x, at.y, at.z, bubbleLevel(r, near, wallMs / 1000, roomTag.protectedNow(now)), ace);
+    let level = bubbleLevel(r, near, wallMs / 1000, !orb && roomTag.protectedNow(now));
+    /* Snapped over to the new Ace, bright, and settling. */
+    const since = (wallMs - roomTagCrownWall) / 1000;
+    if (!orb && since >= 0) {
+      level = Math.max(level, CROWN_PULSE * Math.exp(-since / CROWN_PULSE_S));
+    }
+    roomTagBubble.set(r, at.x, at.y, at.z, level, orb ? 0 : ace, wallMs / 1000);
   }
 
   function roomTagResultsRows() {
@@ -3478,6 +3617,17 @@ export async function boot({
       run: roomTagRunId,
       marked: roomTagMarked,
       banner: roomTagBanner,
+      /* The coin's voice exists once the sound is up, and every crown
+       * rings it; the burst played and what of it shows; the banners and
+       * edge flashes this page showed. */
+      coin: { voice: Boolean(audio.coinVoice), struck: audio.coins || 0 },
+      fx: tagFx.stats(),
+      shouts: tagShout.said(),
+      shout: tagShout.shown(),
+      flashes: tagShout.flashes(),
+      orb: roomTag.orb(),
+      /* The chase boost the plant flies with now. */
+      boost: typeof sim.e.sim_boost === 'function' ? sim.e.sim_boost() : null,
       bubble: roomTagBubble.mesh.visible ? { ...roomTagBubble.drawn() } : null,
       hud: roomTagHud.key ? JSON.parse(roomTagHud.key) : null,
       results: Boolean(ui.roomResults && ui.screen === 'results' && roomResultsOf === 'tag'),
@@ -3486,14 +3636,19 @@ export async function boot({
     };
   };
   /* Every Ace's bubble in the scene as drawn this frame, the live one or
-   * a replay's (src/replay/peerscene.js): where, how big, how bright. */
+   * a replay's (src/replay/peerscene.js): where, how big, how bright, and
+   * whether it is the free orb. */
   window.__aceBubbles = () => {
     const out = [];
     const scene = shell.quad.parent;
     if (scene) {
       scene.traverse((o) => {
         if (o.name === 'ace-bubble' && o.visible) {
-          out.push({ at: o.position.toArray(), r: o.scale.x, level: o.material.uniforms.uLevel.value });
+          out.push({
+            at: o.position.toArray(), r: o.scale.x, level: o.material.uniforms.uLevel.value,
+            /* The free orb's crown showing inside it. */
+            orb: o.children.some((c) => c.name === 'ace-orb-crown' && c.visible),
+          });
         }
       });
     }
@@ -12860,6 +13015,11 @@ export async function boot({
         peerMarks.away(peer.seat, roomAwayText(peer));
       }
     }
+    /* The free orb in Catch the Ace, pointed at as the Ace is. */
+    const tagOrb = roomTag.orb();
+    if (tagOrb) {
+      peerMarks.orb(str('roomtag.orb_mark'), tagOrb.px, tagOrb.py, tagOrb.pz, roomTag.bubble());
+    }
     peerMarks.end(peerMarkGround);
     /*
      * The thumb sticks live in FLIGHT and nowhere else. Over any menu
@@ -14951,6 +15111,8 @@ export async function boot({
   crashCam.tap(debris);
   /* Combat's paper and its SCHWING, for the replay (src/replay/paper.js). */
   crashCam.tapPaper(combatLayer);
+  /* Catch the Ace's crown burst and its coin, the same way. */
+  crashCam.tapCrown(tagFx);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

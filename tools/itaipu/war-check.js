@@ -215,6 +215,24 @@ async function targetChecks(page) {
     };
     const throws = (f) => { try { f(); return false; } catch (e) { return true; } };
     out.setOk = !throws(() => it.setTargetState('yard-right', 'fire'));
+    /* Where the dam's damage put yard-right's puffs: each on one of this
+     * yard's fires, and every fire used. */
+    const pts = it.parts.dam.group.children.find((c) => c.name === 'itaipu-dam-damage');
+    if (pts && theirs) {
+      const k = Object.keys(theirs).sort().indexOf('yard-right');
+      const a = pts.geometry.getAttribute('position').array;
+      const n = 32;
+      const used = new Set();
+      let off = 0;
+      for (let i = 0; i < n; i += 1) {
+        const p = [a[(k * n + i) * 3], a[(k * n + i) * 3 + 1], a[(k * n + i) * 3 + 2]];
+        let best = Infinity, bj = -1;
+        y.fires.forEach((f, j) => { const d = Math.hypot(p[0] - f[0], p[1] - f[1], p[2] - f[2]); if (d < best) { best = d; bj = j; } });
+        off = Math.max(off, best);
+        used.add(bj);
+      }
+      out.puffs = { n, off, used: used.size, visible: pts.visible };
+    }
     out.damState = dam.targetState ? dam.targetState('yard-right') : null;
     out.burning = dam.stats().burning ?? null;
     out.badState = throws(() => it.setTargetState('yard-right', 'melted'));
@@ -233,6 +251,12 @@ async function targetChecks(page) {
   check(s.setOk && damOk && s.badState && s.badId,
     `target: setTargetState('yard-right', 'fire') ${s.damState ? 'is the dam\'s state, 1 burning, and back to ok after' : 'is kept (no dam damage on this tree)'}; an unknown state and an unknown id throw`,
     `target: setTargetState ok ${s.setOk}, dam state ${s.damState}, burning ${s.burning}, back ${s.back}, bad state threw ${s.badState}, bad id threw ${s.badId}`);
+  if (s.damState !== null) {
+    const p = s.puffs;
+    check(p && p.visible && p.off < 0.01 && p.used === s.fires,
+      `target: on fire, the dam's ${p.n} puffs for yard-right sit on this yard's fires (worst ${p.off.toFixed(4)} m off), all ${p.used} of them used`,
+      `target: yard-right's puffs ${JSON.stringify(p)}, not on its ${s.fires} fires`);
+  }
 }
 
 /* A Timber level into the middle of the fence's longest piece, from

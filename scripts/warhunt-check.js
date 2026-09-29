@@ -23,8 +23,10 @@
  *               room second
  *
  * The floor rows need the Itaipu data folder (FDFPV_ITAIPU_DATA, by
- * default ~/Desktop/fdfpv-itaipu-data); without it they FAIL, so a run
- * without the data cannot pass. The rest reads only the repository.
+ * default ~/Desktop/fdfpv-itaipu-data, as scripts/serve.js reads it);
+ * without it, or with a folder missing a file its manifest lists, they
+ * FAIL with the folder named, so a run without the data cannot pass. The
+ * rest reads only the repository.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -103,11 +105,18 @@ const fmt = (s) => `min ${s.min.toFixed(2)}, mean ${s.mean.toFixed(2)}, p95 ${s.
 
 /* ------------------------------------------------------------ floor */
 
+/* The ground and water from the data folder, or { missing } naming what
+ * the folder lacks: a folder mid rebuild is a FAIL row, not a stack. */
 function groundFromData() {
   if (!existsSync(join(DATA, 'manifest.json'))) {
-    return null;
+    return { missing: 'manifest.json' };
   }
   const manifest = JSON.parse(readFileSync(join(DATA, 'manifest.json'), 'utf8'));
+  const need = ['water.json', ...manifest.hero.tiles.map(([i, j]) => join('hero', `${i}_${j}.bin`))];
+  const missing = need.filter((f) => !existsSync(join(DATA, f)));
+  if (missing.length) {
+    return { missing: `${missing[0]} (${missing.length} of the files its manifest lists are missing)` };
+  }
   const tiles = new Map();
   for (const [i, j] of manifest.hero.tiles) {
     const b = readFileSync(join(DATA, 'hero', `${i}_${j}.bin`));
@@ -128,11 +137,13 @@ function groundFromData() {
   };
 }
 
-const truth = groundFromData();
+const data = groundFromData();
+const truth = data.missing ? null : data;
 
 function floorRows() {
   if (!truth) {
-    check('floor: the Itaipu data folder', false, `${DATA} has no manifest.json; set FDFPV_ITAIPU_DATA`);
+    check('floor: the Itaipu data folder', false,
+      `${DATA} has no ${data.missing}; point FDFPV_ITAIPU_DATA at a complete copy of fdfpv-itaipu-data`);
     return;
   }
   const r = rng(4404);

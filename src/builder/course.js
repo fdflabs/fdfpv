@@ -678,6 +678,13 @@ export function pieceGate(piece, base, quat) {
  * direction of travel, facing through it, on whatever ground is there. A
  * gate flown straight down has no horizontal travel to stand behind, so the
  * top edge of its opening stands in for it.
+ *
+ * `y` is the bottom of the start gate's opening, the height the shell asks
+ * the map's ground from (src/main.js adoptSpawn): a map offers a roof only
+ * within a step of that height, so a start gate standing on a roof (Itaipu's
+ * powerhouse) parks the aircraft on the roof and not on the terrain inside
+ * the building under it. Ground under the spot is answered whatever the
+ * height asked from.
  */
 export function spawnFor(gates) {
   if (!gates.length) {
@@ -697,6 +704,7 @@ export function spawnFor(gates) {
     x: g.centre.x - fx * spawnBack(g),
     z: g.centre.z - fz * spawnBack(g),
     yaw: headingOf(fx, fz),
+    y: g.centre.y - g.aperture.clearH / 2,
   };
 }
 

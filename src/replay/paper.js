@@ -15,7 +15,9 @@
  * its owner's colour), the tow point it was drawn from, the flutter clock,
  * and the chain's nodes. BESIDE THE ROWS, on the recorder's clock: each
  * cut's burst (where, in whose colour, how big) and each SCHWING (how
- * loud).
+ * loud). And Catch the Ace's, which rides the same events: each crown's
+ * burst (where it was taken, where the crown flew from, how big;
+ * src/render/acecrown.js) and each coin (how loud).
  *
  * THE NODES ARE PACKED as the room packs them for the wire
  * (src/share/roomwire.js encodeStreamer): the head as float32, then each
@@ -85,6 +87,20 @@ const ROW_MAX = ROW_HEAD + RIBBONS_MAX * RIBBON_MAX_BYTES;
 const ROW_BUDGET = ROW_HEAD + PAPER_PILOTS * (RIBBON_HEAD + 16 * 2 + 24 + STREAMER_SEGS * 3);
 
 const COLOUR_RE = /^#[0-9a-f]{6}$/;
+/* Each kind of event beside the rows, and its fields. */
+const EVENT_KEYS = {
+  cut: ['t', 'type', 'p', 'colour', 'level'],
+  schwing: ['t', 'type', 'level'],
+  crown: ['t', 'type', 'p', 'from', 'level'],
+  coin: ['t', 'type', 'level'],
+};
+/* The Catch the Ace events, which a file older than version 7 cannot
+ * hold (src/replay/file.js). */
+export const CROWN_EVENTS = ['crown', 'coin'];
+
+function isPoint(p) {
+  return Array.isArray(p) && p.length === 3 && p.every(Number.isFinite);
+}
 
 /* ---- the octahedral direction, as the wire's, without allocating ---- */
 
@@ -304,6 +320,21 @@ export function createPaperRing(capacity) {
     stats.events += 1;
   }
 
+  /* A crown's burst taken at p (world), its crown flown from `from`
+   * (world, or null), `level` big. */
+  function crown(t, p, from, level) {
+    events.push({
+      t, type: 'crown', p: [p[0], p[1], p[2]], from: from ? [from[0], from[1], from[2]] : null, level,
+    });
+    stats.events += 1;
+  }
+
+  /* A coin, `level` loud. */
+  function coin(t, level) {
+    events.push({ t, type: 'coin', level });
+    stats.events += 1;
+  }
+
   /* The newest events after a take over's drop: none later than t. */
   function dropAfter(t) {
     while (events.length && events[events.length - 1].t > t) {
@@ -366,6 +397,8 @@ export function createPaperRing(capacity) {
     draw,
     cut,
     schwing,
+    crown,
+    coin,
     prune,
     dropAfter,
     clear,
@@ -526,11 +559,13 @@ export function checkPaper(paper, n) {
   }
   for (const e of paper.events) {
     const keys = e && typeof e === 'object' ? Object.keys(e) : [];
-    const want = e && e.type === 'cut' ? ['t', 'type', 'p', 'colour', 'level'] : ['t', 'type', 'level'];
-    const ok = e && (e.type === 'cut' || e.type === 'schwing')
+    const want = EVENT_KEYS[e && e.type];
+    const ok = want
       && keys.length === want.length && keys.every((x) => want.includes(x))
       && Number.isFinite(e.t) && Number.isFinite(e.level) && e.level >= 0 && e.level <= 1
-      && (e.type !== 'cut' || (Array.isArray(e.p) && e.p.length === 3 && e.p.every(Number.isFinite) && COLOUR_RE.test(e.colour)));
+      && (!want.includes('p') || isPoint(e.p))
+      && (e.type !== 'cut' || COLOUR_RE.test(e.colour))
+      && (e.type !== 'crown' || e.from === null || isPoint(e.from));
     if (!ok) {
       throw new Error('a paper event is not one');
     }

@@ -171,8 +171,14 @@ export const MARK_CONTRAST = { fillHalo: 7, background: 3 };
  * clear the aircraft is; its arrow is larger too. setRole(seat, null)
  * puts it back. A role is the mode's rule, not a reading aid, so it is
  * drawn under Minimal and Off as well, without the type under Off.
+ *
+ * THE FREE ORB. While nobody is the Ace in tag (docs/TAG-PLAN.md decision
+ * 14) the crown waits in the air for anybody to catch, and orb() points
+ * at it as the Ace is pointed at: the ace role, in the crown's gold, on
+ * the one mark no seat has, seat 0.
  */
 export const MARK_ROLES = { ace: { scale: 1.5 } };
+export const ORB_COLOUR = '#ffc64a';
 
 export const KIND_NONE = 0;
 export const KIND_OVER = 1;
@@ -846,6 +852,28 @@ export class PeerMarks {
     }
   }
 
+  /* The free orb this frame, on mark 0: labelled, at x, y, z, `extent`
+   * metres across. */
+  orb(label, x, y, z, extent) {
+    if (!this.live) {
+      return;
+    }
+    const m = this.marks[0];
+    m.role = 'ace';
+    m.scale = MARK_ROLES.ace.scale;
+    m.colour = ORB_COLOUR;
+    m.used = true;
+    m.x = x;
+    m.y = y;
+    m.z = z;
+    m.extent = extent > 0 ? extent : 1;
+    if (label !== m.label) {
+      m.label = label;
+      m.labelOsd = null;
+      m.labelW = 0;
+    }
+  }
+
   /* The away lines' widths belong to the type they were measured in. */
   remeasureAway() {
     for (const m of this.marks) {
@@ -882,7 +910,7 @@ export class PeerMarks {
     const marks = this.marks;
     const n = marks.length;
     const text = this.style === 'on';
-    for (let i = 1; i < n; i += 1) {
+    for (let i = 0; i < n; i += 1) {
       const m = marks[i];
       if (!m.used) {
         m.alpha = 0;
@@ -894,7 +922,7 @@ export class PeerMarks {
     }
     spreadEdges(marks, n, this.screen);
     let any = false;
-    for (let i = 1; i < n; i += 1) {
+    for (let i = 0; i < n; i += 1) {
       const m = marks[i];
       if (m.used && m.kind === KIND_EDGE) {
         clearRects(m, this.screen);
@@ -911,7 +939,7 @@ export class PeerMarks {
     this.painted = true;
     let over = 0;
     let edge = 0;
-    for (let i = 1; i < n; i += 1) {
+    for (let i = 0; i < n; i += 1) {
       const m = marks[i];
       if (!m.used || m.alpha < MARK.MIN_ALPHA) {
         continue;
