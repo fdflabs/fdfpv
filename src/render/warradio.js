@@ -177,14 +177,18 @@ export function createWarCalls() {
 }
 
 /*
- * The two media elements. attach(ctx, dest, keep) builds them on a live
- * context: each is a MediaElementSource and a gain, four nodes, counted by
- * the owner's keep() against the graph's budget, and only made the first
- * time a war wants them.
+ * The two media elements, made by attach() the first time a war wants
+ * them. They play outside the Web Audio graph, at the element's own
+ * volume: the graph's budget is 64 nodes (tests/thresholds.json
+ * max_nodes) and a flight already stands at it, so a MediaElementSource
+ * and a gain each, four more, would break it. setOutput() is the master's
+ * part instead, the volume setting times the sound on or off, handed in
+ * by the owner every frame (MotorAudio.update).
  */
 export class WarRadio {
   constructor() {
-    this.ctx = null;
+    this.ready = false;
+    this.output = 0;
     this.voice = null;
     this.bed = null;
     this.lang = 'en';
@@ -197,28 +201,24 @@ export class WarRadio {
     this.onSpeak = null;
   }
 
-  attach(ctx, dest, keep) {
-    this.ctx = ctx;
-    if (typeof ctx.createMediaElementSource !== 'function' || typeof Audio === 'undefined') {
+  attach() {
+    this.ready = true;
+    if (typeof Audio === 'undefined') {
       return;
     }
-    const make = (level) => {
+    const make = () => {
       const el = new Audio();
       el.preload = 'auto';
       el.playsInline = true;
       el.setAttribute('playsinline', '');
-      const src = keep(ctx.createMediaElementSource(el));
-      const gain = keep(ctx.createGain());
-      gain.gain.value = level;
-      src.connect(gain);
-      gain.connect(dest);
-      return { el, gain };
+      el.volume = 0;
+      return { el };
     };
     this.ext = new Audio().canPlayType(str('music.audio_webm_codecs_opus')) !== '' ? 'webm' : 'mp3';
-    this.voice = make(VOICE_LEVEL);
+    this.voice = make();
     this.voice.el.addEventListener('ended', () => this.next());
     this.voice.el.addEventListener('error', () => this.failed(this.voice.el));
-    this.bed = make(0);
+    this.bed = make();
     this.bed.el.addEventListener('ended', () => {
       /* The intro runs out into the fight's loop. */
       if (this.track === 'intro') {
@@ -344,12 +344,23 @@ export class WarRadio {
     this.applyLevel();
   }
 
-  applyLevel() {
-    if (!this.bed || !this.ctx) {
-      return;
+  /* The master's share: the volume setting, 0 while the sound is off. */
+  setOutput(v) {
+    const o = Math.max(0, Math.min(1, v));
+    if (o !== this.output) {
+      this.output = o;
+      this.applyLevel();
     }
-    const bus = this.track === 'intro' ? INTRO_BUS : COMBAT_BUS;
-    this.bed.gain.gain.setTargetAtTime(this.musicLevel * bus, this.ctx.currentTime, 0.2);
+  }
+
+  applyLevel() {
+    if (this.voice) {
+      this.voice.el.volume = Math.min(1, this.output * VOICE_LEVEL);
+    }
+    if (this.bed) {
+      const bus = this.track === 'intro' ? INTRO_BUS : COMBAT_BUS;
+      this.bed.el.volume = Math.min(1, this.output * this.musicLevel * bus);
+    }
   }
 
   /* Everything stops: the war is over, or the sound was turned off. */
@@ -371,6 +382,9 @@ export class WarRadio {
       lang: this.lang,
       ext: this.ext,
       attached: Boolean(this.voice),
+      volume: this.voice ? this.voice.el.volume : 0,
+      musicVolume: this.bed ? this.bed.el.volume : 0,
+      musicPlaying: this.bed ? !this.bed.el.paused : false,
     };
   }
 }

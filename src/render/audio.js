@@ -478,23 +478,22 @@ export class MotorAudio {
   }
 
   /*
-   * The war mode's radio (src/render/warradio.js), attached to this graph
-   * the first time a war asks for it, so a pilot who never fights one
-   * pays no nodes for it. Through the soft clip and the master like every
-   * cue: the volume and the sound setting hold for it. A call ducks the
-   * motors and the wind as a cue does.
+   * The war mode's radio (src/render/warradio.js), made the first time a
+   * war asks for it once the context is up. Its two elements play beside
+   * the graph, not in it (the node budget is spent), at the volume
+   * setting and silent with the sound off, which update() hands it every
+   * frame as the master's own target. A call ducks the motors and the
+   * wind as a cue does.
    */
   war() {
     if (!this.warRadio) {
       this.warRadio = new WarRadio();
       this.warRadio.onSpeak = () => this.duckFlight(this.ctx.currentTime, VOICE_DUCK, 2.5);
     }
-    if (this.ctx && this.preMaster && !this.warRadio.ctx) {
-      this.warRadio.attach(this.ctx, this.preMaster, (n) => {
-        this.nodes.push(n);
-        return n;
-      });
+    if (this.ctx && !this.warRadio.ready) {
+      this.warRadio.attach();
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+      this.warRadio.setOutput(this.enabled ? this.level * MASTER_CEILING : 0);
     }
     return this.warRadio;
   }
@@ -1351,6 +1350,9 @@ export class MotorAudio {
      */
     const target = this.enabled ? this.level * MASTER_CEILING : 0.0;
     this.master.gain.setTargetAtTime(target, t, 0.05);
+    if (this.warRadio) {
+      this.warRadio.setOutput(target);
+    }
     if (!this.enabled) {
       this.music.pause();
       return;
