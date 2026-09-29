@@ -31,6 +31,8 @@ import {
   BLAST_M, KIND, KINDS, cosDet, planAgent, poseAt, sinDet,
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { INTRO_MS } from '../src/share/war/intro.js';
+import { createRoomWar } from '../src/share/roomwar.js';
 
 const Y = 300;
 
@@ -258,6 +260,85 @@ export function warSection(check) {
       && e.of(2, 'born').at(-1).agents.length === 1);
     e.say(0, { type: 'war', op: 'end' });
     check('the host ends it', e.view().state === 'ended' && !e.r.war.on() && !e.r.waiting());
+  }
+
+  console.log('war: the briefing (the intro, section 7.1)');
+  {
+    const plain = testMission([{ at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' }], { r: [[-3000, Y, 0], [-2000, Y, 0]] });
+    const e = warRoom({ mission: plain, start: false });
+    e.fly(500);
+    e.say(0, {
+      type: 'war', op: 'start', mission: 'test-1', intro: true,
+    });
+    const v = e.view(1);
+    const go = 500 + INTRO_MS + COUNTDOWN_MS;
+    check(`a start with the intro is a briefing of INTRO_MS (${INTRO_MS / 1000} s) before the countdown, told to everybody`,
+      e.r.war.on() && v.state === 'briefing' && v.briefAt === 500 && v.goAt === go && e.view(0).goAt === go, JSON.stringify(v));
+    check('a briefing is a war game: the clock runs, and a tag match is refused "war"', e.r.waiting()
+      && (e.say(0, { type: 'tag', op: 'start', goal: 10 }), !e.r.tag.on() && e.refusals(0).at(-1) === 'war'));
+    check('the room browser shows a briefing as a war counting down', JSON.stringify(e.r.activity(e.clock)) === '{"game":"war","state":"countdown"}');
+    e.say(1, { type: 'war', op: 'skipIntro' });
+    check('only the host skips it: another pilot is refused "host", and the briefing holds', e.refusals(1).at(-1) === 'host' && e.view().state === 'briefing');
+    e.say(1, { type: 'war', op: 'lost' });
+    check('"lost" in a briefing is refused "off"', e.errors(1).at(-1) === 'off');
+    e.paths[0] = hover([0, Y, 0]);
+    e.fly(500 + INTRO_MS - 40);
+    check('it holds for the whole intro: no birth, no rack', e.view().state === 'briefing' && !e.of(1, 'born').length && e.view().rack === 0);
+    e.fly(500 + INTRO_MS + 40);
+    const cd = e.view(1);
+    check('then the countdown, to the same go', cd.state === 'countdown' && cd.goAt === go && cd.briefAt === 500, JSON.stringify(cd));
+    e.fly(go + 1040);
+    const born = e.of(1, 'born');
+    check('and the game as without one, on the go: the rack, and the first wave at its time after the go', e.view().state === 'live'
+      && e.view().rack === 4 && born.length === 1 && born[0].agents[0].t0 === go + 1000, JSON.stringify(born));
+
+    const s = warRoom({ mission: plain, start: false });
+    s.say(0, {
+      type: 'war', op: 'start', mission: 'test-1', intro: true,
+    });
+    s.fly(5000);
+    s.say(0, { type: 'war', op: 'skipIntro' });
+    const k = s.view(1);
+    check('the host skips it: the countdown starts now, for everybody', k.state === 'countdown' && k.goAt === 5000 + COUNTDOWN_MS
+      && s.view(0).goAt === k.goAt, JSON.stringify(k));
+    s.fly(6000);
+    const sent = s.of(1).length;
+    s.say(0, { type: 'war', op: 'skipIntro' });
+    check('a skip outside a briefing does nothing: the countdown under way keeps its go', s.of(1).length === sent && s.view().goAt === 5000 + COUNTDOWN_MS);
+    s.fly(5000 + COUNTDOWN_MS + 40);
+    check('and goes live at it', s.view().state === 'live');
+
+    const r = warRoom({ mission: plain, start: false });
+    r.say(0, {
+      type: 'war', op: 'start', mission: 'test-1', intro: true,
+    });
+    r.fly(3000);
+    const again = new RoomCore(r.r.meta);
+    again.war.missions = r.r.war.missions;
+    again.war.restore(r.stored);
+    const rv = again.war.view(again);
+    check('a room that restarted in a briefing keeps it, and its go', again.war.on() && rv.state === 'briefing' && rv.briefAt === 0
+      && rv.goAt === INTRO_MS + COUNTDOWN_MS);
+
+    const p = warRoom({ mission: plain, start: false });
+    p.say(0, { type: 'war', op: 'start', mission: 'test-1', intro: 1 });
+    check('only intro: true asks for one; a start without it counts down at once, with no briefing', p.view().state === 'countdown'
+      && p.view().briefAt === null && p.view().goAt === COUNTDOWN_MS);
+
+    /* A client built before the briefing: its roomwar reads the view and
+     * treats the unknown state as no game on, as it treats any other. */
+    const said = [];
+    const old = createRoomWar((m) => said.push(m));
+    old.onWelcome({ seat: 2, war: { state: 'lobby' } });
+    let threw = null;
+    try {
+      old.onMessage({ type: 'war', war: v });
+      old.attackersAt(v.briefAt + 1000);
+    } catch (err) {
+      threw = err;
+    }
+    check('a client that does not know "briefing" takes it without a throw, as no war on yet', !threw && !old.on() && !old.live()
+      && old.view().state === 'briefing', threw ? threw.message : '');
   }
 
   console.log('war: detonations');

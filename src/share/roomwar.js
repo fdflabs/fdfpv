@@ -304,9 +304,16 @@ export function createRoomWar(send) {
       return (war.scores || []).find((r) => r.seat === seat) ?? null;
     },
 
-    /* Host only, the room checks. */
-    start(missionId) {
-      send({ type: 'war', op: 'start', mission: missionId });
+    /* Host only, the room checks. With intro, the room holds a briefing
+     * of INTRO_MS (src/share/war/intro.js) before the countdown, for
+     * every screen to play the intro over; skipIntro cuts it short. */
+    start(missionId, { intro = false } = {}) {
+      send({
+        type: 'war', op: 'start', mission: missionId, ...(intro ? { intro: true } : {}),
+      });
+    },
+    skipIntro() {
+      send({ type: 'war', op: 'skipIntro' });
     },
     end() {
       send({ type: 'war', op: 'end' });
