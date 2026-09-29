@@ -44,6 +44,16 @@
  * a version 5 file the peers are there when anybody else was drawn. A
  * clip without paper is written as it was before: version 4 with peers,
  * version 3 alone. Versions 1 to 4 are read without paper.
+ *
+ * Version 6 added the movie editor's edit (src/replay/edit.js): the
+ * header's `edit`, the shots a clip reopens with, checked field by field
+ * by checkEdit. It replaces the camera keys, so a version 6 file's `keys`
+ * is empty, and it is the only thing a version 6 file must have: the
+ * peers and the paper are each there when the clip has them. A clip whose
+ * edit is its default (one chase shot over the whole clip) is written as
+ * the version before, byte for byte, and versions 1 to 5 are read with no
+ * edit; their keys become one when the clip is opened (fromKeys).
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -70,7 +80,8 @@ import {
   CAPACITY, HEAD, HEAD_N, PART_N, PARTS_MAX, PLANT_N, POSE_N, SMOKE_N,
 } from './recorder.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
-import { RIGS } from './cameras.js';
+import { RIGS, defaults } from './cameras.js';
+import { EditError, checkEdit, isDefault } from './edit.js';
 import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
 import {
   PEER, PEER_N, PEERS_MAX, PIECE_N,
@@ -78,19 +89,31 @@ import {
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
 import { checkPaper, rowsOf } from './paper.js';
 
-export const FILE_VERSION = 5;
+export const FILE_VERSION = 6;
+/* A clip whose edit is its default, with paper: the version before edits. */
+const PAPER_VERSION = 5;
 /* A clip without paper: the version before paper, unchanged. */
 const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5];
+const READS = [1, 2, 3, 4, 5, 6];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
-  if (clip.paper) {
+  if (clip.edit && !isDefault(clip.edit, clip.time[clip.n - 1], defaultCam(clip.meta.size))) {
     return FILE_VERSION;
   }
+  if (clip.paper) {
+    return PAPER_VERSION;
+  }
   return clip.peers ? PEERS_VERSION : SOLO_VERSION;
+}
+
+/* The camera a clip opens with when nothing says otherwise. */
+function defaultCam(size) {
+  return {
+    rig: 'chase', target: -1, watch: 0, p: defaults('chase', size),
+  };
 }
 
 /* The columns a version holds, as its header's layout says them. */
@@ -120,7 +143,7 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit'];
 const PAPER_KEYS = ['bytes', 'events'];
 const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
 const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
@@ -162,7 +185,9 @@ export function encodeReplay(clip) {
     meta: clip.meta,
     events: clip.events,
     spawns: clip.spawns,
-    keys: clip.keys || [],
+    /* A clip with an edit has had its keys turned into it: writing them
+     * too would bring back a camera the pilot has since cut away. */
+    keys: clip.edit ? [] : clip.keys || [],
   };
   if (peers) {
     header.peers = {
@@ -171,6 +196,12 @@ export function encodeReplay(clip) {
   }
   if (paper) {
     header.paper = { bytes: paper.bytes.byteLength, events: paper.events };
+  }
+  if (version === FILE_VERSION) {
+    /* Checked on the way out as on the way in, so an edit that does not
+     * fit its clip (one not trimmed with it, say) fails the save rather
+     * than making a file that will not open. */
+    header.edit = checkedEdit(clip.edit, clip.time[n - 1], peers);
   }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
@@ -439,8 +470,17 @@ export function decodeReplay(buf, known = null) {
   if (version === 4 && header.peers === undefined) {
     throw new ReplayFileError('a version 4 file without its peers');
   }
-  if ((version >= 5) !== (header.paper !== undefined)) {
-    throw new ReplayFileError(version >= 5 ? 'a version 5 file without its paper' : 'paper in a file older than version 5');
+  if (version === 5 && header.paper === undefined) {
+    throw new ReplayFileError('a version 5 file without its paper');
+  }
+  if (version < 5 && header.paper !== undefined) {
+    throw new ReplayFileError('paper in a file older than version 5');
+  }
+  if ((version >= 6) !== (header.edit !== undefined)) {
+    throw new ReplayFileError(version >= 6 ? 'a version 6 file without its edit' : 'an edit in a file older than version 6');
+  }
+  if (version >= 6 && header.keys.length) {
+    throw new ReplayFileError('a version 6 file with camera keys');
   }
   if (header.paper !== undefined) {
     onlyKeys(header.paper, PAPER_KEYS, 'paper');
@@ -509,6 +549,9 @@ export function decodeReplay(buf, known = null) {
     n, time, head, pose, plant, parts, smoke,
     events: header.events, spawns: header.spawns, keys: header.keys, meta: header.meta,
   };
+  if (header.edit !== undefined) {
+    clip.edit = checkedEdit(header.edit, time[n - 1], P);
+  }
   if (P) {
     const cols = new Float32Array(buf.slice(o, o + n * P.slots * PEER_N * 4));
     o += n * P.slots * PEER_N * 4;
@@ -529,6 +572,19 @@ export function decodeReplay(buf, known = null) {
     }
   }
   return clip;
+}
+
+/* An edit checked against its clip's length and pilots (src/replay/edit.js),
+ * its refusal a file's refusal. */
+function checkedEdit(edit, duration, peers) {
+  try {
+    return checkEdit(edit, { duration, peers: peers ? peers.who.length : 0 });
+  } catch (err) {
+    if (!(err instanceof EditError)) {
+      throw err;
+    }
+    throw new ReplayFileError(err.message);
+  }
 }
 
 /* The peers' header: who they were and the tables their wrecks were cut
