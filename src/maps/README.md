@@ -47,6 +47,7 @@ A MapInstance is:
     updateShadowFocus(target)
     updateWind(t, quadPos, wash)
     updateAnim(stepIndex)
+    sweepSolids(fromStep, toStep)   a map with moving boxes only
     dispose()
     stats()       optional, harness only
 
@@ -134,6 +135,18 @@ recorded input stream. `alps/life.js` is the worked example: its vehicles
 and its gondola are pure functions of the step count. The rule
 was learned on the retired city's level crossing, whose booms were an
 integrator over raw frame time.
+
+A pure function of the step count is not enough on its own: it also has to
+be read at a step. `updateAnim` runs once a drawn frame, so a moving box it
+places has the pose of the last frame's end and a sweep one frame long, and
+the shell's contact pass, which runs every 4 ms of sim time, met a car where
+the frame boundary had left it. A map with moving boxes therefore also has
+`sweepSolids(fromStep, toStep)`, which puts every moving box where it is at
+`toStep`, swept from where it was at `fromStep`; the contact pass calls it
+with the ends of its own stretch before it sweeps, and throws if a map with
+moving boxes has none. `scripts/traffic-check.js` holds it to that: a car
+striking a wreck on the Swiss valley's road, at three pacings of the frames,
+gives one step trace.
 
 ### Renderer state belongs to the map
 
