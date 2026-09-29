@@ -998,6 +998,13 @@ export class InputManager {
      * mode it was built for when the pad is a standard one, 0 for AETR.
      * See followDefaultMap. */
     this.defaultMode = 0;
+    /* The throttle hold for a pad whose throttle rests at half: set by the
+     * shell at a spawn or a landing, cleared by the throttle going low. See
+     * holdThrottleLow. `throttleLow` is the level that clears it, and
+     * throttleWaiting is whether a throttle is being held back right now. */
+    this.throttleHeld = false;
+    this.throttleLow = 0;
+    this.throttleWaiting = false;
     /* The hold-to-select bootstrap for a radio reporting zero buttons.
      * See SELECT_STEP. */
     this.holdMs = 0;
@@ -1348,6 +1355,55 @@ export class InputManager {
    */
   mapKnown() {
     return Boolean(this.map.stored || this.defaultMode);
+  }
+
+  /*
+   * THROTTLE LOW FIRST, which is Betaflight refusing to arm with the
+   * throttle up, for the one stick that needs it.
+   *
+   * A standard pad on its default map rests its throttle at half, which is
+   * past the shell's takeoff threshold, so every spawn and every landing
+   * launched the aircraft with nobody touching anything: a quad lifted off,
+   * a wing was thrown, a plane on wheels began its roll. So at a spawn or a
+   * landing the shell calls this, and until the pad's throttle has been at
+   * or below `low` the throttle it reports is zero. The plant is fed from
+   * those samples, so what it never sees it never flies on.
+   *
+   * ONLY THAT PAD. A radio parks its throttle at the bottom, the keyboard,
+   * the mouse wheel and the thumbs start from zero or hold what the pilot
+   * set, and a calibrated gamepad already has zero at rest, so for all of
+   * them this sets nothing and every sample is what it was before. The
+   * decision is taken now, at the spawn or landing, so a hold can never
+   * start in the air.
+   */
+  holdThrottleLow(low) {
+    this.throttleLow = low;
+    this.throttleHeld = this.throttleRestsHalf();
+    this.throttleWaiting = false;
+  }
+
+  /* An aircraft put straight into the air (an air start, a take over) is
+   * flying, and a throttle held at zero would drop it. */
+  releaseThrottleHold() {
+    this.throttleHeld = false;
+    this.throttleWaiting = false;
+  }
+
+  throttleRestsHalf() {
+    const gp = this.firstGamepad();
+    return Boolean(gp && gp.mapping === 'standard' && !this.map.stored && this.defaultMode);
+  }
+
+  gateThrottle(throttle) {
+    if (!this.throttleHeld) {
+      return throttle;
+    }
+    if (throttle <= this.throttleLow) {
+      this.releaseThrottleHold();
+      return throttle;
+    }
+    this.throttleWaiting = true;
+    return 0;
   }
 
   /*
@@ -2858,6 +2914,7 @@ export class InputManager {
       this.rateWindowMs = 0;
     }
     let next;
+    let padFlies = false;
     if (this.harnessChannels) {
       /* The harness override, above everything: a capture wrote a stick
        * and means it. Mirrored into kb.throttle so releasing the override
@@ -2881,6 +2938,8 @@ export class InputManager {
       this.source = str('input.the_mouse');
     } else if (gp) {
       next = this.readGamepad(gp);
+      next.throttle = this.gateThrottle(next.throttle);
+      padFlies = true;
       this.noteThrottleParked(gp);
       this.noteGuessOrder(gp);
       this.source = this.mapUsable() || this.mapKnown() ? str('input.a_radio') : str('input.a_radio_whose_stick_order_is');
@@ -2906,6 +2965,11 @@ export class InputManager {
     } else {
       next = this.readKeyboard(dtMs, true);
       this.source = str('input.the_keyboard');
+    }
+    /* The hold is about the pad's throttle. Anything else flying, even for
+     * a moment, ends it, so a pad plugged back in mid air is never cut. */
+    if (!padFlies) {
+      this.releaseThrottleHold();
     }
 
     const changed =

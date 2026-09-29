@@ -4362,6 +4362,9 @@ export async function boot({
    * sim_rest zeroes the velocity at each judged touchdown so the frozen
    * state is a true rest state rather than a falling one. */
   let landed = true;
+  /* landed on the previous frame, for the landing edge that holds a pad's
+   * throttle. See input.holdThrottleLow. */
+  let landedWas = true;
   /* The run the challenges are judging (progressRun's key), and the
    * hangar's rev while it plays (ui.onHangarTry). */
   let progressKey = '';
@@ -6727,6 +6730,10 @@ export async function boot({
     if (!keepSticks) {
       input.keys.clear();
       input.resetKeyboardSticks();
+      /* A spawn: a pad whose throttle rests at half has to show it low
+       * before anything leaves the ground. See input.holdThrottleLow. A
+       * swap in the air keeps its sticks and is never held. */
+      input.holdThrottleLow(TAKEOFF_RELEASE);
     }
     raceHasPrev = false;
     releasePress();
@@ -7065,6 +7072,8 @@ export async function boot({
     flownThisRun = true;
     poseLock = true;
     airHoldMs = AIR_START_MS;
+    /* Already flying when the countdown lets go: nothing to hold. */
+    input.releaseThrottleHold();
     adoptSimClock();
     stateCurr = readState();
     statePrev = stateCurr;
@@ -10959,6 +10968,14 @@ export async function boot({
       ui.pollPad(padNav());
     }
 
+    /* Every other way onto the ground is a landing (a perch, a caught
+     * discus, a turtle righted, a launch stand): the same hold as a spawn,
+     * which a perch has already satisfied, since it needs the throttle at
+     * TAKEOFF_RELEASE or below. */
+    if (landed && !landedWas) {
+      input.holdThrottleLow(TAKEOFF_RELEASE);
+    }
+    landedWas = landed;
     if (mode === 'flight' && landed && !crashed && !wrecked) {
       const thr = samples.length ? samples[samples.length - 1].throttle : input.channels.throttle;
       /* Afloat, an aircraft on floats is never parked: water moves, so it
@@ -12759,6 +12776,10 @@ export async function boot({
        * frame, and a launch prompt printed across a results table is how
        * you find that out. */
       ui.setBanner('');
+    } else if (input.throttleWaiting && ui.screen === 'flight') {
+      /* A pad's throttle resting at half, held at zero until it has been
+       * down. Without this nothing happens and nothing says why. */
+      ui.setBanner(str('main.throttle_down_to_start'));
     } else if (launchNow === 3 && nowWall < lcGoUntil) {
       ui.setBanner('GO');
     } else if (launchNow === 1 || launchNow === 2) {
@@ -14585,6 +14606,7 @@ export async function boot({
     crashed = false;
     poseLock = false;
     flownThisRun = true;
+    input.releaseThrottleHold();
     clipCrashKind = '';
     clipCrashUntil = 0;
     clipGraceUntil = 0;

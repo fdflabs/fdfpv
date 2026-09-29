@@ -912,9 +912,8 @@ async function mouseFlightPage(page) {
 
 /*
  * An Xbox pad as the browser reports one: mapping 'standard', axes 0 and 1
- * the left stick, 2 and 3 the right, right and down positive. The left
- * stick starts held DOWN, throttle zero on the Mode 2 default, so the quad
- * sits on the pad until this check means it to leave.
+ * the left stick, 2 and 3 the right, right and down positive. Every stick
+ * at rest, which on the Mode 2 default is half throttle.
  */
 const XBOX_SEED = `window.__pad = {
   index: 0,
@@ -922,7 +921,7 @@ const XBOX_SEED = `window.__pad = {
   connected: true,
   mapping: 'standard',
   timestamp: 1,
-  axes: [0, 1, 0, 0],
+  axes: [0, 0, 0, 0],
   buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })),
 };
 navigator.getGamepads = () => [window.__pad];`;
@@ -989,13 +988,35 @@ async function xboxPage(page) {
 
   await ev(`${PAST_GATE} ui.onAction('fly', ui.settings); return true;`);
   await page.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 120000);
-  await page.sleep(1500);
-  const parked = await page.evaluate('({ c: window.__craftState(), thr: window.__input.channels.throttle, src: window.__input.stats().source })');
-  check('left stick held down: throttle 0 and the quad stays on the ground',
-    parked.thr === 0 && parked.c.landed === true, JSON.stringify({ thr: parked.thr, landed: parked.c.landed }));
+  /*
+   * THROTTLE LOW FIRST. Hands off, the pad reads half throttle, which used
+   * to launch the quad the moment the run began. It is held at zero until
+   * the stick has been down, and the banner says so.
+   */
+  await page.sleep(3000);
+  const parked = await page.evaluate(`({ c: window.__craftState(), thr: window.__input.channels.throttle,
+    src: window.__input.stats().source, waiting: window.__input.throttleWaiting,
+    banner: window.__ui.banner ? window.__ui.banner.textContent : '' })`);
+  check('sticks centred at spawn: throttle held at 0 and the quad stays on the ground',
+    parked.thr === 0 && parked.waiting === true && parked.c.landed === true && !parked.c.flownThisRun,
+    JSON.stringify({ thr: parked.thr, waiting: parked.waiting, landed: parked.c.landed }));
+  check('and the banner tells the pilot why', parked.banner === 'Throttle down to start', parked.banner);
   check('the source is the pad, not a guess', parked.src === 'a radio', parked.src);
+  await page.evaluate('window.__pad.axes[1] = -1; window.__pad.timestamp += 1; true');
+  await page.sleep(1500);
+  const pushed = await page.evaluate('({ c: window.__craftState(), thr: window.__input.channels.throttle })');
+  check('full up without having been down first: still held, still on the ground',
+    pushed.thr === 0 && pushed.c.landed === true, JSON.stringify({ thr: pushed.thr, landed: pushed.c.landed }));
 
-  /* Left stick UP. */
+  /* Down, then UP. */
+  await page.evaluate('window.__pad.axes[1] = 1; window.__pad.timestamp += 1; true');
+  /* The banner is repainted by the frame loop, and a headless frame can be
+   * a second long, so it is waited on rather than read after a sleep. */
+  let bannerGone = true;
+  await page.until("window.__input.throttleWaiting === false && (window.__ui.banner ? window.__ui.banner.textContent : '') !== 'Throttle down to start'", 15000)
+    .catch(() => { bannerGone = false; });
+  const banner = await page.evaluate("window.__ui.banner ? window.__ui.banner.textContent : ''");
+  check('pulled down: the hold is gone and so is the banner', bannerGone, banner);
   await page.evaluate('window.__pad.axes[1] = -1; window.__pad.timestamp += 1; true');
   /* The plant's own height, z up: the drawn pose can still be seating at
    * this point, the plant cannot. */
@@ -1016,6 +1037,28 @@ async function xboxPage(page) {
   check('right stick right rolls right', roll.m > 0.15 && !roll.crashed, JSON.stringify(roll));
   const pitch = await page.evaluate(HOLD(3, -0.5, 'pitch'));
   check('right stick up pitches the nose down', pitch.m < -0.15 && !pitch.crashed, JSON.stringify(pitch));
+
+  /*
+   * AND A RADIO IS NOT HELD. The same slot now reports a radio with its
+   * throttle parked at the bottom, R puts it back on the pad, and throttle
+   * straight up takes off exactly as it always has, with no banner.
+   */
+  await page.evaluate(`(() => { const p = window.__pad; p.mapping = ''; p.id = 'Selftest radio (Vendor: 1209 Product: 4f54)';
+    p.axes = [0, 0, -1, 0]; p.timestamp += 1; return true; })()`);
+  await page.sleep(300);
+  await page.tap('KeyR');
+  await page.until('window.__craftState().landed === true', 20000).catch(() => {});
+  await page.sleep(500);
+  const r0 = await page.evaluate('({ c: window.__craftState(), waiting: window.__input.throttleWaiting, held: window.__input.throttleHeld, map: window.__input.map.throttle })');
+  check('a radio after R: back on the ground, AETR, and not held', r0.c.landed && !r0.waiting && !r0.held && r0.map.axis === 2,
+    JSON.stringify({ landed: r0.c.landed, waiting: r0.waiting, held: r0.held, map: r0.map }));
+  await page.evaluate('window.__pad.axes[2] = 1; window.__pad.timestamp += 1; true');
+  let radioUp = true;
+  await page.until(`window.__craftState().plantPos.z - ${r0.c.plantPos.z} > 1`, 120000).catch(() => { radioUp = false; });
+  const r1 = await page.evaluate("({ c: window.__craftState(), thr: window.__input.channels.throttle, banner: window.__ui.banner ? window.__ui.banner.textContent : '' })");
+  check('throttle straight up from the bottom: full throttle and it climbs, as ever',
+    radioUp && r1.thr === 1 && !r1.c.landed && r1.banner !== 'Throttle down to start',
+    JSON.stringify({ thr: r1.thr, landed: r1.c.landed, banner: r1.banner }));
   await ev("ui.onAction('title', ui.settings); return true;");
 }
 

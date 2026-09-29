@@ -1179,6 +1179,102 @@ section('the default follows the pad and the mode; a saved map wins');
   check('and its map is stored', rig.im.map.stored === true && rig.im.map.yaw.axis === 0 && rig.im.map.roll.axis === 2);
 }
 
+/* ------------------------------------------------------------------------
+ * 9. Throttle low first. A standard pad's throttle rests at half, past the
+ *    shell's 0.25 takeoff threshold, so a spawn launched every aircraft
+ *    with nobody touching anything. At a spawn or a landing the shell asks
+ *    for a hold, and that pad's throttle reads zero until it has been down.
+ *    Nothing else is held, and that is asserted as hard as the hold.
+ * ---------------------------------------------------------------------- */
+section('throttle low first: a standard pad at rest is held until it has been down');
+{
+  const pad = standardPad();
+  const rig = new Rig(pad);
+  rig.run(20);
+  rig.im.drain();
+  rig.im.holdThrottleLow(0.18);
+  rig.run(20);
+  check('centred at spawn: throttle reads 0, and the shell is told it is waiting',
+    rig.im.channels.throttle === 0 && rig.im.throttleWaiting === true, JSON.stringify(rig.im.channels));
+  rig.ax(1, -1); rig.step();
+  check('full up without having been down: still 0', rig.im.channels.throttle === 0);
+  check('and every sample queued for the plant says 0', rig.im.drain().every((q) => q.throttle === 0));
+  rig.ax(1, 1); rig.step();
+  check('pulled down: 0, and no longer waiting', rig.im.channels.throttle === 0 && rig.im.throttleWaiting === false);
+  rig.ax(1, -1); rig.step();
+  check('then up: full throttle', rig.im.channels.throttle === 1);
+  rig.ax(1, 0); rig.step();
+  check('and let go: half, the hold does not come back on its own', rig.im.channels.throttle === 0.5);
+  rig.im.holdThrottleLow(0.18);
+  rig.ax(1, 0.8); rig.step();
+  check('a landing with the stick near the bottom (0.1) clears at once',
+    Math.abs(rig.im.channels.throttle - 0.1) < 1e-9 && !rig.im.throttleWaiting,
+    String(rig.im.channels.throttle));
+  rig.ax(1, 0);
+  rig.im.holdThrottleLow(0.18);
+  rig.step();
+  rig.im.releaseThrottleHold();
+  rig.step();
+  check('an air start or a take over releases it: half at once', rig.im.channels.throttle === 0.5);
+  rig.im.holdThrottleLow(0.18);
+  rig.step();
+  rig.im.keys.add('KeyW');
+  rig.run(200);
+  const thrW = rig.im.channels.throttle;
+  rig.im.keys.delete('KeyW');
+  check('W on the keyboard still drives the throttle over a held pad', thrW > 0, String(thrW));
+}
+{
+  const rig = new Rig(makePad([0, 0, 0, 0], 4, 'LiteRadio 3, sprung, uncalibrated'));
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.run(20);
+  check('a radio is never held, even one whose throttle rests at half',
+    rig.im.throttleHeld === false && rig.im.channels.throttle === 0.5 && !rig.im.throttleWaiting, JSON.stringify(rig.im.channels));
+}
+{
+  const rig = new Rig(makePad([0, 0, -1, 0], 4, 'TX16S'));
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.ax(2, 0.5); rig.step();
+  check('a parked radio pushed straight up after a spawn flies as it always did', rig.im.channels.throttle === 0.75);
+}
+{
+  const rig = new Rig(null);
+  rig.im.holdThrottleLow(0.18);
+  rig.im.keys.add('KeyW');
+  rig.run(300);
+  check('no pad: the keyboard is never held', rig.im.throttleHeld === false && rig.im.channels.throttle > 0,
+    String(rig.im.channels.throttle));
+}
+{
+  const store = memoryStorage();
+  store.setItem('webfpv_stick_map_v1', JSON.stringify({
+    roll: { axis: 2, center: 0, full: 1 },
+    pitch: { axis: 3, center: 0, full: 1 },
+    yaw: { axis: 0, center: 0, full: 1 },
+    throttle: { axis: 1, low: 0, high: -1, sprung: true },
+  }));
+  const rig = new Rig(standardPad(), store);
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.ax(1, -1); rig.step();
+  check('a calibrated standard pad, zero at rest, is not held', rig.im.channels.throttle === 1);
+}
+{
+  const pad = standardPad();
+  const rig = new Rig(pad);
+  rig.run(20);
+  rig.im.holdThrottleLow(0.18);
+  rig.step();
+  rig.im.harnessChannels = { roll: 0, pitch: 0, yaw: 0, throttle: 0.6 };
+  rig.step();
+  rig.im.harnessChannels = null;
+  rig.step();
+  check('anything else flying, even once, ends the hold, so a pad is never cut in the air',
+    rig.im.throttleHeld === false && rig.im.channels.throttle === 0.5);
+}
+
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
 for (const f of fails) {
   console.log(`  FAIL ${f}`);

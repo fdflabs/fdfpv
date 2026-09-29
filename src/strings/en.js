@@ -1630,6 +1630,7 @@ export default {
   "ui.gear_up": "Gear up",
   "ui.gear_down": "Gear down",
   "ui.gear_moving": "Gear moving",
+  "main.throttle_down_to_start": "Throttle down to start",
   "main.throttle_up_on_the_water": "Afloat on the lake. Throttle up with the stick back to get on the step, let it run, and pull back to fly. The rudder steers on the water; F sets the flaps, C changes the camera.",
   "main.throttle_up_flaps_f": "Throttle up to take off from the strip, or press L to throw it. F sets the flaps, C changes the camera.",
   "main.throttle_up_retracts_g": "Throttle up to take off from the strip, or press L to throw it. G works the retracts, C changes the camera.",
