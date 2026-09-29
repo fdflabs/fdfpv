@@ -244,3 +244,116 @@ which the lead assigns.
 Not a target yet, and why: the craft-chase view (4.5) is the shared
 craft pass swiss2 already did; the reservoir-dam view needs only the
 water (target 2) and the dam's gantries at 3 km, which follow from 4.
+
+### Round 1 (PRs #213, #215, #217, #219, #220, #221, main at b6673f6)
+
+Dam (#213, #215): buttress relief on the main dam and the right wing,
+penstock rings and flanges, longer hoods, pier noses and radial gates
+with arms and hoists. Performance (#217): the canopy batched, the town's
+far pieces culled; every view under budget. Look (#219): basalt shading
+on the canyon's slopes, the ground from the air graded by the masks,
+the shore and the rockfill faces, the sky's glow. Water (#220): calm
+water in the photographs' colours, the mirror only for a body in view,
+the spillway running with spray and plume (water/spill.js). Sky (#221):
+the sky sphere pinned to the far plane, so the mirror no longer clips
+it; `MAP_MODULE_COUNT.itaipu` 25 for spill.js.
+
+Scores are **provisional**, the loop agent's, scored independently of
+the round's PRs' own; the lead's replace them. Sheet (reference, round
+0, round 1): `~/Desktop/fdfpv-loop/itaipu/round-1-sheet.png`.
+
+| View | R0 | R1 | Calls | Tris (M) | GPU least / median (ms) | The tell now |
+| --- | --- | --- | --- | --- | --- | --- |
+| aerial-dam | 4 | 5 | 154 | 1.15 | 2.4 / 3.4 | deep calm blue water and the buttresses in relief; the chute is still a flat white slab and the island a soft smear |
+| aerial-dam-wide | 4 | 5 | 154 | 1.18 | 2.5 / 11.1 | the spillway runs into a plume, the river dark; the ground a soft smear |
+| aerial-spill | 4 | 4.5 | 162 | 1.02 | 2.3 / 7.6 | a plume at last, smaller and whiter than the photograph's; the canyon walls smooth green |
+| spill-gates-high | 3.5 | 4 | 153 | 1.12 | 2.4 / 6.6 | radial gates with arms; the chute water is an even white texture, not a torrent; piers still blocks |
+| leftbank-high | 4 | 4.5 | 160 | 1.25 | 3.0 / 10.2 | red soil and tracks in the foreground; lollipop trees, flat grey light |
+| rockfill-high | 5 | 5.5 | 216 | 1.47 | 2.4 / 7.4 | calm water, a darker face; the photograph's brown haze is blue here |
+| dam-downstream | 3 | 3.5 | 156 | 0.91 | 1.9 / 6.3 | buttresses and penstock tubes read; no central building, no tailrace jet, a brown rubble smear in front |
+| dam-downstream-2 | 3 | 3.5 | 175 | 1.30 | 2.1 / 9.8 | the face reads; no rock island, a bare smeared bank |
+| powerhouse | 3 | 3.5 | 170 | 1.27 | 2.8 / 9.3 | the face in relief; the roof a bare slab, a blotched ground patch before it |
+| canyon | 3.5 | 4 | 166 | 1.27 | 3.0 / 7.6 | basalt on the bank, dark river, plume; the foreground a lawn with lollipop trees |
+| river-below | 3.5 | 4 | 141 | 1.23 | 3.3 / 8.3 | red banks and dark water; the banks smooth slopes, no ledges |
+| chute | 3 | 3.5 | 101 | 0.89 | 1.7 / 9.4 | spray at the flip buckets; the chute a static white sheet |
+| spill-gates | 2.5 | 3.5 | 92 | 0.48 | 2.5 / 3.7 | radial gates and arms; the hoist deck and towers missing, the chute floor a white sheet |
+| spill-plume | 3 | 3.5 | 170 | 1.17 | 3.0 / 6.6 | the plume is there but a flat white wall that hides the whole spillway |
+| penstocks | 2 | 2.5 | 168 | 1.39 | 3.1 / 10.0 | a ringed tube beside the buttress; one tube in frame, a bare grey plane underfoot |
+| crest-road | 3 | 3 | 217 | 1.04 | 2.3 / 10.3 | unchanged: lilac gantry legs, white pillars for intake columns, no road markings |
+| rockfill-road | 2.5 | 3 | 162 | 1.21 | 3.4 / 5.4 | the face is dark rock at distance; a grass field in front, no road |
+| reservoir-dam | 4 | 4.5 | 165 | 1.95 | 3.4 / 10.3 | calm blue water; the dam's gantries too small to read |
+| reservoir-shore | 3 | 3.5 | 139 | 0.86 | 2.8 / 3.1 | a red strand at the water; the bank a flat lawn, no rip rap, no trees |
+| powerlines | 3 | 4.5 | 93 | 0.59 | 2.6 / 3.5 | the buttress wing's rhythm reads, the towers behind; a soft green smear in front |
+| reservoir-forest | 4.5 | 5 | 137 | 0.87 | 2.9 / 3.0 | blue water, sand beaches, the peninsula reads |
+| craft-chase | 4.5 | 4.5 | 189 | 0.97 | 3.0 / 8.2 | unchanged |
+| yard-west | | | 264 | 2.27 | 3.2 / 10.6 | performance view, now within budget |
+
+Mean of the 22 scored views: 3.43 to **4.00**. No view lower; crest-road
+and craft-chase level.
+
+Budget: `npm run itaipu:views` PASSES for the first time, all 23 views
+within section 13. The most calls 264 (yard-west, from 344), the most
+triangles 2.27 M (yard-west, from 3.58 M), the worst least GPU frame
+3.4 ms.
+
+What holds every view down now is the light. The references are hard
+tropical sun under a deep blue sky with cumulus; every render is flat,
+grey white overcast with soft shadows. And every view with ground
+within a few hundred metres of the lens has the satellite's smear
+there.
+
+### Round 2's targets
+
+Ranked by score cost against fix cost, one agent each, with the area
+each would own. Two targets are in `look/` and two in `dam/`: the
+look pair split cleanly by file (named below), and the dam pair share
+`dam/index.js`, so give them to one agent or merge them in turn.
+
+1. **Sun and sky** (look/: `sky.js`, `light.js`, the post chain's
+   exposure). All 22 views: a clear tropical day, deep blue sky with
+   cumulus, a hard sun and dark shadows, as the photographs. Measure
+   sky and shadow colour against them with tools/swiss2-loop/colour.py.
+   Cheap, and worth half a point nearly everywhere.
+2. **The ground at eye level** (look/: `ground.js` only). The near and
+   mid ground is the satellite's 1024 px smear in dam-downstream,
+   dam-downstream-2, powerhouse, powerlines, canyon, reservoir-shore,
+   rockfill-road and leftbank-high: detail by mask within a few hundred
+   metres (grass with red soil paths, rubble, laterite verges), as
+   swiss2's round 5 far floor and round 6 near ground. Medium.
+3. **Spillway water in motion** (water/). The chute is a static white
+   texture, the plume at spill-plume a flat wall hiding the spillway:
+   streaks and roll waves flowing down the chutes, water leaving under
+   the gates (the sill, which #220 left dry), a plume that rises as a
+   rooster tail and thins so the spillway shows through it. chute,
+   spill-plume, spill-gates, spill-gates-high, aerial-spill. Medium.
+4. **The main dam's front and the powerhouse** (dam/). The central
+   building on the downstream face, the powerhouse's downstream facade
+   and roof (gantry cranes, skylights, the transformer bays), the
+   tailrace jet the photographs show, and the penstocks' foot at the
+   road (the penstocks view's subject; only one tube is in its frame).
+   dam-downstream, dam-downstream-2, powerhouse, penstocks. Medium to
+   high.
+5. **The crest** (dam/, with target 4's agent or after it). The intake
+   gantry's legs are lilac and its crane missing, the intake columns
+   are white pillars, the crest road has no markings or barrier
+   detail. crest-road (level for two rounds), reservoir-dam, the aerial
+   views' crest line. Cheap.
+6. **Trees** (vegetation/). Lone round lollipop trees on open ground
+   (canyon, leftbank-high, powerlines, rockfill-road, river-below):
+   varied tropical crowns, clumps and forest edges along the
+   escarpments, and trees on the reservoir shore. Medium.
+7. **The rock island and the canyon's cliffs** (terrain/, a drawn
+   mesh over the ground, the ground a craft meets unchanged). The 10 m
+   DEM cannot carry the stepped basalt walls or the island below the
+   dam (#219 shaded what it can). Visual geometry on the canyon's steep
+   cells and the island, as swiss2's round 7 and 8. dam-downstream-2,
+   canyon, river-below. High.
+8. **The rockfill toe road** (town/: roads). The road along the
+   rockfill's downstream toe, the rockfill-road photograph's subject,
+   is not drawn, with its lamps and markings; the view stands in a
+   field. rockfill-road, rockfill-high. Cheap if OpenStreetMap has the
+   way; the face's own close up texture is target 2's.
+
+Not a target yet: craft-chase (level; it follows from target 1's light
+and needs contact shadow on asphalt), reservoir-dam's gantries (follow
+from target 5).
