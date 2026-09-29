@@ -184,6 +184,26 @@
          so this costs no frame time when nothing has happened. */
       .score-hud { position: absolute; inset: 0; pointer-events: none; }
       .score-hud.is-off { display: none; }
+      /* A ROOM'S RACE, down the left under the link readout (src/ui/
+         roomhud.js): the right has the flight buttons and the throttle, the
+         top centre the lap clock, and the left column's other tenant, the
+         freestyle score, is never up in a race. */
+      .room-race {
+        position: absolute; left: 16px; top: calc(var(--bar-top) + 96px);
+        min-width: 180px; max-width: 42vw; pointer-events: none;
+        padding: 6px 10px; border-radius: 4px; background: rgba(16, 22, 17, 0.62);
+        font-size: 13px; line-height: 1.45; text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+      }
+      .room-race.is-off { display: none; }
+      .room-race-title {
+        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+        color: var(--slate); margin-bottom: 2px;
+      }
+      .room-race-row { display: flex; gap: 8px; white-space: nowrap; }
+      .room-race-row.is-me { color: var(--amber); }
+      .room-race-place { width: 1.2em; text-align: right; }
+      .room-race-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+      .room-race-value { font-variant-numeric: tabular-nums; }
       /* Clear of the music dock, which moves to the top left corner on the
          flight screen (.music-dock.on-flight) and is 30 px tall at 16 px.
          --bar-top is zero in flight, so this offset is measured from the
@@ -1356,10 +1376,19 @@
         line-height: 1.1;
       }
       .gate-card.on .gate-card-name { color: var(--sakura); }
+      /* Five lines at most. Three cards share the width, and Free Flight's
+         sentence is a list of every plane: at 1280 by 720 it ran to
+         thirteen lines and put its own tags under the command bar. The
+         name and the tags are the answer; the sentence is its gloss. */
       .gate-card-blurb {
         margin: 0;
         color: rgba(235, 230, 215, 0.74);
         font-size: 13.5px; line-height: 1.55; letter-spacing: 0.01em;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 5;
+        line-clamp: 5;
+        overflow: hidden;
       }
       /* What each mode actually gives you, in three words each. Mint is the
          colour this product paints a record in, so it is Race's; Freestyle's
@@ -1497,6 +1526,12 @@
        * is 1281 px wide and up.
        */
       .screen-quad .menu-scroll { max-height: min(calc(68vh - var(--bars)), 40em); }
+      /* In a room the Fly with friends screen has Fly, the Game heading and
+         all three games' start rows to show before the first scroll (the
+         owner hosted and never saw combat). The lede is about making and
+         joining a room, so in one it goes and its height is the rows'. */
+      .screen-friends.in-room .rates-lede { display: none; }
+      .screen-friends.in-room .menu-scroll { max-height: min(calc(76vh - var(--bars)), 44em); }
       /*
        * The quad room on a laptop. Found by measuring the Rates screen
        * beside it: below about 1100 px the three columns cannot fit their
@@ -2011,6 +2046,9 @@
         box-shadow: 0 0 0 2px rgba(243, 234, 212, 0.55);
       }
       .row-primary.on .row-label { color: var(--deep); }
+      /* Its value too, like its label: sakura on the mint fill was nearly
+         unreadable (a room's "1 of 16" in the room browser). */
+      .row-primary.on .row-value { color: var(--deep); }
 
       /* A group heading in a long settings list. Not a row: no cursor, no
          hover, no click. Twenty flat rows in one scroll is a list you read
@@ -2926,10 +2964,30 @@
           padding: 10px 13px 11px;
           justify-content: center;
         }
-        .gate-card-blurb { font-size: 12.5px; line-height: 1.5; }
+        /* Three lines here. Free Flight's sentence ran to twenty in this
+           column, which put its tags and every card under it below the
+           window of an upright phone, and this screen does not scroll. */
+        .gate-card-blurb {
+          font-size: 12.5px; line-height: 1.5;
+          -webkit-line-clamp: 3;
+          line-clamp: 3;
+        }
         /* The art is a third of the card's width here, so the mark comes
            down with it. Same box on all three, as ever. */
         .gate-card-mark { width: 42px; height: 42px; left: 7px; bottom: 6px; }
+        /* FIVE CARDS ON AN UPRIGHT PHONE, stacked as ever, because a column
+           is what the arrows and a thumb both walk, and a sideways scroller
+           would hide three of the five answers. They fit by losing the
+           sentence: the name, the picture and the tags carry the choice,
+           the same trade the landscape rule below already makes, and the
+           whole sentence is on any wider screen. 360 by 640 is the floor. */
+        .gate-cards[data-count="5"] { gap: 7px; }
+        .gate-cards[data-count="5"] .gate-card-blurb { display: none; }
+        .gate-cards[data-count="5"] .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
+        .gate-cards[data-count="5"] .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
+        .gate-cards[data-count="5"] .gate-card-name { font-size: 18px; }
+        .gate-cards[data-count="5"] .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
+        .gate-cards[data-count="5"] .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
         .screen-maps .menu-stage {
           display: block;
           position: relative;
@@ -3008,6 +3066,16 @@
         .gate-card-blurb { display: none; }
         .gate-card-name { font-size: clamp(17px, 4.4vh, 22px); }
         .gate-card-mark { width: 38px; height: 38px; left: 6px; bottom: 5px; }
+        /* Five in a row on a phone on its side: the upright phone's five
+           card rules above are more specific than this block's, so the
+           picture is put back across the card here, and the names come
+           down a size so two words fit a fifth of the width. */
+        .gate-cards[data-count="5"] .gate-card-art {
+          flex: 0 0 auto; width: 100%;
+          height: clamp(60px, 20vh, 110px); min-height: 0;
+        }
+        .gate-cards[data-count="5"] .gate-card-body { padding: 7px 10px 8px; }
+        .gate-cards[data-count="5"] .gate-card-name { font-size: clamp(15px, 4vh, 19px); }
       }
 
       /* The map screen. One card per world, each playing a short flight

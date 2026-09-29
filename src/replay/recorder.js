@@ -39,6 +39,9 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { trimPeers } from './peers.js';
+import { trimPaper } from './paper.js';
+
 /* Seconds of flight a replay holds, and the most rows it takes to hold
  * them: 120 a second. A faster display is sampled down to that; a slower
  * one leaves the ring holding more, and a clip takes the last 30 s. */
@@ -282,9 +285,11 @@ export function createRecorder(capacity = CAPACITY) {
     lastWall = NaN;
   }
 
-  /* The last WINDOW_S seconds of the ring in order, oldest first, as a
-   * Clip, its clock starting at zero. */
-  function clip(meta = {}) {
+  /* Where the last WINDOW_S seconds start in the ring, how many rows they
+   * are, and the clock at the first and the last: what clip() cuts, for
+   * anything kept beside the rows by the same index or the same clock
+   * (src/replay/peers.js, src/replay/paper.js). */
+  function span() {
     let first = (head - size + capacity) % capacity;
     let n = size;
     const newest = n ? c.time[(head - 1 + capacity) % capacity] : 0;
@@ -292,6 +297,13 @@ export function createRecorder(capacity = CAPACITY) {
       first = (first + 1) % capacity;
       n -= 1;
     }
+    return [first, n, n ? c.time[first] : 0, newest];
+  }
+
+  /* The last WINDOW_S seconds of the ring in order, oldest first, as a
+   * Clip, its clock starting at zero. */
+  function clip(meta = {}) {
+    const [first, n] = span();
     const out = columns(n);
     const t0 = n ? c.time[first] : 0;
     for (let k = 0; k < n; k += 1) {
@@ -309,7 +321,7 @@ export function createRecorder(capacity = CAPACITY) {
   }
 
   return {
-    begin, pose, drive, plant, smoke, status, parts, spawnIndex, event, clear, clip, dropNewest,
+    begin, pose, drive, plant, smoke, status, parts, spawnIndex, event, clear, clip, span, dropNewest,
     size: () => size,
     capacity,
     bytes: capacity * FRAME_BYTES,
@@ -342,6 +354,8 @@ export function trimClip(clip, t0, t1) {
     events: clip.events.filter((e) => e.t >= base && e.t <= clip.time[b]).map((e) => ({ ...e, t: e.t - base })),
     keys: (clip.keys || []).filter((k) => k.t >= base && k.t <= clip.time[b]).map((k) => ({ ...k, t: k.t - base })),
     meta: { ...clip.meta, duration: time[n - 1] },
+    ...(clip.peers ? { peers: trimPeers(clip.peers, a, b) } : {}),
+    ...(clip.paper ? { paper: trimPaper(clip.paper, a, b, base, clip.time[b]) } : {}),
   };
 }
 

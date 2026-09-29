@@ -1,13 +1,14 @@
 # Deploying FDFPV
 
-Three resources, two of them live. The rest of this file after the tracks
+Four resources, three of them live. The rest of this file after the tracks
 server is the upstream walkthrough for the Render half, kept because it is
 still accurate for the board.
 
 | Resource | Where | How |
 | --- | --- | --- |
 | Simulator | GitHub Pages, https://fdflabs.github.io/fdfpv/ | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
-| Tracks server | Cloudflare Worker plus D1, https://fdfpv-tracks.fdfretes.workers.dev | `tracks-api/deploy.sh`. Live since 2026-09-28. |
+| Tracks server | The owner's VM, https://129.151.39.48/api | `deploy/vm/deploy.sh`, see `deploy/vm/README.md`. The Cloudflare Worker plus D1 below is still deployed, as the way back. |
+| Rooms server | The owner's VM, https://129.151.39.48/v2 | The same deploy. `edge/rooms/README.md` is the code; the Worker `fdfpv-rooms` is still deployed. |
 | Board | Render, Node web service plus Postgres | `render.yaml` in the board repo as a Blueprint. Set `SIM_ORIGIN` to the Pages URL. Not deployed. |
 
 The simulator finds the board through `PRODUCTION_BOARD_ORIGIN` in
@@ -17,6 +18,11 @@ exists. The Cloudflare Worker under `edge/` is not deployed: it joined
 three deploys under one domain, and there is no domain yet.
 
 # The tracks server
+
+Since 2026-09-28 production runs on the owner's VM (`deploy/vm/README.md`):
+the Workers Free plan's daily requests are shared with another project and
+ran out most days. What follows is the Cloudflare deploy, which still works
+and is the way back.
 
 Every track a pilot saves goes online here, and everybody can list, open,
 fly and copy it, with no login. The simulator talks to it through
