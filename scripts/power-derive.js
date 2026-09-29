@@ -134,6 +134,21 @@ await electric('kadet1981 electric', { kv: 530, rm: 0.033, io: 1.8, cells: 5, pr
  * its sport 13x6. */
 await glow('kadet1981 FSa-56II', { stockProp: '12x6', stockRpm: 9500, stockThrust: 27.83, stockPowerW: 671, prop: '12x6', dStockIn: 12, dIn: 12, powerW: 735.5 });
 await glow('kadet1981 FS-64V', { stockProp: '12x6', stockRpm: 9500, stockThrust: 27.83, stockPowerW: 671, prop: '13x6', dStockIn: 12, dIn: 13, powerW: 838.5 });
+/* Ugly Stik, the stock O.S. 61FX: an owner's tachometer, "turned APC
+ * 12.25-3.75 at 13100 rpm max peaked out" (RC Universe, "O.S. .61 FX
+ * Engines"), APC's torque there taken flat below the power peak onto the
+ * 12 x 6 O.S. list for it; then the smaller engine RCM's ".40-.61" allows,
+ * the O.S. 46FX (1.62 ps against the 61FX's 1.9, O.S.'s manual) on the
+ * 11 x 6 in its own list. */
+{
+  const a = await apcStatic('1225x375');
+  const b = await apcStatic('12x6');
+  const q = interp(a, 13100, 'torque');
+  let lo = 3000, hi = 20000;
+  for (let k = 0; k < 80; k += 1) { const n = (lo + hi) / 2; if (interp(b, n, 'torque') < q) lo = n; else hi = n; }
+  console.log(`uglystik1567 61FX: APC 12.25x3.75 at 13100 rpm, ${q.toFixed(4)} N m; the 12x6 at that torque: ${lo.toFixed(0)} rpm, ${interp(b, lo, 'thrust').toFixed(3)} N`);
+}
+await glow('uglystik1567 46FX', { stockProp: '12x6', stockRpm: 10895, stockThrust: 36.206, stockPowerW: 1397, prop: '11x6', dStockIn: 12, dIn: 11, powerW: 1191 });
 /* Bombshell, a Cox .049 with Cox's own RC throttle (Fly RC's review of the
  * Sure-Start .049: 18,000 rpm on Cox's 5x3), thrust from APC's 5x3. */
 {

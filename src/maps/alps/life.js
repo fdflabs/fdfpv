@@ -10,8 +10,10 @@
  * Two clocks. updateAnim(stepMs) is the simulator's own: every vehicle
  * and the gondola are pure functions of it, so a replay, the title loop
  * and a capture that jumps the clock all see the same bus at the same
- * stop. updateWind(t) is the wall clock, for the sock, the cattle, the
- * hikers and the paragliders: decoration nothing can hit.
+ * stop. The contact pass reads their boxes on that clock at its own
+ * steps (sweepSolids), not at the frame's. updateWind(t) is the wall
+ * clock, for the sock, the cattle, the hikers and the paragliders:
+ * decoration nothing can hit.
  *
  * What drives is solid. Each vehicle and each cabin carries moving boxes
  * in the colliders, the same primitive the city's train uses, so a wing
@@ -250,7 +252,12 @@ function makeSolids(colliders) {
       }
     }
   };
-  return { add, put, commit, count: () => all.reduce((n, s) => n + s.boxes.length, 0) };
+  /* Every box where put() left it, as at tMs, with no sweep. */
+  const seat = (tMs) => {
+    last = null;
+    commit(tMs);
+  };
+  return { add, put, commit, seat, count: () => all.reduce((n, s) => n + s.boxes.length, 0) };
 }
 
 /*
@@ -489,7 +496,9 @@ export function buildLife(ctx) {
   scene.add(sock.group);
   colliders.addPost('pole', STRIP_W / 2 + 6, 30, sock.group.position.y, sock.group.position.y + 4.5, 0.045);
 
-  function updateAnim(tMs) {
+  /* Everything that drives, where it is at tMs: the meshes, and the
+   * boxes put() and waiting for a commit. */
+  function place(tMs) {
     const t = tMs * 0.001;
     const b = busSched.at(t + busPhase);
     const at = busPose(b.s);
@@ -527,9 +536,30 @@ export function buildLife(ctx) {
     trailer.rolled(s);
     solids.put(trailerSolid, axle.x, ay, axle.z, yaw);
     lift.update(tMs);
+  }
+  function updateAnim(tMs) {
+    place(tMs);
     solids.commit(tMs);
   }
   updateAnim(0);
+
+  /*
+   * THE BOXES ON THE CONTACT PASS'S OWN CLOCK. updateAnim runs once a
+   * drawn frame, so a box it moves has the pose of the last frame's end
+   * and a sweep one frame long, and a contact pass between two frames
+   * met the car where the frame boundary had left it: the same wreck on
+   * the road, thrown the same way, was hit at a different step at a
+   * different frame rate. The pass calls this before it sweeps, with the
+   * two ends of its own stretch of the step count, so what it meets is a
+   * function of the step alone. updateAnim is left as it was for the
+   * picture and for the queries made between frames.
+   */
+  function sweepSolids(fromMs, toMs) {
+    place(fromMs);
+    solids.seat(fromMs);
+    place(toMs);
+    solids.commit(toMs);
+  }
 
   /* Wall clock decoration only: the sock swings to a valley wind that
    * blows up the valley by day, its tail drooping a little and lifting
@@ -544,6 +574,7 @@ export function buildLife(ctx) {
 
   return {
     updateAnim,
+    sweepSolids,
     updateWind,
     parked,
     movers: 1 + south.length + north.length + 1,

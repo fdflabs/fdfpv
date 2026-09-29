@@ -75,7 +75,7 @@ const APC_DATA = 'https://www.apcprop.com/files/PER3_';
  */
 const APC_OZ = {
   '11x7E-3': 1.09, '11x7E': 0.81, '10x7E': 0.71, '11x55E': 0.81, '11x8E': 0.81, '12x6E': 0.95,
-  '13x8E': 1.09, '12x6': 1.62, '12x8': 1.69, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
+  '13x8E': 1.09, '12x6': 1.62, '12x7': 1.52, '12x8': 1.69, '11x6': 1.41, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
   '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
   '10x6E': 0.71, '12x8E': 0.92, '13x65E': 1.06, '16x8E': 1.83, '16x10E': 1.83,
 };
@@ -105,6 +105,7 @@ const PROXY = {
   '7/3.5/2/glow': '7x4',
   '5/3/2/glow': '5x3',
   '12/6/2/glow': '12x6',
+  '11/6/2/glow': '11x6',
   '13/6/2/glow': '13x6',
 };
 
@@ -145,6 +146,7 @@ export const PROPS = {
   edge1524: [STOCK, apcProp('16x8e', '16x8E', 16, 8, 2), apcProp('16x10e', '16x10E', 16, 10, 2)],
   extra1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
   pitts850: [STOCK, apcProp('11x8e', '11x8E', 11, 8, 2), apcProp('10x7e', '10x7E', 10, 7, 2)],
+  uglystik1567: [STOCK, apcProp('12x7', '12x7', 12, 7, 2), apcProp('12x8', '12x8', 12, 8, 2)],
   radian2000: [STOCK],
   bramor2300: [STOCK],
   /* A fan is its duct's: Freewing sells the one rotor for it. */
@@ -153,6 +155,10 @@ export const PROPS = {
    * figures on, and a two blade would change what the pilot sees turning
    * on the nose: none offered. */
   p51d1450: [STOCK],
+  /* Zagi's spoon shaped carbon 5 x 5 flew 10 to 15 mph faster than four
+   * other makers' 5 x 5s on the same Zagi (zagi.com's propeller page), and
+   * APC's own figures cannot say by how much: none offered. */
+  zagi1219: [STOCK],
 };
 
 /* The planes the tab serves: every fixed wing the picker offers. */
@@ -190,7 +196,9 @@ export const ANCHORS = {
   edge1524: { prop: [0.4826, 0, 0], belly: [0, 0, -0.114], tail: [-0.80, 0, -0.015], tank: [-0.01, 0, -0.05], led: [[0.08, 0.12, -0.016], [-0.02, 0.70, -0.013]] },
   extra1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
   pitts850: { prop: [0.1997, 0, 0], belly: [0, 0, -0.110], tail: [-0.50, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.03, 0.15, 0.078], [0.01, 0.38, 0.078]] },
+  uglystik1567: { prop: [0.4064, 0, -0.0043], belly: [0, 0, -0.053], tail: [-0.785, 0, -0.053], tank: [-0.01, 0, -0.03], led: [[0.117, 0.15, 0.045], [0.117, 0.70, 0.082]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
+  zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },
 };
 
 /* A body frame point: one mass or drag and where it is. */

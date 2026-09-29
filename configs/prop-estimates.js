@@ -370,5 +370,31 @@ export const PROP_ESTIMATES = {
         currentA: 32.967
       }
     }
+  },
+  uglystik1567: {
+    stock: {
+      "12x7": {
+        thrustN: 35.8425,
+        pitchSpeedMs: 30.8687,
+        rpmNoLoad: 12255.2
+      },
+      "12x8": {
+        thrustN: 35.175,
+        pitchSpeedMs: 33.8612,
+        rpmNoLoad: 11762.8
+      }
+    },
+    fx46: {
+      "12x7": {
+        thrustN: 32.1419,
+        pitchSpeedMs: 29.2825,
+        rpmNoLoad: 11625.4
+      },
+      "12x8": {
+        thrustN: 31.5508,
+        pitchSpeedMs: 32.1093,
+        rpmNoLoad: 11154.2
+      }
+    }
   }
 };
