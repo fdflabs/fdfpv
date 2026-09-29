@@ -15,7 +15,8 @@
  * its three wheels, ?plane=edge the Edge 540's, from standing on its three
  * wheels, ?plane=extra the Extra 300's, from standing on its wheels,
  * through a hover and a torque roll, ?plane=uglystik the Ugly Stik's,
- * from standing on its three wheels, and ?plane=f16 the F-16's, from
+ * from standing on its three wheels, ?plane=dlg the NRJ's, thrown by its
+ * wingtip from the grass into a thermal, and ?plane=f16 the F-16's, from
  * standing on its three wheels with its fan stopped; with no query it
  * is the wing's, exactly as it always was.
  *
@@ -39,7 +40,7 @@ import { loadSim } from '../lib/simmod.js';
 import { replayTrace } from '../lib/replay.js';
 import { decodeRec } from '../lib/recfile.js';
 import {
-  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, uglystikGroundPrelude,
+  bombshellGroundPrelude, bramorChutePrelude, bramorPrelude, cubGroundPrelude, dlgRecPrelude, edgeGroundPrelude, extraGroundPrelude, f16GroundPrelude, gliderRecPrelude, kadetGroundPrelude, p51AirPrelude, p51RecPrelude, skyPrelude, uglystikGroundPrelude,
   slowstickGroundPrelude,
   timberFloatRecPrelude, timberRecPrelude, wingPrelude,
 } from '../lib/wingpilot.js';
@@ -59,6 +60,7 @@ const PLANES = {
   edge: { rec: '/tests/inputs/edge-baseline.rec', prelude: (sim) => edgeGroundPrelude(sim) },
   extra: { rec: '/tests/inputs/extra-baseline.rec', prelude: (sim) => extraGroundPrelude(sim) },
   uglystik: { rec: '/tests/inputs/uglystik-baseline.rec', prelude: (sim) => uglystikGroundPrelude(sim) },
+  dlg: { rec: '/tests/inputs/dlg-baseline.rec', prelude: dlgRecPrelude },
   f16: { rec: '/tests/inputs/f16-baseline.rec', prelude: (sim) => f16GroundPrelude(sim) },
   p51: { rec: '/tests/inputs/p51-baseline.rec', prelude: p51RecPrelude },
   'p51-air': { rec: '/tests/inputs/p51-air.rec', prelude: p51AirPrelude },

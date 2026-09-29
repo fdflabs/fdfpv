@@ -269,6 +269,7 @@ typedef struct {
 #define SIM_AIRFRAME_P51D1450 15
 #define SIM_AIRFRAME_F16878 16
 #define SIM_AIRFRAME_UGLYSTIK1567 19
+#define SIM_AIRFRAME_NRJ1490 21
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
@@ -844,6 +845,37 @@ typedef struct FixedWingParams {
    */
   double fan_tau;
   double esc_start;
+  /*
+   * THE DRAG ACROSS THE REYNOLDS NUMBERS, docs/DLG-STAGE1.md. Zero cd0_re
+   * is a CD0 that is the same at every speed, every other table's, and then
+   * nothing below is read. Above zero it is the Reynolds number, on the
+   * table's chord, at which the table's cd0 was built up, and the plant
+   * takes it as a laminar skin's, going as Re^-1/2 (Blasius), held at its
+   * value at half the reference below that: a glider that flies from its
+   * stall to a discus launch's release spans a ninefold Reynolds number,
+   * over which its drag coefficient more than halves.
+   */
+  double cd0_re;
+  /*
+   * THE DISCUS LAUNCH, docs/DLG-STAGE1.md, for a glider thrown by its
+   * wingtip. Zero discus_v is an aircraft that is not, which
+   * sim_wing_discus refuses, and then nothing below is read. The pilot
+   * holds the peg and turns discus_turn radians about a point discus_r
+   * from the CG, the CG at discus_h over the ground, at a constant angular
+   * acceleration from standing to discus_v along the circle; the glider
+   * is let go at the end of the turn at discus_v along its nose, pitched
+   * discus_pitch up. Then, until the climb is spent, the radio's launch
+   * preset flies the zoom: in every mode the elevator carries discus_de
+   * on top of what the stick or the stabiliser asks, the elevator that
+   * trims the zoom at the zero lift line, and in Stabilised the pitch held
+   * is the release's (Acro holds the release's attitude as it holds any).
+   */
+  double discus_v;
+  double discus_r;
+  double discus_turn;
+  double discus_pitch;
+  double discus_h;
+  double discus_de;
 } FixedWingParams;
 
 extern const FixedWingParams FW_WING1000;
@@ -862,6 +894,7 @@ extern const FixedWingParams FW_EXTRA1308;
 extern const FixedWingParams FW_P51D1450;
 extern const FixedWingParams FW_F16878;
 extern const FixedWingParams FW_UGLYSTIK1567;
+extern const FixedWingParams FW_NRJ1490;
 
 void plant_wing_step(SimState *s, const double rc[4]);
 void plant_wing_reset(void);
@@ -895,6 +928,18 @@ void plant_reseat(void);
 void plant_power_state(const SimState *s, double *out);
 double plant_lipo_ocv(double soc);
 void plant_wing_launch(SimState *s, double speed);
+/* THE DISCUS LAUNCH (FixedWingParams.discus_v). plant_wing_discus_start
+ * begins the pilot's turn from where the aircraft is, to be let go at the
+ * same x y facing the way it faces, its CG at z_release; -1 on an aircraft
+ * without one. plant_wing_discus_hold runs one step of the turn in place
+ * of the plant and returns 1, or returns 0 when no turn is under way.
+ * plant_wing_discus_phase: 0 none, 1 the turn, 2 the zoom under the
+ * launch preset. */
+int plant_wing_discus_start(SimState *s, double z_release);
+int plant_wing_discus_hold(SimState *s);
+int plant_wing_discus_phase(void);
+/* Ends a throw under way, turn or zoom, as an airframe change must. */
+void plant_wing_discus_stop(void);
 void plant_wing_surfaces(double out[2]);
 void plant_plane_surfaces(double out[4]);
 void plant_wing_debug(double out[20]);

@@ -39,7 +39,7 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import {
   must, wingDebug, RC_STEP_MS, WING_AIRFRAME, SKY_AIRFRAME, CUB_AIRFRAME, GLIDER_AIRFRAME, BRAMOR_AIRFRAME,
   SLOWSTICK_AIRFRAME, TIMBER_AIRFRAME, TIMBERF_AIRFRAME, CUBF_AIRFRAME, BOMBSHELL_AIRFRAME, KADET_AIRFRAME, EDGE_AIRFRAME, EXTRA_AIRFRAME, P51_AIRFRAME,
-  F16_AIRFRAME, UGLYSTIK_AIRFRAME,
+  F16_AIRFRAME, UGLYSTIK_AIRFRAME, DLG_AIRFRAME,
 } from '../tests/lib/wingpilot.js';
 import { deriveAll } from './stab-glide-derive.js';
 
@@ -51,6 +51,7 @@ const AIRFRAME = {
   FW_TIMBER1500F: TIMBERF_AIRFRAME, FW_CUB1400F: CUBF_AIRFRAME, FW_BOMBSHELL1118: BOMBSHELL_AIRFRAME,
   FW_KADET1981: KADET_AIRFRAME, FW_EDGE1524: EDGE_AIRFRAME, FW_EXTRA1308: EXTRA_AIRFRAME, FW_P51D1450: P51_AIRFRAME, FW_F16878: F16_AIRFRAME,
   FW_UGLYSTIK1567: UGLYSTIK_AIRFRAME,
+  FW_NRJ1490: DLG_AIRFRAME,
 };
 /* The Bombshell's S3 band about its derived 8.62: 7.67 to 9.65. */
 const BAND_LO = 8.62 / 9.65, BAND_HI = 8.62 / 7.67;
@@ -75,7 +76,8 @@ for (const d of await deriveAll()) {
   must(sim.e.sim_set_airframe(id), 'sim_set_airframe');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_pose(...STILL_AIR), 'sim_set_pose');
-  must(sim.e.sim_wing_launch(d.cruise.V), 'sim_wing_launch');
+  /* A glider with no motor has no cruise: it is let go at its glide. */
+  must(sim.e.sim_wing_launch(d.cruise.V ?? d.glide.V), 'sim_wing_launch');
   must(sim.e.sim_wing_set_stab(1), 'sim_wing_set_stab');
   let ms = 0;
   for (; ms < CRUISE_S * 1000; ms += RC_STEP_MS) {
