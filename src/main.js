@@ -156,14 +156,9 @@ import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickc
 import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellcraft.js';
 import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
-import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
-import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
-import { PITTS_MOUNT_FORWARD, PITTS_MOUNT_UP } from './render/pittscraft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
-import { WOT4_MOUNT_FORWARD, WOT4_MOUNT_UP } from './render/wot4craft.js';
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
-import { QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP } from './render/quickiecraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
@@ -180,14 +175,9 @@ const WING_MOUNTS = {
   bombshell1118: [BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP],
   f16878: [F16_MOUNT_FORWARD, F16_MOUNT_UP],
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
-  edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
-  extra1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
-  pitts850: [PITTS_MOUNT_FORWARD, PITTS_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
-  wot41334: [WOT4_MOUNT_FORWARD, WOT4_MOUNT_UP],
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
-  quickie1293: [QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
@@ -539,10 +529,11 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 20 (the town is 9 of them).
- * The Yellowstone terrain engine and the swiss2 look it is built with
- * are under their own prefixes, as the Alps' modules are for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 20 };
+ * itaipu: itaipu.js and src/maps/itaipu/, 21 (the town is 8 of them,
+ * the vegetation 3). The Yellowstone terrain engine and the swiss2 look
+ * it is built with are under their own prefixes, as the Alps' modules
+ * are for swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 21 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -1904,7 +1895,8 @@ export async function boot({
    * who never opens a room never builds any of it. The one thing a room
    * changes about a flight is where it starts (roomSlot, above).
    *
-   * peers is by seat: { seat, name, profile, track, last, rig, figure }.
+   * peers is by seat: { seat, name, profile, track, last, rig, figure,
+   * away }, away why it is not drawn (roomDrawPeer), or null.
    * The rig is built when the peer is first drawn and rebuilt when their
    * airframe, paint or add ons change; a peer flying another world is kept
    * and not drawn.
@@ -1961,8 +1953,11 @@ export async function boot({
        * there; on a track they keep their track and see whoever is in its
        * world. Against the SEAT, not the world drawn: a pilot who chose
        * another world a moment ago is still looking at the old one while
-       * the new one builds, and comparing with that seated nothing. */
-      if (w.map && w.map !== ui.settings.map && ui.mode === 'freestyle' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+       * the new one builds, and comparing with that seated nothing.
+       * A pilot who has not answered Race or Freestyle yet (ui.mode null,
+       * which is everybody who opens a room's link) is seated too: left
+       * out, they flew the world they had last and saw nobody in the room. */
+      if (w.map && w.map !== ui.settings.map && ui.mode !== 'race' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
         roomNote = str('friends.other_world', { world: mapById(w.map).name });
         ui.seatMap(w.map, { stay: true });
       }
@@ -2061,7 +2056,16 @@ export async function boot({
       roomBrowser.watch(roomBrowsing());
       ui.refreshFriends();
     },
-  }, () => ({ name: namePick(), profile: roomProfile() }));
+  }, () => {
+    /* What the room is told on every hello is what roomFrame compares
+     * with. Starting that from nothing instead lost the first change: a
+     * pilot the welcome seated in the room's world, whose hello had named
+     * the world they were leaving, stayed there for the room, and nobody
+     * drew them while they drew everybody. */
+    const profile = roomProfile();
+    roomProfileSent = JSON.stringify(profile);
+    return { name: namePick(), profile };
+  });
   const roomSafety = createRoomSafety((m) => roomLinkState.send(m), (seat) => {
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
@@ -2282,7 +2286,7 @@ export async function boot({
       roomPeerLeave(seat);
     }
     roomPeers.set(seat, {
-      seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null, wreck: null, wreckTable: null, wreckPieces: null, frozenUntil: 0,
+      seat, name, profile, track: new PeerTrack(), last: null, rig: null, figure: null, wreck: null, wreckTable: null, wreckPieces: null, frozenUntil: 0, away: null,
     });
   }
 
@@ -2418,9 +2422,7 @@ export async function boot({
       const p = roomProfile();
       const key = JSON.stringify(p);
       if (key !== roomProfileSent) {
-        if (roomProfileSent) {
-          roomLinkState.sendProfile(p);
-        }
+        roomLinkState.sendProfile(p);
         roomProfileSent = key;
       }
     }
@@ -2523,10 +2525,22 @@ export async function boot({
     }
   }
 
+  /* The named mark for a pilot in the room who is not drawn here. A world
+   * this page does not have (a newer build's) is named as another world. */
+  function roomAwayText(peer) {
+    const name = roomName(peer.name);
+    if (peer.away === 'idle') {
+      return str('rooms.away_idle', { name });
+    }
+    const world = MAPS.find((m) => m.id === peer.profile.map);
+    return world ? str('rooms.away_world', { name, world: world.name }) : str('rooms.away_elsewhere', { name });
+  }
+
   function roomDrawPeer(peer, now, scene, dt, simT) {
     /* The replay draws the room as it was (src/replay/peerscene.js), so
      * the room as it is now is put away until flight resumes. */
     if (mode === 'replay') {
+      peer.away = null;
       roomHidePeer(peer);
       return;
     }
@@ -2535,11 +2549,15 @@ export async function boot({
     if (peer.frozenUntil > now && peer.rig && peer.rig.group.visible) {
       return;
     }
-    const here = Boolean(scene) && view && peer.profile && peer.profile.map === view.id;
-    const drawn = here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
+    const here = Boolean(view) && peer.profile && peer.profile.map === view.id;
+    const drawn = Boolean(scene) && here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
       peer.last.px - pCurr.x, peer.last.py - pCurr.y, peer.last.pz - pCurr.z,
     )), roomDrawn);
     peer.drawnPose = drawn ? Object.assign(peer.drawnPose || {}, roomDrawn) : null;
+    /* Why a pilot in the room is not drawn, for the named mark on screen
+     * (peerMarks.away): in another world, or sending nothing (paused, a
+     * menu, a hidden tab). */
+    peer.away = drawn ? null : (here ? 'idle' : 'world');
     if (!drawn) {
       if (peer.rig) {
         peer.rig.group.visible = false;
@@ -12832,6 +12850,9 @@ export async function boot({
       if (peer.rig && peer.rig.group.visible) {
         const at = peer.rig.group.position;
         peerMarks.add(peer.seat, peer.rig.label(), at.x, at.y, at.z, peer.rig.extent);
+      } else if (peer.away && !roomSafety.isMuted(peer.seat)) {
+        /* Not drawn, so named instead; a muted pilot's name is not shown anywhere. */
+        peerMarks.away(peer.seat, roomAwayText(peer));
       }
     }
     peerMarks.end(peerMarkGround);

@@ -30,7 +30,7 @@
 
 import {
   HALO, KIND_EDGE, KIND_OVER, MARK, MARK_CONTRAST, MARK_ROLES, SEAT_COLOURS, SIDE_BOTTOM, SIDE_LEFT, SIDE_RIGHT, SIDE_TOP,
-  addRect, clearRects, fadeToward, groundBehind, makeCam, makeMark, makeScreen, markNeed, pinToEdge, planMark,
+  addRect, awayRow, clearRects, fadeToward, groundBehind, makeCam, makeMark, makeScreen, markNeed, pinToEdge, planMark,
   rangeKey, rangeText, seatColour, setScreen, spreadEdges, terrainHides,
 } from '../src/ui/peermarks.js';
 import { PUBLIC_CAP } from '../src/share/roomwire.js';
@@ -377,6 +377,17 @@ check('tens under a kilometre', rangeText(rangeKey(412), false) === '410 m');
 check('tenths of a kilometre past it', rangeText(rangeKey(1234), false) === '1.2 km');
 check('the OSD writes it its own way', rangeText(rangeKey(412), true) === '410M' && rangeText(rangeKey(2450), true) === '2.5KM');
 check('the key holds still inside a rounding step', rangeKey(401) === rangeKey(404) && rangeKey(42.2) === rangeKey(41.8));
+
+console.log('away lines');
+{
+  const screen = setScreen(makeScreen(), 1280, 720);
+  check('with nothing in the way a line stays where it was asked', awayRow(screen, 26, 26, 200, 17) === 26);
+  addRect(screen, 10, 10, 300, 60);
+  addRect(screen, 0, 72, 120, 30);
+  const y = awayRow(screen, 26, 26, 200, 17);
+  check('it goes below every readout it would cover, one after another', y === 72 + 30 + MARK.PAD, String(y));
+  check('a readout elsewhere on the row is no reason to move', awayRow(screen, 400, 26, 200, 17) === 26);
+}
 
 console.log(`\n${failures ? `${failures} FAILED` : 'all passed'}`);
 process.exit(failures);

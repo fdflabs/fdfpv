@@ -11,12 +11,12 @@
  *   fixed     the bridges' decks and rails as boxes, for the static set
  *             (a few hundred; everything else would be tens of thousands
  *             and is streamed);
- *   stream    (fill, x, z) -> onSwap: the walls of every building whose
- *             middle is within WALLS_R of (x, z), and every tower piece
- *             and wire chord within WIRES_R, into a streamed refill
- *             (stream.js); onSwap gives each roof its walls' indices,
- *             which roofs.js cover passes when the roof is the craft's
- *             ground.
+ *   stream    the map's seam for the streamed set ({ wants, fill,
+ *             swapped }, src/maps/itaipu.js): the walls of every
+ *             building whose middle is within WALLS_R of the pilot, and
+ *             every tower piece and wire chord within WIRES_R; swapped
+ *             gives each roof its walls' indices, which roofs.js cover
+ *             passes when the roof is the craft's ground.
  *
  * Pure: no THREE, so the checks build the whole town in Node against the
  * data and count it.
@@ -53,9 +53,9 @@ import { buildBridge } from './bridge.js';
  * turned off the world's axes (Foz do Iguacu's grid is) and a turned
  * building is a column per metre of its width.
  *
- * But the craft is never more than MOVE (400 m, stream.js) from the
- * centre of the set in force before the next refill is under way, and a
- * refill is in within a few frames. So it can only reach walls within
+ * But the craft is never more than MOVE from the centre of the set in
+ * force before the next refill is under way, and a refill is in within a
+ * few frames. So it can only reach walls within
  * FINE_R of the centre, and those are the columns. From FINE_R to WALLS_R
  * a building is the one box round its walls: every wall within 1 000 m is
  * solid, and the refill that brings the craft near a building brings its
@@ -64,8 +64,13 @@ import { buildBridge } from './bridge.js';
  * and nothing past FINE_R can be reached before the next refill.
  */
 export const WALLS_R = 1000;
-export const FINE_R = 500;
+export const FINE_R = 450;
 export const WIRES_R = FINE_R;
+/* The town's set is refilled when the pilot is this far from where it
+ * was filled: sooner than the plan's 400 m (section 7), so the columns'
+ * FINE_R stands 150 m clear of anywhere the craft can be before the
+ * refill is in, however many frames the map's streamer takes over it. */
+export const MOVE = 300;
 /* Section 2: the hero square's half side. */
 const HERO_HALF = 5120;
 /* Galvanised steel, a shade darker than new. */
@@ -211,62 +216,101 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
     capMid[i * 2 + 1] = (c[2] + c[5]) / 2;
   });
 
-  /* The roofs that had walls in the set in force. */
+  /* The roofs that had walls in the set in force, what the refill in
+   * progress took (for swapped), and where the set was last filled. */
   let walled = [];
+  let taking = [];
+  const near = {
+    x: NaN, z: NaN, fills: 0, pending: false, last: null,
+  };
 
-  function stream(fill, x, z) {
-    const took = [];
-    const r2 = WALLS_R * WALLS_R;
-    const f2 = FINE_R * FINE_R;
-    let whole = 0;
-    for (const b of buildings) {
-      const dx = b.x - x;
-      const dz = b.z - z;
-      const d2 = dx * dx + dz * dz;
-      if (d2 > r2) {
-        continue;
+  /* Adds between two yields of a fill: the densest refill is some 13 000
+   * of them, a couple of milliseconds. */
+  const SLICE_ADDS = 3000;
+
+  /*
+   * The map's seam for the streamed set (src/maps/itaipu.js, the
+   * streamer): wants a refill once the pilot is MOVE from where the set
+   * was filled, fills round (x, z) a slice at a time, and on the swap
+   * gives each roof the indices of the walls under it.
+   */
+  const stream = {
+    near,
+    wants(x, z) {
+      const dx = x - near.x;
+      const dz = z - near.z;
+      return !(dx * dx + dz * dz < MOVE * MOVE);
+    },
+    * fill(list, x, z) {
+      near.x = x;
+      near.z = z;
+      near.fills += 1;
+      near.pending = true;
+      const took = [];
+      taking = took;
+      const r2 = WALLS_R * WALLS_R;
+      const f2 = FINE_R * FINE_R;
+      let whole = 0;
+      let walls = 0;
+      let since = 0;
+      for (const b of buildings) {
+        const dx = b.x - x;
+        const dz = b.z - z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 > r2) {
+          continue;
+        }
+        if (d2 > f2) {
+          took.push([b, [list.addBox('wall', ...b.whole)], 1]);
+          whole += 1;
+          walls += 1;
+          since += 1;
+        } else {
+          const idx = [];
+          const bx = b.boxes;
+          for (let i = 0; i < bx.length; i += 6) {
+            idx.push(list.addBox('wall', bx[i], bx[i + 1], bx[i + 2], bx[i + 3], bx[i + 4], bx[i + 5]));
+          }
+          took.push([b, idx, b.eaves]);
+          walls += idx.length;
+          since += idx.length;
+        }
+        if (since >= SLICE_ADDS) {
+          since = 0;
+          yield;
+        }
       }
-      if (d2 > f2) {
-        took.push([b, [fill.addBox('wall', ...b.whole)], 1]);
-        whole += 1;
-        continue;
+      const w2 = WIRES_R * WIRES_R;
+      let power = 0;
+      for (let i = 0; i < caps.length; i += 1) {
+        const dx = capMid[i * 2] - x;
+        const dz = capMid[i * 2 + 1] - z;
+        if (dx * dx + dz * dz > w2) {
+          continue;
+        }
+        const c = caps[i];
+        list.add('pole', c[0], c[1], c[2], c[3], c[4], c[5], c[6]);
+        power += 1;
       }
-      const idx = [];
-      const bx = b.boxes;
-      for (let i = 0; i < bx.length; i += 6) {
-        idx.push(fill.addBox('wall', bx[i], bx[i + 1], bx[i + 2], bx[i + 3], bx[i + 4], bx[i + 5]));
-      }
-      took.push([b, idx, b.eaves]);
-    }
-    const w2 = WIRES_R * WIRES_R;
-    let wiresIn = 0;
-    for (let i = 0; i < caps.length; i += 1) {
-      const dx = capMid[i * 2] - x;
-      const dz = capMid[i * 2 + 1] - z;
-      if (dx * dx + dz * dz > w2) {
-        continue;
-      }
-      const c = caps[i];
-      fill.add('pole', c[0], c[1], c[2], c[3], c[4], c[5], c[6]);
-      wiresIn += 1;
-    }
-    stream.last = {
-      x, z, buildings: took.length, whole, walls: took.reduce((n, [, idx]) => n + idx.length, 0), power: wiresIn,
-    };
-    return (offset) => {
+      near.last = {
+        x, z, buildings: took.length, whole, walls, power, colliders: walls + power,
+      };
+    },
+    swapped(offset) {
+      near.pending = false;
       for (const rec of walled) {
         rec.solids = EMPTY;
         rec.eaves = EMPTY;
       }
       walled = [];
-      for (const [b, idx, eaves] of took) {
+      for (const [b, idx, eaves] of taking) {
         const solids = idx.map((i) => i + offset);
         b.rec.solids = solids;
         b.rec.eaves = solids.slice(0, eaves);
         walled.push(b.rec);
       }
-    };
-  }
+    },
+  };
 
   progress(1);
   return {

@@ -83,11 +83,8 @@ const PLANES = {
   cubf: { sim: 10, Vs: 8.7, alphaStall: 1.15 / 5.21, rudder: true },
   bombshell: { sim: 11, Vs: 6.49, alphaStall: 1.0 / 4.991, rudder: true },
   kadet: { sim: 12, Vs: 7.15, alphaStall: 1.15 / 5.029, rudder: true },
-  edge: { sim: 13, Vs: 9.58, alphaStall: 0.90 / 4.797, rudder: true },
   f16: { sim: 16, Vs: 12.33, alphaStall: 1.1 / 3.310, rudder: true },
   uglystik: { sim: 19, Vs: 9.48, alphaStall: 0.95 / 4.824, rudder: true },
-  wot4: { sim: 20, Vs: 10.05, alphaStall: 1.098 / 4.752, rudder: true },
-  quickie: { sim: 22, Vs: 9.31, alphaStall: 0.90 / 4.866, rudder: true },
   /* The cell's angle at which the top wing, the first, reaches its CL max. */
   tigermoth: { sim: 23, Vs: 9.47, alphaStall: 1.05 / (1.1087 * 4.6328), rudder: true },
 };

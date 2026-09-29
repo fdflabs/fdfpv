@@ -83,7 +83,9 @@ import {
 } from '../src/maps/yellowstone/terrain/frame.js';
 import { reconcile } from '../src/maps/itaipu/terrain/reconcile.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
-import { planTown, WALLS_R, FINE_R } from '../src/maps/itaipu/town/model.js';
+import {
+  planTown, WALLS_R, FINE_R, MOVE,
+} from '../src/maps/itaipu/town/model.js';
 import { roofTop } from '../src/maps/alps/roofs.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -99,6 +101,9 @@ const SHOTS = arg('shots', null);
 /* Section 14 row F and section 13. */
 const DRAPE_TOL = 0.1;
 const STREAM_BUDGET = 25000;
+/* The town's share of it: the near trees take 12 500 at most (package G,
+ * #192), so the town must fit in the rest wherever the pilot is. */
+const TOWN_SHARE = STREAM_BUDGET - 12500;
 const ROOFS = 20;
 const OSM_FILES = ['osm/buildings.json', 'osm/roads.json', 'osm/power.json', 'osm/landuse.json'];
 
@@ -328,17 +333,21 @@ async function nodeChecks(data, ground) {
   for (let x = -5000; x <= 5000; x += 250) {
     for (let z = -5000; z <= 5000; z += 250) {
       const f = countingFill();
-      town.stream(f, x, z);
+      for (const _ of town.stream.fill(f, x, z)) {
+        /* Every slice. */
+      }
       if (f.n > most.n) {
-        most = { n: f.n, x, z, ...town.stream.last };
+        most = { n: f.n, ...town.stream.near.last };
       }
     }
   }
   console.log(`  budget: the town's streamed colliders are most at (${most.x}, ${most.z}): ${most.n} `
     + `(${most.buildings} buildings, ${most.buildings - most.whole} of them within ${FINE_R} m in columns and ${most.whole} `
     + `to ${WALLS_R} m in one box, ${most.walls} wall boxes; ${most.power} tower pieces and wire chords)`);
-  if (most.n >= STREAM_BUDGET) {
-    fail(`budget: the town alone streams ${most.n} colliders at (${most.x}, ${most.z}), budget ${STREAM_BUDGET} with the trees`);
+  if (most.n <= TOWN_SHARE) {
+    ok(`budget: the town streams at most ${most.n} colliders, within its share ${TOWN_SHARE} of ${STREAM_BUDGET}`);
+  } else {
+    fail(`budget: the town streams ${most.n} colliders at (${most.x}, ${most.z}), its share is ${TOWN_SHARE}`);
   }
 
   /* same */
@@ -367,6 +376,7 @@ async function nodeChecks(data, ground) {
 
 const TOWN = 'window.__mapScene().userData.itaipu.parts.town';
 const STREAM = 'window.__mapScene().userData.itaipu.stream';
+const NEAR = `${TOWN}.town.stream.near`;
 
 function seed(airframe) {
   const settings = {
@@ -402,16 +412,16 @@ const js = async (page, src) => JSON.parse(await page.evaluate(`JSON.stringify($
 
 /*
  * Put the craft at (x, y, z) held still, and wait until the map's own
- * per frame update has streamed the set round it: not refilling, and its
- * centre within the refill distance of the craft.
+ * per frame update has streamed the town's walls round it: filled within
+ * the refill distance of the craft, and swapped in.
  */
 async function hold(page, pose) {
   const r = await js(page, `window.__crashThrow(${JSON.stringify({ ...pose, hold: true })})`);
   if (!r || r.ok === false) {
     throw new Error(`__crashThrow refused ${JSON.stringify(pose)}: ${JSON.stringify(r)}`);
   }
-  await page.until(`(() => { const s = ${STREAM}; const [cx, cz] = s.centre();
-    return !s.busy() && Math.hypot(cx - ${pose.x}, cz - ${pose.z}) < 400; })()`, 60000);
+  await page.until(`(() => { const n = ${NEAR};
+    return !n.pending && Math.hypot(n.x - ${pose.x}, n.z - ${pose.z}) < ${MOVE}; })()`, 60000);
 }
 
 /*
@@ -532,7 +542,7 @@ async function quadChecks(nodeTown) {
 
     /* Budget: every part that streams, at every 500 m of the hero. */
     const budget = await js(page, `(() => {
-      const parts = Object.entries(window.__mapScene().userData.itaipu.parts).filter(([, p]) => typeof p.stream === 'function');
+      const parts = Object.entries(window.__mapScene().userData.itaipu.parts).filter(([, p]) => p.stream);
       let most = { n: -1 };
       for (let x = -5000; x <= 5000; x += 500) {
         for (let z = -5000; z <= 5000; z += 500) {
@@ -540,7 +550,7 @@ async function quadChecks(nodeTown) {
           let n = 0;
           for (const [name, p] of parts) {
             const f = { n: 0, addBox() { f.n += 1; return f.n - 1; }, add() { f.n += 1; return f; }, addPost() { f.n += 1; return f; }, addSphere() { f.n += 1; return f; }, ax: [] };
-            p.stream(f, x, z);
+            for (const _ of p.stream.fill(f, x, z)) { /* Every slice. */ }
             by[name] = f.n;
             n += f.n;
           }
@@ -556,22 +566,26 @@ async function quadChecks(nodeTown) {
     } else {
       fail(`budget: ${bm.n} streamed colliders at (${bm.x}, ${bm.z}) ${JSON.stringify(bm.by)}, budget ${STREAM_BUDGET}`);
     }
-    /* A dummy fill's calls mean nothing to the set in force: the part is
-     * streamed again, for real, below. */
+    /* The dummy fills moved each part's idea of where its set is: the map
+     * refills for real on the next frame, as after a teleport. */
+    await page.evaluate(`(() => { for (const p of Object.values(window.__mapScene().userData.itaipu.parts)) {
+      if (p.stream && p.stream.near) { p.stream.near.x = NaN; } } return 1; })()`);
 
     /* Refill: the craft put in the densest town, the map's own update. */
-    const before = await js(page, `${STREAM}.stats()`);
+    const before = await js(page, STREAM);
     await hold(page, { x: nodeTown.most.x, y: 400, z: nodeTown.most.z, yaw: 0, pitch: 0 });
-    const after = await js(page, `${STREAM}.stats()`);
-    console.log(`  refill: round (${after.centre.map((v) => v.toFixed(0)).join(', ')}) through the map's per frame update: `
-      + `${after.adds} colliders added in ${after.addMs.toFixed(2)} ms, swapped in over ${after.stepsLast} frame steps, `
-      + `the worst step since load ${after.worstStepMs.toFixed(2)} ms; ${after.refills - before.refills} refill(s), gen ${after.gen}`);
-    if (after.refills <= before.refills || after.streamed !== after.adds) {
-      fail(`refill: the set did not follow the craft: ${JSON.stringify(after)}`);
+    const after = await js(page, STREAM);
+    const near = await js(page, NEAR);
+    const cols = await js(page, 'window.__colliders()');
+    console.log(`  refill: round (${near.x.toFixed(0)}, ${near.z.toFixed(0)}) through the map's streamer: ${near.last.colliders} of the town's `
+      + `colliders, ${cols.streamed} in the set; ${after.refills - before.refills} refill(s), the last over ${after.frames} frames, `
+      + `slices ${JSON.stringify(after.lastSlicesMs)} ms, the worst since load ${after.maxSliceMs.toFixed(2)} ms; gen ${cols.streamGen}`);
+    if (after.refills <= before.refills || cols.streamed < near.last.colliders) {
+      fail(`refill: the set did not follow the craft: ${JSON.stringify({ after, near, streamed: cols.streamed })}`);
     }
 
     /* Walls, near, mid and far from the set's centre. */
-    const [cx, cz] = after.centre;
+    const [cx, cz] = [near.x, near.z];
     const all = await js(page, BUILDINGS);
     const dist = (b) => Math.hypot(b.x - cx, b.z - cz);
     const pick = (lo, hi) => all.filter((b) => dist(b) > lo && dist(b) < hi && b.hw > 3 && b.hd > 3).sort((a, b) => dist(a) - dist(b))[0];
@@ -757,10 +771,15 @@ async function skyhunterChecks(nodeTown) {
     const c0 = await js(page, CRAFT);
     await page.evaluate('window.__releasePose()');
     await flySim(page, 0.4, CRAFT);
-    /* The refill: round a point 150 m off, so the set in force changes
-     * make up and every index is another collider's. */
-    const gen0 = await page.evaluate(`window.__colliders().streamGen`);
-    await page.evaluate(`${STREAM}.refill(${b.x + 150}, ${b.z})`);
+    /* A refill in flight, through the map's streamer: the town is made to
+     * want one, and it is filled round the craft, a few tens of metres
+     * from the last, so the set's make up and its numbering change. */
+    const gen0 = await page.evaluate('window.__colliders().streamGen');
+    const first0 = await page.evaluate(`${TOWN}.town.buildings[${b.i}].rec.solids[0]`);
+    await page.evaluate(`${NEAR}.x = NaN`);
+    await page.until(`window.__colliders().streamGen > ${gen0}`, 30000);
+    const first1 = await page.evaluate(`${TOWN}.town.buildings[${b.i}].rec.solids[0]`);
+    console.log(`  renumber: the building's first wall was collider ${first0}, after the refill ${first1}`);
     const log = await flySim(page, 2.5, CRAFT);
     const end = log[log.length - 1];
     const walls = log.filter((r) => r.hit === 'wall').length;
@@ -769,7 +788,7 @@ async function skyhunterChecks(nodeTown) {
     const unheld = end.unheld - c0.unheld;
     console.log(`  renumber: OSM ${b.osm}, gen ${gen0} to ${end.mapGen}, crash world at ${end.gen}; wall contacts ${walls}, `
       + `samples inside ${inside}, wrecked ${end.wrecked} (${end.flags}), unheld ${unheld}`);
-    if (end.mapGen > gen0 && end.gen === end.mapGen && inside === 0 && unheld === 0 && (end.wrecked || walls > 0)) {
+    if (end.mapGen > gen0 && first0 !== first1 && end.gen === end.mapGen && inside === 0 && unheld === 0 && (end.wrecked || walls > 0)) {
       ok('renumber: after a refill renumbered the set, the wall stops the Skyhunter and every host contact is one the plant holds');
     } else {
       fail('renumber: the crash world did not follow a renumbering refill (see the line above)');

@@ -8,15 +8,13 @@
  *               bridges, power.js towers and wires, bridge.js the
  *               Friendship Bridge, drape.js the roads on the ground)
  *   mesh.js     the faces into a few meshes a quarter of the hero
- *   stream.js   the map's streamed collider set, shared with the
- *               vegetation: see its header for the seam
  *
  * The part interface is the one every part is built against:
  *
  *   export async function buildPart(ctx) -> { group, update(stepIndex), dispose(), stats() }
  *
- * and this part adds one member to it, stream(fill, x, z), which the map
- * calls on each refill of the streamed set (stream.js). The roofs and
+ * and this part adds `stream`, the map's seam for the streamed set
+ * (src/maps/itaipu.js). The roofs and
  * the bridges' decks go into ctx.roofs and the decks' walls into
  * ctx.colliders during buildPart; the buildings' walls and the power
  * lines are only ever in the streamed set.
@@ -80,7 +78,7 @@ export async function buildPart(ctx) {
       drawn,
       buildMs: Math.round(buildMs),
       friendship: town.friendship,
-      lastStream: town.stream.last ?? null,
+      stream: { ...town.stream.near },
       attribution: osm.attribution,
       data: osm.data,
     }),

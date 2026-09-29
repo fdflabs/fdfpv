@@ -54,8 +54,7 @@ import {
   fly, glide, stallSpeed, propTorque, wingDebug, wingBiplane, wheelLoads, attitude, must, RC_STEP_MS,
   wingPrelude, skyPrelude, cubGroundPrelude, gliderRecPrelude, bramorPrelude, bramorChutePrelude,
   slowstickGroundPrelude, bombshellGroundPrelude, timberRecPrelude, timberFloatRecPrelude, kadetGroundPrelude,
-  p51RecPrelude, p51AirPrelude, edgeGroundPrelude, f16GroundPrelude, extraGroundPrelude, zagiPrelude,
-  uglystikGroundPrelude, dlgRecPrelude, pittsGroundPrelude, quickieGroundPrelude, wot4GroundPrelude,
+  p51RecPrelude, p51AirPrelude, f16GroundPrelude, zagiPrelude, uglystikGroundPrelude, dlgRecPrelude,
 } from '../tests/lib/wingpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -445,15 +444,10 @@ const got = {
   kadet: await hashOf('tests/inputs/kadet-baseline.rec', (s) => kadetGroundPrelude(s)),
   p51: await hashOf('tests/inputs/p51-baseline.rec', p51RecPrelude),
   p51air: await hashOf('tests/inputs/p51-air.rec', p51AirPrelude),
-  edge: await hashOf('tests/inputs/edge-baseline.rec', (s) => edgeGroundPrelude(s)),
   f16: await hashOf('tests/inputs/f16-baseline.rec', (s) => f16GroundPrelude(s)),
-  extra: await hashOf('tests/inputs/extra-baseline.rec', (s) => extraGroundPrelude(s)),
   zagi: await hashOf('tests/inputs/zagi-baseline.rec', (s) => zagiPrelude(s)),
   uglystik: await hashOf('tests/inputs/uglystik-baseline.rec', (s) => uglystikGroundPrelude(s)),
   dlg: await hashOf('tests/inputs/dlg-baseline.rec', dlgRecPrelude),
-  pitts: await hashOf('tests/inputs/pitts-baseline.rec', (s) => pittsGroundPrelude(s)),
-  wot4: await hashOf('tests/inputs/wot4-baseline.rec', (s) => wot4GroundPrelude(s)),
-  quickie: await hashOf('tests/inputs/quickie-baseline.rec', (s) => quickieGroundPrelude(s)),
 };
 const names = Object.keys(got);
 gate('T16', 'every other aircraft unmoved', names.every((k) => got[k] === u[k]),

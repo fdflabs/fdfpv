@@ -1,9 +1,11 @@
 /*
- * water/index.js: the reservoir and the river, drawn. A STUB, package
- * B's, until package E replaces it (docs/ITAIPU-PLAN.md section 14): flat
- * planes at each body's level over its outline from water.json, one
- * still material with the sky in it, so the map has its water at the
- * right heights from the first build. No waves, no mirror, no spillway.
+ * water/index.js: the reservoir and the river, drawn (docs/ITAIPU-PLAN.md
+ * section 14, package E, first version): flat planes at each body's level
+ * over its outline from water.json, each in a still material of its own
+ * colour with the sky in it. The plant has both bodies (src/game/water.js
+ * waterFor, map.lakes), so floats, waves and water crashes are real on
+ * them; what is drawn is still water. The mirror, the spillway's white
+ * water, the tailrace's churn and the shore's foam come next.
  *
  * Past the ring the reservoir and the river do not stop, but the data
  * does. Where a body's outline runs along the ring's edge, a strip of the
@@ -114,19 +116,31 @@ export async function buildPart(ctx) {
   const group = new THREE.Group();
   group.name = 'itaipu-water';
   const half = ctx.manifest.frame.ring[1];
-  /* The satellite's own water, darkened to what still water under a high
-   * sun shows of its depth; the sky is the environment's. */
-  const material = new THREE.MeshStandardMaterial({
-    color: new THREE.Color().setRGB(0.035, 0.06, 0.05, THREE.LinearSRGBColorSpace),
-    roughness: 0.06,
-    metalness: 0,
-    envMapIntensity: 1,
-  });
-  material.name = 'itaipu-water';
+  /* Still water under a high sun, lit by the environment's sky: the
+   * reservoir a tropical lake's blue green, which from the air reads
+   * blue for the sky it holds, and the river below a greyer green with
+   * the sediment the turbines stir (the reference photographs
+   * reservoir-dam, aerial-dam, river-below). Linear. */
+  const colour = { reservoir: [0.02, 0.075, 0.085], river: [0.035, 0.07, 0.062] };
+  const materials = {};
+  const materialFor = (name) => {
+    if (!materials[name]) {
+      const [r, g, b] = colour[name] || colour.reservoir;
+      const m = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setRGB(r, g, b, THREE.LinearSRGBColorSpace),
+        roughness: name === 'river' ? 0.1 : 0.06,
+        metalness: 0,
+        envMapIntensity: 1,
+      });
+      m.name = `itaipu-water-${name}`;
+      materials[name] = m;
+    }
+    return materials[name];
+  };
   const bodies = ctx.data['water.json'];
   for (const body of bodies) {
     for (const geo of [surface(THREE, body), ...strips(THREE, body, half)]) {
-      const mesh = new THREE.Mesh(geo, material);
+      const mesh = new THREE.Mesh(geo, materialFor(body.name));
       mesh.name = `itaipu-water-${body.name}`;
       mesh.receiveShadow = true;
       group.add(mesh);
@@ -137,6 +151,6 @@ export async function buildPart(ctx) {
     group,
     update() {},
     dispose() {},
-    stats: () => ({ stub: true, bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })) }),
+    stats: () => ({ bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })) }),
   };
 }

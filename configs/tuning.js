@@ -40,9 +40,8 @@
  * Math.asin, which is not specified to the bit.
  *
  * THE EXPO is the plant's cubic, x (1 - e) + x^3 e, the curve EdgeTX and
- * OpenTX call expo; 30 percent is every table's but the Edge's, whose 3D
- * throws its maker sets up with 60 to 90 percent, and an aircraft's own
- * `expo` here says so, the table's one figure for all three surfaces.
+ * OpenTX call expo; 30 percent is every table's, one figure for all three
+ * surfaces.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -99,23 +98,15 @@ const RADIAN_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-h
 const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/PKZ5480-Manual_EN.pdf';
 const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
-const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
-const PITTS_REVIEW = 'https://www.theparkpilot.org/horizon-eflite-pitts';
-const PITTS_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/-/Sites-horizon-master/default/dw927db137/Manuals/EFL35500_Manual_EN_548653.pdf';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const NRJ_MANUAL = 'https://www.hyperflight.co.uk/extras/NRJ-EN-instructions-2019.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
-const WOT4_MANUAL = 'https://web.archive.org/web/20240712155211id_/http://www.ripmax.com/Instructions/a-cf002-elp.pdf';
 const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
 const SKY_PAGE = 'https://www.sonicmodell.com/product/skyhunter-1800mm-wingspan-epo-long-range-fpv-uav-platform-rc-airplane-kit-14.html';
 const BOMBSHELL_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=2180';
-const EDGE_SHEET = 'https://extremeflightrc.com/cdn/shop/files/DATASHEET_60EDGE_1cb1926a-3a06-46ce-bfb4-18a18962d730.pdf';
-const EDGE_REVIEW = 'https://flyingrc.net/ef540rvu.html';
 const STIK_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
 const TIGER_MANUAL = 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf';
-const QUICKIE_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6868';
-const OSMW_Q500 = 'https://www.oldschoolmodels.com/pdf/q500-manual-web.pdf';
 const LOW_70 = 'low: 70 percent of high, the low rate the Timber, Radian and Radian Pro manuals state';
 
 /*
@@ -201,13 +192,6 @@ export const TUNING = {
     throws: { high: [0, 15, 20], low: [0, 10.5, 14], source: `high: ESTIMATED, no throws published (docs/BOMBSHELL-STAGE1.md); ${LOW_70}` },
     flaps: null,
   },
-  edge1524: {
-    chord: 0.3175, area: 0.48387, margin: 0.287, expo: 70,
-    cg: { mm: 101.6, datum: 'tuning.datum.root_le', range: [95.25, 120.65], source: `FlyingRC's review of the 60 in Edge 540T: the recommended "3-3/4" to 4-3/4" from the leading edge at the root", and its 4 in "sweet spot" the balance; EF's own data sheet says "on the wing tube" (docs/EDGE-STAGE1.md); ${EDGE_REVIEW}` },
-    packKg: 0.625, nose: 0.40, tail: -0.90,
-    throws: { high: [39, 47.5, 47.5], low: [17.5, 9, 20], source: `EF's data sheet: aileron high 38 to 40, low 15 to 20; elevator 3D 45 to 50, low 8 to 10; rudder high 45 to 50, low 20; expo 70 to 75, 60 to 65 and 70 to 90 percent, the table's one expo 70; ${EDGE_SHEET}` },
-    flaps: null,
-  },
   kadet1981: {
     chord: 0.374487, area: 0.741934, margin: 0.268,
     cg: { mm: 98.4, datum: 'tuning.datum.spar', range: null, source: `SIG, "Center of Gravity 3 7/8 inch At Main Spar", no range (the kit manual: "shown on the plan"); ${KADET_KIT}` },
@@ -220,13 +204,6 @@ export const TUNING = {
     cg: { mm: 119.1, datum: 'tuning.datum.root_le', range: null, source: `RCM plan 939, its C.G. mark 4.69 in behind the leading edge, and Kraft's "It should balance approximately on the main spar", no range; ${STIK_PLAN}` },
     packKg: 0.10, nose: 0.2985, tail: -0.785,
     throws: { high: [12.5969, 12.9765, 14.6270], low: [8.8, 9.1, 10.2], source: `RCM plan 939's "Control Surface Travel Limits (measured at trailing edge)": ailerons 5/16 in up and 1/4 down on the 1.29 in strip aileron, their mean, elevator 3/8 in on its 1.67 in, rudder 1 in on its 3.96 in (docs/UGLYSTIK-STAGE1.md), one set; ${LOW_70}; ${STIK_PLAN}` },
-    flaps: null,
-  },
-  quickie1293: {
-    chord: 0.2518, area: 0.32565, margin: 0.166,
-    cg: { mm: 71.1, datum: 'tuning.datum.root_le', range: [63.5, 76.2], source: `the AAM plan's C.G. mark 2.8 in behind the leading edge; Spickler: "Balance can vary between 1/4 to 1/2 inch behind main spar. It is best to start with the 1/4 inch position"; OSMW's kit of the design: "2.5 in back from the leading edge" to "1/4 in behind main spar" (the spar's aft face 2.4 in back); ${QUICKIE_PLAN}` },
-    packKg: 0.10, nose: 0.2235, tail: -0.682,
-    throws: { high: [30.0, 19.4712, 22.0243], low: [21.0, 13.6, 15.4], source: `OSMW's "Recommended Control Throws": ailerons 1/2 in up and down on the 1 in strip aileron, elevator 1/2 in on its 1.5 in, rudder 3/4 in on its 2.0 in (docs/QUICKIE-STAGE1.md), one set; ${LOW_70}; ${OSMW_Q500}` },
     flaps: null,
   },
   tigermoth1803: {
@@ -242,27 +219,6 @@ export const TUNING = {
     packKg: 0.295, nose: 0.30, tail: -0.70,
     throws: { high: [19.8769, 25.8721, 12.1224], low: [13.9, 18.1, 8.5], source: `FMS manual pp. 19 and 20: the low rates, 17, 24 and 21 mm, which the manual says are for normal flying, on the 50, 55 and 100 mm surfaces (docs/P51-STAGE1.md), are the plant's; ${LOW_70}; ${P51_MANUAL}` },
     flaps: { mix: 0, angles: [0, 0.28510428711100527, 0.61297025535831962], source: `FMS manual p. 20: mid 22 mm, full 45 mm, no elevator mix given; ${P51_MANUAL}` },
-  },
-  extra1308: {
-    chord: 0.2927, area: 0.369, margin: 0.154,
-    cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
-    packKg: 0.27, nose: 0.26, tail: -0.83,
-    throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
-    flaps: null,
-  },
-  pitts850: {
-    chord: 0.1880, area: 0.282, margin: 0.135,
-    cg: { mm: 70, datum: 'tuning.datum.top_le', range: [67, 73], source: `The CG for the BL15 motor, "70 mm, plus or minus 3 mm, from the leading edge of the top wing" (Park Pilot's review, the corrected figure; the manual's 86 mm was the BL10's); ${PITTS_REVIEW}` },
-    packKg: 0.225, nose: 0.19, tail: -0.50,
-    throws: { high: [22.02, 27.20, 25.10], low: [14.48, 20.05, 17.64], source: `E-flite manual p. 4: high 18, 32 and 28 mm, low 12, 24 and 20 mm, at the surfaces' widest chords, 48, 70 and 66 mm (docs/PITTS-STAGE1.md); ${PITTS_MANUAL}` },
-    flaps: null,
-  },
-  wot41334: {
-    chord: 0.2853, area: 0.38064, margin: 0.159,
-    cg: { mm: 82, datum: 'tuning.datum.root_le', range: null, source: `Ripmax Wot 4 Mk2 manual p. 21, "82mm (3-1/4") back from the leading edge of the wing at the root", no range; ${WOT4_MANUAL}` },
-    packKg: 0.40, nose: 0.26, tail: -0.78,
-    throws: { high: [12.08, 15.26, 30.37], low: [8.02, 9.08, 30.37], source: `Ripmax Wot 4 Mk2 manual p. 21, "each measured at the widest point of the surface": ailerons 6 to 9 mm, elevator 9 to 15 mm, rudder 45 mm, on the 43, 57 and 89 mm surfaces (docs/WOT4-STAGE1.md); the top of each range high, the bottom low; ${WOT4_MANUAL}` },
-    flaps: null,
   },
   nrj1490: {
     chord: 0.1378, area: 0.190, margin: 0.170,
@@ -298,7 +254,7 @@ export function tuningFor(airframeId) {
 /* The stock setup's fields. */
 export function stockEntry(airframeId) {
   const t = tuningFor(airframeId);
-  const x = (t && t.expo) || STOCK_EXPO;
+  const x = STOCK_EXPO;
   return {
     packMm: 0,
     ballastG: 0,

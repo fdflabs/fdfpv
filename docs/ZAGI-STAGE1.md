@@ -1,5 +1,13 @@
 # Zagi HP, stage 1: the aircraft, the model and what it is meant to do
 
+**Removed aircraft.** The Edge 540, the Extra 300 3D, the Pitts S-1S, the
+Wot 4 and the Quickie 500 were removed from the game on 2026-09-29 at the
+owner's request, with their airframes, models, tunes, gates and recorded
+flights; their sim ids (13, 14, 18, 20 and 22) stay reserved. Where this
+document names them it is as a comparison or as the aircraft that brought
+a capability, and every capability this aircraft flies on stays in the
+plant.
+
 The owner asked for eleven all time great RC airplanes; this is the Zagi
 flying wing, airframe 17 (`zagi1219`). It brings a flying wing back to the
 product: the Bramor took the 1000 mm wing's place, whose plant
