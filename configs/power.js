@@ -135,6 +135,9 @@ const ADMIRAL = 'https://motionrc.com/products/';
 const FMS_P51 = 'https://www.fmshobby.com/products/fms-1400mm-p-51d-red-tail-v8-pnp';
 const FMS_P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
 const P51_UPGRADE = 'https://www.hobbysquawk.com/forum/rc-airplanes/rc-propeller-airplanes/66486-official-fms-1400mm-p-51d-v8-thread/page22';
+const ZAGI_MOTOR = 'https://web.archive.org/web/2019/https://zagi.com/product/brushless-motor/';
+const ZAGI_PACK = 'https://web.archive.org/web/2019/https://zagi.com/product/battery-for-hp-and-hp60/';
+const ZAGI_HP_MANUAL = 'https://web.archive.org/web/20151216152823/http://www.zagi.com/pdf/Zagi-HP-w.pdf';
 /* Glow fuel's density, g/cc, the figure Menon's fuel flows are converted
  * with; a tank's mass here is its fuel's, full. */
 const FUEL_G_CC = 0.875;
@@ -186,6 +189,7 @@ export const TABLE = {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
     flightTime: { kind: 'mixed', minutesLow: 8, minutesHigh: 8, note: "FMS's 'Approx. Flying Duration 8 minutes' on the 4S 2600 (the product page), a flight's mix of throttle; the manual's four minute timer is for the first flight", source: FMS_P51 },
   },
+  zagi1219: { simId: 17, massKg: 0.7229, cells: 3, rCell: 0.008, propIn: 5, cruiseMs: 10.3, flightTime: null },
 };
 
 /* ------------------------------------------------------------------ */
@@ -608,6 +612,28 @@ const F16 = [
   },
 ];
 
+/* The Zagi HP, docs/ZAGI-STAGE1.md: Zagi's own power pack, its 3100 kV
+ * 28 x 35 inrunner on a 5 x 5 carbon prop and a 35 to 40 A ESC, "over
+ * 22,000 rpm at only 30 amps in static testing", on Zagi's 3S 2200 30C
+ * (no mass published: CNHL's 3S 2200 30C, the Radian's, stands in). The
+ * manual balances each size of pack by moving it in the bay, so the
+ * smaller packs the Radian offers fit and shift nothing. */
+const ZAGI = [
+  {
+    id: 'stock', name: 'power.zagi.stock', kind: 'electric', voice: 'wing',
+    kv: 3100, propIn: 5, pitchIn: 5, blades: 2,
+    thrustN: 7.295, currentA: 30.0, rpmNoLoad: 25882, pitchSpeedMs: 46.567, lvcV: 3.0,
+    massKg: 0.7229, cgShiftM: 0,
+    packs: [
+      lipo('3s1300', 3, 1300, 113, `${CNHL}cnhl-black-series-1300mah-11-1v-3s-130c-lipo-battery-with-xt60-plug`),
+      lipo('3s1500', 3, 1500, 125, `${CNHL}cnhl-black-series-v2-0-1500mah-11-1v-3s-130c-lipo-battery-with-xt60-plug`),
+      lipo('3s2200', 3, 2200, 180, `${CNHL}cnhl-black-series-2200mah-3s-11-1v-30c-lipo-battery-with-ec3-plug`),
+    ],
+    pack: '3s2200',
+    source: [ZAGI_MOTOR, ZAGI_PACK, ZAGI_HP_MANUAL],
+  },
+];
+
 /* The Ugly Stik: the O.S. 61FX two stroke on a 12 x 6 at 10,895 rpm, its
  * torque from an owner's tachometer and APC's data (docs/UGLYSTIK-
  * STAGE1.md). RCM's kit takes .40 to .61 engines and a 12 oz tank; the
@@ -656,6 +682,7 @@ export const POWER = {
   extra1308: EXTRA,
   f16878: F16,
   p51d1450: P51,
+  zagi1219: ZAGI,
 };
 
 /* ------------------------------------------------------------------ */

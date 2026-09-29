@@ -362,15 +362,18 @@ int sim_set_flight_style(int arcade);
  * taildragger whose thrust is two and a half times its weight, which
  * hangs on its prop with its surfaces in the slipstream, 15 FMS's
  * 1450 mm P-51D Mustang (docs/P51-STAGE1.md), an electric warbird with
- * flaps on retracting taildragger gear, and 16 Freewing's F-16 V3
+ * flaps on retracting taildragger gear, 16 Freewing's F-16 V3
  * (docs/F16-STAGE1.md), a 70 mm electric ducted fan jet whose thrust lags
- * the stick, on a tricycle gear, and 19 Phil Kraft's Das Ugly Stik as RCM
- * published Jim Jensen's kit of it (docs/UGLYSTIK-STAGE1.md), a 62 in
+ * the stick, on a tricycle gear, 17 Zagi's 48 in Zagi HP
+ * (docs/ZAGI-STAGE1.md), an EPP flying wing with elevons and winglets and
+ * no rudder, thrown by hand and landed on its belly, and 19 Phil
+ * Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it
+ * (docs/UGLYSTIK-STAGE1.md), a 62 in
  * balsa sport aerobat on a .61 two stroke glow engine, a shoulder wing on
  * a section near enough symmetric to fly on its back, on a tricycle gear.
- * 17, 18 and 20 to 23 are reserved for the aircraft being added alongside
+ * 18 and 20 to 23 are reserved for the aircraft being added alongside
  * them. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
- * 2 to 16 and 19 are fixed wings: no Betaflight, the sticks go to the plant, and
+ * 2 to 17 and 19 are fixed wings: no Betaflight, the sticks go to the plant, and
  * the sim_wing_* and sim_plane_surfaces entry points below apply.
  *
  * Additive ABI change, version unchanged: no existing entry point moved or
@@ -404,6 +407,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_EXTRA1308_ID 14
 #define SIM_AIRFRAME_P51D1450_ID 15
 #define SIM_AIRFRAME_F16878_ID 16
+#define SIM_AIRFRAME_ZAGI1219_ID 17
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
 int sim_set_airframe(int id);
 

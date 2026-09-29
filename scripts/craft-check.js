@@ -143,6 +143,10 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             measures and the reach are both the rudder's, 1667 mm, and
  *             FMS's 1450 mm is held by craft-preview.js's half span row.
  *             src/render/p51craft.js draws it.
+ *   zagi1219  Zagi's 48 in Zagi HP, whose winglets' top trailing corners,
+ *             0.2675 m aft of the CG at the tips, reach further than the
+ *             half span: the width is Zagi's 1219 mm, the reach 1331 mm.
+ *             src/render/zagicraft.js draws it.
  *   uglystik1567 RCM's 62 in Das Ugly Stik, whose rudder's trailing edge,
  *             0.884 m behind the CG on the plan (station 50.82 against the
  *             CG's 16.00), reaches further than its tips, 0.784 m out, so
@@ -173,6 +177,7 @@ const REAL = {
   edge1524: { spanMm: 1930.4, sweepMm: 1930.4, tolMm: 6 },
   extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
+  zagi1219: { spanMm: 1219.2, sweepMm: 1331.4, tolMm: 6 },
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
 };
 

@@ -1477,6 +1477,17 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     s->vbat_load = 0.0;
   }
 
+  /* A SURFACE ON A STALLED WING, docs/ZAGI-STAGE1.md: past the stall the
+   * flow has left the wing's trailing edge, and a surface there turns the
+   * separated wing only by the chord line it tilts, surf_sep of what it
+   * did in attached flow, taken in over the stall's own blend. The
+   * ailerons are on the wing on every aircraft; the elevator is on the
+   * wing only on a flying wing. A table that leaves surf_sep at zero
+   * multiplies by exactly 1.0, which is the arithmetic it always had. */
+  const double sep_g = fw->surf_sep > 0.0 ? 1.0 - fre * past * (1.0 - fw->surf_sep) : 1.0;
+  const double da_m = delta_a * sep_g;
+  const double de_m = fw->mix == FW_MIX_ELEVON ? delta_e * sep_g : delta_e;
+
   /* Moments, in the aero convention, then into the body frame. */
   const double p = s->omega[0];
   const double q_aero = -s->omega[1]; /* nose up positive */
@@ -1497,12 +1508,12 @@ void plant_wing_step(SimState *s, const double rc[4]) {
    * angle is sin_b and cos_b above, 0 and 1 below 0.5 m/s. */
   const double ps = p * cos_b + r_aero * sin_b;
   const double rs = r_aero * cos_b - p * sin_b;
-  double cl_sum = clb * beta_s + fw->cl_p * ps * b2v + fw->cl_da * delta_a;
+  double cl_sum = clb * beta_s + fw->cl_p * ps * b2v + fw->cl_da * da_m;
   cl_sum = add_term(cl_sum, fw->cl_r_per_cl * CL * rs * b2v);
   cl_sum = add_term(cl_sum, cldr * delta_r);
   double cn_sum = cnb * beta_s + fw->cn_r * rs * b2v;
   cn_sum = add_term(cn_sum, fw->cn_p_per_cl * CL * ps * b2v);
-  cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * delta_a);
+  cn_sum = add_term(cn_sum, fw->cn_da_per_cl * CL * da_m);
   cn_sum = add_term(cn_sum, cndr * delta_r);
   const double cl_b = cl_sum * cos_b - cn_sum * sin_b;
   const double cn_b = cn_sum * cos_b + cl_sum * sin_b;
@@ -1531,7 +1542,7 @@ void plant_wing_step(SimState *s, const double rc[4]) {
   /* The flaps' own moment rides on the lift they add: the section's nose
    * down moment and the downwash they add at the tail, nose up net. */
   const double m_aero = qbar * fw->area * fw->chord *
-                        add_term(add_term(fw->cm_0 + cm_stiff + fw->cm_q * q_aero * c2v + cm_de_lin * delta_e,
+                        add_term(add_term(fw->cm_0 + cm_stiff + fw->cm_q * q_aero * c2v + cm_de_lin * de_m,
                                           cm_stall),
                                  add_term(fw->cm_dcl_f * dcl_f, -(fw->cg_shift / fw->chord) * CL));
   const double n_aero = qbar * fw->area * fw->span * cn_sum;
@@ -1610,7 +1621,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     double rr[4], rmax = 0.0, cyy = 0.0;
     for (int i = 0; i < 4; i += 1) {
       const double eta = 0.125 + 0.25 * i;
-      rr[i] = 0.5 * (1.0 + 4.0 / WING_PI * sim_sqrt(1.0 - eta * eta) / fw->strip_c[i]);
+      /* A table that has its own span loading (strip_r, a lattice's)
+       * takes it; the rest take Schrenk's. */
+      rr[i] = fw->strip_r[0] > 0.0 ? fw->strip_r[i] : 0.5 * (1.0 + 4.0 / WING_PI * sim_sqrt(1.0 - eta * eta) / fw->strip_c[i]);
       rmax = rr[i] > rmax ? rr[i] : rmax;
       cyy += fw->strip_c[i] * eta * eta * 0.25;
     }
@@ -1646,8 +1659,15 @@ void plant_wing_step(SimState *s, const double rc[4]) {
        * and the falling wing's up aileron away from it, against the roll
        * rate's own angle there (strip_tau, zero where there is none). */
       const double sa = fw->strip_tau[i] * delta_a;
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(-da, sa), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_i, top_i, fl);
-      strip_stall(fw, alpha, sin_a, cos_a, add_term(da, -sa), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_i, top_i, fr);
+      /* On a flying wing the elevons are the strips' own trailing edges,
+       * so their elevator half moves every strip they span as well, up
+       * elevon away from the stall: a wing held at its stall by up elevon
+       * stalls where the elevons are not, at the root, first. A tail's
+       * elevator is on the tail, and leaves the strips alone. Zero where
+       * strip_tau is, so no earlier table reads it. */
+      const double se = fw->mix == FW_MIX_ELEVON ? fw->strip_tau[i] * delta_e : 0.0;
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(-da, sa), -se), dr, rr[i], cl_lin, dcl_f, st - 0.5 * fw->stall_asym, k_i, top_i, fl);
+      strip_stall(fw, alpha, sin_a, cos_a, add_term(add_term(da, -sa), -se), -dr, rr[i], cl_lin, dcl_f, st + 0.5 * fw->stall_asym, k_i, top_i, fr);
       const double tau = STALL_TF_SEMICHORDS * 0.5 * fw->strip_c[i] * chord_mean / Vrate;
       const double lag = WING_DT / (tau + WING_DT);
       for (int j = 0; j < 2; j += 1) {
@@ -3260,6 +3280,93 @@ const FixedWingParams FW_EXTRA1308 = {
   .side_cda = 0.1323,
   .rot_k = { 0.01580, 0.04108, 0.03462 },
   .j_prop = 0.000249,     /* a 35 g wood blade and the outrunner's can, ESTIMATED */
+};
+
+/* Zagi's 48 in Zagi HP, docs/ZAGI-STAGE1.md, where each number has its
+ * formula and source and the estimated ones say so: an EPP flying wing
+ * on the planform Trick R/C drew for the Zagi-400 X, elevons and no
+ * rudder, winglets, the Zagi 101.4 reflexed section, 25.5 oz, balanced 8
+ * in back from the nose, a 3100 kV inrunner turning a 5 x 5 carbon
+ * pusher clockwise seen from behind, on 3S. The derivatives are a vortex
+ * lattice's on that planform with its winglets, scripts/zagi-derive.js. */
+const FixedWingParams FW_ZAGI1219 = {
+  .mix = FW_MIX_ELEVON,
+  .span = 1.2192,         /* Zagi, 48 in */
+  .area = 0.26012851,     /* Zagi, 2.8 sq ft */
+  .chord = 0.21335338,    /* S/b */
+  .cl_alpha = 4.1152,     /* the lattice, winglets on */
+  .cl_max = 0.9283,       /* 0.9 of the MH45's 1.14 at 2e5, cos of the quarter chord's sweep */
+  .alpha_zl = 0.0,        /* a reflexed section: zero lift on the body axis */
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.0186,          /* a component build up, ESTIMATED */
+  .k_induced = 0.0737,    /* 1/(pi e AR), Raymer's swept e 0.756 */
+  .cl_de = -1.7282,       /* elevon lift, per rad: trailing edge up sheds lift */
+  .cy_beta = -0.2399,
+  .cl_beta = -0.1338,     /* the sweep's, at the cruise's lift, and the winglets' */
+  .cl_p = -0.4697,
+  .cl_da = 0.4157,
+  .cl_r_per_cl = 0.2222,
+  .cm_0 = 0.0498,         /* the reflex: trims at the best glide's CL, elevons neutral */
+  .cm_alpha = -0.4076,    /* static margin 0.099 of S/b at Zagi's 8 in, FITTED */
+  .cm_q = -1.5146,
+  .cm_de = 0.6814,        /* delta_e positive pitches the nose up */
+  .cn_beta = 0.0173,      /* the winglets', short behind the CG */
+  .cn_r = -0.0180,
+  .cn_p_per_cl = -0.1600,
+  .cn_da_per_cl = 0.0153, /* a little proverse: the elevons are at the swept tips */
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* Zagi's throws: 3/8 in each way on either stick on the 1.5 in elevon,
+   * its arcsine to 0.0001 deg, one rate. Each elevon clips at it. No
+   * rudder, so the yaw stick moves nothing. */
+  .throw_a = 14.4775 * WING_PI / 180.0,
+  .throw_e = 14.4775 * WING_PI / 180.0,
+  .throw_r = 0.0,
+  .surface_max = 14.4775 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 7.295, /* N, 202 W on the shaft through the 5 in disc at an APC 5 x 5E's figure of merit */
+  .pitch_speed = 46.567,  /* Zagi's loaded 22,000 rpm on the 5 in pitch */
+  .rpm_no_load = 25882.0, /* the plant's rule: 22,000 is 0.85 of it */
+  .torque_arm = 0.01203,  /* the shaft's 0.0878 N m at 30 A over the static thrust; clockwise from behind */
+  .thrust_z = 0.052,      /* the motor on the tray, its shaft 52 mm over the CG: power pitches the nose down */
+  .current_full = 30.0,   /* A, Zagi's static figure */
+  .duty_min = 0.02,
+  .stab_bank_max = 60.0 * WING_PI / 180.0,
+  .stab_pitch_max = 30.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,    /* the wing's 1.2 through its 25 deg, on 14.5 */
+  .stab_roll_kd = 0.20,
+  .stab_pitch_kp = 5.0,
+  .stab_pitch_kd = 0.5,
+  .stab_pitch_down = 0.0,   /* its glide is nose higher than the trim: npm run stab:glide */
+  .stab_trim_throttle = 0.400, /* the stick that flies it level, elevons neutral */
+  .acro_roll_rate = 220.0 * WING_PI / 180.0, /* 0.7 of full elevon's 315 deg/s at 15 m/s */
+  .acro_pitch_rate = 100.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.40,
+  .acro_roll_ff = 0.20,
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.40,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* no rudder */
+  .air_lift = 1,          /* "motor up to those distant thermals then power-down and soar", Zagi */
+  /* Past the stall: the MH45 at 1.5e5 (UIUC), the flying wing's arms. */
+  .stall_arm_ac = -0.0990,
+  .stall_arm_cp = 0.2490,
+  .stall_asym = 0.00469,
+  .stall_k = 0.858,
+  .stall_top = 2.64 * WING_PI / 180.0,
+  .strip_c = { 1.3095, 1.1032, 0.8968, 0.6905 }, /* the 0.416 taper */
+  .j_prop = 0.0000112,    /* the carbon 5 x 5, its adapter and the inrunner's rotor */
+  .strip_tau = { 0.2679, 0.4981, 0.5487, 0.6184 }, /* the 1.5 in elevons, from the bay's edge to the tip */
+  .surf_sep = 0.3325,     /* the elevon's chord fraction at the MAC over its tau */
+  .strip_r = { 0.8308, 1.0065, 1.1188, 1.1386 }, /* the lattice's span loading: the tips most */
 };
 
 /* Phil Kraft's Das Ugly Stik as RCM published Jim Jensen's kit of it,

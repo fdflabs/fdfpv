@@ -94,8 +94,13 @@ export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
  * hottest landing, and a fan whose thrust has to be planned ahead of the
  * stick; Motion RC sells the 6S version "for skilled intermediate or
  * advanced pilots with experience flying at least two EDFs", the only
- * kit here whose maker asks for experience on its own kind. */
-export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, radian2000: 5, bramor2300: 6, p51d1450: 7, extra1308: 8, edge1524: 9, f16878: 10 };
+ * kit here whose maker asks for experience on its own kind. The Zagi
+ * with the Bombshell: past the trainers and the Skyhunter, because it has
+ * no rudder, rolls fast and answers the smallest touch in pitch, but
+ * before the Radian's thermals and the heavier machines, because it is
+ * light, slow to stall, and slides in on its belly anywhere; Zagi sold it
+ * to beginners as much as to combat pilots. */
+export const PLANE_LEVELS = { kadet1981: 2, sky1800: 3, uglystik1567: 3, bombshell1118: 4, zagi1219: 4, radian2000: 5, bramor2300: 6, p51d1450: 7, extra1308: 8, edge1524: 9, f16878: 10 };
 
 /* A scheme past this many in a plane's list is locked, one level each. */
 const FREE_SCHEMES = 2;
