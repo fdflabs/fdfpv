@@ -25,7 +25,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { str } from '../strings/index.js';
+import { str, plural } from '../strings/index.js';
 import { GOALS, GOAL_MAX, GOAL_MIN } from '../share/roomtag.js';
 
 /* A pilot's name on the scoreboard, crowned when they are the Ace. */
@@ -72,7 +72,7 @@ export function tagResultsView(rt, nameOf) {
     win: won,
     rows: rows.map((row) => ({
       label: str('roomrace.row', { place: row.place, name: nameOf(row.seat) }),
-      time: str('ui.lap_points', { n: row.points }),
+      time: plural('count.points', row.points),
       tag: row.seat === v.winner ? str('roomtag.winner_tag') : '',
       me: row.seat === rt.seat(),
       out: Boolean(row.gone),
@@ -133,7 +133,7 @@ export function tagRows(o) {
   }
   if (on || v.state === 'results') {
     for (const row of rt.standings()) {
-      rows.push({ label: str('roomrace.row', { place: row.place, name: crowned(row, o.nameOf) }), value: str('ui.lap_points', { n: row.points }), info: true });
+      rows.push({ label: str('roomrace.row', { place: row.place, name: crowned(row, o.nameOf) }), value: plural('count.points', row.points), info: true });
     }
   }
   return rows;
