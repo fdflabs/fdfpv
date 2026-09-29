@@ -77,8 +77,10 @@ import {
   CAPACITY, HEAD, HEAD_N, PART_N, PLANT_N, POSE_N, SMOKE, WINDOW_S, createRecorder, sampleAt, slerp, trimClip,
 } from '../src/replay/recorder.js';
 import {
-  addKey, createPose, defaults, easeInOut, evaluate, evaluateKeys, lookAtQuat, rotate,
+  addKey, createPose, defaults, easeInOut, evaluate, evaluateEdit, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
+import { cut as cutEdit, defaultEdit, fromKeys, setCam, setEnter } from '../src/replay/edit.js';
+import { slerp as slerpQ } from '../src/replay/recorder.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
 import {
   PEER, PEER_N, PEERS_MAX, PIECE_N, PIECES_MAX, createPeerRing, createPeerSample, peerPose, samplePeers,
@@ -584,6 +586,91 @@ function cameras() {
     'two follow keys push in on the part while it moves', dists.map((d) => d.toFixed(2)).join(' '));
   const mid = dists[2];
   check(Math.abs(mid - 2.5) < 1e-9, 'eased: half way in time is half way in distance', mid.toFixed(4));
+  editCameras();
+}
+
+/* A target that turns and climbs, so every rig's pose changes with t and
+ * a part (3) that drifts away from the craft. */
+const turning = {
+  at: (t, target, out) => {
+    out[0] = 12 * Math.sin(t * 0.7) + (target === 3 ? 0.4 * t : 0);
+    out[1] = 5 + t * 0.8 - (target === 3 ? 0.2 * t * t : 0);
+    out[2] = 12 * Math.cos(t * 0.7);
+    return out;
+  },
+  craftQuat: (t, out) => {
+    out[0] = 0;
+    out[1] = Math.sin(t * 0.35);
+    out[2] = 0;
+    out[3] = Math.cos(t * 0.35);
+    return out;
+  },
+  fpv: (t, pos, quat) => {
+    turning.at(t, -1, pos);
+    turning.craftQuat(t, quat);
+    return 110;
+  },
+};
+
+/* Four keys of four rigs over a 10 s clip. */
+function fourKeys() {
+  return [
+    { t: 1, rig: 'chase', target: -1, p: defaults('chase', 1.2) },
+    { t: 3.2, rig: 'orbit', target: -1, p: { ...defaults('orbit', 1.2), az: 2.1, el: 0.5 } },
+    { t: 5, rig: 'tripod', target: -1, p: { pos: [3, 2, -4], fov: 40 } },
+    { t: 7.5, rig: 'follow', target: 3, p: { ...defaults('follow', 0.6), dist: 2.5 } },
+  ];
+}
+
+function poseErr(a, b) {
+  const dp = Math.hypot(a.pos[0] - b.pos[0], a.pos[1] - b.pos[1], a.pos[2] - b.pos[2]);
+  /* q and -q are the same attitude. */
+  const dot = Math.abs(a.quat[0] * b.quat[0] + a.quat[1] * b.quat[1] + a.quat[2] * b.quat[2] + a.quat[3] * b.quat[3]);
+  return { dp, dq: 1 - Math.min(1, dot), df: Math.abs(a.fov - b.fov) };
+}
+
+function editCameras() {
+  console.log('7b. an edit: the keys as shots, and a blend');
+  const keys = fourKeys();
+  const edit = fromKeys(keys, 10, { rig: 'chase', target: -1, watch: 0, p: defaults('chase', 1.2) });
+  const a = createPose();
+  const b = createPose();
+  let worst = { dp: 0, dq: 0, df: 0 };
+  for (let i = 0; i < 2000; i += 1) {
+    const t = (10 * i) / 1999;
+    evaluateKeys(turning, keys, t, a);
+    evaluateEdit(turning, edit, t, b);
+    const e = poseErr(a, b);
+    worst = { dp: Math.max(worst.dp, e.dp), dq: Math.max(worst.dq, e.dq), df: Math.max(worst.df, e.df) };
+  }
+  check(worst.dp < 1e-9 && worst.dq < 1e-9 && worst.df < 1e-9,
+    'four keys of four rigs as an edit: the same camera at 2000 times',
+    `worst position ${worst.dp.toExponential(2)} m, attitude ${worst.dq.toExponential(2)}, fov ${worst.df.toExponential(2)}`);
+  /* A chase cut at 4 s to an orbit that blends in over 0.5 s at 1x: its
+   * midpoint is the two cameras half each, eased. */
+  const chase = { rig: 'chase', target: -1, watch: 0, p: defaults('chase', 1.2) };
+  const orbit = { rig: 'orbit', target: -1, watch: 0, p: { ...defaults('orbit', 1.2), az: 1.9 } };
+  let e2 = cutEdit(defaultEdit(10, chase), 4);
+  e2 = setCam(e2, 1, orbit);
+  e2 = setEnter(e2, 1, { type: 'blend', d: 0.5 });
+  const pa = evaluate(turning, 'chase', chase.p, -1, 4.25, createPose());
+  const pb = evaluate(turning, 'orbit', orbit.p, -1, 4.25, createPose());
+  const want = createPose();
+  const w = easeInOut(0.5);
+  for (let i = 0; i < 3; i += 1) {
+    want.pos[i] = pa.pos[i] + (pb.pos[i] - pa.pos[i]) * w;
+  }
+  slerpQ(pa.quat[0], pa.quat[1], pa.quat[2], pa.quat[3], pb.quat[0], pb.quat[1], pb.quat[2], pb.quat[3], w, want.quat, 0);
+  want.fov = pa.fov + (pb.fov - pa.fov) * w;
+  const got = evaluateEdit(turning, e2, 4.25, createPose());
+  const em = poseErr(want, got);
+  check(em.dp < 1e-9 && em.dq < 1e-9 && em.df < 1e-9, 'a blend\'s midpoint is the two cameras mixed half each',
+    `${em.dp.toExponential(2)} m, fov ${got.fov.toFixed(3)}`);
+  const before = evaluateEdit(turning, e2, 3.99, createPose());
+  const after = evaluateEdit(turning, e2, 4.8, createPose());
+  const eb = poseErr(before, evaluate(turning, 'chase', chase.p, -1, 3.99, createPose()));
+  const ea = poseErr(after, evaluate(turning, 'orbit', orbit.p, -1, 4.8, createPose()));
+  check(eb.dp < 1e-12 && ea.dp < 1e-12, 'before the cut the chase, after the blend the orbit alone');
 }
 const scratch = [0, 0, 0];
 
