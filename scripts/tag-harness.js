@@ -15,9 +15,10 @@
  *   furball   four aircraft (planes and quads) on random smooth paths
  *             through one ball about 36 m across, so the Ace is passed
  *             round through its bubble; one of them crashes for 3 s and
- *             flies on spawning for 5 s, and one pauses (sends nothing)
- *             for 1 s. A match to GOAL points, played until the room says
- *             it is over.
+ *             flies on spawning for 5 s (an Ace that crashes drops its
+ *             orb there, for whoever passes through it), and one pauses
+ *             (sends nothing) for 1 s. A match to GOAL points, played
+ *             until the room says it is over.
  *   pass      the edges, scripted: a hunter passing the Ace head on with
  *             its nearest part at a truth reach of 5.0 to 7.0 m from the
  *             Ace's centre in 10 cm steps (is it a tag?), and a hunter
@@ -30,15 +31,16 @@
  *      run whose samples all reached the room inside LATE_MS
  *   3. no false tag: at every tag the hunter's true hull is within
  *      BUBBLE_M (plus 5 cm, the 30 Hz interpolation) of the Ace's true
- *      centre
+ *      centre, and at every catch of a free orb of the orb's centre
  *   4. no miss: a pass 15 cm or more inside BUBBLE_M is a tag, and the
  *      owner's two numbers: a pass at 6.5 m is never a tag, on any run,
  *      and one at 5.5 m always is, on every run inside LATE_MS
  *   5. tag back protection: no crown changes by a tag inside PROTECT_MS of
  *      the last change, and the station keeper's tag back is at exactly
  *      PROTECT_MS and a millisecond
- *   6. the scores add up: recounted from the script (the crown timeline,
- *      and the Ace's sampled flags and gaps), every seat's ms is the room's
+ *   6. the scores add up: recounted from the script (the crown timeline
+ *      and its drops, and the Ace's sampled flags and gaps), every seat's
+ *      ms is the room's
  *   7. the match ends at exactly the goal: the winner has GOAL x 1000 ms,
  *      nobody else has as much, and the recount reaches it at endAt
  * and reports the decision delay (decided less the tag). Run 1 has
@@ -91,7 +93,11 @@ const STALL_P = 0.25;
 const START_AT = 1000; /* the host presses start, room ms */
 const GO = START_AT + COUNTDOWN_MS;
 const GOAL = 40;
-const FURBALL_END = GO + 240000; /* a match not over by then fails row 7 */
+/* A match not over by then fails row 7. 240 s held every furball until
+ * a crashed Ace began to drop its orb where it went down: the scripted
+ * paths wander blind, so a free orb can wait two minutes for one of them
+ * to pass through it, with nobody scoring (furball 7 ended at 247.6 s). */
+const FURBALL_END = GO + 360000;
 const Y = 100;
 const DEEP_M = 0.15;
 const INTERP_M = 0.05;
@@ -430,12 +436,14 @@ function runOne(cfg) {
   const hits = room.referee.log.filter((h) => inMatch(h.tc)).length;
   const hitsMissed = clients.filter((c) => c.hits.join() !== refereed.join()).length;
   return {
-    clients, room, skew, log: room.tag.log.map((c) => ({ ...c })), view: room.tag.view(room), sentView, hits, hitsMissed,
+    clients, room, skew, log: room.tag.log.map((c) => ({ ...c })), drops: room.tag.drops.map((o) => ({ ...o })), view: room.tag.view(room), sentView, hits, hitsMissed,
   };
 }
 
-/* The crown timeline and the scores, as the checks compare them. */
+/* The crown timeline and the scores, as the checks compare them; the
+ * drops of the orb (a crashed Ace's) with the room's timeline. */
 const timeline = (log) => log.map((c) => `${c.t}:${c.seat}:${c.why}`).join(',');
+const dropsKey = (res) => res.drops.map((o) => `${o.t}:${o.from}`).join(',');
 const scoresKey = (view) => (view.scores || []).map((r) => `${r.seat}=${r.ms}`).join(',');
 
 /* Whether every sample reached the room inside LATE_MS by the room's own
@@ -446,12 +454,13 @@ function allOnTime(res) {
 
 /*
  * The scores recounted from the script: the crown timeline the room
- * decided, and on it, for every room ms from the go to the last one
- * judged, whether the Ace's two bracketing samples (as sent, by their
- * stamps) were GAP_MS or less apart and neither crashed nor spawning.
+ * decided (with its drops, after which nobody is the Ace until a catch),
+ * and on it, for every room ms from the go to the last one judged,
+ * whether the Ace's two bracketing samples (as sent, by their stamps)
+ * were GAP_MS or less apart and neither crashed nor spawning.
  */
 function recount(res, sc) {
-  const crowns = res.log;
+  const crowns = [...res.log, ...res.drops.map((o) => ({ t: o.t, seat: null }))].sort((a, b) => a.t - b.t);
   const stamps = res.clients.map((c) => c.sent.map((s) => ({ t: s.t, ok: (s.flags & (FLAG_CRASHED | FLAG_SPAWNING)) === 0 })));
   const ms = {};
   const until = res.view.state === 'results' ? res.view.endAt : res.view.f;
@@ -463,6 +472,9 @@ function recount(res, sc) {
       k += 1;
     }
     const seat = crowns[k].seat;
+    if (seat == null) {
+      continue;
+    }
     const i = seat - 1;
     const s = stamps[i];
     let j = idx[i];
@@ -493,19 +505,19 @@ function truthReach(sc, ace, hunter, t) {
 function sweep(sc, clock) {
   const r = {
     name: sc.name, kind: sc.kind, reach: sc.reach ?? null, runs: 0, disagree: 0, notRef: 0, lateRuns: 0, falseTags: 0, misses: 0,
-    owner: 0, protect: 0, badScores: 0, badEnd: 0, notOver: 0, hits: 0, hitsMissed: 0, tags: 0, tagRuns: 0, onTimeRuns: 0, delays: [], reaches: [], stationBack: [],
+    owner: 0, protect: 0, drops: 0, catches: 0, badScores: 0, badEnd: 0, notOver: 0, hits: 0, hitsMissed: 0, tags: 0, tagRuns: 0, onTimeRuns: 0, delays: [], reaches: [], stationBack: [],
     examples: [],
   };
   const seeds = sc.kind === 'furball' ? [Number(sc.name.split(' ')[1])] : [1, 2, 3];
   for (const seed of seeds) {
     const ref = runOne({ sc, seed, clock, links: sc.air.map(() => ({ base: 0, jitter: 0 })) });
-    const refKey = `${timeline(ref.log)}|${scoresKey(ref.view)}`;
+    const refKey = `${timeline(ref.log)}|${dropsKey(ref)}|${scoresKey(ref.view)}`;
     const pick = rng(seed * 9973 + clock);
     for (let k = 0; k < RUNS; k += 1) {
       const links = sc.air.map(() => ({ base: BASES[Math.floor(pick() * BASES.length)], jitter: JITTERS[Math.floor(pick() * JITTERS.length)] }));
       const res = runOne({ sc, seed, clock, links });
       r.runs += 1;
-      const room = `${timeline(res.log)}|${scoresKey(res.view)}`;
+      const room = `${timeline(res.log)}|${dropsKey(res)}|${scoresKey(res.view)}`;
       const note = (what) => {
         if (r.examples.length < 3) {
           r.examples.push(`${what}, seed ${seed}, links ${links.map((l) => `${l.base}/${l.jitter}`).join(' ')}`);
@@ -543,6 +555,19 @@ function sweep(sc, clock) {
         }
         r.delays.push(c.decided - c.t);
       }
+      /* And no false catch: at every catch of a crashed Ace's orb the
+       * catcher's true hull is as near the orb's centre. */
+      for (const c of res.log.filter((x) => x.why === 'catch')) {
+        const o = res.drops.filter((x) => x.t <= c.t).at(-1);
+        const g = reachOf(sc.air[c.seat - 1], sc.paths[c.seat - 1](c.t), o.px, o.py, o.pz);
+        r.catches += 1;
+        r.reaches.push(g);
+        if (g > BUBBLE_M + INTERP_M) {
+          r.falseTags += 1;
+          note(`false catch at ${c.t}: truth reach ${g.toFixed(3)} m`);
+        }
+      }
+      r.drops += res.drops.length;
       /* 4. a pass deep inside BUBBLE_M is a tag, when the run is on time;
        * the owner's 6.5 m never is and 5.5 m always is. */
       if (sc.kind === 'pass' && onTime && sc.reach <= BUBBLE_M - DEEP_M && !tags.length) {
@@ -617,6 +642,7 @@ function report(clock, results) {
   const passes = results.filter((r) => r.kind === 'pass');
   console.log(`\nrun ${clock + 1}, ${clock ? 'clocks off by up to 10 ms either way' : 'exact clocks'}: ${sum('runs')} runs, ${sum('onTimeRuns')} of them inside LATE_MS`);
   console.log(`    furballs: ${furballs.length} seeds x ${RUNS} runs, ${sum('tags', furballs)} tags in ${sum('tagRuns', furballs)} runs, mid air hits sent during the matches: ${sum('hits', furballs)}`);
+  console.log(`    a crashed Ace's orb: ${sum('drops', furballs)} drops, ${sum('catches', furballs)} catches`);
   const band = passes.map((r) => `${r.reach.toFixed(1)}:${Math.round((100 * r.tagRuns) / Math.max(1, r.runs))}%`).join(' ');
   console.log(`    head on pass, truth reach from the Ace's centre in m: percent of runs judged a tag (BUBBLE_M ${BUBBLE_M} m)\n      ${band}`);
   const station = results.find((r) => r.kind === 'station');
@@ -639,7 +665,7 @@ function report(clock, results) {
     `${sum('badEnd')} wrong ends, ${sum('notOver')} not over`);
   const reaches = all('reaches').filter(Number.isFinite);
   const accuracy = (name, ok, detail) => (clock ? console.log(`  band  ${name}  (${detail})`) : row(name, ok, detail));
-  accuracy(`no false tag: the truth reach at every tag is within BUBBLE_M plus ${INTERP_M * 100} cm`, sum('falseTags') === 0,
+  accuracy(`no false tag or catch: the truth reach at every tag and every catch of the orb is within BUBBLE_M plus ${INTERP_M * 100} cm`, sum('falseTags') === 0,
     `${sum('falseTags')} false of ${reaches.length}; truth reach at the tag max ${pct(reaches, 1).toFixed(3)} m, p95 ${pct(reaches, 0.95).toFixed(3)} m`);
   accuracy(`no miss: a pass ${DEEP_M * 100} cm or more inside BUBBLE_M is a tag`, sum('misses') === 0, `${sum('misses')} misses`);
   row('a pass 6.5 m from the Ace\'s centre is never a tag, and one at 5.5 m always is', sum('owner') === 0,

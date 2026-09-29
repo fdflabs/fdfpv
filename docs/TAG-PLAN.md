@@ -41,7 +41,7 @@ or argued. The rest are this build's, with the reason.
    What a crash does to the match is what it always did to a wreck
    (decision 8): a crashed seat, and then a respawned one while it is
    spawning, cannot tag or be tagged, and a crashed Ace scores nothing
-   and drops the crown after `DROP_MS` if it is still not flying. The
+   and drops the crown where it went down (decision 14). The
    first build had the referee send no `hit` from the countdown to the
    results, as in a friendly room; `edge/rooms/core.js` now hands every
    pose to both the referee and the match. A friendly room still has no
@@ -107,12 +107,14 @@ or argued. The rest are this build's, with the reason.
    30 m from where it started), crashed, or not seen by the room (its
    samples missing or later than `LATE_MS`, a tab on a menu or in the
    background) cannot be touched, so it does not score either. Otherwise
-   an Ace would sit on its slot, spawning, and win. And an Ace that cannot
-   be caught for **`DROP_MS` = 10 s** in a row drops the crown: it goes to
-   a hunter chosen at random among those that can be caught at that
-   millisecond, or stays put if there is none. 10 s is longer than any
-   take off roll or respawn needs to clear 30 m, and short enough that an
-   Ace who went to the menu does not stall the match.
+   an Ace would sit on its slot, spawning, and win. An Ace that could
+   not be caught for `DROP_MS` = 10 s in a row used to drop the crown to a
+   hunter drawn at random; the owner took that timeout out with the orb
+   rule (decision 14): "there is no 10 s timeout that hands the crown to
+   someone". A crashed Ace drops the crown at once as the free orb; one
+   that is only spawning or unseen (a menu, a tab in the background)
+   keeps it and scores nothing, which stalls nobody's points but its own
+   and which the host can always end.
 9. **Public rooms: no tag.** A public room is strangers on a map. A match
    takes over everybody's flight: it puts them back on their slot, holds
    them for the countdown and makes them players. In a public room nobody
@@ -141,11 +143,49 @@ or argued. The rest are this build's, with the reason.
 13. **Strings in both languages**, the owner's names: "Catch the Ace!" and
    "¡Atrapa al As!", Lightning / Relámpago, Standard / Estándar, Epic /
    Épica, the Ace / el As, hunters / cazadores.
+14. **A crashed Ace drops the crown: the free orb.** The owner,
+   2026-09-29: "ok when a person crashes, their orb just stays in that
+   spot, nobody is ace, and whoever goes and catches it, is the new ace".
+   The first millisecond the Ace's pose is a wreck (`FLAG_CRASHED`, a mid
+   air or anything else) nobody is the Ace (`ace: null`) and nobody
+   scores, and the Ace's bubble stays in the air where it went down, a
+   free orb (`orb: { t, from, px, py, pz }`, the pose's place at that
+   millisecond). The first pilot flying (catchable, so not crashed and
+   not spawning, and `FLAG_AIRBORNE` in both bracketing samples, so not
+   taxiing or sat on the ground) with any part box within `BUBBLE_M` of
+   the orb's centre is the Ace: the steal's rule round a centre that does
+   not move (`catchOrb`), a tie on the millisecond to the lower seat,
+   with the new Ace's `PROTECT_MS`. The crashed pilot may catch it too,
+   once it has respawned and its protection is over. A catch is a crown
+   change (`why: 'catch'`, `from` the Ace that dropped it) with the coin,
+   the burst and a banner of its own. A match can only end with the orb
+   free when the host ends it or too few players are left: the results
+   stand as they are, nobody is crowned, and the view stops sending the
+   orb. An earlier rule of the same day, the crown handed at once to the
+   pilot flying nearest the wreck, was replaced by this one before it
+   shipped.
+15. **The chase boost.** The owner, 2026-09-29: "ok if you are NOT the
+   ace, you get a 5% speed boost for chasing". While a match is live (not
+   in its countdown), every pilot who is not the Ace, which is everybody
+   while the orb is free, flies with the plant's `sim_set_boost` at
+   `CHASE_BOOST` (`src/share/roomtag.js`), switched by the shell on the
+   frame the role changes on the room clock and put back to 1 when the
+   match or the room is over. It is physics, not a pose moved: every prop
+   aerodynamically as if it turned 1.06 times faster, its pitch speed
+   scaled by that and its thrust by the square (`src/native/sim_abi.h`).
+   A thrust scale alone was measured first and barely moves a
+   prop-limited top speed (5 percent more thrust bought the Cub 1.1
+   percent); a faster prop raises a top speed held by drag in the square
+   of the speed by exactly its own factor. 1.05 measured 3.7 percent on
+   the five inch, which also holds itself up with its props, and 5.4 on
+   the Cub; 1.06 measured 4.4 and 6.5 (`npm run boost:check`). A call
+   into the plant, so the crash cam's journal keeps it. The scoreboard
+   shows "Chase boost +5%" while it is on.
 
 ## Rules as the room applies them
 
 A match is `{ id, goal, goAt, state, ace, reignFrom, protectUntil,
-untouchSince, f, players: { seat: { ms } }, crowns: [...], winner, endAt }`.
+orb, f, players: { seat: { ms } }, crowns: [...], winner, endAt }`.
 All times are room clock ms (edge/rooms/core.js `roomMs`).
 
 - **Start.** The host sends `{ type: 'tag', op: 'start', goal }`. The room
@@ -172,8 +212,11 @@ All times are room clock ms (edge/rooms/core.js `roomMs`).
      more than `GAP_MS` apart, not spawning, not crashed) adds one to the
      Ace's ms. The millisecond its ms reaches `goal x 1000` ends the match
      there: `endAt`, `winner`, results.
-  3. **The drop**: the millisecond the Ace has been uncatchable for
-     `DROP_MS`, the crown goes to a random catchable hunter, if any.
+  3. **The drop**: the first millisecond the Ace's pose is crashed, nobody
+     is the Ace and the orb is free where it went down (decision 14).
+  3a. **The catch**: while the orb is free nobody scores, and the first
+     millisecond a flying pilot has a part within `BUBBLE_M` of the orb's
+     centre it is the Ace (a tie to the lower seat), with protection.
   4. **The touch applies** at `tc` (after the Ace's points for `tc`): the
      toucher is the Ace from `tc`, `protectUntil` = `tc + PROTECT_MS`, and
      the judgement goes on from `tc` with the new Ace.
@@ -202,8 +245,13 @@ JSON text only, type `tag` both ways (COORD.md gives this mode 0x90 to
 | welcome `tag` | room to joiner | the match, so a joiner or a reconnect sees it at once |
 
 `tag` (the view) is `{ state: 'lobby'|'countdown'|'live'|'results', id,
-goal, goAt, ace, protectUntil, f, scores: [{ seat, ms, gone }], crowns:
-[{ t, seat, from, why }] (the last 8), winner, endAt }`. No token, no
+goal, goAt, ace, bubble, orb, protectUntil, f, scores: [{ seat, ms, gone
+}], crowns: [{ t, seat, from, why }] (the last 8), winner, endAt }`.
+`ace` is null and `orb` is `{ t, from, px, py, pz }` while the orb is
+free (decision 14), else `orb` is null; `why` is `start`, `tag`,
+`catch` or `leave`. A client from before the orb reads a free orb as a
+match with nobody crowned: no bubble, no crown mark, everybody told to
+hunt, and the catch as a plain new Ace. No token, no
 address, nothing typed. A full view for 16 seats is under 1 KB, sent at
 most once a second while scoring plus once per crown change.
 
@@ -239,8 +287,24 @@ samples are memory only, since a room that hibernated had nobody flying.
   17 ms). Against the 6 m bubble it is small (decision 3); the harness
   reports the band.
 - **On screen**: a tag reaches the screens 100 to 400 ms after the touch.
-  The crown moves to the new Ace's aircraft, a banner says who took it
-  ("You are the Ace!" on the toucher's), and the scoreboard's crown moves.
+  The crown moves to the new Ace's aircraft and the scoreboard's crown
+  moves. The owner: "there should be a very visual thing...almost
+  gamelike...kaching or something", and of four synthesized options he
+  chose the arcade coin. So every crown change, a tag or a catch of the
+  free orb, is on every screen: the coin (`src/render/audio.js` coin(),
+  B5 then E6 in square waves, level 1 for the new Ace and 0.4 for
+  everybody else), a gold burst of sparks and a ring shockwave where the
+  new Ace is and a small crown flying over 0.6 s from the old Ace, or out
+  of the orb, to the new one (`src/render/acecrown.js`, three meshes made
+  once), the bubble snapping over with a pulse up to twice its brightest,
+  a big banner in combat's shout style ("👑 YOU ARE THE ACE!", "👑 name
+  IS THE ACE!", "👑 name TOOK YOUR CROWN!", "👑 name caught the crown!"),
+  and a flash round the screen's edge, gold for the pilot who took it and
+  red for the one who lost it or dropped it. The crash cam keeps the
+  burst and the coin beside combat's paper events (`src/replay/paper.js`,
+  file version 7) and the bubble in its rows (the free orb as seat 0), so
+  a replay throws the burst, rings the coin at 1x and draws the orb as
+  they were, and an exported movie's soundtrack has the coin in it.
   The points on the board are the room's, at most one room tick behind
   the room's frontier; they are not extrapolated, so they never run
   backwards when a tag lands in the past.
@@ -384,8 +448,8 @@ measured.
   the crown, the referee decides the crash, on the same bytes.
 - Nothing in the match changed. A wreck was already uncatchable
   (decision 8), so a crash in a match is judged by the rules a wreck
-  always had: no tag and no points while crashed or spawning, and the
-  crown drops after `DROP_MS` if the Ace is still not flying.
+  always had: no tag and no points while crashed or spawning. (Since
+  decision 14 a crashed Ace drops the crown at once, as a free orb.)
 - A hunter that rams the Ace takes the crown on the way in (the bubble
   is 6 m, the hulls meet later) and then both crash. The new Ace is
   protected for `PROTECT_MS` and a wreck, so it scores nothing until it

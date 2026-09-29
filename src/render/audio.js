@@ -336,6 +336,27 @@ const FOCUS_BEAT_HZ = 6;
 const FLIGHT_STEM = 0.3;
 
 /*
+ * The coin (coin()): the approved render's notes and timing, B5 988 Hz
+ * then E6 1319 Hz at 80 ms, the E6 held 500 ms on a 180 ms decay.
+ * COIN_PEAK is the E6's peak into the master at level 1, set by an
+ * offline render of the real graph, over the first 300 ms: the SCHWING
+ * measures -18.4 dBFS RMS and hover motors -28.1. A square puts its
+ * energy at 1 to 4 kHz, where the ear is most sensitive, so the same RMS
+ * reads louder than the sword; at 0.21 the coin measured -20.5 dBFS, 2 dB
+ * under the SCHWING and 7.6 dB over the motors.
+ */
+const COIN_B5 = 988;
+const COIN_E6 = 1319;
+const COIN_STEP_S = 0.08;
+const COIN_E6_S = 0.5;
+const COIN_DECAY_S = 0.18;
+const COIN_PEAK = 0.21;
+/* The SCHWING's scrape gate, the square the coin borrows: its rate and
+ * its swing either way. */
+const SCRAPE_GATE_HZ = 380;
+const SCRAPE_GATE_AMP = 0.375;
+
+/*
  * Duck a bus, starting from where it actually IS.
  *
  * cancelScheduledValues followed by setValueAtTime(1) is a JUMP TO UNITY
@@ -842,10 +863,10 @@ export class MotorAudio {
     const sq = new Float32Array(16);
     const sqIm = new Float32Array(16);
     for (let k = 1; k < 16; k += 2) {
-      sqIm[k] = (0.375 * 4) / (Math.PI * k);
+      sqIm[k] = (SCRAPE_GATE_AMP * 4) / (Math.PI * k);
     }
     gateOsc.setPeriodicWave(ctx.createPeriodicWave(sq, sqIm, { disableNormalization: true }));
-    gateOsc.frequency.value = 380;
+    gateOsc.frequency.value = SCRAPE_GATE_HZ;
     gateOsc.connect(scrapeGate.gain);
     gateOsc.start();
     const scrapeEnv = envOf();
@@ -885,6 +906,27 @@ export class MotorAudio {
       scrapeBp, scrapeEnv, whooshBp, whooshEnv, shingEnv, ringEnv, partials,
     };
     this.schwings = 0;
+
+    /*
+     * Catch the Ace's coin (docs/TAG-PLAN.md), the crown changing hands:
+     * the owner's pick of four renders, "b arcade coin", the classic two
+     * note square wave coin. B5 for 80 ms, then E6 struck and dying at a
+     * 180 ms time constant, gone by 580 ms.
+     *
+     * ONE NODE, its envelope. The tone is the SCHWING's scrape gate above,
+     * already a square (fifteen harmonics, 0.375 each way): coin() tunes
+     * it to the notes and puts it back to SCRAPE_GATE_HZ after, and the
+     * scrape stays silent meanwhile because its own envelope is shut. A
+     * room runs one game at a time (docs/TAG-PLAN.md decision 10), so a
+     * SCHWING and a coin never sound together. The graph's budget is 64
+     * nodes (tests/thresholds.json max_nodes) and it stood at 63, so an
+     * oscillator of the coin's own would have passed it.
+     */
+    const coinEnv = envOf();
+    gateOsc.connect(coinEnv);
+    coinEnv.connect(shaper);
+    this.coinVoice = { osc: gateOsc, env: coinEnv };
+    this.coins = 0;
 
     /* The bed. It brings its own nodes and counts them through keep. */
     this.music.attach(ctx, shaper, keep);
@@ -1135,6 +1177,39 @@ export class MotorAudio {
     v.ringEnv.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
     this.schwings += 1;
     this.duckFlight(t, 0.7, 0.3);
+  }
+
+  /*
+   * The crown changing hands in Catch the Ace: level 1 for the new Ace,
+   * lower for everyone else. On its own voice, through the master.
+   */
+  coin(level = 1, atTime) {
+    if (!this.ctx || !this.coinVoice) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const lv = (COIN_PEAK / SCRAPE_GATE_AMP) * Math.max(0.05, Math.min(1, level));
+    const { osc, env } = this.coinVoice;
+    const g = env.gain;
+    osc.frequency.cancelScheduledValues(t);
+    g.cancelScheduledValues(t);
+    osc.frequency.setValueAtTime(COIN_B5, t);
+    osc.frequency.setValueAtTime(COIN_E6, t + COIN_STEP_S);
+    /* The B5 at 0.7 of the E6, as the approved render has it, each note
+     * with a millisecond's attack so neither clicks in. */
+    g.setValueAtTime(0, t);
+    g.linearRampToValueAtTime(0.7 * lv, t + 0.001);
+    g.setValueAtTime(0.7 * lv, t + COIN_STEP_S);
+    g.linearRampToValueAtTime(lv, t + COIN_STEP_S + 0.001);
+    g.setTargetAtTime(0, t + COIN_STEP_S + 0.001, COIN_DECAY_S);
+    /* The render stops the E6 at 500 ms; a 5 ms fade instead of its
+     * step, so the end does not click. */
+    const end = t + COIN_STEP_S + COIN_E6_S;
+    g.setValueAtTime(lv * Math.exp(-(COIN_E6_S - 0.001) / COIN_DECAY_S), end);
+    g.linearRampToValueAtTime(0, end + 0.005);
+    osc.frequency.setValueAtTime(SCRAPE_GATE_HZ, end + 0.006);
+    this.coins += 1;
+    this.duckFlight(t, 0.6, 0.3);
   }
 
   /*

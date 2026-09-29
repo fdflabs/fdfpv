@@ -57,7 +57,7 @@ export const PURE = new Set([
   'sim_part_table', 'sim_free_bodies_active', 'sim_damage_events_dropped', 'sim_motor_damage',
   'sim_material_info', 'sim_obstacle_state', 'sim_power_state', 'sim_wing_surfaces', 'sim_plane_surfaces',
   'sim_wing_debug', 'sim_wing_biplane', 'sim_wheel_loads', 'sim_float_state', 'sim_wind', 'sim_air_lift', 'sim_water_sample',
-  'sim_water_components', 'sim_airframe', 'sim_air', 'sim_gravity', 'sim_wing_stab', 'sim_wing_chute_open',
+  'sim_water_components', 'sim_airframe', 'sim_air', 'sim_gravity', 'sim_boost', 'sim_wing_stab', 'sim_wing_chute_open',
   'sim_wing_flaps', 'sim_launch_control_state', 'sim_crashflip_active', 'sim_rate_guard_trips',
   'sim_math_sin', 'sim_math_cos', 'sim_math_atan2', 'sim_bf_debug', 'sim_bf_dump', 'sim_bf_get',
   'sim_crash_debug', 'sim_wing_tune', 'sim_addons_state', 'sim_wing_discus_phase',
