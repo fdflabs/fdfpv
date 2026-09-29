@@ -62,14 +62,16 @@ export const MAP_BUILD_MS = {
    * 2669 and 2692. The load average was near thirty from other sessions'
    * test fleets, so these carry the Alps' figure's spread and more. */
   swiss2: 2500,
-  /* The Itaipu skeleton: the manifest and every JSON file it lists, the
-   * whole 66 tile pyramid (8.7 MB) fetched and reconciled (terrain/
-   * reconcile.js, about 0.2 s), the imagery, the masks and swiss2's
-   * photographs, the chunks round the spawn, and the four parts, three of
-   * them stubs. World stage from the shell's loading ledger, the data
-   * served locally, SIM_GPU=1 at High, five runs on 2026-09-29: 1324,
-   * 1496, 1763, 1876 and 2039 ms, with a load average between 11 and 38
-   * from other sessions. From the public host it is longer by the round
-   * trips; the parts to come add their own. */
-  itaipu: 1900,
+  /* Itaipu with every part in: the manifest and every JSON file it
+   * lists, the whole 66 tile pyramid (8.7 MB) fetched and reconciled
+   * (terrain/reconcile.js, about 0.2 s), the imagery, the masks and
+   * swiss2's photographs, the chunks round the spawn, then the dam, the
+   * water, the town and the forest, and the streamed colliders filled
+   * round the spawn. World stage from the shell's loading ledger, the data
+   * served locally, SIM_GPU=1, on 2026-09-29: 2558, 2600 and 2629 ms at
+   * 960 by 540 on Low with a load average of 15 to 31 from other
+   * sessions, and 4374, 5566 and 6127 ms at 1280 by 720 on High with it
+   * near 50. The quieter figure is the one here; from the public host it
+   * is longer by the round trips. */
+  itaipu: 2600,
 };
