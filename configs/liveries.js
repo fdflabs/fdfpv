@@ -183,6 +183,16 @@ export const LIVERIES = {
       { id: 'stock', source: src('FMS P-51D Mustang V8 1450 mm, the manual\'s photographs', 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf'), colours: {} },
     ],
   },
+  extra1308: {
+    /* E-flite's moulded foam in its own paint: the nose and spats yellow
+     * orange, the wing's top white with grey outer panels (the tail's
+     * grey), its underside in yellow and black squares. */
+    regions: [r('wing', '#eceef0'), r('fuselage', '#eceef0'), r('nose', '#f2a81d'), r('tail', '#8a9096'), r('trim', '#16181a'), r('checks', '#f2b21d')],
+    schemes: [
+      { id: 'stock', source: src('E-flite Extra 300 3D 1.3m, EFL115500', 'https://www.horizonhobby.com/product/e-flite-extra-300-3d-1.3m-bnf-basic-with-as3x-and-safe-select/EFL115500.html'), colours: {} },
+      { id: 'umx', source: src('E-flite UMX Extra 300 3D, EFLU1080: red, grey and black', 'https://www.hobbyzone.com/EFLU1080.html'), colours: { nose: '#b11b24', checks: '#b11b24', tail: '#6b7176', wing: '#d1dae2', fuselage: '#d1dae2' } },
+    ],
+  },
   f16878: {
     /* Painted foam, not film: Freewing's "modern three tone gray US Air
      * Force base colors", the F-16C's FS 595 36118 Gunship Gray, 36270

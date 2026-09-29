@@ -123,6 +123,13 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             out, so the width and the reach this file measures are both
  *             1930 mm, and EF's 1524 mm is held by craft-preview.js's half
  *             span row. src/render/edgecraft.js draws it.
+ *   extra1308 E-flite's 1308 mm Extra 300 3D, whose rudder also reaches
+ *             further from the CG than its tips: its trailing edge is
+ *             0.926 m aft, E-flite's 1260 mm length less the CG's 0.337 m
+ *             behind the spinner, and the tips 0.654 m out, so the width
+ *             and the reach this file measures are both 1852 mm and
+ *             E-flite's 1308 mm span is held by the half span of
+ *             src/render/extracraft.js EXTRA_DIMS.
  *   f16878    Freewing's F-16 V3, 878 mm over its tip rails, whose pitot
  *             reaches further from the CG than anything else: 0.710 m
  *             ahead, against the rails' 0.439 m out and the fin's tip
@@ -162,6 +169,7 @@ const REAL = {
   bombshell1118: { spanMm: 1304.0, sweepMm: 1346.7, tolMm: 6 },
   kadet1981: { spanMm: 2216.2, sweepMm: 2335.4, tolMm: 6 },
   edge1524: { spanMm: 1930.4, sweepMm: 1930.4, tolMm: 6 },
+  extra1308: { spanMm: 1852.0, sweepMm: 1852.0, tolMm: 6 },
   p51d1450: { spanMm: 1667.2, sweepMm: 1667.2, tolMm: 6 },
   zagi1219: { spanMm: 1219.2, sweepMm: 1331.4, tolMm: 6 },
 };

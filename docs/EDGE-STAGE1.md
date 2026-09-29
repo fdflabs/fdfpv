@@ -332,7 +332,7 @@ in the carousel, with Acro (the default), Stabilised and Manual rows, its
 FPV camera on the cowl, `gear` from the plant's settled pose, and the
 hangar's power (two packs), paint (two schemes), tuning (EF's high and low
 rates) and parts (the stock T16x8, APC's 16 x 8E and 16 x 10E). On the
-unlock curve it is **level 8**, after the Bramor (6) and the P-51 (7): an
+unlock curve it is **level 9**, after the P-51 (7) and the Extra 300 (8), before the F-16 (10): an
 unlimited aerobat at 3D throws rolls past 600 deg/s and snaps when
 yanked, the least forgiving aircraft here. `npm run edge:shell` on swiss2 and the airfield: parked at
 0.2510 m, off the strip, climbing, banking, chase camera, 13 aircraft

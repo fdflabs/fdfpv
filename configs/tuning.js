@@ -99,6 +99,7 @@ const RADIAN_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-h
 const RADIAN_PRO_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/PKZ5480-Manual_EN.pdf';
 const SLOWSTICK_MANUAL = 'http://www.store.gwsus.com/wp-content/uploads/download/manual/AirPlanes_Manual_GWSSLOWSTICK.pdf';
 const KADET_KIT = 'https://sigmfg.com/products/kadet-senior-kit';
+const EXTRA_MANUAL = 'https://www.horizonhobby.com/on/demandware.static/Sites-horizon-us-Site/Sites-horizon-master/default/Manuals/EFL115500-Manual-EN.pdf';
 const KADET_MANUAL = 'https://cdn.shopify.com/s/files/1/2281/6393/files/sigrc58kadetsenior.pdf';
 const F16_MANUAL = 'https://www.freewing-model.com/download/freewing-70mm-f-16-v3-70mm-manual.pdf';
 const P51_MANUAL = 'https://cdn-files.myshopline.com/file/store/1772248208561/55c1d8443b5c438095f19ab8babfc3b0.pdf';
@@ -212,6 +213,13 @@ export const TUNING = {
     packKg: 0.295, nose: 0.30, tail: -0.70,
     throws: { high: [19.8769, 25.8721, 12.1224], low: [13.9, 18.1, 8.5], source: `FMS manual pp. 19 and 20: the low rates, 17, 24 and 21 mm, which the manual says are for normal flying, on the 50, 55 and 100 mm surfaces (docs/P51-STAGE1.md), are the plant's; ${LOW_70}; ${P51_MANUAL}` },
     flaps: { mix: 0, angles: [0, 0.28510428711100527, 0.61297025535831962], source: `FMS manual p. 20: mid 22 mm, full 45 mm, no elevator mix given; ${P51_MANUAL}` },
+  },
+  extra1308: {
+    chord: 0.2927, area: 0.369, margin: 0.154,
+    cg: { mm: 95, datum: 'tuning.datum.root_le', range: [90, 100], source: `E-flite manual, "3.5 - 4.0 in (90 - 100 mm) from leading edge of wing at the fuselage", pp. 3 and 11; ${EXTRA_MANUAL}` },
+    packKg: 0.27, nose: 0.26, tail: -0.83,
+    throws: { high: [36.53, 39.67, 55.05], low: [20.92, 28.60, 35.00], source: `E-flite manual p. 3: high 50, 60 and 100 mm, low 30, 45 and 70 mm, at the surfaces' widest chords, 84, 94 and 122 mm (docs/EXTRA-STAGE1.md); ${EXTRA_MANUAL}` },
+    flaps: null,
   },
   f16878: {
     chord: 0.2856, area: 0.21484, margin: 0.115,

@@ -1541,6 +1541,125 @@ export function recordEdgeFlight(sim) {
 }
 
 /*
+ * E-flite's Extra 300 3D 1.3m, airframe 14, docs/EXTRA-STAGE1.md: a
+ * taildragger standing 6.7 deg nose up on its wheels, the CG 0.2221 m up
+ * (src/render/extracraft.js), or thrown at its cruise.
+ */
+export const EXTRA_AIRFRAME = 14;
+export const EXTRA_REST = { z: 0.2221, pitchDeg: 6.7 };
+export function extraPrelude(sim) {
+  must(sim.e.sim_set_airframe(EXTRA_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_wing_launch(15), 'sim_wing_launch');
+}
+export function extraGroundPrelude(sim, { mu = 1.4, e = 0 } = {}) {
+  must(sim.e.sim_set_airframe(EXTRA_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, mu, e), 'sim_set_ground');
+  const h = EXTRA_REST.pitchDeg * Math.PI / 360;
+  must(sim.e.sim_set_pose(0, 0, EXTRA_REST.z, Math.cos(h), 0, -Math.sin(h), 0), 'sim_set_pose');
+}
+
+/*
+ * A 3D pilot's hands on an aircraft hanging on its prop: the nose held on
+ * a world direction (straight up unless given) by the elevator and the
+ * rudder in the slipstream, and the roll rate on the ailerons toward
+ * rollRate (rad/s, body), or the ailerons left where rollStick puts them.
+ * The error is the rotation that takes the nose onto the target, in the
+ * body's axes; each axis asks for a rate proportional to it and the
+ * stick closes the rate. Nose up stick is a negative body pitch rate, and
+ * right yaw stick a negative body yaw rate. Returns roll, pitch and yaw
+ * sticks.
+ */
+export function hangSticks(s, { target = [0, 0, 1], rollRate = null, rollStick = 0, kp = 10, kr = 0.8 } = {}) {
+  const w = s[7], x = s[8], y = s[9], z = s[10];
+  const nose = [1 - 2 * (y * y + z * z), 2 * (x * y + w * z), 2 * (x * z - w * y)];
+  /* nose x target, the rotation vector (small angle), world to body. */
+  const cw = [
+    nose[1] * target[2] - nose[2] * target[1],
+    nose[2] * target[0] - nose[0] * target[2],
+    nose[0] * target[1] - nose[1] * target[0],
+  ];
+  const xx = x * x, yy = y * y, zz = z * z, wx = w * x, wy = w * y, wz = w * z, xy = x * y, xz = x * z, yz = y * z;
+  const e = [
+    (1 - 2 * (yy + zz)) * cw[0] + 2 * (xy + wz) * cw[1] + 2 * (xz - wy) * cw[2],
+    2 * (xy - wz) * cw[0] + (1 - 2 * (xx + zz)) * cw[1] + 2 * (yz + wx) * cw[2],
+    2 * (xz + wy) * cw[0] + 2 * (yz - wx) * cw[1] + (1 - 2 * (xx + yy)) * cw[2],
+  ];
+  const clamp = (v) => Math.max(-1, Math.min(1, v));
+  const pitch = clamp(-kr * (kp * e[1] - s[12]));
+  const yaw = clamp(-kr * (kp * e[2] - s[13]));
+  const roll = rollRate == null ? rollStick : clamp(kr * (rollRate - s[11]));
+  return [roll, pitch, yaw];
+}
+
+/*
+ * The Extra's take off: full throttle with the elevator held a little up
+ * to keep the tailwheel steering, as E-flite's manual says, then eased to
+ * neutral so the tail comes up, and at the rotation speed the nose raised
+ * to 8 deg. The wings are held level on the ailerons and the heading on
+ * the rudder. Returns roll, pitch and yaw sticks.
+ */
+export function extraTakeoffSticks(s, { vRotate = 10 } = {}) {
+  const { pitch, bank } = attitude(s);
+  const v = Math.hypot(s[4], s[5], s[6]);
+  const qAero = -s[12];
+  const heading = Math.atan2(2 * (s[7] * s[10] + s[8] * s[9]), 1 - 2 * (s[9] * s[9] + s[10] * s[10]));
+  const pitchT = (v < 5 ? 6 : (v < vRotate ? 2 : 8)) * Math.PI / 180;
+  const roll = Math.max(-1, Math.min(1, -0.6 * bank - 0.06 * s[11]));
+  const pitchStick = Math.max(-1, Math.min(1, 1.5 * (pitchT - pitch) - 0.12 * qAero));
+  const yaw = Math.max(-1, Math.min(1, 1.5 * heading + 0.2 * s[13]));
+  return [roll, pitchStick, yaw];
+}
+
+/*
+ * The Extra's recording for the cross-host check: from standing on the
+ * strip, a second at idle, a taildragger's take off at full throttle, a
+ * climb, a pull to the vertical, hanging on the prop with the throttle
+ * holding height and the ailerons holding the torque, then two seconds of
+ * torque roll with them let go, full throttle out of it and back to
+ * level, and a second of full rudder: twenty two seconds, every
+ * slipstream term in the hashed trace.
+ */
+export function recordExtraFlight(sim) {
+  must(sim.reset(), 'sim_reset');
+  extraGroundPrelude(sim);
+  const samples = [];
+  let iT = 0.6;
+  for (let ms = 0; ms < 22000; ms += RC_STEP_MS) {
+    const s = sim.readState().state;
+    const { pitch, bank } = attitude(s);
+    const p = s[11];
+    const qAero = -s[12];
+    const vz = s[6];
+    const hold = (b) => Math.max(-1, Math.min(1, -0.6 * (bank - b) - 0.06 * p));
+    const nose = (t) => Math.max(-1, Math.min(1, 1.5 * (t - pitch) - 0.12 * qAero));
+    let sticks;
+    if (ms < 1000) {
+      sticks = [0, 0, 0, 0];
+    } else if (ms < 7000) {
+      sticks = [...extraTakeoffSticks(s), 1];
+    } else if (ms < 9000) {
+      sticks = [hold(0), nose(0.45), 0, 1];
+    } else if (ms < 16000) {
+      iT += 0.0008 * (0 - vz);
+      iT = Math.max(0.3, Math.min(1, iT));
+      const thr = Math.max(0, Math.min(1, iT - 0.08 * vz));
+      sticks = [...hangSticks(s, { rollRate: ms < 14000 ? 0 : null }), ms < 11000 ? 0.75 : thr];
+    } else if (ms < 20000) {
+      sticks = [hold(0), nose(0.1), 0, 1];
+    } else {
+      sticks = [hold(0), nose(0.1), ms < 21000 ? 1 : 0, 0.6];
+    }
+    const [roll, pitchStick, yaw, duty] = sticks;
+    samples.push({ tUs: ms * 1000, roll, pitch: pitchStick, yaw, throttle: duty });
+    must(sim.input(ms / 1000, roll, pitchStick, yaw, duty), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+  }
+  return samples;
+}
+
+/*
  * The Zagi HP, docs/ZAGI-STAGE1.md: airframe 17, a flying wing with
  * elevons and no rudder, thrown by hand and landed on its belly. Its
  * throw is the shell's (src/main.js throwWing): level at 10 m/s, 1.36

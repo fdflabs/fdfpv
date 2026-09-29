@@ -203,6 +203,16 @@ planes.FW_EDGE1524 = {
   dw: 0.9 * 0.487 * 3.754 * 0.549 / 4.435,
   asym: TE_TOLERANCE / 0.3175,
   note: 'a_w 4.435, a_t 3.754, V_H 0.487, deps/dalpha 0.549 (DATCOM), its own arms',
+/* The Extra 300 3D, scripts/extra-derive.js: E-flite's 95 mm CG on the
+ * measured taper's mean chord, the manual's CG at the wing's aerodynamic
+ * centre within 2 mm, and the tail's share from the derivation's a_w,
+ * a_t, V_H and Nelson's downwash. */
+planes.FW_EXTRA1308 = {
+  arm_ac: 0.0018,
+  arm_cp: 0.1482,
+  dw: 0.9 * 0.582 * 3.699 * 0.603 / 4.390,
+  asym: TE_TOLERANCE / 0.2927,
+  note: 'a_w 4.390, a_t 3.699, V_H 0.582, deps/dalpha 0.603 (Nelson), its own arms',
 };
 
 /* The F-16 V3, docs/F16-STAGE1.md and scripts/f16-derive.js: its own
@@ -269,6 +279,8 @@ const STRIPS = {
   /* 15 in at the root to 10 in at the square tip, the taper's straight
    * line: EF's photographs, the drawn model. */
   FW_EDGE1524: strips(taper(10 / 15)),
+  /* E-flite's measured taper, 0.204 over 0.366. */
+  FW_EXTRA1308: strips(taper(0.557)),
   /* The cropped delta's trapezoid, 414.5 mm at the centreline to 83 at
    * the tip; the strakes ahead of it are left out. */
   FW_F16878: strips(taper(0.201)),
@@ -310,6 +322,11 @@ const SECTION = {
    * tunnel data it cites); held 1 deg and falling to 0.60, ESTIMATED from
    * that description, sharper than any section here. */
   FW_EDGE1524: { sec: 'symmetric 12 percent at 2e5', top: 1.0, k: 0.60 },
+  /* A thick symmetric section at 2e5: ESTIMATED, a sharp stall held 2 deg
+   * and falling to 0.70, the NACA 0015's shape at a low Reynolds number
+   * (Sheldahl and Klimas, SAND80-2114, 1981), read loosely; UIUC has no
+   * symmetric section tested in the range. */
+  FW_EXTRA1308: { sec: 'thick symmetric at 2e5', top: 2.0, k: 0.70 },
   /* No UIUC section: a thin 64A204 alone stalls at its leading edge, and
    * the strakes' vortex holds the lift on the F-16 past it (NASA TP-1538's
    * lift curve peaks 15 deg past its linear range). ESTIMATED: held 10 deg,
