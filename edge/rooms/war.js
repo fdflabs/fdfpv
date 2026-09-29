@@ -45,13 +45,21 @@
  * then clean: its plant breaks when its client hears the boom, so the
  * samples between the blast and that are the same airframe, which has
  * already gone. Its crash is the blast's and takes nothing more from the
- * rack.
+ * rack. A LOST LINK is the same: the pilot's own client says its airframe
+ * is lost (section 6.4, the link down for 3 s), which takes one off the
+ * rack and disarms the seat by the same rule, so saying it again, or the
+ * wreck that follows, takes nothing more.
  *
- * What a client sends (JSON text), the host only, a private room only
- * (core.js hostCheck refuses 'private' in a public one, section 9):
+ * What a client sends (JSON text): the host only, a private room only
+ * (core.js hostCheck refuses 'private' in a public one, section 9),
  *
  *   { type: 'war', op: 'start', mission }   count down and fight it
  *   { type: 'war', op: 'end' }              stop now
+ *
+ * and any pilot, about its own seat, while a war is on and it is neither
+ * spawning nor already a wreck:
+ *
+ *   { type: 'war', op: 'lost' }             my airframe is lost
  *
  * What the room sends, to everybody:
  *
@@ -98,7 +106,7 @@ import {
   FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose, encodeAgents,
 } from '../../src/share/roomwire.js';
 import {
-  LATE_MS, Track, hullFor, poseAt as trackPose, within,
+  LATE_MS, Track, hullDistance, hullFor, poseAt as trackPose, within,
 } from '../../src/game/midair.js';
 import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
@@ -139,6 +147,77 @@ const POINT = { id: 'point' };
 
 const KIND_ID = new Map(KINDS.map((k, i) => [k, i]));
 
+/*
+ * The most any point of a hull reaching `reach` from its centre moves,
+ * over the poses a Track interpolates for the milliseconds [first, last],
+ * from the pose p0: its centre's displacement plus 2 x reach x the
+ * attitude's chord from p0's (a rotation by q moves a point x by
+ * 2|x| sin(half the angle), at most |x| |q - q0| x 2). An interpolated
+ * position lies between its two samples, and an interpolated attitude on
+ * the arc between them, so the samples' largest spread plus the largest
+ * chord of one step bounds every millisecond. Infinity when the Track
+ * does not cover `first`.
+ */
+function spread(track, first, last, p0, reach) {
+  const s = track.s;
+  let i = track.bracket(first);
+  if (i < 0) {
+    return Infinity;
+  }
+  let far = 0;
+  let turn = 0;
+  let step = 0;
+  let prev = null;
+  for (; i < s.length; i += 1) {
+    const q = s[i];
+    far = Math.max(far, Math.sqrt((q.px - p0.px) ** 2 + (q.py - p0.py) ** 2 + (q.pz - p0.pz) ** 2));
+    turn = Math.max(turn, chord(q, p0));
+    if (prev) {
+      step = Math.max(step, chord(q, prev));
+    }
+    prev = q;
+    if (q.t >= last) {
+      break;
+    }
+  }
+  return far + 2 * reach * (turn + step);
+}
+
+/* |a - b| between two attitude quaternions, on the same hemisphere. */
+function chord(a, b) {
+  const sg = a.qx * b.qx + a.qy * b.qy + a.qz * b.qz + a.qw * b.qw < 0 ? -1 : 1;
+  return Math.sqrt((a.qx * sg - b.qx) ** 2 + (a.qy * sg - b.qy) ** 2 + (a.qz * sg - b.qz) ** 2 + (a.qw * sg - b.qw) ** 2);
+}
+
+const D0 = {};
+const A0 = {};
+
+/*
+ * THE HULL'S BROADPHASE. Whether no part box of hull h can come within
+ * BLAST_M of the attacker's centre in (t0, t1], so within() need not
+ * measure the hull on every millisecond: the hull's distance at the
+ * span's first millisecond, less the most either side can move in the
+ * span (spread), is still outside BLAST_M. A hull's distance to a point
+ * changes by no more than the point and the parts move, so this never
+ * skips a detonation; an attacker parked just outside the bubble costs
+ * one hullDistance a span instead of one a millisecond. within()'s own
+ * broadphase, on the centres, passes such a pair every millisecond,
+ * since its centre is inside BLAST_M plus the hull's reach.
+ */
+function clearOf(h, dTrack, aTrack, t0, t1) {
+  const first = Math.floor(t0) + 1;
+  const last = Math.floor(t1);
+  const d0 = trackPose(dTrack, first, D0);
+  const a0 = trackPose(aTrack, first, A0);
+  if (!d0 || !a0) {
+    return false;
+  }
+  const gap = hullDistance(h, d0, a0.px, a0.py, a0.pz);
+  const move = spread(dTrack, first, last, d0, h.hull.reach) + spread(aTrack, first, last, a0, 0);
+  /* A micrometre for the rounding between a sample and its lerp. */
+  return gap - move > BLAST_M + 1e-6;
+}
+
 /* Whether a sample can go off: seen, neither spawning nor crashed. */
 function clean(p) {
   return (p.flags & (FLAG_SPAWNING | FLAG_CRASHED)) === 0;
@@ -158,10 +237,11 @@ function draw(seed, id) {
  * The floor each map's hunters hold over (edge/rooms/warhunt.js), read once
  * per process. Node reads Itaipu's heightfield from beside the missions
  * (the VM's deploy copies src/ whole); a Cloudflare Worker has no files, so
- * there it is null and the hunters fly over flat ground at 0, which is
- * wrong at Itaipu and the reason the Worker, the retired platform
- * (edge/rooms/README.md), is not where a war is fought. getBuiltinModule
- * rather than an import, so the Worker's bundle never meets node:fs.
+ * there it is null and the hunters fly over flat ground at 0. That is by
+ * decision (the lead's, 2026-09-29): production is the Node VM, and the
+ * Worker, the retired platform (edge/rooms/README.md), is not where a war
+ * is fought. getBuiltinModule rather than an import, so the Worker's
+ * bundle never meets node:fs.
  */
 const FLOORS = new Map();
 function floorOf(map) {
@@ -314,6 +394,9 @@ export class RoomWar {
 
   /* One text message of type 'war' from seat s. */
   message(core, conn, s, msg, now) {
+    if (msg.op === 'lost') {
+      return this.lost(core, conn, s, now);
+    }
     if (s.seat !== core.host()) {
       return [];
     }
@@ -325,6 +408,43 @@ export class RoomWar {
       return this.on() ? [...out, ...this.abandon(core, now)] : out;
     }
     return [];
+  }
+
+  /* A pilot's own airframe lost to its link (section 6.4). Refused
+   * outside a live war ('off'), before the room has its poses ('unseen'),
+   * while spawning ('spawning') or as a wreck ('wreck', whose crash the
+   * room counts); nothing at all for a seat already disarmed, so it is
+   * once a life. */
+  lost(core, conn, s, now) {
+    const m = this.match;
+    if (!m || m.state !== 'live') {
+      return this.error(conn, 'off');
+    }
+    const rec = this.seats.get(s.seat);
+    const p = rec && rec.token === s.token ? rec.track.s.at(-1) : null;
+    if (!p) {
+      return this.error(conn, 'unseen');
+    }
+    if (rec.down) {
+      return [];
+    }
+    if (p.flags & FLAG_SPAWNING) {
+      return this.error(conn, 'spawning');
+    }
+    if (p.flags & FLAG_CRASHED) {
+      return this.error(conn, 'wreck');
+    }
+    const out = this.advance(core, now);
+    if (m.state !== 'live') {
+      return out;
+    }
+    rec.down = { at: p.t, seen: false };
+    m.rack = Math.max(0, m.rack - 1);
+    this.log.push({
+      what: 'lost', t: p.t, seat: s.seat, decided: core.roomMs(now),
+    });
+    this.settle(m.f);
+    return [...out, ...this.changed(core)];
   }
 
   /* Ended before it was won or lost: by the host, or by the room when
@@ -682,7 +802,11 @@ export class RoomWar {
         if (dx * dx + dy * dy + dz * dz > reach * reach) {
           continue;
         }
-        const c = within(POINT, d.hull, x.track, d.track, start, boom ? Math.min(t1, boom.tc) : t1, BLAST_M);
+        const end = boom ? Math.min(t1, boom.tc) : t1;
+        if (clearOf(d.hull, d.track, x.track, start, end)) {
+          continue;
+        }
+        const c = within(POINT, d.hull, x.track, d.track, start, end, BLAST_M);
         if (c && (!boom || c.tc < boom.tc)) {
           boom = { tc: c.tc, d, x };
         }

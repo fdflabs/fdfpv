@@ -22,8 +22,7 @@
  *           and coming back REACT_MS after its own blast, as a client
  *           does on hearing its boom
  *   cost    eight pilots and sixty attackers at once: fifty two parked
- *           around the pilots just outside BLAST_M, so every pair near
- *           is judged on every millisecond and none goes off, and eight
+ *           around the pilots just outside BLAST_M, none going off, and eight
  *           hunters steered by the room from far out. The room's CPU per
  *           second of play, against the plan's 60 ms.
  *
@@ -479,9 +478,10 @@ function sweep(sc, clock) {
  *          judged by within() on every millisecond, none within reach
  *   shell  a Cub every 120 m, and over and under each, six or seven
  *          jammers 6.45 to 6.6 m from its centre: outside BLAST_M of any
- *          part, inside BLAST_M plus the hull's reach, so within() also
- *          measures the hull (hullDistance) on every millisecond, the
- *          most one pair can cost, held for thirty seconds by all 52
+ *          part, inside BLAST_M plus the hull's reach, where within()
+ *          would measure the hull (hullDistance) on every millisecond,
+ *          held for thirty seconds by all 52: what the room's hull
+ *          broadphase (edge/rooms/war.js clearOf) is there to make cheap
  *
  * The CPU the room spends in its own calls (poses and ticks), per second
  * of play from the go.
