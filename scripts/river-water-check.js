@@ -302,6 +302,49 @@ function skyInto(declare) {
     `channel: in the water ${river.wet}, ${river.v.toFixed(2)} m/s after 2 s; none: in the water ${dry.wet}, ${dry.v.toFixed(2)} m/s`);
 }
 
+/*
+ * A Skyhunter over the channel in the open air, near its bank: two pilots
+ * on swiss2 had one break up 3 m over the stream. The plant finds the
+ * body under the craft's centre and samples it at every hull point, and a
+ * point past every chunk's box (a wing tip out over the bank, its centre
+ * inside the half width) read the channel's HIGHEST surface, the head of
+ * the stream, as the water there. This channel falls 8 m to a level run,
+ * as swiss2's does from the torrent to the valley floor; the craft flies
+ * the level run 3 m up, 2 m off the line, its tip 2.9 m off it.
+ */
+function skyAlongBank() {
+  must(sim.reset(), 'sim_reset');
+  must(sim.e.sim_set_airframe(SKY_AIRFRAME), 'sim_set_airframe');
+  must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
+  must(sim.e.sim_set_damage(1), 'sim_set_damage');
+  must(sim.e.sim_water_clear(), 'sim_water_clear');
+  const pts = [];
+  for (let x = -40; x <= 300; x += 2) {
+    pts.push({ x, y: 0, z: x < 0 ? (-x / 40) * 8 : 0 });
+  }
+  declareRiver(pts);
+  must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, -DEPTH, 1.4, 0), 'sim_set_ground');
+  must(sim.e.sim_set_pose(60, 2.0, 3.0, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_set_velocity(18, 0, 0, 0, 0, 0), 'sim_set_velocity');
+  let flags = 0;
+  let low = Infinity;
+  for (let ms = 0; ms < 1000; ms += RC_STEP_MS) {
+    must(sim.input(ms / 1000, 0, 0, 0, 0.5), 'sim_input');
+    must(sim.step(RC_STEP_MS), 'sim_step');
+    flags |= sim.e.sim_damage_flags();
+    low = Math.min(low, sim.readState().state[3]);
+  }
+  must(sim.e.sim_set_damage(0), 'sim_set_damage');
+  return { flags, low, v: speed(sim.readState().state) };
+}
+{
+  const r = skyAlongBank();
+  const wreck = DAMAGE_FLAGS.wingLost | DAMAGE_FLAGS.tailLost | DAMAGE_FLAGS.batteryEjected;
+  check('a Skyhunter 3 m over a channel, off its line, is not in its water: a tip past the chunk boxes reads the surface there, not the head of the stream',
+    (r.flags & DAMAGE_FLAGS.inWater) === 0 && (r.flags & wreck) === 0 && r.low > 1.5,
+    `in the water ${(r.flags & DAMAGE_FLAGS.inWater) !== 0}, flags 0x${r.flags.toString(16)}, lowest ${r.low.toFixed(2)} m, ${r.v.toFixed(2)} m/s after 1 s`);
+}
+
 must(sim.e.sim_water_clear(), 'sim_water_clear');
 const failed = checks.filter((c) => !c.ok).length;
 console.log(`${checks.length - failed} of ${checks.length} passed`);
