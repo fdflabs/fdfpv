@@ -54,7 +54,7 @@ import {
   CHAT_BURST, CHAT_EVERY_MS, CHAT_PRESETS, CLOSE_REMOVED, EMOTES, FLAG_SPAWNING, PUBLIC_CAP, REPORT_REASONS, REPORT_WINDOW_MS,
 } from '../src/share/roomwire.js';
 import {
-  BENCH_MS, IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
+  IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
 } from '../edge/rooms/safety.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
 import { SYNC_GAP_MS } from '../src/share/rooms.js';
@@ -479,11 +479,6 @@ console.log('mid air referee');
     `${plain.a.length} and ${plain.b.length}`);
   check('just before they would meet, CG to CG', h && h.tc > MEET - 50 && h.tc < MEET, h ? `${h.tc} ms` : '');
   check('inside Phase 5\'s spawn protection nobody is hit: the same pass 2 s after spawning', pass({ meet: 2000 }).a.length === 0);
-  check('the hit counts toward Phase 5\'s ramming bench, on both seats', (() => {
-    const p = pass();
-    const counts = [...p.room.safety.pilots.values()].map((x) => x.hits.length);
-    return counts.length === 2 && counts.every((n) => n === 1);
-  })());
   check('a hit a client can act on (checkHit)', h && checkHit(h));
   check('each side is struck by the other: A\'s normal points back along its flight, in its own body frame', h && h.A.n[0] < -0.9 && h.B.n[0] < -0.9,
     h ? `${h.A.n} ${h.B.n}` : '');
@@ -1148,33 +1143,65 @@ for (let i = 0; i < IMPOSSIBLE_LIMIT; i += 1) {
 }
 check(`${IMPOSSIBLE_LIMIT} impossible poses in a minute remove the seat`, f1.closed && f1.closed.code === CLOSE_REMOVED);
 
-console.log('phase 5: ramming');
-room = new RoomCore(meta);
-const g1 = sock('g1', '10.9.0.1');
-const g2 = sock('g2', '10.9.0.2');
-const g3 = sock('g3', '10.9.0.3');
-for (const s of [g1, g2, g3]) {
-  hello(s);
+/*
+ * No ramming bench (the owner, 2026-09-29: "kill anti ramming rule"). Two
+ * Cubs fly back and forth along one line, 30 m either side of the middle
+ * at 15 m/s, mirror images, so they meet head on in the middle every 4 s,
+ * each pass through the room's own referee: twenty mid airs in 82 s.
+ */
+console.log('phase 5: every mid air counts');
+{
+  room = new RoomCore(meta);
+  const r1 = sock('r1', '10.9.1.1');
+  const r2 = sock('r2', '10.9.1.2');
+  hello(r1);
+  hello(r2);
+  const LEG_MS = 4000;
+  const start = now;
+  /* A's x at ms u of the flight: -30 to 30 and back, and its heading. */
+  const legOf = (u) => {
+    const k = Math.floor(u / LEG_MS);
+    const f = (u - k * LEG_MS) / LEG_MS;
+    const dir = k % 2 === 0 ? 1 : -1;
+    return { x: dir * (60 * f - 30), dir };
+  };
+  const cubAt = (x, dir) => encodePose({
+    flags: FLAG_AIRBORNE, seq: 1, t: now - meta.epoch, px: x, py: 80, pz: 0,
+    qx: 0, qy: dir > 0 ? -Math.SQRT1_2 : Math.SQRT1_2, qz: 0, qw: Math.SQRT1_2,
+    vx: 15 * dir, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 0, flaps: 0,
+  });
+  let flagged = 0;
+  const MEETS = 20;
+  const endAt = start + LEG_MS / 2 + MEETS * LEG_MS + 1000;
+  while (now < endAt) {
+    now += 33;
+    const { x, dir } = legOf(now - start);
+    run(room.message(r1, cubAt(x, dir), now));
+    run(room.message(r2, cubAt(-x, -dir), now));
+    const n = r1.got.length;
+    run(room.tick(now));
+    /* Past the first pose's spawn protection, nobody is marked spawning. */
+    if (now - start > SPAWN_MS + 100) {
+      for (const m of r1.got.slice(n).filter((q) => q instanceof Uint8Array)) {
+        flagged += decodeBatch(m).poses.filter((q) => (q.flags & FLAG_SPAWNING) !== 0).length;
+      }
+    }
+  }
+  const hitsOf = (s) => texts(s, 'hit');
+  const h1 = hitsOf(r1);
+  const h2 = hitsOf(r2);
+  const span = h1.length ? h1.at(-1).tc - h1[0].tc : 0;
+  check(`${MEETS} head on passes after the spawn protection: ${MEETS} mid airs, every one sent to both pilots`,
+    h1.length === MEETS && JSON.stringify(h1) === JSON.stringify(h2), `${h1.length} and ${h2.length}`);
+  check('all of them inside five minutes', span > 0 && span < 5 * 60 * 1000, `${(span / 1000).toFixed(1)} s from the first to the last`);
+  for (const nth of [5, 10, 20]) {
+    const h = h1[nth - 1];
+    check(`the ${nth}th mid air in five minutes still counts: a hit between the two, with a part broken on each`,
+      Boolean(h) && [h.a, h.b].sort().join() === [seatOf(r1), seatOf(r2)].sort().join() && h.A.brk > 0 && h.B.brk > 0,
+      h ? `${((h.tc - h1[0].tc) / 1000).toFixed(1)} s after the first` : 'none');
+  }
+  check('and neither pilot is ever made untouchable for it: no relayed pose is marked spawning', flagged === 0, `${flagged} marked`);
 }
-run(room.message(g1, livePose(), now));
-now += SPAWN_MS + 1;
-check('a flying seat can be touched', !room.safety.untouchable(seatOf(g1), now));
-for (let i = 0; i < 3; i += 1) {
-  room.safety.noteHit(seatOf(g1), i % 2 ? seatOf(g2) : seatOf(g3), now);
-  now += 1000;
-}
-check('three hits in five minutes is still flying', !room.safety.untouchable(seatOf(g1), now));
-room.safety.noteHit(seatOf(g1), seatOf(g2), now);
-check('a fourth benches the seat: untouchable and unable to touch', room.safety.untouchable(seatOf(g1), now));
-check('its two victims, hit twice each, are not', !room.safety.untouchable(seatOf(g2), now) && !room.safety.untouchable(seatOf(g3), now));
-run(room.message(g1, livePose(), now));
-const n3 = g3.got.length;
-now += 34;
-run(room.tick(now));
-const benched = g3.got.slice(n3).filter((m) => m instanceof Uint8Array).map((m) => decodeBatch(m).poses.find((q) => q.seat === seatOf(g1)))[0];
-check('everybody sees the benched seat as spawning', benched && (benched.flags & FLAG_SPAWNING) !== 0);
-now += BENCH_MS;
-check(`for ${BENCH_MS / 60000} minutes`, !room.safety.untouchable(seatOf(g1), now));
 
 /* The public lobby became the room browser's: scripts/rooms-selftest-browser.js. */
 

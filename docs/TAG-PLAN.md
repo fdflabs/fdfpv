@@ -122,9 +122,10 @@ or argued. The rest are this build's, with the reason.
 12. **Kid safe.** A match adds no text anybody types: the host sends a
    number (the goal), the room sends seats and numbers, and names are the
    picker names every screen already renders. Phase 5 applies unchanged:
-   mute, report and the host's kick. A tag is not a ramming hit
-   (`safety.noteHit` is fed by crash hits only): touching the Ace is the
-   game. Spawn protection is honoured (decision 8).
+   mute, report and the host's kick. There is no ramming bench any more
+   (the owner removed it on 2026-09-29), so a pilot who crashes into
+   others on purpose is a report. Spawn protection is honoured
+   (decision 8).
 13. **Strings in both languages**, the owner's names: "Catch the Ace!" and
    "¡Atrapa al As!", Lightning / Relámpago, Standard / Estándar, Epic /
    Épica, the Ace / el As, hunters / cazadores.

@@ -22,22 +22,23 @@
  *                           of distinct pilots takes the name away for the
  *                           room's life, which then shows its picker name
  *                           and is never listed again (core.js hideName)
- *   ramming                 noteHit(), for the mid air referee (Phase 3):
- *                           a seat in more than RAM_HITS hits in
- *                           RAM_WINDOW_MS is benched, untouchable and
- *                           unable to touch, for BENCH_MS
  *   pose sanity             an impossible pose is dropped, and
  *                           IMPOSSIBLE_LIMIT of them in a minute removes
  *                           the seat; a teleport (a respawn, or a forgery)
  *                           makes the seat spawning for SPAWN_MS
  *
- * A seat that is spawning or benched has FLAG_SPAWNING set by the room on
- * every pose it relays, whatever the sender wrote, so every receiver and
- * the referee see the same thing.
+ * A seat that is spawning has FLAG_SPAWNING set by the room on every pose
+ * it relays, whatever the sender wrote, so every receiver and the referee
+ * see the same thing.
+ *
+ * There is no ramming rule. A seat in many mid airs was once benched,
+ * untouchable, for two minutes, with nothing on screen to say why; the
+ * owner took it out on 2026-09-29 ("kill anti ramming rule"). Every mid
+ * air counts, and a pilot rammed on purpose has the report.
  *
  * WHAT IS KEPT, AND WHERE. A pilot's mute set is in their seat record
  * (and so in their socket's attachment, which survives a hibernation):
- * seat tokens, nothing else. Reports, allowances, hits and pose history
+ * seat tokens, nothing else. Reports, allowances and pose history
  * are in this object's memory only and go with it; a removal is on the
  * core's kick list (core.js keepOut: the token kept out, the address's
  * new joins slowed), in memory, for REMOVE_MS. Nothing
@@ -67,9 +68,6 @@ import {
 export { REPORT_WINDOW_MS };
 export const REPORTS_PER_WINDOW = 3;
 export const REMOVE_MS = 30 * 60 * 1000;
-export const RAM_WINDOW_MS = 5 * 60 * 1000;
-export const RAM_HITS = 3;
-export const BENCH_MS = 2 * 60 * 1000;
 export const SPAWN_MS = 5000;
 /* src/game/verify.js TELEPORT_SPEED, the same number the board refuses a
  * lap at: terminal velocity is 30 to 40 m/s and the fastest planes and race
@@ -114,7 +112,7 @@ export class RoomSafety {
           }
         }
       }
-      p = { chat: chatAllowance(now), filed: [], hits: [], bad: [], benchUntil: 0, spawnUntil: 0, last: null };
+      p = { chat: chatAllowance(now), filed: [], bad: [], spawnUntil: 0, last: null };
       this.pilots.set(s.token, p);
     }
     return p;
@@ -289,36 +287,11 @@ export class RoomSafety {
     if (!last || t > last.t) {
       p.last = { t, x, y, z };
     }
-    if (now >= p.spawnUntil && now >= p.benchUntil) {
+    if (now >= p.spawnUntil) {
       return { bytes, actions: [] };
     }
     const marked = bytes.slice();
     marked[1] |= FLAG_SPAWNING;
     return { bytes: marked, actions: [] };
-  }
-
-  /* The mid air referee's hit between two seats. Both sides count: a
-   * pilot rammed over and over is benched too, which is protection, not
-   * punishment, since benched means nobody can touch them. */
-  noteHit(seatA, seatB, now) {
-    for (const seat of [seatA, seatB]) {
-      const conn = this.seatConn(seat);
-      if (!conn) {
-        continue;
-      }
-      const p = this.pilot(this.core.seats.get(conn), now);
-      const hits = recent(p.hits, now, RAM_WINDOW_MS);
-      hits.push(now);
-      if (hits.length > RAM_HITS) {
-        p.benchUntil = now + BENCH_MS;
-      }
-    }
-  }
-
-  /* Whether the referee must leave this seat out: spawning or benched. */
-  untouchable(seat, now) {
-    const conn = this.seatConn(seat);
-    const p = conn ? this.pilots.get(this.core.seats.get(conn).token) : null;
-    return Boolean(p) && (now < p.spawnUntil || now < p.benchUntil);
   }
 }
