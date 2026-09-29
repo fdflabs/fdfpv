@@ -410,12 +410,13 @@ export function weights(edit, t, out = { a: 0, b: 0, w: 0 }) {
   return out;
 }
 
-/* The sounds to schedule in the movie: each cue (a wreck sound) and
- * SCHWING in `events` inside In to Out, at its movie time `m`, its level
+/* The sounds to schedule in the movie: each cue (a wreck sound), SCHWING
+ * and coin in `events` inside In to Out, at its movie time `m`, its level
  * scaled down by a slow shot's speed as live playback does. Sorted by m. */
+const SOUND_EVENTS = ['cue', 'schwing', 'coin'];
 export function cueTimes(edit, events) {
   return events
-    .filter((e) => (e.type === 'cue' || e.type === 'schwing') && e.t >= edit.shots[0].t0 && e.t < edit.out)
+    .filter((e) => SOUND_EVENTS.includes(e.type) && e.t >= edit.shots[0].t0 && e.t < edit.out)
     .map((e) => ({
       ...e,
       m: movieTime(edit, e.t),

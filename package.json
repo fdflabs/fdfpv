@@ -45,6 +45,7 @@
     "crash:core": "node scripts/crash-core-selftest.js",
     "crash:handoff": "node scripts/solid-handoff-check.js",
     "crash:identity": "node scripts/crash-identity.js",
+    "boost:check": "node scripts/boost-check.js",
     "wreck:check": "node scripts/wreck-control-check.js",
     "crash:feel": "node scripts/crash-feel.js",
     "score:selftest": "node scripts/score-selftest.js",

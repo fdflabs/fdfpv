@@ -52,6 +52,11 @@
  *    the crown changes hands; a trim; the version 6 file with and without
  *    paper and with and without the movie editor's edit, version 4 still
  *    written without either, and its refusals.
+ * 14. Catch the Ace's crown (src/replay/paper.js crown and coin): the
+ *    burst and the coin kept beside the paper on the clip's clock, a
+ *    free orb's bubble row (seat 0) read back as one, the version 7 file
+ *    round trip, version 6 still written without a crown, and its
+ *    refusals.
  *
  * Run: npm run crashcam:selftest
  *
@@ -1683,6 +1688,53 @@ function bubbleRecord() {
   refused(() => reheader(buf, 4), 'a bubble in a file that says version 4');
 }
 
+/*
+ * The crown changing hands in Catch the Ace, recorded as the crash cam
+ * does (tapCrown): the burst and the coin at the moment they happen, on
+ * the recorder's clock, beside the bubble's rows, whose seat 0 is the
+ * free orb.
+ */
+function crownRecord() {
+  console.log('14. Catch the Ace\'s crown and coin are recorded, played and saved');
+  const { clip } = bubbleFlight(64, 60);
+  const ring = createPaperRing(64);
+  const t0 = clip.time[0];
+  const tc = clip.time[30];
+  ring.crown(tc, [300, 50, -3], [129, 50, -3], 1);
+  ring.coin(tc, 0.4);
+  ring.crown(tc + 1000, [1, 2, 3], null, 0.7);
+  const P = ring.clip(0, clip.n, t0, clip.time[clip.n - 1]);
+  const ev = P ? P.events : [];
+  check(ev.length === 2 && ev[0].type === 'crown' && ev[0].t === tc - t0 && JSON.stringify(ev[0].from) === '[129,50,-3]' && ev[1].type === 'coin' && ev[1].level === 0.4,
+    'the burst and the coin, and nothing past the clip, on the clip\'s clock', JSON.stringify(ev));
+  const crowned = { ...clip, paper: P };
+  const buf = encodeReplay(crowned);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 7 && JSON.stringify(back.paper.events) === JSON.stringify(ev) && same(back.peers.bubble, clip.peers.bubble),
+    'a clip with a crown is saved as version 7 and its events and bubble come back as they were', `${buf.byteLength} bytes`);
+  check(new DataView(encodeReplay(clip)).getUint32(4, true) === 6, 'the same clip without a crown is still version 6');
+  /* A free orb's row: seat 0, read back as seat 0. */
+  const B = clip.peers.bubble.slice();
+  B[40 * BUBBLE_N + BUBBLE.seat] = 0;
+  B[41 * BUBBLE_N + BUBBLE.seat] = 0;
+  const orbBack = decodeReplay(encodeReplay({ ...crowned, peers: { ...clip.peers, bubble: B } }));
+  const out = {};
+  bubbleAt(orbBack.peers.bubble, clip.n, 40, 0.5, out);
+  check(out.r === 6 && out.seat === 0, 'a free orb\'s row comes back as the orb, seat 0', JSON.stringify(out));
+  const refused = (mut, why) => {
+    try {
+      decodeReplay(mut());
+      check(false, `refused: ${why}`, 'it was accepted');
+    } catch (err) {
+      check(err instanceof ReplayFileError, `refused: ${why}`, err.message);
+    }
+  };
+  refused(() => reheader(buf, 6), 'a crown in a file that says version 6');
+  refused(() => reheader(encodeReplay(clip), 7), 'a version 7 file without a crown');
+  refused(() => encodeReplay({ ...clip, paper: { ...P, events: [{ ...ev[0], from: [1, 2] }] } }), 'a crown flown from a point that is not one');
+  refused(() => encodeReplay({ ...clip, paper: { ...P, events: [{ ...ev[1], level: 3 }] } }), 'a coin louder than 1');
+}
+
 ring();
 interpolation();
 cameras();
@@ -1692,6 +1744,7 @@ smokeColumn();
 peersRecord();
 paperRecord();
 bubbleRecord();
+crownRecord();
 await pureReaders();
 await flyTakeOver();
 await bounded();
