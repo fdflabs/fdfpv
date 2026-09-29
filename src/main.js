@@ -156,14 +156,9 @@ import { SLOWSTICK_MOUNT_FORWARD, SLOWSTICK_MOUNT_UP } from './render/slowstickc
 import { BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP } from './render/bombshellcraft.js';
 import { KADET_MOUNT_FORWARD, KADET_MOUNT_UP } from './render/kadetcraft.js';
 import { F16_MOUNT_FORWARD, F16_MOUNT_UP } from './render/f16craft.js';
-import { EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP } from './render/edgecraft.js';
-import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
-import { PITTS_MOUNT_FORWARD, PITTS_MOUNT_UP } from './render/pittscraft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
-import { WOT4_MOUNT_FORWARD, WOT4_MOUNT_UP } from './render/wot4craft.js';
 import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
-import { QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP } from './render/quickiecraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
 import { ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP } from './render/zagicraft.js';
 import { TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP, TIMBER_FLOAT_MOUNT_UP, TIMBER_FLOATS } from './render/timbercraft.js';
@@ -180,14 +175,9 @@ const WING_MOUNTS = {
   bombshell1118: [BOMBSHELL_MOUNT_FORWARD, BOMBSHELL_MOUNT_UP],
   f16878: [F16_MOUNT_FORWARD, F16_MOUNT_UP],
   kadet1981: [KADET_MOUNT_FORWARD, KADET_MOUNT_UP],
-  edge1524: [EDGE_MOUNT_FORWARD, EDGE_MOUNT_UP],
-  extra1308: [EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP],
-  pitts850: [PITTS_MOUNT_FORWARD, PITTS_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
-  wot41334: [WOT4_MOUNT_FORWARD, WOT4_MOUNT_UP],
   tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
-  quickie1293: [QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],

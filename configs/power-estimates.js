@@ -364,68 +364,6 @@ export const ESTIMATES = {
       }
     }
   },
-  quickie1293: {
-    stock: {
-      '237cc': {
-        topSpeed: 39.4,
-        minutes: 13.2
-      }
-    },
-    silenced: {
-      '237cc': {
-        topSpeed: 35.17,
-        minutes: 13.1
-      }
-    }
-  },
-  edge1524: {
-    stock: {
-      '6s4000': {
-        topSpeed: 29.3,
-        minutes: 17.2
-      },
-      '6s3300': {
-        topSpeed: 29.21,
-        minutes: 15
-      }
-    }
-  },
-  extra1308: {
-    stock: {
-      '4s2200': {
-        topSpeed: 23.69,
-        minutes: 14.9
-      },
-      '4s3200': {
-        topSpeed: 23.91,
-        minutes: 20.7
-      }
-    },
-    '3s': {
-      '3s2200': {
-        topSpeed: 17.91,
-        minutes: 12.4
-      },
-      '3s3200': {
-        topSpeed: 17.98,
-        minutes: 16.9
-      }
-    }
-  },
-  pitts850: {
-    stock: {
-      '3s2200': {
-        topSpeed: 18.6,
-        minutes: 16.1
-      }
-    },
-    '4s': {
-      '4s2200': {
-        topSpeed: 24.42,
-        minutes: 21.4
-      }
-    }
-  },
   f16878: {
     stock: {
       '6s4000': {
@@ -471,18 +409,6 @@ export const ESTIMATES = {
       '3s2200': {
         topSpeed: 28.91,
         minutes: 70.5
-      }
-    }
-  },
-  wot41334: {
-    stock: {
-      '4s3700': {
-        topSpeed: 23.24,
-        minutes: 17.6
-      },
-      '4s4000': {
-        topSpeed: 23.24,
-        minutes: 17.6
       }
     }
   }

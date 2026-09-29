@@ -340,54 +340,6 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the ailerons on the bottom wing, the elevator and the rudder, which also turns the tail wheel, at Great Planes\' throws. Roll into a turn on the ailerons alone and the nose swings the other way first: feed in rudder with them. Pull it into the stall and the nose drops. Throttle closed, the two stroke idles.',
   },
   {
-    /* The Quickie's three, the Stik's on its own plant: ailerons, elevator
-     * and rudder at OSMW's throws; on its wheels every mode flies as
-     * Manual, and there is no steerable wheel: the rudder steers in the
-     * prop's blast. Manual is where a pylon racer is flown. */
-    id: 'quickie-stab',
-    airframe: 'quickie1293',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you. It is trimmed flat out: throttle closed, it puts the nose down onto its own fast glide.',
-    wingStab: 1,
-  },
-  {
-    id: 'quickie-acro',
-    airframe: 'quickie1293',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 340 degrees a second and a pitch rate up to 150, centred sticks hold the attitude, upright or on its back, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'quickie-manual',
-    airframe: 'quickie1293',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at OSMW\'s throws. Trimmed flat out: it holds its line down the straight, rolls at 400 degrees a second and stops where you centre the stick, and turns round a pylon on ailerons and elevator alone, losing speed in every corner. Throttle closed, the two stroke idles and it glides a long way.',
-  },
-  {
-    /* The Edge's three, the Cub's on its own plant: ailerons, elevator and
-     * rudder at Extreme Flight's 3D throws. On its wheels every mode flies
-     * as Manual. Manual is where the aerobat is: yank the stick at the edge
-     * of the envelope and it snaps. */
-    id: 'edge-stab',
-    airframe: 'edge1524',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
-  {
-    id: 'edge-acro',
-    airframe: 'edge1524',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 180, centred sticks hold the attitude, upright or on its back, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'edge-manual',
-    airframe: 'edge1524',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at 3D throws, which also steers the tailwheel. It rolls faster than 600 degrees a second, flies on its back as well as upright, and a hard yank of the elevator snaps it.',
-  },
-  {
     /* The P-51's three, the Timber's: ailerons, elevator and rudder, the
      * flaps and the retracts switches on top of every mode, F and G; on
      * its wheels every mode flies as Manual, so the swing on the take off
@@ -410,74 +362,6 @@ export const TUNES = [
     airframe: 'p51d1450',
     name: 'Manual',
     note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder, which also steers the tail wheel. It swings left as the tail comes up and drops a wing when it stalls. G works the retracts, F the flaps.',
-  },
-  {
-    /* The Extra's three, the Cub's: on its wheels every mode flies as
-     * Manual. Manual is where a 3D aircraft is flown: hanging on the
-     * prop, a harrier and a knife edge are the pilot's hands. */
-    id: 'extra-stab',
-    airframe: 'extra1308',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
-  {
-    id: 'extra-acro',
-    airframe: 'extra1308',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 360 degrees a second and a pitch rate up to 100, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'extra-manual',
-    airframe: 'extra1308',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the rudder at E-flite\'s 3D throws. Hang it on the prop and the torque rolls it left unless you hold it on the ailerons, which work in the slipstream at no airspeed at all.',
-  },
-  {
-    /* The Wot 4's three, the Cub's pattern on its own plant: ailerons,
-     * elevator and rudder at the ARTF manual's throws. On its wheels every
-     * mode flies as Manual, the rudder steering the tailwheel. */
-    id: 'wot4-stab',
-    airframe: 'wot41334',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
-  {
-    id: 'wot4-acro',
-    airframe: 'wot41334',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 180 degrees a second and a pitch rate up to 70, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'wot4-manual',
-    airframe: 'wot41334',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the ailerons, the elevator and the big rudder at the manual\'s throws, the rudder steering the tailwheel. Hold full up and it mushes down wings level; add full rudder and it spins, let go and it stops.',
-  },
-  {
-    /* The Pitts's three, the Cub's: on its wheels every mode flies as
-     * Manual. Acro is where an aerobat is flown; Manual has the snap. */
-    id: 'pitts-stab',
-    airframe: 'pitts850',
-    name: 'Stabilised',
-    note: 'A gyro holds the plane once it is off the ground. Roll stick asks for a bank up to 60 degrees, pitch stick for a pitch up to 30, centred sticks fly level, and the rudder is coordinated for you.',
-    wingStab: 1,
-  },
-  {
-    id: 'pitts-acro',
-    airframe: 'pitts850',
-    name: 'Acro',
-    note: 'A gyro holds the plane where you leave it once it is off the ground. Sticks ask for a roll rate up to 300 degrees a second and a pitch rate up to 35, short of the stall at cruise, centred sticks hold the attitude, and the rudder stick is the rudder alone.',
-    wingStab: 2,
-  },
-  {
-    id: 'pitts-manual',
-    airframe: 'pitts850',
-    name: 'Manual',
-    note: 'No flight controller. The sticks are the four ailerons, the elevator and the rudder at E-flite\'s high rates. Yank the elevator with a boot of rudder and it snap rolls; let go and put the rudder the other way and it stops. On the ground, steer it with the rudder the whole way.',
   },
   {
     /* The F-16's three, the Cub's pattern: ailerons, the stabilators and

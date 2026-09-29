@@ -77,7 +77,7 @@ const APC_OZ = {
   '11x7E-3': 1.09, '11x7E': 0.81, '10x7E': 0.71, '11x55E': 0.81, '11x8E': 0.81, '12x6E': 0.95,
   '13x8E': 1.09, '12x6': 1.62, '12x7': 1.52, '12x8': 1.69, '11x6': 1.41, '11x7': 1.41, '13x6': 1.69, '7x4': 0.42, '6x4': 0.18,
   '7x3': 0.42, '5x3': 0.21, '8x4E': 0.46, '10x47SF': 0.42, '10x38SF': 0.42, '11x47SF': 0.53,
-  '10x6E': 0.71, '12x8E': 0.92, '13x65E': 1.06, '16x8E': 1.83, '16x10E': 1.83,
+  '10x6E': 0.71, '12x8E': 0.92,
 };
 
 /*
@@ -86,8 +86,7 @@ const APC_OZ = {
  * family (E thin electric, SF slow flyer, plain the sport glow prop).
  * E-flite's 11 x 7.5 three blade on the Timber takes APC's 11 x 7E-3,
  * GWS's EP1180 and EP1047 take APC's 11 x 8E and 10 x 4.7SF, and Cox's 7 x
- * 3.5 takes APC's 7 x 4, the nearer pitch of the two APC makes; T-Motor's
- * carbon T16x8 on the Edge takes APC's 16 x 8E.
+ * 3.5 takes APC's 7 x 4, the nearer pitch of the two APC makes.
  */
 const PROXY = {
   '11/7.5/3/electric': '11x7E-3',
@@ -95,13 +94,11 @@ const PROXY = {
   '11/5.5/2/electric': '11x55E',
   '12/6/2/electric': '12x6E',
   '13/8/2/electric': '13x8E',
-  '13/6/2/electric': '13x65E',
   '11/8/2/electric': '11x8E',
   '10/4.7/2/electric': '10x47SF',
   '10/6/2/electric': '10x6E',
   '8/4/2/electric': '8x4E',
   '12/8/2/electric': '12x8E',
-  '16/8/2/electric': '16x8E',
   '7/3.5/2/glow': '7x4',
   '5/3/2/glow': '5x3',
   '12/6/2/glow': '12x6',
@@ -120,7 +117,7 @@ export function propProxy(option) {
 }
 
 /* APC's product pages spell a decimal pitch with a hyphen. */
-const APC_SLUG = { '13x65E': '13x6-5e', '11x55E': '11x5-5e', '11x47SF': '11x4-7sf', '10x38SF': '10x3-8sf', '10x47SF': '10x4-7sf' };
+const APC_SLUG = { '11x55E': '11x5-5e', '11x47SF': '11x4-7sf', '10x38SF': '10x3-8sf', '10x47SF': '10x4-7sf' };
 function apcProp(id, apc, propIn, pitchIn, blades) {
   return { id, name: `parts.prop.${id}`, apc, propIn, pitchIn, blades, massKg: APC_OZ[apc] * OZ, source: [`${APC}${APC_SLUG[apc] ?? apc.toLowerCase()}/`, `${APC_DATA}${apc}.dat`] };
 }
@@ -144,20 +141,8 @@ export const PROPS = {
   slowstick1180: [STOCK, apcProp('11x47sf', '11x47SF', 11, 4.7, 2), apcProp('10x38sf', '10x38SF', 10, 3.8, 2)],
   bombshell1118: [STOCK, apcProp('6x4', '6x4', 6, 4, 2), apcProp('7x3', '7x3', 7, 3, 2)],
   kadet1981: [STOCK, apcProp('12x8', '12x8', 12, 8, 2), apcProp('11x7', '11x7', 11, 7, 2)],
-  edge1524: [STOCK, apcProp('16x8e', '16x8E', 16, 8, 2), apcProp('16x10e', '16x10E', 16, 10, 2)],
-  extra1308: [STOCK, apcProp('13x8e', '13x8E', 13, 8, 2), apcProp('12x6e', '12x6E', 12, 6, 2)],
-  pitts850: [STOCK, apcProp('11x8e', '11x8E', 11, 8, 2), apcProp('10x7e', '10x7E', 10, 7, 2)],
   uglystik1567: [STOCK, apcProp('12x7', '12x7', 12, 7, 2), apcProp('12x8', '12x8', 12, 8, 2)],
-  /* AXI's two suggestions for the 4120/14, "13"x8" / 12"x6"", and APC's
-   * 12 x 8E for its 5S row. */
-  wot41334: [STOCK, apcProp('12x6e', '12x6E', 12, 6, 2), apcProp('12x8e', '12x8E', 12, 8, 2)],
   tigermoth1803: [STOCK, apcProp('13x6', '13x6', 13, 6, 2), apcProp('12x8', '12x8', 12, 8, 2)],
-  /* A racer's prop is its engine's in flight, and the derivation that
-   * swaps a prop (scripts/parts-derive.js) reads the loaded rpm off the
-   * pitch speed, which on the Quickie is the unloading engine's line, not
-   * the static rpm times the pitch (docs/QUICKIE-STAGE1.md): the class's
-   * 9 x 6 only. */
-  quickie1293: [STOCK],
   radian2000: [STOCK],
   bramor2300: [STOCK],
   /* A fan is its duct's: Freewing sells the one rotor for it. */
@@ -202,15 +187,10 @@ export const ANCHORS = {
   f16878: { prop: [-0.24, 0, 0], belly: [0, 0, -0.061], tail: [-0.59, 0, -0.038], tank: [-0.01, 0, -0.02], led: [[0.080, 0.13, -0.006], [-0.139, 0.40, -0.006]] },
   bramor2300: { prop: [-0.35, 0, 0.087], belly: [0, 0, -0.044], tail: [-0.19, 0, 0.0], tank: [-0.01, 0, 0.0], led: [[0.008, 0.35, -0.004], [-0.276, 1.03, 0.004]] },
   slowstick1180: { prop: [0.31, 0, 0], belly: [0.02, 0, -0.007], tail: [-0.56, 0, -0.012], tank: [-0.01, 0, -0.01], led: [[0.080, 0.18, 0.064], [0.080, 0.41, 0.114]] },
-  wot41334: { prop: [0.308, 0, 0], belly: [0, 0, -0.062], tail: [-0.78, 0, 0.0], tank: [-0.01, 0, -0.03], led: [[0.075, 0.12, 0.048], [0.060, 0.62, 0.048]] },
   bombshell1118: { prop: [0.166, 0, -0.005], belly: [0.02, 0, -0.064], tail: [-0.60, 0, -0.03], tank: [-0.01, 0, -0.03], led: [[0.042, 0.17, 0.075], [0.042, 0.50, 0.146]] },
   kadet1981: { prop: [0.441, 0, -0.013], belly: [0, 0, -0.159], tail: [-0.93, 0, -0.13], tank: [-0.01, 0, -0.08], led: [[0.075, 0.30, 0.093], [0.075, 0.89, 0.139]] },
-  edge1524: { prop: [0.4826, 0, 0], belly: [0, 0, -0.114], tail: [-0.80, 0, -0.015], tank: [-0.01, 0, -0.05], led: [[0.08, 0.12, -0.016], [-0.02, 0.70, -0.013]] },
-  extra1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
-  pitts850: { prop: [0.1997, 0, 0], belly: [0, 0, -0.110], tail: [-0.50, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.03, 0.15, 0.078], [0.01, 0.38, 0.078]] },
   uglystik1567: { prop: [0.4064, 0, -0.0043], belly: [0, 0, -0.053], tail: [-0.785, 0, -0.053], tank: [-0.01, 0, -0.03], led: [[0.117, 0.15, 0.045], [0.117, 0.70, 0.082]] },
   tigermoth1803: { prop: [0.3808, 0, 0.0074], belly: [0, 0, -0.122], tail: [-1.035, 0, -0.073], tank: [-0.01, 0, -0.04], led: [[0.17, 0.15, 0.215], [0.12, 0.80, 0.245]] },
-  quickie1293: { prop: [0.3327, 0, 0.012], belly: [0, 0, -0.041], tail: [-0.682, 0, -0.030], tank: [-0.01, 0, 0.0], led: [[0.065, 0.15, -0.032], [0.065, 0.55, -0.002]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
   zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },
 };

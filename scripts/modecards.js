@@ -177,7 +177,7 @@ async function combat() {
 }
 
 async function ace() {
-  const pages = await room([seedFor('cub1400', '#d8432f'), seedFor('p51d1450', '#2f6fd6'), seedFor('edge1524', '#f2c14e')]);
+  const pages = await room([seedFor('cub1400', '#d8432f'), seedFor('p51d1450', '#2f6fd6'), seedFor('uglystik1567', '#f2c14e')]);
   try {
     await pages[0].evaluate("window.__roomTagDo('tag-start', 300)");
     for (const p of pages) {
