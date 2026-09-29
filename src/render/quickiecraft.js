@@ -424,7 +424,9 @@ const UP = ht(FIN_TOP);
 const DOWN = -(MAIN_AXLE[1] - WHEEL_R);
 const RUDDER_TE_S = Math.max(...RUDDER.map((p) => p[0]));
 const NOSE_S_TIP = PROP_S - 0.3;
-const REACH = Math.max(Math.hypot(HALF_TIP * IN, st(LE_S + 0.4 * CHORD)), Math.abs(st(RUDDER_TE_S)));
+/* The furthest drawn point from the CG in plan is the elevator's tip at
+ * its trailing edge, 0.747 m, past the rudder's 0.716 and the tips'. */
+const REACH = Math.max(Math.hypot(HALF_TIP * IN, st(LE_S + 0.4 * CHORD)), Math.abs(st(RUDDER_TE_S)), Math.hypot(STAB_HALF * IN, st(ELEV_TE_S)));
 export const QUICKIE_DIMS = {
   span: 2 * HALF_TIP * IN,
   chord: CHORD * IN,
@@ -621,13 +623,12 @@ export function buildQuickieCraft(opts = {}) {
     for (const sign of [-1, 1]) {
       const xs = spanStations(1.6, HALF_RIB, lite ? 6 : 1.5).map((x) => sign * x);
       blues.push(strip(xs, () => [LE_S + 0.3, LE_S + BAND_C], 0.0012));
-      /* The sunburst: from 3 in behind the band at the root to the
-       * hinge line at the tip rib, 3 in wide. */
+      /* The sunburst: a 3 in red stripe running from the trailing edge at
+       * the root forward to the band at the tip rib. */
       reds.push(strip(xs, (x) => {
         const u = Math.abs(x) / HALF_RIB;
-        const s1 = HINGE_S - 0.1;
-        const s0 = LE_S + BAND_C + 0.3 + u * (HINGE_S - 3.2 - LE_S - BAND_C - 0.3);
-        return [s0, Math.max(s0 + 0.5, s1 - (1 - u) * 3.5)];
+        const mid = HINGE_S - 1.7 - u * (HINGE_S - 1.7 - (LE_S + BAND_C + 1.8));
+        return [Math.max(LE_S + BAND_C + 0.2, mid - 1.5), Math.min(HINGE_S - 0.1, mid + 1.5)];
       }, 0.0010));
       for (let i = 0; i < 7; i += 1) {
         const x = sign * (4.0 + i * 3.0);

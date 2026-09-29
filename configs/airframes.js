@@ -1103,13 +1103,13 @@ export const AIRFRAMES = [
     cameraFov: 100,
     cameraAngle: 5,
     /* The drawn machine, src/render/quickiecraft.js QUICKIE_DIMS: the
-     * furthest reach in plan is the rudder's trailing edge, 0.716 m aft,
-     * further than the tips; the lowest drawn point the mains' and the
-     * highest the fin's top. */
+     * furthest reach in plan is the elevator's tip at its trailing edge,
+     * 0.747 m, further than the tips; the lowest drawn point the mains'
+     * and the highest the fin's top. */
     dims: {
       arm: 0,
       propR: 0.1143,
-      hullR: 0.7163,
+      hullR: 0.7470,
       vHalfDown: 0.1449,
       vHalfUp: 0.1669,
       bodyLength: 1.0566,
