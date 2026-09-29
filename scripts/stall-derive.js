@@ -254,6 +254,11 @@ planes.FW_WOT41334 = {
   asym: TE_TOLERANCE / 0.2853,
   note: 'a_w 4.401, a_t 4.138, V_H 0.405, deps/dalpha 0.427 (DATCOM), its own arms',
 };
+/* OA Composites' NRJ, scripts/dlg-derive.js: the manual's 66 mm CG on
+ * the elliptic planform's mean chord, 0.1378 m, whose leading edge is
+ * 24.5 mm behind the root's; the tail measured off Hyperflight's
+ * photograph. */
+planes.FW_NRJ1490 = tailed({ b: 1.49, S: 0.190, c: 0.1378, hCG: 0.301, Sh: 0.020, lh: 0.56, bh: 0.30 });
 
 /* The four strips' chords over the mean chord, from a planform chord(eta),
  * eta 0 at the root and 1 at the tip. */
@@ -316,6 +321,9 @@ const STRIPS = {
   FW_UGLYSTIK1567: strips(rect),
   /* Constant chord; the rounded tips left out, as the Kadet's are. */
   FW_WOT41334: strips(rect),
+  /* The NRJ's elliptic chord, the tips' last few millimetres of rounding
+   * left out. */
+  FW_NRJ1490: strips((eta) => Math.sqrt(1 - eta * eta)),
 };
 STRIPS.FW_TIMBER1500F = STRIPS.FW_TIMBER1500;
 STRIPS.FW_CUB1400F = STRIPS.FW_CUB1400;
@@ -373,6 +381,11 @@ const SECTION = {
    * and +4.2 at 2e5, interpolated +3.94; 0.765 and 0.76 of the peak after,
    * 0.76. */
   FW_WOT41334: { sec: 'NACA 2415 at 1.8e5', top: 3.94, k: 0.76 },
+  /* A 6 percent F3K section at 5e4, thinner than the SD7037 (9.2
+   * percent), which at 6e4 holds 1.8 deg: a thin section's bubble bursts
+   * at its leading edge, so ESTIMATED sharper, held 1 deg and falling to
+   * 0.80. No UIUC section this thin was tested at this Reynolds number. */
+  FW_NRJ1490: { sec: '6 percent F3K section at 5e4, ESTIMATED', top: 1.0, k: 0.80 },
 };
 SECTION.FW_TIMBER1500F = SECTION.FW_TIMBER1500;
 SECTION.FW_CUB1400F = SECTION.FW_CUB1400;
