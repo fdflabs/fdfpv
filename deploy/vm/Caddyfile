@@ -7,10 +7,13 @@
 # services that give an address a name (sslip.io, nip.io) are on DNS
 # blocklists, and the owner's own ISP resolver answers NXDOMAIN for them.
 #
-# One origin serves both servers, because their paths never meet: the
-# tracks server answers /api/* and the rooms server /v2/* and /. So the
-# client's two origins are the same string, and each server sees exactly
-# the paths it saw as a Worker.
+# One origin serves all three servers, because their paths never meet: the
+# tracks server answers /api/* and the rooms server /v2/* and /, so the
+# client's two origins are the same string and each server sees exactly
+# the paths it saw as a Worker. The board (fdflabs/fdfpv-leaderboard) is
+# mounted at /board/ with the prefix taken off, so it sees the same /api/*
+# paths it would at a root of its own, and the page resolves its own
+# requests against the directory it was served from.
 #
 # No access log: connecting addresses are written nowhere (edge/rooms/front.js,
 # ADDRESSES). The address is handed to the servers in cf-connecting-ip,
@@ -42,6 +45,20 @@
 	tls {
 		issuer acme {
 			profile shortlived
+		}
+	}
+
+	# The board believes X-Forwarded-For under BOARD_TRUST_PROXY, so it is
+	# set here to the connecting address rather than appended to whatever a
+	# client sent, and the two country headers it would believe are removed:
+	# nothing in front of this VM geolocates, so any that arrive are a
+	# client's own.
+	redir /board /board/ 308
+	handle_path /board/* {
+		reverse_proxy 127.0.0.1:3180 {
+			header_up X-Forwarded-For {remote_host}
+			header_up -Cf-Ipcountry
+			header_up -X-Fdfpv-Country
 		}
 	}
 

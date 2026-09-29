@@ -1,0 +1,74 @@
+# fdfpv-board.service: the board (fdflabs/fdfpv-leaderboard, src/server.js)
+# on the VM, published tracks, verified lap times, bug tickets, site
+# statistics and live ghost rooms. Installed into /etc/systemd/system by
+# deploy/vm/deploy-board.sh. Its secrets (BUGS_TOKEN, BOARD_ADMIN_TOKEN,
+# BOARD_SESSION_SECRET, BOARD_ADMINS) are in /etc/fdfpv/board.env (root,
+# mode 600), made by deploy-board.sh the first time and never in a
+# repository.
+#
+# This file is part of WebFPVSimulator.
+#
+# WebFPVSimulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# WebFPVSimulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+Description=FDFPV board
+# Postgres holds every track and time; the board applies its schema.sql at
+# start and exits if it cannot, so it starts after the database and goes
+# down with it.
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=fdfpv-board
+Group=fdfpv-board
+WorkingDirectory=/opt/fdfpv-board
+# Loopback only: Caddy is the way in, and it sets the forwarded headers
+# BOARD_TRUST_PROXY believes. The database is reached over the Unix socket
+# with peer authentication as this unit's user, so there is no database
+# password anywhere. BOARD_PUBLIC_ORIGIN because a forwarded host cannot
+# carry the /board mount's path.
+Environment=BOARD_HOST=127.0.0.1 PORT=3180 BOARD_TRUST_PROXY=1
+Environment=SIM_ORIGIN=https://fdflabs.github.io/fdfpv BOARD_PUBLIC_ORIGIN=https://129.151.39.48/board
+Environment=DATABASE_URL=postgresql:///fdfpvboard?host=/run/postgresql&user=fdfpv-board
+EnvironmentFile=/etc/fdfpv/board.env
+ExecStart=/usr/bin/node --max-old-space-size=192 src/server.js
+Restart=always
+RestartSec=1
+TimeoutStopSec=5
+# Measured 2026-09-29 on this VM (systemctl show -p MemoryPeak): 41 MB
+# through scripts/board-live-check.js (a bug, a feel report, a publish, a
+# verified lap with its ghost, a live room of two, the board's pages) and
+# 400 reads forty at a time; ps shows 107 MB RSS, part of it the shared
+# Node library the cgroup does not charge. The largest body the board
+# reads is 660 kB (a publish), so the ceiling is about six times the
+# cgroup peak, the same as the other two units, and V8 is told a heap
+# limit under it so it collects harder instead of being killed. Postgres
+# peaked at 45 MB over the same run, in its own unit.
+MemoryMax=256M
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictRealtime=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

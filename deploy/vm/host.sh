@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# host.sh: make the VM the host the two servers need. Runs as root ON THE VM,
-# piped there by deploy/vm/deploy.sh on every deploy. Safe to rerun: every
-# step checks before it changes anything.
+# host.sh: make the VM the host the three servers need. Runs as root ON THE
+# VM, piped there by deploy/vm/deploy.sh and deploy/vm/deploy-board.sh on
+# every deploy. Safe to rerun: every step checks before it changes anything,
+# and nothing here restarts a server.
 #
 #   - Node 24 (the LTS) from the Oracle Linux appstream module, so its
 #     security errata arrive through dnf-automatic like the rest of the OS,
 #   - Caddy from its own COPR, the TLS front (deploy/vm/Caddyfile),
 #   - dnf-automatic applying security updates on its timer,
 #   - firewalld: http and https open, ssh as it was, nothing else,
-#   - the two service users and /opt/fdfpv, where deploy.sh puts the code.
+#   - Postgres 16 from the appstream module, the board's store,
+#   - the three service users, /opt/fdfpv, where deploy.sh puts the code,
+#     and /opt/fdfpv-board, where deploy-board.sh puts the board's.
 #
-# The config files (units, journald cap, Caddyfile) are install.sh's, run
-# after the code is in place.
+# The config files (units, journald cap, Caddyfile) are install.sh's and
+# board-install.sh's, run after the code is in place.
 #
 # SSH is not touched: the image already has password login off
 # (`sshd -T` says passwordauthentication no), and deploy.sh checks it.
@@ -77,7 +80,22 @@ if [[ ${reload:-0} == 1 ]]; then
   firewall-cmd -q --reload
 fi
 
-for user in fdfpv-tracks fdfpv-rooms; do
+# The board's store. The distribution's Postgres, the stream the board's
+# render.yaml names; initdb's pg_hba.conf allows local peer authentication,
+# which is all the board uses, and listens on loopback only.
+if ! rpm -q postgresql-server >/dev/null 2>&1; then
+  say 'installing Postgres 16'
+  dnf -y -q module reset postgresql
+  dnf -y -q module enable postgresql:16
+  dnf -y -q install postgresql-server
+fi
+if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then
+  say 'Postgres: initdb'
+  postgresql-setup --initdb >/dev/null
+fi
+systemctl enable --now -q postgresql
+
+for user in fdfpv-tracks fdfpv-rooms fdfpv-board; do
   if ! id "$user" >/dev/null 2>&1; then
     say "adding service user $user"
     useradd --system --no-create-home --home-dir /nonexistent --shell /sbin/nologin "$user"
@@ -86,4 +104,5 @@ done
 
 # The code belongs to the deploying user and is only read by the services.
 install -d -m 755 -o opc -g opc /opt/fdfpv
+install -d -m 755 -o opc -g opc /opt/fdfpv-board
 install -d -m 755 /etc/fdfpv
