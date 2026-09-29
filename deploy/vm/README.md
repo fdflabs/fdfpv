@@ -118,9 +118,11 @@ Open https://129.151.39.48/board/, press **Admin** in the masthead, and
 sign in with the two lines of `BOARD-ADMIN.txt`. Then
 https://129.151.39.48/board/bugs, in the same tab, lists every ticket F8
 and the flight feel form have sent, newest first, and opens and closes
-them. Without a sign in the list is refused: tickets carry the reporter's
-words and their machine's details. From a script, with the token from the
-VM:
+them. A ticket with screenshots pasted into the form shows them under
+Resolution as thumbnails; a click opens one full size in a new tab.
+Without a sign in the list is refused: tickets carry the reporter's words,
+their machine's details and their screenshots. From a script, with the
+token from the VM (`/api/bugs/{id}/images/{n}` is screenshot n, 1 to 4):
 
 ```sh
 BUGS_TOKEN="$(ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 sudo sed -n 's/^BUGS_TOKEN=//p' /etc/fdfpv/board.env)"
@@ -148,6 +150,16 @@ what it files and what it takes back):
 ```sh
 BOARD_ADMIN_FILE=/home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt npm run board:live
 ```
+
+After a board deploy that touched the bug form, `-- --only=paste` runs just
+the screenshot path: a paste into F8, the chip, the send, the admin's
+read of it and the inbox's thumbnail, then closes its ticket. It publishes
+no track and posts no lap.
+
+Nothing in front of the board limits a request body: Caddy passes the
+5.6 MB a report with four screenshots at the board's cap can be, and a
+body past it gets the board's own 413 (checked through Caddy on
+2026-09-29).
 
 ## What the rooms cost, and the valve
 

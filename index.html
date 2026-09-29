@@ -4169,6 +4169,48 @@
       }
       .feel-hint[hidden] { display: none; }
       /*
+         Screenshots on a report (src/ui/bugshots.js). The dashed box is the
+         place to click before Ctrl+V, and it lights sakura like a focused
+         input when it has focus or a file is dragged over. Each image is a
+         chip like the feel chips, with its thumbnail, its [Image n] and an
+         x; a chip still being shrunk for the board is dimmed.
+      */
+      .shot-drop {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+        margin: 8px 0 4px; padding: 10px 12px;
+        border: 1px dashed rgba(244, 236, 214, 0.28); border-radius: 4px;
+        background: #121a14; color: var(--slate); font-size: 13px;
+        cursor: text;
+      }
+      .shot-drop:focus, .shot-drop.over { outline: none; border-color: var(--sakura); color: var(--cream); }
+      .shot-drop-text { flex: 1 1 16em; }
+      .shot-pick {
+        appearance: none; border: 1px solid rgba(244, 236, 214, 0.16);
+        background: transparent; color: var(--cream); font: inherit; font-size: 12px;
+        padding: 5px 10px; border-radius: 4px; cursor: pointer;
+      }
+      .shot-pick:hover { border-color: var(--sakura); }
+      .shot-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+      .shot-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 3px 4px 3px 3px; border-radius: 999px;
+        border: 1px solid rgba(244, 236, 214, 0.16); background: #121a14;
+        color: var(--cream); font-size: 13px;
+      }
+      .shot-chip.pending { opacity: 0.55; }
+      .shot-thumb {
+        width: 28px; height: 28px; object-fit: cover; border-radius: 999px;
+        background: rgba(244, 236, 214, 0.08);
+      }
+      .shot-x {
+        appearance: none; border: 0; background: transparent; color: var(--slate);
+        font: inherit; font-size: 16px; line-height: 1; padding: 0 6px; cursor: pointer;
+      }
+      .shot-x:hover { color: #ff8f8f; }
+      .shot-tray.locked .shot-x, .shot-tray.locked .shot-pick { visibility: hidden; }
+      .shot-err { min-height: 0; margin: 4px 0 0; color: #ff8f8f; font-size: 12px; }
+      .shot-err:empty { display: none; }
+      /*
          THE FLOATING CHIPS. Report bug in the first slot on every screen
          but the title, Pause in the second and only in flight.
 

@@ -4,7 +4,11 @@
  * THE CONNECTION, WRITTEN DOWN ONCE.
  *
  *   Submit     POST {board}/api/bugs   { kind, title, what, expected?,
- *                                      steps?, reporter?, context? }
+ *                                      steps?, reporter?, context?,
+ *                                      images? }
+ *
+ * `images` is up to four screenshots as data: URLs, already shrunk and
+ * re-encoded by src/ui/bugshots.js to what the board accepts.
  *
  * The board origin is the same one board.js already resolved: a ?board=
  * query, a stored override, then the local default. A board that is down

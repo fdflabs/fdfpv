@@ -4,6 +4,7 @@
  *
  *     BOARD_ADMIN_FILE=/home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt \
  *       npm run board:live [-- --board=https://129.151.39.48/board] [--page=https://fdflabs.github.io/fdfpv/]
+ *       [--only=paste]
  *
  * The board is PRODUCTION_BOARD_ORIGIN from src/share/board.js unless
  * --board names another. The page is this checkout served on loopback and
@@ -20,6 +21,11 @@
  *   2. F8 files a bug through the real form, the form says Sent with the
  *      ticket's id, and the signed in admin finds that ticket,
  *   3. the flight feel form sends, and the admin finds that ticket too,
+ *   3b. a screenshot is pasted into F8's form with a synthetic paste
+ *      carrying a File, the way a Ctrl+V with an image on the clipboard
+ *      arrives; it shows as the chip [Image 1], goes with the report, and
+ *      the admin reads it back as a WebP under the board's cap while an
+ *      anonymous read of it is a 401,
  *   4. the builder publishes a track: a ring of a gate and two sky hoops on
  *      the Alps is put in this browser's library, opened in the builder the
  *      way My tracks opens one, and published with P through the shell's
@@ -32,12 +38,17 @@
  *      frame,
  *   7. the shell's visit reached the statistics counters,
  *   8. the board's own page lists the track and its time, and its bugs page
- *      lists the check's ticket for the signed in admin,
+ *      lists the check's ticket for the signed in admin and shows the
+ *      pasted screenshot on its ticket,
  *   9. clean up: the track comes off the board with its time, and both
  *      tickets are closed as wontfix.
  *
  * Everything it makes is named with a "check" prefix. What it cannot take
  * back, it says at the end.
+ *
+ * --only=paste runs 1, 3b and the screenshot half of 8, then cleans up: the
+ * one check to run against production after a board deploy that touched
+ * the bug form, without publishing a track or counting a visit twice.
  *
  * On a local page the tracks server is off (src/share/cloud.js asks no
  * tracks server from loopback), so the track saved into the library in
@@ -86,6 +97,10 @@ for (const a of process.argv.slice(2)) {
     process.exit(2);
   }
   opts[m[1]] = m[2];
+}
+if (opts.only && opts.only !== 'paste') {
+  console.error(`board-live-check: --only takes paste, not ${opts.only}`);
+  process.exit(2);
 }
 const trim = (v) => String(v || '').trim().replace(/\/+$/, '');
 const BOARD = trim(opts.board || PRODUCTION_BOARD_ORIGIN);
@@ -176,6 +191,113 @@ async function fill(page, box, values) {
   })()`);
 }
 
+/*
+ * 3b. A screenshot through F8, pasted. A real PNG larger than the form's
+ * 1920 pixel edge, so the downscale has work to do, arrives in a paste
+ * event on the textarea the pilot would be typing in. A text paste goes
+ * first and must be left alone: no chip, default not prevented, so the
+ * browser still inserts the text. Returns the ticket id, or ''.
+ */
+async function pasteStep(shell, token) {
+  console.log('3b. a screenshot pasted into F8');
+  await shell.until('!document.querySelector(".name-dialog") || document.querySelector(".name-dialog").hidden', 10000);
+  await shell.tap('F8');
+  await shell.until(VISIBLE('.name-dialog-box.bug .shot-drop'), 20000);
+  const pasted = await shell.evaluate(`(async () => {
+    const box = document.querySelector('.name-dialog-box.bug');
+    const what = box.querySelector('textarea.name-dialog-input');
+    what.focus();
+    const words = new DataTransfer();
+    words.setData('text/plain', 'words, not a picture');
+    const textPaste = new ClipboardEvent('paste', { clipboardData: words, bubbles: true, cancelable: true });
+    what.dispatchEvent(textPaste);
+    const c = document.createElement('canvas');
+    c.width = 2400;
+    c.height = 1350;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 2400, 1350);
+    grad.addColorStop(0, '#7dffb4');
+    grad.addColorStop(1, '#e8a8b8');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 2400, 1350);
+    g.fillStyle = '#141c16';
+    g.font = '120px sans-serif';
+    g.fillText(${JSON.stringify(`check ${STAMP}`)}, 120, 700);
+    const png = await new Promise((r) => c.toBlob(r, 'image/png'));
+    const clip = new DataTransfer();
+    clip.items.add(new File([png], 'screenshot.png', { type: 'image/png' }));
+    const imagePaste = new ClipboardEvent('paste', { clipboardData: clip, bubbles: true, cancelable: true });
+    what.dispatchEvent(imagePaste);
+    return {
+      textPrevented: textPaste.defaultPrevented,
+      imagePrevented: imagePaste.defaultPrevented,
+      chips: box.querySelectorAll('.shot-chip').length,
+      pngBytes: png.size,
+    };
+  })()`);
+  say(!pasted.textPrevented, 'a text paste into the textarea is left to paste as text');
+  say(pasted.imagePrevented && pasted.chips === 1, `an image paste attaches one chip (${pasted.chips}) from a ${pasted.pngBytes} byte PNG`);
+  await shell.until("(() => { const t = document.querySelector('.name-dialog-box.bug .shot-chip:not(.pending) .shot-thumb'); return Boolean(t && t.complete && t.naturalWidth); })()", 30000).catch(() => {});
+  const chip = await shell.evaluate(`(() => {
+    const chip = document.querySelector('.name-dialog-box.bug .shot-chip');
+    const thumb = chip && chip.querySelector('.shot-thumb');
+    return {
+      label: chip ? chip.querySelector('.shot-label').textContent : '',
+      pending: chip ? chip.classList.contains('pending') : true,
+      type: thumb ? (thumb.src.match(/^data:([^;]+)/) || [])[1] : '',
+      w: thumb ? thumb.naturalWidth : 0,
+      h: thumb ? thumb.naturalHeight : 0,
+    };
+  })()`);
+  say(chip.label === '[Image 1]' && !chip.pending, `the chip reads ${JSON.stringify(chip.label)} with its thumbnail`);
+  say(chip.w === 1920 && chip.h === 1080 && (chip.type === 'image/webp' || chip.type === 'image/jpeg'),
+    `and was shrunk to ${chip.w} by ${chip.h}, ${chip.type}`);
+  const title = `check: pasted screenshot ${STAMP}`;
+  await fill(shell, '.name-dialog-box.bug', [
+    'visual', title,
+    'Filed by scripts/board-live-check.js to prove a pasted screenshot reaches the board. Not a real report.',
+    null, null, REPORTER,
+  ]);
+  await shell.evaluate("document.querySelector('.name-dialog-box.bug .name-dialog-row .name-dialog-btn.on').click(), true");
+  await shell.until("(() => { const h = document.querySelector('.name-dialog-box h2'); return h && /^(Sent|Could)/.test(h.textContent) || document.querySelector('.name-dialog-err')?.textContent; })()", 60000).catch(() => {});
+  const sent = await shell.evaluate("({ h: document.querySelector('.name-dialog-box h2')?.textContent || '', lede: document.querySelector('.name-dialog-box .lede')?.textContent || '', err: document.querySelector('.name-dialog-err')?.textContent || '' })");
+  const id = (sent.lede.match(/bug-[0-9a-f]{8}/) || [''])[0];
+  say(sent.h === 'Sent' && Boolean(id), `the form says ${JSON.stringify(sent.h)}: ${sent.lede || sent.err}`);
+  await shell.evaluate("document.querySelector('.name-dialog-box .name-dialog-btn.on')?.click(), true");
+  if (!id) {
+    return '';
+  }
+  const one = await board(`/api/bugs/${id}`, { headers: { authorization: `Bearer ${token}` } });
+  const img = one.status === 200 && one.body.images ? one.body.images[0] : null;
+  say(Boolean(img) && one.body.images.length === 1 && img.size <= 1_000_000,
+    `the signed in admin's ticket lists it: ${JSON.stringify(one.body && one.body.images)}`);
+  const res = await fetch(`${BOARD}/api/bugs/${id}/images/1`, { headers: { authorization: `Bearer ${token}` } });
+  const bytes = Buffer.from(await res.arrayBuffer());
+  const webp = bytes.toString('latin1', 0, 4) === 'RIFF' && bytes.toString('latin1', 8, 12) === 'WEBP';
+  const jpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
+  say(res.status === 200 && (webp || jpeg) && res.headers.get('content-type') === img.type,
+    `and fetches its ${bytes.length} bytes as ${res.headers.get('content-type')}`);
+  const anon = await fetch(`${BOARD}/api/bugs/${id}/images/1`);
+  say(anon.status === 401, `an anonymous read of the screenshot is a 401: ${anon.status}`);
+  return id;
+}
+
+/* The inbox, signed in, opens the pasted ticket and draws its thumbnail,
+ * linked to the full size image. The shell is on the board's /bugs page. */
+async function pasteInbox(shell, id) {
+  const row = `[...document.querySelectorAll('.ticket')].find((b) => b.querySelector('.id')?.textContent === ${JSON.stringify(id)})`;
+  await shell.until(`Boolean(${row})`, 30000).catch(() => {});
+  await shell.evaluate(`(() => { const r = ${row}; if (r) { r.click(); } return Boolean(r); })()`);
+  await shell.until("(() => { const i = document.querySelector('.shot img'); return Boolean(i && i.complete && i.naturalWidth); })()", 30000).catch(() => {});
+  const shown = await shell.evaluate(`(() => {
+    const i = document.querySelector('.shot img');
+    const a = document.querySelector('a.shot');
+    return { w: i ? i.naturalWidth : 0, src: i ? i.src.slice(0, 5) : '', href: a ? a.href.slice(0, 5) : '', label: a ? a.textContent : '' };
+  })()`);
+  say(shown.w === 1920 && shown.src === 'blob:' && shown.href === 'blob:',
+    `${BOARD}/bugs shows ${id}'s screenshot, ${shown.w} wide, a thumbnail linking to the full image (${shown.label})`);
+}
+
 async function main() {
   console.log(`board ${BOARD}, page ${PAGE || 'this checkout on loopback'}`);
   if (!opts.board) {
@@ -217,6 +339,24 @@ async function main() {
     await shell.until('window.__map && window.__map().ready', 300000);
     const seen = await shell.evaluate(`${imp('src/share/board.js')}.then((m) => m.boardOrigin())`);
     say(trim(seen) === BOARD, `the page asks the board at ${seen}`);
+
+    if (opts.only === 'paste') {
+      const pastedId = await pasteStep(shell, token);
+      if (pastedId) {
+        tickets.push(pastedId);
+        const errorsBefore = shell.errors.length;
+        /* The sign in lives in the board origin's sessionStorage, so the
+         * tab goes there before it is written. */
+        await navigate(shell, `${BOARD}/`);
+        await shell.until(`location.href.startsWith(${JSON.stringify(BOARD)}) && document.readyState === 'complete'`, 30000);
+        await shell.evaluate(`sessionStorage.setItem('webfpv.board.admin.v1', ${JSON.stringify(token)}), true`);
+        await navigate(shell, `${BOARD}/bugs`);
+        await pasteInbox(shell, pastedId);
+        const pageErrors = shell.errors.slice(errorsBefore);
+        say(pageErrors.length === 0, `no errors on the bugs page${pageErrors.length ? `: ${pageErrors.slice(0, 3).join(' | ')}` : ''}`);
+      }
+      return;
+    }
 
     /* 2. A bug, through F8. */
     console.log('2. a bug, through F8');
@@ -269,6 +409,11 @@ async function main() {
     say(Boolean(feel), `the signed in admin finds it among the feel tickets${feel ? `: ${feel.id} ${JSON.stringify(feel.title)}` : ''}`);
     if (feel) {
       tickets.push(feel.id);
+    }
+
+    const pastedId = await pasteStep(shell, token);
+    if (pastedId) {
+      tickets.push(pastedId);
     }
 
     /* 4. Publish from the builder. */
@@ -395,6 +540,9 @@ async function main() {
       await shell.until(`document.body && document.body.innerText.includes(${JSON.stringify(tickets[0])})`, 30000).catch(() => {});
       say(await shell.evaluate(`document.body.innerText.includes(${JSON.stringify(tickets[0])})`), `${BOARD}/bugs lists ${tickets[0]} for the signed in admin`);
     }
+    if (pastedId) {
+      await pasteInbox(shell, pastedId);
+    }
     const pageErrors = shell.errors.slice(errorsBefore);
     say(pageErrors.length === 0, `no errors on the board's pages${pageErrors.length ? `: ${pageErrors.slice(0, 3).join(' | ')}` : ''}`);
   } finally {
@@ -411,7 +559,9 @@ async function main() {
       say(closed.status === 200, `${id} closed as wontfix`);
       left.push(`ticket ${id}, closed (the board has no way to delete a ticket)`);
     }
-    left.push(`the pilot name ${JSON.stringify(PILOT)}, filed under a throwaway key`);
+    if (!opts.only) {
+      left.push(`the pilot name ${JSON.stringify(PILOT)}, filed under a throwaway key`);
+    }
     left.push('one visit, and whatever session the shell counted, in the day\'s statistics counters');
     if (PAGE && trackId) {
       left.push(`the library copy of ${trackId} synced to the tracks server at ${PRODUCTION_TRACKS_ORIGIN}; delete it with the tracks admin secret (deploy/vm/README.md)`);
