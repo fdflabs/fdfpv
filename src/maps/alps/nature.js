@@ -134,14 +134,19 @@ function larch() {
     tier(12.1, 1.0, 2.9, 0.5, 0x84b64c),
   ]);
 }
+/* The beech's crown, [r, x, y, z] a blob, drawn and collided alike. */
+const BEECH_BLOBS = [
+  [2.9, 0, 6.3, 0],
+  [2.1, -1.5, 7.6, 0.6],
+  [2.0, 1.4, 7.3, 1.1],
+  [1.7, 1.6, 7.9, -0.8],
+  [1.5, 0.3, 8.9, 1.2],
+];
+const BEECH_TINTS = [0x4d8c3a, 0x5a9c44, 0x55963f, 0x62a64a, 0x69ad4e];
 function beech() {
   return merge([
     trunk(0.3, 0.46, 4.4, 0x5b4230, 6),
-    blob(2.9, 0, 0, 6.3, 0, 0x4d8c3a),
-    blob(2.1, 0, -1.5, 7.6, 0.6, 0x5a9c44),
-    blob(2.0, 0, 1.4, 7.3, 1.1, 0x55963f),
-    blob(1.7, 0, 1.6, 7.9, -0.8, 0x62a64a),
-    blob(1.5, 0, 0.3, 8.9, 1.2, 0x69ad4e),
+    ...BEECH_BLOBS.map(([r, x, y, z], k) => blob(r, 0, x, y, z, BEECH_TINTS[k])),
   ]);
 }
 
@@ -857,7 +862,7 @@ export function buildFoam(ctx, sites) {
  * Every species is one geometry with its colours in the vertices, so
  * a band of forest is one draw call a species. Trees within reach of
  * the strip get a post for the trunk, and the beeches a sphere for
- * each of the two big blobs.
+ * each blob of the crown.
  * Returns the two counts the title prints.
  */
 export function buildForests(ctx, sites) {
@@ -885,8 +890,9 @@ export function buildForests(ctx, sites) {
         colliders.addPost('tree', x, z, y, y + 4.4 * s, 0.4 * s);
         const c = Math.cos(yaw);
         const sn = Math.sin(yaw);
-        colliders.addSphere('canopy', x, y + 6.3 * s, z, 2.9 * s);
-        colliders.addSphere('canopy', x + (-1.5 * c + 0.6 * sn) * s, y + 7.6 * s, z + (1.5 * sn + 0.6 * c) * s, 2.1 * s);
+        for (const [r, bx, by, bz] of BEECH_BLOBS) {
+          colliders.addSphere('canopy', x + (bx * c + bz * sn) * s, y + by * s, z + (-bx * sn + bz * c) * s, r * s);
+        }
       }
       return;
     }

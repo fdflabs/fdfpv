@@ -292,14 +292,18 @@ export function solidSurfaceAt(colliders, i) {
 
 /*
  * THE TREES, from the colliders every map already builds: a trunk is a
- * vertical 'tree' post, and a broadleaf's crown is one or more 'canopy'
- * spheres over it. The plant wants a tree as a trunk and a crown cylinder
- * (sim_tree_add), so each post collects the spheres over it into the
- * cylinder that holds them. A conifer is drawn with no crown spheres and a
- * post as wide as its branches (src/maps/alps/nature.js, the Swiss
- * forest), so a post wider than any trunk is read as the crown itself on a
- * thin trunk. Posts and spheres are collider indices, so the shell can let
- * the sweep pass through exactly the crowns the plant has taken over.
+ * vertical 'tree' post, and a broadleaf's crown is the 'canopy' spheres
+ * added right after its post, one for each clump or blob of leaves drawn
+ * (src/maps/swiss2/vegetation/forest.js crownColliders, src/maps/alps/
+ * nature.js). The plant wants a tree as a trunk and a crown cylinder
+ * (sim_tree_add) with the spheres in it as its clumps
+ * (sim_tree_clump_add), so each post gets the cylinder that holds its
+ * spheres, and its leaves are only where the spheres are. A conifer is
+ * drawn with no crown spheres and a post as wide as its branches, so a
+ * post wider than any trunk is read as the crown itself on a thin trunk,
+ * a crown that is all of its cylinder. Posts and spheres are collider
+ * indices, so the shell can let the sweep pass through exactly the crowns
+ * the plant has taken over.
  *
  * Built once per map. World frame, Three.js metres.
  */
@@ -314,21 +318,6 @@ export function collectTrees(colliders) {
   const TREE = KINDS.indexOf('tree');
   const CANOPY = KINDS.indexOf('canopy');
   const n = colliders.count;
-  /* The crown spheres by 4 m cell, so a post finds its own in a few
-   * lookups rather than a scan of every sphere on the map. */
-  const CELL = 4;
-  const cells = new Map();
-  const cellKey = (cx, cz) => `${cx},${cz}`;
-  for (let i = 0; i < n; i += 1) {
-    if (colliders.fkind[i] !== CANOPY || colliders.fbox[i]) {
-      continue;
-    }
-    const k = cellKey(Math.floor(colliders.fax[i] / CELL), Math.floor(colliders.faz[i] / CELL));
-    if (!cells.has(k)) {
-      cells.set(k, []);
-    }
-    cells.get(k).push(i);
-  }
   const trees = [];
   for (let i = 0; i < n; i += 1) {
     if (colliders.fkind[i] !== TREE || colliders.fbox[i]) {
@@ -347,26 +336,14 @@ export function collectTrees(colliders) {
     let cy0 = Infinity;
     let cy1 = -Infinity;
     let cr = 0;
-    const cx = Math.floor(x / CELL);
-    const cz = Math.floor(z / CELL);
-    for (let ox = -1; ox <= 1; ox += 1) {
-      for (let oz = -1; oz <= 1; oz += 1) {
-        for (const j of cells.get(cellKey(cx + ox, cz + oz)) ?? []) {
-          const sx = colliders.fax[j] - x;
-          const sz = colliders.faz[j] - z;
-          const sr = colliders.fr[j];
-          const d = Math.sqrt(sx * sx + sz * sz);
-          /* Over this trunk: its centre within its own radius of the
-           * trunk's line, and above the trunk's foot. */
-          if (d > sr || colliders.fay[j] < y0) {
-            continue;
-          }
-          crown.push(j);
-          cy0 = Math.min(cy0, colliders.fay[j] - sr);
-          cy1 = Math.max(cy1, colliders.fay[j] + sr);
-          cr = Math.max(cr, d + sr);
-        }
-      }
+    for (let j = i + 1; j < n && colliders.fkind[j] === CANOPY && !colliders.fbox[j]; j += 1) {
+      const sx = colliders.fax[j] - x;
+      const sz = colliders.faz[j] - z;
+      const sr = colliders.fr[j];
+      crown.push(j);
+      cy0 = Math.min(cy0, colliders.fay[j] - sr);
+      cy1 = Math.max(cy1, colliders.fay[j] + sr);
+      cr = Math.max(cr, Math.sqrt(sx * sx + sz * sz) + sr);
     }
     if (crown.length > 0) {
       trees.push({
