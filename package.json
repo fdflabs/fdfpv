@@ -53,6 +53,8 @@
     "crashcam:e2e": "node scripts/crashcam-e2e.js",
     "edit:selftest": "node scripts/edit-selftest.js",
     "edit:file": "node scripts/edit-file-check.js",
+    "export:selftest": "node scripts/export-selftest.js",
+    "export:check": "node scripts/export-check.js",
     "replay": "node scripts/replay-log.js",
     "link:selftest": "node scripts/link-selftest.js",
     "lap:selftest": "node scripts/lap-selftest.js",
