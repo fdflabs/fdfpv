@@ -75,10 +75,6 @@ import {
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 
-/* An Ace nobody can catch for this long (a tab on a menu, an aircraft
- * sat spawning) drops the crown as a crash does: the orb is freed where
- * it was last seen (decision 8). */
-export const DROP_MS = 10000;
 /* A seat silent for longer than this (a menu, a tab in the background) is
  * not waited for. Shorter silences are, a stall or a pause for breath: a
  * seat that the frontier ran past while it was quiet would have its first
@@ -149,12 +145,11 @@ export class RoomTag {
   constructor() {
     /*
      * { id, goal, goAt, state: 'countdown'|'live'|'results', ace,
-     *   protectUntil, untouchSince, seenAt, orb, f, players: { seat: {
-     *   ms, token } }, crowns: [{ t, seat, from, why }] (the last
-     *   CROWNS_SHOWN), winner, endAt }, or null before the first match.
-     *   ace is null while the orb is free: orb { t, from, px, py, pz },
-     *   when and where the Ace `from` dropped it, else null. seenAt is
-     *   where the Ace last could be caught, while it cannot, for a drop.
+     *   protectUntil, orb, f, players: { seat: { ms, token } }, crowns:
+     *   [{ t, seat, from, why }] (the last CROWNS_SHOWN), winner, endAt },
+     *   or null before the first match. ace is null while the orb is
+     *   free: orb { t, from, px, py, pz }, when and where the Ace `from`
+     *   dropped it, else null.
      */
     this.match = null;
     this.nextId = 1;
@@ -294,8 +289,6 @@ export class RoomTag {
       state: 'countdown',
       ace: null,
       protectUntil: goAt,
-      untouchSince: null,
-      seenAt: null,
       orb: null,
       f: goAt,
       players,
@@ -379,8 +372,6 @@ export class RoomTag {
     m.orb = null;
     m.players[seat] ??= { ms: 0, token: null };
     m.protectUntil = t + PROTECT_MS;
-    m.untouchSince = null;
-    m.seenAt = null;
   }
 
   /* The Ace drops the crown at t: nobody is the Ace, and the orb is free
@@ -392,8 +383,6 @@ export class RoomTag {
     };
     this.drops.push({ ...m.orb });
     m.ace = null;
-    m.untouchSince = null;
-    m.seenAt = null;
   }
 
   /*
@@ -547,31 +536,18 @@ export class RoomTag {
     for (let t = from + 1; t <= until; t += 1) {
       if (ace && catchableAt(ace.track, t)) {
         player.ms += 1;
-        m.untouchSince = null;
-        m.seenAt = null;
         if (player.ms >= goalMs) {
           this.finish(t, m.ace);
           return;
         }
         continue;
       }
-      /* The Ace crashed: the orb is free where it went down. */
+      /* The Ace crashed: the orb is free where it went down. Uncatchable
+       * any other way (spawning, not seen) it keeps the crown and scores
+       * nothing: the owner took the timeout that used to hand it on out. */
       if (ace && crashedAt(ace.track, t)) {
         m.f = t;
         this.drop(t, placeOf(poseAt(ace.track, t)));
-        return;
-      }
-      if (m.untouchSince == null) {
-        m.untouchSince = t;
-        const seen = ace && poseAt(ace.track, t - 1);
-        m.seenAt = seen ? placeOf(seen) : null;
-      }
-      /* Not seen or sat spawning too long: the orb is freed where the Ace
-       * last could be caught. Never seen at all, there is nowhere to put
-       * it, and the Ace keeps a crown it scores nothing with. */
-      if (t - m.untouchSince >= DROP_MS && m.seenAt) {
-        m.f = t;
-        this.drop(t, m.seenAt);
         return;
       }
     }

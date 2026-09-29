@@ -63,7 +63,7 @@ import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
 import { browserSection } from './rooms-selftest-browser.js';
 import { scaleSection } from './rooms-selftest-scale.js';
-import { DROP_MS, RoomTag } from '../edge/rooms/tag.js';
+import { RoomTag } from '../edge/rooms/tag.js';
 import { Track, hullFor as tagHullFor } from '../src/game/midair.js';
 import { RoomHost } from '../edge/rooms/host.js';
 import {
@@ -1578,20 +1578,23 @@ console.log('catch the ace: starting a match');
   check('the host starts again from the results: a new match, everybody at nothing', re.state === 'countdown' && re.id === end.id + 1 && re.scores.every((r) => r.ms === 0));
   e.fly(re.goAt + 1000);
   /* The Ace (seat 2 again) goes quiet from here, a tab on a menu: it
-   * scores nothing, and DROP_MS later the orb is freed where it was last
-   * seen, with nobody the Ace. (A crashed Ace drops it at once: 'a
-   * crashed Ace', below.) */
+   * scores nothing and, with no timeout any more (the owner, 2026-09-29),
+   * keeps the crown. Then it crashes: the orb is free where it went down
+   * ('a crashed Ace', below, has the rest). */
   const crashAt = e.clock;
   const lastSeen = level(40)(crashAt);
   e.paths[1] = null;
-  e.fly(crashAt + DROP_MS + 500);
+  e.fly(crashAt + 12000);
+  const quiet = e.view(0);
+  const wrecked = quiet.scores.find((r) => r.seat === 2).ms;
+  check('an Ace nobody can see for 12 s keeps the crown, scoring nothing, and nobody is handed it', quiet.ace === 2 && !quiet.orb && e.r.tag.drops.length === 0
+    && Math.abs(wrecked - (crashAt - re.goAt)) <= 40, `${wrecked} ms for ${crashAt - re.goAt} flown`);
+  const downAt = e.clock;
+  e.paths[1] = () => ({ ...lastSeen, vx: 0, flags: FLAG_CRASHED });
+  e.fly(downAt + 500);
   const drop = e.r.tag.drops[0];
-  const freed = e.view(0);
-  check(`an Ace nobody can catch for ${DROP_MS / 1000} s frees the orb where it was last seen, and nobody is the Ace`, drop && drop.from === 2
-    && Math.abs(drop.t - (crashAt + DROP_MS)) <= 40 && freed.ace === null && freed.orb && Math.hypot(freed.orb.px - lastSeen.px, freed.orb.pz - lastSeen.pz) < 1,
-  drop ? `${drop.t - crashAt} ms after it went quiet, ${Math.hypot(drop.px - lastSeen.px, drop.pz - lastSeen.pz).toFixed(2)} m from where it was last seen` : 'none');
-  const wrecked = e.view(0).scores.find((r) => r.seat === 2).ms;
-  check('and scored nothing while it was not seen', Math.abs(wrecked - (crashAt - re.goAt)) <= 40, `${wrecked} ms for ${crashAt - re.goAt} flown`);
+  check('seen again as a wreck, it drops the crown where it lies', drop && drop.from === 2 && e.view(0).ace === null && e.view(0).orb
+    && Math.hypot(drop.px - lastSeen.px, drop.pz - lastSeen.pz) < 0.5, drop ? JSON.stringify(drop) : 'none');
   e.paths[1] = level(40);
   /* Seat 3 flies to 3 m beside the free orb: it is the Ace. */
   e.fly(flyTo(e, 2, e.clock, { ...lastSeen, pz: lastSeen.pz + 3 }) + 200);
