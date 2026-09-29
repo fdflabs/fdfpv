@@ -49,12 +49,7 @@
 import { decodeAgents } from './roomwire.js';
 import { KINDS, planAgent, poseAt } from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
-import itaipu1 from './war/missions/itaipu-1.js';
-
-/* The missions this client can draw, by id: the room's MISSIONS
- * (edge/rooms/war.js) must be a subset, or a war starts that no screen
- * can fly. */
-export const MISSIONS = { [itaipu1.id]: itaipu1 };
+import { MISSIONS } from './war/missions/index.js';
 
 /* A hunter's samples older than this behind its newest are dropped: the
  * far interest band sends one a second, and the shell draws near now. */
