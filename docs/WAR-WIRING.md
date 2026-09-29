@@ -3,8 +3,8 @@
 Package C (docs/WARFARE-PLAN.md section 5.2) built the client's three
 modules and left `src/main.js` to the lead. This is every call main.js
 makes, at the place it goes, against `main` with #197 (the room) merged.
-Line numbers are from `origin/war-room` at c29a596f and will drift; the
-function named beside each is the anchor.
+Line numbers are from this branch merged with `main` at 570722ed and will
+drift; the function named beside each is the anchor.
 
 `scripts/war-twopage-wire.js` is the same wiring outside main.js, for the
 two page check; where the two differ, this file is the one to follow
@@ -13,7 +13,7 @@ two page check; where the two differ, this file is the one to follow
 ## 1. Imports
 
 Beside the other room imports (`createRoomTag`, line 95; `createRoomCombat`,
-line 110):
+line 113):
 
 ```js
 import { createRoomWar } from './share/roomwar.js';
@@ -26,7 +26,7 @@ Once #196 (src/game/signal.js) is in, from it: `signalQuality`,
 
 ## 2. Construction
 
-Next to `const roomTag = createRoomTag(...)` (line 1942), before
+Next to `const roomTag = createRoomTag(...)` (line 1958), before
 `createRoomLink`, since the handlers close over it:
 
 ```js
@@ -34,7 +34,7 @@ Next to `const roomTag = createRoomTag(...)` (line 1942), before
 const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
 ```
 
-After `const debris = createDebris()` (line 5738), since it takes the
+After `const debris = createDebris()` (line 5893), since it takes the
 debris, and where `groundAt` is in scope:
 
 ```js
@@ -44,16 +44,16 @@ const warHud = createWarHud(roomSeatName);
 ```
 
 `warAttackers.group` goes into the scene the way `debris.group` does at
-`roomHit` (line 2675): `if (scene && warAttackers.group.parent !== scene)
+`roomHit` (line 2693): `if (scene && warAttackers.group.parent !== scene)
 scene.add(warAttackers.group)` once a frame in step 5.
 
-## 3. The room link's handlers (`createRoomLink({ ... })`, line 1943)
+## 3. The room link's handlers (`createRoomLink({ ... })`, line 1959)
 
-- `onWelcome` (line 1944): add `roomWar.onWelcome(w);` after
+- `onWelcome` (line 1960): add `roomWar.onWelcome(w);` after
   `roomTag.onWelcome(w);`. The welcome carries `war` (edge/rooms/core.js
   hello, `...this.war.welcome(this)`), and a pilot seated mid game gets
   every live attacker as a `born` right after it (war.js `join`).
-- `onMessage` (line 2016): chain it after tag's, so the line reads
+- `onMessage` (line 2032): chain it after tag's, so the line reads
 
   ```js
   if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
@@ -61,7 +61,7 @@ scene.add(warAttackers.group)` once a frame in step 5.
   }
   ```
 
-- `onBinary` (line 2030): first, before combat's, since AGENTS is the one
+- `onBinary` (line 2046): first, before combat's, since AGENTS is the one
   binary the war sends and it comes 30 times a second:
 
   ```js
@@ -70,7 +70,7 @@ scene.add(warAttackers.group)` once a frame in step 5.
   }
   ```
 
-- `onState` (line 2043), in the `idle`/`failed` branch beside
+- `onState` (line 2059), in the `idle`/`failed` branch beside
   `roomTag.clear()`:
 
   ```js
@@ -79,11 +79,11 @@ scene.add(warAttackers.group)` once a frame in step 5.
   warHud.update(null);
   ```
 
-## 4. The frame: `roomFrame(wallMs, dt)` (line 2401)
+## 4. The frame: `roomFrame(wallMs, dt)` (line 2417)
 
-After `roomTagFrame(now, wallMs);` (line 2424), where `now` is the room
+After `roomTagFrame(now, wallMs);` (line 2441), where `now` is the room
 clock, a call to a new `roomWarFrame(now, wallMs, dt)` beside
-`roomTagFrame` (line 3329):
+`roomTagFrame` (line 3449):
 
 ```js
 let warHudAt = 0;
@@ -145,7 +145,7 @@ which `roomRefused` (onMessage) already shows.
 
 ## 7. Damage mode on for the war (section 6.3)
 
-`applyCrashMode(s)` (line 5905) sets the run's damage mode from
+`applyCrashMode(s)` (line 6060) sets the run's damage mode from
 `s.crashDamage` between runs. During a war it must be on whatever the
 setting says, and the setting must come back after:
 
@@ -208,7 +208,7 @@ warSignal = { q, snow: snow > 0, degraded: deg.lossPpm > 0, lost: linkWatch.lost
 ```
 
 `fpvFail.signal(snow)` goes beside `fpvFail.set` in the crash frame (line
-6595). `fpvFail.update(nowWall, runDamage && ...)` (line 6763) already
+6750). `fpvFail.update(nowWall, runDamage && ...)` (line 6918) already
 runs with damage on, which step 7 guarantees in a war. Outside a war,
 `fpvFail.signal(0)` and `warSignal = null`.
 
