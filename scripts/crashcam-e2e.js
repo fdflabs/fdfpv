@@ -10,15 +10,17 @@
  *  1. Thrown at 60 m, its right wing broken off in the air, flown on with
  *     the sticks, into the grass. The REPLAY prompt is up after the crash.
  *     The recorder's cost per frame and its memory are read back.
- *  2. V opens the editor; the plant stops. A scrub; the follow camera on
- *     the wing; two camera keys; a PNG and a video of a range (a non empty
- *     webm blob); the replay saved to My clips, a range of an odd number
- *     of frames on purpose.
+ *  2. V opens the editor; the plant stops. A scrub; slow motion; the
+ *     follow camera on the wing; two cuts (K), the last shot pushed in; a
+ *     PNG; the replay saved to My clips with its three shots, a range of an
+ *     odd number of frames on purpose. (The movie export is checked by
+ *     npm run export:check, and the frame loop that drives it by
+ *     npm run edit:play.)
  *  3. TAKE OVER at a frame after the wing came off and before the crash:
  *     the plant's state hash after the restore is the one the frame
  *     recorded, and the craft flies on from there.
  *  4. The page reloaded: My clips lists the replay; played, it opens as a
- *     saved clip and runs.
+ *     saved clip with its shots and runs.
  *  5. Flown past the 30 s window: the journal holds its bounded number of
  *     copies, and the steady state memory and costs are printed.
  *  6. No page errors.
@@ -299,6 +301,8 @@ async function main() {
     v = await view(page);
     check('it plays at a tenth', v.playing && v.t > before, `${v.t.toFixed(3)} s`);
     await shot(page, 'editor');
+    /* The clip is still one shot: back to 1x for all of it before cutting. */
+    await page.evaluate(`${H}.api.setSpeed(1)`);
     await page.tap('Digit6');
     await page.evaluate(`${H}.api.jumpTo(${off.t + 0.4})`);
     /* The follow camera picks its part at the frame it draws, so it is read
@@ -323,20 +327,22 @@ async function main() {
     await frames(page, 2);
     await shot(page, 'follow-wing');
     await page.tap('KeyH');
-    /* Two keys: the follow camera far, then close, a second apart. */
+    /* Two cuts a second apart, and the last shot's follow camera pushed in. */
     await page.tap('KeyK');
     await page.evaluate(`${H}.api.jumpTo(${off.t + 1.4})`);
-    await page.evaluate(`${H}.api.wheel(-900)`);
     await page.tap('KeyK');
+    await page.evaluate(`${H}.api.wheel(-900)`);
     v = await view(page);
-    check('two camera keys', v.keys.length === 2 && v.directed, `${v.keys.length} keys, directed ${v.directed}`);
+    const sh = v.edit.shots;
+    check('two cuts make three shots, the last one closer', sh.length === 3 && Math.abs(sh[1].t0 - (off.t + 0.4)) < 1e-9
+      && Math.abs(sh[2].t0 - (off.t + 1.4)) < 1e-9 && sh[2].cam.p.dist < sh[1].cam.p.dist && v.shot === 2,
+      sh.map((x) => `${x.cam.rig}@${x.t0.toFixed(2)} ${x.cam.p.dist.toFixed(2)} m`).join(', '));
     await page.tap('KeyL');
     await page.tap('KeyP');
     await page.until('window.__crashCamLast && window.__crashCamLast.photo', 20000);
     const photo = await page.evaluate('window.__crashCamLast.photo');
     check('a PNG at the canvas\'s full size', photo.size > 10000 && photo.type === 'image/png', `${photo.size} bytes ${photo.w}x${photo.h}`);
-    /* A 1.9 s range at 1x round the wing leaving, with both keys in it. */
-    await page.evaluate(`${H}.api.setSpeed(1)`);
+    /* A 1.9 s range round the wing leaving, with both cuts in it. */
     await page.evaluate(`${H}.api.jumpTo(${off.t - 0.3})`);
     await page.tap('KeyI');
     await page.evaluate(`${H}.api.jumpTo(${off.t + 1.6})`);
@@ -349,17 +355,13 @@ async function main() {
       await page.tap('KeyO');
     }
     const rangeFrames = await page.evaluate(`${H}.api.rangeFrames()`);
-    await page.tap('KeyC');
-    await page.until('window.__crashCamLast && window.__crashCamLast.video', 60000);
-    const video = await page.evaluate('window.__crashCamLast.video');
-    check('a video of the range, a non empty webm', video.size > 1000 && /webm/.test(video.type),
-      `${video.size} bytes ${video.type}, ${video.audioTracks} audio track${video.audioTracks === 1 ? '' : 's'} from the mix`);
     await page.tap('KeyG');
     await page.until(`${H}.api.listClips().then((l) => l.length > 0)`, 20000);
     const saved = await page.evaluate(`${H}.api.listClips()`);
     const kept = await page.evaluate('window.__crashCamLast.saved');
-    check('saved to My clips, an odd number of frames', saved.length === 1 && saved[0].duration > 1 && kept.frames % 2 === 1
-      && kept.frames === rangeFrames, `${saved[0].name}, ${saved[0].duration.toFixed(2)} s, ${kept.frames} frames, ${kept.bytes} bytes`);
+    check('saved to My clips with its three shots, an odd number of frames', saved.length === 1 && saved[0].duration > 1
+      && kept.frames % 2 === 1 && kept.frames === rangeFrames && kept.shots === 3,
+      `${saved[0].name}, ${saved[0].duration.toFixed(2)} s, ${kept.frames} frames, ${kept.shots} shots, ${kept.bytes} bytes`);
 
     console.log('3. take over');
     await page.tap('KeyL');
@@ -411,8 +413,8 @@ async function main() {
      * rasteriser can take longer than any fixed sleep. */
     await page.until(`${H}.view().t > 0.05`, 30000).catch(() => {});
     v = await view(page);
-    check('played from My clips: a saved clip, running, keys and all', !v.live && v.t > 0 && v.dur > 1 && v.keys.length === 2,
-      `t ${v.t.toFixed(2)} of ${v.dur.toFixed(2)} s, ${v.keys.length} keys`);
+    check('played from My clips: a saved clip, running, its shots and all', !v.live && v.t > 0 && v.dur > 1 && v.edit.shots.length === 3
+      && v.saved, `t ${v.t.toFixed(2)} of ${v.dur.toFixed(2)} s, ${v.edit.shots.length} shots`);
     check('a saved clip offers no take over', !v.canTakeOver);
     await page.evaluate(`${H}.api.jumpTo(1)`);
     /* Waited on the frame that drew it: on SwiftShader a frame can take

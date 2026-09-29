@@ -70,6 +70,8 @@ export const CRASHCAM_CSS = `
 }
 .cc-chip.mint { color: var(--mint); border-color: rgba(125, 255, 180, 0.35); }
 .cc-chip.slate { color: var(--slate); border-color: rgba(157, 179, 200, 0.3); }
+.cc-chip.cream { color: var(--cream); border-color: rgba(243, 234, 212, 0.3); }
+.cc-chip.rig { color: var(--rig); border-color: color-mix(in srgb, var(--rig) 45%, transparent); }
 .cc-head-actions { display: flex; gap: 8px; }
 
 /* ---- buttons ---- */
@@ -122,6 +124,7 @@ export const CRASHCAM_CSS = `
 .cc-seg button.on { background: var(--cream); color: var(--deep); box-shadow: 0 2px 10px rgba(243, 234, 212, 0.2); }
 .cc-seg button:disabled { opacity: 0.3; cursor: default; }
 .cc-seg.speed button.on { background: var(--amber); }
+.cc-seg.rigs button.on { background: var(--rig); }
 
 /* ---- the dock ---- */
 .cc-dock {
@@ -152,29 +155,62 @@ export const CRASHCAM_CSS = `
 .cc-hints { margin-top: 10px; font-size: 11px; color: var(--slate); letter-spacing: 0.02em; text-align: center; opacity: 0.85; }
 .cc-hints b { color: var(--cream); font-weight: 700; }
 
-/* ---- the timeline ---- */
-.cc-timeline { position: relative; height: 46px; cursor: pointer; touch-action: none; }
-.cc-track {
-  position: absolute; left: 0; right: 0; top: 24px; height: 6px; border-radius: 3px;
-  background: rgba(243, 234, 212, 0.12);
+/* ---- the timeline: a strip of shots under the moments ---- */
+.cc-timeline { position: relative; height: 56px; cursor: pointer; touch-action: none; }
+.cc-strip {
+  position: absolute; left: 0; right: 0; top: 18px; height: 34px; border-radius: 8px;
+  background: rgba(243, 234, 212, 0.06); box-shadow: inset 0 0 0 1px rgba(243, 234, 212, 0.1);
 }
-.cc-range {
-  position: absolute; top: 20px; height: 14px; border-radius: 4px;
-  background: rgba(255, 212, 92, 0.12); border-left: 2px solid var(--amber); border-right: 2px solid var(--amber);
-  box-sizing: border-box; pointer-events: none;
+.cc-blocks { position: absolute; inset: 0; border-radius: 8px; overflow: hidden; }
+.cc-shot {
+  --rig: var(--cream);
+  position: absolute; top: 0; bottom: 0; box-sizing: border-box; overflow: hidden;
+  display: flex; align-items: center; gap: 6px; padding: 0 9px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--rig) 34%, transparent), color-mix(in srgb, var(--rig) 18%, transparent));
+  border-top: 3px solid var(--rig);
+  font: 700 11px/1 var(--ui-font); letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+  color: var(--rig); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  transition: background 160ms;
 }
-.cc-fill {
-  position: absolute; left: 0; top: 24px; height: 6px; border-radius: 3px;
-  background: linear-gradient(90deg, rgba(125, 255, 180, 0.45), var(--mint)); pointer-events: none;
+.cc-shot small { font-weight: 600; letter-spacing: 0.04em; text-transform: none; color: var(--cream); opacity: 0.85; }
+.cc-shot.sel { box-shadow: inset 0 0 0 2px var(--cream); background: color-mix(in srgb, var(--rig) 42%, transparent); }
+.rig-chase { --rig: #ffd45c; }
+.rig-orbit { --rig: #7dffb4; }
+.rig-free { --rig: #7cc8ff; }
+.rig-tripod { --rig: #c8a2ff; }
+.rig-fpv { --rig: #ff9a76; }
+.rig-follow { --rig: #f3ead4; }
+.cc-hatch {
+  position: absolute; top: 0; bottom: 0; pointer-events: none;
+  background: repeating-linear-gradient(135deg, rgba(8, 11, 9, 0.72) 0 5px, rgba(8, 11, 9, 0.5) 5px 10px);
 }
+.cc-grips { position: absolute; inset: 0; }
+.cc-grip {
+  position: absolute; top: -4px; bottom: -4px; width: 16px; margin-left: -8px; cursor: ew-resize;
+  display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.cc-grip i {
+  display: flex; align-items: center; justify-content: center; width: 12px; height: 26px; border-radius: 4px;
+  background: rgba(12, 18, 14, 0.9); box-shadow: 0 0 0 1px rgba(243, 234, 212, 0.35), 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: transform 200ms var(--cc-spring), box-shadow 140ms;
+}
+.cc-grip svg { width: 10px; height: 22px; fill: var(--cream); stroke: var(--cream); }
+.cc-grip.in svg, .cc-grip.out svg { fill: none; stroke: var(--amber); }
+.cc-grip.blend svg, .cc-grip.glide svg { stroke: var(--mint); }
+.cc-grip:hover i { transform: scale(1.12); box-shadow: 0 0 0 1px var(--cream), 0 2px 10px rgba(0, 0, 0, 0.6); }
 .cc-headline {
-  position: absolute; top: 12px; width: 2px; height: 30px; margin-left: -1px; border-radius: 1px;
+  position: absolute; top: 12px; width: 2px; height: 44px; margin-left: -1px; border-radius: 1px; z-index: 2;
   background: var(--cream); box-shadow: 0 0 10px rgba(243, 234, 212, 0.6); pointer-events: none;
 }
 .cc-headline::after {
-  content: ""; position: absolute; left: -5px; top: 9px; width: 12px; height: 12px; border-radius: 50%;
+  content: ""; position: absolute; left: -5px; top: 0; width: 12px; height: 12px; border-radius: 50%;
   background: var(--cream); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
+.cc-pop {
+  position: absolute; top: -40px; z-index: 3; display: flex; gap: 6px;
+  animation: cc-fade 160ms ease both;
+}
+.cc-pop .cc-seg { background: rgba(12, 18, 14, 0.94); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
 .cc-mark {
   position: absolute; top: 0; transform: translateX(-50%);
   appearance: none; border: 0; padding: 0 4px; background: transparent; cursor: pointer;
@@ -192,10 +228,6 @@ export const CRASHCAM_CSS = `
 .cc-mark.off span { color: var(--mint); }
 .cc-mark.impact span { color: var(--amber); }
 .cc-mark:hover span, .cc-mark:focus-visible span { opacity: 1; transform: translateY(0); }
-.cc-key {
-  position: absolute; top: 34px; width: 0; height: 0; margin-left: -5px; pointer-events: none;
-  border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid var(--cream);
-}
 
 /* ---- the controls hidden, for a clean look at the shot ---- */
 .cc-gone { opacity: 0 !important; pointer-events: none !important; transition: opacity 220ms ease; }
@@ -283,6 +315,28 @@ export const CRASHCAM_CSS = `
 }
 .cc-confirm p { margin: 10px 0 18px; font-size: 15px; line-height: 1.45; }
 .cc-confirm .cc-group { justify-content: flex-end; }
+
+/* ---- the export dialog ---- */
+.cc-export {
+  width: min(460px, calc(100% - 32px)); box-sizing: border-box; border-radius: 16px; padding: 20px 22px;
+  background: var(--cc-glass); border: 1px solid var(--cc-line);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(243, 234, 212, 0.06);
+  animation: cc-card 320ms var(--cc-spring) both;
+}
+.cc-export-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cc-export-len { font: 700 15px/1 var(--ui-font); font-variant-numeric: tabular-nums; }
+.cc-export-form { margin-top: 18px; display: grid; gap: 12px; }
+.cc-export-row { display: grid; grid-template-columns: 76px 1fr; align-items: start; gap: 10px; }
+.cc-export-row > .cc-label { padding-top: 12px; }
+.cc-export-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--slate); }
+.cc-export-notes p { margin: 12px 0 0; font-size: 12px; line-height: 1.45; color: var(--slate); }
+.cc-export .warn { color: var(--amber); }
+.cc-export-progress { margin-top: 18px; }
+.cc-export-barrow { display: flex; align-items: center; gap: 12px; }
+.cc-bar { flex: 1; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(243, 234, 212, 0.12); }
+.cc-bar i { display: block; height: 100%; width: 0; border-radius: 5px; background: linear-gradient(90deg, rgba(125, 255, 180, 0.55), var(--mint)); transition: width 160ms linear; }
+.cc-export-pct { font: 700 14px/1 var(--ui-font); font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
+.cc-export-actions { margin-top: 20px; justify-content: flex-end; }
 
 /* ---- the prompt in flight ---- */
 .cc-prompt {
