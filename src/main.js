@@ -1425,11 +1425,14 @@ export async function boot({
   const waveK = new THREE.Vector3();
   const STILL_WATER = [];
   let wavesMap = STILL_WATER;
+  /* The highest the handed waves can stand above still water, m. */
+  let waveCrest = 0;
   let wavesHanded = null;
   let wavesHandedTo = null;
   let wavesAtTitle = false;
   function handWaves(bodies) {
     wavesMap = STILL_WATER;
+    waveCrest = 0;
     if (typeof sim.e.sim_water_components !== 'function') {
       return;
     }
@@ -1446,14 +1449,28 @@ export async function boot({
       const c = new Float64Array(sim.e.memory.buffer, wavesPtr, 41);
       simPosToThree(c[2], c[3], c[1] + SPAWN_ALT, waveO).applyQuaternion(qSpawn);
       const comps = [];
+      let crest = 0;
       for (let i = 0; i < c[0]; i += 1) {
         const o = 6 + i * 5;
         simPosToThree(c[o + 1], c[o + 2], 0, waveK).applyQuaternion(qSpawn).multiplyScalar(perLength * perLength);
         comps.push({ a: simLenToWorld(c[o]), kx: waveK.x, kz: waveK.z, omega: c[o + 3], phase: c[o + 4] });
+        crest += Math.abs(comps[i].a);
       }
+      waveCrest = Math.max(waveCrest, crest);
       out.push({ y0: waveO.y + startY, ox: waveO.x + startX, oz: waveO.z + startZ, comps });
     }
     wavesMap = out;
+  }
+  /*
+   * What toilet paper is drawn lying on (src/render/streamers.js): the
+   * ground, and over the lake the highest its waves can stand, every
+   * component's height at once. groundAt answers the still water there,
+   * which is where the paper's physics rests it, and the waves are drawn
+   * above it as well as below.
+   */
+  function paperFloorAt(x, z) {
+    const h = groundAt(x, z);
+    return waveCrest > 0 && waterAt(x, z) ? h + waveCrest : h;
   }
   function showWaves() {
     if (typeof view.setWaves !== 'function') {
@@ -2036,7 +2053,7 @@ export async function boot({
    * combatLayer, the round by combatHud.
    */
   const roomCombat = createRoomCombat(roomLinkState);
-  const combatLayer = createStreamerLayer();
+  const combatLayer = createStreamerLayer(paperFloorAt);
   const combatNameOf = (seat) => {
     if (seat === roomCombat.seat()) {
       return str('friends.you', { name: roomName(namePick()) });
@@ -14648,6 +14665,8 @@ export async function boot({
         ? { finishes: look.finishes, decals: look.decals } : null;
     },
     mapId: () => view.id,
+    /* What the replay's paper is drawn lying on, as the live paper is. */
+    paperFloor: paperFloorAt,
     spawn: (out) => {
       out[0] = startX;
       out[1] = startY;

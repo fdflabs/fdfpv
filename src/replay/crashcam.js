@@ -516,7 +516,7 @@ export function createCrashCam(host) {
     /* The others in the room, when the clip has them. */
     const peers = clip.peers ? createPeerScene(clip.peers, clip.time, clip.n, parent, host.craftLook || null) : null;
     /* Combat's paper, when the clip has it. */
-    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio) : null;
+    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor) : null;
     return {
       craft, wreck, debris, smoke, peers, paper, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
