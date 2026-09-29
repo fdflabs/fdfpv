@@ -86,6 +86,7 @@
  */
 
 import { Music } from './music.js';
+import { WarRadio, VOICE_DUCK } from './warradio.js';
 
 /*
  * THE VOICE, which is the machine's shape as the ear hears it. The blade
@@ -404,6 +405,12 @@ export class MotorAudio {
     /* The periodic waves the voices use, built for a context on first use. */
     this.waves = null;
     this.music = new Music();
+    /* The war mode's radio and music (src/render/warradio.js), made on
+     * the first war, and whether the music setting wants a bed at all:
+     * while the war's music plays, the crate's is held off. */
+    this.warRadio = null;
+    this.warBed = false;
+    this.musicWanted = false;
     /* Every AudioNode this instance owns, for P12. A node created and
      * dropped without being counted is exactly the leak P12 forbids, so
      * the count is kept where the nodes are made rather than derived by
@@ -448,6 +455,9 @@ export class MotorAudio {
     if (typeof m.music === 'number') {
       this.mix.music = Math.max(0, Math.min(1, m.music));
       this.music.setLevel(this.mix.music);
+      if (this.warRadio) {
+        this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+      }
     }
     if (typeof m.focus === 'number') {
       this.mix.focus = Math.max(0, Math.min(1, m.focus));
@@ -460,7 +470,41 @@ export class MotorAudio {
   }
 
   setMusicEnabled(on) {
-    this.music.setEnabled(on);
+    this.musicWanted = Boolean(on);
+    this.music.setEnabled(this.musicWanted && !this.warBed);
+    if (this.warRadio) {
+      this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+    }
+  }
+
+  /*
+   * The war mode's radio (src/render/warradio.js), attached to this graph
+   * the first time a war asks for it, so a pilot who never fights one
+   * pays no nodes for it. Through the soft clip and the master like every
+   * cue: the volume and the sound setting hold for it. A call ducks the
+   * motors and the wind as a cue does.
+   */
+  war() {
+    if (!this.warRadio) {
+      this.warRadio = new WarRadio();
+      this.warRadio.onSpeak = () => this.duckFlight(this.ctx.currentTime, VOICE_DUCK, 2.5);
+    }
+    if (this.ctx && this.preMaster && !this.warRadio.ctx) {
+      this.warRadio.attach(this.ctx, this.preMaster, (n) => {
+        this.nodes.push(n);
+        return n;
+      });
+      this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+    }
+    return this.warRadio;
+  }
+
+  /* The war's music on, or off and the crate's back. */
+  setWarBed(track) {
+    const radio = this.war();
+    this.warBed = Boolean(track);
+    this.music.setEnabled(this.musicWanted && !this.warBed);
+    radio.music(track);
   }
 
   /*

@@ -113,6 +113,13 @@ import { createPeerWreck, createWreckSender } from './share/roomwrecks.js';
 import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
 import { createCombatHud } from './ui/combathud.js';
+import { createRoomWar } from './share/roomwar.js';
+import { createAttackers } from './render/attackers.js';
+import { createWarHud } from './ui/warhud.js';
+import { createWarCalls } from './render/warradio.js';
+import {
+  LinkWatch, PlaneFailsafe, linkDegradeFor, signalQuality, snowFor, stationPoint,
+} from './game/signal.js';
 import { startTrackSync } from './share/cloud.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
@@ -201,7 +208,7 @@ import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { FpvOsd } from './ui/fpvhud.js';
 import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
-import { str } from './strings/index.js';
+import { currentLocale, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
@@ -1956,10 +1963,13 @@ export async function boot({
   const roomRace = createRoomRace((obj) => roomLinkState.send(obj));
   /* Catch the Ace (src/share/roomtag.js), wired below at CATCH THE ACE. */
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
+  /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
+  const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
       roomTag.onWelcome(w);
+      roomWar.onWelcome(w);
       roomPeersClear();
       for (const p of w.peers) {
         roomPeerJoin(p.seat, p.name, p.profile);
@@ -2039,12 +2049,17 @@ export async function boot({
         ui.refreshFriends();
         return;
       }
-      if (roomRace.onMessage(m) || roomTag.onMessage(m)) {
+      if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
+        /* The room's word on this pilot's war start, said like a refusal. */
+        if (m.type === 'war' && m.error) {
+          roomRefused(m.error === 'private' ? 'private' : `war_${m.error}`);
+        }
         ui.refreshFriends();
       }
     },
     onBinary: (bytes) => {
-      if (roomCombat.onBinary(bytes)) {
+      /* AGENTS first: the one binary the war sends, 30 times a second. */
+      if (roomWar.onBinary(bytes) || roomCombat.onBinary(bytes)) {
         return;
       }
       const got = decodePartsRelay(bytes);
@@ -2073,6 +2088,8 @@ export async function boot({
         roomCombat.clear();
         combatLayer.clear();
         combatHud.update(roomCombat.round(), 0, null, 0, 0);
+        roomWar.clear();
+        warLeave();
       }
       roomBrowser.watch(roomBrowsing());
       ui.refreshFriends();
@@ -2263,6 +2280,356 @@ export async function boot({
     }];
   }
 
+  /*
+   * DEFEND ITAIPU (docs/WARFARE-PLAN.md, docs/WAR-WIRING.md): the room's
+   * war, the client's half in roomWar. What this shell does with it:
+   *
+   *   the menu     warRows and warStart: the host's row, in a private room
+   *                on the Itaipu map only, behind one screen saying what it
+   *                is, read once per profile (section 9)
+   *   the frame    roomWarFrame, in roomFrame at the room clock: the
+   *                attackers drawn, deaths and warheads burst, targets set
+   *                burning, the HUD and Crest Control's radio fed, and the
+   *                pilot put in the air when a war begins
+   *   the link     warLinkFrame, after roomFrame: the signal from the
+   *                ground station through the terrain, the jammers and the
+   *                relays to this craft, onto the picture (fpvFail), the
+   *                sticks (rcLink.setSignal), Betaflight's failsafe
+   *                (sim_rx_signal) or the planes' rule (PlaneFailsafe), and
+   *                a lost airframe to the room
+   *   the plant    warBoomMine breaks this craft on its own warhead; a war
+   *                forces crash damage on between runs (applyCrashMode)
+   *
+   * Everything that reaches the plant goes through sim.e, the crash cam's
+   * journal (src/replay/journal.js), so a take over flies it again to the
+   * bit; the crash cam's replay draws what it recorded and none of this.
+   */
+  const WAR_MISSION = 'itaipu-1';
+  /* sim_abi.h: the craft is armed, in sim_rx_signal's answer. */
+  const SIM_RX_ARMED = 0x20;
+  /* A hit target burns, then smokes, for the rest of the war. */
+  const WAR_FIRE_MS = 20000;
+  const warHud = createWarHud(roomSeatName);
+  const warCalls = createWarCalls();
+  /* The events of each frame as they were taken, for window.__war. */
+  const warLog = [];
+  const WAR_LOG_MAX = 400;
+  /* The war this shell has begun for (warBegin), by the room's id. */
+  let warBegunId = null;
+  let warHudAt = 0;
+  let warDrawnAt = null;
+  /* Target id -> wall ms it caught fire, or -1 once it smokes. */
+  const warBurning = new Map();
+  /* The link in a war: { q, snow, degraded, lost, via }, or null. */
+  let warSignal = null;
+  const warLinkWatch = new LinkWatch();
+  const warPlaneFs = new PlaneFailsafe();
+  let warLinkOn = false;
+  let warRxArmed = false;
+  /* The damage mode is due again at the next reset: a war began or
+   * ended. See applyCrashMode. */
+  let warCrashDue = false;
+  let warGroundFor = null;
+  let warGroundOf = null;
+
+  /* The host's row, where the war may run: a private room on the Itaipu
+   * map. Nowhere else shows it, the title screen included. */
+  function warRows(host, w) {
+    if (!w || w.public || w.map !== 'itaipu') {
+      return [];
+    }
+    const v = roomWar.view();
+    const head = { label: str('war.card'), section: true };
+    const state = str(`war.state_${v.state}`);
+    if (host && !roomWar.on()) {
+      return [head, {
+        label: str('war.start'), ...(v.state === 'lobby' ? {} : { value: state }), note: str('war.row_note'), action: 'friends-war-start',
+      }];
+    }
+    if (host) {
+      return [head, { label: str('war.stop'), value: state, note: str('war.stop_note'), action: 'friends-war-stop' }];
+    }
+    return [head, {
+      label: str('war.row'), value: state, note: str(v.state === 'lobby' ? 'war.waiting' : 'war.row_note'), info: true,
+    }];
+  }
+
+  async function warStart() {
+    if (!ui.settings.warConsent) {
+      const go = await ui.askConfirm({
+        title: str('war.consent_title'),
+        detail: str('war.consent_detail'),
+        yes: str('war.consent_yes'),
+        no: str('war.consent_no'),
+      });
+      if (!go) {
+        ui.refreshFriends();
+        return;
+      }
+      ui.settings.warConsent = true;
+      ui.persistSettings();
+    }
+    roomWar.start(WAR_MISSION);
+    ui.refreshFriends();
+  }
+
+  /* Crest Control's lines, in the UI's language, while the sound is on. */
+  function warSay(ids) {
+    if (!ids.length || !audio.enabled) {
+      return;
+    }
+    const radio = audio.war();
+    radio.setLang(currentLocale());
+    for (const id of ids) {
+      radio.say(id);
+    }
+  }
+
+  /* A target reached: on fire now, smoke later (warTargetsFrame), on the
+   * map's own damage (map.setTargetState). A map without the id draws
+   * nothing for it. */
+  function warBurn(id, state, wallMs) {
+    if (!view || typeof view.setTargetState !== 'function' || !view.targets || !(id in view.targets)) {
+      return;
+    }
+    view.setTargetState(id, state);
+    warBurning.set(id, state === 'fire' ? wallMs : -1);
+  }
+  function warTargetsFrame(wallMs) {
+    for (const [id, at] of warBurning) {
+      if (at >= 0 && wallMs - at > WAR_FIRE_MS) {
+        warBurn(id, 'smoke', wallMs);
+      }
+    }
+  }
+  function warTargetsClear() {
+    for (const id of warBurning.keys()) {
+      if (view && view.targets && id in view.targets) {
+        view.setTargetState(id, 'ok');
+      }
+    }
+    warBurning.clear();
+  }
+
+  /* A war this shell has not begun for: at its countdown, or a pilot
+   * seated while one is live. Damage mode is forced on at the next reset,
+   * so a pilot already flying starts again on the slot (as Catch the Ace
+   * does) and one on a room screen takes off. */
+  function warBegin(v, wallMs) {
+    warBegunId = v.id;
+    warCalls.reset();
+    warTargetsClear();
+    for (const id of v.down || []) {
+      warBurn(id, 'smoke', wallMs);
+    }
+    warCrashDue = true;
+    audio.setWarBed(v.state === 'countdown' ? 'intro' : 'combat');
+    const w = roomLinkState.state().welcome;
+    if (!w) {
+      return;
+    }
+    if (mode === 'flight' && roomTagWorldReady(w.map)) {
+      ui.onAction('restart');
+    } else if ((mode === 'title' || mode === 'results') && ROOM_SEAT_SCREENS.includes(ui.screen)
+      && view && view.id === w.map && mapReady && !swapInFlight) {
+      ui.onAction('fly', ui.settings);
+    }
+  }
+
+  /* The war is over, or this pilot left it: the music stops, the dam is
+   * whole again, and the pilot's own damage setting is back at the next
+   * reset. The last radio call is left to finish. */
+  function warFinish() {
+    warBegunId = null;
+    warTargetsClear();
+    warCrashDue = true;
+    if (audio.warRadio) {
+      audio.setWarBed('');
+    }
+  }
+
+  /* The room link closed. */
+  function warLeave() {
+    warAttackers.clear();
+    warHud.update(null);
+    if (warBegunId != null) {
+      warFinish();
+    }
+  }
+
+  /* This pilot's own warhead went off (section 6.3): every part but the
+   * root breaks, and the next frame's wreck check takes it from there.
+   * Damage mode is on in a war (applyCrashMode), so a refusal is a bug. */
+  function warBoomMine() {
+    if (mode !== 'flight') {
+      return;
+    }
+    const n = sim.e.sim_parts_count();
+    for (let i = 1; i < n; i += 1) {
+      const code = sim.e.sim_part_break(i);
+      if (code !== SIM_OK) {
+        throw new Error(`war boom: sim_part_break(${i}) ${simErrorName(code)}`);
+      }
+    }
+  }
+
+  /* Every frame the room is open, after tag's. In the crash cam's replay
+   * the war is not drawn and nothing reaches the plant: its events are
+   * taken and logged, so none is applied late to the flight after it. */
+  function roomWarFrame(now, wallMs, dt) {
+    const scene = shell.quad.parent;
+    if (scene && warAttackers.group.parent !== scene) {
+      scene.add(warAttackers.group);
+    }
+    const replay = mode === 'replay';
+    warAttackers.group.visible = !replay;
+    const v = roomWar.view();
+    if (roomWar.on() && v.id !== warBegunId) {
+      warBegin(v, wallMs);
+    } else if (!roomWar.on() && warBegunId != null) {
+      warFinish();
+    }
+    const events = roomWar.takeEvents();
+    for (const ev of events) {
+      warLog.push({ ...ev, heardAt: now });
+      if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
+        warBurn(ev.target, 'fire', wallMs);
+      }
+      if (ev.type === 'state' && ev.to === 'live' && audio.warRadio && audio.warRadio.track !== 'intro') {
+        audio.setWarBed('combat');
+      }
+      if (replay) {
+        continue;
+      }
+      if (ev.type === 'dead') {
+        warAttackers.dead(ev);
+      } else if (ev.type === 'boom') {
+        warAttackers.boom(ev.p);
+        if (ev.mine) {
+          warBoomMine();
+        }
+      }
+    }
+    if (warLog.length > WAR_LOG_MAX) {
+      warLog.splice(0, warLog.length - WAR_LOG_MAX);
+    }
+    warTargetsFrame(wallMs);
+    if (replay) {
+      warHud.update(null);
+      return;
+    }
+    warHud.events(events);
+    warSay(warCalls.events(events, v));
+    warAttackers.update(roomWar.attackersAt(now), dt);
+    warDrawnAt = now;
+    if (wallMs < warHudAt) {
+      return;
+    }
+    warHudAt = wallMs + 250;
+    const m = roomWar.mission();
+    warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, warSignal, m ? m.output : 0);
+  }
+
+  /* The ground the signal is judged on (section 6.1): Itaipu's finest
+   * terrain, never the drawn LOD, and its water as ground. Null on a map
+   * that has neither, where no war runs. */
+  function warGround() {
+    const it = view && view.scene && view.scene.userData.itaipu;
+    if (!it || !it.terrain) {
+      return null;
+    }
+    if (warGroundOf !== view) {
+      const lakes = view.lakes || [];
+      warGroundOf = view;
+      warGroundFor = {
+        finestAt: (x, z) => it.terrain.finestAt(x, z),
+        waterAt: (x, z) => {
+          for (const l of lakes) {
+            if (insideWater(l, x, z)) {
+              return l.surfaceY;
+            }
+          }
+          return -Infinity;
+        },
+        waterTop: lakes.reduce((top, l) => Math.max(top, l.surfaceY), -Infinity),
+      };
+    }
+    return warGroundFor;
+  }
+
+  /* Everything the signal set, put back as it was before the war. */
+  function warLinkOff() {
+    warLinkOn = false;
+    fpvFail.signal(0);
+    rcLink.setSignal(0, 0, null, rcNextMs);
+    if (warPlaneFs.active) {
+      warPlaneFs.update(false, sim.e);
+    }
+    if (typeof sim.e.sim_rx_signal === 'function' && !airframeById(runAirframe).fixedWing) {
+      sim.e.sim_rx_signal(1);
+    }
+    warLinkWatch.reset();
+    warRxArmed = false;
+    warSignal = null;
+    warCalls.signal(null);
+  }
+
+  /* Once a frame, after roomFrame: the link while a war is live and this
+   * pilot flies. The clock is the sim's, so the lost link's timings are
+   * the flight's and a take over agrees. */
+  function warLinkFrame(now) {
+    const g = roomWar.live() && now != null ? warGround() : null;
+    /* Paused, or in the crash cam, the link holds where it was: the plant
+     * is not stepped, and the sim clock the link is timed on stands. */
+    if (g && mode !== 'flight' && (mode === 'paused' || mode === 'replay')) {
+      return;
+    }
+    if (!g || mode !== 'flight') {
+      if (warLinkOn) {
+        warLinkOff();
+      }
+      return;
+    }
+    warLinkOn = true;
+    const station = stationPoint(stationFor(view.spawn || { x: 0, z: 0, yaw: 0 }, Math.max(0, roomSlot)), g.finestAt, g.waterAt);
+    const relays = [];
+    for (const peer of roomPeers.values()) {
+      if (peer.drawnPose) {
+        relays.push({
+          x: peer.drawnPose.px, y: peer.drawnPose.py, z: peer.drawnPose.pz, airframe: peer.profile.airframe,
+        });
+      }
+    }
+    const jammers = roomWar.attackersAt(now).filter((a) => a.kind === 'jammer').map((a) => ({ x: a.p[0], y: a.p[1], z: a.p[2] }));
+    const { q, via } = signalQuality({
+      station, craft: { x: pCurr.x, y: pCurr.y, z: pCurr.z }, relays, jammers, finestAt: g.finestAt, waterAt: g.waterAt, waterTop: g.waterTop,
+    });
+    warLinkWatch.update(q, simTimeMs);
+    const snow = snowFor(q);
+    const deg = linkDegradeFor(q, warLinkWatch.lost);
+    fpvFail.signal(snow);
+    const af = airframeById(runAirframe);
+    const fsRc = af.fixedWing ? warPlaneFs.update(warLinkWatch.lost, sim.e, { chute: Boolean(af.chute), airborne: !landed }) : null;
+    rcLink.setSignal(deg.delayMs, deg.lossPpm, fsRc, rcNextMs);
+    /* A lost airframe (6.4) takes a rack slot, once a life: a plane once
+     * the link has been gone AIRFRAME_LOST_AFTER_MS; a quad then too while
+     * Betaflight still has it armed, or the moment its failsafe's stage 2
+     * drops it, whichever is first. */
+    let gone = warLinkWatch.airframeLost;
+    if (!af.fixedWing && typeof sim.e.sim_rx_signal === 'function') {
+      const armed = (sim.e.sim_rx_signal(warLinkWatch.lost ? 0 : 1) & SIM_RX_ARMED) !== 0;
+      gone = (gone && armed) || (warRxArmed && !armed && warLinkWatch.lost);
+      warRxArmed = armed;
+    }
+    if (gone) {
+      roomWar.sendLost(plantStarts);
+    }
+    warSignal = {
+      q, snow: snow > 0, degraded: deg.lossPpm > 0, lost: warLinkWatch.lost, via,
+    };
+    warSay(warCalls.signal(warSignal));
+  }
+
   /* The game running in this room, as this screen knows it, or null. */
   function roomRunning() {
     const r = roomCombat.round();
@@ -2271,6 +2638,9 @@ export async function boot({
     }
     if (roomTag.on()) {
       return 'tag';
+    }
+    if (roomWar.on()) {
+      return 'war';
     }
     return r.state === 'countdown' || r.state === 'on' ? 'combat' : null;
   }
@@ -2439,6 +2809,7 @@ export async function boot({
     }
     roomRaceFrame(now, wallMs);
     roomTagFrame(now, wallMs);
+    roomWarFrame(now, wallMs, dt);
     if (wallMs > roomProfileCheckAt) {
       roomProfileCheckAt = wallMs + 500;
       const p = roomProfile();
@@ -2812,6 +3183,36 @@ export async function boot({
     };
   };
   window.__combatStart = (minutes) => roomCombat.start(minutes);
+  /* Defend Itaipu for the checks (scripts/war-twopage.js --main), the same
+   * three the wire module gave it: the war as this page holds it, where
+   * every attacker is at a room ms, and the host's start and end and a
+   * lost airframe. */
+  window.__war = () => ({
+    seat: roomWar.seat(),
+    view: roomWar.view(),
+    error: roomWar.error(),
+    drawn: { ...warAttackers.drawn(), at: warDrawnAt },
+    hud: warHud.shown(),
+    said: warHud.said(),
+    signal: warSignal,
+    radio: audio.warRadio ? audio.warRadio.status() : null,
+    damage: runDamage,
+    burning: Object.fromEntries(warBurning),
+    log: warLog.map((e) => ({
+      type: e.type, why: e.why, ids: e.ids, seat: e.seat, by: e.by, at: e.at, p: e.p, target: e.target, hit: e.hit, mine: e.mine, to: e.to,
+    })),
+  });
+  window.__warAt = (t) => roomWar.attackersAt(t);
+  window.__warDo = (op, arg) => {
+    if (op === 'start') {
+      roomWar.start(arg || WAR_MISSION);
+    } else if (op === 'end') {
+      roomWar.end();
+    } else if (op === 'lost') {
+      return roomWar.sendLost(arg);
+    }
+    return true;
+  };
   window.__roomJoin = (code) => roomLinkState.join(code);
   window.__roomJoinPublic = (map) => roomLinkState.joinPublic(map || (view ? view.id : worldId()));
   window.__roomSay = (kind, id) => roomSafety.say(kind, id);
@@ -2907,8 +3308,11 @@ export async function boot({
         race: roomRaceRows(host),
         tag: game === 'tag' ? lead(roomTagRows(host), 'friends-tag-start') : roomTagRows(host),
         combat: combatRows(host, w, game === 'combat'),
+        war: warRows(host, w),
       };
-      const order = game ? [game, ...['race', 'tag', 'combat'].filter((g) => g !== game)] : ['race', 'tag', 'combat'];
+      /* Defend Itaipu last, and only where it may run (warRows): no room
+       * is made for it from a title card (docs/WARFARE-PLAN.md section 9). */
+      const order = game ? [game, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== game)] : ['race', 'tag', 'combat', 'war'];
       const games = [
         {
           label: game ? str('friends.games_for', { game: str(game === 'tag' ? 'roomtag.section' : 'combat.card') }) : str('friends.games'),
@@ -2992,6 +3396,14 @@ export async function boot({
   };
 
   ui.onFriends = async (action) => {
+    if (action === 'friends-war-start') {
+      await warStart();
+      return;
+    }
+    if (action === 'friends-war-stop' || action === 'friends-end-war') {
+      roomWar.end();
+      return;
+    }
     if (action === 'friends-combat-5' || action === 'friends-combat-3') {
       roomCombat.start(action === 'friends-combat-5' ? 5 : 3);
       return;
@@ -5893,6 +6305,10 @@ export async function boot({
   const debris = createDebris();
   shell.keepAcrossMaps(wreckRig.group);
   shell.keepAcrossMaps(debris.group);
+  /* Defend Itaipu's attackers (src/render/attackers.js), bursting through
+   * the crash debris; into the map's scene from roomWarFrame. */
+  const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
+  shell.keepAcrossMaps(warAttackers.group);
   /*
    * THE SMOKE SYSTEM (the Parts tab's 'smoke' add-on): O in flight turns
    * it on and off, and the trail leaves the tail's nozzle on the sim clock
@@ -6059,7 +6475,9 @@ export async function boot({
   /* Between runs, from applySettings: the mode this run flies. */
   function applyCrashMode(s) {
     syncPartTable();
-    const want = damage.available && s.crashDamage !== false;
+    /* A war forces damage on (WARFARE-PLAN 6.3); the pilot's own setting
+     * is never written, so it is theirs again once the war is over. */
+    const want = damage.available && (s.crashDamage !== false || roomWar.on());
     if (want === runDamage) {
       return;
     }
@@ -6982,6 +7400,19 @@ export async function boot({
     }
     sim.reset();
     plantStarts += 1;
+    /* A war began or ended since the last run: its damage mode now,
+     * between runs, since setting it clears the crash state. */
+    if (warCrashDue) {
+      warCrashDue = false;
+      applyCrashMode(ui.settings);
+    }
+    /* A new life: the link is judged afresh, and a plane's failsafe lets
+     * go of the stabiliser, which the tune's is put back over. */
+    warLinkWatch.reset();
+    if (warPlaneFs.active) {
+      wingStabApplied = -1;
+    }
+    warPlaneFs.reset();
     sim.setCellVoltage(runVoltage);
     declareWater();
     crashReset();
@@ -12200,6 +12631,7 @@ export async function boot({
     poseBramorExtras();
     discusCue(nowWall);
     roomFrame(nowWall, dt / 1000);
+    warLinkFrame(roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null);
     /* The others as the room just drew them, into the row the crash cam
      * began above (src/replay/peers.js). */
     if (crashCam) {
