@@ -2,9 +2,10 @@
  * soundtrack.js: a movie's sound, rendered offline before its pictures.
  *
  * The live replay plays its motors and wind through the shell's MotorAudio,
- * slowed with the picture (crashcam.js sound()), and its crash cues and
- * SCHWINGs as the playhead crosses them. An exported movie gets the same
- * sound, made the same way, but on an OfflineAudioContext: a fresh
+ * slowed with the picture (crashcam.js sound()), and its crash cues,
+ * SCHWINGs and Catch the Ace coins as the playhead crosses them. An
+ * exported movie gets the same sound, made the same way, but on an
+ * OfflineAudioContext: a fresh
  * MotorAudio built on it, dressed like the live one (voice, blade scale,
  * stem mix, volume), with the music off, driven once per movie frame at
  * that frame's movie time. So a movie is never short of sound because a
@@ -40,8 +41,9 @@ import { MotorAudio, VOICES } from '../render/audio.js';
 
 export const SAMPLE_RATE = 48000;
 
-/* The crash cues (the clip's events) and SCHWINGs (its paper's) the movie
- * plays, at their movie times, levels scaled for a slow shot. */
+/* The crash cues (the clip's events), and the SCHWINGs and coins (its
+ * paper's) the movie plays, at their movie times, levels scaled for a
+ * slow shot. */
 export function soundCues(clip, edit) {
   return cueTimes(edit, clip.paper ? [...clip.events, ...clip.paper.events] : clip.events);
 }
@@ -90,8 +92,10 @@ export async function renderSoundtrack({
   for (const c of soundCues(clip, edit)) {
     if (c.type === 'cue') {
       a.wreck(c.kind, c.level, c.m);
-    } else {
+    } else if (c.type === 'schwing') {
       a.schwing(c.level, c.m);
+    } else {
+      a.coin(c.level, c.m);
     }
   }
   return ctx.startRendering();

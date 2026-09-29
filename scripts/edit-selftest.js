@@ -677,8 +677,8 @@ function file() {
   edit = setOut(edit, 1.9);
   const buf = encodeReplay({ ...c, keys: keyed, edit });
   const back = decodeReplay(buf);
-  check(FILE_VERSION === 6 && version(buf) === 6 && json(back.edit) === json(edit) && Object.isFrozen(back.edit) && back.keys.length === 0,
-    'a clip with an edit is version 6, and its edit comes back deep equal, frozen, with no keys', `${buf.byteLength} bytes`);
+  check(FILE_VERSION === 7 && version(buf) === 6 && json(back.edit) === json(edit) && Object.isFrozen(back.edit) && back.keys.length === 0,
+    'a clip with an edit and no crown is version 6, and its edit comes back deep equal, frozen, with no keys', `${buf.byteLength} bytes`);
   check(back.peers === undefined && back.paper === undefined && back.n === c.n, 'a version 6 file needs neither peers nor paper');
   const again = encodeReplay(back);
   check(u8(again).equals(u8(buf)), 'written again, the same bytes');
@@ -728,12 +728,12 @@ function file() {
     'an edit that does not fit its clip is refused on the way out too', unsaved && unsaved.message);
   let threw = null;
   try {
-    decodeReplay(reheader(buf, () => {}, 7));
+    decodeReplay(reheader(buf, () => {}, 8));
   } catch (err) {
     threw = err;
   }
-  check(threw instanceof ReplayFileError && threw.message === 'version 7, this build reads 1 and 2 and 3 and 4 and 5 and 6',
-    'a version 7 file is refused by name', threw && threw.message);
+  check(threw instanceof ReplayFileError && threw.message === 'version 8, this build reads 1 and 2 and 3 and 4 and 5 and 6 and 7',
+    'a version 8 file is refused by name', threw && threw.message);
 }
 
 operations();

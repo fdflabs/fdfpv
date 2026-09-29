@@ -14,6 +14,12 @@
  * (src/replay/peers.js) and a replay poses its own copy with the same
  * set() (src/replay/peerscene.js), so the past is drawn as it was.
  *
+ * THE FREE ORB. While nobody is the Ace (it crashed: docs/TAG-PLAN.md
+ * decision 14) the bubble stays where it went down with a small gold
+ * crown bobbing and turning inside it, for anybody to catch. set() is
+ * told so by seat 0, which no pilot has, so a replay's recorded row
+ * draws the orb and its crown as the screen did, with no new column.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -31,6 +37,7 @@
  */
 
 import * as THREE from 'three';
+import { crownGeometry, crownMaterial } from './acecrown.js';
 
 const GOLD = 0xffc64a;
 /* The breath: its period, seconds, and how far it dips. */
@@ -49,6 +56,12 @@ const RIM = 0.3;
 /* The wall fades out this near the eye, metres, so a camera crossing it
  * (a chase camera a few metres behind the Ace) sees no hard slab. */
 const NEAR_FADE_M = [1, 5];
+/* The free orb's crown: its size, metres, how far it bobs and how fast,
+ * and how fast it turns, radians a second. */
+const ORB_CROWN_M = 1.6;
+const ORB_BOB_M = 0.5;
+const ORB_BOB_S = 1.8;
+const ORB_TURN = 0.9;
 
 /*
  * The level for a bubble of radius r whose nearest hunter's centre is
@@ -105,14 +118,21 @@ export function createAceBubble() {
   /* After the opaque world and the aircraft it holds. */
   mesh.renderOrder = 10;
   mesh.visible = false;
+  /* The free orb's crown, a child of the sphere, so in its units. */
+  const crown = new THREE.Mesh(crownGeometry(), crownMaterial());
+  crown.name = 'ace-orb-crown';
+  crown.castShadow = false;
+  crown.receiveShadow = false;
+  crown.visible = false;
+  mesh.add(crown);
   /* What set() was last told: r is 0 when nothing is drawn. */
   const drawn = {
     r: 0, x: 0, y: 0, z: 0, level: 0, seat: 0,
   };
 
   /* Radius r (0 hides it) centred at (x, y, z), at `level`, round the Ace
-   * in `seat`. */
-  function set(r, x = 0, y = 0, z = 0, level = 0, seat = 0) {
+   * in `seat`, or free with seat 0; tS seconds is the free crown's clock. */
+  function set(r, x = 0, y = 0, z = 0, level = 0, seat = 0, tS = 0) {
     const on = r > 0;
     drawn.r = on ? r : 0;
     drawn.x = on ? x : 0;
@@ -121,24 +141,33 @@ export function createAceBubble() {
     drawn.level = on ? level : 0;
     drawn.seat = on ? seat : 0;
     mesh.visible = on;
+    crown.visible = on && seat === 0;
     if (!on) {
       return;
     }
     mesh.position.set(x, y, z);
     mesh.scale.setScalar(r);
     material.uniforms.uLevel.value = level;
+    if (crown.visible) {
+      crown.position.set(0, (ORB_BOB_M * Math.sin((2 * Math.PI * tS) / ORB_BOB_S)) / r, 0);
+      crown.rotation.set(0, ORB_TURN * tS, 0);
+      crown.scale.setScalar(ORB_CROWN_M / r);
+    }
   }
 
   function dispose() {
     mesh.removeFromParent();
     mesh.geometry.dispose();
     material.dispose();
+    crown.geometry.dispose();
+    crown.material.dispose();
   }
 
   return {
     mesh,
     set,
-    /* What this frame drew: { r, x, y, z, level, seat }, r 0 for nothing. */
+    /* What this frame drew: { r, x, y, z, level, seat }, r 0 for nothing,
+     * seat 0 for the free orb. */
     drawn: () => drawn,
     dispose,
   };

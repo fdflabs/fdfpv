@@ -3,7 +3,10 @@
  * (docs/TAG-PLAN.md). The room's half; the client's is src/share/roomtag.js.
  *
  * One pilot is the Ace and scores a point a second; everybody else hunts
- * it, and the first hunter into its bubble takes the crown. The room is
+ * it, and the first hunter into its bubble takes the crown. An Ace that
+ * crashes drops it: nobody is the Ace, its bubble (the orb) stays in the
+ * air where it went down, and the first pilot flying into the orb is the
+ * new Ace (the owner, 2026-09-29, docs/TAG-PLAN.md decision 14). The room is
  * the referee of every tag, on Phase 3's poses and hulls (src/game/
  * midair.js within): any part box of a hunter within BUBBLE_M of the
  * Ace's centre is a tag. Nothing has to touch, and a real collision is
@@ -28,8 +31,9 @@
  *
  * What the room sends: { type: 'tag', tag } (the view below, whose
  * `bubble` is BUBBLE_M: a client draws the bubble only for a room that
- * sends it, since a room from before it judges a touch) to everybody
- * on every change of state or crown and on every whole point the Ace adds,
+ * sends it, since a room from before it judges a touch, and whose `orb`
+ * is the free orb while nobody is the Ace) to everybody on every change
+ * of state, crown or orb and on every whole point the Ace adds,
  * { type: 'tag', error } to a refused sender, and the view in each
  * welcome. A collision in a match is a mid air crash all the same:
  * edge/rooms/core.js hands every pose to the mid air referee and to this
@@ -59,9 +63,11 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { FLAG_CRASHED, FLAG_SPAWNING, decodePose } from '../../src/share/roomwire.js';
 import {
-  LATE_MS, Track, hullFor, within,
+  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose,
+} from '../../src/share/roomwire.js';
+import {
+  LATE_MS, Track, hullDistance, hullFor, poseAt, within,
 } from '../../src/game/midair.js';
 import {
   BUBBLE_M, CROWNS_SHOWN, GOAL_MAX, GOAL_MIN, POINT_MS, PROTECT_MS, orderScores,
@@ -69,8 +75,6 @@ import {
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 
-/* An Ace nobody can catch for this long drops the crown (decision 8). */
-export const DROP_MS = 10000;
 /* A seat silent for longer than this (a menu, a tab in the background) is
  * not waited for. Shorter silences are, a stall or a pause for breath: a
  * seat that the frontier ran past while it was quiet would have its first
@@ -94,13 +98,58 @@ function catchableAt(track, t) {
   return i >= 0 && catchable(track.s[i]) && catchable(track.s[i + 1]);
 }
 
+/* Whether the track's pose at t is a wreck: either bracketing sample
+ * crashed, as catchableAt reads the flags. */
+function crashedAt(track, t) {
+  const i = track.bracket(t);
+  return i >= 0 && ((track.s[i].flags | track.s[i + 1].flags) & FLAG_CRASHED) !== 0;
+}
+
+/* Whether the track is flying at t, as a pilot catching the orb must be:
+ * catchable, and airborne in both bracketing samples, so an aircraft
+ * taxiing or sat on the ground under the orb does not take it. */
+function flyingAt(track, t) {
+  const i = track.bracket(t);
+  return i >= 0 && catchable(track.s[i]) && catchable(track.s[i + 1])
+    && (track.s[i].flags & track.s[i + 1].flags & FLAG_AIRBORNE) !== 0;
+}
+
+/* Whether the track's path over room ms [t0, t1] (straight between its
+ * samples, as poses are interpolated) comes within `reach` of o. */
+function pathNear(track, t0, t1, o, reach) {
+  const s = track.s;
+  for (let k = 0; k + 1 < s.length; k += 1) {
+    if (s[k + 1].t < t0 || s[k].t > t1) {
+      continue;
+    }
+    const a = s[k];
+    const b = s[k + 1];
+    const dx = b.px - a.px;
+    const dy = b.py - a.py;
+    const dz = b.pz - a.pz;
+    const len2 = dx * dx + dy * dy + dz * dz;
+    const u = len2 > 0 ? Math.max(0, Math.min(1, ((o.px - a.px) * dx + (o.py - a.py) * dy + (o.pz - a.pz) * dz) / len2)) : 0;
+    if ((a.px + dx * u - o.px) ** 2 + (a.py + dy * u - o.py) ** 2 + (a.pz + dz * u - o.pz) ** 2 <= reach * reach) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* The pose's place, { px, py, pz }. */
+function placeOf(p) {
+  return { px: p.px, py: p.py, pz: p.pz };
+}
+
 export class RoomTag {
   constructor() {
     /*
      * { id, goal, goAt, state: 'countdown'|'live'|'results', ace,
-     *   protectUntil, untouchSince, f, players: { seat: { ms, token } },
-     *   crowns: [{ t, seat, from, why }] (the last CROWNS_SHOWN), winner,
-     *   endAt }, or null before the first match.
+     *   protectUntil, orb, f, players: { seat: { ms, token } }, crowns:
+     *   [{ t, seat, from, why }] (the last CROWNS_SHOWN), winner, endAt },
+     *   or null before the first match. ace is null while the orb is
+     *   free: orb { t, from, px, py, pz }, when and where the Ace `from`
+     *   dropped it, else null.
      */
     this.match = null;
     this.nextId = 1;
@@ -110,8 +159,9 @@ export class RoomTag {
      * room; the harness puts a seeded one here so its runs repeat. */
     this.random = Math.random;
     /* For the checks: every crown change this match, with when it was
-     * decided on the room clock. Memory only. */
+     * decided on the room clock, and every drop. Memory only. */
     this.log = [];
+    this.drops = [];
     this.sentPoints = -1;
     this.storedPoints = 0;
   }
@@ -148,6 +198,7 @@ export class RoomTag {
       goAt: m.goAt,
       ace: m.ace,
       bubble: BUBBLE_M,
+      orb: m.state === 'live' && m.orb ? m.orb : null,
       protectUntil: m.protectUntil,
       f: m.f,
       scores: orderScores(Object.entries(m.players).map(([seat, p]) => ({ seat: Number(seat), ms: p.ms, gone: !here.has(Number(seat)) }))),
@@ -238,7 +289,7 @@ export class RoomTag {
       state: 'countdown',
       ace: null,
       protectUntil: goAt,
-      untouchSince: null,
+      orb: null,
       f: goAt,
       players,
       crowns: [],
@@ -247,6 +298,7 @@ export class RoomTag {
     };
     this.nextId += 1;
     this.log = [];
+    this.drops = [];
     return this.changed(core);
   }
 
@@ -306,17 +358,65 @@ export class RoomTag {
     return list.length ? list[Math.min(list.length - 1, Math.floor(this.random() * list.length))] : null;
   }
 
+  /* The crown to `seat` at t; `from` is the Ace it was taken from, or
+   * the one that dropped the orb it was caught from. */
   crown(seat, t, why) {
     const m = this.match;
-    m.crowns.push({ t, seat, from: m.ace, why });
+    const from = m.orb ? m.orb.from : m.ace;
+    m.crowns.push({ t, seat, from, why });
     if (m.crowns.length > CROWNS_SHOWN) {
       m.crowns.splice(0, m.crowns.length - CROWNS_SHOWN);
     }
-    this.log.push({ t, seat, from: m.ace, why });
+    this.log.push({ t, seat, from, why });
     m.ace = seat;
+    m.orb = null;
     m.players[seat] ??= { ms: 0, token: null };
     m.protectUntil = t + PROTECT_MS;
-    m.untouchSince = null;
+  }
+
+  /* The Ace drops the crown at t: nobody is the Ace, and the orb is free
+   * at `at` ({ px, py, pz }). */
+  drop(t, at) {
+    const m = this.match;
+    m.orb = {
+      t, from: m.ace, px: at.px, py: at.py, pz: at.pz,
+    };
+    this.drops.push({ ...m.orb });
+    m.ace = null;
+  }
+
+  /*
+   * The first room millisecond in (t0, t1] at which a flying pilot (not
+   * crashed, not spawning, off the ground) has any part box within
+   * BUBBLE_M of the free orb's centre: the steal's rule (src/game/midair.js
+   * within) round a centre that does not move. { tc, seat }, a tie to the
+   * lower seat, or null. The crashed Ace may catch it too, once it flies.
+   */
+  catchOrb(fly, t0, t1) {
+    const o = this.match.orb;
+    const first = Math.floor(t0) + 1;
+    const last = Math.floor(t1);
+    const p = {};
+    let best = null;
+    for (const h of fly) {
+      const reach = BUBBLE_M + h.hull.hull.reach;
+      if (!pathNear(h.track, first, last, o, reach)) {
+        continue;
+      }
+      for (let t = first; t <= last && (!best || t < best.tc || (t === best.tc && h.seat < best.seat)); t += 1) {
+        if (!flyingAt(h.track, t) || !poseAt(h.track, t, p)) {
+          continue;
+        }
+        if ((p.px - o.px) ** 2 + (p.py - o.py) ** 2 + (p.pz - o.pz) ** 2 > reach * reach) {
+          continue;
+        }
+        if (hullDistance(h.hull, p, o.px, o.py, o.pz) <= BUBBLE_M) {
+          best = { tc: t, seat: h.seat };
+          break;
+        }
+      }
+    }
+    return best;
   }
 
   finish(t, winner) {
@@ -336,6 +436,7 @@ export class RoomTag {
     const m = this.match;
     const roomNow = core.roomMs(now);
     const crownWas = m.crowns.at(-1);
+    const orbWas = m.orb;
     const state = m.state;
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
@@ -351,7 +452,7 @@ export class RoomTag {
     if (m.state === 'live') {
       this.judge(core, roomNow);
     }
-    if (m.state !== state || m.crowns.at(-1) !== crownWas) {
+    if (m.state !== state || m.crowns.at(-1) !== crownWas || m.orb !== orbWas) {
       for (const e of this.log) {
         e.decided ??= roomNow;
       }
@@ -386,7 +487,7 @@ export class RoomTag {
     t1 = Math.floor(Math.min(roomNow, Math.max(cut, t1 === Infinity ? cut : t1)));
     /* The Ace left the room: the crown goes on at once, where the room
      * has got to. */
-    if (![...core.seats.values()].some((s) => s.seat === m.ace)) {
+    if (m.ace != null && ![...core.seats.values()].some((s) => s.seat === m.ace)) {
       const next = this.draw(fly.filter((f) => catchableAt(f.track, m.f)).map((f) => f.seat))
         ?? this.draw(fly.map((f) => f.seat))
         ?? this.draw([...core.seats.values()].map((s) => s.seat).sort((a, b) => a - b));
@@ -401,10 +502,19 @@ export class RoomTag {
   }
 
   /* One step of the judgement from m.f toward t1: up to the first tag,
-   * the goal, a drop, or t1. What is left is judged again with the Ace
-   * the step ended with. */
+   * the goal, a drop, a catch of the orb, or t1. What is left is judged
+   * again with the Ace (or the orb) the step ended with. */
   span(fly, t1) {
     const m = this.match;
+    if (m.orb) {
+      /* Nobody scores while the orb is free. */
+      const c = this.catchOrb(fly, m.f, t1);
+      m.f = c ? c.tc : t1;
+      if (c) {
+        this.crown(c.seat, c.tc, 'catch');
+      }
+      return;
+    }
     const ace = fly.find((f) => f.seat === m.ace) || null;
     const from = m.f;
     let tag = null;
@@ -426,21 +536,19 @@ export class RoomTag {
     for (let t = from + 1; t <= until; t += 1) {
       if (ace && catchableAt(ace.track, t)) {
         player.ms += 1;
-        m.untouchSince = null;
         if (player.ms >= goalMs) {
           this.finish(t, m.ace);
           return;
         }
         continue;
       }
-      m.untouchSince ??= t;
-      if (t - m.untouchSince >= DROP_MS) {
-        const next = this.draw(fly.filter((h) => h.seat !== m.ace && catchableAt(h.track, t)).map((h) => h.seat));
-        if (next != null) {
-          m.f = t;
-          this.crown(next, t, 'drop');
-          return;
-        }
+      /* The Ace crashed: the orb is free where it went down. Uncatchable
+       * any other way (spawning, not seen) it keeps the crown and scores
+       * nothing: the owner took the timeout that used to hand it on out. */
+      if (ace && crashedAt(ace.track, t)) {
+        m.f = t;
+        this.drop(t, placeOf(poseAt(ace.track, t)));
+        return;
       }
     }
     m.f = until;
