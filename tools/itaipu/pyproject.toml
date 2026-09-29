@@ -1,0 +1,22 @@
+# Python environment for the Itaipu map's data pipeline. The wheels bring
+# their own GDAL and PROJ, so nothing needs installing on the host.
+#
+# This file is part of WebFPVSimulator, licensed GPLv3 or later.
+
+[project]
+name = "fdfpv-itaipu-data"
+version = "0.1.0"
+description = "Fetches and checks the Itaipu map's sources: Copernicus and ANADEM elevation, Sentinel-2, OpenStreetMap"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=2",
+  "pyproj>=3.6",
+  "rasterio>=1.4",
+  "shapely>=2",
+  "pillow>=10",
+  "osmium>=4.3.1",
+]
+
+[tool.uv]
+package = false
