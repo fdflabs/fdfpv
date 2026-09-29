@@ -1,15 +1,22 @@
-# deploy/vm: the rooms and tracks servers on the owner's VM
+# deploy/vm: the rooms, tracks and board servers on the owner's VM
 
 Since 2026-09-28 both servers the simulator talks to run on the owner's
 Oracle Cloud VM instead of Cloudflare Workers. The Free plan's 100,000
 Worker requests a day are shared with another project that uses about
 126,000, so both Workers answered HTTP 429 (error 1027) most of the day.
 
+Since 2026-09-29 the board runs there too: fdflabs/fdfpv-leaderboard, the
+published tracks and their verified lap times, the bug tickets F8 and the
+flight feel form send, the site statistics and the live ghost rooms. It was
+built for Render and a domain that never existed, and until it moved here
+every one of those features failed on the live site.
+
 | | |
 | --- | --- |
-| Address | https://129.151.39.48, both servers |
+| Address | https://129.151.39.48, all three servers |
 | Tracks | `/api/*`, tracks-api/node.js on 127.0.0.1:8787 |
 | Rooms | `/v2/*` and `/`, edge/rooms/node.js on 127.0.0.1:8797, WebSockets included |
+| Board | `/board/*` with the prefix taken off, fdfpv-leaderboard src/server.js on 127.0.0.1:3180, WebSockets included; Postgres 16 on the Unix socket |
 | VM | Oracle Cloud Sao Paulo, Oracle Linux 9, aarch64, 1 core, 5.6 GB, 30 GB disk |
 | Access | `ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48`, key only; the key lives on the owner's desktop and nowhere else |
 
@@ -31,14 +38,24 @@ Worker and the simulator's two origins are the same string.
 - `caddy` (COPR `@caddy/caddy`), the TLS front, `Caddyfile` here. No access
   log. It hands each server the client address in `cf-connecting-ip`, the
   header they read on Cloudflare, overwriting any a client sent.
-- `fdfpv-rooms` and `fdfpv-tracks`, systemd units here, Node 24 from the
-  Oracle Linux appstream module, each as its own system user with no
-  shell, loopback only, `Restart=always`, a hardened sandbox, and a
-  `MemoryMax` set from a measured peak (the measurement is in the unit).
+- `fdfpv-rooms`, `fdfpv-tracks` and `fdfpv-board`, systemd units here,
+  Node 24 from the Oracle Linux appstream module, each as its own system
+  user with no shell, loopback only, `Restart=always`, a hardened sandbox,
+  and a `MemoryMax` set from a measured peak (the measurement is in the
+  unit). The board's code is in `/opt/fdfpv-board`, with the commit it
+  runs in `/opt/fdfpv-board/REVISION`.
+- `postgresql`, Postgres 16 from the appstream module, stock config: the
+  board's tracks, times, ghosts, tickets and statistics counters in the
+  database `fdfpvboard` under `/var/lib/pgsql/data`. The board connects
+  over the Unix socket with peer authentication as `fdfpv-board`, so there
+  is no database password. It listens on loopback only. Why Postgres and
+  not the board's JSON file is in the board's README.
 - State in `/var/lib/fdfpv-rooms/rooms.db` (a private room's code and race,
   so pilots reconnect into their seats after a restart) and
   `/var/lib/fdfpv-tracks/tracks.db` (every track). The tracks admin secret
-  is in `/etc/fdfpv/tracks.env`, root, mode 600.
+  is in `/etc/fdfpv/tracks.env`, root, mode 600, and the board's secrets
+  (`BUGS_TOKEN`, `BOARD_ADMIN_TOKEN`, `BOARD_SESSION_SECRET`,
+  `BOARD_ADMINS`) in `/etc/fdfpv/board.env`, root, mode 600.
 - `dnf-automatic` applying security errata daily (Node and the OS; Caddy's
   COPR publishes no errata, so `sudo dnf upgrade caddy` by hand).
 - firewalld: ssh, http, https. Oracle's security list allows 22, 80, 443.
@@ -69,6 +86,47 @@ file named, mode 600: its first line is the secret, its second a dated
 note, so read it with `head -n1`. To rotate it, delete
 `/etc/fdfpv/tracks.env` on the VM and rerun.
 
+### The board
+
+```sh
+deploy/vm/deploy-board.sh /home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt \
+  /path/to/a/checkout/of/fdfpv-leaderboard
+```
+
+The checkout defaults to `../fdfpv-leaderboard` beside this repository,
+and has to be committed with `vendor/fdfpv` at its pinned commit: the
+script refuses anything else, so `/opt/fdfpv-board/REVISION` is always
+what runs. Idempotent. It runs `host.sh` (Postgres and the `fdfpv-board`
+user included), rsyncs the board and the simulator modules its lap check
+imports into `/opt/fdfpv-board`, rsyncs this directory into
+`/opt/fdfpv/deploy/vm`, makes the admin file and `/etc/fdfpv/board.env`
+the first time, and runs `board-install.sh`: the database and its role,
+the unit, the Caddyfile (validated first, then a graceful reload). It
+restarts the board and nothing else, so pilots in a room stay connected,
+which `deploy.sh` cannot promise: `install.sh` restarts rooms and tracks.
+
+The admin file is the board's sign in, mode 600: the address on its
+first line, the password on its second, a dated note on its third. The
+password is hashed on the desktop and only the scrypt record goes to the
+VM. To change it, or to rotate `BUGS_TOKEN`, `BOARD_ADMIN_TOKEN` and
+`BOARD_SESSION_SECRET`, delete `/etc/fdfpv/board.env` on the VM (and the
+admin file, for a new password) and rerun.
+
+### Reading bug reports
+
+Open https://129.151.39.48/board/, press **Admin** in the masthead, and
+sign in with the two lines of `BOARD-ADMIN.txt`. Then
+https://129.151.39.48/board/bugs, in the same tab, lists every ticket F8
+and the flight feel form have sent, newest first, and opens and closes
+them. Without a sign in the list is refused: tickets carry the reporter's
+words and their machine's details. From a script, with the token from the
+VM:
+
+```sh
+BUGS_TOKEN="$(ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 sudo sed -n 's/^BUGS_TOKEN=//p' /etc/fdfpv/board.env)"
+curl -fsS -H "authorization: Bearer $BUGS_TOKEN" 'https://129.151.39.48/board/api/bugs?status=open'
+```
+
 ## Check it
 
 ```sh
@@ -82,7 +140,14 @@ SIM_GPU=1 node scripts/rooms-restart-check.js https://129.151.39.48 \
 ```
 
 and `rooms:safety`, `rooms:wrecks`, `rooms:racetwopage` the same way.
-Logs: `sudo journalctl -u fdfpv-rooms -u fdfpv-tracks -u caddy`.
+Logs: `sudo journalctl -u fdfpv-rooms -u fdfpv-tracks -u fdfpv-board -u caddy`.
+
+The board, every feature from the page (scripts/board-live-check.js says
+what it files and what it takes back):
+
+```sh
+BOARD_ADMIN_FILE=/home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt npm run board:live
+```
 
 ## What the rooms cost, and the valve
 

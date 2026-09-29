@@ -21,18 +21,8 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-
-say() { printf 'install: %s\n' "$*"; }
-
-# Copies src to dst when they differ; true when it did.
-put() {
-  local src="$1" dst="$2"
-  if [[ -f $dst ]] && cmp -s "$src" "$dst"; then
-    return 1
-  fi
-  install -D -m 644 "$src" "$dst"
-  say "installed $dst"
-}
+# shellcheck source=lib.sh
+source "$HERE/lib.sh"
 
 if put "$HERE/journald.conf" /etc/systemd/journald.conf.d/fdfpv.conf; then
   systemctl restart systemd-journald
@@ -42,23 +32,13 @@ put "$HERE/fdfpv-rooms.service" /etc/systemd/system/fdfpv-rooms.service || true
 put "$HERE/fdfpv-tracks.service" /etc/systemd/system/fdfpv-tracks.service || true
 systemctl daemon-reload
 
-caddy validate --config "$HERE/Caddyfile" --adapter caddyfile >/dev/null 2>&1 || {
-  echo 'install: the Caddyfile does not validate, Caddy left as it was' >&2
-  caddy validate --config "$HERE/Caddyfile" --adapter caddyfile >&2
-  exit 1
-}
-caddy_changed=0
-if put "$HERE/Caddyfile" /etc/caddy/Caddyfile; then
-  caddy_changed=1
-fi
+# Validated before anything restarts, so a bad Caddyfile stops the deploy
+# with both servers still as they were.
+caddy validate --config "$HERE/Caddyfile" --adapter caddyfile >/dev/null
 
-systemctl enable -q fdfpv-rooms fdfpv-tracks caddy
+systemctl enable -q fdfpv-rooms fdfpv-tracks
 systemctl restart fdfpv-rooms fdfpv-tracks
-if ! systemctl is-active -q caddy; then
-  systemctl start caddy
-elif [[ $caddy_changed == 1 ]]; then
-  systemctl reload caddy
-fi
+apply_caddy
 
 for unit in fdfpv-rooms fdfpv-tracks caddy; do
   say "$unit $(systemctl is-active "$unit")"

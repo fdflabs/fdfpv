@@ -92,9 +92,11 @@ a plane races the ones whose every gate it fits.
 Tracks you build stay in this browser. Clearing it, or another device,
 starts you from nothing. P in the builder publishes a track to the public
 board. The board is a separate site,
-[fdfpv-leaderboard](https://github.com/fdflabs/fdfpv-leaderboard).
-Locally it serves at `http://127.0.0.1:3180/`. Fly this course from the
-board opens this simulator in another tab with `?share=` and the track.
+[fdfpv-leaderboard](https://github.com/fdflabs/fdfpv-leaderboard), live at
+https://129.151.39.48/board/. Locally it serves at
+`http://127.0.0.1:3180/`. Fly this course from the board opens this
+simulator in another tab with `?share=` and the track. F8, and the flight
+feel form behind it, file their tickets there too.
 
 ## Posting a time, and flying with others
 
@@ -124,11 +126,13 @@ checked by `npm run live:selftest`.
 
 ## Host it
 
-Three Render resources: this repo as a static site, the board as a Node
-web service, and a Postgres instance behind the board. `render.yaml` here
-is the blueprint for the first. See [DEPLOY.md](DEPLOY.md) for the whole
-walkthrough, including the order to create them in and the one constant in
-`src/share/board.js` that has to name your board.
+The simulator is a static site on GitHub Pages, deployed by every push to
+`main`. The servers it talks to, tracks, multiplayer rooms and the board
+with its Postgres, run on the owner's VM at https://129.151.39.48 and are
+put there by the scripts in `deploy/vm/`, whose README has the commands.
+[DEPLOY.md](DEPLOY.md) has the whole picture, including the constants in
+`src/share/` that name each server and the Render blueprints that are the
+other way to host them.
 
 ## Verify
 
