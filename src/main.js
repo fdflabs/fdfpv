@@ -225,8 +225,13 @@ import { stateHash } from './replay/recorder.js';
  * needs moved the same way and for the same reason. Nothing about the module
  * changed, only where the page looks for it, and at the root it still
  * resolves to exactly /dist/sim.wasm.
+ *
+ * A deployed page loads this module at ?v=<commit> (scripts/stamp-version.js)
+ * and the physics has to come from the same deploy as the code that calls
+ * it, so the module's own query goes on the wasm too. From a checkout the
+ * query is empty and the URL is what it always was.
  */
-const WASM_URL = new URL('../dist/sim.wasm', import.meta.url).href;
+const WASM_URL = new URL(`../dist/sim.wasm${new URL(import.meta.url).search}`, import.meta.url).href;
 
 /*
  * Metres between sim z = 0 and the ground plane, which is where the craft

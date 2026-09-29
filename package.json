@@ -94,6 +94,8 @@
     "friends:card": "node scripts/friends-card-check.js",
     "modes:card": "node scripts/mode-cards-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",
+    "version:check": "node scripts/version-check.js",
+    "version:reload": "node scripts/version-reload-check.js",
     "waves:selftest": "node scripts/waves-selftest.js",
     "river:check": "node scripts/river-water-check.js",
     "river:page": "node scripts/river-page-check.js",
