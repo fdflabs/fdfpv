@@ -107,6 +107,7 @@ const PROXY = {
   '12/6/2/glow': '12x6',
   '11/6/2/glow': '11x6',
   '13/6/2/glow': '13x6',
+  '14/7/2/glow': '14x7',
 };
 
 export function propProxy(option) {
@@ -150,6 +151,7 @@ export const PROPS = {
   /* AXI's two suggestions for the 4120/14, "13"x8" / 12"x6"", and APC's
    * 12 x 8E for its 5S row. */
   wot41334: [STOCK, apcProp('12x6e', '12x6E', 12, 6, 2), apcProp('12x8e', '12x8E', 12, 8, 2)],
+  tigermoth1803: [STOCK, apcProp('13x6', '13x6', 13, 6, 2), apcProp('12x8', '12x8', 12, 8, 2)],
   /* A racer's prop is its engine's in flight, and the derivation that
    * swaps a prop (scripts/parts-derive.js) reads the loaded rpm off the
    * pitch speed, which on the Quickie is the unloading engine's line, not
@@ -207,6 +209,7 @@ export const ANCHORS = {
   extra1308: { prop: [0.302, 0, 0], belly: [0, 0, -0.104], tail: [-0.80, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.084, 0.20, -0.078], [0.055, 0.62, -0.074]] },
   pitts850: { prop: [0.1997, 0, 0], belly: [0, 0, -0.110], tail: [-0.50, 0, -0.03], tank: [-0.01, 0, -0.04], led: [[0.03, 0.15, 0.078], [0.01, 0.38, 0.078]] },
   uglystik1567: { prop: [0.4064, 0, -0.0043], belly: [0, 0, -0.053], tail: [-0.785, 0, -0.053], tank: [-0.01, 0, -0.03], led: [[0.117, 0.15, 0.045], [0.117, 0.70, 0.082]] },
+  tigermoth1803: { prop: [0.3808, 0, 0.0074], belly: [0, 0, -0.122], tail: [-1.035, 0, -0.073], tank: [-0.01, 0, -0.04], led: [[0.17, 0.15, 0.215], [0.12, 0.80, 0.245]] },
   quickie1293: { prop: [0.3327, 0, 0.012], belly: [0, 0, -0.041], tail: [-0.682, 0, -0.030], tank: [-0.01, 0, 0.0], led: [[0.065, 0.15, -0.032], [0.065, 0.55, -0.002]] },
   p51d1450: { prop: [0.3578, 0, 0.0129], belly: [0, 0, -0.066], tail: [-0.77, 0, 0.004], tank: [-0.01, 0, -0.03], led: [[0.102, 0.20, -0.043], [0.074, 0.70, 0.006]] },
   zagi1219: { prop: [-0.110, 0, 0.052], belly: [0, 0, -0.012], tail: [-0.10, 0, -0.005], tank: [-0.01, 0, 0.0], led: [[0.140, 0.10, -0.004], [-0.105, 0.58, -0.002]] },

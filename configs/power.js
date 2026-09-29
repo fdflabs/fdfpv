@@ -128,6 +128,8 @@ const APC = 'https://www.apcprop.com/files/PER3_';
 const OS_FX_MANUAL = 'https://www.os-engines.co.jp/english/line_up/engine/air/aircraft/manual/50sx_40-91fx.pdf';
 const RCU_61FX = 'https://www.rcuniverse.com/forum/glow-engines-114/6767782-o-s-61-fx-engines.html';
 const RCM_STIK = 'https://outerzone.co.uk/plan_details.asp?ID=6801';
+const GP_TIGER = 'https://manuals.hobbico.com/gpm/gpma1330-manual-v1_2.pdf';
+const OS_FS91 = 'https://www.os-engines.co.jp/english/line_up/engine/air/single/manual/fs70-91s2_series.pdf';
 const QUICKIE_PLAN = 'https://outerzone.co.uk/plan_details.asp?ID=6868';
 const CHINN_KB40 = 'https://sceptreflight.com/Model%20Engine%20Tests/K&B%2040%20Series%2070F%20RC.html';
 const FREEWING_F16 = 'https://www.freewing-model.com/freewing-f-16-falcon-v3-6s-high-performance-70mm-edf-jet-pnp-fj21115p.html';
@@ -197,6 +199,7 @@ export const TABLE = {
   },
   wot41334: { simId: 20, massKg: 2.268, cells: 4, rCell: 0.005, propIn: 13, cruiseMs: 17.3, flightTime: { kind: 'mixed', minutesLow: 12, minutesHigh: 12, note: "Chris Foss's electric conversion: 'For typical Wot 4 spirited aerobatics expect a flight duration, per battery charge, of around 12 minutes' on the 4S 3700", source: 'https://www.dropbox.com/s/iskfu6w46a2y9ub/Wot4-Elec-Conv.pdf' } },
   uglystik1567: { simId: 19, massKg: 2.7216, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 17.33, flightTime: null },
+  tigermoth1803: { simId: 23, massKg: 4.6493, cells: 2, rCell: 0.030, propIn: 12, cruiseMs: 14.41, flightTime: null },
   quickie1293: { simId: 22, massKg: 1.5876, cells: 2, rCell: 0.030, propIn: 9, cruiseMs: 39.37, flightTime: null },
   p51d1450: {
     simId: 15, massKg: 2.35, cells: 4, rCell: 0.008, propIn: 14, cruiseMs: 15.1,
@@ -767,6 +770,39 @@ const QUICKIE = [
   },
 ];
 
+/* The Tiger Moth: the O.S. 61FX two stroke on a 12 x 6, the first engine in
+ * Great Planes' list and the Ugly Stik's, at the Stik's 10,895 rpm and
+ * 36.206 N (docs/TIGERMOTH-STAGE1.md). Great Planes give no tank size; the
+ * Stik's 12 oz is taken, ESTIMATED. The flying weight is the kit's 10.25
+ * lb, taken with the tank full. */
+const TIGER_TANKS = [
+  tank('355cc', 355, 355.0e-6, 355 * FUEL_G_CC, GP_TIGER),
+];
+const TIGER = [
+  {
+    id: 'stock', name: 'power.tigermoth.stock', kind: 'glow', voice: 'glow2',
+    propIn: 12, pitchIn: 6, blades: 2,
+    thrustN: 36.206, rpmNoLoad: 12817.6, pitchSpeedMs: 27.673, idle: 0.1836,
+    flowFullM3s: 27.4e-6 / 60, leanFrac: 0.05, leanGain: 0.05,
+    massKg: 4.6493, cgShiftM: 0, packs: TIGER_TANKS, pack: '355cc',
+    source: [GP_TIGER, OS_FX_MANUAL, RCU_61FX, `${APC}12x6.dat`, MENON],
+  },
+  {
+    /* The four stroke in Great Planes' list: O.S.'s FS-91 II Surpass, 1.6
+     * bhp at 11,000 rpm against the 61FX's 1.9 ps (O.S.'s manual), on the
+     * 14 x 7 in O.S.'s list for it: 8,174 rpm and 36.17 N
+     * (scripts/power-derive.js). 640 g against 550 g, the radio moved to
+     * balance it on the same mark; its flow the Kadet's FSa-56II's scaled
+     * by the rated power, 1193 over 735.5 W. Its idle O.S.'s 2,000 rpm. */
+    id: 'fs91', name: 'power.tigermoth.fs91', kind: 'glow', voice: 'glow4',
+    propIn: 14, pitchIn: 7, blades: 2,
+    thrustN: 36.169, rpmNoLoad: 8174 / 0.85, pitchSpeedMs: (8174 * 7 * IN) / 60, idle: 2000 / 8174,
+    flowFullM3s: (18.3e-6 / 60) * (1193 / 735.5), leanFrac: 0.05, leanGain: 0.05,
+    massKg: 4.6493 + 0.090, cgShiftM: 0, packs: TIGER_TANKS, pack: '355cc',
+    source: [GP_TIGER, OS_FS91, `${APC}14x7.dat`],
+  },
+];
+
 export const POWER = {
   wing1000: WING,
   sky1800: SKY,
@@ -780,6 +816,7 @@ export const POWER = {
   bombshell1118: BOMBSHELL,
   kadet1981: KADET,
   uglystik1567: STIK,
+  tigermoth1803: TIGER,
   quickie1293: QUICKIE,
   edge1524: EDGE,
   extra1308: EXTRA,

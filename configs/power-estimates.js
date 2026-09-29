@@ -350,6 +350,20 @@ export const ESTIMATES = {
       }
     }
   },
+  tigermoth1803: {
+    stock: {
+      '355cc': {
+        topSpeed: 18.57,
+        minutes: 16.3
+      }
+    },
+    fs91: {
+      '355cc': {
+        topSpeed: 17.19,
+        minutes: 13.9
+      }
+    }
+  },
   quickie1293: {
     stock: {
       '237cc': {

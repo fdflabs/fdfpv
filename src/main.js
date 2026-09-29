@@ -160,6 +160,7 @@ import { EXTRA_MOUNT_FORWARD, EXTRA_MOUNT_UP } from './render/extracraft.js';
 import { PITTS_MOUNT_FORWARD, PITTS_MOUNT_UP } from './render/pittscraft.js';
 import { UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP } from './render/uglystikcraft.js';
 import { WOT4_MOUNT_FORWARD, WOT4_MOUNT_UP } from './render/wot4craft.js';
+import { TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP } from './render/tigermothcraft.js';
 import { DLG_MOUNT_FORWARD, DLG_MOUNT_UP } from './render/dlgcraft.js';
 import { QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP } from './render/quickiecraft.js';
 import { P51_MOUNT_FORWARD, P51_MOUNT_UP } from './render/p51craft.js';
@@ -183,6 +184,7 @@ const WING_MOUNTS = {
   pitts850: [PITTS_MOUNT_FORWARD, PITTS_MOUNT_UP],
   uglystik1567: [UGLYSTIK_MOUNT_FORWARD, UGLYSTIK_MOUNT_UP],
   wot41334: [WOT4_MOUNT_FORWARD, WOT4_MOUNT_UP],
+  tigermoth1803: [TIGERMOTH_MOUNT_FORWARD, TIGERMOTH_MOUNT_UP],
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   quickie1293: [QUICKIE_MOUNT_FORWARD, QUICKIE_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
