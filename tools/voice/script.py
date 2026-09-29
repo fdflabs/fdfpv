@@ -42,6 +42,27 @@ ID = re.compile(r'^[a-z][a-z0-9-]*$')
 DIGIT = re.compile(r'\d')
 DASHES = (chr(0x2013), chr(0x2014))
 
+# The commander speaks to the squad, so every Spanish line is ustedes and
+# never tú (the owner's decision for the war mode; the rest of the game's
+# Spanish stays tú, per docs/SPANISH-GLOSSARY.md). Spanish has no reliable
+# way to spot every tú verb, so this catches the pronouns, the preterite
+# ending -aste/-iste, and unambiguous forms, including those this script
+# once used. "sube", "baja" or "mira" are also third person ("la oleada
+# sube"), so such an imperative is left to review. A word that only looks
+# like a tú form goes in TU_ALLOWED.
+TU_WORDS = {'tu', 'tus', 'tú', 'te', 'ti', 'contigo', 'mantente', 'pierdes', 'vuelves',
+            'eres', 'estás', 'tienes', 'puedes', 'sabes', 'quieres', 'vas'}
+TU_PRETERITE = re.compile(r'(aste|iste)$')
+TU_ALLOWED = {'resiste', 'existe', 'insiste', 'persiste', 'consiste', 'triste', 'chiste', 'desiste'}
+SPANISH_WORD = re.compile(r'[a-záéíóúüñ]+')
+
+
+def tu_forms(text):
+    """Words in a Spanish line that address one person as tú."""
+    return [w for w in SPANISH_WORD.findall(text.lower())
+            if w not in TU_ALLOWED and (w in TU_WORDS or TU_PRETERITE.search(w))]
+
+
 def load():
     """lines.json, checked. Raises ValueError naming every fault at once."""
     doc = json.loads(LINES.read_text(encoding='utf-8'))
@@ -68,6 +89,9 @@ def load():
                 faults.append(f'{where}: no {lang} text')
             if DIGIT.search(text):
                 faults.append(f'{where}.{lang}: a digit is a spoken figure, and none is sourced')
+        tu = tu_forms(line.get('es', ''))
+        if tu:
+            faults.append(f'{where}.es: addresses one pilot as tú ({", ".join(tu)}); the squad is ustedes')
         for lang, readings in line.get('heard', {}).items():
             if lang not in LANGS or not isinstance(readings, list) or not all(isinstance(r, str) for r in readings):
                 faults.append(f'{where}.heard.{lang}: must be a list of strings')

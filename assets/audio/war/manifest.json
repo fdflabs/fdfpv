@@ -479,25 +479,26 @@
    }
   },
   "intro-5.es": {
-   "text": "Cada aparato de tu hangar lleva una ojiva. Un vuelo. Un derribo. Que cuente.",
-   "seconds": 4.305,
+   "text": "Cada aparato de sus hangares lleva una ojiva. Un vuelo. Un derribo. Que cuente.",
+   "seconds": 5.315,
    "takes": [
     {
      "attempt": 0,
      "seed": 3148143328,
-     "heard": "Cada aparato de tu hangar lleva una ojiva, un vuelo, un derribo, que cuente.",
+     "heard": "Cada aparato de sus hangares lleva una ojiva, un vuelo, un derribo, que cuente.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 19747,
-     "sha256": "b90d9cb4af89c9ecf441d2af10274ee5691b924aa447cafdda4e46a4ddc36639"
+     "bytes": 24333,
+     "sha256": "e5b1ba892d371d985d70ca05545c2114e1f9bfd93df609e77d576c444be39a96"
     },
     "mp3": {
-     "bytes": 18308,
-     "sha256": "fbdc062b83842681df6af97e256a4241dd27f5e9dc49b587b1d3b6fc9fec77de"
+     "bytes": 21956,
+     "sha256": "a89dc531e799c741fd38d5fc293098feabb5b4533b9dc0fea6ee3d8a6e1683bc"
     }
    }
   },
@@ -526,25 +527,26 @@
    }
   },
   "intro-6.es": {
-   "text": "Si pierdes la señal, pierdes el aparato. Mantente alto. Mantente en línea de vista.",
-   "seconds": 5.885,
+   "text": "Si pierden la señal, pierden el aparato. Manténganse altos. Manténganse en línea de vista.",
+   "seconds": 5.695,
    "takes": [
     {
      "attempt": 0,
      "seed": 3537919182,
-     "heard": "Si pierdes la señal, pierdes el aparato, mantente alto, mantente en línea de vista.",
+     "heard": "Si pierden la señal, pierden el aparato. Manténganse altos. Manténganse en línea de vista.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 26848,
-     "sha256": "a9ca13b3a73de9d18e603d89e78535caecd95ca91c0db7e93f3b9359bb2906ba"
+     "bytes": 26037,
+     "sha256": "dbd354a7141796562c48376ba5fccce7d63c212ca7c6f57c3f3fdd074884071f"
     },
     "mp3": {
-     "bytes": 24404,
-     "sha256": "2db2593c9cd875cc1301977d2ca730f41bca855eceea5d41256a24c55b14df7a"
+     "bytes": 24092,
+     "sha256": "933f6c08cc5826c62042acdf89d90a88ee4d7434aeeac504b929c0eb9e491efc"
     }
    }
   },
@@ -1315,25 +1317,26 @@
    }
   },
   "signal-back.es": {
-   "text": "Enlace recuperado. Vuelves a tener el control.",
+   "text": "Enlace recuperado. Vuelven a tener el control.",
    "seconds": 3.185,
    "takes": [
     {
      "attempt": 0,
      "seed": 3709728410,
-     "heard": "Enlace recuperado. Vuelves a tener el control.",
+     "heard": "Enlace recuperado. Vuelven a tener el control.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 14757,
-     "sha256": "f30473aa140e9740fa8b6b784d7bd6a473d9dd91e8973004745a642bb9185e6f"
+     "bytes": 14776,
+     "sha256": "42904af14db238ed8226067a02fc0cc5988f359807ad57c89c40867d2811b265"
     },
     "mp3": {
-     "bytes": 14204,
-     "sha256": "b6d3403560818b21b016f4034c1c73df7702fc5c03ce57ee9f58064478ba88d7"
+     "bytes": 14300,
+     "sha256": "8046a545e1f4a099dd90dd7e02c24589436dcef47cbb5b22514de37b83f9078d"
     }
    }
   },
@@ -1362,25 +1365,36 @@
    }
   },
   "signal-lost.es": {
-   "text": "¡Perdiste el enlace! ¡El aparato está solo!",
-   "seconds": 4.335,
+   "text": "¡Perdieron el enlace! ¡El aparato está solo!",
+   "seconds": 3.135,
    "takes": [
     {
      "attempt": 0,
      "seed": 687951604,
-     "heard": "Perdiste el enlace. El aparato está solo.",
+     "heard": "Vieron el enlace. El aparato está solo.",
+     "wer": 0.143,
+     "extra": 0,
+     "missing": [
+      "perdieron"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 576382982,
+     "heard": "Perdieron el enlace. El aparato está solo.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 19728,
-     "sha256": "4a4122bc7abee62bb19150f28fd7eb3ed1372b6d4f5637c8045e960f82efd26f"
+     "bytes": 14625,
+     "sha256": "b7fa979749c9a96f79c3a492d0e10a12cc31b8798752001c384edf50c704e9ec"
     },
     "mp3": {
-     "bytes": 17828,
-     "sha256": "8ac2f5326436fa6f382149cc0b905362fc8491c187e09e1fae3183635b5904bf"
+     "bytes": 13940,
+     "sha256": "d38fb2fa69c207070132e0835481eb44a68651c811a41609afb31664f644520d"
     }
    }
   },
@@ -1409,25 +1423,26 @@
    }
   },
   "signal-weak.es": {
-   "text": "Se te corta la señal. ¡Sube!",
-   "seconds": 2.525,
+   "text": "Se les corta la señal. ¡Suban!",
+   "seconds": 2.315,
    "takes": [
     {
      "attempt": 0,
      "seed": 405396614,
-     "heard": "Se te corta la señal. Sube.",
+     "heard": "Se les corta la señal. Suban.",
      "wer": 0.0,
-     "extra": 0
+     "extra": 0,
+     "missing": []
     }
    ],
    "files": {
     "webm": {
-     "bytes": 11706,
-     "sha256": "9bef7dae3984e014489ab5eea50a36a82c90199dae04521432c2a5dd8cd31033"
+     "bytes": 10902,
+     "sha256": "d045430d2efd6e740b9189cbec59f9069d7f6bfa266d56f10c5c239e5b5536fa"
     },
     "mp3": {
-     "bytes": 11180,
-     "sha256": "37ddd11a2f7b3d262371625d6ebb8f03ce45bdba81e7298074511191328c2622"
+     "bytes": 10772,
+     "sha256": "29150aac3150dd32ba491eb8f225fa1c3ae2dae9fbd07d4bc12ecc06d7f50fa0"
     }
    }
   },

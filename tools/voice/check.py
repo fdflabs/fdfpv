@@ -12,8 +12,9 @@
 # credited file exists; and every take in the manifest was spoken from the
 # text lines.json has now, so a line edited without a rebuild fails; and
 # what Whisper heard of every take, kept in the manifest, still passes
-# build.py's gate (script.judge), so a loosened or bypassed gate fails. CI
-# runs it: no GPU, no model, no download.
+# build.py's gate (script.judge), so a loosened or bypassed gate fails. No
+# Spanish line addresses one pilot as tú. CI runs it: no GPU, no model, no
+# download.
 #
 # This file is part of WebFPVSimulator.
 #
