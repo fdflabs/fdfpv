@@ -3,9 +3,8 @@
  *
  * A base station on the pasture past the church, towers up the slope to
  * a top station at seven hundred metres, two cables as one closed line,
- * cabins riding it both ways on the step clock. The towers within seven
- * hundred metres of the strip are posts to the wing and the cabins are
- * moving boxes; the cable is nothing to it, on purpose: a wing that meets a fifty millimetre rope
+ * cabins riding it both ways on the step clock. The towers are posts to
+ * the wing and the cabins are moving boxes; the cable is nothing to it, on purpose: a wing that meets a fifty millimetre rope
  * at twenty metres a second is not a thing this simulator should
  * adjudicate, and a collider it cannot see would be the worst kind.
  *
@@ -353,9 +352,7 @@ export function buildLift(ctx) {
     const z = base.z + dir.y * t.d;
     const y = groundAt(t.d);
     tower(P, x, y, z, yaw, t.h);
-    if (Math.hypot(x, z) < 700) {
-      colliders.addPost('pole', x, z, y, y + t.h, 0.9);
-    }
+    colliders.addPost('pole', x, z, y, y + t.h, 0.9);
   }
   const structures = new THREE.Mesh(bakeParts(P), mat);
   structures.castShadow = true;

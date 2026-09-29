@@ -59,8 +59,8 @@
  * Two draws in all (and the same two in each shadow map), which the
  * rocks paid for (vegetation/rocks.js), with one vertex coloured
  * material (propMaterial says why). What a craft can hit has a collider,
- * within 700 m of the strip as nature.js's have: a hut its walls under
- * its roof (its box noted as a wall, so the meadow keeps off it and the
+ * wherever it stands: a hut its walls under its roof (its box noted as a
+ * wall within NOTE_R, so the meadow keeps off it and the
  * ground under it is the village's), a bale a sphere, a fence span, a gate and a delineator a
  * capsule, a stack of logs a box.
  *
@@ -98,7 +98,10 @@ import { stadel } from '../buildings/houses.js';
 import { roadside } from './roadside.js';
 import { standWalls } from '../../alps/roofs.js';
 
-const COLLIDE_R = 700;
+/* Huts note their footprints for the meadow and the forest to keep off
+ * only this far from the strip, as they always have: noting more would
+ * move the grass and the trees round every hut past it. */
+const NOTE_R = 700;
 /* Fence spans are drawn this far from the camera. */
 const FENCE_R = 420;
 /* A fence span, post to post, in metres along the ground. */
@@ -517,7 +520,6 @@ export function buildProps(ctx) {
   const { keepOff, coverOff, streamDist } = layout;
   const group = new THREE.Group();
   group.name = 'swiss2-props';
-  const near = (x, z) => colliders && Math.hypot(x, z) < COLLIDE_R;
   const village = ctx.footprints || [];
   const clearOfVillage = (x, z, d) => village.every((f) => Math.hypot(Math.max(f.minX - x, 0, x - f.maxX), Math.max(f.minZ - z, 0, z - f.maxZ)) >= d);
   const slopeAt = (x, z) => {
@@ -573,7 +575,7 @@ export function buildProps(ctx) {
       const built = hut(gone ? null : bake, m, heightAt, rng, spec);
       huts.push({ x, z });
       /* Every hut that is drawn is walls under a roof that is ground;
-       * within COLLIDE_R its old keep out box is still a footprint the
+       * within NOTE_R its old keep out box is still a footprint the
        * meadow and the forest keep off, as it always was, and past it
        * none is noted, as none ever was. */
       if (colliders && !gone) {
@@ -581,7 +583,7 @@ export function buildProps(ctx) {
         const s = Math.abs(Math.sin(yaw));
         const hx = (spec.w / 2 + 0.55) * c + (spec.d / 2 + 0.55) * s;
         const hz = (spec.w / 2 + 0.55) * s + (spec.d / 2 + 0.55) * c;
-        standWalls(colliders, [x - hx, built.box[1], z - hz, x + hx, built.box[4], z + hz], built.roofs, 0, { note: near(x, z), parts: built.parts });
+        standWalls(colliders, [x - hx, built.box[1], z - hz, x + hx, built.box[4], z + hz], built.roofs, 0, { note: Math.hypot(x, z) < NOTE_R, parts: built.parts });
         roofs.push(...built.roofs);
       }
     }
@@ -625,7 +627,7 @@ export function buildProps(ctx) {
         }
         const c = bale(m, heightAt, spec);
         bales += 1;
-        if (near(px, pz)) {
+        if (colliders) {
           colliders.addSphere('rock', c.x, c.y, c.z, 0.7);
         }
       }
@@ -673,7 +675,7 @@ export function buildProps(ctx) {
       const ay = heightAt(a.x, a.z);
       const by = heightAt(b.x, b.z);
       spans.push({ ax: a.x, ay, az: a.z, bx: b.x, by, bz: b.z });
-      if (near(mx, mz)) {
+      if (colliders) {
         colliders.add('pole', a.x, ay + 0.75, a.z, b.x, by + 0.75, b.z, 0.35);
       }
     }
@@ -693,7 +695,7 @@ export function buildProps(ctx) {
       }
       const y = delineator(m, heightAt, { x, z, yaw: roadYaw(z) });
       delineators += 1;
-      if (near(x, z)) {
+      if (colliders) {
         colliders.add('pole', x, y, z, x, y + 1.04, z, 0.08);
       }
     }
@@ -716,7 +718,7 @@ export function buildProps(ctx) {
         const ay = heightAt(ax, az);
         const by = heightAt(bx, bz);
         spans.push({ ax, ay, az, bx, by, bz });
-        if (near((ax + bx) / 2, (az + bz) / 2)) {
+        if (colliders) {
           colliders.add('pole', ax, ay + 0.75, az, bx, by + 0.75, bz, 0.35);
         }
       }
@@ -737,7 +739,7 @@ export function buildProps(ctx) {
     const yaw = Math.atan2(uz, ux);
     gate(m, heightAt, { ...g, yaw, w });
     margins.push({ ax: a.x, az: a.z, bx: b.x, bz: b.z });
-    if (near(g.x, g.z)) {
+    if (colliders) {
       const y = heightAt(g.x, g.z);
       colliders.add('pole', g.x - ux * w / 2, y + 0.7, g.z - uz * w / 2, g.x + ux * w / 2, y + 0.7, g.z + uz * w / 2, 0.45);
     }
@@ -745,7 +747,7 @@ export function buildProps(ctx) {
   };
   const stack = (spec) => {
     const built = logStack(m, heightAt, rng, spec);
-    if (near(spec.x, spec.z)) {
+    if (colliders) {
       const r = spec.len / 2 + 0.4;
       colliders.addBox('wall', spec.x - r, built.low, spec.z - r, spec.x + r, built.top, spec.z + r);
     }

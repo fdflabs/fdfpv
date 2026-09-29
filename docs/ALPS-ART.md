@@ -87,9 +87,10 @@ instanced. Cars are the town's builders and stay separate meshes.
   same names with physically based materials, so a new surface needs a
   name there too, or swiss2 refuses to build.
 - Colliders: `addBox('wall', ...)` per building, `addPost('tree', ...)`
-  and `addSphere('canopy', ...)` for trees within seven hundred metres
-  of the strip, `addPost('pole', ...)` for masts. Nothing beyond that
-  radius; the hillside is the first thing a wing hits out there.
+  and `addSphere('canopy', ...)` for every tree, `addPost('pole', ...)`
+  for masts. Every one, however far from the strip: the valley's floor
+  and its stream run three kilometres, and a pilot flies all of them
+  (scripts/collider-audit.js).
 - Deterministic and seeded. The same valley on every load. No
   `Math.random`.
 - No em dashes or en dashes anywhere. GPLv3 header on every file.
