@@ -333,8 +333,13 @@ export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'po
 const CELL = 8;
 /* Grid keys are packed integers rather than strings, because a string key is
  * an allocation per cell per frame. The world half extent in cells has to
- * fit in the packing, and 1024 cells at 8 m is 8192 m each way. */
-const GRID_HALF = 512;
+ * fit in the packing: 1024 cells at 8 m is 8192 m each way, which holds
+ * Itaipu's 10.24 km hero square (docs/ITAIPU-PLAN.md section 3) with
+ * 3 km to spare. It was 512 cells, 4096 m, and a collider past that was
+ * registered under a key that aliased another cell, so the craft's sweep
+ * never found it; registering throws now (CellIndex). The packed key is
+ * under 2^22, an exact small integer. */
+const GRID_HALF = 1024;
 const GRID_SPAN = GRID_HALF * 2;
 
 /* The cell a coordinate is in, and its packed key, as build() registers a
@@ -350,12 +355,12 @@ function gridKey(cx, cz) {
 /*
  * Fold a cell index into the range the packing above can address.
  *
- * build() keys a cell as (cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF), so
- * no collider was ever registered outside +/-GRID_HALF and a query there can
- * only miss. Clamping rather than skipping keeps the walk one shape, and it
- * bounds the walk by the GRID instead of by how far from the origin the
- * craft happens to be: a query 1e12 m out asks about one edge cell and gets
- * the same answer, where the unclamped walk asked about 1e11 of them.
+ * No collider is registered outside +/-GRID_HALF (CellIndex throws), so a
+ * query there can only miss. Clamping rather than skipping keeps the walk
+ * one shape, and it bounds the walk by the GRID instead of by how far from
+ * the origin the craft happens to be: a query 1e12 m out asks about one
+ * edge cell and gets the same answer, where the unclamped walk asked about
+ * 1e11 of them.
  */
 function clampCell(c) {
   if (c < -GRID_HALF) {
@@ -724,15 +729,148 @@ function copyContact(from, to) {
   to.part = from.part;
 }
 
-export class Colliders {
+/* The frozen arrays of a set of colliders, one entry per collider in each,
+ * and their types. `pass` is the crash world's flag (build()). */
+const FROZEN = [
+  ['fax', Float32Array], ['fay', Float32Array], ['faz', Float32Array],
+  ['fbx', Float32Array], ['fby', Float32Array], ['fbz', Float32Array],
+  ['fr', Float32Array], ['fkind', Int32Array], ['fbox', Uint8Array], ['pass', Uint8Array],
+];
+
+/* A ColliderList's construction arrays, frozen into FROZEN's typed arrays. */
+function freeze(list) {
+  const n = list.ax.length;
+  /* One copy per array, not one loop over all ten: a shared copy loop sees
+   * three array types, and build() measured 10 percent slower with it on
+   * swiss2's 235 000 colliders. */
+  return {
+    n,
+    fax: Float32Array.from(list.ax),
+    fay: Float32Array.from(list.ay),
+    faz: Float32Array.from(list.az),
+    fbx: Float32Array.from(list.bx),
+    fby: Float32Array.from(list.by),
+    fbz: Float32Array.from(list.bz),
+    fr: Float32Array.from(list.r),
+    fkind: Int32Array.from(list.kind),
+    fbox: Uint8Array.from(list.box),
+    pass: new Uint8Array(n),
+  };
+}
+
+/*
+ * THE BROADPHASE OF ONE SET OF COLLIDERS, built a slice at a time.
+ *
+ * A grid from packed cell key to an Int32Array of the set's own indices,
+ * 0 to n, in the order the colliders were added. Two passes, so each cell's
+ * array is exactly the right length: a per cell push array would be
+ * thousands of small allocations and would leave the grid full of holes.
+ *
+ * step(budget) registers colliders until it has written `budget` cell
+ * entries (a collider is never split, so one over a large footprint can
+ * run a step past it) and says whether the grid is done. build() runs it
+ * to the end at once; a streamed refill (StreamFill) runs it a slice per
+ * call, so a refill of tens of thousands of walls never holds a frame.
+ *
+ * A collider outside the grid THROWS rather than aliasing. The packing
+ * cannot address it, and it used to be registered under another cell's
+ * key, where the craft's sweep never looked for it: a solid wall that was
+ * air. A coordinate that is not a number throws for the same reason, since
+ * its cells are no cells at all and it would be registered nowhere.
+ */
+class CellIndex {
+  constructor(set) {
+    this.set = set;
+    /* The next collider to count, then the next to file. */
+    this.i = 0;
+    this.filing = false;
+    this.counts = new Map();
+    this.at = new Map();
+    this.grid = new Map();
+  }
+
+  step(budget) {
+    let left = budget;
+    if (!this.filing) {
+      left -= this.count(left);
+    }
+    if (this.filing && left > 0) {
+      this.file(left);
+    }
+    return this.filing && this.i === this.set.n;
+  }
+
+  /* The first pass: how many colliders each cell will hold. */
+  count(budget) {
+    const s = this.set;
+    const counts = this.counts;
+    let written = 0;
+    let i = this.i;
+    for (; i < s.n && written < budget; i += 1) {
+      const rr = s.fr[i];
+      const x0 = gridCell(Math.min(s.fax[i], s.fbx[i]) - rr);
+      const x1 = gridCell(Math.max(s.fax[i], s.fbx[i]) + rr);
+      const z0 = gridCell(Math.min(s.faz[i], s.fbz[i]) - rr);
+      const z1 = gridCell(Math.max(s.faz[i], s.fbz[i]) + rr);
+      if (!(x0 >= -GRID_HALF && x1 < GRID_HALF && z0 >= -GRID_HALF && z1 < GRID_HALF)) {
+        throw new Error(`collide: a ${KINDS[s.fkind[i]]} from (${s.fax[i]}, ${s.faz[i]}) to (${s.fbx[i]}, ${s.fbz[i]}) is outside the grid, which reaches ${GRID_HALF * CELL} m from the origin`);
+      }
+      for (let cx = x0; cx <= x1; cx += 1) {
+        for (let cz = z0; cz <= z1; cz += 1) {
+          const k = gridKey(cx, cz);
+          counts.set(k, (counts.get(k) ?? 0) + 1);
+        }
+      }
+      written += (x1 - x0 + 1) * (z1 - z0 + 1);
+    }
+    this.i = i;
+    if (i === s.n) {
+      this.filing = true;
+      this.i = 0;
+    }
+    return written;
+  }
+
+  /* The second: each collider's index into every cell it covers. */
+  file(budget) {
+    const s = this.set;
+    const { counts, at, grid } = this;
+    let written = 0;
+    let i = this.i;
+    for (; i < s.n && written < budget; i += 1) {
+      const rr = s.fr[i];
+      const x0 = gridCell(Math.min(s.fax[i], s.fbx[i]) - rr);
+      const x1 = gridCell(Math.max(s.fax[i], s.fbx[i]) + rr);
+      const z0 = gridCell(Math.min(s.faz[i], s.fbz[i]) - rr);
+      const z1 = gridCell(Math.max(s.faz[i], s.fbz[i]) + rr);
+      for (let cx = x0; cx <= x1; cx += 1) {
+        for (let cz = z0; cz <= z1; cz += 1) {
+          const k = gridKey(cx, cz);
+          const j = at.get(k) ?? 0;
+          let cell = grid.get(k);
+          if (cell === undefined) {
+            cell = new Int32Array(counts.get(k));
+            grid.set(k, cell);
+          }
+          cell[j] = i;
+          at.set(k, j + 1);
+        }
+      }
+      written += (x1 - x0 + 1) * (z1 - z0 + 1);
+    }
+    this.i = i;
+  }
+}
+
+/*
+ * How a set of colliders is written down before it is frozen: plain arrays,
+ * one push per collider, because this runs while a scene is built or a
+ * streamed set is refilled, never in a query. Colliders is one (the static
+ * set, frozen by build()) and so is StreamFill (a streamed set, frozen a
+ * slice at a time), so the two are added to by the same four calls.
+ */
+class ColliderList {
   constructor() {
-    /* A bit per KINDS index of kinds the craft's sweep (hit, hitParts) and
-     * the crash world's solids (crashworld.js nearestSolids) pass through:
-     * the soft pieces a plane meets as jelly instead (src/game/jelly.js).
-     * Set by the shell for the aircraft seated, 0 for a quad. */
-    this.softKinds = 0;
-    /* Construction time storage. Plain arrays here on purpose: this runs
-     * once while the scene is built, never per frame. */
     this.ax = [];
     this.ay = [];
     this.az = [];
@@ -744,11 +882,178 @@ export class Colliders {
     /* 0 for a capsule, 1 for a box. A box stores its minimum corner in a and
      * its maximum corner in b, with r = 0. */
     this.box = [];
-    this.built = false;
-    this.grid = null;
-    this.stamp = null;
-    this.queryId = 0;
     this.maxR = 0;
+  }
+
+  /*
+   * Add one capsule. kindName must be one of KINDS. A sphere is the same
+   * call with a === b.
+   */
+  add(kindName, ax, ay, az, bx, by, bz, r) {
+    const k = KINDS.indexOf(kindName);
+    if (k < 0) {
+      throw new Error(`collide: unknown kind ${kindName}`);
+    }
+    this.ax.push(ax);
+    this.ay.push(ay);
+    this.az.push(az);
+    this.bx.push(bx);
+    this.by.push(by);
+    this.bz.push(bz);
+    this.r.push(r);
+    this.kind.push(k);
+    this.box.push(0);
+    if (r > this.maxR) {
+      this.maxR = r;
+    }
+    return this;
+  }
+
+  /* A vertical capsule from y0 to y1 at (x, z): a trunk, a post, a leg. */
+  addPost(kindName, x, z, y0, y1, r) {
+    return this.add(kindName, x, y0, z, x, y1, z, r);
+  }
+
+  /* A sphere: a canopy blob, a rock. */
+  addSphere(kindName, x, y, z, r) {
+    return this.add(kindName, x, y, z, x, y, z, r);
+  }
+
+  /*
+   * One axis aligned box, given as two opposite corners. Returns its index,
+   * because the level crossing needs to raise and lower two of them.
+   *
+   * A BOX CONTRIBUTES NOTHING TO maxR, and that is load bearing rather than
+   * incidental. hit() pads every broadphase query by CRAFT_WORLD_R + maxR so that a
+   * fat capsule whose centre is outside the scanned cells is still found. A
+   * box is registered in the grid over its OWN footprint, every cell of it,
+   * so a query padded by CRAFT_WORLD_R alone already finds any box within reach.
+   * Giving a box a radius equal to its half diagonal would be the natural
+   * looking thing to do and would push maxR from the race field's 16 m cliff
+   * tier to whatever the city's longest wall is, which would make every
+   * frame's query scan a neighbourhood tens of metres across for nothing. So
+   * a box carries r = 0 and the padding stays honest.
+   */
+  addBox(kindName, x0, y0, z0, x1, y1, z1) {
+    const k = KINDS.indexOf(kindName);
+    if (k < 0) {
+      throw new Error(`collide: unknown kind ${kindName}`);
+    }
+    const i = this.ax.length;
+    this.ax.push(Math.min(x0, x1));
+    this.ay.push(Math.min(y0, y1));
+    this.az.push(Math.min(z0, z1));
+    this.bx.push(Math.max(x0, x1));
+    this.by.push(Math.max(y0, y1));
+    this.bz.push(Math.max(z0, z1));
+    this.r.push(0);
+    this.kind.push(k);
+    this.box.push(1);
+    return i;
+  }
+}
+
+/*
+ * THE NEXT STREAMED SET, being made: see Colliders.streamFill. Added to
+ * like a Colliders before build(), then step() freezes it and registers it
+ * in its own grid a slice per call, and the call that finishes swaps it in
+ * for the streamed set the queries answer from. Until then the old set is
+ * the one in force, whole, so a query never sees half of a refill.
+ */
+/* Cell entries a StreamFill step writes, measured by scripts/grid-check.js
+ * against the plan's 2 ms a frame (docs/ITAIPU-PLAN.md section 13). */
+export const STREAM_SLICE = 20000;
+
+class StreamFill extends ColliderList {
+  constructor(owner) {
+    super();
+    this.owner = owner;
+    this.set = null;
+    this.cells = null;
+  }
+
+  /* No more adds once a step has begun: what is registered is frozen. */
+  add(...args) {
+    if (this.set) {
+      throw new Error('collide: add to a streamed set after its first step');
+    }
+    return super.add(...args);
+  }
+
+  addBox(...args) {
+    if (this.set) {
+      throw new Error('collide: add to a streamed set after its first step');
+    }
+    return super.addBox(...args);
+  }
+
+  /* One slice of the refill; true on the call that swapped it in. A fill
+   * that a newer streamFill() replaced throws: its owner has moved on. */
+  step(budget = STREAM_SLICE) {
+    if (this.owner.fill !== this) {
+      throw new Error('collide: step on a streamed set that was replaced or already swapped in');
+    }
+    if (!this.set) {
+      this.set = freeze(this);
+      this.cells = new CellIndex(this.set);
+    }
+    if (!this.cells.step(budget)) {
+      return false;
+    }
+    this.owner.swapStream(this);
+    return true;
+  }
+}
+
+export class Colliders extends ColliderList {
+  constructor() {
+    super();
+    /* A bit per KINDS index of kinds the craft's sweep (hit, hitParts) and
+     * the crash world's solids (crashworld.js nearestSolids) pass through:
+     * the soft pieces a plane meets as jelly instead (src/game/jelly.js).
+     * Set by the shell for the aircraft seated, 0 for a quad. */
+    this.softKinds = 0;
+    this.built = false;
+    /*
+     * THREE SETS IN ONE INDEX SPACE, each with its own grid:
+     *
+     *   [0, staticCount)             what build() froze: `grid`
+     *   [staticCount, baseCount)     the streamed set (streamFill): `streamGrid`
+     *   [baseCount, count)           the in-sim builder's gates (setBuilt): `builtGrid`
+     *
+     * A grid holds a set's own indices, from 0, so a set that moves (the
+     * built gates, when the streamed set before them changes size) keeps
+     * its grid and only its offset changes. The frozen arrays (fax ... pass)
+     * are views of `store` exactly `count` long, because the crash world and
+     * the harness scan them to their length (crashworld.js nearestSolids,
+     * main.js __colliderBoxes). `store` has room past count so a refill
+     * writes in place rather than copying the static set again.
+     *
+     * baseCount keeps the meaning it has always had outside this file, the
+     * first index setBuilt added (jelly.js jellyNear, gapAt's frozenOnly),
+     * so the streamed set counts as the map's own, which it is.
+     */
+    this.grid = null;
+    this.streamGrid = null;
+    this.builtGrid = null;
+    this.store = null;
+    this.staticCount = 0;
+    this.streamCount = 0;
+    this.builtCount = 0;
+    this.baseMaxR = 0;
+    this.streamMaxR = 0;
+    this.builtMaxR = 0;
+    this.builtSet = null;
+    /* The refill in progress, and how many have been swapped in: anything
+     * holding a collider index across frames (the shell's crash world) must
+     * start again when this changes, since a streamed index now names
+     * another collider. */
+    this.fill = null;
+    this.streamGen = 0;
+    this.stamp = null;
+    /* The broadphase's candidates for the query in hand, scratch. */
+    this.cand = null;
+    this.queryId = 0;
     /* Query statistics, so a claim about the broadphase can be measured
      * rather than asserted. Written per query, never allocated. */
     this.lastCandidates = 0;
@@ -892,73 +1197,6 @@ export class Colliders {
   }
 
   /*
-   * Add one capsule. kindName must be one of KINDS. A sphere is the same
-   * call with a === b.
-   */
-  add(kindName, ax, ay, az, bx, by, bz, r) {
-    const k = KINDS.indexOf(kindName);
-    if (k < 0) {
-      throw new Error(`collide: unknown kind ${kindName}`);
-    }
-    this.ax.push(ax);
-    this.ay.push(ay);
-    this.az.push(az);
-    this.bx.push(bx);
-    this.by.push(by);
-    this.bz.push(bz);
-    this.r.push(r);
-    this.kind.push(k);
-    this.box.push(0);
-    if (r > this.maxR) {
-      this.maxR = r;
-    }
-    return this;
-  }
-
-  /* A vertical capsule from y0 to y1 at (x, z): a trunk, a post, a leg. */
-  addPost(kindName, x, z, y0, y1, r) {
-    return this.add(kindName, x, y0, z, x, y1, z, r);
-  }
-
-  /* A sphere: a canopy blob, a rock. */
-  addSphere(kindName, x, y, z, r) {
-    return this.add(kindName, x, y, z, x, y, z, r);
-  }
-
-  /*
-   * One axis aligned box, given as two opposite corners. Returns its index,
-   * because the level crossing needs to raise and lower two of them.
-   *
-   * A BOX CONTRIBUTES NOTHING TO maxR, and that is load bearing rather than
-   * incidental. hit() pads every broadphase query by CRAFT_WORLD_R + maxR so that a
-   * fat capsule whose centre is outside the scanned cells is still found. A
-   * box is registered in the grid over its OWN footprint, every cell of it,
-   * so a query padded by CRAFT_WORLD_R alone already finds any box within reach.
-   * Giving a box a radius equal to its half diagonal would be the natural
-   * looking thing to do and would push maxR from the race field's 16 m cliff
-   * tier to whatever the city's longest wall is, which would make every
-   * frame's query scan a neighbourhood tens of metres across for nothing. So
-   * a box carries r = 0 and the padding stays honest.
-   */
-  addBox(kindName, x0, y0, z0, x1, y1, z1) {
-    const k = KINDS.indexOf(kindName);
-    if (k < 0) {
-      throw new Error(`collide: unknown kind ${kindName}`);
-    }
-    const i = this.ax.length;
-    this.ax.push(Math.min(x0, x1));
-    this.ay.push(Math.min(y0, y1));
-    this.az.push(Math.min(z0, z1));
-    this.bx.push(Math.max(x0, x1));
-    this.by.push(Math.max(y0, y1));
-    this.bz.push(Math.max(z0, z1));
-    this.r.push(0);
-    this.kind.push(k);
-    this.box.push(1);
-    return i;
-  }
-
-  /*
    * Move one box's vertical extent after build(). The broadphase grid is
    * indexed on x and z only, so changing a y extent cannot invalidate it,
    * which is exactly why the level crossing's booms can be a static collider
@@ -1008,85 +1246,28 @@ export class Colliders {
    * add. Everything the per frame path touches is allocated here.
    */
   build() {
-    const n = this.ax.length;
-    const f = (arr) => {
-      const out = new Float32Array(n);
-      for (let i = 0; i < n; i += 1) {
-        out[i] = arr[i];
-      }
-      return out;
-    };
-    this.fax = f(this.ax);
-    this.fay = f(this.ay);
-    this.faz = f(this.az);
-    this.fbx = f(this.bx);
-    this.fby = f(this.by);
-    this.fbz = f(this.bz);
-    this.fr = f(this.r);
-    this.fkind = new Int32Array(n);
-    this.fbox = new Uint8Array(n);
-    for (let i = 0; i < n; i += 1) {
-      this.fkind[i] = this.kind[i];
-      this.fbox[i] = this.box[i];
-    }
+    const set = freeze(this);
+    const cells = new CellIndex(set);
+    cells.step(Infinity);
     /* Breakpoint scratch for the exact segment to box distance. Six axis
      * crossings plus the two segment ends, allocated once because hit() runs
      * every frame and P8 forbids an allocation there. */
     this.tBreaks = new Float64Array(8);
-
-    /* Two passes so each cell's Int32Array is exactly the right length: a
-     * per cell push array would be thousands of small allocations and would
-     * leave the grid full of holes. */
-    const counts = new Map();
-    const cellOf = (v) => Math.floor(v / CELL);
-    const key = (cx, cz) => (cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF);
-    for (let i = 0; i < n; i += 1) {
-      const rr = this.fr[i];
-      const x0 = cellOf(Math.min(this.fax[i], this.fbx[i]) - rr);
-      const x1 = cellOf(Math.max(this.fax[i], this.fbx[i]) + rr);
-      const z0 = cellOf(Math.min(this.faz[i], this.fbz[i]) - rr);
-      const z1 = cellOf(Math.max(this.faz[i], this.fbz[i]) + rr);
-      for (let cx = x0; cx <= x1; cx += 1) {
-        for (let cz = z0; cz <= z1; cz += 1) {
-          const k = key(cx, cz);
-          counts.set(k, (counts.get(k) ?? 0) + 1);
-        }
-      }
-    }
-    const grid = new Map();
-    for (const [k, c] of counts) {
-      grid.set(k, new Int32Array(c));
-    }
-    const fill = new Map();
-    for (let i = 0; i < n; i += 1) {
-      const rr = this.fr[i];
-      const x0 = cellOf(Math.min(this.fax[i], this.fbx[i]) - rr);
-      const x1 = cellOf(Math.max(this.fax[i], this.fbx[i]) + rr);
-      const z0 = cellOf(Math.min(this.faz[i], this.fbz[i]) - rr);
-      const z1 = cellOf(Math.max(this.faz[i], this.fbz[i]) + rr);
-      for (let cx = x0; cx <= x1; cx += 1) {
-        for (let cz = z0; cz <= z1; cz += 1) {
-          const k = key(cx, cz);
-          const at = fill.get(k) ?? 0;
-          grid.get(k)[at] = i;
-          fill.set(k, at + 1);
-        }
-      }
-    }
-    this.grid = grid;
-    this.stamp = new Int32Array(n);
-    /* Solids the craft's sweep passes through, one flag each, all clear
-     * unless the crash physics has taken a solid over: a tree's crown the
-     * plant models as foliage the craft flies INTO (sim_tree_add) must not
-     * also be a ball the sweep bounces it off. src/game/crashworld.js
-     * sets and clears them; with none set, hit() is what it always was. */
-    this.pass = new Uint8Array(n);
-    this.count = n;
-    /* What build() froze, for setBuilt to go back to. */
-    this.baseCount = n;
+    this.grid = cells.grid;
+    /* The static set is the store as frozen, with no room past it: a map
+     * that never streams and never builds keeps exactly these arrays. */
+    this.store = set;
+    this.stamp = new Int32Array(set.n);
+    this.cand = new Int32Array(set.n);
+    /* Solids the craft's sweep passes through (`pass`), one flag each, all
+     * clear unless the crash physics has taken a solid over: a tree's crown
+     * the plant models as foliage the craft flies INTO (sim_tree_add) must
+     * not also be a ball the sweep bounces it off. src/main.js sets and
+     * clears them; with none set, hit() is what it always was. */
+    this.staticCount = set.n;
     this.baseMaxR = this.maxR;
-    this.gridBase = new Map();
     this.built = true;
+    this.layout();
     /* The construction arrays are dead now and they are the larger copy. */
     this.ax = null;
     this.ay = null;
@@ -1100,6 +1281,46 @@ export class Colliders {
   }
 
   /*
+   * The counts, the offsets and the views after any set changed, and maxR,
+   * which pads every query by the fattest capsule of the three sets.
+   */
+  layout() {
+    this.baseCount = this.staticCount + this.streamCount;
+    this.count = this.baseCount + this.builtCount;
+    this.maxR = Math.max(this.baseMaxR, this.streamMaxR, this.builtMaxR);
+    for (const [name] of FROZEN) {
+      this[name] = this.store[name].subarray(0, this.count);
+    }
+  }
+
+  /*
+   * Write `set` (a frozen set, freeze()'s) at index `at` in the store,
+   * growing the store first when it has no room for `end` colliders. Its
+   * pass flags start clear, since nothing has taken a collider over that
+   * was not there a moment ago.
+   */
+  place(set, at, end) {
+    if (end > this.store.fax.length) {
+      /* Twice the dynamic part's room, so a refill of about the same size
+       * writes in place: growing copies the static set, and on swiss2's
+       * 235 000 colliders that is the one slice a refill can spend more
+       * than a couple of milliseconds on. */
+      const room = end + (end - this.staticCount);
+      const store = {};
+      for (const [name, Type] of FROZEN) {
+        store[name] = new Type(room);
+        store[name].set(this.store[name].subarray(0, this.count));
+      }
+      this.store = store;
+      this.stamp = new Int32Array(room);
+      this.cand = new Int32Array(room);
+    }
+    for (const [name] of FROZEN) {
+      this.store[name].set(set[name], at);
+    }
+  }
+
+  /*
    * THE BUILT GATES, the one set of static capsules that can change after
    * build(): the in-sim builder (src/builder/buildmode.js) places, moves and
    * deletes gates in a valley whose other few thousand colliders took most
@@ -1107,93 +1328,122 @@ export class Colliders {
    * by, bz, r }] in the world, and replaces the last one; [] leaves exactly
    * what build() froze.
    *
-   * They are ordinary colliders after the frozen ones, indices baseCount and
-   * up, registered in the same grid cells a build() would have put them in.
-   * Only the cells they touch are copied, and the originals are kept to put
-   * back, so the query paths (hit, gapAt, axisAt, crossedStatic, the crash
-   * world's solids) meet a built gate exactly as they meet a field gate and
-   * none of them changed. Called on an edit, never per frame.
+   * They are ordinary colliders after the frozen ones and the streamed set,
+   * indices baseCount and up, in a grid of their own that every query walks
+   * after the static one, so the query paths (hit, gapAt, axisAt,
+   * crossedStatic, the crash world's solids) meet a built gate exactly as
+   * they meet a field gate. The static grid is never touched. Called on an
+   * edit, never per frame.
    */
   setBuilt(caps) {
     if (!this.built) {
       throw new Error('collide: setBuilt before build');
     }
-    for (const [k, was] of this.gridBase) {
-      if (was) {
-        this.grid.set(k, was);
-      } else {
-        this.grid.delete(k);
-      }
+    const list = new ColliderList();
+    for (const c of caps) {
+      list.add(c.kind, c.ax, c.ay, c.az, c.bx, c.by, c.bz, c.r);
     }
-    this.gridBase.clear();
-    const base = this.baseCount;
-    const n = base + caps.length;
-    const grow = (arr, Type) => {
-      const out = new Type(n);
-      out.set(arr.subarray(0, base));
-      return out;
-    };
-    this.fax = grow(this.fax, Float32Array);
-    this.fay = grow(this.fay, Float32Array);
-    this.faz = grow(this.faz, Float32Array);
-    this.fbx = grow(this.fbx, Float32Array);
-    this.fby = grow(this.fby, Float32Array);
-    this.fbz = grow(this.fbz, Float32Array);
-    this.fr = grow(this.fr, Float32Array);
-    this.fkind = grow(this.fkind, Int32Array);
-    this.fbox = grow(this.fbox, Uint8Array);
-    /* The crash world's pass flags are on frozen trees and stay set. */
-    this.pass = grow(this.pass, Uint8Array);
-    this.stamp = new Int32Array(n);
-    let maxR = this.baseMaxR;
-    const add = new Map();
-    caps.forEach((c, j) => {
-      const k = KINDS.indexOf(c.kind);
-      if (k < 0) {
-        throw new Error(`collide: unknown kind ${c.kind}`);
-      }
-      const i = base + j;
-      this.fax[i] = c.ax;
-      this.fay[i] = c.ay;
-      this.faz[i] = c.az;
-      this.fbx[i] = c.bx;
-      this.fby[i] = c.by;
-      this.fbz[i] = c.bz;
-      this.fr[i] = c.r;
-      this.fkind[i] = k;
-      if (c.r > maxR) {
-        maxR = c.r;
-      }
-      /* The cells build() registers a capsule in, from the stored (Float32)
-       * figures it registers from. */
-      const rr = this.fr[i];
-      const x0 = gridCell(Math.min(this.fax[i], this.fbx[i]) - rr);
-      const x1 = gridCell(Math.max(this.fax[i], this.fbx[i]) + rr);
-      const z0 = gridCell(Math.min(this.faz[i], this.fbz[i]) - rr);
-      const z1 = gridCell(Math.max(this.faz[i], this.fbz[i]) + rr);
-      for (let cx = x0; cx <= x1; cx += 1) {
-        for (let cz = z0; cz <= z1; cz += 1) {
-          const key = gridKey(cx, cz);
-          if (!add.has(key)) {
-            add.set(key, []);
+    const set = freeze(list);
+    const cells = new CellIndex(set);
+    cells.step(Infinity);
+    this.place(set, this.baseCount, this.baseCount + set.n);
+    this.builtSet = set;
+    this.builtGrid = set.n ? cells.grid : null;
+    this.builtCount = set.n;
+    this.builtMaxR = list.maxR;
+    this.layout();
+    return this;
+  }
+
+  /*
+   * THE STREAMED SET: colliders a map keeps only near the pilot, because
+   * there are too many to keep everywhere (Itaipu's building walls and near
+   * trees, docs/ITAIPU-PLAN.md sections 7 and 9). The static set stays
+   * built; this set is replaced whole, by a refill:
+   *
+   *   const fill = colliders.streamFill();
+   *   fill.addBox(...); fill.addPost(...);   // as Colliders' own adds
+   *   while (!fill.step()) {}                // or one step() per frame
+   *
+   * Every query the static set answers answers the streamed one too (hit,
+   * hitParts, gapAt, axisAt, crossedStatic, interiorAt, and the crash
+   * world's nearestSolids, which scans the arrays), and until the step
+   * that finishes, the one before is the set in force, whole. A step is at
+   * most STREAM_SLICE cell entries of work, so a map steps one per frame (on
+   * the sim clock, so what the craft can hit is a function of the flight)
+   * and a refill never holds a frame; the first fill, at load, can run to
+   * the end at once and pays for growing the store there. A newer
+   * streamFill() replaces a fill still in progress, which is then dead.
+   *
+   * A swap moves every index at or after staticCount, so it bumps
+   * streamGen and clears the crash world's pass flags on the streamed and
+   * built sets: an index held from before names another collider now.
+   */
+  streamFill() {
+    if (!this.built) {
+      throw new Error('collide: streamFill before build');
+    }
+    this.fill = new StreamFill(this);
+    return this.fill;
+  }
+
+  /* The last step of a StreamFill: its set in, the built gates after it. */
+  swapStream(fill) {
+    const set = fill.set;
+    const at = this.staticCount;
+    this.place(set, at, at + set.n + this.builtCount);
+    if (this.builtSet) {
+      this.place(this.builtSet, at + set.n, at + set.n + this.builtCount);
+    }
+    this.streamGrid = set.n ? fill.cells.grid : null;
+    this.streamCount = set.n;
+    this.streamMaxR = fill.maxR;
+    this.streamGen += 1;
+    this.fill = null;
+    this.layout();
+  }
+
+  /*
+   * THE BROADPHASE: every collider registered in a cell from (cx0, cz0) to
+   * (cx1, cz1), each once, into `cand`, and how many. The static set first,
+   * then the streamed, then the built, each in its own grid's cell order,
+   * which for a map with neither is the order the queries walked before
+   * there were three. Stamps the query's id, so the caller's own per
+   * candidate work never sees a collider twice.
+   */
+  gather(cx0, cx1, cz0, cz1) {
+    this.queryId += 1;
+    let n = this.gatherSet(this.grid, 0, cx0, cx1, cz0, cz1, 0);
+    if (this.streamGrid !== null) {
+      n = this.gatherSet(this.streamGrid, this.staticCount, cx0, cx1, cz0, cz1, n);
+    }
+    if (this.builtGrid !== null) {
+      n = this.gatherSet(this.builtGrid, this.baseCount, cx0, cx1, cz0, cz1, n);
+    }
+    return n;
+  }
+
+  gatherSet(grid, offset, cx0, cx1, cz0, cz1, n) {
+    const id = this.queryId;
+    const stamp = this.stamp;
+    const cand = this.cand;
+    for (let cx = cx0; cx <= cx1; cx += 1) {
+      for (let cz = cz0; cz <= cz1; cz += 1) {
+        const bucket = grid.get((cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF));
+        if (bucket === undefined) {
+          continue;
+        }
+        for (let bi = 0; bi < bucket.length; bi += 1) {
+          const i = offset + bucket[bi];
+          if (stamp[i] !== id) {
+            stamp[i] = id;
+            cand[n] = i;
+            n += 1;
           }
-          add.get(key).push(i);
         }
       }
-    });
-    for (const [key, list] of add) {
-      const was = this.grid.get(key);
-      this.gridBase.set(key, was);
-      const cell = new Int32Array((was ? was.length : 0) + list.length);
-      if (was) {
-        cell.set(was);
-      }
-      cell.set(list, was ? was.length : 0);
-      this.grid.set(key, cell);
     }
-    this.maxR = maxR;
-    this.count = n;
-    return this;
+    return n;
   }
 
   /*
@@ -1520,46 +1770,34 @@ export class Colliders {
     if (!this.built) {
       return Infinity;
     }
-    this.queryId += 1;
-    const id = this.queryId;
     const pad = maxR + this.maxR;
     const cx0 = clampCell(Math.floor((px - pad) / CELL));
     const cx1 = clampCell(Math.floor((px + pad) / CELL));
     const cz0 = clampCell(Math.floor((pz - pad) / CELL));
     const cz1 = clampCell(Math.floor((pz + pad) / CELL));
     let best = Infinity;
-    for (let cx = cx0; cx <= cx1; cx += 1) {
-      for (let cz = cz0; cz <= cz1; cz += 1) {
-        const bucket = this.grid.get((cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF));
-        if (bucket === undefined) {
-          continue;
-        }
-        for (let bi = 0; bi < bucket.length; bi += 1) {
-          const i = bucket[bi];
-          if (this.stamp[i] === id) {
-            continue;
-          }
-          this.stamp[i] = id;
-          if ((frozenOnly && i >= this.baseCount) || (skipKinds & (1 << this.fkind[i]))) {
-            continue;
-          }
-          let gap;
-          if (this.fbox[i]) {
-            /* Outside vector, componentwise. Zero on every axis means the
-             * point is inside the box, which is a gap of zero. */
-            const ox = Math.max(this.fax[i] - px, 0, px - this.fbx[i]);
-            const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
-            const oz = Math.max(this.faz[i] - pz, 0, pz - this.fbz[i]);
-            gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
-          } else {
-            this.axisToPoint(i, px, py, pz);
-            const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
-            gap = d - this.fr[i];
-          }
-          if (gap < best) {
-            best = gap < 0 ? 0 : gap;
-          }
-        }
+    const n = this.gather(cx0, cx1, cz0, cz1);
+    const cand = this.cand;
+    for (let ci = 0; ci < n; ci += 1) {
+      const i = cand[ci];
+      if ((frozenOnly && i >= this.baseCount) || (skipKinds & (1 << this.fkind[i]))) {
+        continue;
+      }
+      let gap;
+      if (this.fbox[i]) {
+        /* Outside vector, componentwise. Zero on every axis means the
+         * point is inside the box, which is a gap of zero. */
+        const ox = Math.max(this.fax[i] - px, 0, px - this.fbx[i]);
+        const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
+        const oz = Math.max(this.faz[i] - pz, 0, pz - this.fbz[i]);
+        gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
+      } else {
+        this.axisToPoint(i, px, py, pz);
+        const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
+        gap = d - this.fr[i];
+      }
+      if (gap < best) {
+        best = gap < 0 ? 0 : gap;
       }
     }
     return best <= maxR ? best : Infinity;
@@ -1595,8 +1833,6 @@ export class Colliders {
     if (!this.built) {
       return false;
     }
-    this.queryId += 1;
-    const id = this.queryId;
     const pad = maxR + this.maxR;
     const cx0 = clampCell(Math.floor((px - pad) / CELL));
     const cx1 = clampCell(Math.floor((px + pad) / CELL));
@@ -1604,34 +1840,24 @@ export class Colliders {
     const cz1 = clampCell(Math.floor((pz + pad) / CELL));
     let best = Infinity;
     let bestI = -1;
-    for (let cx = cx0; cx <= cx1; cx += 1) {
-      for (let cz = cz0; cz <= cz1; cz += 1) {
-        const bucket = this.grid.get((cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF));
-        if (bucket === undefined) {
-          continue;
-        }
-        for (let bi = 0; bi < bucket.length; bi += 1) {
-          const i = bucket[bi];
-          if (this.stamp[i] === id) {
-            continue;
-          }
-          this.stamp[i] = id;
-          let gap;
-          if (this.fbox[i]) {
-            const ox = Math.max(this.fax[i] - px, 0, px - this.fbx[i]);
-            const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
-            const oz = Math.max(this.faz[i] - pz, 0, pz - this.fbz[i]);
-            gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
-          } else {
-            this.axisToPoint(i, px, py, pz);
-            const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
-            gap = d - this.fr[i];
-          }
-          if (gap < best) {
-            best = gap < 0 ? 0 : gap;
-            bestI = i;
-          }
-        }
+    const n = this.gather(cx0, cx1, cz0, cz1);
+    const cand = this.cand;
+    for (let ci = 0; ci < n; ci += 1) {
+      const i = cand[ci];
+      let gap;
+      if (this.fbox[i]) {
+        const ox = Math.max(this.fax[i] - px, 0, px - this.fbx[i]);
+        const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
+        const oz = Math.max(this.faz[i] - pz, 0, pz - this.fbz[i]);
+        gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
+      } else {
+        this.axisToPoint(i, px, py, pz);
+        const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
+        gap = d - this.fr[i];
+      }
+      if (gap < best) {
+        best = gap < 0 ? 0 : gap;
+        bestI = i;
       }
     }
     if (bestI < 0 || best > maxR) {
@@ -1829,8 +2055,6 @@ export class Colliders {
     if (CRAFT_PARTS) {
       return this.hitParts(px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW);
     }
-    this.queryId += 1;
-    const id = this.queryId;
 
     /* Body axes from the world quaternion. Identity is a level quad
      * pointing world -Z, motors on the diagonals of XZ.
@@ -1908,85 +2132,75 @@ export class Colliders {
     let bestT = Infinity;
     let bestI = -1;
 
-    for (let cx = cx0; cx <= cx1; cx += 1) {
-      for (let cz = cz0; cz <= cz1; cz += 1) {
-        const bucket = this.grid.get((cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF));
-        if (bucket === undefined) {
+    const n = this.gather(cx0, cx1, cz0, cz1);
+    const cand = this.cand;
+    for (let ci = 0; ci < n; ci += 1) {
+      const i = cand[ci];
+      if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
+        continue;
+      }
+      candidates += 1;
+
+      if (this.fbox[i]) {
+        /* Cheap rejection first: the segment against the box grown by
+         * CRAFT_WORLD_R. The grown box contains the true Minkowski sum of
+         * the box and the ellipsoid (vh <= CRAFT_WORLD_R), so a miss here is a
+         * real miss and the exact test never runs for the thousands of
+         * walls a city query sweeps past. */
+        const gx0 = this.fax[i] - CRAFT_WORLD_R;
+        const gy0 = this.fay[i] - CRAFT_WORLD_R;
+        const gz0 = this.faz[i] - CRAFT_WORLD_R;
+        const gx1 = this.fbx[i] + CRAFT_WORLD_R;
+        const gy1 = this.fby[i] + CRAFT_WORLD_R;
+        const gz1 = this.fbz[i] + CRAFT_WORLD_R;
+        if (
+          (px < gx0 && qx < gx0) || (px > gx1 && qx > gx1) ||
+          (py < gy0 && qy < gy0) || (py > gy1 && qy > gy1) ||
+          (pz < gz0 && qz < gz0) || (pz > gz1 && qz > gz1)
+        ) {
           continue;
         }
-        for (let bi = 0; bi < bucket.length; bi += 1) {
-          const i = bucket[bi];
-          if (this.stamp[i] === id) {
-            continue;
-          }
-          this.stamp[i] = id;
-          if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
-            continue;
-          }
-          candidates += 1;
-
-          if (this.fbox[i]) {
-            /* Cheap rejection first: the segment against the box grown by
-             * CRAFT_WORLD_R. The grown box contains the true Minkowski sum of
-             * the box and the ellipsoid (vh <= CRAFT_WORLD_R), so a miss here is a
-             * real miss and the exact test never runs for the thousands of
-             * walls a city query sweeps past. */
-            const gx0 = this.fax[i] - CRAFT_WORLD_R;
-            const gy0 = this.fay[i] - CRAFT_WORLD_R;
-            const gz0 = this.faz[i] - CRAFT_WORLD_R;
-            const gx1 = this.fbx[i] + CRAFT_WORLD_R;
-            const gy1 = this.fby[i] + CRAFT_WORLD_R;
-            const gz1 = this.fbz[i] + CRAFT_WORLD_R;
-            if (
-              (px < gx0 && qx < gx0) || (px > gx1 && qx > gx1) ||
-              (py < gy0 && qy < gy0) || (py > gy1 && qy > gy1) ||
-              (pz < gz0 && qz < gz0) || (pz > gz1 && qz > gz1)
-            ) {
-              continue;
+        const t = this.boxEarliestT(i, px, py, pz, d1x, d1y, d1z, crx, vh, crz);
+        if (t >= 0 && t < bestT) {
+          bestT = t;
+          bestI = i;
+        }
+      } else {
+        const reach = this.fr[i] + CRAFT_WORLD_R;
+        let t = this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reach * reach);
+        if (t >= 0) {
+          /*
+           * Support refinement: the conservative sphere touched; ask
+           * whether the X does. Closest approach, not first sphere
+           * contact: passing level under a tube, the sphere first
+           * touches while the approach is still mostly horizontal.
+           * Four-disc support along that direction, and vh when the
+           * contact is more vertical than the X is thick.
+           */
+          const sCA = this.closestApproachS(i, px, py, pz, d1x, d1y, d1z, a);
+          this.axisToPoint(i, px + d1x * sCA, py + d1y * sCA, pz + d1z * sCA);
+          const nx = this.nx;
+          const ny = this.ny;
+          const nz = this.nz;
+          const nl2 = nx * nx + ny * ny + nz * nz;
+          if (nl2 > 1e-18) {
+            let cr = discSupport(nx, ny, nz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz);
+            const nyAbs = Math.abs(ny) / Math.sqrt(nl2);
+            if (vh * nyAbs > cr) {
+              cr = vh * nyAbs;
             }
-            const t = this.boxEarliestT(i, px, py, pz, d1x, d1y, d1z, crx, vh, crz);
-            if (t >= 0 && t < bestT) {
-              bestT = t;
-              bestI = i;
+            if (cr > CRAFT_WORLD_R) {
+              cr = CRAFT_WORLD_R;
             }
-          } else {
-            const reach = this.fr[i] + CRAFT_WORLD_R;
-            let t = this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reach * reach);
-            if (t >= 0) {
-              /*
-               * Support refinement: the conservative sphere touched; ask
-               * whether the X does. Closest approach, not first sphere
-               * contact: passing level under a tube, the sphere first
-               * touches while the approach is still mostly horizontal.
-               * Four-disc support along that direction, and vh when the
-               * contact is more vertical than the X is thick.
-               */
-              const sCA = this.closestApproachS(i, px, py, pz, d1x, d1y, d1z, a);
-              this.axisToPoint(i, px + d1x * sCA, py + d1y * sCA, pz + d1z * sCA);
-              const nx = this.nx;
-              const ny = this.ny;
-              const nz = this.nz;
-              const nl2 = nx * nx + ny * ny + nz * nz;
-              if (nl2 > 1e-18) {
-                let cr = discSupport(nx, ny, nz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz);
-                const nyAbs = Math.abs(ny) / Math.sqrt(nl2);
-                if (vh * nyAbs > cr) {
-                  cr = vh * nyAbs;
-                }
-                if (cr > CRAFT_WORLD_R) {
-                  cr = CRAFT_WORLD_R;
-                }
-                const reach2 = this.fr[i] + cr;
-                if (reach2 < reach - 1e-9) {
-                  t = this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reach2 * reach2);
-                }
-              }
-            }
-            if (t >= 0 && t < bestT) {
-              bestT = t;
-              bestI = i;
+            const reach2 = this.fr[i] + cr;
+            if (reach2 < reach - 1e-9) {
+              t = this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reach2 * reach2);
             }
           }
+        }
+        if (t >= 0 && t < bestT) {
+          bestT = t;
+          bestI = i;
         }
       }
     }
@@ -2237,8 +2451,6 @@ export class Colliders {
    */
   hitParts(px, py, pz, qx, qy, qz, aqX, aqY, aqZ, aqW) {
     const hull = CRAFT_PARTS;
-    this.queryId += 1;
-    const id = this.queryId;
     const ax = bodyAxes(aqX, aqY, aqZ, aqW, this.partAxes);
     const reach = hull.reach;
     const pad = (reach > CRAFT_WORLD_R ? reach : CRAFT_WORLD_R) + this.maxR;
@@ -2260,73 +2472,63 @@ export class Colliders {
     let bestMoving = -1;
     let candidates = 0;
 
-    for (let cx = cx0; cx <= cx1; cx += 1) {
-      for (let cz = cz0; cz <= cz1; cz += 1) {
-        const bucket = this.grid.get((cx + GRID_HALF) * GRID_SPAN + (cz + GRID_HALF));
-        if (bucket === undefined) {
+    const n = this.gather(cx0, cx1, cz0, cz1);
+    const cand = this.cand;
+    for (let ci = 0; ci < n; ci += 1) {
+      const i = cand[ci];
+      if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
+        continue;
+      }
+      candidates += 1;
+      if (this.fbox[i]) {
+        if (
+          (px < this.fax[i] - reach && qx < this.fax[i] - reach)
+          || (px > this.fbx[i] + reach && qx > this.fbx[i] + reach)
+          || (py < this.fay[i] - reach && qy < this.fay[i] - reach)
+          || (py > this.fby[i] + reach && qy > this.fby[i] + reach)
+          || (pz < this.faz[i] - reach && qz < this.faz[i] - reach)
+          || (pz > this.fbz[i] + reach && qz > this.fbz[i] + reach)
+        ) {
           continue;
         }
-        for (let bi = 0; bi < bucket.length; bi += 1) {
-          const i = bucket[bi];
-          if (this.stamp[i] === id) {
+        lo[0] = this.fax[i];
+        lo[1] = this.fay[i];
+        lo[2] = this.faz[i];
+        hi[0] = this.fbx[i];
+        hi[1] = this.fby[i];
+        hi[2] = this.fbz[i];
+        if (this.partsAgainstBox(hull, ax, px, py, pz, d1x, d1y, d1z, lo, hi, got, best)) {
+          bestI = i;
+        }
+      } else {
+        const r = this.fr[i];
+        const reachR = reach + r;
+        if (this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reachR * reachR) < 0) {
+          continue;
+        }
+        let won = false;
+        const c = this.partC;
+        for (let k = 0; k < hull.n; k += 1) {
+          if (!hull.live[k]) {
             continue;
           }
-          this.stamp[i] = id;
-          if (this.pass[i] !== 0 || (this.softKinds & (1 << this.fkind[i]))) {
+          /* The part's own sphere first: most parts are nowhere near. */
+          partCentre(hull, k, ax, px, py, pz, c);
+          const rr = hull.rho[k] + r;
+          if (this.capsuleEarliestT(i, c[0], c[1], c[2], d1x, d1y, d1z, a, rr * rr) < 0) {
             continue;
           }
-          candidates += 1;
-          if (this.fbox[i]) {
-            if (
-              (px < this.fax[i] - reach && qx < this.fax[i] - reach)
-              || (px > this.fbx[i] + reach && qx > this.fbx[i] + reach)
-              || (py < this.fay[i] - reach && qy < this.fay[i] - reach)
-              || (py > this.fby[i] + reach && qy > this.fby[i] + reach)
-              || (pz < this.faz[i] - reach && qz < this.faz[i] - reach)
-              || (pz > this.fbz[i] + reach && qz > this.fbz[i] + reach)
-            ) {
-              continue;
-            }
-            lo[0] = this.fax[i];
-            lo[1] = this.fay[i];
-            lo[2] = this.faz[i];
-            hi[0] = this.fbx[i];
-            hi[1] = this.fby[i];
-            hi[2] = this.fbz[i];
-            if (this.partsAgainstBox(hull, ax, px, py, pz, d1x, d1y, d1z, lo, hi, got, best)) {
-              bestI = i;
-            }
-          } else {
-            const r = this.fr[i];
-            const reachR = reach + r;
-            if (this.capsuleEarliestT(i, px, py, pz, d1x, d1y, d1z, a, reachR * reachR) < 0) {
-              continue;
-            }
-            let won = false;
-            const c = this.partC;
-            for (let k = 0; k < hull.n; k += 1) {
-              if (!hull.live[k]) {
-                continue;
-              }
-              /* The part's own sphere first: most parts are nowhere near. */
-              partCentre(hull, k, ax, px, py, pz, c);
-              const rr = hull.rho[k] + r;
-              if (this.capsuleEarliestT(i, c[0], c[1], c[2], d1x, d1y, d1z, a, rr * rr) < 0) {
-                continue;
-              }
-              const t = sweepPartCapsule(
-                hull, k, ax, px, py, pz, d1x, d1y, d1z,
-                this.fax[i], this.fay[i], this.faz[i], this.fbx[i], this.fby[i], this.fbz[i], r, got,
-              );
-              if (t >= 0 && partBetter(got, best)) {
-                copyContact(got, best);
-                won = true;
-              }
-            }
-            if (won) {
-              bestI = i;
-            }
+          const t = sweepPartCapsule(
+            hull, k, ax, px, py, pz, d1x, d1y, d1z,
+            this.fax[i], this.fay[i], this.faz[i], this.fbx[i], this.fby[i], this.fbz[i], r, got,
+          );
+          if (t >= 0 && partBetter(got, best)) {
+            copyContact(got, best);
+            won = true;
           }
+        }
+        if (won) {
+          bestI = i;
         }
       }
     }
@@ -2562,8 +2764,14 @@ export class Colliders {
       byKind,
       boxes,
       capsules: (this.count ?? 0) - boxes,
+      static: this.staticCount,
+      streamed: this.streamCount,
+      builtGates: this.builtCount,
+      streamGen: this.streamGen,
       cellSize: CELL,
+      gridHalfExtent: GRID_HALF * CELL,
       cells: this.grid ? this.grid.size : 0,
+      streamCells: this.streamGrid ? this.streamGrid.size : 0,
       maxRadius: this.maxR,
       craftRadius: CRAFT_WORLD_R,
       moving: this.movingCount,
