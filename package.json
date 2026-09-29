@@ -29,6 +29,7 @@
     "check:trees": "node scripts/tree-check.js",
     "check:colliders": "node scripts/collider-audit.js",
     "check:traffic": "node scripts/traffic-check.js",
+    "check:traffic-sync": "node scripts/traffic-sync-check.js",
     "crash:rules": "node scripts/crash-rules-selftest.js",
     "check:orbit": "node scripts/orbit-check.js",
     "check:path": "node scripts/path-check.js",

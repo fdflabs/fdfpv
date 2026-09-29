@@ -11144,6 +11144,8 @@ export async function boot({
    */
   let titleAcc = 0;
   let titleStepMs = 0;
+  /* The clock the last drawn frame's world was animated at. */
+  let animDrawnMs = 0;
   /* Wall time of the last frame the cap let through. */
   let capLastDraw = -1e9;
 
@@ -12629,11 +12631,19 @@ export async function boot({
       titleStepMs += ts > 100 ? 100 : ts;
     }
     if (worldLive) {
-      view.updateAnim(
-        mode === 'title'
-          ? titleStepMs
-          : (mode === 'results' ? simTimeMs + Math.max(0, finishCamMs) : simTimeMs),
-      );
+      let animMs = titleStepMs;
+      if (mode === 'replay') {
+        /* The clip's own clock at the playhead, so the car under the
+         * craft is where it was then; a clip saved before it had one is
+         * drawn at the live clock. */
+        animMs = crashCam.animMs() ?? simTimeMs;
+      } else if (mode === 'results') {
+        animMs = simTimeMs + Math.max(0, finishCamMs);
+      } else if (mode !== 'title') {
+        animMs = simTimeMs;
+      }
+      view.updateAnim(animMs);
+      animDrawnMs = animMs;
 
       const focus = camOverride || (build && build.cameraLive) || mode === 'replay'
         ? shell.camera.position
@@ -14766,6 +14776,12 @@ export async function boot({
     view.updateAnim(step);
     return view.stats ? (view.stats().trainOffset ?? null) : null;
   };
+  /* The clock the last frame's world was animated at, and the lap clock,
+   * for scripts/traffic-sync-check.js. Harness only. */
+  window.__traffic = () => ({
+    drawn: animDrawnMs,
+    lap: simTimeMs,
+  });
   /* The active map's scene graph, for measurement. tests/lib/checks.js walks
    * it to assert that reference objects measure what this project claims they
    * measure, which is the only way a scale error gets caught by a check
@@ -15067,6 +15083,8 @@ export async function boot({
         ? { finishes: look.finishes, decals: look.decals } : null;
     },
     mapId: () => view.id,
+    /* The clock this frame's world is animated at, for the row. */
+    animMs: () => simTimeMs,
     /* What the replay's paper is drawn lying on, as the live paper is. */
     paperFloor: paperFloorAt,
     spawn: (out) => {
