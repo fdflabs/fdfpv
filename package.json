@@ -89,6 +89,7 @@
     "marks:selftest": "node scripts/peermarks-selftest.js",
     "marks:twopage": "node scripts/peermarks-two-page.js",
     "combat:harness": "node scripts/combat-harness.js",
+    "warhunt:check": "node scripts/warhunt-check.js",
     "combat:twopage": "node scripts/combat-two-page.js",
     "combat:restart": "node scripts/combat-restart-check.js",
     "combat:water": "node scripts/combat-water-check.js",
