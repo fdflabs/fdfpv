@@ -29,8 +29,9 @@
  *
  *   BOATS: a mooring field of rowing boats, motor launches and a yacht
  *   or two on buoys off the hamlet and off the jetty, and one sailing
- *   boat under way, back and forth across the wind (update() moves it;
- *   `boat` is where it is and how fast, for the wake the water draws).
+ *   boat under way, back and forth across the wind (updateAnim() moves
+ *   it on the step clock; `boat` is where it is and how fast, for the
+ *   wake the water draws).
  *
  *   STONES on the beach and in the shallows either side of the jetty,
  *   where the lake-edge view looks down into the water.
@@ -40,8 +41,11 @@
  * have its photographed surfaces and its detail, and the detail only
  * near. Every building is walls under a roof that is ground. The rest
  * is vertex coloured, the props' one program (mesh.js), in one static
- * mesh and the sailing boat's own, and has no collider: none of it is
- * within seven hundred metres of the strip, as nature.js's jetty is not.
+ * mesh and the sailing boat's own. What a craft can hit is solid wherever
+ * it is: a moored boat's hull a capsule and a yacht's mast a post, the
+ * promenade's lamps, benches and bins, and the sailing boat moving boxes
+ * on the step clock, as the valley's traffic is (alps/life.js). The
+ * stones on the beach are ankle high and stay drawn only.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -69,6 +73,7 @@ import {
   UP, Mesher, propMaterial, shade, box, frame, roofProxy, albedoOf,
 } from './mesh.js';
 import { standWalls } from '../../alps/roofs.js';
+import { setSolidSurface } from '../../../game/crashworld.js';
 import { frame as kitFrame } from '../buildings/parts.js';
 import { chalet, church } from '../buildings/houses.js';
 import {
@@ -243,9 +248,25 @@ function hull(m, c, ex, ey, ez, { len, beam, depth, colour, inside, stripe = nul
 /* Boats on the lake's moorings: a rowing boat, a motor launch, a small
  * yacht with her sail furled on the boom. */
 const HULLS = [[0.55, 0.55, 0.53], [0.52, 0.52, 0.5], [0.08, 0.14, 0.24], [0.22, 0.04, 0.03], [0.2, 0.12, 0.06]];
-function mooredBoat(m, rng, x, z, yaw, kind) {
+function mooredBoat(m, rng, x, z, yaw, kind, colliders) {
   const [ex, ey, ez] = frame(yaw);
   const c = new THREE.Vector3(x, LAKE_Y + 0.02, z);
+  /* The hull a capsule down its length, as round as its beam, which
+   * holds its sheer, a launch's canvas and a yacht's cabin and boom; a
+   * yacht's mast a post. Glass fibre is a plastic, and PVC the plant's
+   * nearest; a rowing boat is timber. */
+  if (colliders) {
+    const [len, beam] = { row: [4.2, 1.4], launch: [6, 2.1], yacht: [7.5, 2.4] }[kind];
+    const a = c.clone().addScaledVector(ex, -len / 2 + beam / 2).addScaledVector(ey, 0.1);
+    const b = c.clone().addScaledVector(ex, len / 2 - beam / 2).addScaledVector(ey, 0.1);
+    colliders.add('obstacle', a.x, a.y, a.z, b.x, b.y, b.z, beam / 2);
+    setSolidSurface(colliders, colliders.ax.length - 1, kind === 'row' ? 'wood' : 'pvc');
+    if (kind === 'yacht') {
+      const mast = c.clone().addScaledVector(ex, 0.6);
+      colliders.addPost('pole', mast.x, mast.z, c.y + 1, c.y + 9.8, 0.06);
+      setSolidSurface(colliders, colliders.ax.length - 1, 'metal');
+    }
+  }
   const colour = HULLS[Math.floor(rng() * HULLS.length)];
   if (kind === 'row') {
     hull(m, c, ex, ey, ez, { len: 4.2, beam: 1.4, depth: 0.7, colour, inside: [0.2, 0.12, 0.06], stripe: rng() < 0.5 ? [0.3, 0.04, 0.03] : null });
@@ -263,6 +284,10 @@ function mooredBoat(m, rng, x, z, yaw, kind) {
   /* The buoy she lies to, off her bow. */
   const b = c.clone().addScaledVector(ex, kind === 'yacht' ? 6.5 : 4.2);
   box(m, b.setY(LAKE_Y + 0.12), ex, ey, ez, 0.22, 0.2, 0.22, rng() < 0.5 ? [0.6, 0.6, 0.58] : [0.7, 0.2, 0.02]);
+  if (colliders) {
+    colliders.addSphere('obstacle', b.x, b.y, b.z, 0.3);
+    setSolidSurface(colliders, colliders.ax.length - 1, 'pvc');
+  }
 }
 
 /*
@@ -442,10 +467,24 @@ function onCourse(s) {
 }
 
 /* Metres a second the sailing boat makes, and where on its course it is
- * when the valley is first drawn: out in the middle of the lake, where
- * the north shore's views and the view from above all see it. */
+ * at the clock's zero: out in the middle of the lake, where the north
+ * shore's views and the view from above all see it. */
 const BOAT_SPEED = 2.4;
 const BOAT_START = 300;
+/*
+ * The sailing boat's moving boxes, in its own frame (sailingBoat's: x
+ * along, y up, z across, the sails to -z before the mirror), each
+ * [along, up, across, half side, half height]: three down the hull, and
+ * the sails in three bands narrowing to the head, where the heel carries
+ * them a metre and a half to leeward. A box is axis aligned and never
+ * turns, so each is a square column, as alps/life.js cuts its vehicles.
+ */
+const SAIL_BOXES = [
+  [-2.15, 0.3, 0, 1.1, 0.8], [0, 0.3, 0, 1.1, 0.8], [2.15, 0.3, 0, 1.1, 0.8],
+  [-2.0, 2.3, -0.8, 0.75, 1.3], [-0.6, 2.3, -0.8, 0.75, 1.3], [0.8, 2.3, -0.8, 0.75, 1.3], [2.2, 2.3, -0.8, 0.75, 1.3],
+  [-1.1, 5.0, -1.0, 0.65, 1.4], [0.1, 5.0, -1.0, 0.65, 1.4], [1.3, 5.0, -1.0, 0.65, 1.4],
+  [0.05, 7.95, -1.3, 0.8, 1.55],
+];
 /*
  * The promenade's path along `line` (points a few metres apart), laid as
  * the lake's paths are: compacted gravel of a warm grey brown, darker and
@@ -753,7 +792,7 @@ export function buildLakeside({
     if (LAKE_Y - heightAt(x, z) < 1.2) {
       return;
     }
-    mooredBoat(m, rng, x, z, windYaw + (rng() - 0.5) * 0.3, kinds[Math.floor(rng() * kinds.length)]);
+    mooredBoat(m, rng, x, z, windYaw + (rng() - 0.5) * 0.3, kinds[Math.floor(rng() * kinds.length)], colliders);
     boats += 1;
   };
   for (let k = 0; k < 16; k += 1) {
@@ -825,16 +864,28 @@ export function buildLakeside({
   };
   const BENCHES = [112, 150, 189, 228, 268, 310, 352, 396, 438];
   const LAMPS = [131, 168, 200, 248, 289, 331, 374, 417];
+  /* A bench a bar along its seat and back, a bin and a lamp posts. */
+  const solid = (kind, surface, ...args) => {
+    if (colliders) {
+      colliders.add(kind, ...args);
+      setSolidSurface(colliders, colliders.ax.length - 1, surface);
+    }
+  };
   BENCHES.forEach((bx, k) => {
     const p = besidePath(bx);
     bench(m, p.x, p.y + 0.02, p.z, p.yaw);
+    solid('obstacle', 'wood', p.x - p.oz * 0.7, p.y + 0.5, p.z + p.ox * 0.7, p.x + p.oz * 0.7, p.y + 0.5, p.z + p.ox * 0.7, 0.45);
     if (k % 2 === 0) {
-      bin(m, p.x + p.oz * 1.5, p.y, p.z - p.ox * 1.5);
+      const bx2 = p.x + p.oz * 1.5;
+      const bz2 = p.z - p.ox * 1.5;
+      solid('pole', 'metal', bx2, p.y, bz2, bx2, p.y + 0.7, bz2, 0.2);
+      bin(m, bx2, p.y, bz2);
     }
   });
   for (const lx of LAMPS) {
     const p = besidePath(lx);
     lamp(m, p.x, p.y, p.z);
+    solid('pole', 'metal', p.x, p.y, p.z, p.x, p.y + 4.2, p.z, 0.12);
   }
   const benches = BENCHES.length;
   const lamps = LAMPS.length;
@@ -865,25 +916,54 @@ export function buildLakeside({
   mesh.receiveShadow = true;
   group.add(mesh);
 
-  /* The sailing boat under way. */
+  /* The sailing boat under way, a pure function of the step clock as
+   * the valley's traffic is (alps/life.js), and solid on it: its boxes
+   * are moved by what it could cover since the last update, and seated
+   * with no sweep when the clock jumps (a throw, the title's loop). */
   const sail = new THREE.Mesh(sailingBoat(), mat);
   sail.name = 'swiss2-sailing-boat';
   sail.castShadow = true;
   group.add(sail);
   const boat = new THREE.Vector4();
-  let s = BOAT_START;
-  const place = () => {
-    const p = onCourse(s);
+  const sailBoxes = colliders ? SAIL_BOXES.map(([, , , h, hy]) => {
+    const i = colliders.addMoving('obstacle', h, hy, h);
+    colliders.seatMoving(i, 0, -1e4, 0);
+    return i;
+  }) : [];
+  let lastMs = null;
+  const place = (tMs) => {
+    const p = onCourse(BOAT_START + BOAT_SPEED * tMs * 0.001);
     sail.position.set(p.x, LAKE_Y, p.z);
     sail.rotation.set(0, Math.atan2(-p.hz, p.hx), 0);
     /* The wind over the port side or the starboard: heel and main to
      * the other. */
     const cross = p.hx * WIND.y - p.hz * WIND.x;
-    sail.scale.set(1, 1, cross > 0 ? -1 : 1);
+    const flip = cross > 0 ? -1 : 1;
+    sail.scale.set(1, 1, flip);
     sail.updateMatrixWorld();
     boat.set(p.x, p.z, p.hx * BOAT_SPEED, p.hz * BOAT_SPEED);
+    /* Local z is world (-hz, hx) turned with the hull, mirrored on the
+     * other tack. */
+    const dt = lastMs === null ? -1 : tMs - lastMs;
+    lastMs = tMs;
+    const reach = (BOAT_SPEED + 1) * dt * 0.001 + 0.05;
+    SAIL_BOXES.forEach(([a, up, c], k) => {
+      const i = sailBoxes[k];
+      if (i === undefined) {
+        return;
+      }
+      const x = p.x + p.hx * a - p.hz * c * flip;
+      const y = LAKE_Y + up;
+      const z = p.z + p.hz * a + p.hx * c * flip;
+      const moved = Math.hypot(x - colliders.movingCx[i], y - colliders.movingCy[i], z - colliders.movingCz[i]);
+      if (dt >= 0 && dt <= 250 && moved <= reach) {
+        colliders.setMovingCentre(i, x, y, z);
+      } else {
+        colliders.seatMoving(i, x, y, z);
+      }
+    });
   };
-  place();
+  place(0);
 
   for (const f of walls) {
     footprints.push(f);
@@ -891,9 +971,15 @@ export function buildLakeside({
   return {
     group,
     boat,
-    update(dtMs) {
-      s += (BOAT_SPEED * Math.min(dtMs, 100)) / 1000;
-      place();
+    /* The map's updateAnim and sweepSolids (alps/life.js): the boat at
+     * the step clock's tMs, and over a contact pass's stretch of it. */
+    updateAnim(tMs) {
+      place(tMs);
+    },
+    sweepSolids(fromMs, toMs) {
+      lastMs = null;
+      place(fromMs);
+      place(toMs);
     },
     stats: {
       houses, sheds, boats, benches, lamps, stones, triangles: m.pos.length / 9,

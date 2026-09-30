@@ -215,9 +215,10 @@ export async function buildValley(shell, progress, q, style) {
     });
   }
   colliders.build();
-  /* Every roof the valley has, the village's, the farm's, the gondola's
-   * and a style's own, as ground a craft can land on (alps/roofs.js). */
-  const roofs = makeRoofs(village.roofs);
+  /* Every roof the valley has, the village's, the farm's, the gondola's,
+   * a style's own and nature's (the jetty's deck), as ground a craft can
+   * land on (alps/roofs.js). */
+  const roofs = makeRoofs([...village.roofs, ...(nature.roofs ?? [])]);
   progress(0.9);
   await yieldToPaint();
 

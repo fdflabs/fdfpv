@@ -383,7 +383,7 @@ function photoStyle() {
       };
       const sites = natureSites(ctx);
       const had = new Set(scene.children);
-      buildShore(ctx, sites);
+      const shore = buildShore(ctx, sites);
       /* nature.js edges the north shore with a two metre gravel ribbon of
        * one width all the way round, which from the air is a line drawn
        * round the lake. The ground lays a beach there itself (ground.js),
@@ -461,9 +461,6 @@ function photoStyle() {
             stage.cliffs.update(camera);
           }
           craftFootprint(style.shell && style.shell.quad, stage.craft);
-          if (stage.lakeside) {
-            stage.lakeside.update(dtMs);
-          }
           /* The grass round the camera out of the lake's mirror: water
            * index.js lists the meadow as not worth reflecting, but it is
            * planted after the water is built, so the map hides it here.
@@ -482,6 +479,7 @@ function photoStyle() {
         probeWater: (x, z) => stage.water.probe(x, z),
         rivers: stage.water.rivers,
         pools: stage.water.pools,
+        roofs: shore.roofs,
       };
       style.stage = stage;
       style.updateWind = out.updateWind;
@@ -648,6 +646,21 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* The sailing boat is solid, so it moves on the step clock with the
+       * valley's traffic (swiss2/props/lakeside.js). */
+      const lake = style.stage.lakeside;
+      if (lake) {
+        const anim = map.updateAnim;
+        const sweep = map.sweepSolids;
+        map.updateAnim = (tMs) => {
+          anim(tMs);
+          lake.updateAnim(tMs);
+        };
+        map.sweepSolids = (fromMs, toMs) => {
+          sweep(fromMs, toMs);
+          lake.sweepSolids(fromMs, toMs);
+        };
+      }
       /* The flown aircraft in the valley's materials, for as long as the
        * valley is seated; the cel craft comes back before the world goes. */
       shell.setCraftLook(photoCraftLook(style.lit));
