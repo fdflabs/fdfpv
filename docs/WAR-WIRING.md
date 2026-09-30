@@ -113,10 +113,8 @@ the wreck that follows (war.js, "A DEFENDER THAT WENT OFF").
 ## 6. The rack empty: spectating
 
 Plan section 4.5: a pilot whose craft is a wreck while the war is live and
-the rack is at 0 has no airframe, and spectates. `warSpectating()` says
-so; the room loses the game on an empty rack only while attackers live
-(war.js `settle`), so this is the gap after a warhead took a wave's last
-attacker with the last airframe.
+the rack is at 0 has no airframe, and spectates until the room refills the
+rack. `warSpectating()` says so.
 
 - `warWatch(step)` picks the teammate to follow: the peers drawn in the
   air here (`drawnPose` set, the newest pose not crashed), in seat order,
@@ -128,9 +126,13 @@ attacker with the last airframe.
   teammate along the way it travels, from the chase camera's smoothed
   vectors; a new teammate snaps.
 - The HUD and the markers stay up; the markers measure from the watched
-  teammate and frame a Hunter on it. The banner says who is watched
-  (`war.watch`), or that nobody is in the air (`war.watch_none`).
-- A rack above 0 again, or the war over, and it stops: `R` flies.
+  teammate and frame a Hunter on it. The big banner (`warWatchBanner`)
+  counts down to the refill from the view's `refillAt` (room ms) with
+  `refillN` airframes at the next wave ("NO AIRFRAMES: back in 23 s (+2
+  at wave 5)"), or says it is waiting when the view has no `refillAt`,
+  and names the teammate watched.
+- The rack above 0 again: `roomWarFrame` puts the pilot back in the air
+  on its slot (`ui.onAction('restart')`). The war over, and it stops.
 
 ## 7. The host's menu
 

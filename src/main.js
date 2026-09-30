@@ -2368,14 +2368,15 @@ export async function boot({
   /* The teammate the camera follows while this pilot spectates, by seat,
    * or -1. */
   let warWatchSeat = -1;
+  /* warSpectating() at the last room frame, to see the rack refill. */
+  let warWasSpectating = false;
   /* Keys that would put a spectator back in the air, or swap its
    * aircraft, and the two that step between teammates instead. */
   const WAR_WATCH_KEYS = new Set(['BracketLeft', 'BracketRight', 'KeyR', 'KeyX', 'Tab']);
 
   /* THE RACK EMPTY AND THIS CRAFT A WRECK (docs/WARFARE-PLAN.md 4.5):
-   * there is no airframe to fly, so the pilot spectates. The room ends
-   * the game on an empty rack only while attackers live, so this is the
-   * gap after a warhead took a wave's last with the last airframe. */
+   * there is no airframe to fly, so the pilot spectates until the room
+   * refills the rack, and is then put back in the air (roomWarFrame). */
   function warSpectating() {
     const v = roomWar.view();
     return roomWar.live() && Number.isFinite(v.rack) && v.rack <= 0 && wrecked && (mode === 'flight' || mode === 'paused');
@@ -2402,9 +2403,23 @@ export async function boot({
     return roomPeers.get(warWatchSeat);
   }
 
+  /* The spectator's line: when the rack refills, counted down on the
+   * room clock, and who is watched. The view's refillAt (room ms) and
+   * refillN come with the refilling rack (#239); a room without them
+   * says it is waiting. */
   function warWatchBanner() {
+    const v = roomWar.view();
+    const now = roomLinkState.roomNow();
+    let refill = str('war.refill_wait');
+    if (Number.isFinite(v.refillAt) && now != null) {
+      const s = Math.max(0, Math.ceil((v.refillAt - now) / 1000));
+      const wave = Math.min(v.wave + 1, v.waves);
+      refill = Number.isInteger(v.refillN) && v.refillN > 0 && Number.isInteger(wave)
+        ? str('war.refill', { s, n: v.refillN, wave })
+        : str('war.refill_s', { s });
+    }
     const peer = warWatch();
-    return peer ? str('war.watch', { name: roomName(peer.name) }) : str('war.watch_none');
+    return peer ? str('war.refill_watch', { refill, name: roomName(peer.name) }) : refill;
   }
 
   /* The host's row, where the war may run: a private room on the Itaipu
@@ -2692,6 +2707,13 @@ export async function boot({
     } else if (!roomWar.on() && warBegunId != null) {
       warFinish();
     }
+    /* The rack refilled under a spectator: back in the air on its slot,
+     * as a war's begin puts it. */
+    const spectating = warSpectating();
+    if (warWasSpectating && !spectating && roomWar.live() && wrecked && mode === 'flight' && v.rack > 0) {
+      ui.onAction('restart');
+    }
+    warWasSpectating = spectating;
     const events = roomWar.takeEvents();
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
@@ -14098,7 +14120,7 @@ export async function boot({
     } else if (crashed && ui.screen === 'flight') {
       ui.setBanner('Crashed', true);
     } else if (ui.screen === 'flight' && warSpectating()) {
-      ui.setBanner(warWatchBanner(), 'edge');
+      ui.setBanner(warWatchBanner(), true);
     } else if (wreckDown(nowWall) && ui.screen === 'flight') {
       ui.setBanner(str('main.wrecked_r_resets'), 'edge');
     } else if (

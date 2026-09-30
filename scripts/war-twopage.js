@@ -300,7 +300,7 @@ async function spectate() {
   await a.until('window.__war().watch.wrecked', 20000);
   /* A's wreck reaches the room as a crash, and its view follows. */
   await a.sleep(1500);
-  const empty = async () => a.evaluate("(() => { const v = window.__war().view; window.__warHear({ type: 'war', war: { ...v, rack: 0 } }); return true; })()");
+  const empty = async () => a.evaluate("(() => { const v = window.__war().view; window.__warHear({ type: 'war', war: { ...v, rack: 0, refillAt: window.__rooms().roomNow + 23000, refillN: 2 } }); return true; })()");
   await empty();
   await a.until('window.__war().watch.on && window.__war().watch.seat >= 0', 10000);
   await frames(a, 30);
@@ -310,7 +310,7 @@ async function spectate() {
   const bPos = await b.evaluate('(() => { const s = window.__craftState(); return [s.worldX, s.worldY, s.worldZ]; })()');
   const camOff = dist(w.watch.cam, bPos);
   check('A, a wreck on an empty rack, spectates B: the camera follows B, the HUD and the markers stay up', w.watch.on && w.watch.seat === seatB
-    && camOff < 20 && w.hud.line !== '' && w.markers.on && /WATCHING/.test(w.watch.banner),
+    && camOff < 20 && w.hud.line !== '' && w.markers.on && /^NO AIRFRAMES: back in 2[23] s \(\+2 at wave \d+\)\. Watching /.test(w.watch.banner),
   `watching seat ${w.watch.seat} (B ${seatB}), camera ${camOff.toFixed(1)} m from B, hud "${w.hud.line}", banner "${w.watch.banner}"`);
   await shot(a, '5-A-spectates-B');
   await a.tap('BracketRight');
@@ -321,12 +321,14 @@ async function spectate() {
   const w2 = await warOf(a);
   check('] keeps to the one teammate in the air, and R does not put a spectator back in the air', w2.watch.on && w2.watch.seat === seatB && w2.watch.wrecked,
     JSON.stringify({ on: w2.watch.on, seat: w2.watch.seat, wrecked: w2.watch.wrecked }));
-  await a.evaluate("(() => { const v = window.__war().view; window.__warHear({ type: 'war', war: { ...v, rack: Math.max(1, v.rack) } }); return true; })()");
+  await a.evaluate("(() => { const v = window.__war().view; const { refillAt, refillN, ...rest } = v; window.__warHear({ type: 'war', war: { ...rest, rack: 0 } }); return true; })()");
   await frames(a, 2);
-  await a.tap('KeyR');
+  const wait = await warOf(a);
+  check('a room that sends no refill time says it is waiting', /^NO AIRFRAMES: waiting for airframes/.test(wait.watch.banner), wait.watch.banner);
+  await a.evaluate("(() => { const v = window.__war().view; window.__warHear({ type: 'war', war: { ...v, rack: 2 } }); return true; })()");
   await a.until('!window.__war().watch.wrecked', 10000);
   const w3 = await warOf(a);
-  check('with an airframe in the rack again, R flies', !w3.watch.on && w3.watch.seat === -1 && !w3.watch.wrecked, JSON.stringify(w3.watch));
+  check('the rack refilled, the pilot is back in the air by itself', !w3.watch.on && w3.watch.seat === -1 && !w3.watch.wrecked, JSON.stringify(w3.watch));
 }
 
 try {
