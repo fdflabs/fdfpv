@@ -173,6 +173,13 @@ console.log('the progress merge');
   check('an empty side leaves the other as it was', JSON.stringify(mergeBlobs(here, null).data.tuning) === JSON.stringify(here.data.tuning));
   const junk = cleanBlob({ v: 1, data: { evil: { x: 1 }, tuning: 'nope', tune: 'betaflight-default' }, stamps: { 'evil/x': 5, tune: 7 } });
   check('unknown sections and wrong shapes are dropped', !('evil' in junk.data) && !('tuning' in junk.data) && junk.data.tune === 'betaflight-default' && !('evil/x' in junk.stamps));
+  const firstSync = mergeBlobs(
+    { v: 1, data: { rates: { v: 'defaults' }, tuning: { cub1400: { cg: 0 }, zagi1219: { cg: 5 } } }, stamps: {} },
+    { v: 1, data: { rates: { v: 'tuned' }, tuning: { cub1400: { cg: 3 } } }, stamps: {} },
+  );
+  check('a computer\'s first sync, stamping nothing, takes the account\'s tunes over its own',
+    firstSync.data.rates.v === 'tuned' && firstSync.data.tuning.cub1400.cg === 3);
+  check('and keeps its own where the account has none', firstSync.data.tuning.zagi1219.cg === 5);
   const stamps = stampChanges({ tuning: { a: 1, b: 2 }, rates: { x: 1 } }, { tuning: { a: 1 }, rates: { x: 0 } }, 77);
   check('a computer stamps exactly the parts it changed', stamps['tuning/b'] === 77 && stamps.rates === 77 && !('tuning/a' in stamps));
 }

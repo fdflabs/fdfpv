@@ -23,8 +23,15 @@
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
  *   keyed      one entry per plane (or per tune), the newer stamp wins
- *              entry by entry, ties to the incoming side.
+ *              entry by entry.
  *   whole      the section as one value, the newer stamp wins.
+ *
+ * AT A TIE the account's value wins over the one just sent, and the one
+ * just sent fills in where the account has none. A tie is nearly always
+ * two unstamped values, and a computer's first sync stamps nothing
+ * (src/share/account.js syncProgress): what it held before signing in may
+ * be only its defaults, and must not overwrite the tunes the account
+ * already carries, while a plane the account never tuned keeps its tune.
  *
  * Pure and DOM free: tracks-api/accounts.js merges on the server, where two
  * computers meet, and the selftest runs it in Node. It checks SHAPE only.
@@ -138,8 +145,7 @@ function mergeUnion(a, b) {
 
 /*
  * One blob from two: `incoming` is the one just sent, `held` the one the
- * server had. Ties go to incoming, because it is the copy a pilot is
- * looking at.
+ * server had.
  */
 export function mergeBlobs(incoming, held) {
   const a = cleanBlob(incoming);
@@ -157,8 +163,7 @@ export function mergeBlobs(incoming, held) {
     } else if (kind === 'union') {
       merged = av === undefined && bv === undefined ? undefined : mergeUnion(av, bv);
     } else if (kind === 'whole') {
-      const aNewer = stampOf(a.stamps, section) >= stampOf(b.stamps, section);
-      merged = aNewer ? (av ?? (stampOf(a.stamps, section) ? undefined : bv)) : bv;
+      merged = pick(stampOf(a.stamps, section), stampOf(b.stamps, section), av !== undefined, av, bv !== undefined, bv);
     } else {
       merged = mergeKeyed(section, av, bv, a.stamps, b.stamps);
     }
@@ -167,6 +172,24 @@ export function mergeBlobs(incoming, held) {
     }
   }
   return out;
+}
+
+/*
+ * One part's value, undefined for absent: the newer stamp's side, where
+ * stamped and absent is a removal; at a tie the held side's, else the
+ * incoming side's (THE RULES, above).
+ */
+function pick(ta, tb, hasA, av, hasB, bv) {
+  if (ta > tb) {
+    return hasA ? av : undefined;
+  }
+  if (tb > ta) {
+    return hasB ? bv : undefined;
+  }
+  if (hasB) {
+    return bv;
+  }
+  return hasA ? av : undefined;
 }
 
 function mergeKeyed(section, av, bv, as, bs) {
@@ -184,16 +207,9 @@ function mergeKeyed(section, av, bv, as, bs) {
     const part = `${section}/${key}`;
     const ta = stampOf(as, part);
     const tb = stampOf(bs, part);
-    const hasA = av && Object.hasOwn(av, key);
-    const hasB = bv && Object.hasOwn(bv, key);
-    let winner;
-    if (ta >= tb) {
-      /* Stamped and absent is a removal; never stamped and absent is a
-       * computer that simply never had it. */
-      winner = hasA ? av[key] : (ta ? undefined : (hasB ? bv[key] : undefined));
-    } else {
-      winner = hasB ? bv[key] : undefined;
-    }
+    const hasA = Boolean(av) && Object.hasOwn(av, key);
+    const hasB = Boolean(bv) && Object.hasOwn(bv, key);
+    const winner = pick(ta, tb, hasA, av?.[key], hasB, bv?.[key]);
     if (winner !== undefined) {
       out[key] = winner;
     }
