@@ -70,7 +70,7 @@ import {
   FLAG_AIRBORNE, FLAG_CRASHED, PROTO, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
-import { RESULT_MS } from '../edge/rooms/war.js';
+import { RESULT_MS, resultOf } from '../edge/rooms/war.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { loadHeight } from '../edge/rooms/warhunt.js';
 import { poseAt } from '../src/share/war/routes.js';
@@ -424,6 +424,8 @@ function runOne({
     booms: w.log.filter((e) => e.what === 'boom').length,
     crashes: w.log.filter((e) => e.what === 'crash').length,
     hits: w.log.filter((e) => (e.what === 'arrive') && e.hit).length,
+    /* The room's own result (war.js resultOf): stars and criteria met. */
+    result: resultOf(MISSION, m),
     /* Which attacker hit what, and when (s after the go): BAL_DEBUG's. */
     hitBy: w.log.filter((e) => (e.what === 'arrive' || e.what === 'through') && e.hit).map((e) => `${e.id}:${e.target}@${Math.round((e.t - m.goAt) / 1000)}`),
     alive: m.agents.length,
@@ -494,7 +496,7 @@ if (process.env.BAL_DEBUG) {
   const nRounds = Math.max(...MISSION.waves.map((wv) => wv.round ?? 0)) + 1;
   console.log(`mission ${MISSION.id}: ${nRounds} rounds, ${MISSION.airframes} airframes a pilot a round, floor ${MISSION.floorMw} of ${MISSION.output} MW; `
     + `spawn ${SPAWN.length > 1 ? 'the crest seats' : SPAWN[0].join(', ')}; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
-  console.log('  skill     pilots  mission output* min   output  rounds win/damaged/lost        round s (by round)             earned a round  grounded  longest s  ends');
+  console.log('  skill     pilots  mission output* stars 0/1/2/3 h/nL/o   min   output  rounds win/damaged/lost        round s (by round)             earned a round  grounded  longest s  ends');
   for (const skill of SKILL) {
     for (const pilots of PILOTS) {
       const rs = results.filter((r) => r.pilots === pilots && r.skill === skill).sort((a, b) => a.seed - b.seed);
@@ -510,8 +512,11 @@ if (process.env.BAL_DEBUG) {
         const xs = rs.map((r) => r.rounds[k]).filter(Boolean).map((x) => x.secs);
         return xs.length ? mean(xs).toFixed(0) : '-';
       }).join('/');
-      const star = won.filter((r) => r.output >= (MISSION.starMw ?? MISSION.floorMw)).length;
-      console.log(`  ${skill.padEnd(9)} ${String(pilots).padStart(6)}  ${`${won.length}/${rs.length}`.padEnd(7)} ${`${star}/${rs.length}`.padEnd(6)} ${(mean(rs.map((r) => r.secs)) / 60).toFixed(1).padStart(4)}  `
+      const star = rs.filter((r) => r.result.criteria.find((c) => c.id === 'output').met && r.state === 'won').length;
+      const byStars = [0, 1, 2, 3].map((k) => rs.filter((r) => r.result.stars === k).length).join('/');
+      /* Of the games won, how many met each criterion: held, noLosses, output. */
+      const met = ['held', 'noLosses', 'output'].map((id) => won.filter((r) => r.result.criteria.find((c) => c.id === id).met).length).join('/');
+      console.log(`  ${skill.padEnd(9)} ${String(pilots).padStart(6)}  ${`${won.length}/${rs.length}`.padEnd(7)} ${`${star}/${rs.length}`.padEnd(6)} ${byStars.padEnd(12)} ${met.padEnd(9)} ${(mean(rs.map((r) => r.secs)) / 60).toFixed(1).padStart(4)}  `
         + `${mean(rs.map((r) => r.output)).toFixed(0).padStart(6)}  ${`${by('win')} / ${by('damaged')} / ${by('lost')}`.padEnd(26)} ${lens.padEnd(30)} `
         + `${mean(all.map((x) => x.earned)).toFixed(1).padStart(8)}        `
         + `${(100 * mean(rs.map((r) => r.grounded))).toFixed(1).padStart(6)}%  ${mean(rs.map((r) => r.longest)).toFixed(0).padStart(4)} (max ${Math.max(...rs.map((r) => r.longest)).toFixed(0)})  `

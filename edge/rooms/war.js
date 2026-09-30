@@ -205,16 +205,23 @@ export function parseLoadout(x) {
  * The mission's result, the room's (never a client's), when it is over:
  * stars for each criterion met on a won mission (none on a loss), and
  * credits 100 a star and 10 a kill of the team's.
- *   held      every round a 'win': no MW lost in any
+ *   held      no round lost, and no more 'damaged' ones than the
+ *             mission's heldDamaged for the pilots (0 unless it says)
  *   noLosses  in every round no pilot spent more airframes than it
  *             earned (it ended the round with its whole base)
- *   output    the output at the end at or over the mission's starMw
+ *   output    the output at the end at or over the mission's starMw,
+ *             both read at the pilots at the go (starScale)
  */
 export function resultOf(mission, m) {
   const won = m.state === 'won';
-  const need = mission.starMw ?? mission.floorMw;
+  const pilots = m.pilots || 1;
+  const need = starScale(mission.starMw ?? mission.floorMw, pilots);
+  const damaged = (m.results ?? []).filter((r) => r === 'damaged').length;
   const criteria = [
-    { id: 'held', met: (m.results ?? []).length > 0 && m.results.every((r) => r === 'win') },
+    {
+      id: 'held',
+      met: (m.results ?? []).length > 0 && !m.results.includes('lost') && damaged <= Math.floor(starScale(mission.heldDamaged ?? 0, pilots)),
+    },
     { id: 'noLosses', met: !m.lossy },
     { id: 'output', met: m.output >= need, need },
   ];
@@ -224,6 +231,32 @@ export function resultOf(mission, m) {
     won, stars, credits: 100 * stars + 10 * kills, criteria,
   };
 }
+
+/*
+ * A star rule scaled by the pilots at the go (the owner, 2026-09-30:
+ * stars reachable solo): a number is the same for every squad; a table
+ * { 1: a, 2: b, 4: c, 8: d } is read at the pilots, straight lines
+ * between its keys and flat past its ends. Used for starMw (the output a
+ * star needs) and heldDamaged (the damaged rounds 'held' tolerates, read
+ * down to a whole round).
+ */
+export function starScale(rule, pilots) {
+  if (typeof rule === 'number') {
+    return rule;
+  }
+  const keys = Object.keys(rule).map(Number).sort((x, y) => x - y);
+  if (pilots <= keys[0]) {
+    return rule[keys[0]];
+  }
+  for (let i = 1; i < keys.length; i += 1) {
+    if (pilots <= keys[i]) {
+      const f = (pilots - keys[i - 1]) / (keys[i] - keys[i - 1]);
+      return rule[keys[i - 1]] + (rule[keys[i]] - rule[keys[i - 1]]) * f;
+    }
+  }
+  return rule[keys.at(-1)];
+}
+
 /* A pilot on its last airframe is taken as not flying once it has sent no
  * pose for STALE_MS, or has been on the ground (not airborne) for
  * GROUND_MS, so a round never waits on a flight that will not end. */
