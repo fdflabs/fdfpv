@@ -5106,6 +5106,20 @@ static void part_faces(const Table *t, int i, double A[3]) {
   A[2] = tx * ty;
 }
 
+/* The spin's share of the velocity of the point at world offset r, from
+ * the spin as it is now. Each point's force below moves the spin before
+ * the next point is judged, and its clip only holds that point's motion
+ * from reversing if it is judged on that motion: taken from the spin at
+ * the top of the loop, every point of a craft with little inertia left
+ * (its wings gone) was clipped against a spin the points before it had
+ * already stopped, so each pushed it the other way again, and the crown
+ * put 2 kJ into an F-16's tumble in a step (57 to 252 m/s, then NaN). */
+static void point_spin(const SimState *s, const double r[3], double wr[3]) {
+  double ww[3];
+  qrot(s->quat, s->omega, ww);
+  cross(ww, r, wr);
+}
+
 /* A force at world offset r applied to the craft for one step, clipped so
  * it cannot reverse the point's motion along it, and noted for the part. */
 static void craft_force(SimState *s, int part, const double r[3], const double F[3], double vrel) {
@@ -5159,8 +5173,6 @@ static void craft_water(SimState *s) {
     return;
   }
   const double tnow = (double)(s->step_index + 1) * SIM_DT;
-  double ww[3];
-  qrot(s->quat, s->omega, ww);
   int wet_now = 0;
   for (int i = 0; i < t->n; i += 1) {
     if (!attached(i) || t->p[i].kind == SIM_PART_FLOAT) {
@@ -5190,7 +5202,7 @@ static void craft_water(SimState *s) {
       g_flags_extra |= SIM_DMG_IN_WATER;
       const double f = h < thin ? h / thin : 1.0;
       double wr[3];
-      cross(ww, r, wr);
+      point_spin(s, r, wr);
       const double v[3] = { s->vel[0] + wr[0] - ws[3], s->vel[1] + wr[1] - ws[4], s->vel[2] + wr[2] - ws[5] };
       const double vm = norm(v);
       if (!wet_now) {
@@ -5227,8 +5239,6 @@ static void craft_crowns(SimState *s) {
     return;
   }
   const Table *t = tab();
-  double ww[3];
-  qrot(s->quat, s->omega, ww);
   double hold_area = 0.0;
   int inside = 0;
   int entered = 0;
@@ -5258,7 +5268,7 @@ static void craft_crowns(SimState *s) {
         }
         in_part = 1;
         double wr[3];
-        cross(ww, r, wr);
+        point_spin(s, r, wr);
         const double v[3] = { s->vel[0] + wr[0], s->vel[1] + wr[1], s->vel[2] + wr[2] };
         const double vm = norm(v);
         if (!inside && !entered && s->step_index - g_crown_step > ENTRY_REARM) {
