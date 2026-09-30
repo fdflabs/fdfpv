@@ -3,6 +3,10 @@
 Written against WebFPVSimulator 9ed8b9c and its leaderboard. Every path is
 relative to the repo root. Line numbers will drift; function names will not.
 
+FDFPV is made by [fdflabs.com](https://fdflabs.com), a GPLv3 fork of Mathew
+Harvey's [WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
+NOTICE records what was taken from upstream and whose work it stands on.
+
 ## The shape
 
 Two repos, three deploys, one payload.
