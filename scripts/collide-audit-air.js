@@ -3,10 +3,22 @@
  * other game entities, audited against a truth. npm run collide:audit-air.
  *
  * Every rule here judges sampled poses: the pilot's POSE samples, stamped
- * on the room clock at the pilot's own frame cadence (src/main.js
- * roomSendPose, at most 30 Hz and only on a frame), interpolated between
- * two samples no more than GAP_MS apart and stepped on the whole room
- * millisecond (src/game/midair.js). This harness flies scripted true paths
+ * on the room clock, interpolated between two samples no more than GAP_MS
+ * apart and stepped on the whole room millisecond (src/game/midair.js).
+ * How a client samples is --client:
+ *
+ *   plant   (the default, src/main.js roomPoseStep) at 30 Hz on the
+ *           plant's step clock, stamped with the room time of the step,
+ *           whatever the frame rate, and sent on the frame after: the
+ *           pose goes out late on a slow frame, never missing.
+ *   frame   the client before that (roomSendPose on a frame, at most
+ *           30 Hz, stamped with the frame's time), which a page loaded
+ *           before the change still is.
+ *
+ * Both assume the plant keeps real time. Under 10 fps it does not (the
+ * shell caps a frame's step at 100 ms), and the pilot is told so.
+ *
+ * This harness flies scripted true paths
  * (straight, or a 6 g turn with a 360 deg/s roll), samples them the way a
  * client at a given frame rate does, with a given clock error, and holds
  * each rule's answer against the same rule run on a truth track: the true
@@ -16,7 +28,11 @@
  *
  *   hulls   every airframe's crash hull (configs/hulls.js) against the
  *           machine as drawn: its span, length and height, off by more
- *           than 10 percent is flagged. The drawn numbers are the table's
+ *           than 10 percent is flagged. A prop that folds (folds: true,
+ *           configs/hullfit.js) is left out of the hull as the machine
+ *           is built, motor stopped; with --three the hull with it is
+ *           held to the machine drawn with its prop turning as well.
+ *           The drawn numbers are the table's
  *           `dims` (configs/airframes.js, "the drawn machine"), or, with
  *           --three=DIR (an unpacked three@0.160.0 npm package), the
  *           built meshes' own bounding box (src/render/craft.js).
@@ -33,8 +49,11 @@
  *   orb     edge/rooms/tag.js catchOrb, the free orb at 6 m, the same.
  *   cut     src/game/cut.js judgeCut, the 3 m paper cut, a static
  *           streamer on 10 Hz frames, passes 2.7 to 3.3 m from the line.
- *   damage  the plant (dist/sim.wasm) with crash damage off answers the
- *           both break rule's sim_part_break, which the shell's hit calls.
+ *   damage  the plant (dist/sim.wasm) with crash damage off refuses the
+ *           both break rule's sim_part_break, which the shell's hit calls,
+ *           so every room whose referee judges a mid air must fly its
+ *           pilots with damage on (src/game/midair.js roomForcesDamage,
+ *           which src/main.js crashDamageWanted reads).
  *
  * Each row prints miss and false rates. A row is flagged when a rule
  * misses a truth contact 5 cm (15 cm for the bubbles and the cut) inside
@@ -43,7 +62,8 @@
  * stay loud.
  *
  *   node scripts/collide-audit-air.js [--seeds=24] [--only=midair,bubble]
- *                                     [--three=DIR]
+ *                                     [--three=DIR] [--client=plant|frame]
+ *                                     [--fps=60,30,...] [--skews=0,5,...]
  *
  * This file is part of WebFPVSimulator.
  *
@@ -73,7 +93,9 @@ import { RoomTag } from '../edge/rooms/tag.js';
 import { SAMPLE_MS as WAR_SAMPLE_MS } from '../edge/rooms/war.js';
 import { BUBBLE_M } from '../src/share/roomtag.js';
 import { BLAST_M } from '../src/share/war/routes.js';
-import { GAP_MS, Track, hullDistance, hullFor, judge, within } from '../src/game/midair.js';
+import {
+  GAP_MS, Track, hullDistance, hullFor, judge, roomForcesDamage, within,
+} from '../src/game/midair.js';
 import { REACH_M, StreamerTrack, judgeCut } from '../src/game/cut.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -84,6 +106,10 @@ const arg = (name, dflt) => {
 const SEEDS = Number(arg('seeds', 24));
 const ONLY = arg('only', 'hulls,midair,bubble,orb,cut,damage').split(',');
 const THREE_DIR = arg('three', null);
+const CLIENT = arg('client', 'plant');
+if (!['plant', 'frame'].includes(CLIENT)) {
+  throw new Error(`--client=${CLIENT}: plant or frame`);
+}
 
 /* The truth track's step and the clock it is judged on: 0.1 ms, by
  * running the rule on a clock ten times finer (times x10, speeds /10). */
@@ -97,12 +123,12 @@ const DEEP_M = 0.05;
 const BUBBLE_BAND_M = 0.15;
 /* Past this rate a row is flagged. */
 const FLAG_RATE = 0.01;
-const FPS = [60, 30, 20, 10, 5, 3];
+const FPS = arg('fps', '60,30,20,10,5,3').split(',').map(Number);
 /* The fastest either aircraft of a pass flies: a pass whose geometry
  * needs more at its closing speed is not flown. */
 const MAX_MPS = 80;
 const MIN_TURN_M = 5;
-const SKEWS = [0, 5, 10, 20];
+const SKEWS = arg('skews', '0,1,5,10,20').split(',').map(Number);
 
 let flagged = 0;
 const flag = (bad, line) => {
@@ -213,21 +239,39 @@ function path({ at, dir, speed, g = 0, side = [0, 1, 0], roll0 = 0, rollRate = 0
   };
 }
 
-/* The times a client at `fps` sends a pose over [t0, t1]: a frame every
- * 1000/fps ms from `phase`, a pose on a frame once the 30 Hz schedule is
- * due (src/main.js roomNextSend). */
-function sendTimes(fps, phase, t0, t1) {
+/*
+ * The poses a client at `fps` sends over [t0, t1], frames every 1000/fps
+ * ms from `phase`: [{ t, at }], t the stamp and at the room time it
+ * leaves (a frame's). --client=frame: a pose on a frame once the 30 Hz
+ * schedule is due (roomNextSend), stamped with the frame. --client=plant:
+ * a pose on the first whole plant step the same schedule is due at, each
+ * frame stepping the plant over the time since the last one.
+ */
+function sends(fps, phase, t0, t1) {
   const frame = 1000 / fps;
   const out = [];
   let next = -Infinity;
-  for (let t = t0 + phase; t <= t1; t += frame) {
-    if (t >= next) {
-      next = Math.max(next + 1000 / 30, t - 1000 / 30);
-      out.push(t);
+  let stepped = t0;
+  for (let at = t0 + phase; at <= t1; at += frame) {
+    if (CLIENT === 'frame') {
+      if (at >= next) {
+        next = Math.max(next + 1000 / 30, at - 1000 / 30);
+        out.push({ t: at, at });
+      }
+      continue;
     }
+    for (let t = Math.floor(stepped) + 1; t <= at; t += 1) {
+      if (t >= next) {
+        next = Math.max(next + 1000 / 30, t - 1000 / 30);
+        out.push({ t, at });
+      }
+    }
+    stepped = at;
   }
   return out;
 }
+
+const sendTimes = (fps, phase, t0, t1) => sends(fps, phase, t0, t1).map((x) => x.t);
 
 /* A sampled Track as the room holds it: through the wire (encodePose
  * rounds the stamp to the ms and the velocity to the cm/s), stamped
@@ -270,8 +314,13 @@ async function auditHulls() {
     register(hook);
     const THREE = await import('three');
     const { buildCraft } = await import('../src/render/craft.js');
-    drawn = (id) => {
-      const g = buildCraft(id).group;
+    drawn = (id, turning = false) => {
+      const craft = buildCraft(id);
+      /* A folding prop opens over a few calls (glidercraft.js setProp). */
+      for (let k = 0; turning && craft.setProp && k < 60; k += 1) {
+        craft.setProp(500);
+      }
+      const g = craft.group;
       g.updateMatrixWorld(true);
       const box = new THREE.Box3();
       g.traverse((o) => {
@@ -289,15 +338,6 @@ async function auditHulls() {
       flag(true, `${af.id}: no hull, so the referee meets it as nothing`);
       continue;
     }
-    const lo = [Infinity, Infinity, Infinity];
-    const hi = [-Infinity, -Infinity, -Infinity];
-    for (const p of h.parts) {
-      for (let k = 0; k < 3; k += 1) {
-        lo[k] = Math.min(lo[k], p.min[k]);
-        hi[k] = Math.max(hi[k], p.max[k]);
-      }
-    }
-    const hull = { L: hi[0] - lo[0], W: hi[1] - lo[1], H: hi[2] - lo[2] };
     const d = af.dims;
     /* A quad's dims carry its motor arm and prop, not its body: tip to
      * tip is the diagonal arm's half plus a prop radius, each side. */
@@ -309,15 +349,34 @@ async function auditHulls() {
     let src = 'dims';
     /* The Bramor's drawn group carries its catapult rail on the ground,
      * which is no part of the aircraft in the air. */
-    if (drawn && af.id !== 'bramor2300') {
+    const mesh = drawn && af.id !== 'bramor2300';
+    if (mesh) {
       ref = drawn(af.id);
       src = 'mesh';
     }
-    const off = ['W', 'L', 'H'].map((k) => [k, hull[k] / ref[k] - 1]);
-    const worst = off.reduce((a, b) => (Math.abs(b[1]) > Math.abs(a[1]) ? b : a));
-    const text = off.map(([k, v]) => `${k} ${hull[k].toFixed(3)}/${ref[k].toFixed(3)} ${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`).join('  ');
-    flag(Math.abs(worst[1]) > 0.1, `${af.id.padEnd(14)} hull/${src}  ${text}  z ${lo[2].toFixed(3)}..${hi[2].toFixed(3)} vs ${ref.lo.toFixed(3)}..${ref.hi.toFixed(3)}`);
+    const folds = h.parts.some((p) => p.folds);
+    compareHull(af.id, h.parts.filter((p) => !p.folds), ref, `hull/${src}${folds ? ' stopped' : ''}`);
+    if (folds && mesh) {
+      compareHull(af.id, h.parts, drawn(af.id, true), 'hull/mesh turning');
+    }
   }
+}
+
+/* One hull's extents against a drawn machine's, flagged past 10 percent. */
+function compareHull(id, parts, ref, label) {
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (const p of parts) {
+    for (let k = 0; k < 3; k += 1) {
+      lo[k] = Math.min(lo[k], p.min[k]);
+      hi[k] = Math.max(hi[k], p.max[k]);
+    }
+  }
+  const hull = { L: hi[0] - lo[0], W: hi[1] - lo[1], H: hi[2] - lo[2] };
+  const off = ['W', 'L', 'H'].map((k) => [k, hull[k] / ref[k] - 1]);
+  const worst = off.reduce((a, b) => (Math.abs(b[1]) > Math.abs(a[1]) ? b : a));
+  const text = off.map(([k, v]) => `${k} ${hull[k].toFixed(3)}/${ref[k].toFixed(3)} ${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`).join('  ');
+  flag(Math.abs(worst[1]) > 0.1, `${id.padEnd(14)} ${label}  ${text}  z ${lo[2].toFixed(3)}..${hi[2].toFixed(3)} vs ${ref.lo.toFixed(3)}..${ref.hi.toFixed(3)}`);
 }
 
 /* ---------------------------------------------------------------- midair */
@@ -363,8 +422,11 @@ function passPair(hA, hB, closing, angle, curved, r) {
   return { A, B };
 }
 
-/* The referee's answer on sampled, encoded POSEs, fed in time order at
- * zero latency: the lag's own effects are scripts/midair-harness.js's. */
+/* The referee's answer on sampled, encoded POSEs, each arriving when its
+ * frame sends it with no network between, the room ticking at 30 Hz
+ * (edge/rooms/core.js tick), so a slow frame's poses are as late as the
+ * frame and LATE_MS applies: the network's own lag is
+ * scripts/midair-harness.js's. */
 function refereeHit(idA, idB, A, B, fps, skew, r) {
   const ref = new Referee(false);
   ref.seat(1, idA);
@@ -372,12 +434,16 @@ function refereeHit(idA, idB, A, B, fps, skew, r) {
   const t0 = T0 - WINDOW_MS;
   const t1 = T0 + WINDOW_MS;
   const ev = [
-    ...sendTimes(fps, r() * (1000 / fps), t0, t1).map((t) => ({ t, seat: 1, f: A, id: idA, skew: 0 })),
-    ...sendTimes(fps, r() * (1000 / fps), t0, t1).map((t) => ({ t, seat: 2, f: B, id: idB, skew })),
-  ].sort((a, b) => a.t - b.t);
+    ...sends(fps, r() * (1000 / fps), t0, t1).map((x) => ({ ...x, seat: 1, f: A, id: idA, skew: 0 })),
+    ...sends(fps, r() * (1000 / fps), t0, t1).map((x) => ({ ...x, seat: 2, f: B, id: idB, skew })),
+  ].sort((a, b) => a.at - b.at || a.t - b.t);
+  let tick = t0;
   for (const e of ev) {
+    for (; tick <= e.at; tick += 1000 / 30) {
+      ref.tick(tick);
+    }
     const bytes = encodePose({ ...e.f(e.t), t: e.t + e.skew, flags: flagsFor(e.id), seq: 0, wx: 0, wy: 0, wz: 0 });
-    if (ref.pose(e.seat, bytes, e.t).length) {
+    if (ref.pose(e.seat, bytes, e.at).length) {
       return true;
     }
   }
@@ -441,9 +507,9 @@ function auditMidair() {
   }
   const show = (label, row) => `${label}  n ${row.n}, truth deep ${row.deep}, touch ${row.touch}, judged ${row.hit}: miss ${pct(row.miss, row.deep)} of deep, false ${pct(row.fals, row.n - row.touch)} of clear`;
   const bad = (row) => row.miss > FLAG_RATE * Math.max(1, row.deep) || row.fals > FLAG_RATE * Math.max(1, row.n - row.touch);
-  console.log(' by pair at 60 fps, exact clocks, every speed, angle and path:');
+  console.log(` by pair at ${FPS[0]} fps, exact clocks, every speed, angle and path:`);
   for (const [idA, idB] of PAIRS) {
-    const row = rows.get(`pair|${idA} x ${idB}|60`);
+    const row = rows.get(`pair|${idA} x ${idB}|${FPS[0]}`);
     flag(bad(row), show(`${`${idA} x ${idB}`.padEnd(22)}`, row));
   }
   console.log(' by closing speed and frame rate, exact clocks, every pair and angle:');
@@ -687,7 +753,7 @@ function auditCut() {
 /* ------------------------------------------------------------ damage off */
 
 async function auditDamage() {
-  console.log('\ndamage: the both break rule on a plant with crash damage off (free flight, tag, combat: src/main.js applyCrashMode forces it on only in a war)');
+  console.log('\ndamage: the both break rule on a plant with crash damage off, and the rooms that could fly one into a mid air');
   const { loadSim, SIM_OK } = await import('../tests/lib/simmod.js');
   const wasm = await readFile(join(root, 'dist', 'sim.wasm'));
   const config = await readFile(join(root, 'tests', 'fixtures', 'config-baseline.diff'), 'utf8');
@@ -700,16 +766,33 @@ async function auditDamage() {
     const flags = typeof sim.e.sim_damage_flags === 'function' ? sim.e.sim_damage_flags() : null;
     const broke = rc === SIM_OK && flags !== 0;
     console.log(`        damage ${on ? 'on ' : 'off'}: sim_part_break(3) rc ${rc}, damage flags ${flags}${broke ? ', the part left' : ', nothing broke'}`);
-    if (!on) {
-      flag(!broke, 'a pilot with crash damage off is not broken by a mid air it was judged in; the other pilot is (the both break rule is one sided)');
+  }
+  /* Two five inches through each other, 30 Hz, in a room of each kind:
+   * whether its referee judges them, and whether a pilot whose own setting
+   * is off flies it with damage on. */
+  for (const friendly of [false, true]) {
+    const ref = new Referee(friendly);
+    ref.seat(1, '5inch');
+    ref.seat(2, '5inch');
+    let judged = false;
+    for (let k = 0; k < 6; k += 1) {
+      const t = T0 + k * 33;
+      for (const seat of [1, 2]) {
+        const bytes = encodePose({
+          px: 0, py: 100, pz: (seat === 1 ? -1 : 1) * (0.5 - k * 0.2), qx: 0, qy: 0, qz: 0, qw: 1, vx: 0, vy: 0, vz: (seat === 1 ? 6 : -6), t, flags: FLAG_AIRBORNE | FLAG_QUAD, seq: 0, wx: 0, wy: 0, wz: 0,
+        });
+        judged = ref.pose(seat, bytes, t).length > 0 || judged;
+      }
     }
+    const forced = roomForcesDamage({ friendly });
+    flag(judged && !forced, `a ${friendly ? 'friendly' : 'judged'} room: referee ${judged ? 'judges' : 'judges nothing'}, damage ${forced ? 'forced on' : 'the pilot\'s setting'}${judged && !forced ? ': a pilot with damage off is not broken by a mid air it was judged in, the other is (the both break rule is one sided)' : ''}`);
   }
 }
 
 /* ------------------------------------------------------------------ run */
 
 const t0 = Date.now();
-console.log(`collide-audit-air: ${SEEDS} seeds, GAP_MS ${GAP_MS}, frame rates ${FPS.join('/')}, clock errors ${SKEWS.join('/')} ms`);
+console.log(`collide-audit-air: ${SEEDS} seeds, GAP_MS ${GAP_MS}, ${CLIENT} client, frame rates ${FPS.join('/')}, clock errors ${SKEWS.join('/')} ms`);
 if (ONLY.includes('hulls')) {
   await auditHulls();
 }

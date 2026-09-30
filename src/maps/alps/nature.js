@@ -41,6 +41,8 @@ import {
 } from './terrain.js';
 import { makeWaves, patchGeometry, placePatch, injectWaves, starLoops, outlineBox, probeSurface } from '../../render/lakewaves.js';
 import { buildSpray } from '../../render/spray.js';
+import { recordAt, flatTop } from './roofs.js';
+import { setSolidSurface } from '../../game/crashworld.js';
 
 /* The valley is cut into this many bands along z; every instanced thing
  * is one mesh per band, so the bands behind the camera cull. */
@@ -598,9 +600,17 @@ export function buildReeds(ctx, sites) {
  * path along the north shore either side of it, and a gravel track on
  * from where the road ends to the jetty's foot. ROAD_END is where
  * village.js stops the road.
+ *
+ * The deck is ground a craft lands on, a roof on posts (alps/roofs.js),
+ * which is returned for the map's roofs; its posts and bollard and both
+ * boats are solid.
  */
 export function buildShore(ctx, sites) {
-  const { scene, heightAt, valleyAxis, mats, look } = ctx;
+  const { scene, heightAt, valleyAxis, mats, look, colliders } = ctx;
+  const solid = (surface, ax, ay, az, bx, by, bz, r) => {
+    colliders.add(surface === 'wood' ? 'pole' : 'obstacle', ax, ay, az, bx, by, bz, r);
+    setSolidSurface(colliders, colliders.ax.length - 1, surface);
+  };
   const { lakeCx, lakeCz, shore } = sites;
   const ROAD_END = 1950;
   const jettyX = valleyAxis(ROAD_END) + 55;
@@ -623,11 +633,13 @@ export function buildShore(ctx, sites) {
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, deckY + 0.35 - bed, 6), mats.fence);
       post.position.set(x, (deckY + 0.35 + bed) / 2, z);
       jetty.add(post);
+      solid('wood', jettyX + x, bed, jettyZ + z, jettyX + x, deckY + 0.35, jettyZ + z, 0.13);
     }
   }
   const bollard = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.7, 6), timber);
   bollard.position.set(0.8, deckY + 0.4, 17.5);
   jetty.add(bollard);
+  solid('wood', jettyX + 0.8, deckY + 0.05, jettyZ + 17.5, jettyX + 0.8, deckY + 0.75, jettyZ + 17.5, 0.14);
   jetty.position.set(jettyX, 0, jettyZ);
   scene.add(jetty);
   const moored = rowingBoat(mats, timber, look);
@@ -640,6 +652,14 @@ export function buildShore(ctx, sites) {
   beached.position.set(bx, heightAt(bx, bz) + 0.1, bz);
   beached.rotation.set(0, -0.5, 0.12);
   scene.add(beached);
+  /* A rowing boat, 1.3 m across and 3.6 long down its local z, a
+   * capsule down its length as round as its beam. */
+  for (const b of [moored, beached]) {
+    const ux = Math.sin(b.rotation.y) * 1.1;
+    const uz = Math.cos(b.rotation.y) * 1.1;
+    const y = b.position.y + 0.3;
+    solid('wood', b.position.x - ux, y, b.position.z - uz, b.position.x + ux, y, b.position.z + uz, 0.66);
+  }
   const shorePath = [];
   for (const s of shore) {
     if (Math.sin(s.a) < -0.45) {
@@ -654,6 +674,11 @@ export function buildShore(ctx, sites) {
   }
   track.push({ x: jettyX, z: jettyZ - 4 });
   scene.add(ribbon(track, 3.2, 0.05, heightAt, gravelMat).mesh);
+  /* The deck's planks, in world space over no datum. */
+  const planks = recordAt({
+    top: flatTop(-1.1, -6, 1.1, 18, deckY + 0.07), dy: 0.14, hw: 1.1, hd: 12, open: true, kind: 'jetty',
+  }, 'boards', jettyX, 0, jettyZ, 0);
+  return { roofs: [planks] };
 }
 
 /* The stream along the line natureSites laid: three ribbons, a dark wet
@@ -1127,7 +1152,7 @@ export async function buildNature(ctx) {
   const sites = natureSites(ctx);
   const { waterMat, waves } = buildLake(ctx, sites);
   const reedClumps = buildReeds(ctx, sites);
-  buildShore(ctx, sites);
+  const shore = buildShore(ctx, sites);
   await ctx.paint(0.5);
 
   const rivers = buildStream(ctx, sites);
@@ -1145,7 +1170,7 @@ export async function buildNature(ctx) {
   await ctx.paint(0.64);
 
   return {
-    pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps, rivers,
+    pines: conifers, broadleaf, streamPts: sites.streamPts, rocks: rockCount, flowers, reeds: reedClumps, rivers, roofs: shore.roofs,
     setWaves: waves.setWaves, updateWaves: waves.updateWaves, probeWater: waves.probeWater, disposeWaves: waves.dispose,
   };
 }

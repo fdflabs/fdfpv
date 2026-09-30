@@ -74,11 +74,16 @@ export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
  * 14, answer 6). A public room's is roomwire.js PUBLIC_CAP, 16. */
 export const PRIVATE_CAP = 8;
-export const POSE_PER_S = 35;
+/* A client samples 30 poses a second on its plant's clock and sends each
+ * frame's together (src/main.js roomPoseStep), so a slow frame arrives as
+ * a burst: a one second window can hold ceil(1000 / P) frames of P / 33
+ * poses each, 30 plus one frame's worth, which is 42 at a frame of 400 ms
+ * (LATE_MS: a slower frame's poses are too late to judge anyway). */
+export const POSE_PER_S = 45;
 export const TEXT_PER_S = 5;
 /* The clock's pings ({ type: 't' }) have an allowance of their own. A
  * client syncing its clock sends 1000 / SYNC_GAP_MS of them a second
- * (src/share/rooms.js, four), for two seconds after every welcome and
+ * (src/share/roomclock.js, four), for two seconds after every welcome and
  * later still on a page that was stalled; counted with the rest, a phrase
  * and a wave said then made six, and the wave was dropped without a word
  * (the live rooms:safety check, 2026-09-28). rooms:selftest checks the
@@ -704,7 +709,11 @@ export class RoomCore {
       return [];
     }
     if (clock && Number.isFinite(msg.c)) {
-      return [{ send: conn, data: JSON.stringify({ type: 't', c: msg.c, s: this.roomMs(now) }) }];
+      /* rtt: the socket's round trip measured below the page, where the
+       * adapter can (edge/rooms/node.js netRtt); a page uses it in place
+       * of its own when shorter (src/share/roomclock.js). */
+      const rtt = conn.netRtt;
+      return [{ send: conn, data: JSON.stringify({ type: 't', c: msg.c, s: this.roomMs(now), ...(Number.isFinite(rtt) ? { rtt } : {}) }) }];
     }
     if (msg.type === 'profile') {
       const profile = checkProfile(msg.profile);

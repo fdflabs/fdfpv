@@ -74,6 +74,7 @@
     "rooms:selftest": "node scripts/rooms-selftest.js",
     "voicechat:selftest": "node scripts/voicechat-selftest.js",
     "voicechat:twopage": "node scripts/voicechat-two-page.js",
+    "rooms:clock": "node scripts/roomclock-check.js",
     "rooms:soak": "node scripts/rooms-soak.js",
     "rooms:load": "node scripts/rooms-load.js",
     "rooms:twopage": "node scripts/rooms-two-page.js",

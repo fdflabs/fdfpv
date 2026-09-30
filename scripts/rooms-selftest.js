@@ -57,7 +57,7 @@ import {
   IMPOSSIBLE_LIMIT, POSE_MAX_SPEED, REMOVE_MS, REPORTS_PER_WINDOW, SPAWN_MS,
 } from '../edge/rooms/safety.js';
 import { TELEPORT_SPEED } from '../src/game/verify.js';
-import { SYNC_GAP_MS } from '../src/share/rooms.js';
+import { SYNC_GAP_MS } from '../src/share/roomclock.js';
 import { UNDO_MS, createRoomSafety } from '../src/share/roomsafety.js';
 import { str } from '../src/strings/index.js';
 import { combatSection } from './rooms-selftest-combat.js';
@@ -204,7 +204,7 @@ check('the next pose starts it again', ticks === 1);
 now += 1000;
 room.tick(now);
 let stored = 0;
-for (let i = 0; i < 40; i += 1) {
+for (let i = 0; i < POSE_PER_S + 5; i += 1) {
   const p = livePose({ seq: i });
   room.message(a, p, now);
   /* By sequence, not identity: a spawning seat's pose is stored as a flagged copy. */
@@ -906,7 +906,7 @@ say(p5a, { type: 'event', kind: 'chat', id: 0 });
 check(`then one every ${CHAT_EVERY_MS} ms`, events(p5b, 'chat').length === n5 + 1);
 /* The live two page check lost a wave this way: a page that had just
  * joined, or had been stalled, was still syncing its clock (SYNC_PINGS
- * pings, SYNC_GAP_MS apart, src/share/rooms.js) when the pilot said a
+ * pings, SYNC_GAP_MS apart, src/share/roomclock.js) when the pilot said a
  * phrase and waved, and the pings took the room's text allowance. */
 now += 10000;
 const [c5, e5] = [events(p5b, 'chat').length, events(p5b, 'emote').length];
