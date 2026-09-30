@@ -1964,6 +1964,27 @@ function animRecord() {
   refused(() => reheader(bareBuf, 8), 'a version 8 file without its clock');
   refused(() => encodeReplay({ ...clip, anim: clip.anim.map((x, k) => (k === 5 ? NaN : x)) }), 'a clock that is not a number');
   refused(() => buf.slice(0, buf.byteLength - 8), 'a version 8 file cut short');
+
+  /* A war's explosions ride the paper's events: version 9, the clock
+   * with them; without one the same clip is version 8 as before. */
+  const booms = [{ t: 0.4, type: 'boom', p: [1, 2, 3], level: 0.4 }, { t: 0.5, type: 'boom', p: [4, 5, 6], level: 1 }];
+  const boomed = { ...withClock, paper: { ...withClock.paper, events: [...withClock.paper.events, ...booms] } };
+  const bBuf = encodeReplay(boomed);
+  const bBack = decodeReplay(bBuf);
+  check(new DataView(bBuf).getUint32(4, true) === 9 && JSON.stringify(bBack.paper.events) === JSON.stringify(boomed.paper.events) && same(bBack.anim, boomed.anim),
+    'a clip with a war\'s explosions is saved as version 9 and they come back where and how big they were', `${bBuf.byteLength} bytes`);
+  check(Buffer.from(new Uint8Array(encodeReplay(bBack))).equals(Buffer.from(new Uint8Array(bBuf))), 'written again, the same bytes');
+  refused(() => reheader(bBuf, 8), 'an explosion in a file that says version 8');
+  refused(() => reheader(cBuf, 9), 'a version 9 file without an explosion');
+  let noClock = null;
+  try {
+    const bare9 = { ...boomed };
+    delete bare9.anim;
+    encodeReplay(bare9);
+  } catch (err) {
+    noClock = err;
+  }
+  check(noClock instanceof Error, 'a clip with explosions and no clock is refused when written, not saved as a file no build reads', noClock ? noClock.message : 'written');
 }
 
 ring();

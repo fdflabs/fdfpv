@@ -34,6 +34,7 @@
 import { createRoomWar } from '../src/share/roomwar.js';
 import { createAttackers } from '../src/render/attackers.js';
 import { createDebris } from '../src/render/debris.js';
+import { createExplosions } from '../src/render/explosion.js';
 import { createWarHud } from '../src/ui/warhud.js';
 
 /* The room clock is read from the shell this often, and run on the wall
@@ -45,6 +46,7 @@ export function install() {
   const war = createRoomWar((obj) => tap.socket.send(JSON.stringify(obj)));
   const debris = createDebris();
   const attackers = createAttackers({ debris, floorAt: (x, z) => window.__heightAt(x, z) });
+  const booms = createExplosions();
   const hud = createWarHud((seat) => `#${seat}`);
   const log = [];
 
@@ -86,7 +88,7 @@ export function install() {
     lastFrame = now;
     const scene = window.__mapScene && window.__mapScene();
     if (scene && attackers.group.parent !== scene) {
-      scene.add(attackers.group, debris.group);
+      scene.add(attackers.group, debris.group, booms.group);
     }
     const t = roomNow(now);
     for (const ev of war.takeEvents()) {
@@ -94,11 +96,12 @@ export function install() {
       if (ev.type === 'dead') {
         attackers.dead(ev);
       } else if (ev.type === 'boom') {
-        attackers.boom(ev.p);
+        booms.play(ev.p, 1.6);
       }
       hud.events([ev]);
     }
-    attackers.update(war.attackersAt(t), dt);
+    attackers.update(war.attackersAt(t));
+    booms.update(dt);
     drawnAt = t;
     debris.update(dt);
     const m = war.mission();

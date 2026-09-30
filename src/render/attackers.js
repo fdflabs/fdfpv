@@ -20,10 +20,10 @@
  * its centre at the origin, which is the point the room's pose and the
  * blast are measured from; a boat's origin is its waterline.
  *
- * A DEATH is a flash and the airframe's own pieces through the crash
- * debris (src/render/debris.js emit, surface -1: a part leaving with
- * nothing under it); a defender's warhead is a bigger flash where it went
- * off. Flashes are a small pool of additive sprites on the wall clock.
+ * A DEATH is the airframe's own pieces through the crash debris
+ * (src/render/debris.js emit, surface -1: a part leaving with nothing
+ * under it). Its fire and smoke, and a defender's warhead, are
+ * src/render/explosion.js's, which the shell throws beside this.
  *
  * Render only: nothing here reaches a plant or the room.
  *
@@ -50,7 +50,6 @@ import { KINDS } from '../share/war/routes.js';
 
 /* Instances a kind starts with; it doubles when a wave needs more. */
 const START_CAPACITY = 16;
-const FLASHES = 16;
 
 /* One part of a model: a geometry placed in the body frame, one colour. */
 function part(geo, color, { at = [0, 0, 0], rot = [0, 0, 0] } = {}) {
@@ -211,19 +210,17 @@ const BUILD = {
 };
 
 /* What each kind sheds when it breaks (debris.js SHED, by material), how
- * big its flash is, metres, and how hard its pieces are thrown, m/s. */
-const DEATH = {
-  scout: { shed: 'epo', flash: 6, speed: 15, emits: 3, spread: 1.2 },
-  loiter: { shed: 'cf-tube', flash: 7, speed: 28, emits: 2, spread: 0.5 },
-  strike: { shed: 'epo', flash: 9, speed: 38, emits: 3, spread: 1.0 },
-  fpv: { shed: 'cf-plate', flash: 4, speed: 30, emits: 1, spread: 0 },
-  hunter: { shed: 'cf-plate', flash: 4, speed: 36, emits: 1, spread: 0 },
-  boat: { shed: 'ply', flash: 8, speed: 14, emits: 3, spread: 2.0 },
-  jammer: { shed: 'ply', flash: 7, speed: 10, emits: 2, spread: 1.0 },
+ * big its explosion is (src/render/explosion.js play's size), and how
+ * hard its pieces are thrown, m/s. */
+export const DEATH = {
+  scout: { shed: 'epo', size: 1.1, speed: 15, emits: 3, spread: 1.2 },
+  loiter: { shed: 'cf-tube', size: 1.2, speed: 28, emits: 2, spread: 0.5 },
+  strike: { shed: 'epo', size: 1.4, speed: 38, emits: 3, spread: 1.0 },
+  fpv: { shed: 'cf-plate', size: 0.8, speed: 30, emits: 1, spread: 0 },
+  hunter: { shed: 'cf-plate', size: 0.8, speed: 36, emits: 1, spread: 0 },
+  boat: { shed: 'ply', size: 1.4, speed: 14, emits: 3, spread: 2.0 },
+  jammer: { shed: 'ply', size: 1.2, speed: 10, emits: 2, spread: 1.0 },
 };
-/* A defender's warhead, and an attacker that reached its target. */
-const BOOM_FLASH = 12;
-const IMPACT_FLASH = 16;
 
 /* The kind's model: one merged geometry, its colours in vertices. */
 export function attackerGeometry(kind) {
@@ -232,32 +229,12 @@ export function attackerGeometry(kind) {
   return g;
 }
 
-function glowTexture() {
-  const n = 64;
-  const data = new Uint8Array(n * n * 4);
-  for (let y = 0; y < n; y += 1) {
-    for (let x = 0; x < n; x += 1) {
-      const r = Math.hypot((x + 0.5) / n * 2 - 1, (y + 0.5) / n * 2 - 1);
-      const a = r >= 1 ? 0 : (1 - r) ** 1.6;
-      const i = (y * n + x) * 4;
-      data[i] = 255;
-      data[i + 1] = 255;
-      data[i + 2] = 255;
-      data[i + 3] = Math.round(a * 255);
-    }
-  }
-  const tex = new THREE.DataTexture(data, n, n, THREE.RGBAFormat);
-  tex.needsUpdate = true;
-  return tex;
-}
-
 /*
  * The attackers' layer. `debris` is the shell's createDebris() (or null),
  * `floorAt(x, z)` the ground's height, for where the pieces come to rest.
- * Returns { group, update(list, dtS), dead(event), boom(p), drawn(),
- * clear(), dispose() }: update with roomwar's attackersAt list once a
- * frame; dead with each 'dead' event of roomwar's takeEvents, and boom
- * with each 'boom'.
+ * Returns { group, update(list), dead(event), drawn(), clear(),
+ * dispose() }: update with roomwar's attackersAt list once a frame; dead
+ * with each 'dead' event of roomwar's takeEvents.
  */
 export function createAttackers({ debris = null, floorAt = () => -Infinity } = {}) {
   const group = new THREE.Group();
@@ -296,40 +273,13 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
     return mesh;
   }
 
-  const glow = glowTexture();
-  const flashes = [];
-  for (let i = 0; i < FLASHES; i += 1) {
-    const m = new THREE.SpriteMaterial({
-      map: glow, color: 0xffffff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
-    });
-    const s = new THREE.Sprite(m);
-    s.visible = false;
-    s.renderOrder = 4;
-    group.add(s);
-    flashes.push({ s, age: 0, life: 0, size: 0 });
-  }
-  const hot = new THREE.Color(0xfff4d6);
-  const fire = new THREE.Color(0xff7a2a);
-  let nextFlash = 0;
-
-  function flash(p, size, life = 0.7) {
-    const f = flashes[nextFlash];
-    nextFlash = (nextFlash + 1) % FLASHES;
-    f.s.position.set(p[0], p[1], p[2]);
-    f.age = 0;
-    f.life = life;
-    f.size = size;
-    f.s.visible = true;
-  }
-
   let drawnList = [];
 
   return {
     group,
 
-    /* list: [{ id, kind, p, q }] (roomwar attackersAt); dtS the frame's
-     * seconds, for the flashes. */
-    update(list, dtS) {
+    /* list: [{ id, kind, p, q }] (roomwar attackersAt). */
+    update(list) {
       const by = new Map(KINDS.map((k) => [k, []]));
       for (const a of list) {
         by.get(a.kind).push(a);
@@ -348,35 +298,16 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
         mesh.instanceMatrix.needsUpdate = true;
       }
       drawnList = list;
-      for (const f of flashes) {
-        if (!f.s.visible) {
-          continue;
-        }
-        f.age += dtS;
-        const u = f.age / f.life;
-        if (u >= 1) {
-          f.s.visible = false;
-          continue;
-        }
-        /* Up to full size in the first fifth, then white to fire as it
-         * fades. */
-        const grow = Math.min(1, u * 5);
-        f.s.scale.setScalar(f.size * (0.4 + 0.6 * grow));
-        f.s.material.color.copy(hot).lerp(fire, Math.min(1, u * 1.6));
-        f.s.material.opacity = 1 - u * u;
-      }
     },
 
-    /* A roomwar 'dead' event: each attacker's burst where it was, and the
-     * impact's when it reached a target. One that flew away ('leave')
-     * just goes. */
+    /* A roomwar 'dead' event: each attacker's pieces thrown where it was.
+     * One that flew away ('leave') just goes. */
     dead(ev) {
       if (ev.why === 'leave') {
         return;
       }
       for (const a of ev.agents) {
         const d = DEATH[a.kind];
-        flash(a.p, d.flash);
         if (!debris) {
           continue;
         }
@@ -387,14 +318,6 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
           debris.emit(at, new THREE.Vector3(0, 1, 0), d.speed, -1, d.shed, floorY, 'break');
         }
       }
-      if (ev.why === 'arrive' && ev.hit && ev.p) {
-        flash(ev.p, IMPACT_FLASH, 1.4);
-      }
-    },
-
-    /* A defender's warhead went off at p. */
-    boom(p) {
-      flash(p, BOOM_FLASH, 0.9);
     },
 
     /* What was drawn last, for the checks: the list and each kind's
@@ -411,9 +334,6 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
       for (const mesh of meshes.values()) {
         mesh.count = 0;
       }
-      for (const f of flashes) {
-        f.s.visible = false;
-      }
       drawnList = [];
     },
 
@@ -423,10 +343,6 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
         mesh.dispose();
       }
       meshes.clear();
-      for (const f of flashes) {
-        f.s.material.dispose();
-      }
-      glow.dispose();
       mat.dispose();
       group.clear();
     },

@@ -2736,6 +2736,7 @@ export default {
   "war.kill_by.one": "{name}: UNO ABATIDO",
   "war.kill_by.other": "{name}: {n} ABATIDOS",
   "war.boom_mine": "OJIVA DETONADA. AERONAVE PERDIDA",
+  "war.hint_go": "VUELA CONTRA ELLOS: tu ojiva detona a menos de 6 m",
   "war.call.scout.one": "EXPLORADOR {where}",
   "war.call.scout.other": "EXPLORADORES {where}",
   "war.call.loiter.one": "MERODEADOR {where}",
