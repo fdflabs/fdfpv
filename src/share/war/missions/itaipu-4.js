@@ -26,6 +26,7 @@ import itaipu1 from './itaipu-1.js';
 export default {
   ...itaipu1,
   id: 'itaipu-4',
-  title: 'Night raid',
+  /* A string key (src/strings): Night raid. */
+  title: 'war.mission.itaipu_4',
   night: true,
 };

@@ -34,7 +34,8 @@ import { ids, targets } from './itaipu-1.js';
 
 export default {
   id: 'itaipu-3',
-  title: 'Switchyard blackout',
+  /* A string key (src/strings): Switchyard blackout. */
+  title: 'war.mission.itaipu_3',
   map: 'itaipu',
   targets,
   output: 14000,

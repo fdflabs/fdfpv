@@ -96,7 +96,8 @@ export const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
 
 export default {
   id: 'itaipu-1',
-  title: 'Defend the intakes',
+  /* A string key (src/strings): Defend the intakes. */
+  title: 'war.mission.itaipu_1',
   map: 'itaipu',
   targets,
   output: 14000,

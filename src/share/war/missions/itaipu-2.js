@@ -32,7 +32,8 @@ import { ids, targets } from './itaipu-1.js';
 
 export default {
   id: 'itaipu-2',
-  title: 'Save the spillway gates',
+  /* A string key (src/strings): Save the spillway gates. */
+  title: 'war.mission.itaipu_2',
   map: 'itaipu',
   targets,
   output: 14000,
