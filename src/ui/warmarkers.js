@@ -30,13 +30,13 @@
  * mission's) is drawn yellow with no tag. The chrome is the war HUD's
  * green, and nothing here says anything about the link.
  *
- * WHICH HUNTER HAS PICKED YOU. The room knows (edge/rooms/warhunt.js
- * step() returns each hunter's target seat) but the AGENTS frame does not
- * carry it (src/share/roomwire.js encodeAgents: id, kind, pose). So it is
- * read off the pose: a hunter flies pure pursuit at its target, so one
- * within TARGET_RANGE_M whose nose is within HUNTED_RAD of the line to
- * this aircraft is taken to be on it. Two pilots close together can both
- * be warned; that errs toward the warning.
+ * WHICH HUNTER HAS PICKED YOU. The room says: HUNTS (0xA1,
+ * src/share/roomwire.js) carries each hunter's target seat, roomwar's
+ * `hunts`. From a room that does not send it yet (one from before HUNTS)
+ * it is read off the pose instead: a hunter flies pure pursuit at its
+ * target, so one within TARGET_RANGE_M whose nose is within HUNTED_RAD of
+ * the line to this aircraft is taken to be on it. Two pilots close
+ * together can both be warned that way; that errs toward the warning.
  *
  * WHEN IT DRAWS. update() runs in the shell's room frame, before the
  * camera has been put where this frame draws from, so the projection is
@@ -289,11 +289,11 @@ export function createWarMarkers(camera, view) {
    * Once a frame. live: roomwar attackersAt(now), or null outside a live
    * war (and in a replay, and off the flight screen) to hide it all. now
    * the room ms it is for; evs roomwar's takeEvents() of this frame; m
-   * the mission (roomwar mission()); x, y, z this aircraft, scene metres.
-   * Returns true when a Hunter has newly picked this pilot, for the
+   * the mission (roomwar mission()); x, y, z this aircraft, scene metres;
+   * seat this pilot's (roomwar seat()), for a hunter's `hunts`. Returns true when a Hunter has newly picked this pilot, for the
    * radio's line.
    */
-  function update(live, now, evs, m, x, y, z) {
+  function update(live, now, evs, m, x, y, z, seat = null) {
     const t0 = performance.now();
     if (evs && evs.length) {
       events(evs);
@@ -329,7 +329,17 @@ export function createWarMarkers(camera, view) {
       const dz = z - a.p[2];
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
       dist[i] = d;
-      if (threat[i] !== 2 || d > HUNT_RANGE_M || d < 1e-3) {
+      if (threat[i] !== 2 || d < 1e-3) {
+        continue;
+      }
+      if (a.hunts !== undefined) {
+        if (a.hunts != null && a.hunts === seat && d < huntedD) {
+          hunted = i;
+          huntedD = d;
+        }
+        continue;
+      }
+      if (d > HUNT_RANGE_M) {
         continue;
       }
       /* The nose, -z of the scene frame's craft (src/render/frame.js),

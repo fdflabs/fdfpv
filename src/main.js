@@ -2612,7 +2612,7 @@ export async function boot({
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */
-    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), pCurr.x, pCurr.y, pCurr.z)) {
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), pCurr.x, pCurr.y, pCurr.z, roomWar.seat())) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
         warSay(['wave-hunter']);

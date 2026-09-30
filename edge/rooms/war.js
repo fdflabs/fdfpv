@@ -77,7 +77,8 @@
  *   { type: 'war', error }                    to a refused sender
  *
  * and AGENTS (0xA0) to each seat on the room tick, thinned by distance on
- * the core's INTEREST bands.
+ * the core's INTEREST bands, each followed by HUNTS (0xA1): the same
+ * hunters' target seats.
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match (the attackers alive,
@@ -103,7 +104,7 @@
  */
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose, encodeAgents,
+  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose, encodeAgents, encodeHunts,
 } from '../../src/share/roomwire.js';
 import {
   LATE_MS, Track, hullDistance, hullFor, poseAt as trackPose, within,
@@ -1017,10 +1018,11 @@ export class RoomWar {
           continue;
         }
         sent.set(h.id, core.tickNo);
-        list.push({ id: h.id, kind: KIND_ID.get('hunter'), p: h.p, q: h.q });
+        list.push({ id: h.id, kind: KIND_ID.get('hunter'), p: h.p, q: h.q, target: h.target });
       }
       if (list.length) {
         out.push({ send: conn, data: encodeAgents(this.lastStep, list) });
+        out.push({ send: conn, data: encodeHunts(this.lastStep, list) });
       }
     }
     return out;

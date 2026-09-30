@@ -21,8 +21,8 @@
  */
 
 import {
-  AGENTS_ENTRY, AGENTS_HEAD, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
-  checkProfile, decodeAgents, encodeAgents, encodePose,
+  AGENTS_ENTRY, AGENTS_HEAD, HUNTS_ENTRY, HUNTS_HEAD, TYPE_HUNTS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
+  checkProfile, decodeAgents, decodeHunts, encodeAgents, encodeHunts, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
@@ -149,6 +149,13 @@ export function warSection(check) {
       && Math.abs(back.agents[0].p[0] + 1234.5) < 1e-3 && Math.abs(back.agents[0].q[1] + Math.SQRT1_2) < 1e-4 && back.agents[1].q[3] === 1,
     JSON.stringify(back && back.agents[0]));
     check('a wrong length is nothing', decodeAgents(bytes.subarray(0, bytes.length - 1)) === null && decodeAgents(new Uint8Array([0x20, 0, 0, 0, 0, 0])) === null);
+    const hunts = encodeHunts(123456, [{ id: 7, target: 3 }, { id: 65535, target: -1 }, { id: 9, target: null }, { id: 10, target: 255 }]);
+    const hb = decodeHunts(hunts);
+    check('HUNTS is 0xA1, a 6 byte head and 3 bytes an agent: id and target seat, 255 none', hunts[0] === TYPE_HUNTS && TYPE_HUNTS === 0xA1
+      && hunts.length === HUNTS_HEAD + 4 * HUNTS_ENTRY && HUNTS_HEAD === 6 && HUNTS_ENTRY === 3 && hb && hb.roomMs === 123456
+      && JSON.stringify(hb.agents) === '[{"id":7,"target":3},{"id":65535,"target":null},{"id":9,"target":null},{"id":10,"target":null}]', JSON.stringify(hb));
+    check('a client from before HUNTS reads AGENTS unchanged and takes HUNTS for nothing', decodeAgents(hunts) === null && decodeHunts(bytes) === null
+      && decodeHunts(hunts.subarray(0, hunts.length - 1)) === null);
     check('war is a room game a profile can name', ROOM_GAMES.includes('war')
       && checkProfile({ airframe: 'cub1400', map: 'itaipu', figure: 0, game: 'war' }).game === 'war');
     check('the kinds are section 3\'s seven, hunter at index 4', KINDS.length === 7 && KINDS[4] === 'hunter' && KINDS.every((k) => KIND[k].speed > 0));
@@ -424,6 +431,12 @@ export function warSection(check) {
     check('the room sends a hunter\'s poses, as AGENTS, closing on the nearest pilot (400 m off: the 5 Hz band)', near >= 9 && bin.at(-1).agents[0].kind === KINDS.indexOf('hunter')
       && bin.at(-1).agents[0].p[0] < 400 - 36, `${near} messages, last at x ${bin.length ? bin.at(-1).agents[0].p[0].toFixed(1) : '-'}`);
     check('thinned by distance: the pilot 3 km off gets them at the far band\'s rate', far > 0 && far < near / 4, `${far} against ${near}`);
+    const hunts0 = e.socks[0].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts);
+    const hunts1 = e.socks[1].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts);
+    check('every AGENTS comes with a HUNTS for the same hunters at the same ms, naming the seat it chases (1, the near pilot)', hunts0.length === bin.length
+      && hunts0.every((h, i) => h.roomMs === bin[i].roomMs && h.agents.map((a) => a.id).join() === bin[i].agents.map((a) => a.id).join())
+      && hunts0.at(-1).agents[0].target === 1 && hunts1.length === far && hunts1.at(-1).agents[0].target === 1,
+    `${hunts0.length} HUNTS against ${bin.length} AGENTS, target ${hunts0.length ? hunts0.at(-1).agents[0].target : '-'}`);
     e.fly(COUNTDOWN_MS + 16000);
     const booms = e.r.war.log.filter((x) => x.what === 'boom');
     check('a hunter that reaches a pilot takes it and itself', booms.length === 1 && booms[0].seat === 1 && e.view().state === 'won', JSON.stringify(e.r.war.log));

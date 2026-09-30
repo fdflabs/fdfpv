@@ -14,7 +14,10 @@
  *             frames; drawn between the two samples either side of the
  *             asked millisecond, or carried on from the newest at its
  *             velocity for at most EXTRAP_MAX_MS (src/game/peer.js's cap)
- *             and held there after
+ *             and held there after; each AGENTS is followed by a HUNTS
+ *             (0xA1) with every hunter's target seat, `hunts` in
+ *             attackersAt(), undefined until one is heard (a room from
+ *             before HUNTS never sends one)
  *
  * A death is the room's word, applied when it is heard: the attacker goes,
  * and the shell hears of it once through takeEvents(), with where it was,
@@ -45,7 +48,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { decodeAgents } from './roomwire.js';
+import { decodeAgents, decodeHunts } from './roomwire.js';
 import { KINDS, planAgent, poseAt } from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
 import { MISSIONS } from './war/missions/index.js';
@@ -113,7 +116,8 @@ export function createRoomWar(send) {
   let seat = null;
   let war = { state: 'lobby' };
   let error = null;
-  /* id -> { a (birth record), plan, samples ([{ t, p, q }], hunters) }. */
+  /* id -> { a (birth record), plan, samples ([{ t, p, q }], hunters),
+   * hunts (a hunter's target seat, null for none, undefined unheard) }. */
   let agents = new Map();
   /* What happened since the shell last asked, oldest first. */
   let events = [];
@@ -221,8 +225,18 @@ export function createRoomWar(send) {
       return true;
     },
 
-    /* An AGENTS frame. Returns true when it was one. */
+    /* An AGENTS or a HUNTS frame. Returns true when it was one. */
     onBinary(bytes) {
+      const hunts = decodeHunts(bytes);
+      if (hunts) {
+        for (const h of hunts.agents) {
+          const x = agents.get(h.id);
+          if (x && x.a.kind === 'hunter') {
+            x.hunts = h.target;
+          }
+        }
+        return true;
+      }
       const got = decodeAgents(bytes);
       if (!got) {
         return false;
@@ -248,8 +262,10 @@ export function createRoomWar(send) {
 
     /*
      * Every attacker alive at room ms t: [{ id, kind, p: [x, y, z], q:
-     * [x, y, z, w] }], scene world metres, y up, in id order. Only while a
-     * war is live; none before its birth or past its route's end.
+     * [x, y, z, w] }], scene world metres, y up, in id order, and on a
+     * hunter whose HUNTS has been heard, hunts: the seat it chases or
+     * null. Only while a war is live; none before its birth or past its
+     * route's end.
      */
     attackersAt(t) {
       const out = [];
@@ -262,7 +278,11 @@ export function createRoomWar(send) {
         }
         const o = poseOf(x, t);
         if (o) {
-          out.push({ id: x.a.id, kind: x.a.kind, p: o.p, q: o.q });
+          const a = { id: x.a.id, kind: x.a.kind, p: o.p, q: o.q };
+          if (x.hunts !== undefined) {
+            a.hunts = x.hunts;
+          }
+          out.push(a);
         }
       }
       return out.sort((a, b) => a.id - b.id);
