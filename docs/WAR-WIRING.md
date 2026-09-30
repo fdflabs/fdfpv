@@ -54,7 +54,8 @@ Called from `roomFrame` after tag's, at the room clock `now`, so it stops
 while the link is not open. In order:
 
 1. `warAttackers.group` into the scene; hidden in the crash cam's replay.
-2. `roomWar.on()` changed: `warBegin(view)` or `warFinish()` (section 4).
+2. `roomWar.on()` changed: `warBegin(view)` or `warFinish()` (section 4);
+   then `warIntroFrame(view, now)`, the briefing's intro (section 4).
    This is on the view, not on a `state` event, because a pilot seated
    while a war is live gets its view in the welcome and no event.
 3. `roomWar.takeEvents()`, each logged in `warLog` (for `window.__war`):
@@ -85,6 +86,16 @@ while the link is not open. In order:
   room's own `roomCall('game', { restart: true })`.
 - `warFinish()`: the targets whole, `warCrashDue` set, the music off. The
   last radio line is left to finish.
+- The briefing (a war started with `{ intro: true }`, state `'briefing'`
+  and `briefAt` in the view): `warIntroFrame` plays the 2030 intro
+  (src/render/warintro.js `play`) once per war, from where the room is in
+  it, with the intro music; `warIntroPlay` and `warIntroStop` own it. It
+  poses the camera after the camera chain (the frame loop calls
+  `warIntro.frame`), and stops in the crash cam's replay, when the
+  briefing ends, and in `warLeave`. A skip by the host ends the briefing
+  for everybody (`roomWar.skipIntro()`); anyone else circles the dam
+  until it ends. The host's row also offers it again on its own
+  (`friends-war-intro`, `warIntroPlay('watch')`).
 - Crash damage: `applyCrashMode(s)` wants damage on while `roomWar.on()`,
   whatever `s.crashDamage` says, and never writes the setting, so it is
   the pilot's own again after. `damage.setMode` clears the crash state, so
@@ -141,7 +152,10 @@ row first. `roomTarget` flies a war in free flight, as tag.
   mode, the burning targets, `watch` (spectating, the seat watched, the
   camera's position, the wreck, the banner) and the event log.
 - `window.__warAt(t)`: `roomWar.attackersAt(t)`.
-- `window.__warDo(op, arg)`: the host's `'start'` and `'end'`.
+- `window.__warDo(op, arg)`: the host's `'start'`, `'brief'` (a start
+  with the briefing) and `'end'`.
+- `window.__warIntro()` and `window.__warIntroWatch()`: the intro's state
+  while it plays, and the host's Watch intro.
 - `window.__warHear(m)`: a room message heard as if the room had sent it,
   for a state the room reaches too seldom to wait for (the two page
   check's empty rack). The room's next view replaces it.
