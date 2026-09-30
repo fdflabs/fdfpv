@@ -26,6 +26,10 @@
  * the host; the host has Make a private war room, which asks consent and
  * lands in a new private Itaipu room, war ready, its invite code on top.
  *
+ * The Toilet paper combat card pressed while the war in that room is on:
+ * the pilot is out of the war room, on the room screen with Make a room
+ * under combat's heading, and not flown into the war.
+ *
  * No page error. Pictures in outdir, not in the repository.
  *
  * This file is part of WebFPVSimulator.
@@ -383,6 +387,32 @@ try {
   check('its invite code on top of the war block, above the start row', invite.i >= 0 && invite.i < invite.start, JSON.stringify(invite));
   await shot(page, 'war-room-from-public');
   other.close();
+
+  /* THE TOILET PAPER COMBAT CARD FROM A WAR ROOM, the owner's report
+   * (2026-09-30): "when i enter the toilet paper mode, it then switches to
+   * mission mode, in itaipu". The war is on and the pilot flying it; quit
+   * to the title, back to the gate, the combat card: out of the war room,
+   * Make a room under the cursor under combat's heading, and still there
+   * well past a countdown's length, never flown back into the war. */
+  await page.evaluate("window.__warDo('start')");
+  await page.until("window.__war().view.state === 'live' && window.__ui.screen === 'flight'", 60000).catch(() => {});
+  const warCode = await page.evaluate('window.__rooms().code');
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'paused'", 5000).catch(() => {});
+  await page.evaluate("(() => { window.__ui.act('title'); return true; })()");
+  await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+  for (let i = 0; i < 4 && !(await page.evaluate('window.__ui.onGate()')); i += 1) {
+    await page.tap('Escape');
+    await page.sleep(600);
+  }
+  await click(page, '.gate-card-combat');
+  await page.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
+  await page.sleep(8000);
+  const combat = await page.evaluate(LANDED);
+  check('the combat card from a room with a war on: out of it, Make a room under the cursor, under Toilet paper combat',
+    combat.phase === 'idle' && combat.code !== warCode && combat.screen === 'friends' && combat.game === 'combat'
+    && combat.here === 'roomnew' && combat.primary && combat.heading === 'Toilet paper combat', `${JSON.stringify(combat)} war room ${warCode}`);
+  await shot(page, 'combat-card-from-war');
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
