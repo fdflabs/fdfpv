@@ -54,6 +54,13 @@
  * (core.js hostCheck refuses 'private' in a public one, section 9),
  *
  *   { type: 'war', op: 'start', mission }   count down and fight it
+ *   { type: 'war', op: 'start', mission, intro: true }
+ *                                           the same after a 'briefing'
+ *                                           of INTRO_MS, which every
+ *                                           screen fills with the intro
+ *                                           film (src/render/warintro.js)
+ *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
+ *                                           countdown starts now
  *   { type: 'war', op: 'end' }              stop now
  *
  * and any pilot, about its own seat, while a war is on and it is neither
@@ -112,6 +119,7 @@ import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
 import { MISSIONS } from '../../src/share/war/missions/index.js';
+import { INTRO_MS } from '../../src/share/war/intro.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
@@ -258,8 +266,9 @@ export class RoomWar {
   constructor(meta) {
     this.meta = meta;
     /*
-     * { id, mission, seed, goAt, state: 'countdown'|'live'|'won'|'lost'|
-     *   'ended', why, f, wave (the next to be born), output, down (target
+     * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
+     *   'won'|'lost'|'ended', briefAt (the room ms a briefing began, or
+     *   null), why, f, wave (the next to be born), output, down (target
      *   ids hit), rack, rackMax, players: { seat: { kills, assists, mw,
      *   token } }, agents: [birth records alive], nextAgent, scouts: { n,
      *   killed } of the last scout wave or null, hunters (Hunters save),
@@ -315,10 +324,10 @@ export class RoomWar {
     return { store: 'war', value: { match: m, nextId: this.nextId } };
   }
 
-  /* Counting down or on: the room runs no other game. */
+  /* Briefing, counting down or on: the room runs no other game. */
   on() {
     const m = this.match;
-    return Boolean(m) && (m.state === 'countdown' || m.state === 'live');
+    return Boolean(m) && (m.state === 'briefing' || m.state === 'countdown' || m.state === 'live');
   }
 
   view(core) {
@@ -333,6 +342,7 @@ export class RoomWar {
       id: m.id,
       mission: m.mission,
       goAt: m.goAt,
+      briefAt: m.briefAt ?? null,
       f: m.f,
       wave: m.wave,
       waves: mission.waves.length,
@@ -403,6 +413,9 @@ export class RoomWar {
     if (msg.op === 'start') {
       return this.start(core, conn, msg, now);
     }
+    if (msg.op === 'skipIntro') {
+      return this.skipIntro(core, now);
+    }
     if (msg.op === 'end' && this.on()) {
       const out = this.advance(core, now);
       return this.on() ? [...out, ...this.abandon(core, now)] : out;
@@ -472,7 +485,9 @@ export class RoomWar {
     if (mission.map !== core.meta.map) {
       return this.error(conn, 'map');
     }
-    const goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
+    /* A briefing is the intro's span before the countdown's. */
+    const briefAt = msg.intro === true ? Math.ceil(core.roomMs(now)) : null;
+    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : INTRO_MS) + COUNTDOWN_MS;
     const players = {};
     for (const t of core.seats.values()) {
       players[t.seat] = {
@@ -484,7 +499,8 @@ export class RoomWar {
       mission: mission.id,
       seed: Math.floor(this.random() * 4294967296) >>> 0,
       goAt,
-      state: 'countdown',
+      briefAt,
+      state: briefAt == null ? 'countdown' : 'briefing',
       why: null,
       f: goAt,
       wave: 0,
@@ -512,6 +528,20 @@ export class RoomWar {
       r.armFrom = -Infinity;
       r.crashT = -Infinity;
     }
+    return this.changed(core);
+  }
+
+  /* The host cuts the briefing short: the countdown runs from now, for
+   * everybody. Nothing outside a briefing, so a late or repeated skip
+   * cannot move a countdown already under way. */
+  skipIntro(core, now) {
+    const m = this.match;
+    if (!m || m.state !== 'briefing') {
+      return [];
+    }
+    m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
+    m.f = m.goAt;
+    m.state = 'countdown';
     return this.changed(core);
   }
 
@@ -707,6 +737,9 @@ export class RoomWar {
     const roomNow = core.roomMs(now);
     const state = m.state;
     const out = [];
+    if (m.state === 'briefing' && roomNow >= m.goAt - COUNTDOWN_MS) {
+      m.state = 'countdown';
+    }
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
       const here = this.players(core);
