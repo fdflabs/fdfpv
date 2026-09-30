@@ -4166,6 +4166,12 @@
       .name-dialog-box.campaign-box {
         width: min(640px, 94vw); max-height: min(90vh, 820px); overflow-y: auto; box-sizing: border-box;
       }
+      /* The campaign is fought at Itaipu, so its screen stands over the
+         dam's poster, not over the title's flyover of another world. */
+      .name-dialog:has(.campaign-box) {
+        background: linear-gradient(rgba(8, 12, 10, 0.55), rgba(8, 12, 10, 0.75)),
+          url('assets/posters/itaipu.jpg') center / cover no-repeat;
+      }
       .campaign-eyebrow {
         font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sakura);
       }
