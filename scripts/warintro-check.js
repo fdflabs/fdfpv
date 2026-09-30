@@ -9,20 +9,20 @@
  * which mutes the page), imports the player into the page and drives it
  * the way a shell does: frame() once an animation frame, the film's
  * camera handed to the shell through its harness camera (__setCam, which
- * takes a position, a point to look at and a lens, so the gorge shot's
- * roll is not seen here; everything else is the shell's own draw). Then
- * it holds the film to:
+ * takes a position, a point to look at and a lens; everything else is
+ * the shell's own draw). Then it holds the film to:
  *
  *   shots     every shot drawn, and what each one is for there: the
  *             title "2030"; eleven Strikers over the water; the counter
  *             reaching 14 000 MW; the line of eight aircraft; the spin up
- *             cuts' cast; the gorge's static up to full and clear again;
- *             the wave (Strikers, FPVs, Loiterers), the six defenders and
- *             the mission card
- *   words     every voice line's subtitle shown, in the page's language,
- *             as lines.json has it, and every voice file as long as the
- *             manifest measured it, so the subtitles' timing is the
- *             files'
+ *             cuts' cast; the wave (Strikers, FPVs, Loiterers), the six
+ *             defenders and the mission card
+ *   words     every played voice line's subtitle shown, in the page's
+ *             language, as lines.json has it, and every voice file as
+ *             long as the manifest measured it, so the subtitles' timing
+ *             is the files'; intro-6, the signal line, never said (the
+ *             signal system is out of the war mode for now, and its shot
+ *             with it)
  *   camera    never under the ground (__heightAt) at any frame
  *   budget    the film's own draw calls at most FILM_CALLS on the map's
  *             view, and no view over ITAIPU-PLAN section 13's 300 that the
@@ -106,7 +106,13 @@ if (outDir === root || outDir.startsWith(`${root}/`)) {
 }
 await mkdir(outDir, { recursive: true });
 
-const lines = JSON.parse(await readFile(join(root, 'assets/audio/war/lines.json'), 'utf8')).lines.filter((l) => l.group === 'intro');
+/* The intro's lines the film plays, one a shot in order: intro-6 went
+ * with the gorge's shot and the signal system. */
+const CUT = 'intro-6';
+const lines = JSON.parse(await readFile(join(root, 'assets/audio/war/lines.json'), 'utf8')).lines.filter((l) => l.group === 'intro' && l.id !== CUT);
+if (lines.length !== SHOT_MS.length) {
+  throw new Error(`warintro-check: ${lines.length} lines played for ${SHOT_MS.length} shots`);
+}
 const manifest = JSON.parse(await readFile(join(root, 'assets/audio/war/manifest.json'), 'utf8'));
 
 const failures = [];
@@ -169,12 +175,10 @@ const DRIVE = /* js */ `(async (opts) => {
       if (!s.orbit && s.shot >= 0) {
         const g = window.__heightAt(cam.position.x, cam.position.z);
         R.clear.push([s.shot, cam.position.y - g, Math.round(cam.position.x), Math.round(cam.position.z)]);
-        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], snowMax: 0, snowLast: 0, titles: [], subs: [], counter: null, calls: 0 });
+        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], titles: [], subs: [], counter: null, calls: 0 });
         x.frames += 1;
         for (const [kind, n] of Object.entries(s.drawn)) { x.drawn[kind] = Math.max(x.drawn[kind] || 0, n); }
         for (const c of s.cast) { if (!x.cast.includes(c)) { x.cast.push(c); } }
-        x.snowMax = Math.max(x.snowMax, s.snow);
-        x.snowLast = s.snow;
         if (s.title && !x.titles.includes(s.title)) { x.titles.push(s.title); }
         if (s.subtitle && !x.subs.includes(s.subtitle)) { x.subs.push(s.subtitle); }
         if (s.counter) { x.counter = s.counter; }
@@ -251,7 +255,7 @@ try {
 
   const { R, s } = report;
   const shot = (i) => R.shots[i] || {
-    frames: 0, drawn: {}, cast: [], titles: [], subs: [], snowMax: 0, snowLast: 0, calls: 0,
+    frames: 0, drawn: {}, cast: [], titles: [], subs: [], calls: 0,
   };
   console.log('\nper shot: frames, most attackers drawn, the cast, most draw calls');
   for (let i = 0; i < SHOT_MS.length; i += 1) {
@@ -266,11 +270,10 @@ try {
   const LINE = ['p51', 'cub', 'q1', 'q2', 'q3', 'sky', 'f16', 'timber'];
   row('shot 4: the line of eight aircraft on the crest', LINE.every((n) => shot(3).cast.includes(n)), shot(3).cast.join(' '));
   row('shot 5: the spin up cuts: a quad, the Skyhunter thrown, the float plane, the F-16', ['q2s', 'skys', 'float', 'f16'].every((n) => shot(4).cast.includes(n)), shot(4).cast.join(' '));
-  row('shot 6: the gorge\'s static breaks the feed, then clears', shot(5).snowMax >= 0.9 && shot(5).snowLast === 0, `max ${shot(5).snowMax.toFixed(2)}, last ${shot(5).snowLast}`);
-  row('shot 7: the wave (Strikers, FPVs, Loiterers) and six defenders rising', shot(6).drawn.strike >= 10 && shot(6).drawn.fpv >= 8 && shot(6).drawn.loiter >= 3
-    && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot(6).cast.includes(n)), `${JSON.stringify(shot(6).drawn)} [${shot(6).cast.join(' ')}]`);
-  row('shot 7: the card "DEFEND ITAIPU / Mission 1"', shot(6).titles.includes('DEFEND ITAIPU'), shot(6).titles.join(' | '));
-  row('no other shot draws an attacker', [0, 2, 3, 4, 5].every((i) => Object.values(shot(i).drawn).every((n) => n === 0)));
+  row('shot 6: the wave (Strikers, FPVs, Loiterers) and six defenders rising', shot(5).drawn.strike >= 10 && shot(5).drawn.fpv >= 8 && shot(5).drawn.loiter >= 3
+    && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot(5).cast.includes(n)), `${JSON.stringify(shot(5).drawn)} [${shot(5).cast.join(' ')}]`);
+  row('shot 6: the card "DEFEND ITAIPU / Mission 1"', shot(5).titles.includes('DEFEND ITAIPU'), shot(5).titles.join(' | '));
+  row('no other shot draws an attacker', [0, 2, 3, 4].every((i) => Object.values(shot(i).drawn).every((n) => n === 0)));
 
   const subs = lines.map((l, i) => shot(i).subs.includes(l.en));
   row('every voice line is subtitled in its shot, in English as lines.json has it', subs.every(Boolean), subs.map((x, i) => `${i + 1}:${x ? 'y' : 'n'}`).join(' '));
@@ -284,8 +287,8 @@ try {
   });
   row('every line, in either language, is shorter than its shot', fits.every((f) => f.ok), fits.map((f) => `${f.id} ${(f.longest / 1000).toFixed(1)} s`).join(', '));
   const heard = s.sound ? s.sound.cued : [];
-  row('the voice: all seven lines said on the war radio, each at its cue, in the page\'s language', heard.length === 7
-    && lines.every((l) => heard.some((x) => x.line === l.id) && s.sound.said.includes(l.id)) && s.sound.lang === 'en',
+  row(`the voice: all ${lines.length} lines said on the war radio, each at its cue, in the page's language, and never ${CUT}`, heard.length === lines.length
+    && lines.every((l) => heard.some((x) => x.line === l.id) && s.sound.said.includes(l.id)) && !s.sound.said.includes(CUT) && s.sound.lang === 'en',
     `${heard.map((x) => `${x.line}@${(x.at / 1000).toFixed(1)}`).join(' ')}; radio ${s.sound ? `${s.sound.lang} ${s.sound.ext}` : 'none'}`);
   row('the music: the war bed\'s intro track under every shot, and the bed put back as it was after', SHOT_MS.every((_, i) => shot(i).music === 'intro')
     && bedAfter === '', `${SHOT_MS.map((_, i) => shot(i).music || '-').join(' ')}; after, '${bedAfter}'`);

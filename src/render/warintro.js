@@ -2,12 +2,15 @@
  * warintro.js: "2030", the war mode's cinematic intro
  * (docs/WARFARE-PLAN.md section 7.1), played in engine on the Itaipu map.
  *
- * THE FILM IS DATA. SHOTS below is the seven shots of the plan's table:
+ * THE FILM IS DATA. SHOTS below is the plan's table less its shot 6, the
+ * feed's static in the gorge: the owner took the signal system (link
+ * loss, static, relays, jammers) out of the war mode for now, so the film
+ * does not teach it, and its line, intro-6, is not played.
  * each one's camera as keyframes, which voice line starts when, which
  * attackers fly which routes (src/share/war/routes.js, the function the
  * room and every screen fly them by), which of the hangar's aircraft
  * stand or fly where (the game's own builders, src/render/craft.js), the
- * title cards, the output counter and the feed's static. Times are
+ * title cards and the output counter. Times are
  * milliseconds from the shot's start; each shot's length is
  * src/share/war/intro.js SHOT_MS, which the room's briefing also sums.
  *
@@ -57,7 +60,6 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createAttackers } from './attackers.js';
 import { celMaterial } from './celmat.js';
-import { createFpvFail } from './fpvfail.js';
 import { craftBuilderFor } from './craft.js';
 import { planAgent, poseAt } from '../share/war/routes.js';
 import { SHOT_MS, INTRO_MS } from '../share/war/intro.js';
@@ -177,7 +179,6 @@ const STAGE_MISSION = { routes: ROUTES, targets: itaipu1.targets };
  *           the middle one, so a line abreast reads as a V
  *   titles  [{ key or text, from, to, kind }]
  *   counter { from, to }: the output counting up to 14 000 MW
- *   snow    [[t, level]]: the feed's static, fpvfail's signal()
  *   fade    [[t, black]]: to and from black
  *   grade   the shot's colour grade, one of GRADES
  */
@@ -264,7 +265,7 @@ export const SHOTS = [
         t: 7500, cut: true, p: crest(LINE_AT, LINE_OFF - 2.1, CREST_Y + 0.42, linePlaceAlong('f16') + 0.7), fov: 48, lookAt: 'f16', lookUp: 0.05, shake: 0.002,
       },
       {
-        t: 10000, p: crest(LINE_AT, LINE_OFF - 1.8, CREST_Y + 0.4, linePlaceAlong('f16') + 0.5), fov: 46, lookAt: 'f16', lookUp: 0.05, shake: 0.012,
+        t: 12000, p: crest(LINE_AT, LINE_OFF - 1.6, CREST_Y + 0.4, linePlaceAlong('f16') + 0.4), fov: 44, lookAt: 'f16', lookUp: 0.05, shake: 0.014,
       },
     ],
     cast: {
@@ -273,10 +274,10 @@ export const SHOTS = [
       f16: {
         keys: [
           { t: 0, p: linePlace('f16'), yaw: FACE_UP },
-          { t: 9000, p: linePlace('f16'), yaw: FACE_UP },
-          { t: 10000, p: crest(LINE_AT, LINE_OFF + 1.2, null, linePlaceAlong('f16')), yaw: FACE_UP },
+          { t: 10800, p: linePlace('f16'), yaw: FACE_UP },
+          { t: 12000, p: crest(LINE_AT, LINE_OFF + 1.4, null, linePlaceAlong('f16')), yaw: FACE_UP },
         ],
-        spin: [[7500, 5], [9000, 60], [10000, 120]],
+        spin: [[7500, 5], [10800, 60], [12000, 120]],
       },
       /* Thrown at 2.3 s from the reservoir side of the crest, 13 m/s and
        * climbing at 12 degrees, chased by the camera. */
@@ -300,59 +301,45 @@ export const SHOTS = [
     fade: [[0, 0.5], [250, 0]],
   },
   {
-    id: 'gorge',
-    voice: { line: 'intro-6', at: 2000 },
-    grade: 'fpv',
-    fpv: true,
-    cam: [
-      { t: 0, p: [-10, 142, -1200], look: [-90, 116, -940], fov: 72, roll: 0.05 },
-      { t: 3000, p: [-130, 116, -930], look: [-200, 114, -640], fov: 72, roll: -0.35 },
-      { t: 6000, p: [-230, 121, -760], look: [-290, 136, -470], fov: 72, roll: 0.25 },
-      { t: 9000, p: [-300, 170, -640], look: [-370, 205, -390], fov: 72, roll: -0.1 },
-    ],
-    snow: [[0, 0], [1100, 0], [1700, 0.55], [2300, 1], [3700, 0.95], [4300, 0.5], [4700, 0.2], [5300, 0.35], [5900, 0], [9000, 0]],
-    fade: [[0, 0.8], [250, 0]],
-  },
-  {
     id: 'wave',
-    voice: { line: 'intro-7', at: 1600 },
+    voice: { line: 'intro-7', at: 2000 },
     grade: 'steel',
     /* From the crest, tight on the wave coming in over the water, then
      * wide as the defenders climb past the camera to meet it. */
     cam: [
       { t: 0, p: crest(8.5, 20, 231), look: [90, 262, -2500], fov: 11 },
-      { t: 3400, p: crest(8.5, 19.5, 231.2), look: [95, 262, -2400], fov: 14 },
-      { t: 6400, p: crest(8.5, 18, 231.6), look: [100, 268, -2300], fov: 55 },
-      { t: 13000, p: crest(8.5, 16, 232.4), look: [100, 276, -2200], fov: 60 },
+      { t: 5000, p: crest(8.5, 19.5, 231.2), look: [95, 262, -2400], fov: 14 },
+      { t: 8500, p: crest(8.5, 18, 231.6), look: [100, 268, -2300], fov: 55 },
+      { t: 20000, p: crest(8.5, 14, 233.4), look: [100, 280, -2150], fov: 62 },
     ],
     agents: [
       {
-        kind: 'strike', route: 'wave-low', n: 6, t0: -19000, stagger: 600,
+        kind: 'strike', route: 'wave-low', n: 6, t0: -14000, stagger: 600,
       },
       {
-        kind: 'strike', route: 'wave-west', n: 4, t0: -16000, stagger: 500,
+        kind: 'strike', route: 'wave-west', n: 4, t0: -11000, stagger: 500,
       },
-      { kind: 'fpv', route: 'wave-far', n: 8, t0: -30000 },
+      { kind: 'fpv', route: 'wave-far', n: 8, t0: -25000 },
       { kind: 'loiter', route: 'wave-high', n: 3, t0: -30000 },
     ],
     /* Rising past the lens from both banks, close enough to read at their
      * size (a quad is a quarter metre): the quads climb into the frame
      * from under it, the planes pass from behind the camera. */
     cast: {
-      p51: rise(crest(8.5, 8, 233, 10), 22, 25, 0.2, 5400),
-      q4: rise(crest(8.5, 23, 227.5, 3), 9, 45, -0.25, 6000),
-      q5: rise(crest(8.5, 22, 227.5, -4), 8, 42, -0.25, 7000),
-      zagi: rise(crest(8.5, 6, 233, -12), 20, 30, 0.2, 7400),
-      q6: rise(crest(8.5, 24, 227, 6), 10, 48, -0.25, 8200),
-      q7: rise(crest(8.5, 23, 227.5, -7), 9, 40, -0.25, 9400),
+      p51: rise(crest(8.5, 8, 233, 10), 22, 40, 0.2, 7400),
+      q4: rise(crest(8.5, 23, 227.5, 3), 9, 70, -0.25, 8200),
+      q5: rise(crest(8.5, 22, 227.5, -4), 8, 64, -0.25, 9500),
+      zagi: rise(crest(8.5, 6, 233, -12), 20, 45, 0.2, 10500),
+      q6: rise(crest(8.5, 24, 227, 6), 10, 60, -0.25, 12000),
+      q7: rise(crest(8.5, 23, 227.5, -7), 9, 55, -0.25, 13500),
     },
     titles: [
       {
-        key: 'war.intro.defend', sub: 'war.intro.mission', from: 7200, to: 12400, kind: 'mission',
+        key: 'war.intro.defend', sub: 'war.intro.mission', from: 13200, to: 19400, kind: 'mission',
       },
-      { key: 'war.intro.music', from: 8200, to: 12400, kind: 'credit' },
+      { key: 'war.intro.music', from: 14200, to: 19400, kind: 'credit' },
     ],
-    fade: [[0, 0.5], [300, 0], [12300, 0], [13000, 1]],
+    fade: [[0, 0.5], [300, 0], [19300, 0], [20000, 1]],
   },
 ];
 
@@ -365,7 +352,7 @@ function linePlaceAlong(name) {
  * `climb` metres over the shot, nose pitched `pitch` (a quad noses down to
  * fly, a plane up to climb), from `t0`. */
 function rise(from, speed, climb, pitch, t0) {
-  const t1 = 13000;
+  const t1 = 20000;
   const s = (speed * (t1 - t0)) / 1000;
   return {
     keys: [
@@ -496,9 +483,6 @@ const GRADES = {
   dawn: { filter: 'contrast(1.12) saturate(0.8) brightness(0.95)', tint: 'linear-gradient(180deg, rgba(255,150,70,0.22), rgba(255,120,60,0.06) 55%, rgba(20,40,70,0.18))' },
   steel: { filter: 'contrast(1.14) saturate(0.62) brightness(0.96)', tint: 'linear-gradient(180deg, rgba(40,70,90,0.18), rgba(30,50,60,0.06) 50%, rgba(10,20,30,0.22))' },
   warm: { filter: 'contrast(1.1) saturate(0.72) brightness(0.97)', tint: 'linear-gradient(180deg, rgba(255,170,90,0.12), rgba(40,60,70,0.12))' },
-  /* None on the feed: the static's sync tears move the canvas, and a
-   * filtered canvas that moves is refiltered every frame. */
-  fpv: { filter: 'none', tint: 'none' },
 };
 
 /* A subtitle stays this long after its line ends. */
@@ -746,8 +730,6 @@ export function play(scene, camera, opts = {}) {
   const skipHint = el('div', 'position:absolute;right:3vw;top:calc(max(0px, (100vh - 100vw / 2.39) / 2) + 1em);'
     + 'font-size:clamp(10px, 0.9vw, 12px);letter-spacing:0.1em;text-transform:uppercase;opacity:0.55;', overlay, str('war.intro.skip'));
   const canvasFilter = canvas.style.filter;
-  const fpvFail = createFpvFail(canvas);
-  fpvFail.element.dataset.warIntro = '1';
 
   /* ------------------------------------------------------- the sound */
   const radio = audio && audio.ctx ? audio.war() : null;
@@ -962,9 +944,6 @@ export function play(scene, camera, opts = {}) {
     if (line && sub.textContent !== line) {
       sub.textContent = line;
     }
-    /* The feed. */
-    fpvFail.signal(s.snow ? track(s.snow, t) : 0);
-    fpvFail.update(nowWall, Boolean(s.fpv));
   }
 
   function sounds(s, t, tIntro) {
@@ -1013,7 +992,6 @@ export function play(scene, camera, opts = {}) {
     for (const c of cast.values()) {
       c.holder.visible = false;
     }
-    fpvFail.clear();
     canvas.style.filter = canvasFilter;
     titleBox.style.opacity = '0';
     sub.style.opacity = '0';
@@ -1123,7 +1101,6 @@ export function play(scene, camera, opts = {}) {
         frames: frames.slice(),
         drawn: attackers.drawn().counts,
         cast: [...cast.entries()].filter(([, c]) => c.holder.visible).map(([n]) => n),
-        snow: fpvFail.level(performance.now()).snow,
         subtitle: sub.style.opacity === '1' ? sub.textContent : null,
         title: titleBox.style.opacity !== '0' ? titleMain.textContent : null,
         counter: counter.style.opacity !== '0' ? counterValue.textContent : null,
@@ -1146,8 +1123,6 @@ export function play(scene, camera, opts = {}) {
         }
       });
       bakedMat.dispose();
-      fpvFail.clear();
-      fpvFail.element.remove();
       canvas.style.filter = canvasFilter;
       overlay.remove();
       hide.remove();
