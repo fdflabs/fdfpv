@@ -161,6 +161,9 @@ export function describe(obj) {
  * `seed` is a list of script sources evaluated on every new document,
  * before the app runs. That is how a stored setting gets in: the same door
  * the pilot uses, rather than a test only hook that can drift from it.
+ *
+ * `args` are Chromium flags added after the defaults, for a check that
+ * needs one of its own (scripts/voicechat-two-page.js: a fake microphone).
  */
 export async function openPage({
   root,
@@ -169,6 +172,7 @@ export async function openPage({
   url = '/index.html',
   touch = false,
   seed = [],
+  args = [],
 } = {}) {
   const chrome = findChrome();
   if (!chrome) {
@@ -201,6 +205,7 @@ export async function openPage({
     `--window-size=${width},${height}`,
     '--remote-debugging-port=0',
     `--user-data-dir=${userDataDir}`,
+    ...args,
     'about:blank',
   ]);
   /* THE PROFILE IS A FEW HUNDRED FILES AND UP TO 150 MB, and /tmp here is a

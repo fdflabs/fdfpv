@@ -90,6 +90,8 @@ import {
   createRoomLink, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
 import { createRoomSafety } from './share/roomsafety.js';
+import { createVoice } from './share/voice.js';
+import { createVoiceUi } from './ui/voiceui.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
@@ -2050,6 +2052,7 @@ export async function boot({
       }
       roomSlot = w.seat - 1;
       roomSafety.welcomed();
+      voice.welcomed(w.seat);
       roomCombat.seated(w.seat, runAirframe);
       if (roomWreckSender) {
         roomWreckSender.resend();
@@ -2071,6 +2074,7 @@ export async function boot({
       }
       roomPeerLeave(seat);
       roomSafety.left(seat);
+      voice.peerLeft(seat);
       roomCombat.leave(seat);
       ui.refreshFriends();
     },
@@ -2111,6 +2115,10 @@ export async function boot({
     onHit: (m) => roomHit(m),
     onHost: () => ui.refreshFriends(),
     onMessage: (m) => {
+      if (m.type === 'voice') {
+        voice.onMessage(m);
+        return;
+      }
       if (m.type === 'refused') {
         roomRefused(m.why);
         return;
@@ -2151,6 +2159,7 @@ export async function boot({
         roomGone.clear();
         roomSummon = null;
         roomSafety.clear();
+        voice.roomClosed();
         roomRace.clear();
         roomRaceRunId = null;
         roomRaceHud.update(null);
@@ -2181,6 +2190,13 @@ export async function boot({
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : null;
   }, () => ui.refreshFriends());
+  /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
+   * turns it on in the room screen, never to a pilot muted or reported. */
+  const voice = createVoice({ send: (m) => roomLinkState.send(m), isMuted: (seat) => roomSafety.isMuted(seat) });
+  const voiceUi = createVoiceUi(voice, input, () => ui.refreshFriends());
+  /* Harness only, for scripts/voicechat-two-page.js. */
+  window.__voice = voice;
+  window.__voiceUi = voiceUi;
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
@@ -3767,7 +3783,7 @@ export async function boot({
     }
     /* A muted pilot's aircraft is still drawn, for everyone's safety in
      * the air, but not their name. */
-    const label = roomSafety.isMuted(peer.seat) ? '' : roomTagName(peer.seat, roomName(peer.name));
+    const label = roomSafety.isMuted(peer.seat) ? '' : voiceUi.label(peer.seat, roomTagName(peer.seat, roomName(peer.name)));
     peer.rig.setLabel(label);
     peer.figure.setLabel(label);
     peer.rig.group.visible = true;
@@ -4202,6 +4218,7 @@ export async function boot({
         },
         { label: str(host ? 'friends.you_host' : 'friends.you', { name: roomName(ownName()) }), value: airframeById(runAirframe).name, info: true },
         ...roomSafety.sayRows(),
+        ...voiceUi.rows(),
       ];
       for (const peer of roomPeers.values()) {
         const craft = airframeById(peer.profile.airframe).name;
@@ -4228,6 +4245,7 @@ export async function boot({
             ui.refreshFriends();
           },
         });
+        rows.push(...voiceUi.peerRows(peer.seat, shown));
         rows.push(...roomSafety.undoRows(peer.seat).map((row) => ({
           ...row,
           pick: (v) => {
@@ -14513,6 +14531,7 @@ export async function boot({
       peerMarks.orb(str('roomtag.orb_mark'), tagOrb.px, tagOrb.py, tagOrb.pz, roomTag.bubble());
     }
     peerMarks.end(peerMarkGround);
+    voiceUi.frame(mode === 'flight' ? pCurr : null, roomPeers.values());
     /*
      * The thumb sticks live in FLIGHT and nowhere else. Over any menu
      * their catchment would sit on top of the rows (the overlay is the
