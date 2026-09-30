@@ -6281,13 +6281,19 @@ export class Ui {
      * what can be done with it); the rows under the strip are for the list
      * as a whole.
      *
-     * A plane is offered only the tracks it fits, by the builder's own rule
-     * (src/game/verify.js planesFor); the lede says so, and says where the
-     * aircraft is changed, because a list that is filtered without saying
-     * so reads as tracks that have disappeared.
+     * The pilot's tracks and the tracks server's are listed on any
+     * aircraft, and a card a seated plane does not fit says it flies on the
+     * five inch (loadLocalCourses). The board's are offered to a plane only
+     * when it fits them, by the builder's own rule (src/game/verify.js
+     * planesFor); the lede says both, because a list that is filtered
+     * without saying so reads as tracks that have disappeared.
      */
     if (this.screen === 'courses') {
       const af = airframeById(this.settings.airframe);
+      /* A track with no gates yet fits nothing and is too tight for nothing. */
+      const tooTight = (t) => (af.fixedWing && t.gates > 0 && !t.planes.includes(af.id)
+        ? ` ${str('ui.too_tight_flies_on_quad', { craft: af.name })}`
+        : '');
       if (this.coursesLede) {
         this.coursesLede.textContent = af.fixedWing
           ? str('ui.the_tracks_the_fits', { craft: af.name })
@@ -6297,7 +6303,7 @@ export class Ui {
       for (const t of this.localCourses || []) {
         cards.push({
           label: t.name,
-          note: str('ui.yours_in_gate', { world: mapById(t.map).name, gates: t.gates, v3: t.gates === 1 ? '' : 's' }),
+          note: str('ui.yours_in_gate', { world: mapById(t.map).name, gates: t.gates, v3: t.gates === 1 ? '' : 's' }) + tooTight(t),
           course: { kind: 'local', track: t },
           action: `local:${t.id}`,
         });
@@ -6307,7 +6313,7 @@ export class Ui {
         cards.push({
           label: t.name,
           note: world
-            ? str('cloud.card_note', { world: world.name, author: t.author || str('ui.a_pilot') })
+            ? str('cloud.card_note', { world: world.name, author: t.author || str('ui.a_pilot') }) + tooTight(t)
             : str('cloud.retired_world'),
           course: { kind: 'cloud', track: t },
           action: `cloud:${t.id}`,
@@ -9174,11 +9180,15 @@ export class Ui {
    * only changes in the builder and on this screen, and the builder hands
    * the pilot back here, so a read on entry is as fresh as it can be.
    *
-   * Every track built in a world is listed, on any aircraft: a plane sees
-   * only the ones it fits, by the rule it would race them under.
+   * Every track built in a world is listed, on any aircraft. A plane used to
+   * see only the ones it fits, and since a pilot who has chosen nothing
+   * flies the Timber, a track a new pilot built with one gate the Timber
+   * does not fit vanished from their own list the moment they saved it,
+   * and read as a save that never happened (bug-a0b44950). `planes` goes on
+   * the card instead, and Play hands a plane that does not fit to the five
+   * inch (seatCraftForDoc).
    */
   loadLocalCourses() {
-    const af = airframeById(this.settings.airframe);
     let docs = [];
     try {
       docs = listMapTracks().filter((doc) => mapById(doc.map).id === doc.map && mapById(doc.map).build);
@@ -9190,17 +9200,16 @@ export class Ui {
     /* Where each one stands with the tracks server, for its card, when
      * there is a server: online, or not yet and why. */
     const online = tracksConfigured() ? readOnlineStates() : {};
-    this.localCourses = docs
-      .filter((doc) => !af.fixedWing || planesFor(doc).includes(af.id))
-      .map((doc) => ({
-        id: doc.id,
-        name: doc.name || str('ui.untitled_track'),
-        map: doc.map,
-        gates: raceGateCount(doc),
-        author: '',
-        online: online[doc.id] ? online[doc.id].state : '',
-        doc,
-      }));
+    this.localCourses = docs.map((doc) => ({
+      id: doc.id,
+      name: doc.name || str('ui.untitled_track'),
+      map: doc.map,
+      gates: raceGateCount(doc),
+      planes: planesFor(doc),
+      author: '',
+      online: online[doc.id] ? online[doc.id].state : '',
+      doc,
+    }));
     if (this.localNote) {
       this.localNote.textContent = this.localCourses.length ? '' : str('ui.no_tracks_of_your_own_yet');
     }
@@ -9220,6 +9229,10 @@ export class Ui {
       this.loadLocalCourses();
       return false;
     }
+    /* Before the seat is written, because each aircraft class has a seat
+     * of its own: a plane that does not fit the track would file it in the
+     * plane's seat and then fly the five inch's (seatCraftForDoc). */
+    this.seatCraftForDoc(doc);
     const plain = toPlain(doc);
     const bind = readEditKey(doc.id) ? readBind(doc.id) : null;
     const seat = bind
@@ -9331,12 +9344,11 @@ export class Ui {
         this.loadLocalCourses();
       }
       const mine = await pilotKey();
-      const af = airframeById(this.settings.airframe);
       const page = await fetchAllTracks({ before: more ? this.cloudNext : '' });
-      /* The pilot's own are already in their list above. A plane is
-       * offered only the tracks it fits, by the server's copy of the rule
-       * the builder uses (src/game/verify.js planesFor). */
-      const theirs = page.tracks.filter((t) => t.owner !== mine && (!af.fixedWing || t.planes.includes(af.id)));
+      /* The pilot's own are already in their list above. Every other
+       * track is listed on any aircraft, for the reason loadLocalCourses
+       * gives: the card says when the plane does not fit it. */
+      const theirs = page.tracks.filter((t) => t.owner !== mine);
       this.cloudCourses = [...this.cloudCourses, ...theirs];
       this.cloudNext = page.next;
       this.localNote.textContent = this.localCourses.length ? '' : str('ui.no_tracks_of_your_own_yet');
@@ -9353,6 +9365,7 @@ export class Ui {
   seatCloud(t, then) {
     this.localNote.textContent = str('ui.loading_2', { name: t.name });
     fetchTrack(t.id).then((got) => {
+      this.seatCraftForDoc(got.doc);
       const seat = { id: got.id, name: got.name, author: got.author, document: toPlain(got.doc), local: true };
       if (!writeShareImport(seat)) {
         this.localNote.textContent = str('ui.this_browser_would_not_store_that');
