@@ -13,7 +13,9 @@
  *
  * THE RULE. Each aircraft is its crash part boxes (configs/hulls.js, read
  * out of the module the crash physics runs in, so a wing is met where the
- * plant would break it). Both poses are interpolated between their
+ * plant would break it, and fitted to the drawn machine where the plant's
+ * box stands off it, configs/hullfit.js; a folding prop is not there
+ * while its motor is stopped). Both poses are interpolated between their
  * bracketing 30 Hz samples (position linear, attitude nlerp, as
  * src/game/peer.js draws them), stepped on the whole room millisecond, and
  * at each step every part box of one is tested against every part box of
@@ -160,6 +162,9 @@ export function hullFor(airframe) {
     mass: src.mass,
     mats: src.parts.map((p) => p.mat),
     kinds: src.parts.map((p) => p.kind),
+    /* A prop that folds (configs/hullfit.js) is not there while the
+     * pose's motor reads zero (folded()). */
+    folds: src.parts.map((p) => p.folds === true),
     boxes: src.parts.map((p) => [p.min, p.max]),
     hull: airframeHull(src.parts.map((p) => ({ boxMin: p.min, boxMax: p.max, cg: [0, 0, 0] })), THREE_BODY, 1),
   } : null;
@@ -240,6 +245,9 @@ function lerpPose(a, b, t, out) {
   out.qz = z / n;
   out.qw = w / n;
   out.flags = a.flags | b.flags;
+  /* Turning if either sample says so: a prop is left out only once both
+   * say it has stopped. A pose without one (a harness's) is turning. */
+  out.motor = Math.max(a.motor ?? 1, b.motor ?? 1);
   return out;
 }
 
@@ -247,6 +255,12 @@ function lerpPose(a, b, t, out) {
 export function poseAt(track, t, out = {}) {
   const i = track.bracket(t);
   return i < 0 ? null : lerpPose(track.s[i], track.s[i + 1], t, out);
+}
+
+/* Whether part i of hull h (a hullFor() answer) is folded away at pose
+ * p: a folding prop, its motor stopped. */
+function folded(h, i, p) {
+  return h.folds[i] && p.motor === 0;
 }
 
 /* Whether a pose may touch or be touched at all. */
@@ -462,7 +476,13 @@ export function judge(hA, hB, tA, tB, t0, t1, margin = MARGIN_M) {
     partCentres(B, BOXB.a, pb, CB);
     let best = null;
     for (let i = 0; i < A.n; i += 1) {
+      if (folded(hA, i, pa)) {
+        continue;
+      }
       for (let j = 0; j < B.n; j += 1) {
+        if (folded(hB, j, pb)) {
+          continue;
+        }
         const rr = A.rho[i] + B.rho[j];
         const ex = CA[i * 3] - CB[j * 3];
         const ey = CA[i * 3 + 1] - CB[j * 3 + 1];
@@ -511,6 +531,9 @@ export function hullDistance(h, p, x, y, z) {
   partCentres(H, BOXB.a, p, CB);
   let best = Infinity;
   for (let i = 0; i < H.n; i += 1) {
+    if (folded(h, i, p)) {
+      continue;
+    }
     const ex = CB[i * 3] - x;
     const ey = CB[i * 3 + 1] - y;
     const ez = CB[i * 3 + 2] - z;

@@ -28,7 +28,11 @@
  *
  *   hulls   every airframe's crash hull (configs/hulls.js) against the
  *           machine as drawn: its span, length and height, off by more
- *           than 10 percent is flagged. The drawn numbers are the table's
+ *           than 10 percent is flagged. A prop that folds (folds: true,
+ *           configs/hullfit.js) is left out of the hull as the machine
+ *           is built, motor stopped; with --three the hull with it is
+ *           held to the machine drawn with its prop turning as well.
+ *           The drawn numbers are the table's
  *           `dims` (configs/airframes.js, "the drawn machine"), or, with
  *           --three=DIR (an unpacked three@0.160.0 npm package), the
  *           built meshes' own bounding box (src/render/craft.js).
@@ -310,8 +314,13 @@ async function auditHulls() {
     register(hook);
     const THREE = await import('three');
     const { buildCraft } = await import('../src/render/craft.js');
-    drawn = (id) => {
-      const g = buildCraft(id).group;
+    drawn = (id, turning = false) => {
+      const craft = buildCraft(id);
+      /* A folding prop opens over a few calls (glidercraft.js setProp). */
+      for (let k = 0; turning && craft.setProp && k < 60; k += 1) {
+        craft.setProp(500);
+      }
+      const g = craft.group;
       g.updateMatrixWorld(true);
       const box = new THREE.Box3();
       g.traverse((o) => {
@@ -329,15 +338,6 @@ async function auditHulls() {
       flag(true, `${af.id}: no hull, so the referee meets it as nothing`);
       continue;
     }
-    const lo = [Infinity, Infinity, Infinity];
-    const hi = [-Infinity, -Infinity, -Infinity];
-    for (const p of h.parts) {
-      for (let k = 0; k < 3; k += 1) {
-        lo[k] = Math.min(lo[k], p.min[k]);
-        hi[k] = Math.max(hi[k], p.max[k]);
-      }
-    }
-    const hull = { L: hi[0] - lo[0], W: hi[1] - lo[1], H: hi[2] - lo[2] };
     const d = af.dims;
     /* A quad's dims carry its motor arm and prop, not its body: tip to
      * tip is the diagonal arm's half plus a prop radius, each side. */
@@ -349,15 +349,34 @@ async function auditHulls() {
     let src = 'dims';
     /* The Bramor's drawn group carries its catapult rail on the ground,
      * which is no part of the aircraft in the air. */
-    if (drawn && af.id !== 'bramor2300') {
+    const mesh = drawn && af.id !== 'bramor2300';
+    if (mesh) {
       ref = drawn(af.id);
       src = 'mesh';
     }
-    const off = ['W', 'L', 'H'].map((k) => [k, hull[k] / ref[k] - 1]);
-    const worst = off.reduce((a, b) => (Math.abs(b[1]) > Math.abs(a[1]) ? b : a));
-    const text = off.map(([k, v]) => `${k} ${hull[k].toFixed(3)}/${ref[k].toFixed(3)} ${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`).join('  ');
-    flag(Math.abs(worst[1]) > 0.1, `${af.id.padEnd(14)} hull/${src}  ${text}  z ${lo[2].toFixed(3)}..${hi[2].toFixed(3)} vs ${ref.lo.toFixed(3)}..${ref.hi.toFixed(3)}`);
+    const folds = h.parts.some((p) => p.folds);
+    compareHull(af.id, h.parts.filter((p) => !p.folds), ref, `hull/${src}${folds ? ' stopped' : ''}`);
+    if (folds && mesh) {
+      compareHull(af.id, h.parts, drawn(af.id, true), 'hull/mesh turning');
+    }
   }
+}
+
+/* One hull's extents against a drawn machine's, flagged past 10 percent. */
+function compareHull(id, parts, ref, label) {
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (const p of parts) {
+    for (let k = 0; k < 3; k += 1) {
+      lo[k] = Math.min(lo[k], p.min[k]);
+      hi[k] = Math.max(hi[k], p.max[k]);
+    }
+  }
+  const hull = { L: hi[0] - lo[0], W: hi[1] - lo[1], H: hi[2] - lo[2] };
+  const off = ['W', 'L', 'H'].map((k) => [k, hull[k] / ref[k] - 1]);
+  const worst = off.reduce((a, b) => (Math.abs(b[1]) > Math.abs(a[1]) ? b : a));
+  const text = off.map(([k, v]) => `${k} ${hull[k].toFixed(3)}/${ref[k].toFixed(3)} ${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`).join('  ');
+  flag(Math.abs(worst[1]) > 0.1, `${id.padEnd(14)} ${label}  ${text}  z ${lo[2].toFixed(3)}..${hi[2].toFixed(3)} vs ${ref.lo.toFixed(3)}..${ref.hi.toFixed(3)}`);
 }
 
 /* ---------------------------------------------------------------- midair */
