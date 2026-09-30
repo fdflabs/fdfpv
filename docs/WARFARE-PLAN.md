@@ -199,18 +199,43 @@ steers them and sends their poses (5.1).
   second on this machine (so under about 15 % of the VM's one core at the
   measured 2.2 times).
 
-### 4.5 Output, the rack, winning
+### 4.5 Output, rounds, airframes, winning
+
+The owner's rules of 2026-09-29, as `edge/rooms/war.js` plays them:
 
 - **Output** starts at 14 000 MW (20 units of 700). An attacker that
   reaches its target alive subtracts that target's `mw` once; a target
   already down takes nothing more. The mission's `targets` table is the
   only place a number lives.
-- **The rack** is shared: `rack x seats` airframes at start. Every
-  detonation, crash or failsafe loss takes one. A pilot with the rack
-  empty spectates.
-- **Win** when the last wave is dead with output at or above `floorMw`.
-  **Lose** the instant output is below `floorMw`, or the rack is empty
-  with attackers alive.
+- **Rounds.** A mission is rounds of waves (a wave's `round`; its `at`
+  counts from its round's start). Mission 1 has 5.
+- **Airframes, per pilot.** At each round's start every pilot has the
+  mission's `airframes` (4). Every detonation, crash or lost link spends
+  one of that pilot's; every attacker its warhead kills earns it one more
+  for the round (a swarm of N, N). Earned ones go with the round: the
+  next starts at 4 again. A pilot who has spent all it has spectates, and
+  cannot go off, until the round ends.
+- **A round ends** the instant either
+  - every wave of it is born and no attacker of it is left but Scouts:
+    **win** if the dam lost nothing in it, **damaged** if it did; or
+  - no pilot here is still flying: **lost**, and every attacker of it
+    still alive with a target gets through at once. A pilot is not
+    flying when it has spent everything, or when on its last airframe
+    it has been silent for `STALE_MS` (2 s: a menu, a pause, a dropped
+    link), sat on the ground for `GROUND_MS` (3 s) after taking off, or
+    not taken off again `RESPAWN_MS` (10 s) after its last loss. A pilot
+    who left is not here at all, so a round never waits on anyone.
+  
+  What is left (Scouts; on a loss, Hunters) is cleared. `RESULT_MS`
+  (6 s) of result follows, then the next round starts by itself.
+- **Win** when the last round ends with output at or above `floorMw`
+  (7 700 for mission 1). **Lose** only the instant output falls below
+  it. An empty rack never loses on its own.
+- **The view** carries `round`, `rounds`, `roundState` (`live` or
+  `result`), `roundResult` (`win`, `damaged` or `lost`), `roundMw`,
+  `nextRoundAt`, `airframes`, `spent` and `earned` (by seat), and
+  `rack` and `rackMax`: the match's airframes left and had this round,
+  earned ones included.
 - **Score** per pilot: kills, assists (within 50 m of a kill in the 3 s
   before it), and megawatts saved (the `mw` of each killed attacker's
   target). The team's number is the output at the end.
