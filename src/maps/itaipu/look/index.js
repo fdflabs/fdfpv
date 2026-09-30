@@ -3,20 +3,21 @@
  * Yellowstone's terrain engine (docs/ITAIPU-PLAN.md section 1, point 5).
  *
  * From swiss2, unchanged and shared: the terrain photographs and the
- * surfaces (swiss2/assets.js), the photographed sky, the material kit
- * every part is handed (swiss2/look.js makePhotoLook, as ctx.mats), the
+ * surfaces (swiss2/assets.js), the material kit every part is handed
+ * (swiss2/look.js makePhotoLook, as ctx.mats), the
  * sun's shadow cascades (swiss2/light.js makeSun, which takes its
  * direction), the post chain (swiss2/post.js: occlusion, aerial
  * perspective, the metered exposure, AgX, FXAA) and the photographed
  * craft (swiss2/craftlook.js).
  *
- * Itaipu's own: the sun, fixed to the satellite's (light.js); the light
- * injection, without the Alps' terrain shadow and cloud deck, which are
- * baked on the Alps' square (light.js says why); the sky turned to that
- * sun (sky.js); and the ground, the satellite's colour with swiss2's
- * photographed grain under it (ground.js), finished where the place asks
- * for it: the canyon's basalt, the reservoir's margin and the rockfill
- * dam's faces.
+ * Itaipu's own: the sun, fixed to the satellite's, and the exposure
+ * (light.js); the light injection, without the Alps' terrain shadow and
+ * cloud deck, which are baked on the Alps' square (light.js says why); a
+ * clear tropical sky, which is the environment too, and the air the post
+ * chain is given (sky.js); and the ground, the satellite's colour with
+ * swiss2's photographed grain under it (ground.js), finished where the
+ * place asks for it: the canyon's basalt, the reservoir's margin and the
+ * rockfill dam's faces.
  *
  * The low cloud swiss2 marches in its post chain is made and never handed
  * a terrain, so it draws nothing (clouds.js: until setTerrain, "the march
@@ -40,17 +41,17 @@
 
 import * as THREE from 'three';
 import {
-  loadTerrainArrays, loadSurface, loadSky, SURFACES,
+  loadTerrainArrays, loadSurface, SURFACES,
 } from '../../swiss2/assets.js';
-import { makeSun, SUN_COLOR, SUN_IRRADIANCE } from '../../swiss2/light.js';
+import { makeSun } from '../../swiss2/light.js';
 import { makePhotoLook, finishScene } from '../../swiss2/look.js';
-import { buildPhotoComposer, AIR } from '../../swiss2/post.js';
+import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
-import { sunDirection, makeLit } from './light.js';
 import {
-  skyBackdrop, skyTurn, turnEquirect, stretchEquirect,
-} from './sky.js';
+  sunDirection, makeLit, SUN_COLOR, SUN_IRRADIANCE,
+} from './light.js';
+import { skyBackdrop, skyEnvironment, AIR } from './sky.js';
 import { groundMaterial, loadImage, loadSite } from './ground.js';
 
 /* Past the horizon from 500 m (80 km) the apron and the fog have it. */
@@ -73,9 +74,8 @@ export async function makeLook({
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   const layerPx = q.id === 'high' ? 1024 : 512;
   const im = manifest.imagery;
-  const [arrays, sky, site, heroCol, ringCol, heroMask, ringMask, ...sets] = await Promise.all([
+  const [arrays, site, heroCol, ringCol, heroMask, ringMask, ...sets] = await Promise.all([
     loadTerrainArrays(layerPx, aniso),
-    loadSky(),
     loadSite(base, manifest.frame.ring[1]),
     loadImage(`${base}${im.hero.file}`, true, aniso),
     loadImage(`${base}${im.ring.file}`, true, aniso),
@@ -83,7 +83,7 @@ export async function makeLook({
     loadImage(`${base}${im.ring.masks}`, false, aniso),
     ...SURFACES.map((n) => loadSurface(n, aniso)),
   ]);
-  for (const t of [arrays.col, arrays.nrh, sky.back, site.reservoir, heroCol, ringCol, heroMask, ringMask]) {
+  for (const t of [arrays.col, arrays.nrh, site.reservoir, heroCol, ringCol, heroMask, ringMask]) {
     own(t);
   }
   const surfaces = {};
@@ -97,18 +97,14 @@ export async function makeLook({
   const sunDir = sunDirection();
   const scene = new THREE.Scene();
   scene.background = AIR.haze.clone();
-  scene.add(skyBackdrop(sky.back, sunDir));
-  turnEquirect(sky.env, skyTurn(sunDir));
-  stretchEquirect(sky.env, sunDir);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const envTarget = pmrem.fromEquirectangular(sky.env);
-  pmrem.dispose();
-  sky.env.dispose();
+  const sky = skyBackdrop(sunDir);
+  const envTarget = skyEnvironment(renderer, sky);
+  scene.add(sky);
   scene.environment = envTarget.texture;
   camera.far = CAMERA_FAR;
   camera.updateProjectionMatrix();
 
-  const sun = makeSun(scene, q, sunDir);
+  const sun = makeSun(scene, q, sunDir, { color: SUN_COLOR, irradiance: SUN_IRRADIANCE });
   const clouds = makeClouds({
     sun: { direction: sunDir, color: SUN_COLOR, irradiance: SUN_IRRADIANCE },
     sky: AIR.haze,
@@ -177,7 +173,7 @@ export async function makeLook({
     compose(shell, map) {
       const post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, {
         direction: sunDir, color: SUN_COLOR, irradiance: SUN_IRRADIANCE, at: lit.sun,
-      }, clouds);
+      }, clouds, AIR);
       const d = shell.resize();
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
