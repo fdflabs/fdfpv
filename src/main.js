@@ -2904,8 +2904,9 @@ export async function boot({
   const ROOM_ASK_MS = 4000;
   /* seat -> { name, until }: pilots whose socket dropped (onLeave). */
   const roomGone = new Map();
-  /* { fly, restart } while this pilot is owed a move: fly, into the air
-   * at the end; restart, from the slot even when already flying. */
+  /* { why, fly, restart, moved } while this pilot is owed a move: fly,
+   * into the air at the end; restart, from the slot even when already
+   * flying; moved, once this summon has changed the seat or the world. */
   let roomSummon = null;
   /* The target this pilot was last summoned to, 'world|track id'. */
   let roomSeenTarget = null;
@@ -3064,18 +3065,23 @@ export async function boot({
       return;
     }
     if (!roomInPlace(target)) {
+      s.moved = true;
       roomSeat(target);
       return;
     }
     titleWorld = null;
     buildWorld = null;
     if (!worldMatchesSettings()) {
+      s.moved = true;
       syncWorld();
       roomTellProfile();
       return;
     }
     roomSummon = null;
-    if (!s.fly) {
+    /* A pilot who paused where the room flies and is welcomed again (the
+     * socket came back, or they joined from the pause menu) stays paused:
+     * the room bar asks them up, and a craft is not flown off unattended. */
+    if (!s.fly || (s.why === 'join' && mode === 'paused' && !s.moved)) {
       return;
     }
     if (roomTag.on()) {

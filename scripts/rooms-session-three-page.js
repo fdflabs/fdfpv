@@ -193,7 +193,7 @@ try {
     check(`${k} names B: "${paused}"`, Boolean(mark) && mark.text === paused, JSON.stringify(mark));
   }
   check(`B is asked: "${en['rooms.fly_prompt']}"`, b.bar === en['rooms.fly_prompt'], String(b.bar));
-  await pages.B.evaluate('window.__ui.roomBarView.act(); true');
+  await pages.B.evaluate('window.__ui.roomBarView && window.__ui.roomBarView.act(); true');
   await pages.B.until(flyingIn(MOVED), 30000).catch(() => {});
   check('and its Fly puts B back in the air', (await look('B')).flying);
 
@@ -212,6 +212,8 @@ try {
   check('and on the pause menu', (await look('C')).bar === alone, String((await look('C')).bar));
 
   console.log('a race track, a wreck and a pause');
+  /* B flies free when the track comes (already, where the room put B). */
+  await pages.B.evaluate("window.__craftState().mode === 'flight' || window.__ui.onAction('fly', window.__ui.settings); true");
   await pages.A.evaluate("window.__combatStart && window.__ui.onFriends('friends-combat-stop'); true");
   await pages.A.until("window.__combat().round.state !== 'on' && window.__combat().round.state !== 'countdown'", 15000).catch(() => {});
   const sp = await pages.A.evaluate('window.__map().spawn');
