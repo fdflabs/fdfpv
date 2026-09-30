@@ -54,7 +54,7 @@ import { buildPart as buildDam } from './itaipu/dam/index.js';
 import { buildPart as buildWater } from './itaipu/water/index.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
-import { QUAD_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
+import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
 import { attractPath } from './itaipu/attract.js';
 
 /* The one place the public data's address is written. */
@@ -63,11 +63,11 @@ const LOCAL_BASE = 'itaipu-data/';
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /*
- * The shell's default spawn: the quads' field by the Brazilian viewpoint
- * below the dam, facing the crest, which is where the dam fills the view at
- * takeoff. Every other aircraft's start is spawnFor's (itaipu/spawns.js).
+ * The shell's default spawn, the planes' and the quads': the main dam's
+ * crest road past the east intake gantry, facing west along it. The floats'
+ * and the air start are spawnFor's (itaipu/spawns.js).
  */
-const SPAWN = QUAD_SPAWN;
+const SPAWN = CREST_SPAWN;
 
 /* The breeze on the water, for the plant's waves once the shell declares
  * this map's water (src/game/water.js): light air from the north east,

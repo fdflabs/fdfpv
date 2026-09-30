@@ -1570,8 +1570,8 @@ export async function boot({
    * choose its own spawns (spawnFor, below). */
   let floatBody = 0;
   /*
-   * A map with more than one start (Itaipu: a crest road for the planes, a
-   * field for the quads, the reservoir and the river for the floats, and
+   * A map with more than one start (Itaipu: the crest road for the planes
+   * and the quads, the reservoir and the river for the floats, and
    * one in the air) answers spawnFor(spawn, kind, wish) with the one for
    * this aircraft, given the view's spawn, which it hands back when that
    * is a course's start rather than its own. `wish` is the page's ?spawn=,
@@ -15595,9 +15595,10 @@ export async function boot({
   };
   /* Put the spawn somewhere else, facing another way, as a crash recovery
    * does, and reset there: the water is declared again in the new spawn's
-   * frame, which is what a check of the waves' frame needs. Harness only. */
-  window.__respawn = (x, z, yaw) => {
-    resetCraft({ x, z, yaw });
+   * frame, which is what a check of the waves' frame needs. `y` is the
+   * fromY hint a spawn may carry (a seat on a dam's crest). Harness only. */
+  window.__respawn = (x, z, yaw, y) => {
+    resetCraft({ x, z, yaw, y });
     return true;
   };
   /* Show the map's waves on the title too, so a parked camera
