@@ -543,6 +543,30 @@ export function warSection(check) {
       JSON.stringify(e.r.war.log));
   }
 
+  {
+    /* One airframe a pilot. Seat 1 kills a Strike head on (spent 1,
+     * earned 1: two this round), is back, and crashes its second; seat 2
+     * crashed its one before. A jammer holds the round, so it ends only on
+     * every pilot being out: the instant seat 1's second is spent. */
+    const m = testMission([
+      { at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' },
+      { at: 1, kind: 'jammer', n: 1, route: 'j' },
+    ], { r: [[-1200, Y, 0], [-600, Y, 0]], j: [[-1200, Y, 900], [-1100, Y, 900]] }, { rack: 1 });
+    const e = warRoom({ mission: m });
+    const meetT = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
+    const T = meetT + 6000;
+    e.paths[0] = level(-900 + 15 * meetT / 1000, 0, -15);
+    e.paths[1] = hover([900, Y, -900]);
+    e.flags[0] = (t) => ((t > meetT + 200 && t < meetT + 1200) || t > T ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.flags[1] = (t) => (t > COUNTDOWN_MS + 3000 ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.fly(T + LATE_MS + 200);
+    const v = e.view();
+    const end = e.r.war.log.find((x) => x.what === 'round');
+    check('a pilot who earned an airframe spends it too: spent 2 of its 1 + 1, spectating, and the round ends as it is spent',
+      v.spent[1] === 2 && v.earned[1] === 1 && e.r.war.spentOut(1) && end && end.result === 'lost' && end.t - T <= LATE_MS + 100,
+      JSON.stringify({ spent: v.spent, earned: v.earned, end }));
+  }
+
   console.log('war: a round never waits on a pilot who is not flying');
   {
     /* One airframe a pilot and a jammer parked for good, so the round
