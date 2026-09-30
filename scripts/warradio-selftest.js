@@ -62,8 +62,16 @@ const say = (list, v) => {
 
 console.log('what Crest Control says');
 check('the go', same(say([{ type: 'state', to: 'live' }], v0), ['start']));
+for (const id of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4']) {
+  check(`${id}: its briefing over the countdown, its debrief at the end`,
+    same(say([{ type: 'state', to: 'countdown' }], { ...v0, state: 'countdown', mission: id }), [`brief-${id}-1`, `brief-${id}-2`])
+    && same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won', mission: id }), [`debrief-${id}-win`])
+    && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output', mission: id }), [`debrief-${id}-lose`]));
+}
 for (const kind of KINDS.filter((k) => k !== 'jammer')) {
-  check(`a ${kind} wave`, same(say([{ type: 'born', agents: [{ kind }] }], { ...v0, alive: 1 }), [`wave-${kind}`]));
+  /* A decoy is called as the Striker it looks like. */
+  const line = `wave-${kind === 'decoy' ? 'strike' : kind}`;
+  check(`a ${kind} wave`, same(say([{ type: 'born', agents: [{ kind }] }], { ...v0, alive: 1 }), [line]));
 }
 check('a jammer wave, which no mission spawns, says nothing', same(say([{ type: 'born', agents: [{ kind: 'jammer' }] }], { ...v0, alive: 1 }), [])
   && same(say([{ type: 'born', agents: [{ kind: 'jammer' }] }], { ...v0, wave: 6, alive: 1 }), []));

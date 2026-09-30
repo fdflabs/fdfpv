@@ -57,10 +57,12 @@
  *    free orb's bubble row (seat 0) read back as one, the version 7 file
  *    round trip, version 6 still written without a crown, and its
  *    refusals.
- * 15. A cut link and a warhead: a five inch's link cut with
- *    sim_rx_signal until Betaflight's stage 2 drops it (#201), the link
- *    back, then a warhead breaking every part as Defend Itaipu's does;
- *    frames all through put back from the journal bit for bit, as in 3.
+ * 15. A cut link and a warhead: a five inch flying a war loadout's
+ *    speedMul of 1.15 (the plant's boost, src/main.js warSpeedMul), its
+ *    link cut with sim_rx_signal until Betaflight's stage 2 drops it
+ *    (#201), the link back, then a warhead breaking every part as Defend
+ *    Itaipu's does; frames all through put back from the journal bit for
+ *    bit, as in 3.
  * 16. The map's animation clock (the traffic's): each row keeps the clock
  *    its frame was drawn at, a sample between two rows runs it on and a
  *    reset of it (R) is a jump, not a drive; a clip with a row that never
@@ -417,6 +419,8 @@ function flyTakeOver() {
  * wants it again.
  */
 const QUAD = 0;
+/* The fastest loadout (edge/rooms/war.js SPEED_MUL_MAX). */
+const WAR_SPEED_MUL = 1.15;
 const WAR_MS = 5200;
 const CUT_MS = [1200, 3600];
 const BOOM_MS = 4400;
@@ -432,6 +436,10 @@ function warFlight(sim, statePtr, partsPtr, eventsPtr, frame) {
   must(sim.e.sim_set_part_table(0), 'sim_set_part_table');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
   must(sim.e.sim_set_pose(0, 0, 30, 1, 0, 0, 0), 'sim_set_pose');
+  must(sim.e.sim_set_boost(WAR_SPEED_MUL), 'sim_set_boost');
+  if (sim.e.sim_boost() !== WAR_SPEED_MUL) {
+    throw new Error(`sim_boost is ${sim.e.sim_boost()}, not the loadout's ${WAR_SPEED_MUL}`);
+  }
   let rxSeen = 0;
   for (let ms = 0; ms < WAR_MS; ms += 1) {
     const up = ms < CUT_MS[0] || ms >= CUT_MS[1];
@@ -465,7 +473,7 @@ function warFlight(sim, statePtr, partsPtr, eventsPtr, frame) {
 
 function flyWarTakeOver() {
   return (async () => {
-    console.log('15. a cut link and a warhead: the link cut to failsafe and back, then the warhead, put back bit for bit');
+    console.log('15. a cut link and a warhead: flying a speedMul of 1.15, the link cut to failsafe and back, then the warhead, put back bit for bit');
     const { sim, j, raw } = await journaled();
     const statePtr = sim.e.malloc(64 * 8);
     const partsPtr = sim.e.malloc(PARTS_MAX * PART_STATE_DOUBLES * 8);

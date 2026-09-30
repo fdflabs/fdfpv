@@ -2356,6 +2356,21 @@ export async function boot({
   const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
+  /*
+   * THE LOADOUT'S SPEED (edge/rooms/war.js parseLoadout): the room echoes
+   * each seat's speedMul (1 to 1.15) in the view's loadouts, and this
+   * pilot flies its own with the plant's boost while a war counts down or
+   * runs, 1 otherwise (between wars, and once the pilot has left the
+   * room: the view is then the lobby's). tagBoost sets the plant with it,
+   * so the crash cam's journal keeps it like the chase boost.
+   */
+  function warSpeedMul() {
+    if (!roomWar.on()) {
+      return 1;
+    }
+    const l = roomWar.view().loadouts?.[roomWar.seat()];
+    return l && Number.isFinite(l.speedMul) ? l.speedMul : 1;
+  }
   const warHud = createWarHud(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
   const warCalls = createWarCalls();
@@ -4463,7 +4478,8 @@ export async function boot({
    * THE CHASE BOOST (src/share/roomtag.js CHASE_BOOST): every pilot who is
    * not the Ace flies a live match with the plant's sim_set_boost, set here
    * on the flight frame the role changes on the room clock, and put back to
-   * 1 the frame the match or the room is over. A call into the plant, so
+   * 1 the frame the match or the room is over. A war's loadout speed
+   * (warSpeedMul, DEFEND ITAIPU) multiplies it, the same way. A call into the plant, so
    * the crash cam's journal keeps it and a take over flies it again.
    */
   function tagBoost() {
@@ -4471,7 +4487,7 @@ export async function boot({
       return;
     }
     const now = roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null;
-    const want = now == null ? 1 : roomTag.boost(now);
+    const want = now == null ? 1 : roomTag.boost(now) * warSpeedMul();
     if (sim.e.sim_boost() === want) {
       return;
     }
