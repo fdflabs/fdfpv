@@ -463,6 +463,50 @@ profiles from /tmp.
 `nearestTrees`/`nearestSolids`, `crashworld.js:372,399`, tension
 tearing); the war mode on a second map.
 
+## 10a. Act 1: Defend the Paraná (#251)
+
+The campaign's first act, four missions on Itaipu
+(`src/share/war/missions/`). All four use the rules of 4.5 (rounds, 4
+airframes a pilot plus one a kill, lost only on output):
+
+| id | title (string key) | targets | floor | starMw |
+| --- | --- | --- | --- | --- |
+| itaipu-1 | Defend the intakes | intakes, penstocks, gates, the yard | 7 700 | 11 200 |
+| itaipu-2 | Save the spillway gates | the 14 gates (350 MW each) | 11 200 | 12 950 |
+| itaipu-3 | Switchyard blackout | the yard, with decoys; intakes and penstocks too | 9 700 | 12 600 |
+| itaipu-4 | Night raid | itaipu-1's, at night (`night: true`) | 7 700 | 11 200 |
+
+- **Decoys**: the kind `decoy` (appended to KINDS, byte 7) flies and
+  looks like a Striker: model, paint, nav lights, and a marker that
+  says STRIKER until 300 m. It is worth nothing where it arrives, and a
+  kill of one saves nothing.
+- **Night**: a night mission's world is built at night and its
+  attackers wear nav lights (`src/main.js` warNightFrame). Its
+  countdown is `prepMs` longer (15 s for itaipu-4), so every screen has
+  rebuilt before the go.
+- **Result** (`edge/rooms/war.js` resultOf, the room's): when the
+  mission ends, `view.result` is `{ won, stars, credits, criteria }`.
+  The criteria are *held* (every round a win), *noLosses* (in every
+  round no pilot spent more airframes than it earned) and *output*
+  (the output at the end at least `starMw`). Stars are the criteria
+  met on a won mission, and 0 on a loss. Credits are 100 a star plus 10
+  a kill of the team's.
+- **Loadouts** (`parseLoadout`): `{type:'war', op:'loadout', loadout:
+  {rack, warhead, speedMul}}`, from any pilot any time but a live war
+  (and the host's inside `start`), echoed in `view.loadouts`.
+  - `rack` 4 to 6 (rounded, clamped), in place of the base 4
+  - `speedMul` 1 to 1.15 (clamped), flown by the client with the
+    plant's boost
+  - `warhead`: `standard` (6 m); `wide` (9 m); `penetrator` (its first
+    hit of an airframe takes that one attacker and the flight goes on);
+    or `emp` (goes off as standard, and stalls every attacker within
+    30 m for 4 s: `op:'stall'`, the routes' clock stopped, a Hunter
+    held)
+  - anything else is refused `loadout`
+- **Briefings**: two lines a mission over its countdown and a debrief
+  at its end, win or lose (`assets/audio/war/lines.json`, group
+  `mission`, English and Spanish).
+
 ## 11. What is not in v1
 
 Guns and dropped charges (decision 5). Fibre optic quads (phase 3).
