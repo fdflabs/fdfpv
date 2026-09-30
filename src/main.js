@@ -118,6 +118,7 @@ import { createAttackers } from './render/attackers.js';
 import { createWarHud } from './ui/warhud.js';
 import { createWarMarkers } from './ui/warmarkers.js';
 import { createWarCalls } from './render/warradio.js';
+import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
@@ -2346,7 +2347,7 @@ export async function boot({
   const WAR_MISSION = 'itaipu-1';
   /* The one map the war runs on (section 9). */
   const WAR_MAP = 'itaipu';
-  const WAR_STATES = ['lobby', 'countdown', 'live', 'won', 'lost', 'ended'];
+  const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
   const warHud = createWarHud(roomSeatName);
@@ -2418,11 +2419,11 @@ export async function boot({
     const head = { label: str('war.card'), section: true };
     /* A state this build has no words for (a later build's) says none. */
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
-    if (host && !roomWar.on()) {
+    if (host && !roomWar.on() && v.state !== 'briefing') {
       return [head, {
         label: str('war.start'), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
         primary: ui.roomGame === 'war',
-      }];
+      }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
     }
     if (host) {
       return [head, { label: str('war.stop'), value: state, note: str('war.stop_note'), action: 'friends-war-stop' }];
@@ -2453,7 +2454,7 @@ export async function boot({
 
   async function warStart() {
     if (await warConsented()) {
-      roomWar.start(WAR_MISSION);
+      roomWar.start(WAR_MISSION, { intro: true });
     }
     ui.refreshFriends();
   }
@@ -2555,7 +2556,11 @@ export async function boot({
       warBurn(id, 'smoke', wallMs);
     }
     warCrashDue = true;
-    audio.setWarBed(v.state === 'countdown' ? 'intro' : 'combat');
+    /* The intro's music is already on when a briefing came first
+     * (warIntroFrame), and runs out into the loop by itself. */
+    if (!audio.warRadio || !audio.warRadio.track) {
+      audio.setWarBed(v.state === 'countdown' ? 'intro' : 'combat');
+    }
     const w = roomLinkState.state().welcome;
     if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
       ui.onAction('restart');
@@ -2576,8 +2581,76 @@ export async function boot({
     }
   }
 
+  /*
+   * THE 2030 INTRO (src/render/warintro.js, section 7.1), over a room's
+   * briefing for everybody, from where the room is in it, or once more on
+   * its own from the host's row ('watch'). It poses shell.camera after the
+   * shell's own camera chain (the frame loop calls warIntro.frame), hides
+   * the shell's screens while it runs, and never plays in the crash cam's
+   * replay. A pilot who skips it circles the dam until the briefing ends;
+   * a host who skips it ends the briefing for everybody.
+   */
+  let warIntro = null;
+  let warIntroFor = null;
+  /* The war whose briefing this shell has shown: once, however long the
+   * room stays in it after a skip. */
+  let warIntroShown = null;
+  let warIntroFov = 0;
+
+  function warIntroPlay(forWhat, opts = {}) {
+    warIntroStop();
+    warIntroFor = forWhat;
+    warIntroFov = shell.camera.fov;
+    const h = playWarIntro(shell.quad.parent || view.scene, shell.camera, {
+      canvas: shell.canvas, audio, ground: (x, z) => view.height(x, z, Infinity), ...opts,
+    });
+    warIntro = h;
+    h.done.then(() => {
+      if (warIntro === h) {
+        warIntroStop();
+      }
+    });
+  }
+
+  function warIntroStop() {
+    if (!warIntro) {
+      return;
+    }
+    const h = warIntro;
+    warIntro = null;
+    warIntroFor = null;
+    h.dispose();
+    if (shell.camera.fov !== warIntroFov) {
+      shell.camera.fov = warIntroFov;
+      shell.camera.updateProjectionMatrix();
+    }
+  }
+
+  function warIntroFrame(v, roomNow) {
+    const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
+    if (briefing && warIntroShown !== v.id) {
+      warIntroShown = v.id;
+      audio.setWarBed('intro');
+      warIntroPlay(v.id, {
+        startMs: roomNow - v.briefAt,
+        holdUntilMs: performance.now() + (v.briefAt + INTRO_MS - roomNow),
+        onSkip: () => {
+          const w = roomLinkState.state().welcome;
+          if (w && w.host === w.seat) {
+            roomWar.skipIntro();
+          }
+        },
+      });
+    } else if (warIntro && warIntroFor !== 'watch' && !briefing) {
+      warIntroStop();
+    }
+  }
+
   /* The room link closed. */
   function warLeave() {
+    if (warIntroFor !== 'watch') {
+      warIntroStop();
+    }
     warAttackers.clear();
     warHud.update(null);
     warMarkers.clear();
@@ -2613,6 +2686,7 @@ export async function boot({
     const replay = mode === 'replay';
     warAttackers.group.visible = !replay;
     const v = roomWar.view();
+    warIntroFrame(v, now);
     if (roomWar.on() && v.id !== warBegunId) {
       warBegin(v, wallMs);
     } else if (!roomWar.on() && warBegunId != null) {
@@ -2911,17 +2985,20 @@ export async function boot({
   const ROOM_ASK_MS = 4000;
   /* seat -> { name, until }: pilots whose socket dropped (onLeave). */
   const roomGone = new Map();
-  /* { why, fly, restart, moved } while this pilot is owed a move: fly,
-   * into the air at the end; restart, from the slot even when already
-   * flying; moved, once this summon has changed the seat or the world. */
+  /* { why, fly, restart } while this pilot is owed a move: fly, into the
+   * air at the end; restart, from the slot even when already flying. */
   let roomSummon = null;
   /* The target this pilot was last summoned to, 'world|track id'. */
   let roomSeenTarget = null;
   /* What the host asked the room to take: { map, track, at }. */
   let roomAsked = { map: null, track: null, at: 0 };
 
+  /* A join (a room made or joined, a reload or a dropped socket rejoining)
+   * seats the pilot in the room's world and leaves them where they are:
+   * the room screen with its code and start rows, the title, the pause.
+   * They go up at their own Fly, the room bar's, or a game's start. */
   function roomCall(why, { restart = false } = {}) {
-    const fly = why !== 'join' || !['friends', 'rooms'].includes(ui.screen);
+    const fly = why !== 'join';
     roomSummon = { why, fly, restart: restart || Boolean(roomSummon && roomSummon.restart) };
   }
 
@@ -3072,25 +3149,25 @@ export async function boot({
       return;
     }
     if (!roomInPlace(target)) {
-      s.moved = true;
-      roomSeat(target);
+      roomSeat(target, s.fly);
+      return;
+    }
+    /* Not to be flown (a room just made or joined from the room screen):
+     * the seat is the room's, and the world is built at Fly as ever. Built
+     * now, the swap would land the pilot on the title, off the room screen
+     * and its start rows. */
+    if (!s.fly) {
+      roomSummon = null;
       return;
     }
     titleWorld = null;
     buildWorld = null;
     if (!worldMatchesSettings()) {
-      s.moved = true;
       syncWorld();
       roomTellProfile();
       return;
     }
     roomSummon = null;
-    /* A pilot who paused where the room flies and is welcomed again (the
-     * socket came back, or they joined from the pause menu) stays paused:
-     * the room bar asks them up, and a craft is not flown off unattended. */
-    if (!s.fly || (s.why === 'join' && mode === 'paused' && !s.moved)) {
-      return;
-    }
     if (roomTag.on()) {
       roomTagRunId = roomTag.view().id;
     }
@@ -3107,10 +3184,13 @@ export async function boot({
 
   /* This pilot's seat moved to the room's target, which stands its world
    * (syncWorld: the course alone on the world already up, else the
-   * loading screen) and lands on the title, to be flown from there. */
-  function roomSeat(target) {
-    titleWorld = null;
-    buildWorld = null;
+   * loading screen) and lands on the title, to be flown from there. A
+   * pilot not to be flown keeps the title's world until their Fly. */
+  function roomSeat(target, fly) {
+    if (fly) {
+      titleWorld = null;
+      buildWorld = null;
+    }
     const t = target.track;
     if (t) {
       if (seatTrackId() !== t.id) {
@@ -3558,8 +3638,9 @@ export async function boot({
   window.__combatStart = (minutes) => roomCombat.start(minutes);
   /* Defend Itaipu for the checks (scripts/war-twopage.js --main), the same
    * three the wire module gave it: the war as this page holds it, where
-   * every attacker is at a room ms, and the host's start and end; and
-   * the radio link, which a war must leave as the preset has it. */
+   * every attacker is at a room ms, and the host's start (or 'brief', the
+   * start behind the intro's briefing) and end; and the radio link, which
+   * a war must leave as the preset has it. */
   window.__war = () => ({
     seat: roomWar.seat(),
     view: roomWar.view(),
@@ -3586,9 +3667,15 @@ export async function boot({
    * page in a state the room reaches too seldom to wait for (an empty
    * rack with no attacker alive). The room's next view replaces it. */
   window.__warHear = (m) => roomWar.onMessage(m);
+  /* The intro while it plays (warintro.js state()), or null; and the
+   * host's Watch intro, for the checks. Harness only. */
+  window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
+  window.__warIntroWatch = () => warIntroPlay('watch');
   window.__warDo = (op, arg) => {
     if (op === 'start') {
       roomWar.start(arg || WAR_MISSION);
+    } else if (op === 'brief') {
+      roomWar.start(arg || WAR_MISSION, { intro: true });
     } else if (op === 'end') {
       roomWar.end();
     }
@@ -3783,6 +3870,10 @@ export async function boot({
     }
     if (action === 'friends-war-stop' || action === 'friends-end-war') {
       roomWar.end();
+      return;
+    }
+    if (action === 'friends-war-intro') {
+      warIntroPlay('watch');
       return;
     }
     if (action === 'friends-combat-5' || action === 'friends-combat-3') {
@@ -7714,7 +7805,7 @@ export async function boot({
       shell.quad.visible = true;
     }
     wreckRig.setCraftVisible(shell.quad.visible);
-    fpvFail.update(nowWall, runDamage && fpvLensLive && !camOverride);
+    fpvFail.update(nowWall, runDamage && fpvLensLive && !camOverride && !warIntro);
   }
 
   function crashSummary() {
@@ -12958,6 +13049,7 @@ export async function boot({
       || attractOn
       || pickerOn
       || Boolean(camOverride)
+      || Boolean(warIntro)
     );
     const wantVis = worldLive ? 'visible' : 'hidden';
     if (shell.canvas.style.visibility !== wantVis) {
@@ -13454,7 +13546,7 @@ export async function boot({
      * place because every branch that is not the attract camera wants the
      * offset gone. Cheap: a property read on the frames it is already off.
      */
-    if (!(mode === 'title' && !camOverride)
+    if (!(mode === 'title' && !camOverride && !warIntro)
         && shell.camera.view && shell.camera.view.enabled) {
       shell.camera.clearViewOffset();
     }
@@ -13466,6 +13558,15 @@ export async function boot({
       build.frame(dt);
     } else if (mapReady) {
       loadBuild();
+    }
+    /* The war's intro poses the camera over whatever the chain chose, and
+     * under the harness camera. */
+    if (warIntro) {
+      if (mode === 'replay') {
+        warIntroStop();
+      } else {
+        warIntro.frame(nowWall);
+      }
     }
     /* Harness camera. The cost ledger has to be published for three views,
      * and two of them are not views the shell puts the camera in: the
@@ -13509,7 +13610,7 @@ export async function boot({
       view.updateAnim(animMs);
       animDrawnMs = animMs;
 
-      const focus = camOverride || (build && build.cameraLive) || mode === 'replay'
+      const focus = camOverride || warIntro || (build && build.cameraLive) || mode === 'replay'
         ? shell.camera.position
         : (mode === 'title' ? shell.quad.position : pCurr);
       view.updateShadowFocus(focus);
