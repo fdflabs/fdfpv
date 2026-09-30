@@ -32,7 +32,10 @@ import { openD1 } from './d1sqlite.js';
 import { googleKeys, verifyGoogleIdToken } from './google.js';
 import { inspectCallsign, looksLikePickerName } from './accounts.js';
 import { ACCOUNT_WRITE_LIMIT, SIGNIN_LIMIT } from './limits.js';
-import { createIdentity, memoryStorage } from '../src/share/identity.js';
+import {
+  createIdentity, keyLinkMessage, memoryStorage, trackMessage,
+} from '../src/share/identity.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { cleanBlob, mergeBlobs, stampChanges } from '../src/share/progressmerge.js';
 
 const CLIENT_ID = 'selftest-client.apps.googleusercontent.com';
@@ -271,6 +274,26 @@ r = await call('PUT', '/api/account/identity', { identity: JSON.stringify(mismat
 check('a key whose halves do not match is refused', r.status === 422);
 r = await call('PUT', '/api/account/identity', { identity: 'not json' }, bob);
 check('and junk is refused', r.status === 422);
+
+console.log('a second computer\'s tracks');
+const laptopKey = await laptop.publicKey();
+const lapTrack = mapTrackDocument({ id: 'trk-0000c001', name: 'Laptop loop', gates: 3 });
+const lapText = JSON.stringify(lapTrack);
+const lapSigned = await laptop.signBytes(await trackMessage({ id: lapTrack.id, ts: 5, author: 'Maverick', documentText: lapText }));
+r = await call('PUT', `/api/tracks/${lapTrack.id}`, { document: lapText, author: 'Maverick', ts: 5, ...lapSigned });
+check('the laptop saved a track under its own key', r.status === 201 && r.body.owner === laptopKey);
+const handOver = await laptop.signBytes(keyLinkMessage(laptopKey, deskKey));
+r = await call('POST', '/api/account/adopt', { key: laptopKey, sig: (await desk.signBytes(keyLinkMessage(laptopKey, deskKey))).sig }, aliceLaptop);
+check('an adopt the old key did not sign is refused', r.status === 401);
+r = await call('POST', '/api/account/adopt', { key: laptopKey, sig: handOver.sig }, bob);
+check('and one for an account the signature does not name', r.status === 409 || r.status === 401, `${r.status}`);
+r = await call('POST', '/api/account/adopt', { key: laptopKey, sig: handOver.sig }, aliceLaptop);
+check('the laptop hands its tracks to the account', r.status === 200 && r.body.tracks === 1, JSON.stringify(r.body));
+r = await call('GET', `/api/tracks/${lapTrack.id}`);
+check('which are then filed under the account\'s key', r.body.owner === deskKey);
+const later = await carried.signBytes(await trackMessage({ id: lapTrack.id, ts: 6, author: 'Maverick', documentText: lapText }));
+r = await call('PUT', `/api/tracks/${lapTrack.id}`, { document: lapText, author: 'Maverick', ts: 6, ...later });
+check('so any computer of the account may save them', r.status === 200);
 const row = env.DB;
 const held = await row.prepare("SELECT identity FROM accounts WHERE sub = 'alice'").first();
 const d = JSON.parse(await desk.exportText()).privateJwk.d;

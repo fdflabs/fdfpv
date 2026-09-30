@@ -42,6 +42,10 @@
  *            check: true validates and answers without claiming
  *   PUT    /api/account/identity   { identity }  kept only when the account
  *            has none; answers with the one it holds
+ *   POST   /api/account/adopt      { key, sig }  every track filed under
+ *            `key` refiled under the account's key; sig is `key`'s own
+ *            signature over identity.js keyLinkMessage(key, account key),
+ *            so only the holder of a key can hand its tracks over
  *   GET    /api/account/progress   { progress }
  *   PUT    /api/account/progress   { progress }  merged with what is held;
  *            answers with the merge
@@ -68,7 +72,7 @@
 
 import { normaliseName } from '../src/share/pilot.js';
 import {
-  fromBase64, sha256Base64, toBase64, verifySignature,
+  fromBase64, keyLinkMessage, sha256Base64, toBase64, verifySignature,
 } from '../src/share/identity.js';
 import { cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
 import {
@@ -368,6 +372,31 @@ async function putProgress(env, request, account) {
   return refuse(503, 'The sync collided with another. Try again.');
 }
 
+/*
+ * A computer that signs in holding a pilot key of its own, with tracks
+ * under it, hands them to the account (src/share/account.js asks the pilot
+ * first). The tracks keep their ids, names and save counters; only the
+ * owner changes, to the key every computer of this account signs with.
+ */
+async function adoptTracks(env, request, account) {
+  const read = await readBody(request, SMALL_BODY, 'That request is too big.');
+  if (read.error) {
+    return read.error;
+  }
+  const b = read.body || {};
+  if (!account.public_key) {
+    return refuse(409, 'This account has no pilot key yet.');
+  }
+  if (typeof b.key !== 'string' || !KEY_RE.test(b.key) || typeof b.sig !== 'string' || b.key === account.public_key) {
+    return refuse(400, 'An adopt carries another pilot key and its signature.');
+  }
+  if (!(await verifySignature({ key: b.key, sig: b.sig, message: keyLinkMessage(b.key, account.public_key) }))) {
+    return refuse(401, 'The signature does not match that key.');
+  }
+  const r = await env.DB.prepare('UPDATE tracks SET owner = ? WHERE owner = ?').bind(account.public_key, b.key).run();
+  return json(200, { tracks: r.meta.changes });
+}
+
 async function deleteAccount(env, account) {
   await env.DB.prepare('DELETE FROM sessions WHERE account_id = ?').bind(account.id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(account.id).run();
@@ -396,7 +425,9 @@ export async function accountRoute(env, request, path) {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(account.session_hash).run();
     return json(200, { signedOut: true });
   }
-  const writes = new Set(['PUT /api/account/callsign', 'PUT /api/account/identity', 'PUT /api/account/progress', 'DELETE /api/account']);
+  const writes = new Set([
+    'PUT /api/account/callsign', 'PUT /api/account/identity', 'PUT /api/account/progress', 'POST /api/account/adopt', 'DELETE /api/account',
+  ]);
   if (!writes.has(`${method} ${path}`)) {
     return refuse(404, 'Nothing here.');
   }
@@ -412,6 +443,9 @@ export async function accountRoute(env, request, path) {
   }
   if (path === '/api/account/progress') {
     return putProgress(env, request, account);
+  }
+  if (path === '/api/account/adopt') {
+    return adoptTracks(env, request, account);
   }
   return deleteAccount(env, account);
 }
