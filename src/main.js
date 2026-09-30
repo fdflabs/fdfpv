@@ -2873,7 +2873,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
-    warAttackers.update(live);
+    warAttackers.update(live, roomWar.live() ? now : null);
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */
@@ -16260,6 +16260,8 @@ export async function boot({
   crashCam.tapCrown(tagFx);
   /* A war's explosions, the same way. */
   crashCam.tapBooms(warBooms);
+  /* And its attackers, so a replay flies them where they were. */
+  crashCam.tapWar(roomWar, warAttackers);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {
