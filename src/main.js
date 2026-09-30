@@ -104,7 +104,9 @@ import {
   FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
-import { applyHit, checkHit, sideFor } from './game/midair.js';
+import {
+  LATE_MS, applyHit, checkHit, roomForcesDamage, sideFor,
+} from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
@@ -466,6 +468,14 @@ const RC_HZ = 250;
  */
 const SIM_HZ = 1000;
 const MS_PER_STEP = 1000 / SIM_HZ;
+/* The most wall time one frame steps the plant, ms: a longer frame (a
+ * hitch, or a machine under 10 fps) steps this much and the plant falls
+ * behind the wall. */
+const FRAME_DT_MAX = 100;
+/* Over SLOW_WINDOW_MS, a plant that most frames stepped less than the
+ * wall time since the last is slow, and in a room the pilot is told
+ * (roomSlowFrame). One hitch is not most frames. */
+const SLOW_WINDOW_MS = 2000;
 /*
  * How near a wall a Wall Ride is flown, in metres.
  *
@@ -1971,6 +1981,14 @@ export async function boot({
   let roomSeq = 0;
   let roomNextSend = 0;
   let roomLastSendT = null;
+  /* This frame's plant steps on the room clock (roomPoseFrame), or null
+   * when the plant is not flying this frame and the frame sends. */
+  let roomPoseMap = null;
+  const roomStepPos = new THREE.Vector3();
+  const roomStepQuat = new THREE.Quaternion();
+  /* The wall ms, frames, and frames over FRAME_DT_MAX since the last
+   * SLOW_WINDOW_MS (roomSlowFrame), and how often the pilot was told. */
+  const roomSlow = { wall: 0, frames: 0, over: 0, said: 0 };
   let roomProfileSent = '';
   let roomProfileCheckAt = 0;
   let roomNote = null; /* a one off line under the code row */
@@ -2056,6 +2074,11 @@ export async function boot({
       }
       roomGone.clear();
       roomSessionWelcome(w);
+      /* Crash damage is on in this room: a pilot already flying its world
+       * with it off starts again, as a war's does (warBegin). */
+      if (mode === 'flight' && damage.available && crashDamageWanted(ui.settings) !== runDamage && roomTagWorldReady(w.map)) {
+        ui.onAction('restart');
+      }
       ui.checkVersion();
       ui.refreshFriends();
     },
@@ -3269,10 +3292,20 @@ export async function boot({
       roomProfileCheckAt = wallMs + 500;
       roomTellProfile();
     }
-    if (mode === 'flight' && stateCurr && now >= roomNextSend) {
+    /* Sent from the plant's steps while it flies (roomPoseStep); from the
+     * frame while it does not (on the ground, held, on a launcher). An
+     * aircraft at rest or held has held its pose since the last frame, so
+     * every 30 Hz slot since, as far back as the room still judges
+     * (LATE_MS), goes too: a slow frame leaves no gap in it either. */
+    if (mode === 'flight' && stateCurr && !roomPoseMap && now >= roomNextSend) {
+      const from = Math.max(roomNextSend, (roomLastSendT ?? -Infinity) + 1000 / 30, now - LATE_MS);
+      for (let t = from; (landed || poseLock) && t <= now - 1000 / 30; t += 1000 / 30) {
+        roomSendPose(Math.round(t), stateCurr, pCurr, qPrev);
+      }
       roomNextSend = Math.max(roomNextSend + 1000 / 30, now - 1000 / 30);
-      roomSendPose(now);
+      roomSendPose(now, stateCurr, pCurr, qPrev);
     }
+    roomSlowFrame(wallMs);
     roomWreckSender ??= createWreckSender(roomLinkState, wreckRig, () => partTable);
     if (mode === 'flight' || roomWreckSender.active()) {
       roomWreckSender.frame(now, wallMs);
@@ -3610,17 +3643,88 @@ export async function boot({
     ui.setRoomBar(roomBarView());
   }
 
-  function roomSendPose(now) {
+  /*
+   * POSES ON THE PLANT'S CLOCK. A pose was sent on a frame, stamped with
+   * the frame's time, so a pilot at 5 fps sent five a second and one under
+   * 4 fps sent them more than GAP_MS apart (src/game/midair.js), which the
+   * referee reads as nobody knowing where they were: a ghost. The audit
+   * (scripts/collide-audit-air.js) measured mid airs missed 15 to 56
+   * percent at 5 fps and all of them at 3. Now, while the plant flies,
+   * the pose is taken from the plant step the room's 30 Hz schedule falls
+   * on, stamped with that step's room time, and sent when the frame that
+   * stepped it ends: a slow frame sends its poses late, never fewer of
+   * them. What is sent is the plant's state at the step, not the drawn
+   * one, and the plant's steps never read frame time (CLAUDE.md), so
+   * this changes nothing about the flight.
+   *
+   * A step's room time is the frame's, less the plant time still to run
+   * in the block after it: the mapping the radio's samples use (wallToSim
+   * in frameBody). Under 10 fps a frame steps at most 100 ms (dt's cap)
+   * over a longer wall interval, so the plant falls behind the wall;
+   * there the block is spread over the whole interval (k > 1), so the
+   * room sees this pilot fly slowly and continuously rather than in bursts
+   * with gaps, and the pilot is told the sim is slow (roomSlowFrame).
+   */
+  function roomPoseFrame(wallMs, wallDt, dt) {
+    roomPoseMap = roomLinkState.state().phase === 'open'
+      ? { wall: wallMs, k: dt > 0 && wallDt > dt ? wallDt / dt : 1 }
+      : null;
+  }
+
+  /* One plant step, `ahead` ms of plant time before the block's end. */
+  function roomPoseStep(st, ahead) {
+    if (!roomPoseMap) {
+      return;
+    }
+    const t = roomLinkState.roomAt(roomPoseMap.wall - ahead * roomPoseMap.k);
+    if (t == null || t < roomNextSend) {
+      return;
+    }
+    roomNextSend = Math.max(roomNextSend + 1000 / 30, t - 1000 / 30);
+    plantToWorld(st[1], st[2], st[3], st[7], st[8], st[9], st[10], roomStepPos, roomStepQuat);
+    /* The wire stamps the whole millisecond (roomwire.js encodePose), and
+     * half of one is 3 cm at 65 m/s: the position is carried to the stamp
+     * it will have, along the velocity, so the stamp is exact. */
+    const stamp = Math.round(t);
+    simPosToThree(st[4], st[5], st[6], roomVel).applyQuaternion(qSpawn);
+    roomStepPos.addScaledVector(roomVel, (stamp - t) / 1000);
+    roomSendPose(stamp, st, roomStepPos, roomStepQuat);
+  }
+
+  /*
+   * A pilot whose plant cannot keep up with the wall clock is seen by the
+   * room in slow motion, and every mid air and bubble is judged on that.
+   * Said once every SLOW_WINDOW_MS while it lasts, in flight, in a room.
+   */
+  function roomSlowFrame(wallMs) {
+    roomSlow.wall += lastWallDt;
+    roomSlow.over += lastWallDt > FRAME_DT_MAX ? 1 : 0;
+    roomSlow.frames += 1;
+    if (roomSlow.wall < SLOW_WINDOW_MS) {
+      return;
+    }
+    const fps = (1000 * roomSlow.frames) / roomSlow.wall;
+    const slow = 2 * roomSlow.over >= roomSlow.frames;
+    roomSlow.wall = 0;
+    roomSlow.over = 0;
+    roomSlow.frames = 0;
+    if (slow && mode === 'flight' && ui.screen === 'flight') {
+      notice = { text: str('rooms.sim_slow', { fps: Math.max(1, Math.round(fps)) }), untilMs: wallMs + 4000 };
+      roomSlow.said += 1;
+    }
+  }
+
+  function roomSendPose(now, st, pos, quat) {
     const af = airframeById(runAirframe);
     const quad = !af.fixedWing;
-    simPosToThree(stateCurr[4], stateCurr[5], stateCurr[6], roomVel).applyQuaternion(qSpawn);
+    simPosToThree(st[4], st[5], st[6], roomVel).applyQuaternion(qSpawn);
     /* The turn since the last pose, in the craft's own axes: q_last^-1 q_now
      * as an axis and an angle over the time between them. */
     let wx = 0;
     let wy = 0;
     let wz = 0;
     if (roomLastSendT != null && now > roomLastSendT) {
-      roomQStep.copy(roomQLast).invert().multiply(qPrev);
+      roomQStep.copy(roomQLast).invert().multiply(quat);
       if (roomQStep.w < 0) {
         roomQStep.set(-roomQStep.x, -roomQStep.y, -roomQStep.z, -roomQStep.w);
       }
@@ -3632,10 +3736,10 @@ export async function boot({
         wz = roomQStep.z * k;
       }
     }
-    roomQLast.copy(qPrev);
+    roomQLast.copy(quat);
     roomLastSendT = now;
     const surf = !quad && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null;
-    const rotors = [stateCurr[14], stateCurr[15], stateCurr[16], stateCurr[17]];
+    const rotors = [st[14], st[15], st[16], st[17]];
     const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
     const chute = typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0;
     const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
@@ -3652,13 +3756,13 @@ export async function boot({
       flags,
       seq: roomSeq,
       t: now,
-      px: pCurr.x,
-      py: pCurr.y,
-      pz: pCurr.z,
-      qx: qPrev.x,
-      qy: qPrev.y,
-      qz: qPrev.z,
-      qw: qPrev.w,
+      px: pos.x,
+      py: pos.y,
+      pz: pos.z,
+      qx: quat.x,
+      qy: quat.y,
+      qz: quat.z,
+      qw: quat.w,
       vx: roomVel.x,
       vy: roomVel.y,
       vz: roomVel.z,
@@ -3884,6 +3988,7 @@ export async function boot({
       seat: st.welcome ? st.welcome.seat : null,
       slot: roomSlot,
       roomNow: roomLinkState.roomNow(),
+      slowSaid: roomSlow.said,
       public: Boolean(st.welcome && st.welcome.public),
       name: st.welcome ? st.welcome.name : null,
       host: st.welcome ? st.welcome.host : null,
@@ -7365,12 +7470,18 @@ export async function boot({
     return outPos;
   }
 
+  /* The damage mode a run starts in: the pilot's setting, forced on in a
+   * war (WARFARE-PLAN 6.3) and in any room that judges mid airs
+   * (roomForcesDamage). The setting is never written, so it is theirs
+   * again once the war is over or they leave the room. */
+  function crashDamageWanted(s) {
+    return s.crashDamage !== false || roomWar.on() || roomForcesDamage(roomLinkState.state().welcome);
+  }
+
   /* Between runs, from applySettings: the mode this run flies. */
   function applyCrashMode(s) {
     syncPartTable();
-    /* A war forces damage on (WARFARE-PLAN 6.3); the pilot's own setting
-     * is never written, so it is theirs again once the war is over. */
-    const want = damage.available && (s.crashDamage !== false || roomWar.on());
+    const want = damage.available && crashDamageWanted(s);
     if (want === runDamage) {
       return;
     }
@@ -8296,9 +8407,10 @@ export async function boot({
     }
     sim.reset();
     plantStarts += 1;
-    /* A war began or ended since the last run: its damage mode now,
-     * between runs, since setting it clears the crash state. */
-    if (warCrashDue) {
+    /* A war began or ended, or a room was joined or left, since the last
+     * run: its damage mode now, between runs, since setting it clears the
+     * crash state. */
+    if (warCrashDue || (damage.available && crashDamageWanted(ui.settings) !== runDamage)) {
       warCrashDue = false;
       applyCrashMode(ui.settings);
     }
@@ -12363,6 +12475,8 @@ export async function boot({
   ghostCourseChanged();
 
   let prevWall = performance.now();
+  /* The last frame's wall interval, ms, before FRAME_DT_MAX caps it. */
+  let lastWallDt = 0;
   /* Harness camera override, six numbers: position then look at target. */
   let camOverride = null;
   const camLookAt = new THREE.Vector3();
@@ -12610,8 +12724,10 @@ export async function boot({
     dressCraft();
     alignTraffic();
     const blockStart = performance.now();
-    const dt = Math.min(nowWall - prevWall, 100);
+    lastWallDt = nowWall - prevWall;
+    const dt = Math.min(lastWallDt, FRAME_DT_MAX);
     prevWall = nowWall;
+    roomPoseMap = null;
     fps = fps * 0.95 + (dt > 0 ? 1000 / dt : 0) * 0.05;
     let frameSteps = 0;
 
@@ -12918,6 +13034,7 @@ export async function boot({
           peakGroundClosing = 0;
           peakGroundSpeed = 0;
           sawGroundHit = false;
+          roomPoseFrame(nowWall, lastWallDt, dt);
           for (let i = 0; i < steps; i += 1) {
             stNow = roomMidairStep(stNow);
             if (groundNormalDue(stNow)) {
@@ -12938,6 +13055,7 @@ export async function boot({
               faulted = true;
               break;
             }
+            roomPoseStep(stNow, (steps - 1 - i) * MS_PER_STEP);
             if (roomCombat.out()) {
               combatStep(stNow);
             }
