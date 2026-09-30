@@ -6,10 +6,19 @@
  *
  * Styled as a military display over FPV video: monospace capitals, a
  * phosphor green on a dark scrim that holds over snow and sky alike, amber
- * and red kept for what needs the pilot now. It sits where combat's does
- * (src/ui/combathud.js), top left under the world's name; the callouts
- * take the upper middle, the one place nothing else of the flight screen
- * uses.
+ * and red kept for what needs the pilot now. WHERE IT SITS is what the
+ * rest of the flight screen leaves: the top left corner is the room's
+ * (src/ui/peermarks.js draws its notice and a line for each pilot not
+ * flying there, eight rows at most in a private room), the top right is
+ * the markers' radar, and the markers' edge arrows run round the picture
+ * EDGE_PX in with their words inside them (src/ui/warmarkers.js), and
+ * with the FPV OSD up its horizon's sidebars stand 0.37 of the height
+ * either side of the middle (src/ui/fpvhud.js, the PAL grid kept to the
+ * height). So it sits on the left under the room's lines, inside the
+ * arrows' band and short of the sidebars;
+ * scripts/war-hud-layout.js holds it to that at 1280x720 and 1920x1080.
+ * The callouts take the upper middle, the one place nothing else of the
+ * flight screen uses.
  *
  * It reads the room's view (src/share/roomwar.js view()) and the events
  * roomwar hands the shell once each.
@@ -40,6 +49,15 @@ const DIM = 'rgba(125, 255, 154, 0.35)';
 const SCRIM = 'rgba(4, 10, 6, 0.55)';
 const CALL_MS = 4500;
 const CALLS_SHOWN = 3;
+/* The display's top, under the room's lines at their longest (see the
+ * header), and its left, inside the left edge arrows and their words
+ * (warmarkers.js EDGE_PX 46, the words 34 further in and up to about 45
+ * either side). */
+const TOP = 'max(300px, 40vh)';
+const LEFT = '132px';
+/* Its width, short of the OSD's left sidebar by 10 px (see the header),
+ * never under what its lines need. */
+const WIDTH = 'clamp(220px, calc(50vw - 37vh - 142px), 380px)';
 /* The rack is drawn as pips up to this many, a count past it. */
 const PIPS_MAX = 24;
 
@@ -104,7 +122,7 @@ export function createWarHud(nameOf) {
 
   function build() {
     box = root({
-      position: 'fixed', top: '60px', left: '16px', width: 'min(420px, 46vw)', zIndex: '40', pointerEvents: 'none',
+      position: 'fixed', top: TOP, left: LEFT, width: WIDTH, zIndex: '40', pointerEvents: 'none',
       fontWeight: '700', fontSize: '14px', color: GREEN, letterSpacing: '0.08em', textTransform: 'uppercase',
       textShadow: '0 0 4px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9)',
       display: 'flex', flexDirection: 'column', gap: '6px',
