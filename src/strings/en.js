@@ -2730,6 +2730,7 @@ export default {
   "war.kill_by.one": "{name}: SPLASH ONE",
   "war.kill_by.other": "{name}: SPLASH {n}",
   "war.boom_mine": "WARHEAD AWAY. AIRFRAME EXPENDED",
+  "war.hint_go": "FLY INTO THEM: your warhead detonates within 6 m",
   "war.call.scout.one": "SCOUT {where}",
   "war.call.scout.other": "SCOUTS {where}",
   "war.call.loiter.one": "LOITERER {where}",

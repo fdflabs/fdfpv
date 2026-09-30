@@ -22,6 +22,12 @@
  * the replayed bubble is drawn, the new Ace. Its coin rings as the
  * SCHWING does, below.
  *
+ * A WAR'S EXPLOSIONS the same way (src/render/explosion.js): thrown again
+ * when the playhead passes them, thrown at their age after a jump, so a
+ * frame a second after a kill shows the fireball a second old and its
+ * smoke; each sounds on playback as the SCHWING does, from as far off as
+ * the replay's camera is.
+ *
  * THE SCHWING sounds when playback passes a cut going forward, at the
  * level it rang at, scaled down in slow motion the way the replay's crash
  * sounds are (src/replay/crashcam.js events), and never on a scrub, a jump
@@ -46,6 +52,7 @@
 
 import { CONFETTI_S, createStreamerLayer } from '../render/streamers.js';
 import { CROWN_FX_S, createCrownFx } from '../render/acecrown.js';
+import { EXPLOSION_S, SIZE_MAX, createExplosions } from '../render/explosion.js';
 import { createPaperSample, samplePaper } from './paper.js';
 
 /* A step when flying the bursts up to the playhead after a jump. */
@@ -64,6 +71,13 @@ export function createPaperScene(paper, n, parent, audio, floorAt) {
   if (fx) {
     parent.add(fx.group);
   }
+  /* A war's explosions, only for a clip that has one. */
+  const booms = paper.events.some((e) => e.type === 'boom') ? createExplosions() : null;
+  if (booms) {
+    parent.add(booms.group);
+  }
+  let boomsRung = 0;
+  const camAt = [0, 0, 0];
   const sample = createPaperSample();
   let schwings = 0;
   let coins = 0;
@@ -87,6 +101,14 @@ export function createPaperScene(paper, n, parent, audio, floorAt) {
       const e = paper.events.filter((x) => x.type === 'crown' && x.t <= t && x.t > t - CROWN_FX_S).at(-1);
       if (e) {
         fx.play(e.p, e.from, e.level, t - e.t);
+      }
+    }
+    if (booms) {
+      booms.clear();
+      for (const e of paper.events) {
+        if (e.type === 'boom' && e.t <= t && e.t > t - EXPLOSION_S) {
+          booms.play(e.p, e.level * SIZE_MAX, t - e.t);
+        }
       }
     }
     let at = null;
@@ -130,6 +152,15 @@ export function createPaperScene(paper, n, parent, audio, floorAt) {
         } else if (e.type === 'crown') {
           /* Thrown at its age at `to`, so it is where it was. */
           fx.play(e.p, e.from, e.level, to - e.t);
+        } else if (e.type === 'boom') {
+          booms.play(e.p, e.level * SIZE_MAX, to - e.t);
+          if (playing && audio && typeof audio.boom === 'function') {
+            camAt[0] = camera.position.x - e.p[0];
+            camAt[1] = camera.position.y - e.p[1];
+            camAt[2] = camera.position.z - e.p[2];
+            audio.boom(Math.min(1, e.level * 2.5) * Math.min(1, speed), Math.hypot(camAt[0], camAt[1], camAt[2]));
+            boomsRung += 1;
+          }
         } else if (!playing || !audio) {
           continue;
         } else if (e.type === 'schwing' && typeof audio.schwing === 'function') {
@@ -152,6 +183,9 @@ export function createPaperScene(paper, n, parent, audio, floorAt) {
     if (fx) {
       fx.frame(0, camera, target);
     }
+    if (booms) {
+      booms.update(forward ? to - from : 0);
+    }
   }
 
   function dispose() {
@@ -159,6 +193,9 @@ export function createPaperScene(paper, n, parent, audio, floorAt) {
     layer.group.removeFromParent();
     if (fx) {
       fx.dispose();
+    }
+    if (booms) {
+      booms.dispose();
     }
   }
 
@@ -187,6 +224,7 @@ export function createPaperScene(paper, n, parent, audio, floorAt) {
         schwings,
         crown: fx ? fx.stats() : null,
         coins,
+        booms: booms ? { ...booms.stats(), rung: boomsRung } : null,
       };
     },
   };
