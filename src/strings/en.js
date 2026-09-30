@@ -2747,6 +2747,7 @@ export default {
   "war.row": "Mission",
   "war.waiting": "The host starts the mission.",
   "war.state_lobby": "Not started",
+  "war.state_briefing": "Briefing",
   "war.state_countdown": "Starting",
   "war.state_live": "Under way",
   "war.state_won": "Itaipu held",
@@ -2763,4 +2764,5 @@ export default {
   "war.intro.briefing": "Briefing: {s} s",
   "war.intro.music": "Music: \"Cinematic Suspense Trailer\" by Gregor Quendel (www.gregorquendel.com), CC BY 4.0",
   "war.intro.watch": "Watch intro",
+  "war.intro.watch_note": "The 2030 intro again, on this screen only.",
 };

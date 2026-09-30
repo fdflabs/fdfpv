@@ -2751,6 +2751,7 @@ export default {
   "war.row": "Misión",
   "war.waiting": "El anfitrión empieza la misión.",
   "war.state_lobby": "Sin empezar",
+  "war.state_briefing": "Instrucciones",
   "war.state_countdown": "Empezando",
   "war.state_live": "En curso",
   "war.state_won": "Itaipú resistió",
@@ -2767,4 +2768,5 @@ export default {
   "war.intro.briefing": "Instrucciones: {s} s",
   "war.intro.music": "Música: \"Cinematic Suspense Trailer\" de Gregor Quendel (www.gregorquendel.com), CC BY 4.0",
   "war.intro.watch": "Ver introducción",
+  "war.intro.watch_note": "La introducción 2030 otra vez, solo en esta pantalla.",
 };

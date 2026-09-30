@@ -21,15 +21,17 @@
  * a "Briefing: N s" line until then. handle.done resolves when it is over,
  * skipped past the hold, or disposed; dispose() takes everything back out.
  *
- * SOUND. The voice (assets/audio/war/voice/<lang>/intro-N) and the music
- * (music/intro) are media elements. With the shell's MotorAudio running,
- * they go into its graph ahead of the master, so the volume and the mute
- * settings hold for them as for everything else, and the shell's own
- * music bed is paused for the length. Without it, or before a gesture has
- * started it, the elements play direct at the same volume setting, and a
- * browser that blocks them leaves the subtitles, which run on the clock
- * whatever the audio does. The subtitles are lines.json's text in the
- * page's language, shown for each file's measured length (manifest.json).
+ * SOUND. The war's own radio and music (src/render/warradio.js, the
+ * shell's MotorAudio.war()), so the intro and the mission never fight
+ * over the speakers and the volume, sound and music settings hold as for
+ * every war call: each shot's line is Crest Control's (lines.json
+ * intro-N, in the page's language), and the music is the war bed's
+ * 'intro' track, started here unless the owner already runs it (a room's
+ * briefing does) and put back as it was when the film ends. Before a
+ * gesture has started the shell's audio there is no radio, and the film
+ * runs silent: the subtitles are on the clock whatever the audio does,
+ * lines.json's text shown for each file's measured length
+ * (manifest.json).
  *
  * CONTENT. The enemy is never named and wears no markings (attackers.js
  * builds them unmarked); no person is shown, harmed or otherwise: the
@@ -499,11 +501,12 @@ const GRADES = {
   fpv: { filter: 'none', tint: 'none' },
 };
 
-/* The music's level against the stem the settings call music, and how far
- * it ducks under a voice line. */
-const MUSIC_GAIN = 1.4;
-const DUCK = 0.45;
+/* A subtitle stays this long after its line ends. */
 const SUB_TAIL_MS = 500;
+/* A late joiner hears a line only this soon after its cue: the radio
+ * plays a line from its start, and one begun late runs over the next
+ * shot. */
+const SAY_LATE_MS = 1200;
 
 /* The briefing's orbit: once round the dam in ORBIT_MS. */
 const ORBIT_R = 820;
@@ -593,11 +596,6 @@ function runField(run, t, field, dflt) {
   return pairs.length ? track(pairs, t) : dflt;
 }
 
-function format() {
-  const a = document.createElement('audio');
-  return a.canPlayType(str('music.audio_webm_codecs_opus')) !== '' ? 'webm' : 'mp3';
-}
-
 /* A style written only when it changes: the overlay is set every frame,
  * and a write of the same value still costs the page a style pass. */
 const written = new WeakMap();
@@ -636,12 +634,13 @@ const TITLE_FONT = 'Impact, "Oswald", "Bebas Neue", "Arial Narrow", "Helvetica N
  *   startMs      where in the film to start (a pilot joining a briefing
  *                late starts where the room is), default 0
  *   holdUntilMs  performance.now() the room's briefing ends, or null
- *   base         where the audio lives, default 'assets/audio/war/'
+ *   onSkip()     called when the viewer skips (a room's host cuts the
+ *                briefing short for everybody with it)
  */
 export function play(scene, camera, opts = {}) {
   const canvas = opts.canvas || document.getElementById('view');
   const ground = opts.ground || (() => CREST_Y);
-  const base = opts.base || 'assets/audio/war/';
+  const base = new URL('../../assets/audio/war/', import.meta.url).href;
   const lang = currentLocale() === 'es' ? 'es' : 'en';
   const audio = opts.audio || null;
 
@@ -712,6 +711,11 @@ export function play(scene, camera, opts = {}) {
   const overlay = el('div', 'position:fixed;inset:0;z-index:9000;pointer-events:none;overflow:hidden;'
     + 'font-family:var(--ui-font, sans-serif);color:#f1ece0;', document.body);
   overlay.dataset.warIntro = '1';
+  /* The shell's own screens and HUDs are the body's other children: out
+   * of sight while the film runs, back as they were after. */
+  const hide = el('style', '', document.head, 'body.war-intro > :not(#view):not([data-war-intro]) { visibility: hidden !important; }');
+  hide.dataset.warIntro = '1';
+  document.body.classList.add('war-intro');
   const tint = el('div', 'position:absolute;inset:0;', overlay);
   el('div', 'position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);', overlay);
   const barCss = 'position:absolute;left:0;right:0;height:max(0px, calc((100vh - 100vw / 2.39) / 2));background:#000;';
@@ -743,67 +747,19 @@ export function play(scene, camera, opts = {}) {
     + 'font-size:clamp(10px, 0.9vw, 12px);letter-spacing:0.1em;text-transform:uppercase;opacity:0.55;', overlay, str('war.intro.skip'));
   const canvasFilter = canvas.style.filter;
   const fpvFail = createFpvFail(canvas);
+  fpvFail.element.dataset.warIntro = '1';
 
   /* ------------------------------------------------------- the sound */
+  const radio = audio && audio.ctx ? audio.war() : null;
+  if (radio) {
+    radio.setLang(lang);
+  }
+  const bedWas = radio ? radio.track : '';
+  let bedSet = false;
+  const said = [];
+  /* The subtitles: lines.json's text, and each file's measured length. */
   let lines = null;
   let seconds = null;
-  const ext = format();
-  const voices = new Map();
-  const music = new Audio(`${base}music/intro.${ext}`);
-  music.preload = 'auto';
-  for (let i = 1; i <= 7; i += 1) {
-    const a = new Audio(`${base}voice/${lang}/intro-${i}.${ext}`);
-    a.preload = 'auto';
-    voices.set(`intro-${i}`, a);
-  }
-  const graph = audio && audio.ctx && audio.preMaster && audio.ctx.state === 'running' ? audio.ctx : null;
-  const nodes = [];
-  let musicGain = null;
-  if (graph) {
-    musicGain = graph.createGain();
-    musicGain.gain.value = Math.min(1, (audio.mix ? audio.mix.music : 0.5) * MUSIC_GAIN);
-    musicGain.connect(audio.preMaster);
-    const voiceGain = graph.createGain();
-    voiceGain.connect(audio.preMaster);
-    nodes.push(musicGain, voiceGain);
-    const m = graph.createMediaElementSource(music);
-    m.connect(musicGain);
-    nodes.push(m);
-    for (const a of voices.values()) {
-      const s = graph.createMediaElementSource(a);
-      s.connect(voiceGain);
-      nodes.push(s);
-    }
-    if (audio.music) {
-      audio.music.pause();
-    }
-  } else {
-    const level = audio ? (audio.enabled === false ? 0 : audio.level ?? 1) : 1;
-    for (const a of [music, ...voices.values()]) {
-      a.volume = Math.max(0, Math.min(1, level));
-    }
-  }
-  const sound = { mode: graph ? 'graph' : 'element', blocked: 0, started: [] };
-  const start = (a, fromS) => {
-    try {
-      a.currentTime = Math.max(0, fromS);
-    } catch (e) {
-      /* Not seekable before its metadata: it starts from the top, a
-       * fraction late, which only a late joiner hears. */
-    }
-    const p = a.play();
-    if (p && typeof p.catch === 'function') {
-      p.catch(() => {
-        sound.blocked += 1;
-      });
-    }
-  };
-  const silence = () => {
-    music.pause();
-    for (const a of voices.values()) {
-      a.pause();
-    }
-  };
 
   const text = fetch(`${base}lines.json`).then((r) => r.json()).then((j) => {
     lines = Object.fromEntries(j.lines.filter((l) => l.group === 'intro').map((l) => [l.id, l[lang] || l.en]));
@@ -827,7 +783,6 @@ export function play(scene, camera, opts = {}) {
   });
   const frames = SHOTS.map(() => 0);
   const voiced = new Set();
-  let musicOn = false;
   const look = new THREE.Vector3();
   const upV = new THREE.Vector3();
   const fwd = new THREE.Vector3();
@@ -847,6 +802,9 @@ export function play(scene, camera, opts = {}) {
     ev.preventDefault();
     ev.stopPropagation();
     handle.skip();
+    if (opts.onSkip) {
+      opts.onSkip();
+    }
   }
   window.addEventListener('keydown', onInput, true);
   window.addEventListener('pointerdown', onInput, true);
@@ -1010,24 +968,25 @@ export function play(scene, camera, opts = {}) {
   }
 
   function sounds(s, t, tIntro) {
-    if (!musicOn) {
-      musicOn = true;
-      start(music, tIntro / 1000);
+    if (radio && !bedSet && bedWas !== 'intro') {
+      bedSet = true;
+      audio.setWarBed('intro');
     }
-    if (s.voice && t >= s.voice.at && !voiced.has(s.voice.line)) {
-      voiced.add(s.voice.line);
-      const len = seconds ? seconds[s.voice.line] * 1000 : 6000;
-      /* A late joiner hears the rest of a line under way, not a line
-       * started out of its shot. */
-      if (t < s.voice.at + len) {
-        start(voices.get(s.voice.line), (t - s.voice.at) / 1000);
-        sound.started.push({ line: s.voice.line, at: tIntro });
-      }
+    if (!s.voice || t < s.voice.at || voiced.has(s.voice.line)) {
+      return;
     }
-    if (musicGain) {
-      const speaking = [...voices.values()].some((a) => !a.paused && !a.ended);
-      const want = Math.min(1, (audio.mix ? audio.mix.music : 0.5) * MUSIC_GAIN) * (speaking ? DUCK : 1);
-      musicGain.gain.setTargetAtTime(want, graph.currentTime, 0.12);
+    voiced.add(s.voice.line);
+    if (radio && t - s.voice.at < SAY_LATE_MS) {
+      radio.say(s.voice.line);
+      said.push({ line: s.voice.line, at: tIntro });
+    }
+  }
+
+  /* The bed back as the film found it. */
+  function bedBack() {
+    if (bedSet) {
+      bedSet = false;
+      audio.setWarBed(bedWas);
     }
   }
 
@@ -1049,7 +1008,7 @@ export function play(scene, camera, opts = {}) {
 
   /* Out of the film: into the hold, or over. */
   function leaveFilm(nowWall) {
-    silence();
+    bedBack();
     attackers.clear();
     for (const c of cast.values()) {
       c.holder.visible = false;
@@ -1077,9 +1036,6 @@ export function play(scene, camera, opts = {}) {
     }
     ended = true;
     state.done = true;
-    if (audio && audio.music && graph && audio.enabled) {
-      audio.music.resume();
-    }
     finished();
   }
 
@@ -1172,13 +1128,7 @@ export function play(scene, camera, opts = {}) {
         title: titleBox.style.opacity !== '0' ? titleMain.textContent : null,
         counter: counter.style.opacity !== '0' ? counterValue.textContent : null,
         hold: state.orbit ? hold.textContent : null,
-        sound: {
-          mode: sound.mode,
-          blocked: sound.blocked,
-          started: sound.started.slice(),
-          music: { t: music.currentTime, paused: music.paused, duration: music.duration },
-          voices: Object.fromEntries([...voices].map(([k, a]) => [k, { duration: a.duration, t: a.currentTime }])),
-        },
+        sound: radio ? { ...radio.status(), cued: said.slice() } : null,
         seconds,
         lines,
       };
@@ -1187,14 +1137,7 @@ export function play(scene, camera, opts = {}) {
     dispose() {
       window.removeEventListener('keydown', onInput, true);
       window.removeEventListener('pointerdown', onInput, true);
-      silence();
-      for (const n of nodes) {
-        n.disconnect();
-      }
-      for (const a of [music, ...voices.values()]) {
-        a.removeAttribute('src');
-        a.load();
-      }
+      bedBack();
       attackers.dispose();
       scene.remove(root);
       root.traverse((o) => {
@@ -1207,6 +1150,8 @@ export function play(scene, camera, opts = {}) {
       fpvFail.element.remove();
       canvas.style.filter = canvasFilter;
       overlay.remove();
+      hide.remove();
+      document.body.classList.remove('war-intro');
       finish();
     },
   };

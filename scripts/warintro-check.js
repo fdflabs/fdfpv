@@ -43,6 +43,13 @@
  *             camera circles the dam over "Briefing: N s" until it ends;
  *             dispose() leaves no overlay, no scenery and the canvas as it
  *             was
+ *   the game  then through src/main.js's own hook, on a rooms server this
+ *             check runs in its own process (edge/rooms/node.js): the
+ *             host's Watch intro plays on the shell's camera with its
+ *             screens hidden and a key gives them back; the host's start
+ *             with the intro puts the room in its briefing, the film plays
+ *             from where the room is in it, and the host's key ends the
+ *             briefing for the room, which counts down at once
  *
  * OUT_DIR (default the system temp dir's warintro-frames) gets three frames
  * of each shot, for a person to look at. Never inside the repository.
@@ -63,7 +70,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { writeFile, mkdir, readFile } from 'node:fs/promises';
+import { writeFile, mkdir, readFile, mkdtemp, rm } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -71,6 +78,8 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import { SHOT_MS, INTRO_MS } from '../src/share/war/intro.js';
+import { COUNTDOWN_MS } from '../edge/rooms/race.js';
+import { startRooms } from '../edge/rooms/node.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -169,6 +178,7 @@ const DRIVE = /* js */ `(async (opts) => {
         if (s.title && !x.titles.includes(s.title)) { x.titles.push(s.title); }
         if (s.subtitle && !x.subs.includes(s.subtitle)) { x.subs.push(s.subtitle); }
         if (s.counter) { x.counter = s.counter; }
+        if (s.sound && s.sound.musicPlaying) { x.music = s.sound.track; }
         /* The stats are the last draw's: a shot's first frames count the
          * shot before. */
         const calls = window.__renderStats().calls;
@@ -184,8 +194,10 @@ const DRIVE = /* js */ `(async (opts) => {
   return true;
 })`;
 
+const scratch = await mkdtemp(join(tmpdir(), 'fdfpv-warintro-'));
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
 const page = await openPage({
-  root, width: 1600, height: 900, url: '/index.html?map=itaipu', seed,
+  root, width: 1600, height: 900, url: `/index.html?map=itaipu&rooms=${encodeURIComponent(`http://127.0.0.1:${server.port}`)}`, seed,
 });
 const stop = () => page.close().finally(() => process.exit(1));
 process.once('SIGTERM', stop);
@@ -208,6 +220,14 @@ try {
   await page.sleep(500);
   console.log(`audio context: ${await page.evaluate('window.__audio.ctx ? window.__audio.ctx.state : "none"')}`);
 
+  /* Each voice file's own length, as the browser decodes it. */
+  const durations = await page.evaluate(`Promise.all(${JSON.stringify(lines.map((l) => l.id))}.map((id) => new Promise((done) => {
+    const a = new Audio(new URL('assets/audio/war/voice/en/' + id + '.webm', location.href).href);
+    a.preload = 'metadata';
+    a.onloadedmetadata = () => done([id, a.duration]);
+    a.onerror = () => done([id, NaN]);
+  }))).then(Object.fromEntries)`);
+
   console.log(`\nthe whole film, ${INTRO_MS / 1000} s`);
   await page.evaluate(`${DRIVE}({})`);
   const shotStarts = SHOT_MS.map((_, i) => SHOT_MS.slice(0, i).reduce((a, b) => a + b, 0));
@@ -227,6 +247,7 @@ try {
   await page.until('window.__intro2030.h.state().done', 120000);
   report = await page.evaluate('({ R: window.__intro2030.R, s: window.__intro2030.h.state() })');
   await page.evaluate('(window.__intro2030.h.dispose(), window.__intro2030.h = null, window.__setCam(null), "")');
+  const bedAfter = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.track : null');
 
   const { R, s } = report;
   const shot = (i) => R.shots[i] || {
@@ -253,7 +274,7 @@ try {
 
   const subs = lines.map((l, i) => shot(i).subs.includes(l.en));
   row('every voice line is subtitled in its shot, in English as lines.json has it', subs.every(Boolean), subs.map((x, i) => `${i + 1}:${x ? 'y' : 'n'}`).join(' '));
-  const lens = lines.map((l) => [l.id, s.sound.voices[l.id].duration, manifest.voice[`${l.id}.en`].seconds]);
+  const lens = lines.map((l) => [l.id, durations[l.id], manifest.voice[`${l.id}.en`].seconds]);
   row('every voice file is as long as the manifest measured it (the subtitles\' timing)', lens.every(([, d, m]) => Math.abs(d - m) < 0.15),
     lens.map(([id, d, m]) => `${id} ${Number(d).toFixed(2)}/${m.toFixed(2)}`).join(', '));
   const fits = lines.map((l, i) => {
@@ -262,8 +283,12 @@ try {
     return { id: l.id, ok: longest < shotDef, longest };
   });
   row('every line, in either language, is shorter than its shot', fits.every((f) => f.ok), fits.map((f) => `${f.id} ${(f.longest / 1000).toFixed(1)} s`).join(', '));
-  row(`the sound: all seven lines started, through the ${s.sound.mode === 'graph' ? 'shell\'s audio graph' : 'media elements'}`,
-    s.sound.started.length === 7, `${s.sound.started.map((x) => `${x.line}@${(x.at / 1000).toFixed(1)}`).join(' ')}; blocked ${s.sound.blocked}; music at ${s.sound.music.t.toFixed(1)} s`);
+  const heard = s.sound ? s.sound.cued : [];
+  row('the voice: all seven lines said on the war radio, each at its cue, in the page\'s language', heard.length === 7
+    && lines.every((l) => heard.some((x) => x.line === l.id) && s.sound.said.includes(l.id)) && s.sound.lang === 'en',
+    `${heard.map((x) => `${x.line}@${(x.at / 1000).toFixed(1)}`).join(' ')}; radio ${s.sound ? `${s.sound.lang} ${s.sound.ext}` : 'none'}`);
+  row('the music: the war bed\'s intro track under every shot, and the bed put back as it was after', SHOT_MS.every((_, i) => shot(i).music === 'intro')
+    && bedAfter === '', `${SHOT_MS.map((_, i) => shot(i).music || '-').join(' ')}; after, '${bedAfter}'`);
 
   const low = R.clear.reduce((m, c) => (c[1] < m[1] ? c : m), [0, Infinity]);
   row(`the camera never goes under the ground (least clearance over ${CLEAR_M} m)`, low[1] >= CLEAR_M, `least ${low[1].toFixed(2)} m in shot ${low[0] + 1} at ${low[2]}, ${low[3]}`);
@@ -340,11 +365,49 @@ try {
     filter: document.getElementById('view').style.filter,
   })`);
   row('dispose leaves no overlay, no scenery, and the canvas as it was', left.overlay === 0 && !left.scenery && left.filter === '', JSON.stringify(left));
+
+  console.log('\nin the game, through src/main.js');
+  await page.until('window.__shellReady === true', 60000);
+  const moved = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) > 1;
+  const look = `({ i: window.__warIntro(), cam: window.__camGround(), hidden: document.body.classList.contains('war-intro'),
+    ui: getComputedStyle(document.getElementById('ui')).visibility, bed: window.__audio.warRadio ? window.__audio.warRadio.track : '' })`;
+  await page.evaluate('(window.__warIntroWatch(), "")');
+  await page.until('window.__warIntro() && window.__warIntro().shot >= 0', 10000);
+  const cam0 = await page.evaluate('window.__camGround()');
+  await page.sleep(1500);
+  const w1 = await page.evaluate(look);
+  row('Watch intro plays it on the shell\'s own camera, the shell\'s screens hidden, the war bed\'s intro under it', Boolean(w1.i) && w1.i.for === 'watch' && w1.i.t > 1000
+    && moved(cam0, w1.cam) && w1.hidden && w1.ui === 'hidden' && w1.bed === 'intro', JSON.stringify({ t: w1.i && Math.round(w1.i.t), hidden: w1.hidden, ui: w1.ui, bed: w1.bed }));
+  await page.tap('Space');
+  await page.until('window.__warIntro() === null', 5000).catch(() => {});
+  const w2 = await page.evaluate(look);
+  row('a key ends it: the screens back and the bed as it was', !w2.i && !w2.hidden && w2.ui !== 'hidden' && w2.bed === '', JSON.stringify({ i: Boolean(w2.i), hidden: w2.hidden, ui: w2.ui, bed: w2.bed }));
+
+  const code = await page.evaluate("window.__roomCreate({ map: 'itaipu' })");
+  await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
+  await page.evaluate("window.__warDo('brief')");
+  await page.until("window.__war().view.state === 'briefing'", 10000);
+  await page.until('window.__warIntro() && window.__warIntro().t > 2500', 15000);
+  const b1 = await page.evaluate(`({ w: window.__war().view, i: window.__warIntro(), room: window.__rooms().roomNow, bed: window.__audio.warRadio ? window.__audio.warRadio.track : '' })`);
+  row(`the host's start with the intro: room ${code} briefs for INTRO_MS before its countdown, and the film plays from where the room is in it`,
+    b1.w.goAt === b1.w.briefAt + INTRO_MS + COUNTDOWN_MS && b1.i.for === b1.w.id && Math.abs(b1.i.t - (b1.room - b1.w.briefAt)) < 500 && b1.bed === 'intro',
+    `briefAt ${b1.w.briefAt}, goAt ${b1.w.goAt}; film at ${Math.round(b1.i.t)} ms, room at ${Math.round(b1.room - b1.w.briefAt)} ms into it; bed ${b1.bed}`);
+  await page.tap('Space');
+  await page.until("window.__war().view.state === 'countdown'", 10000).catch(() => {});
+  await page.until('window.__warIntro() === null', 5000).catch(() => {});
+  const b2 = await page.evaluate(`({ w: window.__war().view, i: window.__warIntro(), room: window.__rooms().roomNow, bed: window.__audio.warRadio ? window.__audio.warRadio.track : '' })`);
+  row('the host\'s key ends the briefing for the room: it counts down at once, the film is gone, the music plays on', b2.w.state === 'countdown'
+    && b2.w.goAt - b2.room <= COUNTDOWN_MS && b2.w.goAt - b2.room > COUNTDOWN_MS - 3000 && !b2.i && b2.bed === 'intro',
+    `${b2.w.state}, go in ${Math.round(b2.w.goAt - b2.room)} ms, bed ${b2.bed}`);
+  await page.evaluate("window.__warDo('end')");
+
   row('no console errors', page.errors.length === 0, page.errors.slice(0, 5).join(' | ') || 'none');
 } finally {
   process.removeListener('SIGTERM', stop);
   process.removeListener('SIGINT', stop);
   await page.close();
+  await server.stop();
+  await rm(scratch, { recursive: true, force: true });
 }
 
 console.log(`\nframes -> ${outDir}`);
