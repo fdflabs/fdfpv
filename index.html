@@ -4356,6 +4356,10 @@
       .bar-shown .music-dock { top: calc(var(--bar-top) + 8px); }
       .music-dock.under-chip { top: 52px; }
       .bar-shown .music-dock.under-chip { top: calc(var(--bar-top) + 44px); }
+      /* The sign in chip's own slot, one below the music dock's: see the
+         comment where .signin-chip is built for the two corners it moves
+         between. This is the far one, under a bug chip already there. */
+      .bar-shown .signin-chip { top: calc(var(--bar-top) + 80px); }
 
       /*
        * PAUSE, under the bug chip, at the same right edge and in the same
@@ -4375,6 +4379,19 @@
       .swap-chip[hidden] { display: none; }
       .touch-fly-on .swap-chip { display: none; }
       .touch-fly .touch-swap { top: 88px; }
+
+      /*
+       * SIGN IN, the bug chip's mirror image: see the long comment in
+       * ui.js where it is built. Never in flight, so it never has to
+       * share a corner with Pause or the swap chip, and shown on the
+       * title, where the bug chip is not. Third slot by default, under
+       * the bug chip and the music dock; first slot (16px, no bar-shown
+       * variant needed because the title never shows the bar) on the one
+       * screen with no bug chip to share it with. syncChips sets which.
+       */
+      .signin-chip { top: 88px; }
+      .signin-chip.first-slot { top: 16px; }
+      .signin-chip[hidden] { display: none; }
 
       /* A newer deploy is out: src/ui/update.js. Bottom centre over the
          command bar, away from the chip stack in the top right, in the same
