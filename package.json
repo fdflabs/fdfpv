@@ -90,6 +90,7 @@
     "war:solo": "node scripts/war-solo-page.js",
     "war:markers": "node scripts/war-markers.js",
     "war:radio": "node scripts/warradio-selftest.js",
+    "war:hudlayout": "node scripts/war-hud-layout.js",
     "war:card": "node scripts/war-card-check.js",
     "tag:twopage": "node scripts/tag-two-page.js",
     "tag:bubble": "node scripts/tag-bubble-two-page.js",

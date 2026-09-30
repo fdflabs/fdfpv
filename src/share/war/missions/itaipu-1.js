@@ -64,12 +64,12 @@ export default {
     { at: 120, kind: 'loiter', n: 2, route: 'reservoir-high', target: 'intake-12', spread: 30 },
     { at: 150, kind: 'boat', n: 2, route: 'reservoir-surface', target: 'intake-3', spread: 20 },
     { at: 170, kind: 'hunter', n: 2, route: 'gorge' },
-    { at: 200, kind: 'jammer', n: 1, route: 'reservoir-jam' },
     { at: 230, kind: 'strike', n: 4, route: 'reservoir-low', target: 'intake-15', spread: 30 },
   ],
   /* Checked against the war heightfield (src/share/war/itaipu-height.bin):
    * every flight clears the floor until its last run onto its target, and
-   * the boats and the jammer sail on the water, 219 m. */
+   * the boats sail on the water, 219 m. No jammer: the war has no radio
+   * signal since 2026-09-29 (docs/WARFARE-PLAN.md 6.1). */
   routes: {
     'reservoir-orbit': [[200, 470, -7000], [100, 470, -3500]],
     'reservoir-low': [[300, 250, -5000], [300, 250, -2400]],
@@ -77,6 +77,5 @@ export default {
     gorge: [[-1100, 210, 3600], [-1100, 210, 900], [-600, 260, -1000]],
     'reservoir-high': [[1400, 700, -7500], [400, 600, -3200]],
     'reservoir-surface': [[800, 219, -5000], [300, 219, -2400]],
-    'reservoir-jam': [[2500, 219, -4000], [1500, 219, -3000]],
   },
 };
