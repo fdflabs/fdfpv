@@ -3111,6 +3111,27 @@ const WAYS = [
     blurb: str('war.card_blurb'),
     facts: [str('war.card_hold'), str('war.card_warhead'), str('friends.card_code')],
   },
+  {
+    /*
+     * DEFEND THE PARANÁ, the campaign: Defend Itaipu's missions in order,
+     * with stars, credits and a shop. The press opens the campaign's own
+     * screen (onCampaignCard, src/ui/campaign.js), whose Play then goes the
+     * Defend Itaipu card's way in. After that card, so the first match
+     * reads of this table (seatedWay) still land on it for the war.
+     */
+    id: 'campaign',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'itaipu',
+    room: true,
+    game: 'war',
+    campaign: true,
+    label: str('campaign.card'),
+    art: 'assets/posters/itaipu.jpg',
+    svg: reticleSvg(),
+    blurb: str('campaign.card_blurb'),
+    facts: [str('campaign.card_act'), str('campaign.card_missions'), str('campaign.card_shop')],
+  },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
 /* The way that is seated right now, which is what the gate's cursor opens
@@ -13342,6 +13363,10 @@ export class Ui {
     }
     /* A room's aircraft is chosen in the room, once it is known who is
      * flying what: the card goes straight to the room screen. */
+    if (way.campaign && this.onCampaignCard) {
+      this.onCampaignCard();
+      return;
+    }
     if (way.game === 'war' && this.onWarCard) {
       this.onWarCard(action);
       return;

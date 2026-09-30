@@ -2991,18 +2991,28 @@
            sentence: the name, the picture and the tags carry the choice,
            the same trade the landscape rule below already makes, and the
            whole sentence is on any wider screen. 360 by 640 is the floor. */
-        .gate-cards:is([data-count="5"], [data-count="6"]) { gap: 7px; }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-blurb { display: none; }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-name { font-size: 18px; }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) { gap: 7px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb { display: none; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 18px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
         /* SIX, with Defend Itaipu: tighter type again, because six at the
            five card size ran 4 px under the command bar at 360 by 640. */
-        .gate-cards[data-count="6"] { gap: 5px; }
-        .gate-cards[data-count="6"] .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
-        .gate-cards[data-count="6"] .gate-card-name { font-size: 17px; }
+        .gate-cards:is([data-count="6"], [data-count="7"]) { gap: 5px; }
+        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
+        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-name { font-size: 17px; }
+        /* SEVEN, with Defend the Paraná: one tag line and a shorter
+           picture, because seven at the six card size ran 81 px under the
+           command bar at 360 by 640, their tags wrapping to two lines
+           (scripts/campaign-check.js). The first tag is the card's own.
+           The picture is laid over its box rather than sizing it, or its
+           own aspect holds every card at 70 px whatever the rule says. */
+        .gate-cards[data-count="7"] { gap: 4px; }
+        .gate-cards[data-count="7"] .gate-card-art { min-height: 56px; }
+        .gate-cards[data-count="7"] .gate-card-shot { position: absolute; inset: 0; }
+        .gate-cards[data-count="7"] .gate-card-fact:nth-child(n+2) { display: none; }
         .screen-maps .menu-stage {
           display: block;
           position: relative;
@@ -3085,12 +3095,12 @@
            card rules above are more specific than this block's, so the
            picture is put back across the card here, and the names come
            down a size so two words fit a fifth of the width. */
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-art {
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art {
           flex: 0 0 auto; width: 100%;
           height: clamp(60px, 20vh, 110px); min-height: 0;
         }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-body { padding: 7px 10px 8px; }
-        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-name { font-size: clamp(15px, 4vh, 19px); }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { padding: 7px 10px 8px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: clamp(15px, 4vh, 19px); }
       }
 
       /* The map screen. One card per world, each playing a short flight
@@ -4149,6 +4159,39 @@
          so the one press that deletes is never the unmarked one. */
       .name-dialog-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
       .name-dialog-btn.danger:focus { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
+      /* Defend the Paraná's missions and shop (src/ui/campaign.js), on the
+         same overlay: wider, and scrolling inside itself, since four
+         missions or seven upgrades do not fit an upright phone. */
+      .name-dialog-box.campaign-box {
+        width: min(640px, 94vw); max-height: min(90vh, 820px); overflow-y: auto; box-sizing: border-box;
+      }
+      .campaign-eyebrow {
+        font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sakura);
+      }
+      .campaign-bank { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 10px; color: var(--slate); font-size: 14px; }
+      .campaign-credits { color: var(--amber); font-weight: 600; }
+      .campaign-list { display: grid; gap: 8px; margin: 0 0 14px; }
+      .campaign-mission, .campaign-item {
+        padding: 10px 12px; border-radius: 4px; background: #121a14;
+        box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.1);
+      }
+      .campaign-mission { display: grid; gap: 3px; }
+      .campaign-mission .campaign-play { justify-self: start; margin-top: 6px; }
+      .campaign-mission-top { display: flex; align-items: center; gap: 10px; }
+      .campaign-n { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate); }
+      .campaign-tag {
+        font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 1px 6px; border-radius: 3px;
+        color: var(--amber); box-shadow: inset 0 0 0 1px rgba(255, 212, 92, 0.45);
+      }
+      .campaign-tag.free { color: var(--mint); box-shadow: inset 0 0 0 1px rgba(125, 255, 180, 0.45); }
+      .campaign-stars { margin-left: auto; font-size: 18px; letter-spacing: 2px; color: rgba(244, 236, 214, 0.3); }
+      .campaign-star.on { color: var(--amber); }
+      .campaign-name { color: var(--cream); font-size: 16px; font-weight: 600; }
+      .campaign-line, .campaign-best { color: var(--slate); font-size: 13px; }
+      .campaign-item { display: flex; align-items: center; gap: 12px; }
+      .campaign-item-text { flex: 1 1 auto; display: grid; gap: 2px; }
+      .campaign-item .campaign-buy { flex: 0 0 auto; }
+      .campaign-last, .campaign-loadout { margin: 0 0 12px; color: var(--cream); font-size: 14px; }
       /*
        * The flight feel question's answers are CHIPS, not a select, because
        * the whole form is meant to be answered in two clicks and a select

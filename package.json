@@ -93,6 +93,7 @@
     "war:radio": "node scripts/warradio-selftest.js",
     "war:hudlayout": "node scripts/war-hud-layout.js",
     "war:card": "node scripts/war-card-check.js",
+    "campaign:check": "node scripts/campaign-check.js",
     "war:boom": "node scripts/war-boom.js",
     "tag:twopage": "node scripts/tag-two-page.js",
     "tag:bubble": "node scripts/tag-bubble-two-page.js",
@@ -246,6 +247,7 @@
     "parts:derive": "node scripts/parts-derive.js",
     "trackmode:check": "node scripts/track-mode-check.js",
     "progress:selftest": "node scripts/progress-selftest.js",
+    "campaign:selftest": "node scripts/campaign-selftest.js",
     "progress:check": "node scripts/progress-check.js"
   },
   "dependencies": {
