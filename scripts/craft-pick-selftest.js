@@ -143,6 +143,19 @@ console.log('5. the Floats toggle');
     s.tune === tune && JSON.stringify(s.power.timber1500f) === JSON.stringify(s.power.timber1500)
       && s.parts.timber1500f && s.parts.timber1500f.prop === '11x7e' && s.tuning.timber1500f && s.tuning.timber1500f.rate === 'low',
     `${s.tune} ${JSON.stringify(s.power.timber1500f)} ${JSON.stringify(s.parts.timber1500f)} ${JSON.stringify(s.tuning.timber1500f)}`);
+  /* A broken part is an index into the table it broke on: the Timber's 19
+   * parts are not the float Timber's 18, so its damage stays behind. */
+  {
+    const boxes = Array.from({ length: 19 }, () => [[0, 0, 0], [0.1, 0.1, 0.1]]);
+    const parents = boxes.map((b, i) => i - 1);
+    const damage = { boxes, parents, parts: [{ i: 18, kind: 0, cg: [0, 0, 0], mass: 0.01, joint: [0, 0, 0], state: 'broken' }] };
+    const t = { ...s, parts: { timber1500: { prop: '11x7e', addons: [], damage } } };
+    seatAirframe(t, 'timber1500');
+    seatAirframe(t, floatVersionOf('timber1500'));
+    check('a broken part on the wheels is not carried to the floats, the prop is',
+      Boolean(t.parts.timber1500.damage) && t.parts.timber1500f && t.parts.timber1500f.damage === null && t.parts.timber1500f.prop === '11x7e',
+      JSON.stringify(t.parts.timber1500f));
+  }
   s.power = { ...s.power, timber1500f: { option: 'stock', pack: '4s3200' } };
   seatAirframe(s, 'timber1500');
   check('and back to the wheels, the toggle off and the choice made on floats carried back',

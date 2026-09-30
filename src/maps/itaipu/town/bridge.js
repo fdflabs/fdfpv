@@ -1,8 +1,12 @@
 /*
  * bridge.js: the Friendship Bridge (Ponte da Amizade, Puente de la
  * Amistad), the one structure drawn in the ring (docs/ITAIPU-PLAN.md
- * section 7): a mesh with no colliders, since the ring has none and the
- * bridge stands 9.5 km down the river, past the collider grid's reach.
+ * section 7). Its deck is ground, a roofs.js record as roads.js deckOf
+ * makes for the hero's bridges, so a craft can land on it, and solid from
+ * the side and under, boxes as deckOf's with a capsule along each
+ * parapet; each arch rib is two capsules a segment, stacked to its depth,
+ * and each column one. All static: it is 9.5 km down the river, inside
+ * the collider grid's 16 384 m (src/game/collide.js GRID_HALF).
  *
  * It is a concrete deck arch: the road on a deck carried by columns off
  * one arch that springs from the canyon's walls. OpenStreetMap maps only
@@ -31,6 +35,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { roofRecord } from '../../alps/roofs.js';
+import { wallBoxes } from './plan.js';
+
 /* Metres over the river's lowest ground along the line. */
 const RIM = 48;
 const SPRING = 12;
@@ -54,7 +61,9 @@ const DECK_TOP = [0.3, 0.3, 0.31];
 
 /*
  * The bridge along road feature `f` (its two points), over `ground`,
- * drawn with `sink`. Returns its measures, for the checks.
+ * drawn with `sink`. Returns its deck's ground record, its static wall
+ * boxes and capsules ([ax, ay, az, bx, by, bz, r]), and its measures, for
+ * the checks.
  */
 export function buildBridge(f, ground, sink) {
   const [a, b] = [f.points[0], f.points[f.points.length - 1]];
@@ -102,6 +111,23 @@ export function buildBridge(f, ground, sink) {
     sink.face('trim', CONCRETE, [P(s0, side * hw, deckY - DECK), P(s1, side * hw, deckY - DECK), P(s1, side * hw, deckY + 1), P(s0, side * hw, deckY + 1)], n, opts);
     sink.bar('trim', CONCRETE, P(s0, side * (hw - 0.15), deckY + 0.5), P(s1, side * (hw - 0.15), deckY + 0.5), 0.15, opts, 0.5);
   }
+  /* The deck as ground: roofs.js's frame, local z along the deck, world
+   * (ux, uz), local x across it, world (uz, -ux); its top the deck's. */
+  const hl = (s1 - s0) / 2;
+  const [cx, cz] = at((s0 + s1) / 2);
+  const e = [uz, 0, -ux, 0, 0, 1, 0, 0, ux, 0, uz, 0, cx, deckY, cz, 1];
+  const record = roofRecord({
+    top: [[[-hw, 0, -hl], [hw, 0, -hl], [hw, 0, hl], [-hw, 0, hl]]], dy: DECK, hw, hd: hl, kind: 'bridge',
+  }, e, 'deck');
+  record.material = 'asphalt';
+  record.osm = f.id;
+  const ring = [P(s0, -hw, 0), P(s1, -hw, 0), P(s1, hw, 0), P(s0, hw, 0)].map((p) => [p[0], p[2]]);
+  const { boxes } = wallBoxes(ring, deckY - DECK, deckY, record, []);
+  /* A parapet from 0.1 m under the deck to 1 m over it, as deckOf's rails. */
+  const caps = [];
+  for (const side of [-1, 1]) {
+    caps.push([...P(s0, side * (hw - 0.15), deckY + 0.45), ...P(s1, side * (hw - 0.15), deckY + 0.45), 0.55]);
+  }
   /* The arch: two ribs, a parabola from springing to crown. */
   const span = sp1 - sp0;
   const mid = (sp0 + sp1) / 2;
@@ -115,6 +141,10 @@ export function buildBridge(f, ground, sink) {
       const sA = sp0 + (span * k) / segs;
       const sB = sp0 + (span * (k + 1)) / segs;
       sink.bar('trim', CONCRETE, P(sA, side * RIB_OFF, archY(sA)), P(sB, side * RIB_OFF, archY(sB)), RIB_W / 2, opts, RIB_D / 2);
+      const lift = (RIB_D - RIB_W) / 2;
+      for (const dy of [-lift, lift]) {
+        caps.push([...P(sA, side * RIB_OFF, archY(sA) + dy), ...P(sB, side * RIB_OFF, archY(sB) + dy), RIB_W / 2]);
+      }
     }
   }
   /* The columns: off the arch within its span, off the ground outside it. */
@@ -126,10 +156,13 @@ export function buildBridge(f, ground, sink) {
     }
     for (const side of [-1, 1]) {
       sink.bar('trim', CONCRETE, P(s, side * RIB_OFF, foot - 0.5), P(s, side * RIB_OFF, deckY - DECK), 0.7, opts);
+      caps.push([...P(s, side * RIB_OFF, foot - 0.5), ...P(s, side * RIB_OFF, deckY - DECK), 0.7]);
     }
     columns += 2;
   }
   return {
-    length: s1 - s0, deckY, water, span, springY, crownY, columns,
+    record, boxes, caps, measures: {
+      length: s1 - s0, width: f.width, deckY, water, span, springY, crownY, columns,
+    },
   };
 }

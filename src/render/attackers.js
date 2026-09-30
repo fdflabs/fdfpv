@@ -114,6 +114,8 @@ const PAINT = {
   boat: { hull: 0x3c4146, deck: 0x5a6066, dark: 0x25282c, motor: 0x1e2023 },
   jammer: { deck: 0x6b5b3e, drum: 0x2b2f33, mast: 0x8a8f94, whip: 0xd0d4d7, box: 0x4a573a },
 };
+/* A decoy is a Striker to look at, paint and all (mission 3). */
+PAINT.decoy = PAINT.strike;
 
 function scout(c) {
   const parts = [
@@ -215,7 +217,7 @@ function jammer(c) {
 }
 
 const BUILD = {
-  scout, loiter, strike, fpv: quad, hunter: quad, boat, jammer,
+  scout, loiter, strike, fpv: quad, hunter: quad, boat, jammer, decoy: strike,
 };
 
 /*
@@ -237,6 +239,11 @@ const NAV_LIGHTS = {
   boat: [[-0.55, 0.32, -1.7, 0xff2a2a], [0.55, 0.32, -1.7, 0x2aff5a], [0, 0.5, 2.5, 0xffffff]],
   jammer: [[0, 2.3, 0, 0xffffff]],
 };
+/* A decoy wears a Striker's lights, exactly (mission 3). */
+NAV_LIGHTS.decoy = NAV_LIGHTS.strike;
+/* A dot keeps at least the size it has at this distance, so it stays a
+ * few pixels at range instead of vanishing past a hundred metres. */
+const NAV_SIZE_M = 25;
 
 /* What each kind sheds when it breaks (debris.js SHED, by material), how
  * big its explosion is (src/render/explosion.js play's size), and how
@@ -249,6 +256,7 @@ export const DEATH = {
   hunter: { shed: 'cf-plate', size: 0.8, speed: 36, emits: 1, spread: 0 },
   boat: { shed: 'ply', size: 1.4, speed: 14, emits: 3, spread: 2.0 },
   jammer: { shed: 'ply', size: 1.2, speed: 10, emits: 2, spread: 1.0 },
+  decoy: { shed: 'epo', size: 1.4, speed: 38, emits: 3, spread: 1.0 },
 };
 
 /* The kind's model: one merged geometry, its colours in vertices. */
@@ -282,13 +290,14 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
   mat.vertexColors = true;
   const meshes = new Map();
   const navMeshes = new Map();
-  const navMat = navLights ? new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }) : null;
+  let navMat = navLights ? new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }) : null;
   const m4 = new THREE.Matrix4();
   const pos = new THREE.Vector3();
   const rot = new THREE.Quaternion();
   const one = new THREE.Vector3(1, 1, 1);
   const navPos = new THREE.Vector3();
   const navColor = new THREE.Color();
+  const navScale = new THREE.Vector3();
 
   function meshFor(kind, need) {
     let mesh = meshes.get(kind);
@@ -353,8 +362,9 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
 
     /* list: [{ id, kind, p, q }] (roomwar attackersAt). The room ms it
      * was taken at is the crash cam's (src/replay/warrec.js), passed
-     * through its tap; the drawing does not need it. */
-    update(list) {
+     * through its tap; the drawing does not need it. `eye`, the camera's
+     * position, sizes the nav lights by their distance from it. */
+    update(list, _t, eye = null) {
       const by = new Map(KINDS.map((k) => [k, []]));
       for (const a of list) {
         by.get(a.kind).push(a);
@@ -388,9 +398,11 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
           const a = xs[i];
           pos.set(a.p[0], a.p[1], a.p[2]);
           rot.set(a.q[0], a.q[1], a.q[2], a.q[3]);
+          const k = eye ? Math.max(1, pos.distanceTo(eye) / NAV_SIZE_M) : 1;
+          navScale.set(k, k, k);
           for (const [px, py, pz, color] of pts) {
             navPos.set(px, py, pz).applyQuaternion(rot).add(pos);
-            m4.compose(navPos, rot, one);
+            m4.compose(navPos, rot, navScale);
             navMesh.setMatrixAt(n, m4);
             navMesh.setColorAt(n, navColor.setHex(color));
             n += 1;
@@ -425,6 +437,25 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
       }
     },
 
+    /* Nav lights on (a night mission) or off: off, their meshes go, so a
+     * day costs no draw call for them. */
+    setNavLights(on) {
+      if (Boolean(on) === Boolean(navMat)) {
+        return;
+      }
+      if (on) {
+        navMat = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+        return;
+      }
+      for (const mesh of navMeshes.values()) {
+        group.remove(mesh);
+        mesh.dispose();
+      }
+      navMeshes.clear();
+      navMat.dispose();
+      navMat = null;
+    },
+
     /* What was drawn last, for the checks: the list and each kind's
      * instance count. */
     drawn() {
@@ -432,6 +463,7 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
         list: drawnList,
         counts: Object.fromEntries([...meshes].map(([k, m]) => [k, m.count])),
         calls: [...meshes.values()].filter((m) => m.count > 0).length,
+        navCalls: [...navMeshes.values()].filter((m) => m.count > 0).length,
       };
     },
 

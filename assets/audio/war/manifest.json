@@ -48,6 +48,863 @@
     }
    }
   },
+  "brief-itaipu-1-1.en": {
+   "text": "Mission one. They're going for the intakes on the upstream face.",
+   "seconds": 4.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3728343827,
+     "heard": "Mission 1. They're going for the intakes on the upstream face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19169,
+     "sha256": "f83d71dfc639d9c4a9700d03eae01dfea55c809ed0dcf04d435978cade58f29f"
+    },
+    "mp3": {
+     "bytes": 16868,
+     "sha256": "7eacd3c8ba6a666077628564c157f0c161405d115690bbf75b4b0904d7e7caa8"
+    }
+   }
+  },
+  "brief-itaipu-1-1.es": {
+   "text": "Misión uno. Van por las tomas de agua, del lado del embalse.",
+   "seconds": 4.255,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3889512088,
+     "heard": "Misión 1. Van por las tomas de agua del lado del embalse.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19525,
+     "sha256": "0cd54123fc8331d586d100f17c0674388488545d11327cf6bf169b7b3dcdaf11"
+    },
+    "mp3": {
+     "bytes": 17636,
+     "sha256": "fe8c703c6f2adae1988576cd74680226016152ef231196966f35efe005d9c12a"
+    }
+   }
+  },
+  "brief-itaipu-1-2.en": {
+   "text": "Four birds each per round. Every kill buys you another. Hold the dam.",
+   "seconds": 4.685,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2418120946,
+     "heard": "Four birds each per round. Every kill buys you another. Hold the dam.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21256,
+     "sha256": "ea19518933e9dc0e2ee1b62d35f2e2f91e1702d7b457c9c8788faf8d5aeabe25"
+    },
+    "mp3": {
+     "bytes": 19268,
+     "sha256": "1a169240b3ab17f0674d1ecadb4d8b20f5b44bb6c1dc7c1803f82507fb7d9b4c"
+    }
+   }
+  },
+  "brief-itaipu-1-2.es": {
+   "text": "Cuatro aparatos cada uno por ronda. Cada derribo les da otro. Defiendan la represa.",
+   "seconds": 6.565,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1291556749,
+     "heard": "Cuatro aparatos cada uno por ronda, cada de arriba les da otro, defiendan la represa.",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [
+      "derribo"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 267462857,
+     "heard": "cuatro aparatos cada uno por ronda cada derribo les da otro defiendan la represa",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 29745,
+     "sha256": "42b9c81a3ae735a03301c4f9fe07e178394fafbada681d3317f549d79c220fae"
+    },
+    "mp3": {
+     "bytes": 26660,
+     "sha256": "47a796bc67ead3d373f427ea64023974d8a9e9398b52e1fdbf059c5826b514a2"
+    }
+   }
+  },
+  "brief-itaipu-2-1.en": {
+   "text": "Mission two. They want the spillway gates on the right bank.",
+   "seconds": 3.755,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1798830222,
+     "heard": "Mission 2. They want the spillway gates on the right bank.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17219,
+     "sha256": "1e8782a6865c01b5934fd6a68bba5e9bcb1ed3e37992865372eb76bb397025ca"
+    },
+    "mp3": {
+     "bytes": 17060,
+     "sha256": "5f60574b929505e1250ef7abaf478e9d6a034d84e3d86842d1df0da019b11cca"
+    }
+   }
+  },
+  "brief-itaipu-2-1.es": {
+   "text": "Misión dos. Quieren las compuertas del vertedero, en la margen derecha.",
+   "seconds": 4.645,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2682359813,
+     "heard": "Misión 2. Quieren las compuertas del vertedero en la margen derecha.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21263,
+     "sha256": "ee780e62d6ee7d541ee25ec6ac5db577214829b83bd8132fedd4d188752c6ba4"
+    },
+    "mp3": {
+     "bytes": 19892,
+     "sha256": "e5b7a4e2e2db02278992192390f6c92e3f90c200e6324d40eeeacf5ba16cd85c"
+    }
+   }
+  },
+  "brief-itaipu-2-2.en": {
+   "text": "Loiterers from above, boats down the channel. Keep them off the gates.",
+   "seconds": 4.265,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3566941040,
+     "heard": "Loiterers from above, boats down the channel, keep them off the gates.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19447,
+     "sha256": "dfc139c2428dd5243217846ba2f4ffd5e4a62ec01c2c4fce3c01b1b3b47fb0ea"
+    },
+    "mp3": {
+     "bytes": 17684,
+     "sha256": "bb721b018b6222d3aacfe548011756b1d27633655cc84b06b0e7a6f2ef7bffcb"
+    }
+   }
+  },
+  "brief-itaipu-2-2.es": {
+   "text": "Merodeadores desde arriba, lanchas por el canal. Que no lleguen a las compuertas.",
+   "seconds": 4.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1858423713,
+     "heard": "Merodeadores desde arriba, lanchas por el canal, que no lleguen a las compuertas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22290,
+     "sha256": "693f88333267d1e619bd8b904144fa46713e73c5177f5863ad21eb6e07669198"
+    },
+    "mp3": {
+     "bytes": 20660,
+     "sha256": "c50472e9ccd800ff6b7263806b8c259ee415f30cbdaffe7efd1181c36475fc3a"
+    }
+   }
+  },
+  "brief-itaipu-3-1.en": {
+   "text": "Mission three. They're after the switchyard. Kill it and both banks go dark.",
+   "seconds": 4.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3036067166,
+     "heard": "Mission 3. They're after the switchyard, kill it and both banks go dark.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22311,
+     "sha256": "6ece7e8a6a4bf85b33193623f2cde495e24fd6b7205f7f5f0b27d64e0a410dc9"
+    },
+    "mp3": {
+     "bytes": 20420,
+     "sha256": "9f82908aaefbbb32963d84331bea44d96e571ff6671cc04b7c8a1dec61699fd0"
+    }
+   }
+  },
+  "brief-itaipu-3-1.es": {
+   "text": "Misión tres. Van por la subestación. Si cae, las dos márgenes quedan a oscuras.",
+   "seconds": 5.825,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3323086419,
+     "heard": "Misión 3. Van por la subestación. Si cae, las dos márgenes quedan a oscuras.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26565,
+     "sha256": "5c10fc9c0303cb87ee86b736ef9b60a7f198634da897f04435b4e81021b65acf"
+    },
+    "mp3": {
+     "bytes": 23420,
+     "sha256": "5cb34819d399a95382c4353219339ee61c2a6d7d4b3dd8eb4dc71041176b9afa"
+    }
+   }
+  },
+  "brief-itaipu-3-2.en": {
+   "text": "Some of those Strikers are decoys. Get close before you spend a bird.",
+   "seconds": 4.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 655136260,
+     "heard": "Some of those strikers or decoys, get close before you spend a bird.",
+     "wer": 0.077,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18755,
+     "sha256": "2d8a776722bba5a295a4c0f05fd9390fbf0583dbd785e3bdb0dac21f0a26b6a6"
+    },
+    "mp3": {
+     "bytes": 16700,
+     "sha256": "b2d63d9593f46c0b3be242b8e9c3a8894cc0f90184a6cfa98efdb708e5f19a28"
+    }
+   }
+  },
+  "brief-itaipu-3-2.es": {
+   "text": "Algunos de esos drones de ataque son señuelos. Acérquense antes de gastar un aparato.",
+   "seconds": 5.705,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3637429374,
+     "heard": "Algunos de esos drones de ataque son señuelos. Acérquense antes de gastar un aparato.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26062,
+     "sha256": "d8bdf52c2fb960e5614306c73933156ceba1036c2e975e99bd1f9ee52773f2a4"
+    },
+    "mp3": {
+     "bytes": 24020,
+     "sha256": "decd55c0d20c2808e361c9fc56b6b6fd3cfac95404382fbf825c3779f324a326"
+    }
+   }
+  },
+  "brief-itaipu-4-1.en": {
+   "text": "Mission four. Night raid on the intakes. You'll see less. So will they.",
+   "seconds": 4.915,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3059627194,
+     "heard": "Mission 4, night raid on the intakes, you'll see less, so will they.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22421,
+     "sha256": "7b639856fbfdd07307c1437e6c57e9c0c3bffc4d61c870a1e921ca33db1ee584"
+    },
+    "mp3": {
+     "bytes": 19412,
+     "sha256": "d57adc64a97f18b63907790102e6989bdb5c63a79aa317291d083d32d5162f65"
+    }
+   }
+  },
+  "brief-itaipu-4-1.es": {
+   "text": "Misión cuatro. Ataque nocturno contra las tomas. Van a ver menos. Ellos también.",
+   "seconds": 5.965,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1975365867,
+     "heard": "Misión 4. Ataque nocturno contra las tomas. Van a ver menos. Ellos también.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 27138,
+     "sha256": "8f57996e7a201a1a9614fe532425fa33e756d62befe3be811d117f275230fb2b"
+    },
+    "mp3": {
+     "bytes": 24596,
+     "sha256": "b109e0adf4693ae8740eeade13f56bd521fb818af6ae0f3cf9acffa4bc66650b"
+    }
+   }
+  },
+  "brief-itaipu-4-2.en": {
+   "text": "Trust your markers, fly low, and hold the dam until sunrise.",
+   "seconds": 3.805,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1738102212,
+     "heard": "Trust your markers, fly low, and hold the dam until sunrise.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17509,
+     "sha256": "45e7202be17e4e2594888f3623ecc29526883653700b523113ff680cd6d9d713"
+    },
+    "mp3": {
+     "bytes": 15764,
+     "sha256": "855df2c3d1036d190f8f364e56bbed09d837cfcd3fc16843ada43b376cde96ce"
+    }
+   }
+  },
+  "brief-itaipu-4-2.es": {
+   "text": "Confíen en los marcadores, vuelen bajo y defiendan la represa hasta el amanecer.",
+   "seconds": 5.245,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 38124581,
+     "heard": "Confíen en los marcadores, vuelen bajo y defiendan la represa hasta el amanecer.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24071,
+     "sha256": "0b6f6b69e106b52d895aa6720057d37bca7e186e8584d4fd265e2c2856c724aa"
+    },
+    "mp3": {
+     "bytes": 21908,
+     "sha256": "6391c1f9e7feedf03aa63614578994d76ff3db329bcfa1c5ff88baea65566d21"
+    }
+   }
+  },
+  "debrief-itaipu-1-lose.en": {
+   "text": "We lost the intakes. Regroup. We go again.",
+   "seconds": 3.575,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 118004040,
+     "heard": "We lost the intakes. Regroup. We go again.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16368,
+     "sha256": "0a9c3fd2172b1c5a507bef29612ecb869c086943d95f85454f9534836151957a"
+    },
+    "mp3": {
+     "bytes": 14492,
+     "sha256": "09281349d1e3e0aad112dca758e11f0e17f878be0333eaf240a457d20b553382"
+    }
+   }
+  },
+  "debrief-itaipu-1-lose.es": {
+   "text": "Perdimos las tomas. Reagrúpense. Vamos de nuevo.",
+   "seconds": 3.095,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2616785417,
+     "heard": "Perdimos las tomas. Reagrúpense. Vamos de nuevo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14350,
+     "sha256": "95142683a399fb2e0297a28138967a890f626e0d5d5a508e890131e6764493d4"
+    },
+    "mp3": {
+     "bytes": 13412,
+     "sha256": "dd959fa6a6d152acf660605142b9bbec18af9d8e2f9715b98d1c636c1d30c9bc"
+    }
+   }
+  },
+  "debrief-itaipu-1-win.en": {
+   "text": "The intakes held. Good flying, both banks. Rest up, you've earned it.",
+   "seconds": 4.545,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4214292911,
+     "heard": "The intakes held. Good flying, both banks. Rest up, you've earned it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20767,
+     "sha256": "6b8edb1898b03d6f4415a25519abf07d537ea394114065ebb1259fb873dfcbf6"
+    },
+    "mp3": {
+     "bytes": 19148,
+     "sha256": "e7fb9e37d3e163615f3ae389b55acd09f8ddb6e406739ac3fde9b976655fb55d"
+    }
+   }
+  },
+  "debrief-itaipu-1-win.es": {
+   "text": "Las tomas resistieron. Buen vuelo, las dos márgenes. Descansen, se lo ganaron.",
+   "seconds": 5.845,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 707621826,
+     "heard": "Las tomas resistieron. Buen vuelo, las dos márgenes. Descansen, se lo ganaron.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26557,
+     "sha256": "1722ab9fae3ba18104bfdbfd5c44f185c7825eaf4f98d7d2901cffd92615c27c"
+    },
+    "mp3": {
+     "bytes": 23468,
+     "sha256": "29631a3f070d9d29c1816d44fa5f1d474fbc0f5e1c831b18e9d3cf0e8051113b"
+    }
+   }
+  },
+  "debrief-itaipu-2-lose.en": {
+   "text": "Too many gates down. We can't control the river like this. Pull back.",
+   "seconds": 4.965,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1331007368,
+     "heard": "Too many gates down. We can't control the river like this. Pull back.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22512,
+     "sha256": "1dd70a8c0721e4e4a860812bc4f47bd8eb8f53b64a7042006e397af26e463f33"
+    },
+    "mp3": {
+     "bytes": 21044,
+     "sha256": "4767f679d17baeec7f71a1d3d279d98f1e173f74f5006c9f695e55d7bed25d3e"
+    }
+   }
+  },
+  "debrief-itaipu-2-lose.es": {
+   "text": "Cayeron demasiadas compuertas. Así no controlamos el río. Repliéguense.",
+   "seconds": 4.945,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 523993196,
+     "heard": "Cayeron demasiadas compuertas. Así no controlamos el río. Tunepliéguense.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "replieguense"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 1981006474,
+     "heard": "Cayeron demasiadas compuertas, así no controlamos el río. Repliéguense.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22596,
+     "sha256": "6faafc98ee4e28ba6d06528c71f33f053ebecf5823224ab6e4fec2b590e40c44"
+    },
+    "mp3": {
+     "bytes": 20804,
+     "sha256": "852b126e66819fa8f80cfe8121168a9d1acc55a9f19091072335e678241e2972"
+    }
+   }
+  },
+  "debrief-itaipu-2-win.en": {
+   "text": "The gates are still standing. Nice work on the water.",
+   "seconds": 3.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 586859639,
+     "heard": "The gates are still standing, nice work on the water. What's striding, and the paytarks and metal, which cried up to the spies have seen.",
+     "wer": 1.5,
+     "extra": 15,
+     "missing": []
+    },
+    {
+     "attempt": 1,
+     "seed": 3803016662,
+     "heard": "The gates are still standing. Nice work on the water.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15363,
+     "sha256": "e67c6b85cb35e135516b5f281bc9a71b7bceb2aa658c9377c3071f4e78f044b9"
+    },
+    "mp3": {
+     "bytes": 14780,
+     "sha256": "4542ef090d5ba465e34ac29696309b9569e3d0e0c0e204a169b4cb7cc93b7a84"
+    }
+   }
+  },
+  "debrief-itaipu-2-win.es": {
+   "text": "Las compuertas siguen en pie. Buen trabajo sobre el agua.",
+   "seconds": 3.795,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3799605694,
+     "heard": "Las compuertas siguen en pie. Buen trabajo sobre el agua.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17516,
+     "sha256": "6771c5eea0f14087755858b858a8b1af4e81cfaffe89a240a753e759db15d8e3"
+    },
+    "mp3": {
+     "bytes": 15884,
+     "sha256": "7b3da39378fd934a1a6d8b6d9d6c45c467614a8ccb0408d6705321d39c71b137"
+    }
+   }
+  },
+  "debrief-itaipu-3-lose.en": {
+   "text": "The right bank is dark. We'll get it back. Regroup.",
+   "seconds": 3.415,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3097798456,
+     "heard": "The right bank is dark. We'll get it back. Regroup.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15731,
+     "sha256": "03bb4d0dde81043af623d54fefc14e834b4a94b963b4aee978f83858694f4f59"
+    },
+    "mp3": {
+     "bytes": 14180,
+     "sha256": "6c9ac72cee055a6f48ee079e09b2ca3f294d7d3594e1965b8b741c8cdb806807"
+    }
+   }
+  },
+  "debrief-itaipu-3-lose.es": {
+   "text": "La margen derecha está a oscuras. La vamos a recuperar. Reagrúpense.",
+   "seconds": 5.435,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 855434061,
+     "heard": "La margen derecha está a oscuras. La vamos a recuperar. Reagrúpense.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24800,
+     "sha256": "e3883576a2ae53945d986d6e916284af14aa21ad97e4c57f257d262c43a02da2"
+    },
+    "mp3": {
+     "bytes": 22364,
+     "sha256": "a8d89b0491c608dc718011575fcc58901a59da20154c0f9a070adae75f253b9d"
+    }
+   }
+  },
+  "debrief-itaipu-3-win.en": {
+   "text": "The switchyard held. The lights stayed on. Well done.",
+   "seconds": 3.945,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2174197138,
+     "heard": "The switch yard held. The light stayed on. Well done.",
+     "wer": 0.333,
+     "extra": 1,
+     "missing": [
+      "switchyard",
+      "lights"
+     ]
+    },
+    {
+     "attempt": 1,
+     "seed": 1681837959,
+     "heard": "The switchyard held, the lights stayed on, well done. Weld.",
+     "wer": 0.111,
+     "extra": 1,
+     "missing": []
+    },
+    {
+     "attempt": 2,
+     "seed": 179279888,
+     "heard": "The switchyard held. The light stayed on. Well done.",
+     "wer": 0.111,
+     "extra": 0,
+     "missing": [
+      "lights"
+     ]
+    },
+    {
+     "attempt": 3,
+     "seed": 2881327597,
+     "heard": "The switch yard held. The light stayed on. Well done.",
+     "wer": 0.333,
+     "extra": 1,
+     "missing": [
+      "switchyard",
+      "lights"
+     ]
+    },
+    {
+     "attempt": 4,
+     "seed": 825304401,
+     "heard": "The switch art held. The light stayed on. Well done.",
+     "wer": 0.333,
+     "extra": 1,
+     "missing": [
+      "switchyard",
+      "lights"
+     ]
+    },
+    {
+     "attempt": 5,
+     "seed": 2047848381,
+     "heard": "The switch art held. The lights stayed on. Well done.",
+     "wer": 0.222,
+     "extra": 1,
+     "missing": [
+      "switchyard"
+     ]
+    },
+    {
+     "attempt": 6,
+     "seed": 2628996687,
+     "heard": "The switchyard held. The lights stayed on. Well done.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17996,
+     "sha256": "855771466068338c9d856d923f460a719e96689e76bd2f2d8fb3dbac58b8c147"
+    },
+    "mp3": {
+     "bytes": 16268,
+     "sha256": "1f35173d0b6758a7c95218cc91e1cf32a84d67c5212255d0a5f9addcd6e7e836"
+    }
+   }
+  },
+  "debrief-itaipu-3-win.es": {
+   "text": "La subestación resistió. La luz sigue encendida. Bien hecho.",
+   "seconds": 3.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2950224700,
+     "heard": "La subestación resistió. La luz sigue encendida. Bien hecho.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17974,
+     "sha256": "d934cef82008ad9eef8912bdfe7ad577ce51e45b04c410a41dc87091e09a0a7c"
+    },
+    "mp3": {
+     "bytes": 16940,
+     "sha256": "a36cfc4577c60fb09bec8cc196c019245bf50e05542f08671bc087ddb6a8b1b3"
+    }
+   }
+  },
+  "debrief-itaipu-4-lose.en": {
+   "text": "They got through in the dark. Pull back. We go again tomorrow night.",
+   "seconds": 4.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3616547457,
+     "heard": "They got through in the dark. Pull back. We go again tomorrow night.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18851,
+     "sha256": "da99751742a22a283da88446ff061c54ed509ade6cba73b2c049bc18c2f67a25"
+    },
+    "mp3": {
+     "bytes": 17756,
+     "sha256": "e03be210e9b788fb2c33f1d71e40bbbe3636fcff7ede45e418f88b0a4ba682a2"
+    }
+   }
+  },
+  "debrief-itaipu-4-lose.es": {
+   "text": "Pasaron en la oscuridad. Repliéguense. Volvemos mañana a la noche.",
+   "seconds": 4.895,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 758722809,
+     "heard": "pasaron en la oscuridad. Repliéguense, volvemos mañana a la noche.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 22370,
+     "sha256": "1c66462cc29f79eaa554fd060108b00c273eba9cdd96bd96604a7c8586bc8862"
+    },
+    "mp3": {
+     "bytes": 20180,
+     "sha256": "c3c487b8549d770c2e4becdbf3b71b442d273ab939063151313decd551e6b7f4"
+    }
+   }
+  },
+  "debrief-itaipu-4-win.en": {
+   "text": "Sunrise, and the dam still stands. That's the whole first act. Good work.",
+   "seconds": 5.275,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2071909107,
+     "heard": "sunrise, and the dam still stands. That's the whole first act. Good work.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23913,
+     "sha256": "08c486e204305cf6850a4a85392b9a0cefe71a78623fbe80784ef6b6d4ce389e"
+    },
+    "mp3": {
+     "bytes": 21644,
+     "sha256": "488d694579d3430ecf02024067f856137b9ffa3b8a5c2b627690adb947fdd9dd"
+    }
+   }
+  },
+  "debrief-itaipu-4-win.es": {
+   "text": "Amanece, y la represa sigue en pie. Ese fue el primer acto completo. Buen trabajo.",
+   "seconds": 5.585,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 494490402,
+     "heard": "Amanece y la represa sigue en pie. Ese fue el primer acto completo. Buen trabajo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": []
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25507,
+     "sha256": "eaf7b5923943c3a5e04eea3726c9950306404e97737658b06758cd3a2f699889"
+    },
+    "mp3": {
+     "bytes": 24380,
+     "sha256": "a0dbe96290bbf6a96faebbe159a6ccecf085823318c1020e3a5316cda035c869"
+    }
+   }
+  },
   "hit-gate.en": {
    "text": "Spillway gate's hit! Keep them off the crest!",
    "seconds": 2.735,

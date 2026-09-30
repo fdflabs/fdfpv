@@ -1100,6 +1100,71 @@ export const CRASH_SCENARIOS = [
   },
   {
     /*
+     * The swiss2 collision audit (#254) threw an F-16 at 60 m/s into a
+     * spruce: its speed went from 57 to 252 m/s at t = 0.300 s and its
+     * state was NaN by 0.35 s. The crown's drag, and the water's, judged
+     * each hull point against the spin the step began with, and a craft
+     * whose wings had gone was pushed harder the other way at every point
+     * (crash.c, point_spin); a whoop and a Bramor gained energy in a lake
+     * the same way. Every airframe, level at 20, 40 and 60 m/s through a
+     * swiss2 conifer's crown (a 0.25 m trunk in a crown the drawn post's
+     * width, 1.2 m) to its trunk, and steeply into a lake: its specific
+     * energy, 1/2 v^2 + g z, may never rise past the throw's, and its
+     * state never leaves the numbers. Whether each is a wreck is the
+     * page's to say, where the shell aims it (scripts/tree-impact-check.js).
+     */
+    name: 'into a crown to its trunk and into a lake, no craft gains energy',
+    async run(mk) {
+      const IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23];
+      /* The throw's energy may be exceeded by this share: numerical noise
+       * and a quad's idle thrust. The runaway was a factor of 18. */
+      const SLACK = 0.01;
+      let worst = { gain: -1 };
+      const nans = [];
+      for (const id of IDS) {
+        for (const v of [20, 40, 60]) {
+          for (const into of ['crown', 'lake']) {
+            const r = await mk({ id, ground: into === 'lake' ? null : 'grass' });
+            let z0;
+            if (into === 'crown') {
+              r.sim.e.sim_tree_add(40, 0, 0, 0.25, 5, 24, 1.2);
+              z0 = 8;
+              r.pose([22, 0, z0], [1, 0, 0, 0]);
+              r.velocity([v, 0, 0]);
+            } else {
+              r.sim.e.sim_water_add(0, 0, 0);
+              z0 = 1;
+              r.pose([0, 0, z0], [1, 0, 0, 0]);
+              r.velocity([v / Math.hypot(1, 1.5), 0, (-1.5 * v) / Math.hypot(1, 1.5)]);
+            }
+            const e0 = 0.5 * v * v + G0 * z0;
+            let eMax = e0;
+            let finite = true;
+            r.run(2000, [0, 0, 0, 0], (s) => {
+              if (!s.every(Number.isFinite)) {
+                finite = false;
+              }
+              eMax = Math.max(eMax, 0.5 * (s[4] * s[4] + s[5] * s[5] + s[6] * s[6]) + G0 * s[3]);
+            });
+            const gain = eMax / e0 - 1;
+            if (!finite || !(gain <= worst.gain)) {
+              worst = { gain: finite ? gain : Infinity, id, v, into };
+            }
+            if (!finite) {
+              nans.push(`${id} at ${v} m/s into the ${into}`);
+            }
+          }
+        }
+      }
+      return [
+        { name: 'every state stays finite', ok: nans.length === 0, detail: nans.join(', ') || `${IDS.length * 6} throws` },
+        { name: `none ends a step with more than ${SLACK * 100} percent more energy than it was thrown with`, ok: worst.gain <= SLACK,
+          detail: `worst ${(100 * worst.gain).toFixed(3)} percent, airframe ${worst.id} at ${worst.v} m/s into the ${worst.into}` },
+      ];
+    },
+  },
+  {
+    /*
      * The owner's wing clip: a Cub at cruise puts its right wing into a
      * 25 cm wooden pole 0.42 m out, 60 percent of the half span. The host
      * is the shell's (src/game/collide.js): the plane is a disc of its half

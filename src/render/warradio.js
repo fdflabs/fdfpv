@@ -38,11 +38,17 @@
  */
 
 import { str } from '../strings/index.js';
+import { MISSIONS } from '../share/war/missions/index.js';
 
 export const QUEUE_MAX = 3;
 export const STALE_MS = 6000;
+/* Each Act 1 mission's briefing, said over its countdown, and its
+ * debrief, said at its end in place of the generic win or lose line
+ * (lines.json group 'mission'): brief-<id>-1, -2; debrief-<id>-win, -lose. */
+export const BRIEF_LINES = Object.fromEntries(Object.keys(MISSIONS).map((id) => [id, [`brief-${id}-1`, `brief-${id}-2`]]));
 /* The lines that end a mission: said at once, over whatever was queued. */
-export const END_LINES = new Set(['win', 'lose-output', 'lose-rack']);
+export const END_LINES = new Set(['win', 'lose-output', 'lose-rack',
+  ...Object.keys(MISSIONS).flatMap((id) => [`debrief-${id}-win`, `debrief-${id}-lose`])]);
 /* The music's level on the music setting, before the master: the intro
  * is a trailer and carries the countdown, the loop sits under the voice. */
 const INTRO_BUS = 0.5;
@@ -93,12 +99,16 @@ export function createWarCalls() {
     const out = [];
     let blasts = 0;
     for (const ev of list) {
-      if (ev.type === 'state' && ev.to === 'live') {
+      if (ev.type === 'state' && ev.to === 'countdown' && v && BRIEF_LINES[v.mission]) {
+        out.push(...BRIEF_LINES[v.mission]);
+      } else if (ev.type === 'state' && ev.to === 'live') {
         out.push('start');
       } else if (ev.type === 'state' && (ev.to === 'won' || ev.to === 'lost')) {
-        out.push(ev.to === 'won' ? 'win' : 'lose-output');
+        const debrief = v && `debrief-${v.mission}-${ev.to === 'won' ? 'win' : 'lose'}`;
+        out.push(END_LINES.has(debrief) ? debrief : ev.to === 'won' ? 'win' : 'lose-output');
       } else if (ev.type === 'born') {
-        const kind = ev.agents[0].kind;
+        /* A decoy is called as what it looks like. */
+        const kind = ev.agents[0].kind === 'decoy' ? 'strike' : ev.agents[0].kind;
         if (!QUIET_WAVES.has(kind)) {
           out.push(v.wave >= v.waves && v.waves > 0 ? 'wave-last' : `wave-${kind}`);
         }

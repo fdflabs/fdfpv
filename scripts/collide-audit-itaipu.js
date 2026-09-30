@@ -47,8 +47,10 @@
  *               FINE_R columns and wires, the near trees' reach). From
  *               that, the fastest a craft can go at 60 and 20 frames a
  *               second without reaching what has not streamed in. And no
- *               streamed collider is left further from the set's centre
- *               than its part fills to.
+ *               streamed collider is left over from an earlier fill (a
+ *               near tree's post or crown counted one for one against
+ *               the trees the last fill's centre makes, the town's by
+ *               its reach), and none of the near trees is missing.
  *   bridge      the Friendship Bridge: how many colliders and roof records
  *               stand under its drawn deck.
  *   water       the drawn reservoir and river against the map's ground
@@ -63,12 +65,13 @@
  *               leg, a crest lamp, the powerhouse roof's gantry leg and its
  *               insulator string, a tree's trunk, a switchyard transformer
  *               and its bushing, open ground under the deepest invisible
- *               wall box, and the Friendship Bridge's deck. Each is
+ *               wall box, a courtyard and its building's roof edge, and
+ *               the Friendship Bridge's deck, an arch rib and a column. Each is
  *               `stopped` (met there and did not go on), `through` (met,
  *               then on past it at over half its speed) or `passed` (went
- *               past with nothing); the dive onto open ground under an
- *               invisible wall box is `invisible` when the craft meets
- *               something more than 1.5 m over the ground, else `clear`.
+ *               past with nothing); a dive onto open ground is
+ *               `invisible` when the craft meets something more than
+ *               1.5 m over the ground, else `clear`.
  *
  * THE BASELINE (tests/collide-audit-itaipu-baseline.json) is today's
  * numbers, not a target: several of them are defects this audit found
@@ -232,7 +235,7 @@ async function footprints() {
     const rect = rectOf(ring);
     const style = styleOf(f, ring, rect, industrial);
     const drawn = style.onRect ? rectRing(rect) : ring;
-    const { boxes, eaves } = wallBoxes(drawn, rect, 0, 10, null, []);
+    const { boxes, eaves } = wallBoxes(drawn, 0, 10, null, []);
     const hull = hullOf(drawn);
     const deep = { concave: 0, slant: 0 };
     let at = null;
@@ -611,30 +614,52 @@ const REFILL = (speed, fine) => `new Promise((done) => {
   requestAnimationFrame(step);
 })`;
 
-/* Every streamed collider further from the set's centre than its part
- * fills to: the town's walls to WALLS_R round a building's middle (a
- * building is at most 300 m across here), its poles to WIRES_R round a
- * chord's middle (chords are 25 m), a tree's pieces to the reach round
- * its trunk (a crown is at most 15 m across). */
-const LEFTOVERS = `(() => {
+/* Every streamed collider its part's last fill did not put there: the
+ * town's walls further than WALLS_R round a building's middle (a building
+ * is at most 300 m across here), its poles further than WIRES_R round a
+ * chord's middle (chords are 25 m); and a tree's post or crown sphere
+ * that is not one of those the near trees round the fill's centre make
+ * (plant.js nearTrees and addTree, run again here). The trees are counted
+ * one for one rather than by a distance, because a set the budget cut
+ * short holds whole cells of trees up to a cell's diagonal past its
+ * reach, which by distance read as left behind. */
+const LEFTOVERS = `(async () => {
   const it = window.__mapScene().userData.itaipu;
   const col = it.parts.dam.survey().colliders;
   const t = it.parts.town.town.stream.near;
-  const v = it.parts.vegetation.near;
+  const veg = it.parts.vegetation;
+  const v = veg.near;
+  const P = await import('/src/maps/itaipu/vegetation/plant.js');
+  const key = (kind, x, z) => kind + ':' + Math.fround(x) + ',' + Math.fround(z);
+  const want = new Map();
+  const put = (k) => want.set(k, (want.get(k) || 0) + 1);
+  const rec = {
+    addPost(kind, x, z) { put(key(kind, x, z)); },
+    addSphere(kind, x, y, z) { put(key(kind, x, z)); },
+  };
+  for (const tree of P.nearTrees(veg.forest, v.x, v.z).trees) P.addTree(rec, veg.forest, tree, veg.crowns);
   let left = 0;
   const kinds = {};
   for (let i = col.staticCount; i < col.staticCount + col.streamCount; i += 1) {
     const kn = col.kindName(col.fkind[i]);
-    const mx = (col.fax[i] + col.fbx[i]) / 2, mz = (col.faz[i] + col.fbz[i]) / 2;
-    const reach = kn === 'wall' ? 1000 + 300 : kn === 'pole' ? 450 + 25 : v.reach + 60;
-    const c = kn === 'tree' || kn === 'canopy' ? v : t;
-    if (Math.hypot(mx - c.x, mz - c.z) > reach) { left += 1; kinds[kn] = (kinds[kn] || 0) + 1; }
+    let stale;
+    if (kn === 'tree' || kn === 'canopy') {
+      const k = key(kn, col.fax[i], col.faz[i]);
+      stale = !(want.get(k) > 0);
+      if (!stale) want.set(k, want.get(k) - 1);
+    } else {
+      const mx = (col.fax[i] + col.fbx[i]) / 2, mz = (col.faz[i] + col.fbz[i]) / 2;
+      stale = Math.hypot(mx - t.x, mz - t.z) > (kn === 'wall' ? 1000 + 300 : 450 + 25);
+    }
+    if (stale) { left += 1; kinds[kn] = (kinds[kn] || 0) + 1; }
   }
-  return JSON.stringify({ streamed: col.streamCount, left, kinds });
+  let missing = 0;
+  for (const n of want.values()) missing += n;
+  return JSON.stringify({ streamed: col.streamCount, left, kinds, missing });
 })()`;
 
 /* The flights' targets, found in the map's own parts round where they
- * are flown. Each { name, at, dir, expect, land? }: dir a unit vector the
+ * are flown. Each { name, at, dir, expect, land?, only? }: dir a unit vector the
  * craft travels along through `at`. */
 const TARGETS = `(async () => {
   const it = window.__mapScene().userData.itaipu;
@@ -704,16 +729,21 @@ const TARGETS = `(async () => {
       }
     }
   }
-  /* The switchyard's first transformer: its tank, and the bushing drawn
-   * over it (war/index.js: three porcelain bars 3 m tall, no collider). */
+  /* The switchyard's first transformer: its tank, and its middle
+   * bushing (war/plan.js KIT: u 1.8 on the tank's axis, from the tank's
+   * top to KIT.bushings.height over it), crossed at its middle. The
+   * tank's first collider runs along its axis, from -u to +u. */
   {
+    const W = await import('/src/maps/itaipu/war/plan.js');
     const i = it.parts.war.yard.solids[0];
     const a = [col.fax[i], col.fay[i], col.faz[i]], b = [col.fbx[i], col.fby[i], col.fbz[i]];
     const c = [(a[0] + b[0]) / 2, a[1], (a[2] + b[2]) / 2];
     const ax = flat([b[0] - a[0], 0, b[2] - a[2]]);
-    const top = a[1] - col.fr[i] + 4.2;
+    const g = window.__surface(c[0], c[2], -1e9);
+    const u = W.KIT.bushings.u[1];
+    const y = g + W.TANK.plinth + W.TANK.height + W.KIT.bushings.height / 2;
     T.push({ name: 'switchyard transformer tank', at: c, dir: perp(ax), expect: 'stopped' });
-    T.push({ name: 'switchyard transformer bushing (drawn only)', at: [c[0] + ax[0] * 0.8, top + 1.5, c[2] + ax[2] * 0.8], dir: perp(ax), expect: 'passed' });
+    T.push({ name: 'switchyard transformer middle bushing', at: [c[0] + ax[0] * u, y, c[2] + ax[2] * u], dir: perp(ax), expect: 'stopped' });
   }
   /* The deepest invisible wall the footprints section finds: open
    * ground 26 m from building w608156691's drawn walls, under its wall
@@ -721,6 +751,18 @@ const TARGETS = `(async () => {
   {
     const P = [553.9, 3915.8];
     T.push({ name: 'open ground under an invisible wall box (w608156691)', at: [P[0], window.__surface(P[0], P[1], -1e9) + 0.5, P[1]], dir: [0, -1, 0], expect: 'clear', invisible: true });
+  }
+  /* A courtyard building (w608142837, its hole drawn through a slit in
+   * the one outline): its courtyard dived onto, and its flat roof landed
+   * on by the five inch 0.6 m from the courtyard's edge, moving along
+   * that edge. Not the F-16: 15 m of it over a roof strip 10 m wide
+   * tips into the courtyard or not by how it lands, which says nothing
+   * about the roof. */
+  {
+    const C = [1271.9, 3049.4];
+    T.push({ name: 'courtyard of w608142837, dived onto', at: [C[0], window.__surface(C[0], C[1], -1e9) + 0.5, C[1]], dir: [0, -1, 0], expect: 'clear', invisible: true });
+    const E = [1267.1, 3057.5];
+    T.push({ name: 'courtyard building roof edge (w608142837), landed on', at: [E[0], window.__surface(E[0], E[1], 1e9), E[1]], dir: flat([15.2, 0, 9]), expect: 'stopped', land: true, only: 'five inch' });
   }
   /* The Friendship Bridge's deck, the drawn mesh's own vertices within a
    * metre of its top: flown through across the river, and landed on. */
@@ -740,8 +782,24 @@ const TARGETS = `(async () => {
     let far = pts[0];
     for (const p of pts) if (Math.hypot(p[0] - cx, p[1] - cz) > Math.hypot(far[0] - cx, far[1] - cz)) far = p;
     const along = flat([far[0] - cx, 0, far[1] - cz]);
-    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx, f.deckY - 0.8, cz], dir: perp(along), expect: 'passed' });
+    /* Across it, at its near side: a flight is judged by where it is
+     * first met, and the deck is 14 m wide. */
+    const across = perp(along);
+    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx - across[0] * f.width / 2, f.deckY - 0.8, cz - across[2] * f.width / 2], dir: across, expect: 'stopped' });
     T.push({ name: 'Friendship Bridge deck, landed on', at: [cx, f.deckY, cz], dir: along, expect: 'passed', land: true });
+    /* Its arch: the rib capsule and the column nearest the deck's middle,
+     * crossed level at their middles, across the bridge. */
+    const nearest = (r) => {
+      let best = -1, bd = Infinity;
+      for (let i = 0; i < col.staticCount; i += 1) {
+        if (col.fbox[i] || Math.abs(col.fr[i] - r) > 1e-6) continue;
+        const d = Math.hypot((col.fax[i] + col.fbx[i]) / 2 - cx, (col.faz[i] + col.fbz[i]) / 2 - cz);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return [(col.fax[best] + col.fbx[best]) / 2, (col.fay[best] + col.fby[best]) / 2, (col.faz[best] + col.fbz[best]) / 2];
+    };
+    T.push({ name: 'Friendship Bridge arch rib', at: nearest(1.1), dir: perp(along), expect: 'stopped' });
+    T.push({ name: 'Friendship Bridge column', at: nearest(0.7), dir: perp(along), expect: 'stopped' });
   }
   return JSON.stringify(T);
 })()`;
@@ -909,8 +967,10 @@ async function pageSweeps(out) {
       await settle(page, ...RUN[1]);
       const left = JSON.parse(await page.evaluate(LEFTOVERS));
       out.refill.left = left.left;
+      out.refill.missing = left.missing;
       console.log(`refill: at most ${frames} frames a refill, so ${margin} m of margin holds to ${out.refill.safe60} m/s at 60 frames a second and ${out.refill.safe20} m/s at 20; `
-        + `${left.left} of ${left.streamed} streamed colliders left outside their part's reach${left.left ? ` (${JSON.stringify(left.kinds)})` : ''}`);
+        + `${left.left} of ${left.streamed} streamed colliders left over from an earlier fill${left.left ? ` (${JSON.stringify(left.kinds)})` : ''}, `
+        + `${left.missing} of the near trees' colliders missing`);
     }
 
     if (ONLY.has('bridge')) {
@@ -1075,7 +1135,7 @@ async function flights(page, craft, speeds) {
   /* The targets are found with the set filled round the town's lines. */
   await settle(page, -1400, 3000);
   const targets = JSON.parse(await page.evaluate(TARGETS));
-  for (const t of targets) {
+  for (const t of targets.filter((q) => !q.only || q.only === craft)) {
     for (const v of speeds) {
       const r = await flyAt(page, t, v);
       out[`${t.name} @${v}`] = r.result;
@@ -1115,6 +1175,7 @@ function metrics(out) {
   if (out.refill) {
     m['refill.maxFrames'] = [out.refill.maxFrames, 'up'];
     m['refill.left'] = [out.refill.left, 'up'];
+    m['refill.missing'] = [out.refill.missing, 'up'];
     for (const [v, s] of Object.entries(out.refill.speeds)) {
       m[`refill.${v}.town`] = [s.town, 'down'];
     }

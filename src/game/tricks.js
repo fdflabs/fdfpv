@@ -369,10 +369,14 @@ export function repeatTrickFactor(priorCount) {
  * trick, n counted from 1. A halving per step, computed by repeated
  * multiplication rather than Math.pow: CLAUDE.md keeps pow out of anything
  * that has to give the same answer twice, and n here is a small integer.
+ * It stops once the factor is 0, which it stays: a run of the same trick
+ * thousands long (a runaway plant's tumble, named one turn at a time) made
+ * each landing cost as many multiplications as the run was long, and the
+ * page stopped answering.
  */
 export function backToBackFactor(runLength) {
   let f = 1;
-  for (let i = 1; i < runLength; i += 1) {
+  for (let i = 1; i < runLength && f > 0; i += 1) {
     f *= BACK_TO_BACK_HALVING;
   }
   return f;

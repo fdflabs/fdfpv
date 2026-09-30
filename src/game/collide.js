@@ -333,13 +333,15 @@ export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'po
 const CELL = 8;
 /* Grid keys are packed integers rather than strings, because a string key is
  * an allocation per cell per frame. The world half extent in cells has to
- * fit in the packing: 1024 cells at 8 m is 8192 m each way, which holds
- * Itaipu's 10.24 km hero square (docs/ITAIPU-PLAN.md section 3) with
- * 3 km to spare. It was 512 cells, 4096 m, and a collider past that was
- * registered under a key that aliased another cell, so the craft's sweep
- * never found it; registering throws now (CellIndex). The packed key is
- * under 2^22, an exact small integer. */
-const GRID_HALF = 1024;
+ * fit in the packing: 2048 cells at 8 m is 16 384 m each way, which holds
+ * Itaipu's hero square and the Friendship Bridge 9.5 km down the river
+ * (docs/ITAIPU-PLAN.md sections 3 and 7). It was 512 cells, 4096 m, and a
+ * collider past that was registered under a key that aliased another
+ * cell, so the craft's sweep never found it; registering throws now
+ * (CellIndex). The packed key is under 2^24, an exact small integer. The
+ * grids are Maps of the cells that hold something, so the reach costs
+ * nothing until a collider stands there. */
+const GRID_HALF = 2048;
 const GRID_SPAN = GRID_HALF * 2;
 
 /* The cell a coordinate is in, and its packed key, as build() registers a
