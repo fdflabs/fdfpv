@@ -1284,7 +1284,9 @@ export function cone(f, x, z) {
 /* A run of post and rail fence between two points, each post lifted to
  * its own ground height by the caller's heightAt, the rails tilted to
  * follow. Posts are instanced; the rails are baked. skip(x, z) lets the
- * caller leave a gap, for a gate or the stream. */
+ * caller leave a gap, for a gate or the stream. Returns the unbroken
+ * stretches drawn, each its posts as { x, y, z } in heightAt's frame, for
+ * the caller's colliders. */
 export function fence(bake, heightAt, ax, az, bx, bz, skip = null) {
   const post = cached('post', () => new THREE.BoxGeometry(0.14, 1.3, 0.14).translate(0, 0.55, 0));
   const len = Math.hypot(bx - ax, bz - az);
@@ -1297,13 +1299,21 @@ export function fence(bake, heightAt, ax, az, bx, bz, skip = null) {
     const z = az + (bz - az) * t;
     return { x, z, y: heightAt(x, z) };
   };
+  const runs = [];
+  let run = null;
   for (let k = 0; k <= n; k += 1) {
     const p = pt(k);
     if (skip && skip(p.x, p.z)) {
+      run = null;
       continue;
     }
     m.makeTranslation(p.x, p.y, p.z);
     bake.instance('post', 'fence', post, m);
+    if (!run) {
+      run = [];
+      runs.push(run);
+    }
+    run.push(p);
     if (k < n) {
       const q = pt(k + 1);
       if (skip && skip(q.x, q.z)) {
@@ -1316,6 +1326,7 @@ export function fence(bake, heightAt, ax, az, bx, bz, skip = null) {
       }
     }
   }
+  return runs;
 }
 
 /*

@@ -339,6 +339,39 @@ export async function buildVillage(ctx) {
   lane(LANE_S, STREET_Z + 3, 195);
   laneHouses(LANE_S, STREET_Z + 33, 195, 4);
 
+  /* A fence's colliders: along each stretch it drew, a capsule through
+   * its rails from post to post, merged over posts the ground holds in a
+   * line (within FENCE_BEND), a lone post a post. The rails are at 0.5
+   * and 0.95 m and the posts' tops at 1.2, so a capsule 0.35 m round an
+   * axis 0.75 m up holds all of it; the prop fences' (swiss2/props). */
+  const FENCE_BEND = 0.1;
+  const fenceSolid = (runs) => {
+    const larch = () => setSolidSurface(colliders, colliders.ax.length - 1, 'wood');
+    for (const run of runs) {
+      if (run.length === 1) {
+        const p = run[0];
+        colliders.addPost('pole', p.x, p.z, villageY + p.y, villageY + p.y + 1.2, 0.1);
+        larch();
+        continue;
+      }
+      let a = 0;
+      while (a < run.length - 1) {
+        let b = a + 1;
+        const holds = (end) => run.slice(a + 1, end).every((q, k) => {
+          const t = (k + 1) / (end - a);
+          return Math.abs(run[a].y + (run[end].y - run[a].y) * t - q.y) <= FENCE_BEND;
+        });
+        while (b + 1 < run.length && holds(b + 1)) {
+          b += 1;
+        }
+        const p = run[a];
+        const q = run[b];
+        colliders.add('pole', p.x, villageY + p.y + 0.75, p.z, q.x, villageY + q.y + 0.75, q.z, 0.35);
+        larch();
+        a = b;
+      }
+    }
+  };
   /*
    * THE FARMS, out in the fields: a farmhouse with its barn under one
    * ridge, a second barn, a fenced yard open toward the track. One north
@@ -353,7 +386,7 @@ export async function buildVillage(ctx) {
       }
       const a = pts[k];
       const b = pts[(k + 1) % 4];
-      fence(bake, onGround, x + a[0], z + a[1], x + b[0], z + b[1]);
+      fenceSolid(fence(bake, onGround, x + a[0], z + a[1], x + b[0], z + b[1]));
     }
   };
   const farm = ({ x, z, ry, barnKind, barnAt, board, gap }) => {
@@ -383,7 +416,7 @@ export async function buildVillage(ctx) {
     for (let k = 0; k < pts.length; k += 1) {
       const a = pts[k];
       const b = pts[(k + 1) % pts.length];
-      fence(bake, onGround, a[0], a[1], b[0], b[1], nearStream);
+      fenceSolid(fence(bake, onGround, a[0], a[1], b[0], b[1], nearStream));
     }
   };
   ring([[-40, 195], [-255, 205], [-262, 335], [-30, 325]]);
