@@ -201,6 +201,7 @@ export default {
   "credits.built_this_simulator_the_track_builder": "Construyó este simulador, el constructor de pistas y el tablero público. Orquestó una horda de Grok y Claude en el camino.",
   "credits.claude": "Claude",
   "credits.dutch_drone_squad": "Dutch Drone Squad",
+  "credits.fdfpv_by": "FDFPV por ",
   "credits.from_the_dutch_drone_gods_at": ", de los dioses holandeses del dron en ",
   "credits.grok": "Grok",
   "credits.is_gplv3_so_this_is_too": " es GPLv3, así que esto también. La pantalla del controlador de vuelo es un homenaje a ",

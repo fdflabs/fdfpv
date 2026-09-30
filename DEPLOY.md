@@ -1,5 +1,9 @@
 # Deploying FDFPV
 
+FDFPV is made by [fdflabs.com](https://fdflabs.com), a GPLv3 fork of Mathew
+Harvey's [WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
+NOTICE records what was taken from upstream and whose work it stands on.
+
 Four resources, all live. The rest of this file after the tracks server is
 the upstream walkthrough for the Render half, kept because it is still a
 working way to host the board somewhere else.

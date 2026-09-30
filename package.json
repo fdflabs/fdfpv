@@ -2,6 +2,7 @@
   "name": "fdfpv",
   "version": "0.1.0",
   "description": "Browser FPV racing simulator. Stage 1: flight physics and its verification harness.",
+  "author": "fdflabs.com (https://fdflabs.com)",
   "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
