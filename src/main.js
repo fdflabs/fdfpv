@@ -116,6 +116,7 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createAttackers } from './render/attackers.js';
 import { createWarHud } from './ui/warhud.js';
+import { createWarMarkers } from './ui/warmarkers.js';
 import { createWarCalls } from './render/warradio.js';
 import {
   LinkWatch, PlaneFailsafe, linkDegradeFor, signalQuality, snowFor, stationPoint,
@@ -2312,6 +2313,7 @@ export async function boot({
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
   const warHud = createWarHud(roomSeatName);
+  const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
   const warCalls = createWarCalls();
   /* The events of each frame as they were taken, for window.__war. */
   const warLog = [];
@@ -2475,6 +2477,7 @@ export async function boot({
   function warLeave() {
     warAttackers.clear();
     warHud.update(null);
+    warMarkers.clear();
     if (warBegunId != null) {
       warFinish();
     }
@@ -2540,12 +2543,22 @@ export async function boot({
     warUpFrame();
     if (replay) {
       warHud.update(null);
+      warMarkers.update(null, now, events);
       return;
     }
     warHud.events(events);
     warSay(warCalls.events(events, v));
-    warAttackers.update(roomWar.attackersAt(now), dt);
+    const live = roomWar.attackersAt(now);
+    warAttackers.update(live, dt);
     warDrawnAt = now;
+    /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
+     * is already on the air. */
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), pCurr.x, pCurr.y, pCurr.z)) {
+      const radio = audio.warRadio ? audio.warRadio.status() : null;
+      if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
+        warSay(['wave-hunter']);
+      }
+    }
     if (wallMs < warHudAt) {
       return;
     }
@@ -3217,6 +3230,7 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     hud: warHud.shown(),
+    markers: warMarkers.shown(),
     said: warHud.said(),
     signal: warSignal,
     radio: audio.warRadio ? audio.warRadio.status() : null,
