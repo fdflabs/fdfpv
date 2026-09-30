@@ -32,6 +32,10 @@ Environment=HOST=127.0.0.1 PORT=8797 PUBLIC_ROOMS=on ROOMS_DB=/var/lib/fdfpv-roo
 # one, over loopback (edge/rooms/node.js sessionCallsign).
 Environment=ACCOUNTS_ORIGIN=http://127.0.0.1:8787
 EnvironmentFile=/etc/fdfpv/tracks.env
+# Voice chat's TURN relay: TURN_SECRET and TURN_URLS, made by
+# turn-install.sh (deploy-turn.sh). Optional: without it voice is peer to
+# peer through STUN alone (edge/rooms/turn.js).
+EnvironmentFile=-/etc/fdfpv/turn.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
 # start; the journal does not need to hear it.
 ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 edge/rooms/node.js

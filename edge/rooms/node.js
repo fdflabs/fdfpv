@@ -4,7 +4,9 @@
  *   ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db PORT=8797 ADMIN_SECRET=... node edge/rooms/node.js
  *
  * and ACCOUNTS_ORIGIN=http://127.0.0.1:8787 to show signed in pilots'
- * callsigns (sessionCallsign below).
+ * callsigns (sessionCallsign below), and TURN_SECRET with TURN_URLS for
+ * voice chat's TURN relay (edge/rooms/turn.js; without them voice goes
+ * peer to peer through STUN alone).
  *
  * The same rooms as do.js serves on Cloudflare: front.js answers every
  * request, each room is a RoomHost (host.js) around a RoomCore, and the
@@ -69,6 +71,7 @@ import { Lobby } from './lobby.js';
 import { Health, roomCounters } from './health.js';
 import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.js';
 import { normaliseName } from '../../src/share/pilot.js';
+import { turnMinter } from './turn.js';
 
 /* The largest message the simulator sends is a host's race track, logos
  * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
@@ -429,7 +432,7 @@ function lobbyObject(env) {
  * is a byte on the wire and the client colours sixteen, so the process's
  * own entry point below never reads it. */
 export function startRooms({
-  db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '',
+  db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '', turnSecret = '', turnUrls = '',
 }) {
   if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
     throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
@@ -437,6 +440,7 @@ export function startRooms({
   const store = new Store(db);
   const env = {
     PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap, ACCOUNTS_ORIGIN: accountsOrigin.replace(/\/+$/, ''),
+    TURN: turnMinter(turnSecret, turnUrls),
   };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
@@ -496,8 +500,10 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     publicRooms: process.env.PUBLIC_ROOMS || 'on',
     adminSecret: process.env.ADMIN_SECRET || '',
     accountsOrigin: process.env.ACCOUNTS_ORIGIN || '',
+    turnSecret: process.env.TURN_SECRET || '',
+    turnUrls: process.env.TURN_URLS || '',
   });
-  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}`);
+  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}${running.env.TURN ? '' : ', no TURN relay: voice is peer to peer through STUN alone'}`);
   process.on('SIGTERM', async () => {
     await running.stop();
     process.exit(0);

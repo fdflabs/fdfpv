@@ -54,6 +54,7 @@ import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
+import { RoomVoice, VOICE_PER_S } from './voice.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
  * ownership in fdfpv-loop/multiplayer/COORD.md). */
@@ -202,8 +203,10 @@ export class RoomCore {
    * up for or null, hidden true once reports took its name away
    * (safety.js). A room stored before the browser has none of the last
    * five, and reads as private, unnamed and set up for nothing.
+   * options.turn is the platform's TURN credential minter, or null
+   * (edge/rooms/voice.js).
    */
-  constructor(meta) {
+  constructor(meta, options = {}) {
     this.meta = meta;
     this.seats = new Map();   /* conn -> seat record */
     this.pending = new Map(); /* conn -> text rate, before its hello */
@@ -219,6 +222,7 @@ export class RoomCore {
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     this.war = new RoomWar(meta); /* Defend Itaipu, edge/rooms/war.js */
+    this.voice = new RoomVoice(options.turn || null); /* voice chat's signalling, edge/rooms/voice.js */
     this.hosting = new Hosting();
     /* game id -> room ms since it has had too few players. Memory only. */
     this.abandoned = new Map();
@@ -681,7 +685,7 @@ export class RoomCore {
     if (n > TEXT_CLOSE_PER_S) {
       return [{ close: conn, code: CLOSE.rate, reason: 'rate' }];
     }
-    if (n > (s ? TEXT_PER_S + CLOCK_PER_S : TEXT_PER_S)) {
+    if (n > (s ? TEXT_PER_S + CLOCK_PER_S + VOICE_PER_S : TEXT_PER_S)) {
       return [];
     }
     let msg;
@@ -695,6 +699,10 @@ export class RoomCore {
     }
     if (!s) {
       return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign) : [];
+    }
+    /* Counted on an allowance of its own (edge/rooms/voice.js). */
+    if (msg.type === 'voice') {
+      return this.voice.message(this, conn, s, msg, now);
     }
     const clock = msg.type === 't';
     if (bump(clock ? s.clockRate : s.sayRate, now, 1000) > (clock ? CLOCK_PER_S : TEXT_PER_S)) {

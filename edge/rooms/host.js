@@ -85,7 +85,8 @@ export class RoomHost {
     if (!meta) {
       return null;
     }
-    this.core = new RoomCore(meta);
+    /* env.TURN is node.js's TURN credential minter, when the VM has one. */
+    this.core = new RoomCore(meta, { turn: this.env.TURN || null });
     /* Every key a { store } action wrote is the name of the core's part
      * that keeps it (core.race for 'race'), restored before the seats. A
      * key with no such part is a bug and throws here, not a race that

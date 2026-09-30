@@ -13,6 +13,8 @@ One room's logic, and the two platforms that serve it. The plan is
 | `do.js` | Cloudflare: the `Room` Durable Object around a `RoomHost`, and the Worker | Cloudflare |
 | `node.js` | Node: namespaces, a queue per object, SQLite storage, timers for alarms, `ws` sockets, the counters | the VM |
 | `health.js` | what the server costs (GET /v2/admin/health) and the valve that refuses new public rooms while the core is short | the VM |
+| `voice.js` | voice chat's signalling: offers, answers and candidates passed to a seat, never past a mute, on an allowance of their own | none |
+| `turn.js` | short lived TURN credentials for voice chat's relay, from `TURN_SECRET` and `TURN_URLS` | the VM |
 
 Production is `node.js` on the owner's VM since 2026-09-28
 (`deploy/vm/README.md`). The Worker, `fdfpv-rooms` on workers.dev, is still
@@ -66,6 +68,8 @@ unless the platform contract above does.
 ## Checks
 
 - `npm run rooms:selftest`: the core and its modules, in plain Node.
+- `npm run voicechat:selftest`: voice chat's relay and TURN credentials,
+  and `npm run voicechat:twopage [origin]`, two browsers talking.
 - `npm run rooms:server [origin]`: a running server over real sockets.
   With no origin it starts `node.js` itself and adds a restart with two
   pilots flying. Against `npx wrangler dev --config edge/rooms/wrangler.toml`

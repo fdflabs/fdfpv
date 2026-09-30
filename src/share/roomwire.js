@@ -1068,3 +1068,24 @@ export function decodeHunts(bytes) {
   }
   return { roomMs: v.getUint32(2, true), agents };
 }
+
+/* ------------------------------------------------------------------ */
+/* Voice chat: no binary type (0xB0 to 0xBF held, unused) and the JSON type
+ * voice. The room relays signalling only (edge/rooms/voice.js says what
+ * each op carries); the audio goes pilot to pilot (src/share/voice.js). */
+
+export const VOICE_OPS = ['on', 'off', 'offer', 'answer', 'ice', 'turn'];
+/* Voice messages a seat may send in one second (edge/rooms/voice.js), on
+ * top of the clock's and the rest's (edge/rooms/core.js). */
+export const VOICE_PER_S = 8;
+/* An offer or answer carries every candidate gathered, a few kB; this is
+ * several times the largest measured and still a small message. */
+export const VOICE_SDP_MAX = 16384;
+export const VOICE_CAND_MAX = 512;
+/* A link's number, n, chosen by the offerer. */
+export const VOICE_LINK_MAX = 0x7fffffff;
+/* An offer's relay: which of the TURN relay's transports both ends add to
+ * STUN for this try, none, UDP, or TCP and TLS. */
+export const RELAY_NONE = 0;
+export const RELAY_UDP = 1;
+export const RELAY_TCP = 2;
