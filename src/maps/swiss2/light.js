@@ -613,13 +613,13 @@ export function makeLit(clouds) {
  * map. update(focus, camera) keeps the near map round the focus and the
  * far one on the ground ahead of the camera, both snapped to their texel
  * in the light's own frame so a moving camera does not make the edges
- * crawl.
+ * crawl. `color` and `irradiance` are the valley's unless a map brings
+ * its own sun.
  */
-export function makeSun(scene, q, dir) {
-  const intensity = SUN_IRRADIANCE;
+export function makeSun(scene, q, dir, { color = SUN_COLOR, irradiance = SUN_IRRADIANCE } = {}) {
   const lights = [];
   const add = (half, size, depth, bias, normalBias) => {
-    const light = new THREE.DirectionalLight(SUN_COLOR, intensity);
+    const light = new THREE.DirectionalLight(color, irradiance);
     light.castShadow = q.shadows;
     light.shadow.mapSize.set(size, size);
     light.shadow.camera.near = 1;
