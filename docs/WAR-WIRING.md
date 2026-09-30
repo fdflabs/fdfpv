@@ -175,6 +175,3 @@ row first. `roomTarget` flies a war in free flight, as tag.
   with the briefing) and `'end'`.
 - `window.__warIntro()` and `window.__warIntroWatch()`: the intro's state
   while it plays, and the host's Watch intro.
-- `window.__warHear(m)`: a room message heard as if the room had sent it,
-  for a state the room reaches too seldom to wait for (the two page
-  check's empty rack). The room's next view replaces it.

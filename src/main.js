@@ -3934,10 +3934,6 @@ export async function boot({
     })),
   });
   window.__warAt = (t) => roomWar.attackersAt(t);
-  /* A room message heard as if the room sent it: how a check puts this
-   * page in a state the room reaches too seldom to wait for (an empty
-   * rack with no attacker alive). The room's next view replaces it. */
-  window.__warHear = (m) => roomWar.onMessage(m);
   /* A swarm's worth of explosions at once, 150 m ahead of the camera, for
    * scripts/war-boom.js: the frame's draw calls and time over 40 frames
    * before and during, and whether the pools held. */
