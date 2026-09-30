@@ -29,7 +29,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, warVoiceUrl, warMusicUrl,
+  createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB,
 } from '../src/render/warradio.js';
 import { KINDS } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -159,6 +159,50 @@ radio.say('kill-1', 0);
 radio.say('wave-fpv', 0);
 radio.say('win', 0);
 check('the end cuts in over the queue, in the UI\'s language', radio.status().speaking === 'win' && radio.status().queue.length === 0 && played.at(-1) === 'es/win', played.slice(-2).join(' '));
+
+console.log('under voice chat');
+{
+  /* A teammate speaking for a second, frames of 16 ms: the radio's and
+   * the music's element volumes against their level before. */
+  const r = new WarRadio();
+  r.voice = { el: { volume: 0 } };
+  r.bed = { el: { volume: 0 } };
+  r.track = 'combat';
+  r.setOutput(0.8);
+  r.setMusicLevel(1);
+  const v0r = r.voice.el.volume;
+  const m0 = r.bed.el.volume;
+  const db = (v, ref) => 20 * Math.log10(v / ref);
+  let t = 0;
+  const run = (heard, ms) => {
+    const end = t + ms;
+    for (; t < end; t += 16) {
+      r.duck(heard, t);
+    }
+  };
+  run(false, 32);
+  run(true, 96);
+  const down = db(r.voice.el.volume, v0r);
+  const downM = db(r.bed.el.volume, m0);
+  run(true, 900);
+  const held = db(r.voice.el.volume, v0r);
+  run(false, 256);
+  const half = db(r.voice.el.volume, v0r);
+  run(false, 272);
+  const back = db(r.voice.el.volume, v0r);
+  check(`a teammate on voice ducks the radio and the music ${DUCK_DB} dB within 100 ms`, Math.abs(down - DUCK_DB) < 0.5 && Math.abs(downM - DUCK_DB) < 0.5 && Math.abs(held - DUCK_DB) < 1e-9,
+    `radio ${down.toFixed(2)} dB, music ${downM.toFixed(2)} dB at 96 ms, ${held.toFixed(2)} dB held`);
+  check('and they come back over about half a second after the last one stops', half < -3 && half > -7 && Math.abs(back) < 1e-9,
+    `${half.toFixed(2)} dB at 256 ms, ${back.toFixed(2)} dB at 528 ms`);
+  const quiet = new WarRadio();
+  quiet.voice = { el: { volume: 0 } };
+  quiet.setOutput(0.8);
+  const before = quiet.voice.el.volume;
+  for (let k = 0; k < 60; k += 1) {
+    quiet.duck(false, k * 16);
+  }
+  check('with nobody talking the radio is never touched', quiet.voice.el.volume === before && quiet.status().duckDb === 0);
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
