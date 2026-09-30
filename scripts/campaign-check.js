@@ -208,7 +208,7 @@ try {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
     check(`${w} by ${h}: six cards, the campaign last, inside the window, clear of the bar, the rooms panel above them`,
-      laidOut(v) && v.cards[6].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
+      laidOut(v) && v.cards[5].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }
 
