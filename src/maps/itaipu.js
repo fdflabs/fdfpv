@@ -74,6 +74,11 @@ const SPAWN = CREST_SPAWN;
  * which crosses the reservoir's longest reach (water.json's fetch). */
 const WIND = { speed: 2, fromDeg: 45 };
 
+/* Mission 4's window glow (look/night.js): one building in this many of
+ * the town's, so Foz do Iguacu's thousands become a few dozen lit
+ * windows, not one instanced mesh the size of the town itself. */
+const WINDOW_SAMPLE = 40;
+
 /* The parts, in the order the plan merges them, each with its share of
  * the loading bar's parts stage. */
 const PARTS = [
@@ -235,7 +240,7 @@ function lakesOf(bodies, bed) {
   });
 }
 
-async function buildItaipu(shell, progress, q) {
+async function buildItaipu(shell, progress, q, time) {
   const renderer = shell.renderer;
   const camera = shell.camera;
   const base = dataBase();
@@ -243,7 +248,7 @@ async function buildItaipu(shell, progress, q) {
   progress(0.02);
   const [look, data] = await Promise.all([
     makeLook({
-      renderer, camera, q, base, manifest,
+      renderer, camera, q, base, manifest, time,
     }),
     readData(base, manifest),
   ]);
@@ -294,6 +299,20 @@ async function buildItaipu(shell, progress, q) {
     await yieldToPaint();
   }
   colliders.build();
+  /* Mission 4's fixtures (look/night.js), a no-op by day: the town's
+   * lamps (model.js's own lampPieces, read back as town.lampsAt), a
+   * sample of its buildings for the windows, and the dam's own war
+   * targets for the powerhouse and the intake gates. Never the dam's or
+   * the town's geometry itself. */
+  look.dressNight({
+    lampsAt: parts.town.town.lampsAt,
+    windowsAt: parts.town.town.buildings
+      .filter((_, i) => i % WINDOW_SAMPLE === 0)
+      .map((b) => [b.x, b.rec.ty + b.rec.dy * 0.7, b.z]),
+    powerhouseAt: Object.values(parts.dam.targets)
+      .filter((t) => t.part === 'intake')
+      .map((t) => t.at),
+  });
   const roofs = makeRoofs(roofRecords);
   const streamer = makeStreamer(colliders, Object.values(parts), () => roofs.cover(colliders, 0, 0, -Infinity));
   streamer.fillNow(SPAWN.x, SPAWN.z);
@@ -432,10 +451,21 @@ async function buildItaipu(shell, progress, q) {
   };
 }
 
+/*
+ * The look's time of day: `options.time` ('day', the default, or
+ * 'night', for mission 4, "Night raid"), or `?time=night` in the
+ * address, which src/main.js's loadMap folds into options before this is
+ * called. Anything else is day: a stray query param must never turn the
+ * lights off on a pilot who typed the wrong thing.
+ */
+function timeFor(options) {
+  return options && options.time === 'night' ? 'night' : 'day';
+}
+
 export async function buildMap(shell, onProgress, options) {
   const progress = onProgress ?? (() => {});
   const q = qualityFor(options && options.quality);
-  const map = await buildItaipu(shell, progress, q);
+  const map = await buildItaipu(shell, progress, q, timeFor(options));
   (await import('./itaipu/war/index.js')).takeYard(map);
   return map.scene.userData.itaipu.look.compose(shell, map);
 }
