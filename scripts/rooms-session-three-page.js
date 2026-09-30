@@ -192,7 +192,11 @@ try {
     const mark = (await look(k)).away.find((m) => m.seat === b.seat);
     check(`${k} names B: "${paused}"`, Boolean(mark) && mark.text === paused, JSON.stringify(mark));
   }
-  check(`B is asked: "${en['rooms.fly_prompt']}"`, b.bar === en['rooms.fly_prompt'], String(b.bar));
+  check('while the round\'s HUD is up, nothing of the room\'s is drawn over it', b.bar === null, String(b.bar));
+  await pages.A.evaluate("window.__ui.onFriends('friends-combat-stop'); true");
+  await pages.B.until(`window.__rooms().bar === ${JSON.stringify(en['rooms.fly_prompt'])}`, 15000).catch(() => {});
+  const asked = (await look('B')).bar;
+  check(`the round over, B is asked: "${en['rooms.fly_prompt']}"`, asked === en['rooms.fly_prompt'], String(asked));
   await pages.B.evaluate('window.__ui.roomBarView && window.__ui.roomBarView.act(); true');
   await pages.B.until(flyingIn(MOVED), 30000).catch(() => {});
   check('and its Fly puts B back in the air', (await look('B')).flying);
