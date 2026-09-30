@@ -27,7 +27,7 @@ import {
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import {
-  GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS,
+  EMP_MS, GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS, WARHEADS, parseLoadout,
 } from '../edge/rooms/war.js';
 import {
   BLAST_M, KIND, KINDS, cosDet, planAgent, poseAt, sinDet,
@@ -542,6 +542,98 @@ export function warSection(check) {
     e.fly(meet2 + 1500);
     check('and it goes off again on the next with the airframe it earned', e.r.war.log.filter((x) => x.what === 'boom' && x.seat === 1).length === 2,
       JSON.stringify(e.r.war.log));
+  }
+
+  console.log('war: loadouts, warheads, decoys, results (act 1)');
+  {
+    const L = (x) => parseLoadout(x);
+    check('a loadout clamps its rack to 4..6 (rounded) and its speedMul to 1..1.15',
+      L({ rack: 9 }).rack === 6 && L({ rack: 2 }).rack === 4 && L({ rack: 4.6 }).rack === 5 && L({ speedMul: 2 }).speedMul === 1.15
+      && L({ speedMul: 0.5 }).speedMul === 1 && L({}).rack === 4 && L({}).warhead === 'standard' && L({}).speedMul === 1);
+    check('and refuses anything else: an unknown warhead, a rack or speedMul not a number, no object',
+      L({ warhead: 'nuke' }) === null && L({ rack: '6' }) === null && L({ speedMul: NaN }) === null && L(null) === null && L([4]) === null
+      && WARHEADS.every((w) => L({ warhead: w }).warhead === w));
+    const m = testMission([{ at: 1, kind: 'jammer', n: 1, route: 'r' }], { r: [[-1200, Y, 0], [-1100, Y, 0]] }, { rack: 4 });
+    const e = warRoom({ mission: m, start: false });
+    e.say(1, { type: 'war', op: 'loadout', loadout: { rack: 6, warhead: 'wide', speedMul: 1.1 } });
+    e.say(1, { type: 'war', op: 'loadout', loadout: { warhead: 'laser' } });
+    check('a refused loadout is told "loadout" and changes nothing', e.errors(1).at(-1) === 'loadout');
+    e.say(0, {
+      type: 'war', op: 'start', mission: m.id, loadout: { rack: 5, warhead: 'emp' },
+    });
+    e.paths[0] = hover([900, Y, -900]);
+    e.paths[1] = hover([900, Y, -950]);
+    e.fly(COUNTDOWN_MS + 500);
+    const v = e.view();
+    check('the view echoes each seat\'s loadout, the host\'s from its start; a seat\'s rack is its airframes a round', v.loadouts[1].rack === 5
+      && v.loadouts[1].warhead === 'emp' && v.loadouts[2].rack === 6 && v.loadouts[2].warhead === 'wide' && v.loadouts[2].speedMul === 1.1
+      && v.rackMax === 11 && e.r.war.allowance(2) === 6, JSON.stringify(v.loadouts));
+    e.say(1, { type: 'war', op: 'loadout', loadout: { rack: 4 } });
+    check('a loadout is refused "live" once the war is on', e.errors(1).at(-1) === 'live' && e.view().loadouts[2].rack === 6);
+  }
+  /* A Strike east along z = 0 met head on by seat 1, and a second 4 m
+   * (or 20 m) behind it; seat 1's warhead as given, its path `side` m
+   * off the Strikes' line. */
+  const headOn = (warhead, { side = 0, behind = 0.15, until = 2000 } = {}) => {
+    const m = testMission([
+      { at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' },
+      { at: 1 + behind, kind: 'strike', n: 1, route: 'r', target: 'a' },
+    ], { r: [[-1200, Y, 0], [-600, Y, 0]] });
+    const e = warRoom({ mission: m, start: false });
+    e.say(0, { type: 'war', op: 'loadout', loadout: { warhead } });
+    e.say(0, { type: 'war', op: 'start', mission: m.id });
+    const meetT = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
+    e.paths[0] = level(-900 + 15 * meetT / 1000, side, -15);
+    e.paths[1] = hover([900, Y, -900]);
+    e.fly(meetT + until);
+    return { e, meetT, m };
+  };
+  {
+    const std = headOn('standard', { side: 7.5 });
+    const wide = headOn('wide', { side: 7.5 });
+    check('a standard warhead passing 7.5 m off does not go off; a wide one (9 m) does, and takes both Strikes',
+      !std.e.r.war.log.some((x) => x.what === 'boom') && wide.e.of(1, 'dead').some((d) => d.why === 'boom' && d.ids.join() === '1,2'),
+      JSON.stringify(wide.e.r.war.log.filter((x) => x.what === 'boom')));
+  }
+  {
+    const { e } = headOn('penetrator');
+    const dead = e.of(1, 'dead');
+    const v = e.view();
+    check('a penetrator takes the first Strike without ending the flight (no boom, nothing spent), then goes off on the second',
+      dead.length === 2 && dead[0].why === 'pierce' && dead[0].ids.join() === '1' && dead[1].why === 'boom' && dead[1].ids.join() === '2'
+      && e.of(1, 'boom').length === 1 && v.spent[1] === 1 && v.earned[1] === 2, JSON.stringify(dead.map((d) => [d.why, d.ids])));
+  }
+  {
+    const { e, meetT, m } = headOn('emp', { behind: 0.75, until: 800 });
+    const stall = e.of(1, 'stall');
+    const x = e.r.war.live.get(2);
+    const tc = stall.length ? stall[0].at : 0;
+    const a = x ? poseAt(x.plan, tc + 500).p : null;
+    const b = x ? poseAt(x.plan, tc + 3500).p : null;
+    const plain = planAgent(m, { ...x.a, stalls: undefined });
+    check(`an EMP goes off as a standard warhead and stalls the Strike 20 m behind for ${EMP_MS} ms: told as 'stall', held still, its arrival ${EMP_MS} ms later`,
+      stall.length === 1 && stall[0].ids.join() === '2' && stall[0].ms === EMP_MS && e.view().disabled[2] === tc + EMP_MS
+      && e.of(1, 'dead')[0].ids.join() === '1' && a && Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < 1e-9
+      && Math.abs(x.plan.tEnd - plain.tEnd - EMP_MS) < 1e-6, JSON.stringify({ stall, meetT }));
+  }
+  {
+    /* A decoy: worth nothing where it arrives, nothing saved when killed. */
+    const m = testMission([{ at: 1, kind: 'decoy', n: 1, route: 'r', target: 'a' }], { r: [[-1200, Y, 0], [-600, Y, 0]] });
+    const e = warRoom({ mission: m });
+    e.paths[0] = hover([900, Y, -900]);
+    e.paths[1] = hover([900, Y, -950]);
+    e.fly(COUNTDOWN_MS + 1000 + (1200 / KIND.decoy.speed) * 1000 + 500);
+    const at = e.of(1, 'dead').find((d) => d.why === 'arrive');
+    const v = e.view();
+    check('a decoy flies as a Striker and arrives worth nothing: no hit, the output whole, the round a win', at && at.hit === false
+      && v.output === 3000 && v.roundResult === 'win', JSON.stringify(at));
+    const k = headOn('standard');
+    check('the stars: held, no losses, the output: three on a clean win, credits 100 a star and 10 a kill', k.e.view().result
+      && k.e.view().result.won && k.e.view().result.stars === 3 && k.e.view().result.credits === 320
+      && k.e.view().result.criteria.map((c) => `${c.id}:${c.met}`).join() === 'held:true,noLosses:true,output:true', JSON.stringify(k.e.view().result));
+    check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
+    check('itaipu-4 is mission 1 at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
+      && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-1'].waves);
   }
 
   console.log('war: a round never waits on a pilot who is not flying');
