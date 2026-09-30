@@ -23,6 +23,13 @@
  * A Clip is the same columns, cut out of the ring in order: what the editor
  * plays and what a saved replay holds (src/replay/file.js).
  *
+ * Each row also keeps the map's animation clock the frame was drawn at
+ * (the ms view.updateAnim was given: the traffic, the gondola, the
+ * geysers), so a replay draws the car the craft landed on where it was
+ * then and not where it has driven to since. A clip carries that column
+ * (`anim`) only when every row in it has one; one without it, from a
+ * file saved before, is drawn at the live clock as it always was.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -94,11 +101,12 @@ function columns(n) {
     plant: new Float64Array(n * PLANT_N),
     parts: new Float32Array(n * PARTS_MAX * PART_N),
     smoke: new Float32Array(n * SMOKE_N),
+    anim: new Float64Array(n),
   };
 }
 
 /* The bytes one frame costs, for the memory report. */
-export const FRAME_BYTES = 8 + HEAD_N * 8 + POSE_N * 4 + PLANT_N * 8 + PARTS_MAX * PART_N * 4 + SMOKE_N * 4;
+export const FRAME_BYTES = 8 + HEAD_N * 8 + POSE_N * 4 + PLANT_N * 8 + PARTS_MAX * PART_N * 4 + SMOKE_N * 4 + 8;
 
 /* FNV-1a over a state vector's bytes: what TAKE OVER checks the plant
  * against once it is put back. */
@@ -146,11 +154,17 @@ export function createRecorder(capacity = CAPACITY) {
     const h = i * HEAD_N;
     c.head[h + HEAD.simT] = simT;
     c.head[h + HEAD.parts] = 0;
+    c.anim[i] = NaN;
     const cutoff = clock - WINDOW_S - 2;
     while (events.length && events[0].t < cutoff) {
       events.shift();
     }
     return i;
+  }
+
+  /* The map's animation clock this frame is drawn at, ms. */
+  function anim(i, ms) {
+    c.anim[i] = ms;
   }
 
   /* The craft as drawn: a Three.js position and quaternion. */
@@ -306,6 +320,7 @@ export function createRecorder(capacity = CAPACITY) {
     const [first, n] = span();
     const out = columns(n);
     const t0 = n ? c.time[first] : 0;
+    let animated = n > 0;
     for (let k = 0; k < n; k += 1) {
       const i = (first + k) % capacity;
       out.time[k] = c.time[i] - t0;
@@ -315,13 +330,18 @@ export function createRecorder(capacity = CAPACITY) {
       const np = c.head[i * HEAD_N + HEAD.parts];
       out.parts.set(c.parts.subarray(i * PARTS_MAX * PART_N, i * PARTS_MAX * PART_N + np * PART_N), k * PARTS_MAX * PART_N);
       out.smoke.set(c.smoke.subarray(i * SMOKE_N, (i + 1) * SMOKE_N), k * SMOKE_N);
+      out.anim[k] = c.anim[i];
+      animated = animated && Number.isFinite(c.anim[i]);
+    }
+    if (!animated) {
+      delete out.anim;
     }
     const evs = events.filter((e) => n && e.t >= t0).map((e) => ({ ...e, t: e.t - t0 }));
     return { n, ...out, events: evs, spawns: spawns.map((s) => s.slice()), meta: { ...meta } };
   }
 
   return {
-    begin, pose, drive, plant, smoke, status, parts, spawnIndex, event, clear, clip, span, dropNewest,
+    begin, anim, pose, drive, plant, smoke, status, parts, spawnIndex, event, clear, clip, span, dropNewest,
     size: () => size,
     capacity,
     bytes: capacity * FRAME_BYTES,
@@ -351,6 +371,7 @@ export function trimClip(clip, t0, t1) {
     plant: clip.plant.slice(a * PLANT_N, (b + 1) * PLANT_N),
     parts: clip.parts.slice(a * PARTS_MAX * PART_N, (b + 1) * PARTS_MAX * PART_N),
     smoke: clip.smoke.slice(a * SMOKE_N, (b + 1) * SMOKE_N),
+    ...(clip.anim ? { anim: clip.anim.slice(a, b + 1) } : {}),
     events: clip.events.filter((e) => e.t >= base && e.t <= clip.time[b]).map((e) => ({ ...e, t: e.t - base })),
     keys: (clip.keys || []).filter((k) => k.t >= base && k.t <= clip.time[b]).map((k) => ({ ...k, t: k.t - base })),
     meta: { ...clip.meta, duration: time[n - 1] },
@@ -436,8 +457,15 @@ export function createSample() {
     parts: new Float64Array(PARTS_MAX * S_DOUBLES),
     count: 0,
     smoke: new Float64Array(SMOKE_N),
+    anim: null,
   };
 }
+
+/* The longest step between two rows' animation clocks that is the clock
+ * running, ms; a longer one, or one back, is the clock being set (R puts
+ * the lap clock back to zero) and is not drawn as traffic driving between
+ * the two. A frame steps the clock at most 100 ms. */
+const ANIM_RUN_MS = 250;
 
 export function sampleAt(clip, t, s = createSample()) {
   const [k, a] = locate(clip, t);
@@ -446,7 +474,15 @@ export function sampleAt(clip, t, s = createSample()) {
   s.a = a;
   if (clip.n === 0) {
     s.count = 0;
+    s.anim = null;
     return s;
+  }
+  if (clip.anim) {
+    const m0 = clip.anim[k];
+    const d = clip.anim[k1] - m0;
+    s.anim = d >= 0 && d <= ANIM_RUN_MS ? m0 + d * a : m0;
+  } else {
+    s.anim = null;
   }
   const P = clip.pose;
   const p0 = k * POSE_N;
