@@ -162,7 +162,7 @@ export function buildBridge(f, ground, sink) {
   }
   return {
     record, boxes, caps, measures: {
-      length: s1 - s0, deckY, water, span, springY, crownY, columns,
+      length: s1 - s0, width: f.width, deckY, water, span, springY, crownY, columns,
     },
   };
 }

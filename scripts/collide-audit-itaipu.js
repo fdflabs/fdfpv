@@ -782,7 +782,10 @@ const TARGETS = `(async () => {
     let far = pts[0];
     for (const p of pts) if (Math.hypot(p[0] - cx, p[1] - cz) > Math.hypot(far[0] - cx, far[1] - cz)) far = p;
     const along = flat([far[0] - cx, 0, far[1] - cz]);
-    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx, f.deckY - 0.8, cz], dir: perp(along), expect: 'stopped' });
+    /* Across it, at its near side: a flight is judged by where it is
+     * first met, and the deck is 14 m wide. */
+    const across = perp(along);
+    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx - across[0] * f.width / 2, f.deckY - 0.8, cz - across[2] * f.width / 2], dir: across, expect: 'stopped' });
     T.push({ name: 'Friendship Bridge deck, landed on', at: [cx, f.deckY, cz], dir: along, expect: 'passed', land: true });
     /* Its arch: the rib capsule and the column nearest the deck's middle,
      * crossed level at their middles, across the bridge. */
