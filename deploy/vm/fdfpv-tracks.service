@@ -28,7 +28,14 @@ User=fdfpv-tracks
 Group=fdfpv-tracks
 WorkingDirectory=/opt/fdfpv
 Environment=HOST=127.0.0.1 PORT=8787 TRACKS_DB=/var/lib/fdfpv-tracks/tracks.db
+# The optional Google sign-in (tracks-api/accounts.js). The client id is
+# public, the same string as GOOGLE_CLIENT_ID in src/share/account.js.
+# ACCOUNTS_SECRET seals the pilot keys accounts carry; deploy.sh makes it
+# on the VM the first time, in accounts.env, which only this unit reads.
+# Without both, the account routes answer 503 and nothing else changes.
+Environment=GOOGLE_CLIENT_ID=533228474420-ij6t37upmahvcg96tava16ild8mdno4t.apps.googleusercontent.com
 EnvironmentFile=/etc/fdfpv/tracks.env
+EnvironmentFile=-/etc/fdfpv/accounts.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
 # start; the journal does not need to hear it.
 ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 tracks-api/node.js

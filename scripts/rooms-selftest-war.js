@@ -21,8 +21,8 @@
  */
 
 import {
-  AGENTS_ENTRY, AGENTS_HEAD, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
-  checkProfile, decodeAgents, encodeAgents, encodePose,
+  AGENTS_ENTRY, AGENTS_HEAD, HUNTS_ENTRY, HUNTS_HEAD, TYPE_HUNTS, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, PROTO, PUBLIC_CAP, ROOM_GAMES, TYPE_AGENTS,
+  checkProfile, decodeAgents, decodeHunts, encodeAgents, encodeHunts, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
@@ -30,7 +30,7 @@ import {
   EMP_MS, GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS, WARHEADS, parseLoadout,
 } from '../edge/rooms/war.js';
 import {
-  BLAST_M, KIND, KINDS, cosDet, planAgent, poseAt, sinDet,
+  BLAST_M, KIND, KINDS, LEAVE_M, cosDet, planAgent, poseAt, sinDet,
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
@@ -156,6 +156,13 @@ export function warSection(check) {
       && Math.abs(back.agents[0].p[0] + 1234.5) < 1e-3 && Math.abs(back.agents[0].q[1] + Math.SQRT1_2) < 1e-4 && back.agents[1].q[3] === 1,
     JSON.stringify(back && back.agents[0]));
     check('a wrong length is nothing', decodeAgents(bytes.subarray(0, bytes.length - 1)) === null && decodeAgents(new Uint8Array([0x20, 0, 0, 0, 0, 0])) === null);
+    const hunts = encodeHunts(123456, [{ id: 7, target: 3 }, { id: 65535, target: -1 }, { id: 9, target: null }, { id: 10, target: 255 }]);
+    const hb = decodeHunts(hunts);
+    check('HUNTS is 0xA1, a 6 byte head and 3 bytes an agent: id and target seat, 255 none', hunts[0] === TYPE_HUNTS && TYPE_HUNTS === 0xA1
+      && hunts.length === HUNTS_HEAD + 4 * HUNTS_ENTRY && HUNTS_HEAD === 6 && HUNTS_ENTRY === 3 && hb && hb.roomMs === 123456
+      && JSON.stringify(hb.agents) === '[{"id":7,"target":3},{"id":65535,"target":null},{"id":9,"target":null},{"id":10,"target":null}]', JSON.stringify(hb));
+    check('a client from before HUNTS reads AGENTS unchanged and takes HUNTS for nothing', decodeAgents(hunts) === null && decodeHunts(bytes) === null
+      && decodeHunts(hunts.subarray(0, hunts.length - 1)) === null);
     check('war is a room game a profile can name', ROOM_GAMES.includes('war')
       && checkProfile({ airframe: 'cub1400', map: 'itaipu', figure: 0, game: 'war' }).game === 'war');
     check('the kinds are section 3\'s seven and the decoy after them, hunter at index 4', KINDS.length === 8 && KINDS[4] === 'hunter' && KINDS[7] === 'decoy'
@@ -818,6 +825,21 @@ export function warSection(check) {
     const bornD = dead.of(0, 'born').flatMap((b) => b.agents).filter((a) => a.kind === 'strike');
     check('once every scout is dead, each attacker draws a seeded error within the spread', dead.r.war.log.some((x) => x.what === 'boom')
       && bornD.length === 2 && bornD.every((a) => a.err !== 0 && Math.abs(a.err) <= 50) && bornD[0].err !== bornD[1].err, JSON.stringify(bornD));
+    const said = dead.of(0, 'dead').filter((d) => d.scouts === true);
+    const quiet = alive.of(0, 'dead').filter((d) => d.scouts === true);
+    check('the boom that kills a scout wave\'s last says so, once (scouts: true), and nothing else does', said.length === 1 && said[0].why === 'boom'
+      && dead.of(0, 'dead').filter((d) => 'scouts' in d).length === 1 && quiet.length === 0, JSON.stringify(said));
+    /* Its 600 m of route, its circle, then LEAVE_M: gone, and 10 s on. */
+    const goneS = 1 + 600 / KIND.scout.speed + KIND.scout.orbitMs / 1000 + LEAVE_M / KIND.scout.speed;
+    const lateAt = Math.ceil(goneS) + 10;
+    const late = [{ at: 1, kind: 'scout', n: 1, route: 's' }, { at: lateAt, kind: 'strike', n: 2, route: 'r', target: 'a', spread: 50 }];
+    const away = warRoom({ mission: testMission(late, routes) });
+    away.paths[0] = hover([900, Y, 900]);
+    away.fly(COUNTDOWN_MS + lateAt * 1000);
+    const bornL = away.of(0, 'born').flatMap((b) => b.agents).filter((a) => a.kind === 'strike');
+    const left = away.of(0, 'dead').filter((d) => d.why === 'leave');
+    check('a scout that got away is not dead: no scouts down, and the next wave flies its routes exactly', left.length === 1
+      && !away.of(0, 'dead').some((d) => d.scouts) && bornL.length === 2 && bornL.every((a) => a.err === 0), `${left.length} left, ${JSON.stringify(bornL)}`);
   }
 
   console.log('war: hunters');
@@ -833,6 +855,12 @@ export function warSection(check) {
     check('the room sends a hunter\'s poses, as AGENTS, closing on the nearest pilot (400 m off: the 5 Hz band)', near >= 9 && bin.at(-1).agents[0].kind === KINDS.indexOf('hunter')
       && bin.at(-1).agents[0].p[0] < 400 - KIND.hunter.speed, `${near} messages, last at x ${bin.length ? bin.at(-1).agents[0].p[0].toFixed(1) : '-'}`);
     check('thinned by distance: the pilot 3 km off gets them at the far band\'s rate', far > 0 && far < near / 4, `${far} against ${near}`);
+    const hunts0 = e.socks[0].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts);
+    const hunts1 = e.socks[1].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts);
+    check('every AGENTS comes with a HUNTS for the same hunters at the same ms, naming the seat it chases (1, the near pilot)', hunts0.length === bin.length
+      && hunts0.every((h, i) => h.roomMs === bin[i].roomMs && h.agents.map((a) => a.id).join() === bin[i].agents.map((a) => a.id).join())
+      && hunts0.at(-1).agents[0].target === 1 && hunts1.length === far && hunts1.at(-1).agents[0].target === 1,
+    `${hunts0.length} HUNTS against ${bin.length} AGENTS, target ${hunts0.length ? hunts0.at(-1).agents[0].target : '-'}`);
     e.fly(COUNTDOWN_MS + 1000 + (400 / KIND.hunter.speed) * 1000 + 4000);
     const booms = e.r.war.log.filter((x) => x.what === 'boom');
     check('a hunter that reaches a pilot takes it and itself', booms.length === 1 && booms[0].seat === 1 && e.view().state === 'won', JSON.stringify(e.r.war.log));

@@ -1,0 +1,174 @@
+<!doctype html>
+<!--
+  privacy.html: what FDFPV stores, where, and how to have it removed.
+
+  Written for Google's OAuth consent screen, which links here, and for any
+  pilot who wonders. Every sentence is meant to be checkable against the
+  code: tracks-api/accounts.js and tracks-api/migrations/ for accounts,
+  tracks-api/worker.js for tracks, edge/rooms/ for rooms, and the board's
+  own README for times, tickets and statistics. Change this page in the
+  same pull request as any change to what is kept.
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FDFPV privacy</title>
+    <meta name="description" content="What FDFPV stores when you play, sign in, post a time or report a bug, where it is kept, and how to have it removed." />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#141c16" />
+    <style>
+      :root {
+        --cream: #f3ead4;
+        --sakura: #e8a8b8;
+        --amber: #ffd45c;
+        --slate: #9db3c8;
+        --deep: #141c16;
+        --panel: #1a241c;
+      }
+      html { background: var(--deep); }
+      body {
+        margin: 0 auto; max-width: 46rem; padding: 2.5rem 1.25rem 4rem;
+        font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--cream); background: var(--deep);
+      }
+      h1 { font-size: 2rem; margin: 0 0 0.25rem; letter-spacing: 0.01em; }
+      h1 span { color: var(--sakura); }
+      h2 { font-size: 1.2rem; color: var(--sakura); margin: 2.2rem 0 0.5rem; }
+      p, li { color: var(--cream); }
+      .lede, .updated { color: var(--slate); }
+      a { color: var(--amber); }
+      ul { padding-left: 1.2rem; }
+      li { margin: 0.35rem 0; }
+      .panel { background: var(--panel); border-radius: 10px; padding: 0.9rem 1.1rem; margin: 1rem 0; }
+      hr { border: 0; border-top: 1px solid #2b3a2e; margin: 3rem 0 2rem; }
+      nav a { margin-right: 1rem; }
+    </style>
+  </head>
+  <body>
+    <nav><a href="./">FDFPV</a><a href="terms.html">Terms</a><a href="#es">Español</a></nav>
+    <h1>FD<span>FPV</span> privacy</h1>
+    <p class="updated">Last changed 29 September 2026.</p>
+    <p class="lede">FDFPV is a free, open source FPV simulator that runs in your browser. You can play without an account. This page says what is kept when you do the things that send anything anywhere, where it is kept, and how to have it removed.</p>
+
+    <div class="panel">
+      <p><strong>We never store your email address.</strong> Signing in with Google gives the game a token that contains your email among other things; the server reads only Google's account id from it and keeps nothing else.</p>
+    </div>
+
+    <h2>If you sign in with Google</h2>
+    <p>Signing in is optional. When you do, our server keeps:</p>
+    <ul>
+      <li><strong>Google's account id</strong> for you (the <code>sub</code> in Google's token): a number that tells us it is you again next time. Not your name, email or picture.</li>
+      <li><strong>Your callsign</strong>, the name you choose. It is public: rooms, the board and lap times show it.</li>
+      <li><strong>Your progress</strong>, so it follows you to other computers: unlocks and experience, the tracks and challenges you have flown, your aircraft paint and saved liveries, your tunes (rates, PIDs, bench setups, power and parts choices).</li>
+      <li><strong>Your pilot key</strong>, the key that signs your lap times and owns your tracks, so every computer you sign in on is the same pilot. It is stored encrypted.</li>
+      <li><strong>Session records</strong>: a one way hash of each signed in browser's session, which ends after 30 days or when you sign out.</li>
+    </ul>
+    <p>Your tracks follow you because they are owned by that pilot key; they are the same public tracks described below. When you first sign in on a computer, the game asks before moving that computer's own names, times and tracks into your account.</p>
+    <p>Google's part of signing in is covered by <a href="https://policies.google.com/privacy">Google's privacy policy</a>. We do not use Google for anything else and ask Google for nothing beyond who you are.</p>
+
+    <h2>Things you publish</h2>
+    <ul>
+      <li><strong>Tracks</strong> you save while online are public: anyone can list, fly and copy them. Each keeps its name, the pilot name you gave, the world it is built in and your pilot key's public half.</li>
+      <li><strong>Lap times</strong> posted to the board are public, with the name they were posted under, the recording of the lap (its "ghost", the flight path) and your pilot key's public half.</li>
+      <li><strong>Tracks published to the board</strong> keep their document, author name and an animated preview.</li>
+    </ul>
+
+    <h2>Bug reports and feedback</h2>
+    <p>A report sent with F8 or the flight feel form keeps what you type, the name you give (or "Anonymous"), any screenshots you attach, and technical context to reproduce the problem: the page address, your browser and graphics chip, the screen and world you were on, your flight settings, and the last crash or page error if there was one. Only the people who run FDFPV can read reports.</p>
+
+    <h2>Flying with friends</h2>
+    <p>In a room, your position, aircraft, paint and pilot figure are passed to the other pilots in that room while you fly, and not recorded. A private room's code and its race are kept until ten minutes after the last pilot leaves, so a pilot who drops can rejoin. If you are signed in, the room checks your session with our server to show your callsign, and does not keep the session.</p>
+
+    <h2>Site statistics</h2>
+    <p>The board counts pilots, sessions, laps, flight time and crashes as totals per day, with the country as two letters and the aircraft, input and map as one of a fixed list. No row describes one visitor, and no address, browser, name or track is kept with them. Your browser decides whether you are new or returning from a date it keeps itself. A browser that sends Global Privacy Control is not counted, and the board has a switch to stop counting yours.</p>
+
+    <h2>Addresses and logs</h2>
+    <p>Our servers use your IP address to answer you and to limit how often one address can save, sign in or join. The tracks server keeps a one way hash of the address for the ten minute window that limit counts, and drops it with the window; the rooms server holds addresses in memory only, while a room is open. The server front keeps no access log.</p>
+
+    <h2>In your browser</h2>
+    <p>Your settings, pilot name, pilot key, tracks and replays are kept in your own browser's storage. No cookies are set. Clearing the site's data removes them from that browser.</p>
+
+    <h2>Where it is kept</h2>
+    <p>The page itself is served by GitHub Pages. The tracks server, the rooms server and the board run on one server we operate on Oracle Cloud in São Paulo, Brazil. Nothing is sold or shared with anyone for advertising, and there is no advertising.</p>
+
+    <h2>How long, and how to delete it</h2>
+    <ul>
+      <li><strong>Your account</strong>: until you delete it. In the game, open Pilot and choose <em>Delete my account</em>. Your account id, callsign, progress, pilot key and sessions are removed from the server at once, and your callsign is free for others.</li>
+      <li><strong>Sessions</strong>: 30 days, or until you sign out.</li>
+      <li><strong>Tracks, lap times, board tracks and bug reports</strong>: until they are removed. Deleting your account does not remove them, because they are public records other pilots race against. To have yours removed, send a report with F8 in the game saying which ones (only the people who run FDFPV read it), or open an issue at <a href="https://github.com/fdflabs/fdfpv/issues">github.com/fdflabs/fdfpv/issues</a> (issues there are public).</li>
+    </ul>
+    <p>The same two ways reach us with any question about this page.</p>
+
+    <hr />
+
+    <h1 id="es">Privacidad de FD<span>FPV</span></h1>
+    <p class="updated">Último cambio: 29 de septiembre de 2026.</p>
+    <p class="lede">FDFPV es un simulador FPV libre y de código abierto que corre en tu navegador. Puedes jugar sin cuenta. Esta página dice qué se guarda cuando haces algo que envía datos, dónde se guarda y cómo pedir que se borre.</p>
+
+    <div class="panel">
+      <p><strong>Nunca guardamos tu correo.</strong> Iniciar sesión con Google le da al juego un token que, entre otras cosas, trae tu correo; el servidor solo lee de él el id de tu cuenta de Google y no guarda nada más.</p>
+    </div>
+
+    <h2>Si inicias sesión con Google</h2>
+    <p>Es opcional. Si lo haces, nuestro servidor guarda:</p>
+    <ul>
+      <li><strong>El id de tu cuenta de Google</strong> (el <code>sub</code> del token): un número para reconocerte la próxima vez. No tu nombre, correo ni foto.</li>
+      <li><strong>Tu indicativo</strong>, el nombre que eliges. Es público: lo muestran las salas, el tablero y los tiempos de vuelta.</li>
+      <li><strong>Tu progreso</strong>, para que te siga a otras computadoras: desbloqueos y experiencia, las pistas y desafíos que volaste, la pintura y libreas guardadas, tus ajustes (rates, PIDs, banco, motor y piezas).</li>
+      <li><strong>Tu clave de piloto</strong>, la que firma tus tiempos y es dueña de tus pistas, para que cada computadora donde inicies sesión sea el mismo piloto. Se guarda cifrada.</li>
+      <li><strong>Registros de sesión</strong>: un hash de una vía de la sesión de cada navegador, que termina a los 30 días o al cerrar sesión.</li>
+    </ul>
+    <p>Tus pistas te siguen porque son de esa clave de piloto; son las mismas pistas públicas de abajo. La primera vez que inicias sesión en una computadora, el juego pregunta antes de pasar a tu cuenta los nombres, tiempos y pistas de esa computadora.</p>
+    <p>La parte de Google la cubre la <a href="https://policies.google.com/privacy?hl=es">política de privacidad de Google</a>. No usamos Google para nada más.</p>
+
+    <h2>Lo que publicas</h2>
+    <ul>
+      <li><strong>Pistas</strong> guardadas en línea: públicas, cualquiera puede verlas, volarlas y copiarlas. Guardan su nombre, tu nombre de piloto, el mundo y la mitad pública de tu clave.</li>
+      <li><strong>Tiempos de vuelta</strong> en el tablero: públicos, con el nombre, la grabación de la vuelta (su "fantasma", la trayectoria) y la mitad pública de tu clave.</li>
+      <li><strong>Pistas publicadas en el tablero</strong>: su documento, el nombre del autor y una vista animada.</li>
+    </ul>
+
+    <h2>Reportes de errores y opiniones</h2>
+    <p>Un reporte con F8 o el formulario de sensación de vuelo guarda lo que escribes, el nombre que das (o "Anonymous"), las capturas que adjuntes y el contexto técnico para reproducir el problema: la dirección de la página, tu navegador y chip gráfico, la pantalla y el mundo, tus ajustes de vuelo, y el último choque o error si lo hubo. Solo quienes llevan FDFPV pueden leerlos.</p>
+
+    <h2>Volar con amigos</h2>
+    <p>En una sala, tu posición, aeronave, pintura y figura pasan a los demás pilotos de esa sala mientras vuelas, sin grabarse. El código y la carrera de una sala privada se guardan hasta diez minutos después de que sale el último piloto. Con sesión iniciada, la sala consulta tu sesión con nuestro servidor para mostrar tu indicativo, y no la guarda.</p>
+
+    <h2>Estadísticas del sitio</h2>
+    <p>El tablero cuenta pilotos, sesiones, vueltas, tiempo de vuelo y choques como totales por día, con el país en dos letras y la aeronave, el control y el mapa de una lista fija. Ninguna fila describe a un visitante, y no se guarda con ellas ninguna dirección, navegador, nombre ni pista. Un navegador que envía Global Privacy Control no se cuenta, y el tablero tiene un interruptor para no contar el tuyo.</p>
+
+    <h2>Direcciones y registros</h2>
+    <p>Nuestros servidores usan tu dirección IP para responderte y para limitar cuántas veces una dirección guarda, inicia sesión o entra a una sala. El servidor de pistas guarda un hash de la dirección durante la ventana de diez minutos que cuenta ese límite, y lo borra con ella; el de salas la tiene solo en memoria, mientras la sala está abierta. La entrada del servidor no guarda registro de accesos.</p>
+
+    <h2>En tu navegador</h2>
+    <p>Tus ajustes, nombre, clave de piloto, pistas y repeticiones se guardan en el almacenamiento de tu propio navegador. No se usan cookies.</p>
+
+    <h2>Dónde se guarda</h2>
+    <p>La página la sirve GitHub Pages. Los servidores de pistas, de salas y el tablero corren en un servidor que operamos en Oracle Cloud, en São Paulo, Brasil. Nada se vende ni se comparte para publicidad, y no hay publicidad.</p>
+
+    <h2>Cuánto tiempo, y cómo borrarlo</h2>
+    <ul>
+      <li><strong>Tu cuenta</strong>: hasta que la borres. En el juego, abre Piloto y elige <em>Borrar mi cuenta</em>. El id, el indicativo, el progreso, la clave y las sesiones se quitan del servidor en el acto, y tu indicativo queda libre.</li>
+      <li><strong>Sesiones</strong>: 30 días, o hasta cerrar sesión.</li>
+      <li><strong>Pistas, tiempos, pistas del tablero y reportes</strong>: hasta que se quiten. Borrar la cuenta no los quita, porque son registros públicos contra los que corren otros pilotos. Para quitar los tuyos, envía un reporte con F8 diciendo cuáles (solo lo leen quienes llevan FDFPV), o abre un issue en <a href="https://github.com/fdflabs/fdfpv/issues">github.com/fdflabs/fdfpv/issues</a> (allí son públicos).</li>
+    </ul>
+    <p>Por esas mismas dos vías puedes preguntarnos cualquier cosa sobre esta página.</p>
+  </body>
+</html>
