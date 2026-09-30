@@ -1,15 +1,23 @@
 /*
- * draw.js: the vegetation as it is drawn. Two things:
+ * draw.js: the vegetation as it is drawn. Three things:
  *
  * THE TREES round the camera, every one of them a planted tree
  * (plant.js), drawn as swiss2 draws its broadleaves (swiss2/vegetation/
  * species.js and plantmat.js): the whole model near, the reduced model in
  * the middle distance, the two dissolving into each other across a fade.
- * The forest's trees stop at the middle band's edge, where the canopy
- * below takes over; the trees that stand alone (the fields', the parks',
- * the eucalyptus rows) carry on as reduced models to FAR, because nothing
- * else draws them and the reference photographs have them in every
- * pasture seen from the air.
+ * Every kind but the palm is swiss2's broadleaf generator; the palm is
+ * built here (palm), fronds of the atlas's flat spray round a slender
+ * trunk. Each kind's leaves carry its own green in the vertex colours,
+ * lighter and yellower at the crown's rim where the sun comes through
+ * the outer leaves, so a forest is many greens and not one.
+ *
+ * THE FAR TREES, past the models' band: swiss2's impostors
+ * (swiss2/vegetation/impostor.js), every kind photographed from 24 sides
+ * at load and drawn as one camera facing quad a tree, all kinds in one
+ * draw. They carry on where nothing else draws a tree: the fields', the
+ * parks', the eucalyptus rows, the forest's edge and its emergents
+ * standing over the canopy, to FAR. The closed forest's inside stops at
+ * the models' band, where the canopy below takes over.
  *
  * THE CANOPY, the forest's far drawing: one surface over the whole
  * forest at the height the canopy model gives it, one batch of chunks
@@ -17,15 +25,17 @@
  * the ground's material decodes, look/ground.js) and shaded in the
  * fragment as crowns: a cell pattern ten metres across whose cells are
  * domes, dark in the gaps between them, each crown its own brightness,
- * with a finer one of the clumps inside a crown. Seen from the air a
- * closed forest is that: a carpet of crowns. The surface dissolves out
- * inside the trees' middle band on the same dither the trees dissolve
- * on (plantmat.js DITHER_GLSL), so the two share every pixel exactly once
- * at the seam. Where the forest ends the surface drops to the ground in
- * one grid cell, a sloped skirt shaded as leaves.
+ * with a finer one of the clumps inside a crown, and bigger crowns over
+ * the small ones here and there. Seen from the air a closed forest is
+ * that: a carpet of crowns. Inside the trees' band the surface sinks to
+ * the forest's understorey, dark between the drawn trees, and rises to
+ * the canopy's top across the band the trees dissolve in. Where the
+ * forest ends the surface drops to the ground in one grid cell, a sloped
+ * skirt shaded as leaves.
  *
  * Nothing here is physics: the colliders and the forest volume are
- * plant.js's.
+ * plant.js's, and the palm's colliders (palmClumps) are placed from the
+ * same numbers its fronds are.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -44,32 +54,399 @@
  */
 
 import * as THREE from 'three';
-import { buildVariant, triangles } from '../../swiss2/vegetation/species.js';
-import { plantMaterial, plantDepthMaterial, DITHER_GLSL } from '../../swiss2/vegetation/plantmat.js';
+import { makeRng } from '../../alps/noise.js';
+import { REGIONS } from '../../swiss2/vegetation/atlas.js';
 import {
-  HALF, KINDS, K_LONE, K_EUCALYPTUS, YAW_COS, YAW_SIN,
+  buildVariant, crownClumps, triangles, CLUMP_REACH,
+} from '../../swiss2/vegetation/species.js';
+import { plantMaterial, plantDepthMaterial } from '../../swiss2/vegetation/plantmat.js';
+import { bakeImpostors, impostorMaterial, impostorDepthMaterial } from '../../swiss2/vegetation/impostor.js';
+import {
+  HALF, KINDS, YAW_COS, YAW_SIN,
 } from './plant.js';
 import { FOREST_GRADE } from '../look/ground.js';
 
 /*
  * The bands per preset, m: the whole model to `near`, the reduced model
- * to `mid` for the forest and to `far` for the trees that stand alone,
- * each dissolving over `fade`; caps are instances per kind and level.
- * `shell` is the canopy's grid, m.
+ * to `mid`, each dissolving over `fade`, and the impostors from there to
+ * `far`, dissolving out over `farFade`; caps are instances per kind and
+ * level, and `capFar` impostors. `shell` is the canopy's grid, m.
  */
 export const TIERS = {
-  high: { near: 70, mid: 220, far: 1500, fade: 14, capNear: 1500, capMid: 6000, shell: 20 },
-  medium: { near: 40, mid: 170, far: 1100, fade: 10, capNear: 700, capMid: 3500, shell: 20 },
-  low: { near: 0, mid: 120, far: 800, fade: 8, capNear: 0, capMid: 2000, shell: 20 },
+  high: {
+    near: 70, mid: 220, far: 2500, fade: 14, farFade: 250, capNear: 1500, capMid: 6000, capFar: 30000, shell: 20,
+  },
+  medium: {
+    near: 40, mid: 170, far: 1800, fade: 10, farFade: 200, capNear: 700, capMid: 3500, capFar: 20000, shell: 20,
+  },
+  low: {
+    near: 0, mid: 120, far: 1200, fade: 8, farFade: 150, capNear: 0, capMid: 2000, capFar: 12000, shell: 20,
+  },
 };
 
-/* The foliage's tint over swiss2's atlas, which was painted for a Bernese
- * beech: the Atlantic forest in December is a deeper, bluer green, and a
- * tree alone in a pasture a lighter one. */
-const TINT_FOREST = new THREE.Color(0.62, 0.74, 0.6);
-const TINT_LONE = new THREE.Color(0.8, 0.88, 0.7);
+/* Each kind's green over swiss2's atlas, which was painted for a Bernese
+ * beech: the Atlantic forest in December is deeper and bluer, the second
+ * canopy tree (the edge's young growth) brighter, a tree alone in a
+ * pasture lighter, a eucalyptus grey, an emergent's sunlit top yellower
+ * and a palm yellow. In KINDS' order (plant.js). */
+const TINTS = [
+  [0.6, 0.74, 0.56],
+  [0.68, 0.8, 0.58],
+  [0.8, 0.88, 0.7],
+  [0.72, 0.8, 0.74],
+  [0.72, 0.78, 0.54],
+  [1.02, 1.12, 0.66],
+];
+/* The rim's lift: at the crown's shell its leaves are this much lighter
+ * and yellower, rising from RIM0 of the crown's radii out. */
+const RIM = [0.12, 0.15, -0.03];
+const RIM0 = 0.7;
 
-const SPARSE = (k) => k === K_LONE || k === K_EUCALYPTUS;
+const UP = new THREE.Vector3(0, 1, 0);
+
+/* swiss2's species.js Builder, which it does not export: the attributes
+ * its plant materials read. */
+class Mesher {
+  constructor() {
+    this.pos = [];
+    this.nrm = [];
+    this.uv = [];
+    this.col = [];
+    this.flex = [];
+    this.idx = [];
+  }
+
+  vert(p, n, u, v, c, f) {
+    this.pos.push(p.x, p.y, p.z);
+    this.nrm.push(n.x, n.y, n.z);
+    this.uv.push(u, v);
+    this.col.push(c[0], c[1], c[2]);
+    this.flex.push(f);
+    return this.pos.length / 3 - 1;
+  }
+
+  strip(a, b) {
+    for (let k = 0; k + 1 < a.length; k += 1) {
+      this.idx.push(a[k], b[k], a[k + 1], a[k + 1], b[k], b[k + 1]);
+    }
+  }
+
+  geometry() {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.nrm, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(this.col, 3));
+    g.setAttribute('aFlex', new THREE.Float32BufferAttribute(this.flex, 1));
+    g.setIndex(this.idx);
+    g.computeBoundingSphere();
+    g.computeBoundingBox();
+    return g;
+  }
+}
+
+/* The palm's proportions in its model's height: the trunk's radius at the
+ * foot, a frond's length, and the crown's head, which the colliders
+ * (palmClumps) and the fronds share. */
+const PALM_R = 0.017;
+const PALM_FROND = 0.36;
+const palmHead = (v) => {
+  const rng = makeRng(v.seed * 7);
+  return { top: v.trunk * v.h, bx: (rng() - 0.5) * 0.08 * v.h, bz: (rng() - 0.5) * 0.08 * v.h };
+};
+
+/*
+ * A jeriva (Syagrus romanzoffiana), the palm of every pasture and park
+ * round the dam: a slender grey trunk and a head of arching feathery
+ * fronds, the top ones rising, the lowest hanging, a dead one or two
+ * brown under them. A frond is two cards of the atlas's flat fir spray
+ * (a stem with leaflets both sides, which is what a pinnate frond is)
+ * along its arch, rolled either side of level into a shallow V, as the
+ * jeriva's leaflets stand in more than one plane. 'mid' has half the
+ * fronds on fewer segments, and the trunk from the atlas's bark strip.
+ */
+function palm(variant, lod) {
+  const near = lod === 'near';
+  const rng = makeRng(variant.seed * 7 + (near ? 1 : 4));
+  const H = variant.h;
+  const foliage = new Mesher();
+  const barkB = near ? new Mesher() : foliage;
+  const strip = REGIONS.bark;
+  const region = REGIONS.fir;
+  const { top, bx, bz } = palmHead(variant);
+  const r0 = PALM_R * H;
+  const sides = near ? 7 : 4;
+  const rows = near ? 6 : 1;
+  const rings = [];
+  for (let j = 0; j <= rows; j += 1) {
+    const t = j / rows;
+    const y = top * t;
+    const r = r0 * (1 - 0.25 * t) + r0 * 0.6 * Math.exp(-y / 0.5);
+    const cx = bx * t * t;
+    const cz = bz * t * t;
+    const boot = t > 0.93 ? 0.7 : 1;
+    const ring = [];
+    for (let i = 0; i <= sides; i += 1) {
+      const a = (i / sides) * Math.PI * 2;
+      const n = new THREE.Vector3(Math.cos(a), 0.05, Math.sin(a)).normalize();
+      const p = new THREE.Vector3(cx + Math.cos(a) * r, y, cz + Math.sin(a) * r);
+      const uv = near
+        ? [(i / sides) * Math.max(1, Math.round((2 * Math.PI * r) / 0.9)), y / 1.1]
+        : [strip.u0 + (i / sides) * strip.du, strip.v0 + t * strip.dv];
+      const c = (0.78 + 0.12 * t) * boot;
+      ring.push(barkB.vert(p, n, uv[0], uv[1], [c, c * 0.98, c * 0.93], 0));
+    }
+    rings.push(ring);
+  }
+  for (let j = 0; j < rows; j += 1) {
+    barkB.strip(rings[j], rings[j + 1]);
+  }
+  const head = new THREE.Vector3(bx, top, bz);
+  const fronds = near ? 16 : 8;
+  const frond = (a, pitch, L, droop, colourAt, rolls) => {
+    const dir = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
+    const path = (u) => head.clone()
+      .addScaledVector(dir, L * u * Math.cos(pitch))
+      .addScaledVector(UP, L * (u * Math.sin(pitch) - droop * u * u));
+    const tangent = (u) => path(Math.min(1, u + 0.02)).sub(path(Math.max(0, u - 0.02))).normalize();
+    const nrm = dir.clone().multiplyScalar(0.45).addScaledVector(UP, 0.55).normalize();
+    for (const roll of rolls) {
+      card(foliage, {
+        path,
+        side: (u) => {
+          const tg = tangent(u);
+          const sd = new THREE.Vector3().crossVectors(UP, tg).normalize();
+          const bi = new THREE.Vector3().crossVectors(tg, sd);
+          return sd.multiplyScalar(Math.cos(roll)).addScaledVector(bi, Math.sin(roll));
+        },
+        w: (u) => L * 0.16 * (0.3 + 0.7 * Math.sin(Math.PI * Math.min(1, 0.15 + u))),
+        segs: near ? 4 : 2,
+        region,
+        colour: colourAt,
+        normalAt: () => nrm,
+        flexAt: (u) => 0.35 + 0.65 * u,
+      });
+    }
+  };
+  for (let i = 0; i < fronds; i += 1) {
+    const s = i / (fronds - 1);
+    const a = i * 2.39996 + rng() * 0.4;
+    const pitch = 1.05 - 1.45 * s + (rng() - 0.5) * 0.25;
+    const L = PALM_FROND * H * (0.85 + 0.25 * rng()) * (s < 0.15 ? 0.8 : 1);
+    const tint = 0.9 + 0.2 * rng();
+    const colourAt = (u) => {
+      const ao = (0.62 + 0.38 * u) * (0.8 + 0.2 * (1 - s)) * tint;
+      return [ao, ao, ao];
+    };
+    frond(a, pitch, L, 0.25 + 0.45 * s, colourAt, [0.55, -0.55]);
+  }
+  if (near) {
+    for (let i = 0; i < 2; i += 1) {
+      const a = rng() * Math.PI * 2;
+      frond(a, -1.25, PALM_FROND * H * 0.8, 0.1, () => [0.95, 0.72, 0.42], [0]);
+    }
+  }
+  return { foliage: foliage.geometry(), bark: near ? barkB.geometry() : null };
+}
+
+/* A card along a path, as swiss2's species.js card(), which it does not
+ * export. */
+function card(b, { path, side, w, segs, region, colour, normalAt, flexAt }) {
+  const left = [];
+  const right = [];
+  for (let i = 0; i <= segs; i += 1) {
+    const t = i / segs;
+    const c = path(t);
+    const s = side(t);
+    const n = normalAt(t, c);
+    const v = region.v0 + t * region.dv;
+    const col = colour(t);
+    const f = flexAt(t);
+    left.push(b.vert(c.clone().addScaledVector(s, -w(t)), n, region.u0, v, col, f));
+    right.push(b.vert(c.clone().addScaledVector(s, w(t)), n, region.u0 + region.du, v, col, f));
+  }
+  b.strip(left, right);
+}
+
+/*
+ * Kind k's model at one level: swiss2's buildVariant or the palm, its
+ * leaves tinted (TINTS, RIM), and the numbers the impostors need, as
+ * buildVariant returns them.
+ */
+export function buildKind(k, lod) {
+  const v = KINDS[k];
+  if (v.kind !== 'palm') {
+    const out = buildVariant(v, lod);
+    tintLeaves(out.foliage, TINTS[k], { cy: 0.6 * v.h, rx: v.rx * v.h, ry: v.ry * v.h });
+    return out;
+  }
+  const out = palm(v, lod);
+  const { top } = palmHead(v);
+  tintLeaves(out.foliage, TINTS[k], { cy: top, rx: PALM_FROND * v.h, ry: PALM_FROND * v.h * 0.6 });
+  const box = new THREE.Box3();
+  for (const g of [out.foliage, out.bark]) {
+    if (g) {
+      box.union(g.boundingBox);
+    }
+  }
+  const crown = Math.max(-box.min.x, box.max.x, -box.min.z, box.max.z);
+  const cy = (box.min.y + box.max.y) / 2;
+  const radius = Math.hypot(box.max.y - cy, crown) * 1.02;
+  return { ...out, height: box.max.y, crown, cy, radius };
+}
+
+/* The leaves' vertex colours times the kind's green, lifted toward the
+ * crown's rim. A leaf vertex is one with a flutter weight: the trunk and
+ * the limbs, drawn from the bark strip in the far model, have little or
+ * none (species.js: limbs 0.15 at most, leaf cards 0.35 at least). */
+function tintLeaves(geo, tint, { cy, rx, ry }) {
+  const pos = geo.getAttribute('position');
+  const col = geo.getAttribute('color');
+  const flex = geo.getAttribute('aFlex');
+  for (let i = 0; i < pos.count; i += 1) {
+    if (flex.getX(i) < 0.3) {
+      continue;
+    }
+    const e = Math.hypot(pos.getX(i) / rx, (pos.getY(i) - cy) / ry, pos.getZ(i) / rx);
+    const rim = Math.min(1, Math.max(0, (e - RIM0) / 0.35));
+    for (let c = 0; c < 3; c += 1) {
+      col.array[i * 3 + c] *= tint[c] * (1 + RIM[c] * rim);
+    }
+  }
+  col.needsUpdate = true;
+}
+
+/*
+ * Kind k's colliders' crown in its model's frame, the clumps
+ * ({ x, y, z, r }) CROWN_SPHERES of which the streamed set holds, and its
+ * trunk post. A broadleaf's are its crown's clumps, CLUMP_REACH out,
+ * which are inside every drawn crown however a craft comes at it. A
+ * palm's are four spheres round its head, where its fronds leave the
+ * trunk: inside the frond ring, above the trunk it stands on.
+ */
+export function kindCrown(k) {
+  const v = KINDS[k];
+  if (v.kind === 'palm') {
+    const { top, bx, bz } = palmHead(v);
+    const reach = 0.1 * v.h;
+    const r = 0.13 * v.h;
+    const clumps = [[1, 0], [0, 1], [-1, 0], [0, -1]].map(([dx, dz]) => ({
+      x: bx + dx * reach, y: top + 0.02 * v.h, z: bz + dz * reach, r,
+    }));
+    return {
+      trunkTop: top, trunkR: PALM_R * v.h * 1.1, clumps, lowest: top + 0.02 * v.h - r,
+    };
+  }
+  const { clumps } = crownClumps(v);
+  return {
+    trunkTop: v.trunk * v.h,
+    trunkR: 0.3 * (v.h / 22) * 1.1,
+    clumps: clumps.map((q) => ({
+      x: q.c.x, y: q.c.y, z: q.c.z, r: q.rc * CLUMP_REACH,
+    })),
+    lowest: Math.min(...clumps.map((q) => q.c.y - q.rc * CLUMP_REACH)),
+  };
+}
+
+/* How much lighter the far trees' leaves are photographed (bakeFar). */
+const FAR_LIFT = 1.5;
+
+/*
+ * Photograph the kinds for the impostors. swiss2 bakes on the shell's
+ * renderer, which a part is not handed (src/maps/itaipu.js), so this
+ * bakes on a renderer of its own, on an offscreen canvas, and reads the
+ * two atlases back into textures of the page's: the bytes as the bake
+ * wrote them (the albedo sRGB encoded, the normals linear), mipmapped
+ * where they are drawn. `builds` are buildKind's at 'near'.
+ */
+function bakeFar(builds, atlases, frame = 128) {
+  const r = new THREE.WebGLRenderer({ canvas: new OffscreenCanvas(16, 16), antialias: false, alpha: true });
+  /* The leaves photographed FAR_LIFT lighter than they are: the drawn
+   * models also take the light through their leaves (plantmat.js
+   * translucency), which a picture of them lit by the sun alone lacks,
+   * and the far trees were a step darker than the near ones at the seam. */
+  const lit = builds.map((b) => {
+    const foliage = b.foliage.clone();
+    const col = foliage.getAttribute('color');
+    for (let i = 0; i < col.array.length; i += 1) {
+      col.array[i] *= FAR_LIFT;
+    }
+    return { ...b, foliage };
+  });
+  try {
+    const baked = bakeImpostors(r, lit, { foliage: atlases.foliage, bark: atlases.bark.map }, frame);
+    const size = baked.albedo.image.width;
+    const gl = r.getContext();
+    const read = (tex, colorSpace) => {
+      const fb = gl.createFramebuffer();
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.properties.get(tex).__webglTexture, 0);
+      const px = new Uint8Array(size * size * 4);
+      gl.readPixels(0, 0, size, size, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.deleteFramebuffer(fb);
+      const t = new THREE.DataTexture(px, size, size, THREE.RGBAFormat, THREE.UnsignedByteType);
+      t.colorSpace = colorSpace;
+      t.generateMipmaps = true;
+      t.minFilter = THREE.LinearMipmapLinearFilter;
+      t.magFilter = THREE.LinearFilter;
+      t.anisotropy = 4;
+      t.needsUpdate = true;
+      /* Once on the GPU the 19 MB copy is not needed. */
+      t.onUpdate = () => {
+        t.image.data = null;
+      };
+      return t;
+    };
+    const albedo = read(baked.albedo, THREE.SRGBColorSpace);
+    const normal = read(baked.normal, THREE.NoColorSpace);
+    baked.dispose();
+    return {
+      albedo,
+      normal,
+      info: baked.info,
+      frame,
+      dispose() {
+        albedo.dispose();
+        normal.dispose();
+      },
+    };
+  } finally {
+    for (const b of lit) {
+      b.foliage.dispose();
+    }
+    r.dispose();
+    r.forceContextLoss();
+  }
+}
+
+/*
+ * swiss2's impostor shader finds a frame's cell in the atlas from the
+ * frame's number as the varying brings it, by mod and floor, and the
+ * number arrives a hair under the whole number it was: at a frame on the
+ * atlas's left edge (every seventeenth) the floor lands a row short, and
+ * the far crowns were black bands. Here the number is rounded first, in
+ * the drawn and the shadow material alike. swiss2/vegetation/impostor.js
+ * has the same line.
+ */
+const FRAME_CELL = /vec2 cell = vec2\(mod\(f, (\d+)\.0\), floor\(f \/ \d+\.0\)\);/;
+function roundFrames(mat) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (shader, renderer) => {
+    prev.call(mat, shader, renderer);
+    if (!FRAME_CELL.test(shader.fragmentShader)) {
+      throw new Error('itaipu vegetation: swiss2\'s impostor frame lookup changed, and roundFrames no longer finds it');
+    }
+    shader.fragmentShader = shader.fragmentShader.replace(FRAME_CELL, (m, grid) => (
+      `float fr = floor(f + 0.5); vec2 cell = vec2(mod(fr, ${grid}.0), floor(fr / ${grid}.0));`));
+  };
+  const key = mat.customProgramCacheKey();
+  mat.customProgramCacheKey = () => `${key}|itaipu-rounded`;
+}
+
+/* The far trees' grid, m a cell: coarse, so the refill tests a few
+ * hundred cells against the view and not every tree. */
+const FAR_CELL = 250;
 
 /*
  * The trees round the camera. `forest` is plantHero's; `atlases`
@@ -80,25 +457,36 @@ export function treeLod({
   forest, atlases, tier, group, sunDir, wind,
 }) {
   const nearOn = tier.near > 0;
-  const builds = KINDS.map((v) => ({
-    near: nearOn ? buildVariant(v, 'near') : null,
-    mid: buildVariant(v, 'mid'),
+  const builds = KINDS.map((v, k) => ({
+    near: buildKind(k, 'near'),
+    mid: buildKind(k, 'mid'),
   }));
+  const baked = bakeFar(builds.map((b) => b.near), atlases);
   const bandNear = [-2, -1, tier.near - tier.fade, tier.near];
   const midIn = nearOn ? [tier.near - tier.fade, tier.near] : [-2, -1];
+  const bandFar = [tier.mid - tier.fade, tier.mid, tier.far - tier.farFade, tier.far];
   const mats = {
-    nearFoliage: plantMaterial('foliage', { map: atlases.foliage, band: bandNear, wind }),
+    nearFoliage: plantMaterial('foliage', {
+      map: atlases.foliage, band: bandNear, wind, translucency: 0.55,
+    }),
     nearBark: plantMaterial('bark', { map: atlases.bark.map, normalMap: atlases.bark.normalMap, band: bandNear, wind }),
-    midForest: plantMaterial('foliage', { map: atlases.foliage, band: [...midIn, tier.mid - tier.fade, tier.mid], wind }),
-    midSparse: plantMaterial('foliage', { map: atlases.foliage, band: [...midIn, tier.far - tier.fade, tier.far], wind }),
-    nearSparse: plantMaterial('foliage', { map: atlases.foliage, band: bandNear, wind }),
+    mid: plantMaterial('foliage', {
+      map: atlases.foliage, band: [...midIn, tier.mid - tier.fade, tier.mid], wind, translucency: 0.55,
+    }),
     foliageDepth: plantDepthMaterial('foliage', { map: atlases.foliage, wind }),
     barkDepth: plantDepthMaterial('bark', { wind }),
+    far: impostorMaterial(baked, bandFar),
   };
-  mats.nearFoliage.color.copy(TINT_FOREST);
-  mats.midForest.color.copy(TINT_FOREST);
-  mats.nearSparse.color.copy(TINT_LONE);
-  mats.midSparse.color.copy(TINT_LONE);
+  mats.farDepth = impostorDepthMaterial(mats.far);
+  roundFrames(mats.far);
+  roundFrames(mats.farDepth);
+  /* The shadow pass draws a front sided material's back faces, and the
+   * shadow billboard shows the sun its front (swiss2's vegetation). */
+  mats.far.shadowSide = THREE.DoubleSide;
+  const imp = mats.far.userData.impostor;
+  if (sunDir) {
+    imp.uImpLight.value.copy(sunDir).normalize();
+  }
 
   const mk = (geo, mat, depth, cap, name) => {
     const m = new THREE.InstancedMesh(geo, mat, cap);
@@ -114,26 +502,76 @@ export function treeLod({
     return m;
   };
   const levels = KINDS.map((v, k) => {
-    const sparse = SPARSE(k);
     const L = { near: null, bark: null, mid: null };
     if (nearOn) {
-      L.near = mk(builds[k].near.foliage, sparse ? mats.nearSparse : mats.nearFoliage, mats.foliageDepth, tier.capNear, `${v.name}-near`);
+      L.near = mk(builds[k].near.foliage, mats.nearFoliage, mats.foliageDepth, tier.capNear, `${v.name}-near`);
       L.bark = mk(builds[k].near.bark, mats.nearBark, mats.barkDepth, tier.capNear, `${v.name}-bark`);
       L.bark.instanceMatrix = L.near.instanceMatrix;
     }
-    L.mid = mk(builds[k].mid.foliage, sparse ? mats.midSparse : mats.midForest, mats.foliageDepth, tier.capMid, `${v.name}-mid`);
+    L.mid = mk(builds[k].mid.foliage, mats.mid, mats.foliageDepth, tier.capMid, `${v.name}-mid`);
     return L;
   });
 
-  /* The trees that stand alone, all of them, looked at every refill:
-   * a few thousand, against the forest's three hundred thousand, which
-   * are read off the grid round the camera. */
-  const sparse = [];
-  for (let t = 0; t < forest.count; t += 1) {
-    if (SPARSE(forest.k[t])) {
-      sparse.push(t);
+  /* The impostors: a quad instanced over the far trees in view, refilled
+   * with the models. aTree is the instance's origin (as the models', 0.2 m
+   * down) and scale, aTree2 its heading in radians and its kind, the
+   * impostor atlas's variant. */
+  const farGeo = new THREE.InstancedBufferGeometry();
+  farGeo.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0], 3));
+  farGeo.setAttribute('normal', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 3));
+  farGeo.setIndex([0, 1, 2, 0, 2, 3]);
+  const aTree = new THREE.InstancedBufferAttribute(new Float32Array(tier.capFar * 4), 4);
+  const aTree2 = new THREE.InstancedBufferAttribute(new Float32Array(tier.capFar * 2), 2);
+  aTree.setUsage(THREE.DynamicDrawUsage);
+  aTree2.setUsage(THREE.DynamicDrawUsage);
+  farGeo.setAttribute('aTree', aTree);
+  farGeo.setAttribute('aTree2', aTree2);
+  farGeo.instanceCount = 0;
+  const farMesh = new THREE.Mesh(farGeo, mats.far);
+  farMesh.name = 'itaipu-far-trees';
+  farMesh.frustumCulled = false;
+  farMesh.castShadow = true;
+  farMesh.receiveShadow = true;
+  farMesh.customDepthMaterial = mats.farDepth;
+  farMesh.visible = false;
+  group.add(farMesh);
+
+  /* The far trees on their own coarse grid, each cell with the height its
+   * trees stand between, for the view test. */
+  const farGrid = (() => {
+    const n = Math.ceil((2 * HALF) / FAR_CELL);
+    const cellOf = (t) => {
+      const i = Math.max(0, Math.min(n - 1, Math.floor((forest.x[t] + HALF) / FAR_CELL)));
+      const j = Math.max(0, Math.min(n - 1, Math.floor((forest.z[t] + HALF) / FAR_CELL)));
+      return j * n + i;
+    };
+    const start = new Uint32Array(n * n + 1);
+    const y0 = new Float32Array(n * n).fill(Infinity);
+    const y1 = new Float32Array(n * n).fill(-Infinity);
+    let count = 0;
+    for (let t = 0; t < forest.count; t += 1) {
+      if (forest.far[t]) {
+        const c = cellOf(t);
+        start[c + 1] += 1;
+        y0[c] = Math.min(y0[c], forest.y[t]);
+        y1[c] = Math.max(y1[c], forest.y[t] + KINDS[forest.k[t]].h * forest.s[t]);
+        count += 1;
+      }
     }
-  }
+    for (let c = 1; c <= n * n; c += 1) {
+      start[c] += start[c - 1];
+    }
+    const at = start.slice();
+    const items = new Uint32Array(count);
+    for (let t = 0; t < forest.count; t += 1) {
+      if (forest.far[t]) {
+        items[at[cellOf(t)]++] = t;
+      }
+    }
+    return {
+      n, start, items, y0, y1, count,
+    };
+  })();
 
   const put = (arr, i, t) => {
     const s = forest.s[t];
@@ -165,6 +603,8 @@ export function treeLod({
   const dir = new THREE.Vector3();
   const last = new THREE.Vector3(Infinity, 0, 0);
   const lastDir = new THREE.Vector3();
+  const lastFar = new THREE.Vector3(Infinity, 0, 0);
+  const lastFarDir = new THREE.Vector3();
   /* Where a tree's shadow falls, per metre of its height. */
   const shadowRun = new THREE.Vector3();
   if (sunDir) {
@@ -184,7 +624,7 @@ export function treeLod({
   const nNear = new Uint32Array(KINDS.length);
   const nMid = new Uint32Array(KINDS.length);
   const stats = {
-    near: 0, mid: 0, dropped: 0, refills: 0,
+    near: 0, mid: 0, far: 0, dropped: 0, refills: 0, farRefills: 0, farTrees: farGrid.count,
   };
   const reachNear = tier.near + tier.fade;
   const midFrom = Math.max(0, tier.near - tier.fade);
@@ -217,22 +657,92 @@ export function treeLod({
     }
   };
 
-  /* Refilled when the camera has moved three metres or turned two
-   * degrees. */
+  /* The impostors round `pos`: the far trees of every cell in view past
+   * the models' full band, to `far`. The cell's sphere is widened by the
+   * shadow a tree its height throws, as the models' test is. */
+  const fillFar = (pos) => {
+    const { n, start, items, y0, y1 } = farGrid;
+    const reach = tier.far + tier.fade;
+    const from = tier.mid - tier.fade - 2;
+    const i0 = Math.max(0, Math.floor((pos.x - reach + HALF) / FAR_CELL));
+    const i1 = Math.min(n - 1, Math.floor((pos.x + reach + HALF) / FAR_CELL));
+    const j0 = Math.max(0, Math.floor((pos.z - reach + HALF) / FAR_CELL));
+    const j1 = Math.min(n - 1, Math.floor((pos.z + reach + HALF) / FAR_CELL));
+    const run = Math.hypot(shadowRun.x, shadowRun.z);
+    let m = 0;
+    for (let j = j0; j <= j1; j += 1) {
+      for (let i = i0; i <= i1; i += 1) {
+        const c = j * n + i;
+        if (start[c] === start[c + 1]) {
+          continue;
+        }
+        const tall = y1[c] - y0[c];
+        sphere.center.set(-HALF + (i + 0.5) * FAR_CELL, (y0[c] + y1[c]) * 0.5, -HALF + (j + 0.5) * FAR_CELL);
+        sphere.radius = FAR_CELL * Math.SQRT1_2 + tall * (0.5 + run) + 20;
+        if (!frustum.intersectsSphere(sphere)) {
+          continue;
+        }
+        for (let q = start[c]; q < start[c + 1]; q += 1) {
+          const t = items[q];
+          const dx = forest.x[t] - pos.x;
+          const dy = forest.y[t] - pos.y;
+          const dz = forest.z[t] - pos.z;
+          const d2 = dx * dx + dy * dy + dz * dz;
+          if (d2 > reach * reach || d2 < from * from) {
+            continue;
+          }
+          if (m >= tier.capFar) {
+            stats.dropped += 1;
+            continue;
+          }
+          aTree.array[m * 4] = forest.x[t];
+          aTree.array[m * 4 + 1] = forest.y[t] - 0.2;
+          aTree.array[m * 4 + 2] = forest.z[t];
+          aTree.array[m * 4 + 3] = forest.s[t];
+          aTree2.array[m * 2] = (forest.yaw[t] * Math.PI) / 8;
+          aTree2.array[m * 2 + 1] = forest.k[t];
+          m += 1;
+        }
+      }
+    }
+    farGeo.instanceCount = m;
+    farMesh.visible = m > 0;
+    for (const a of [aTree, aTree2]) {
+      a.clearUpdateRanges();
+      a.addUpdateRange(0, m * a.itemSize);
+      a.needsUpdate = true;
+    }
+    stats.far = m;
+    stats.farRefills += 1;
+  };
+
+  /* The models refilled when the camera has moved three metres or turned
+   * two degrees; the impostors, which begin at the models' far edge, when
+   * it has moved twenty or turned three. */
   const update = (camera) => {
     const pos = camera.getWorldPosition(here);
     camera.getWorldDirection(dir);
-    if (pos.distanceToSquared(last) < 9 && dir.dot(lastDir) > 0.9994) {
+    imp.uImpView.value.copy(pos);
+    const models = !(pos.distanceToSquared(last) < 9 && dir.dot(lastDir) > 0.9994);
+    const far = !(pos.distanceToSquared(lastFar) < 400 && dir.dot(lastFarDir) > 0.9986);
+    if (!models && !far) {
+      return;
+    }
+    camera.updateMatrixWorld();
+    viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromProjectionMatrix(viewProj);
+    if (far) {
+      lastFar.copy(pos);
+      lastFarDir.copy(dir);
+      fillFar(pos);
+    }
+    if (!models) {
       return;
     }
     last.copy(pos);
     lastDir.copy(dir);
-    camera.updateMatrixWorld();
-    viewProj.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    frustum.setFromProjectionMatrix(viewProj);
     nNear.fill(0);
     nMid.fill(0);
-    stats.dropped = 0;
     const reach = tier.mid + tier.fade;
     const { n, cell, start, items } = forest.grid;
     const i0 = Math.max(0, Math.floor((pos.x - reach + HALF) / cell));
@@ -243,16 +753,9 @@ export function treeLod({
       for (let i = i0; i <= i1; i += 1) {
         const c = j * n + i;
         for (let q = start[c]; q < start[c + 1]; q += 1) {
-          const t = items[q];
-          if (!SPARSE(forest.k[t])) {
-            take(t, pos, reach);
-          }
+          take(items[q], pos, reach);
         }
       }
-    }
-    const far = tier.far + tier.fade;
-    for (const t of sparse) {
-      take(t, pos, far);
     }
     stats.near = 0;
     stats.mid = 0;
@@ -275,9 +778,15 @@ export function treeLod({
 
   const modelTris = KINDS.map((v, k) => ({
     name: v.name,
-    near: builds[k].near ? triangles(builds[k].near.foliage) + triangles(builds[k].near.bark) : 0,
+    near: triangles(builds[k].near.foliage) + triangles(builds[k].near.bark),
     mid: triangles(builds[k].mid.foliage),
   }));
+  if (!nearOn) {
+    for (const b of builds) {
+      b.near.foliage.dispose();
+      b.near.bark.dispose();
+    }
+  }
   return {
     update,
     stats,
@@ -285,12 +794,12 @@ export function treeLod({
     levels,
     dispose() {
       for (const b of builds) {
-        for (const g of [b.near?.foliage, b.near?.bark, b.mid.foliage]) {
-          if (g) {
-            g.dispose();
-          }
+        for (const g of [b.near.foliage, b.near.bark, b.mid.foliage]) {
+          g.dispose();
         }
       }
+      farGeo.dispose();
+      baked.dispose();
       for (const m of Object.values(mats)) {
         m.dispose();
       }
@@ -298,14 +807,13 @@ export function treeLod({
   };
 }
 
+
 /* The crowns' cell pattern and the forest's outline, shared by the
  * canopy's colour and its shadow pass. vegCells: the offset from the
  * nearest cell point to p (xy), the gap to the second nearest (z) and the
  * nearest cell's own number (w). vegInside: the forest mask, bilinear at
  * its 10 m, so the outline is the mask's and not the grid's. */
 const CROWN_GLSL = /* glsl */ `
-${DITHER_GLSL}
-uniform vec4 uShellBand;
 uniform sampler2D uForest;
 uniform float uHalf;
 varying vec3 vVegW;
@@ -377,8 +885,12 @@ bool vegInside(vec3 w) {
 `;
 
 /* A crown eight metres across (the forest's middle spacing, plant.js), a
- * clump in it under three, a stand of one age eighty. */
+ * clump in it under three, a stand of one age eighty; and the big crowns
+ * (the emergents' and the old trees') seventeen across, which stand over
+ * the smaller ones where they reach, so the carpet is not one size of
+ * crown repeated. */
 const CROWN_M = 8.0;
+const BIG_M = 17.0;
 const CLUMP_M = 2.8;
 const STAND_M = 80.0;
 
@@ -386,6 +898,23 @@ const SHELL_VERTEX = /* glsl */ `
 vVegW = (modelMatrix * vec4(transformed, 1.0)).xyz;
 vVegN = normalize(mat3(modelMatrix) * objectNormal);
 `;
+
+/* The understorey: inside the trees' band the canopy sinks to UNDER of
+ * its height, so what shows between the drawn crowns is the forest's
+ * dark lower storey and not a lawn, and at the forest's edge the skirt
+ * is a wall from there to the ground. It rises to the top over the band
+ * the trees dissolve in, and a little before it. The sink is by the
+ * viewer's distance (EYE), the same in the colour pass and the shadow
+ * pass, so the shadow falls from where the surface is drawn. */
+const UNDER = 0.45;
+const SINK_GLSL = (eye) => /* glsl */ `
+{
+  float vegD = distance(${eye}, (modelMatrix * vec4(transformed, 1.0)).xyz);
+  vSink = 1.0 - smoothstep(uShellBand.x - 40.0, uShellBand.y, vegD);
+  transformed.y -= aLift * ${(1 - UNDER).toFixed(2)} * vSink;
+}
+`;
+const SINK_PARS = 'uniform vec4 uShellBand;\nattribute float aLift;\nvarying float vSink;';
 
 function shellMaterial(band, forestTex) {
   const mat = new THREE.MeshStandardMaterial({
@@ -403,17 +932,28 @@ function shellMaterial(band, forestTex) {
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vVegW;\nvarying vec3 vVegN;')
+      .replace('#include <common>', `#include <common>\nvarying vec3 vVegW;\nvarying vec3 vVegN;\n${SINK_PARS}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\n${SINK_GLSL('cameraPosition')}`)
       .replace('#include <project_vertex>', `#include <project_vertex>\n${SHELL_VERTEX}`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${CROWN_GLSL}\nvec4 vegCrown;\nvec4 vegClump;\nvec4 vegStand;`)
+      .replace('#include <common>', `#include <common>\n${CROWN_GLSL}\nvarying float vSink;\nvec4 vegCrown;\nvec4 vegClump;\nvec4 vegStand;`)
       .replace('#include <clipping_planes_fragment>', `
-        if (!vegInside(vVegW) || !plantKeep(plantHash(gl_FragCoord.xy), distance(cameraPosition, vVegW), uShellBand)) discard;
+        if (!vegInside(vVegW)) discard;
         {
           /* On the top the pattern lies in the ground's plane; on the
            * edge's face, up it. */
           vec2 p = abs(vVegN.y) > 0.6 ? vVegW.xz : vec2(vVegW.x + vVegW.z, vVegW.y * 1.4);
           vegCrown = vegCaps(p / ${CROWN_M.toFixed(1)});
+          {
+            /* A crown's top in metres is its cap's height over its
+             * radius times its size; a big one stands 3 m under its own
+             * top among the small ones, as a crown does in its
+             * neighbours. */
+            vec4 big = vegCaps(p / ${BIG_M.toFixed(1)} + 3.7);
+            if (big.z * ${BIG_M.toFixed(1)} - 3.0 > vegCrown.z * ${CROWN_M.toFixed(1)}) {
+              vegCrown = vec4(big.xy, big.z, fract(big.w * 3.1 + 0.37));
+            }
+          }
           vegClump = vegCaps(p / ${CLUMP_M.toFixed(1)} + 17.0);
           vegStand = vegCells(vVegW.xz / ${STAND_M.toFixed(1)} + 5.0);
         }
@@ -426,7 +966,8 @@ function shellMaterial(band, forestTex) {
           float fine = vegClump.z < 0.0 ? 0.8 : mix(0.84, 1.0, vegClump.z);
           float lit = dome * fine * (0.84 + 0.32 * vegCrown.w) * (0.88 + 0.24 * vegStand.w);
           vec3 hue = mix(vec3(0.95, 1.0, 1.06), vec3(1.07, 1.03, 0.88), fract(vegCrown.w * 7.31));
-          diffuseColor.rgb *= lit * hue;
+          /* The understorey is in the crowns' shade. */
+          diffuseColor.rgb *= lit * hue * mix(1.0, 0.45, vSink);
         }`)
       .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
         material.specularF90 = 0.3;
@@ -457,12 +998,13 @@ function shellDepthMaterial(band, eye, forestTex) {
       uEye: eye,
     });
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vVegW;\nvarying vec3 vVegN;')
+      .replace('#include <common>', `#include <common>\nvarying vec3 vVegW;\nvarying vec3 vVegN;\nuniform vec3 uEye;\n${SINK_PARS}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\n${SINK_GLSL('uEye')}`)
       .replace('#include <project_vertex>', `#include <project_vertex>\nvVegW = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvVegN = vec3(0.0, 1.0, 0.0);`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${CROWN_GLSL}\nuniform vec3 uEye;`)
+      .replace('#include <common>', `#include <common>\n${CROWN_GLSL}`)
       .replace('#include <clipping_planes_fragment>', `
-        if (!vegInside(vVegW) || !plantKeep(plantHash(gl_FragCoord.xy), distance(uEye, vVegW), uShellBand)) discard;
+        if (!vegInside(vVegW)) discard;
         #include <clipping_planes_fragment>`);
   };
   mat.customProgramCacheKey = () => 'itaipu-canopy-depth';
@@ -528,6 +1070,7 @@ export function canopyShell({
       const index = new Int32Array(row * row).fill(-1);
       const pos = [];
       const col = [];
+      const lift = [];
       const idx = [];
       const vert = (u, v) => {
         const k = v * row + u;
@@ -537,6 +1080,7 @@ export function canopyShell({
           const h = top[k];
           index[k] = pos.length / 3;
           pos.push(x, ground(x, z) + (h >= 0 ? h : -0.5), z);
+          lift.push(Math.max(0, h));
           const c = colourAt(x, z);
           /* Graded as the ground's forest is, so the two meet unseen. */
           const shade = h >= 0 ? 1 : 0.6;
@@ -563,6 +1107,7 @@ export function canopyShell({
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      geo.setAttribute('aLift', new THREE.Float32BufferAttribute(lift, 1));
       geo.setIndex(idx);
       geo.computeVertexNormals();
       geos.push(geo);

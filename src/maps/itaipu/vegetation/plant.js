@@ -19,11 +19,15 @@
  *   forest      the mask's forest on a jittered grid as close as the
  *               crowns are wide (6 to 10.5 m by the height), each cell
  *               kept with the mask's weight: a closed canopy. Height from
- *               the model, at least 5 m, one in twenty five an emergent a
- *               third over the rest.
+ *               the model, at least 5 m, one in twenty an emergent a
+ *               third over the rest, and a palm here and there.
+ *   the edge    a fringe of shrubby trees, field trees and palms just
+ *               outside the forest's outline, so its edge is a wall of
+ *               leaves to the ground.
  *   lone trees  the pastures' scattered trees (the reference photographs
- *               have them in every field), in loose groups; OpenStreetMap's
- *               natural=tree nodes; and the parks' trees.
+ *               have them in every field), in loose groups, and their
+ *               groves; OpenStreetMap's natural=tree nodes; and the
+ *               parks' trees.
  *   eucalyptus  the plantations OpenStreetMap maps as landuse=forest, in
  *               rows, and a windbreak row along some edges of every
  *               landuse=farmland field.
@@ -82,17 +86,25 @@ export const FILL_SLICE_TREES = 250;
 
 /*
  * The kinds, in model units for swiss2's broadleaf generator
- * (swiss2/vegetation/species.js buildVariant; kind picks the leaf card):
- * two canopy trees for the forest, a spreading lone tree with its crown
- * high for the fields and parks, and a eucalyptus, a tall bare trunk
- * under a narrow crown. `h` is the model's height; a tree is drawn at
- * scale height / h.
+ * (swiss2/vegetation/species.js buildVariant; kind picks the leaf card),
+ * but for the palm, which draw.js builds: two canopy trees for the
+ * forest, which small are the forest edge's and a grove's undergrowth
+ * and grown alone the pastures' spreading trees; a lone tree with its
+ * crown high, the pastures' single trees and OpenStreetMap's; a
+ * eucalyptus, a tall bare trunk under a narrow crown; an emergent, the
+ * Atlantic forest's tall trees (peroba, cedro, timbauva) whose flat
+ * crowns stand over the rest; and a jeriva palm. Each kind is a draw in
+ * every pass it is seen in, so there are few of them and each serves
+ * where it fits. `h` is the model's height; a tree is drawn at scale
+ * height / h.
  */
 export const KINDS = [
   { name: 'it-canopy-a', kind: 'maple', seed: 701, h: 14, trunk: 0.3, rx: 0.56, ry: 0.28 },
   { name: 'it-canopy-b', kind: 'beech', seed: 702, h: 14, trunk: 0.28, rx: 0.5, ry: 0.32 },
   { name: 'it-lone', kind: 'maple', seed: 703, h: 18, trunk: 0.4, rx: 0.42, ry: 0.22 },
   { name: 'it-eucalyptus', kind: 'beech', seed: 704, h: 22, trunk: 0.55, rx: 0.17, ry: 0.2 },
+  { name: 'it-emergent', kind: 'beech', seed: 705, h: 26, trunk: 0.45, rx: 0.38, ry: 0.2 },
+  { name: 'it-palm', kind: 'palm', seed: 708, h: 12, trunk: 0.84 },
 ];
 /* The forest's grids: trees up to `below` metres tall stand `spacing`
  * apart, about their crowns' width (a canopy tree's crown is 1.1 to 1.2
@@ -106,6 +118,8 @@ export const K_CANOPY_A = 0;
 export const K_CANOPY_B = 1;
 export const K_LONE = 2;
 export const K_EUCALYPTUS = 3;
+export const K_EMERGENT = 4;
+export const K_PALM = 5;
 
 /*
  * Sixteen headings, cos and sin written out rather than computed: the
@@ -342,10 +356,15 @@ const ROAD_VERGE = 2;
  * height (a rockfill dam's faces are about 1 in 1.5), and the least. */
 const DAM_SLOPE = 1.6;
 const DAM_MIN = 40;
+/* The dam's grounds, m from its footprints and axes: the binational
+ * entity's mown lawns round the structures, where the pastures' groves
+ * and scattered trees (a farm's) do not grow. */
+const DAM_GROUNDS = 350;
 
 /*
  * Where no tree stands, on a 5 m raster: the water bodies, the dam, the
- * roads and the buildings.
+ * roads and the buildings; and, as `grounds` on a 25 m raster, the dam's
+ * grounds, where no pasture tree stands.
  */
 export function keepOff({ water, dam, roads, buildings }) {
   const r = raster(5);
@@ -371,6 +390,16 @@ export function keepOff({ water, dam, roads, buildings }) {
       continue;
     }
     stampLine(r, w.points, w.width / 2 + ROAD_VERGE, 4);
+  }
+  r.grounds = raster(25);
+  for (const p of dam) {
+    if (p.footprint) {
+      fillRings(r.grounds, [p.footprint], 1);
+      stampLine(r.grounds, [...p.footprint, p.footprint[0]], DAM_GROUNDS, 1);
+    }
+    if (p.axis && p.axis.length > 1) {
+      stampLine(r.grounds, p.axis, DAM_GROUNDS, 1);
+    }
   }
   return r;
 }
@@ -403,8 +432,9 @@ export function plantHero({
   const ss = [];
   const ks = [];
   const yaws = [];
+  const fars = [];
   const counts = {
-    forest: 0, emergent: 0, lone: 0, osm: 0, park: 0, plantation: 0, windbreak: 0, refused: 0,
+    forest: 0, emergent: 0, fringe: 0, lone: 0, single: 0, grove: 0, osm: 0, park: 0, plantation: 0, windbreak: 0, refused: 0,
   };
   const chm = (x, z) => canopyHeight(canopy, x, z);
   const weight = (x, z, ch) => {
@@ -419,9 +449,21 @@ export function plantHero({
     const t = texel(off, x, z);
     return t >= 0 && off.data[t] === 0;
   };
+  /* Is any of the four points `r` metres off (x, z) on the other side of
+   * the forest's outline from it? */
+  const across = (x, z, r, inForest) => {
+    for (const [dx, dz] of [[r, 0], [-r, 0], [0, r], [0, -r]]) {
+      if ((weight(x + dx, z + dz, 0) >= 0.5) !== inForest) {
+        return true;
+      }
+    }
+    return false;
+  };
   /* `k` the kind, `hgt` the tree's height in metres, `seed` its own
-   * hash stream for the heading. */
-  const add = (x, z, k, hgt, seed, what) => {
+   * hash stream for the heading, `far` whether it is drawn past the
+   * models' band (draw.js): every tree but the closed forest's inside,
+   * which the canopy draws there. */
+  const add = (x, z, k, hgt, seed, what, far = true) => {
     if (!free(x, z)) {
       counts.refused += 1;
       return;
@@ -432,6 +474,7 @@ export function plantHero({
     ss.push(hgt / KINDS[k].h);
     ks.push(k);
     yaws.push(Math.floor(hash3(seed, 91, 7) * 16));
+    fars.push(far ? 1 : 0);
     counts[what] += 1;
   };
 
@@ -441,14 +484,16 @@ export function plantHero({
    * short trees is a close one and a stand of tall ones is open between
    * the trunks: each class of height is planted on its own grid, and a
    * cell of a class's grid is kept only where the model says that class.
-   * The canopy closes at every height. */
+   * The canopy closes at every height. One tree in twenty is an emergent,
+   * a third taller with its own flat crown; the rest are the two canopy
+   * trees. */
   FOREST_CLASSES.forEach(({ spacing: S, below }, cls) => {
     const above = cls > 0 ? FOREST_CLASSES[cls - 1].below : -Infinity;
     const cells = Math.floor((2 * HALF) / S);
     for (let cj = 0; cj < cells; cj += 1) {
       for (let ci = 0; ci < cells; ci += 1) {
-        const x = -HALF + (ci + 0.15 + 0.7 * hash3(ci, cj, 1 + cls * 16)) * S;
-        const z = -HALF + (cj + 0.15 + 0.7 * hash3(ci, cj, 2 + cls * 16)) * S;
+        const x = -HALF + (ci + 0.05 + 0.9 * hash3(ci, cj, 1 + cls * 16)) * S;
+        const z = -HALF + (cj + 0.05 + 0.9 * hash3(ci, cj, 2 + cls * 16)) * S;
         const w = weight(x, z, 0);
         if (w <= 0 || hash3(ci, cj, 3 + cls * 16) >= w) {
           continue;
@@ -457,32 +502,158 @@ export function plantHero({
         if (!(h0 > above && h0 <= below)) {
           continue;
         }
-        const emergent = hash3(ci, cj, 4 + cls * 16) < 0.04;
-        const hgt = h0 * (0.85 + 0.25 * hash3(ci, cj, 5 + cls * 16)) * (emergent ? 1.35 : 1);
-        const k = hash3(ci, cj, 6 + cls * 16) < 0.55 ? K_CANOPY_A : K_CANOPY_B;
-        add(x, z, k, hgt, (cls + 1) * 10000000 + ci * 7919 + cj, emergent ? 'emergent' : 'forest');
+        const seed = (cls + 1) * 10000000 + ci * 7919 + cj;
+        const size = hash3(ci, cj, 5 + cls * 16);
+        if (hash3(ci, cj, 4 + cls * 16) < 0.05) {
+          add(x, z, K_EMERGENT, h0 * (1.3 + 0.25 * size), seed, 'emergent');
+          continue;
+        }
+        const k = hash3(ci, cj, 6 + cls * 16) < 0.5 ? K_CANOPY_A : K_CANOPY_B;
+        add(x, z, k, h0 * (0.78 + 0.4 * size), seed, 'forest', across(x, z, 12, true));
       }
     }
   });
 
-  /* The fields' trees: a 30 m grid, kept where the mask is field and a
-   * slow hash says a group stands, a few in a hundred. */
+  /* The forest's edge, where it meets a field: a wall of foliage down to
+   * the ground, not a row of trunks. On a jittered 7 m grid just outside
+   * the outline (a point with the forest within 9 m), about half the
+   * cells: young canopy trees, their crowns near the ground, and palms. */
+  const FR = 7;
+  const fc = Math.floor((2 * HALF) / FR);
+  for (let cj = 0; cj < fc; cj += 1) {
+    for (let ci = 0; ci < fc; ci += 1) {
+      const x = -HALF + (ci + 0.1 + 0.8 * hash3(ci, cj, 61)) * FR;
+      const z = -HALF + (cj + 0.1 + 0.8 * hash3(ci, cj, 62)) * FR;
+      if (weight(x, z, 0) >= 0.5 || hash3(ci, cj, 63) >= 0.55 || weight(x, z, 3) > 0.25 || !across(x, z, 9, false)) {
+        continue;
+      }
+      const r = hash3(ci, cj, 64);
+      const q = hash3(ci, cj, 65);
+      const seed = 4000000 + ci * 7919 + cj;
+      if (r < 0.6) {
+        add(x, z, K_CANOPY_B, 4 + 4 * q, seed, 'fringe');
+      } else if (r < 0.82) {
+        add(x, z, K_CANOPY_A, 7 + 5 * q, seed, 'fringe');
+      } else if (r < 0.92) {
+        add(x, z, K_PALM, 7 + 6 * q, seed, 'fringe');
+      } else {
+        add(x, z, K_CANOPY_B, 8 + 4 * q, seed, 'fringe');
+      }
+    }
+  }
+
+  /* The fields' single trees: a 30 m grid, kept where the mask is field
+   * and a slow hash says a group stands, a few in a hundred. A lone tree
+   * stands alone: nothing else in the pastures is planted within LONE_ROOM
+   * of one (loneNear), so its crown is the only one over its grass. */
   const L = 30;
   const lc = Math.floor((2 * HALF) / L);
+  const pasture = (x, z) => {
+    const field = weight(x, z, 1);
+    return field >= 0.5 && weight(x, z, 0) <= 0.2 && weight(x, z, 3) <= 0.25 ? field : 0;
+  };
+  const loneAt = (ci, cj) => {
+    const x = -HALF + (ci + 0.2 + 0.6 * hash3(ci, cj, 11)) * L;
+    const z = -HALF + (cj + 0.2 + 0.6 * hash3(ci, cj, 12)) * L;
+    const field = pasture(x, z);
+    /* Groups: the chance is higher in one 150 m block in four. */
+    const group = hash3(Math.floor(ci / 5), Math.floor(cj / 5), 13) < 0.25 ? 0.12 : 0.025;
+    return field && hash3(ci, cj, 14) < group * field ? [x, z] : null;
+  };
+  const LONE_ROOM = 22;
+  const loneNear = (x, z) => {
+    const ci = Math.floor((x + HALF) / L);
+    const cj = Math.floor((z + HALF) / L);
+    for (let dj = -1; dj <= 1; dj += 1) {
+      for (let di = -1; di <= 1; di += 1) {
+        const p = loneAt(ci + di, cj + dj);
+        if (p && (p[0] - x) * (p[0] - x) + (p[1] - z) * (p[1] - z) < LONE_ROOM * LONE_ROOM) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  /* A pasture tree's place: pasture, not the dam's grounds, and not in a
+   * lone tree's room. */
+  const farmed = (x, z) => {
+    const t = texel(off.grounds, x, z);
+    return t >= 0 && !off.grounds.data[t] && !loneNear(x, z) ? pasture(x, z) : 0;
+  };
   for (let cj = 0; cj < lc; cj += 1) {
     for (let ci = 0; ci < lc; ci += 1) {
-      const x = -HALF + (ci + 0.2 + 0.6 * hash3(ci, cj, 11)) * L;
-      const z = -HALF + (cj + 0.2 + 0.6 * hash3(ci, cj, 12)) * L;
-      const field = weight(x, z, 1);
-      if (field < 0.5 || weight(x, z, 0) > 0.2 || weight(x, z, 3) > 0.25) {
+      const p = loneAt(ci, cj);
+      if (p) {
+        add(p[0], p[1], K_LONE, 14 + 8 * hash3(ci, cj, 15), 500000 + ci * 7919 + cj, 'lone');
+      }
+    }
+  }
+
+  /* The pastures' other single trees, on the same grid by other hashes:
+   * a spreading canopy tree or a palm (the jeriva stands in every pasture
+   * of the reference photographs), two cells in a hundred. */
+  for (let cj = 0; cj < lc; cj += 1) {
+    for (let ci = 0; ci < lc; ci += 1) {
+      const x = -HALF + (ci + 0.2 + 0.6 * hash3(ci, cj, 17)) * L;
+      const z = -HALF + (cj + 0.2 + 0.6 * hash3(ci, cj, 18)) * L;
+      const field = farmed(x, z);
+      if (!field || hash3(ci, cj, 19) >= 0.02 * field) {
         continue;
       }
-      /* Groups: the chance is higher in one 150 m block in four. */
-      const group = hash3(Math.floor(ci / 5), Math.floor(cj / 5), 13) < 0.25 ? 0.12 : 0.025;
-      if (hash3(ci, cj, 14) >= group * field) {
+      const q = hash3(ci, cj, 20);
+      const seed = 5500000 + ci * 7919 + cj;
+      if (hash3(ci, cj, 22) < 0.6) {
+        add(x, z, K_CANOPY_A, 10 + 7 * q, seed, 'single');
+      } else {
+        add(x, z, K_PALM, 8 + 6 * q, seed, 'single');
+      }
+    }
+  }
+
+  /* The pastures' groves, the reference photographs' clumps of trees in
+   * the fields: on a 90 m grid, about one cell in five of pasture, three
+   * to eleven trees within 8 to 22 m of a centre, none closer than 4.5 m
+   * to another, of every open ground kind. */
+  const G = 90;
+  const gc = Math.floor((2 * HALF) / G);
+  for (let cj = 0; cj < gc; cj += 1) {
+    for (let ci = 0; ci < gc; ci += 1) {
+      const cx = -HALF + (ci + 0.25 + 0.5 * hash3(ci, cj, 71)) * G;
+      const cz = -HALF + (cj + 0.25 + 0.5 * hash3(ci, cj, 72)) * G;
+      const field = farmed(cx, cz);
+      if (!field || hash3(ci, cj, 73) >= 0.2 * field) {
         continue;
       }
-      add(x, z, K_LONE, 14 + 8 * hash3(ci, cj, 15), 500000 + ci * 7919 + cj, 'lone');
+      const n = 3 + Math.floor(9 * hash3(ci, cj, 74));
+      const R = 8 + 14 * hash3(ci, cj, 75);
+      const placed = [];
+      for (let m = 0; m < n * 3 && placed.length < n; m += 1) {
+        const dx = (2 * hash3(ci * 37 + m, cj, 76) - 1) * R;
+        const dz = (2 * hash3(ci * 37 + m, cj, 77) - 1) * R;
+        if (dx * dx + dz * dz > R * R || placed.some(([px, pz]) => (px - dx) * (px - dx) + (pz - dz) * (pz - dz) < 4.5 * 4.5)) {
+          continue;
+        }
+        placed.push([dx, dz]);
+        const x = cx + dx;
+        const z = cz + dz;
+        if (!farmed(x, z)) {
+          continue;
+        }
+        const r = hash3(ci * 37 + m, cj, 78);
+        const q = hash3(ci * 37 + m, cj, 79);
+        const seed = 6000000 + (ci * 37 + m) * 7919 + cj;
+        if (r < 0.4) {
+          add(x, z, K_CANOPY_A, 9 + 7 * q, seed, 'grove');
+        } else if (r < 0.62) {
+          add(x, z, K_CANOPY_B, 4 + 4 * q, seed, 'grove');
+        } else if (r < 0.8) {
+          add(x, z, K_PALM, 8 + 6 * q, seed, 'grove');
+        } else if (r < 0.9) {
+          add(x, z, K_EMERGENT, 16 + 8 * q, seed, 'grove');
+        } else {
+          add(x, z, K_LONE, 13 + 7 * q, seed, 'grove');
+        }
+      }
     }
   }
 
@@ -511,7 +682,12 @@ export function plantHero({
           const px = x + (hash3(i, j, 31) - 0.5) * 8;
           const pz = z + (hash3(i, j, 32) - 0.5) * 8;
           if (hash3(i, j, 33) < 0.4 && inside(ring, px, pz)) {
-            add(px, pz, K_LONE, 9 + 7 * hash3(i, j, 34), 1000000 + fi * 4096 + i, 'park');
+            /* A park's trees: shade trees and the palms every park here
+             * has. */
+            const r = hash3(i, j, 35);
+            const k = r < 0.4 ? K_LONE : r < 0.7 ? K_CANOPY_A : K_PALM;
+            const hgt = k === K_PALM ? 8 + 6 * hash3(i, j, 34) : 9 + 7 * hash3(i, j, 34);
+            add(px, pz, k, hgt, 1000000 + fi * 4096 + i, 'park');
           }
         }
       }
@@ -581,6 +757,7 @@ export function plantHero({
     s: Float32Array.from(ss),
     k: Uint8Array.from(ks),
     yaw: Uint8Array.from(yaws),
+    far: Uint8Array.from(fars),
     counts,
     grid: treeGrid(xs, zs),
   };
