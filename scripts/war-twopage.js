@@ -431,7 +431,7 @@ try {
   const goAt = (await warOf(a)).view.goAt;
   console.log(`  info  seats A ${seats[0]}, B ${seats[1]}; the go at room ms ${goAt}`);
   for (const p of pages) {
-    await p.until("window.__war().view.state === 'live'", 20000);
+    await p.until("window.__war().view.state === 'live'", 20000 + (itaipu1.prepMs ?? 0));
   }
   const [live] = await sameView('at the go');
   const timeOf = (p) => p.evaluate("(() => { const it = window.__mapScene && window.__mapScene().userData.itaipu; return it && it.look ? it.look.time : null; })()");
@@ -542,6 +542,26 @@ try {
    * never seen. A software rasteriser on a loaded machine renders, and so
    * sends, a couple of times a second; SIM_GPU=1 is the cure. */
   const heard = traceOf(seats[0], tHit - 3000, tHit + 3000);
+  if (itaipu1.night) {
+    /* When each seat was spawning (untouchable), and when each page
+     * rebuilt its world for the night: the night run's own evidence. */
+    for (const seat of seats) {
+      const spans = [];
+      for (const x of trace.poses.filter((q) => q.seat === seat)) {
+        const on = (x.flags & 64) !== 0;
+        const last = spans.at(-1);
+        if (on && (!last || last.to != null)) {
+          spans.push({ from: x.t, to: null });
+        } else if (!on && last && last.to == null) {
+          last.to = x.t;
+        }
+      }
+      console.log(`  info  seat ${seat} spawning (room ms, go ${goAt}): ${spans.map((sp) => `${sp.from}-${sp.to ?? 'on'}`).join(', ') || 'never'}`);
+    }
+    for (const [i, p] of pages.entries()) {
+      console.log(`  info  page ${'AB'[i]} night rebuilds: ${JSON.stringify(await p.evaluate('window.__war().night'))}`);
+    }
+  }
   check(`the room heard A often enough to judge the pass: poses under LATE_MS (${LATE_MS} ms) apart, the frontier never past the newest`,
     heard.gap <= LATE_MS && heard.past === 0, heard.text);
   const [ba, bb] = await Promise.all(pages.map(warOf));

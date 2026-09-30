@@ -735,7 +735,10 @@ export class RoomWar {
     }
     /* A briefing is the intro's span before the countdown's. */
     const briefAt = msg.intro === true ? Math.ceil(core.roomMs(now)) : null;
-    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : INTRO_MS) + COUNTDOWN_MS;
+    /* A mission's prepMs lengthens its countdown: the night raid's, so
+     * every screen has built its night world and seated its pilot well
+     * before the go, never after it (itaipu-4.js). */
+    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : INTRO_MS) + COUNTDOWN_MS + (mission.prepMs ?? 0);
     const players = {};
     for (const t of core.seats.values()) {
       players[t.seat] = {

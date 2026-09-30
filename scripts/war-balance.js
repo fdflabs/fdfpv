@@ -13,7 +13,8 @@
  *             the hunters' floor (itaipu-height.bin), with a 5 inch
  *             quad's hull for the referee
  *   the pick  "fly at the nearest threat to the dam": the attacker alive
- *             nearest the dam's middle, a Hunter within HUNTED_M of the
+ *             nearest its own target (the dam's middle for one with
+ *             none, a Scout SCOUT_AFTER_M further back), a Hunter within HUNTED_M of the
  *             bot first; each bot takes one no other bot has taken while
  *             there is one, and a good pilot skips one it cannot reach
  *             before it arrives or whose target is already down
@@ -37,7 +38,8 @@
  *                                        pilots, seed), the hunters and
  *                                        bots every 10 s, and its result
  *
- * Prints, per squad size and skill: the mission's win rate and length,
+ * Prints, per squad size and skill: the mission's win rate, the games
+ * won with the output star (output* : at or over starMw), its length,
  * the output at the end, how the rounds ended (win, damaged, lost), each
  * round's length, the airframes earned a round, the share of a live
  * round a pilot sat grounded with every airframe spent and its longest
@@ -95,6 +97,7 @@ const LIMIT_MS = 25 * 60 * 1000;
 const SPEED = 35;
 const TURN_RATE = 3;
 const HUNTED_M = 400;
+const SCOUT_AFTER_M = 2000;
 const STUCK_MS = 10000;
 const BREAK_MS = 3000;
 const FLOOR_CLEAR_M = 8;
@@ -244,7 +247,12 @@ function runOne({
       }
       const dMe = len(sub(q, b.p));
       const hunterNear = x.a.kind === 'hunter' && dMe < HUNTED_M;
-      scored.push({ x, key: hunterNear ? -1e9 + dMe : len(sub(q, DAM)) });
+      /* Nearest to what it is going for (its target; the dam's middle
+       * for one with none): the threat about to land first. */
+      const goal = x.a.target != null ? MISSION.targets[x.a.target].at : DAM;
+      /* A Scout threatens nothing itself: after anything that does. */
+      const later = x.a.target == null && x.a.kind === 'scout' ? SCOUT_AFTER_M : 0;
+      scored.push({ x, key: hunterNear ? -1e9 + dMe : len(sub(q, goal)) + later });
     }
     scored.sort((u, v) => u.key - v.key);
     let fallback = null;
@@ -379,6 +387,8 @@ function runOne({
     }
     handle(room.tick(t));
     if (process.env.BAL_DEBUG && Math.round(now) % 10000 < TICK_MS) {
+      const alive = [...w.live.values()].map((x) => `${x.a.id}${x.a.kind[0]}`).join(',');
+      console.log(`t ${((now - GO) / 1000).toFixed(0)} alive ${alive}; bots ${bots.map((b) => `${b.seat}:${b.p.map((v) => v.toFixed(0)).join(',')}->${b.target ? b.target.a.id : '-'}${b.downUntil > now ? 'D' : ''}`).join(' ')}`);
       for (const h of w.lastPoses) {
         console.log(`t ${((now - GO) / 1000).toFixed(0)} hunter ${h.id} at ${h.p.map((v) => v.toFixed(0)).join(',')} target ${h.target}; bots ${bots.map((b) => `${b.seat}:${b.p.map((v) => v.toFixed(0)).join(',')}${b.downUntil > now ? 'D' : ''}`).join(' ')}`);
       }
@@ -414,6 +424,8 @@ function runOne({
     booms: w.log.filter((e) => e.what === 'boom').length,
     crashes: w.log.filter((e) => e.what === 'crash').length,
     hits: w.log.filter((e) => (e.what === 'arrive') && e.hit).length,
+    /* Which attacker hit what, and when (s after the go): BAL_DEBUG's. */
+    hitBy: w.log.filter((e) => (e.what === 'arrive' || e.what === 'through') && e.hit).map((e) => `${e.id}:${e.target}@${Math.round((e.t - m.goAt) / 1000)}`),
     alive: m.agents.length,
     left: m.agents.map((a) => {
       const x = w.live.get(a.id);
@@ -482,7 +494,7 @@ if (process.env.BAL_DEBUG) {
   const nRounds = Math.max(...MISSION.waves.map((wv) => wv.round ?? 0)) + 1;
   console.log(`mission ${MISSION.id}: ${nRounds} rounds, ${MISSION.airframes} airframes a pilot a round, floor ${MISSION.floorMw} of ${MISSION.output} MW; `
     + `spawn ${SPAWN.length > 1 ? 'the crest seats' : SPAWN[0].join(', ')}; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
-  console.log('  skill     pilots  mission  min   output  rounds win/damaged/lost        round s (by round)             earned a round  grounded  longest s  ends');
+  console.log('  skill     pilots  mission output* min   output  rounds win/damaged/lost        round s (by round)             earned a round  grounded  longest s  ends');
   for (const skill of SKILL) {
     for (const pilots of PILOTS) {
       const rs = results.filter((r) => r.pilots === pilots && r.skill === skill).sort((a, b) => a.seed - b.seed);
@@ -498,7 +510,8 @@ if (process.env.BAL_DEBUG) {
         const xs = rs.map((r) => r.rounds[k]).filter(Boolean).map((x) => x.secs);
         return xs.length ? mean(xs).toFixed(0) : '-';
       }).join('/');
-      console.log(`  ${skill.padEnd(9)} ${String(pilots).padStart(6)}  ${`${won.length}/${rs.length}`.padEnd(7)} ${(mean(rs.map((r) => r.secs)) / 60).toFixed(1).padStart(4)}  `
+      const star = won.filter((r) => r.output >= (MISSION.starMw ?? MISSION.floorMw)).length;
+      console.log(`  ${skill.padEnd(9)} ${String(pilots).padStart(6)}  ${`${won.length}/${rs.length}`.padEnd(7)} ${`${star}/${rs.length}`.padEnd(6)} ${(mean(rs.map((r) => r.secs)) / 60).toFixed(1).padStart(4)}  `
         + `${mean(rs.map((r) => r.output)).toFixed(0).padStart(6)}  ${`${by('win')} / ${by('damaged')} / ${by('lost')}`.padEnd(26)} ${lens.padEnd(30)} `
         + `${mean(all.map((x) => x.earned)).toFixed(1).padStart(8)}        `
         + `${(100 * mean(rs.map((r) => r.grounded))).toFixed(1).padStart(6)}%  ${mean(rs.map((r) => r.longest)).toFixed(0).padStart(4)} (max ${Math.max(...rs.map((r) => r.longest)).toFixed(0)})  `

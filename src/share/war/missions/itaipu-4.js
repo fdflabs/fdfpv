@@ -29,4 +29,12 @@ export default {
   /* A string key (src/strings): Night raid. */
   title: 'war.mission.itaipu_4',
   night: true,
+  /* The countdown's extra length (war.js start). The client rebuilds its
+   * world at night when the countdown begins (src/main.js warNightFrame)
+   * and seats its pilot only once that is done, so a rebuild that ends
+   * after the go seats the pilot after it, spawn protected into the live
+   * war. Measured in war:twopage: 2.7 to 4.1 s idle, 6.1 to 6.3 s with 16
+   * other workers on the CPU, where with no extra time it ended 0.3 s
+   * after the go and seated both pilots 1.7 s into the war. */
+  prepMs: 15000,
 };

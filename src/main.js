@@ -2406,6 +2406,8 @@ export async function boot({
    * same night.
    */
   let warNight = false;
+  /* Each switch, its room ms and when the rebuild was done, for checks. */
+  const warNightLog = [];
   function warNightFrame() {
     const night = roomWar.night() && roomWar.view().state !== 'lobby';
     if (night === warNight) {
@@ -2413,7 +2415,11 @@ export async function boot({
     }
     warNight = night;
     warAttackers.setNavLights(night);
-    syncWorld();
+    const entry = { night, at: roomLinkState.roomNow(), state: roomWar.view().state, done: null };
+    warNightLog.push(entry);
+    syncWorld().then(() => {
+      entry.done = roomLinkState.roomNow();
+    });
   }
 
   function warSpeedMul() {
@@ -3978,6 +3984,7 @@ export async function boot({
     view: roomWar.view(),
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
+    night: warNightLog.slice(),
     hud: warHud.shown(),
     round: warRoundCard.shown(),
     markers: warMarkers.shown(),
