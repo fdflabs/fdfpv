@@ -116,6 +116,7 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createAttackers } from './render/attackers.js';
 import { createWarHud } from './ui/warhud.js';
+import { createWarMarkers } from './ui/warmarkers.js';
 import { createWarCalls } from './render/warradio.js';
 import {
   LinkWatch, PlaneFailsafe, linkDegradeFor, signalQuality, snowFor, stationPoint,
@@ -2006,6 +2007,9 @@ export async function boot({
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
+  /* Each room game's name, for the room screen's heading when a room is
+   * set up for one (a title card or Make a room's Game row). */
+  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card' };
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
@@ -2152,6 +2156,7 @@ export async function boot({
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
     ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
+    war: (room) => warEnter(room),
   });
   const roomBrowsing = () => ui.screen === 'rooms' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
   ui.roomRows = (screen) => roomBrowser.rows(screen);
@@ -2343,12 +2348,15 @@ export async function boot({
    * bit; the crash cam's replay draws what it recorded and none of this.
    */
   const WAR_MISSION = 'itaipu-1';
+  /* The one map the war runs on (section 9). */
+  const WAR_MAP = 'itaipu';
   const WAR_STATES = ['lobby', 'countdown', 'live', 'won', 'lost', 'ended'];
   /* sim_abi.h: the craft is armed, in sim_rx_signal's answer. */
   const SIM_RX_ARMED = 0x20;
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
   const warHud = createWarHud(roomSeatName);
+  const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
   const warCalls = createWarCalls();
   /* The events of each frame as they were taken, for window.__war. */
   const warLog = [];
@@ -2372,9 +2380,11 @@ export async function boot({
   let warGroundOf = null;
 
   /* The host's row, where the war may run: a private room on the Itaipu
-   * map. Nowhere else shows it, the title screen included. */
+   * map. The title's card and Make a room reach it through warEnter. A
+   * room made for the war leads with its start row, as the other games'
+   * cards lead with theirs. */
   function warRows(host, w) {
-    if (!w || w.public || w.map !== 'itaipu') {
+    if (!w || w.public || w.map !== WAR_MAP) {
       return [];
     }
     const v = roomWar.view();
@@ -2384,6 +2394,7 @@ export async function boot({
     if (host && !roomWar.on()) {
       return [head, {
         label: str('war.start'), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
+        primary: ui.roomGame === 'war',
       }];
     }
     if (host) {
@@ -2394,24 +2405,78 @@ export async function boot({
     }];
   }
 
-  async function warStart() {
-    if (!ui.settings.warConsent) {
-      const go = await ui.askConfirm({
-        title: str('war.consent_title'),
-        detail: str('war.consent_detail'),
-        yes: str('war.consent_yes'),
-        no: str('war.consent_no'),
-      });
-      if (!go) {
-        ui.refreshFriends();
-        return;
-      }
+  /* The one screen of section 9, asked once per profile: true once the
+   * pilot has said Continue, now or before. */
+  async function warConsented() {
+    if (ui.settings.warConsent) {
+      return true;
+    }
+    const go = await ui.askConfirm({
+      title: str('war.consent_title'),
+      detail: str('war.consent_detail'),
+      yes: str('war.consent_yes'),
+      no: str('war.consent_no'),
+    });
+    if (go) {
       ui.settings.warConsent = true;
       ui.persistSettings();
     }
-    roomWar.start(WAR_MISSION);
+    return go;
+  }
+
+  async function warStart() {
+    if (await warConsented()) {
+      roomWar.start(WAR_MISSION);
+    }
     ui.refreshFriends();
   }
+
+  /*
+   * THE WAY IN FROM OUTSIDE A ROOM: the title's Defend Itaipu card
+   * (`card`, its action) and Make a room's Game row (`room.name`, the
+   * typed name or null). Consent first, then a private room on the Itaipu
+   * map with this pilot as host, seated there, on the room screen with the
+   * war's start row under the cursor. The room is made without a mode,
+   * because 'war' is not one of ROOM_MODES and never reaches the server's
+   * public list; ui.roomGame is what leads the room with it, here and, by
+   * the host's profile, for whoever joins. Resolves false when the pilot
+   * said Back; throws what the room server refused.
+   */
+  async function warEnter(room = {}, card = null) {
+    if (!(await warConsented())) {
+      return false;
+    }
+    const code = await roomLinkState.create(WAR_MAP, false, { name: room.name ?? null });
+    if (ui.settings.map !== WAR_MAP) {
+      ui.seatMap(WAR_MAP, { stay: true });
+    }
+    if (card) {
+      ui.act(card);
+    } else {
+      ui.roomGame = 'war';
+      ui.show('friends');
+    }
+    roomLinkState.join(code);
+    return true;
+  }
+
+  /* The card's press. A room the server would not make is said, with a
+   * second try on offer, and Back leaves the pilot on the title. */
+  ui.onWarCard = async (card) => {
+    for (;;) {
+      try {
+        await warEnter({}, card);
+        return;
+      } catch (e) {
+        const again = await ui.askConfirm({
+          title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
+        });
+        if (!again) {
+          return;
+        }
+      }
+    }
+  };
 
   /* Crest Control's lines, in the UI's language, while the sound is on. */
   function warSay(ids) {
@@ -2488,6 +2553,7 @@ export async function boot({
   function warLeave() {
     warAttackers.clear();
     warHud.update(null);
+    warMarkers.clear();
     if (warBegunId != null) {
       warFinish();
     }
@@ -2552,12 +2618,22 @@ export async function boot({
     warTargetsFrame(wallMs);
     if (replay) {
       warHud.update(null);
+      warMarkers.update(null, now, events);
       return;
     }
     warHud.events(events);
     warSay(warCalls.events(events, v));
-    warAttackers.update(roomWar.attackersAt(now), dt);
+    const live = roomWar.attackersAt(now);
+    warAttackers.update(live, dt);
     warDrawnAt = now;
+    /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
+     * is already on the air. */
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), pCurr.x, pCurr.y, pCurr.z)) {
+      const radio = audio.warRadio ? audio.warRadio.status() : null;
+      if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
+        warSay(['wave-hunter']);
+      }
+    }
     if (wallMs < warHudAt) {
       return;
     }
@@ -3549,6 +3625,7 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     hud: warHud.shown(),
+    markers: warMarkers.shown(),
     said: warHud.said(),
     signal: warSignal,
     radio: audio.warRadio ? audio.warRadio.status() : null,
@@ -3666,12 +3743,12 @@ export async function boot({
         combat: combatRows(host, w, game === 'combat'),
         war: warRows(host, w),
       };
-      /* Defend Itaipu last, and only where it may run (warRows): no room
-       * is made for it from a title card (docs/WARFARE-PLAN.md section 9). */
+      /* Defend Itaipu last, unless the room was made for it, and only
+       * where it may run (warRows). */
       const order = game ? [game, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== game)] : ['race', 'tag', 'combat', 'war'];
       const games = [
         {
-          label: game ? str('friends.games_for', { game: str(game === 'tag' ? 'roomtag.section' : 'combat.card') }) : str('friends.games'),
+          label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
           section: true,
         },
         ...roomEndRows(host, w),
@@ -3744,7 +3821,7 @@ export async function boot({
     const make = { label: str('friends.create'), note: failed || str('friends.create_note'), action: 'roomnew', primary: Boolean(ui.roomGame) };
     const browse = roomBrowser.entryRow(failed);
     return [
-      ...(ui.roomGame ? [{ label: str(ui.roomGame === 'tag' ? 'roomtag.section' : 'combat.card'), section: true }, make, { ...browse, primary: false }] : [browse, make]),
+      ...(ui.roomGame ? [{ label: str(GAME_CARDS[ui.roomGame]), section: true }, make, { ...browse, primary: false }] : [browse, make]),
       { label: str('friends.join'), note: failed || str('friends.join_note'), action: 'friends-join' },
       nameRow,
       figureRow,

@@ -70,7 +70,7 @@ import { insideWater } from '../../../game/water.js';
 import { SUN_COLOR, SUN_IRRADIANCE } from '../../swiss2/light.js';
 import { sunDirection } from '../look/light.js';
 import {
-  bays, chuteMaterial, plume, PLUNGE_GLSL,
+  bays, chuteMaterial, gateJets, lanes, plume, PLUNGE_GLSL,
 } from './spill.js';
 
 /* The drawn sheet of water running down the chute over D's floor, m: a
@@ -158,33 +158,66 @@ export function chuteFloors(roofs) {
   });
 }
 
-/* The sheet over D's floors: per floor a quad CHUTE_SHEET over it, with
- * spill.js chuteMaterial's aChute (metres down the chute from the gates,
- * metres across from the bay's middle). */
-function chuteGeometry(THREE, floors, axis) {
+/*
+ * The sheet over D's floors, and the jets under the gates (spill.js
+ * gateJets), one geometry: per floor a quad CHUTE_SHEET over it, first
+ * and in the floors' order (scripts/itaipu-water-check.js reads them
+ * so), then the jets'. Each corner carries spill.js chuteMaterial's
+ * aChute: metres down the chute from the gates, metres across it from
+ * the gates' middle, -1 to 1 across its bay (or gate), and 1 on a jet.
+ */
+function chuteGeometry(THREE, floors, axis, lane) {
   const pos = [];
+  const normal = [];
   const chute = [];
   const idx = [];
+  const across = [axis.along[1], -axis.along[0]];
   const down = (p) => (p[0] - axis.origin[0]) * axis.along[0] + (p[2] - axis.origin[1]) * axis.along[1];
-  for (const { quad } of floors) {
-    const [a, b, c, d] = quad;
-    const half = Math.hypot(b[0] - a[0], b[2] - a[2]) / 2;
+  const side = (p) => (p[0] - axis.origin[0]) * across[0] + (p[2] - axis.origin[1]) * across[1];
+  /* A quad's corners, facing `n` whichever way they were listed. */
+  const quad = (pts, n, attrs) => {
     const k = pos.length / 3;
-    for (const [p, t] of [[a, -1], [b, 1], [c, 1], [d, -1]]) {
-      pos.push(p[0], p[1] + CHUTE_SHEET, p[2]);
-      chute.push(down(p), t * half);
+    pts.forEach((p, i) => {
+      pos.push(...p);
+      normal.push(...n);
+      chute.push(...attrs[i]);
+    });
+    const [a, b, , d] = pts;
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    const v = [d[0] - a[0], d[1] - a[1], d[2] - a[2]];
+    const cross = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    const facing = cross[0] * n[0] + cross[1] * n[1] + cross[2] * n[2];
+    idx.push(...(facing > 0 ? [k, k + 1, k + 3, k + 1, k + 2, k + 3] : [k, k + 3, k + 1, k + 1, k + 3, k + 2]));
+  };
+  for (const { quad: [a, b, c, d] } of floors) {
+    const pts = [a, b, c, d].map((p) => [p[0], p[1] + CHUTE_SHEET, p[2]]);
+    quad(pts, [0, 1, 0], [[a, -1], [b, 1], [c, 1], [d, -1]].map(([p, t]) => [down(p), side(p), t, 0]));
+  }
+  /* D's floor down the chute, from its first bay's records: the sill
+   * flat to where they start. */
+  const knots = floors.filter(({ rec }) => rec.chute === floors[0].rec.chute)
+    .flatMap(({ quad: [a, , , d] }) => [[down(a), a[1]], [down(d), d[1]]])
+    .sort((p, q) => p[0] - q[0]);
+  const floorAt = (dd) => {
+    const k = knots.findIndex(([kd]) => kd >= dd);
+    if (k <= 0) {
+      return knots[k < 0 ? knots.length - 1 : 0][1];
     }
-    /* Up facing whichever way D wound it. */
-    const ux = b[0] - a[0];
-    const uz = b[2] - a[2];
-    const vx = d[0] - a[0];
-    const vz = d[2] - a[2];
-    idx.push(...(uz * vx - ux * vz > 0 ? [k, k + 1, k + 3, k + 1, k + 2, k + 3] : [k, k + 3, k + 1, k + 1, k + 3, k + 2]));
+    const [d0, y0] = knots[k - 1];
+    const [d1, y1] = knots[k];
+    return d1 > d0 ? y0 + ((y1 - y0) * (dd - d0)) / (d1 - d0) : y1;
+  };
+  const at = (u, dd) => [
+    axis.origin[0] + axis.along[0] * dd + across[0] * u,
+    axis.origin[1] + axis.along[1] * dd + across[1] * u,
+  ];
+  for (const q of gateJets(lane, floorAt, at, axis.along)) {
+    quad(q.pts, q.normal, q.chute);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute('normal', new THREE.Float32BufferAttribute(pos.map((_, k) => (k % 3 === 1 ? 1 : 0)), 3));
-  g.setAttribute('aChute', new THREE.Float32BufferAttribute(chute, 2));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(normal, 3));
+  g.setAttribute('aChute', new THREE.Float32BufferAttribute(chute, 4));
   g.setIndex(idx);
   g.computeBoundingSphere();
   return g;
@@ -431,19 +464,25 @@ function withField(THREE, mat, uniforms) {
             float lace = texture2D(uWaves, vec2(dot(sq, sw) / 23.0, dot(sq, uItDown) / 61.0)).a;
             float rag = texture2D(uWaves, sq / 7.9 + vec2(uTime * 0.05, 0.0)).a;
             float fine = texture2D(uWaves, sq / 2.3 - vec2(0.0, uTime * 0.3)).a;
-            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.16, 0.12), smoothstep(0.0, 0.6, spill) * 0.7);
-            /* Far off, a pixel holds many of the rags and the fine lace
-             * and the foam is a paler sheet torn only at its edges: the
-             * fine terms alone alias into a regular grain. */
-            float far = smoothstep(150.0, 900.0, distance(cameraPosition, vWaterWorld));
-            /* Downstream of the boil the foam lies in lines, the edges
-             * of the eddies the current tears off it: ridges of the
-             * lace, thickest where the water is most churned. */
+            /* Water full of air is milky jade, not clear: the bed and
+             * the mirror are lost in it (spill-plume). */
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.15, 0.12), smoothstep(0.0, 0.5, spill) * 0.85);
+            /* Far off, or seen along the water from near it, a pixel
+             * holds many of the rags and the fine lace and the foam is a
+             * paler sheet torn only at its edges: the fine terms alone
+             * alias into a regular grain, and at a grazing look into a
+             * crazed web. */
+            vec3 look = vWaterWorld - cameraPosition;
+            float far = max(smoothstep(150.0, 900.0, length(look)), 1.0 - smoothstep(0.03, 0.12, abs(look.y) / length(look)));
+            /* Downstream of the boil the foam lies in patches and lines,
+             * the eddies the current tears off it: the lace's crests and
+             * its ridges, thickest where the water is most churned. */
             float ridge = 1.0 - abs(lace * 2.0 - 1.0);
-            float lines = smoothstep(0.93 - 0.35 * spill, 0.99 - 0.2 * spill, ridge * 0.8 + rag * 0.2 + fine * 0.1);
+            float lines = smoothstep(0.93 - 0.35 * spill, 0.99 - 0.2 * spill, ridge * 0.8 + rag * 0.2 + fine * 0.1) * 0.4;
+            float patches = smoothstep(0.62 - 0.3 * spill, 0.8 - 0.25 * spill, lace * 0.6 + rag * 0.4);
             float lift = mix(lace * 0.45 + rag * 0.35 + fine * 0.2, lace * 0.7 + 0.15, far);
-            float boiled = smoothstep(0.66 - 0.5 * spill, mix(0.8, 0.9, far) - 0.35 * spill, lift) * smoothstep(0.45, 0.9, spill);
-            wFoam = max(wFoam, max(boiled * (1.0 - 0.35 * far), mix(lines, 0.25 * spill, far)) * min(1.0, spill * 1.4));
+            float boiled = smoothstep(0.66 - 0.55 * spill, mix(0.8, 0.9, far) - 0.4 * spill, lift) * smoothstep(0.35, 0.85, spill);
+            wFoam = max(wFoam, max(boiled * (1.0 - 0.25 * far), mix(max(lines, patches * 0.7), 0.4 * spill, far)) * min(1.0, spill * 1.4));
             wSlope *= 1.0 + 3.0 * spill * (1.0 - 0.8 * far);
           }
         }
@@ -649,8 +688,11 @@ export async function buildPart(ctx) {
 
   /* The chutes, drawn over D's floors, whose crash surface is water;
    * the jets off their flip buckets, and the plume where they land. */
-  const chuteMat = chuteMaterial(THREE, { waves, time, envMap });
-  const chute = new THREE.Mesh(chuteGeometry(THREE, floors, axis), chuteMat);
+  const lane = lanes(dam.find((p) => p.part === 'spillway').figures);
+  const chuteMat = chuteMaterial(THREE, {
+    waves, time, envMap, lane,
+  });
+  const chute = new THREE.Mesh(chuteGeometry(THREE, floors, axis, lane), chuteMat);
   chute.name = 'itaipu-chute';
   chute.receiveShadow = true;
   group.add(chute);
