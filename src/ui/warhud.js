@@ -2,8 +2,7 @@
  * warhud.js: the war mode's head up display (docs/WARFARE-PLAN.md section
  * 5.2): the plant's output in megawatts as one big bar that falls red as
  * targets are hit, the wave, the rack of airframes left, this pilot's
- * kills, the link's signal bar, and short callouts as text under the
- * voice ("STRIKERS LOW OVER THE RESERVOIR", "INTAKE 7 HIT: -700 MW").
+ * kills, and short callouts as text under the voice ("STRIKERS LOW OVER THE RESERVOIR", "INTAKE 7 HIT: -700 MW").
  *
  * Styled as a military display over FPV video: monospace capitals, a
  * phosphor green on a dark scrim that holds over snow and sky alike, amber
@@ -13,8 +12,7 @@
  * uses.
  *
  * It reads the room's view (src/share/roomwar.js view()) and the events
- * roomwar hands the shell once each; the signal comes in from
- * src/game/signal.js as the shell computes it, never recomputed here.
+ * roomwar hands the shell once each.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -42,8 +40,6 @@ const DIM = 'rgba(125, 255, 154, 0.35)';
 const SCRIM = 'rgba(4, 10, 6, 0.55)';
 const CALL_MS = 4500;
 const CALLS_SHOWN = 3;
-/* The signal bar's segments. */
-const BARS = 5;
 /* The rack is drawn as pips up to this many, a count past it. */
 const PIPS_MAX = 24;
 
@@ -83,14 +79,10 @@ export function createWarHud(nameOf) {
   let outFloor = null;
   let outText = null;
   let line = null;
-  let sig = null;
-  let sigBars = [];
-  let sigText = null;
   let calls = null;
   let banner = null;
   let shown = '';
   let lostOutput = 0;
-  let lit = 0;
   const said = [];
 
   function el(style, parent) {
@@ -131,12 +123,6 @@ export function createWarHud(nameOf) {
     line = el({
       display: 'flex', gap: '14px', flexWrap: 'wrap', background: SCRIM, border: `1px solid ${DIM}`, padding: '4px 10px',
     }, box);
-    sig = el({
-      display: 'flex', alignItems: 'flex-end', gap: '8px', background: SCRIM, border: `1px solid ${DIM}`, padding: '4px 10px', alignSelf: 'flex-start',
-    }, box);
-    sigText = el({ minWidth: '9ch' }, sig);
-    const bars = el({ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '16px' }, sig);
-    sigBars = Array.from({ length: BARS }, (_, i) => el({ width: '6px', height: `${4 + i * 3}px`, background: DIM }, bars));
     calls = root({
       position: 'fixed', top: '15%', left: '50%', transform: 'translateX(-50%)', zIndex: '41', pointerEvents: 'none',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', maxWidth: '80vw',
@@ -200,12 +186,10 @@ export function createWarHud(nameOf) {
 
   /*
    * A few times a second. v is roomwar's view(), me this pilot's seat,
-   * roomNow the room clock, signal { q (0 to 1), snow, degraded, lost }
-   * from src/game/signal.js (snowFor(q) > 0, linkDegradeFor(q).lossPpm >
-   * 0, LinkWatch.lost), or null to hide the bar; full the mission's
-   * output at the go (roomwar mission().output), the bar's whole length.
+   * roomNow the room clock, full the mission's output at the go (roomwar
+   * mission().output), the bar's whole length.
    */
-  function update(v, me, roomNow, signal, full) {
+  function update(v, me, roomNow, full) {
     if (!v || v.state === 'lobby' || roomNow == null) {
       if (box && shown !== '') {
         box.style.display = 'none';
@@ -219,11 +203,8 @@ export function createWarHud(nameOf) {
       build();
     }
     const mine = (v.scores || []).find((r) => r.seat === me);
-    const q = signal ? Math.max(0, Math.min(1, signal.q)) : null;
-    lit = q == null ? 0 : Math.ceil(q * BARS - 1e-9);
-    const sigTone = !signal ? '' : (signal.lost ? 'lost' : (signal.degraded ? 'bad' : (signal.snow ? 'warn' : 'ok')));
     const countdown = v.state === 'countdown' ? Math.max(0, Math.ceil((v.goAt - roomNow) / 1000)) : null;
-    const key = JSON.stringify([v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, lit, sigTone, countdown, v.why, full, performance.now() - lostOutput < 1500]);
+    const key = JSON.stringify([v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500]);
     if (key === shown) {
       return;
     }
@@ -250,13 +231,6 @@ export function createWarHud(nameOf) {
     const pips = v.rackMax <= PIPS_MAX ? ` ${'■'.repeat(v.rack)}${'□'.repeat(Math.max(0, v.rackMax - v.rack))}` : '';
     cell(str('war.rack', { n: v.rack, of: v.rackMax }) + pips, v.rack <= 1 ? RED : GREEN);
     cell(str('war.kills', { n: mine ? mine.kills : 0 }));
-    sig.style.display = signal ? 'flex' : 'none';
-    const sigColour = { ok: GREEN, warn: AMBER, bad: RED, lost: RED }[sigTone] || GREEN;
-    sigText.textContent = sigTone === 'lost' ? str('war.link_lost') : str('war.link');
-    sigText.style.color = sigColour;
-    sigBars.forEach((b, i) => {
-      b.style.background = i < lit ? sigColour : DIM;
-    });
     const over = v.state === 'won' || v.state === 'lost' || v.state === 'ended';
     banner.style.display = over ? 'block' : 'none';
     if (over) {
@@ -275,7 +249,6 @@ export function createWarHud(nameOf) {
       output: outText ? outText.textContent : '',
       fill: outFill ? outFill.style.width : '',
       line: line ? line.textContent : '',
-      signal: sigText && sig.style.display !== 'none' ? `${sigText.textContent} ${lit}/${BARS}` : '',
       calls: calls ? [...calls.children].map((c) => c.textContent) : [],
       banner: banner && banner.style.display !== 'none' ? banner.textContent : '',
     }),
