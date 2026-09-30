@@ -222,7 +222,9 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   if (ring.length !== 1 || !/Amistad|Amizade/.test(ring[0].name ?? '')) {
     throw new Error(`town: expected the Friendship Bridge as the one ring road, got ${ring.map((f) => f.id).join(', ')}`);
   }
-  friendship = buildBridge(ring[0], ground, sink);
+  const bridge = buildBridge(ring[0], ground, sink);
+  records.push(bridge.record);
+  friendship = bridge.measures;
   progress(0.8);
   await yieldEvery();
 
