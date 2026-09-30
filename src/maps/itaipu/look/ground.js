@@ -480,6 +480,13 @@ const CLOVER = [0.82, 1.12, 0.98];
  * tint is divided by it, so the pasture's mean is round 1's colour and
  * where the detail fades out the colour does not move. */
 const GRASS_MEAN = LUSH.map((l, c) => l + (STRAW[c] - l) * 0.15);
+/* Saturation on the pasture near the lens, and on its blades. Under the
+ * round 2 sun (#231) the eye-level views' greens measured 0.29 against
+ * the photographs' 0.34 (tools/swiss2-loop/colour.py Sg, over the ten
+ * eye-level views), the pastures most: powerlines 0.34 against 0.51.
+ * At 1.2 the mean is 0.33; 1.3 overshot to 0.36, the lawns at the
+ * reservoir and the canyon well past their photographs. */
+const PASTURE_SAT = 1.2;
 /* Bare terra roxa in a pasture and on its tracks, at a pasture's
  * lightness: a deeper, less blue red than the shore's red earth, which
  * at this lightness read pink. */
@@ -581,6 +588,9 @@ const NEAR = /* glsl */ `
         /* Tufts: each clump of blades lit as its own little face. */
         nearTilt += vec3(clump.g - 0.5, 0.0, clump.a - 0.5) * 1.2 * sw.g * (1.0 - smoothstep(0.15, 0.6, pix)) * (1.0 - bareF);
         col *= mix(vec3(1.0), tint, nearK);
+        /* The pasture's green, a little deeper close to (PASTURE_SAT). */
+        float lumP = dot(col, vec3(0.3, 0.59, 0.11));
+        col = max(vec3(lumP) + (col - lumP) * (1.0 + ${(PASTURE_SAT - 1).toFixed(2)} * sw.g * nearK), vec3(0.0));
       }
 `;
 
@@ -1067,6 +1077,8 @@ const TURF_VERTEX = /* glsl */ `
     vec4 n5 = textureLod(uNoise, base / 870.0 + 0.29, 0.0);
     c *= 0.88 + 0.24 * (0.6 * n5.r + 0.4 * n4.r);
     c *= mix(${v3(LUSH)}, ${v3(STRAW)}, dry) / ${v3(GRASS_MEAN)} * (0.85 + 0.3 * hb1);
+    float lumT = dot(c, vec3(0.3, 0.59, 0.11));
+    c = max(vec3(lumT) + (c - lumT) * ${PASTURE_SAT.toFixed(2)}, vec3(0.0));
     vTurfCol = c * ${TURF_GAIN.toFixed(2)};
     /* Past a few metres a blade is a pixel or two and its dark root
      * would make it a dark speck: lit to its root there. */
