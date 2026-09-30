@@ -386,9 +386,15 @@ What the extract holds (check.py, OSM data to 2026-09-28 20:23 UTC, both extract
   all 10 658 buildings: a roof record costs a grid entry, not a solid.
   Walls are the expensive part. swiss2's standard steps a turned wall in
   0.25 m columns, 40 boxes for a 10 m house; for 10 658 buildings that is
-  hundreds of thousands of boxes. So a building's walls are one box when
-  it sits within 10 degrees of the world's axes and 1 m columns otherwise,
-  and they exist only for the buildings within 1 000 m of the pilot, in
+  hundreds of thousands of boxes. So a building's footprint is cut at its
+  corners into runs, and a run into as many columns as keep every wall
+  within 0.5 m of its box, none narrower than 1 m: a rectangle square to
+  the world's axes is one box, a wall a few degrees off them a few, and a
+  building turned well off them 1 m columns. Each column is a box per
+  stretch of it inside the outline, so an L, a U or a courtyard is not
+  filled (town/plan.js wallBoxes; the collision audit, #250 and #253,
+  found the old 10 degree rule leaving walls up to 29 m outside what was
+  drawn). The walls exist only for the buildings within 1 000 m of the pilot, in
   the streamed collider set package C adds, rebuilt when the pilot has
   moved 400 m. The dam, the powerhouse and every Itaipu structure are in
   the static set and never streamed.
@@ -401,8 +407,10 @@ What the extract holds (check.py, OSM data to 2026-09-28 20:23 UTC, both extract
   and they are roof records, so a craft can land on one. Roads are drawn,
   not collided (they are ground).
 - **Ring landmarks**: the Friendship Bridge (z 9 535) is the one structure
-  drawn in the ring, as a mesh with no colliders, because it is seen from
-  the canyon and the air and imagery alone would leave a gap in the river.
+  drawn in the ring, because it is seen from the canyon and the air and
+  imagery alone would leave a gap in the river. Its deck is ground and it
+  is solid (static boxes and capsules for the deck, parapets, arch ribs
+  and columns), inside the collider grid's 16 384 m.
 - **Power**: every tower and line. Itaipu's switchyards and the lines
   leaving them are the tallest things in the landscape after
   the dam and the most likely thing a pilot hits. Towers are `pole`
