@@ -26,6 +26,11 @@
  *     happened (its recorded event, drawn in the replay's scene)
  *   - a burst of ten at once costs the frame what it measures, in draw
  *     calls within the Itaipu budget's headroom
+ *   - B's crash cam, opened while Hunters are up, draws the war's
+ *     attackers where B's live frames drew them (src/replay/warrec.js):
+ *     a scripted one to within REPLAY_SCRIPTED_M of it at the same room
+ *     ms, a Hunter to within REPLAY_HUNTER_M (f32); and the bytes a
+ *     minute of war costs in a saved replay
  *
  * This file is part of WebFPVSimulator.
  *
@@ -76,6 +81,11 @@ function check(name, ok, detail = '') {
 const CALL_BUDGET = 300;
 /* What a burst of ten may add to a frame, draw calls. */
 const FX_CALLS_MAX = 8;
+/* A replayed attacker against the live frame that drew it: a scripted
+ * one is routes.js on the same room ms (exact but for float order), a
+ * Hunter its drawn pose kept as f32 at kilometres from the origin. */
+const REPLAY_SCRIPTED_M = 1e-3;
+const REPLAY_HUNTER_M = 0.01;
 /* src/render/audio.js: the page's own ceiling on live nodes (#218). */
 const AUDIO_NODES_MAX = 64;
 
@@ -309,6 +319,92 @@ try {
     check(`a burst of ten adds at most ${FX_CALLS_MAX} draw calls and the view stays within ${CALL_BUDGET}`, cost.addedCalls <= FX_CALLS_MAX && cost.calls <= CALL_BUDGET,
       `${cost.baseCalls} to ${cost.calls} calls, ${cost.baseMs.toFixed(2)} to ${cost.ms.toFixed(2)} ms a frame, the pools' step ${cost.updateMs.toFixed(3)} ms`);
     check('with nothing allocated per frame: the pools did not grow', cost.grown === 0, `grew ${cost.grown}`);
+
+    /* The replay's drones. B, held and flying, watches the Hunters come
+     * (born 170 s after the go): its live frames logged, then its crash
+     * cam opened on them. */
+    await b.until(`window.__rooms().roomNow > ${goAt + 190000}`, 200000);
+    await b.evaluate(`(() => {
+      const log = [];
+      window.__liveWar = log;
+      let n = 0;
+      const f = () => {
+        n += 1;
+        const d = window.__war().drawn;
+        if (n % 4 === 0 && d.at != null && d.list.length) {
+          log.push({ at: d.at, list: d.list.map((x) => ({ id: x.id, kind: x.kind, p: x.p.slice() })) });
+        }
+        if (log.length < 60) {
+          requestAnimationFrame(f);
+        }
+      };
+      requestAnimationFrame(f);
+      return true;
+    })()`);
+    await b.until('window.__liveWar.length >= 60', 60000);
+    await b.evaluate('window.__crashCam.open(); true');
+    await b.until("window.__craftState().mode === 'replay'", 10000);
+    const live = await b.evaluate('window.__liveWar');
+    let scripted = 0;
+    let hunters = 0;
+    let worstS = 0;
+    let worstH = 0;
+    let rows = 0;
+    const misses = [];
+    for (const f of live.filter((x, i) => i % 3 === 0)) {
+      const k = await b.evaluate(`window.__crashCam.h().warRow(${f.at})`);
+      if (k < 0) {
+        misses.push(`no row at ${f.at}`);
+        continue;
+      }
+      await b.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${k})); true`);
+      await b.sleep(150);
+      const d = await b.evaluate('window.__crashCam.h().warDrawn()');
+      if (!d || d.room !== f.at) {
+        misses.push(`row ${k} drew room ${d && d.room} for ${f.at}`);
+        continue;
+      }
+      rows += 1;
+      const ids = (l) => l.map((x) => x.id).join(',');
+      if (ids(d.list) !== ids(f.list)) {
+        misses.push(`at ${f.at} live ${ids(f.list)} replay ${ids(d.list)}`);
+        continue;
+      }
+      for (let i = 0; i < f.list.length; i += 1) {
+        const e = Math.hypot(...[0, 1, 2].map((j) => f.list[i].p[j] - d.list[i].p[j]));
+        if (f.list[i].kind === 'hunter') {
+          hunters += 1;
+          worstH = Math.max(worstH, e);
+        } else {
+          scripted += 1;
+          worstS = Math.max(worstS, e);
+        }
+      }
+    }
+    console.log(`  info  replay against live: ${rows} frames, ${scripted} scripted and ${hunters} hunter poses compared${misses.length ? `; ${misses.slice(0, 3).join(' | ')}` : ''}`);
+    check('B\'s replay draws the same attackers as its live frames at the same room ms', rows >= 10 && misses.length === 0, `${rows} frames, ${misses.length} missed`);
+    check(`a scripted attacker within ${REPLAY_SCRIPTED_M} m of where it flew live`, scripted > 0 && worstS <= REPLAY_SCRIPTED_M, `${worstS.toExponential(2)} m over ${scripted}`);
+    check(`a Hunter within ${REPLAY_HUNTER_M} m of where it flew live`, hunters > 0 && worstH <= REPLAY_HUNTER_M, `${worstH.toExponential(2)} m over ${hunters}`);
+    await b.evaluate("window.__crashCam.h().api.setRig('orbit'); true");
+    await save('B-replay-drones', await grab(b));
+    const size = await b.evaluate(`(async () => {
+      const f = await import('/src/replay/file.js');
+      const c = window.__crashCam.h().clip();
+      const withWar = f.encodeReplay(c).byteLength;
+      const bare = { ...c };
+      delete bare.war;
+      const without = f.encodeReplay(bare).byteLength;
+      const agentsJson = JSON.stringify(c.war.agents).length;
+      return { withWar, without, n: c.n, seconds: c.time[c.n - 1], agents: c.war.agents.length, slots: c.war.slots, agentsJson, version: new DataView(f.encodeReplay(c)).getUint32(4, true) };
+    })()`);
+    const perMin = (x) => Math.round(x / size.seconds * 60);
+    const rowsMin = size.n / size.seconds * 60;
+    /* Forty attackers, four of them Hunters: the room column, four slots
+     * a row and forty birth records, at this clip's rows a minute. */
+    const forty = Math.round(rowsMin * (8 + 4 * 32) + 40 * (size.agentsJson / Math.max(1, size.agents)));
+    console.log(`  info  replay size: ${size.withWar - size.without} bytes of war in a ${size.seconds.toFixed(1)} s clip (${size.agents} scripted, ${size.slots} hunter slots, ${Math.round(rowsMin)} rows a minute): ${perMin(size.withWar - size.without)} bytes a minute of the whole ${perMin(size.withWar)}; forty attackers with four Hunters about ${forty} bytes a minute`);
+    check('a saved replay of a war flight is version 10', size.version === 10, `version ${size.version}`);
+    await b.evaluate('window.__crashCam.h().api.close(); true');
   }
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
