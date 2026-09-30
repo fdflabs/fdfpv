@@ -603,7 +603,7 @@ function runsOf(ring, axis) {
   for (let k = 0; k + 1 < at.length; k += 1) {
     runs.push([at[k], at[k + 1], columnsIn(ring, axis, at[k], at[k + 1])]);
   }
-  if (runs.some(([a, b, cols]) => (b - a) / cols <= COLUMN)) {
+  if (runs.some(([a, b, cols]) => cols > 1 && cols === Math.ceil((b - a) / COLUMN - 1e-9))) {
     const cuts = at.filter((c, k) => k === 0 || k === at.length - 1 || inside.has(c));
     runs = [];
     for (let k = 0; k + 1 < cuts.length; k += 1) {

@@ -318,7 +318,8 @@ export function layRoads(features, ground, { face, bridge, bar }) {
  * the height at one end to the other. Its ends are flush with the road
  * that meets them (the ground plus the road's lift), and its middle is
  * held over the ground it crosses. Returns the records, the static wall
- * boxes, and the faces to draw ({ key, tint, pts, n }).
+ * boxes, the rails as static capsules [ax, ay, az, bx, by, bz, r], and
+ * the faces to draw ({ key, tint, pts, n }).
  */
 export function deckOf(f, ground) {
   const pts = f.points;
@@ -335,6 +336,7 @@ export function deckOf(f, ground) {
   const hw = f.width / 2;
   const records = [];
   const boxes = [];
+  const rails = [];
   const faces = [];
   for (let k = 0; k + 1 < pts.length; k += 1) {
     const [ax, az] = pts[k];
@@ -362,10 +364,15 @@ export function deckOf(f, ground) {
     const ring = [world(-hw, 0, -hl), world(hw, 0, -hl), world(hw, 0, hl), world(-hw, 0, hl)].map((p) => [p[0], p[2]]);
     boxes.push(...wallBoxes(ring, Math.min(ys[k], ys[k + 1]) - DECK, Math.max(ys[k], ys[k + 1]), rec, []).boxes);
     /* The rails stand on the deck, solid whether or not the deck is a
-     * craft's ground: they are not the record's own solids. */
+     * craft's ground: they are not the record's own solids. A capsule
+     * each, from 0.1 m under the deck to RAIL over it: a box would be a
+     * column a metre of a rail turned off the axes, and a wedge of wall
+     * across the deck where it is turned a little. */
+    const r = (RAIL + 0.1) / 2;
     for (const sx of [-1, 1]) {
-      const railRing = [world(sx * hw, 0, -hl), world(sx * (hw - 0.25), 0, -hl), world(sx * (hw - 0.25), 0, hl), world(sx * hw, 0, hl)].map((p) => [p[0], p[2]]);
-      boxes.push(...wallBoxes(railRing, Math.min(ys[k], ys[k + 1]) - 0.1, Math.max(ys[k], ys[k + 1]) + RAIL, null, []).boxes);
+      const a = world(sx * (hw - 0.125), da + RAIL - r, -hl);
+      const b = world(sx * (hw - 0.125), db + RAIL - r, hl);
+      rails.push([...a, ...b, r]);
     }
     const sideN = [uz, 0, -ux];
     const up = [0, 1, 0];
@@ -382,6 +389,6 @@ export function deckOf(f, ground) {
     }
   }
   return {
-    records, boxes, faces, tint: TINT[pavingOf(f)], paving: pavingOf(f),
+    records, boxes, rails, faces, tint: TINT[pavingOf(f)], paving: pavingOf(f),
   };
 }
