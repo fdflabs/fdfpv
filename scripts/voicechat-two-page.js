@@ -257,7 +257,10 @@ try {
     await shot(a, 'a-talking');
   }
   check('A shows itself talking', await a.evaluate('window.__voice.talking()'));
-  check('and A\'s name over its aircraft carries the speaking mark', await b.evaluate(`window.__voiceUi.label(${seatA}, 'A') !== 'A'`));
+  /* The fake microphone beeps rather than talks, so each mark is waited
+   * for: it is lit only while a beep is in the last SPEAKING_HOLD_MS. */
+  check('and A\'s name over its aircraft carries the speaking mark',
+    await b.until(`window.__voiceUi.label(${seatA}, 'A') === ${JSON.stringify(`${SPEAKING_MARK} A`)}`, 3000).then(() => true, () => false));
   await hold(a, PTT_KEY, false);
   await a.sleep(500);
   const after = await inbound(b, seatA, 2000);

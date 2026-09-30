@@ -38,6 +38,9 @@ import { str } from '../strings/index.js';
 const PREFS_KEY = 'fdfpv.voice';
 export const SPEAKING_MARK = '\u{1F50A}';
 const ROW_PREFIX = 'voice-peer-';
+/* A pilot's volume, Muted to VOLUME_MAX in VOLUME_STEPs. */
+const LEVELS = Array.from({ length: Math.round(VOLUME_MAX / VOLUME_STEP) + 1 }, (_, i) => i * VOLUME_STEP);
+const STATE_KEYS = { connecting: 'voicechat.peer_connecting', failed: 'voicechat.peer_failed', off: 'voicechat.peer_off' };
 
 function readPrefs() {
   try {
@@ -117,18 +120,14 @@ export function createVoiceUi(voice, input, changed) {
     return voice.isOn();
   }
 
-  function peerValue(seat) {
+  /* A pilot's voice row's label: their name, and how the link stands
+   * while it is not up. */
+  function peerLabel(seat, name) {
     const state = voice.linkState(seat);
-    if (state === 'connecting') {
-      return str('voicechat.peer_connecting');
-    }
-    if (state === 'failed') {
-      return str('voicechat.peer_failed');
-    }
-    if (state === 'off') {
-      return str('voicechat.peer_off');
-    }
-    const v = voice.volume(seat);
+    return state === 'up' ? str('voicechat.peer', { name }) : str('voicechat.peer_state', { name, state: str(STATE_KEYS[state]) });
+  }
+
+  function levelLabel(v) {
     return v > 0 ? str('voicechat.peer_volume', { pct: Math.round(v * 100) }) : str('voicechat.peer_muted');
   }
 
@@ -184,11 +183,17 @@ export function createVoiceUi(voice, input, changed) {
       if (!voice.isOn()) {
         return [];
       }
+      /* A list, not a stepper: the stepper's value is three characters
+       * wide, and 100% is four. Left and right still step it. */
       return [{
         id: `${ROW_PREFIX}${seat}`,
-        label: str('voicechat.peer', { name }),
-        value: peerValue(seat),
+        label: peerLabel(seat, name),
         note: str('voicechat.peer_note'),
+        value: levelLabel(voice.volume(seat)),
+        current: String(voice.volume(seat)),
+        pickOnly: true,
+        options: LEVELS.map((v) => ({ value: String(v), label: levelLabel(v) })),
+        pick: (v) => voice.setVolume(seat, Number(v)),
         adjust: (d) => {
           const v = voice.volume(seat) + d * VOLUME_STEP;
           voice.setVolume(seat, Math.round(Math.max(0, Math.min(VOLUME_MAX, v)) / VOLUME_STEP) * VOLUME_STEP);
