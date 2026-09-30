@@ -11,7 +11,7 @@
  * what main.js will do: the attackers into the map's scene once a frame
  * at the room clock, deaths and warheads to the renderer, the events and
  * the view to the HUD. What it leaves out is the flight side, the
- * warhead breaking this craft and the link, which need the plant.
+ * warhead breaking this craft, which needs the plant.
  *
  * window.__war() is the check's view of it; window.__warDo(op, arg) acts.
  *
@@ -105,7 +105,7 @@ export function install() {
     drawnAt = t;
     debris.update(dt);
     const m = war.mission();
-    hud.update(war.view(), war.seat(), t, null, m ? m.output : 0);
+    hud.update(war.view(), war.seat(), t, m ? m.output : 0);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -127,8 +127,6 @@ export function install() {
       war.start(arg);
     } else if (op === 'end') {
       war.end();
-    } else if (op === 'lost') {
-      return war.sendLost(arg);
     }
     return true;
   };

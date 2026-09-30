@@ -20,7 +20,9 @@
  * pages run src/main.js's own wiring (docs/WAR-WIRING.md), the plant and
  * all, and the check holds that too: B flies with crash damage off and
  * the war turns it on; A's warhead breaks A's craft; the Switchyard burns
- * while the war lasts and is whole after it; the link is judged live.
+ * while the war lasts and is whole after it; and the radio link is the
+ * pilot's own preset all through, as outside a war (the owner took the
+ * signal out of the war on 2026-09-29).
  *
  * What must hold:
  *   - both pages draw every attacker at the same place at the same room
@@ -289,9 +291,20 @@ try {
       await p.evaluate("import('/scripts/war-twopage-wire.js').then((m) => m.install())");
     }
   }
+  /* The radio link before the war, which the war must leave as it is. */
+  let link0 = null;
   if (MAIN) {
     check('B flies with its own crash damage setting off before the war', (await b.evaluate('window.__war().damage')) === false);
+    link0 = await Promise.all(pages.map((p) => p.evaluate('JSON.stringify([window.__war().link, window.__link().id])')));
   }
+  const linkSame = async () => {
+    const now = await Promise.all(pages.map((p) => p.evaluate('JSON.stringify([window.__war().link, window.__link().id])')));
+    const clean = (l) => {
+      const [k] = JSON.parse(l);
+      return k.delayMs === 0 && k.lossPpm === 0 && !k.failsafe;
+    };
+    return { ok: now.every((l, i) => l === link0[i] && clean(l)), detail: now.join(' | ') };
+  };
   const seats = await Promise.all(pages.map((p) => p.evaluate('window.__rooms().seat')));
   const w0 = await Promise.all(pages.map(warOf));
   check('each page\'s war client has its seat and the room\'s lobby from the welcome', w0.every((w, i) => w.seat === seats[i] && w.view.state === 'lobby'),
@@ -313,8 +326,11 @@ try {
     await b.until('window.__war().damage === true', 20000).catch(() => {});
     const dmg = await Promise.all(pages.map((p) => p.evaluate('window.__war().damage')));
     check('the war forces crash damage on for both, B\'s own setting off', dmg.every(Boolean), JSON.stringify(dmg));
-    const sig = await a.evaluate('window.__war().signal');
-    check('A\'s link is judged while the war is live', sig && sig.q >= 0 && sig.q <= 1, JSON.stringify(sig));
+    /* Every sample the shell hands sim_input goes through rcLink, and
+     * nothing else in main.js calls sim_rx_signal: with no signal set on
+     * rcLink the sticks reach sim_input as they would outside a war. */
+    const l = await linkSame();
+    check('the war leaves the radio link as it was: the preset, no signal, no failsafe', l.ok, l.detail);
   }
   /* The room's side, traced for a failure's details: every pose the war
    * took (its t, and the room ms it came in at) and every judgement. */
@@ -496,8 +512,9 @@ try {
   if (MAIN) {
     await a.sleep(500);
     const after = await Promise.all(pages.map((p) => p.evaluate('window.__war()')));
-    check('after it the dam is whole and the link is the preset\'s again', after.every((w) => Object.keys(w.burning).length === 0 && w.signal === null),
-      after.map((w) => `${JSON.stringify(w.burning)} ${JSON.stringify(w.signal)}`).join(' | '));
+    check('after it the dam is whole', after.every((w) => Object.keys(w.burning).length === 0), after.map((w) => JSON.stringify(w.burning)).join(' | '));
+    const l = await linkSame();
+    check('and the radio link was never touched, the war\'s hits and warheads and all', l.ok, l.detail);
   }
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));

@@ -32,6 +32,7 @@ import {
   createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, warVoiceUrl, warMusicUrl,
 } from '../src/render/warradio.js';
 import { KINDS } from '../src/share/war/routes.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 let failed = 0;
@@ -46,7 +47,8 @@ function check(name, ok, detail = '') {
 }
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-const lines = JSON.parse(readFileSync(join(root, 'assets/audio/war/lines.json'), 'utf8')).lines.map((l) => l.id);
+const lineRecs = JSON.parse(readFileSync(join(root, 'assets/audio/war/lines.json'), 'utf8')).lines;
+const lines = lineRecs.map((l) => l.id);
 const said = new Set();
 const calls = createWarCalls();
 const v0 = {
@@ -60,9 +62,11 @@ const say = (list, v) => {
 
 console.log('what Crest Control says');
 check('the go', same(say([{ type: 'state', to: 'live' }], v0), ['start']));
-for (const kind of KINDS) {
+for (const kind of KINDS.filter((k) => k !== 'jammer')) {
   check(`a ${kind} wave`, same(say([{ type: 'born', agents: [{ kind }] }], { ...v0, alive: 1 }), [`wave-${kind}`]));
 }
+check('a jammer wave, which no mission spawns, says nothing', same(say([{ type: 'born', agents: [{ kind: 'jammer' }] }], { ...v0, alive: 1 }), [])
+  && same(say([{ type: 'born', agents: [{ kind: 'jammer' }] }], { ...v0, wave: 6, alive: 1 }), []));
 check('the last wave by name, whatever it is', same(say([{ type: 'born', agents: [{ kind: 'strike' }] }], { ...v0, wave: 6, alive: 3 }), ['wave-last']));
 check('this pilot\'s kill, and the next one another take',
   same(say([{ type: 'boom', mine: true }, {
@@ -71,10 +75,10 @@ check('this pilot\'s kill, and the next one another take',
   && same(say([{ type: 'boom', mine: true }, {
     type: 'dead', why: 'boom', mine: true, ids: [2], agents: [{ kind: 'strike' }],
   }], { ...v0, wave: 6, rack: 4, alive: 1 }), ['kill-2']));
-check('a swarm in one blast, and a jammer\'s end',
+check('a swarm in one blast, a jammer in it, and no jammer line',
   same(say([{ type: 'boom' }, {
     type: 'dead', why: 'boom', mine: true, ids: [3, 4], agents: [{ kind: 'fpv' }, { kind: 'jammer' }],
-  }], { ...v0, wave: 6, rack: 3, alive: 1 }), ['kill-multi', 'jammer-down']));
+  }], { ...v0, wave: 6, rack: 3, alive: 1 }), ['kill-multi']));
 check('a teammate\'s kill is the HUD\'s, not the radio\'s', same(say([{ type: 'boom' }, {
   type: 'dead', why: 'boom', mine: false, ids: [5], agents: [{ kind: 'strike' }],
 }], { ...v0, wave: 6, rack: 2, alive: 1 }), ['rack-low']));
@@ -95,18 +99,13 @@ check('scouts down has no event to hang on yet, and is never said', !said.has('s
 check('won', same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won' }), ['win']));
 check('lost on output and on the rack', same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output' }), ['lose-output'])
   && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'rack' }), ['lose-rack']));
-const sig = (s) => {
-  const out = calls.signal(s);
-  out.forEach((id) => said.add(id));
-  return out;
-};
-check('the link: nothing on the first reading', same(sig({ snow: false, lost: false, via: -1 }), []));
-check('weak, lost, back', same(sig({ snow: true, lost: false, via: -1 }), ['signal-weak'])
-  && same(sig({ snow: true, lost: true, via: -1 }), ['signal-lost'])
-  && same(sig({ snow: false, lost: false, via: -1 }), ['signal-back']));
-check('a relay takes the link and loses it', same(sig({ snow: false, lost: false, via: 0 }), ['relay-up'])
-  && same(sig({ snow: false, lost: false, via: -1 }), ['relay-down']));
-check('out of a war the link says nothing', same(sig(null), []) && same(sig({ snow: true, lost: true, via: -1 }), []));
+check('the calls have no link to hear (2026-09-29)', !('signal' in calls));
+const linkLines = lineRecs
+  .filter((l) => l.group === 'signal' || /jammer|relay|signal/.test(l.id)).map((l) => l.id);
+check('no signal, relay or jammer line is ever said', linkLines.length > 0 && linkLines.every((id) => !said.has(id)), linkLines.join(', '));
+for (const m of Object.values(MISSIONS)) {
+  check(`${m.id} spawns no jammer`, m.waves.every((w) => w.kind !== 'jammer'));
+}
 
 console.log('every line said is a file');
 const missing = [...said].filter((id) => !lines.includes(id));

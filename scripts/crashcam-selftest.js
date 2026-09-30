@@ -57,10 +57,10 @@
  *    free orb's bubble row (seat 0) read back as one, the version 7 file
  *    round trip, version 6 still written without a crown, and its
  *    refusals.
- * 15. A war flight (Defend Itaipu): a five inch's link cut with
- *    sim_rx_signal until Betaflight's stage 2 drops it, the link back,
- *    then its warhead breaking every part; frames all through put back
- *    from the journal bit for bit, as in 3.
+ * 15. A cut link and a warhead: a five inch's link cut with
+ *    sim_rx_signal until Betaflight's stage 2 drops it (#201), the link
+ *    back, then a warhead breaking every part as Defend Itaipu's does;
+ *    frames all through put back from the journal bit for bit, as in 3.
  * 16. The map's animation clock (the traffic's): each row keeps the clock
  *    its frame was drawn at, a sample between two rows runs it on and a
  *    reset of it (R) is a jump, not a drive; a clip with a row that never
@@ -396,17 +396,22 @@ function flyTakeOver() {
   })();
 }
 
-/* ---- 15. a war flight ---- */
+/* ---- 15. a cut link and a warhead ---- */
 
 /*
- * What Defend Itaipu adds to the calls the shell makes (src/main.js
- * warLinkFrame and warBoomMine), flown on a five inch quad: the link cut
- * with sim_rx_signal(0) and no packets for long enough that Betaflight's
- * failsafe goes to stage 2 and drops the quad, the link back, and then the
- * warhead, every part broken with sim_part_break. The same frames all
- * through are put back from the journal and compared bit for bit, as in 3:
- * the journal writes every call down whoever makes it, so this holds
- * without a line of the journal knowing about the war.
+ * Two calls a shell can add to a flight, flown on a five inch quad: the
+ * link cut with sim_rx_signal(0) and no packets for long enough that
+ * Betaflight's failsafe goes to stage 2 and drops the quad, the link back,
+ * and then the warhead (src/main.js warBoomMine), every part broken with
+ * sim_part_break. The same frames all through are put back from the
+ * journal and compared bit for bit, as in 3: the journal writes every call
+ * down whoever makes it, so this holds without a line of the journal
+ * knowing about either.
+ *
+ * Since 2026-09-29 the war no longer cuts the link (docs/WARFARE-PLAN.md
+ * 6.1): nothing in the shell calls sim_rx_signal now. The cut stays here
+ * as the journal's proof for the failsafe (#201), dormant until a mode
+ * wants it again.
  */
 const QUAD = 0;
 const WAR_MS = 5200;
@@ -433,7 +438,7 @@ function warFlight(sim, statePtr, partsPtr, eventsPtr, frame) {
       const tri = k < 0.5 ? 4 * k - 1 : 3 - 4 * k;
       sim.input(ms / 1000, 0.2 * tri, -0.1 * tri, 0.05 * tri, 0.55);
     }
-    /* Once a frame, as warLinkFrame calls it. */
+    /* Once a frame, as the war's link called it before 2026-09-29. */
     if (ms % 16 === 0) {
       rxSeen |= sim.e.sim_rx_signal(up ? 1 : 0);
     }
@@ -457,7 +462,7 @@ function warFlight(sim, statePtr, partsPtr, eventsPtr, frame) {
 
 function flyWarTakeOver() {
   return (async () => {
-    console.log('15. a war flight: the link cut to failsafe and back, then the warhead, put back bit for bit');
+    console.log('15. a cut link and a warhead: the link cut to failsafe and back, then the warhead, put back bit for bit');
     const { sim, j, raw } = await journaled();
     const statePtr = sim.e.malloc(64 * 8);
     const partsPtr = sim.e.malloc(PARTS_MAX * PART_STATE_DOUBLES * 8);

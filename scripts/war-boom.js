@@ -193,28 +193,9 @@ try {
   const plan = planAgent(itaipu1, {
     kind: sw.kind, route: sw.route, t0: goAt + sw.at * 1000, k: 1, n: sw.n, err: 0, target: sw.target,
   });
-  /* Where on the middle Striker's way A has a picture to see it by: the
-   * war's link (src/game/signal.js) is snow over much of the reservoir,
-   * and a goggles view of snow shows nothing. Each candidate a few
-   * seconds apart along its way, A held there until the link is judged,
-   * before the Strikers are born. */
-  let tHit = null;
-  const probes = [];
-  for (let t = goAt + sw.at * 1000 + 12000; t < plan.tEnd - 4000 && tHit == null; t += 3000) {
-    const at = poseAt(plan, t).p;
-    await throwTo(a, at, false);
-    await a.sleep(500);
-    const sig = await a.evaluate('window.__war().signal');
-    probes.push(`${Math.round((t - goAt) / 1000)} s: q ${sig ? sig.q.toFixed(2) : '-'}`);
-    if (sig && !sig.snow && !sig.degraded) {
-      tHit = t;
-    }
-  }
-  console.log(`  info  A's link along the Striker's way: ${probes.join(', ')}`);
-  check('somewhere on the Striker\'s way A has a clear picture', tHit != null);
-  if (tHit == null) {
-    throw new Error('no clear picture on the Striker\'s way');
-  }
+  /* As scripts/war-twopage.js holds A: 15 s after the middle Striker's
+   * birth, on its way. */
+  const tHit = goAt + sw.at * 1000 + 15000;
   const P = poseAt(plan, tHit).p.slice();
   /* B 60 m to the side and 15 m up, on the side the Striker comes from. */
   const back = poseAt(plan, tHit - 3000).p;

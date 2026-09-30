@@ -337,6 +337,15 @@ async function main() {
       if (survey.solids > SOLIDS_MAX) {
         fail(`the dam has ${survey.solids} solids, section 6 allows ${SOLIDS_MAX}`);
       }
+      /* The onDam roads the town leaves to the dam: what each became (off:
+       * not on the powerhouse, left to the crest roads or the ground). */
+      const byAs = {};
+      for (const r of survey.sites.onDamRoads) {
+        (byAs[r.as] ??= []).push(r.id);
+      }
+      for (const [as, ids] of Object.entries(byAs)) {
+        console.log(`  onDam roads, ${as}: ${ids.length} (${ids.join(' ')})`);
+      }
     }
 
     if (ONLY.includes('figures')) {

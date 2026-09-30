@@ -24,8 +24,7 @@
  *
  * What the shell reads: view() (the room's: state, wave, output, rack,
  * scores), attackersAt(roomMs), takeEvents(), and mine() for this pilot's
- * own score row. What it sends: start(mission) and end() (the host's) and
- * sendLost() (the pilot's airframe lost to its link, section 6.4).
+ * own score row. What it sends: start(mission) and end(), the host's.
  *
  * Pure: no DOM, no timers, no three.js, the room clock handed in, so a
  * check in Node can drive it against edge/rooms/core.js.
@@ -118,7 +117,6 @@ export function createRoomWar(send) {
   let agents = new Map();
   /* What happened since the shell last asked, oldest first. */
   let events = [];
-  let lostSent = null;
 
   function mission() {
     return war.mission ? MISSIONS[war.mission] ?? null : null;
@@ -127,7 +125,6 @@ export function createRoomWar(send) {
   /* A new match, or none: nothing of the old one is drawn. */
   function reset() {
     agents = new Map();
-    lostSent = null;
   }
 
   function adopt(list) {
@@ -311,18 +308,6 @@ export function createRoomWar(send) {
     end() {
       send({ type: 'war', op: 'end' });
     },
-    /* This pilot's airframe lost to its link: once a life, while the war
-     * is live. `life` is anything that changes on a respawn (the shell's
-     * reset count), so a second loss after a respawn is sent. */
-    sendLost(life = 0) {
-      if (war.state !== 'live' || lostSent === `${war.id}:${life}`) {
-        return false;
-      }
-      lostSent = `${war.id}:${life}`;
-      send({ type: 'war', op: 'lost' });
-      return true;
-    },
-
     clear() {
       seat = null;
       war = { state: 'lobby' };
