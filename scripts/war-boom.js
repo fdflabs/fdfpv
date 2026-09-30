@@ -58,7 +58,9 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
-import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { MISSIONS, waveSize } from '../src/share/war/missions/index.js';
+
+const itaipu1 = MISSIONS['itaipu-1'];
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'war-boom');
@@ -188,7 +190,7 @@ try {
   }
   await a.evaluate("window.__warDo('start', 'itaipu-1')");
   for (const p of pages) {
-    await p.until("window.__war().view.state === 'live'", 30000);
+    await p.until("window.__war().view.state === 'live'", 30000 + (itaipu1.prepMs ?? 0));
   }
   const goAt = (await warOf(a)).view.goAt;
   await a.sleep(1500);
@@ -200,8 +202,12 @@ try {
 
   const wave = itaipu1.waves.findIndex((w) => w.kind === 'strike');
   const sw = itaipu1.waves[wave];
+  /* The room sizes a wave by the pilots at the go (missions/index.js
+   * waveSize), two here, and a wave's place in the formation moves with
+   * its size: planned with the mission's bare n, A was held 10.8 m off
+   * the Striker's path, outside BLAST_M, and never went off. */
   const plan = planAgent(itaipu1, {
-    kind: sw.kind, route: sw.route, t0: goAt + sw.at * 1000, k: 1, n: sw.n, err: 0, target: sw.target,
+    kind: sw.kind, route: sw.route, t0: goAt + sw.at * 1000, k: 1, n: waveSize(sw, 2), err: 0, target: sw.target,
   });
   /* As scripts/war-twopage.js holds A: 15 s after the middle Striker's
    * birth, on its way. */
@@ -321,9 +327,9 @@ try {
     check('with nothing allocated per frame: the pools did not grow', cost.grown === 0, `grew ${cost.grown}`);
 
     /* The replay's drones. B, held and flying, watches the Hunters come
-     * (born 170 s after the go): its live frames logged, then its crash
-     * cam opened on them. */
-    await b.until(`window.__rooms().roomNow > ${goAt + 190000}`, 200000);
+     * (their round starts when the rounds before it end): its live frames
+     * logged once one is up, then its crash cam opened on them. */
+    await b.until("window.__warAt(window.__rooms().roomNow).some((x) => x.kind === 'hunter')", 600000);
     await b.evaluate(`(() => {
       const log = [];
       window.__liveWar = log;
