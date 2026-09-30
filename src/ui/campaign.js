@@ -290,6 +290,7 @@ export function createCampaignScreen({
    * Defend Itaipu start goes ahead as ever. */
   function startSelected() {
     const r = room();
+    bind(r);
     if (!pending || !pending.code || r.code !== pending.code) {
       return false;
     }
@@ -330,15 +331,31 @@ export function createCampaignScreen({
     commit((s) => applyResult(s, v.mission, res));
   }
 
+  /* Ties Play's mission to the room it made, the first time that room is
+   * open, and forgets it once the pilot is in another. */
+  function bind(r) {
+    if (!pending) {
+      return;
+    }
+    if (!pending.code && r.phase === 'open' && r.code && r.code !== pending.from) {
+      pending.code = r.code;
+    } else if (pending.code && r.code !== pending.code) {
+      pending = null;
+    }
+  }
+
+  /* The mission number (1 based) the start row starts in this room: the
+   * one Play chose, else the first. */
+  function selectedNumber() {
+    const r = room();
+    bind(r);
+    const i = pending && pending.code === r.code ? ACT1.findIndex((m) => m.id === pending.mission) : -1;
+    return i >= 0 ? i + 1 : 1;
+  }
+
   function poll() {
     const r = room();
-    if (pending) {
-      if (!pending.code && r.phase === 'open' && r.code && r.code !== pending.from) {
-        pending.code = r.code;
-      } else if (pending.code && r.code !== pending.code) {
-        pending = null;
-      }
-    }
+    bind(r);
     if (r.phase !== 'open') {
       return;
     }
@@ -358,6 +375,7 @@ export function createCampaignScreen({
     open,
     close,
     startSelected,
+    selectedNumber,
     /* For the checks. */
     observe,
     state: cur,

@@ -260,16 +260,19 @@ try {
   const war = await page.evaluate("(() => { const w = window.__war().view; return { state: w.state, mission: w.mission }; })()");
   check('the room took it: mission 1 briefing', war.state === 'briefing' && war.mission === 'itaipu-1', JSON.stringify(war));
 
-  /* MAIN'S WAR, WITHOUT THE ACT 1 INTERFACE: no loadouts echo and no
-   * result. The loadout is not sent on its own, nothing errors, and a
-   * mission that ends with no result pays nothing and says so quietly. */
+  /* The room echoes the loadout the start carried, and it is not sent
+   * again on its own. A mission that ends with no result (a room from
+   * before results) pays nothing and says so quietly. */
   await page.sleep(1500);
-  const quiet = await page.evaluate(`({
-    loadouts: 'loadouts' in window.__war().view,
-    sent: window.__sent.filter((m) => m && m.type === 'war' && m.op === 'loadout').length,
-  })`);
-  check('no loadout support in the room: no loadout op sent, the mission still starts',
-    !quiet.loadouts && quiet.sent === 0 && war.state === 'briefing', JSON.stringify(quiet));
+  const echo = await page.evaluate(`(() => {
+    const v = window.__war().view;
+    return {
+      mine: v.loadouts ? v.loadouts[window.__rooms().seat] : null,
+      sent: window.__sent.filter((m) => m && m.type === 'war' && m.op === 'loadout').length,
+    };
+  })()`);
+  check('the room echoes the loadout, and no loadout op is sent on its own',
+    echo.mine && echo.mine.warhead === 'wide' && echo.mine.rack === 5 && echo.sent === 0, JSON.stringify(echo));
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
   const before = await page.evaluate("JSON.stringify(window.__campaign.state())");
@@ -302,8 +305,22 @@ try {
   check('after the result: two stars on mission 1, 225 more credits, paid once',
     after.missions[0].stars === 2 && after.credits === 'Credits: 325' && after.missions[0].best === 'Best: won, 225 credits', JSON.stringify(after));
   check('the result is said on the screen', after.last === 'Mission 1 won: 2 of 3 stars, 225 credits.', after.last);
-  check('mission 2 unlocked, and not in this build yet', after.missions[1].play === 'Coming soon', after.missions[1].play);
+  check('mission 2 unlocked and playable', after.missions[1].play === 'Play' && after.missions[1].playable, after.missions[1].play);
   await shot(page, 'after-result');
+
+  /* PLAY MISSION 2: its own room, whose start row names it and starts it
+   * (the owner saw "Start mission 1" there, 2026-09-30). */
+  const firstCode = await page.evaluate('window.__rooms().code');
+  await click(page, '[data-mission="itaipu-2"] .campaign-play');
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code !== ${JSON.stringify(firstCode)}
+    && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
+  await page.sleep(600);
+  const row2 = await page.evaluate("(window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null");
+  check('the mission 2 room\'s start row says Start mission 2', row2 === 'Start mission 2', row2);
+  await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
+  await page.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
+  const start2 = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
+  check('and it starts mission 2', start2 && start2.mission === 'itaipu-2', JSON.stringify(start2));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

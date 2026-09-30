@@ -2856,7 +2856,7 @@ export default {
   "war.where.reservoir_surface": "ON THE RESERVOIR",
   "war.where.gorge": "UP THE GORGE",
   "war.card": "Defend Itaipu",
-  "war.start": "Start mission 1",
+  "war.start": "Start mission {n}",
   "war.row_note": "Co-op, for this room: waves of attack drones come for the dam, and every aircraft carries a warhead. One flight, one kill.",
   "war.stop": "End the mission",
   "war.stop_note": "Ends it for everybody in the room.",
