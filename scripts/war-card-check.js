@@ -26,9 +26,15 @@
  * the host; the host has Make a private war room, which asks consent and
  * lands in a new private Itaipu room, war ready, its invite code on top.
  *
- * The Toilet paper combat card pressed while the war in that room is on:
- * the pilot is out of the war room, on the room screen with Make a room
- * under combat's heading, and not flown into the war.
+ * Back to the title from a war on: the pause keeps the room and draws
+ * nothing of the war; the title is out of the room, and nothing of the
+ * war or the room (callouts, splash, hint, HUD, banner, round card, the
+ * room's notice) is drawn over it. Its rooms panel still lists a room and
+ * joins it, and Escape from that room screen to the title leaves it too.
+ *
+ * The Toilet paper combat card after that: the pilot is on the room
+ * screen with Make a room under combat's heading, and not flown into the
+ * war.
  *
  * No page error. Pictures in outdir, not in the repository.
  *
@@ -387,19 +393,123 @@ try {
   await shot(page, 'war-room-from-public');
   other.close();
 
-  /* THE TOILET PAPER COMBAT CARD FROM A WAR ROOM, the owner's report
-   * (2026-09-30): "when i enter the toilet paper mode, it then switches to
-   * mission mode, in itaipu". The war is on and the pilot flying it; quit
-   * to the title, back to the gate, the combat card: out of the war room,
-   * Make a room under the cursor under combat's heading, and still there
-   * well past a countdown's length, never flown back into the war. */
+  /* BACK TO THE TITLE FROM A WAR, the owner's report (2026-09-30), on the
+   * title of a private war room: "its showing like this, like its showing
+   * the empty room thats playing while im here, that shouldnt happen".
+   * The war is on and the pilot flying it, a callout up. The pause keeps
+   * the room and draws nothing of the war; Back to title leaves it, and
+   * for eight seconds nothing of the war or the room is drawn over the
+   * title. */
   await page.evaluate("window.__warDo('start')");
   await page.until("window.__war().view.state === 'live' && window.__ui.screen === 'flight'", 60000).catch(() => {});
+  await page.until('window.__war().hud.calls.length > 0', 30000).catch(() => {});
   const warCode = await page.evaluate('window.__rooms().code');
+  check('the war is on, the pilot flying it, a callout up', await page.evaluate(
+    "window.__war().view.state === 'live' && window.__ui.screen === 'flight' && window.__war().hud.calls.length > 0",
+  ), JSON.stringify(await page.evaluate('window.__war().hud.calls')));
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'paused'", 5000).catch(() => {});
+  /* The war's elements and the room's notice as drawn, sampled. */
+  const DRAWN = `(() => {
+    const up = (d) => {
+      if (!d) { return false; }
+      for (let n = d; n; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || n.hidden) { return false; }
+      }
+      return getComputedStyle(d).opacity !== '0' && d.getBoundingClientRect().width > 0;
+    };
+    const calls = document.querySelector('.war-calls');
+    return {
+      calls: calls && up(calls) ? [...calls.children].map((c) => c.textContent) : [],
+      splash: up(document.querySelector('.war-splash')),
+      hint: up(document.querySelector('.war-hint')),
+      hud: up(document.querySelector('.war-hud')),
+      banner: up(document.querySelector('.war-banner')),
+      round: up(document.querySelector('.war-round')),
+      notice: up(document.querySelector('.room-bar')) ? document.querySelector('.room-bar').textContent : '',
+    };
+  })()`;
+  const nothing = (d) => !d.calls.length && !d.splash && !d.hint && !d.hud && !d.banner && !d.round && !d.notice;
+  async function watchDrawn(ms) {
+    const seen = [];
+    for (let t = 0; t < ms; t += 250) {
+      const d = await page.evaluate(DRAWN);
+      if (!nothing(d)) {
+        seen.push(d);
+      }
+      await page.sleep(250);
+    }
+    return seen;
+  }
+  const pausedFps = await page.evaluate(`new Promise((resolve) => {
+    let n = 0;
+    const t0 = performance.now();
+    const f = () => { n += 1; if (performance.now() - t0 < 1000) { requestAnimationFrame(f); } else { resolve(n); } };
+    requestAnimationFrame(f);
+  })`);
+  const pausedSeen = await watchDrawn(2000);
+  const pausedRoom = await page.evaluate('window.__rooms()');
+  check('paused: still in the war room, nothing of the war drawn over the menu',
+    pausedRoom.phase === 'open' && pausedRoom.code === warCode && !pausedSeen.length, `${pausedRoom.phase} ${pausedRoom.code}, ${pausedFps} frames in the first second, ${JSON.stringify(pausedSeen.slice(0, 2))}`);
   await page.evaluate("(() => { window.__ui.act('title'); return true; })()");
   await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+  const titleSeen = await watchDrawn(8000);
+  const titled = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase, code: window.__rooms().code, war: window.__war().view.state })");
+  check('Back to title from the war: out of the room', titled.screen === 'title' && titled.phase === 'idle' && titled.code !== warCode, JSON.stringify(titled));
+  check('and for eight seconds no callout, splash, hint, war HUD, banner, round card or room notice on the title',
+    !titleSeen.length, JSON.stringify(titleSeen.slice(0, 2)));
+  await shot(page, 'title-from-war');
+
+  /* The title's rooms panel still lists a room and joins it: a public
+   * Itaipu room another pilot (a bare socket) holds. */
+  const listed = await fetch(`${server.url}/v2/create`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true }),
+  });
+  const listedCode = (await listed.json()).code;
+  const holder = new WebSocket(`${server.url.replace(/^http/, 'ws')}/v2/room/${listedCode}`, { headers: { origin: 'https://fdflabs.github.io' } });
+  await new Promise((resolve, reject) => {
+    holder.on('open', resolve);
+    holder.on('error', reject);
+  });
+  holder.send(JSON.stringify({
+    type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 2, 12],
+    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+  }));
+  for (let i = 0; i < 4 && !(await page.evaluate('window.__ui.onGate()')); i += 1) {
+    await page.tap('Escape');
+    await page.sleep(600);
+  }
+  const LISTED = `(window.__ui.titleRoomEls || []).some((e) => e.node.isConnected
+    && (window.__ui.items()[e.i].action || '').endsWith(${JSON.stringify(listedCode)}))`;
+  await page.until(LISTED, 30000).catch(() => {});
+  const panel = await page.evaluate("[...document.querySelectorAll('.gate-rooms .gate-room')].map((n) => n.className.replace('gate-room ', ''))");
+  check('the title\'s rooms panel lists that room, All rooms and Make a room',
+    (await page.evaluate(LISTED)) && panel.includes('gate-room-all') && panel.includes('gate-room-make'), panel.join());
+  await page.evaluate(`(() => {
+    const ui = window.__ui;
+    const row = ui.titleRoomEls.find((e) => (ui.items()[e.i].action || '').endsWith(${JSON.stringify(listedCode)}));
+    row.node.dataset.check = 'listed';
+    return true;
+  })()`);
+  await click(page, '.gate-rooms [data-check="listed"]');
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(listedCode)}`, 30000).catch(() => {});
+  const joinedPanel = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, screen: window.__ui.screen })");
+  check('and its row joins it, onto the room screen', joinedPanel.phase === 'open' && joinedPanel.code === listedCode && joinedPanel.screen === 'friends', JSON.stringify(joinedPanel));
+
+  /* Escape from the room screen, whose way back is the title: out of it. */
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+  await page.sleep(500);
+  const escaped = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
+  check('Escape from the room screen to the title leaves the room', escaped.screen === 'title' && escaped.phase === 'idle', JSON.stringify(escaped));
+  holder.close();
+
+  /* THE TOILET PAPER COMBAT CARD after a war room, the owner's report
+   * (2026-09-30): "when i enter the toilet paper mode, it then switches to
+   * mission mode, in itaipu". The title is out of the room now; the combat
+   * card from it: Make a room under the cursor under combat's heading, and
+   * still there well past a countdown's length, never flown into the war. */
   for (let i = 0; i < 4 && !(await page.evaluate('window.__ui.onGate()')); i += 1) {
     await page.tap('Escape');
     await page.sleep(600);
@@ -408,7 +518,7 @@ try {
   await page.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
   await page.sleep(8000);
   const combat = await page.evaluate(LANDED);
-  check('the combat card from a room with a war on: out of it, Make a room under the cursor, under Toilet paper combat',
+  check('the combat card after the war room: in no room, Make a room under the cursor, under Toilet paper combat',
     combat.phase === 'idle' && combat.code !== warCode && combat.screen === 'friends' && combat.game === 'combat'
     && combat.here === 'roomnew' && combat.primary && combat.heading === 'Toilet paper combat', `${JSON.stringify(combat)} war room ${warCode}`);
   await shot(page, 'combat-card-from-war');
