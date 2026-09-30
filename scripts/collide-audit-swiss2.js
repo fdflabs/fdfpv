@@ -53,7 +53,8 @@
  * and a throw that froze the page are counted too, since both happen.
  *
  * ROOFS (--only=roofs): the five inch let down at 0.8 m/s, motors idle,
- * onto the flattest landable point of every roof record. It must stay on
+ * from just over its resting height, onto the flattest landable point of
+ * every roof record (a ridge is as steep as its slopes). It must stay on
  * the roof; on a roof under 15 degrees there it must break nothing.
  *
  * THE BASELINE. scripts/collide-audit-baseline.json holds the counts this
@@ -826,8 +827,13 @@ async function pageRoofDrop() {
       for (let z = r.minZ + 1; z <= r.maxZ - 1; z += 0.5) {
         const y = window.__roofTop(i, x, z);
         if (!Number.isFinite(y) || Math.abs(window.__surface(x, z, y + 0.3) - y) > 0.02) continue;
-        const gx = (window.__roofTop(i, x + 0.3, z) - window.__roofTop(i, x - 0.3, z)) / 0.6;
-        const gz = (window.__roofTop(i, x, z + 0.3) - window.__roofTop(i, x, z - 0.3)) / 0.6;
+        /* Each way the steeper of the two sides: a centred difference
+         * reads a ridge as level, and the let-down went onto the ridge of
+         * a 25 degree roof counted as one of 3. */
+        const t0 = window.__roofTop(i, x, z);
+        const side = (a, b) => (Math.abs(a) > Math.abs(b) ? a : b);
+        const gx = side(window.__roofTop(i, x + 0.3, z) - t0, t0 - window.__roofTop(i, x - 0.3, z)) / 0.3;
+        const gz = side(window.__roofTop(i, x, z + 0.3) - t0, t0 - window.__roofTop(i, x, z - 0.3)) / 0.3;
         if (!Number.isFinite(gx) || !Number.isFinite(gz)) continue;
         const slope = Math.atan(Math.hypot(gx, gz)) * 57.2958;
         if (!best || slope < best.slope) best = { x, z, y, slope };
@@ -837,8 +843,14 @@ async function pageRoofDrop() {
       rows.push({ roof: i, kind: r.kind, skipped: 'no landable point a metre in' });
       continue;
     }
+    /* From just over where the five inch rests on a flat roof (its
+     * centre 0.045 m up), so it meets the roof at the 0.8 m/s it is let
+     * down at. It was thrown from 0.6 m up, and fell to 4.1 m/s first:
+     * that broke its battery on every hard covering, slate, tin and
+     * shingle alike, where on grass it broke nothing, and it did the same
+     * with the roof slabs and the walls under the roof taken away. */
     window.__stick(0, 0, 0, 0);
-    window.__crashThrow({ fresh: true, x: best.x, y: best.y + 0.6, z: best.z, yaw: 0, pitch: 0, vx: 0, vy: -0.8, vz: 0 });
+    window.__crashThrow({ fresh: true, x: best.x, y: best.y + 0.06, z: best.z, yaw: 0, pitch: 0, vx: 0, vy: -0.8, vz: 0 });
     const t0 = window.__crash().simT;
     /* Through: under this roof's own top while still over it, which is
      * inside the building. Sliding off the eave is not through. */
