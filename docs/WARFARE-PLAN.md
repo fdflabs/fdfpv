@@ -29,6 +29,11 @@ In conversation on 2026-09-29, in order:
    airplanes and drones, modified for the modern battleground. **Call of
    Duty feel, generated narration.**
 8. **"just go"**: build it without waiting for a review of this split.
+9. **No signal, no jamming, for now** (2026-09-29, after flying the war
+   for the first time): "eliminate the jamming and all of that, that's
+   too complex right now". The war flies on the pilot's own link, exactly
+   as outside one; no jammer waves. See the note at 6.1 for what was left
+   dormant.
 
 Where this file and the owner differ, the owner wins.
 
@@ -241,6 +246,17 @@ type `war`. In `src/share/roomwire.js`, in a block marked `war`:
 ## 6. The defender's aircraft
 
 ### 6.1 Signal
+
+> **Out of the war since 2026-09-29 (decision 9).** The war no longer
+> judges a signal: no snow from it, no degraded or lost link, no
+> Betaflight failsafe or planes' rule from it, no `lost` airframe sent to
+> the room, no LINK bar on the HUD, no signal, relay or jammer radio
+> lines, and mission 1 spawns no jammer. Left in place, dormant and still
+> tested: `src/game/signal.js`, `RcLink.setSignal`, `fpvFail.signal`, the
+> Betaflight failsafe and `sim_rx_signal` (#201, 6.4), the generic `jammer` kind
+> in `src/share/war/routes.js`, the room's `lost` op (harmless if
+> sent), and the voice files. What follows is the design as it was, for
+> when it comes back.
 
 `src/game/signal.js`, pure and deterministic, called once per rendered
 frame for the local craft:

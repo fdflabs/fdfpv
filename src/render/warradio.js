@@ -4,10 +4,10 @@
  * one at a time, and the two tracks in assets/audio/war/music/, the intro
  * over the start countdown and the combat loop under the fight.
  *
- * Two parts. createWarCalls() is what to say: it reads roomwar's events,
- * the room's view and the link's signal as the shell hands them over, and
- * answers with line ids from lines.json. It keeps only what it needs to
- * see a change (the rack, the contacts, the link), so it is pure and runs
+ * Two parts. createWarCalls() is what to say: it reads roomwar's events
+ * and the room's view as the shell hands them over, and answers with line
+ * ids from lines.json. It keeps only what it needs to see a change (the
+ * rack, the contacts), so it is pure and runs
  * in Node. WarRadio is how it sounds: two media elements on the mix, owned
  * by src/render/audio.js (MotorAudio.war()), so the volume and the sound
  * setting hold for it as for every cue, and the music follows the music
@@ -52,6 +52,9 @@ const VOICE_LEVEL = 1.0;
 export const VOICE_DUCK = 0.55;
 /* The target kinds a hit line exists for (lines.json hit-*). */
 const HIT_LINES = { intake: 'hit-intake', penstock: 'hit-penstock', gate: 'hit-gate', 'yard-right': 'hit-yard' };
+/* Waves the radio does not call: a Jammer's jams a signal the war no
+ * longer has (docs/WARFARE-PLAN.md 6.1), and no mission spawns one. */
+const QUIET_WAVES = new Set(['jammer']);
 
 /* A voice file or a track, resolved against this module so a shell
  * mounted under a path still finds it. */
@@ -67,21 +70,21 @@ export function warMusicUrl(name, ext) {
  * line ids it calls for, in order:
  *
  *   events(list, view)   roomwar's takeEvents(), then its view()
- *   signal(s)            the shell's { q, snow, degraded, lost, via } or
- *                        null outside a live war
  *   reset()              a new war, or none
+ *
+ * The signal, relay and jammer lines (lines.json group 'signal',
+ * wave-jammer, jammer-down) are never said: the war has no radio signal
+ * since 2026-09-29 (docs/WARFARE-PLAN.md 6.1). Their audio stays.
  */
 export function createWarCalls() {
   let was = null;
   let kills = 0;
-  let link = null;
   let lowSaid = false;
   let rackSaid = '';
 
   function reset() {
     was = null;
     kills = 0;
-    link = null;
     lowSaid = false;
     rackSaid = '';
   }
@@ -96,7 +99,9 @@ export function createWarCalls() {
         out.push(ev.to === 'won' ? 'win' : (v.why === 'rack' ? 'lose-rack' : 'lose-output'));
       } else if (ev.type === 'born') {
         const kind = ev.agents[0].kind;
-        out.push(v.wave >= v.waves && v.waves > 0 ? 'wave-last' : `wave-${kind}`);
+        if (!QUIET_WAVES.has(kind)) {
+          out.push(v.wave >= v.waves && v.waves > 0 ? 'wave-last' : `wave-${kind}`);
+        }
       } else if (ev.type === 'boom') {
         blasts += 1;
       } else if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
@@ -106,13 +111,9 @@ export function createWarCalls() {
           out.push(line);
         }
       } else if (ev.type === 'dead' && ev.why === 'boom') {
-        const kinds = ev.agents.map((a) => a.kind);
         if (ev.mine) {
           kills += 1;
           out.push(ev.ids.length > 1 ? 'kill-multi' : (kills % 2 ? 'kill-1' : 'kill-2'));
-        }
-        if (kinds.includes('jammer')) {
-          out.push('jammer-down');
         }
       }
     }
@@ -149,31 +150,7 @@ export function createWarCalls() {
     return out;
   }
 
-  function signal(s) {
-    const out = [];
-    if (!s) {
-      link = null;
-      return out;
-    }
-    if (link) {
-      if (s.lost && !link.lost) {
-        out.push('signal-lost');
-      } else if (!s.lost && link.lost) {
-        out.push('signal-back');
-      } else if (s.snow && !link.snow && !s.lost) {
-        out.push('signal-weak');
-      }
-      if (s.via >= 0 && link.via < 0) {
-        out.push('relay-up');
-      } else if (s.via < 0 && link.via >= 0) {
-        out.push('relay-down');
-      }
-    }
-    link = { lost: s.lost, snow: s.snow, via: s.via };
-    return out;
-  }
-
-  return { events, signal, reset };
+  return { events, reset };
 }
 
 /*

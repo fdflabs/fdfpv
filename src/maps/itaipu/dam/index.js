@@ -30,6 +30,16 @@
  * arms, trunnions and hoist cylinders, one instanced draw for fourteen;
  * the intake cranes' rails along the deck.
  *
+ * v4 (round 2): the powerhouse's roof and the crest from the photographs.
+ * The central building moved to units 8 and 9 and drawn storey by storey;
+ * the road along the penstocks' feet, a transformer bank under each roof
+ * gantry, the hall roof's ribs, hatches and vents, a tailrace crane at
+ * each end and the outlet of the jet under the building. On the crest the
+ * intake columns one per unit in the deck's middle, with collars and a
+ * capital; the two intake gantries violet, clad and hung with their hoist,
+ * moved to the column row's ends, each with its jib crane; the deck's
+ * concrete and its slot covers.
+ *
  * AND ON THEM (v2): the penstocks' exit hoods, the intake columns and two
  * intake gate cranes on the crest, street lamps and painted lines on every
  * crest road, the coping on the parapets, transmission gantries, the
@@ -174,15 +184,28 @@ const TONE = {
   roofRib: [1.2, 1.2, 1.17],
   yellow: [2.0, 1.25, 0.08],
   white: [2.3, 2.3, 2.2],
-  /* The intake gantry cranes' paint: a dull mauve grey, which the
-   * photographs show purple in sun and blue grey in shade (crest-road,
-   * dam-downstream); v2's pastel lilac read as a toy. */
-  craneMauve: [0.2, 0.18, 0.22],
+  /* The intake gantry cranes' paint: a violet, purple in sun and blue
+   * grey in shade (crest-road, dam-downstream); v2's pastel lilac read
+   * as a toy and v3's [0.2, 0.18, 0.22] as grey, its green as high as
+   * its red where the photographs' is well under both. */
+  craneViolet: [0.17, 0.095, 0.22],
+  /* Their machinery houses' corrugated cladding, a light blue grey. */
+  cladding: [0.2, 0.225, 0.24],
+  /* The jib cranes' weathered boarding (crest-road). */
+  boards: [0.3, 0.29, 0.27],
   craneOrange: [0.5, 0.2, 0.05],
   craneRust: [0.28, 0.1, 0.05],
   steel: [0.32, 0.33, 0.34],
   glass: [0.05, 0.06, 0.07],
   draft: [0.02, 0.022, 0.02],
+  /* The step up transformers' tanks and radiators, dark grey paint. */
+  transformer: [0.1, 0.105, 0.11],
+  /* The roof road at the penstocks' feet (penstocks photo), and the
+   * generator hatches over each unit on the hall's roof. */
+  roofRoad: [0.62, 0.56, 0.48],
+  hatch: [0.9, 0.9, 0.87],
+  /* The central building's painted concrete, a plain colour. */
+  render: [0.36, 0.345, 0.32],
 };
 
 /* The penstocks' exit hoods on the face (the dam-downstream photograph):
@@ -197,15 +220,61 @@ const TONE = {
 const HOOD = {
   width: 16, reach: 13, top: 196, extend: 25, cowl: 7.5, sides: 10,
 };
-/* Street lamps along the crest roads, metres apart, and the white intake
- * columns on the main dam's upstream edge, one a unit's pitch. */
+/* Street lamps along the crest roads, metres apart. */
 const LAMP = { spacing: 30, height: 10, arm: 2.4, r: 0.12 };
-const VENT = { r: 0.7, height: 12 };
+/*
+ * The white intake columns (the penstocks' air vents), one over each
+ * unit's intake, on the deck just upstream of the road's parapet: the
+ * aerial-dam photograph has their row down the crest's middle, in line
+ * with the gantries' downstream legs, and crest-road has it beside the
+ * parapet. VENT.s metres from the crest road's centre line. They stand
+ * half again the lamps' height in dam-downstream and powerhouse (v3's
+ * 12 m stood level with them), about ten times their width, with two
+ * collars and a capital.
+ */
+const VENT = { r: 0.7, height: 16, s: -7 };
+/*
+ * The two intake gantry cranes, one just outside each end of the columns'
+ * row (reservoir-dam has all the columns between them, aerial-dam the
+ * east one past the last, crest-road the west one before the first), and
+ * beside each on its outer side the jib crane with its cab (crest-road's
+ * "Bardella" crane). `off` in units' pitches past the end unit, `jib`
+ * metres further. The gantry's downstream legs stand clear of the column
+ * row's line, `down` from the centre line.
+ */
+const INTAKE_CRANE = {
+  off: 0.5, jib: 24, half: 6.5, down: -8.4, legTop: 22, houseTop: 30,
+};
 /* Transmission gantries over the powerhouse roof between the penstocks. */
 const GANTRY = { s: [5, 19], height: 14, leg: 0.6 };
-/* The central building on the powerhouse, between units 14 and 15 (the
- * dam-downstream photograph), metres over the roof. */
-const CENTRE = { length: 80, s: [22, 50], height: 36 };
+/*
+ * The central building on the powerhouse roof, metres from its upstream
+ * wall and over the roof. In front of units 8 and 9 (0 based, from the
+ * west): aerial-dam has eight penstocks west of it and the ninth
+ * showing over its roof, and powerhouse, looking east, eleven before
+ * it hides the rest. About three units long in both, eleven storeys
+ * (dam-downstream), its front on the road along the penstocks' feet
+ * (penstocks). v3 had it 80 m long between units 13 and 14.
+ */
+const CENTRE = {
+  units: [8, 9], length: 100, s: [30, 56], height: 36, floors: 11, spandrel: 1.4, fin: 5, plant: [16, 10, 4],
+};
+/* The powerhouse roof across its width, metres from its upstream wall:
+ * the road along the penstocks' feet, the tailrace deck's road between
+ * the tailrace cranes' legs, and the generator hall's roof with
+ * a rib across it every rib[0] metres, rib[1] wide (powerhouse), drawn
+ * flat: raised 0.2 m and 0.3 wide every 3.4 m they drew as a moire of
+ * arcs and broken dashes past 300 m. An OSM way runs along the
+ * powerhouse (the onDam roads, below) when its ends are alongMin metres
+ * or more apart within alongTurn radians of the dam's axis and it has
+ * points within alongReach metres of the roof. */
+const ROOF = {
+  road: [20, 28.5], deck: [85.6, 96.4], hall: [30, 82], rib: [6.8, 1.2], alongMin: 60, alongTurn: 0.17, alongReach: 30,
+};
+/* A step up transformer bank in each gap between the penstocks under
+ * its gantry, lying across the roof: a capsule round a tank drawn as
+ * an octagon inside it. */
+const TRANSFORMER = { s: [8.5, 15.5], r: 2 };
 /*
  * The buttress heads down the hollow parts' downstream faces (the
  * dam-downstream, powerlines and aerial-dam photographs): a comb of heads
@@ -1116,6 +1185,22 @@ export async function buildPart(ctx) {
     }
     return c;
   };
+  /* A rod of square section `half` across from P to Q, world points, drawn
+   * only: cables, braces and ropes too thin for a collider to matter. */
+  const strut = (mesh, P, Q, half, col) => {
+    const { w, u, v } = basisOf([Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]]);
+    const at = (E, i) => {
+      const a = i === 0 || i === 3 ? -half : half;
+      const b = i < 2 ? -half : half;
+      return [0, 1, 2].map((q) => E[q] + u[q] * a + v[q] * b);
+    };
+    for (let i = 0; i < 4; i += 1) {
+      const j = (i + 1) % 4;
+      const m = [0, 1, 2].map((q) => (at(P, i)[q] + at(P, j)[q]) / 2 - P[q]);
+      mesh.quad(at(P, i), at(P, j), at(Q, j), at(Q, i), col, m);
+    }
+    mesh.poly([0, 1, 2, 3].map((i) => at(Q, i)), col, w);
+  };
   /* A portal crane in a frame: four legs, two sills and the machinery
    * house on top, drawn in steel, its legs as boxes and its house as a
    * block with a roof a quad can land on. */
@@ -1295,13 +1380,20 @@ export async function buildPart(ctx) {
     for (let k = 0; k + 1 < crestSecs.length; k += 1) {
       const t0 = crestSecs[k].t;
       const t1 = crestSecs[k + 1].t;
-      for (const sAt of [(t) => sUp(t) + 1.7, () => -6.9]) {
+      for (const sAt of [(t) => sUp(t) + 1.7, () => INTAKE_CRANE.down - 0.7]) {
         const P = (t, ds) => {
           const [x, z] = F.at(t, sAt(t) + ds);
           return [x, CREST_Y + 0.03, z];
         };
         road.quad(P(t0, -0.15), P(t1, -0.15), P(t1, 0.15), P(t0, 0.15), TONE.steel, up);
       }
+      /* The intake deck upstream of the road's parapet, the road's own
+       * weathered concrete (crest-road), not the dam's pale top. */
+      const D = (t, s2) => {
+        const [x, z] = F.at(t, s2);
+        return [x, CREST_Y + 0.015, z];
+      };
+      road.quad(D(t0, sUp(t0) + 0.3), D(t1, sUp(t1) + 0.3), D(t1, -5.6), D(t0, -5.6), shade(TONE.road, k, 0.04), up);
     }
   }
   closeRun(crestRun);
@@ -1554,66 +1646,206 @@ export async function buildPart(ctx) {
     penstockMesh.receiveShadow = true;
   }
 
-  /* ---- the intake columns on the upstream edge, a unit's pitch apart */
+  /* ---- the intake columns, one over each unit's intake, a unit's pitch
+   * apart from the first unit's */
   const vents = [];
   {
     const t0 = F.local(...ph.units[0])[0];
     const pitch = ph.figures.unitSpacing;
-    const unitT = ph.units.map((u) => F.local(...u)[0]);
-    for (let t = t0 - pitch * Math.floor((t0 - tStart - 10) / pitch); t < tEnd - 10; t += pitch) {
-      const [x, z] = F.at(t, sUp(t) + 2.5);
+    for (let k = 0; k < ph.units.length; k += 1) {
+      const t = t0 + k * pitch;
+      const [x, z] = F.at(t, VENT.s);
       addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height, z], VENT.r);
+      /* The steel covers over its stoplog and gate slots in the deck. */
+      for (const [a, b] of [[2.2, 3.4], [6, 7.6]]) {
+        const C = (tt, ss) => {
+          const [cx, cz] = F.at(tt, sUp(t) + ss);
+          return [cx, CREST_Y + 0.04, cz];
+        };
+        road.quad(C(t - 5, a), C(t + 5, a), C(t + 5, b), C(t - 5, b), TONE.steel.map((v) => v * 0.6), up);
+      }
       /* An intake: dam.json's point is on the crest road's centre line,
        * the intake itself is its gate in the upstream face, 8.2 m wide and
-       * 19.3 m tall on a 177.6 m sill, under the column: its target the
-       * middle of that gate, on the face; its colliders the face's columns
-       * within its reach (intakeColliders); its damage the frame and the
-       * column over it. */
-      const k = unitT.findIndex((u) => Math.abs(u - t) < 1);
-      if (k >= 0) {
-        const intake = need('intakes').figures;
-        const mid = intake.sillY + intake.gateHeight / 2;
-        const [ix, iz] = F.at(t, sUp(t));
-        targets[`intake-${k}`] = {
-          at: [ix, mid, iz], r: 12, part: 'intake', colliders: [],
-        };
-        const from = metal.c.length;
-        const hw = intake.gateWidth / 2;
-        const P = (tt, y) => {
-          const [x, z] = F.at(tt, sUp(tt) - 0.05);
-          return [x, y, z];
-        };
-        const outward = [-F.n[0], 0, -F.n[1]];
-        metal.quad(P(t - hw - 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY + intake.gateHeight + 0.8), P(t - hw - 0.8, intake.sillY + intake.gateHeight + 0.8), TONE.steel, outward);
-        const Q = (tt, y) => {
-          const [x, z] = F.at(tt, sUp(tt) - 0.1);
-          return [x, y, z];
-        };
-        metal.quad(Q(t - hw, intake.sillY), Q(t + hw, intake.sillY), Q(t + hw, intake.sillY + intake.gateHeight), Q(t - hw, intake.sillY + intake.gateHeight), TONE.draft, outward);
-        darken[`intake-${k}`] = [{ mesh: 'intake-columns', instance: vents.length }, { mesh: 'steel', range: [from, metal.c.length] }];
-      }
+       * 19.3 m tall on a 177.6 m sill: its target the middle of that gate,
+       * on the face; its colliders the face's columns within its reach
+       * (intakeColliders); its damage the frame and its column. */
+      const intake = need('intakes').figures;
+      const mid = intake.sillY + intake.gateHeight / 2;
+      const [ix, iz] = F.at(t, sUp(t));
+      targets[`intake-${k}`] = {
+        at: [ix, mid, iz], r: 12, part: 'intake', colliders: [],
+      };
+      const from = metal.c.length;
+      const hw = intake.gateWidth / 2;
+      const P = (tt, y) => {
+        const [x, z] = F.at(tt, sUp(tt) - 0.05);
+        return [x, y, z];
+      };
+      const outward = [-F.n[0], 0, -F.n[1]];
+      metal.quad(P(t - hw - 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY - 0.8), P(t + hw + 0.8, intake.sillY + intake.gateHeight + 0.8), P(t - hw - 0.8, intake.sillY + intake.gateHeight + 0.8), TONE.steel, outward);
+      const Q = (tt, y) => {
+        const [x, z] = F.at(tt, sUp(tt) - 0.1);
+        return [x, y, z];
+      };
+      metal.quad(Q(t - hw, intake.sillY), Q(t + hw, intake.sillY), Q(t + hw, intake.sillY + intake.gateHeight), Q(t - hw, intake.sillY + intake.gateHeight), TONE.draft, outward);
+      darken[`intake-${k}`] = [{ mesh: 'intake-columns', instance: vents.length }, { mesh: 'steel', range: [from, metal.c.length] }];
       vents.push([x, CREST_Y, z]);
     }
   }
-  /* ---- the intake gate cranes on the upstream deck (crest-road photo) */
-  for (const u of [3, 16]) {
-    const t = F.local(...ph.units[u])[0] + ph.figures.unitSpacing / 2;
-    crane(F, t - 6, t + 6, sUp(t) + 1, -6.2, CREST_Y, CREST_Y + 22, CREST_Y + 30, TONE.craneMauve);
+  /* ---- the intake gantry cranes and their jib cranes on the upstream
+   * deck (INTAKE_CRANE, crest-road photo), in the main dam's frame */
+  const P3 = (tt, ss, y) => {
+    const [x, z] = F.at(tt, ss);
+    return [x, y, z];
+  };
+  const alongA = [F.a[0], 0, F.a[1]];
+  const acrossN = [F.n[0], 0, F.n[1]];
+  const neg = (v) => v.map((q) => -q);
+  /* A box in the frame's collider: the world box round its footprint. */
+  const boxOf = (t0, t1, s0, s1, y0, y1) => {
+    const c = [[t0, s0], [t1, s0], [t1, s1], [t0, s1]].map(([t, s2]) => F.at(t, s2));
+    const xs = c.map((q) => q[0]);
+    const zs = c.map((q) => q[1]);
+    return addBox(Math.min(...xs), y0, Math.min(...zs), Math.max(...xs), y1, Math.max(...zs));
+  };
+  /* A crane's machinery house, drawn: its panels, a band of the frame's
+   * paint round its foot and its eaves, the panels' ribs every 0.9 m and
+   * a post at each corner, all within 0.35 m of the box. Its collider is
+   * the caller's. */
+  const cladHouse = (t0, t1, s0, s1, y0, y1, frameCol, panelCol) => {
+    frameBox(metal, F, t0, t1, s0, s1, y0, y1, panelCol);
+    const rib = panelCol.map((v) => v * 0.7);
+    const band = Math.min(0.9, (y1 - y0) / 6);
+    const sides = [
+      [(u, y, d) => P3(t0 - d, u, y), s0, s1, neg(alongA)],
+      [(u, y, d) => P3(t1 + d, u, y), s0, s1, alongA],
+      [(u, y, d) => P3(u, s0 - d, y), t0, t1, neg(acrossN)],
+      [(u, y, d) => P3(u, s1 + d, y), t0, t1, acrossN],
+    ];
+    for (const [at, u0, u1, out] of sides) {
+      for (const [ya, yb] of [[y0, y0 + band], [y1 - band, y1]]) {
+        metal.quad(at(u0, ya, 0.05), at(u1, ya, 0.05), at(u1, yb, 0.05), at(u0, yb, 0.05), frameCol, out);
+      }
+      for (let u = u0 + 0.6; u < u1 - 0.4; u += 0.9) {
+        metal.quad(at(u - 0.08, y0 + band, 0.03), at(u + 0.08, y0 + band, 0.03), at(u + 0.08, y1 - band, 0.03), at(u - 0.08, y1 - band, 0.03), rib, out);
+      }
+    }
+    for (const tc of [t0, t1]) {
+      for (const sc of [s0, s1]) {
+        frameBox(metal, F, tc - 0.35, tc + 0.35, sc - 0.35, sc + 0.35, y0, y1, frameCol);
+      }
+    }
+  };
+  /* An intake gantry crane at t: four legs, the girders round the top of
+   * its portal, its clad house, the hoist block hung in the middle on its
+   * ropes, and the ropes crossed down each end of the portal. */
+  const intakeGantry = (t) => {
+    const IC = INTAKE_CRANE;
+    const L = 1.4;
+    const g = 2.4;
+    const t0 = t - IC.half;
+    const t1 = t + IC.half;
+    const s0 = sUp(t) + 1;
+    const s1 = IC.down;
+    const sm = (s0 + s1) / 2;
+    const yL = CREST_Y + IC.legTop;
+    const yH = CREST_Y + IC.houseTop;
+    const col = TONE.craneViolet;
+    for (const tt of [t0, t1 - L]) {
+      for (const ss of [s0, s1 - L]) {
+        frameBox(metal, F, tt, tt + L, ss, ss + L, CREST_Y, yL, col);
+        boxOf(tt, tt + L, ss, ss + L, CREST_Y, yL);
+      }
+    }
+    for (const tt of [t0, t1 - L]) {
+      frameBox(metal, F, tt, tt + L, s0, s1, yL - g, yL, col);
+      addCapsule('wall', P3(tt + L / 2, s0 + 1.2, yL - 1.2), P3(tt + L / 2, s1 - 1.2, yL - 1.2), 1.2);
+    }
+    for (const ss of [s0, s1 - L]) {
+      frameBox(metal, F, t0, t1, ss, ss + L, yL - g, yL, col);
+      addCapsule('wall', P3(t0 + 1.2, ss + L / 2, yL - 1.2), P3(t1 - 1.2, ss + L / 2, yL - 1.2), 1.2);
+    }
+    /* The owner's plate on each end girder. */
+    for (const [tt, out] of [[t0 - 0.03, neg(alongA)], [t1 + 0.03, alongA]]) {
+      metal.quad(P3(tt, sm - 2.5, yL - 2), P3(tt, sm + 2.5, yL - 2), P3(tt, sm + 2.5, yL - 0.7), P3(tt, sm - 2.5, yL - 0.7), TONE.coping, out);
+    }
+    const ht = [t0 - 0.5, t1 + 0.5];
+    const hs = [s0 - 0.5, s1 + 0.5];
+    cladHouse(ht[0], ht[1], hs[0], hs[1], yL, yH, col, TONE.cladding);
+    const run = [];
+    flatBlock([F.at(ht[0], hs[0]), F.at(ht[1], hs[0]), F.at(ht[1], hs[1]), F.at(ht[0], hs[1])], yL, yH, 'crane', run, F.a);
+    closeRun(run);
+    const block = [yL - 12.5, yL - 8];
+    frameBox(metal, F, t - 0.45, t + 0.45, sm - 0.9, sm + 0.9, block[0], block[1], TONE.draft);
+    for (const ds of [-0.6, 0.6]) {
+      strut(metal, P3(t, sm + ds, yL), P3(t, sm + ds, block[1]), 0.05, TONE.steel);
+    }
+    addCapsule('wall', P3(t, sm, block[0]), P3(t, sm, block[1]), 1.05);
+    for (const tt of [t0 + L / 2, t1 - L / 2]) {
+      strut(metal, P3(tt, s0 + L, yL - g), P3(tt, s1 - L - 6, CREST_Y + 0.2), 0.04, TONE.steel);
+      strut(metal, P3(tt, s1 - L, yL - g), P3(tt, s0 + L + 6, CREST_Y + 0.2), 0.04, TONE.steel);
+    }
+  };
+  /* A jib crane at t on the deck's upstream edge: a portal of four legs,
+   * its clad house with windows along the road, the jib out over the
+   * reservoir with its rope, and the operator's cab under the jib's root. */
+  const jibCrane = (t) => {
+    const col = TONE.craneRust;
+    const L = 1.1;
+    const s0 = sUp(t) + 1.5;
+    const s1 = s0 + 8;
+    const t0 = t - 3.5;
+    const t1 = t + 3.5;
+    const yL = CREST_Y + 5;
+    const yH = CREST_Y + 11.5;
+    const yB = yH + 1.6;
+    for (const tt of [t0, t1 - L]) {
+      for (const ss of [s0, s1 - L]) {
+        frameBox(metal, F, tt, tt + L, ss, ss + L, CREST_Y, yL, col);
+        boxOf(tt, tt + L, ss, ss + L, CREST_Y, yL);
+      }
+    }
+    cladHouse(t0, t1, s0, s1, yL, yH, col, TONE.boards);
+    const run = [];
+    flatBlock([F.at(t0, s0), F.at(t1, s0), F.at(t1, s1), F.at(t0, s1)], yL, yH, 'crane', run, F.a);
+    closeRun(run);
+    for (const [tt, out] of [[t0 - 0.06, neg(alongA)], [t1 + 0.06, alongA]]) {
+      for (let i = 0; i < 3; i += 1) {
+        for (let j = 0; j < 2; j += 1) {
+          const sa = s0 + 1.6 + i * 1.7;
+          const ya = yL + 1.2 + j * 1.6;
+          metal.quad(P3(tt, sa, ya), P3(tt, sa + 1.3, ya), P3(tt, sa + 1.3, ya + 1.3), P3(tt, sa, ya + 1.3), TONE.glass, out);
+        }
+      }
+    }
+    frameBox(metal, F, t - 0.8, t + 0.8, s0 - 10, s1 + 0.5, yH, yB, col);
+    addCapsule('wall', P3(t, s0 - 8.8, yH + 0.8), P3(t, s1 - 0.7, yH + 0.8), 1.2);
+    frameBox(metal, F, t - 1.4, t + 1.4, s0 - 2.6, s0, yL + 0.5, yL + 3.3, col);
+    metal.quad(P3(t - 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 1.6), P3(t + 1.2, s0 - 2.64, yL + 3), P3(t - 1.2, s0 - 2.64, yL + 3), TONE.glass, neg(acrossN));
+    boxOf(t - 1.4, t + 1.4, s0 - 2.6, s0, yL + 0.5, yL + 3.3);
+    strut(metal, P3(t, s0 - 9, yH), P3(t, s0 - 9, CREST_Y + 3), 0.03, TONE.steel);
+    frameBox(metal, F, t - 0.3, t + 0.3, s0 - 9.3, s0 - 8.7, CREST_Y + 2.4, CREST_Y + 3, TONE.draft);
+  };
+  {
+    const pitch = ph.figures.unitSpacing;
+    const unitT = ph.units.map((u) => F.local(...u)[0]);
+    for (const [t, out] of [[unitT[0] - INTAKE_CRANE.off * pitch, -1], [unitT[unitT.length - 1] + INTAKE_CRANE.off * pitch, 1]]) {
+      intakeGantry(t);
+      jibCrane(t + out * INTAKE_CRANE.jib);
+    }
   }
 
-  /* ---- the powerhouse roof: transmission gantries between the
-   * penstocks, the central building, the tailrace crane, and the roof's
-   * own finish, in the main dam's frame (the powerhouse's axis runs
-   * within 0.6 degrees of it). */
+  /* ---- the powerhouse roof, in the main dam's frame (the powerhouse's
+   * axis runs within 0.6 degrees of it): transmission gantries and step
+   * up transformers between the penstocks, the road along their feet,
+   * the central building, the tailrace cranes, the generator hall's
+   * roof with its hatches and vents, and the downstream wall's openings. */
   {
     const roofY = ph.figures.roofY;
     const units = ph.units.map((u) => F.local(...u)[0]);
     const pitch = ph.figures.unitSpacing;
     for (let k = 0; k + 1 < units.length; k += 1) {
       const t = (units[k] + units[k + 1]) / 2;
-      if (k === 13) {
-        continue;
-      }
       const base = sPh(t);
       const [sa, sb] = GANTRY.s;
       const y1 = roofY + GANTRY.height;
@@ -1631,49 +1863,93 @@ export async function buildPart(ctx) {
         const ss = base + sa + (sb - sa) * f;
         frameBox(metal, F, t - 0.15, t + 0.15, ss - 0.15, ss + 0.15, y1 - 4, y1 - 1.2, TONE.coping);
       }
-    }
-    /* The central building, between units 14 and 15. */
-    {
-      const t = (units[13] + units[14]) / 2;
-      const h = CENTRE.length / 2;
-      const base = sPh(t);
-      const top = roofY + CENTRE.height;
-      const [s0, s1] = CENTRE.s;
-      frameBox(concrete, F, t - h, t + h, base + s0, base + s1, roofY, top, TONE.concrete);
-      /* Its storeys: a band of dark glass over each floor slab. */
-      for (let y = roofY + 2.6; y + 2 < top; y += 4) {
-        for (const [ss, dir] of [[base + s1 + 0.04, 1], [base + s0 - 0.04, -1]]) {
-          const a = F.at(t - h + 1, ss);
-          const b = F.at(t + h - 1, ss);
-          metal.quad([a[0], y, a[1]], [b[0], y, b[1]], [b[0], y + 1.3, b[1]], [a[0], y + 1.3, a[1]], TONE.glass, [F.n[0] * dir, 0, F.n[1] * dir]);
-        }
-      }
-      const poly = [F.at(t - h, base + s0), F.at(t + h, base + s0), F.at(t + h, base + s1), F.at(t - h, base + s1)];
-      const run = [];
-      flatBlock(poly, roofY, top, 'central building', run, F.a);
-      closeRun(run);
-      const P = (tt, ss, y) => {
-        const [x, z] = F.at(tt, ss);
-        return [x, y, z];
+      /* The transformer bank under it: an octagonal tank lying across
+       * the roof inside its capsule, its radiators along both sides and
+       * three bushings on top. */
+      const r = TRANSFORMER.r;
+      const R = r * 1.05;
+      const yA = roofY + r;
+      const [ta, tb] = TRANSFORMER.s.map((v) => base + v);
+      addCapsule('wall', P3(t, ta, yA), P3(t, tb, yA), r);
+      const oct = (ss, i) => {
+        const phi = ((i + 0.5) * Math.PI) / 4;
+        return P3(t + Math.cos(phi) * R, ss, yA + Math.sin(phi) * R);
       };
-      face('central building front', 'wall', [P(t - h, base + s1, roofY), P(t + h, base + s1, roofY), P(t + h, base + s1, top), P(t - h, base + s1, top)]);
+      const e0 = ta - 0.9;
+      const e1 = tb + 0.9;
+      for (let i = 0; i < 8; i += 1) {
+        const mid = ((i + 1) * Math.PI) / 4;
+        metal.quad(oct(e0, i), oct(e1, i), oct(e1, i + 1), oct(e0, i + 1), TONE.transformer, [F.a[0] * Math.cos(mid), Math.sin(mid), F.a[1] * Math.cos(mid)]);
+      }
+      metal.poly([0, 1, 2, 3, 4, 5, 6, 7].map((i) => oct(e0, i)), TONE.transformer, neg(acrossN));
+      metal.poly([0, 1, 2, 3, 4, 5, 6, 7].map((i) => oct(e1, i)), TONE.transformer, acrossN);
+      for (const q of [-1, 1]) {
+        frameBox(metal, F, t + q * 2 - 0.225, t + q * 2 + 0.225, ta, tb, yA - 0.9, yA + 0.9, TONE.transformer.map((v) => v * 1.5));
+      }
+      for (const d of [-0.9, 0, 0.9]) {
+        strut(metal, P3(t + d, (ta + tb) / 2 + 1.5, yA + R * 0.9), P3(t + d, (ta + tb) / 2 + 1.5, yA + R + 2.6), 0.14, TONE.craneRust);
+      }
     }
-    /* The tailrace crane on the downstream deck. */
-    {
-      const t = units[units.length - 1] + 0.7 * pitch;
-      const base = sPh(t);
-      crane(F, t - 7, t + 7, base + 84, base + 98, roofY, roofY + 20, roofY + 26, TONE.craneRust);
-    }
-    /* The roof's finish: the deck at the penstocks' feet, the long ribbed
-     * roof over the generator hall, the tailrace deck and its road, and the
-     * draft tubes' dark mouths along the downstream wall. */
+    /*
+     * The roads OpenStreetMap puts on the powerhouse (`onDam`, which the
+     * town leaves to the dam, town/roads.js). A way running along the
+     * powerhouse is one of its two roads and is drawn as that road over
+     * the length its points span: the one along the penstocks' feet
+     * (ROOF.road, penstocks photo) or the tailrace deck's between the
+     * cranes' legs (ROOF.deck, powerhouse photo), whichever its points
+     * lie nearer. Drawn where OSM has them, the feet road would lie 10 m
+     * up the dam's face and the deck road on the hall's roof: the ways
+     * and the powerhouse's footprint disagree by that much. Any other way
+     * with most of its points on the roof is draped on it where OSM has it.
+     * What each way became is in survey().sites.onDamRoads.
+     */
     const tA = Math.max(phT0, tStart) + 1;
     const tB = phT1 - 1;
-    const strip = (s0, s1, col, lift = 0.02) => {
-      const n = Math.max(1, Math.ceil((tB - tA) / CHUNK));
+    const onRoof = (t, sr) => t >= tA && t <= tB && sr >= 0 && sr <= 2 * POWERHOUSE.halfWidth;
+    const spans = { feet: [Infinity, -Infinity], deck: [Infinity, -Infinity] };
+    const draped = [];
+    sites.onDamRoads = [];
+    /* A straight way (its ends within alongTurn of the axis) runs along
+     * the powerhouse when it is alongMin long, or continues one that is:
+     * OSM splits a road where its tags change. */
+    const ways = (ctx.data['osm/roads.json']?.features ?? []).filter((w) => w.onDam).map((f) => {
+      const pts = f.points.map(([x, z]) => {
+        const [t, s2] = F.local(x, z);
+        return [t, s2 - sPh(Math.min(tB, Math.max(tA, t)))];
+      });
+      const [a, b] = [pts[0], pts[pts.length - 1]];
+      const run = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      const ends = [f.points[0], f.points[f.points.length - 1]].map((q) => q.join());
+      return {
+        f, pts, run, ends, straight: Math.abs(b[1] - a[1]) < run * Math.sin(ROOF.alongTurn),
+      };
+    });
+    const longEnds = new Set(ways.filter((w) => w.straight && w.run > ROOF.alongMin).flatMap((w) => w.ends));
+    for (const { f, pts, run, ends, straight } of ways) {
+      const along = straight && (run > ROOF.alongMin || ends.some((e) => longEnds.has(e)));
+      const R = ROOF.alongReach;
+      const near = pts.filter(([t, sr]) => t >= tA - R && t <= tB + R && sr > -R && sr < 2 * POWERHOUSE.halfWidth + R);
+      let as = 'off';
+      if (along && near.length >= 2) {
+        const meanS = near.reduce((m, q) => m + q[1], 0) / near.length;
+        as = Math.abs(meanS - (ROOF.road[0] + ROOF.road[1]) / 2) <= Math.abs(meanS - (ROOF.deck[0] + ROOF.deck[1]) / 2) ? 'feet' : 'deck';
+        const ts = pts.map(([t]) => Math.min(tB, Math.max(tA, t)));
+        spans[as] = [Math.min(spans[as][0], ...ts), Math.max(spans[as][1], ...ts)];
+      } else if (pts.filter(([t, sr]) => onRoof(t, sr)).length * 2 >= pts.length) {
+        /* Mostly on the roof: a point just off its edge (a ramp's head)
+         * is held on the edge. */
+        as = 'draped';
+        const W = 2 * POWERHOUSE.halfWidth;
+        draped.push({ f, pts: pts.map(([t, sr]) => [Math.min(tB, Math.max(tA, t)), Math.min(W - 0.5, Math.max(0.5, sr))]) });
+      }
+      sites.onDamRoads.push({ id: f.id, as });
+    }
+    const strip = (s0, s1, col, lift = 0.02, span = [tA, tB]) => {
+      const [ta, tb] = span;
+      const n = Math.max(1, Math.ceil((tb - ta) / CHUNK));
       for (let i = 0; i < n; i += 1) {
-        const t0 = tA + ((tB - tA) * i) / n;
-        const t1 = tA + ((tB - tA) * (i + 1)) / n;
+        const t0 = ta + ((tb - ta) * i) / n;
+        const t1 = ta + ((tb - ta) * (i + 1)) / n;
         const P = (tt, ss) => {
           const [x, z] = F.at(tt, sPh(tt) + ss);
           return [x, roofY + lift, z];
@@ -1681,20 +1957,183 @@ export async function buildPart(ctx) {
         road.quad(P(t0, s0), P(t1, s0), P(t1, s1), P(t0, s1), col, up);
       }
     };
-    strip(30, 82, TONE.roofSheet);
-    for (let s2 = 32; s2 < 81; s2 += 3) {
-      strip(s2, s2 + 0.25, TONE.roofRib, 0.03);
+    /* A road across the roof from s0 to s1 over `span`: its white edge
+     * lines, and down its middle a dashed white line or a double yellow. */
+    const roofRoad = ([s0, s1], span, middle) => {
+      if (!(span[1] - span[0] > 1)) {
+        return;
+      }
+      strip(s0, s1, TONE.roofRoad, 0.02, span);
+      strip(s0 + 0.3, s0 + 0.45, TONE.white, 0.03, span);
+      strip(s1 - 0.45, s1 - 0.3, TONE.white, 0.03, span);
+      const sc = (s0 + s1) / 2;
+      if (middle === 'yellow') {
+        strip(sc - 0.26, sc - 0.14, TONE.yellow, 0.03, span);
+        strip(sc + 0.14, sc + 0.26, TONE.yellow, 0.03, span);
+        return;
+      }
+      for (let t = span[0]; t + 3 < span[1]; t += 9) {
+        const P = (tt, ss) => {
+          const [x, z] = F.at(tt, sPh(tt) + ss);
+          return [x, roofY + 0.03, z];
+        };
+        road.quad(P(t, sc - 0.075), P(t + 3, sc - 0.075), P(t + 3, sc + 0.075), P(t, sc + 0.075), TONE.white, up);
+      }
+    };
+    roofRoad(ROOF.road, spans.feet, 'dashed');
+    roofRoad(ROOF.deck, spans.deck, 'yellow');
+    for (const { f, pts } of draped) {
+      const half = f.width / 2;
+      for (let i = 0; i + 1 < pts.length; i += 1) {
+        const [t0, q0] = pts[i];
+        const [t1, q1] = pts[i + 1];
+        const l = Math.hypot(t1 - t0, q1 - q0);
+        if (l < 1e-6) {
+          continue;
+        }
+        /* Square to the segment in the frame, and a half width past each
+         * end so the joints close. */
+        const [nt, ns] = [-((q1 - q0) / l) * half, ((t1 - t0) / l) * half];
+        const [et, es] = [((t1 - t0) / l) * half, ((q1 - q0) / l) * half];
+        const P = (t, sr) => {
+          const [x, z] = F.at(t, sPh(t) + sr);
+          return [x, roofY + 0.04, z];
+        };
+        road.quad(P(t0 - et + nt, q0 - es + ns), P(t1 + et + nt, q1 + es + ns), P(t1 + et - nt, q1 + es - ns), P(t0 - et - nt, q0 - es - ns), TONE.roofRoad, up);
+      }
     }
-    strip(88.5, 88.65, TONE.yellow, 0.03);
-    strip(88.85, 89.0, TONE.yellow, 0.03);
+    const r0 = ROOF.road[0];
+    for (const t of units) {
+      const base = sPh(t);
+      const P = (tt, ss, y) => P3(tt, base + ss, y);
+      road.quad(P(t - 8, 0.5, roofY + 0.04), P(t + 8, 0.5, roofY + 0.04), P(t + 8, r0 - 0.5, roofY + 0.04), P(t - 8, r0 - 0.5, roofY + 0.04), TONE.coping, up);
+      for (let tt = t - 8; tt <= t + 8 + 1e-6; tt += 4) {
+        strut(metal, P(tt, r0 - 0.7, roofY), P(tt, r0 - 0.7, roofY + 1.1), 0.05, TONE.yellow);
+      }
+      strut(metal, P(t - 8, r0 - 0.7, roofY + 1), P(t + 8, r0 - 0.7, roofY + 1), 0.035, TONE.yellow);
+    }
+    /* The central building (CENTRE): a core behind its floor slabs, the
+     * windows in a band under each slab, fins down every face, and the
+     * plant room on its roof. */
+    {
+      const t = (units[CENTRE.units[0]] + units[CENTRE.units[1]]) / 2;
+      const h = CENTRE.length / 2;
+      const base = sPh(t);
+      const top = roofY + CENTRE.height;
+      const [s0, s1] = CENTRE.s.map((v) => base + v);
+      const in0 = 0.5;
+      frameBox(concrete, F, t - h + in0, t + h - in0, s0 + in0, s1 - in0, roofY, top, TONE.concrete);
+      const storey = CENTRE.height / CENTRE.floors;
+      /* Each storey a light spandrel over a band of glass (dam-downstream:
+       * the two about equal, the facade light between dark stripes). The
+       * spandrels and fins are plain paint with the bounce (the steel's
+       * material): the dam's weathered concrete streaked them as dark as
+       * the glass, and the roads' unbounced one drew them black in shade. */
+      const slab = TONE.render;
+      const glass = TONE.glass.map((v) => v * 1.8);
+      for (let k = 0; k < CENTRE.floors; k += 1) {
+        const y = roofY + k * storey;
+        const y2 = y + storey;
+        frameBox(metal, F, t - h, t + h, s0, s1, y2 - CENTRE.spandrel, y2, slab);
+        const g0 = y + 0.1;
+        const g1 = y2 - CENTRE.spandrel;
+        const d = in0 - 0.03;
+        const sides = [
+          [(u, yy) => P3(t - h + d, u, yy), s0 + in0, s1 - in0, neg(alongA)],
+          [(u, yy) => P3(t + h - d, u, yy), s0 + in0, s1 - in0, alongA],
+          [(u, yy) => P3(u, s0 + d, yy), t - h + in0, t + h - in0, neg(acrossN)],
+          [(u, yy) => P3(u, s1 - d, yy), t - h + in0, t + h - in0, acrossN],
+        ];
+        for (const [at, u0, u1, out] of sides) {
+          metal.quad(at(u0, g0), at(u1, g0), at(u1, g1), at(u0, g1), glass, out);
+        }
+      }
+      const finCol = TONE.render.map((v) => v * 0.9);
+      for (let tf = t - h + CENTRE.fin; tf < t + h - 1; tf += CENTRE.fin) {
+        for (const [a, b] of [[s0, s0 + in0], [s1 - in0, s1]]) {
+          frameBox(metal, F, tf - 0.15, tf + 0.15, a, b, roofY, top, finCol);
+        }
+      }
+      for (let sf = s0 + CENTRE.fin; sf < s1 - 1; sf += CENTRE.fin) {
+        for (const [a, b] of [[t - h, t - h + in0], [t + h - in0, t + h]]) {
+          frameBox(metal, F, a, b, sf - 0.15, sf + 0.15, roofY, top, finCol);
+        }
+      }
+      const poly = [F.at(t - h, s0), F.at(t + h, s0), F.at(t + h, s1), F.at(t - h, s1)];
+      const run = [];
+      flatBlock(poly, roofY, top, 'central building', run, F.a);
+      closeRun(run);
+      const [p0, p1] = [t - CENTRE.plant[0] / 2, t + CENTRE.plant[0] / 2];
+      const [q0, q1] = [(s0 + s1 - CENTRE.plant[1]) / 2, (s0 + s1 + CENTRE.plant[1]) / 2];
+      const pTop = top + CENTRE.plant[2];
+      frameBox(concrete, F, p0, p1, q0, q1, top, pTop, TONE.concrete);
+      const plantRun = [];
+      flatBlock([F.at(p0, q0), F.at(p1, q0), F.at(p1, q1), F.at(p0, q1)], top, pTop, 'central building', plantRun, F.a);
+      closeRun(plantRun);
+      /* The steel pergola over the plant room (dam-downstream). */
+      for (const tt of [p0 - 3, p1 + 3]) {
+        for (const ss of [q0 - 2, q1 + 2]) {
+          strut(metal, P3(tt, ss, top), P3(tt, ss, pTop + 1.5), 0.1, TONE.craneOrange);
+        }
+        strut(metal, P3(tt, q0 - 2, pTop + 1.5), P3(tt, q1 + 2, pTop + 1.5), 0.1, TONE.craneOrange);
+      }
+      for (let tt = p0 - 3; tt <= p1 + 3 + 1e-6; tt += 2.75) {
+        strut(metal, P3(tt, q0 - 2, pTop + 1.6), P3(tt, q1 + 2, pTop + 1.6), 0.06, TONE.craneOrange);
+      }
+      face('central building front', 'wall', [P3(t - h, s1, roofY), P3(t + h, s1, roofY), P3(t + h, s1, top), P3(t - h, s1, top)]);
+      /* The glazed top storey of the downstream wall under its west half
+       * (dam-downstream), mullions every 2 m. */
+      const w = sPh(t) + 2 * POWERHOUSE.halfWidth + 0.04;
+      const wT = [t - h, t];
+      metal.quad(P3(wT[0], w, 141), P3(wT[1], w, 141), P3(wT[1], w, 146.5), P3(wT[0], w, 146.5), TONE.glass, acrossN);
+      for (let tt = wT[0] + 1; tt < wT[1]; tt += 2) {
+        metal.quad(P3(tt - 0.08, w + 0.02, 141), P3(tt + 0.08, w + 0.02, 141), P3(tt + 0.08, w + 0.02, 146.5), P3(tt - 0.08, w + 0.02, 146.5), TONE.steel, acrossN);
+      }
+    }
+    /* The tailrace cranes on the downstream deck, one past each end unit
+     * (aerial-dam, dam-downstream-2). */
+    for (const t of [units[0] - 0.7 * pitch, units[units.length - 1] + 0.7 * pitch]) {
+      const base = sPh(t);
+      crane(F, t - 7, t + 7, base + 84, base + 98, roofY, roofY + 20, roofY + 26, TONE.craneRust);
+    }
+    /* The generator hall's roof: its sheet, a raised rib across it every
+     * 3.4 m (powerhouse photo), a raised hatch over each unit and two
+     * vents beside it; the tailrace deck's road. */
+    const [h0, h1] = ROOF.hall;
+    strip(h0, h1, TONE.roofSheet);
+    for (let t = tA + ROOF.rib[0] / 2; t + ROOF.rib[1] < tB; t += ROOF.rib[0]) {
+      const base = sPh(t);
+      const R0 = F.at(t, base + h0);
+      const R1 = F.at(t + ROOF.rib[1], base + h0);
+      const R2 = F.at(t + ROOF.rib[1], base + h1);
+      const R3 = F.at(t, base + h1);
+      road.quad([R0[0], roofY + 0.03, R0[1]], [R1[0], roofY + 0.03, R1[1]], [R2[0], roofY + 0.03, R2[1]], [R3[0], roofY + 0.03, R3[1]], TONE.roofRib, up);
+    }
+    for (const t of units) {
+      const base = sPh(t);
+      frameBox(road, F, t - 5, t + 5, base + 62, base + 72, roofY, roofY + 0.3, TONE.hatch);
+      for (const q of [-1, 1]) {
+        frameBox(road, F, t + q * 11 - 0.6, t + q * 11 + 0.6, base + 75.4, base + 76.6, roofY, roofY + 0.4, TONE.steel);
+      }
+    }
+    /* The draft tubes' dark mouths along the downstream wall, and over
+     * the one under the central building's west end the outlet the jet
+     * in dam-downstream, dam-downstream-2 and aerial-dam leaves (the jet
+     * itself is water's, water/). */
     for (const t of units) {
       for (let q = -1; q <= 1; q += 2) {
         const tt = t + q * 8;
         const ss = sPh(tt) + 2 * POWERHOUSE.halfWidth + 0.05;
         const a = F.at(tt - 5, ss);
         const b = F.at(tt + 5, ss);
-        metal.quad([a[0], 103.6, a[1]], [b[0], 103.6, b[1]], [b[0], 114, b[1]], [a[0], 114, a[1]], TONE.draft, [F.n[0], 0, F.n[1]]);
+        metal.quad([a[0], 103.6, a[1]], [b[0], 103.6, b[1]], [b[0], 114, b[1]], [a[0], 114, a[1]], TONE.draft, acrossN);
       }
+    }
+    {
+      const t = units[CENTRE.units[0] - 1];
+      const w = sPh(t) + 2 * POWERHOUSE.halfWidth;
+      metal.quad(P3(t - 2.5, w + 0.05, 115), P3(t + 2.5, w + 0.05, 115), P3(t + 2.5, w + 0.05, 120), P3(t - 2.5, w + 0.05, 120), TONE.draft, acrossN);
+      frameBox(concrete, F, t - 3.3, t + 3.3, w, w + 0.45, 120, 120.8, TONE.concrete);
     }
     sites.gantries = { s: GANTRY.s, height: GANTRY.height };
   }
@@ -2305,11 +2744,20 @@ export async function buildPart(ctx) {
     instanced(mergeGeometries(THREE, [pole, arm, head]), mat, lamps, 'lamps', true);
   }
   {
-    const shaft = new THREE.CylinderGeometry(VENT.r, VENT.r, VENT.height, 16, 1, true).translate(0, VENT.height / 2, 0);
-    const cap = new THREE.CylinderGeometry(VENT.r + 0.18, VENT.r + 0.18, 0.7, 16).translate(0, VENT.height - 0.35, 0);
-    const band = new THREE.CylinderGeometry(VENT.r + 0.08, VENT.r + 0.08, 0.4, 16, 1, true).translate(0, VENT.height * 0.55, 0);
-    const mat = bounced(new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.75, 0.75, 0.73, THREE.LinearSRGBColorSpace), roughness: 0.5, metalness: 0.1 }), 'column');
-    instanced(mergeGeometries(THREE, [shaft, cap, band]), mat, vents, 'intake-columns', false);
+    /* The shaft on a round plinth, two collars, the capital and its
+     * domed cap (crest-road), all within 0.3 m of the capsule. */
+    const H = VENT.height;
+    const r = VENT.r;
+    const plinth = new THREE.CylinderGeometry(r + 0.3, r + 0.3, 0.4, 16).translate(0, 0.2, 0);
+    const shaft = new THREE.CylinderGeometry(r, r, H, 16, 1, true).translate(0, H / 2, 0);
+    const collars = [0.5, 0.72].map((f) => new THREE.CylinderGeometry(r + 0.12, r + 0.12, 0.5, 16).translate(0, H * f, 0));
+    const capital = new THREE.CylinderGeometry(r + 0.22, r + 0.1, 0.8, 16).translate(0, H - 0.7, 0);
+    const dome = new THREE.CylinderGeometry(0.25, r + 0.1, 0.3, 16).translate(0, H - 0.15, 0);
+    /* White paint at the penstocks' tone (TONE.penstock): v3's 0.75, and
+     * 0.5, drew clipped flat white with no roundness under the bounce,
+     * where the photographs' columns shade grey round their sides. */
+    const mat = bounced(new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.28, 0.28, 0.275, THREE.LinearSRGBColorSpace), roughness: 0.5, metalness: 0.1 }), 'column');
+    instanced(mergeGeometries(THREE, [plinth, shaft, ...collars, capital, dome]), mat, vents, 'intake-columns', false);
   }
   instanced(gear.geometry(THREE), metalMat, gearAt, 'gate-gear', false);
 
