@@ -147,6 +147,10 @@ function seed(extra = {}) {
 const url = `/index.html?tracks=${encodeURIComponent(T)}&rooms=${encodeURIComponent(R)}&board=${encodeURIComponent(B)}`;
 const dialogTitle = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden ? (d.querySelector('h2') || {}).textContent || '' : ''; })()";
 const pilotRows = "(() => { window.__ui.show('pilot'); return window.__ui.items().map((r) => `${r.label} ${r.value ?? ''}`).join(' | '); })()";
+/* The title's own chip (src/ui/ui.js signinChip): '' when the DOM has none,
+ * so a stale selector fails the check rather than throwing. */
+const chipText = "(document.querySelector('.signin-chip') || {}).textContent || ''";
+const chipVisible = "Boolean(document.querySelector('.signin-chip')) && !document.querySelector('.signin-chip').hidden";
 const account = (p) => p.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)}) || 'null')`);
 const pilotKey = (p) => p.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(KEY_STORAGE)}) || 'null') || {}).publicRaw || null`);
 
@@ -209,6 +213,25 @@ try {
   check('the guest sees the signed in pilot by callsign', rb.peers[0].name === 'Maverick', rb.peers[0].name);
   check('the signed in pilot sees the guest by picker name', /^\S+ \S+ \d\d$/.test(ra.peers[0].name) && ra.peers[0].name !== 'Maverick', ra.peers[0].name);
   check('the guest is not signed in and still offered it', !(await account(b)) && /Sign in with Google/.test(await b.evaluate(pilotRows)));
+
+  console.log('the title screen offers it too, and signs in through the chip');
+  await b.evaluate("window.__ui.show('title'); true");
+  check('the title shows a Sign in with Google chip', /Sign in with Google/.test(await b.evaluate(chipText)) && (await b.evaluate(chipVisible)));
+  await b.evaluate(`window.__credential = ${JSON.stringify(await idToken('google-sub-chip'))}; document.querySelector('.signin-chip').click(); true`);
+  await b.until("Boolean(document.querySelector('#gis-mock'))", 15000);
+  await b.evaluate("document.querySelector('#gis-mock').click(); true");
+  await b.until(`${dialogTitle}.length > 0 && !document.querySelector('#gis-mock')`, 15000);
+  /* A brand new Google sub has no account identity yet, so the first sign
+   * in dialog (the same one A saw) comes first; a returning one would skip
+   * straight to the callsign prompt. */
+  if ((await b.evaluate(dialogTitle)) !== 'Choose your callsign') {
+    await b.evaluate("(() => { document.querySelectorAll('.name-dialog .name-dialog-btn')[1].click(); return true; })()");
+    await b.until(`${dialogTitle} === 'Choose your callsign'`, 15000);
+  }
+  await b.evaluate("(() => { const f = document.querySelector('.name-dialog-input'); f.value = 'Chiprunner'; document.querySelector('.name-dialog .name-dialog-btn.on').click(); return true; })()");
+  await b.until(`(${chipText}) === 'Chiprunner'`, 15000);
+  check('clicking the title chip through sign in leaves the callsign on the chip', (await b.evaluate(chipText)) === 'Chiprunner');
+
   const bErrors = b.errors.filter((e) => !e.startsWith('network:'));
   check('and nothing on the guest\'s page broke', bErrors.length === 0, bErrors.slice(0, 3).join(' | '));
   await b.close();

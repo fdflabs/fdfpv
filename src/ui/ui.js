@@ -141,7 +141,7 @@ import { crashRecord } from '../share/crashrecord.js';
 import { createShotTray } from './bugshots.js';
 import { watchVersion } from './update.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from '../share/pilot.js';
-import { accountsAvailable } from '../share/account.js';
+import { GOOGLE_CLIENT_ID, accountsAvailable, signedIn } from '../share/account.js';
 import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
@@ -4395,6 +4395,29 @@ export class Ui {
     this.swapChip.title = str('carousel.tab_also_opens_it');
     this.swapChip.addEventListener('click', () => this.openSwap('flight'));
 
+    /*
+     * SIGN IN, WHERE THE BUG CHIP IS NOT.
+     *
+     * Reported by the owner: the Google sign in (src/share/account.js,
+     * src/ui/accountui.js) only ever showed up as a row under Settings, so
+     * a pilot who never opened that screen never learned it existed. This
+     * chip is the same family as the bug chip and takes its corner, but
+     * the two are complements rather than twins: the bug chip is hidden on
+     * the title and shown in flight, and this one is the other way round,
+     * because the title is exactly the screen a guest should be offered an
+     * account on and a flight is exactly the screen nothing should invite
+     * a tap away from the sticks. syncChips carries both the label, which
+     * flips between the sign in prompt and the callsign, and which corner
+     * it sits in: the title has no bug chip to share the first slot with,
+     * everywhere else does.
+     *
+     * Hidden outright when GOOGLE_CLIENT_ID is empty, the same switch
+     * accountsAvailable() reads, so a build with sign in off never shows a
+     * button for it.
+     */
+    this.signinChip = btn('bug-chip signin-chip', '');
+    this.signinChip.addEventListener('click', () => this.act(signedIn() ? 'pilot' : 'accountsignin'));
+
     /* A newer deploy is out. Shown on menus and on Paused, never over a
      * flight: syncChips holds it until the pilot is off the sticks. */
     this.updateReady = false;
@@ -4482,7 +4505,7 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.updateBar, this.roomBar, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.updateBar, this.roomBar, this.musicDock, this.nameDialog);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
@@ -5078,6 +5101,18 @@ export class Ui {
     if (this.swapChip) {
       this.swapChip.hidden = dialog || this.screen !== 'flight' || !this.onHotSwap;
     }
+    /* The bug chip's mirror image: shown on the title and every menu,
+     * never over a flight, and only when the build has sign in at all. */
+    const signin = Boolean(this.signinChip) && Boolean(GOOGLE_CLIENT_ID) && !dialog && this.screen !== 'flight';
+    if (this.signinChip) {
+      this.signinChip.hidden = !signin;
+      /* The title has no bug chip to share the first slot with; everywhere
+       * else the bug chip has already taken it. */
+      this.signinChip.classList.toggle('first-slot', signin && !bug);
+      const account = signedIn() ? readAccount() : null;
+      Ui.text(this.signinChip, account ? (account.callsign || str('account.callsign_none')) : str('account.sign_in'));
+      this.signinChip.title = account ? str('account.callsign_note') : str('account.sign_in_note');
+    }
     const roomBar = Boolean(this.roomBarView) && !dialog && this.screen !== 'flight';
     if (this.roomBar) {
       this.roomBar.hidden = !roomBar;
@@ -5089,9 +5124,11 @@ export class Ui {
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
      * rather than as a top in pixels here, so the status bar's own offset
-     * stays in the stylesheet with the rest of the stacking. */
+     * stays in the stylesheet with the rest of the stacking. The sign in
+     * chip takes the title's first slot when it is up, so it counts here
+     * too. */
     if (this.musicDock) {
-      this.musicDock.classList.toggle('under-chip', Boolean(bug));
+      this.musicDock.classList.toggle('under-chip', Boolean(bug || signin));
     }
     this.syncMusicDock();
   }
@@ -7517,7 +7554,10 @@ export class Ui {
   }
 
   renderMenu() {
-    this.syncMusicDock();
+    /* Also syncs the music dock: the sign in chip's label is a callsign or
+     * a prompt, and either can have just changed without the screen itself
+     * changing. */
+    this.syncChips();
     if (this.screen === 'standings') {
       this.paintStandings();
     }
