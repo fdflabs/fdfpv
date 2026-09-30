@@ -2470,7 +2470,12 @@ export async function boot({
     const l = roomWar.view().loadouts?.[roomWar.seat()];
     return l && Number.isFinite(l.speedMul) ? l.speedMul : 1;
   }
-  const warHud = createWarHud(roomSeatName);
+  /* The end banner's restart: the host starts the same mission again,
+   * straight to the countdown; the room keeps the host's loadout. */
+  const warHud = createWarHud(roomSeatName, {
+    host: () => roomHost(roomLinkState.state().welcome),
+    go: (v) => roomWar.start(v.mission),
+  });
   const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
   const warCalls = createWarCalls();
@@ -3131,7 +3136,7 @@ export async function boot({
     }
     warHudAt = wallMs + 250;
     const m = roomWar.mission();
-    warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0);
+    warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0, m);
     warRoundCard.update(mode === 'flight' && ui.screen === 'flight' ? v : null, now);
   }
 

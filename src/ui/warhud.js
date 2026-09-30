@@ -94,8 +94,40 @@ export function hitCall(ev) {
   return str(ev.target === 'yard-right' ? 'war.hit.yard' : 'war.hit.other', { mw: mw(ev.mw) });
 }
 
-/* nameOf(seat) is the seat's picker name, or this pilot's own. */
-export function createWarHud(nameOf) {
+/* m:ss, for the wave clock. */
+function clock(s) {
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+/*
+ * What happens next in a live round, as { text, s }: the seconds to the
+ * next wave (s), or no clock once the round's waves are all out. The
+ * pilot never has to guess whether more are coming. roundAt comes from
+ * the room's view; a room from before it knows only the first round's.
+ */
+export function waveStatus(v, mission, roomNow) {
+  if (v.state !== 'live' || !mission || (v.roundState ?? 'live') !== 'live') {
+    return null;
+  }
+  const r = (v.round ?? 1) - 1;
+  const roundAt = v.roundAt ?? (r === 0 ? v.goAt : null);
+  const next = mission.waves[v.wave];
+  if (next && (next.round ?? 0) === r && roundAt != null) {
+    const s = Math.ceil((roundAt + next.at * 1000 - roomNow) / 1000);
+    return s > 0 ? { text: str('war.next_wave', { t: clock(s) }), s } : { text: str('war.wave_inbound'), s: 0 };
+  }
+  if (next && (next.round ?? 0) === r) {
+    return null;
+  }
+  return { text: str(v.alive > 0 ? 'war.last_wave' : 'war.round_clear'), s: null };
+}
+
+/*
+ * nameOf(seat) is the seat's picker name, or this pilot's own. restart
+ * { host(), go(v) }: whether this pilot hosts the room, and what the
+ * end banner's button does.
+ */
+export function createWarHud(nameOf, restart = null) {
   let box = null;
   let outLabel = null;
   let outFill = null;
@@ -105,6 +137,9 @@ export function createWarHud(nameOf) {
   let line = null;
   let calls = null;
   let banner = null;
+  let status = null;
+  let again = null;
+  let lastView = null;
   let shown = '';
   let lostOutput = 0;
   const said = [];
@@ -161,6 +196,9 @@ export function createWarHud(nameOf) {
     line = el({
       display: 'flex', gap: '14px', flexWrap: 'wrap', background: SCRIM, border: `1px solid ${DIM}`, padding: '4px 10px',
     }, box);
+    status = el({
+      background: SCRIM, border: `1px solid ${DIM}`, padding: '4px 10px', fontSize: '18px', fontWeight: '800', display: 'none',
+    }, box);
     calls = root({
       position: 'fixed', top: '15%', left: '50%', transform: 'translateX(-50%)', zIndex: '41', pointerEvents: 'none',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', maxWidth: '80vw',
@@ -174,6 +212,17 @@ export function createWarHud(nameOf) {
       border: `2px solid ${GREEN}`, padding: '14px 30px', textAlign: 'center', whiteSpace: 'pre-line',
     });
     banner.className = 'war-banner';
+    banner.append(document.createTextNode(''));
+    again = el({
+      marginTop: '16px', fontSize: '20px', letterSpacing: '0.12em', padding: '10px 22px', cursor: 'pointer',
+      background: GREEN, color: '#04100a', textShadow: 'none', pointerEvents: 'auto',
+    }, banner);
+    again.className = 'war-restart';
+    again.addEventListener('click', () => {
+      if (restart && restart.host() && lastView) {
+        restart.go(lastView);
+      }
+    });
   }
 
   /* One callout under the voice, for a while; `tone` 'warn' or 'bad'
@@ -304,9 +353,10 @@ export function createWarHud(nameOf) {
   /*
    * A few times a second. v is roomwar's view(), me this pilot's seat,
    * roomNow the room clock, full the mission's output at the go (roomwar
-   * mission().output), the bar's whole length.
+   * mission().output), the bar's whole length; mission roomwar's
+   * mission(), for the wave clock.
    */
-  function update(v, me, roomNow, full) {
+  function update(v, me, roomNow, full, mission = null) {
     if (!v || v.state === 'lobby' || roomNow == null) {
       if (box && shown !== '') {
         box.style.display = 'none';
@@ -331,12 +381,22 @@ export function createWarHud(nameOf) {
       pipsPulse = performance.now() + 1500;
     }
     allowWas = allow;
-    const key = JSON.stringify([v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
+    const next = waveStatus(v, mission, roomNow);
+    const host = Boolean(restart && restart.host());
+    const key = JSON.stringify([next && next.text, host, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
     if (key === shown) {
       return;
     }
     shown = key;
+    lastView = v;
     box.style.display = 'flex';
+    status.style.display = next ? 'block' : 'none';
+    if (next) {
+      status.textContent = next.text;
+      const soon = next.s != null && next.s <= 10;
+      status.style.color = next.s === 0 ? RED : (soon ? AMBER : GREEN);
+      status.style.borderColor = soon || next.s === 0 ? status.style.color : DIM;
+    }
     outLabel.textContent = str('war.output');
     outText.textContent = str('war.output_mw', { mw: mw(v.output) });
     const low = v.output < v.floor * 1.25;
@@ -387,7 +447,12 @@ export function createWarHud(nameOf) {
     const over = v.state === 'won' || v.state === 'lost' || v.state === 'ended';
     banner.style.display = over ? 'block' : 'none';
     if (over) {
-      banner.textContent = endText(v);
+      banner.firstChild.nodeValue = endText(v);
+      again.textContent = str(host ? 'war.restart' : 'war.restart_wait');
+      again.style.cursor = host ? 'pointer' : 'default';
+      again.style.background = host ? GREEN : 'transparent';
+      again.style.color = host ? '#04100a' : DIM;
+      banner.style.pointerEvents = host ? 'auto' : 'none';
       banner.style.color = v.state === 'won' ? GREEN : RED;
       banner.style.borderColor = banner.style.color;
     }
@@ -405,7 +470,9 @@ export function createWarHud(nameOf) {
       fill: outFill ? outFill.style.width : '',
       line: line ? line.textContent : '',
       calls: calls ? [...calls.children].map((c) => c.textContent) : [],
-      banner: banner && banner.style.display !== 'none' ? banner.textContent : '',
+      banner: banner && banner.style.display !== 'none' ? banner.firstChild.nodeValue : '',
+      status: status && status.style.display !== 'none' ? status.textContent : '',
+      restart: banner && banner.style.display !== 'none' ? again.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       splashSeen,
     }),
