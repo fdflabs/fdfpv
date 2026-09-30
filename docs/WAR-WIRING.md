@@ -1,269 +1,147 @@
-# The war client in src/main.js: what to call, and where
+# The war client in src/main.js: what it calls, and where
 
-Package C (docs/WARFARE-PLAN.md section 5.2) built the client's three
-modules and left `src/main.js` to the lead. This is every call main.js
-makes, at the place it goes, against `main` with #197 (the room) merged.
-Line numbers are from this branch merged with `main` at 570722ed and will
-drift; the function named beside each is the anchor.
+Defend Itaipu's client half is three modules (docs/WARFARE-PLAN.md
+section 5.2): `src/share/roomwar.js` keeps what the room said,
+`src/render/attackers.js` draws the attackers, and `src/ui/warhud.js`,
+`src/ui/warmarkers.js` and `src/render/warradio.js` tell the pilot. This is
+every call `src/main.js` makes into them, by the function it sits in, since
+line numbers drift. The block comment at `DEFEND ITAIPU` in main.js is the
+short form.
 
-`scripts/war-twopage-wire.js` is the same wiring outside main.js, for the
-two page check; where the two differ, this file is the one to follow
-(the check has no plant, so it leaves out steps 7 to 10).
+`scripts/war-twopage-wire.js` is a second wiring, with no plant, for the two
+page check's default mode; `npm run war:twopage -- --main` runs the same
+check against main.js's wiring instead.
 
-**Wired.** main.js now makes these calls, at DEFEND ITAIPU (after
-`combatRows`), and `npm run war:twopage -- --main` runs the two page
-check against it instead of the wire module. Where the wiring had to
-differ from the steps below, and why:
+There is no radio signal in the war. The owner took the signal, the relays
+and the jammers out on 2026-09-29 (#227, plan section 6.1): main.js never
+calls `sim_rx_signal`, the war flies on the pilot's own link preset exactly
+as outside one, and `src/game/signal.js` is not imported. The radio's
+signal, relay and jammer lines are never said; their audio stays.
 
-- Step 4's `warDamage(to)` on a `state` event is instead a begin and a
-  finish on `roomWar.on()` changing (`warBegin`, `warFinish`): a pilot
-  seated while a war is live gets its view in the welcome and no `state`
-  event, and must be put in the war all the same.
-- Step 6's host menu is main.js's own (`ui.friendsRows`, beside
-  `combatRows` and `roomTagRows`), not src/ui: `warRows` and `warStart`,
-  with the consent screen of plan section 9 kept in `settings.warConsent`.
-- Step 7: `applyCrashMode` clears the crash state, so it is not called
-  in flight. A war's begin and end mark the mode due (`warCrashDue`), and
-  `resetCraft` applies it; the begin restarts a flying pilot on the slot
-  (or takes a waiting one off), as step 7 says tag does.
-- Step 9: the view has no `terrain`; the finest ground is
-  `view.scene.userData.itaipu.terrain.finestAt`, and Itaipu's water is
-  `view.lakes` (it has no `view.water`). `link` is main.js's `rcLink`,
-  and its clock `rcNextMs`. The signal runs in `warLinkFrame`, after
-  `roomFrame`, so a closed room link turns it off too.
-- `sim_rx_signal` holds across `sim_reset` (sim_abi.h), so once a war has
-  called it the module judges the link for the rest of the session;
-  `warLinkOff` leaves it up (1), which the live shell's radio grid feeds.
+## 1. Construction
 
-## 1. Imports
+- `createRoomWar(send)` as `roomWar`, beside `roomTag`, before
+  `createRoomLink`, whose handlers close over it.
+- At `DEFEND ITAIPU`: `createWarHud(roomSeatName)` as `warHud`,
+  `createWarMarkers(shell.camera, shell.renderer.domElement)` as
+  `warMarkers`, `createWarCalls()` as `warCalls`, and the constants
+  `WAR_MISSION` ('itaipu-1'), `WAR_MAP` ('itaipu'), `WAR_STATES` and
+  `WAR_FIRE_MS`.
+- After `createDebris()`: `createAttackers({ debris, floorAt })` as
+  `warAttackers`, added to the scene once a frame by `roomWarFrame`.
+- Crest Control's voice and the war's music are `audio.war()` (a
+  `WarRadio`, made on first use) and `audio.setWarBed(track)`
+  (`'intro'`, `'combat'`, or `''` for the flight music again), in
+  src/render/audio.js.
 
-Beside the other room imports (`createRoomTag`, line 95; `createRoomCombat`,
-line 113):
+## 2. The room link's handlers (`createRoomLink({ ... })`)
 
-```js
-import { createRoomWar } from './share/roomwar.js';
-import { createAttackers } from './render/attackers.js';
-import { createWarHud } from './ui/warhud.js';
-```
+- `onWelcome`: `roomWar.onWelcome(w)` after tag's. The welcome carries the
+  war's view, and a pilot seated mid game gets every live attacker as a
+  `born` right after it (edge/rooms/war.js `join`).
+- `onMessage`: chained after race's and tag's, so a war message refreshes
+  the room screen.
+- `onBinary`: `roomWar.onBinary(bytes)` first, before combat's. It takes
+  AGENTS (0xA0, the hunters' poses) and HUNTS (0xA1, each hunter's target
+  seat; src/share/roomwire.js).
+- `onState`, when the link goes idle or fails: `roomWar.clear()` and
+  `warLeave()` (the attackers cleared, the HUD and markers hidden, and
+  `warFinish()` if a war had begun here).
 
-Once #196 (src/game/signal.js) is in, from it: `signalQuality`,
-`stationPoint`, `snowFor`, `linkDegradeFor`, `LinkWatch`.
+## 3. The frame: `roomWarFrame(now, wallMs, dt)`
 
-## 2. Construction
+Called from `roomFrame` after tag's, at the room clock `now`, so it stops
+while the link is not open. In order:
 
-Next to `const roomTag = createRoomTag(...)` (line 1958), before
-`createRoomLink`, since the handlers close over it:
+1. `warAttackers.group` into the scene; hidden in the crash cam's replay.
+2. `roomWar.on()` changed: `warBegin(view)` or `warFinish()` (section 4).
+   This is on the view, not on a `state` event, because a pilot seated
+   while a war is live gets its view in the welcome and no event.
+3. `roomWar.takeEvents()`, each logged in `warLog` (for `window.__war`):
+   a hit target set burning (`warBurn`), the combat music on at `live`,
+   and outside a replay `warAttackers.dead(ev)` and `warAttackers.boom(p)`,
+   with `warBoomMine()` on this pilot's own warhead. In a replay the
+   events are taken and logged but nothing is applied, so none lands late
+   on the flight after it.
+4. `warTargetsFrame`: a burning target turns to smoke after `WAR_FIRE_MS`.
+5. `warHud.events(events)` and `warSay(warCalls.events(events, view))`:
+   the HUD's callouts and the radio's lines.
+6. `warAttackers.update(roomWar.attackersAt(now), dt)`.
+7. `warMarkers.update(live, now, events, mission, x, y, z, seat)`, with
+   this aircraft's position and seat, or a spectator's watched teammate's
+   (section 6). It returns true when a Hunter has newly picked this pilot
+   (by the room's HUNTS target, or from the hunter's heading when the room
+   sends none), and main.js then says the radio's `wave-hunter` line
+   unless it is already on the air or queued; never for a spectator.
+8. Four times a second, `warHud.update(view, seat, now, output)`, null off
+   the flight screen.
 
-```js
-/* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
-const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
-```
+## 4. A war begins and ends
 
-After `const debris = createDebris()` (line 5893), since it takes the
-debris, and where `groundAt` is in scope:
+- `warBegin(view)`: the radio's calls reset, the targets whole and then
+  the ones already down set smoking, the music on (`'intro'` in the
+  countdown, else `'combat'`), `warCrashDue` set, and the pilot put in the
+  air: `ui.onAction('restart')` if flying on the room's world, else the
+  room's own `roomCall('game', { restart: true })`.
+- `warFinish()`: the targets whole, `warCrashDue` set, the music off. The
+  last radio line is left to finish.
+- Crash damage: `applyCrashMode(s)` wants damage on while `roomWar.on()`,
+  whatever `s.crashDamage` says, and never writes the setting, so it is
+  the pilot's own again after. `damage.setMode` clears the crash state, so
+  it is applied between runs only: `resetCraft` applies it when
+  `warCrashDue` is set.
 
-```js
-const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
-shell.keepAcrossMaps(warAttackers.group);
-const warHud = createWarHud(roomSeatName);
-```
+## 5. The warhead: `warBoomMine()`
 
-`warAttackers.group` goes into the scene the way `debris.group` does at
-`roomHit` (line 2693): `if (scene && warAttackers.group.parent !== scene)
-scene.add(warAttackers.group)` once a frame in step 5.
+On a `boom` event with `mine: true`, while flying: `sim_part_break(i)` on
+every part but the root (part 0 is refused). A refusal throws, since the
+war forces damage on and so it cannot be off. The frame after goes through
+the wreck check; the room counts the boom's rack slot and nothing more for
+the wreck that follows (war.js, "A DEFENDER THAT WENT OFF").
 
-## 3. The room link's handlers (`createRoomLink({ ... })`, line 1959)
+## 6. The rack empty: spectating
 
-- `onWelcome` (line 1960): add `roomWar.onWelcome(w);` after
-  `roomTag.onWelcome(w);`. The welcome carries `war` (edge/rooms/core.js
-  hello, `...this.war.welcome(this)`), and a pilot seated mid game gets
-  every live attacker as a `born` right after it (war.js `join`).
-- `onMessage` (line 2032): chain it after tag's, so the line reads
+Plan section 4.5: a pilot whose craft is a wreck while the war is live and
+the rack is at 0 has no airframe, and spectates. `warSpectating()` says
+so; the room loses the game on an empty rack only while attackers live
+(war.js `settle`), so this is the gap after a warhead took a wave's last
+attacker with the last airframe.
 
-  ```js
-  if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
-    ui.refreshFriends();
-  }
-  ```
+- `warWatch(step)` picks the teammate to follow: the peers drawn in the
+  air here (`drawnPose` set, the newest pose not crashed), in seat order,
+  keeping the one followed while it flies. `[` and `]` step through them
+  (`WAR_WATCH_KEYS`, checked in `input.onKey` before `ui.handleKey`,
+  which otherwise takes them for the aircraft swap); `R`, `X` and `Tab`
+  do nothing, and the pause menu's restart is refused in `ui.onAction`.
+- The camera chain's `watching` branch puts the camera behind the
+  teammate along the way it travels, from the chase camera's smoothed
+  vectors; a new teammate snaps.
+- The HUD and the markers stay up; the markers measure from the watched
+  teammate and frame a Hunter on it. The banner says who is watched
+  (`war.watch`), or that nobody is in the air (`war.watch_none`).
+- A rack above 0 again, or the war over, and it stops: `R` flies.
 
-- `onBinary` (line 2046): first, before combat's, since AGENTS is the one
-  binary the war sends and it comes 30 times a second:
+## 7. The host's menu
 
-  ```js
-  if (roomWar.onBinary(bytes) || roomCombat.onBinary(bytes)) {
-    return;
-  }
-  ```
+main.js's own, beside `combatRows` and `roomTagRows`: `warRows(host, w)`
+(a private room on the Itaipu map only), `warStart()` behind
+`warConsented()` (the one screen of section 9, kept in
+`settings.warConsent`), and `friends-war-stop` / `friends-end-war` calling
+`roomWar.end()`. From outside a room, the title's card
+(`ui.onWarCard`) and Make a room's Game row (`roomBrowser`'s `war`) go
+through `warEnter(room, card)`: consent, a private room on `WAR_MAP` with
+this pilot as host, the map seated, and the room screen with the war's
+row first. `roomTarget` flies a war in free flight, as tag.
 
-- `onState` (line 2059), in the `idle`/`failed` branch beside
-  `roomTag.clear()`:
+## 8. The hooks for the checks
 
-  ```js
-  roomWar.clear();
-  warAttackers.clear();
-  warHud.update(null);
-  ```
-
-## 4. The frame: `roomFrame(wallMs, dt)` (line 2417)
-
-After `roomTagFrame(now, wallMs);` (line 2441), where `now` is the room
-clock, a call to a new `roomWarFrame(now, wallMs, dt)` beside
-`roomTagFrame` (line 3449):
-
-```js
-let warHudAt = 0;
-function roomWarFrame(now, wallMs, dt) {
-  const scene = shell.quad.parent;
-  if (scene && warAttackers.group.parent !== scene) {
-    scene.add(warAttackers.group);
-  }
-  for (const ev of roomWar.takeEvents()) {
-    if (ev.type === 'dead') {
-      warAttackers.dead(ev);
-    } else if (ev.type === 'boom') {
-      warAttackers.boom(ev.p);
-      if (ev.mine) {
-        warBoomMine(ev);            /* step 8 */
-      }
-    } else if (ev.type === 'state') {
-      warDamage(ev.to);             /* step 7 */
-    }
-    warHud.events([ev]);
-  }
-  warAttackers.update(roomWar.attackersAt(now), dt);
-  if (wallMs < warHudAt) {
-    return;
-  }
-  warHudAt = wallMs + 250;
-  const m = roomWar.mission();
-  warHud.update(mode === 'flight' && ui.screen === 'flight' ? roomWar.view() : null,
-    roomWar.seat(), now, warSignal, m ? m.output : 0);
-}
-```
-
-`roomFrame` returns early while the link is not open, so the attackers
-stop with it; `onState` clears them (step 3). Every attacker is drawn at
-`now`: a scripted one is computed there exactly, and a hunter is
-interpolated between its AGENTS samples or carried on from the newest for
-at most 250 ms (src/game/peer.js EXTRAP_MAX_MS), which covers the near
-interest band's 33 ms and a network's lag. A far hunter (1 Hz past
-1.5 km) steps; it is under a pixel there.
-
-`roomFrame` runs after the aircraft is posed (its own comment), so the
-attackers are posed before the render like the peers.
-
-## 5. The HUD
-
-`warHud.update(view, me, roomNow, signal, full)` as in step 4, a few times a
-second. `signal` is `{ q, snow, degraded, lost }` from step 9, or null to
-hide the bar; `full` is the mission's output at the go. Hide it off the
-flight screen by passing null, as tag's HUD does.
-
-## 6. The host's menu
-
-Out of this package: the war's row in the host's game menu (section 9:
-private rooms on the Itaipu map only; a first time consent screen) calls
-`roomWar.start('itaipu-1')` and `roomWar.end()`. `roomWar.error()` holds
-the room's refusal (`'private'`, `'busy'`, `'map'`, `'mission'`), and core.js
-refuses a public room's start with `{ type: 'refused', why: 'private' }`,
-which `roomRefused` (onMessage) already shows.
-
-## 7. Damage mode on for the war (section 6.3)
-
-`applyCrashMode(s)` (line 6060) sets the run's damage mode from
-`s.crashDamage` between runs. During a war it must be on whatever the
-setting says, and the setting must come back after:
-
-```js
-/* Between runs: a war forces damage on (WARFARE-PLAN 6.3). */
-const want = damage.available && (s.crashDamage !== false || roomWar.on());
-```
-
-and in `warDamage(to)` (step 4), on `to === 'live'` or `'countdown'` and on
-the end states, call `applyCrashMode(ui.settings)` so it takes effect now.
-The pilot's own `crashDamage` setting is never written, so it is the
-pilot's again the moment `roomWar.on()` is false. `damage.setMode` resets
-the crash state, so do it between runs only (the countdown is one:
-`roomTag` puts a pilot on the slot with `ui.onAction('restart')` there,
-and the war should do the same at its start, as tag does in
-`roomTagFrame`).
-
-## 8. The warhead breaks this craft (section 6.3, sim_abi.h:1178)
-
-On a `boom` event with `mine: true`:
-
-```js
-function warBoomMine(ev) {
-  const n = sim.e.sim_parts_count();
-  for (let i = 1; i < n; i += 1) {
-    const code = sim.e.sim_part_break(i);
-    if (code !== SIM_OK) {
-      throw new Error(`war boom: sim_part_break(${i}) ${simErrorName(code)}`);
-    }
-  }
-}
-```
-
-Part 0 is the root and is refused (SIM_ERR_BAD_ARG), so the loop starts at
-1; a part already gone with its parent returns SIM_OK
-(crash.c crash_part_break, `!attached(part)`). SIM_ERR_BAD_STATE means
-damage mode is off, which step 7 makes impossible in a war, so it throws
-rather than being skipped. The breaks raise the wreck flags, and the frame
-after goes through `enterWreck` and the normal respawn, which the room
-counts: the boom took the rack slot, and the crash that follows takes
-nothing more (war.js, "A DEFENDER THAT WENT OFF"). The burst is
-`warAttackers.boom(ev.p)`, already called in step 4.
-
-## 9. The signal (#196), fpvFail and the link
-
-Once a frame for the local craft, in a war only (`roomWar.live()`), with
-the station from `stationPoint(stationFor(view.spawn, roomSlot),
-terrain.finestAt, waterAt)`:
-
-```js
-const jammers = roomWar.attackersAt(now).filter((a) => a.kind === 'jammer')
-  .map((a) => ({ x: a.p[0], y: a.p[1], z: a.p[2] }));
-const { q } = signalQuality({ station, craft, relays, jammers, finestAt, waterAt, waterTop: 219 });
-linkWatch.update(q, simTimeMs);
-const snow = snowFor(q);
-const deg = linkDegradeFor(q, linkWatch.lost);
-fpvFail.signal(snow);
-link.setSignal(deg.delayMs, deg.lossPpm, planeFailsafeRc, simTimeMs);
-warSignal = { q, snow: snow > 0, degraded: deg.lossPpm > 0, lost: linkWatch.lost };
-```
-
-`fpvFail.signal(snow)` goes beside `fpvFail.set` in the crash frame (line
-6750). `fpvFail.update(nowWall, runDamage && ...)` (line 6918) already
-runs with damage on, which step 7 guarantees in a war. Outside a war,
-`fpvFail.signal(0)` and `warSignal = null`.
-
-## 10. The lost airframe (section 6.4)
-
-A link lost for 3 s is a lost airframe, and the room takes it off the
-rack when this pilot says so:
-
-- a quad: once D2 (#201) is in, `sim_rx_signal(linkUp)` returns the
-  failsafe state; call `roomWar.sendLost(runCount)` the first frame
-  `linkWatch.airframeLost` is true while the returned state still has
-  `SIM_RX_ARMED` (0x20), or on the frame that bit drops (stage 2 dropped
-  the quad): whichever comes first. The ARMED bit is what says the quad
-  is still a flying airframe the room has not already counted as a wreck.
-- a plane: `linkWatch.airframeLost`.
-
-`sendLost(life)` sends once per `life`: pass anything that changes on a
-respawn (the run counter `resetCraft` bumps), so a second loss after a
-respawn is sent and a repeat in one life is not. The room refuses it
-('spawning', 'wreck', 'off') where it would count twice.
-
-## 11. The harness hooks
-
-For the next two page check to run against main.js instead of the wire
-module, the same three `scripts/war-twopage-wire.js` exposes:
-
-```js
-window.__war = () => ({ seat, view, error, drawn: { ...warAttackers.drawn(), at }, hud: warHud.shown(), said: warHud.said(), log });
-window.__warAt = (t) => roomWar.attackersAt(t);
-window.__warDo = (op, arg) => ...;   /* 'start', 'end', 'lost' */
-```
-
-with `log` the events of step 4 as they were taken.
+- `window.__war()`: seat, view, error, what the attackers drew, the HUD
+  (`warHud.shown()`), the markers (`warMarkers.shown()`), the HUD's calls,
+  the link (which must stay the preset's), the radio's status, the damage
+  mode, the burning targets, `watch` (spectating, the seat watched, the
+  camera's position, the wreck, the banner) and the event log.
+- `window.__warAt(t)`: `roomWar.attackersAt(t)`.
+- `window.__warDo(op, arg)`: the host's `'start'` and `'end'`.
+- `window.__warHear(m)`: a room message heard as if the room had sent it,
+  for a state the room reaches too seldom to wait for (the two page
+  check's empty rack). The room's next view replaces it.
