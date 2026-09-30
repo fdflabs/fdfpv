@@ -641,6 +641,10 @@ export function warSection(check) {
     check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
     check('itaipu-4 is mission 1 at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
       && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-1'].waves);
+    const n = warRoom({ mission: MISSIONS['itaipu-4'] });
+    check('the night raid counts down prepMs longer, so every screen has built its night before the go',
+      MISSIONS['itaipu-4'].prepMs >= 10000 && n.view().state === 'countdown' && n.view().goAt === COUNTDOWN_MS + MISSIONS['itaipu-4'].prepMs,
+      JSON.stringify({ goAt: n.view().goAt }));
   }
   {
     /* One airframe a pilot. Seat 1 kills a Strike head on (spent 1,
