@@ -4338,6 +4338,10 @@
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
       }
       .update-bar[hidden] { display: none; }
+      /* The room's bar (src/ui/ui.js setRoomBar) sits over the update bar,
+       * so both can be up at once. */
+      .room-bar { bottom: calc(var(--bar-bot) + 58px); border-color: rgba(168, 214, 232, 0.5); }
+      .room-bar .update-reload[hidden] { display: none; }
       .update-reload {
         appearance: none; border: 1px solid var(--sakura); border-radius: 3px;
         background: transparent; color: var(--sakura); cursor: pointer;

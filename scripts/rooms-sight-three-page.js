@@ -20,10 +20,13 @@
  * Then every pilot must be in the room's world, the room must hold each
  * in the world they fly, and each page must draw the other two. A pilot
  * who pauses is not drawn, and must be named on the others' screens as
- * here but not flying, never simply gone; flying again, drawn again.
- * The server restarts mid session, as the VM's did at 16:19 UTC, and all
- * three must be back, in their seats, drawing each other. Last, C picks
- * the Alps from inside the room: the others name C as flying there.
+ * here but not flying, and why (paused), never simply gone; flying again,
+ * drawn again. The server restarts mid session, as the VM's did at 16:19
+ * UTC, and all three must be back, in their seats, drawing each other.
+ * Last, C, who is not the host, picks the Alps from inside the room: since
+ * the room is one session (the owner, later that day: "force everyone in
+ * the same game and the same thing"), C is kept in the room's world, told
+ * why, and still drawn by both others.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -191,7 +194,7 @@ try {
   await pages.A.sleep(3500);
   s = await look();
   const bName = s.A.peers.find((p) => p.seat === s.B.seat).name;
-  const idle = say('rooms.away_idle', { name: bName });
+  const idle = say('rooms.away_paused', { name: bName });
   for (const k of ['A', 'C']) {
     const p = s[k].peers.find((q) => q.seat === s.B.seat);
     check(`${k} stops drawing B while B is paused`, p && !p.drawn);
@@ -219,14 +222,14 @@ try {
 
   /* C picks the Alps from inside the room. */
   await pages.C.evaluate("window.__ui.onAction('pause'); window.__ui.seatMap('alps', { stay: true }); true");
-  await pages.C.until("window.__map().ready && window.__map().id === 'alps'", 400000);
-  await fly('C');
-  await pages.A.until(`window.__rooms().peers.some((p) => p.seat === ${s.C.seat} && p.map === 'alps' && !p.drawn)`, 15000).catch(() => {});
+  await pages.C.sleep(3000);
+  const kept = await pages.C.evaluate("({ seat: window.__ui.settings.map, world: window.__map().id, swapping: !window.__map().ready })");
+  check('C, not the host, is kept in the room\'s world', kept.seat === ROOM_MAP && kept.world === ROOM_MAP && !kept.swapping, JSON.stringify(kept));
+  await pages.C.evaluate("window.__ui.onAction('resume'); true");
+  await settle(everyoneDrawn, 15000);
   s = await look();
-  const cName = s.A.peers.find((p) => p.seat === s.C.seat).name;
-  const away = say('rooms.away_world', { name: cName, world: en['registry.the_alps'] });
-  const markC = s.A.away.find((a) => a.seat === s.C.seat);
-  check(`A names C in another world: "${away}"`, Boolean(markC) && markC.text === away, JSON.stringify(s.A.away));
+  check('and A and B still draw C', drawsBoth(s, 'A') && drawsBoth(s, 'B'),
+    ['A', 'B'].map((k) => s[k].peers.map((p) => `${k} ${seats[p.seat]} ${p.drawn ? 'drawn' : 'not drawn'}`).join(', ')).join('; '));
 
   const errs = names.flatMap((k) => pages[k].errors).filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
