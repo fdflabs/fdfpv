@@ -38,7 +38,7 @@ export default {
   targets,
   output: 14000,
   floorMw: 11200,
-  starMw: 12950,
+  starMw: 11900,
   airframes: 4,
   waves: [
     { round: 0, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },

@@ -472,7 +472,7 @@ airframes a pilot plus one a kill, lost only on output):
 | id | title (string key) | targets | floor | starMw |
 | --- | --- | --- | --- | --- |
 | itaipu-1 | Defend the intakes | intakes, penstocks, gates, the yard | 7 700 | 11 200 |
-| itaipu-2 | Save the spillway gates | the 14 gates (350 MW each) | 11 200 | 12 950 |
+| itaipu-2 | Save the spillway gates | the 14 gates (350 MW each) | 11 200 | 11 900 |
 | itaipu-3 | Switchyard blackout | the yard, with decoys; intakes and penstocks too | 9 700 | 12 600 |
 | itaipu-4 | Night raid | itaipu-1's, at night (`night: true`) | 7 700 | 11 200 |
 
