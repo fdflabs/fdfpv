@@ -287,7 +287,7 @@ const MeterTapShader = (sunGlsl) => ({
 });
 
 class MeterPass extends Pass {
-  constructor(camera, sun, sunDir) {
+  constructor(camera, sun, sunDir, air) {
     super();
     this.needsSwap = false;
     this.camera = camera;
@@ -308,10 +308,10 @@ class MeterPass extends Pass {
         uCamPos: { value: new THREE.Vector3() },
         uSunDir: { value: sunDir.clone() },
         uSunCol: { value: new THREE.Color() },
-        uHaze: { value: AIR.haze.clone() },
-        uBeta: { value: AIR.beta.clone() },
-        uScaleH: { value: AIR.scaleHeight },
-        uMie: { value: AIR.mie },
+        uHaze: { value: air.haze.clone() },
+        uBeta: { value: air.beta.clone() },
+        uScaleH: { value: air.scaleHeight },
+        uMie: { value: air.mie },
       },
       vertexShader: src.vertexShader,
       fragmentShader: src.fragmentShader,
@@ -417,7 +417,7 @@ const PhotoShader = {
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
-  fragmentShader: /* glsl */ `
+  fragmentShader: (air) => /* glsl */ `
     #include <common>
     varying vec2 vUv;
     uniform sampler2D tDiffuse;
@@ -559,9 +559,9 @@ const PhotoShader = {
       float l0 = max(dot(dv, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
       float slope = uSlope;
       #ifdef LENS_METER
-        slope = clamp(${AIR.spread.toFixed(3)} / max(meter.b, 0.1), 1.0, ${AIR.slopeMax.toFixed(3)});
+        slope = clamp(${air.spread.toFixed(3)} / max(meter.b, 0.1), 1.0, ${air.slopeMax.toFixed(3)});
       #endif
-      float l1 = ${AIR.pivot.toFixed(3)} + (l0 - ${AIR.pivot.toFixed(3)}) * slope;
+      float l1 = ${air.pivot.toFixed(3)} + (l0 - ${air.pivot.toFixed(3)}) * slope;
       l1 = l1 < 0.14 ? 0.14 * exp((l1 - 0.14) / 0.14) : l1;
       l1 = l1 > 0.85 ? 1.0 - 0.15 * exp((0.85 - l1) / 0.15) : l1;
       dv = clamp(dv * (l1 / l0), 0.0, 1.0);
@@ -702,7 +702,7 @@ class AoPass extends Pass {
 }
 
 class PhotoPass extends Pass {
-  constructor(camera, sun, lens, meter) {
+  constructor(camera, sun, lens, meter, air) {
     super();
     this.camera = camera;
     this.sun = sun;
@@ -725,7 +725,7 @@ class PhotoPass extends Pass {
       defines,
       uniforms: THREE.UniformsUtils.clone(PhotoShader.uniforms),
       vertexShader: PhotoShader.vertexShader,
-      fragmentShader: PhotoShader.fragmentShader,
+      fragmentShader: PhotoShader.fragmentShader(air),
       depthTest: false,
       depthWrite: false,
     });
@@ -735,13 +735,13 @@ class PhotoPass extends Pass {
     u.uCa.value = lens.ca;
     u.uGrain.value = lens.grain;
     this.fwd = new THREE.Vector3();
-    u.uHaze.value.copy(AIR.haze);
-    u.uBeta.value.copy(AIR.beta);
-    u.uScaleH.value = AIR.scaleHeight;
-    u.uMie.value = AIR.mie;
-    u.uExposure.value = AIR.exposure;
-    u.uContrast.value = AIR.contrast;
-    u.uSlope.value = AIR.slope;
+    u.uHaze.value.copy(air.haze);
+    u.uBeta.value.copy(air.beta);
+    u.uScaleH.value = air.scaleHeight;
+    u.uMie.value = air.mie;
+    u.uExposure.value = air.exposure;
+    u.uContrast.value = air.contrast;
+    u.uSlope.value = air.slope;
     this.fsQuad = new FullScreenQuad(this.material);
   }
 
@@ -773,7 +773,12 @@ class PhotoPass extends Pass {
   }
 }
 
-export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds) {
+/*
+ * `air` is the map's air and print, AIR's shape; AIR when not given. A
+ * map with a sky of its own (Itaipu's clear tropical day) brings its own
+ * haze and exposure rather than changing the valley's.
+ */
+export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds, air = AIR) {
   const lens = LENS[q.id];
   if (!lens) {
     throw new Error(`swiss2 post: no lens for the ${q.id} preset; say what it spends in src/maps/swiss2/post.js`);
@@ -815,7 +820,7 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds) {
    * meters the light, not its own glow. */
   let meter = null;
   if (lens.meter) {
-    meter = new MeterPass(camera, sun.at, sun.direction);
+    meter = new MeterPass(camera, sun.at, sun.direction, air);
     meter.tapMat.uniforms.tCloud.value = cloud.target.texture;
     composer.addPass(meter);
   }
@@ -824,7 +829,7 @@ export function buildPhotoComposer(renderer, scene, camera, q, sun, clouds) {
     bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.12, 0.6, 6.0);
     composer.addPass(bloom);
   }
-  const photo = new PhotoPass(camera, sun, lens, meter);
+  const photo = new PhotoPass(camera, sun, lens, meter, air);
   if (ao) {
     photo.material.uniforms.tAo.value = ao.target.texture;
     photo.material.uniforms.uAo.value = 0.85;
