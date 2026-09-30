@@ -64,7 +64,7 @@
  *               insulator string, a tree's trunk, a switchyard transformer
  *               and its bushing, open ground under the deepest invisible
  *               wall box, a courtyard and its building's roof edge, and
- *               the Friendship Bridge's deck. Each is
+ *               the Friendship Bridge's deck, an arch rib and a column. Each is
  *               `stopped` (met there and did not go on), `through` (met,
  *               then on past it at over half its speed) or `passed` (went
  *               past with nothing); a dive onto open ground is
@@ -753,8 +753,21 @@ const TARGETS = `(async () => {
     let far = pts[0];
     for (const p of pts) if (Math.hypot(p[0] - cx, p[1] - cz) > Math.hypot(far[0] - cx, far[1] - cz)) far = p;
     const along = flat([far[0] - cx, 0, far[1] - cz]);
-    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx, f.deckY - 0.8, cz], dir: perp(along), expect: 'passed' });
+    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx, f.deckY - 0.8, cz], dir: perp(along), expect: 'stopped' });
     T.push({ name: 'Friendship Bridge deck, landed on', at: [cx, f.deckY, cz], dir: along, expect: 'passed', land: true });
+    /* Its arch: the rib capsule and the column nearest the deck's middle,
+     * crossed level at their middles, across the bridge. */
+    const nearest = (r) => {
+      let best = -1, bd = Infinity;
+      for (let i = 0; i < col.staticCount; i += 1) {
+        if (col.fbox[i] || Math.abs(col.fr[i] - r) > 1e-6) continue;
+        const d = Math.hypot((col.fax[i] + col.fbx[i]) / 2 - cx, (col.faz[i] + col.fbz[i]) / 2 - cz);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return [(col.fax[best] + col.fbx[best]) / 2, (col.fay[best] + col.fby[best]) / 2, (col.faz[best] + col.fbz[best]) / 2];
+    };
+    T.push({ name: 'Friendship Bridge arch rib', at: nearest(1.1), dir: perp(along), expect: 'stopped' });
+    T.push({ name: 'Friendship Bridge column', at: nearest(0.7), dir: perp(along), expect: 'stopped' });
   }
   return JSON.stringify(T);
 })()`;

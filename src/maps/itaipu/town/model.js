@@ -226,6 +226,8 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   }
   const bridge = buildBridge(ring[0], ground, sink);
   records.push(bridge.record);
+  fixed.push(...bridge.boxes);
+  fixedCaps.push(...bridge.caps);
   friendship = bridge.measures;
   progress(0.8);
   await yieldEvery();
