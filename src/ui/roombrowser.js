@@ -4,10 +4,14 @@
  * to be easy for people to join rooms and everyone to see every room,
  * also when creating room let me name it").
  *
- *   Rooms          every open public room, live (src/share/roomlist.js):
- *                  its name, world, pilots and game, one press to join,
- *                  busiest first; a quick join on this world; the way to
- *                  make a room and to join a private one with its code
+ *   Rooms          the lobby (the owner, 2026-09-30: "the rooms needs to
+ *                  be made more clear, there needs to be a lobby"): the
+ *                  room this pilot is in, on top, with Leave; then every
+ *                  open public room, live (src/share/roomlist.js), its
+ *                  name, world, pilots and game, one press to join,
+ *                  busiest first, an empty one with the minutes before it
+ *                  closes; a quick join on this world; the way to make a
+ *                  room and to join a private one with its code
  *   Make a room    a typed name (or the room's picked one), public or
  *                  private, the world, and a game to set it up for
  *
@@ -37,9 +41,9 @@
  */
 
 import { ROOM_MODES, ROOM_NAME_REPORT, normaliseRoomName } from '../share/roomwire.js';
-import { createRoomList } from '../share/roomlist.js';
+import { closesInMin, createRoomList } from '../share/roomlist.js';
 import { MAPS, mapById } from '../maps/registry.js';
-import { str } from '../strings/index.js';
+import { plural, str } from '../strings/index.js';
 
 const ROOM_ACTION = 'friends-room-';
 
@@ -49,9 +53,12 @@ const ROOM_ACTION = 'friends-room-';
  * language; here(): the world this pilot is in; preset(): the game a
  * title card set up, or null; war(room): the shell's way into Defend
  * Itaipu (src/main.js DEFEND ITAIPU), which asks its consent question and
- * makes the room itself, resolving once it has.
+ * makes the room itself, resolving once it has; pilots(): how many are in
+ * the room this pilot is in, them included.
  */
-export function createRoomBrowser({ ui, link, roomName, here, preset = () => null, war = null }) {
+export function createRoomBrowser({
+  ui, link, roomName, here, preset = () => null, war = null, pilots = () => 1,
+}) {
   /*
    * WHERE THE CURSOR LANDS. Rooms opened before its list has ever arrived
    * draws Make a room as its primary, and the cursor lands there. When the
@@ -103,16 +110,56 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
     return r.game ? str(`roombrowser.${r.game}_${r.state}`) : str('roombrowser.free');
   }
 
+  /* What a room's pilots column says: full, how many of how many, or,
+   * empty, how long before it closes (null from an older server). */
+  function load(r) {
+    if (r.n >= r.cap) {
+      return str('roombrowser.full');
+    }
+    if (r.n > 0) {
+      return str('roombrowser.count', { n: r.n, cap: r.cap });
+    }
+    const min = closesInMin(r);
+    return min == null ? str('roombrowser.empty_room') : min > 0 ? str('roombrowser.empty_closes', { n: min }) : str('roombrowser.empty_closing');
+  }
+
   function roomRow(r) {
     const full = r.n >= r.cap;
-    const note = str(full ? 'roombrowser.row_full_note' : 'roombrowser.row_note', { world: mapById(r.map).name, doing: doing(r) });
+    const vars = { world: mapById(r.map).name, doing: doing(r) };
+    const note = str(full ? 'roombrowser.row_full_note' : r.n ? 'roombrowser.row_note' : 'roombrowser.row_empty_note', vars);
     return full
-      ? { label: title(r), value: str('roombrowser.full'), note, info: true }
-      : { label: title(r), value: str('roombrowser.count', { n: r.n, cap: r.cap }), note, action: `${ROOM_ACTION}${r.code}` };
+      ? { label: title(r), value: load(r), note, info: true }
+      : { label: title(r), value: load(r), note, action: `${ROOM_ACTION}${r.code}` };
+  }
+
+  /* The room this pilot is in, on top of the lobby, with Leave. */
+  function hereRows() {
+    const st = link.state();
+    if (st.phase !== 'open' || !st.welcome) {
+      return [];
+    }
+    const w = st.welcome;
+    return [
+      { label: str('roombrowser.here_section'), section: true },
+      {
+        label: w.public ? title(w) : str('roombrowser.here_private', { code: st.code }),
+        value: plural('count.pilots', pilots()),
+        note: str('roombrowser.here_note'),
+        action: 'friends-here',
+      },
+      { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' },
+    ];
+  }
+
+  /* The open rooms, the one this pilot is in aside: it is on top. */
+  function openRooms() {
+    const rooms = list.rooms();
+    const st = link.state();
+    return rooms && st.phase === 'open' ? rooms.filter((r) => r.code !== st.code) : rooms;
   }
 
   function listRows() {
-    const rooms = list.rooms();
+    const rooms = openRooms();
     const heading = { label: str('roombrowser.open_section'), section: true };
     if (list.open() === false) {
       return [heading, { label: str('roombrowser.closed'), note: str('roombrowser.closed_note'), info: true }];
@@ -145,9 +192,10 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
     const world = mapById(here()).name;
     const quick = list.open() === false ? [] : [quickRow(world)];
     return [
+      ...hereRows(),
       ...listRows(),
       { label: str('roombrowser.more_section'), section: true },
-      { label: str('roombrowser.new'), note: str('roombrowser.new_note'), action: 'roomnew', primary: !(list.rooms() || []).some((r) => r.n < r.cap) },
+      { label: str('roombrowser.new'), note: str('roombrowser.new_note'), action: 'roomnew', primary: !(openRooms() || []).some((r) => r.n < r.cap) },
       ...quick,
       { label: str('friends.join'), note: str('friends.join_note'), action: 'friends-join' },
     ];
@@ -324,6 +372,10 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
       if (action.startsWith(ROOM_ACTION)) {
         joined = action.slice(ROOM_ACTION.length);
         link.join(joined);
+        ui.show('friends');
+        return true;
+      }
+      if (action === 'friends-here') {
         ui.show('friends');
         return true;
       }

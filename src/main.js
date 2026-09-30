@@ -2225,6 +2225,7 @@ export async function boot({
   const roomBrowser = createRoomBrowser({
     ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
     war: (room) => warEnter(room),
+    pilots: () => roomPeers.size + 1,
   });
   const roomBrowsing = () => ui.screen === 'rooms' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
   ui.roomRows = (screen) => roomBrowser.rows(screen);
