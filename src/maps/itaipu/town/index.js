@@ -63,6 +63,9 @@ export async function buildPart(ctx) {
   for (const b of town.fixed) {
     ctx.colliders.addBox('wall', ...b);
   }
+  for (const c of town.fixedCaps) {
+    ctx.colliders.add('wall', ...c);
+  }
   const drawn = sink.build(group, town.wires);
   const buildMs = performance.now() - t0;
   ctx.progress(1);

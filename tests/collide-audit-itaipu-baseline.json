@@ -2,198 +2,17 @@
  "note": "Today's numbers, not a target: several are defects scripts/collide-audit-itaipu.js found. The run fails when one gets worse than this.",
  "footprints": {
   "buildings": 10532,
-  "over2": 1337,
-  "over5": 329,
+  "over2": 0,
+  "over5": 0,
   "concave": {
-   "buildings": 1019,
-   "areaM2": 72328
+   "buildings": 0,
+   "areaM2": 5988
   },
   "slant": {
-   "buildings": 922,
-   "areaM2": 88528
+   "buildings": 0,
+   "areaM2": 38361
   },
-  "worst": [
-   {
-    "id": "w360399470",
-    "depth": 29.5,
-    "at": [
-     308.4,
-     1793.3
-    ],
-    "kind": "concave"
-   },
-   {
-    "id": "w608156691",
-    "depth": 26.6,
-    "at": [
-     553.9,
-     3915.8
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w186806000",
-    "depth": 20,
-    "at": [
-     -534.6,
-     715.2
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w469123522",
-    "depth": 18.7,
-    "at": [
-     -4866.6,
-     -368.2
-    ],
-    "kind": "concave"
-   },
-   {
-    "id": "w483820690",
-    "depth": 17.1,
-    "at": [
-     -54.1,
-     3893.9
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w483784358",
-    "depth": 16.3,
-    "at": [
-     285.6,
-     4974.5
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w486245488",
-    "depth": 16.3,
-    "at": [
-     237.6,
-     -1025.7
-    ],
-    "kind": "concave"
-   },
-   {
-    "id": "w473015377",
-    "depth": 15.7,
-    "at": [
-     -4803.7,
-     -1343.7
-    ],
-    "kind": "concave"
-   },
-   {
-    "id": "w608162571",
-    "depth": 15.6,
-    "at": [
-     814.7,
-     3987.2
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w483812054",
-    "depth": 15.3,
-    "at": [
-     397.4,
-     3935
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w791588135",
-    "depth": 15.1,
-    "at": [
-     -3582.4,
-     -3615.7
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w608156688",
-    "depth": 14.8,
-    "at": [
-     542.5,
-     3955.6
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w608162566",
-    "depth": 14.7,
-    "at": [
-     859.4,
-     3952.1
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w1260608708",
-    "depth": 14.5,
-    "at": [
-     -4425.1,
-     -1821.7
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w483784423",
-    "depth": 14.2,
-    "at": [
-     -95.3,
-     5043.9
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w472637950",
-    "depth": 13.7,
-    "at": [
-     -5033.6,
-     -2978.5
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w579852801",
-    "depth": 13.7,
-    "at": [
-     2550.9,
-     3369
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w608142836",
-    "depth": 13.7,
-    "at": [
-     1285.2,
-     3052.9
-    ],
-    "kind": "slant"
-   },
-   {
-    "id": "w469163291",
-    "depth": 13,
-    "at": [
-     -3491.7,
-     -1563.6
-    ],
-    "kind": "concave"
-   },
-   {
-    "id": "w472616879",
-    "depth": 12.9,
-    "at": [
-     -4980.1,
-     -2169.6
-    ],
-    "kind": "slant"
-   }
-  ]
+  "worst": []
  },
  "drawn": {
   "crest": {
@@ -2293,7 +2112,7 @@
   ],
   "solids": 0,
   "deck": 7,
-  "on": 0
+  "on": 3
  },
  "water": {
   "reservoir at the dam": {
@@ -2533,12 +2352,16 @@
    "switchyard transformer tank @45": "stopped",
    "switchyard transformer bushing (drawn only) @30": "passed",
    "switchyard transformer bushing (drawn only) @45": "passed",
-   "open ground under an invisible wall box (w608156691) @30": "invisible",
-   "open ground under an invisible wall box (w608156691) @45": "invisible",
+   "open ground under an invisible wall box (w608156691) @30": "clear",
+   "open ground under an invisible wall box (w608156691) @45": "clear",
+   "courtyard of w608142837, dived onto @30": "clear",
+   "courtyard of w608142837, dived onto @45": "clear",
+   "courtyard building roof edge (w608142837), landed on @30": "stopped",
+   "courtyard building roof edge (w608142837), landed on @45": "stopped",
    "Friendship Bridge deck, flown through @30": "passed",
    "Friendship Bridge deck, flown through @45": "passed",
-   "Friendship Bridge deck, landed on @30": "passed",
-   "Friendship Bridge deck, landed on @45": "passed"
+   "Friendship Bridge deck, landed on @30": "stopped",
+   "Friendship Bridge deck, landed on @45": "stopped"
   },
   "f16": {
    "power conductor, dived onto @45": "through",
@@ -2559,10 +2382,12 @@
    "switchyard transformer bushing (drawn only) @70": "passed",
    "open ground under an invisible wall box (w608156691) @45": "clear",
    "open ground under an invisible wall box (w608156691) @70": "clear",
+   "courtyard of w608142837, dived onto @45": "clear",
+   "courtyard of w608142837, dived onto @70": "clear",
    "Friendship Bridge deck, flown through @45": "passed",
    "Friendship Bridge deck, flown through @70": "passed",
-   "Friendship Bridge deck, landed on @45": "passed",
-   "Friendship Bridge deck, landed on @70": "passed"
+   "Friendship Bridge deck, landed on @45": "stopped",
+   "Friendship Bridge deck, landed on @70": "stopped"
   }
  }
 }

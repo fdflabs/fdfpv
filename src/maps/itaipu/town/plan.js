@@ -20,11 +20,14 @@
  *
  * COLLISION. The roof is ground for every building (a roofs.js record, a
  * grid entry each). The walls are axis aligned boxes, the one box the
- * shell has, stood under the roof: for a building within 10 degrees of
- * the world's axes, one box per run of the footprint between its corners
- * (a rectangle is one); turned further, columns 1 m wide across whichever
- * world axis needs fewer (section 7). They are streamed: this file only
- * says what they are.
+ * shell has, stood under the roof, across whichever world axis needs
+ * fewer. The footprint is cut at its corners into runs, and a run into
+ * as many columns as keep every wall within STRAY of its box but none
+ * narrower than COLUMN: a rectangle square to the axes is one box, a
+ * wall a few degrees off them a few, and a building turned well off
+ * them columns 1 m wide (section 7). Each column is a box per stretch
+ * of it inside the outline, so an L, a U or a courtyard is not filled.
+ * They are streamed: this file only says what they are.
  *
  * Pure: no THREE, so the checks run it in Node.
  *
@@ -46,17 +49,14 @@
 
 import { roofRecord, frameElements, roofTop, gableTop } from '../../alps/roofs.js';
 
-/* Section 7: a building within 10 degrees of the world's axes is walled
- * by the runs between its corners, past it by columns COLUMN wide. The
- * sine of 10 degrees, written out: nothing that ends in a collider or a
- * roof goes through Math.sin, whose last bit is the engine's
- * (CLAUDE.md, determinism). */
-export const SIN_AXIS_TOL = 0.17364817766693033;
+/* How far a wall may stand inside its box, metres: the wedge of solid a
+ * craft can meet with nothing drawn there. A wall 30 m long 5 degrees
+ * off the axis leaves 2.6 m in one box, so it is cut into six. */
+const STRAY = 0.5;
+/* The narrowest column, metres (section 7), which bounds the boxes a
+ * building turned well off the axes costs: its walls stand up to about
+ * COLUMN inside them rather than STRAY. */
 export const COLUMN = 1;
-/* Runs narrower than this between two corners of an axis aligned
- * building fold into their neighbour: the sliver a few degrees of turn
- * leaves at each end of a rectangle is not worth a box. Metres. */
-const RUN_MIN = 2;
 /* Solids' tops under the roof's upper face, roofs.js SKIN. */
 const SKIN = 0.02;
 /* A footprint that fills this much of its rectangle is drawn as that
@@ -189,9 +189,8 @@ export function cleanRing(outer, id) {
 
 /*
  * The smallest rectangle round the ring, from its edges' directions:
- * centre, the long axis (ux, uz), a unit vector, the half long and half
- * short sides, and whether the long axis is more than 10 degrees from
- * both world axes.
+ * centre, the long axis (ux, uz), a unit vector, and the half long and
+ * half short sides.
  */
 export function rectOf(ring) {
   let best = null;
@@ -232,7 +231,6 @@ export function rectOf(ring) {
     hl: Math.max(hu, hv),
     hs: Math.min(hu, hv),
     area: best.area,
-    turned: Math.min(Math.abs(ux), Math.abs(uz)) > SIN_AXIS_TOL,
   };
 }
 
@@ -492,70 +490,188 @@ export function wallFaces(ring, base, plate) {
   return out;
 }
 
-/* The ring's extent across `axis` (0 x, 1 z) within [a, b] of the other. */
-function extentIn(ring, axis, a, b) {
+/*
+ * What of the ring lies within [a, b] of `axis`'s other, as spans across
+ * `axis` (0 x, 1 z): the inside's own intervals, so an L, a U or a
+ * courtyard is not filled. Between two corners the inside is trapezoids,
+ * each between a pair of edges (even-odd), and a trapezoid's span is its
+ * four corners' extent; the spans of all of them, merged where they
+ * overlap, are the projection of the ring's piece of the slab.
+ */
+function spansIn(ring, axis, a, b) {
   const o = 1 - axis;
-  let lo = Infinity;
-  let hi = -Infinity;
   const n = ring.length;
+  const ts = [a, b];
+  for (const p of ring) {
+    if (p[o] > a && p[o] < b) {
+      ts.push(p[o]);
+    }
+  }
+  ts.sort((u, v) => u - v);
+  const raw = [];
+  const at = (p, q, t) => p[axis] + ((q[axis] - p[axis]) * (t - p[o])) / (q[o] - p[o]);
+  for (let k = 0; k + 1 < ts.length; k += 1) {
+    const t0 = ts[k];
+    const t1 = ts[k + 1];
+    if (!(t1 > t0)) {
+      continue;
+    }
+    const mid = (t0 + t1) / 2;
+    const cut = [];
+    for (let i = 0; i < n; i += 1) {
+      const p = ring[i];
+      const q = ring[(i + 1) % n];
+      if ((p[o] < mid) !== (q[o] < mid)) {
+        cut.push([at(p, q, mid), at(p, q, t0), at(p, q, t1)]);
+      }
+    }
+    cut.sort((u, v) => u[0] - v[0]);
+    for (let i = 0; i + 1 < cut.length; i += 2) {
+      const [, l0, l1] = cut[i];
+      const [, h0, h1] = cut[i + 1];
+      raw.push([Math.min(l0, l1, h0, h1), Math.max(l0, l1, h0, h1)]);
+    }
+  }
+  raw.sort((u, v) => u[0] - v[0]);
+  const out = [];
+  for (const s of raw) {
+    const last = out[out.length - 1];
+    if (last && s[0] <= last[1] + 1e-9) {
+      last[1] = Math.max(last[1], s[1]);
+    } else {
+      out.push(s);
+    }
+  }
+  return out;
+}
+
+/*
+ * How many columns [a, b] is cut into: enough that no edge through it
+ * strays more than STRAY across a column (an edge whose piece in the run
+ * is `w` long across the columns and turned `phi` off them leaves a
+ * wedge w sin(phi) deep between itself and the box), and none narrower
+ * than COLUMN. A run between the corners of a square building is one.
+ */
+function columnsIn(ring, axis, a, b) {
+  const o = 1 - axis;
+  const n = ring.length;
+  let stray = 0;
   for (let i = 0; i < n; i += 1) {
     const p = ring[i];
     const q = ring[(i + 1) % n];
-    if (p[o] >= a && p[o] <= b) {
-      lo = Math.min(lo, p[axis]);
-      hi = Math.max(hi, p[axis]);
+    const w = Math.min(b, Math.max(p[o], q[o])) - Math.max(a, Math.min(p[o], q[o]));
+    if (!(w > 0)) {
+      continue;
     }
-    const p0 = Math.min(p[o], q[o]);
-    const p1 = Math.max(p[o], q[o]);
-    for (const cut of [a, b]) {
-      if (cut > p0 && cut < p1) {
-        const t = (cut - p[o]) / (q[o] - p[o]);
-        const v = p[axis] + (q[axis] - p[axis]) * t;
-        lo = Math.min(lo, v);
-        hi = Math.max(hi, v);
+    const da = q[axis] - p[axis];
+    const dz = q[o] - p[o];
+    stray = Math.max(stray, (w * Math.abs(da)) / Math.sqrt(da * da + dz * dz));
+  }
+  const most = Math.max(1, Math.ceil((b - a) / COLUMN - 1e-9));
+  return Math.max(1, Math.min(most, Math.ceil(stray / STRAY - 1e-9)));
+}
+
+/*
+ * The ring cut across `axis`'s other into columns, each with its spans
+ * across `axis`: [a, b, spans]. A cut at every corner, so between two
+ * cuts the inside is trapezoids and nothing fills a notch, and each run
+ * between cuts in columnsIn's columns. Where that comes to columns
+ * COLUMN wide (a building turned off the axes), the building is columns
+ * COLUMN wide from end to end, cut only at its inside corners: an
+ * outside corner within a column leaves solid no deeper than the column
+ * is wide, which the column's slant leaves anyway, and cutting there
+ * too would cost a box a corner. Then fewer: a sliver goes into a
+ * neighbour whose spans hold its own to within STRAY (the sliver a few
+ * degrees of turn leaves at each end of a rectangle, which a box of its
+ * own buys nothing for), and neighbours whose spans' ends all lie within
+ * STRAY of each other are one column.
+ */
+function runsOf(ring, axis) {
+  const o = 1 - axis;
+  const n = ring.length;
+  const wind = Math.sign(signedArea(ring));
+  const at = [...new Set(ring.map((p) => p[o]))].sort((u, v) => u - v);
+  const inside = new Set();
+  ring.forEach((q, i) => {
+    const p = ring[(i + n - 1) % n];
+    const r = ring[(i + 1) % n];
+    if (Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])) === -wind) {
+      inside.add(q[o]);
+    }
+  });
+  let runs = [];
+  for (let k = 0; k + 1 < at.length; k += 1) {
+    runs.push([at[k], at[k + 1], columnsIn(ring, axis, at[k], at[k + 1])]);
+  }
+  if (runs.some(([a, b, cols]) => cols > 1 && cols === Math.ceil((b - a) / COLUMN - 1e-9))) {
+    const cuts = at.filter((c, k) => k === 0 || k === at.length - 1 || inside.has(c));
+    runs = [];
+    for (let k = 0; k + 1 < cuts.length; k += 1) {
+      runs.push([cuts[k], cuts[k + 1], Math.max(1, Math.ceil((cuts[k + 1] - cuts[k]) / COLUMN - 1e-9))]);
+    }
+  }
+  const cols = [];
+  for (const [a, b, count] of runs) {
+    for (let j = 0; j < count; j += 1) {
+      const c0 = a + ((b - a) * j) / count;
+      const c1 = j + 1 === count ? b : a + ((b - a) * (j + 1)) / count;
+      cols.push([c0, c1, spansIn(ring, axis, c0, c1), count === 1 && b - a < COLUMN]);
+    }
+  }
+  const holds = (big, small) => small.every(([lo, hi]) => big.some(([l, h]) => lo >= l - STRAY && hi <= h + STRAY));
+  const union = (p, q) => {
+    const out = [];
+    for (const s of [...p, ...q].sort((u, v) => u[0] - v[0])) {
+      const last = out[out.length - 1];
+      if (last && s[0] <= last[1]) {
+        last[1] = Math.max(last[1], s[1]);
+      } else {
+        out.push([s[0], s[1]]);
       }
     }
-  }
-  return [lo, hi];
-}
-
-/* The runs across `axis`'s other: boundaries at the corners, split into
- * COLUMN wide columns when the building is turned. */
-function marksOf(cuts, turned) {
-  const lo = cuts[0];
-  const hi = cuts[cuts.length - 1];
-  if (turned) {
-    const n = Math.max(1, Math.ceil((hi - lo) / COLUMN - 1e-9));
-    return Array.from({ length: n + 1 }, (_, k) => lo + ((hi - lo) * k) / n);
-  }
-  /* Corners closer than RUN_MIN to the last mark fold into its run; the
-   * far end is always a mark. */
-  const marks = [lo];
-  for (const c of cuts.slice(1, -1)) {
-    if (c - marks[marks.length - 1] >= RUN_MIN && hi - c >= RUN_MIN) {
-      marks.push(c);
+    return out;
+  };
+  /* A sliver (a run between two corners narrower than COLUMN, left
+   * whole by columnsIn) into the column before it, or one before into
+   * the column after; at most COLUMN of slivers into any one column, so
+   * a run of them cannot carry a box out a sliver at a time. */
+  const folded = [];
+  let slivers = 0;
+  for (const [c0, c1, spans, sliver] of cols) {
+    const last = folded[folded.length - 1];
+    if (last && sliver && slivers + c1 - c0 <= COLUMN && holds(last[2], spans)) {
+      slivers += c1 - c0;
+    } else if (last && last[3] && slivers === 0 && holds(spans, last[2])) {
+      slivers = last[1] - last[0];
+    } else {
+      folded.push([c0, c1, spans.map((q) => [...q]), sliver]);
+      slivers = 0;
+      continue;
     }
+    last[1] = c1;
+    last[2] = union(last[2], spans);
+    last[3] = false;
   }
-  marks.push(hi);
-  return marks;
-}
-
-function runsOf(ring, axis, turned) {
-  const o = 1 - axis;
-  const cuts = [...new Set(ring.map((p) => p[o]))].sort((u, v) => u - v);
-  const marks = marksOf(cuts, turned);
+  /* Near alike neighbours: each span's ends' least and most so far. */
   const out = [];
-  for (let k = 0; k + 1 < marks.length; k += 1) {
-    const [lo, hi] = extentIn(ring, axis, marks[k], marks[k + 1]);
-    if (!(hi > lo)) {
-      continue;
-    }
+  let lohi = null;
+  for (const c of folded) {
     const last = out[out.length - 1];
-    if (last && Math.abs(last[2] - lo) < 1e-6 && Math.abs(last[3] - hi) < 1e-6) {
-      last[1] = marks[k + 1];
+    const alike = last && last[2].length === c[2].length && c[2].every(([lo, hi], i) => {
+      const [l0, l1, h0, h1] = lohi[i];
+      return Math.max(l1, lo) - Math.min(l0, lo) <= STRAY && Math.max(h1, hi) - Math.min(h0, hi) <= STRAY;
+    });
+    if (alike) {
+      last[1] = c[1];
+      c[2].forEach(([lo, hi], i) => {
+        const r = lohi[i];
+        lohi[i] = [Math.min(r[0], lo), Math.max(r[1], lo), Math.min(r[2], hi), Math.max(r[3], hi)];
+        last[2][i] = [lohi[i][0], lohi[i][3]];
+      });
       continue;
     }
-    out.push([marks[k], marks[k + 1], lo, hi]);
+    out.push(c);
+    lohi = c[2].map(([lo, hi]) => [lo, lo, hi, hi]);
   }
   return out;
 }
@@ -563,28 +679,30 @@ function runsOf(ring, axis, turned) {
 /*
  * The walls as boxes [x0, y0, z0, x1, y1, z1] from `base`, each topped
  * SKIN under the roof's upper face at every corner it has and never over
- * the plate: on a turned building a column's corners reach past the wall
- * under the eaves, where the roof is lower than the plate. Across
- * whichever world axis needs fewer. Then the gables' pieces, marked, for
- * the roof's eaves list (roofs.js cover): GABLE_PIECES across each,
- * each topped at its lower end so none stands out of the roof.
+ * the plate: a column's corners can reach past a slanted wall under the
+ * eaves, where the roof is lower than the plate. Across whichever world
+ * axis needs fewer. Then the gables' pieces, marked, for the roof's
+ * eaves list (roofs.js cover): GABLE_PIECES across each, each topped at
+ * its lower end so none stands out of the roof.
  */
-export function wallBoxes(ring, rect, base, plate, rec, gables) {
-  const { turned } = rect;
-  const byX = runsOf(ring, 1, turned);
-  const byZ = runsOf(ring, 0, turned);
-  const useX = byX.length <= byZ.length;
+export function wallBoxes(ring, base, plate, rec, gables) {
+  const byX = runsOf(ring, 1);
+  const byZ = runsOf(ring, 0);
+  const count = (runs) => runs.reduce((s, r) => s + r[2].length, 0);
+  const useX = count(byX) <= count(byZ);
   const topAt = (x, z) => {
     const t = rec ? roofTop(rec, x, z) : NaN;
     return Number.isNaN(t) ? Infinity : t - SKIN;
   };
   const cap = (x0, z0, x1, z1) => Math.min(plate - SKIN, topAt(x0, z0), topAt(x1, z0), topAt(x0, z1), topAt(x1, z1));
   const boxes = [];
-  for (const [a, b, lo, hi] of useX ? byX : byZ) {
-    const [x0, z0, x1, z1] = useX ? [a, lo, b, hi] : [lo, a, hi, b];
-    const top = cap(x0, z0, x1, z1);
-    if (top > base + 0.05) {
-      boxes.push([x0, base, z0, x1, top, z1]);
+  for (const [a, b, spans] of useX ? byX : byZ) {
+    for (const [lo, hi] of spans) {
+      const [x0, z0, x1, z1] = useX ? [a, lo, b, hi] : [lo, a, hi, b];
+      const top = cap(x0, z0, x1, z1);
+      if (top > base + 0.05) {
+        boxes.push([x0, base, z0, x1, top, z1]);
+      }
     }
   }
   const eaves = boxes.length;

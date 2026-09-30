@@ -136,6 +136,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   const industrial = landuseAreas(landuse.features, 'industrial');
   const records = [];
   const fixed = [];
+  const fixedCaps = [];
   const counts = {
     buildings: 0, roofs: { house: 0, shed: 0, flat: 0 }, heightFrom: {}, crossedFootprints: 0, wallBoxes: 0,
     maxBoxesOneBuilding: 0,
@@ -165,7 +166,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
     for (const rf of roof.faces) {
       sink.face(style.spec.surface, style.roofTint, rf.pts, rf.n, cast);
     }
-    const { boxes, eaves } = wallBoxes(drawn, rect, base, plate, roof.rec, roof.gables);
+    const { boxes, eaves } = wallBoxes(drawn, base, plate, roof.rec, roof.gables);
     /* The one box round the walls, for a building past FINE_R. */
     const env = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
     for (const b of boxes.slice(0, eaves)) {
@@ -206,6 +207,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
         records.push(rec);
       }
       fixed.push(...d.boxes);
+      fixedCaps.push(...d.rails);
       for (const face of d.faces) {
         const key = face.key === 'deck' ? (d.paving === 'earth' ? 'pathGravel' : d.paving) : 'liftConcrete';
         const tint = face.key === 'deck' ? d.tint : [0.62, 0.61, 0.58];
@@ -222,7 +224,9 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   if (ring.length !== 1 || !/Amistad|Amizade/.test(ring[0].name ?? '')) {
     throw new Error(`town: expected the Friendship Bridge as the one ring road, got ${ring.map((f) => f.id).join(', ')}`);
   }
-  friendship = buildBridge(ring[0], ground, sink);
+  const bridge = buildBridge(ring[0], ground, sink);
+  records.push(bridge.record);
+  friendship = bridge.measures;
   progress(0.8);
   await yieldEvery();
 
@@ -361,6 +365,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   return {
     records,
     fixed,
+    fixedCaps,
     stream,
     buildings,
     structures,
@@ -372,6 +377,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
       roads: roadCounts,
       records: records.length,
       fixedBoxes: fixed.length,
+      fixedCapsules: fixedCaps.length,
       towers: structures.filter((s) => s.kind === 'tower').length,
       portals: structures.filter((s) => s.kind === 'portal').length,
       poles: structures.filter((s) => s.kind === 'pole').length,

@@ -63,12 +63,13 @@
  *               leg, a crest lamp, the powerhouse roof's gantry leg and its
  *               insulator string, a tree's trunk, a switchyard transformer
  *               and its bushing, open ground under the deepest invisible
- *               wall box, and the Friendship Bridge's deck. Each is
+ *               wall box, a courtyard and its building's roof edge, and
+ *               the Friendship Bridge's deck. Each is
  *               `stopped` (met there and did not go on), `through` (met,
  *               then on past it at over half its speed) or `passed` (went
- *               past with nothing); the dive onto open ground under an
- *               invisible wall box is `invisible` when the craft meets
- *               something more than 1.5 m over the ground, else `clear`.
+ *               past with nothing); a dive onto open ground is
+ *               `invisible` when the craft meets something more than
+ *               1.5 m over the ground, else `clear`.
  *
  * THE BASELINE (tests/collide-audit-itaipu-baseline.json) is today's
  * numbers, not a target: several of them are defects this audit found
@@ -232,7 +233,7 @@ async function footprints() {
     const rect = rectOf(ring);
     const style = styleOf(f, ring, rect, industrial);
     const drawn = style.onRect ? rectRing(rect) : ring;
-    const { boxes, eaves } = wallBoxes(drawn, rect, 0, 10, null, []);
+    const { boxes, eaves } = wallBoxes(drawn, 0, 10, null, []);
     const hull = hullOf(drawn);
     const deep = { concave: 0, slant: 0 };
     let at = null;
@@ -634,7 +635,7 @@ const LEFTOVERS = `(() => {
 })()`;
 
 /* The flights' targets, found in the map's own parts round where they
- * are flown. Each { name, at, dir, expect, land? }: dir a unit vector the
+ * are flown. Each { name, at, dir, expect, land?, only? }: dir a unit vector the
  * craft travels along through `at`. */
 const TARGETS = `(async () => {
   const it = window.__mapScene().userData.itaipu;
@@ -721,6 +722,18 @@ const TARGETS = `(async () => {
   {
     const P = [553.9, 3915.8];
     T.push({ name: 'open ground under an invisible wall box (w608156691)', at: [P[0], window.__surface(P[0], P[1], -1e9) + 0.5, P[1]], dir: [0, -1, 0], expect: 'clear', invisible: true });
+  }
+  /* A courtyard building (w608142837, its hole drawn through a slit in
+   * the one outline): its courtyard dived onto, and its flat roof landed
+   * on by the five inch 0.6 m from the courtyard's edge, moving along
+   * that edge. Not the F-16: 15 m of it over a roof strip 10 m wide
+   * tips into the courtyard or not by how it lands, which says nothing
+   * about the roof. */
+  {
+    const C = [1271.9, 3049.4];
+    T.push({ name: 'courtyard of w608142837, dived onto', at: [C[0], window.__surface(C[0], C[1], -1e9) + 0.5, C[1]], dir: [0, -1, 0], expect: 'clear', invisible: true });
+    const E = [1267.1, 3057.5];
+    T.push({ name: 'courtyard building roof edge (w608142837), landed on', at: [E[0], window.__surface(E[0], E[1], 1e9), E[1]], dir: flat([15.2, 0, 9]), expect: 'stopped', land: true, only: 'five inch' });
   }
   /* The Friendship Bridge's deck, the drawn mesh's own vertices within a
    * metre of its top: flown through across the river, and landed on. */
@@ -1075,7 +1088,7 @@ async function flights(page, craft, speeds) {
   /* The targets are found with the set filled round the town's lines. */
   await settle(page, -1400, 3000);
   const targets = JSON.parse(await page.evaluate(TARGETS));
-  for (const t of targets) {
+  for (const t of targets.filter((q) => !q.only || q.only === craft)) {
     for (const v of speeds) {
       const r = await flyAt(page, t, v);
       out[`${t.name} @${v}`] = r.result;
