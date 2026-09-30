@@ -25,6 +25,25 @@ import { str } from '../strings/index.js';
 
 const NAME_KEY = 'webfpv.pilot.name';
 
+/*
+ * A SIGNED IN PILOT (src/share/account.js) flies under their callsign
+ * everywhere, so while this browser is signed in the callsign IS the
+ * name: every time, track and room that reads the name gets it. The
+ * account's record is { session, callsign, publicKey }, kept here so that
+ * everything that only needs to read it does so without the account
+ * module's network code.
+ */
+export const ACCOUNT_KEY = 'webfpv.account.v1';
+
+export function readAccount() {
+  try {
+    const got = JSON.parse(localStorage.getItem(ACCOUNT_KEY) || 'null');
+    return got && typeof got.session === 'string' ? got : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 /* MIRRORS the board's NAME_RE in fdfpv-leaderboard/src/validate.js,
  * which is the one that actually decides. Two repos, so it cannot be
  * imported: change both, or this browser accepts a name the board refuses
@@ -40,6 +59,10 @@ export function normaliseName(raw) {
 }
 
 export function readPilotName() {
+  const account = readAccount();
+  if (account && account.callsign) {
+    return normaliseName(account.callsign);
+  }
   try {
     return normaliseName(localStorage.getItem(NAME_KEY) || '');
   } catch (e) {

@@ -100,6 +100,7 @@
     "streamer:selftest": "node scripts/streamer-selftest.js",
     "rooms:server": "node scripts/rooms-server-check.js",
     "rooms:accounts": "node scripts/rooms-account-check.js",
+    "account:browser": "node scripts/account-browser-check.js",
     "rooms:browser": "node scripts/rooms-browser-three-page.js",
     "rooms:sight": "node scripts/rooms-sight-three-page.js",
     "rooms:session": "node scripts/rooms-session-three-page.js",
