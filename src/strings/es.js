@@ -2860,7 +2860,7 @@ export default {
   "war.where.reservoir_surface": "SOBRE EL EMBALSE",
   "war.where.gorge": "SUBIENDO POR EL CAÑÓN",
   "war.card": "Defender Itaipú",
-  "war.start": "Empezar la misión 1",
+  "war.start": "Empezar la misión {n}",
   "war.row_note": "Cooperativo, para esta sala: oleadas de drones de ataque vienen por la represa, y cada aparato lleva una ojiva. Un vuelo, un derribo.",
   "war.stop": "Terminar la misión",
   "war.stop_note": "La termina para todos en la sala.",

@@ -2572,6 +2572,10 @@ export async function boot({
     return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
   }
 
+  /* Set once the campaign screen exists (further down); the start row
+   * names the mission Play chose. */
+  let campaignRef = null;
+
   /* The host's row, where the war may run: a private room on the Itaipu
    * map. A public room there gets warPublicRows instead. The title's card and Make a room reach it through warEnter. A
    * room made for the war leads with its start row, as the other games'
@@ -2589,7 +2593,7 @@ export async function boot({
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on() && v.state !== 'briefing') {
       return [head, ...warInviteRows(), {
-        label: str('war.start'), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
+        label: str('war.start', { n: campaignRef ? campaignRef.selectedNumber() : 1 }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
         primary: ui.roomGame === 'war',
       }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
     }
@@ -4411,6 +4415,7 @@ export async function boot({
       return { phase: st.phase, code: st.code, seat: roomWar.seat() };
     },
   });
+  campaignRef = campaign;
   ui.onCampaignCard = () => campaign.open();
   window.__campaign = campaign;
 
