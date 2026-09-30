@@ -112,6 +112,29 @@ const PLUNGE_DOWN = [0, 1];
 const SPRAY_SKY = [0.7, 0.74, 0.8];
 
 /*
+ * THE SKY IN THE WATER IS BLURRED. The ripples the sheet draws are the
+ * metre scale ones; under them a breeze raises wavelets too small for a
+ * pixel, whose slopes spread by a tenth of a radian or more (Cox and
+ * Munk), so a real reservoir reflects the sky smeared over tens of
+ * degrees: from the air its cumulus are soft, dim glows in an even blue,
+ * never the sharp white shapes a mirror gives (aerial-dam,
+ * reservoir-dam). The more water a pixel holds, the more of that spread
+ * it averages, so the sky's image is sampled from the environment at a
+ * roughness from SKY_BLUR's near to its far over SKY_BLUR_REACH, m. The
+ * planar mirror is kept only where it shows what the sky cannot, the dam
+ * and the shores near a camera looking along the water: past
+ * MIRROR_KEEP metres, or looking down more steeply than MIRROR_KEEP_DOWN
+ * (the sine of the look below level), where what it would show is the
+ * sky overhead, the blurred sky takes over. The Fresnel weight is
+ * three's own, from the drawn normal, so looking straight down the water
+ * is its body's deep blue and toward the horizon the pale sky.
+ */
+const SKY_BLUR = [0.14, 0.42];
+const SKY_BLUR_REACH = [40, 1200];
+const MIRROR_KEEP = [200, 1400];
+const MIRROR_KEEP_DOWN = [0.12, 0.35];
+
+/*
  * The colours, linear. Itaipu's water is a tropical reservoir's, not a
  * glacier's: a blue green that reads blue from the air for the sky it
  * holds, green brown over its mud shallows, and the river below a greyer
@@ -440,14 +463,36 @@ function withField(THREE, mat, uniforms) {
   /* The fragment shader's main, where the field's depth is read once. A
    * pattern, not a string: it is the shader's text, not copy. */
   const MAIN = /void main\(\) \{/;
+  /* Where the sky's image is blurred (SKY_BLUR): after swiss2's glitter
+   * and mirror have set `radiance`, before three's light loop spends it. */
+  const LIGHTS_END = '#include <lights_fragment_end>';
+  const f3 = (v) => v.toFixed(3);
+  const BLUR = `#if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
+        {
+          vec3 bLook = vWaterWorld - cameraPosition;
+          float bDist = length(bLook);
+          float bDown = clamp(-bLook.y / max(bDist, 1e-3), 0.0, 1.0);
+          float bRough = max(material.roughness, mix(${f3(SKY_BLUR[0])}, ${f3(SKY_BLUR[1])}, smoothstep(${f3(SKY_BLUR_REACH[0])}, ${f3(SKY_BLUR_REACH[1])}, bDist)));
+          vec3 bSky = getIBLRadiance(geometryViewDir, geometryNormal, bRough);
+          #ifdef WATER_PLANAR
+            float bKeep = (1.0 - smoothstep(${f3(MIRROR_KEEP[0])}, ${f3(MIRROR_KEEP[1])}, bDist))
+              * (1.0 - smoothstep(${f3(MIRROR_KEEP_DOWN[0])}, ${f3(MIRROR_KEEP_DOWN[1])}, bDown));
+            radiance = mix(bSky, radiance, bKeep);
+          #else
+            radiance = bSky;
+          #endif
+        }
+        #endif
+        ${LIGHTS_END}`;
   mat.onBeforeCompile = function onBeforeCompile(shader, renderer) {
     base.call(this, shader, renderer);
     Object.assign(shader.uniforms, uniforms);
     const fs = shader.fragmentShader;
-    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MOTT.test(fs) || !fs.includes(WINDY) || !MAIN.test(fs)) {
+    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MOTT.test(fs) || !fs.includes(WINDY) || !MAIN.test(fs) || !fs.includes(LIGHTS_END)) {
       throw new Error('itaipu water: swiss2\'s water shader no longer has the lines the depth field is spliced at');
     }
     shader.fragmentShader = fs
+      .replace(LIGHTS_END, BLUR)
       .replace(DECL, '@DECL@')
       .replace(/\bvWater\b/g, 'iWater')
       .replace('@DECL@', `${DECL}\n${FIELD_GLSL}`)
