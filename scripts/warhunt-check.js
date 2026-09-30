@@ -54,7 +54,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  CLEAR_M, HEIGHT_CELLS, HEIGHT_CELL_M, HEIGHT_HALF, HUNTER_SPEED, Hunters, TARGET_RANGE_M, TERMINAL_M, loadHeight,
+  CLEAR_M, CEILING_M, HEIGHT_CELLS, HEIGHT_CELL_M, HEIGHT_HALF, HOME_M, HUNTER_SPEED, Hunters, TARGET_RANGE_M, TERMINAL_M, TURN_RATE, loadHeight,
 } from '../edge/rooms/warhunt.js';
 import { insideWater } from '../src/game/water.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
@@ -76,6 +76,8 @@ const HZ = 30;
 /* The warhead's reach (docs/WARFARE-PLAN.md section 4.3), centre to centre
  * here: the referee's part boxes only make it easier. */
 const BLAST_M = 6;
+/* How far a hunter chased from behind may get from where it began. */
+const TAIL_M = 300;
 /* The plan's CPU ceiling for a whole war room, ms a second (section 4.4). */
 const ROOM_CPU_MS = 60;
 
@@ -273,14 +275,93 @@ function floorRow(name, r) {
 
 function chaseRows() {
   /* Over the reservoir, 280 m up (61 over the water). */
-  const straight = chase([0, 280, -2600], (t) => [-400 - 25 * t, 280, -3200], 90);
-  caughtRow('straight: 25 m/s away from a hunter 721 m behind', straight, 70);
+  /* The two long chases scale with the hunters' speed (0.7 of section
+   * 4.4's since 2026-09-29): the quarry 0.7 as fast, 1 / 0.7 the time. */
+  const straight = chase([0, 280, -2600], (t) => [-400 - 17.5 * t, 280, -3200], 130);
+  caughtRow('straight: 17.5 m/s away from a hunter 721 m behind', straight, 100);
   floorRow('straight', straight);
 
-  const crossing = chase([-1200, 300, -3000], (t) => [-400, 260, -2000 - 30 * t], 90);
-  caughtRow('crossing: 30 m/s across its nose from 1.3 km', crossing, 70);
+  const crossing = chase([-1200, 300, -3000], (t) => [-400, 260, -2000 - 21 * t], 130);
+  caughtRow('crossing: 21 m/s across its nose from 1.3 km', crossing, 100);
   const far = chase([-1500, 300, -3500], (t) => [-400, 260, -2000 - 30 * t], 10);
   check(`out of range: no target past ${TARGET_RANGE_M} m`, far.caught < 0 && far.targets === 0, `started 1.9 km away, ${far.targets} ticks with a target`);
+  /* Chased from just behind by its own target: a pilot holding station
+   * `back` m behind its tail and `under` m below it, as fast as it is,
+   * as a balance bot once did. Led, the aim lands just ahead of the
+   * hunter, which then flew on for good (2.2 km in a minute level, and
+   * from below it climbed at its steepest, 12 km up in the balance run),
+   * out of every pilot's reach, and a war is not won while it lives. It
+   * must turn on the pilot instead (meet it, or circle it: a pilot that
+   * cuts inside its turn can stay off its nose) and stay under
+   * CEILING_M. */
+  const tail = (back, under) => {
+    const hs = new Hunters(height);
+    hs.spawn(1, [0, 300, -2600], 0);
+    let h = null;
+    for (let k = 0; k <= 2 * HZ; k += 1) {
+      [h] = hs.step(msAt(k), []);
+    }
+    const start = h.p.slice();
+    let prev = h.p;
+    let d = [h.p[0], h.p[1] - under, h.p[2] + back];
+    let vel = [0, 0, -HUNTER_SPEED];
+    let met = -1;
+    let top = -Infinity;
+    let far = 0;
+    for (let k = 2 * HZ + 1; k <= 62 * HZ; k += 1) {
+      [h] = hs.step(msAt(k), [{ seat: 0, p: d, v: vel, live: true }]);
+      top = Math.max(top, h.p[1] - floorAt(h.p[0], h.p[2]));
+      far = Math.max(far, Math.hypot(h.p[0] - start[0], h.p[1] - start[1], h.p[2] - start[2]));
+      if (Math.hypot(h.p[0] - d[0], h.p[1] - d[1], h.p[2] - d[2]) <= BLAST_M) {
+        met = msAt(k) / 1000 - 2;
+        break;
+      }
+      const f = [h.p[0] - prev[0], h.p[1] - prev[1], h.p[2] - prev[2]];
+      const fn = Math.hypot(f[0], f[1], f[2]) || 1;
+      prev = h.p;
+      const want = [h.p[0] - (f[0] / fn) * back, h.p[1] - under - (f[1] / fn) * back, h.p[2] - (f[2] / fn) * back];
+      const v = [want[0] - d[0], want[1] - d[1], want[2] - d[2]];
+      const m = Math.hypot(v[0], v[1], v[2]);
+      const step = Math.min(m, HUNTER_SPEED / HZ);
+      vel = m > 1e-9 ? v.map((c) => (c / m) * step * HZ) : vel;
+      d = d.map((c, i) => c + (m > 1e-9 ? (v[i] / m) * step : 0));
+    }
+    check(`chased from behind (${back} m back, ${under} m under): it turns on its pilot, never ${TAIL_M} m from where the chase began, never over ${CEILING_M} m above the floor`,
+      far <= TAIL_M && top <= CEILING_M + 1e-6,
+      `${met >= 0 ? `met at ${met.toFixed(2)} s` : 'not met in 60 s'}, at most ${far.toFixed(0)} m from the start and ${top.toFixed(0)} m over the floor`);
+  };
+  tail(9, 0);
+  /* A pilot far over it (the ceiling's own case): it climbs to the
+   * ceiling and holds there, under the pilot, rather than going up. */
+  {
+    const hs = new Hunters(height);
+    hs.spawn(1, [0, 300, -2600], 0);
+    const floor0 = floorAt(0, -2600);
+    let top = -Infinity;
+    for (let k = 0; k <= 60 * HZ; k += 1) {
+      const [h] = hs.step(msAt(k), [{ seat: 0, p: [0, floor0 + 1500, -2600], v: [0, 0, 0], live: true }]);
+      top = Math.max(top, h.p[1] - floorAt(h.p[0], h.p[2]));
+    }
+    check(`ceiling: after a pilot 1 500 m up it holds at most ${CEILING_M} m over the floor`, top <= CEILING_M + 1e-6 && top >= CEILING_M - 50,
+      `at most ${top.toFixed(1)} m over the floor in 60 s`);
+  }
+  /* With nobody in range it goes home and stays near it, instead of
+   * flying on out of every pilot's reach for good. */
+  {
+    const hs = new Hunters(height);
+    const home = [0, 300, -2400];
+    hs.spawn(1, [-2500, 300, -3500], 0, home);
+    let far2 = 0;
+    let h = null;
+    for (let k = 0; k <= 240 * HZ; k += 1) {
+      [h] = hs.step(msAt(k), []);
+      if (k >= 150 * HZ) {
+        far2 = Math.max(far2, Math.hypot(h.p[0] - home[0], h.p[2] - home[2]));
+      }
+    }
+    check(`home: with no target it flies home and circles within ${HOME_M} m and a turn of it`, far2 <= HOME_M + 2 * HUNTER_SPEED / TURN_RATE + 1,
+      `2.7 km out; from 150 s to 240 s at most ${far2.toFixed(0)} m from home`);
+  }
 
   /* A quad cruising a 60 m circle at 20 m/s turns at 0.33 rad/s. */
   const circle = (cx, cy, cz, r, s) => (t) => [cx + r * Math.cos((s * t) / r), cy, cz + r * Math.sin((s * t) / r)];

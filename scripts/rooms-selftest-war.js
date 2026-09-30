@@ -26,14 +26,18 @@ import {
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
-import { MISSIONS } from '../edge/rooms/war.js';
 import {
-  BLAST_M, KIND, KINDS, cosDet, planAgent, poseAt, sinDet,
+  GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS,
+} from '../edge/rooms/war.js';
+import {
+  BLAST_M, KIND, KINDS, LEAVE_M, cosDet, planAgent, poseAt, sinDet,
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { waveTarget } from '../src/share/war/missions/index.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
+import { LATE_MS } from '../src/game/midair.js';
 
 const Y = 300;
 
@@ -225,7 +229,7 @@ export function warSection(check) {
     for (const w of itaipu1.waves) {
       try {
         planAgent(itaipu1, {
-          id: 1, kind: w.kind, route: w.route, t0: 0, k: 0, n: w.n, err: 0, target: w.target ?? null,
+          id: 1, kind: w.kind, route: w.route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
         });
       } catch (x) {
         ok = false;
@@ -391,7 +395,7 @@ export function warSection(check) {
     ], { r: [[-1200, Y, 0], [-600, Y, 0]] });
     const e = warRoom({ mission: m });
     /* The strike is at -900 m at meetT, and so is seat 1, head on. */
-    const meetT = COUNTDOWN_MS + 1000 + (300 / 38) * 1000;
+    const meetT = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
     e.paths[0] = level(-900 + 15 * meetT / 1000, 0, -15);
     e.paths[1] = level(0, 400, 0);
     e.fly(meetT + 2000);
@@ -404,11 +408,14 @@ export function warSection(check) {
       JSON.stringify(dead));
     const v = e.view(1);
     const s1 = v.scores.find((r) => r.seat === 1);
-    check('two kills for seat 1, with their targets\' megawatts saved; one airframe off the rack', s1.kills === 2 && s1.mw === 2000 && v.rack === 3,
+    check('two kills for seat 1, with their targets\' megawatts saved; one airframe spent, two earned', s1.kills === 2 && s1.mw === 2000 && v.rack === 5,
       JSON.stringify(v));
     check('the boom lands before the attacker reaches its bubble\'s far side: inside the head on closing', log.length === 1
       && log[0].t < meetT && meetT - log[0].t < 250, log.length ? `${meetT - log[0].t} ms before the centres meet` : 'none');
     check('the output is untouched and the game is won: every wave born and dead', v.output === 3000 && v.state === 'won' && v.why === 'waves');
+    check('every attacker of the round killed, the dam untouched: the round is a win', v.roundResult === 'win' && v.roundMw === 0, JSON.stringify(v));
+    check('a kill earns its pilot an airframe for the round, a multi kill one each: two for the blast that took both', v.earned[1] === 2 && v.spent[1] === 1
+      && !v.earned[2], JSON.stringify({ spent: v.spent, earned: v.earned }));
     check('no mid air hit: a warhead is not a collision', !e.socks[0].got.some((x) => x && x.type === 'hit'));
     check('the match is stored', e.stored && e.stored.match.state === 'won');
   }
@@ -423,7 +430,8 @@ export function warSection(check) {
     const e = warRoom({ mission: m });
     e.paths[0] = hover([-900, Y, 0]);
     e.paths[1] = level(0, 400, 0);
-    e.fly(COUNTDOWN_MS + 12000);
+    /* Past the second strike's pass over the hover, 300 m down its route. */
+    e.fly(COUNTDOWN_MS + 4000 + (300 / KIND.strike.speed) * 1000 + 2000);
     const booms = e.r.war.log.filter((x) => x.what === 'boom');
     check('a defender that went off cannot go off again while its client has not broken it', booms.length === 1, JSON.stringify(booms));
     const m2 = testMission([
@@ -433,26 +441,166 @@ export function warSection(check) {
     const f = warRoom({ mission: m2 });
     f.paths[0] = hover([-900, Y, 0]);
     f.paths[1] = level(0, 400, 0);
-    const blast = COUNTDOWN_MS + 1000 + (300 / 38) * 1000;
+    const blast = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
     f.flags[0] = (t) => (t > blast + 500 && t < blast + 3000 ? FLAG_CRASHED : FLAG_AIRBORNE);
     f.fly(COUNTDOWN_MS + 30000);
     const fb = f.r.war.log.filter((x) => x.what === 'boom');
     const crashes = f.r.war.log.filter((x) => x.what === 'crash');
     check('its wreck is the blast\'s: no crash counted, and once clean again it goes off on the next', fb.length === 2 && crashes.length === 0
-      && f.view().rack === 2, JSON.stringify(f.r.war.log));
+      && f.view().rack === 4 && f.view().spent[1] === 2 && f.view().earned[1] === 2, JSON.stringify(f.r.war.log));
   }
 
   {
-    /* A crash takes a rack slot; a pilot who ran the rack out with an
-     * attacker alive loses the game. */
+    /* A crash spends one of the pilot's airframes. An empty rack is
+     * never a defeat on its own: the pilot who spent them all ends the
+     * round 'lost', the parked jammer (no target) is cleared, and with
+     * the output whole the mission holds. */
     const m = testMission([{ at: 1, kind: 'jammer', n: 1, route: 'r' }], { r: [[-1200, Y, 0], [-1100, Y, 0]] }, { rack: 1 });
     const e = warRoom({ mission: m, n: 1 });
     e.paths[0] = hover([500, Y, 500]);
     e.flags[0] = (t) => (t > COUNTDOWN_MS + 3000 && t < COUNTDOWN_MS + 5000 ? FLAG_CRASHED : FLAG_AIRBORNE);
     e.fly(COUNTDOWN_MS + 8000);
     const v = e.view();
-    check('a crash takes one off the rack, and an empty rack with a jammer parked loses', v.rack === 0 && v.state === 'lost' && v.why === 'rack'
+    check('a crash spends the pilot\'s one airframe; all spent ends the round lost, but no empty rack loses the mission', v.rack === 0 && v.spent[1] === 1
+      && v.roundResult === 'lost' && v.state === 'won' && v.output === 3000
       && e.r.war.log.filter((x) => x.what === 'crash').length === 1, JSON.stringify(v));
+  }
+
+  console.log('war: rounds');
+  {
+    /* Two rounds, one Strike each (a, then b), two airframes a pilot.
+     * Round 1: the Strike gets through, 'damaged'. After RESULT_MS round 2
+     * starts with every airframe back; both pilots crash twice, so the
+     * round is lost the instant the last one is spent, and its Strike gets
+     * through at once, which puts the output under the floor. */
+    const r = [[-1200, Y, 0], [-600, Y, 0]];
+    const m = testMission([
+      { at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' },
+      { round: 1, at: 1, kind: 'strike', n: 1, route: 'r2', target: 'b' },
+    ], { r, r2: [[-1200, Y, 600], [-600, Y, 600]] });
+    const e = warRoom({ mission: m });
+    e.paths[0] = hover([900, Y, -900]);
+    e.paths[1] = hover([900, Y, -920]);
+    const land = COUNTDOWN_MS + 1000 + ((600 + 600) / KIND.strike.speed) * 1000;
+    e.fly(Math.ceil(land) + 500);
+    const v1 = e.view();
+    check('a view names the round, its state and result, the MW it cost, the next round, each pilot\'s spent airframes', v1.round === 1 && v1.rounds === 2
+      && v1.roundState === 'result' && v1.roundResult === 'damaged' && v1.roundMw === 1000 && v1.airframes === 2 && typeof v1.spent === 'object'
+      && v1.nextRoundAt >= land + RESULT_MS && v1.nextRoundAt <= land + RESULT_MS + 500 && v1.state === 'live' && v1.output === 2000, JSON.stringify(v1));
+    e.fly(v1.nextRoundAt - 100);
+    check('the result holds until nextRoundAt: nothing of round 2 is born', e.view().round === 1 && e.view().alive === 0);
+    const r2 = v1.nextRoundAt;
+    e.flags[0] = (t) => ((t > r2 + 2000 && t < r2 + 3000) || (t > r2 + 5000 && t < r2 + 6000) ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.flags[1] = (t) => ((t > r2 + 2500 && t < r2 + 3500) || (t > r2 + 7000 && t < r2 + 8000) ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.fly(r2 + 1500);
+    const v2 = e.view();
+    check('round 2 starts at nextRoundAt with every pilot\'s airframes back to the base, nothing earned', v2.round === 2 && v2.roundState === 'live' && v2.roundResult === null
+      && Object.keys(v2.spent).length === 0 && Object.keys(v2.earned).length === 0 && v2.rack === 4 && v2.alive === 1, JSON.stringify(v2));
+    e.fly(r2 + 6500);
+    const v3 = e.view();
+    check('each pilot spends its own: three crashes, one pilot out, the round still on', v3.spent[1] === 2 && v3.spent[2] === 1 && v3.rack === 1
+      && v3.roundState === 'live', JSON.stringify(v3.spent));
+    e.fly(r2 + 9000);
+    const v4 = e.view();
+    const through = e.of(1, 'dead').filter((d) => d.why === 'arrive' && d.target === 'b');
+    check('every pilot spent: the round is lost, its Strike gets through at once, and under the floor the mission is lost', v4.roundResult === 'lost'
+      && through.length === 1 && through[0].hit && v4.state === 'lost' && v4.why === 'output' && v4.output === 1000, JSON.stringify(v4));
+  }
+  {
+    /* One airframe a pilot: seat 1 crashes it, then hovers on the
+     * Strike's path, clean again. Spent, it cannot go off: the Strike
+     * flies through it and hits a, a round the dam lost MW in. The last
+     * round over with the output at the floor or more, the mission holds. */
+    const m = testMission([{ at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' }], { r: [[-1200, Y, 0], [-600, Y, 0]] }, { rack: 1 });
+    const e = warRoom({ mission: m });
+    e.paths[0] = hover([-900, Y, 0]);
+    e.paths[1] = hover([900, Y, -900]);
+    e.flags[0] = (t) => (t > COUNTDOWN_MS + 1000 && t < COUNTDOWN_MS + 2000 ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.fly(COUNTDOWN_MS + 1000 + ((600 + 600) / KIND.strike.speed) * 1000 + 500);
+    const v = e.view();
+    check('a pilot who spent all its airframes cannot go off: the Strike flies through it', !e.r.war.log.some((x) => x.what === 'boom') && v.spent[1] === 1,
+      JSON.stringify(e.r.war.log));
+    check('the last round over, damaged, with the output at or over the floor: the mission holds', v.roundResult === 'damaged' && v.state === 'won'
+      && v.output === 2000, JSON.stringify(v));
+  }
+
+  {
+    /* One airframe a pilot, and a Strike seat 1 meets head on: the kill
+     * earns it one back, so having spent its one it is not out, and can
+     * go off again on the second Strike 4 s behind. */
+    const m = testMission([
+      { at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' },
+      { at: 8, kind: 'strike', n: 1, route: 'r', target: 'a' },
+    ], { r: [[-1200, Y, 0], [-600, Y, 0]] }, { rack: 1 });
+    const e = warRoom({ mission: m });
+    const meetT = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
+    e.paths[0] = level(-900 + 15 * meetT / 1000, 0, -15);
+    e.paths[1] = hover([900, Y, -900]);
+    /* Its client breaks the craft on the boom, and it is back, clean,
+     * where the second Strike will pass, 300 m on from its birth. */
+    e.flags[0] = (t) => (t > meetT + 200 && t < meetT + 1200 ? FLAG_CRASHED : FLAG_AIRBORNE);
+    e.fly(meetT + 1500);
+    const v1 = e.view();
+    check('a pilot who spent its one airframe on a kill has earned one: not spectating', v1.spent[1] === 1 && v1.earned[1] === 1 && v1.rack >= 1
+      && e.r.war.stillFlying(1, e.r.roomMs(e.clock)), JSON.stringify({ spent: v1.spent, earned: v1.earned }));
+    const meet2 = COUNTDOWN_MS + 8000 + (300 / KIND.strike.speed) * 1000;
+    e.paths[0] = level(-900 + 15 * meet2 / 1000, 0, -15);
+    e.fly(meet2 + 1500);
+    check('and it goes off again on the next with the airframe it earned', e.r.war.log.filter((x) => x.what === 'boom' && x.seat === 1).length === 2,
+      JSON.stringify(e.r.war.log));
+  }
+
+  console.log('war: a round never waits on a pilot who is not flying');
+  {
+    /* One airframe a pilot and a jammer parked for good, so the round
+     * ends only when no pilot is flying: seat 1 wrecks its one at T0
+     * (spent, spectating, still sending clean poses as a camera would),
+     * and seat 2 stops flying its one from T in each way below. Each
+     * must end the round within its bound. */
+    const T0 = COUNTDOWN_MS + 6000;
+    const T = COUNTDOWN_MS + 9000;
+    const stall = (name, bound, how, rack = 1) => {
+      const m = testMission([{ at: 1, kind: 'jammer', n: 1, route: 'r' }], { r: [[-1200, Y, 0], [-1100, Y, 0]] }, { rack });
+      const e = warRoom({ mission: m });
+      e.paths[0] = hover([900, Y, -900]);
+      e.paths[1] = hover([900, Y, -950]);
+      e.flags[0] = (t) => (t > T0 && t < T0 + 500 ? FLAG_CRASHED : FLAG_AIRBORNE);
+      how(e);
+      e.fly(T + bound + 1000);
+      const end = e.r.war.log.find((x) => x.what === 'round');
+      check(`${name}: the round ends within ${bound} ms`, end && end.result === 'lost' && end.t - T <= bound && e.view().roundState === 'result',
+        end ? `ended ${end.t - T} ms after` : `still ${e.view().roundState}, spent ${JSON.stringify(e.view().spent)}`);
+      return e;
+    };
+    stall('the last pilot wrecks its last airframe', LATE_MS + 100, (e) => {
+      e.flags[1] = (t) => (t > T ? FLAG_CRASHED : FLAG_AIRBORNE);
+    });
+    stall('the last pilot sits on the ground with it', GROUND_MS + LATE_MS + 100, (e) => {
+      e.flags[1] = (t) => (t > T ? 0 : FLAG_AIRBORNE);
+    });
+    stall('the last pilot leaves the room', 100, (e) => {
+      const fly = e.fly;
+      e.fly = (until) => {
+        fly(T);
+        e.apply(e.r.close(e.socks[1], e.clock));
+        e.paths[1] = null;
+        fly(until);
+      };
+    });
+    stall('the last pilot goes silent (a menu, a pause, a dropped link)', STALE_MS + 100, (e) => {
+      const p = e.paths[1];
+      e.paths[1] = (t) => (t > T ? null : p(t));
+      const fly = e.fly;
+      e.fly = (until) => {
+        fly(T);
+        e.paths[1] = null;
+        fly(until);
+      };
+    });
+    stall('the last pilot, its one of two lost, never takes off again', RESPAWN_MS + 100, (e) => {
+      e.flags[0] = (t) => ((t > T0 && t < T0 + 500) || (t > T0 + 1000 && t < T0 + 1500) ? FLAG_CRASHED : FLAG_AIRBORNE);
+      e.flags[1] = (t) => (t > T ? FLAG_CRASHED : FLAG_AIRBORNE);
+    }, 2);
   }
 
   console.log('war: a lost link');
@@ -503,13 +651,44 @@ export function warSection(check) {
     const e = warRoom({ mission: m });
     e.paths[0] = hover([500, Y, -500]);
     e.paths[1] = hover([500, Y, -520]);
-    e.fly(COUNTDOWN_MS + 1000 + (800 / 38) * 1000 + 200);
+    e.fly(COUNTDOWN_MS + 1000 + (800 / KIND.strike.speed) * 1000 + 200);
     const v = e.view();
     const arrive = e.of(1, 'dead').filter((d) => d.why === 'arrive');
     check('an attacker alive at its target takes the target\'s megawatts once', arrive.length === 2 && arrive.every((d) => d.hit && d.target === 'a')
       && v.output === 2000 && v.down.join() === 'a', JSON.stringify(v));
-    e.fly(COUNTDOWN_MS + 45000);
+    /* Past b's strike at its target: 400 m of route and on to b. */
+    e.fly(COUNTDOWN_MS + 20000 + ((400 + Math.hypot(400, 600)) / KIND.strike.speed) * 1000 + 500);
     check('under floorMw the game is lost, the instant it is', e.view().state === 'lost' && e.view().why === 'output' && e.view().output === 1000);
+  }
+
+  console.log('war: the switchyard');
+  {
+    /* Mission 1's yard and its Strikers' route: the yard's r (537 m) is
+     * its extent for the smoke and markers, never where an attacker
+     * arrives. One 300 m from the yard's middle has not arrived; it does
+     * at its route's end, and hits within the yard's hitR. */
+    const yard = itaipu1.targets['yard-right'];
+    const m = testMission([{ at: 1, kind: 'strike', n: 1, route: 'w', target: 'yard' }], { w: itaipu1.routes['reservoir-west'] },
+      { targets: { yard }, output: 14000, floorMw: 7000 });
+    const plan = planAgent(m, {
+      id: 1, kind: 'strike', route: 'w', t0: COUNTDOWN_MS + 1000, k: 0, n: 1, err: 0, target: 'yard',
+    });
+    let t300 = plan.t0;
+    while (Math.hypot(...poseAt(plan, t300).p.map((v, i) => v - yard.at[i])) > 300) {
+      t300 += 10;
+    }
+    const e = warRoom({ mission: m });
+    e.paths[0] = hover([3000, 400, 3000]);
+    e.paths[1] = hover([3000, 400, 3020]);
+    e.fly(t300 + 1000);
+    const early = e.of(1, 'dead');
+    check(`an attacker 300 m from the yard's middle, inside its r of ${yard.r} m, has not arrived`,
+      yard.r > 300 && yard.hitR < 300 && early.length === 0 && e.view().output === 14000 && plan.tEnd - t300 > 5000,
+      `${early.length} dead, output ${e.view().output}, ${((plan.tEnd - t300) / 1000).toFixed(1)} s of its run still to fly`);
+    e.fly(Math.ceil(plan.tEnd) + 1000);
+    const at = e.of(1, 'dead').filter((d) => d.why === 'arrive');
+    check('it arrives at its route\'s end, on the yard, and takes its megawatts', at.length === 1 && at[0].hit && Math.abs(at[0].at - plan.tEnd) < 1
+      && e.view().output === 14000 - yard.mw, JSON.stringify(at));
   }
 
   console.log('war: scouts');
@@ -534,11 +713,13 @@ export function warSection(check) {
     const quiet = alive.of(0, 'dead').filter((d) => d.scouts === true);
     check('the boom that kills a scout wave\'s last says so, once (scouts: true), and nothing else does', said.length === 1 && said[0].why === 'boom'
       && dead.of(0, 'dead').filter((d) => 'scouts' in d).length === 1 && quiet.length === 0, JSON.stringify(said));
-    const late = [{ at: 1, kind: 'scout', n: 1, route: 's' }, { at: 340, kind: 'strike', n: 2, route: 'r', target: 'a', spread: 50 }];
+    /* Its 600 m of route, its circle, then LEAVE_M: gone, and 10 s on. */
+    const goneS = 1 + 600 / KIND.scout.speed + KIND.scout.orbitMs / 1000 + LEAVE_M / KIND.scout.speed;
+    const lateAt = Math.ceil(goneS) + 10;
+    const late = [{ at: 1, kind: 'scout', n: 1, route: 's' }, { at: lateAt, kind: 'strike', n: 2, route: 'r', target: 'a', spread: 50 }];
     const away = warRoom({ mission: testMission(late, routes) });
     away.paths[0] = hover([900, Y, 900]);
-    /* 40 s of route, 90 s round, LEAVE_M at 15 m/s: gone at 330 s. */
-    away.fly(COUNTDOWN_MS + 340000);
+    away.fly(COUNTDOWN_MS + lateAt * 1000);
     const bornL = away.of(0, 'born').flatMap((b) => b.agents).filter((a) => a.kind === 'strike');
     const left = away.of(0, 'dead').filter((d) => d.why === 'leave');
     check('a scout that got away is not dead: no scouts down, and the next wave flies its routes exactly', left.length === 1
@@ -556,7 +737,7 @@ export function warSection(check) {
     const near = bin.filter((b) => b.agents.length).length;
     const far = e.socks[1].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).length;
     check('the room sends a hunter\'s poses, as AGENTS, closing on the nearest pilot (400 m off: the 5 Hz band)', near >= 9 && bin.at(-1).agents[0].kind === KINDS.indexOf('hunter')
-      && bin.at(-1).agents[0].p[0] < 400 - 36, `${near} messages, last at x ${bin.length ? bin.at(-1).agents[0].p[0].toFixed(1) : '-'}`);
+      && bin.at(-1).agents[0].p[0] < 400 - KIND.hunter.speed, `${near} messages, last at x ${bin.length ? bin.at(-1).agents[0].p[0].toFixed(1) : '-'}`);
     check('thinned by distance: the pilot 3 km off gets them at the far band\'s rate', far > 0 && far < near / 4, `${far} against ${near}`);
     const hunts0 = e.socks[0].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts);
     const hunts1 = e.socks[1].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_HUNTS).map(decodeHunts);
@@ -564,7 +745,7 @@ export function warSection(check) {
       && hunts0.every((h, i) => h.roomMs === bin[i].roomMs && h.agents.map((a) => a.id).join() === bin[i].agents.map((a) => a.id).join())
       && hunts0.at(-1).agents[0].target === 1 && hunts1.length === far && hunts1.at(-1).agents[0].target === 1,
     `${hunts0.length} HUNTS against ${bin.length} AGENTS, target ${hunts0.length ? hunts0.at(-1).agents[0].target : '-'}`);
-    e.fly(COUNTDOWN_MS + 16000);
+    e.fly(COUNTDOWN_MS + 1000 + (400 / KIND.hunter.speed) * 1000 + 4000);
     const booms = e.r.war.log.filter((x) => x.what === 'boom');
     check('a hunter that reaches a pilot takes it and itself', booms.length === 1 && booms[0].seat === 1 && e.view().state === 'won', JSON.stringify(e.r.war.log));
   }
