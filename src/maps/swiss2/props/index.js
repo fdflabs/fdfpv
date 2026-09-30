@@ -841,8 +841,10 @@ export function buildProps(ctx) {
    * from the air, and one more draw for the view and each shadow map was
    * more than its texture was worth. Dark and wet at the water, and at
    * the grass's edge grown over; drawn an even pale grey, a bar read from
-   * the air as a kerb poured along the stream. */
-  const barGeo = gravelBarGeometry(layout.lower, 5.2, layout.groundAt, rng);
+   * the air as a kerb poured along the stream. On the ground itself,
+   * not layout.groundAt: under the headwall that adds the ledge, and
+   * the bars there floated 11 to 17 m over the stream. */
+  const barGeo = gravelBarGeometry(layout.lower, 5.2, heightAt, rng);
   {
     const p = barGeo.getAttribute('position');
     const nr = barGeo.getAttribute('normal');

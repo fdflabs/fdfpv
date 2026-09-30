@@ -145,7 +145,13 @@ const KINDS = {
   /* The lake church's nave roof is 46 degrees: too steep to ramp, and a
    * five inch set down on it slides off it, as it would. */
   church: { fly: ['dive', 'wall', 'gable', 'slope'], min: 3 },
-  station: { fly: CLOSED, min: 3 },
+  /* A station's long roof is on columns, open where the cabins ride in
+   * under it, so nothing is flown at its walls or gables; and a dive's
+   * line from over it crosses the rope, which is solid. */
+  station: { fly: ['ramp', 'slope', 'quad'], min: 3 },
+  /* The jetty's deck, 2.2 m wide on posts over the water, has no room
+   * for these; collide-audit-swiss2.js lets a five inch down on it. */
+  jetty: { fly: [], min: 1 },
   /* A garage's roof is 2 m of slope at 12.6 degrees: to clear its eaves
    * the ramp closes at 13 degrees, and whether that touch breaks the
    * Skyhunter flips with the frame's timing (two runs, one each way), so

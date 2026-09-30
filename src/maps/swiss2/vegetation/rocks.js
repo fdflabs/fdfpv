@@ -18,8 +18,10 @@
  * eighteen hundred boulders and was drawn whole for the view and for
  * both shadow maps, nine hundred thousand triangles in every view, most
  * of them behind the camera or collapsed in the shader to nothing. The
- * far level is two of the scans, which is variety enough past the near
- * band with every stone turned and squashed its own way. Stones under a
+ * far level is each boulder's own scan, decimated: it was two of the
+ * four, so half the boulders changed their outline at the near band's
+ * edge and were drawn past it as a stone their colliders do not fit
+ * (rockCapsules), for two draws fewer. Stones under a
  * metre and a bit are a third level that keeps the far scan at every
  * distance, since the near one would be nine hundred triangles for a
  * few pixels, and is drawn only as far as a stone that size can be seen.
@@ -91,11 +93,126 @@ function bandedRockMaterial(maps, band) {
   return mat;
 }
 
+/* How far inside the drawn rock its collider's surface may stand at the
+ * rock's most outlying point, metres: the swept audit's tolerance is 0.5. */
+const ROCK_INSET = 0.35;
+
+/*
+ * A boulder's colliders: up to three capsules side by side down the
+ * longest way of the scan as it is placed, as thick as its thinnest way,
+ * round enough that the drawn rock stands no more than ROCK_INSET outside
+ * them but at its knobs, and none of it under the ground (the plane of
+ * the slope at its foot) counted. `shapes` are the scans' vertices in
+ * their own frame, each a flat [x, y, z, ...]: its near and far scan. One
+ * sphere of 0.42 s round a point a quarter up left up to 3 m of a big
+ * rock outside it; one capsule round enough for a boulder's width stood
+ * metres over its top, the scans being wider than they are tall.
+ */
+function rockCapsules(r, shapes, ground) {
+  const e = new THREE.Matrix4().compose(new THREE.Vector3(r.x, r.y, r.z), r.q, new THREE.Vector3(r.s, r.s * r.sy, r.s)).elements;
+  const pts = [];
+  for (const v of shapes) {
+    for (let i = 0; i < v.length; i += 3) {
+      const x = e[0] * v[i] + e[4] * v[i + 1] + e[8] * v[i + 2] + e[12];
+      const y = e[1] * v[i] + e[5] * v[i + 1] + e[9] * v[i + 2] + e[13];
+      const z = e[2] * v[i] + e[6] * v[i + 1] + e[10] * v[i + 2] + e[14];
+      if (y >= ground(x, z) - 0.2) {
+        pts.push([x, y, z]);
+      }
+    }
+  }
+  /* All of it in the ground: nothing to hit that the ground is not. */
+  if (pts.length < 4) {
+    return [];
+  }
+  const c = [0, 0, 0];
+  for (const p of pts) {
+    for (let k = 0; k < 3; k += 1) {
+      c[k] += p[k] / pts.length;
+    }
+  }
+  /* The principal axes, longest first: power iteration on the covariance,
+   * each next axis with the ones before taken out. */
+  const C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (const p of pts) {
+    for (let a = 0; a < 3; a += 1) {
+      for (let b = 0; b < 3; b += 1) {
+        C[a][b] += (p[a] - c[a]) * (p[b] - c[b]);
+      }
+    }
+  }
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const axes = [];
+  for (const seed of [[1, 0.3, 0.2], [0.2, 1, 0.3], [0.3, 0.2, 1]]) {
+    let u = seed;
+    for (let k = 0; k < 32; k += 1) {
+      let w = [0, 1, 2].map((a) => dot(C[a], u));
+      for (const q of axes) {
+        const d = dot(w, q);
+        w = w.map((v, a) => v - d * q[a]);
+      }
+      const l = Math.hypot(...w) || 1;
+      u = w.map((v) => v / l);
+    }
+    axes.push(u);
+  }
+  /* The rock's extent along each axis, about the middle of each. */
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (const p of pts) {
+    const d = [p[0] - c[0], p[1] - c[1], p[2] - c[2]];
+    for (let a = 0; a < 3; a += 1) {
+      const t = dot(d, axes[a]);
+      lo[a] = Math.min(lo[a], t);
+      hi[a] = Math.max(hi[a], t);
+    }
+  }
+  const mid = [0, 1, 2].map((a) => (lo[a] + hi[a]) / 2);
+  const half = [0, 1, 2].map((a) => (hi[a] - lo[a]) / 2);
+  const at = (t1, t2, t3) => [0, 1, 2].map((k) => c[k] + axes[0][k] * t1 + axes[1][k] * t2 + axes[2][k] * t3);
+  /* As thick as the rock is thin; one capsule down its length, or two or
+   * three side by side across its width, each as long as the rock's plan
+   * (an ellipse) is where it runs. */
+  const thick = Math.max(0.2, half[2]);
+  const n = half[1] - thick <= ROCK_INSET ? 1 : half[1] <= 2 * thick + ROCK_INSET ? 2 : 3;
+  const segs = [];
+  for (let k = 0; k < n; k += 1) {
+    const off = n === 1 ? 0 : (half[1] - thick) * (n === 2 ? (k === 0 ? -1 : 1) : k - 1);
+    const reach = Math.max(0, half[0] - thick) * Math.sqrt(Math.max(0, 1 - (off / half[1]) ** 2));
+    segs.push([at(mid[0] - reach, mid[1] + off, mid[2]), at(mid[0] + reach, mid[1] + off, mid[2])]);
+  }
+  /* Each its own radius, from the vertices nearest it: all but their
+   * furthest tenth, a knob or a lip. Sized to the furthest, a capsule
+   * round a domed scan stood two metres of air over its edges. */
+  const segDist = (p, [A, B]) => {
+    const ab = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+    const l2 = dot(ab, ab);
+    const t = l2 > 0 ? Math.max(0, Math.min(1, dot([p[0] - A[0], p[1] - A[1], p[2] - A[2]], ab) / l2)) : 0;
+    return Math.hypot(p[0] - A[0] - ab[0] * t, p[1] - A[1] - ab[1] * t, p[2] - A[2] - ab[2] * t);
+  };
+  const near = segs.map(() => []);
+  for (const p of pts) {
+    let k = 0;
+    let d = Infinity;
+    segs.forEach((sg, j) => {
+      const dj = segDist(p, sg);
+      if (dj < d) {
+        d = dj;
+        k = j;
+      }
+    });
+    near[k].push(d);
+  }
+  const reach = (l) => (l.length ? l.sort((a, b) => a - b)[Math.floor((l.length - 1) * 0.9)] : 0);
+  return segs.map(([A, B], k) => ({ A, B, r: Math.max(0.2, reach(near[k]) - ROCK_INSET) }));
+}
+
 /* Where the boulders lie, nature.js's two passes, and then the stones
  * the map asks for. A stone asked for with `sink` is set that share of
  * its height into the ground (or the stream's bed) rather than by the
- * slope. */
-function placeRocks({ heightAt, layout, rng, count, colliders, extra }) {
+ * slope. `scans` is each shape's vertices, near and far, for the
+ * colliders (rockCapsules). */
+function placeRocks({ heightAt, layout, rng, count, colliders, extra, scans }) {
   const { keepOff, slopeAt, upper } = layout;
   const rocks = [];
   const up = new THREE.Vector3(0, 1, 0);
@@ -113,9 +230,18 @@ function placeRocks({ heightAt, layout, rng, count, colliders, extra }) {
     if (layout.carved && layout.carved(x, z)) {
       return;
     }
-    rocks.push({ x, y, z, q, s, sy, shape });
-    if (colliders && s > 0.45) {
+    const rock = { x, y, z, q, s, sy, shape };
+    rocks.push(rock);
+    /* A stone under STONE is a sphere, most of it in the ground; a
+     * boulder the capsules that fit its scan. */
+    if (colliders && s > 0.45 && s < STONE) {
       colliders.addSphere('rock', x, y + 0.25 * s * sy, z, 0.42 * s);
+    } else if (colliders && s >= STONE) {
+      const h = heightAt(x, z);
+      const drawn = [scans.near[shape], scans.far[shape]];
+      for (const c of rockCapsules(rock, drawn, (px, pz) => h + sl.sx * (px - x) + sl.sz * (pz - z))) {
+        colliders.add('rock', ...c.A, ...c.B, c.r);
+      }
     }
   };
   for (let tries = 0; tries < count * 120 && rocks.length < count; tries += 1) {
@@ -280,7 +406,22 @@ export async function buildRocks({ heightAt, layout, rng, count, nearR, fade, co
       geos[o.name] = o.geometry;
     }
   });
-  const rocks = placeRocks({ heightAt, layout, rng, count, colliders, extra });
+  /* Read through the attribute, which may be interleaved or quantised. */
+  const verts = (g) => {
+    const a = g.getAttribute('position');
+    const out = new Float32Array(a.count * 3);
+    for (let i = 0; i < a.count; i += 1) {
+      out[i * 3] = a.getX(i);
+      out[i * 3 + 1] = a.getY(i);
+      out[i * 3 + 2] = a.getZ(i);
+    }
+    return out;
+  };
+  const scans = {
+    near: SHAPES.map((name) => verts(geos[`${name}_near`])),
+    far: SHAPES.map((name) => verts(geos[`${name}_far`])),
+  };
+  const rocks = placeRocks({ heightAt, layout, rng, count, colliders, extra, scans });
   const maps = { map, normalMap, arm };
   const nearMat = bandedRockMaterial(maps, [-2, -1, nearR - fade, nearR]);
   const farMat = bandedRockMaterial(maps, [nearR - fade, nearR, 1e9, 2e9]);
@@ -322,8 +463,8 @@ export async function buildRocks({ heightAt, layout, rng, count, nearR, fade, co
       list: big,
       from: nearR - fade,
       to: FAR_R,
-      shapeOf: (r) => r.shape % 2,
-      meshes: [0, 1].map((k) => mk(geos[`${SHAPES[k]}_far`], farMat, big.filter((r) => r.shape % 2 === k).length, `swiss2-${SHAPES[k]}-far`)),
+      shapeOf: (r) => r.shape,
+      meshes: SHAPES.map((name, k) => mk(geos[`${name}_far`], farMat, big.filter((r) => r.shape === k).length, `swiss2-${name}-far`)),
     },
     {
       list: stones,

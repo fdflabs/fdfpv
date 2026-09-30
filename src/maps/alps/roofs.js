@@ -527,6 +527,62 @@ export function roofSlabs(rec) {
 }
 
 /*
+ * The edge of a roof on posts, as solids under its eaves all round: a band
+ * EDGE_T deep in from the plan's edge, from as far under the roof's top
+ * as the shell is thick (at least EDGE_T) up to SKIN under it, in pieces
+ * EDGE_STEP long, each cut into columns where the roof is turned. An open
+ * roof has no walls, so a craft flying at its eaves from beside them met
+ * nothing until it was over the roof: a station's roof, whose eaves stand
+ * two metres and more out from its posts. They are under the eaves, so a
+ * craft coming onto the roof from its edge has them let through (cover).
+ */
+const EDGE_T = 0.3;
+const EDGE_STEP = 1;
+export function edgeSolids(rec) {
+  let x0 = Infinity;
+  let x1 = -Infinity;
+  let z0 = Infinity;
+  let z1 = -Infinity;
+  for (const f of rec.faces) {
+    for (const [x, z] of f.pts) {
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      z0 = Math.min(z0, z);
+      z1 = Math.max(z1, z);
+    }
+  }
+  const world = worldOf(rec);
+  const mx = (x0 + x1) / 2;
+  const mz = (z0 + z1) / 2;
+  const out = [];
+  const band = (ax, az, bx, bz, nx, nz) => {
+    const len = Math.hypot(bx - ax, bz - az);
+    const n = Math.max(1, Math.ceil(len / EDGE_STEP));
+    for (let k = 0; k < n; k += 1) {
+      const p = [ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n];
+      const q = [ax + ((bx - ax) * (k + 1)) / n, az + ((bz - az) * (k + 1)) / n];
+      const corners = [p, q, [q[0] + nx * EDGE_T, q[1] + nz * EDGE_T], [p[0] + nx * EDGE_T, p[1] + nz * EDGE_T]];
+      /* The roof's top a hair in from each corner, the lowest of them. */
+      let top = Infinity;
+      for (const [lx, lz] of corners) {
+        top = Math.min(top, roofTop(rec, ...world(lx + Math.sign(mx - lx) * 0.01, lz + Math.sign(mz - lz) * 0.01)));
+      }
+      if (!Number.isFinite(top)) {
+        continue;
+      }
+      for (const b of columns(corners.map(([lx, lz]) => world(lx, lz)))) {
+        out.push([b[0], top - Math.max(rec.dy, EDGE_T), b[1], b[2], top - SKIN, b[3]]);
+      }
+    }
+  };
+  band(x0, z0, x1, z0, 0, 1);
+  band(x1, z0, x1, z1, -1, 0);
+  band(x1, z1, x0, z1, 0, -1);
+  band(x0, z1, x0, z0, 1, 0);
+  return out;
+}
+
+/*
  * A solid part a builder noted in its own frame, { e, box, cover }: e the
  * frame's matrix elements (bake space, a turn about y and a move), box
  * [x0, y0, z0, x1, y1, z1] local to it, `lift` the datum its y is over.
@@ -555,7 +611,7 @@ export function partSolids({ e, box }, lift) {
  * (or the first that stands on walls), and one that does not (a chimney)
  * on none.
  */
-export function standWalls(colliders, box, roofs, lift, { parts = [], note = true } = {}) {
+export function standWalls(colliders, box, roofs, lift, { parts = [], note = true, edges = false } = {}) {
   if (!roofs.length) {
     colliders.addBox('wall', ...box);
     return;
@@ -582,6 +638,14 @@ export function standWalls(colliders, box, roofs, lift, { parts = [], note = tru
     r.solids = [];
     r.eaves = [];
     put(r, roofSolids(r, box[1]));
+    /* An open roof's edge band is under its eaves whatever its height. */
+    if (edges && r.open) {
+      for (const b of edgeSolids(r)) {
+        const i = colliders.addBox('wall', ...b, true);
+        r.solids.push(i);
+        r.eaves.push(i);
+      }
+    }
   }
   for (const p of parts) {
     const boxes = partSolids(p, lift);

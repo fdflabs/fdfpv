@@ -46,6 +46,7 @@ import {
   woodRick, planter, noticeBoard, hikeSign, hydrant, postBox, drain, puddle, marketStall,
 } from './pieces.js';
 import { yards } from './yards.js';
+import { setSolidSurface } from '../../../game/crashworld.js';
 
 /* The bus's half width with its mirrors, and the clear air kept past it. */
 const BUS_REACH = 1.25 + 0.3 + 0.9;
@@ -122,6 +123,15 @@ export function furnish(ctx) {
   /* A frame on the ground at (x, z), or on the square's slab. */
   const at = (x, z, ry, onSlab = false) => frame(bake, x, onSlab ? slabY : onGround(x, z), z, ry);
   const post = (kind, x, z, h, r) => colliders.addPost(kind, x, z, houseY(x, z), houseY(x, z) + h, r);
+  /* A garden's picket fence and its collider: a capsule down its rails,
+   * round its pales and posts (0.95 and 1.0 m tall). */
+  const picket = (f, len, key) => {
+    picketFence(f, len, key);
+    const a = f.at(-len / 2 + 0.45, 0.5, 0);
+    const b = f.at(len / 2 - 0.45, 0.5, 0);
+    colliders.add('pole', a.x, villageY + a.y, a.z, b.x, villageY + b.y, b.z, 0.45);
+    setSolidSurface(colliders, colliders.ax.length - 1, 'wood');
+  };
 
   /*
    * THE SQUARE. Its edge set with granite, the café outside the
@@ -327,10 +337,10 @@ export function furnish(ctx) {
       take(mid.x, mid.z, depth / 2 + 0.3, ry, gz + 0.3);
       const x1 = x0 - depth;
       const fenceKey = hash(10) < 0.6 ? 'fenceWhite' : 'fence';
-      picketFence(at(local(x1, 0).x, local(x1, 0).z, ry + Math.PI / 2), 2 * gz, fenceKey);
+      picket(at(local(x1, 0).x, local(x1, 0).z, ry + Math.PI / 2), 2 * gz, fenceKey);
       for (const s of [-1, 1]) {
         const p = local(x0 - depth / 2, s * gz);
-        picketFence(at(p.x, p.z, ry), depth, fenceKey);
+        picket(at(p.x, p.z, ry), depth, fenceKey);
       }
       /* Beds along the plot, the washing across its far end or the
        * wood; which is the house's own choice. */
@@ -416,7 +426,7 @@ export function furnish(ctx) {
             clear = !inHouse(q.x, q.z, 0.1, h) && !onRoads(q.x, q.z, 0.2) && !inSquare(q.x, q.z, 0.1) && busClear(q.x, q.z, 0.1);
           }
           if (clear) {
-            picketFence(at(p.x, p.z, ry + Math.PI / 2), len, fenceKey);
+            picket(at(p.x, p.z, ry + Math.PI / 2), len, fenceKey);
           }
         }
       }

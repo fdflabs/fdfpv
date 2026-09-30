@@ -92,6 +92,38 @@ export function bakeStations({ bake, onGround, villageY }) {
 }
 
 /*
+ * What stands under a station's roof, as solid parts in its frame
+ * (alps/roofs.js partSolids), for the walls lift.js stands: the footing,
+ * the deck on its wall and the platforms on their columns with their
+ * rails, the wheel with its gearbox, the roof's columns and beams, and
+ * the machine house to the plate. The way the cabins ride in, over the
+ * deck and under the roof, is open, as it is drawn. The footing and the
+ * deck are not under the eaves; the rest covers (roofs.js standWalls).
+ */
+function stationSolids(f, { found, h, deck, plateY, wheelY, railY, hw, hd, cx, mx, mw, md }) {
+  f.solid(-8.5, -found, -5.5, 6.5, 0.3, 5.5, false);
+  f.solid(-4.3, 0.3, -1.8, 5.3, deck, 1.8, false);
+  for (const s of [-1, 1]) {
+    const [z0, z1] = s > 0 ? [3.7, 5.2] : [-5.2, -3.7];
+    f.solid(-4.2, deck - 0.24, z0, 5.0, deck, z1, false);
+    f.solid(-3.95, deck, s > 0 ? 5.07 : -5.17, 4.98, deck + 1.08, s > 0 ? 5.17 : -5.07);
+    for (const x of [-3.4, 0.4, 4.2]) {
+      f.solid(x - 0.18, 0.3, s * 4.6 - 0.18, x + 0.18, deck - 0.24, s * 4.6 + 0.18);
+    }
+    for (const x of [1.4, 6.0]) {
+      f.solid(x - 0.23, 0.3, s * (hw - 0.2) - 0.23, x + 0.23, plateY - 0.55, s * (hw - 0.2) + 0.23);
+    }
+    f.solid(cx - hd, plateY - 0.53, s * (hw - 0.13) - 0.13, cx + hd, plateY - 0.03, s * (hw - 0.13) + 0.13);
+  }
+  for (const x of [-4.2, -1.3, 1.6, 4.3, 6.1]) {
+    f.solid(x - 0.13, plateY - 0.575, -hw, x + 0.13, plateY - 0.025, hw);
+  }
+  f.solid(-LATERAL - 0.35, wheelY - 0.2, -LATERAL - 0.35, LATERAL + 0.35, railY + 0.1, LATERAL + 0.35);
+  f.solid(-0.75, wheelY, -0.55, 0.75, h + 0.4, 0.55);
+  f.solid(mx - mw / 2, 0.3, -md / 2, mx + mw / 2, plateY - 0.02, md / 2);
+}
+
+/*
  * A station at the frame f, `found` metres of plinth under its floor
  * and `h` to the rope's plate (lift.js's STATION_H).
  */
@@ -166,6 +198,10 @@ export function station(f, { found, h }) {
   const rf = frame(f, cx, plateY, 0, Math.PI / 2);
   const roof = roofShell({ kind: 'gable', hw, hd, ov: 0.5, ovA: 0.3, ovB: 0.6, pitch: 0.17 });
   Object.assign(roof, { hw, hd, kind: 'gable', zA0: 0.3, zB0: 0.6 });
+  /* A roof on columns (alps/roofs.js): the cabins ride in under it, so
+   * it has no walls of its own, and what stands under it is solid by
+   * its parts (stationSolids). */
+  roof.geo.userData.roof.open = true;
   rf.put('slate', roof.geo);
   dressRoof(rf, roof, { roofKey: 'slate', key: 'larch', rafters: false, purlins: false });
   f.put('larch', box(2 * hd + 0.6, 0.04, 2 * hw), cx + 0.15, plateY - 0.03, 0);
@@ -194,6 +230,9 @@ export function station(f, { found, h }) {
   const md = 2 * hw - 0.2;
   const lowH = deck - 0.3;
   const back = mx - mw / 2;
+  stationSolids(f, {
+    found, h, deck, plateY, wheelY, railY, hw, hd, cx, mx, mw, md,
+  });
   f.put('liftConcrete', boxUp(mw, lowH, md), mx, 0.3, 0);
   f.put('liftConcrete', box(mw + 0.12, 0.18, md + 0.12), mx, 0.3 + lowH, 0);
   f.put('larch:v', boxUp(mw, plateY - deck, md), mx, deck, 0);

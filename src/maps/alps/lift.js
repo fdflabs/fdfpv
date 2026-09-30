@@ -4,9 +4,12 @@
  * A base station on the pasture past the church, towers up the slope to
  * a top station at seven hundred metres, two cables as one closed line,
  * cabins riding it both ways on the step clock. The towers are posts to
- * the wing and the cabins are moving boxes; the cable is nothing to it, on purpose: a wing that meets a fifty millimetre rope
- * at twenty metres a second is not a thing this simulator should
- * adjudicate, and a collider it cannot see would be the worst kind.
+ * the wing, their crossarms bars, and the cabins are moving boxes. The
+ * cable is a thin bar from tower to tower: it was nothing, on the
+ * argument that a fifty millimetre rope is not a thing to adjudicate,
+ * and the swept audit (scripts/collide-audit-swiss2.js) counted it as
+ * the one drawn thing a craft flew through without a word. A pilot sees
+ * the rope, so the rope is solid.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -27,7 +30,7 @@
 import * as THREE from 'three';
 import { makeParts, bakeParts, instanced, box, boxUp } from './parts.js';
 import { makePath } from './path.js';
-import { standWalls, recordAt, gableTop } from './roofs.js';
+import { standWalls, recordAt, gableTop, frameElements } from './roofs.js';
 
 const STEEL = 0x9aa0a6;
 const STEEL_DARK = 0x5d6369;
@@ -38,6 +41,12 @@ const GLASS = 0x27384b;
 /* Cabin grip to cable: the cabin hangs this far under the rope, and the
  * ropes run this far either side of the line. */
 const LATERAL = 2.6;
+/* The rope's radius, metres: a fifty millimetre haul rope. */
+const ROPE_R = 0.025;
+/* A tower's crossarm, the bar the sheaves hang from: its half length
+ * across the line and the radius of the bar round it, metres. */
+const ARM_HALF = LATERAL + 0.7;
+const ARM_R = 0.3;
 const SPEED = 5;
 const SPACING = 130;
 
@@ -67,7 +76,7 @@ function tower(P, x, y, z, yaw, h) {
   const col = new THREE.CylinderGeometry(0.42, 0.9, h, 4);
   col.rotateY(Math.PI / 4);
   P.push(STEEL, col, x, y + h / 2, z, yaw);
-  P.push(STEEL, box(0.5, 0.4, LATERAL * 2 + 1.4), x, y + h - 0.2, z, yaw);
+  P.push(STEEL, box(0.5, 0.4, ARM_HALF * 2), x, y + h - 0.2, z, yaw);
   for (const t of [-1, 1]) {
     const lx = 0;
     const lz = t * LATERAL;
@@ -173,8 +182,38 @@ function station(P, x, y, z, yaw, h, found) {
 }
 
 /*
+ * What stands under the cel station's long roof, as solid parts in its
+ * frame (roofs.js partSolids): the plinth, the deck and its rails, the
+ * wheel on its shaft, the four posts and the two beams they carry. The
+ * machine house is its own roof's walls. The way the cabins ride in is
+ * open, as it is drawn.
+ */
+function stationParts(x, y, z, yaw, h, found) {
+  const e = frameElements(x, y, z, yaw);
+  const deckH = h - 5.0;
+  const wheelY = h - 1.2;
+  const eave = h + 0.6;
+  const parts = [
+    [-8.5, -found, -5.5, 6.5, 0.3, 5.5, false],
+    [-4, 0.3, -1.8, 5, deckH + 0.08, 1.8, false],
+    [-4, deckH, 1.72, 5, deckH + 1.03, 1.78, true],
+    [-4, deckH, -1.78, 5, deckH + 1.03, -1.72, true],
+    [-LATERAL - 0.15, wheelY - 0.2, -LATERAL - 0.15, LATERAL + 0.15, wheelY + 0.2, LATERAL + 0.15, true],
+    [-0.35, wheelY - 0.3, -0.35, 0.35, wheelY + 1.6, 0.35, true],
+  ];
+  for (const [lx, lz] of [[5.5, 4.5], [5.5, -4.5], [-3.5, 4.5], [-3.5, -4.5]]) {
+    parts.push([lx - 0.2, 0.3, lz - 0.2, lx + 0.2, eave, lz + 0.2, true]);
+  }
+  for (const lx of [5.5, -3.5]) {
+    parts.push([lx - 0.15, eave - 0.3, -4.7, lx + 0.15, eave, 4.7, true]);
+  }
+  return parts.map(([x0, y0, z0, x1, y1, z1, cover]) => ({ e, box: [x0, y0, z0, x1, y1, z1], cover }));
+}
+
+/*
  * The cel station's two roofs as roofs.js records, in world space: the
- * long gable over the deck and the wheel, and the machine house's under
+ * long gable over the deck and the wheel, on its posts with nothing
+ * under it but what stationParts stands, and the machine house's under
  * its end, each its slabs' upper faces (station() draws them). A record's
  * ridge runs along its own z, which is the station's line, so each is
  * framed a quarter turn from the station.
@@ -185,25 +224,25 @@ function stationRoofs(x, y, z, yaw, h) {
   /* A gable of two slabs `thick` deep, each tilted by pitch round its
    * middle at `u` across the line, `half` of its width along the slope:
    * the record's top faces relative to `plate`, over `len` along it. */
-  const slabs = (lx, plate, mid, u, width, thick, pitch, len, hw, hd) => {
+  const slabs = (lx, plate, mid, u, width, thick, pitch, len, hw, hd, open) => {
     const tan = Math.tan(pitch);
     const up = thick / 2 / Math.cos(pitch);
     const ex = u + (width / 2) * Math.cos(pitch);
     const [px, pz] = at(lx);
     out.push(recordAt({
       top: gableTop(ex, mid - plate + (u - ex) * tan + up, mid - plate + u * tan + up, -len / 2, len / 2),
-      dy: thick / Math.cos(pitch), hw, hd, kind: 'station',
+      dy: thick / Math.cos(pitch), hw, hd, kind: 'station', open,
     }, 'slate', px, y + plate, pz, yaw - Math.PI / 2));
   };
   const eave = h + 0.6;
   const rise = 1.1;
   const half = 5.4;
-  slabs(0, eave, eave + rise / 2, half / 2, Math.hypot(rise, half) + 0.1, 0.18, Math.atan2(rise, half), 14.4, 4.5, 7.2);
+  slabs(0, eave, eave + rise / 2, half / 2, Math.hypot(rise, half) + 0.1, 0.18, Math.atan2(rise, half), 14.4, 4.5, 7.2, true);
   const wallH = h - 1.4;
   const gRise = 1.6;
   const hPitch = Math.atan2(gRise, 4.5);
   const hSlab = Math.hypot(gRise, 4.5) + 0.5;
-  slabs(-6.5, 0.3 + wallH, 0.3 + wallH + gRise / 2 + 0.08, (hSlab / 2 - 0.25) * Math.cos(hPitch), hSlab, 0.16, hPitch, 4.8, 4.5, 2);
+  slabs(-6.5, 0.3 + wallH, 0.3 + wallH + gRise / 2 + 0.08, (hSlab / 2 - 0.25) * Math.cos(hPitch), hSlab, 0.16, hPitch, 4.8, 4.5, 2, false);
   return out;
 }
 
@@ -273,6 +312,8 @@ export function liftLine(heightAt) {
  */
 export function buildLift(ctx) {
   const { scene, heightAt, colliders, solids, look } = ctx;
+  /* The solid parts a style's stations noted in the village's bake. */
+  const styleParts = ctx.parts ?? [];
   const mat = look.parts('lift', { rim: 0.2, spec: 0.1, specWidth: 0.012 });
   const CLEAR = 9;
   const SPAN = 150;
@@ -345,7 +386,11 @@ export function buildLift(ctx) {
       r.kind ??= 'station';
     }
     const lift = look.buildings?.station ? ctx.villageY : 0;
-    standWalls(colliders, box, own, lift, { note: k === 0 });
+    /* A style's station noted its parts in its own frame, at the site. */
+    const parts = look.buildings?.station
+      ? styleParts.filter((p) => Math.abs(p.e[12] - s.x) < 1e-6 && Math.abs(p.e[14] - s.z) < 1e-6)
+      : stationParts(s.x, s.y, s.z, s.yaw, STATION_H, s.found);
+    standWalls(colliders, box, own, lift, { note: k === 0, parts, edges: true });
   });
   for (const t of towers) {
     const x = base.x + dir.x * t.d;
@@ -353,6 +398,10 @@ export function buildLift(ctx) {
     const y = groundAt(t.d);
     tower(P, x, y, z, yaw, t.h);
     colliders.addPost('pole', x, z, y, y + t.h, 0.9);
+    /* The crossarm reaches 2.4 m past the post either side. */
+    const ax = right.x * (ARM_HALF - ARM_R);
+    const az = right.z * (ARM_HALF - ARM_R);
+    colliders.add('boom', x - ax, y + t.h - 0.3, z - az, x + ax, y + t.h - 0.3, z + az, ARM_R);
   }
   const structures = new THREE.Mesh(bakeParts(P), mat);
   structures.castShadow = true;
@@ -379,6 +428,15 @@ export function buildLift(ctx) {
     ropePts.push(side(n[i], -LATERAL));
   }
   wheel(base, n[0].y, rightAngle + Math.PI, rightAngle);
+  /* The rope's spans, each side, station to tower to station, as the
+   * points above lay them; round the wheels it is inside a station. */
+  for (const s of [LATERAL, -LATERAL]) {
+    for (let i = 0; i + 1 < n.length; i += 1) {
+      const a = side(n[i], s);
+      const b = side(n[i + 1], s);
+      colliders.add('boom', a.x, a.y, a.z, b.x, b.y, b.z, ROPE_R);
+    }
+  }
   const rope = makePath(ropePts, true);
   const ropeGeo = new THREE.BufferGeometry().setFromPoints(rope.points.map((p) => new THREE.Vector3(p.x, p.y, p.z)));
   const ropeMesh = new THREE.Line(ropeGeo, new THREE.LineBasicMaterial({ color: 0x33363a }));
