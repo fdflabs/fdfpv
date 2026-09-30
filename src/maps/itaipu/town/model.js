@@ -14,7 +14,8 @@
  *   stream    the map's seam for the streamed set ({ wants, fill,
  *             swapped }, src/maps/itaipu.js): the walls of every
  *             building whose middle is within WALLS_R of the pilot, and
- *             every tower piece and wire chord within WIRES_R; swapped
+ *             every tower piece, street lamp (roads.js DRESSED) and wire
+ *             chord within WIRES_R; swapped
  *             gives each roof its walls' indices, which roofs.js cover
  *             passes when the roof is the craft's ground.
  *
@@ -189,8 +190,14 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
 
   /* Roads and bridges; the Friendship Bridge in the ring. */
   let friendship = null;
+  /* The dressed roads' lamps, streamed with the towers' pieces. */
+  const lampPieces = [];
   const roadCounts = layRoads(roadsData.features, ground, {
-    face: (paving, tint, pts) => sink.face(paving === 'earth' ? 'pathGravel' : paving, tint, pts, [0, 1, 0], { road: true }),
+    face: (key, tint, pts, lod) => sink.face(key, tint, pts, [0, 1, 0], { road: true, lod }),
+    bar: (key, tint, p, q, r, opts = {}, h = r) => {
+      sink.bar(key, tint, p, q, r, { ...opts, cast: true }, h);
+      lampPieces.push([...p, ...q, Math.max(r, h)]);
+    },
     bridge: (f) => {
       inHero(f.points, `bridge ${f.id}`);
       const d = deckOf(f, ground);
@@ -238,7 +245,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   progress(0.95);
 
   /* The streamed colliders, flat: pieces then chords, with their middles. */
-  const caps = [...pieces, ...wires.map((w) => [...w, WIRE_R])];
+  const caps = [...pieces, ...lampPieces, ...wires.map((w) => [...w, WIRE_R])];
   const capMid = new Float64Array(caps.length * 2);
   caps.forEach((c, i) => {
     capMid[i * 2] = (c[0] + c[3]) / 2;
