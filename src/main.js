@@ -8244,6 +8244,9 @@ export async function boot({
        * rather than on the wall: under load a frame carries at most 100 ms
        * of sim time, however long it took. */
       simT: stateCurr ? stateCurr[0] : 0,
+      /* Steps whose state was not a state (plantFault), since the page
+       * loaded. A check counts on this staying 0. */
+      plantFaults,
       /* Whether the shell is holding the quad's motors at zero, and what
        * Betaflight made of the sticks, deg/s roll, pitch, yaw: whether the
        * sticks reach the controller, which a tumbling wreck's motor speeds
@@ -8454,6 +8457,53 @@ export async function boot({
     if (typeof audio.event === 'function' && nowWall >= takeoffUntil) {
       audio.event('crash');
     }
+  }
+
+  /*
+   * A PLANT STATE THAT IS NOT A STATE. A step that hands back a number that
+   * is not finite, or a spin past the plant's own ceiling (SIM_RATE_MAX in
+   * src/native/sim_internal.h, which no rigid body here reaches), is a bug
+   * in the plant, and everything downstream of it believes it: the trick
+   * detector took an F-16's runaway tumble (crash.c, point_spin) for a run
+   * of rolls it went on naming one at a time, 261,823 of them when the
+   * page was paused on the next throw, which it never answered. So the
+   * state is judged at the boundary, after every step and before anything
+   * reads it. A bad one is counted (window.__crash().plantFaults), said on
+   * the console, and the craft is wrecked where it last was sound: the
+   * plant reset, which is the only thing that clears a non-finite value
+   * out of its parts and pieces, put back at that pose at rest, and handed
+   * to the clip crash's hold and recovery in place. The run is left alone,
+   * as for any other glitch.
+   */
+  const PLANT_RATE_MAX = 1.0e4;
+  let plantFaults = 0;
+
+  function plantStateSound(st) {
+    for (let k = 0; k < st.length; k += 1) {
+      if (!Number.isFinite(st[k])) {
+        return false;
+      }
+    }
+    return st[11] * st[11] + st[12] * st[12] + st[13] * st[13] <= PLANT_RATE_MAX * PLANT_RATE_MAX;
+  }
+
+  function plantFault(bad, sound, nowWall) {
+    plantFaults += 1;
+    /* Position, velocity, attitude and rates, plant frame, as they came back. */
+    const got = Array.from(bad.subarray(1, 14)).join(' ');
+    console.error(`plant fault ${plantFaults} after t ${sound[0]} s, wrecked where it last was sound: ${got}`);
+    resetCraft(null);
+    const code = sim.e.sim_set_pose(sound[1], sound[2], sound[3], sound[7], sound[8], sound[9], sound[10]);
+    if (code !== SIM_OK) {
+      throw new Error(`sim_set_pose after a plant fault: ${simErrorName(code)}`);
+    }
+    sim.rest();
+    stateCurr = readState();
+    statePrev = stateCurr;
+    poseFromState(stateCurr, pCurr);
+    landed = false;
+    flownThisRun = true;
+    beginClipCrash('plant', nowWall);
   }
 
   /*
@@ -12839,6 +12889,9 @@ export async function boot({
         rcNextMs = rcLink.nextMs;
       }
       if (steps >= 1) {
+        /* A plant fault (plantFault) put the plant back at its first step
+         * and the shell's step count with it, part way through the block. */
+        let faulted = false;
         if (launchStaging) {
           sim.e.sim_set_ground(0, 0, 0, 1, 0, 0, 0, 0, 0);
           if (steps > 1) {
@@ -12876,8 +12929,15 @@ export async function boot({
             );
             raiseGroundFromState(stNow);
             tracePre(stNow);
+            const sound = stNow;
             sim.step(1);
             stNow = readState();
+            if (!plantStateSound(stNow)) {
+              plantFault(stNow, sound, nowWall);
+              stNow = stateCurr;
+              faulted = true;
+              break;
+            }
             if (roomCombat.out()) {
               combatStep(stNow);
             }
@@ -12954,7 +13014,9 @@ export async function boot({
           stateCurr = stNow;
         }
         simTimeMs += steps * MS_PER_STEP;
-        simStepIdx += steps;
+        if (!faulted) {
+          simStepIdx += steps;
+        }
         frameSteps = steps;
         /* Launch stand constraint runs inside sim_step. Ground contact
          * runs after plant_step at 1 kHz when the plane is raised. */
