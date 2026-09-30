@@ -85,4 +85,20 @@ the text they are spoken from.
 | win | `voice/en/win.webm`, `voice/en/win.mp3`, `voice/es/win.webm`, `voice/es/win.mp3` |
 | lose-output | `voice/en/lose-output.webm`, `voice/en/lose-output.mp3`, `voice/es/lose-output.webm`, `voice/es/lose-output.mp3` |
 | lose-rack | `voice/en/lose-rack.webm`, `voice/en/lose-rack.mp3`, `voice/es/lose-rack.webm`, `voice/es/lose-rack.mp3` |
+| brief-itaipu-1-1 | `voice/en/brief-itaipu-1-1.webm`, `voice/en/brief-itaipu-1-1.mp3`, `voice/es/brief-itaipu-1-1.webm`, `voice/es/brief-itaipu-1-1.mp3` |
+| brief-itaipu-1-2 | `voice/en/brief-itaipu-1-2.webm`, `voice/en/brief-itaipu-1-2.mp3`, `voice/es/brief-itaipu-1-2.webm`, `voice/es/brief-itaipu-1-2.mp3` |
+| debrief-itaipu-1-win | `voice/en/debrief-itaipu-1-win.webm`, `voice/en/debrief-itaipu-1-win.mp3`, `voice/es/debrief-itaipu-1-win.webm`, `voice/es/debrief-itaipu-1-win.mp3` |
+| debrief-itaipu-1-lose | `voice/en/debrief-itaipu-1-lose.webm`, `voice/en/debrief-itaipu-1-lose.mp3`, `voice/es/debrief-itaipu-1-lose.webm`, `voice/es/debrief-itaipu-1-lose.mp3` |
+| brief-itaipu-2-1 | `voice/en/brief-itaipu-2-1.webm`, `voice/en/brief-itaipu-2-1.mp3`, `voice/es/brief-itaipu-2-1.webm`, `voice/es/brief-itaipu-2-1.mp3` |
+| brief-itaipu-2-2 | `voice/en/brief-itaipu-2-2.webm`, `voice/en/brief-itaipu-2-2.mp3`, `voice/es/brief-itaipu-2-2.webm`, `voice/es/brief-itaipu-2-2.mp3` |
+| debrief-itaipu-2-win | `voice/en/debrief-itaipu-2-win.webm`, `voice/en/debrief-itaipu-2-win.mp3`, `voice/es/debrief-itaipu-2-win.webm`, `voice/es/debrief-itaipu-2-win.mp3` |
+| debrief-itaipu-2-lose | `voice/en/debrief-itaipu-2-lose.webm`, `voice/en/debrief-itaipu-2-lose.mp3`, `voice/es/debrief-itaipu-2-lose.webm`, `voice/es/debrief-itaipu-2-lose.mp3` |
+| brief-itaipu-3-1 | `voice/en/brief-itaipu-3-1.webm`, `voice/en/brief-itaipu-3-1.mp3`, `voice/es/brief-itaipu-3-1.webm`, `voice/es/brief-itaipu-3-1.mp3` |
+| brief-itaipu-3-2 | `voice/en/brief-itaipu-3-2.webm`, `voice/en/brief-itaipu-3-2.mp3`, `voice/es/brief-itaipu-3-2.webm`, `voice/es/brief-itaipu-3-2.mp3` |
+| debrief-itaipu-3-win | `voice/en/debrief-itaipu-3-win.webm`, `voice/en/debrief-itaipu-3-win.mp3`, `voice/es/debrief-itaipu-3-win.webm`, `voice/es/debrief-itaipu-3-win.mp3` |
+| debrief-itaipu-3-lose | `voice/en/debrief-itaipu-3-lose.webm`, `voice/en/debrief-itaipu-3-lose.mp3`, `voice/es/debrief-itaipu-3-lose.webm`, `voice/es/debrief-itaipu-3-lose.mp3` |
+| brief-itaipu-4-1 | `voice/en/brief-itaipu-4-1.webm`, `voice/en/brief-itaipu-4-1.mp3`, `voice/es/brief-itaipu-4-1.webm`, `voice/es/brief-itaipu-4-1.mp3` |
+| brief-itaipu-4-2 | `voice/en/brief-itaipu-4-2.webm`, `voice/en/brief-itaipu-4-2.mp3`, `voice/es/brief-itaipu-4-2.webm`, `voice/es/brief-itaipu-4-2.mp3` |
+| debrief-itaipu-4-win | `voice/en/debrief-itaipu-4-win.webm`, `voice/en/debrief-itaipu-4-win.mp3`, `voice/es/debrief-itaipu-4-win.webm`, `voice/es/debrief-itaipu-4-win.mp3` |
+| debrief-itaipu-4-lose | `voice/en/debrief-itaipu-4-lose.webm`, `voice/en/debrief-itaipu-4-lose.mp3`, `voice/es/debrief-itaipu-4-lose.webm`, `voice/es/debrief-itaipu-4-lose.mp3` |
 <!-- end voice table -->
