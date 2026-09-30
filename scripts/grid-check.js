@@ -7,7 +7,8 @@
  *
  * docs/ITAIPU-PLAN.md section 14, package C:
  *
- *   the grid: a wall at x = 6 000 is hit; one at x = 9 000 throws at
+ *   the grid: a wall at x = 6 000 is hit, and one at the Friendship
+ *     Bridge, (-1 500, 9 535); one at x = 17 000 throws at
  *     build() instead of being registered under an aliased cell, where
  *     the sweep never looked for it (and so does a coordinate that is not
  *     a number);
@@ -72,16 +73,18 @@ const through = (c, x0, z0 = 0) => c.hit(x0 - 5, 5, z0, x0 + 5, 5, z0);
   const c = new Colliders();
   wall(c, 6000);
   wall(c, -6000, -6000);
+  c.addBox('wall', -1500, 0, 9530, -1490, 10, 9540);
   c.build();
   const k = through(c, 6000);
   const far = through(c, -6000, -6000);
-  check('a wall at x = 6 000 is hit, and one at (-6 000, -6 000)',
-    k === WALL && far === WALL,
-    `${c.kindName(k)} at t ${c.hitT.toFixed(3)}; ${c.kindName(far)}; the grid reaches ${c.stats().gridHalfExtent} m`);
+  const bridge = c.hit(-1500, 5, 9535, -1490, 5, 9535);
+  check('a wall at x = 6 000 is hit, one at (-6 000, -6 000), and one at the Friendship Bridge (-1 500, 9 535)',
+    k === WALL && far === WALL && bridge === WALL,
+    `${c.kindName(k)} at t ${c.hitT.toFixed(3)}; ${c.kindName(far)}; ${c.kindName(bridge)}; the grid reaches ${c.stats().gridHalfExtent} m`);
   const out = new Colliders();
-  wall(out, 9000);
+  wall(out, 17000);
   const why = throws(() => out.build());
-  check('a wall at x = 9 000 throws at build() rather than aliasing', /outside the grid/.test(why), why || 'built');
+  check('a wall at x = 17 000 throws at build() rather than aliasing', /outside the grid/.test(why), why || 'built');
   const nan = new Colliders();
   nan.addPost('tree', NaN, 0, 0, 10, 0.3);
   const whyNan = throws(() => nan.build());

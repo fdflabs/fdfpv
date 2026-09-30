@@ -374,7 +374,9 @@ async function shots(page) {
   ];
   const rows = [];
   for (const [name, cam] of views) {
-    await page.evaluate(`window.__crashThrow(${JSON.stringify({ x: cam[0], y: cam[1] + 30, z: cam[2], hold: true })})`);
+    /* fresh: the checks' own flights before the shots leave their wrecks
+     * about, which cost yard-west 177 calls and a shadow pass's worth. */
+    await page.evaluate(`window.__crashThrow(${JSON.stringify({ x: cam[0], y: cam[1] + 30, z: cam[2], hold: true, fresh: true })})`);
     await page.evaluate(`window.__setCam(${cam.join(',')}, 60)`);
     const f0 = await page.evaluate('window.__boot().frames');
     await page.until(`window.__boot().frames > ${f0 + 20}`, 120000);

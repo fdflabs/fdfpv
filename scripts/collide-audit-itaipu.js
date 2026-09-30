@@ -47,8 +47,10 @@
  *               FINE_R columns and wires, the near trees' reach). From
  *               that, the fastest a craft can go at 60 and 20 frames a
  *               second without reaching what has not streamed in. And no
- *               streamed collider is left further from the set's centre
- *               than its part fills to.
+ *               streamed collider is left over from an earlier fill (a
+ *               near tree's post or crown counted one for one against
+ *               the trees the last fill's centre makes, the town's by
+ *               its reach), and none of the near trees is missing.
  *   bridge      the Friendship Bridge: how many colliders and roof records
  *               stand under its drawn deck.
  *   water       the drawn reservoir and river against the map's ground
@@ -64,7 +66,7 @@
  *               insulator string, a tree's trunk, a switchyard transformer
  *               and its bushing, open ground under the deepest invisible
  *               wall box, a courtyard and its building's roof edge, and
- *               the Friendship Bridge's deck. Each is
+ *               the Friendship Bridge's deck, an arch rib and a column. Each is
  *               `stopped` (met there and did not go on), `through` (met,
  *               then on past it at over half its speed) or `passed` (went
  *               past with nothing); a dive onto open ground is
@@ -612,26 +614,48 @@ const REFILL = (speed, fine) => `new Promise((done) => {
   requestAnimationFrame(step);
 })`;
 
-/* Every streamed collider further from the set's centre than its part
- * fills to: the town's walls to WALLS_R round a building's middle (a
- * building is at most 300 m across here), its poles to WIRES_R round a
- * chord's middle (chords are 25 m), a tree's pieces to the reach round
- * its trunk (a crown is at most 15 m across). */
-const LEFTOVERS = `(() => {
+/* Every streamed collider its part's last fill did not put there: the
+ * town's walls further than WALLS_R round a building's middle (a building
+ * is at most 300 m across here), its poles further than WIRES_R round a
+ * chord's middle (chords are 25 m); and a tree's post or crown sphere
+ * that is not one of those the near trees round the fill's centre make
+ * (plant.js nearTrees and addTree, run again here). The trees are counted
+ * one for one rather than by a distance, because a set the budget cut
+ * short holds whole cells of trees up to a cell's diagonal past its
+ * reach, which by distance read as left behind. */
+const LEFTOVERS = `(async () => {
   const it = window.__mapScene().userData.itaipu;
   const col = it.parts.dam.survey().colliders;
   const t = it.parts.town.town.stream.near;
-  const v = it.parts.vegetation.near;
+  const veg = it.parts.vegetation;
+  const v = veg.near;
+  const P = await import('/src/maps/itaipu/vegetation/plant.js');
+  const key = (kind, x, z) => kind + ':' + Math.fround(x) + ',' + Math.fround(z);
+  const want = new Map();
+  const put = (k) => want.set(k, (want.get(k) || 0) + 1);
+  const rec = {
+    addPost(kind, x, z) { put(key(kind, x, z)); },
+    addSphere(kind, x, y, z) { put(key(kind, x, z)); },
+  };
+  for (const tree of P.nearTrees(veg.forest, v.x, v.z).trees) P.addTree(rec, veg.forest, tree, veg.crowns);
   let left = 0;
   const kinds = {};
   for (let i = col.staticCount; i < col.staticCount + col.streamCount; i += 1) {
     const kn = col.kindName(col.fkind[i]);
-    const mx = (col.fax[i] + col.fbx[i]) / 2, mz = (col.faz[i] + col.fbz[i]) / 2;
-    const reach = kn === 'wall' ? 1000 + 300 : kn === 'pole' ? 450 + 25 : v.reach + 60;
-    const c = kn === 'tree' || kn === 'canopy' ? v : t;
-    if (Math.hypot(mx - c.x, mz - c.z) > reach) { left += 1; kinds[kn] = (kinds[kn] || 0) + 1; }
+    let stale;
+    if (kn === 'tree' || kn === 'canopy') {
+      const k = key(kn, col.fax[i], col.faz[i]);
+      stale = !(want.get(k) > 0);
+      if (!stale) want.set(k, want.get(k) - 1);
+    } else {
+      const mx = (col.fax[i] + col.fbx[i]) / 2, mz = (col.faz[i] + col.fbz[i]) / 2;
+      stale = Math.hypot(mx - t.x, mz - t.z) > (kn === 'wall' ? 1000 + 300 : 450 + 25);
+    }
+    if (stale) { left += 1; kinds[kn] = (kinds[kn] || 0) + 1; }
   }
-  return JSON.stringify({ streamed: col.streamCount, left, kinds });
+  let missing = 0;
+  for (const n of want.values()) missing += n;
+  return JSON.stringify({ streamed: col.streamCount, left, kinds, missing });
 })()`;
 
 /* The flights' targets, found in the map's own parts round where they
@@ -705,16 +729,21 @@ const TARGETS = `(async () => {
       }
     }
   }
-  /* The switchyard's first transformer: its tank, and the bushing drawn
-   * over it (war/index.js: three porcelain bars 3 m tall, no collider). */
+  /* The switchyard's first transformer: its tank, and its middle
+   * bushing (war/plan.js KIT: u 1.8 on the tank's axis, from the tank's
+   * top to KIT.bushings.height over it), crossed at its middle. The
+   * tank's first collider runs along its axis, from -u to +u. */
   {
+    const W = await import('/src/maps/itaipu/war/plan.js');
     const i = it.parts.war.yard.solids[0];
     const a = [col.fax[i], col.fay[i], col.faz[i]], b = [col.fbx[i], col.fby[i], col.fbz[i]];
     const c = [(a[0] + b[0]) / 2, a[1], (a[2] + b[2]) / 2];
     const ax = flat([b[0] - a[0], 0, b[2] - a[2]]);
-    const top = a[1] - col.fr[i] + 4.2;
+    const g = window.__surface(c[0], c[2], -1e9);
+    const u = W.KIT.bushings.u[1];
+    const y = g + W.TANK.plinth + W.TANK.height + W.KIT.bushings.height / 2;
     T.push({ name: 'switchyard transformer tank', at: c, dir: perp(ax), expect: 'stopped' });
-    T.push({ name: 'switchyard transformer bushing (drawn only)', at: [c[0] + ax[0] * 0.8, top + 1.5, c[2] + ax[2] * 0.8], dir: perp(ax), expect: 'passed' });
+    T.push({ name: 'switchyard transformer middle bushing', at: [c[0] + ax[0] * u, y, c[2] + ax[2] * u], dir: perp(ax), expect: 'stopped' });
   }
   /* The deepest invisible wall the footprints section finds: open
    * ground 26 m from building w608156691's drawn walls, under its wall
@@ -753,8 +782,24 @@ const TARGETS = `(async () => {
     let far = pts[0];
     for (const p of pts) if (Math.hypot(p[0] - cx, p[1] - cz) > Math.hypot(far[0] - cx, far[1] - cz)) far = p;
     const along = flat([far[0] - cx, 0, far[1] - cz]);
-    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx, f.deckY - 0.8, cz], dir: perp(along), expect: 'passed' });
+    /* Across it, at its near side: a flight is judged by where it is
+     * first met, and the deck is 14 m wide. */
+    const across = perp(along);
+    T.push({ name: 'Friendship Bridge deck, flown through', at: [cx - across[0] * f.width / 2, f.deckY - 0.8, cz - across[2] * f.width / 2], dir: across, expect: 'stopped' });
     T.push({ name: 'Friendship Bridge deck, landed on', at: [cx, f.deckY, cz], dir: along, expect: 'passed', land: true });
+    /* Its arch: the rib capsule and the column nearest the deck's middle,
+     * crossed level at their middles, across the bridge. */
+    const nearest = (r) => {
+      let best = -1, bd = Infinity;
+      for (let i = 0; i < col.staticCount; i += 1) {
+        if (col.fbox[i] || Math.abs(col.fr[i] - r) > 1e-6) continue;
+        const d = Math.hypot((col.fax[i] + col.fbx[i]) / 2 - cx, (col.faz[i] + col.fbz[i]) / 2 - cz);
+        if (d < bd) { bd = d; best = i; }
+      }
+      return [(col.fax[best] + col.fbx[best]) / 2, (col.fay[best] + col.fby[best]) / 2, (col.faz[best] + col.fbz[best]) / 2];
+    };
+    T.push({ name: 'Friendship Bridge arch rib', at: nearest(1.1), dir: perp(along), expect: 'stopped' });
+    T.push({ name: 'Friendship Bridge column', at: nearest(0.7), dir: perp(along), expect: 'stopped' });
   }
   return JSON.stringify(T);
 })()`;
@@ -922,8 +967,10 @@ async function pageSweeps(out) {
       await settle(page, ...RUN[1]);
       const left = JSON.parse(await page.evaluate(LEFTOVERS));
       out.refill.left = left.left;
+      out.refill.missing = left.missing;
       console.log(`refill: at most ${frames} frames a refill, so ${margin} m of margin holds to ${out.refill.safe60} m/s at 60 frames a second and ${out.refill.safe20} m/s at 20; `
-        + `${left.left} of ${left.streamed} streamed colliders left outside their part's reach${left.left ? ` (${JSON.stringify(left.kinds)})` : ''}`);
+        + `${left.left} of ${left.streamed} streamed colliders left over from an earlier fill${left.left ? ` (${JSON.stringify(left.kinds)})` : ''}, `
+        + `${left.missing} of the near trees' colliders missing`);
     }
 
     if (ONLY.has('bridge')) {
@@ -1128,6 +1175,7 @@ function metrics(out) {
   if (out.refill) {
     m['refill.maxFrames'] = [out.refill.maxFrames, 'up'];
     m['refill.left'] = [out.refill.left, 'up'];
+    m['refill.missing'] = [out.refill.missing, 'up'];
     for (const [v, s] of Object.entries(out.refill.speeds)) {
       m[`refill.${v}.town`] = [s.town, 'down'];
     }

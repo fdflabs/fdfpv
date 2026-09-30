@@ -841,8 +841,9 @@ const RING = (() => {
  * The near trees round (cx, cz): the nearest first, ring by ring, within
  * NEAR_R, until the collider budget or NEAR_MAX. Returns the trees'
  * indices and how far the set is whole: NEAR_R when every tree in reach
- * is in it, else the nearest ring it could not finish, less a cell's half
- * diagonal.
+ * is in it, else the nearest ring it could not finish less a cell's whole
+ * diagonal: half for a tree's place in its cell, and half for (cx, cz)'s
+ * in the centre cell, which the rings are measured from.
  */
 export function nearTrees(forest, cx, cz) {
   const { n, cell, start, items } = forest.grid;
@@ -869,7 +870,7 @@ export function nearTrees(forest, cx, cz) {
     }
     if (out.length > cap) {
       out.length = begin;
-      reach = Math.max(0, d - cell * Math.SQRT1_2);
+      reach = Math.max(0, d - cell * Math.SQRT2);
       break;
     }
   }
