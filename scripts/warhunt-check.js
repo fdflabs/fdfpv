@@ -54,7 +54,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-  CLEAR_M, HEIGHT_CELLS, HEIGHT_CELL_M, HEIGHT_HALF, HUNTER_SPEED, Hunters, TARGET_RANGE_M, TERMINAL_M, loadHeight,
+  CLEAR_M, HEIGHT_CELLS, HEIGHT_CELL_M, HEIGHT_HALF, HOME_M, HUNTER_SPEED, Hunters, TARGET_RANGE_M, TERMINAL_M, TURN_RATE, loadHeight,
 } from '../edge/rooms/warhunt.js';
 import { insideWater } from '../src/game/water.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
@@ -281,6 +281,23 @@ function chaseRows() {
   caughtRow('crossing: 30 m/s across its nose from 1.3 km', crossing, 70);
   const far = chase([-1500, 300, -3500], (t) => [-400, 260, -2000 - 30 * t], 10);
   check(`out of range: no target past ${TARGET_RANGE_M} m`, far.caught < 0 && far.targets === 0, `started 1.9 km away, ${far.targets} ticks with a target`);
+  /* With nobody in range it goes home and stays near it, instead of
+   * flying on out of every pilot's reach for good. */
+  {
+    const hs = new Hunters(height);
+    const home = [0, 300, -2400];
+    hs.spawn(1, [-2500, 300, -3500], 0, home);
+    let far2 = 0;
+    let h = null;
+    for (let k = 0; k <= 240 * HZ; k += 1) {
+      [h] = hs.step(msAt(k), []);
+      if (k >= 150 * HZ) {
+        far2 = Math.max(far2, Math.hypot(h.p[0] - home[0], h.p[2] - home[2]));
+      }
+    }
+    check(`home: with no target it flies home and circles within ${HOME_M} m and a turn of it`, far2 <= HOME_M + 2 * HUNTER_SPEED / TURN_RATE + 1,
+      `2.7 km out; from 150 s to 240 s at most ${far2.toFixed(0)} m from home`);
+  }
 
   /* A quad cruising a 60 m circle at 20 m/s turns at 0.33 rad/s. */
   const circle = (cx, cy, cz, r, s) => (t) => [cx + r * Math.cos((s * t) / r), cy, cz + r * Math.sin((s * t) / r)];

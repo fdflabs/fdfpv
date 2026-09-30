@@ -10,7 +10,10 @@
  * TURN_RATE. Speed is constant. The target is the nearest live defender
  * within TARGET_RANGE_M, a tie to the lower seat, re-chosen when it dies
  * or leaves the list and every RETARGET_MS; with no target a hunter
- * holds its heading and levels off.
+ * heads back to its home (the point it was spawned to patrol, level at
+ * its own height) until it is within HOME_M of it, and otherwise holds
+ * its heading and levels off. Without a home it would fly on out of
+ * every pilot's range for good, and a war is not won while it lives.
  *
  * THE FLOOR. A hunter holds CLEAR_M over the floor (the heightfield's
  * floorAt, which folds in water and the dam: tools/itaipu/
@@ -62,6 +65,7 @@ export const TERMINAL_M = 200;
 export const LEAD_MAX_S = 3;
 export const SUB_MS = 50;
 export const GAP_MS = 1000;
+export const HOME_M = 150;
 /* Horizontal distances ahead at which the floor is read, metres: the
  * farthest is 4.4 s at speed, time to climb a gorge wall at SLOPE_MAX. */
 const LOOK_M = [40, 80, 160];
@@ -167,9 +171,9 @@ export class Hunters {
     this.liftMax = 0;
   }
 
-  spawn(id, pos, roomMs) {
+  spawn(id, pos, roomMs, home = null) {
     this.list.set(id, {
-      id, p: [pos[0], pos[1], pos[2]], f: null, r: [1, 0, 0], target: -1, chosen: roomMs, ms: roomMs,
+      id, p: [pos[0], pos[1], pos[2]], f: null, r: [1, 0, 0], target: -1, chosen: roomMs, ms: roomMs, home: home ? [home[0], home[2]] : null,
     });
   }
 
@@ -242,6 +246,10 @@ export class Hunters {
       if (dist < TERMINAL_M) {
         clear = Math.max(0, Math.min(CLEAR_M, tgt.p[1] - floorAt(tgt.p[0], tgt.p[2])));
       }
+    } else if (h.home && (h.home[0] - p[0]) * (h.home[0] - p[0]) + (h.home[1] - p[2]) * (h.home[1] - p[2]) > HOME_M * HOME_M) {
+      ax = h.home[0];
+      ay = p[1];
+      az = h.home[1];
     } else {
       const f = h.f || [0, 0, -1];
       const n = Math.sqrt(f[0] * f[0] + f[2] * f[2]);
@@ -327,7 +335,7 @@ export class Hunters {
   save() {
     return {
       hunters: [...this.list.values()].map((h) => ({
-        id: h.id, p: h.p, f: h.f, r: h.r, target: h.target, chosen: h.chosen, ms: h.ms,
+        id: h.id, p: h.p, f: h.f, r: h.r, target: h.target, chosen: h.chosen, ms: h.ms, home: h.home,
       })),
     };
   }
@@ -336,7 +344,7 @@ export class Hunters {
     this.list = new Map();
     for (const h of value?.hunters ?? []) {
       this.list.set(h.id, {
-        id: h.id, p: [...h.p], f: h.f ? [...h.f] : null, r: [...h.r], target: h.target, chosen: h.chosen, ms: h.ms,
+        id: h.id, p: [...h.p], f: h.f ? [...h.f] : null, r: [...h.r], target: h.target, chosen: h.chosen, ms: h.ms, home: h.home ? [...h.home] : null,
       });
     }
   }

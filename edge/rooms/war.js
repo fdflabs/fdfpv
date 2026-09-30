@@ -698,7 +698,8 @@ export class RoomWar {
     }
     for (const x of this.live.values()) {
       if (x.a.kind === 'hunter' && !x.spawned && roomNow >= x.a.t0) {
-        this.hunters.spawn(x.a.id, poseAt(x.plan, x.a.t0).p.slice(), x.a.t0);
+        /* Home, where it patrols with no pilot in range: its route's end. */
+        this.hunters.spawn(x.a.id, poseAt(x.plan, x.a.t0).p.slice(), x.a.t0, this.mission().routes[x.a.route].at(-1));
         x.spawned = true;
         this.match.spawned.push(x.a.id);
       }
