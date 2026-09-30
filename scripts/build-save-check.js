@@ -21,6 +21,12 @@
  *   A new track (N) answered blank is saved under the generated name.
  *   With the server gone the button's save stays in the browser and says it
  *   is not online yet, and goes online by itself when the server is back.
+ *   A second pilot who has chosen no aircraft, and so flies the Timber,
+ *   saves a track of five inch gates the Timber does not fit the same way.
+ *   Their My tracks lists it, and the first pilot's, each saying it flies
+ *   on the five inch, and Play flies their own on the five inch
+ *   (bug-a0b44950: both used to be left out of the list, so the save read
+ *   as one that never happened, for the pilot and for everybody else).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -45,9 +51,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import {
-  B, NAME_ASKED, answerName, click, freeMouse, frames, hold, key, placeHere, saveKey, takeMouse,
+  B, NAME_ASKED, answerName, click, freeMouse, frames, hold, key, leave, placeHere, saveKey, takeMouse,
 } from '../tests/lib/buildkeys.js';
-import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
+import { FIRST_AIRFRAME, SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { startTracks } from '../tracks-api/node.js';
 
@@ -78,6 +84,18 @@ function seed() {
     s.fpsCap = 0;
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.pilot.name', 'Save Check');
+  } catch (e) { /* storage refused; the checks below will say so */ }
+  navigator.getGamepads = () => [];`];
+}
+
+/* The pilot the ticket came from: nothing chosen, so the shell seats
+ * FIRST_AIRFRAME, and no pilot name either. */
+function freshSeed() {
+  return [`try {
+    const k = ${JSON.stringify(SETTINGS_KEY)};
+    const s = JSON.parse(localStorage.getItem(k) || '{}');
+    s.fpsCap = 0;
+    localStorage.setItem(k, JSON.stringify(s));
   } catch (e) { /* storage refused; the checks below will say so */ }
   navigator.getGamepads = () => [];`];
 }
@@ -128,7 +146,7 @@ async function main() {
   };
   say((await server('/api/health')).status === 200, `a throwaway tracks server answers at ${origin}`);
 
-  const page = await openPage({
+  let page = await openPage({
     root, width: 1280, height: 720, url: `/index.html?map=swiss2&tracks=${encodeURIComponent(origin)}`, seed: seed(),
   });
   try {
@@ -227,10 +245,109 @@ async function main() {
 
     const errors = page.errors.filter((e) => !/Failed to fetch|ERR_CONNECTION_REFUSED|net::/.test(String(e)));
     say(!errors.length, `no page errors${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
-  } finally {
     await page.close();
+    page = null;
+    await planePilot(origin, server, id);
+  } finally {
+    if (page) {
+      await page.close();
+    }
     await tracks.stop();
     await rm(dir, { recursive: true, force: true });
+  }
+}
+
+/* Where a card says what it is, from My tracks' own items. */
+const cardFor = (id) => `window.__ui.items().find((it) => it.course && it.course.track.id === ${JSON.stringify(id)})`;
+
+async function planePilot(origin, server, firstId) {
+  const plane = airframeById(FIRST_AIRFRAME);
+  const tight = new RegExp(`Too tight for the ${plane.name}`);
+  const page = await openPage({
+    root, width: 1280, height: 720, url: `/index.html?map=swiss2&tracks=${encodeURIComponent(origin)}`, seed: freshSeed(),
+  });
+  try {
+    await page.until('!!window.__shellReady', 240000);
+    await page.until('window.__map && window.__map().ready', 300000);
+    await page.until('!!window.__build', 60000);
+    const seated = await page.evaluate('window.__ui.settings.airframe');
+    say(seated === FIRST_AIRFRAME && plane.fixedWing, `a pilot who chose nothing flies the ${plane.name}, a fixed wing: ${seated}`);
+    await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+    await page.until("window.__craftState().mode === 'flight'", 120000);
+    await page.sleep(600);
+    await key(page, 'KeyB');
+    await page.until(`${B('.state')} === 'building'`, 20000);
+    await frames(page, 3);
+    await takeMouse(page);
+    await hold(page, 'gate');
+    await placeHere(page, { air: true });
+    const id = await page.evaluate(B('.doc.id'));
+    const name = `${NAME} on the ${plane.short}`;
+    await freeMouse(page, 640, 300);
+    await clickSave(page);
+    const asked = await answerName(page, name);
+    await page.until(`${button}.state === 'online'`, 60000).catch(() => {});
+    const got = await server(`/api/tracks/${encodeURIComponent(id)}`);
+    say(asked && got.status === 200 && got.body.name === name && got.body.gates === 1,
+      `they save a track with the button and a name, and it goes online: ${got.status} ${JSON.stringify(got.body && got.body.name)}`);
+    const first = await server(`/api/tracks/${encodeURIComponent(firstId)}`);
+    /* Without this the rest proves nothing: a track the plane fits was
+     * always listed. */
+    say(!got.body.planes.includes(plane.id) && !first.body.planes.includes(plane.id),
+      `and neither track fits the ${plane.short}: ${JSON.stringify(got.body.planes)}, ${JSON.stringify(first.body.planes)}`);
+
+    await leave(page);
+    await page.evaluate("window.__ui.show('courses'), true");
+    await page.until(`Boolean(${cardFor(id)}) && Boolean(${cardFor(firstId)})`, 60000).catch(() => {});
+    const own = await page.evaluate(`(() => { const c = ${cardFor(id)}; return c ? { kind: c.course.kind, label: c.label, note: c.note } : null; })()`);
+    say(Boolean(own) && own.kind === 'local' && own.label === name && tight.test(own.note),
+      `their My tracks lists their own track, and says it flies on the five inch: ${JSON.stringify(own)}`);
+    const theirs = await page.evaluate(`(() => { const c = ${cardFor(firstId)}; return c ? { kind: c.course.kind, label: c.label, note: c.note } : null; })()`);
+    say(Boolean(theirs) && theirs.kind === 'cloud' && theirs.label === NAME && tight.test(theirs.note),
+      `and the other pilot's, from the tracks server: ${JSON.stringify(theirs)}`);
+
+    /* Play on each, from the plane both times: the other pilot's first,
+     * then, the plane seated again the way a pilot who never chose one has
+     * it, their own. */
+    const play = async (cardId, gates) => {
+      await page.evaluate("window.__ui.show('courses'), true");
+      await page.until(`Boolean(${cardFor(cardId)})`, 60000).catch(() => {});
+      await page.evaluate(`window.__ui.actOnCard('card-fly', ${cardFor(cardId)}), true`);
+      await page.until(`window.__map().ready && window.__map().mode === 'race' && window.__race().gates.length === ${gates} && window.__ui.settings.airframe === '5inch'`, 120000).catch(() => {});
+      /* Into the air, because the run is what names the aircraft its lap
+       * is filed under (main.js recordKey). */
+      await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+      await page.until("window.__craftState().mode === 'flight'", 120000).catch(() => {});
+      return page.evaluate("({ airframe: window.__ui.settings.airframe, map: window.__map().id, mode: window.__map().mode, gates: window.__race().gates.length, key: window.__race().key })");
+    };
+    const onPlay = (f, cardId, gates) => f.airframe === '5inch' && f.map === 'swiss2' && f.mode === 'race' && f.gates === gates
+      && String(f.key).endsWith(`.map.${cardId}`) && !String(f.key).includes(plane.id);
+    if (theirs) {
+      const f = await play(firstId, 2);
+      say(onPlay(f, firstId, 2), `Play on the other pilot's seats it on the five inch, a race over its 2 gates: ${JSON.stringify(f)}`);
+    }
+    if (own) {
+      await page.evaluate(`(() => {
+        const k = ${JSON.stringify(SETTINGS_KEY)};
+        const s = JSON.parse(localStorage.getItem(k) || '{}');
+        delete s.airframe;
+        delete s.airframeAsked;
+        localStorage.setItem(k, JSON.stringify(s));
+        return true;
+      })()`);
+      await page.cdp.send('Page.reload', {}, page.sessionId);
+      await page.sleep(1000);
+      await page.until('!!window.__shellReady', 240000);
+      await page.until('window.__map && window.__map().ready', 300000);
+      const again = await page.evaluate('window.__ui.settings.airframe');
+      const f = await play(id, 1);
+      say(again === FIRST_AIRFRAME && onPlay(f, id, 1), `Play on their own, from the ${again} again, seats it on the five inch, a race over its gate: ${JSON.stringify(f)}`);
+    }
+
+    const errors = page.errors.filter((e) => !/Failed to fetch|ERR_CONNECTION_REFUSED|net::/.test(String(e)));
+    say(!errors.length, `no page errors for the ${plane.short} pilot${errors.length ? `: ${errors.slice(0, 3).join(' | ')}` : ''}`);
+  } finally {
+    await page.close();
   }
 }
 
