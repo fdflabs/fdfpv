@@ -30,8 +30,12 @@
  */
 
 import itaipu1 from './itaipu-1.js';
+import itaipu2 from './itaipu-2.js';
+import itaipu3 from './itaipu-3.js';
+import itaipu4 from './itaipu-4.js';
 
-export const MISSIONS = Object.freeze({ [itaipu1.id]: itaipu1 });
+/* Act 1 of the campaign, Defend the Paraná, in order. */
+export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4].map((m) => [m.id, m])));
 
 /* How many attackers a wave sends against `pilots` pilots (at least 1). */
 export function waveSize(wave, pilots) {

@@ -2749,6 +2749,7 @@ export default {
   "war.mark.fpv": "FPV",
   "war.mark.scout": "SCOUT",
   "war.mark.boat": "SEA DRONE",
+  "war.mark.decoy": "DECOY",
   "war.mark.dist_m": "{n} m",
   "war.mark.dist_km": "{n} km",
   "war.mark.hunted": "HUNTER ON YOU",

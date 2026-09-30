@@ -32,7 +32,7 @@
  * careless (no lead, AIM_M 6, a crash every 1.5 minutes, 8 s down, and
  * it chases what it cannot catch and what is going for a burning target).
  *
- *   node scripts/war-balance.js [--runs=12] [--pilots=1,2,4,8] [--skill=good,average,careless] [--jobs=N] [--spawn=x,z]
+ *   node scripts/war-balance.js [--runs=12] [--pilots=1,2,4,8] [--skill=good,average,careless] [--jobs=N] [--spawn=x,z] [--mission=id]
  *   BAL_DEBUG=good,8,10 node scripts/war-balance.js    one game (skill,
  *                                        pilots, seed), the hunters and
  *                                        bots every 10 s, and its result
@@ -72,7 +72,7 @@ import { RESULT_MS } from '../edge/rooms/war.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { loadHeight } from '../edge/rooms/warhunt.js';
 import { poseAt } from '../src/share/war/routes.js';
-import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { MISSIONS, waveTarget } from '../src/share/war/missions/index.js';
 
 const arg = (name, dflt) => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -91,7 +91,7 @@ function spawnArg() {
 
 const TICK_MS = 1000 / 30;
 const GO = COUNTDOWN_MS;
-const LIMIT_MS = 15 * 60 * 1000;
+const LIMIT_MS = 25 * 60 * 1000;
 const SPEED = 35;
 const TURN_RATE = 3;
 const HUNTED_M = 400;
@@ -99,8 +99,17 @@ const STUCK_MS = 10000;
 const BREAK_MS = 3000;
 const FLOOR_CLEAR_M = 8;
 const AIRFRAME = '5inch';
-/* The dam's middle, between intake 9 and 10 on the upstream face. */
-const DAM = [120, 200, -1755];
+/* The mission flown (--mission, itaipu-1 by default), and the middle of
+ * what its waves go for: the bots' "dam" for their pick, where they
+ * loiter with nothing to chase. */
+const MISSION = MISSIONS[arg('mission', 'itaipu-1')];
+if (!MISSION) {
+  throw new Error(`war-balance: no mission ${arg('mission', '')}`);
+}
+const DAM = (() => {
+  const at = MISSION.waves.flatMap((w) => [0, 1, 2, 3, 4, 5].map((k) => waveTarget(w, k))).filter(Boolean).map((id) => MISSION.targets[id].at);
+  return [0, 1, 2].map((i) => at.reduce((sum, p) => sum + p[i], 0) / at.length);
+})();
 const SKILLS = {
   good: {
     lead: true, aim: 3, crashPerMin: 0.1, downMs: 4000, reach: true,
@@ -194,7 +203,7 @@ function runOne({
       },
     }), 0, `10.9.2.${b.i + 1}`, newToken));
   }
-  handle(room.message(bots[0].conn, JSON.stringify({ type: 'war', op: 'start', mission: itaipu1.id }), 0, '10.9.2.1'));
+  handle(room.message(bots[0].conn, JSON.stringify({ type: 'war', op: 'start', mission: MISSION.id }), 0, '10.9.2.1'));
   const w = room.war;
   const crashP = (S.crashPerMin / 60) * (TICK_MS / 1000);
 
@@ -243,6 +252,10 @@ function runOne({
       /* A good pilot lets go what it cannot catch, and what goes for a
        * target already down, which costs nothing more. */
       if (S.reach && s.x.a.kind !== 'hunter' && (!meet(b.p, s.x) || w.match.down.includes(s.x.a.target))) {
+        continue;
+      }
+      /* A decoy's marker gives it away inside 300 m (warmarkers.js). */
+      if (S.reach && s.x.a.kind === 'decoy' && len(sub(at(s.x, now), b.p)) < 300) {
         continue;
       }
       fallback ??= s.x;
@@ -450,7 +463,7 @@ if (process.env.BAL_DEBUG) {
         const job = jobs[next];
         next += 1;
         running += 1;
-        const wk = new Worker(self, { workerData: job, argv: [] });
+        const wk = new Worker(self, { workerData: job, argv: process.argv.slice(2) });
         wk.once('message', (r) => results.push(r));
         wk.once('error', reject);
         wk.once('exit', () => {
@@ -466,8 +479,8 @@ if (process.env.BAL_DEBUG) {
   }
   const mean = (xs) => xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length);
   const pct = (k, n) => `${Math.round((100 * k) / Math.max(1, n))}%`;
-  const nRounds = Math.max(...itaipu1.waves.map((wv) => wv.round ?? 0)) + 1;
-  console.log(`mission ${itaipu1.id}: ${nRounds} rounds, ${itaipu1.airframes} airframes a pilot a round, floor ${itaipu1.floorMw} of ${itaipu1.output} MW; `
+  const nRounds = Math.max(...MISSION.waves.map((wv) => wv.round ?? 0)) + 1;
+  console.log(`mission ${MISSION.id}: ${nRounds} rounds, ${MISSION.airframes} airframes a pilot a round, floor ${MISSION.floorMw} of ${MISSION.output} MW; `
     + `spawn ${SPAWN.length > 1 ? 'the crest seats' : SPAWN[0].join(', ')}; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
   console.log('  skill     pilots  mission  min   output  rounds win/damaged/lost        round s (by round)             earned a round  grounded  longest s  ends');
   for (const skill of SKILL) {

@@ -81,8 +81,10 @@ const FONT = 'ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace';
 /* Threat by kind (src/share/war/routes.js KINDS): 2 comes for pilots, 1
  * for the dam, 0 for neither directly. */
 const THREAT = {
-  hunter: 2, strike: 1, loiter: 1, fpv: 1, scout: 0, boat: 0,
+  hunter: 2, strike: 1, loiter: 1, fpv: 1, scout: 0, boat: 0, decoy: 0,
 };
+/* A decoy is marked as a Striker until it is this close (mission 3). */
+const DECOY_M = 300;
 const KINDS = Object.keys(THREAT);
 /* kindOf's value for a kind not in THREAT: its tag is empty. */
 const UNKNOWN = KINDS.length;
@@ -321,13 +323,14 @@ export function createWarMarkers(camera, view) {
     huntedD = Infinity;
     for (let i = 0; i < n; i += 1) {
       const a = live[i];
-      const k = KINDS.indexOf(a.kind);
-      kindOf[i] = k < 0 ? UNKNOWN : k;
-      threat[i] = THREAT[a.kind] ?? 0;
       const dx = x - a.p[0];
       const dy = y - a.p[1];
       const dz = z - a.p[2];
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const kind = a.kind === 'decoy' && d > DECOY_M ? 'strike' : a.kind;
+      const k = KINDS.indexOf(kind);
+      kindOf[i] = k < 0 ? UNKNOWN : k;
+      threat[i] = THREAT[kind] ?? 0;
       dist[i] = d;
       if (threat[i] !== 2 || d > HUNT_RANGE_M || d < 1e-3) {
         continue;

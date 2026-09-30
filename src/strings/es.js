@@ -2753,6 +2753,7 @@ export default {
   "war.mark.fpv": "FPV",
   "war.mark.scout": "EXPLORADOR",
   "war.mark.boat": "DRON NAVAL",
+  "war.mark.decoy": "SEÑUELO",
   "war.mark.dist_m": "{n} m",
   "war.mark.dist_km": "{n} km",
   "war.mark.hunted": "CAZADOR SOBRE TI",

@@ -105,6 +105,8 @@ const PAINT = {
   boat: { hull: 0x3c4146, deck: 0x5a6066, dark: 0x25282c, motor: 0x1e2023 },
   jammer: { deck: 0x6b5b3e, drum: 0x2b2f33, mast: 0x8a8f94, whip: 0xd0d4d7, box: 0x4a573a },
 };
+/* A decoy is a Striker to look at, paint and all (mission 3). */
+PAINT.decoy = PAINT.strike;
 
 function scout(c) {
   const parts = [
@@ -206,7 +208,7 @@ function jammer(c) {
 }
 
 const BUILD = {
-  scout, loiter, strike, fpv: quad, hunter: quad, boat, jammer,
+  scout, loiter, strike, fpv: quad, hunter: quad, boat, jammer, decoy: strike,
 };
 
 /* What each kind sheds when it breaks (debris.js SHED, by material), how
@@ -220,6 +222,7 @@ export const DEATH = {
   hunter: { shed: 'cf-plate', size: 0.8, speed: 36, emits: 1, spread: 0 },
   boat: { shed: 'ply', size: 1.4, speed: 14, emits: 3, spread: 2.0 },
   jammer: { shed: 'ply', size: 1.2, speed: 10, emits: 2, spread: 1.0 },
+  decoy: { shed: 'epo', size: 1.4, speed: 38, emits: 3, spread: 1.0 },
 };
 
 /* The kind's model: one merged geometry, its colours in vertices. */

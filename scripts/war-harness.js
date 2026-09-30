@@ -700,8 +700,9 @@ for (const clock of clocks) {
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
 }
-/* The plan's 60 attackers, and mission 1's peak at 8 pilots: about 120
- * alive at once (its last round), 5 of them Hunters. */
+/* The plan's 60 attackers, and twice that. In rounds, the most alive at
+ * once in any Act 1 mission at 8 pilots is its largest round: 52
+ * (itaipu-3's last), 5 of them Hunters, so both rows bound every one. */
 for (const [parked, hunters] of [[52, 8], [115, 5]]) {
   const all = parked + hunters;
   console.log(`\nthe cost of a war room: 8 pilots, ${all} attackers (${hunters} hunters), 30 s of play`);
