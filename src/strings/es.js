@@ -2734,6 +2734,7 @@ export default {
   "war.kill_by.one": "{name}: UNO ABATIDO",
   "war.kill_by.other": "{name}: {n} ABATIDOS",
   "war.boom_mine": "OJIVA DETONADA. AERONAVE PERDIDA",
+  "war.scouts_down": "EXPLORADORES ABATIDOS: LA PRÓXIMA OLA VUELA A CIEGAS",
   "war.call.scout.one": "EXPLORADOR {where}",
   "war.call.scout.other": "EXPLORADORES {where}",
   "war.call.loiter.one": "MERODEADOR {where}",

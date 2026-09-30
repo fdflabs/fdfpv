@@ -179,6 +179,9 @@ export function createRoomWar(send) {
       mw: m.target && mission() && mission().targets[m.target] ? mission().targets[m.target].mw : 0,
       mine: m.why === 'boom' && m.by === seat,
     });
+    if (m.scouts === true) {
+      events.push({ type: 'scouts', at, by: m.by });
+    }
   }
 
   const api = {
@@ -293,6 +296,9 @@ export function createRoomWar(send) {
      *   { type: 'dead', ids, agents: [{ id, kind, p }], at, by, why, p,
      *     target, hit, mw, mine }
      *   { type: 'boom', seat, at, p, mine }    mine: break this craft
+     *   { type: 'scouts', at, by }             that dead was a scout
+     *                                          wave's last: later waves
+     *                                          fly with their error
      *   { type: 'state', from, to, why } */
     takeEvents() {
       const out = events;

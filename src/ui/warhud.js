@@ -188,6 +188,8 @@ export function createWarHud(nameOf) {
         say(ev.mine ? plural('war.kill_mine', ev.ids.length) : plural('war.kill_by', ev.ids.length, { name: nameOf(ev.by) }));
       } else if (ev.type === 'boom' && ev.mine) {
         say(str('war.boom_mine'), 'warn');
+      } else if (ev.type === 'scouts') {
+        say(str('war.scouts_down'));
       }
     }
   }

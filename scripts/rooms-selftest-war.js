@@ -416,6 +416,19 @@ export function warSection(check) {
     const bornD = dead.of(0, 'born').flatMap((b) => b.agents).filter((a) => a.kind === 'strike');
     check('once every scout is dead, each attacker draws a seeded error within the spread', dead.r.war.log.some((x) => x.what === 'boom')
       && bornD.length === 2 && bornD.every((a) => a.err !== 0 && Math.abs(a.err) <= 50) && bornD[0].err !== bornD[1].err, JSON.stringify(bornD));
+    const said = dead.of(0, 'dead').filter((d) => d.scouts === true);
+    const quiet = alive.of(0, 'dead').filter((d) => d.scouts === true);
+    check('the boom that kills a scout wave\'s last says so, once (scouts: true), and nothing else does', said.length === 1 && said[0].why === 'boom'
+      && dead.of(0, 'dead').filter((d) => 'scouts' in d).length === 1 && quiet.length === 0, JSON.stringify(said));
+    const late = [{ at: 1, kind: 'scout', n: 1, route: 's' }, { at: 340, kind: 'strike', n: 2, route: 'r', target: 'a', spread: 50 }];
+    const away = warRoom({ mission: testMission(late, routes) });
+    away.paths[0] = hover([900, Y, 900]);
+    /* 40 s of route, 90 s round, LEAVE_M at 15 m/s: gone at 330 s. */
+    away.fly(COUNTDOWN_MS + 340000);
+    const bornL = away.of(0, 'born').flatMap((b) => b.agents).filter((a) => a.kind === 'strike');
+    const left = away.of(0, 'dead').filter((d) => d.why === 'leave');
+    check('a scout that got away is not dead: no scouts down, and the next wave flies its routes exactly', left.length === 1
+      && !away.of(0, 'dead').some((d) => d.scouts) && bornL.length === 2 && bornL.every((a) => a.err === 0), `${left.length} left, ${JSON.stringify(bornL)}`);
   }
 
   console.log('war: hunters');

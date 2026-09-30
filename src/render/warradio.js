@@ -104,6 +104,8 @@ export function createWarCalls() {
         }
       } else if (ev.type === 'boom') {
         blasts += 1;
+      } else if (ev.type === 'scouts') {
+        out.push('scouts-down');
       } else if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
         const m = /^(intake|penstock|gate)-\d+$/.exec(ev.target);
         const line = HIT_LINES[m ? m[1] : ev.target];
