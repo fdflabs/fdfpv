@@ -2384,15 +2384,18 @@ export async function boot({
    * so the crash cam's journal keeps it like the chase boost.
    */
   /*
-   * THE NIGHT RAID (itaipu-4, the mission's `night`): while such a war
-   * counts down or runs, the world is built at night (src/maps/itaipu.js
-   * options.time, through syncWorld) and the attackers wear nav lights;
-   * after it, day again and no lights. Every pilot's screen does this from
-   * the room's view, so all of them fly the same night.
+   * THE NIGHT RAID (itaipu-4, the mission's `night`): from its countdown
+   * the world is built at night (src/maps/itaipu.js options.time, through
+   * syncWorld) and the attackers wear nav lights, and it stays night over
+   * the mission's end and its result, so the banner is not hidden behind
+   * a rebuild; day comes back with the next mission that is not a night
+   * one, or when the room is left (its view is the lobby's). Every
+   * pilot's screen does this from the room's view, so all of them fly the
+   * same night.
    */
   let warNight = false;
   function warNightFrame() {
-    const night = roomWar.on() && roomWar.night();
+    const night = roomWar.night() && roomWar.view().state !== 'lobby';
     if (night === warNight) {
       return;
     }
