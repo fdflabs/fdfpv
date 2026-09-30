@@ -1,0 +1,2568 @@
+{
+ "note": "Today's numbers, not a target: several are defects scripts/collide-audit-itaipu.js found. The run fails when one gets worse than this.",
+ "footprints": {
+  "buildings": 10532,
+  "over2": 1337,
+  "over5": 329,
+  "concave": {
+   "buildings": 1019,
+   "areaM2": 72328
+  },
+  "slant": {
+   "buildings": 922,
+   "areaM2": 88528
+  },
+  "worst": [
+   {
+    "id": "w360399470",
+    "depth": 29.5,
+    "at": [
+     308.4,
+     1793.3
+    ],
+    "kind": "concave"
+   },
+   {
+    "id": "w608156691",
+    "depth": 26.6,
+    "at": [
+     553.9,
+     3915.8
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w186806000",
+    "depth": 20,
+    "at": [
+     -534.6,
+     715.2
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w469123522",
+    "depth": 18.7,
+    "at": [
+     -4866.6,
+     -368.2
+    ],
+    "kind": "concave"
+   },
+   {
+    "id": "w483820690",
+    "depth": 17.1,
+    "at": [
+     -54.1,
+     3893.9
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w483784358",
+    "depth": 16.3,
+    "at": [
+     285.6,
+     4974.5
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w486245488",
+    "depth": 16.3,
+    "at": [
+     237.6,
+     -1025.7
+    ],
+    "kind": "concave"
+   },
+   {
+    "id": "w473015377",
+    "depth": 15.7,
+    "at": [
+     -4803.7,
+     -1343.7
+    ],
+    "kind": "concave"
+   },
+   {
+    "id": "w608162571",
+    "depth": 15.6,
+    "at": [
+     814.7,
+     3987.2
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w483812054",
+    "depth": 15.3,
+    "at": [
+     397.4,
+     3935
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w791588135",
+    "depth": 15.1,
+    "at": [
+     -3582.4,
+     -3615.7
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w608156688",
+    "depth": 14.8,
+    "at": [
+     542.5,
+     3955.6
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w608162566",
+    "depth": 14.7,
+    "at": [
+     859.4,
+     3952.1
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w1260608708",
+    "depth": 14.5,
+    "at": [
+     -4425.1,
+     -1821.7
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w483784423",
+    "depth": 14.2,
+    "at": [
+     -95.3,
+     5043.9
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w472637950",
+    "depth": 13.7,
+    "at": [
+     -5033.6,
+     -2978.5
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w579852801",
+    "depth": 13.7,
+    "at": [
+     2550.9,
+     3369
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w608142836",
+    "depth": 13.7,
+    "at": [
+     1285.2,
+     3052.9
+    ],
+    "kind": "slant"
+   },
+   {
+    "id": "w469163291",
+    "depth": 13,
+    "at": [
+     -3491.7,
+     -1563.6
+    ],
+    "kind": "concave"
+   },
+   {
+    "id": "w472616879",
+    "depth": 12.9,
+    "at": [
+     -4980.1,
+     -2169.6
+    ],
+    "kind": "slant"
+   }
+  ]
+ },
+ "drawn": {
+  "crest": {
+   "dam/itaipu-dam-concrete": {
+    "pts": 27681,
+    "miss": 90,
+    "loose": 88,
+    "bins": 18,
+    "worst": [
+     {
+      "at": [
+       800.3,
+       185.4,
+       -1562.5
+      ],
+      "n": 14,
+      "y": [
+       182.4,
+       204.4
+      ]
+     },
+     {
+      "at": [
+       934.1,
+       224.6,
+       -1554.6
+      ],
+      "n": 12,
+      "y": [
+       223.2,
+       225
+      ]
+     },
+     {
+      "at": [
+       947.6,
+       222.6,
+       -1554.1
+      ],
+      "n": 11,
+      "y": [
+       221.3,
+       224.7
+      ]
+     },
+     {
+      "at": [
+       909.3,
+       224.5,
+       -1561
+      ],
+      "n": 10,
+      "y": [
+       221.3,
+       224.5
+      ]
+     },
+     {
+      "at": [
+       947.2,
+       223.9,
+       -1534.7
+      ],
+      "n": 10,
+      "y": [
+       222.9,
+       224.9
+      ]
+     },
+     {
+      "at": [
+       927.4,
+       224,
+       -1557.1
+      ],
+      "n": 7,
+      "y": [
+       223.6,
+       224.9
+      ]
+     }
+    ]
+   },
+   "dam/itaipu-dam-roads": {
+    "pts": 10680,
+    "miss": 2,
+    "loose": 232,
+    "bins": 1,
+    "worst": [
+     {
+      "at": [
+       477.1,
+       148,
+       -1464.5
+      ],
+      "n": 2,
+      "y": [
+       148,
+       148
+      ]
+     }
+    ]
+   },
+   "dam/itaipu-dam-steel": {
+    "pts": 3775,
+    "miss": 444,
+    "loose": 416,
+    "bins": 42,
+    "worst": [
+     {
+      "at": [
+       395,
+       159.8,
+       -1578
+      ],
+      "n": 41,
+      "y": [
+       153,
+       159.8
+      ]
+     },
+     {
+      "at": [
+       262.4,
+       158.7,
+       -1608.4
+      ],
+      "n": 37,
+      "y": [
+       153.3,
+       159.7
+      ]
+     },
+     {
+      "at": [
+       328,
+       159.7,
+       -1589.8
+      ],
+      "n": 33,
+      "y": [
+       153.1,
+       159.7
+      ]
+     },
+     {
+      "at": [
+       229.2,
+       159.8,
+       -1616
+      ],
+      "n": 32,
+      "y": [
+       152.9,
+       159.8
+      ]
+     },
+     {
+      "at": [
+       294.9,
+       158.5,
+       -1597.4
+      ],
+      "n": 32,
+      "y": [
+       153.1,
+       159.5
+      ]
+     },
+     {
+      "at": [
+       195.5,
+       159.4,
+       -1619.9
+      ],
+      "n": 28,
+      "y": [
+       152.8,
+       159.7
+      ]
+     }
+    ]
+   },
+   "dam/itaipu-dam-penstocks": {
+    "pts": 10452,
+    "miss": 0,
+    "loose": 419,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-lamps": {
+    "pts": 1040,
+    "miss": 0,
+    "loose": 49,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-intake-columns": {
+    "pts": 2816,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-gate-gear": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-reservoir": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-river": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-chute": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-render-c-b": {
+    "pts": 581,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-ribbed-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-shingle-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-c-b": {
+    "pts": 279,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-c-b": {
+    "pts": 307,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-yard-fence": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   }
+  },
+  "powerhouse": {
+   "dam/itaipu-dam-concrete": {
+    "pts": 45081,
+    "miss": 1,
+    "loose": 1,
+    "bins": 1,
+    "worst": [
+     {
+      "at": [
+       579.5,
+       181.5,
+       -1589.2
+      ],
+      "n": 1,
+      "y": [
+       181.5,
+       181.5
+      ]
+     }
+    ]
+   },
+   "dam/itaipu-dam-roads": {
+    "pts": 18570,
+    "miss": 4,
+    "loose": 613,
+    "bins": 1,
+    "worst": [
+     {
+      "at": [
+       473.5,
+       148,
+       -1465.4
+      ],
+      "n": 4,
+      "y": [
+       148,
+       148
+      ]
+     }
+    ]
+   },
+   "dam/itaipu-dam-steel": {
+    "pts": 11933,
+    "miss": 1199,
+    "loose": 998,
+    "bins": 96,
+    "worst": [
+     {
+      "at": [
+       -135.4,
+       158.4,
+       -1699.8
+      ],
+      "n": 37,
+      "y": [
+       152.9,
+       159.7
+      ]
+     },
+     {
+      "at": [
+       -35.7,
+       158.2,
+       -1676.9
+      ],
+      "n": 36,
+      "y": [
+       153,
+       159.8
+      ]
+     },
+     {
+      "at": [
+       262.4,
+       159.1,
+       -1608.4
+      ],
+      "n": 36,
+      "y": [
+       152.9,
+       159.6
+      ]
+     },
+     {
+      "at": [
+       394.9,
+       159,
+       -1578
+      ],
+      "n": 36,
+      "y": [
+       152.9,
+       159.6
+      ]
+     },
+     {
+      "at": [
+       65.5,
+       187.2,
+       -1611.1
+      ],
+      "n": 36,
+      "y": [
+       185.2,
+       189.7
+      ]
+     },
+     {
+      "at": [
+       96.7,
+       159.8,
+       -1646.5
+      ],
+      "n": 35,
+      "y": [
+       152.9,
+       159.8
+      ]
+     }
+    ]
+   },
+   "dam/itaipu-dam-penstocks": {
+    "pts": 23552,
+    "miss": 0,
+    "loose": 965,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-lamps": {
+    "pts": 1000,
+    "miss": 0,
+    "loose": 48,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-intake-columns": {
+    "pts": 5984,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-gate-gear": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-reservoir": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-river": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-chute": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-render-c-b": {
+    "pts": 599,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-ribbed-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-shingle-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-c-b": {
+    "pts": 533,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-c-b": {
+    "pts": 308,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-yard-fence": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   }
+  },
+  "spillway": {
+   "dam/itaipu-dam-concrete": {
+    "pts": 38605,
+    "miss": 341,
+    "loose": 373,
+    "bins": 101,
+    "worst": [
+     {
+      "at": [
+       -785.1,
+       168.2,
+       -1058.1
+      ],
+      "n": 18,
+      "y": [
+       166.5,
+       211.5
+      ]
+     },
+     {
+      "at": [
+       -757.8,
+       180.5,
+       -954.6
+      ],
+      "n": 15,
+      "y": [
+       177.7,
+       188.2
+      ]
+     },
+     {
+      "at": [
+       -768.4,
+       184.1,
+       -982.9
+      ],
+      "n": 14,
+      "y": [
+       183.4,
+       194.8
+      ]
+     },
+     {
+      "at": [
+       -779,
+       190.7,
+       -1011.2
+      ],
+      "n": 13,
+      "y": [
+       189,
+       199.7
+      ]
+     },
+     {
+      "at": [
+       -677.4,
+       147.4,
+       -726.9
+      ],
+      "n": 12,
+      "y": [
+       147.4,
+       153.8
+      ]
+     },
+     {
+      "at": [
+       -698.9,
+       162,
+       -783.4
+      ],
+      "n": 9,
+      "y": [
+       154.6,
+       164
+      ]
+     }
+    ]
+   },
+   "dam/itaipu-dam-roads": {
+    "pts": 1179,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-steel": {
+    "pts": 2327,
+    "miss": 0,
+    "loose": 4,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-penstocks": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-lamps": {
+    "pts": 1080,
+    "miss": 0,
+    "loose": 54,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-intake-columns": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-gate-gear": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-reservoir": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-river": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-chute": {
+    "pts": 10160,
+    "miss": 2665,
+    "loose": 7160,
+    "bins": 183,
+    "worst": [
+     {
+      "at": [
+       -1001.8,
+       203.5,
+       -999.6
+      ],
+      "n": 32,
+      "y": [
+       199.3,
+       203.5
+      ]
+     },
+     {
+      "at": [
+       -999.7,
+       199.6,
+       -971.4
+      ],
+      "n": 30,
+      "y": [
+       199.1,
+       200.6
+      ]
+     },
+     {
+      "at": [
+       -944.5,
+       199.1,
+       -987.6
+      ],
+      "n": 30,
+      "y": [
+       198.1,
+       199.5
+      ]
+     },
+     {
+      "at": [
+       -978.6,
+       201.8,
+       -999.2
+      ],
+      "n": 29,
+      "y": [
+       200.9,
+       201.8
+      ]
+     },
+     {
+      "at": [
+       -956.8,
+       201.6,
+       -1003.7
+      ],
+      "n": 29,
+      "y": [
+       201.2,
+       202
+      ]
+     },
+     {
+      "at": [
+       -955.1,
+       203.5,
+       -1016.3
+      ],
+      "n": 28,
+      "y": [
+       199.5,
+       203.8
+      ]
+     }
+    ]
+   },
+   "town/itaipu-town-render-c-b": {
+    "pts": 479,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-ribbed-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-shingle-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-c-b": {
+    "pts": 2075,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-yard-fence": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   }
+  },
+  "yard": {
+   "dam/itaipu-dam-concrete": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-roads": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-steel": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-penstocks": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-lamps": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-intake-columns": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-gate-gear": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-reservoir": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-river": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-chute": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-render-c-b": {
+    "pts": 796,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-ribbed-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-shingle-c-b": {
+    "pts": 348,
+    "miss": 0,
+    "loose": 4,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-c-b": {
+    "pts": 5537,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-town-plain-c-b": {
+    "pts": 16123,
+    "miss": 5184,
+    "loose": 6015,
+    "bins": 306,
+    "worst": [
+     {
+      "at": [
+       -2068.6,
+       226.5,
+       -347.1
+      ],
+      "n": 40,
+      "y": [
+       226.5,
+       230.3
+      ]
+     },
+     {
+      "at": [
+       -1810.2,
+       229.3,
+       -243.4
+      ],
+      "n": 40,
+      "y": [
+       229,
+       232.3
+      ]
+     },
+     {
+      "at": [
+       -1927.7,
+       229.9,
+       -587.7
+      ],
+      "n": 39,
+      "y": [
+       229.9,
+       233
+      ]
+     },
+     {
+      "at": [
+       -1975.8,
+       229.9,
+       -527.7
+      ],
+      "n": 38,
+      "y": [
+       229.9,
+       232.9
+      ]
+     },
+     {
+      "at": [
+       -2012.9,
+       228.3,
+       -404.6
+      ],
+      "n": 38,
+      "y": [
+       227.7,
+       231.3
+      ]
+     },
+     {
+      "at": [
+       -2102.3,
+       227.9,
+       -420.4
+      ],
+      "n": 38,
+      "y": [
+       227.9,
+       231.4
+      ]
+     }
+    ]
+   },
+   "war/itaipu-yard-fence": {
+    "pts": 877,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   }
+  },
+  "foz": {
+   "dam/itaipu-dam-concrete": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-roads": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-steel": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-penstocks": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-lamps": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-intake-columns": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-gate-gear": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-reservoir": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-river": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-chute": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-render-c-b": {
+    "pts": 65013,
+    "miss": 0,
+    "loose": 221,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-ribbed-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-shingle-c-b": {
+    "pts": 20250,
+    "miss": 0,
+    "loose": 796,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-yard-fence": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   }
+  },
+  "west": {
+   "dam/itaipu-dam-concrete": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-roads": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-steel": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-penstocks": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-lamps": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-intake-columns": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-gate-gear": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-reservoir": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-river": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-chute": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-render-c-b": {
+    "pts": 37129,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-ribbed-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-shingle-c-b": {
+    "pts": 21368,
+    "miss": 0,
+    "loose": 697,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-yard-fence": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   }
+  },
+  "lines": {
+   "dam/itaipu-dam-concrete": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-roads": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-steel": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-penstocks": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-lamps": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-intake-columns": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "dam/itaipu-dam-gate-gear": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-reservoir": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-water-river": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "water/itaipu-chute": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-render-c-b": {
+    "pts": 1406,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-ribbed-c-b": {
+    "pts": 598,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-shingle-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-plain-c-b": {
+    "pts": 8742,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-asphalt-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-n-r": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-cobble-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "town/itaipu-town-gravel-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-town-plain-c-b": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   },
+   "war/itaipu-yard-fence": {
+    "pts": 0,
+    "miss": 0,
+    "loose": 0,
+    "bins": 0,
+    "worst": []
+   }
+  }
+ },
+ "phantom": {
+  "crest": {
+   "tris": 22207,
+   "byKind": {
+    "static/wall/box": {
+     "n": 1944,
+     "pts": 6566,
+     "far": 1186,
+     "invisible": 6
+    },
+    "static/wall/capsule": {
+     "n": 138,
+     "pts": 4473,
+     "far": 0,
+     "invisible": 0
+    },
+    "static/pole/capsule": {
+     "n": 81,
+     "pts": 2336,
+     "far": 0,
+     "invisible": 0
+    },
+    "streamed/pole/capsule": {
+     "n": 216,
+     "pts": 6163,
+     "far": 0,
+     "invisible": 0
+    }
+   },
+   "invisible": [
+    {
+     "key": "static/wall/box",
+     "at": [
+      265.7,
+      112.4,
+      -1404.4
+     ],
+     "size": [
+      14.4,
+      0.8,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      285.8,
+      113.5,
+      -1395.7
+     ],
+     "size": [
+      19.2,
+      2.9,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      306.2,
+      117.3,
+      -1388.7
+     ],
+     "size": [
+      14.4,
+      0.8,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      344.3,
+      121.9,
+      -1373.9
+     ],
+     "size": [
+      14.5,
+      0.8,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      364.7,
+      123,
+      -1365.2
+     ],
+     "size": [
+      19.4,
+      3,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      385.4,
+      126.8,
+      -1358.2
+     ],
+     "size": [
+      14.6,
+      0.8,
+      1
+     ],
+     "r": 0
+    }
+   ]
+  },
+  "powerhouse": {
+   "tris": 38601,
+   "byKind": {
+    "static/wall/box": {
+     "n": 2921,
+     "pts": 11070,
+     "far": 1332,
+     "invisible": 8
+    },
+    "static/wall/capsule": {
+     "n": 209,
+     "pts": 6426,
+     "far": 0,
+     "invisible": 0
+    },
+    "static/pole/capsule": {
+     "n": 121,
+     "pts": 4098,
+     "far": 0,
+     "invisible": 0
+    },
+    "streamed/pole/capsule": {
+     "n": 364,
+     "pts": 9465,
+     "far": 0,
+     "invisible": 0
+    }
+   },
+   "invisible": [
+    {
+     "key": "static/wall/box",
+     "at": [
+      227.3,
+      107.8,
+      -1419.1
+     ],
+     "size": [
+      14.5,
+      0.8,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      229.9,
+      107.8,
+      -1417.2
+     ],
+     "size": [
+      19.2,
+      0.9,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      265.7,
+      112.4,
+      -1404.4
+     ],
+     "size": [
+      14.4,
+      0.8,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      285.8,
+      113.5,
+      -1395.7
+     ],
+     "size": [
+      19.2,
+      2.9,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      306.2,
+      117.3,
+      -1388.7
+     ],
+     "size": [
+      14.4,
+      0.8,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      344.3,
+      121.9,
+      -1373.9
+     ],
+     "size": [
+      14.5,
+      0.8,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      364.7,
+      123,
+      -1365.2
+     ],
+     "size": [
+      19.4,
+      3,
+      1
+     ],
+     "r": 0
+    },
+    {
+     "key": "static/wall/box",
+     "at": [
+      385.4,
+      126.8,
+      -1358.2
+     ],
+     "size": [
+      14.6,
+      0.8,
+      1
+     ],
+     "r": 0
+    }
+   ]
+  },
+  "spillway": {
+   "tris": 10666,
+   "byKind": {
+    "static/wall/capsule": {
+     "n": 210,
+     "pts": 3069,
+     "far": 730,
+     "invisible": 2
+    },
+    "static/wall/box": {
+     "n": 6132,
+     "pts": 9398,
+     "far": 0,
+     "invisible": 0
+    },
+    "static/pole/capsule": {
+     "n": 54,
+     "pts": 1115,
+     "far": 0,
+     "invisible": 0
+    },
+    "streamed/wall/box": {
+     "n": 47,
+     "pts": 588,
+     "far": 46,
+     "invisible": 0
+    },
+    "streamed/pole/capsule": {
+     "n": 571,
+     "pts": 35595,
+     "far": 0,
+     "invisible": 0
+    }
+   },
+   "invisible": [
+    {
+     "key": "static/wall/capsule",
+     "at": [
+      -1085.2,
+      212.3,
+      -951.1
+     ],
+     "size": [
+      0.9,
+      0,
+      0.3
+     ],
+     "r": 0.95
+    },
+    {
+     "key": "static/wall/capsule",
+     "at": [
+      -1037.2,
+      212.3,
+      -968.2
+     ],
+     "size": [
+      0.9,
+      0,
+      0.3
+     ],
+     "r": 0.95
+    }
+   ]
+  },
+  "yard": {
+   "tris": 28704,
+   "byKind": {
+    "static/wall/capsule": {
+     "n": 140,
+     "pts": 2520,
+     "far": 0,
+     "invisible": 0
+    },
+    "static/pole/capsule": {
+     "n": 146,
+     "pts": 8967,
+     "far": 0,
+     "invisible": 0
+    },
+    "streamed/wall/box": {
+     "n": 128,
+     "pts": 652,
+     "far": 55,
+     "invisible": 0
+    },
+    "streamed/pole/capsule": {
+     "n": 1295,
+     "pts": 76416,
+     "far": 0,
+     "invisible": 0
+    }
+   },
+   "invisible": []
+  },
+  "foz": {
+   "tris": 22765,
+   "byKind": {
+    "streamed/wall/box": {
+     "n": 1242,
+     "pts": 18354,
+     "far": 1964,
+     "invisible": 0
+    }
+   },
+   "invisible": []
+  },
+  "west": {
+   "tris": 24705,
+   "byKind": {
+    "streamed/wall/box": {
+     "n": 4397,
+     "pts": 25282,
+     "far": 1835,
+     "invisible": 0
+    }
+   },
+   "invisible": []
+  },
+  "lines": {
+   "tris": 11450,
+   "byKind": {
+    "streamed/wall/box": {
+     "n": 9,
+     "pts": 335,
+     "far": 160,
+     "invisible": 0
+    },
+    "streamed/pole/capsule": {
+     "n": 1563,
+     "pts": 75040,
+     "far": 0,
+     "invisible": 0
+    }
+   },
+   "invisible": []
+  }
+ },
+ "trees": {
+  "crest": {
+   "drawn": 0,
+   "noPost": 0,
+   "list": []
+  },
+  "powerhouse": {
+   "drawn": 0,
+   "noPost": 0,
+   "list": []
+  },
+  "spillway": {
+   "drawn": 0,
+   "noPost": 0,
+   "list": []
+  },
+  "yard": {
+   "drawn": 0,
+   "noPost": 0,
+   "list": []
+  },
+  "foz": {
+   "drawn": 6,
+   "noPost": 0,
+   "list": []
+  },
+  "west": {
+   "drawn": 7,
+   "noPost": 0,
+   "list": []
+  },
+  "lines": {
+   "drawn": 72,
+   "noPost": 0,
+   "list": []
+  }
+ },
+ "refill": {
+  "speeds": {
+   "100": {
+    "refills": 10,
+    "maxFrames": 21,
+    "maxMs": 350,
+    "town": 113,
+    "veg": 144,
+    "frameMs": 16.7
+   },
+   "200": {
+    "refills": 9,
+    "maxFrames": 21,
+    "maxMs": 350,
+    "town": 77,
+    "veg": 112,
+    "frameMs": 16.7
+   },
+   "400": {
+    "refills": 9,
+    "maxFrames": 21,
+    "maxMs": 351,
+    "town": 3,
+    "veg": 48,
+    "frameMs": 16.6
+   }
+  },
+  "maxFrames": 21,
+  "safe60": 429,
+  "safe20": 143,
+  "left": 113
+ },
+ "bridge": {
+  "length": 565,
+  "deckY": 148.93181656622428,
+  "water": 100.5,
+  "box": [
+   -1669,
+   9523,
+   -1104,
+   9552
+  ],
+  "solids": 0,
+  "deck": 7,
+  "on": 0
+ },
+ "water": {
+  "reservoir at the dam": {
+   "itaipu-water-reservoir": {
+    "pts": 2802,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-water-river": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-chute": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-spill-plume": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   }
+  },
+  "reservoir east": {
+   "itaipu-water-reservoir": {
+    "pts": 4715,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-water-river": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-chute": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-spill-plume": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   }
+  },
+  "river below the dam": {
+   "itaipu-water-reservoir": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-water-river": {
+    "pts": 9313,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-chute": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-spill-plume": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   }
+  },
+  "river downstream": {
+   "itaipu-water-reservoir": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-water-river": {
+    "pts": 4005,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-chute": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-spill-plume": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   }
+  },
+  "spillway": {
+   "itaipu-water-reservoir": {
+    "pts": 4483,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-water-river": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   },
+   "itaipu-chute": {
+    "pts": 6227,
+    "sinks": 802,
+    "over": 0,
+    "worst": [
+     [
+      -1122.9,
+      203.5,
+      -956.5,
+      181.3
+     ],
+     [
+      -1120.4,
+      203.8,
+      -958.1,
+      181.3
+     ],
+     [
+      -1115.7,
+      202.4,
+      -956.3,
+      181.3
+     ],
+     [
+      -1119,
+      202.5,
+      -955.3,
+      181.3
+     ],
+     [
+      -1119.5,
+      201.8,
+      -949.4,
+      181.3
+     ]
+    ]
+   },
+   "itaipu-spill-plume": {
+    "pts": 0,
+    "sinks": 0,
+    "over": 0,
+    "worst": []
+   }
+  }
+ },
+ "seats": [
+  {
+   "name": "crest seat 0",
+   "gap": 6.25,
+   "y": 225
+  },
+  {
+   "name": "crest seat 1",
+   "gap": 5.25,
+   "y": 225
+  },
+  {
+   "name": "crest seat 2",
+   "gap": 5.65,
+   "y": 225
+  },
+  {
+   "name": "crest seat 3",
+   "gap": 5.25,
+   "y": 225
+  },
+  {
+   "name": "crest seat 4",
+   "gap": 4.32,
+   "y": 225
+  },
+  {
+   "name": "crest seat 5",
+   "gap": 5.86,
+   "y": 225
+  },
+  {
+   "name": "crest seat 6",
+   "gap": 3.41,
+   "y": 225
+  },
+  {
+   "name": "crest seat 7",
+   "gap": 5.02,
+   "y": 225
+  },
+  {
+   "name": "reservoir spawn",
+   "gap": 20,
+   "y": 219
+  },
+  {
+   "name": "river spawn",
+   "gap": 20,
+   "y": 103.5
+  },
+  {
+   "name": "air spawn",
+   "gap": 20,
+   "y": 619
+  }
+ ],
+ "fly": {
+  "quad": {
+   "power conductor, dived onto @30": "stopped",
+   "power conductor, dived onto @45": "stopped",
+   "power conductor, crossed level @30": "stopped",
+   "power conductor, crossed level @45": "stopped",
+   "lattice tower leg @30": "stopped",
+   "lattice tower leg @45": "stopped",
+   "crest street lamp pole @30": "stopped",
+   "crest street lamp pole @45": "stopped",
+   "powerhouse roof gantry leg @30": "stopped",
+   "powerhouse roof gantry leg @45": "stopped",
+   "powerhouse gantry insulator string (drawn only) @30": "passed",
+   "powerhouse gantry insulator string (drawn only) @45": "passed",
+   "switchyard transformer tank @30": "stopped",
+   "switchyard transformer tank @45": "stopped",
+   "switchyard transformer bushing (drawn only) @30": "passed",
+   "switchyard transformer bushing (drawn only) @45": "passed",
+   "open ground under an invisible wall box (w608156691) @30": "invisible",
+   "open ground under an invisible wall box (w608156691) @45": "invisible",
+   "Friendship Bridge deck, flown through @30": "passed",
+   "Friendship Bridge deck, flown through @45": "passed",
+   "Friendship Bridge deck, landed on @30": "passed",
+   "Friendship Bridge deck, landed on @45": "passed"
+  },
+  "f16": {
+   "power conductor, dived onto @45": "through",
+   "power conductor, dived onto @70": "passed",
+   "power conductor, crossed level @45": "stopped",
+   "power conductor, crossed level @70": "stopped",
+   "lattice tower leg @45": "stopped",
+   "lattice tower leg @70": "stopped",
+   "crest street lamp pole @45": "stopped",
+   "crest street lamp pole @70": "stopped",
+   "powerhouse roof gantry leg @45": "stopped",
+   "powerhouse roof gantry leg @70": "stopped",
+   "powerhouse gantry insulator string (drawn only) @45": "passed",
+   "powerhouse gantry insulator string (drawn only) @70": "passed",
+   "switchyard transformer tank @45": "stopped",
+   "switchyard transformer tank @70": "stopped",
+   "switchyard transformer bushing (drawn only) @45": "passed",
+   "switchyard transformer bushing (drawn only) @70": "passed",
+   "open ground under an invisible wall box (w608156691) @45": "clear",
+   "open ground under an invisible wall box (w608156691) @70": "clear",
+   "Friendship Bridge deck, flown through @45": "passed",
+   "Friendship Bridge deck, flown through @70": "passed",
+   "Friendship Bridge deck, landed on @45": "passed",
+   "Friendship Bridge deck, landed on @70": "passed"
+  }
+ }
+}

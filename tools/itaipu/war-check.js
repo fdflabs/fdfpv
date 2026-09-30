@@ -21,6 +21,10 @@
  *               (in the dam's damage where the dam has targets), and
  *               throws on an unknown id or state;
  *   fence       a Timber flown level into the fence at 15 m/s meets it;
+ *   bushing     a Timber at 20 m/s, and a five inch at 30 and 45 m/s on a
+ *               page of its own, flown level across a transformer's middle
+ *               bushing at half and 0.85 of its height, meet it and do not
+ *               go on;
  *   shots       with --shots=DIR, the yard from the air and from low, and
  *               the frame's draw calls in each view with and without the
  *               yard: the yard never takes a view over 300 (section 13).
@@ -53,7 +57,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../../src/ui/ui.js';
 import { airframeById } from '../../configs/airframes.js';
-import { planYard, TANK } from '../../src/maps/itaipu/war/plan.js';
+import { planYard, TANK, KIT } from '../../src/maps/itaipu/war/plan.js';
 import { layOut, piecesOf } from '../../src/maps/itaipu/town/power.js';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -82,9 +86,9 @@ const check = (ok, good, bad) => {
 };
 const js = async (page, expr) => JSON.parse(await page.evaluate(`JSON.stringify(${expr})`));
 
-function seed() {
+function seed(airframe = AIRFRAME) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIRFRAME),
+    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
     airframeAsked: true, map: 'itaipu', graphics: process.env.SIM_GPU === '1' ? 'high' : 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
@@ -187,8 +191,8 @@ async function pageChecks(page, plan) {
   })()`);
   console.log(`       built: ${s.stats.transformers} transformers, ${s.stats.fence} fence pieces, ${s.stats.solids} solids, `
     + `${s.stats.drawn.meshes} meshes, ${s.stats.drawn.triangles} triangles, in ${s.stats.buildMs} ms`);
-  check(s.stats.transformers === plan.transformers.length && s.solids === plan.transformers.length,
-    'built: the page\'s yard is Node\'s, one solid per transformer', `built: the page has ${s.stats.transformers} transformers and ${s.solids} of their solids, Node ${plan.transformers.length}`);
+  check(s.stats.transformers === plan.transformers.length && s.solids === 3 * plan.transformers.length,
+    'built: the page\'s yard is Node\'s, three solids per transformer', `built: the page has ${s.stats.transformers} transformers and ${s.solids} of their solids, Node ${plan.transformers.length}`);
   check(s.maxGap === 0, 'built: every transformer is solid at its middle', `built: a transformer's middle is ${s.maxGap} m from any solid`);
   check(s.staticCount <= SOLIDS_MAX, `built: ${s.staticCount} static colliders, at most ${SOLIDS_MAX}`, `built: ${s.staticCount} static colliders, over ${SOLIDS_MAX}`);
 }
@@ -259,6 +263,76 @@ async function targetChecks(page) {
   }
 }
 
+/*
+ * One level flight from a throw (window.__crashThrow, held, then let go)
+ * for 1.5 s of sim time: where it ended and what it met. The first throw
+ * of a page pays for the crash world, so `warm` throws there first.
+ */
+async function flyInto(page, throwAt, warm, throttle) {
+  await page.evaluate(`window.__crashThrow(${JSON.stringify({ x: warm[0], y: warm[1], z: warm[2], fresh: true })})`);
+  await page.sleep(1500);
+  const r = await js(page, `window.__crashThrow(${JSON.stringify(throwAt)})`);
+  if (!r || r.ok === false) {
+    throw new Error(`the throw was refused: ${JSON.stringify(r)}`);
+  }
+  await page.evaluate(`window.__stick(0, 0, 0, ${throttle})`);
+  await page.sleep(300);
+  await page.evaluate('window.__releasePose()');
+  const t0 = await page.evaluate('window.__crash().simT');
+  const until = Date.now() + 30000;
+  let last = null;
+  const kinds = new Set();
+  const path = [];
+  while (Date.now() < until) {
+    last = await js(page, `(() => { const s = window.__craftState(); const c = window.__crash(); const k = window.__contacts();
+      return { simT: c.simT, x: s.worldX, y: s.worldY, z: s.worldZ, speed: s.speed, hit: s.lastHitKind, wrecked: c.wrecked, obstacle: k.obstacle.length }; })()`);
+    path.push(last);
+    if (last.hit && last.hit !== 'none') {
+      kinds.add(last.hit);
+    }
+    if (last.simT - t0 >= 1.5) {
+      break;
+    }
+    await page.sleep(40);
+  }
+  return { last, kinds, path };
+}
+
+/* The first transformer's middle bushing, flown at level across the
+ * transformer from BACK metres out at half and at 0.85 of the bushing's
+ * height over the tank, where only the top capsule stands: it is met,
+ * and nothing ends more than a metre past the bushing's line. The throw
+ * starts a little low, since a craft let go climbs (a quad on its
+ * throttle, a wing on its lift), and the height it crossed at is
+ * printed. */
+const BACK = 6;
+async function bushing(page, plan, craft, speeds, throttle) {
+  const t = plan.transformers[0];
+  const u = KIT.bushings.u[1];
+  const bx = t.x + t.ax * u;
+  const bz = t.z + t.az * u;
+  const gy = await page.evaluate(`window.__mapScene().userData.itaipu.terrain.finestAt(${t.x}, ${t.z})`);
+  const top = gy + TANK.plinth + TANK.height;
+  /* Across the transformer: its axis turned a quarter. */
+  const nx = -t.az;
+  const nz = t.ax;
+  for (const f of [0.5, 0.85]) {
+    for (const v of speeds) {
+      const throwAt = {
+        x: bx + nx * BACK, y: top + KIT.bushings.height * f - 0.25, z: bz + nz * BACK, yaw: (Math.atan2(nx, nz) * 180) / Math.PI, pitch: 0, vx: -nx * v, vy: 0, vz: -nz * v, hold: true, fresh: true,
+      };
+      const { last, kinds, path } = await flyInto(page, throwAt, [bx, gy + 400, bz], throttle);
+      const along = (p) => -((p.x - bx) * nx + (p.z - bz) * nz);
+      const cross = path.filter((p) => along(p) > -1).map((p) => p.y - top)[0];
+      const past = along(last);
+      const met = kinds.size > 0 || last.obstacle > 0 || last.wrecked;
+      const at = cross == null ? 'never reached it' : `${cross.toFixed(1)} m over the tank`;
+      check(met && past < 1, `bushing: a ${craft} at ${v} m/s across the middle bushing, ${at}, met it (${[...kinds].join(', ') || 'plant contact'}, wrecked ${last.wrecked}), ended ${(-past).toFixed(1)} m short of its line`,
+        `bushing: a ${craft} at ${v} m/s, ${at}, went ${past.toFixed(1)} m past the middle bushing at ${last.speed.toFixed(1)} m/s, met ${[...kinds].join(', ') || 'nothing'}`);
+    }
+  }
+}
+
 /* A Timber level into the middle of the fence's longest piece, from
  * outside the yard. */
 async function fence(page, plan) {
@@ -279,32 +353,7 @@ async function fence(page, plan) {
   const throwAt = {
     x: mx + nx * back, y: gy + 1.2, z: mz + nz * back, yaw: (Math.atan2(nx, nz) * 180) / Math.PI, pitch: 0, vx: -nx * v, vy: 0, vz: -nz * v, hold: true, fresh: true,
   };
-  /* The first throw of a page pays for the crash world; take it in the air. */
-  await page.evaluate(`window.__crashThrow(${JSON.stringify({ x: mx, y: gy + 400, z: mz, fresh: true })})`);
-  await page.sleep(1500);
-  const r = await js(page, `window.__crashThrow(${JSON.stringify(throwAt)})`);
-  if (!r || r.ok === false) {
-    fail(`fence: the throw was refused: ${JSON.stringify(r)}`);
-    return;
-  }
-  await page.evaluate('window.__stick(0, 0, 0, 0.6)');
-  await page.sleep(300);
-  await page.evaluate('window.__releasePose()');
-  const t0 = await page.evaluate('window.__crash().simT');
-  const until = Date.now() + 30000;
-  let last = null;
-  const kinds = new Set();
-  while (Date.now() < until) {
-    last = await js(page, `(() => { const s = window.__craftState(); const c = window.__crash(); const k = window.__contacts();
-      return { simT: c.simT, x: s.worldX, z: s.worldZ, hit: s.lastHitKind, wrecked: c.wrecked, obstacle: k.obstacle.length }; })()`);
-    if (last.hit && last.hit !== 'none') {
-      kinds.add(last.hit);
-    }
-    if (last.simT - t0 >= 1.5) {
-      break;
-    }
-    await page.sleep(40);
-  }
+  const { last, kinds } = await flyInto(page, throwAt, [mx, gy + 400, mz], 0.6);
   /* How far past the fence's line, toward the yard, it ended. */
   const past = -((last.x - mx) * nx + (last.z - mz) * nz);
   const ok = (kinds.size > 0 || last.obstacle > 0 || last.wrecked) && past < 1;
@@ -367,6 +416,7 @@ async function main() {
     await pageChecks(page, plan);
     await targetChecks(page);
     await fence(page, plan);
+    await bushing(page, plan, 'Timber', [20], 0.6);
     if (SHOTS) {
       await shots(page);
     }
@@ -376,6 +426,22 @@ async function main() {
     }
   } finally {
     await page.close();
+  }
+  console.log('');
+  console.log('headless Chromium, the Itaipu map, a five inch with crash damage on');
+  const quad = await openPage({
+    root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed('5inch'),
+  });
+  try {
+    await quad.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
+    await quad.evaluate('window.__drawOff(true)');
+    await bushing(quad, plan, 'five inch', [30, 45], 0.5);
+    const real = quad.errors.filter((e) => !/net::ERR_|Failed to load resource/.test(e));
+    for (const e of real) {
+      fail(`console: ${e}`);
+    }
+  } finally {
+    await quad.close();
   }
   console.log('');
   if (failures.length) {

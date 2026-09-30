@@ -122,6 +122,8 @@ import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
 import { createWarCalls } from './render/warradio.js';
+import { createCampaignScreen } from './ui/campaign.js';
+import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -4254,9 +4256,30 @@ export async function boot({
     ];
   };
 
+  /* Defend the Paraná (src/ui/campaign.js): its card opens its screen,
+   * its Play goes the Defend Itaipu card's way in, and the start row of
+   * the room it made starts the chosen mission. */
+  const campaign = createCampaignScreen({
+    ui,
+    inBuild: (id) => Object.hasOwn(WAR_MISSIONS, id),
+    enterWarRoom: () => ui.onWarCard('way-war'),
+    send: (obj) => roomLinkState.send(obj),
+    view: () => roomWar.view(),
+    room: () => {
+      const st = roomLinkState.state();
+      return { phase: st.phase, code: st.code, seat: roomWar.seat() };
+    },
+  });
+  ui.onCampaignCard = () => campaign.open();
+  window.__campaign = campaign;
+
   ui.onFriends = async (action) => {
     if (action === 'friends-war-start') {
-      await warStart();
+      if (campaign.startSelected()) {
+        ui.refreshFriends();
+      } else {
+        await warStart();
+      }
       return;
     }
     if (action === 'friends-war-private') {
