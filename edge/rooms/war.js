@@ -566,6 +566,9 @@ export class RoomWar {
       roundResult: m.roundResult ?? null,
       roundMw: m.roundMw ?? 0,
       nextRoundAt: m.nextRoundAt ?? null,
+      /* The round's clock origin, so the HUD can count down to its next
+       * wave (a wave is born at roundAt + its `at`). */
+      roundAt: m.roundAt ?? m.goAt,
       airframes: this.airframes(),
       spent: { ...(m.spent ?? {}) },
       earned: { ...(m.earned ?? {}) },
