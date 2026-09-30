@@ -32,9 +32,9 @@
  *   - each page draws what it says: its instanced meshes hold its own
  *     attackersAt, at most one draw call a kind
  *   - the same output, wave, rack and scores on both, all the way
- *   - A is held on the middle Striker's route: it detonates, and both
+ *   - A is held on the second Striker's route: it detonates, and both
  *     pages hear the same boom and the same dead, A scores the kill, and
- *     the rack drops by one; the other two Strikers reach the switchyard
+ *     the rack drops by one; the other Strikers reach the switchyard
  *     and both pages take its megawatts and call it
  *   - then both are held on the Hunters' way up the gorge: a Hunter goes
  *     off on one of them, and both pages agree on that too
@@ -70,6 +70,7 @@ import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { LATE_MS } from '../src/game/midair.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { waveSize } from '../src/share/war/missions/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const MAIN = process.argv.includes('--main');
@@ -364,15 +365,17 @@ try {
       text: `seat ${seat}: ${ps.length} poses, gap max ${Math.max(...gaps)} ms median ${gaps.sort((a, b) => a - b)[gaps.length >> 1]}, lag max ${Math.round(Math.max(...lag))} ms, flags ${[...new Set(ps.map((x) => x.flags.toString(16)))]}; ${js.length} judgements, ${past.length} with the frontier past its newest pose`,
     };
   };
-  check('the rack is the mission\'s three airframes a pilot, the output its 14 000 MW', live.view.rack === 6 && live.view.rackMax === 6 && live.view.output === itaipu1.output,
+  check(`the rack is the mission's ${itaipu1.rack} airframes a pilot, the output its 14 000 MW`, live.view.rack === 2 * itaipu1.rack && live.view.rackMax === 2 * itaipu1.rack && live.view.output === itaipu1.output,
     `rack ${live.view.rack}/${live.view.rackMax}, ${live.view.output} MW`);
 
-  /* A on the middle Striker's route, 15 s after its birth; B 100 m to its
+  /* A on the second Striker's route, 15 s after its birth; B 100 m to its
    * side and 30 m up, out of every Striker's way (their gap is 25 m). */
   const wave = itaipu1.waves.findIndex((w) => w.kind === 'strike');
   const sw = itaipu1.waves[wave];
+  /* The room sizes a wave by the pilots at the go: two here. */
+  const swN = waveSize(sw, 2);
   const plan = planAgent(itaipu1, {
-    kind: sw.kind, route: sw.route, t0: goAt + sw.at * 1000, k: 1, n: sw.n, err: 0, target: sw.target,
+    kind: sw.kind, route: sw.route, t0: goAt + sw.at * 1000, k: 1, n: swN, err: 0, target: sw.target,
   });
   const tHit = goAt + sw.at * 1000 + 15000;
   const P = poseAt(plan, tHit).p.slice();
@@ -385,14 +388,14 @@ try {
   await a.sleep(SPAWN_MS + 1000);
   console.log(`  info  held; the room has ${roomSeats()}`);
   console.log(`  info  A's craft: ${JSON.stringify(await a.evaluate('(() => { const c = window.__crash(); return { mode: window.__craftState().mode, flags: c.flags, wrecked: c.wrecked }; })()'))}`);
-  /* Scouts from 20 s, Strikers from 60 s: compared as they come. */
+  /* Scouts first, then the Strikers: compared as they come. */
   let lookedAtStrikers = false;
   await watch(async () => {
     const t = await nowOf(b);
     if (!lookedAtStrikers && t > tHit - 7000) {
       lookedAtStrikers = true;
-      /* Close: a camera 12 m off the middle Striker's path, 2 s ahead of
-       * it, then the three of them coming at A. */
+      /* Close: a camera 12 m off the second Striker's path, 2 s ahead of
+       * it, then the Strikers coming at A. */
       const near = poseAt(plan, t + 2000).p;
       await b.evaluate(`window.__setCam(${near[0] + 12}, ${near[1] + 3}, ${near[2]}, ${near[0]}, ${near[1]}, ${near[2]}, 40); true`);
       await b.until(`window.__rooms().roomNow > ${t + 2000}`, 10000);
@@ -431,23 +434,26 @@ try {
   }
   const [va] = await sameView('after the detonation');
   const me = va.view.scores.find((r) => r.seat === seats[0]);
-  check('A scores the kill and the Switchyard\'s megawatts saved, and the rack is one down', me && me.kills === 1 && me.mw === itaipu1.targets[sw.target].mw && va.view.rack === 5,
+  check('A scores the kill and the Switchyard\'s megawatts saved, and the rack is one down', me && me.kills === 1 && me.mw === itaipu1.targets[sw.target].mw && va.view.rack === 2 * itaipu1.rack - 1,
     JSON.stringify(me) + ` rack ${va.view.rack}`);
   /* The wire names a seat #n; main.js by its picker name. */
   check('A\'s HUD calls its own kill and the warhead, B\'s calls A\'s', ba.said.some((s) => /SPLASH ONE/.test(s))
     && bb.said.some((s) => (MAIN ? /^[^:]+: SPLASH ONE/.test(s) : s.includes(`#${seats[0]}`))),
     `${ba.said.slice(-3).join(' | ')} || ${bb.said.slice(-3).join(' | ')}`);
 
-  /* Both up the gorge, the Hunters' way, 40 m apart. */
-  const gA = [-1000, 300, 1540];
-  const gB = [-1000, 300, 1500];
+  /* Both 400 m up the gorge from where the Hunters are born, 100 m over
+   * it and 40 m apart. */
+  const hw = itaipu1.waves.find((w) => w.kind === 'hunter');
+  const h0 = itaipu1.routes[hw.route][0];
+  const gA = [h0[0], h0[1] + 100, h0[2] - 400];
+  const gB = [h0[0], h0[1] + 100, h0[2] - 360];
   await hold(a, gA);
   await hold(b, gB);
   const yardAt = plan.tEnd;
   let lookedAtHunters = false;
   await watch(async () => {
     const t = await nowOf(b);
-    if (!lookedAtHunters && t > goAt + 205000) {
+    if (!lookedAtHunters && t > goAt + (hw.at + 5) * 1000) {
       lookedAtHunters = true;
       const h = (await b.evaluate(`window.__warAt(${t})`)).find((x) => x.kind === 'hunter');
       if (h) {
@@ -466,13 +472,13 @@ try {
     }
     const logs = await Promise.all(pages.map(warOf));
     return t > yardAt + 3000 && logs.every((w) => w.log.filter((e) => e.type === 'boom').length >= 2);
-  }, goAt + 280000);
+  }, goAt + (hw.at + 110) * 1000);
   await a.sleep(1500);
   const [ya, yb] = await Promise.all(pages.map(warOf));
   const yardA = ya.log.filter((e) => e.type === 'dead' && e.target === sw.target);
   const yardB = yb.log.filter((e) => e.type === 'dead' && e.target === sw.target);
   const yardIds = yardA.flatMap((e) => e.ids).length;
-  check('the Strikers left reach the Switchyard on both pages alike', yardIds === sw.n - (deadA ? deadA.ids.length : 0) && JSON.stringify(yardA) === JSON.stringify(yardB) && yardA.every((e) => e.hit),
+  check('the Strikers left reach the Switchyard on both pages alike', yardIds === swN - (deadA ? deadA.ids.length : 0) && JSON.stringify(yardA) === JSON.stringify(yardB) && yardA.every((e) => e.hit),
     yardA.map((e) => `${e.ids} at ${e.at} hit ${e.hit}`).join('; '));
   /* Every target hit takes its megawatts once, whoever else hits it. */
   const hitTargets = [...new Set(ya.log.filter((e) => e.type === 'dead' && e.hit).map((e) => e.target))];

@@ -1,22 +1,67 @@
 /*
- * itaipu-1.js: Defend Itaipu, mission 1 (docs/WARFARE-PLAN.md section
- * 4.2). Data, shared by the room (edge/rooms/war.js) and every client;
- * src/share/war/routes.js flies it.
+ * itaipu-1.js: Defend Itaipu, mission 1 (docs/WARFARE-PLAN.md sections 3,
+ * 4.2 and 4.5). Data, shared by the room (edge/rooms/war.js) and every
+ * client; src/share/war/routes.js flies it.
  *
- * PLACEHOLDERS. Every position here is a stand in until package M builds
- * the targets (section 8) and package G tunes the waves by flying
- * (phase 2). The intakes are spaced evenly along the line section 8 gives
- * for dam.json's intake points, (-202.2, -1794.2) to (430.8, -1655.0), at
- * the crest's 225 m where their servomotor houses stand; the right bank
- * switchyard is at the OSM centroid (-2128, -434) at 225 m, the war
- * heightfield's floor there (src/share/war/itaipu-height.bin). The
- * routes are straight lines drawn over that heightfield: the reservoir to
- * the north, the gorge up the river from the south. None of it has been
- * flown.
+ * THE TARGETS are where the map builds them (itaipu-targets.js, generated
+ * from map.targets by scripts/war-targets.js); this file adds what each
+ * one is worth. The plant makes 14 000 MW, twenty units of 700: an intake
+ * or a penstock hit takes its unit's 700 (the two are counted apart, so a
+ * unit hit at both ends costs 1 400: the room counts targets, not units),
+ * a spillway gate 350 (the plant runs down its reservoir to spill round
+ * it), and the right bank switchyard 2 800, a fifth of the plant's way to
+ * the grid. The mission is lost under floorMw, half the plant: ten units.
  *
- * Output is 14 000 MW, twenty units of 700: each intake carries one. The
- * switchyard carries 2 800 on top of the intakes' count, so a hit there
- * alone is a fifth of the plant; the output never goes below zero.
+ * THE ROUTES fly the geography, y up, scene metres (-z is north):
+ *   reservoir-*   Strikers 30 m over the reservoir (219 m) from the north,
+ *                 onto the intakes in the upstream face, or over the right
+ *                 bank's shore to the switchyard at 60 m over the ground
+ *   gorge         the FPV swarm up the river from the south, under the
+ *                 rims, onto the penstocks on the downstream face
+ *   high-*        Loiterers at 650 m, a circle, then the dive: onto the
+ *                 intakes from the north east, the spillway gates from
+ *                 the north west, down its approach channel
+ *   surface-*     Sea drones on the reservoir's surface, 219.0 m, to the
+ *                 upstream face
+ *   *-orbit       Scouts circling 250 m over the water
+ *   gorge-hunt    where the Hunters are born, in the gorge 1.5 km below
+ *                 the dam, and their home over the gorge's head, where
+ *                 one with no pilot in range goes back to (warhunt.js
+ *                 steers them)
+ * scripts/war-routes-check.js samples every attacker of every wave, at 1
+ * to 8 pilots and at the extremes of its spread, against the hunters'
+ * floor (itaipu-height.bin: ground, water and the dam) and fails unless
+ * each clears it until its terminal run: the last leg onto its target, or
+ * a Loiterer's dive. Boats hold the water.
+ *
+ * THE WAVES, born at (minutes after the go), about ten minutes in all:
+ *   0:05  a Scout over the reservoir
+ *   0:20  Strikers on the switchyard (the biggest single loss, early, so
+ *         the squad learns what a hit costs; it lands at 2:10)
+ *   1:00  the first FPV swarm up the gorge, two penstocks
+ *   1:50  a Loiterer on an intake, 2:30 Sea drones on another
+ *   3:15  Hunters, mid mission: now the pilots are the targets
+ *   3:35  a second Scout; 4:10 a swarm on four penstocks
+ *   5:00  Loiterers on the gates, 5:40 Strikers on the west intakes
+ *   6:35  the last wave, all at once: Strikers on the east intakes, a
+ *         swarm, Loiterers, Hunters and boats
+ * Undefended, the output is 9 100 MW at 5:00 (so the Hunters always come
+ * to a war still on), falls under the floor at 6:13, and the whole
+ * mission would take 2.8 times the 7 000 MW margin.
+ *
+ * THE NUMBERS. Each wave's n is for one pilot and `per` more come for
+ * every pilot after the first (index.js waveSize): 30 attackers alone,
+ * 43 for two, 66 for four, 113 for eight. The output decides the game;
+ * the rack, 16 airframes a pilot, is a backstop against waste. A clean
+ * solo pilot spends about 13 of it, and at 14 a solo bot that was
+ * winning on output ran out half the time: losing with the plant at
+ * 11 000 MW for want of an airframe reads as a bug, not a defeat.
+ * scripts/war-balance.js flies bot squads of
+ * 1, 2, 4 and 8 through it on the real room; its table and the reasons
+ * for these numbers are in the pull request that set them.
+ *
+ * No jammer: the war has no radio signal since 2026-09-29
+ * (docs/WARFARE-PLAN.md 6.1).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -34,20 +79,18 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const INTAKE_W = [-202.2, -1794.2];
-const INTAKE_E = [430.8, -1655.0];
-const CREST_Y = 225;
+import AT from '../itaipu-targets.js';
+
+const MW = {
+  intake: 700, penstock: 700, gate: 350, yard: 2800,
+};
 
 const targets = {};
-for (let i = 0; i < 20; i += 1) {
-  const u = i / 19;
-  targets[`intake-${i}`] = {
-    mw: 700,
-    at: [INTAKE_W[0] + (INTAKE_E[0] - INTAKE_W[0]) * u, CREST_Y, INTAKE_W[1] + (INTAKE_E[1] - INTAKE_W[1]) * u],
-    r: 12,
-  };
+for (const [id, t] of Object.entries(AT)) {
+  targets[id] = { mw: MW[id.split('-')[0]], at: t.at, r: t.r };
 }
-targets['yard-right'] = { mw: 2800, at: [-2128, 225, -434], r: 40 };
+
+const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
 
 export default {
   id: 'itaipu-1',
@@ -55,27 +98,35 @@ export default {
   targets,
   output: 14000,
   floorMw: 7000,
-  rack: 3,
+  rack: 16,
   /* Seconds after the go. */
   waves: [
-    { at: 20, kind: 'scout', n: 1, route: 'reservoir-orbit' },
-    { at: 60, kind: 'strike', n: 3, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-    { at: 90, kind: 'fpv', n: 6, route: 'gorge', target: 'intake-7', spread: 20 },
-    { at: 120, kind: 'loiter', n: 2, route: 'reservoir-high', target: 'intake-12', spread: 30 },
-    { at: 150, kind: 'boat', n: 2, route: 'reservoir-surface', target: 'intake-3', spread: 20 },
-    { at: 170, kind: 'hunter', n: 2, route: 'gorge' },
-    { at: 230, kind: 'strike', n: 4, route: 'reservoir-low', target: 'intake-15', spread: 30 },
+    { at: 5, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
+    { at: 20, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west', target: 'yard-right', spread: 60 },
+    { at: 60, kind: 'fpv', n: 2, per: 0.75, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
+    { at: 110, kind: 'loiter', n: 1, per: 0.75, route: 'high-east', target: 'intake-12', spread: 25 },
+    { at: 150, kind: 'boat', n: 1, per: 0.75, route: 'surface-east', target: 'intake-17', spread: 20 },
+    { at: 195, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    { at: 215, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
+    { at: 250, kind: 'fpv', n: 4, per: 1, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
+    { at: 300, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
+    { at: 340, kind: 'strike', n: 4, per: 1.25, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
+    { at: 395, kind: 'strike', n: 3, per: 1.25, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
+    { at: 398, kind: 'fpv', n: 4, per: 1, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
+    { at: 401, kind: 'loiter', n: 2, per: 1, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
+    { at: 404, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    { at: 407, kind: 'boat', n: 2, per: 0.75, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
   ],
-  /* Checked against the war heightfield (src/share/war/itaipu-height.bin):
-   * every flight clears the floor until its last run onto its target, and
-   * the boats sail on the water, 219 m. No jammer: the war has no radio
-   * signal since 2026-09-29 (docs/WARFARE-PLAN.md 6.1). */
   routes: {
-    'reservoir-orbit': [[200, 470, -7000], [100, 470, -3500]],
-    'reservoir-low': [[300, 250, -5000], [300, 250, -2400]],
-    'reservoir-west': [[-1500, 280, -5000], [-1800, 280, -2000]],
-    gorge: [[-1100, 210, 3600], [-1100, 210, 900], [-600, 260, -1000]],
-    'reservoir-high': [[1400, 700, -7500], [400, 600, -3200]],
-    'reservoir-surface': [[800, 219, -5000], [300, 219, -2400]],
+    'reservoir-orbit': [[300, 470, -5000], [300, 470, -3200]],
+    'west-orbit': [[-2400, 470, -3700], [-1700, 470, -2800]],
+    'reservoir-west': [[-1600, 249, -4500], [-1600, 249, -1700], [-1800, 300, -1000]],
+    'reservoir-mid': [[400, 249, -5000], [0, 249, -2800], [-50, 249, -2200]],
+    'reservoir-east': [[1500, 249, -5000], [500, 249, -2200]],
+    gorge: [[-1440, 180, 1600], [-1100, 180, 400], [-760, 180, 0], [-640, 180, -450], [-400, 180, -800], [-150, 180, -1100], [0, 185, -1350]],
+    'high-east': [[1900, 700, -4600], [800, 650, -2700]],
+    'high-west': [[-2400, 700, -4400], [-1300, 650, -2400]],
+    'surface-east': [[1800, 219, -4000], [700, 219, -2300], [450, 219, -1880]],
+    'gorge-hunt': [[-760, 200, 0], [-100, 260, -1300]],
   },
 };
