@@ -15,12 +15,21 @@
  *                 FPV, the dive for a Loiterer; a Scout has none, so all
  *                 of it, its circle and its way out, must clear
  *   boats         on water (the floor is the reservoir's 219.0 m) until
- *                 the last leg, which sinks onto the intake
+ *                 the last leg, which runs on to the upstream face
  *   hunters       born at least MIN_CLEAR_M over the floor (the room
  *                 steers them from there, over the same floor)
  *
- * and prints each wave's lowest clearance before the terminal run and in
- * it. Exit 1 on any failure.
+ * and, the whole flight through, terminal run too, no attacker goes under
+ * the reservoir's surface (WATER_Y, less SURFACE_TOL_M of rounding): one
+ * may be lower than it only where it got there over lower ground, the
+ * gorge below the dam. The terminal run is exempt from the floor above
+ * because the floor is 40 m cells, the dam in it smeared 40 to 90 m out
+ * over the water; the surface is exact. A Striker once ran its last leg
+ * to a spillway gate's middle at 212.3 m and went into the water 130 m
+ * short (bug-552ecdab), which the floor rule could not see.
+ *
+ * It prints each wave's lowest clearance before the terminal run and in
+ * it, and how deep under the surface it goes. Exit 1 on any failure.
  *
  *   node scripts/war-routes-check.js
  *
@@ -49,6 +58,7 @@ import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const MIN_CLEAR_M = 15;
 const WATER_Y = 219;
+const SURFACE_TOL_M = 0.01;
 const SAMPLE_MS = 50;
 const PILOTS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -72,13 +82,15 @@ const failures = [];
 let worstAll = Infinity;
 for (const mission of Object.values(MISSIONS)) {
   console.log(`mission ${mission.id}: ${mission.waves.length} waves, 1 to 8 pilots, every attacker at err 0 and +-spread, every ${SAMPLE_MS} ms`);
-  console.log('  wave  at   kind    route             n(1..8)          before terminal   in terminal   terminal m');
+  console.log('  wave  at   kind    route             n(1..8)          before terminal   in terminal   terminal m under water');
   for (const [i, w] of mission.waves.entries()) {
     let before = Infinity;
     let inside = Infinity;
     let boatDry = 0;
     let termM = 0;
     let where = null;
+    let wet = 0;
+    let wetAt = null;
     const sizes = PILOTS.map((p) => waveSize(w, p));
     for (const n of new Set(sizes)) {
       for (let k = 0; k < n; k += 1) {
@@ -101,10 +113,19 @@ for (const mission of Object.values(MISSIONS)) {
           if (Number.isFinite(tt)) {
             termM = Math.max(termM, ((end - tt) / 1000) * (w.kind === 'loiter' ? KIND.loiter.dive : KIND[w.kind].speed));
           }
+          /* Under the surface over lower ground (the gorge): allowed, and
+           * carried on while it stays under. */
+          let lowOver = false;
           for (let t = 0; t <= end; t += SAMPLE_MS) {
             const p = poseAt(plan, t).p;
             const f = floor.floorAt(p[0], p[2]);
             const c = p[1] - f;
+            const under = p[1] < WATER_Y - SURFACE_TOL_M;
+            lowOver = under && (lowOver || f < WATER_Y - SURFACE_TOL_M);
+            if (under && !lowOver && WATER_Y - p[1] > wet) {
+              wet = WATER_Y - p[1];
+              wetAt = p.slice();
+            }
             if (t < tt) {
               if (w.kind === 'boat') {
                 boatDry = Math.max(boatDry, f - WATER_Y);
@@ -124,7 +145,10 @@ for (const mission of Object.values(MISSIONS)) {
     }
     const fmt = (v) => (Number.isFinite(v) ? `${v.toFixed(1)} m` : '-');
     const beforeText = w.kind === 'boat' ? `on water, ${boatDry.toFixed(2)} m dry` : fmt(before);
-    console.log(`  ${String(i + 1).padStart(4)} ${String(w.at).padStart(4)}  ${w.kind.padEnd(7)} ${w.route.padEnd(17)} ${sizes.join(',').padEnd(16)} ${beforeText.padEnd(17)} ${fmt(inside).padEnd(13)} ${termM ? termM.toFixed(0) : '-'}`);
+    console.log(`  ${String(i + 1).padStart(4)} ${String(w.at).padStart(4)}  ${w.kind.padEnd(7)} ${w.route.padEnd(17)} ${sizes.join(',').padEnd(16)} ${beforeText.padEnd(17)} ${fmt(inside).padEnd(13)} ${(termM ? termM.toFixed(0) : '-').padEnd(10)} ${wet ? `${wet.toFixed(1)} m` : '-'}`);
+    if (wet) {
+      failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): ${wet.toFixed(1)} m under the reservoir's surface near (${wetAt.map((v) => v.toFixed(0)).join(', ')})`);
+    }
     if (w.kind === 'boat') {
       if (boatDry > 0.01) {
         failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): a boat is on ground ${boatDry.toFixed(2)} m over the water near (${where.map((v) => v.toFixed(0)).join(', ')})`);
@@ -145,5 +169,5 @@ if (failures.length) {
   console.error(`FAIL, ${failures.length} route problem(s)`);
   process.exitCode = 1;
 } else {
-  console.log(`PASS, every flying attacker clears the floor by ${worstAll.toFixed(1)} m or more until its terminal run (at least ${MIN_CLEAR_M}), and every boat sails on the water`);
+  console.log(`PASS, every flying attacker clears the floor by ${worstAll.toFixed(1)} m or more until its terminal run (at least ${MIN_CLEAR_M}), every boat sails on the water, and nothing goes under the reservoir's ${WATER_Y} m surface (within ${SURFACE_TOL_M} m), terminal run included`);
 }
