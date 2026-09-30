@@ -946,7 +946,7 @@ export class MotorAudio {
       partials.push({ g, oscs, amp: [1, 0.7, 0.45, 0.28][k], rate: 1.2 + 1.8 * k });
     }
     this.schwingVoice = {
-      scrapeBp, scrapeEnv, whooshBp, whooshEnv, shingEnv, ringEnv, partials,
+      scrapeBp, scrapeEnv, whooshBp, whooshEnv, shingBp, shingEnv, ringEnv, partials,
     };
     this.schwings = 0;
 
@@ -970,6 +970,7 @@ export class MotorAudio {
     coinEnv.connect(shaper);
     this.coinVoice = { osc: gateOsc, env: coinEnv };
     this.coins = 0;
+    this.booms = 0;
 
     /* The bed. It brings its own nodes and counts them through keep. */
     this.music.attach(ctx, shaper, keep);
@@ -1253,6 +1254,87 @@ export class MotorAudio {
     osc.frequency.setValueAtTime(SCRAPE_GATE_HZ, end + 0.006);
     this.coins += 1;
     this.duckFlight(t, 0.6, 0.3);
+  }
+
+  /*
+   * An explosion in a war (src/render/explosion.js): `level` 0 to 1, 1 for
+   * this pilot's own warhead, and `distM` how far off it went, metres.
+   * A thump (the ring's fundamental pair retuned to a falling sub bass), a
+   * roar (the whoosh band swept down), a crack at the front (the shing
+   * band, only near) and a crackle tail (the scrape's noise, its gate
+   * stepped between irregular low rates so it spits rather than buzzes).
+   * Far off it arrives late, at the speed of sound, darker and quieter.
+   *
+   * NO NEW NODES: the graph stands at its budget of 64 (tests/thresholds.
+   * json max_nodes), so this plays on the SCHWING's and the coin's voice,
+   * which a war never uses (a room runs one game at a time), and puts
+   * back the two settings those read without setting (the shing's band
+   * and the gate's rate) once it is done.
+   */
+  boom(level = 1, distM = 0, atTime) {
+    if (!this.ctx || !this.schwingVoice) {
+      return;
+    }
+    const now = atTime == null ? this.ctx.currentTime : atTime;
+    const d = Math.max(0, distM);
+    const t = now + Math.min(2.5, d / 343);
+    const lv = Math.max(0.05, Math.min(1, level)) / (1 + d / 250);
+    const near = Math.max(0, 1 - d / 400);
+    /* A far one has lost its top: every band a fraction lower. */
+    const dark = 0.45 + 0.55 * near;
+    const v = this.schwingVoice;
+    const gate = this.coinVoice.osc.frequency;
+    const params = [v.scrapeBp.frequency, v.scrapeEnv.gain, v.whooshBp.frequency, v.whooshEnv.gain, v.shingEnv.gain, v.ringEnv.gain, gate];
+    for (const p of v.partials) {
+      params.push(p.g.gain, ...p.oscs.map((x) => x.o.frequency));
+    }
+    for (const p of params) {
+      p.cancelScheduledValues(now);
+    }
+    this.coinVoice.env.gain.cancelScheduledValues(now);
+    this.coinVoice.env.gain.setValueAtTime(0, now);
+    /* The thump: 110 Hz falling to 38 in a third of a second. */
+    for (const [k, p] of v.partials.entries()) {
+      p.g.gain.setValueAtTime(k === 0 ? 0.5 : 0, t);
+      if (k === 0) {
+        for (const { o } of p.oscs) {
+          o.frequency.setValueAtTime(110, t);
+          o.frequency.exponentialRampToValueAtTime(38, t + 0.35);
+        }
+      }
+    }
+    v.ringEnv.gain.setValueAtTime(0.0001, t);
+    v.ringEnv.gain.exponentialRampToValueAtTime(1.8 * lv, t + 0.008);
+    v.ringEnv.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+    /* The roar: a wide band from 700 Hz down to 140 over 1.4 s. */
+    v.whooshBp.frequency.setValueAtTime(700 * dark, t);
+    v.whooshBp.frequency.exponentialRampToValueAtTime(140, t + 1.4);
+    v.whooshEnv.gain.setValueAtTime(0.0001, t);
+    v.whooshEnv.gain.exponentialRampToValueAtTime(2.4 * lv, t + 0.012);
+    v.whooshEnv.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+    /* The crack, only close. */
+    v.shingBp.frequency.setValueAtTime(2600, t);
+    v.shingEnv.gain.setValueAtTime(0.0001, t);
+    if (near > 0) {
+      v.shingEnv.gain.exponentialRampToValueAtTime(Math.max(0.0002, 3.0 * lv * near), t + 0.002);
+      v.shingEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+    }
+    v.shingBp.frequency.setValueAtTime(6500, t + 0.5);
+    /* The crackle: the scrape's band falling, its gate stepped at
+     * irregular rates for 2.5 s, then back at its own. */
+    v.scrapeBp.frequency.setValueAtTime(3200 * dark, t);
+    v.scrapeBp.frequency.exponentialRampToValueAtTime(900, t + 2.6);
+    v.scrapeEnv.gain.setValueAtTime(0.0001, t);
+    v.scrapeEnv.gain.exponentialRampToValueAtTime(1.1 * lv, t + 0.25);
+    v.scrapeEnv.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+    let s = 0x9e3779b9;
+    for (let k = 0; k < 24; k += 1) {
+      s = (s * 1103515245 + 12345) >>> 0;
+      gate.setValueAtTime(11 + 38 * ((s >>> 8) / 16777216), t + k * 0.11);
+    }
+    gate.setValueAtTime(SCRAPE_GATE_HZ, t + 2.9);
+    this.booms += 1;
+    this.duckFlight(t, 0.35 + 0.35 * (1 - lv), 1.2);
   }
 
   /*

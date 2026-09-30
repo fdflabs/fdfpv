@@ -3,6 +3,9 @@
  * 5.2): the plant's output in megawatts as one big bar that falls red as
  * targets are hit, the wave, the rack of airframes left, this pilot's
  * kills, and short callouts as text under the voice ("STRIKERS LOW OVER THE RESERVOIR", "INTAKE 7 HIT: -700 MW").
+ * This pilot's own kill is called big in the middle of the picture
+ * ("SPLASH ONE", "SPLASH 3") and fades; a teammate's is one line of the
+ * callouts. At the go a line says how a warhead goes off.
  *
  * Styled as a military display over FPV video: monospace capitals, a
  * phosphor green on a dark scrim that holds over snow and sky alike, amber
@@ -102,6 +105,13 @@ export function createWarHud(nameOf) {
   let shown = '';
   let lostOutput = 0;
   const said = [];
+  /* The big centred kill call and the start's hint, over the picture's
+   * middle, each built when first shown. */
+  let splashEl = null;
+  let splashSeen = false;
+  let hintEl = null;
+  let hintTimer = 0;
+  let killsPulse = 0;
 
   function el(style, parent) {
     const d = document.createElement('div');
@@ -174,6 +184,54 @@ export function createWarHud(nameOf) {
     setTimeout(() => d.remove(), CALL_MS);
   }
 
+  /* This pilot's own kill, big in the middle of the picture, fading:
+   * "SPLASH ONE", "SPLASH 3". The KILLS cell pulses with it. */
+  function splash(text) {
+    if (!splashEl) {
+      splashEl = root({
+        position: 'fixed', top: '42%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: '43', pointerEvents: 'none',
+        fontWeight: '900', fontSize: 'clamp(40px, 7vw, 88px)', letterSpacing: '0.16em', color: AMBER, whiteSpace: 'nowrap',
+        textShadow: '0 0 18px rgba(255, 120, 20, 0.85), 0 0 4px rgba(0, 0, 0, 0.95), 0 3px 4px rgba(0, 0, 0, 0.95)',
+        opacity: '0',
+      });
+      splashEl.className = 'war-splash';
+    }
+    said.push(text);
+    if (said.length > 40) {
+      said.shift();
+    }
+    splashSeen = true;
+    splashEl.textContent = text;
+    splashEl.getAnimations().forEach((a) => a.cancel());
+    splashEl.animate([
+      { opacity: 0, transform: 'translate(-50%, -50%) scale(1.6)' },
+      { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.08 },
+      { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.7 },
+      { opacity: 0, transform: 'translate(-50%, -50%) scale(1.05)' },
+    ], { duration: 2600, easing: 'ease-out' });
+    killsPulse = performance.now() + 1500;
+    shown = '';
+  }
+
+  /* One centred line for `ms`, as at the go: how a warhead goes off. */
+  function hint(text, ms = 6000) {
+    if (!hintEl) {
+      hintEl = root({
+        position: 'fixed', top: '60%', left: '50%', transform: 'translateX(-50%)', zIndex: '41', pointerEvents: 'none',
+        fontWeight: '800', fontSize: '20px', letterSpacing: '0.1em', color: GREEN, textAlign: 'center', maxWidth: '86vw',
+        background: SCRIM, border: `1px solid ${DIM}`, padding: '6px 16px', textTransform: 'uppercase',
+        textShadow: '0 0 6px rgba(0, 0, 0, 0.95)', display: 'none',
+      });
+      hintEl.className = 'war-hint';
+    }
+    hintEl.textContent = text;
+    hintEl.style.display = 'block';
+    clearTimeout(hintTimer);
+    hintTimer = setTimeout(() => {
+      hintEl.style.display = 'none';
+    }, ms);
+  }
+
   /* roomwar's takeEvents(), in order. */
   function events(list) {
     for (const ev of list) {
@@ -185,7 +243,11 @@ export function createWarHud(nameOf) {
         }
         say(hitCall(ev), ev.hit ? 'bad' : '');
       } else if (ev.type === 'dead' && ev.why === 'boom') {
-        say(ev.mine ? plural('war.kill_mine', ev.ids.length) : plural('war.kill_by', ev.ids.length, { name: nameOf(ev.by) }));
+        if (ev.mine) {
+          splash(plural('war.kill_mine', ev.ids.length));
+        } else {
+          say(plural('war.kill_by', ev.ids.length, { name: nameOf(ev.by) }));
+        }
       } else if (ev.type === 'boom' && ev.mine) {
         say(str('war.boom_mine'), 'warn');
       }
@@ -249,6 +311,13 @@ export function createWarHud(nameOf) {
     const pips = v.rackMax <= PIPS_MAX ? ` ${'■'.repeat(v.rack)}${'□'.repeat(Math.max(0, v.rackMax - v.rack))}` : '';
     cell(str('war.rack', { n: v.rack, of: v.rackMax }) + pips, v.rack <= 1 ? RED : GREEN);
     cell(str('war.kills', { n: mine ? mine.kills : 0 }));
+    if (performance.now() < killsPulse) {
+      line.lastChild.animate([
+        { color: '#ffffff', textShadow: `0 0 10px ${AMBER}`, transform: 'scale(1.35)' },
+        { color: GREEN, transform: 'scale(1)' },
+      ], { duration: 1200, easing: 'ease-out' });
+      line.lastChild.style.display = 'inline-block';
+    }
     const over = v.state === 'won' || v.state === 'lost' || v.state === 'ended';
     banner.style.display = over ? 'block' : 'none';
     if (over) {
@@ -260,6 +329,8 @@ export function createWarHud(nameOf) {
 
   return {
     say,
+    splash,
+    hint,
     events,
     update,
     said: () => said.slice(),
@@ -269,6 +340,8 @@ export function createWarHud(nameOf) {
       line: line ? line.textContent : '',
       calls: calls ? [...calls.children].map((c) => c.textContent) : [],
       banner: banner && banner.style.display !== 'none' ? banner.textContent : '',
+      hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
+      splashSeen,
     }),
   };
 }
