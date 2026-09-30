@@ -54,7 +54,17 @@ const EDGE = 15;
  * height, the plinth's rise, metres (the aerial-dam photographs'
  * scale; OSM gives none of it). */
 export const TANK = {
-  length: 8, width: 4, height: 4.2, plinth: 0.5,
+  length: 8, width: 4, height: 4.2, plinth: 0.3,
+};
+/* What stands on the tank, metres in its frame (u along its axis):
+ * `conservator` a bar of half width r along u from u0 to u1, its axis `y`
+ * over the tank's top, and `bushings` at each u, `height` tall, half
+ * width r. Sized with the colliders (war/index.js HOLD). */
+export const KIT = {
+  conservator: {
+    u0: -3.4, u1: -0.4, y: 1, r: 0.45,
+  },
+  bushings: { u: [0.4, 1.8, 3.2], height: 1.8, r: 0.18 },
 };
 /* A transformer's centre stays this far off every building. */
 const HOUSE_CLEAR = 10;

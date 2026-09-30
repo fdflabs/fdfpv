@@ -199,6 +199,7 @@ import {
 } from './fc.js';
 import { FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY } from '../fc/dump.js';
 import { str, plural, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../strings/index.js';
+import { cleanCampaign } from '../game/campaign.js';
 /* The pilot's own tracks live in this browser's library, and My tracks
  * lists, copies, renames and deletes them there. */
 import {
@@ -771,6 +772,10 @@ const DEFAULTS = {
    * a profile stored before progression existed starts with everything
    * open, so nobody loses a plane they already flew. */
   progress: {},
+  /* Defend the Paraná: stars, credits, owned and equipped upgrades
+   * (src/game/campaign.js). Made safe by cleanCampaign on load; synced
+   * with the account like progress, merged by mergeCampaign. */
+  campaign: {},
   /* Each plane's prop, add-ons and last crash's broken parts, by airframe
    * id: { prop, addons, damage }, configs/hangar-parts.js. A plane with no
    * entry flies as the kit, whole. */
@@ -1071,6 +1076,7 @@ export function loadSettings() {
   s.livery = normaliseLiveries(s.livery);
   s.progress = normaliseProgress(stored.progress, { existing: Object.keys(stored).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
+  s.campaign = cleanCampaign(s.campaign);
   /*
    * The rate profile, from whichever shape this blob was written in.
    *
@@ -3139,6 +3145,27 @@ const WAYS = [
     svg: reticleSvg(),
     blurb: str('war.card_blurb'),
     facts: [str('war.card_hold'), str('war.card_warhead'), str('friends.card_code')],
+  },
+  {
+    /*
+     * DEFEND THE PARANÁ, the campaign: Defend Itaipu's missions in order,
+     * with stars, credits and a shop. The press opens the campaign's own
+     * screen (onCampaignCard, src/ui/campaign.js), whose Play then goes the
+     * Defend Itaipu card's way in. After that card, so the first match
+     * reads of this table (seatedWay) still land on it for the war.
+     */
+    id: 'campaign',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'itaipu',
+    room: true,
+    game: 'war',
+    campaign: true,
+    label: str('campaign.card'),
+    art: 'assets/posters/itaipu.jpg',
+    svg: reticleSvg(),
+    blurb: str('campaign.card_blurb'),
+    facts: [str('campaign.card_act'), str('campaign.card_missions'), str('campaign.card_shop')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -13384,6 +13411,10 @@ export class Ui {
     }
     /* A room's aircraft is chosen in the room, once it is known who is
      * flying what: the card goes straight to the room screen. */
+    if (way.campaign && this.onCampaignCard) {
+      this.onCampaignCard();
+      return;
+    }
     if (way.game === 'war' && this.onWarCard) {
       this.onWarCard(action);
       return;
