@@ -1571,8 +1571,8 @@ export async function boot({
    * choose its own spawns (spawnFor, below). */
   let floatBody = 0;
   /*
-   * A map with more than one start (Itaipu: a crest road for the planes, a
-   * field for the quads, the reservoir and the river for the floats, and
+   * A map with more than one start (Itaipu: the crest road for the planes
+   * and the quads, the reservoir and the river for the floats, and
    * one in the air) answers spawnFor(spawn, kind, wish) with the one for
    * this aircraft, given the view's spawn, which it hands back when that
    * is a course's start rather than its own. `wish` is the page's ?spawn=,
@@ -2407,19 +2407,22 @@ export async function boot({
   let warCrashDue = false;
 
   /* The host's row, where the war may run: a private room on the Itaipu
-   * map. The title's card and Make a room reach it through warEnter. A
+   * map. A public room there gets warPublicRows instead. The title's card and Make a room reach it through warEnter. A
    * room made for the war leads with its start row, as the other games'
    * cards lead with theirs. */
   function warRows(host, w) {
-    if (!w || w.public || w.map !== WAR_MAP) {
+    if (!w || w.map !== WAR_MAP) {
       return [];
     }
-    const v = roomWar.view();
     const head = { label: str('war.card'), section: true };
+    if (w.public) {
+      return [head, ...warPublicRows(host)];
+    }
+    const v = roomWar.view();
     /* A state this build has no words for (a later build's) says none. */
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on() && v.state !== 'briefing') {
-      return [head, {
+      return [head, ...warInviteRows(), {
         label: str('war.start'), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
         primary: ui.roomGame === 'war',
       }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
@@ -2430,6 +2433,55 @@ export async function boot({
     return [head, {
       label: str('war.row'), value: state, note: str(v.state === 'lobby' ? 'war.waiting' : 'war.row_note'), info: true,
     }];
+  }
+
+  /* Where the war may run, so where a room may say it is set up for it. */
+  function warFits(w) {
+    return Boolean(w) && !w.public && w.map === WAR_MAP;
+  }
+
+  /*
+   * A PUBLIC ROOM ON ITAIPU, where the owner, hosting three pilots, asked
+   * "where do i start itaipu war". The war stays out of public rooms
+   * (section 9, and the room server refuses it), and the server cannot
+   * turn a live room private (edge/rooms/core.js has no such message), so
+   * the host's way is a new private room on Itaipu, its invite code shown
+   * on top for the others to join by.
+   */
+  function warPublicRows(host) {
+    const why = { label: str('war.public_needs_private'), info: true };
+    if (!host) {
+      return [why, { label: str('war.public_ask_host'), info: true }];
+    }
+    return [why, {
+      label: str('war.public_make_private'), note: str('war.public_make_private_note'), action: 'friends-war-private',
+      primary: ui.roomGame === 'war',
+    }];
+  }
+
+  /* The code of the room made by warPublicRows' row, shown on top until
+   * the war begins, or null. */
+  let warInviteCode = null;
+  function warInviteRows() {
+    const code = roomLinkState.state().code;
+    if (!code || code !== warInviteCode) {
+      return [];
+    }
+    return [{
+      label: str('war.invite', { code }), note: roomNote || str('war.invite_note'), action: 'friends-copy',
+    }];
+  }
+
+  async function warFromPublic() {
+    try {
+      if (!(await warEnter())) {
+        return;
+      }
+      warInviteCode = roomLinkState.state().code;
+    } catch (e) {
+      roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
+    }
+    ui.refreshFriends();
   }
 
   /* The one screen of section 9, asked once per profile: true once the
@@ -2873,7 +2925,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
-    warAttackers.update(live);
+    warAttackers.update(live, roomWar.live() ? now : null);
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */
@@ -3956,7 +4008,13 @@ export async function boot({
        * profile.
        */
       const hostPeer = w && !host ? roomPeers.get(w.host) : null;
-      const game = w ? (w.mode || (host ? ui.roomGame : (hostPeer && hostPeer.profile.game)) || null) : null;
+      const wanted = w ? (w.mode || (host ? ui.roomGame : (hostPeer && hostPeer.profile.game)) || null) : null;
+      /* A title card's game outlives the room it was picked for: a pilot
+       * who pressed Defend Itaipu and then went into a public room still
+       * carries 'war', and the heading said the public room was set up for
+       * it. The room says it only where the war may run; elsewhere its
+       * block still leads, saying why not. */
+      const game = wanted === 'war' && !warFits(w) ? null : wanted;
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
@@ -3964,9 +4022,10 @@ export async function boot({
         combat: combatRows(host, w, game === 'combat'),
         war: warRows(host, w),
       };
-      /* Defend Itaipu last, unless the room was made for it, and only
-       * where it may run (warRows). */
-      const order = game ? [game, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== game)] : ['race', 'tag', 'combat', 'war'];
+      /* Defend Itaipu last, unless the room or its pilot came for it, and
+       * only on Itaipu (warRows): a public room there says why not. */
+      const first = game || (wanted === 'war' ? 'war' : null);
+      const order = first ? [first, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'war'];
       const games = [
         {
           label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
@@ -4052,6 +4111,10 @@ export async function boot({
   ui.onFriends = async (action) => {
     if (action === 'friends-war-start') {
       await warStart();
+      return;
+    }
+    if (action === 'friends-war-private') {
+      await warFromPublic();
       return;
     }
     if (action === 'friends-war-stop' || action === 'friends-end-war') {
@@ -15838,9 +15901,10 @@ export async function boot({
   };
   /* Put the spawn somewhere else, facing another way, as a crash recovery
    * does, and reset there: the water is declared again in the new spawn's
-   * frame, which is what a check of the waves' frame needs. Harness only. */
-  window.__respawn = (x, z, yaw) => {
-    resetCraft({ x, z, yaw });
+   * frame, which is what a check of the waves' frame needs. `y` is the
+   * fromY hint a spawn may carry (a seat on a dam's crest). Harness only. */
+  window.__respawn = (x, z, yaw, y) => {
+    resetCraft({ x, z, yaw, y });
     return true;
   };
   /* Show the map's waves on the title too, so a parked camera
@@ -16259,6 +16323,8 @@ export async function boot({
   crashCam.tapCrown(tagFx);
   /* A war's explosions, the same way. */
   crashCam.tapBooms(warBooms);
+  /* And its attackers, so a replay flies them where they were. */
+  crashCam.tapWar(roomWar, warAttackers);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

@@ -48,6 +48,7 @@
 
 import { trimPeers } from './peers.js';
 import { trimPaper } from './paper.js';
+import { trimWar } from './warrec.js';
 
 /* Seconds of flight a replay holds, and the most rows it takes to hold
  * them: 120 a second. A faster display is sampled down to that; a slower
@@ -377,6 +378,7 @@ export function trimClip(clip, t0, t1) {
     meta: { ...clip.meta, duration: time[n - 1] },
     ...(clip.peers ? { peers: trimPeers(clip.peers, a, b) } : {}),
     ...(clip.paper ? { paper: trimPaper(clip.paper, a, b, base, clip.time[b]) } : {}),
+    ...(clip.war ? { war: trimWar(clip.war, a, b) } : {}),
   };
 }
 

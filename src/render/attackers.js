@@ -278,7 +278,9 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
   return {
     group,
 
-    /* list: [{ id, kind, p, q }] (roomwar attackersAt). */
+    /* list: [{ id, kind, p, q }] (roomwar attackersAt). The room ms it
+     * was taken at is the crash cam's (src/replay/warrec.js), passed
+     * through its tap; the drawing does not need it. */
     update(list) {
       const by = new Map(KINDS.map((k) => [k, []]));
       for (const a of list) {

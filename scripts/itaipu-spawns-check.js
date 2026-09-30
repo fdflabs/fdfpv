@@ -67,7 +67,7 @@ import { key } from '../tests/lib/buildkeys.js';
 import { SETTINGS_KEY, FIRST_AIRFRAME, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { slotSpawn, SLOT_RIGHT_M } from '../src/game/slots.js';
-import { PLANE_SPAWN, QUAD_SPAWN, AIR_SPAWN } from '../src/maps/itaipu/spawns.js';
+import { CREST_SPAWN, AIR_SPAWN } from '../src/maps/itaipu/spawns.js';
 import { COURSES, courseDocument } from './itaipu-courses.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -279,11 +279,9 @@ async function settleAt(page, kind, yaw) {
 /* One page per aircraft and ?spawn=, its default start and every start
  * the query picks. */
 async function spawnsFor(airframe, cls) {
-  const cases = cls === 'plane'
-    ? [['', 'crest road', 'ground', { x: PLANE_SPAWN.x, z: PLANE_SPAWN.z, y: 225, surface: 'crest road' }]]
-    : cls === 'quad'
-      ? [['', 'viewpoint field', 'ground', { x: QUAD_SPAWN.x, z: QUAD_SPAWN.z, surface: 'ground' }]]
-      : [
+  const cases = cls !== 'float'
+    ? [['', 'crest road', 'ground', { x: CREST_SPAWN.x, z: CREST_SPAWN.z, y: 225, surface: 'crest road' }]]
+    : [
         ['', 'reservoir', 'water', { body: 0, y: water[0].y }],
         ['&spawn=river', 'river', 'water', { body: 1, y: water[1].y }],
       ];
@@ -301,6 +299,9 @@ async function spawnsFor(airframe, cls) {
       const j = judge(kind, a, b, want);
       check(`${cls} spawn, ${label}: settles in ${SETTLE_S} s with no damage (${airframe})`, j.ok, j.detail);
       await shoot(page, `${cls}-${label.replace(/ /g, '-')}`);
+      if (cls === 'plane' && !query) {
+        await crestPlace(page);
+      }
       if (ONLY.has('attract') && cls === 'quad' && !query) {
         await attract(page);
       }
@@ -315,15 +316,78 @@ async function spawnsFor(airframe, cls) {
   }
 }
 
+/*
+ * Where the crest start stands (src/maps/itaipu/spawns.js): past the east
+ * intake gantry the dam part built (its survey, sites.intakeGantries), on
+ * the side away from the intakes, 100 to 200 m from the nearest of them
+ * (dam.json), facing back along the crest; a straight run of RUNWAY m
+ * ahead of it on the crest road with nothing solid within RUNWAY_SIDE of
+ * the centre line at the heights a plane rolls and lifts off at; and every
+ * seat of a room's column on the road with nothing within SEAT_CLEAR.
+ */
+const RUNWAY = 400;
+const RUNWAY_SIDE = 2.5;
+const SEAT_CLEAR = 2.5;
+async function crestPlace(page) {
+  const dam = JSON.parse(await readFile(join(DATA, 'dam.json'), 'utf8'));
+  const intakes = dam.find((e) => e.part === 'intakes').points;
+  const seats = SLOT_RIGHT_M.map((_, i) => slotSpawn(CREST_SPAWN, i));
+  const r = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+    const g = window.__mapScene().userData.itaipu.parts.dam.survey().sites.intakeGantries;
+    const sp = ${JSON.stringify(CREST_SPAWN)};
+    const f = [-Math.sin(sp.yaw), -Math.cos(sp.yaw)];
+    const r = [f[1] * -1, f[0]];
+    let worst = 99, at = null, off = 0;
+    for (let d = 0; d <= ${RUNWAY}; d += 2) {
+      for (const side of [-${RUNWAY_SIDE}, 0, ${RUNWAY_SIDE}]) {
+        const x = sp.x + f[0] * d + r[0] * side;
+        const z = sp.z + f[1] * d + r[1] * side;
+        if (Math.abs(window.__heightAt(x, z) - 225) > 0.05) { off += 1; }
+      }
+      const x = sp.x + f[0] * d;
+      const z = sp.z + f[1] * d;
+      for (const h of [0.5, 1.5, 3]) {
+        const q = window.__nearSolid(x, 225 + h, z, 10);
+        if (q != null && q < h - 0.05 && q < worst) { worst = q; at = [x, 225 + h, z]; }
+      }
+    }
+    const seats = ${JSON.stringify(seats)}.map((p) => {
+      let m = 99;
+      for (const h of [0.5, 1.5, 3]) {
+        const q = window.__nearSolid(p.x, 225 + h, p.z, 10);
+        if (q != null && q < h - 0.05) { m = Math.min(m, q); }
+      }
+      return { x: p.x, z: p.z, ground: window.__heightAt(p.x, p.z), clear: m };
+    });
+    return { gantries: g, worst, at, off, seats };
+  })())`));
+  const g = r.gantries.reduce((a, b) => (Math.hypot(b.x - CREST_SPAWN.x, b.z - CREST_SPAWN.z) < Math.hypot(a.x - CREST_SPAWN.x, a.z - CREST_SPAWN.z) ? b : a));
+  const nearest = Math.min(...intakes.map(([x, z]) => Math.hypot(x - CREST_SPAWN.x, z - CREST_SPAWN.z)));
+  const fx = -Math.sin(CREST_SPAWN.yaw);
+  const fz = -Math.cos(CREST_SPAWN.yaw);
+  /* Ahead of the start: toward the gantry and the intakes beyond it. */
+  const gantryAhead = (g.x - CREST_SPAWN.x) * fx + (g.z - CREST_SPAWN.z) * fz;
+  const intakesAhead = intakes.every(([x, z]) => (x - CREST_SPAWN.x) * fx + (z - CREST_SPAWN.z) * fz > gantryAhead);
+  check('crest start: past the intake gantry, away from the intakes, 100 to 200 m from the nearest',
+    gantryAhead > 0 && intakesAhead && nearest >= 100 && nearest <= 200,
+    `gantry at (${f1(g.x)}, ${f1(g.z)}) ${f1(gantryAhead)} m ahead along the road, every intake beyond it, nearest ${f1(nearest)} m`);
+  check(`crest start: ${RUNWAY} m of straight crest road ahead, nothing within ${RUNWAY_SIDE} m of the line`,
+    r.off === 0 && !(r.worst < RUNWAY_SIDE),
+    `${r.off} samples off the 225 m road; nearest solid ${r.at ? `${f2(r.worst)} m at ${JSON.stringify(r.at.map((v) => +v.toFixed(1)))}` : 'over 10 m'}`);
+  const badSeat = r.seats.findIndex((p) => Math.abs(p.ground - 225) > 0.05 || p.clear < SEAT_CLEAR);
+  check(`crest start: all ${r.seats.length} room seats on the road, nothing within ${SEAT_CLEAR} m`, badSeat < 0,
+    r.seats.map((p, i) => `${i + 1} (${f2(p.x)}, ${f2(p.z)}) ${p.clear < 99 ? f1(p.clear) : '>10'} m`).join(', '));
+}
+
 /* Every seat of a room of eight at this spawn, each put there as a
  * respawn does and given SETTLE_S. */
 async function rooms(page, cls, kind, want, sp) {
-  const home = cls === 'plane' ? PLANE_SPAWN : cls === 'quad' ? QUAD_SPAWN : water[0].spawn;
+  const home = cls === 'float' ? water[0].spawn : CREST_SPAWN;
   const bad = [];
   let worst = '';
   for (let i = 1; i < SLOT_RIGHT_M.length; i += 1) {
     const p = slotSpawn(home, i);
-    await page.evaluate(`window.__respawn(${p.x}, ${p.z}, ${p.yaw})`);
+    await page.evaluate(`window.__respawn(${p.x}, ${p.z}, ${p.yaw}, ${p.y ?? 'undefined'})`);
     await page.sleep(100);
     const { a, b } = await settleAt(page, kind, p.yaw);
     const j = judge(kind, a, b, { ...want, x: p.x, z: p.z });

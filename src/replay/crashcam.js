@@ -63,6 +63,8 @@ import { createPeerScene } from './peerscene.js';
 import { createPaperRing } from './paper.js';
 import { createPaperScene } from './paperscene.js';
 import { SIZE_MAX } from '../render/explosion.js';
+import { createWarRing } from './warrec.js';
+import { createWarScene } from './warscene.js';
 import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
 } from './cameras.js';
@@ -114,6 +116,8 @@ export function createCrashCam(host) {
   const { shell, audio, input, journal } = host;
   const rec = createRecorder();
   const peerRing = createPeerRing(rec.capacity);
+  /* A war's attackers (src/replay/warrec.js). */
+  const warRing = createWarRing(rec.capacity);
   const paperRing = createPaperRing(rec.capacity);
   /* Harness only: the paper as recorded, by ring row, while switched on. */
   let paperLog = null;
@@ -158,6 +162,7 @@ export function createCrashCam(host) {
   function record(nowWall) {
     peerRing.begin(-1);
     paperRing.begin(-1);
+    warRing.begin(-1);
     if (S) {
       return;
     }
@@ -183,6 +188,7 @@ export function createCrashCam(host) {
       rec.clear();
       peerRing.clear();
       paperRing.clear();
+      warRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -193,6 +199,7 @@ export function createCrashCam(host) {
     }
     peerRing.begin(i);
     paperRing.begin(i);
+    warRing.begin(i);
     paperRing.prune(rec.now(), WINDOW_S);
     const quad = shell.quad;
     rec.anim(i, host.animMs());
@@ -420,6 +427,36 @@ export function createCrashCam(host) {
     };
   }
 
+  /*
+   * A war (src/share/roomwar.js and src/render/attackers.js): each birth
+   * and death it hears, and each frame's drawing at the room clock, kept
+   * for the replay (src/replay/warrec.js). Births and deaths are kept
+   * whatever the screen, so an attacker born while the pilot was on a
+   * menu is still drawn once recording picks up; a row is only written
+   * while the recorder has one open.
+   */
+  function tapWar(war, layer) {
+    const take = war.takeEvents;
+    war.takeEvents = () => {
+      const evs = take();
+      for (const ev of evs) {
+        if (ev.type === 'born') {
+          warRing.born(war.view().mission, ev.agents);
+        } else if (ev.type === 'dead') {
+          warRing.dead(ev.ids);
+        }
+      }
+      return evs;
+    };
+    const update = layer.update;
+    layer.update = (list, roomMs = null) => {
+      if (!S) {
+        warRing.draw(roomMs, list);
+      }
+      return update(list, roomMs);
+    };
+  }
+
   /* ---- the pad ---- */
 
   function standardPad() {
@@ -506,6 +543,10 @@ export function createCrashCam(host) {
       const paper = paperRing.clip(first, n, t0, t1);
       if (paper) {
         clip.paper = paper;
+      }
+      const war = warRing.clip(first, n);
+      if (war) {
+        clip.war = war;
       }
     }
     /* A saved clip of one frame is a still, and plays as one. */
@@ -632,14 +673,19 @@ export function createCrashCam(host) {
     const peers = clip.peers ? createPeerScene(clip.peers, clip.time, clip.n, parent, host.craftLook || null) : null;
     /* Combat's paper, when the clip has it. */
     const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor) : null;
+    /* A war's attackers, when the clip has them. */
+    const war = clip.war ? createWarScene(clip.war, clip.n, parent) : null;
     return {
-      craft, wreck, debris, smoke, peers, paper, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
+      craft, wreck, debris, smoke, peers, paper, war, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
   }
 
   function disposeScene(sc) {
     if (sc.peers) {
       sc.peers.dispose();
+    }
+    if (sc.war) {
+      sc.war.dispose();
     }
     if (sc.paper) {
       sc.paper.dispose();
@@ -987,6 +1033,9 @@ export function createCrashCam(host) {
     aimCamera();
     /* After the camera: the ribbons are never drawn thinner than a few
      * pixels, so they are drawn from where it is this frame. */
+    if (S.scene.war) {
+      S.scene.war.frame(s.k, s.a);
+    }
     if (S.scene.paper) {
       const ace = S.scene.peers ? S.scene.peers.aceAt() : null;
       S.scene.paper.frame(s.k, s.a, from, t, running, speed, shell.camera, shell.canvas.clientHeight || 720, ace);
@@ -1990,6 +2039,7 @@ export function createCrashCam(host) {
     tapPaper,
     tapCrown,
     tapBooms,
+    tapWar,
     noteCrash,
     promptKey: () => promptKey,
     tap,
@@ -2101,6 +2151,11 @@ export function createCrashCam(host) {
        * drew of them this frame. */
       booms: () => (S && S.clip.paper ? S.clip.paper.events.filter((e) => e.type === 'boom').map((e) => e.t) : []),
       boomFx: () => (S && S.scene.paper ? S.scene.paper.summary().booms : null),
+      /* A war's attackers as the replay drew them this frame, and the
+       * clip row drawn at a room ms, for scripts/war-boom.js. */
+      warDrawn: () => (S && S.scene.war ? S.scene.war.summary() : null),
+      warRow: (ms) => (S && S.scene.war ? S.scene.war.rowAt(ms) : -1),
+      warBytes: () => warRing.bytes(),
     }),
   };
 }
