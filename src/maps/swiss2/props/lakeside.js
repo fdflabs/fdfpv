@@ -752,11 +752,14 @@ export function buildLakeside({
     }), { low: deckY + 0.05, wall: () => albedoOf('larch') });
   }
   /* The church, up the slope behind the hotel: the village's church on
-   * the lake church's plan, its tower toward the water. */
+   * the lake church's plan, its tower toward the water. 74 m up from
+   * the shore, still in its plot: at 70 its tower's corner stood a metre
+   * into the house below it, and the nave's walls rose through that
+   * house's roof (scripts/collide-audit-swiss2.js). */
   {
     const p = shoreAt(58, true);
-    const x = p.x + p.ox * 70;
-    const z = p.z + p.oz * 70;
+    const x = p.x + p.ox * 74;
+    const z = p.z + p.oz * 74;
     const yaw = faceLake(p);
     const corners = cornersOf(x, z, yaw, 8.5, 17);
     const built = placeInto(bake, (f, found) => church(f, {

@@ -435,7 +435,11 @@ export function boathouse(f, {
   }
   f.put('larchDark', boxUp(0.24, 1.0, 0.24), 0, 0, z0 - 0.5);
   f.put(near('metal'), cached('s2winch', () => new THREE.CylinderGeometry(0.14, 0.14, 0.5, 8).rotateZ(Math.PI / 2)), 0, 0.8, z0 - 0.3);
-  /* The roof, dressed as the village's are. */
+  /* The roof, dressed as the village's are. Its walls (alps/roofs.js)
+   * start at the sills under the floor: under them is the lake and the
+   * piles, and walls stood from the lake bed were solid where nothing
+   * is drawn. */
+  roof.geo.userData.roof.base = -(h + 0.26);
   const rf = frame(f, 0, h, 0, 0);
   rf.put(roofKey, roof.geo);
   dressRoof(rf, roof, { roofKey, key: 'larchDark', edgeKey: board });
