@@ -2938,17 +2938,20 @@ export async function boot({
   const ROOM_ASK_MS = 4000;
   /* seat -> { name, until }: pilots whose socket dropped (onLeave). */
   const roomGone = new Map();
-  /* { why, fly, restart, moved } while this pilot is owed a move: fly,
-   * into the air at the end; restart, from the slot even when already
-   * flying; moved, once this summon has changed the seat or the world. */
+  /* { why, fly, restart } while this pilot is owed a move: fly, into the
+   * air at the end; restart, from the slot even when already flying. */
   let roomSummon = null;
   /* The target this pilot was last summoned to, 'world|track id'. */
   let roomSeenTarget = null;
   /* What the host asked the room to take: { map, track, at }. */
   let roomAsked = { map: null, track: null, at: 0 };
 
+  /* A join (a room made or joined, a reload or a dropped socket rejoining)
+   * seats the pilot in the room's world and leaves them where they are:
+   * the room screen with its code and start rows, the title, the pause.
+   * They go up at their own Fly, the room bar's, or a game's start. */
   function roomCall(why, { restart = false } = {}) {
-    const fly = why !== 'join' || !['friends', 'rooms'].includes(ui.screen);
+    const fly = why !== 'join';
     roomSummon = { why, fly, restart: restart || Boolean(roomSummon && roomSummon.restart) };
   }
 
@@ -3099,25 +3102,25 @@ export async function boot({
       return;
     }
     if (!roomInPlace(target)) {
-      s.moved = true;
-      roomSeat(target);
+      roomSeat(target, s.fly);
+      return;
+    }
+    /* Not to be flown (a room just made or joined from the room screen):
+     * the seat is the room's, and the world is built at Fly as ever. Built
+     * now, the swap would land the pilot on the title, off the room screen
+     * and its start rows. */
+    if (!s.fly) {
+      roomSummon = null;
       return;
     }
     titleWorld = null;
     buildWorld = null;
     if (!worldMatchesSettings()) {
-      s.moved = true;
       syncWorld();
       roomTellProfile();
       return;
     }
     roomSummon = null;
-    /* A pilot who paused where the room flies and is welcomed again (the
-     * socket came back, or they joined from the pause menu) stays paused:
-     * the room bar asks them up, and a craft is not flown off unattended. */
-    if (!s.fly || (s.why === 'join' && mode === 'paused' && !s.moved)) {
-      return;
-    }
     if (roomTag.on()) {
       roomTagRunId = roomTag.view().id;
     }
@@ -3134,10 +3137,13 @@ export async function boot({
 
   /* This pilot's seat moved to the room's target, which stands its world
    * (syncWorld: the course alone on the world already up, else the
-   * loading screen) and lands on the title, to be flown from there. */
-  function roomSeat(target) {
-    titleWorld = null;
-    buildWorld = null;
+   * loading screen) and lands on the title, to be flown from there. A
+   * pilot not to be flown keeps the title's world until their Fly. */
+  function roomSeat(target, fly) {
+    if (fly) {
+      titleWorld = null;
+      buildWorld = null;
+    }
     const t = target.track;
     if (t) {
       if (seatTrackId() !== t.id) {
