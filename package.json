@@ -87,6 +87,7 @@
     "tag:harness": "node scripts/tag-harness.js",
     "war:harness": "node scripts/war-harness.js",
     "war:twopage": "node scripts/war-twopage.js",
+    "war:solo": "node scripts/war-solo-page.js",
     "war:markers": "node scripts/war-markers.js",
     "war:radio": "node scripts/warradio-selftest.js",
     "war:hudlayout": "node scripts/war-hud-layout.js",
