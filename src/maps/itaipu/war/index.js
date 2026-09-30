@@ -43,7 +43,9 @@
  */
 
 import { makeSink } from '../town/mesh.js';
-import { planYard, TANK, FENCE } from './plan.js';
+import {
+  planYard, TANK, KIT, FENCE,
+} from './plan.js';
 
 /* Linear tints: galvanised steel, the tanks' grey paint, concrete, and
  * the bushings' brown porcelain. Every piece is in the kit's plain group
@@ -55,12 +57,10 @@ const CONCRETE = [0.32, 0.31, 0.29];
 const PORCELAIN = [0.22, 0.1, 0.05];
 
 /*
- * A transformer as drawn and as collided, metres in its own frame (u
- * along its axis, y over the ground). What stands on the tank:
- * `conservator` a bar of half width r along u from u0 to u1 with its axis
- * `y` over the tank's top, and `bushings` at each u, `height` tall. The
- * colliders (HOLD): two capsules along the tank from -u to u, at each y,
- * radius r, and one on the conservator's axis along it and the bushings.
+ * A transformer as collided, metres in its own frame (u along its axis,
+ * y over the ground), for the drawing in plan.js TANK and KIT: two
+ * capsules along the tank from -u to u, at each y, radius r, and one on
+ * the conservator's axis along it and the bushings.
  *
  * Tuned together, by sampling the drawn plinth, tank, conservator and
  * bushings every 1/16 m2 and the capsules' outsides 5 cm out, as the
@@ -73,12 +73,6 @@ const PORCELAIN = [0.22, 0.1, 0.05];
  * them. The plinth is PLINTH wider than the tank and as high as the
  * ground holds (plan.js TANK.plinth, 0.3 m).
  */
-const KIT = {
-  conservator: {
-    u0: -3.4, u1: -0.4, y: 1, r: 0.45,
-  },
-  bushings: { u: [0.4, 1.8, 3.2], height: 1.8, r: 0.18 },
-};
 const HOLD = {
   tank: { u: 2.7, y: [1.1, 3.4], r: 2.2 },
   top: { u: 3.2, r: 0.6 },
