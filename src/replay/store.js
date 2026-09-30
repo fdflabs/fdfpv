@@ -135,5 +135,5 @@ export function stampedName(mapId, ext) {
   const p = (n) => String(n).padStart(2, '0');
   const stamp = `${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}`
     + `-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}`;
-  return `fdfpv-${String(mapId || 'replay').replace(/[^a-z0-9_-]/gi, '')}-${stamp}${ext}`;
+  return `py-drone-combat-${String(mapId || 'replay').replace(/[^a-z0-9_-]/gi, '')}-${stamp}${ext}`;
 }
