@@ -71,7 +71,9 @@ import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { MISSIONS } from '../edge/rooms/war.js';
 import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';
-import { BLAST_M, planAgent, poseAt } from '../src/share/war/routes.js';
+import {
+  BLAST_M, KIND, planAgent, poseAt,
+} from '../src/share/war/routes.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 
 const arg = (name, dflt) => {
@@ -247,13 +249,13 @@ function mission(id, waves, routes) {
   };
 }
 
-/* Head on: the Strike along +x through the origin at GO + 1 s + 8 s, the
- * defender along -x with its nearest part passing `reach` from it. `lead`
+/* Head on: the Strike along +x through the origin, 300 m after its birth
+ * at GO + 1 s, the defender along -x with its nearest part passing `reach` from it. `lead`
  * is a briefing before the countdown (INTRO_MS, or 0 for none). */
 function pass(reach, lead = 0) {
   const air = ['cub1400'];
   const off = offsetFor(air[0], -20, reach);
-  const meet = GO + lead + 1000 + (300 / 38) * 1000;
+  const meet = GO + lead + 1000 + (300 / KIND.strike.speed) * 1000;
   const m = mission('pass', [{ at: 1, kind: 'strike', n: 1, route: 'line' }], { line: [[-300, Y, 0], [300, Y, 0]] });
   const sc = {
     name: `${lead ? 'briefed ' : ''}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,

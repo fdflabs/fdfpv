@@ -10,7 +10,7 @@
  * unit hit at both ends costs 1 400: the room counts targets, not units),
  * a spillway gate 350 (the plant runs down its reservoir to spill round
  * it), and the right bank switchyard 2 800, a fifth of the plant's way to
- * the grid. The mission is lost under floorMw, half the plant: ten units.
+ * the grid. The mission is lost under floorMw, 7 700 MW: eleven units.
  *
  * THE ROUTES fly the geography, y up, scene metres (-z is north):
  *   reservoir-*   Strikers 30 m over the reservoir (219 m) from the north,
@@ -34,32 +34,33 @@
  * each clears it until its terminal run: the last leg onto its target, or
  * a Loiterer's dive. Boats hold the water.
  *
- * THE WAVES, born at (minutes after the go), about ten minutes in all:
- *   0:05  a Scout over the reservoir
- *   0:20  Strikers on the switchyard (the biggest single loss, early, so
- *         the squad learns what a hit costs; it lands at 2:10)
- *   1:00  the first FPV swarm up the gorge, two penstocks
- *   1:50  a Loiterer on an intake, 2:30 Sea drones on another
- *   3:15  Hunters, mid mission: now the pilots are the targets
- *   3:35  a second Scout; 4:10 a swarm on four penstocks
- *   5:00  Loiterers on the gates, 5:40 Strikers on the west intakes
- *   6:35  the last wave, all at once: Strikers on the east intakes, a
- *         swarm, Loiterers, Hunters and boats
+ * THE WAVES. The attackers fly 0.7 of section 3's speeds (the owner,
+ * 2026-09-29), so each wave is born early enough to land when it did
+ * at full speed. Born at (minutes after the go), about ten minutes in
+ * all, the last wave's kinds born apart so they land together:
+ *   0:02  a Scout over the reservoir; Strikers on the switchyard (the
+ *         biggest single loss, early, so the squad learns what a hit
+ *         costs; they land at 2:41, 2.4 km from the intakes)
+ *   0:07  the first FPV swarm up the gorge, two penstocks (lands 3:03)
+ *   0:44  a Loiterer on an intake, 1:07 Sea drones on another
+ *   3:02  a second Scout; 3:15 Hunters, mid mission: now the pilots are
+ *         the targets; 3:18 a swarm on four penstocks
+ *   3:50  Loiterers on the gates, 5:03 Strikers on the west intakes (7:05)
+ *   5:22  the last wave, landing from 8:07 to 10:05: boats, Loiterers, a
+ *         swarm and Strikers on the east intakes, 6:44 Hunters
  * Undefended, the output is 9 100 MW at 5:00 (so the Hunters always come
  * to a war still on), falls under the floor at 6:13, and the whole
- * mission would take 2.8 times the 7 000 MW margin.
+ * mission would take 3.2 times the 6 300 MW margin.
  *
  * THE NUMBERS. Each wave's n is for one pilot and `per` more come for
- * every pilot after the first (index.js waveSize): 30 attackers alone,
- * 45 for two, 69 for four, 119 for eight. The output decides the game;
- * the rack, 18 airframes a pilot, is a backstop against waste. Taking
+ * every pilot after the first (index.js waveSize): 33 attackers alone,
+ * 52 for two, 89 for four, 161 for eight. The output decides the game;
+ * the rack, 20 airframes a pilot, is a backstop against waste. Taking
  * off from the crest road by the intakes (the spawn the lead is moving
- * there), a clean solo pilot flies short sorties and spends about 15 of
- * it; at 16 a solo bot that was winning on output ran out in 7 games of
- * 24, and losing with the plant at 10 000 MW for want of an airframe
- * reads as a bug, not a defeat. The first threat reaches the dam at 3:03
- * (the switchyard's Strikers land at 2:10, 2.4 km from the intakes), so
- * a pilot has time to take off and climb before anything arrives.
+ * there), a clean solo pilot flies short sorties and spends about 16 of
+ * it; losing with the plant at 10 000 MW for want of an airframe reads
+ * as a bug, not a defeat. The first threat reaches the dam at 3:03, so a
+ * pilot has time to take off and climb before anything arrives.
  * scripts/war-balance.js flies bot squads of 1, 2, 4 and 8 through it on
  * the real room (--spawn=x,z for where they take off); its table and the
  * reasons for these numbers are in the pull request that set them.
@@ -108,25 +109,25 @@ export default {
   map: 'itaipu',
   targets,
   output: 14000,
-  floorMw: 7000,
-  rack: 18,
+  floorMw: 7700,
+  rack: 20,
   /* Seconds after the go. */
   waves: [
-    { at: 5, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
-    { at: 20, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-    { at: 60, kind: 'fpv', n: 2, per: 0.75, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
-    { at: 110, kind: 'loiter', n: 1, per: 0.75, route: 'high-east', target: 'intake-12', spread: 25 },
-    { at: 150, kind: 'boat', n: 1, per: 0.75, route: 'surface-east', target: 'intake-17', spread: 20 },
+    { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
+    { at: 3, kind: 'strike', n: 1, per: 1, route: 'reservoir-west', target: 'yard-right', spread: 60 },
+    { at: 7, kind: 'fpv', n: 2, per: 1, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
+    { at: 44, kind: 'loiter', n: 1, per: 1, route: 'high-east', target: 'intake-12', spread: 25 },
+    { at: 67, kind: 'boat', n: 1, per: 1, route: 'surface-east', target: 'intake-17', spread: 20 },
+    { at: 182, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
     { at: 195, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { at: 215, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
-    { at: 250, kind: 'fpv', n: 4, per: 1, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
-    { at: 300, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
-    { at: 340, kind: 'strike', n: 4, per: 1.5, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
-    { at: 395, kind: 'strike', n: 3, per: 1.5, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
-    { at: 398, kind: 'fpv', n: 4, per: 1, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
-    { at: 401, kind: 'loiter', n: 2, per: 1, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
+    { at: 198, kind: 'fpv', n: 5, per: 1.5, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
+    { at: 230, kind: 'loiter', n: 2, per: 2, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
+    { at: 303, kind: 'strike', n: 5, per: 2, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
+    { at: 322, kind: 'boat', n: 2, per: 1, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
+    { at: 335, kind: 'loiter', n: 2, per: 2, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
+    { at: 344, kind: 'fpv', n: 5, per: 1.75, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
+    { at: 355, kind: 'strike', n: 3, per: 2.25, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
     { at: 404, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { at: 407, kind: 'boat', n: 2, per: 0.75, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
   ],
   routes: {
     'reservoir-orbit': [[300, 470, -5000], [300, 470, -3200]],

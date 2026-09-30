@@ -275,12 +275,14 @@ function floorRow(name, r) {
 
 function chaseRows() {
   /* Over the reservoir, 280 m up (61 over the water). */
-  const straight = chase([0, 280, -2600], (t) => [-400 - 25 * t, 280, -3200], 90);
-  caughtRow('straight: 25 m/s away from a hunter 721 m behind', straight, 70);
+  /* The two long chases scale with the hunters' speed (0.7 of section
+   * 4.4's since 2026-09-29): the quarry 0.7 as fast, 1 / 0.7 the time. */
+  const straight = chase([0, 280, -2600], (t) => [-400 - 17.5 * t, 280, -3200], 130);
+  caughtRow('straight: 17.5 m/s away from a hunter 721 m behind', straight, 100);
   floorRow('straight', straight);
 
-  const crossing = chase([-1200, 300, -3000], (t) => [-400, 260, -2000 - 30 * t], 90);
-  caughtRow('crossing: 30 m/s across its nose from 1.3 km', crossing, 70);
+  const crossing = chase([-1200, 300, -3000], (t) => [-400, 260, -2000 - 21 * t], 130);
+  caughtRow('crossing: 21 m/s across its nose from 1.3 km', crossing, 100);
   const far = chase([-1500, 300, -3500], (t) => [-400, 260, -2000 - 30 * t], 10);
   check(`out of range: no target past ${TARGET_RANGE_M} m`, far.caught < 0 && far.targets === 0, `started 1.9 km away, ${far.targets} ticks with a target`);
   /* Chased from just behind by its own target: a pilot holding station

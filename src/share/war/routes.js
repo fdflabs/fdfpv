@@ -60,22 +60,27 @@ export const BLAST_M = 6;
 export const KINDS = ['scout', 'loiter', 'strike', 'fpv', 'hunter', 'boat', 'jammer'];
 
 /*
- * Each kind's flight, m/s and metres (section 3): speed, the loiterer's
- * dive, the circle's radius and (the scout's) its time, the weave's
- * amplitude and period, and a group's spacing.
+ * Each kind's flight, m/s and metres: speed, the loiterer's dive, the
+ * circle's radius and (the scout's) its time, the weave's amplitude and
+ * period, and a group's spacing. The speeds are 0.7 of section 3's (the
+ * owner, 2026-09-29: "make all enemy drones 30% slower"); the circles
+ * and weaves keep their shape, so a weave's period is section 3's over
+ * 0.7 and a circle's radius is unchanged (it turns 0.7 as fast).
  */
+export const SPEED_SCALE = 0.7;
 export const KIND = {
-  scout: { speed: 15, orbitR: 300, orbitMs: 90000, gap: 60 },
-  loiter: { speed: 28, dive: 40, orbitR: 200, gap: 40 },
-  strike: { speed: 38, gap: 25 },
-  fpv: { speed: 30, weaveM: 8, weaveMs: 3000, gap: 6 },
-  hunter: { speed: 36, gap: 10 },
-  boat: { speed: 14, weaveM: 15, weaveMs: 8000, gap: 20 },
-  jammer: { speed: 5, gap: 30 },
+  scout: { speed: 10.5, orbitR: 300, orbitMs: 90000, gap: 60 },
+  loiter: { speed: 19.6, dive: 28, orbitR: 200, gap: 40 },
+  strike: { speed: 26.6, gap: 25 },
+  fpv: { speed: 21, weaveM: 8, weaveMs: 3000 / SPEED_SCALE, gap: 6 },
+  hunter: { speed: 25.2, gap: 10 },
+  boat: { speed: 9.8, weaveM: 15, weaveMs: 8000 / SPEED_SCALE, gap: 20 },
+  jammer: { speed: 3.5, gap: 30 },
 };
 
-/* How far a scout flies on after its circle before it is gone. */
-export const LEAVE_M = 3000;
+/* How far a scout flies on after its circle before it is gone: 200 s at
+ * its speed, as before it was slowed. */
+export const LEAVE_M = 2100;
 
 const TWO_PI = 6.283185307179586;
 const HALF_PI = 1.5707963267948966;

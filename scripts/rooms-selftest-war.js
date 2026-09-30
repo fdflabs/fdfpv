@@ -385,7 +385,7 @@ export function warSection(check) {
     ], { r: [[-1200, Y, 0], [-600, Y, 0]] });
     const e = warRoom({ mission: m });
     /* The strike is at -900 m at meetT, and so is seat 1, head on. */
-    const meetT = COUNTDOWN_MS + 1000 + (300 / 38) * 1000;
+    const meetT = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
     e.paths[0] = level(-900 + 15 * meetT / 1000, 0, -15);
     e.paths[1] = level(0, 400, 0);
     e.fly(meetT + 2000);
@@ -417,7 +417,8 @@ export function warSection(check) {
     const e = warRoom({ mission: m });
     e.paths[0] = hover([-900, Y, 0]);
     e.paths[1] = level(0, 400, 0);
-    e.fly(COUNTDOWN_MS + 12000);
+    /* Past the second strike's pass over the hover, 300 m down its route. */
+    e.fly(COUNTDOWN_MS + 4000 + (300 / KIND.strike.speed) * 1000 + 2000);
     const booms = e.r.war.log.filter((x) => x.what === 'boom');
     check('a defender that went off cannot go off again while its client has not broken it', booms.length === 1, JSON.stringify(booms));
     const m2 = testMission([
@@ -427,7 +428,7 @@ export function warSection(check) {
     const f = warRoom({ mission: m2 });
     f.paths[0] = hover([-900, Y, 0]);
     f.paths[1] = level(0, 400, 0);
-    const blast = COUNTDOWN_MS + 1000 + (300 / 38) * 1000;
+    const blast = COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000;
     f.flags[0] = (t) => (t > blast + 500 && t < blast + 3000 ? FLAG_CRASHED : FLAG_AIRBORNE);
     f.fly(COUNTDOWN_MS + 30000);
     const fb = f.r.war.log.filter((x) => x.what === 'boom');
@@ -497,12 +498,13 @@ export function warSection(check) {
     const e = warRoom({ mission: m });
     e.paths[0] = hover([500, Y, -500]);
     e.paths[1] = hover([500, Y, -520]);
-    e.fly(COUNTDOWN_MS + 1000 + (800 / 38) * 1000 + 200);
+    e.fly(COUNTDOWN_MS + 1000 + (800 / KIND.strike.speed) * 1000 + 200);
     const v = e.view();
     const arrive = e.of(1, 'dead').filter((d) => d.why === 'arrive');
     check('an attacker alive at its target takes the target\'s megawatts once', arrive.length === 2 && arrive.every((d) => d.hit && d.target === 'a')
       && v.output === 2000 && v.down.join() === 'a', JSON.stringify(v));
-    e.fly(COUNTDOWN_MS + 45000);
+    /* Past b's strike at its target: 400 m of route and on to b. */
+    e.fly(COUNTDOWN_MS + 20000 + ((400 + Math.hypot(400, 600)) / KIND.strike.speed) * 1000 + 500);
     check('under floorMw the game is lost, the instant it is', e.view().state === 'lost' && e.view().why === 'output' && e.view().output === 1000);
   }
 
@@ -567,9 +569,9 @@ export function warSection(check) {
     const near = bin.filter((b) => b.agents.length).length;
     const far = e.socks[1].got.filter((x) => x instanceof Uint8Array && x[0] === TYPE_AGENTS).length;
     check('the room sends a hunter\'s poses, as AGENTS, closing on the nearest pilot (400 m off: the 5 Hz band)', near >= 9 && bin.at(-1).agents[0].kind === KINDS.indexOf('hunter')
-      && bin.at(-1).agents[0].p[0] < 400 - 36, `${near} messages, last at x ${bin.length ? bin.at(-1).agents[0].p[0].toFixed(1) : '-'}`);
+      && bin.at(-1).agents[0].p[0] < 400 - KIND.hunter.speed, `${near} messages, last at x ${bin.length ? bin.at(-1).agents[0].p[0].toFixed(1) : '-'}`);
     check('thinned by distance: the pilot 3 km off gets them at the far band\'s rate', far > 0 && far < near / 4, `${far} against ${near}`);
-    e.fly(COUNTDOWN_MS + 16000);
+    e.fly(COUNTDOWN_MS + 1000 + (400 / KIND.hunter.speed) * 1000 + 4000);
     const booms = e.r.war.log.filter((x) => x.what === 'boom');
     check('a hunter that reaches a pilot takes it and itself', booms.length === 1 && booms[0].seat === 1 && e.view().state === 'won', JSON.stringify(e.r.war.log));
   }

@@ -57,8 +57,10 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const HUNTER_SPEED = 36;
-export const TURN_RATE = 2.5;
+/* 0.7 of section 4.4's 36 m/s and 2.5 rad/s (the owner slowed every
+ * attacker by 30 % on 2026-09-29): the same turn radius, 14.4 m. */
+export const HUNTER_SPEED = 25.2;
+export const TURN_RATE = 1.75;
 export const TARGET_RANGE_M = 1500;
 export const RETARGET_MS = 5000;
 export const CLEAR_M = 25;
@@ -73,7 +75,7 @@ export const HOME_M = 150;
  * A pilot higher than this is out of its reach too, by choice. */
 export const CEILING_M = 500;
 /* Horizontal distances ahead at which the floor is read, metres: the
- * farthest is 4.4 s at speed, time to climb a gorge wall at SLOPE_MAX. */
+ * farthest is 6.3 s at speed, time to climb a gorge wall at SLOPE_MAX. */
 const LOOK_M = [40, 80, 160];
 /* The steepest the aim may climb or dive, rise over run. */
 const SLOPE_MAX = 2;
