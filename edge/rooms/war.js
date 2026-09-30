@@ -441,7 +441,10 @@ export class RoomWar {
       rec.spentAt = t;
     }
     m.spent ??= {};
-    m.spent[seat] = Math.min(this.airframes(), (m.spent[seat] ?? 0) + 1);
+    /* Up to everything it has this round, earned airframes included:
+     * capped at the base, a pilot who had earned one could never be
+     * spent out, so never spectated, and the round waited on it. */
+    m.spent[seat] = Math.min(this.allowance(seat), (m.spent[seat] ?? 0) + 1);
   }
 
   /* A seat's airframes this round: the base and one a kill. */
