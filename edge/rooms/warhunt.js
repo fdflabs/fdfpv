@@ -10,13 +10,17 @@
  * TURN_RATE. Speed is constant. The target is the nearest live defender
  * within TARGET_RANGE_M, a tie to the lower seat, re-chosen when it dies
  * or leaves the list and every RETARGET_MS; with no target a hunter
- * holds its heading and levels off.
+ * heads back to its home (the point it was spawned to patrol, level at
+ * its own height) until it is within HOME_M of it, and otherwise holds
+ * its heading and levels off. Without a home it would fly on out of
+ * every pilot's range for good, and a war is not won while it lives.
  *
  * THE FLOOR. A hunter holds CLEAR_M over the floor (the heightfield's
  * floorAt, which folds in water and the dam: tools/itaipu/
  * build_war_height.py), looking ahead along its course so it climbs
  * before a wall, and is lifted onto the floor plus clearance if its turn
- * rate could not climb in time. The one exception is the last TERMINAL_M
+ * rate could not climb in time, and never more than CEILING_M over it.
+ * The one exception is the last TERMINAL_M
  * to its target: there the clearance is the target's own over the floor
  * (never below 0), or a defender skimming the reservoir at 5 m could
  * never be reached, since the bubble is BLAST_M = 6.
@@ -53,8 +57,10 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const HUNTER_SPEED = 36;
-export const TURN_RATE = 2.5;
+/* 0.7 of section 4.4's 36 m/s and 2.5 rad/s (the owner slowed every
+ * attacker by 30 % on 2026-09-29): the same turn radius, 14.4 m. */
+export const HUNTER_SPEED = 25.2;
+export const TURN_RATE = 1.75;
 export const TARGET_RANGE_M = 1500;
 export const RETARGET_MS = 5000;
 export const CLEAR_M = 25;
@@ -62,8 +68,14 @@ export const TERMINAL_M = 200;
 export const LEAD_MAX_S = 3;
 export const SUB_MS = 50;
 export const GAP_MS = 1000;
+export const HOME_M = 150;
+/* The most a hunter flies over the floor: a war is fought low (the
+ * highest attackers, mission 1's Loiterers, circle 431 m over the
+ * water), and a hunter lured upward must not leave every pilot's reach.
+ * A pilot higher than this is out of its reach too, by choice. */
+export const CEILING_M = 500;
 /* Horizontal distances ahead at which the floor is read, metres: the
- * farthest is 4.4 s at speed, time to climb a gorge wall at SLOPE_MAX. */
+ * farthest is 6.3 s at speed, time to climb a gorge wall at SLOPE_MAX. */
 const LOOK_M = [40, 80, 160];
 /* The steepest the aim may climb or dive, rise over run. */
 const SLOPE_MAX = 2;
@@ -167,9 +179,9 @@ export class Hunters {
     this.liftMax = 0;
   }
 
-  spawn(id, pos, roomMs) {
+  spawn(id, pos, roomMs, home = null) {
     this.list.set(id, {
-      id, p: [pos[0], pos[1], pos[2]], f: null, r: [1, 0, 0], target: -1, chosen: roomMs, ms: roomMs,
+      id, p: [pos[0], pos[1], pos[2]], f: null, r: [1, 0, 0], target: -1, chosen: roomMs, ms: roomMs, home: home ? [home[0], home[2]] : null,
     });
   }
 
@@ -235,13 +247,22 @@ export class Hunters {
       const dy = tgt.p[1] - p[1];
       const dz = tgt.p[2] - p[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      const lead = Math.min(LEAD_MAX_S, dist / HUNTER_SPEED);
+      /* A target behind it gets no lead: led, one on its tail puts the
+       * aim just ahead of the hunter, which then flies on (and up) for
+       * good instead of turning to meet it. */
+      const f = h.f;
+      const behind = f && f[0] * dx + f[1] * dy + f[2] * dz < 0;
+      const lead = behind ? 0 : Math.min(LEAD_MAX_S, dist / HUNTER_SPEED);
       ax = tgt.p[0] + tgt.v[0] * lead;
       ay = tgt.p[1] + tgt.v[1] * lead;
       az = tgt.p[2] + tgt.v[2] * lead;
       if (dist < TERMINAL_M) {
         clear = Math.max(0, Math.min(CLEAR_M, tgt.p[1] - floorAt(tgt.p[0], tgt.p[2])));
       }
+    } else if (h.home && (h.home[0] - p[0]) * (h.home[0] - p[0]) + (h.home[1] - p[2]) * (h.home[1] - p[2]) > HOME_M * HOME_M) {
+      ax = h.home[0];
+      ay = p[1];
+      az = h.home[1];
     } else {
       const f = h.f || [0, 0, -1];
       const n = Math.sqrt(f[0] * f[0] + f[2] * f[2]);
@@ -270,6 +291,8 @@ export class Hunters {
       hz = 0;
       slope = ay >= p[1] ? 1 : -1;
     }
+    /* Never aim over the ceiling. */
+    slope = Math.min(slope, run > 1e-6 ? (floorAt(p[0], p[2]) + CEILING_M - p[1]) / Math.max(run, LOOK_M[0]) : slope);
     const d = unit(hx, slope, hz);
     this.turn(h, d, TURN_RATE * dt);
     const f = h.f;
@@ -283,6 +306,7 @@ export class Hunters {
       this.liftMax = Math.max(this.liftMax, low - p[1]);
       p[1] = low;
     }
+    p[1] = Math.min(p[1], floorAt(p[0], p[2]) + CEILING_M);
   }
 
   /* Turn h.f toward the unit d by at most a radians; an unset heading
@@ -327,7 +351,7 @@ export class Hunters {
   save() {
     return {
       hunters: [...this.list.values()].map((h) => ({
-        id: h.id, p: h.p, f: h.f, r: h.r, target: h.target, chosen: h.chosen, ms: h.ms,
+        id: h.id, p: h.p, f: h.f, r: h.r, target: h.target, chosen: h.chosen, ms: h.ms, home: h.home,
       })),
     };
   }
@@ -336,7 +360,7 @@ export class Hunters {
     this.list = new Map();
     for (const h of value?.hunters ?? []) {
       this.list.set(h.id, {
-        id: h.id, p: [...h.p], f: h.f ? [...h.f] : null, r: [...h.r], target: h.target, chosen: h.chosen, ms: h.ms,
+        id: h.id, p: [...h.p], f: h.f ? [...h.f] : null, r: [...h.r], target: h.target, chosen: h.chosen, ms: h.ms, home: h.home ? [...h.home] : null,
       });
     }
   }

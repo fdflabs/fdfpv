@@ -83,17 +83,20 @@ A slow aircraft can still kill a fast one head on: the bubble (section
 ## 3. The threats
 
 Class names are generic on purpose: the enemy is never named, and neither
-are its weapons. All speeds are metres per second, chosen against section 2.
+are its weapons. All speeds are metres per second, chosen against section 2,
+then slowed to 0.7 of that on the owner's word on 2026-09-29 ("make all
+enemy drones 30% slower"): turn radii, circles and weaves keep their
+shape (src/share/war/routes.js KIND, edge/rooms/warhunt.js).
 
 | Kind | id | Speed | Flies | Wants | Kill |
 | --- | --- | --- | --- | --- | --- |
-| Scout | `scout` | 15 | circles at 250 m over a point for 90 s, then leaves | nothing: while it lives, the next wave's routes are exact (section 4.2) | any bubble |
-| Loiterer | `loiter` | 28 cruise, 40 dive | high approach, circles, dives on its target | an intake or a gate | any bubble |
-| Striker | `strike` | 38 | low, 30 m over water or 60 m over ground, straight | the switchyard or an intake | any bubble |
-| Swarm FPV | `fpv` | 30 | groups of 4 to 8 up the gorge, weaving | an intake or a penstock | any bubble |
-| Hunter FPV | `hunter` | 36 | steered by the room at the nearest defender (section 4.4) | a defender | any bubble; it also kills the defender it reaches |
-| Sea drone | `boat` | 14 | on the reservoir surface at 219.0 m, weaving | the upstream face at an intake | any bubble |
-| Jammer | `jammer` | 5 on water, 0 ashore | parks and jams | blinds the defenders (section 6.1) | any bubble; killing it lifts its jamming |
+| Scout | `scout` | 10.5 | circles at 250 m over a point for 90 s, then leaves | nothing: while it lives, the next wave's routes are exact (section 4.2) | any bubble |
+| Loiterer | `loiter` | 19.6 cruise, 28 dive | high approach, circles, dives on its target | an intake or a gate | any bubble |
+| Striker | `strike` | 26.6 | low, 30 m over water or 60 m over ground, straight | the switchyard or an intake | any bubble |
+| Swarm FPV | `fpv` | 21 | groups of 4 to 8 up the gorge, weaving | an intake or a penstock | any bubble |
+| Hunter FPV | `hunter` | 25.2 | steered by the room at the nearest defender (section 4.4) | a defender | any bubble; it also kills the defender it reaches |
+| Sea drone | `boat` | 9.8 | on the reservoir surface at 219.0 m, weaving | the upstream face at an intake | any bubble |
+| Jammer | `jammer` | 3.5 on water, 0 ashore | parks and jams | blinds the defenders (section 6.1) | any bubble; killing it lifts its jamming |
 
 Attackers carry no colliders: the static set is at 11 775 of 15 000
 (commit 07280efc). They are poses, a bubble, and a model.
@@ -180,7 +183,8 @@ Hunters are the one kind whose path depends on players, so the room
 steers them and sends their poses (5.1).
 
 - Pure pursuit with lead on the target defender's last relayed velocity,
-  turn rate capped at 2.5 rad/s, speed 36, at 30 Hz on the room tick.
+  turn rate capped at 1.75 rad/s, speed 25.2 (0.7 of the first 2.5 and
+  36, section 3), at 30 Hz on the room tick.
 - Target: the nearest live defender within 1 500 m; re-chosen when it
   dies or every 5 s.
 - Terrain: a coarse heightfield, `src/share/war/itaipu-height.bin`, 40 m
@@ -195,18 +199,43 @@ steers them and sends their poses (5.1).
   second on this machine (so under about 15 % of the VM's one core at the
   measured 2.2 times).
 
-### 4.5 Output, the rack, winning
+### 4.5 Output, rounds, airframes, winning
+
+The owner's rules of 2026-09-29, as `edge/rooms/war.js` plays them:
 
 - **Output** starts at 14 000 MW (20 units of 700). An attacker that
   reaches its target alive subtracts that target's `mw` once; a target
   already down takes nothing more. The mission's `targets` table is the
   only place a number lives.
-- **The rack** is shared: `rack x seats` airframes at start. Every
-  detonation, crash or failsafe loss takes one. A pilot with the rack
-  empty spectates.
-- **Win** when the last wave is dead with output at or above `floorMw`.
-  **Lose** the instant output is below `floorMw`, or the rack is empty
-  with attackers alive.
+- **Rounds.** A mission is rounds of waves (a wave's `round`; its `at`
+  counts from its round's start). Mission 1 has 5.
+- **Airframes, per pilot.** At each round's start every pilot has the
+  mission's `airframes` (4). Every detonation, crash or lost link spends
+  one of that pilot's; every attacker its warhead kills earns it one more
+  for the round (a swarm of N, N). Earned ones go with the round: the
+  next starts at 4 again. A pilot who has spent all it has spectates, and
+  cannot go off, until the round ends.
+- **A round ends** the instant either
+  - every wave of it is born and no attacker of it is left but Scouts:
+    **win** if the dam lost nothing in it, **damaged** if it did; or
+  - no pilot here is still flying: **lost**, and every attacker of it
+    still alive with a target gets through at once. A pilot is not
+    flying when it has spent everything, or when on its last airframe
+    it has been silent for `STALE_MS` (2 s: a menu, a pause, a dropped
+    link), sat on the ground for `GROUND_MS` (3 s) after taking off, or
+    not taken off again `RESPAWN_MS` (10 s) after its last loss. A pilot
+    who left is not here at all, so a round never waits on anyone.
+  
+  What is left (Scouts; on a loss, Hunters) is cleared. `RESULT_MS`
+  (6 s) of result follows, then the next round starts by itself.
+- **Win** when the last round ends with output at or above `floorMw`
+  (7 700 for mission 1). **Lose** only the instant output falls below
+  it. An empty rack never loses on its own.
+- **The view** carries `round`, `rounds`, `roundState` (`live` or
+  `result`), `roundResult` (`win`, `damaged` or `lost`), `roundMw`,
+  `nextRoundAt`, `airframes`, `spent` and `earned` (by seat), and
+  `rack` and `rackMax`: the match's airframes left and had this round,
+  earned ones included.
 - **Score** per pilot: kills, assists (within 50 m of a kill in the 3 s
   before it), and megawatts saved (the `mw` of each killed attacker's
   target). The team's number is the output at the end.

@@ -71,7 +71,9 @@ import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { MISSIONS } from '../edge/rooms/war.js';
 import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';
-import { BLAST_M, planAgent, poseAt } from '../src/share/war/routes.js';
+import {
+  BLAST_M, KIND, planAgent, poseAt,
+} from '../src/share/war/routes.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 
 const arg = (name, dflt) => {
@@ -247,13 +249,13 @@ function mission(id, waves, routes) {
   };
 }
 
-/* Head on: the Strike along +x through the origin at GO + 1 s + 8 s, the
- * defender along -x with its nearest part passing `reach` from it. `lead`
+/* Head on: the Strike along +x through the origin, 300 m after its birth
+ * at GO + 1 s, the defender along -x with its nearest part passing `reach` from it. `lead`
  * is a briefing before the countdown (INTRO_MS, or 0 for none). */
 function pass(reach, lead = 0) {
   const air = ['cub1400'];
   const off = offsetFor(air[0], -20, reach);
-  const meet = GO + lead + 1000 + (300 / 38) * 1000;
+  const meet = GO + lead + 1000 + (300 / KIND.strike.speed) * 1000;
   const m = mission('pass', [{ at: 1, kind: 'strike', n: 1, route: 'line' }], { line: [[-300, Y, 0], [300, Y, 0]] });
   const sc = {
     name: `${lead ? 'briefed ' : ''}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,
@@ -501,18 +503,18 @@ function sweep(sc, clock) {
  * The CPU the room spends in its own calls (poses and ticks), per second
  * of play from the go.
  */
-function cost(layout) {
+function cost(layout, parked = 52, hunters = 8) {
   const seats = 8;
   const air = Array.from({ length: seats }, () => 'cub1400');
   const crowd = layout === 'crowd';
   const at = air.map((_, i) => (crowd ? [2 * Math.cos(i * Math.PI / 4), Y, 2 * Math.sin(i * Math.PI / 4)] : [i * 120 - 420, Y, 0]));
   const routes = {};
   const waves = [];
-  for (let n = 0; n < 52; n += 1) {
+  for (let n = 0; n < parked; n += 1) {
     let p;
     if (crowd) {
       /* A Fibonacci sphere: evenly round the middle. */
-      const yv = 1 - (2 * (n + 0.5)) / 52;
+      const yv = 1 - (2 * (n + 0.5)) / parked;
       const rr = Math.sqrt(1 - yv * yv);
       const ang = n * 2.399963;
       p = [11.5 * rr * Math.cos(ang), Y + 11.5 * yv, 11.5 * rr * Math.sin(ang)];
@@ -521,13 +523,13 @@ function cost(layout) {
       const k = Math.floor(n / seats);
       const ang = (k * 2 * Math.PI) / 7 + i;
       const up = k % 2 ? -1 : 1;
-      p = [at[i][0] + 0.3 * Math.cos(ang), Y + up * (6.45 + 0.02 * k), at[i][2] + 0.3 * Math.sin(ang)];
+      p = [at[i][0] + 0.3 * Math.cos(ang), Y + up * (6.45 + (0.14 * k) / Math.ceil(parked / seats)), at[i][2] + 0.3 * Math.sin(ang)];
     }
     routes[`j${n}`] = [[p[0] - 0.5, p[1], p[2]], p];
     waves.push({ at: 0.5, kind: 'jammer', n: 1, route: `j${n}` });
   }
   routes.far = [[0, Y + 200, -1400]];
-  waves.push({ at: 1, kind: 'hunter', n: 8, route: 'far' });
+  waves.push({ at: 1, kind: 'hunter', n: hunters, route: 'far' });
   const m = mission('cost', waves, routes);
   const room = new RoomCore({
     code: 'W4RC00', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0,
@@ -698,12 +700,17 @@ for (const clock of clocks) {
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
 }
-console.log('\nthe cost of a war room: 8 pilots, 60 attackers, 30 s of play');
-for (const layout of ['crowd', 'shell']) {
-  const c = cost(layout);
-  const ok = c.msPerS < CPU_MS_PER_S && c.alive >= 59 && c.booms === 0;
-  console.log(`  ${ok ? 'pass' : 'FAIL'}  ${layout}: the room's CPU for 8 pilots and 60 attackers is under ${CPU_MS_PER_S} ms a second  (${c.msPerS.toFixed(1)} ms a second; ${c.alive.toFixed(1)} alive, ${c.pairs} pairs, ${c.booms} detonations)`);
-  failed += ok ? 0 : 1;
+/* The plan's 60 attackers, and mission 1's peak at 8 pilots: about 120
+ * alive at once (its last round), 5 of them Hunters. */
+for (const [parked, hunters] of [[52, 8], [115, 5]]) {
+  const all = parked + hunters;
+  console.log(`\nthe cost of a war room: 8 pilots, ${all} attackers (${hunters} hunters), 30 s of play`);
+  for (const layout of ['crowd', 'shell']) {
+    const c = cost(layout, parked, hunters);
+    const ok = c.msPerS < CPU_MS_PER_S && c.alive >= all - 1 && c.booms === 0;
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${layout}: the room's CPU for 8 pilots and ${all} attackers is under ${CPU_MS_PER_S} ms a second  (${c.msPerS.toFixed(1)} ms a second; ${c.alive.toFixed(1)} alive, ${c.pairs} pairs, ${c.booms} detonations)`);
+    failed += ok ? 0 : 1;
+  }
 }
 console.log(`\n${failed ? `${failed} FAILED` : 'all passed'} in ${Math.round((Date.now() - started) / 1000)} s`);
 process.exit(failed ? 1 : 0);
