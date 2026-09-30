@@ -203,7 +203,7 @@ export async function buildValley(shell, progress, q, style) {
   const village = await buildVillage({ ...base, rng: makeRng(20260925) });
   const life = buildLife({
     ...base, rng: makeRng(20260926), road: village.road, onGround: village.onGround, villageY: village.villageY,
-    roofs: village.roofs,
+    roofs: village.roofs, parts: village.parts,
   });
   /* A style's finish sees the whole built world, the village's walls
    * among the colliders included, and may still add colliders of its

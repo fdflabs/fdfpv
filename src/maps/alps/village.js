@@ -464,5 +464,7 @@ export async function buildVillage(ctx) {
   scene.add(villageGroup);
   await ctx.paint(0.7);
 
-  return { road, villageY, group: villageGroup, houses, onGround, roofs: bake.roofs };
+  return {
+    road, villageY, group: villageGroup, houses, onGround, roofs: bake.roofs, parts: bake.solids,
+  };
 }
