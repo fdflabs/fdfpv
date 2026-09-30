@@ -3228,10 +3228,16 @@ export async function boot({
     if (ui.updateReady) {
       return reload;
     }
+    /* A game's HUD (the war's, combat's, the Ace's, the race's) owns the
+     * screen while it is up: nothing of the room's is drawn over it. The
+     * owner's DNSF5B, alone in a war: "ENGAGE IN" under "You are alone". */
+    if (roomGameUp()) {
+      return null;
+    }
     const flying = mode === 'flight' && ui.screen === 'flight';
     const now = roomLinkState.roomNow();
     const othersUp = [...roomPeers.values()].some((p) => p.last && now != null && now - p.last.t < 3000);
-    if (!flying && (roomRunning() || othersUp)) {
+    if (!flying && othersUp) {
       return {
         text: str('rooms.fly_prompt'),
         button: str('rooms.fly_button'),
@@ -3241,8 +3247,12 @@ export async function boot({
     return roomAloneText(st) ? { text: roomAloneText(st) } : null;
   }
   function roomAloneText(st) {
-    return st.phase === 'open' && st.welcome && !st.welcome.public && roomPeers.size === 0 && roomGone.size === 0
+    return st.phase === 'open' && st.welcome && !st.welcome.public && roomPeers.size === 0 && roomGone.size === 0 && !roomGameUp()
       ? str('rooms.alone', { code: st.code }) : null;
+  }
+  /* A game on, or combat's card between rounds: its HUD is on screen. */
+  function roomGameUp() {
+    return roomRunning() != null || roomCombat.round().state === 'over';
   }
   let roomBarAt = 0;
   function roomBarFrame(wallMs) {
