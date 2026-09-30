@@ -118,6 +118,9 @@ import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
 import { SIZE_MAX as WAR_BOOM_MAX, createExplosions } from './render/explosion.js';
 import { createWarHud } from './ui/warhud.js';
 import { createWarMarkers } from './ui/warmarkers.js';
+import {
+  allowanceOf, createWarRoundCard, roundOf, spentOf,
+} from './ui/warround.js';
 import { createWarCalls } from './render/warradio.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
@@ -2338,8 +2341,9 @@ export async function boot({
    *                jamming out on 2026-09-29, docs/WARFARE-PLAN.md 6.1)
    *   the plant    warBoomMine breaks this craft on its own warhead; a war
    *                forces crash damage on between runs (applyCrashMode)
-   *   the rack     empty, and this craft a wreck: warSpectating, and the
-   *                camera follows a teammate in the air (warWatch)
+   *   rounds       out of airframes for the round: warSpectating, and the
+   *                camera follows a teammate (warWatch); the result card
+   *                (warRoundCard) and everybody relaunched at the next
    *   the booms    warBoomEvent: every kill, warhead and hit target is an
    *                explosion (src/render/explosion.js) in the scene, so it
    *                is in the FPV feed, the chase view and the crash cam's
@@ -2359,6 +2363,7 @@ export async function boot({
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
   const warHud = createWarHud(roomSeatName);
+  const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
   const warCalls = createWarCalls();
   /* The events of each frame as they were taken, for window.__war. */
@@ -2410,18 +2415,22 @@ export async function boot({
   /* The teammate the camera follows while this pilot spectates, by seat,
    * or -1. */
   let warWatchSeat = -1;
-  /* warSpectating() at the last room frame, to see the rack refill. */
-  let warWasSpectating = false;
+  /* The round this shell last saw, to put everybody back in the air when
+   * the next one starts. */
+  let warRoundSeen = null;
   /* Keys that would put a spectator back in the air, or swap its
    * aircraft, and the two that step between teammates instead. */
   const WAR_WATCH_KEYS = new Set(['BracketLeft', 'BracketRight', 'KeyR', 'KeyX', 'Tab']);
 
-  /* THE RACK EMPTY AND THIS CRAFT A WRECK (docs/WARFARE-PLAN.md 4.5):
-   * there is no airframe to fly, so the pilot spectates until the room
-   * refills the rack, and is then put back in the air (roomWarFrame). */
+  /* THIS PILOT'S AIRFRAMES SPENT FOR THE ROUND (docs/WARFARE-PLAN.md
+   * 4.5, src/ui/warround.js): the pilot spectates until the round ends,
+   * and the next one puts it back in the air (roomWarFrame). A room
+   * without rounds never makes a spectator. */
   function warSpectating() {
-    const v = roomWar.view();
-    return roomWar.live() && Number.isFinite(v.rack) && v.rack <= 0 && wrecked && (mode === 'flight' || mode === 'paused');
+    const r = roundOf(roomWar.view());
+    const seat = roomWar.seat();
+    return roomWar.live() && Boolean(r) && r.state === 'live' && r.airframes != null
+      && spentOf(r, seat) >= allowanceOf(r, seat) && (mode === 'flight' || mode === 'paused');
   }
 
   /* The teammate to watch this frame, stepped by `step` through the ones
@@ -2445,23 +2454,9 @@ export async function boot({
     return roomPeers.get(warWatchSeat);
   }
 
-  /* The spectator's line: when the rack refills, counted down on the
-   * room clock, and who is watched. The view's refillAt (room ms) and
-   * refillN come with the refilling rack (#239); a room without them
-   * says it is waiting. */
   function warWatchBanner() {
-    const v = roomWar.view();
-    const now = roomLinkState.roomNow();
-    let refill = str('war.refill_wait');
-    if (Number.isFinite(v.refillAt) && now != null) {
-      const s = Math.max(0, Math.ceil((v.refillAt - now) / 1000));
-      const wave = Math.min(v.wave + 1, v.waves);
-      refill = Number.isInteger(v.refillN) && v.refillN > 0 && Number.isInteger(wave)
-        ? str('war.refill', { s, n: v.refillN, wave })
-        : str('war.refill_s', { s });
-    }
     const peer = warWatch();
-    return peer ? str('war.refill_watch', { refill, name: roomName(peer.name) }) : refill;
+    return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
   }
 
   /* The host's row, where the war may run: a private room on the Itaipu
@@ -2940,13 +2935,18 @@ export async function boot({
     } else if (!roomWar.on() && warBegunId != null) {
       warFinish();
     }
-    /* The rack refilled under a spectator: back in the air on its slot,
-     * as a war's begin puts it. */
-    const spectating = warSpectating();
-    if (warWasSpectating && !spectating && roomWar.live() && wrecked && mode === 'flight' && v.rack > 0) {
-      ui.onAction('restart');
+    /* A new round: everybody back in the air on its slot, as a war's
+     * begin puts them, and the radio says how the last one went. */
+    const round = roomWar.live() ? roundOf(v) : null;
+    const roundKey = round ? `${v.id}:${round.n}:${round.state}` : null;
+    if (round && roundKey !== warRoundSeen && warRoundSeen && warRoundSeen.startsWith(`${v.id}:`)) {
+      if (round.state === 'live' && mode === 'flight') {
+        ui.onAction('restart');
+      } else if (round.state === 'result') {
+        warSay(warCalls.round(round.result));
+      }
     }
-    warWasSpectating = spectating;
+    warRoundSeen = roundKey;
     const events = roomWar.takeEvents();
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
@@ -3010,6 +3010,7 @@ export async function boot({
     warHudAt = wallMs + 250;
     const m = roomWar.mission();
     warHud.update(mode === 'flight' && ui.screen === 'flight' ? v : null, roomWar.seat(), now, m ? m.output : 0);
+    warRoundCard.update(mode === 'flight' && ui.screen === 'flight' ? v : null, now);
   }
 
   /* The game running in this room, as this screen knows it, or null. */
@@ -3916,6 +3917,7 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     hud: warHud.shown(),
+    round: warRoundCard.shown(),
     markers: warMarkers.shown(),
     said: warHud.said(),
     link: {
@@ -14427,6 +14429,10 @@ export async function boot({
       ui.setBanner('Crashed', true);
     } else if (ui.screen === 'flight' && warSpectating()) {
       ui.setBanner(warWatchBanner(), true);
+    } else if (ui.screen === 'flight' && roomWar.live() && roundOf(roomWar.view())?.state === 'result') {
+      /* The round's result card has the middle, and the next round puts
+       * everybody back in the air, so no wreck's R prompt under it. */
+      ui.setBanner('');
     } else if (wreckDown(nowWall) && ui.screen === 'flight') {
       ui.setBanner(str('main.wrecked_r_resets'), 'edge');
     } else if (

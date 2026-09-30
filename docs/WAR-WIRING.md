@@ -110,29 +110,46 @@ war forces damage on and so it cannot be off. The frame after goes through
 the wreck check; the room counts the boom's rack slot and nothing more for
 the wreck that follows (war.js, "A DEFENDER THAT WENT OFF").
 
-## 6. The rack empty: spectating
+## 6. Rounds: spectating, the result card, the relaunch
 
-Plan section 4.5: a pilot whose craft is a wreck while the war is live and
-the rack is at 0 has no airframe, and spectates until the room refills the
-rack. `warSpectating()` says so.
+A mission is played in rounds (plan section 4.5; the rules are
+edge/rooms/war.js's). The view carries them flat: `round` (1 based),
+`rounds`, `roundState` ('live' or 'result'), `roundResult` (null, 'win',
+'damaged' or 'lost'), `roundMw`, `nextRoundAt` (room ms or null),
+`airframes` (each pilot's for a round) and `spent` ({ seat: n }).
+`roundOf(view)` in src/ui/warround.js reads them defensively: a room
+without rounds gives null, and none of this happens.
 
-- `warWatch(step)` picks the teammate to follow: the peers drawn in the
-  air here (`drawnPose` set, the newest pose not crashed), in seat order,
-  keeping the one followed while it flies. `[` and `]` step through them
-  (`WAR_WATCH_KEYS`, checked in `input.onKey` before `ui.handleKey`,
-  which otherwise takes them for the aircraft swap); `R`, `X` and `Tab`
-  do nothing, and the pause menu's restart is refused in `ui.onAction`.
-- The camera chain's `watching` branch puts the camera behind the
-  teammate along the way it travels, from the chase camera's smoothed
-  vectors; a new teammate snaps.
-- The HUD and the markers stay up; the markers measure from the watched
-  teammate and frame a Hunter on it. The big banner (`warWatchBanner`)
-  counts down to the refill from the view's `refillAt` (room ms) with
-  `refillN` airframes at the next wave ("NO AIRFRAMES: back in 23 s (+2
-  at wave 5)"), or says it is waiting when the view has no `refillAt`,
-  and names the teammate watched.
-- The rack above 0 again: `roomWarFrame` puts the pilot back in the air
-  on its slot (`ui.onAction('restart')`). The war over, and it stops.
+- **Spectating.** `warSpectating()`: the round is live and this seat has
+  spent `airframes`. `warWatch(step)` picks the teammate to follow: the
+  peers drawn in the air here (`drawnPose` set, the newest pose not
+  crashed), in seat order, keeping the one followed while it flies. `[`
+  and `]` step through them (`WAR_WATCH_KEYS`, checked in `input.onKey`
+  before `ui.handleKey`, which otherwise takes them for the aircraft
+  swap); `R`, `X` and `Tab` do nothing, and the pause menu's restart is
+  refused in `ui.onAction`. The camera chain's `watching` branch puts the
+  camera behind the teammate along the way it travels, from the chase
+  camera's smoothed vectors; a new teammate snaps. The HUD and the markers
+  stay up, the markers measured from the watched teammate. The big banner
+  (`warWatchBanner`) says "OUT OF AIRFRAMES: watching {name}. Round ends
+  when the last one's down."
+- **The result card.** `warRoundCard.update(view, now)` in
+  `roomWarFrame` (src/ui/warround.js): while `roundState` is 'result',
+  "ROUND 3: HELD" in green, "ROUND 3: DAMAGED, -1 400 MW" in orange or
+  "ROUND 3: LOST, -2 800 MW" in red, a line a pilot (kills, airframes
+  used this round) and "NEXT ROUND IN 5" from `nextRoundAt`. The radio
+  says `warCalls.round(result)` once as the result arrives: wave-clear,
+  output-low or lose-rack.
+- **The relaunch.** `roomWarFrame` keeps the round it last saw
+  (`warRoundSeen`); a new round's first live view puts every flying
+  pilot back in the air on its slot (`ui.onAction('restart')`), as a
+  war's begin does.
+- **The HUD** (src/ui/warhud.js) shows "Round n/of" where the wave was
+  and this pilot's airframes left for the round as pips where the team's
+  rack was.
+
+A mission ends won (why 'rounds') or lost on output only; there is no
+loss on an empty rack any more.
 
 ## 7. The host's menu
 

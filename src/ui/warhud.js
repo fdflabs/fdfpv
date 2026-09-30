@@ -43,6 +43,7 @@
  */
 
 import { plural, str } from '../strings/index.js';
+import { allowanceOf, roundOf, spentOf } from './warround.js';
 import en from '../strings/en.js';
 
 const GREEN = '#7dff9a';
@@ -63,6 +64,8 @@ const LEFT = '132px';
 const WIDTH = 'clamp(220px, calc(50vw - 37vh - 142px), 380px)';
 /* The rack is drawn as pips up to this many, a count past it. */
 const PIPS_MAX = 24;
+/* A round's own airframes drawn as pips up to this many. */
+const PIPS_ROUND = 6;
 
 /* A number of megawatts with a thin space every three digits. */
 function mw(n) {
@@ -108,6 +111,13 @@ export function createWarHud(nameOf) {
   /* The big centred kill call and the start's hint, over the picture's
    * middle, each built when first shown. */
   let splashEl = null;
+  /* Under the splash, in rounds: the airframes the kill earned. */
+  let earnedEl = null;
+  /* This pilot's allowance at the last update, to pulse the pips when a
+   * kill grows it; and whether the view plays rounds. */
+  let allowWas = null;
+  let inRounds = false;
+  let pipsPulse = 0;
   let splashSeen = false;
   let hintEl = null;
   let hintTimer = 0;
@@ -213,6 +223,28 @@ export function createWarHud(nameOf) {
     shown = '';
   }
 
+  /* "+1 AIRFRAME", "+3 AIRFRAMES" under the splash, with it. */
+  function earned(n) {
+    if (!earnedEl) {
+      earnedEl = root({
+        position: 'fixed', top: 'calc(42% + clamp(40px, 7vw, 88px) * 0.75)', left: '50%', transform: 'translateX(-50%)', zIndex: '43',
+        pointerEvents: 'none', fontWeight: '900', fontSize: 'clamp(18px, 2.6vw, 30px)', letterSpacing: '0.16em', color: GREEN,
+        whiteSpace: 'nowrap', textShadow: '0 0 12px rgba(125, 255, 154, 0.7), 0 0 4px rgba(0, 0, 0, 0.95), 0 2px 3px rgba(0, 0, 0, 0.95)',
+        opacity: '0',
+      });
+      earnedEl.className = 'war-earned';
+    }
+    earnedEl.textContent = plural('war.earned', n);
+    said.push(earnedEl.textContent);
+    earnedEl.getAnimations().forEach((a) => a.cancel());
+    earnedEl.animate([
+      { opacity: 0 },
+      { opacity: 1, offset: 0.1 },
+      { opacity: 1, offset: 0.7 },
+      { opacity: 0 },
+    ], { duration: 2600, easing: 'ease-out' });
+  }
+
   /* One centred line for `ms`, as at the go: how a warhead goes off. */
   function hint(text, ms = 6000) {
     if (!hintEl) {
@@ -245,6 +277,9 @@ export function createWarHud(nameOf) {
       } else if (ev.type === 'dead' && ev.why === 'boom') {
         if (ev.mine) {
           splash(plural('war.kill_mine', ev.ids.length));
+          if (inRounds) {
+            earned(ev.ids.length);
+          }
         } else {
           say(plural('war.kill_by', ev.ids.length, { name: nameOf(ev.by) }));
         }
@@ -261,7 +296,7 @@ export function createWarHud(nameOf) {
       return str('war.won');
     }
     if (v.state === 'lost') {
-      return v.why === 'rack' ? str('war.lost_rack') : str('war.lost_output', { floor: mw(v.floor) });
+      return str('war.lost_output', { floor: mw(v.floor) });
     }
     return str('war.ended');
   }
@@ -286,7 +321,17 @@ export function createWarHud(nameOf) {
     }
     const mine = (v.scores || []).find((r) => r.seat === me);
     const countdown = v.state === 'countdown' ? Math.max(0, Math.ceil((v.goAt - roomNow) / 1000)) : null;
-    const key = JSON.stringify([v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500]);
+    /* In rounds (src/ui/warround.js) the round and this pilot's own
+     * airframes for it stand where the wave and the team's rack were. */
+    const round = roundOf(v);
+    inRounds = Boolean(round);
+    const allow = allowanceOf(round, me);
+    const left = allow != null ? Math.max(0, allow - spentOf(round, me)) : null;
+    if (allow != null && allowWas != null && allow > allowWas) {
+      pipsPulse = performance.now() + 1500;
+    }
+    allowWas = allow;
+    const key = JSON.stringify([v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
     if (key === shown) {
       return;
     }
@@ -308,10 +353,29 @@ export function createWarHud(nameOf) {
       const c = el({ color }, line);
       c.textContent = text;
     };
-    cell(countdown != null ? str('war.countdown', { s: countdown }) : str('war.wave', { n: Math.min(v.wave, v.waves), of: v.waves }), countdown != null ? AMBER : GREEN);
+    let phase = str('war.wave', { n: Math.min(v.wave, v.waves), of: v.waves });
+    if (countdown != null) {
+      phase = str('war.countdown', { s: countdown });
+    } else if (round) {
+      phase = str('war.round', { n: round.n, of: round.of ?? round.n });
+    }
+    cell(phase, countdown != null ? AMBER : GREEN);
     cell(str('war.contacts', { n: v.alive ?? 0 }), v.alive > 0 ? AMBER : GREEN);
-    const pips = v.rackMax <= PIPS_MAX ? ` ${'■'.repeat(v.rack)}${'□'.repeat(Math.max(0, v.rackMax - v.rack))}` : '';
-    cell(str('war.rack', { n: v.rack, of: v.rackMax }) + pips, v.rack <= 1 ? RED : GREEN);
+    if (left != null) {
+      /* Past PIPS_ROUND the pips would crowd the line: a count instead. */
+      const pips = allow <= PIPS_ROUND ? `${'■'.repeat(left)}${'□'.repeat(allow - left)}` : `■×${left}`;
+      cell(`${str('war.airframes')} ${pips}`, left <= 1 ? RED : GREEN);
+      if (performance.now() < pipsPulse) {
+        line.lastChild.animate([
+          { color: '#ffffff', textShadow: `0 0 10px ${GREEN}`, transform: 'scale(1.35)' },
+          { color: left <= 1 ? RED : GREEN, transform: 'scale(1)' },
+        ], { duration: 1200, easing: 'ease-out' });
+        line.lastChild.style.display = 'inline-block';
+      }
+    } else {
+      const pips = v.rackMax <= PIPS_MAX ? ` ${'■'.repeat(v.rack)}${'□'.repeat(Math.max(0, v.rackMax - v.rack))}` : '';
+      cell(str('war.rack', { n: v.rack, of: v.rackMax }) + pips, v.rack <= 1 ? RED : GREEN);
+    }
     cell(str('war.kills', { n: mine ? mine.kills : 0 }));
     if (performance.now() < killsPulse) {
       line.lastChild.animate([
