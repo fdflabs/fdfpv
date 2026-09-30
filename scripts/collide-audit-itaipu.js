@@ -232,7 +232,7 @@ async function footprints() {
     const rect = rectOf(ring);
     const style = styleOf(f, ring, rect, industrial);
     const drawn = style.onRect ? rectRing(rect) : ring;
-    const { boxes, eaves } = wallBoxes(drawn, rect, 0, 10, null, []);
+    const { boxes, eaves } = wallBoxes(drawn, 0, 10, null, []);
     const hull = hullOf(drawn);
     const deep = { concave: 0, slant: 0 };
     let at = null;

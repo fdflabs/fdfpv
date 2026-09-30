@@ -165,7 +165,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
     for (const rf of roof.faces) {
       sink.face(style.spec.surface, style.roofTint, rf.pts, rf.n, cast);
     }
-    const { boxes, eaves } = wallBoxes(drawn, rect, base, plate, roof.rec, roof.gables);
+    const { boxes, eaves } = wallBoxes(drawn, base, plate, roof.rec, roof.gables);
     /* The one box round the walls, for a building past FINE_R. */
     const env = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
     for (const b of boxes.slice(0, eaves)) {

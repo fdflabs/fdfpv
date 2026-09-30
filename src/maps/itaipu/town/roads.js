@@ -360,16 +360,12 @@ export function deckOf(f, ground) {
     records.push(rec);
     const world = (lx, ly, lz) => [uz * lx + ux * lz + cx, ym + ly, -ux * lx + uz * lz + cz];
     const ring = [world(-hw, 0, -hl), world(hw, 0, -hl), world(hw, 0, hl), world(-hw, 0, hl)].map((p) => [p[0], p[2]]);
-    const rect = {
-      cx, cz, ux, uz, hl, hs: hw, area: 4 * hl * hw, turned: Math.min(Math.abs(ux), Math.abs(uz)) > 0.17364817766693033,
-    };
-    boxes.push(...wallBoxes(ring, rect, Math.min(ys[k], ys[k + 1]) - DECK, Math.max(ys[k], ys[k + 1]), rec, []).boxes);
+    boxes.push(...wallBoxes(ring, Math.min(ys[k], ys[k + 1]) - DECK, Math.max(ys[k], ys[k + 1]), rec, []).boxes);
     /* The rails stand on the deck, solid whether or not the deck is a
      * craft's ground: they are not the record's own solids. */
     for (const sx of [-1, 1]) {
       const railRing = [world(sx * hw, 0, -hl), world(sx * (hw - 0.25), 0, -hl), world(sx * (hw - 0.25), 0, hl), world(sx * hw, 0, hl)].map((p) => [p[0], p[2]]);
-      const railRect = { ...rect, hs: 0.125 };
-      boxes.push(...wallBoxes(railRing, railRect, Math.min(ys[k], ys[k + 1]) - 0.1, Math.max(ys[k], ys[k + 1]) + RAIL, null, []).boxes);
+      boxes.push(...wallBoxes(railRing, Math.min(ys[k], ys[k + 1]) - 0.1, Math.max(ys[k], ys[k + 1]) + RAIL, null, []).boxes);
     }
     const sideN = [uz, 0, -ux];
     const up = [0, 1, 0];
