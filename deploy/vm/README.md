@@ -59,6 +59,11 @@ Worker and the simulator's two origins are the same string.
 - `dnf-automatic` applying security errata daily (Node and the OS; Caddy's
   COPR publishes no errata, so `sudo dnf upgrade caddy` by hand).
 - firewalld: ssh, http, https. Oracle's security list allows 22, 80, 443.
+  With voice chat's relay (below, deploy-turn.sh), also 3478 UDP and TCP,
+  5349 TCP and 49160 to 49200 UDP, in both.
+- `coturn`, voice chat's TURN relay, from Oracle's EPEL, once
+  deploy-turn.sh has run: its secret in `/etc/fdfpv/turn.env`, root, mode
+  600, read by the rooms unit too.
 - journald capped at 500 MB (`journald.conf`).
 
 Measured on 2026-09-28 with `scripts/rooms-soak.js` from the desktop:
@@ -111,6 +116,67 @@ password is hashed on the desktop and only the scrypt record goes to the
 VM. To change it, or to rotate `BUGS_TOKEN`, `BOARD_ADMIN_TOKEN` and
 `BOARD_SESSION_SECRET`, delete `/etc/fdfpv/board.env` on the VM (and the
 admin file, for a new password) and rerun.
+
+### Voice chat's TURN relay
+
+Voice chat (src/share/voice.js) goes pilot to pilot over WebRTC, found
+through public STUN, and works with nothing here but the rooms server
+that relays its signalling. coturn on this VM is the relay for the pilots
+whose networks will not let a direct link through; the client asks for it
+only after a direct try has failed, over UDP first and then TCP or TLS.
+
+**Oracle's security list must allow, inbound from 0.0.0.0/0, stateful:**
+
+| Protocol | Port | For |
+| --- | --- | --- |
+| UDP | 3478 | STUN and TURN |
+| TCP | 3478 | TURN over TCP, for networks that block UDP |
+| TCP | 5349 | TURN over TLS, for networks that allow only TLS |
+| UDP | 49160 to 49200 | the relay's ports, 41, one per allocation |
+
+firewalld opens the same ports on the VM (turn-install.sh). Then, from
+the desktop, in this order:
+
+```sh
+deploy/vm/deploy.sh /home/brains/Desktop/fdfpv-loop/online-tracks/ADMIN-SECRET.txt
+deploy/vm/deploy-turn.sh
+npm run voicechat:twopage -- https://129.151.39.48
+```
+
+deploy.sh puts the rooms server that knows voice on the VM, with its unit
+reading `/etc/fdfpv/turn.env` if there is one; voice works from here on,
+through STUN alone. deploy-turn.sh (idempotent) runs `turn-install.sh` as
+root on the VM:
+
+- coturn from Oracle's EPEL (`oracle-epel-release-el9`), with the drop-in
+  `coturn.conf` (always restarted, `MemoryMax` from a measured peak),
+- the first time only, `/etc/fdfpv/turn.env` (root, mode 600):
+  `TURN_SECRET`, made on the VM and never printed or copied off it, and
+  `TURN_URLS`, the three addresses pilots are handed,
+- `/etc/coturn/turnserver.conf` (root:coturn, 0640): `turnserver.conf`
+  here, plus `external-ip` (the public address and the private one Oracle
+  maps it to) and the secret,
+- `fdfpv-turn-cert.timer`: every six hours `turn-cert.sh` copies Caddy's
+  certificate for the address to `/etc/coturn/tls` and reloads coturn when
+  it changed, since Caddy renews it about every three days,
+- firewalld, and a restart of coturn or the rooms server only when a file
+  it reads at start is newer than it (the rooms' pilots reconnect).
+
+It ends by sending a STUN request to 3478 over UDP from the desktop
+(`scripts/stun-check.js`): no answer means coturn is down or the security
+list is not letting UDP 3478 in. The two page check then proves the rest
+against the live server: two pilots talk, and a relay candidate is
+gathered through coturn over UDP and over TCP or TLS with a credential
+the rooms server minted.
+
+The credentials are the TURN REST scheme (`edge/rooms/turn.js`): a
+username that is its own expiry, six hours out, and an HMAC of it with
+the shared secret, so coturn stores nothing and a credential dies by
+itself. coturn keeps no log (`log-file=/dev/null`), refuses to relay into
+private and loopback ranges or the metadata address, and holds each
+session to 16 kB/s. To rotate the secret, delete `/etc/fdfpv/turn.env`
+on the VM and rerun deploy-turn.sh; pilots in a room reconnect, and their
+voice links are made again with new credentials.
 
 ### Reading bug reports
 
