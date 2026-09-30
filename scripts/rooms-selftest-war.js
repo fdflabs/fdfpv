@@ -506,6 +506,36 @@ export function warSection(check) {
     check('under floorMw the game is lost, the instant it is', e.view().state === 'lost' && e.view().why === 'output' && e.view().output === 1000);
   }
 
+  console.log('war: the switchyard');
+  {
+    /* Mission 1's yard and its Strikers' route: the yard's r (537 m) is
+     * its extent for the smoke and markers, never where an attacker
+     * arrives. One 300 m from the yard's middle has not arrived; it does
+     * at its route's end, and hits within the yard's hitR. */
+    const yard = itaipu1.targets['yard-right'];
+    const m = testMission([{ at: 1, kind: 'strike', n: 1, route: 'w', target: 'yard' }], { w: itaipu1.routes['reservoir-west'] },
+      { targets: { yard }, output: 14000, floorMw: 7000 });
+    const plan = planAgent(m, {
+      id: 1, kind: 'strike', route: 'w', t0: COUNTDOWN_MS + 1000, k: 0, n: 1, err: 0, target: 'yard',
+    });
+    let t300 = plan.t0;
+    while (Math.hypot(...poseAt(plan, t300).p.map((v, i) => v - yard.at[i])) > 300) {
+      t300 += 10;
+    }
+    const e = warRoom({ mission: m });
+    e.paths[0] = hover([3000, 400, 3000]);
+    e.paths[1] = hover([3000, 400, 3020]);
+    e.fly(t300 + 1000);
+    const early = e.of(1, 'dead');
+    check(`an attacker 300 m from the yard's middle, inside its r of ${yard.r} m, has not arrived`,
+      yard.r > 300 && yard.hitR < 300 && early.length === 0 && e.view().output === 14000 && plan.tEnd - t300 > 5000,
+      `${early.length} dead, output ${e.view().output}, ${((plan.tEnd - t300) / 1000).toFixed(1)} s of its run still to fly`);
+    e.fly(Math.ceil(plan.tEnd) + 1000);
+    const at = e.of(1, 'dead').filter((d) => d.why === 'arrive');
+    check('it arrives at its route\'s end, on the yard, and takes its megawatts', at.length === 1 && at[0].hit && Math.abs(at[0].at - plan.tEnd) < 1
+      && e.view().output === 14000 - yard.mw, JSON.stringify(at));
+  }
+
   console.log('war: scouts');
   {
     const waves = [

@@ -93,6 +93,13 @@ const targets = {};
 for (const [id, t] of Object.entries(AT)) {
   targets[id] = { mw: MW[id.split('-')[0]], at: t.at, r: t.r };
 }
+/* The yard's r, 537 m, is its whole extent, for the smoke and the
+ * markers; an attacker with a seeded error (the Scouts dead) hits it only
+ * within YARD_HIT_M of its middle, the transformer rows, as an intake is
+ * hit within its 12 m. Every attacker arrives only at the end of its own
+ * route, its aim point, however deep in the yard's r it already is. */
+const YARD_HIT_M = 40;
+targets['yard-right'].hitR = YARD_HIT_M;
 
 const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
 

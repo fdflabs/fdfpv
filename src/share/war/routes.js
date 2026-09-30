@@ -32,7 +32,7 @@
  *
  * The aim point is the target's `at` moved sideways by `err` metres (the
  * seeded error the room draws once the scouts are dead): an attacker
- * whose |err| is more than the target's r misses it. A group's k of n
+ * whose |err| is more than the target's hitR (else its r) misses it. A group's k of n
  * flies `gap` metres to the side of the next, closing on the aim point as
  * it gets there; fpv and boats weave, dying away at the end.
  *

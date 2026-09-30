@@ -20,7 +20,8 @@
  *             reaches a pilot is the same test: both go.
  *   output    an attacker alive at the end of its route takes its
  *             target's mw once, when its seeded error left it within the
- *             target's r
+ *             target's hitR (its r where it has none): it arrives at its
+ *             own aim point, the end of its route, never sooner
  *   the rack  rack x pilots airframes at the go; every detonation and
  *             every crash takes one
  *   the end   won when every wave is born and none is left, with the
@@ -990,7 +991,7 @@ export class RoomWar {
     const t = x.plan.tEnd;
     const o = poseAt(x.plan, t);
     const target = a.target != null ? this.mission().targets[a.target] : null;
-    const hit = Boolean(target) && Math.abs(a.err) <= target.r;
+    const hit = Boolean(target) && Math.abs(a.err) <= (target.hitR ?? target.r);
     if (hit && !m.down.includes(a.target)) {
       m.down.push(a.target);
       m.output = Math.max(0, m.output - target.mw);
