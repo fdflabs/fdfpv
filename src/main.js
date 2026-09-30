@@ -2481,6 +2481,17 @@ export async function boot({
     host: () => roomHost(roomLinkState.state().welcome),
     go: (v) => roomWar.start(v.mission),
   });
+  /* Off the flight screen at once, not at the next frame (roomWarFrame
+   * keeps it after): a frame can be a second long (war-card-check counted
+   * one in the pause's first second), and the callouts stood over the
+   * pause menu for it. */
+  const warScreenChanged = ui.onScreenChange;
+  ui.onScreenChange = (screen) => {
+    warScreenChanged(screen);
+    if (screen !== 'flight') {
+      warHud.drawn(false);
+    }
+  };
   const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
   const warCalls = createWarCalls();
@@ -2881,6 +2892,7 @@ export async function boot({
     warBooms.clear();
     warFeedCut = null;
     warHud.update(null);
+    warHud.drawn(false);
     warMarkers.clear();
     if (warBegunId != null) {
       warFinish();
@@ -3046,6 +3058,7 @@ export async function boot({
       scene.add(warBooms.group);
     }
     const replay = mode === 'replay';
+    warHud.drawn(mode === 'flight' && ui.screen === 'flight');
     warAttackers.group.visible = !replay;
     /* The replay draws its own, from what the crash cam recorded. */
     warBooms.group.visible = !replay;
@@ -3655,6 +3668,11 @@ export async function boot({
      * screen while it is up: nothing of the room's is drawn over it. The
      * owner's DNSF5B, alone in a war: "ENGAGE IN" under "You are alone". */
     if (roomGameUp()) {
+      return null;
+    }
+    /* Nor on the title, which is out of the room (ui.onTitle): a reload
+     * rejoins there, and says nothing of it until the pilot flies. */
+    if (ui.screen === 'title') {
       return null;
     }
     const flying = mode === 'flight' && ui.screen === 'flight';
@@ -4429,6 +4447,23 @@ export async function boot({
     roomLinkState.leave();
     roomNote = null;
   }
+
+  /*
+   * THE TITLE IS NOT IN A ROOM. The owner (2026-09-30), back on the title
+   * from a private war room: "its showing like this, like its showing the
+   * empty room thats playing while im here, that shouldnt happen". The war
+   * went on with nobody flying it, its callouts and the room's "You are
+   * alone" drawn over the cards. Going back to the title (the menus' row,
+   * Escape from a screen whose way back is the title) leaves the room the
+   * way the room screen's Leave does, so an empty room closes on the
+   * server's rule. The pause menu and the room screen keep it; so does a
+   * reload, which rejoins on the title (roomSessionWelcome).
+   */
+  ui.onTitle = () => {
+    if (roomLinkState.state().phase !== 'idle') {
+      roomLeave();
+    }
+  };
 
   /*
    * A GAME'S TITLE CARD IN A ROOM RUNNING ANOTHER GAME leaves that room.

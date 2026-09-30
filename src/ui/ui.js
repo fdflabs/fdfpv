@@ -13530,7 +13530,12 @@ export class Ui {
      * way quitting to the title ends it, and the list is where a pilot
      * racing goes next. */
     if (action === 'mytracks') {
-      this.act('title');
+      /* act('title')'s way, but for onTitle: the pilot lands on the list,
+       * not the title, and a room they are in keeps them. */
+      this.show('title');
+      if (this.onAction) {
+        this.onAction('title', this.settings);
+      }
       this.returnTo = 'title';
       this.show('courses');
       /* On the list's first card, which is the track just flown or built:
@@ -13540,6 +13545,10 @@ export class Ui {
     }
     if (action === 'title' || action === 'paused') {
       this.show(action);
+    }
+    /* The title is out of any room: the shell leaves it (src/main.js). */
+    if (action === 'title' && this.onTitle) {
+      this.onTitle();
     }
     /* Freestyle reaches the air through here rather than through the launch
      * card, so this is the other end of the same event. See flown(). */

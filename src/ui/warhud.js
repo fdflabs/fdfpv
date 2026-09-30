@@ -157,6 +157,9 @@ export function createWarHud(nameOf, restart = null) {
   let hintEl = null;
   let hintTimer = 0;
   let killsPulse = 0;
+  /* Every root built, and whether they are drawn: see drawn(). */
+  const roots = [];
+  let drawnNow = true;
 
   function el(style, parent) {
     const d = document.createElement('div');
@@ -171,8 +174,27 @@ export function createWarHud(nameOf, restart = null) {
   function root(style) {
     const d = el(style);
     d.style.fontFamily = 'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace';
+    d.style.visibility = drawnNow ? '' : 'hidden';
+    roots.push(d);
     document.body.append(d);
     return d;
+  }
+
+  /*
+   * Whether any of it is drawn: only over the flight screen. The callouts,
+   * the kill and the go's hint arrive with the room's events whatever
+   * screen is up, and each shows for seconds on its own timer, so without
+   * this they were drawn over the pause menu, the room screen and the
+   * title. Hidden, not dropped: said() still has them.
+   */
+  function drawn(on) {
+    if (on === drawnNow) {
+      return;
+    }
+    drawnNow = on;
+    for (const d of roots) {
+      d.style.visibility = on ? '' : 'hidden';
+    }
   }
 
   function build() {
@@ -464,6 +486,7 @@ export function createWarHud(nameOf, restart = null) {
     hint,
     events,
     update,
+    drawn,
     said: () => said.slice(),
     shown: () => ({
       output: outText ? outText.textContent : '',
