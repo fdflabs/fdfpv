@@ -545,18 +545,31 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 24 (the town is 8 of them,
+ * itaipu: itaipu.js and src/maps/itaipu/, 26 (the town is 8 of them,
  * the vegetation 3, the spawns and the title's flight 2, the war's
- * switchyard 2). The Yellowstone terrain engine and the swiss2 look it
- * is built with are under their own prefixes, as the Alps' modules are
- * for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 25 };
+ * switchyard 2, and look/night.js, mission 4's fixtures, loaded whether
+ * the map is built for day or night). The Yellowstone terrain engine and
+ * the swiss2 look it is built with are under their own prefixes, as the
+ * Alps' modules are for swiss2. */
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 26 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
 const FLOOR_WORLD = 'alps';
 
-async function loadMap(shell, id, loading, options) {
+/*
+ * `?time=night` (Itaipu's mission 4, "Night raid"; src/maps/itaipu.js
+ * options.time): read once, here, rather than at every loadMap call
+ * site, and left out of `options` entirely unless it says 'night', so a
+ * map with no notion of time sees nothing new. Not stored: a link with
+ * it in stays a link into the night, never a standing setting. */
+function withTimeOption(options) {
+  const time = new URLSearchParams(window.location.search).get('time');
+  return time === 'night' ? { ...options, time } : options;
+}
+
+async function loadMap(shell, id, loading, mapOptions) {
+  const options = withTimeOption(mapOptions);
   const entry = mapById(id);
   /* Track mode's seat is resolved to a world by worldId before anything
    * asks for one, so a seat reaching here is a caller that skipped it. */

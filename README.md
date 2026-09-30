@@ -1,5 +1,10 @@
 # FDFPV
 
+Made by [fdflabs.com](https://fdflabs.com). FDFPV is fdflabs.com's GPLv3
+fork of Mathew Harvey's
+[WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator); see
+NOTICE and the Credits section below for whose work it stands on.
+
 A browser FPV simulator whose only current goal is flight feel
 indistinguishable from a real quad. Stage 1 is physics only: Betaflight
 4.5.1 compiled to WASM flying a first principles plant model, verified by
@@ -161,6 +166,29 @@ first: `npm run lint:shell`, `lint:input`, `lint:nouns`, `lint:memory`,
 Node against synthetic radios, one check per shipped defect; `lint:input`
 is the same tickets' other half, the calibrate screen, the title's trouble
 rows, the Settings room and the thumb sticks, through headless Chromium.
+
+## Credits
+
+FDFPV is made by [fdflabs.com](https://fdflabs.com). It stands on other
+people's work, and each of them keeps their credit:
+
+- Mathew Harvey's
+  [WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator), the
+  upstream this is a fork of, and its board
+  WebFPVSimulator-LeaderBoard. Every upstream file keeps its GPLv3 header
+  and copyright line.
+- [NOTICE](NOTICE): the third party material in the combined work
+  (Betaflight, three.js, the music, the LANPY mark), its licences, and the
+  origin of this fork.
+- The in-game credits, Credits on the title and pause menus or `#credits`,
+  built by `src/ui/credits.js`: the upstream maker, the beta test pilots,
+  Betaflight, Track Draw and the Dutch Drone Squad, and the data behind
+  the Yellowstone and Itaipu maps with their licence notices.
+- [assets/audio/war/CREDITS.md](assets/audio/war/CREDITS.md): every war
+  mode music and voice file, its author, source and licence.
+- The map data repositories carry their own source attributions:
+  [fdfpv-yellowstone-data](https://github.com/fdflabs/fdfpv-yellowstone-data)
+  and [fdfpv-itaipu-data](https://github.com/fdflabs/fdfpv-itaipu-data).
 
 ## Licence
 

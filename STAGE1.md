@@ -1,5 +1,9 @@
 # STAGE1.md: flight feel
 
+FDFPV is made by [fdflabs.com](https://fdflabs.com), a GPLv3 fork of Mathew
+Harvey's [WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
+NOTICE records what was taken from upstream and whose work it stands on.
+
 ## Deliverable
 
 A grey ground plane, a horizon reference, a quad, and a stick input. You can hover, punch out, roll, flip, powerloop, descend into your own propwash, and crash. No gates, no lap timer, no menus, no textures, no sound.

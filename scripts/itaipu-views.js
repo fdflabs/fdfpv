@@ -9,7 +9,11 @@
  * live here and a round that wants another angle adds one rather than
  * moving one.
  *
- *     SIM_GPU=1 node scripts/itaipu-views.js OUT_DIR [--views=aerial-dam,chute]
+ *     SIM_GPU=1 node scripts/itaipu-views.js OUT_DIR [--views=aerial-dam,chute] [--time=night]
+ *
+ * --time (default day) is the map's own option (src/maps/itaipu.js
+ * options.time, look/index.js): night's files take a `-night` suffix so
+ * a day and a night run can share one round folder.
  *
  * Writes OUT_DIR/<view>.png and OUT_DIR/stats.json: per view its camera,
  * its reference photograph (a name in ~/Desktop/fdfpv-photoref/itaipu,
@@ -131,7 +135,7 @@ const BUDGET = { calls: 300, triangles: 2.5e6, gpuMs: 12 };
 const NEAR_SOLID = 0.5;
 const FRAMES = 60;
 
-const opts = { views: '' };
+const opts = { views: '', time: 'day' };
 const positional = [];
 for (const a of process.argv.slice(2)) {
   const m = a.match(/^--([a-z]+)=(.*)$/);
@@ -156,6 +160,13 @@ const unknown = wanted.filter((id) => !VIEWS.some((v) => v.id === id));
 if (unknown.length) {
   throw new Error(`itaipu-views: no view ${unknown.join(', ')}`);
 }
+if (opts.time !== 'day' && opts.time !== 'night') {
+  throw new Error(`itaipu-views: --time is 'day' or 'night', got ${opts.time}`);
+}
+/* Day's own files keep their bare names (every earlier round's tooling
+ * reads them); night's take a suffix so a day and a night run can share
+ * one round folder without one overwriting the other. */
+const suffix = opts.time === 'night' ? '-night' : '';
 await mkdir(outDir, { recursive: true });
 
 /*
@@ -247,7 +258,7 @@ const seed = [`try {
   } catch (e) { /* Storage refused; the run would shoot the wrong preset, and the check below says so. */ }`];
 
 const page = await openPage({
-  root, width: 1600, height: 900, url: '/index.html?map=itaipu', seed,
+  root, width: 1600, height: 900, url: `/index.html?map=itaipu${opts.time === 'night' ? '&time=night' : ''}`, seed,
 });
 const stop = () => page.close().finally(() => process.exit(1));
 process.once('SIGTERM', stop);
@@ -285,7 +296,7 @@ try {
     await page.sleep(2500);
     const gap = await page.evaluate(`window.__nearSolid(${x}, ${y}, ${z}, 20)`);
     const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
-    await writeFile(join(outDir, `${v.id}.png`), Buffer.from(data, 'base64'));
+    await writeFile(join(outDir, `${v.id}${suffix}.png`), Buffer.from(data, 'base64'));
     const stats = await page.evaluate('window.__renderStats()');
     const gpu = await page.evaluate(`window.__itaipuGpu(${FRAMES})`);
     const row = {
@@ -330,7 +341,7 @@ try {
   await page.close();
 }
 
-await writeFile(join(outDir, 'stats.json'), `${JSON.stringify(report, null, 2)}\n`);
+await writeFile(join(outDir, `stats${suffix}.json`), `${JSON.stringify(report, null, 2)}\n`);
 console.log(`${report.length} of ${wanted.length} views -> ${outDir}`);
 if (failures.length) {
   console.error(`FAIL, ${failures.length} problem(s)`);

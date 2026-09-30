@@ -200,7 +200,10 @@ export const LENS = {
 /* KEY is the geometric mean of the loop's thirteen views' metered
  * luminance (0.086), so the valley's typical view keeps the exposure it
  * had when AIR.exposure was the whole of it, and the colour match to the
- * photographs (tools/swiss2-loop/colour.py) with it. */
+ * photographs (tools/swiss2-loop/colour.py) with it. A map's own air may
+ * override it (air.meterKey, PhotoPass's uKey): the one caller that does
+ * is Itaipu's night (look/sky.js AIR_NIGHT), whose scene is meant to
+ * meter dark, not toward a hazy day's average. */
 const KEY = 0.09;
 const ADAPT = 0.75;
 const RANGE = [0.45, 2.6];
@@ -393,6 +396,7 @@ const PhotoShader = {
     uScaleH: { value: 1000 },
     uMie: { value: 1 },
     uExposure: { value: 1 },
+    uKey: { value: KEY },
     uContrast: { value: 0 },
     uSlope: { value: 1 },
     uDistort: { value: 0.045 },
@@ -425,6 +429,7 @@ const PhotoShader = {
     uniform mat4 uProjInv;
     uniform mat4 uCamWorld;
     uniform float uExposure;
+    uniform float uKey;
     uniform float uContrast;
     uniform float uSlope;
     uniform float uDistort;
@@ -537,7 +542,7 @@ const PhotoShader = {
       float ev = uExposure;
       #ifdef LENS_METER
         vec3 meter = texture2D(tMeter, vec2(0.5)).rgb;
-        ev *= clamp(pow(${KEY.toFixed(4)} / exp2(meter.r), ${ADAPT.toFixed(3)}), ${RANGE[0].toFixed(3)}, ${RANGE[1].toFixed(3)});
+        ev *= clamp(pow(uKey / exp2(meter.r), ${ADAPT.toFixed(3)}), ${RANGE[0].toFixed(3)}, ${RANGE[1].toFixed(3)});
       #endif
       #ifdef LENS_GLARE
         /* The glare's angle to the sun: 2 (1 - cos) is its square, near
@@ -740,6 +745,12 @@ class PhotoPass extends Pass {
     u.uScaleH.value = air.scaleHeight;
     u.uMie.value = air.mie;
     u.uExposure.value = air.exposure;
+    /* The valley's own KEY unless a map's air asks for a darker average
+     * (air.meterKey): a night sky is not a hazy day metered down, it is
+     * a scene the meter is allowed to leave dark, its lamps bright
+     * against it precisely because the average around them is not
+     * dragged up to KEY too. */
+    u.uKey.value = air.meterKey ?? KEY;
     u.uContrast.value = air.contrast;
     u.uSlope.value = air.slope;
     this.fsQuad = new FullScreenQuad(this.material);

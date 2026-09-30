@@ -24,6 +24,16 @@
  * a terrain, so it draws nothing (clouds.js: until setTerrain, "the march
  * draws nothing"): the post chain takes one, and the day was clear.
  *
+ * TIME OF DAY: `time`, makeLook's own option ('day', the default, or
+ * 'night', for mission 4, "Night raid"), read from options.time when the
+ * map is built (src/maps/itaipu.js buildMap) and from `?time=night` in
+ * the address (src/main.js loadMap). It never changes after the map is
+ * built: night.js's fixtures go up once, in buildMap, once every part is
+ * in. What it touches: the sun (dim, cool, standing in for the moon) and
+ * the sky (dark and starred, sky.js), both light.js's; the lamps, the
+ * windows and a few real light pools (look/night.js), never the dam's,
+ * the town's or the water's own geometry.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -50,12 +60,13 @@ import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
 import {
-  sunDirection, makeLit, SUN_COLOR, SUN_IRRADIANCE,
+  sunDirection, makeLit, sunFor, isNight, makeNightAmbient,
 } from './light.js';
-import { skyBackdrop, skyEnvironment, AIR } from './sky.js';
+import { skyBackdrop, skyEnvironment, airFor } from './sky.js';
 import {
   groundMaterial, makeTurf, noiseTexture, loadImage, loadSite,
 } from './ground.js';
+import { dressNight } from './night.js';
 
 /* Past the horizon from 500 m (80 km) the apron and the fog have it. */
 export const CAMERA_FAR = 90000;
@@ -65,8 +76,11 @@ export const CAMERA_FAR = 90000;
  * the data folder's URL. Returns the stage the map builds into.
  */
 export async function makeLook({
-  renderer, camera, q, base, manifest,
+  renderer, camera, q, base, manifest, time,
 }) {
+  const night = isNight(time);
+  const sunLight = sunFor(time);
+  const AIR = airFor(time);
   const owned = [];
   const own = (t) => {
     owned.push(t);
@@ -100,19 +114,26 @@ export async function makeLook({
   const sunDir = sunDirection();
   const scene = new THREE.Scene();
   scene.background = AIR.haze.clone();
-  const sky = skyBackdrop(sunDir);
+  const sky = skyBackdrop(sunDir, time);
   const envTarget = skyEnvironment(renderer, sky);
   scene.add(sky);
   scene.environment = envTarget.texture;
   camera.far = CAMERA_FAR;
   camera.updateProjectionMatrix();
 
-  const sun = makeSun(scene, q, sunDir, { color: SUN_COLOR, irradiance: SUN_IRRADIANCE });
+  const sun = makeSun(scene, q, sunDir, sunLight);
   const clouds = makeClouds({
-    sun: { direction: sunDir, color: SUN_COLOR, irradiance: SUN_IRRADIANCE },
+    sun: { direction: sunDir, ...sunLight },
     sky: AIR.haze,
     air: AIR,
   });
+  /* Night's own low sky fill (light.js): the day has none, the sky's
+   * environment map already carries its share (the module doc, THE
+   * LIGHT IS THIS SKY). */
+  const nightAmbient = night ? makeNightAmbient() : null;
+  if (nightAmbient) {
+    scene.add(nightAmbient);
+  }
   const lit = makeLit();
   const noise = own(noiseTexture(aniso));
   const ground = groundMaterial({
@@ -154,12 +175,22 @@ export async function makeLook({
     heights,
   });
 
+  let nightFixtures = null;
   return {
     scene,
     sun,
     sunDir,
     lit,
     ground,
+    time: night ? 'night' : 'day',
+    /* Mission 4's own fixtures, once every part is in (itaipu.js, after
+     * the parts loop): a no-op by day. See look/night.js. */
+    dressNight(extras) {
+      if (!night) {
+        return;
+      }
+      nightFixtures = dressNight({ scene, ...extras });
+    },
     /* ctx.mats: the photographic kit, the light every material goes
      * through, the surfaces' texture sets and the environment. */
     mats: {
@@ -192,7 +223,7 @@ export async function makeLook({
     /* The post chain and the photographed craft, onto a built map. */
     compose(shell, map) {
       const post = buildPhotoComposer(shell.renderer, map.scene, shell.camera, q, {
-        direction: sunDir, color: SUN_COLOR, irradiance: SUN_IRRADIANCE, at: lit.sun,
+        direction: sunDir, ...sunLight, at: lit.sun,
       }, clouds, AIR);
       const d = shell.resize();
       post.setSize(d.w, d.h);
@@ -208,6 +239,9 @@ export async function makeLook({
     },
     /* After the scene graph's own dispose: what the graph cannot reach. */
     dispose() {
+      if (nightFixtures) {
+        nightFixtures.dispose();
+      }
       envTarget.dispose();
       clouds.dispose();
       ground.dispose();
