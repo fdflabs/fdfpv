@@ -100,13 +100,16 @@
  *   { type: 'war', op: 'dead', ids, at, by, why, p }
  *                                             why 'boom' (by the seat),
  *                                             'arrive' (by 0, with target
- *                                             and hit) or 'leave' (by 0)
+ *                                             and hit) or 'leave' (by 0);
+ *                                             scouts: true on the boom that
+ *                                             killed a scout wave's last
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
  *                                             seat breaks its own craft
  *   { type: 'war', error }                    to a refused sender
  *
  * and AGENTS (0xA0) to each seat on the room tick, thinned by distance on
- * the core's INTEREST bands.
+ * the core's INTEREST bands, each followed by HUNTS (0xA1): the same
+ * hunters' target seats.
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match (the attackers alive,
@@ -132,7 +135,7 @@
  */
 
 import {
-  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose, encodeAgents,
+  FLAG_AIRBORNE, FLAG_CRASHED, FLAG_SPAWNING, decodePose, encodeAgents, encodeHunts,
 } from '../../src/share/roomwire.js';
 import {
   LATE_MS, Track, hullDistance, hullFor, poseAt as trackPose, within,
@@ -1064,12 +1067,14 @@ export class RoomWar {
     return null;
   }
 
-  /* Take attackers off: the samples, the hunters, the scouts' count. */
-  remove(ids) {
+  /* Take attackers off: the samples, the hunters, and, when a warhead
+   * `killed` them, the scouts' count (a scout that got away is not dead,
+   * section 4.2). */
+  remove(ids, killed = false) {
     const m = this.match;
     const gone = new Set(ids);
     for (const a of m.agents) {
-      if (gone.has(a.id) && m.scouts && a.kind === 'scout' && a.wave === m.scouts.wave) {
+      if (killed && gone.has(a.id) && m.scouts && a.kind === 'scout' && a.wave === m.scouts.wave) {
         m.scouts.killed += 1;
       }
     }
@@ -1116,8 +1121,10 @@ export class RoomWar {
     m.earned ??= {};
     m.earned[d.seat] = (m.earned[d.seat] ?? 0) + killed.length;
     const ids = killed.map((a) => a.id);
+    const scoutsWere = m.scouts ? m.scouts.killed : 0;
     m.lastGone = tc;
-    this.remove(ids);
+    this.remove(ids, true);
+    const scoutsDown = Boolean(m.scouts) && scoutsWere < m.scouts.n && m.scouts.killed >= m.scouts.n;
     this.log.push({
       what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow,
     });
@@ -1127,7 +1134,7 @@ export class RoomWar {
         type: 'war', op: 'boom', seat: d.seat, at: tc, p: at,
       }),
       ...this.broadcast(core, {
-        type: 'war', op: 'dead', ids, at: tc, by: d.seat, why: 'boom', p: at,
+        type: 'war', op: 'dead', ids, at: tc, by: d.seat, why: 'boom', p: at, ...(scoutsDown ? { scouts: true } : {}),
       }),
     ];
     this.settle(tc);
@@ -1310,10 +1317,11 @@ export class RoomWar {
           continue;
         }
         sent.set(h.id, core.tickNo);
-        list.push({ id: h.id, kind: KIND_ID.get('hunter'), p: h.p, q: h.q });
+        list.push({ id: h.id, kind: KIND_ID.get('hunter'), p: h.p, q: h.q, target: h.target });
       }
       if (list.length) {
         out.push({ send: conn, data: encodeAgents(this.lastStep, list) });
+        out.push({ send: conn, data: encodeHunts(this.lastStep, list) });
       }
     }
     return out;

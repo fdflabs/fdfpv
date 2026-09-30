@@ -37,7 +37,13 @@
  *     the rack drops by one; the other Strikers reach the switchyard
  *     and both pages take its megawatts and call it
  *   - then both are held on the Hunters' way up the gorge: a Hunter goes
- *     off on one of them, and both pages agree on that too
+ *     off on one of them, and both pages agree on that too; and the
+ *     target each page last heard for it (HUNTS, 0xA1) is that pilot
+ *   - with --main, on the room's own rounds: A's kill says +1 AIRFRAME;
+ *     the first round's result card on both pages; the next round puts
+ *     A, a wreck, back in the air by itself; A crashes that round's
+ *     airframes away and spectates B, [ and ] keep to a teammate and R
+ *     does not put it back in the air
  *
  * Pictures go in outdir (build/war-twopage by default, not in the
  * repository).
@@ -221,6 +227,8 @@ const names = ['A', 'B'];
 /* Every attacker on both pages at one room ms, and each page's drawing
  * against its own list. Returns the worst differences seen. */
 const worst = { scripted: 0, hunter: 0, samples: 0, hunters: 0, mismatch: [], drawn: 0, calls: 0 };
+/* Hunter id -> the target each page last heard for it, [A, B]. */
+const heardHunts = new Map();
 async function compare() {
   const t = Math.floor(Math.min(await nowOf(a), await nowOf(b))) - BEHIND_MS;
   const [la, lb] = await Promise.all(pages.map((p) => p.evaluate(`window.__warAt(${t})`)));
@@ -230,6 +238,9 @@ async function compare() {
     return;
   }
   for (let i = 0; i < la.length; i += 1) {
+    if (la[i].kind === 'hunter') {
+      heardHunts.set(la[i].id, [la[i].hunts, lb[i].hunts]);
+    }
     const d = dist(la[i].p, lb[i].p);
     const k = la[i].kind === 'hunter' ? 'hunter' : 'scripted';
     worst[k] = Math.max(worst[k], d);
@@ -271,6 +282,103 @@ async function watch(done, until) {
     }
     await a.sleep(2000);
   }
+}
+
+const frames = (p, k) => p.evaluate(`new Promise((r) => { let n = 0; const f = () => (++n >= ${k} ? r(true) : requestAnimationFrame(f)); requestAnimationFrame(f); })`);
+/* Every part of a page's craft broken (window.__crashBreak): a wreck the
+ * room judges as a crash, one airframe spent. Part 0, the root, is
+ * refused, as is a part past the last. */
+const wreck = (p) => p.evaluate('(() => { for (let i = 1; i < 64; i += 1) { window.__crashBreak(i); } return true; })()');
+/* The result card's title for the room's round as it ended. */
+function cardTitle(m) {
+  const n = m.round + 1;
+  const mwText = String(Math.round(m.roundMw)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  if (m.roundResult === 'win') {
+    return `ROUND ${n}: HELD`;
+  }
+  return `ROUND ${n}: ${m.roundResult === 'lost' ? 'LOST' : 'DAMAGED'}, -${mwText} MW`;
+}
+const CARD_COLOUR = { win: 'rgb(125, 255, 154)', damaged: 'rgb(255, 138, 31)', lost: 'rgb(255, 74, 58)' };
+
+/*
+ * ROUNDS ON THE REAL ROOM (src/ui/warround.js, edge/rooms/war.js): A's
+ * kill earned it an airframe, said under its SPLASH; the first round
+ * ends on its own and both pages show its result card; the next round
+ * puts A, a wreck since its warhead, back in the air by itself; then A
+ * crashes its four airframes of that round away and spectates B.
+ */
+async function roundRows(seatA, seatB, goAt) {
+  const said0 = (await warOf(a)).said;
+  check('A\'s own kill says +1 AIRFRAME under its SPLASH, and the pips show the one earned', said0.includes('+1 AIRFRAME')
+    && /airframes ■■■■□(?![■□])/i.test((await warOf(a)).hud.line), `${said0.slice(-4).join(' | ')}; hud "${(await warOf(a)).hud.line}"`);
+  const wreckedBefore = (await warOf(a)).watch.wrecked;
+  await watch(async () => {
+    const m = roomWarOf().match;
+    return m.round > 0 || m.roundState === 'result' || m.state !== 'live';
+  }, goAt + 400000);
+  const ended = { ...roomWarOf().match };
+  await Promise.all(pages.map((p) => frames(p, 20)));
+  const cards = await Promise.all(pages.map((p) => p.evaluate('window.__war().round')));
+  const want = ended.roundState === 'result' ? cardTitle(ended) : '(no result seen)';
+  check('round 1 ends on the real room and both pages show its result card: the title, its colour, a line a pilot, the next round counted down',
+    ended.roundState === 'result' && cards.every((c) => c.on && c.title === want && c.colour === CARD_COLOUR[ended.roundResult]
+      && c.rows.length === 2 && /^NEXT ROUND IN [1-6]$/.test(c.next)),
+  `room ${ended.roundResult} ${ended.roundMw} MW, want "${want}"; ${cards.map((c) => JSON.stringify(c)).join(' | ')}`);
+  await shot(a, '5-A-round-result');
+  await watch(async () => roomWarOf().match.round >= 1 && roomWarOf().match.roundState === 'live', goAt + 400000);
+  await a.until('!window.__war().watch.wrecked', 15000).catch(() => {});
+  await frames(a, 20);
+  const w1 = await warOf(a);
+  check('round 2: A, a wreck since its warhead, is back in the air by itself, the card gone, four airframes', wreckedBefore && !w1.watch.wrecked && !w1.round.on
+    && /round 2\//i.test(w1.hud.line) && /airframes ■■■■(?![■□])/i.test(w1.hud.line), `wrecked before ${wreckedBefore}, now ${JSON.stringify(w1.watch)} hud "${w1.hud.line}"`);
+
+  /* A crashes each of its round's airframes, put back in the air between. */
+  const bAt = await b.evaluate('(() => { const s = window.__craftState(); return [s.worldX, s.worldY, s.worldZ]; })()');
+  const aAt = [bAt[0], bAt[1], bAt[2] + 80];
+  const allowance = itaipu1.airframes;
+  for (let k = 1; k <= allowance; k += 1) {
+    await hold(a, aAt);
+    await a.sleep(SPAWN_MS + 800);
+    await wreck(a);
+    await watch(async () => (roomWarOf().match.spent[seatA] ?? 0) >= k || roomWarOf().match.round !== 1, goAt + 900000);
+  }
+  const m2 = roomWarOf().match;
+  await a.until('window.__war().watch.on', 10000).catch(() => {});
+  await frames(a, 30);
+  const w = await warOf(a);
+  const bPos = await b.evaluate('(() => { const s = window.__craftState(); return [s.worldX, s.worldY, s.worldZ]; })()');
+  const camOff = dist(w.watch.cam, bPos);
+  check('A crashes its round\'s four airframes on the real room, then spectates B: the camera on B, the round and no airframes on the HUD, the markers up', m2.round === 1
+    && m2.spent[seatA] === allowance && w.watch.on && w.watch.seat === seatB && camOff < 20 && /round 2\//i.test(w.hud.line) && /airframes □□□□(?![■□])/i.test(w.hud.line)
+    && w.markers.on && /^OUT OF AIRFRAMES: watching .+\. Round ends when the last one's down\.$/.test(w.watch.banner),
+  `room round ${m2.round + 1} spent ${JSON.stringify(m2.spent)}; watching ${w.watch.seat} (B ${seatB}), camera ${camOff.toFixed(1)} m from B, hud "${w.hud.line}", banner "${w.watch.banner}"`);
+  await shot(a, '6-A-spectates-B');
+  await a.tap('BracketRight');
+  await a.tap('KeyR');
+  await frames(a, 10);
+  const w2 = await warOf(a);
+  check('] keeps to the one teammate in the air, and R does not put a spectator back in the air', w2.watch.on && w2.watch.seat === seatB && w2.watch.wrecked,
+    JSON.stringify({ on: w2.watch.on, seat: w2.watch.seat, wrecked: w2.watch.wrecked }));
+}
+
+/* The pips past four and, past six, a count: the HUD's own rule, on a
+ * view no round of mission 1 reaches in a check's time (a pilot with five
+ * kills in a round), so the module is driven directly. */
+async function pipsRule() {
+  const got = await a.evaluate(`(async () => {
+    const { createWarHud } = await import('/src/ui/warhud.js');
+    const hud = createWarHud(() => 'X');
+    const v = (earned) => ({ state: 'live', output: 14000, floor: 7700, wave: 1, waves: 2, alive: 0, rack: 1, rackMax: 1, scores: [],
+      round: 1, rounds: 5, roundState: 'live', airframes: 4, spent: { 1: 1 }, earned: { 1: earned } });
+    hud.update(v(2), 1, 0, 14000);
+    const six = hud.shown().line;
+    hud.update(v(5), 1, 0, 14000);
+    const nine = hud.shown().line;
+    hud.update(null);
+    return { six, nine };
+  })()`);
+  check('a kill\'s airframes grow the pips past four, and past six they are a count', /airframes ■■■■■□(?![■□])/i.test(got.six) && /airframes ■×8/i.test(got.nine),
+    `"${got.six}" then "${got.nine}"`);
 }
 
 try {
@@ -443,6 +551,10 @@ try {
     && bb.said.some((s) => (MAIN ? /^[^:]+: SPLASH ONE/.test(s) : s.includes(`#${seats[0]}`))),
     `${ba.said.slice(-3).join(' | ')} || ${bb.said.slice(-3).join(' | ')}`);
 
+  if (MAIN) {
+    await roundRows(seats[0], seats[1], goAt);
+  }
+
   /* Both 400 m up the gorge from where the Hunters are born, 100 m over
    * it and 40 m apart. */
   const hw = itaipu1.waves.find((w) => w.kind === 'hunter');
@@ -507,6 +619,10 @@ try {
   const deadHunt = (w) => w.log.filter((e) => e.type === 'dead' && e.why === 'boom')[1];
   check('and the same Hunter dies on both', deadHunt(ya) && sameEvent(deadHunt(ya), deadHunt(yb)),
     deadHunt(ya) ? `ids ${deadHunt(ya).ids}` : 'none');
+  const huntsHeard = deadHunt(ya) ? deadHunt(ya).ids.filter((id) => heardHunts.has(id)).map((id) => [id, heardHunts.get(id)]) : [];
+  check('both pages last heard that Hunter chasing the pilot it went off on (HUNTS)', hunterBoom && huntsHeard.length > 0
+    && huntsHeard.some(([, [ha, hb]]) => ha === hunterBoom.seat && hb === hunterBoom.seat),
+  `went off on seat ${hunterBoom ? hunterBoom.seat : '-'}, heard ${JSON.stringify(huntsHeard)}`);
   await sameView('after the Hunter');
   await shot(a, '4-A-hud-after-the-hunter');
 
@@ -517,6 +633,10 @@ try {
     `${worst.hunter.toFixed(3)} m worst over ${worst.hunters} pairs`);
   check('each page draws its own list, instance for instance, every scripted one where attackersAt puts it', worst.drawn < 1e-3, `${worst.drawn} m worst`);
   check('at most one draw call a kind', worst.calls <= 7, `${worst.calls} kinds drawn at once at most`);
+
+  if (MAIN) {
+    await pipsRule();
+  }
 
   await a.evaluate("window.__warDo('end')");
   for (const p of pages) {

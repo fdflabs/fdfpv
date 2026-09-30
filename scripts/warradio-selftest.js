@@ -95,10 +95,14 @@ check('a bird lost to no warhead, the last airframe, output low', same(say([], {
 }), ['bird-lost', 'rack-last', 'output-low']));
 check('each of those once', same(say([], { ...v0, wave: 6, rack: 1, alive: 1, output: 7500 }), []));
 check('a wave cleared with more to come', same(say([], { ...v0, wave: 3, rack: 1, alive: 0 }), ['wave-clear']));
-check('scouts down has no event to hang on yet, and is never said', !said.has('scouts-down'));
+check('a scout wave\'s last dying says scouts down, after the kill', same(say([{
+  type: 'dead', why: 'boom', mine: false, ids: [2], agents: [{ kind: 'scout' }],
+}, { type: 'scouts', at: 1, by: 2 }], { ...v0, wave: 2, rack: 6, alive: 1 }), ['scouts-down']));
 check('won', same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won' }), ['win']));
-check('lost on output and on the rack', same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output' }), ['lose-output'])
-  && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'rack' }), ['lose-rack']));
+check('lost on output, the one way a mission is lost in rounds', same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output' }), ['lose-output']));
+check('a round held, damaged and lost each say their line', same(calls.round('win'), ['wave-clear']) && same(calls.round('damaged'), ['output-low'])
+  && same(calls.round('lost'), ['lose-rack']) && same(calls.round(null), []));
+['win', 'damaged', 'lost'].forEach((r) => calls.round(r).forEach((id) => said.add(id)));
 check('the calls have no link to hear (2026-09-29)', !('signal' in calls));
 const linkLines = lineRecs
   .filter((l) => l.group === 'signal' || /jammer|relay|signal/.test(l.id)).map((l) => l.id);

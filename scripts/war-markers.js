@@ -14,7 +14,10 @@
  *     straight behind the camera gets the bottom edge's arrow
  *   - the pilot's own FPV camera: a marker or an arrow for every one
  *   - held up the gorge, a Hunter the room has on this seat (its
- *     Hunters' target, edge/rooms/warhunt.js) shows the warning
+ *     Hunters' target, edge/rooms/warhunt.js) shows the warning, and the
+ *     page heard that target on the wire (HUNTS, 0xA1)
+ *   - a hunter's heard target decides the warning over its heading; with
+ *     none heard the heading does
  *   - the overlay's cost with 60 attackers, update and paint, measured in
  *     the page over BENCH_FRAMES frames, is under COST_MS a frame
  *
@@ -309,6 +312,7 @@ try {
   await hold(page, gorge);
   let roomOnMe = null;
   let shownOnMe = null;
+  let wireOnMe = null;
   let pictured = false;
   const deadline = hunterAt + 90000;
   while ((await nowOf()) < deadline && !pictured) {
@@ -316,6 +320,10 @@ try {
     const hs = w && w.hunters ? w.hunters.save().hunters : [];
     const onMe = hs.filter((h) => h.target === seat);
     const got = await markersOf(page);
+    const heard = got.live.find((a) => a.kind === 'hunter' && a.hunts === seat);
+    if (heard && !wireOnMe) {
+      wireOnMe = { id: heard.id, roomHas: onMe.some((h) => h.id === heard.id) };
+    }
     if (onMe.length && !roomOnMe) {
       roomOnMe = { ids: onMe.map((h) => h.id), at: await nowOf() };
     }
@@ -341,6 +349,39 @@ try {
   }
   console.log(`  info  the room had a Hunter on seat ${seat}: ${roomOnMe ? `${roomOnMe.ids} from go+${Math.round((roomOnMe.at - goAt) / 1000)} s` : 'never'}`);
   check('a Hunter the room has on this pilot shows the warning', Boolean(roomOnMe && shownOnMe), shownOnMe ? `hunter ${shownOnMe.id} at ${Math.round(shownOnMe.dist)} m` : 'no warning while the room had one on this seat');
+  check('the page heard the room\'s target for it on the wire (HUNTS), the hunter the room has on this seat', Boolean(wireOnMe && wireOnMe.roomHas), JSON.stringify(wireOnMe));
+
+  /* The target heard beats the heading: a hunter nosed at the aircraft
+   * but chasing another seat is no warning, one flying away but chasing
+   * this seat is, and with nothing heard the heading decides. */
+  const rule = await page.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { createWarMarkers } = await import('/src/ui/warmarkers.js');
+    const cam = new THREE.PerspectiveCamera(${FOV}, 1280 / 720, 0.1, 20000);
+    cam.position.set(0, 400, 0);
+    cam.lookAt(0, 380, -1000);
+    cam.updateMatrixWorld();
+    const mk = createWarMarkers(cam, { clientWidth: 1280, clientHeight: 720 });
+    /* The paint is a microtask after update(), so shown() waits for it. */
+    const at = async (hunts, q) => {
+      const a = { id: 1, kind: 'hunter', p: [0, 400, -600], q };
+      if (hunts !== undefined) {
+        a.hunts = hunts;
+      }
+      mk.update([a], 0, null, null, 0, 400, 0, 3);
+      await null;
+      return mk.shown().hunted ? mk.shown().hunted.id : null;
+    };
+    const toMe = [0, 1, 0, 0];
+    const away = [0, 0, 0, 1];
+    const out = {
+      nosedOther: await at(2, toMe), awayMine: await at(3, away), nosedNone: await at(null, toMe), nosedUnheard: await at(undefined, toMe), awayUnheard: await at(undefined, away),
+    };
+    mk.clear();
+    return out;
+  })()`);
+  check('a heard target decides the warning over the heading; unheard, the heading does', rule.nosedOther === null && rule.awayMine === 1 && rule.nosedNone === null
+    && rule.nosedUnheard === 1 && rule.awayUnheard === null, JSON.stringify(rule));
   const radio = (await warOf()).radio;
   console.log(`  info  the radio said: ${radio ? radio.said.join(', ') : 'no radio'}`);
 

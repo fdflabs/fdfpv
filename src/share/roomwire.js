@@ -951,6 +951,19 @@ export function checkRuns(runs) {
  *     f32x3  position, scene world metres (y up)
  *     i16x4  attitude quaternion, component x 32767
  *
+ * HUNTS, 0xA1, room to client, right after each AGENTS to the same seat
+ * and for the same agents: each hunter's target, the seat it is chasing.
+ * A type of its own because an AGENTS entry has a fixed size that every
+ * decoder checks, so a longer one would be refused by a client from
+ * before it; a client that does not know 0xA1 drops it.
+ *
+ *   u8     type 0xA1
+ *   u8     count
+ *   u32    room ms, the AGENTS frame's
+ *   per agent:
+ *     u16    id
+ *     u8     target seat, HUNTS_NONE for none
+ *
  * The JSON type war, room to client (edge/rooms/war.js says what each
  * carries): { war } the view, { op: 'born', agents }, { op: 'dead', ids,
  * at, by, why, p }, { op: 'boom', seat, at, p }, { error }. Client to room,
@@ -1008,6 +1021,50 @@ export function decodeAgents(bytes) {
       p: [v.getFloat32(at + 3, true), v.getFloat32(at + 7, true), v.getFloat32(at + 11, true)],
       q: n > 1e-6 ? q.map((x) => x / n) : [0, 0, 0, 1],
     });
+  }
+  return { roomMs: v.getUint32(2, true), agents };
+}
+
+export const TYPE_HUNTS = 0xA1;
+export const HUNTS_HEAD = 6;
+export const HUNTS_ENTRY = 3;
+export const HUNTS_NONE = 255;
+
+/* agents: [{ id, target }], target a seat or null (or -1) for none; the
+ * first AGENTS_MAX of them. A seat over 254 cannot be said and is none. */
+export function encodeHunts(roomMs, agents) {
+  const list = agents.slice(0, AGENTS_MAX);
+  const bytes = new Uint8Array(HUNTS_HEAD + list.length * HUNTS_ENTRY);
+  const v = new DataView(bytes.buffer);
+  v.setUint8(0, TYPE_HUNTS);
+  v.setUint8(1, list.length);
+  v.setUint32(2, clampInt(roomMs, 0, 0xffffffff) >>> 0, true);
+  let at = HUNTS_HEAD;
+  for (const a of list) {
+    const t = a.target;
+    v.setUint16(at, a.id & 0xffff, true);
+    v.setUint8(at + 2, Number.isInteger(t) && t >= 0 && t < HUNTS_NONE ? t : HUNTS_NONE);
+    at += HUNTS_ENTRY;
+  }
+  return bytes;
+}
+
+/* { roomMs, agents: [{ id, target }] }, target a seat or null, or null
+ * when not a HUNTS. */
+export function decodeHunts(bytes) {
+  if (!bytes || bytes.byteLength < HUNTS_HEAD || bytes[0] !== TYPE_HUNTS) {
+    return null;
+  }
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const count = v.getUint8(1);
+  if (bytes.byteLength !== HUNTS_HEAD + count * HUNTS_ENTRY) {
+    return null;
+  }
+  const agents = [];
+  for (let k = 0; k < count; k += 1) {
+    const at = HUNTS_HEAD + k * HUNTS_ENTRY;
+    const t = v.getUint8(at + 2);
+    agents.push({ id: v.getUint16(at, true), target: t === HUNTS_NONE ? null : t });
   }
   return { roomMs: v.getUint32(2, true), agents };
 }
