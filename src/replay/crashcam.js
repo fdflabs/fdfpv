@@ -62,6 +62,7 @@ import { createPeerRing, peerPose } from './peers.js';
 import { createPeerScene } from './peerscene.js';
 import { createPaperRing } from './paper.js';
 import { createPaperScene } from './paperscene.js';
+import { SIZE_MAX } from '../render/explosion.js';
 import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
 } from './cameras.js';
@@ -401,6 +402,22 @@ export function createCrashCam(host) {
         return coin(level, atTime);
       };
     }
+  }
+
+  /*
+   * A war's explosions (src/render/explosion.js), kept beside the paper's
+   * events the way tapCrown keeps the crowns, so a replay of a war flight
+   * shows each at the moment it went off. Its sound is not kept: the
+   * replay rings it from where its own camera is (src/replay/paperscene.js).
+   */
+  function tapBooms(fx) {
+    const play = fx.play;
+    fx.play = (p, size = 1, ageS = 0) => {
+      if (!S && recording && host.mode() === 'flight') {
+        paperRing.boom(rec.now() - ageS, p, Math.min(1, size / SIZE_MAX));
+      }
+      return play(p, size, ageS);
+    };
   }
 
   /* ---- the pad ---- */
@@ -1972,6 +1989,7 @@ export function createCrashCam(host) {
     recordPeers,
     tapPaper,
     tapCrown,
+    tapBooms,
     noteCrash,
     promptKey: () => promptKey,
     tap,
@@ -2079,6 +2097,10 @@ export function createCrashCam(host) {
       paperLogged: () => paperLog || [],
       /* The clip's cuts and SCHWINGs, on its clock. */
       paperEvents: () => (S && S.clip.paper ? S.clip.paper.events : []),
+      /* A war's explosions in the clip, on its clock, and what the replay
+       * drew of them this frame. */
+      booms: () => (S && S.clip.paper ? S.clip.paper.events.filter((e) => e.type === 'boom').map((e) => e.t) : []),
+      boomFx: () => (S && S.scene.paper ? S.scene.paper.summary().booms : null),
     }),
   };
 }

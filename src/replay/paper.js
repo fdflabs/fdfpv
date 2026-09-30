@@ -17,7 +17,8 @@
  * cut's burst (where, in whose colour, how big) and each SCHWING (how
  * loud). And Catch the Ace's, which rides the same events: each crown's
  * burst (where it was taken, where the crown flew from, how big;
- * src/render/acecrown.js) and each coin (how loud).
+ * src/render/acecrown.js) and each coin (how loud). And a war's
+ * explosions (src/render/explosion.js): where each went off and how big.
  *
  * THE NODES ARE PACKED as the room packs them for the wire
  * (src/share/roomwire.js encodeStreamer): the head as float32, then each
@@ -93,10 +94,13 @@ const EVENT_KEYS = {
   schwing: ['t', 'type', 'level'],
   crown: ['t', 'type', 'p', 'from', 'level'],
   coin: ['t', 'type', 'level'],
+  boom: ['t', 'type', 'p', 'level'],
 };
 /* The Catch the Ace events, which a file older than version 7 cannot
  * hold (src/replay/file.js). */
 export const CROWN_EVENTS = ['crown', 'coin'];
+/* A war's explosions, which a file older than version 9 cannot hold. */
+export const BOOM_EVENTS = ['boom'];
 
 function isPoint(p) {
   return Array.isArray(p) && p.length === 3 && p.every(Number.isFinite);
@@ -335,6 +339,13 @@ export function createPaperRing(capacity) {
     stats.events += 1;
   }
 
+  /* A war's explosion at p (world), `level` its size over the largest
+   * (src/render/explosion.js SIZE_MAX). */
+  function boom(t, p, level) {
+    events.push({ t, type: 'boom', p: [p[0], p[1], p[2]], level });
+    stats.events += 1;
+  }
+
   /* The newest events after a take over's drop: none later than t. */
   function dropAfter(t) {
     while (events.length && events[events.length - 1].t > t) {
@@ -399,6 +410,7 @@ export function createPaperRing(capacity) {
     schwing,
     crown,
     coin,
+    boom,
     prune,
     dropAfter,
     clear,

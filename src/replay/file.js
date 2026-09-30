@@ -77,6 +77,14 @@
  * as the version before, byte for byte, and versions 1 to 7 are read
  * without it, the traffic then drawn at the live clock as before.
  *
+ * Version 9 lets the paper's events carry a war's explosions
+ * (src/replay/paper.js BOOM_EVENTS: where each went off and how big), so
+ * a replay of a war flight shows them at the moment they happened. The
+ * layout is version 8's, the animation clock with it; a clip is written
+ * as version 9 only when its paper holds one, so a build before this one
+ * refuses such a file by its version, and every other clip is written as
+ * before, byte for byte.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -110,9 +118,14 @@ import {
   BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N,
 } from './peers.js';
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
-import { CROWN_EVENTS, checkPaper, rowsOf } from './paper.js';
+import {
+  BOOM_EVENTS, CROWN_EVENTS, checkPaper, rowsOf,
+} from './paper.js';
 
-export const FILE_VERSION = 8;
+export const FILE_VERSION = 9;
+/* A clip with the animation clock and no explosion: the version before
+ * explosions. */
+const ANIM_VERSION = 8;
 /* A clip with a crown and no animation clock: the version before the
  * clock. */
 const CROWN_VERSION = 7;
@@ -127,11 +140,17 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
-  if (clip.anim) {
+  if (clip.paper && boomed(clip.paper.events)) {
+    if (!clip.anim) {
+      throw new Error('a clip with explosions and no animation clock');
+    }
     return FILE_VERSION;
+  }
+  if (clip.anim) {
+    return ANIM_VERSION;
   }
   if (clip.paper && crowned(clip.paper.events)) {
     return CROWN_VERSION;
@@ -153,6 +172,11 @@ function realEdit(clip) {
 /* Whether a clip's paper events hold a Catch the Ace crown or coin. */
 function crowned(events) {
   return events.some((e) => e && CROWN_EVENTS.includes(e.type));
+}
+
+/* Whether a clip's paper events hold a war's explosion. */
+function boomed(events) {
+  return events.some((e) => e && BOOM_EVENTS.includes(e.type));
 }
 
 /* A clip's bubble column, or null. */
@@ -568,7 +592,14 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('an animation clock in a file older than version 8');
   }
   if (version >= 8 && header.anim !== true) {
-    throw new ReplayFileError('a version 8 file without its animation clock');
+    throw new ReplayFileError(`a version ${version} file without its animation clock`);
+  }
+  const booms = header.paper !== undefined && Array.isArray(header.paper.events) && boomed(header.paper.events);
+  if (version < 9 && booms) {
+    throw new ReplayFileError('an explosion in a file older than version 9');
+  }
+  if (version === 9 && !booms) {
+    throw new ReplayFileError('a version 9 file without an explosion');
   }
   if (header.edit !== undefined && header.keys.length) {
     throw new ReplayFileError('a version 6 file with camera keys');
