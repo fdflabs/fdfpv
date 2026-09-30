@@ -45,7 +45,7 @@ import { readFileSync } from 'node:fs';
 import { loadHeight } from '../edge/rooms/warhunt.js';
 import { KIND, planAgent, poseAt } from '../src/share/war/routes.js';
 import { waveSize, waveTarget } from '../src/share/war/missions/index.js';
-import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const MIN_CLEAR_M = 15;
 const WATER_Y = 219;
@@ -70,69 +70,71 @@ function terminalFrom(plan, kind) {
 
 const failures = [];
 let worstAll = Infinity;
-console.log(`mission ${itaipu1.id}: ${itaipu1.waves.length} waves, 1 to 8 pilots, every attacker at err 0 and +-spread, every ${SAMPLE_MS} ms`);
-console.log('  wave  at   kind    route             n(1..8)          before terminal   in terminal   terminal m');
-for (const [i, w] of itaipu1.waves.entries()) {
-  let before = Infinity;
-  let inside = Infinity;
-  let boatDry = 0;
-  let termM = 0;
-  let where = null;
-  const sizes = PILOTS.map((p) => waveSize(w, p));
-  for (const n of new Set(sizes)) {
-    for (let k = 0; k < n; k += 1) {
-      for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
-        const agent = {
-          id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k),
-        };
-        const plan = planAgent(itaipu1, agent);
-        if (w.kind === 'hunter') {
-          const p = poseAt(plan, 0).p;
-          const c = p[1] - floor.floorAt(p[0], p[2]);
-          if (c < before) {
-            before = c;
-            where = p;
-          }
-          continue;
-        }
-        const tt = terminalFrom(plan, w.kind);
-        const end = Number.isFinite(plan.tEnd) ? plan.tEnd : 0;
-        if (Number.isFinite(tt)) {
-          termM = Math.max(termM, ((end - tt) / 1000) * (w.kind === 'loiter' ? KIND.loiter.dive : KIND[w.kind].speed));
-        }
-        for (let t = 0; t <= end; t += SAMPLE_MS) {
-          const p = poseAt(plan, t).p;
-          const f = floor.floorAt(p[0], p[2]);
-          const c = p[1] - f;
-          if (t < tt) {
-            if (w.kind === 'boat') {
-              boatDry = Math.max(boatDry, f - WATER_Y);
-              if (f - WATER_Y > 0.01 && !where) {
-                where = p;
-              }
-            } else if (c < before) {
+for (const mission of Object.values(MISSIONS)) {
+  console.log(`mission ${mission.id}: ${mission.waves.length} waves, 1 to 8 pilots, every attacker at err 0 and +-spread, every ${SAMPLE_MS} ms`);
+  console.log('  wave  at   kind    route             n(1..8)          before terminal   in terminal   terminal m');
+  for (const [i, w] of mission.waves.entries()) {
+    let before = Infinity;
+    let inside = Infinity;
+    let boatDry = 0;
+    let termM = 0;
+    let where = null;
+    const sizes = PILOTS.map((p) => waveSize(w, p));
+    for (const n of new Set(sizes)) {
+      for (let k = 0; k < n; k += 1) {
+        for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
+          const agent = {
+            id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k),
+          };
+          const plan = planAgent(mission, agent);
+          if (w.kind === 'hunter') {
+            const p = poseAt(plan, 0).p;
+            const c = p[1] - floor.floorAt(p[0], p[2]);
+            if (c < before) {
               before = c;
               where = p;
             }
-          } else {
-            inside = Math.min(inside, c);
+            continue;
+          }
+          const tt = terminalFrom(plan, w.kind);
+          const end = Number.isFinite(plan.tEnd) ? plan.tEnd : 0;
+          if (Number.isFinite(tt)) {
+            termM = Math.max(termM, ((end - tt) / 1000) * (w.kind === 'loiter' ? KIND.loiter.dive : KIND[w.kind].speed));
+          }
+          for (let t = 0; t <= end; t += SAMPLE_MS) {
+            const p = poseAt(plan, t).p;
+            const f = floor.floorAt(p[0], p[2]);
+            const c = p[1] - f;
+            if (t < tt) {
+              if (w.kind === 'boat') {
+                boatDry = Math.max(boatDry, f - WATER_Y);
+                if (f - WATER_Y > 0.01 && !where) {
+                  where = p;
+                }
+              } else if (c < before) {
+                before = c;
+                where = p;
+              }
+            } else {
+              inside = Math.min(inside, c);
+            }
           }
         }
       }
     }
-  }
-  const fmt = (v) => (Number.isFinite(v) ? `${v.toFixed(1)} m` : '-');
-  const beforeText = w.kind === 'boat' ? `on water, ${boatDry.toFixed(2)} m dry` : fmt(before);
-  console.log(`  ${String(i + 1).padStart(4)} ${String(w.at).padStart(4)}  ${w.kind.padEnd(7)} ${w.route.padEnd(17)} ${sizes.join(',').padEnd(16)} ${beforeText.padEnd(17)} ${fmt(inside).padEnd(13)} ${termM ? termM.toFixed(0) : '-'}`);
-  if (w.kind === 'boat') {
-    if (boatDry > 0.01) {
-      failures.push(`wave ${i + 1} (${w.kind}, ${w.route}): a boat is on ground ${boatDry.toFixed(2)} m over the water near (${where.map((v) => v.toFixed(0)).join(', ')})`);
+    const fmt = (v) => (Number.isFinite(v) ? `${v.toFixed(1)} m` : '-');
+    const beforeText = w.kind === 'boat' ? `on water, ${boatDry.toFixed(2)} m dry` : fmt(before);
+    console.log(`  ${String(i + 1).padStart(4)} ${String(w.at).padStart(4)}  ${w.kind.padEnd(7)} ${w.route.padEnd(17)} ${sizes.join(',').padEnd(16)} ${beforeText.padEnd(17)} ${fmt(inside).padEnd(13)} ${termM ? termM.toFixed(0) : '-'}`);
+    if (w.kind === 'boat') {
+      if (boatDry > 0.01) {
+        failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): a boat is on ground ${boatDry.toFixed(2)} m over the water near (${where.map((v) => v.toFixed(0)).join(', ')})`);
+      }
+      continue;
     }
-    continue;
-  }
-  worstAll = Math.min(worstAll, before);
-  if (!(before >= MIN_CLEAR_M)) {
-    failures.push(`wave ${i + 1} (${w.kind}, ${w.route}): ${before.toFixed(1)} m over the floor near (${where.map((v) => v.toFixed(0)).join(', ')}), under ${MIN_CLEAR_M} m`);
+    worstAll = Math.min(worstAll, before);
+    if (!(before >= MIN_CLEAR_M)) {
+      failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): ${before.toFixed(1)} m over the floor near (${where.map((v) => v.toFixed(0)).join(', ')}), under ${MIN_CLEAR_M} m`);
+    }
   }
 }
 console.log('');

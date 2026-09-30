@@ -79,7 +79,8 @@ const MW = {
   intake: 700, penstock: 700, gate: 350, yard: 2800,
 };
 
-const targets = {};
+/* The Itaipu targets with their MW, shared by every Itaipu mission. */
+export const targets = {};
 for (const [id, t] of Object.entries(AT)) {
   targets[id] = { mw: MW[id.split('-')[0]], at: t.at, r: t.r };
 }
@@ -91,14 +92,18 @@ for (const [id, t] of Object.entries(AT)) {
 const YARD_HIT_M = 40;
 targets['yard-right'].hitR = YARD_HIT_M;
 
-const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
+export const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
 
 export default {
   id: 'itaipu-1',
+  /* A string key (src/strings): Defend the intakes. */
+  title: 'war.mission.itaipu_1',
   map: 'itaipu',
   targets,
   output: 14000,
   floorMw: 7700,
+  /* The output a third star needs (war.js resultOf). */
+  starMw: 11200,
   /* Each pilot's airframes a round (war.js rounds). */
   airframes: 4,
   /* Rounds of waves; a wave's `at` is seconds after its round starts. */
