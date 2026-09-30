@@ -85,6 +85,9 @@ if ! rpm -q oracle-epel-release-el9 >/dev/null 2>&1; then
   say 'enabling Oracle EPEL'
   dnf -y -q install oracle-epel-release-el9
 fi
+# The release package leaves its repository disabled on Oracle Linux 9, so
+# coturn was not found until it was enabled (first deploy, 2026-09-30).
+dnf config-manager --set-enabled ol9_developer_EPEL
 if ! rpm -q coturn >/dev/null 2>&1; then
   say 'installing coturn'
   dnf -y -q install coturn
