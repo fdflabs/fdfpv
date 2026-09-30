@@ -51,14 +51,18 @@
  *
  * THE NUMBERS. Each wave's n is for one pilot and `per` more come for
  * every pilot after the first (index.js waveSize): 30 attackers alone,
- * 43 for two, 66 for four, 113 for eight. The output decides the game;
- * the rack, 16 airframes a pilot, is a backstop against waste. A clean
- * solo pilot spends about 13 of it, and at 14 a solo bot that was
- * winning on output ran out half the time: losing with the plant at
- * 11 000 MW for want of an airframe reads as a bug, not a defeat.
- * scripts/war-balance.js flies bot squads of
- * 1, 2, 4 and 8 through it on the real room; its table and the reasons
- * for these numbers are in the pull request that set them.
+ * 45 for two, 69 for four, 119 for eight. The output decides the game;
+ * the rack, 18 airframes a pilot, is a backstop against waste. Taking
+ * off from the crest road by the intakes (the spawn the lead is moving
+ * there), a clean solo pilot flies short sorties and spends about 15 of
+ * it; at 16 a solo bot that was winning on output ran out in 7 games of
+ * 24, and losing with the plant at 10 000 MW for want of an airframe
+ * reads as a bug, not a defeat. The first threat reaches the dam at 3:03
+ * (the switchyard's Strikers land at 2:10, 2.4 km from the intakes), so
+ * a pilot has time to take off and climb before anything arrives.
+ * scripts/war-balance.js flies bot squads of 1, 2, 4 and 8 through it on
+ * the real room (--spawn=x,z for where they take off); its table and the
+ * reasons for these numbers are in the pull request that set them.
  *
  * No jammer: the war has no radio signal since 2026-09-29
  * (docs/WARFARE-PLAN.md 6.1).
@@ -98,7 +102,7 @@ export default {
   targets,
   output: 14000,
   floorMw: 7000,
-  rack: 16,
+  rack: 18,
   /* Seconds after the go. */
   waves: [
     { at: 5, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
@@ -109,9 +113,9 @@ export default {
     { at: 195, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
     { at: 215, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
     { at: 250, kind: 'fpv', n: 4, per: 1, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
-    { at: 300, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
-    { at: 340, kind: 'strike', n: 4, per: 1.25, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
-    { at: 395, kind: 'strike', n: 3, per: 1.25, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
+    { at: 300, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
+    { at: 340, kind: 'strike', n: 4, per: 1.5, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
+    { at: 395, kind: 'strike', n: 3, per: 1.5, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
     { at: 398, kind: 'fpv', n: 4, per: 1, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
     { at: 401, kind: 'loiter', n: 2, per: 1, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
     { at: 404, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },

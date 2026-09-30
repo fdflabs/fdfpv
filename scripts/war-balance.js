@@ -22,15 +22,15 @@
  *             each pass is off by a random 3D error of AIM_M (per skill),
  *             drawn again after each miss, so passes miss as they do
  *   losses    a crash takes the airframe at CRASH_PER_MIN (per skill);
- *             after a blast or a crash the pilot is back at the quads'
- *             spawn DOWN_MS later (the room marks it spawning for 5 s)
+ *             after a blast or a crash the pilot is back at the spawn
+ *             (--spawn) DOWN_MS later (the room marks it spawning for 5 s)
  *
  * Skills: good (lead, AIM_M 3, a crash every 10 minutes, 4 s down),
  * average (lead, AIM_M 5, a crash every 3.3 minutes, 6 s down) and
  * careless (no lead, AIM_M 6, a crash every 1.5 minutes, 8 s down, and
  * it chases what it cannot catch and what is going for a burning target).
  *
- *   node scripts/war-balance.js [--runs=12] [--pilots=1,2,4,8] [--skill=good,average,careless] [--jobs=N]
+ *   node scripts/war-balance.js [--runs=12] [--pilots=1,2,4,8] [--skill=good,average,careless] [--jobs=N] [--spawn=x,z]
  *   BAL_DEBUG=good,8,10 node scripts/war-balance.js    one game (skill,
  *                                        pilots, seed), the hunters and
  *                                        bots every 10 s, and its result
@@ -73,6 +73,13 @@ const arg = (name, dflt) => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
   return hit ? hit.slice(name.length + 3) : dflt;
 };
+
+/* Where the bots take off and come back, x,z: the quads' spawn by
+ * default, or --spawn=x,z (the crest road by the intakes, say). */
+function spawnArg() {
+  const v = arg('spawn', null);
+  return v ? v.split(',').map(Number) : [QUAD_SPAWN.x, QUAD_SPAWN.z];
+}
 
 const TICK_MS = 1000 / 30;
 const GO = COUNTDOWN_MS;
@@ -132,7 +139,9 @@ function noseQ(v) {
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const len = (v) => Math.hypot(v[0], v[1], v[2]);
 
-function runOne({ pilots, skill, seed, floorBuf }) {
+function runOne({
+  pilots, skill, seed, floorBuf, spawn,
+}) {
   const floor = loadHeight(floorBuf);
   const S = SKILLS[skill];
   const rand = rng(seed * 7919 + pilots * 31 + Object.keys(SKILLS).indexOf(skill));
@@ -143,7 +152,7 @@ function runOne({ pilots, skill, seed, floorBuf }) {
   room.war.random = seedDraw;
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
-  const spawnAt = (i) => [QUAD_SPAWN.x + (i % 4) * 6, floor.floorAt(QUAD_SPAWN.x, QUAD_SPAWN.z) + 2, QUAD_SPAWN.z + Math.floor(i / 4) * 6];
+  const spawnAt = (i) => [spawn[0] + (i % 4) * 6, floor.floorAt(spawn[0], spawn[1]) + 2, spawn[1] + Math.floor(i / 4) * 6];
   const bots = Array.from({ length: pilots }, (_, i) => ({
     i, conn: { i }, seat: 0, p: spawnAt(i), v: [0, 0, -1], downUntil: -1, crashed: false, target: null, err: [0, 0, 0], best: Infinity, closedAt: 0, breakUntil: 0,
   }));
@@ -367,13 +376,16 @@ function runOne({ pilots, skill, seed, floorBuf }) {
 
 if (process.env.BAL_DEBUG) {
   const [skill, pilots, seed] = process.env.BAL_DEBUG.split(',');
-  console.log(runOne({ skill, pilots: Number(pilots), seed: Number(seed), floorBuf: readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url)) }));
+  console.log(runOne({
+    skill, pilots: Number(pilots), seed: Number(seed), floorBuf: readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url)), spawn: spawnArg(),
+  }));
 } else if (!isMainThread) {
   parentPort.postMessage(runOne(workerData));
 } else {
   const RUNS = Number(arg('runs', 12));
   const PILOTS = arg('pilots', '1,2,4,8').split(',').map(Number);
   const SKILL = arg('skill', 'good,average,careless').split(',');
+  const SPAWN = spawnArg();
   const JOBS = Number(arg('jobs', Math.max(1, Math.min(12, availableParallelism() - 8))));
   const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
   const jobs = [];
@@ -381,7 +393,7 @@ if (process.env.BAL_DEBUG) {
     for (const pilots of PILOTS) {
       for (let seed = 1; seed <= RUNS; seed += 1) {
         jobs.push({
-          pilots, skill, seed, floorBuf,
+          pilots, skill, seed, floorBuf, spawn: SPAWN,
         });
       }
     }
@@ -416,7 +428,7 @@ if (process.env.BAL_DEBUG) {
     console.log(`  unfinished: ${r.skill} ${r.pilots} seed ${r.seed}, left ${r.left}`);
   }
   const mean = (xs) => xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length);
-  console.log(`mission ${itaipu1.id}: rack ${itaipu1.rack} a pilot, floor ${itaipu1.floorMw} of ${itaipu1.output} MW; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
+  console.log(`mission ${itaipu1.id}: spawn ${SPAWN.join(', ')}, rack ${itaipu1.rack} a pilot, floor ${itaipu1.floorMw} of ${itaipu1.output} MW; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
   console.log('  skill     pilots  win   mean min  output MW (won/all)   rack used    kills  booms crashes hits  ends');
   for (const skill of SKILL) {
     for (const pilots of PILOTS) {
