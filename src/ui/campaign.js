@@ -307,11 +307,22 @@ export function createCampaignScreen({
       watched.set(key, res !== null);
       return;
     }
-    if (!res || watched.get(key)) {
+    if (watched.get(key)) {
+      return;
+    }
+    const i = ACT1.findIndex((m) => m.id === v.mission);
+    /* A room without results (main before the war's Act 1) ends a
+     * mission won or lost with none: say quietly that stars are coming,
+     * pay nothing, and keep watching in case the result follows. */
+    if (!res) {
+      const later = str('campaign.result_later', { n: i + 1 });
+      if (i >= 0 && (v.state === 'won' || v.state === 'lost') && last !== later) {
+        last = later;
+        draw();
+      }
       return;
     }
     watched.set(key, true);
-    const i = ACT1.findIndex((m) => m.id === v.mission);
     if (i < 0) {
       return;
     }

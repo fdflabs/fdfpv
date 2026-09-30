@@ -6,7 +6,7 @@
  *   npm run war:card                       starts its own on port 8819
  *   npm run war:card -- http://127.0.0.1:8797 [outdir]
  *
- * The gate draws six cards, Defend Itaipu last with its picture and its
+ * The gate draws seven cards, Defend Itaipu sixth with its picture and its
  * mark, inside the window at 1280x720, 1920x1080, 390x844, 360x640 and
  * 844x390, tags clear of the command bar, no sideways scroll.
  *
@@ -103,7 +103,7 @@ async function roomsServer() {
   throw new Error(`rooms server did not come up on ${url}`);
 }
 
-const NAMES = 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend Itaipu';
+const NAMES = 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend Itaipu,Defend the Paraná';
 
 const LAYOUT = `(() => ({
   w: window.innerWidth, h: window.innerHeight, sw: document.documentElement.scrollWidth,
@@ -126,7 +126,7 @@ function laidOut(v) {
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  return c.length === 6 && inside && apart && v.sw <= v.w;
+  return c.length === 7 && inside && apart && v.sw <= v.w;
 }
 
 async function resize(page, width, height) {
@@ -203,7 +203,7 @@ async function toGate(page) {
   await page.evaluate("(() => { location.reload(); return true; })()");
   await page.sleep(500);
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000);
+  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 7", 60000);
 }
 
 const server = await roomsServer();
@@ -211,12 +211,12 @@ console.log(`the Defend Itaipu card, rooms at ${server.url}`);
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720 });
 try {
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000).catch(() => {});
+  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 7", 60000).catch(() => {});
   await page.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
 
   /* SIX CARDS AT EVERY SIZE. */
   const first = await page.evaluate(LAYOUT);
-  check('six cards, Defend Itaipu last', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check('seven cards, Defend Itaipu then Defend the Paraná', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
     await resize(page, w, h);
@@ -225,7 +225,7 @@ try {
     const shape = row
       ? Math.max(...tops) - Math.min(...tops) <= 4
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
-    check(`${w} by ${h}: six cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+    check(`${w} by ${h}: seven cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     await shot(page, `gate-${w}x${h}`);
   }

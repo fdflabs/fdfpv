@@ -2830,6 +2830,7 @@ export default {
   "campaign.missions": "Missions",
   "campaign.result_won": "Mission {n} won: {stars} of 3 stars, {credits} credits.",
   "campaign.result_lost": "Mission {n} lost: {stars} of 3 stars, {credits} credits.",
+  "campaign.result_later": "Mission {n} over. Stars and credits are coming soon.",
   "campaign.loadout": "Your loadout: a rack of {rack}, {warhead}, {speed}.",
   "campaign.speed_normal": "standard airframe",
   "campaign.speed_fast": "faster airframe",

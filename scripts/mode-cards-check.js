@@ -1,12 +1,12 @@
 /*
- * mode-cards-check.js: the title's six cards, and the two room game
+ * mode-cards-check.js: the title's seven cards, and the two room game
  * cards driven through the real shell the way a pilot drives them, against
  * a running rooms server (never the live one):
  *
  *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
  *   SIM_GPU=1 node scripts/mode-cards-check.js http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: six cards inside the window at 1280x720,
+ * Page A, 1280 by 720: seven cards inside the window at 1280x720,
  * 1920x1080, 390x844, 360x640 and 844x390, tags clear of the command bar,
  * no sideways scroll, a picture of each. The arrows walk the row. Enter on
  * Toilet paper combat opens the room screen with the cursor on Make a
@@ -67,7 +67,7 @@ async function shot(page, name) {
   console.log(`  shot ${path}`);
 }
 
-const NAMES = 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend Itaipu';
+const NAMES = 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend Itaipu,Defend the Paraná';
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -92,7 +92,7 @@ function laidOut(v) {
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  return c.length === 6 && inside && apart && v.sw <= v.w;
+  return c.length === 7 && inside && apart && v.sw <= v.w;
 }
 
 async function resize(page, width, height) {
@@ -185,13 +185,13 @@ const pages = [a, b, c, d];
 try {
   for (const p of pages) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000);
+    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 7", 60000);
     await p.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000);
   }
 
   /* THE FIVE CARDS AT EVERY SIZE. */
   const first = await a.evaluate(LAYOUT);
-  check('six cards, in order', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check('seven cards, in order', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
     await resize(a, w, h);
@@ -200,7 +200,7 @@ try {
     const shape = row
       ? Math.max(...tops) - Math.min(...tops) <= 4
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
-    check(`${w} by ${h}: six cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+    check(`${w} by ${h}: seven cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     await shot(a, `gate-${w}x${h}`);
   }
@@ -209,17 +209,17 @@ try {
   /* THE KEYBOARD ALONG THE ROW. */
   await a.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const walk = [await onCard(a)];
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 6; i += 1) {
     await a.tap('ArrowRight');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  for (let i = 0; i < 2; i += 1) {
+  for (let i = 0; i < 3; i += 1) {
     await a.tap('ArrowLeft');
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  check('Right walks all six cards and Left steps back to combat', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Toilet paper combat`, walk.join(' > '));
+  check('Right walks all seven cards and Left steps back to combat', walk.join('>') === `${NAMES.split(',').join('>')}>Defend Itaipu>Catch the Ace!>Toilet paper combat`, walk.join(' > '));
 
   /* TOILET PAPER COMBAT: A hosts by the keyboard. */
   await a.tap('Enter');

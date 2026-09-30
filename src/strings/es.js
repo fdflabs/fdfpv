@@ -2834,6 +2834,7 @@ export default {
   "campaign.missions": "Misiones",
   "campaign.result_won": "Misión {n} ganada: {stars} de 3 estrellas, {credits} créditos.",
   "campaign.result_lost": "Misión {n} perdida: {stars} de 3 estrellas, {credits} créditos.",
+  "campaign.result_later": "Misión {n} terminada. Las estrellas y los créditos llegan muy pronto.",
   "campaign.loadout": "Tu equipo: un rack de {rack}, {warhead}, {speed}.",
   "campaign.speed_normal": "aparato estándar",
   "campaign.speed_fast": "aparato más rápido",

@@ -13,7 +13,9 @@
  * line following. Play on mission 1: the Defend Itaipu card's consent and
  * private Itaipu room, and its start row starts mission 1 with the
  * loadout in the start message (the room on main ignores the field and
- * starts the war anyway). A mocked room result, since the room gives
+ * starts the war anyway, and no loadout op goes to a room that does not
+ * echo loadouts). A mission end with no result, as main gives: nothing
+ * paid, a quiet note. A mocked room result, since the room gives
  * none yet: stars and credits on the screen follow it.
  *
  * No page error. Pictures in outdir, not in the repository.
@@ -250,7 +252,33 @@ try {
     && JSON.stringify(start.loadout) === JSON.stringify({ rack: 5, warhead: 'wide', speedMul: 1 }), JSON.stringify(start));
   const war = await page.evaluate("(() => { const w = window.__war().view; return { state: w.state, mission: w.mission }; })()");
   check('the room took it: mission 1 briefing', war.state === 'briefing' && war.mission === 'itaipu-1', JSON.stringify(war));
+
+  /* MAIN'S WAR, WITHOUT THE ACT 1 INTERFACE: no loadouts echo and no
+   * result. The loadout is not sent on its own, nothing errors, and a
+   * mission that ends with no result pays nothing and says so quietly. */
+  await page.sleep(1500);
+  const quiet = await page.evaluate(`({
+    loadouts: 'loadouts' in window.__war().view,
+    sent: window.__sent.filter((m) => m && m.type === 'war' && m.op === 'loadout').length,
+  })`);
+  check('no loadout support in the room: no loadout op sent, the mission still starts',
+    !quiet.loadouts && quiet.sent === 0 && war.state === 'briefing', JSON.stringify(quiet));
   await page.evaluate("window.__warDo('end')");
+  await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
+  const before = await page.evaluate("JSON.stringify(window.__campaign.state())");
+  await page.evaluate(`(() => {
+    const code = window.__rooms().code;
+    window.__campaign.observe({ id: 901, mission: 'itaipu-1', state: 'live' }, code);
+    window.__campaign.observe({ id: 901, mission: 'itaipu-1', state: 'won' }, code);
+    window.__campaign.open();
+    return true;
+  })()`);
+  await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
+  const bare = await page.evaluate(SCREEN);
+  check('a mission 1 end with no result: no stars, no credits, a quiet note',
+    (await page.evaluate("JSON.stringify(window.__campaign.state())")) === before && bare.missions[0].stars === 0
+    && bare.credits === 'Credits: 100' && bare.last === 'Mission 1 over. Stars and credits are coming soon.', JSON.stringify(bare));
+  await page.evaluate('window.__campaign.close()');
 
   /* A MOCKED RESULT: the room computes none yet. First seen undecided,
    * then decided, as a war this page watched. */
