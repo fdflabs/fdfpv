@@ -54,7 +54,7 @@ const EDGE = 15;
  * height, the plinth's rise, metres (the aerial-dam photographs'
  * scale; OSM gives none of it). */
 export const TANK = {
-  length: 8, width: 4, height: 4.2, plinth: 0.5,
+  length: 8, width: 4, height: 4.2, plinth: 0.3,
 };
 /* A transformer's centre stays this far off every building. */
 const HOUSE_CLEAR = 10;

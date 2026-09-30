@@ -187,8 +187,8 @@ async function pageChecks(page, plan) {
   })()`);
   console.log(`       built: ${s.stats.transformers} transformers, ${s.stats.fence} fence pieces, ${s.stats.solids} solids, `
     + `${s.stats.drawn.meshes} meshes, ${s.stats.drawn.triangles} triangles, in ${s.stats.buildMs} ms`);
-  check(s.stats.transformers === plan.transformers.length && s.solids === plan.transformers.length,
-    'built: the page\'s yard is Node\'s, one solid per transformer', `built: the page has ${s.stats.transformers} transformers and ${s.solids} of their solids, Node ${plan.transformers.length}`);
+  check(s.stats.transformers === plan.transformers.length && s.solids === 3 * plan.transformers.length,
+    'built: the page\'s yard is Node\'s, three solids per transformer', `built: the page has ${s.stats.transformers} transformers and ${s.solids} of their solids, Node ${plan.transformers.length}`);
   check(s.maxGap === 0, 'built: every transformer is solid at its middle', `built: a transformer's middle is ${s.maxGap} m from any solid`);
   check(s.staticCount <= SOLIDS_MAX, `built: ${s.staticCount} static colliders, at most ${SOLIDS_MAX}`, `built: ${s.staticCount} static colliders, over ${SOLIDS_MAX}`);
 }
