@@ -229,8 +229,6 @@ function chord(a, b) {
   return Math.sqrt((a.qx * sg - b.qx) ** 2 + (a.qy * sg - b.qy) ** 2 + (a.qz * sg - b.qz) ** 2 + (a.qw * sg - b.qw) ** 2);
 }
 
-const D0 = {};
-const A0 = {};
 
 /*
  * THE HULL'S BROADPHASE. Whether no part box of hull h can come within
@@ -244,18 +242,51 @@ const A0 = {};
  * broadphase, on the centres, passes such a pair every millisecond,
  * since its centre is inside BLAST_M plus the hull's reach.
  */
-function clearOf(h, dTrack, aTrack, t0, t1) {
+function clearOf(h, dTrack, aTrack, t0, t1, memo) {
   const first = Math.floor(t0) + 1;
   const last = Math.floor(t1);
-  const d0 = trackPose(dTrack, first, D0);
-  const a0 = trackPose(aTrack, first, A0);
-  if (!d0 || !a0) {
+  const d = spanOf(dTrack, first, last, h.hull.reach, memo);
+  const a = spanOf(aTrack, first, last, 0, memo);
+  if (!d || !a) {
     return false;
   }
+  const move = d.move + a.move;
+  const d0 = d.p;
+  const a0 = a.p;
+  /* No part is further than reach from the hull's centre: a pair whose
+   * centres are clear by that much more needs no hullDistance. */
+  const dx = d0.px - a0.px;
+  const dy = d0.py - a0.py;
+  const dz = d0.pz - a0.pz;
+  const centre = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (centre - h.hull.reach - move > BLAST_M + 1e-6) {
+    return true;
+  }
   const gap = hullDistance(h, d0, a0.px, a0.py, a0.pz);
-  const move = spread(dTrack, first, last, d0, h.hull.reach) + spread(aTrack, first, last, a0, 0);
   /* A micrometre for the rounding between a sample and its lerp. */
   return gap - move > BLAST_M + 1e-6;
+}
+
+/*
+ * A track's pose at the span's first millisecond and its spread over the
+ * span, once a judgement step for each track and span, however many
+ * pairs it is in (8 pilots and 120 attackers are 960 pairs, but 128
+ * tracks). null when the Track does not cover `first`.
+ */
+function spanOf(track, first, last, reach, memo) {
+  let byTrack = memo.get(track);
+  if (!byTrack) {
+    byTrack = new Map();
+    memo.set(track, byTrack);
+  }
+  const key = `${first}:${last}`;
+  if (byTrack.has(key)) {
+    return byTrack.get(key);
+  }
+  const p = trackPose(track, first, {});
+  const out = p ? { p, move: spread(track, first, last, p, reach) } : null;
+  byTrack.set(key, out);
+  return out;
 }
 
 /* Whether a sample can go off: seen, neither spawning nor crashed. */
@@ -939,6 +970,7 @@ export class RoomWar {
    */
   step(core, fly, from, t1, roomNow) {
     let boom = null;
+    const memo = new Map();
     for (const d of fly) {
       if (d.down || this.spentOut(d.seat)) {
         continue;
@@ -967,7 +999,7 @@ export class RoomWar {
           continue;
         }
         const end = boom ? Math.min(t1, boom.tc) : t1;
-        if (clearOf(d.hull, d.track, x.track, start, end)) {
+        if (clearOf(d.hull, d.track, x.track, start, end, memo)) {
           continue;
         }
         const c = within(POINT, d.hull, x.track, d.track, start, end, BLAST_M);
