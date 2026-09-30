@@ -382,6 +382,33 @@ try {
   })()`);
   check('a heard target decides the warning over the heading; unheard, the heading does', rule.nosedOther === null && rule.awayMine === 1 && rule.nosedNone === null
     && rule.nosedUnheard === 1 && rule.awayUnheard === null, JSON.stringify(rule));
+  /* Mission 3's decoys: marked as a Striker, tag and colour, until 300 m
+   * (src/ui/warmarkers.js DECOY_M), and as a decoy inside it. */
+  const decoy = await page.evaluate(`(async () => {
+    const THREE = await import('three');
+    const { createWarMarkers } = await import('/src/ui/warmarkers.js');
+    const cam = new THREE.PerspectiveCamera(${FOV}, 1280 / 720, 0.1, 20000);
+    cam.position.set(0, 400, 0);
+    cam.lookAt(0, 400, -1000);
+    cam.updateMatrixWorld();
+    const mk = createWarMarkers(cam, { clientWidth: 1280, clientHeight: 720 });
+    const q = [0, 0, 0, 1];
+    const at = async (d) => {
+      const list = [{ id: 1, kind: 'strike', p: [-40, 400, -d], q }, { id: 2, kind: 'decoy', p: [40, 400, -d], q }];
+      mk.update(list, 0, [{ type: 'born', agents: list.map((a) => ({ id: a.id, kind: a.kind, target: null })) }], null, 0, 400, 0);
+      await null;
+      const m = mk.shown().marks;
+      const s = m.find((k) => k.id === 1);
+      const dc = m.find((k) => k.id === 2);
+      return s && dc ? { strike: [s.tag, s.colour], decoy: [dc.tag, dc.colour] } : null;
+    };
+    const out = { far: await at(1000), near: await at(200) };
+    mk.clear();
+    return out;
+  })()`);
+  check('a decoy is marked exactly as a Striker until 300 m, and as a decoy inside it', decoy && decoy.far
+    && JSON.stringify(decoy.far.strike) === JSON.stringify(decoy.far.decoy) && decoy.near && decoy.near.decoy[0] !== decoy.near.strike[0],
+  JSON.stringify(decoy));
   const radio = (await warOf()).radio;
   console.log(`  info  the radio said: ${radio ? radio.said.join(', ') : 'no radio'}`);
 

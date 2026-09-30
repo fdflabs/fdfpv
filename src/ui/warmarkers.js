@@ -804,7 +804,7 @@ export function createWarMarkers(camera, view) {
         continue;
       }
       marks.push({
-        id: a.id, kind: a.kind, p: a.p.slice(), x: sx[i], y: sy[i], aim: i === aim, colour: COLOUR[threat[i]], dist: dist[i],
+        id: a.id, kind: a.kind, tag: tags[kindOf[i]] ?? '', p: a.p.slice(), x: sx[i], y: sy[i], aim: i === aim, colour: COLOUR[threat[i]], dist: dist[i],
       });
     }
     return {
