@@ -6,7 +6,8 @@
  *   npm run campaign:check -- http://127.0.0.1:8797 [outdir]
  *
  * The gate draws seven cards, the campaign's last, inside the window at
- * 1280x720, 390x844 and 360x640. Its card opens the campaign screen:
+ * 1280x720, 390x844 and 360x640, with the rooms panel above them and
+ * clear of them. Its card opens the campaign screen:
  * mission 1 playable and free, missions 2 to 4 marked Campaign. The shop,
  * with credits seeded in the stored settings' campaign section (the
  * guest's store, which the account syncs for a signed in pilot):
@@ -131,6 +132,14 @@ const LAYOUT = `(() => ({
       facts: Math.round(c.querySelector('.gate-card-facts').getBoundingClientRect().bottom),
     };
   }),
+  panel: (() => {
+    const n = document.querySelector('.screen-title .gate-rooms');
+    if (!n || n.hidden) {
+      return null;
+    }
+    const r = n.getBoundingClientRect();
+    return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)];
+  })(),
 }))()`;
 
 function laidOut(v) {
@@ -138,7 +147,10 @@ function laidOut(v) {
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  return c.length === 7 && inside && apart && v.sw <= v.w;
+  /* The rooms panel (src/ui/ui.js renderTitleRooms): in the window, above the cards. */
+  const p = v.panel;
+  const panel = Boolean(p) && p[0] >= 0 && p[1] >= 0 && p[2] <= v.w && c.every((x) => p[3] <= x.box[1]);
+  return c.length === 7 && inside && apart && panel && v.sw <= v.w;
 }
 
 /* What the campaign screen shows, read off the DOM. */
@@ -195,8 +207,8 @@ try {
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: seven cards, the campaign last, inside the window, clear of the bar`,
-      laidOut(v) && v.cards[6].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw}`);
+    check(`${w} by ${h}: seven cards, the campaign last, inside the window, clear of the bar, the rooms panel above them`,
+      laidOut(v) && v.cards[6].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }
 

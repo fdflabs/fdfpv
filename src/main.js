@@ -2227,8 +2227,12 @@ export async function boot({
     war: (room) => warEnter(room),
     pilots: () => roomPeers.size + 1,
   });
-  const roomBrowsing = () => ui.screen === 'rooms' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
+  /* The title too, for its rooms panel (ui.js renderTitleRooms). */
+  const roomBrowsing = () => ui.screen === 'rooms' || ui.screen === 'title' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
   ui.roomRows = (screen) => roomBrowser.rows(screen);
+  ui.titleRooms = () => roomBrowser.titleItems();
+  /* The page opens on the title, with no screen change to start the poll. */
+  roomBrowser.watch(roomBrowsing());
   const screenChanged = ui.onScreenChange;
   ui.onScreenChange = (screen) => {
     screenChanged(screen);

@@ -46,6 +46,8 @@ import { MAPS, mapById } from '../maps/registry.js';
 import { plural, str } from '../strings/index.js';
 
 const ROOM_ACTION = 'friends-room-';
+/* Rooms on the title's panel: the busiest few with a seat. */
+const TITLE_ROOMS = 3;
 
 /*
  * ui: the menu (show, askForm, refreshFriends); link: the room socket
@@ -111,8 +113,9 @@ export function createRoomBrowser({
   }
 
   /* What a room's pilots column says: full, how many of how many, or,
-   * empty, how long before it closes (null from an older server). */
-  function load(r) {
+   * empty, how long before it closes (null from an older server).
+   * `closes` is the string for the minutes: the title's chips are narrow. */
+  function load(r, closes = 'roombrowser.empty_closes') {
     if (r.n >= r.cap) {
       return str('roombrowser.full');
     }
@@ -120,7 +123,7 @@ export function createRoomBrowser({
       return str('roombrowser.count', { n: r.n, cap: r.cap });
     }
     const min = closesInMin(r);
-    return min == null ? str('roombrowser.empty_room') : min > 0 ? str('roombrowser.empty_closes', { n: min }) : str('roombrowser.empty_closing');
+    return min == null ? str('roombrowser.empty_room') : min > 0 ? str(closes, { n: min }) : str('roombrowser.empty_closing');
   }
 
   function roomRow(r) {
@@ -318,7 +321,39 @@ export function createRoomBrowser({
     ui.refreshFriends();
   }
 
+  /* The title panel's line: how many rooms and pilots, or why none. */
+  function summary() {
+    const rooms = list.rooms();
+    if (list.open() === false) {
+      return str('roombrowser.closed');
+    }
+    if (rooms === null) {
+      return str(list.failed() ? 'roombrowser.unreachable' : 'roombrowser.looking');
+    }
+    if (!rooms.length) {
+      return str('roombrowser.title_none');
+    }
+    const pilots = rooms.reduce((n, r) => n + r.n, 0);
+    const counted = plural('count.rooms', rooms.length);
+    return pilots ? str('roombrowser.title_count', { rooms: counted, pilots: plural('count.pilots', pilots) })
+      : str('roombrowser.title_count_empty', { rooms: counted });
+  }
+
   return {
+    /* The title's rooms panel (src/ui/ui.js renderTitleRooms): its line,
+     * then the rooms, All rooms and Make a room. `lobby:` actions go the
+     * Fly with friends card's way in first (ui.js act). */
+    titleItems() {
+      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, TITLE_ROOMS);
+      return [
+        { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
+        ...open.map((r) => ({
+          lobby: 'room', label: title(r), value: load(r, 'roombrowser.chip_empty'), join: str('roombrowser.join'), action: `lobby:${ROOM_ACTION}${r.code}`,
+        })),
+        { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },
+        { lobby: 'make', label: str('roombrowser.new'), action: 'lobby:roomnew' },
+      ];
+    },
     /* The Rooms and Make a room screens' rows, Back aside. */
     rows(screen) {
       return screen === 'roomnew' ? newRows() : browserRows();
