@@ -1108,7 +1108,7 @@ export default {
   "ui.could_not_be_loaded": "{name} could not be loaded. {v2}",
   "ui.could_not_be_loaded_from_the": "{name} could not be loaded from the board.",
   "ui.crash_damage": "Crash damage",
-  "ui.crash_damage_note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way.",
+  "ui.crash_damage_note": "On: a hard enough hit breaks what it would break on the real aircraft, props, arms, wings, the camera, and a crash that leaves it unable to fly ends the lap. Off: it bounces off anything whole. A flight that never hits that hard is the same flight either way. Crash damage is always on in rooms, so a mid air breaks both aircraft.",
   "ui.credits": "Credits",
   "ui.decrease": "Decrease {label}",
   "ui.delete": "Delete {name}?",

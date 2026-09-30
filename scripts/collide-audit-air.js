@@ -33,8 +33,11 @@
  *   orb     edge/rooms/tag.js catchOrb, the free orb at 6 m, the same.
  *   cut     src/game/cut.js judgeCut, the 3 m paper cut, a static
  *           streamer on 10 Hz frames, passes 2.7 to 3.3 m from the line.
- *   damage  the plant (dist/sim.wasm) with crash damage off answers the
- *           both break rule's sim_part_break, which the shell's hit calls.
+ *   damage  the plant (dist/sim.wasm) with crash damage off refuses the
+ *           both break rule's sim_part_break, which the shell's hit calls,
+ *           so every room whose referee judges a mid air must fly its
+ *           pilots with damage on (src/game/midair.js roomForcesDamage,
+ *           which src/main.js crashDamageWanted reads).
  *
  * Each row prints miss and false rates. A row is flagged when a rule
  * misses a truth contact 5 cm (15 cm for the bubbles and the cut) inside
@@ -73,7 +76,9 @@ import { RoomTag } from '../edge/rooms/tag.js';
 import { SAMPLE_MS as WAR_SAMPLE_MS } from '../edge/rooms/war.js';
 import { BUBBLE_M } from '../src/share/roomtag.js';
 import { BLAST_M } from '../src/share/war/routes.js';
-import { GAP_MS, Track, hullDistance, hullFor, judge, within } from '../src/game/midair.js';
+import {
+  GAP_MS, Track, hullDistance, hullFor, judge, roomForcesDamage, within,
+} from '../src/game/midair.js';
 import { REACH_M, StreamerTrack, judgeCut } from '../src/game/cut.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -687,7 +692,7 @@ function auditCut() {
 /* ------------------------------------------------------------ damage off */
 
 async function auditDamage() {
-  console.log('\ndamage: the both break rule on a plant with crash damage off (free flight, tag, combat: src/main.js applyCrashMode forces it on only in a war)');
+  console.log('\ndamage: the both break rule on a plant with crash damage off, and the rooms that could fly one into a mid air');
   const { loadSim, SIM_OK } = await import('../tests/lib/simmod.js');
   const wasm = await readFile(join(root, 'dist', 'sim.wasm'));
   const config = await readFile(join(root, 'tests', 'fixtures', 'config-baseline.diff'), 'utf8');
@@ -700,9 +705,26 @@ async function auditDamage() {
     const flags = typeof sim.e.sim_damage_flags === 'function' ? sim.e.sim_damage_flags() : null;
     const broke = rc === SIM_OK && flags !== 0;
     console.log(`        damage ${on ? 'on ' : 'off'}: sim_part_break(3) rc ${rc}, damage flags ${flags}${broke ? ', the part left' : ', nothing broke'}`);
-    if (!on) {
-      flag(!broke, 'a pilot with crash damage off is not broken by a mid air it was judged in; the other pilot is (the both break rule is one sided)');
+  }
+  /* Two five inches through each other, 30 Hz, in a room of each kind:
+   * whether its referee judges them, and whether a pilot whose own setting
+   * is off flies it with damage on. */
+  for (const friendly of [false, true]) {
+    const ref = new Referee(friendly);
+    ref.seat(1, '5inch');
+    ref.seat(2, '5inch');
+    let judged = false;
+    for (let k = 0; k < 6; k += 1) {
+      const t = T0 + k * 33;
+      for (const seat of [1, 2]) {
+        const bytes = encodePose({
+          px: 0, py: 100, pz: (seat === 1 ? -1 : 1) * (0.5 - k * 0.2), qx: 0, qy: 0, qz: 0, qw: 1, vx: 0, vy: 0, vz: (seat === 1 ? 6 : -6), t, flags: FLAG_AIRBORNE | FLAG_QUAD, seq: 0, wx: 0, wy: 0, wz: 0,
+        });
+        judged = ref.pose(seat, bytes, t).length > 0 || judged;
+      }
     }
+    const forced = roomForcesDamage({ friendly });
+    flag(judged && !forced, `a ${friendly ? 'friendly' : 'judged'} room: referee ${judged ? 'judges' : 'judges nothing'}, damage ${forced ? 'forced on' : 'the pilot\'s setting'}${judged && !forced ? ': a pilot with damage off is not broken by a mid air it was judged in, the other is (the both break rule is one sided)' : ''}`);
   }
 }
 

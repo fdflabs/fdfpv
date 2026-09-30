@@ -101,6 +101,21 @@ export const KEEP_MS = 2000;
 export const BREAK_MPS = 10;
 
 /*
+ * CRASH DAMAGE IS ON IN A ROOM THAT JUDGES MID AIRS. applyHit breaks the
+ * struck part through sim_part_break, which a plant with crash damage off
+ * refuses (SIM_ERR_BAD_STATE), so a pilot who turned damage off bounced
+ * off a mid air the other pilot broke in: the both break rule held on one
+ * side (scripts/collide-audit-air.js, damage). So the shell flies every
+ * room whose referee judges (every room but a friendly one, whose pilots
+ * pass through each other) with damage on, as a war already did, and
+ * never writes the pilot's own setting, which is theirs again once they
+ * leave (src/main.js crashDamageWanted). welcome: the room's, or null.
+ */
+export function roomForcesDamage(welcome) {
+  return Boolean(welcome) && !welcome.friendly;
+}
+
+/*
  * Which surface each airframe material is to the plant when it strikes
  * another aircraft (configs/parts.js MATERIALS to SURFACES, the ids
  * sim_contact_at_mat takes). The number that sets a contact's peak force

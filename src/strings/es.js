@@ -1101,7 +1101,7 @@ export default {
   "ui.could_not_be_loaded": "{name} no se pudo cargar. {v2}",
   "ui.could_not_be_loaded_from_the": "{name} no se pudo cargar desde el tablero.",
   "ui.crash_damage": "Daños en choques",
-  "ui.crash_damage_note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras.",
+  "ui.crash_damage_note": "Encendido: un golpe lo bastante fuerte rompe lo que rompería en la aeronave real, hélices, brazos, alas, la cámara, y un choque que la deja sin poder volar termina la vuelta. Apagado: rebota contra todo sin romperse. Un vuelo que nunca golpea tan fuerte es el mismo vuelo de las dos maneras. En las salas los daños están siempre activados, así que un choque en el aire rompe las dos aeronaves.",
   "ui.credits": "Créditos",
   "ui.decrease": "Bajar {label}",
   "ui.delete": "¿Eliminar {name}?",

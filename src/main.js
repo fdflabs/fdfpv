@@ -104,7 +104,9 @@ import {
   FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
-import { applyHit, checkHit, sideFor } from './game/midair.js';
+import {
+  applyHit, checkHit, roomForcesDamage, sideFor,
+} from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
 import { bubbleLevel, createAceBubble } from './render/acebubble.js';
@@ -2056,6 +2058,11 @@ export async function boot({
       }
       roomGone.clear();
       roomSessionWelcome(w);
+      /* Crash damage is on in this room: a pilot already flying its world
+       * with it off starts again, as a war's does (warBegin). */
+      if (mode === 'flight' && damage.available && crashDamageWanted(ui.settings) !== runDamage && roomTagWorldReady(w.map)) {
+        ui.onAction('restart');
+      }
       ui.checkVersion();
       ui.refreshFriends();
     },
@@ -7365,12 +7372,18 @@ export async function boot({
     return outPos;
   }
 
+  /* The damage mode a run starts in: the pilot's setting, forced on in a
+   * war (WARFARE-PLAN 6.3) and in any room that judges mid airs
+   * (roomForcesDamage). The setting is never written, so it is theirs
+   * again once the war is over or they leave the room. */
+  function crashDamageWanted(s) {
+    return s.crashDamage !== false || roomWar.on() || roomForcesDamage(roomLinkState.state().welcome);
+  }
+
   /* Between runs, from applySettings: the mode this run flies. */
   function applyCrashMode(s) {
     syncPartTable();
-    /* A war forces damage on (WARFARE-PLAN 6.3); the pilot's own setting
-     * is never written, so it is theirs again once the war is over. */
-    const want = damage.available && (s.crashDamage !== false || roomWar.on());
+    const want = damage.available && crashDamageWanted(s);
     if (want === runDamage) {
       return;
     }
@@ -8296,9 +8309,10 @@ export async function boot({
     }
     sim.reset();
     plantStarts += 1;
-    /* A war began or ended since the last run: its damage mode now,
-     * between runs, since setting it clears the crash state. */
-    if (warCrashDue) {
+    /* A war began or ended, or a room was joined or left, since the last
+     * run: its damage mode now, between runs, since setting it clears the
+     * crash state. */
+    if (warCrashDue || (damage.available && crashDamageWanted(ui.settings) !== runDamage)) {
       warCrashDue = false;
       applyCrashMode(ui.settings);
     }
