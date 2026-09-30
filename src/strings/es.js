@@ -600,6 +600,8 @@ export default {
   "loading.storage_online": "almacenamiento: {storage} en línea: {online}",
   "loading.the_packs_went_on_strike_it": "Las baterías se fueron a huelga. Estaban muy cargadas.",
   "loading.the_page_got_far_enough_to": "La página llegó lo bastante lejos para arrancar y luego se detuvo. Eso suele significar que faltó un recurso o que una extensión interfirió.",
+  "loading.tagline_over": "Simulador FPV paraguayo",
+  "loading.tagline_under": "Betaflight real en tu navegador",
   "loading.the_start_gates_are_in_mint": "Las puertas de salida están impecables. Nunca las han golpeado. Todavía.",
   "loading.this_browser_cannot_run_webassembly_which": "Este navegador no puede ejecutar WebAssembly, que es a lo que está compilada la controladora de vuelo.",
   "loading.this_browser_has_webgl_1_but": "Este navegador tiene WebGL 1 pero no WebGL 2, y el renderizador necesita WebGL 2.",

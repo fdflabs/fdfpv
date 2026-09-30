@@ -602,6 +602,8 @@ export default {
   "loading.storage_online": "storage: {storage} online: {online}",
   "loading.the_packs_went_on_strike_it": "The packs went on strike. It was revolting.",
   "loading.the_page_got_far_enough_to": "The page got far enough to start, then stopped. That usually means a resource went missing or an extension interfered.",
+  "loading.tagline_over": "Paraguayan FPV simulator",
+  "loading.tagline_under": "Real Betaflight in your browser",
   "loading.the_start_gates_are_in_mint": "The start gates are in mint condition. Never been hit. Yet.",
   "loading.this_browser_cannot_run_webassembly_which": "This browser cannot run WebAssembly, which is what the flight controller is compiled to.",
   "loading.this_browser_has_webgl_1_but": "This browser has WebGL 1 but not WebGL 2, and the renderer needs WebGL 2.",
