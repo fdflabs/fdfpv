@@ -18,6 +18,8 @@
  * Page B, 390 by 844, a phone held upright: the six cards stack inside
  * the window with no sideways scroll; a click on the third, Join with a
  * code, the code typed into the form, and B is in A's room on seat 2.
+ * Escape to the title is out of the room; the gate, Track mode, its
+ * menu's Fly with friends row and the code again: Fly on top of the room.
  *
  * No page error on either. Pictures in outdir, which is not in the
  * repository: a picture is evidence for one round.
@@ -295,12 +297,16 @@ try {
 
   /*
    * THE OWNER'S REPORT: in a room reached from Track mode's menu row
-   * there was no way to start flying. B, still in the room, goes back to
-   * the gate, answers Track mode, and comes back to the room by the
+   * there was no way to start flying. B goes back to the title, which is
+   * out of the room (the owner, 2026-09-30: the title is not in a room),
+   * to the gate, answers Track mode, and joins the room again by the
    * menu's Fly with friends row: Fly is on top, under the cursor.
    */
   await b.tap('Escape');
   await b.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+  await b.until("window.__rooms().phase === 'idle'", 5000).catch(() => {});
+  const titled = await b.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
+  check('Escape from the room screen to the title leaves the room', titled.screen === 'title' && titled.phase === 'idle', JSON.stringify(titled));
   await b.tap('Escape');
   await b.until('window.__ui.onGate()', 10000).catch(() => {});
   await b.evaluate("(() => { const i = window.__ui.items().findIndex((it) => it.action === 'way-race-5inch'); window.__ui.setCursor(i); return true; })()");
@@ -313,6 +319,13 @@ try {
   check('Track mode\'s menu has the Fly with friends row', await arrowTo(b, 'friends'));
   await b.tap('Enter');
   await b.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
+  check('the cursor reaches Join with a code in Track mode', await arrowTo(b, 'friends-join'));
+  await b.tap('Enter');
+  await b.until("document.querySelector('.name-dialog-input') && !document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
+  await b.cdp.send('Input.insertText', { text: room.code }, b.sessionId);
+  await b.tap('Enter');
+  await b.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(room.code)}`, 30000).catch(() => {});
+  await b.until("window.__ui.items()[0].action === 'fly'", 10000).catch(() => {});
   const race = await b.evaluate(`({
     mode: window.__ui.mode, phase: window.__rooms().phase,
     top: window.__ui.items()[0].action, on: window.__ui.items()[window.__ui.cursor].action,
