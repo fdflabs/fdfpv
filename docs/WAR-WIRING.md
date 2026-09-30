@@ -148,7 +148,7 @@ without rounds gives null, and none of this happens.
   and this pilot's airframes left for the round as pips where the team's
   rack was.
 
-A mission ends won (why 'rounds') or lost on output only; there is no
+A mission ends won (why 'waves') or lost on output only; there is no
 loss on an empty rack any more.
 
 ## 7. The host's menu
