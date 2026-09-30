@@ -47,8 +47,10 @@
  *               FINE_R columns and wires, the near trees' reach). From
  *               that, the fastest a craft can go at 60 and 20 frames a
  *               second without reaching what has not streamed in. And no
- *               streamed collider is left further from the set's centre
- *               than its part fills to.
+ *               streamed collider is left over from an earlier fill (a
+ *               near tree's post or crown counted one for one against
+ *               the trees the last fill's centre makes, the town's by
+ *               its reach), and none of the near trees is missing.
  *   bridge      the Friendship Bridge: how many colliders and roof records
  *               stand under its drawn deck.
  *   water       the drawn reservoir and river against the map's ground
@@ -612,26 +614,48 @@ const REFILL = (speed, fine) => `new Promise((done) => {
   requestAnimationFrame(step);
 })`;
 
-/* Every streamed collider further from the set's centre than its part
- * fills to: the town's walls to WALLS_R round a building's middle (a
- * building is at most 300 m across here), its poles to WIRES_R round a
- * chord's middle (chords are 25 m), a tree's pieces to the reach round
- * its trunk (a crown is at most 15 m across). */
-const LEFTOVERS = `(() => {
+/* Every streamed collider its part's last fill did not put there: the
+ * town's walls further than WALLS_R round a building's middle (a building
+ * is at most 300 m across here), its poles further than WIRES_R round a
+ * chord's middle (chords are 25 m); and a tree's post or crown sphere
+ * that is not one of those the near trees round the fill's centre make
+ * (plant.js nearTrees and addTree, run again here). The trees are counted
+ * one for one rather than by a distance, because a set the budget cut
+ * short holds whole cells of trees up to a cell's diagonal past its
+ * reach, which by distance read as left behind. */
+const LEFTOVERS = `(async () => {
   const it = window.__mapScene().userData.itaipu;
   const col = it.parts.dam.survey().colliders;
   const t = it.parts.town.town.stream.near;
-  const v = it.parts.vegetation.near;
+  const veg = it.parts.vegetation;
+  const v = veg.near;
+  const P = await import('/src/maps/itaipu/vegetation/plant.js');
+  const key = (kind, x, z) => kind + ':' + Math.fround(x) + ',' + Math.fround(z);
+  const want = new Map();
+  const put = (k) => want.set(k, (want.get(k) || 0) + 1);
+  const rec = {
+    addPost(kind, x, z) { put(key(kind, x, z)); },
+    addSphere(kind, x, y, z) { put(key(kind, x, z)); },
+  };
+  for (const tree of P.nearTrees(veg.forest, v.x, v.z).trees) P.addTree(rec, veg.forest, tree, veg.crowns);
   let left = 0;
   const kinds = {};
   for (let i = col.staticCount; i < col.staticCount + col.streamCount; i += 1) {
     const kn = col.kindName(col.fkind[i]);
-    const mx = (col.fax[i] + col.fbx[i]) / 2, mz = (col.faz[i] + col.fbz[i]) / 2;
-    const reach = kn === 'wall' ? 1000 + 300 : kn === 'pole' ? 450 + 25 : v.reach + 60;
-    const c = kn === 'tree' || kn === 'canopy' ? v : t;
-    if (Math.hypot(mx - c.x, mz - c.z) > reach) { left += 1; kinds[kn] = (kinds[kn] || 0) + 1; }
+    let stale;
+    if (kn === 'tree' || kn === 'canopy') {
+      const k = key(kn, col.fax[i], col.faz[i]);
+      stale = !(want.get(k) > 0);
+      if (!stale) want.set(k, want.get(k) - 1);
+    } else {
+      const mx = (col.fax[i] + col.fbx[i]) / 2, mz = (col.faz[i] + col.fbz[i]) / 2;
+      stale = Math.hypot(mx - t.x, mz - t.z) > (kn === 'wall' ? 1000 + 300 : 450 + 25);
+    }
+    if (stale) { left += 1; kinds[kn] = (kinds[kn] || 0) + 1; }
   }
-  return JSON.stringify({ streamed: col.streamCount, left, kinds });
+  let missing = 0;
+  for (const n of want.values()) missing += n;
+  return JSON.stringify({ streamed: col.streamCount, left, kinds, missing });
 })()`;
 
 /* The flights' targets, found in the map's own parts round where they
@@ -935,8 +959,10 @@ async function pageSweeps(out) {
       await settle(page, ...RUN[1]);
       const left = JSON.parse(await page.evaluate(LEFTOVERS));
       out.refill.left = left.left;
+      out.refill.missing = left.missing;
       console.log(`refill: at most ${frames} frames a refill, so ${margin} m of margin holds to ${out.refill.safe60} m/s at 60 frames a second and ${out.refill.safe20} m/s at 20; `
-        + `${left.left} of ${left.streamed} streamed colliders left outside their part's reach${left.left ? ` (${JSON.stringify(left.kinds)})` : ''}`);
+        + `${left.left} of ${left.streamed} streamed colliders left over from an earlier fill${left.left ? ` (${JSON.stringify(left.kinds)})` : ''}, `
+        + `${left.missing} of the near trees' colliders missing`);
     }
 
     if (ONLY.has('bridge')) {
@@ -1141,6 +1167,7 @@ function metrics(out) {
   if (out.refill) {
     m['refill.maxFrames'] = [out.refill.maxFrames, 'up'];
     m['refill.left'] = [out.refill.left, 'up'];
+    m['refill.missing'] = [out.refill.missing, 'up'];
     for (const [v, s] of Object.entries(out.refill.speeds)) {
       m[`refill.${v}.town`] = [s.town, 'down'];
     }
