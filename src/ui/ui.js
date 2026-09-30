@@ -1401,7 +1401,14 @@ export function seatAirframe(s, id) {
   if (from.id !== to.id && landPlaneOf(from.id) === landPlaneOf(to.id)) {
     const carry = (o) => (o && Object.hasOwn(o, from.id) ? { ...o, [to.id]: o[from.id] } : o);
     s.power = normalizePower(carry(s.power));
-    const part = normalisePlane(to.id, s.parts && s.parts[from.id]);
+    /* Not the damage: its parts are indices into the part table it was
+     * recorded on, and a float version's is another table (the Timber has
+     * 19 parts, on floats 18), so a part broken on one could be past the
+     * end of the other's, and the record faulted every frame after
+     * (main.js recordBroken). The one it goes to keeps its own. */
+    const fromPart = s.parts && s.parts[from.id];
+    const own = s.parts && s.parts[to.id];
+    const part = fromPart && normalisePlane(to.id, { ...fromPart, damage: own ? own.damage : null });
     if (part) {
       s.parts = { ...s.parts, [to.id]: part };
     }
