@@ -1092,6 +1092,10 @@ export function hangar(f, spec) {
   }
   f.put('trim', box(0.35, 0.9, 0.04), leafX - leafW / 2 + 0.5, slab + 1.6, leafZ + 0.08);
   f.put('metal', box(24, 0.16, 0.14), 3, slab + openH + 0.35, hd + 0.2);
+  /* The leaf and its rail are solid: slid along, they stand three metres
+   * out past the corner, where the walls under the roof are not. Flat on
+   * the end wall, with no corner for a wreck to be caught in. */
+  f.solid(-9, slab, hd, 15, slab + openH + 0.43, hd + 0.27, false);
   for (let k = 0; k < 6; k += 1) {
     f.put('metal', box(0.12, 0.3, 0.1), leafX - leafW / 2 + 1 + k * ((leafW - 2) / 5), slab + openH + 0.15, hd + 0.16);
   }
