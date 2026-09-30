@@ -2562,6 +2562,7 @@ export default {
   "roombrowser.mode_race": "Carrera",
   "roombrowser.mode_tag": "Atrapa al As",
   "roombrowser.mode_combat": "Combate",
+  "roombrowser.mode_war": "Defender Itaipú",
   "roombrowser.make": "Crear la sala",
   "roombrowser.making": "Creando la sala",
   "roombrowser.make_public_note": "La crea y te pone dentro. Aparece en Salas para todos.",
@@ -2785,5 +2786,8 @@ export default {
   "war.consent_detail": "Esto es una guerra de drones simulada. La sala defiende una represa de drones de ataque, y cada aparato que vuelas lleva una ojiva que lo destruye junto con su blanco. Los aparatos se rompen y las estructuras arden; no se muestran personas y nadie sale herido. Se juega solo en salas privadas.",
   "war.consent_yes": "Continuar",
   "war.consent_no": "Volver",
+  "war.card_blurb": "2030. Drones de ataque vienen por la represa que da energía a las dos orillas del río. Cada aparato del hangar lleva ahora una ojiva. Crea una sala privada, trae a tu escuadrón y mantén la línea.",
+  "war.card_hold": "Defiende la represa",
+  "war.card_warhead": "Ojivas",
   "war.other_world": "Defender Itaipú se juega en {world}, así que te llevamos allí.",
 };

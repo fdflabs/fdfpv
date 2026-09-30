@@ -47,9 +47,11 @@ const ROOM_ACTION = 'friends-room-';
  * ui: the menu (show, askForm, refreshFriends); link: the room socket
  * (src/share/rooms.js); roomName(pick): a picker name in this pilot's
  * language; here(): the world this pilot is in; preset(): the game a
- * title card set up, or null.
+ * title card set up, or null; war(room): the shell's way into Defend
+ * Itaipu (src/main.js DEFEND ITAIPU), which asks its consent question and
+ * makes the room itself, resolving once it has.
  */
-export function createRoomBrowser({ ui, link, roomName, here, preset = () => null }) {
+export function createRoomBrowser({ ui, link, roomName, here, preset = () => null, war = null }) {
   /*
    * WHERE THE CURSOR LANDS. Rooms opened before its list has ever arrived
    * draws Make a room as its primary, and the cursor lands there. When the
@@ -78,6 +80,14 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
   let reportedIn = null;
   /* The code of the last room joined from the list, never to be shown. */
   let joined = null;
+
+  /*
+   * DEFEND ITAIPU ON THE GAME ROW, only for a private room on the Itaipu
+   * map (docs/WARFARE-PLAN.md section 9). It is not one of ROOM_MODES, so
+   * the server never hears it and no public room can be made for it: the
+   * shell makes a plain private room and leads it with the war.
+   */
+  const warFits = (d) => Boolean(war) && !d.public && d.map === 'itaipu';
 
   function fresh() {
     const w = worlds();
@@ -168,6 +178,11 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
     if (!open) {
       draft.public = false;
     }
+    /* A draft that stops fitting the war, made public or moved to another
+     * world, drops it rather than keeping a game it cannot run. */
+    if (draft.mode === 'war' && !warFits(draft)) {
+      draft.mode = null;
+    }
     return [
       {
         label: str('roombrowser.name'),
@@ -184,7 +199,7 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
       choiceRow(str('ui.the_world'), str('roombrowser.world_note'), worlds(), draft.map, (id) => mapById(id).name, (id) => {
         draft.map = id;
       }),
-      choiceRow(str('roombrowser.game'), str('roombrowser.game_note'), [null, ...ROOM_MODES], draft.mode,
+      choiceRow(str('roombrowser.game'), str('roombrowser.game_note'), [null, ...ROOM_MODES, ...(warFits(draft) ? ['war'] : [])], draft.mode,
         (m) => str(`roombrowser.mode_${m || 'none'}`), (m) => {
           draft.mode = m;
         }),
@@ -235,11 +250,19 @@ export function createRoomBrowser({ ui, link, roomName, here, preset = () => nul
     error = null;
     ui.refreshFriends();
     try {
-      const code = await link.create(draft.map, false, { public: draft.public, name: draft.name, mode: draft.mode });
-      joined = draft.public ? code : null;
-      draft = null;
-      link.join(code);
-      ui.show('friends');
+      if (draft.mode === 'war') {
+        /* False: the pilot said Back to the consent question, and the
+         * form stays as it was. */
+        if (await war({ name: draft.name })) {
+          draft = null;
+        }
+      } else {
+        const code = await link.create(draft.map, false, { public: draft.public, name: draft.name, mode: draft.mode });
+        joined = draft.public ? code : null;
+        draft = null;
+        link.join(code);
+        ui.show('friends');
+      }
     } catch (e) {
       error = str(e.message === 'name' ? 'roombrowser.bad_name' : e.message === 'busy' ? 'roombrowser.busy' : 'roombrowser.make_failed');
     }
