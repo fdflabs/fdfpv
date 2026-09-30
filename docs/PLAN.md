@@ -4,6 +4,10 @@ Written 2026-09-23 against WebFPVSimulator commit 9ed8b9c (552 commits, last
 touched 2026-09-22) and WebFPVSimulator-LeaderBoard, both cloned to
 ~/Desktop.
 
+FDFPV is made by [fdflabs.com](https://fdflabs.com), a GPLv3 fork of Mathew
+Harvey's [WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator).
+NOTICE records what was taken from upstream and whose work it stands on.
+
 ## 0. The premise, corrected once
 
 There is nothing to reverse engineer. Both repositories are full source under
