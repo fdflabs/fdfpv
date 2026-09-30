@@ -46,13 +46,14 @@
 
 import { loadAtlases } from '../../swiss2/vegetation/atlas.js';
 import { windUniforms } from '../../swiss2/vegetation/plantmat.js';
-import { crownClumps, CLUMP_REACH } from '../../swiss2/vegetation/species.js';
 import { sunDirection } from '../look/light.js';
 import {
   CROWN_SPHERES, DENSE_M, FILL_SLICE_TREES, HALF, KINDS, NEAR_MOVE, NEAR_R,
   addTree, canopyHeight, decodePng, heroCanopy, keepOff, makeCanopyAt, nearTrees, plantHero,
 } from './plant.js';
-import { TIERS, treeLod, canopyShell } from './draw.js';
+import {
+  TIERS, treeLod, canopyShell, kindCrown,
+} from './draw.js';
 
 async function fetchBytes(url) {
   const res = await fetch(url);
@@ -86,21 +87,15 @@ const srgbToLinear = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) **
 /*
  * Each kind's colliders in its model's frame: the trunk post as swiss2's
  * broadleaves have it (the drawn trunk's radius, a tenth over, up to
- * trunk x height) and its crown's inner clumps, CLUMP_REACH out, which are
- * inside every drawn crown however the craft comes at it, and high enough
- * that the air under the lowest leaves stays air.
+ * trunk x height) and its crown's inner clumps, the last CROWN_SPHERES of
+ * draw.js kindCrown's, which are inside every drawn crown however the
+ * craft comes at it, and high enough that the air under the lowest leaves
+ * stays air. A palm's are its head's (draw.js kindCrown says where).
  */
 function crownsOf() {
-  return KINDS.map((v) => {
-    const { clumps } = crownClumps(v);
-    return {
-      trunkTop: v.trunk * v.h,
-      trunkR: 0.3 * (v.h / 22) * 1.1,
-      clumps: clumps.slice(-CROWN_SPHERES).map((q) => ({
-        x: q.c.x, y: q.c.y, z: q.c.z, r: q.rc * CLUMP_REACH,
-      })),
-      lowest: Math.min(...clumps.map((q) => q.c.y - q.rc * CLUMP_REACH)),
-    };
+  return KINDS.map((v, k) => {
+    const c = kindCrown(k);
+    return { ...c, clumps: c.clumps.slice(-CROWN_SPHERES) };
   });
 }
 
