@@ -79,10 +79,26 @@ const MW = {
   intake: 700, penstock: 700, gate: 350, yard: 2800,
 };
 
-/* The Itaipu targets with their MW, shared by every Itaipu mission. */
+/* The reservoir's surface, metres (the map's water.json reservoir). */
+const RESERVOIR_Y = 219;
+
+/* The parts in the dam's upstream face, under the reservoir: an intake's
+ * gate is 177.6 to 196.9 m, a spillway gate's middle 212.3 m. */
+const UPSTREAM = new Set(['intake', 'gate']);
+
+/* The Itaipu targets with their MW, shared by every Itaipu mission. A
+ * target's `at` is where an attacker's route ends (routes.js), so a part
+ * under the reservoir is struck on the face straight over it at the
+ * waterline: a route to its middle ran on through the water to it, the
+ * Strikers going under 130 m short of a gate (bug-552ecdab). The room
+ * and the view read no other height from it: a hit is decided by the
+ * attacker's err, and the radar draws x and z. The map's own targets
+ * keep the part's middle. */
 export const targets = {};
 for (const [id, t] of Object.entries(AT)) {
-  targets[id] = { mw: MW[id.split('-')[0]], at: t.at, r: t.r };
+  const part = id.split('-')[0];
+  const at = UPSTREAM.has(part) ? [t.at[0], RESERVOIR_Y, t.at[2]] : t.at;
+  targets[id] = { mw: MW[part], at, r: t.r };
 }
 /* The yard's r, 537 m, is its whole extent, for the smoke and the
  * markers; an attacker with a seeded error (the Scouts dead) hits it only
