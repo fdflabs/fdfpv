@@ -19,7 +19,8 @@
  * floorAt, which folds in water and the dam: tools/itaipu/
  * build_war_height.py), looking ahead along its course so it climbs
  * before a wall, and is lifted onto the floor plus clearance if its turn
- * rate could not climb in time. The one exception is the last TERMINAL_M
+ * rate could not climb in time, and never more than CEILING_M over it.
+ * The one exception is the last TERMINAL_M
  * to its target: there the clearance is the target's own over the floor
  * (never below 0), or a defender skimming the reservoir at 5 m could
  * never be reached, since the bubble is BLAST_M = 6.
@@ -66,6 +67,11 @@ export const LEAD_MAX_S = 3;
 export const SUB_MS = 50;
 export const GAP_MS = 1000;
 export const HOME_M = 150;
+/* The most a hunter flies over the floor: a war is fought low (the
+ * highest attackers, mission 1's Loiterers, circle 431 m over the
+ * water), and a hunter lured upward must not leave every pilot's reach.
+ * A pilot higher than this is out of its reach too, by choice. */
+export const CEILING_M = 500;
 /* Horizontal distances ahead at which the floor is read, metres: the
  * farthest is 4.4 s at speed, time to climb a gorge wall at SLOPE_MAX. */
 const LOOK_M = [40, 80, 160];
@@ -239,7 +245,12 @@ export class Hunters {
       const dy = tgt.p[1] - p[1];
       const dz = tgt.p[2] - p[2];
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      const lead = Math.min(LEAD_MAX_S, dist / HUNTER_SPEED);
+      /* A target behind it gets no lead: led, one on its tail puts the
+       * aim just ahead of the hunter, which then flies on (and up) for
+       * good instead of turning to meet it. */
+      const f = h.f;
+      const behind = f && f[0] * dx + f[1] * dy + f[2] * dz < 0;
+      const lead = behind ? 0 : Math.min(LEAD_MAX_S, dist / HUNTER_SPEED);
       ax = tgt.p[0] + tgt.v[0] * lead;
       ay = tgt.p[1] + tgt.v[1] * lead;
       az = tgt.p[2] + tgt.v[2] * lead;
@@ -278,6 +289,8 @@ export class Hunters {
       hz = 0;
       slope = ay >= p[1] ? 1 : -1;
     }
+    /* Never aim over the ceiling. */
+    slope = Math.min(slope, run > 1e-6 ? (floorAt(p[0], p[2]) + CEILING_M - p[1]) / Math.max(run, LOOK_M[0]) : slope);
     const d = unit(hx, slope, hz);
     this.turn(h, d, TURN_RATE * dt);
     const f = h.f;
@@ -291,6 +304,7 @@ export class Hunters {
       this.liftMax = Math.max(this.liftMax, low - p[1]);
       p[1] = low;
     }
+    p[1] = Math.min(p[1], floorAt(p[0], p[2]) + CEILING_M);
   }
 
   /* Turn h.f toward the unit d by at most a radians; an unset heading
