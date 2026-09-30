@@ -17,11 +17,11 @@
  * outline. takeYard puts it on the map as map.targets['yard-right'].
  *
  * Everything is in the static set: the yard is one of Itaipu's structures
- * (docs/ITAIPU-PLAN.md section 7). What a craft meets is what is drawn: a
- * transformer is a tank on a plinth, collided as a capsule along its
- * length as wide as the tank (the one turned shape the shell has; the
- * tank's edges stand 0.8 m proud of it at the corners); the fence is two
- * capsules stacked along each piece, 2.4 m of it.
+ * (docs/ITAIPU-PLAN.md section 7). What a craft meets is what is drawn,
+ * in the one turned shape the shell has, the capsule: a transformer is
+ * three (HOLD), two along the tank stacked so its corners, top and plinth
+ * are held, and one along the bushings and the conservator over it; the
+ * fence is two capsules stacked along each piece, 2.4 m of it.
  *
  * The data is OpenStreetMap's, ODbL: "(c) OpenStreetMap contributors",
  * credited with the town's (town/index.js).
@@ -43,7 +43,9 @@
  */
 
 import { makeSink } from '../town/mesh.js';
-import { planYard, TANK, FENCE } from './plan.js';
+import {
+  planYard, TANK, KIT, FENCE,
+} from './plan.js';
 
 /* Linear tints: galvanised steel, the tanks' grey paint, concrete, and
  * the bushings' brown porcelain. Every piece is in the kit's plain group
@@ -53,6 +55,29 @@ const STEEL = [0.46, 0.47, 0.48];
 const PAINT = [0.3, 0.33, 0.32];
 const CONCRETE = [0.32, 0.31, 0.29];
 const PORCELAIN = [0.22, 0.1, 0.05];
+
+/*
+ * A transformer as collided, metres in its own frame (u along its axis,
+ * y over the ground), for the drawing in plan.js TANK and KIT: two
+ * capsules along the tank from -u to u, at each y, radius r, and one on
+ * the conservator's axis along it and the bushings.
+ *
+ * Tuned together, by sampling the drawn plinth, tank, conservator and
+ * bushings every 1/16 m2 and the capsules' outsides 5 cm out, as the
+ * collision audit judges (scripts/collide-audit-itaipu.js): 99.6 % of the
+ * drawn points within 0.3 m of a capsule or of the ground (what is not is
+ * the tank's top corners), and no point of a capsule's outside more than
+ * 1 m from anything drawn. That is why the bushings are 1.8 m and close
+ * together and the conservator is on the top capsule's axis: one capsule
+ * over three bushings 3 m tall and 2.4 m apart stood a metre clear of
+ * them. The plinth is PLINTH wider than the tank and as high as the
+ * ground holds (plan.js TANK.plinth, 0.3 m).
+ */
+const HOLD = {
+  tank: { u: 2.7, y: [1.1, 3.4], r: 2.2 },
+  top: { u: 3.2, r: 0.6 },
+};
+const PLINTH = 0.1;
 
 export async function buildPart(ctx) {
   const { THREE } = ctx;
@@ -74,17 +99,21 @@ export async function buildPart(ctx) {
     const half = TANK.length / 2;
     const w = TANK.width / 2;
     const base = t.y + TANK.plinth;
-    /* The plinth, from under the ground, a metre wider than the tank. */
-    sink.bar('joint', CONCRETE, along(-half - 0.5, t.y - 0.3), along(half + 0.5, t.y - 0.3), w + 0.5, cast, TANK.plinth + 0.3);
+    /* The plinth, from under the ground, a little wider than the tank. */
+    sink.bar('joint', CONCRETE, along(-half - PLINTH, t.y - 0.3), along(half + PLINTH, t.y - 0.3), w + PLINTH, cast, TANK.plinth + 0.3);
     const mid = base + TANK.height / 2;
     sink.bar('flashing', PAINT, along(-half, mid), along(half, mid), w, cast, TANK.height / 2);
     /* The conservator on top and three bushings. */
     const top = base + TANK.height;
-    sink.bar('flashing', PAINT, along(-half + 0.8, top + 1.2), along(-half + 3.2, top + 1.2), 0.45, cast);
-    for (const u of [-1.6, 0.8, 3.2]) {
-      sink.bar('joint', PORCELAIN, along(u, top), along(u, top + 3), 0.18, cast);
+    const c = KIT.conservator;
+    sink.bar('flashing', PAINT, along(c.u0, top + c.y), along(c.u1, top + c.y), c.r, cast);
+    for (const u of KIT.bushings.u) {
+      sink.bar('joint', PORCELAIN, along(u, top), along(u, top + KIT.bushings.height), KIT.bushings.r, cast);
     }
-    capsule('wall', along(-half + w, base + w), along(half - w, base + w), w);
+    for (const y of HOLD.tank.y) {
+      capsule('wall', along(-HOLD.tank.u, t.y + y), along(HOLD.tank.u, t.y + y), HOLD.tank.r);
+    }
+    capsule('wall', along(-HOLD.top.u, top + c.y), along(HOLD.top.u, top + c.y), HOLD.top.r);
   }
   const equipment = solids.slice();
 
