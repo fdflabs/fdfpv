@@ -895,6 +895,21 @@ export class PeerMarks {
     }
   }
 
+  /* The room's own line, over the away lines and without a pilot's dot
+   * ("You're alone in room K7PZ2M"). It rides the orb's mark, which has no
+   * away line of its own. */
+  note(text) {
+    if (!this.live || this.style === 'off') {
+      return;
+    }
+    const m = this.marks[0];
+    m.awayUsed = true;
+    if (text !== m.awayText) {
+      m.awayText = text;
+      m.awayW = 0;
+    }
+  }
+
   /* Plan every mark and draw them. heightAt(x, z) is the terrain's top. */
   end(heightAt) {
     const g = this.g;
@@ -1043,7 +1058,8 @@ export class PeerMarks {
   }
 
   /* The away lines, top left under the readouts: a dot in the pilot's
-   * colour and the words, one line each, in seat order. */
+   * colour and the words, one line each, in seat order, under the room's
+   * note (seat 0, no dot). */
   drawAway(g, s) {
     const osd = this.osd;
     const line = (osd ? this.osdPx * 1.25 : 13) + MARK.PAD;
@@ -1054,7 +1070,7 @@ export class PeerMarks {
     g.textAlign = 'left';
     g.textBaseline = 'middle';
     g.lineJoin = 'round';
-    for (let i = 1; i < this.marks.length; i += 1) {
+    for (let i = 0; i < this.marks.length; i += 1) {
       const m = this.marks[i];
       if (!m.awayUsed) {
         continue;
@@ -1064,21 +1080,24 @@ export class PeerMarks {
         m.awayW = g.measureText(words).width;
       }
       const x = this.screen.minX;
-      y = awayRow(this.screen, x, y, dot * 3 + m.awayW, line);
+      const indent = i > 0 ? dot * 3 : 0;
+      y = awayRow(this.screen, x, y, indent + m.awayW, line);
       m.awayX = x;
       m.awayY = y;
       const cy = y + line * 0.5;
-      g.beginPath();
-      g.arc(x + dot, cy, dot, 0, Math.PI * 2);
       g.strokeStyle = HALO;
-      g.lineWidth = 3;
-      g.stroke();
-      g.fillStyle = m.colour;
-      g.fill();
+      if (i > 0) {
+        g.beginPath();
+        g.arc(x + dot, cy, dot, 0, Math.PI * 2);
+        g.lineWidth = 3;
+        g.stroke();
+        g.fillStyle = m.colour;
+        g.fill();
+      }
       g.lineWidth = osd ? 2 : 3;
-      g.strokeText(words, x + dot * 3, cy);
+      g.strokeText(words, x + indent, cy);
       g.fillStyle = osd ? '#ffffff' : LABEL;
-      g.fillText(words, x + dot * 3, cy);
+      g.fillText(words, x + indent, cy);
       y += line;
     }
   }
@@ -1189,9 +1208,10 @@ export class PeerMarks {
         box: m.kind === KIND_EDGE ? [m.sx + m.fx0, m.sy + m.fy0, m.sx + m.fx1, m.sy + m.fy1] : null,
       });
     }
-    const away = this.marks.filter((m) => m.awayUsed).map((m) => ({ seat: m.seat, text: m.awayText, x: m.awayX, y: m.awayY }));
+    const away = this.marks.slice(1).filter((m) => m.awayUsed).map((m) => ({ seat: m.seat, text: m.awayText, x: m.awayX, y: m.awayY }));
+    const note = this.marks[0].awayUsed ? this.marks[0].awayText : null;
     return {
-      live: this.live, style: this.style, osd: this.osd, stats: { ...this.stats }, cam: { ...this.cam }, away,
+      live: this.live, style: this.style, osd: this.osd, stats: { ...this.stats }, cam: { ...this.cam }, away, note,
       screen: { w: this.screen.w, h: this.screen.h, rects: Array.from(this.screen.rects.subarray(0, this.screen.nRects * 4)) },
       marks: out,
     };

@@ -196,11 +196,12 @@ export class RoomHost {
     }
   }
 
-  async close(conn) {
+  /* code: the socket's close code, when the platform says (core.close). */
+  async close(conn, code) {
     const core = await this.load();
     if (core) {
       const now = Date.now();
-      this.run(core.close(conn, now));
+      this.run(core.close(conn, now, code));
       reportRoom(this.env, core, now);
     }
   }

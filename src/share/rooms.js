@@ -42,7 +42,7 @@
  */
 
 import {
-  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO,
+  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO, ROOM_LEVEL,
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 
@@ -205,7 +205,9 @@ export function setFigurePick(f) {
 
 /*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
- * onLeave(seat), onProfile(seat, profile), onBatch(batch), onState(state),
+ * onLeave(seat, dropped), dropped when the socket went without a leave
+ * and the pilot may be back, onWorld(map) when the host moved the room to
+ * another world, onProfile(seat, profile), onBatch(batch), onState(state),
  * onRoom() when the room's name changed (reports took it away),
  * onHit(hit) (the referee's mid air contact, src/game/midair.js),
  * onHost(seat) when the room's host changes,
@@ -303,7 +305,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       /* The seat held before a drop, so a room that was restarted and
        * forgot the token can put the pilot back in the same slot. */
       const seat = welcome && welcome.code === code ? { seat: welcome.seat } : {};
-      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat });
+      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat });
     };
     socket.onmessage = (ev) => {
       if (ws !== socket) {
@@ -363,7 +365,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         if (welcome && m.host) {
           welcome.host = m.host;
         }
-        handlers.onLeave?.(m.seat);
+        handlers.onLeave?.(m.seat, m.drop === true);
       } else if (m.type === 'host') {
         /* The room's host changed (edge/rooms/core.js settleHost): a
          * restart, the host leaving or coming back. */
@@ -381,6 +383,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         handlers.onReported?.(m.seat);
       } else if (m.type === 'unreported') {
         handlers.onUnreported?.(m.seat, m.undone === true);
+      } else if (m.type === 'world') {
+        /* The host moved the room (edge/rooms/core.js world). */
+        if (welcome && typeof m.map === 'string') {
+          welcome.map = m.map;
+        }
+        handlers.onWorld?.(m.map);
       } else if (m.type === 'room') {
         if (welcome) {
           welcome.name = m.name;
@@ -540,6 +548,10 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     },
     sendProfile(profile) {
       sendText({ type: 'profile', profile });
+    },
+    /* The host moves the room to another world (edge/rooms/core.js world). */
+    sendWorld(map) {
+      sendText({ type: 'world', map });
     },
     kick(seat) {
       sendText({ type: 'kick', seat });

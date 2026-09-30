@@ -50,6 +50,18 @@
 
 export const PROTO = 2;
 
+/*
+ * The room behaviour a build keeps, a count that goes up when a room's
+ * pilots must all run the same rules to share one session: 1 is the room
+ * that moves everybody into its world and game (src/main.js, THE ROOM IS
+ * ONE SESSION). A hello says it (absent is 0), and a room closes the
+ * pilots below the highest it holds with CLOSE.update, which every build
+ * shows as a reload. PROTO stays, so a restart of the rooms server under
+ * tabs from before this never refuses them: they fly as they did until a
+ * newer build joins their room.
+ */
+export const ROOM_LEVEL = 1;
+
 export const TYPE_POSE = 0x10;
 export const TYPE_BATCH = 0x20;
 export const POSE_BYTES = 46;
@@ -139,6 +151,16 @@ export const PROFILE_MAX_BYTES = 4096;
 
 const ID_RE = /^[a-z0-9_]{1,32}$/;
 
+/* A world or airframe id as a room takes it. */
+export function validId(id) {
+  return typeof id === 'string' && ID_RE.test(id);
+}
+
+/* Why a pilot in a room sends no poses, in their profile, so the others can
+ * say it beside the name (rooms.away_*): paused, a menu, a hidden tab, a
+ * world loading, the crash cam. Absent while flying. */
+export const ROOM_STATUSES = ['paused', 'menu', 'hidden', 'loading', 'crashcam'];
+
 /* The games a private room's host starts: toilet paper combat, Catch
  * the Ace (roomtag) and the war mode (docs/WARFARE-PLAN.md). */
 export const ROOM_GAMES = ['combat', 'tag', 'war'];
@@ -177,6 +199,10 @@ export function checkProfile(p) {
    * or unknown is simply not passed on, never a refused profile. */
   if (ROOM_GAMES.includes(p.game)) {
     out.game = p.game;
+  }
+  /* Optional the same way: a status this room does not know is dropped. */
+  if (ROOM_STATUSES.includes(p.status)) {
+    out.status = p.status;
   }
   if (new TextEncoder().encode(JSON.stringify(out)).length > PROFILE_MAX_BYTES) {
     return null;

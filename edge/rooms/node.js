@@ -260,10 +260,10 @@ class Room {
       }
       this.enqueue(() => this.host.message(conn, binary ? data : data.toString()));
     });
-    ws.on('close', () => {
+    ws.on('close', (code) => {
       this.sockets.delete(conn);
       this.enqueue(async () => {
-        await this.host.close(conn);
+        await this.host.close(conn, code);
         this.dropIfIdle();
       });
     });

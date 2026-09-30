@@ -2850,6 +2850,19 @@ function crownSvg() {
     + '</svg>';
 }
 
+/* Defend Itaipu's mark: the plane symbol in a gunsight's ring, which is
+ * what every defender is (a warhead flown onto an attacker). No flag and no
+ * roundel: the mode names nobody (docs/WARFARE-PLAN.md). */
+function reticleSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + '<circle cx="150" cy="150" r="118" fill="none" stroke="currentColor" stroke-width="8" stroke-opacity="0.9"/>'
+    + '<path d="M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290" stroke="currentColor"'
+    + ' stroke-width="10" stroke-opacity="0.9" stroke-linecap="round"/>'
+    + `<g transform="translate(93 93) scale(0.38)">${PLANE_PARTS}</g>`
+    + '</svg>';
+}
+
 /*
  * The two aircraft in plan, drawn TO ONE SCALE.
  *
@@ -3075,6 +3088,28 @@ const WAYS = [
     svg: crownSvg(),
     blurb: str('roomtag.card_blurb'),
     facts: [str('roomtag.card_crown'), str('roomtag.card_touch'), str('friends.card_code')],
+  },
+  {
+    /*
+     * DEFEND ITAIPU, by the owner's word (2026-09-29): "id like a new card
+     * up front to access this". A room game card like the two before it,
+     * but the press goes to the shell first (onWarCard, src/main.js DEFEND
+     * ITAIPU), because the war's gate (docs/WARFARE-PLAN.md section 9) asks
+     * its one consent question before anything else, and the room has to
+     * be private and on the Itaipu map, so the shell makes it rather than
+     * offering Make a room. The picture is the map's own poster.
+     */
+    id: 'war',
+    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    mode: 'freestyle',
+    home: 'itaipu',
+    room: true,
+    game: 'war',
+    label: str('war.card'),
+    art: 'assets/posters/itaipu.jpg',
+    svg: reticleSvg(),
+    blurb: str('war.card_blurb'),
+    facts: [str('war.card_hold'), str('war.card_warhead'), str('friends.card_code')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -4306,10 +4341,26 @@ export class Ui {
     const reload = btn('update-reload', str('update.reload'));
     reload.addEventListener('click', () => window.location.reload());
     this.updateBar.append(el('span', null, str('update.new_version')), reload);
-    watchVersion((stale) => {
+    this.checkVersion = watchVersion((stale) => {
       this.updateReady = stale;
       this.syncChips();
     });
+
+    /* The room's word to a pilot off the sticks (src/main.js roomBarView):
+     * fly, the others are; alone in a room; too old a build for it. The
+     * update bar's look, above it, and like it never over a flight. */
+    this.roomBarView = null;
+    this.roomBar = el('div', 'update-bar room-bar');
+    this.roomBar.setAttribute('role', 'status');
+    this.roomBar.hidden = true;
+    this.roomBarText = el('span');
+    this.roomBarButton = btn('update-reload', '');
+    this.roomBarButton.addEventListener('click', () => {
+      if (this.roomBarView && this.roomBarView.act) {
+        this.roomBarView.act();
+      }
+    });
+    this.roomBar.append(this.roomBarText, this.roomBarButton);
 
     this.musicDock = el('div', 'music-dock');
     this.musicDock.setAttribute('role', 'group');
@@ -4368,7 +4419,7 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.updateBar, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.updateBar, this.roomBar, this.musicDock, this.nameDialog);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
@@ -4934,6 +4985,20 @@ export class Ui {
    * the corner over everything else is the only visible way to say that
    * something is broken.
    */
+  /* { text, button, act, reload } or null: the room bar (see where it is
+   * built). Written only when it changed, as it is set every few frames. */
+  setRoomBar(view) {
+    const key = view ? `${view.text}\u0000${view.button || ''}` : '';
+    this.roomBarView = view;
+    if (key !== this.roomBarKey) {
+      this.roomBarKey = key;
+      Ui.text(this.roomBarText, view ? view.text : '');
+      Ui.text(this.roomBarButton, view && view.button ? view.button : '');
+      this.roomBarButton.hidden = !(view && view.button);
+    }
+    this.syncChips();
+  }
+
   syncChips() {
     const dialog = this.nameDialog && !this.nameDialog.hidden;
     const bug = this.bugChip && !dialog && this.screen !== 'title';
@@ -4950,8 +5015,13 @@ export class Ui {
     if (this.swapChip) {
       this.swapChip.hidden = dialog || this.screen !== 'flight' || !this.onHotSwap;
     }
+    const roomBar = Boolean(this.roomBarView) && !dialog && this.screen !== 'flight';
+    if (this.roomBar) {
+      this.roomBar.hidden = !roomBar;
+    }
+    /* A room bar asking for the reload says it already, for the room. */
     if (this.updateBar) {
-      this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight';
+      this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight' || (roomBar && this.roomBarView.reload);
     }
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
@@ -12804,7 +12874,7 @@ export class Ui {
       this.settings.airframeAsked = true;
       this.craftGate = false;
       this.mode = way.mode;
-      /* The room game a card preselected, 'combat' or 'tag', or null: read
+      /* The room game a card preselected, 'combat', 'tag' or 'war', or null: read
        * by the shell's room rows (src/main.js friendsRows) and sent in this
        * pilot's profile, so the room screen leads with it. */
       this.roomGame = way.game ?? null;
@@ -13272,6 +13342,10 @@ export class Ui {
     }
     /* A room's aircraft is chosen in the room, once it is known who is
      * flying what: the card goes straight to the room screen. */
+    if (way.game === 'war' && this.onWarCard) {
+      this.onWarCard(action);
+      return;
+    }
     if (way.room) {
       this.act(action);
       return;
