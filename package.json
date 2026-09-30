@@ -89,6 +89,7 @@
     "war:twopage": "node scripts/war-twopage.js",
     "war:markers": "node scripts/war-markers.js",
     "war:radio": "node scripts/warradio-selftest.js",
+    "war:card": "node scripts/war-card-check.js",
     "tag:twopage": "node scripts/tag-two-page.js",
     "tag:bubble": "node scripts/tag-bubble-two-page.js",
     "rooms:safety": "node scripts/rooms-safety-two-page.js",

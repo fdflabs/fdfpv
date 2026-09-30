@@ -2558,6 +2558,7 @@ export default {
   "roombrowser.mode_race": "Race",
   "roombrowser.mode_tag": "Catch the Ace",
   "roombrowser.mode_combat": "Combat",
+  "roombrowser.mode_war": "Defend Itaipu",
   "roombrowser.make": "Make the room",
   "roombrowser.making": "Making the room",
   "roombrowser.make_public_note": "Makes it and puts you in it. It shows up in Rooms for everybody.",
@@ -2776,5 +2777,8 @@ export default {
   "war.consent_detail": "This is a simulated drone war. The room defends a dam against attack drones, and every aircraft you fly carries a warhead that destroys it with its target. Aircraft break and structures burn; no people are shown and nobody is harmed. It runs only in private rooms.",
   "war.consent_yes": "Continue",
   "war.consent_no": "Back",
+  "war.card_blurb": "2030. Attack drones are coming for the dam that powers both banks of the river. Every airframe in the hangar carries a warhead now. Make a private room, bring your squad, hold the line.",
+  "war.card_hold": "Hold the dam",
+  "war.card_warhead": "Warheads",
   "war.other_world": "Defend Itaipu is fought in {world}, so you are seated there.",
 };
