@@ -27,7 +27,7 @@ one over the wire.
 Object's state, and `do.js` and `node.js` each supply it:
 
 - `ctx.storage.get(key)`, `put(key, value)`, `list()`, `deleteAll()`,
-  `setAlarm(ms)`, async, values structured clone data. Storage outlives a
+  `setAlarm(ms)`, `getAlarm()`, async, values structured clone data. Storage outlives a
   hibernation on Cloudflare and a restart on the VM.
 - `ctx.getWebSockets()`: the room's open sockets.
 - A socket: `send(data)` (string or `Uint8Array`), `close(code, reason)`,

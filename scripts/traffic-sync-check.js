@@ -278,7 +278,7 @@ async function main() {
     process.exit(1);
   }
   console.log('check:traffic-sync ok');
-  /* The emptied room's purge alarm would hold the process ten minutes. */
+  /* The emptied room's purge alarm would hold the process five minutes. */
   process.exit(0);
 }
 

@@ -29,10 +29,10 @@
  */
 
 import {
-  LIST_EVERY_MS, PROTO, PUBLIC_CAP, ROOM_NAME_MAX, ROOM_NAME_REPORT, normaliseRoomName, validNamePick,
+  CLOSE, EMPTY_CLOSE_MS, LIST_EVERY_MS, PROTO, PUBLIC_CAP, ROOM_NAME_MAX, ROOM_NAME_REPORT, normaliseRoomName, validNamePick,
 } from '../src/share/roomwire.js';
 import front from '../edge/rooms/front.js';
-import { RoomHost } from '../edge/rooms/host.js';
+import { PURGE_MS, RoomHost } from '../edge/rooms/host.js';
 import { PRIVATE_CAP } from '../edge/rooms/core.js';
 import {
   LIST_GRACE_MS, Lobby, LobbyBook, MAX_ROOMS, PENDING_MS, listingOf,
@@ -43,18 +43,28 @@ const ORIGIN = 'https://fdflabs.github.io';
 const profile = { airframe: 'cub1400', map: 'swiss2', figure: 1, livery: null, parts: null };
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+/* A room's storage; `alarm` is the wall ms the room asked to be purged
+ * at, which the platform would call alarm() at, or null. */
 function memoryStorage() {
   const kept = new Map();
-  return {
+  const store = {
     kept,
+    alarm: null,
     get: async (key) => structuredClone(kept.get(key)),
     put: async (key, value) => {
       kept.set(key, structuredClone(value));
     },
     list: async () => new Map([...kept].map(([k, v]) => [k, structuredClone(v)])),
-    deleteAll: async () => kept.clear(),
-    setAlarm: async () => {},
+    deleteAll: async () => {
+      kept.clear();
+      store.alarm = null;
+    },
+    setAlarm: async (at) => {
+      store.alarm = at;
+    },
+    getAlarm: async () => store.alarm,
   };
+  return store;
 }
 
 /* A socket as host.js sees one, keeping what it was sent. */
@@ -213,7 +223,7 @@ export async function browserSection(check) {
   check('a line says the name, world, pilots, cap and game', sky && sky.name === 'Sky Club' && sky.map === 'swiss2' && sky.n === 0
     && sky.cap === PUBLIC_CAP && sky.game === null && sky.state === 'waiting' && validNamePick(sky.pick), JSON.stringify(sky));
   check('and a room set up for a game shows it, waiting', list.rooms.find((r) => r.code === moded.code).game === 'combat');
-  check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,game,map,mode,n,name,pick,state');
+  check('a line carries nothing about a pilot', sky && Object.keys(sky).sort().join() === 'cap,code,emptySince,game,map,mode,n,name,pick,state');
 
   const a = await s.join({ code: made.code }, [1, 2, 30]);
   check('a pilot joins a public room by its code, no typing', a.welcome && a.welcome.public === true && a.welcome.code === made.code
@@ -309,6 +319,8 @@ export async function browserSection(check) {
   check('a quick join goes to the busiest room of its map with a seat', q3.welcome && q3.welcome.code === named.code);
   const q4 = await s.join({ map: 'alps' });
   check('and never to another map\'s', q4.welcome && q4.welcome.code !== named.code && q4.welcome.code !== q1.welcome.code);
+  await q4.leave();
+  const q4Alarm = s.stores.get(`prv:${q4.welcome.code}`).alarm;
   check('a map that is not an id is refused', (await s.join({ map: 'Swiss2' })).refused === 404);
 
   console.log('room browser: the book');
@@ -321,10 +333,16 @@ export async function browserSection(check) {
   book.report(line1('BBBBBB', 3, 2), t);
   book.report(line1('CCCCCC', 3, 3), t);
   check('people first, then the newest', book.list(t).map((r) => r.code).join() === 'CCCCCC,BBBBBB,AAAAAA');
+  check('an empty room is listed as empty since it emptied', book.list(t).find((r) => r.code === 'AAAAAA').emptySince === t
+    && book.list(t).find((r) => r.code === 'BBBBBB').emptySince === null);
   t += LIST_GRACE_MS - 1;
-  check('an empty room stays listed a moment', book.list(t).some((r) => r.code === 'AAAAAA'));
+  check('an empty room stays listed until it closes', book.list(t).some((r) => r.code === 'AAAAAA'));
   t += 1;
-  check(`and is gone ${LIST_GRACE_MS / 1000} s after it emptied`, !book.list(t).some((r) => r.code === 'AAAAAA') && !('AAAAAA' in book.rooms));
+  check(`and is gone ${LIST_GRACE_MS / 60000} minutes after it emptied`, !book.list(t).some((r) => r.code === 'AAAAAA') && !('AAAAAA' in book.rooms));
+  book.report(line1('OWNTIM', 0, 5, {}), t);
+  book.report({ ...line1('OWNTIM', 0, 5), emptySince: t - 60000 }, t);
+  check('a room\'s own emptied time is the one the book lists it by, not when its line arrived',
+    book.list(t).find((r) => r.code === 'OWNTIM').emptySince === t - 60000 && !book.list(t - 60000 + LIST_GRACE_MS).some((r) => r.code === 'OWNTIM'));
   book.report(line1('BBBBBB', 0, 2), t);
   t += LIST_GRACE_MS;
   check('the same for a room its pilots left', !book.list(t).some((r) => r.code === 'BBBBBB'));
@@ -358,6 +376,73 @@ export async function browserSection(check) {
   await settle();
   const back = (await again.list()).rooms.map((r) => r.code);
   check('until each stored public room announces itself, as node.js has them do on start', back.includes(named.code) && back.includes(q1.welcome.code), back.join());
+  const q4Back = (await again.list()).rooms.find((r) => r.code === q4.welcome.code);
+  check('an empty room is listed empty since its last pilot left, by its stored alarm, not since the restart',
+    q4Back && q4Back.n === 0 && q4Back.emptySince === q4Alarm - PURGE_MS, `${JSON.stringify(q4Back)} alarm ${q4Alarm}`);
   const again1 = await again.join({ code: named.code }, [1, 1, 11]);
   check('and its pilots come back into it', again1.welcome && again1.welcome.code === named.code && again1.welcome.name === 'Big One');
+
+  await closingSection(check);
+}
+
+/* The owner, 2026-09-30: "room closes after 5 minutes of it being empty".
+ * The platform calls host.alarm() at the time the room set (node.js
+ * schedule, a Durable Object's alarm), so these read the time it set and
+ * then fire it. */
+async function closingSection(check) {
+  console.log('room browser: an empty room closes five minutes after its last pilot');
+  check('five minutes, one number for the purge, the list and the browser',
+    EMPTY_CLOSE_MS === 5 * 60 * 1000 && PURGE_MS === EMPTY_CLOSE_MS && LIST_GRACE_MS === EMPTY_CLOSE_MS);
+  const s = server();
+  const made = await s.create({ map: 'swiss2', public: true, name: 'Closing Club' });
+  const store = s.stores.get(`prv:${made.code}`);
+  const room = s.rooms.get(`prv:${made.code}`);
+  const a = await s.join({ code: made.code });
+  const b = await s.join({ code: made.code }, [2, 3, 40]);
+  await a.leave();
+  const armed = store.alarm;
+  const leftAt = Date.now();
+  await b.leave();
+  const doneAt = Date.now();
+  check('the last pilot out sets the close five minutes on, not the first', store.alarm > armed || armed === null);
+  check('five minutes after the last pilot left', store.alarm >= leftAt + PURGE_MS && store.alarm <= doneAt + PURGE_MS, `${store.alarm - leftAt}`);
+  const body = await (await s.call('/v2/rooms')).json();
+  const line = body.rooms.find((r) => r.code === made.code);
+  check('the list still shows it, empty, with the time it emptied and the server\'s clock',
+    line && line.n === 0 && line.emptySince === store.alarm - PURGE_MS && Number.isFinite(body.now) && body.now >= line.emptySince, JSON.stringify(line));
+  const book = await s.lobby.book();
+  check('listed up to the moment it closes, and not after: the list never offers a room that has gone',
+    book.list(store.alarm - 1).some((r) => r.code === made.code) && !book.list(store.alarm).some((r) => r.code === made.code));
+  check('not closed before then: its storage is all there', store.kept.has('meta'));
+  const c = await s.join({ code: made.code }, [4, 5, 50]);
+  check('a pilot can still join it while it is empty and listed', c.welcome && c.welcome.code === made.code && !c.closed);
+  const back = (await s.list()).rooms.find((r) => r.code === made.code);
+  check('rejoining takes it off empty', back && back.n === 1 && back.emptySince === null, JSON.stringify(back));
+  await room.host.alarm();
+  check('rejoining cancels the close: the alarm that comes finds a pilot and keeps the room', store.kept.has('meta') && !c.closed);
+  check('and waits another five minutes', store.alarm >= Date.now() - 50 + PURGE_MS - 1000);
+  const leftAgain = Date.now();
+  await c.leave();
+  check('when that pilot leaves, five minutes from then', store.alarm >= leftAgain + PURGE_MS && store.alarm <= Date.now() + PURGE_MS);
+  check('and the list says empty since then', (await s.list()).rooms.find((r) => r.code === made.code).emptySince === store.alarm - PURGE_MS);
+  await room.host.alarm();
+  check('the alarm with nobody back closes it: nothing kept', store.kept.size === 0 && store.alarm === null);
+  const late = await s.join({ code: made.code }, [6, 7, 60]);
+  check('and its code finds no room', !late.welcome && late.closed && late.closed.code === CLOSE.nosuch, JSON.stringify(late.closed));
+
+  const priv = await s.create({ map: 'swiss2', name: 'Secret Close' });
+  const pstore = s.stores.get(`prv:${priv.code}`);
+  const p = await s.join({ code: priv.code });
+  const pLeft = Date.now();
+  await p.leave();
+  check('a private room closes by the same rule: five minutes after its last pilot', pstore.alarm >= pLeft + PURGE_MS && pstore.alarm <= Date.now() + PURGE_MS);
+  check('and is never listed, empty or not', !(await s.list()).rooms.some((r) => r.code === priv.code));
+  await s.rooms.get(`prv:${priv.code}`).host.alarm();
+  check('then it is gone', pstore.kept.size === 0);
+
+  const never = await s.create({ map: 'alps', public: true, name: 'Nobody Came' });
+  const nstore = s.stores.get(`prv:${never.code}`);
+  const nline = (await s.list()).rooms.find((r) => r.code === never.code);
+  check('a room made and never joined is listed empty since it was made, and closes five minutes on',
+    nline && nline.emptySince === nstore.alarm - PURGE_MS && nstore.kept.get('meta').epoch <= nline.emptySince + 50, JSON.stringify(nline));
 }

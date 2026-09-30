@@ -66,7 +66,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { deserialize, serialize } from 'node:v8';
 import { WebSocketServer } from 'ws';
 import front from './front.js';
-import { PURGE_MS, RoomHost } from './host.js';
+import { RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
 import { Health, roomCounters } from './health.js';
 import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.js';
@@ -165,6 +165,7 @@ class Store {
     this.dropQ = this.db.prepare('DELETE FROM kv WHERE name = ?');
     this.alarmQ = this.db.prepare('INSERT INTO alarms (name, at) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET at = excluded.at');
     this.unalarmQ = this.db.prepare('DELETE FROM alarms WHERE name = ?');
+    this.getAlarmQ = this.db.prepare('SELECT at FROM alarms WHERE name = ?');
   }
 
   /* The names with anything stored, and each one's alarm or null. */
@@ -193,6 +194,10 @@ class Store {
         this.alarmQ.run(name, Math.round(at));
         onAlarm(at);
       },
+      getAlarm: async () => {
+        const row = this.getAlarmQ.get(name);
+        return row ? Number(row.at) : null;
+      },
     };
   }
 }
@@ -208,6 +213,7 @@ function memoryStorage() {
     list: async () => new Map([...kept].map(([k, v]) => [k, structuredClone(v)])),
     deleteAll: async () => kept.clear(),
     setAlarm: async () => {},
+    getAlarm: async () => null,
   };
 }
 
@@ -450,11 +456,16 @@ export function startRooms({
   }));
 
   /* Rooms stored before a restart: each gets its alarm back, or a purge
-   * PURGE_MS from now if it had none (it had pilots when the process
-   * stopped, and they have that long to come back). */
+   * host.js PURGE_MS from now if it had none (it had pilots when the process
+   * stopped, and they have that long to come back), stored, so the room
+   * is listed as empty since now and closing when it will. */
   for (const { name, at } of store.names()) {
     const room = env.ROOMS.get(name);
-    room.schedule(at ?? Date.now() + PURGE_MS);
+    if (at == null) {
+      room.enqueue(() => room.host.closeLater());
+    } else {
+      room.schedule(at);
+    }
     room.enqueue(() => room.host.announce());
   }
 

@@ -122,7 +122,7 @@ In memory state is lost on hibernation [CF-WS], so everything a room must
 keep across a sleep lives in its SQLite storage (roster by token, slots,
 race, loaded track, kick list, all small), and per socket facts (peer id,
 token, name, airframe) in the socket's attachment. An alarm purges the
-room's storage ten minutes after the last pilot leaves.
+room's storage five minutes after the last pilot leaves.
 
 ## 2. Rooms and who joins
 
@@ -139,7 +139,7 @@ room's storage ten minutes after the last pilot leaves.
   `BCDFGHJKLMNPQRSTVWXZ23456789` (no vowels, so a code cannot spell a
   word, no 0, O, 1 or I to misread): 28^6 is about 482 million codes. The
   creator is the host. A code lives while the room has anyone in it and
-  ten minutes after. A share link is `.../sim/?room=K7PZ2M`.
+  five minutes after. A share link is `.../sim/?room=K7PZ2M`.
 - **The cap of 16** is where it is for two measured reasons: at 30 Hz a
   full room is 480 incoming messages a second, under half the 1,000 a
   second soft limit of one object [CF-LIMITS], and a full room is 185
@@ -766,7 +766,7 @@ typed into a public room, not a track name.
   stays off for the rooms Worker, so addresses do not land in logs.
 - **Stored: nothing personal.** SQLite holds seat tokens, picker indices
   or filtered names, profiles, slots, the race and the loaded track,
-  purged ten minutes after the room empties. No email field exists
+  purged five minutes after the room empties. No email field exists
   anywhere in this design.
 
 ## 10. Checks
