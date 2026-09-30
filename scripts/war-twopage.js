@@ -69,12 +69,17 @@ import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { LATE_MS } from '../src/game/midair.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
-import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
 import { waveSize } from '../src/share/war/missions/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const MAIN = process.argv.includes('--main');
-const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', MAIN ? 'war-twopage-main' : 'war-twopage');
+/* The mission flown: mission 1 by default, or --mission=id of one that
+ * shares its waves (itaipu-4, the night raid, which this then checks is
+ * night on both pages, the attackers wearing nav lights). */
+const missionArg = process.argv.find((a) => a.startsWith('--mission='));
+const itaipu1 = MISSIONS[missionArg ? missionArg.slice('--mission='.length) : 'itaipu-1'];
+const outDir = process.argv.slice(2).find((a) => !a.startsWith('--') && !a.startsWith('--mission=')) || join(root, 'build', MAIN ? 'war-twopage-main' : 'war-twopage');
 
 let failed = 0;
 let passed = 0;
@@ -311,7 +316,7 @@ try {
   check('each page\'s war client has its seat and the room\'s lobby from the welcome', w0.every((w, i) => w.seat === seats[i] && w.view.state === 'lobby'),
     w0.map((w) => `${w.seat} ${w.view.state}`).join(', '));
 
-  await a.evaluate("window.__warDo('start', 'itaipu-1')");
+  await a.evaluate(`window.__warDo('start', '${itaipu1.id}')`);
   for (const p of pages) {
     await p.until("window.__war().view.state === 'countdown' || window.__war().view.state === 'live'", 15000);
   }
@@ -321,6 +326,14 @@ try {
     await p.until("window.__war().view.state === 'live'", 20000);
   }
   const [live] = await sameView('at the go');
+  const timeOf = (p) => p.evaluate("(() => { const it = window.__mapScene && window.__mapScene().userData.itaipu; return it && it.look ? it.look.time : null; })()");
+  if (MAIN && itaipu1.night) {
+    for (const p of pages) {
+      await p.until("(() => { const it = window.__mapScene && window.__mapScene().userData.itaipu; return window.__map().ready && it && it.look && it.look.time === 'night'; })()", 120000).catch(() => {});
+    }
+    const times = await Promise.all(pages.map(timeOf));
+    check(`${itaipu1.id} is flown at night on both pages`, times.every((t) => t === 'night'), times.join(', '));
+  }
   if (MAIN) {
     /* The go's restart put both back on the slot under the war's damage
      * mode, B's setting notwithstanding. */
@@ -394,6 +407,11 @@ try {
     const t = await nowOf(b);
     if (!lookedAtStrikers && t > tHit - 7000) {
       lookedAtStrikers = true;
+      if (MAIN && itaipu1.night) {
+        const d = await b.evaluate('window.__war().drawn');
+        check('by night the attackers wear nav lights: one more draw call a kind flying', d && d.navCalls > 0 && d.navCalls <= d.calls,
+          d ? `${d.calls} kinds drawn, ${d.navCalls} with lights` : 'no drawn');
+      }
       /* Close: a camera 12 m off the second Striker's path, 2 s ahead of
        * it, then the Strikers coming at A. */
       const near = poseAt(plan, t + 2000).p;

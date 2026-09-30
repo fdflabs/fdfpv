@@ -568,6 +568,12 @@ function withTimeOption(options) {
   return time === 'night' ? { ...options, time } : options;
 }
 
+/* The time a world is built at: night for the address's ?time=night or
+ * when a caller asks for it (the night raid), day otherwise. */
+function timeOf(options) {
+  return withTimeOption(options).time === 'night' ? 'night' : 'day';
+}
+
 async function loadMap(shell, id, loading, mapOptions) {
   const options = withTimeOption(mapOptions);
   const entry = mapById(id);
@@ -2377,6 +2383,24 @@ export async function boot({
    * room: the view is then the lobby's). tagBoost sets the plant with it,
    * so the crash cam's journal keeps it like the chase boost.
    */
+  /*
+   * THE NIGHT RAID (itaipu-4, the mission's `night`): while such a war
+   * counts down or runs, the world is built at night (src/maps/itaipu.js
+   * options.time, through syncWorld) and the attackers wear nav lights;
+   * after it, day again and no lights. Every pilot's screen does this from
+   * the room's view, so all of them fly the same night.
+   */
+  let warNight = false;
+  function warNightFrame() {
+    const night = roomWar.on() && roomWar.night();
+    if (night === warNight) {
+      return;
+    }
+    warNight = night;
+    warAttackers.setNavLights(night);
+    syncWorld();
+  }
+
   function warSpeedMul() {
     if (!roomWar.on()) {
       return 1;
@@ -2904,6 +2928,7 @@ export async function boot({
     warBooms.group.visible = !replay;
     warFeedFrame(wallMs);
     const v = roomWar.view();
+    warNightFrame();
     warIntroFrame(v, now);
     if (roomWar.on() && v.id !== warBegunId) {
       warBegin(v, wallMs);
@@ -2953,7 +2978,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
-    warAttackers.update(live, roomWar.live() ? now : null);
+    warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */
@@ -9090,7 +9115,8 @@ export async function boot({
     return view
       && wantId === view.id
       && wantQ === view.graphics
-      && wantedCourseKey(wantId) === loadedCourseKey(view);
+      && wantedCourseKey(wantId) === loadedCourseKey(view)
+      && worldTime === timeOf(worldTimeOptions());
   }
 
   /*
@@ -9101,6 +9127,12 @@ export async function boot({
    * still up.
    */
   let worldSync = null;
+  /* The time the standing world was built at, and what a build asks for
+   * now: night while a night raid is on (warNight). */
+  let worldTime = timeOf({});
+  function worldTimeOptions() {
+    return warNight ? { time: 'night' } : {};
+  }
   function syncWorld() {
     if (!worldSync) {
       worldSync = syncWorldNow().finally(() => {
@@ -9130,7 +9162,7 @@ export async function boot({
      * of a minute to build and a course a few milliseconds, so the world
      * stays and only the course and the run change. Anything else is a swap.
      */
-    if (mapReady && wantId === view.id && wantQ === view.graphics) {
+    if (mapReady && wantId === view.id && wantQ === view.graphics && worldTime === timeOf(worldTimeOptions())) {
       swapInFlight = true;
       mapReady = false;
       try {
@@ -9186,7 +9218,9 @@ export async function boot({
       view = await loadMap(shell, wantId, loading, {
         quality: wantQ,
         renderScale: renderScaleOf(ui.settings),
+        ...worldTimeOptions(),
       });
+      worldTime = timeOf(worldTimeOptions());
       await seatMapCourse();
       loading.start('frame');
       adoptLoadedView(keepPlace, stayMode, stayScreen);
@@ -9210,6 +9244,7 @@ export async function boot({
           quality: previousGraphics,
           renderScale: renderScaleOf(ui.settings),
         });
+        worldTime = timeOf({});
         loading.start('frame');
         adoptLoadedView(keepPlace, stayMode, stayScreen);
         notice = {
