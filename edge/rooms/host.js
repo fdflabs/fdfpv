@@ -179,7 +179,9 @@ export class RoomHost {
     }
   }
 
-  async message(conn, message) {
+  /* callsign: see RoomCore.hello; only a platform that asked the accounts
+   * server passes one. */
+  async message(conn, message, callsign = null) {
     const core = await this.load();
     if (!core) {
       conn.close(CLOSE.nosuch, 'nosuch');
@@ -188,7 +190,7 @@ export class RoomHost {
     const data = typeof message === 'string' ? message : new Uint8Array(message);
     const attached = conn.deserializeAttachment() || {};
     const now = Date.now();
-    this.run(core.message(conn, data, now, attached.address || '', newToken));
+    this.run(core.message(conn, data, now, attached.address || '', newToken, callsign));
     /* A pose never changes the room's line, and a seat the pose rules
      * remove is reported by the tick that is running while poses come. */
     if (typeof data === 'string') {

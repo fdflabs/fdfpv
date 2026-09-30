@@ -3,6 +3,9 @@
  *
  *   ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db PORT=8797 ADMIN_SECRET=... node edge/rooms/node.js
  *
+ * and ACCOUNTS_ORIGIN=http://127.0.0.1:8787 to show signed in pilots'
+ * callsigns (sessionCallsign below).
+ *
  * The same rooms as do.js serves on Cloudflare: front.js answers every
  * request, each room is a RoomHost (host.js) around a RoomCore, and the
  * public rooms' Lobby is lobby.js's own class. What this file supplies is
@@ -65,6 +68,7 @@ import { PURGE_MS, RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
 import { Health, roomCounters } from './health.js';
 import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.js';
+import { normaliseName } from '../../src/share/pilot.js';
 
 /* The largest message the simulator sends is a host's race track, logos
  * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
@@ -73,6 +77,59 @@ import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.j
  * Cloudflare takes up to 32 MiB, which a process capped at 256 MB must not. */
 const MAX_MESSAGE_BYTES = 1024 * 1024;
 const CLOSE_RESTART = 1012;
+
+/*
+ * A SIGNED IN PILOT'S HELLO carries its session token (src/share/rooms.js),
+ * and the room shows the callsign that session holds instead of a picker
+ * name. The token is checked by the accounts server (tracks-api/accounts.js,
+ * GET /api/account) at ACCOUNTS_ORIGIN, the tracks server on this same
+ * machine over loopback, rather than by a signature this server could check
+ * alone: that way a signed out session, a changed callsign or a deleted
+ * account is true in the next join, with no secret shared between the two
+ * servers and nothing about accounts kept here. The token is used for that
+ * one request and not kept. The pilot's address goes with it as the
+ * accounts server's client address, as Caddy would send it.
+ *
+ * Anything short of a clean answer is a guest's join: no ACCOUNTS_ORIGIN
+ * (do.js on Cloudflare, the selftests), no session, a session that has
+ * ended, the accounts server down or slower than ACCOUNT_WAIT_MS. The
+ * pilot flies either way, under their picker name.
+ */
+const SESSION_RE = /^[0-9a-f]{64}$/;
+const ACCOUNT_WAIT_MS = 2000;
+
+async function sessionCallsign(text, env, address) {
+  if (!env.ACCOUNTS_ORIGIN || !text.includes('"session"')) {
+    return null;
+  }
+  let msg;
+  try {
+    msg = JSON.parse(text);
+  } catch (e) {
+    return null;
+  }
+  if (!msg || msg.type !== 'hello' || typeof msg.session !== 'string' || !SESSION_RE.test(msg.session)) {
+    return null;
+  }
+  try {
+    const res = await fetch(`${env.ACCOUNTS_ORIGIN}/api/account`, {
+      headers: { authorization: `Bearer ${msg.session}`, 'cf-connecting-ip': address || 'rooms' },
+      signal: AbortSignal.timeout(ACCOUNT_WAIT_MS),
+    });
+    if (res.status === 401) {
+      return null;
+    }
+    if (!res.ok) {
+      console.error(`accounts answered ${res.status}; a signed in pilot joins as a guest`);
+      return null;
+    }
+    const body = await res.json();
+    return normaliseName(body && body.callsign);
+  } catch (e) {
+    console.error('accounts unreachable; a signed in pilot joins as a guest:', e && e.message ? e.message : e);
+    return null;
+  }
+}
 
 /* Every room's storage in one SQLite file: kv holds what host.js puts,
  * as v8 structured clone bytes like a Durable Object's; alarms holds each
@@ -249,8 +306,15 @@ class Room {
 
   connect(ws, request) {
     const conn = new Conn(ws, this.counters);
+    const address = request.headers.get('x-room-address') || '';
     this.sockets.add(conn);
     this.enqueue(() => this.host.accept(conn, request));
+    /* The socket's first text is its hello, which waits for its callsign
+     * (sessionCallsign), and everything after it, the close included,
+     * waits behind it, so the room still sees this socket in order. The
+     * wait is outside the room's queue: a slow answer holds up this pilot's
+     * join and nobody else's flight. */
+    let gate = null;
     ws.on('message', (data, binary) => {
       this.counters.inMsgs += 1;
       this.counters.inBytes += data.length;
@@ -258,14 +322,18 @@ class Room {
         conn.send('pong');
         return;
       }
-      this.enqueue(() => this.host.message(conn, binary ? data : data.toString()));
+      const value = binary ? data : data.toString();
+      if (!gate) {
+        gate = binary ? Promise.resolve(null) : sessionCallsign(value, this.env, address);
+      }
+      gate.then((callsign) => this.enqueue(() => this.host.message(conn, value, callsign)));
     });
     ws.on('close', (code) => {
       this.sockets.delete(conn);
-      this.enqueue(async () => {
+      (gate || Promise.resolve()).then(() => this.enqueue(async () => {
         await this.host.close(conn, code);
         this.dropIfIdle();
-      });
+      }));
     });
     /* ws emits close after error, and close does the cleaning up. */
     ws.on('error', () => {});
@@ -314,12 +382,16 @@ function lobbyObject(env) {
 /* roomCap: every new room's cap, for scripts/rooms-load.js alone; a seat
  * is a byte on the wire and the client colours sixteen, so the process's
  * own entry point below never reads it. */
-export function startRooms({ db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0 }) {
+export function startRooms({
+  db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '',
+}) {
   if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
     throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
   }
   const store = new Store(db);
-  const env = { PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap };
+  const env = {
+    PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap, ACCOUNTS_ORIGIN: accountsOrigin.replace(/\/+$/, ''),
+  };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
   env.HEALTH = new Health(() => [...env.ROOMS.objects.values()].map((room) => {
@@ -377,6 +449,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     host: process.env.HOST || '127.0.0.1',
     publicRooms: process.env.PUBLIC_ROOMS || 'on',
     adminSecret: process.env.ADMIN_SECRET || '',
+    accountsOrigin: process.env.ACCOUNTS_ORIGIN || '',
   });
   console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}`);
   process.on('SIGTERM', async () => {

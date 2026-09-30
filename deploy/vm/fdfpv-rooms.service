@@ -28,6 +28,9 @@ User=fdfpv-rooms
 Group=fdfpv-rooms
 WorkingDirectory=/opt/fdfpv
 Environment=HOST=127.0.0.1 PORT=8797 PUBLIC_ROOMS=on ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db
+# A signed in pilot's callsign is asked of the tracks server beside this
+# one, over loopback (edge/rooms/node.js sessionCallsign).
+Environment=ACCOUNTS_ORIGIN=http://127.0.0.1:8787
 EnvironmentFile=/etc/fdfpv/tracks.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
 # start; the journal does not need to hear it.

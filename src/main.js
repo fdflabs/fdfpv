@@ -83,11 +83,11 @@ import {
 } from './share/board.js';
 import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
-import { nameRules, readPilotName, writePilotName } from './share/pilot.js';
+import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
 import {
-  createRoomLink, figurePick, namePick, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
+  createRoomLink, figurePick, namePick, ownName, randomNamePick, roomLink, setFigurePick, setNamePick, wantedRoom,
 } from './share/rooms.js';
 import { createRoomSafety } from './share/roomsafety.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
@@ -124,6 +124,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
+import { createAccountUi } from './ui/accountui.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
  * use and kept in this browser. See src/share/identity.js. */
@@ -1968,7 +1969,12 @@ export async function boot({
   let roomRefusal = null; /* { text, untilMs }: why the room refused a host's action */
   let roomNameOffer = null; /* three picker names, while the screen is open */
 
+  /* A picker name's three indices, or a signed in pilot's callsign
+   * (src/share/rooms.js shownName), which is shown as it is. */
   function roomName(pick) {
+    if (typeof pick === 'string') {
+      return pick;
+    }
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
   }
   function roomProfile() {
@@ -2193,7 +2199,7 @@ export async function boot({
   const combatLayer = createStreamerLayer(paperFloorAt);
   const combatNameOf = (seat) => {
     if (seat === roomCombat.seat()) {
-      return str('friends.you', { name: roomName(namePick()) });
+      return str('friends.you', { name: roomName(ownName()) });
     }
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : '';
@@ -4046,7 +4052,10 @@ export async function boot({
       roomNameOffer = [pick, randomNamePick(), randomNamePick()];
     }
     const offers = roomNameOffer.map((p) => JSON.stringify(p));
-    const nameRow = {
+    /* Signed in, the room shows the callsign, which is changed in Pilot. */
+    const nameRow = readAccount()?.callsign ? {
+      label: str('friends.name'), note: str('account.room_name_note'), value: ownName(), info: true,
+    } : {
       label: str('friends.name'),
       note: str('friends.name_note'),
       value: roomName(pick),
@@ -4139,7 +4148,7 @@ export async function boot({
           note: str('friends.here_note'),
           info: true,
         },
-        { label: str(host ? 'friends.you_host' : 'friends.you', { name: roomName(pick) }), value: airframeById(runAirframe).name, info: true },
+        { label: str(host ? 'friends.you_host' : 'friends.you', { name: roomName(ownName()) }), value: airframeById(runAirframe).name, info: true },
         ...roomSafety.sayRows(),
       ];
       for (const peer of roomPeers.values()) {
@@ -4393,7 +4402,7 @@ export async function boot({
 
   function roomSeatName(seat) {
     if (seat === roomRace.seat()) {
-      return str('friends.you', { name: roomName(namePick()) });
+      return str('friends.you', { name: roomName(ownName()) });
     }
     const peer = roomPeers.get(seat);
     return peer ? roomName(peer.name) : str('roomrace.gone');
@@ -10625,9 +10634,21 @@ export async function boot({
     ghostQueryId = time.id;
   };
 
+  /* The optional Google sign-in's dialogs and progress sync
+   * (src/ui/accountui.js), its rows in Pilot. */
+  const accountUi = createAccountUi({
+    ui,
+    identity,
+    say: (text) => {
+      notice = { text, untilMs: performance.now() + 4200 };
+    },
+  });
   ui.onAction = (action, s) => {
     if (s) {
       applySettings(s);
+    }
+    if (accountUi.handle(action)) {
+      return;
     }
     /*
      * PLAY, FROM MY TRACKS: the seat holds the track, so build its world if

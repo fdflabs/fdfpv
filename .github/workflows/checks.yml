@@ -37,6 +37,7 @@ jobs:
       - run: npm run rooms:selftest
       - run: npm run streamer:selftest
       - run: npm run rooms:server
+      - run: npm run rooms:accounts
       # 32 pilots in one room through free flight, a race and a combat
       # round, 5 s each, about a minute: the plan's rooms:load at 32 a
       # room. Its checks are about function; the speed numbers it prints

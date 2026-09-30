@@ -115,6 +115,27 @@ export function trackDeleteMessage({ id, ts }) {
   return new TextEncoder().encode(`${TRACK_DELETE_PREFIX}\n${id}\n${ts}`);
 }
 
+/*
+ * THE OPTIONAL SIGN-IN (tracks-api/accounts.js) signs two more things. A
+ * callsign is claimed on the board under the account's key before the
+ * accounts server keeps it, with nameClaimMessage. And a computer that
+ * signs in holding a key other than the account's hands that key's board
+ * names and times, and its tracks, to the account's key, with
+ * keyLinkMessage signed by the old key and, for the board, the new one.
+ * The board MIRRORS both in fdfpv-leaderboard/src/pilotkeys.js, because
+ * its vendored copy of this file predates them: change both.
+ */
+export const NAME_CLAIM_PREFIX = 'fdfpv-name/v1';
+export const KEY_LINK_PREFIX = 'fdfpv-link/v1';
+
+export function nameClaimMessage(name) {
+  return new TextEncoder().encode(`${NAME_CLAIM_PREFIX}\n${name}`);
+}
+
+export function keyLinkMessage(from, to) {
+  return new TextEncoder().encode(`${KEY_LINK_PREFIX}\n${from}\n${to}`);
+}
+
 /* False for anything malformed, like verifyTimeSignature. */
 export async function verifySignature({ key, sig, message }) {
   try {
