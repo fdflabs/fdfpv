@@ -2731,6 +2731,8 @@ export default {
   "war.kill_by.other": "{name}: SPLASH {n}",
   "war.boom_mine": "WARHEAD AWAY. AIRFRAME EXPENDED",
   "war.scouts_down": "SCOUTS DOWN: NEXT WAVE FLIES BLIND",
+  "war.watch": "RACK EMPTY. WATCHING {name}. [ AND ] CHANGE PILOT",
+  "war.watch_none": "RACK EMPTY. NO PILOT IN THE AIR",
   "war.call.scout.one": "SCOUT {where}",
   "war.call.scout.other": "SCOUTS {where}",
   "war.call.loiter.one": "LOITERER {where}",

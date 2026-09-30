@@ -37,7 +37,12 @@
  *     the rack drops by one; the other two Strikers reach the switchyard
  *     and both pages take its megawatts and call it
  *   - then both are held on the Hunters' way up the gorge: a Hunter goes
- *     off on one of them, and both pages agree on that too
+ *     off on one of them, and both pages agree on that too; and the
+ *     target each page last heard for it (HUNTS, 0xA1) is that pilot
+ *   - with --main, a pilot whose craft is a wreck on an empty rack
+ *     spectates: its camera follows the teammate in the air, [ and ] keep
+ *     to a teammate, R does not put it back in the air, and the HUD
+ *     stays up; a rack again and R flies
  *
  * Pictures go in outdir (build/war-twopage by default, not in the
  * repository).
@@ -220,6 +225,8 @@ const names = ['A', 'B'];
 /* Every attacker on both pages at one room ms, and each page's drawing
  * against its own list. Returns the worst differences seen. */
 const worst = { scripted: 0, hunter: 0, samples: 0, hunters: 0, mismatch: [], drawn: 0, calls: 0 };
+/* Hunter id -> the target each page last heard for it, [A, B]. */
+const heardHunts = new Map();
 async function compare() {
   const t = Math.floor(Math.min(await nowOf(a), await nowOf(b))) - BEHIND_MS;
   const [la, lb] = await Promise.all(pages.map((p) => p.evaluate(`window.__warAt(${t})`)));
@@ -229,6 +236,9 @@ async function compare() {
     return;
   }
   for (let i = 0; i < la.length; i += 1) {
+    if (la[i].kind === 'hunter') {
+      heardHunts.set(la[i].id, [la[i].hunts, lb[i].hunts]);
+    }
     const d = dist(la[i].p, lb[i].p);
     const k = la[i].kind === 'hunter' ? 'hunter' : 'scripted';
     worst[k] = Math.max(worst[k], d);
@@ -270,6 +280,53 @@ async function watch(done, until) {
     }
     await a.sleep(2000);
   }
+}
+
+/*
+ * A's craft a wreck on an empty rack. The room reaches that only when a
+ * warhead takes a wave's last attacker with the last airframe, too seldom
+ * to wait for here, so A's warhead and the empty rack are heard as if the
+ * room had said them (window.__warHear); B flying, the camera, the keys
+ * and the HUD are all the real shell's.
+ */
+const frames = (p, k) => p.evaluate(`new Promise((r) => { let n = 0; const f = () => (++n >= ${k} ? r(true) : requestAnimationFrame(f)); requestAnimationFrame(f); })`);
+
+async function spectate() {
+  const [seatA, seatB] = await Promise.all(pages.map((p) => p.evaluate('window.__war().seat')));
+  /* Both in the air again, whatever the Hunter left of them. */
+  await hold(a, [-1000, 300, 1540]);
+  await hold(b, [-1000, 300, 1500]);
+  await a.evaluate(`window.__warHear({ type: 'war', op: 'boom', seat: ${seatA}, at: window.__rooms().roomNow, p: [0, 0, 0] }); true`);
+  await a.until('window.__war().watch.wrecked', 20000);
+  /* A's wreck reaches the room as a crash, and its view follows. */
+  await a.sleep(1500);
+  const empty = async () => a.evaluate("(() => { const v = window.__war().view; window.__warHear({ type: 'war', war: { ...v, rack: 0 } }); return true; })()");
+  await empty();
+  await a.until('window.__war().watch.on && window.__war().watch.seat >= 0', 10000);
+  await frames(a, 30);
+  await empty();
+  await frames(a, 3);
+  const w = await warOf(a);
+  const bPos = await b.evaluate('(() => { const s = window.__craftState(); return [s.worldX, s.worldY, s.worldZ]; })()');
+  const camOff = dist(w.watch.cam, bPos);
+  check('A, a wreck on an empty rack, spectates B: the camera follows B, the HUD and the markers stay up', w.watch.on && w.watch.seat === seatB
+    && camOff < 20 && w.hud.line !== '' && w.markers.on && /WATCHING/.test(w.watch.banner),
+  `watching seat ${w.watch.seat} (B ${seatB}), camera ${camOff.toFixed(1)} m from B, hud "${w.hud.line}", banner "${w.watch.banner}"`);
+  await shot(a, '5-A-spectates-B');
+  await a.tap('BracketRight');
+  await a.tap('KeyR');
+  await frames(a, 4);
+  await empty();
+  await frames(a, 2);
+  const w2 = await warOf(a);
+  check('] keeps to the one teammate in the air, and R does not put a spectator back in the air', w2.watch.on && w2.watch.seat === seatB && w2.watch.wrecked,
+    JSON.stringify({ on: w2.watch.on, seat: w2.watch.seat, wrecked: w2.watch.wrecked }));
+  await a.evaluate("(() => { const v = window.__war().view; window.__warHear({ type: 'war', war: { ...v, rack: Math.max(1, v.rack) } }); return true; })()");
+  await frames(a, 2);
+  await a.tap('KeyR');
+  await a.until('!window.__war().watch.wrecked', 10000);
+  const w3 = await warOf(a);
+  check('with an airframe in the rack again, R flies', !w3.watch.on && w3.watch.seat === -1 && !w3.watch.wrecked, JSON.stringify(w3.watch));
 }
 
 try {
@@ -492,6 +549,10 @@ try {
   const deadHunt = (w) => w.log.filter((e) => e.type === 'dead' && e.why === 'boom')[1];
   check('and the same Hunter dies on both', deadHunt(ya) && sameEvent(deadHunt(ya), deadHunt(yb)),
     deadHunt(ya) ? `ids ${deadHunt(ya).ids}` : 'none');
+  const huntsHeard = deadHunt(ya) ? deadHunt(ya).ids.filter((id) => heardHunts.has(id)).map((id) => [id, heardHunts.get(id)]) : [];
+  check('both pages last heard that Hunter chasing the pilot it went off on (HUNTS)', hunterBoom && huntsHeard.length > 0
+    && huntsHeard.some(([, [ha, hb]]) => ha === hunterBoom.seat && hb === hunterBoom.seat),
+  `went off on seat ${hunterBoom ? hunterBoom.seat : '-'}, heard ${JSON.stringify(huntsHeard)}`);
   await sameView('after the Hunter');
   await shot(a, '4-A-hud-after-the-hunter');
 
@@ -502,6 +563,10 @@ try {
     `${worst.hunter.toFixed(3)} m worst over ${worst.hunters} pairs`);
   check('each page draws its own list, instance for instance, every scripted one where attackersAt puts it', worst.drawn < 1e-3, `${worst.drawn} m worst`);
   check('at most one draw call a kind', worst.calls <= 7, `${worst.calls} kinds drawn at once at most`);
+
+  if (MAIN) {
+    await spectate();
+  }
 
   await a.evaluate("window.__warDo('end')");
   for (const p of pages) {

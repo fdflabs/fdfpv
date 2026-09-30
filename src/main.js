@@ -2336,6 +2336,8 @@ export async function boot({
    *                jamming out on 2026-09-29, docs/WARFARE-PLAN.md 6.1)
    *   the plant    warBoomMine breaks this craft on its own warhead; a war
    *                forces crash damage on between runs (applyCrashMode)
+   *   the rack     empty, and this craft a wreck: warSpectating, and the
+   *                camera follows a teammate in the air (warWatch)
    *
    * Everything that reaches the plant goes through sim.e, the crash cam's
    * journal (src/replay/journal.js), so a take over flies it again to the
@@ -2362,6 +2364,47 @@ export async function boot({
   /* The damage mode is due again at the next reset: a war began or
    * ended. See applyCrashMode. */
   let warCrashDue = false;
+  /* The teammate the camera follows while this pilot spectates, by seat,
+   * or -1. */
+  let warWatchSeat = -1;
+  /* Keys that would put a spectator back in the air, or swap its
+   * aircraft, and the two that step between teammates instead. */
+  const WAR_WATCH_KEYS = new Set(['BracketLeft', 'BracketRight', 'KeyR', 'KeyX', 'Tab']);
+
+  /* THE RACK EMPTY AND THIS CRAFT A WRECK (docs/WARFARE-PLAN.md 4.5):
+   * there is no airframe to fly, so the pilot spectates. The room ends
+   * the game on an empty rack only while attackers live, so this is the
+   * gap after a warhead took a wave's last with the last airframe. */
+  function warSpectating() {
+    const v = roomWar.view();
+    return roomWar.live() && Number.isFinite(v.rack) && v.rack <= 0 && wrecked && (mode === 'flight' || mode === 'paused');
+  }
+
+  /* The teammate to watch this frame, stepped by `step` through the ones
+   * drawn in the air here in seat order, or kept while it still flies;
+   * null when spectating none. */
+  function warWatch(step = 0) {
+    if (!warSpectating()) {
+      warWatchSeat = -1;
+      return null;
+    }
+    const seats = [...roomPeers.values()]
+      .filter((p) => p.drawnPose && p.last && !(p.last.flags & FLAG_CRASHED))
+      .map((p) => p.seat)
+      .sort((a, b) => a - b);
+    if (!seats.length) {
+      warWatchSeat = -1;
+      return null;
+    }
+    const i = seats.indexOf(warWatchSeat);
+    warWatchSeat = seats[i < 0 ? 0 : (i + step + seats.length) % seats.length];
+    return roomPeers.get(warWatchSeat);
+  }
+
+  function warWatchBanner() {
+    const peer = warWatch();
+    return peer ? str('war.watch', { name: roomName(peer.name) }) : str('war.watch_none');
+  }
 
   /* The host's row, where the war may run: a private room on the Itaipu
    * map. The title's card and Make a room reach it through warEnter. A
@@ -2612,7 +2655,11 @@ export async function boot({
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */
-    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), pCurr.x, pCurr.y, pCurr.z, roomWar.seat())) {
+    /* A spectator's markers are the watched teammate's: its distances,
+     * and a Hunter on it framed, but not said as on this pilot. */
+    const watched = warWatch();
+    const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat()) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
         warSay(['wave-hunter']);
@@ -3525,6 +3572,9 @@ export async function boot({
       perfect: rcLink.isPerfect(), delayMs: rcLink.sigDelayMs, lossPpm: rcLink.sigLossPpm, failsafe: rcLink.failsafeRc !== null,
     },
     radio: audio.warRadio ? audio.warRadio.status() : null,
+    watch: {
+      on: warSpectating(), seat: warWatchSeat, cam: shell.camera.position.toArray(), wrecked, banner: ui.bannerText,
+    },
     damage: runDamage,
     burning: Object.fromEntries(warBurning),
     log: warLog.map((e) => ({
@@ -3532,6 +3582,10 @@ export async function boot({
     })),
   });
   window.__warAt = (t) => roomWar.attackersAt(t);
+  /* A room message heard as if the room sent it: how a check puts this
+   * page in a state the room reaches too seldom to wait for (an empty
+   * rack with no attacker alive). The room's next view replaces it. */
+  window.__warHear = (m) => roomWar.onMessage(m);
   window.__warDo = (op, arg) => {
     if (op === 'start') {
       roomWar.start(arg || WAR_MISSION);
@@ -10187,6 +10241,10 @@ export async function boot({
         return;
       }
     }
+    /* A spectator has no airframe to restart in. */
+    if (action === 'restart' && warSpectating()) {
+      return;
+    }
     if (action === 'fly' || action === 'restart') {
       /* A room race this pilot has finished is over for them: flying on
        * is flying alone. */
@@ -10656,6 +10714,12 @@ export async function boot({
     if (crashCam && crashCam.onKey(code, repeat)) {
       return;
     }
+    if (ui.screen === 'flight' && WAR_WATCH_KEYS.has(code) && warSpectating()) {
+      if (!repeat && (code === 'BracketLeft' || code === 'BracketRight')) {
+        warWatch(code === 'BracketLeft' ? -1 : 1);
+      }
+      return;
+    }
     if (ui.handleKey(code, repeat)) {
       return;
     }
@@ -10857,6 +10921,9 @@ export async function boot({
     let chaseLift = 0;
     let chaseWaterY = 0;
     let chaseValid = false;
+    /* The seat the spectator's camera last framed, so a new one snaps. */
+    let watchCamSeat = -1;
+    const watchQ = new THREE.Quaternion();
     const losPos = new THREE.Vector3();
     const losBack = new THREE.Vector3();
     const finishFpvPos = new THREE.Vector3();
@@ -13054,6 +13121,12 @@ export async function boot({
     }
 
     fpvLensLive = false;
+    const watching = mode === 'flight' || mode === 'paused' ? warWatch() : null;
+    /* Done spectating: the chase camera's vectors were the teammate's. */
+    if (!watching && watchCamSeat !== -1) {
+      watchCamSeat = -1;
+      chaseValid = false;
+    }
     if (mode === 'replay') {
       /* The crash cam poses its own craft and points the camera. */
       shell.quad.visible = false;
@@ -13204,6 +13277,45 @@ export async function boot({
         shell.camera.position.copy(fpvPos);
         shell.camera.quaternion.copy(fpvQuat);
         shell.camera.fov = ui.settings.cameraFov;
+        shell.camera.updateProjectionMatrix();
+      }
+    } else if (watching) {
+      /*
+       * A SPECTATOR'S CAMERA: behind the watched teammate along the way it
+       * is travelling, as the chase camera is, from the same smoothed
+       * vectors; a new teammate snaps rather than sweeping across the map.
+       */
+      const peer = watching;
+      const d = peer.drawnPose;
+      if (watchCamSeat !== warWatchSeat) {
+        watchCamSeat = warWatchSeat;
+        chaseValid = false;
+      }
+      chaseAnchor.set(d.px, d.py, d.pz);
+      chaseStep.copy(chaseAnchor).sub(chaseLast);
+      if (!chaseValid) {
+        chaseDir.set(0, 0, -1).applyQuaternion(watchQ.set(d.qx, d.qy, d.qz, d.qw));
+      } else if (chaseStep.lengthSq() > 1e-6) {
+        chaseDir.lerp(chaseStep.normalize(), 1 - Math.exp(-dt / 200)).normalize();
+      }
+      chaseLast.copy(chaseAnchor);
+      const back = Math.max(5, airframeById(peer.profile.airframe).dims.bodyWidth * 3);
+      chaseAim.copy(chaseAnchor).addScaledVector(chaseDir, -back);
+      chaseAim.y += back * 0.35;
+      const floor = view.height(chaseAim.x, chaseAim.z, chaseAim.y) + 0.5;
+      chaseAim.y = Math.max(chaseAim.y, floor);
+      if (chaseValid) {
+        chasePos.lerp(chaseAim, 1 - Math.exp(-dt / 120));
+      } else {
+        chasePos.copy(chaseAim);
+        chaseValid = true;
+      }
+      shell.quad.visible = true;
+      shell.camera.up.set(0, 1, 0);
+      shell.camera.position.copy(chasePos);
+      shell.camera.lookAt(chaseAnchor);
+      if (Math.abs(shell.camera.fov - 70) > 0.05) {
+        shell.camera.fov = 70;
         shell.camera.updateProjectionMatrix();
       }
     } else if ((airframeById(runAirframe).fixedWing && ui.settings.wingView !== 'fpv') || wreckWantsChase(nowWall)) {
@@ -13884,6 +13996,8 @@ export async function boot({
       ui.setBanner('');
     } else if (crashed && ui.screen === 'flight') {
       ui.setBanner('Crashed', true);
+    } else if (ui.screen === 'flight' && warSpectating()) {
+      ui.setBanner(warWatchBanner(), 'edge');
     } else if (wreckDown(nowWall) && ui.screen === 'flight') {
       ui.setBanner(str('main.wrecked_r_resets'), 'edge');
     } else if (
