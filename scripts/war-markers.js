@@ -299,8 +299,12 @@ try {
 
   /* Up the gorge for the Hunters (edge/rooms/warhunt.js: the nearest
    * defender within TARGET_RANGE_M). */
-  const gorge = [-1000, 300, 1540];
-  const hunterAt = goAt + itaipu1.waves.find((w) => w.kind === 'hunter').at * 1000;
+  const hw = itaipu1.waves.find((w) => w.kind === 'hunter');
+  const h0 = itaipu1.routes[hw.route][0];
+  const gorge = [h0[0], h0[1] + 100, h0[2] - 400];
+  /* The Hunters' round starts when the rounds before it end (war.js). */
+  await page.until(`window.__war().view.round === ${(hw.round ?? 0) + 1} && window.__war().view.roundState === 'live'`, 600000);
+  const hunterAt = (await nowOf()) + hw.at * 1000;
   await page.until(`window.__rooms().roomNow > ${hunterAt - 8000}`, (hunterAt - (await nowOf())) + 30000);
   await hold(page, gorge);
   let roomOnMe = null;

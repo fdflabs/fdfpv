@@ -22,11 +22,32 @@
  *             target's mw once, when its seeded error left it within the
  *             target's hitR (its r where it has none): it arrives at its
  *             own aim point, the end of its route, never sooner
- *   the rack  rack x pilots airframes at the go; every detonation and
- *             every crash takes one
- *   the end   won when every wave is born and none is left, with the
- *             output at or over floorMw; lost the instant the output is
- *             under it, or the rack is empty with attackers alive
+ *   rounds    a mission's waves are grouped in rounds (a wave's `round`,
+ *             0 when it has none; its `at` counts from its round's
+ *             start). At a round's start every pilot has the mission's
+ *             `airframes` (its `rack` where it names none); every
+ *             detonation, crash and lost link spends one of that pilot's,
+ *             and every attacker its warhead kills earns it one more for
+ *             the round (a swarm of N, N), so a pilot who keeps hitting
+ *             keeps flying. A pilot who has spent them all spectates (and
+ *             cannot go off) until the round ends. A round ends the
+ *             instant either every wave of it is born and no attacker of
+ *             it is left but Scouts ('win' if the dam took nothing in it,
+ *             'damaged' if it did), or no pilot here is still flying with
+ *             an airframe it has not spent: each has spent them all, or
+ *             is on its last and not flying it (silent over STALE_MS: a
+ *             menu, a pause, a dropped link; not off again RESPAWN_MS
+ *             after its last loss; or on the ground over GROUND_MS; a
+ *             pilot who left is not here at all: stillFlying)
+ *             ('lost': every attacker of it still alive with a
+ *             target gets through, taking its target as an arrival
+ *             would). What is left of it then (Scouts, which leave on
+ *             their own, and on a loss Hunters) is cleared as gone. Then
+ *             RESULT_MS of result, and the next round
+ *   the end   won when the last round ends with the output at or over
+ *             floorMw; lost the instant the output is under it. The view's
+ *             rack and rackMax are the airframes the match's pilots have
+ *             left this round and could have
  *
  * ONE TIMELINE, JUDGED IN ORDER: tag's (edge/rooms/tag.js). Everything is
  * decided on the room clock over the span every seat heard from in the
@@ -140,6 +161,16 @@ export const BIRTH_LEAD_MS = 2000;
 /* An assist: within this of a kill's point, in the ASSIST_MS before it. */
 export const ASSIST_M = 50;
 export const ASSIST_MS = 3000;
+/* A round's result shows this long before the next round starts. */
+export const RESULT_MS = 6000;
+/* A pilot on its last airframe is taken as not flying once it has sent no
+ * pose for STALE_MS, or has been on the ground (not airborne) for
+ * GROUND_MS, so a round never waits on a flight that will not end. */
+export const STALE_MS = 2000;
+export const GROUND_MS = 3000;
+/* How long a pilot on its last airframe has to take off on it after its
+ * last loss (its wreck, the respawn) before the round stops waiting. */
+export const RESPAWN_MS = 10000;
 /* A defender's positions are kept this long for the assists, apart from
  * its Track: within() finds its place in a Track by walking it, so a
  * Track holds no more than the judgement needs. */
@@ -300,6 +331,64 @@ export class RoomWar {
     return this.match ? this.missions[this.match.mission] : null;
   }
 
+  /* Each pilot's airframes a round. */
+  airframes() {
+    const mission = this.mission();
+    return mission.airframes ?? mission.rack;
+  }
+
+  rounds() {
+    return Math.max(...this.mission().waves.map((w) => (w.round ?? 0))) + 1;
+  }
+
+  /* A seat's airframe is spent: one of its round's, at room ms t. */
+  spend(seat, t) {
+    const m = this.match;
+    const rec = this.seats.get(seat);
+    if (rec) {
+      rec.spentAt = t;
+    }
+    m.spent ??= {};
+    m.spent[seat] = Math.min(this.airframes(), (m.spent[seat] ?? 0) + 1);
+  }
+
+  /* A seat's airframes this round: the base and one a kill. */
+  allowance(seat) {
+    return this.airframes() + (this.match.earned?.[seat] ?? 0);
+  }
+
+  /* Whether a seat has spent every airframe of the round. */
+  spentOut(seat) {
+    return (this.match.spent?.[seat] ?? 0) >= this.allowance(seat);
+  }
+
+  /*
+   * Whether a seat can still fly this round. Spent out, no. With more
+   * than its last airframe left, yes. On its last: no once it has been
+   * silent for STALE_MS; before it has taken off on it (a clean airborne
+   * pose since its last loss), yes for RESPAWN_MS from that loss; after,
+   * yes unless it has sat on the ground for GROUND_MS.
+   */
+  stillFlying(seat, roomNow) {
+    const m = this.match;
+    if (this.spentOut(seat)) {
+      return false;
+    }
+    if ((m.spent?.[seat] ?? 0) < this.allowance(seat) - 1) {
+      return true;
+    }
+    const rec = this.seats.get(seat);
+    const p = rec ? rec.track.s.at(-1) : null;
+    const since = rec && rec.spentAt != null && rec.spentAt >= (m.roundAt ?? m.goAt) ? rec.spentAt : (m.roundAt ?? m.goAt);
+    if (!p || roomNow - p.t > STALE_MS) {
+      return roomNow - Math.max(since, p ? p.t : -Infinity) <= STALE_MS;
+    }
+    if (!(rec.launched > since)) {
+      return p.t - since <= RESPAWN_MS;
+    }
+    return rec.groundSince == null || p.t - rec.groundSince <= GROUND_MS;
+  }
+
   restore(saved) {
     if (!saved) {
       return;
@@ -339,6 +428,8 @@ export class RoomWar {
     }
     const here = new Set(this.players(core));
     const mission = this.mission();
+    const flying = m.state !== 'briefing' && m.state !== 'countdown';
+    const seats = Object.keys(m.players);
     return {
       state: m.state,
       id: m.id,
@@ -351,8 +442,19 @@ export class RoomWar {
       output: m.output,
       floor: mission.floorMw,
       down: m.down.slice(),
-      rack: m.rack,
-      rackMax: m.rackMax,
+      /* The match's pilots' airframes left this round, and all they have
+       * had in it, earned ones too: none before the go. */
+      rack: flying ? seats.reduce((sum, seat) => sum + Math.max(0, this.allowance(seat) - (m.spent?.[seat] ?? 0)), 0) : 0,
+      rackMax: flying ? seats.reduce((sum, seat) => sum + this.allowance(seat), 0) : 0,
+      round: (m.round ?? 0) + 1,
+      rounds: this.rounds(),
+      roundState: m.roundState ?? 'live',
+      roundResult: m.roundResult ?? null,
+      roundMw: m.roundMw ?? 0,
+      nextRoundAt: m.nextRoundAt ?? null,
+      airframes: this.airframes(),
+      spent: { ...(m.spent ?? {}) },
+      earned: { ...(m.earned ?? {}) },
       alive: m.agents.length,
       blast: BLAST_M,
       scores: Object.entries(m.players).map(([seat, p]) => ({
@@ -454,7 +556,7 @@ export class RoomWar {
       return out;
     }
     rec.down = { at: p.t, seen: false };
-    m.rack = Math.max(0, m.rack - 1);
+    this.spend(s.seat, p.t);
     this.log.push({
       what: 'lost', t: p.t, seat: s.seat, decided: core.roomMs(now),
     });
@@ -511,6 +613,14 @@ export class RoomWar {
       rack: 0,
       rackMax: 0,
       pilots: 0,
+      round: 0,
+      roundState: 'live',
+      roundResult: null,
+      roundMw: 0,
+      roundAt: goAt,
+      nextRoundAt: null,
+      spent: {},
+      earned: {},
       players,
       agents: [],
       nextAgent: 1,
@@ -576,6 +686,14 @@ export class RoomWar {
       return [];
     }
     rec.trail.push([p.t, p.px, p.py, p.pz]);
+    if (p.flags & FLAG_AIRBORNE) {
+      rec.groundSince = null;
+      if (clean(p)) {
+        rec.launched = p.t;
+      }
+    } else {
+      rec.groundSince ??= p.t;
+    }
     if (rec.trail[0][0] < p.t - TRAIL_MS - 1000) {
       rec.trail = rec.trail.filter(([t]) => t >= p.t - TRAIL_MS);
     }
@@ -630,9 +748,11 @@ export class RoomWar {
     const m = this.match;
     const mission = this.mission();
     const born = [];
-    while (m.wave < mission.waves.length && roomNow >= m.goAt + mission.waves[m.wave].at * 1000 - BIRTH_LEAD_MS) {
+    const roundAt = m.roundAt ?? m.goAt;
+    while (m.wave < mission.waves.length && (m.roundState ?? 'live') === 'live' && (mission.waves[m.wave].round ?? 0) === (m.round ?? 0)
+      && roomNow >= roundAt + mission.waves[m.wave].at * 1000 - BIRTH_LEAD_MS) {
       const w = mission.waves[m.wave];
-      const t0 = m.goAt + w.at * 1000;
+      const t0 = roundAt + w.at * 1000;
       /* While a scout of the last scout wave lives (or got away), the
        * waves fly their routes exactly; once all of them are dead, each
        * attacker draws its error (section 4.2). */
@@ -763,6 +883,9 @@ export class RoomWar {
       const judged = this.judge(core, roomNow);
       dirty ||= judged.dirty;
       out.push(...judged.out);
+      const round = this.roundStep(core, roomNow);
+      dirty ||= round.dirty;
+      out.push(...round.out);
     }
     return dirty ? [...this.changed(core), ...out] : out;
   }
@@ -817,7 +940,7 @@ export class RoomWar {
   step(core, fly, from, t1, roomNow) {
     let boom = null;
     for (const d of fly) {
-      if (d.down) {
+      if (d.down || this.spentOut(d.seat)) {
         continue;
       }
       const start = Math.max(from, d.armFrom);
@@ -857,7 +980,7 @@ export class RoomWar {
     /* A crash: the first sample showing it, after the last one not. */
     let crash = null;
     for (const d of fly) {
-      if (d.down) {
+      if (d.down || this.spentOut(d.seat)) {
         continue;
       }
       const s = d.track.s;
@@ -954,8 +1077,11 @@ export class RoomWar {
     }
     d.rec.down = { at: tc, seen: false };
     d.down = d.rec.down;
-    m.rack = Math.max(0, m.rack - 1);
+    this.spend(d.seat, tc);
+    m.earned ??= {};
+    m.earned[d.seat] = (m.earned[d.seat] ?? 0) + killed.length;
     const ids = killed.map((a) => a.id);
+    m.lastGone = tc;
     this.remove(ids);
     this.log.push({
       what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow,
@@ -977,7 +1103,9 @@ export class RoomWar {
     const m = this.match;
     crash.d.rec.crashT = crash.t;
     crash.d.crashT = crash.t;
-    m.rack = Math.max(0, m.rack - 1);
+    if ((m.roundState ?? 'live') === 'live') {
+      this.spend(crash.d.seat, crash.t);
+    }
     this.log.push({
       what: 'crash', t: crash.t, seat: crash.d.seat, decided: roomNow,
     });
@@ -992,10 +1120,8 @@ export class RoomWar {
     const o = poseAt(x.plan, t);
     const target = a.target != null ? this.mission().targets[a.target] : null;
     const hit = Boolean(target) && Math.abs(a.err) <= (target.hitR ?? target.r);
-    if (hit && !m.down.includes(a.target)) {
-      m.down.push(a.target);
-      m.output = Math.max(0, m.output - target.mw);
-    }
+    this.take(a, hit);
+    m.lastGone = t;
     this.remove([a.id]);
     this.log.push({
       what: x.plan.end, t, id: a.id, target: a.target, hit, decided: roomNow,
@@ -1017,11 +1143,102 @@ export class RoomWar {
     const mission = this.mission();
     if (m.output < mission.floorMw) {
       this.finish(t, 'lost', 'output');
-    } else if (m.wave >= mission.waves.length && !m.agents.length) {
-      this.finish(t, 'won', 'waves');
-    } else if (m.rack <= 0 && m.agents.length) {
-      this.finish(t, 'lost', 'rack');
     }
+  }
+
+  /* An attacker at its target: the target's mw off the output, once. */
+  take(a, hit) {
+    const m = this.match;
+    const target = a.target != null ? this.mission().targets[a.target] : null;
+    if (hit && !m.down.includes(a.target)) {
+      m.down.push(a.target);
+      m.output = Math.max(0, m.output - target.mw);
+      m.roundMw = (m.roundMw ?? 0) + target.mw;
+    }
+  }
+
+  /*
+   * The round, after the judgement: ended when its waves are all born and
+   * none of its attackers but Scouts is left, or when every pilot here
+   * has spent all their airframes; after its result, the next. Decided
+   * at the frontier f, the judgement's clock.
+   */
+  roundStep(core, roomNow) {
+    const m = this.match;
+    const mission = this.mission();
+    const out = [];
+    if (m.state !== 'live') {
+      return { out, dirty: false };
+    }
+    if ((m.roundState ?? 'live') === 'result') {
+      if (roomNow < m.nextRoundAt) {
+        return { out, dirty: false };
+      }
+      m.round = (m.round ?? 0) + 1;
+      m.roundState = 'live';
+      m.roundResult = null;
+      m.roundMw = 0;
+      m.roundAt = m.nextRoundAt;
+      m.nextRoundAt = null;
+      m.spent = {};
+      m.earned = {};
+      return { out, dirty: true };
+    }
+    const round = m.round ?? 0;
+    const born = m.wave >= mission.waves.length || (mission.waves[m.wave].round ?? 0) !== round;
+    const here = this.players(core);
+    let result = null;
+    if (born && !m.agents.some((a) => a.kind !== 'scout')) {
+      result = (m.roundMw ?? 0) > 0 ? 'damaged' : 'win';
+    } else if (here.length && !here.some((seat) => this.stillFlying(seat, roomNow))) {
+      result = 'lost';
+    }
+    if (!result) {
+      return { out, dirty: false };
+    }
+    /* A round won or damaged ends when its last attacker went, on the
+     * judgement's timeline, whatever the lag; a lost one at the frontier,
+     * where the room found every pilot out. */
+    const t = result === 'lost' ? m.f : Math.max(m.lastGone ?? m.f, m.roundAt ?? m.goAt);
+    for (const a of [...m.agents]) {
+      const x = this.live.get(a.id);
+      const through = result === 'lost' && a.target != null;
+      const target = through ? mission.targets[a.target] : null;
+      const hit = through && Math.abs(a.err) <= (target.hitR ?? target.r);
+      if (through) {
+        this.take(a, hit);
+      }
+      const o = x && a.kind !== 'hunter' ? poseAt(x.plan, Math.min(Math.max(t, x.plan.t0), x.plan.tEnd)) : null;
+      const h = a.kind === 'hunter' ? this.lastPoses.find((q) => q.id === a.id) : null;
+      const p = (o ? o.p : h ? h.p : [0, 0, 0]).map(mm);
+      this.remove([a.id]);
+      this.log.push({
+        what: through ? 'through' : 'cleared', t, id: a.id, target: a.target, hit, decided: roomNow,
+      });
+      const msg = {
+        type: 'war', op: 'dead', ids: [a.id], at: t, by: 0, why: through ? 'arrive' : 'leave', p,
+      };
+      if (through) {
+        msg.target = a.target;
+        msg.hit = hit;
+      }
+      out.push(...this.broadcast(core, msg));
+    }
+    this.log.push({
+      what: 'round', t, round, result, mw: m.roundMw ?? 0, earned: Object.values(m.earned ?? {}).reduce((sum, k) => sum + k, 0),
+    });
+    m.roundState = 'result';
+    m.roundResult = result;
+    this.settle(t);
+    if (m.state !== 'live') {
+      return { out, dirty: true };
+    }
+    if (round + 1 >= this.rounds()) {
+      this.finish(t, 'won', 'waves');
+      return { out, dirty: true };
+    }
+    m.nextRoundAt = t + RESULT_MS;
+    return { out, dirty: true };
   }
 
   finish(t, state, why) {

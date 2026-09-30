@@ -365,7 +365,7 @@ try {
       text: `seat ${seat}: ${ps.length} poses, gap max ${Math.max(...gaps)} ms median ${gaps.sort((a, b) => a - b)[gaps.length >> 1]}, lag max ${Math.round(Math.max(...lag))} ms, flags ${[...new Set(ps.map((x) => x.flags.toString(16)))]}; ${js.length} judgements, ${past.length} with the frontier past its newest pose`,
     };
   };
-  check(`the rack is the mission's ${itaipu1.rack} airframes a pilot, the output its 14 000 MW`, live.view.rack === 2 * itaipu1.rack && live.view.rackMax === 2 * itaipu1.rack && live.view.output === itaipu1.output,
+  check(`the rack is the mission's ${itaipu1.airframes} airframes a pilot, the output its 14 000 MW`, live.view.rack === 2 * itaipu1.airframes && live.view.rackMax === 2 * itaipu1.airframes && live.view.output === itaipu1.output,
     `rack ${live.view.rack}/${live.view.rackMax}, ${live.view.output} MW`);
 
   /* A on the second Striker's route, 15 s after its birth; B 100 m to its
@@ -434,7 +434,9 @@ try {
   }
   const [va] = await sameView('after the detonation');
   const me = va.view.scores.find((r) => r.seat === seats[0]);
-  check('A scores the kill and the Switchyard\'s megawatts saved, and the rack is one down', me && me.kills === 1 && me.mw === itaipu1.targets[sw.target].mw && va.view.rack === 2 * itaipu1.rack - 1,
+  /* The warhead spent A's airframe and the kill earned it one back. */
+  check('A scores the kill and the Switchyard\'s megawatts saved; its airframe spent, one earned', me && me.kills === 1 && me.mw === itaipu1.targets[sw.target].mw
+    && va.view.spent[seats[0]] === 1 && va.view.earned[seats[0]] === 1 && va.view.rack === 2 * itaipu1.airframes,
     JSON.stringify(me) + ` rack ${va.view.rack}`);
   /* The wire names a seat #n; main.js by its picker name. */
   check('A\'s HUD calls its own kill and the warhead, B\'s calls A\'s', ba.said.some((s) => /SPLASH ONE/.test(s))
@@ -444,6 +446,13 @@ try {
   /* Both 400 m up the gorge from where the Hunters are born, 100 m over
    * it and 40 m apart. */
   const hw = itaipu1.waves.find((w) => w.kind === 'hunter');
+  /* The Hunters' round starts when the rounds before it end (war.js
+   * rounds): wait for it, then they are born hw.at after its start. */
+  await watch(async () => {
+    const m = roomWarOf().match;
+    return m.round === (hw.round ?? 0) && m.roundState === 'live';
+  }, goAt + 600000);
+  const hunterT0 = roomWarOf().match.roundAt + hw.at * 1000;
   const h0 = itaipu1.routes[hw.route][0];
   const gA = [h0[0], h0[1] + 100, h0[2] - 400];
   const gB = [h0[0], h0[1] + 100, h0[2] - 360];
@@ -453,7 +462,7 @@ try {
   let lookedAtHunters = false;
   await watch(async () => {
     const t = await nowOf(b);
-    if (!lookedAtHunters && t > goAt + (hw.at + 5) * 1000) {
+    if (!lookedAtHunters && t > hunterT0 + 5000) {
       lookedAtHunters = true;
       const h = (await b.evaluate(`window.__warAt(${t})`)).find((x) => x.kind === 'hunter');
       if (h) {
@@ -472,7 +481,7 @@ try {
     }
     const logs = await Promise.all(pages.map(warOf));
     return t > yardAt + 3000 && logs.every((w) => w.log.filter((e) => e.type === 'boom').length >= 2);
-  }, goAt + (hw.at + 110) * 1000);
+  }, hunterT0 + 110000);
   await a.sleep(1500);
   const [ya, yb] = await Promise.all(pages.map(warOf));
   const yardA = ya.log.filter((e) => e.type === 'dead' && e.target === sw.target);

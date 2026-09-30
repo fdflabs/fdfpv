@@ -6,8 +6,8 @@
  * It drives edge/rooms/core.js with edge/rooms/war.js in Node, as
  * scripts/war-harness.js does, on zero latency links: every bot sends a
  * POSE and the room ticks every TICK_MS, so the referee, the hunters, the
- * rack, the output and the end are the room's own. What is made up is the
- * pilots:
+ * rounds, the airframes, the output and the end are the room's own. What
+ * is made up is the pilots:
  *
  *   flight    a point at SPEED m/s turning at most TURN_RATE, held over
  *             the hunters' floor (itaipu-height.bin), with a 5 inch
@@ -23,7 +23,9 @@
  *             drawn again after each miss, so passes miss as they do
  *   losses    a crash takes the airframe at CRASH_PER_MIN (per skill);
  *             after a blast or a crash the pilot is back at the spawn
- *             (--spawn) DOWN_MS later (the room marks it spawning for 5 s)
+ *             (--spawn) DOWN_MS later (the room marks it spawning for 5 s),
+ *             unless it has spent every airframe of the round: then it
+ *             sits grounded until the next round
  *
  * Skills: good (lead, AIM_M 3, a crash every 10 minutes, 4 s down),
  * average (lead, AIM_M 5, a crash every 3.3 minutes, 6 s down) and
@@ -35,8 +37,11 @@
  *                                        pilots, seed), the hunters and
  *                                        bots every 10 s, and its result
  *
- * Prints, per squad size and skill: win rate, the mission's duration, the
- * output at the end, the rack used, kills and how each game ended.
+ * Prints, per squad size and skill: the mission's win rate and length,
+ * the output at the end, how the rounds ended (win, damaged, lost), each
+ * round's length, the airframes earned a round, the share of a live
+ * round a pilot sat grounded with every airframe spent and its longest
+ * such stretch, and how each game ended.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -63,10 +68,10 @@ import {
   FLAG_AIRBORNE, FLAG_CRASHED, PROTO, encodePose,
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
+import { RESULT_MS } from '../edge/rooms/war.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { loadHeight } from '../edge/rooms/warhunt.js';
 import { poseAt } from '../src/share/war/routes.js';
-import { QUAD_SPAWN } from '../src/maps/itaipu/spawns.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 
 const arg = (name, dflt) => {
@@ -74,11 +79,14 @@ const arg = (name, dflt) => {
   return hit ? hit.slice(name.length + 3) : dflt;
 };
 
-/* Where the bots take off and come back, x,z: the quads' spawn by
- * default, or --spawn=x,z (the crest road by the intakes, say). */
+/* Where the bots take off and come back: seat k at the k-th of the crest
+ * road's seats (src/maps/itaipu/spawns.js CREST_SPAWN, as laid out in a
+ * room: 20 m apart east along the road), or all at --spawn=x,z. */
+const CREST_SEATS = [[574.93, -1622.45], [594.68, -1619.16], [613.8, -1612.94], [633.76, -1610.63],
+  [652.88, -1604.41], [672.84, -1602.1], [691.96, -1595.88], [711.92, -1593.57]];
 function spawnArg() {
   const v = arg('spawn', null);
-  return v ? v.split(',').map(Number) : [QUAD_SPAWN.x, QUAD_SPAWN.z];
+  return v ? [v.split(',').map(Number)] : CREST_SEATS;
 }
 
 const TICK_MS = 1000 / 30;
@@ -152,9 +160,13 @@ function runOne({
   room.war.random = seedDraw;
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
-  const spawnAt = (i) => [spawn[0] + (i % 4) * 6, floor.floorAt(spawn[0], spawn[1]) + 2, spawn[1] + Math.floor(i / 4) * 6];
+  const spawnAt = (i) => {
+    const [x, z] = spawn[i % spawn.length];
+    const off = spawn.length > 1 ? 0 : i * 6;
+    return [x + off, floor.floorAt(x, z) + 2, z];
+  };
   const bots = Array.from({ length: pilots }, (_, i) => ({
-    i, conn: { i }, seat: 0, p: spawnAt(i), v: [0, 0, -1], downUntil: -1, crashed: false, target: null, err: [0, 0, 0], best: Infinity, closedAt: 0, breakUntil: 0,
+    i, conn: { i }, seat: 0, p: spawnAt(i), v: [0, 0, -1], downUntil: -1, crashed: false, target: null, err: [0, 0, 0], best: Infinity, closedAt: 0, breakUntil: 0, groundedMs: 0, liveMs: 0, stretch: 0, longest: 0,
   }));
   const byConn = new Map(bots.map((b) => [b.conn, b]));
   let now = 0;
@@ -250,17 +262,31 @@ function runOne({
     const taken = new Set();
     for (const b of bots) {
       let flags = FLAG_AIRBORNE;
+      const roundLive = live && w.match.roundState === 'live';
+      const out = live && w.spentOut(b.seat);
       if (b.downUntil > now) {
         flags = FLAG_CRASHED;
+      } else if (b.crashed && out) {
+        /* Every airframe of the round spent: grounded till the next. */
+        flags = FLAG_CRASHED;
+        if (roundLive) {
+          b.groundedMs += TICK_MS;
+          b.stretch += TICK_MS;
+          b.longest = Math.max(b.longest, b.stretch);
+        }
       } else if (b.crashed) {
+        b.stretch = 0;
         b.crashed = false;
         b.p = spawnAt(b.i);
         b.v = [0, 0, -1];
         b.target = null;
-      } else if (live && rand() < crashP) {
+      } else if (roundLive && rand() < crashP) {
         b.downUntil = now + S.downMs;
         b.crashed = true;
         flags = FLAG_CRASHED;
+      }
+      if (roundLive) {
+        b.liveMs += TICK_MS;
       }
       if (flags === FLAG_AIRBORNE && live) {
         if (!b.target || !w.live.has(b.target.a.id) || (b.target.a.kind !== 'hunter' && Math.round(now) % 1000 < TICK_MS)) {
@@ -350,7 +376,20 @@ function runOne({
   }
   const m = w.match;
   const kills = w.log.filter((e) => e.what === 'boom').reduce((s, e) => s + e.ids.length, 0);
+  /* Each round's result and length: round k starts at the go, or
+   * RESULT_MS after round k - 1 ended. */
+  const rounds = [];
+  let from = m.goAt;
+  for (const e of w.log.filter((x) => x.what === 'round')) {
+    rounds.push({
+      result: e.result, secs: (e.t - from) / 1000, mw: e.mw, earned: e.earned,
+    });
+    from = e.t + RESULT_MS;
+  }
   return {
+    rounds,
+    grounded: bots.reduce((sum, b) => sum + b.groundedMs, 0) / Math.max(1, bots.reduce((sum, b) => sum + b.liveMs, 0)),
+    longest: Math.max(...bots.map((b) => b.longest)) / 1000,
     pilots,
     skill,
     seed,
@@ -358,8 +397,6 @@ function runOne({
     why: m.why,
     secs: ((m.endAt ?? now) - m.goAt) / 1000,
     output: m.output,
-    rackUsed: m.rackMax - m.rack,
-    rackMax: m.rackMax,
     kills,
     booms: w.log.filter((e) => e.what === 'boom').length,
     crashes: w.log.filter((e) => e.what === 'crash').length,
@@ -428,8 +465,11 @@ if (process.env.BAL_DEBUG) {
     console.log(`  unfinished: ${r.skill} ${r.pilots} seed ${r.seed}, left ${r.left}`);
   }
   const mean = (xs) => xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length);
-  console.log(`mission ${itaipu1.id}: spawn ${SPAWN.join(', ')}, rack ${itaipu1.rack} a pilot, floor ${itaipu1.floorMw} of ${itaipu1.output} MW; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
-  console.log('  skill     pilots  win   mean min  output MW (won/all)   rack used    kills  booms crashes hits  ends');
+  const pct = (k, n) => `${Math.round((100 * k) / Math.max(1, n))}%`;
+  const nRounds = Math.max(...itaipu1.waves.map((wv) => wv.round ?? 0)) + 1;
+  console.log(`mission ${itaipu1.id}: ${nRounds} rounds, ${itaipu1.airframes} airframes a pilot a round, floor ${itaipu1.floorMw} of ${itaipu1.output} MW; `
+    + `spawn ${SPAWN.length > 1 ? 'the crest seats' : SPAWN[0].join(', ')}; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
+  console.log('  skill     pilots  mission  min   output  rounds win/damaged/lost        round s (by round)             earned a round  grounded  longest s  ends');
   for (const skill of SKILL) {
     for (const pilots of PILOTS) {
       const rs = results.filter((r) => r.pilots === pilots && r.skill === skill).sort((a, b) => a.seed - b.seed);
@@ -439,10 +479,16 @@ if (process.env.BAL_DEBUG) {
         const k = `${r.state}:${r.why}`;
         ends[k] = (ends[k] || 0) + 1;
       }
-      console.log(`  ${skill.padEnd(9)} ${String(pilots).padStart(6)}  ${`${won.length}/${rs.length}`.padEnd(5)} ${(mean(rs.map((r) => r.secs)) / 60).toFixed(1).padStart(8)}  `
-        + `${(won.length ? mean(won.map((r) => r.output)).toFixed(0) : '-').padStart(6)}/${mean(rs.map((r) => r.output)).toFixed(0).padEnd(12)} `
-        + `${`${mean(rs.map((r) => r.rackUsed)).toFixed(1)}/${rs[0].rackMax}`.padEnd(12)} ${mean(rs.map((r) => r.kills)).toFixed(1).padStart(5)} `
-        + `${mean(rs.map((r) => r.booms)).toFixed(1).padStart(6)} ${mean(rs.map((r) => r.crashes)).toFixed(1).padStart(7)} ${mean(rs.map((r) => r.hits)).toFixed(1).padStart(4)}  `
+      const all = rs.flatMap((r) => r.rounds);
+      const by = (res) => pct(all.filter((x) => x.result === res).length, all.length);
+      const lens = Array.from({ length: nRounds }, (_, k) => {
+        const xs = rs.map((r) => r.rounds[k]).filter(Boolean).map((x) => x.secs);
+        return xs.length ? mean(xs).toFixed(0) : '-';
+      }).join('/');
+      console.log(`  ${skill.padEnd(9)} ${String(pilots).padStart(6)}  ${`${won.length}/${rs.length}`.padEnd(7)} ${(mean(rs.map((r) => r.secs)) / 60).toFixed(1).padStart(4)}  `
+        + `${mean(rs.map((r) => r.output)).toFixed(0).padStart(6)}  ${`${by('win')} / ${by('damaged')} / ${by('lost')}`.padEnd(26)} ${lens.padEnd(30)} `
+        + `${mean(all.map((x) => x.earned)).toFixed(1).padStart(8)}        `
+        + `${(100 * mean(rs.map((r) => r.grounded))).toFixed(1).padStart(6)}%  ${mean(rs.map((r) => r.longest)).toFixed(0).padStart(4)} (max ${Math.max(...rs.map((r) => r.longest)).toFixed(0)})  `
         + `${Object.entries(ends).map(([k, v]) => `${k} ${v}`).join(', ')}`);
     }
   }

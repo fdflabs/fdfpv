@@ -34,36 +34,25 @@
  * each clears it until its terminal run: the last leg onto its target, or
  * a Loiterer's dive. Boats hold the water.
  *
- * THE WAVES. The attackers fly 0.7 of section 3's speeds (the owner,
- * 2026-09-29), so each wave is born early enough to land when it did
- * at full speed. Born at (minutes after the go), about ten minutes in
- * all, the last wave's kinds born apart so they land together:
- *   0:02  a Scout over the reservoir; Strikers on the switchyard (the
- *         biggest single loss, early, so the squad learns what a hit
- *         costs; they land at 2:41, 2.4 km from the intakes)
- *   0:07  the first FPV swarm up the gorge, two penstocks (lands 3:03)
- *   0:44  a Loiterer on an intake, 1:07 Sea drones on another
- *   3:02  a second Scout; 3:15 Hunters, mid mission: now the pilots are
- *         the targets; 3:18 a swarm on four penstocks
- *   3:50  Loiterers on the gates, 5:03 Strikers on the west intakes (7:05)
- *   5:22  the last wave, landing from 8:07 to 10:05: boats, Loiterers, a
- *         swarm and Strikers on the east intakes, 6:44 Hunters
- * Undefended, the output is 9 100 MW at 5:00 (so the Hunters always come
- * to a war still on), falls under the floor at 6:13, and the whole
- * mission would take 3.2 times the 6 300 MW margin.
- *
- * THE NUMBERS. Each wave's n is for one pilot and `per` more come for
- * every pilot after the first (index.js waveSize): 33 attackers alone,
- * 52 for two, 89 for four, 161 for eight. The output decides the game;
- * the rack, 20 airframes a pilot, is a backstop against waste. Taking
- * off from the crest road by the intakes (the spawn the lead is moving
- * there), a clean solo pilot flies short sorties and spends about 16 of
- * it; losing with the plant at 10 000 MW for want of an airframe reads
- * as a bug, not a defeat. The first threat reaches the dam at 3:03, so a
- * pilot has time to take off and climb before anything arrives.
- * scripts/war-balance.js flies bot squads of 1, 2, 4 and 8 through it on
- * the real room (--spawn=x,z for where they take off); its table and the
- * reasons for these numbers are in the pull request that set them.
+ * THE ROUNDS (edge/rooms/war.js rounds, the owner's, 2026-09-29): five,
+ * each a group of waves whose `at` counts from the round's start, and
+ * each pilot has 4 airframes a round, one more for every kill. The
+ * attackers fly 0.7 of section 3's speeds, and the routes start close
+ * enough that a round runs about 1.5 to 3 minutes:
+ *   1  a Scout; Strikers on the switchyard (the biggest single loss,
+ *      first, so the squad learns what a hit costs); a swarm on two
+ *      penstocks
+ *   2  a Loiterer on an intake, Sea drones on another
+ *   3  a second Scout; a swarm on four penstocks; Hunters
+ *   4  Loiterers on the gates, Strikers on the west intakes
+ *   5  everything: Loiterers, boats, Strikers on the east intakes,
+ *      Hunters and a swarm, landing together
+ * Each wave's n is for one pilot and `per` more come for every pilot
+ * after the first (index.js waveSize). The mission is lost the instant
+ * the output is under floorMw. scripts/war-balance.js flies bot squads
+ * of 1, 2, 4 and 8 through it on the real room, from the crest road's
+ * seats (--spawn=x,z for elsewhere); its table and the reasons for these
+ * numbers are in the pull request that set them.
  *
  * No jammer: the war has no radio signal since 2026-09-29
  * (docs/WARFARE-PLAN.md 6.1).
@@ -110,35 +99,36 @@ export default {
   targets,
   output: 14000,
   floorMw: 7700,
-  rack: 20,
-  /* Seconds after the go. */
+  /* Each pilot's airframes a round (war.js rounds). */
+  airframes: 4,
+  /* Rounds of waves; a wave's `at` is seconds after its round starts. */
   waves: [
-    { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
-    { at: 3, kind: 'strike', n: 1, per: 1, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-    { at: 7, kind: 'fpv', n: 2, per: 1, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
-    { at: 44, kind: 'loiter', n: 1, per: 1, route: 'high-east', target: 'intake-12', spread: 25 },
-    { at: 67, kind: 'boat', n: 1, per: 1, route: 'surface-east', target: 'intake-17', spread: 20 },
-    { at: 182, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
-    { at: 195, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { at: 198, kind: 'fpv', n: 5, per: 1.5, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
-    { at: 230, kind: 'loiter', n: 2, per: 2, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
-    { at: 303, kind: 'strike', n: 5, per: 2, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
-    { at: 322, kind: 'boat', n: 2, per: 1, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
-    { at: 335, kind: 'loiter', n: 2, per: 2, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
-    { at: 344, kind: 'fpv', n: 5, per: 1.75, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
-    { at: 355, kind: 'strike', n: 3, per: 2.25, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
-    { at: 404, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    { round: 0, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
+    { round: 0, at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west', target: 'yard-right', spread: 60 },
+    { round: 0, at: 4, kind: 'fpv', n: 2, per: 1, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
+    { round: 1, at: 2, kind: 'loiter', n: 1, per: 0.75, route: 'high-east', target: 'intake-12', spread: 25 },
+    { round: 1, at: 20, kind: 'boat', n: 2, per: 1, route: 'surface-east', target: 'intake-17', spread: 20 },
+    { round: 2, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
+    { round: 2, at: 2, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
+    { round: 2, at: 20, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    { round: 3, at: 2, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
+    { round: 3, at: 40, kind: 'strike', n: 3, per: 1.5, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
+    { round: 4, at: 2, kind: 'loiter', n: 1, per: 1, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
+    { round: 4, at: 20, kind: 'boat', n: 1, per: 0.75, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
+    { round: 4, at: 30, kind: 'strike', n: 2, per: 1.5, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
+    { round: 4, at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    { round: 4, at: 45, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
   ],
   routes: {
     'reservoir-orbit': [[300, 470, -5000], [300, 470, -3200]],
     'west-orbit': [[-2400, 470, -3700], [-1700, 470, -2800]],
-    'reservoir-west': [[-1600, 249, -4500], [-1600, 249, -1700], [-1800, 300, -1000]],
+    'reservoir-west': [[-1600, 249, -3200], [-1600, 249, -1700], [-1800, 300, -1000]],
     'reservoir-mid': [[400, 249, -5000], [0, 249, -2800], [-50, 249, -2200]],
     'reservoir-east': [[1500, 249, -5000], [500, 249, -2200]],
-    gorge: [[-1440, 180, 1600], [-1100, 180, 400], [-760, 180, 0], [-640, 180, -450], [-400, 180, -800], [-150, 180, -1100], [0, 185, -1350]],
-    'high-east': [[1900, 700, -4600], [800, 650, -2700]],
-    'high-west': [[-2400, 700, -4400], [-1300, 650, -2400]],
-    'surface-east': [[1800, 219, -4000], [700, 219, -2300], [450, 219, -1880]],
+    gorge: [[-1100, 180, 400], [-760, 180, 0], [-640, 180, -450], [-400, 180, -800], [-150, 180, -1100], [0, 185, -1350]],
+    'high-east': [[1200, 700, -3400], [800, 650, -2700]],
+    'high-west': [[-1700, 700, -3100], [-1300, 650, -2400]],
+    'surface-east': [[1000, 219, -2800], [700, 219, -2300], [450, 219, -1880]],
     'gorge-hunt': [[-760, 200, 0], [-100, 260, -1300]],
   },
 };
