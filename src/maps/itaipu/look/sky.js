@@ -1,32 +1,39 @@
 /*
- * sky.js: swiss2's photographed sky over Itaipu, turned to Itaipu's sun.
+ * sky.js: Itaipu's sky and the air under it.
  *
- * The sky is swiss2's (assets/swiss2/sky_back.jpg and sky_env.hdr, CC0),
- * the only photographed sky in the tree. Its sun stands at SUN_U round
- * the equirect; Itaipu's is due east (light.js). So the backdrop and the
- * environment are both turned about the vertical by the difference, the
- * backdrop in its shader and the environment by rolling the HDR's
- * columns before it is prefiltered, so the bright side of the sky that
- * lights the ground is the side the sun is on.
+ * A CLEAR TROPICAL DAY, NOT THE ALPS'. Rounds 0 and 1 drew swiss2's
+ * photographed sky (assets/swiss2/sky_back.jpg), turned and stretched to
+ * Itaipu's sun: a thin, hazy summer sky over the Alps, grey white in
+ * every view, and a light nearly as strong as the sun's, which left the
+ * dam in a flat, shadowless overcast. The reference photographs are hard
+ * sun under a deep blue sky with fair weather cumulus. Measured over
+ * their clear patches (aerial-dam, aerial-dam-wide, penstocks,
+ * crest-road, river-below), the sky is sRGB about (115, 160, 220)
+ * overhead going to (150, 185, 215) at the horizon.
+ * No photographed sky in the tree is that, so it is drawn:
  *
- * THE SUN'S HEIGHT. The photograph's sun is 37.8 degrees up and Itaipu's
- * 65.8, which a turn cannot mend (round 0 recorded the glow sitting under
- * the sun). So the sky on the sun's side is also stretched up: a
- * direction `e` degrees over the horizon reads the photograph at
- * photoElev(e), a smooth curve with photoElev(65.8) = 37.8 that leaves
- * the horizon and the zenith where they are, and the stretch fades out
- * round the sky away from the sun (sunSide), so the sky most views look
- * into keeps the photograph's clouds where they were. Both the backdrop
- * and the environment take the same curve, the environment by resampling
- * each column before it is prefiltered, so the glow the ground is lit
- * from is round the sun that casts its shadows.
+ *   the clear sky, a deep blue zenith (ZENITH) going to the horizon's
+ *   haze (AIR.haze) over the lowest few tens of degrees (FALL), and the
+ *   sun's glow through the haze (the post chain's own term, below);
  *
- * THE HORIZON. The post chain's air (swiss2/post.js AIR_GLSL) veils
- * everything that has a depth, and the far plateau goes to the air's own
- * colour; the backdrop has no depth, so it kept the photograph's grey
- * under a pale horizon, a hard line in every view from the air. The
- * backdrop's lowest degrees are drawn toward that same air, so the far
- * ground fades into a sky of its own colour.
+ *   the cumulus, flat bottomed domes over the whole region, grey
+ *   underneath and lit white on top, veiled by the air with distance;
+ *
+ *   the sun's disc, far brighter than anything a photograph stores, for
+ *   the bloom.
+ *
+ * THE HORIZON IS THE AIR. The post chain veils everything with a depth by
+ * the air (swiss2/post.js AIR_GLSL), and at infinite distance a ray is the
+ * air's own light, haze plus the sun's glow. The sky at and below the
+ * horizon is exactly that, so the far plateau fades into a sky of its own
+ * colour, with no line where the backdrop meets the ground.
+ *
+ * THE LIGHT IS THIS SKY. The environment the ground is lit and reflected
+ * from is this backdrop, drawn once into a cube round a point over the
+ * dam without the disc (the sun is the directional light), then
+ * prefiltered. So the sky fill is the same blue as the sky in the frame,
+ * and as weak as a clear sky is against a high sun: its irradiance on the
+ * level is about a fifth of the sun's (light.js).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -45,121 +52,136 @@
  */
 
 import * as THREE from 'three';
-import { SKY_K, SKY_SPAN_DEG, SUN_U, SUN_ELEVATION_DEG } from '../../swiss2/assets.js';
-import { SUN_COLOR } from '../../swiss2/light.js';
-import { AIR } from '../../swiss2/post.js';
-
-/* photoElev's slope at the horizon: the low sky drawn from a band half
- * as tall. */
-const LOW_SLOPE = 0.5;
-/* Degrees over the horizon the backdrop reaches the air's colour below,
- * and leaves it above. */
-const AIR_BAND = [-1.5, 6];
-/* The stretch's share by the cosine of a direction's bearing from the
- * sun's: whole toward the sun, none from a little past square to it. */
-const SIDE = [-0.2, 0.8];
+import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
+import { SUN_COLOR, SUN_IRRADIANCE, EXPOSURE } from './light.js';
 
 /*
- * The photograph's elevation for a direction `e` degrees up, as the
- * exponent of the curve e (a + (1 - a) (e / 90)^p): a at the horizon, and
- * p chosen so the photograph's sun lands at `sunElevDeg`. Below the
- * horizon the photograph is read as it is.
+ * The air, swiss2's shape (post.js AIR) with Itaipu's sky. The haze is the
+ * clear sky's horizon, as bright as the Alps' grey and bluer. The
+ * extinction, the height it thins over and the print are the valley's
+ * (at 0.8 of the extinction the far ground kept more of its contrast,
+ * where the photographs' already has less than the renders'); the
+ * exposure is Itaipu's (light.js).
  */
-function skyStretch(sunElevDeg) {
-  const r = SUN_ELEVATION_DEG / sunElevDeg;
-  const p = Math.log((r - LOW_SLOPE) / (1 - LOW_SLOPE)) / Math.log(sunElevDeg / 90);
-  if (!(p > 0)) {
-    throw new Error(`itaipu sky: no stretch puts the photograph's sun at ${sunElevDeg} degrees`);
+export const AIR = {
+  ...VALLEY_AIR,
+  haze: new THREE.Color().setRGB(0.36, 0.43, 0.54, THREE.LinearSRGBColorSpace),
+  exposure: EXPOSURE,
+};
+
+/* The sky overhead, linear radiance in the sun's units. */
+const ZENITH = new THREE.Color().setRGB(0.04, 0.16, 0.5, THREE.LinearSRGBColorSpace);
+/* How fast the zenith gives way to the haze going down: the haze's share
+ * is (1 - sin elevation)^FALL. */
+const FALL = 3.5;
+/* The sun's glow through the haze, as a share of the post chain's at the
+ * horizon, overhead: there is less air above than along the horizon. */
+const GLOW_HIGH = 0.35;
+
+/*
+ * The cumulus: a deck at CLOUD_BASE, world metres, of clouds CLOUD_SIZE
+ * across where the noise (skyFbm, mean 0.48, deviation 0.12) is over
+ * CLOUD_EDGE's first value, their full body from its second: about a
+ * fifth of the sky, a fair weather day's. The deck is flat, not a
+ * volume (round 2 marched a slab and its steps showed as slices on every
+ * cloud's side); what a volume would show is in the shading. A cloud
+ * overhead shows its base, grey and darker the thicker the cloud (the
+ * noise over its edge), and one toward the horizon shows its sunlit side
+ * and top, so the light goes from CLOUD_SHADE overhead to CLOUD_LIT low
+ * down, both as shares of the sun's irradiance, and a thin rim toward the
+ * sun glows. The air takes a cloud over CLOUD_FADE metres. A camera over
+ * the deck sees none: every view and course is under it.
+ */
+const CLOUD_BASE = 1600;
+const CLOUD_SIZE = 1100;
+const CLOUD_EDGE = [0.6, 0.7];
+const CLOUD_FADE = 40000;
+const CLOUD_LIT = 0.34;
+const CLOUD_SHADE = 0.13;
+
+/* A point over the dam the environment is drawn from, and its size. */
+const ENV_AT = new THREE.Vector3(0, 400, -1500);
+const ENV_PX = 256;
+
+const SKY_GLSL = /* glsl */ `
+  uniform vec3 uSun;
+  uniform vec3 uSunCol;
+  uniform vec3 uZenith;
+  uniform vec3 uHaze;
+  uniform vec3 uAirSun;
+  uniform vec3 uCam;
+  uniform float uDisc;
+  varying vec3 vDir;
+
+  float skyHash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
   }
-  return p;
-}
-
-function photoElev(e, p, side) {
-  return e <= 0 ? e : e * (1 - side + side * (LOW_SLOPE + (1 - LOW_SLOPE) * (e / 90) ** p));
-}
-
-function sunSide(cosBearing) {
-  return THREE.MathUtils.smoothstep(cosBearing, SIDE[0], SIDE[1]);
-}
-
-/* How far round the equirect to read so the photograph's sun lands on
- * `sunDir`, in u. */
-export function skyTurn(sunDir) {
-  return (SUN_U - 0.5) - Math.atan2(sunDir.z, sunDir.x) / (2 * Math.PI);
-}
-
-/* Roll an equirect DataTexture's columns by `turn` of its width, in
- * place: texel u afterwards is texel u + turn before. */
-export function turnEquirect(tex, turn) {
-  const { width, height, data } = tex.image;
-  const ch = data.length / (width * height);
-  const s = ((Math.round(turn * width) % width) + width) % width;
-  if (!s) {
-    return;
+  float skyNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(skyHash(i), skyHash(i + vec2(1.0, 0.0)), u.x),
+      mix(skyHash(i + vec2(0.0, 1.0)), skyHash(i + vec2(1.0, 1.0)), u.x), u.y);
   }
-  const row = new data.constructor(width * ch);
-  for (let y = 0; y < height; y += 1) {
-    const at = y * width * ch;
-    row.set(data.subarray(at, at + width * ch));
-    for (let x = 0; x < width; x += 1) {
-      const from = ((x + s) % width) * ch;
-      for (let c = 0; c < ch; c += 1) {
-        data[at + x * ch + c] = row[from + c];
+  float skyFbm(vec2 p) {
+    float s = 0.0;
+    float a = 0.5;
+    for (int k = 0; k < 6; k++) {
+      s += a * skyNoise(p);
+      p = mat2(1.6, 1.2, -1.2, 1.6) * p;
+      a *= 0.5;
+    }
+    return s;
+  }
+
+  vec3 skyAt(vec3 d) {
+    /* post.js airT's light at the end of an endless ray. */
+    const float g = 0.72;
+    float mu = dot(d, uSun);
+    float hg = (1.0 - g * g) / (4.0 * PI * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
+    float up = max(d.y, 0.0);
+    float t = pow(1.0 - up, ${FALL.toFixed(2)});
+    vec3 c = mix(uZenith, uHaze, t) + uAirSun * hg * mix(${GLOW_HIGH.toFixed(2)}, 1.0, t);
+    if (d.y > 0.01 && uCam.y < ${CLOUD_BASE.toFixed(1)}) {
+      float run = (${CLOUD_BASE.toFixed(1)} - uCam.y) / d.y;
+      vec2 p = (uCam.xz + d.xz * run) / ${CLOUD_SIZE.toFixed(1)};
+      float n = skyFbm(p + 0.35 * vec2(skyNoise(p * 0.5 + 7.1), skyNoise(p * 0.5 + 3.3)));
+      float cover = smoothstep(${CLOUD_EDGE[0].toFixed(3)}, ${CLOUD_EDGE[1].toFixed(3)}, n);
+      if (cover > 0.0) {
+        float thick = smoothstep(${CLOUD_EDGE[0].toFixed(3)}, ${(CLOUD_EDGE[1] + 0.12).toFixed(3)}, n);
+        float side = 1.0 - smoothstep(0.04, 0.45, d.y);
+        float lit = mix(${CLOUD_SHADE.toFixed(3)} * (1.25 - 0.5 * thick), ${CLOUD_LIT.toFixed(3)} * (0.85 + 0.15 * thick), side)
+          + 0.3 * hg * (1.0 - thick);
+        vec3 cloud = uSunCol * lit + uZenith * 0.6;
+        float air = 1.0 - exp(-run / ${CLOUD_FADE.toFixed(1)});
+        c = mix(c, mix(cloud, c, air), cover * smoothstep(0.01, 0.05, d.y));
       }
     }
+    return c;
   }
-  tex.needsUpdate = true;
-}
+`;
 
 /*
- * Stretch a full equirect DataTexture (rows top first, the zenith at row
- * 0, as RGBELoader leaves sky_env.hdr), already turned to `sunDir`, up by
- * photoElev, in place: each texel over the horizon takes the nearest of
- * its column's. The environment is prefiltered after, so nearest is
- * enough. A column's bearing is three's equirect one, atan(z, x).
+ * The backdrop: a sphere round the camera on the far plane. Radiance, not
+ * colour; the post chain exposes it with everything else.
  */
-export function stretchEquirect(tex, sunDir) {
-  const { width, height, data } = tex.image;
-  const ch = data.length / (width * height);
-  const src = data.slice();
-  const p = skyStretch(THREE.MathUtils.radToDeg(Math.asin(sunDir.y)));
-  const sunBearing = Math.atan2(sunDir.z, sunDir.x);
-  for (let x = 0; x < width; x += 1) {
-    const side = sunSide(Math.cos(((x + 0.5) / width - 0.5) * 2 * Math.PI - sunBearing));
-    for (let y = 0; y < height / 2; y += 1) {
-      const e = 90 - (180 * (y + 0.5)) / height;
-      const from = Math.min(height - 1, Math.max(0, Math.round(((90 - photoElev(e, p, side)) / 180) * height - 0.5)));
-      for (let c = 0; c < ch; c += 1) {
-        data[(y * width + x) * ch + c] = src[(from * width + x) * ch + c];
-      }
-    }
-  }
-  tex.needsUpdate = true;
-}
-
-/*
- * The backdrop: swiss2.js's skyBackdrop with the turn, the stretch and
- * the air at the horizon. Radiance, not colour; the post chain exposes it
- * with everything else, and the sun's disc is drawn over it far brighter
- * than a photograph stores, for the bloom.
- */
-export function skyBackdrop(back, sunDir) {
+export function skyBackdrop(sunDir) {
+  const sunCol = SUN_COLOR.clone().multiplyScalar(SUN_IRRADIANCE);
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
     depthTest: false,
     fog: false,
     uniforms: {
-      uBack: { value: back },
-      uInvK: { value: 1 / SKY_K },
-      uSpan: { value: SKY_SPAN_DEG },
-      uTurn: { value: skyTurn(sunDir) },
       uSun: { value: sunDir.clone() },
-      uSunCol: { value: SUN_COLOR.clone().multiplyScalar(4000) },
-      uP: { value: skyStretch(THREE.MathUtils.radToDeg(Math.asin(sunDir.y))) },
-      uSunXZ: { value: new THREE.Vector2(sunDir.x, sunDir.z).normalize() },
+      uSunCol: { value: sunCol },
+      uZenith: { value: ZENITH.clone() },
       uHaze: { value: AIR.haze.clone() },
       uAirSun: { value: SUN_COLOR.clone().multiplyScalar(AIR.mie) },
+      uCam: { value: new THREE.Vector3() },
+      uDisc: { value: 1 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
@@ -174,33 +196,12 @@ export function skyBackdrop(back, sunDir) {
     `,
     fragmentShader: /* glsl */ `
       #include <common>
-      uniform sampler2D uBack;
-      uniform float uInvK;
-      uniform float uSpan;
-      uniform float uTurn;
-      uniform vec3 uSun;
-      uniform vec3 uSunCol;
-      uniform float uP;
-      uniform vec2 uSunXZ;
-      uniform vec3 uHaze;
-      uniform vec3 uAirSun;
-      varying vec3 vDir;
+      ${SKY_GLSL}
       void main() {
         vec3 d = normalize(vDir);
-        float u = atan(d.z, d.x) * RECIPROCAL_PI2 + 0.5 + uTurn;
-        float elev = asin(clamp(d.y, -1.0, 1.0)) * 57.29578;
-        float side = smoothstep(${SIDE[0].toFixed(2)}, ${SIDE[1].toFixed(2)}, dot(normalize(d.xz + vec2(1e-5, 0.0)), uSunXZ));
-        float pe = elev <= 0.0 ? elev : elev * (1.0 - side + side * (${LOW_SLOPE.toFixed(3)} + ${(1 - LOW_SLOPE).toFixed(3)} * pow(elev / 90.0, uP)));
-        float v = clamp((pe + (uSpan - 90.0)) / uSpan, 0.001, 0.999);
-        vec3 c = texture2D(uBack, vec2(u, v)).rgb * uInvK;
-        /* The air at the end of an endless ray: post.js airT's colour. */
-        const float g = 0.72;
-        float mu = dot(d, uSun);
-        float mie = (1.0 - g * g) / (4.0 * PI * pow(1.0 + g * g - 2.0 * g * mu, 1.5));
-        vec3 air = uHaze + uAirSun * mie;
-        c = mix(air, c, smoothstep(${AIR_BAND[0].toFixed(1)}, ${AIR_BAND[1].toFixed(1)}, elev));
+        vec3 c = skyAt(d);
         float disc = smoothstep(0.99998, 0.999992, dot(d, uSun));
-        gl_FragColor = vec4(c + uSunCol * disc, 1.0);
+        gl_FragColor = vec4(c + uSunCol * (1000.0 * disc * uDisc), 1.0);
       }
     `,
   });
@@ -211,6 +212,30 @@ export function skyBackdrop(back, sunDir) {
   sky.onBeforeRender = (renderer, scene, camera) => {
     sky.position.setFromMatrixPosition(camera.matrixWorld);
     sky.updateMatrixWorld();
+    mat.uniforms.uCam.value.copy(sky.position);
   };
   return sky;
+}
+
+/*
+ * The environment: the backdrop without its disc, drawn into a cube from
+ * ENV_AT and prefiltered. Called before the backdrop is added to the
+ * map's scene. Returns the PMREM target; the caller owns it.
+ */
+export function skyEnvironment(renderer, sky) {
+  const cube = new THREE.WebGLCubeRenderTarget(ENV_PX, { type: THREE.HalfFloatType });
+  const eye = new THREE.CubeCamera(1, 4000, cube);
+  eye.position.copy(ENV_AT);
+  eye.updateMatrixWorld();
+  const scene = new THREE.Scene();
+  scene.add(sky);
+  sky.material.uniforms.uDisc.value = 0;
+  eye.update(renderer, scene);
+  sky.material.uniforms.uDisc.value = 1;
+  scene.remove(sky);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const target = pmrem.fromCubemap(cube.texture);
+  pmrem.dispose();
+  cube.dispose();
+  return target;
 }

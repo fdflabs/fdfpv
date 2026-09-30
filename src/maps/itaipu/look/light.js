@@ -14,10 +14,21 @@
  * both tied to the Alps' 6 km square. Itaipu's day was clear (0.02 %
  * cloud) and its sun is 65.8 degrees up, where a terrain's own shadow is
  * the dam's, which the shadow maps draw. So this injector is the part of
- * swiss2's the kit needs and the light Itaipu has: vS2World, and the
- * sky's diffuse light taken down to swiss2's measured SKY_DIFFUSE, for
- * the same reason (the photographed sky is nearly as strong a light as
- * the sun, a hazy day's flat light).
+ * swiss2's the kit needs and the light Itaipu has: vS2World. swiss2's
+ * also takes the sky's diffuse light down to 0.62, because its
+ * photographed sky is nearly as strong a light as the sun; Itaipu's sky
+ * (sky.js) is drawn at a clear sky's strength and lights at full.
+ *
+ * THE KEY AND THE FILL. Round 1 lit Itaipu with swiss2's photographed
+ * Alpine sky, nearly as strong a light as the sun, and every view was
+ * overcast: the ground's darkest twentieth at lightness 0.24 where the
+ * photographs' is at 0.12 (tools/swiss2-loop/colour.py). The sky is now
+ * a clear tropical one (sky.js), and its light on the level is about a
+ * fifth of the sun's, as a clear sky's is at this height of sun, so a
+ * shadow is two and a half stops under the sunlit ground and blue with
+ * the sky it is lit by. The sun is the valley's irradiance, a little
+ * warmer: at 65.8 degrees there is little air in the way, and the
+ * photographs' sunlit concrete and red earth are warm against the shade.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -40,8 +51,13 @@ import * as THREE from 'three';
 export const SUN_AZIMUTH_DEG = 90.1;
 export const SUN_ELEVATION_DEG = 65.8;
 
-/* swiss2/light.js SKY_DIFFUSE, measured off the same sky photograph. */
-const SKY_DIFFUSE = 0.62;
+export const SUN_COLOR = new THREE.Color(1.0, 0.93, 0.82);
+export const SUN_IRRADIANCE = 3.51;
+/* The post chain's base exposure (swiss2/post.js AIR.exposure), before
+ * the meter. The valley's 1.45 left the views light under the clear sky:
+ * the ground's median lightness 0.51 over eight of the loop's views, the
+ * photographs' 0.41 over all of them. At 1.15 it is 0.40 over all 22. */
+export const EXPOSURE = 1.15;
 
 /* Toward the sun. Azimuth is clockwise from north, and north is -z. */
 export function sunDirection() {
@@ -68,15 +84,8 @@ function inject(shader) {
   } else {
     throw new Error('itaipu light: a lit material leaves no place to find its world position');
   }
-  if (!shader.fragmentShader.includes('#include <lights_fragment_maps>')) {
-    throw new Error('itaipu light: a lit material has no #include <lights_fragment_maps>');
-  }
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vS2World;')
-    .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>
-      #if defined( RE_IndirectDiffuse )
-        iblIrradiance *= ${SKY_DIFFUSE.toFixed(3)};
-      #endif`);
+    .replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
 }
 
 /*
