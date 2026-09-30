@@ -83,17 +83,20 @@ A slow aircraft can still kill a fast one head on: the bubble (section
 ## 3. The threats
 
 Class names are generic on purpose: the enemy is never named, and neither
-are its weapons. All speeds are metres per second, chosen against section 2.
+are its weapons. All speeds are metres per second, chosen against section 2,
+then slowed to 0.7 of that on the owner's word on 2026-09-29 ("make all
+enemy drones 30% slower"): turn radii, circles and weaves keep their
+shape (src/share/war/routes.js KIND, edge/rooms/warhunt.js).
 
 | Kind | id | Speed | Flies | Wants | Kill |
 | --- | --- | --- | --- | --- | --- |
-| Scout | `scout` | 15 | circles at 250 m over a point for 90 s, then leaves | nothing: while it lives, the next wave's routes are exact (section 4.2) | any bubble |
-| Loiterer | `loiter` | 28 cruise, 40 dive | high approach, circles, dives on its target | an intake or a gate | any bubble |
-| Striker | `strike` | 38 | low, 30 m over water or 60 m over ground, straight | the switchyard or an intake | any bubble |
-| Swarm FPV | `fpv` | 30 | groups of 4 to 8 up the gorge, weaving | an intake or a penstock | any bubble |
-| Hunter FPV | `hunter` | 36 | steered by the room at the nearest defender (section 4.4) | a defender | any bubble; it also kills the defender it reaches |
-| Sea drone | `boat` | 14 | on the reservoir surface at 219.0 m, weaving | the upstream face at an intake | any bubble |
-| Jammer | `jammer` | 5 on water, 0 ashore | parks and jams | blinds the defenders (section 6.1) | any bubble; killing it lifts its jamming |
+| Scout | `scout` | 10.5 | circles at 250 m over a point for 90 s, then leaves | nothing: while it lives, the next wave's routes are exact (section 4.2) | any bubble |
+| Loiterer | `loiter` | 19.6 cruise, 28 dive | high approach, circles, dives on its target | an intake or a gate | any bubble |
+| Striker | `strike` | 26.6 | low, 30 m over water or 60 m over ground, straight | the switchyard or an intake | any bubble |
+| Swarm FPV | `fpv` | 21 | groups of 4 to 8 up the gorge, weaving | an intake or a penstock | any bubble |
+| Hunter FPV | `hunter` | 25.2 | steered by the room at the nearest defender (section 4.4) | a defender | any bubble; it also kills the defender it reaches |
+| Sea drone | `boat` | 9.8 | on the reservoir surface at 219.0 m, weaving | the upstream face at an intake | any bubble |
+| Jammer | `jammer` | 3.5 on water, 0 ashore | parks and jams | blinds the defenders (section 6.1) | any bubble; killing it lifts its jamming |
 
 Attackers carry no colliders: the static set is at 11 775 of 15 000
 (commit 07280efc). They are poses, a bubble, and a model.
@@ -180,7 +183,8 @@ Hunters are the one kind whose path depends on players, so the room
 steers them and sends their poses (5.1).
 
 - Pure pursuit with lead on the target defender's last relayed velocity,
-  turn rate capped at 2.5 rad/s, speed 36, at 30 Hz on the room tick.
+  turn rate capped at 1.75 rad/s, speed 25.2 (0.7 of the first 2.5 and
+  36, section 3), at 30 Hz on the room tick.
 - Target: the nearest live defender within 1 500 m; re-chosen when it
   dies or every 5 s.
 - Terrain: a coarse heightfield, `src/share/war/itaipu-height.bin`, 40 m
