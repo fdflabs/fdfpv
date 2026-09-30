@@ -32,8 +32,8 @@
     "water drawn off the plant level by > 0.3 m (m2)": 0,
     "plant water where none is drawn (cells)": 2,
     "F-16 60 m/s tunnels": 0,
-    "F-16 60 m/s throws that froze the page": 1,
-    "F-16 60 m/s throws whose state went NaN": 3,
+    "F-16 60 m/s throws that froze the page": 0,
+    "F-16 60 m/s throws whose state went NaN": 0,
     "roofs a quad let down falls through": 0,
     "roofs under 15 deg a quad let down breaks on": 14,
     "5 inch 40 m/s tunnels": 0,
@@ -64,13 +64,13 @@
     "water drawn off the plant level by > 0.3 m (m2)": 0,
     "plant water where none is drawn (cells)": 33,
     "F-16 60 m/s tunnels": 0,
-    "F-16 60 m/s throws that froze the page": 1,
-    "F-16 60 m/s throws whose state went NaN": 1,
+    "F-16 60 m/s throws that froze the page": 0,
+    "F-16 60 m/s throws whose state went NaN": 0,
     "roofs a quad let down falls through": 0,
     "roofs under 15 deg a quad let down breaks on": 2,
     "5 inch 40 m/s tunnels": 0,
     "5 inch 40 m/s throws that froze the page": 0,
     "5 inch 40 m/s throws whose state went NaN": 0,
-    "distinct page errors": 1
+    "distinct page errors": 0
   }
 }
