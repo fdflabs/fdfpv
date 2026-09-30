@@ -95,6 +95,7 @@
     "rooms:server": "node scripts/rooms-server-check.js",
     "rooms:browser": "node scripts/rooms-browser-three-page.js",
     "rooms:sight": "node scripts/rooms-sight-three-page.js",
+    "rooms:session": "node scripts/rooms-session-three-page.js",
     "marks:selftest": "node scripts/peermarks-selftest.js",
     "marks:twopage": "node scripts/peermarks-two-page.js",
     "combat:harness": "node scripts/combat-harness.js",

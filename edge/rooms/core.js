@@ -44,7 +44,7 @@
  */
 
 import {
-  CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, TYPE_POSE, checkProfile, encodeBatch, validNamePick,
+  CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, TYPE_POSE, checkProfile, encodeBatch, validId, validNamePick,
 } from '../../src/share/roomwire.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
@@ -467,7 +467,7 @@ export class RoomCore {
   attachmentOf(s) {
     return {
       seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address,
-      muted: s.muted || [], wreck: s.wreck ?? null,
+      muted: s.muted || [], wreck: s.wreck ?? null, level: s.level || 0,
     };
   }
 
@@ -512,12 +512,27 @@ export class RoomCore {
     return true;
   }
 
+  /* The highest ROOM_LEVEL (src/share/roomwire.js) a seat here holds. */
+  level() {
+    let top = 0;
+    for (const s of this.seats.values()) {
+      top = Math.max(top, s.level || 0);
+    }
+    return top;
+  }
+
   /*
-   * hello: { proto, build, token?, name: [adj, animal, number], profile }.
+   * hello: { proto, build, level?, token?, name: [adj, animal, number], profile }.
    * newToken() is the caller's cryptographic source of a fresh seat token.
    */
   hello(conn, msg, now, address, newToken) {
     if (msg.proto !== PROTO) {
+      return [{ close: conn, code: CLOSE.update, reason: 'update' }];
+    }
+    /* A tab older than the room's rules is told to reload rather than
+     * seated where it would fly a session of its own (ROOM_LEVEL). */
+    const level = Number.isInteger(msg.level) && msg.level > 0 ? msg.level : 0;
+    if (level < this.level()) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
     const token = typeof msg.token === 'string' && /^[0-9a-f]{32}$/.test(msg.token) ? msg.token : null;
@@ -579,8 +594,16 @@ export class RoomCore {
       pose: null,
       sent: new Map(),
       poseRate: { since: now, n: 0 },
+      level,
       ...textRates(now),
     };
+    /* And the tabs already here that are older than this one, the same:
+     * their close runs close() below, which tells the others they went. */
+    for (const [other, t] of this.seats) {
+      if ((t.level || 0) < level) {
+        actions.push({ close: other, code: CLOSE.update, reason: 'update' });
+      }
+    }
     this.pending.delete(conn);
     this.seats.set(conn, s);
     if (!this.hosting.token) {
@@ -682,6 +705,9 @@ export class RoomCore {
     if (msg.type === 'event' && Object.hasOwn(EVENTS, msg.kind)) {
       return EVENTS[msg.kind](this, conn, s, msg, now);
     }
+    if (msg.type === 'world') {
+      return this.world(conn, s, msg, now);
+    }
     const checked = this.hostCheck(conn, s, msg, now);
     if (checked && !checked.pass) {
       return checked;
@@ -712,6 +738,39 @@ export class RoomCore {
       return [...first, ...this.race.message(this, conn, s, msg, now)];
     }
     return [];
+  }
+
+  /*
+   * The host moves the room to another world: { type: 'world', map }. The
+   * room's world is where every pilot in it is seated (src/main.js, THE
+   * ROOM IS ONE SESSION), so it is the room's to hold, kept with the meta
+   * and handed to every joiner in the welcome. Everybody is told, the host
+   * too: { type: 'world', map }, a type a build from before it passes
+   * over. A private room only, because a public room is listed under its
+   * world (lobby.js), and not while a game is on, which is played where it
+   * began.
+   */
+  world(conn, s, msg, now) {
+    if (!validId(msg.map)) {
+      return [];
+    }
+    const refuse = (why) => [{ send: conn, data: JSON.stringify({ type: 'refused', why }) }];
+    if (this.meta.public) {
+      return refuse('world_public');
+    }
+    if (s.seat !== this.host()) {
+      return refuse('host');
+    }
+    const out = this.settleGames(now, true);
+    const game = this.game();
+    if (game) {
+      return [...out, ...refuse(game)];
+    }
+    if (msg.map === this.meta.map) {
+      return [...out, { send: conn, data: JSON.stringify({ type: 'world', map: msg.map }) }];
+    }
+    this.meta.map = msg.map;
+    return [...out, { store: 'meta', value: this.meta }, ...this.others(null, JSON.stringify({ type: 'world', map: msg.map }))];
   }
 
   /* A host's kick: gone for the room's life, which is what the token and
@@ -806,7 +865,12 @@ export class RoomCore {
     return this.ticking ? [...out, { tick: true }] : out;
   }
 
-  close(conn, now) {
+  /* code is the socket's close code when the adapter has it. Anything but
+   * a clean leave (1000, rooms.js leave) is a pilot who may be back with
+   * their token (a lost network, a reload, a restart), said in the leave as
+   * drop: true so the others can say "reconnecting"; a build from before
+   * that treats it as any leave. */
+  close(conn, now, code = 1000) {
     this.pending.delete(conn);
     const s = this.seats.get(conn);
     if (!s) {
@@ -822,7 +886,7 @@ export class RoomCore {
       }
     }
     this.recent.set(s.token, { seat: s.seat, joined: s.joined, until: now + RESEAT_MS });
-    const out = this.others(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.host() }));
+    const out = this.others(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.host(), ...(code === 1000 ? {} : { drop: true }) }));
     out.push(...this.race.leave(this, s.seat));
     if (!this.seats.size) {
       out.push({ empty: true });

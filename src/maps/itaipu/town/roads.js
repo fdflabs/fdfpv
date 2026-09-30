@@ -8,6 +8,8 @@
  * than 0.1 m over the ground. What it is paved with: asphalt, the cobble
  * Paraguay paves its towns with (empedrado, OSM's cobblestone and sett),
  * or the red earth (terra roxa) of an unpaved road, a track or a path.
+ * A road a photograph shows (DRESSED) is drawn at its photographed width
+ * with its paint, its verges and its lamps.
  *
  * Not drawn: a road OSM puts on the dam (`onDam`), which is the dam's
  * own crest road (package D), and a tunnel. A bridge is a deck: its top a
@@ -61,7 +63,50 @@ const TINT = {
   asphalt: [0.8, 0.8, 0.8],
   cobble: [0.75, 0.72, 0.7],
   earth: [0.62, 0.3, 0.17],
+  /* A dressed road's verge: the rockfill-road photograph's gravel, the
+   * basalt's grey brown with the red earth in it, not bare terra roxa
+   * (read from above in the aerial-rockfill photograph, dark as the face). */
+  verge: [0.32, 0.25, 0.21],
 };
+
+/*
+ * Roads a photograph shows better than OSM's tags: A gives an untagged
+ * way its class's width (build_osm.py ROAD_WIDTH), a service road's
+ * 3.5 m, and nothing of its paint, verges or lamps.
+ *
+ * w30657423 is the road the rockfill-road photograph stands on: from the
+ * crest at the rockfill dam's west end down across its downstream face
+ * to the toe at x 1 390, and back up to the crest at x 1 815 (OSM tags
+ * it service, asphalt, and no width or lanes). The photograph shows two
+ * 3.5 m lanes with a double yellow line between them and a white line
+ * at each edge, a verge of red brown gravel either side, and a lamp
+ * every 30 to 40 m on the verge on the dam's side, its arm over the
+ * road. The widths are read off that photograph against its lane
+ * arrows; the lamps are the dam's crest lamps (dam/index.js LAMP).
+ * `damSide` is which side of the way, walked from its first point, the
+ * dam's axis is: -1, against ribbon()'s normal.
+ */
+export const DRESSED = {
+  w30657423: {
+    width: 7.5, verge: 2, damSide: -1, lampEvery: 35,
+  },
+};
+
+/* Paint over the asphalt, metres over the ground (under LIFT_MAX), and
+ * its lines' widths and colours: swiss2/look.js's white road paint, and
+ * its lineYellow's colour in that paint's finish. */
+const LIFT_PAINT = 0.075;
+const LINE = 0.12;
+const LINE_GAP = 0.12;
+const EDGE_IN = 0.3;
+const PAINT_WHITE = [0.72, 0.72, 0.68];
+const PAINT_YELLOW = [0.7, 0.45, 0.02];
+/* The lamp: 10 m to its arm, the arm 2.4 m out from the verge's middle
+ * over the road, bending out of the pole's top over its last metre. */
+const LAMP = {
+  height: 10, bend: 1, arm: 2.4, r: 0.12, head: 0.7,
+};
+const LAMP_TINT = [0.46, 0.47, 0.48];
 
 const COBBLE = new Set(['cobblestone', 'sett', 'paving_stones']);
 const EARTH_SURFACE = new Set(['unpaved', 'dirt', 'ground', 'gravel', 'earth', 'sand']);
@@ -106,13 +151,108 @@ function onGround(piece, ground, lift) {
   });
 }
 
+/* The surface key (swiss2/look.js) a paving is drawn with. */
+const KEY = { asphalt: 'asphalt', cobble: 'cobble', earth: 'pathGravel' };
+
 /*
- * Every road laid: face(paving, tint, polygon [[x, y, z]...]) for each
- * piece of each ribbon, bridge(f) for each bridge. Returns what was done
- * with each feature, counted.
+ * The polyline `points` moved `d` along ribbon()'s normal, each corner
+ * on the bisector of its two segments' normals, so a line painted on it
+ * stays `d` from the middle round a bend.
  */
-export function layRoads(features, ground, { face, bridge }) {
-  const counts = { draped: 0, bridges: 0, onDam: 0, tunnels: 0, ring: 0, pieces: 0 };
+export function offsetLine(points, d) {
+  const norms = [];
+  for (let k = 0; k + 1 < points.length; k += 1) {
+    const [ax, az] = points[k];
+    const [bx, bz] = points[k + 1];
+    const len = Math.hypot(bx - ax, bz - az);
+    norms.push(len > 1e-6 ? [-(bz - az) / len, (bx - ax) / len] : null);
+  }
+  return points.map(([x, z], k) => {
+    const u = norms[k - 1] ?? norms[k];
+    const v = norms[k] ?? norms[k - 1];
+    /* The bisector, lengthened so each segment's own offset is d. */
+    const mx = u[0] + v[0];
+    const mz = u[1] + v[1];
+    const s = (2 * d) / (mx * mx + mz * mz);
+    return [x + mx * s, z + mz * s];
+  });
+}
+
+/*
+ * A dressed road's paint, verges and lamps (DRESSED): lay(points, width,
+ * key, tint, lift, lod) drapes a strip, lamp(foot, bend, knee, tip)
+ * stands a lamp.
+ */
+function dress(f, spec, lay, lamp, ground) {
+  /* The verges and the paint only near (mesh.js NEAR): from the air, a
+   * kilometre off, a 12 cm line and a 2 m verge are under a pixel and
+   * drew as a glittering brown strip where the aerial-rockfill
+   * photograph has a clean grey band. */
+  const outer = spec.width + 2 * spec.verge;
+  lay(f.points, outer, KEY.earth, TINT.verge, LIFT_EARTH, 'near');
+  const half = spec.width / 2;
+  const paint = (d, tint) => lay(offsetLine(f.points, d), LINE, 'paint', tint, LIFT_PAINT, 'near');
+  paint(-(LINE_GAP + LINE) / 2, PAINT_YELLOW);
+  paint((LINE_GAP + LINE) / 2, PAINT_YELLOW);
+  paint(-half + EDGE_IN + LINE / 2, PAINT_WHITE);
+  paint(half - EDGE_IN - LINE / 2, PAINT_WHITE);
+  /* Along the verge on the dam's side, a lamp every lampEvery metres from
+   * half that from the way's first point. */
+  const s = spec.damSide * (half + spec.verge / 2);
+  const line = offsetLine(f.points, s);
+  let next = spec.lampEvery / 2;
+  let walked = 0;
+  for (let k = 0; k + 1 < line.length; k += 1) {
+    const [ax, az] = line[k];
+    const [bx, bz] = line[k + 1];
+    const len = Math.hypot(bx - ax, bz - az);
+    while (next <= walked + len) {
+      const t = (next - walked) / len;
+      const x = ax + (bx - ax) * t;
+      const z = az + (bz - az) * t;
+      /* Toward the road: against the lamp's own side of the way. */
+      const ox = (-(bz - az) / len) * -spec.damSide;
+      const oz = ((bx - ax) / len) * -spec.damSide;
+      const y = ground(x, z);
+      const top = y + LAMP.height;
+      lamp([x, y, z], [x, top - LAMP.bend, z], [x + ox * LAMP.bend, top, z + oz * LAMP.bend], [x + ox * LAMP.arm, top, z + oz * LAMP.arm]);
+      next += spec.lampEvery;
+    }
+    walked += len;
+  }
+}
+
+/*
+ * Every road laid: face(key, tint, polygon [[x, y, z]...], lod) for each
+ * piece of each ribbon (lod as mesh.js face's, undefined for both),
+ * bridge(f) for each bridge, bar(key, tint, p, q, r, opts, h) for each
+ * piece of a dressed road's lamps. Returns what was done with each
+ * feature, counted.
+ */
+export function layRoads(features, ground, { face, bridge, bar }) {
+  const counts = {
+    draped: 0, bridges: 0, onDam: 0, tunnels: 0, ring: 0, pieces: 0, dressed: 0, lamps: 0,
+  };
+  const lay = (points, width, key, tint, lift, lod) => {
+    for (const quad of ribbon(points, width)) {
+      cutToGround(quad, (piece) => {
+        counts.pieces += 1;
+        face(key, tint, onGround(piece, ground, lift), lod);
+      });
+    }
+  };
+  const lamp = (foot, bend, knee, tip) => {
+    counts.lamps += 1;
+    bar('metal', LAMP_TINT, foot, bend, LAMP.r);
+    bar('metal', LAMP_TINT, bend, knee, LAMP.r);
+    bar('metal', LAMP_TINT, knee, tip, LAMP.r * 0.8);
+    /* The luminaire: a flat head at the arm's end, along it. */
+    const dx = tip[0] - knee[0];
+    const dz = tip[2] - knee[2];
+    const l = Math.hypot(dx, dz);
+    const back = [tip[0] - (dx / l) * LAMP.head, tip[1] - 0.1, tip[2] - (dz / l) * LAMP.head];
+    bar('metal', LAMP_TINT, back, [tip[0], tip[1] - 0.1, tip[2]], 0.16, {}, 0.09);
+  };
   for (const f of features) {
     if (f.square === 'ring') {
       counts.ring += 1;
@@ -133,12 +273,11 @@ export function layRoads(features, ground, { face, bridge }) {
     }
     counts.draped += 1;
     const paving = pavingOf(f);
-    const lift = liftOf(f, paving);
-    for (const quad of ribbon(f.points, f.width)) {
-      cutToGround(quad, (piece) => {
-        counts.pieces += 1;
-        face(paving, TINT[paving], onGround(piece, ground, lift));
-      });
+    const spec = DRESSED[f.id];
+    lay(f.points, spec ? spec.width : f.width, KEY[paving], TINT[paving], liftOf(f, paving));
+    if (spec) {
+      counts.dressed += 1;
+      dress(f, spec, lay, lamp, ground);
     }
   }
   return counts;

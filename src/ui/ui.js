@@ -4306,10 +4306,26 @@ export class Ui {
     const reload = btn('update-reload', str('update.reload'));
     reload.addEventListener('click', () => window.location.reload());
     this.updateBar.append(el('span', null, str('update.new_version')), reload);
-    watchVersion((stale) => {
+    this.checkVersion = watchVersion((stale) => {
       this.updateReady = stale;
       this.syncChips();
     });
+
+    /* The room's word to a pilot off the sticks (src/main.js roomBarView):
+     * fly, the others are; alone in a room; too old a build for it. The
+     * update bar's look, above it, and like it never over a flight. */
+    this.roomBarView = null;
+    this.roomBar = el('div', 'update-bar room-bar');
+    this.roomBar.setAttribute('role', 'status');
+    this.roomBar.hidden = true;
+    this.roomBarText = el('span');
+    this.roomBarButton = btn('update-reload', '');
+    this.roomBarButton.addEventListener('click', () => {
+      if (this.roomBarView && this.roomBarView.act) {
+        this.roomBarView.act();
+      }
+    });
+    this.roomBar.append(this.roomBarText, this.roomBarButton);
 
     this.musicDock = el('div', 'music-dock');
     this.musicDock.setAttribute('role', 'group');
@@ -4368,7 +4384,7 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.updateBar, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.updateBar, this.roomBar, this.musicDock, this.nameDialog);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
@@ -4934,6 +4950,20 @@ export class Ui {
    * the corner over everything else is the only visible way to say that
    * something is broken.
    */
+  /* { text, button, act, reload } or null: the room bar (see where it is
+   * built). Written only when it changed, as it is set every few frames. */
+  setRoomBar(view) {
+    const key = view ? `${view.text}\u0000${view.button || ''}` : '';
+    this.roomBarView = view;
+    if (key !== this.roomBarKey) {
+      this.roomBarKey = key;
+      Ui.text(this.roomBarText, view ? view.text : '');
+      Ui.text(this.roomBarButton, view && view.button ? view.button : '');
+      this.roomBarButton.hidden = !(view && view.button);
+    }
+    this.syncChips();
+  }
+
   syncChips() {
     const dialog = this.nameDialog && !this.nameDialog.hidden;
     const bug = this.bugChip && !dialog && this.screen !== 'title';
@@ -4950,8 +4980,13 @@ export class Ui {
     if (this.swapChip) {
       this.swapChip.hidden = dialog || this.screen !== 'flight' || !this.onHotSwap;
     }
+    const roomBar = Boolean(this.roomBarView) && !dialog && this.screen !== 'flight';
+    if (this.roomBar) {
+      this.roomBar.hidden = !roomBar;
+    }
+    /* A room bar asking for the reload says it already, for the room. */
     if (this.updateBar) {
-      this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight';
+      this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight' || (roomBar && this.roomBarView.reload);
     }
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class

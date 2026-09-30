@@ -64,12 +64,12 @@ export class Room extends DurableObject {
     await this.host.message(ws, message);
   }
 
-  async webSocketClose(ws) {
-    await this.host.close(ws);
+  async webSocketClose(ws, code) {
+    await this.host.close(ws, code);
   }
 
   async webSocketError(ws) {
-    await this.host.close(ws);
+    await this.host.close(ws, 1006);
   }
 
   async alarm() {
