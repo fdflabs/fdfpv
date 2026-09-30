@@ -3,10 +3,22 @@
  * other game entities, audited against a truth. npm run collide:audit-air.
  *
  * Every rule here judges sampled poses: the pilot's POSE samples, stamped
- * on the room clock at the pilot's own frame cadence (src/main.js
- * roomSendPose, at most 30 Hz and only on a frame), interpolated between
- * two samples no more than GAP_MS apart and stepped on the whole room
- * millisecond (src/game/midair.js). This harness flies scripted true paths
+ * on the room clock, interpolated between two samples no more than GAP_MS
+ * apart and stepped on the whole room millisecond (src/game/midair.js).
+ * How a client samples is --client:
+ *
+ *   plant   (the default, src/main.js roomPoseStep) at 30 Hz on the
+ *           plant's step clock, stamped with the room time of the step,
+ *           whatever the frame rate, and sent on the frame after: the
+ *           pose goes out late on a slow frame, never missing.
+ *   frame   the client before that (roomSendPose on a frame, at most
+ *           30 Hz, stamped with the frame's time), which a page loaded
+ *           before the change still is.
+ *
+ * Both assume the plant keeps real time. Under 10 fps it does not (the
+ * shell caps a frame's step at 100 ms), and the pilot is told so.
+ *
+ * This harness flies scripted true paths
  * (straight, or a 6 g turn with a 360 deg/s roll), samples them the way a
  * client at a given frame rate does, with a given clock error, and holds
  * each rule's answer against the same rule run on a truth track: the true
@@ -46,7 +58,8 @@
  * stay loud.
  *
  *   node scripts/collide-audit-air.js [--seeds=24] [--only=midair,bubble]
- *                                     [--three=DIR]
+ *                                     [--three=DIR] [--client=plant|frame]
+ *                                     [--fps=60,30,...] [--skews=0,5,...]
  *
  * This file is part of WebFPVSimulator.
  *
@@ -89,6 +102,10 @@ const arg = (name, dflt) => {
 const SEEDS = Number(arg('seeds', 24));
 const ONLY = arg('only', 'hulls,midair,bubble,orb,cut,damage').split(',');
 const THREE_DIR = arg('three', null);
+const CLIENT = arg('client', 'plant');
+if (!['plant', 'frame'].includes(CLIENT)) {
+  throw new Error(`--client=${CLIENT}: plant or frame`);
+}
 
 /* The truth track's step and the clock it is judged on: 0.1 ms, by
  * running the rule on a clock ten times finer (times x10, speeds /10). */
@@ -102,12 +119,12 @@ const DEEP_M = 0.05;
 const BUBBLE_BAND_M = 0.15;
 /* Past this rate a row is flagged. */
 const FLAG_RATE = 0.01;
-const FPS = [60, 30, 20, 10, 5, 3];
+const FPS = arg('fps', '60,30,20,10,5,3').split(',').map(Number);
 /* The fastest either aircraft of a pass flies: a pass whose geometry
  * needs more at its closing speed is not flown. */
 const MAX_MPS = 80;
 const MIN_TURN_M = 5;
-const SKEWS = [0, 5, 10, 20];
+const SKEWS = arg('skews', '0,1,5,10,20').split(',').map(Number);
 
 let flagged = 0;
 const flag = (bad, line) => {
@@ -218,21 +235,39 @@ function path({ at, dir, speed, g = 0, side = [0, 1, 0], roll0 = 0, rollRate = 0
   };
 }
 
-/* The times a client at `fps` sends a pose over [t0, t1]: a frame every
- * 1000/fps ms from `phase`, a pose on a frame once the 30 Hz schedule is
- * due (src/main.js roomNextSend). */
-function sendTimes(fps, phase, t0, t1) {
+/*
+ * The poses a client at `fps` sends over [t0, t1], frames every 1000/fps
+ * ms from `phase`: [{ t, at }], t the stamp and at the room time it
+ * leaves (a frame's). --client=frame: a pose on a frame once the 30 Hz
+ * schedule is due (roomNextSend), stamped with the frame. --client=plant:
+ * a pose on the first whole plant step the same schedule is due at, each
+ * frame stepping the plant over the time since the last one.
+ */
+function sends(fps, phase, t0, t1) {
   const frame = 1000 / fps;
   const out = [];
   let next = -Infinity;
-  for (let t = t0 + phase; t <= t1; t += frame) {
-    if (t >= next) {
-      next = Math.max(next + 1000 / 30, t - 1000 / 30);
-      out.push(t);
+  let stepped = t0;
+  for (let at = t0 + phase; at <= t1; at += frame) {
+    if (CLIENT === 'frame') {
+      if (at >= next) {
+        next = Math.max(next + 1000 / 30, at - 1000 / 30);
+        out.push({ t: at, at });
+      }
+      continue;
     }
+    for (let t = Math.floor(stepped) + 1; t <= at; t += 1) {
+      if (t >= next) {
+        next = Math.max(next + 1000 / 30, t - 1000 / 30);
+        out.push({ t, at });
+      }
+    }
+    stepped = at;
   }
   return out;
 }
+
+const sendTimes = (fps, phase, t0, t1) => sends(fps, phase, t0, t1).map((x) => x.t);
 
 /* A sampled Track as the room holds it: through the wire (encodePose
  * rounds the stamp to the ms and the velocity to the cm/s), stamped
@@ -368,8 +403,11 @@ function passPair(hA, hB, closing, angle, curved, r) {
   return { A, B };
 }
 
-/* The referee's answer on sampled, encoded POSEs, fed in time order at
- * zero latency: the lag's own effects are scripts/midair-harness.js's. */
+/* The referee's answer on sampled, encoded POSEs, each arriving when its
+ * frame sends it with no network between, the room ticking at 30 Hz
+ * (edge/rooms/core.js tick), so a slow frame's poses are as late as the
+ * frame and LATE_MS applies: the network's own lag is
+ * scripts/midair-harness.js's. */
 function refereeHit(idA, idB, A, B, fps, skew, r) {
   const ref = new Referee(false);
   ref.seat(1, idA);
@@ -377,12 +415,16 @@ function refereeHit(idA, idB, A, B, fps, skew, r) {
   const t0 = T0 - WINDOW_MS;
   const t1 = T0 + WINDOW_MS;
   const ev = [
-    ...sendTimes(fps, r() * (1000 / fps), t0, t1).map((t) => ({ t, seat: 1, f: A, id: idA, skew: 0 })),
-    ...sendTimes(fps, r() * (1000 / fps), t0, t1).map((t) => ({ t, seat: 2, f: B, id: idB, skew })),
-  ].sort((a, b) => a.t - b.t);
+    ...sends(fps, r() * (1000 / fps), t0, t1).map((x) => ({ ...x, seat: 1, f: A, id: idA, skew: 0 })),
+    ...sends(fps, r() * (1000 / fps), t0, t1).map((x) => ({ ...x, seat: 2, f: B, id: idB, skew })),
+  ].sort((a, b) => a.at - b.at || a.t - b.t);
+  let tick = t0;
   for (const e of ev) {
+    for (; tick <= e.at; tick += 1000 / 30) {
+      ref.tick(tick);
+    }
     const bytes = encodePose({ ...e.f(e.t), t: e.t + e.skew, flags: flagsFor(e.id), seq: 0, wx: 0, wy: 0, wz: 0 });
-    if (ref.pose(e.seat, bytes, e.t).length) {
+    if (ref.pose(e.seat, bytes, e.at).length) {
       return true;
     }
   }
@@ -446,9 +488,9 @@ function auditMidair() {
   }
   const show = (label, row) => `${label}  n ${row.n}, truth deep ${row.deep}, touch ${row.touch}, judged ${row.hit}: miss ${pct(row.miss, row.deep)} of deep, false ${pct(row.fals, row.n - row.touch)} of clear`;
   const bad = (row) => row.miss > FLAG_RATE * Math.max(1, row.deep) || row.fals > FLAG_RATE * Math.max(1, row.n - row.touch);
-  console.log(' by pair at 60 fps, exact clocks, every speed, angle and path:');
+  console.log(` by pair at ${FPS[0]} fps, exact clocks, every speed, angle and path:`);
   for (const [idA, idB] of PAIRS) {
-    const row = rows.get(`pair|${idA} x ${idB}|60`);
+    const row = rows.get(`pair|${idA} x ${idB}|${FPS[0]}`);
     flag(bad(row), show(`${`${idA} x ${idB}`.padEnd(22)}`, row));
   }
   console.log(' by closing speed and frame rate, exact clocks, every pair and angle:');
@@ -731,7 +773,7 @@ async function auditDamage() {
 /* ------------------------------------------------------------------ run */
 
 const t0 = Date.now();
-console.log(`collide-audit-air: ${SEEDS} seeds, GAP_MS ${GAP_MS}, frame rates ${FPS.join('/')}, clock errors ${SKEWS.join('/')} ms`);
+console.log(`collide-audit-air: ${SEEDS} seeds, GAP_MS ${GAP_MS}, ${CLIENT} client, frame rates ${FPS.join('/')}, clock errors ${SKEWS.join('/')} ms`);
 if (ONLY.includes('hulls')) {
   await auditHulls();
 }

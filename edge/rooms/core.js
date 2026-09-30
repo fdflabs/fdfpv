@@ -73,7 +73,12 @@ export const TICK_MS = 1000 / 30;
 /* Private rooms by the owner's decision (docs/MULTIPLAYER-PLAN.md section
  * 14, answer 6). A public room's is roomwire.js PUBLIC_CAP, 16. */
 export const PRIVATE_CAP = 8;
-export const POSE_PER_S = 35;
+/* A client samples 30 poses a second on its plant's clock and sends each
+ * frame's together (src/main.js roomPoseStep), so a slow frame arrives as
+ * a burst: a one second window can hold ceil(1000 / P) frames of P / 33
+ * poses each, 30 plus one frame's worth, which is 42 at a frame of 400 ms
+ * (LATE_MS: a slower frame's poses are too late to judge anyway). */
+export const POSE_PER_S = 45;
 export const TEXT_PER_S = 5;
 /* The clock's pings ({ type: 't' }) have an allowance of their own. A
  * client syncing its clock sends 1000 / SYNC_GAP_MS of them a second

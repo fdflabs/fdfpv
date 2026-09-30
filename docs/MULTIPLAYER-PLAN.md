@@ -220,7 +220,7 @@ room relays it in a `0x21` batch.
 | `hello` | c to r | `proto`, `build`, `token` (if reconnecting), `name` or `namePick`, `profile` |
 | `welcome` | r to c | your seat and token, room clock, peers with profiles, your spawn slot, race state, the loaded track id or document |
 | `join`, `leave`, `profile` | r to c | a seat's arrival, departure, or changed profile |
-| `t` | both | clock sync: `{c}` out, `{c, s}` back |
+| `t` | both | clock sync: `{c}` out, `{c, s}` back, and `rtt` where the room measured the socket's round trip (edge/rooms/node.js) |
 | `event` | c to r to c | `crash`, `whack` (a jelly piece), `hoop`, `gate`, `chat` (a preset id), `emote` |
 | `hit` | r to c | the referee's mid air contact (section 6) |
 | `race` | r to c | countdown start time, results |
@@ -651,17 +651,26 @@ The room's clock is `Date.now()` in the Durable Object. Workers advance
 it only between I/O events, which is exactly the resolution needed here:
 a timestamp per message.
 
-On join, the client sends eight `t` pings a quarter second apart and
-keeps the offset from the one with the smallest round trip:
-`offset = s + rtt / 2 - c_recv`. The same, one ping every 30 s while
-flying, tracks drift; the estimate moves by at most 2 ms per update so
-the peers do not jump. The client stamps each POSE with its room clock
-estimate of the instant the sample stands for (the render pose's own sim
-time mapped to wall time, not the moment the frame was painted).
+On join, the client sends eight `t` pings a quarter second apart, then
+one every two seconds, dithered, for as long as the room is open
+(src/share/roomclock.js). The offset is `s - c` less half the round trip,
+with the two filtered apart: the least `s - c` of the last eight, since a
+ping leaves when the page is free, and the least round trip of the last
+64, or the room's own measure of it where it sends one (`rtt`: the Node
+server pings each socket with a WebSocket ping frame, which the browser
+answers below the page, so a page whose frames are slow does not read
+its own replies late into the estimate). The first eight set the clock;
+after that it is slewed at most 2 ms a second, so the peers do not jump.
+The client stamps each POSE with the room time of the plant step it was
+taken from (src/main.js roomPoseStep), carried to the whole millisecond
+the wire holds.
 
-The error is half the asymmetry of the path, typically a few
-milliseconds; section 6.6 says what it costs and the harness measures it
-by giving the two directions of a link different delays.
+The error is half the asymmetry of the path; npm run rooms:clock
+measures under 0.5 ms at p95 on a modelled LAN and on the loopback, at
+60 fps and at a busy 5 fps, and within a millisecond of half the
+asymmetry on a modelled internet. Section 6.6 says what it costs and the
+harness measures it by giving the two directions of a link different
+delays.
 
 ## 8. Spawn points, and the pilots on the field
 

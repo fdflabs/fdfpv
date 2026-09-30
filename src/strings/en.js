@@ -2408,6 +2408,7 @@ export default {
   "rooms.fly_prompt": "Your friends are flying. Press Fly.",
   "rooms.fly_button": "Fly",
   "rooms.alone": "You are alone in room {code}. Check your friends have this code.",
+  "rooms.sim_slow": "Your simulator is running slow, {fps} fps: the room sees you in slow motion. A lower Graphics setting helps.",
   "rooms.reload": "A new version is out. Reload to keep playing with your friends.",
   "rooms.reload_button": "Reload",
   "rooms.world_moved": "The host moved the room to {world}.",

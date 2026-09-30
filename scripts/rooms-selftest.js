@@ -204,7 +204,7 @@ check('the next pose starts it again', ticks === 1);
 now += 1000;
 room.tick(now);
 let stored = 0;
-for (let i = 0; i < 40; i += 1) {
+for (let i = 0; i < POSE_PER_S + 5; i += 1) {
   const p = livePose({ seq: i });
   room.message(a, p, now);
   /* By sequence, not identity: a spawning seat's pose is stored as a flagged copy. */

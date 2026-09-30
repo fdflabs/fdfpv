@@ -2412,6 +2412,7 @@ export default {
   "rooms.fly_prompt": "Tus amigos están volando. Pulsa Volar.",
   "rooms.fly_button": "Volar",
   "rooms.alone": "Estás solo en la sala {code}. Comprueba que tus amigos tengan este código.",
+  "rooms.sim_slow": "Tu simulador va lento, {fps} fps: la sala te ve en cámara lenta. Bajar Gráficos ayuda.",
   "rooms.reload": "Hay una versión nueva. Recarga para seguir jugando con tus amigos.",
   "rooms.reload_button": "Recargar",
   "rooms.world_moved": "El anfitrión llevó la sala a {world}.",
