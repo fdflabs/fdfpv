@@ -368,8 +368,10 @@ The multiplayer design assumes children in public rooms
 
 - `war` starts only in a **private** room: `hostCheck` refuses it in a
   public one, by code. Quick join never lands in a war game.
-- No title card and no public room listing shows it. It is reached from a
-  private room on the Itaipu map, from the host's game menu.
+- A title card shows it, because the owner asked for one on 2026-09-29;
+  no public room listing does. The card, Make a room's Game row and the
+  host's game menu all reach it only in a private room on the Itaipu map,
+  and only after the consent screen below.
 - Everything else in section 9 of the multiplayer plan still holds in a
   war room: no free text, picker names, report and kick.
 - The first time a pilot opens it, one screen says what it is (simulated

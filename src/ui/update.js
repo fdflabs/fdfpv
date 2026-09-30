@@ -47,11 +47,12 @@ export function pageVersion() {
 }
 
 /* Calls onChange(true) when the deployed version stops being this page's,
- * and onChange(false) if it comes back (a revert). */
+ * and onChange(false) if it comes back (a revert). Returns the check, to
+ * ask again now (a room just joined), or a no-op on a page with no stamp. */
 export function watchVersion(onChange) {
   const own = pageVersion();
   if (!own) {
-    return;
+    return () => {};
   }
   let deployed = own;
   let asking = false;
@@ -83,4 +84,5 @@ export function watchVersion(onChange) {
     }
   });
   check();
+  return check;
 }

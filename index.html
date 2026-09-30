@@ -1405,6 +1405,10 @@
         font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
       }
       .gate-card-race-5inch .gate-card-fact { color: var(--mint); }
+      /* Defend Itaipu's picture is the map's poster, graded down to a cold
+         grey so the one mature card reads as the odd one out in the row. */
+      .gate-card-war .gate-card-shot { filter: saturate(0.35) contrast(1.12) brightness(0.86); }
+      .gate-card-war .gate-card-fact { color: rgba(235, 230, 215, 0.62); }
       /*
        * The plan drawing over the corner of each photograph.
        *
@@ -2987,13 +2991,18 @@
            sentence: the name, the picture and the tags carry the choice,
            the same trade the landscape rule below already makes, and the
            whole sentence is on any wider screen. 360 by 640 is the floor. */
-        .gate-cards[data-count="5"] { gap: 7px; }
-        .gate-cards[data-count="5"] .gate-card-blurb { display: none; }
-        .gate-cards[data-count="5"] .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
-        .gate-cards[data-count="5"] .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
-        .gate-cards[data-count="5"] .gate-card-name { font-size: 18px; }
-        .gate-cards[data-count="5"] .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
-        .gate-cards[data-count="5"] .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) { gap: 7px; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-blurb { display: none; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-name { font-size: 18px; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
+        /* SIX, with Defend Itaipu: tighter type again, because six at the
+           five card size ran 4 px under the command bar at 360 by 640. */
+        .gate-cards[data-count="6"] { gap: 5px; }
+        .gate-cards[data-count="6"] .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
+        .gate-cards[data-count="6"] .gate-card-name { font-size: 17px; }
         .screen-maps .menu-stage {
           display: block;
           position: relative;
@@ -3076,12 +3085,12 @@
            card rules above are more specific than this block's, so the
            picture is put back across the card here, and the names come
            down a size so two words fit a fifth of the width. */
-        .gate-cards[data-count="5"] .gate-card-art {
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-art {
           flex: 0 0 auto; width: 100%;
           height: clamp(60px, 20vh, 110px); min-height: 0;
         }
-        .gate-cards[data-count="5"] .gate-card-body { padding: 7px 10px 8px; }
-        .gate-cards[data-count="5"] .gate-card-name { font-size: clamp(15px, 4vh, 19px); }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-body { padding: 7px 10px 8px; }
+        .gate-cards:is([data-count="5"], [data-count="6"]) .gate-card-name { font-size: clamp(15px, 4vh, 19px); }
       }
 
       /* The map screen. One card per world, each playing a short flight
@@ -4338,6 +4347,10 @@
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
       }
       .update-bar[hidden] { display: none; }
+      /* The room's bar (src/ui/ui.js setRoomBar) sits over the update bar,
+       * so both can be up at once. */
+      .room-bar { bottom: calc(var(--bar-bot) + 58px); border-color: rgba(168, 214, 232, 0.5); }
+      .room-bar .update-reload[hidden] { display: none; }
       .update-reload {
         appearance: none; border: 1px solid var(--sakura); border-radius: 3px;
         background: transparent; color: var(--sakura); cursor: pointer;
