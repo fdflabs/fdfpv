@@ -201,6 +201,7 @@ export default {
   "credits.built_this_simulator_the_track_builder": "Built this simulator, the track builder, and the public board. Orchestrated a horde of Grok and Claude along the way.",
   "credits.claude": "Claude",
   "credits.dutch_drone_squad": "Dutch Drone Squad",
+  "credits.fdfpv_by": "FDFPV by ",
   "credits.from_the_dutch_drone_gods_at": ", from the Dutch drone gods at ",
   "credits.grok": "Grok",
   "credits.is_gplv3_so_this_is_too": " is GPLv3, so this is too. The flight-controller screen is a homage of ",

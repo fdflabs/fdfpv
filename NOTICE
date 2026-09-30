@@ -90,3 +90,9 @@ definitions that scripts/score-selftest.js reads moved from
 unchanged. Comments in the code that cite PROGRESS.md or anything else
 under .loop/evidence refer to those files as they stand in the upstream
 repository at the commit above.
+
+## Maker of this fork
+
+FDFPV, this fork and everything built on it, is made by fdflabs.com,
+https://fdflabs.com. Everything above keeps its own credit, copyright
+and licence exactly as recorded.
