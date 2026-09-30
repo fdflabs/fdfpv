@@ -2,8 +2,8 @@
  * worker.js: the tracks server. Every track any pilot saves, for everybody.
  *
  * The owner's rule, in his words: "saves online, no login, everything saved
- * is available to everybody". So there are no accounts. What there is, is
- * the key every browser already holds (src/share/identity.js): a save is
+ * is available to everybody". So a track needs no account. What it needs
+ * is the key every browser already holds (src/share/identity.js): a save is
  * signed with it, and the first key to save a track id owns that id. A later
  * save of the id under the same key updates it; under any other key it is
  * refused with 409, and the simulator saves the edit as a copy under a new
@@ -28,6 +28,8 @@
  *
  *   summary = { id, name, author, owner, map, gates, planes, createdUtc,
  *               updatedUtc }
+ *
+ *   /api/account/*   optional Google sign-in, written down in accounts.js.
  *
  * EVERYTHING IS CHECKED HERE, because this is the boundary: the body size
  * before it is read into a string, the document through the simulator's own
@@ -67,8 +69,12 @@ import {
 } from '../src/share/identity.js';
 import { badWordIn } from './words.js';
 import {
-  DOCUMENT_MAX_CHARS, PAGE_DEFAULT, PAGE_MAX, TRACK_NAME_MAX, WRITE_LIMIT, WRITE_WINDOW_S,
+  DOCUMENT_MAX_CHARS, PAGE_DEFAULT, PAGE_MAX, TRACK_NAME_MAX, WRITE_LIMIT,
 } from './limits.js';
+import {
+  CORS, json, nowUtc, readBody, refuse, spend,
+} from './http.js';
+import { accountRoute } from './accounts.js';
 
 const TRACK_ID_RE = /^trk-[0-9a-f]{8}$/;
 const MAP_RE = /^[a-z0-9]{1,24}$/;
@@ -77,29 +83,10 @@ const KEY_RE = /^[A-Za-z0-9+/]{87}=$/;
 const SIG_RE = /^[A-Za-z0-9+/]{86}==$/;
 
 const BODY_MAX_BYTES = DOCUMENT_MAX_CHARS + 8 * 1024;
+const TOO_BIG = 'That track is too big to save online.';
 
-const CORS = {
-  'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET, PUT, DELETE, POST, OPTIONS',
-  'access-control-allow-headers': 'content-type',
-  'access-control-max-age': '86400',
-};
-
-function json(status, body) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...CORS },
-  });
-}
-
-function refuse(status, error, extra = {}) {
-  return json(status, { error, ...extra });
-}
-
-/* Milliseconds, so two saves in one second still list in the order they
- * were made. */
-function nowUtc() {
-  return new Date().toISOString();
+function spendWrite(env, request) {
+  return spend(env, request, '', WRITE_LIMIT, 'Too many saves from here. Try again in a few minutes.');
 }
 
 function summaryOf(row) {
@@ -114,62 +101,6 @@ function summaryOf(row) {
     createdUtc: row.created_utc,
     updatedUtc: row.updated_utc,
   };
-}
-
-/* The body as text, refused past the cap without reading the rest. */
-async function readBody(request) {
-  const declared = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > BODY_MAX_BYTES) {
-    return { error: refuse(413, 'That track is too big to save online.') };
-  }
-  const reader = request.body ? request.body.getReader() : null;
-  const chunks = [];
-  let size = 0;
-  while (reader) {
-    const { done, value } = await reader.read();
-    if (done) {
-      break;
-    }
-    size += value.byteLength;
-    if (size > BODY_MAX_BYTES) {
-      await reader.cancel();
-      return { error: refuse(413, 'That track is too big to save online.') };
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(size);
-  let at = 0;
-  for (const c of chunks) {
-    bytes.set(c, at);
-    at += c.byteLength;
-  }
-  try {
-    return { body: JSON.parse(new TextDecoder().decode(bytes)) };
-  } catch (e) {
-    return { error: refuse(400, 'The request is not JSON.') };
-  }
-}
-
-/*
- * One more write from this address, or a 429 when it has had its share.
- * The address is hashed before it is stored, and rows from finished windows
- * are swept on the way, so the table only ever holds the current window.
- */
-async function spendWrite(env, request) {
-  const ip = request.headers.get('cf-connecting-ip') || 'local';
-  const now = Math.floor(Date.now() / 1000);
-  const windowStart = now - (now % WRITE_WINDOW_S);
-  const bucket = `${(await sha256Base64(`fdfpv-rate/v1|${ip}`)).slice(0, 22)}|${windowStart}`;
-  await env.DB.prepare('DELETE FROM write_counts WHERE window_start < ?').bind(windowStart).run();
-  const row = await env.DB.prepare(
-    'INSERT INTO write_counts (bucket, window_start, n) VALUES (?, ?, 1) '
-    + 'ON CONFLICT (bucket) DO UPDATE SET n = n + 1 RETURNING n',
-  ).bind(bucket, windowStart).first();
-  if (row.n > WRITE_LIMIT) {
-    const retry = windowStart + WRITE_WINDOW_S - now;
-    return refuse(429, 'Too many saves from here. Try again in a few minutes.', { retryAfterS: retry });
-  }
-  return null;
 }
 
 /* A name with no control characters and no listed word, or an error. */
@@ -206,7 +137,7 @@ function inspectTs(raw) {
 }
 
 async function putTrack(env, request, id) {
-  const read = await readBody(request);
+  const read = await readBody(request, BODY_MAX_BYTES, TOO_BIG);
   if (read.error) {
     return read.error;
   }
@@ -297,7 +228,7 @@ async function putTrack(env, request, id) {
 }
 
 async function deleteTrack(env, request, id) {
-  const read = await readBody(request);
+  const read = await readBody(request, BODY_MAX_BYTES, TOO_BIG);
   if (read.error) {
     return read.error;
   }
@@ -402,7 +333,7 @@ async function admin(env, request, id) {
     const r = await env.DB.prepare('DELETE FROM tracks WHERE id = ?').bind(id).run();
     return r.meta.changes ? json(200, { id, deleted: true }) : refuse(404, 'No such track.');
   }
-  const read = await readBody(request);
+  const read = await readBody(request, BODY_MAX_BYTES, TOO_BIG);
   if (read.error) {
     return read.error;
   }
@@ -425,6 +356,9 @@ async function route(request, env) {
   }
   if (path === '/api/tracks' && method === 'GET') {
     return listTracks(env, url);
+  }
+  if (path === '/api/account' || path.startsWith('/api/account/')) {
+    return accountRoute(env, request, path);
   }
   const one = path.match(/^\/api\/tracks\/([^/]+)$/);
   const adminOne = path.match(/^\/api\/admin\/tracks\/([^/]+)$/);

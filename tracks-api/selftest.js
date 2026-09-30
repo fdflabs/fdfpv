@@ -26,7 +26,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -253,7 +253,8 @@ check('the track is still there after a restart', r.status === 200 && r.body.doc
 r = await over('GET', '/api/tracks?map=swiss2');
 check('and listed under its world', r.status === 200 && r.body.tracks.some((t) => t.id === vmTrack.id));
 const applied = openD1(dbFile).db;
-check('a restart applies no migration twice', applied.prepare('SELECT COUNT(*) AS n FROM d1_migrations').get().n === 1);
+const migrations = readdirSync(join(HERE, 'migrations')).filter((f) => f.endsWith('.sql')).length;
+check('a restart applies no migration twice', applied.prepare('SELECT COUNT(*) AS n FROM d1_migrations').get().n === migrations);
 applied.close();
 r = await over('DELETE', `/api/admin/tracks/${vmTrack.id}`, undefined, { authorization: 'Bearer selftest-admin-secret' });
 check('the admin can delete it', r.status === 200);

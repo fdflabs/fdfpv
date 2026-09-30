@@ -3,6 +3,9 @@
  *
  *   TRACKS_DB=/var/lib/fdfpv-tracks/tracks.db ADMIN_SECRET=... PORT=8787 node tracks-api/node.js
  *
+ * and GOOGLE_CLIENT_ID with ACCOUNTS_SECRET to switch the optional Google
+ * sign-in on (accounts.js); without both it answers 503.
+ *
  * worker.js is the whole server, unchanged: this serves its fetch handler
  * with node:http (edge/node-http.js) over SQLite in place of D1
  * (d1sqlite.js), applying any migration the file has not had yet. Without
@@ -30,9 +33,16 @@ import worker from './worker.js';
 import { openD1 } from './d1sqlite.js';
 import { listener } from '../edge/node-http.js';
 
-export function startTracks({ db, port, host = '127.0.0.1', adminSecret = '' }) {
+/* googleClientId and accountsSecret switch sign-in on (accounts.js);
+ * googleJwksUrl is for the selftest's stand in for Google alone. */
+export function startTracks({
+  db, port, host = '127.0.0.1', adminSecret = '', googleClientId = '', accountsSecret = '', googleJwksUrl = '',
+}) {
   const opened = openD1(db);
-  const env = { DB: opened.DB, ADMIN_SECRET: adminSecret };
+  const env = {
+    DB: opened.DB, ADMIN_SECRET: adminSecret, GOOGLE_CLIENT_ID: googleClientId, ACCOUNTS_SECRET: accountsSecret,
+    ...(googleJwksUrl ? { GOOGLE_JWKS_URL: googleJwksUrl } : {}),
+  };
   const server = http.createServer(listener(worker, env));
   function stop() {
     return new Promise((resolve) => {
@@ -54,8 +64,11 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     port: Number(process.env.PORT || 8787),
     host: process.env.HOST || '127.0.0.1',
     adminSecret: process.env.ADMIN_SECRET || '',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    accountsSecret: process.env.ACCOUNTS_SECRET || '',
   });
-  console.log(`fdfpv tracks on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: admin routes refuse everyone'}`);
+  const signIn = process.env.GOOGLE_CLIENT_ID && process.env.ACCOUNTS_SECRET;
+  console.log(`fdfpv tracks on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: admin routes refuse everyone'}${signIn ? ', sign-in on' : ', no GOOGLE_CLIENT_ID or ACCOUNTS_SECRET: sign-in off'}`);
   process.on('SIGTERM', async () => {
     await running.stop();
     process.exit(0);
