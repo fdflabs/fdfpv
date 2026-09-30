@@ -30,6 +30,17 @@
  * warmer: at 65.8 degrees there is little air in the way, and the
  * photographs' sunlit concrete and red earth are warm against the shade.
  *
+ * NIGHT (mission 4, "Night raid", docs/ITAIPU-PLAN.md's day stays the
+ * default everywhere else): the same directional light stands in the
+ * same place, now the moon's, cut to a sliver of the sun's irradiance
+ * and cooled toward the sky's own blue, so the dam still reads as a
+ * solid shape under it rather than going flat. A dim hemisphere light is
+ * the sky's own fill, low enough that the scene depends on the lamps and
+ * the windows (look/night.js) to be readable at all, which is the point:
+ * a defended dam at night is dark except where it chooses to show a
+ * light. Never on by default; look/index.js picks it only when the map
+ * is built with `time: 'night'`.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -59,11 +70,59 @@ export const SUN_IRRADIANCE = 3.51;
  * photographs' 0.41 over all of them. At 1.15 it is 0.40 over all 22. */
 export const EXPOSURE = 1.15;
 
-/* Toward the sun. Azimuth is clockwise from north, and north is -z. */
+/* The moon, standing where the sun does (sunDirection is shared: a
+ * single shadow map serves either), cool and faint: 1.5% of the sun's
+ * irradiance, a clear moonlit night's against a clear noon's. The scene's
+ * own light past that is the lamps (look/night.js), not this. */
+export const NIGHT_SUN_COLOR = new THREE.Color(0.63, 0.71, 0.88);
+export const NIGHT_SUN_IRRADIANCE = SUN_IRRADIANCE * 0.015;
+/* The meter still runs at night, but toward its own dark target
+ * (NIGHT_METER_KEY, swiss2/post.js air.meterKey) rather than the day's
+ * KEY: a night sky metered up to a hazy day's average is not night. This
+ * is the base it corrects from, close to the day's; the darkness is
+ * NIGHT_METER_KEY's job, not this one's. */
+export const NIGHT_EXPOSURE = 1.3;
+/* A little under a fifth of the day's KEY (swiss2/post.js), about 2.3
+ * stops under: dark enough to read as night, bright enough that the
+ * dam, the water and a drone are still there to see (the mission's own
+ * requirement), the rest of the reading done by the lamps and the
+ * windows (look/night.js) against it. */
+export const NIGHT_METER_KEY = 0.02;
+
+/* The sky's own fill at night (a HemisphereLight: its sky and ground
+ * colour), low enough it never competes with a lamp. */
+export const NIGHT_AMBIENT_SKY = new THREE.Color(0.05, 0.08, 0.14);
+export const NIGHT_AMBIENT_GROUND = new THREE.Color(0.02, 0.02, 0.03);
+export const NIGHT_AMBIENT_INTENSITY = 0.5;
+
+/* Toward the sun (day) or the moon (night): the same direction either
+ * way, azimuth clockwise from north, north -z. */
 export function sunDirection() {
   const e = THREE.MathUtils.degToRad(SUN_ELEVATION_DEG);
   const a = THREE.MathUtils.degToRad(SUN_AZIMUTH_DEG);
   return new THREE.Vector3(Math.cos(e) * Math.sin(a), Math.sin(e), -Math.cos(e) * Math.cos(a)).normalize();
+}
+
+/* The look's chosen time: 'day' (default, unchanged from before this
+ * existed) or 'night' (mission 4). Anything else is a caller's mistake. */
+export function isNight(time) {
+  if (time != null && time !== 'day' && time !== 'night') {
+    throw new Error(`itaipu light: time is 'day' or 'night', got ${JSON.stringify(time)}`);
+  }
+  return time === 'night';
+}
+
+/* The directional light's colour and irradiance for the time picked. */
+export function sunFor(time) {
+  return isNight(time)
+    ? { color: NIGHT_SUN_COLOR, irradiance: NIGHT_SUN_IRRADIANCE }
+    : { color: SUN_COLOR, irradiance: SUN_IRRADIANCE };
+}
+
+/* The sky's low fill at night, or null: added to the scene only then,
+ * and only once (look/index.js owns it, for dispose). */
+export function makeNightAmbient() {
+  return new THREE.HemisphereLight(NIGHT_AMBIENT_SKY, NIGHT_AMBIENT_GROUND, NIGHT_AMBIENT_INTENSITY);
 }
 
 const LIT_TYPES = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial', 'MeshToonMaterial']);
