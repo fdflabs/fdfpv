@@ -478,6 +478,8 @@ export class Loading {
     this.jokeEl = root.querySelector('.loading-joke');
     this.stepEl = root.querySelector('.loading-step');
     this.elapsedEl = root.querySelector('.loading-elapsed');
+    this.kickerEl = root.querySelector('.loading-kicker');
+    this.tagEl = root.querySelector('.loading-tag');
     /* Where the bar has been TOLD to go, which is not where it is: the
      * transition between the two is the whole point, and it runs on the
      * compositor. Kept so the bar can never be aimed backwards, which is
@@ -526,6 +528,15 @@ export class Loading {
     this.root.style.opacity = '1';
     this.bar.style.background = '';
     this.jokeEl.classList.remove('is-error');
+    this.root.classList.remove('is-failed');
+    /* The markup carries the English for the first paint, before any
+     * locale has loaded; a later load, a map swap, says it in the pilot's. */
+    if (this.kickerEl) {
+      this.kickerEl.textContent = str('loading.tagline_over');
+    }
+    if (this.tagEl) {
+      this.tagEl.textContent = str('loading.tagline_under');
+    }
     this.visible = true;
     this.stageEl.textContent = 'loading';
     /* Back to nothing, with no transition, or the new load's first aim is a
@@ -843,6 +854,7 @@ export class Loading {
     this.stageEl.textContent = str('loading.could_not_start');
     this.jokeEl.textContent = message;
     this.jokeEl.classList.add('is-error');
+    this.root.classList.add('is-failed');
     /* Full, red, and STILL: a sweep under a dead end is a page pretending to
      * work on something. transition none as well as the aim, because the
      * creep it interrupts would otherwise take five seconds to arrive. */

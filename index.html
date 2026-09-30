@@ -86,6 +86,16 @@
     <link rel="icon" href="favicon.ico" sizes="32x32" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta name="theme-color" content="#141c16" />
+    <!--
+      The loading screen's picture (the #loading rule below), asked for
+      before the stylesheet is even parsed so it is usually there for the
+      screen's first paint. One file per shape, and the media queries are
+      the stylesheet's, so a page fetches only the one it shows. It is
+      130 KB against the renderer's 1.2 MB, and the boot never waits on
+      it: the screen paints its dark fallback first either way.
+    -->
+    <link rel="preload" as="image" type="image/webp" href="assets/loading/wide.webp" media="not all and (max-aspect-ratio: 4/5)" />
+    <link rel="preload" as="image" type="image/webp" href="assets/loading/tall.webp" media="(max-aspect-ratio: 4/5)" />
     <style>
       :root {
         --cream: #f3ead4;
@@ -4039,32 +4049,109 @@
       /* Loading. This markup is STATIC, and that is the point: it paints on
          the first layout, before the import map has resolved a single module,
          so the three.js fetch is a stage the player can see rather than a
-         blank page. src/ui/loading.js only ever writes into it. */
+         blank page. src/ui/loading.js only ever writes into it.
+
+         THE PICTURE IS THE GAME'S. assets/loading/ is a frame of the Itaipu
+         map at sunset with a war Striker banking past the spillway,
+         rendered by the shell itself (scripts/loading-art.js) and graded
+         (tools/loading-art/grade.py). Its own file for a phone's portrait,
+         composed on its own, because no crop of the wide frame holds both
+         the Striker and the dam. The colour under it is the frame's own
+         darkest tone, so the screen reads as finished before the picture
+         lands and does not flash when it does: the preload in the head
+         starts it early, and nothing on this screen waits for it. */
       #loading {
         position: fixed; inset: 0; z-index: 10;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center;
-        background: radial-gradient(120% 90% at 50% 42%, #1e2a20, #101610);
+        background: #0c0e0d url("assets/loading/wide.webp") 30% 50% / cover no-repeat;
         font-family: var(--ui-font); color: var(--cream);
         font-variant-numeric: tabular-nums;
         transition: opacity 0.3s ease;
       }
+      /* The grade the type needs and the picture does not: the right hand
+         third and the foot darkened under the words, the rest left as
+         rendered. */
+      #loading::before {
+        content: ""; position: absolute; inset: 0; pointer-events: none;
+        background:
+          linear-gradient(90deg, rgba(8, 10, 9, 0) 34%, rgba(8, 10, 9, 0.52) 64%, rgba(8, 10, 9, 0.74) 100%),
+          linear-gradient(0deg, rgba(8, 10, 9, 0.62) 0%, rgba(8, 10, 9, 0) 34%);
+      }
       #loading[hidden] { display: none; }
+      /*
+       * One column on the right, over the dam and the sky, clear of the
+       * Striker on the left: the name in the middle of it and the load at
+       * its foot. It scrolls only while the failure panel is open (below),
+       * because a scroller clips sideways too and would cut the slash.
+       */
+      .loading-col {
+        position: absolute; top: 0; bottom: 0; right: 6vw;
+        width: min(40vw, 700px);
+        display: flex; flex-direction: column;
+        padding: 7vh 0 7vh; box-sizing: border-box;
+      }
+      .loading-brand {
+        position: relative; margin: auto 0;
+        padding-left: clamp(26px, 2.6vw, 44px);
+      }
+      /* Paraguay's red, white and blue, as one slash down the name. */
+      .loading-slash {
+        position: absolute; left: 0; top: 4%; bottom: 4%; z-index: 1;
+        width: clamp(6px, 0.55vw, 10px);
+        transform: skewX(-14deg);
+        background: linear-gradient(180deg, #d52b1e 0 33.4%, #f4f1ea 33.4% 66.6%, #0038a8 66.6% 100%);
+        box-shadow: 0 0 18px rgba(0, 0, 0, 0.45);
+      }
+      .loading-kicker, .loading-tag {
+        display: flex; align-items: center; gap: 0.9em;
+        font-size: clamp(11px, 0.9vw, 16px); font-weight: 500; line-height: 1;
+        letter-spacing: 0.38em; text-transform: uppercase; white-space: nowrap;
+        color: rgba(243, 234, 212, 0.86);
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+      }
+      .loading-kicker::after, .loading-tag::before {
+        content: ""; flex: 1; min-width: 1.5em; height: 1px;
+        background: rgba(243, 234, 212, 0.38);
+      }
+      /*
+       * The name, bold and condensed, and still no webfont (the page's
+       * rule, see the top of this file): every desktop has a narrow sans
+       * under one of these names, Android answers to sans-serif-condensed,
+       * and font-stretch asks Apple's system face for its condensed width.
+       */
+      .loading-mark {
+        margin: 0.14em 0 0.12em;
+        font-family: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans Narrow", "Roboto Condensed", sans-serif-condensed, var(--ui-font);
+        font-stretch: condensed; font-weight: 700;
+        font-size: clamp(64px, 10vw, 200px); line-height: 0.84;
+        letter-spacing: 0.01em; color: #f7f2e6;
+        text-shadow: 0 4px 0 rgba(8, 10, 9, 0.55), 0 12px 40px rgba(0, 0, 0, 0.5);
+      }
+      .loading-mark .fpv { color: var(--sakura); }
+      .loading-status { width: 100%; }
+      .loading-row {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 14px;
+      }
       .loading-stage {
-        font-size: clamp(18px, 2.4vw, 22px); letter-spacing: 0.06em;
+        font-size: clamp(12px, 0.72vw, 14px); font-weight: 600; line-height: 1.35;
+        letter-spacing: 0.2em; text-transform: uppercase;
         color: var(--cream);
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
       }
       .loading-joke {
-        margin-top: 12px; font-size: 15px; line-height: 1.45;
-        font-style: italic; color: var(--slate);
-        max-width: 28em; min-height: 2.2em; text-align: center;
+        margin-top: 12px; font-size: clamp(14px, 0.86vw, 17px); line-height: 1.45;
+        font-style: italic; color: rgba(214, 222, 228, 0.78);
+        min-height: 2.9em;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
       }
       /* The failure panel. Only ever painted by fail(), which is why it
          carries its own type sizes rather than inheriting the calm ones
          above: this is the one moment the screen has to be read rather
          than glanced at. */
       .loading-help {
-        margin-top: 22px; max-width: 34em; text-align: left;
+        margin-top: 20px; text-align: left;
+        padding: 16px 18px; border-radius: 4px;
+        background: rgba(8, 10, 9, 0.82);
         color: var(--cream); font-size: 14.5px; line-height: 1.55;
       }
       .loading-help h3 {
@@ -4102,10 +4189,9 @@
       }
       .loading-track {
         position: relative;
-        width: min(420px, 68vw); height: 6px; border-radius: 3px;
-        margin-top: 26px;
-        background: rgba(16, 22, 17, 0.8);
-        box-shadow: inset 0 0 0 1px rgba(232, 168, 184, 0.28);
+        width: 100%; height: 2px;
+        margin-top: 10px;
+        background: rgba(243, 234, 212, 0.16);
         overflow: hidden;
       }
       /*
@@ -4130,7 +4216,7 @@
         position: absolute; inset: 0;
         transform: scaleX(0);
         transform-origin: left center;
-        background: var(--sakura);
+        background: var(--cream);
         transition: transform 0.18s linear;
         will-change: transform;
       }
@@ -4158,17 +4244,51 @@
        * and the sweep are the ones carrying that window.
        */
       .loading-meta {
-        margin-top: 12px;
-        display: flex; gap: 10px; align-items: baseline;
+        display: flex; gap: 10px; align-items: baseline; flex: none;
         font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: rgba(157, 179, 200, 0.75);
+        color: rgba(214, 222, 228, 0.7);
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
       }
-      .loading-meta .loading-elapsed { color: rgba(157, 179, 200, 0.5); }
+      .loading-meta .loading-elapsed { color: rgba(214, 222, 228, 0.48); }
       @media (prefers-reduced-motion: reduce) {
         /* The sweep is decoration and goes. The fill is not: it is the one
            thing on this screen carrying how far through the load we are, so
            it keeps its transition. */
         .loading-sweep { animation: none; opacity: 0; }
+      }
+      /* A failure is read, not glanced at: the name steps back to make the
+         room the steps need. */
+      #loading.is-failed .loading-col { overflow-y: auto; scrollbar-width: none; }
+      #loading.is-failed .loading-brand { margin: 0 0 4vh; }
+      #loading.is-failed .loading-kicker,
+      #loading.is-failed .loading-tag { display: none; }
+      #loading.is-failed .loading-mark { font-size: clamp(44px, 5vw, 72px); }
+      /*
+       * A phone, or any window taller than it is wide: the portrait frame,
+       * the name over the sky at the top, the load at the foot, both the
+       * full width less a thumb's margin.
+       */
+      @media (max-aspect-ratio: 4/5) {
+        #loading { background-image: url("assets/loading/tall.webp"); background-position: 50% 50%; }
+        #loading::before {
+          background:
+            linear-gradient(180deg, rgba(8, 10, 9, 0.62) 0%, rgba(8, 10, 9, 0) 30%),
+            linear-gradient(0deg, rgba(8, 10, 9, 0.86) 0%, rgba(8, 10, 9, 0.5) 22%, rgba(8, 10, 9, 0) 40%);
+        }
+        .loading-col {
+          left: max(22px, env(safe-area-inset-left)); right: max(22px, env(safe-area-inset-right)); width: auto;
+          padding: max(8vh, env(safe-area-inset-top)) 0 max(5vh, env(safe-area-inset-bottom));
+        }
+        .loading-brand { margin: 0 0 auto; }
+        .loading-mark { font-size: clamp(60px, 22vw, 120px); }
+        .loading-kicker, .loading-tag { font-size: clamp(10px, 2.8vw, 14px); letter-spacing: 0.22em; }
+      }
+      /* A landscape phone: the column is short, so the name shrinks rather
+         than pushing the bar off the bottom. */
+      @media (max-height: 520px) and (min-aspect-ratio: 4/5) {
+        .loading-col { padding: 4vh 0; }
+        .loading-mark { font-size: clamp(44px, 12vh, 72px); }
+        .loading-joke { min-height: 0; }
       }
 
       .name-dialog {
@@ -5136,15 +5256,27 @@
     <canvas id="view"></canvas>
     <div id="ui"></div>
     <div id="loading">
-      <div class="loading-stage">loading</div>
-      <div class="loading-joke">"I complimented my quad on its propellers. It said thanks for the props."</div>
-      <div class="loading-track"><div class="loading-fill"></div><div class="loading-sweep"></div></div>
-      <div class="loading-meta"><span class="loading-step"></span><span class="loading-elapsed"></span></div>
-      <!-- Empty until something fails. See fail() in src/ui/loading.js: a
-           boot that dies used to leave a red bar, a sentence and no way
-           out, which is a dead end on the one screen a stranded visitor is
-           looking at. aria-live so a screen reader hears the failure. -->
-      <div class="loading-help" hidden role="alert" aria-live="assertive"></div>
+      <div class="loading-col">
+        <div class="loading-brand">
+          <div class="loading-slash" aria-hidden="true"></div>
+          <div class="loading-kicker">Paraguayan FPV simulator</div>
+          <div class="loading-mark">FD<span class="fpv">FPV</span></div>
+          <div class="loading-tag">Real Betaflight in your browser</div>
+        </div>
+        <div class="loading-status">
+          <div class="loading-row">
+            <div class="loading-stage">loading</div>
+            <div class="loading-meta"><span class="loading-step"></span><span class="loading-elapsed"></span></div>
+          </div>
+          <div class="loading-track"><div class="loading-fill"></div><div class="loading-sweep"></div></div>
+          <div class="loading-joke">"I complimented my quad on its propellers. It said thanks for the props."</div>
+        </div>
+        <!-- Empty until something fails. See fail() in src/ui/loading.js: a
+             boot that dies used to leave a red bar, a sentence and no way
+             out, which is a dead end on the one screen a stranded visitor is
+             looking at. aria-live so a screen reader hears the failure. -->
+        <div class="loading-help" hidden role="alert" aria-live="assertive"></div>
+      </div>
     </div>
     <!-- boot.js, not main.js. It imports nothing at module scope except the
          loading screen, so the screen is alive and reporting BEFORE the
