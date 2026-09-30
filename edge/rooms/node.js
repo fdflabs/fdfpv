@@ -79,6 +79,20 @@ const MAX_MESSAGE_BYTES = 1024 * 1024;
 const CLOSE_RESTART = 1012;
 
 /*
+ * THE ROUND TRIP A PAGE CANNOT MEASURE. A page learns the room's clock
+ * from its own pings (src/share/roomclock.js), and a page whose frames are
+ * slow reads each reply only when its frame's work is done, so every round
+ * trip it measures is long by part of a frame and its clock is off by half
+ * of that. A WebSocket ping frame is answered by the browser's network
+ * stack, not the page, so the room measures the true round trip itself,
+ * every PROBE_MS, and each clock reply carries the shortest of the last
+ * PROBE_KEEP (core.js, as `rtt`). The Durable Object has no ping frames,
+ * so its replies carry none and a page uses its own.
+ */
+const PROBE_MS = 2000;
+const PROBE_KEEP = 16;
+
+/*
  * A SIGNED IN PILOT'S HELLO carries its session token (src/share/rooms.js),
  * and the room shows the callsign that session holds instead of a picker
  * name. The token is checked by the accounts server (tracks-api/accounts.js,
@@ -202,6 +216,34 @@ class Conn {
     this.counters = counters;
     this.attachment = null;
     this.corked = false;
+    /* The last PROBE_KEEP protocol round trips, ms, and when the ping in
+     * flight went. */
+    this.rtts = [];
+    this.probeAt = null;
+  }
+
+  /* The shortest recent round trip at the protocol level, or undefined
+   * before one has come back. core.js puts it in its clock replies. */
+  get netRtt() {
+    return this.rtts.length ? Math.min(...this.rtts) : undefined;
+  }
+
+  probe() {
+    if (this.probeAt == null && this.ws.readyState === 1) {
+      this.probeAt = performance.now();
+      this.ws.ping();
+    }
+  }
+
+  pong() {
+    if (this.probeAt == null) {
+      return;
+    }
+    this.rtts.push(Math.round((performance.now() - this.probeAt) * 1000) / 1000);
+    this.probeAt = null;
+    if (this.rtts.length > PROBE_KEEP) {
+      this.rtts.shift();
+    }
   }
 
   send(data) {
@@ -315,6 +357,9 @@ class Room {
      * wait is outside the room's queue: a slow answer holds up this pilot's
      * join and nobody else's flight. */
     let gate = null;
+    ws.on('pong', () => conn.pong());
+    conn.probe();
+    const probes = setInterval(() => conn.probe(), PROBE_MS);
     ws.on('message', (data, binary) => {
       this.counters.inMsgs += 1;
       this.counters.inBytes += data.length;
@@ -329,6 +374,7 @@ class Room {
       gate.then((callsign) => this.enqueue(() => this.host.message(conn, value, callsign)));
     });
     ws.on('close', (code) => {
+      clearInterval(probes);
       this.sockets.delete(conn);
       (gate || Promise.resolve()).then(() => this.enqueue(async () => {
         await this.host.close(conn, code);

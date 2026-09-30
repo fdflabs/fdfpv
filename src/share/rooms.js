@@ -9,9 +9,9 @@
  * pilot never sees it. One WebSocket per room, a hello with the
  * picker name and the profile (airframe, paint, add ons, pilot figure,
  * world), then poses out at 30 Hz while flying and batches of everybody
- * else's in. The room's clock is learned on joining (eight pings a
- * quarter second apart, the tightest kept) and tracked every 30 s after,
- * moved at most 2 ms at a time so the peers never jump.
+ * else's in. The room's clock is learned on joining and tracked for as
+ * long as the room is open, by src/share/roomclock.js, which says how
+ * well and why.
  *
  * A dropped socket is retried with a growing pause and the seat token,
  * which takes the same seat back. The token and the room's code are kept
@@ -49,6 +49,7 @@ import {
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 import { readAccount } from './pilot.js';
+import { RoomClock } from './roomclock.js';
 
 /* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md).
  * The Worker it replaced, https://fdfpv-rooms.fdfretes.workers.dev, is
@@ -61,10 +62,6 @@ const TOKEN_KEY = 'fdfpv.roomToken';
 const PICK_KEY = 'fdfpv.pilotPick';
 const FIGURE_KEY = 'fdfpv.pilotFigure';
 const RETRY_MS = [1000, 2000, 4000, 8000, 16000];
-const SYNC_PINGS = 8;
-export const SYNC_GAP_MS = 250;
-const RESYNC_MS = 30000;
-const SLEW_MS = 2;
 const KEEPALIVE_MS = 20000;
 
 /* Closes that retrying cannot fix. */
@@ -247,9 +244,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   let phase = 'idle'; /* idle, connecting, open, failed */
   let reason = null;
   let welcome = null;
-  let offset = null;
-  let bestRtt = Infinity;
-  let pings = 0;
+  const clock = new RoomClock();
   let syncTimer = null;
   let keepTimer = null;
   /* A quick join asks for a public room by map, not code (edge/rooms/front.js);
@@ -279,26 +274,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
   }
 
   function ping() {
-    pings += 1;
     sendText({ type: 't', c: performance.now() });
-    syncTimer = setTimeout(ping, pings < SYNC_PINGS ? SYNC_GAP_MS : RESYNC_MS);
-  }
-
-  function onClock(m) {
-    const recv = performance.now();
-    const rtt = recv - m.c;
-    if (!(rtt >= 0)) {
-      return;
-    }
-    const est = m.s + rtt / 2 - recv;
-    if (pings <= SYNC_PINGS) {
-      if (rtt < bestRtt) {
-        bestRtt = rtt;
-        offset = est;
-      }
-      return;
-    }
-    offset += Math.max(-SLEW_MS, Math.min(SLEW_MS, est - offset));
+    syncTimer = setTimeout(ping, clock.nextPingMs());
   }
 
   function open() {
@@ -370,8 +347,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           fullRetried = false;
         }
         write('session', ROOM_KEY, code);
-        pings = 0;
-        bestRtt = Infinity;
+        clock.resync();
         stopTimers();
         ping();
         keepTimer = setInterval(() => {
@@ -384,7 +360,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           handlers.onWelcome(m);
         }
       } else if (m.type === 't') {
-        onClock(m);
+        clock.sample(m.c, m.s, performance.now(), m.rtt);
       } else if (m.type === 'join') {
         if (welcome) {
           welcome.host = m.host ?? welcome.host;
@@ -480,7 +456,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     publicMap = null;
     fullRetried = false;
     welcome = null;
-    offset = null;
+    clock.reset();
     clearTimeout(retry);
     retry = null;
     stopTimers();
@@ -558,7 +534,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     },
     /* The room clock now, ms, or null before it is known. */
     roomNow() {
-      return offset == null ? null : performance.now() + offset;
+      return clock.roomAt(performance.now());
+    },
+    /* The room clock at page time t (performance.now()'s), ms, or null. */
+    roomAt(t) {
+      return clock.roomAt(t);
     },
     sendPose(bytes) {
       if (ws && ws.readyState === 1 && phase === 'open') {

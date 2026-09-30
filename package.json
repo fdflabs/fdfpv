@@ -72,6 +72,7 @@
     "identity:selftest": "node scripts/identity-selftest.js",
     "live:selftest": "node scripts/live-selftest.js",
     "rooms:selftest": "node scripts/rooms-selftest.js",
+    "rooms:clock": "node scripts/roomclock-check.js",
     "rooms:soak": "node scripts/rooms-soak.js",
     "rooms:load": "node scripts/rooms-load.js",
     "rooms:twopage": "node scripts/rooms-two-page.js",

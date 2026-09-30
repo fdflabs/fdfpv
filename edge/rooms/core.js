@@ -77,7 +77,7 @@ export const POSE_PER_S = 35;
 export const TEXT_PER_S = 5;
 /* The clock's pings ({ type: 't' }) have an allowance of their own. A
  * client syncing its clock sends 1000 / SYNC_GAP_MS of them a second
- * (src/share/rooms.js, four), for two seconds after every welcome and
+ * (src/share/roomclock.js, four), for two seconds after every welcome and
  * later still on a page that was stalled; counted with the rest, a phrase
  * and a wave said then made six, and the wave was dropped without a word
  * (the live rooms:safety check, 2026-09-28). rooms:selftest checks the
@@ -696,7 +696,11 @@ export class RoomCore {
       return [];
     }
     if (clock && Number.isFinite(msg.c)) {
-      return [{ send: conn, data: JSON.stringify({ type: 't', c: msg.c, s: this.roomMs(now) }) }];
+      /* rtt: the socket's round trip measured below the page, where the
+       * adapter can (edge/rooms/node.js netRtt); a page uses it in place
+       * of its own when shorter (src/share/roomclock.js). */
+      const rtt = conn.netRtt;
+      return [{ send: conn, data: JSON.stringify({ type: 't', c: msg.c, s: this.roomMs(now), ...(Number.isFinite(rtt) ? { rtt } : {}) }) }];
     }
     if (msg.type === 'profile') {
       const profile = checkProfile(msg.profile);

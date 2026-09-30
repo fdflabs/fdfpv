@@ -28,7 +28,8 @@
  *
  * EACH PILOT flies what a pilot flies, at the client's own rates
  * (src/main.js): a POSE at 30 Hz on its estimate of the room clock, eight
- * clock pings at the start, a keepalive every 20 s, a quick chat every 8
+ * clock pings at the start and one every TRACK_MS after
+ * (src/share/roomclock.js), a keepalive every 20 s, a quick chat every 8
  * to 20 s. The phases, every room in step:
  *
  *   free     free flight, spread as asked; every pilot crashes once: the
@@ -81,6 +82,7 @@ import {
   BATCH_ENTRY, BATCH_HEAD, encodeParts, encodePose, encodeStreamer,
 } from '../src/share/roomwire.js';
 import { INTEREST, TICK_MS } from '../edge/rooms/core.js';
+import { TRACK_MS } from '../src/share/roomclock.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -483,6 +485,11 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
     if (name === 'combat' && wall >= c.nextStreamer) {
       c.nextStreamer = Math.max(c.nextStreamer + 100, wall - 100);
       c.send(encodeStreamer(t, towed(f)));
+    }
+    c.nextClock ||= wall + c.rand() * TRACK_MS;
+    if (wall >= c.nextClock) {
+      c.sendText({ type: 't', c: Date.now() });
+      c.nextClock = wall + TRACK_MS;
     }
     c.nextChat ||= wall + c.rand() * 6000;
     if (wall >= c.nextChat) {
