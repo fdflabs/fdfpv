@@ -31,6 +31,7 @@ import {
   BLAST_M, KIND, KINDS, cosDet, planAgent, poseAt, sinDet,
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { waveTarget } from '../src/share/war/missions/index.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
@@ -218,7 +219,7 @@ export function warSection(check) {
     for (const w of itaipu1.waves) {
       try {
         planAgent(itaipu1, {
-          id: 1, kind: w.kind, route: w.route, t0: 0, k: 0, n: w.n, err: 0, target: w.target ?? null,
+          id: 1, kind: w.kind, route: w.route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
         });
       } catch (x) {
         ok = false;

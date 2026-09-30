@@ -118,7 +118,7 @@ import {
 import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
-import { MISSIONS } from '../../src/share/war/missions/index.js';
+import { MISSIONS, waveSize, waveTarget } from '../../src/share/war/missions/index.js';
 import { INTRO_MS } from '../../src/share/war/intro.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
@@ -269,9 +269,10 @@ export class RoomWar {
      * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
      *   'won'|'lost'|'ended', briefAt (the room ms a briefing began, or
      *   null), why, f, wave (the next to be born), output, down (target
-     *   ids hit), rack, rackMax, players: { seat: { kills, assists, mw,
-     *   token } }, agents: [birth records alive], nextAgent, scouts: { n,
-     *   killed } of the last scout wave or null, hunters (Hunters save),
+     *   ids hit), rack, rackMax, pilots (at the go, which size the
+     *   waves), players: { seat: { kills, assists, mw, token } },
+     *   agents: [birth records alive], nextAgent, scouts: { n, killed }
+     *   of the last scout wave or null, hunters (Hunters save),
      *   endAt }, or null before the first game.
      */
     this.match = null;
@@ -508,6 +509,7 @@ export class RoomWar {
       down: [],
       rack: 0,
       rackMax: 0,
+      pilots: 0,
       players,
       agents: [],
       nextAgent: 1,
@@ -634,19 +636,22 @@ export class RoomWar {
        * waves fly their routes exactly; once all of them are dead, each
        * attacker draws its error (section 4.2). */
       const blind = Boolean(m.scouts) && m.scouts.killed >= m.scouts.n;
-      for (let k = 0; k < w.n; k += 1) {
+      /* Sized by the pilots at the go; a match stored before that was
+       * kept flies them as for one. */
+      const n = waveSize(w, m.pilots ?? 1);
+      for (let k = 0; k < n; k += 1) {
         const id = m.nextAgent;
         m.nextAgent += 1;
         const err = blind && w.spread ? mm(w.spread * (2 * draw(m.seed, id) - 1)) : 0;
         const a = {
-          id, kind: w.kind, route: w.route, t0, k, n: w.n, err, target: w.target ?? null, wave: m.wave,
+          id, kind: w.kind, route: w.route, t0, k, n, err, target: waveTarget(w, k), wave: m.wave,
         };
         m.agents.push(a);
         this.adopt(a);
         born.push(a);
       }
       if (w.kind === 'scout') {
-        m.scouts = { wave: m.wave, n: w.n, killed: 0 };
+        m.scouts = { wave: m.wave, n, killed: 0 };
       }
       m.wave += 1;
     }
@@ -744,7 +749,8 @@ export class RoomWar {
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
       const here = this.players(core);
-      m.rackMax = this.mission().rack * Math.max(1, here.length);
+      m.pilots = Math.max(1, here.length);
+      m.rackMax = this.mission().rack * m.pilots;
       m.rack = m.rackMax;
     }
     let dirty = m.state !== state;
