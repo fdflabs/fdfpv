@@ -1629,7 +1629,7 @@ console.log('catch the ace: starting a match');
   /* And through the hosts' generic path (edge/rooms/host.js): every stored
    * key goes to core[key].restore() on load, so 'tag' needs no adapter. */
   const kept = new Map([['meta', e.r.meta], ['tag', saved]]);
-  const host = new RoomHost({ storage: { get: async (k) => kept.get(k), list: async () => kept }, getWebSockets: () => [] }, {});
+  const host = new RoomHost({ storage: { get: async (k) => kept.get(k), list: async () => kept, getAlarm: async () => null }, getWebSockets: () => [] }, {});
   const loaded = await host.load();
   check('and a host that loads the room from storage hands the match back to core.tag', loaded.tag.on() && loaded.tag.match.goal === 10
     && loaded.tag.match.ace === saved.match.ace);
@@ -1761,7 +1761,7 @@ console.log('stale games and the host');
   /* A room as host.js loads it from `kept` (storage), its sockets `socks`. */
   const load = async (kept, socks = []) => {
     const h = new RoomHost({
-      storage: { get: async (k) => kept.get(k), list: async () => kept },
+      storage: { get: async (k) => kept.get(k), list: async () => kept, getAlarm: async () => null },
       getWebSockets: () => socks,
     }, {});
     return h.load();

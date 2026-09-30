@@ -3740,7 +3740,13 @@ export class Ui {
      * PROGRESS.md.
      */
     this.gateCards = el('div', 'gate-cards');
-    copy.append(brand, this.gateCards, titleFoot);
+    /* The gate's rooms panel beside the wordmark: see renderTitleRooms.
+     * The brand and the panel share one row so the two child contract
+     * above still holds for every other state, where the panel is hidden. */
+    this.gateRooms = el('div', 'gate-rooms');
+    const titleTop = el('div', 'title-top');
+    titleTop.append(brand, this.gateRooms);
+    copy.append(titleTop, this.gateCards, titleFoot);
     this.craftCanvas = el('canvas', 'craft-view');
     this.craftCanvas.setAttribute('aria-hidden', 'true');
     title.append(copy);
@@ -6022,6 +6028,12 @@ export class Ui {
        * cards, and every word of it is already on the card in a place that
        * says which of the three it belongs to.
        */
+      /*
+       * THE ROOMS PANEL comes after the cards, so the arrows walk the cards
+       * first and then the rooms, and before any row, because renderMenu's
+       * offset needs every item it draws itself ahead of the rows. Only
+       * where there is a rooms server, like the Fly with friends card.
+       */
       if (this.onGate()) {
         const rooms = this.friendsItems().length > 0;
         return [
@@ -6034,6 +6046,7 @@ export class Ui {
             facts: w.facts,
             action: w.action,
           })),
+          ...(rooms && this.titleRooms ? this.titleRooms() : []),
           ...(trouble ? [trouble] : []),
         ];
       }
@@ -7588,6 +7601,7 @@ export class Ui {
     }
     if (this.screen === 'title') {
       this.renderTitleCards();
+      this.renderTitleRooms();
     }
     if (this.screens && this.screens.title) {
       /*
@@ -7663,7 +7677,7 @@ export class Ui {
     /* The Courses screen draws its choices as cards above this menu, so the
      * rows here are only what is left over. */
     const rows = this.cardScreen()
-      ? items.filter((it) => !it.map && !it.course && !it.card)
+      ? items.filter((it) => !it.map && !it.course && !it.card && !it.lobby)
       : items;
     const offset = items.length - rows.length;
     this.rowOffset = offset;
@@ -8929,6 +8943,11 @@ export class Ui {
         c.card.tabIndex = on ? 0 : -1;
         c.card.setAttribute('aria-current', String(on));
       }
+      for (const r of this.titleRoomEls || []) {
+        const on = r.i === this.cursor;
+        r.node.classList.toggle('on', on);
+        r.node.tabIndex = on ? 0 : -1;
+      }
       return;
     }
     const worlds = this.mapCards || [];
@@ -9024,6 +9043,61 @@ export class Ui {
     this.markCards();
   }
 
+
+  /*
+   * THE ROOMS PANEL on the gate (the owner, 2026-09-30: "prominent place to
+   * choose rooms right at the main page"): how many rooms and pilots are
+   * flying, the first few rooms with a seat, each one press to join, All
+   * rooms and Make a room. Its items are the menu's, after the cards
+   * (src/ui/roombrowser.js titleItems), so the arrows, a pad and the mouse
+   * reach them like a card; each goes the Fly with friends card's way in
+   * first, so the aircraft and the world are the card's. Rebuilt only when
+   * what it shows changes, like the cards, so a hover is not a rebuild.
+   */
+  renderTitleRooms() {
+    const host = this.gateRooms;
+    if (!host) {
+      return;
+    }
+    const items = this.items();
+    const shown = items.map((it, i) => ({ it, i })).filter(({ it }) => it.lobby);
+    const key = JSON.stringify(shown.map(({ it, i }) => [i, it.lobby, it.label, it.value, it.action]));
+    if (this.titleRoomKey !== key) {
+      this.titleRoomKey = key;
+      host.textContent = '';
+      host.hidden = !shown.length;
+      const list = el('div', 'gate-rooms-list');
+      const buttons = el('div', 'gate-rooms-buttons');
+      this.titleRoomEls = [];
+      for (const { it, i } of shown) {
+        if (it.lobby === 'head') {
+          const head = el('div', 'gate-rooms-head');
+          head.append(el('span', 'gate-rooms-title', it.label), el('span', 'gate-rooms-count', it.value));
+          host.append(head);
+          continue;
+        }
+        const node = el('div', `gate-room gate-room-${it.lobby}`);
+        node.setAttribute('role', 'button');
+        node.setAttribute('aria-label', it.value ? `${it.label}, ${it.value}` : it.label);
+        node.append(el('span', 'gate-room-name', it.label));
+        if (it.lobby === 'room') {
+          node.append(el('span', 'gate-room-value', `${it.join} \u00b7 ${it.value}`));
+        }
+        node.addEventListener('mousemove', (e) => this.hoverCursor(e, i));
+        node.addEventListener('click', () => {
+          this.cursor = i;
+          this.select();
+        });
+        (it.lobby === 'room' ? list : buttons).append(node);
+        this.titleRoomEls.push({ node, i });
+      }
+      if (list.childNodes.length) {
+        host.append(list);
+      }
+      host.append(buttons);
+    }
+    this.markCards();
+  }
 
   /*
    * The rows, with each trick's film built once and kept. A film is a handful
@@ -13099,6 +13173,13 @@ export class Ui {
       if (this.onFriends) {
         this.onFriends(action);
       }
+      return;
+    }
+    /* The gate's rooms panel: the Fly with friends card's way in, then
+     * the room, the lobby or Make a room. */
+    if (typeof action === 'string' && action.startsWith('lobby:')) {
+      this.act(WAYS.find((w) => w.id === 'friends').action);
+      this.act(action.slice('lobby:'.length));
       return;
     }
     /* Pages under Fly with friends: show(), not the branch below, which

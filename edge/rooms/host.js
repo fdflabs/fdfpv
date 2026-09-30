@@ -3,8 +3,8 @@
  *
  * RoomHost is what carries a RoomCore (core.js) on a server: it loads the
  * room from storage, accepts sockets, runs the core's actions, drives the
- * 30 Hz tick while anybody flies, and purges the room's storage ten
- * minutes after the last pilot leaves. It is written against a small
+ * 30 Hz tick while anybody flies, and purges the room's storage five
+ * minutes after the last pilot leaves (PURGE_MS). It is written against a small
  * platform contract, the shape of a Durable Object's state, so the same
  * code runs on Cloudflare (do.js) and on a plain Node server (node.js):
  *
@@ -13,6 +13,7 @@
  *   ctx.storage.list()         async, a Map of every key to its value
  *   ctx.storage.deleteAll()    async, the room forgotten
  *   ctx.storage.setAlarm(ms)   async; alarm() is called at that wall ms
+ *   ctx.storage.getAlarm()     async, the wall ms of the alarm set, or null
  *   ctx.getWebSockets()        the room's open sockets
  *
  * and a socket (a conn) is:
@@ -49,11 +50,18 @@
 
 import { RoomCore, PRIVATE_CAP, TICK_MS } from './core.js';
 import {
-  CLOSE, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PUBLIC_CAP,
+  CLOSE, EMPTY_CLOSE_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PUBLIC_CAP,
 } from '../../src/share/roomwire.js';
 import { reportRoom } from './lobby.js';
 
-export const PURGE_MS = 10 * 60 * 1000;
+/*
+ * AN EMPTY ROOM CLOSES PURGE_MS AFTER ITS LAST PILOT LEFT, and a pilot
+ * back before then keeps it: the alarm finds a socket and waits again.
+ * The alarm is also when the room says it went empty, core.emptySince =
+ * the alarm less PURGE_MS, which the lobby lists it by (lobby.js), so an
+ * empty room is listed exactly as long as it can still be joined.
+ */
+export const PURGE_MS = EMPTY_CLOSE_MS;
 
 function hex(bytes) {
   return [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -97,7 +105,23 @@ export class RoomHost {
       }
     }
     this.core.restore(this.ctx.getWebSockets().map((ws) => ({ conn: ws, attachment: ws.deserializeAttachment() })));
+    /* After a hibernation or a restart, when the room went empty is what
+     * its stored alarm says, not the moment it was woken. */
+    this.core.emptySince = this.emptySinceOf(await this.ctx.storage.getAlarm());
     return this.core;
+  }
+
+  emptySinceOf(alarmAt) {
+    return alarmAt == null ? null : alarmAt - PURGE_MS;
+  }
+
+  /* The purge PURGE_MS from now, and the room empty since now. */
+  closeLater() {
+    const at = Date.now() + PURGE_MS;
+    if (this.core) {
+      this.core.emptySince = this.emptySinceOf(at);
+    }
+    return this.ctx.storage.setAlarm(at);
   }
 
   run(actions) {
@@ -127,7 +151,7 @@ export class RoomHost {
           reportRoom(this.env, this.core, now);
         }, TICK_MS);
       } else if (a.empty) {
-        this.ctx.storage.setAlarm(Date.now() + PURGE_MS);
+        this.closeLater();
       }
     }
   }
@@ -157,7 +181,7 @@ export class RoomHost {
       hidden: false,
     });
     /* A room made and never joined is purged like an emptied one. */
-    await this.ctx.storage.setAlarm(Date.now() + PURGE_MS);
+    await this.closeLater();
     await this.announce();
     return true;
   }
@@ -211,10 +235,13 @@ export class RoomHost {
 
   async alarm() {
     if (this.ctx.getWebSockets().length) {
-      await this.ctx.storage.setAlarm(Date.now() + PURGE_MS);
+      await this.closeLater();
       return;
     }
     await this.ctx.storage.deleteAll();
+    /* A tick still due would run on the core just forgotten. */
+    clearTimeout(this.timer);
+    this.timer = null;
     this.core = null;
   }
 }

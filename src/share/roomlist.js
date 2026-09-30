@@ -13,6 +13,12 @@
  * Every entry is checked here, at the boundary: a line that does not have
  * the shape the lobby sends is dropped rather than drawn.
  *
+ * AN EMPTY ROOM'S CLOSE is kept as `closesAt` on this page's own clock:
+ * the room's emptySince plus EMPTY_CLOSE_MS, moved by how far this clock
+ * is from the server's (`now` in the answer), so a phone whose clock is
+ * off by minutes still counts down the right five. A server from before
+ * emptySince sends neither, and its empty rooms have no closing time.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -30,15 +36,22 @@
  */
 
 import {
-  LIST_EVERY_MS, ROOM_MODES, normaliseCode, normaliseRoomName, validNamePick,
+  EMPTY_CLOSE_MS, LIST_EVERY_MS, ROOM_MODES, normaliseCode, normaliseRoomName, validNamePick,
 } from './roomwire.js';
 import { roomsOrigin } from './rooms.js';
 
 const ID_RE = /^[a-z0-9_]{1,32}$/;
 const STATES = ['waiting', 'countdown', 'on'];
 
-/* A lobby line as the browser draws it, or null. */
-export function checkRoomLine(r) {
+/* Whole minutes until an empty room closes, at least 1 until it has, or
+ * null for a room with pilots or no closing time. */
+export function closesInMin(r, now = Date.now()) {
+  return r.closesAt == null ? null : Math.max(0, Math.ceil((r.closesAt - now) / 60000));
+}
+
+/* A lobby line as the browser draws it, or null. `skew` is this clock
+ * less the server's, ms. */
+export function checkRoomLine(r, skew = 0) {
   if (!r || typeof r !== 'object' || !normaliseCode(r.code) || !validNamePick(r.pick) || !ID_RE.test(String(r.map))) {
     return null;
   }
@@ -49,8 +62,17 @@ export function checkRoomLine(r) {
     return null;
   }
   const game = ROOM_MODES.includes(r.game) ? r.game : null;
+  const empty = r.n === 0 && Number.isFinite(r.emptySince);
   return {
-    code: r.code, name: r.name, pick: r.pick.slice(), map: r.map, n: r.n, cap: r.cap, game, state: STATES.includes(r.state) ? r.state : 'waiting',
+    code: r.code,
+    name: r.name,
+    pick: r.pick.slice(),
+    map: r.map,
+    n: r.n,
+    cap: r.cap,
+    game,
+    state: STATES.includes(r.state) ? r.state : 'waiting',
+    closesAt: empty ? r.emptySince + EMPTY_CLOSE_MS + skew : null,
   };
 }
 
@@ -78,7 +100,8 @@ export function createRoomList(onChange = () => {}) {
       const body = await res.json();
       open = body.open === true;
       busy = body.busy === true;
-      rooms = Array.isArray(body.rooms) ? body.rooms.map(checkRoomLine).filter(Boolean) : [];
+      const skew = Number.isFinite(body.now) ? Date.now() - body.now : 0;
+      rooms = Array.isArray(body.rooms) ? body.rooms.map((r) => checkRoomLine(r, skew)).filter(Boolean) : [];
       failed = false;
     } catch (e) {
       /* Kept: the last list is still the best guess, and the screen says
@@ -86,7 +109,10 @@ export function createRoomList(onChange = () => {}) {
       failed = true;
     }
     asking = false;
-    const now = JSON.stringify([rooms, open, busy, failed]);
+    /* What the screen shows: the minutes left, not the ms, or every answer
+     * would redraw it. */
+    const seen = rooms && rooms.map((r) => ({ ...r, closesAt: closesInMin(r) }));
+    const now = JSON.stringify([seen, open, busy, failed]);
     if (now !== shown) {
       shown = now;
       onChange();

@@ -241,7 +241,8 @@ async function publicRoute(request, env, url, headers) {
       return new Response('rate', { status: 429, headers });
     }
     const list = await (await lobbyStub(env).fetch('https://lobby/list')).text();
-    return new Response(`{"open":true,"busy":${busy(env)},"rooms":${list}}`, {
+    /* now: the clock the rooms' emptySince is on (src/share/roomwire.js). */
+    return new Response(`{"open":true,"busy":${busy(env)},"now":${Date.now()},"rooms":${list}}`, {
       headers: { ...headers, 'content-type': 'application/json', 'cache-control': 'no-store' },
     });
   }

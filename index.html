@@ -1328,6 +1328,55 @@
          is what pins the menu to the bottom. Here the cards are that block,
          so the foot gives the space up rather than splitting it. */
       .screen-title.is-gate .title-foot { margin-top: 0; }
+      /*
+       * THE GATE'S ROOMS PANEL, beside the wordmark (src/ui/ui.js
+       * renderTitleRooms). The brand and it share .title-top, which is a
+       * plain block, the brand alone in it, in every state but the gate.
+       * The panel stops short of the right edge, where the sign in chip and
+       * the music dock sit over the page (.signin-chip, .music-dock): the
+       * dock is at most about 190 px wide with its longest title, 16 px in.
+       */
+      .gate-rooms { display: none; }
+      .screen-title.is-gate .title-top {
+        display: flex; align-items: flex-end; gap: clamp(16px, 2.4vw, 40px);
+      }
+      .screen-title.is-gate .brand { flex: 0 1 auto; min-width: 0; }
+      .screen-title.is-gate .gate-rooms:not([hidden]) {
+        display: flex; flex-direction: column; gap: 7px;
+        flex: 0 1 31em; min-width: 0;
+        margin: 0 clamp(190px, 16vw, 210px) 0 auto;
+        padding: 10px 12px 11px;
+        border-radius: 4px;
+        background: rgba(16, 22, 17, 0.8);
+        border-top: 2px solid var(--mint);
+        box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.10);
+        pointer-events: auto;
+      }
+      .gate-rooms-head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+      .gate-rooms-title {
+        flex: 0 0 auto;
+        font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sakura);
+      }
+      .gate-rooms-count {
+        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        font-size: 14px; font-weight: 650; color: var(--mint);
+      }
+      .gate-rooms-list, .gate-rooms-buttons { display: flex; gap: 6px; min-width: 0; }
+      .gate-room {
+        flex: 1 1 0; min-width: 0;
+        display: flex; flex-direction: column; justify-content: center; gap: 1px;
+        padding: 6px 10px; border-radius: 3px; cursor: pointer;
+        background: rgba(244, 236, 214, 0.06);
+        box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.12);
+      }
+      .gate-room-name, .gate-room-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .gate-room-name { font-size: 14.5px; font-weight: 650; color: var(--cream); }
+      .gate-room-value { font-size: 12px; color: rgba(235, 230, 215, 0.72); }
+      .gate-room-all, .gate-room-make { align-items: center; }
+      .gate-room-make .gate-room-name { color: var(--mint); }
+      .gate-room.on { background: rgba(125, 255, 180, 0.16); box-shadow: inset 0 0 0 2px var(--sakura); }
+      .gate-room.on .gate-room-name { color: var(--sakura); }
+      .gate-room:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
       .gate-card {
         flex: 1 1 0;
         min-width: 0;
@@ -2956,6 +3005,12 @@
            bottom of the column: the last 52 px would be under the bar. */
         .screen-title.is-gate { padding-bottom: calc(2vh + var(--bar-bot)); }
         .screen-title.is-gate .title-copy { width: 100%; }
+        .screen-title.is-gate .title-top { flex-direction: column; align-items: stretch; gap: 10px; }
+        .screen-title.is-gate .gate-rooms:not([hidden]) { flex: 0 0 auto; margin: 0; padding: 8px 10px 9px; gap: 6px; }
+        .gate-room { padding: 4px 8px; }
+        .gate-room-name { font-size: 13.5px; }
+        .gate-room-value { font-size: 11px; }
+        .gate-rooms-buttons .gate-room { padding: 5px 8px; }
         .screen-title.is-gate .gate-cards {
           flex-direction: column;
           gap: 10px;
@@ -3042,6 +3097,21 @@
           margin: 0 auto 6px;
         }
       }
+      /* AN UPRIGHT PHONE UNDER 700 PX with the rooms panel over seven cards:
+         at 360 by 640 the panel took the 120 px the cards had to spare
+         and more, so the cards' pictures come down a size and the panel
+         sits tighter (scripts/mode-cards-check.js). */
+      @media (max-width: 860px) and (min-height: 521px) and (max-height: 700px) {
+        .screen-title.is-gate .gate-cards[data-count="7"] { gap: 4px; }
+        .gate-cards[data-count="7"] .gate-card-art { min-height: 38px; }
+        .gate-cards[data-count="7"] .gate-card-body { gap: 1px; padding: 4px 12px 5px; }
+        .gate-cards[data-count="7"] .gate-card-name { font-size: 16px; }
+        .gate-cards[data-count="7"] .gate-card-mark { width: 28px; height: 28px; bottom: 3px; }
+        .screen-title.is-gate .title-top { gap: 6px; }
+        .screen-title.is-gate .gate-rooms:not([hidden]) { padding: 6px 8px 7px; gap: 5px; }
+        .gate-room { padding: 3px 7px; }
+        .gate-rooms-buttons .gate-room { padding: 4px 7px; }
+      }
       @media (max-height: 520px) {
         .screen-title {
           padding: 1.6vh 3.5vw 1.4vh;
@@ -3069,6 +3139,19 @@
           font-size: 15px;
         }
         .screen-title.is-gate { padding-bottom: calc(1.4vh + var(--bar-bot)); }
+        /* The rooms panel on a phone on its side is one line under the
+           brand: its count, the rooms, and its two buttons. Three lines
+           of it put the cards under the command bar at 844 by 390. It
+           stops short of the music dock, which reaches down to it. */
+        .screen-title.is-gate .gate-rooms:not([hidden]) {
+          flex-direction: row; align-items: stretch; padding: 5px 8px; gap: 6px;
+          margin: 0 190px 0 0;
+        }
+        .gate-rooms-head { flex: 0 0 8.5em; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; overflow: hidden; }
+        .gate-rooms-count { font-size: 11.5px; line-height: 1.15; white-space: normal; }
+        .gate-rooms-list { flex: 1 1 auto; }
+        .gate-rooms-buttons { flex: 0 0 auto; }
+        .gate-rooms-buttons .gate-room { flex: 0 0 auto; justify-content: center; }
         /* A landscape phone is 390 px tall and matches the width rule above
            as well, so this undoes the stacking: side by side is the only way
            two cards fit in that height, and the sentence goes so that the

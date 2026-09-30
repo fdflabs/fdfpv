@@ -24,7 +24,7 @@
  * across the restart, and the public room listed again straight after it.
  *
  * A check against a live server makes one private room and leaves it to
- * be purged ten minutes after, like any room nobody is in.
+ * be purged five minutes after, like any room nobody is in.
  *
  * This file is part of WebFPVSimulator.
  *

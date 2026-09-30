@@ -21,6 +21,14 @@
  * joins C's room by code. C's cursor is on Start Catch the Ace!, Enter,
  * and both pages count down to the go.
  *
+ * THE ROOMS PANEL (the owner, 2026-09-30: "prominent place to choose rooms
+ * right at the main page") is laid out with the cards at every size: in
+ * the window, above the cards and clear of them, clear of the sign in
+ * chip and the music dock. With a public room made on the server, page E
+ * (1280 by 720) reads the count, walks Right off the last card onto the
+ * room and joins it with Enter; page F, an upright phone, steps the pad
+ * onto All rooms and chooses it, and clicks Make a room.
+ *
  * No page error on any page. Pictures in outdir, not in the repository.
  *
  * This file is part of WebFPVSimulator.
@@ -85,7 +93,29 @@ const LAYOUT = `(() => ({
       facts: Math.round(c.querySelector('.gate-card-facts').getBoundingClientRect().bottom),
     };
   }),
+  panel: (() => {
+    const n = document.querySelector('.screen-title .gate-rooms');
+    if (!n || n.hidden) {
+      return null;
+    }
+    const r = n.getBoundingClientRect();
+    return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)];
+  })(),
+  chips: [...document.querySelectorAll('.signin-chip, .music-dock')].filter((n) => !n.hidden && n.getBoundingClientRect().width > 0).map((n) => {
+    const r = n.getBoundingClientRect();
+    return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)];
+  }),
 }))()`;
+
+const apartBox = (a, b) => a[2] <= b[0] || b[2] <= a[0] || a[3] <= b[1] || b[3] <= a[1];
+
+/* The rooms panel: in the window, above every card and clear of it, and
+ * clear of the chips that float over the page's corner. */
+function panelLaidOut(v) {
+  const p = v.panel;
+  return Boolean(p) && p[0] >= 0 && p[1] >= 0 && p[2] <= v.w && p[3] <= v.h
+    && v.cards.every((c) => p[3] <= c.box[1] && apartBox(p, c.box)) && v.chips.every((c) => apartBox(p, c));
+}
 
 function laidOut(v) {
   const c = v.cards;
@@ -202,6 +232,8 @@ try {
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
     check(`${w} by ${h}: seven cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+    check(`${w} by ${h}: the rooms panel in the window without scrolling, above the cards, clear of them and of the corner chips`,
+      panelLaidOut(v), `panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)} first card ${JSON.stringify(v.cards[0].box)}`);
     await shot(a, `gate-${w}x${h}`);
   }
   await resize(a, 1280, 720);
@@ -301,6 +333,81 @@ try {
   for (const p of pages) {
     await p.close();
   }
+}
+
+/* THE ROOMS PANEL, driven. A public room with a name to find. */
+const OPEN = `Open Club ${100 + Math.floor(Math.random() * 900)}`;
+const made = await (await fetch(`${rooms}/v2/create`, {
+  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: OPEN }),
+})).json();
+check('a public room is made for the panel to show', /^[A-Z0-9]{6}$/.test(made.code || ''), JSON.stringify(made));
+const e = await openPage({ root, url, width: 1280, height: 720 });
+const f = await openPage({ root, url, width: 390, height: 844 });
+const PANEL = `(() => ({
+  count: (document.querySelector('.gate-rooms-count') || {}).textContent || '',
+  items: window.__ui.items().map((it, i) => ({ i, lobby: it.lobby || null, label: it.label, action: it.action || null })).filter((it) => it.lobby),
+  on: [...document.querySelectorAll('.gate-room.on .gate-room-name')].map((n) => n.textContent),
+}))()`;
+const roomAction = `lobby:friends-room-${made.code}`;
+try {
+  for (const p of [e, f]) {
+    await p.until('window.__shellReady === true', 300000);
+    await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)})`, 60000).catch(() => {});
+  }
+  const panel = await e.evaluate(PANEL);
+  check('the panel says how many rooms and pilots are flying', /\d+ rooms?, (\d+ pilots? flying|nobody flying yet)|open, nobody/.test(panel.count), panel.count);
+  check('and lists the room, with All rooms and Make a room', panel.items.some((it) => it.action === roomAction && it.label === OPEN)
+    && panel.items.some((it) => it.action === 'lobby:rooms') && panel.items.some((it) => it.action === 'lobby:roomnew'), JSON.stringify(panel.items));
+  await shot(e, 'panel-1280x720');
+
+  /* E, the keyboard: Right off the last card lands on the panel's first room. */
+  const lastCard = await e.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
+  await e.evaluate(`(() => { window.__ui.setCursor(${lastCard}); return true; })()`);
+  const walked = [];
+  for (let i = 0; i < 6 && (await e.evaluate(HERE))[0] !== roomAction; i += 1) {
+    await e.tap('ArrowRight');
+    await e.sleep(150);
+    walked.push((await e.evaluate(PANEL)).on.join());
+  }
+  check('Right from the last card walks onto the panel, lit as the cursor moves', (await e.evaluate(HERE))[0] === roomAction && walked.includes(OPEN),
+    walked.join(' > '));
+  await e.tap('Enter');
+  await e.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(made.code)}`, 30000).catch(() => {});
+  check('Enter on it joins that room, on the room screen', await e.evaluate(`window.__rooms().code === ${JSON.stringify(made.code)} && window.__ui.screen === 'friends'`),
+    await e.evaluate("JSON.stringify([window.__rooms().phase, window.__rooms().code, window.__ui.screen])"));
+
+  /* F, an upright phone: the pad, then the mouse. */
+  await shot(f, 'panel-390x844');
+  const fLast = await f.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
+  await f.evaluate(`(() => { window.__ui.setCursor(${fLast}); return true; })()`);
+  const pad = (nav) => f.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
+  for (let i = 0; i < 8 && (await f.evaluate(HERE))[0] !== 'lobby:rooms'; i += 1) {
+    await pad({ down: true });
+    await f.sleep(120);
+  }
+  check('the pad steps down off the last card onto All rooms', (await f.evaluate(HERE))[0] === 'lobby:rooms', (await f.evaluate(HERE)).join());
+  /* Roll right chooses on the gate. The first poll after a screen change
+   * only learns where the sticks are (pollPad), hence the retry. */
+  for (let i = 0; i < 3 && !(await f.evaluate("window.__ui.screen === 'rooms'")); i += 1) {
+    await pad({ right: true });
+    await f.sleep(300);
+  }
+  check('and choosing it opens the lobby', await f.evaluate("window.__ui.screen === 'rooms'"), await f.evaluate('window.__ui.screen'));
+  await f.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction.slice('lobby:'.length))})`, 15000).catch(() => {});
+  check('which lists the room', await f.evaluate(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction.slice('lobby:'.length))})`));
+  await shot(f, 'panel-lobby-390x844');
+  await f.tap('Escape');
+  await f.tap('Escape');
+  await f.tap('Escape');
+  await f.until('window.__ui.onGate()', 10000).catch(() => {});
+  await click(f, '.gate-room-make');
+  await f.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
+  check('a click on Make a room opens Make a room', await f.evaluate("window.__ui.screen === 'roomnew'"), await f.evaluate('window.__ui.screen'));
+  const errs = [e, f].flatMap((p) => p.errors).filter((x) => !x.startsWith('network:'));
+  check('no page error on the panel\'s pages', errs.length === 0, errs.slice(0, 3).join(' | '));
+} finally {
+  await e.close();
+  await f.close();
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

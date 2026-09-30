@@ -16,11 +16,14 @@
  *   GET /v2/public/<map>   quick join: the busiest listed room of that map
  *                          with a seat, or a new one (front.js)
  *
- * AN EMPTIED ROOM stays listed for LIST_GRACE_MS, so a pilot whose tab
- * reloaded finds it again, and a room just made is listed before its
- * maker's socket arrives. After that it leaves the list; the room itself
- * is purged ten minutes after its last pilot (host.js PURGE_MS), and if a
- * pilot comes back by its code before then it reports and is listed again.
+ * AN EMPTIED ROOM stays listed, marked empty with the time it emptied,
+ * until the room itself is purged, five minutes after its last pilot left
+ * (host.js PURGE_MS): LIST_GRACE_MS is that same number, and the time is
+ * the room's own (emptySince in its line), so the list never offers a room
+ * that has gone, and a pilot whose tab reloaded, or who left a moment too
+ * soon, finds it there to join again. A room just made is listed before
+ * its maker's socket arrives. A pilot back before the purge keeps it, and
+ * it is listed with its pilots again.
  *
  * A HIDDEN ROOM (safety.js: enough pilots reported its name) is never
  * listed and never handed to a quick join. Its pilots fly on.
@@ -54,10 +57,10 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { PUBLIC_CAP } from '../../src/share/roomwire.js';
+import { EMPTY_CLOSE_MS, PUBLIC_CAP } from '../../src/share/roomwire.js';
 
 export const PENDING_MS = 30000;
-export const LIST_GRACE_MS = 60000;
+export const LIST_GRACE_MS = EMPTY_CLOSE_MS;
 /* Bounds on what the lobby holds and answers: a thousand rooms is sixteen
  * thousand pilots, far past what one VM carries, and a list longer than a
  * couple of hundred rows is not something a child scrolls. */
@@ -71,9 +74,9 @@ export const LIST_MAX = 200;
 export const LIST_CACHE_MS = 1000;
 const MAP_RE = /^[a-z0-9_]{1,32}$/;
 
-/* What the list shows of a room: its meta, its pilot count and the game
- * on (core.js activity()). */
-export function listingOf(meta, n, activity) {
+/* What the list shows of a room: its meta, its pilot count, the game on
+ * (core.js activity()) and, empty, when it went empty (host.js). */
+export function listingOf(meta, n, activity, emptySince = null) {
   return {
     code: meta.code,
     name: meta.name ?? null,
@@ -86,6 +89,7 @@ export function listingOf(meta, n, activity) {
     mode: meta.mode ?? null,
     hidden: Boolean(meta.hidden),
     created: meta.epoch,
+    emptySince: n > 0 ? null : emptySince,
   };
 }
 
@@ -125,7 +129,10 @@ export class LobbyBook {
       }
     }
     const pending = old && old.n === entry.n ? old.pending : [];
-    const emptySince = entry.n > 0 ? null : (old && old.emptySince != null ? old.emptySince : now);
+    /* The room's own time when it sends one; the book's guess otherwise. */
+    const emptySince = entry.n > 0 ? null
+      : Number.isFinite(entry.emptySince) ? entry.emptySince
+        : (old && old.emptySince != null ? old.emptySince : now);
     this.rooms[entry.code] = { ...entry, pending, emptySince };
     return true;
   }
@@ -139,6 +146,7 @@ export class LobbyBook {
       .slice(0, LIST_MAX)
       .map((e) => ({
         code: e.code, name: e.name, pick: e.pick, map: e.map, n: e.n, cap: e.cap, game: e.game, state: e.state, mode: e.mode,
+        emptySince: e.emptySince,
       }));
   }
 
@@ -240,7 +248,7 @@ export function reportRoom(env, core, now) {
   if (!core || !core.meta.public || !core.meta.code) {
     return null;
   }
-  const entry = listingOf(core.meta, core.seats.size, core.activity(now));
+  const entry = listingOf(core.meta, core.seats.size, core.activity(now), core.emptySince ?? null);
   const key = JSON.stringify(entry);
   if (core.lastListing === key) {
     return null;

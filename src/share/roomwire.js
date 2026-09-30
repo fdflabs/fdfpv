@@ -534,14 +534,26 @@ export const PUBLIC_CAP = 16;
  * its picker name instead: `pick`, three indices like a pilot's, drawn by
  * the room, shown by each receiver in its own language.
  *
- *   GET /v2/rooms   { open, rooms: [{ code, name, pick, map, n, cap,
- *                   game, state, mode }] }, public rooms only, people
- *                   first then newest; game null (free flight), 'race',
- *                   'tag' or 'combat', state 'waiting', 'countdown' or 'on'
+ *   GET /v2/rooms   { open, busy, now, rooms: [{ code, name, pick, map, n,
+ *                   cap, game, state, mode, emptySince }] }, public rooms
+ *                   only, people first then newest; game null (free
+ *                   flight), 'race', 'tag' or 'combat', state 'waiting',
+ *                   'countdown' or 'on'; emptySince the server ms its last
+ *                   pilot left (null while anybody is in), and now the
+ *                   server's clock, so a browser whose clock is off still
+ *                   says when an empty room closes. A server from before
+ *                   2026-09-30 sends neither, and a browser from before
+ *                   then ignores both.
  */
 export const ROOM_NAME_MIN = 3;
 export const ROOM_NAME_MAX = 32;
 export const ROOM_MODES = ['race', 'tag', 'combat'];
+/* A room with nobody in it closes this long after its last pilot left,
+ * public or private (the owner, 2026-09-30: "room closes after 5 minutes of
+ * it being empty"). One number for the three places that must agree: the
+ * room's purge (edge/rooms/host.js), how long the lobby still lists it
+ * (edge/rooms/lobby.js), and the "closes in" the browser shows. */
+export const EMPTY_CLOSE_MS = 5 * 60 * 1000;
 /* How often an open Rooms screen asks for the list (src/share/roomlist.js);
  * here because the server sizes its per address list limit from it. */
 export const LIST_EVERY_MS = 4000;
