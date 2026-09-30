@@ -634,6 +634,7 @@ export function warSection(check) {
     check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
     check('itaipu-4 is mission 1 at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
       && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-1'].waves);
+  }
   {
     /* One airframe a pilot. Seat 1 kills a Strike head on (spent 1,
      * earned 1: two this round), is back, and crashes its second; seat 2
