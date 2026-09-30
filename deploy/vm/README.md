@@ -129,6 +129,40 @@ BUGS_TOKEN="$(ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 sudo sed -n 's/^BUGS_
 curl -fsS -H "authorization: Bearer $BUGS_TOKEN" 'https://129.151.39.48/board/api/bugs?status=open'
 ```
 
+### The optional Google sign-in
+
+The accounts live in the tracks server (tracks-api/accounts.js, the
+tables in tracks-api/migrations/0002_accounts.sql, applied by itself on
+the first start after the deploy). It needs two things, both set by the
+files here:
+
+- `GOOGLE_CLIENT_ID`, public, in `fdfpv-tracks.service`; the same string
+  as `GOOGLE_CLIENT_ID` in `src/share/account.js`.
+- `ACCOUNTS_SECRET`, which seals the pilot keys the accounts carry,
+  generated on the VM by `deploy.sh` step 4b into
+  `/etc/fdfpv/accounts.env` (root, mode 600), read by the tracks unit
+  only. It never leaves the VM and is never rotated: a changed secret
+  cannot open the keys sealed with the old one. Back it up with
+  `tracks.db`, together.
+
+Without either, every `/api/account` route answers 503 and the rest of
+the tracks server is as it was. The server fetches Google's keys from
+www.googleapis.com, so the VM needs outbound HTTPS (it has it; dnf uses
+it). The rooms unit asks the tracks server about a signed in pilot's
+session over loopback (`ACCOUNTS_ORIGIN` in `fdfpv-rooms.service`); if
+that fails the pilot is seated as a guest. The board takes a callsign
+claim and a key link on `/board/api/pilots` and `/board/api/pilots/link`,
+which need nothing configured.
+
+Is it on, after a deploy:
+
+```sh
+curl -sS -X POST -H 'content-type: application/json' -d '{"credential":"x"}' \
+  https://129.151.39.48/api/account/google
+```
+
+answers 401 with `"reason":"not a token"` when it is, 503 when it is not.
+
 ## Check it
 
 ```sh
