@@ -18,8 +18,10 @@
  * hands the rooms socket's frames to it: the room's real wire, on the
  * real shell, with the real map's scene, and no plant. With --main the
  * pages run src/main.js's own wiring (docs/WAR-WIRING.md), the plant and
- * all, and the check holds that too: B flies with crash damage off and
- * the war turns it on; A's warhead breaks A's craft; the Switchyard burns
+ * all, and the check holds that too: B's own crash damage setting is
+ * off, the room (#258: every room but a friendly one) has damage on for
+ * it before the war and the war keeps it on, and B's setting is still
+ * off after; A's warhead breaks A's craft; the Switchyard burns
  * while the war lasts and is whole after it; and the radio link is the
  * pilot's own preset all through, as outside a war (the owner took the
  * signal out of the war on 2026-09-29).
@@ -223,8 +225,9 @@ const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`Defend Itaipu in two pages, rooms at ${rooms}, wired by ${MAIN ? 'src/main.js' : 'scripts/war-twopage-wire.js'}`);
 
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#d8432f') });
-/* With main.js's wiring, B's own setting has crash damage off: the war
- * must turn it on for B's warhead to break anything. */
+/* With main.js's wiring, B's own setting has crash damage off: the room
+ * turns it on (#258) and the war must keep it on for B's warhead to break
+ * anything, without touching B's saved setting. */
 const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6', !MAIN) });
 const pages = [a, b];
 const names = ['A', 'B'];
@@ -408,7 +411,12 @@ try {
   /* The radio link before the war, which the war must leave as it is. */
   let link0 = null;
   if (MAIN) {
-    check('B flies with its own crash damage setting off before the war', (await b.evaluate('window.__war().damage')) === false);
+    /* Since #258 every room but a friendly one forces crash damage on,
+     * so B flies damaged before the war whatever its own setting says. */
+    const own = await b.evaluate('window.__ui.settings.crashDamage');
+    const on = await b.evaluate('window.__war().damage');
+    check('B\'s own crash damage setting is off, and the room already flies it with damage on before the war', own === false && on === true,
+      `setting ${own}, flying with damage ${on}`);
     link0 = await Promise.all(pages.map((p) => p.evaluate('JSON.stringify([window.__war().link, window.__link().id])')));
   }
   const linkSame = async () => {
@@ -686,6 +694,8 @@ try {
     await a.sleep(500);
     const after = await Promise.all(pages.map((p) => p.evaluate('window.__war()')));
     check('after it the dam is whole', after.every((w) => Object.keys(w.burning).length === 0), after.map((w) => JSON.stringify(w.burning)).join(' | '));
+    const ownAfter = await b.evaluate('window.__ui.settings.crashDamage');
+    check('and the war left B\'s own crash damage setting as it was: off', ownAfter === false, `setting ${ownAfter}`);
     const l = await linkSame();
     check('and the radio link was never touched, the war\'s hits and warheads and all', l.ok, l.detail);
   }
