@@ -4419,6 +4419,31 @@ export async function boot({
   ui.onCampaignCard = () => campaign.open();
   window.__campaign = campaign;
 
+  function roomLeave() {
+    roomRaceRetire();
+    roomLinkState.leave();
+    roomNote = null;
+  }
+
+  /*
+   * A GAME'S TITLE CARD IN A ROOM RUNNING ANOTHER GAME leaves that room.
+   * The owner (2026-09-30), still in the private Itaipu room of a Defend
+   * Itaipu mission: "when i enter the toilet paper mode, it then switches
+   * to mission mode, in itaipu". The card opened that room, headed it as
+   * set up for combat, the room refused combat's start because the war
+   * was on, and the war's go flew the pilot into it. Out of the room, the
+   * card's screen is the one it always had without a room: Make a room
+   * first, under the card's game. Leaving ends nobody else's game, and a
+   * game with too few pilots left is ended by the room (edge/rooms/core.js
+   * settleGames).
+   */
+  ui.onGameCard = (game) => {
+    const running = roomLinkState.state().phase === 'open' ? roomRunning() : null;
+    if (running && running !== game) {
+      roomLeave();
+    }
+  };
+
   ui.onFriends = async (action) => {
     if (action === 'friends-war-start') {
       if (campaign.startSelected()) {
@@ -4482,9 +4507,7 @@ export async function boot({
       return;
     }
     if (action === 'friends-leave') {
-      roomRaceRetire();
-      roomLinkState.leave();
-      roomNote = null;
+      roomLeave();
       ui.refreshFriends();
       return;
     }

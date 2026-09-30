@@ -12994,6 +12994,11 @@ export class Ui {
        * by the shell's room rows (src/main.js friendsRows) and sent in this
        * pilot's profile, so the room screen leads with it. */
       this.roomGame = way.game ?? null;
+      /* The shell leaves a room that is running another game, so the card
+       * never opens on it (onGameCard, src/main.js). */
+      if (way.game && this.onGameCard) {
+        this.onGameCard(way.game);
+      }
       saveSettings(this.settings);
       /* The shell has to hear this before anything is flown: it is the
        * call that swaps the plant in the compiled module and reloads the
