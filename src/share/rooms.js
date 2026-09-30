@@ -18,7 +18,10 @@
  * in this tab's sessionStorage only: a reload rejoins, another tab or
  * another day does not. Nothing identifying goes to a room: the browser's
  * pilot key (src/share/identity.js) is a persistent identifier and a room
- * has no use for one, so it is never sent (section 2 of the plan).
+ * has no use for one, so it is never sent (section 2 of the plan). The one
+ * exception is a pilot who chose to sign in (src/share/account.js) and has
+ * a callsign: their hello carries their session, which the room server
+ * checks and forgets, so the others see the callsign.
  *
  * WHICH SERVER. A ?rooms= query (remembered here, `?rooms=off` forgets
  * it), else the production server when this page is the deployed site. A
@@ -45,6 +48,7 @@ import {
   CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO, ROOM_LEVEL,
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
+import { readAccount } from './pilot.js';
 
 /* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md).
  * The Worker it replaced, https://fdfpv-rooms.fdfretes.workers.dev, is
@@ -204,6 +208,24 @@ export function setFigurePick(f) {
 }
 
 /*
+ * A signed in pilot's seat comes with the callsign the room checked with
+ * the accounts server (edge/rooms/node.js) beside its picker name, and
+ * the callsign is what is shown: from here on a peer's `name` is either a
+ * picker name's three indices or a callsign string, which roomName in
+ * src/main.js tells apart.
+ */
+function shownName(m) {
+  return typeof m.callsign === 'string' && m.callsign ? m.callsign : m.name;
+}
+
+/* What this pilot is called in a room: the callsign while signed in, the
+ * picker name otherwise, in the same two shapes. */
+export function ownName() {
+  const account = readAccount();
+  return account && account.callsign ? account.callsign : namePick();
+}
+
+/*
  * handlers, all optional: onWelcome(welcome), onJoin(seat, name, profile),
  * onLeave(seat, dropped), dropped when the socket went without a leave
  * and the pilot may be back, onWorld(map) when the host moved the room to
@@ -305,7 +327,11 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       /* The seat held before a drop, so a room that was restarted and
        * forgot the token can put the pilot back in the same slot. */
       const seat = welcome && welcome.code === code ? { seat: welcome.seat } : {};
-      sendText({ type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat });
+      const account = readAccount();
+      const session = account && account.callsign ? { session: account.session } : {};
+      sendText({
+        type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat, ...session,
+      });
     };
     socket.onmessage = (ev) => {
       if (ws !== socket) {
@@ -332,6 +358,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         return;
       }
       if (m.type === 'welcome') {
+        for (const p of Array.isArray(m.peers) ? m.peers : []) {
+          p.name = shownName(p);
+        }
         welcome = m;
         attempt = 0;
         write('session', TOKEN_KEY, m.token);
@@ -360,7 +389,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         if (welcome) {
           welcome.host = m.host ?? welcome.host;
         }
-        handlers.onJoin?.(m.seat, m.name, m.profile);
+        handlers.onJoin?.(m.seat, shownName(m), m.profile);
       } else if (m.type === 'leave') {
         if (welcome && m.host) {
           welcome.host = m.host;

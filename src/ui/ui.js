@@ -140,7 +140,8 @@ import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { crashRecord } from '../share/crashrecord.js';
 import { createShotTray } from './bugshots.js';
 import { watchVersion } from './update.js';
-import { nameRules, readPilotName, writePilotName } from '../share/pilot.js';
+import { nameRules, readAccount, readPilotName, writePilotName } from '../share/pilot.js';
+import { accountsAvailable } from '../share/account.js';
 import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
@@ -1692,6 +1693,34 @@ function placeSticks(left, right, ch, mode = DEFAULT_STICK_MODE) {
     const vert = map.vert === 'throttle' ? ch.throttle * 2 - 1 : -ch.pitch;
     placeNub(stick.nub, clamp(ch[map.horiz]), clamp(vert));
   }
+}
+
+/* The Pilot screen's rows for a signed in pilot (src/ui/accountui.js
+ * handles their actions). */
+function accountRows(account) {
+  return [
+    {
+      label: str('account.callsign'),
+      value: account.callsign || str('account.callsign_none'),
+      action: 'accountcallsign',
+      note: str('account.callsign_note'),
+    },
+    {
+      label: str('account.sign_out'),
+      value: str('account.sign_out_value'),
+      action: 'accountsignout',
+      note: str('account.sign_out_note'),
+    },
+    { label: str('account.delete'), action: 'accountdelete', note: str('account.delete_note') },
+  ];
+}
+
+/* Signed in or not: what signing in stores, and the terms, one row each. */
+function accountPageRows() {
+  return [
+    { label: str('account.privacy'), action: 'accountprivacy', note: str('account.privacy_note') },
+    { label: str('account.terms'), action: 'accountterms', note: str('account.terms_note') },
+  ];
 }
 
 function el(tag, cls, text) {
@@ -6552,6 +6581,10 @@ export class Ui {
     if (this.screen === 'pilot') {
       const ids = musicIds();
       const name = readPilotName();
+      /* Signed in (src/share/account.js), the callsign is the name and the
+       * account carries the pilot key, so those rows give way to the
+       * account's. */
+      const account = accountsAvailable() ? readAccount() : null;
       /* Same contract as Quad above. */
       const midRun = this.returnTo === 'paused';
       return [
@@ -6567,25 +6600,34 @@ export class Ui {
             window.location.reload();
           },
         ),
-        {
-          label: str('ui.your_name'),
-          value: name || str('ui.not_set'),
-          action: 'setname',
-          note: name
-            ? str('ui.posted_times_and_published_tracks_carry')
-            : str('ui.needed_to_publish_a_track_or', { nameRules: nameRules() }),
-        },
-        {
-          label: str('ui.pilot_key'),
-          value: str('ui.this_browser'),
-          action: 'exportkey',
-          note: str('ui.on_the_board_your_name_belongs'),
-        },
-        {
-          label: str('ui.import_pilot_key'),
-          action: 'importkey',
-          note: str('ui.paste_a_key_exported_from_another'),
-        },
+        ...(account ? accountRows(account) : [
+          ...(accountsAvailable() ? [{
+            label: str('account.sign_in'),
+            value: str('account.sign_in_value'),
+            action: 'accountsignin',
+            note: str('account.sign_in_note'),
+          }] : []),
+          {
+            label: str('ui.your_name'),
+            value: name || str('ui.not_set'),
+            action: 'setname',
+            note: name
+              ? str('ui.posted_times_and_published_tracks_carry')
+              : str('ui.needed_to_publish_a_track_or', { nameRules: nameRules() }),
+          },
+          {
+            label: str('ui.pilot_key'),
+            value: str('ui.this_browser'),
+            action: 'exportkey',
+            note: str('ui.on_the_board_your_name_belongs'),
+          },
+          {
+            label: str('ui.import_pilot_key'),
+            action: 'importkey',
+            note: str('ui.paste_a_key_exported_from_another'),
+          },
+        ]),
+        ...(accountsAvailable() ? accountPageRows() : []),
         { label: str('ui.sticks'), section: true },
         {
           label: str('ui.choose_joystick'),

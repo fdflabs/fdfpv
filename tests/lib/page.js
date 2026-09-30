@@ -51,6 +51,7 @@ const VK = {
   ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40,
   Home: 36, End: 35, PageUp: 33, PageDown: 34,
   F1: 112, F2: 113, F3: 114, F8: 119,
+  BracketLeft: 219, BracketRight: 221,
 };
 
 export function keyInfo(code) {

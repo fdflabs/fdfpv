@@ -96,7 +96,7 @@ export function createWarCalls() {
       if (ev.type === 'state' && ev.to === 'live') {
         out.push('start');
       } else if (ev.type === 'state' && (ev.to === 'won' || ev.to === 'lost')) {
-        out.push(ev.to === 'won' ? 'win' : (v.why === 'rack' ? 'lose-rack' : 'lose-output'));
+        out.push(ev.to === 'won' ? 'win' : 'lose-output');
       } else if (ev.type === 'born') {
         const kind = ev.agents[0].kind;
         if (!QUIET_WAVES.has(kind)) {
@@ -104,6 +104,8 @@ export function createWarCalls() {
         }
       } else if (ev.type === 'boom') {
         blasts += 1;
+      } else if (ev.type === 'scouts') {
+        out.push('scouts-down');
       } else if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
         const m = /^(intake|penstock|gate)-\d+$/.exec(ev.target);
         const line = HIT_LINES[m ? m[1] : ev.target];
@@ -150,7 +152,15 @@ export function createWarCalls() {
     return out;
   }
 
-  return { events, reset };
+  /* A round's result (src/ui/warround.js), with the lines there are:
+   * held, the wave cleared; damaged, the grid on the edge; lost, every
+   * pilot out of airframes. */
+  function round(result) {
+    const line = { win: 'wave-clear', damaged: 'output-low', lost: 'lose-rack' }[result];
+    return line ? [line] : [];
+  }
+
+  return { events, reset, round };
 }
 
 /*

@@ -17,6 +17,9 @@
 #      value to the file named above (mode 600, first line the secret,
 #      second a dated note). It is never printed. Delete the env file on
 #      the VM and rerun to rotate it.
+#  4b. the first time only, ACCOUNTS_SECRET for the optional Google
+#      sign-in, on the VM into /etc/fdfpv/accounts.env (root, mode 600),
+#      never copied off it and never rotated (see the step),
 #   5. install.sh as root on the VM: the units, the journald cap and the
 #      Caddyfile, then restarts both servers (rooms clients get 1012 and
 #      reconnect into their seats) and reloads Caddy,
@@ -86,6 +89,20 @@ else
   )
   chmod 600 "$SECRET_FILE"
   echo "   generated on the VM and written to $SECRET_FILE (mode 600)"
+fi
+
+echo '4b. the accounts secret'
+# ACCOUNTS_SECRET seals the pilot keys that signed in accounts carry
+# (tracks-api/accounts.js). Made on the VM once and never copied off it:
+# it is only useful with tracks.db beside it, so back the two up together.
+# Lost or changed, the keys already sealed cannot be opened and those
+# accounts' sign ins fail with a 500 until it is put back, so it is never
+# rotated.
+if remote 'sudo test -f /etc/fdfpv/accounts.env'; then
+  echo '   already on the VM, left as it is'
+else
+  remote "sudo sh -c 'umask 077; printf \"ACCOUNTS_SECRET=%s\\n\" \"\$(openssl rand -base64 32)\" > /etc/fdfpv/accounts.env'"
+  echo '   generated on the VM in /etc/fdfpv/accounts.env (root, mode 600)'
 fi
 
 echo '5. units, journald, Caddy, restart'

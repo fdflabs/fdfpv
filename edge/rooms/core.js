@@ -448,7 +448,7 @@ export class RoomCore {
     const out = [];
     for (const [conn, s] of this.seats) {
       if (conn !== except) {
-        out.push({ seat: s.seat, name: s.name, profile: s.profile });
+        out.push({ seat: s.seat, name: s.name, profile: s.profile, ...(s.callsign ? { callsign: s.callsign } : {}) });
       }
     }
     return out;
@@ -467,7 +467,7 @@ export class RoomCore {
   attachmentOf(s) {
     return {
       seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address,
-      muted: s.muted || [], wreck: s.wreck ?? null, level: s.level || 0,
+      muted: s.muted || [], wreck: s.wreck ?? null, level: s.level || 0, callsign: s.callsign ?? null,
     };
   }
 
@@ -522,10 +522,16 @@ export class RoomCore {
   }
 
   /*
-   * hello: { proto, build, level?, token?, name: [adj, animal, number], profile }.
+   * hello: { proto, build, level?, token?, name: [adj, animal, number], profile, session? }.
    * newToken() is the caller's cryptographic source of a fresh seat token.
+   * callsign is a signed in pilot's, which the platform looked up from the
+   * hello's session with the accounts server (node.js) before this ran,
+   * or null: a guest, a session that did not check out, or a platform
+   * with no accounts server. It is never read from the message itself, so
+   * no hello can name itself one. It goes to every peer beside the picker
+   * name, which a build from before it shows instead.
    */
-  hello(conn, msg, now, address, newToken) {
+  hello(conn, msg, now, address, newToken, callsign = null) {
     if (msg.proto !== PROTO) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
@@ -588,6 +594,7 @@ export class RoomCore {
       seat,
       token: wanted && token ? token : newToken(),
       name: msg.name.slice(),
+      callsign,
       profile,
       joined,
       address: address || '',
@@ -638,7 +645,9 @@ export class RoomCore {
         ...this.war.welcome(this),
       }),
     });
-    actions.push(...this.others(conn, JSON.stringify({ type: 'join', seat, name: s.name, profile, host: this.host() })));
+    actions.push(...this.others(conn, JSON.stringify({
+      type: 'join', seat, name: s.name, ...(callsign ? { callsign } : {}), profile, host: this.host(),
+    })));
     actions.push(...wrecks.wrecksFor(this, conn));
     actions.push(...this.race.join(this, seat));
     this.combat.seat(seat, profile.airframe);
@@ -648,7 +657,7 @@ export class RoomCore {
     return actions;
   }
 
-  message(conn, data, now, address = '', newToken = null) {
+  message(conn, data, now, address = '', newToken = null, callsign = null) {
     const s = this.seats.get(conn);
     if (typeof data !== 'string') {
       if (s && data[0] === TYPE_PARTS) {
@@ -680,7 +689,7 @@ export class RoomCore {
       return [];
     }
     if (!s) {
-      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken) : [];
+      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign) : [];
     }
     const clock = msg.type === 't';
     if (bump(clock ? s.clockRate : s.sayRate, now, 1000) > (clock ? CLOCK_PER_S : TEXT_PER_S)) {

@@ -5,6 +5,14 @@
  * always one every screen can fly. A new mission is a file beside this one
  * and a line here.
  *
+ * A wave is { at, kind, n, per, route, target, spread }: n attackers for
+ * one pilot and `per` more for each pilot after the first (waveSize), all
+ * going for `target`, or, where it is a list, the k-th of them for
+ * target[k % target.length] (waveTarget), so a group splits over several
+ * and costs more than one target's megawatts when it gets through. The
+ * room sizes a wave by the pilots at the go and writes each attacker's n
+ * and target in its birth, so a screen never sizes one itself.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -24,3 +32,14 @@
 import itaipu1 from './itaipu-1.js';
 
 export const MISSIONS = Object.freeze({ [itaipu1.id]: itaipu1 });
+
+/* How many attackers a wave sends against `pilots` pilots (at least 1). */
+export function waveSize(wave, pilots) {
+  return Math.max(1, Math.round(wave.n + (wave.per || 0) * (Math.max(1, pilots) - 1)));
+}
+
+/* The target of a wave's k-th attacker, or null for a wave with none. */
+export function waveTarget(wave, k) {
+  const t = wave.target;
+  return Array.isArray(t) ? t[k % t.length] : t ?? null;
+}
