@@ -116,6 +116,7 @@ import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createAttackers } from './render/attackers.js';
 import { createWarHud } from './ui/warhud.js';
+import { createWarMarkers } from './ui/warmarkers.js';
 import { createWarCalls } from './render/warradio.js';
 import { startTrackSync } from './share/cloud.js';
 
@@ -836,7 +837,15 @@ export async function boot({
    * seat decides the world. Only a world this build can build in counts.
    */
   function seatedMapTrack() {
-    if (titleWorld || buildWorld || ui.settings.map !== 'track') {
+    if (titleWorld || buildWorld) {
+      return null;
+    }
+    return seatShare();
+  }
+  /* The map track the Track seat holds, whatever the title or the builder
+   * is showing, or null. */
+  function seatShare() {
+    if (ui.settings.map !== 'track') {
       return null;
     }
     let share = null;
@@ -1947,6 +1956,7 @@ export async function boot({
   function roomProfile() {
     const id = runAirframe;
     const parts = PROPS[id] ? partsEntry(ui.settings.parts, id) : null;
+    const status = roomStatus();
     return {
       airframe: id,
       map: view ? view.id : worldId(),
@@ -1954,7 +1964,38 @@ export async function boot({
       livery: (ui.settings.livery && ui.settings.livery[liveryKey(id)]) || null,
       parts: parts ? { prop: parts.prop, addons: parts.addons } : null,
       ...(ui.roomGame ? { game: ui.roomGame } : {}),
+      ...(status ? { status } : {}),
     };
+  }
+  /* Why this pilot sends no poses (ROOM_STATUSES in src/share/roomwire.js),
+   * for the others' marks, or null while flying. */
+  function roomStatus() {
+    if (document.hidden) {
+      return 'hidden';
+    }
+    if (!mapReady || swapInFlight) {
+      return 'loading';
+    }
+    if (mode === 'replay') {
+      return 'crashcam';
+    }
+    if (mode === 'flight' && ui.screen === 'flight') {
+      return null;
+    }
+    /* A run paused under the settings it opened is still a pause. */
+    return mode === 'paused' ? 'paused' : 'menu';
+  }
+  /* The profile to the room if it changed since the room last heard it. */
+  function roomTellProfile() {
+    if (roomLinkState.state().phase !== 'open') {
+      return;
+    }
+    const p = roomProfile();
+    const key = JSON.stringify(p);
+    if (key !== roomProfileSent) {
+      roomLinkState.sendProfile(p);
+      roomProfileSent = key;
+    }
   }
   /* The room's race (src/share/roomrace.js), wired below at RACING
    * TOGETHER. Its messages go out on the room's socket. */
@@ -1978,25 +2019,21 @@ export async function boot({
       if (roomWreckSender) {
         roomWreckSender.resend();
       }
-      /* A room flies in one world. In free flight the pilot is seated
-       * there; on a track they keep their track and see whoever is in its
-       * world. Against the SEAT, not the world drawn: a pilot who chose
-       * another world a moment ago is still looking at the old one while
-       * the new one builds, and comparing with that seated nothing.
-       * A pilot who has not answered Race or Freestyle yet (ui.mode null,
-       * which is everybody who opens a room's link) is seated too: left
-       * out, they flew the world they had last and saw nobody in the room. */
-      if (w.map && w.map !== ui.settings.map && ui.mode !== 'race' && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
-        roomNote = str('friends.other_world', { world: mapById(w.map).name });
-        ui.seatMap(w.map, { stay: true });
-      }
+      roomGone.clear();
+      roomSessionWelcome(w);
+      ui.checkVersion();
       ui.refreshFriends();
     },
     onJoin: (seat, name, profile) => {
+      roomGone.delete(seat);
       roomPeerJoin(seat, name, profile);
       ui.refreshFriends();
     },
-    onLeave: (seat) => {
+    onLeave: (seat, dropped) => {
+      const gone = roomPeers.get(seat);
+      if (dropped && gone) {
+        roomGone.set(seat, { name: gone.name, until: performance.now() + ROOM_GONE_MS });
+      }
       roomPeerLeave(seat);
       roomSafety.left(seat);
       roomCombat.leave(seat);
@@ -2018,6 +2055,7 @@ export async function boot({
       ui.refreshFriends();
     },
     onRoom: () => ui.refreshFriends(),
+    onWorld: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
       if (peer) {
@@ -2075,6 +2113,8 @@ export async function boot({
       }
       if (st.phase === 'idle' || st.phase === 'failed') {
         roomPeersClear();
+        roomGone.clear();
+        roomSummon = null;
         roomSafety.clear();
         roomRace.clear();
         roomRaceRunId = null;
@@ -2181,13 +2221,11 @@ export async function boot({
         combatHud.say(str(key, { cutter: combatNameOf(n.ev.cutter), victim: combatNameOf(n.ev.victim), points: n.ev.points }));
       } else if (n.state === 'on') {
         combatHud.say(str('combat.go'));
-      } else if (n.state === 'countdown' && (mode === 'title' || mode === 'results')
-        && ROOM_SEAT_SCREENS.includes(ui.screen) && mapReady && !swapInFlight) {
-        /* A round's countdown is the time to take off in, so a pilot
-         * waiting between runs on the room screen goes up with it, as a
-         * Catch the Ace match does: the Combat card's start row is one
-         * press from the air. A pilot already flying flies on. */
-        ui.onAction('fly', ui.settings);
+      } else if (n.state === 'countdown') {
+        /* A round's countdown is the time to take off in, so every pilot
+         * in the room goes up with it, from wherever they are (roomCall).
+         * A pilot already flying the room's world flies on. */
+        roomCall('game');
       }
     }
     const paper = roomCombat.paper();
@@ -2304,6 +2342,7 @@ export async function boot({
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
   const warHud = createWarHud(roomSeatName);
+  const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
   const warCalls = createWarCalls();
   /* The events of each frame as they were taken, for window.__war. */
   const warLog = [];
@@ -2415,32 +2454,8 @@ export async function boot({
     if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
       ui.onAction('restart');
     } else {
-      warUp = true;
+      roomCall('game', { restart: true });
     }
-  }
-
-  /* A pilot waiting on a room screen when the war began goes up with it,
-   * as combat's countdown takes one: seated in the room's world first if
-   * the seat is another, then flown once nothing is loading. One who has
-   * gone to another screen since, or is flying, is left alone. */
-  let warUp = false;
-  function warUpFrame() {
-    const w = roomLinkState.state().welcome;
-    if (!warUp || !w || !roomWar.on() || mode === 'flight' || !ROOM_SEAT_SCREENS.includes(ui.screen)) {
-      warUp = false;
-      return;
-    }
-    if (!mapReady || swapInFlight || ui.nameWait) {
-      return;
-    }
-    if (ui.settings.map !== w.map) {
-      notice = { text: str('war.other_world', { world: mapById(w.map).name }), untilMs: performance.now() + 3000 };
-      ui.mode = 'freestyle';
-      ui.seatMap(w.map, { stay: true });
-      return;
-    }
-    warUp = false;
-    ui.onAction('fly', ui.settings);
   }
 
   /* The war is over, or this pilot left it: the music stops, the dam is
@@ -2459,6 +2474,7 @@ export async function boot({
   function warLeave() {
     warAttackers.clear();
     warHud.update(null);
+    warMarkers.clear();
     if (warBegunId != null) {
       warFinish();
     }
@@ -2521,15 +2537,24 @@ export async function boot({
       warLog.splice(0, warLog.length - WAR_LOG_MAX);
     }
     warTargetsFrame(wallMs);
-    warUpFrame();
     if (replay) {
       warHud.update(null);
+      warMarkers.update(null, now, events);
       return;
     }
     warHud.events(events);
     warSay(warCalls.events(events, v));
-    warAttackers.update(roomWar.attackersAt(now), dt);
+    const live = roomWar.attackersAt(now);
+    warAttackers.update(live, dt);
     warDrawnAt = now;
+    /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
+     * is already on the air. */
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), pCurr.x, pCurr.y, pCurr.z)) {
+      const radio = audio.warRadio ? audio.warRadio.status() : null;
+      if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
+        warSay(['wave-hunter']);
+      }
+    }
     if (wallMs < warHudAt) {
       return;
     }
@@ -2707,6 +2732,7 @@ export async function boot({
         roomLinkState.join(wanted);
       }
     }
+    roomBarFrame(wallMs);
     const link = roomLinkState.state();
     if (link.phase !== 'open') {
       return;
@@ -2718,14 +2744,10 @@ export async function boot({
     roomRaceFrame(now, wallMs);
     roomTagFrame(now, wallMs);
     roomWarFrame(now, wallMs, dt);
+    roomSessionFrame(link.welcome, wallMs);
     if (wallMs > roomProfileCheckAt) {
       roomProfileCheckAt = wallMs + 500;
-      const p = roomProfile();
-      const key = JSON.stringify(p);
-      if (key !== roomProfileSent) {
-        roomLinkState.sendProfile(p);
-        roomProfileSent = key;
-      }
+      roomTellProfile();
     }
     if (mode === 'flight' && stateCurr && now >= roomNextSend) {
       roomNextSend = Math.max(roomNextSend + 1000 / 30, now - 1000 / 30);
@@ -2745,6 +2767,311 @@ export async function boot({
     tagCrownFrame(scene, dt);
     roomCombat.seated(link.welcome ? link.welcome.seat : 0, runAirframe);
     combatFrame(now, wallMs, scene, dt);
+  }
+
+  /*
+   * THE ROOM IS ONE SESSION. The owner, 2026-09-29, with four pilots in a
+   * room and only one of them drawn: "i cant see the 3 people in my room,
+   * force everyone in the same game and the same thing".
+   *
+   * The room's world (welcome.map, which only its host moves: the host's
+   * own choice of world is sent as the room's, edge/rooms/core.js world)
+   * and its game are where every pilot in it flies. The target is that
+   * world, on the room's track when it has one there and no other game is
+   * on (roomTarget). A summon (roomCall) is the room putting this pilot
+   * there and in the air: on joining and rejoining, whenever the target
+   * changes (the host moved the room, loaded a track, a game began or
+   * ended over a track), and when a game starts. It is carried out a step
+   * a frame from wherever the pilot is: the crash cam, the builder, the
+   * hangar or any menu, the pause, another world or a track of their own
+   * (roomSessionFrame). Nothing else moves a pilot: a pause, a menu and a
+   * results screen never do, so a wreck stays a wreck.
+   *
+   * Between summons a pilot may sit anywhere. The others see why beside
+   * the name (roomStatus, roomAwayText), and this pilot sees the room bar
+   * asking them to fly while the others are (roomBarView). A pilot who is
+   * not the host and picks another world or a track of their own is put
+   * back (roomDrift): that was the one way left to fly alone in a room.
+   */
+  /* ms a pilot whose socket dropped is still named, as reconnecting. */
+  const ROOM_GONE_MS = 30000;
+  /* ms the host's move of the room may take to come back before the
+   * host is put back in the room's world (a refusal, or a rooms server
+   * from before the move existed). */
+  const ROOM_ASK_MS = 4000;
+  /* seat -> { name, until }: pilots whose socket dropped (onLeave). */
+  const roomGone = new Map();
+  /* { why, fly, restart, moved } while this pilot is owed a move: fly,
+   * into the air at the end; restart, from the slot even when already
+   * flying; moved, once this summon has changed the seat or the world. */
+  let roomSummon = null;
+  /* The target this pilot was last summoned to, 'world|track id'. */
+  let roomSeenTarget = null;
+  /* What the host asked the room to take: { map, track, at }. */
+  let roomAsked = { map: null, track: null, at: 0 };
+
+  function roomCall(why, { restart = false } = {}) {
+    const fly = why !== 'join' || !['friends', 'rooms'].includes(ui.screen);
+    roomSummon = { why, fly, restart: restart || Boolean(roomSummon && roomSummon.restart) };
+  }
+
+  /* Where the room flies now: its world, on its track when it has one
+   * there, except in the games played in free flight. Combat is flown
+   * wherever the room is, so its rounds never move anybody off a track. */
+  function roomTarget(w) {
+    const t = roomRace.track();
+    const free = roomTag.on() || roomWar.on();
+    return { world: w.map, track: t && t.map === w.map && !free ? t : null };
+  }
+  const roomTargetKey = (t) => `${t.world}|${t.track ? t.track.id : ''}`;
+
+  /* The world this pilot's seat builds, the title's and the builder's aside. */
+  function seatWorld() {
+    if (ui.settings.map !== 'track') {
+      return mapById(ui.settings.map).id;
+    }
+    const seated = seatShare();
+    return seated ? seated.document.map : mapById('track').home;
+  }
+  function seatTrackId() {
+    const seated = seatShare();
+    return seated ? seated.document.id : null;
+  }
+  function roomInPlace(target) {
+    if (seatWorld() !== target.world) {
+      return false;
+    }
+    return target.track ? ui.settings.map === 'track' && seatTrackId() === target.track.id : ui.settings.map === target.world;
+  }
+  function roomHost(w) {
+    return Boolean(w) && w.host === w.seat;
+  }
+
+  function roomLeaveCrashCam() {
+    if (mode === 'replay' && crashCam) {
+      crashCam.close();
+    }
+  }
+
+  /* The welcome, a first join or a rejoin: the room's target is taken as
+   * seen, and this pilot is summoned to it. A racer is seated too, since
+   * #187 kept a pilot on a track of their own: that is a session of one. */
+  function roomSessionWelcome(w) {
+    const target = roomTarget(w);
+    roomSeenTarget = roomTargetKey(target);
+    roomAsked = { map: null, track: null, at: 0 };
+    if (!roomInPlace(target) && MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
+      roomNote = str('friends.other_world', { world: mapById(target.world).name });
+    }
+    roomCall('join');
+  }
+
+  /*
+   * A seat this pilot chose that is not the room's. The host's is asked of
+   * the room (a world, a track), and put back if the room has not taken it
+   * in ROOM_ASK_MS; anybody else's is put back at once. Not while the seat
+   * is being changed, or while the builder is open, whose world is its own
+   * and whose tracks are not flown as the room's until they are seated.
+   */
+  function roomDrift(w, wallMs) {
+    if (roomSummon || swapInFlight || !mapReady || (build && build.active && !build.racing) || !MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+      return;
+    }
+    const world = seatWorld();
+    const track = ui.settings.map === 'track' ? seatTrackId() : null;
+    const roomTrack = roomRace.track();
+    const offWorld = world !== w.map;
+    const offTrack = track != null && (!roomTrack || roomTrack.id !== track);
+    if (!offWorld && !offTrack) {
+      return;
+    }
+    /* A public room is listed under its world, so its host moves its
+     * track only. */
+    if (roomHost(w) && !(offWorld && w.public)) {
+      const asked = roomAsked.map === world && roomAsked.track === track;
+      if (!asked) {
+        roomAsked = { map: world, track, at: wallMs };
+        if (offWorld) {
+          roomLinkState.sendWorld(world);
+        }
+        const seated = offTrack ? seatShare() : null;
+        if (seated) {
+          roomRace.loadTrack(seated.document);
+        }
+        return;
+      }
+      if (wallMs - roomAsked.at < ROOM_ASK_MS) {
+        return;
+      }
+    }
+    roomSay(str('rooms.put_back', { world: mapById(w.map).name }));
+    roomCall('drift');
+  }
+
+  /* A line for this pilot, on the room screen and over a flight. */
+  function roomSay(text) {
+    roomNote = text;
+    notice = { text, untilMs: performance.now() + 4000 };
+  }
+
+  /* Every frame the room is open: the target watched, and a summon owed
+   * carried a step further. */
+  function roomSessionFrame(w, wallMs) {
+    if (!w) {
+      return;
+    }
+    const target = roomTarget(w);
+    const key = roomTargetKey(target);
+    if (key !== roomSeenTarget) {
+      const moved = roomSeenTarget != null && roomSeenTarget.split('|')[0] !== target.world;
+      roomSeenTarget = key;
+      roomAsked = { map: null, track: null, at: 0 };
+      if (moved && !roomHost(w)) {
+        roomSay(str('rooms.world_moved', { world: mapById(target.world).name }));
+      }
+      roomCall('target');
+    }
+    roomDrift(w, wallMs);
+    roomSummonStep(target);
+  }
+
+  function roomSummonStep(target) {
+    const s = roomSummon;
+    if (!s || ui.nameWait || (ui.nameDialog && !ui.nameDialog.hidden) || ui.screen === 'padpick' || ui.screen === 'calibrate') {
+      return;
+    }
+    if (swapInFlight || !mapReady) {
+      return;
+    }
+    if (mode === 'replay') {
+      roomLeaveCrashCam();
+      s.restart = true;
+      return;
+    }
+    /* The builder saves as it goes and again on the way out. A seated map
+     * track is the builder's too (build.racing), and stays. */
+    if (build && build.active && !build.racing) {
+      ui.show('title');
+      ui.onAction('title');
+      return;
+    }
+    if (!MAPS.some((m) => m.id === target.world && m.mode === 'freestyle')) {
+      /* A world this build does not have (a newer build's room): nothing
+       * to seat, and the others name this pilot as elsewhere. */
+      roomSummon = null;
+      return;
+    }
+    if (!roomInPlace(target)) {
+      s.moved = true;
+      roomSeat(target);
+      return;
+    }
+    titleWorld = null;
+    buildWorld = null;
+    if (!worldMatchesSettings()) {
+      s.moved = true;
+      syncWorld();
+      roomTellProfile();
+      return;
+    }
+    roomSummon = null;
+    /* A pilot who paused where the room flies and is welcomed again (the
+     * socket came back, or they joined from the pause menu) stays paused:
+     * the room bar asks them up, and a craft is not flown off unattended. */
+    if (!s.fly || (s.why === 'join' && mode === 'paused' && !s.moved)) {
+      return;
+    }
+    if (roomTag.on()) {
+      roomTagRunId = roomTag.view().id;
+    }
+    const flying = mode === 'flight' && ui.screen === 'flight';
+    if (flying && !s.restart) {
+      return;
+    }
+    if (flying || mode === 'paused') {
+      ui.onAction(s.restart || s.why === 'target' || s.why === 'drift' ? 'restart' : 'resume', ui.settings);
+    } else {
+      ui.onAction('fly', ui.settings);
+    }
+  }
+
+  /* This pilot's seat moved to the room's target, which stands its world
+   * (syncWorld: the course alone on the world already up, else the
+   * loading screen) and lands on the title, to be flown from there. */
+  function roomSeat(target) {
+    titleWorld = null;
+    buildWorld = null;
+    const t = target.track;
+    if (t) {
+      if (seatTrackId() !== t.id) {
+        if (!writeShareImport({ id: t.id, name: trackName(t), document: t.doc, local: true })) {
+          roomSummon = null;
+          return;
+        }
+        ui.setShare(null);
+        notice = { text: str('roomrace.loading', { name: trackName(t) }), untilMs: performance.now() + 3000 };
+      }
+      ui.settings.map = 'track';
+      ui.mode = 'race';
+      ui.persistSettings();
+      syncWorld();
+    } else {
+      ui.mode = 'freestyle';
+      seatMapOwn(target.world, { stay: true });
+    }
+    roomTellProfile();
+  }
+
+  /* The pickers' way to a world. In a room whose world only its host
+   * moves, another world is refused here, before a world is built for
+   * nothing; the host's pick is the room's (roomDrift asks it). */
+  const seatMapOwn = ui.seatMap.bind(ui);
+  ui.seatMap = (id, opts = {}) => {
+    const w = roomLinkState.state().phase === 'open' ? roomLinkState.state().welcome : null;
+    if (w && id !== w.map && (!roomHost(w) || w.public) && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
+      roomSay(str('rooms.put_back', { world: mapById(w.map).name }));
+      return seatMapOwn(w.map, opts);
+    }
+    return seatMapOwn(id, opts);
+  };
+
+  /* The room bar (Ui.setRoomBar), off the sticks: a build too old for the
+   * room, the others flying while this pilot is not, or nobody else here. */
+  function roomBarView() {
+    const st = roomLinkState.state();
+    const reload = { text: str('rooms.reload'), button: str('rooms.reload_button'), act: () => window.location.reload(), reload: true };
+    if (st.phase === 'failed' && st.reason === 'update') {
+      return reload;
+    }
+    if (st.phase !== 'open' || !st.welcome) {
+      return null;
+    }
+    if (ui.updateReady) {
+      return reload;
+    }
+    const flying = mode === 'flight' && ui.screen === 'flight';
+    const now = roomLinkState.roomNow();
+    const othersUp = [...roomPeers.values()].some((p) => p.last && now != null && now - p.last.t < 3000);
+    if (!flying && (roomRunning() || othersUp)) {
+      return {
+        text: str('rooms.fly_prompt'),
+        button: str('rooms.fly_button'),
+        act: () => roomCall('prompt'),
+      };
+    }
+    return roomAloneText(st) ? { text: roomAloneText(st) } : null;
+  }
+  function roomAloneText(st) {
+    return st.phase === 'open' && st.welcome && !st.welcome.public && roomPeers.size === 0 && roomGone.size === 0
+      ? str('rooms.alone', { code: st.code }) : null;
+  }
+  let roomBarAt = 0;
+  function roomBarFrame(wallMs) {
+    if (wallMs < roomBarAt) {
+      return;
+    }
+    roomBarAt = wallMs + 250;
+    ui.setRoomBar(roomBarView());
   }
 
   function roomSendPose(now) {
@@ -2831,6 +3158,12 @@ export async function boot({
    * this page does not have (a newer build's) is named as another world. */
   function roomAwayText(peer) {
     const name = roomName(peer.name);
+    /* The reason the pilot's own page gave, when it gave one: a pilot
+     * loading a world still names the one they are leaving. */
+    const status = peer.profile && peer.profile.status;
+    if (status) {
+      return str(`rooms.away_${status}`, { name });
+    }
     if (peer.away === 'idle') {
       return str('rooms.away_idle', { name });
     }
@@ -3034,7 +3367,19 @@ export async function boot({
         paint: p.rig ? p.rig.paint() : null,
         figure: p.figure ? p.figure.group.position.toArray() : null,
         wreck: p.wreck ? p.wreck.summary() : null,
+        status: p.profile.status ?? null,
       })),
+      /* The session (THE ROOM IS ONE SESSION): the room's world, this
+       * pilot's own status, a summon still owed, the room bar's words. */
+      world: st.welcome ? st.welcome.map : null,
+      status: roomStatus(),
+      summon: roomSummon ? { ...roomSummon } : null,
+      seatWorld: seatWorld(),
+      seatTrack: seatTrackId(),
+      target: st.welcome ? roomTargetKey(roomTarget(st.welcome)) : null,
+      standing: worldMatchesSettings(),
+      bar: ui.roomBarView ? ui.roomBarView.text : null,
+      gone: [...roomGone.keys()],
       hits: roomHits.map((h) => ({ ...h })),
       spawning: stateCurr ? roomSpawning(roomLinkState.roomNow() ?? 0) : null,
       /* This pilot's own pieces as drawn here, to hold against a peer's
@@ -3101,6 +3446,7 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     hud: warHud.shown(),
+    markers: warMarkers.shown(),
     said: warHud.said(),
     link: {
       perfect: rcLink.isPerfect(), delayMs: rcLink.sigDelayMs, lossPpm: rcLink.sigLossPpm, failsafe: rcLink.failsafeRc !== null,
@@ -3436,52 +3782,27 @@ export async function boot({
     roomRaceRunId = null;
   }
 
-  /*
-   * Seat the room's track and stand it up, when this pilot is not in the
-   * middle of something: on the title, the pause menu, a results screen,
-   * the launch card or Fly with friends, never under a flight, in the
-   * builder or in the hangar and settings. On the world already standing
-   * that is the course alone, milliseconds (syncWorldNow); another world
-   * is its loading screen. Either way the pilot lands on the title.
-   */
+  /* The screens a room's results are shown over and a match's results
+   * wait on. */
   const ROOM_SEAT_SCREENS = ['title', 'paused', 'results', 'launch', 'friends'];
-  function roomSeatTrack() {
-    const t = roomRace.track();
-    if (!t || swapInFlight || !mapReady || mode === 'flight' || (build && build.active) || !ROOM_SEAT_SCREENS.includes(ui.screen)) {
-      return;
-    }
-    if (roomTrackSeated() && worldMatchesSettings()) {
-      return;
-    }
-    titleWorld = null;
-    buildWorld = null;
-    if (!roomTrackSeated()) {
-      if (!writeShareImport({ id: t.id, name: trackName(t), document: t.doc, local: true })) {
-        return;
-      }
-      ui.setShare(null);
-      notice = { text: str('roomrace.loading', { name: trackName(t) }), untilMs: performance.now() + 3000 };
-    }
-    ui.settings.map = 'track';
-    ui.mode = 'race';
-    ui.persistSettings();
-    syncWorld();
-  }
 
   /* Every frame the room is open, after the aircraft is posed. */
   function roomRaceFrame(now, wallMs) {
     if (wallMs > roomRaceCheckAt) {
       roomRaceCheckAt = wallMs + 500;
-      roomSeatTrack();
       roomRace.ready(roomTrackReady());
     }
     const start = roomRace.takeStart(now);
     if (start) {
+      roomLeaveCrashCam();
       if (roomTrackReady()) {
         roomRaceRunId = start.id;
         ui.onAction('restart');
       } else {
+        /* Not on the line when it went: out of this race, and up to fly
+         * the track and watch it. */
         roomRace.retire(now);
+        roomCall('game');
       }
     }
     roomRace.frame(now);
@@ -3770,15 +4091,15 @@ export async function boot({
     const w = roomLinkState.state().welcome;
     const start = roomTag.takeStart(now);
     if (start && w) {
+      roomLeaveCrashCam();
       if (roomTagWorldReady(w.map)) {
         roomTagRunId = start.id;
         ui.onAction('restart');
-      } else if (mode !== 'flight' && ROOM_SEAT_SCREENS.includes(ui.screen) && MAPS.some((m) => m.id === w.map && m.mode === 'freestyle')) {
-        /* Another world or a track: seated in the room's, to fly in as
-         * soon as it stands. */
+      } else {
+        /* Another world, a track, a menu: seated in the room's world and
+         * put on the slot as soon as it stands (roomCall). */
         notice = { text: str('roomtag.other_world', { world: mapById(w.map).name }), untilMs: performance.now() + 3000 };
-        ui.mode = 'freestyle';
-        ui.seatMap(w.map, { stay: true });
+        roomCall('game', { restart: true });
       }
     }
     const crown = roomTag.takeCrown();
@@ -13383,6 +13704,17 @@ export async function boot({
         peerMarks.away(peer.seat, roomAwayText(peer));
       }
     }
+    for (const [seat, gone] of roomGone) {
+      if (nowWall > gone.until || roomPeers.has(seat)) {
+        roomGone.delete(seat);
+      } else if (!roomSafety.isMuted(seat)) {
+        peerMarks.away(seat, str('rooms.away_reconnecting', { name: roomName(gone.name) }));
+      }
+    }
+    const alone = roomAloneText(roomLinkState.state());
+    if (alone) {
+      peerMarks.note(alone);
+    }
     /* The free orb in Catch the Ace, pointed at as the Ace is. */
     const tagOrb = roomTag.orb();
     if (tagOrb) {
@@ -13688,6 +14020,9 @@ export async function boot({
       ui.act('pause');
       ui.show('paused');
     }
+    /* Now, while a hidden tab can still send: its frames, and the room's
+     * look at the profile with them, stop until it is back. */
+    roomTellProfile();
   });
   let firstFrameMs = -1;
   let frames = 0;
