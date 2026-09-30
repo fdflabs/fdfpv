@@ -11,8 +11,10 @@
  * 25 s, and a fifth pilot sat alone in a room of their own. What it takes:
  *
  *   join       A makes a room on the Alps and flies. B, on the title, and
- *              C, who flies the Swiss valley, join by code: both end up
- *              flying the Alps with no press of Fly, each drawing the rest.
+ *              C, who flies the Swiss valley, join by code: both are seated
+ *              in the Alps and left off the sticks (a join never flies
+ *              anybody), and their own Fly is the Alps, each drawing the
+ *              rest.
  *   world      B goes to the title and C into the hangar; the host A picks
  *              the Swiss valley. The room moves, and all three fly there.
  *   game       B opens the crash cam and C leaves for the title; A starts
@@ -158,7 +160,15 @@ try {
   await pages.C.until(flyingIn(MOVED), 400000);
   await pages.B.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
   await pages.C.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
-  await allIn(HOME, 'joined by code, B from the title and C flying another world');
+  await settle(['B', 'C'], `window.__rooms().phase === 'open' && window.__ui.settings.map === ${JSON.stringify(HOME)} && !window.__rooms().summon`, 120000);
+  const seated = await Promise.all(['B', 'C'].map(async (k) => ({ k, map: await pages[k].evaluate('window.__ui.settings.map'), ...(await look(k)) })));
+  check('a join seats B and C in the room\'s world and flies neither', seated.every((x) => x.map === HOME && !x.flying),
+    seated.map((x) => `${x.k} seat ${x.map} ${x.mode}/${x.screen}`).join(', '));
+  for (const k of ['B', 'C']) {
+    await pages[k].until("window.__map().ready", 400000);
+    await pages[k].evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  }
+  await allIn(HOME, 'joined by code and pressed Fly, B from the title and C from another world');
 
   console.log('the host moves the room');
   await pages.B.evaluate("window.__ui.show('title'); window.__ui.onAction('title'); true");

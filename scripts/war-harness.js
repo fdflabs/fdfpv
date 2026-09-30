@@ -21,6 +21,11 @@
  *           that take a swarm's neighbours, and each defender breaking
  *           and coming back REACT_MS after its own blast, as a client
  *           does on hearing its boom
+ *   brief   the head on pass behind a briefing (the intro, section 7.1):
+ *           the host starts with { intro: true }, the room holds INTRO_MS
+ *           before its countdown, and the pass must go off as it does
+ *           without one, INTRO_MS later, every client seeing the same
+ *           briefing, countdown and go
  *   cost    eight pilots and sixty attackers at once: fifty two parked
  *           around the pilots just outside BLAST_M, none going off, and eight
  *           hunters steered by the room from far out. The room's CPU per
@@ -67,6 +72,7 @@ import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { MISSIONS } from '../edge/rooms/war.js';
 import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';
 import { BLAST_M, planAgent, poseAt } from '../src/share/war/routes.js';
+import { INTRO_MS } from '../src/share/war/intro.js';
 
 const arg = (name, dflt) => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -242,18 +248,19 @@ function mission(id, waves, routes) {
 }
 
 /* Head on: the Strike along +x through the origin at GO + 1 s + 8 s, the
- * defender along -x with its nearest part passing `reach` from it. */
-function pass(reach) {
+ * defender along -x with its nearest part passing `reach` from it. `lead`
+ * is a briefing before the countdown (INTRO_MS, or 0 for none). */
+function pass(reach, lead = 0) {
   const air = ['cub1400'];
   const off = offsetFor(air[0], -20, reach);
-  const meet = GO + 1000 + (300 / 38) * 1000;
+  const meet = GO + lead + 1000 + (300 / 38) * 1000;
   const m = mission('pass', [{ at: 1, kind: 'strike', n: 1, route: 'line' }], { line: [[-300, Y, 0], [300, Y, 0]] });
   const sc = {
-    name: `pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500,
+    name: `${lead ? 'briefed ' : ''}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,
   };
   /* The truth: the closest the scripted pair comes, on the millisecond. */
   const plan = planAgent(m, {
-    id: 1, kind: 'strike', route: 'line', t0: GO + 1000, k: 0, n: 1, err: 0, target: null,
+    id: 1, kind: 'strike', route: 'line', t0: GO + lead + 1000, k: 0, n: 1, err: 0, target: null,
   });
   let best = Infinity;
   for (let t = meet - 500; t <= meet + 500; t += 1) {
@@ -321,7 +328,7 @@ function runOne(cfg) {
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = sc.air.map((_, i) => ({
-    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(),
+    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(), states: [], early: 0,
   }));
   const deliver = (actions, now) => {
     for (const a of actions) {
@@ -335,9 +342,15 @@ function runOne(cfg) {
         const m = JSON.parse(data);
         if (m.type === 'welcome') {
           c.seat = m.seat;
+        } else if (m.type === 'war' && m.war) {
+          const st = `${m.war.state}:${m.war.goAt}`;
+          if (c.states.at(-1) !== st) {
+            c.states.push(st);
+          }
         } else if (m.type === 'war' && m.op === 'born') {
           for (const a of m.agents) {
             c.born.set(a.id, a);
+            c.early += a.t0 < GO + (sc.lead || 0) ? 1 : 0;
           }
         } else if (m.type === 'war' && (m.op === 'boom' || m.op === 'dead')) {
           c.events.push(m.op === 'boom' ? `boom:${m.seat}:${m.at}` : `dead:${m.ids.join('+')}:${m.at}:${m.by}`);
@@ -358,7 +371,9 @@ function runOne(cfg) {
   while (q.h.length) {
     q.pop().fn();
   }
-  deliver(room.message(clients[0].conn, JSON.stringify({ type: 'war', op: 'start', mission: sc.mission.id }), 0, '10.9.0.1'), 0);
+  deliver(room.message(clients[0].conn, JSON.stringify({
+    type: 'war', op: 'start', mission: sc.mission.id, ...(sc.lead ? { intro: true } : {}),
+  }), 0, '10.9.0.1'), 0);
   /* Samples are made as the clock passes them, since a client's flags
    * hang on the booms it has heard. */
   for (const c of clients) {
@@ -629,6 +644,49 @@ function report(clock, results) {
   return failed;
 }
 
+/*
+ * The briefing: passes inside and outside BLAST_M behind INTRO_MS of it,
+ * over the same random link sets, against the same passes with none.
+ */
+function briefing() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  const go = GO + INTRO_MS;
+  const reaches = [5.5, 6.5];
+  const briefed = reaches.map((r) => sweep(pass(r, INTRO_MS), 0));
+  let shifted = 0;
+  let states = 0;
+  let early = 0;
+  let clients = 0;
+  const want = [`briefing:${go}`, `countdown:${go}`, `live:${go}`];
+  for (const r of reaches) {
+    for (const seed of [1, 2, 3]) {
+      const zero = (sc) => runOne({ sc, seed, clock: 0, links: sc.air.map(() => ({ base: 0, jitter: 0 })) });
+      const plain = zero(pass(r)).log.map((e) => `${e.what}:${e.seat}:${e.t + INTRO_MS}`).join(',');
+      const withIt = zero(pass(r, INTRO_MS));
+      shifted += withIt.log.map((e) => `${e.what}:${e.seat}:${e.t}`).join(',') === plain ? 0 : 1;
+      for (const c of withIt.clients) {
+        clients += 1;
+        states += c.states.slice(0, 3).join() === want.join() ? 0 : 1;
+        early += c.early;
+      }
+    }
+  }
+  const sum = (f) => briefed.reduce((n, x) => n + x[f], 0);
+  console.log(`\nthe briefing: INTRO_MS ${INTRO_MS} ms before the countdown, head on passes at ${reaches.join(' and ')} m, ${sum('runs')} runs`);
+  row('every client has the room\'s booms and deaths', sum('disagree') === 0, `${sum('disagree')} of ${sum('runs')} disagree`);
+  row('the booms and deaths are the zero latency run\'s, every run inside LATE_MS', sum('notRef') === 0, `${sum('notRef')} differ`);
+  row('the pass inside BLAST_M goes off and the one outside does not', briefed[0].boomRuns === briefed[0].runs && briefed[1].booms === 0,
+    `${briefed[0].boomRuns} of ${briefed[0].runs}, ${briefed[1].booms} booms`);
+  row('behind a briefing, the zero latency run is the one without, INTRO_MS later', shifted === 0, `${shifted} of ${reaches.length * 3} differ`);
+  row('every client sees briefing, countdown and live, to one go', states === 0 && clients > 0, `${states} of ${clients} otherwise`);
+  row('nothing is born for the go before it', early === 0, `${early} early births`);
+  return failed;
+}
+
 const clocks = arg('run', 'both') === 'both' ? [0, 1] : arg('run', '') === 'cost' ? [] : [Number(arg('run', 1)) - 1];
 const started = Date.now();
 const list = scenarios();
@@ -636,6 +694,9 @@ console.log(`war harness: ${list.length} scenarios, ${RUNS} random link sets eac
 let failed = 0;
 for (const clock of clocks) {
   failed += report(clock, list.map((sc) => sweep(sc, clock)));
+}
+if (arg('run', 'both') !== 'cost') {
+  failed += briefing();
 }
 console.log('\nthe cost of a war room: 8 pilots, 60 attackers, 30 s of play');
 for (const layout of ['crowd', 'shell']) {
