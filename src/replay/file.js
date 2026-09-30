@@ -77,6 +77,22 @@
  * as the version before, byte for byte, and versions 1 to 7 are read
  * without it, the traffic then drawn at the live clock as before.
  *
+ * Version 9 lets the paper's events carry a war's explosions
+ * (src/replay/paper.js BOOM_EVENTS: where each went off and how big), so
+ * a replay of a war flight shows them at the moment they happened. The
+ * layout is version 8's, the animation clock with it; a clip is written
+ * as version 9 only when its paper holds one, so a build before this one
+ * refuses such a file by its version, and every other clip is written as
+ * before, byte for byte.
+ *
+ * Version 10 added a war's attackers (src/replay/warrec.js): the header's
+ * `war` ({ agents, slots }: each scripted attacker's birth record, its
+ * mission and the room ms it was last drawn, and how many hunter slots a
+ * row holds), then after the paper the room ms each row was drawn at,
+ * f64[n], and the hunters as drawn, f32[n x slots x HUNTER_N]. Everything
+ * else is as version 9 lays it out, the animation clock with it. A clip
+ * without a war is written as the version before, byte for byte.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -110,9 +126,18 @@ import {
   BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N,
 } from './peers.js';
 import { checkCrashTable, checkProfile } from '../share/roomwire.js';
-import { CROWN_EVENTS, checkPaper, rowsOf } from './paper.js';
+import {
+  BOOM_EVENTS, CROWN_EVENTS, checkPaper, rowsOf,
+} from './paper.js';
+import { HUNTER_N, checkWar } from './warrec.js';
 
-export const FILE_VERSION = 8;
+export const FILE_VERSION = 10;
+/* A clip with explosions and no war's attackers: the version before
+ * them. */
+const BOOM_VERSION = 9;
+/* A clip with the animation clock and no explosion: the version before
+ * explosions. */
+const ANIM_VERSION = 8;
 /* A clip with a crown and no animation clock: the version before the
  * clock. */
 const CROWN_VERSION = 7;
@@ -127,11 +152,23 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
-  if (clip.anim) {
+  if (clip.war) {
+    if (!clip.anim) {
+      throw new Error('a clip with a war and no animation clock');
+    }
     return FILE_VERSION;
+  }
+  if (clip.paper && boomed(clip.paper.events)) {
+    if (!clip.anim) {
+      throw new Error('a clip with explosions and no animation clock');
+    }
+    return BOOM_VERSION;
+  }
+  if (clip.anim) {
+    return ANIM_VERSION;
   }
   if (clip.paper && crowned(clip.paper.events)) {
     return CROWN_VERSION;
@@ -153,6 +190,11 @@ function realEdit(clip) {
 /* Whether a clip's paper events hold a Catch the Ace crown or coin. */
 function crowned(events) {
   return events.some((e) => e && CROWN_EVENTS.includes(e.type));
+}
+
+/* Whether a clip's paper events hold a war's explosion. */
+function boomed(events) {
+  return events.some((e) => e && BOOM_EVENTS.includes(e.type));
 }
 
 /* A clip's bubble column, or null. */
@@ -204,7 +246,8 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war'];
+const WAR_KEYS = ['agents', 'slots'];
 const PAPER_KEYS = ['bytes', 'events'];
 const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
 const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
@@ -267,13 +310,18 @@ export function encodeReplay(clip) {
   if (clip.anim) {
     header.anim = true;
   }
+  const war = clip.war || null;
+  if (war) {
+    header.war = { agents: war.agents, slots: war.slots };
+  }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
   const pad = (8 - (pre % 8)) % 8;
   const bytes = pre + pad + n * 8 + n * HEAD_N * 8 + poseBytes(n) + n * PLANT_N * 8 + animBytes(n, version) + smokeBytes(n, version)
     + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0)
     + (bubbleOf(clip) ? n * BUBBLE_N * 4 : 0)
-    + (paper ? paper.bytes.byteLength : 0);
+    + (paper ? paper.bytes.byteLength : 0)
+    + (war ? n * 8 + n * war.slots * HUNTER_N * 4 : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -317,6 +365,12 @@ export function encodeReplay(clip) {
   }
   if (paper) {
     u8.set(paper.bytes, o);
+    o += paper.bytes.byteLength;
+  }
+  if (war) {
+    u8.set(new Uint8Array(war.room.buffer, war.room.byteOffset, n * 8), o);
+    o += n * 8;
+    u8.set(new Uint8Array(war.hunters.buffer, war.hunters.byteOffset, n * war.slots * HUNTER_N * 4), o);
   }
   return buf;
 }
@@ -568,7 +622,26 @@ export function decodeReplay(buf, known = null) {
     throw new ReplayFileError('an animation clock in a file older than version 8');
   }
   if (version >= 8 && header.anim !== true) {
-    throw new ReplayFileError('a version 8 file without its animation clock');
+    throw new ReplayFileError(`a version ${version} file without its animation clock`);
+  }
+  const booms = header.paper !== undefined && Array.isArray(header.paper.events) && boomed(header.paper.events);
+  if (version < 9 && booms) {
+    throw new ReplayFileError('an explosion in a file older than version 9');
+  }
+  if (version === 9 && !booms) {
+    throw new ReplayFileError('a version 9 file without an explosion');
+  }
+  if (version < 10 && header.war !== undefined) {
+    throw new ReplayFileError('a war in a file older than version 10');
+  }
+  if (version === 10 && header.war === undefined) {
+    throw new ReplayFileError('a version 10 file without its war');
+  }
+  if (header.war !== undefined) {
+    onlyKeys(header.war, WAR_KEYS, 'war');
+    if (!Number.isInteger(header.war.slots) || header.war.slots < 0 || header.war.slots > 64) {
+      throw new ReplayFileError('war.slots is out of range');
+    }
   }
   if (header.edit !== undefined && header.keys.length) {
     throw new ReplayFileError('a version 6 file with camera keys');
@@ -620,7 +693,8 @@ export function decodeReplay(buf, known = null) {
   const bubbleBytes = bubbled ? n * BUBBLE_N * 4 : 0;
   const peerBytes = P ? (n * P.slots * PEER_N + P.pieces * PIECE_N) * 4 + bubbleBytes : 0;
   const paperBytes = header.paper ? header.paper.bytes : 0;
-  if (o + rows * PART_N * 4 + peerBytes + paperBytes !== buf.byteLength) {
+  const warBytes = header.war ? n * 8 + n * header.war.slots * HUNTER_N * 4 : 0;
+  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant, smoke, ...(anim ? [anim] : [])]) {
@@ -671,6 +745,21 @@ export function decodeReplay(buf, known = null) {
     } catch (err) {
       throw new ReplayFileError(err.message);
     }
+    o += paperBytes;
+  }
+  if (header.war) {
+    const war = {
+      agents: header.war.agents,
+      room: new Float64Array(buf.slice(o, o + n * 8)),
+      slots: header.war.slots,
+      hunters: new Float32Array(buf.slice(o + n * 8, o + warBytes)),
+    };
+    try {
+      checkWar(war, n);
+    } catch (err) {
+      throw new ReplayFileError(err.message);
+    }
+    clip.war = war;
   }
   return clip;
 }

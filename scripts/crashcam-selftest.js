@@ -101,7 +101,10 @@ import {
 import {
   createPose, defaults, easeInOut, evaluate, evaluateEdit, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
-import { slerp as slerpQ } from '../src/replay/recorder.js';
+import { slerp as slerpQ, trimClip as trimWhole } from '../src/replay/recorder.js';
+import { createWarRing, warAt, HUNTER_N } from '../src/replay/warrec.js';
+import { planAgent, poseAt } from '../src/share/war/routes.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
 import {
   cut, defaultEdit, fromKeys, setCam, setEnter, setSpeed,
@@ -1969,6 +1972,99 @@ function animRecord() {
   refused(() => reheader(bareBuf, 8), 'a version 8 file without its clock');
   refused(() => encodeReplay({ ...clip, anim: clip.anim.map((x, k) => (k === 5 ? NaN : x)) }), 'a clock that is not a number');
   refused(() => buf.slice(0, buf.byteLength - 8), 'a version 8 file cut short');
+
+  /* A war's explosions ride the paper's events: version 9, the clock
+   * with them; without one the same clip is version 8 as before. */
+  const booms = [{ t: 0.4, type: 'boom', p: [1, 2, 3], level: 0.4 }, { t: 0.5, type: 'boom', p: [4, 5, 6], level: 1 }];
+  const boomed = { ...withClock, paper: { ...withClock.paper, events: [...withClock.paper.events, ...booms] } };
+  const bBuf = encodeReplay(boomed);
+  const bBack = decodeReplay(bBuf);
+  check(new DataView(bBuf).getUint32(4, true) === 9 && JSON.stringify(bBack.paper.events) === JSON.stringify(boomed.paper.events) && same(bBack.anim, boomed.anim),
+    'a clip with a war\'s explosions is saved as version 9 and they come back where and how big they were', `${bBuf.byteLength} bytes`);
+  check(Buffer.from(new Uint8Array(encodeReplay(bBack))).equals(Buffer.from(new Uint8Array(bBuf))), 'written again, the same bytes');
+  refused(() => reheader(bBuf, 8), 'an explosion in a file that says version 8');
+  refused(() => reheader(cBuf, 9), 'a version 9 file without an explosion');
+  let noClock = null;
+  try {
+    const bare9 = { ...boomed };
+    delete bare9.anim;
+    encodeReplay(bare9);
+  } catch (err) {
+    noClock = err;
+  }
+  check(noClock instanceof Error, 'a clip with explosions and no clock is refused when written, not saved as a file no build reads', noClock ? noClock.message : 'written');
+
+  warFile(withClock, bBuf, refused);
+}
+
+/* A war's attackers (src/replay/warrec.js): recorded, drawn back where
+ * they were, and saved as version 10. */
+function warFile(withClock, boomBuf, refused) {
+  console.log('17. a war\'s attackers, recorded and saved (version 10)');
+  const n = withClock.n;
+  const ring = createWarRing(n);
+  const strike = {
+    id: 3, kind: 'strike', route: 'reservoir-west', t0: 60000, k: 1, n: 3, err: 0, target: 'yard-right',
+  };
+  const scout = { id: 1, kind: 'scout', route: 'reservoir-orbit', t0: 20000, k: 0, n: 1 };
+  ring.born('itaipu-1', [scout, strike, { id: 9, kind: 'hunter', route: 'gorge', t0: 60000 }]);
+  const plan = planAgent(MISSIONS['itaipu-1'], strike);
+  const room = (k) => 70000 + k * 16.7;
+  const hunterAt = (k) => ({ id: 9, kind: 'hunter', p: [-1000 + k * 0.6, 300, 1500 + k * 0.3], q: [0, Math.sin(k * 0.01), 0, Math.cos(k * 0.01)] });
+  const deadRow = 20;
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    if (k === deadRow) {
+      ring.dead([3]);
+    }
+    const list = [{ id: 1, kind: 'scout' }, ...(k < deadRow ? [{ id: 3, kind: 'strike' }] : []), hunterAt(k)];
+    ring.draw(k === 5 ? null : room(k), list);
+  }
+  const war = ring.clip(0, n);
+  check(war && war.agents.length === 2 && war.slots === 1 && Number.isNaN(war.room[5]),
+    'the clip keeps the scripted births once, a hunter slot a row, and no clock where no war was drawn', war ? `${war.agents.length} agents, ${war.slots} slot` : 'none');
+  const plans = new Map();
+  let worstScripted = 0;
+  let worstHunter = 0;
+  let strikeSeen = 0;
+  for (let k = 0; k < n; k += 1) {
+    const drawn = warAt(war, n, k, 0, plans);
+    if (k === 5) {
+      check(drawn.length === 0, 'a row drawn with no war live draws none');
+      continue;
+    }
+    const s = drawn.find((x) => x.id === 3);
+    if (s) {
+      strikeSeen = k + 1;
+      const o = poseAt(plan, room(k));
+      worstScripted = Math.max(worstScripted, Math.hypot(s.p[0] - o.p[0], s.p[1] - o.p[1], s.p[2] - o.p[2]));
+    }
+    const h = drawn.find((x) => x.id === 9);
+    const want = hunterAt(k);
+    worstHunter = Math.max(worstHunter, Math.hypot(h.p[0] - want.p[0], h.p[1] - want.p[1], h.p[2] - want.p[2]));
+  }
+  check(worstScripted === 0 && strikeSeen === deadRow, 'a scripted attacker is where routes.js puts it at the row\'s room ms, exactly, until its death was heard',
+    `${worstScripted} m, last row ${strikeSeen - 1}`);
+  check(worstHunter < 1e-3, 'a hunter is where it was drawn, within f32', `${worstHunter.toExponential(2)} m`);
+  const mid = warAt(war, n, 10, 0.5, plans).find((x) => x.id === 3);
+  const o = poseAt(plan, room(10) + 0.5 * 16.7);
+  check(Math.hypot(mid.p[0] - o.p[0], mid.p[1] - o.p[1], mid.p[2] - o.p[2]) < 1e-6, 'between rows at the room ms between them');
+  const clip = { ...withClock, war };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 10 && JSON.stringify(back.war.agents) === JSON.stringify(war.agents)
+    && Buffer.from(back.war.hunters.buffer).equals(Buffer.from(war.hunters.buffer))
+    && back.war.room.every((x, k) => Object.is(x, war.room[k])),
+  'a clip with a war is saved as version 10 and comes back as it was', `${buf.byteLength} bytes, ${buf.byteLength - encodeReplay(withClock).byteLength} for the war`);
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  check(new DataView(boomBuf).getUint32(4, true) === 9 && new DataView(encodeReplay(withClock)).getUint32(4, true) === 8,
+    'clips without a war are still written as versions 9 and 8');
+  const t = trimWhole(clip, clip.time[10], clip.time[30]);
+  check(t.war.room.length === t.n && t.war.room[0] === war.room[10] && t.war.hunters.length === t.n * HUNTER_N,
+    'a trim keeps the war of the rows it keeps');
+  refused(() => reheader(buf, 8), 'a war in a file that says version 8');
+  const bad = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, route: 'nowhere' } }] } };
+  refused(() => encodeReplay(bad), 'a birth record that does not fly');
 }
 
 ring();

@@ -21,6 +21,11 @@
  * on Itaipu, drops it when the room is made public, and making it asks
  * consent first when it is not stored, then lands the same way.
  *
+ * A public room on Itaipu, joined by a pilot who came in by the card:
+ * the heading never says Defend Itaipu; a joiner reads why not and to ask
+ * the host; the host has Make a private war room, which asks consent and
+ * lands in a new private Itaipu room, war ready, its invite code on top.
+ *
  * No page error. Pictures in outdir, not in the repository.
  *
  * This file is part of WebFPVSimulator.
@@ -44,7 +49,9 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
+import { PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[3] || join(root, 'build', 'war-card');
@@ -294,6 +301,88 @@ try {
   const three = await landed(page);
   check('Continue: a private Itaipu room, the start row under the cursor', landedWell(three) && three.code !== two.code, JSON.stringify(three));
   await shot(page, 'war-room-from-form');
+
+  /* A PUBLIC ROOM ON ITAIPU, the owner's case: a pilot who came in by the
+   * card (ui.roomGame 'war') in a public Itaipu room. Another pilot, a
+   * bare socket, holds it first and says 'war' in its profile too, so the
+   * page sees it first as a joiner, then as the host once handed it. */
+  const made = await fetch(`${server.url}/v2/create`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true }),
+  });
+  const pubCode = (await made.json()).code;
+  const other = new WebSocket(`${server.url.replace(/^http/, 'ws')}/v2/room/${pubCode}`, { headers: { origin: 'https://fdflabs.github.io' } });
+  const otherGot = [];
+  other.on('message', (data, binary) => {
+    if (!binary && data.toString() !== 'pong') {
+      otherGot.push(JSON.parse(data.toString()));
+    }
+  });
+  let otherClosed = null;
+  other.on('close', (c, why) => {
+    otherClosed = `${c} ${why}`;
+  });
+  await new Promise((resolve, reject) => {
+    other.on('open', resolve);
+    other.on('error', reject);
+  });
+  other.send(JSON.stringify({
+    type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 1, 11],
+    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: 'war' },
+  }));
+  for (let i = 0; i < 100 && !otherGot.some((m) => m.type === 'welcome'); i += 1) {
+    await page.sleep(50);
+  }
+  await page.evaluate(`(() => { window.__ui.act('friends-leave'); window.__ui.roomGame = 'war'; window.__roomJoin(${JSON.stringify(pubCode)}); window.__ui.show('friends'); return true; })()`);
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(pubCode)} && window.__rooms().peers.length === 1`, 30000).catch(() => {});
+  await page.sleep(500);
+  const PUBLIC = `(() => {
+    const items = window.__ui.items();
+    const r = window.__rooms();
+    return {
+      code: r.code, public: r.public, host: r.host !== null && r.host === r.seat, seat: r.seat,
+      heading: (items.find((it) => it.section) || {}).label || null,
+      sections: items.filter((it) => it.section).map((it) => it.label),
+      needs: items.some((it) => it.label === 'Defend Itaipu needs a private room' && it.info),
+      ask: items.some((it) => it.label === 'Ask the host to make a private war room' && it.info),
+      make: items.some((it) => it.action === 'friends-war-private'),
+      start: items.some((it) => it.action === 'friends-war-start'),
+    };
+  })()`;
+  const joiner = await page.evaluate(PUBLIC);
+  check('public Itaipu room, joiner: the heading does not say Defend Itaipu',
+    joiner.code === pubCode && joiner.public && !joiner.host && !/Defend Itaipu/.test(joiner.heading || ''),
+    `${JSON.stringify(joiner)} other ${otherClosed || 'seated'}`);
+  check('joiner: the info line and ask the host, no make row, no start row',
+    joiner.needs && joiner.ask && !joiner.make && !joiner.start, JSON.stringify(joiner));
+  await shot(page, 'public-itaipu-joiner');
+
+  other.send(JSON.stringify({ type: 'handhost', seat: joiner.seat }));
+  await page.until("(() => { const r = window.__rooms(); return r.host === r.seat; })()", 10000).catch(() => {});
+  await page.sleep(300);
+  const hosting = await page.evaluate(PUBLIC);
+  check('public Itaipu room, host: the heading does not say Defend Itaipu',
+    hosting.public && hosting.host && !/Defend Itaipu/.test(hosting.heading || ''), JSON.stringify(hosting));
+  check('host: the info line and the make a private war room row, no ask line, no start row',
+    hosting.needs && hosting.make && !hosting.ask && !hosting.start, JSON.stringify(hosting));
+  await shot(page, 'public-itaipu-host');
+
+  await page.evaluate("(() => { window.__ui.settings.warConsent = false; window.__ui.persistSettings(); return true; })()");
+  await page.evaluate("(() => { window.__ui.act('friends-war-private'); return true; })()");
+  await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
+  check('Make a private war room: the consent screen first', (await page.evaluate(DIALOG)) === 'Defend Itaipu', String(await page.evaluate(DIALOG)));
+  await answer(page, 'Continue');
+  await page.until(`window.__rooms().code !== ${JSON.stringify(pubCode)}`, 30000).catch(() => {});
+  const four = await landed(page);
+  check('Continue: a new private Itaipu room, this pilot its host, the war ready under the cursor',
+    landedWell(four) && four.code !== pubCode, JSON.stringify(four));
+  const invite = await page.evaluate(`(() => {
+    const items = window.__ui.items();
+    const i = items.findIndex((it) => it.label === 'Invite code: ' + window.__rooms().code && it.action === 'friends-copy');
+    return { i, start: items.findIndex((it) => it.action === 'friends-war-start') };
+  })()`);
+  check('its invite code on top of the war block, above the start row', invite.i >= 0 && invite.i < invite.start, JSON.stringify(invite));
+  await shot(page, 'war-room-from-public');
+  other.close();
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

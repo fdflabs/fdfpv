@@ -357,3 +357,125 @@ look pair split cleanly by file (named below), and the dam pair share
 Not a target yet: craft-chase (level; it follows from target 1's light
 and needs contact shadow on asphalt), reservoir-dam's gantries (follow
 from target 5).
+
+### Round 2 (PRs #226, #230, #231, #232, #234, #235, #236, main at e2e10bb)
+
+Sky (#231): a clear tropical sky with cumulus and a hard sun. Ground
+(#232): detail by mask at eye level, red soil, grass and verges. Water
+(#230): the chutes flowing, water under the gates, a thinner plume.
+Dam (#234): the powerhouse roof, the central building, the intake
+columns, gantries and the crest crane. Trees (#236): varied crowns,
+palms, forest edges, far impostors. Road (#226, #235): the rockfill toe
+road and its lamps.
+
+**Two views moved.** The views never move, but crest-road and
+penstocks could never frame their photographs: crest-road stood on the
+intake deck 7 m upstream of the road, penstocks at the face's toe in
+line with the tubes, so one hid the rest (#234 found both). Round 2
+takes #234's poses, checked against the photographs on this round's
+sheet: crest-road on the road at the main dam's west end looking east,
+the gantry and crane ahead on the left as in the photograph; penstocks
+on the roof road at unit 9, the building on the left and the tubes on
+the right. To keep round 1 to round 2 honest, both were also shot at
+their old poses (`~/Desktop/fdfpv-loop/itaipu/round-2-oldpose/`), and
+their R2 scores below are from those; the new poses' scores are the
+baseline round 3 is judged from.
+
+Scores are **provisional**, the loop agent's; the lead's replace them.
+Sheet (reference, round 1, round 2):
+`~/Desktop/fdfpv-loop/itaipu/round-2-sheet.png`, and for the two old
+poses `round-2-oldpose-sheet.png`. Every tree in every view has its
+leaves (the swiss2 leaf texture did not build empty in this run).
+
+| View | R1 | R2 | Calls | Tris (M) | GPU least / median (ms) | The tell now |
+| --- | --- | --- | --- | --- | --- | --- |
+| aerial-dam | 5 | 5 | 154 | 1.18 | 2.0 / 3.6 | the sky is right, but the reservoir mirrors the clouds as hard white blotches; the photograph's water is an even deep blue |
+| aerial-dam-wide | 5 | 5.5 | 154 | 1.19 | 3.3 / 5.3 | the chutes run in streaks; the same white cloud blotches on the reservoir |
+| aerial-spill | 4.5 | 5 | 162 | 1.08 | 3.2 / 14.9 | the forest and the river read, the plume is right in size; the ground is still a soft smear from the air |
+| spill-gates-high | 4 | 4.5 | 153 | 1.16 | 2.2 / 14.0 | shadows under the piers, flowing chutes; the reservoir blotched with mirrored cloud |
+| leftbank-high | 4.5 | 5 | 160 | 1.26 | 2.2 / 13.5 | varied trees on the red soil, blue sky; the reservoir blotched |
+| rockfill-high | 5.5 | 5.5 | 214 | 1.50 | 2.2 / 13.9 | the photograph is a hazy brown day; ours is now a clear blue day with blotched water: better light, less like its photograph |
+| dam-downstream | 3.5 | 4 | 162 | 1.61 | 1.8 / 12.8 | a blue sky over the dam; the central building a plain white box, the face still a regular grey comb |
+| dam-downstream-2 | 3.5 | 4 | 179 | 1.99 | 2.8 / 12.6 | the sky; still no rock island and a smeared bank in front |
+| powerhouse | 3.5 | 4 | 169 | 1.29 | 2.1 / 11.8 | the sky and the central building; the roof a bare grey slab, the ground in front a smear |
+| canyon | 4 | 4.5 | 177 | 1.32 | 2.6 / 11.8 | varied trees and red soil; the canyon walls still slopes |
+| river-below | 4 | 4.5 | 145 | 1.28 | 2.5 / 11.9 | forest on the banks; the river mirrors the cloud as white blotches |
+| chute | 3.5 | 4.5 | 101 | 0.94 | 1.9 / 11.5 | water flowing in streaks down three chutes, spray at the buckets; the far chute walls plain |
+| spill-gates | 3.5 | 4 | 94 | 0.49 | 1.4 / 2.0 | the water runs under the gates and shadows fall; the gates a flat red, the hoist towers missing |
+| spill-plume | 3.5 | 4 | 168 | 1.17 | 2.2 / 13.5 | the plume thins so the gates show through; it is a low bank, not the photograph's rooster tail |
+| penstocks | 2.5 | 2.5 (old pose) | 174 | 1.41 | 1.9 / 13.8 | old pose: unchanged but the sky. New pose, the baseline, **3.5**: the building, the road and the tubes as the photograph; the tubes read as white domes, not tilted cylinders |
+| crest-road | 3 | 3.5 (old pose) | 220 | 1.07 | 2.0 / 12.5 | old pose: the intake columns now read. New pose, the baseline, **4.5**: the road, the violet gantry and the rust crane as the photograph; the gantry's girder a plain box, no parapet lamps line |
+| rockfill-road | 3 | 3.5 | 171 | 1.90 | 3.0 / 11.2 | a real grass field with red soil, the dark rock face; the toe road (#226) is not in frame from this pose |
+| reservoir-dam | 4.5 | 4.5 | 169 | 1.99 | 2.1 / 12.7 | the sky reads; the water is blotched with mirrored cloud where the photograph's is calm and pale |
+| reservoir-shore | 3.5 | 4 | 145 | 1.52 | 1.8 / 2.6 | grass with red soil at the lens; no rip rap, no trees on the shore |
+| powerlines | 4.5 | 4.5 | 97 | 0.94 | 1.9 / 3.1 | the ground mottled; still a soft slope in front, no paths or towers in the foreground |
+| reservoir-forest | 5 | 5 | 141 | 0.88 | 2.1 / 2.7 | reads; the water blotched |
+| craft-chase | 4.5 | 4.5 | 195 | 1.64 | 1.8 / 12.2 | unchanged |
+| yard-west | | | 284 | 2.41 | 8.2 / 12.0 | performance view, within budget |
+
+Mean of the 22 scored views (penstocks and crest-road at their old
+poses): 4.00 to **4.43**. No view lower. With the two new poses as the
+baseline the mean is 4.48, which round 3 is judged from.
+
+Budget: `npm run itaipu:views` PASSES, all 23 views within section 13.
+The most calls 284 and triangles 2.41 M (yard-west, from 264 and 2.27
+M: the trees and the ground), the worst least GPU frame 8.2 ms
+(yard-west). yard-west is now within 16 calls and 90 k triangles of the
+budget; round 3 must pay for anything it adds there.
+
+What says "game" now, across views: the water mirrors the new cumulus
+as hard white blotches in every view with a reservoir or river in it
+(nine views); the flat or soft ground within a few hundred metres of
+elevated cameras; and the made things' plain boxes (the central
+building, the gates, the powerhouse roof).
+
+### Round 3's targets
+
+Ranked by score cost against fix cost, one agent each, each area owned
+by one agent.
+
+1. **The water's sky reflection** (water/). The mirror and the sky
+   term show the new cumulus as hard white patches on the reservoir and
+   river; the photographs' water is an even blue from the air and a
+   pale, soft sheen at eye level. Fresnel and roughness on the
+   reflection, the clouds blurred and dimmed in it. Nine views, cheap.
+2. **The ground from the air** (look/: `ground.js`). #232 fixed the
+   ground at the lens; from 100 to 700 m up it is still the satellite's
+   soft smear (aerial-spill, leftbank-high, aerial-dam-wide,
+   rockfill-high, powerhouse): mid distance detail by mask, field and
+   track edges, the red soil's contrast. Medium.
+3. **The powerhouse and the central building** (dam/). The roof is a
+   bare slab (the photograph: the roof's gantries, skylights,
+   transformer bays), the central building a plain white box where the
+   photographs have a louvred, stepped concrete block, the downstream
+   face's buttresses a regular grey comb with no staining. dam-downstream,
+   dam-downstream-2, powerhouse, penstocks. Medium.
+4. **The penstocks' shape and the crest's detail** (dam/, the same agent
+   as 3 or after it). From the new penstocks pose the tubes read as
+   domes: they need to lean at the face's angle as tilted cylinders to
+   the ground, with their rings. The crest: the gantry's girder and
+   cladding, a line of lamps along the parapet, the parapet's coping.
+   penstocks, crest-road. Cheap to medium.
+5. **The spillway's hoist deck and gates** (dam/, after 3 and 4). The
+   gates are flat red panels, the hoist towers and the bridge's hoist
+   house missing; the photographs' subject in spill-gates. Medium.
+6. **The rockfill-road view** (town/: roads, with the lead). #226's toe
+   road is not in the frame from the view's pose, 1 370, -1 150, which
+   stands in the field below the face: either the road is further from
+   the face than the photograph's (a data question for town/) or the
+   pose is wrong, as crest-road's and penstocks' were. Measure the road's
+   line from the photograph's lamps and markings and fix whichever is
+   wrong. Cheap.
+7. **The plume** (water/, the same agent as 1). A low bank; the
+   photograph's is a rooster tail thrown up off the flip buckets, dense
+   at the foot and tearing into spray above. spill-plume, aerial-spill,
+   chute. Medium.
+8. **The canyon's cliffs and the rock island** (terrain/, a drawn mesh,
+   the ground a craft meets unchanged). Carried from round 2's target 7,
+   still the costliest: the basalt walls are shaded slopes and the island
+   below the dam is missing. canyon, river-below, dam-downstream-2. High.
+
+Not a target: rockfill-high moved away from its photograph's hazy brown
+day under the clear sky; the loop keeps one sky for every view and does
+not chase one photograph's weather. craft-chase stays level until the
+craft pass.

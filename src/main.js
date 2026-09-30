@@ -114,7 +114,8 @@ import { createRoomCombat } from './share/roomcombat.js';
 import { createStreamerLayer } from './render/streamers.js';
 import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
-import { createAttackers } from './render/attackers.js';
+import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
+import { SIZE_MAX as WAR_BOOM_MAX, createExplosions } from './render/explosion.js';
 import { createWarHud } from './ui/warhud.js';
 import { createWarMarkers } from './ui/warmarkers.js';
 import { createWarCalls } from './render/warradio.js';
@@ -1570,8 +1571,8 @@ export async function boot({
    * choose its own spawns (spawnFor, below). */
   let floatBody = 0;
   /*
-   * A map with more than one start (Itaipu: a crest road for the planes, a
-   * field for the quads, the reservoir and the river for the floats, and
+   * A map with more than one start (Itaipu: the crest road for the planes
+   * and the quads, the reservoir and the river for the floats, and
    * one in the air) answers spawnFor(spawn, kind, wish) with the one for
    * this aircraft, given the view's spawn, which it hands back when that
    * is a course's start rather than its own. `wish` is the page's ?spawn=,
@@ -2339,6 +2340,13 @@ export async function boot({
    *                forces crash damage on between runs (applyCrashMode)
    *   the rack     empty, and this craft a wreck: warSpectating, and the
    *                camera follows a teammate in the air (warWatch)
+   *   the booms    warBoomEvent: every kill, warhead and hit target is an
+   *                explosion (src/render/explosion.js) in the scene, so it
+   *                is in the FPV feed, the chase view and the crash cam's
+   *                replay (crashCam.tapBooms); its sound (audio.boom); and
+   *                for this pilot's own warhead a screen flash and a shake,
+   *                the goggles held WAR_FEED_HOLD_MS on the fireball before
+   *                the camera goes with the rest
    *
    * Everything that reaches the plant goes through sim.e, the crash cam's
    * journal (src/replay/journal.js), so a take over flies it again to the
@@ -2362,6 +2370,40 @@ export async function boot({
   let warDrawnAt = null;
   /* Target id -> wall ms it caught fire, or -1 once it smokes. */
   const warBurning = new Map();
+  /* A defender's warhead, and a target hit, as explosion sizes. */
+  const WAR_BOOM_SIZE = 1.6;
+  const WAR_IMPACT_SIZE = 2.6;
+  /* THE GOGGLES OUTLIVE THE WARHEAD BY THIS MUCH. The owner, playing: "i
+   * dont see an explosion though?" The warhead broke every part at once,
+   * the camera with them, so the feed was snow in the frame the fireball
+   * began and black after it, and the chase view came 1.5 s later on a
+   * clear sky. The camera, its antenna and the pack (and whatever holds
+   * them) now go this long after the rest, so the pilot sees the fireball
+   * swallow the picture before it goes to snow. */
+  const WAR_FEED_HOLD_MS = 1100;
+  const WAR_FEED_KINDS = ['camera', 'antenna', 'battery'];
+  /* The feed's parts still to break: { at (wall ms), starts (plantStarts
+   * then) }, or null. A reset in between keeps the new craft whole. */
+  let warFeedCut = null;
+  /* For the checks: how long the last warhead's goggles held, ms, and the
+   * largest shake a boom gave the picture, rad. */
+  let warFeedHeldMs = 0;
+  let warShakePeak = 0;
+  /* A boom this close shakes the picture and lights the screen, metres. */
+  const WAR_NEAR_M = 120;
+  /* How far ahead of the lens the pilot's own fireball is drawn, metres. */
+  const WAR_MINE_AHEAD_M = 6;
+  const warBoomFwd = new THREE.Vector3();
+  const warBoomP = [0, 0, 0];
+  /* The picture's shake from a boom: amplitude (rad), its clock, and the
+   * rotation it adds this frame. */
+  const warShake = {
+    a: 0, t: 0, x: 0, y: 0, z: 0,
+  };
+  /* The loudest explosion heard this frame, rung once: its level over
+   * distance, level and metres. */
+  const warBoomHeard = { score: 0, level: 0, dist: 0 };
+  let warAudioPeak = 0;
   /* The damage mode is due again at the next reset: a war began or
    * ended. See applyCrashMode. */
   let warCrashDue = false;
@@ -2423,19 +2465,22 @@ export async function boot({
   }
 
   /* The host's row, where the war may run: a private room on the Itaipu
-   * map. The title's card and Make a room reach it through warEnter. A
+   * map. A public room there gets warPublicRows instead. The title's card and Make a room reach it through warEnter. A
    * room made for the war leads with its start row, as the other games'
    * cards lead with theirs. */
   function warRows(host, w) {
-    if (!w || w.public || w.map !== WAR_MAP) {
+    if (!w || w.map !== WAR_MAP) {
       return [];
     }
-    const v = roomWar.view();
     const head = { label: str('war.card'), section: true };
+    if (w.public) {
+      return [head, ...warPublicRows(host)];
+    }
+    const v = roomWar.view();
     /* A state this build has no words for (a later build's) says none. */
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on() && v.state !== 'briefing') {
-      return [head, {
+      return [head, ...warInviteRows(), {
         label: str('war.start'), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
         primary: ui.roomGame === 'war',
       }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
@@ -2446,6 +2491,55 @@ export async function boot({
     return [head, {
       label: str('war.row'), value: state, note: str(v.state === 'lobby' ? 'war.waiting' : 'war.row_note'), info: true,
     }];
+  }
+
+  /* Where the war may run, so where a room may say it is set up for it. */
+  function warFits(w) {
+    return Boolean(w) && !w.public && w.map === WAR_MAP;
+  }
+
+  /*
+   * A PUBLIC ROOM ON ITAIPU, where the owner, hosting three pilots, asked
+   * "where do i start itaipu war". The war stays out of public rooms
+   * (section 9, and the room server refuses it), and the server cannot
+   * turn a live room private (edge/rooms/core.js has no such message), so
+   * the host's way is a new private room on Itaipu, its invite code shown
+   * on top for the others to join by.
+   */
+  function warPublicRows(host) {
+    const why = { label: str('war.public_needs_private'), info: true };
+    if (!host) {
+      return [why, { label: str('war.public_ask_host'), info: true }];
+    }
+    return [why, {
+      label: str('war.public_make_private'), note: str('war.public_make_private_note'), action: 'friends-war-private',
+      primary: ui.roomGame === 'war',
+    }];
+  }
+
+  /* The code of the room made by warPublicRows' row, shown on top until
+   * the war begins, or null. */
+  let warInviteCode = null;
+  function warInviteRows() {
+    const code = roomLinkState.state().code;
+    if (!code || code !== warInviteCode) {
+      return [];
+    }
+    return [{
+      label: str('war.invite', { code }), note: roomNote || str('war.invite_note'), action: 'friends-copy',
+    }];
+  }
+
+  async function warFromPublic() {
+    try {
+      if (!(await warEnter())) {
+        return;
+      }
+      warInviteCode = roomLinkState.state().code;
+    } catch (e) {
+      roomRefusal = { text: str('roombrowser.make_failed'), untilMs: performance.now() + 8000 };
+    }
+    ui.refreshFriends();
   }
 
   /* The one screen of section 9, asked once per profile: true once the
@@ -2667,6 +2761,8 @@ export async function boot({
       warIntroStop();
     }
     warAttackers.clear();
+    warBooms.clear();
+    warFeedCut = null;
     warHud.update(null);
     warMarkers.clear();
     if (warBegunId != null) {
@@ -2674,20 +2770,151 @@ export async function boot({
     }
   }
 
+  /* sim_part_break on part i unless `parts` (damage.parts()) says it is
+   * already off. Damage mode is on in a war (applyCrashMode), so a
+   * refusal is a bug. */
+  function warBreak(i, parts) {
+    if (parts && parts[i * PART_STATE_DOUBLES + STATE.status] !== 0) {
+      return;
+    }
+    const code = sim.e.sim_part_break(i);
+    if (code !== SIM_OK) {
+      throw new Error(`war boom: sim_part_break(${i}) ${simErrorName(code)}`);
+    }
+  }
+
+  /* The parts the picture needs (WAR_FEED_KINDS) and every part holding
+   * one, since a part leaves with its children. */
+  function warFeedParts() {
+    const table = damage.table();
+    const keep = new Set();
+    for (let i = 0; i < table.length; i += 1) {
+      if (!WAR_FEED_KINDS.includes(table[i].kindName)) {
+        continue;
+      }
+      for (let j = i; j > 0 && !keep.has(j); j = table[j].parent) {
+        keep.add(j);
+      }
+    }
+    return keep;
+  }
+
   /* This pilot's own warhead went off (section 6.3): every part but the
-   * root breaks, and the next frame's wreck check takes it from there.
-   * Damage mode is on in a war (applyCrashMode), so a refusal is a bug. */
-  function warBoomMine() {
+   * root and the picture's breaks, and the next frame's wreck check takes
+   * it from there; the picture's parts go WAR_FEED_HOLD_MS later
+   * (warFeedFrame). */
+  function warBoomMine(wallMs) {
     if (mode !== 'flight') {
       return;
     }
+    const keep = warFeedParts();
     const n = sim.e.sim_parts_count();
     for (let i = 1; i < n; i += 1) {
-      const code = sim.e.sim_part_break(i);
-      if (code !== SIM_OK) {
-        throw new Error(`war boom: sim_part_break(${i}) ${simErrorName(code)}`);
+      if (!keep.has(i)) {
+        warBreak(i, null);
       }
     }
+    warFeedCut = keep.size ? { at: wallMs + WAR_FEED_HOLD_MS, from: wallMs, starts: plantStarts } : null;
+  }
+
+  function warFeedFrame(wallMs) {
+    if (!warFeedCut || wallMs < warFeedCut.at) {
+      return;
+    }
+    if (warFeedCut.starts !== plantStarts || !runDamage) {
+      warFeedCut = null;
+      return;
+    }
+    if (mode !== 'flight') {
+      return;
+    }
+    warFeedHeldMs = wallMs - warFeedCut.from;
+    warFeedCut = null;
+    const parts = damage.parts();
+    const n = sim.e.sim_parts_count();
+    /* Children first, so each leaves as its own piece. */
+    for (const i of [...warFeedParts()].sort((x, y) => y - x)) {
+      if (i > 0 && i < n) {
+        warBreak(i, parts);
+      }
+    }
+  }
+
+  /* One explosion: drawn, and heard if it is the loudest this frame.
+   * `mine` is this pilot's own warhead. */
+  function warBoomAt(p, size, mine) {
+    if (!p) {
+      return;
+    }
+    const c = shell.camera.position;
+    if (mine) {
+      /* The warhead went off against what it hit, in front of the lens:
+       * the fireball is drawn a few metres ahead, so the pilot sees it
+       * swell into the picture rather than a haze from inside it. */
+      warBoomFwd.set(0, 0, -WAR_MINE_AHEAD_M).applyQuaternion(shell.camera.quaternion);
+      warBoomP[0] = c.x + warBoomFwd.x;
+      warBoomP[1] = c.y + warBoomFwd.y;
+      warBoomP[2] = c.z + warBoomFwd.z;
+      warBooms.play(warBoomP, size);
+    } else {
+      warBooms.play(p, size);
+    }
+    const d = mine ? 0 : Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]);
+    const level = mine ? 1 : Math.min(1, 0.35 + 0.2 * size);
+    const score = level / (1 + d / 250);
+    if (score > warBoomHeard.score) {
+      warBoomHeard.score = score;
+      warBoomHeard.level = level;
+      warBoomHeard.dist = d;
+    }
+    const near = mine ? 1 : Math.max(0, 1 - d / WAR_NEAR_M) * 0.45;
+    if (near > 0.02 && mode === 'flight') {
+      warBooms.flash(mine ? 0.8 : near, mine ? 0.6 : 0.45);
+      warShake.a = Math.max(warShake.a, (mine ? 0.085 : 0.05) * near);
+      warShake.t = 0;
+      warShakePeak = Math.max(warShakePeak, warShake.a);
+    }
+  }
+
+  /* A roomwar event's explosions: a warhead where it went off, every
+   * attacker killed where it was, a swarm's bigger at the point, a target
+   * hit where it was hit. One that flew away just goes. */
+  function warBoomEvent(ev) {
+    if (ev.type === 'boom') {
+      warBoomAt(ev.p, WAR_BOOM_SIZE, ev.mine);
+      return;
+    }
+    if (ev.type !== 'dead' || ev.why === 'leave') {
+      return;
+    }
+    for (const x of ev.agents) {
+      warBoomAt(x.p, WAR_DEATH[x.kind] ? WAR_DEATH[x.kind].size : 1, false);
+    }
+    if (ev.why === 'boom' && ev.agents.length > 1) {
+      warBoomAt(ev.p || ev.agents[0].p, Math.min(WAR_BOOM_MAX, 1.2 + 0.5 * ev.agents.length), false);
+    }
+    if (ev.why === 'arrive' && ev.hit && ev.p) {
+      warBoomAt(ev.p, WAR_IMPACT_SIZE, false);
+    }
+  }
+
+  /* The shake's rotation this frame: a buzz at 17 Hz dying over half a
+   * second, added where the lens is already turned (frame). Render only. */
+  function warShakeFrame(dtMs) {
+    if (warShake.a < 1e-4) {
+      warShake.a = 0;
+      warShake.x = 0;
+      warShake.y = 0;
+      warShake.z = 0;
+      return;
+    }
+    const dtS = Math.max(0, dtMs) / 1000;
+    warShake.t += dtS;
+    warShake.a *= Math.exp(-dtS * 6);
+    const w = warShake.t * 2 * Math.PI * 17;
+    warShake.x = warShake.a * Math.sin(w);
+    warShake.y = warShake.a * 0.8 * Math.sin(w * 1.31 + 1);
+    warShake.z = warShake.a * 0.6 * Math.sin(w * 0.77 + 2);
   }
 
   /* Every frame the room is open, after tag's. In the crash cam's replay
@@ -2698,8 +2925,14 @@ export async function boot({
     if (scene && warAttackers.group.parent !== scene) {
       scene.add(warAttackers.group);
     }
+    if (scene && warBooms.group.parent !== scene) {
+      scene.add(warBooms.group);
+    }
     const replay = mode === 'replay';
     warAttackers.group.visible = !replay;
+    /* The replay draws its own, from what the crash cam recorded. */
+    warBooms.group.visible = !replay;
+    warFeedFrame(wallMs);
     const v = roomWar.view();
     warIntroFrame(v, now);
     if (roomWar.on() && v.id !== warBegunId) {
@@ -2723,18 +2956,28 @@ export async function boot({
       if (ev.type === 'state' && ev.to === 'live' && audio.warRadio && audio.warRadio.track !== 'intro') {
         audio.setWarBed('combat');
       }
+      /* At the go, how a warhead goes off: the pilots look for a trigger. */
+      if (ev.type === 'state' && ev.to === 'live') {
+        warHud.hint(str('war.hint_go'));
+      }
       if (replay) {
         continue;
       }
+      warBoomEvent(ev);
       if (ev.type === 'dead') {
         warAttackers.dead(ev);
-      } else if (ev.type === 'boom') {
-        warAttackers.boom(ev.p);
-        if (ev.mine) {
-          warBoomMine();
-        }
+      } else if (ev.type === 'boom' && ev.mine) {
+        warBoomMine(wallMs);
       }
     }
+    if (warBoomHeard.score > 0) {
+      if (audio.enabled && typeof audio.boom === 'function') {
+        audio.boom(warBoomHeard.level, warBoomHeard.dist);
+      }
+      warBoomHeard.score = 0;
+    }
+    warAudioPeak = Math.max(warAudioPeak, typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0);
+    warBooms.update(dt);
     if (warLog.length > WAR_LOG_MAX) {
       warLog.splice(0, warLog.length - WAR_LOG_MAX);
     }
@@ -2747,7 +2990,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
-    warAttackers.update(live, dt);
+    warAttackers.update(live, roomWar.live() ? now : null);
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
      * is already on the air. */
@@ -3664,6 +3907,10 @@ export async function boot({
    * start behind the intro's briefing) and end; and the radio link, which
    * a war must leave as the preset has it. */
   window.__war = () => ({
+    fx: warBooms.stats(),
+    shake: warShakePeak,
+    feedHeldMs: warFeedHeldMs,
+    boomSound: { rung: audio.booms || 0, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
     seat: roomWar.seat(),
     view: roomWar.view(),
     error: roomWar.error(),
@@ -3689,6 +3936,51 @@ export async function boot({
    * page in a state the room reaches too seldom to wait for (an empty
    * rack with no attacker alive). The room's next view replaces it. */
   window.__warHear = (m) => roomWar.onMessage(m);
+  /* A swarm's worth of explosions at once, 150 m ahead of the camera, for
+   * scripts/war-boom.js: the frame's draw calls and time over 40 frames
+   * before and during, and whether the pools held. */
+  window.__warFxBurst = async (n = 10) => {
+    const frames = (k) => new Promise((resolve) => {
+      const ms = [];
+      let last = performance.now();
+      let calls = 0;
+      const f = () => {
+        const t = performance.now();
+        ms.push(t - last);
+        last = t;
+        calls = Math.max(calls, renderStats.calls);
+        if (ms.length >= k) {
+          ms.sort((x, y) => x - y);
+          resolve({ ms: ms[ms.length >> 1], calls });
+        } else {
+          requestAnimationFrame(f);
+        }
+      };
+      requestAnimationFrame(f);
+    });
+    const base = await frames(40);
+    const before = warBooms.stats();
+    const c = shell.camera;
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(c.quaternion);
+    for (let i = 0; i < n; i += 1) {
+      const side = (i - (n - 1) / 2) * 12;
+      warBoomEvent({
+        type: 'boom', p: [c.position.x + fwd.x * 150 + side, c.position.y + fwd.y * 150 + 10, c.position.z + fwd.z * 150], mine: false,
+      });
+    }
+    const during = await frames(40);
+    const s = warBooms.stats();
+    const cpu = [];
+    for (let k = 0; k < 20; k += 1) {
+      await new Promise((r) => requestAnimationFrame(r));
+      cpu.push(warBooms.stats().updateMs);
+    }
+    cpu.sort((x, y) => x - y);
+    return {
+      baseCalls: base.calls, calls: during.calls, addedCalls: during.calls - base.calls, baseMs: base.ms, ms: during.ms,
+      grown: s.pool - before.pool, dropped: s.dropped - before.dropped, hotLive: s.hotLive, smokeLive: s.smokeLive, updateMs: cpu[cpu.length >> 1],
+    };
+  };
   /* The intro while it plays (warintro.js state()), or null; and the
    * host's Watch intro, for the checks. Harness only. */
   window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
@@ -3792,7 +4084,13 @@ export async function boot({
        * profile.
        */
       const hostPeer = w && !host ? roomPeers.get(w.host) : null;
-      const game = w ? (w.mode || (host ? ui.roomGame : (hostPeer && hostPeer.profile.game)) || null) : null;
+      const wanted = w ? (w.mode || (host ? ui.roomGame : (hostPeer && hostPeer.profile.game)) || null) : null;
+      /* A title card's game outlives the room it was picked for: a pilot
+       * who pressed Defend Itaipu and then went into a public room still
+       * carries 'war', and the heading said the public room was set up for
+       * it. The room says it only where the war may run; elsewhere its
+       * block still leads, saying why not. */
+      const game = wanted === 'war' && !warFits(w) ? null : wanted;
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
@@ -3800,9 +4098,10 @@ export async function boot({
         combat: combatRows(host, w, game === 'combat'),
         war: warRows(host, w),
       };
-      /* Defend Itaipu last, unless the room was made for it, and only
-       * where it may run (warRows). */
-      const order = game ? [game, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== game)] : ['race', 'tag', 'combat', 'war'];
+      /* Defend Itaipu last, unless the room or its pilot came for it, and
+       * only on Itaipu (warRows): a public room there says why not. */
+      const first = game || (wanted === 'war' ? 'war' : null);
+      const order = first ? [first, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'war'];
       const games = [
         {
           label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
@@ -3888,6 +4187,10 @@ export async function boot({
   ui.onFriends = async (action) => {
     if (action === 'friends-war-start') {
       await warStart();
+      return;
+    }
+    if (action === 'friends-war-private') {
+      await warFromPublic();
       return;
     }
     if (action === 'friends-war-stop' || action === 'friends-end-war') {
@@ -6803,6 +7106,8 @@ export async function boot({
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
   shell.keepAcrossMaps(warAttackers.group);
+  const warBooms = createExplosions();
+  shell.keepAcrossMaps(warBooms.group);
   /*
    * THE SMOKE SYSTEM (the Parts tab's 'smoke' add-on): O in flight turns
    * it on and off, and the trail leaves the tail's nozzle on the sim clock
@@ -13195,10 +13500,11 @@ export async function boot({
        * that already rotates the lens, so it is render only and no
        * trajectory can depend on it. */
       decayImpactKick(dt);
+      warShakeFrame(dt);
       qShake.setFromEuler(shakeEuler.set(
-        shake.x + impactKick.x,
-        shake.y + impactKick.y,
-        shake.z + impactKick.z,
+        shake.x + impactKick.x + warShake.x,
+        shake.y + impactKick.y + warShake.y,
+        shake.z + impactKick.z + warShake.z,
         'XYZ',
       ));
       fpvQuat.multiply(qShake);
@@ -15731,9 +16037,10 @@ export async function boot({
   };
   /* Put the spawn somewhere else, facing another way, as a crash recovery
    * does, and reset there: the water is declared again in the new spawn's
-   * frame, which is what a check of the waves' frame needs. Harness only. */
-  window.__respawn = (x, z, yaw) => {
-    resetCraft({ x, z, yaw });
+   * frame, which is what a check of the waves' frame needs. `y` is the
+   * fromY hint a spawn may carry (a seat on a dam's crest). Harness only. */
+  window.__respawn = (x, z, yaw, y) => {
+    resetCraft({ x, z, yaw, y });
     return true;
   };
   /* Show the map's waves on the title too, so a parked camera
@@ -16150,6 +16457,10 @@ export async function boot({
   crashCam.tapPaper(combatLayer);
   /* Catch the Ace's crown burst and its coin, the same way. */
   crashCam.tapCrown(tagFx);
+  /* A war's explosions, the same way. */
+  crashCam.tapBooms(warBooms);
+  /* And its attackers, so a replay flies them where they were. */
+  crashCam.tapWar(roomWar, warAttackers);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

@@ -2,9 +2,8 @@
  * spawns.js: where each kind of aircraft starts on Itaipu
  * (docs/ITAIPU-PLAN.md section 10, package H).
  *
- *   plane   the crest road of the left bank rockfill dam, OSM way
- *           262638260, facing north west along it toward the main dam
- *   quad    open ground beside the Mirante da Barragem, facing the crest
+ *   plane,  the main dam's crest road, past the east intake gantry crane,
+ *   quad    facing west along the road toward the dam
  *   float   the water body's own spawn from water.json: the reservoir
  *           800 m north of the crest, or the river 2 km below the dam
  *   air     400 m over the reservoir, 3 km north of the crest, heading
@@ -17,28 +16,29 @@
  * aircraft on floats on this map, which has water); `wish` is the page's
  * ?spawn= ('reservoir', 'river' or 'air'), or null.
  *
- * WHY THE PLANE SPAWN MOVED FROM THE PLAN'S. The plan put it at x 975,
- * z -1487 on OSM way 30657423, which is a service road down the rockfill
- * dam's face, 49 m off the crest and 16 m under it. The crest is way
- * 262638260 (package A; dam.json's rockfill axis follows it). Its
- * straightest stretch runs 571 m from (1931, -543) to (2220, -51), never
- * more than 2 m off the chord (the numbers are the chord's): the spawn is
- * 150 m in from its south east end, so the row of a room's planes behind
- * it stays on that straight, and 421 m of it lie ahead with the main dam
- * in view beyond. The crest is 14 m wide (dam/index.js EMBANKMENT_HALF).
+ * THE CREST START, by the owner (2026-09-29): planes and quads take off
+ * from "the top street" of the main concrete dam by the violet intake
+ * gantry, where the action is, but not among the intakes, where the war
+ * mode's drones end their runs. The main dam's frame is dam/index.js's: t
+ * metres along the crest from (-352.9, -1826.5) toward (636.7, -1610.5),
+ * s metres across it, downstream positive. The east gantry stands at t
+ * 817.6 (the dam's survey, sites.intakeGantries), the last intake at t
+ * 802.3, and the start at t 950, s 1.5: 148 m from that intake, 132 m past
+ * the gantry and 63 m short of the main dam's east end.
  *
- * WHY THE QUAD SPAWN MOVED OFF THE VIEWPOINT. The viewpoint's OSM node
- * stands on a building's roof, with its walls within 2 m (measured in the
- * page: height() 182.5 over ground at 173.6). 110 m east of it the ground
- * is open and level for 60 m round, room for a room's row of eight.
+ * Measured in the page (scripts/itaipu-spawns-check.js holds it): the road
+ * between the upstream parapet and the lamps on the downstream one is
+ * clear of every solid from s -2 to s 5 on the main dam, and to s 3 on the
+ * diversion structure east of it, at every height a craft stands, and
+ * flat at 225 m. Facing west, 950 m of that straight lies ahead, past the
+ * gantry, whose legs and jib crane stand on the deck upstream of the
+ * parapet, off the road.
  *
  * A ROOM'S ROW. Slot k of a room starts at slots[k], metres to the
- * spawn's right and forward (src/game/slots.js). The plane spawn's row is
- * a staggered column behind it down the crest, 20 m apart and 3 m either
- * side of the centre line, because the default row across the heading, 8
- * m apart out to 32 m, would put six of eight planes off a 14 m crest and
- * onto the rockfill's slope. The other spawns take the default row: the
- * quads' field is level for the whole of it, and water is water.
+ * spawn's right and forward (src/game/slots.js): a column back down the
+ * crest away from the intakes, 20 m apart and 1 m either side of s 1.5,
+ * so every seat is on the clear road; the last, at t 1090, is on the
+ * diversion structure's crest.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -60,15 +60,14 @@
  * answer the crest's own record rather than anything under it. */
 const CREST_Y = 225;
 
-export const PLANE_SPAWN = {
-  x: 2144.2,
-  z: -180.1,
-  yaw: 0.530,
+/* t 950, s 1.5 in the main dam's frame, facing -t. */
+export const CREST_SPAWN = {
+  x: 574.93,
+  z: -1622.45,
+  yaw: 1.3559,
   y: CREST_Y,
-  slots: [[0, 0], [3, -20], [-3, -40], [3, -60], [-3, -80], [3, -100], [-3, -120], [3, -140]],
+  slots: [[0, 0], [1, -20], [-1, -40], [1, -60], [-1, -80], [1, -100], [-1, -120], [1, -140]],
 };
-
-export const QUAD_SPAWN = { x: 315, z: -995, yaw: 0.361 };
 
 export const AIR_SPAWN = {
   x: 1500, z: -4200, yaw: 2.623, air: { y: 619 },
@@ -91,6 +90,6 @@ export function makeSpawnFor(home, lakes) {
     if (kind === 'float') {
       return water[wish] ?? lakes[0].spawn;
     }
-    return kind === 'plane' ? PLANE_SPAWN : QUAD_SPAWN;
+    return home;
   };
 }
