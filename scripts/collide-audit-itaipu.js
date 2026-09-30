@@ -729,16 +729,21 @@ const TARGETS = `(async () => {
       }
     }
   }
-  /* The switchyard's first transformer: its tank, and the bushing drawn
-   * over it (war/index.js: three porcelain bars 3 m tall, no collider). */
+  /* The switchyard's first transformer: its tank, and its middle
+   * bushing (war/plan.js KIT: u 1.8 on the tank's axis, from the tank's
+   * top to KIT.bushings.height over it), crossed at its middle. The
+   * tank's first collider runs along its axis, from -u to +u. */
   {
+    const W = await import('/src/maps/itaipu/war/plan.js');
     const i = it.parts.war.yard.solids[0];
     const a = [col.fax[i], col.fay[i], col.faz[i]], b = [col.fbx[i], col.fby[i], col.fbz[i]];
     const c = [(a[0] + b[0]) / 2, a[1], (a[2] + b[2]) / 2];
     const ax = flat([b[0] - a[0], 0, b[2] - a[2]]);
-    const top = a[1] - col.fr[i] + 4.2;
+    const g = window.__surface(c[0], c[2], -1e9);
+    const u = W.KIT.bushings.u[1];
+    const y = g + W.TANK.plinth + W.TANK.height + W.KIT.bushings.height / 2;
     T.push({ name: 'switchyard transformer tank', at: c, dir: perp(ax), expect: 'stopped' });
-    T.push({ name: 'switchyard transformer bushing (drawn only)', at: [c[0] + ax[0] * 0.8, top + 1.5, c[2] + ax[2] * 0.8], dir: perp(ax), expect: 'passed' });
+    T.push({ name: 'switchyard transformer middle bushing', at: [c[0] + ax[0] * u, y, c[2] + ax[2] * u], dir: perp(ax), expect: 'stopped' });
   }
   /* The deepest invisible wall the footprints section finds: open
    * ground 26 m from building w608156691's drawn walls, under its wall
