@@ -5,7 +5,7 @@
  *   npm run campaign:check                  starts its own on port 8823
  *   npm run campaign:check -- http://127.0.0.1:8797 [outdir]
  *
- * The gate draws seven cards, the campaign's last, inside the window at
+ * The gate draws six cards, the campaign's last, inside the window at
  * 1280x720, 390x844 and 360x640, with the rooms panel above them and
  * clear of them. Its card opens the campaign screen:
  * mission 1 playable and free, missions 2 to 4 marked Campaign. The shop,
@@ -150,7 +150,7 @@ function laidOut(v) {
   /* The rooms panel (src/ui/ui.js renderTitleRooms): in the window, above the cards. */
   const p = v.panel;
   const panel = Boolean(p) && p[0] >= 0 && p[1] >= 0 && p[2] <= v.w && c.every((x) => p[3] <= x.box[1]);
-  return c.length === 7 && inside && apart && panel && v.sw <= v.w;
+  return c.length === 6 && inside && apart && panel && v.sw <= v.w;
 }
 
 /* What the campaign screen shows, read off the DOM. */
@@ -201,13 +201,13 @@ const page = await openPage({
 });
 try {
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 7", 60000).catch(() => {});
+  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000).catch(() => {});
 
   /* THE CARD. */
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: seven cards, the campaign last, inside the window, clear of the bar, the rooms panel above them`,
+    check(`${w} by ${h}: six cards, the campaign last, inside the window, clear of the bar, the rooms panel above them`,
       laidOut(v) && v.cards[6].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }
