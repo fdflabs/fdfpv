@@ -39,7 +39,7 @@
 
 import {
   ACT1, MAX_STARS, UPGRADES, applyResult, buy, cannotBuy, createCampaignStore, credits, equip, gateOpen, loadoutOf,
-  starsOf, totalStars, unlocked, upgradeById,
+  starsOf, totalStars, unlocked,
 } from '../game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../share/campaignwar.js';
 import { str } from '../strings/index.js';
@@ -78,16 +78,17 @@ function starRow(n) {
 const skey = (id) => id.replace(/-/g, '_');
 
 /*
- * ui: the shell's UI (ui.js). storage: localStorage. inBuild(id): whether
+ * ui: the shell's UI (ui.js), whose settings keep the campaign. inBuild(id): whether
  * this build has that mission. enterWarRoom(): the Defend Itaipu card's
  * way in. send(obj): the room's socket. view(): the war view
  * (roomWar.view()). room(): { phase, code, seat }.
  */
 export function createCampaignScreen({
-  ui, storage, inBuild, enterWarRoom, send, view, room,
+  ui, inBuild, enterWarRoom, send, view, room,
 }) {
-  const store = createCampaignStore(storage);
-  let state = store.load();
+  const store = createCampaignStore(ui.settings, () => ui.persistSettings());
+  /* Read fresh each time: an account sync may replace the section. */
+  const cur = () => store.load();
   let page = null;
   /* The mission Play chose: { mission, from (the room code at Play),
    * code (the room made for it, once open) }, or null. */
@@ -99,9 +100,8 @@ export function createCampaignScreen({
   let loadoutSaid = null;
   let last = null;
 
-  function commit(next) {
-    state = next;
-    store.save(state);
+  function commit(change) {
+    store.save(change(cur()));
     draw();
   }
 
@@ -149,8 +149,8 @@ export function createCampaignScreen({
     box.append(el('div', 'campaign-eyebrow', str('campaign.act1')));
     box.append(el('h2', null, title));
     const bank = el('div', 'campaign-bank');
-    bank.append(el('span', 'campaign-credits', str('campaign.credits', { n: credits(state) })));
-    bank.append(el('span', null, str('campaign.stars_total', { n: totalStars(state), of: ACT1.length * MAX_STARS })));
+    bank.append(el('span', 'campaign-credits', str('campaign.credits', { n: credits(cur()) })));
+    bank.append(el('span', null, str('campaign.stars_total', { n: totalStars(cur()), of: ACT1.length * MAX_STARS })));
     box.append(bank);
   }
 
@@ -160,18 +160,18 @@ export function createCampaignScreen({
     const top = el('div', 'campaign-mission-top');
     top.append(el('span', 'campaign-n', str('campaign.mission_n', { n: i + 1 })));
     top.append(el('span', m.free ? 'campaign-tag free' : 'campaign-tag', str(m.free ? 'campaign.free' : 'campaign.tag')));
-    top.append(starRow(starsOf(state, m.id)));
+    top.append(starRow(starsOf(cur(), m.id)));
     card.append(top);
     card.append(el('div', 'campaign-name', str(`campaign.m.${m.key}`)));
     card.append(el('div', 'campaign-line', str(`campaign.m.${m.key}_blurb`)));
-    const best = state.missions[m.id];
+    const best = cur().missions[m.id];
     card.append(el('div', 'campaign-best', best
       ? str(best.won ? 'campaign.best_won' : 'campaign.best_lost', { n: best.credits })
       : str('campaign.not_flown')));
     let why = null;
     if (!inBuild(m.id)) {
       why = str('campaign.not_built');
-    } else if (!unlocked(state, i)) {
+    } else if (!unlocked(cur(), i)) {
       why = str('campaign.locked', { n: i });
     } else if (!gateOpen(i)) {
       why = str('campaign.tag');
@@ -199,27 +199,27 @@ export function createCampaignScreen({
     if (u.later) {
       return { label: str('campaign.later', { n: u.later }), disabled: true };
     }
-    const owned = Object.hasOwn(state.owned, u.id);
+    const owned = Object.hasOwn(cur().owned, u.id);
     if (owned && u.kind === 'warhead') {
-      const on = state.equipped.warhead === u.id;
+      const on = cur().equipped.warhead === u.id;
       return on
-        ? { label: str('campaign.equipped'), go: () => commit(equip(state, 'warhead', 'standard')), on: true }
-        : { label: str('campaign.equip'), go: () => commit(equip(state, 'warhead', u.id)) };
+        ? { label: str('campaign.equipped'), go: () => commit((s) => equip(s, 'warhead', 'standard')), on: true }
+        : { label: str('campaign.equip'), go: () => commit((s) => equip(s, 'warhead', u.id)) };
     }
     if (owned && u.kind === 'speed') {
-      const on = state.equipped.speed;
+      const on = cur().equipped.speed;
       return on
-        ? { label: str('campaign.equipped'), go: () => commit(equip(state, 'speed', false)), on: true }
-        : { label: str('campaign.equip'), go: () => commit(equip(state, 'speed', true)) };
+        ? { label: str('campaign.equipped'), go: () => commit((s) => equip(s, 'speed', false)), on: true }
+        : { label: str('campaign.equip'), go: () => commit((s) => equip(s, 'speed', true)) };
     }
     if (owned) {
       return { label: str('campaign.carried'), disabled: true, on: true };
     }
-    const no = cannotBuy(state, u.id);
+    const no = cannotBuy(cur(), u.id);
     if (no === 'needs') {
       return { label: str('campaign.needs', { name: str(`campaign.u.${skey(u.needs)}`) }), disabled: true };
     }
-    return { label: str('campaign.buy', { n: u.price }), go: () => commit(buy(state, u.id)), disabled: no !== null };
+    return { label: str('campaign.buy', { n: u.price }), go: () => commit((s) => buy(s, u.id)), disabled: no !== null };
   }
 
   function drawShop(box) {
@@ -238,7 +238,7 @@ export function createCampaignScreen({
       list.append(row);
     }
     box.append(list);
-    const l = loadoutOf(state);
+    const l = loadoutOf(cur());
     box.append(el('p', 'campaign-loadout', str('campaign.loadout', {
       rack: l.rack,
       warhead: str(`campaign.u.${l.warhead}`),
@@ -293,7 +293,7 @@ export function createCampaignScreen({
     if (!pending || !pending.code || r.code !== pending.code) {
       return false;
     }
-    send(startMessage(pending.mission, loadoutOf(state)));
+    send(startMessage(pending.mission, loadoutOf(cur())));
     return true;
   }
 
@@ -327,7 +327,7 @@ export function createCampaignScreen({
       return;
     }
     last = str(res.won ? 'campaign.result_won' : 'campaign.result_lost', { n: i + 1, stars: res.stars, credits: res.credits });
-    commit(applyResult(state, v.mission, res));
+    commit((s) => applyResult(s, v.mission, res));
   }
 
   function poll() {
@@ -344,7 +344,7 @@ export function createCampaignScreen({
     }
     const v = view();
     observe(v, r.code);
-    const l = loadoutOf(state);
+    const l = loadoutOf(cur());
     const said = `${r.code}:${v.id}:${JSON.stringify(l)}`;
     if (said !== loadoutSaid && loadoutDue(v, r.seat, l)) {
       loadoutSaid = said;
@@ -360,7 +360,7 @@ export function createCampaignScreen({
     startSelected,
     /* For the checks. */
     observe,
-    state: () => state,
+    state: cur,
     pending: () => (pending ? { ...pending } : null),
     page: () => page,
   };

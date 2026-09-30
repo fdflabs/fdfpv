@@ -8,7 +8,8 @@
  * The gate draws seven cards, the campaign's last, inside the window at
  * 1280x720, 390x844 and 360x640. Its card opens the campaign screen:
  * mission 1 playable and free, missions 2 to 4 marked Campaign. The shop,
- * with credits seeded through local storage (the pilot's own store):
+ * with credits seeded in the stored settings' campaign section (the
+ * guest's store, which the account syncs for a signed in pilot):
  * buy the wide blast warhead and Rack +1, equip and unequip, the loadout
  * line following. Play on mission 1: the Defend Itaipu card's consent and
  * private Itaipu room, and its start row starts mission 1 with the
@@ -173,7 +174,13 @@ const SOCKET_TAP = `(() => {
   };
 })();`;
 
-const SEED = `localStorage.getItem('webfpv.campaign') || localStorage.setItem('webfpv.campaign', JSON.stringify({ v: 1, earned: 1000 }));`;
+/* Once per profile: a reload keeps what the page since bought. */
+const SEED = `(() => {
+  const s = JSON.parse(localStorage.getItem('webfpv.settings.v3') || '{}');
+  if (!s.campaign) {
+    localStorage.setItem('webfpv.settings.v3', JSON.stringify({ ...s, campaign: { v: 1, earned: 1000 } }));
+  }
+})();`;
 
 const server = await roomsServer();
 console.log(`Defend the Paraná, rooms at ${server.url}`);
@@ -223,7 +230,7 @@ try {
     && shop.items.wide.label === 'Equipped', `${off.loadout} / ${shop.items.wide.label}`);
   check('the loadout line: a rack of 5, wide blast', shop.loadout === 'Your loadout: a rack of 5, Wide blast warhead, standard airframe.', shop.loadout);
   check('bought survives a reload of the store', await page.evaluate(`(() => {
-    const s = JSON.parse(localStorage.getItem('webfpv.campaign'));
+    const s = JSON.parse(localStorage.getItem('webfpv.settings.v3')).campaign;
     return s.owned.wide === 500 && s.owned['rack-1'] === 400 && s.equipped.warhead === 'wide';
   })()`));
   await shot(page, 'shop');

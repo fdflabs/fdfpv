@@ -32,10 +32,9 @@
  * each time the same blob met itself.
  *
  * Pure and DOM free: src/ui/campaign.js draws it, and
- * scripts/campaign-selftest.js runs it in Node. Storage is behind
- * createCampaignStore, the one place that reads or writes it, so the
- * account's progress blob (src/share/progressmerge.js, PR #244) can carry
- * it as one section merged by mergeCampaign.
+ * scripts/campaign-selftest.js runs it in Node. It is kept in the pilot's
+ * settings (createCampaignStore), and the account's progress blob carries
+ * that section, merged by mergeCampaign (src/share/progressmerge.js).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -298,24 +297,21 @@ export function mergeCampaign(incoming, held) {
   return out;
 }
 
-/* The one place the campaign is kept on this computer: local storage
- * under KEY, the only store a guest has. */
-export const CAMPAIGN_KEY = 'webfpv.campaign';
-
-export function createCampaignStore(storage) {
+/*
+ * The one place the campaign is read and written: the `campaign` section
+ * of the pilot's settings (ui.settings), which persist() keeps in local
+ * storage, a guest's only store, and which the account's progress blob
+ * carries for a signed in pilot (src/share/progressmerge.js). Read fresh
+ * each time, since a sync may have replaced the section since.
+ */
+export function createCampaignStore(settings, persist) {
   return {
     load() {
-      try {
-        return cleanCampaign(JSON.parse(storage.getItem(CAMPAIGN_KEY) || 'null'));
-      } catch (e) {
-        /* Unparseable is a hand edit or a truncated write: start over
-         * rather than refuse to open the screen, and say so. */
-        console.warn('campaign: stored state unreadable, starting empty', e);
-        return emptyCampaign();
-      }
+      return cleanCampaign(settings.campaign);
     },
     save(state) {
-      storage.setItem(CAMPAIGN_KEY, JSON.stringify(cleanCampaign(state)));
+      settings.campaign = cleanCampaign(state);
+      persist();
     },
   };
 }

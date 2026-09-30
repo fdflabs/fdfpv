@@ -4211,7 +4211,6 @@ export async function boot({
    * the room it made starts the chosen mission. */
   const campaign = createCampaignScreen({
     ui,
-    storage: window.localStorage,
     inBuild: (id) => Object.hasOwn(WAR_MISSIONS, id),
     enterWarRoom: () => ui.onWarCard('way-war'),
     send: (obj) => roomLinkState.send(obj),

@@ -26,6 +26,9 @@ import {
 } from '../src/game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../src/share/campaignwar.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
+import {
+  SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
+} from '../src/share/progressmerge.js';
 
 let failed = 0;
 let passed = 0;
@@ -98,16 +101,16 @@ check('clean clamps and drops what it cannot trust', same(odd.missions, { 'itaip
   && odd.earned === 0 && odd.equipped.warhead === 'standard' && odd.equipped.speed === false, JSON.stringify(odd));
 check('a later build\'s mission and upgrade survive a clean', 'itaipu-9' in cleanCampaign({ missions: { 'itaipu-9': { stars: 1 } } }).missions
   && 'radar-2' in cleanCampaign({ owned: { 'radar-2': 10 } }).owned);
-const mem = new Map();
-const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, String(v)) };
-const store = createCampaignStore(storage);
+const settings = {};
+let persisted = 0;
+const store = createCampaignStore(settings, () => {
+  persisted += 1;
+});
+check('a settings object with no campaign loads empty', same(store.load(), fresh));
 store.save(rich);
-check('the store round trips', same(store.load(), rich));
-mem.set('webfpv.campaign', '{not json');
-const warn = console.warn;
-console.warn = () => {};
-check('an unreadable store loads empty', same(store.load(), fresh));
-console.warn = warn;
+check('the store keeps it in the settings section and persists', same(settings.campaign, rich) && persisted === 1 && same(store.load(), rich));
+settings.campaign = 'junk from a hand edit';
+check('a broken section loads empty', same(store.load(), fresh));
 
 console.log('merge');
 let pc = applyResult(fresh, 'itaipu-1', { stars: 3, credits: 600, won: true });
@@ -138,6 +141,15 @@ check('none once it matches, none after the go', !loadoutDue({ state: 'briefing'
   && !loadoutDue({ state: 'live', loadouts: {} }, 1, l));
 check('a result is read when whole', same(resultOf({ result: { stars: 2, credits: 225, won: true } }), { stars: 2, credits: 225, won: true }));
 check('no result from a view without one or a broken one', resultOf({}) === null && resultOf({ result: { stars: 2 } }) === null && resultOf(null) === null);
+
+console.log('the account blob');
+const one = { v: 1, data: { campaign: pc }, stamps: {} };
+const two = { v: 1, data: { campaign: phone }, stamps: { campaign: 5 } };
+check('campaign is a synced section', SYNCED_SECTIONS.campaign === 'campaign' && same(pickSynced({ campaign: pc, graphics: 'x' }), { campaign: pc }));
+check('the blob merges it by mergeCampaign, whatever the stamps', same(mergeBlobs(one, two).data.campaign, mergeCampaign(pc, phone)));
+check('one side without it keeps the other\'s', same(mergeBlobs({ v: 1, data: {} }, two).data.campaign, cleanCampaign(phone))
+  && !('campaign' in mergeBlobs({ v: 1, data: {} }, { v: 1, data: {} }).data));
+check('a change to it is stamped', stampChanges({ campaign: pc }, { campaign: phone }, 9).campaign === 9);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

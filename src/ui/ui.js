@@ -199,6 +199,7 @@ import {
 } from './fc.js';
 import { FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY } from '../fc/dump.js';
 import { str, plural, LOCALES, LOCALE_NAMES, currentLocale, rememberLocale } from '../strings/index.js';
+import { cleanCampaign } from '../game/campaign.js';
 /* The pilot's own tracks live in this browser's library, and My tracks
  * lists, copies, renames and deletes them there. */
 import {
@@ -771,6 +772,10 @@ const DEFAULTS = {
    * a profile stored before progression existed starts with everything
    * open, so nobody loses a plane they already flew. */
   progress: {},
+  /* Defend the Paraná: stars, credits, owned and equipped upgrades
+   * (src/game/campaign.js). Made safe by cleanCampaign on load; synced
+   * with the account like progress, merged by mergeCampaign. */
+  campaign: {},
   /* Each plane's prop, add-ons and last crash's broken parts, by airframe
    * id: { prop, addons, damage }, configs/hangar-parts.js. A plane with no
    * entry flies as the kit, whole. */
@@ -1071,6 +1076,7 @@ export function loadSettings() {
   s.livery = normaliseLiveries(s.livery);
   s.progress = normaliseProgress(stored.progress, { existing: Object.keys(stored).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
+  s.campaign = cleanCampaign(s.campaign);
   /*
    * The rate profile, from whichever shape this blob was written in.
    *
