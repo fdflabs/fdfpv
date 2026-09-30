@@ -75,8 +75,20 @@
 
 import { simErrorName, SIM_OK } from '../../tests/lib/simmod.js';
 
-const RAYS = 96;
+/* The outline's corners, the plant's most (WATER_VERTS_MAX), and the march
+ * out along each: STEP to find the shore, then halved to a millimetre, and
+ * the corner set SHORE_OUT past it, where the land is over the water and
+ * the plant's water under it meets nothing. The shore is where the map's
+ * own ground comes within `wet` of the still water: swiss2's lake is
+ * drawn over its north shore's beach, one in eighty, five centimetres up
+ * it (WET_SWISS2); the alps' stops where the ground crosses the water.
+ * The outline was 96 corners on the terrain, not the map's ground, and
+ * swiss2's north shore was drawn water with no water under it
+ * (scripts/collide-audit-swiss2.js). */
+const RAYS = 256;
 const STEP = 3;
+const SHORE_OUT = 1.5;
+const WET_SWISS2 = 0.05;
 /* The breeze on the Alps' lake, m/s. */
 export const ALPS_LAKE_WIND = 2;
 
@@ -84,9 +96,13 @@ export const ALPS_LAKE_WIND = 2;
  * the alps' with Lauterbrunnen's walls added where the walls are
  * (src/maps/swiss2/terrain.js, wallRise), so its lake's far shores are
  * where those walls meet the water. */
-async function alpsLake(ground) {
+async function alpsLake(ground, shore, over = 0) {
   const t = await import('../maps/alps/terrain.js');
   const height = ground ? await ground(t) : t.terrainHeight;
+  /* Where the shore is: on the map's own ground when it is built, which
+   * answers the lake's surface over the water, within `over` of it; else
+   * under the lake's level on the terrain. */
+  const wet = shore ? (x, z) => shore(x, z) <= t.LAKE_Y + over : (x, z) => height(x, z) < t.LAKE_Y;
   const cz = (t.LAKE_N + t.LAKE_END) / 2;
   const cx = t.valleyAxis(cz);
   const outline = [];
@@ -97,9 +113,19 @@ async function alpsLake(ground) {
     const dx = Math.cos(a);
     const dz = Math.sin(a);
     let r = 0;
-    while (r < 1100 && height(cx + dx * r, cz + dz * r) < t.LAKE_Y) {
+    while (r < 1100 && wet(cx + dx * r, cz + dz * r)) {
       r += STEP;
     }
+    let inside = Math.max(0, r - STEP);
+    while (r - inside > 0.001) {
+      const m = (inside + r) / 2;
+      if (wet(cx + dx * m, cz + dz * m)) {
+        inside = m;
+      } else {
+        r = m;
+      }
+    }
+    r += SHORE_OUT;
     outline.push({ x: cx + dx * r, z: cz + dz * r });
     zMin = Math.min(zMin, cz + dz * r);
     zMax = Math.max(zMax, cz + dz * r);
@@ -116,20 +142,27 @@ async function alpsLake(ground) {
 }
 
 const WATER = {
-  alps: () => [alpsLake(null)],
-  swiss2: () => [alpsLake(async (t) => {
+  alps: (shore) => [alpsLake(null, shore)],
+  swiss2: (shore) => [alpsLake(async (t) => {
     const w = await import('../maps/swiss2/terrain.js');
     return (x, z) => t.terrainHeight(x, z) + w.wallRise(x, z);
-  })],
+  }, shore, WET_SWISS2)],
 };
 
 /* Segments a channel's box covers, as the plant's WATER_CHUNK. */
 const CHUNK = 32;
 /* The corners of a pool's outline. */
 const POOL_SIDES = 48;
+/* How far past the drawn stream's edge the plant's channel reaches, m.
+ * The drawn ribbon's edge is exactly half its width off the line, so the
+ * plant had water there by a rounding or not at all: swiss2's stream was
+ * drawn water with none under it all along both edges, 2 528 m2 of it
+ * (scripts/collide-audit-swiss2.js). Past the edge is the bank, over the
+ * water, where the plant's water under the ground meets nothing. */
+const CHANNEL_OUT = 0.25;
 
 function channel(line, width, bed) {
-  const halfWidth = width / 2;
+  const halfWidth = width / 2 + CHANNEL_OUT;
   const chunks = [];
   for (let k = 0; k + 1 < line.length; k += CHUNK) {
     const end = Math.min(line.length - 1, k + CHUNK);
@@ -147,9 +180,12 @@ function channel(line, width, bed) {
 
 function pool({ x, z, r, y }, bed) {
   const outline = [];
+  /* Round the drawn disc, not inside it: corners on the circle cut
+   * inside it between them. */
+  const R = r / Math.cos(Math.PI / POOL_SIDES);
   for (let k = 0; k < POOL_SIDES; k += 1) {
     const a = (k / POOL_SIDES) * Math.PI * 2;
-    outline.push({ x: x + Math.cos(a) * r, z: z + Math.sin(a) * r });
+    outline.push({ x: x + Math.cos(a) * R, z: z + Math.sin(a) * R });
   }
   return {
     kind: 'lake', surfaceY: y, outline, bed, centre: { x, z }, spawn: null, wind: { speed: 0, toX: 1, toZ: 0, fetch: 0 },
@@ -166,7 +202,7 @@ function pool({ x, z, r, y }, bed) {
  */
 export async function waterFor(mapId, map) {
   const make = WATER[mapId];
-  const lakes = make ? await Promise.all(make()) : [];
+  const lakes = make ? await Promise.all(make(map ? (x, z) => map.height(x, z, -Infinity) : null)) : [];
   if (!map) {
     return lakes;
   }
