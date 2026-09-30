@@ -95,7 +95,9 @@
  * crest road's line from dam.json; a face is ground farther from it than
  * the crest's half width, over the dam's base, and sloped.
  *
- * Both files are fetched by the look as well as by the map (itaipu.js
+ * The roads (osm/roads.json), so the turf (makeTurf) keeps off them.
+ *
+ * The files are fetched by the look as well as by the map (itaipu.js
  * readData), because the look is made before the data is read and in
  * parallel with it; the browser's cache serves the second fetch.
  *
@@ -117,6 +119,7 @@
 
 import * as THREE from 'three';
 import { LAYERS } from '../../swiss2/assets.js';
+import { DRESSED } from '../town/roads.js';
 
 /* Each mask channel's layer, by name, and the rock for the faces. */
 const LAYER = {
@@ -232,12 +235,14 @@ function outlineMask(outline, ringHalf) {
 /*
  * Read the site from the data folder at `base`. Returns { reservoir,
  * reservoirY, riverY, rockfill: { axis: [THREE.Vector2], crestHalf,
- * toeY } }; the caller owns reservoir, a texture.
+ * toeY }, roads: [{ points: [[x, z]], width }] }; the caller owns
+ * reservoir, a texture.
  */
 export async function loadSite(base, ringHalf) {
-  const [water, dam] = await Promise.all([
+  const [water, dam, roads] = await Promise.all([
     fetchJson(`${base}water.json`),
     fetchJson(`${base}dam.json`),
+    fetchJson(`${base}osm/roads.json`),
   ]);
   const body = (name) => {
     const b = water.find((w) => w.name === name);
@@ -260,8 +265,86 @@ export async function loadSite(base, ringHalf) {
       crestHalf: fill.sections[0].crestWidth / 2,
       toeY: fill.baseY,
     },
+    /* Where no grass stands up through the paving (makeTurf): every
+     * road but a tunnel, the dam's crest roads included, a dressed one
+     * at the width town/roads.js draws it with its verges. */
+    roads: roads.features.filter((f) => !f.tunnel).map((f) => {
+      const dressed = DRESSED[f.id];
+      return { points: f.points, width: dressed ? dressed.width + 2 * dressed.verge : f.width };
+    }),
   };
 }
+
+/* The hashes and noises the ground and the turf (makeTurf) share: the
+ * turf reads the ground's patches, so its blades stand where the ground
+ * under them is grass. Needs uNoise. */
+const NOISE_GLSL = /* glsl */ `
+  float itHash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+  }
+  /* Smooth value noise, a unit a feature, and with its gradient (after
+   * Quilez). Hashed rather than read from uNoise, so it has no mips: every
+   * use fades it out by the pixel's size itself. */
+  float itNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return mix(mix(itHash(i), itHash(i + vec2(1.0, 0.0)), u.x),
+               mix(itHash(i + vec2(0.0, 1.0)), itHash(i + vec2(1.0, 1.0)), u.x), u.y);
+  }
+  vec3 itNoiseD(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    vec2 du = 6.0 * f * (1.0 - f);
+    float a = itHash(i);
+    float b = itHash(i + vec2(1.0, 0.0));
+    float c = itHash(i + vec2(0.0, 1.0));
+    float d = itHash(i + vec2(1.0, 1.0));
+    float k = a - b - c + d;
+    return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y, du * (vec2(b - a, c - a) + k * u.yx));
+  }
+  /* A wheel's rut w wide about x == 0, worn most down its middle; a pixel
+   * wide at its average once it is narrower than one (swiss2's s2Rut). */
+  float itRut(float x, float w, float px) {
+    float wide = max(w, px);
+    return (1.0 - smoothstep(0.1 * wide, 0.5 * wide + 0.5 * px, abs(x))) * (w / wide);
+  }
+  /* The noise texture as value noise with features m metres across: its
+   * mipmaps take it to its mean as a pixel outgrows m, so it needs no fade. */
+  vec4 itTex(vec2 w, float m, float o) {
+    return texture(uNoise, w / (256.0 * m) + o);
+  }
+  /* The ground's patches at w, each spread round 0.5: x dry against lush,
+   * metres across; y clover and undergrowth, z bare earth, and tufts on
+   * soil, a metre or two; w a spare at that scale. Two octaves turned
+   * against each other, so the texture's grid does not show. */
+  vec4 itPatches(vec2 w) {
+    vec2 wr = mat2(0.8, 0.6, -0.6, 0.8) * w;
+    vec4 big = itTex(w, 9.0, 0.13) * 0.65 + itTex(wr, 3.4, 0.47) * 0.35;
+    vec4 mid = itTex(w, 1.3, 0.71) * 0.6 + itTex(wr, 0.55, 0.29) * 0.4;
+    /* The sum of two octaves has half the spread of one. */
+    return vec4(0.5 + 1.6 * (big.r - 0.5), 0.5 + 1.6 * (mid.g - 0.5), 0.5 + 1.6 * (mid.b - 0.5), mid.a);
+  }
+  /* Where the grass is dry and thin enough to show the earth. */
+  float itBare(vec4 pt) {
+    return pt.z * 0.35 + pt.x * 0.65;
+  }
+  /* The vehicle tracks: a line where a slow noise crosses its middle,
+   * broken where a slower one says no one drives there (more of them on
+   * bare soil, soilW). Returns the signed metres from the line (x),
+   * whether it is driven (y), and the noise's gradient (zw). */
+  vec4 itTrack(vec2 w, float soilW) {
+    vec3 ta = itNoiseD(w / 210.0 + 13.1);
+    vec3 tb = itNoiseD(w / 64.0 + 5.3);
+    vec2 g = ta.yz / 210.0 + 0.2 * tb.yz / 64.0;
+    float d = (ta.x + 0.2 * tb.x - 0.6) / max(length(g), 1e-4);
+    float used = smoothstep(0.35, 0.6, textureLod(uNoise, w / (256.0 * 60.0) + 0.9, 0.0).g + 0.25 * soilW);
+    return vec4(d, used, g);
+  }
+`;
 
 const parsFor = (axisN) => /* glsl */ `
   uniform sampler2D uHeroCol;
@@ -283,7 +366,7 @@ const parsFor = (axisN) => /* glsl */ `
   varying vec3 vItNormal;
   vec3 itNrm = vec3(0.0, 1.0, 0.0);
   float itRough = 0.92;
-
+${NOISE_GLSL}
   /* A layer's grain round 1, and its normal's tangent part. */
   vec3 itGrain(float k, vec2 uv, out vec3 tn) {
     vec3 col = texture(uLayerCol, vec3(uv, k)).rgb;
@@ -301,11 +384,6 @@ const parsFor = (axisN) => /* glsl */ `
     vec3 col = texture(uLayerCol, vec3(uv, k)).rgb;
     vec3 mean = textureLod(uLayerCol, vec3(0.5, 0.5, k), 12.0).rgb;
     return dot(col / max(mean, vec3(0.02)), vec3(0.3, 0.59, 0.11));
-  }
-  float itHash(vec2 p) {
-    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
-    p3 += dot(p3, p3.yzx + 33.33);
-    return fract((p3.x + p3.y) * p3.z);
   }
   /* The satellite at uv on a map of texel metres, sharpened against its
    * blur a mip and a half down while a pixel is under a texel. */
@@ -367,6 +445,146 @@ const parsFor = (axisN) => /* glsl */ `
 `;
 
 /*
+ * ROUND 2 (docs/ITAIPU-LOOP.md target 2): the ground at eye level. Under
+ * a few hundred metres the satellite and one photograph a class were a
+ * lawn: even, one green, the same everywhere. What a photograph of the
+ * place has there, per class, as multipliers on the colour above so the
+ * satellite still says what the ground is:
+ *
+ *   pasture   dry straw and lush green in patches metres across, clover,
+ *             tufts with dark gaps between, bare terra roxa showing
+ *             through, and red dirt tracks winding across it: a band
+ *             of bare earth with a rut either side;
+ *   red soil  clods, damp dark hollows, grass come back in tufts, and
+ *             the same tracks, more of them;
+ *   town      concrete slabs where the satellite is bright, laterite
+ *             gravel where it is not, and a gravel verge where town
+ *             meets grass;
+ *   forest    leaf litter, brown and orange, with green undergrowth.
+ *
+ * Each pattern fades to its mean as a pixel outgrows it, and the whole
+ * fades out over the second half of NEAR_FAR, so where it ends is a
+ * gradient into round 1's colour, not a line. Under a few metres a pixel
+ * the satellite's own blots are flattened toward their classes' colour
+ * too, and its lookup wandered, so the patches carry the variation there
+ * rather than a magnified 10 m pixel.
+ */
+/* Where the eye-level detail has faded out and is not worked out. */
+const NEAR_FAR = 700;
+/* Tints on the graded class colour. */
+const STRAW = [1.28, 1.1, 0.66];
+const LUSH = [0.9, 1.02, 0.86];
+const CLOVER = [0.82, 1.12, 0.98];
+/* The pasture's tint over its patches, about one straw to six lush
+ * (dry = smoothstep(0.5, 0.8) of a patch value spread round 0.5): the
+ * tint is divided by it, so the pasture's mean is round 1's colour and
+ * where the detail fades out the colour does not move. */
+const GRASS_MEAN = LUSH.map((l, c) => l + (STRAW[c] - l) * 0.15);
+/* Bare terra roxa in a pasture and on its tracks, at a pasture's
+ * lightness: a deeper, less blue red than the shore's red earth, which
+ * at this lightness read pink. */
+const TERRA = [0.13, 0.052, 0.027];
+const UNDERGROWTH = [0.7, 1.45, 0.62];
+const LITTER = [1.22, 0.95, 0.72];
+/* The graded field and soil colours, for bare soil in a pasture and
+ * grass on bare soil. */
+const FIELD_COL = CLASS_TARGET[1];
+const SOIL_COL = CLASS_TARGET[2];
+const lum = (c) => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+
+const NEAR = /* glsl */ `
+      float nearK = 1.0 - smoothstep(${(NEAR_FAR * 0.5).toFixed(1)}, ${NEAR_FAR.toFixed(1)}, dist);
+      if (nearK > 0.0) {
+        float kPatch = 1.0 - smoothstep(1.0, 4.0, pix);
+        /* The satellite's own blots, magnified, are a smear, and the
+         * patches below say more at this range: the pixel's difference
+         * from its classes' colour is taken down, in ratio. */
+        vec3 classCol = (grade * sw).rgb * (means * sw).rgb;
+        float flatK = 0.45 * (1.0 - smoothstep(1.5, 6.0, pix)) * nearK;
+        col = classCol * pow(max(col, vec3(1e-4)) / max(classCol, vec3(1e-4)), vec3(1.0 - flatK));
+        float lumC = dot(col, vec3(0.3, 0.59, 0.11));
+        /* Patches metres across (dry or lush), a metre or two (clover,
+         * bare soil, undergrowth), and the finest: the noise texture at
+         * each scale, two octaves turned against each other so its grid
+         * does not show, faded by its own mipmaps. */
+        vec2 wr = mat2(0.8, 0.6, -0.6, 0.8) * w;
+        vec4 pt = itPatches(w);
+        vec4 fine = itTex(w, 0.11, 0.53);
+        vec4 clump = itTex(wr, 0.38, 0.21);
+        float mWide = pt.x;
+        float mPatch = pt.y;
+        float mAlt = pt.z;
+        float pAlt = pt.w;
+
+        /* Pasture. */
+        float dry = smoothstep(0.5, 0.8, mWide);
+        vec3 grass = mix(${v3(LUSH)}, ${v3(STRAW)}, dry) / ${v3(GRASS_MEAN)};
+        grass = mix(grass, ${v3(CLOVER)}, smoothstep(0.6, 0.72, mPatch) * (1.0 - dry) * kPatch);
+        grass *= 0.7 + 0.6 * (0.55 * fine.g + 0.45 * clump.a);
+        /* Bare earth where the grass is dry and thin, ragged at its edge
+         * and with tufts left standing in it. */
+        float bareF = smoothstep(0.74, 0.82, itBare(pt) + 0.25 * (clump.r - 0.5)) * (1.0 - smoothstep(0.1, 0.35, pix)) * (1.0 - 0.6 * smoothstep(0.55, 0.7, fine.a));
+        vec3 soilHere = ${v3(TERRA)} * (lumC / ${lum(FIELD_COL).toFixed(4)}) / max(col, vec3(0.005));
+        grass = mix(grass, soilHere * (0.75 + 0.5 * fine.r), bareF);
+
+        /* Red soil. */
+        vec3 soil = vec3(0.8 + 0.4 * fine.b) * (0.85 + 0.3 * clump.g);
+        soil *= mix(1.0, 0.78, smoothstep(0.62, 0.8, mWide));
+        float tuftS = smoothstep(0.64, 0.74, mAlt) * kPatch;
+        vec3 grassHere = ${v3(FIELD_COL)} * (lumC / ${lum(SOIL_COL).toFixed(4)}) / max(col, vec3(0.005));
+        soil = mix(soil, grassHere * (0.7 + 0.6 * fine.g), tuftS);
+
+        /* Town: slabs where the satellite is bright, laterite gravel where
+         * it is not. */
+        float slabsK = smoothstep(1.05, 1.3, lumC / ${lum(CLASS_TARGET[3]).toFixed(4)}) * smoothstep(0.5, 0.8, mask.a);
+        vec2 sc = w / 2.8;
+        vec2 sf = abs(fract(sc) - 0.5) * 2.8;
+        float joint = 1.0 - smoothstep(1.38 - max(0.03, pix), 1.4, max(sf.x, sf.y));
+        joint *= 1.0 - smoothstep(0.1, 0.4, pix);
+        vec3 slab = vec3((0.9 + 0.2 * itHash(floor(sc) + 0.7)) * (1.0 - 0.45 * joint) * (0.85 + 0.3 * mPatch));
+        vec3 gravel = mix(vec3(1.0), ${v3(RED_EARTH)} / max(col, vec3(0.01)) * lumC / ${lum(RED_EARTH).toFixed(4)}, 0.3) * (0.8 + 0.4 * fine.a);
+        vec3 town = mix(gravel, slab, slabsK);
+
+        /* Forest floor. */
+        vec3 litter = mix(vec3(0.85, 0.9, 0.85), ${v3(LITTER)}, fine.r) * (0.65 + 0.7 * fine.g);
+        litter = mix(litter, ${v3(UNDERGROWTH)} * (0.7 + 0.6 * clump.b), smoothstep(0.58, 0.7, mPatch) * kPatch);
+
+        vec3 tint = sw.r * litter + sw.g * grass + sw.b * soil + sw.a * town;
+
+        /* Where town meets grass or soil, a verge of gravel and dust. */
+        float verge = smoothstep(0.1, 0.25, mask.a) * (1.0 - smoothstep(0.4, 0.6, mask.a)) * (1.0 - mask.r) * kPatch;
+        tint = mix(tint, gravel * mix(1.0, 0.85, fine.b), verge * smoothstep(0.35, 0.55, mAlt));
+
+        /* Vehicle tracks across pasture and bare soil (itTrack), the red
+         * dirt tracks the photographs have winding through every lawn: a
+         * band of bare earth, grass come back down its middle, and a rut
+         * worn deeper either side. */
+        float open = sw.g + sw.b;
+        float kTrack = (1.0 - smoothstep(2.5, 8.0, pix)) * smoothstep(0.5, 0.8, open) * (1.0 - smoothstep(0.2, 0.35, slope0));
+        if (kTrack > 0.0) {
+          vec4 tr = itTrack(w, sw.b);
+          float d = tr.x;
+          float used = tr.y;
+          vec2 tg = tr.zw;
+          float ad = abs(d);
+          float band = 1.0 - smoothstep(1.3, 1.6 + pix, ad);
+          float rut = itRut(ad - 0.85, 0.38 + 0.1 * pAlt, pix);
+          float trackK = kTrack * used * step(ad, 3.0 + pix);
+          float middle = (1.0 - smoothstep(0.2, 0.45, ad)) * 0.6 * (1.0 - smoothstep(0.3, 1.0, pix));
+          vec3 rutCol = soilHere * mix(0.62, 0.9, fine.b);
+          tint = mix(tint, soilHere * (0.85 + 0.3 * fine.a), band * trackK * (1.0 - middle));
+          tint = mix(tint, rutCol, rut * trackK);
+          /* The rut's sides face into it. */
+          vec2 across = normalize(tg + 1e-6) * sign(d) * sign(ad - 0.85);
+          nearTilt += vec3(across.x, 0.0, across.y) * 0.45 * rut * trackK * (1.0 - smoothstep(0.1, 0.3, pix));
+        }
+        /* Tufts: each clump of blades lit as its own little face. */
+        nearTilt += vec3(clump.g - 0.5, 0.0, clump.a - 0.5) * 1.2 * sw.g * (1.0 - smoothstep(0.15, 0.6, pix)) * (1.0 - bareF);
+        col *= mix(vec3(1.0), tint, nearK);
+      }
+`;
+
+/*
  * The ground's colour. The noise is one texture of four independent
  * channels (noiseTexture) read at five scales; its mipmaps take each
  * scale to its mean as a pixel outgrows it, so nothing finer than the
@@ -381,8 +599,18 @@ const ALBEDO = /* glsl */ `
      * larger derivative is along the view and would fade a block that
      * still reads across it. */
     float pixA = max(sqrt(length(dFdx(vItWorld)) * length(dFdy(vItWorld))), 0.01);
-    vec2 hu = (w + uHalf.x) / (2.0 * uHalf.x);
-    vec2 ru = (w + uHalf.y) / (2.0 * uHalf.y);
+    float dist = distance(vItWorld, cameraPosition);
+    /* Near the eye the hero's 10 m pixels are magnified into soft round
+     * blots; the lookup is wandered a few metres, so a blot's edge is as
+     * ragged as the patch of ground it stands for. */
+    vec2 wq = w;
+    float warpK = 1.0 - smoothstep(2.5, 9.0, pix);
+    if (warpK > 0.0) {
+      wq += (itTex(w, 4.0, 0.31).rg - 0.5) * 9.0 * warpK;
+      wq += (itTex(w, 1.3, 0.77).ba - 0.5) * 3.0 * warpK;
+    }
+    vec2 hu = (wq + uHalf.x) / (2.0 * uHalf.x);
+    vec2 ru = (wq + uHalf.y) / (2.0 * uHalf.y);
     float edge = max(abs(w.x), abs(w.y));
     float inHero = 1.0 - smoothstep(uHalf.x - 320.0, uHalf.x - 20.0, edge);
     float outRing = smoothstep(uHalf.y, uHalf.y + 4000.0, edge);
@@ -428,6 +656,8 @@ const ALBEDO = /* glsl */ `
         sw /= max(dot(sw, vec4(1.0)), 1e-5);
         sw = mix(mask, sw, sharpK);
       }
+      float slope0 = sqrt(max(0.0, 1.0 - n.y * n.y)) / max(n.y, 0.05);
+      vec3 nearTilt = vec3(0.0);
       mat4 means = mat4(${CLASS_MEAN.map((c) => `vec4(${v3(c)}, 0.0)`).join(', ')});
       mat4 grade = mat4(${GRADE.map((g) => `vec4(${v3(g)}, 0.0)`).join(', ')});
       vec3 col = max(macro + (means * (sw - mask)).rgb, macro * 0.4);
@@ -463,8 +693,8 @@ const ALBEDO = /* glsl */ `
       float soilTex = (0.82 + 0.36 * n1.a) * (1.0 + 0.06 * rows * rowsK);
       float urbanTex = mix(1.0, 0.8 + 0.4 * itHash(floor(w / 17.0) + 0.3), 1.0 - smoothstep(4.0, 9.0, pix));
       col *= dot(sw, vec4(forestTex, fieldTex, soilTex, urbanTex));
+${NEAR}
 
-      float dist = distance(vItWorld, cameraPosition);
       float near = 1.0 - smoothstep(${(DETAIL_FAR / 3).toFixed(1)}, ${DETAIL_FAR.toFixed(1)}, dist);
       vec3 grain = vec3(1.0);
       tsum = vec3(0.0, 0.0, 1.0);
@@ -485,13 +715,14 @@ const ALBEDO = /* glsl */ `
         tsum = mix(vec3(0.0, 0.0, 1.0), tsum, near);
       }
       albedo = col * grain;
+      nOut = normalize(nOut + nearTilt);
       rough = mix(0.93, 0.82, sw.a);
       bare = 0.0;
 
       /* The canyon's basalt: slopes in its band of height, and anything
        * too steep for a photograph from above to mean much; under a few
        * metres over the river, all of it the tailwater's rock. */
-      float slope = sqrt(max(0.0, 1.0 - n.y * n.y)) / max(n.y, 0.05);
+      float slope = slope0;
       float wob = n3.r - 0.5;
       float canyon = 1.0 - smoothstep(${(CANYON_TOP - 14).toFixed(1)}, ${CANYON_TOP.toFixed(1)}, y + 20.0 * wob);
       float rockW = max(canyon * smoothstep(0.36, 0.48, slope + 0.4 * wob), smoothstep(1.6, 3.0, slope));
@@ -523,16 +754,21 @@ const ALBEDO = /* glsl */ `
         /* Scrub holds on the ledges and in patches down the faces. */
         float scrub = max(ledge, smoothstep(0.68, 0.8, n2.b) * 0.7) * (1.0 - margin);
         vec3 basalt = mix(rock, col * 0.85, scrub);
-        /* The river's margin: loose wet blocks. */
+        /* The river's margin: loose wet blocks, boulders in some reaches
+         * and cobbles in gravel in others (round 2: one size of block
+         * everywhere read as a paved yard), each block lit as its face. */
+        vec3 bl = vec3(1.0, 0.0, 0.0);
         if (margin > 0.0) {
-          vec3 bl = itBlocksNear(w, 1.8, pixA);
+          float boulders = smoothstep(0.4, 0.6, itTex(w, 7.0, 0.83).r * 0.7 + itTex(w, 2.2, 0.37).g * 0.3);
+          bl = mix(itBlocksNear(w + 3.7, 0.7, pixA), itBlocksNear(w, 2.4, pixA), boulders);
+          float gravel = (0.5 + 0.35 * itTex(w, 0.07, 0.11).b) * mix(0.75, 0.45, boulders);
           vec3 wet = mix(${v3(BASALT_WET)}, ${v3(BASALT)}, smoothstep(uWater.y + 0.5, uWater.y + 5.0, y));
-          vec3 loose = mix(wet * bl.x * (0.8 + 0.4 * n1.g), col * 0.8, smoothstep(0.66, 0.8, n2.b) * smoothstep(uWater.y + 3.0, uWater.y + 6.0, y));
+          vec3 loose = mix(wet * max(bl.x, gravel) * (0.8 + 0.4 * n1.g), col * 0.8, smoothstep(0.66, 0.8, n2.b) * smoothstep(uWater.y + 3.0, uWater.y + 6.0, y));
           basalt = mix(basalt, loose, margin);
         }
         vec3 riser = normalize(vec3(n.x, n.y * 0.35, n.z));
         vec3 shelfN = normalize(mix(n, vec3(0.0, 1.0, 0.0), 0.8));
-        vec3 nb = normalize(mix(n, mix(riser, shelfN, ledge), stepK));
+        vec3 nb = normalize(mix(n, mix(riser, shelfN, ledge), stepK) + vec3(bl.y, 0.0, bl.z) * 1.2 * margin);
         albedo = mix(albedo, basalt, rockW);
         nOut = normalize(mix(nOut, nb, rockW));
         rough = mix(rough, mix(0.9, 0.65, margin), rockW);
@@ -596,7 +832,7 @@ const ALBEDO = /* glsl */ `
  * fixed seed so every run draws the same ground.
  */
 const NOISE_PX = 256;
-function noiseTexture(anisotropy) {
+export function noiseTexture(anisotropy) {
   const data = new Uint8Array(NOISE_PX * NOISE_PX * 4);
   let x = 0x9e3779b9;
   for (let i = 0; i < data.length; i += 1) {
@@ -621,18 +857,17 @@ function noiseTexture(anisotropy) {
  * loadImage, `arrays` swiss2's loadTerrainArrays and `site` loadSite's;
  * the caller owns them. `white` is the reflectance the imagery's full
  * scale stands for, and `water` the colour its pipeline
- * filled water with, [r, g, b] of 255 (manifest imagery.colour). The
- * noise texture is the material's own and goes with it.
+ * filled water with, [r, g, b] of 255 (manifest imagery.colour). `noise`
+ * is noiseTexture's, which the turf reads too; the caller owns it.
  */
 export function groundMaterial({
-  tex, arrays, site, heroHalf, ringHalf, white, water, anisotropy,
+  tex, arrays, site, heroHalf, ringHalf, white, water, noise,
 }) {
   /* The imagery's water fill as the shader decodes it: linear, times white. */
   const waterCol = new THREE.Color().setRGB(...water.map((v) => v / 255), THREE.SRGBColorSpace);
   const waterRefl = new THREE.Vector3(waterCol.r, waterCol.g, waterCol.b).multiplyScalar(white);
   const axis = site.rockfill.axis;
   const box = new THREE.Box2().setFromPoints(axis).expandByScalar(FILL_REACH + 10);
-  const noise = noiseTexture(anisotropy);
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uHeroCol = { value: tex.heroCol };
@@ -663,6 +898,362 @@ export function groundMaterial({
   };
   m.customProgramCacheKey = () => 'itaipu-ground';
   m.name = 'itaipu-ground';
-  m.addEventListener('dispose', () => noise.dispose());
   return m;
+}
+
+/*
+ * THE TURF. Seen from a metre or two, a pasture is blades, not a
+ * photograph of blades laid flat: the grass stands up against the light,
+ * its tips paler than its roots, and the ground between shows only in
+ * the gaps. So round the camera the ground grows real blades, a clump on
+ * each cell of a TURF_STEP grid out to TURF_RADIUS, as swiss2's meadow
+ * does (swiss2/vegetation/grass.js), but worked out on the GPU from what
+ * the ground's own shader reads, so no tile is built in JavaScript and it
+ * is one draw:
+ *
+ *   where     the masks and the ground's patches (itPatches, itBare,
+ *             itTrack): thick in pasture, gone on its bare earth and in
+ *             the ruts, in tufts on red soil where the ground shows them,
+ *             sparse undergrowth in forest, nothing in town, on the shore
+ *             or by the river;
+ *   colour    the ground's graded colour under it, dry or lush as the
+ *             ground's patch is;
+ *   height    on the hero's 10 m heights (look/index.js setHeights),
+ *             interpolated over the same triangles the terrain draws
+ *             (yellowstone/terrain/engine.js tri), so a clump stands on
+ *             the ground rather than in it.
+ *
+ * The instances are a fixed disc of cell offsets from the camera's cell,
+ * and a clump's jitter, turn and height are hashed from its cell in the
+ * world, so the camera moving refills nothing and the grass stays where
+ * it grew. A blade is a pixel or so wide however far it is (narrower ones
+ * shimmer), and the far ring draws fewer of them, wider. Over
+ * TURF_CEILING above the ground a craft sees only the tops of the
+ * nearest clumps, and the ground's tufts carry it, so the turf is not
+ * drawn at all: no call and no triangles in the aerial views.
+ */
+const TURF_STEP = 0.26;
+const TURF_RADIUS = 16;
+const TURF_CEILING = 24;
+/* Blades a clump, near; five vertices each, three triangles. */
+const TURF_BLADES = 9;
+/* The blades against the ground's average colour. Seen from the side
+ * and lit through, a blade is paler than the turf seen from above, soil
+ * and shade and all; and the post chain's occlusion (swiss2/post.js
+ * AoPass), which reads the blades as a crevice a hand deep, takes about
+ * a fifth off the turf as a whole (measured: the band of turf in
+ * rockfill-road was 0.82 of the same ground without it at 1.15). */
+const TURF_GAIN = 1.6;
+
+/* The roads round the camera, stroked into a small mask for the turf
+ * to keep off: ROADS_PX a side over ROADS_SPAN metres (a quarter metre a
+ * texel), redrawn round the camera once it has moved ROADS_MOVE from where
+ * it was last drawn round, which the turf's radius leaves room for. */
+const ROADS_PX = 256;
+const ROADS_SPAN = 64;
+const ROADS_MOVE = 10;
+/* The grass stands this far off a road's edge, metres. */
+const ROADS_VERGE = 0.6;
+
+function turfGeometry() {
+  const pos = [];
+  const idx = [];
+  for (let k = 0; k < TURF_BLADES; k += 1) {
+    const b = k * 5;
+    pos.push(-1, 0, k, 1, 0, k, -1, 0.55, k, 1, 0.55, k, 0, 1, k);
+    idx.push(b, b + 1, b + 2, b + 1, b + 3, b + 2, b + 2, b + 3, b + 4);
+  }
+  const g = new THREE.InstancedBufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  const cells = [];
+  const n = Math.ceil(TURF_RADIUS / TURF_STEP) + 1;
+  for (let j = -n; j <= n; j += 1) {
+    for (let i = -n; i <= n; i += 1) {
+      if (Math.hypot(i, j) * TURF_STEP <= TURF_RADIUS + TURF_STEP) {
+        cells.push(i, j);
+      }
+    }
+  }
+  g.setAttribute('aCell', new THREE.InstancedBufferAttribute(new Float32Array(cells), 2));
+  g.instanceCount = cells.length / 2;
+  return g;
+}
+
+const TURF_VERTEX = /* glsl */ `
+  {
+    vec2 cell = uTurfSnap + aCell;
+    float h1 = itHash(cell + 0.5);
+    float h2 = itHash(cell + 7.3);
+    float h3 = itHash(cell + 13.9);
+    float h4 = itHash(cell + 21.1);
+    vec2 base = (cell + 0.15 + 0.7 * vec2(h1, h2)) * ${TURF_STEP.toFixed(3)};
+    float dist = distance(base, cameraPosition.xz);
+    vec2 hu = (base + uHalf.x) / (2.0 * uHalf.x);
+    vec4 mask = textureLod(uHeroMask, hu, 0.0);
+    mask /= max(dot(mask, vec4(1.0)), 1e-3);
+    vec4 pt = itPatches(base);
+    float bare = smoothstep(0.74, 0.82, itBare(pt));
+    float dry = smoothstep(0.5, 0.8, pt.x);
+    float density = mask.g * (1.0 - bare)
+      + mask.b * smoothstep(0.64, 0.74, pt.z)
+      + mask.r * 0.4 * smoothstep(0.58, 0.7, pt.y);
+    density *= 1.0 - smoothstep(0.08, 0.25, mask.a);
+    vec4 tr = itTrack(base, mask.b);
+    float open = step(0.5, mask.g + mask.b);
+    float ad = abs(tr.x);
+    float band = (1.0 - smoothstep(1.3, 1.6, ad)) * tr.y * open;
+    density *= 1.0 - band * smoothstep(0.35, 0.5, ad);
+
+    /* The ground under it, on the terrain's own triangles. */
+    vec2 g = (base + uTurfGrid.x) / uTurfGrid.y;
+    ivec2 gi = ivec2(floor(g));
+    vec2 f = fract(g);
+    float h00 = texelFetch(uTurfHeights, gi, 0).r;
+    float h10 = texelFetch(uTurfHeights, gi + ivec2(1, 0), 0).r;
+    float h01 = texelFetch(uTurfHeights, gi + ivec2(0, 1), 0).r;
+    float h11 = texelFetch(uTurfHeights, gi + ivec2(1, 1), 0).r;
+    float gy = f.x + f.y <= 1.0
+      ? h00 + (h10 - h00) * f.x + (h01 - h00) * f.y
+      : h11 + (h01 - h11) * (1.0 - f.x) + (h10 - h11) * (1.0 - f.y);
+    /* Not on anything steeper than a bank a mower could cross, not on the
+     * reservoir's margin or under it, not by the river. */
+    float slope = max(abs(h10 - h00), abs(h01 - h00)) / uTurfGrid.y;
+    density *= 1.0 - smoothstep(0.35, 0.5, slope);
+    float res = textureLod(uReservoir, (base + uHalf.y) / (2.0 * uHalf.y), 0.0).r;
+    density *= 1.0 - res * (1.0 - smoothstep(uWater.x + 0.5, uWater.x + 1.1, gy));
+    density *= smoothstep(uWater.y + 5.0, uWater.y + 8.0, gy);
+    density *= 1.0 - smoothstep(0.1, 0.4, textureLod(uTurfRoads, (base - uTurfRoadsAt) / ${ROADS_SPAN.toFixed(1)} + 0.5, 0.0).r);
+
+    float edge = ${TURF_RADIUS.toFixed(1)} * (0.7 + 0.3 * h3);
+    float grow = (1.0 - smoothstep(edge * 0.6, edge, dist)) * step(h4, density * 1.15);
+    /* The far ring: fewer blades, each still a pixel or so wide. */
+    float k = position.z;
+    float kept = mix(${TURF_BLADES.toFixed(1)}, 3.0, smoothstep(3.0, 11.0, dist));
+    grow *= step(k + 0.5, kept);
+    float pix = dist * uTurfPix;
+
+    float hb1 = itHash(cell + k * 1.73 + 3.1);
+    float hb2 = itHash(cell + k * 2.91 + 5.7);
+    float hb3 = itHash(cell + k * 4.37 + 9.2);
+    float tall = mix(0.2, 0.46, dry) * mix(1.0, 0.45, band) * mix(0.55, 1.0, min(density, 1.0));
+    /* Lower toward the ring's edge, so it thins into the ground's tufts
+     * rather than ending, and the occlusion finds less to darken there. */
+    tall *= mix(1.0, 0.55, smoothstep(5.0, 14.0, dist));
+    float hk = tall * (0.55 + 0.45 * hb1) * (0.8 + 0.4 * h3) * grow;
+    float a = 6.2832 * hb2;
+    vec2 root = base + (0.03 + 0.07 * hb3) * vec2(cos(a), sin(a));
+    float turn = a + 1.3 * (hb1 - 0.5);
+    vec2 lean = vec2(cos(turn), sin(turn)) * (0.3 + 0.5 * hb3);
+    vec2 side = vec2(-sin(a + 2.0 * hb1), cos(a + 2.0 * hb1));
+    float t = position.y;
+    float wide = max(0.02 * (0.7 + 0.6 * hb2), 0.9 * pix * (${TURF_BLADES.toFixed(1)} / kept));
+    float wx = position.x * 0.5 * wide * pow(1.0 - t, 0.8);
+    vec2 xz = root + side * wx + lean * hk * t * t;
+    turfAt = vec3(xz.x, gy - 0.04 + hk * t * (1.0 - 0.25 * dot(lean, lean) * t), xz.y);
+    if (hk <= 0.0) {
+      turfAt = vec3(base.x, gy - 1.0, base.y);
+    }
+    objectNormal = normalize(vec3(side.x * 0.35 - lean.x * 0.5, 1.0, side.y * 0.35 - lean.y * 0.5));
+
+    /* Its colour: the ground's graded field colour, or on a texel that is
+     * not field the field's own colour at the ground's lightness. */
+    vec3 macro = textureLod(uHeroCol, hu, 0.0).rgb * uWhite;
+    float lumM = dot(macro, vec3(0.3, 0.59, 0.11));
+    vec3 field = macro * ${v3(GRADE[1])};
+    vec3 other = ${v3(FIELD_COL)} * clamp(lumM / ${lum(CLASS_MEAN[1]).toFixed(4)}, 0.7, 1.3);
+    vec3 c = mix(other, field, clamp(mask.g * 1.6, 0.0, 1.0));
+    vec4 n4 = textureLod(uNoise, base / 290.0 + 0.13, 0.0);
+    vec4 n5 = textureLod(uNoise, base / 870.0 + 0.29, 0.0);
+    c *= 0.88 + 0.24 * (0.6 * n5.r + 0.4 * n4.r);
+    c *= mix(${v3(LUSH)}, ${v3(STRAW)}, dry) / ${v3(GRASS_MEAN)} * (0.85 + 0.3 * hb1);
+    vTurfCol = c * ${TURF_GAIN.toFixed(2)};
+    /* Past a few metres a blade is a pixel or two and its dark root
+     * would make it a dark speck: lit to its root there. */
+    vTurfUp = mix(t, 1.0, 0.7 * smoothstep(4.0, 12.0, dist));
+  }
+`;
+
+function roadMask(site) {
+  /* Every segment, with its reach (half the road and the verge) and its
+   * box, so a redraw looks only at the few that cross the window. */
+  const segs = [];
+  const addLine = (points, width) => {
+    const r = width / 2 + ROADS_VERGE;
+    for (let i = 1; i < points.length; i += 1) {
+      const [ax, az] = points[i - 1];
+      const [bx, bz] = points[i];
+      segs.push({
+        ax, az, bx, bz, r, box: [Math.min(ax, bx) - r, Math.min(az, bz) - r, Math.max(ax, bx) + r, Math.max(az, bz) + r],
+      });
+    }
+  };
+  for (const road of site.roads) {
+    addLine(road.points, road.width);
+  }
+  addLine(site.rockfill.axis.map((v) => [v.x, v.y]), 2 * site.rockfill.crestHalf);
+  const data = new Uint8Array(ROADS_PX * ROADS_PX);
+  /* Rows top first, z growing down them, as the imagery. */
+  const texture = new THREE.DataTexture(data, ROADS_PX, ROADS_PX, THREE.RedFormat, THREE.UnsignedByteType);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  const at = new THREE.Vector2(Infinity, Infinity);
+  const texel = ROADS_SPAN / ROADS_PX;
+  return {
+    texture,
+    at,
+    /* Each texel the distance to the nearest segment against its reach,
+     * a texel's width of edge; by hand, on the segments' boxes (a 2D
+     * canvas here made the trees stop drawing, for reasons not found). */
+    update(x, z) {
+      if (Math.hypot(x - at.x, z - at.y) < ROADS_MOVE) {
+        return;
+      }
+      at.set(x, z);
+      const x0 = x - ROADS_SPAN / 2;
+      const z0 = z - ROADS_SPAN / 2;
+      data.fill(0);
+      for (const sg of segs) {
+        const [bx0, bz0, bx1, bz1] = sg.box;
+        if (bx1 < x0 || bz1 < z0 || bx0 > x0 + ROADS_SPAN || bz0 > z0 + ROADS_SPAN) {
+          continue;
+        }
+        const i0 = Math.max(0, Math.floor((bx0 - x0) / texel));
+        const i1 = Math.min(ROADS_PX - 1, Math.ceil((bx1 - x0) / texel));
+        const j0 = Math.max(0, Math.floor((bz0 - z0) / texel));
+        const j1 = Math.min(ROADS_PX - 1, Math.ceil((bz1 - z0) / texel));
+        const dx = sg.bx - sg.ax;
+        const dz = sg.bz - sg.az;
+        const len2 = Math.max(dx * dx + dz * dz, 1e-6);
+        for (let j = j0; j <= j1; j += 1) {
+          const pz = z0 + (j + 0.5) * texel;
+          for (let i = i0; i <= i1; i += 1) {
+            const px = x0 + (i + 0.5) * texel;
+            const t = Math.max(0, Math.min(1, ((px - sg.ax) * dx + (pz - sg.az) * dz) / len2));
+            const d = Math.hypot(px - sg.ax - dx * t, pz - sg.az - dz * t);
+            const v = Math.round(255 * Math.max(0, Math.min(1, (sg.r - d) / texel + 0.5)));
+            const k = j * ROADS_PX + i;
+            if (v > data[k]) {
+              data[k] = v;
+            }
+          }
+        }
+      }
+      texture.needsUpdate = true;
+    },
+  };
+}
+
+/*
+ * The turf round the camera. `tex` and `site` as groundMaterial's, `noise`
+ * noiseTexture's, `heights` the look's { texture, grid } uniforms, which
+ * setHeights fills. Returns the mesh, update(camera, groundAt) for each
+ * frame and dispose().
+ */
+export function makeTurf({
+  tex, site, noise, heights, heroHalf, ringHalf, white, renderer,
+}) {
+  const geo = turfGeometry();
+  const roads = roadMask(site);
+  const uniforms = {
+    uHeroCol: { value: tex.heroCol },
+    uHeroMask: { value: tex.heroMask },
+    uReservoir: { value: site.reservoir },
+    uNoise: { value: noise },
+    uHalf: { value: new THREE.Vector2(heroHalf, ringHalf) },
+    uWhite: { value: white },
+    uWater: { value: new THREE.Vector2(site.reservoirY, site.riverY) },
+    uTurfSnap: { value: new THREE.Vector2() },
+    uTurfPix: { value: 0.001 },
+    uTurfHeights: heights.texture,
+    uTurfGrid: heights.grid,
+    uTurfRoads: { value: roads.texture },
+    uTurfRoadsAt: { value: roads.at },
+  };
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, roughness: 0.8, metalness: 0, side: THREE.DoubleSide,
+  });
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+        attribute vec2 aCell;
+        uniform sampler2D uHeroCol;
+        uniform sampler2D uHeroMask;
+        uniform sampler2D uReservoir;
+        uniform sampler2D uNoise;
+        uniform highp sampler2D uTurfHeights;
+        uniform vec3 uTurfGrid;
+        uniform vec2 uHalf;
+        uniform float uWhite;
+        uniform vec2 uWater;
+        uniform vec2 uTurfSnap;
+        uniform float uTurfPix;
+        uniform sampler2D uTurfRoads;
+        uniform vec2 uTurfRoadsAt;
+        varying vec3 vTurfCol;
+        varying float vTurfUp;
+        ${NOISE_GLSL}`)
+      .replace('#include <beginnormal_vertex>', `vec3 objectNormal;\nvec3 turfAt;\n${TURF_VERTEX}`)
+      .replace('#include <begin_vertex>', 'vec3 transformed = turfAt;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vTurfCol;\nvarying float vTurfUp;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        /* Dark at the roots, where the blades shade each other. */
+        diffuseColor.rgb *= vTurfCol * mix(0.7, 1.0, smoothstep(0.0, 0.6, vTurfUp));`)
+      .replace('#include <normal_fragment_begin>', `
+        float faceDirection = 1.0;
+        vec3 normal = normalize(vNormal);
+        vec3 nonPerturbedNormal = normal;`);
+  };
+  mat.customProgramCacheKey = () => 'itaipu-turf';
+  mat.name = 'itaipu-turf';
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = 'itaipu-turf';
+  mesh.frustumCulled = false;
+  mesh.castShadow = false;
+  mesh.receiveShadow = true;
+  mesh.visible = false;
+  const at = new THREE.Vector3();
+  const size = new THREE.Vector2();
+  /* Whether the camera is over dry ground in the hero, where the turf can
+   * grow: over the water (the reservoir's outline with the ground under
+   * its level, or the river's bed) its triangles would all be drawn and
+   * none seen, which in reservoir-dam was 0.66 M of them. */
+  const outline = site.reservoir.image.data;
+  const overLand = (x, z, groundAt) => {
+    const lim = heroHalf - TURF_RADIUS - ROADS_MOVE;
+    if (Math.abs(x) > lim || Math.abs(z) > lim) {
+      return false;
+    }
+    const y = groundAt(x, z);
+    if (y < site.riverY + 2) {
+      return false;
+    }
+    const i = Math.floor(((x + ringHalf) / (2 * ringHalf)) * OUTLINE_PX);
+    const j = Math.floor(((z + ringHalf) / (2 * ringHalf)) * OUTLINE_PX);
+    return !(outline[j * OUTLINE_PX + i] > 127 && y < site.reservoirY + 0.5);
+  };
+  return {
+    mesh,
+    /* `groundAt(x, z)` the ground's height, null until the terrain is in. */
+    update(camera, groundAt) {
+      camera.getWorldPosition(at);
+      mesh.visible = Boolean(groundAt) && heights.texture.value !== null && overLand(at.x, at.z, groundAt)
+        && at.y - groundAt(at.x, at.z) < TURF_CEILING;
+      if (!mesh.visible) {
+        return;
+      }
+      uniforms.uTurfSnap.value.set(Math.floor(at.x / TURF_STEP), Math.floor(at.z / TURF_STEP));
+      roads.update(at.x, at.z);
+      renderer.getDrawingBufferSize(size);
+      uniforms.uTurfPix.value = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)) / size.y;
+    },
+    dispose() {
+      geo.dispose();
+      mat.dispose();
+      roads.texture.dispose();
+    },
+  };
 }

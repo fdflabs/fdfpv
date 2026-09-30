@@ -16,7 +16,8 @@
  * sun (sky.js); and the ground, the satellite's colour with swiss2's
  * photographed grain under it (ground.js), finished where the place asks
  * for it: the canyon's basalt, the reservoir's margin and the rockfill
- * dam's faces.
+ * dam's faces; and the turf, blades of grass round a camera near the
+ * ground (ground.js makeTurf).
  *
  * The low cloud swiss2 marches in its post chain is made and never handed
  * a terrain, so it draws nothing (clouds.js: until setTerrain, "the march
@@ -51,7 +52,9 @@ import { sunDirection, makeLit } from './light.js';
 import {
   skyBackdrop, skyTurn, turnEquirect, stretchEquirect,
 } from './sky.js';
-import { groundMaterial, loadImage, loadSite } from './ground.js';
+import {
+  groundMaterial, makeTurf, noiseTexture, loadImage, loadSite,
+} from './ground.js';
 
 /* Past the horizon from 500 m (80 km) the apron and the fog have it. */
 export const CAMERA_FAR = 90000;
@@ -115,6 +118,7 @@ export async function makeLook({
     air: AIR,
   });
   const lit = makeLit();
+  const noise = own(noiseTexture(aniso));
   const ground = groundMaterial({
     tex: {
       heroCol, ringCol, heroMask, ringMask,
@@ -125,12 +129,26 @@ export async function makeLook({
     ringHalf: manifest.frame.ring[1],
     white: im.colour.white,
     water: im.colour.water,
-    anisotropy: aniso,
+    noise,
   });
   /* The ground's heights on the hero's 10 m grid, for the kit's walls,
    * which weather by their height over the ground (swiss2/look.js
    * WEATHER_BODY): filled by setHeights once the terrain is in. */
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector3() } };
+  /* The blades round the camera (ground.js makeTurf), standing on those
+   * heights: drawn once setHeights has them. */
+  const turf = makeTurf({
+    tex: { heroCol, heroMask },
+    site,
+    noise,
+    heights,
+    heroHalf: manifest.frame.hero[1],
+    ringHalf: manifest.frame.ring[1],
+    white: im.colour.white,
+    renderer,
+  });
+  scene.add(turf.mesh);
+  let groundAt = null;
   const look = makePhotoLook({
     surfaces,
     marks: {},
@@ -164,6 +182,7 @@ export async function makeLook({
       t.needsUpdate = true;
       heights.texture.value = t;
       heights.grid.value.set(half, cell, n);
+      groundAt = height;
     },
     /* Every material in the scene through the light, and the kit's
      * textured meshes their metre uvs: once, after every part is in. */
@@ -172,6 +191,7 @@ export async function makeLook({
     },
     updateShadowFocus(target) {
       sun.update(target, camera);
+      turf.update(camera, groundAt);
     },
     /* The post chain and the photographed craft, onto a built map. */
     compose(shell, map) {
@@ -195,6 +215,7 @@ export async function makeLook({
       envTarget.dispose();
       clouds.dispose();
       ground.dispose();
+      turf.dispose();
       for (const t of owned) {
         t.dispose();
       }
