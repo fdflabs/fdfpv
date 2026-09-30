@@ -35,6 +35,16 @@
  * and as weak as a clear sky is against a high sun: its irradiance on the
  * level is about a fifth of the sun's (light.js).
  *
+ * NIGHT (mission 4, "Night raid"): the same backdrop, built with `time`
+ * set to 'night' instead of drawn fresh, so it keeps the horizon-is-the-
+ * air property above. The zenith and the haze go to a near black moonlit
+ * blue, the disc is off (uDisc 0: the moon is the directional light, not
+ * a second sun on the dome), and a stylised star field (uStars, starsAt)
+ * takes its place above the haze. The cumulus stays, now a dark silhouette
+ * against the stars where it used to be a lit dome: cheap, because it is
+ * the same shader with dimmer uniforms, and honest, because a real sky
+ * does exactly that.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -53,7 +63,9 @@
 
 import * as THREE from 'three';
 import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
-import { SUN_COLOR, SUN_IRRADIANCE, EXPOSURE } from './light.js';
+import {
+  SUN_COLOR, SUN_IRRADIANCE, EXPOSURE, NIGHT_EXPOSURE, NIGHT_METER_KEY, NIGHT_SUN_COLOR, NIGHT_SUN_IRRADIANCE, isNight,
+} from './light.js';
 
 /*
  * The air, swiss2's shape (post.js AIR) with Itaipu's sky. The haze is the
@@ -69,14 +81,41 @@ export const AIR = {
   exposure: EXPOSURE,
 };
 
+/* Night's air: the same extinction shape over a haze that is the
+ * moonlit horizon rather than the clear day's, dim enough that a lamp a
+ * kilometre off is still the brightest thing in the frame. */
+export const AIR_NIGHT = {
+  ...VALLEY_AIR,
+  haze: new THREE.Color().setRGB(0.035, 0.05, 0.09, THREE.LinearSRGBColorSpace),
+  exposure: NIGHT_EXPOSURE,
+  /* swiss2/post.js's PhotoPass: the meter's own target for this air,
+   * under the day's KEY (light.js says why). */
+  meterKey: NIGHT_METER_KEY,
+};
+
+/* The air for the time picked, for the post chain and the backdrop. */
+export function airFor(time) {
+  return isNight(time) ? AIR_NIGHT : AIR;
+}
+
 /* The sky overhead, linear radiance in the sun's units. */
 const ZENITH = new THREE.Color().setRGB(0.04, 0.16, 0.5, THREE.LinearSRGBColorSpace);
+/* Night's zenith: a deep moonlit blue, most of it black. */
+const ZENITH_NIGHT = new THREE.Color().setRGB(0.006, 0.012, 0.03, THREE.LinearSRGBColorSpace);
 /* How fast the zenith gives way to the haze going down: the haze's share
  * is (1 - sin elevation)^FALL. */
 const FALL = 3.5;
 /* The sun's glow through the haze, as a share of the post chain's at the
  * horizon, overhead: there is less air above than along the horizon. */
 const GLOW_HIGH = 0.35;
+
+/* The stars: a stylised, roughly even scatter over the sphere (a coarse
+ * 3D grid hashed per cell, not a real catalogue), only above the haze's
+ * band and only where the noise sets a cell alight, near white and
+ * twinkling not at all (a moving craft is grain enough). Cheap: the same
+ * fragment shader every other view already runs, one more hash. */
+const STAR_SCALE = 240.0;
+const STAR_CHANCE = 0.9935;
 
 /*
  * The cumulus: a deck at CLOUD_BASE, world metres, of clouds CLOUD_SIZE
@@ -111,12 +150,28 @@ const SKY_GLSL = /* glsl */ `
   uniform vec3 uAirSun;
   uniform vec3 uCam;
   uniform float uDisc;
+  uniform float uStars;
   varying vec3 vDir;
 
   float skyHash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
     return fract((p3.x + p3.y) * p3.z);
+  }
+  float skyHash3(vec3 p) {
+    return skyHash(p.xy * 7.13 + p.z * 31.7);
+  }
+  /* A cell of the direction, hashed for whether it lights (STAR_CHANCE)
+   * and how bright, falling off from the cell's own centre so a star is
+   * a soft point and not a lit cube's face. Above the haze only: night's
+   * horizon is the same haze the day's is, just darker. */
+  float starsAt(vec3 d) {
+    vec3 p = d * ${STAR_SCALE.toFixed(1)};
+    vec3 cell = floor(p);
+    float on = step(${STAR_CHANCE.toFixed(4)}, skyHash3(cell));
+    float bright = skyHash3(cell + 11.0);
+    float r2 = dot(fract(p) - 0.5, fract(p) - 0.5);
+    return on * mix(0.35, 1.0, bright) * smoothstep(0.22, 0.0, r2) * smoothstep(0.0, 0.12, d.y);
   }
   float skyNoise(vec2 p) {
     vec2 i = floor(p);
@@ -144,6 +199,9 @@ const SKY_GLSL = /* glsl */ `
     float up = max(d.y, 0.0);
     float t = pow(1.0 - up, ${FALL.toFixed(2)});
     vec3 c = mix(uZenith, uHaze, t) + uAirSun * hg * mix(${GLOW_HIGH.toFixed(2)}, 1.0, t);
+    if (uStars > 0.0) {
+      c += vec3(0.9, 0.94, 1.0) * (starsAt(d) * uStars);
+    }
     if (d.y > 0.01 && uCam.y < ${CLOUD_BASE.toFixed(1)}) {
       float run = (${CLOUD_BASE.toFixed(1)} - uCam.y) / d.y;
       vec2 p = (uCam.xz + d.xz * run) / ${CLOUD_SIZE.toFixed(1)};
@@ -165,10 +223,17 @@ const SKY_GLSL = /* glsl */ `
 
 /*
  * The backdrop: a sphere round the camera on the far plane. Radiance, not
- * colour; the post chain exposes it with everything else.
+ * colour; the post chain exposes it with everything else. `time` picks day
+ * (the sun, its disc, the deep blue zenith) or night (the moon standing in
+ * for it, no disc, a near black zenith, and the stars): see the module
+ * doc for why night is drawn rather than reused from a photograph.
  */
-export function skyBackdrop(sunDir) {
-  const sunCol = SUN_COLOR.clone().multiplyScalar(SUN_IRRADIANCE);
+export function skyBackdrop(sunDir, time) {
+  const night = isNight(time);
+  const { color: sunColor, irradiance: sunIrradiance } = night
+    ? { color: NIGHT_SUN_COLOR, irradiance: NIGHT_SUN_IRRADIANCE }
+    : { color: SUN_COLOR, irradiance: SUN_IRRADIANCE };
+  const sunCol = sunColor.clone().multiplyScalar(sunIrradiance);
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
     depthWrite: false,
@@ -177,11 +242,12 @@ export function skyBackdrop(sunDir) {
     uniforms: {
       uSun: { value: sunDir.clone() },
       uSunCol: { value: sunCol },
-      uZenith: { value: ZENITH.clone() },
-      uHaze: { value: AIR.haze.clone() },
-      uAirSun: { value: SUN_COLOR.clone().multiplyScalar(AIR.mie) },
+      uZenith: { value: (night ? ZENITH_NIGHT : ZENITH).clone() },
+      uHaze: { value: (night ? AIR_NIGHT : AIR).haze.clone() },
+      uAirSun: { value: sunColor.clone().multiplyScalar(AIR.mie) },
       uCam: { value: new THREE.Vector3() },
-      uDisc: { value: 1 },
+      uDisc: { value: night ? 0 : 1 },
+      uStars: { value: night ? 1 : 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
@@ -229,9 +295,10 @@ export function skyEnvironment(renderer, sky) {
   eye.updateMatrixWorld();
   const scene = new THREE.Scene();
   scene.add(sky);
+  const disc = sky.material.uniforms.uDisc.value;
   sky.material.uniforms.uDisc.value = 0;
   eye.update(renderer, scene);
-  sky.material.uniforms.uDisc.value = 1;
+  sky.material.uniforms.uDisc.value = disc;
   scene.remove(sky);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const target = pmrem.fromCubemap(cube.texture);

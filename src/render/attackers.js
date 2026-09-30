@@ -25,6 +25,15 @@
  * under it). Its fire and smoke, and a defender's warhead, are
  * src/render/explosion.js's, which the shell throws beside this.
  *
+ * NAV LIGHTS, opt in (createAttackers({ navLights: true }), NAV_LIGHTS
+ * below): a night mission's own hook, off by default so a day flight
+ * never spends the extra draw call. One more instanced mesh a kind that
+ * has any (a shared, tiny sphere, its colour per instance), its points
+ * carried in the body frame the same way BUILD's parts are and rotated
+ * with the attacker every update. Not a real light: a navigation light
+ * is a mark to read a heading by, never a source the ground or another
+ * craft is lit from.
+ *
  * Render only: nothing here reaches a plant or the room.
  *
  * This file is part of WebFPVSimulator.
@@ -209,6 +218,26 @@ const BUILD = {
   scout, loiter, strike, fpv: quad, hunter: quad, boat, jammer,
 };
 
+/*
+ * Night's own hook, opt in (createAttackers({ navLights: true }), off by
+ * default: a pilot flying by day never sees an extra draw call). Wingtip
+ * and tail points in each kind's body frame (frame.js: nose -z, top +y,
+ * metres, its own centre at the origin, as BUILD's parts are), red to
+ * port, green to starboard, white aft or on a quad's frame, the way a
+ * real aircraft's are read at range. A kind with no obvious wingtip (the
+ * quads, the jammer) gets one white light near its centre instead of
+ * nothing: still a small mark against the dark, never a real light.
+ */
+const NAV_LIGHTS = {
+  scout: [[-1.5, 0.14, 0.05, 0xff2a2a], [1.5, 0.14, 0.05, 0x2aff5a], [0, 0.14, 1.3, 0xffffff]],
+  loiter: [[-0.62, -0.02, 0.3, 0xff2a2a], [0.62, -0.02, 0.3, 0x2aff5a]],
+  strike: [[-1.25, 0.12, 0.95, 0xff2a2a], [1.25, 0.12, 0.95, 0x2aff5a], [0, 0.1, 1.4, 0xffffff]],
+  fpv: [[0, 0.03, -0.07, 0xffffff]],
+  hunter: [[0, 0.03, -0.07, 0xffffff]],
+  boat: [[-0.55, 0.32, -1.7, 0xff2a2a], [0.55, 0.32, -1.7, 0x2aff5a], [0, 0.5, 2.5, 0xffffff]],
+  jammer: [[0, 2.3, 0, 0xffffff]],
+};
+
 /* What each kind sheds when it breaks (debris.js SHED, by material), how
  * big its explosion is (src/render/explosion.js play's size), and how
  * hard its pieces are thrown, m/s. */
@@ -229,23 +258,37 @@ export function attackerGeometry(kind) {
   return g;
 }
 
+/* One small unlit sphere, shared by every nav light of every kind: the
+ * colour rides in each instance (setColorAt), so one geometry and one
+ * material do for all of them. */
+const NAV_DOT_R = 0.05;
+let navDotGeometry = null;
+
 /*
  * The attackers' layer. `debris` is the shell's createDebris() (or null),
  * `floorAt(x, z)` the ground's height, for where the pieces come to rest.
- * Returns { group, update(list), dead(event), drawn(), clear(),
- * dispose() }: update with roomwar's attackersAt list once a frame; dead
- * with each 'dead' event of roomwar's takeEvents.
+ * `navLights` (default false) adds NAV_LIGHTS to whatever kinds fly, for
+ * a night mission: off by day, one more instanced mesh a kind by night,
+ * never a real light (the budget is calls, ITAIPU-PLAN section 13, and a
+ * navigation light is not one). Returns { group, update(list),
+ * dead(event), drawn(), clear(), dispose() }: update with roomwar's
+ * attackersAt list once a frame; dead with each 'dead' event of
+ * roomwar's takeEvents.
  */
-export function createAttackers({ debris = null, floorAt = () => -Infinity } = {}) {
+export function createAttackers({ debris = null, floorAt = () => -Infinity, navLights = false } = {}) {
   const group = new THREE.Group();
   group.name = 'attackers';
   const mat = celMaterial({ color: 0xffffff });
   mat.vertexColors = true;
   const meshes = new Map();
+  const navMeshes = new Map();
+  const navMat = navLights ? new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }) : null;
   const m4 = new THREE.Matrix4();
   const pos = new THREE.Vector3();
   const rot = new THREE.Quaternion();
   const one = new THREE.Vector3(1, 1, 1);
+  const navPos = new THREE.Vector3();
+  const navColor = new THREE.Color();
 
   function meshFor(kind, need) {
     let mesh = meshes.get(kind);
@@ -269,6 +312,36 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
     mesh.frustumCulled = false;
     mesh.count = 0;
     meshes.set(kind, mesh);
+    group.add(mesh);
+    return mesh;
+  }
+
+  /* The nav light dots for `kind`, `need` attackers' worth (points per
+   * attacker times how many are alive): grown the way meshFor grows. */
+  function navMeshFor(kind, need) {
+    const pts = NAV_LIGHTS[kind] || [];
+    if (!pts.length) {
+      return null;
+    }
+    let mesh = navMeshes.get(kind);
+    if (mesh && mesh.instanceMatrix.count >= need) {
+      return mesh;
+    }
+    let cap = mesh ? mesh.instanceMatrix.count : START_CAPACITY * pts.length;
+    while (cap < need) {
+      cap *= 2;
+    }
+    navDotGeometry = navDotGeometry || new THREE.SphereGeometry(NAV_DOT_R, 6, 4);
+    if (mesh) {
+      group.remove(mesh);
+      mesh.dispose();
+    }
+    mesh = new THREE.InstancedMesh(navDotGeometry, navMat, cap);
+    mesh.name = `attackers-${kind}-nav`;
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    mesh.frustumCulled = false;
+    mesh.count = 0;
+    navMeshes.set(kind, mesh);
     group.add(mesh);
     return mesh;
   }
@@ -298,6 +371,36 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
         }
         mesh.count = xs.length;
         mesh.instanceMatrix.needsUpdate = true;
+
+        if (!navMat) {
+          continue;
+        }
+        const pts = NAV_LIGHTS[kind] || [];
+        if (!pts.length && !navMeshes.has(kind)) {
+          continue;
+        }
+        const navMesh = navMeshFor(kind, xs.length * pts.length);
+        if (!navMesh) {
+          continue;
+        }
+        let n = 0;
+        for (let i = 0; i < xs.length; i += 1) {
+          const a = xs[i];
+          pos.set(a.p[0], a.p[1], a.p[2]);
+          rot.set(a.q[0], a.q[1], a.q[2], a.q[3]);
+          for (const [px, py, pz, color] of pts) {
+            navPos.set(px, py, pz).applyQuaternion(rot).add(pos);
+            m4.compose(navPos, rot, one);
+            navMesh.setMatrixAt(n, m4);
+            navMesh.setColorAt(n, navColor.setHex(color));
+            n += 1;
+          }
+        }
+        navMesh.count = n;
+        navMesh.instanceMatrix.needsUpdate = true;
+        if (navMesh.instanceColor) {
+          navMesh.instanceColor.needsUpdate = true;
+        }
       }
       drawnList = list;
     },
@@ -336,6 +439,9 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
       for (const mesh of meshes.values()) {
         mesh.count = 0;
       }
+      for (const mesh of navMeshes.values()) {
+        mesh.count = 0;
+      }
       drawnList = [];
     },
 
@@ -346,6 +452,16 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity } = {
       }
       meshes.clear();
       mat.dispose();
+      /* navDotGeometry is shared by every layer this session has made
+       * (module scope: one sphere for whatever count of kinds fly), so
+       * only the meshes and the material are this layer's to free. */
+      for (const mesh of navMeshes.values()) {
+        mesh.dispose();
+      }
+      navMeshes.clear();
+      if (navMat) {
+        navMat.dispose();
+      }
       group.clear();
     },
   };

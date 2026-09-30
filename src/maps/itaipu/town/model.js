@@ -244,6 +244,15 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   }
   progress(0.95);
 
+  /* Every dressed road's lamps, at the luminaire (lamp()'s fourth bar,
+   * the head): for look/night.js, which lights a sparse few of them
+   * rather than touching this file's geometry. */
+  const lampsAt = [];
+  for (let i = 3; i < lampPieces.length; i += 4) {
+    const p = lampPieces[i];
+    lampsAt.push([(p[0] + p[3]) / 2, (p[1] + p[4]) / 2, (p[2] + p[5]) / 2]);
+  }
+
   /* The streamed colliders, flat: pieces then chords, with their middles. */
   const caps = [...pieces, ...lampPieces, ...wires.map((w) => [...w, WIRE_R])];
   const capMid = new Float64Array(caps.length * 2);
@@ -357,6 +366,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
     structures,
     wires,
     friendship,
+    lampsAt,
     counts: {
       ...counts,
       roads: roadCounts,
