@@ -57,7 +57,7 @@
 export const BLAST_M = 6;
 
 /* The kinds, in the order of the AGENTS message's kind byte. */
-export const KINDS = ['scout', 'loiter', 'strike', 'fpv', 'hunter', 'boat', 'jammer'];
+export const KINDS = ['scout', 'loiter', 'strike', 'fpv', 'hunter', 'boat', 'jammer', 'decoy'];
 
 /*
  * Each kind's flight, m/s and metres: speed, the loiterer's dive, the
@@ -76,6 +76,8 @@ export const KIND = {
   hunter: { speed: 25.2, gap: 10 },
   boat: { speed: 9.8, weaveM: 15, weaveMs: 8000 / SPEED_SCALE, gap: 20 },
   jammer: { speed: 3.5, gap: 30 },
+  /* A Striker's flight and look, worth nothing where it arrives. */
+  decoy: { speed: 26.6, gap: 25 },
 };
 
 /* How far a scout flies on after its circle before it is gone: 200 s at
@@ -171,6 +173,20 @@ function legsOf(pts) {
  * is data the room trusts, and a wrong one must fail loudly.
  */
 export function planAgent(mission, agent) {
+  const plan = planRoute(mission, agent);
+  const stalls = agent.stalls;
+  if (!stalls || !stalls.length || !Number.isFinite(plan.tEnd)) {
+    return plan;
+  }
+  plan.stalls = stalls.map(([at, ms]) => [at, ms]).sort((a, b) => a[0] - b[0]);
+  for (const [, ms] of plan.stalls) {
+    plan.tEnd += ms;
+  }
+  return plan;
+}
+
+/* The plan without stalls. */
+function planRoute(mission, agent) {
   const kind = KIND[agent.kind];
   if (!kind) {
     throw new Error(`war: no kind ${agent.kind}`);
@@ -203,7 +219,7 @@ export function planAgent(mission, agent) {
     phases.push(p);
     t += ms;
   };
-  const straightOn = agent.kind === 'strike' || agent.kind === 'fpv' || agent.kind === 'boat';
+  const straightOn = agent.kind === 'strike' || agent.kind === 'decoy' || agent.kind === 'fpv' || agent.kind === 'boat';
   const path = legsOf(straightOn && aim ? [...pts, aim] : pts);
   if (agent.kind === 'hunter' || !path.legs.length) {
     const d = path.legs.length ? path.legs[0].d : [0, 0, -1];
@@ -270,6 +286,34 @@ function orbitAt(ph, t) {
  * (the room has taken it off by then).
  */
 export function poseAt(plan, t, out = { p: [0, 0, 0], q: [0, 0, 0, 1], v: [0, 0, 0] }) {
+  if (!plan.stalls || t < plan.t0) {
+    return poseRoute(plan, t, out);
+  }
+  /* An EMP's stall (war.js): the route's clock stops at its start for its
+   * ms, and runs on from there after. */
+  let te = t;
+  let still = false;
+  for (const [at, ms] of plan.stalls) {
+    if (t <= at) {
+      break;
+    }
+    if (t < at + ms) {
+      te = at - (t - te);
+      still = true;
+      break;
+    }
+    te -= ms;
+  }
+  const o = poseRoute(plan, te, out);
+  if (o && still) {
+    o.v[0] = 0;
+    o.v[1] = 0;
+    o.v[2] = 0;
+  }
+  return o;
+}
+
+function poseRoute(plan, t, out) {
   if (t < plan.t0) {
     return null;
   }

@@ -213,6 +213,20 @@ export function createRoomWar(send) {
         adopt(m.agents || []);
       } else if (m.op === 'dead') {
         dead(m);
+      } else if (m.op === 'stall') {
+        /* An EMP stalled these (war.js): their routes wait m.ms from m.at,
+         * the same on every screen. */
+        const mi = mission();
+        for (const id of m.ids || []) {
+          const x = agents.get(id);
+          if (x && mi && x.a.kind !== 'hunter') {
+            x.a = { ...x.a, stalls: [...(x.a.stalls || []), [m.at, m.ms]] };
+            x.plan = planAgent(mi, x.a);
+          }
+        }
+        events.push({
+          type: 'stall', ids: m.ids || [], at: m.at, ms: m.ms,
+        });
       } else if (m.op === 'boom') {
         events.push({
           type: 'boom', seat: m.seat, at: m.at, p: m.p, mine: m.seat === seat,
@@ -296,6 +310,10 @@ export function createRoomWar(send) {
       return war.state === 'live';
     },
     mission,
+    /* The mission's night flag (itaipu-4): the lighting hook reads it. */
+    night() {
+      return Boolean(mission()?.night);
+    },
     /* This pilot's row of the scores, or null. */
     mine() {
       return (war.scores || []).find((r) => r.seat === seat) ?? null;

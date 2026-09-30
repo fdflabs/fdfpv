@@ -189,9 +189,23 @@ export class Hunters {
     this.list.delete(id);
   }
 
+  /* An EMP: the hunter holds where it is, flying nowhere, until room ms
+   * `until` (edge/rooms/war.js). */
+  stall(id, until) {
+    const h = this.list.get(id);
+    if (h) {
+      h.stallUntil = until;
+    }
+  }
+
   step(roomMs, defenders) {
     const out = [];
     for (const h of this.list.values()) {
+      if (h.stallUntil > roomMs) {
+        h.ms = roomMs;
+        out.push({ id: h.id, p: [h.p[0], h.p[1], h.p[2]], q: attitude(h.f || [0, 0, -1], h.r), target: h.target });
+        continue;
+      }
       this.choose(h, roomMs, defenders);
       const gap = Math.min(GAP_MS, roomMs - h.ms);
       if (gap > 0) {
@@ -351,7 +365,7 @@ export class Hunters {
   save() {
     return {
       hunters: [...this.list.values()].map((h) => ({
-        id: h.id, p: h.p, f: h.f, r: h.r, target: h.target, chosen: h.chosen, ms: h.ms, home: h.home,
+        id: h.id, p: h.p, f: h.f, r: h.r, target: h.target, chosen: h.chosen, ms: h.ms, home: h.home, stallUntil: h.stallUntil ?? null,
       })),
     };
   }
@@ -360,7 +374,7 @@ export class Hunters {
     this.list = new Map();
     for (const h of value?.hunters ?? []) {
       this.list.set(h.id, {
-        id: h.id, p: [...h.p], f: h.f ? [...h.f] : null, r: [...h.r], target: h.target, chosen: h.chosen, ms: h.ms, home: h.home ? [...h.home] : null,
+        id: h.id, p: [...h.p], f: h.f ? [...h.f] : null, r: [...h.r], target: h.target, chosen: h.chosen, ms: h.ms, home: h.home ? [...h.home] : null, stallUntil: h.stallUntil ?? null,
       });
     }
   }

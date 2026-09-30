@@ -158,7 +158,8 @@ export function warSection(check) {
     check('a wrong length is nothing', decodeAgents(bytes.subarray(0, bytes.length - 1)) === null && decodeAgents(new Uint8Array([0x20, 0, 0, 0, 0, 0])) === null);
     check('war is a room game a profile can name', ROOM_GAMES.includes('war')
       && checkProfile({ airframe: 'cub1400', map: 'itaipu', figure: 0, game: 'war' }).game === 'war');
-    check('the kinds are section 3\'s seven, hunter at index 4', KINDS.length === 7 && KINDS[4] === 'hunter' && KINDS.every((k) => KIND[k].speed > 0));
+    check('the kinds are section 3\'s seven and the decoy after them, hunter at index 4', KINDS.length === 8 && KINDS[4] === 'hunter' && KINDS[7] === 'decoy'
+      && KINDS.every((k) => KIND[k].speed > 0));
   }
 
   console.log('war: routes');

@@ -163,6 +163,64 @@ export const ASSIST_M = 50;
 export const ASSIST_MS = 3000;
 /* A round's result shows this long before the next round starts. */
 export const RESULT_MS = 6000;
+
+/*
+ * A pilot's loadout ({ type: 'war', op: 'loadout', loadout }), before the
+ * go: rack, its airframes a round (4 to 6, in place of the mission's
+ * base); warhead, one of WARHEADS; speedMul, 1 to 1.15, kept and echoed
+ * only (the client flies it). Numbers out of range are clamped (rack
+ * rounded); anything else is refused 'loadout'.
+ */
+export const RACK_MIN = 4;
+export const RACK_MAX = 6;
+export const SPEED_MUL_MAX = 1.15;
+export const WARHEADS = ['standard', 'wide', 'penetrator', 'emp'];
+/* The wide warhead's bubble, and the EMP's reach and stall. */
+export const WIDE_M = 9;
+export const EMP_M = 30;
+export const EMP_MS = 4000;
+export const LOADOUT = Object.freeze({ rack: RACK_MIN, warhead: 'standard', speedMul: 1 });
+
+export function parseLoadout(x) {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) {
+    return null;
+  }
+  const rack = x.rack ?? LOADOUT.rack;
+  const warhead = x.warhead ?? LOADOUT.warhead;
+  const speedMul = x.speedMul ?? LOADOUT.speedMul;
+  if (typeof rack !== 'number' || !Number.isFinite(rack) || typeof speedMul !== 'number' || !Number.isFinite(speedMul) || !WARHEADS.includes(warhead)) {
+    return null;
+  }
+  return {
+    rack: Math.min(RACK_MAX, Math.max(RACK_MIN, Math.round(rack))),
+    warhead,
+    speedMul: Math.min(SPEED_MUL_MAX, Math.max(1, speedMul)),
+  };
+}
+
+/*
+ * The mission's result, the room's (never a client's), when it is over:
+ * stars for each criterion met on a won mission (none on a loss), and
+ * credits 100 a star and 10 a kill of the team's.
+ *   held      every round a 'win': no MW lost in any
+ *   noLosses  in every round no pilot spent more airframes than it
+ *             earned (it ended the round with its whole base)
+ *   output    the output at the end at or over the mission's starMw
+ */
+export function resultOf(mission, m) {
+  const won = m.state === 'won';
+  const need = mission.starMw ?? mission.floorMw;
+  const criteria = [
+    { id: 'held', met: (m.results ?? []).length > 0 && m.results.every((r) => r === 'win') },
+    { id: 'noLosses', met: !m.lossy },
+    { id: 'output', met: m.output >= need, need },
+  ];
+  const stars = won ? criteria.filter((c) => c.met).length : 0;
+  const kills = Object.values(m.players).reduce((sum, p) => sum + p.kills, 0);
+  return {
+    won, stars, credits: 100 * stars + 10 * kills, criteria,
+  };
+}
 /* A pilot on its last airframe is taken as not flying once it has sent no
  * pose for STALE_MS, or has been on the ground (not airborne) for
  * GROUND_MS, so a round never waits on a flight that will not end. */
@@ -242,7 +300,7 @@ function chord(a, b) {
  * broadphase, on the centres, passes such a pair every millisecond,
  * since its centre is inside BLAST_M plus the hull's reach.
  */
-function clearOf(h, dTrack, aTrack, t0, t1, memo) {
+function clearOf(h, dTrack, aTrack, t0, t1, memo, blast = BLAST_M) {
   const first = Math.floor(t0) + 1;
   const last = Math.floor(t1);
   const d = spanOf(dTrack, first, last, h.hull.reach, memo);
@@ -259,12 +317,12 @@ function clearOf(h, dTrack, aTrack, t0, t1, memo) {
   const dy = d0.py - a0.py;
   const dz = d0.pz - a0.pz;
   const centre = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  if (centre - h.hull.reach - move > BLAST_M + 1e-6) {
+  if (centre - h.hull.reach - move > blast + 1e-6) {
     return true;
   }
   const gap = hullDistance(h, d0, a0.px, a0.py, a0.pz);
   /* A micrometre for the rounding between a sample and its lerp. */
-  return gap - move > BLAST_M + 1e-6;
+  return gap - move > blast + 1e-6;
 }
 
 /*
@@ -356,6 +414,9 @@ export class RoomWar {
     /* For the checks: every detonation, arrival and crash, with when it
      * was decided. Memory only. */
     this.log = [];
+    /* seat -> loadout sent before a game: memory, copied into the next
+     * match at its start. */
+    this.loadouts = new Map();
   }
 
   mission() {
@@ -385,7 +446,23 @@ export class RoomWar {
 
   /* A seat's airframes this round: the base and one a kill. */
   allowance(seat) {
-    return this.airframes() + (this.match.earned?.[seat] ?? 0);
+    return this.baseOf(seat) + (this.match.earned?.[seat] ?? 0);
+  }
+
+  /* A seat's loadout, and its airframes a round (the mission's base when
+   * it chose none). */
+  loadoutOf(seat) {
+    return this.match?.loadouts?.[seat] ?? this.loadouts.get(seat) ?? { ...LOADOUT, rack: this.airframes() };
+  }
+
+  baseOf(seat) {
+    const l = this.match?.loadouts?.[seat];
+    return l ? l.rack : this.airframes();
+  }
+
+  /* The bubble a seat's warhead goes off in. */
+  blastOf(seat) {
+    return this.loadoutOf(seat).warhead === 'wide' ? WIDE_M : BLAST_M;
   }
 
   /* Whether a seat has spent every airframe of the round. */
@@ -493,6 +570,9 @@ export class RoomWar {
       })).sort((a, b) => b.kills - a.kills || b.mw - a.mw || a.seat - b.seat),
       why: m.why,
       endAt: m.endAt,
+      result: m.state === 'won' || m.state === 'lost' || m.state === 'ended' ? resultOf(mission, m) : null,
+      loadouts: Object.fromEntries(seats.map((seat) => [seat, this.loadoutOf(Number(seat))])),
+      disabled: { ...(m.disabled ?? {}) },
     };
   }
 
@@ -541,6 +621,9 @@ export class RoomWar {
   message(core, conn, s, msg, now) {
     if (msg.op === 'lost') {
       return this.lost(core, conn, s, now);
+    }
+    if (msg.op === 'loadout') {
+      return this.loadout(core, conn, s.seat, msg.loadout);
     }
     if (s.seat !== core.host()) {
       return [];
@@ -597,6 +680,23 @@ export class RoomWar {
 
   /* Ended before it was won or lost: by the host, or by the room when
    * nobody is left to play it (core.js settleGames). */
+  /* A pilot's loadout, any time but a live game: kept for the next start,
+   * and for the match counting down now. */
+  loadout(core, conn, seat, x) {
+    const l = parseLoadout(x);
+    if (!l) {
+      return this.error(conn, 'loadout');
+    }
+    if (this.match && this.match.state === 'live') {
+      return this.error(conn, 'live');
+    }
+    this.loadouts.set(seat, l);
+    if (this.on()) {
+      this.match.loadouts[seat] = l;
+    }
+    return this.match ? this.changed(core) : [];
+  }
+
   abandon(core, now) {
     if (!this.on()) {
       return [];
@@ -619,6 +719,13 @@ export class RoomWar {
     }
     if (mission.map !== core.meta.map) {
       return this.error(conn, 'map');
+    }
+    if (msg.loadout != null) {
+      const l = parseLoadout(msg.loadout);
+      if (!l) {
+        return this.error(conn, 'loadout');
+      }
+      this.loadouts.set(core.host(), l);
     }
     /* A briefing is the intro's span before the countdown's. */
     const briefAt = msg.intro === true ? Math.ceil(core.roomMs(now)) : null;
@@ -652,6 +759,10 @@ export class RoomWar {
       nextRoundAt: null,
       spent: {},
       earned: {},
+      results: [],
+      lossy: false,
+      disabled: {},
+      loadouts: Object.fromEntries([...core.seats.values()].filter((t) => this.loadouts.has(t.seat)).map((t) => [t.seat, this.loadouts.get(t.seat)])),
       players,
       agents: [],
       nextAgent: 1,
@@ -944,6 +1055,7 @@ export class RoomWar {
     if (!(t1 > m.f)) {
       return { out: [], dirty: false };
     }
+    this.judgeT1 = t1;
     for (const x of this.live.values()) {
       this.fill(x, t1);
     }
@@ -990,7 +1102,8 @@ export class RoomWar {
         }
         /* Too far apart for anything in the span: each side has moved at
          * most its top speed since the span's start. */
-        const reach = BLAST_M + d.hull.hull.reach + 1
+        const blast = this.blastOf(d.seat);
+        const reach = blast + d.hull.hull.reach + 1
           + (AGENT_MAX_MPS * Math.max(0, aLast.t - start) + POSE_MAX_SPEED * Math.max(0, dLast.t - start)) / 1000;
         const dx = aLast.px - dLast.px;
         const dy = aLast.py - dLast.py;
@@ -999,10 +1112,10 @@ export class RoomWar {
           continue;
         }
         const end = boom ? Math.min(t1, boom.tc) : t1;
-        if (clearOf(d.hull, d.track, x.track, start, end, memo)) {
+        if (clearOf(d.hull, d.track, x.track, start, end, memo, blast)) {
           continue;
         }
-        const c = within(POINT, d.hull, x.track, d.track, start, end, BLAST_M);
+        const c = within(POINT, d.hull, x.track, d.track, start, end, blast);
         if (c && (!boom || c.tc < boom.tc)) {
           boom = { tc: c.tc, d, x };
         }
@@ -1084,11 +1197,20 @@ export class RoomWar {
     const { tc, d, x } = boom;
     const c = trackPose(x.track, tc);
     const p = [c.px, c.py, c.pz];
+    const warhead = this.loadoutOf(d.seat).warhead;
+    /* A penetrator's first hit of an airframe takes that one attacker and
+     * the flight goes on; the next goes off as a standard warhead. */
+    const pierce = warhead === 'penetrator' && !(d.rec.piercedAt > (d.rec.spentAt ?? -Infinity));
+    const radius = warhead === 'wide' ? WIDE_M : BLAST_M;
     const killed = [];
+    const stalled = [];
     for (const y of this.live.values()) {
       const q = y === x ? c : trackPose(y.track, tc, {});
-      if (q && (y === x || Math.hypot(q.px - p[0], q.py - p[1], q.pz - p[2]) <= BLAST_M)) {
+      const r = q ? Math.hypot(q.px - p[0], q.py - p[1], q.pz - p[2]) : Infinity;
+      if (y === x || (!pierce && r <= radius)) {
         killed.push(y.a);
+      } else if (warhead === 'emp' && !pierce && r <= EMP_M) {
+        stalled.push(y);
       }
     }
     killed.sort((a, b) => a.id - b.id);
@@ -1097,7 +1219,7 @@ export class RoomWar {
     };
     player.kills += killed.length;
     for (const a of killed) {
-      player.mw += a.target != null ? mission.targets[a.target].mw : 0;
+      player.mw += a.target != null && a.kind !== 'decoy' ? mission.targets[a.target].mw : 0;
     }
     for (const o of fly) {
       if (o.seat === d.seat || !m.players[o.seat]) {
@@ -1107,9 +1229,13 @@ export class RoomWar {
         m.players[o.seat].assists += 1;
       }
     }
-    d.rec.down = { at: tc, seen: false };
-    d.down = d.rec.down;
-    this.spend(d.seat, tc);
+    if (pierce) {
+      d.rec.piercedAt = tc;
+    } else {
+      d.rec.down = { at: tc, seen: false };
+      d.down = d.rec.down;
+      this.spend(d.seat, tc);
+    }
     m.earned ??= {};
     m.earned[d.seat] = (m.earned[d.seat] ?? 0) + killed.length;
     const ids = killed.map((a) => a.id);
@@ -1119,16 +1245,41 @@ export class RoomWar {
       what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow,
     });
     const at = p.map(mm);
-    const out = [
-      ...this.broadcast(core, {
-        type: 'war', op: 'boom', seat: d.seat, at: tc, p: at,
-      }),
-      ...this.broadcast(core, {
-        type: 'war', op: 'dead', ids, at: tc, by: d.seat, why: 'boom', p: at,
-      }),
-    ];
+    const out = pierce ? [] : this.broadcast(core, {
+      type: 'war', op: 'boom', seat: d.seat, at: tc, p: at,
+    });
+    out.push(...this.broadcast(core, {
+      type: 'war', op: 'dead', ids, at: tc, by: d.seat, why: pierce ? 'pierce' : 'boom', p: at,
+    }));
+    if (stalled.length) {
+      out.push(...this.stall(core, stalled, tc));
+    }
     this.settle(tc);
     return out;
+  }
+
+  /* An EMP's stall: every one of these waits EMP_MS from tc, its route's
+   * clock stopped (routes.js), a Hunter where it is (warhunt.js). */
+  stall(core, list, tc) {
+    const m = this.match;
+    const mission = this.mission();
+    m.disabled ??= {};
+    for (const y of list) {
+      m.disabled[y.a.id] = tc + EMP_MS;
+      if (y.a.kind === 'hunter') {
+        this.hunters.stall(y.a.id, tc + EMP_MS);
+        continue;
+      }
+      y.a.stalls = [...(y.a.stalls ?? []), [tc, EMP_MS]];
+      y.plan = planAgent(mission, y.a);
+      y.track = new Track(AGENT_KEEP_MS);
+      y.next = null;
+      y.restored = true;
+      this.fill(y, this.judgeT1 ?? tc);
+    }
+    return this.broadcast(core, {
+      type: 'war', op: 'stall', ids: list.map((y) => y.a.id), at: tc, ms: EMP_MS,
+    });
   }
 
   crashed(core, crash, roomNow) {
@@ -1151,7 +1302,7 @@ export class RoomWar {
     const t = x.plan.tEnd;
     const o = poseAt(x.plan, t);
     const target = a.target != null ? this.mission().targets[a.target] : null;
-    const hit = Boolean(target) && Math.abs(a.err) <= (target.hitR ?? target.r);
+    const hit = Boolean(target) && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
     this.take(a, hit);
     m.lastGone = t;
     this.remove([a.id]);
@@ -1236,7 +1387,7 @@ export class RoomWar {
       const x = this.live.get(a.id);
       const through = result === 'lost' && a.target != null;
       const target = through ? mission.targets[a.target] : null;
-      const hit = through && Math.abs(a.err) <= (target.hitR ?? target.r);
+      const hit = through && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
       if (through) {
         this.take(a, hit);
       }
@@ -1261,6 +1412,10 @@ export class RoomWar {
     });
     m.roundState = 'result';
     m.roundResult = result;
+    (m.results ??= []).push(result);
+    if (here.some((seat) => (m.spent?.[seat] ?? 0) > (m.earned?.[seat] ?? 0))) {
+      m.lossy = true;
+    }
     this.settle(t);
     if (m.state !== 'live') {
       return { out, dirty: true };
