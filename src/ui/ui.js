@@ -3140,8 +3140,14 @@ const WAYS = [
      * its one consent question before anything else, and the room has to
      * be private and on the Itaipu map, so the shell makes it rather than
      * offering Make a room. The picture is the map's own poster.
+     *
+     * OFF THE TITLE since the owner's word on 2026-09-30 ("eliminate this
+     * card"): Defend the Paraná is the way in, and its Play still goes
+     * through this entry (main.js enterWarRoom acts 'way-war'), so the
+     * entry stays and only the gate leaves it out.
      */
     id: 'war',
+    gate: false,
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'itaipu',
@@ -3175,6 +3181,9 @@ const WAYS = [
     facts: [str('campaign.card_act'), str('campaign.card_missions'), str('campaign.card_shop')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
+
+/* The cards the title draws, in its order. */
+const GATE_WAYS = WAYS.filter((w) => w.gate !== false);
 
 /* The way that is seated right now, which is what the gate's cursor opens
  * on and what a menu that has been backed out of returns to. The mode is
@@ -3380,7 +3389,7 @@ export class Ui {
      * zero is a valid row here, so the first paint has to be told.
      */
     if (this.craftGate || !this.mode) {
-      const at = WAYS.findIndex((w) => w.id === seatedWay(this.settings, this.mode).id);
+      const at = GATE_WAYS.findIndex((w) => w.id === seatedWay(this.settings, this.mode).id);
       this.cursor = at >= 0 ? at : 0;
     }
     /* Which course card the player has chosen, by courseCardKey, and the
@@ -6037,7 +6046,7 @@ export class Ui {
       if (this.onGate()) {
         const rooms = this.friendsItems().length > 0;
         return [
-          ...WAYS.filter((w) => rooms || !w.room).map((w) => ({
+          ...GATE_WAYS.filter((w) => rooms || !w.room).map((w) => ({
             label: w.label,
             card: w.id,
             art: w.art,
@@ -6305,8 +6314,8 @@ export class Ui {
       const af = airframeById(this.settings.airframe);
       /* A track with no gates yet fits nothing and is too tight for nothing. */
       const tooTight = (t) => (af.fixedWing && t.gates > 0 && !t.planes.includes(af.id)
-        ? ` ${str('ui.too_tight_flies_on_quad', { craft: af.name })}`
-        : '');
+        ? [str('ui.too_tight_flies_on_quad', { craft: af.name })]
+        : []);
       if (this.coursesLede) {
         this.coursesLede.textContent = af.fixedWing
           ? str('ui.the_tracks_the_fits', { craft: af.name })
@@ -6316,7 +6325,7 @@ export class Ui {
       for (const t of this.localCourses || []) {
         cards.push({
           label: t.name,
-          note: str('ui.yours_in_gate', { world: mapById(t.map).name, gates: t.gates, v3: t.gates === 1 ? '' : 's' }) + tooTight(t),
+          note: [str('ui.yours_in_gate', { world: mapById(t.map).name, gates: t.gates, v3: t.gates === 1 ? '' : 's' }), ...tooTight(t)].join(' '),
           course: { kind: 'local', track: t },
           action: `local:${t.id}`,
         });
@@ -6326,7 +6335,7 @@ export class Ui {
         cards.push({
           label: t.name,
           note: world
-            ? str('cloud.card_note', { world: world.name, author: t.author || str('ui.a_pilot') }) + tooTight(t)
+            ? [str('cloud.card_note', { world: world.name, author: t.author || str('ui.a_pilot') }), ...tooTight(t)].join(' ')
             : str('cloud.retired_world'),
           course: { kind: 'cloud', track: t },
           action: `cloud:${t.id}`,
