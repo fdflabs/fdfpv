@@ -6,7 +6,8 @@
  *   SIM_GPU=1 npm run war:hudlayout [-- outdir]
  *
  * One page at a time, a private room on Itaipu with this pilot alone in
- * it (so the room's own "alone" notice is up), and two more pilots named
+ * it (the room's own "alone" notice, where the shell shows it in a war),
+ * and two more pilots named
  * as here but not flying: src/ui/peermarks.js is given their lines through
  * its own away() each frame, since a page that is here and not flying is
  * all such a line needs, and a third browser for it is not worth the
@@ -161,7 +162,10 @@ async function one(width, height, style, rooms) {
     console.log(`  info  room ${code}; HUD ${box(got.hud)}; ${got.rows.length} room lines; ${got.markers.arrows.length} edge arrows ${JSON.stringify(got.markers.arrows)}`);
     const radar = { x: got.vw - RADAR_PX * 2 - 18, y: RADAR_TOP_PX - 20, w: RADAR_PX * 2, h: RADAR_PX * 2 + 20 };
     const band = { x: 0, y: 0, w: ARROW_BAND, h: got.vh };
-    check('the room notice and two not flying lines are drawn', got.note && got.rows.length === 3, got.rows.map((r) => `${r.text} @ ${box(r)}`).join(' | '));
+    /* The room's own notice is the shell's to show or hide in a game
+     * (#233 hides it while one is on); the pilots' lines are always up. */
+    check('the two not flying lines are drawn', got.rows.filter((r) => r.text !== got.note).length === 2,
+      `notice ${got.note ? 'up' : 'hidden'}; ${got.rows.map((r) => `${r.text} @ ${box(r)}`).join(' | ')}`);
     const hit = got.rows.filter((r) => meets(r, got.hud));
     check('the war HUD meets none of the room\'s lines', hit.length === 0, hit.map((r) => `${r.text} @ ${box(r)}`).join(' | ') || `lowest line ends at y ${Math.round(Math.max(...got.rows.map((r) => r.y + r.h)))}, HUD top ${Math.round(got.hud.y)}`);
     check('nor the markers\' radar', !meets(radar, got.hud), `radar ${box(radar)}`);
