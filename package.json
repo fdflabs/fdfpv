@@ -28,6 +28,7 @@
     "check:roof": "node scripts/roof-check.js --map=swiss2 && node scripts/roof-check.js --map=alps",
     "check:trees": "node scripts/tree-check.js",
     "check:colliders": "node scripts/collider-audit.js",
+    "check:collide-audit": "node scripts/collide-audit-swiss2.js",
     "check:traffic": "node scripts/traffic-check.js",
     "check:traffic-sync": "node scripts/traffic-sync-check.js",
     "crash:rules": "node scripts/crash-rules-selftest.js",
