@@ -102,8 +102,12 @@ const VIEWS = [
   { id: 'chute', cam: [-974, 231, -1005, -800, 150, -500], ref: 'chute-running' },
   { id: 'spill-gates', cam: [-931.6, 205, -886.7, -982, 212, -1028], ref: 'spill-gates' },
   { id: 'spill-plume', cam: [-700, 106.5, -200, -820, 150, -560], ref: 'spill-plume' },
-  { id: 'penstocks', cam: [500, 149.7, -1560, -300, 150, -1680], ref: 'penstocks' },
-  { id: 'crest-road', cam: [-100, 226.7, -1784, 600, 224, -1625], ref: 'crest-road' },
+  /* Round 2 moved these two (docs/ITAIPU-LOOP.md, round 2): the first
+   * stood 7 m upstream of the road on the intake deck and the second at
+   * the face's toe in line with the tubes, and neither could frame what
+   * its photograph shows. */
+  { id: 'penstocks', cam: [95.65, 149.7, -1630.65, -222.6, 158, -1720.2], ref: 'penstocks' },
+  { id: 'crest-road', cam: [-313.8, 226.7, -1818.0, 233.9, 224, -1701.5], ref: 'crest-road' },
   { id: 'rockfill-road', cam: [1370, 176.5, -1150, 928, 185, -1556], ref: 'rockfill-road' },
   { id: 'reservoir-dam', cam: [100, 221, -3000, 59, 222, -1746], ref: 'reservoir-dam' },
   { id: 'reservoir-shore', cam: [-4160, 222.7, -3000, -3400, 219.5, -3700], ref: 'reservoir-shore' },

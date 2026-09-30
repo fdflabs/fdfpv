@@ -1829,9 +1829,15 @@ export async function buildPart(ctx) {
   {
     const pitch = ph.figures.unitSpacing;
     const unitT = ph.units.map((u) => F.local(...u)[0]);
+    sites.intakeGantries = [];
     for (const [t, out] of [[unitT[0] - INTAKE_CRANE.off * pitch, -1], [unitT[unitT.length - 1] + INTAKE_CRANE.off * pitch, 1]]) {
       intakeGantry(t);
       jibCrane(t + out * INTAKE_CRANE.jib);
+      /* Where it stands on the crest (the spawns and their check read it):
+       * its middle along the road, in world metres, and t in the main
+       * dam's frame. */
+      const [x, z] = F.at(t, (sUp(t) + 1 + INTAKE_CRANE.down) / 2);
+      sites.intakeGantries.push({ t, x, z, jibT: t + out * INTAKE_CRANE.jib });
     }
   }
 
