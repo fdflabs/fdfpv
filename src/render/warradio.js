@@ -56,6 +56,12 @@ const COMBAT_BUS = 0.22;
 /* How far the motors and wind duck under a call, and the voice's level. */
 const VOICE_LEVEL = 1.0;
 export const VOICE_DUCK = 0.55;
+/* Under a teammate on voice chat the radio and the music step aside:
+ * DUCK_DB down in DUCK_ATTACK_MS, back up over DUCK_RELEASE_MS once the
+ * last one stops. Ramped in dB, so the attack and the release are even. */
+export const DUCK_DB = -10;
+export const DUCK_ATTACK_MS = 50;
+export const DUCK_RELEASE_MS = 500;
 /* The target kinds a hit line exists for (lines.json hit-*). */
 const HIT_LINES = { intake: 'hit-intake', penstock: 'hit-penstock', gate: 'hit-gate', 'yard-right': 'hit-yard' };
 /* Waves the radio does not call: a Jammer's jams a signal the war no
@@ -196,6 +202,27 @@ export class WarRadio {
     this.track = '';
     this.musicLevel = 0;
     this.onSpeak = null;
+    /* The voice chat duck, dB (0 or down to DUCK_DB), and when it last ran. */
+    this.duckDb = 0;
+    this.duckAt = null;
+  }
+
+  /*
+   * Once a frame: `heard` is whether any teammate's voice is playing on
+   * this page (src/share/voice.js speaking(), never this pilot's own).
+   * Moves the duck toward DUCK_DB or back to 0 at the attack's or the
+   * release's rate, on the element volumes, adding no audio node.
+   */
+  duck(heard, nowMs = performance.now()) {
+    const dt = this.duckAt == null ? 0 : Math.max(0, nowMs - this.duckAt);
+    this.duckAt = nowMs;
+    const was = this.duckDb;
+    this.duckDb = heard
+      ? Math.max(DUCK_DB, was + (DUCK_DB / DUCK_ATTACK_MS) * dt)
+      : Math.min(0, was - (DUCK_DB / DUCK_RELEASE_MS) * dt);
+    if (this.duckDb !== was) {
+      this.applyLevel();
+    }
   }
 
   attach() {
@@ -351,12 +378,13 @@ export class WarRadio {
   }
 
   applyLevel() {
+    const duck = 10 ** (this.duckDb / 20);
     if (this.voice) {
-      this.voice.el.volume = Math.min(1, this.output * VOICE_LEVEL);
+      this.voice.el.volume = Math.min(1, this.output * VOICE_LEVEL) * duck;
     }
     if (this.bed) {
       const bus = this.track === 'intro' ? INTRO_BUS : COMBAT_BUS;
-      this.bed.el.volume = Math.min(1, this.output * this.musicLevel * bus);
+      this.bed.el.volume = Math.min(1, this.output * this.musicLevel * bus) * duck;
     }
   }
 
@@ -380,6 +408,7 @@ export class WarRadio {
       ext: this.ext,
       attached: Boolean(this.voice),
       volume: this.voice ? this.voice.el.volume : 0,
+      duckDb: this.duckDb,
       musicVolume: this.bed ? this.bed.el.volume : 0,
       musicPlaying: this.bed ? !this.bed.el.paused : false,
     };

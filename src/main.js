@@ -3056,6 +3056,19 @@ export async function boot({
       }
     }
     warRoundSeen = roundKey;
+    /* A teammate talking on voice chat ducks the radio and the music
+     * (src/render/warradio.js duck); this pilot's own voice does not, nor
+     * the explosions, which play in the audio graph. */
+    if (audio.warRadio) {
+      let heard = false;
+      for (const seat of roomPeers.keys()) {
+        if (voice.speaking(seat)) {
+          heard = true;
+          break;
+        }
+      }
+      audio.warRadio.duck(heard);
+    }
     const events = roomWar.takeEvents();
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
