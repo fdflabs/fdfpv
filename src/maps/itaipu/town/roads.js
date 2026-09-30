@@ -80,9 +80,10 @@ const TINT = {
  * it service, asphalt, and no width or lanes). The photograph shows two
  * 3.5 m lanes with a double yellow line between them and a white line
  * at each edge, a verge of red brown gravel either side, and a lamp
- * every 30 to 40 m on the verge on the dam's side, its arm over the
- * road. The widths are read off that photograph against its lane
- * arrows; the lamps are the dam's crest lamps (dam/index.js LAMP).
+ * every 30 to 40 m on the verge on the dam's side. The widths are read
+ * off that photograph against its lane arrows; the lamps are the dam's
+ * crest lamps' height (dam/index.js LAMP), their arms kept over the
+ * verge (LAMP).
  * `damSide` is which side of the way, walked from its first point, the
  * dam's axis is: -1, against ribbon()'s normal.
  */
@@ -101,11 +102,19 @@ const LINE_GAP = 0.12;
 const EDGE_IN = 0.3;
 const PAINT_WHITE = [0.72, 0.72, 0.68];
 const PAINT_YELLOW = [0.7, 0.45, 0.02];
-/* The lamp: 10 m to its arm, the arm 2.4 m out from the verge's middle
- * over the road, bending out of the pole's top over its last metre. */
+/* The lamp: 10 m to its arm, its foot `inset` in from the verge's outer
+ * edge, the arm `arm` toward the road, bending out of the pole's top over
+ * its last metre. Its tip stops 0.2 m short of the asphalt, so nothing a
+ * lamp is made of stands over the carriageway: a craft landed on the
+ * road rolls under no arm. */
 const LAMP = {
-  height: 10, bend: 1, arm: 2.4, r: 0.12, head: 0.7,
+  height: 10, bend: 1, arm: 1.5, inset: 0.3, r: 0.12, head: 0.7,
 };
+/* No lamp within this of a road on the dam (onDam): the crest's half
+ * width (dam/index.js EMBANKMENT_HALF, 7 m) and 3 m more, so where the
+ * ramp meets the crest no pole stands on the crest roadway, where the
+ * dam's own lamps and the plane's spawn are. Metres. */
+const CREST_CLEAR = 10;
 const LAMP_TINT = [0.46, 0.47, 0.48];
 
 const COBBLE = new Set(['cobblestone', 'sett', 'paving_stones']);
@@ -151,6 +160,21 @@ function onGround(piece, ground, lift) {
   });
 }
 
+/* The distance from (x, z) to the polyline `points` in plan. */
+function distanceTo(points, x, z) {
+  let best = Infinity;
+  for (let k = 0; k + 1 < points.length; k += 1) {
+    const [ax, az] = points[k];
+    const [bx, bz] = points[k + 1];
+    const dx = bx - ax;
+    const dz = bz - az;
+    const l2 = dx * dx + dz * dz;
+    const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / l2)) : 0;
+    best = Math.min(best, Math.hypot(x - ax - dx * t, z - az - dz * t));
+  }
+  return best;
+}
+
 /* The surface key (swiss2/look.js) a paving is drawn with. */
 const KEY = { asphalt: 'asphalt', cobble: 'cobble', earth: 'pathGravel' };
 
@@ -183,7 +207,7 @@ export function offsetLine(points, d) {
  * key, tint, lift, lod) drapes a strip, lamp(foot, bend, knee, tip)
  * stands a lamp.
  */
-function dress(f, spec, lay, lamp, ground) {
+function dress(f, spec, lay, lamp, ground, clear) {
   /* The verges and the paint only near (mesh.js NEAR): from the air, a
    * kilometre off, a 12 cm line and a 2 m verge are under a pixel and
    * drew as a glittering brown strip where the aerial-rockfill
@@ -197,8 +221,9 @@ function dress(f, spec, lay, lamp, ground) {
   paint(-half + EDGE_IN + LINE / 2, PAINT_WHITE);
   paint(half - EDGE_IN - LINE / 2, PAINT_WHITE);
   /* Along the verge on the dam's side, a lamp every lampEvery metres from
-   * half that from the way's first point. */
-  const s = spec.damSide * (half + spec.verge / 2);
+   * half that from the way's first point, where it is clear of the dam's
+   * roads. */
+  const s = spec.damSide * (half + spec.verge - LAMP.inset);
   const line = offsetLine(f.points, s);
   let next = spec.lampEvery / 2;
   let walked = 0;
@@ -215,7 +240,10 @@ function dress(f, spec, lay, lamp, ground) {
       const oz = ((bx - ax) / len) * -spec.damSide;
       const y = ground(x, z);
       const top = y + LAMP.height;
-      lamp([x, y, z], [x, top - LAMP.bend, z], [x + ox * LAMP.bend, top, z + oz * LAMP.bend], [x + ox * LAMP.arm, top, z + oz * LAMP.arm]);
+      const tip = [x + ox * LAMP.arm, top, z + oz * LAMP.arm];
+      if (clear(x, z) && clear(tip[0], tip[2])) {
+        lamp([x, y, z], [x, top - LAMP.bend, z], [x + ox * LAMP.bend, top, z + oz * LAMP.bend], tip);
+      }
       next += spec.lampEvery;
     }
     walked += len;
@@ -233,6 +261,8 @@ export function layRoads(features, ground, { face, bridge, bar }) {
   const counts = {
     draped: 0, bridges: 0, onDam: 0, tunnels: 0, ring: 0, pieces: 0, dressed: 0, lamps: 0,
   };
+  const damWays = features.filter((f) => f.onDam && f.square !== 'ring').map((f) => f.points);
+  const clear = (x, z) => damWays.every((pts) => distanceTo(pts, x, z) > CREST_CLEAR);
   const lay = (points, width, key, tint, lift, lod) => {
     for (const quad of ribbon(points, width)) {
       cutToGround(quad, (piece) => {
@@ -277,7 +307,7 @@ export function layRoads(features, ground, { face, bridge, bar }) {
     lay(f.points, spec ? spec.width : f.width, KEY[paving], TINT[paving], liftOf(f, paving));
     if (spec) {
       counts.dressed += 1;
-      dress(f, spec, lay, lamp, ground);
+      dress(f, spec, lay, lamp, ground, clear);
     }
   }
   return counts;
