@@ -25,6 +25,10 @@
  *   keyed      one entry per plane (or per tune), the newer stamp wins
  *              entry by entry.
  *   whole      the section as one value, the newer stamp wins.
+ *   campaign   Defend the Paraná (src/game/campaign.js mergeCampaign):
+ *              the most stars per mission, the higher credits earned,
+ *              the union of upgrades owned at the price paid; credits to
+ *              spend are earned less those prices. Stamps play no part.
  *
  * AT A TIE the account's value wins over the one just sent, and the one
  * just sent fills in where the account has none. A tie is nearly always
@@ -55,6 +59,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { mergeCampaign } from '../game/campaign.js';
+
 export const SYNCED_SECTIONS = {
   progress: 'progress',
   liverySaves: 'union',
@@ -67,6 +73,7 @@ export const SYNCED_SECTIONS = {
   floats: 'keyed',
   tune: 'whole',
   rates: 'whole',
+  campaign: 'campaign',
 };
 
 const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual'];
@@ -162,6 +169,8 @@ export function mergeBlobs(incoming, held) {
       merged = mergeProgress(av, bv);
     } else if (kind === 'union') {
       merged = av === undefined && bv === undefined ? undefined : mergeUnion(av, bv);
+    } else if (kind === 'campaign') {
+      merged = av === undefined && bv === undefined ? undefined : mergeCampaign(av, bv);
     } else if (kind === 'whole') {
       merged = pick(stampOf(a.stamps, section), stampOf(b.stamps, section), av !== undefined, av, bv !== undefined, bv);
     } else {

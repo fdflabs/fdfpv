@@ -6,7 +6,7 @@
  *   npx wrangler dev --config edge/rooms/wrangler.toml --port 8797
  *   node scripts/friends-card-check.js http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: the gate draws its six cards side by side, inside the
+ * Page A, 1280 by 720: the gate draws its seven cards side by side, inside the
  * window, the third wearing its picture and its mark. The arrows walk the
  * cursor onto it and back; Enter opens the room screen in free flight with
  * the Swiss valley seated; Escape twice is the gate again; a click on the
@@ -15,7 +15,7 @@
  * aircraft and the world under them; Enter on it is flight, in the room,
  * in the valley.
  *
- * Page B, 390 by 844, a phone held upright: the six cards stack inside
+ * Page B, 390 by 844, a phone held upright: the seven cards stack inside
  * the window with no sideways scroll; a click on the third, Join with a
  * code, the code typed into the form, and B is in A's room on seat 2.
  *
@@ -146,15 +146,15 @@ const b = await openPage({ root, url, width: 390, height: 844 });
 try {
   for (const p of [a, b]) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000);
+    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 7", 60000);
     await p.until(`${CARDS}.every((c) => c.loaded)`, 30000);
   }
 
   /* THE GATE AT 1280 BY 720. */
   const cards = await a.evaluate(CARDS);
   const view = await a.evaluate(VIEW);
-  check('six cards on the gate, the third Fly with friends',
-    cards.map((c) => c.name).join() === 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend Itaipu', cards.map((c) => c.name).join());
+  check('seven cards on the gate, the third Fly with friends',
+    cards.map((c) => c.name).join() === 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend Itaipu,Defend the Paraná', cards.map((c) => c.name).join());
   check('each with its picture loaded and its mark drawn', cards.every((c) => c.loaded && c.mark),
     cards.map((c) => `${c.shot}:${c.loaded}:${c.mark}`).join(' '));
   /* One row: the tops agree but for the 4 px the chosen card is lifted. */
@@ -243,8 +243,8 @@ try {
   /* THE PHONE, AND THE OTHER WAY INTO A ROOM. */
   const pc = await b.evaluate(CARDS);
   const pv = await b.evaluate(VIEW);
-  check('upright phone: six cards stacked inside the window, tags clear of the bar',
-    pc.length === 6 && inside(pc, pv) && apart(pc) && pc.every((c, i) => i === 0 || c.box[1] >= pc[i - 1].box[3]),
+  check('upright phone: seven cards stacked inside the window, tags clear of the bar',
+    pc.length === 7 && inside(pc, pv) && apart(pc) && pc.every((c, i) => i === 0 || c.box[1] >= pc[i - 1].box[3]),
     `${JSON.stringify(pc.map((c) => [...c.box, c.factsBottom]))} bar at ${pv.bar}`);
   check('and no sideways scroll', pv.sw <= pv.w, `${pv.sw} > ${pv.w}`);
   await shot(b, 'b-1-phone-gate');
@@ -257,8 +257,8 @@ try {
     const laid = row
       ? Math.max(...c.map((x) => x.box[1])) - Math.min(...c.map((x) => x.box[1])) <= 4
       : c.every((x, i) => i === 0 || x.box[1] >= c[i - 1].box[3]);
-    check(`${w} by ${h}: six cards ${row ? 'in a row' : 'stacked'} inside the window, tags clear of the bar, no sideways scroll`,
-      c.length === 6 && laid && inside(c, v) && apart(c) && v.sw <= v.w,
+    check(`${w} by ${h}: seven cards ${row ? 'in a row' : 'stacked'} inside the window, tags clear of the bar, no sideways scroll`,
+      c.length === 7 && laid && inside(c, v) && apart(c) && v.sw <= v.w,
       `${JSON.stringify(c.map((x) => [...x.box, x.factsBottom]))} bar at ${v.bar}, scroll ${v.sw}`);
     await shot(b, `b-0-gate-${w}x${h}`);
   }
