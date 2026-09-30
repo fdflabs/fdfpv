@@ -1,4 +1,4 @@
-# Spanish for FDFPV: rules for every slice
+# Spanish for the Paraguayan Drone Combat Simulator: rules for every slice
 
 Neutral Latin American Spanish, informal "tú" (never "usted", never "vos").
 Natural, short sentences, the tone of a friend who flies. No em dashes.
@@ -6,12 +6,13 @@ Natural, short sentences, the tone of a friend who flies. No em dashes.
 Keep exactly as they are, character for character:
 - every placeholder in braces, e.g. {name}, {n}, {v1}: same names, same count
 - every HTML tag, e.g. <b>reload</b> becomes <b>recargar</b>
-- product and brand names: FDFPV, Betaflight, MultiGP, RaceGOW, DShot, Chrome, Edge, Firefox, Render, GitHub
+- product and brand names: Betaflight, MultiGP, RaceGOW, DShot, Chrome, Edge, Firefox, Render, GitHub
 - FPV jargon the Spanish-speaking community uses in English: throttle, roll, pitch, yaw, rates, PID, PIDs, tune, freestyle, whoop, quad, arm/disarm as "armar/desarmar", FPV, ELRS, CRSF, SBUS, ESC, DShot, OSD, VTX, gyro
 - key names on a keyboard: Enter, Escape, Ctrl, Alt, Shift, W, A, S, D, arrows described as "flechas"
 - units and numbers exactly: m, mm, ms, kg, g, V, A, Hz, kHz, deg, px, 6S, 1S, 5 in
 
 Fixed choices, use these every time:
+- the game's name in a sentence = el Simulador de Combate de Drones Paraguayo (since 2026-09-30); the wordmark (PARAGUAYAN DRONE COMBAT SIMULATOR on the title and loading screens) is the mark and stays in English
 - track = pista; the board / leaderboard = el tablero; gate = puerta; lap = vuelta; time (a posted lap time) = tiempo
 - pilot = piloto; pilot key = clave de piloto; name = nombre; ghost = fantasma; live = en vivo
 - the field / sixty metre field = el campo / campo de sesenta metros; room (indoor whoop room) = sala

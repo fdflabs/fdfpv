@@ -1,13 +1,13 @@
 <!doctype html>
 <!--
-  FDFPV: the page. A canvas for the world, an overlay for the
-  product shell (title, how to fly, credits, settings, pause, results, and the
-  flight display). The overlay's structure is built in src/ui/ui.js; its
-  styling lives here with the rest of the page's CSS.
+  Paraguayan Drone Combat Simulator: the page. A canvas for the world, an
+  overlay for the product shell (title, how to fly, credits, settings,
+  pause, results, and the flight display). The overlay's structure is built
+  in src/ui/ui.js; its styling lives here with the rest of the page's CSS.
 
   Colour rule: light is warm, shadow is cool. Cream for lit type. Sakura
-  for chrome (menus, the wordmark's FPV). Amber for instruments that have
-  to read over live footage. Mint for a record. Recessed type stays a
+  for chrome (menus). Amber for instruments that have to read over live
+  footage. Mint for a record. Recessed type stays a
   cool mist so it still recedes on grass and sky. The title and the
   finish screen do not paint a second landscape and do not load a
   webfont: the world behind the menu is the picture, and the overlay
@@ -44,7 +44,7 @@
          root now carries touch-action: manipulation, which stops the
          double-tap and keeps the pinch. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>FDFPV, a browser FPV racing simulator</title>
+    <title>Paraguayan Drone Combat Simulator</title>
     <meta name="author" content="fdflabs.com" />
     <meta name="description" content="Fly a five inch quad in a browser, on a real Betaflight control loop compiled to WebAssembly. Build a track, set a lap, put it on the public board." />
     <!--
@@ -60,27 +60,27 @@
     -->
     <link rel="canonical" href="https://fdflabs.github.io/fdfpv/" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="FDFPV" />
+    <meta property="og:site_name" content="Paraguayan Drone Combat Simulator" />
     <meta property="og:url" content="https://fdflabs.github.io/fdfpv/" />
-    <meta property="og:title" content="FDFPV, fly a quad in your browser" />
+    <meta property="og:title" content="Paraguayan Drone Combat Simulator, fly it in your browser" />
     <meta property="og:description" content="A real Betaflight control loop compiled to WebAssembly, a race track, and a lap timer. Plug in a gamepad and go." />
     <meta property="og:image" content="https://fdflabs.github.io/fdfpv/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The FDFPV simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
+    <meta property="og:image:alt" content="The Paraguayan Drone Combat Simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="FDFPV, fly a quad in your browser" />
+    <meta name="twitter:title" content="Paraguayan Drone Combat Simulator, fly it in your browser" />
     <meta name="twitter:description" content="A real Betaflight control loop compiled to WebAssembly, a race track, and a lap timer. Plug in a gamepad and go." />
     <meta name="twitter:image" content="https://fdflabs.github.io/fdfpv/og.png" />
-    <meta name="twitter:image:alt" content="The FDFPV simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
+    <meta name="twitter:image:alt" content="The Paraguayan Drone Combat Simulator: a lit start gate on mown grass, a five inch quad parked beside it, flags and track markers running away under a low sun." />
 
     <!--
       The mark is four propellers, an X frame and the stack in the middle, one
       shape shared by all four pages in the family with one accent each, so a
       pilot with the simulator, the builder and the board open at once can
-      tell three tabs apart without reading them. This one is sakura, which is
-      the colour of the FPV in the wordmark. scripts/icons.js draws them all.
+      tell three tabs apart without reading them. This one is sakura, the
+      shell's chrome colour. scripts/icons.js draws them all.
     -->
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="icon" href="favicon.ico" sizes="32x32" />
@@ -1192,13 +1192,82 @@
         justify-content: flex-start;
         padding-top: 7vh;
       }
-      .screen h1, .wordmark {
+      .screen h1:not(.lockup) {
         margin: 0; font-size: clamp(44px, 8vw, 104px); font-weight: 800;
         letter-spacing: 0.08em; padding-left: 0.02em; color: var(--cream);
         line-height: 0.92;
         text-shadow: 3px 3px 0 rgba(20, 28, 20, 0.82), 0 10px 28px rgba(0, 0, 0, 0.32);
       }
-      .wordmark .fpv { color: var(--sakura); }
+      /*
+       * THE NAME, as the owner's key art sets it: PARAGUAYAN thin and spaced
+       * over a rule, DRONE COMBAT huge, bold and condensed on two lines,
+       * SIMULATOR between two rules, and Paraguay's red, white and blue as
+       * one slash down the left. One lockup, on the loading screen and as
+       * the title's heading, sized by its font-size alone: every part is in
+       * its em, so a page sets one number per window and nothing else.
+       *
+       * Still no webfont (the page's rule, see the top of this file): every
+       * desktop has a narrow sans under one of these names, Android answers
+       * to sans-serif-condensed, and font-stretch asks Apple's system face
+       * for its condensed width.
+       */
+      .lockup {
+        position: relative; display: inline-flex; flex-direction: column;
+        margin: 0; padding: 0 0 0 0.7em;
+        font-family: var(--ui-font); font-weight: 500; line-height: 1;
+        letter-spacing: 0; color: #f7f2e6; text-shadow: none;
+      }
+      /* Skewed about its middle, so its foot sits on the box's left edge and
+         its head just clear of the P: the padding above is that lean. */
+      .lockup-slash {
+        position: absolute; left: 0.29em; top: 0.02em; bottom: 0.02em;
+        width: 0.07em;
+        transform: skewX(-14deg);
+        background: linear-gradient(180deg, #d52b1e 0 33.4%, #f4f1ea 33.4% 66.6%, #0038a8 66.6% 100%);
+        box-shadow: 0 0 0.16em rgba(0, 0, 0, 0.45);
+      }
+      .lockup-over, .lockup-under {
+        display: flex; align-items: center; gap: 0.9em;
+        font-size: max(0.24em, 9px); line-height: 1;
+        letter-spacing: 0.42em; text-transform: uppercase; white-space: nowrap;
+        color: rgba(243, 234, 212, 0.9);
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+      }
+      .lockup-over::after, .lockup-under::before, .lockup-under::after {
+        content: ""; flex: 1; min-width: 1.5em; height: 1px;
+        background: rgba(243, 234, 212, 0.42);
+      }
+      /* The letter spacing trails the last letter, so the rule before the
+         word takes the same space and the word sits in the middle. */
+      .lockup-under::before { margin-right: 0.42em; }
+      .lockup-name {
+        margin: 0.1em 0 0.09em;
+        font-family: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans Narrow", "Roboto Condensed", sans-serif-condensed, var(--ui-font);
+        font-stretch: condensed; font-weight: 700;
+        line-height: 0.84; letter-spacing: 0.01em; text-transform: uppercase;
+        text-shadow: 0 0.03em 0 rgba(8, 10, 9, 0.55), 0 0.08em 0.3em rgba(0, 0, 0, 0.5);
+      }
+      .lockup-name > span { display: block; }
+      .screen-title .wordmark { font-size: clamp(44px, 4.6vw, 96px); }
+      /* In a short window the gate's Beta line stands beside the name
+         rather than under it, where it would take the height the cards and
+         the rooms panel need: at 1280 by 720 it put the cards against it.
+         A tall window has that height and keeps the line under the name,
+         and an upright phone stacks them again (the 860 px rule). */
+      @media (max-height: 820px) {
+        .screen-title.is-gate .brand {
+          display: grid; grid-template-columns: auto minmax(0, 16rem);
+          justify-content: start; column-gap: clamp(18px, 2vw, 32px); align-items: end;
+        }
+        .screen-title.is-gate .brand .beta-note { margin: 0 0 0.2em; }
+      }
+      /* On a phone the rule after PARAGUAYAN runs under the sign in chip,
+         which sits level with it in the top right corner and is wider in
+         Spanish (Iniciar sesión con Google reaches x 181 of 390). The word
+         keeps its place; the rule goes. */
+      @media (max-width: 600px) {
+        .screen-title .lockup-over::after { display: none; }
+      }
       .screen h2 {
         margin: 0 0 18px; font-size: clamp(24px, 3.4vw, 40px); font-weight: 700;
         letter-spacing: 0.04em; color: var(--cream);
@@ -2970,6 +3039,8 @@
         .screen-title .wordmark {
           font-size: clamp(34px, 11vw, 56px);
         }
+        .screen-title.is-gate .brand { display: block; }
+        .screen-title.is-gate .brand .beta-note { margin: 10px 0 0; }
         .screen-title .keep-note,
         .screen-title .wiki-teaser { display: none; }
         /* The storage note above goes at this width. The beta notice does
@@ -3110,8 +3181,9 @@
       }
       /* AN UPRIGHT PHONE UNDER 700 PX with the rooms panel over six or seven cards:
          at 360 by 640 the panel took the 120 px the cards had to spare
-         and more, so the cards' pictures come down a size and the panel
-         sits tighter (scripts/mode-cards-check.js). */
+         and more, so the cards' pictures come down a size, the panel
+         sits tighter and the name, four lines since the rename, comes down
+         a size too (scripts/mode-cards-check.js). */
       @media (max-width: 860px) and (min-height: 521px) and (max-height: 700px) {
         .screen-title.is-gate .gate-cards:is([data-count="6"], [data-count="7"]) { gap: 4px; }
         .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-art { min-height: 38px; }
@@ -3119,6 +3191,7 @@
         .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-name { font-size: 16px; }
         .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-mark { width: 28px; height: 28px; bottom: 3px; }
         .screen-title.is-gate .title-top { gap: 6px; }
+        .screen-title .wordmark { font-size: clamp(30px, 9.5vw, 48px); }
         .screen-title.is-gate .gate-rooms:not([hidden]) { padding: 6px 8px 7px; gap: 5px; }
         .gate-room { padding: 3px 7px; }
         .gate-rooms-buttons .gate-room { padding: 4px 7px; }
@@ -3139,9 +3212,22 @@
            survive, and it costs one line. */
         .screen-title .beta-note { margin-top: 8px; }
         .screen-title .beta-note span:not(.beta-tag) { display: none; }
+        /* The name on three lines rather than four, and the Beta tag, all
+           that is left of that line here, beside it: stacked, the lockup
+           took the height the gate's cards and the menu's rows need at 844
+           by 390. Whatever else the brand shows runs full width under both. */
         .screen-title .wordmark {
-          font-size: clamp(28px, 8vh, 44px);
+          font-size: clamp(28px, 9vh, 44px);
         }
+        .screen-title .lockup-name > span { display: inline; }
+        .screen-title .brand,
+        .screen-title.is-gate .brand {
+          display: grid; grid-template-columns: auto minmax(0, 16rem);
+          justify-content: start; column-gap: 18px; align-items: end;
+        }
+        .screen-title .brand .beta-note,
+        .screen-title.is-gate .brand .beta-note { margin: 0 0 0.2em; }
+        .screen-title .brand > :not(.wordmark, .beta-note) { grid-column: 1 / -1; }
         .screen-title .menu-scroll {
           max-height: min(calc(52vh - var(--bars)), 11em);
         }
@@ -4090,44 +4176,17 @@
         display: flex; flex-direction: column;
         padding: 7vh 0 7vh; box-sizing: border-box;
       }
-      .loading-brand {
-        position: relative; margin: auto 0;
-        padding-left: clamp(26px, 2.6vw, 44px);
-      }
-      /* Paraguay's red, white and blue, as one slash down the name. */
-      .loading-slash {
-        position: absolute; left: 0; top: 4%; bottom: 4%; z-index: 1;
-        width: clamp(6px, 0.55vw, 10px);
-        transform: skewX(-14deg);
-        background: linear-gradient(180deg, #d52b1e 0 33.4%, #f4f1ea 33.4% 66.6%, #0038a8 66.6% 100%);
-        box-shadow: 0 0 18px rgba(0, 0, 0, 0.45);
-      }
-      .loading-kicker, .loading-tag {
-        display: flex; align-items: center; gap: 0.9em;
+      /* The name (the .lockup rules), in the middle of the column, sized
+         to its width: COMBAT, the widest line, is about 3.9 of its em. */
+      .loading-brand { margin: auto 0; }
+      #loading .lockup { font-size: clamp(56px, 8.5vw, 170px); }
+      .loading-tag {
+        margin-top: 1.6em;
         font-size: clamp(11px, 0.9vw, 16px); font-weight: 500; line-height: 1;
-        letter-spacing: 0.38em; text-transform: uppercase; white-space: nowrap;
-        color: rgba(243, 234, 212, 0.86);
+        letter-spacing: 0.3em; text-transform: uppercase; white-space: nowrap;
+        color: rgba(243, 234, 212, 0.7);
         text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
       }
-      .loading-kicker::after, .loading-tag::before {
-        content: ""; flex: 1; min-width: 1.5em; height: 1px;
-        background: rgba(243, 234, 212, 0.38);
-      }
-      /*
-       * The name, bold and condensed, and still no webfont (the page's
-       * rule, see the top of this file): every desktop has a narrow sans
-       * under one of these names, Android answers to sans-serif-condensed,
-       * and font-stretch asks Apple's system face for its condensed width.
-       */
-      .loading-mark {
-        margin: 0.14em 0 0.12em;
-        font-family: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans Narrow", "Roboto Condensed", sans-serif-condensed, var(--ui-font);
-        font-stretch: condensed; font-weight: 700;
-        font-size: clamp(64px, 10vw, 200px); line-height: 0.84;
-        letter-spacing: 0.01em; color: #f7f2e6;
-        text-shadow: 0 4px 0 rgba(8, 10, 9, 0.55), 0 12px 40px rgba(0, 0, 0, 0.5);
-      }
-      .loading-mark .fpv { color: var(--sakura); }
       .loading-status { width: 100%; }
       .loading-row {
         display: flex; align-items: baseline; justify-content: space-between;
@@ -4261,9 +4320,8 @@
          room the steps need. */
       #loading.is-failed .loading-col { overflow-y: auto; scrollbar-width: none; }
       #loading.is-failed .loading-brand { margin: 0 0 4vh; }
-      #loading.is-failed .loading-kicker,
       #loading.is-failed .loading-tag { display: none; }
-      #loading.is-failed .loading-mark { font-size: clamp(44px, 5vw, 72px); }
+      #loading.is-failed .lockup { font-size: clamp(36px, 4vw, 60px); }
       /*
        * A phone, or any window taller than it is wide: the portrait frame,
        * the name over the sky at the top, the load at the foot, both the
@@ -4281,14 +4339,16 @@
           padding: max(8vh, env(safe-area-inset-top)) 0 max(5vh, env(safe-area-inset-bottom));
         }
         .loading-brand { margin: 0 0 auto; }
-        .loading-mark { font-size: clamp(60px, 22vw, 120px); }
-        .loading-kicker, .loading-tag { font-size: clamp(10px, 2.8vw, 14px); letter-spacing: 0.22em; }
+        /* Over the sky and clear of the Striker below it, which is why
+           the tagline sits this one out. */
+        #loading .lockup { font-size: clamp(44px, 15vw, 100px); }
+        .loading-tag { display: none; }
       }
       /* A landscape phone: the column is short, so the name shrinks rather
          than pushing the bar off the bottom. */
       @media (max-height: 520px) and (min-aspect-ratio: 4/5) {
         .loading-col { padding: 4vh 0; }
-        .loading-mark { font-size: clamp(44px, 12vh, 72px); }
+        #loading .lockup { font-size: clamp(40px, 13vh, 72px); }
         .loading-joke { min-height: 0; }
       }
 
@@ -5259,9 +5319,12 @@
     <div id="loading">
       <div class="loading-col">
         <div class="loading-brand">
-          <div class="loading-slash" aria-hidden="true"></div>
-          <div class="loading-kicker">Paraguayan FPV simulator</div>
-          <div class="loading-mark">FD<span class="fpv">FPV</span></div>
+          <div class="lockup">
+            <span class="lockup-slash" aria-hidden="true"></span>
+            <span class="lockup-over">Paraguayan</span>
+            <span class="lockup-name"><span>Drone</span> <span>Combat</span></span>
+            <span class="lockup-under">Simulator</span>
+          </div>
           <div class="loading-tag">Real Betaflight in your browser</div>
         </div>
         <div class="loading-status">

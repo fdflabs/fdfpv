@@ -1,7 +1,8 @@
-# FDFPV
+# Paraguayan Drone Combat Simulator
 
-Made by [fdflabs.com](https://fdflabs.com). FDFPV is fdflabs.com's GPLv3
-fork of Mathew Harvey's
+Made by [fdflabs.com](https://fdflabs.com). The Paraguayan Drone Combat
+Simulator (repository name fdfpv) is fdflabs.com's GPLv3 fork of Mathew
+Harvey's
 [WebFPVSimulator](https://github.com/Mathew-Harvey/WebFPVSimulator); see
 NOTICE and the Credits section below for whose work it stands on.
 
@@ -169,7 +170,8 @@ rows, the Settings room and the thumb sticks, through headless Chromium.
 
 ## Credits
 
-FDFPV is made by [fdflabs.com](https://fdflabs.com). It stands on other
+The Paraguayan Drone Combat Simulator is made by
+[fdflabs.com](https://fdflabs.com). It stands on other
 people's work, and each of them keeps their credit:
 
 - Mathew Harvey's

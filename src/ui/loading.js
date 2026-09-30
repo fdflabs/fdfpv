@@ -478,7 +478,6 @@ export class Loading {
     this.jokeEl = root.querySelector('.loading-joke');
     this.stepEl = root.querySelector('.loading-step');
     this.elapsedEl = root.querySelector('.loading-elapsed');
-    this.kickerEl = root.querySelector('.loading-kicker');
     this.tagEl = root.querySelector('.loading-tag');
     /* Where the bar has been TOLD to go, which is not where it is: the
      * transition between the two is the whole point, and it runs on the
@@ -530,10 +529,8 @@ export class Loading {
     this.jokeEl.classList.remove('is-error');
     this.root.classList.remove('is-failed');
     /* The markup carries the English for the first paint, before any
-     * locale has loaded; a later load, a map swap, says it in the pilot's. */
-    if (this.kickerEl) {
-      this.kickerEl.textContent = str('loading.tagline_over');
-    }
+     * locale has loaded; a later load, a map swap, says it in the pilot's.
+     * The name above it is the mark and reads the same in every locale. */
     if (this.tagEl) {
       this.tagEl.textContent = str('loading.tagline_under');
     }

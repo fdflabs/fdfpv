@@ -80,3 +80,51 @@ S/scripts/boardpresets.js:138. Changing them changes every preset track id.
 
 - S/assets/music, 16 titles, 92 MB. NOTICE line 80: "Licence NOT RECORDED". Resolve or remove before public.
 - S/assets/credits: third party logos and four pilot channel photos. Credit only, per S/src/ui/credits.js. Drop the pilot photos unless we have their consent.
+
+## Second rename, 2026-09-30: FDFPV to Paraguayan Drone Combat Simulator
+
+The owner: "dont call it FDFPV - the new name will be whats on the image
+Paraguayan Drone Combat Simulator". The product name changed where a pilot
+or a visitor reads it. Every contract kept the old spelling. Verified by
+`git grep -n -i fdfpv` on 2026-09-30.
+
+Renamed, visible:
+
+- index.html: title, og:site_name, og:title, twitter:title, both image alts,
+  and the loading screen's name, now the key art's lockup (the .lockup rules).
+- src/ui/ui.js: `wordmark()` builds the same lockup as the title's heading,
+  and the title's screen title and crumb read `ui.product_name`.
+- src/strings en.js and es.js: the values of credits.fdfpv_by, the credits
+  licence line, loading.fdfpv_failed_to_start, orbit.fdfpv_orbit, and the
+  new ui.product_name. The keys keep their names. loading.tagline_over went:
+  PARAGUAYAN is part of the mark now, and the mark is English in every locale.
+  Spanish running text says "el Simulador de Combate de Drones Paraguayo"
+  (docs/SPANISH-GLOSSARY.md).
+- terms.html, privacy.html, src/trackbuilder/index.html and
+  src/share/orbit.html titles and copy.
+- The download names in src/replay/store.js and src/share/flightlog.js:
+  `py-drone-combat-<map>-<stamp>`. Nothing reads them back.
+- icon.svg's aria-label, through scripts/icons.js (the .ico and .png do not
+  change). README's title and prose. NOTICE, appended.
+
+Kept, contract:
+
+- The repository name, fdflabs.github.io/fdfpv and every other URL,
+  the fdfpv.example placeholder origins, including the two pilot facing
+  "Opens the wiki on fdfpv.example" notes, which are a stale placeholder
+  domain rather than the name.
+- Storage keys: webfpv.* above, and fdfpv.rooms, fdfpv.room,
+  fdfpv.roomToken, fdfpv.pilotPick, fdfpv.pilotFigure, fdfpv.voice.
+- Wire formats: the identity prefixes fdfpv-time/v1, fdfpv-track/v1,
+  fdfpv-track-delete/v1, fdfpv-name/v1, fdfpv-link/v1 (the board verifies
+  them), the rooms hello's `build: 'fdfpv'`, the postMessage types
+  fdfpv-orbit-clip and fdfpv-orbit-ready, the fdfpv-orbit-capture lock, the
+  window names fdfpv-sim, fdfpv-board and fdfpv-wiki, the fdfpv-version meta.
+- package.json name, the FDFPV_*_DATA variables, the dev server's console
+  banner, deploy/ (units, Caddyfile, scripts), edge/, tracks-api/, tools/,
+  tests/, internal docs, and every GPL header.
+
+Not done: og.png still shows the old wordmark. `npm run gen:og` fails on
+main before this change (its wait for the Alps track with six gates never
+comes true), so the card needs that fixed first and then a regeneration.
+The board repository's own rename is its pull request.

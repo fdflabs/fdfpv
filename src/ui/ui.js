@@ -245,7 +245,7 @@ const REEL_QUIET_MS = 900;
 const ROOM_PARENTS = new Set(['courses', 'freestyle', 'launch', 'quad', 'pilot']);
 
 const SCREEN_TITLES = {
-  title: 'FDFPV',
+  title: str('ui.product_name'),
   courses: str('ui.my_tracks'),
   freestyle: 'Freestyle',
   pilot: 'Settings',
@@ -282,7 +282,7 @@ const CRUMBS = {
   friends: [str('friends.title')],
   rooms: [str('friends.title'), str('roombrowser.title')],
   roomnew: [str('friends.title'), str('roombrowser.title'), str('roombrowser.new_title')],
-  title: ['FDFPV'],
+  title: [str('ui.product_name')],
 };
 
 /*
@@ -1763,9 +1763,16 @@ function hintWithKeys(keys, text) {
   return n;
 }
 
+/* The name as the owner's key art sets it, the same lockup as the loading
+ * screen's in index.html. English in every locale, because it is the mark
+ * and not a sentence. The spaces keep the heading's text the name. */
 function wordmark() {
-  const h = el('h1', 'wordmark');
-  h.append(document.createTextNode('FD'), el('span', 'fpv', 'FPV'));
+  const h = el('h1', 'wordmark lockup');
+  const slash = el('span', 'lockup-slash');
+  slash.setAttribute('aria-hidden', 'true');
+  const name = el('span', 'lockup-name');
+  name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
+  h.append(slash, el('span', 'lockup-over', 'Paraguayan'), ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
   return h;
 }
 
@@ -12228,10 +12235,11 @@ export class Ui {
     const onFlight = this.screen === 'flight';
     const bench = this.screen === 'fc';
     /* The title already IS the branding: a wordmark, a tagline and the
-     * existing chip cluster. A breadcrumb reading FDFPV under a wordmark
-     * reading FDFPV is a second answer to a question nobody asked, and its
-     * context chips land on top of the bug chip and the music dock. So the
-     * top bar sits out the one screen that does not need it. */
+     * existing chip cluster. A breadcrumb reading the name under a
+     * wordmark reading the name is a second answer to a question nobody
+     * asked, and its context chips land on top of the bug chip and the
+     * music dock. So the top bar sits out the one screen that does not
+     * need it. */
     const titleScreen = this.screen === 'title';
     /* The bench is a tool inside its own frame and paints its own chrome in
      * Betaflight yellow. A breadcrumb over the top of that is decoration; the
