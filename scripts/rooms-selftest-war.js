@@ -33,6 +33,7 @@ import {
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { createRoomWar } from '../src/share/roomwar.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const Y = 300;
 
@@ -319,6 +320,38 @@ export function warSection(check) {
     const rv = again.war.view(again);
     check('a room that restarted in a briefing keeps it, and its go', again.war.on() && rv.state === 'briefing' && rv.briefAt === 0
       && rv.goAt === INTRO_MS + COUNTDOWN_MS);
+
+    /* Nobody sends a pose while the film plays, and the room ticks only
+     * while it is waiting() (host.js's alarm): the briefing must keep
+     * it waiting, or it never reaches its countdown. */
+    const q = warRoom({ mission: plain, start: false });
+    q.say(0, {
+      type: 'war', op: 'start', mission: 'test-1', intro: true,
+    });
+    const qGo = INTRO_MS + COUNTDOWN_MS;
+    let idle = null;
+    for (let t = q.clock + 1; t <= qGo + 40; t += 1) {
+      q.clock = t;
+      if (t % 33 === 0) {
+        if (!q.r.waiting()) {
+          idle = idle ?? t;
+          continue;
+        }
+        q.apply(q.r.tick(t));
+      }
+    }
+    const states = [...new Set(q.of(1).map((m) => m.war.state))];
+    check('with no pose at all, the room ticks through the briefing, counts down and goes live on time', idle === null
+      && states.join() === 'briefing,countdown,live' && q.view(1).goAt === qGo, `${states.join()}, idle from ${idle}, go ${q.view(1).goAt}`);
+
+    const g = warRoom({ mission: plain, start: false });
+    g.say(0, {
+      type: 'war', op: 'start', mission: 'test-1', intro: true,
+    });
+    g.say(0, { type: 'combat', op: 'start', minutes: 3 });
+    g.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-war00001' }) });
+    check('another game over a briefing is refused "war": combat, and a race\'s track', !g.r.combat.on() && g.refusals(0).join() === 'war,war'
+      && g.view(1).state === 'briefing', g.refusals(0).join());
 
     const p = warRoom({ mission: plain, start: false });
     p.say(0, { type: 'war', op: 'start', mission: 'test-1', intro: 1 });
