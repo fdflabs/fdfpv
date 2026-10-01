@@ -579,7 +579,7 @@ L lets it go at 19 m/s along its nose, 1.3 times the trimmed stall of its
 heaviest warhead on the jet, the faster stalling of the two. The turbojet
 leaves at full power, run up on the rail. It comes down on its belly skid,
 251 mm under the CG (261 on the jet), which the plant parks it on; the
-pusher's lower blade hangs 108 mm under the skid, so a landing with the
+pusher's lower blade hangs 109 mm under the skid, so a landing with the
 piston engine turning breaks the prop, as on any pusher this size. No
 parachute.
 
@@ -637,6 +637,7 @@ parachute.
 - `npm run war:harness`: the head on pass with the Striker as the
   defender, inside and outside BLAST_M, over random links.
 - `npm run check:craft`: the drawn Striker against its collider and hull,
-  the prop's lower blade pinned at its 108 mm under the skid.
+  the prop's lower blade pinned at its 109 mm under the skid, measured
+  over the prop's whole turn.
 - `npm run check:combat-models`: its propulsion and accessory ids the
   drawing's.
