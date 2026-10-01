@@ -1664,9 +1664,7 @@ async function pageSweeps(out) {
  * 50 m down, the crest from 3 m under it up past the intake gantries'
  * houses (255 m) and down onto it to 12 m downstream (`downS`, where the
  * rays go down), and their faces under and past that; and the embankments'
- * crests, rays down only. An invisible wall in a `baseline` region (the
- * concrete faces under their crests, where no pilot reported one) is
- * held to the baseline rather than failing the run. */
+ * crests, rays down only. */
 async function damRegions() {
   const dam = JSON.parse(await readFile(join(DATA, 'dam.json'), 'utf8'));
   const by = Object.fromEntries(dam.map((e) => [e.part, e]));
@@ -1696,7 +1694,7 @@ async function damRegions() {
         name: `${part} crest ${k}`, group: `${part} crest`, o: axis[k], a: [ux, uz], t: [0, l], s: [-30, 50], downS: [-30, 12], y: [222, 240], top: 260, step: 1, ystep: 0.5, along: 2, across: 2,
       });
       out.push({
-        name: `${part} faces ${k}`, group: `${part} faces`, baseline: true, o: axis[k], a: [ux, uz], t: [0, l], s: [-30, 50], downS: [13, 50], y: [205, 221.5], top: 260, step: 1, ystep: 0.5, along: 2, across: 2,
+        name: `${part} faces ${k}`, group: `${part} faces`, o: axis[k], a: [ux, uz], t: [0, l], s: [-30, 50], downS: [13, 50], y: [205, 221.5], top: 260, step: 1, ystep: 0.5, along: 2, across: 2,
       });
     }
   }
@@ -1738,7 +1736,7 @@ async function damRays(page) {
     const r = JSON.parse(await page.evaluate(`JSON.stringify(window.__dr.run(${JSON.stringify(R)}, ${RAY_TOL}))`));
     const g = R.group ?? R.name;
     const o = out[g] ?? (out[g] = {
-      baseline: !!R.baseline, rays: 0, invisible: 0, notSolid: 0, invBy: {}, nsBy: {}, invWorst: [], nsWorst: [],
+      rays: 0, invisible: 0, notSolid: 0, invBy: {}, nsBy: {}, invWorst: [], nsWorst: [],
     });
     o.rays += r.rays;
     o.invisible += r.invisible;
@@ -1771,7 +1769,7 @@ async function damRays(page) {
     for (const w of o.nsWorst.slice(0, 3)) {
       console.log(`      ${f1(w.gap)} m of ${w.what} at (${w.at.join(', ')}) before ${w.other}`);
     }
-    if (o.damInvisibleBins && !o.baseline) {
+    if (o.damInvisibleBins) {
       fail(`dam rays, ${g}: ${o.damInvisibleBins} bins of invisible wall the dam's colliders or slabs make, ${f1(o.invWorst.find((w) => !w.what.startsWith('other '))?.gap)} m from anything drawn at worst`);
     }
   }
@@ -2016,9 +2014,6 @@ function metrics(out) {
   for (const [g, o] of Object.entries(out.dam ?? {})) {
     m[`dam.${g}.notSolidBins`] = [Object.entries(o.nsBy).filter(([k]) => k.startsWith('dam/')).reduce((n, [, v]) => n + v, 0), 'up'];
     m[`dam.${g}.otherInvisibleBins`] = [o.otherInvisibleBins, 'up'];
-    if (o.baseline) {
-      m[`dam.${g}.damInvisibleBins`] = [o.damInvisibleBins, 'up'];
-    }
   }
   return m;
 }

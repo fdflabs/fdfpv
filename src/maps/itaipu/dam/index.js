@@ -1708,7 +1708,19 @@ export async function buildPart(ctx) {
     const rIn = penR + 0.05;
     const lip = Math.sqrt(R * R - rIn * rIn);
     const exit = m0 + HOOD.extend;
-    const C0 = along(m0 - 2);
+    /* The cowl starts far enough inside the block that its first ring is
+     * wholly behind the block's front. The penstock falls at about 39
+     * degrees, so a ring 2 m in along it stood about 3 m out in front of
+     * the front over the cowl: a notch nothing was drawn in, which the
+     * capsule's round end filled, up to 1.7 m from anything drawn (the
+     * dam's rays, main dam faces). From here the drawn cowl and its
+     * capsule both come out of the front, and the round end stays under
+     * the block's top. */
+    const en = e[0] * F.n[0] + e[2] * F.n[1];
+    const C0 = along(m0 - (R * Math.sqrt(1 - en * en)) / en - 0.1);
+    if (!(en > 0.1) || !(C0[1] + R < top - SKIN)) {
+      throw new Error(`dam: penstock ${k}'s cowl does not start inside its hood (along the front ${en}, its round end's top ${C0[1] + R} under ${top})`);
+    }
     const C1 = along(exit - lip);
     const X = along(exit);
     hoodFront[k] = F.local(X[0], X[2])[1];
@@ -2622,6 +2634,34 @@ export async function buildPart(ctx) {
       for (let i = 0; i < rows; i += 1) {
         const al = a0 + ((a1 - a0) * i) / (rows - 1);
         ids.push(addCapsule('wall', arc(u0, rr, al), arc(u1, rr, al), SKIN_R));
+      }
+      /* The two girders behind the skin (drawn below as gear), 1.2 m
+       * square and level across the bay: each is a box turned to the
+       * chute, the girder exactly. */
+      for (const al of [aArm, -aArm]) {
+        const [px, py, pz] = arc(u0 + 0.2, R - 0.9, al);
+        const [qx, , qz] = arc(u1 - 0.2, R - 0.9, al);
+        const [ux, uz] = C.a;
+        const ua = px * ux + pz * uz;
+        const ub = qx * ux + qz * uz;
+        const w = pz * ux - px * uz;
+        addTurned(ux, uz, Math.min(ua, ub), Math.max(ua, ub), py - 0.6, py + 0.6, w - 0.6, w + 0.6);
+      }
+      /* The ribs (drawn below as gear), 0.24 m plates from 0.3 to 1.2 m
+       * behind the skin, whose solid reaches 0.65 m behind it: each a
+       * chain of four capsules of 0.3 m on chords of its arc, centred
+       * 0.82 m behind the skin so the chord's sag puts their inside at
+       * the rib's within 0.1 m, and the chain's round ends at the skin's
+       * top and foot. */
+      const ribR = R - 0.82;
+      const ribEnd = 0.3 / ribR;
+      for (let j = 0; j < RADIAL.ribs; j += 1) {
+        const ur = u0 + ((j + 0.5) * (u1 - u0)) / RADIAL.ribs;
+        for (let i = 0; i < 4; i += 1) {
+          const a0 = -aMax + (2 * aMax * i) / 4 + (i === 0 ? ribEnd : 0);
+          const a1 = -aMax + (2 * aMax * (i + 1)) / 4 - (i === 3 ? ribEnd : 0);
+          addCapsule('wall', arc(ur, ribR, a0), arc(ur, ribR, a1), 0.3);
+        }
       }
       /* gate-0 is the westernmost: u runs east. */
       /* On its upstream face; its reach at most half the gates' pitch,
