@@ -10804,7 +10804,10 @@ export async function boot({
     /* The tuning is the plane's own, not its family's. */
     const tuned = id === runAirframe && res.settings && res.settings.tuning
       && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
-    if (((res.powerChanged || partsChanged) && liveryKey(runAirframe) === family || tuned) && swapLive()) {
+    /* And a combat quad's loadout is the quad's own (src/ui/hangar-combat.js). */
+    const loaded = id === runAirframe && Boolean(res.settings && res.settings.combat)
+      && JSON.stringify(combatSeated(id)) !== combatSeatKey;
+    if (((res.powerChanged || partsChanged) && liveryKey(runAirframe) === family || tuned || loaded) && swapLive()) {
       await hotSwap(runAirframe, { refit: true });
     }
     if (partsChanged && drawnCraft === id && typeof shell.redressCraft === 'function') {
