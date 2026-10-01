@@ -2314,7 +2314,7 @@ export async function boot({
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
-    ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
+    ui, link: roomLinkState, roomName, here: () => seatWorld(), preset: () => ui.roomGame || null,
     war: (room) => warEnter(room),
     pilots: () => roomPeers.size + 1,
     missions: () => (campaignRef ? campaignRef.playable() : []),
@@ -9818,7 +9818,9 @@ export async function boot({
       reset();
       ghostCourseChanged();
       mode = 'title';
-      ui.show('title');
+      /* Back to the room screen only if the pilot is still on it: one who
+       * left for the title while the world loaded stays there. */
+      ui.show(stayScreen === 'friends' && ui.screen === 'friends' ? 'friends' : 'title');
       ui.applyLocationHash();
       showCourseNotes();
     } else {
@@ -10001,15 +10003,21 @@ export async function boot({
      * pilot to the title. The 'fc' it replaces named a screen that no
      * longer exists, and would have failed silently: show() on an unknown
      * name displays no node and leaves the previous screen's rows behind.
+     * 'friends' because a card seats its own world on the room screen
+     * (ui.js, the card's world wins), and a swap to another world, which
+     * otherwise ends on the title, ends back there (adoptLoadedView).
      */
-    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits'];
+    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
     const stayScreen = STAY_SCREENS.includes(ui.screen) ? ui.screen : null;
     const stayMode = keepPlace ? mode : 'title';
     swapInFlight = true;
     mapReady = false;
     if (!keepPlace) {
       mode = 'title';
-      ui.show('title');
+      /* The room screen stays up under the loading bar when the swap comes
+       * back to it: the title shown for a moment put its rows under a
+       * press still going on (a card's mouse up landed on the title's). */
+      ui.show(stayScreen === 'friends' ? 'friends' : 'title');
     }
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
