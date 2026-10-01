@@ -31,6 +31,7 @@
     "check:colliders": "node scripts/collider-audit.js",
     "check:collide-audit": "node scripts/collide-audit-swiss2.js",
     "check:tree-impact": "node scripts/tree-impact-check.js",
+    "check:veg": "node scripts/swiss2-veg-check.js",
     "check:traffic": "node scripts/traffic-check.js",
     "check:traffic-sync": "node scripts/traffic-sync-check.js",
     "crash:rules": "node scripts/crash-rules-selftest.js",

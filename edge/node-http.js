@@ -30,6 +30,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { readFileSync } from 'node:fs';
 import { STATUS_CODES } from 'node:http';
 import { Readable } from 'node:stream';
 
@@ -108,4 +109,34 @@ export function upgradeListener(run) {
       socket.destroy();
     });
   };
+}
+
+/*
+ * WHAT IS RUNNING. deploy/vm/deploy.sh writes REVISION at the top of
+ * /opt/fdfpv before it restarts the two servers: the commit it copied
+ * there, then " dirty" when the checkout had changes no commit holds.
+ * Each server reads it once, as it starts, and answers it on its version
+ * route (GET /v2/version, GET /api/version), so the answer is the code the
+ * process loaded, not a file a later deploy copied over it without a
+ * restart. No file (a checkout, Cloudflare's Workers) is { commit: null,
+ * dirty: false }. A file in any other shape stops the server at start: a
+ * deploy that wrote it wrong is a bug to see, not a version to guess.
+ */
+export const NO_REVISION = Object.freeze({ commit: null, dirty: false });
+
+export function readRevision(url) {
+  let text;
+  try {
+    text = readFileSync(url, 'utf8');
+  } catch (e) {
+    if (e.code === 'ENOENT') {
+      return NO_REVISION;
+    }
+    throw e;
+  }
+  const m = text.trim().match(/^([0-9a-f]{40})( dirty)?$/);
+  if (!m) {
+    throw new Error(`${url}: not "<commit>" or "<commit> dirty": ${JSON.stringify(text.slice(0, 120))}`);
+  }
+  return { commit: m[1], dirty: Boolean(m[2]) };
 }
