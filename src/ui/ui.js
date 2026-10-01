@@ -70,18 +70,24 @@ const CAL_LABELS = {
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
-import { normalizePower, powerChoice } from '../../configs/power.js';
+import { POWER, normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
-import { normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
+import { PROPS, normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
+import { normaliseCombat } from '../../configs/combat.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
 import './hangar-tuning.js';
 import './hangar-parts.js';
+import './hangar-combat.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
-import { liveryKey, normaliseLiveries, normaliseSaves, paintable } from '../../configs/liveries.js';
+import { liveryKey, lookFor, normaliseLiveries, normaliseSaves, paintable } from '../../configs/liveries.js';
+import {
+  BUILD_PREFIX, MAX_BUILDS, checkBuildName, familyFitted, fitBuild, fitOf, fittedBuild, loadBuilds, newBuildId, normaliseBuildFits, normaliseFit,
+  putFit, saveBuilds, setStockFit, stockFit, unfitFamily,
+} from './builds.js';
 import { normaliseProgress } from '../game/progress.js';
 import {
   RATE_DEFAULTS,
@@ -129,13 +135,13 @@ import {
   setPidsExpert,
 } from '../../configs/pids.js';
 import {
-  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks, wikiPageUrl,
+  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
 } from '../share/board.js';
 import { PATTERNS } from '../game/trickdetect.js';
 import { PROVEN } from '../game/proven.js';
 import { trickByName } from '../game/tricks.js';
 import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
-import { BOARD_WINDOW, WIKI_WINDOW, openNamedWindow } from '../share/windows.js';
+import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { crashRecord } from '../share/crashrecord.js';
 import { createShotTray } from './bugshots.js';
@@ -219,7 +225,7 @@ import {
  * appear here renders as a plain action, which is the safe default: it gets no
  * chevron it has not earned.
  */
-const LINK_ACTIONS = new Set(['leaderboard', 'wiki']);
+const LINK_ACTIONS = new Set(['leaderboard']);
 const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
@@ -780,6 +786,10 @@ const DEFAULTS = {
    * id: { prop, addons, damage }, configs/hangar-parts.js. A plane with no
    * entry flies as the kit, whole. */
   parts: {},
+  /* Each combat quad's payload and accessories, by airframe id:
+   * { payload, accessories }, configs/combat.js. A quad with no entry
+   * carries the standard payload and nothing bolted on. */
+  combat: {},
   /* Each plane's bench setup, by airframe id: the CG (battery and lead),
    * the rates, the expo, the trim and the flaps, configs/tuning.js, only
    * the fields the pilot moved off stock. Written by the hangar's Tuning
@@ -790,6 +800,11 @@ const DEFAULTS = {
    * (configs/airframes.js floatVersionOf). Kept in step with the seat by
    * seatAirframe; only planes that have a float version have an entry. */
   floats: {},
+  /* The My Hangar builds each family is wearing, by land plane id, with
+   * the pilot's own customisation of the stock plane kept to come back
+   * (src/ui/builds.js). Empty is every plane flying the slots above as it
+   * always has. Not synced: the builds live under their own key. */
+  buildFits: {},
   /*
    * How heavy the quad is, as a percentage of the weight the airframe is
    * flown at. See WEIGHT_STOCK above. 100 is the shipped machine and the
@@ -1062,10 +1077,12 @@ export function loadSettings() {
    * are dropped back to stock (configs/power.js). */
   s.power = normalizePower(s.power);
   s.parts = normaliseParts(s.parts);
+  s.combat = normaliseCombat(s.combat, airframeById);
   s.floats = normaliseFloats(s.floats, s.airframe);
   /* And the tuning, against the limits that power choice gives: a glow
    * engine has no pack to slide. */
   s.tuning = normalizeTuning(s.tuning, (id) => setupFor(id, powerChoice(id, s.power)).limits);
+  s.buildFits = normaliseBuildFits(s.buildFits);
   /* Angle is a range, not a list: a stored 40 from the old six-step menu
    * must survive, a stored 90 must not, and 45 has to be legal now. */
   s.cameraAngle = clampCameraAngle(s.cameraAngle);
@@ -1384,6 +1401,19 @@ export function withFloats(s, id) {
   return f && s.floats && s.floats[id] ? f : id;
 }
 
+/* A picker card drawn in a fit rather than in the slots, a My Hangar
+ * build's or a stock plane's kept aside (src/ui/builds.js), as
+ * src/render/carousel3d.js takes it: the model's own key, its look and
+ * what it is fitted with. */
+function drawnFit(key, id, fit) {
+  const parts = PROPS[id] ? { prop: 'stock', addons: [], damage: null, ...(fit.parts ?? {}) } : null;
+  return {
+    key,
+    look: lookFor(id, fit.livery),
+    fit: parts ? { id, entry: parts, option: POWER[id] ? powerChoice(id, { [id]: fit.power }).option : null } : null,
+  };
+}
+
 export function seatAirframe(s, id) {
   const from = airframeById(s.airframe);
   const to = airframeById(id);
@@ -1398,7 +1428,10 @@ export function seatAirframe(s, id) {
   if (floatVersionOf(to.id) || isFloatVersion(to.id)) {
     s.floats = { ...(s.floats && typeof s.floats === 'object' ? s.floats : {}), [landPlaneOf(to.id)]: isFloatVersion(to.id) };
   }
-  if (from.id !== to.id && landPlaneOf(from.id) === landPlaneOf(to.id)) {
+  /* Not while the family wears a My Hangar build (src/ui/builds.js): the
+   * build was fitted to the version it was built on, and carrying the
+   * other version's slots across would write over it. */
+  if (from.id !== to.id && landPlaneOf(from.id) === landPlaneOf(to.id) && !familyFitted(s, to.id)) {
     const carry = (o) => (o && Object.hasOwn(o, from.id) ? { ...o, [to.id]: o[from.id] } : o);
     s.power = normalizePower(carry(s.power));
     /* Not the damage: its parts are indices into the part table it was
@@ -3549,7 +3582,7 @@ export class Ui {
       }
     });
     this.show('title');
-    this.bindWikiHash();
+    this.bindLocationHash();
   }
 
   build() {
@@ -3717,10 +3750,6 @@ export class Ui {
     /* First run only. Replaced by the keep note once a lap has been flown. */
     this.firstNote = el('p', 'keep-note first-note', str('ui.a_quad_has_no_brakes_and'));
     brand.append(this.firstNote);
-    this.wikiTeaser = btn('wiki-teaser', str('ui.simulating_fpv_for_nerds'));
-    this.wikiTeaser.setAttribute('aria-label', str('ui.open_the_fpv_wiki'));
-    this.wikiTeaser.addEventListener('click', () => this.act('wiki'));
-    brand.append(this.wikiTeaser);
     const titleBlock = wrapMenu();
     this.titleMenu = titleBlock.menu;
     /*
@@ -3820,9 +3849,6 @@ export class Ui {
 
     this.howtoMode = el('p', 'howto-mode', '');
     howto.append(this.howtoMode);
-    const howtoWiki = btn('howto-wiki', str('ui.why_this_works_the_fpv_wiki'));
-    howtoWiki.addEventListener('click', () => this.act('wiki'));
-    howto.append(howtoWiki);
 
     const howtoBlock = wrapMenu();
     this.howtoMenu = howtoBlock.menu;
@@ -4443,12 +4469,13 @@ export class Ui {
     /* A newer deploy is out. Shown on menus and on Paused, never over a
      * flight: syncChips holds it until the pilot is off the sticks. */
     this.updateReady = false;
+    this.barStopCount = 0;
     this.updateBar = el('div', 'update-bar');
     this.updateBar.setAttribute('role', 'status');
     this.updateBar.hidden = true;
-    const reload = btn('update-reload', str('update.reload'));
-    reload.addEventListener('click', () => window.location.reload());
-    this.updateBar.append(el('span', null, str('update.new_version')), reload);
+    this.updateReload = btn('update-reload', str('update.reload'));
+    this.updateReload.addEventListener('click', () => this.act('update-reload'));
+    this.updateBar.append(el('span', null, str('update.new_version')), this.updateReload);
     this.checkVersion = watchVersion((stale) => {
       this.updateReady = stale;
       this.syncChips();
@@ -4463,11 +4490,7 @@ export class Ui {
     this.roomBar.hidden = true;
     this.roomBarText = el('span');
     this.roomBarButton = btn('update-reload', '');
-    this.roomBarButton.addEventListener('click', () => {
-      if (this.roomBarView && this.roomBarView.act) {
-        this.roomBarView.act();
-      }
-    });
+    this.roomBarButton.addEventListener('click', () => this.act('room-bar'));
     this.roomBar.append(this.roomBarText, this.roomBarButton);
 
     this.musicDock = el('div', 'music-dock');
@@ -4527,7 +4550,12 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.updateBar, this.roomBar, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.musicDock, this.nameDialog);
+    /* In the command bar, beside the primary: the screens are padded to
+     * clear that bar, so nothing drawn there can cover a card, the rooms
+     * panel or a row. Floating over the page, the update bar sat on the
+     * title's cards. */
+    this.framePrimary.before(this.roomBar, this.updateBar);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
@@ -5142,6 +5170,26 @@ export class Ui {
     /* A room bar asking for the reload says it already, for the room. */
     if (this.updateBar) {
       this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight' || (roomBar && this.roomBarView.reload);
+    }
+    /* A bar that goes takes its stop with it (barStops), and a cursor that
+     * was on it would point past the end of the list, where Enter does
+     * nothing. It goes back to the list's last stop. Only when the stops
+     * change: the room bar calls this four times a second, and a whole
+     * items() each time is a menu rebuilt four times a second. */
+    const stops = this.barStops().length;
+    if (stops !== this.barStopCount) {
+      this.barStopCount = stops;
+      const items = this.items();
+      if (this.cursor >= items.length) {
+        let i = items.length - 1;
+        while (i > 0 && !this.isStop(items[i])) {
+          i -= 1;
+        }
+        this.cursor = Math.max(0, i);
+        this.syncCursor(false);
+      } else {
+        this.markBars(items);
+      }
     }
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
@@ -5990,7 +6038,42 @@ export class Ui {
    * repeated section headings and Back, which do.
    */
   items() {
-    return stampIds(this.buildItems(), this.screen);
+    return stampIds([...this.buildItems(), ...this.barStops()], this.screen);
+  }
+
+  /*
+   * THE BARS' BUTTONS ARE THE MENU'S LAST STOPS. Reload on the update bar
+   * and the room bar's button were mouse only: a pad has nothing but the
+   * cursor, and Enter on a keyboard selects the cursor's row, so a pad or
+   * keyboard pilot could read "A new version is out" and never press it.
+   * As items they are walked, lit and chosen like any row: Up from the
+   * first row or Down from the last lands on them. Last, so the cursor
+   * never opens on one, and drawn by the bar itself (renderMenu skips a
+   * `bar` item). Only while the bar is up, which syncChips decides and
+   * which is never in flight, so no flight input is taken.
+   */
+  barStops() {
+    const stops = [];
+    if (this.updateBar && !this.updateBar.hidden) {
+      stops.push({ bar: 'update', label: str('update.reload'), note: str('update.new_version'), action: 'update-reload' });
+    }
+    if (this.roomBar && !this.roomBar.hidden && this.roomBarView && this.roomBarView.button) {
+      stops.push({ bar: 'room', label: this.roomBarView.button, note: this.roomBarView.text, action: 'room-bar' });
+    }
+    return stops;
+  }
+
+  /* Light the bar button the cursor is on, the way markCards lights a card. */
+  markBars(items = null) {
+    const up = (this.updateBar && !this.updateBar.hidden) || (this.roomBar && !this.roomBar.hidden);
+    const here = up ? (items || this.items())[this.cursor] : null;
+    const on = here ? here.bar : null;
+    if (this.updateReload) {
+      this.updateReload.classList.toggle('on', on === 'update');
+    }
+    if (this.roomBarButton) {
+      this.roomBarButton.classList.toggle('on', on === 'room');
+    }
   }
 
   buildItems() {
@@ -6071,8 +6154,8 @@ export class Ui {
       /*
        * The course actions that used to appear and vanish here live on the
        * Courses screen and on Results, where the course itself is what the
-       * player is looking at. FPV wiki opens the landing-site wiki. Report a bug
-       * is a stable last row so testers can send a ticket from title.
+       * player is looking at. Report a bug is a stable last row so testers
+       * can send a ticket from title.
        */
       /*
        * ONE ROW FOR THE PLACE, BECAUSE THE MODE IS ALREADY ANSWERED.
@@ -6228,11 +6311,6 @@ export class Ui {
           note: str('ui.you_and_your_radio_your_name'),
         },
         { label: str('ui.how_to_fly'), action: 'howto', note: str('ui.the_sticks_live_and_what_the') },
-        {
-          label: str('ui.fpv_wiki'),
-          action: 'wiki',
-          note: str('ui.the_closed_loop_the_plant_and'),
-        },
         {
           label: str('ui.tracks_and_statistics'),
           action: 'leaderboard',
@@ -7057,8 +7135,7 @@ export class Ui {
        * chip in the corner, or F8, so this list stays put. Flight feel
        * sits by the tuning rows because "this feels off" is the moment a
        * pilot pauses, and the report carries the tune and PIDs they are
-       * paused on. FPV wiki opens the landing-site wiki so a mid-flight
-       * "why did that happen" does not have to quit the run. */
+       * paused on. */
       /*
        * THE ONE COPY THAT EARNS ITS PLACE, and doors for the rest.
        *
@@ -7086,8 +7163,8 @@ export class Ui {
           note: str('carousel.row_note'),
         },
         /* The hangar for the plane being flown: its power and its paint,
-         * saved into the air where it is. */
-        ...(paintable(s.airframe) ? [{
+         * saved into the air where it is; a combat quad's loadout. */
+        ...(paintable(s.airframe) || airframeById(s.airframe).combat ? [{
           label: str('hangar.customise'),
           action: 'customise',
           note: str('hangar.row_note'),
@@ -7138,7 +7215,6 @@ export class Ui {
         },
         graphicsItem(s),
         { label: str('ui.how_to_fly'), action: 'howto' },
-        { label: str('ui.fpv_wiki'), action: 'wiki', note: str('ui.the_plant_the_compiled_controller_and') },
         { label: str('ui.credits'), action: 'credits', note: str('ui.who_made_this_who_flew_it') },
         /* Track mode's own way out: the list the track was played from. */
         ...(s.map === 'track' ? [{ label: str('ui.my_tracks'), action: 'mytracks', note: str('ui.back_to_the_list_of_tracks') }] : []),
@@ -7630,7 +7706,7 @@ export class Ui {
        * title dressed itself as the menu: `is-gate` never went on, and with
        * it went the rule that lays the two cards out
        * (`.screen-title.is-gate .gate-cards`), the rules that take the keep
-       * note, the wiki teaser and the best-lap chip off a screen that is
+       * note and the best-lap chip off a screen that is
        * asking one question, and the rule that hides an empty menu panel.
        * The pilot got a blank box where the aircraft should be, two
        * paragraphs that belong to a seat they had not chosen, and no way to
@@ -7692,10 +7768,11 @@ export class Ui {
     host.textContent = '';
     /* The Courses screen draws its choices as cards above this menu, so the
      * rows here are only what is left over. */
+    const drawn = items.filter((it) => !it.bar);
     const rows = this.cardScreen()
-      ? items.filter((it) => !it.map && !it.course && !it.card && !it.lobby)
-      : items;
-    const offset = items.length - rows.length;
+      ? drawn.filter((it) => !it.map && !it.course && !it.card && !it.lobby)
+      : drawn;
+    const offset = drawn.length - rows.length;
     this.rowOffset = offset;
     this.menuRows = [];
     rows.forEach((it, k) => {
@@ -8037,6 +8114,7 @@ export class Ui {
 
   syncCursor(scroll = true) {
     const items = this.items();
+    this.markBars(items);
     /*
      * The id of the row the cursor is on, kept so that a REBUILD can put
      * the cursor back on the same row rather than the same index. The
@@ -10249,7 +10327,7 @@ export class Ui {
     }
   }
 
-  bindWikiHash() {
+  bindLocationHash() {
     this.applyLocationHash();
     window.addEventListener('hashchange', () => this.applyLocationHash());
   }
@@ -10260,10 +10338,6 @@ export class Ui {
       if (this.screen !== 'credits' && this.screen !== 'flight' && this.screen !== 'paused') {
         this.act('credits');
       }
-      return;
-    }
-    if (h.startsWith('wiki/')) {
-      window.location.replace(wikiPageUrl(h));
       return;
     }
     if (this.screen === 'credits') {
@@ -12871,13 +12945,25 @@ export class Ui {
   }
 
   act(action, picked = null) {
+    if (action === 'update-reload') {
+      window.location.reload();
+      return;
+    }
+    if (action === 'room-bar') {
+      if (this.roomBarView && this.roomBarView.act) {
+        this.roomBarView.act();
+      }
+      return;
+    }
     /* The swap in place, from the pause menu's row. */
     if (action === 'hotswap') {
       this.openSwap('paused');
       return;
     }
     if (action === 'customise') {
-      this.openHangar(this.settings.airframe, () => this.renderMenu());
+      /* The plane in the air, which is a My Hangar build when it wears one,
+       * so a change there is a change to that build. */
+      this.openHangar(this.settings.airframe, () => this.renderMenu(), this.wornBuild(this.settings.airframe));
       return;
     }
     /* Leaderboard and Choose new map are the same page. The board opens
@@ -13035,10 +13121,6 @@ export class Ui {
     if (action.startsWith('casualtrack:')) {
       this.newTrackOpen = false;
       this.openBuilder({ map: action.slice('casualtrack:'.length), casual: true });
-      return;
-    }
-    if (action === 'wiki') {
-      openNamedWindow(wikiPageUrl(), WIKI_WINDOW);
       return;
     }
     /*
@@ -13578,6 +13660,12 @@ export class Ui {
    * another door: the same s.floats, so the two always agree, and Choose
    * seats it through withFloats. A flip is kept when the picker is put
    * away without a choice, except on the seated plane (settleFloats).
+   *
+   * And with My Hangar beside the stock aircraft (src/ui/builds.js). A
+   * choice puts on what was chosen before the opener seats it: a build is
+   * fitted, a stock plane gets the pilot's own customisation back. The
+   * opener's onChoose is handed the airframe to seat and whether its slots
+   * moved, which on the plane already seated is a refit (refitted).
    */
   openPicker(opts) {
     const s = this.settings;
@@ -13589,6 +13677,16 @@ export class Ui {
           s.floats = { ...s.floats, [id]: on };
           this.persistSettings();
         },
+      },
+      builds: this.pickerBuilds(),
+      onCustomise: (id, reopen, build) => this.openHangar(id, reopen, build),
+      onChoose: (card, build) => {
+        const id = build ? build.airframe : withFloats(s, card);
+        const moved = build ? this.wearBuild(build) : unfitFamily(s, id);
+        if (moved) {
+          this.persistSettings();
+        }
+        opts.onChoose(id, moved);
       },
       onCancel: () => {
         this.settleFloats();
@@ -13607,6 +13705,144 @@ export class Ui {
       s.floats = { ...s.floats, [land]: isFloatVersion(s.airframe) };
       this.persistSettings();
     }
+  }
+
+  /*
+   * MY HANGAR (src/ui/builds.js): the pilot's builds, read once from their
+   * own key and written back whole on every change.
+   */
+  get myBuilds() {
+    if (!this.buildList) {
+      this.buildList = loadBuilds();
+    }
+    return this.buildList;
+  }
+
+  /* The build an airframe is wearing, as a build, or null. */
+  wornBuild(id) {
+    const worn = fittedBuild(this.settings, id);
+    return this.myBuilds.find((b) => b.id === worn) ?? null;
+  }
+
+  /* What the picker needs of them: the list, how a card is drawn when it
+   * is not simply the slots, and the Rename and Delete on a build's card. */
+  pickerBuilds() {
+    const s = this.settings;
+    return {
+      list: () => this.myBuilds,
+      drawn: (card, build) => {
+        if (build) {
+          return drawnFit(`${BUILD_PREFIX}${build.id}`, build.airframe, build.fit);
+        }
+        return familyFitted(s, card) ? drawnFit(card, card, stockFit(s, card)) : null;
+      },
+      rename: (id, name) => this.renameBuild(id, name),
+      remove: (id) => this.removeBuild(id),
+    };
+  }
+
+  /* Put a build on. Whether the slots moved: choosing the build already
+   * worn, as it is, moves nothing. */
+  wearBuild(build) {
+    const s = this.settings;
+    if (fittedBuild(s, build.airframe) === build.id && JSON.stringify(fitOf(s, build.airframe)) === JSON.stringify(build.fit)) {
+      return false;
+    }
+    fitBuild(s, build);
+    return true;
+  }
+
+  /* A build kept, new or changed, and worn again where it is worn. Whether
+   * the slots moved. */
+  storeBuild(build) {
+    const list = this.myBuilds.slice();
+    const at = list.findIndex((b) => b.id === build.id);
+    if (at >= 0) {
+      list[at] = build;
+    } else {
+      list.push(build);
+    }
+    this.buildList = list;
+    saveBuilds(list);
+    const e = (this.settings.buildFits || {})[landPlaneOf(build.airframe)];
+    if (!e || e.build !== build.id) {
+      return false;
+    }
+    fitBuild(this.settings, build);
+    this.persistSettings();
+    return true;
+  }
+
+  /* A new build from a fit, named by the pilot (src/ui/hangar.js has
+   * checked the name). The new build, or null when My Hangar is full. */
+  addBuild(name, airframe, fit) {
+    if (this.myBuilds.length >= MAX_BUILDS) {
+      return null;
+    }
+    const now = Date.now();
+    const build = { id: newBuildId(now), name, airframe, fit, created: now, updated: now };
+    this.storeBuild(build);
+    return build;
+  }
+
+  /* A name for a new build of this airframe nobody has used: the plane's
+   * own and the next number. */
+  buildName(airframe) {
+    const taken = new Set(this.myBuilds.map((b) => b.name));
+    const plane = airframeById(landPlaneOf(airframe)).name;
+    let n = this.myBuilds.filter((b) => landPlaneOf(b.airframe) === landPlaneOf(airframe)).length + 1;
+    while (taken.has(str('mine.default_name', { plane, n }))) {
+      n += 1;
+    }
+    return str('mine.default_name', { plane, n });
+  }
+
+  /* '' when renamed, else the sentence saying why not. */
+  renameBuild(id, name) {
+    const b = this.myBuilds.find((x) => x.id === id);
+    const named = checkBuildName(name);
+    if (!b || !named.name) {
+      return str(`mine.name_${named.error ?? 'empty'}`);
+    }
+    this.storeBuild({ ...b, name: named.name, updated: Date.now() });
+    return '';
+  }
+
+  /* A build gone. One being worn comes off, the pilot's own customisation
+   * back on, and the seated plane refits if it was that one. */
+  removeBuild(id) {
+    const s = this.settings;
+    const b = this.myBuilds.find((x) => x.id === id);
+    if (!b) {
+      return;
+    }
+    this.buildList = this.myBuilds.filter((x) => x.id !== id);
+    saveBuilds(this.buildList);
+    const e = (s.buildFits || {})[landPlaneOf(b.airframe)];
+    if (e && e.build === id) {
+      unfitFamily(s, b.airframe);
+      this.persistSettings();
+      if (landPlaneOf(s.airframe) === landPlaneOf(b.airframe)) {
+        this.refitted(s.airframe);
+      }
+    }
+  }
+
+  /*
+   * The slots of the seated plane changed outside the hangar (a build put
+   * on or taken off): repainted and refitted by the hangar's own hook, as
+   * a save is, so the craft in the air flies what it now wears.
+   */
+  refitted(id) {
+    if (!this.onHangarSave) {
+      return Promise.resolve();
+    }
+    const s = this.settings;
+    return Promise.resolve()
+      .then(() => this.onHangarSave(id, { powerChanged: true, liveryChanged: true, settings: { parts: s.parts, tuning: s.tuning, combat: s.combat } }))
+      .catch((e) => {
+        console.error('refit failed', e);
+      });
   }
 
   /* A card on the gate: the aircraft for that way in, then the way in. An
@@ -13637,9 +13873,10 @@ export class Ui {
       filter: wayFilter(way),
       title: way.label,
       hint: this.pickHint(),
-      onCustomise: (id, reopen) => this.openHangar(id, reopen),
-      onChoose: (card) => {
-        const id = withFloats(s, card);
+      onChoose: (id, moved) => {
+        if (moved && id === s.airframe) {
+          this.refitted(id);
+        }
         const chosen = way.airframes.includes(id) ? way : (WAYS.find((w) => w.airframes.includes(id)) ?? way);
         this.act(chosen.action, id);
       },
@@ -13655,11 +13892,9 @@ export class Ui {
       current: s.airframe,
       filter: kindOf(s.airframe),
       hint: this.pickHint(),
-      onCustomise: (id, reopen) => this.openHangar(id, reopen),
-      onChoose: (card) => {
-        const id = withFloats(s, card);
+      onChoose: (id, moved) => {
         if (id === s.airframe) {
-          this.renderMenu();
+          (moved ? this.refitted(id) : Promise.resolve()).then(() => this.renderMenu());
           return;
         }
         if (midRun && this.onHotSwap) {
@@ -13702,9 +13937,15 @@ export class Ui {
       title: str('carousel.change_aircraft'),
       warn: this.swapWarning ? this.swapWarning() : '',
       hint: this.pickHint(),
-      onCustomise: (id, reopen) => this.openHangar(id, reopen),
-      onChoose: (card) => {
-        this.swapTo(withFloats(this.settings, card)).then(() => {
+      onChoose: (id, moved) => {
+        /* The same airframe in other clothes is a refit where it is. */
+        let go = Promise.resolve();
+        if (id !== this.settings.airframe) {
+          go = this.swapTo(id);
+        } else if (moved) {
+          go = this.refitted(id);
+        }
+        go.then(() => {
           this.settleFloats();
           this.act('resume');
         });
@@ -13727,54 +13968,83 @@ export class Ui {
    * refit once it is saved (onHangarSave); the preview is onHangarPreview,
    * a null look meaning back to what is saved. `after` runs once it is
    * shut either way: the picker opens again on the same plane, the pause
-   * menu redraws.
+   * menu redraws; after a Save to My Hangar it is handed the new build's
+   * card, so the picker opens on that.
+   *
+   * WHAT IS EDITED (src/ui/builds.js): `build`, a My Hangar build, when
+   * one is given, and otherwise the stock plane's customisation, which is
+   * in the slots as it always was unless its family wears a build, when
+   * it waits beside them. Either can be saved as a new build too.
    */
-  openHangar(card, after = null) {
-    /* A plane with a float version opens on the version its toggle names,
-     * whichever of the two it was asked for. */
-    const id = withFloats(this.settings, landPlaneOf(card));
-    if (!paintable(id) || this.hangar.isOpen) {
+  openHangar(card, after = null, build = null) {
+    const s = this.settings;
+    /* A build opens on the airframe it was built on; a stock plane on the
+     * version its toggle names, whichever of the two it was asked for. */
+    const id = build ? build.airframe : withFloats(s, landPlaneOf(card));
+    /* A combat quad has a hangar for its payload and accessories
+     * (src/ui/hangar-combat.js) before it has paint. */
+    const loadoutOnly = !paintable(id) && Boolean(airframeById(id).combat);
+    if ((!paintable(id) && !loadoutOnly) || this.hangar.isOpen) {
       return;
     }
-    const s = this.settings;
     const family = liveryKey(id);
+    const inSlots = !build && !familyFitted(s, id);
+    const held = build ? build.fit : stockFit(s, id);
+    /* The settings as the tabs read them: the slots, or the slots with what
+     * is edited put in, on a copy. */
+    const view = inSlots ? s : putFit({ ...s }, id, held);
     const preview = (look) => {
       if (this.onHangarPreview) {
         this.onHangarPreview(id, look);
       }
     };
-    const done = () => {
+    const done = (next) => {
       if (after) {
-        after();
+        after(next);
       }
     };
-    const power = this.hangarPower ? this.hangarPower(id) : null;
+    const offered = this.hangarPower ? this.hangarPower(id) : null;
+    const power = offered && !inSlots ? { ...offered, chosen: powerChoice(id, view.power) } : offered;
     /*
      * THE FLOATS TOGGLE, beside the span and the weight: remembered for this
      * plane, and when it is the seated one it seats the other version at
      * once, in place in a run as the picker's swap does. The hangar then
      * opens again on the version the toggle names, shut quietly first so
-     * `after` waits for that one.
+     * `after` waits for that one. On a build the floats are its airframe,
+     * so the build moves to the other version; the seated plane goes with
+     * it only when it is wearing that build.
      */
     const land = landPlaneOf(id);
     const onFloats = floatVersionOf(land) ? (on) => {
       const to = on ? floatVersionOf(land) : land;
-      s.floats = { ...s.floats, [land]: on };
       this.hangar.close();
       preview(null);
-      const reopen = () => this.openHangar(to, after);
-      if (landPlaneOf(s.airframe) !== land || s.airframe === to) {
+      const moved = build ? { ...build, airframe: to, fit: normaliseFit(to, build.fit), updated: Date.now() } : null;
+      const flown = landPlaneOf(s.airframe) === land && s.airframe !== to
+        && (build ? fittedBuild(s, s.airframe) === build.id : inSlots);
+      if (build) {
+        this.storeBuild(moved);
+      } else {
+        s.floats = { ...s.floats, [land]: on };
+      }
+      const reopen = (ok = true) => this.openHangar(to, after, ok ? moved : build);
+      if (!flown) {
         this.persistSettings();
         reopen();
       } else if (this.returnTo === 'paused' && this.onHotSwap) {
         /* A swap the run refuses leaves the plane as it was, and the toggle
-         * with it, so the hangar never says floats on a plane on wheels. */
+         * or the build with it, so the hangar never says floats on a plane
+         * on wheels. */
         this.swapTo(to).then((ok) => {
           if (ok !== true) {
-            s.floats = { ...s.floats, [land]: !on };
+            if (build) {
+              this.storeBuild(build);
+            } else {
+              s.floats = { ...s.floats, [land]: !on };
+            }
           }
           this.persistSettings();
-          reopen();
+          reopen(ok === true);
         });
       } else {
         seatAirframe(s, to);
@@ -13784,8 +14054,14 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
+      tab: loadoutOnly ? 'loadout' : null,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
-      livery: s.livery[family],
+      livery: view.livery[family],
+      mine: {
+        name: build ? build.name : null,
+        suggest: this.buildName(id),
+        full: this.myBuilds.length >= MAX_BUILDS,
+      },
       onLibrary: (list) => {
         const saves = { ...s.liverySaves };
         if (list.length) {
@@ -13799,7 +14075,7 @@ export class Ui {
       power,
       warn: this.hangarWarning ? this.hangarWarning(id) : '',
       hint: this.pickHint(),
-      settings: s,
+      settings: view,
       onTry: (choice) => {
         if (this.onHangarTry) {
           this.onHangarTry(id, choice);
@@ -13812,32 +14088,81 @@ export class Ui {
       },
       onPreview: preview,
       onSave: (res) => {
-        const livery = { ...s.livery };
-        if (res.livery) {
-          livery[family] = res.livery;
-        } else {
-          delete livery[family];
-        }
-        s.livery = livery;
-        if (power && s.power && typeof s.power === 'object') {
-          s.power = { ...s.power, [id]: res.power };
-        }
-        /* The registered tabs' own (registerHangarTab in src/ui/hangar.js). */
-        Object.assign(s, res.settings);
-        this.persistSettings();
         preview(null);
-        Promise.resolve()
-          .then(() => (this.onHangarSave ? this.onHangarSave(id, res) : null))
-          .catch((e) => {
-            console.error('hangar save failed', e);
-          })
-          .then(done);
+        if (inSlots && !res.asNew) {
+          this.saveSlots(id, power, res).then(() => done());
+          return;
+        }
+        const fit = normaliseFit(id, {
+          livery: res.livery,
+          power: power ? res.power : held.power,
+          parts: res.settings.parts ? res.settings.parts[id] : held.parts,
+          tuning: res.settings.tuning ? res.settings.tuning[id] : held.tuning,
+          combat: res.settings.combat ? res.settings.combat[id] : held.combat,
+        });
+        /* A wing taped is the airframe mended, whatever was edited: its
+         * damage is the slots'. */
+        let refit = this.keepDamage(id, res);
+        let next;
+        if (res.asNew) {
+          const made = this.addBuild(res.asNew.name, id, fit);
+          next = made ? `${BUILD_PREFIX}${made.id}` : undefined;
+        } else if (build) {
+          refit = this.storeBuild({ ...build, fit, updated: Date.now() }) || refit;
+        } else {
+          setStockFit(s, id, fit);
+        }
+        (refit ? this.refitAfterSave(id, res) : Promise.resolve(this.persistSettings())).then(() => done(next));
       },
       onCancel: () => {
         preview(null);
         done();
       },
     });
+  }
+
+  /* The hangar's Save on the slots themselves, as it has always been. */
+  saveSlots(id, power, res) {
+    const s = this.settings;
+    const family = liveryKey(id);
+    const livery = { ...s.livery };
+    if (res.livery) {
+      livery[family] = res.livery;
+    } else {
+      delete livery[family];
+    }
+    s.livery = livery;
+    if (power && s.power && typeof s.power === 'object') {
+      s.power = { ...s.power, [id]: res.power };
+    }
+    /* The registered tabs' own (registerHangarTab in src/ui/hangar.js). */
+    Object.assign(s, res.settings);
+    return this.refitAfterSave(id, res);
+  }
+
+  refitAfterSave(id, res) {
+    this.persistSettings();
+    return Promise.resolve()
+      .then(() => (this.onHangarSave ? this.onHangarSave(id, res) : null))
+      .catch((e) => {
+        console.error('hangar save failed', e);
+      });
+  }
+
+  /* The Parts tab's damage, which is the airframe's own, into the slots
+   * when what was saved was not the slots. Whether it changed. */
+  keepDamage(id, res) {
+    const s = this.settings;
+    if (!res.settings.parts) {
+      return false;
+    }
+    const was = s.parts && s.parts[id];
+    const want = res.settings.parts[id] ? res.settings.parts[id].damage ?? null : null;
+    if (JSON.stringify((was && was.damage) ?? null) === JSON.stringify(want)) {
+      return false;
+    }
+    s.parts = normaliseParts({ ...s.parts, [id]: { prop: 'stock', addons: [], ...(was ?? {}), damage: want } });
+    return true;
   }
 
   /* The shell's swap, whose failure is a defect and is said out loud. */

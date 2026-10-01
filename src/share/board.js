@@ -78,8 +78,6 @@ import { str, currentLocale } from '../strings/index.js';
  */
 export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3180';
 export const PRODUCTION_BOARD_ORIGIN = 'https://129.151.39.48/board';
-export const DEFAULT_LANDING_ORIGIN = 'http://127.0.0.1:8080';
-export const PRODUCTION_LANDING_ORIGIN = 'https://fdflabs.github.io/fdfpv';
 const ORIGIN_KEY = 'webfpv.board.origin';
 
 /* An empty hostname is a file:// open, which is a developer, not a deploy. */
@@ -135,36 +133,6 @@ export function boardOrigin() {
   }
   return defaultBoardOrigin();
 }
-
-export function landingOrigin() {
-  try {
-    const host = window.location.hostname;
-    if (LOOPBACK_HOSTS.has(host)) {
-      return DEFAULT_LANDING_ORIGIN;
-    }
-    return PRODUCTION_LANDING_ORIGIN;
-  } catch (e) {
-    return DEFAULT_LANDING_ORIGIN;
-  }
-}
-
-/*
- * The FPV wiki lives on the landing site, not in this shell. Old
- * `#wiki/<id>` bookmarks on the simulator rewrite here.
- */
-export function wikiPageUrl(articleId) {
-  const base = `${trimOrigin(landingOrigin())}/wiki/`;
-  if (!articleId) {
-    return base;
-  }
-  const raw = String(articleId).replace(/^#/, '');
-  const id = raw.startsWith('wiki/') ? raw.slice(5) : raw;
-  if (!id) {
-    return base;
-  }
-  return `${base}#wiki/${id}`;
-}
-
 
 function usableBoardOrigin(origin) {
   const trimmed = trimOrigin(origin);

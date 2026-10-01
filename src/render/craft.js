@@ -47,7 +47,9 @@ import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
 import { buildZagiCraft } from './zagicraft.js';
+import { buildCombatDrone } from './combatcraft.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
+import { DEFAULT_CHOICE, combatFor } from '../../configs/combat.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 
@@ -81,6 +83,15 @@ const BUILDERS = {
   /* On floats, the same builders with the float set in place of the gear. */
   timber1500f: (opts) => buildTimberCraft({ ...opts, floats: true }),
   cub1400f: (opts) => buildCubCraft({ ...opts, floats: true }),
+  /* The combat quads: one builder, its frame by airframe, and the pilot's
+   * resolved choice in opts.combat (docs/COMBAT-DRONES.md section 4); a
+   * caller that passes none draws what a pilot who never chose flies. */
+  '7inch': (opts) => buildCombatDrone({ ...opts, frame: '7in', ...(opts.combat ?? DEFAULT_CHOICE) }),
+  '10inch': (opts) => buildCombatDrone({ ...opts, frame: '10in', ...(opts.combat ?? DEFAULT_CHOICE) }),
+  /* The interceptor's airframe is another part's, not yet in the table;
+   * until it is, this entry is never reached (craftBuilderFor seats the
+   * table's id). */
+  interceptor: (opts) => buildCombatDrone({ ...opts, frame: 'interceptor', ...(opts.combat ?? DEFAULT_CHOICE) }),
 };
 
 export function craftBuilderFor(airframeId) {
@@ -140,7 +151,11 @@ export const CRAFT_DIMS = {
  * name; this is what craftDims reports against in between. */
 let currentCraftId = '5inch';
 
-export function buildCraft(airframeId = '5inch') {
+/* `combat` is a combat quad's resolved { payload, accessories }, which every
+ * other builder ignores. With none, the pilot's own seated choice
+ * (configs/combat.js combatFor), because the shell's swap passes none and
+ * the flown model must be the loadout the plant flies. */
+export function buildCraft(airframeId = '5inch', combat = undefined) {
   /*
    * The airframe is MODELLED at its true size and DRAWN at 1/WORLD_SCALE of
    * it, because the world it flies in is WORLD_SCALE times its own scale
@@ -158,5 +173,6 @@ export function buildCraft(airframeId = '5inch') {
     fog: true,
     worldScale: true,
     measure: true,
+    combat: combat ?? combatFor(currentCraftId) ?? undefined,
   }), currentCraftId), currentCraftId);
 }

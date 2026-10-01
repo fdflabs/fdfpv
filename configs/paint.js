@@ -14,7 +14,16 @@
  *             normal there, in the model's own frame (metres, y up, the
  *             nose toward -z, x across the span), a size, a stretch, a
  *             turn about the normal, two colours, and whether it is
- *             mirrored onto the other side of the aircraft.
+ *             mirrored onto the other side of the aircraft. A TEXT
+ *             decal carries words the pilot typed, held to TEXT_MAX
+ *             letters of TEXT_CHARS and refused whole when the board's
+ *             word filter (tracks-api/words.js) finds a word in it, here,
+ *             so a code, a room and a replay refuse it alike.
+ *   wear      how used the whole aircraft looks, 0 factory new to 100
+ *             battle worn, in WEAR_STEP steps: scratches through the paint
+ *             and aluminium tape over the worst of them, drawn by
+ *             src/render/finish.js from the model's own coordinates, so
+ *             every machine draws the same marks in the same places.
  *
  * Saved liveries are a list per plane of a name and an entry. A livery
  * travels as a CODE: `FPV1-` and the base64url of a small JSON object,
@@ -42,9 +51,11 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { badWordIn } from '../tracks-api/words.js';
+
 /* The finishes a region can wear. `film` only on a film region, where it
  * is the kit's own; the others there make the film an opaque paint. */
-export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome'];
+export const FINISHES = ['gloss', 'matte', 'metallic', 'chrome', 'carbon', 'aluminium'];
 
 /*
  * THE DECALS. `aspect` is the kind's natural width over its height, which
@@ -65,12 +76,25 @@ export const DECAL_KINDS = {
   flame: { aspect: 3, size: 0.06 },
   shield: { aspect: 0.84, size: 0.07 },
   wings: { aspect: 2.4, size: 0.05 },
+  skull: { aspect: 0.86, size: 0.09 },
+  shark: { aspect: 2.2, size: 0.09 },
+  flag_py: { aspect: 1.8, size: 0.06 },
+  text: { aspect: 3, text: true, size: 0.05 },
 };
 export const DECAL_KIND_IDS = Object.keys(DECAL_KINDS);
 
 /* The number's lettering, drawn from strokes in src/render/decals.js so it
  * is the same on every machine, with no font to load. */
-export const DECAL_FONTS = ['block', 'round', 'italic'];
+export const DECAL_FONTS = ['block', 'round', 'italic', 'stencil'];
+
+/* A text decal's words: upper case, so the lettering reads at a glance,
+ * from a set every machine draws alike, and short enough to fit a wing. */
+export const TEXT_MAX = 14;
+export const TEXT_CHARS = /^[A-Z0-9\u00c1\u00c9\u00cd\u00d3\u00da\u00d1\u00dc .!?'&-]+$/;
+
+/* Wear, a percentage in steps. */
+export const WEAR_STEP = 5;
+export const WEAR_MAX = 100;
 
 export const MAX_DECALS = 16;
 export const MAX_SAVED = 24;
@@ -89,6 +113,25 @@ export const DECAL_LIMITS = {
 const HEX = /^#[0-9a-f]{6}$/;
 const DIGITS = /^[0-9]{1,3}$/;
 const DECAL_FIELDS = new Set(['k', 'p', 'n', 's', 'a', 'r', 'c', 'c2', 'm', 't', 'f']);
+
+/* A text decal's words as kept, or '' when they cannot be: upper cased,
+ * one space between words, TEXT_MAX at most, every letter one the
+ * lettering draws. */
+export function cleanText(text) {
+  if (typeof text !== 'string') {
+    return '';
+  }
+  const t = text.toUpperCase().replace(/\s+/g, ' ').trim().slice(0, TEXT_MAX).trim();
+  return TEXT_CHARS.test(t) ? t : '';
+}
+
+/* A wear as kept: a whole step from 0 to WEAR_MAX, or null. */
+export function cleanWear(v) {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > WEAR_MAX) {
+    return null;
+  }
+  return Math.round(v / WEAR_STEP) * WEAR_STEP;
+}
 
 const round = (v, places) => {
   const k = 10 ** places;
@@ -148,6 +191,15 @@ export function checkDecal(d) {
     }
     out.t = d.t;
     out.f = d.f;
+  } else if (d.k === 'text') {
+    if (typeof d.t !== 'string' || cleanText(d.t) !== d.t || !DECAL_FONTS.includes(d.f)) {
+      return { error: 'bad_value' };
+    }
+    if (badWordIn(d.t)) {
+      return { error: 'rude' };
+    }
+    out.t = d.t;
+    out.f = d.f;
   } else if (d.t !== undefined || d.f !== undefined) {
     return { error: 'unknown_field' };
   }
@@ -196,7 +248,16 @@ export function checkPaint(regions, entry) {
       }
     }
   }
-  return { finishes, decals, dropped };
+  let wear = 0;
+  if (entry.wear !== undefined) {
+    const w = cleanWear(entry.wear);
+    if (w === null) {
+      dropped += 1;
+    } else {
+      wear = w;
+    }
+  }
+  return { finishes, decals, wear, dropped };
 }
 
 /* The finish a region wears under an entry: its own, else the kit's. */
@@ -223,6 +284,10 @@ export function newDecal(kind, p, n, colours = {}) {
   if (kind === 'num') {
     d.t = '7';
     d.f = 'block';
+  } else if (kind === 'text') {
+    d.t = 'FDFPV';
+    d.f = 'stencil';
+    d.a = textAspect(d.t);
   }
   const got = checkDecal(d);
   if (got.error) {
@@ -235,6 +300,11 @@ export function newDecal(kind, p, n, colours = {}) {
  * lettered alike. */
 export function numberAspect(text) {
   return round(DECAL_KINDS.num.aspect * Math.max(1, text.length) * (text.length > 1 ? 0.86 : 1), 2);
+}
+
+/* A text decal's stretch follows its length the same way. */
+export function textAspect(text) {
+  return round(Math.min(DECAL_LIMITS.aspect[1], Math.max(DECAL_LIMITS.aspect[0], 0.62 * Math.max(1, text.length))), 2);
 }
 
 /* A livery's name as it is kept: trimmed, one line, NAME_MAX at most. */
