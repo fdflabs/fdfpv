@@ -711,6 +711,8 @@ export async function boot({
   window.__avionics = {
     deny: (what, on) => telemetry.deny(what, on),
     ai: (on) => { avxHud.ai = Boolean(on); },
+    /* The TrackManager's snapshot, for a check to read or to seed. */
+    snapshot: () => tracks.snapshot,
     state: () => ({
       hud: { ...avxHud, reasons: [...avxHud.reasons] },
       tel: JSON.parse(JSON.stringify(telemetry.state)),

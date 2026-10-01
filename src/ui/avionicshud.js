@@ -76,6 +76,9 @@ const HDG_SPAN = 60;
  * generic class (docs/AVIONICS-HUD.md 8.2). */
 const CONF_FIRM = 0.6;
 const BOX_MIN_PX = 18;
+/* A pitch rung's half width in azimuth, rad, and the horizon's. */
+const RUNG_HALF = 0.2;
+const RUNG_HORIZON = 0.34;
 /* A stale value's ink. */
 const STALE_ALPHA = 0.45;
 const GHOST_ALPHA = 0.3;
@@ -208,6 +211,7 @@ export class AvionicsHud {
     this.src = null;
     this.camAtt = { pitch: 0, roll: 0, heading: 0 };
     this.proj = { x: 0, y: 0, ok: false };
+    this.rungDir = [0, 0, 0];
     this.placed = [];
     this.stats = { ticks: 0, tickMs: 0, worstTickMs: 0 };
     this.build();
@@ -327,13 +331,13 @@ export class AvionicsHud {
     };
   }
 
-  /* Each panel as peermarks reads the FPV OSD's readouts, so a room's
-   * lines and arrows slide off the panels as they do off the OSD's. */
+  /* Each panel and tape as peermarks reads the FPV OSD's readouts, so a
+   * room's lines and arrows slide off them as they do off the OSD's. */
   readoutRects(fn) {
     if (!this.on) {
       return;
     }
-    for (const r of Object.values(this.panelRects())) {
+    for (const r of [...Object.values(this.panelRects()), ...Object.values(this.tapeRects())]) {
       fn(r.x, r.y, r.w, r.h);
     }
   }
@@ -504,7 +508,7 @@ export class AvionicsHud {
 
     const B = tel.battery;
     this.fBatt.set(str('avionics.hud.batt_line', {
-      v: B.volts.toFixed(1), pct: `${Math.round(B.percent * 100)}${B.percentFrom === 'voltage' ? '~' : ''}`, a: B.amps.toFixed(1), w: Math.round(B.watts),
+      v: B.volts.toFixed(1), pct: `${B.percentFrom === 'voltage' ? '~' : ''}${Math.round(B.percent * 100)}`, a: B.amps.toFixed(1), w: Math.round(B.watts),
     }),
       B.state === 'critical' ? 'avx-bad' : B.state === 'warning' ? 'avx-warn' : '');
     this.battFill.style.width = `${Math.round(B.percent * 100)}%`;
@@ -666,7 +670,7 @@ export class AvionicsHud {
     g.lineTo(x, top + L.tapeH);
     g.stroke();
     g.textAlign = dir > 0 ? 'left' : 'right';
-    const first = Math.ceil((v - span) / tick) * tick;
+    const first = Math.max(0, Math.ceil((v - span) / tick) * tick);
     for (let k = first; k <= v + span; k += tick) {
       const y = L.cy - (k - v) * pxPer;
       const big = k % label === 0;
@@ -767,39 +771,60 @@ export class AvionicsHud {
     g.fill();
     g.restore();
 
-    /* The ladder: the horizon and every 10 deg of the camera's pitch. */
+    /* The ladder: the horizon and every 10 deg either side, each rung the
+     * real direction at that elevation on the camera's azimuth, projected
+     * through the camera, so it lies on the picture's own horizon. */
     const cam = src.camera;
     attitudeOf(cam.quaternion, this.camAtt);
-    const pxPerDeg = L.h / cam.fov;
-    const cr = this.camAtt.roll / DEG;
+    const az = this.camAtt.heading / DEG;
+    const base = Math.round(this.camAtt.pitch / 10) * 10;
     g.save();
     g.beginPath();
-    g.rect(L.spdX + L.box, L.hdgY + L.font * 4, L.aglX - L.spdX - 2 * L.box, L.h * 0.8 - L.hdgY - L.font * 4);
+    g.rect(L.spdX + L.box, L.hdgY + L.font * 4, L.aglX - L.spdX - 2 * L.box, L.h * 0.78 - L.hdgY - L.font * 4);
     g.clip();
-    g.translate(L.cx, L.cy);
-    g.rotate(-cr);
     g.textAlign = 'center';
-    const base = Math.round(this.camAtt.pitch / 10) * 10;
-    for (let d = base - 30; d <= base + 30; d += 10) {
-      const y = (this.camAtt.pitch - d) * pxPerDeg;
-      const inner = L.h * 0.08;
-      const outer = d === 0 ? L.h * 0.3 : L.h * 0.16;
-      g.globalAlpha = d === 0 ? 0.9 : 0.6;
+    for (let d = base - 20; d <= base + 20; d += 10) {
+      if (d < -90 || d > 90) {
+        continue;
+      }
+      const half = d === 0 ? RUNG_HORIZON : RUNG_HALF;
+      const a = this.rungEnd(cam, az - half, d);
+      const b = this.rungEnd(cam, az + half, d);
+      if (!a || !b) {
+        continue;
+      }
+      /* Leave the middle open, as a ladder does, round the reticle. */
+      const gap = d === 0 ? 0.3 : 0.4;
+      const mx = (a[0] + b[0]) / 2;
+      const my = (a[1] + b[1]) / 2;
+      g.globalAlpha = d === 0 ? 0.85 : 0.5;
       g.setLineDash(d < 0 ? [5, 4] : []);
       g.beginPath();
-      g.moveTo(-outer, y);
-      g.lineTo(-inner, y);
-      g.moveTo(inner, y);
-      g.lineTo(outer, y);
+      g.moveTo(a[0], a[1]);
+      g.lineTo(a[0] + (mx - a[0]) * (1 - gap), a[1] + (my - a[1]) * (1 - gap));
+      g.moveTo(b[0], b[1]);
+      g.lineTo(b[0] + (mx - b[0]) * (1 - gap), b[1] + (my - b[1]) * (1 - gap));
       g.stroke();
       if (d !== 0) {
-        g.fillText(String(d), -outer - L.font * 1.4, y);
-        g.fillText(String(d), outer + L.font * 1.4, y);
+        g.fillText(String(d), a[0] - L.font * 1.2, a[1]);
+        g.fillText(String(d), b[0] + L.font * 1.2, b[1]);
       }
     }
     g.setLineDash([]);
     g.globalAlpha = 1;
     g.restore();
+  }
+
+  /* Where the direction at azimuth az, elevation d degrees lands on the
+   * screen, or null behind the camera. */
+  rungEnd(cam, az, d) {
+    const e = d / DEG;
+    const c = Math.cos(e);
+    this.rungDir[0] = Math.sin(az) * c;
+    this.rungDir[1] = Math.sin(e);
+    this.rungDir[2] = -Math.cos(az) * c;
+    const P = this.project(cam, this.rungDir);
+    return P.ok ? [P.x, P.y] : null;
   }
 
   reticle(L, ink) {

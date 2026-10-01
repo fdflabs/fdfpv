@@ -3042,6 +3042,7 @@ export default {
   "avionics.hud.why_vio.video": "NO PICTURE",
   "avionics.hud.why_vio.height": "TOO HIGH",
   "avionics.hud.why_vio.speed": "TOO FAST",
+  "avionics.hud.why_vio.denied": "DENIED",
   "avionics.hud.in_use": "IN USE",
   "avionics.hud.cam_mode.eo": "EO (DAY)",
   "avionics.hud.cam_mode.ir_wh": "IR (WHITE HOT)",
