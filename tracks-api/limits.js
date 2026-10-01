@@ -78,8 +78,8 @@ export const PROGRESS_MAX_CHARS = 512 * 1024;
  * carrying more is refused. A build is capped at 8 kB: the largest one a
  * pilot can make, every region coloured and finished, MAX_DECALS text
  * decals at TEXT_MAX letters (configs/paint.js), a 32 letter name, power,
- * parts, a full tuning entry and a loadout, measured 3362 characters (the
- * float Timber, 2026-10-01), so 8 kB is that with more than twice over,
+ * parts, a full tuning entry and a loadout, measured 3452 characters (the
+ * 10 inch, 2026-10-01), so 8 kB is that with more than twice over,
  * and 48 at the cap are 384 kB, inside PROGRESS_MAX_CHARS above.
  */
 export const MAX_BUILDS = 48;
