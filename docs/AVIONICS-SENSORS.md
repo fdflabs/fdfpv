@@ -98,8 +98,11 @@ never from its visible colour:
   and its wet margins and beds), `water`, `vegetation`, `hot` (a per
   vertex `thermal` attribute, 0..1 of 110 C, on engines and motors:
   render/attackers.js, the Striker's in render/strikercraft.js), `motor`
-  (the own craft, `setMotorTemp`), `warm` (a lit window's pane). Undeclared
-  is a built surface: concrete, asphalt, a roof.
+  (the combat quads' bells and windings, render/combatcraft.js, carried to
+  their photographed twins by swiss2/craftlook.js; heated by
+  `setMotorTemp`, the own craft's, which every craft in view shares until
+  a peer's motors are known), `warm` (a lit window's pane). Undeclared is a
+  built surface: concrete, asphalt, a roof.
 - **the sun on it**: the direct light it received this frame, shadows
   included, read back from three's light loop over the sun's irradiance;
 - **albedo**: what it does not reflect it absorbs;
