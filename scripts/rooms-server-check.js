@@ -306,7 +306,10 @@ console.log('a pilot who vanishes, and one whose tab is hidden');
  * the minute, which these two fill. One pilot's machine is gone without a
  * word (a PC switched off, 2026-10-01): its socket answers no ping frame.
  * The other is a hidden tab: its browser answers ping frames, its page
- * sends nothing at all, and it is still here a minute later. */
+ * sends nothing at all, and it is still here a minute later. The Durable
+ * Object (edge/rooms/do.js) has no ping frames to send, so against
+ * wrangler the first row fails: that is do.js lacking the drop, not this
+ * row being wrong. */
 const minuteFrom = Date.now();
 const gone = await seat(`room/${code}`, { name: [6, 7, 13] }, { autoPong: false });
 const goneFrom = Date.now();

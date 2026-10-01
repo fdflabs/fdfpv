@@ -108,8 +108,11 @@ const PROBE_KEEP = 16;
  * and the others are told the pilot left. Found at the next probe, so
  * within DEAD_MS + PROBE_MS. A hidden tab is not dead: the browser's
  * network stack answers ping frames, not the page, so throttled timers
- * and a page that sends nothing do not delay the pong. 15 s is seven
- * probes, past any round trip a pilot could still fly on.
+ * and a page that sends nothing do not delay the pong. A tab the browser
+ * has frozen outright stops reading its socket, and its pings wait behind
+ * unread poses: that one is dropped, and it could not fly anyway, so its
+ * seat waits RESEAT_MS for it to come back. 15 s is seven probes, past
+ * any round trip a pilot could still fly on.
  */
 export const DEAD_MS = 15000;
 
