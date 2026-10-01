@@ -270,13 +270,16 @@ typedef struct {
 #define SIM_AIRFRAME_UGLYSTIK1567 19
 #define SIM_AIRFRAME_NRJ1490 21
 #define SIM_AIRFRAME_TIGERMOTH1803 23
+#define SIM_AIRFRAME_7IN 24
+#define SIM_AIRFRAME_10IN 25
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
  * count is. 13, 14, 18, 20 and 22 are empty that way for good: their
  * aircraft were removed on 2026-09-29 and the ids stay reserved
- * (sim_abi.h). */
-#define SIM_AIRFRAME_COUNT 24
+ * (sim_abi.h). 24 and 25 are the combat quads of 2026-10-01
+ * (docs/COMBAT-DRONES.md). */
+#define SIM_AIRFRAME_COUNT 26
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -899,6 +902,7 @@ int plant_power_custom(void);
  * last, over the table, the power option and the tuning; plant_addons_clear
  * takes them off. */
 int plant_set_addons(const double *in);
+int plant_set_addon_inertia(const double *in);
 void plant_addons_clear(void);
 /* THE PILOT'S TUNING, sim_wing_set_tune in sim_abi.h: plant_set_tune
  * seats a block over the power option or the table, SIM_OK or
