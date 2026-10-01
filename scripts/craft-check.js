@@ -159,7 +159,8 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             src/render/combatcraft.js draws them.
  *   interceptor  the stretched X of docs/COMBAT-DRONES.md section 1a, motors
  *             120 mm fore and aft and 100 mm across of the CG under 7 inch
- *             props: the span is across, (100 + 88.9) mm doubled; the sweep
+ *             props: the width this file measures is the larger of the
+ *             two, here fore and aft, (120 + 88.9) mm doubled; the sweep
  *             is the motor diagonal's half plus the radius, doubled; seated
  *             as the other two with its fullest loadout.
  *   striker2500 the Striker of docs/COMBAT-DRONES.md section 7, which
@@ -198,7 +199,7 @@ const REAL = {
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
   '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
   '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
-  interceptor: { spanMm: 377.8, sweepMm: 490.2, tolMm: 6, wheelbaseMm: 312.4 },
+  interceptor: { spanMm: 417.8, sweepMm: 490.2, tolMm: 6, wheelbaseMm: 312.4 },
   striker2500: { spanMm: 3092.0, sweepMm: 3146.6, tolMm: 6 },
 };
 
