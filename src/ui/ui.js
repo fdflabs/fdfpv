@@ -13839,7 +13839,7 @@ export class Ui {
     }
     const s = this.settings;
     return Promise.resolve()
-      .then(() => this.onHangarSave(id, { powerChanged: true, liveryChanged: true, settings: { parts: s.parts, tuning: s.tuning } }))
+      .then(() => this.onHangarSave(id, { powerChanged: true, liveryChanged: true, settings: { parts: s.parts, tuning: s.tuning, combat: s.combat } }))
       .catch((e) => {
         console.error('refit failed', e);
       });
@@ -14098,6 +14098,7 @@ export class Ui {
           power: power ? res.power : held.power,
           parts: res.settings.parts ? res.settings.parts[id] : held.parts,
           tuning: res.settings.tuning ? res.settings.tuning[id] : held.tuning,
+          combat: res.settings.combat ? res.settings.combat[id] : held.combat,
         });
         /* A wing taped is the airframe mended, whatever was edited: its
          * damage is the slots'. */
