@@ -27,8 +27,8 @@
  *               face: how many records have a slab reaching more than
  *               RAY_TOL past the drawn plan (a wall in the air off its
  *               edge) or standing more than RAY_TOL over the drawn top (a
- *               wall through the roof), and how much of the plan the slabs
- *               cover, by record kind.
+ *               wall through the roof), either of which fails the run, and
+ *               how much of the plan the slabs cover, by record kind.
  *
  * In headless Chromium (tests/lib/page.js), the map built by the shell
  * with crash damage on, a five inch seated, then again with the F-16:
@@ -97,7 +97,7 @@
  *               of each of the town's densest quarters (TOWN): every
  *               static and streamed collider, every town record's slab, and
  *               the roof or ground a craft is offered, against what is
- *               drawn.
+ *               drawn. An invisible wall a slab makes fails the run.
  *   damfly      the owner's crash (2026-10-01): a Timber flown over the
  *               spillway's open bays at the bridge deck's level and out
  *               from under the bridge, which must pass, and into a pier
@@ -417,6 +417,9 @@ async function roofSlabSweep() {
       + `over the drawn top on ${o.up} (${f1(o.upWorst)} m at worst); the slabs are under ${(100 * o.cover).toFixed(1)} % of the plan`);
     for (const w of o.worst.slice(0, 3)) {
       console.log(`    OSM ${w.osm}: ${f1(w.out)} m outside, ${f1(w.up)} m over, at (${w.at.join(', ')})`);
+    }
+    if (o.out || o.up) {
+      fail(`roofslabs, ${k}: ${o.out} records with a slab past their plan and ${o.up} with one over their top`);
     }
   }
   return byKind;
@@ -1786,6 +1789,9 @@ async function townRays(page) {
       + `(${slab.map(([k, v]) => `${v} ${k}`).join(', ') || 'none'}), ${o.otherInvisibleBins} a collider's; drawn but not solid in ${o.notSolidBins} bins`);
     for (const w of o.invWorst.slice(0, 5)) {
       console.log(`      ${w.gap >= 5 ? '5 m or more' : `${f1(w.gap)} m`} from anything drawn at (${w.at.join(', ')}): ${w.what}`);
+    }
+    if (o.slabInvisibleBins) {
+      fail(`town rays, ${name}: ${o.slabInvisibleBins} bins of invisible wall a roof slab makes`);
     }
   }
   return out;

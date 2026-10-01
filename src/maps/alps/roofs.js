@@ -527,6 +527,150 @@ export function roofSlabs(rec) {
 }
 
 /*
+ * The crash physics' slabs under faces given in world space, in
+ * roofSlabs' form ({ c, u, n, v, hu, hn, hv }, the top face the plane),
+ * held `sink` under them. roofSlabs takes a face's extents along its
+ * record's x: on a face turned off that axis (the dam's records, put with
+ * no turn) the box reached metres past its edges, the spillway bridge's
+ * 114 m, a plate in the air over the open bays that wrecked the owner's
+ * Timber (2026-10-01); on a triangle (a hip's end, a triangulated flat
+ * roof's pieces) it is the triangle's bounding rectangle, past two of its
+ * edges or, in the face's own plane, up through the faces beside it.
+ * Here each face's slabs are the largest `pieces` rectangles in its plane,
+ * side by side along one of its edges, that stay inside it: short of a
+ * corner a broken part falls onto what is under the top, where past an
+ * edge it met an invisible wall. One rectangle is half a triangle; three
+ * are three quarters of it. Each face convex, wound either way.
+ */
+const SLAB_SAMPLES = 33;
+export function insideSlabs(top, sink = 0, pieces = 1) {
+  const out = [];
+  const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+  for (const poly of top) {
+    let nx = 0;
+    let ny = 0;
+    let nz = 0;
+    for (let i = 0; i < poly.length; i += 1) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      nx += (a[1] - b[1]) * (a[2] + b[2]);
+      ny += (a[2] - b[2]) * (a[0] + b[0]);
+      nz += (a[0] - b[0]) * (a[1] + b[1]);
+    }
+    /* Wound either way; on edge it is a wall, and no record's ground. */
+    const nl = Math.hypot(nx, ny, nz) * Math.sign(ny);
+    if (!(Math.abs(ny) > 1e-9 * Math.abs(nl))) {
+      continue;
+    }
+    const n = [nx / nl, ny / nl, nz / nl];
+    let best = null;
+    for (let i = 0; i < poly.length; i += 1) {
+      const e = poly[(i + 1) % poly.length].map((q, k) => q - poly[i][k]);
+      const en = dot(e, n);
+      const el = Math.hypot(e[0] - n[0] * en, e[1] - n[1] * en, e[2] - n[2] * en);
+      if (!(el > 1e-6)) {
+        continue;
+      }
+      const u = [0, 1, 2].map((k) => (e[k] - n[k] * en) / el);
+      const v = [u[1] * n[2] - u[2] * n[1], u[2] * n[0] - u[0] * n[2], u[0] * n[1] - u[1] * n[0]];
+      const P = poly.map((p) => [dot(p, u), dot(p, v)]);
+      const U0 = Math.min(...P.map((p) => p[0]));
+      const U1 = Math.max(...P.map((p) => p[0]));
+      /* The face's v range across it at U: low edge convex, high edge
+       * concave, so a rectangle over [Ua, Ub] fits between the higher of
+       * the two lows and the lower of the two highs. */
+      const span = (U) => {
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (let k = 0; k < P.length; k += 1) {
+          const [ua, va] = P[k];
+          const [ub, vb] = P[(k + 1) % P.length];
+          if (ua === ub || U < Math.min(ua, ub) || U > Math.max(ua, ub)) {
+            continue;
+          }
+          const w = va + ((vb - va) * (U - ua)) / (ub - ua);
+          lo = Math.min(lo, w);
+          hi = Math.max(hi, w);
+        }
+        return [lo, hi];
+      };
+      const eps = (U1 - U0) * 1e-6;
+      const Us = Array.from({ length: SLAB_SAMPLES }, (_, k) => U0 + eps + ((U1 - U0 - 2 * eps) * k) / (SLAB_SAMPLES - 1));
+      const S = Us.map(span);
+      const rect = (a, b) => {
+        const lo = Math.max(S[a][0], S[b][0]);
+        const hi = Math.min(S[a][1], S[b][1]);
+        return hi > lo ? {
+          area: (Us[b] - Us[a]) * (hi - lo), ua: Us[a], ub: Us[b], lo, hi,
+        } : null;
+      };
+      /* g[m][j]: the most area m rectangles side by side along u cover
+       * with none past sample j, and how (`from`: the sample the last
+       * one starts at, -1 for none ending at j, -2 for fewer than m). */
+      const N = Us.length;
+      let prev = new Float64Array(N);
+      const from = [];
+      for (let m = 1; m <= pieces; m += 1) {
+        const g = new Float64Array(N);
+        const f = new Int32Array(N);
+        for (let j = 0; j < N; j += 1) {
+          g[j] = prev[j];
+          f[j] = -2;
+          if (j > 0 && g[j - 1] > g[j]) {
+            g[j] = g[j - 1];
+            f[j] = -1;
+          }
+          for (let a = 0; a < j; a += 1) {
+            const r = rect(a, j);
+            if (r && prev[a] + r.area > g[j]) {
+              g[j] = prev[a] + r.area;
+              f[j] = a;
+            }
+          }
+        }
+        from.push(f);
+        prev = g;
+      }
+      if (prev[N - 1] > 0 && (!best || prev[N - 1] > best.area)) {
+        const rects = [];
+        for (let m = pieces, j = N - 1; m > 0 && j > 0;) {
+          const a = from[m - 1][j];
+          if (a === -2) {
+            m -= 1;
+          } else if (a === -1) {
+            j -= 1;
+          } else {
+            rects.push(rect(a, j));
+            m -= 1;
+            j = a;
+          }
+        }
+        best = { area: prev[N - 1], u, v, rects };
+      }
+    }
+    if (!best) {
+      continue;
+    }
+    const { u, v } = best;
+    const nm = dot(poly[0], n) - SLAB_T / 2 - sink;
+    for (const r of best.rects) {
+      const um = (r.ua + r.ub) / 2;
+      const vm = (r.lo + r.hi) / 2;
+      out.push({
+        c: [0, 1, 2].map((k) => u[k] * um + v[k] * vm + n[k] * nm),
+        u,
+        n,
+        v,
+        hu: (r.ub - r.ua) / 2,
+        hn: SLAB_T / 2,
+        hv: (r.hi - r.lo) / 2,
+      });
+    }
+  }
+  return out;
+}
+
+/*
  * The edge of a roof on posts, as solids under its eaves all round: a band
  * EDGE_T deep in from the plan's edge, from as far under the roof's top
  * as the shell is thick (at least EDGE_T) up to SKIN under it, in pieces

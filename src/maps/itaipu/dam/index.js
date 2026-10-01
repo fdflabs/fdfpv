@@ -80,7 +80,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { recordAt, SLAB_T } from '../../alps/roofs.js';
+import { insideSlabs, recordAt } from '../../alps/roofs.js';
 
 /* Section 6: the crest of every concrete part and its gantry rails. */
 const CREST_Y = 225;
@@ -96,7 +96,7 @@ const END_STEP = 0.45;
 /* Axis metres per roof record and per run of columns: long records
  * register in every 8 m cell of their bounding box. */
 const CHUNK = 32;
-/* How far a record's crash slab (roofs.js roofSlabs) sits under its top.
+/* How far a record's crash slab (roofs.js insideSlabs) sits under its top.
  * The crest is many records edge to edge in one plane, and the crash
  * physics is handed every roof's slab but the one the craft is on: a
  * neighbour's slab flush with the ground plane was a step the wheels met
@@ -546,106 +546,6 @@ class Mesher {
     g.computeBoundingBox();
     return g;
   }
-}
-
-/*
- * The crash physics' slabs under a roof given in world space, in
- * roofs.js roofSlabs' form ({ c, u, n, v, hu, hn, hv }, the top face the
- * plane), held SLAB_SINK under it. roofSlabs takes a face's extents along
- * its record's x, which for the dam's records, put with no turn, is the
- * world's: a face turned off the axes got a box reaching metres past its
- * edges, the spillway bridge's 114 m, a plate in the air over the open
- * bays that wrecked the owner's Timber (2026-10-01). Here each face's slab
- * is the largest rectangle in its plane, with a side along one of its
- * edges, that stays inside it: short of a corner a broken part falls onto
- * the columns under the top, where past an edge it met an invisible wall.
- */
-const SLAB_SAMPLES = 33;
-function insideSlabs(top) {
-  const out = [];
-  const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
-  for (const poly of top) {
-    let nx = 0;
-    let ny = 0;
-    let nz = 0;
-    for (let i = 0; i < poly.length; i += 1) {
-      const a = poly[i];
-      const b = poly[(i + 1) % poly.length];
-      nx += (a[1] - b[1]) * (a[2] + b[2]);
-      ny += (a[2] - b[2]) * (a[0] + b[0]);
-      nz += (a[0] - b[0]) * (a[1] + b[1]);
-    }
-    /* Wound either way; on edge it is a wall, and no record's ground. */
-    const nl = Math.hypot(nx, ny, nz) * Math.sign(ny);
-    if (!(Math.abs(ny) > 1e-9 * Math.abs(nl))) {
-      continue;
-    }
-    const n = [nx / nl, ny / nl, nz / nl];
-    let best = null;
-    for (let i = 0; i < poly.length; i += 1) {
-      const e = poly[(i + 1) % poly.length].map((q, k) => q - poly[i][k]);
-      const en = dot(e, n);
-      const el = Math.hypot(e[0] - n[0] * en, e[1] - n[1] * en, e[2] - n[2] * en);
-      if (!(el > 1e-6)) {
-        continue;
-      }
-      const u = [0, 1, 2].map((k) => (e[k] - n[k] * en) / el);
-      const v = [u[1] * n[2] - u[2] * n[1], u[2] * n[0] - u[0] * n[2], u[0] * n[1] - u[1] * n[0]];
-      const P = poly.map((p) => [dot(p, u), dot(p, v)]);
-      const U0 = Math.min(...P.map((p) => p[0]));
-      const U1 = Math.max(...P.map((p) => p[0]));
-      /* The face's v range across it at U: low edge convex, high edge
-       * concave, so a rectangle over [Ua, Ub] fits between the higher of
-       * the two lows and the lower of the two highs. */
-      const span = (U) => {
-        let lo = Infinity;
-        let hi = -Infinity;
-        for (let k = 0; k < P.length; k += 1) {
-          const [ua, va] = P[k];
-          const [ub, vb] = P[(k + 1) % P.length];
-          if (ua === ub || U < Math.min(ua, ub) || U > Math.max(ua, ub)) {
-            continue;
-          }
-          const w = va + ((vb - va) * (U - ua)) / (ub - ua);
-          lo = Math.min(lo, w);
-          hi = Math.max(hi, w);
-        }
-        return [lo, hi];
-      };
-      const eps = (U1 - U0) * 1e-6;
-      const Us = Array.from({ length: SLAB_SAMPLES }, (_, k) => U0 + eps + ((U1 - U0 - 2 * eps) * k) / (SLAB_SAMPLES - 1));
-      const S = Us.map(span);
-      for (let a = 0; a < Us.length; a += 1) {
-        for (let b = a + 1; b < Us.length; b += 1) {
-          const lo = Math.max(S[a][0], S[b][0]);
-          const hi = Math.min(S[a][1], S[b][1]);
-          const area = (Us[b] - Us[a]) * (hi - lo);
-          if (hi > lo && (!best || area > best.area)) {
-            best = {
-              area, u, v, ua: Us[a], ub: Us[b], lo, hi,
-            };
-          }
-        }
-      }
-    }
-    if (!best) {
-      continue;
-    }
-    const { u, v } = best;
-    const um = (best.ua + best.ub) / 2;
-    const vm = (best.lo + best.hi) / 2;
-    const nm = dot(poly[0], n) - SLAB_T / 2 - SLAB_SINK;
-    out.push({
-      c: [0, 1, 2].map((k) => u[k] * um + v[k] * vm + n[k] * nm),
-      u,
-      n,
-      v,
-      hu: (best.ub - best.ua) / 2,
-      hn: SLAB_T / 2,
-      hv: (best.hi - best.lo) / 2,
-    });
-  }
-  return out;
 }
 
 /* A block's own shade: no two pours of concrete came out one grey. */
@@ -1147,7 +1047,7 @@ export async function buildPart(ctx) {
     rec.material = material;
     rec.solids = [];
     rec.eaves = [];
-    rec.slabs = insideSlabs(slabTop);
+    rec.slabs = insideSlabs(slabTop, SLAB_SINK);
     ctx.roofs.push(rec);
     records.push(rec);
     return rec;
