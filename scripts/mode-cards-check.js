@@ -27,7 +27,17 @@
  * chip and the music dock. With a public room made on the server, page E
  * (1280 by 720) reads the count, walks Right off the last card onto the
  * room and joins it with Enter; page F, an upright phone, steps the pad
- * onto All rooms and chooses it, and clicks Make a room.
+ * onto All rooms and chooses it, and clicks Make a room. A second room
+ * carries a name of the full 32 letters, and no name, load or count in the
+ * panel is cut, at 1280 by 720, 390 by 844, 360 by 640 and 844 by 390, nor
+ * any value in the room list on the phone.
+ *
+ * THE UPDATE BAR (page G): a new version waiting puts it in the command
+ * bar, clear of every card and the rooms panel at every size above. Up
+ * from the first card puts the cursor on its Reload and lights it, and
+ * Enter reloads the page; the pad's up and select do the same. In a room,
+ * where the room bar asks for the reload instead, its button is a stop the
+ * same way and Enter on it reloads.
  *
  * No page error on any page. Pictures in outdir, not in the repository.
  *
@@ -341,6 +351,15 @@ const made = await (await fetch(`${rooms}/v2/create`, {
   method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: OPEN }),
 })).json();
 check('a public room is made for the panel to show', /^[A-Z0-9]{6}$/.test(made.code || ''), JSON.stringify(made));
+/* The longest name a room can have (src/share/roomwire.js ROOM_NAME_MAX). */
+const LONG = 'Sunday Morning Freestyle Session';
+const madeLong = await (await fetch(`${rooms}/v2/create`, {
+  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: LONG }),
+})).json();
+check('and one with a name of the full 32 letters', LONG.length === 32 && /^[A-Z0-9]{6}$/.test(madeLong.code || ''), JSON.stringify(madeLong));
+/* The text in these nodes that the layout cuts: wider than its box. */
+const CUT = (selector) => `[...document.querySelectorAll(${JSON.stringify(selector)})].filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;
+const PANEL_TEXT = '.gate-rooms-count, .gate-room-name, .gate-room-value';
 const e = await openPage({ root, url, width: 1280, height: 720 });
 const f = await openPage({ root, url, width: 390, height: 844 });
 const PANEL = `(() => ({
@@ -352,13 +371,23 @@ const roomAction = `lobby:friends-room-${made.code}`;
 try {
   for (const p of [e, f]) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)})`, 60000).catch(() => {});
+    await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)}) && window.__ui.items().some((it) => it.label === ${JSON.stringify(LONG)})`, 60000).catch(() => {});
   }
   const panel = await e.evaluate(PANEL);
   check('the panel says how many rooms and pilots are flying', /\d+ rooms?, (\d+ pilots? flying|nobody flying yet)|open, nobody/.test(panel.count), panel.count);
   check('and lists the room, with All rooms and Make a room', panel.items.some((it) => it.action === roomAction && it.label === OPEN)
     && panel.items.some((it) => it.action === 'lobby:rooms') && panel.items.some((it) => it.action === 'lobby:roomnew'), JSON.stringify(panel.items));
   await shot(e, 'panel-1280x720');
+  for (const [w, h] of [[1280, 720], [844, 390], [360, 640]]) {
+    await resize(e, w, h);
+    const cut = await e.evaluate(CUT(PANEL_TEXT));
+    const v = await e.evaluate(LAYOUT);
+    check(`${w} by ${h}: no room name, load or count in the panel is cut, the 32 letter name too`, cut.length === 0, cut.join(' | '));
+    check(`${w} by ${h}: and with three rooms in it the panel and the cards still fit`, panelLaidOut(v) && laidOut(v),
+      `panel ${JSON.stringify(v.panel)} cards ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar}`);
+    await shot(e, `panel-rooms-${w}x${h}`);
+  }
+  await resize(e, 1280, 720);
 
   /* E, the keyboard: Right off the last card lands on the panel's first room. */
   const lastCard = await e.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
@@ -378,6 +407,8 @@ try {
 
   /* F, an upright phone: the pad, then the mouse. */
   await shot(f, 'panel-390x844');
+  const fCut = await f.evaluate(CUT(PANEL_TEXT));
+  check('390 by 844: no room name, load or count in the panel is cut', fCut.length === 0, fCut.join(' | '));
   const fLast = await f.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
   await f.evaluate(`(() => { window.__ui.setCursor(${fLast}); return true; })()`);
   const pad = (nav) => f.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
@@ -395,6 +426,8 @@ try {
   check('and choosing it opens the lobby', await f.evaluate("window.__ui.screen === 'rooms'"), await f.evaluate('window.__ui.screen'));
   await f.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction.slice('lobby:'.length))})`, 15000).catch(() => {});
   check('which lists the room', await f.evaluate(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction.slice('lobby:'.length))})`));
+  const lobbyCut = await f.evaluate(CUT('.screen-rooms .row-label, .screen-rooms .row-value'));
+  check('and no room name or value in the list is cut on the phone ("Empty, closes in 4 min")', lobbyCut.length === 0, lobbyCut.join(' | '));
   await shot(f, 'panel-lobby-390x844');
   await f.tap('Escape');
   await f.tap('Escape');
@@ -408,6 +441,89 @@ try {
 } finally {
   await e.close();
   await f.close();
+}
+
+/*
+ * THE UPDATE BAR. A checkout has no version stamp, so nothing here can
+ * see a deploy; the page is told one is out the way update.js tells it
+ * (updateReady, then syncChips). Reload has to be a stop the keys and the
+ * pad reach, and the bar has to sit in the command bar, not on a card.
+ */
+const g = await openPage({ root, url, width: 1280, height: 720 });
+const BAR = `(() => {
+  const r = (n) => { const b = n.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; };
+  const bar = document.querySelector('.update-bar:not(.room-bar)');
+  return { up: !bar.hidden, box: bar.hidden ? null : r(bar), frame: r(document.querySelector('.frame-bot')),
+    lit: document.querySelector('.update-bar:not(.room-bar) .update-reload').classList.contains('on') };
+})()`;
+const updateUp = '(() => { window.__ui.updateReady = true; window.__ui.syncChips(); return true; })()';
+const gPad = (nav) => g.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
+try {
+  await g.until('window.__shellReady === true', 300000);
+  await g.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.lobby === 'room')`, 60000).catch(() => {});
+  await g.evaluate(updateUp);
+  for (const [w, h] of [[1280, 720], [1920, 1080], [390, 844], [360, 640], [844, 390]]) {
+    await resize(g, w, h);
+    const v = await g.evaluate(LAYOUT);
+    const bar = await g.evaluate(BAR);
+    const b = bar.box;
+    const inFrame = Boolean(b) && b[0] >= 0 && b[2] <= v.w && b[1] >= bar.frame[1] && b[3] <= bar.frame[3];
+    const clear = Boolean(b) && v.cards.every((c) => apartBox(b, c.box)) && (!v.panel || apartBox(b, v.panel));
+    check(`${w} by ${h}: the update bar is up in the command bar, clear of every card and the rooms panel`, inFrame && clear,
+      `bar ${JSON.stringify(b)} frame ${JSON.stringify(bar.frame)} panel ${JSON.stringify(v.panel)}`);
+    await shot(g, `update-bar-${w}x${h}`);
+  }
+  await resize(g, 1280, 720);
+
+  /* The keyboard: Up from the first card wraps onto Reload, lit. */
+  await g.evaluate('(() => { window.__ui.setCursor(0); return true; })()');
+  await g.tap('ArrowUp');
+  await g.sleep(150);
+  check('Up from the first card puts the cursor on Reload, and lights it',
+    (await g.evaluate(HERE))[0] === 'update-reload' && (await g.evaluate(BAR)).lit, (await g.evaluate(HERE)).join());
+  await g.tap('ArrowDown');
+  await g.sleep(150);
+  check('and Down goes back to the first card, unlit', (await onCard(g)) === 'Track mode' && !(await g.evaluate(BAR)).lit);
+  await g.tap('ArrowUp');
+  await g.sleep(150);
+  await g.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await g.tap('Enter');
+  await g.until('!window.__beforeReload && window.__shellReady === true', 300000).catch(() => {});
+  check('Enter on it reloads the page', await g.evaluate('!window.__beforeReload && window.__shellReady === true'));
+
+  /* The pad: up onto Reload, select reloads. */
+  await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
+  await g.evaluate(updateUp);
+  await g.evaluate('(() => { window.__ui.setCursor(0); return true; })()');
+  await gPad({});
+  await gPad({ up: true });
+  await g.sleep(150);
+  check('the pad\'s up from the first card lands on Reload too', (await g.evaluate(HERE))[0] === 'update-reload', (await g.evaluate(HERE)).join());
+  await g.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await gPad({ select: true });
+  await g.until('!window.__beforeReload && window.__shellReady === true', 300000).catch(() => {});
+  check('and select reloads', await g.evaluate('!window.__beforeReload && window.__shellReady === true'));
+
+  /* In a room the room bar asks for the reload instead (src/main.js
+   * roomBarView), and its button is a stop the same way. */
+  await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
+  await g.evaluate(`(() => { window.__ui.act(${JSON.stringify(roomAction)}); return true; })()`);
+  await g.until(`window.__rooms().phase === 'open' && window.__ui.screen === 'friends'`, 30000).catch(() => {});
+  await g.evaluate(updateUp);
+  await g.until("!document.querySelector('.room-bar').hidden && document.querySelector('.update-bar:not(.room-bar)').hidden", 5000).catch(() => {});
+  await g.evaluate('(() => { window.__ui.setCursor(window.__ui.firstStop(window.__ui.items())); return true; })()');
+  await g.tap('ArrowUp');
+  await g.sleep(150);
+  check('in a room, Up from the first row puts the cursor on the room bar\'s Reload, lit', (await g.evaluate(HERE))[0] === 'room-bar'
+    && await g.evaluate("document.querySelector('.room-bar .update-reload').classList.contains('on')"), (await g.evaluate(HERE)).join());
+  await g.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await g.tap('Enter');
+  await g.until('!window.__beforeReload && window.__shellReady === true', 300000).catch(() => {});
+  check('and Enter on it reloads the page', await g.evaluate('!window.__beforeReload && window.__shellReady === true'));
+  const gErrs = g.errors.filter((x) => !x.startsWith('network:'));
+  check('no page error on the update bar\'s page', gErrs.length === 0, gErrs.slice(0, 3).join(' | '));
+} finally {
+  await g.close();
 }
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
