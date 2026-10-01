@@ -205,24 +205,27 @@ export const MOTORS = {
     ],
   },
   interceptor: {
+    /* The sourced build (docs/COMBAT-DRONES.md 1a): T-Motor's V2808 1300
+     * kV on APC's 7 x 9E, as plant.c has it. */
     table: {
-      massKg: 0.849, inertia: [0.003274, 0.005374, 0.007966], kt: 0.000003416, kq: 5.817e-8, ke: 0.00732113, rMotor: 0.065, jRotor: 0.000022,
+      massKg: 0.88, inertia: [0.003559, 0.005785, 0.008652], kt: 4.701e-6, kq: 8.321e-8, ke: 0.00808, rMotor: 0.131, jRotor: 0.000027,
       cells: 6, rCell: 0.0045, motorAt: corners(0.120, 0.100, -0.0088),
     },
     /* A 6S 1800 race pack: Tattu's R-Line 5.0, 150C. */
     pack: { cells: 6, mAh: 1800, maxA: 270, source: 'https://genstattu.com/tattu-r-line-version-5-0-1800mah-6s-150c-22-2v-lipo-battery-pack-with-xt60-plug/' },
     /* scripts/combat-derive.js's 4 in 1 65 A. */
     esc: { amps: 65 },
-    tau: { band: [0.015, 0.040], measure: 'step' },
+    tau: { band: [0.020, 0.060], measure: 'step' },
+    /* APC's published limit for a thin electric prop, 150,000 rpm over its
+     * diameter in inches (apcprop.com, RPM limits): 21,429 on the 7 x 9E.
+     * motors-check holds every motor offered to it at full throttle. */
+    propMaxRpm: 150000 / 7,
     options: [
-      { id: 'stock', name: 'motors.interceptor.stock', detail: '2807, 1500 kV', kv: 1500, grams: 56, rPhase: 0.050, statorMm: 28, source: [DERIVE] },
-      /* The stock 2807 1500 kV is already the hot end of a 6S 7 inch, and
-       * this is the one hotter motor with a 6S table. The Velox V2808 1500
-       * kV the 7 inch takes is the same kV on 4.5 g more a motor: here it
-       * hovers higher up the stick and gains nothing, so it is not offered.
-       * iFlight's own table records 160 C on this one at its full throttle
-       * row: a burst, not a rating, and its peak current is not published,
-       * so the row's is used. The card says so. */
+      {
+        id: 'stock', name: 'motors.interceptor.stock', detail: 'T-Motor Velox V2808, 1300 kV', kv: 1300, grams: 61.1, rPhase: r2808(1300), statorMm: 28,
+        source: [V2808, SE2808],
+      },
+      { ...V2808_1500, name: 'motors.interceptor.v2808_1500' },
       {
         id: 'xing2-2809-1600', name: 'motors.interceptor.xing2_2809_1600', detail: 'iFlight XING2 2809, 1600 kV', kv: 1600, grams: 59.9, rPhase: 0.047,
         statorMm: 28, maxA: 62.24, bench: row('Gemfan 7040 tri blade', 23.4, 62.24, 2496), source: [XING2_2809],

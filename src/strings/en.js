@@ -1899,6 +1899,7 @@ export default {
   "motors.10inch.tornado_3115_970": "Hotter wind, 3115 970 kV",
   "motors.10inch.v3115_1050": "Hottest, 3115 1050 kV",
   "motors.interceptor.stock": "Stock motors",
+  "motors.interceptor.v2808_1500": "Hotter wind, V2808 1500 kV",
   "motors.interceptor.xing2_2809_1600": "Burst, 2809 1600 kV, runs hot",
   "motors.whoop_stock": "Whoops fly stock. This one flies the five inch's flight model in a room built to its size, so a real whoop motor has nothing to change, and a five inch motor on it would not be a whoop.",
   "hangar.source": "From {source}",

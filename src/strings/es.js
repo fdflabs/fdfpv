@@ -1903,6 +1903,7 @@ export default {
   "motors.10inch.tornado_3115_970": "Bobinado más caliente, 3115 970 kV",
   "motors.10inch.v3115_1050": "El más caliente, 3115 1050 kV",
   "motors.interceptor.stock": "Motores de serie",
+  "motors.interceptor.v2808_1500": "Bobinado más caliente, V2808 1500 kV",
   "motors.interceptor.xing2_2809_1600": "Ráfaga, 2809 1600 kV, se calienta",
   "motors.whoop_stock": "Los whoops vuelan de serie. Este vuela con el modelo de vuelo del cinco pulgadas en una sala hecha a su tamaño, así que un motor de whoop real no tiene nada que cambiar, y un motor de cinco pulgadas no lo dejaría ser un whoop.",
   "hangar.source": "Según {source}",

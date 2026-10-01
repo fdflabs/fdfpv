@@ -140,7 +140,8 @@ F50 2207 2150 kV, 50 mOhm, for the 2207 and 2306.8, BrotherHobby's SE 2808
 | 10 inch | T-Motor Velox V3115 | 900 | 113.1 | 38.08 mOhm | HQ 10 x 5: 4605 g, 82.99 A, 23 V | t-hobby.com |
 | 10 inch | BrotherHobby Tornado T5 3115 Pro | 970 | 113 | 45 mOhm | HQ 10 x 4.5: 4431 g, 65.4 A, 25 V | brotherhobbystore.com |
 | 10 inch | T-Motor Velox V3115 | 1050 | 112.7 | 33.84 mOhm | HQ 10 x 4.5: 4804 g, 83.46 A, 23 V | t-hobby.com |
-| interceptor | stock 2807 | 1500 | 56 | 50 mOhm | combat-derive | combat-derive.js |
+| interceptor | stock T-Motor Velox V2808 | 1300 | 61.1 | 56 mOhm, estimate | GF8040-3: 3083.4 g, 61.0 A, 24.3 V; the plant's 0.131 ohm from its rows | t-hobby.com; docs/COMBAT-DRONES.md 1a |
+| interceptor | T-Motor Velox V2808 | 1500 | 60.5 | 42 mOhm, estimate | Gemfan 7040: 2635.9 g, 66.1 A, 24.2 V | t-hobby.com |
 | interceptor | iFlight XING2 2809 | 1600 | 59.9 | 47 mOhm | Gemfan 7040: 2496 g, 62.24 A, 23.4 V, 160 C on the motor | shop.iflight.com |
 
 Packs: the five inch's 6S 1300 at CNHL Black Series V2's 130C, 169 A; the
@@ -161,8 +162,6 @@ What is NOT offered, and why:
   upgrade.
 - The BrotherHobby SE 2807 1300 kV on the 7 inch: 0.7 percent over the
   stock class motor on the same prop.
-- The Velox V2808 1500 kV on the interceptor: the stock 2807 1500 kV's kV
-  on 4.5 g more a motor; it hovers higher up the stick and gains nothing.
 - A 4214 on the 10 inch: iFlight builds it for 13 inch props.
 
 ## Before and after
@@ -171,20 +170,33 @@ What is NOT offered, and why:
 flies each quad at (the five inch at 1.62 g, the combat quads at 1 g), the
 rest at 1 g, standing, on a fresh pack.
 
-| quad | motor | weight | thrust to weight | hover | top speed | pack at full throttle | hover time | full throttle time |
+| quad | motor | weight | thrust to weight | hover, static solve | top speed | pack at full throttle | hover time | full throttle time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 5 inch | stock F60 Pro V 1950 | 710 g | 9.72 | 0.245 | 45.98 m/s | 171 A, 3.77 V a cell | 14.4 min | 0.37 min |
-| 5 inch | F60 Pro V 2020 | 710 g | 10.05 | 0.237 | 46.54 m/s | 183 A, 3.74 V | 14.3 min | 0.34 min |
-| 5 inch | F40 Pro V 2150 | 709 g | 10.60 | 0.224 | 47.49 m/s | 205 A, 3.69 V | 14.3 min | 0.30 min |
-| 7 inch | stock | 979 g | 4.75 | 0.309 | 28.31 m/s | 72 A, 2.90 V | 43.4 min | 2.82 min |
-| 7 inch | SE 2808 1350 | 1012 g | 4.77 | 0.300 | 28.84 m/s | 78 A, 2.80 V | 41.6 min | 2.62 min |
-| 7 inch | V2808 1500 | 1021 g | 4.92 | 0.271 | 29.31 m/s | 90 A, 2.58 V | 40.9 min | 2.26 min |
-| 10 inch | stock | 1848 g | 4.69 | 0.278 | 27.66 m/s | 146 A, 2.74 V | 47.4 min | 2.79 min |
-| 10 inch | V3115 900 | 1920 g | 4.82 | 0.272 | 28.40 m/s | 155 A, 2.65 V | 46.3 min | 2.62 min |
-| 10 inch | Tornado 3115 970 | 1920 g | 4.77 | 0.259 | 28.35 m/s | 166 A, 2.54 V | 45.4 min | 2.45 min |
-| 10 inch | V3115 1050 | 1919 g | 4.88 | 0.237 | 28.56 m/s | 184 A, 2.36 V | 45.5 min | 2.21 min |
-| interceptor | stock | 849 g | 9.29 | 0.239 | 45.50 m/s | 180 A, 3.39 V | 18.6 min | 0.48 min |
-| interceptor | XING2 2809 1600 | 865 g | 9.52 | 0.227 | 46.42 m/s | 200 A, 3.30 V | 18.0 min | 0.43 min |
+| 5 inch | stock F60 Pro V 1950 kV | 710 g | 9.72 | 0.247 | 54.13 m/s | 171 A, 3.77 V a cell | 14.4 min | 0.37 min |
+| 5 inch | F60 Pro V 2020 kV | 710 g | 10.05 | 0.239 | 54.92 m/s | 183 A, 3.74 V | 14.3 min | 0.34 min |
+| 5 inch | F40 Pro V 2150 kV | 709 g | 10.60 | 0.225 | 56.29 m/s | 205 A, 3.69 V | 14.3 min | 0.30 min |
+| 7 inch | stock 2806.5 1300 kV | 979 g | 4.75 | 0.309 | 33.39 m/s | 71 A, 2.91 V | 43.4 min | 2.82 min |
+| 7 inch | SE 2808 1350 kV | 1012 g | 4.77 | 0.300 | 34.07 m/s | 77 A, 2.81 V | 41.6 min | 2.62 min |
+| 7 inch | Velox V2808 1500 kV | 1021 g | 4.92 | 0.272 | 34.83 m/s | 89 A, 2.60 V | 40.9 min | 2.26 min |
+| 10 inch | stock 3115 900 kV | 1848 g | 4.69 | 0.276 | 33.34 m/s | 145 A, 2.75 V | 47.4 min | 2.79 min |
+| 10 inch | Velox V3115 900 kV | 1920 g | 4.82 | 0.272 | 34.14 m/s | 154 A, 2.66 V | 46.3 min | 2.62 min |
+| 10 inch | Tornado T5 3115 970 kV | 1920 g | 4.77 | 0.258 | 34.28 m/s | 164 A, 2.56 V | 45.4 min | 2.45 min |
+| 10 inch | Velox V3115 1050 kV | 1919 g | 4.88 | 0.237 | 34.66 m/s | 182 A, 2.38 V | 45.5 min | 2.21 min |
+| interceptor | stock Velox V2808 1300 kV | 880 g | 8.33 | 0.243 | 55.90 m/s | 157 A, 3.49 V | 18.8 min | 0.55 min |
+| interceptor | Velox V2808 1500 kV | 878 g | 8.99 | 0.214 | 57.63 m/s | 195 A, 3.32 V | 18.5 min | 0.44 min |
+| interceptor | XING2 2809 1600 kV | 875 g | 8.96 | 0.205 | 57.43 m/s | 207 A, 3.27 V | 18.2 min | 0.42 min |
+
+The stock aircraft and their top speeds are the ones the changes this sits
+on made them: the five inch on T-Motor's measured row
+(docs/STOCK-5INCH.md), the interceptor built from published parts
+(docs/COMBAT-DRONES.md 1a), and every prop's thrust and torque against
+axial speed its own APC curve (docs/PROP-CURVES.md). The interceptor's
+motors are held to APC's rpm limit for its 7 x 9E, 150,000 over its
+diameter, 21,429 rpm: both upgrades turn it at about 19,350 standing.
+T-Motor's own pair for the V2808, 1300 and 1500 kV on a Gemfan 8040 at 24
+V, makes the same thrust (3083 and 3069 g): on that heavy 8 inch prop the
+hotter wind gains nothing. It is not the interceptor's prop, so it is
+recorded here, not checked against.
 
 **The honest headline: on the same prop and the same pack, a real motor
 upgrade buys a few percent.** A quad's thrust is its prop's, and its prop
@@ -215,7 +227,7 @@ pulls past its Li-ion pack's rating, and both five inch upgrades past the
 
 ## Checks
 
-- `npm run motors:check` (M1 to M9 in its header), 94 rows, in
+- `npm run motors:check` (M1 to M9 in its header), 103 rows, in
   checks.yml.
 - `npm run hangar:motors`: the five inch's hangar opens on its motors; an
   upgrade previews its own readouts with stock's beside them; saved, it is
