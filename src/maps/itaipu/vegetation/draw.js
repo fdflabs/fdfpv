@@ -65,6 +65,7 @@ import {
   HALF, KINDS, YAW_COS, YAW_SIN,
 } from './plant.js';
 import { FOREST_GRADE } from '../look/ground.js';
+import { thermalKind } from '../../../render/thermal.js';
 
 /*
  * The bands per preset, m: the whole model to `near`, the reduced model
@@ -478,6 +479,9 @@ export function treeLod({
     far: impostorMaterial(baked, bandFar),
   };
   mats.farDepth = impostorDepthMaterial(mats.far);
+  for (const m of [mats.nearFoliage, mats.nearBark, mats.mid, mats.far]) {
+    thermalKind(m, 'vegetation');
+  }
   roundFrames(mats.far);
   roundFrames(mats.farDepth);
   /* The shadow pass draws a front sided material's back faces, and the
@@ -983,7 +987,7 @@ function shellMaterial(band, forestTex) {
         }`);
   };
   mat.customProgramCacheKey = () => 'itaipu-canopy';
-  return mat;
+  return thermalKind(mat, 'vegetation');
 }
 
 /* The canopy's shadow: the same outline and the same dissolve, from the

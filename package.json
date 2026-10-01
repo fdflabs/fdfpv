@@ -255,6 +255,7 @@
     "hotswap:check": "node scripts/hotswap-check.js",
     "itaipu:check": "node scripts/itaipu-check.js",
     "itaipu:views": "node scripts/itaipu-views.js",
+    "sensor:check": "node scripts/sensor-check.js",
     "itaipu:yard": "node tools/itaipu/war-check.js",
     "check:dam": "node scripts/dam-check.js",
     "itaipu:water": "node scripts/itaipu-water-check.js",

@@ -448,11 +448,14 @@ static void whoop_scaled_build(void) {
 }
 
 /*
- * THE COMBAT QUADS' PARTS, SIM_AIRFRAME_7IN and SIM_AIRFRAME_10IN
- * (docs/COMBAT-DRONES.md): the five inch's table as a dynamically similar
- * model of each, the whoop's argument the other way up. In plan every
- * length goes by L, the motor diagonals' ratio, which lands every motor,
- * arm and disc centre on the plant's own; heights by Lz, since a 2806.5 is
+ * THE COMBAT QUADS' PARTS, SIM_AIRFRAME_7IN, SIM_AIRFRAME_10IN and
+ * SIM_AIRFRAME_INTERCEPTOR (docs/COMBAT-DRONES.md): the five inch's table
+ * as a dynamically similar model of each, the whoop's argument the other
+ * way up. In plan every length goes by Lx fore and aft and Ly across, the
+ * motor positions' ratios, which lands every motor, arm and disc centre
+ * on the plant's own (equal on a square X, apart on the interceptor's
+ * stretched one); L is the motor diagonals' ratio, for the loads; heights
+ * by Lz, since a 2806.5 is
  * not much taller than a 2207 and a 3115 is a third taller; masses by M,
  * the all up masses' ratio; and every limit by what those do to the loads
  * of the same crash: forces by M L, moments by M L^2, stiffness by M,
@@ -467,7 +470,7 @@ static void whoop_scaled_build(void) {
  */
 typedef struct {
   int id;
-  double L, Lz, M;
+  double L, Lx, Ly, Lz, M;
   double base_z;          /* the motors' base about the CG, m */
   double pack_m;
   double pack_lo[3], pack_hi[3];
@@ -483,13 +486,13 @@ static void quad_scaled_build(const QuadScale *qs) {
     part_expand(&d, SIM_AIRFRAME_5IN);
     double c[3] = { 0.0, 0.0, 0.0 };
     for (int k = 0; k < d.npts; k += 1) {
-      d.pts[k][0] *= L;
-      d.pts[k][1] *= L;
+      d.pts[k][0] *= qs->Lx;
+      d.pts[k][1] *= qs->Ly;
       d.pts[k][2] = d.pts[k][2] * qs->Lz + qs->base_z;
       for (int a = 0; a < 3; a += 1) c[a] += d.pts[k][a] / (double)d.npts;
     }
-    d.joint[0] *= L;
-    d.joint[1] *= L;
+    d.joint[0] *= qs->Lx;
+    d.joint[1] *= qs->Ly;
     d.joint[2] = d.joint[2] * qs->Lz + qs->base_z;
     d.mass *= M;
     d.m_max *= M * L * L;
@@ -502,10 +505,11 @@ static void quad_scaled_build(const QuadScale *qs) {
     d.slip_d *= L;
     if (d.kind == SIM_PART_PROP) {
       /* The disc about its own centre, at the plant's radius. */
-      const double s = P->prop_r / (0.0635 * L);
+      const double sx = P->prop_r / (0.0635 * qs->Lx);
+      const double sy = P->prop_r / (0.0635 * qs->Ly);
       for (int k = 0; k < d.npts; k += 1) {
-        d.pts[k][0] = c[0] + (d.pts[k][0] - c[0]) * s;
-        d.pts[k][1] = c[1] + (d.pts[k][1] - c[1]) * s;
+        d.pts[k][0] = c[0] + (d.pts[k][0] - c[0]) * sx;
+        d.pts[k][1] = c[1] + (d.pts[k][1] - c[1]) * sy;
       }
     } else if (d.kind == SIM_PART_BATTERY) {
       const double lo[3] = { qs->pack_lo[0], qs->pack_lo[1], qs->pack_lo[2] };
@@ -587,17 +591,25 @@ static void tables_build(void) {
   table_finish(&T[SIM_AIRFRAME_CUB1400F], SIM_AIRFRAME_CUB1400F);
   whoop_scaled_build();
   /* The packs' boxes are scripts/combat-derive.js's about the CG: the 7
-   * inch's one 6S1P brick, the 10 inch's two side by side. */
+   * inch's one 6S1P brick, the 10 inch's two side by side, the
+   * interceptor's one 6S LiPo. The five inch's motors are 0.0778 out on
+   * each axis and 0.110 on the diagonal. */
   const QuadScale q7 = {
-    SIM_AIRFRAME_7IN, 0.1575 / 0.110, 1.0, 0.979 / 0.71, -0.0257, 0.429,
+    SIM_AIRFRAME_7IN, 0.1575 / 0.110, 0.1575 / 0.110, 0.1575 / 0.110, 1.0, 0.979 / 0.71, -0.0257, 0.429,
     { -0.0377, -0.0315, 0.0003 }, { 0.0343, 0.0315, 0.0423 },
   };
   const QuadScale q10 = {
-    SIM_AIRFRAME_10IN, 0.210 / 0.110, 1.35, 1.848 / 0.71, -0.0319, 0.858,
+    SIM_AIRFRAME_10IN, 0.210 / 0.110, 0.210 / 0.110, 0.210 / 0.110, 1.35, 1.848 / 0.71, -0.0319, 0.858,
     { -0.0376, -0.063, 0.002 }, { 0.0344, 0.063, 0.044 },
+  };
+  const QuadScale qi = {
+    SIM_AIRFRAME_INTERCEPTOR, 0.1562 / 0.110, 0.120 / 0.0777817459305202, 0.100 / 0.0777817459305202, 1.0,
+    0.849 / 0.71, -0.0218, 0.285,
+    { -0.0592, -0.0185, 0.0022 }, { 0.0458, 0.0185, 0.0442 },
   };
   quad_scaled_build(&q7);
   quad_scaled_build(&q10);
+  quad_scaled_build(&qi);
   g_ready = 1;
 }
 
