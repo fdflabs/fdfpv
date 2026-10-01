@@ -114,6 +114,9 @@ export function trackAt(s, t, out) {
 /* send(obj) puts one text message on the room's socket. */
 export function createRoomWar(send) {
   let seat = null;
+  /* The room's code: a war's id counts from 1 in every room, so the
+   * code and the id together are what tell one war from another. */
+  let room = null;
   let war = { state: 'lobby' };
   let error = null;
   /* id -> { a (birth record), plan, samples ([{ t, p, q }], hunters),
@@ -189,9 +192,10 @@ export function createRoomWar(send) {
       seat = w.seat;
       error = null;
       const next = w.war || { state: 'lobby' };
-      if (next.id !== war.id) {
+      if (next.id !== war.id || (w.code ?? null) !== room) {
         reset();
       }
+      room = w.code ?? null;
       war = next;
     },
 
@@ -336,6 +340,14 @@ export function createRoomWar(send) {
       return war.state === 'live';
     },
     mission,
+    /* Which war this is, unique across rooms, or null with none: what
+     * the shell keys its once per war work on (the intro, the begin, a
+     * round's restart). The id alone repeats: a campaign's mission 2 is
+     * a new room's war 1, as mission 1 was, so the shell took it for the
+     * war whose intro it had already played (2026-10-01). */
+    match() {
+      return war.id == null ? null : `${room}:${war.id}`;
+    },
     /* The mission's night flag (itaipu-4): the lighting hook reads it. */
     night() {
       return Boolean(mission()?.night);
@@ -361,6 +373,7 @@ export function createRoomWar(send) {
     },
     clear() {
       seat = null;
+      room = null;
       war = { state: 'lobby' };
       error = null;
       events = [];
