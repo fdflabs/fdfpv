@@ -315,8 +315,16 @@ The tapes sit relative to the centre at 0.37 of the height, as the FPV OSD's
 sidebars do, so they clear the war HUD's left column by construction. Every
 corner panel is placed by sliding it away from its edge until it is clear of
 the game's own furniture (the chips, the music dock, the gimbals, the war HUD
-box, the war callouts, the markers' radar and edge arrow bands) and of the
+box, the war callouts, the markers' radar) and of the heading tape and the
 panels placed before it, the way `src/ui/fpvhud.js` places its readouts.
+The markers' edge arrows are not avoided: they run round every edge, so a
+corner panel cannot clear them, and an arrow is a moment's cue drawn over
+whatever is there. A room's lines and the peer marks (`src/ui/peermarks.js`)
+slide off the panels, because the renderer hands peermarks its panel rects
+exactly as the FPV OSD hands its readouts. In a private room with many pilots
+not flying, those lines start under the mode panel, so eight of them can
+reach the war HUD's top: a known limit, the same one the FPV OSD has with
+more room.
 
 ### 8.1 Visual grammar
 
@@ -386,7 +394,7 @@ Avionics HUD is on screen.
 - `npm run check:avionics-layout` (`scripts/avionics-layout.js`): every
   avionics panel inside the window and no two overlapping, at 1280x720 and
   1920x1080, alone and in a live war with the war HUD up (and not meeting
-  the war HUD, its callouts, the radar or the edge arrow bands); seating the
+  the war HUD, its callouts or the radar); seating the
   7 inch shows Avionics, the 5 inch the FPV OSD, and a pilot's override
   sticks across a reload.
 - `npm run war:hudlayout`, `npm run lint:copy`, `npm run lint:shell` still
