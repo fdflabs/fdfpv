@@ -38,7 +38,7 @@ import { DITHER_GLSL, LEAF_SPEC_GLSL, PLANT_TINT_GLSL } from './plantmat.js';
 export const AZIMUTHS = 8;
 export const ELEVATIONS = [0, 40, 75].map((d) => (d * Math.PI) / 180);
 const PER_VARIANT = AZIMUTHS * ELEVATIONS.length;
-const GRID = 17;
+export const GRID = 17;
 export const MAX_VARIANTS = Math.floor((GRID * GRID) / PER_VARIANT);
 
 const BAKE_VERT = /* glsl */ `
@@ -269,7 +269,7 @@ function billboardVertex(shadow) {
  * row below and off the atlas's right edge, in bands across every far
  * tree seen through a frame in the atlas's first column (measured on
  * NVIDIA and SwiftShader alike: scripts/swiss2-veg-check.js). */
-const IMP_FRAME_GLSL = `
+export const IMP_FRAME_GLSL = `
         uniform sampler2D uAlbedo;
         uniform float uPad;
         varying vec2 vImpUv;
