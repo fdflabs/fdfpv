@@ -47,8 +47,9 @@ import { buildF16Craft } from './f16craft.js';
 import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
 import { buildZagiCraft } from './zagicraft.js';
-import { buildCombatDrone, COMBAT_DEFAULT } from './combatcraft.js';
+import { buildCombatDrone } from './combatcraft.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
+import { DEFAULT_CHOICE, combatFor } from '../../configs/combat.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 
@@ -85,8 +86,8 @@ const BUILDERS = {
   /* The combat quads: one builder, its frame by airframe, and the pilot's
    * resolved choice in opts.combat (docs/COMBAT-DRONES.md section 4); a
    * caller that passes none draws what a pilot who never chose flies. */
-  '7inch': (opts) => buildCombatDrone({ ...opts, frame: '7in', ...(opts.combat ?? COMBAT_DEFAULT) }),
-  '10inch': (opts) => buildCombatDrone({ ...opts, frame: '10in', ...(opts.combat ?? COMBAT_DEFAULT) }),
+  '7inch': (opts) => buildCombatDrone({ ...opts, frame: '7in', ...(opts.combat ?? DEFAULT_CHOICE) }),
+  '10inch': (opts) => buildCombatDrone({ ...opts, frame: '10in', ...(opts.combat ?? DEFAULT_CHOICE) }),
 };
 
 export function craftBuilderFor(airframeId) {
@@ -147,7 +148,9 @@ export const CRAFT_DIMS = {
 let currentCraftId = '5inch';
 
 /* `combat` is a combat quad's resolved { payload, accessories }, which every
- * other builder ignores. */
+ * other builder ignores. With none, the pilot's own seated choice
+ * (configs/combat.js combatFor), because the shell's swap passes none and
+ * the flown model must be the loadout the plant flies. */
 export function buildCraft(airframeId = '5inch', combat = undefined) {
   /*
    * The airframe is MODELLED at its true size and DRAWN at 1/WORLD_SCALE of
@@ -166,6 +169,6 @@ export function buildCraft(airframeId = '5inch', combat = undefined) {
     fog: true,
     worldScale: true,
     measure: true,
-    combat,
+    combat: combat ?? combatFor(currentCraftId) ?? undefined,
   }), currentCraftId), currentCraftId);
 }

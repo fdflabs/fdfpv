@@ -131,9 +131,6 @@ export const COMBAT_FRAMES = {
 export const COMBAT_PAYLOAD_IDS = ['none', 'standard', 'wide', 'penetrator', 'emp'];
 export const COMBAT_ACCESSORY_IDS = ['pack2', 'cage', 'lrantenna', 'gps'];
 
-/* What a pilot who never chose flies (docs/COMBAT-DRONES.md section 2). */
-export const COMBAT_DEFAULT = { payload: 'standard', accessories: [] };
-
 /* ------------------------------------------------------------------ */
 /* Pieces and kits.                                                    */
 /* ------------------------------------------------------------------ */
