@@ -167,6 +167,7 @@ import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
+import { combatAddon, combatChoice, payloadForWarhead, setCombatSource, warPayload } from '../configs/combat.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
@@ -2056,6 +2057,25 @@ export async function boot({
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
+  /*
+   * A COMBAT QUAD'S PAYLOAD AND ACCESSORIES (configs/combat.js,
+   * docs/COMBAT-DRONES.md): the pilot's choice, except in a war, where the
+   * payload is the warhead the room holds for this seat, so what is seen
+   * and flown is what goes off. The choice the room is sent is the
+   * campaign's poll (src/ui/campaign.js craftWarhead). Null for every
+   * other aircraft. The plant reads it at applyParts and the drawing at
+   * every build.
+   */
+  function combatSeated(id) {
+    const af = airframeById(id);
+    const choice = combatChoice(af, ui.settings.combat ? ui.settings.combat[af.id] : null);
+    if (!choice || !roomWar.on()) {
+      return choice;
+    }
+    const l = roomWar.view().loadouts?.[roomWar.seat()];
+    return { payload: payloadForWarhead(af, l ? l.warhead : 'standard'), accessories: choice.accessories };
+  }
+  setCombatSource(combatSeated);
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
   const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card' };
@@ -4437,6 +4457,12 @@ export async function boot({
       const st = roomLinkState.state();
       return { phase: st.phase, code: st.code, seat: roomWar.seat() };
     },
+    /* A combat quad's chosen payload is its warhead (configs/combat.js). */
+    craftWarhead: (allowed, equipped) => {
+      const af = airframeById(ui.settings.airframe);
+      const w = warPayload(af, combatChoice(af, ui.settings.combat ? ui.settings.combat[af.id] : null), allowed, equipped);
+      return w ? w.warhead : null;
+    },
   });
   campaignRef = campaign;
   ui.onCampaignCard = () => campaign.open();
@@ -6512,6 +6538,7 @@ export async function boot({
   /* The model the scene draws: TITLE_CRAFT on the title, the seated
    * aircraft everywhere else. buildShell draws the five inch. */
   let drawnCraft = '5inch';
+  let drawnCombat = null;
   /* Where the seated aircraft bolts its camera, in its own frame. The quad's
    * numbers are lens.js's; the wing's are in the nose of its pod. */
   let camMountFwd = CAMERA_MOUNT_FORWARD;
@@ -7279,6 +7306,10 @@ export async function boot({
   function applyParts(s) {
     const af = airframeById(runAirframe);
     smokeOn = false;
+    if (af.combat) {
+      applyCombat(af);
+      return;
+    }
     if (!af.fixedWing || typeof sim.e.sim_set_addons !== 'function') {
       return;
     }
@@ -7296,6 +7327,28 @@ export async function boot({
     const code = block ? sim.setAddons(block) : sim.clearAddons();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
+    }
+  }
+
+  /* A combat quad's payload and accessories, on the hangar parts' path and
+   * rule: one lumped mass and its spread, laid over the table between
+   * runs; nothing chosen clears them. */
+  let combatSeatKey = null;
+  function applyCombat(af) {
+    const seated = combatSeated(af.id);
+    combatSeatKey = JSON.stringify(seated);
+    const add = combatAddon(af, seated);
+    if (!add) {
+      const none = sim.clearAddons();
+      if (none !== SIM_OK) {
+        throw new Error(`sim_addons_clear refused on ${af.id}: ${simErrorName(none)}`);
+      }
+      return;
+    }
+    const code = sim.setAddons(add.block);
+    const spread = code === SIM_OK ? sim.setAddonInertia(add.inertia) : code;
+    if (spread !== SIM_OK) {
+      throw new Error(`the plant refused ${JSON.stringify(seated)} on ${af.id}: ${simErrorName(spread)}`);
     }
   }
 
@@ -8508,6 +8561,12 @@ export async function boot({
         : groundAt(startX, startZ);
       qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
       qSpawnInv.copy(qSpawn).invert();
+    }
+    /* A war's warhead arrived or changed since the payload was seated (the
+     * room's loadout echo, combatSeated): seat it now, between runs, before
+     * the reset puts the moved CG at rest. */
+    if (airframeById(runAirframe).combat && JSON.stringify(combatSeated(runAirframe)) !== combatSeatKey) {
+      applyCombat(airframeById(runAirframe));
     }
     sim.reset();
     plantStarts += 1;
@@ -9930,11 +9989,18 @@ export async function boot({
    */
   function dressCraft() {
     const want = mode === 'title' ? TITLE_CRAFT : runAirframe;
-    if (want === drawnCraft || typeof shell.swapCraft !== 'function') {
+    /* A combat quad is rebuilt when what hangs on it changes, too: its
+     * payload is a model, not a material (configs/combat.js combatFor).
+     * The seated aircraft's changes when the plant's does, at applyCombat,
+     * which is between runs. */
+    const combat = !airframeById(want).combat ? null
+      : want === runAirframe ? combatSeatKey : JSON.stringify(combatSeated(want));
+    if ((want === drawnCraft && combat === drawnCombat) || typeof shell.swapCraft !== 'function') {
       return;
     }
     shell.swapCraft(want);
     drawnCraft = want;
+    drawnCombat = combat;
   }
 
   function applySettings(s) {
@@ -10738,7 +10804,10 @@ export async function boot({
     /* The tuning is the plane's own, not its family's. */
     const tuned = id === runAirframe && res.settings && res.settings.tuning
       && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
-    if (((res.powerChanged || partsChanged) && liveryKey(runAirframe) === family || tuned) && swapLive()) {
+    /* And a combat quad's loadout is the quad's own (src/ui/hangar-combat.js). */
+    const loaded = id === runAirframe && Boolean(res.settings && res.settings.combat)
+      && JSON.stringify(combatSeated(id)) !== combatSeatKey;
+    if (((res.powerChanged || partsChanged) && liveryKey(runAirframe) === family || tuned || loaded) && swapLive()) {
       await hotSwap(runAirframe, { refit: true });
     }
     if (partsChanged && drawnCraft === id && typeof shell.redressCraft === 'function') {
@@ -13114,6 +13183,7 @@ export async function boot({
          * and the shell's step count with it, part way through the block. */
         let faulted = false;
         if (launchStaging) {
+          const sound = stateCurr;
           sim.e.sim_set_ground(0, 0, 0, 1, 0, 0, 0, 0, 0);
           if (steps > 1) {
             sim.step(steps - 1);
@@ -13123,7 +13193,14 @@ export async function boot({
           }
           sim.step(1);
           stateCurr = readState();
-          if (plantUpZ(stateCurr) < 0) {
+          /* The stand is stepped by the same plant, so its state is judged
+           * at the same boundary (plantFault): a bad one wrecks the craft
+           * where the block began, and the reset in that ends the staging. */
+          const bad = plantStateSound(statePrev) ? (plantStateSound(stateCurr) ? null : stateCurr) : statePrev;
+          if (bad) {
+            plantFault(bad, sound, nowWall);
+            faulted = true;
+          } else if (plantUpZ(stateCurr) < 0) {
             endLaunchStaging(false);
             takingOff = false;
           }
@@ -15148,7 +15225,11 @@ export async function boot({
     shown: drawnCraft,
     power: readPower(),
     cells: runCells,
-    addons: airframeById(runAirframe).fixedWing && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
+    addons: (airframeById(runAirframe).fixedWing || airframeById(runAirframe).combat) && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
+    /* A combat quad's seated payload and accessories, and its roll
+     * inertia, for scripts/combat-shell.js. */
+    combat: combatSeatKey && airframeById(runAirframe).combat ? JSON.parse(combatSeatKey) : null,
+    ixx: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(55) : 0,
     parts: shell.quad.userData.partsFit ?? null,
     smoke: { on: smokeOn, puffs: smoke.live() },
     bladeScale: audio.bladeScale,

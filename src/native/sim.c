@@ -2553,6 +2553,15 @@ SIM_EXPORT int sim_addons_clear(void) {
   return SIM_OK;
 }
 
+/* The add-ons' own inertia about their point, sim_abi.h. It moves no mass,
+ * so neither the CG nor the hull. */
+SIM_EXPORT int sim_set_addon_inertia(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  return plant_set_addon_inertia(in);
+}
+
 /* The pilot's tuning, sim_abi.h. Seating it leaves the pack and the tank
  * as they are: it moves no energy, only where the mass sits and how far
  * the surfaces travel. */

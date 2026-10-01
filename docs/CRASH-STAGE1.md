@@ -272,7 +272,13 @@ clamp, and a pack that is not struck is torn off its strap by everything
 else stopping. A push that seats a part on its parent (a pack under the
 frame, landed on) goes into bearing, not the strap: 2 percent of it counts
 (`BEARING_SHARE`), it grips the pad at friction 1.0 (`SEAT_GRIP`), and it
-relieves the moment inside the seat's footprint.
+relieves the moment inside the seat's footprint. The footprint is the face
+it seats with: a part that stands out from its joint seats on its end, its
+box less its longest side; a pack on its strap is held flat on its broad
+face, its box less its side along the way from its joint to its centre.
+Measured across its end, the five inch's pack was levered off its strap by
+a push inside its own top face when it was dropped 0.2 m onto concrete
+tilted 35 degrees, or onto tin tilted 5.
 
 **A wing panel rings** (round 3). A joint judged as above is judged as a
 rigid body: a foam panel's root would see its share of the craft's
@@ -1261,6 +1267,21 @@ rigid contact left it (0.26 mm).
   plane's servos trail); what is left gets its own mass, CG and inertia,
   the state moves to the new CG, and a plane's aero forces take their arm
   about it.
+- **A break adds no energy** (`live_rebuild`, `spin_cap`). What is left is
+  accounted with the airframe's inertia less each part gone as a point mass
+  plus its own box, which is what its free body spins with, and with the
+  products of inertia the parts gone leave behind. It is flown with no less
+  than the 5 percent floor and its own parts' share of the airframe's
+  inertia, and without the products; and the part tables can hold more than
+  the plant's measured inertia (the Slow Stick's wing panel alone is 0.01253
+  kg m^2 in roll against the airframe's 0.0125). What it would turn with
+  past its accounts is taken out of spin, first the new free bodies' and
+  then the craft's, and a free body flown without its products is held to
+  the energy its parts had. Before, the box stayed in the craft as well and
+  a Slow Stick that lost its wing in a 30 rad/s roll left the break with
+  1.93 times the energy it went in with; crash:core now breaks every part
+  of every airframe, alone and one after another, at four spins, and none
+  gains more than rounding.
 - **The rates of a damaged airframe**: once any flight effect is in force
   (`CRASH.active`), both plants step I omega_dot = tau - omega x (I omega
   + h) with the free rigid body split by axis (each part an exact
