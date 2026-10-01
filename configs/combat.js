@@ -7,9 +7,11 @@
  *
  * THE CONTRACT (the doc's sections 2 and 7)
  *
- *   airframe.combat = { frame, payloads, accessories, propulsion? },
+ *   airframe.combat = { frame, payloads, accessories, propulsion?, ballast? },
  *     configs/airframes.js; `propulsion` only on an aircraft with more
- *     than one way to be pushed (the Striker), each { id, simId, ... }
+ *     than one way to be pushed (the Striker), each { id, simId, ... };
+ *     `ballast` ({ at_m }) only on one trimmed for its payloads with nose
+ *     lead (the Striker, trimBallastKg below)
  *   settings.combat[airframeId] = { payload, accessories, propulsion? }
  *     payload      a payload id of that airframe's, or 'none'
  *     accessories  ids of that airframe's, in its own order
@@ -150,7 +152,33 @@ function masses(af, choice) {
     const a = af.combat.accessories.find((x) => x.id === id);
     out.push({ m: a.massKg, at: about(a.cgOffset_m), own: [0, 0, 0] });
   }
+  const bay = af.combat.ballast;
+  if (bay) {
+    const kg = trimBallastKg((pr ? pr.grams : af.grams) / 1000, af.combat.payloads, p, bay.at_m[0]);
+    if (kg > 0) {
+      out.push({ m: kg, at: about(bay.at_m), own: [0, 0, 0] });
+    }
+  }
   return out;
+}
+
+/*
+ * THE TRIM BALLAST, docs/COMBAT-DRONES.md section 7.5: on an airframe whose
+ * combat block names a `ballast` point, the nose bay takes the lead that
+ * brings the CG, fore and aft, to where the most nose heavy payload puts it,
+ * whatever is carried (`payload` null for none). The airframe's mass is
+ * `bareKg`, every x about its CG, the ballast at `atX` ahead of all of them.
+ * Kilograms, zero for that heaviest payload itself.
+ */
+export function trimBallastKg(bareKg, payloads, payload, atX) {
+  const xOf = (p) => p.massKg * p.cgOffset_m[0] / (bareKg + p.massKg);
+  const xTrim = Math.max(...payloads.map(xOf));
+  if (!(atX > xTrim)) {
+    throw new Error(`combat: the ballast point ${atX} m is not ahead of the trim point ${xTrim} m`);
+  }
+  const m = payload ? payload.massKg : 0;
+  const mx = payload ? payload.massKg * payload.cgOffset_m[0] : 0;
+  return Math.max(0, (xTrim * (bareKg + m) - mx) / (atX - xTrim));
 }
 
 /*

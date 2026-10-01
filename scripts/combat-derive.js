@@ -28,6 +28,7 @@
  */
 
 import { derivatives, lattice } from './lib/lattice.js';
+import { trimBallastKg } from '../configs/combat.js';
 
 const RHO = 1.225;
 const G = 9.80665;
@@ -779,6 +780,11 @@ export function deriveStriker() {
   const accessories = STRIKER_ACCESSORIES.map((x) => ({
     id: x.id, massKg: x.m, cgOffset_m: [r4(xCG - x.at[0]), 0, r4(x.at[2] - zc)],
   }));
+  /* The bay's trim lead, at its forward end on the axis, as far forward as
+   * the airframe's own nose ballast: with it every payload, and none,
+   * flies at the most nose heavy one's CG (configs/combat.js
+   * trimBallastKg). */
+  const ballast = { at_m: [r4(xCG - BALLAST_AT[0]), 0, r4(-zc)] };
 
   /*
    * PER VARIANT: what plant_wing.c's table takes, the performance the
@@ -853,10 +859,12 @@ export function deriveStriker() {
   for (const [pid, v] of Object.entries(variants)) {
     const E = v.engine;
     const cd0 = CD0[pid];
-    /* A load's mass, weight, and its CG's move forward, m. */
+    /* A load's mass, weight, and its CG's move forward, m: the payload
+     * and the trim lead the bay takes with it. */
     const loadOf = (p) => {
-      const M = v.M + (p ? p.massKg : 0);
-      return { M, W: M * G, dx: p ? p.massKg * p.cgOffset_m[0] / M : 0 };
+      const lead = trimBallastKg(v.M, payloads, p, ballast.at_m[0]);
+      const M = v.M + (p ? p.massKg : 0) + lead;
+      return { M, W: M * G, lead, dx: ((p ? p.massKg * p.cgOffset_m[0] : 0) + lead * ballast.at_m[0]) / M };
     };
     const perf = (p) => {
       const { M, W, dx } = loadOf(p);
@@ -877,7 +885,7 @@ export function deriveStriker() {
         const vz = (thrustAt(E, V, 1) - drag(V)) * V / W;
         if (vz > climb.vz) climb = { vz, V };
       }
-      return { M, W, dx, level, climb, drag };
+      return { M, W, dx, lead: loadOf(p).lead, level, climb, drag };
     };
     const bare = perf(null);
     const std = perf(payloadOf('standard'));
@@ -994,7 +1002,7 @@ export function deriveStriker() {
     cgDz_m: r4(v.zCG - variants.prop.zCG),
     drawing_m: hulls[pid].origin.map(r4),
   }));
-  const combat = { frame: 'striker', propulsion, payloads, accessories };
+  const combat = { frame: 'striker', propulsion, payloads, accessories, ballast };
 
   return {
     SW, b, S, c, AR, mac, yMac, xMacLE, D0n, D0, xNPlattice, dCmaFus, xNP, xCG, SMc,
@@ -1039,18 +1047,19 @@ function printStriker() {
     console.log(`                         idle ${f(E.idle, 3)}, tank ${E.tankM3} m^3, flow ${E.flowFull.toPrecision(6)} / ${E.flowIdle.toPrecision(6)} m^3/s, j ${E.jProp.toPrecision(4)} kg m^2, fan_tau ${E.fanTau} s`);
     console.log(`hull                     hx ${f(h.hx)} hy ${f(h.hy)} down ${f(h.down)} up ${f(h.up)}; camera ${v3(h.camera)}; prop hub ${v3(h.prop)}; nacelle exit ${v3(h.nacelle)}`);
     console.log(`the drawing's origin     ${v3(h.origin)} about the CG, body frame`);
-    console.log('payload   mass   CG move  trimmed stall (elevon)   top    best climb');
+    console.log('payload   mass   lead   CG move  trimmed stall (elevon)   top    best climb');
     for (const id of [null, 'emp', 'standard', 'penetrator', 'wide']) {
       const p = id ? d.payloads.find((x) => x.id === id) : null;
       const st = o.trimmedStall(p);
       const pf = o.perf(p);
-      console.log(`  ${(id ?? 'none').padEnd(10)} ${f(p ? p.massKg : 0, 2)}  ${f(pf.dx, 3)}   ${f(st.V, 2)} m/s (${f(st.de, 1)} deg)${st.limited ? ' at full throw' : ''}   ${f(pf.level(1), 2)}  ${f(pf.climb.vz, 2)} m/s at ${f(pf.climb.V, 1)}`);
+      console.log(`  ${(id ?? 'none').padEnd(10)} ${f(p ? p.massKg : 0, 2)}  ${f(pf.lead, 3)}  ${f(pf.dx, 4)}   ${f(st.V, 2)} m/s (${f(st.de, 1)} deg)${st.limited ? ' at full throw' : ''}   ${f(pf.level(1), 2)}  ${f(pf.climb.vz, 2)} m/s at ${f(pf.climb.V, 1)}`);
     }
   }
   console.log('\npayloads, about the prop\'s CG:');
   for (const p of d.payloads) {
     console.log(`  ${p.id.padEnd(11)} ${p.massKg.toFixed(2)} kg  cg [${p.cgOffset_m.join(', ')}]  d ${p.dims.d} len ${p.dims.len}`);
   }
+  console.log(`trim lead at [${d.combat.ballast.at_m.join(', ')}] about the prop's CG`);
   console.log('accessories, about the prop\'s CG:');
   for (const x of d.accessories) {
     console.log(`  ${x.id.padEnd(11)} ${x.massKg.toFixed(3)} kg  at [${x.cgOffset_m.join(', ')}]`);
