@@ -2,7 +2,7 @@
  * war-public-check.js: a public war room, two pilots, through the real
  * shell, against a local rooms server (never the live one):
  *
- *   npm run war:public                     starts its own on port 8831
+ *   npm run war:public                     starts its own, on a free port
  *   npm run war:public -- http://127.0.0.1:8797
  *
  * The owner, 2026-10-01: "when i start a mission now, a new room isnt
@@ -39,7 +39,6 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
@@ -57,31 +56,23 @@ function check(name, ok, detail = '') {
   }
 }
 
+/* A rooms server of this check's own, in this process on a port the
+ * system picks (as war-twopage does): a fixed port on a shared host can be
+ * another tree's server. Or the one given. */
 async function roomsServer() {
   if (process.argv[2]) {
     return { url: process.argv[2], stop: async () => {} };
   }
   const dir = await mkdtemp(join(tmpdir(), 'war-public-rooms-'));
-  const port = 8831;
-  const proc = spawn(process.execPath, [join(root, 'edge/rooms/node.js')], {
-    env: { ...process.env, ROOMS_DB: join(dir, 'rooms.db'), PORT: String(port) },
-    stdio: ['ignore', 'ignore', 'inherit'],
-  });
-  const url = `http://127.0.0.1:${port}`;
-  const stop = async () => {
-    proc.kill('SIGTERM');
-    await rm(dir, { recursive: true, force: true });
+  const { startRooms } = await import('../edge/rooms/node.js');
+  const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0 });
+  return {
+    url: `http://127.0.0.1:${server.port}`,
+    stop: async () => {
+      await server.stop();
+      await rm(dir, { recursive: true, force: true });
+    },
   };
-  for (let i = 0; i < 100; i += 1) {
-    try {
-      await fetch(`${url}/v2/rooms`);
-      return { url, stop };
-    } catch (e) {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
-  await stop();
-  throw new Error(`rooms server did not come up on ${url}`);
 }
 
 async function click(page, selector) {
