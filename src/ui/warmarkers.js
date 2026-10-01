@@ -24,6 +24,12 @@
  *   hunted      a Hunter that has picked this pilot: a red frame round
  *               the picture and an arrow from the middle toward it
  *
+ * ONE MARKER AN OBJECT. With the Avionics HUD up and tracking, the HUD
+ * boxes what its sensor has a track on (src/ui/avionicshud.js claims):
+ * an attacker whose marker would sit on one of those boxes gets none here,
+ * and its kind's tag is written into the claim for the HUD's own tag. Its
+ * arrow on the edge, when it is off screen, and its radar dot stay.
+ *
  * Colour is threat: Hunters, which chase pilots, red and pulsing; what
  * goes for the dam (Strikers, Loiterers, the FPV swarm) orange; Scouts
  * and sea drones yellow. A kind this build has no tag for (a later
@@ -149,7 +155,10 @@ export function createWarMarkers(camera, view) {
   let mission = null;
   const me = new Float64Array(3);
 
+  /* The Avionics HUD's boxes this paint, { x, y, r, tag } (setClaims). */
+  let claims = null;
   /* Per attacker, in list order. */
+  const claimed = new Uint8Array(MAX);
   const kindOf = new Uint8Array(MAX);
   const threat = new Uint8Array(MAX);
   const dist = new Float32Array(MAX);
@@ -446,18 +455,19 @@ export function createWarMarkers(camera, view) {
   }
 
   /* Every on screen marker's group: labelled by the nearest of those
-   * within GROUP_PX, the lower index on a tie. */
+   * within GROUP_PX, the lower index on a tie. A claimed one has no marker
+   * and is in no group. */
   function groups() {
     for (let i = 0; i < n; i += 1) {
-      group[i] = bin[i] < 0 ? 1 : 0;
+      group[i] = bin[i] < 0 && !claimed[i] ? 1 : 0;
     }
     for (let i = 0; i < n; i += 1) {
-      if (bin[i] >= 0) {
+      if (bin[i] >= 0 || claimed[i]) {
         continue;
       }
       let lead = i;
       for (let j = 0; j < n; j += 1) {
-        if (bin[j] < 0 && Math.abs(sx[j] - sx[i]) < GROUP_PX && Math.abs(sy[j] - sy[i]) < GROUP_PX
+        if (bin[j] < 0 && !claimed[j] && Math.abs(sx[j] - sx[i]) < GROUP_PX && Math.abs(sy[j] - sy[i]) < GROUP_PX
           && (dist[j] < dist[lead] || (dist[j] === dist[lead] && j < lead))) {
           lead = j;
         }
@@ -478,13 +488,14 @@ export function createWarMarkers(camera, view) {
     ctx.lineJoin = 'round';
     ctx.textAlign = 'center';
     const pulse = 0.5 + 0.5 * Math.sin(nowMs * 0.0126);
+    claim();
     groups();
     /* Under everything: an edge arrow may cross the disc. */
     radar(nowMs);
     /* The least dangerous first, so a Hunter is never under a Scout. */
     for (let level = 0; level <= 2; level += 1) {
       for (let i = 0; i < n; i += 1) {
-        if (threat[i] === level && bin[i] < 0) {
+        if (threat[i] === level && bin[i] < 0 && !claimed[i]) {
           marker(i, pulse);
         }
       }
@@ -496,6 +507,25 @@ export function createWarMarkers(camera, view) {
     }
     if (hunted >= 0) {
       huntedWarning(pulse);
+    }
+  }
+
+  /* Every on screen attacker inside one of the HUD's boxes is that box's:
+   * the nearest such attacker gives the box its kind's tag. */
+  function claim() {
+    claimed.fill(0, 0, n);
+    if (!claims) {
+      return;
+    }
+    for (const c of claims) {
+      let best = -1;
+      for (let i = 0; i < n; i += 1) {
+        if (bin[i] < 0 && Math.hypot(sx[i] - c.x, sy[i] - c.y) <= c.r) {
+          claimed[i] = 1;
+          best = best < 0 || dist[i] < dist[best] ? i : best;
+        }
+      }
+      c.tag = best < 0 ? null : tags[kindOf[best]] || null;
     }
   }
 
@@ -804,7 +834,7 @@ export function createWarMarkers(camera, view) {
         continue;
       }
       marks.push({
-        id: a.id, kind: a.kind, tag: tags[kindOf[i]] ?? '', p: a.p.slice(), x: sx[i], y: sy[i], aim: i === aim, colour: COLOUR[threat[i]], dist: dist[i],
+        id: a.id, kind: a.kind, tag: tags[kindOf[i]] ?? '', p: a.p.slice(), x: sx[i], y: sy[i], aim: i === aim, colour: COLOUR[threat[i]], dist: dist[i], claimed: Boolean(claimed[i]),
       });
     }
     return {
@@ -838,5 +868,13 @@ export function createWarMarkers(camera, view) {
     huntedSince = -Infinity;
   }
 
-  return { update, clear, shown };
+  /* The Avionics HUD's claims list, held by reference and read each paint
+   * (null: none). */
+  function setClaims(list) {
+    claims = list;
+  }
+
+  return {
+    update, clear, shown, setClaims,
+  };
 }
