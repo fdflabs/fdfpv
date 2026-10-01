@@ -827,6 +827,17 @@ async function pageRoofDrop() {
       for (let z = r.minZ + 1; z <= r.maxZ - 1; z += 0.5) {
         const y = window.__roofTop(i, x, z);
         if (!Number.isFinite(y) || Math.abs(window.__surface(x, z, y + 0.3) - y) > 0.02) continue;
+        /* A metre in from the roof's own edges, not its box's: the box of a
+         * roof turned off the map's axes reaches past its eaves, and the
+         * let-down onto swiss2's lake house (roof 175) was put on its eave
+         * corner, where the roof ends 0.25 m on, slid off it in the first
+         * frame and fell 11 m to the grass beside the house, which this
+         * counted as through. */
+        const inside = [[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dz]) => {
+          const t = window.__roofTop(i, x + dx, z + dz);
+          return Number.isFinite(t) && Math.abs(window.__surface(x + dx, z + dz, t + 0.3) - t) <= 0.02;
+        });
+        if (!inside) continue;
         /* Each way the steeper of the two sides: a centred difference
          * reads a ridge as level, and the let-down went onto the ridge of
          * a 25 degree roof counted as one of 3. */
