@@ -107,6 +107,7 @@ async function onCard(page) {
 }
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
     return [r.left + r.width / 2, r.top + r.height / 2];

@@ -65,9 +65,9 @@ export const MAX_BUILDS = 48;
 const isRecord = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 
 /* An airframe a build can be made on: one the hangar opens, every plane
- * (configs/liveries.js paintable) and a combat quad for its loadout. */
+ * and combat aircraft (configs/liveries.js paintable). */
 export function buildable(id) {
-  return typeof id === 'string' && airframeById(id).id === id && (paintable(id) || Boolean(airframeById(id).combat));
+  return typeof id === 'string' && airframeById(id).id === id && paintable(id);
 }
 
 /* A fit, valid for this airframe: whatever it cannot fly dropped back to

@@ -32,7 +32,7 @@
 
 import * as THREE from 'three';
 import { setWeather, setMotorHeat } from '../render/thermal.js';
-import { createSensorView, PIP_W, PIP_H } from '../render/sensorview.js';
+import { createSensorView, INSET_SIZES } from '../render/sensorview.js';
 
 export const SENSOR_MODES = ['eo', 'ir_wh', 'ir_bh', 'lowlight', 'fusion', 'contrast'];
 export const ZOOM_LEVELS = [1, 2, 4];
@@ -107,6 +107,8 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
      * the sensor (mode, zoom, exposure, stabilisation) in the inset, as
      * the owner's reference has it; or 'sensor', the sensor full screen. */
     mainView: 'eo',
+    /* The inset's size, a key of INSET_SIZES: the pilot's choice (U). */
+    inset: 'small',
     timeOfDay: 'day',
     detect: {
       sensor: 'EO', pxPerRad: 0, light: 1, contrast: 0.75, quality: 0.7,
@@ -231,18 +233,20 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
       return;
     }
     const vfov = ((camera.fov * Math.PI) / 180) / (state.zoom * cropOf());
+    const pipW = g.canvas.width;
+    const pipH = g.canvas.height;
     const box = (t, ghost) => {
-      if (!t.losW || !project(t.losW, at, PIP_W / PIP_H, 'pip')) {
+      if (!t.losW || !project(t.losW, at, pipW / pipH, 'pip')) {
         return;
       }
       /* On pixel centres, so a one pixel line is one pixel of red. */
-      const x = Math.round((at.x * 0.5 + 0.5) * PIP_W) + 0.5;
-      const y = Math.round((0.5 - at.y * 0.5) * PIP_H) + 0.5;
-      if (x < -20 || x > PIP_W + 20 || y < -20 || y > PIP_H + 20) {
+      const x = Math.round((at.x * 0.5 + 0.5) * pipW) + 0.5;
+      const y = Math.round((0.5 - at.y * 0.5) * pipH) + 0.5;
+      if (x < -20 || x > pipW + 20 || y < -20 || y > pipH + 20) {
         return;
       }
       const conf = t.confidence ?? 0;
-      const side = Math.max(10, ((t.sizeRad || 0) / vfov) * PIP_H * (2 - Math.min(1, conf)));
+      const side = Math.max(10, ((t.sizeRad || 0) / vfov) * pipH * (2 - Math.min(1, conf)));
       const h = Math.round(side / 2);
       g.save();
       g.strokeStyle = RED;
@@ -338,7 +342,9 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
         Object.assign(mainView, PLAIN_EO);
       }
       pipView.snow = state.healthy ? snow : 1;
-      view.frame(s, camera, post, mainView, pipView, dt);
+      /* Full screen, the inset would only repeat the main view: it is not
+       * drawn, and the HUD hides its slot. */
+      view.frame(s, camera, post, mainView, state.mainView === 'sensor' ? null : pipView, dt);
     },
     project,
     setMode(mode) {
@@ -356,6 +362,15 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
         throw new Error(`sensors: no main view ${v}`);
       }
       state.mainView = v;
+    },
+    setInset(size) {
+      if (!INSET_SIZES[size]) {
+        throw new Error(`sensors: no inset size ${size}`);
+      }
+      state.inset = size;
+      if (view) {
+        view.setInsetSize(...INSET_SIZES[size]);
+      }
     },
     setZoom(z) {
       if (!ZOOM_LEVELS.includes(z)) {

@@ -118,12 +118,21 @@ paint.read()     // what set() was last given
 - An unknown region or finish, or a wear outside 0 to 1, throws.
 - `set({})` puts back exactly the colours the model was built in.
 
-Regions:
+Regions, in the order the hangar lists them. They are the aircraft's
+paint in `configs/liveries.js` too (`striker2500`, `7inch`, `10inch`,
+`interceptor`), so the garage's Colours tab, its schemes, finishes, decals
+and wear, the picker, the flown model, a peer in a room and the war all
+dress them through `dressLivery` as they dress a plane;
+`scripts/combat-models-check.js` holds every build's regions and stock
+colours to that file's.
 
 | model | regions |
 | --- | --- |
-| quads | `frame`, `pack`, `payload`, `tape`, `cage`, `legs`, `props` |
-| Striker | `skin` (fuselage, wing, fins; the elevons and rudders follow it), `nose`, `band`, `engine`, `prop`, `jet` |
+| quads | `frame` (the bottom plate and the camera mount; the standoffs follow it), `arms` (the lighter slot follows them), `top` (the top plate), `armour` (round the interceptor's camera), `tape` (where the arms are taped), `pack`, `payload`, `cage` (where the frame offers one), `legs`, `props` (where they are not clear) |
+| Striker | `fuselage`, `wing` (the elevons and hatches follow it), `fins` (the rudders follow them), `nose_cap`, `nose_band`, `engine` (the piston engine and the spinner, or the turbojet, by the metal both carry) |
+
+The Striker's wooden blades, skid, horns and whip, and a quad's metal,
+glass, copper, wire and circuit board, are left as built.
 
 The Striker's skin is a panel texture (seams and rivet rows, drawn in
 code) multiplied by its colour, so a repaint keeps its panel lines.
