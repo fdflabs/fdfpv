@@ -106,6 +106,7 @@
     "war:hudlayout": "node scripts/war-hud-layout.js",
     "war:card": "node scripts/war-card-check.js",
     "campaign:check": "node scripts/campaign-check.js",
+    "flow:check": "node scripts/flow-check.js",
     "war:targets": "node scripts/war-targets.js --check",
     "war:routes": "node scripts/war-routes-check.js",
     "war:balance": "node scripts/war-balance.js",
