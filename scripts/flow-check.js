@@ -266,7 +266,10 @@ try {
     await page.tap('Escape');
     await page.until("window.__ui.screen === 'paused'", 10000).catch(() => {});
     await page.evaluate("(() => { window.__ui.act('title'); return true; })()");
-    await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+    /* The run's end can swap the world back; the next picker opens on a
+     * settled title, not under a swap that ends on it. */
+    await page.until("window.__ui.screen === 'title' && window.__map().ready", 400000).catch(() => {});
+    await page.sleep(1000);
   }
   check('Free Flight\'s picker, a quad and a plane: each on Free Flight\'s menu, never My tracks, flown in the Swiss valley',
     picked.every((p) => p.menu.screen === 'title' && !p.menu.gate && p.menu.mode === 'freestyle' && p.menu.airframe === p.id
