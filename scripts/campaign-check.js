@@ -355,6 +355,13 @@ try {
   await page.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
   const start2 = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
   check('and it starts mission 2', start2 && start2.mission === 'itaipu-2', JSON.stringify(start2));
+  /* Mission 2's room is a new room, so its war is that room's war 1, as
+   * mission 1's was in its own: the shell took it for the war whose
+   * intro it had played, played none, and left the pilot in the briefing
+   * with no word of what came next (the owner, 2026-10-01). */
+  await page.until("window.__war().view.state === 'briefing' && window.__warIntro() !== null", 15000).catch(() => {});
+  const brief2 = await page.evaluate("(() => { const v = window.__war().view; return { id: v.id, state: v.state, intro: window.__warIntro() !== null }; })()");
+  check('mission 2\'s briefing plays the intro, though its war id is mission 1\'s', brief2.state === 'briefing' && brief2.intro, JSON.stringify(brief2));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

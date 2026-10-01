@@ -328,6 +328,9 @@ function checkEntry(family, entry) {
   if (paint.decals.length) {
     out.decals = paint.decals;
   }
+  if (paint.wear) {
+    out.wear = paint.wear;
+  }
   return { entry: Object.keys(out).length ? out : null, dropped };
 }
 
@@ -371,13 +374,15 @@ export function colourNumbers(colours) {
 
 /*
  * What the renderer dresses a model in (src/render/livery.js): each
- * region's colour as a number, the finishes and the decals.
+ * region's colour as a number, the finishes, the decals and the wear, a
+ * fraction from 0 (factory new) to 1.
  */
 export function lookFor(airframeId, entry) {
   return {
     colours: colourNumbers(coloursFor(airframeId, entry)),
     finishes: (entry && entry.finishes) || {},
     decals: (entry && entry.decals) || [],
+    wear: ((entry && entry.wear) || 0) / 100,
   };
 }
 

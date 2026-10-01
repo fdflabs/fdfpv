@@ -66,6 +66,7 @@ import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
 import {
   SUN_COLOR, SUN_IRRADIANCE, EXPOSURE, NIGHT_EXPOSURE, NIGHT_METER_KEY, NIGHT_SUN_COLOR, NIGHT_SUN_IRRADIANCE, isNight,
 } from './light.js';
+import { MAX_DISTRICTS } from '../../../share/war/grid.js';
 
 /*
  * The air, swiss2's shape (post.js AIR) with Itaipu's sky. The haze is the
@@ -138,6 +139,17 @@ const CLOUD_FADE = 40000;
 const CLOUD_LIT = 0.34;
 const CLOUD_SHADE = 0.13;
 
+/* The towns' glow at night (look/night.js hands the levels over): the
+ * light of every lit town district (src/share/war/grid.js, its seed and
+ * radius) scattered back by the air at CITY_AIR_Y, toward the horizon
+ * where a ray runs long through it, and onto the cloud deck's base over
+ * it. Warm, as sodium and old LED light is. Off by day (uCityOn 0), and
+ * the day's sky is then the same to the bit. */
+const CITY_AIR_Y = 600;
+const CITY_AIR = 0.05;
+const CITY_CLOUD = 0.12;
+const CITY_GLOW = new THREE.Color(1.0, 0.56, 0.26);
+
 /* A point over the dam the environment is drawn from, and its size. */
 const ENV_AT = new THREE.Vector3(0, 400, -1500);
 const ENV_PX = 256;
@@ -151,7 +163,30 @@ const SKY_GLSL = /* glsl */ `
   uniform vec3 uCam;
   uniform float uDisc;
   uniform float uStars;
+  uniform float uCityOn;
+  uniform float uCityLevel[${MAX_DISTRICTS}];
+  uniform vec2 uCitySeed[${MAX_DISTRICTS}];
+  uniform float uCityR[${MAX_DISTRICTS}];
+  uniform int uCityCount;
   varying vec3 vDir;
+
+  /* The towns' light over (x, z): each lit district's, a bump its radius
+   * wide. */
+  float cityGlowAt(vec2 xz) {
+    float s = 0.0;
+    for (int i = 0; i < ${MAX_DISTRICTS}; i++) {
+      if (i >= uCityCount) {
+        break;
+      }
+      float r = uCityR[i];
+      if (r <= 0.0) {
+        continue;
+      }
+      vec2 d = xz - uCitySeed[i];
+      s += uCityLevel[i] * exp(-dot(d, d) / (1.6 * r * r));
+    }
+    return s;
+  }
 
   float skyHash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -202,6 +237,12 @@ const SKY_GLSL = /* glsl */ `
     if (uStars > 0.0) {
       c += vec3(0.9, 0.94, 1.0) * (starsAt(d) * uStars);
     }
+    vec3 cityCol = vec3(${CITY_GLOW.r.toFixed(3)}, ${CITY_GLOW.g.toFixed(3)}, ${CITY_GLOW.b.toFixed(3)});
+    if (uCityOn > 0.0 && d.y > 0.0 && uCam.y < ${CITY_AIR_Y.toFixed(1)}) {
+      float runAir = (${CITY_AIR_Y.toFixed(1)} - uCam.y) / max(d.y, 0.015);
+      vec2 pAir = uCam.xz + d.xz * runAir;
+      c += cityCol * (${CITY_AIR.toFixed(3)} * cityGlowAt(pAir) * exp(-runAir / 40000.0) * (1.0 - smoothstep(0.0, 0.5, d.y)));
+    }
     if (d.y > 0.01 && uCam.y < ${CLOUD_BASE.toFixed(1)}) {
       float run = (${CLOUD_BASE.toFixed(1)} - uCam.y) / d.y;
       vec2 p = (uCam.xz + d.xz * run) / ${CLOUD_SIZE.toFixed(1)};
@@ -213,6 +254,9 @@ const SKY_GLSL = /* glsl */ `
         float lit = mix(${CLOUD_SHADE.toFixed(3)} * (1.25 - 0.5 * thick), ${CLOUD_LIT.toFixed(3)} * (0.85 + 0.15 * thick), side)
           + 0.3 * hg * (1.0 - thick);
         vec3 cloud = uSunCol * lit + uZenith * 0.6;
+        if (uCityOn > 0.0) {
+          cloud += cityCol * (${CITY_CLOUD.toFixed(3)} * cityGlowAt(uCam.xz + d.xz * run));
+        }
         float air = 1.0 - exp(-run / ${CLOUD_FADE.toFixed(1)});
         c = mix(c, mix(cloud, c, air), cover * smoothstep(0.01, 0.05, d.y));
       }
@@ -248,6 +292,12 @@ export function skyBackdrop(sunDir, time) {
       uCam: { value: new THREE.Vector3() },
       uDisc: { value: night ? 0 : 1 },
       uStars: { value: night ? 1 : 0 },
+      /* Set by look/night.js, which shares its levels' array. */
+      uCityOn: { value: 0 },
+      uCityLevel: { value: new Float32Array(MAX_DISTRICTS) },
+      uCitySeed: { value: Array.from({ length: MAX_DISTRICTS }, () => new THREE.Vector2()) },
+      uCityR: { value: new Float32Array(MAX_DISTRICTS) },
+      uCityCount: { value: 0 },
     },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
