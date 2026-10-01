@@ -152,7 +152,7 @@ export function liveryFor(airframeId) {
 export function dressLivery(craft, airframeId, look = liveryFor(airframeId)) {
   if (craft && craft.livery) {
     craft.livery.set((look && look.colours) ?? {});
-    dressFinish(craft, (look && look.finishes) ?? {});
+    dressFinish(craft, (look && look.finishes) ?? {}, (look && look.wear) || 0);
     dressDecals(craft, (look && look.decals) ?? []);
   }
   return craft;

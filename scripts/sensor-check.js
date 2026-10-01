@@ -148,9 +148,9 @@ const INSTALL = /* js */ `(async () => {
   const at = eye.clone().addScaledVector(fwd, ${DRONE_M});
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), right);
   att.update([{ id: 1, kind: 'strike', p: at.toArray(), q: q.toArray() }], 0, eye);
-  /* The engine (attackers.js strike: the tube at body z 1.2, y 0.1) and
+  /* The engine (strikercraft.js: the crankcase at body z 1.1) and
    * the drone's centre, as directions from the camera. */
-  const engine = new THREE.Vector3(0, 0.1, 1.2).applyQuaternion(q).add(at);
+  const engine = new THREE.Vector3(0, 0.03, 1.1).applyQuaternion(q).add(at);
   const dirOf = (p) => p.clone().sub(eye).normalize().toArray();
   /* The fire and the smoke trail, stepped on the frame's clock. */
   const boomAt = at.clone().addScaledVector(right, 12);
