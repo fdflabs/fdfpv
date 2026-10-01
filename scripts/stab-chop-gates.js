@@ -39,9 +39,10 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import {
   must, wingDebug, RC_STEP_MS, WING_AIRFRAME, SKY_AIRFRAME, CUB_AIRFRAME, GLIDER_AIRFRAME, BRAMOR_AIRFRAME,
   SLOWSTICK_AIRFRAME, TIMBER_AIRFRAME, TIMBERF_AIRFRAME, CUBF_AIRFRAME, BOMBSHELL_AIRFRAME, KADET_AIRFRAME, P51_AIRFRAME,
-  F16_AIRFRAME, ZAGI_AIRFRAME, UGLYSTIK_AIRFRAME, DLG_AIRFRAME, TIGERMOTH_AIRFRAME,
+  F16_AIRFRAME, ZAGI_AIRFRAME, UGLYSTIK_AIRFRAME, DLG_AIRFRAME, TIGERMOTH_AIRFRAME, STRIKER_PROP_AIRFRAME, STRIKER_JET_AIRFRAME,
 } from '../tests/lib/wingpilot.js';
 import { deriveAll } from './stab-glide-derive.js';
+import { setBlock } from './lib/strikerpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
@@ -53,6 +54,8 @@ const AIRFRAME = {
   FW_UGLYSTIK1567: UGLYSTIK_AIRFRAME,
   FW_NRJ1490: DLG_AIRFRAME,
   FW_TIGERMOTH1803: TIGERMOTH_AIRFRAME,
+  FW_STRIKER_PROP: STRIKER_PROP_AIRFRAME,
+  FW_STRIKER_JET: STRIKER_JET_AIRFRAME,
 };
 /* The Bombshell's S3 band about its derived 8.62: 7.67 to 9.65. */
 const BAND_LO = 8.62 / 9.65, BAND_HI = 8.62 / 7.67;
@@ -68,13 +71,20 @@ console.log('stab chop gates: the throttle closed in Stabilised, sticks centred,
 let failed = 0;
 for (const d of await deriveAll()) {
   const id = AIRFRAME[d.name];
+  /* A table flown with loads (the Striker's payloads, the bay's trim lead
+   * among them) is gated once a load, each seated as the shell seats it. */
+  const name = d.load ? `${d.name} ${d.load}` : d.name;
   if (id === undefined || !d.glide || !d.cruise) {
     failed += 1;
-    console.log(`  FAIL  ${d.name}: ${id === undefined ? 'no airframe id for it here' : 'no derived glide or cruise'}`);
+    console.log(`  FAIL  ${name}: ${id === undefined ? 'no airframe id for it here' : 'no derived glide or cruise'}`);
     continue;
   }
   must(sim.reset(), 'sim_reset');
   must(sim.e.sim_set_airframe(id), 'sim_set_airframe');
+  if (d.addon) {
+    must(sim.setAddons(d.addon.block), 'sim_set_addons');
+    must(setBlock(sim, 'sim_set_addon_inertia', d.addon.inertia), 'sim_set_addon_inertia');
+  }
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_pose(...STILL_AIR), 'sim_set_pose');
   /* A glider with no motor has no cruise: it is let go at its glide. */
@@ -102,7 +112,7 @@ for (const d of await deriveAll()) {
   const lo = d.glide.sink * BAND_LO, hi = d.glide.sink * BAND_HI;
   const ok = sink >= lo && sink <= hi && alphaMax < d.alphaStall;
   if (!ok) failed += 1;
-  console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${d.name.padEnd(17)} sink ${sink.toFixed(3)} m/s at ${v.toFixed(2)} m/s, alpha at most ${(alphaMax * DEG).toFixed(1)} deg`
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'}  ${name.padEnd(26)} sink ${sink.toFixed(3)} m/s at ${v.toFixed(2)} m/s, alpha at most ${(alphaMax * DEG).toFixed(1)} deg`
     + `   derived ${d.glide.sink.toFixed(3)} at ${d.glide.V.toFixed(2)}: sink ${lo.toFixed(3)} to ${hi.toFixed(3)}, alpha under ${(d.alphaStall * DEG).toFixed(1)}`);
 }
 console.log(failed ? `\n${failed} gate(s) FAIL` : '\nevery fixed wing glides with the throttle closed in Stabilised');

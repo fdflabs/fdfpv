@@ -83,15 +83,23 @@ export function createRoomList(onChange = () => {}) {
   let busy = false; /* the server refuses new public rooms for now (edge/rooms/health.js) */
   let failed = false;
   let timer = null;
-  let asking = false;
+  let asking = null; /* the answer being waited for, which a second ask shares */
   let shown = '';
 
-  async function ask() {
+  function ask() {
+    if (!asking) {
+      asking = askOnce().finally(() => {
+        asking = null;
+      });
+    }
+    return asking;
+  }
+
+  async function askOnce() {
     const origin = roomsOrigin();
-    if (asking || !origin || (typeof document !== 'undefined' && document.hidden)) {
+    if (!origin || (typeof document !== 'undefined' && document.hidden)) {
       return;
     }
-    asking = true;
     try {
       const res = await fetch(`${origin}/v2/rooms`, { cache: 'no-store' });
       if (!res.ok) {
@@ -108,7 +116,6 @@ export function createRoomList(onChange = () => {}) {
        * the server is not answering until it does. */
       failed = true;
     }
-    asking = false;
     /* What the screen shows: the minutes left, not the ms, or every answer
      * would redraw it. */
     const seen = rooms && rooms.map((r) => ({ ...r, closesAt: closesInMin(r) }));

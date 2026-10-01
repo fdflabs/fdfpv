@@ -105,6 +105,7 @@ const KIND_SURFACE = {
   hoop: 'foliage',
   tree: 'wood',
   wall: 'concrete',
+  wire: 'wire',
   cliff: 'rock',
   rock: 'rock',
   obstacle: 'default',
@@ -389,9 +390,51 @@ export function nearestTrees(trees, x, z, reach, max, out) {
 }
 
 /*
+ * THE WIRES NEAR THE CRAFT: the `max` 'wire' colliders (an overhead line's
+ * chords) whose segment passes nearest (x, y, z) within `reach`, nearest
+ * first, ties to the lower index, into `out` (cleared) as { d2, i }. The
+ * plant meets these itself (sim_wire_add), so they are left out of the
+ * solids below. A linear scan, as the solids' is: once per refresh.
+ */
+export function nearestWires(colliders, x, y, z, reach, max, out) {
+  out.length = 0;
+  if (!colliders || !colliders.built) {
+    return out;
+  }
+  const WIRE = KINDS.indexOf('wire');
+  for (let i = 0; i < colliders.count; i += 1) {
+    if (colliders.fkind[i] !== WIRE || colliders.fbox[i]) {
+      continue;
+    }
+    const ax = colliders.fax[i];
+    const ay = colliders.fay[i];
+    const az = colliders.faz[i];
+    const ux = colliders.fbx[i] - ax;
+    const uy = colliders.fby[i] - ay;
+    const uz = colliders.fbz[i] - az;
+    const l2 = ux * ux + uy * uy + uz * uz;
+    let t = l2 > 0 ? ((x - ax) * ux + (y - ay) * uy + (z - az) * uz) / l2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const dx = ax + ux * t - x;
+    const dy = ay + uy * t - y;
+    const dz = az + uz * t - z;
+    const d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 <= reach * reach) {
+      out.push({ d2, i });
+    }
+  }
+  out.sort((a, b) => a.d2 - b.d2 || a.i - b.i);
+  if (out.length > max) {
+    out.length = max;
+  }
+  return out;
+}
+
+/*
  * THE SOLIDS THE BROKEN PARTS MEET: the `max` static colliders nearest
  * (x, y, z) within `reach`, trees excluded (sim_tree_add gives every tree
- * it holds a trunk for the free bodies, and a crown is foliage). Each is { box, kind, i } with a box's world
+ * it holds a trunk for the free bodies, and a crown is foliage) and wires
+ * too (nearestWires). Each is { box, kind, i } with a box's world
  * corners or a capsule's two ends and radius, nearest first by the
  * distance to its bounding box. `skip`, when given, marks colliders to
  * leave out: the walls under a roof the craft is on (src/main.js).
@@ -403,8 +446,9 @@ export function nearestSolids(colliders, x, y, z, reach, max, out, skip = null) 
   }
   const CANOPY = KINDS.indexOf('canopy');
   const TREE = KINDS.indexOf('tree');
+  const WIRE = KINDS.indexOf('wire');
   for (let i = 0; i < colliders.count; i += 1) {
-    if (colliders.fkind[i] === CANOPY || colliders.fkind[i] === TREE || (skip && skip[i])
+    if (colliders.fkind[i] === CANOPY || colliders.fkind[i] === TREE || colliders.fkind[i] === WIRE || (skip && skip[i])
       || (colliders.softKinds & (1 << colliders.fkind[i]))) {
       continue;
     }

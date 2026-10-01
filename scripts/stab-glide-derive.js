@@ -9,11 +9,14 @@
  * states with the elevator neutral, the flaps up and no pitch rate, on the
  * plant's own lift curve, stall blend and stall arms included:
  *
- *   the glide: the throttle closed, so no thrust (every aircraft's idle or
- *   duty_min pitch speed is under its glide, which is checked), the
- *   pitching moment zero; the aero force then carries the weight, and the
- *   body's pitch is the zero lift line's alpha, less its angle under the
- *   body axis, less the glide path's.
+ *   the glide: the throttle closed, the pitching moment zero, the thrust
+ *   line's moment included; the aero force and what the closed throttle
+ *   still pulls carry the weight, and the body's pitch is the zero lift
+ *   line's alpha, less its angle under the body axis, less the glide
+ *   path's. A propeller pulls nothing there (every prop's idle or duty_min
+ *   pitch speed is under its glide, which is checked); a turbine idles
+ *   rather than stops (fan_tau, the Striker's jet), and its idle thrust is
+ *   in the balance.
  *
  *   the cruise: the throttle stick at which that same neutral elevator
  *   flies level, the thrust line's moment on the trim included. That is
@@ -47,6 +50,10 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { AIRFRAMES } from '../configs/airframes.js';
+import { combatAddon, combatChoice } from '../configs/combat.js';
+import { SIM_ADDON } from '../configs/hangar-parts.js';
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEG = 180 / Math.PI;
 const WING_PI = Math.PI;
@@ -66,9 +73,37 @@ function fields(body) {
   return new Proxy(out, { get: (o, k) => (k in o ? o[k] : 0) });
 }
 
+/*
+ * The loads a table is flown with. An aircraft with a combat block (the
+ * Striker) never flies its bare table: the shell seats every payload, and
+ * none, through sim_set_addons with the bay's trim lead, so each is a load
+ * of its own, `addon` the block the shell seats, `sh` the CG's move ([x, z]
+ * about the table's), and its mass added. Every other aircraft is its
+ * table alone.
+ */
+function loadsOf(simId, mass) {
+  const af = AIRFRAMES.find((a) => a.combat && (a.combat.propulsion ?? [a]).some((x) => x.simId === simId));
+  if (!af || !af.fixedWing) {
+    return [{ load: null, addon: null, dm: 0, sh: [0, 0] }];
+  }
+  const pr = (af.combat.propulsion ?? []).find((x) => x.simId === simId);
+  const base = combatChoice(af, null);
+  return ['none', ...af.combat.payloads.map((x) => x.id)].map((payload) => {
+    const choice = { ...base, payload, ...(pr ? { propulsion: pr.id } : {}) };
+    const addon = combatAddon(af, choice);
+    const dm = addon ? addon.block[SIM_ADDON.MASS] : 0;
+    const r = addon ? [addon.block[SIM_ADDON.CG], addon.block[SIM_ADDON.CG + 2]] : [0, 0];
+    return { load: payload, standard: payload === base.payload, addon, dm, sh: [dm * r[0] / (mass + dm), dm * r[1] / (mass + dm)] };
+  });
+}
+
 async function tables() {
   const wing = stripComments(await readFile(join(root, 'src/native/plant_wing.c'), 'utf8'));
   const plant = stripComments(await readFile(join(root, 'src/native/plant.c'), 'utf8'));
+  const ids = {};
+  for (const m of stripComments(await readFile(join(root, 'src/native/sim_internal.h'), 'utf8')).matchAll(/#define (SIM_AIRFRAME_\w+) (\d+)/g)) {
+    ids[m[1]] = Number(m[2]);
+  }
   const planes = [];
   for (const m of wing.matchAll(/const FixedWingParams (FW_\w+) = \{([\s\S]*?)\n\};/g)) {
     const at = plant.indexOf(`.fw = &${m[1]},`);
@@ -79,7 +114,11 @@ async function tables() {
     for (const k of ['mass_kg', 'gravity', 'rho']) {
       if (!(own[k] > 0)) throw new Error(`${m[1]}: its airframe has no ${k}`);
     }
-    planes.push({ name: m[1], fw: fields(m[2]), m: own.mass_kg, g: own.gravity, rho: own.rho });
+    const key = /\[(SIM_AIRFRAME_\w+)\]\s*=\s*\{/.exec(plant.slice(start, at));
+    if (!key || !(key[1] in ids)) throw new Error(`${m[1]}: no airframe id for its plant.c entry`);
+    for (const l of loadsOf(ids[key[1]], own.mass_kg)) {
+      planes.push({ name: m[1], fw: fields(m[2]), m: own.mass_kg + l.dm, g: own.gravity, rho: own.rho, ...l });
+    }
   }
   return planes;
 }
@@ -108,13 +147,25 @@ function coeffs(fw, alpha) {
   };
 }
 
-/* The alpha where the pitching moment is cm, on the unstalled branch. */
-function trimAlpha(fw, cm) {
+/* The alpha where the pitching moment about the CG is zero, on the
+ * unstalled branch, at dynamic pressure q with thrust T along body x: the
+ * thrust line's moment, and where a load has moved the CG by sh ([x, z]
+ * about the table's), every force's arm less the shift, as plant_wing.c
+ * sums them. */
+function trimAlpha(fw, q, T, sh = [0, 0]) {
+  const S = fw.area;
+  const net = (alpha) => {
+    const { CL, CD, Cm } = coeffs(fw, alpha);
+    const ab = alpha + fw.alpha_zl;
+    const Fx = q * S * (CL * Math.sin(ab) - CD * Math.cos(ab)) + T;
+    const Fz = q * S * (CL * Math.cos(ab) + CD * Math.sin(ab));
+    return Cm - fw.thrust_z * T / (q * S * fw.chord) + (sh[1] * Fx - sh[0] * Fz) / (q * S * fw.chord);
+  };
   let lo = -0.2, hi = coeffs(fw, 0).aStall;
-  if (coeffs(fw, lo).Cm - cm < 0 || coeffs(fw, hi).Cm - cm > 0) return null;
+  if (net(lo) < 0 || net(hi) > 0) return null;
   for (let i = 0; i < 80; i += 1) {
     const mid = (lo + hi) / 2;
-    if (coeffs(fw, mid).Cm - cm > 0) lo = mid; else hi = mid;
+    if (net(mid) > 0) lo = mid; else hi = mid;
   }
   return lo;
 }
@@ -133,17 +184,43 @@ function thrust(fw, stick, u) {
 function glide(p) {
   const { fw } = p;
   const W = p.m * p.g;
-  const alpha = trimAlpha(fw, 0);
-  if (alpha === null) return null;
-  const { CL, CD } = coeffs(fw, alpha);
-  const gamma = Math.atan2(CD, CL);
-  const V = Math.sqrt(2 * W / (p.rho * fw.area * Math.hypot(CL, CD)));
-  const alphaBody = alpha + fw.alpha_zl;
+  /* At airspeed V: alpha trimmed against the closed throttle's thrust
+   * line, and the weight the aero force and that thrust carry there. */
+  const at = (V) => {
+    const q = 0.5 * p.rho * V * V;
+    let T = 0, alpha = 0;
+    for (let it = 0; it < 60; it += 1) {
+      alpha = trimAlpha(fw, q, T, p.sh);
+      if (alpha === null) return null;
+      T = thrust(fw, 0, V * Math.cos(alpha + fw.alpha_zl));
+    }
+    const ab = alpha + fw.alpha_zl;
+    const { CL, CD } = coeffs(fw, alpha);
+    const along = q * fw.area * CD - T * Math.cos(ab);
+    const across = q * fw.area * CL + T * Math.sin(ab);
+    return { alpha, CL, CD, T, ab, along, across, carried: Math.hypot(along, across) };
+  };
+  /* From the glide with no thrust, where the force goes as V squared:
+   * scaled by the root of what is short, which is exact at once when the
+   * closed throttle pulls nothing. */
+  const a0 = trimAlpha(fw, 1, 0, p.sh);
+  if (a0 === null) return null;
+  const c0 = coeffs(fw, a0);
+  let V = Math.sqrt(2 * W / (p.rho * fw.area * Math.hypot(c0.CL, c0.CD)));
+  for (let i = 0; i < 100; i += 1) {
+    const g = at(V);
+    if (g === null) return null;
+    V *= Math.sqrt(W / g.carried);
+  }
+  const g = at(V);
+  if (g === null || Math.abs(g.carried - W) > 1e-9 * W) return null;
+  const { alpha, CL, CD, T, ab, along, across } = g;
+  const gamma = Math.atan2(along, across);
   return {
     alpha, CL, CD, V, gamma,
     sink: V * Math.sin(gamma),
-    pitch: alphaBody - gamma,
-    idleThrust: thrust(fw, 0, V * Math.cos(alphaBody)),
+    pitch: ab - gamma,
+    idleThrust: T,
   };
 }
 
@@ -156,7 +233,7 @@ function levelAt(p, V) {
   const q = 0.5 * p.rho * V * V;
   let T = 0, alpha = 0, stick = 0;
   for (let it = 0; it < 60; it += 1) {
-    alpha = trimAlpha(fw, fw.thrust_z * T / (q * fw.area * fw.chord));
+    alpha = trimAlpha(fw, q, T, p.sh);
     if (alpha === null) return null;
     const ab = alpha + fw.alpha_zl;
     const { CD } = coeffs(fw, alpha);
@@ -198,7 +275,7 @@ export async function deriveAll() {
       /* An aircraft with no motor has no cruise throttle: the stick is
        * never over zero, so its pitch down never acts and its table's
        * stab_trim_throttle is zero. */
-      name: p.name, fw: p.fw, glide: gl, cruise: p.fw.thrust_static > 0 ? cruise(p) : { V: null, stick: 0 },
+      name: p.name, load: p.load, standard: p.standard, addon: p.addon, fw: p.fw, glide: gl, cruise: p.fw.thrust_static > 0 ? cruise(p) : { V: null, stick: 0 },
       alphaStall: coeffs(p.fw, 0).aStall,
       /* ArduPilot's range is 0 to 15 deg: a pitch down. An airframe whose
        * glide is nose higher than its trim pitch already asks for less
@@ -214,18 +291,24 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const f = (x, n = 2) => (x === null || x === undefined ? 'none' : Number(x).toFixed(n));
   console.log('stab glide: the power off glide and the cruise throttle, elevator neutral, from each table');
   console.log(`${'airframe'.padEnd(20)} ${'glide alpha CL V sink pitch'.padEnd(34)} ${'cruise V stick'.padEnd(16)} trim  down  table down, stick`);
-  for (const { name, fw, glide: gl, cruise: cr, down } of await deriveAll()) {
+  for (const { name: table, load, standard, fw, glide: gl, cruise: cr, down } of await deriveAll()) {
+    /* A table flown with loads carries the default load's numbers; the
+     * others print beside it, the same CG, so the same glide pitch. */
+    const name = load ? `${table} ${load}` : table;
+    const held = !load || standard;
     if (!gl || !cr) {
       console.log(`${name.padEnd(20)} no ${gl ? 'level cruise' : 'glide trim'} on the unstalled branch`);
       bad += 1;
       continue;
     }
-    if (gl.idleThrust !== 0) {
-      console.log(`${name.padEnd(20)} the closed throttle still pulls ${f(gl.idleThrust, 3)} N in the glide`);
+    if (gl.idleThrust !== 0 && !(fw.fan_tau > 0)) {
+      console.log(`${name.padEnd(20)} the closed throttle still pulls ${f(gl.idleThrust, 3)} N in the glide, and it is a propeller`);
       bad += 1;
+    } else if (gl.idleThrust !== 0) {
+      console.log(`${name.padEnd(20)} a turbine: it glides on its idle's ${f(gl.idleThrust, 3)} N`);
     }
     /* The tables carry a hundredth of a degree and a thousandth of the stick. */
-    const off = Math.abs(fw.stab_pitch_down - down) * DEG > 0.0051 || Math.abs(fw.stab_trim_throttle - cr.stick) > 0.00051;
+    const off = held && (Math.abs(fw.stab_pitch_down - down) * DEG > 0.0051 || Math.abs(fw.stab_trim_throttle - cr.stick) > 0.00051);
     console.log(`${name.padEnd(20)} ${`${f(gl.alpha * DEG, 2)} ${f(gl.CL, 3)} ${f(gl.V)} ${f(gl.sink, 3)} ${f(gl.pitch * DEG)}`.padEnd(34)} ${`${f(cr.V)} ${f(cr.stick, 3)}`.padEnd(16)} ${f(fw.stab_trim_pitch * DEG, 1).padStart(4)}  ${f(down * DEG).padStart(5)}  ${f(fw.stab_pitch_down * DEG)}, ${f(fw.stab_trim_throttle, 3)}${check && off ? '  DIFFERS' : ''}`);
     if (check && off) bad += 1;
   }

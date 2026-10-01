@@ -62,6 +62,8 @@ const LOOKS = {
   foliage: { fleck: [0x4f7a2a, 30, 1.8], puff: null, chunk: [0x6a4a2a, 6, [0.09, 0.006, 0.006]], up: 0.4 },
   pvc: { fleck: [0xe8e4dc, 6, 3.0], puff: null, chunk: [0xf0ece4, 2, [0.02, 0.012, 0.004]], up: 0.35 },
   metal: { fleck: [0xffe2a0, 10, 5.0], puff: null, chunk: null, up: 0.3 },
+  /* A live conductor: the arc's blue white sparks and a wisp of its smoke. */
+  wire: { fleck: [0xd8e8ff, 16, 6.0], puff: [0x8a8e94, 2, 0.8], chunk: null, up: 0.3 },
   water: { fleck: [0xeef4f8, 40, 3.6], puff: [0xf4f8fb, 6, 1.6], chunk: null, up: 0.9 },
 };
 

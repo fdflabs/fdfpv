@@ -28,6 +28,7 @@
  */
 
 import { derivatives, lattice } from './lib/lattice.js';
+import { trimBallastKg } from '../configs/combat.js';
 
 const RHO = 1.225;
 const G = 9.80665;
@@ -41,12 +42,15 @@ const INCH = 0.0254;
  *
  * A part is { name, m, at, box } (a solid box of those edge lengths about its
  * centre) or { name, m, at } (a point), or an arm { name, m, arm: [r0, r1] }
- * (four thin rods along the diagonals, m each, from r0 to r1 from the centre).
+ * (four thin rods from the centre towards the motors, m each, from r0 to r1).
  */
 const QUADS = {
   '7inch': {
     simId: 24,
-    diag: 0.315,
+    frame: '7in',
+    /* Motor centres, half spacing fore and aft and across: a square X of
+     * 315 mm motor to motor. */
+    motorXY: [0.315 / 2 / Math.SQRT2, 0.315 / 2 / Math.SQRT2],
     propIn: 7, pitchIn: 3.5,
     /* Published static thrust of a 2806.5 1300 kV on 6S under a 7x3.5x3 tri
      * blade, about 1.9 kgf at 24,000 rpm at the stand's own 25 V supply. kt
@@ -61,6 +65,7 @@ const QUADS = {
     /* A 6S1P 21700 Li-ion pack: 16 mOhm a cell DC (a 4200 mAh high drain
      * cell's published figure) plus 2 mOhm a cell of leads and XT60. */
     rCell: 0.018,
+    packAh: 4.2,
     /* Winding resistance: a 2806.5 1300 kV measures about 75 mOhm phase to
      * phase; 15 mOhm more for the ESC's FETs and the leads. */
     rMotor: 0.090,
@@ -101,7 +106,8 @@ const QUADS = {
   },
   '10inch': {
     simId: 25,
-    diag: 0.420,
+    frame: '10in',
+    motorXY: [0.420 / 2 / Math.SQRT2, 0.420 / 2 / Math.SQRT2],
     propIn: 10, pitchIn: 5,
     /* A 3115 900 kV on 6S under a 10x5x3: about 3.6 kgf at 14,000 rpm. */
     stand: { kgf: 3.6, rpm: 14000 },
@@ -110,6 +116,7 @@ const QUADS = {
     fm: 0.58,
     /* 6S2P 21700, two cells in parallel: 8 mOhm a cell and 2 of leads. */
     rCell: 0.010,
+    packAh: 8.4,
     /* A 3115 900 kV measures about 70 mOhm; 20 mOhm of FETs and leads. */
     rMotor: 0.090,
     /* A 10 inch three blade is 18 to 20 g at 127 mm, plus a 3115 bell. */
@@ -143,6 +150,87 @@ const QUADS = {
       { id: 'gps', m: 0.020, at: [-0.070, 0, 0.080] },
     ],
   },
+  /*
+   * THE INTERCEPTOR, the owner's reference photograph of 2026-10-01: a
+   * stretched X 7 inch speed build, high kV motors on 6S, clear two blade
+   * props, an armoured nose round the camera, one big pack strapped on top
+   * and two antennas, built for top speed. Where the 7 inch is built to
+   * carry and to last, this one is built to catch: a LiPo instead of
+   * Li-ion, hotter motors, high pitch two blades, and nothing on it that
+   * does not make it faster.
+   */
+  interceptor: {
+    simId: 26,
+    frame: 'interceptor',
+    /* Stretched X: 240 mm fore and aft between motors, 200 mm across,
+     * 312 mm motor to motor on the diagonal. Across is as close as two
+     * 7 inch discs allow (22 mm between the tips); the stretch is what
+     * keeps the front props' wash off the rear ones in a fast forward
+     * pass, which is what the layout is for. */
+    motorXY: [0.120, 0.100],
+    propIn: 7, pitchIn: 6,
+    /* A thin electric 7 x 6 two blade: the published static tables for
+     * that prop class put C_T near 0.11 and C_P near 0.066 (on n and D),
+     * which is 2.2 kgf at 24,000 rpm. Its thrust constant is the 7 inch's
+     * 7x3.5 three blade's and a little more; its zero thrust speed at the
+     * same rotor speed is 71 percent higher, which is the whole point of
+     * it. */
+    stand: { kgf: 2.2, rpm: 24000 },
+    /* A 2807 1500 kV, the hot wind of a 7 inch motor for 6S speed builds,
+     * where long range builds take 1300 or less. Loaded 1.15 over the
+     * plate: a hotter wind saturates more than the 7 inch's 1300 kV
+     * (1.10) and less than a 2207 run at 1900 (1.26). */
+    kv: 1500,
+    loaded: 1.15,
+    /* 0.798 C_T^1.5 / C_P = 0.44 from the same table: a high pitch two
+     * blade is partly stalled at the root in a static hover, so it is
+     * below both the 7 inch three blade's 0.55 and the five inch's 0.52.
+     * It pays for it at speed, where the pitch is what keeps the thrust. */
+    fm: 0.44,
+    /* A 6S 1800 mAh 120C LiPo: 3 mOhm a cell DC, and 1.5 mOhm a cell of
+     * leads and XT60. A sixth of the 7 inch's Li-ion cell. */
+    rCell: 0.0045,
+    packAh: 1.8,
+    /* A 2807 1500 kV measures about 50 mOhm phase to phase (a 2806.5
+     * 1300 kV's 75 by the square of the kV ratio, a little more copper
+     * for the longer stator); 15 mOhm of FETs and leads. */
+    rMotor: 0.065,
+    /* An 8 g glass nylon two blade at 89 mm, m R^2 / 3, and a 2807 bell. */
+    jRotor: 2.2e-5,
+    parts: [
+      { name: 'arms', m: 0.020, arm: [0.030, Math.hypot(0.120, 0.100)] },
+      { name: 'plates and standoffs', m: 0.060, at: [0, 0, 0.012], box: [0.16, 0.050, 0.03] },
+      { name: 'motors 2807', m: 0.056, motors: 0.016 },
+      { name: 'props 7x6x2', m: 0.008, motors: 0.037 },
+      { name: 'FC and 4 in 1 65 A ESC', m: 0.040, at: [0, 0, 0.010] },
+      { name: 'video transmitter', m: 0.020, at: [-0.040, 0, 0.015] },
+      { name: 'FPV camera', m: 0.010, at: [0.085, 0, 0.012] },
+      /* The photograph's armoured nose, part of the build: plated carbon
+       * round the camera from the bottom plate to under the props. */
+      { name: 'armoured nose', m: 0.040, at: [0.090, 0, 0.012] },
+      { name: 'receiver', m: 0.005, at: [-0.050, 0, 0.020] },
+      { name: 'wiring, XT60, straps', m: 0.035, at: [0, 0, 0.015] },
+      { name: 'stock antennas', m: 0.008, at: [-0.070, 0, 0.040] },
+      { name: 'landing legs', m: 0.010, at: [0, 0, -0.035] },
+      /* 6S 1800 mAh 120C LiPo, about 285 g, long side fore and aft on the
+       * top plate under two straps. */
+      { name: 'pack 6S 1800 LiPo', m: 0.285, at: [-0.005, 0, 0.048], box: [0.105, 0.037, 0.042] },
+    ],
+    belly: -0.005,
+    /* One payload: a small proximity charge, slim so it costs little
+     * drag at speed. Its war rule is the standard warhead: every warhead
+     * in the war already goes off on proximity (edge/rooms/war.js), and
+     * this is the smallest of them. */
+    payloads: [
+      { id: 'proximity', warhead: 'standard', m: 0.20, d: 0.045, len: 0.16, x: 0.020 },
+    ],
+    /* The photograph's two antennas are the stock ones here; the tall set
+     * and a GPS puck behind the pack are what a pilot can add. */
+    accessories: [
+      { id: 'lrantenna', m: 0.020, at: [-0.075, 0, 0.085] },
+      { id: 'gps', m: 0.015, at: [-0.065, 0, 0.078] },
+    ],
+  },
 };
 
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
@@ -150,20 +238,21 @@ const r6 = (v) => Number(v.toPrecision(4));
 
 /* Point masses with own inertia, [m, [x, y, z], [Ixx, Iyy, Izz] about own centre]. */
 function lumps(q) {
-  const a = q.diag / 2 / Math.SQRT2;
-  const diag = [[-a, -a], [a, -a], [-a, a], [a, a]];
+  const [ax, ay] = q.motorXY;
+  const diag = [[-ax, -ay], [ax, -ay], [-ax, ay], [ax, ay]];
   const out = [];
   for (const p of q.parts) {
     if (p.arm) {
       const [r0, r1] = p.arm;
       for (const [sx, sy] of diag) {
-        /* A thin rod along the diagonal: its own inertia about its centre
-         * is m L^2 / 12 across it, split equally on x and y. */
+        /* A thin rod from the centre towards the motor: its own inertia
+         * about its centre is m L^2 / 12 across it, shared between x and y
+         * by the rod's direction. */
         const L = r1 - r0;
         const rc = (r0 + r1) / 2;
         const u = [sx / Math.hypot(sx, sy), sy / Math.hypot(sx, sy)];
         const own = p.m * L * L / 12;
-        out.push([p.m, [u[0] * rc, u[1] * rc, 0], [own / 2, own / 2, own]]);
+        out.push([p.m, [u[0] * rc, u[1] * rc, 0], [own * u[1] * u[1], own * u[0] * u[0], own]]);
       }
     } else if (p.motors != null) {
       for (const [x, y] of diag) {
@@ -256,7 +345,7 @@ function solveMotor(q, M) {
   const vF = voc - rPack * 4 * iF;
   return {
     propR: R, kt, kq, ke, rMotor, kInflow: q.pitchIn * INCH / (2 * Math.PI),
-    hover: { duty: d, w: wh, rpm: wh * 60 / (2 * Math.PI), amps: ih, cellV: vh / 6 },
+    hover: { duty: d, w: wh, rpm: wh * 60 / (2 * Math.PI), amps: ih, pack: 4 * d * ih, cellV: vh / 6 },
     full: { w: wf, rpm: wf * 60 / (2 * Math.PI), amps: iF, pack: 4 * iF, cellV: vF / 6, thrustN: 4 * kt * wf * wf, tw: 4 * kt * wf * wf / (M * G) },
     loadedKv: 60 / (2 * Math.PI * ke),
     tau: q.jRotor * rMotor / (ke * ke),
@@ -287,12 +376,13 @@ export function deriveCombat() {
     }));
     out[id] = {
       q, M, c, I, motor,
-      arm: q.diag / 2 / Math.SQRT2,
+      arm: q.motorXY[0],
+      armY: q.motorXY[1],
       motorZ: zOf('motors'),
       discZ: zOf('props'),
       belly: q.belly - c[2],
       hullDown: -(Math.min(...q.payloads.map((p) => q.belly - p.d)) - c[2]),
-      combat: { frame: id === '7inch' ? '7in' : '10in', payloads, accessories },
+      combat: { frame: q.frame, payloads, accessories },
     };
   }
   return out;
@@ -690,6 +780,11 @@ export function deriveStriker() {
   const accessories = STRIKER_ACCESSORIES.map((x) => ({
     id: x.id, massKg: x.m, cgOffset_m: [r4(xCG - x.at[0]), 0, r4(x.at[2] - zc)],
   }));
+  /* The bay's trim lead, at its forward end on the axis, as far forward as
+   * the airframe's own nose ballast: with it every payload, and none,
+   * flies at the most nose heavy one's CG (configs/combat.js
+   * trimBallastKg). */
+  const ballast = { at_m: [r4(xCG - BALLAST_AT[0]), 0, r4(-zc)] };
 
   /*
    * PER VARIANT: what plant_wing.c's table takes, the performance the
@@ -764,10 +859,12 @@ export function deriveStriker() {
   for (const [pid, v] of Object.entries(variants)) {
     const E = v.engine;
     const cd0 = CD0[pid];
-    /* A load's mass, weight, and its CG's move forward, m. */
+    /* A load's mass, weight, and its CG's move forward, m: the payload
+     * and the trim lead the bay takes with it. */
     const loadOf = (p) => {
-      const M = v.M + (p ? p.massKg : 0);
-      return { M, W: M * G, dx: p ? p.massKg * p.cgOffset_m[0] / M : 0 };
+      const lead = trimBallastKg(v.M, payloads, p, ballast.at_m[0]);
+      const M = v.M + (p ? p.massKg : 0) + lead;
+      return { M, W: M * G, lead, dx: ((p ? p.massKg * p.cgOffset_m[0] : 0) + lead * ballast.at_m[0]) / M };
     };
     const perf = (p) => {
       const { M, W, dx } = loadOf(p);
@@ -788,7 +885,7 @@ export function deriveStriker() {
         const vz = (thrustAt(E, V, 1) - drag(V)) * V / W;
         if (vz > climb.vz) climb = { vz, V };
       }
-      return { M, W, dx, level, climb, drag };
+      return { M, W, dx, lead: loadOf(p).lead, level, climb, drag };
     };
     const bare = perf(null);
     const std = perf(payloadOf('standard'));
@@ -905,7 +1002,7 @@ export function deriveStriker() {
     cgDz_m: r4(v.zCG - variants.prop.zCG),
     drawing_m: hulls[pid].origin.map(r4),
   }));
-  const combat = { frame: 'striker', propulsion, payloads, accessories };
+  const combat = { frame: 'striker', propulsion, payloads, accessories, ballast };
 
   return {
     SW, b, S, c, AR, mac, yMac, xMacLE, D0n, D0, xNPlattice, dCmaFus, xNP, xCG, SMc,
@@ -950,18 +1047,19 @@ function printStriker() {
     console.log(`                         idle ${f(E.idle, 3)}, tank ${E.tankM3} m^3, flow ${E.flowFull.toPrecision(6)} / ${E.flowIdle.toPrecision(6)} m^3/s, j ${E.jProp.toPrecision(4)} kg m^2, fan_tau ${E.fanTau} s`);
     console.log(`hull                     hx ${f(h.hx)} hy ${f(h.hy)} down ${f(h.down)} up ${f(h.up)}; camera ${v3(h.camera)}; prop hub ${v3(h.prop)}; nacelle exit ${v3(h.nacelle)}`);
     console.log(`the drawing's origin     ${v3(h.origin)} about the CG, body frame`);
-    console.log('payload   mass   CG move  trimmed stall (elevon)   top    best climb');
+    console.log('payload   mass   lead   CG move  trimmed stall (elevon)   top    best climb');
     for (const id of [null, 'emp', 'standard', 'penetrator', 'wide']) {
       const p = id ? d.payloads.find((x) => x.id === id) : null;
       const st = o.trimmedStall(p);
       const pf = o.perf(p);
-      console.log(`  ${(id ?? 'none').padEnd(10)} ${f(p ? p.massKg : 0, 2)}  ${f(pf.dx, 3)}   ${f(st.V, 2)} m/s (${f(st.de, 1)} deg)${st.limited ? ' at full throw' : ''}   ${f(pf.level(1), 2)}  ${f(pf.climb.vz, 2)} m/s at ${f(pf.climb.V, 1)}`);
+      console.log(`  ${(id ?? 'none').padEnd(10)} ${f(p ? p.massKg : 0, 2)}  ${f(pf.lead, 3)}  ${f(pf.dx, 4)}   ${f(st.V, 2)} m/s (${f(st.de, 1)} deg)${st.limited ? ' at full throw' : ''}   ${f(pf.level(1), 2)}  ${f(pf.climb.vz, 2)} m/s at ${f(pf.climb.V, 1)}`);
     }
   }
   console.log('\npayloads, about the prop\'s CG:');
   for (const p of d.payloads) {
     console.log(`  ${p.id.padEnd(11)} ${p.massKg.toFixed(2)} kg  cg [${p.cgOffset_m.join(', ')}]  d ${p.dims.d} len ${p.dims.len}`);
   }
+  console.log(`trim lead at [${d.combat.ballast.at_m.join(', ')}] about the prop's CG`);
   console.log('accessories, about the prop\'s CG:');
   for (const x of d.accessories) {
     console.log(`  ${x.id.padEnd(11)} ${x.massKg.toFixed(3)} kg  at [${x.cgOffset_m.join(', ')}]`);
@@ -975,7 +1073,7 @@ function print() {
     console.log(`bare all up mass        ${M.toFixed(4)} kg`);
     console.log(`CG in the frame datum   [${c.map(r4).join(', ')}] m`);
     console.log(`inertia about the CG    [${I.map(r6).join(', ')}] kg m^2`);
-    console.log(`arm_x = arm_y           ${d.arm.toFixed(16)} m (${q.diag * 1000} mm diagonal)`);
+    console.log(`arm_x, arm_y            ${d.arm.toFixed(16)}, ${d.armY.toFixed(16)} m (${(2000 * Math.hypot(d.arm, d.armY)).toFixed(1)} mm motor to motor diagonal)`);
     console.log(`prop_r                  ${motor.propR.toFixed(4)} m`);
     console.log(`k_inflow                ${motor.kInflow.toFixed(6)} m/rad`);
     console.log(`kt                      ${r6(motor.kt)}`);
@@ -988,6 +1086,8 @@ function print() {
     console.log(`hover                   ${motor.hover.rpm.toFixed(0)} rpm, ${motor.hover.amps.toFixed(2)} A a motor, duty ${motor.hover.duty.toFixed(3)}, ${motor.hover.cellV.toFixed(3)} V a cell`);
     console.log(`full throttle (static)  ${motor.full.rpm.toFixed(0)} rpm, ${motor.full.amps.toFixed(1)} A a motor, ${motor.full.pack.toFixed(0)} A pack, ${motor.full.cellV.toFixed(2)} V a cell`);
     console.log(`                        ${motor.full.thrustN.toFixed(1)} N, thrust to weight ${motor.full.tw.toFixed(2)} bare`);
+    /* Four fifths of the pack is what a pilot flies before landing. */
+    console.log(`endurance               ${(0.8 * q.packAh * 60 / motor.hover.pack).toFixed(1)} min at a hover (${motor.hover.pack.toFixed(1)} A pack), ${(0.8 * q.packAh * 3600 / motor.full.pack).toFixed(0)} s at full throttle, of a ${q.packAh} Ah pack`);
     console.log(`motor bells z           ${r4(d.motorZ)} m about the CG; prop discs ${r4(d.discZ)}`);
     console.log(`belly plate underside   ${r4(d.belly)} m; hull down (deepest payload) ${r4(d.hullDown)} m`);
     console.log('payloads, about the CG:');
