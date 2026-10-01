@@ -4662,6 +4662,10 @@ export async function boot({
     if (action === 'friends-leave') {
       roomLeave();
       ui.act('title');
+      /* The row remembered on the room screen was one of the room's, gone
+       * with it: the next visit opens on the screen's primary, as entering
+       * a room forgets the row from outside one (ui.refreshFriends). */
+      delete ui.cursorMemory.friends;
       return;
     }
     if (action === 'friends-copy') {
