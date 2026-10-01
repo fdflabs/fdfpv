@@ -582,28 +582,29 @@ export const AIRFRAMES = [
     /*
      * THE INTERCEPTOR, plant 26, docs/COMBAT-DRONES.md: the fast chaser
      * that runs a Striker down and rams it. A stretched X 7 inch speed
-     * build on 2807 1500 kV motors and 7 x 6 two blades, on one 6S 1800
-     * LiPo, the owner's reference photograph of 2026-10-01. Every number
-     * is scripts/combat-derive.js's from a parts list. It trades the 7
-     * inch's pack and payload for speed: the fastest quad here, flat out
-     * and off the floor, for under half the 7 inch's charge, on a machine
-     * that rolls quicker than the five inch. Flown at that speed it sits 70
-     * degrees nose down, so its camera is tilted like a racer's.
+     * build on T-Motor Velox V2808 1300 kV motors and APC 7 x 9E two
+     * blades, on one Tattu 6S 1800 LiPo, the owner's reference photograph
+     * of 2026-10-01, every part a published one. Every number is
+     * scripts/combat-derive.js's from a parts list. It trades the 7 inch's
+     * pack and payload for speed: the fastest quad here, flat out and off
+     * the floor, for under half the 7 inch's charge, on a machine that
+     * rolls with the five inch. Flown at that speed it sits 70 degrees nose
+     * down, so its camera is tilted like a racer's.
      */
     id: 'interceptor',
     simId: 26,
     name: 'Interceptor',
     short: 'Interceptor',
-    blurb: 'An 849 gram stretched X 7 inch speed build on a 6S LiPo and high pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack, and it turns on a breath.',
-    facts: ['6S LiPo', '312 mm', '164 km/h'],
+    blurb: 'An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack.',
+    facts: ['6S LiPo', '312 mm', '170 km/h'],
     sizeMm: 312,
-    grams: 849,
+    grams: 880,
     trackClass: 'full',
     /* Level at full throttle on a fresh pack, bare, measured on the module
      * (scripts/combat-gates.js); the static thrust to weight is
      * combat-derive's. */
-    topSpeed: 45.5,
-    thrustToWeight: 9.29,
+    topSpeed: 47.1,
+    thrustToWeight: 8.33,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
     packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
@@ -637,11 +638,11 @@ export const AIRFRAMES = [
     combat: {
       frame: 'interceptor',
       payloads: [
-        { id: 'proximity', warhead: 'standard', massKg: 0.2, dragArea_m2: 0.004506, cgOffset_m: [0.0183, 0, -0.0523], dims: { d: 0.045, len: 0.16 } },
+        { id: 'proximity', warhead: 'standard', massKg: 0.2, dragArea_m2: 0.004506, cgOffset_m: [0.0184, 0, -0.0523], dims: { d: 0.045, len: 0.16 } },
       ],
       accessories: [
-        { id: 'lrantenna', massKg: 0.02, cgOffset_m: [-0.0767, 0, 0.0602] },
-        { id: 'gps', massKg: 0.015, cgOffset_m: [-0.0667, 0, 0.0532] },
+        { id: 'lrantenna', massKg: 0.02, cgOffset_m: [-0.0766, 0, 0.0602] },
+        { id: 'gps', massKg: 0.015, cgOffset_m: [-0.0666, 0, 0.0532] },
       ],
     },
   },
