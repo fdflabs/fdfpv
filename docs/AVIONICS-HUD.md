@@ -185,8 +185,11 @@ picture. Agent 2's detail is docs/AVIONICS-SENSORS.md.
 stays the pilot's own picture (the map's look, 1x, untouched) and the camera
 block's inset shows the sensor: J's mode, K's zoom, the exposure and the
 stabilisation all apply to it, and `pipMode` is always `mode`, so the
-inset's label follows J. `setMainView('sensor')` puts the sensor full
-screen instead (no key yet); only then does the main view change mode.
+inset's label follows J. `I` (`setMainView('sensor')`) puts the sensor full
+screen instead, and `I` again puts the pilot's picture back; only then does
+the main view change mode. While the sensor is full screen the inset is not
+drawn and its slot is hidden, because it would only repeat the main view.
+Every new run starts on the pilot's picture.
 
 ```js
 const sensors = createSensorManager({ renderer, scene, camera });  // scene() is a function: maps swap scenes
@@ -195,7 +198,7 @@ sensors.render(post);           // in place of view.post.render() while the Avio
 sensors.setTracks(snapshot);    // once, TrackManager's snapshot (written in place): the inset boxes the tracks itself
 sensors.setMotorTemp(c);        // the hottest of telemetry.state.motors[].tempC, for the motors in a thermal picture
 sensors.project(losW, out, aspect, view)  // a world direction to NDC in 'main' or 'pip', through zoom, crop and stabilisation when that view shows the sensor
-sensors.setMainView(v);         // 'eo' (default) or 'sensor'
+sensors.setMainView(v);         // I: 'eo' (default) or 'sensor'
 sensors.cycleMode();            // J
 sensors.cycleZoom();            // K
 sensors.toggleRec();            // not bound yet
@@ -389,8 +392,12 @@ as truth anywhere else. Precedence, first that holds:
 | MANUAL | otherwise | the MODE row lights `MANUAL`, TRACKING says `AI TRACK OFF` |
 
 AI is the pilot's switch: `H` toggles it (MANUAL or ASSIST to SEARCH and
-back). `J` cycles the camera mode, `K` the zoom. The keys act only while the
-Avionics HUD is on screen.
+back). `J` cycles the camera mode, `K` the zoom, and `I` puts the sensor
+full screen and back (section 5), so thermal full screen is `I` then `J` to
+an IR mode or fusion, and THERMAL holds from then on while the AI is off.
+The keys act only while the Avionics HUD is on screen. None of them has a
+pad button: a radio reports its switches as latched buttons, and the only
+flight buttons are a standard pad's swap buttons (src/input/input.js).
 
 ## 10. The preset, its default, and war
 

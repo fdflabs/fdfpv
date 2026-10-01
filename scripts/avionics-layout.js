@@ -17,7 +17,9 @@
  *
  * And the per airframe default and override, at 1280x720: the 5 inch
  * flies with the FPV OSD; the 7 inch with Avionics, whose state goes to
- * DEGRADED when GNSS and VIO are both denied (and only then); a pilot who
+ * DEGRADED when GNSS and VIO are both denied (and only then); I puts its
+ * sensor full screen, J then makes it thermal and the HUD THERMAL, and I
+ * again restores the pilot's picture; a pilot who
  * sets the 7 inch to the FPV OSD gets it after a reload.
  *
  * Pictures go in outdir (build/avionics-layout by default); look at them.
@@ -219,6 +221,45 @@ async function layout(width, height, rooms) {
   }
 }
 
+/*
+ * The sensor full screen (I) and thermal in it (J), docs/AVIONICS-HUD.md
+ * sections 5 and 9, by the pilot's own keys: I puts the sensor full screen
+ * and hides the inset, J steps to an IR mode, the HUD goes THERMAL (the AI
+ * is off and nothing is degraded here), and I again gives the pilot's
+ * picture and the inset back.
+ */
+async function fullScreenThermal(page) {
+  const SENSOR = 'JSON.stringify({ s: window.__avionics.state().sensor, hud: window.__avionicsHud().state, '
+    + "pip: getComputedStyle(document.querySelector('.avx-pip')).display })";
+  let got = JSON.parse(await page.evaluate(SENSOR));
+  check('the pilot\'s picture by default, inset shown', got.s.mainView === 'eo' && got.pip !== 'none', `main ${got.s.mainView}, inset ${got.pip}`);
+  const startMode = got.s.mode;
+  await page.tap('KeyI');
+  await page.until("window.__avionics.state().sensor.mainView === 'sensor'", 10000).catch(() => {});
+  await page.until("getComputedStyle(document.querySelector('.avx-pip')).display === 'none'", 5000).catch(() => {});
+  got = JSON.parse(await page.evaluate(SENSOR));
+  check('I puts the sensor full screen and hides the inset', got.s.mainView === 'sensor' && got.pip === 'none' && got.s.mode === startMode,
+    `main ${got.s.mainView}, inset ${got.pip}, mode ${got.s.mode}`);
+  await page.tap('KeyJ');
+  await page.until(`window.__avionics.state().sensor.mode !== ${JSON.stringify(startMode)}`, 10000).catch(() => {});
+  await page.until("window.__avionicsHud().state === 'THERMAL'", 10000).catch(() => {});
+  got = JSON.parse(await page.evaluate(SENSOR));
+  check('J then shows thermal full screen', got.s.mainView === 'sensor' && (got.s.mode === 'ir_wh' || got.s.mode === 'ir_bh' || got.s.mode === 'fusion'),
+    `main ${got.s.mainView}, mode ${got.s.mode}`);
+  check('the HUD state reads THERMAL', got.hud === 'THERMAL', `HUD ${got.hud}`);
+  /* Two frames, so the picture is the thermal one and not the frame the
+   * key landed in. */
+  await page.evaluate('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))');
+  await shot(page, 'avionics-1280x720-thermal-full-screen');
+  await page.tap('KeyI');
+  await page.until("window.__avionics.state().sensor.mainView === 'eo'", 10000).catch(() => {});
+  await page.until("getComputedStyle(document.querySelector('.avx-pip')).display !== 'none'", 5000).catch(() => {});
+  got = JSON.parse(await page.evaluate(SENSOR));
+  check('I again restores the pilot\'s picture and the inset, and THERMAL ends', got.s.mainView === 'eo' && got.pip !== 'none' && got.hud !== 'THERMAL',
+    `main ${got.s.mainView}, inset ${got.pip}, HUD ${got.hud}`);
+  await shot(page, 'avionics-1280x720-pilot-view-again');
+}
+
 async function defaults() {
   console.log('1280x720, the default and the override');
   let page = await openPage({ root, width: 1280, height: 720, seed: seed('5inch') });
@@ -253,6 +294,7 @@ async function defaults() {
     await page.sleep(600);
     st = JSON.parse(await page.evaluate('JSON.stringify(window.__avionics.state())'));
     check('and back to GNSS when they return', st.tel.nav.source === 'GNSS' && st.hud.state !== 'DEGRADED', `nav ${st.tel.nav.source}, HUD ${st.hud.state}`);
+    await fullScreenThermal(page);
     /* What the menu's HUD style row writes for the seated airframe. */
     await page.evaluate(`(() => {
       const s = window.__ui.settings;

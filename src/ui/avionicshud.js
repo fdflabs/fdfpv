@@ -300,6 +300,7 @@ export class AvionicsHud {
     this.pip = el('div', 'avx-pip', cam);
     this.fPipTitle = new Field(el('b', '', this.pip));
     this.pipCanvas = null;
+    this.pipShown = true;
     const ctl = el('div', '', cam);
     const camRow = row(ctl, str('avionics.hud.cam'));
     this.fCamEo = new Field(camRow, 'avx-sel');
@@ -374,6 +375,14 @@ export class AvionicsHud {
       if (this.pipCanvas) {
         this.pip.prepend(this.pipCanvas);
       }
+    }
+    /* The sensor full screen is the inset's picture already (I). */
+    const pipShown = src.sensor.mainView !== 'sensor';
+    if (pipShown !== this.pipShown) {
+      this.pipShown = pipShown;
+      this.pip.style.display = pipShown ? '' : 'none';
+      /* The camera block changed size: place the panels again now. */
+      this.keepOutAt = 0;
     }
     const t0 = performance.now();
     if (nowMs >= this.nextTextMs) {

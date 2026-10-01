@@ -25,8 +25,9 @@ the pilot's own picture (the map's look, 1x, untouched) and the camera
 block's inset is the sensor: `state.mode` (J), `state.zoom` (K), exposure
 and stabilisation all apply to it, and `state.pipMode` is `state.mode`, so
 the inset's label follows the mode. `state.mainView` (added) is `'eo'` by
-default; `setMainView('sensor')` puts the sensor full screen (not bound to
-a key yet; the check uses it to measure every mode at full resolution).
+default; `setMainView('sensor')` puts the sensor full screen (the `I` key;
+the check uses it to measure every mode at full resolution), and the inset
+is not drawn while it is.
 `state.fovRad` is the sensor's field after zoom and crop.
 
 The shell (src/main.js) now:

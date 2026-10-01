@@ -9102,6 +9102,9 @@ export async function boot({
       airStart(sp.air.y);
     }
     progressKey = '';
+    /* A run starts on the pilot's own picture, whatever the last one left
+     * full screen (I). */
+    sensors.setMainView('eo');
   }
 
   /*
@@ -11756,9 +11759,17 @@ export async function boot({
     }
     /* The Avionics HUD's own keys, while it is on screen
      * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
-     * mode, K the zoom. */
-    if (ui.screen === 'flight' && avionicsHud.on && (code === 'KeyH' || code === 'KeyJ' || code === 'KeyK')) {
-      if (code === 'KeyH') {
+     * mode, K the zoom, I the sensor full screen or the pilot's picture. */
+    if (ui.screen === 'flight' && avionicsHud.on && (code === 'KeyH' || code === 'KeyJ' || code === 'KeyK' || code === 'KeyI')) {
+      if (code === 'KeyI') {
+        sensors.setMainView(sensors.state.mainView === 'eo' ? 'sensor' : 'eo');
+        notice = {
+          text: sensors.state.mainView === 'sensor'
+            ? str('avionics.hud.notice_view_sensor', { mode: str(`avionics.hud.cam_mode.${sensors.state.mode}`) })
+            : str('avionics.hud.notice_view_pilot'),
+          untilMs: performance.now() + 1600,
+        };
+      } else if (code === 'KeyH') {
         avxHud.ai = !avxHud.ai;
         notice = { text: str(avxHud.ai ? 'avionics.hud.notice_ai_on' : 'avionics.hud.notice_ai_off'), untilMs: performance.now() + 1600 };
       } else if (code === 'KeyJ') {

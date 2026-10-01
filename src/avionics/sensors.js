@@ -338,7 +338,9 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
         Object.assign(mainView, PLAIN_EO);
       }
       pipView.snow = state.healthy ? snow : 1;
-      view.frame(s, camera, post, mainView, pipView, dt);
+      /* Full screen, the inset would only repeat the main view: it is not
+       * drawn, and the HUD hides its slot. */
+      view.frame(s, camera, post, mainView, state.mainView === 'sensor' ? null : pipView, dt);
     },
     project,
     setMode(mode) {
