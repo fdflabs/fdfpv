@@ -11289,10 +11289,11 @@ export async function boot({
         select: btn.select,
         back: btn.back,
         alt: input.padAltButton(),
+        floats: input.padFloatsButton(),
       };
     }
     const raw = input.navRaw();
-    return { up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton() };
+    return { up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton(), floats: input.padFloatsButton() };
   }
 
   /* Any real key or pointer press is the user gesture browsers require
