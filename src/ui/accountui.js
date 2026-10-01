@@ -42,6 +42,7 @@ import {
   signedIn, startAccounts, syncProgress,
 } from '../share/account.js';
 import { SETTINGS_KEY, loadSettings } from './ui.js';
+import { fitBuild, stockView, unfitFamily } from './builds.js';
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 const SYNC_EVERY_MS = 60 * 1000;
@@ -202,9 +203,18 @@ export function createAccountUi({ ui, identity, say }) {
   /* The merge applied: every synced section put in ui.settings, the whole
    * blob read back through loadSettings, and only the synced sections
    * taken from that, so a plane or a scheme this build does not have is
-   * dropped here as it would be at boot. */
+   * dropped here as it would be at boot.
+   *
+   * A family wearing a My Hangar build keeps the pilot's own paint, power,
+   * parts and tuning aside (src/ui/builds.js), and those are what sync, so
+   * a build never reaches another computer as the stock plane's. The
+   * builds come off for the merge and go back on over what it brought. */
   function apply(merged) {
     const s = ui.settings;
+    const worn = Object.values(s.buildFits || {}).map((e) => ui.myBuilds.find((b) => b.id === e.build)).filter(Boolean);
+    for (const land of Object.keys(s.buildFits || {})) {
+      unfitFamily(s, land);
+    }
     let changed = false;
     for (const [k, v] of Object.entries(merged.data)) {
       if (JSON.stringify(s[k]) !== JSON.stringify(v)) {
@@ -219,13 +229,22 @@ export function createAccountUi({ ui, identity, say }) {
         for (const k of Object.keys(merged.data)) {
           s[k] = fresh[k];
         }
+      } catch (e) {
+        /* Private mode: the merge lives in this page. */
+      }
+    }
+    for (const b of worn) {
+      fitBuild(s, b);
+    }
+    if (changed) {
+      try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
       } catch (e) {
         /* Private mode: the merge lives in this page. */
       }
       ui.renderMenu();
     }
-    settled(s, merged);
+    settled(stockView(s), merged);
     return changed;
   }
 
@@ -234,7 +253,7 @@ export function createAccountUi({ ui, identity, say }) {
       return syncing || Promise.resolve(false);
     }
     lastSync = Date.now();
-    syncing = syncProgress(ui.settings).then((merged) => {
+    syncing = syncProgress(stockView(ui.settings)).then((merged) => {
       const changed = merged ? apply(merged) : false;
       if (loud || changed) {
         say(str('account.synced'));
@@ -341,7 +360,7 @@ export function createAccountUi({ ui, identity, say }) {
       setTimeout(() => sync(), 1500);
     }
     setInterval(() => {
-      if (signedIn() && progressChanged(ui.settings)) {
+      if (signedIn() && progressChanged(stockView(ui.settings))) {
         sync();
       }
     }, SYNC_EVERY_MS);

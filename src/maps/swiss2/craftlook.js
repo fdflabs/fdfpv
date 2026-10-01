@@ -58,6 +58,7 @@ const FINISHES = {
   matte: { roughness: 0.92, metalness: 0, grain: 0.03 },
   metallic: { roughness: 0.34, metalness: 0.85, clearcoat: 1, clearcoatRoughness: 0.08 },
   chrome: { roughness: 0.04, metalness: 1 },
+  aluminium: { roughness: 0.32, metalness: 1, grain: 0.04 },
 };
 
 /* Relative luminance of an sRGB hex, as the cel palette was authored. */
