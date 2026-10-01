@@ -206,7 +206,7 @@ async function stepTau(af, block, hover, measure) {
  * combat-gates.js levelTop, the figure configs/airframes.js topSpeed is.
  * Flown at the weight the shell flies the machine at (gravityBase: 1.62 g
  * on the five inch, 1 g on the combat quads), since it is the speed the
- * pilot will see.
+ * pilot will see. 45 s, the last 3 averaged, as combat-gates flies it.
  */
 async function levelTop(af, block) {
   const sim = await fresh(af, block, af.gravityBase);
@@ -214,7 +214,7 @@ async function levelTop(af, block) {
   let nextRc = 0;
   let sum = 0;
   let n = 0;
-  for (let t = 0; t < 30000; t += 1) {
+  for (let t = 0; t < 45000; t += 1) {
     const s = sim.readState().state;
     const [w, x, y, z] = [s[ST.QW], s[ST.QX], s[ST.QY], s[ST.QZ]];
     const nose = -Math.asin(Math.max(-1, Math.min(1, 2 * (x * z - w * y))));
@@ -230,7 +230,7 @@ async function levelTop(af, block) {
       nextRc += 4;
     }
     sim.step(1);
-    if (t >= 27000) {
+    if (t >= 42000) {
       const st = sim.readState().state;
       sum += Math.hypot(st[ST.VX], st[ST.VY]);
       n += 1;
@@ -357,6 +357,11 @@ for (const [id, m] of Object.entries(MOTORS)) {
      * reported here, while the upgrade's own move must be the solve's. */
     check(`M3 ${name} its rotor's full throttle speed over stock's is the static solve's`, near(bench.w / bench0.w, st.full.w / st0.full.w, 0.005),
       `${(bench.w / bench0.w).toFixed(4)} flown, ${(st.full.w / st0.full.w).toFixed(4)} solved; ${bench.w.toFixed(0)} rad/s flown, ${st.full.w.toFixed(0)} solved, stock ${bench0.w.toFixed(0)} and ${st0.full.w.toFixed(0)}`);
+    if (m.propMaxRpm) {
+      const rpm = (bench.w * 60) / (2 * Math.PI);
+      check(`M3 ${name} turns its prop under the prop maker's limit`, rpm <= m.propMaxRpm,
+        `${rpm.toFixed(0)} rpm at full throttle standing, limit ${m.propMaxRpm.toFixed(0)}`);
+    }
 
     /* M4: on the maker's stand, a stiff supply at the maker's volts,
      * through the derivation M3 holds the plant to. */

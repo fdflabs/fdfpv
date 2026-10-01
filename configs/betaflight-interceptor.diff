@@ -4,7 +4,7 @@
 # THE DEFAULT BETAFLIGHT TUNE ON THE INTERCEPTOR.
 #
 # configs/betaflight-default.diff, line for line, with the airframe keys
-# set to this build (docs/COMBAT-DRONES.md): 1500 kV motors and a 1800 mAh
+# set to this build (docs/COMBAT-DRONES.md): 1300 kV motors and a 1800 mAh
 # 6S LiPo, whose cell limits are the five inch's, 3.50 V. Every PID and
 # filter value is Betaflight 4.5.1's factory default, as on the five inch.
 #
@@ -23,7 +23,7 @@ board_name SITL
 
 # ---- master ----
 
-set motor_kv = 1500
+set motor_kv = 1300
 set motor_poles = 14
 set vbat_max_cell_voltage = 420
 set vbat_min_cell_voltage = 350

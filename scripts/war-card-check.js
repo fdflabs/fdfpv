@@ -151,6 +151,7 @@ async function resize(page, width, height) {
 }
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
     return [r.left + r.width / 2, r.top + r.height / 2];
@@ -197,17 +198,20 @@ const LANDED = `(() => {
     here: here.action || here.label || null, primary: Boolean(here.primary),
     heading: (items.find((it) => it.section) || {}).label || null,
     war: items.some((it) => it.action === 'friends-war-start'),
+    lobby: (document.querySelector('.war-lobby-title') || {}).textContent || null,
   };
 })()`;
 
 function landedWell(v, pub = false) {
   return v.phase === 'open' && /^[A-Z0-9]{6}$/.test(v.code || '') && v.public === pub && v.host && v.screen === 'friends'
-    && v.map === 'itaipu' && v.game === 'war' && v.consent && v.war && v.here === 'friends-war-start' && v.primary
-    && /Defend Itaipu/.test(v.heading || '');
+    && v.map === 'itaipu' && v.game === 'war' && v.consent && v.war && v.here === 'friends-lobby-ready' && v.primary
+    && v.lobby === 'LOBBY';
 }
 
 async function landed(page) {
-  await page.until("window.__rooms().phase === 'open' && window.__ui.items().some((it) => it.action === 'friends-war-start')", 60000).catch(() => {});
+  /* The lobby's panel is drawn on the frame after its rows (src/main.js
+   * warLobbyFrame). */
+  await page.until("window.__rooms().phase === 'open' && window.__ui.items().some((it) => it.action === 'friends-war-start') && document.querySelector('.war-lobby-title')", 60000).catch(() => {});
   await page.sleep(500);
   return page.evaluate(LANDED);
 }

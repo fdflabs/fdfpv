@@ -156,8 +156,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 /* ---------------------------------------------------------------------
  * SIM_AIRFRAME_5IN. The machine STAGE1.md describes and every threshold in
  * tests/ was measured against. Nothing in this entry moved when the table
- * grew around it: the values below are byte for byte the ones that were in
- * the single const PLANT before, and the trace hash is measured identical.
+ * grew around it. Its motor and prop moved once since, on purpose, to a
+ * published stand row (the kt note below); the trace hash moved with them.
  * ------------------------------------------------------------------- */
 [SIM_AIRFRAME_5IN] = {
   /*
@@ -179,10 +179,34 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.80665,
   .arm_x = 0.0777817459305202, /* 0.110 / sqrt(2) */
   .arm_y = 0.0777817459305202,
-  .kt = 1.98e-6,
-  .kq = 3.04e-8,   /* figure of merit 0.520, see the triblade note below */
-  .ke = 0.006336,  /* loaded torque constant, 1507 kV; see the note above */
-  .r_motor = 0.1825,
+  /*
+   * THE MOTOR AND THE PROP ARE T-MOTOR'S MEASURED ROW, the owner's decision
+   * of 2026-10-01 (docs/STOCK-5INCH.md). They were kt 1.98e-6, kq
+   * 3.04e-8, ke 0.006336 and r_motor 0.1825, solved against
+   * an unnamed stand row of "26,000 rpm, 1.5 kgf, 33 A" (the note above),
+   * which is a weaker motor than any current 6S 2207: the five inch made
+   * 1592 g a motor on a stiff 24.7 V where T-Motor's F60 Pro V 1950 kV on
+   * its T5147 tri blade makes 1990.4 g at 31,401 rpm and 49.3 A
+   * (https://www.t-hobby.com/products/brushless-motor-for-fpv-drones-60pro-v-2207-5).
+   * The same four unknowns solved against that one row, the method above:
+   *   kt   thrust over the row's speed squared, 19.519 N at 3288 rad/s
+   *   kq   kt through momentum theory at the same figure of merit 0.520 on
+   *        this table's disc (prop_r below); Q / T is then 0.01467 m
+   *        against the old stand's 0.0150
+   *   ke   the row's current carrying that torque, 0.2863 N m at 49.3 A:
+   *        1645 kV loaded on a 1950 kV plate, 0.84, inside the 0.80 to
+   *        0.91 the note above gives a saturating 2207
+   *   R    what is left of 24.7 V at that speed and current, 0.1137 ohm,
+   *        the winding, the ESC and the stand's leads
+   * The prop's diameter stays the frame's 0.0635 m: the T5147 is 5.1 inch,
+   * 1.3 mm more of blade, and the disc enters the collider, the hulls and
+   * the world scale check, which a 2 percent radius is not worth moving.
+   * Its pitch is the T5147's 4.7 inch (k_inflow below).
+   */
+  .kt = 1.805e-6,
+  .kq = 2.648e-8,  /* figure of merit 0.520, see the triblade note below */
+  .ke = 0.005807,  /* loaded torque constant, 1645 kV on the 1950 kV plate */
+  .r_motor = 0.1137,
   .j_rotor = 8.0e-6,
   .cells = 6.0,
   .r_cell = 0.0025, /* 2.5 mOhm a cell, a real 6S 1300 race pack */
@@ -276,14 +300,21 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    * that is about it and carries its own verify run. See the whoop's.
    */
   .k_ground = 0.0,
-  .k_inflow = 0.017382, /* repurposed: prop pitch radius, metres per radian.
-                         * 4.3 inch pitch / 2 pi. Axial speed at which thrust
-                         * crosses zero is w times this. */
+  .k_inflow = 0.019000, /* repurposed: prop pitch radius, metres per radian.
+                         * 4.7 inch pitch / 2 pi, the T5147's (it was
+                         * 4.3). Axial speed at which thrust crosses zero
+                         * is w times this. */
   .torque_ind = 0.520,  /* was #define PLANT_TORQUE_IND, same number, same
                          * meaning: the figure of merit kq was derived
                          * through, which IS the induced share of shaft
                          * torque at hover. It is a rotor property, so it
                          * belongs to the airframe. */
+  /* The T5147's thrust against axial speed: APC's 5 x 4.6E at 29,000 rpm, the
+   * same pitch over diameter (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 1.0065, 0.9753, 0.9348, 0.8819, 0.8125, 0.7244, 0.6177,
+                   0.4981, 0.3702, 0.2371, 0.1021, 0.0000, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 0.9916, 1.0303, 1.0544, 1.0673, 1.0525, 1.0003, 0.9148,
+                    0.7948, 0.6472, 0.4760, 0.2843, 0.0000, 0.0000, 0.0000 },
   /* An open rotor has no duct, so the three duct terms are the identity. */
   .k_duct = 1.0,
   .duct_fade = 0.0,
@@ -566,6 +597,11 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .k_inflow = 0.00283,
   .torque_ind = 0.310, /* the figure of merit above, and the same number */
+  /* No shell airframe flies this table, its gates were fitted to the old
+   * laws, and APC publishes no 31 mm prop: the old thrust law written out,
+   * and no torque curve, so the induced and profile split stays. */
+  .axial_curve = { 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3,
+                   0.2, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0 },
   /*
    * THE DUCT. 1.10 of static augmentation is the low end of the published
    * range and it is where a real whoop sits: the ideal duct of momentum
@@ -1598,6 +1634,13 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.014149, /* 3.5 inch pitch / 2 pi */
   .torque_ind = 0.55,
+  /* The HQ 7 x 3.5 x 3's thrust against axial speed: APC's 7 x 4E at
+   * 19,000 rpm, the nearest pitch over diameter APC publishes
+   * (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9617, 0.9164, 0.8633, 0.8018, 0.7317, 0.6534, 0.5664,
+                   0.4725, 0.3736, 0.2710, 0.1662, 0.0615, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 1.0186, 1.0281, 1.0281, 1.0145, 0.9858, 0.9368, 0.8725,
+                    0.7870, 0.6868, 0.5662, 0.4350, 0.2892, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1647,6 +1690,12 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.020213, /* 5 inch pitch / 2 pi */
   .torque_ind = 0.58,
+  /* The 10 x 5 x 3's thrust against axial speed: APC's 10 x 5E at 11,000
+   * rpm (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9587, 0.9112, 0.8567, 0.7950, 0.7256, 0.6485, 0.5643,
+                   0.4742, 0.3794, 0.2813, 0.1813, 0.0816, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 1.0169, 1.0259, 1.0252, 1.0125, 0.9892, 0.9461, 0.8859,
+                    0.8082, 0.7143, 0.6042, 0.4767, 0.3393, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1672,34 +1721,38 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 
 /* ---------------------------------------------------------------------
  * SIM_AIRFRAME_INTERCEPTOR: the fast chaser, docs/COMBAT-DRONES.md. A
- * stretched X 7 inch speed build on 2807 1500 kV motors, 7 x 6 two blades
- * and one 6S 1800 mAh LiPo, the owner's reference photograph of
- * 2026-10-01. scripts/combat-derive.js prints every number from its parts
- * list, solved on the same model as the 7 inch's, and
- * scripts/combat-gates.js holds it to bands from outside this repository.
+ * stretched X 7 inch speed build on T-Motor Velox V2808 1300 kV motors,
+ * APC 7 x 9E two blades and one Tattu 6S 1800 mAh LiPo, the owner's
+ * reference photograph of 2026-10-01, every part a published one since
+ * the same day: scripts/combat-derive.js prints every number from its
+ * parts list, the prop from APC's own performance file and the motor's
+ * resistance from T-Motor's own rows, solved on the same model as the 7
+ * inch's, and scripts/combat-gates.js holds it to bands from outside this
+ * repository.
  *
  * WHAT MAKES IT FAST is three things, and none of them is a speed knob.
- * The pitch: a 6 inch pitch two blade's zero thrust speed (k_inflow, w
- * times the pitch over 2 pi) is 71 percent above the 7 inch's 3.5 inch
- * three blade at the same rotor speed, so thrust is still there at a
- * speed where the 7 inch's props have unloaded. Its figure of merit,
- * 0.44, is the price: a high pitch blade is part stalled in a hover. The pack: a LiPo of 4.5
- * mOhm a cell holds 3.4 V a cell under a full punch where the 7 inch's
- * Li-ion falls to 2.9, so the motors get the volts. And the drag: one
- * slim pack and a narrow body, nothing slung, 0.014 of frontal area
- * against the 7 inch's 0.019.
+ * The pitch: a 9 inch pitch two blade's zero thrust speed (k_inflow, w
+ * times the pitch over 2 pi) is two and a half times the 7 inch's 3.5
+ * inch three blade's at the same rotor speed, so thrust is still there at
+ * a speed where the 7 inch's props have unloaded. Its figure of merit,
+ * APC's 0.4967, is the price: a high pitch blade is part stalled in a
+ * hover. The pack: a LiPo of 4.5 mOhm a cell holds 3.5 V a cell under a
+ * full punch where the 7 inch's Li-ion falls to 2.9, so the motors get
+ * the volts. And the drag: one slim pack and a narrow body, nothing
+ * slung, 0.014 of frontal area against the 7 inch's 0.019.
  *
- * WHAT IT COSTS is the pack (a quarter of the 7 inch's charge at four
- * times the draw at full throttle) and the handling: an Ixx of 0.0032,
+ * WHAT IT COSTS is the pack (under half the 7 inch's charge at more than
+ * twice the draw at full throttle) and the handling: an Ixx of 0.0036,
  * the stretch putting the motors closer across than fore and aft, so it
- * rolls faster than it pitches, on rotors of 27 ms.
+ * rolls faster than it pitches, on rotors of 44 ms: a 9 inch pitch on a
+ * 0.131 ohm motor spools like the 7 inch's, not like a five inch's.
  *
  * STRETCHED, so arm_x and arm_y differ: 120 mm fore and aft, 100 mm
  * across. Betaflight's QUADX mixer is the same as on a square frame, as
  * on a real one; the plant's own moment arms give the roll and pitch
  * authorities their difference.
  *
- * DRAG. Frontal: four 2807 bells (35 by 25 mm), the pack end on (37 by
+ * DRAG. Frontal: four 2808 bells (35 by 25 mm), the pack end on (37 by
  * 42), the stack and plates (50 by 30), the camera's nose (30 by 30) and
  * the arms edge on, 0.0117 m^2 at a bluff body Cd near 1.2. Side: the
  * pack's long face adds 0.0029 m^2 over its end.
@@ -1726,18 +1779,18 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
  * ------------------------------------------------------------------- */
 [SIM_AIRFRAME_INTERCEPTOR] = {
   .kind = PLANT_KIND_QUAD,
-  .mass_kg = 0.849,
-  .inertia = { 0.003274, 0.005374, 0.007966 },
+  .mass_kg = 0.880,
+  .inertia = { 0.003559, 0.005785, 0.008652 },
   .gravity = 9.80665,
   .arm_x = 0.120,
   .arm_y = 0.100,
-  .kt = 3.416e-6,   /* C_T 0.11, 2.2 kgf at 24,000 rpm on a 7x6x2 */
-  .kq = 5.817e-8,   /* figure of merit 0.44 */
-  .ke = 0.00732113, /* loaded 1304 kV on a 1500 kV plate */
-  .r_motor = 0.065,
-  .j_rotor = 2.2e-5,
+  .kt = 4.701e-6,   /* APC 7x9E, 20.622 N at 20,000 rpm, PER3_7x9E.dat */
+  .kq = 8.321e-8,   /* APC 7x9E, 0.365 N m there: figure of merit 0.4967 */
+  .ke = 0.00808,    /* loaded 1182 kV on the V2808's 1300 kV plate */
+  .r_motor = 0.131,  /* T-Motor's V2808 1300 kV rows, scripts/combat-derive.js */
+  .j_rotor = 2.7e-5,
   .cells = 6.0,
-  .r_cell = 0.0045, /* 6S 1800 120C LiPo, 3 mOhm a cell, leads and XT60 1.5 */
+  .r_cell = 0.0045, /* Tattu 6S 1800 150C LiPo, 3 mOhm a cell, leads and XT60 1.5 */
   .cda_plan = 0.021,
   .cda_front = 0.014,
   .cda_side = 0.0175,
@@ -1748,8 +1801,14 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_rotor_drag = 0.43842,
   .k_rotor_axial = 0.20,
   .k_ground = 0.0,
-  .k_inflow = 0.024255, /* 6 inch pitch / 2 pi */
-  .torque_ind = 0.44,
+  .k_inflow = 0.036383, /* 9 inch pitch / 2 pi */
+  .torque_ind = 0.4967,
+  /* The 7 x 9E's own thrust against axial speed: APC's file at 19,000 rpm
+   * (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9959, 0.9916, 0.9833, 0.9625, 0.9178, 0.8342, 0.7007,
+                   0.5321, 0.3454, 0.1521, 0.0000, 0.0000, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 1.0510, 1.1236, 1.2145, 1.3073, 1.3742, 1.3771, 1.2645,
+                    1.0558, 0.7718, 0.4374, 0.0000, 0.0000, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1767,7 +1826,7 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .hull_hz_up = 0.057,
   .contact_patch_r = 0.080,
   .contact_arm_max = 0.27,
-  .vib_ref_w = 2379.0, /* full throttle on a fresh pack */
+  .vib_ref_w = 1954.8, /* full throttle on a fresh pack, 18,667 rpm */
   .camera_x = 0.095,
   .camera_y = 0.0,
   .camera_z = -0.013,
@@ -2112,6 +2171,10 @@ static void quad_live_build(void) {
     g_plant_live.k_inflow = in[SIM_PROP_PACK_PITCH_R];
     g_plant_live.cells = in[SIM_PROP_PACK_CELLS];
     g_plant_live.r_cell = in[SIM_PROP_PACK_R_CELL];
+    for (int i = 0; i < 15; i += 1) {
+      g_plant_live.axial_curve[i] = in[SIM_PROP_PACK_AXIAL + i];
+      g_plant_live.torque_curve[i] = in[SIM_PROP_PACK_TORQUE + i];
+    }
   }
   g_power_on = g_motors_on || g_prop_pack_on;
   plant_seat();
@@ -2141,8 +2204,10 @@ int plant_set_motors(const double *in) {
 
 /*
  * A QUAD'S PROP AND PACK, sim_set_prop_pack in sim_abi.h: the prop's
- * thrust and torque constants and its pitch, the pack's cells and their
- * resistance, laid over the motors block or the table. What either weighs
+ * thrust and torque constants, its pitch and its two curves against axial
+ * speed, the pack's cells and their resistance, laid over the motors
+ * block or the table. Each curve's first point must be exactly 1, so the
+ * hover stays kq w^2 and the static thrust. What either weighs
  * is in the motors block's mass and inertia, which the host computes for
  * the whole machine.
  */
@@ -2155,8 +2220,14 @@ int plant_set_prop_pack(const double *in) {
       || !in_range(in[SIM_PROP_PACK_KQ], 1.0e-12, 1.0e-4)
       || !in_range(in[SIM_PROP_PACK_PITCH_R], 0.001, 0.2)
       || !in_range(in[SIM_PROP_PACK_CELLS], 1.0, 14.0)
-      || !in_range(in[SIM_PROP_PACK_R_CELL], 0.0, 1.0)) {
+      || !in_range(in[SIM_PROP_PACK_R_CELL], 0.0, 1.0)
+      || !(in[SIM_PROP_PACK_AXIAL] == 1.0 && in[SIM_PROP_PACK_TORQUE] == 1.0)) {
     return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 1; i < 15; i += 1) {
+    if (!in_range(in[SIM_PROP_PACK_AXIAL + i], 0.0, 2.0) || !in_range(in[SIM_PROP_PACK_TORQUE + i], 0.0, 2.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
   }
   for (int i = 0; i < SIM_PROP_PACK_DOUBLES; i += 1) {
     g_prop_pack_in[i] = in[i];
@@ -3071,9 +3142,20 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
       }
     }
     if (mu >= 0.0) {
-      /* Climb and hover. Thrust falls as the craft chases its own wake, and
-       * crosses zero when the axial speed reaches the pitch speed. */
-      axial = 1.0 - mu;
+      /*
+       * Climb, hover and a fast pass. Thrust falls as the air comes through
+       * the disc faster, by the prop's own curve (axial_curve, from APC's
+       * performance files, docs/PROP-CURVES.md), linear between its points
+       * at every tenth of mu. It was 1 - mu, zero thrust at the geometric
+       * pitch speed, and no prop APC publishes behaves so: they hold most
+       * of their thrust to half the pitch speed and keep some past it.
+       * At mu 0 every curve is exactly 1, so the hover, and with it checks
+       * 5 and 8, is the static thrust as it always was.
+       */
+      const double x = mu * 10.0;
+      const int ix = (int)x;
+      axial = ix >= 14 ? PLANT.axial_curve[14]
+                       : PLANT.axial_curve[ix] + (x - (double)ix) * (PLANT.axial_curve[ix + 1] - PLANT.axial_curve[ix]);
       if (axial < 0.0) {
         axial = 0.0;
       }
@@ -3262,7 +3344,26 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     const double q_sign = (w_rel < 0.0 ? -1.0 : 1.0);
     const double qb_mag = PLANT.kq * w_rel * w_rel;
     double q_mag = (1.0 - PLANT.torque_ind) * qb_mag;
-    {
+    if (mu >= 0.0 && PLANT.torque_curve[0] > 0.0) {
+      /*
+       * AIR COMING THROUGH THE DISC: THE PROP'S OWN TORQUE CURVE
+       * (torque_curve, APC's files, docs/PROP-CURVES.md). The induced and
+       * profile split below, on the thrust the prop's own curve now keeps
+       * at speed, held the load near 0.9 of kq w^2 out past the pitch
+       * speed, where a real prop's falls away (APC: 0.56 at mu 1 on a 5.2
+       * x 6E), so the motors could not spin up as a prop unloads and a
+       * fast pass ran out of rotor speed. The curve's first point is 1, so
+       * the hover is kq w^2 as it always was (checks 5 and 8). APC's data
+       * is axial flow only: the edgewise share of a pass is the axial
+       * curve's, which the doc records. Descent keeps the split, and so
+       * does a table with no published curve (zeros, the whoop's).
+       */
+      const double x = mu * 10.0;
+      const int ix = (int)x;
+      const double qc = ix >= 14 ? PLANT.torque_curve[14]
+                                 : PLANT.torque_curve[ix] + (x - (double)ix) * (PLANT.torque_curve[ix + 1] - PLANT.torque_curve[ix]);
+      q_mag = qb_mag * qc;
+    } else {
       const double t_load = PLANT.kt * w * w * axial_oge;
       if (t_load > 1e-6) {
         const double vh2 = t_load / (2.0 * PLANT.rho * 3.14159265358979323846 *

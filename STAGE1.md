@@ -14,9 +14,11 @@ One preset only in Stage 1. A 5 inch freestyle quad:
 
 - All-up mass 0.71 kg
 - Battery 6S, 1300 mAh, nominal 22.2 V, 4.20 V per cell charged, 3.50 V per cell empty
-- Four motors, 1900 kV, at the corners of a 220 mm diagonal
-- 5 x 4.3 x 3 propellers
-- Thrust-to-weight 8.4 to 1 at full charge, measured
+- Four motors, 2207 class, at the corners of a 220 mm diagonal: T-Motor's
+  F60 Pro V 1950 kV as its maker measured it
+- 5 inch tri blade propellers, T-Motor's T5147 (5.1 x 4.7 x 3) as measured
+  on that motor
+- Thrust-to-weight 9.7 to 1 at full charge on the pack, standing
 - Inertia tensor diagonal, roll 0.0035, pitch 0.0038, yaw 0.0068 kg m squared
 
 The last two lines used to read 4.5 to 1 and 0.0055 / 0.0060 / 0.0110, and
@@ -28,6 +30,23 @@ every band in the check table below was fitted against them. The old figures
 also do not describe this aircraft. A 650 g 5 inch on 6S with 1900 kV motors
 and tri-blades is 9 to 12 to 1 in the real world; 4.5 to 1 is a heavy 7 inch,
 and 0.0055 / 0.0060 / 0.0110 is a 7 inch's inertia too. See PROGRESS.md.
+
+The motor, prop and thrust lines moved again on 2026-10-01, by the owner's
+decision, from an unnamed stand row (1900 kV, 5 x 4.3 x 3, 26,000 rpm, 1.5
+kgf, 33 A; 8.4 to 1) to T-Motor's published F60 Pro V 1950 kV on its T5147
+at 24.7 V: 1990.4 g, 31,401 rpm, 49.3 A. Check 6's band moved with it, and
+it is the only band that did: 55 to 85 m was set by the stub harness of 11
+August before there was a plant, and the plant was fitted into it. On the
+measured row the five inch climbs 96.4 m; the band is that, with the old
+band's half width over its centre, 21.4 percent, either side. Every other
+band holds the corrected five inch unchanged. docs/STOCK-5INCH.md has the
+derivation and the numbers before and after. The same day each prop's
+thrust and torque against axial speed became its own APC curves
+(docs/PROP-CURVES.md); check 6 moved again, to 95 to 147 m by the same
+rule around the 121.0 m the five inch then climbs, and check 7 to 35.7 to
+56.8 m/s from four published top speed peaks. Both bands rest on no
+instrumented level run or punch-out log, which docs/PROP-CURVES.md lists
+as open items.
 The mass then moved twice more, 0.65 to 0.68 and then 0.71 kg on the
 owner's request after a pilot asked for the same quad a little heavier,
 which is where 8.4 to 1 comes from: thrust unchanged, sixty grams more
@@ -84,8 +103,8 @@ Every check is a numeric band in `tests/thresholds.json`. `npm run verify` runs 
 | 3 | determinism-cross-host | Replay in Node and headless Chrome, compare hashes | identical |
 | 4 | frame-independence | Same input at simulated render rates 30, 60, 144, 240 Hz | all four traces identical |
 | 5 | hover-throttle | Trim to steady hover at 4.0 V per cell | 0.20 to 0.30 |
-| 6 | punch-out | From hover, full throttle 3.0 s, altitude gained | 55 to 85 m |
-| 7 | terminal-velocity | Level, full throttle, 20 s, speed plateau | 30 to 40 m/s |
+| 6 | punch-out | From hover, full throttle 3.0 s, altitude gained | 95 to 147 m |
+| 7 | terminal-velocity | Level, full throttle, 20 s, speed plateau | 35.7 to 56.8 m/s |
 | 8 | motor-step-response | Step one motor 0 to 100 percent, time to 63 percent of final RPM | 10 to 30 ms |
 | 9 | rate-tracking | Full roll stick, steady-state roll rate vs configured max rate | within 3 percent |
 | 10 | yaw-coupling | Hard roll at constant throttle, yaw drift | build-tolerance scale (0.04 to 0.60 deg), correct sign. A symmetric quad cancels this coupling exactly; only asymmetry produces it, so the check bands the modeled tolerance rather than demanding a drift no real quad shows. |

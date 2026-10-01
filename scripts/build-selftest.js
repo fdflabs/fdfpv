@@ -591,8 +591,8 @@ console.log('the racing line');
   check('every aircraft names a top speed, and every quad its thrust to weight',
     AIRFRAMES.every((af) => af.topSpeed > 0 && (af.fixedWing || af.thrustToWeight > 1)),
     AIRFRAMES.filter((af) => !(af.topSpeed > 0) || (!af.fixedWing && !(af.thrustToWeight > 1))).map((af) => af.id).join());
-  check('the five inch: span 0.347 m, sideways 8.4 g of thrust less its 1.62 g of weight',
-    near(quad.span, 0.347, 1e-3) && near(quad.aLat, Math.sqrt(8.4 ** 2 - 1.62 ** 2) * 9.80665, 1e-9), `${quad.span} ${quad.aLat}`);
+  check('the five inch: span 0.347 m, sideways 9.7 g of thrust less its 1.62 g of weight',
+    near(quad.span, 0.347, 1e-3) && near(quad.aLat, Math.sqrt(9.7 ** 2 - 1.62 ** 2) * 9.80665, 1e-9), `${quad.span} ${quad.aLat}`);
   check('a Skyhunter at 60 degrees of bank stalls at sqrt 2 times 9.2 m/s: no tighter than 9.97 m',
     near(sky.rMin, (2 * 9.2 * 9.2) / (9.80665 * Math.tan(60 * DEG)), 1e-9) && near(sky.rMin, 9.97, 0.01), `${sky.rMin}`);
   for (const af of AIRFRAMES) {
@@ -635,13 +635,13 @@ console.log('the racing line');
   check('and the speed it implies is sqrt(aLat r)', ln.samples.every((p) => near(p.v, Math.min(quad.topSpeed, Math.sqrt(quad.aLat * p.r)), 1e-9)),
     `${ln.samples[0].v.toFixed(2)} m/s at ${ln.samples[0].r.toFixed(2)} m`);
   const vMean = ln.samples.reduce((a, p) => a + p.v, 0) / ln.samples.length;
-  check('about 28 m/s for the five inch, sqrt(80.8 x 10)', near(vMean, Math.sqrt(quad.aLat * 10), 2), vMean.toFixed(2));
+  check('about 31 m/s for the five inch, sqrt(93.8 x 10)', near(vMean, Math.sqrt(quad.aLat * 10), 2), vMean.toFixed(2));
   check('capped at top speed on a wide circle', racingLine(ring(200), quad, flat).samples.every((p) => p.v === quad.topSpeed));
   check('the five inch can fly a 10 m circle', ln.samples.every((p) => p.ok));
   const tight = racingLine(ring(6), sky, flat);
   check('a Skyhunter cannot fly a 6 m circle: all of it is marked', tight.samples.every((p) => !p.ok));
   check('it can fly a 30 m one', racingLine(ring(30), sky, flat).samples.every((p) => p.ok));
-  check('speedAt caps and grows', speedAt(quad, 1e9) === 40 && near(speedAt(sky, 10), Math.sqrt(sky.aLat * 10), 1e-12));
+  check('speedAt caps and grows', speedAt(quad, 1e9) === 54.1 && near(speedAt(sky, 10), Math.sqrt(sky.aLat * 10), 1e-12));
 
   /* One gate: out of it and back into it. */
   const solo = newCourse('swiss2', 'Solo');

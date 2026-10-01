@@ -503,8 +503,8 @@ export class Carousel {
   }
 
   canCustomise() {
-    /* A combat quad's Customise is its loadout (src/ui/hangar-combat.js),
-     * a quad's its motors. */
+    /* Every plane and combat aircraft has paint (configs/liveries.js
+     * paintable); a quad has its motors. */
     const key = this.current();
     const id = key ? this.airframeOf(key) : null;
     return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && customisable(id);

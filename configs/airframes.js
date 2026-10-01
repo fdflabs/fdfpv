@@ -119,8 +119,8 @@ export const AIRFRAMES = [
     name: 'Five inch',
     short: '5 inch',
     /* What a pilot calls it out loud, for a card and for the board. */
-    blurb: 'A 710 gram 6S freestyle and race quad. Eight and a half to one, forty metres a second, and a field big enough to use it.',
-    facts: ['6S', '220 mm', '8.4 : 1'],
+    blurb: 'A 710 gram 6S freestyle and race quad. Nearly ten to one, fifty four metres a second, and a field big enough to use it.',
+    facts: ['6S', '220 mm', '9.7 : 1'],
     /*
      * THE PICKER'S TWO NUMBERS (src/ui/carousel.js). `sizeMm` is the span of
      * a fixed wing and the motor to motor diagonal of a quad, the figure its
@@ -138,9 +138,14 @@ export const AIRFRAMES = [
     trackClass: 'full',
     /* Level speed at full throttle, m/s, and thrust over weight at 1 g: the
      * two figures in `blurb` and `facts`, read by the in-sim builder's
-     * racing line (src/builder/line.js). */
-    topSpeed: 40,
-    thrustToWeight: 8.4,
+     * racing line (src/builder/line.js). On T-Motor's F60 Pro V and T5147
+     * row since 2026-10-01 (src/native/plant.c): 54.1 m/s level at the
+     * gravityBase below on its prop's own thrust and torque curves
+     * (docs/PROP-CURVES.md),
+     * scripts/combat-gates.js, and 9.72 static on a fresh pack
+     * (docs/STOCK-5INCH.md); 40 and 8.4 before, 46 between. */
+    topSpeed: 54.1,
+    thrustToWeight: 9.7,
     cells: 6,
     /* Pack open circuit volts a cell, in the order the launch card offers
      * them: charged, mid, empty. A 6S LiPo, so 4.20 down to 3.50. */
@@ -299,8 +304,8 @@ export const AIRFRAMES = [
     grams: 23.4,
     trackClass: 'micro',
     /* The five inch's, since this flies the five inch's plant. */
-    topSpeed: 40,
-    thrustToWeight: 8.4,
+    topSpeed: 54.1,
+    thrustToWeight: 9.7,
     /*
      * SIX, BECAUSE THE PLANT IS THE FIVE INCH'S AND ITS THRUST IS KEYED TO
      * PACK VOLTS. A 1S pack on a 6S plant is a quad that will not leave the
@@ -472,7 +477,7 @@ export const AIRFRAMES = [
     trackClass: 'full',
     /* Level at full throttle in angle mode on a fresh pack, bare, measured
      * on the module; the static thrust to weight is combat-derive's. */
-    topSpeed: 28.3,
+    topSpeed: 33.4,
     thrustToWeight: 4.75,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
@@ -535,7 +540,7 @@ export const AIRFRAMES = [
     sizeMm: 420,
     grams: 1848,
     trackClass: 'full',
-    topSpeed: 27.6,
+    topSpeed: 33.3,
     thrustToWeight: 4.69,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
@@ -582,28 +587,29 @@ export const AIRFRAMES = [
     /*
      * THE INTERCEPTOR, plant 26, docs/COMBAT-DRONES.md: the fast chaser
      * that runs a Striker down and rams it. A stretched X 7 inch speed
-     * build on 2807 1500 kV motors and 7 x 6 two blades, on one 6S 1800
-     * LiPo, the owner's reference photograph of 2026-10-01. Every number
-     * is scripts/combat-derive.js's from a parts list. It trades the 7
-     * inch's pack and payload for speed: the fastest quad here, flat out
-     * and off the floor, for under half the 7 inch's charge, on a machine
-     * that rolls quicker than the five inch. Flown at that speed it sits 70
-     * degrees nose down, so its camera is tilted like a racer's.
+     * build on T-Motor Velox V2808 1300 kV motors and APC 7 x 9E two
+     * blades, on one Tattu 6S 1800 LiPo, the owner's reference photograph
+     * of 2026-10-01, every part a published one. Every number is
+     * scripts/combat-derive.js's from a parts list. It trades the 7 inch's
+     * pack and payload for speed: the fastest quad here, flat out and off
+     * the floor, for under half the 7 inch's charge, on a machine that
+     * rolls with the five inch. Flown at that speed it sits 70 degrees nose
+     * down, so its camera is tilted like a racer's.
      */
     id: 'interceptor',
     simId: 26,
     name: 'Interceptor',
     short: 'Interceptor',
-    blurb: 'An 849 gram stretched X 7 inch speed build on a 6S LiPo and high pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack, and it turns on a breath.',
-    facts: ['6S LiPo', '312 mm', '164 km/h'],
+    blurb: 'An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack.',
+    facts: ['6S LiPo', '312 mm', '201 km/h'],
     sizeMm: 312,
-    grams: 849,
+    grams: 880,
     trackClass: 'full',
     /* Level at full throttle on a fresh pack, bare, measured on the module
      * (scripts/combat-gates.js); the static thrust to weight is
      * combat-derive's. */
-    topSpeed: 45.5,
-    thrustToWeight: 9.29,
+    topSpeed: 55.9,
+    thrustToWeight: 8.33,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
     packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
@@ -637,11 +643,11 @@ export const AIRFRAMES = [
     combat: {
       frame: 'interceptor',
       payloads: [
-        { id: 'proximity', warhead: 'standard', massKg: 0.2, dragArea_m2: 0.004506, cgOffset_m: [0.0183, 0, -0.0523], dims: { d: 0.045, len: 0.16 } },
+        { id: 'proximity', warhead: 'standard', massKg: 0.2, dragArea_m2: 0.004506, cgOffset_m: [0.0184, 0, -0.0523], dims: { d: 0.045, len: 0.16 } },
       ],
       accessories: [
-        { id: 'lrantenna', massKg: 0.02, cgOffset_m: [-0.0767, 0, 0.0602] },
-        { id: 'gps', massKg: 0.015, cgOffset_m: [-0.0667, 0, 0.0532] },
+        { id: 'lrantenna', massKg: 0.02, cgOffset_m: [-0.0766, 0, 0.0602] },
+        { id: 'gps', massKg: 0.015, cgOffset_m: [-0.0666, 0, 0.0532] },
       ],
     },
   },
