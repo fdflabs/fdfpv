@@ -73,11 +73,13 @@ import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionO
 import { normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
+import { normaliseCombat } from '../../configs/combat.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
 import './hangar-tuning.js';
 import './hangar-parts.js';
+import './hangar-combat.js';
 /* Registers the Challenges tab, after the tabs that edit the plane. */
 import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
@@ -129,13 +131,13 @@ import {
   setPidsExpert,
 } from '../../configs/pids.js';
 import {
-  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks, wikiPageUrl,
+  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
 } from '../share/board.js';
 import { PATTERNS } from '../game/trickdetect.js';
 import { PROVEN } from '../game/proven.js';
 import { trickByName } from '../game/tricks.js';
 import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
-import { BOARD_WINDOW, WIKI_WINDOW, openNamedWindow } from '../share/windows.js';
+import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { crashRecord } from '../share/crashrecord.js';
 import { createShotTray } from './bugshots.js';
@@ -219,7 +221,7 @@ import {
  * appear here renders as a plain action, which is the safe default: it gets no
  * chevron it has not earned.
  */
-const LINK_ACTIONS = new Set(['leaderboard', 'wiki']);
+const LINK_ACTIONS = new Set(['leaderboard']);
 const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
@@ -780,6 +782,10 @@ const DEFAULTS = {
    * id: { prop, addons, damage }, configs/hangar-parts.js. A plane with no
    * entry flies as the kit, whole. */
   parts: {},
+  /* Each combat quad's payload and accessories, by airframe id:
+   * { payload, accessories }, configs/combat.js. A quad with no entry
+   * carries the standard payload and nothing bolted on. */
+  combat: {},
   /* Each plane's bench setup, by airframe id: the CG (battery and lead),
    * the rates, the expo, the trim and the flaps, configs/tuning.js, only
    * the fields the pilot moved off stock. Written by the hangar's Tuning
@@ -1062,6 +1068,7 @@ export function loadSettings() {
    * are dropped back to stock (configs/power.js). */
   s.power = normalizePower(s.power);
   s.parts = normaliseParts(s.parts);
+  s.combat = normaliseCombat(s.combat, airframeById);
   s.floats = normaliseFloats(s.floats, s.airframe);
   /* And the tuning, against the limits that power choice gives: a glow
    * engine has no pack to slide. */
@@ -3549,7 +3556,7 @@ export class Ui {
       }
     });
     this.show('title');
-    this.bindWikiHash();
+    this.bindLocationHash();
   }
 
   build() {
@@ -3717,10 +3724,6 @@ export class Ui {
     /* First run only. Replaced by the keep note once a lap has been flown. */
     this.firstNote = el('p', 'keep-note first-note', str('ui.a_quad_has_no_brakes_and'));
     brand.append(this.firstNote);
-    this.wikiTeaser = btn('wiki-teaser', str('ui.simulating_fpv_for_nerds'));
-    this.wikiTeaser.setAttribute('aria-label', str('ui.open_the_fpv_wiki'));
-    this.wikiTeaser.addEventListener('click', () => this.act('wiki'));
-    brand.append(this.wikiTeaser);
     const titleBlock = wrapMenu();
     this.titleMenu = titleBlock.menu;
     /*
@@ -3820,9 +3823,6 @@ export class Ui {
 
     this.howtoMode = el('p', 'howto-mode', '');
     howto.append(this.howtoMode);
-    const howtoWiki = btn('howto-wiki', str('ui.why_this_works_the_fpv_wiki'));
-    howtoWiki.addEventListener('click', () => this.act('wiki'));
-    howto.append(howtoWiki);
 
     const howtoBlock = wrapMenu();
     this.howtoMenu = howtoBlock.menu;
@@ -4443,12 +4443,13 @@ export class Ui {
     /* A newer deploy is out. Shown on menus and on Paused, never over a
      * flight: syncChips holds it until the pilot is off the sticks. */
     this.updateReady = false;
+    this.barStopCount = 0;
     this.updateBar = el('div', 'update-bar');
     this.updateBar.setAttribute('role', 'status');
     this.updateBar.hidden = true;
-    const reload = btn('update-reload', str('update.reload'));
-    reload.addEventListener('click', () => window.location.reload());
-    this.updateBar.append(el('span', null, str('update.new_version')), reload);
+    this.updateReload = btn('update-reload', str('update.reload'));
+    this.updateReload.addEventListener('click', () => this.act('update-reload'));
+    this.updateBar.append(el('span', null, str('update.new_version')), this.updateReload);
     this.checkVersion = watchVersion((stale) => {
       this.updateReady = stale;
       this.syncChips();
@@ -4463,11 +4464,7 @@ export class Ui {
     this.roomBar.hidden = true;
     this.roomBarText = el('span');
     this.roomBarButton = btn('update-reload', '');
-    this.roomBarButton.addEventListener('click', () => {
-      if (this.roomBarView && this.roomBarView.act) {
-        this.roomBarView.act();
-      }
-    });
+    this.roomBarButton.addEventListener('click', () => this.act('room-bar'));
     this.roomBar.append(this.roomBarText, this.roomBarButton);
 
     this.musicDock = el('div', 'music-dock');
@@ -4527,7 +4524,12 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.updateBar, this.roomBar, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.musicDock, this.nameDialog);
+    /* In the command bar, beside the primary: the screens are padded to
+     * clear that bar, so nothing drawn there can cover a card, the rooms
+     * panel or a row. Floating over the page, the update bar sat on the
+     * title's cards. */
+    this.framePrimary.before(this.roomBar, this.updateBar);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
@@ -5142,6 +5144,26 @@ export class Ui {
     /* A room bar asking for the reload says it already, for the room. */
     if (this.updateBar) {
       this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight' || (roomBar && this.roomBarView.reload);
+    }
+    /* A bar that goes takes its stop with it (barStops), and a cursor that
+     * was on it would point past the end of the list, where Enter does
+     * nothing. It goes back to the list's last stop. Only when the stops
+     * change: the room bar calls this four times a second, and a whole
+     * items() each time is a menu rebuilt four times a second. */
+    const stops = this.barStops().length;
+    if (stops !== this.barStopCount) {
+      this.barStopCount = stops;
+      const items = this.items();
+      if (this.cursor >= items.length) {
+        let i = items.length - 1;
+        while (i > 0 && !this.isStop(items[i])) {
+          i -= 1;
+        }
+        this.cursor = Math.max(0, i);
+        this.syncCursor(false);
+      } else {
+        this.markBars(items);
+      }
     }
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
@@ -5990,7 +6012,42 @@ export class Ui {
    * repeated section headings and Back, which do.
    */
   items() {
-    return stampIds(this.buildItems(), this.screen);
+    return stampIds([...this.buildItems(), ...this.barStops()], this.screen);
+  }
+
+  /*
+   * THE BARS' BUTTONS ARE THE MENU'S LAST STOPS. Reload on the update bar
+   * and the room bar's button were mouse only: a pad has nothing but the
+   * cursor, and Enter on a keyboard selects the cursor's row, so a pad or
+   * keyboard pilot could read "A new version is out" and never press it.
+   * As items they are walked, lit and chosen like any row: Up from the
+   * first row or Down from the last lands on them. Last, so the cursor
+   * never opens on one, and drawn by the bar itself (renderMenu skips a
+   * `bar` item). Only while the bar is up, which syncChips decides and
+   * which is never in flight, so no flight input is taken.
+   */
+  barStops() {
+    const stops = [];
+    if (this.updateBar && !this.updateBar.hidden) {
+      stops.push({ bar: 'update', label: str('update.reload'), note: str('update.new_version'), action: 'update-reload' });
+    }
+    if (this.roomBar && !this.roomBar.hidden && this.roomBarView && this.roomBarView.button) {
+      stops.push({ bar: 'room', label: this.roomBarView.button, note: this.roomBarView.text, action: 'room-bar' });
+    }
+    return stops;
+  }
+
+  /* Light the bar button the cursor is on, the way markCards lights a card. */
+  markBars(items = null) {
+    const up = (this.updateBar && !this.updateBar.hidden) || (this.roomBar && !this.roomBar.hidden);
+    const here = up ? (items || this.items())[this.cursor] : null;
+    const on = here ? here.bar : null;
+    if (this.updateReload) {
+      this.updateReload.classList.toggle('on', on === 'update');
+    }
+    if (this.roomBarButton) {
+      this.roomBarButton.classList.toggle('on', on === 'room');
+    }
   }
 
   buildItems() {
@@ -6071,8 +6128,8 @@ export class Ui {
       /*
        * The course actions that used to appear and vanish here live on the
        * Courses screen and on Results, where the course itself is what the
-       * player is looking at. FPV wiki opens the landing-site wiki. Report a bug
-       * is a stable last row so testers can send a ticket from title.
+       * player is looking at. Report a bug is a stable last row so testers
+       * can send a ticket from title.
        */
       /*
        * ONE ROW FOR THE PLACE, BECAUSE THE MODE IS ALREADY ANSWERED.
@@ -6228,11 +6285,6 @@ export class Ui {
           note: str('ui.you_and_your_radio_your_name'),
         },
         { label: str('ui.how_to_fly'), action: 'howto', note: str('ui.the_sticks_live_and_what_the') },
-        {
-          label: str('ui.fpv_wiki'),
-          action: 'wiki',
-          note: str('ui.the_closed_loop_the_plant_and'),
-        },
         {
           label: str('ui.tracks_and_statistics'),
           action: 'leaderboard',
@@ -7057,8 +7109,7 @@ export class Ui {
        * chip in the corner, or F8, so this list stays put. Flight feel
        * sits by the tuning rows because "this feels off" is the moment a
        * pilot pauses, and the report carries the tune and PIDs they are
-       * paused on. FPV wiki opens the landing-site wiki so a mid-flight
-       * "why did that happen" does not have to quit the run. */
+       * paused on. */
       /*
        * THE ONE COPY THAT EARNS ITS PLACE, and doors for the rest.
        *
@@ -7086,8 +7137,8 @@ export class Ui {
           note: str('carousel.row_note'),
         },
         /* The hangar for the plane being flown: its power and its paint,
-         * saved into the air where it is. */
-        ...(paintable(s.airframe) ? [{
+         * saved into the air where it is; a combat quad's loadout. */
+        ...(paintable(s.airframe) || airframeById(s.airframe).combat ? [{
           label: str('hangar.customise'),
           action: 'customise',
           note: str('hangar.row_note'),
@@ -7138,7 +7189,6 @@ export class Ui {
         },
         graphicsItem(s),
         { label: str('ui.how_to_fly'), action: 'howto' },
-        { label: str('ui.fpv_wiki'), action: 'wiki', note: str('ui.the_plant_the_compiled_controller_and') },
         { label: str('ui.credits'), action: 'credits', note: str('ui.who_made_this_who_flew_it') },
         /* Track mode's own way out: the list the track was played from. */
         ...(s.map === 'track' ? [{ label: str('ui.my_tracks'), action: 'mytracks', note: str('ui.back_to_the_list_of_tracks') }] : []),
@@ -7630,7 +7680,7 @@ export class Ui {
        * title dressed itself as the menu: `is-gate` never went on, and with
        * it went the rule that lays the two cards out
        * (`.screen-title.is-gate .gate-cards`), the rules that take the keep
-       * note, the wiki teaser and the best-lap chip off a screen that is
+       * note and the best-lap chip off a screen that is
        * asking one question, and the rule that hides an empty menu panel.
        * The pilot got a blank box where the aircraft should be, two
        * paragraphs that belong to a seat they had not chosen, and no way to
@@ -7692,10 +7742,11 @@ export class Ui {
     host.textContent = '';
     /* The Courses screen draws its choices as cards above this menu, so the
      * rows here are only what is left over. */
+    const drawn = items.filter((it) => !it.bar);
     const rows = this.cardScreen()
-      ? items.filter((it) => !it.map && !it.course && !it.card && !it.lobby)
-      : items;
-    const offset = items.length - rows.length;
+      ? drawn.filter((it) => !it.map && !it.course && !it.card && !it.lobby)
+      : drawn;
+    const offset = drawn.length - rows.length;
     this.rowOffset = offset;
     this.menuRows = [];
     rows.forEach((it, k) => {
@@ -8037,6 +8088,7 @@ export class Ui {
 
   syncCursor(scroll = true) {
     const items = this.items();
+    this.markBars(items);
     /*
      * The id of the row the cursor is on, kept so that a REBUILD can put
      * the cursor back on the same row rather than the same index. The
@@ -10249,7 +10301,7 @@ export class Ui {
     }
   }
 
-  bindWikiHash() {
+  bindLocationHash() {
     this.applyLocationHash();
     window.addEventListener('hashchange', () => this.applyLocationHash());
   }
@@ -10260,10 +10312,6 @@ export class Ui {
       if (this.screen !== 'credits' && this.screen !== 'flight' && this.screen !== 'paused') {
         this.act('credits');
       }
-      return;
-    }
-    if (h.startsWith('wiki/')) {
-      window.location.replace(wikiPageUrl(h));
       return;
     }
     if (this.screen === 'credits') {
@@ -12871,6 +12919,16 @@ export class Ui {
   }
 
   act(action, picked = null) {
+    if (action === 'update-reload') {
+      window.location.reload();
+      return;
+    }
+    if (action === 'room-bar') {
+      if (this.roomBarView && this.roomBarView.act) {
+        this.roomBarView.act();
+      }
+      return;
+    }
     /* The swap in place, from the pause menu's row. */
     if (action === 'hotswap') {
       this.openSwap('paused');
@@ -13035,10 +13093,6 @@ export class Ui {
     if (action.startsWith('casualtrack:')) {
       this.newTrackOpen = false;
       this.openBuilder({ map: action.slice('casualtrack:'.length), casual: true });
-      return;
-    }
-    if (action === 'wiki') {
-      openNamedWindow(wikiPageUrl(), WIKI_WINDOW);
       return;
     }
     /*
@@ -13733,7 +13787,10 @@ export class Ui {
     /* A plane with a float version opens on the version its toggle names,
      * whichever of the two it was asked for. */
     const id = withFloats(this.settings, landPlaneOf(card));
-    if (!paintable(id) || this.hangar.isOpen) {
+    /* A combat quad has a hangar for its payload and accessories
+     * (src/ui/hangar-combat.js) before it has paint. */
+    const loadoutOnly = !paintable(id) && Boolean(airframeById(id).combat);
+    if ((!paintable(id) && !loadoutOnly) || this.hangar.isOpen) {
       return;
     }
     const s = this.settings;
@@ -13784,6 +13841,7 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
+      tab: loadoutOnly ? 'loadout' : null,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: s.livery[family],
       onLibrary: (list) => {
