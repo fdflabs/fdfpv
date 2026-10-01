@@ -596,13 +596,30 @@ const HELPERS = `(() => {
     }
     return best;
   };
+  /* A box's extents in its own frame and the way back to the world's:
+   * the world's own for an axis aligned box, its (u, y, w) for a turned
+   * one (collide.js addTurnedBox). */
+  const TURNED = 2;
+  const boxFrame = (i) => {
+    if (col.fbox[i] !== TURNED) {
+      return { lo: [col.fax[i], col.fay[i], col.faz[i]], hi: [col.fbx[i], col.fby[i], col.fbz[i]], toWorld: (p) => p, toBox: (p) => p, dir: (d) => d };
+    }
+    const tx = col.fux[i], tz = col.fuz[i], n2 = tx * tx + tz * tz;
+    return {
+      lo: [col.fu0[i], col.fay[i], col.fw0[i]],
+      hi: [col.fu1[i], col.fby[i], col.fw1[i]],
+      toWorld: (p) => [(p[0] * tx - p[2] * tz) / n2, p[1], (p[0] * tz + p[2] * tx) / n2],
+      toBox: (p) => [p[0] * tx + p[2] * tz, p[1], p[2] * tx - p[0] * tz],
+      dir: (d) => [d[0] * tx + d[2] * tz, d[1], d[2] * tx - d[0] * tz],
+    };
+  };
   /* Points on collider i's outside, 5 cm out, that nothing else holds:
    * not inside another solid, not under a roof or the ground. */
   const outside = (i, spacing) => {
     const pts = [];
     const off = 0.05;
     if (col.fbox[i]) {
-      const lo = [col.fax[i], col.fay[i], col.faz[i]], hi = [col.fbx[i], col.fby[i], col.fbz[i]];
+      const { lo, hi, toWorld } = boxFrame(i);
       for (let ax = 0; ax < 3; ax += 1) {
         const u = (ax + 1) % 3, v = (ax + 2) % 3;
         const nu = Math.max(1, Math.min(12, Math.round((hi[u] - lo[u]) / spacing)));
@@ -613,7 +630,7 @@ const HELPERS = `(() => {
             p[ax] = side < 0 ? lo[ax] - off : hi[ax] + off;
             p[u] = lo[u] + (hi[u] - lo[u]) * (a + 0.5) / nu;
             p[v] = lo[v] + (hi[v] - lo[v]) * (b + 0.5) / nv;
-            pts.push(p);
+            pts.push(toWorld(p));
           }
         }
       }
@@ -660,8 +677,9 @@ const HELPERS = `(() => {
       o.far += far;
       if (pts.length && far === pts.length) {
         o.invisible += 1;
+        const f = col.fbox[i] ? boxFrame(i) : { lo: [col.fax[i], col.fay[i], col.faz[i]], hi: [col.fbx[i], col.fby[i], col.fbz[i]] };
         invisible.push({ key, at: [mx, (col.fay[i] + col.fby[i]) / 2, mz].map((q) => +q.toFixed(1)),
-          size: [col.fbx[i] - col.fax[i], col.fby[i] - col.fay[i], col.fbz[i] - col.faz[i]].map((q) => +Math.abs(q).toFixed(1)), r: +col.fr[i].toFixed(2) });
+          size: [0, 1, 2].map((k) => +Math.abs(f.hi[k] - f.lo[k]).toFixed(1)), r: +col.fr[i].toFixed(2) });
       }
     }
     return { tris: G.tris.length / 9, byKind, invisible: invisible.slice(0, 40) };
@@ -685,7 +703,7 @@ const HELPERS = `(() => {
     });
     return out;
   };
-  window.__ca = { it, col, T, holds, drawn, phantom, trees, triGrid, nearestTri, triDist, eachTri, meshesOf };
+  window.__ca = { it, col, T, holds, drawn, phantom, trees, triGrid, nearestTri, triDist, eachTri, meshesOf, boxFrame };
   return true;
 })()`;
 
@@ -716,7 +734,7 @@ const HELPERS = `(() => {
 const DAM_RAYS = `(() => {
   const THREE = window.__three;
   const {
-    it, col, eachTri, meshesOf, triDist,
+    it, col, eachTri, meshesOf, triDist, boxFrame,
   } = window.__ca;
   const dam = it.parts.dam.survey();
   const damSlabs = dam.records.flatMap((r) => r.slabs.map((sl) => ({ sl, kind: r.kind })));
@@ -896,9 +914,13 @@ const DAM_RAYS = `(() => {
         } else {
           if (stampC[v] === stamp) return;
           stampC[v] = stamp;
-          const t = col.fbox[v]
-            ? rayBox(o, d, [col.fax[v], col.fay[v], col.faz[v]], [col.fbx[v], col.fby[v], col.fbz[v]])
-            : rayCapsule(o, d, [col.fax[v], col.fay[v], col.faz[v]], [col.fbx[v], col.fby[v], col.fbz[v]], col.fr[v]);
+          let t;
+          if (col.fbox[v]) {
+            const f = boxFrame(v);
+            t = rayBox(f.toBox(o), f.dir(d), f.lo, f.hi);
+          } else {
+            t = rayCapsule(o, d, [col.fax[v], col.fay[v], col.faz[v]], [col.fbx[v], col.fby[v], col.fbz[v]], col.fr[v]);
+          }
           if (t < tP && t <= L) { tP = t; wP = (own[v] ? 'dam ' : 'other ') + col.kindName(col.fkind[v]) + (col.fbox[v] ? ' box' : ' capsule') + ' #' + v; }
         }
       };
@@ -1571,7 +1593,7 @@ async function pageSweeps(out) {
             if (top <= g + 0.05 || bot >= g + 2) continue;
             let d;
             if (col.fbox[i]) {
-              d = Math.hypot(Math.max(col.fax[i] - X, 0, X - col.fbx[i]), Math.max(col.faz[i] - Z, 0, Z - col.fbz[i]));
+              d = col.boxGap(i, X, (col.fay[i] + col.fby[i]) / 2, Z);
             } else {
               const ax = col.fax[i], az = col.faz[i], vx = col.fbx[i] - ax, vz = col.fbz[i] - az;
               const l2 = vx * vx + vz * vz;
