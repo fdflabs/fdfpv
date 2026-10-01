@@ -396,10 +396,11 @@ export function pitchMatchesRoll(r) {
 /*
  * The throttle cap, as a percentage of full throttle.
  *
- * WHY A RACE QUAD NEEDS ONE. This airframe is 8.4 : 1 static thrust to
- * weight, which is what a 710 g 5 inch on 6S with 1900 kV motors really is,
- * and it hovers at 26.2 percent of stick (scripts/flightcheck.js measures
- * both). So three quarters of the throttle travel is above hover, the useful
+ * WHY A RACE QUAD NEEDS ONE. This airframe is 9.7 : 1 static thrust to
+ * weight, which is what a 710 g 5 inch on 6S with T-Motor's 1950 kV
+ * motors really is, and it hovers at 24.4 percent of stick
+ * (scripts/flightcheck.js measures both; 8.4 and 26.2 before the five
+ * inch moved to T-Motor's published row on 2026-10-01). So three quarters of the throttle travel is above hover, the useful
  * band around it is a couple of percent of stick, and ten percent of stick
  * takes you from holding altitude to climbing at 9 m/s. That is not a bug in
  * the model, it is what the aircraft is, and it is exactly why the throttle

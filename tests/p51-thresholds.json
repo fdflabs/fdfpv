@@ -22,7 +22,7 @@
   "p17_belly": { "z0": 3, "speed0": 13 },
   "p18_landing": { "approach": 10.94, "z0": 10, "maxTouchSpeed": 11.6, "pitchTolDeg": 1.5 },
   "s17_unmoved": {
-    "quad": "de0401cd4266c395",
+    "quad": "9a4c86d0dd19a6e0",
     "wing": "d7b7743dfde9a0cc",
     "sky": "02b8a7aa3d79c02c",
     "cub": "c121859d26c23129",

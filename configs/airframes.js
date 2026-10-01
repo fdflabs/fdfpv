@@ -119,8 +119,8 @@ export const AIRFRAMES = [
     name: 'Five inch',
     short: '5 inch',
     /* What a pilot calls it out loud, for a card and for the board. */
-    blurb: 'A 710 gram 6S freestyle and race quad. Eight and a half to one, forty metres a second, and a field big enough to use it.',
-    facts: ['6S', '220 mm', '8.4 : 1'],
+    blurb: 'A 710 gram 6S freestyle and race quad. Nearly ten to one, forty six metres a second, and a field big enough to use it.',
+    facts: ['6S', '220 mm', '9.7 : 1'],
     /*
      * THE PICKER'S TWO NUMBERS (src/ui/carousel.js). `sizeMm` is the span of
      * a fixed wing and the motor to motor diagonal of a quad, the figure its
@@ -138,9 +138,12 @@ export const AIRFRAMES = [
     trackClass: 'full',
     /* Level speed at full throttle, m/s, and thrust over weight at 1 g: the
      * two figures in `blurb` and `facts`, read by the in-sim builder's
-     * racing line (src/builder/line.js). */
-    topSpeed: 40,
-    thrustToWeight: 8.4,
+     * racing line (src/builder/line.js). On T-Motor's F60 Pro V and T5147
+     * row since 2026-10-01 (src/native/plant.c): 46.0 m/s level at the
+     * gravityBase below, scripts/combat-gates.js, and 9.72 static on a
+     * fresh pack (docs/STOCK-5INCH.md); 40 and 8.4 before. */
+    topSpeed: 46,
+    thrustToWeight: 9.7,
     cells: 6,
     /* Pack open circuit volts a cell, in the order the launch card offers
      * them: charged, mid, empty. A 6S LiPo, so 4.20 down to 3.50. */
@@ -299,8 +302,8 @@ export const AIRFRAMES = [
     grams: 23.4,
     trackClass: 'micro',
     /* The five inch's, since this flies the five inch's plant. */
-    topSpeed: 40,
-    thrustToWeight: 8.4,
+    topSpeed: 46,
+    thrustToWeight: 9.7,
     /*
      * SIX, BECAUSE THE PLANT IS THE FIVE INCH'S AND ITS THRUST IS KEYED TO
      * PACK VOLTS. A 1S pack on a 6S plant is a quad that will not leave the
