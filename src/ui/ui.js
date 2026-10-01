@@ -13282,9 +13282,14 @@ export class Ui {
         /* The cursor lands on Fly when the world comes back, for the same
          * reason as below: the fourth card is not the menu's fourth row. */
         this.setCursor(this.titleStop());
-        this.seatMap(want.id);
+        /* A room card's screen is up before the seat changes, so the world
+         * swap the seat starts knows to come back to it (main.js
+         * syncWorldNow), not to the title it shows while it loads. */
         if (way.room) {
           this.show('friends');
+          this.seatMap(want.id, { stay: true });
+        } else {
+          this.seatMap(want.id);
         }
         return;
       }
