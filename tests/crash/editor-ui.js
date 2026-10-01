@@ -305,13 +305,20 @@ const api = {
       seek(m.t - 0.5);
     }
   },
+  /* The crash cam's contract (src/replay/crashcam.js api): a number in
+   * SPEEDS is that speed, so 1 is 1x and not a step; anything else steps
+   * down. A fake that stepped on 1 hid the editor's Up going to 1x. */
   setSpeed(s) {
+    if (SPEEDS.includes(s)) {
+      apply(setShot(edit(), shotNow(), { speed: s }));
+    } else {
+      api.speedBy(s);
+    }
+  },
+  speedBy(dir) {
     const i = shotNow();
-    const cur = edit().shots[i].speed;
-    const next = s === 1 || s === -1
-      ? SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, SPEEDS.indexOf(cur) + s))]
-      : s;
-    apply(setShot(edit(), i, { speed: next }));
+    const k = SPEEDS.indexOf(edit().shots[i].speed);
+    apply(setShot(edit(), i, { speed: SPEEDS[Math.max(0, Math.min(SPEEDS.length - 1, (k < 0 ? 3 : k) + dir))] }));
   },
   setRig(rig) {
     const i = shotNow();
