@@ -5140,7 +5140,9 @@ export class Ui {
     }
     /* A bar that goes takes its stop with it (barStops), and a cursor that
      * was on it would point past the end of the list, where Enter does
-     * nothing. It goes back to the list's last stop. */
+     * nothing. It goes back to the list's last stop. Only when the stops
+     * change: the room bar calls this four times a second, and a whole
+     * items() each time is a menu rebuilt four times a second. */
     const stops = this.barStops().length;
     if (stops !== this.barStopCount) {
       this.barStopCount = stops;
@@ -5152,9 +5154,10 @@ export class Ui {
         }
         this.cursor = Math.max(0, i);
         this.syncCursor(false);
+      } else {
+        this.markBars(items);
       }
     }
-    this.markBars();
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
      * rather than as a top in pixels here, so the status bar's own offset
