@@ -3,7 +3,7 @@
  * what is drawn there, swept, and held to a recorded baseline.
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/collide-audit-itaipu.js
- *       [--only=footprints,drawn,phantom,trees,refill,bridge,water,seats,fly]
+ *       [--only=footprints,drawn,phantom,trees,refill,bridge,water,seats,fly,dam,damfly]
  *       [--record]
  *
  * The owner asked for "a complete audit on collision physics ... areas
@@ -72,6 +72,22 @@
  *               past with nothing); a dive onto open ground is
  *               `invisible` when the craft meets something more than
  *               1.5 m over the ground, else `clear`.
+ *   dam         rays through the dam (DAM_RAYS): straight down over the
+ *               spillway's gates, piers, hoists, bridge and chute, every
+ *               concrete crest and its faces, and the embankments'
+ *               crests, and level, both ways, along and across each, at
+ *               every half metre of height. Along each ray the first thing
+ *               physics meets (a static collider, one of the dam's roof
+ *               slabs the crash physics declares, the ground a craft is
+ *               offered) against the first thing drawn. Physics more than
+ *               RAY_TOL in front of anything drawn is an invisible wall,
+ *               and one the dam's own colliders or slabs make fails the
+ *               run; drawn more than RAY_TOL in front of physics is drawn
+ *               but not solid, held to the baseline.
+ *   damfly      the owner's crash (2026-10-01): a Timber flown over the
+ *               spillway's open bays at the bridge deck's level and out
+ *               from under the bridge, which must pass, and into a pier
+ *               and the deck's edge, which must stop it.
  *
  * THE BASELINE (tests/collide-audit-itaipu-baseline.json) is today's
  * numbers, not a target: several of them are defects this audit found
@@ -120,7 +136,7 @@ const arg = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`));
   return a ? a.slice(name.length + 3) : dflt;
 };
-const ALL = ['footprints', 'drawn', 'phantom', 'trees', 'refill', 'bridge', 'water', 'seats', 'fly'];
+const ALL = ['footprints', 'drawn', 'phantom', 'trees', 'refill', 'bridge', 'water', 'seats', 'fly', 'dam', 'damfly'];
 const ONLY = new Set(arg('only', ALL.join(',')).split(','));
 const RECORD = process.argv.includes('--record');
 
@@ -151,6 +167,11 @@ const SEAT_CLEAR = 1.15;
  * with a seeded generator, but what the terrain draws at its finest and
  * which trees are in view move a little with the frame. */
 const SLACK = (n) => Math.ceil(n * 0.1) + 20;
+/* The dam's rays: how far physics may stand in front of what is drawn,
+ * or behind it, before it is a wall or a hole. The dam's own stairs are
+ * STAIR, 0.25 m, out of a turned face, and its tops SKIN under a record;
+ * dam-check's faces hold drawn walls within 0.5 m of a solid. */
+const RAY_TOL = 0.5;
 
 const failures = [];
 const fail = (m) => {
@@ -319,11 +340,17 @@ const HELPERS = `(() => {
     const nt = (idx ? idx.count : pos.count) / 3;
     const mats = [];
     if (mesh.isInstancedMesh) {
+      /* By where the instance's geometry is, not its matrix's origin: the
+       * spillway gates' gear is drawn at gate 0 and moved by an offset. */
       const m = new THREE.Matrix4();
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      const bs = g.boundingSphere;
+      const c = new THREE.Vector3();
       for (let k = 0; k < mesh.count; k += 1) {
         mesh.getMatrixAt(k, m);
         const w = new THREE.Matrix4().multiplyMatrices(mesh.matrixWorld, m);
-        if (Math.hypot(w.elements[12] - cx, w.elements[14] - cz) <= r + 60) mats.push(w);
+        c.copy(bs.center).applyMatrix4(w);
+        if (Math.hypot(c.x - cx, c.z - cz) <= r + 60 + bs.radius) mats.push(w);
       }
     } else {
       mats.push(mesh.matrixWorld);
@@ -542,7 +569,340 @@ const HELPERS = `(() => {
     });
     return out;
   };
-  window.__ca = { it, col, T, holds, drawn, phantom, trees, triGrid, nearestTri };
+  window.__ca = { it, col, T, holds, drawn, phantom, trees, triGrid, nearestTri, triDist, eachTri, meshesOf };
+  return true;
+})()`;
+
+/*
+ * THE DAM'S RAYS (window.__dr), after HELPERS. Each region is a frame on
+ * the plan, { name, o, a, t: [t0, t1], s: [s0, s1], y: [y0, y1], step,
+ * top, ystep, across, along }: a point is o + a t + n s with n =
+ * (-a.z, a.x), the dam's own frameOf. Rays are shot straight down from
+ * `top` over a grid of (t, s) `step` apart, and level, both ways, along t
+ * every `along` of s and along s every `across` of t, at every ystep of
+ * y (none when it is 0). Along each ray two distances:
+ *
+ *   physics  the first static collider (not a tree or a canopy), the
+ *            first of the dam's roof slabs (the crash physics' obstacle
+ *            boxes, roofs.js roofSlabs) and, for a ray down, the ground
+ *            a craft there is offered (height() from the ray's top, which
+ *            is the roofs as well as the ground and the water);
+ *   drawn    the first triangle of every part's drawn meshes (as the
+ *            phantom sweep reads them), and the drawn ground and water.
+ *
+ * Physics met more than TOL before anything drawn, at a point further
+ * than TOL from every drawn triangle, the ground and the water, is an
+ * INVISIBLE WALL, as deep as that distance (up to 5 m); drawn met more
+ * than TOL before physics, at a point no collider or offered ground holds
+ * within TOL, is drawn but NOT SOLID, as deep as physics is behind it.
+ * Both are binned 5 m on the plan, with what was met.
+ */
+const DAM_RAYS = `(() => {
+  const THREE = window.__three;
+  const {
+    it, col, eachTri, meshesOf, triDist,
+  } = window.__ca;
+  const dam = it.parts.dam.survey();
+  const slabs = dam.records.flatMap((r) => r.slabs.map((sl) => ({ sl, kind: r.kind })));
+  const own = new Uint8Array(col.count);
+  for (const i of dam.solidIndices) own[i] = 1;
+  const CELL = 4;
+  const ck = (i, j) => (i + 32768) * 65536 + (j + 32768);
+  const put = (g, x0, z0, x1, z1, box, v) => {
+    const i0 = Math.max(Math.floor(x0 / CELL), box[0]), i1 = Math.min(Math.floor(x1 / CELL), box[2]);
+    const j0 = Math.max(Math.floor(z0 / CELL), box[1]), j1 = Math.min(Math.floor(z1 / CELL), box[3]);
+    for (let i = i0; i <= i1; i += 1) for (let j = j0; j <= j1; j += 1) {
+      const k = ck(i, j);
+      let l = g.get(k);
+      if (!l) { l = []; g.set(k, l); }
+      l.push(v);
+    }
+  };
+  const ground = (x, z) => window.__surface(x, z, -1e9);
+
+  /* Ray against an axis aligned box, a capsule (Quilez), an oriented box
+   * and a triangle (Moller and Trumbore, either side): the distance along
+   * the unit ray to its first meeting, Infinity for none. */
+  const rayBox = (o, d, lo, hi) => {
+    let t0 = 0, t1 = Infinity;
+    for (let k = 0; k < 3; k += 1) {
+      if (Math.abs(d[k]) < 1e-12) {
+        if (o[k] < lo[k] || o[k] > hi[k]) return Infinity;
+        continue;
+      }
+      let a = (lo[k] - o[k]) / d[k], b = (hi[k] - o[k]) / d[k];
+      if (a > b) { const q = a; a = b; b = q; }
+      t0 = Math.max(t0, a); t1 = Math.min(t1, b);
+      if (t0 > t1) return Infinity;
+    }
+    return t0;
+  };
+  const sphere = (o, d, c, r) => {
+    const ox = o[0] - c[0], oy = o[1] - c[1], oz = o[2] - c[2];
+    const b = ox * d[0] + oy * d[1] + oz * d[2];
+    const cc = ox * ox + oy * oy + oz * oz - r * r;
+    const h = b * b - cc;
+    if (h < 0) return Infinity;
+    const t = -b - Math.sqrt(h);
+    return t >= 0 ? t : (cc <= 0 ? 0 : Infinity);
+  };
+  const rayCapsule = (o, d, pa, pb, r) => {
+    const ba = [pb[0] - pa[0], pb[1] - pa[1], pb[2] - pa[2]];
+    const oa = [o[0] - pa[0], o[1] - pa[1], o[2] - pa[2]];
+    const baba = ba[0] * ba[0] + ba[1] * ba[1] + ba[2] * ba[2];
+    if (baba < 1e-12) return sphere(o, d, pa, r);
+    const bard = ba[0] * d[0] + ba[1] * d[1] + ba[2] * d[2];
+    const baoa = ba[0] * oa[0] + ba[1] * oa[1] + ba[2] * oa[2];
+    const rdoa = d[0] * oa[0] + d[1] * oa[1] + d[2] * oa[2];
+    const oaoa = oa[0] * oa[0] + oa[1] * oa[1] + oa[2] * oa[2];
+    const a = baba - bard * bard;
+    let best = Math.min(sphere(o, d, pa, r), sphere(o, d, pb, r));
+    if (a > 1e-9 * baba) {
+      const b = baba * rdoa - baoa * bard;
+      const c = baba * oaoa - baoa * baoa - r * r * baba;
+      const h = b * b - a * c;
+      if (h >= 0) {
+        const t = (-b - Math.sqrt(h)) / a;
+        const y = baoa + t * bard;
+        if (t >= 0 && y > 0 && y < baba) best = Math.min(best, t);
+      }
+    }
+    return best;
+  };
+  const rayObb = (o, d, sl) => {
+    const rel = [o[0] - sl.c[0], o[1] - sl.c[1], o[2] - sl.c[2]];
+    const ax = [sl.u, sl.n, sl.v];
+    const h = [sl.hu, sl.hn, sl.hv];
+    const lo = [], hi = [], oo = [], dd = [];
+    for (let k = 0; k < 3; k += 1) {
+      oo.push(rel[0] * ax[k][0] + rel[1] * ax[k][1] + rel[2] * ax[k][2]);
+      dd.push(d[0] * ax[k][0] + d[1] * ax[k][1] + d[2] * ax[k][2]);
+      lo.push(-h[k]); hi.push(h[k]);
+    }
+    return rayBox(oo, dd, lo, hi);
+  };
+  const rayTri = (o, d, T9, k) => {
+    const ax = T9[k], ay = T9[k + 1], az = T9[k + 2];
+    const e1x = T9[k + 3] - ax, e1y = T9[k + 4] - ay, e1z = T9[k + 5] - az;
+    const e2x = T9[k + 6] - ax, e2y = T9[k + 7] - ay, e2z = T9[k + 8] - az;
+    const px = d[1] * e2z - d[2] * e2y, py = d[2] * e2x - d[0] * e2z, pz = d[0] * e2y - d[1] * e2x;
+    const det = e1x * px + e1y * py + e1z * pz;
+    if (Math.abs(det) < 1e-12) return Infinity;
+    const inv = 1 / det;
+    const sx = o[0] - ax, sy = o[1] - ay, sz = o[2] - az;
+    const u = (sx * px + sy * py + sz * pz) * inv;
+    if (u < 0 || u > 1) return Infinity;
+    const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
+    const v = (d[0] * qx + d[1] * qy + d[2] * qz) * inv;
+    if (v < 0 || u + v > 1) return Infinity;
+    const t = (e2x * qx + e2y * qy + e2z * qz) * inv;
+    return t >= 0 ? t : Infinity;
+  };
+
+  const run = (R, TOL) => {
+    const n = [-R.a[1], R.a[0]];
+    const P = (t, s) => [R.o[0] + R.a[0] * t + n[0] * s, R.o[1] + R.a[1] * t + n[1] * s];
+    const corners = [P(R.t[0], R.s[0]), P(R.t[1], R.s[0]), P(R.t[1], R.s[1]), P(R.t[0], R.s[1])];
+    const M = 8;
+    const bx0 = Math.min(...corners.map((c) => c[0])) - M, bx1 = Math.max(...corners.map((c) => c[0])) + M;
+    const bz0 = Math.min(...corners.map((c) => c[1])) - M, bz1 = Math.max(...corners.map((c) => c[1])) + M;
+    const box = [Math.floor(bx0 / CELL), Math.floor(bz0 / CELL), Math.floor(bx1 / CELL), Math.floor(bz1 / CELL)];
+    /* What each 4 m cell holds. */
+    const G = new Map();
+    for (let i = 0; i < col.staticCount; i += 1) {
+      const kn = col.kindName(col.fkind[i]);
+      if (kn === 'tree' || kn === 'canopy') continue;
+      const r = col.fbox[i] ? 0 : col.fr[i];
+      const x0 = Math.min(col.fax[i], col.fbx[i]) - r, x1 = Math.max(col.fax[i], col.fbx[i]) + r;
+      const z0 = Math.min(col.faz[i], col.fbz[i]) - r, z1 = Math.max(col.faz[i], col.fbz[i]) + r;
+      if (x1 < bx0 || x0 > bx1 || z1 < bz0 || z0 > bz1) continue;
+      put(G, x0, z0, x1, z1, box, i);
+    }
+    slabs.forEach((e, k) => {
+      const { sl } = e;
+      let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+      for (const a of [-1, 1]) for (const b of [-1, 1]) for (const c of [-1, 1]) {
+        const x = sl.c[0] + sl.u[0] * sl.hu * a + sl.n[0] * sl.hn * b + sl.v[0] * sl.hv * c;
+        const z = sl.c[2] + sl.u[2] * sl.hu * a + sl.n[2] * sl.hn * b + sl.v[2] * sl.hv * c;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+      }
+      if (x1 < bx0 || x0 > bx1 || z1 < bz0 || z0 > bz1) return;
+      put(G, x0, z0, x1, z1, box, -1 - k);
+    });
+    const tris = [];
+    const triMesh = [];
+    const names = [];
+    /* eachTri keeps a triangle by its middle, and the spillway bridge's
+     * deck is one quad 362 m long: reach that far past the region. */
+    const cx = (bx0 + bx1) / 2, cz = (bz0 + bz1) / 2, rr = Math.hypot(bx1 - bx0, bz1 - bz0) / 2 + 400;
+    for (const [pn, m] of meshesOf()) {
+      if (!m.isMesh) continue;
+      const id = names.length;
+      names.push(pn + '/' + m.name);
+      eachTri(m, cx, cz, rr, (a, b, c) => {
+        const k = tris.length / 9;
+        tris.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+        triMesh.push(id);
+        put(G, Math.min(a.x, b.x, c.x), Math.min(a.z, b.z, c.z), Math.max(a.x, b.x, c.x), Math.max(a.z, b.z, c.z), box, 1e9 + k);
+      });
+    }
+    const T9 = new Float64Array(tris);
+    const stampC = new Int32Array(col.count), stampS = new Int32Array(slabs.length + 1), stampT = new Int32Array(triMesh.length + 1);
+    let stamp = 0;
+    /* One ray: physics and drawn, each { t, what }, met within L of its
+     * start: the grid holds only the region, so a solid that reaches out
+     * of it would be met where nothing drawn has been gathered. */
+    const cast = (o, d, L, tGround, tPhysGround) => {
+      stamp += 1;
+      let tP = tPhysGround, wP = 'ground';
+      let tD = tGround, wD = 'ground';
+      const test = (v) => {
+        if (v >= 1e9) {
+          const k = v - 1e9;
+          if (stampT[k] === stamp) return;
+          stampT[k] = stamp;
+          const t = rayTri(o, d, T9, k * 9);
+          if (t < tD && t <= L) { tD = t; wD = names[triMesh[k]]; }
+        } else if (v < 0) {
+          const k = -1 - v;
+          if (stampS[k] === stamp) return;
+          stampS[k] = stamp;
+          const t = rayObb(o, d, slabs[k].sl);
+          if (t < tP && t <= L) { tP = t; wP = 'slab of ' + slabs[k].kind; }
+        } else {
+          if (stampC[v] === stamp) return;
+          stampC[v] = stamp;
+          const t = col.fbox[v]
+            ? rayBox(o, d, [col.fax[v], col.fay[v], col.faz[v]], [col.fbx[v], col.fby[v], col.fbz[v]])
+            : rayCapsule(o, d, [col.fax[v], col.fay[v], col.faz[v]], [col.fbx[v], col.fby[v], col.fbz[v]], col.fr[v]);
+          if (t < tP && t <= L) { tP = t; wP = (own[v] ? 'dam ' : 'other ') + col.kindName(col.fkind[v]) + (col.fbox[v] ? ' box' : ' capsule') + ' #' + v; }
+        }
+      };
+      /* Amanatides and Woo across the cells, in order. */
+      let i = Math.floor(o[0] / CELL), j = Math.floor(o[2] / CELL);
+      const sx = d[0] > 0 ? 1 : -1, sz = d[2] > 0 ? 1 : -1;
+      const nx = Math.abs(d[0]) > 1e-12 ? (((sx > 0 ? i + 1 : i) * CELL) - o[0]) / d[0] : Infinity;
+      const nz = Math.abs(d[2]) > 1e-12 ? (((sz > 0 ? j + 1 : j) * CELL) - o[2]) / d[2] : Infinity;
+      const dx = Math.abs(d[0]) > 1e-12 ? CELL / Math.abs(d[0]) : Infinity;
+      const dz = Math.abs(d[2]) > 1e-12 ? CELL / Math.abs(d[2]) : Infinity;
+      let tx = nx, tz = nz;
+      for (;;) {
+        const l = G.get(ck(i, j));
+        if (l) for (const v of l) test(v);
+        const exit = Math.min(tx, tz);
+        if (exit > Math.min(tP, tD) + TOL || exit > L) break;
+        if (tx < tz) { tx += dx; i += sx; } else { tz += dz; j += sz; }
+      }
+      return { tP, wP, tD, wD };
+    };
+    const out = {
+      rays: 0, invisible: 0, notSolid: 0, inv: {}, ns: {},
+    };
+    const note = (bins, at, gap, what, other) => {
+      const k = Math.floor(at[0] / 5) * 5 + ',' + Math.floor(at[2] / 5) * 5;
+      const b = bins[k] || (bins[k] = { n: 0, gap: 0, at: null, what: '', other: '' });
+      b.n += 1;
+      if (gap > b.gap) { b.gap = gap; b.at = at.map((q) => +q.toFixed(1)); b.what = what; b.other = other; }
+    };
+    /* How far a point is from everything drawn, the ground and the
+     * water too, up to FAR. */
+    const FAR = 5;
+    const drawnGap = (p) => {
+      let best = Math.min(FAR, Math.abs(p[1] - ground(p[0], p[2])));
+      for (let i = Math.floor((p[0] - FAR) / CELL); i <= Math.floor((p[0] + FAR) / CELL); i += 1) {
+        for (let j = Math.floor((p[2] - FAR) / CELL); j <= Math.floor((p[2] + FAR) / CELL); j += 1) {
+          const l = G.get(ck(i, j));
+          if (!l) continue;
+          for (const v of l) {
+            if (v < 1e9) continue;
+            const dd = triDist(T9, (v - 1e9) * 9, p[0], p[1], p[2]);
+            if (dd < best) best = dd;
+          }
+        }
+      }
+      return best;
+    };
+    /* Whether physics holds a point: a collider within TOL, or the ground
+     * a craft there is offered within TOL under it. */
+    const solidAt = (p) => col.gapAt(p[0], p[1], p[2], TOL) <= TOL || window.__surface(p[0], p[2], p[1] + TOL) >= p[1] - TOL;
+    /* Physics met first and further than TOL from anything drawn: an
+     * invisible wall, as deep as it is from the nearest drawn surface.
+     * Drawn met first and nothing solid within TOL of it: not solid, as
+     * deep as physics is behind it along the ray. */
+    const judge = (o, d, r) => {
+      out.rays += 1;
+      const at = (t) => [o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t];
+      if (r.tP < r.tD - TOL) {
+        const p = at(r.tP);
+        const g = drawnGap(p);
+        if (g > TOL) {
+          out.invisible += 1;
+          note(out.inv, p, g, r.wP, r.wD);
+        }
+      } else if (r.tD < r.tP - TOL) {
+        const p = at(r.tD);
+        if (!solidAt(p)) {
+          out.notSolid += 1;
+          note(out.ns, p, Math.min(r.tP, 999) - r.tD, r.wD, r.wP);
+        }
+      }
+    };
+    /* Down. */
+    const downS = R.downS ?? R.s;
+    for (let t = R.t[0]; R.step && t <= R.t[1] + 1e-9; t += R.step) {
+      for (let s = downS[0]; s <= downS[1] + 1e-9; s += R.step) {
+        const [x, z] = P(t, s);
+        const o = [x, R.top, z];
+        const g = ground(x, z);
+        if (g >= R.top) continue;
+        const gp = window.__surface(x, z, R.top);
+        judge(o, [0, -1, 0], cast(o, [0, -1, 0], R.top - g + 1, R.top - g, R.top - gp));
+      }
+    }
+    /* Level, both ways along a line from one edge of the region to the
+     * other, from outside it; a ray that starts inside a solid or under
+     * the ground is not shot. */
+    const level = (A, B, y) => {
+      const L = Math.hypot(B[0] - A[0], B[1] - A[1]);
+      const d = [(B[0] - A[0]) / L, 0, (B[1] - A[1]) / L];
+      const o = [A[0], y, A[1]];
+      /* Under a roof the start can be inside a drawn body held by its
+       * roof alone (a gravity part's face over the wedge under it). */
+      if (ground(o[0], o[2]) >= y || col.gapAt(o[0], o[1], o[2], 0.01) <= 0.01 || window.__surface(o[0], o[2], 1e9) > y) return;
+      let tg = Infinity;
+      for (let t = 0.5; t <= L; t += 0.5) {
+        if (ground(o[0] + d[0] * t, o[2] + d[2] * t) >= y) { tg = t; break; }
+      }
+      judge(o, d, cast(o, d, Math.min(L, tg) + 1, tg, tg));
+    };
+    for (let y = R.y[0]; R.ystep && y <= R.y[1] + 1e-9; y += R.ystep) {
+      if (R.along) {
+        for (let s = R.s[0]; s <= R.s[1] + 1e-9; s += R.along) {
+          level(P(R.t[0] - 4, s), P(R.t[1] + 4, s), y);
+          level(P(R.t[1] + 4, s), P(R.t[0] - 4, s), y);
+        }
+      }
+      if (R.across) {
+        for (let t = R.t[0]; t <= R.t[1] + 1e-9; t += R.across) {
+          level(P(t, R.s[0] - 4), P(t, R.s[1] + 4), y);
+          level(P(t, R.s[1] + 4), P(t, R.s[0] - 4), y);
+        }
+      }
+    }
+    const top = (bins) => Object.values(bins).sort((p, q) => q.gap - p.gap);
+    const inv = top(out.inv), ns = top(out.ns);
+    const tally = (list) => {
+      const by = {};
+      for (const b of list) by[b.what] = (by[b.what] || 0) + 1;
+      return by;
+    };
+    return {
+      rays: out.rays, invisible: out.invisible, notSolid: out.notSolid,
+      invBins: inv.length, nsBins: ns.length, invBy: tally(inv), nsBy: tally(ns),
+      invWorst: inv.slice(0, 12), nsWorst: ns.slice(0, 12),
+    };
+  };
+  window.__dr = { run };
   return true;
 })()`;
 
@@ -1108,12 +1468,29 @@ async function pageSweeps(out) {
       out.fly = { quad: await flights(page, 'five inch', [30, 45]) };
     }
 
+    if (ONLY.has('dam')) {
+      out.dam = await damRays(page);
+    }
+
     const errors = page.errors.filter((e) => !/net::ERR_|Failed to load resource|favicon/.test(e));
     if (errors.length) {
       fail(`page errors with the five inch: ${errors.slice(0, 3).join(' | ')}`);
     }
   } finally {
     await page.close();
+  }
+  if (ONLY.has('damfly')) {
+    const timber = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed(DAM_FLY_CRAFT) });
+    try {
+      await timber.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
+      out.damfly = await damFlights(timber);
+      const errors = timber.errors.filter((e) => !/net::ERR_|Failed to load resource|favicon/.test(e));
+      if (errors.length) {
+        fail(`page errors with the Timber: ${errors.slice(0, 3).join(' | ')}`);
+      }
+    } finally {
+      await timber.close();
+    }
   }
   if (ONLY.has('fly')) {
     const plane = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed('f16878') });
@@ -1128,6 +1505,246 @@ async function pageSweeps(out) {
       await plane.close();
     }
   }
+}
+
+/* The dam's regions for its rays (DAM_RAYS), from dam.json: the
+ * spillway's gates, piers, hoists and bridge, and its chute, in the
+ * chute's frame (dam/index.js: u across, d down the chute from the
+ * gates); every segment of the concrete crests' axes, 30 m upstream and
+ * 50 m down, the crest from 3 m under it up past the intake gantries'
+ * houses (255 m) and down onto it to 12 m downstream (`downS`, where the
+ * rays go down), and their faces under and past that; and the embankments'
+ * crests, rays down only. An invisible wall in a `baseline` region (the
+ * concrete faces under their crests, where no pilot reported one) is
+ * held to the baseline rather than failing the run. */
+async function damRegions() {
+  const dam = JSON.parse(await readFile(join(DATA, 'dam.json'), 'utf8'));
+  const by = Object.fromEntries(dam.map((e) => [e.part, e]));
+  const unit = (p, q) => {
+    const l = Math.hypot(q[0] - p[0], q[1] - p[1]);
+    return [(q[0] - p[0]) / l, (q[1] - p[1]) / l, l];
+  };
+  const [c0, c1] = by.spillway.sections.find((x) => x.at === 'chute').axis;
+  const [nx, nz] = unit(c0, c1);
+  const a = [nz, -nx];
+  const out = [
+    {
+      name: 'spillway gates, piers, hoists and bridge', o: c0, a, t: [-186, 186], s: [-16, 46], y: [196, 240], top: 250, step: 1, ystep: 0.5, along: 1, across: 1,
+    },
+    {
+      name: 'spillway chute', o: c0, a, t: [-186, 186], s: [46, 490], y: [100, 230], top: 240, step: 2, ystep: 2, along: 10, across: 0,
+    },
+  ];
+  for (const part of ['right lateral dam', 'main dam and connecting blocks', 'diversion structure', 'left lateral dam']) {
+    const axis = by[part].axis;
+    for (let k = 0; k + 1 < axis.length; k += 1) {
+      const [ux, uz, l] = unit(axis[k], axis[k + 1]);
+      if (l < 2) {
+        continue;
+      }
+      out.push({
+        name: `${part} crest ${k}`, group: `${part} crest`, o: axis[k], a: [ux, uz], t: [0, l], s: [-30, 50], downS: [-30, 12], y: [222, 240], top: 260, step: 1, ystep: 0.5, along: 2, across: 2,
+      });
+      out.push({
+        name: `${part} faces ${k}`, group: `${part} faces`, baseline: true, o: axis[k], a: [ux, uz], t: [0, l], s: [-30, 50], downS: [13, 50], y: [205, 221.5], top: 260, step: 1, ystep: 0.5, along: 2, across: 2,
+      });
+    }
+  }
+  for (const part of ['rockfill dam', 'left bank earth dam', 'right bank earth dam']) {
+    const axis = by[part].axis;
+    for (let k = 0; k + 1 < axis.length; k += 1) {
+      const [ux, uz, l] = unit(axis[k], axis[k + 1]);
+      if (l < 2) {
+        continue;
+      }
+      out.push({
+        name: `${part} crest ${k}`, group: `${part} crest`, o: axis[k], a: [ux, uz], t: [0, l], s: [-24, 24], y: [225, 240], top: 240, step: 2, ystep: 0, along: 0, across: 0,
+      });
+    }
+  }
+  return out;
+}
+
+/* Every region's rays, the camera parked over its middle first so the
+ * terrain is at its finest under it. Invisible walls a dam collider or
+ * slab makes fail the run; ones another part's collider makes are
+ * printed (the power lines are not this audit's), and drawn but not
+ * solid is held to the baseline. */
+async function damRays(page) {
+  await page.evaluate(DAM_RAYS);
+  const regions = await damRegions();
+  const out = {};
+  let lastAt = null;
+  for (const R of regions) {
+    const n = [-R.a[1], R.a[0]];
+    const tm = (R.t[0] + R.t[1]) / 2;
+    const sm = (R.s[0] + R.s[1]) / 2;
+    const mx = R.o[0] + R.a[0] * tm + n[0] * sm;
+    const mz = R.o[1] + R.a[1] * tm + n[1] * sm;
+    if (!lastAt || Math.hypot(mx - lastAt[0], mz - lastAt[1]) > 300) {
+      await settle(page, mx, mz);
+      lastAt = [mx, mz];
+    }
+    const r = JSON.parse(await page.evaluate(`JSON.stringify(window.__dr.run(${JSON.stringify(R)}, ${RAY_TOL}))`));
+    const g = R.group ?? R.name;
+    const o = out[g] ?? (out[g] = {
+      baseline: !!R.baseline, rays: 0, invisible: 0, notSolid: 0, invBy: {}, nsBy: {}, invWorst: [], nsWorst: [],
+    });
+    o.rays += r.rays;
+    o.invisible += r.invisible;
+    o.notSolid += r.notSolid;
+    for (const [k, v] of Object.entries(r.invBy)) {
+      o.invBy[k] = (o.invBy[k] ?? 0) + v;
+    }
+    for (const [k, v] of Object.entries(r.nsBy)) {
+      o.nsBy[k] = (o.nsBy[k] ?? 0) + v;
+    }
+    o.invWorst = [...o.invWorst, ...r.invWorst].sort((p, c) => c.gap - p.gap).slice(0, 12);
+    o.nsWorst = [...o.nsWorst, ...r.nsWorst].sort((p, c) => c.gap - p.gap).slice(0, 12);
+  }
+  for (const [g, o] of Object.entries(out)) {
+    const own = Object.entries(o.invBy).filter(([k]) => !k.startsWith('other '));
+    const other = Object.entries(o.invBy).filter(([k]) => k.startsWith('other '));
+    o.damInvisibleBins = own.reduce((s, [, v]) => s + v, 0);
+    o.otherInvisibleBins = other.reduce((s, [, v]) => s + v, 0);
+    console.log(`dam rays, ${g}: ${o.rays} rays; invisible wall past ${RAY_TOL} m on ${o.invisible} (${o.damInvisibleBins} 5 m bins the dam's, ${o.otherInvisibleBins} another part's); `
+      + `drawn but not solid on ${o.notSolid} (${Object.values(o.nsBy).reduce((s, v) => s + v, 0)} bins)`);
+    for (const [k, v] of Object.entries(o.invBy).sort((p, c) => c[1] - p[1]).slice(0, 6)) {
+      console.log(`    invisible: ${v} bins of ${k}`);
+    }
+    for (const w of o.invWorst.slice(0, 5)) {
+      console.log(`      ${w.gap >= 5 ? '5 m or more' : `${f1(w.gap)} m`} from anything drawn at (${w.at.join(', ')}): ${w.what}`);
+    }
+    for (const [k, v] of Object.entries(o.nsBy).sort((p, c) => c[1] - p[1]).slice(0, 4)) {
+      console.log(`    not solid: ${v} bins of ${k}`);
+    }
+    for (const w of o.nsWorst.slice(0, 3)) {
+      console.log(`      ${f1(w.gap)} m of ${w.what} at (${w.at.join(', ')}) before ${w.other}`);
+    }
+    if (o.damInvisibleBins && !o.baseline) {
+      fail(`dam rays, ${g}: ${o.damInvisibleBins} bins of invisible wall the dam's colliders or slabs make, ${f1(o.invWorst.find((w) => !w.what.startsWith('other '))?.gap)} m from anything drawn at worst`);
+    }
+  }
+  return out;
+}
+
+/* The owner's flight (2026-10-01, "when i fly over this area of the dam
+ * or the spillway, at some points the aircraft crash like theyre hitting
+ * an invisible wall"): a Timber over the spillway's open bays, between
+ * the piers' tops and the bridge's level, which met the bridge's roof
+ * slab 114 m outside the deck; and, so the fix is not a hole, a pier and
+ * the bridge deck flown into. In the chute's frame: u across, d down. */
+const DAM_FLY_CRAFT = 'timber1500';
+/* Each flight is FLY_RUN metres before its point and as far past it,
+ * level, at a little throttle so the Timber holds its height, timed on
+ * the plant's clock so a loaded machine flies the same flight. */
+const FLY_RUN = 15;
+const FLY_THROTTLE = 0.5;
+async function flySim(page, t, v) {
+  const D = FLY_RUN;
+  const yaw = (Math.atan2(-t.dir[0], -t.dir[2]) * 180) / Math.PI;
+  const plan = {
+    x: t.at[0] - t.dir[0] * D, y: t.at[1], z: t.at[2] - t.dir[2] * D, yaw, pitch: 0, vx: t.dir[0] * v, vy: 0, vz: t.dir[2] * v,
+  };
+  await page.evaluate(`window.__crashThrow(${JSON.stringify({ ...plan, hold: true, fresh: true })})`);
+  await page.evaluate(`window.__stick(0, 0, 0, ${FLY_THROTTLE})`);
+  const t0 = Date.now();
+  while (Date.now() - t0 < 15000) {
+    await page.sleep(100);
+    const ok = await page.evaluate(`(() => { const it = window.__mapScene().userData.itaipu; const n = it.parts.town.town.stream.near;
+      return Math.hypot(n.x - ${plan.x}, n.z - ${plan.z}) < 2 && !n.pending && !it.parts.dam.survey().colliders.fill; })()`);
+    if (ok) {
+      break;
+    }
+  }
+  await page.sleep(300);
+  const e0 = await page.evaluate('window.__crash().events');
+  const s0 = await page.evaluate('window.__crash().simT');
+  await page.evaluate('window.__releasePose()');
+  const log = [];
+  const simS = (2 * D) / v + 0.5;
+  /* A wreck's plant stops its clock: the flight is over when the clock
+   * has run the flight's time, or the craft is a wreck and the clock has
+   * stood still for 3 s (a loaded page's clock stands still too, so not
+   * on that alone), or after two minutes. */
+  let ticked = Date.now();
+  let lastT = s0;
+  const T0 = Date.now();
+  for (;;) {
+    const r = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+      const s = window.__craftState(); const k = window.__contacts(); const c = window.__crash();
+      return [s.worldX, s.worldY, s.worldZ, s.speed, k.obstacle.length, c.events, s.lastHitKind, c.wrecked, c.simT];
+    })())`));
+    log.push(r);
+    if (r[8] !== lastT) {
+      lastT = r[8];
+      ticked = Date.now();
+    }
+    if (r[8] - s0 > simS || (r[7] && Date.now() - ticked > 3000) || Date.now() - T0 > 120000) {
+      break;
+    }
+    await page.sleep(10);
+  }
+  const along = (r) => (r[0] - t.at[0]) * t.dir[0] + (r[2] - t.at[2]) * t.dir[2];
+  const touched = (r) => r[4] > 0 || r[5] > e0 || r[7] || (r[6] && r[6] !== 'none');
+  const first = log.find(touched);
+  const firstAt = first ? along(first) : null;
+  const last = log[log.length - 1];
+  const beyond = log.find((r) => along(r) > D - 1);
+  let result;
+  if (!first) {
+    result = beyond ? 'passed' : 'short';
+  } else if (firstAt > -3 && firstAt < 3) {
+    result = log.some((r) => along(r) > 3 && r[3] > v * 0.5) ? 'through' : 'stopped';
+  } else {
+    result = 'met elsewhere';
+  }
+  return {
+    result,
+    firstAt: firstAt == null ? null : +firstAt.toFixed(1),
+    firstY: first ? +first[1].toFixed(2) : null,
+    firstHit: first ? first[6] : null,
+    wrecked: last[7],
+    endSpeed: +last[3].toFixed(1),
+    end: last.slice(0, 3).map((q) => +q.toFixed(1)),
+  };
+}
+
+async function damFlights(page) {
+  const regions = await damRegions();
+  const S = regions[0];
+  const n = [-S.a[1], S.a[0]];
+  const at = (u, d, y) => [S.o[0] + S.a[0] * u + n[0] * d, y, S.o[1] + S.a[1] * u + n[1] * d];
+  /* Gate 6's bay is u -25.5 to -5.5 (dam/index.js pierU), pier 6 from
+   * u -5.5 to 0; the piers' slopes fall from 225 at d 7 to 213 at d 29,
+   * so at d 18 their tops are at 219, and the bridge deck is d -7 to 7,
+   * 222.8 to 225. */
+  const across = [S.a[0], 0, S.a[1]];
+  const down = [n[0], 0, n[1]];
+  const flights = [
+    { name: 'across the bays at 224.8 m, 18 m down from the gates', at: at(-15.5, 18, 224.8), dir: across, expect: 'passed' },
+    { name: 'across the bays at 224.8 m, 35 m down from the gates', at: at(-15.5, 35, 224.8), dir: across, expect: 'passed' },
+    { name: 'across the bays at 222 m, 18 m down from the gates', at: at(-15.5, 18, 222), dir: across, expect: 'passed' },
+    { name: 'down gate 6\'s bay at 223.5 m from the bridge\'s downstream edge', at: at(-15.5, 23, 223.5), dir: down, expect: 'passed' },
+    { name: 'into pier 6\'s side at 215 m, 18 m down from the gates', at: at(-5.5, 18, 215), dir: across, expect: 'stopped' },
+    { name: 'into the bridge deck\'s downstream edge at 224 m', at: at(-15.5, 7, 224), dir: down.map((q) => -q), expect: 'stopped' },
+  ];
+  const out = {};
+  const mid = at(-15.5, 18, 0);
+  await settle(page, mid[0], mid[2]);
+  for (const t of flights) {
+    for (const v of [20, 30]) {
+      const r = await flySim(page, t, v);
+      out[`${t.name} @${v}`] = r.result;
+      const ok = r.result === t.expect;
+      console.log(`damfly: Timber at ${v} m/s ${t.name}: ${r.result}${r.firstAt == null ? '' : `, first contact ${f1(r.firstAt)} m along from it at y ${r.firstY} (${r.firstHit})`}`
+        + `${r.wrecked ? ', wrecked' : ''}, ${f1(r.endSpeed)} m/s at the end at (${r.end.join(', ')})${ok ? '' : `, wanted ${t.expect}`}`);
+      if (!ok) {
+        fail(`damfly ${t.name} @${v}: ${r.result}, wanted ${t.expect}`);
+      }
+    }
+  }
+  return out;
 }
 
 async function flights(page, craft, speeds) {
@@ -1192,6 +1809,16 @@ function metrics(out) {
   for (const s of out.seats ?? []) {
     m[`seats.${s.name}`] = [s.gap, 'down'];
   }
+  /* Drawn but not solid, the dam's own meshes' 5 m bins: other parts'
+   * (the town's, the chute's water) are their owners' and move with what
+   * is streamed in. */
+  for (const [g, o] of Object.entries(out.dam ?? {})) {
+    m[`dam.${g}.notSolidBins`] = [Object.entries(o.nsBy).filter(([k]) => k.startsWith('dam/')).reduce((n, [, v]) => n + v, 0), 'up'];
+    m[`dam.${g}.otherInvisibleBins`] = [o.otherInvisibleBins, 'up'];
+    if (o.baseline) {
+      m[`dam.${g}.damInvisibleBins`] = [o.damInvisibleBins, 'up'];
+    }
+  }
   return m;
 }
 
@@ -1244,10 +1871,12 @@ async function main() {
   }
   if (RECORD) {
     const prev = existsSync(BASELINE) ? JSON.parse(await readFile(BASELINE, 'utf8')) : {};
+    /* damfly's flights are held to what they must do, not to a record. */
+    const { damfly, ...kept } = out;
     const next = {
       note: 'Today\'s numbers, not a target: several are defects scripts/collide-audit-itaipu.js found. The run fails when one gets worse than this.',
       ...prev,
-      ...out,
+      ...kept,
     };
     await writeFile(BASELINE, `${JSON.stringify(next, null, 1)}\n`);
     console.log(`recorded the baseline: ${BASELINE}`);
