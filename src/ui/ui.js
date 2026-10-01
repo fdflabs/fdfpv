@@ -73,7 +73,7 @@ import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionO
 import { POWER, normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { PROPS, normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
-import { normaliseCombat } from '../../configs/combat.js';
+import { combatChoice, normaliseCombat } from '../../configs/combat.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
@@ -530,6 +530,10 @@ function byLine(t) {
   return t && t.author ? str('ui.by_2', { author: t.author }) : '';
 }
 
+/* The Avionics HUD inset's sizes (src/render/sensorview.js INSET_SIZES,
+ * which SensorManager.setInset checks a stored one against). */
+export const AVX_INSETS = ['small', 'medium', 'large'];
+
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
    * or the Swiss valley flown in the world it names, and any other id is a
@@ -787,6 +791,9 @@ const DEFAULTS = {
    * aircraft is small, hidden or off screen (src/ui/peermarks.js): 'on',
    * 'minimal' (the shapes without the names and ranges) or 'off'. */
   peerMarks: 'on',
+  /* The Avionics HUD's camera inset, cycled with U in flight: one of
+   * AVX_INSETS, smallest first. */
+  avxInset: 'small',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -1069,6 +1076,7 @@ export function loadSettings() {
     ['fpsCap', FPS_CAPS],
     ['hudStyle', HUD_STYLES],
     ['peerMarks', MARK_STYLES],
+    ['avxInset', AVX_INSETS],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
@@ -1426,14 +1434,15 @@ export function withFloats(s, id) {
 
 /* A picker card drawn in a fit rather than in the slots, a My Hangar
  * build's or a stock plane's kept aside (src/ui/builds.js), as
- * src/render/carousel3d.js takes it: the model's own key, its look and
- * what it is fitted with. */
+ * src/render/carousel3d.js takes it: the model's own key, its look, what
+ * it is fitted with and a combat quad's loadout. */
 function drawnFit(key, id, fit) {
   const parts = PROPS[id] ? { prop: 'stock', addons: [], damage: null, ...(fit.parts ?? {}) } : null;
   return {
     key,
     look: lookFor(id, fit.livery),
     fit: parts ? { id, entry: parts, option: POWER[id] ? powerChoice(id, { [id]: fit.power }).option : null } : null,
+    combat: fit.combat ?? null,
   };
 }
 
@@ -4046,6 +4055,11 @@ export class Ui {
     const friends = el('div', 'screen screen-page screen-friends');
     friends.append(el('h2', null, str('friends.title')));
     friends.append(el('p', 'rates-lede', str('friends.lede')));
+    /* The war's lobby over the rows, in a room made for the war between
+     * its matches (setWarLobby). */
+    this.warLobbyEl = el('div', 'war-lobby');
+    this.warLobbyEl.hidden = true;
+    friends.append(this.warLobbyEl);
     const friendsBlock = wrapMenu();
     this.friendsMenu = friendsBlock.menu;
     this.friendsMenu.classList.add('menu-scroll');
@@ -4646,6 +4660,65 @@ export class Ui {
    * there (src/main.js seats it on welcome), so changing it inside one
    * would only put this pilot somewhere nobody else is.
    */
+  /*
+   * THE WAR'S LOBBY over the room screen's rows: LOBBY and the mission,
+   * when it starts in large, and the pilots, each ready or not. `v` is
+   * src/main.js warLobbyView(), or null for no lobby. Drawn again only when
+   * what it says changes.
+   */
+  setWarLobby(v) {
+    const on = Boolean(v);
+    if (on !== Boolean(this.warLobbyOn)) {
+      this.warLobbyOn = on;
+      this.warLobbyEl.hidden = !on;
+      this.screens.friends.classList.toggle('war-lobby-on', on);
+      this.warLobbyKey = null;
+      if (this.screen === 'friends') {
+        this.renderMenu();
+        if (on) {
+          this.setCursor(this.firstStop(this.items()));
+        }
+      }
+    }
+    if (!on) {
+      return;
+    }
+    const status = v.countdown != null
+      ? str('lobby.starting', { n: v.countdown })
+      : v.deadline != null
+        ? str('lobby.deadline', { t: `${Math.floor(v.deadline / 60)}:${String(v.deadline % 60).padStart(2, '0')}` })
+        : str('lobby.waiting');
+    const key = JSON.stringify([v.mission, status, v.pilots, v.last]);
+    if (key === this.warLobbyKey) {
+      return;
+    }
+    this.warLobbyKey = key;
+    const box = this.warLobbyEl;
+    box.textContent = '';
+    const head = el('div', 'war-lobby-head');
+    head.append(el('div', 'war-lobby-title', str('lobby.title')), el('div', 'war-lobby-mission', v.mission));
+    box.append(head);
+    box.append(el('div', `war-lobby-status${v.countdown != null ? ' go' : ''}`, status));
+    if (v.last) {
+      box.append(el('div', 'war-lobby-last', str(`lobby.last_${v.last.state}`, {
+        stars: v.last.stars ?? 0, kills: v.last.kills,
+      })));
+    }
+    const list = el('div', 'war-lobby-pilots');
+    for (const p of v.pilots) {
+      const row = el('div', `war-lobby-pilot${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}`);
+      const who = el('div', 'war-lobby-who');
+      who.append(el('span', 'war-lobby-name', p.name));
+      if (p.host) {
+        who.append(el('span', 'war-lobby-host', str('lobby.host')));
+      }
+      who.append(el('span', 'war-lobby-craft', p.aircraft));
+      row.append(who, el('span', 'war-lobby-flag', str(p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting')));
+      list.append(row);
+    }
+    box.append(list);
+  }
+
   roomSeatRows(inRoom) {
     const s = this.settings;
     const world = seatedFreestyleMap(s);
@@ -6391,6 +6464,12 @@ export class Ui {
        * (src/main.js friendsRows), and the cursor opens on it; Fly stays on
        * top but gives the screen's one primary up to it. */
       const started = rows.some((it) => it.primary);
+      /* The war's lobby is no free flight: no Fly, no world, the aircraft
+       * the war is flown in, and its own Leave in the shell's rows. */
+      if (this.warLobbyOn) {
+        const leave = rows.filter((it) => it.action === 'friends-leave');
+        return [...rows.filter((it) => it.action !== 'friends-leave'), ...(seat ? this.roomSeatRows(inRoom).slice(0, 1) : []), ...leave];
+      }
       return [
         ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: !started, note: str('friends.fly_note') }] : []),
         ...rows,
@@ -7185,9 +7264,9 @@ export class Ui {
           action: 'hotswap',
           note: str('carousel.row_note'),
         },
-        /* The hangar for the plane being flown: its power and its paint,
-         * saved into the air where it is; a combat quad's loadout. */
-        ...(paintable(s.airframe) || airframeById(s.airframe).combat ? [{
+        /* The hangar for the aircraft being flown: its power, its paint
+         * and a combat aircraft's loadout, saved into the air where it is. */
+        ...(paintable(s.airframe) ? [{
           label: str('hangar.customise'),
           action: 'customise',
           note: str('hangar.row_note'),
@@ -13692,6 +13771,17 @@ export class Ui {
    */
   openPicker(opts) {
     const s = this.settings;
+    /*
+     * The Engine switch on the seated aircraft: its loadout before the
+     * first flip and after the last. A flip seated by Choose is a refit;
+     * one put away is undone, as settleFloats undoes the Floats switch, so
+     * what is flying is what the slots say. Only while nothing else (the
+     * Loadout tab's Save, through Customise) has changed it since.
+     */
+    const seat = s.airframe;
+    const flip = { before: null, after: null };
+    const flipped = () => Boolean(flip.before) && JSON.stringify(this.stockLoadout(seat)) === JSON.stringify(flip.after)
+      && JSON.stringify(flip.after) !== JSON.stringify(flip.before);
     this.carousel.open({
       ...opts,
       floats: {
@@ -13699,6 +13789,17 @@ export class Ui {
         set: (id, on) => {
           s.floats = { ...s.floats, [id]: on };
           this.persistSettings();
+        },
+      },
+      engine: {
+        of: (id) => this.stockLoadout(id),
+        set: (id, propulsion) => {
+          const was = this.stockLoadout(id);
+          this.setStockLoadout(id, { ...was, propulsion });
+          if (id === seat) {
+            flip.before = flip.before ?? was;
+            flip.after = this.stockLoadout(id);
+          }
         },
       },
       builds: this.pickerBuilds(),
@@ -13709,13 +13810,42 @@ export class Ui {
         if (moved) {
           this.persistSettings();
         }
+        /* Refitted as the Loadout tab's Save refits, in the air where it
+         * is when a run is up, before the opener's own swap, which is
+         * refused for the same aircraft. */
+        if (!build && id === seat && flipped()) {
+          this.refitted(id).then(() => opts.onChoose(id, moved));
+          return;
+        }
         opts.onChoose(id, moved);
       },
       onCancel: () => {
         this.settleFloats();
+        if (flipped()) {
+          this.setStockLoadout(seat, flip.before);
+        }
         opts.onCancel();
       },
     });
+  }
+
+  /* A combat quad's loadout as its stock card has it (src/ui/builds.js
+   * stockFit: in the slots, or kept beside a build the family wears), made
+   * valid; null for any other aircraft. The Loadout tab edits the same. */
+  stockLoadout(id) {
+    const af = airframeById(id);
+    return af.combat ? combatChoice(af, stockFit(this.settings, id).combat) : null;
+  }
+
+  setStockLoadout(id, choice) {
+    const s = this.settings;
+    const combat = combatChoice(airframeById(id), choice);
+    if (familyFitted(s, id)) {
+      setStockFit(s, id, { ...stockFit(s, id), combat });
+    } else {
+      s.combat = { ...s.combat, [id]: combat };
+    }
+    this.persistSettings();
   }
 
   /* The seated plane's toggle back in step with the seat, as seatAirframe
@@ -14004,10 +14134,7 @@ export class Ui {
     /* A build opens on the airframe it was built on; a stock plane on the
      * version its toggle names, whichever of the two it was asked for. */
     const id = build ? build.airframe : withFloats(s, landPlaneOf(card));
-    /* A combat quad has a hangar for its payload and accessories
-     * (src/ui/hangar-combat.js) before it has paint. */
-    const loadoutOnly = !paintable(id) && Boolean(airframeById(id).combat);
-    if ((!paintable(id) && !loadoutOnly) || this.hangar.isOpen) {
+    if (!paintable(id) || this.hangar.isOpen) {
       return;
     }
     const family = liveryKey(id);
@@ -14077,7 +14204,8 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
-      tab: loadoutOnly ? 'loadout' : null,
+      /* A combat aircraft opens on what it carries (src/ui/hangar-combat.js). */
+      tab: airframeById(id).combat ? 'loadout' : null,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {

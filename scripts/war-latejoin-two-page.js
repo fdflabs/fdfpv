@@ -4,10 +4,16 @@
  * run in this process (edge/rooms/node.js):
  *
  *   SIM_GPU=1 npm run war:latejoin [-- outdir]
+ *   SIM_GPU=1 npm run war:latejoin -- --listed [outdir]
  *
  * A makes a private room on Itaipu and starts mission 1 alone. Once its
  * first round's waves are all in the air, B joins by the room's code and
- * flies. What must hold:
+ * flies. With --listed it is the way a friend comes: A presses Play on
+ * mission 1 in the campaign, which makes a public room made for the war,
+ * and starts it from the room's start row (the intro's briefing, then
+ * the countdown); B, a profile that has never said yes to the war, finds
+ * the room in Rooms, joins it mid war, is asked the consent on arrival
+ * and says Continue. What must hold:
  *   - B is one of the match's players at once: the room has its token,
  *     both pages show its row and its share of the rack (4 to 8)
  *   - B's screen draws the attackers alive, the same ids at the same
@@ -47,10 +53,12 @@ import { airframeById } from '../configs/airframes.js';
 import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { FLAG_CRASHED, FLAG_SPAWNING } from '../src/share/roomwire.js';
 import { MISSIONS, waveSize } from '../src/share/war/missions/index.js';
+import { INTRO_MS } from '../src/share/war/intro.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const itaipu1 = MISSIONS['itaipu-1'];
-const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'war-latejoin');
+const LISTED = process.argv.includes('--listed');
+const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', LISTED ? 'war-latejoin-listed' : 'war-latejoin');
 
 let failed = 0;
 let passed = 0;
@@ -83,7 +91,7 @@ const TAP_SEED = `(() => {
   };
 })();`;
 
-function seedFor(colour) {
+function seedFor(colour, consent = true) {
   const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
@@ -92,7 +100,7 @@ function seedFor(colour) {
   s.fpsCap = 0;
   s.airframeAsked = true;
   s.crashDamage = true;
-  s.warConsent = true;
+  s.warConsent = consent;
   s.livery = { '5inch': { regions: { frame: colour } } };
   s.parts = {};
   return [TAP_SEED, `try {
@@ -132,6 +140,65 @@ const same = (v) => JSON.stringify({ ...v, f: undefined });
 /* The births a page's socket was told, by id. */
 const bornOf = (p) => p.evaluate('window.__warHeard.flatMap((m) => m.agents)');
 
+async function click(page, selector) {
+  await page.loaded();
+  const at = await page.evaluate(`(() => {
+    const n = document.querySelector(${JSON.stringify(selector)});
+    if (!n) { return null; }
+    n.scrollIntoView({ block: 'center' });
+    const r = n.getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  })()`);
+  if (!at) {
+    throw new Error(`nothing to click at ${selector}`);
+  }
+  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
+    await page.cdp.send('Input.dispatchMouseEvent', {
+      type, x: at[0], y: at[1], button: 'left', clickCount: 1,
+    }, page.sessionId);
+  }
+  await page.sleep(150);
+}
+
+/* The open dialog's heading, or null. */
+const DIALOG = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden ? (d.querySelector('h2') || {}).textContent || '' : null; })()";
+
+/* --listed, A: Play on mission 1 makes a public room for the war, and its
+ * start row starts it. The room's code. */
+async function playFromCampaign() {
+  await a.evaluate('(() => { window.__campaign.open(); return true; })()');
+  await a.until(`document.querySelector('[data-mission="${itaipu1.id}"] .campaign-play')`, 10000);
+  /* A click inside the dialog's deaf period (ui.js CONFIRM_DEAF_MS) is
+   * dropped, as a pilot's would be. */
+  await a.sleep(700);
+  await click(a, `[data-mission="${itaipu1.id}"] .campaign-play`);
+  await a.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null && window.__ui.items().some((it) => it.action === 'friends-war-start')", 60000);
+  const room = await a.evaluate('(() => { const r = window.__rooms(); return { code: r.code, public: r.public, name: r.name }; })()');
+  const line = (await (await fetch(`${rooms}/v2/rooms`)).json()).rooms.find((r) => r.code === room.code);
+  check('A plays mission 1 from the campaign: a public room, listed as the war\'s', room.public === true && line && line.game === 'war' && line.mission === itaipu1.id,
+    JSON.stringify({ room, line }));
+  await a.evaluate("(() => { window.__ui.act('friends-war-start'); return true; })()");
+  await a.until("['briefing', 'countdown', 'live'].includes(window.__war().view.state)", 20000);
+  return room.code;
+}
+
+/* --listed, B: Rooms, A's room's row, the consent on arrival, Continue. */
+async function joinFromRooms(code) {
+  const row = `friends-room-${code}`;
+  await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+  await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(row)})`, 30000);
+  const listed = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(row)}) || {}).note || ''`);
+  check('B finds A\'s room in Rooms, set up for Defend Itaipu, mission 1, while the war is on', /Defend Itaipu, mission 1/.test(listed), listed);
+  await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(row)}); return true; })()`);
+  await b.until(`${DIALOG} !== null`, 30000);
+  const asked = await b.evaluate(DIALOG);
+  /* Answered once its deaf period (askConfirm) is over. */
+  await b.sleep(700);
+  await b.tap('Enter');
+  await b.until(`window.__ui.settings.warConsent === true && window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(code)}`, 30000);
+  check('B is asked the consent on arrival, says Continue, and is in A\'s room', asked === 'Defend Itaipu', String(asked));
+}
+
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-war-late-'));
 const { startRooms } = await import('../edge/rooms/node.js');
 const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
@@ -144,7 +211,7 @@ const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`A pilot joining a war under way, two pages, rooms at ${rooms}`);
 
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#d8432f') });
-const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6') });
+const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#2f6fd6', !LISTED) });
 const pages = [a, b];
 const names = ['A', 'B'];
 
@@ -153,13 +220,15 @@ try {
     await p.until('window.__shellReady === true', 300000);
     await p.until('window.__map && window.__map().ready && window.__crashCam', 600000);
   }
-  const code = await a.evaluate("window.__roomCreate({ map: 'itaipu' })");
-  check('page A makes a private room on Itaipu', /^[A-Z0-9]{6}$/.test(code), code);
-  await a.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
-  await a.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-  await a.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
-  await a.evaluate(`window.__warDo('start', '${itaipu1.id}')`);
-  await a.until("window.__war().view.state === 'live'", 30000 + (itaipu1.prepMs ?? 0));
+  const code = LISTED ? await playFromCampaign() : await a.evaluate("window.__roomCreate({ map: 'itaipu' })");
+  if (!LISTED) {
+    check('page A makes a private room on Itaipu', /^[A-Z0-9]{6}$/.test(code), code);
+    await a.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
+    await a.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+    await a.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+    await a.evaluate(`window.__warDo('start', '${itaipu1.id}')`);
+  }
+  await a.until("window.__war().view.state === 'live'", INTRO_MS + 30000 + (itaipu1.prepMs ?? 0));
   const goAt = (await warOf(a)).view.goAt;
   const seatA = await a.evaluate('window.__rooms().seat');
   /* Round 1's waves are all told by +2 s (2 s ahead of their births at
@@ -172,8 +241,12 @@ try {
   check('the waves told before B came are sized for one', born0.length > 0 && born0.every((x) => x.n === waveSize(itaipu1.waves[x.wave], 1)),
     born0.map((x) => `${x.kind} n ${x.n}`).join(', '));
 
-  /* B joins by the room's code, mid war. */
-  await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
+  /* B joins mid war: by the room's code, or from Rooms with the consent. */
+  if (LISTED) {
+    await joinFromRooms(code);
+  } else {
+    await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
+  }
   await b.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
   const seatB = await b.evaluate('window.__rooms().seat');
   const joinedAt = await nowOf(b);
@@ -247,8 +320,11 @@ try {
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
 } catch (e) {
+  const rw = roomWarOf();
+  console.log(`  room: ${rw ? JSON.stringify({ state: rw.match.state, goAt: rw.match.goAt, wave: rw.match.wave }) : 'no war'}`);
   for (const [i, p] of pages.entries()) {
-    const st = await p.evaluate('JSON.stringify({ war: window.__war && window.__war().view, rooms: window.__rooms && window.__rooms().phase })').catch((x) => String(x));
+    console.log(`  page ${names[i]} roomNow ${await p.evaluate('window.__rooms().roomNow').catch((x) => String(x))}`);
+    const st = await p.evaluate(`JSON.stringify({ war: window.__war && window.__war().view, rooms: window.__rooms && window.__rooms().phase, screen: window.__ui && window.__ui.screen, dialog: ${DIALOG} })`).catch((x) => String(x));
     console.log(`  page ${names[i]}: ${String(st).slice(0, 1500)}`);
     console.log(`  page ${names[i]} errors: ${p.errors.slice(0, 5).join(' | ')}`);
   }

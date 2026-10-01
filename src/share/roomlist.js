@@ -36,7 +36,7 @@
  */
 
 import {
-  EMPTY_CLOSE_MS, LIST_EVERY_MS, ROOM_MODES, normaliseCode, normaliseRoomName, validNamePick,
+  EMPTY_CLOSE_MS, LIST_EVERY_MS, ROOM_SETUPS, normaliseCode, normaliseRoomName, validNamePick,
 } from './roomwire.js';
 import { roomsOrigin } from './rooms.js';
 
@@ -61,7 +61,7 @@ export function checkRoomLine(r, skew = 0) {
   if (r.name !== null && normaliseRoomName(r.name) !== r.name) {
     return null;
   }
-  const game = ROOM_MODES.includes(r.game) ? r.game : null;
+  const game = ROOM_SETUPS.includes(r.game) ? r.game : null;
   const empty = r.n === 0 && Number.isFinite(r.emptySince);
   return {
     code: r.code,
@@ -71,6 +71,11 @@ export function checkRoomLine(r, skew = 0) {
     n: r.n,
     cap: r.cap,
     game,
+    /* A room made for the war's mission (a server from before sends none). */
+    mission: typeof r.mission === 'string' && /^[a-z0-9_-]{1,32}$/.test(r.mission) ? r.mission : null,
+    /* A war on: the wave a pilot joining now meets, of how many. */
+    wave: Number.isInteger(r.wave) && r.wave > 0 ? r.wave : null,
+    waves: Number.isInteger(r.waves) && r.waves > 0 ? r.waves : null,
     state: STATES.includes(r.state) ? r.state : 'waiting',
     closesAt: empty ? r.emptySince + EMPTY_CLOSE_MS + skew : null,
   };

@@ -44,6 +44,12 @@ const Y = 300;
 
 /* A mission for one check: targets a (at the origin) and b, output 3000
  * over a floor of 1500, two airframes a pilot. */
+/* A war's line in the room browser: its state, and the wave a pilot
+ * joining now would meet, of how many ("In battle, wave x/y"). */
+function warActivity(a, state) {
+  return a.game === 'war' && a.state === state && Number.isInteger(a.wave) && a.wave >= 1 && a.waves >= a.wave;
+}
+
 function testMission(waves, routes, extra = {}) {
   return {
     id: 'test-1',
@@ -256,8 +262,25 @@ export function warSection(check) {
     check('a mission on another map than the room\'s is refused "map"', !swiss.r.war.on() && swiss.errors(0).join() === 'map');
     e.say(0, { type: 'war', op: 'start', mission: 'nope' });
     check('an unknown mission is refused "mission"', !e.r.war.on() && e.errors(0).join() === 'mission');
-    e.say(0, { type: 'war', op: 'start', mission: 'test-1' });
+    const asked = e.r.message(e.socks[0], JSON.stringify({ type: 'war', op: 'start', mission: 'test-1' }), e.clock, e.socks[0].address);
+    e.apply(asked);
+    check('a start with nobody flying wakes the room\'s clock, which no pose will', asked.some((x) => x.tick), JSON.stringify(asked.filter((x) => !x.send)));
     const v = e.view(1);
+    {
+      /* The clock as edge/rooms/host.js runs it: a tick only when an
+       * action asked for one, and no pose from anybody. */
+      const quiet = warRoom({ mission: e.r.war.missions['test-1'], start: false, code: 'W4RQ00' });
+      let due = quiet.r.message(quiet.socks[0], JSON.stringify({ type: 'war', op: 'start', mission: 'test-1' }), 0, quiet.socks[0].address).some((x) => x.tick);
+      const states = [];
+      for (let t = 33; t <= COUNTDOWN_MS + 2000 && due; t += 33) {
+        const out = quiet.r.tick(t);
+        due = out.some((x) => x.tick);
+        if (states.at(-1) !== quiet.r.war.match.state) {
+          states.push(quiet.r.war.match.state);
+        }
+      }
+      check('and with nobody flying the room\'s own ticks take it from the countdown to live', states.join() === 'countdown,live', states.join() || 'never ticked');
+    }
     check('the host starts it: everybody gets the countdown, the output and the floor', e.r.war.on() && v.state === 'countdown'
       && v.goAt === COUNTDOWN_MS && v.output === 3000 && v.floor === 1500 && v.blast === BLAST_M);
     check('a war game keeps the room\'s clock running with nobody flying', e.r.waiting());
@@ -292,7 +315,7 @@ export function warSection(check) {
       e.r.war.on() && v.state === 'briefing' && v.briefAt === 500 && v.goAt === go && e.view(0).goAt === go, JSON.stringify(v));
     check('a briefing is a war game: the clock runs, and a tag match is refused "war"', e.r.waiting()
       && (e.say(0, { type: 'tag', op: 'start', goal: 10 }), !e.r.tag.on() && e.refusals(0).at(-1) === 'war'));
-    check('the room browser shows a briefing as a war counting down', JSON.stringify(e.r.activity(e.clock)) === '{"game":"war","state":"countdown"}');
+    check('the room browser shows a briefing as a war counting down', warActivity(e.r.activity(e.clock), 'countdown'), JSON.stringify(e.r.activity(e.clock)));
     e.say(1, { type: 'war', op: 'skipIntro' });
     check('only the host skips it: another pilot is refused "host", and the briefing holds', e.refusals(1).at(-1) === 'host' && e.view().state === 'briefing');
     e.say(1, { type: 'war', op: 'lost' });
@@ -742,13 +765,13 @@ export function warSection(check) {
     e.say(1, { type: 'war', op: 'lost' });
     check('"lost" outside a war is refused "off"', e.errors(1).join() === 'off');
     e.say(0, { type: 'war', op: 'start', mission: 'test-1' });
-    check('the room browser\'s activity says a war is counting down', JSON.stringify(e.r.activity(e.clock)) === '{"game":"war","state":"countdown"}');
+    check('the room browser\'s activity says a war is counting down', warActivity(e.r.activity(e.clock), 'countdown'), JSON.stringify(e.r.activity(e.clock)));
     e.say(1, { type: 'war', op: 'lost' });
     check('and during the countdown too, before there is a rack', e.errors(1).join() === 'off,off');
     /* Seat 2 is spawning from 7 s to 8 s: a respawn, as its client flags it. */
     e.flags[1] = (t) => (t >= 7000 && t < 8000 ? FLAG_AIRBORNE | FLAG_SPAWNING : FLAG_AIRBORNE);
     e.fly(7500);
-    check('and "on" once it is live', JSON.stringify(e.r.activity(e.clock)) === '{"game":"war","state":"on"}');
+    check('and "on" once it is live', warActivity(e.r.activity(e.clock), 'on'), JSON.stringify(e.r.activity(e.clock)));
     e.say(1, { type: 'war', op: 'lost' });
     check('"lost" while spawning is refused "spawning", and takes nothing', e.errors(1).at(-1) === 'spawning' && e.view().rack === 4);
     e.fly(8500);

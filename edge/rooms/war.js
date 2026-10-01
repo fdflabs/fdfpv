@@ -15,11 +15,13 @@
  *             attacker's pose is never sent (routes.js), a hunter's is
  *             (AGENTS, 0xA0), because the room steers it at the pilots
  *   warheads  a defender detonates when any part box of it comes within
- *             BLAST_M of an attacker's centre: src/game/midair.js within,
- *             tag's bubble, with the attacker as the Ace. It kills the
+ *             its fuze radius of an attacker's centre: src/game/midair.js
+ *             within, tag's bubble, with the attacker as the Ace. The
+ *             radius is the seat's airframe and warhead's
+ *             (src/share/war/fuze.js fuzeM, blastOf). It kills the
  *             attacker, the defender, and every other attacker within
- *             BLAST_M of that attacker's centre then. A hunter that
- *             reaches a pilot is the same test: both go.
+ *             the same radius of that attacker's centre then. A hunter
+ *             that reaches a pilot is the same test: both go.
  *   output    an attacker alive at the end of its route takes its
  *             target's mw once, when its seeded error left it within the
  *             target's hitR (its r where it has none): it arrives at its
@@ -153,6 +155,7 @@ import {
 import { MISSIONS, waveSize, waveTarget } from '../../src/share/war/missions/index.js';
 import { wireStrike } from '../../src/share/war/wires.js';
 import { INTRO_MS } from '../../src/share/war/intro.js';
+import { fuzeM } from '../../src/share/war/fuze.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
@@ -186,8 +189,7 @@ export const RACK_MIN = 4;
 export const RACK_MAX = 6;
 export const SPEED_MUL_MAX = 1.15;
 export const WARHEADS = ['standard', 'wide', 'penetrator', 'emp'];
-/* The wide warhead's bubble, and the EMP's reach and stall. */
-export const WIDE_M = 9;
+/* The EMP's reach and stall. */
 export const EMP_M = 30;
 export const EMP_MS = 4000;
 export const LOADOUT = Object.freeze({ rack: RACK_MIN, warhead: 'standard', speedMul: 1 });
@@ -302,17 +304,17 @@ function chord(a, b) {
 
 /*
  * THE HULL'S BROADPHASE. Whether no part box of hull h can come within
- * BLAST_M of the attacker's centre in (t0, t1], so within() need not
+ * `blast` of the attacker's centre in (t0, t1], so within() need not
  * measure the hull on every millisecond: the hull's distance at the
  * span's first millisecond, less the most either side can move in the
- * span (spread), is still outside BLAST_M. A hull's distance to a point
+ * span (spread), is still outside `blast`. A hull's distance to a point
  * changes by no more than the point and the parts move, so this never
  * skips a detonation; an attacker parked just outside the bubble costs
  * one hullDistance a span instead of one a millisecond. within()'s own
  * broadphase, on the centres, passes such a pair every millisecond,
- * since its centre is inside BLAST_M plus the hull's reach.
+ * since its centre is inside `blast` plus the hull's reach.
  */
-function clearOf(h, dTrack, aTrack, t0, t1, memo, blast = BLAST_M) {
+function clearOf(h, dTrack, aTrack, t0, t1, memo, blast) {
   const first = Math.floor(t0) + 1;
   const last = Math.floor(t1);
   const d = spanOf(dTrack, first, last, h.hull.reach, memo);
@@ -485,9 +487,9 @@ export class RoomWar {
     return l ? l.rack : this.airframes();
   }
 
-  /* The bubble a seat's warhead goes off in. */
-  blastOf(seat) {
-    return this.loadoutOf(seat).warhead === 'wide' ? WIDE_M : BLAST_M;
+  /* The radius a seat's warhead goes off at, flying `airframe`. */
+  blastOf(seat, airframe) {
+    return fuzeM(airframe, this.loadoutOf(seat).warhead);
   }
 
   /* Whether a seat has spent every airframe of the round. */
@@ -566,6 +568,7 @@ export class RoomWar {
     /* A pilot who left takes their airframes with them, and brings back
      * what they had not spent (m.spent stays with the seat or the token). */
     const present = seats.filter((seat) => here.has(Number(seat)));
+    const airframeOf = new Map([...core.seats.values()].map((s) => [s.seat, s.profile.airframe]));
     return {
       state: m.state,
       id: m.id,
@@ -595,6 +598,7 @@ export class RoomWar {
       spent: { ...(m.spent ?? {}) },
       earned: { ...(m.earned ?? {}) },
       alive: m.agents.length,
+      /* The FPV standard radius, for clients from before `fuze`. */
       blast: BLAST_M,
       scores: Object.entries(m.players).map(([seat, p]) => ({
         seat: Number(seat), kills: p.kills, assists: p.assists, mw: p.mw, gone: !here.has(Number(seat)),
@@ -603,6 +607,10 @@ export class RoomWar {
       endAt: m.endAt,
       result: m.state === 'won' || m.state === 'lost' || m.state === 'ended' ? resultOf(mission, m) : null,
       loadouts: Object.fromEntries(seats.map((seat) => [seat, this.loadoutOf(Number(seat))])),
+      /* Each seat here's fuze radius, metres, on the airframe it flies
+       * now: what its IN RANGE cue is drawn against. */
+      fuze: Object.fromEntries(seats.filter((seat) => airframeOf.has(Number(seat)))
+        .map((seat) => [seat, this.blastOf(Number(seat), airframeOf.get(Number(seat)))])),
       disabled: { ...(m.disabled ?? {}) },
     };
   }
@@ -938,9 +946,13 @@ export class RoomWar {
     if (!p || p.t > core.roomMs(now) + AHEAD_MS || s.profile.map !== core.meta.map) {
       return [];
     }
+    const was = this.seats.get(s.seat);
     const rec = this.seatOf(s);
+    /* A pilot who changed aircraft has a new fuze radius: the view says
+     * so on its first pose with it. */
+    const told = was && was.token === s.token && was.airframe !== rec.airframe ? this.changed(core) : [];
     if (!rec.track.push(p)) {
-      return [];
+      return told;
     }
     rec.trail.push([p.t, p.px, p.py, p.pz]);
     if (p.flags & FLAG_AIRBORNE) {
@@ -964,7 +976,7 @@ export class RoomWar {
         rec.down = null;
       }
     }
-    return [];
+    return told;
   }
 
   tick(core, now) {
@@ -1216,7 +1228,7 @@ export class RoomWar {
         }
         /* Too far apart for anything in the span: each side has moved at
          * most its top speed since the span's start. */
-        const blast = this.blastOf(d.seat);
+        const blast = this.blastOf(d.seat, d.airframe);
         const reach = blast + d.hull.hull.reach + 1
           + (AGENT_MAX_MPS * Math.max(0, aLast.t - start) + POSE_MAX_SPEED * Math.max(0, dLast.t - start)) / 1000;
         const dx = aLast.px - dLast.px;
@@ -1317,7 +1329,7 @@ export class RoomWar {
     /* A penetrator's first hit of an airframe takes that one attacker and
      * the flight goes on; the next goes off as a standard warhead. */
     const pierce = warhead === 'penetrator' && !(d.rec.piercedAt > (d.rec.spentAt ?? -Infinity));
-    const radius = warhead === 'wide' ? WIDE_M : BLAST_M;
+    const radius = this.blastOf(d.seat, d.airframe);
     const killed = [];
     const stalled = [];
     for (const y of this.live.values()) {
@@ -1360,7 +1372,7 @@ export class RoomWar {
     this.remove(ids, true);
     const scoutsDown = Boolean(m.scouts) && scoutsWere < m.scouts.n && m.scouts.killed >= m.scouts.n;
     this.log.push({
-      what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow,
+      what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow, ...(pierce ? { pierce: true } : {}),
     });
     const at = p.map(mm);
     const out = pierce ? [] : this.broadcast(core, {
