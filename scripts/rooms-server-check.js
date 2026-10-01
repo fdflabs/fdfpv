@@ -13,9 +13,10 @@
  * other, a wreck (Phase 2) passed on and shown to a pilot who joins after,
  * the host's race track (Phase 4) kept by the room and in a later welcome,
  * quick chat (Phase 5) rebuilt from its index, a code nobody made, the text
- * rate limit, and, when public rooms are open, the room browser: a named
- * public room made and listed, a bad name refused, a private room never
- * listed, and a quick join. A room made for the war: one off the war's
+ * rate limit, a pilot whose machine vanished dropped and a hidden tab
+ * kept, and, when public rooms are open, the room browser: a named public
+ * room made and listed, a bad name refused, a private room never listed,
+ * and a quick join. A room made for the war: one off the war's
  * map and a mission on another map refused; a private Itaipu one made for
  * mission 2 says so in its welcome, and once its host has started mission
  * 3 a later welcome says mission 3; a build that would not ask the war's
@@ -60,6 +61,7 @@ import {
   CHAT_PRESETS, CLOSE, PROTO, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { ABANDON_MS, TEXT_CLOSE_PER_S } from '../edge/rooms/core.js';
+import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const given = String(process.argv[2] || '').replace(/\/+$/, '');
@@ -114,9 +116,10 @@ if (!given) {
 }
 const wsOrigin = () => origin.replace(/^http/, 'ws');
 
-/* A pilot's socket that keeps everything it is sent. */
-function pilot(path, headers = {}) {
-  const ws = new WebSocket(`${wsOrigin()}/v2/${path}`, { headers });
+/* A pilot's socket that keeps everything it is sent. options: ws's own,
+ * autoPong false for a pilot whose machine went away. */
+function pilot(path, headers = {}, options = {}) {
+  const ws = new WebSocket(`${wsOrigin()}/v2/${path}`, { headers, ...options });
   const p = { ws, got: [], closed: null, refused: null };
   ws.binaryType = 'nodebuffer';
   ws.on('message', (data, binary) => {
@@ -151,8 +154,8 @@ function pilot(path, headers = {}) {
 }
 
 const profile = { airframe: 'cub1400', map: 'swiss2', figure: 3, livery: { scheme: 'sport' }, parts: { prop: 'stock', addons: [] } };
-async function seat(path, extra = {}) {
-  const p = pilot(path);
+async function seat(path, extra = {}, options = {}) {
+  const p = pilot(path, {}, options);
   await p.open;
   p.say({ type: 'hello', proto: PROTO, build: 'check', name: [1, 2, 42], profile, ...extra });
   p.welcome = await p.until((x) => x.text('welcome')[0] || x.closed);
@@ -297,10 +300,30 @@ if (pub.open) {
   check('public rooms say they are closed', pub.open === false && pub.cap === 16);
 }
 
-console.log('a room made for the war');
+console.log('a pilot who vanishes, and one whose tab is hidden');
 /* The front makes CREATES_PER_MIN rooms a minute for an address (front.js),
- * and the checks above used this minute's. */
-await sleep(61000);
+ * and the checks above used this minute's: the war's rooms below wait out
+ * the minute, which these two fill. One pilot's machine is gone without a
+ * word (a PC switched off, 2026-10-01): its socket answers no ping frame.
+ * The other is a hidden tab: its browser answers ping frames, its page
+ * sends nothing at all, and it is still here a minute later. */
+const minuteFrom = Date.now();
+const gone = await seat(`room/${code}`, { name: [6, 7, 13] }, { autoPong: false });
+const goneFrom = Date.now();
+const hidden = await seat(`room/${code}`, { name: [7, 8, 14] });
+const hiddenFrom = Date.now();
+const goneLeft = await a.until((x) => x.text('leave').find((m) => m.seat === gone.welcome.seat), DEAD_MS + PROBE_MS + 1000);
+check(`a pilot whose pings go unanswered is dropped within ${(DEAD_MS + PROBE_MS) / 1000} s, and the others see it leave`,
+  Boolean(goneLeft) && goneLeft.drop === true && Date.now() - goneFrom <= DEAD_MS + PROBE_MS + 500,
+  JSON.stringify(goneLeft));
+check('its socket is closed by the server', Boolean(await gone.until((x) => x.closed, 2000)));
+await sleep(Math.max(0, 60000 - (Date.now() - hiddenFrom)));
+check('a hidden tab that answers pings and sends nothing is still seated after 60 s',
+  hidden.closed === null && !a.text('leave').some((m) => m.seat === hidden.welcome.seat), JSON.stringify(hidden.closed));
+hidden.ws.close(1000);
+
+console.log('a room made for the war');
+await sleep(Math.max(0, 61000 - (Date.now() - minuteFrom)));
 check('the private room made for nothing says no game and no mission', a.welcome.mode === null && a.welcome.mission === null,
   JSON.stringify({ mode: a.welcome.mode, mission: a.welcome.mission }));
 res = await make({ map: 'swiss2', mode: 'war' });

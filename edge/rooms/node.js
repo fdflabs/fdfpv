@@ -94,8 +94,24 @@ const CLOSE_RESTART = 1012;
  * PROBE_KEEP (core.js, as `rtt`). The Durable Object has no ping frames,
  * so its replies carry none and a page uses its own.
  */
-const PROBE_MS = 2000;
+export const PROBE_MS = 2000;
 const PROBE_KEEP = 16;
+
+/*
+ * A PILOT WHO VANISHED. A machine switched off, a lid shut or Wi-Fi gone
+ * sends no FIN, so without this the socket stayed open until the kernel's
+ * TCP keepalive gave up, hours, and the room kept showing the pilot (the
+ * owner, 2026-10-01: a friend's PC shut down and still "here but not
+ * flying"). The probe above is the test: a ping still unanswered DEAD_MS
+ * after it went is a socket nobody is at, and it is terminated, which
+ * closes it as a drop (1006): the seat is held RESEAT_MS for a reconnect
+ * and the others are told the pilot left. Found at the next probe, so
+ * within DEAD_MS + PROBE_MS. A hidden tab is not dead: the browser's
+ * network stack answers ping frames, not the page, so throttled timers
+ * and a page that sends nothing do not delay the pong. 15 s is seven
+ * probes, past any round trip a pilot could still fly on.
+ */
+export const DEAD_MS = 15000;
 
 /*
  * A SIGNED IN PILOT'S HELLO carries its session token (src/share/rooms.js),
@@ -243,9 +259,16 @@ class Conn {
   }
 
   probe() {
-    if (this.probeAt == null && this.ws.readyState === 1) {
+    if (this.ws.readyState !== 1) {
+      return;
+    }
+    if (this.probeAt == null) {
       this.probeAt = performance.now();
       this.ws.ping();
+      return;
+    }
+    if (performance.now() - this.probeAt >= DEAD_MS) {
+      this.ws.terminate();
     }
   }
 
