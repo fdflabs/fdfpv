@@ -31,16 +31,20 @@ import http from 'node:http';
 import { pathToFileURL } from 'node:url';
 import worker from './worker.js';
 import { openD1 } from './d1sqlite.js';
-import { listener } from '../edge/node-http.js';
+import { listener, readRevision } from '../edge/node-http.js';
 
 /* googleClientId and accountsSecret switch sign-in on (accounts.js);
- * googleJwksUrl is for the selftest's stand in for Google alone. */
+ * googleJwksUrl is for the selftest's stand in for Google alone.
+ * revision: what GET /api/version answers, the deployed REVISION file's
+ * (edge/node-http.js readRevision) unless the selftest passes its own. */
 export function startTracks({
   db, port, host = '127.0.0.1', adminSecret = '', googleClientId = '', accountsSecret = '', googleJwksUrl = '',
+  revision = readRevision(new URL('../REVISION', import.meta.url)),
 }) {
   const opened = openD1(db);
   const env = {
     DB: opened.DB, ADMIN_SECRET: adminSecret, GOOGLE_CLIENT_ID: googleClientId, ACCOUNTS_SECRET: accountsSecret,
+    REVISION: revision,
     ...(googleJwksUrl ? { GOOGLE_JWKS_URL: googleJwksUrl } : {}),
   };
   const server = http.createServer(listener(worker, env));

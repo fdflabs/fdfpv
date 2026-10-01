@@ -12,6 +12,9 @@
 #   2. refuses to go on if the VM's sshd allows passwords,
 #   3. rsyncs what the servers import (package*.json, src/, configs/,
 #      edge/, tracks-api/, deploy/vm/) into /opt/fdfpv, and npm ci there,
+#      and writes the commit it copied to /opt/fdfpv/REVISION, with
+#      " dirty" after it when this checkout has uncommitted changes; each
+#      server reads it as it starts (edge/node-http.js readRevision),
 #   4. the first time only, generates the tracks admin secret ON THE VM
 #      into /etc/fdfpv/tracks.env (root, mode 600) and writes the same
 #      value to the file named above (mode 600, first line the secret,
@@ -23,7 +26,8 @@
 #   5. install.sh as root on the VM: the units, the journald cap and the
 #      Caddyfile, then restarts both servers (rooms clients get 1012 and
 #      reconnect into their seats) and reloads Caddy,
-#   6. checks both servers answer through Caddy, over HTTPS.
+#   6. checks both servers answer through Caddy, over HTTPS, and that
+#      GET /api/version and GET /v2/version name the commit from step 3.
 #
 # This file is part of WebFPVSimulator.
 #
@@ -73,6 +77,17 @@ rsync -a --delete --relative -e "ssh -i $KEY -o BatchMode=yes" \
   package.json package-lock.json src configs edge tracks-api deploy/vm \
   "$VM:/opt/fdfpv/"
 remote 'cd /opt/fdfpv && npm ci --omit=dev --no-audit --no-fund --loglevel=error'
+# Written before step 5 restarts the servers, so each reads the commit of
+# the code it loads. A deploy from a checkout with changes no commit holds
+# still goes out, as it always has, and says so instead of naming a
+# commit that is not what runs.
+commit="$(git -C "$ROOT" rev-parse HEAD)"
+revision="$commit"
+if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=no)" ]; then
+  revision="$commit dirty"
+fi
+printf '%s\n' "$revision" | remote 'cat > /opt/fdfpv/REVISION'
+echo "   $revision"
 
 echo '4. the admin secret'
 if remote 'sudo test -f /etc/fdfpv/tracks.env'; then
@@ -112,3 +127,14 @@ echo '6. both servers, through Caddy'
 sleep 2
 curl -fsS "$ORIGIN/api/health" && echo
 curl -fsS "$ORIGIN/"
+for route in /api/version /v2/version; do
+  version="$(curl -fsS "$ORIGIN$route")"
+  echo "   $route $version"
+  case "$version" in
+    *"\"$commit\""*) ;;
+    *)
+      echo "deploy.sh: $route does not name $commit; that server is not running this deploy" >&2
+      exit 1
+      ;;
+  esac
+done

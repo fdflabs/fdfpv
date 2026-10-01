@@ -142,6 +142,11 @@ console.log(`rooms server at ${origin}${given ? '' : ' (edge/rooms/node.js, star
 console.log('the front');
 let res = await fetch(`${origin}/`);
 check('GET / says what it is', res.status === 200 && /fdfpv rooms/.test(await res.text()));
+res = await fetch(`${origin}/v2/version`);
+const version = res.status === 200 ? await res.json() : null;
+check(given ? 'GET /v2/version names the commit it runs, or none' : 'GET /v2/version: a checkout has no REVISION, so no commit',
+  version && typeof version.dirty === 'boolean' && (given ? version.commit === null || /^[0-9a-f]{40}$/.test(version.commit) : version.commit === null),
+  JSON.stringify(version));
 res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{"map":"swiss2"}' });
 check('a page on another site is refused', res.status === 403);
 res = await fetch(`${origin}/v2/create`, { method: 'OPTIONS', headers: { origin: 'https://fdflabs.github.io' } });

@@ -26,7 +26,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,6 +35,7 @@ import { DatabaseSync } from 'node:sqlite';
 import worker from './worker.js';
 import { openD1 } from './d1sqlite.js';
 import { startTracks } from './node.js';
+import { NO_REVISION, readRevision } from '../edge/node-http.js';
 import { DOCUMENT_MAX_CHARS, WRITE_LIMIT } from './limits.js';
 import { createIdentity, memoryStorage, trackDeleteMessage, trackMessage } from '../src/share/identity.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
@@ -235,6 +236,22 @@ async function saveOver(pilot, doc, ts = (clock += 1)) {
 }
 r = await over('GET', '/api/health');
 check('it answers its health check', r.status === 200 && r.body.ok === true);
+r = await over('GET', '/api/version');
+check('a checkout has no REVISION, so its version names no commit', r.status === 200 && r.body.commit === null && r.body.dirty === false, JSON.stringify(r.body));
+const revisionFile = join(scratch, 'REVISION');
+const revisionOf = (text) => {
+  writeFileSync(revisionFile, text);
+  try {
+    return readRevision(revisionFile);
+  } catch (e) {
+    return e;
+  }
+};
+check('REVISION as deploy/vm/deploy.sh writes it: a commit, or a commit and dirty',
+  revisionOf(`${'a'.repeat(40)}\n`).commit === 'a'.repeat(40) && revisionOf(`${'a'.repeat(40)}\n`).dirty === false
+  && revisionOf(`${'b'.repeat(40)} dirty\n`).dirty === true);
+check('anything else in it stops the server rather than being guessed at', revisionOf('main\n') instanceof Error && revisionOf(`${'a'.repeat(39)}\n`) instanceof Error);
+check('and no file is no commit', readRevision(join(scratch, 'none')) === NO_REVISION);
 const vmTrack = mapTrackDocument({ id: 'trk-0000d001', name: 'On the VM', gates: 2 });
 r = await saveOver(alice, vmTrack);
 check('a save over HTTP is created', r.status === 201 && r.body.owner === aliceKey, JSON.stringify(r.body));
@@ -246,8 +263,10 @@ check('a body over the cap is refused, streamed through the bridge', r.status ==
 r = await over('POST', `/api/admin/tracks/${vmTrack.id}`, { hidden: true }, { authorization: 'Bearer wrong' });
 check('a wrong admin secret is refused', r.status === 401);
 await server.stop();
-server = await startTracks({ db: dbFile, port: 0, adminSecret: 'selftest-admin-secret' });
+server = await startTracks({ db: dbFile, port: 0, adminSecret: 'selftest-admin-secret', revision: revisionOf(`${'c'.repeat(40)} dirty\n`) });
 base = `http://127.0.0.1:${server.port}`;
+r = await over('GET', '/api/version');
+check('a deployed server answers the commit it started on', r.status === 200 && r.body.commit === 'c'.repeat(40) && r.body.dirty === true, JSON.stringify(r.body));
 r = await over('GET', `/api/tracks/${vmTrack.id}`);
 check('the track is still there after a restart', r.status === 200 && r.body.document.id === vmTrack.id);
 r = await over('GET', '/api/tracks?map=swiss2');

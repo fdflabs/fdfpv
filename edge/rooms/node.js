@@ -69,7 +69,9 @@ import front from './front.js';
 import { RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
 import { Health, roomCounters } from './health.js';
-import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.js';
+import {
+  answer, listener, readRevision, refuseUpgrade, upgradeListener,
+} from '../node-http.js';
 import { normaliseName } from '../../src/share/pilot.js';
 import { turnMinter } from './turn.js';
 
@@ -436,9 +438,12 @@ function lobbyObject(env) {
 
 /* roomCap: every new room's cap, for scripts/rooms-load.js alone; a seat
  * is a byte on the wire and the client colours sixteen, so the process's
- * own entry point below never reads it. */
+ * own entry point below never reads it. revision: what GET /v2/version
+ * answers, the deployed REVISION file's (node-http.js readRevision) unless
+ * a check passes its own. */
 export function startRooms({
   db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '', turnSecret = '', turnUrls = '',
+  revision = readRevision(new URL('../../REVISION', import.meta.url)),
 }) {
   if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
     throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
@@ -446,7 +451,7 @@ export function startRooms({
   const store = new Store(db);
   const env = {
     PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap, ACCOUNTS_ORIGIN: accountsOrigin.replace(/\/+$/, ''),
-    TURN: turnMinter(turnSecret, turnUrls),
+    TURN: turnMinter(turnSecret, turnUrls), REVISION: revision,
   };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
