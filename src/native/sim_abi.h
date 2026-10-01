@@ -1267,6 +1267,14 @@ int sim_free_bodies_active(void);
 int sim_rate_guard_trips(void);
 
 /*
+ * sim_live_inertia(out[4]): the airframe as it flies now, what is left of
+ * it once parts have gone: its mass, kg, and its inertia about its CG along
+ * body x, y and z, kg m^2. For the plant tests, which hold a break to the
+ * energy it had.
+ */
+int sim_live_inertia(double *out);
+
+/*
  * SURFACES. A material per contact. SIM_SURF_DEFAULT is today's contact:
  * the restitution and friction the caller passes, a rigid surface. The
  * others carry their own friction, restitution and give (a stiffness, and
