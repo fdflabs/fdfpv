@@ -53,6 +53,7 @@
  */
 
 import * as THREE from 'three';
+import { thermalKind } from '../../../render/thermal.js';
 
 /* The dam's own instanced lamp mesh (dam/index.js instanced(), 'lamps'):
  * read by name, never by importing that file. */
@@ -186,9 +187,15 @@ export function dressNight({
     const mesh = glowMesh(points, size, color, name);
     group.add(mesh);
     glows.push(mesh);
+    return mesh;
   };
   addGlow(lampsAt, LAMP_DOT, LAMP_EMISSIVE, 'itaipu-night-town-lamps');
-  addGlow(windowsAt, WINDOW_DOT, WINDOW_COLOR, 'itaipu-night-windows');
+  const windows = addGlow(windowsAt, WINDOW_DOT, WINDOW_COLOR, 'itaipu-night-windows');
+  if (windows) {
+    /* A lit window is a warm pane in a thermal picture, not a lamp
+     * (src/render/thermal.js): the lamps stay hot by their emission. */
+    thermalKind(windows.material, 'warm');
+  }
 
   poolLights(damLampPoints, group);
   poolLights(lampsAt, group);

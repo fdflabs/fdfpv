@@ -55,13 +55,16 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial } from './celmat.js';
+import { thermalKind } from './thermal.js';
 import { KINDS } from '../share/war/routes.js';
 
 /* Instances a kind starts with; it doubles when a wave needs more. */
 const START_CAPACITY = 16;
 
-/* One part of a model: a geometry placed in the body frame, one colour. */
-function part(geo, color, { at = [0, 0, 0], rot = [0, 0, 0] } = {}) {
+/* One part of a model: a geometry placed in the body frame, one colour,
+ * and its heat in a thermal picture (src/render/thermal.js: 0 a passive
+ * skin, 1 an engine's 110 degrees over it). */
+function part(geo, color, { at = [0, 0, 0], rot = [0, 0, 0], heat = 0 } = {}) {
   const g = geo.index ? geo.toNonIndexed() : geo;
   if (g !== geo) {
     geo.dispose();
@@ -81,6 +84,7 @@ function part(geo, color, { at = [0, 0, 0], rot = [0, 0, 0] } = {}) {
     col[i * 3 + 2] = c.b;
   }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setAttribute('thermal', new THREE.BufferAttribute(new Float32Array(n).fill(heat), 1));
   return g;
 }
 
@@ -131,7 +135,9 @@ function scout(c) {
     part(box(0.025, 0.28, 0.22), c.body, { at: [-0.45, 0.22, 1.2] }),
     part(box(0.025, 0.28, 0.22), c.body, { at: [0.45, 0.22, 1.2] }),
     part(discZ(0.3), c.prop, { at: [0, 0, 0.68] }),
-    part(tubeZ(0.05, 0.08), c.dark, { at: [0, 0, 0.64] }),
+    /* The pusher's engine, its exhaust beside it: the hottest thing on
+     * the airframe. */
+    part(tubeZ(0.05, 0.08), c.dark, { at: [0, 0, 0.64], heat: 1 }),
   ];
   return parts;
 }
@@ -147,6 +153,8 @@ function loiter(c) {
     wing(0.62, 0.13, -0.18, -Math.PI / 4),
     wing(0.46, 0.1, 0.42, Math.PI / 4),
     wing(0.46, 0.1, 0.42, -Math.PI / 4),
+    /* An electric motor in the tail cone, behind the prop. */
+    part(tubeZ(0.045, 0.08), c.dark, { at: [0, 0, 0.53], heat: 0.55 }),
     part(discZ(0.14), c.prop, { at: [0, 0, 0.58] }),
   ];
 }
@@ -155,11 +163,12 @@ function strike(c) {
   return [
     /* The delta, 2.5 m across, its root 2.6 m. */
     part(slab([[0, -1.35], [1.25, 0.95], [1.05, 1.15], [-1.05, 1.15], [-1.25, 0.95]], 0.07), c.body),
-    part(box(0.34, 0.22, 2.1), c.dark, { at: [0, 0.1, 0.05] }),
+    part(box(0.34, 0.22, 2.1), c.dark, { at: [0, 0.1, 0.05], heat: 0.05 }),
     part(noseZ(0.14, 0.4, 8), c.dark, { at: [0, 0.08, -1.0] }),
     part(box(0.03, 0.34, 0.36), c.body, { at: [-1.12, 0.17, 0.95] }),
     part(box(0.03, 0.34, 0.36), c.body, { at: [1.12, 0.17, 0.95] }),
-    part(tubeZ(0.12, 0.3), c.dark, { at: [0, 0.1, 1.2] }),
+    /* The piston engine and its exhaust, aft. */
+    part(tubeZ(0.12, 0.3), c.dark, { at: [0, 0.1, 1.2], heat: 1 }),
     part(discZ(0.38), c.prop, { at: [0, 0.1, 1.38] }),
   ];
 }
@@ -167,7 +176,8 @@ function strike(c) {
 function quad(c) {
   const arm = (yaw) => part(box(0.018, 0.008, 0.25), c.arm, { rot: [0, yaw, 0] });
   const out = [
-    part(box(0.05, 0.03, 0.11), c.body, { at: [0, 0.012, 0] }),
+    /* The pack and the ESCs in the frame, warm. */
+    part(box(0.05, 0.03, 0.11), c.body, { at: [0, 0.012, 0], heat: 0.25 }),
     arm(Math.PI / 4),
     arm(-Math.PI / 4),
     part(box(0.03, 0.025, 0.02), c.body, { at: [0, 0.018, -0.06] }),
@@ -177,7 +187,7 @@ function quad(c) {
   ];
   const r = 0.125 * Math.SQRT1_2;
   for (const [x, z] of [[r, r], [-r, r], [r, -r], [-r, -r]]) {
-    out.push(part(new THREE.CylinderGeometry(0.012, 0.012, 0.018, 8), c.motor, { at: [x, 0.012, z] }));
+    out.push(part(new THREE.CylinderGeometry(0.012, 0.012, 0.018, 8), c.motor, { at: [x, 0.012, z], heat: 0.5 }));
     out.push(part(discY(0.058), c.prop, { at: [x, 0.024, z] }));
   }
   return out;
@@ -194,15 +204,15 @@ function boat(c) {
     part(box(0.7, 0.35, 0.5), c.deck, { at: [0, 0.55, 0.4] }),
     part(box(0.72, 0.28, 0.06), c.dark, { at: [0, 0.8, 0.14], rot: [-0.6, 0, 0] }),
     /* The outboard on the transom. */
-    part(box(0.3, 0.5, 0.35), c.motor, { at: [0, 0.35, 2.62] }),
-    part(box(0.1, 0.5, 0.12), c.motor, { at: [0, -0.15, 2.66] }),
+    part(box(0.3, 0.5, 0.35), c.motor, { at: [0, 0.35, 2.62], heat: 0.8 }),
+    part(box(0.1, 0.5, 0.12), c.motor, { at: [0, -0.15, 2.66], heat: 0.5 }),
   ];
 }
 
 function jammer(c) {
   const out = [
     part(box(2.4, 0.12, 2.4), c.deck, { at: [0, 0.22, 0] }),
-    part(box(0.6, 0.45, 0.4), c.box, { at: [0.5, 0.5, 0.5] }),
+    part(box(0.6, 0.45, 0.4), c.box, { at: [0.5, 0.5, 0.5], heat: 0.4 }),
     part(new THREE.CylinderGeometry(0.05, 0.07, 4.0, 8), c.mast, { at: [0, 2.28, 0] }),
     part(box(1.3, 0.05, 0.05), c.mast, { at: [0, 3.9, 0] }),
     part(box(0.5, 0.5, 0.06), c.whip, { at: [0, 3.0, -0.08] }),
@@ -288,6 +298,7 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
   group.name = 'attackers';
   const mat = celMaterial({ color: 0xffffff });
   mat.vertexColors = true;
+  thermalKind(mat, 'hot', { attr: true });
   const meshes = new Map();
   const navMeshes = new Map();
   let navMat = navLights ? new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }) : null;

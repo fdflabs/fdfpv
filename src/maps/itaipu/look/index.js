@@ -67,6 +67,7 @@ import {
   groundMaterial, makeTurf, noiseTexture, loadImage, loadSite,
 } from './ground.js';
 import { dressNight } from './night.js';
+import { thermalKind, thermalShader } from '../../../render/thermal.js';
 
 /* Past the horizon from 500 m (80 km) the apron and the fog have it. */
 export const CAMERA_FAR = 90000;
@@ -113,6 +114,9 @@ export async function makeLook({
 
   const sunDir = sunDirection();
   const scene = new THREE.Scene();
+  /* For whatever draws by the time of day without being handed the look:
+   * the sensor's thermal weather (src/avionics/sensors.js). */
+  scene.userData.timeOfDay = night ? 'night' : 'day';
   scene.background = AIR.haze.clone();
   const sky = skyBackdrop(sunDir, time);
   const envTarget = skyEnvironment(renderer, sky);
@@ -194,7 +198,11 @@ export async function makeLook({
     /* ctx.mats: the photographic kit, the light every material goes
      * through, the surfaces' texture sets and the environment. */
     mats: {
-      look, lit, surfaces, envMap: scene.environment,
+      look,
+      lit,
+      surfaces,
+      envMap: scene.environment,
+      thermal: { kind: thermalKind, shader: thermalShader },
     },
     /* `height(x, z)` over the square [-half, half] at `cell` metres. */
     setHeights(height, half, cell) {
@@ -229,6 +237,10 @@ export async function makeLook({
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* The post chain that draws this scene, for the sensor checks,
+       * which route a frame through the SensorManager with it
+       * (scripts/sensor-check.js). */
+      map.scene.userData.post = post;
       shell.setCraftLook(photoCraftLook(lit));
       map.dispose = () => {
         shell.setCraftLook(null);
