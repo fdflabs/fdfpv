@@ -27,7 +27,10 @@
  * chip and the music dock. With a public room made on the server, page E
  * (1280 by 720) reads the count, walks Right off the last card onto the
  * room and joins it with Enter; page F, an upright phone, steps the pad
- * onto All rooms and chooses it, and clicks Make a room.
+ * onto All rooms and chooses it, and clicks Make a room. A second room
+ * carries a name of the full 32 letters, and no name, load or count in the
+ * panel is cut, at 1280 by 720, 390 by 844, 360 by 640 and 844 by 390, nor
+ * any value in the room list on the phone.
  *
  * No page error on any page. Pictures in outdir, not in the repository.
  *
@@ -341,6 +344,15 @@ const made = await (await fetch(`${rooms}/v2/create`, {
   method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: OPEN }),
 })).json();
 check('a public room is made for the panel to show', /^[A-Z0-9]{6}$/.test(made.code || ''), JSON.stringify(made));
+/* The longest name a room can have (src/share/roomwire.js ROOM_NAME_MAX). */
+const LONG = 'Sunday Morning Freestyle Session';
+const madeLong = await (await fetch(`${rooms}/v2/create`, {
+  method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: LONG }),
+})).json();
+check('and one with a name of the full 32 letters', LONG.length === 32 && /^[A-Z0-9]{6}$/.test(madeLong.code || ''), JSON.stringify(madeLong));
+/* The text in these nodes that the layout cuts: wider than its box. */
+const CUT = (selector) => `[...document.querySelectorAll(${JSON.stringify(selector)})].filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;
+const PANEL_TEXT = '.gate-rooms-count, .gate-room-name, .gate-room-value';
 const e = await openPage({ root, url, width: 1280, height: 720 });
 const f = await openPage({ root, url, width: 390, height: 844 });
 const PANEL = `(() => ({
@@ -352,13 +364,23 @@ const roomAction = `lobby:friends-room-${made.code}`;
 try {
   for (const p of [e, f]) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)})`, 60000).catch(() => {});
+    await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)}) && window.__ui.items().some((it) => it.label === ${JSON.stringify(LONG)})`, 60000).catch(() => {});
   }
   const panel = await e.evaluate(PANEL);
   check('the panel says how many rooms and pilots are flying', /\d+ rooms?, (\d+ pilots? flying|nobody flying yet)|open, nobody/.test(panel.count), panel.count);
   check('and lists the room, with All rooms and Make a room', panel.items.some((it) => it.action === roomAction && it.label === OPEN)
     && panel.items.some((it) => it.action === 'lobby:rooms') && panel.items.some((it) => it.action === 'lobby:roomnew'), JSON.stringify(panel.items));
   await shot(e, 'panel-1280x720');
+  for (const [w, h] of [[1280, 720], [844, 390], [360, 640]]) {
+    await resize(e, w, h);
+    const cut = await e.evaluate(CUT(PANEL_TEXT));
+    const v = await e.evaluate(LAYOUT);
+    check(`${w} by ${h}: no room name, load or count in the panel is cut, the 32 letter name too`, cut.length === 0, cut.join(' | '));
+    check(`${w} by ${h}: and with three rooms in it the panel and the cards still fit`, panelLaidOut(v) && laidOut(v),
+      `panel ${JSON.stringify(v.panel)} cards ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar}`);
+    await shot(e, `panel-rooms-${w}x${h}`);
+  }
+  await resize(e, 1280, 720);
 
   /* E, the keyboard: Right off the last card lands on the panel's first room. */
   const lastCard = await e.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
@@ -378,6 +400,8 @@ try {
 
   /* F, an upright phone: the pad, then the mouse. */
   await shot(f, 'panel-390x844');
+  const fCut = await f.evaluate(CUT(PANEL_TEXT));
+  check('390 by 844: no room name, load or count in the panel is cut', fCut.length === 0, fCut.join(' | '));
   const fLast = await f.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
   await f.evaluate(`(() => { window.__ui.setCursor(${fLast}); return true; })()`);
   const pad = (nav) => f.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
@@ -395,6 +419,8 @@ try {
   check('and choosing it opens the lobby', await f.evaluate("window.__ui.screen === 'rooms'"), await f.evaluate('window.__ui.screen'));
   await f.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction.slice('lobby:'.length))})`, 15000).catch(() => {});
   check('which lists the room', await f.evaluate(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction.slice('lobby:'.length))})`));
+  const lobbyCut = await f.evaluate(CUT('.screen-rooms .row-label, .screen-rooms .row-value'));
+  check('and no room name or value in the list is cut on the phone ("Empty, closes in 4 min")', lobbyCut.length === 0, lobbyCut.join(' | '));
   await shot(f, 'panel-lobby-390x844');
   await f.tap('Escape');
   await f.tap('Escape');
@@ -409,5 +435,6 @@ try {
   await e.close();
   await f.close();
 }
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
