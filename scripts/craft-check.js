@@ -151,11 +151,12 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *   7inch, 10inch  the combat quads of docs/COMBAT-DRONES.md: a 315 mm and
  *             a 420 mm true X under 7 and 10 inch props, so the span is
  *             the motor's axis offset plus the prop's radius, doubled, and
- *             the sweep the arm plus the radius, doubled. Seated, each
- *             carries what a pilot who never chose flies, the standard
- *             payload, whose nose stays inside the props' reach; it stands
- *             on landing legs at the hull's depth. src/render/combatcraft.js
- *             draws them.
+ *             the sweep the arm plus the radius, doubled. The plant's hull
+ *             is fixed and sized to the fullest loadout (docs/COMBAT-DRONES.md
+ *             section 2.3), so each is seated with it, the deepest payload
+ *             and every accessory, and measured against it: the legs reach
+ *             the payload's depth and the packs, straps and GPS the top.
+ *             src/render/combatcraft.js draws them.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -286,11 +287,23 @@ function pinned(id, got, want, pinMm, why) {
     `against ${want.toFixed(1)}, ${off.toFixed(1)} off, a known ${pinMm.toFixed(1)}: ${why}`);
 }
 
+/* A combat quad's fullest loadout: the payload that hangs deepest and
+ * every accessory, which is what its fixed hull is sized to. */
+function fullest(af) {
+  const low = (p) => p.cgOffset_m[2] - p.dims.d / 2;
+  const deepest = af.combat.payloads.reduce((a, p) => (low(p) < low(a) ? p : a));
+  return { payload: deepest.id, accessories: af.combat.accessories.map((a) => a.id) };
+}
+
 async function measure(airframeId) {
   const seated = seatAirframe(
     { airframe: '5inch', rates: airframeById('5inch').rates },
     airframeId,
   );
+  const af = airframeById(airframeId);
+  if (af.combat) {
+    seated.combat = { [af.id]: fullest(af) };
+  }
   const page = await openPage({
     root,
     width: 960,
