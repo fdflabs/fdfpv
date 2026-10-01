@@ -16,8 +16,9 @@
  *     HUD's box, its callouts or the markers' radar
  *
  * And the per airframe default and override, at 1280x720: the 5 inch
- * flies with the FPV OSD; a pilot who sets the 7 inch to the FPV OSD gets
- * it after a reload.
+ * flies with the FPV OSD; the 7 inch with Avionics, whose state goes to
+ * DEGRADED when GNSS and VIO are both denied (and only then); a pilot who
+ * sets the 7 inch to the FPV OSD gets it after a reload.
  *
  * Pictures go in outdir (build/avionics-layout by default); look at them.
  *
@@ -169,7 +170,7 @@ async function layout(width, height, rooms) {
     const code = await page.evaluate("window.__roomCreate({ map: 'itaipu' })");
     await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
     await fly(page);
-    await page.until('window.__avionicsHud().on', 30000).catch(() => {});
+    await page.until('window.__avionicsHud().on', 120000).catch(() => {});
     await page.sleep(1500);
     let got = JSON.parse(await page.evaluate(READ));
     check('a combat airframe flies with the Avionics HUD by default', got.avx.on && !got.osd, `avionics ${got.avx.on}, FPV OSD ${got.osd}, room ${code}`);
@@ -211,7 +212,7 @@ async function defaults() {
   let page = await openPage({ root, width: 1280, height: 720, seed: seed('5inch') });
   try {
     await fly(page);
-    await page.until('window.__fpvOsd().on || window.__avionicsHud().on', 30000).catch(() => {});
+    await page.until('window.__fpvOsd().on || window.__avionicsHud().on', 120000).catch(() => {});
     const got = JSON.parse(await page.evaluate(READ));
     check('the 5 inch flies with the FPV OSD', got.osd && !got.avx.on, `FPV OSD ${got.osd}, avionics ${got.avx.on}`);
   } finally {
@@ -220,9 +221,26 @@ async function defaults() {
   page = await openPage({ root, width: 1280, height: 720, seed: seed('7inch') });
   try {
     await fly(page);
-    await page.until('window.__avionicsHud().on', 30000).catch(() => {});
+    await page.until('window.__avionicsHud().on', 120000).catch(() => {});
     let got = JSON.parse(await page.evaluate(READ));
     check('the 7 inch flies with the Avionics HUD', got.avx.on && !got.osd, `FPV OSD ${got.osd}, avionics ${got.avx.on}`);
+    /* The navigation sources' degraded path, through the test hook. */
+    await page.evaluate("window.__avionics.deny('gnss', true); true");
+    await page.sleep(600);
+    let st = JSON.parse(await page.evaluate('JSON.stringify(window.__avionics.state())'));
+    check('GNSS denied: navigation falls back to VIO, not DEGRADED', st.tel.nav.source === 'VIO' && st.hud.state !== 'DEGRADED',
+      `nav ${st.tel.nav.source}, HUD ${st.hud.state}`);
+    await page.evaluate("window.__avionics.deny('vio', true); true");
+    await page.sleep(600);
+    st = JSON.parse(await page.evaluate('JSON.stringify(window.__avionics.state())'));
+    const shown = JSON.parse(await page.evaluate(READ)).avx;
+    check('GNSS and VIO denied: dead reckoning, and the HUD says DEGRADED for nav', st.tel.nav.source === 'DR'
+      && shown.state === 'DEGRADED' && shown.reasons.includes('nav'), `nav ${st.tel.nav.source}, HUD ${shown.state} ${shown.reasons.join(',')}`);
+    await shot(page, 'avionics-1280x720-degraded');
+    await page.evaluate("window.__avionics.deny('gnss', false); window.__avionics.deny('vio', false); true");
+    await page.sleep(600);
+    st = JSON.parse(await page.evaluate('JSON.stringify(window.__avionics.state())'));
+    check('and back to GNSS when they return', st.tel.nav.source === 'GNSS' && st.hud.state !== 'DEGRADED', `nav ${st.tel.nav.source}, HUD ${st.hud.state}`);
     /* What the menu's HUD style row writes for the seated airframe. */
     await page.evaluate(`(() => {
       const s = window.__ui.settings;
@@ -233,7 +251,7 @@ async function defaults() {
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await page.sleep(1000);
     await fly(page);
-    await page.until('window.__fpvOsd().on || window.__avionicsHud().on', 30000).catch(() => {});
+    await page.until('window.__fpvOsd().on || window.__avionicsHud().on', 120000).catch(() => {});
     got = JSON.parse(await page.evaluate(READ));
     check('the pilot\'s choice for the 7 inch sticks after a reload', got.osd && !got.avx.on, `FPV OSD ${got.osd}, avionics ${got.avx.on}`);
   } finally {

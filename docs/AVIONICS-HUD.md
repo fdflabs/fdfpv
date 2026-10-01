@@ -164,7 +164,7 @@ models in FlightTelemetry, driven only by things the game really has:
   at 6. Near the ground the fix degrades (multipath, a stand in for buildings
   and the dam wall): under `GNSS_LOW_AGL_M` (3 m) HDOP doubles. A crash that
   takes the video antenna (fpvfail cameraLost) does not touch GNSS. A test
-  hook `window.__avionics.deny('gnss', true)` cuts the fix for checks and
+  hook `window.__avionics.deny('gnss', true)` (and `'vio'` for VIO) cuts it for checks and
   for flying the degraded path; nothing in normal play denies it yet. When a
   mission adds denial, it becomes an input here, documented here.
 - **VIO.** Needs a picture and texture at a usable depth: `ok` while the

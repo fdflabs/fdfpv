@@ -13,8 +13,8 @@
  *
  *   - GNSS and VIO (section 4.3 of the doc): acquisition after the run
  *     starts and multipath near the ground; VIO from the picture, the
- *     height and the speed. Nothing in play denies GNSS yet; the test hook
- *     window.__avionics.deny('gnss', true) does.
+ *     height and the speed. Nothing in play denies either yet; the test
+ *     hook window.__avionics.deny('gnss' or 'vio', true) does.
  *   - Motor temperatures (SIM): each motor's share of the pack's power by
  *     rpm cubed, a fixed share of it lost as heat, a first order lag to a
  *     steady rise that falls with airspeed.
@@ -117,7 +117,7 @@ export function createFlightTelemetry() {
     video: { snow: 0, lost: false },
   };
   const endurance = { remainS: 0, totalS: 0 };
-  const denied = { gnss: false };
+  const denied = { gnss: false, vio: false };
   let lastT = null;
   let lastWall = null;
   let ampsFilt = 0;
@@ -144,7 +144,10 @@ export function createFlightTelemetry() {
   function vio(aglM, ms) {
     const v = state.vio;
     const pic = state.video;
-    if (pic.lost || pic.snow >= VIO_MAX_SNOW) {
+    if (denied.vio) {
+      v.state = 'lost';
+      v.why = 'denied';
+    } else if (pic.lost || pic.snow >= VIO_MAX_SNOW) {
       v.state = 'lost';
       v.why = 'video';
     } else if (aglM > VIO_MAX_AGL_M * VIO_SOFT || ms > VIO_MAX_MS * VIO_SOFT) {
