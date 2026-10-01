@@ -215,6 +215,8 @@ export class AvionicsHud {
     this.rungDir = [0, 0, 0];
     this.placed = [];
     this.stats = { ticks: 0, tickMs: 0, worstTickMs: 0 };
+    /* Whether the last paint drew IN RANGE on the primary, for the checks. */
+    this.inRangeDrawn = false;
     this.build();
     window.addEventListener('resize', () => { this.sizeDirty = true; });
     window.__avionicsHud = () => ({
@@ -225,6 +227,7 @@ export class AvionicsHud {
       tapes: this.tapeRects(),
       keepOut: this.keepOut.map((r) => ({ ...r })),
       stats: { ...this.stats },
+      inRange: this.inRangeDrawn,
     });
   }
 
@@ -346,7 +349,9 @@ export class AvionicsHud {
   /*
    * Every frame. `want`: the Avionics style chosen, the FPV camera live,
    * flight or pause. src: { tel, sensor, sensors, snap, hud, camera,
-   * radar } (radar: the war markers are up, so their radar is furniture).
+   * radar, fuze } (radar: the war markers are up, so their radar is
+   * furniture; fuze: the room would set this aircraft's warhead off on
+   * the primary track's attacker now, src/ui/warmarkers.js inRangeAt).
    */
   tick(want, paused, nowMs, src) {
     const on = Boolean(want && src);
@@ -854,6 +859,7 @@ export class AvionicsHud {
     const { snap, hud, camera } = src;
     const g = this.g;
     const degraded = hud.state === 'DEGRADED';
+    this.inRangeDrawn = false;
     if (hud.ai) {
       for (const t of snap.lost) {
         if (this.project(camera, t.losW).ok) {
@@ -877,6 +883,10 @@ export class AvionicsHud {
       const primary = t.id === snap.primaryId;
       g.globalAlpha = t.stale ? STALE_ALPHA : primary ? 1 : 0.7;
       this.box(x, y, side, primary ? RED : AMBER, t.confidence < CONF_FIRM);
+      if (primary && src.fuze) {
+        this.inRange(L, x, y, side);
+        this.inRangeDrawn = true;
+      }
       if (primary) {
         this.callout(L, x, y, side, t, src.tel);
         if (!degraded) {
@@ -920,6 +930,25 @@ export class AvionicsHud {
     g.lineTo(x + 5, y - h - 11);
     g.closePath();
     g.fill();
+  }
+
+  /* IN RANGE on the primary's box: the box filled and the words under it. */
+  inRange(L, x, y, side) {
+    const g = this.g;
+    const h = side / 2;
+    g.globalAlpha = 0.25;
+    g.fillStyle = RED;
+    g.fillRect(x - h, y - h, side, side);
+    g.globalAlpha = 1;
+    g.lineWidth = 3;
+    g.strokeStyle = RED;
+    g.strokeRect(x - h, y - h, side, side);
+    g.lineWidth = 1.5;
+    g.font = `700 ${L.font}px ${FONT}`;
+    g.textAlign = 'center';
+    g.fillStyle = RED;
+    g.fillText(str('avionics.hud.in_range'), x, y + h + L.font * 1.3);
+    g.font = `${L.font}px ${FONT}`;
   }
 
   /* The primary's callout, beside its box: what it is and what is known

@@ -178,22 +178,44 @@ calls each one ("STRIKER DOWN ON THE LINES").
 ### 4.3 Detonation: the kamikaze referee
 
 A defender's warhead goes off when any part box of the defender comes
-within `BLAST_M = 6` of an attacker's centre: `within()` in
-`src/game/midair.js:520-567`, the same test tag's bubble uses at
-`BUBBLE_M = 6`. The attacker is a Track of the room's own samples (no
+within its fuze radius of an attacker's centre: `within()` in
+`src/game/midair.js`, the same test tag's bubble uses at `BUBBLE_M = 6`.
+The radius is the seat's airframe and warhead's,
+`src/share/war/fuze.js` `fuzeM`, and the room sends each seat's own in
+its view (`fuze`, by seat). The attacker is a Track of the room's own samples (no
 lag on its side); the defender's is the relayed stream, judged on tag's
 single timeline (`tag.js:13-22`): the frontier is `LATE_MS` behind the
 room clock or the slowest seat heard from in `WAIT_MS`, the earliest
 detonation wins, a tie to the lower seat.
 
 - A detonation kills the attacker and the defender, and every other
-  attacker within `BLAST_M` of the point (a swarm dies together).
+  attacker within the same radius of the point (a swarm dies together).
 - Spawning and crashed defenders cannot detonate (`FLAG_SPAWNING`,
   `FLAG_CRASHED`), as in tag.
-- A Hunter that reaches `BLAST_M` of a defender detonates both, judged the
+- A Hunter that reaches the defender's radius detonates both, judged the
   same way with the roles swapped.
 - The harness holds tag's bands: no false detonation past r plus 5 cm, no
   miss 15 cm inside, the same answer as the zero latency run.
+
+**The fuze radii are a gameplay choice** (owner, 2026-10-01: "my drones
+arent exploding within proximity"). They grow with the payload a class
+carries (`configs/airframes.js` `combat.payloads`), so a bigger aircraft's
+warhead reaches further, but none is derived from explosive physics; they
+are tuned with `npm run war:balance` and nothing else. Metres:
+
+| Airframe | standard | wide | penetrator | emp |
+| --- | --- | --- | --- | --- |
+| FPV quads (5 and 7 inch, the interceptor's `proximity`), and any aircraft without a row | 6 | 9 | 6 | 6 |
+| 10 inch | 7 | 10 | 6 | 7 |
+| Striker (`striker2500`) | 9 | 12 | 8 | 9 |
+
+The war markers show the distance the room tests (the nearest part of
+the pilot's hull to the attacker's centre, on the pose the pilot last
+sent), to the metre under 30 m, and turn red with IN RANGE when it is
+inside the seat's radius: what the pilot sees is when the room goes off.
+The Avionics HUD keeps its sensor's range estimate and puts the same IN
+RANGE on its primary box when the primary's line of sight is on that
+attacker.
 
 ### 4.4 Hunters
 
@@ -527,7 +549,8 @@ airframes a pilot plus one a kill, lost only on output):
   - `rack` 4 to 6 (rounded, clamped), in place of the base 4
   - `speedMul` 1 to 1.15 (clamped), flown by the client with the
     plant's boost
-  - `warhead`: `standard` (6 m); `wide` (9 m); `penetrator` (its first
+  - `warhead`: `standard`; `wide` (a longer fuze radius, section 4.3);
+    `penetrator` (its first
     hit of an airframe takes that one attacker and the flight goes on);
     or `emp` (goes off as standard, and stalls every attacker within
     30 m for 4 s: `op:'stall'`, the routes' clock stopped, a Hunter
