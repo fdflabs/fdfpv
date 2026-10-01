@@ -425,7 +425,10 @@ try {
 
   /* A PLAY WHOSE ROOM NEVER OPENS: the room made for mission 2 is held
    * before its welcome, and the pilot makes another by hand. That one is
-   * not the mission's. */
+   * not the mission's. The rooms server makes six rooms a minute for an
+   * address (edge/rooms/front.js CREATES_PER_MIN), and the steps above
+   * used this minute's. */
+  await page.sleep(61000);
   const heldFrom = await page.evaluate('window.__rooms().code');
   await page.evaluate("(() => { window.__holdHello = true; window.__campaign.open(); return true; })()");
   await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
