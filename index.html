@@ -3517,7 +3517,8 @@
         overflow-y: auto;
         overscroll-behavior: contain;
         pointer-events: auto;
-        padding: 5vh 4vw 4vh;
+        /* Clear of the command bar, which Back now rides above. */
+        padding: 5vh 4vw calc(var(--bar-bot) + 8px);
       }
       .screen-credits h2 {
         align-self: center;
@@ -3891,15 +3892,27 @@
         .maker-mark { font-size: 24px; }
         .credit-copy h4 { font-size: 17px; }
       }
+      /* Back rides the bottom of the page while the roll scrolls under it.
+         At the end of a roll a window and a half long it was 1631 px below
+         a 1600 by 900 window when the screen opened, so the one row on the
+         screen was out of sight until the pilot had scrolled every credit
+         (scripts/shell-check.js, the fold). The roll grows with every
+         source credited; this does not. */
       .screen-credits .menu-stage {
         width: min(760px, 94vw);
         margin: 12px auto 0;
         display: block;
+        position: sticky; bottom: 0; z-index: 1;
+        padding: 18px 0 0;
+        background: linear-gradient(180deg, rgba(12, 18, 14, 0), rgba(12, 18, 14, 0.97) 18px);
       }
       .screen-credits .menu {
         min-width: 0;
         width: 100%;
         margin-top: 0;
+        /* One row. The phone rule's 200 px floor is for a list, and here
+           it pushed Back's empty box down under the command bar. */
+        min-height: 0;
       }
       .screen-credits .hint { margin-left: auto; margin-right: auto; }
 
