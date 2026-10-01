@@ -21,11 +21,13 @@ buildCombatDrone({
 ```
 
 Through the shell it is `craftBuilderFor('7inch')` or `'10inch'`
-(`src/render/craft.js`), which takes the pilot's resolved choice as
-`opts.combat = { payload, accessories }` and draws the doc's default,
-`{ payload: 'standard', accessories: [] }`, when a caller passes none.
-`buildCraft(airframeId, combat)` forwards it. An unknown id, or an
-accessory the frame does not offer (`pack2` on the 10 inch), throws.
+(`src/render/craft.js`), which takes a resolved choice as
+`opts.combat = { payload, accessories }` and draws the doc's default
+(`configs/combat.js` `DEFAULT_CHOICE`) when a caller passes none.
+`buildCraft(airframeId, combat)`, the flown craft, takes the pilot's own
+seated choice, `combatFor(airframeId)`, when its caller passes none, as
+the shell's swap does. An unknown id, or an accessory the frame does not
+offer (`pack2` on the 10 inch), throws.
 
 It returns every builder's contract (`group`, `discs`, `blades`,
 `cameraMount`, `propSpin`, `stator`, `livery`) and `combat`:
@@ -129,31 +131,30 @@ the hangar's and the chase camera and of the war's Striker at 12 and 30 m.
 
 ## 5. What the models need from the integration side
 
-These are requests, not edits: the files are the physics branch's.
+These are requests, not edits: the files are the integration side's.
+The flown craft's choice is settled: `buildCraft` reads `combatFor`, and
+`npm run check:craft` seats each quad with its fullest loadout and finds
+the drawn machine inside 6 mm of the fixed hull on every axis.
 
-1. **Forward the choice.** The shell builds the flown craft with
-   `buildCraft(airframeId)` (`src/render/shell.js` swapCraft); it needs to
-   pass the resolved `{ payload, accessories }` as the second argument and
-   rebuild when it changes, as the doc's section 4 says.
-2. **Replays.** `src/replay/crashcam.js` builds its craft with
+1. **Replays.** `src/replay/crashcam.js` builds its craft with
    `craftBuilderFor(af)(opts)` and no choice, so a replay draws the default
    loadout. For a replay to show the flown build, the clip's meta needs
    the choice and the replay needs to pass it as `opts.combat`.
-3. **Peers.** `src/render/peers.js` builds with no choice too, which is the
+2. **Peers.** `src/render/peers.js` builds with no choice too, which is the
    doc's `standard` outside a war; in a war it needs the seat's loadout
    warhead as `opts.combat.payload` (the payload ids and the war's warhead
    ids are the same words in the doc).
-4. **The FPV camera.** The model's camera is where the parts list puts it,
+3. **The FPV camera.** The model's camera is where the parts list puts it,
    about the CG 78.3 mm forward and 16.7 mm down on the 7 inch, 98.4 mm and
    21.0 mm on the 10 inch. The FPV view is placed by `src/render/lens.js`
    (80 mm forward, 18 mm up, the five inch's). The near plane hides the
    difference in the picture, but the parallax a roll gives is the
    camera's height, so the view may want the combat quads' own mount.
-5. **The hull's top.** As drawn, the bare 7 inch's highest point (not
-   counting antennas) is its pack's top, 42.3 mm above the CG, 84.3 mm with
-   `pack2`; the 10 inch's 44.0 mm. `scripts/craft-check.js` holds
-   `vHalfUp` to the seated default's, which is the bare machine.
-6. **A render liberty.** The long range antenna and the receiver whips
+4. **The hull's top.** Drawn with its fullest loadout the 7 inch reaches
+   88.8 mm above the CG (the second pack's buckle) against the hull's
+   85.0, and the 10 inch 49.7 mm (the GPS puck) against 55.0; bare, the
+   7 inch's top is 46.8 mm. Inside craft-check's 6 mm, so nothing to do.
+5. **A render liberty.** The long range antenna and the receiver whips
    stand 14 mm either side of the centreline, where the doc puts their
    mass on it, so the GPS mast between them stays clear. The lumped mass
    the plant flies is unaffected.
