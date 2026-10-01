@@ -9,11 +9,14 @@
  * states with the elevator neutral, the flaps up and no pitch rate, on the
  * plant's own lift curve, stall blend and stall arms included:
  *
- *   the glide: the throttle closed, so no thrust (every aircraft's idle or
- *   duty_min pitch speed is under its glide, which is checked), the
- *   pitching moment zero; the aero force then carries the weight, and the
- *   body's pitch is the zero lift line's alpha, less its angle under the
- *   body axis, less the glide path's.
+ *   the glide: the throttle closed, the pitching moment zero, the thrust
+ *   line's moment included; the aero force and what the closed throttle
+ *   still pulls carry the weight, and the body's pitch is the zero lift
+ *   line's alpha, less its angle under the body axis, less the glide
+ *   path's. A propeller pulls nothing there (every prop's idle or duty_min
+ *   pitch speed is under its glide, which is checked); a turbine idles
+ *   rather than stops (fan_tau, the Striker's jet), and its idle thrust is
+ *   in the balance.
  *
  *   the cruise: the throttle stick at which that same neutral elevator
  *   flies level, the thrust line's moment on the trim included. That is
@@ -133,17 +136,43 @@ function thrust(fw, stick, u) {
 function glide(p) {
   const { fw } = p;
   const W = p.m * p.g;
-  const alpha = trimAlpha(fw, 0);
-  if (alpha === null) return null;
-  const { CL, CD } = coeffs(fw, alpha);
-  const gamma = Math.atan2(CD, CL);
-  const V = Math.sqrt(2 * W / (p.rho * fw.area * Math.hypot(CL, CD)));
-  const alphaBody = alpha + fw.alpha_zl;
+  /* At airspeed V: alpha trimmed against the closed throttle's thrust
+   * line, and the weight the aero force and that thrust carry there. */
+  const at = (V) => {
+    const q = 0.5 * p.rho * V * V;
+    let T = 0, alpha = 0;
+    for (let it = 0; it < 60; it += 1) {
+      alpha = trimAlpha(fw, fw.thrust_z * T / (q * fw.area * fw.chord));
+      if (alpha === null) return null;
+      T = thrust(fw, 0, V * Math.cos(alpha + fw.alpha_zl));
+    }
+    const ab = alpha + fw.alpha_zl;
+    const { CL, CD } = coeffs(fw, alpha);
+    const along = q * fw.area * CD - T * Math.cos(ab);
+    const across = q * fw.area * CL + T * Math.sin(ab);
+    return { alpha, CL, CD, T, ab, along, across, carried: Math.hypot(along, across) };
+  };
+  /* From the glide with no thrust, where the force goes as V squared:
+   * scaled by the root of what is short, which is exact at once when the
+   * closed throttle pulls nothing. */
+  const a0 = trimAlpha(fw, 0);
+  if (a0 === null) return null;
+  const c0 = coeffs(fw, a0);
+  let V = Math.sqrt(2 * W / (p.rho * fw.area * Math.hypot(c0.CL, c0.CD)));
+  for (let i = 0; i < 100; i += 1) {
+    const g = at(V);
+    if (g === null) return null;
+    V *= Math.sqrt(W / g.carried);
+  }
+  const g = at(V);
+  if (g === null || Math.abs(g.carried - W) > 1e-9 * W) return null;
+  const { alpha, CL, CD, T, ab, along, across } = g;
+  const gamma = Math.atan2(along, across);
   return {
     alpha, CL, CD, V, gamma,
     sink: V * Math.sin(gamma),
-    pitch: alphaBody - gamma,
-    idleThrust: thrust(fw, 0, V * Math.cos(alphaBody)),
+    pitch: ab - gamma,
+    idleThrust: T,
   };
 }
 
@@ -220,9 +249,11 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
       bad += 1;
       continue;
     }
-    if (gl.idleThrust !== 0) {
-      console.log(`${name.padEnd(20)} the closed throttle still pulls ${f(gl.idleThrust, 3)} N in the glide`);
+    if (gl.idleThrust !== 0 && !(fw.fan_tau > 0)) {
+      console.log(`${name.padEnd(20)} the closed throttle still pulls ${f(gl.idleThrust, 3)} N in the glide, and it is a propeller`);
       bad += 1;
+    } else if (gl.idleThrust !== 0) {
+      console.log(`${name.padEnd(20)} a turbine: it glides on its idle's ${f(gl.idleThrust, 3)} N`);
     }
     /* The tables carry a hundredth of a degree and a thousandth of the stick. */
     const off = Math.abs(fw.stab_pitch_down - down) * DEG > 0.0051 || Math.abs(fw.stab_trim_throttle - cr.stick) > 0.00051;
