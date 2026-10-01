@@ -5,16 +5,21 @@
  * every browser: the plant gets numbers between runs and does the physics
  * itself, so nothing here is on the 1 kHz path.
  *
- * THE CONTRACT (the doc's section 2)
+ * THE CONTRACT (the doc's sections 2 and 7)
  *
- *   airframe.combat = { frame, payloads, accessories }, configs/airframes.js
- *   settings.combat[airframeId] = { payload, accessories }
+ *   airframe.combat = { frame, payloads, accessories, propulsion? },
+ *     configs/airframes.js; `propulsion` only on an aircraft with more
+ *     than one way to be pushed (the Striker), each { id, simId, ... }
+ *   settings.combat[airframeId] = { payload, accessories, propulsion? }
  *     payload      a payload id of that airframe's, or 'none'
  *     accessories  ids of that airframe's, in its own order
+ *     propulsion   a propulsion id of that airframe's, only where it has
+ *                  them; its first is the default
  *   A pilot who never chose has no entry and flies the default: the
- *   payload carrying the standard warhead, which every combat quad has
- *   (its id is 'standard' on the 7 and the 10 inch, 'proximity' on the
- *   interceptor), and no accessories.
+ *   payload carrying the standard warhead, which every combat airframe has
+ *   (its id is 'standard' on the 7 and 10 inch and the Striker,
+ *   'proximity' on the interceptor), no accessories, and the first
+ *   propulsion where there is one.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -59,7 +64,29 @@ export function combatChoice(af, stored) {
     : standardPayload(c).id;
   const want = Array.isArray(s.accessories) ? s.accessories : [];
   const accessories = c.accessories.filter((a) => want.includes(a.id)).map((a) => a.id);
-  return { payload, accessories };
+  if (!c.propulsion) {
+    return { payload, accessories };
+  }
+  const propulsion = c.propulsion.some((x) => x.id === s.propulsion) ? s.propulsion : c.propulsion[0].id;
+  return { payload, accessories, propulsion };
+}
+
+/* The propulsion entry the choice flies, or null for an aircraft with
+ * one way to be pushed. */
+export function propulsionOf(af, choice) {
+  const list = af && af.combat && af.combat.propulsion;
+  if (!list) {
+    return null;
+  }
+  return list.find((x) => x.id === (choice && choice.propulsion)) ?? list[0];
+}
+
+/* The plant a choice seats, sim_set_airframe's argument: the propulsion's
+ * own where the aircraft has them (each is its own plant: the engine is
+ * its mass, its CG and its thrust law), else the airframe's. */
+export function combatSimId(af, choice) {
+  const p = propulsionOf(af, choice);
+  return p ? p.simId : af.simId;
 }
 
 /* settings.combat with every entry made valid and the empty ones dropped
@@ -103,20 +130,25 @@ export function payloadOf(af, choice) {
 /*
  * Every mass the choice adds, as { m, at, own } with `own` the thing's own
  * inertia about its own centre (a payload is a solid cylinder along body x;
- * an accessory is a point).
+ * an accessory is a point). The descriptor's points are about the first
+ * propulsion's CG; another's sits cgDz_m higher (the Striker's turbojet
+ * rides over its tail), so its points are that much lower about it.
  */
 function masses(af, choice) {
   const out = [];
+  const pr = propulsionOf(af, choice);
+  const dz = pr ? pr.cgDz_m : 0;
+  const about = (at) => (dz ? [at[0], at[1], at[2] - dz] : at);
   const p = payloadOf(af, choice);
   if (p) {
     const r = p.dims.d / 2;
     const L = p.dims.len;
     const across = p.massKg * (3 * r * r + L * L) / 12;
-    out.push({ m: p.massKg, at: p.cgOffset_m, own: [p.massKg * r * r / 2, across, across] });
+    out.push({ m: p.massKg, at: about(p.cgOffset_m), own: [p.massKg * r * r / 2, across, across] });
   }
   for (const id of choice ? choice.accessories : []) {
     const a = af.combat.accessories.find((x) => x.id === id);
-    out.push({ m: a.massKg, at: a.cgOffset_m, own: [0, 0, 0] });
+    out.push({ m: a.massKg, at: about(a.cgOffset_m), own: [0, 0, 0] });
   }
   return out;
 }
@@ -150,7 +182,8 @@ export function combatAddon(af, choice) {
   block[SIM_ADDON.CG + 1] = c[1];
   block[SIM_ADDON.CG + 2] = c[2];
   block[SIM_ADDON.CDA] = p ? p.dragArea_m2 : 0;
-  const at = p ? p.cgOffset_m : c;
+  /* The payload's drag at the payload, which masses() put first. */
+  const at = p ? ms[0].at : c;
   block[SIM_ADDON.DRAG] = at[0];
   block[SIM_ADDON.DRAG + 1] = at[1];
   block[SIM_ADDON.DRAG + 2] = at[2];
@@ -160,9 +193,10 @@ export function combatAddon(af, choice) {
 }
 
 /* All up mass with the choice, kg, for the picker's and the hangar's read
- * outs. */
+ * outs: on the propulsion's own bare mass where the aircraft has them. */
 export function combatMass(af, grams, choice) {
-  return grams / 1000 + masses(af, choice).reduce((s, x) => s + x.m, 0);
+  const pr = propulsionOf(af, choice);
+  return (pr ? pr.grams : grams) / 1000 + masses(af, choice).reduce((s, x) => s + x.m, 0);
 }
 
 /*

@@ -1,4 +1,4 @@
-# Combat drones: the 7 inch, the 10 inch and the interceptor, their payloads and accessories
+# Combat drones: the 7 inch, the 10 inch, the interceptor and the Striker, their payloads and accessories
 
 Written 2026-10-01 against the owner's request of that day: "we need more
 combat drones, and their models built with and without their accessories
@@ -27,6 +27,10 @@ the level of a parts list: frame, motors, props, packs, and how heavy a slung
 cylinder is. Nothing here is, or should become, real weapon engineering:
 the payloads are painted cylinders with a game rule attached (the war's
 `warhead`, docs/WARFARE-PLAN.md section 10a).
+
+Section 7 is the Striker, the war's own fixed wing made playable the same
+day, on a piston engine or a turbojet, with the same warheads in its nose:
+the descriptor gains `propulsion` for it (section 7.3).
 
 ## 1. The two aircraft
 
@@ -156,6 +160,7 @@ combat: {
 }
 ```
 
+and, on an aircraft pushed more than one way, `propulsion` (section 7.3);
 and the pilot's choice, per airframe, in `settings.combat[airframeId]`:
 
 ```js
@@ -406,3 +411,213 @@ behind at 18.9 m/s, the 7 inch at 1.7.
   the interceptor rolling quicker than the five and the 7 inch, its
   endurance shorter than the 7 inch's, and every combat quad's
   `topSpeed` the level speed the module flies.
+
+## 7. The Striker, the fixed wing
+
+Added 2026-10-01 against the owner's request of that day: "remember to
+also include the fixed wing models to our war aircraft, make them
+playable and with the hud also", with the reference sheets of the war's
+attacker: a pusher piston engine on a wooden two blade prop behind a
+cylindrical fuselage, a cranked delta with a fin at each tip; and the
+same airframe on a small turbojet. Until then it was the raid's enemy
+alone. It is now a playable fixed wing that a pilot can pick, load and
+take to war as a defender, ramming with the warhead in its nose.
+
+`scripts/combat-derive.js` (`npm run combat:derive`, after the quads)
+derives everything below from a parts list and the drawn planform, and
+prints it. The drawing is `src/render/strikercraft.js`
+(docs/COMBAT-DRONES-MODELS.md section 2), which the war's attacker and
+the flown aircraft share.
+
+### 7.1 The scale, and why
+
+The drawn machine's, which is the war's: **2.50 m over the wingtip fins,
+2.67 m from the nose to the prop's hub**, a 0.34 m fuselage and a 0.76 m
+prop. That span is the full size attacker's published one, but the build
+is not the full size machine: it is a giant scale hobby airframe of
+glass and carbon over foam, on a 110 cc boxer twin or a 140 N class
+turbojet, about 14 kg. At the original's 200 kg the wing loads to about
+90 kg/m^2 and stalls near 35 m/s, which no rail in this game launches and
+no pilot lands; at 14 kg it stalls between 10.5 and 14 m/s with any
+warhead, leaves a 3 m rail at 19 m/s, and flies the air the Bramor (2.3
+m, 4.5 kg) and the combat quads fly. Sizing it to the drawing keeps one
+aircraft for the war's renderer, the shell, the plant, the crash parts
+and the mid air referee, with nothing to reconcile.
+
+### 7.2 Ids
+
+| | |
+| --- | --- |
+| airframe id | `striker2500` (a fixed wing; the picker's Plane tab; the Free flight card) |
+| plants (`sim_set_airframe`) | 27 on `prop`, 28 on `jet`; 26 is left for the third combat quad |
+| `combat.frame` | `striker` |
+| propulsion ids | `prop`, the 110 cc boxer twin and the 30 x 14 wooden pusher; `jet`, the 140 N class turbojet in its nacelle. `prop` is the default |
+| payload ids | `standard`, `wide`, `penetrator`, `emp`, each the war's warhead of that name (section 3); `none` |
+| accessory ids | `whip`, the whip antenna on the spine (the drawing's `antenna`) |
+| tunes | `striker-stab`, `striker-acro` (the default), `striker-manual` |
+| launch | `STRIKER_RAIL` in `configs/airframes.js`: a 3 m rail at 15 deg, the CG 1.2 m up on its shoe, let go at 19 m/s |
+
+The pilot's choice is the quads' slot with one more key:
+`settings.combat.striker2500 = { payload, accessories, propulsion }`. A
+pilot who never chose flies `{ payload: 'standard', accessories: [],
+propulsion: 'prop' }`.
+
+### 7.3 The descriptor's propulsion
+
+An aircraft pushed more than one way carries `combat.propulsion`, its
+first entry the default:
+
+```js
+propulsion: [
+  { id, simId,        // the plant this engine is: mass, CG, inertia, thrust law
+    grams,            // its bare all up mass, fuel full
+    thrustToWeight,   // static, bare
+    stall,            // m/s, trimmed, with the standard warhead
+    topSpeed,         // m/s, level at full throttle, bare
+    voice,            // src/render/audio.js: 'glow2' or 'edf'
+    cgDz_m,           // its CG's height over the first one's
+    drawing_m },      // the drawing's origin about its CG, body frame
+],
+```
+
+Each propulsion is its own plant, because the engine is a tenth of the
+mass at the tail and its own thrust law, so `configs/combat.js`
+`combatSimId(af, choice)` names the plant the shell seats, and the shell
+seats it again between runs when the Loadout tab changes it, as it does
+for an airframe. The row's own `simId`, `grams`, `stall`, `topSpeed`,
+`thrustToWeight` and `voice` are the first propulsion's. The payload and
+accessory points are about the first propulsion's CG; `cgDz_m` moves
+them onto another's (`configs/combat.js` `masses`).
+
+### 7.4 The aircraft
+
+| | `prop` (plant 27) | `jet` (plant 28) |
+| --- | --- | --- |
+| engine | 110 cc boxer twin, 8.2 kW, 3.0 kg with ignition and mufflers; 30 x 14 wood at 5,000 rpm static | 140 N class turbojet, 1.36 kg, 125,000 rpm at full, in a 0.24 m nacelle on the tail |
+| fuel | 2.5 l gasoline, its tank at 0.55 m from the nose | 4 l kerosene, its tank at 1.26 m, where it balances the CG |
+| nose ballast | 0.323 kg (a pusher's tail is heavy) | none |
+| bare all up mass | 13.825 kg | 13.492 kg |
+| CG | 1.546 m aft of the nose, 20 mm under the fuselage's axis | the same distance aft, 10 mm under the axis |
+| static margin, bare | 0.040 of the MAC (1.12 m) | the same |
+| inertia Ixx, Iyy, Izz | 1.646, 9.498, 11.03 kg m^2 | 1.619, 5.592, 7.064 kg m^2 |
+| static thrust, bare thrust to weight | 283 N, 2.09 | 140 N, 1.06 |
+| CD0 | 0.0238 (the uncowled twin 0.020 m^2 of drag area) | 0.0190 (the nacelle 0.010 m^2) |
+| cruise, 60 percent of the stick | 18.3 m/s | 44.9 m/s |
+| top speed, level, bare | 26.9 m/s, just over the raid's Strikers' 26.6 | 66.3 m/s |
+| best climb, bare | 13.8 m/s at 14.2 m/s | 25.2 m/s at 38 m/s |
+| trimmed stall, bare and with the standard warhead | 10.5 and 12.5 m/s | 11.1 and 13.3 m/s |
+| roll, full stick at cruise | 80 deg/s (7 deg of aileron) | 114 deg/s (4 deg) |
+| engine response | the stick's, at once; idles at a quarter of its rpm | spools idle to 90 percent of full in 4.5 s; idles at 4 percent of full thrust, never stops; run up to full on the rail before the shot |
+
+The wing, both: the drawing's cranked delta, 2.47 m tip to tip at the
+fins' roots, 2.29 m^2 with the fairing, aspect ratio 2.66; the outer
+leading edge swept 46.5 deg; elevons of 0.15 m chord from 0.32 to 1.12 m
+out; a 0.42 m fin at each tip, 0.30 m over the wing and 0.12 m under,
+with a 0.07 by 0.20 m rudder on the yaw stick. Its derivatives are a
+vortex lattice's on that planform and those fins (`scripts/lib/lattice.js`,
+the Zagi's, checked there on two textbook wings and against AVL), with
+the fuselage's Munk moment and side force added from Raymer; its CL max
+an MH 60 class reflexed section's, ESTIMATED; its drag a component build
+up, ESTIMATED. Each build's elevons are rigged to trim with the standard
+warhead at its own cruise, so the jet, which cruises two and a half times
+as fast on the same wing, has the smaller reflex. The derive script's
+comments carry every source and say which numbers are estimates.
+
+### 7.5 The warheads and the whip
+
+The warheads ride in the nose bay behind the cap's seam, on the axis,
+each ending at the bay's bulkhead 0.50 m from the nose. Under the
+airframe's own cap they add no drag; they are mass and inertia, a long
+way forward. A full size attacker's warhead is its counterweight, and so
+here: bare the Striker is stable but light in pitch (a 4 percent margin),
+and each warhead adds margin, nose heaviness and stall speed.
+
+| id | warhead | mass kg | cgOffset m (about the prop's CG) | d, len m |
+| --- | --- | --- | --- | --- |
+| `standard` | standard | 1.5 | 1.196, 0, 0.0196 | 0.26, 0.30 |
+| `wide` | wide | 2.2 | 1.186, 0, 0.0196 | 0.28, 0.28 |
+| `penetrator` | penetrator | 1.8 | 1.246, 0, 0.0196 | 0.16, 0.40 |
+| `emp` | emp | 1.1 | 1.156, 0, 0.0196 | 0.26, 0.22 |
+
+| id | mass kg | at m (about the prop's CG) |
+| --- | --- | --- |
+| `whip` | 0.06 | 0.446, 0, 0.2196 |
+
+What each costs, from the derivation and flown on the module
+(`npm run combat:gates`):
+
+| load | prop stall | prop climb | jet stall | jet climb |
+| --- | --- | --- | --- | --- |
+| `none` | 10.5 m/s | 13.8 m/s | 11.1 m/s | 25.2 m/s |
+| `emp` | 12.0 | 12.7 | 12.7 | 23.2 |
+| `standard` | 12.5 | 12.3 | 13.3 | 22.6 |
+| `penetrator` | 13.0 | 12.0 | 13.8 | 22.1 |
+| `wide` | 13.4 | 11.7 | 14.2 | 21.5 |
+
+Its top speed barely moves with a warhead (it is mass, not drag), and
+never rises. In a war its payload is the room's warhead for its seat, as
+a combat quad's is (section 3); `none` goes to war with the equipped one.
+
+### 7.6 Taking off and coming down
+
+It is shot off a rail, as the full size machine is (that one on a
+booster): parked, the shell stands it on the rail's pose, and throttle or
+L lets it go at 19 m/s along its nose, 1.3 times the trimmed stall of its
+heaviest warhead on the jet, the faster stalling of the two. The turbojet
+leaves at full power, run up on the rail. It comes down on its belly skid,
+251 mm under the CG (261 on the jet), which the plant parks it on; the
+pusher's lower blade hangs 108 mm under the skid, so a landing with the
+piston engine turning breaks the prop, as on any pusher this size. No
+parachute.
+
+### 7.7 For the drawing and the shell
+
+- `src/render/craft.js` draws `striker2500` with
+  `buildStrikerCraft({ propulsion, antenna })` from the seated choice, every
+  part moved by the propulsion's `drawing_m` (the drawing is about the
+  war's pose point, 0.146 m ahead of the CG; the plant's origin is the CG),
+  through `src/render/frame.js` `bodyPosToModel`.
+- The warheads are inside the nose, so there is no payload to draw; a
+  model that wants to show which one is carried may mark the nose cap.
+- `STRIKER_CAMERA`, the FPV camera, is the plant's camera point in the
+  nose. Having a `combat` block, the Avionics HUD is its default as it is
+  the combat quads'.
+- The Loadout tab (section 4a) shows its engines first, then the warheads
+  and the whip, with the engine's own mass, top speed and thrust to
+  weight.
+
+### 7.8 Known limits
+
+- Another pilot's Striker is drawn on its first propulsion: the choice is
+  not on the wire, as a peer's payload outside a war is not.
+- The rooms' referee and the records know the airframe id and not the
+  propulsion: both engines meet the war with the piston one's part boxes
+  (`configs/hulls.js`), and share its lap records.
+- The shell's rest height is the row's, the piston one's 251 mm; the jet's
+  skid is 10 mm lower about its own CG, which the plant takes up at rest.
+- The tunes go by the row's plant and fly the jet's alike.
+
+### 7.9 Checks
+
+- `npm run combat:derive`: prints sections 7.1 to 7.5.
+- `npm run combat:gates`: for each propulsion, the plant's mass and
+  inertia the derivation's; top speed and cruise within 3 percent of it,
+  and the table's top speed what it flies; the piston one keeps up with
+  the raid's Strikers and the jet runs them down at twice their speed;
+  every load's trimmed stall within 6 percent and its climb within 12; a
+  heavier warhead climbs less, stalls faster and is never faster; the
+  rail's release 1.3 times every load's stall; the jet's spool, idle to 90
+  percent, in 2.5 to 5 s, and its idle held with the stick closed; the
+  piston's thrust the stick's; off the rail and climbing, and a glide at
+  idle to rest on the skid, upright; and the war's mapping and every
+  warhead carried.
+- `npm run combat:shell`: the Striker stored on its jet is seated on plant
+  28 at its mass and voice; its Loadout tab offers both engines, every
+  warhead and the whip; choosing the piston there and saving refits it on
+  plant 27.
+- `npm run war:harness`: the head on pass with the Striker as the
+  defender, inside and outside BLAST_M, over random links.
+- `npm run check:craft`: the drawn Striker against its collider and hull,
+  the prop's lower blade pinned at its 108 mm under the skid.
+- `npm run check:combat-models`: its propulsion and accessory ids the
+  drawing's.

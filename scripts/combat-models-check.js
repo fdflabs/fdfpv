@@ -128,6 +128,17 @@ try {
   const near = (x, y) => Math.abs(x - y) < 5e-5;
   const sameAt = (x, y) => Array.isArray(x) && Array.isArray(y) && x.length === 3 && x.every((v, i) => near(v, y[i]));
   for (const af of combatAirframes) {
+    if (af.combat.propulsion) {
+      /* The Striker, a fixed wing (docs/COMBAT-DRONES.md section 7): its
+       * propulsion ids are the drawing's, and its one accessory is the
+       * drawing's whip; its warheads ride inside the nose, so there is no
+       * payload to draw. */
+      const drawn = await page.evaluate('window.__combat.propulsions');
+      const ids = af.combat.propulsion.map((x) => x.id);
+      check(`${af.id}: propulsion ids`, JSON.stringify(ids) === JSON.stringify(drawn), `${ids.join(' ')} against ${drawn.join(' ')}`);
+      check(`${af.id}: accessory ids`, JSON.stringify(af.combat.accessories.map((x) => x.id)) === '["whip"]', af.combat.accessories.map((x) => x.id).join(' '));
+      continue;
+    }
     const spec = await page.evaluate(`window.__combat.spec(${JSON.stringify(af.combat.frame)})`);
     if (!spec) {
       check(`${af.id}: frame ${af.combat.frame} has a model`, false, 'no COMBAT_FRAMES entry');

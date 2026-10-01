@@ -1772,6 +1772,75 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_y = 0.0,
   .camera_z = -0.013,
 },
+/*
+ * The Striker on its piston engine, docs/COMBAT-DRONES.md section 7:
+ * scripts/combat-derive.js's parts list, 13.8 kg with 2.5 l of gasoline
+ * and the nose weight that balances it bare, a 110 cc boxer twin turning
+ * a 30 in wooden pusher 1.124 m behind the CG. The pack is the ignition's
+ * and the receiver's, which the engine draws nothing from. The hull is
+ * the contact code's centred box as src/render/strikercraft.js draws the
+ * aircraft: the fins' outer faces across, as far fore and aft as the
+ * tail reaches behind the CG (the nose's 0.33 m beyond it is the crash
+ * parts'), the belly skid's foot 0.251 m under the CG and the fins' tops
+ * 0.250 m over it. It lands on that skid; the prop's lower blade, 0.38 m
+ * under its hub, reaches below it, so a belly landing with the engine
+ * turning breaks the prop, as on any pusher this size. The camera is the
+ * drawing's, in the nose.
+ */
+[SIM_AIRFRAME_STRIKER_PROP] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 13.8249,
+  .inertia = { 1.6457, 9.4978, 11.0275 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.381,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -1.124, 0.0, 0.0, 0.0 },
+  .hull_hx = 1.214,
+  .hull_hy = 1.251,
+  .hull_hz_down = 0.2514,
+  .hull_hz_up = 0.2496,
+  .contact_patch_r = 0.15,
+  .contact_arm_max = 1.6,
+  .vib_ref_w = 1000.0,
+  .camera_x = 1.496,
+  .camera_y = 0.0,
+  .camera_z = 0.0196,
+  .fw = &FW_STRIKER_PROP,
+},
+/*
+ * The Striker on its turbojet: the same airframe, 13.5 kg with 4 l of
+ * kerosene in the tank that balances it, the 140 N class turbojet in its
+ * nacelle on the tail, 0.97 m behind the CG and 0.11 m over it. The hull
+ * as the piston one's, the skid's foot 0.261 m under this one's CG and
+ * the fins' tops 0.240 m over it; nothing turns below the skid, so it
+ * slides in on it. prop_r is the compressor's.
+ */
+[SIM_AIRFRAME_STRIKER_JET] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 13.4920,
+  .inertia = { 1.6186, 5.5916, 7.0636 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.065,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -0.974, 0.0, 0.0, 0.0 },
+  .hull_hx = 1.214,
+  .hull_hy = 1.251,
+  .hull_hz_down = 0.2611,
+  .hull_hz_up = 0.2399,
+  .contact_patch_r = 0.15,
+  .contact_arm_max = 1.6,
+  .vib_ref_w = 1000.0,
+  .camera_x = 1.496,
+  .camera_y = 0.0,
+  .camera_z = 0.0099,
+  .fw = &FW_STRIKER_JET,
+},
 };
 
 /*

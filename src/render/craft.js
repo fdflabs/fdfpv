@@ -48,8 +48,10 @@ import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
 import { buildZagiCraft } from './zagicraft.js';
 import { buildCombatDrone } from './combatcraft.js';
+import { buildStrikerCraft } from './strikercraft.js';
+import { bodyPosToModel } from './frame.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
-import { combatChoice, combatFor } from '../../configs/combat.js';
+import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 
@@ -89,6 +91,7 @@ const BUILDERS = {
   '7inch': combatBuilder('7inch'),
   '10inch': combatBuilder('10inch'),
   interceptor: combatBuilder('interceptor'),
+  striker2500: buildFlownStriker,
 };
 
 function combatBuilder(id) {
@@ -96,6 +99,27 @@ function combatBuilder(id) {
     const af = airframeById(id);
     return buildCombatDrone({ ...opts, frame: af.combat.frame, ...(opts.combat ?? combatChoice(af, null)) });
   };
+}
+
+/*
+ * The Striker a pilot flies (docs/COMBAT-DRONES.md section 7): the war's
+ * drawing, src/render/strikercraft.js, on the propulsion chosen and with
+ * the whip when it is fitted. That drawing is about the war's pose point;
+ * the plant's origin is the CG, so every part moves by where the drawing's
+ * origin sits about the CG (the propulsion's `drawing_m`, in the body
+ * frame, turned into the model's by src/render/frame.js).
+ */
+function buildFlownStriker(opts) {
+  const af = airframeById('striker2500');
+  const choice = opts.combat ?? combatChoice(af, null);
+  const craft = buildStrikerCraft({ ...opts, propulsion: propulsionOf(af, choice).id, antenna: choice.accessories.includes('whip') });
+  const [ox, oy, oz] = bodyPosToModel(...propulsionOf(af, choice).drawing_m);
+  for (const part of craft.group.children) {
+    part.position.x += ox;
+    part.position.y += oy;
+    part.position.z += oz;
+  }
+  return craft;
 }
 
 export function craftBuilderFor(airframeId) {
