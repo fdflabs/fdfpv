@@ -109,6 +109,7 @@
     "war:card": "node scripts/war-card-check.js",
     "campaign:check": "node scripts/campaign-check.js",
     "war:public": "node scripts/war-public-check.js",
+    "war:lobby": "node scripts/war-lobby-check.js",
     "war:targets": "node scripts/war-targets.js --check",
     "war:routes": "node scripts/war-routes-check.js",
     "check:perception": "node scripts/perception-check.js",

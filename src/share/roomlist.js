@@ -73,6 +73,9 @@ export function checkRoomLine(r, skew = 0) {
     game,
     /* A room made for the war's mission (a server from before sends none). */
     mission: typeof r.mission === 'string' && /^[a-z0-9_-]{1,32}$/.test(r.mission) ? r.mission : null,
+    /* A war on: the wave a pilot joining now meets, of how many. */
+    wave: Number.isInteger(r.wave) && r.wave > 0 ? r.wave : null,
+    waves: Number.isInteger(r.waves) && r.waves > 0 ? r.waves : null,
     state: STATES.includes(r.state) ? r.state : 'waiting',
     closesAt: empty ? r.emptySince + EMPTY_CLOSE_MS + skew : null,
   };
