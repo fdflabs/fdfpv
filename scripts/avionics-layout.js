@@ -205,6 +205,13 @@ async function layout(width, height, rooms) {
     const left = got.avx.tapes.speed;
     check('war: the speed tape clears the war HUD\'s column', !hud || hud.x + hud.w <= left.x, hud ? `HUD to x ${Math.round(hud.x + hud.w)}, tape from x ${Math.round(left.x)}` : '');
     await shot(page, `avionics-${width}x${height}-war`);
+    /* The AI on (H), for the picture: what it tracks depends on where the
+     * waves are, so the count is reported, not asserted. */
+    await page.evaluate('window.__avionics.ai(true); true');
+    await page.sleep(4000);
+    const st = JSON.parse(await page.evaluate('JSON.stringify(window.__avionics.state())'));
+    console.log(`  info  AI on: HUD ${st.hud.state}, ${st.tracks} confirmed tracks`);
+    await shot(page, `avionics-${width}x${height}-war-ai`);
     const errs = page.errors.filter((e) => !e.startsWith('network:'));
     check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
   } finally {

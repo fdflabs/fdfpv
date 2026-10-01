@@ -699,8 +699,12 @@ export async function boot({
   const avionicsHud = new AvionicsHud(uiRoot);
   const telemetry = createFlightTelemetry();
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
-  const perception = createPerception({ seed: 0x51ED5EED });
-  const tracks = createTrackManager();
+  /* The top of the map under a point, for what hides a target. */
+  const avxHeightAt = (x, z) => view.height(x, z, Infinity);
+  const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
+  const tracks = createTrackManager({ heightAt: avxHeightAt });
+  /* Thermal's night advantage: what light the sensors have. */
+  const avxEnv = { light: 1 };
   const avxHud = { state: 'MANUAL', reasons: [], ai: false };
   const avxOwn = { p: [0, 0, 0], v: [0, 0, 0], camera: shell.camera };
   const avxVel = new THREE.Vector3();
@@ -12933,12 +12937,14 @@ export async function boot({
     }
     const tS = telemetry.state.tS;
     if (tS < avxLastT) {
+      perception.reset();
       tracks.reset();
     }
     avxLastT = tS;
     if (!paused) {
       sensors.update(tS, dtS);
-      perception.update(tS, sensors.state, truth, avxOwn);
+      avxEnv.light = roomWar.night() ? 0.05 : 1;
+      perception.update(tS, sensors.state, truth, avxOwn, avxEnv);
       tracks.update(tS, perception.detections, avxOwn);
     }
     hudStateOf(telemetry.state, sensors.state, tracks.snapshot, avxHud.ai, avxHud);
@@ -14855,9 +14861,11 @@ export async function boot({
         const feed = fpvFail.level(nowWall);
         telemetry.feed(osdView, osdCtx, fpvOsd, { videoSnow: feed.snow, cameraLost: fpvFail.deadSince() >= 0, load: perception.load });
         simPosToThree(st[4], st[5], st[6], avxVel);
-        avxOwn.p[0] = shell.quad.position.x;
-        avxOwn.p[1] = shell.quad.position.y;
-        avxOwn.p[2] = shell.quad.position.z;
+        /* The sensor looks from the camera, which a chase view puts
+         * behind the craft. */
+        avxOwn.p[0] = shell.camera.position.x;
+        avxOwn.p[1] = shell.camera.position.y;
+        avxOwn.p[2] = shell.camera.position.z;
         avxOwn.v[0] = avxVel.x;
         avxOwn.v[1] = avxVel.y;
         avxOwn.v[2] = avxVel.z;
