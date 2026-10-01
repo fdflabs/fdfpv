@@ -30,6 +30,10 @@
  *           where it is born
  *   jammer  the route, then parks at its last point for good ('park')
  *
+ * and any of them but a hunter whose birth record carries `wire` (room
+ * ms, edge/rooms/war.js from wires.js wireStrike) flies into a power
+ * line there and ends ('wire').
+ *
  * The aim point is the target's `at` moved sideways by `err` metres (the
  * seeded error the room draws once the scouts are dead): an attacker
  * whose |err| is more than the target's hitR (else its r) misses it. A group's k of n
@@ -167,13 +171,14 @@ function legsOf(pts) {
  * An attacker's flight as phases on the room clock, from its birth
  * (agent: { kind, route, t0, k, n, err, target }) and its mission.
  * Returns { t0, tEnd, end, phases }: end is 'arrive' (at its target at
- * tEnd), 'leave' (gone at tEnd), 'park' (tEnd Infinity) or 'steer' (a
- * hunter: the room flies it, and phases say only where it is born).
+ * tEnd), 'leave' (gone at tEnd), 'park' (tEnd Infinity), 'wire' (into a
+ * power line at tEnd) or 'steer' (a hunter: the room flies it, and phases
+ * say only where it is born).
  * Throws on a route or target the mission does not have: a mission file
  * is data the room trusts, and a wrong one must fail loudly.
  */
 export function planAgent(mission, agent) {
-  const plan = planRoute(mission, agent);
+  const plan = cutAtWire(planRoute(mission, agent), agent.wire);
   const stalls = agent.stalls;
   if (!stalls || !stalls.length || !Number.isFinite(plan.tEnd)) {
     return plan;
@@ -183,6 +188,19 @@ export function planAgent(mission, agent) {
     plan.tEnd += ms;
   }
   return plan;
+}
+
+/* The plan ended at room ms t, where it flew into a line: the phases up
+ * to t, the last cut there. A t outside the flight leaves it whole. */
+function cutAtWire(plan, t) {
+  if (!Number.isFinite(t) || !(t > plan.t0) || !(t < plan.tEnd) || plan.end === 'steer') {
+    return plan;
+  }
+  const phases = plan.phases.filter((ph) => ph.t0 < t);
+  phases[phases.length - 1].t1 = t;
+  return {
+    t0: plan.t0, tEnd: t, end: 'wire', phases,
+  };
 }
 
 /* The plan without stalls. */

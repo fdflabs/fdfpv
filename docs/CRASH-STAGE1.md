@@ -1419,6 +1419,7 @@ the air, 12 at most, all at rest in 8 s, none under the ground).
 | foliage | 1.00 | 1.00 | 0 | 2e3 | 0.02 |
 | water | 0.05 | 0.05 | 0 | 1e4 | 0.01 |
 | sand | 0.60 | 0.60 | 0 | 1e5 | 0.4 |
+| wire | 0.80 | 0.80 | 0 | 1.5e5 | 1.0 |
 
 **A face slides; an edge ploughs** (round 3). The shell's grass grips at
 1.40, which is what a quad's arms and blades get ploughing into turf. A
@@ -1501,6 +1502,31 @@ mu and e are `src/game/collide.js`'s where the shell already had them
 hardness are chosen, soft ground softer, and are numbers for the loop to
 band. The default ground is the shell's grass; the default obstacle is a
 hard generic face, since an unnamed obstacle could be anything.
+
+**Wires** (sim_wire_add, the owner on 2026-10-01: "make all power lines
+crashable"). An overhead line's conductors and earth wires are chords of
+their sagging spans, each met within its radius: a phase's whole bundle
+(four conductors 457 mm apart, 0.341 m), or one conductor (0.018 m) or
+earth wire (0.012 m). A part meets a wire along every edge between two of
+its hull points, at the edge's nearest approach to the wire's axis, not at
+its points: a wire 3 cm thick crosses a panel or a prop disc between the
+samples 10 cm apart that the other solids are met at, and a part flown at
+a convex hull meets it first on the leading edge. A new contact is taken
+within the radius and the step's travel, so nothing crosses a wire between
+two steps at any speed the plant flies; held, its depth is along the held
+normal, so a part driven past the axis is pushed back the way it came. The
+crush is a pole's of the conductor's own 15 mm, which cuts into foam. mu
+0.80 and e 0 (it catches and holds); the stiffness is DERIVED from the
+wave impedance a tensioned conductor gives a part in the milliseconds it
+stops, sqrt(T m') each way, 340 N s/m for a 500 kV line's Grosbeak at 22
+kN: a 2 kg plane at 16 m/s stops in about 9 cm, a 0.7 kg quad in 3 cm,
+springs of 6e4 and 2e5 N/m, and 1.5e5 is between them. Hardness 1, a
+steel cored strand. The shell declares the chords within 40 m of the
+craft, up to 160 (the densest point on Itaipu has 91), and its sweep lets
+them through. Measured (`scripts/wire-check.js`): a five inch at 12 m/s
+into a 500 kV bundle loses props and an arm, a Skyhunter at 16 m/s
+crushes its nose and loses its camera and pack, an F-16 at 60 m/s loses
+its wings and tail; a metre clear of the wire, nothing is met.
 
 **Entries.** The craft going into the water (a part other than a float
 wet) or into a crown (a hull point inside one) is an event of its own,

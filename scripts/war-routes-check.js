@@ -29,7 +29,16 @@
  * short (bug-552ecdab), which the floor rule could not see.
  *
  * It prints each wave's lowest clearance before the terminal run and in
- * it, and how deep under the surface it goes. Exit 1 on any failure.
+ * it, and how deep under the surface it goes.
+ *
+ * And the power lines in the attackers' way (src/share/war/wires.js): for
+ * each mission at 1, 2, 4 and 8 pilots, at no error, every crossing of a
+ * span low enough to strike, and the strikes a game that makes at
+ * STRIKE_P (the first crossing whose draw is under it). Every crossing
+ * must put the attacker within BAND_M above or below a chord of its span
+ * and on it in plan, and an attacker given that crossing as its `wire`
+ * must end there ('wire'), where its uncut flight is at that millisecond.
+ * Exit 1 on any failure.
  *
  *   node scripts/war-routes-check.js
  *
@@ -55,6 +64,8 @@ import { loadHeight } from '../edge/rooms/warhunt.js';
 import { KIND, planAgent, poseAt } from '../src/share/war/routes.js';
 import { waveSize, waveTarget } from '../src/share/war/missions/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
+import { BAND_M, STRIKE_P, wireCrossings } from '../src/share/war/wires.js';
+import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
 
 const MIN_CLEAR_M = 15;
 const WATER_Y = 219;
@@ -161,6 +172,76 @@ for (const mission of Object.values(MISSIONS)) {
     }
   }
 }
+/* The chords of each span, for the crossings' check. */
+const spanChords = new Map();
+for (const [span, ...flat] of ITAIPU_WIRES.spans) {
+  const list = [];
+  for (let o = 0; o + 5 < flat.length; o += 6) {
+    list.push(flat.slice(o, o + 6));
+  }
+  spanChords.set(span, list);
+}
+
+/* The plan distance from (x, z) to chord c, and the chord's height there. */
+function onChord(c, x, z) {
+  const vx = c[3] - c[0];
+  const vz = c[5] - c[2];
+  const l2 = vx * vx + vz * vz;
+  const t = Math.max(0, Math.min(1, ((x - c[0]) * vx + (z - c[2]) * vz) / l2));
+  return { d: Math.hypot(c[0] + vx * t - x, c[2] + vz * t - z), y: c[1] + (c[4] - c[1]) * t };
+}
+
+console.log('');
+console.log(`power lines: crossings low enough to strike (within ${BAND_M} m), at no error, and the strikes a game at ${STRIKE_P} a crossing`);
+for (const mission of Object.values(MISSIONS)) {
+  const rows = [];
+  for (const pilots of [1, 2, 4, 8]) {
+    let attackers = 0;
+    let crossings = 0;
+    let strikes = 0;
+    const waves = [];
+    for (const [i, w] of mission.waves.entries()) {
+      const n = waveSize(w, pilots);
+      let c = 0;
+      for (let k = 0; k < n; k += 1) {
+        attackers += 1;
+        if (w.kind === 'hunter') {
+          continue;
+        }
+        const agent = {
+          id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err: 0, target: waveTarget(w, k),
+        };
+        const plan = planAgent(mission, agent);
+        const xs = wireCrossings(mission.map, plan);
+        c += xs.length;
+        strikes += 1 - (1 - STRIKE_P) ** xs.length;
+        for (const x of xs) {
+          const p = poseAt(plan, x.t).p;
+          /* Of the span's wires over that point in plan (its middle phase
+           * and its earth wire stand one over the other), the nearest. */
+          const over = spanChords.get(x.span).map((ch) => onChord(ch, p[0], p[2])).filter((o) => o.d < 0.5);
+          const near = over.sort((a, b) => Math.abs(p[1] - a.y) - Math.abs(p[1] - b.y))[0] ?? { d: Infinity, y: NaN };
+          if (!(Math.abs(p[1] - near.y) <= BAND_M + 0.05)) {
+            failures.push(`${mission.id} wave ${i + 1} (${w.kind}): its crossing of span ${x.span} at ${x.t} ms is ${near.d.toFixed(2)} m off the span in plan and ${(p[1] - near.y).toFixed(2)} m from it in height`);
+          }
+          const cut = planAgent(mission, { ...agent, wire: x.t });
+          const q = poseAt(cut, cut.tEnd).p;
+          if (cut.end !== 'wire' || cut.tEnd !== x.t || Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) > 1e-9) {
+            failures.push(`${mission.id} wave ${i + 1} (${w.kind}): given the line at ${x.t} ms it ends ${cut.end} at ${cut.tEnd}, ${Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]).toFixed(3)} m from its flight there`);
+          }
+        }
+      }
+      crossings += c;
+      if (c) {
+        waves.push(`${i + 1} ${w.kind} ${c}`);
+      }
+    }
+    rows.push(`    ${String(pilots).padStart(2)} pilots: ${String(attackers).padStart(3)} attackers, ${String(crossings).padStart(3)} crossings, ${strikes.toFixed(2)} strikes a game  (wave, kind, crossings: ${waves.join('; ') || 'none'})`);
+  }
+  console.log(`  mission ${mission.id}`);
+  console.log(rows.join('\n'));
+}
+
 console.log('');
 if (failures.length) {
   for (const f of failures) {
