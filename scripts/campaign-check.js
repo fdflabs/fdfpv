@@ -103,6 +103,7 @@ async function resize(page, width, height) {
 }
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const n = document.querySelector(${JSON.stringify(selector)});
     if (!n) { return null; }
@@ -360,7 +361,9 @@ try {
     && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
   await page.sleep(600);
   const row2 = await page.evaluate("(window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null");
-  check('the mission 2 room\'s start row says Start mission 2', row2 === 'Start mission 2', row2);
+  await page.until("/Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
+  const lobby2 = await page.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || null");
+  check('the mission 2 room\'s lobby says mission 2, and its host has Start now', /Mission 2: /.test(lobby2 || '') && row2 === 'Start now', `${lobby2} / ${row2}`);
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
   const start2 = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");

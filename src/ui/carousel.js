@@ -504,10 +504,9 @@ export class Carousel {
   }
 
   canCustomise() {
-    /* A combat quad's Customise is its loadout (src/ui/hangar-combat.js). */
     const key = this.current();
     const id = key ? this.airframeOf(key) : null;
-    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && (paintable(id) || Boolean(airframeById(id).combat));
+    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && paintable(id);
   }
 
   /* To the hangar with the centred plane, the picker put away and handed

@@ -111,7 +111,7 @@ export function createRoomBrowser({
   }
 
   function doing(r) {
-    return r.game ? str(`roombrowser.${r.game}_${r.state}`, { n: missionNumber(r.mission) }) : str('roombrowser.free');
+    return r.game ? str(`roombrowser.${r.game}_${r.state}`, { n: missionNumber(r.mission), w: r.wave ?? 1, of: r.waves ?? 1 }) : str('roombrowser.free');
   }
 
   /* What a room's pilots column says: full, how many of how many, or,
@@ -131,7 +131,8 @@ export function createRoomBrowser({
   function roomRow(r) {
     const full = r.n >= r.cap;
     const vars = { world: mapById(r.map).name, doing: doing(r) };
-    const note = str(full ? 'roombrowser.row_full_note' : r.n ? 'roombrowser.row_note' : 'roombrowser.row_empty_note', vars);
+    const battle = r.game === 'war' && r.state !== 'waiting';
+    const note = str(full ? 'roombrowser.row_full_note' : battle ? 'roombrowser.row_battle_note' : r.n ? 'roombrowser.row_note' : 'roombrowser.row_empty_note', vars);
     return full
       ? { label: title(r), value: load(r), note, info: true }
       : { label: title(r), value: load(r), note, action: `${ROOM_ACTION}${r.code}` };
@@ -362,10 +363,12 @@ export function createRoomBrowser({
           lobby: 'room',
           label: title(r),
           /* A room made for the war says so, and which mission. */
-          value: r.game === 'war'
-            ? str('roombrowser.chip_war', { n: missionNumber(r.mission), load: load(r, 'roombrowser.chip_empty') })
-            : load(r, 'roombrowser.chip_empty'),
-          join: str('roombrowser.join'),
+          value: r.game === 'war' && r.state !== 'waiting'
+            ? str('roombrowser.chip_battle', { n: missionNumber(r.mission), w: r.wave ?? 1, of: r.waves ?? 1 })
+            : r.game === 'war'
+              ? str('roombrowser.chip_war', { n: missionNumber(r.mission), load: load(r, 'roombrowser.chip_empty') })
+              : load(r, 'roombrowser.chip_empty'),
+          join: str(r.game === 'war' && r.state !== 'waiting' ? 'roombrowser.join_battle' : 'roombrowser.join'),
           action: `lobby:${ROOM_ACTION}${r.code}`,
         })),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },

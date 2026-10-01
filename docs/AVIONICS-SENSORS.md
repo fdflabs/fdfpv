@@ -25,8 +25,9 @@ the pilot's own picture (the map's look, 1x, untouched) and the camera
 block's inset is the sensor: `state.mode` (J), `state.zoom` (K), exposure
 and stabilisation all apply to it, and `state.pipMode` is `state.mode`, so
 the inset's label follows the mode. `state.mainView` (added) is `'eo'` by
-default; `setMainView('sensor')` puts the sensor full screen (not bound to
-a key yet; the check uses it to measure every mode at full resolution).
+default; `setMainView('sensor')` puts the sensor full screen (the `I` key;
+the check uses it to measure every mode at full resolution), and the inset
+is not drawn while it is.
 `state.fovRad` is the sensor's field after zoom and crop.
 
 The shell (src/main.js) now:
@@ -202,3 +203,10 @@ number):
 The inset's thermal draw adds about 65 calls and a millisecond: no shadow
 maps (the frame's first draw made them) and no water mirror. A full screen
 thermal view is cheaper than the photo chain it replaces.
+
+Since the `I` key, a full screen sensor draws no inset, and the inset has
+three sizes (`U`, `INSET_SIZES`: 320x200, 480x300, 640x400). Measured
+2026-10-01 the same way, EO main with the white hot inset, GPU least, day
+/ night: small 4.13 / 2.58 ms, medium 3.56 / 4.16 ms, large 3.18 / 3.23
+ms, at most 238 / 241 calls at every size. The spread is the shared desk
+GPU's noise: the inset's pixels are a small share of a frame either way.

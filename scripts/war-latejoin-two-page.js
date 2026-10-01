@@ -141,6 +141,7 @@ const same = (v) => JSON.stringify({ ...v, f: undefined });
 const bornOf = (p) => p.evaluate('window.__warHeard.flatMap((m) => m.agents)');
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const n = document.querySelector(${JSON.stringify(selector)});
     if (!n) { return null; }

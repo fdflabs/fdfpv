@@ -394,6 +394,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.map = m.map;
         }
         handlers.onWorld?.(m.map);
+      } else if (m.type === 'lobby') {
+        /* The war's lobby changed (edge/rooms/warlobby.js). */
+        if (welcome) {
+          welcome.lobby = m.lobby;
+        }
+        handlers.onLobby?.();
       } else if (m.type === 'room') {
         if (welcome) {
           welcome.name = m.name;
