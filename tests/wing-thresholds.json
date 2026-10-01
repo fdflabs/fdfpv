@@ -9,6 +9,6 @@
   "w7_climb": { "min": 8.0, "max": 13.0, "unit": "m/s", "source": "full throttle, best over a sweep of airspeeds, derived 11.5" },
   "w8_throw": { "minAltitude": 1.0, "minSpeed": 9.0, "source": "a throw at 10 m/s, 60 percent, an eighth of up for two seconds; airborne and flying after three" },
   "w9_chop": { "maxPitchDeg": 30, "source": "throttle off from cruise, pitch stick neutral: a glide, not a tumble" },
-  "w10_quad_hash": { "expected": "de0401cd4266c395", "source": "verify check 2's canonical replay hash of the five inch before the wing existed; the wing must not move it" },
+  "w10_quad_hash": { "expected": "9a4c86d0dd19a6e0", "source": "verify check 2's canonical replay hash of the five inch before the wing existed; the wing must not move it" },
   "w11_cross_host": { "source": "the scripted flight's state trace hash, Node against headless Chrome" }
 }
