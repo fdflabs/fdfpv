@@ -72,8 +72,9 @@
  * rack and disarms the seat by the same rule, so saying it again, or the
  * wreck that follows, takes nothing more.
  *
- * What a client sends (JSON text): the host only, a private room only
- * (core.js hostCheck refuses 'private' in a public one, section 9),
+ * What a client sends (JSON text): the host only, and in a public room
+ * only one made for the war (core.js hostCheck refuses 'private' in any
+ * other public one, section 9),
  *
  *   { type: 'war', op: 'start', mission }   count down and fight it
  *   { type: 'war', op: 'start', mission, intro: true }
@@ -729,7 +730,7 @@ export class RoomWar {
 
   start(core, conn, msg, now) {
     /* core.js hostCheck refuses it first; this holds without it. */
-    if (this.meta.public) {
+    if (this.meta.public && this.meta.mode !== 'war') {
       return this.error(conn, 'private');
     }
     if (core.game()) {
