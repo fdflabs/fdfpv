@@ -2505,6 +2505,20 @@ SIM_EXPORT int sim_set_power(const double *in) {
   return rc;
 }
 
+/* A quad's motors, sim_abi.h and docs/MOTORS-STAGE1.md, on the power
+ * option's rule: a fresh pack with them. */
+SIM_EXPORT int sim_set_motors(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  const int rc = plant_set_motors(in);
+  if (rc == SIM_OK) {
+    plant_power_reset(&S);
+  }
+  contact_build_corners();
+  return rc;
+}
+
 SIM_EXPORT int sim_power_clear(void) {
   plant_power_clear();
   contact_build_corners();

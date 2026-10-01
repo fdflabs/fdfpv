@@ -2073,6 +2073,40 @@ int plant_set_power(const double *in) {
   return SIM_OK;
 }
 
+/*
+ * A QUAD'S MOTORS, sim_set_motors in sim_abi.h: the table's entry with a
+ * real motor's constants and the machine's mass and inertia with it laid
+ * over it, in the power option's copy and under its flag, since that is
+ * what it is on a quad: what turns the prop. The prop's kt, kq, pitch and
+ * figure of merit are the table's.
+ */
+int plant_set_motors(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_QUAD) {
+    return SIM_ERR_BAD_ARG;
+  }
+  if (!in_range(in[SIM_MOTORS_MASS], 0.01, 50.0)
+      || !in_range(in[SIM_MOTORS_IXX], 1.0e-7, 10.0)
+      || !in_range(in[SIM_MOTORS_IYY], 1.0e-7, 10.0)
+      || !in_range(in[SIM_MOTORS_IZZ], 1.0e-7, 10.0)
+      || !in_range(in[SIM_MOTORS_KE], 1.0e-5, 0.1)
+      || !in_range(in[SIM_MOTORS_R], 0.001, 5.0)
+      || !in_range(in[SIM_MOTORS_J_ROTOR], 1.0e-10, 0.01)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  g_plant_live = *base;
+  g_plant_live.mass_kg = in[SIM_MOTORS_MASS];
+  g_plant_live.inertia[0] = in[SIM_MOTORS_IXX];
+  g_plant_live.inertia[1] = in[SIM_MOTORS_IYY];
+  g_plant_live.inertia[2] = in[SIM_MOTORS_IZZ];
+  g_plant_live.ke = in[SIM_MOTORS_KE];
+  g_plant_live.r_motor = in[SIM_MOTORS_R];
+  g_plant_live.j_rotor = in[SIM_MOTORS_J_ROTOR];
+  g_power_on = 1;
+  plant_seat();
+  return SIM_OK;
+}
+
 void plant_power_clear(void) {
   g_power_on = 0;
   plant_seat();

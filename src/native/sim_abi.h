@@ -811,6 +811,41 @@ int sim_power_clear(void);
 int sim_power_state(double *out);
 
 /*
+ * A QUAD'S MOTORS, the hangar's Power tab on a quad (configs/motors.js,
+ * docs/MOTORS-STAGE1.md): a real motor in place of the table's on the same
+ * frame, prop and pack. The prop keeps its own kt, kq, pitch and figure of
+ * merit, which are the prop's; what a motor changes is its loaded torque
+ * constant, its winding and ESC resistance, its bell's inertia, and the
+ * mass and inertia of the whole machine it is bolted to. The current it
+ * draws, the pack's sag under it and its step response then follow from
+ * the plant's own motor model, as the table's motor's do.
+ *
+ * sim_set_motors(in): the SIM_MOTORS_DOUBLES below, SI units, laid over
+ * the quad's table where a power option is on a fixed wing, and kept and
+ * cleared the same way: a MODE, kept across sim_reset and sim_init,
+ * cleared by sim_set_airframe to a different airframe and by
+ * sim_power_clear, and laid under the add-ons. sim_power_state [9] reads 1
+ * while it is seated. SIM_ERR_BAD_ARG on a fixed wing, for a null pointer
+ * and for any value out of its range (plant_set_motors in
+ * src/native/plant.c); SIM_ERR_BAD_STATE before sim_init. Once a part
+ * breaks off, the crash physics flies the table's motors until the reset,
+ * as it does a fixed wing's power option.
+ *
+ * Additive, version unchanged: with nothing seated no step reads any of
+ * it, and seated with the table's own values every trace is bit identical
+ * (scripts/motors-check.js).
+ */
+#define SIM_MOTORS_MASS 0     /* all up mass, kg, 0.01 to 50 */
+#define SIM_MOTORS_IXX 1      /* inertia about the CG, kg m^2, 1e-7 to 10 */
+#define SIM_MOTORS_IYY 2
+#define SIM_MOTORS_IZZ 3
+#define SIM_MOTORS_KE 4       /* loaded torque constant, N m / A = V s / rad, 1e-5 to 0.1 */
+#define SIM_MOTORS_R 5        /* winding plus ESC resistance, ohms, 0.001 to 5 */
+#define SIM_MOTORS_J_ROTOR 6  /* bell plus prop inertia, kg m^2, 1e-10 to 0.01 */
+#define SIM_MOTORS_DOUBLES 7
+int sim_set_motors(const double *in);
+
+/*
  * ADD-ONS, the hangar's Parts tab (configs/hangar-parts.js) on a fixed
  * wing and a combat quad's payload and accessories (docs/COMBAT-DRONES.md)
  * on a quad: what the pilot bolted on or taped up, handed over as one

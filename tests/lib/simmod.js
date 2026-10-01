@@ -228,6 +228,20 @@ export class Sim {
     return code;
   }
 
+  /* Seat a quad's motors: `params` is the SIM_MOTORS_DOUBLES block that
+   * configs/motors.js motorsBlock builds. sim_power_clear takes them off.
+   * See sim_abi.h. */
+  setMotors(params) {
+    const ptr = this.e.malloc(params.length * 8);
+    if (!ptr) {
+      throw new Error('sim.wasm malloc failed for the motors block');
+    }
+    new Float64Array(this.e.memory.buffer, ptr, params.length).set(params);
+    const code = this.e.sim_set_motors(ptr);
+    this.e.free(ptr);
+    return code;
+  }
+
   clearPower() {
     return this.e.sim_power_clear();
   }
