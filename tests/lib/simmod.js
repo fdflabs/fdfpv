@@ -262,6 +262,19 @@ export class Sim {
     return this.e.sim_addons_clear();
   }
 
+  /* The add-ons' own inertia about their point, Ixx Iyy Izz, the block
+   * configs/combat.js combatAddon builds beside the add-ons. See sim_abi.h. */
+  setAddonInertia(params) {
+    const ptr = this.e.malloc(params.length * 8);
+    if (!ptr) {
+      throw new Error('sim.wasm malloc failed for the add-on inertia block');
+    }
+    new Float64Array(this.e.memory.buffer, ptr, params.length).set(params);
+    const code = this.e.sim_set_addon_inertia(ptr);
+    this.e.free(ptr);
+    return code;
+  }
+
   /* The sim_addons_state block, named. */
   addonsState() {
     if (!this.addonsPtr) {

@@ -177,20 +177,26 @@ The payload is the warhead (docs/WARFARE-PLAN.md decision 5, kamikaze
 only). In a war:
 
 - A combat quad flies the payload whose `warhead` the room has for its seat
-  (`view.loadouts[seat].warhead`), so what is seen is what goes off.
-- The pilot's payload choice is what the loadout says: the shell sends it as
-  the loadout's `warhead`. In the campaign only warheads it owns can be
-  chosen (`src/game/campaign.js`); one it does not own flies as the one it
-  has equipped.
+  (`view.loadouts[seat].warhead`), so what is seen is what goes off. The
+  shell seats it between runs (`src/main.js` `combatSeated`,
+  `applyCombat`), so a warhead that arrives in the countdown is on the
+  craft at the war's start.
+- The pilot's payload choice is what the loadout says. The loadout every
+  war room is told is the campaign's (`src/ui/campaign.js` polls it into
+  any war room before the go), so the campaign shop's ownership holds in
+  every war: a combat quad's chosen payload becomes the loadout's
+  `warhead` when the pilot owns that warhead (`standard` always), and the
+  equipped one otherwise (`configs/combat.js` `warPayload`).
 - `none` is not a war loadout. Every defender carries a warhead, so a combat
   quad set to `none` goes to war with the equipped warhead (`standard` when
   nothing else is).
 - Every other aircraft is as it was: its warhead has no mass and no model.
 - The wire does not change: the loadout message and its echo are the ones
-  `src/share/campaignwar.js` already sends and reads.
+  `src/share/campaignwar.js` already sends and reads, and `edge/` is not
+  touched.
 - Peers: another pilot's combat quad is drawn with the payload of that
-  seat's loadout in a war, and with `standard` outside one (a peer's choice
-  is not on the wire).
+  seat's loadout in a war (`payloadForWarhead(af, view.loadouts[seat].warhead)`),
+  and with `standard` outside one (a peer's choice is not on the wire).
 
 ## 4. For the models (`src/render/**`)
 
@@ -198,8 +204,13 @@ only). In a war:
   `7inch` and `10inch`. Until they exist the shell draws the five inch for
   both, which is the fallback `craftBuilderFor` already has.
 - Each builder receives `opts.combat = { payload, accessories }`, the
-  resolved choice (section 2), and draws exactly those ids. The shell
-  rebuilds the craft when the choice changes.
+  resolved choice (section 2), and draws exactly those ids. The resolved
+  choice of the pilot's own craft is `combatFor(airframeId)` in
+  `configs/combat.js`: the shell registers its source (`setCombatSource`,
+  as it does `setLiverySource` and `setPartsSource`), so `buildCraft` reads
+  it when its caller passes none, which `shell.swapCraft` does not. The
+  shell swaps the craft when the seated choice changes (`src/main.js`
+  `dressCraft`), between runs.
 - Model about the bare CG, x forward, z up as above; `src/render/frame.js`
   does the one conversion to three.js.
 - Scale is real: the drawn motor centres are at the table's, the discs at

@@ -73,6 +73,7 @@ import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionO
 import { normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
+import { normaliseCombat } from '../../configs/combat.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
@@ -780,6 +781,10 @@ const DEFAULTS = {
    * id: { prop, addons, damage }, configs/hangar-parts.js. A plane with no
    * entry flies as the kit, whole. */
   parts: {},
+  /* Each combat quad's payload and accessories, by airframe id:
+   * { payload, accessories }, configs/combat.js. A quad with no entry
+   * carries the standard payload and nothing bolted on. */
+  combat: {},
   /* Each plane's bench setup, by airframe id: the CG (battery and lead),
    * the rates, the expo, the trim and the flaps, configs/tuning.js, only
    * the fields the pilot moved off stock. Written by the hangar's Tuning
@@ -1062,6 +1067,7 @@ export function loadSettings() {
    * are dropped back to stock (configs/power.js). */
   s.power = normalizePower(s.power);
   s.parts = normaliseParts(s.parts);
+  s.combat = normaliseCombat(s.combat, airframeById);
   s.floats = normaliseFloats(s.floats, s.airframe);
   /* And the tuning, against the limits that power choice gives: a glow
    * engine has no pack to slide. */

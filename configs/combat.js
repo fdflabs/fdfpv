@@ -70,6 +70,24 @@ export function normaliseCombat(stored, airframeById) {
   return out;
 }
 
+/*
+ * WHAT THE OWN CRAFT CARRIES, for the drawing: src/main.js registers the
+ * source (its combatSeated: the pilot's choice, or in a war the payload of
+ * the room's warhead for this seat) and src/render/craft.js hands
+ * combatFor(id) to a combat quad's builder as `opts.combat`, the way the
+ * livery and the hangar parts reach a plane's (setLiverySource,
+ * setPartsSource). Null with no source and for every other aircraft.
+ */
+let source = null;
+
+export function setCombatSource(fn) {
+  source = typeof fn === 'function' ? fn : null;
+}
+
+export function combatFor(airframeId) {
+  return source ? source(airframeId) : null;
+}
+
 export function payloadOf(af, choice) {
   return (af.combat && choice && af.combat.payloads.find((p) => p.id === choice.payload)) ?? null;
 }
