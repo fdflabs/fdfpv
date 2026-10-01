@@ -134,6 +134,7 @@ const CSS = `
 .avx-sel.on { color: ${WHITE}; border: 1px solid ${WHITE}; }
 .avx-rec { color: ${RED}; }
 #ui.avx-on .osd-top, #ui.avx-on .osd-corner { display: none; }
+.avx-panel.avx-off { display: none; }
 `;
 
 /* A DOM element with a class and optional text. */
@@ -463,8 +464,17 @@ export class AvionicsHud {
     const tapes = this.tapeRects();
     const fixed = [tapes.heading];
     this.sizeInset(tapes.agl, fixed);
+    for (const [id] of order) {
+      this.panels[id].classList.remove('avx-off');
+    }
+    /* In precedence order: on a screen too crowded for all four (a phone
+     * in a war), the last ones give way rather than sit on the first. */
     for (const [id, ax, ay] of order) {
       const me = this.slide(this.panels[id], ax, ay, [...this.keepOut, ...this.placed, ...fixed]);
+      if (!me) {
+        this.panels[id].classList.add('avx-off');
+        continue;
+      }
       this.panels[id].style.left = `${Math.round(me.x)}px`;
       this.panels[id].style.top = `${Math.round(me.y)}px`;
       this.placed.push(me);
@@ -478,7 +488,7 @@ export class AvionicsHud {
    * a phone: when no place inside the window clears everything, the
    * panel dodges only what stays (not the soft banners), since sitting
    * under a passing line of text beats sitting on another panel or not
-   * being there. Failing that too, the last place inside the window.
+   * being there. Failing that too, null: no room for it on this screen.
    */
   slide(p, ax, ay, against) {
     const w = p.offsetWidth;
@@ -500,7 +510,7 @@ export class AvionicsHud {
         me.y = y;
       }
     }
-    return me;
+    return null;
   }
 
   /*
@@ -523,8 +533,9 @@ export class AvionicsHud {
     const chromeH = cam.offsetHeight - this.pip.offsetHeight;
     /* Where the top right panel will sit: under the game's chips there. */
     const health = this.slide(this.panels.health, 'r', 't', [...this.keepOut, ...fixed]);
+    const above = health ? health.y + health.h + PANEL_GAP : PANEL_EDGE;
     const roomW = this.w - PANEL_EDGE - (agl.x + agl.w + PANEL_GAP) - chromeW;
-    const roomH = this.h - PANEL_EDGE - (health.y + health.h + PANEL_GAP) - chromeH;
+    const roomH = this.h - PANEL_EDGE - above - chromeH;
     const w = Math.floor(Math.min(share * this.w, roomW, roomH * 1.6));
     /* No room for more than the small inset (a phone): small's layout,
      * with the larger size's sharper pixels in it. */
