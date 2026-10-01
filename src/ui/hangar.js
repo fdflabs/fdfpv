@@ -58,6 +58,7 @@ import { sizeText, weightText } from './carousel.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
+import { STOCK_ONLY } from '../../configs/motors.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
 
@@ -93,12 +94,21 @@ export function registerHangarTab(tab) {
   HANGAR_TABS.push(tab.id);
 }
 
-function tabFocus(t) {
+/* `quad`: a quad's motors are at its arms' ends, not at a nose, so its
+ * Power tab has the one view (src/render/hangarstage.js `quad`). */
+function tabFocus(t, quad) {
   const h = TAB_HOOKS[t];
   if (h && h.focus) {
     return typeof h.focus === 'function' ? h.focus() : h.focus;
   }
-  return t === 'power' ? 'nose' : 'overview';
+  if (t !== 'power') {
+    return 'overview';
+  }
+  return quad ? 'quad' : 'nose';
+}
+
+function motorFocus(quad) {
+  return quad ? 'quad' : 'motor';
 }
 
 function eachHook(fn) {
@@ -175,6 +185,8 @@ export function stockPower(airframeId) {
     options: [{ id: 'stock', name: str('hangar.stock_setup'), kind: af.voice === 'glow' ? 'glow' : 'electric', packs: [] }],
     stock: { option: 'stock', pack: null },
     estimate: () => ({ grams: af.grams, topSpeed: af.topSpeed ?? null, minutes: null, thrustToWeight: null }),
+    /* Why there is nothing else to fit (configs/motors.js STOCK_ONLY). */
+    note: STOCK_ONLY[airframeId] ? str(STOCK_ONLY[airframeId]) : null,
   };
 }
 
@@ -208,6 +220,10 @@ const STATS = [
   { key: 'topSpeed', label: 'hangar.top_speed', text: (v) => str('hangar.kmh', { n: number(v * 3.6) }) },
   { key: 'thrustToWeight', label: 'hangar.thrust', text: (v) => str('hangar.thrust_ratio', { n: number(v, 1) }) },
   { key: 'minutes', label: 'hangar.flight_time', text: (v) => str('hangar.minutes', { n: number(v) }) },
+  /* A quad's (configs/motors.js motorStats): its pack at a hover and at
+   * full throttle, which is where a hotter motor costs the pack. */
+  { key: 'hoverMinutes', label: 'hangar.hover_time', text: (v) => str('hangar.minutes', { n: number(v, 1) }) },
+  { key: 'fullMinutes', label: 'hangar.full_time', text: (v) => str('hangar.minutes', { n: number(v, 1) }) },
 ];
 
 export class Hangar {
@@ -439,7 +455,7 @@ export class Hangar {
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
     this.revealSeq += 1;
-    this.focus = tabFocus(this.tab);
+    this.focus = tabFocus(this.tab, this.quad());
     this.isOpen = true;
     eachHook((h) => h.open && h.open(this, settings));
     const af = airframeById(airframe);
@@ -502,6 +518,11 @@ export class Hangar {
     if (this.opts && this.opts.sound) {
       this.opts.sound(kind);
     }
+  }
+
+  /* Whether the aircraft on the stand is a quad. */
+  quad() {
+    return Boolean(this.id) && !airframeById(this.id).fixedWing;
   }
 
   colours(entry = this.entry) {
@@ -586,7 +607,7 @@ export class Hangar {
     this.shop.stopPlacing();
     this.tab = t;
     this.hover = null;
-    this.focus = tabFocus(t);
+    this.focus = tabFocus(t, this.quad());
     this.paint(dir);
     this.preview();
     this.focusKey(`tab-${t}`);
@@ -635,7 +656,7 @@ export class Hangar {
 
   pickOption(id) {
     this.choice = powerChoice(this.power, { option: id, pack: this.choice.pack });
-    this.focus = 'motor';
+    this.focus = motorFocus(this.quad());
     this.changed(`option-${id}`);
     if (this.opts && this.opts.onTry) {
       this.opts.onTry({ ...this.choice });
@@ -873,7 +894,7 @@ export class Hangar {
     this.power.options.forEach((o, i) => {
       const b = button(`hangar-card${o.id === option.id ? ' on' : ''}`);
       b.dataset.key = `option-${o.id}`;
-      b.dataset.focus = 'motor';
+      b.dataset.focus = motorFocus(this.quad());
       b.style.setProperty('--i', String(i));
       b.append(el('span', 'hangar-card-name', o.name));
       if (o.detail) {
@@ -881,7 +902,7 @@ export class Hangar {
       }
       b.setAttribute('aria-pressed', String(o.id === option.id));
       b.addEventListener('pointerenter', () => {
-        this.focus = 'motor';
+        this.focus = motorFocus(this.quad());
       });
       b.addEventListener('click', () => this.pickOption(o.id));
       this.lockMark(b, 'power', o.id);
@@ -913,6 +934,9 @@ export class Hangar {
     box.append(this.statsBlock());
     if (none) {
       box.append(el('p', 'hangar-note', str('hangar.no_motor_note')));
+    }
+    if (this.power.note) {
+      box.append(el('p', 'hangar-note', this.power.note));
     }
     box.append(el('p', 'hangar-note', str(`carousel.note.${this.id}`)));
     if (option.source) {

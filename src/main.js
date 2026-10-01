@@ -166,6 +166,8 @@ import { retiredMap } from './maps/retired.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, SIM_POWER } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
+import { MOTORS, hasMotors, motorOption, motorStats, motorsBlock } from '../configs/motors.js';
+import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
@@ -7385,10 +7387,20 @@ export async function boot({
    * seated in the plant with the airframe, on the same between-runs rule
    * and at a hot swap. The stock system on its stock pack is the plant's
    * own table, so it clears rather than sets. The pack's cells and the
-   * option's voice follow it. A quad has none of this.
+   * option's voice follow it. A quad's is its motors (configs/motors.js),
+   * on the same rule: the stock motor is the table and clears.
    */
   function applyPower(s) {
     const af = airframeById(runAirframe);
+    if (hasMotors(af.id) && typeof sim.e.sim_set_motors === 'function') {
+      const { option } = powerChoice(af.id, s.power);
+      const block = motorsBlock(af.id, option);
+      const code = block ? sim.setMotors(block) : sim.clearPower();
+      if (code !== SIM_OK) {
+        throw new Error(`sim_set_motors refused ${option} on ${af.id}: ${simErrorName(code)}`);
+      }
+      return;
+    }
     if (!af.fixedWing || typeof sim.e.sim_set_power !== 'function') {
       return;
     }
@@ -10994,17 +11006,44 @@ export async function boot({
    * stock choice and the stored one, and the readouts for any choice: the
    * all up weight and thrust to weight from the option's own data, the top
    * speed and the flight time at cruise flown on the plant ahead of time
-   * (configs/power-estimates.js). Null for a quad, which has none.
+   * (configs/power-estimates.js). A quad's are its motors, quadPower
+   * below; null for an aircraft with neither.
    */
+  const hostOf = (url) => {
+    const m = /^https?:\/\/(?:www\.)?([^/]+)/.exec(url);
+    return m ? m[1] : url;
+  };
+  /* A quad's motors (configs/motors.js) in the same shape: one pack, so
+   * no pack row; the weight, the thrust to weight, the hover and full
+   * throttle times from the static operating point the checks hold
+   * (motorStats), and the top speed flown on the plant ahead of time
+   * (configs/motor-estimates.js). */
+  const quadPower = (id) => ({
+    options: MOTORS[id].options.map((o) => ({
+      id: o.id, name: str(o.name), detail: o.detail, kind: 'electric', source: hostOf(o.source[0]), packs: [],
+    })),
+    stock: { option: MOTORS[id].options[0].id, pack: null },
+    chosen: powerChoice(id, ui.settings.power),
+    estimate: (choice) => {
+      const o = motorOption(id, choice && choice.option);
+      const st = motorStats(id, o.id);
+      return {
+        grams: Math.round(st.massKg * 1000),
+        topSpeed: (MOTOR_ESTIMATES[id] || {})[o.id] ?? null,
+        thrustToWeight: st.tw,
+        hoverMinutes: st.hoverMin,
+        fullMinutes: st.fullMin,
+      };
+    },
+  });
   const hangarPower = (id) => {
+    if (hasMotors(id)) {
+      return quadPower(id);
+    }
     const list = POWER[id];
     if (!list) {
       return null;
     }
-    const hostOf = (url) => {
-      const m = /^https?:\/\/(?:www\.)?([^/]+)/.exec(url);
-      return m ? m[1] : url;
-    };
     const stock = list[0];
     return {
       options: list.map((o) => ({
@@ -15496,6 +15535,11 @@ export async function boot({
      * inertia, for scripts/combat-shell.js. */
     combat: combatSeatKey && airframeById(runAirframe).combat ? JSON.parse(combatSeatKey) : null,
     ixx: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(55) : 0,
+    /* A quad's motors as the plant flies them, for scripts/
+     * garage-motors-check.js: the loaded torque constant, the resistance
+     * and the rotor's inertia, sim_set_motors's three. */
+    motors: hasMotors(runAirframe) && typeof sim.e.sim_bf_debug === 'function'
+      ? { ke: sim.e.sim_bf_debug(62), r: sim.e.sim_bf_debug(61), j: sim.e.sim_bf_debug(60) } : null,
     parts: shell.quad.userData.partsFit ?? null,
     smoke: { on: smokeOn, puffs: smoke.live() },
     bladeScale: audio.bladeScale,

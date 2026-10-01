@@ -37,8 +37,7 @@
 
 import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
-import { paintable } from '../../configs/liveries.js';
-import { BUILD_PREFIX } from './builds.js';
+import { BUILD_PREFIX, customisable } from './builds.js';
 
 /* Which lists the tabs offer. A card or a row opens on one kind and the
  * pilot can widen it to every aircraft. */
@@ -486,10 +485,11 @@ export class Carousel {
   }
 
   canCustomise() {
-    /* A combat quad's Customise is its loadout (src/ui/hangar-combat.js). */
+    /* A combat quad's Customise is its loadout (src/ui/hangar-combat.js),
+     * a quad's its motors. */
     const key = this.current();
     const id = key ? this.airframeOf(key) : null;
-    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && (paintable(id) || Boolean(airframeById(id).combat));
+    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && customisable(id);
   }
 
   /* To the hangar with the centred plane, the picker put away and handed
