@@ -113,7 +113,7 @@ import {
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import {
-  LATE_MS, applyHit, checkHit, roomForcesDamage, sideFor,
+  LATE_MS, applyHit, checkHit, hullFor, roomForcesDamage, sideFor,
 } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
@@ -2033,6 +2033,8 @@ export async function boot({
   let roomSeq = 0;
   let roomNextSend = 0;
   let roomLastSendT = null;
+  /* The last pose sent to the room, as sent: what it judges the warhead by. */
+  let roomSentPose = null;
   /* This frame's plant steps on the room clock (roomPoseFrame), or null
    * when the plant is not flying this frame and the frame sends. */
   let roomPoseMap = null;
@@ -2669,6 +2671,40 @@ export async function boot({
     return roomPeers.get(warWatchSeat);
   }
 
+  /* What the room judges this aircraft's warhead by (edge/rooms/war.js):
+   * its hull, the last pose the room has of it, and the view's radius for
+   * its seat; a spectator's is the watched teammate's. Null without them. */
+  const warFuze = { hull: null, pose: null, radius: 0 };
+  function warFuzeOf(v, watched) {
+    const seat = watched ? watched.seat : roomWar.seat();
+    const radius = v && v.fuze ? v.fuze[seat] : undefined;
+    warFuze.hull = hullFor(watched ? watched.profile.airframe : runAirframe);
+    warFuze.pose = watched ? watched.last : roomSentPose;
+    warFuze.radius = radius;
+    return radius != null && warFuze.hull && warFuze.pose ? warFuze : null;
+  }
+
+  /* The room would set this aircraft's warhead off on the primary track's
+   * attacker: one is in range (the war markers) and the primary's line of
+   * sight is within AVX_FUZE_RAD of it, or of its size where that is more.
+   * The track never knows which attacker it is (src/avionics/tracks.js),
+   * so the line of sight is the match. */
+  const AVX_FUZE_RAD = 0.2;
+  function avxFuzeOn(snap) {
+    const p = warMarkers.inRangeAt();
+    const prim = p && snap.primaryId != null ? snap.tracks.find((t) => t.id === snap.primaryId) : null;
+    if (!prim) {
+      return false;
+    }
+    const c = shell.camera.position;
+    const dx = p[0] - c.x;
+    const dy = p[1] - c.y;
+    const dz = p[2] - c.z;
+    const d = Math.hypot(dx, dy, dz);
+    const cos = (dx * prim.losW[0] + dy * prim.losW[1] + dz * prim.losW[2]) / Math.max(d, 1e-6);
+    return cos >= Math.cos(Math.max(AVX_FUZE_RAD, prim.sizeRad));
+  }
+
   function warWatchBanner() {
     const peer = warWatch();
     return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
@@ -3242,7 +3278,7 @@ export async function boot({
       }
       /* At the go, how a warhead goes off: the pilots look for a trigger. */
       if (ev.type === 'state' && ev.to === 'live') {
-        warHud.hint(str('war.hint_go'));
+        warHud.hint(str('war.hint_go', { n: v.fuze && v.fuze[roomWar.seat()] != null ? v.fuze[roomWar.seat()] : v.blast }));
       }
       if (replay) {
         continue;
@@ -3283,7 +3319,7 @@ export async function boot({
      * and a Hunter on it framed, but not said as on this pilot. */
     const watched = warWatch();
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
-    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat()) && !watched) {
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
         warSay(['wave-hunter']);
@@ -3949,7 +3985,7 @@ export async function boot({
       | (gear < 0.5 ? FLAG_GEAR_DOWN : 0)
       | (quad ? FLAG_QUAD : 0);
     roomSeq = (roomSeq + 1) & 0xffff;
-    roomLinkState.sendPose(encodePose({
+    roomSentPose = {
       flags,
       seq: roomSeq,
       t: now,
@@ -3972,7 +4008,8 @@ export async function boot({
       c3: surf ? surf[3] : rotors[3],
       motor: quad ? (rotors[0] + rotors[1] + rotors[2] + rotors[3]) / 4 : rotors[0],
       flaps: typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0,
-    }));
+    };
+    roomLinkState.sendPose(encodePose(roomSentPose));
   }
 
   /* Everything of a peer's that is drawn, put away. */
@@ -13097,6 +13134,7 @@ export async function boot({
       hud: avxHud,
       camera: shell.camera,
       radar: roomWar.live() && mode === 'flight',
+      fuze: avxFuzeOn(tracks.snapshot),
     });
   }
 
