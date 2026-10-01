@@ -36,7 +36,12 @@ import {
   createIdentity, keyLinkMessage, memoryStorage, trackMessage,
 } from '../src/share/identity.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
-import { cleanBlob, mergeBlobs, stampChanges } from '../src/share/progressmerge.js';
+import {
+  blobRefusal, cleanBlob, mergeBlobs, stampChanges,
+} from '../src/share/progressmerge.js';
+import { BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS } from './limits.js';
+import { buildsBlob, buildsFromBlob, normaliseFit } from '../src/ui/builds.js';
+import { newDecal, MAX_DECALS } from '../configs/paint.js';
 
 const CLIENT_ID = 'selftest-client.apps.googleusercontent.com';
 const RS256 = { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' };
@@ -182,6 +187,75 @@ console.log('the progress merge');
   check('and keeps its own where the account has none', firstSync.data.tuning.zagi1219.cg === 5);
   const stamps = stampChanges({ tuning: { a: 1, b: 2 }, rates: { x: 1 } }, { tuning: { a: 1 }, rates: { x: 0 } }, 77);
   check('a computer stamps exactly the parts it changed', stamps['tuning/b'] === 77 && stamps.rates === 77 && !('tuning/a' in stamps));
+}
+
+console.log('My Hangar and the loadouts in the merge');
+const build = (id, name, extra = {}) => ({
+  id, name, airframe: 'timber1500', fit: { livery: null, power: null, parts: null, tuning: null, combat: null }, created: 1000, updated: 1000, ...extra,
+});
+{
+  const desk = {
+    v: 1,
+    data: {
+      builds: { b1: build('b1', 'Bush'), b2: build('b2', 'Survey') },
+      combat: { striker2500: { payload: 'standard', accessories: [], propulsion: 'jet' } },
+    },
+    stamps: { 'builds/b1': 1000, 'builds/b2': 2000, 'combat/striker2500': 2000 },
+  };
+  const laptop = {
+    v: 1,
+    data: {
+      builds: { b1: build('b1', 'Bush renamed', { updated: 3000 }), b3: build('b3', 'Floats') },
+      combat: { striker2500: { payload: 'wide', accessories: [], propulsion: 'prop' }, '7inch': { payload: 'wide', accessories: ['pack2'] } },
+    },
+    stamps: { 'builds/b1': 3000, 'builds/b3': 500, 'combat/striker2500': 1000, 'combat/7inch': 1500 },
+  };
+  let m = mergeBlobs(desk, laptop);
+  check('builds from both computers are all kept, one per id', Object.keys(m.data.builds).sort().join() === 'b1,b2,b3');
+  check('a build changed on both, the newer stamp wins', m.data.builds.b1.name === 'Bush renamed' && m.stamps['builds/b1'] === 3000);
+  check('loadouts merge by airframe, the newer stamp wins each', m.data.combat.striker2500.propulsion === 'jet' && m.data.combat['7inch'].payload === 'wide');
+  /* The desk deletes Survey after the laptop last changed it: the id
+   * stamped and absent is the tombstone. */
+  const deleted = { v: 1, data: { ...m.data, builds: { b1: m.data.builds.b1, b3: m.data.builds.b3 } }, stamps: { ...m.stamps, 'builds/b2': 4000 } };
+  m = mergeBlobs(deleted, m);
+  check('a build deleted on one computer is gone from the merge', !('b2' in m.data.builds) && m.stamps['builds/b2'] === 4000);
+  m = mergeBlobs(laptop, m);
+  check('and the other computer, still holding it, does not bring it back', !('b2' in m.data.builds), Object.keys(m.data.builds).join());
+  m = mergeBlobs({ v: 1, data: { builds: { b2: build('b2', 'Survey', { updated: 5000 }) } }, stamps: { 'builds/b2': 5000 } }, m);
+  check('but one changed there after the delete is kept, the later edit winning', m.data.builds.b2 && m.data.builds.b2.updated === 5000);
+  m = mergeBlobs({ v: 1, data: { progress: { v: 1, xp: 1 } }, stamps: {} }, m);
+  check('a sync from a version before the builds synced deletes none of them', Object.keys(m.data.builds).sort().join() === 'b1,b2,b3' && m.data.combat.striker2500.propulsion === 'jet');
+  const junk = cleanBlob({
+    v: 1,
+    data: {
+      builds: { ok1: build('ok1', 'Fine'), 'Bad Id': build('Bad Id', 'x'), noname: { ...build('noname', ''), name: '' }, lie: build('other', 'Lie') },
+      combat: { striker2500: { payload: 'standard', accessories: ['whip'] }, '7inch': { payload: 3, accessories: [] }, '10inch': 'wide' },
+    },
+    stamps: {},
+  });
+  check('a held build or loadout of the wrong shape is dropped, the rest kept',
+    Object.keys(junk.data.builds).join() === 'ok1' && Object.keys(junk.data.combat).join() === 'striker2500', JSON.stringify(Object.keys(junk.data.builds)));
+  const back = buildsFromBlob(buildsBlob([build('zz', 'Late', { created: 9000 }), build('aa', 'Early', { created: 10 })]));
+  check('builds round trip through the blob, oldest first', back.map((b) => b.id).join() === 'aa,zz' && back[0].name === 'Early');
+}
+{
+  const many = Object.fromEntries(Array.from({ length: MAX_BUILDS + 1 }, (_, i) => [`b${i}`, build(`b${i}`, `B ${i}`)]));
+  const full = Object.fromEntries(Object.entries(many).slice(0, MAX_BUILDS));
+  check(`${MAX_BUILDS} builds sent are taken`, blobRefusal({ v: 1, data: { builds: full } }) === null);
+  check('one more is refused, too big', blobRefusal({ v: 1, data: { builds: many } })?.status === 413);
+  const fat = build('fat', 'Fat', { fit: { livery: { pad: 'x'.repeat(BUILD_MAX_CHARS) } } });
+  check('a build past its cap is refused, too big', blobRefusal({ v: 1, data: { builds: { fat } } })?.status === 413);
+  check('a build of the wrong shape is refused', blobRefusal({ v: 1, data: { builds: { b1: { name: 'x' } } } })?.status === 422);
+  check('and so is a builds section that is not a map', blobRefusal({ v: 1, data: { builds: [] } })?.status === 422);
+  const loadouts = Object.fromEntries(Array.from({ length: COMBAT_MAX_ENTRIES + 1 }, (_, i) => [`q${i}`, { payload: 'standard', accessories: [] }]));
+  check('more loadouts than the cap are refused, too big', blobRefusal({ v: 1, data: { combat: loadouts } })?.status === 413);
+  check('a loadout of the wrong shape is refused', blobRefusal({ v: 1, data: { combat: { striker2500: { payload: 'x', accessories: 'whip' } } } })?.status === 422);
+  /* The biggest build a pilot can paint, held to the same judge as the
+   * hangar's (normaliseFit): every decal the paint shop allows. */
+  const decals = Array.from({ length: MAX_DECALS }, () => newDecal('text', [0.123456, -0.654321, 0.234567], [0.577, 0.577, 0.577]));
+  const painted = normaliseFit('timber1500', { livery: { scheme: 'timber_x', decals, wear: 100 } });
+  const big = JSON.stringify(build('big', 'W'.repeat(32), { fit: painted })).length;
+  check('a build with every decal the paint shop allows fits its cap', painted.livery.decals.length === MAX_DECALS && big < BUILD_MAX_CHARS, `${big}`);
 }
 
 console.log('the account routes');
@@ -335,6 +409,29 @@ r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { tune:
 check('a blob past the cap is refused', r.status === 413);
 r = await call('PUT', '/api/account/progress', { nope: true }, alice);
 check('a sync with no blob is refused', r.status === 400);
+r = await call('PUT', '/api/account/progress', {
+  progress: { v: 1, data: { builds: { b1: build('b1', 'Bush'), b2: build('b2', 'Survey') }, combat: { striker2500: { payload: 'wide', accessories: [], propulsion: 'jet' } } }, stamps: {} },
+}, alice);
+check('the builds and a loadout go up with the progress', r.status === 200 && Object.keys(r.body.progress.data.builds).sort().join() === 'b1,b2'
+  && r.body.progress.data.combat.striker2500.propulsion === 'jet', JSON.stringify(r.body));
+r = await call('GET', '/api/account/progress', undefined, aliceLaptop);
+check('and the other computer reads them', r.status === 200 && r.body.progress.data.builds.b2.name === 'Survey');
+r = await call('PUT', '/api/account/progress', {
+  progress: { v: 1, data: { builds: { b1: build('b1', 'Bush') }, combat: {} }, stamps: { 'builds/b2': Date.now() } },
+}, aliceLaptop);
+check('a delete there is kept as one', r.status === 200 && !r.body.progress.data.builds.b2 && r.body.progress.data.combat.striker2500);
+r = await call('PUT', '/api/account/progress', {
+  progress: { v: 1, data: { builds: { b1: build('b1', 'Bush'), b2: build('b2', 'Survey') } }, stamps: {} },
+}, alice);
+check('and the first computer, sending it again unchanged, does not bring it back', r.status === 200 && !r.body.progress.data.builds.b2);
+r = await call('PUT', '/api/account/progress', {
+  progress: { v: 1, data: { builds: Object.fromEntries(Array.from({ length: MAX_BUILDS + 1 }, (_, i) => [`x${i}`, build(`x${i}`, `X ${i}`)])) }, stamps: {} },
+}, alice);
+check('a sync with more builds than a computer holds is refused, and says why', r.status === 413 && /builds/.test(r.body.error), JSON.stringify(r.body));
+r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { builds: { b1: { name: 'no airframe' } } }, stamps: {} } }, alice);
+check('and one with a build of the wrong shape', r.status === 422);
+r = await call('GET', '/api/account/progress', undefined, alice);
+check('neither changed what the account holds', Object.keys(r.body.progress.data.builds).join() === 'b1');
 
 console.log('signing out and deleting');
 r = await call('DELETE', '/api/account/session', undefined, aliceLaptop);

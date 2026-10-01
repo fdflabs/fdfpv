@@ -71,3 +71,20 @@ export const SESSIONS_PER_ACCOUNT = 20;
  * shows, rather than the server keeping megabytes per account.
  */
 export const PROGRESS_MAX_CHARS = 512 * 1024;
+
+/*
+ * MY HANGAR IN THE BLOB (src/share/progressmerge.js blobRefusal). One
+ * computer holds at most MAX_BUILDS builds (src/ui/builds.js), so a sync
+ * carrying more is refused. A build is capped at 8 kB: the largest one a
+ * pilot can make, every region coloured and finished, MAX_DECALS text
+ * decals at TEXT_MAX letters (configs/paint.js), a 32 letter name, power,
+ * parts, a full tuning entry and a loadout, measured 3452 characters (the
+ * 10 inch, 2026-10-01), so 8 kB is that with more than twice over,
+ * and 48 at the cap are 384 kB, inside PROGRESS_MAX_CHARS above.
+ */
+export const MAX_BUILDS = 48;
+export const BUILD_MAX_CHARS = 8 * 1024;
+
+/* Loadouts, settings.combat, one per combat aircraft (configs/combat.js):
+ * there are four today, and 64 is that with room for many more. */
+export const COMBAT_MAX_ENTRIES = 64;

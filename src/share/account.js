@@ -29,8 +29,9 @@
  *   3. The callsign is claimed: on the board under the account's key
  *      first (so it is never a name the board gave somebody else), then
  *      on the accounts server.
- *   4. Progress syncs (syncProgress, progressmerge.js) and the account's
- *      tracks are pulled into My tracks.
+ *   4. Progress syncs (syncProgress, progressmerge.js): unlocks, paint,
+ *      power, parts, tunes, loadouts and the My Hangar builds. The
+ *      account's tracks are pulled into My tracks.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -296,7 +297,9 @@ export async function deleteAccount() {
  * then calls settled() with the settings as they came out, so what loading
  * dropped is not mistaken for a change made here). A computer's first sync
  * stamps nothing, so what it held before it signed in is merged by the
- * rules and never counted newer than another computer's edits.
+ * rules and never counted newer than another computer's edits. So is a
+ * section the last sync did not carry (one this version added, as the
+ * builds and the loadouts were): what it held was not changed since.
  */
 export async function syncProgress(settings) {
   if (!signedIn()) {
@@ -304,7 +307,7 @@ export async function syncProgress(settings) {
   }
   const kept = readJson(SYNCED_KEY);
   const now = pickSynced(settings);
-  const stamps = kept ? stampChanges(now, kept.data || {}, Date.now(), kept.stamps || {}) : {};
+  const stamps = kept ? stampChanges(now, { ...now, ...(kept.data || {}) }, Date.now(), kept.stamps || {}) : {};
   const got = await api('PUT', '/api/account/progress', { progress: { v: 1, data: now, stamps } });
   return mergeBlobs(got.progress, null);
 }

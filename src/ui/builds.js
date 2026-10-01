@@ -27,7 +27,9 @@
  *
  * settings.buildFits, by land plane id (one fit per family, as the paint
  * is one per family): { build, airframe, stock: { [airframe id]: fit } }.
- * The builds themselves are under their own localStorage key, BUILDS_KEY.
+ * The builds themselves are under their own localStorage key, BUILDS_KEY,
+ * and a signed in pilot's follow the account (buildsBlob, below). Which
+ * build a family wears is this computer's and does not.
  *
  * Pure and DOM free apart from the storage calls, which are guarded:
  * scripts import it in Node.
@@ -57,11 +59,13 @@ import { normalisePlane } from '../../configs/hangar-parts.js';
 import { cleanName } from '../../configs/paint.js';
 import { combatChoice } from '../../configs/combat.js';
 import { badWordIn } from '../../tracks-api/words.js';
+import { MAX_BUILDS } from '../../tracks-api/limits.js';
 
 export const BUILDS_KEY = 'webfpv.builds.v1';
 /* Enough for three of every plane with room over; a list this long is
- * still one swipe a build. */
-export const MAX_BUILDS = 48;
+ * still one swipe a build. In tracks-api/limits.js, since the accounts
+ * server refuses a sync carrying more. */
+export { MAX_BUILDS };
 
 const isRecord = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 
@@ -288,6 +292,22 @@ export function saveBuilds(list) {
 
 export function newBuildId(now = Date.now()) {
   return `${now.toString(36)}${Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')}`;
+}
+
+/*
+ * The builds as the account sync carries them (src/share/progressmerge.js,
+ * section `builds`): by id, so each build merges and is stamped on its
+ * own. And back: the oldest first, as they were made, so a merge of two
+ * computers' builds past MAX_BUILDS keeps the same ones on every computer.
+ */
+export function buildsBlob(list) {
+  return Object.fromEntries(list.map((b) => [b.id, b]));
+}
+
+export function buildsFromBlob(map) {
+  const list = Object.entries(isRecord(map) ? map : {}).map(([id, b]) => ({ ...(isRecord(b) ? b : {}), id }));
+  list.sort((x, y) => (x.created || 0) - (y.created || 0) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+  return normaliseBuilds({ builds: list });
 }
 
 /* The card key a build has in the picker, beside the airframe ids. */
