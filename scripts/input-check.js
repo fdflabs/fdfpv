@@ -881,8 +881,11 @@ async function mouseFlightPage(page) {
   await page.until("window.__ui.screen === 'flight'", 5000);
   await click();
   live = true;
-  await page.until('window.__mouseLock().live', 5000).catch(() => { live = false; });
-  check('back in flight, a click captures it again', live);
+  /* Owned, not only held: pointerLockElement is set before Chrome delivers
+   * the change event that tells the shell the capture is its own, and a
+   * release sent in between is one the shell never saw it take. */
+  await page.until('window.__mouseLock().live && window.__mouseLock().mine', 5000).catch(() => { live = false; });
+  check('back in flight, a click captures it again, and the shell owns it', live, await ev('return JSON.stringify(window.__mouseLock());'));
   /* The browser's own release: what a real Escape is when Chrome spends it
    * on the pointer lock, or a window switch. A pause, and the Escape that
    * may follow it does not resume. */
