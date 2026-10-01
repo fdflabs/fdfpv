@@ -1795,44 +1795,56 @@ export const CRASH_SCENARIOS = [
   },
   {
     /*
-     * A five inch let down onto a hard roof from 0.2 m, 2 m/s at the
-     * slates, as a pilot sets one down short of the roof and it drops: a
-     * real one is picked up whole. The collision audit's let-down onto the
-     * swiss2 and alps roofs was thrown from 0.6 m and broke the pack on
-     * every slate, tin and shingle roof; the pack was levered off its strap
-     * by a push inside its own top face (crash.c, table_finish, the seat's
-     * footprint), on concrete from 35 degrees of slope and on tin from 5.
-     * Level onto every hard surface, and tilted 5 to 35 degrees each of
-     * four ways, the slope of a roof a quad is set down on: nothing breaks,
-     * crushes or bends.
+     * A five inch let down onto a hard roof from 0.2 to 0.5 m, 2 to 3.1
+     * m/s at the slates, as a pilot sets one down short of the roof and it
+     * drops: a real one is picked up with its pack on. The collision
+     * audit's let-down onto the swiss2 and alps roofs was thrown from 0.6 m
+     * and broke the pack on every slate, tin and shingle roof; the pack was
+     * levered off its strap by a push inside its own top face (crash.c,
+     * table_finish, the seat's footprint), on concrete from 35 degrees of
+     * slope and on tin from 5. From 0.3 to 0.5 m it still came off in 1 to
+     * 6 of the 32 drops onto each surface: struck itself, the pack was
+     * thrown the moment its strap's limit was passed, though the drop has
+     * 2.1 to 3.5 J and freeing it takes 9 J (crash.c, A PACK SLIDES IN ITS
+     * STRAP). Level onto every hard surface, and tilted 5 to 35 degrees
+     * each of four ways, the slope of a roof a quad is set down on: from
+     * every height the pack stays and nothing breaks, and from 0.2 m
+     * nothing crushes or bends either. From 0.5 m tilted 25 to 35 degrees
+     * one motor meets the roof first and its arm may twist in its clamp
+     * (ARM_BEND_ONSET), so a bend is not held against the higher drops.
      */
-    name: 'a five inch dropped 0.2 m onto a hard roof breaks nothing',
+    name: 'a five inch dropped 0.2 to 0.5 m onto a hard roof keeps its pack',
     async run(mk) {
       const out = [];
       for (const ground of ['wood', 'asphalt', 'concrete', 'rock', 'metal']) {
         const r = await mk({ id: 0, ground });
-        const hurt = [];
-        let drops = 0;
-        for (let tilt = 0; tilt <= 35; tilt += 5) {
-          for (const ax of [[1, 0], [0, 1], [0.6, 0.8], [0.7071068, -0.7071068]]) {
-            r.sim.reset();
-            r.sim.e.sim_set_damage(1);
-            r.sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0);
-            r.sim.e.sim_set_ground_material(SURFACE[ground]);
-            r.sim.rest();
-            const z = r.state()[3];
-            const h = (tilt * Math.PI) / 360;
-            r.pose([0, 0, z + 0.2], [Math.cos(h), Math.sin(h) * ax[0], Math.sin(h) * ax[1], 0]);
-            const from = r.events.length;
-            r.run(1500);
-            drops += 1;
-            const bad = r.events.slice(from).filter((e) => ['break', 'crush', 'bend'].includes(e.typeName));
-            if (bad.length) {
-              hurt.push(`${tilt} deg about (${ax.join(', ')}): ${bad.map((e) => `${e.typeName} ${r.parts[e.part].label} ${e.ratio.toFixed(2)}`).join(', ')}`);
+        for (const height of [0.2, 0.3, 0.4, 0.5]) {
+          const harm = height === 0.2 ? ['break', 'crush', 'bend'] : ['break'];
+          const hurt = [];
+          let drops = 0;
+          for (let tilt = 0; tilt <= 35; tilt += 5) {
+            for (const ax of [[1, 0], [0, 1], [0.6, 0.8], [0.7071068, -0.7071068]]) {
+              r.sim.reset();
+              r.sim.e.sim_set_damage(1);
+              r.sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0);
+              r.sim.e.sim_set_ground_material(SURFACE[ground]);
+              r.sim.rest();
+              const z = r.state()[3];
+              const h = (tilt * Math.PI) / 360;
+              r.pose([0, 0, z + height], [Math.cos(h), Math.sin(h) * ax[0], Math.sin(h) * ax[1], 0]);
+              const from = r.events.length;
+              r.run(1500);
+              drops += 1;
+              const bad = r.events.slice(from).filter((e) => harm.includes(e.typeName));
+              const packOut = (r.flags() & DAMAGE_FLAGS.batteryEjected) !== 0;
+              if (bad.length || packOut) {
+                hurt.push(`${tilt} deg about (${ax.join(', ')}): ${packOut ? 'pack out, ' : ''}${bad.map((e) => `${e.typeName} ${r.parts[e.part].label} ${e.ratio.toFixed(2)}`).join(', ')}`);
+              }
             }
           }
+          const what = height === 0.2 ? 'the pack on, nothing broken, crushed or bent' : 'the pack on, nothing broken';
+          out.push({ name: `${height} m onto ${ground}: ${drops} drops, ${what}`, ok: hurt.length === 0, detail: hurt.join('; ') || 'nothing' });
         }
-        out.push({ name: `onto ${ground}: ${drops} drops, nothing broken, crushed or bent`, ok: hurt.length === 0, detail: hurt.join('; ') || 'nothing' });
       }
       return out;
     },
