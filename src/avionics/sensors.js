@@ -24,12 +24,12 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const SENSOR_MODES = ['eo', 'ir-wh', 'ir-bh', 'lowlight', 'fusion', 'contrast'];
+export const SENSOR_MODES = ['eo', 'ir_wh', 'ir_bh', 'lowlight', 'fusion', 'contrast'];
 export const ZOOM_LEVELS = [1, 2, 4];
 
 /* The modes whose picture is thermal, in whole or in part. */
 export function thermalMode(mode) {
-  return mode === 'ir-wh' || mode === 'ir-bh' || mode === 'fusion';
+  return mode === 'ir_wh' || mode === 'ir_bh' || mode === 'fusion';
 }
 
 export function createSensorManager({ camera }) {
@@ -41,7 +41,7 @@ export function createSensorManager({ camera }) {
     exposure: { auto: true, ev: 0 },
     stab: true,
     rec: { on: false, s: 0 },
-    pipMode: 'ir-wh',
+    pipMode: 'ir_wh',
     healthy: true,
     noise: 0,
   };

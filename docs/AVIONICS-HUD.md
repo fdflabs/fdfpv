@@ -182,7 +182,7 @@ The camera as a sensor: what it is looking with, and the picture in the
 picture.
 
 ```js
-const sensors = createSensorManager({ renderer, scene, camera });
+const sensors = createSensorManager({ renderer, scene, camera });  // scene() is a function: maps swap scenes
 sensors.update(tS, dtS);        // every flight frame, after the camera is placed
 sensors.cycleMode();            // J
 sensors.cycleZoom();            // K
@@ -198,7 +198,7 @@ machine uses for THERMAL.
 ### 5.1 `sensors.state`
 
 ```
-mode       'eo' | 'ir-wh' | 'ir-bh' | 'lowlight' | 'fusion' | 'contrast'
+mode       'eo' | 'ir_wh' | 'ir_bh' | 'lowlight' | 'fusion' | 'contrast'   (ids are string key safe: lower case, underscores)
 zoom       1 | 2 | 4            digital, degrading resolution, not magic
 zoomLevels [1, 2, 4]
 fovRad     the main view's vertical field of view after zoom
@@ -286,8 +286,8 @@ predicted          [{ dtS, losW }]   future directions, every 0.5 s to 2 s
 lead               { tS, losW } | null  where to point to meet it at this vehicle's speed
 ```
 
-Class ids and their words (`avionics.track.cls.<id>`): `fixed-wing-uav`,
-`multirotor`, `light-aircraft`, `loitering-munition`, `boat`, `air-object`,
+Class ids and their words (`avionics.track.cls.<id>`; string keys are `[a-z0-9_.]` only, so every id here is lower case with underscores): `fixed_wing_uav`,
+`multirotor`, `light_aircraft`, `loitering_munition`, `boat`, `air_object`,
 `unknown`. Below confidence 0.6 the label is `AIR OBJECT` whatever the top
 hypothesis says (owner's text).
 
