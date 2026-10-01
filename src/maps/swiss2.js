@@ -287,7 +287,13 @@ function photoStyle() {
       style.look = makePhotoLook({ surfaces, marks: { lanpy }, ground, heights });
       style.look.buildings = swissBuildings(style.look);
       style.look.vehicles = swissVehicles();
-      style.mats = style.look.village;
+      /* alps.js builds the village from style.mats(), and the huts' and
+       * the lake town's bakes below take their glass and water from the
+       * same table. Handed the factory itself, those bakes found no glass
+       * on it, and three drew their windows with its default material,
+       * unlit white in the shade. */
+      let mats = null;
+      style.mats = () => (mats ??= style.look.village());
       const stage = {
         scene,
         renderer,
@@ -542,7 +548,7 @@ function photoStyle() {
       scene.add(stage.lakeside.group);
       const near = [];
       for (const [name, bake, opts] of [['swiss2-huts', hutBake, { cell: 60, near: 110 }], ['swiss2-lake-town', lakeBake, { cell: 800, far: 1500 }]]) {
-        const baked = style.look.buildings.bakeAll(bake, style.mats, opts);
+        const baked = style.look.buildings.bakeAll(bake, style.mats(), opts);
         baked.name = name;
         scene.add(baked);
         near.push(...baked.children.filter((o) => o.isLOD));
