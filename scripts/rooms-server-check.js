@@ -22,7 +22,9 @@
  * consent is closed for a reload instead of seated. A public one (the
  * owner opened the war to public rooms, 2026-10-01): listed as the war's
  * with its mission, a quick join on its world never handed it, and a
- * public room not made for the war still refuses the war.
+ * public room not made for the war still refuses the war. Its lobby: in
+ * the welcome, two pilots ready, both told the five seconds, and the room
+ * starting mission 2's briefing on its own.
  *
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
@@ -346,6 +348,21 @@ if (pub.open) {
   quick.say({ type: 'war', op: 'start', mission: 'itaipu-1' });
   check('and the public room it lands in, not made for the war, refuses the war', Boolean(await quick.until((x) => x.text('refused').find((m) => m.why === 'private'))),
     JSON.stringify(quick.text('refused')));
+  /* Its lobby (edge/rooms/warlobby.js): a second pilot, both ready, the
+   * five seconds on the room's clock, then mission 2's briefing. */
+  const pw2 = await seat(`room/${pubWar}`, { war: WAR_JOIN, name: [3, 6, 41] });
+  check('its lobby is in the welcome: mission 2, nobody ready', pw2.welcome && pw2.welcome.lobby && pw2.welcome.lobby.mission === 'itaipu-2'
+    && JSON.stringify(pw2.welcome.lobby.ready) === '{}', JSON.stringify(pw2.welcome && pw2.welcome.lobby));
+  pw.say({ type: 'lobby', op: 'ready', ready: true });
+  pw2.say({ type: 'lobby', op: 'ready', ready: true });
+  const counting = await pw2.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt !== null && m.lobby.ready['1'] && m.lobby.ready['2']));
+  check('both say ready: both are told the five seconds', Boolean(counting && await pw.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt === counting.lobby.countdownAt))),
+    JSON.stringify(counting && counting.lobby));
+  check('and the room starts mission 2\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-2' && m.war.state === 'briefing'), 9000)
+    && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'briefing'), 2000)));
+  pw.say({ type: 'war', op: 'end' });
+  await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'ended'));
+  pw2.ws.close(1000);
   pw.say({ type: 'war', op: 'start', mission: 'itaipu-2' });
   check('the public war room\'s host starts mission 2 there', Boolean(await pw.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-2' && m.war.state !== 'lobby'))));
   pw.say({ type: 'war', op: 'end' });

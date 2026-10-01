@@ -57,6 +57,14 @@
  *      timber1500f, the hangar reads the same toggle; a click flips it
  *      back and Choose seats timber1500; a flip put away with Escape on
  *      the seated plane follows the seat again; a pad's Y flips the Cub's.
+ *  10. The Engine switch on the picker: beside the Striker's span and
+ *      weight, its engine, on one card, and on no aircraft with one. E
+ *      switches it to the turbojet, the weight and the model follow and it
+ *      is saved where the Loadout tab saves it; Customise opens on the
+ *      turbojet; Enter seats it; a reload keeps it; a click and a pad's Y
+ *      switch it; a switch of the seated Striker put away with Escape is
+ *      undone; and E and Enter in the air refit the flying Striker on the
+ *      turbojet's plant.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     alps by default
@@ -82,6 +90,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { sizeText, weightText } from '../src/ui/carousel.js';
+import { str } from '../src/strings/index.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor } from '../configs/liveries.js';
 import { POWER, SIM_POWER, powerBlock, powerChoice } from '../configs/power.js';
@@ -868,6 +877,130 @@ async function pickerFloatsCheck(page) {
   await page.until('!window.__ui.carousel.isOpen', 10000);
 }
 
+async function pickerEngineCheck(page) {
+  console.log('10. the Engine switch on the picker');
+  if (await page.evaluate("window.__ui.screen === 'flight'")) {
+    await page.tap('Escape');
+    await page.until("window.__ui.screen === 'paused'", 10000);
+  }
+  await page.evaluate("window.__ui.show('title'); true");
+  const striker = airframeById('striker2500');
+  const [prop, jet] = striker.combat.propulsion;
+  const chip = (p) => str('carousel.engine', { engine: str(`loadout.propulsion.${p.id}`) });
+  const facts = (p) => [sizeText('striker2500'), weightText('striker2500', { propulsion: p.id }), chip(p)];
+  const ENGINE = `(() => {
+    const b = document.querySelector('.carousel-facts [data-key="engine"]');
+    if (!b || b.hidden || !b.getClientRects().length) return null;
+    const facts = [...b.parentNode.querySelectorAll('.carousel-fact')].filter((f) => !f.hidden).map((f) => f.textContent);
+    return { label: b.textContent, facts, title: b.title };
+  })()`;
+  const stored = () => page.evaluate(`(() => {
+    const s = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}));
+    return { stored: s.combat && s.combat.striker2500 ? s.combat.striker2500.propulsion : null, live: window.__ui.settings.combat && window.__ui.settings.combat.striker2500 ? window.__ui.settings.combat.striker2500.propulsion : null };
+  })()`);
+  /* The model the picker or the hangar last drew, once a frame has drawn it. */
+  const drawn = async (p) => {
+    await page.until(`(window.__pickCombat('striker2500') || {}).propulsion === ${JSON.stringify(p.id)}`, 30000).catch(() => {});
+    return (await page.evaluate("window.__pickCombat('striker2500')") || {}).propulsion ?? null;
+  };
+  const pick = async (id) => {
+    if (!(await page.evaluate('window.__ui.carousel.isOpen'))) {
+      await page.evaluate('window.__ui.openCraftRow(false); true');
+      await page.until('window.__ui.carousel.isOpen', 10000);
+    }
+    await page.evaluate("window.__ui.carousel.setFilter('all'); true");
+    const at = await page.evaluate(`window.__ui.carousel.ids.indexOf(${JSON.stringify(id)})`);
+    await page.evaluate(`window.__ui.carousel.goTo(${at}); true`);
+  };
+
+  await pick('kadet1981');
+  say(await page.evaluate(ENGINE) === null, 'the Kadet, with one engine, shows no Engine switch');
+  await pick('7inch');
+  say(await page.evaluate(ENGINE) === null, 'the 7 inch, a combat quad with one way to be pushed, shows none either');
+  await pick('striker2500');
+  const cards = await page.evaluate('window.__ui.carousel.ids');
+  say(cards.filter((k) => k === 'striker2500').length === 1, `the Striker is one card: ${cards.join(', ')}`);
+  const first = await page.evaluate(ENGINE);
+  say(Boolean(first) && same(first.facts, facts(prop)), `the Striker shows its engine beside its span and weight: ${JSON.stringify(first)}`);
+  say(await drawn(prop) === prop.id, `and the picker draws it on its ${await drawn(prop)}`);
+  const hint = await page.evaluate("document.querySelector('.carousel-hint').textContent");
+  say(/\bE its engine\b/.test(hint), `the hint line names E: ${hint}`);
+
+  await page.tap('KeyE');
+  const onJet = await page.evaluate(ENGINE);
+  say(Boolean(onJet) && same(onJet.facts, facts(jet)), `E switches it to the turbojet, the weight the jet's: ${JSON.stringify(onJet)}`);
+  say(await drawn(jet) === jet.id, `the picker now draws the ${await drawn(jet)} Striker`);
+  const saved = await stored();
+  say(saved.stored === jet.id && saved.live === jet.id, `saved where the Loadout tab saves it: ${JSON.stringify(saved)}`);
+  say(await page.evaluate('window.__ui.carousel.current()') === 'striker2500', 'and the card is still the Striker');
+
+  await page.tap('KeyC');
+  await page.until('window.__ui.hangar.isOpen', 10000);
+  await page.until("window.__ui.hangar.tab === 'loadout'", 5000).catch(() => {});
+  const loadout = await page.evaluate(`({ id: window.__ui.hangar.id, tab: window.__ui.hangar.tab, on: [...document.querySelectorAll('.hangar .combat-tab [aria-pressed="true"]')].map((b) => b.dataset.key) })`);
+  say(loadout.id === 'striker2500' && loadout.tab === 'loadout' && loadout.on.includes('propulsion-jet') && !loadout.on.includes('propulsion-prop'),
+    `C opens Customise on its Loadout tab with the turbojet chosen: ${JSON.stringify(loadout)}`);
+  say(await drawn(jet) === jet.id, `and the hangar draws the ${await drawn(jet)} Striker`);
+  await page.evaluate('window.__ui.hangar.cancel(); true');
+  await page.until('!window.__ui.hangar.isOpen && window.__ui.carousel.isOpen', 10000);
+  const back = await page.evaluate(ENGINE);
+  say(Boolean(back) && back.label === chip(jet), `back on the picker it still reads ${back ? back.label : null}`);
+
+  await page.tap('Enter');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  say(await page.evaluate('window.__ui.settings.airframe') === 'striker2500', 'Enter seats the Striker');
+
+  console.log('   reload');
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await ready(page);
+  const kept = await stored();
+  say(kept.stored === jet.id && kept.live === jet.id, `after a reload the turbojet is kept: ${JSON.stringify(kept)}`);
+  await pick('striker2500');
+  const reloaded = await page.evaluate(ENGINE);
+  say(Boolean(reloaded) && same(reloaded.facts, facts(jet)), `the picker reads it: ${JSON.stringify(reloaded)}`);
+  say(await drawn(jet) === jet.id, `and draws the ${await drawn(jet)} Striker`);
+
+  await page.evaluate(`document.querySelector('.carousel-facts [data-key="engine"]').click(); true`);
+  const clicked = await page.evaluate(ENGINE);
+  say(Boolean(clicked) && same(clicked.facts, facts(prop)) && (await stored()).stored === prop.id,
+    `a click switches it back to the piston engine and saves that: ${JSON.stringify(clicked)}`);
+  say(await drawn(prop) === prop.id, `the picker draws the ${await drawn(prop)} Striker`);
+  /* A pad's Y, edge triggered, and the same press chooses nothing though a
+   * menu takes Y as select too. */
+  await page.evaluate('window.__ui.carousel.pollPad({}); window.__ui.carousel.pollPad({ floats: true, select: true }); true');
+  const padded = await page.evaluate(ENGINE);
+  const stillOpen = await page.evaluate('window.__ui.carousel.isOpen');
+  say(Boolean(padded) && padded.label === chip(jet) && stillOpen, `a pad's Y switches it to the turbojet and chooses nothing: ${JSON.stringify(padded)}, picker open ${stillOpen}`);
+  await page.evaluate('window.__ui.carousel.pollPad({}); window.__ui.carousel.pollPad({ floats: true }); true');
+  say((await page.evaluate(ENGINE)).label === chip(prop), 'and Y again back to the piston engine');
+  await page.tap('Enter');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  say(await page.evaluate('window.__ui.settings.airframe') === 'striker2500' && (await stored()).stored === prop.id, 'Enter seats the Striker on the piston engine');
+  await pick('striker2500');
+  await page.tap('KeyE');
+  await page.tap('Escape');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  const settled = await stored();
+  say(settled.stored === prop.id && settled.live === prop.id, `a switch of the seated Striker put away with Escape is undone: ${JSON.stringify(settled)}`);
+
+  console.log('   in the air');
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await page.sleep(500);
+  const before = await page.evaluate('window.__craft()');
+  say(before.run === 'striker2500' && before.module === prop.simId, `the Striker flies on plant ${before.module}, the piston engine's: ${JSON.stringify({ run: before.run, combat: before.combat })}`);
+  await page.evaluate("window.__ui.openSwap('flight'); true");
+  await page.until('window.__ui.carousel.isOpen', 10000);
+  await page.tap('KeyE');
+  await page.tap('Enter');
+  await page.until(`window.__craft().module === ${jet.simId}`, 30000).catch(() => {});
+  const after = await page.evaluate('window.__craft()');
+  say(after.run === 'striker2500' && after.module === jet.simId && after.combat && after.combat.propulsion === jet.id && (await stored()).stored === jet.id,
+    `E and Enter in the air refit it on plant ${after.module}, the turbojet's: ${JSON.stringify(after.combat)}`);
+  await page.until("window.__ui.screen === 'flight'", 10000).catch(() => {});
+  say(await page.evaluate("window.__ui.screen") === 'flight', 'and the flight resumes');
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -985,6 +1118,7 @@ async function main() {
     await partsCheck(page);
     await paintShopCheck(page);
     await pickerFloatsCheck(page);
+    await pickerEngineCheck(page);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {
