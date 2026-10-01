@@ -7,20 +7,30 @@
  * renderer, through scripts/shots.js, which is the same harness every
  * rendering bug in this project was found with.
  *
- * WHAT THE FRAME IS. The title screen over a track built on the Alps' strip
- * (scripts/gatecards-track.json, the Track mode card's), with the menu, the
- * chips and the body copy hidden so that the wordmark and the cards are
- * left over the world. The camera is parked by hand at the numbers below,
- * behind the start gate, low and a little to its right, so the lit gate
- * sits centre with the rest of the course running away up the strip. Those
- * numbers are the whole design: change them and the card changes, so they
- * live here rather than in somebody's shell history.
+ * WHAT THE FRAME IS. The loading screen: the Itaipu key art
+ * (assets/loading/wide.webp, from scripts/loading-art.js and
+ * tools/loading-art/grade.py) under the name's lockup, PARAGUAYAN over
+ * DRONE COMBAT over SIMULATOR with the red, white and blue slash. That
+ * screen is already the product's poster, laid out by index.html's own
+ * rules, so the card is that screen rather than a second design of it that
+ * could disagree with it. The run waits for the shell to boot and the
+ * screen to go, then brings it back over the title, so the capture is
+ * never taken halfway through the fade.
  *
- * WHY THE MENU GOES AND THE WORDMARK STAYS. A share card is read at about
- * 500 px wide in a feed, next to a headline. The menu is six rows of text
- * that turn to mush at that size, and the paragraph about browser storage is
- * a sentence nobody reads twice. The wordmark survives the shrink, and it is
- * the one thing on the page that says which product this is.
+ * WHY THE BAR AND THE TAGLINE GO AND THE NAME STAYS. A share card is read
+ * at about 500 px wide in a feed, next to a headline. The load bar and the
+ * joke under it belong to a boot that is not happening, and the tagline is
+ * 11 px of spaced capitals that turn to dust at that size. The name
+ * survives the shrink, and it is the one thing on the card that says which
+ * product this is.
+ *
+ * WHY A PALETTE. The frame is a photograph as far as PNG is concerned,
+ * about 700 KB at full colour, and a crawler fetches it for every share.
+ * Quantised to 256 colours by libimagequant, through Pillow, the same
+ * Python the key art is graded with, it is under 300 KB, and its dither
+ * keeps the sunset free of the bands and stray red pixels that Pillow's
+ * own median cut and octree leave in it. index.html's meta tags declare
+ * image/png, so it stays a PNG.
  *
  * REGENERATE, DO NOT EDIT, the same rule as the icons:
  *
@@ -57,23 +67,27 @@ const W = 1200;
 const H = 630;
 
 /*
- * Everything in the overlay that is not the wordmark. `.brand-best` is the
- * lap chip, which says "No lap recorded yet" on a fresh browser and would
- * put that sentence on every share of the site.
+ * Everything that is not the art and the name: the title screen under the
+ * loading screen, the load bar and its joke, the failure panel and the
+ * tagline.
  */
-const HIDE = [
-  '.menu-stage', '.hint', '.lede', '.title-foot',
-  '.bug-chip', '.brand-best', '.keep-note', '.first-note', '.beta-note',
-];
+const HIDE = ['#ui', '.loading-status', '.loading-help', '.loading-tag'];
 
-/* Camera, then the point it looks at. Metres, world frame. */
-const CAM = [5, 1.4, 41, -0.5, 1.4, 24];
-
-const hide = `${JSON.stringify(HIDE)}.forEach((s) => document.querySelectorAll(s)`
+const show = `const l = document.getElementById('loading');`
+  + `l.hidden = false; l.style.opacity = '1';`
+  + `${JSON.stringify(HIDE)}.forEach((s) => document.querySelectorAll(s)`
   + `.forEach((n) => { n.style.display = 'none'; }));`
-  + `const k = document.querySelector('.music-skip');`
-  + `if (k && k.parentElement) { k.parentElement.style.display = 'none'; }`
-  + `'hidden'`;
+  + `'shown'`;
+
+/* LIBIMAGEQUANT by name, so a Pillow built without it fails here instead
+ * of quietly handing back a quantiser that bands the sky. */
+const quantise = `
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1]).convert('RGB')
+img.quantize(colors=256, method=Image.Quantize.LIBIMAGEQUANT,
+             dither=Image.Dither.FLOYDSTEINBERG).save(sys.argv[2], optimize=True)
+`;
 
 const targets = (process.argv.slice(2).length ? process.argv.slice(2) : ['.'])
   .map((d) => resolve(root, d));
@@ -85,22 +99,19 @@ try {
     `--out=${out}`,
     `--w=${W}`,
     `--h=${H}`,
-    /* Headless Chromium rasterises on the CPU, so boot would otherwise
-     * detect a slow machine and drop the preset, and the card would come out
-     * at a different quality depending on who regenerated it. */
-    '--graphics=high',
-    /* The track this camera is set for, seated as one of the pilot's own. */
-    '--course=scripts/gatecards-track.json',
-    'until:!!window.__boot && window.__boot().frames > 2',
-    'until:window.__map && window.__map().id === "alps" && window.__map().ready && window.__race().gates.length === 6',
-    `eval:(() => { ${hide} })()`,
+    /* The world behind the loading screen is never seen, so it boots at the
+     * cheapest preset: at High, headless Chromium's software rasteriser
+     * took about 25 s to draw the first frame, longer than an until: waits. */
+    '--graphics=low',
+    /* Gone, not fading: finish() in src/ui/loading.js hides the screen
+     * 320 ms after it starts the fade, and a screen shown again before
+     * that would be hidden again under the capture. */
+    "until:document.getElementById('loading').hidden",
+    `eval:(() => { ${show} })()`,
+    /* The art is preloaded in the head, so this is for layout and paint,
+     * not for the fetch. */
     'wait:400',
-    `eval:JSON.stringify((() => { window.__setCam(${CAM.join(',')});`
-      + ' window.__ogFrame = window.__boot().frames; return "camera"; })())',
-    /* Frames, not milliseconds. __setCam takes effect on the next animation
-     * frame, and a wall clock wait would sometimes capture the frame before
-     * the camera moved. */
-    'until:window.__boot().frames > window.__ogFrame + 4',
+    'expect:getComputedStyle(document.getElementById("loading")).backgroundImage.includes("wide.webp")',
     'shot:og',
   ], { cwd: root, stdio: 'inherit' });
 
@@ -108,9 +119,16 @@ try {
     throw new Error(`shots.js exited ${run.status}`);
   }
 
+  const card = join(out, 'og-256.png');
+  const q = spawnSync('python3', ['-c', quantise, join(out, 'og.png'), card],
+    { cwd: root, stdio: 'inherit' });
+  if (q.status !== 0) {
+    throw new Error(`quantising og.png exited ${q.status}`);
+  }
+
   for (const dir of targets) {
     await mkdir(dir, { recursive: true });
-    await copyFile(join(out, 'og.png'), join(dir, 'og.png'));
+    await copyFile(card, join(dir, 'og.png'));
     console.log(`og.png -> ${join(dir, 'og.png')}`);
   }
 } finally {
