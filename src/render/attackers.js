@@ -25,6 +25,12 @@
  * under it). Its fire and smoke, and a defender's warhead, are
  * src/render/explosion.js's, which the shell throws beside this.
  *
+ * THE STRIKER (and the decoy, which is one to look at) is
+ * src/render/strikercraft.js's airframe: a panelled aluminium delta whose
+ * colours ride in its vertices like every kind's, under a material of its
+ * own that carries the panel texture and turns the prop in the vertex
+ * shader, so its kind is still one draw call and the prop still spins.
+ *
  * NAV LIGHTS, opt in (createAttackers({ navLights: true }), NAV_LIGHTS
  * below): a night mission's own hook, off by default so a day flight
  * never spends the extra draw call. One more instanced mesh a kind that
@@ -55,6 +61,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial } from './celmat.js';
+import { strikerSkin, strikerSpin, strikerWarGeometry } from './strikercraft.js';
 import { KINDS } from '../share/war/routes.js';
 
 /* Instances a kind starts with; it doubles when a wave needs more. */
@@ -108,14 +115,11 @@ function slab(points, thick) {
 const PAINT = {
   scout: { body: 0xb4b9bf, dark: 0x2a2d31, prop: 0x3a3d42, lens: 0x16181b },
   loiter: { body: 0x5c6844, dark: 0x30362a, prop: 0x2a2d31, lens: 0x16181b },
-  strike: { body: 0x4b5057, dark: 0x33373c, prop: 0x25282c, lens: 0x16181b },
   fpv: { body: 0x1d1e21, arm: 0x2b2c30, prop: 0x3b3d42, motor: 0x8c9096, load: 0x6a6b3c },
   hunter: { body: 0x1d1e21, arm: 0xd2541e, prop: 0xe8742e, motor: 0x8c9096, load: 0x9a2a1c },
   boat: { hull: 0x3c4146, deck: 0x5a6066, dark: 0x25282c, motor: 0x1e2023 },
   jammer: { deck: 0x6b5b3e, drum: 0x2b2f33, mast: 0x8a8f94, whip: 0xd0d4d7, box: 0x4a573a },
 };
-/* A decoy is a Striker to look at, paint and all (mission 3). */
-PAINT.decoy = PAINT.strike;
 
 function scout(c) {
   const parts = [
@@ -148,19 +152,6 @@ function loiter(c) {
     wing(0.46, 0.1, 0.42, Math.PI / 4),
     wing(0.46, 0.1, 0.42, -Math.PI / 4),
     part(discZ(0.14), c.prop, { at: [0, 0, 0.58] }),
-  ];
-}
-
-function strike(c) {
-  return [
-    /* The delta, 2.5 m across, its root 2.6 m. */
-    part(slab([[0, -1.35], [1.25, 0.95], [1.05, 1.15], [-1.05, 1.15], [-1.25, 0.95]], 0.07), c.body),
-    part(box(0.34, 0.22, 2.1), c.dark, { at: [0, 0.1, 0.05] }),
-    part(noseZ(0.14, 0.4, 8), c.dark, { at: [0, 0.08, -1.0] }),
-    part(box(0.03, 0.34, 0.36), c.body, { at: [-1.12, 0.17, 0.95] }),
-    part(box(0.03, 0.34, 0.36), c.body, { at: [1.12, 0.17, 0.95] }),
-    part(tubeZ(0.12, 0.3), c.dark, { at: [0, 0.1, 1.2] }),
-    part(discZ(0.38), c.prop, { at: [0, 0.1, 1.38] }),
   ];
 }
 
@@ -217,8 +208,16 @@ function jammer(c) {
 }
 
 const BUILD = {
-  scout, loiter, strike, fpv: quad, hunter: quad, boat, jammer, decoy: strike,
+  scout, loiter, fpv: quad, hunter: quad, boat, jammer,
 };
+
+/* The kinds drawn as the Striker; a decoy is one to look at (mission 3). */
+const STRIKERS = new Set(['strike', 'decoy']);
+
+/* How far the Striker's prop turns a drawn frame, radians: a visibly
+ * aliased fraction of a real one's speed, the way a prop reads on a
+ * camera, as the shell turns its own (src/main.js). */
+const STRIKER_SPIN_STEP = 0.9;
 
 /*
  * Night's own hook, opt in (createAttackers({ navLights: true }), off by
@@ -261,6 +260,9 @@ export const DEATH = {
 
 /* The kind's model: one merged geometry, its colours in vertices. */
 export function attackerGeometry(kind) {
+  if (STRIKERS.has(kind)) {
+    return strikerWarGeometry({ propulsion: 'prop' });
+  }
   const g = mergeGeometries(BUILD[kind](PAINT[kind]), false);
   g.computeBoundingSphere();
   return g;
@@ -288,6 +290,20 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
   group.name = 'attackers';
   const mat = celMaterial({ color: 0xffffff });
   mat.vertexColors = true;
+  /* The Striker's own, made when the first one flies. */
+  let striker = null;
+  function materialFor(kind) {
+    if (!STRIKERS.has(kind)) {
+      return mat;
+    }
+    if (!striker) {
+      const skin = strikerSkin();
+      const m = celMaterial({ color: 0xffffff, map: skin, key: 'striker-skin', rim: 0.30, spec: 0.45, specWidth: 0.02 });
+      m.vertexColors = true;
+      striker = { mat: m, skin, spin: strikerSpin(m) };
+    }
+    return striker.mat;
+  }
   const meshes = new Map();
   const navMeshes = new Map();
   let navMat = navLights ? new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }) : null;
@@ -313,7 +329,7 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
       group.remove(mesh);
       mesh.dispose();
     }
-    mesh = new THREE.InstancedMesh(geo, mat, cap);
+    mesh = new THREE.InstancedMesh(geo, materialFor(kind), cap);
     mesh.name = `attackers-${kind}`;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     /* The instances are kilometres apart and the geometry's own sphere is
@@ -414,6 +430,11 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
           navMesh.instanceColor.needsUpdate = true;
         }
       }
+      /* One turn of the prop a drawn frame, for every Striker at once (the
+       * decoy shares the material). */
+      if (striker) {
+        striker.spin.uSpin.value = (striker.spin.uSpin.value + STRIKER_SPIN_STEP) % (2 * Math.PI);
+      }
       drawnList = list;
     },
 
@@ -484,6 +505,11 @@ export function createAttackers({ debris = null, floorAt = () => -Infinity, navL
       }
       meshes.clear();
       mat.dispose();
+      if (striker) {
+        striker.mat.dispose();
+        striker.skin.dispose();
+        striker = null;
+      }
       /* navDotGeometry is shared by every layer this session has made
        * (module scope: one sphere for whatever count of kinds fly), so
        * only the meshes and the material are this layer's to free. */
