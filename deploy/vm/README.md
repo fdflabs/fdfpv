@@ -49,7 +49,9 @@ Worker and the simulator's two origins are the same string.
   database `fdfpvboard` under `/var/lib/pgsql/data`. The board connects
   over the Unix socket with peer authentication as `fdfpv-board`, so there
   is no database password. It listens on loopback only. Why Postgres and
-  not the board's JSON file is in the board's README.
+  not the board's JSON file is in the board's README. Its one change from
+  stock is a systemd drop-in, `postgresql.conf` here, installed by
+  `board-install.sh`: `MemoryMax=256M`, from a measured peak written in it.
 - State in `/var/lib/fdfpv-rooms/rooms.db` (a private room's code and race,
   so pilots reconnect into their seats after a restart) and
   `/var/lib/fdfpv-tracks/tracks.db` (every track). The tracks admin secret

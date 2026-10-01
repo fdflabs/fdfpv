@@ -52,7 +52,13 @@ if [[ $(pgq "SELECT 1 FROM pg_database WHERE datname = 'fdfpvboard'") != 1 ]]; t
 fi
 
 put "$HERE/fdfpv-board.service" /etc/systemd/system/fdfpv-board.service || true
+# Postgres's memory ceiling (postgresql.conf here). Postgres is not
+# restarted for it: daemon-reload should apply a changed MemoryMax to the
+# running service's cgroup, and the line below prints what is configured
+# and what the cgroup holds, so a difference is seen, not assumed away.
+put "$HERE/postgresql.conf" /etc/systemd/system/postgresql.service.d/fdfpv.conf || true
 systemctl daemon-reload
+say "postgresql MemoryMax $(systemctl show -p MemoryMax --value postgresql), in force $(cat /sys/fs/cgroup/system.slice/postgresql.service/memory.max)"
 systemctl enable -q fdfpv-board
 systemctl restart fdfpv-board
 apply_caddy

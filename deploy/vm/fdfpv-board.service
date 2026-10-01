@@ -63,9 +63,8 @@ TimeoutStopSec=5
 # base64, the decoded images; an estimate, not a measurement), so 256M
 # still leaves room for several at once and stays where it was.
 #
-# Postgres has no ceiling of its own: its unit peaked at 144 MB over two
-# runs of the check, page cache included, under the stock 128 MB
-# shared_buffers.
+# Postgres has a ceiling of its own, 256M, in the drop-in postgresql.conf
+# beside this file, with its measurement.
 MemoryMax=256M
 
 NoNewPrivileges=yes
