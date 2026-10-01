@@ -148,6 +148,14 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             the width and the reach this file measures are both the
  *             rudder's, 1769 mm, and the plan's 61.7 in span is held by
  *             src/render/uglystikcraft.js UGLYSTIK_DIMS.
+ *   7inch, 10inch  the combat quads of docs/COMBAT-DRONES.md: a 315 mm and
+ *             a 420 mm true X under 7 and 10 inch props, so the span is
+ *             the motor's axis offset plus the prop's radius, doubled, and
+ *             the sweep the arm plus the radius, doubled. Seated, each
+ *             carries what a pilot who never chose flies, the standard
+ *             payload, whose nose stays inside the props' reach; it stands
+ *             on landing legs at the hull's depth. src/render/combatcraft.js
+ *             draws them.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -174,6 +182,8 @@ const REAL = {
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
+  '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
+  '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
@@ -374,6 +384,11 @@ async function main() {
     if (af.fixedWing) {
       /* The Skyhunter's belly skid and the Bramor's belly are the lowest
        * drawn things, and each hull reaches about as far. */
+      near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
+    } else if (af.combat) {
+      /* A combat quad's legs are drawn to the hull's depth, which the plant
+       * parks it on with or without a payload (docs/COMBAT-DRONES.md
+       * section 2.3). */
       near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
     } else if (af.id === '5inch') {
       pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 15.0,
