@@ -52,6 +52,7 @@ import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
 import { makeLook } from './itaipu/look/index.js';
 import { buildPart as buildDam } from './itaipu/dam/index.js';
 import { buildPart as buildWater } from './itaipu/water/index.js';
+import { meetDam } from './itaipu/water/meet.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
@@ -247,6 +248,9 @@ async function buildItaipu(shell, progress, q, time) {
     }),
     readData(base, manifest),
   ]);
+  /* The water brought to the dam's faces (water/meet.js) before anything
+   * reads it, so the drawn sheet and the plant's lake are one outline. */
+  data['water.json'] = meetDam(data['water.json'], data['dam.json']);
   const { scene } = look;
   progress(0.2);
   await yieldToPaint();

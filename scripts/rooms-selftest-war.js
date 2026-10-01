@@ -36,6 +36,7 @@ import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { createRoomWar } from '../src/share/roomwar.js';
+import { waveStatus } from '../src/ui/warhud.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LATE_MS } from '../src/game/midair.js';
 
@@ -79,10 +80,10 @@ function hover(p) {
  * the host at room ms 0 unless `start` is false.
  */
 function warRoom({
-  n = 2, pub = false, map = 'itaipu', mission = null, air = 'cub1400', start = true,
+  n = 2, pub = false, map = 'itaipu', mission = null, air = 'cub1400', start = true, code = 'W4RR00',
 } = {}) {
   const r = new RoomCore({
-    code: 'W4RR00', cap: pub ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map, epoch: 0, public: pub,
+    code, cap: pub ? PUBLIC_CAP : PRIVATE_CAP, friendly: false, map, epoch: 0, public: pub,
   });
   r.war.missions = { ...MISSIONS, ...(mission ? { [mission.id]: mission } : {}) };
   r.war.random = () => 0.25;
@@ -320,6 +321,12 @@ export function warSection(check) {
     check('a skip outside a briefing does nothing: the countdown under way keeps its go', s.of(1).length === sent && s.view().goAt === 5000 + COUNTDOWN_MS);
     s.fly(5000 + COUNTDOWN_MS + 40);
     check('and goes live at it', s.view().state === 'live');
+    check('the round\'s clock is the go the skip set, not the one the full briefing had', s.view().roundAt === 5000 + COUNTDOWN_MS,
+      `roundAt ${s.view().roundAt}, go ${5000 + COUNTDOWN_MS}`);
+    s.fly(5000 + COUNTDOWN_MS + 1040);
+    const skipBorn = s.of(1, 'born');
+    check('so the first wave is born at its time after that go, not an intro later', skipBorn.length === 1
+      && skipBorn[0].agents[0].t0 === 5000 + COUNTDOWN_MS + 1000, JSON.stringify(skipBorn.map((b) => b.agents[0].t0)));
 
     const r = warRoom({ mission: plain, start: false });
     r.say(0, {
@@ -899,5 +906,113 @@ export function warSection(check) {
     e.apply(e.r.safety.remove(e.socks[2], e.clock));
     check('a pilot who left, and one removed by the room\'s safety, are gone from it (safety.js calls the games\' leave)',
       !e.r.war.seats.has(2) && !e.r.war.seats.has(3) && !e.r.combat.seats.has(3) && e.r.war.seats.has(1));
+  }
+
+  console.log('war: the HUD always says what comes next');
+  {
+    /*
+     * The campaign as the owner flew it on 2026-10-01: mission 1 in a room
+     * of its own, then mission 2 in another, each that room's war 1. The
+     * shell keyed its once per war work (the intro, the begin) on the id
+     * alone, took mission 2 for mission 1, played no intro, and left the
+     * pilot in a briefing with the HUD up and no word of what came next.
+     * Here one roomwar client is carried from the first room to the
+     * second, as the shell's is, and the HUD's line (warhud waveStatus)
+     * is read off it four times a second, through mission 2 to its end,
+     * once with the whole intro and once with the host skipping it.
+     */
+    const feed = (c, so, from) => {
+      for (const m of so.got.slice(from)) {
+        if (m && m.type === 'welcome') {
+          c.onWelcome(m);
+        } else if (m && m.type === 'war') {
+          c.onMessage(m);
+        }
+      }
+      return so.got.length;
+    };
+    /* On, for the HUD: roomwar's on() leaves the briefing out. */
+    const ON = new Set(['briefing', 'countdown', 'live']);
+    for (const skip of [false, true]) {
+      const c = createRoomWar(() => {});
+      const one = warRoom({ n: 1, start: false, code: 'M1SS10' });
+      one.say(0, {
+        type: 'war', op: 'start', mission: 'itaipu-1', intro: true,
+      });
+      one.fly(3000);
+      one.say(0, { type: 'war', op: 'end' });
+      feed(c, one.socks[0], 0);
+      const first = c.match();
+      c.clear();
+      const two = warRoom({ n: 1, start: false, code: 'M1SS20' });
+      two.paths[0] = hover([0, 400, 0]);
+      two.say(0, {
+        type: 'war', op: 'start', mission: 'itaipu-2', intro: true,
+      });
+      let read = feed(c, two.socks[0], 0);
+      const label = skip ? 'mission 2, the host skipping the intro' : 'mission 2, the whole intro';
+      check(`${label}: the same war id as mission 1's room, and still another war to the shell`, c.view().id === 1 && first === 'M1SS10:1'
+        && c.match() === 'M1SS20:1', `${first} then ${c.match()}`);
+      if (skip) {
+        two.fly(4000);
+        two.say(0, { type: 'war', op: 'skipIntro' });
+      }
+      const blank = [];
+      const states = new Set();
+      /* NEXT WAVE IN's seconds, by the wave it counts to. */
+      const clocks = new Map();
+      let t = two.clock;
+      while (t < 20 * 60 * 1000) {
+        t += 250;
+        two.fly(t);
+        read = feed(c, two.socks[0], read);
+        const v = c.view();
+        if (!ON.has(v.state)) {
+          break;
+        }
+        states.add(v.roundState === 'result' ? 'result' : v.state);
+        const next = waveStatus(v, c.mission(), t);
+        if (!next || !next.text) {
+          blank.push(`${t} ${v.state}/${v.roundState} wave ${v.wave}`);
+        } else if (/^NEXT WAVE IN /.test(next.text)) {
+          const key = `round ${v.round} wave ${v.wave}`;
+          clocks.set(key, [...(clocks.get(key) ?? []), next.s]);
+        }
+      }
+      check(`${label}: it went through the briefing (unless skipped), countdown, live and a round's result, and ended`,
+        [...(skip ? [] : ['briefing']), 'countdown', 'live', 'result'].every((x) => states.has(x)) && !ON.has(c.view().state),
+        `${[...states].join()} then ${c.view().state}`);
+      check(`${label}: the HUD said what comes next at every read while the war was on`, blank.length === 0, blank.slice(0, 3).join(' | '));
+      /* Round 1's waves are all announced at the go (BIRTH_LEAD_MS), so
+       * the first clock is round 2's strike at 30 s. */
+      const runs = [...clocks.values()];
+      check(`${label}: NEXT WAVE IN counted down to each wave it named, round 2's 30 s strike among them`,
+        clocks.has('round 2 wave 3') && runs.every((x) => x.length >= 2 && x[0] > x.at(-1) && x.every((y, i) => i === 0 || y <= x[i - 1])),
+        [...clocks].map(([k, x]) => `${k}: ${x[0]}..${x.at(-1)}`).join(', '));
+    }
+
+    /* Every view a war can show, and the ones it should not but might: a
+     * room from before roundAt in round 2, a mission this build lacks. */
+    const m2 = MISSIONS['itaipu-2'];
+    const base = {
+      state: 'live', goAt: 10000, round: 1, roundState: 'live', roundAt: 10000, wave: 0, alive: 0,
+    };
+    const cases = [
+      ['briefing', { ...base, state: 'briefing' }, m2, /^ENGAGE IN 0:0\d$/],
+      ['countdown', { ...base, state: 'countdown' }, m2, /^ENGAGE IN /],
+      ['a wave due', base, m2, /^NEXT WAVE IN 0:09$/],
+      ['a wave at its time', base, m2, /^WAVE INBOUND$/, 12000],
+      ['a round\'s result', { ...base, roundState: 'result', nextRoundAt: 20000 }, m2, /^NEXT ROUND IN 0:17$/],
+      ['a result with no next round time', { ...base, roundState: 'result', nextRoundAt: null }, m2, /NOT KNOWN/],
+      ['round 2 from a room with no roundAt', { ...base, round: 2, roundAt: undefined, wave: 2 }, m2, /NOT KNOWN/],
+      ['a mission this build lacks', base, null, /NOT KNOWN/],
+      ['the last wave out, contacts up', { ...base, round: 5, wave: m2.waves.length, alive: 3 }, m2, /^LAST WAVE/],
+      ['the last wave out, none up', { ...base, round: 5, wave: m2.waves.length }, m2, /^ROUND CLEAR$/],
+    ];
+    for (const [name, v, mi, want, now = 3000] of cases) {
+      const got = waveStatus(v, mi, now);
+      check(`the HUD's line, ${name}: ${want}`, Boolean(got) && want.test(got.text), got ? got.text : 'nothing');
+    }
+    check('and nothing once the war is over or not on', ['lobby', 'won', 'lost', 'ended'].every((state) => waveStatus({ ...base, state }, m2, 3000) === null));
   }
 }

@@ -572,13 +572,14 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 26 (the town is 8 of them,
+ * itaipu: itaipu.js and src/maps/itaipu/, 27 (the town is 8 of them,
  * the vegetation 3, the spawns and the title's flight 2, the war's
- * switchyard 2, and look/night.js, mission 4's fixtures, loaded whether
- * the map is built for day or night). The Yellowstone terrain engine and
+ * switchyard 2, look/night.js, mission 4's fixtures, loaded whether
+ * the map is built for day or night, and water/meet.js, where the water
+ * meets the dam). The Yellowstone terrain engine and
  * the swiss2 look it is built with are under their own prefixes, as the
  * Alps' modules are for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 26 };
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 27 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -2576,7 +2577,7 @@ export async function boot({
   /* The events of each frame as they were taken, for window.__war. */
   const warLog = [];
   const WAR_LOG_MAX = 400;
-  /* The war this shell has begun for (warBegin), by the room's id. */
+  /* The war this shell has begun for (warBegin), by roomWar.match(). */
   let warBegunId = null;
   let warHudAt = 0;
   let warDrawnAt = null;
@@ -2864,7 +2865,7 @@ export async function boot({
    * so a pilot already flying starts again on the slot (as Catch the Ace
    * does) and one on a room screen takes off. */
   function warBegin(v, wallMs) {
-    warBegunId = v.id;
+    warBegunId = roomWar.match();
     warCalls.reset();
     warTargetsClear();
     for (const id of v.down || []) {
@@ -2907,8 +2908,8 @@ export async function boot({
    */
   let warIntro = null;
   let warIntroFor = null;
-  /* The war whose briefing this shell has shown: once, however long the
-   * room stays in it after a skip. */
+  /* The war whose briefing this shell has shown (roomWar.match()): once,
+   * however long the room stays in it after a skip. */
   let warIntroShown = null;
   let warIntroFov = 0;
 
@@ -2943,8 +2944,8 @@ export async function boot({
 
   function warIntroFrame(v, roomNow) {
     const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
-    if (briefing && warIntroShown !== v.id) {
-      warIntroShown = v.id;
+    if (briefing && warIntroShown !== roomWar.match()) {
+      warIntroShown = roomWar.match();
       audio.setWarBed('intro');
       warIntroPlay(v.id, {
         startMs: roomNow - v.briefAt,
@@ -3144,7 +3145,7 @@ export async function boot({
     const v = roomWar.view();
     warNightFrame();
     warIntroFrame(v, now);
-    if (roomWar.on() && v.id !== warBegunId) {
+    if (roomWar.on() && roomWar.match() !== warBegunId) {
       warBegin(v, wallMs);
     } else if (!roomWar.on() && warBegunId != null) {
       warFinish();
@@ -3152,8 +3153,8 @@ export async function boot({
     /* A new round: everybody back in the air on its slot, as a war's
      * begin puts them, and the radio says how the last one went. */
     const round = roomWar.live() ? roundOf(v) : null;
-    const roundKey = round ? `${v.id}:${round.n}:${round.state}` : null;
-    if (round && roundKey !== warRoundSeen && warRoundSeen && warRoundSeen.startsWith(`${v.id}:`)) {
+    const roundKey = round ? `${roomWar.match()}/${round.n}:${round.state}` : null;
+    if (round && roundKey !== warRoundSeen && warRoundSeen && warRoundSeen.startsWith(`${roomWar.match()}/`)) {
       if (round.state === 'live' && mode === 'flight') {
         ui.onAction('restart');
       } else if (round.state === 'result') {
