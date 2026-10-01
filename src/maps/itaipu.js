@@ -52,6 +52,7 @@ import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
 import { makeLook } from './itaipu/look/index.js';
 import { buildPart as buildDam } from './itaipu/dam/index.js';
 import { buildPart as buildWater } from './itaipu/water/index.js';
+import { meetDam } from './itaipu/water/meet.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
@@ -73,11 +74,6 @@ const SPAWN = CREST_SPAWN;
  * this map's water (src/game/water.js): light air from the north east,
  * which crosses the reservoir's longest reach (water.json's fetch). */
 const WIND = { speed: 2, fromDeg: 45 };
-
-/* Mission 4's window glow (look/night.js): one building in this many of
- * the town's, so Foz do Iguacu's thousands become a few dozen lit
- * windows, not one instanced mesh the size of the town itself. */
-const WINDOW_SAMPLE = 40;
 
 /* The parts, in the order the plan merges them, each with its share of
  * the loading bar's parts stage. */
@@ -252,6 +248,9 @@ async function buildItaipu(shell, progress, q, time) {
     }),
     readData(base, manifest),
   ]);
+  /* The water brought to the dam's faces (water/meet.js) before anything
+   * reads it, so the drawn sheet and the plant's lake are one outline. */
+  data['water.json'] = meetDam(data['water.json'], data['dam.json']);
   const { scene } = look;
   progress(0.2);
   await yieldToPaint();
@@ -299,19 +298,17 @@ async function buildItaipu(shell, progress, q, time) {
     await yieldToPaint();
   }
   colliders.build();
-  /* Mission 4's fixtures (look/night.js), a no-op by day: the town's
-   * lamps (model.js's own lampPieces, read back as town.lampsAt), a
-   * sample of its buildings for the windows, and the dam's own war
-   * targets for the powerhouse and the intake gates. Never the dam's or
-   * the town's geometry itself. */
+  /* Mission 4's fixtures (look/night.js), a no-op by day: from the
+   * town's model (its buildings, towers and dressed road's lamps), its
+   * roads and substations, the dam's powerhouse, and what the parts drew
+   * (the dam's lamps, the town's walls), never their geometry itself. */
   look.dressNight({
-    lampsAt: parts.town.town.lampsAt,
-    windowsAt: parts.town.town.buildings
-      .filter((_, i) => i % WINDOW_SAMPLE === 0)
-      .map((b) => [b.x, b.rec.ty + b.rec.dy * 0.7, b.z]),
-    powerhouseAt: Object.values(parts.dam.targets)
-      .filter((t) => t.part === 'intake')
-      .map((t) => t.at),
+    ground,
+    half: HERO_HALF,
+    roads: data['osm/roads.json'].features,
+    substations: data['osm/power.json'].substations,
+    town: parts.town.town,
+    powerhouse: data['dam.json'].find((p) => p.part === 'powerhouse') ?? null,
   });
   const roofs = makeRoofs(roofRecords);
   const streamer = makeStreamer(colliders, Object.values(parts), () => roofs.cover(colliders, 0, 0, -Infinity));
@@ -397,6 +394,9 @@ async function buildItaipu(shell, progress, q, time) {
     setTargetState(id, state) {
       return parts.dam.setTargetState(id, state, this.targets);
     },
+    /* The night raid's lights, district by district (src/share/war/grid.js
+     * levels, from the room's war state): nothing by day. */
+    setPower: (levels) => look.setPower(levels),
     setNextGate() {},
     targetAim: () => AIM,
     approachSide: () => null,

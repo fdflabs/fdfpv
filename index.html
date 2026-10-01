@@ -1343,8 +1343,7 @@
       .first-note { display: none; }
       .screen-title.is-first .first-note { display: block; }
       .screen-title.is-first .keep-note:not(.first-note),
-      .screen-title.is-first .brand-best,
-      .screen-title.is-first .wiki-teaser { display: none; }
+      .screen-title.is-first .brand-best { display: none; }
       /* The gate. Everything about a seat comes off the screen, because
          the pilot has not said yet whether they are flying it, and
          everything about the product comes off too: the gate is one
@@ -1353,7 +1352,6 @@
          before the lap and not after it. */
       .screen-title.is-gate .keep-note,
       .screen-title.is-gate .brand-sub,
-      .screen-title.is-gate .wiki-teaser,
       .screen-title.is-gate .brand-best { display: none; }
       /*
        * THE GATE'S TWO CARDS.
@@ -1437,7 +1435,7 @@
         font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sakura);
       }
       .gate-rooms-count {
-        min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        min-width: 0;
         font-size: 14px; font-weight: 650; color: var(--mint);
       }
       .gate-rooms-list, .gate-rooms-buttons { display: flex; gap: 6px; min-width: 0; }
@@ -1448,7 +1446,10 @@
         background: rgba(244, 236, 214, 0.06);
         box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.12);
       }
-      .gate-room-name, .gate-room-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      /* A room's name and load wrap rather than end in an ellipsis: a typed
+         name runs to 32 letters and the name is what a pilot picks the room
+         by, so "Sunday Field Pr..." is a room nobody can find again. */
+      .gate-room-name, .gate-room-value { min-width: 0; overflow-wrap: anywhere; }
       .gate-room-name { font-size: 14.5px; font-weight: 650; color: var(--cream); }
       .gate-room-value { font-size: 12px; color: rgba(235, 230, 215, 0.72); }
       .gate-room-all, .gate-room-make { align-items: center; }
@@ -1562,20 +1563,6 @@
       }
       .craft-plan { width: 100%; height: 100%; color: var(--cream); }
 
-      .wiki-teaser {
-        display: inline-flex; align-items: center; gap: 10px;
-        margin: 14px 0 0; padding: 0; border: 0; background: none;
-        color: var(--sakura); font: inherit; font-size: 13.5px;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        cursor: pointer; pointer-events: auto; text-align: left;
-        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
-      }
-      .wiki-teaser:hover, .wiki-teaser:focus-visible { color: var(--cream); }
-      .wiki-teaser::before {
-        content: "";
-        width: 28px; height: 2px; flex: 0 0 auto;
-        background: var(--sakura);
-      }
       .screen-title .brand-sub {
         text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75);
       }
@@ -1803,26 +1790,6 @@
       .screen-title.has-help .keep-note,
       .screen-title.has-help .first-note {
         opacity: 0;
-      }
-      /*
-       * AND THE TEASER, which is the third block of copy in this column and
-       * was left out of the handoff above. The note grows upward out of
-       * flow from the menu's top edge and lands exactly on it, so the front
-       * page drew two sentences on top of each other the moment the cursor
-       * moved off Fly: "2022 AU Nationals, and every other track" printed
-       * through "Simulating FPV, for nerds". Same transition as its two
-       * neighbours so the three fade as one block.
-       *
-       * pointer-events with the opacity, because unlike the notes this one
-       * is a BUTTON, and a button that is invisible but still clickable is
-       * worse than one that is not there.
-       */
-      .screen-title .wiki-teaser {
-        transition: opacity 140ms ease;
-      }
-      .screen-title.has-help .wiki-teaser {
-        opacity: 0;
-        pointer-events: none;
       }
       .craft-showcase {
         grid-column: 1;
@@ -2461,6 +2428,11 @@
         max-width: 52%; overflow: hidden; text-overflow: ellipsis;
         white-space: nowrap; text-align: right;
       }
+      /* The room list's values are the reason to pick a row (how full, how
+         long it stays open, which world), so they wrap on a narrow window
+         rather than end in an ellipsis: at 390 px every empty room read
+         "Empty, closes in 3 ...". */
+      .screen-rooms .row-value { white-space: normal; }
       .row-control {
         display: flex; align-items: center; gap: 8px; flex: 0 1 auto; min-width: 0;
       }
@@ -3041,8 +3013,7 @@
         }
         .screen-title.is-gate .brand { display: block; }
         .screen-title.is-gate .brand .beta-note { margin: 10px 0 0; }
-        .screen-title .keep-note,
-        .screen-title .wiki-teaser { display: none; }
+        .screen-title .keep-note { display: none; }
         /* The storage note above goes at this width. The beta notice does
            not: a phone hits the same bugs a desktop does, and it is one
            line where that note was four. */
@@ -3092,6 +3063,15 @@
         .gate-room-name { font-size: 13.5px; }
         .gate-room-value { font-size: 11px; }
         .gate-rooms-buttons .gate-room { padding: 5px 8px; }
+        /* The rooms one under another, each a line: name, then its load.
+           Three side by side were 92 px each at 390, which cut every name
+           and every "Join, empty, 4 min left" in it. */
+        .gate-rooms-list { flex-direction: column; gap: 4px; }
+        .gate-rooms-list .gate-room {
+          flex: 0 0 auto; flex-direction: row; align-items: baseline;
+          justify-content: space-between; gap: 10px;
+        }
+        .gate-rooms-list .gate-room-value { flex: 0 0 auto; text-align: right; }
         .screen-title.is-gate .gate-cards {
           flex-direction: column;
           gap: 10px;
@@ -3195,6 +3175,16 @@
         .screen-title.is-gate .gate-rooms:not([hidden]) { padding: 6px 8px 7px; gap: 5px; }
         .gate-room { padding: 3px 7px; }
         .gate-rooms-buttons .gate-room { padding: 4px 7px; }
+        /* The stacked rooms a line each with no air between them: three of
+           them at the size above put the last card 21 px under the command
+           bar at 360 by 640. */
+        .gate-rooms-list { gap: 2px; }
+        .gate-rooms-list .gate-room { padding: 1px 7px; }
+        .gate-rooms-list .gate-room-name { font-size: 13px; line-height: 1.2; }
+        /* And the Beta sentence goes, the tag stays, the trade the rule for
+           a sideways phone already makes: with a 32 letter room name on two
+           lines the cards still ran 13 px under the command bar. */
+        .screen-title.is-gate .beta-note span:not(.beta-tag) { display: none; }
       }
       @media (max-height: 520px) {
         .screen-title {
@@ -3203,7 +3193,6 @@
         .screen-title .brand-sub,
         .screen-title .brand-best,
         .screen-title .keep-note,
-        .screen-title .wiki-teaser,
         .screen-title .title-foot .hint {
           display: none;
         }
@@ -3241,14 +3230,20 @@
            of it put the cards under the command bar at 844 by 390. It
            stops short of the music dock, which reaches down to it. */
         .screen-title.is-gate .gate-rooms:not([hidden]) {
-          flex-direction: row; align-items: stretch; padding: 5px 8px; gap: 6px;
+          flex-direction: row; flex-wrap: wrap; align-items: stretch; padding: 5px 8px; gap: 5px 6px;
           margin: 0 190px 0 0;
         }
-        .gate-rooms-head { flex: 0 0 8.5em; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; overflow: hidden; }
-        .gate-rooms-count { font-size: 11.5px; line-height: 1.15; white-space: normal; }
-        .gate-rooms-list { flex: 1 1 auto; }
+        .gate-rooms-head { flex: 1 1 0; align-items: center; min-width: 0; }
+        .gate-rooms-count { font-size: 11.5px; line-height: 1.15; }
         .gate-rooms-buttons { flex: 0 0 auto; }
         .gate-rooms-buttons .gate-room { flex: 0 0 auto; justify-content: center; }
+        /* The rooms on a line of their own under the count and the two
+           buttons, the panel's whole width between them. Sharing one line
+           with both left each room 60 px at 844 by 390, which cut every
+           name to four letters. */
+        .gate-rooms-list { order: 3; flex: 1 1 100%; flex-direction: row; gap: 6px; }
+        .gate-rooms-list .gate-room { flex: 1 1 0; flex-direction: column; align-items: stretch; gap: 0; }
+        .gate-rooms-list .gate-room-value { text-align: left; }
         /* A landscape phone is 390 px tall and matches the width rule above
            as well, so this undoes the stacking: side by side is the only way
            two cards fit in that height, and the sentence goes so that the
@@ -3527,15 +3522,6 @@
         color: rgba(235, 230, 215, 0.62);
         font-size: 13.5px; line-height: 1.6; text-align: center;
       }
-      .howto-wiki {
-        display: block; margin: 14px auto 0; padding: 8px 14px;
-        border: 0; border-radius: 4px; cursor: pointer; pointer-events: auto;
-        background: rgba(232, 168, 184, 0.16); color: var(--cream);
-        font: inherit; font-size: 14px;
-      }
-      .howto-wiki:hover, .howto-wiki:focus-visible {
-        background: rgba(232, 168, 184, 0.28);
-      }
 
       .cols { display: flex; gap: 6vw; flex-wrap: wrap; justify-content: center; }
       .col { max-width: 30em; }
@@ -3564,7 +3550,8 @@
         overflow-y: auto;
         overscroll-behavior: contain;
         pointer-events: auto;
-        padding: 5vh 4vw 4vh;
+        /* Clear of the command bar, which Back now rides above. */
+        padding: 5vh 4vw calc(var(--bar-bot) + 8px);
       }
       .screen-credits h2 {
         align-self: center;
@@ -3938,15 +3925,27 @@
         .maker-mark { font-size: 24px; }
         .credit-copy h4 { font-size: 17px; }
       }
+      /* Back rides the bottom of the page while the roll scrolls under it.
+         At the end of a roll a window and a half long it was 1631 px below
+         a 1600 by 900 window when the screen opened, so the one row on the
+         screen was out of sight until the pilot had scrolled every credit
+         (scripts/shell-check.js, the fold). The roll grows with every
+         source credited; this does not. */
       .screen-credits .menu-stage {
         width: min(760px, 94vw);
         margin: 12px auto 0;
         display: block;
+        position: sticky; bottom: 0; z-index: 1;
+        padding: 18px 0 0;
+        background: linear-gradient(180deg, rgba(12, 18, 14, 0), rgba(12, 18, 14, 0.97) 18px);
       }
       .screen-credits .menu {
         min-width: 0;
         width: 100%;
         margin-top: 0;
+        /* One row. The phone rule's 200 px floor is for a list, and here
+           it pushed Back's empty box down under the command bar. */
+        min-height: 0;
       }
       .screen-credits .hint { margin-left: auto; margin-right: auto; }
 
@@ -4663,12 +4662,15 @@
       .signin-chip.first-slot { top: 16px; }
       .signin-chip[hidden] { display: none; }
 
-      /* A newer deploy is out: src/ui/update.js. Bottom centre over the
-         command bar, away from the chip stack in the top right, in the same
-         chip family. Menus and Paused only; syncChips hides it in flight. */
+      /* A newer deploy is out: src/ui/update.js. IN the command bar, beside
+         the primary, in the same chip family: every screen is padded to
+         clear that bar, so it cannot sit on a card, the rooms panel or a
+         row, which it did floating above the bar. Menus and Paused only;
+         syncChips hides it in flight. Its words wrap rather than push the
+         bar past the window on a phone, two lines at most in the bar's
+         52 px. */
       .update-bar {
-        position: absolute; left: 50%; bottom: calc(var(--bar-bot) + 12px); z-index: 7;
-        transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box;
+        flex: 0 1 auto; min-width: 0; box-sizing: border-box; max-height: 100%;
         display: flex; align-items: center; gap: 12px;
         pointer-events: auto;
         border: 1px solid rgba(232, 168, 184, 0.45);
@@ -4678,16 +4680,27 @@
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
       }
       .update-bar[hidden] { display: none; }
-      /* The room's bar (src/ui/ui.js setRoomBar) sits over the update bar,
-       * so both can be up at once. */
-      .room-bar { bottom: calc(var(--bar-bot) + 58px); border-color: rgba(168, 214, 232, 0.5); }
+      .update-bar > span { min-width: 0; }
+      /* The room's bar (src/ui/ui.js setRoomBar), in the same place: the two
+       * are never up together, because a room bar asking for the reload
+       * hides the update bar and otherwise the room bar only shows with no
+       * update waiting (src/main.js roomBarView). */
+      .room-bar { border-color: rgba(168, 214, 232, 0.5); }
       .room-bar .update-reload[hidden] { display: none; }
       .update-reload {
         appearance: none; border: 1px solid var(--sakura); border-radius: 3px;
         background: transparent; color: var(--sakura); cursor: pointer;
         font: inherit; padding: 5px 10px;
       }
-      .update-reload:hover { background: var(--sakura); color: #101611; }
+      .update-reload:hover, .update-reload.on { background: var(--sakura); color: #101611; }
+      .update-reload { flex: 0 0 auto; }
+      /* A phone's command bar holds the legend or a bar, not both: side by
+         side at 390 px the legend was cut to "Enter C" and the bar's words
+         ran to three lines. The bar is the one that needs reading; the
+         legend is back the moment it goes. */
+      @media (max-width: 600px) {
+        .frame-bot:has(> .update-bar:not([hidden])) .frame-legend { display: none; }
+      }
 
       /*
        * THE AIRCRAFT PICKER (src/ui/carousel.js). The models are drawn in
@@ -4729,6 +4742,40 @@
       }
       .carousel-tab:hover { color: var(--cream); }
       .carousel-tab.on { background: var(--cream); color: var(--deep); }
+      .carousel-tab[hidden] { display: none; }
+      /* MY HANGAR (src/ui/builds.js): one more tab, set apart from the
+         stock lists by a rule, and on a build's card its plane's name, its
+         Rename and Delete, and the line either opens in place. */
+      .carousel-tab-mine { position: relative; margin-left: 9px; }
+      .carousel-tab-mine::before {
+        content: ''; position: absolute; left: -6px; top: 7px; bottom: 7px; width: 1px;
+        background: rgba(243, 234, 212, 0.28);
+      }
+      .carousel-facts[hidden], .carousel-mine-tools[hidden], .carousel-mine-form[hidden], .carousel-name[hidden] { display: none; }
+      .carousel-fact.carousel-base { color: var(--cream); border-color: rgba(243, 234, 212, 0.35); }
+      .carousel-mine-tools, .carousel-mine-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 8px; }
+      .carousel-mine-tools { margin-top: 8px; }
+      .carousel-mine-form { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+      .carousel-mine-tool {
+        appearance: none; font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; cursor: pointer;
+        padding: 8px 14px; border-radius: 999px; text-shadow: none;
+        background: rgba(12, 18, 14, 0.55); color: var(--cream); border: 1px solid rgba(243, 234, 212, 0.3);
+      }
+      .carousel-mine-tool:hover, .carousel-mine-tool:focus-visible { border-color: var(--mint); color: var(--mint); outline: none; }
+      .carousel-mine-tool.on { background: var(--cream); color: var(--deep); border-color: var(--cream); }
+      .carousel-mine-tool.on:focus-visible { box-shadow: 0 0 0 2px var(--mint); color: var(--deep); }
+      .carousel-mine-danger { color: #ff9a8a; border-color: rgba(255, 154, 138, 0.5); }
+      .carousel-mine-danger:focus-visible, .carousel-mine-danger:hover { background: #ff9a8a; color: var(--deep); border-color: #ff9a8a; }
+      .carousel-mine-ask { margin: 0; font-size: 18px; font-weight: 700; }
+      .carousel-mine-error { margin: 0; font-size: 13px; color: var(--amber); }
+      .carousel-mine-error[hidden] { display: none; }
+      .carousel-name-field {
+        box-sizing: border-box; width: min(18em, 70vw); padding: 6px 12px; text-align: center; user-select: text;
+        font: 700 clamp(18px, 2.6vw, 26px)/1.2 var(--ui-font); color: var(--cream);
+        background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(243, 234, 212, 0.35); border-radius: 10px;
+      }
+      .carousel-name-field:focus { outline: 2px solid var(--mint); outline-offset: 1px; }
+      .carousel-choose[hidden] { display: none; }
       .carousel-stage { position: relative; min-height: 0; cursor: grab; }
       .carousel-stage:active { cursor: grabbing; }
       .carousel-arrow {
@@ -4793,6 +4840,9 @@
       @media (max-width: 560px) {
         .carousel-arrow { width: 38px; height: 38px; font-size: 24px; }
         .carousel-tab { padding: 7px 11px; }
+        /* Back, Customise and Choose in 358 px: at the wide padding Choose
+           ran off the right edge of an upright phone. */
+        .carousel-choose, .carousel-back { padding: 11px 18px; }
       }
 
       /*
@@ -4858,17 +4908,35 @@
       .hangar-floats[hidden] { display: none; }
       .hangar-tabs { position: relative; }
       .hangar-tab-pill {
-        position: absolute; top: 3px; left: 3px; height: calc(100% - 6px); width: 0;
+        position: absolute; top: 0; left: 0; height: 0; width: 0;
         border-radius: 999px; background: var(--cream);
         box-shadow: 0 2px 12px rgba(243, 234, 212, 0.25);
-        transition: transform 360ms var(--hg-spring), width 360ms var(--hg-spring);
+        transition: transform 360ms var(--hg-spring), width 360ms var(--hg-spring), height 360ms var(--hg-spring);
       }
       .hangar-tabs .hangar-tab-btn { position: relative; z-index: 1; padding: 10px 22px; font-size: 14px; transition: color 200ms; }
       .hangar-tabs .hangar-tab-btn.on { background: transparent; color: var(--deep); }
-      .hangar-body {
-        display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 410px);
-        gap: 20px; min-height: 0;
+      /* The rail: the categories one over another between the plane and
+         the panel, each a wide target, the one open filled. */
+      .hangar-tabs.carousel-tabs {
+        flex-direction: column; align-self: start; gap: 4px; padding: 6px; border-radius: 18px;
       }
+      .hangar-tabs .hangar-tab-btn { text-align: left; padding: 12px 18px; }
+      .hangar-body {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(320px, 410px);
+        gap: 16px; min-height: 0;
+      }
+      /* The spec sheet in the stage's upper corner, over the floor and
+         clear of the plane, which stands in the middle. */
+      .hangar-spec {
+        position: absolute; left: 0; top: 0; width: min(300px, 46%); pointer-events: none;
+      }
+      .hangar-spec .hangar-stats { grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; }
+      .hangar-spec .hangar-stat {
+        padding: 6px 9px; background: rgba(10, 14, 11, 0.66); backdrop-filter: blur(4px);
+      }
+      .hangar-spec .hangar-stat-label { font-size: 10px; }
+      .hangar-spec .hangar-stat-value { font-size: 15px; }
+      .hangar-spec .hangar-stat-delta { display: none; }
       .hangar-stage { position: relative; min-height: 0; cursor: grab; }
       .hangar-stage:active { cursor: grabbing; }
       .hangar-side {
@@ -5035,6 +5103,35 @@
       .hangar .carousel-hint { text-align: center; }
       .hangar button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
       .carousel-custom[hidden] { display: none; }
+      /* Wear (src/ui/hangar.js wearRow): a bar from factory new to battle
+         worn between its two steps, its fill warming as it wears. */
+      .hangar-wear-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+      .hangar-wear-bar {
+        position: relative; height: 30px; border-radius: 8px; overflow: hidden; cursor: pointer;
+        background: rgba(243, 234, 212, 0.08); border: 1px solid rgba(243, 234, 212, 0.2);
+      }
+      .hangar-wear-fill {
+        position: absolute; top: 0; bottom: 0; left: 0;
+        background: linear-gradient(90deg, rgba(125, 255, 180, 0.35), rgba(255, 212, 92, 0.55), rgba(255, 140, 90, 0.75));
+        transition: width 300ms var(--hg-ease);
+      }
+      .hangar-wear-value {
+        position: relative; display: flex; align-items: center; justify-content: center; height: 100%;
+        font: 700 14px/1 var(--ui-font); font-variant-numeric: tabular-nums;
+      }
+      .hangar-wear-ends { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: var(--slate); }
+      .paint-text-field { text-transform: uppercase; letter-spacing: 0.06em; }
+      /* My Hangar's Save as a build (src/ui/hangar.js startMine): a name in
+         the line the buttons leave. */
+      .hangar-buttons[hidden], .hangar-mine-form[hidden], .hangar-mine[hidden] { display: none; }
+      .hangar-mine-row { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+      .hangar-mine-label { font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; color: var(--slate); }
+      .hangar-mine-field { flex: 0 1 18em; }
+      .hangar-mine-form .carousel-warn { text-align: right; }
+      @media (max-width: 760px) {
+        .hangar-buttons-end { flex-wrap: wrap; justify-content: flex-end; }
+        .hangar-mine-field { flex: 1 1 100%; }
+      }
       /*
        * THE PAINT SHOP (src/ui/hangar-paint.js): the Colours tab's three
        * pages on a segmented switch, the finish chips with a ball of each
@@ -5196,7 +5293,14 @@
       }
       /* A phone upright: the plane over the panel. */
       @media (max-width: 760px) {
-        .hangar-body { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 32vh) minmax(0, 1fr); gap: 10px; }
+        .hangar-body { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 32vh) auto minmax(0, 1fr); gap: 10px; }
+        /* On a phone the rail is a row over the panel that scrolls
+           sideways rather than widening the page. */
+        .hangar-tabs.carousel-tabs {
+          flex-direction: row; max-width: 100%; overflow-x: auto; border-radius: 999px; scrollbar-width: none;
+        }
+        .hangar-tabs .hangar-tab-btn { flex: none; padding: 9px 14px; }
+        .hangar-spec { display: none; }
         .hangar-schemes { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
         .hangar-panel { gap: 8px; padding-left: 16px; padding-right: 16px; }
         .hangar-facts:not(:has(.hangar-floats)), .hangar-facts .carousel-fact { display: none; }

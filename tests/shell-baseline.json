@@ -6,7 +6,7 @@
   },
   "screens": {
     "title": {
-      "overflow": 6,
+      "overflow": 3,
       "belowFold": 0
     },
     "courses": {
@@ -51,7 +51,7 @@
     },
     "howto": {
       "overflow": 0,
-      "belowFold": 84
+      "belowFold": 35
     },
     "tricks": {
       "overflow": 1821,
@@ -59,7 +59,7 @@
     },
     "credits": {
       "overflow": 0,
-      "belowFold": 1186
+      "belowFold": 0
     }
   }
 }

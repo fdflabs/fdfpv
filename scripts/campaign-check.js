@@ -288,6 +288,28 @@ try {
   })()`);
   check('the room echoes the loadout, and no loadout op is sent on its own',
     echo.mine && echo.mine.warhead === 'wide' && echo.mine.rack === 5 && echo.sent === 0, JSON.stringify(echo));
+
+  /* A COMBAT QUAD'S PAYLOAD IS ITS WARHEAD (docs/COMBAT-DRONES.md section
+   * 3). The 7 inch chosen with the EMP, which this pilot does not own,
+   * goes as the wide it has equipped, so nothing new is said; chosen with
+   * the standard, which every pilot owns, the briefing's loadout becomes
+   * it and the room echoes it. */
+  const LOADOUT_NOW = `(() => {
+    const v = window.__war().view;
+    const sent = window.__sent.filter((m) => m && m.type === 'war' && m.op === 'loadout');
+    return { mine: v.loadouts ? v.loadouts[window.__rooms().seat] : null, sent: sent.map((m) => m.loadout.warhead) };
+  })()`;
+  await page.evaluate("(() => { window.__sent.length = 0; const s = window.__ui.settings; s.airframe = '7inch'; s.combat = { '7inch': { payload: 'emp', accessories: [] } }; return true; })()");
+  await page.sleep(1200);
+  const unowned = await page.evaluate(LOADOUT_NOW);
+  check('a combat quad\'s payload it does not own goes to war as the equipped warhead',
+    unowned.mine && unowned.mine.warhead === 'wide' && unowned.sent.length === 0, JSON.stringify(unowned));
+  await page.evaluate("(() => { window.__ui.settings.combat = { '7inch': { payload: 'standard', accessories: [] } }; return true; })()");
+  await page.until("(() => { const v = window.__war().view; const l = v.loadouts && v.loadouts[window.__rooms().seat]; return Boolean(l) && l.warhead === 'standard'; })()", 10000).catch(() => {});
+  const owned = await page.evaluate(LOADOUT_NOW);
+  check('and one it owns is the loadout\'s warhead, echoed by the room',
+    owned.mine && owned.mine.warhead === 'standard' && owned.mine.rack === 5 && owned.sent.includes('standard'), JSON.stringify(owned));
+  await page.evaluate("(() => { const s = window.__ui.settings; s.airframe = '5inch'; s.combat = {}; return true; })()");
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
   const before = await page.evaluate("JSON.stringify(window.__campaign.state())");
@@ -336,6 +358,13 @@ try {
   await page.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
   const start2 = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
   check('and it starts mission 2', start2 && start2.mission === 'itaipu-2', JSON.stringify(start2));
+  /* Mission 2's room is a new room, so its war is that room's war 1, as
+   * mission 1's was in its own: the shell took it for the war whose
+   * intro it had played, played none, and left the pilot in the briefing
+   * with no word of what came next (the owner, 2026-10-01). */
+  await page.until("window.__war().view.state === 'briefing' && window.__warIntro() !== null", 15000).catch(() => {});
+  const brief2 = await page.evaluate("(() => { const v = window.__war().view; return { id: v.id, state: v.state, intro: window.__warIntro() !== null }; })()");
+  check('mission 2\'s briefing plays the intro, though its war id is mission 1\'s', brief2.state === 'briefing' && brief2.intro, JSON.stringify(brief2));
 
   /* A PLAY DECLINED AT THE CONSENT, on a profile that has not given it
    * (docs/FLOW-AUDIT.md D6): the mission is dropped with the room it never

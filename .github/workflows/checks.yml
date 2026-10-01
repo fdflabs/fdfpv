@@ -57,6 +57,7 @@ jobs:
       - run: npm run tag:harness -- --seeds=4 --runs=6
       - run: npm run war:harness -- --seeds=3 --runs=6
       - run: npm run war:routes
+      - run: npm run war:grid
       - run: npm run marks:selftest
       - run: npm run combat:harness
       - run: npm run combat:restart
@@ -82,6 +83,7 @@ jobs:
       - run: npm run dlg:stab
       - run: npm run tigermoth:gates
       - run: npm run tigermoth:stab
+      - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest

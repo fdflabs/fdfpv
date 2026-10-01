@@ -84,11 +84,25 @@ const skey = (id) => id.replace(/-/g, '_');
  * view(): the war view (roomWar.view()). room(): { phase, code, seat }.
  */
 export function createCampaignScreen({
-  ui, inBuild, enterWarRoom, send, view, room,
+  ui, inBuild, enterWarRoom, send, view, room, craftWarhead = null,
 }) {
   const store = createCampaignStore(ui.settings, () => ui.persistSettings());
   /* Read fresh each time: an account sync may replace the section. */
   const cur = () => store.load();
+  /* The loadout the room is told: the campaign's, with the warhead the
+   * seated aircraft carries when it carries one, a combat quad's payload
+   * (docs/COMBAT-DRONES.md section 3). craftWarhead(allowed, equipped) is
+   * the shell's; allowed is what this pilot owns, and the standard. */
+  const loadoutNow = () => {
+    const st = cur();
+    const l = loadoutOf(st);
+    if (!craftWarhead) {
+      return l;
+    }
+    const allowed = ['standard', ...UPGRADES.filter((u) => u.kind === 'warhead' && Object.hasOwn(st.owned, u.id)).map((u) => u.id)];
+    const w = craftWarhead(allowed, l.warhead);
+    return w ? { ...l, warhead: w } : l;
+  };
   let page = null;
   /* The mission Play chose: { mission, from (the room code at Play),
    * code (the room made for it, once open) }, or null. */
@@ -298,7 +312,7 @@ export function createCampaignScreen({
     if (!pending || !pending.code || r.code !== pending.code) {
       return false;
     }
-    send(startMessage(pending.mission, loadoutOf(cur())));
+    send(startMessage(pending.mission, loadoutNow()));
     return true;
   }
 
@@ -365,7 +379,7 @@ export function createCampaignScreen({
     }
     const v = view();
     observe(v, r.code);
-    const l = loadoutOf(cur());
+    const l = loadoutNow();
     const said = `${r.code}:${v.id}:${JSON.stringify(l)}`;
     if (said !== loadoutSaid && loadoutDue(v, r.seat, l)) {
       loadoutSaid = said;

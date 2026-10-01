@@ -168,7 +168,10 @@ console.log('A1 the ABI');
   must(sim.e.sim_set_airframe(0), 'sim_set_airframe');
   const b = new Float64Array(SIM_ADDON_DOUBLES);
   b[SIM_ADDON.ROLL_K] = 1;
-  check('sim_set_addons refuses a quad', sim.setAddons(b) === SIM_ERR_BAD_ARG);
+  /* It refused a quad until the combat quads carried their payloads on it
+   * (docs/COMBAT-DRONES.md); scripts/combat-gates.js holds the quad side. */
+  check('sim_set_addons takes a quad', sim.setAddons(b) === SIM_OK);
+  must(sim.clearAddons(), 'sim_addons_clear');
   must(sim.e.sim_set_airframe(TABLE.cub1400.simId), 'sim_set_airframe');
   const bad = (k, v) => {
     const x = Float64Array.from(b);

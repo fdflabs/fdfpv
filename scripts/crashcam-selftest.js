@@ -154,7 +154,10 @@ console.log('1. the journal\'s tables against sim_abi.h and the module');
     && !/const\s/.test(decls.find((d) => d[1] === n)[2]));
   check(wrongSide.length === 0, 'every `in` pointer is const in the header', wrongSide.join(', ') || 'yes');
   /* The doubles an `in` pointer carries are the header's own count. */
-  const counts = { sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES' };
+  const counts = {
+    sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES',
+    sim_set_addon_inertia: 'SIM_ADDON_INERTIA_DOUBLES',
+  };
   const inputs = Object.keys(POINTERS).filter((n) => POINTERS[n].doubles);
   const sized = inputs.map((n) => {
     const m = counts[n] && header.match(new RegExp(`#define ${counts[n]} (\\d+)`));
@@ -928,7 +931,12 @@ function file() {
     const paint = { finishes: { wing: 'chrome' }, decals: [newDecal('num', [0.05, 0, -0.1], [1, 0, 0])] };
     const painted = decodeReplay(encodeReplay({ ...c, meta: { ...c.meta, paint } }));
     check(JSON.stringify(painted.meta.paint) === JSON.stringify(paint), 'the finishes and decals come back with the clip');
+    /* The garage's: carbon, a text decal in stencil and the wear. */
+    const garage = { finishes: { wing: 'carbon', fuselage: 'aluminium' }, decals: [newDecal('text', [0, 0.05, 0], [0, 1, 0])], wear: 0.6 };
+    const worn = decodeReplay(encodeReplay({ ...c, meta: { ...c.meta, paint: garage } }));
+    check(JSON.stringify(worn.meta.paint) === JSON.stringify(garage), 'carbon, aluminium, words and wear come back with the clip');
   }
+  refused(withHeader((h) => { h.meta.paint = { decals: [], wear: 2 }; }), 'a wear past battle worn');
   refused(withHeader((h) => { h.meta.paint = { finishes: { wing: 'gold' }, decals: [] }; }), 'a finish that is not one');
   refused(withHeader((h) => { h.meta.paint = { decals: [{ k: 'num', url: 'x' }] }; }), 'a decal that is not one');
   refused(withHeader((h) => { h.meta.paint = { decals: [], script: 1 }; }), 'an unknown paint field');

@@ -26,6 +26,8 @@
  *           before its countdown, and the pass must go off as it does
  *           without one, INTRO_MS later, every client seeing the same
  *           briefing, countdown and go
+ *   striker the head on pass with the Striker (docs/COMBAT-DRONES.md
+ *           section 7) as the defender, inside and outside BLAST_M
  *   cost    eight pilots and sixty attackers at once: fifty two parked
  *           around the pilots just outside BLAST_M, none going off, and eight
  *           hunters steered by the room from far out. The room's CPU per
@@ -251,14 +253,15 @@ function mission(id, waves, routes) {
 
 /* Head on: the Strike along +x through the origin, 300 m after its birth
  * at GO + 1 s, the defender along -x with its nearest part passing `reach` from it. `lead`
- * is a briefing before the countdown (INTRO_MS, or 0 for none). */
-function pass(reach, lead = 0) {
-  const air = ['cub1400'];
+ * is a briefing before the countdown (INTRO_MS, or 0 for none); `airframe`
+ * the defender, a Cub unless another is named. */
+function pass(reach, lead = 0, airframe = 'cub1400') {
+  const air = [airframe];
   const off = offsetFor(air[0], -20, reach);
   const meet = GO + lead + 1000 + (300 / KIND.strike.speed) * 1000;
   const m = mission('pass', [{ at: 1, kind: 'strike', n: 1, route: 'line' }], { line: [[-300, Y, 0], [300, Y, 0]] });
   const sc = {
-    name: `${lead ? 'briefed ' : ''}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,
+    name: `${lead ? 'briefed ' : ''}${airframe === 'cub1400' ? '' : `${airframe} `}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,
   };
   /* The truth: the closest the scripted pair comes, on the millisecond. */
   const plan = planAgent(m, {
@@ -689,6 +692,34 @@ function briefing() {
   return failed;
 }
 
+/*
+ * The Striker as a defender (docs/COMBAT-DRONES.md section 7): the war's
+ * own fixed wing, 2.5 m across and 2.7 m long, rammed head on into a
+ * Strike as the quads and the planes are. The referee judges it by its
+ * own part boxes (configs/hulls.js), so a pass inside BLAST_M of its
+ * nearest part goes off and one outside does not, on every link.
+ */
+function striker() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  const reaches = [5.0, 5.5, 6.5, 7.0];
+  const results = reaches.map((r) => sweep(pass(r, 0, 'striker2500'), 0));
+  const sum = (f) => results.reduce((n, x) => n + x[f], 0);
+  console.log(`
+the Striker as a defender: head on passes at ${reaches.join(', ')} m from its nearest part, ${sum('runs')} runs`);
+  row('its hull is the referee\'s', Boolean(hullFor('striker2500')) && hullFor('striker2500').boxes.length > 8, `${hullFor('striker2500') ? hullFor('striker2500').boxes.length : 0} part boxes`);
+  row('every client has the room\'s booms and deaths', sum('disagree') === 0, `${sum('disagree')} of ${sum('runs')} disagree`);
+  row('the booms and deaths are the zero latency run\'s, every run inside LATE_MS', sum('notRef') === 0, `${sum('notRef')} differ`);
+  row('the passes inside BLAST_M go off on every run and the ones outside never do',
+    results.every((r, k) => (reaches[k] < BLAST_M ? r.boomRuns === r.runs : r.booms === 0)),
+    results.map((r, k) => `${reaches[k]} m: ${r.boomRuns} of ${r.runs}`).join(', '));
+  row('no false detonation', sum('falseBooms') === 0, `${sum('falseBooms')} false`);
+  return failed;
+}
+
 const clocks = arg('run', 'both') === 'both' ? [0, 1] : arg('run', '') === 'cost' ? [] : [Number(arg('run', 1)) - 1];
 const started = Date.now();
 const list = scenarios();
@@ -699,6 +730,7 @@ for (const clock of clocks) {
 }
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
+  failed += striker();
 }
 /* The plan's 60 attackers, and twice that. In rounds, the most alive at
  * once in any Act 1 mission at 8 pilots is its largest round: 52
