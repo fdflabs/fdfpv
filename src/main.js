@@ -9787,7 +9787,10 @@ export async function boot({
     mapReady = false;
     if (!keepPlace) {
       mode = 'title';
-      ui.show('title');
+      /* The room screen stays up under the loading bar when the swap comes
+       * back to it: the title shown for a moment put its rows under a
+       * press still going on (a card's mouse up landed on the title's). */
+      ui.show(stayScreen === 'friends' ? 'friends' : 'title');
     }
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
