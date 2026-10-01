@@ -8,7 +8,9 @@
  *
  * The gate draws six cards, no Defend Itaipu among them (the owner took
  * it off on 2026-09-30; Defend the Paraná's Play is the way in now), inside the window at 1280x720, 1920x1080, 390x844, 360x640 and
- * 844x390, tags clear of the command bar, no sideways scroll.
+ * 844x390, tags clear of the command bar, no sideways scroll; and again
+ * with three public rooms of 32 letter names listed above them, no name
+ * cut, an upright phone's panel listing two.
  *
  * The way in (ui.onWarCard, what the campaign's Play calls) with no consent stored: the consent screen; Back
  * leaves the pilot on the gate with no room; a second click and Continue:
@@ -239,7 +241,40 @@ try {
       laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     await shot(page, `gate-${w}x${h}`);
   }
+
+  /* THE SAME, THREE PUBLIC ROOMS LISTED with names as long as a room's may
+   * be (32 letters), as campaign Play names its public war rooms: every
+   * name whole, and the cards where they were. An upright phone's panel
+   * lists two of them (src/ui/roombrowser.js TITLE_ROOMS_UPRIGHT). */
+  const longNames = ['Brave Capybara 17, Defend Itaipu', 'Sunday Morning Freestyle Session', 'Happy Eagle 420, Defend Itaipu!!'];
+  for (const name of longNames) {
+    await fetch(`${server.url}/v2/create`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name }),
+    });
+  }
+  await page.until("document.querySelectorAll('.gate-rooms-list .gate-room').length === 3", 30000).catch(() => {});
+  const PANEL_CUT = `[...document.querySelectorAll('.gate-rooms-count, .gate-room-name, .gate-room-value')]
+    .filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;
+  const LONG_LISTED = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
+  for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
+    await resize(page, w, h);
+    const v = await page.evaluate(LAYOUT);
+    const tops = v.cards.map((x) => x.box[1]);
+    const shape = row
+      ? Math.max(...tops) - Math.min(...tops) <= 4
+      : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
+    const listed = await page.evaluate(LONG_LISTED);
+    const cut = await page.evaluate(PANEL_CUT);
+    check(`${w} by ${h}, three 32 letter names listed: six cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+      laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+    check(`${w} by ${h}: the panel lists ${row ? 'three' : 'two'} of them, no name cut`, listed.length === (row ? 3 : 2)
+      && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
+    await shot(page, `gate-listed-${w}x${h}`);
+  }
   await resize(page, 1280, 720);
+  /* The rooms server makes six rooms a minute for an address
+   * (edge/rooms/front.js), and the steps below make three more at once. */
+  await page.sleep(61000);
 
   /* FIRST PRESS, NO CONSENT STORED: the question, and Back is the gate. */
   check('a fresh profile has not consented', await page.evaluate('window.__ui.settings.warConsent !== true'));
