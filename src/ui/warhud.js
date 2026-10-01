@@ -143,8 +143,9 @@ export function waveStatus(v, mission, roomNow) {
 
 /*
  * nameOf(seat) is the seat's picker name, or this pilot's own. restart
- * { host(), go(v) }: whether this pilot hosts the room, and what the
- * end banner's button does.
+ * { host(), go(v), next(v), goNext(id) }: whether this pilot hosts the
+ * room, what the end banner's Restart does, the mission after this one
+ * the host may start ({ id, n } or null), and what its Next does.
  */
 export function createWarHud(nameOf, restart = null) {
   let box = null;
@@ -158,6 +159,7 @@ export function createWarHud(nameOf, restart = null) {
   let banner = null;
   let status = null;
   let again = null;
+  let onward = null;
   let lastView = null;
   let shown = '';
   let lostOutput = 0;
@@ -262,6 +264,19 @@ export function createWarHud(nameOf, restart = null) {
     again.addEventListener('click', () => {
       if (restart && restart.host() && lastView) {
         restart.go(lastView);
+      }
+    });
+    /* The next mission, in this room, beside Restart (docs/FLOW-AUDIT.md
+     * rule 8): the host's only, and only once it is open to the host. */
+    onward = el({
+      marginTop: '10px', fontSize: '20px', letterSpacing: '0.12em', padding: '10px 22px', cursor: 'pointer',
+      background: GREEN, color: '#04100a', textShadow: 'none', pointerEvents: 'auto', display: 'none',
+    }, banner);
+    onward.className = 'war-next';
+    onward.addEventListener('click', () => {
+      const it = restart && restart.next && restart.host() && lastView ? restart.next(lastView) : null;
+      if (it) {
+        restart.goNext(it.id);
       }
     });
   }
@@ -424,7 +439,8 @@ export function createWarHud(nameOf, restart = null) {
     allowWas = allow;
     const next = waveStatus(v, mission, roomNow);
     const host = Boolean(restart && restart.host());
-    const key = JSON.stringify([next && next.text, host, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
+    const nextMission = host && restart.next && (v.state === 'won' || v.state === 'lost' || v.state === 'ended') ? restart.next(v) : null;
+    const key = JSON.stringify([next && next.text, host, nextMission && nextMission.id, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
     if (key === shown) {
       return;
     }
@@ -493,6 +509,8 @@ export function createWarHud(nameOf, restart = null) {
       again.style.cursor = host ? 'pointer' : 'default';
       again.style.background = host ? GREEN : 'transparent';
       again.style.color = host ? '#04100a' : DIM;
+      onward.style.display = nextMission ? '' : 'none';
+      onward.textContent = nextMission ? str('war.next_mission', { n: nextMission.n }) : '';
       banner.style.pointerEvents = host ? 'auto' : 'none';
       banner.style.color = v.state === 'won' ? GREEN : RED;
       banner.style.borderColor = banner.style.color;
@@ -515,6 +533,7 @@ export function createWarHud(nameOf, restart = null) {
       banner: banner && banner.style.display !== 'none' ? banner.firstChild.nodeValue : '',
       status: status && status.style.display !== 'none' ? status.textContent : '',
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
+      next: banner && banner.style.display !== 'none' && onward.style.display !== 'none' ? onward.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       splashSeen,
     }),

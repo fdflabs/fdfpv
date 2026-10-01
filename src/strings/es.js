@@ -2866,6 +2866,7 @@ export default {
   "war.next_unknown": "PRÓXIMA OLEADA: SIN DATOS AÚN",
   "war.restart": "REINICIAR MISIÓN",
   "war.restart_wait": "ESPERANDO QUE EL ANFITRIÓN REINICIE",
+  "war.next_mission": "SIGUIENTE: MISIÓN {n}",
   "war.earned.one": "+1 AERONAVE",
   "war.earned.other": "+{n} AERONAVES",
   "war.hint_go": "VUELA CONTRA ELLOS: tu ojiva detona a menos de 6 m",

@@ -351,6 +351,10 @@ export function createCampaignScreen({
     close,
     /* The loadout a war start carries: this pilot's, as the shop set it. */
     loadout: loadoutNow,
+    /* The missions this pilot may start, in order: built, open (the one
+     * before won) and inside the full game's gate. A host's choice of the
+     * room's next mission is one of these (src/main.js warRows). */
+    playable: () => ACT1.filter((m, i) => inBuild(m.id) && unlocked(cur(), i) && gateOpen(i)).map((m) => m.id),
     /* For the checks. */
     observe,
     state: cur,

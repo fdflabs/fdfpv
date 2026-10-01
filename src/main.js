@@ -2566,6 +2566,8 @@ export async function boot({
         roomWar.start(v.mission);
       }
     },
+    next: (v) => warNext(v),
+    goNext: (id) => warStart(id),
   });
   /* Off the flight screen at once, not at the next frame (roomWarFrame
    * keeps it after): a frame can be a second long (war-card-check counted
@@ -2710,10 +2712,17 @@ export async function boot({
     /* A state this build has no words for (a later build's) says none. */
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on() && v.state !== 'briefing') {
+      /* THE NEXT MISSION IS PICKED HERE, in the room, and everybody in it
+       * stays (docs/FLOW-AUDIT.md rule 8, D1, D11): the host's other
+       * missions, as far as the host's campaign has opened them, each
+       * starts that one in this room, which keeps it as the room's. */
+      const others = (campaignRef ? campaignRef.playable() : []).filter((id) => id !== roomMission()).map((id) => ({
+        label: str('war.start', { n: missionNumber(id) }), note: str('war.row_note'), action: `friends-war-mission:${id}`,
+      }));
       return [head, ...warInviteRows(), {
         label: str('war.start', { n: missionNumber(roomMission()) }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
         primary: w.mode === 'war',
-      }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
+      }, ...others, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
     }
     if (host) {
       return [head, { label: str('war.stop'), value: state, note: str('war.stop_note'), action: 'friends-war-stop' }];
@@ -2789,11 +2798,19 @@ export async function boot({
   /* The start row's press. Consent first, whoever's room this is: a
    * room made by hand never went through warEnter's (FLOW-AUDIT.md D6).
    * Then the room's mission, with this pilot's campaign loadout. */
-  async function warStart() {
+  async function warStart(mission = roomMission()) {
     if (await warConsented()) {
-      roomLinkState.send(startMessage(roomMission(), campaignRef.loadout()));
+      roomLinkState.send(startMessage(mission, campaignRef.loadout()));
     }
     ui.refreshFriends();
+  }
+
+  /* The mission after this one, { id, n }, when the host's campaign has
+   * opened it: the end banner's Next (src/ui/warhud.js). */
+  function warNext(v) {
+    const ids = Object.keys(WAR_MISSIONS);
+    const next = ids[ids.indexOf(v.mission) + 1];
+    return next && campaignRef && campaignRef.playable().includes(next) ? { id: next, n: missionNumber(next) } : null;
   }
 
   /*
@@ -4604,6 +4621,13 @@ export async function boot({
   ui.onFriends = async (action) => {
     if (action === 'friends-war-start') {
       await warStart();
+      return;
+    }
+    if (action.startsWith('friends-war-mission:')) {
+      const id = action.slice('friends-war-mission:'.length);
+      if (Object.hasOwn(WAR_MISSIONS, id)) {
+        await warStart(id);
+      }
       return;
     }
     if (action === 'friends-war-private') {

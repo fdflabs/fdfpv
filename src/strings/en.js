@@ -2862,6 +2862,7 @@ export default {
   "war.next_unknown": "NEXT WAVE: NOT KNOWN YET",
   "war.restart": "RESTART MISSION",
   "war.restart_wait": "WAITING FOR THE HOST TO RESTART",
+  "war.next_mission": "NEXT: MISSION {n}",
   "war.earned.one": "+1 AIRFRAME",
   "war.earned.other": "+{n} AIRFRAMES",
   "war.hint_go": "FLY INTO THEM: your warhead detonates within 6 m",

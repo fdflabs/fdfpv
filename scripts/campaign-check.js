@@ -25,6 +25,11 @@
  * Play mission 2 whose room is held before its welcome, then a room made
  * by hand: that room is not the mission's either. Mission 2's room keeps
  * its mission across a reload (D7): the room holds it, not the page.
+ * The next mission in the same room, with a friend in it (a bare
+ * socket): mission 1's room offers Start mission 2 to its host, and
+ * after mission 1 ends in the air, the end banner's Next starts mission
+ * 2 there, the room's code unchanged and the friend in its briefing
+ * (rule 8, D1, D11).
  *
  * No page error. Pictures in outdir, not in the repository.
  *
@@ -49,7 +54,9 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
+import { PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[3] || join(root, 'build', 'campaign');
@@ -459,6 +466,58 @@ try {
   await page.sleep(600);
   const other = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, mission: window.__rooms().mission })");
   check('a room made by hand after it: Start mission 1, the mission not adopted', other.row === 'Start mission 1' && other.mission === 'itaipu-1', JSON.stringify(other));
+
+  /* THE NEXT MISSION IN THE ROOM, a friend in it. Another minute for the
+   * create limit first. */
+  await page.sleep(61000);
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); window.__campaign.open(); return true; })()");
+  await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
+  await click(page, '[data-mission="itaipu-1"] .campaign-play');
+  await page.until("window.__rooms().phase === 'open' && window.__rooms().mission === 'itaipu-1' && window.__ui.items().some((it) => it.action === 'friends-war-start')", 60000).catch(() => {});
+  const nextCode = await page.evaluate('window.__rooms().code');
+  const friend = new WebSocket(`${server.url.replace(/^http/, 'ws')}/v2/room/${nextCode}`, { headers: { origin: 'https://fdflabs.github.io' } });
+  const heard = [];
+  let friendClosed = null;
+  friend.on('message', (d) => {
+    try {
+      heard.push(JSON.parse(d.toString()));
+    } catch (e) {
+      /* A binary pose batch: not what this listens for. */
+    }
+  });
+  friend.on('close', (code) => {
+    friendClosed = code;
+  });
+  await new Promise((resolve, reject) => {
+    friend.on('open', resolve);
+    friend.on('error', reject);
+  });
+  friend.send(JSON.stringify({
+    type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 3, 21],
+    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+  }));
+  await page.until('window.__rooms().peers.length === 1', 20000).catch(() => {});
+  await page.sleep(600);
+  const offered = await page.evaluate("window.__ui.items().filter((it) => (it.action || '').startsWith('friends-war-')).map((it) => `${it.action}:${it.label}`)");
+  check('mission 1\'s room, a friend in it: its host is offered Start mission 2 there too',
+    offered.includes('friends-war-start:Start mission 1') && offered.includes('friends-war-mission:itaipu-2:Start mission 2'), JSON.stringify(offered));
+  await page.evaluate("window.__warDo('start', 'itaipu-1')");
+  await page.until("window.__war().view.state === 'live' && window.__ui.screen === 'flight'", 400000).catch(() => {});
+  await page.evaluate("window.__warDo('end')");
+  await page.until("window.__war().hud.next !== ''", 20000).catch(() => {});
+  const banner = await page.evaluate('({ state: window.__war().view.state, restart: window.__war().hud.restart, next: window.__war().hud.next })');
+  check('mission 1 over in the air: the banner offers Restart and Next: mission 2', banner.state === 'ended' && banner.restart !== '' && banner.next === 'NEXT: MISSION 2',
+    JSON.stringify(banner));
+  heard.length = 0;
+  await page.evaluate("(() => { document.querySelector('.war-next').click(); return true; })()");
+  await page.until("window.__war().view.mission === 'itaipu-2' && window.__war().view.state === 'briefing'", 20000).catch(() => {});
+  await page.sleep(800);
+  const onward = await page.evaluate("({ code: window.__rooms().code, mission: window.__war().view.mission, state: window.__war().view.state, peers: window.__rooms().peers.length })");
+  const friendSaw = heard.filter((m) => m.type === 'war' && m.war).map((m) => `${m.war.mission}:${m.war.state}`);
+  check('Next starts mission 2 in the same room, the friend still in it and in its briefing',
+    onward.code === nextCode && onward.mission === 'itaipu-2' && onward.state === 'briefing' && onward.peers === 1
+    && friendClosed === null && friendSaw.includes('itaipu-2:briefing'), JSON.stringify({ onward, nextCode, friendClosed, friendSaw: friendSaw.slice(-3) }));
+  friend.close();
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
