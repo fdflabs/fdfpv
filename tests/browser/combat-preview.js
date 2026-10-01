@@ -274,7 +274,8 @@ let shown = null;
 
 window.__combat = {
   frames: Object.keys(COMBAT_FRAMES),
-  payloads: COMBAT_PAYLOAD_IDS,
+  /* The payloads each frame carries, 'none' first, in the table's order. */
+  payloads: Object.fromEntries(Object.entries(COMBAT_FRAMES).map(([id, f]) => [id, COMBAT_PAYLOAD_IDS.filter((p) => p === 'none' || f.payloads[p])])),
   /* The accessories each frame offers, in the doc's order. */
   accessories: Object.fromEntries(Object.entries(COMBAT_FRAMES).map(([id, f]) => [id, COMBAT_ACCESSORY_IDS.filter((a) => f.accessories[a])])),
   spec: (frame) => COMBAT_FRAMES[frame],

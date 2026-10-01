@@ -3,8 +3,9 @@
 Written 2026-10-01 for the owner's request of that day: combat drones
 "built with and without their accessories and differing payloads", and
 the war's Striker rebuilt as the delta wing one way attacker of his
-reference sheets, with a prop or a jet. `docs/COMBAT-DRONES.md` (branch
-`combat-drones-physics`) is the interface for the quads, and this file
+reference sheets, with a prop or a jet; and the owner's "ultra fast
+interceptor drones", a third quad frame. `docs/COMBAT-DRONES.md` is the
+interface for the quads, and this file
 does not restate it: its ids are the ids here and its parts list is where
 every part is drawn. This file is what the models give their callers, and
 what they need from the integration side.
@@ -13,8 +14,8 @@ what they need from the integration side.
 
 ```js
 buildCombatDrone({
-  frame: '7in' | '10in',
-  payload: 'none' | 'standard' | 'wide' | 'penetrator' | 'emp',
+  frame: '7in' | '10in' | 'interceptor',
+  payload: 'none' | 'standard' | 'wide' | 'penetrator' | 'emp',   // those the frame carries
   accessories: ['pack2', 'cage', 'lrantenna', 'gps'],   // any subset the frame offers
   name, fog, lite, worldScale, measure,                 // every builder's options
 })
@@ -28,6 +29,15 @@ Through the shell it is `craftBuilderFor('7inch')` or `'10inch'`
 seated choice, `combatFor(airframeId)`, when its caller passes none, as
 the shell's swap does. An unknown id, or an accessory the frame does not
 offer (`pack2` on the 10 inch), throws.
+
+The interceptor (`frame: 'interceptor'`, `craft.js` id `interceptor`) is
+PROVISIONAL: drawn to the owner's reference, a stretched X 7 inch (motors
+125 mm fore and aft and 98 mm across of the CG), clear two blade props, an
+armoured carbon box round the camera, one big pack strapped on top, two
+antennas at the back, no legs and no arm tape. It carries a light
+`standard` (40 by 160 mm) and offers `gps`. Its airframe and parts list
+are the interceptor agent's to write into `docs/COMBAT-DRONES.md`; the
+models follow them when they land (section 5).
 
 It returns every builder's contract (`group`, `discs`, `blades`,
 `cameraMount`, `propSpin`, `stator`, `livery`) and `combat`:
@@ -158,3 +168,9 @@ the drawn machine inside 6 mm of the fixed hull on every axis.
    stand 14 mm either side of the centreline, where the doc puts their
    mass on it, so the GPS mast between them stays clear. The lumped mass
    the plant flies is unaffected.
+6. **The interceptor's interface.** Its `combat.frame` should be
+   `'interceptor'`, its payload and accessory ids from the shared set, and
+   its parts list in `scripts/combat-derive.js` like the other two. The
+   models' row (`COMBAT_FRAMES.interceptor`: motor axes, prop, belly, hull,
+   pack, camera, each payload's size and point, each accessory's point) is
+   then brought to it, and `check:combat-models` holds the two equal.

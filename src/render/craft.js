@@ -88,6 +88,10 @@ const BUILDERS = {
    * caller that passes none draws what a pilot who never chose flies. */
   '7inch': (opts) => buildCombatDrone({ ...opts, frame: '7in', ...(opts.combat ?? DEFAULT_CHOICE) }),
   '10inch': (opts) => buildCombatDrone({ ...opts, frame: '10in', ...(opts.combat ?? DEFAULT_CHOICE) }),
+  /* The interceptor's airframe is another part's, not yet in the table;
+   * until it is, this entry is never reached (craftBuilderFor seats the
+   * table's id). */
+  interceptor: (opts) => buildCombatDrone({ ...opts, frame: 'interceptor', ...(opts.combat ?? DEFAULT_CHOICE) }),
 };
 
 export function craftBuilderFor(airframeId) {

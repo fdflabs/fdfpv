@@ -124,6 +124,43 @@ export const COMBAT_FRAMES = {
       gps: [-0.0666, 0, 0.045],
     },
   },
+  /*
+   * The interceptor, PROVISIONAL: the owner's reference (2026-10-01) is a
+   * stretched X 7 inch, its motors further apart fore and aft than across,
+   * clear two blade props, an armoured carbon box round the camera, one
+   * big pack strapped on top and two antennas at the back, light payload.
+   * Its airframe and parts list are another part's to write into
+   * docs/COMBAT-DRONES.md; until then these are the reference's
+   * proportions, and the check holds them to the airframe table the day
+   * the table has a combat block with this frame. `motor` is [fore and
+   * aft, across] about the CG; no legs, since it lands on its belly.
+   */
+  interceptor: {
+    arm: 0.1588,
+    motor: [0.125, 0.098],
+    propR: 0.0889,
+    blades: 2,
+    clearProps: true,
+    nose: 'armour',
+    antennas: 'twin',
+    legs: false,
+    tape: false,
+    armT: 0.005,
+    cg: [0, 0, 0.022],
+    belly: -0.0045,
+    plates: [0.17, 0.050, 0.026, 0.011],
+    propZ: 0.040,
+    motorR: 0.0160,
+    pack: { at: [0.005, 0, 0.046], box: [0.115, 0.046, 0.038], bricks: 1 },
+    camera: [0.100, 0, 0.012],
+    hullDown: 0.0665,
+    payloads: {
+      standard: { d: 0.040, len: 0.16, at: [0.010, 0, -0.0465] },
+    },
+    accessories: {
+      gps: [-0.040, 0, 0.0475],
+    },
+  },
 };
 
 /* The payload ids, 'none' first, and the accessory ids, in the doc's order:
@@ -295,8 +332,8 @@ function stalk(k, key, from, dir, len, r, { seg = 6, r2 = r, ink = false } = {})
  * in x and z along +z from the hub, given a small twist about its own
  * axis so a disc of them reads as props and not paddles.
  */
-function bladeGeo(r, seg) {
-  const c = r * 0.13;
+function bladeGeo(r, seg, chord) {
+  const c = r * chord;
   const s = new THREE.Shape();
   s.moveTo(0.004, 0.003);
   s.bezierCurveTo(c * 0.9, -r * 0.12, c * 1.05, -r * 0.40, c * 0.30, -r * 0.97);
@@ -338,7 +375,10 @@ function measure(spec) {
     C,
     arm: spec.arm,
     propR: spec.propR,
-    motorAt: spec.arm / Math.SQRT2,
+    /* The motors' axes, across (model x) and fore and aft (model z): a true
+     * X's are the arm over root two both ways, a stretched X's its own. */
+    motorX: spec.motor ? spec.motor[1] : spec.arm / Math.SQRT2,
+    motorZ: spec.motor ? spec.motor[0] : spec.arm / Math.SQRT2,
     bodyL: plL,
     bodyW: plW,
     /* The plates' centre fore and aft, which is the datum's x = 0. */
@@ -363,7 +403,7 @@ function measure(spec) {
 
 function frameKit(k, f, lite) {
   const seg = lite ? 8 : 12;
-  const { bodyL, bodyW, bodyZ, armW, armT, plateT, belly, armTop, roof, motorAt } = f;
+  const { bodyL, bodyW, bodyZ, armW, armT, plateT, belly, armTop, roof, motorX, motorZ } = f;
   /* The bottom plate under the arms and the top plate, wider where the X
    * is clamped between them. */
   const plate = (w, l) => [
@@ -375,10 +415,12 @@ function frameKit(k, f, lite) {
   /* The arms, one slab each from under the plates to a wider pad at the
    * motor, a lighter slot of carbon down the middle and olive tape round
    * them twice, the reference's crew marking. */
-  const len = Math.hypot(motorAt, motorAt);
+  const len = Math.hypot(motorX, motorZ);
   const armY = armTop - armT / 2;
   for (const [sx, sz] of MOTOR_SIGNS) {
-    const yaw = Math.atan2(sx, sz);
+    const mx = sx * motorX;
+    const mz = sz * motorZ;
+    const yaw = Math.atan2(mx, mz);
     const root = bodyW * 0.20;
     const outline = [
       [-armW * 0.62, -root], [armW * 0.62, -root],
@@ -386,11 +428,11 @@ function frameKit(k, f, lite) {
       [-armW * 0.74, len + armW * 0.66], [-armW * 0.80, len - armW * 0.2], [-armW / 2, len * 0.70],
     ];
     k.add('carbon', slab(outline, armT), [0, armY, 0], [0, yaw, 0]);
-    k.add('carbonDeep', box(armW * 0.34, armT * 1.04, len * 0.40), [sx * motorAt * 0.50, armY, sz * motorAt * 0.50], [0, yaw, 0], { ink: false });
-    for (const t of [0.56, 0.80]) {
-      k.add('tape', box(armW * 1.12, armT * 1.4, len * 0.07), [sx * motorAt * t, armY, sz * motorAt * t], [0, yaw, 0], { ink: false });
+    k.add('carbonDeep', box(armW * 0.34, armT * 1.04, len * 0.40), [mx * 0.50, armY, mz * 0.50], [0, yaw, 0], { ink: false });
+    for (const t of f.spec.tape === false ? [] : [0.56, 0.80]) {
+      k.add('tape', box(armW * 1.12, armT * 1.4, len * 0.07), [mx * t, armY, mz * t], [0, yaw, 0], { ink: false });
     }
-    k.add('strap', box(armW * 1.16, armT * 1.7, 0.003), [sx * motorAt * 0.40, armY, sz * motorAt * 0.40], [0, yaw, 0], { ink: false });
+    k.add('strap', box(armW * 1.16, armT * 1.7, 0.003), [mx * 0.40, armY, mz * 0.40], [0, yaw, 0], { ink: false });
   }
   /* Standoffs: black aluminium at the plate's corners, two brass ones at
    * the stack. */
@@ -411,6 +453,10 @@ function frameKit(k, f, lite) {
   k.add('pcbDark', box(0.022, 0.006, 0.026), [0, roof - 0.008, bodyZ + 0.30 * bodyL], [0, 0, 0], { ink: false });
   k.add('steelDark', box(0.020, 0.0015, 0.024), [0, roof - 0.0045, bodyZ + 0.30 * bodyL], [0, 0, 0], { ink: false });
   k.add('wireRed', cylZ(0.005, 0.005, 0.022, 8), [0.014, armTop + 0.006, bodyZ + 0.40 * bodyL], [0, 0.3, 0], { ink: false });
+  /* The pack's leads down through the stack, red, either side of it. */
+  for (const sx of [1, -1]) {
+    k.add('wireRed', cylZ(0.0018, 0.0018, bodyL * 0.5, 6), [sx * bodyW * 0.36, armTop + 0.011, bodyZ + 0.12 * bodyL], [0, 0, 0], { ink: false });
+  }
 
   /* Motors: copper windings showing at the base, a dark bell over them,
    * the shaft and nut up to the prop. */
@@ -420,8 +466,8 @@ function frameKit(k, f, lite) {
     [0.94, 0.26], [1.0, 0.36], [1.0, 0.72], [0.95, 0.92], [0.70, 1.0],
   ].map(([r, y]) => [r * motorR, y * motorH]));
   for (const [sx, sz] of MOTOR_SIGNS) {
-    const x = sx * motorAt;
-    const z = sz * motorAt;
+    const x = sx * motorX;
+    const z = sz * motorZ;
     k.add('bell', cylY(motorR * 0.98, motorH * 0.10, seg), [x, armTop + motorH * 0.05, z], [0, 0, 0], { ink: false });
     k.add('copper', cylY(motorR * 0.86, motorH * 0.18, seg), [x, armTop + motorH * 0.19, z]);
     k.add('bell', new THREE.LatheGeometry(bellPts, lite ? 10 : 16), [x, armTop, z]);
@@ -434,14 +480,16 @@ function frameKit(k, f, lite) {
  * depth, which is what the plant parks the machine on with or without a
  * payload (docs/COMBAT-DRONES.md section 2.3), each on a foot. */
 function legsKit(k, f) {
-  const r = f.motorAt * 0.52;
   const legR = 0.0035 + 0.006 * f.arm;
   const footH = 0.004;
   const top = f.belly;
   const bottom = -f.hullDown;
+  const rx = f.motorX * 0.52;
+  const rz = f.motorZ * 0.52;
+  const out = 0.014 / Math.SQRT2;
   for (const [sx, sz] of MOTOR_SIGNS) {
-    const from = [sx * r, top, sz * r];
-    const foot = [sx * (r + 0.014), bottom + footH, sz * (r + 0.014)];
+    const from = [sx * rx, top, sz * rz];
+    const foot = [sx * (rx + out), bottom + footH, sz * (rz + out)];
     const d = [foot[0] - from[0], foot[1] - from[1], foot[2] - from[2]];
     stalk(k, 'leg', from, d, Math.hypot(d[0], d[1], d[2]), legR, { seg: 8, ink: true });
     k.add('leg', cylY(legR * 2.0, footH, 10, legR * 2.2), [foot[0], bottom + footH / 2, foot[2]]);
@@ -514,10 +562,66 @@ function mountKit(k, f, cam) {
 /* The bare machine's stubby video antenna and short receiver tails, wire
  * and not aircraft (craft-check measures the machine without them). */
 function stockAntennaKit(k, f) {
-  const at = f.C(f.spec.accessories.lrantenna[0], 0, 0);
+  const at = f.D(f.spec.plates[0] * -0.42, 0, 0);
   stalk(k, 'antenna', [-0.012, f.roof, at[2]], [0, 1, 0.1], 0.026, 0.0034, { seg: 8, r2: 0.0045, ink: true });
   for (const side of [1, -1]) {
     stalk(k, 'whip', [0.012, f.roof, at[2]], [side * 0.25, 0.7, 0.8], 0.028, 0.0011, { seg: 5 });
+  }
+  return k;
+}
+
+/* The interceptor's two antennas, angled up and out at the back: a tall
+ * video stalk on the right with its cap, a shorter receiver one on the
+ * left, from SMA nuts on the top plate. */
+function twinAntennaKit(k, f) {
+  const z = f.bodyZ + f.bodyL * 0.44;
+  for (const [x, len, lean, cap] of [[0.012, 0.115, 0.30, true], [-0.012, 0.075, -0.40, false]]) {
+    k.add('brass', cylY(0.0034, 0.007, 6), [x, f.roof + 0.0035, z], [0, 0, 0], { ink: false });
+    const dir = [lean * 0.5, 1, 0.42];
+    const top = stalk(k, 'antenna', [x, f.roof + 0.007, z], dir, len, 0.0040, { seg: 8, r2: 0.0030, ink: true });
+    if (cap) {
+      const g = cylY(0.008, 0.022, 10, 0.0085);
+      g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(UP, new THREE.Vector3(dir[0], dir[1], dir[2]).normalize()));
+      k.add('antenna', g, top);
+    }
+  }
+  return k;
+}
+
+/*
+ * The interceptor's armoured nose: a box of dark weathered carbon plate
+ * round the camera, from the bottom plate to above the top one, open at
+ * the front round the lens behind a thick frame, angled cheeks at the
+ * sides, bolts at the corners.
+ */
+function armourKit(k, f, cam) {
+  const [, cy, cz] = cam;
+  const w = 0.040;
+  const bottom = f.belly;
+  /* Up to just under the props' plane: the front props sweep over it. */
+  const top = f.propY - 0.007;
+  const h = top - bottom;
+  const midY = (top + bottom) / 2;
+  const back = cz + 0.030;
+  const front = cz - 0.016;
+  const t = 0.003;
+  for (const sx of [1, -1]) {
+    k.add('armour', box(t, h, back - front), [sx * (w / 2), midY, (back + front) / 2]);
+    k.add('armour', box(0.012, h * 0.8, t), [sx * (w / 2 + 0.004), midY, front + 0.004], [0, sx * -0.6, 0]);
+  }
+  k.add('armour', box(w + t, t, back - front), [0, top, (back + front) / 2]);
+  k.add('armour', box(w + t, t, back - front), [0, bottom + t / 2, (back + front) / 2]);
+  /* The front frame round the lens: a plate above it and one below. */
+  const lensTop = cy + 0.013;
+  const lensBottom = cy - 0.013;
+  k.add('armour', box(w, top - lensTop, t), [0, (top + lensTop) / 2, front]);
+  k.add('armour', box(w, lensBottom - bottom, t), [0, (lensBottom + bottom) / 2, front]);
+  k.add('armour', box(t * 2, lensTop - lensBottom, t), [0.016, cy, front], [0, 0, 0], { ink: false });
+  k.add('armour', box(t * 2, lensTop - lensBottom, t), [-0.016, cy, front], [0, 0, 0], { ink: false });
+  for (const sx of [1, -1]) {
+    for (const y of [top - 0.006, bottom + 0.006]) {
+      k.add('steel', cylY(0.0024, 0.002, 6), [sx * (w / 2 + t / 2 + 0.001), y, front + 0.006], [0, 0, Math.PI / 2], { ink: false });
+    }
   }
   return k;
 }
@@ -615,7 +719,7 @@ function standard(k, d, len, seg) {
   k.add('oliveDark', cylZ(r * 0.5, r * 0.5, 0.003, seg), [0, 0, z0 + len - 0.0015], [0, 0, 0], { ink: false });
   for (let i = 0; i < 4; i += 1) {
     const a = Math.PI / 4 + (i * Math.PI) / 2;
-    const fin = slab([[0, 0], [r * 0.85, tail * 0.30], [r * 0.85, tail * 0.98], [0, tail * 0.98]], 0.002);
+    const fin = slab([[0, 0], [r * 0.78, tail * 0.30], [r * 0.78, tail * 0.98], [0, tail * 0.98]], 0.002);
     k.add('olive', fin, [Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, z0 + len - tail], [0, 0, a]);
   }
   return { pin: [0, r * 0.62, z0 + nose * 0.50], straps: [-0.20, 0.16] };
@@ -735,6 +839,8 @@ function materials(fog) {
     oliveDark: cel({ color: 0x3b3e24, rim: 0.26, spec: 0.25 }),
     canister: cel({ color: 0x6c7177, rim: 0.30, spec: 0.40 }),
     prop: cel({ color: 0x232527, rim: 0.30, spec: 0.40, side: THREE.DoubleSide }),
+    propClear: cel({ color: 0xc8d0d8, rim: 0.45, spec: 0.70, specWidth: 0.02, side: THREE.DoubleSide, transparent: true, opacity: 0.45 }),
+    armour: cel({ color: 0x2a2b2b, rim: 0.26, spec: 0.22 }),
   };
 }
 
@@ -757,6 +863,7 @@ function paintCoat(mats) {
   coat.base('cage', mats.tpu);
   coat.base('legs', mats.leg);
   coat.base('props', mats.prop);
+  coat.base('armour', mats.armour);
   return coat;
 }
 
@@ -779,11 +886,11 @@ function packSurfaces(f, pack2At) {
 /* ------------------------------------------------------------------ */
 
 /*
- * Build a combat quad. `frame` is a COMBAT_FRAMES id ('7in' or '10in', the
- * airframe's combat.frame); `payload` one of COMBAT_PAYLOAD_IDS; and
- * `accessories` a list of COMBAT_ACCESSORY_IDS this frame offers. An id
- * this file does not know, or an accessory the frame does not offer,
- * throws: the shell resolves the pilot's choice before it gets here
+ * Build a combat quad. `frame` is a COMBAT_FRAMES id ('7in', '10in' or
+ * 'interceptor', the airframe's combat.frame); `payload` 'none' or one of
+ * COMBAT_PAYLOAD_IDS the frame carries; and `accessories` a list of
+ * COMBAT_ACCESSORY_IDS it offers. An id this file does not know, or one
+ * the frame does not offer, throws: the shell resolves the pilot's choice before it gets here
  * (docs/COMBAT-DRONES.md section 2), so either is a bug upstream, and a
  * machine quietly drawn without the part would hide it. The other options
  * are every builder's: name, fog, lite, worldScale, measure.
@@ -800,8 +907,8 @@ export function buildCombatDrone(opts = {}) {
     throw new Error(`combatcraft: unknown frame ${JSON.stringify(frameId)}`);
   }
   const payloadId = opts.payload ?? 'none';
-  if (!COMBAT_PAYLOAD_IDS.includes(payloadId)) {
-    throw new Error(`combatcraft: unknown payload ${JSON.stringify(payloadId)}`);
+  if (payloadId !== 'none' && !(COMBAT_PAYLOAD_IDS.includes(payloadId) && spec.payloads[payloadId])) {
+    throw new Error(`combatcraft: the ${frameId} frame carries no payload ${JSON.stringify(payloadId)}`);
   }
   const wanted = new Set(opts.accessories ?? []);
   for (const id of wanted) {
@@ -838,10 +945,14 @@ export function buildCombatDrone(opts = {}) {
   const parts = { accessories: {} };
   const surfaces = packSurfaces(f, wanted.has('pack2') ? f.C(...spec.accessories.pack2) : null);
   const cam = f.D(...spec.camera);
-  parts.frame = kitGroup(mountKit(frameKit(createKit(), f, lite), f, cam), 'frame', mats, style);
-  parts.legs = kitGroup(legsKit(createKit(), f), 'legs', mats, style);
+  const nose = spec.nose === 'armour' ? armourKit : mountKit;
+  parts.frame = kitGroup(nose(frameKit(createKit(), f, lite), f, cam), 'frame', mats, style);
   parts.pack = kitGroup(basePackKit(createKit(), f), 'pack', mats, style);
-  group.add(parts.frame, parts.legs, parts.pack);
+  group.add(parts.frame, parts.pack);
+  if (spec.legs !== false) {
+    parts.legs = kitGroup(legsKit(createKit(), f), 'legs', mats, style);
+    group.add(parts.legs);
+  }
 
   const cameraMount = new THREE.Group();
   cameraMount.name = 'camera';
@@ -854,7 +965,7 @@ export function buildCombatDrone(opts = {}) {
    * scripts/craft-check.js leaves out of the machine's size, as the five
    * inch's mast is. */
   if (!wanted.has('lrantenna')) {
-    const stock = kitGroup(stockAntennaKit(createKit(), f), 'antenna', mats, style);
+    const stock = kitGroup((spec.antennas === 'twin' ? twinAntennaKit : stockAntennaKit)(createKit(), f), 'antenna', mats, style);
     group.add(stock);
     parts.stockAntenna = stock;
   }
@@ -892,24 +1003,26 @@ export function buildCombatDrone(opts = {}) {
 
   /* Rotors: the hub and three blades as one mesh a motor, turned by the
    * shell; a blur disc a motor, a direct child, as on the five inch. */
-  const blade = bladeGeo(f.propR, lite ? 5 : 8);
+  const blade = bladeGeo(f.propR, lite ? 5 : 8, spec.blades === 2 ? 0.16 : 0.13);
+  const bladeCount = spec.blades ?? 3;
+  const propMat = spec.clearProps ? mats.propClear : mats.prop;
   const discs = [];
   const blades = [];
   for (let m = 0; m < 4; m += 1) {
     const [sx, sz] = MOTOR_SIGNS[m];
-    const x = sx * f.motorAt;
-    const z = sz * f.motorAt;
+    const x = sx * f.motorX;
+    const z = sz * f.motorZ;
     const pieces = [
       place(cylY(f.motorR * 0.42, 0.006, 10), [0, 0, 0]),
       place(new THREE.ConeGeometry(f.motorR * 0.30, 0.008, 8), [0, 0.007, 0]),
     ];
-    for (let b = 0; b < 3; b += 1) {
-      pieces.push(place(blade.clone(), [0, 0, 0], [0, (b * Math.PI * 2) / 3, 0]));
+    for (let b = 0; b < bladeCount; b += 1) {
+      pieces.push(place(blade.clone(), [0, 0, 0], [0, (b * Math.PI * 2) / bladeCount, 0]));
     }
     const rotor = new THREE.Group();
     rotor.name = `rotor-${m}`;
     rotor.position.set(x, f.propY, z);
-    const mesh = new THREE.Mesh(merged(pieces, 'rotor'), mats.prop);
+    const mesh = new THREE.Mesh(merged(pieces, 'rotor'), propMat);
     mesh.castShadow = shade;
     rotor.add(mesh);
     group.add(rotor);
@@ -940,7 +1053,8 @@ export function buildCombatDrone(opts = {}) {
       accessories: COMBAT_ACCESSORY_IDS.filter((id) => wanted.has(id)),
       parts,
       size: {
-        motorAt: f.motorAt,
+        motorX: f.motorX,
+        motorZ: f.motorZ,
         motorR: f.motorR,
         propR: f.propR,
         propY: f.propY,

@@ -88,6 +88,8 @@ const SHOTS = [
   ['7in-penetrator', { frame: '7in', payload: 'penetrator', accessories: ['cage'] }],
   ['10in-emp', { frame: '10in', payload: 'emp', accessories: ['lrantenna', 'gps'] }],
   ['10in-standard', { frame: '10in', payload: 'standard', accessories: ['cage', 'lrantenna'] }],
+  ['interceptor', { frame: 'interceptor', payload: 'none', accessories: [] }],
+  ['interceptor-standard-gps', { frame: 'interceptor', payload: 'standard', accessories: ['gps'] }],
 ];
 
 const rows = [];
@@ -153,8 +155,8 @@ try {
   const hashes = new Map();
   for (const frame of frames) {
     const sets = subsets(offered[frame]);
-    expected += payloads.length * sets.length;
-    for (const payload of payloads) {
+    expected += payloads[frame].length * sets.length;
+    for (const payload of payloads[frame]) {
       for (const acc of sets) {
         const choice = { frame, payload, accessories: acc };
         const name = `${frame}/${payload}/${acc.join('+') || 'bare'}`;
@@ -183,11 +185,17 @@ try {
           && JSON.stringify(r.built.accessories) === JSON.stringify(offered[frame].filter((a) => acc.includes(a))), JSON.stringify(r.built));
         /* The legs stand at the hull's depth, and nothing reaches below
          * them: the plant parks the machine on that depth. */
-        quiet('legs reach the hull', Math.abs(r.legs.min[1] + s.hullDown) < 0.0005, `${mm(-r.legs.min[1])} against ${mm(s.hullDown)}`);
-        quiet('nothing below the legs', r.whole.min[1] >= -s.hullDown - 0.0005, `${mm(-r.whole.min[1])} below the CG`);
-        /* The props reach where the plant spins them. */
-        quiet('prop tips at the disc', Math.abs(Math.max(Math.abs(r.whole.min[0]), r.whole.max[0]) - (s.motorAt + s.propR)) < 0.002,
-          `${mm(Math.max(Math.abs(r.whole.min[0]), r.whole.max[0]))} against ${mm(s.motorAt + s.propR)}`);
+        /* A frame with legs stands on them; one without lands on its belly
+         * or its payload. Either way the hull's depth is the lowest point. */
+        if (r.legs) {
+          quiet('legs reach the hull', Math.abs(r.legs.min[1] + s.hullDown) < 0.0005, `${mm(-r.legs.min[1])} against ${mm(s.hullDown)}`);
+        }
+        quiet('nothing below the hull', r.whole.min[1] >= -s.hullDown - 0.0005, `${mm(-r.whole.min[1])} below the CG against ${mm(s.hullDown)}`);
+        /* The props reach where the plant spins them, across and fore and
+         * aft, and the discs do not overlap. */
+        const across = Math.max(Math.abs(r.whole.min[0]), r.whole.max[0]);
+        quiet('prop tips at the disc across', Math.abs(across - (s.motorX + s.propR)) < 0.002, `${mm(across)} against ${mm(s.motorX + s.propR)}`);
+        quiet('the discs clear each other', 2 * s.motorX > 2 * s.propR && 2 * s.motorZ > 2 * s.propR, `${mm(2 * s.motorX)} and ${mm(2 * s.motorZ)} between centres`);
         /* One build an answer: two answers drawing the same thing would be
          * a choice the pilot makes and cannot see. */
         const prior = hashes.get(r.hashA);
@@ -210,14 +218,16 @@ try {
         const [cx, , cz] = r.payloadBody.centre;
         quiet('payload under the body', Math.abs(cx) < s.bodyW / 2 && Math.abs(cz - s.bodyZ) < s.bodyL / 2, `centre ${mm(cx)}, ${mm(cz)}`);
         /* Clear of the legs: none of the payload inside a leg's span. */
-        const legX = Math.abs(r.legs.min[0]) - 0.03;
-        quiet('payload between the legs', Math.max(Math.abs(bx0), Math.abs(bx1)) < legX, `${mm(Math.max(Math.abs(bx0), Math.abs(bx1)))} against the legs from ${mm(legX)}`);
+        if (r.legs) {
+          const legX = Math.abs(r.legs.min[0]) - 0.03;
+          quiet('payload between the legs', Math.max(Math.abs(bx0), Math.abs(bx1)) < legX, `${mm(Math.max(Math.abs(bx0), Math.abs(bx1)))} against the legs from ${mm(legX)}`);
+        }
       }
     }
   }
   /* The garage's hook, on the fullest build of each frame and a bare one. */
   for (const frame of frames) {
-    for (const choice of [{ frame, payload: 'standard', accessories: offered[frame] }, { frame, payload: 'none', accessories: [] }]) {
+    for (const choice of [{ frame, payload: payloads[frame][1], accessories: offered[frame] }, { frame, payload: 'none', accessories: [] }]) {
       const name = `${frame}/${choice.payload}/${choice.accessories.join('+') || 'bare'}`;
       const r = await page.evaluate(`window.__combat.paintAudit(${JSON.stringify(choice)})`);
       const blank = r.surfaces.filter((sf) => !(sf.triangles > 0));
@@ -278,6 +288,7 @@ try {
     }
   }
 
+  check('the interceptor is a stretched X', await page.evaluate("(() => { const s = window.__combat.spec('interceptor'); return Boolean(s && s.motor && s.motor[0] > s.motor[1]); })()"), 'motors further apart fore and aft than across');
   check(`${builds} builds, every frame x payload x accessory set it offers`, builds === expected && fails === 0, `${fails} failures`);
   check('worst draws, full', worst.draws <= budget.draws, `${worst.draws} of ${budget.draws}, ${worst.at.draws}`);
   check('worst draws, lite', worst.liteDraws <= budget.liteDraws, `${worst.liteDraws} of ${budget.liteDraws}, ${worst.at.liteDraws}`);
