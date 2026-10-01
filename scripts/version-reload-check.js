@@ -210,7 +210,7 @@ try {
   await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
 
   await page.evaluate("sessionStorage.setItem('fdfpv.room', 'K7PZ2M'); true");
-  await reloadAndWait(page, "document.querySelector('.update-reload').click(); true");
+  await reloadAndWait(page, "document.querySelector('.update-bar:not(.room-bar) .update-reload').click(); true");
   const after = await page.evaluate(SERVED);
   check('after Reload every module is the new deploy\'s', after.n > 50 && after.unversioned === 0
     && after.by.bbbbbbbbbbbb === after.n && after.versions.join() === 'bbbbbbbbbbbb',
