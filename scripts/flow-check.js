@@ -91,9 +91,12 @@ async function settled(page) {
   })`);
 }
 
+/* Page.reload answers before the new document is in, and the old one
+ * still says __shellReady: wait for a document that never had the mark. */
 async function reload(page) {
+  await page.evaluate('(() => { window.__beforeReload = true; return true; })()');
   await page.cdp.send('Page.reload', {}, page.sessionId);
-  await page.sleep(500);
+  await page.until('window.__beforeReload !== true', 60000);
   await settled(page);
 }
 
