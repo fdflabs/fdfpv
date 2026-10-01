@@ -112,9 +112,9 @@
         "source": "STAGE1.md check 6 method, full throttle 3.0 s"
       },
       "band_m": {
-        "min": 55,
-        "max": 85,
-        "source": "STAGE1.md check 6, altitude gained 55 to 85 m"
+        "min": 76,
+        "max": 117,
+        "source": "STAGE1.md check 6, altitude gained 76 to 117 m: the 96.4 m the five inch climbs on T-Motor's measured F60 Pro V 1950 kV and T5147 row (1990.4 g, 31,401 rpm, 49.3 A at 24.7 V, t-hobby.com), with the old 55 to 85 m band's half width over its centre, 15 / 70 = 21.4 percent, either side. The old band dates from the stub harness of 2026-08-11 and the plant was fitted into it; see docs/STOCK-5INCH.md"
       }
     },
     "terminal-velocity": {

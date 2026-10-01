@@ -98,7 +98,7 @@ export default {
   "carousel.lap_void": "Aircraft changed, lap void",
   "carousel.next": "Next aircraft",
   "carousel.note.10inch": "A heavy lifter on two Li-ion packs, built to carry a big payload a long way.",
-  "carousel.note.5inch": "A 6S race and freestyle quad: eight to one thrust, forty metres a second.",
+  "carousel.note.5inch": "A 6S race and freestyle quad: nearly ten to one thrust, forty six metres a second.",
   "carousel.note.7inch": "A long range quad on a Li-ion pack, built to carry a payload under its belly.",
   "carousel.note.interceptor": "The fastest quad here: a stretched 7 inch speed build that runs a strike drone down and rams it.",
   "carousel.note.bombshell1118": "A 1940 free flight classic in balsa and tissue, on a glow engine.",

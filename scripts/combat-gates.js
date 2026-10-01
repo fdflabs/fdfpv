@@ -769,7 +769,7 @@ for (const af of strikers) {
       break;
     }
   }
-  report('five inch unmoved', Math.abs(h5 - 0.2789999842643738) < 1e-6, `hover ${h5.toFixed(6)}`, 'whoop-gates W14\'s fingerprint');
+  report('five inch unmoved', Math.abs(h5 - 0.2579999566078186) < 1e-6, `hover ${h5.toFixed(6)}`, 'whoop-gates W14\'s fingerprint');
   void sim;
 }
 

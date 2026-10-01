@@ -156,8 +156,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 /* ---------------------------------------------------------------------
  * SIM_AIRFRAME_5IN. The machine STAGE1.md describes and every threshold in
  * tests/ was measured against. Nothing in this entry moved when the table
- * grew around it: the values below are byte for byte the ones that were in
- * the single const PLANT before, and the trace hash is measured identical.
+ * grew around it. Its motor and prop moved once since, on purpose, to a
+ * published stand row (the kt note below); the trace hash moved with them.
  * ------------------------------------------------------------------- */
 [SIM_AIRFRAME_5IN] = {
   /*
@@ -179,10 +179,34 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .gravity = 9.80665,
   .arm_x = 0.0777817459305202, /* 0.110 / sqrt(2) */
   .arm_y = 0.0777817459305202,
-  .kt = 1.98e-6,
-  .kq = 3.04e-8,   /* figure of merit 0.520, see the triblade note below */
-  .ke = 0.006336,  /* loaded torque constant, 1507 kV; see the note above */
-  .r_motor = 0.1825,
+  /*
+   * THE MOTOR AND THE PROP ARE T-MOTOR'S MEASURED ROW, the owner's decision
+   * of 2026-10-01 (docs/STOCK-5INCH.md). They were kt 1.98e-6, kq
+   * 3.04e-8, ke 0.006336 and r_motor 0.1825, solved against
+   * an unnamed stand row of "26,000 rpm, 1.5 kgf, 33 A" (the note above),
+   * which is a weaker motor than any current 6S 2207: the five inch made
+   * 1592 g a motor on a stiff 24.7 V where T-Motor's F60 Pro V 1950 kV on
+   * its T5147 tri blade makes 1990.4 g at 31,401 rpm and 49.3 A
+   * (https://www.t-hobby.com/products/brushless-motor-for-fpv-drones-60pro-v-2207-5).
+   * The same four unknowns solved against that one row, the method above:
+   *   kt   thrust over the row's speed squared, 19.519 N at 3288 rad/s
+   *   kq   kt through momentum theory at the same figure of merit 0.520 on
+   *        this table's disc (prop_r below); Q / T is then 0.01467 m
+   *        against the old stand's 0.0150
+   *   ke   the row's current carrying that torque, 0.2863 N m at 49.3 A:
+   *        1645 kV loaded on a 1950 kV plate, 0.84, inside the 0.80 to
+   *        0.91 the note above gives a saturating 2207
+   *   R    what is left of 24.7 V at that speed and current, 0.1137 ohm,
+   *        the winding, the ESC and the stand's leads
+   * The prop's diameter stays the frame's 0.0635 m: the T5147 is 5.1 inch,
+   * 1.3 mm more of blade, and the disc enters the collider, the hulls and
+   * the world scale check, which a 2 percent radius is not worth moving.
+   * Its pitch is the T5147's 4.7 inch (k_inflow below).
+   */
+  .kt = 1.805e-6,
+  .kq = 2.648e-8,  /* figure of merit 0.520, see the triblade note below */
+  .ke = 0.005807,  /* loaded torque constant, 1645 kV on the 1950 kV plate */
+  .r_motor = 0.1137,
   .j_rotor = 8.0e-6,
   .cells = 6.0,
   .r_cell = 0.0025, /* 2.5 mOhm a cell, a real 6S 1300 race pack */
@@ -276,9 +300,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    * that is about it and carries its own verify run. See the whoop's.
    */
   .k_ground = 0.0,
-  .k_inflow = 0.017382, /* repurposed: prop pitch radius, metres per radian.
-                         * 4.3 inch pitch / 2 pi. Axial speed at which thrust
-                         * crosses zero is w times this. */
+  .k_inflow = 0.019000, /* repurposed: prop pitch radius, metres per radian.
+                         * 4.7 inch pitch / 2 pi, the T5147's (it was
+                         * 4.3). Axial speed at which thrust crosses zero
+                         * is w times this. */
   .torque_ind = 0.520,  /* was #define PLANT_TORQUE_IND, same number, same
                          * meaning: the figure of merit kq was derived
                          * through, which IS the induced share of shaft
