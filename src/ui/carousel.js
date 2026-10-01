@@ -226,9 +226,10 @@ export class Carousel {
     this.floatsBtn.dataset.key = 'floats';
     this.floatsBtn.setAttribute('role', 'switch');
     this.floatsBtn.addEventListener('click', () => this.toggleFloats());
-    /* A build's card names the plane it is built on first. */
+    /* A build's card names the plane it is built on first; a stock card's
+     * row stays the span, the weight and the switch (paint). */
     this.baseEl = el('span', 'carousel-fact carousel-base');
-    this.factsEl.append(this.baseEl, this.sizeEl, this.weightEl, this.floatsBtn);
+    this.factsEl.append(this.sizeEl, this.weightEl, this.floatsBtn);
     /* A build's own two, Rename and Delete, on its card only, and the
      * line that takes the name's place while one is open (startRename,
      * startDelete). */
@@ -599,8 +600,12 @@ export class Carousel {
     const seen = this.airframeOf(key);
     this.nameEl.textContent = build ? build.name : airframeById(id).name;
     this.nameEl.hidden = Boolean(this.form);
-    this.baseEl.hidden = !build;
-    this.baseEl.textContent = build ? airframeById(id).name : '';
+    if (build) {
+      this.baseEl.textContent = airframeById(id).name;
+      this.factsEl.prepend(this.baseEl);
+    } else {
+      this.baseEl.remove();
+    }
     this.sizeEl.textContent = sizeText(seen);
     this.weightEl.textContent = weightText(seen);
     const floats = build ? null : this.floatsOn(id);
