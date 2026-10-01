@@ -242,6 +242,19 @@ export class Sim {
     return code;
   }
 
+  /* Seat a quad's prop and pack: the SIM_PROP_PACK_DOUBLES block that
+   * configs/motors.js propPackBlock builds. See sim_abi.h. */
+  setPropPack(params) {
+    const ptr = this.e.malloc(params.length * 8);
+    if (!ptr) {
+      throw new Error('sim.wasm malloc failed for the prop and pack block');
+    }
+    new Float64Array(this.e.memory.buffer, ptr, params.length).set(params);
+    const code = this.e.sim_set_prop_pack(ptr);
+    this.e.free(ptr);
+    return code;
+  }
+
   clearPower() {
     return this.e.sim_power_clear();
   }

@@ -846,6 +846,38 @@ int sim_power_state(double *out);
 int sim_set_motors(const double *in);
 
 /*
+ * A QUAD'S PROP AND PACK, the hangar's Power tab on a quad beside its
+ * motors (configs/motors.js, docs/MOTORS-STAGE1.md): a real prop of the
+ * frame's own diameter and a real pack, laid over the motors block or the
+ * table. What the prop and the pack weigh, and where, is not here: the
+ * host folds it into sim_set_motors's mass and inertia, which describe the
+ * whole machine, so a stock motor with a heavier pack seats both blocks.
+ *
+ * sim_set_prop_pack(in): the SIM_PROP_PACK_DOUBLES below, SI units. The
+ * prop's thrust and torque constants, thrust kt w^2 and torque kq w^2 on
+ * a rotor at w rad/s, and its pitch over 2 pi, metres per radian (plant.c
+ * k_inflow: a rotor at w has a pitch speed of w times it); the pack's
+ * series cells and each cell's resistance, ohms. A MODE on the same rules
+ * as sim_set_motors: kept across sim_reset and sim_init, cleared by
+ * sim_set_airframe to a different airframe and by sim_power_clear, which
+ * clears both blocks. sim_power_state [9] reads 1 while either is seated.
+ * SIM_ERR_BAD_ARG on a fixed wing, for a null pointer and for any value
+ * out of its range (plant_set_prop_pack in src/native/plant.c);
+ * SIM_ERR_BAD_STATE before sim_init.
+ *
+ * Additive, version unchanged: with nothing seated no step reads any of
+ * it, and seated with the table's own values every trace is bit identical
+ * (scripts/motors-check.js).
+ */
+#define SIM_PROP_PACK_KT 0       /* N per (rad/s)^2, 1e-10 to 1e-3 */
+#define SIM_PROP_PACK_KQ 1       /* N m per (rad/s)^2, 1e-12 to 1e-4 */
+#define SIM_PROP_PACK_PITCH_R 2  /* pitch over 2 pi, m per rad, 0.001 to 0.2 */
+#define SIM_PROP_PACK_CELLS 3    /* series cells, 1 to 14 */
+#define SIM_PROP_PACK_R_CELL 4   /* ohms a cell, 0 to 1 */
+#define SIM_PROP_PACK_DOUBLES 5
+int sim_set_prop_pack(const double *in);
+
+/*
  * ADD-ONS, the hangar's Parts tab (configs/hangar-parts.js) on a fixed
  * wing and a combat quad's payload and accessories (docs/COMBAT-DRONES.md)
  * on a quad: what the pilot bolted on or taped up, handed over as one
