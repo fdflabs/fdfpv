@@ -217,6 +217,25 @@ only). In a war:
   `prop_r`, the legs reach the hull depth of section 2.3, and
   `npm run check:craft` style scale checks apply as for every aircraft.
 
+## 4a. The picker and the hangar
+
+- The quad tab of the picker lists `7inch` and `10inch` after the five inch
+  and the whoop; their notes are `carousel.note.7inch` and
+  `carousel.note.10inch`.
+- Customise (the picker's C, the pause menu's row) opens the hangar for a
+  combat quad on a **Loadout** tab, `src/ui/hangar-combat.js`, registered
+  like the Parts and Tuning tabs: the payload (none or one of the four) and
+  the accessories, each with its mass, and the all up weight and thrust to
+  weight they leave. A combat quad is not paintable yet, so its hangar
+  opens on that tab; every other aircraft's Loadout tab says it carries no
+  payload.
+- Save writes `settings.combat[airframeId]`, the same per airframe slot
+  shape as `settings.parts`, so a saved build (My Hangar,
+  `src/ui/builds.js`) can carry it the way it carries the parts by adding
+  `combat` to its fit. A save for the quad in the air refits it.
+- The hangar's stand reads the unsaved choice from the tab's frame hook,
+  `frame().hangar.tabs.loadout = { id, combat }`, for the models' preview.
+
 ## 5. What a payload does, measured
 
 `npm run combat:gates` on the module, fresh pack, no accessories. Hover is
@@ -238,6 +257,10 @@ that. Level speed at full throttle, bare: 28.3 m/s and 27.6 m/s.
 ## 6. Checks
 
 - `npm run combat:derive`: prints sections 1 and 2.
+- `npm run combat:shell`: the real shell seats a stored loadout, the
+  Loadout tab saves and refits one, a reset keeps it.
+- `npm run campaign:check`: in a real room, a combat quad's payload is the
+  loadout's warhead when owned and the equipped one when not.
 - `npm run combat:gates`: both quads hover, and hover where section 1 says;
   thrust to weight, motor time constant and roll authority in bands from
   outside this repo; the five inch unmoved (its fingerprint, as
