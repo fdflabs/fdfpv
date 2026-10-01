@@ -35,7 +35,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { AIRFRAMES, airframeById, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
+import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
 import { paintable } from '../../configs/liveries.js';
 
@@ -49,8 +49,8 @@ export function kindOf(id) {
 
 /* The aircraft a tab shows, in configs/airframes.js order, which is the
  * order the menus have always listed them in. A float version is not a
- * card of its own: it is its land plane with the hangar's Floats toggle
- * on (configs/airframes.js floatVersionOf). */
+ * card of its own: it is its land plane with the Floats switch on, here
+ * and in the hangar (configs/airframes.js floatVersionOf). */
 export function pickList(filter) {
   return AIRFRAMES
     .filter((a) => !isFloatVersion(a.id) && (filter === 'all' || kindOf(a.id) === filter))
@@ -209,7 +209,17 @@ export class Carousel {
     const info = el('div', 'carousel-info');
     this.nameEl = el('div', 'carousel-name');
     this.nameEl.setAttribute('aria-live', 'polite');
+    /* The span, the weight and, for a plane with a float version, the
+     * Floats switch: built once and only relabelled, so the switch keeps
+     * its focus across a flip. Styled as the hangar's (index.html). */
     this.factsEl = el('div', 'carousel-facts');
+    this.sizeEl = el('span', 'carousel-fact');
+    this.weightEl = el('span', 'carousel-fact');
+    this.floatsBtn = button('hangar-floats carousel-floats', str('hangar.floats'));
+    this.floatsBtn.dataset.key = 'floats';
+    this.floatsBtn.setAttribute('role', 'switch');
+    this.floatsBtn.addEventListener('click', () => this.toggleFloats());
+    this.factsEl.append(this.sizeEl, this.weightEl, this.floatsBtn);
     this.noteEl = el('p', 'carousel-note');
     this.dots = el('div', 'carousel-dots');
     info.append(this.nameEl, this.factsEl, this.noteEl, this.dots);
@@ -337,10 +347,12 @@ export class Carousel {
    * `compact` is the in flight version, a band over the paused flight
    * rather than a page; `warn` is a line under the choice, for what a
    * choice will cost. onChoose gets the aircraft id, onCancel nothing.
+   * `floats` is the Floats switch, { on(id), set(id, on) } by land plane
+   * id (src/ui/ui.js openPicker); without it no card shows one.
    */
-  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', onChoose, onCancel, onCustomise } = {}) {
-    this.opts = { onChoose, onCancel, onCustomise };
-    this.openArgs = { filter, compact, title, warn, onChoose, onCancel, onCustomise };
+  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, onChoose, onCancel, onCustomise } = {}) {
+    this.opts = { onChoose, onCancel, onCustomise, floats };
+    this.openArgs = { filter, compact, title, warn, floats, onChoose, onCancel, onCustomise };
     this.isOpen = true;
     this.hintKind = hint;
     this.root.classList.toggle('compact', Boolean(compact));
@@ -414,6 +426,29 @@ export class Carousel {
     go(id, () => this.open({ ...args, current: id }));
   }
 
+  /* A card's Floats switch: true or false, or null for a card with no
+   * float version or an opener that offers none. */
+  floatsOn(id) {
+    const f = this.opts && this.opts.floats;
+    return f && floatVersionOf(id) ? Boolean(f.on(id)) : null;
+  }
+
+  /* The machine a card stands for as its switch is set: the one drawn, and
+   * whose span and weight are read out. */
+  shown(id) {
+    return this.floatsOn(id) ? floatVersionOf(id) : id;
+  }
+
+  toggleFloats() {
+    const id = this.current();
+    const on = this.floatsOn(id);
+    if (on === null) {
+      return;
+    }
+    this.opts.floats.set(id, !on);
+    this.paint();
+  }
+
   goTo(i) {
     const n = Math.max(0, Math.min(this.ids.length - 1, i));
     if (n !== this.index) {
@@ -451,10 +486,13 @@ export class Carousel {
     const id = this.current();
     const af = airframeById(id);
     this.nameEl.textContent = af.name;
-    this.factsEl.textContent = '';
-    for (const f of [sizeText(id), weightText(id)]) {
-      this.factsEl.append(el('span', 'carousel-fact', f));
-    }
+    const seen = this.shown(id);
+    this.sizeEl.textContent = sizeText(seen);
+    this.weightEl.textContent = weightText(seen);
+    const floats = this.floatsOn(id);
+    this.floatsBtn.hidden = floats === null;
+    this.floatsBtn.classList.toggle('on', Boolean(floats));
+    this.floatsBtn.setAttribute('aria-checked', String(Boolean(floats)));
     this.noteEl.textContent = str(`carousel.note.${id}`);
     for (const [f, t] of Object.entries(this.tabEls)) {
       t.classList.toggle('on', f === this.filter);
@@ -500,8 +538,12 @@ export class Carousel {
       this.goTo(0);
     } else if (code === 'End') {
       this.goTo(this.ids.length - 1);
+    } else if (code === 'Space' && document.activeElement === this.floatsBtn) {
+      this.toggleFloats();
     } else if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
       this.choose();
+    } else if (code === 'KeyF') {
+      this.toggleFloats();
     } else if (code === 'KeyC') {
       this.customise();
     } else if (code === 'Escape' || code === 'Backspace' || code === 'Tab') {
@@ -512,7 +554,8 @@ export class Carousel {
 
   /*
    * A gamepad or a radio, as the shell resolves it: { up, down, left, right,
-   * select, back, alt }, levels, alt being a standard pad's X. Edge triggered, and the first poll after
+   * select, back, alt, floats }, levels, alt being a standard pad's X and
+   * floats its Y. Edge triggered, and the first poll after
    * opening only learns where the sticks are, because the press that
    * opened this is usually still held.
    */
@@ -525,6 +568,7 @@ export class Carousel {
       select: Boolean(nav.select),
       back: Boolean(nav.back),
       alt: Boolean(nav.alt),
+      floats: Boolean(nav.floats),
     };
     const prev = this.padPrev;
     this.padPrev = now;
@@ -532,7 +576,7 @@ export class Carousel {
       return;
     }
     const edge = (k) => now[k] && !prev[k];
-    if (['up', 'down', 'left', 'right', 'select', 'back', 'alt'].some(edge) && this.hintKind !== 'pad') {
+    if (['up', 'down', 'left', 'right', 'select', 'back', 'alt', 'floats'].some(edge) && this.hintKind !== 'pad') {
       this.hintKind = 'pad';
       this.paintHint();
     }
@@ -548,9 +592,12 @@ export class Carousel {
     if (edge('down')) {
       this.cycleFilter(1);
     }
-    /* A standard pad's X is also one of the buttons a menu takes as
-     * select, so X customises first and the same press chooses nothing. */
-    if (edge('alt')) {
+    /* A standard pad's X and Y are also buttons a menu takes as select, so
+     * X customises first, Y flips the floats, and the same press chooses
+     * nothing. */
+    if (edge('floats')) {
+      this.toggleFloats();
+    } else if (edge('alt')) {
       this.customise();
     } else if (edge('select')) {
       this.choose();
@@ -588,7 +635,7 @@ export class Carousel {
     for (let i = 0; i < this.ids.length; i += 1) {
       const d = i - this.pos;
       if (Math.abs(d) < 2.6) {
-        items.push({ id: this.ids[i], d });
+        items.push({ id: this.shown(this.ids[i]), d });
       }
     }
     const r = this.stage.getBoundingClientRect();

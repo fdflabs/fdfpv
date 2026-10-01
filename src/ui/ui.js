@@ -13573,6 +13573,42 @@ export class Ui {
     return coarse ? 'touch' : 'key';
   }
 
+  /*
+   * The picker with its Floats switch, which is the hangar's toggle by
+   * another door: the same s.floats, so the two always agree, and Choose
+   * seats it through withFloats. A flip is kept when the picker is put
+   * away without a choice, except on the seated plane (settleFloats).
+   */
+  openPicker(opts) {
+    const s = this.settings;
+    this.carousel.open({
+      ...opts,
+      floats: {
+        on: (id) => Boolean(s.floats && s.floats[id]),
+        set: (id, on) => {
+          s.floats = { ...s.floats, [id]: on };
+          this.persistSettings();
+        },
+      },
+      onCancel: () => {
+        this.settleFloats();
+        opts.onCancel();
+      },
+    });
+  }
+
+  /* The seated plane's toggle back in step with the seat, as seatAirframe
+   * keeps it, after a picker flip that seated nothing: put away, or a swap
+   * the run refused. Nothing then says floats on a plane on its wheels. */
+  settleFloats() {
+    const s = this.settings;
+    const land = landPlaneOf(s.airframe);
+    if (floatVersionOf(land) && Boolean(s.floats && s.floats[land]) !== isFloatVersion(s.airframe)) {
+      s.floats = { ...s.floats, [land]: isFloatVersion(s.airframe) };
+      this.persistSettings();
+    }
+  }
+
   /* A card on the gate: the aircraft for that way in, then the way in. An
    * aircraft the card does not take, chosen under All, takes the card that
    * does. */
@@ -13596,7 +13632,7 @@ export class Ui {
       return;
     }
     const s = this.settings;
-    this.carousel.open({
+    this.openPicker({
       current: way.airframes.includes(s.airframe) ? s.airframe : way.airframes[0],
       filter: wayFilter(way),
       title: way.label,
@@ -13615,7 +13651,7 @@ export class Ui {
    * as the row always has; in a run it swaps it in place. */
   openCraftRow(midRun) {
     const s = this.settings;
-    this.carousel.open({
+    this.openPicker({
       current: s.airframe,
       filter: kindOf(s.airframe),
       hint: this.pickHint(),
@@ -13627,7 +13663,10 @@ export class Ui {
           return;
         }
         if (midRun && this.onHotSwap) {
-          this.swapTo(id).then(() => this.renderMenu());
+          this.swapTo(id).then(() => {
+            this.settleFloats();
+            this.renderMenu();
+          });
           return;
         }
         seatAirframe(s, id);
@@ -13656,7 +13695,7 @@ export class Ui {
       this.show('paused');
     }
     const current = this.settings.airframe;
-    this.carousel.open({
+    this.openPicker({
       current,
       filter: kindOf(current),
       compact: true,
@@ -13665,7 +13704,10 @@ export class Ui {
       hint: this.pickHint(),
       onCustomise: (id, reopen) => this.openHangar(id, reopen),
       onChoose: (card) => {
-        this.swapTo(withFloats(this.settings, card)).then(() => this.act('resume'));
+        this.swapTo(withFloats(this.settings, card)).then(() => {
+          this.settleFloats();
+          this.act('resume');
+        });
       },
       onCancel: () => {
         if (from === 'flight') {

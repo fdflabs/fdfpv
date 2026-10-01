@@ -1908,6 +1908,16 @@ export class InputManager {
     return Boolean(gp.buttons[2] && gp.buttons[2].pressed);
   }
 
+  /* A standard pad's Y, which the aircraft picker takes as its Floats
+   * switch. Standard only, for the reason padSwapButtons gives. */
+  padFloatsButton() {
+    const gp = this.firstGamepad();
+    if (!gp || gp.mapping !== 'standard' || !gp.buttons) {
+      return false;
+    }
+    return Boolean(gp.buttons[3] && gp.buttons[3].pressed);
+  }
+
   padMenuButtons() {
     const gp = this.firstGamepad();
     if (gp && gp.axes && (!gp.buttons || !gp.buttons.length)) {
