@@ -4906,6 +4906,15 @@
       /* The picker's switch is built once and hidden on a card with no float
          version; inline-flex above would otherwise outrank [hidden]. */
       .hangar-floats[hidden] { display: none; }
+      /* The picker's Engine switch: a fact chip that is a button, with the
+         swap mark that says a click changes it. */
+      .carousel-engine {
+        display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+        color: var(--cream); border-color: rgba(255, 212, 92, 0.7);
+      }
+      .carousel-engine::after { content: '\21C4'; color: var(--amber); font-size: 15px; }
+      .carousel-engine:hover { background: rgba(255, 212, 92, 0.16); }
+      .carousel-engine:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
       .hangar-tabs { position: relative; }
       .hangar-tab-pill {
         position: absolute; top: 0; left: 0; height: 0; width: 0;

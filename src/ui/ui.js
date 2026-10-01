@@ -73,7 +73,7 @@ import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionO
 import { POWER, normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { PROPS, normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
-import { normaliseCombat } from '../../configs/combat.js';
+import { combatChoice, normaliseCombat } from '../../configs/combat.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
@@ -1426,14 +1426,15 @@ export function withFloats(s, id) {
 
 /* A picker card drawn in a fit rather than in the slots, a My Hangar
  * build's or a stock plane's kept aside (src/ui/builds.js), as
- * src/render/carousel3d.js takes it: the model's own key, its look and
- * what it is fitted with. */
+ * src/render/carousel3d.js takes it: the model's own key, its look, what
+ * it is fitted with and a combat quad's loadout. */
 function drawnFit(key, id, fit) {
   const parts = PROPS[id] ? { prop: 'stock', addons: [], damage: null, ...(fit.parts ?? {}) } : null;
   return {
     key,
     look: lookFor(id, fit.livery),
     fit: parts ? { id, entry: parts, option: POWER[id] ? powerChoice(id, { [id]: fit.power }).option : null } : null,
+    combat: fit.combat ?? null,
   };
 }
 
@@ -13692,6 +13693,17 @@ export class Ui {
    */
   openPicker(opts) {
     const s = this.settings;
+    /*
+     * The Engine switch on the seated aircraft: its loadout before the
+     * first flip and after the last. A flip seated by Choose is a refit;
+     * one put away is undone, as settleFloats undoes the Floats switch, so
+     * what is flying is what the slots say. Only while nothing else (the
+     * Loadout tab's Save, through Customise) has changed it since.
+     */
+    const seat = s.airframe;
+    const flip = { before: null, after: null };
+    const flipped = () => Boolean(flip.before) && JSON.stringify(this.stockLoadout(seat)) === JSON.stringify(flip.after)
+      && JSON.stringify(flip.after) !== JSON.stringify(flip.before);
     this.carousel.open({
       ...opts,
       floats: {
@@ -13699,6 +13711,17 @@ export class Ui {
         set: (id, on) => {
           s.floats = { ...s.floats, [id]: on };
           this.persistSettings();
+        },
+      },
+      engine: {
+        of: (id) => this.stockLoadout(id),
+        set: (id, propulsion) => {
+          const was = this.stockLoadout(id);
+          this.setStockLoadout(id, { ...was, propulsion });
+          if (id === seat) {
+            flip.before = flip.before ?? was;
+            flip.after = this.stockLoadout(id);
+          }
         },
       },
       builds: this.pickerBuilds(),
@@ -13709,13 +13732,42 @@ export class Ui {
         if (moved) {
           this.persistSettings();
         }
+        /* Refitted as the Loadout tab's Save refits, in the air where it
+         * is when a run is up, before the opener's own swap, which is
+         * refused for the same aircraft. */
+        if (!build && id === seat && flipped()) {
+          this.refitted(id).then(() => opts.onChoose(id, moved));
+          return;
+        }
         opts.onChoose(id, moved);
       },
       onCancel: () => {
         this.settleFloats();
+        if (flipped()) {
+          this.setStockLoadout(seat, flip.before);
+        }
         opts.onCancel();
       },
     });
+  }
+
+  /* A combat quad's loadout as its stock card has it (src/ui/builds.js
+   * stockFit: in the slots, or kept beside a build the family wears), made
+   * valid; null for any other aircraft. The Loadout tab edits the same. */
+  stockLoadout(id) {
+    const af = airframeById(id);
+    return af.combat ? combatChoice(af, stockFit(this.settings, id).combat) : null;
+  }
+
+  setStockLoadout(id, choice) {
+    const s = this.settings;
+    const combat = combatChoice(airframeById(id), choice);
+    if (familyFitted(s, id)) {
+      setStockFit(s, id, { ...stockFit(s, id), combat });
+    } else {
+      s.combat = { ...s.combat, [id]: combat };
+    }
+    this.persistSettings();
   }
 
   /* The seated plane's toggle back in step with the seat, as seatAirframe
