@@ -108,6 +108,7 @@
     "check:avionics-layout": "node scripts/avionics-layout.js",
     "war:card": "node scripts/war-card-check.js",
     "campaign:check": "node scripts/campaign-check.js",
+    "flow:check": "node scripts/flow-check.js",
     "war:public": "node scripts/war-public-check.js",
     "war:lobby": "node scripts/war-lobby-check.js",
     "war:targets": "node scripts/war-targets.js --check",

@@ -144,6 +144,23 @@ export function wantedRoom() {
   return normaliseCode(read('session', ROOM_KEY));
 }
 
+/* A ?room= link is used once: once its room has welcomed this tab, the
+ * code goes from the address, so Leave then a reload stays left
+ * (docs/FLOW-AUDIT.md D3). A reload still rejoins by the tab's own
+ * session key while the pilot is in the room. */
+function dropRoomLink() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('room')) {
+      return;
+    }
+    url.searchParams.delete('room');
+    window.history.replaceState(window.history.state, '', url.toString());
+  } catch (e) {
+    /* No location or history to change: the link stays, as before. */
+  }
+}
+
 /* The share link for a code: this page with ?room=. */
 export function roomLink(code) {
   try {
@@ -347,6 +364,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           fullRetried = false;
         }
         write('session', ROOM_KEY, code);
+        dropRoomLink();
         clock.resync();
         stopTimers();
         ping();
