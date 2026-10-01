@@ -19,10 +19,10 @@
  * map and a mission on another map refused; a private Itaipu one made for
  * mission 2 says so in its welcome, and once its host has started mission
  * 3 a later welcome says mission 3; a build that would not ask the war's
- * consent is closed for a reload instead of seated. A public one (the owner opened the war
- * to public rooms, 2026-10-01): listed as the war's with its mission, a
- * quick join on its world never handed it, and a public room not made for
- * the war still refuses the war.
+ * consent is closed for a reload instead of seated. A public one (the
+ * owner opened the war to public rooms, 2026-10-01): listed as the war's
+ * with its mission, a quick join on its world never handed it, and a
+ * public room not made for the war still refuses the war.
  *
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
