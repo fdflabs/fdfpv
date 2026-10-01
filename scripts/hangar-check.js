@@ -2,7 +2,8 @@
  * hangar-check.js: the hangar, its paint and its power, in the real shell,
  * headless.
  *
- *   1. Every plane's regions: what each builder draws a region in is the
+ *   1. Every paintable aircraft's regions, the planes' and the combat
+ *      aircraft's: what each builder draws a region in is the
  *      stock colour configs/liveries.js says, and painting a model and
  *      putting it back on stock returns every material to the very colour
  *      it was built in, the stock look exact.
@@ -65,6 +66,13 @@
  *      switch it; a switch of the seated Striker put away with Escape is
  *      undone; and E and Enter in the air refit the flying Striker on the
  *      turbojet's plant.
+ *  11. The combat aircraft's paint: the Striker from the picker, its
+ *      Customise on the Loadout tab, then Colours: the test scheme and a
+ *      colour of the pilot's own on the engine, worn by the hangar's model
+ *      before Save, stored by it, worn by the picker's; flown on the
+ *      turbojet and refitted in the air on the piston engine, the flying
+ *      model in it on both. And the 7 inch the same way, a two tone with
+ *      its own colour on the frame, worn when it is swapped in in the air.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     alps by default
@@ -92,7 +100,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { sizeText, weightText } from '../src/ui/carousel.js';
 import { str } from '../src/strings/index.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
-import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor } from '../configs/liveries.js';
+import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor, schemesFor } from '../configs/liveries.js';
 import { POWER, SIM_POWER, powerBlock, powerChoice } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
 import { normalizeEntry, setupFor, tuneBlock } from '../configs/tuning.js';
@@ -146,7 +154,7 @@ async function ready(page) {
 /* Every plane built on its own in the page, from the builders the shell
  * uses: its regions' stock colours, and a paint and back. */
 async function regionsCheck(page) {
-  console.log('1. every plane\'s regions');
+  console.log('1. every paintable aircraft\'s regions');
   const ids = AIRFRAMES.filter((a) => paintable(a.id)).map((a) => a.id);
   const got = await page.evaluate(`(async () => {
     const { craftBuilderFor } = await import('/src/render/craft.js');
@@ -1001,6 +1009,91 @@ async function pickerEngineCheck(page) {
   say(await page.evaluate("window.__ui.screen") === 'flight', 'and the flight resumes');
 }
 
+async function combatPaintCheck(page) {
+  console.log('11. the combat aircraft\'s paint');
+  const toPicker = async (id) => {
+    if (await page.evaluate("window.__ui.screen === 'flight'")) {
+      await page.tap('Escape');
+      await page.until("window.__ui.screen === 'paused'", 10000);
+    }
+    await page.evaluate("window.__ui.show('title'); true");
+    await page.evaluate('window.__ui.openCraftRow(false); true');
+    await page.until('window.__ui.carousel.isOpen', 10000);
+    await page.evaluate("window.__ui.carousel.setFilter('all'); true");
+    const at = await page.evaluate(`window.__ui.carousel.ids.indexOf(${JSON.stringify(id)})`);
+    await page.evaluate(`window.__ui.carousel.goTo(${at}); true`);
+  };
+  /* Paint `id` in the hangar from the picker: a scheme and one region in
+   * a colour of the pilot's own, Save. Returns the colours it should wear. */
+  const paint = async (id, scheme, region, hex) => {
+    await toPicker(id);
+    await page.tap('KeyC');
+    await page.until('window.__ui.hangar.isOpen', 10000);
+    const tab = await page.evaluate('window.__ui.hangar.tab');
+    say(tab === 'loadout', `C on the ${id} opens Customise on its Loadout tab: ${tab}`);
+    await page.evaluate("window.__ui.hangar.setTab('colours'); true");
+    await page.until("window.__ui.hangar.tab === 'colours'", 5000);
+    const offered = await page.evaluate("[...document.querySelectorAll('.hangar [data-key^=\"scheme-\"]')].map((b) => b.dataset.key.slice(7))");
+    const regions = await page.evaluate("[...document.querySelectorAll('.hangar [data-key^=\"region-\"]')].map((b) => b.dataset.key.slice(7))");
+    say(same(offered, schemesFor(id).map((x) => x.id)) && same(regions, regionsFor(id).map((x) => x.id)),
+      `its Colours tab offers its schemes ${JSON.stringify(offered)} and regions ${JSON.stringify(regions)}`);
+    await page.evaluate(click(`scheme-${scheme}`));
+    await page.evaluate(click(`region-${region}`));
+    await page.evaluate(`(() => { const i = document.querySelector('.hangar-custom-input'); i.value = ${JSON.stringify(hex)}; i.dispatchEvent(new Event('input')); return true; })()`);
+    const want = coloursFor(id, { scheme, regions: { [region]: hex } });
+    await page.until(wears(id, want), 60000).catch(() => {});
+    const preview = await page.evaluate(`window.__pickPaint(${JSON.stringify(id)})`) ?? {};
+    say(same(sorted(preview), sorted(want)), `the ${id} in the hangar wears ${scheme} with its own ${region} before Save: ${JSON.stringify(preview)}`);
+    await page.evaluate('window.__ui.hangar.saveBtn.click(); true');
+    await page.until('!window.__ui.hangar.isOpen', 5000);
+    const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).livery[${JSON.stringify(id)}]`);
+    say(same(stored, { scheme, regions: { [region]: hex } }), `Save stores it: ${JSON.stringify(stored)}`);
+    await page.until(`window.__ui.carousel.isOpen && ${wears(id, want)}`, 60000).catch(() => {});
+    const picked = await page.evaluate(`window.__pickPaint(${JSON.stringify(id)})`) ?? {};
+    say(same(sorted(picked), sorted(want)), `and the picker's ${id} wears it: ${JSON.stringify(picked)}`);
+    return want;
+  };
+  /* A region a part not fitted carries (the 7 inch's cage) is in its
+   * colour and drawn nowhere, so it is the pilot's own colour that must be
+   * on a drawn mesh. */
+  const flownIn = async (id, want, own, what) => {
+    await page.until(`window.__craftPaint().id === ${JSON.stringify(id)} && window.__craft().run === ${JSON.stringify(id)}`, 60000).catch(() => {});
+    const flown = await page.evaluate('window.__craftPaint()');
+    const combat = (await page.evaluate('window.__craft()')).combat;
+    say(flown.id === id && same(sorted(flown.regions), sorted(want)) && flown.drawn.includes(own),
+      `flown ${what}, the ${id} is in it: ${JSON.stringify(flown.regions)}, its own ${own} on a drawn mesh (${JSON.stringify(combat)})`);
+    return combat;
+  };
+
+  const striker = airframeById('striker2500');
+  const [prop, jet] = striker.combat.propulsion;
+  const want = await paint('striker2500', 'test', 'engine', '#3355aa');
+  await page.tap('Enter');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  const onJet = await flownIn('striker2500', want, '#3355aa', 'on the turbojet');
+  say(Boolean(onJet) && onJet.propulsion === jet.id, `and it is the turbojet that flies: ${JSON.stringify(onJet)}`);
+  await page.evaluate("window.__ui.openSwap('flight'); true");
+  await page.until('window.__ui.carousel.isOpen', 10000);
+  await page.tap('KeyE');
+  await page.tap('Enter');
+  await page.until(`window.__craft().module === ${prop.simId}`, 30000).catch(() => {});
+  await page.sleep(300);
+  const onProp = await flownIn('striker2500', want, '#3355aa', 'refitted in the air on the piston engine');
+  say(Boolean(onProp) && onProp.propulsion === prop.id, `and it is the piston engine that flies: ${JSON.stringify(onProp)}`);
+  await page.until("window.__ui.screen === 'flight'", 10000).catch(() => {});
+
+  const want7 = await paint('7inch', 'two_tone', 'frame', '#e73f0e');
+  await page.tap('Escape');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await page.evaluate("window.__ui.swapTo('7inch').then(() => true)");
+  await page.until("window.__craft().run === '7inch'", 30000);
+  await flownIn('7inch', want7, '#e73f0e', 'swapped in in the air');
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -1106,11 +1199,15 @@ async function main() {
     await page.until(wears('timber1500', stock), 60000).catch(() => {});
     const stockPaint = await page.evaluate("window.__pickPaint('timber1500')") ?? {};
     say(!after.timber1500 && same(sorted(stockPaint), sorted(stock)), `Reset to stock leaves nothing stored for it and the model in its kit's colours: ${JSON.stringify(stockPaint)}`);
-    /* Every fixed wing has paint, a float plane its land plane's: counted
-     * off the airframe table, so a plane added there without paint fails
-     * here and one added with it passes without this line changing. */
-    const families = new Set(AIRFRAMES.filter((a) => a.fixedWing).map((a) => liveryKey(a.id)));
-    say(Object.keys(LIVERIES).length === families.size && [...families].every((k) => LIVERIES[k]), `${Object.keys(LIVERIES).length} planes have paint, one for each of the ${families.size} fixed wings' families`);
+    /* Every fixed wing has paint, a float plane its land plane's, and so
+     * does every combat aircraft, and nothing else has: read off the
+     * airframe table, so an aircraft added there without paint fails here
+     * and one added with it passes without this line changing. */
+    const families = new Set(AIRFRAMES.filter((a) => a.fixedWing || a.combat).map((a) => liveryKey(a.id)));
+    const bare = [...families].filter((k) => !LIVERIES[k]);
+    const stray = Object.keys(LIVERIES).filter((k) => !families.has(k));
+    say(bare.length === 0 && stray.length === 0,
+      `every fixed wing's and combat aircraft's family has paint, ${families.size} of them, and nothing else: ${JSON.stringify({ bare, stray })}`);
     await page.evaluate('window.__ui.carousel.close(); true');
     await tuningCheck(page);
     await layoutCheck(page);
@@ -1119,6 +1216,7 @@ async function main() {
     await paintShopCheck(page);
     await pickerFloatsCheck(page);
     await pickerEngineCheck(page);
+    await combatPaintCheck(page);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

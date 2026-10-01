@@ -7186,9 +7186,9 @@ export class Ui {
           action: 'hotswap',
           note: str('carousel.row_note'),
         },
-        /* The hangar for the plane being flown: its power and its paint,
-         * saved into the air where it is; a combat quad's loadout. */
-        ...(paintable(s.airframe) || airframeById(s.airframe).combat ? [{
+        /* The hangar for the aircraft being flown: its power, its paint
+         * and a combat aircraft's loadout, saved into the air where it is. */
+        ...(paintable(s.airframe) ? [{
           label: str('hangar.customise'),
           action: 'customise',
           note: str('hangar.row_note'),
@@ -14056,10 +14056,7 @@ export class Ui {
     /* A build opens on the airframe it was built on; a stock plane on the
      * version its toggle names, whichever of the two it was asked for. */
     const id = build ? build.airframe : withFloats(s, landPlaneOf(card));
-    /* A combat quad has a hangar for its payload and accessories
-     * (src/ui/hangar-combat.js) before it has paint. */
-    const loadoutOnly = !paintable(id) && Boolean(airframeById(id).combat);
-    if ((!paintable(id) && !loadoutOnly) || this.hangar.isOpen) {
+    if (!paintable(id) || this.hangar.isOpen) {
       return;
     }
     const family = liveryKey(id);
@@ -14129,7 +14126,8 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
-      tab: loadoutOnly ? 'loadout' : null,
+      /* A combat aircraft opens on what it carries (src/ui/hangar-combat.js). */
+      tab: airframeById(id).combat ? 'loadout' : null,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {
