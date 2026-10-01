@@ -221,10 +221,12 @@ export function createHangarRig() {
     const x = pop.x - 1;
     pop.v += (-90 * x - 2 * 0.45 * Math.sqrt(90) * pop.v) * dt;
     pop.x += pop.v * dt;
+    /* The pilot's own view over the one asked for (src/ui/hangar.js). */
+    const orbit = h.orbit ?? { elev: 0, zoom: 1 };
     return {
       yaw: yaw.x,
-      elev: elev.x,
-      zoom: zoom.x,
+      elev: Math.max(0.02, Math.min(1.45, elev.x + orbit.elev)),
+      zoom: zoom.x * orbit.zoom,
       along: along.x,
       up: up.x,
       pop: pop.x,

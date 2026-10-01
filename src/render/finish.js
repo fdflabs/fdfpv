@@ -27,6 +27,20 @@
  * the paint, over a darkened base; gloss a tight white highlight and a
  * brighter rim; matte no highlight and half the rim.
  *
+ * CARBON AND BARE ALUMINIUM are not a colour over the region's but a
+ * material of their own: the lit colour divided by the paint's gives the
+ * light the surface had, and that light falls on carbon's twill (a 2x2
+ * weave of 3 mm tows on the face the part's normal is nearest to, the
+ * same weave src/maps/swiss2/craftlook.js draws) or on aluminium brushed
+ * along the span.
+ *
+ * WEAR (configs/paint.js) is the whole aircraft's, on every region's
+ * material whatever its finish: scratches through the paint showing the
+ * bare skin, aluminium tape over the worst of them from a third of the
+ * way to battle worn, and the paint dulled in patches. Every mark is a
+ * hash of the model's own coordinates, so a pilot, a peer in a room and
+ * a replay all see the same scratch in the same place.
+ *
  * A film region (the Kadet) painted in any finish stops letting the sun
  * through: its film glow (filmmat.js) goes to 0 and comes back with the
  * kit's finish.
@@ -62,10 +76,100 @@ const FINISH = {
   matte: { diffuse: 0.94, env: 0, tint: 0, spec: 0, width: 0.01, rim: 0.45, cel: 0 },
   metallic: { diffuse: 0.62, env: 0.55, tint: 0.85, spec: 0.9, width: 0.05, rim: 1.2, cel: 0 },
   chrome: { diffuse: 0.1, env: 1.05, tint: 0.12, spec: 1.3, width: 0.008, rim: 0.5, cel: 0 },
+  carbon: { diffuse: 1, env: 0.05, tint: 0, spec: 0.55, width: 0.008, rim: 0.5, cel: 0, carbon: 1 },
+  aluminium: { diffuse: 1, env: 0.14, tint: 0.1, spec: 0.8, width: 0.03, rim: 0.8, cel: 0, alu: 1 },
 };
+
+/* The model's own coordinates and normal, for the weave and the wear. */
+const FINISH_VARYINGS = /* glsl */ `
+  varying vec3 vFinP;
+  varying vec3 vFinN;
+`;
+
+const FINISH_VERTEX = /* glsl */ `
+  vFinP = vec3(transformed);
+  vFinN = vec3(objectNormal);
+`;
+
+const FINISH_HELPERS = /* glsl */ `
+  float finHash(vec3 p) {
+    p = fract(p * 0.3183099 + 0.1);
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  }
+  float finNoise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(mix(finHash(i), finHash(i + vec3(1, 0, 0)), f.x), mix(finHash(i + vec3(0, 1, 0)), finHash(i + vec3(1, 1, 0)), f.x), f.y),
+      mix(mix(finHash(i + vec3(0, 0, 1)), finHash(i + vec3(1, 0, 1)), f.x), mix(finHash(i + vec3(0, 1, 1)), finHash(i + vec3(1, 1, 1)), f.x), f.y),
+      f.z);
+  }
+  /* The two coordinates of the face the normal is nearest to, metres. */
+  vec2 finFace() {
+    vec3 an = abs(vFinN);
+    return an.x > an.y && an.x > an.z ? vFinP.yz : (an.y > an.z ? vFinP.xz : vFinP.xy);
+  }
+  /* Carbon's twill: 1 on the crown of a tow, 0 in the gap, 0.5 once the
+   * tows would be finer than a pixel. */
+  float finTwill() {
+    vec2 q = finFace() / 0.003;
+    vec2 c = floor(q);
+    vec2 f = fract(q);
+    float warp = step(2.0, mod(c.x + c.y, 4.0));
+    float tow = mix(sin(f.x * PI), sin(f.y * PI), warp);
+    float fade = 1.0 - smoothstep(0.35, 0.9, max(fwidth(q.x), fwidth(q.y)));
+    return mix(0.5, tow, fade);
+  }
+  /* Scratches: three sets of long thin streaks at their own angles, where
+   * a coarse field says this patch took knocks. More wear, more of both. */
+  float finScratch(vec2 q, float w) {
+    float m = 0.0;
+    for (int i = 0; i < 3; i++) {
+      float a = float(i) * 2.1 + 0.4;
+      vec2 r = mat2(cos(a), -sin(a), sin(a), cos(a)) * q;
+      float line = finNoise(vec3(r.x * 5.0, r.y * 140.0, float(i) * 7.0));
+      float knocks = finNoise(vec3(q * 4.0, float(i) * 3.0 + 11.0));
+      m = max(m, smoothstep(0.93 - 0.05 * w, 0.965 - 0.04 * w, line) * smoothstep(1.0 - 0.7 * w, 1.06 - 0.7 * w, knocks));
+    }
+    return m;
+  }
+  /* Aluminium tape: one strip in some of the 14 cm cells, never below a
+   * third of the way to battle worn. */
+  float finTape(vec2 q, float w) {
+    vec2 cell = floor(q / 0.14);
+    vec2 f = fract(q / 0.14) - 0.5;
+    float h = finHash(vec3(cell, 3.7));
+    if (h > (w - 0.33) * 0.5) {
+      return 0.0;
+    }
+    vec2 halfSize = vec2(0.18 + 0.2 * finHash(vec3(cell, 5.1)), 0.08 + 0.1 * finHash(vec3(cell, 8.3)));
+    vec2 off = (vec2(finHash(vec3(cell, 1.3)), finHash(vec3(cell, 2.9))) - 0.5) * 0.4;
+    vec2 d = abs(f - off) - halfSize;
+    return 1.0 - smoothstep(0.0, 0.01, max(d.x, d.y));
+  }
+`;
 
 const FINISH_CHUNK = /* glsl */ `
   {
+    /* The light the surface had: the lit colour over the paint's. */
+    vec3 finShade = gl_FragColor.rgb / max(diffuse, vec3(0.04));
+    vec3 finBase = gl_FragColor.rgb;
+    if (uFinCarbon > 0.5) {
+      finBase = finShade * vec3(0.05, 0.052, 0.058) * (0.55 + 0.9 * finTwill());
+    } else if (uFinAlu > 0.5) {
+      float brush = finNoise(vec3(vFinP.x * 3.0, vFinP.y * 400.0, vFinP.z * 400.0));
+      finBase = finShade * vec3(0.44, 0.46, 0.49) * (0.88 + 0.2 * brush);
+    }
+    if (uFinWear > 0.001) {
+      vec2 finQ = finFace();
+      float dull = finNoise(vFinP * 9.0);
+      finBase *= 1.0 - 0.22 * uFinWear * smoothstep(0.35, 0.8, dull);
+      finBase = mix(finBase, finShade * vec3(0.72, 0.73, 0.74), 0.85 * finScratch(finQ, uFinWear));
+      float crinkle = finNoise(vFinP * 260.0);
+      finBase = mix(finBase, finShade * vec3(0.62, 0.64, 0.66) * (0.85 + 0.3 * crinkle), finTape(finQ, uFinWear));
+    }
     vec3 finV = normalize(vViewPosition);
     vec3 finR = reflect(-finV, normal);
     vec3 finW = normalize((vec4(finR, 0.0) * viewMatrix).xyz);
@@ -95,7 +199,7 @@ const FINISH_CHUNK = /* glsl */ `
     vec3 finTint = mix(vec3(1.0), pow(diffuse, vec3(0.4545)), uFinTint);
     float finSpec = max(dot(finR, normalize(uFinSpecDir)), 0.0);
     finSpec = step(0.985 - uFinWidth, finSpec) * uFinSpec;
-    gl_FragColor.rgb = gl_FragColor.rgb * uFinDiffuse + (finEnv * uFinEnv * finLight + finSpec) * finTint;
+    gl_FragColor.rgb = finBase * uFinDiffuse + (finEnv * uFinEnv * finLight + finSpec) * finTint;
   }
 `;
 
@@ -112,6 +216,9 @@ function wrap(mat) {
     uFinSpecDir: { value: null },
     uSpecStrength: { value: 0 },
     uRimStrength: { value: 0 },
+    uFinCarbon: { value: 0 },
+    uFinAlu: { value: 0 },
+    uFinWear: { value: 0 },
   };
   const state = { u, rim: null, spec: null, finish: 'kit' };
   const base = mat.onBeforeCompile;
@@ -128,16 +235,24 @@ function wrap(mat) {
       apply(state, state.finish);
     }
     Object.assign(shader.uniforms, u);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\n${FINISH_VARYINGS}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\n${FINISH_VERTEX}`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
+         ${FINISH_VARYINGS}
          uniform float uFinDiffuse;
          uniform float uFinEnv;
          uniform float uFinTint;
          uniform float uFinSpec;
          uniform float uFinWidth;
-         uniform vec3 uFinSpecDir;`)
+         uniform vec3 uFinSpecDir;
+         uniform float uFinCarbon;
+         uniform float uFinAlu;
+         uniform float uFinWear;
+         ${FINISH_HELPERS}`)
       .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n${FINISH_CHUNK}`);
-    if (!shader.fragmentShader.includes('finEnv')) {
+    if (!shader.fragmentShader.includes('finEnv') || !shader.vertexShader.includes(FINISH_VERTEX)) {
       throw new Error('finish: the lit shader changed and the finish chunk did not land');
     }
   };
@@ -162,15 +277,18 @@ function apply(state, finish) {
   u.uFinWidth.value = f.width;
   u.uRimStrength.value = state.rim * f.rim;
   u.uSpecStrength.value = state.spec * f.cel;
+  u.uFinCarbon.value = f.carbon ?? 0;
+  u.uFinAlu.value = f.alu ?? 0;
 }
 
 /*
  * Dress a craft's regions in their finishes: `finishes` region id to a
- * finish id, a region left out (or on `film`) in the kit's. The regions'
- * materials are the livery's own (craft.livery.materials()); a craft
- * without them has no finishes to wear.
+ * finish id, a region left out (or on `film`) in the kit's, and every
+ * region in `wear`, 0 to 1. The regions' materials are the livery's own
+ * (craft.livery.materials()); a craft without them has no finishes to
+ * wear.
  */
-export function dressFinish(craft, finishes = {}) {
+export function dressFinish(craft, finishes = {}, wear = 0) {
   if (!craft.livery || !craft.livery.materials) {
     return;
   }
@@ -179,13 +297,14 @@ export function dressFinish(craft, finishes = {}) {
     for (const mat of mats) {
       let state = mat.userData.finishState;
       if (!state) {
-        if (want === 'kit') {
+        if (want === 'kit' && !wear) {
           continue;
         }
         state = wrap(mat);
         mat.userData.finishState = state;
       }
       apply(state, want);
+      state.u.uFinWear.value = wear;
       mat.userData.paintFinish = want === 'kit' ? null : want;
       /* A film painted over is opaque paint: no sun through it. */
       if (mat.userData.film) {
@@ -196,6 +315,35 @@ export function dressFinish(craft, finishes = {}) {
       }
     }
   }
+}
+
+/* The wear a craft's paint shows now, 0 to 1, for a check. */
+export function readWear(craft) {
+  if (!craft.livery || !craft.livery.materials) {
+    return 0;
+  }
+  for (const mats of Object.values(craft.livery.materials())) {
+    const s = mats[0] && mats[0].userData.finishState;
+    if (s) {
+      return s.u.uFinWear.value;
+    }
+  }
+  return 0;
+}
+
+/* The finish uniforms each region's first material holds now, for a
+ * check: whether its program has the finish in it yet (`compiled`), and
+ * the carbon, aluminium and wear it draws. */
+export function readFinishUniforms(craft) {
+  if (!craft.livery || !craft.livery.materials) {
+    return {};
+  }
+  const out = {};
+  for (const [id, mats] of Object.entries(craft.livery.materials())) {
+    const s = mats[0] && mats[0].userData.finishState;
+    out[id] = s ? { compiled: s.rim !== null, carbon: s.u.uFinCarbon.value, alu: s.u.uFinAlu.value, wear: s.u.uFinWear.value } : null;
+  }
+  return out;
 }
 
 /* What finish each region's materials wear now, for a check. */

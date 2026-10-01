@@ -272,14 +272,18 @@ typedef struct {
 #define SIM_AIRFRAME_TIGERMOTH1803 23
 #define SIM_AIRFRAME_7IN 24
 #define SIM_AIRFRAME_10IN 25
+#define SIM_AIRFRAME_STRIKER_PROP 27
+#define SIM_AIRFRAME_STRIKER_JET 28
 /* Ids 13 to 23 are the eleven aircraft the owner asked for on 2026-09-28,
  * each added by its own branch; a slot not yet filled is a zeroed table
  * entry, whose zero mass plant_airframe_exists refuses, as any id past the
  * count is. 13, 14, 18, 20 and 22 are empty that way for good: their
  * aircraft were removed on 2026-09-29 and the ids stay reserved
  * (sim_abi.h). 24 and 25 are the combat quads of 2026-10-01
- * (docs/COMBAT-DRONES.md). */
-#define SIM_AIRFRAME_COUNT 26
+ * (docs/COMBAT-DRONES.md); 26 is left for the third combat quad, built
+ * alongside; 27 and 28 are the Striker on its piston engine and on its
+ * turbojet (the same doc, section 7). */
+#define SIM_AIRFRAME_COUNT 29
 
 /* What kind of plant a table entry is: the quad's plant_step or the wing's. */
 #define PLANT_KIND_QUAD 0
@@ -881,6 +885,8 @@ extern const FixedWingParams FW_KADET1981;
 extern const FixedWingParams FW_P51D1450;
 extern const FixedWingParams FW_F16878;
 extern const FixedWingParams FW_ZAGI1219;
+extern const FixedWingParams FW_STRIKER_PROP;
+extern const FixedWingParams FW_STRIKER_JET;
 extern const FixedWingParams FW_UGLYSTIK1567;
 extern const FixedWingParams FW_NRJ1490;
 extern const FixedWingParams FW_TIGERMOTH1803;

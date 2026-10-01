@@ -23,6 +23,13 @@
  *              and one let down onto a penstock meets it;
  *   chute      a Timber put down on the spillway chute skids down it on
  *              its floor record and never through it;
+ *   waterline  every 2 m along every face of a part with a body's water
+ *              off it (water/meet.js wetFaces), half a metre out, the
+ *              height() the plant and the eye read is that body's level
+ *              or higher: water or dry ground against the concrete, never
+ *              a hole under the water's level with no water in it (the
+ *              void the owner saw between the dam and the reservoir,
+ *              2026-10-01);
  *   targets    the war mode's targets (docs/WARFARE-PLAN.md section 8):
  *              intake-0..19, gate-0..13, penstock-0..19 and yard-right
  *              all present, each at a point of the drawn dam within
@@ -60,11 +67,12 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { wetFaces } from '../src/maps/itaipu/water/meet.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
 const onlyArg = process.argv.find((a) => a.startsWith('--only='));
-const ONLY = onlyArg ? onlyArg.slice(7).split(',') : ['count', 'figures', 'faces', 'targets', 'land', 'face', 'gap', 'chute'];
+const ONLY = onlyArg ? onlyArg.slice(7).split(',') : ['count', 'figures', 'faces', 'targets', 'land', 'face', 'gap', 'chute', 'waterline'];
 
 /* Section 6 and section 14, row D. */
 const SOLIDS_MAX = 15000;
@@ -78,6 +86,9 @@ const TARGET_IDS = [
   ...Array.from({ length: 20 }, (_, k) => `penstock-${k}`),
   'yard-right',
 ];
+/* The waterline's samples: their spacing along a face and how far out. */
+const WATERLINE_STEP = 2;
+const WATERLINE_OFF = 0.5;
 const AIRFRAME = 'timber1500';
 /* A little over the Timber's 7.2 m/s clean stall (configs/airframes.js). */
 const LAND_SPEED = 8.5;
@@ -674,6 +685,28 @@ async function main() {
         + `lowest ${under.toFixed(2)} m over its floor, end ${last.y.toFixed(2)} over ground ${last.ground.toFixed(2)}, wrecked ${last.wrecked}`);
       if (!ok) {
         fail('a Timber on the chute did not skid down its floor');
+      }
+    }
+
+    if (ONLY.includes('waterline')) {
+      const water = JSON.parse(await readFile(join(DATA, 'water.json'), 'utf8'));
+      const points = wetFaces(water, dam, WATERLINE_STEP, WATERLINE_OFF);
+      const heights = await page.evaluate(`${JSON.stringify(points)}.map((p) => window.__heightAt(p.x, p.z))`);
+      const dry = points.map((p, k) => ({ ...p, h: heights[k] })).filter((p) => !(p.h >= p.y - 0.01));
+      for (const name of new Set(points.map((p) => p.body))) {
+        const mine = dry.filter((p) => p.body === name);
+        const worst = mine.reduce((w, p) => (!w || p.h < w.h ? p : w), null);
+        console.log(`waterline: ${mine.length ? 'BAD' : 'ok'}; ${name}, ${points.filter((p) => p.body === name).length} points against the concrete, `
+          + `${mine.length} in a hole under its ${points.find((p) => p.body === name).y} m${worst ? `, deepest ${worst.h.toFixed(1)} at ${worst.x.toFixed(1)}, ${worst.z.toFixed(1)}` : ''}`);
+        for (const q of mine.slice(0, 40)) {
+          console.log(`    ${q.x.toFixed(1)}, ${q.z.toFixed(1)}: ${q.h.toFixed(1)}`);
+        }
+        if (mine.length) {
+          fail(`${mine.length} points against the dam's faces lie in a hole under the ${name}'s level with no water: a void between the dam and the water`);
+        }
+      }
+      if (!points.length) {
+        fail('no face of the dam has water off it: the waterline check measured nothing');
       }
     }
 
