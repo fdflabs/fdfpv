@@ -93,10 +93,16 @@ export class PeerTrack {
 
   /* A decoded pose. Older than the newest held is dropped, never
    * reordered: a TCP stream cannot reorder, so that is a reconnect's
-   * leftovers. */
+   * leftovers. The newest again is the room repeating a slow page's held
+   * pose (edge/rooms/core.js HOLD_MS): nothing new to draw, but its pilot
+   * is still there, so it is not stale. */
   push(pose, roomNowMs) {
     const last = this.poses[this.poses.length - 1];
-    if (last && pose.t <= last.t) {
+    if (last && pose.t === last.t) {
+      this.arrivedAt = roomNowMs;
+      return;
+    }
+    if (last && pose.t < last.t) {
       return;
     }
     if (last) {

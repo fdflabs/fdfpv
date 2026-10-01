@@ -27,7 +27,10 @@
 #      rerun to rotate all of them,
 #   7. board-install.sh as root on the VM: the database, the unit and the
 #      Caddyfile, then restarts the board alone and reloads Caddy,
-#   8. checks the board answers through Caddy, over HTTPS.
+#   8. checks the board answers through Caddy, over HTTPS, and that its
+#      GET /api/version names the commit from step 3 (the board reads
+#      REVISION as it starts; fdflabs/fdfpv-leaderboard#9 added the route,
+#      so a board checkout from before it fails here, after its restart).
 #
 # This file is part of WebFPVSimulator.
 #
@@ -141,3 +144,12 @@ remote 'sudo bash /opt/fdfpv/deploy/vm/board-install.sh'
 echo '8. the board, through Caddy'
 sleep 2
 curl -fsS "$ORIGIN/board/api/health" && echo
+version="$(curl -fsS "$ORIGIN/board/api/version")"
+echo "   /board/api/version $version"
+case "$version" in
+  *"\"${revision%% *}\""*) ;;
+  *)
+    echo "deploy-board.sh: /board/api/version does not name ${revision%% *}; the board is not running this deploy" >&2
+    exit 1
+    ;;
+esac

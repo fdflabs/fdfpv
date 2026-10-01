@@ -49,7 +49,9 @@ Worker and the simulator's two origins are the same string.
   database `fdfpvboard` under `/var/lib/pgsql/data`. The board connects
   over the Unix socket with peer authentication as `fdfpv-board`, so there
   is no database password. It listens on loopback only. Why Postgres and
-  not the board's JSON file is in the board's README.
+  not the board's JSON file is in the board's README. Its one change from
+  stock is a systemd drop-in, `postgresql.conf` here, installed by
+  `board-install.sh`: `MemoryMax=256M`, from a measured peak written in it.
 - State in `/var/lib/fdfpv-rooms/rooms.db` (a private room's code and race,
   so pilots reconnect into their seats after a restart) and
   `/var/lib/fdfpv-tracks/tracks.db` (every track). The tracks admin secret
@@ -85,6 +87,20 @@ admin secret the first time, installs the units, the journald cap and the
 Caddyfile (`install.sh`), restarts both servers, and fetches both through
 Caddy. A restart closes every room socket with 1012 and the simulator
 reconnects into its seat.
+
+Which commit is live: deploy.sh writes the commit it copied to
+`/opt/fdfpv/REVISION` (with ` dirty` after it from a checkout with
+uncommitted changes) before the restart, each server reads it as it
+starts, and `GET /v2/version` (rooms) and `GET /api/version` (tracks)
+answer `{"commit":"<sha>","dirty":false}`. deploy.sh fails at its last
+step if either does not name the commit it deployed. The board does the
+same at `GET /board/api/version` (`{"commit","fdfpv"}`), from the
+`/opt/fdfpv-board/REVISION` deploy-board.sh writes. Compare any of them
+with `git rev-parse origin/main`:
+
+```sh
+curl -s https://129.151.39.48/v2/version https://129.151.39.48/api/version https://129.151.39.48/board/api/version
+```
 
 The admin secret is generated on the VM the first time and written to the
 file named, mode 600: its first line is the secret, its second a dated

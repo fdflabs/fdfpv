@@ -139,6 +139,43 @@ export const INTEREST = [
 /* A seat whose newest pose is older than this is not flying anywhere. */
 export const HERE_MS = 1000;
 
+/*
+ * THE TICK AND THE POSES RUN AT ONE RATE, 30 Hz each, on two clocks: the
+ * room's (host.js, held to the wall clock) and each sender's. A tick that
+ * relayed only the newest pose lost one whenever two arrived between two
+ * ticks, which jitter of a few milliseconds does over and over to a
+ * sender whose phase sits near the tick's: rooms:load measured near peers
+ * at 25 Hz once the tick stopped drifting. So a seat keeps its last
+ * RECENT_POSES, and a near peer is sent every one it has not been sent
+ * yet, in order; on average that is still one a tick. A far peer, sent
+ * every few ticks on purpose, gets its newest alone.
+ */
+export const RECENT_POSES = 3;
+
+/*
+ * A SLOW PAGE IS STILL IN THE ROOM. A page whose frames take a second or
+ * more sends its poses a frame at a time, so its peers hear from it once a
+ * frame, and a peer not heard from for STALE_MS (src/game/peer.js, 2 s)
+ * is hidden: a pilot on a page under about one frame a second blinked out
+ * for everybody between frames. So the room repeats a seat's held pose to
+ * every other seat once every REPEAT_MS, under STALE_MS, for as long as it
+ * is still sending: its newest pose came within HOLD_MS (a page down to a
+ * frame every five seconds) and its profile names no status (paused, a
+ * menu, a hidden tab, the crash cam: roomwire.js ROOM_STATUSES), which a
+ * page that has stopped flying says itself. A page that has died without
+ * closing its socket sends nothing, so it is held for HOLD_MS and then
+ * hidden as before; one that closed is a leave at once. A peer track takes
+ * a repeat of the pose it already holds as word that its pilot is still
+ * there (peer.js push), and draws it where it was.
+ */
+export const HOLD_MS = 5000;
+export const REPEAT_MS = 1000;
+
+/* Whether a seat's held pose is repeated to the others now (HOLD_MS). */
+function holding(s, now) {
+  return Boolean(s.pose) && now - s.poseNow <= HOLD_MS && !(s.profile && s.profile.status);
+}
+
 /* A POSE's position, scene metres. */
 function poseAt(bytes) {
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -237,7 +274,7 @@ export class RoomCore {
   restore(conns) {
     for (const { conn, attachment } of conns) {
       if (attachment && attachment.seat) {
-        this.seats.set(conn, { ...attachment, pose: null, sent: new Map(), poseRate: { since: 0, n: 0 }, ...textRates(0) });
+        this.seats.set(conn, { ...attachment, pose: null, recent: [], sent: new Map(), poseRate: { since: 0, n: 0 }, ...textRates(0) });
         this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
         this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
@@ -608,6 +645,7 @@ export class RoomCore {
       joined,
       address: address || '',
       pose: null,
+      recent: [],
       sent: new Map(),
       poseRate: { since: now, n: 0 },
       level,
@@ -831,6 +869,10 @@ export class RoomCore {
       return checked.actions;
     }
     s.pose = checked.bytes;
+    s.recent.push(checked.bytes);
+    if (s.recent.length > RECENT_POSES) {
+      s.recent.shift();
+    }
     s.poseNow = now;
     /* The referee judges the bytes the room relays: Phase 5 sets
      * FLAG_SPAWNING on a spawning seat, which the rule leaves out. It
@@ -854,8 +896,10 @@ export class RoomCore {
    * not been sent yet, each at its interest band's rate (INTEREST): a peer
    * near this seat every tick, a far one every few. The room's own judges
    * (the referee, a tag match, a combat round) see every pose as it
-   * arrives (pose()), so this thins only what a screen draws. Ticks stop
-   * when every seat has been sent every newest pose.
+   * arrives (pose()), so this thins only what a screen draws. A pose
+   * already sent goes again after REPEAT_MS while its seat is holding().
+   * Ticks stop when every seat has been sent every newest pose and nobody
+   * is held.
    */
   tick(now) {
     this.referee.tick(this.roomMs(now));
@@ -871,16 +915,34 @@ export class RoomCore {
       const here = s.pose && now - s.poseNow <= HERE_MS ? at.get(s) : null;
       const entries = [];
       for (const f of flying) {
-        const last = s.sent.get(f.seat);
-        if (f === s || (last && last.pose === f.pose)) {
+        if (f === s) {
           continue;
         }
-        if (last && this.tickNo - last.tick < interestEvery(here, at.get(f))) {
+        const last = s.sent.get(f.seat);
+        if (last && last.pose === f.pose) {
+          if (!holding(f, now)) {
+            continue;
+          }
+          owed = true;
+          if (now - last.at < REPEAT_MS) {
+            continue;
+          }
+          entries.push({ seat: f.seat, pose: f.pose });
+          s.sent.set(f.seat, { pose: f.pose, tick: this.tickNo, at: now });
+          continue;
+        }
+        const every = interestEvery(here, at.get(f));
+        if (last && this.tickNo - last.tick < every) {
           owed = true;
           continue;
         }
-        entries.push({ seat: f.seat, pose: f.pose });
-        s.sent.set(f.seat, { pose: f.pose, tick: this.tickNo });
+        /* A near peer is sent every pose since the last one it was sent
+         * (RECENT_POSES), a far one its newest. */
+        const since = every === 1 && last ? f.recent.slice(f.recent.indexOf(last.pose) + 1) : [f.pose];
+        for (const pose of since) {
+          entries.push({ seat: f.seat, pose });
+        }
+        s.sent.set(f.seat, { pose: f.pose, tick: this.tickNo, at: now });
       }
       if (entries.length) {
         out.push({ send: conn, data: encodeBatch(this.roomMs(now), entries) });

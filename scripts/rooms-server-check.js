@@ -43,7 +43,7 @@
  */
 
 import { mkdtempSync, rmSync } from 'node:fs';
-import { connect } from 'node:net';
+import { Socket, connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
@@ -80,7 +80,26 @@ async function startLocal() {
   server = await startRooms({ db: join(scratch, 'rooms.db'), port: server ? server.port : 0, adminSecret });
   origin = `http://127.0.0.1:${server.port}`;
 }
+/*
+ * The writes the server started here hands its TCP sockets to send, each
+ * one a syscall. edge/rooms/node.js corks a socket for the rest of the
+ * turn when it sends on it (Conn.send), so everything one turn sends a
+ * pilot goes out in one write, which holds only while ws writes its frames
+ * to that same socket. Counted round a join below, so a ws release that
+ * writes somewhere else fails here instead of quietly costing a syscall a
+ * frame.
+ */
+let serverFlushes = 0;
 if (!given) {
+  for (const method of ['_write', '_writev']) {
+    const flush = Socket.prototype[method];
+    Socket.prototype[method] = function countedFlush(...args) {
+      if (server && this.localPort === server.port) {
+        serverFlushes += 1;
+      }
+      return flush.apply(this, args);
+    };
+  }
   scratch = mkdtempSync(join(tmpdir(), 'fdfpv-rooms-'));
   await startLocal();
 }
@@ -142,6 +161,11 @@ console.log(`rooms server at ${origin}${given ? '' : ' (edge/rooms/node.js, star
 console.log('the front');
 let res = await fetch(`${origin}/`);
 check('GET / says what it is', res.status === 200 && /fdfpv rooms/.test(await res.text()));
+res = await fetch(`${origin}/v2/version`);
+const version = res.status === 200 ? await res.json() : null;
+check(given ? 'GET /v2/version names the commit it runs, or none' : 'GET /v2/version: a checkout has no REVISION, so no commit',
+  version && typeof version.dirty === 'boolean' && (given ? version.commit === null || /^[0-9a-f]{40}$/.test(version.commit) : version.commit === null),
+  JSON.stringify(version));
 res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{"map":"swiss2"}' });
 check('a page on another site is refused', res.status === 403);
 res = await fetch(`${origin}/v2/create`, { method: 'OPTIONS', headers: { origin: 'https://fdflabs.github.io' } });
@@ -198,10 +222,24 @@ a.say({ type: 'event', kind: 'crash', table });
 check('a crash is passed on', Boolean(await b.until((x) => x.text('event').find((m) => m.kind === 'crash' && m.seat === 1))));
 a.ws.send(encodeParts(roomMsOf(a), [{ part: 1, x: 10, y: 300, z: 5, qx: 0, qy: 0, qz: 0, qw: 1 }]));
 check('and its pieces, relayed with the seat', Boolean(await b.until((x) => x.got.find((m) => m instanceof Uint8Array && m[0] === TYPE_PARTS_RELAY))));
-const c = await seat(`room/${code}`, { name: [5, 6, 12] });
+const c = pilot(`room/${code}`);
+await c.open;
+await sleep(100);
+const gotBefore = a.got.length + b.got.length;
+serverFlushes = 0;
+c.say({ type: 'hello', proto: PROTO, build: 'check', name: [5, 6, 12], profile });
+c.welcome = await c.until((x) => x.text('welcome')[0] || x.closed);
+c.clockAt = Date.now();
 check('a pilot who joins after is welcomed with the race track', c.welcome.track && c.welcome.track.id === raceDoc.id && c.welcome.track.gates === 3);
 check('and sees the wreck where it lies', Boolean(await c.until((x) => x.text('event').find((m) => m.kind === 'crash' && m.seat === 1)))
   && Boolean(await c.until((x) => x.got.find((m) => m instanceof Uint8Array && m[0] === TYPE_PARTS_RELAY))));
+if (!given) {
+  await a.until((x) => x.text('join').find((m) => m.seat === c.welcome.seat));
+  await b.until((x) => x.text('join').find((m) => m.seat === c.welcome.seat));
+  const sent = c.got.length + a.got.length + b.got.length - gotBefore;
+  check('the join\'s messages left each socket in one write, not one write a message', sent >= 5 && serverFlushes < sent,
+    `${sent} messages in ${serverFlushes} writes`);
+}
 a.say({ type: 'event', kind: 'chat', id: 1 });
 const chat = await b.until((x) => x.text('event').find((m) => m.kind === 'chat'));
 check('quick chat is rebuilt from its index', chat && chat.id === 1 && chat.seat === 1 && CHAT_PRESETS[chat.id] && !('text' in chat));

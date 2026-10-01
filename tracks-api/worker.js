@@ -13,6 +13,9 @@
  * THE API, WRITTEN DOWN ONCE.
  *
  *   GET    /api/health
+ *   GET    /api/version             { commit, dirty }: the deployed commit the
+ *            VM's process started on (edge/node-http.js readRevision),
+ *            commit null on Cloudflare.
  *   GET    /api/tracks?map=&owner=&before=&limit=
  *            { tracks: [summary], next }  newest save first. `next` is the
  *            `before` for the following page, or null on the last one.
@@ -353,6 +356,9 @@ async function route(request, env) {
   }
   if (path === '/api/health' && method === 'GET') {
     return json(200, { ok: true });
+  }
+  if (path === '/api/version' && method === 'GET') {
+    return json(200, env.REVISION || { commit: null, dirty: false });
   }
   if (path === '/api/tracks' && method === 'GET') {
     return listTracks(env, url);

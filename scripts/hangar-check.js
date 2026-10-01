@@ -51,6 +51,12 @@
  *      Parts step fitted, tundra tyres and a taped wing: a number and a
  *      stripe land on its skin whichever of parts and paint goes on first,
  *      and never on a tyre, the pod or the tape.
+ *   9. The Floats switch on the picker: beside the Timber's span and
+ *      weight, a role switch, and on no plane without a float version. F
+ *      flips it, the model and the weight follow, Choose seats
+ *      timber1500f, the hangar reads the same toggle; a click flips it
+ *      back and Choose seats timber1500; a flip put away with Escape on
+ *      the seated plane follows the seat again; a pad's Y flips the Cub's.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     alps by default
@@ -75,6 +81,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
+import { sizeText, weightText } from '../src/ui/carousel.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 import { LIVERIES, coloursFor, liveryKey, paintable, regionsFor } from '../configs/liveries.js';
 import { POWER, SIM_POWER, powerBlock, powerChoice } from '../configs/power.js';
@@ -774,6 +781,93 @@ async function paintShopCheck(page) {
     `a number and a stripe over the taped wing land on the Cub's skin alike with the parts on first or last (${cub.partsFirst.triangles} and ${cub.partsLast.triangles} triangles), none on a tyre, the pod or the tape`);
 }
 
+async function pickerFloatsCheck(page) {
+  console.log('9. the Floats switch on the picker');
+  /* From the title, whatever the step before left flying. */
+  if (await page.evaluate("window.__ui.screen === 'flight'")) {
+    await page.tap('Escape');
+    await page.until("window.__ui.screen === 'paused'", 10000);
+  }
+  await page.evaluate("window.__ui.show('title'); true");
+  const SWITCH = `(() => {
+    const b = document.querySelector('.carousel-facts [data-key="floats"]');
+    if (!b || b.hidden || !b.getClientRects().length) return null;
+    const facts = [...b.parentNode.querySelectorAll('.carousel-fact')].map((f) => f.textContent);
+    return { on: b.getAttribute('aria-checked'), lit: b.classList.contains('on'), role: b.getAttribute('role'), label: b.textContent, facts };
+  })()`;
+  const drawn = 'window.__ui.carousel.frame(0).items.map((it) => it.id)';
+  const pick = async (id) => {
+    if (!(await page.evaluate('window.__ui.carousel.isOpen'))) {
+      await page.evaluate('window.__ui.openCraftRow(false); true');
+      await page.until('window.__ui.carousel.isOpen', 10000);
+    }
+    const at = await page.evaluate(`window.__ui.carousel.ids.indexOf(${JSON.stringify(id)})`);
+    await page.evaluate(`window.__ui.carousel.goTo(${at}); true`);
+  };
+  const seated = () => page.evaluate('window.__ui.settings.airframe');
+
+  await pick('kadet1981');
+  say(await page.evaluate(SWITCH) === null, 'the Kadet, with no float version, shows no Floats switch');
+  await pick('timber1500');
+  const off = await page.evaluate(SWITCH);
+  say(Boolean(off) && off.on === 'false' && !off.lit && off.role === 'switch' && same(off.facts, [sizeText('timber1500'), weightText('timber1500')]),
+    `the Timber shows the Floats switch, off, a role switch beside its span and weight: ${JSON.stringify(off)}`);
+  const hint = await page.evaluate("document.querySelector('.carousel-hint').textContent");
+  say(/\bF\b/.test(hint), `the hint line names F: ${hint}`);
+
+  await page.tap('KeyF');
+  const on = await page.evaluate(SWITCH);
+  say(Boolean(on) && on.on === 'true' && on.lit && same(on.facts, [sizeText('timber1500f'), weightText('timber1500f')]),
+    `F turns it on, the span and weight now the float version's: ${JSON.stringify(on)}`);
+  const ids = await page.evaluate(drawn);
+  say(ids.includes('timber1500f') && !ids.includes('timber1500'), `the picker draws the Timber on floats: ${ids.join(', ')}`);
+  say(await page.evaluate('window.__ui.carousel.current()') === 'timber1500', 'and the card is still the Timber');
+
+  await page.tap('KeyC');
+  await page.until('window.__ui.hangar.isOpen', 10000);
+  const inHangar = await page.evaluate(`({ id: window.__ui.hangar.id, on: (document.querySelector('.hangar-facts [data-key="floats"]') || { getAttribute: () => null }).getAttribute('aria-checked') })`);
+  say(inHangar.id === 'timber1500f' && inHangar.on === 'true', `C opens the hangar on the float version, its toggle on: ${JSON.stringify(inHangar)}`);
+  await page.evaluate('window.__ui.hangar.cancel(); true');
+  await page.until('!window.__ui.hangar.isOpen && window.__ui.carousel.isOpen', 10000);
+  const back = await page.evaluate(SWITCH);
+  say(Boolean(back) && back.on === 'true', `back on the picker the switch is still on: ${JSON.stringify(back)}`);
+
+  await page.tap('Enter');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  say(await seated() === 'timber1500f', `Enter seats ${await seated()}`);
+
+  await pick('timber1500');
+  const again = await page.evaluate(SWITCH);
+  say(Boolean(again) && again.on === 'true', `opened again on the seated float version, the switch reads on: ${JSON.stringify(again)}`);
+  await page.evaluate(`document.querySelector('.carousel-facts [data-key="floats"]').click(); true`);
+  const clicked = await page.evaluate(SWITCH);
+  say(Boolean(clicked) && clicked.on === 'false' && same(clicked.facts, [sizeText('timber1500'), weightText('timber1500')]),
+    `a click turns it off: ${JSON.stringify(clicked)}`);
+  await page.evaluate('window.__ui.carousel.chooseBtn.click(); true');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  say(await seated() === 'timber1500', `Choose seats ${await seated()}`);
+
+  await pick('timber1500');
+  await page.tap('KeyF');
+  await page.tap('Escape');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+  const kept = await page.evaluate('({ seat: window.__ui.settings.airframe, floats: window.__ui.settings.floats.timber1500 })');
+  say(kept.seat === 'timber1500' && kept.floats === false, `a flip put away with Escape leaves the seated Timber on its wheels and its toggle off: ${JSON.stringify(kept)}`);
+  await pick('cub1400');
+  const cub = await page.evaluate(SWITCH);
+  say(Boolean(cub) && cub.on === 'false', `the Cub has its own switch: ${JSON.stringify(cub)}`);
+  /* A pad's Y, edge triggered, and the same press chooses nothing though a
+   * menu takes Y as select too. */
+  await page.evaluate('window.__ui.carousel.pollPad({}); window.__ui.carousel.pollPad({ floats: true, select: true }); true');
+  const padded = await page.evaluate(SWITCH);
+  const stillOpen = await page.evaluate('window.__ui.carousel.isOpen');
+  say(Boolean(padded) && padded.on === 'true' && stillOpen, `a pad's Y turns the Cub's on and chooses nothing: ${JSON.stringify(padded)}, picker open ${stillOpen}`);
+  await page.evaluate('window.__ui.carousel.pollPad({}); window.__ui.carousel.pollPad({ floats: true }); true');
+  say((await page.evaluate(SWITCH)).on === 'false', 'and Y again turns it off');
+  await page.tap('Escape');
+  await page.until('!window.__ui.carousel.isOpen', 10000);
+}
+
 async function main() {
   const page = await openPage({ root, width: 1600, height: 900, seed });
   try {
@@ -890,6 +984,7 @@ async function main() {
     await page.cdp.send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 900, deviceScaleFactor: 1, mobile: false }, page.sessionId);
     await partsCheck(page);
     await paintShopCheck(page);
+    await pickerFloatsCheck(page);
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
   } catch (e) {

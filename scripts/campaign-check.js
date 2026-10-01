@@ -285,6 +285,28 @@ try {
   })()`);
   check('the room echoes the loadout, and no loadout op is sent on its own',
     echo.mine && echo.mine.warhead === 'wide' && echo.mine.rack === 5 && echo.sent === 0, JSON.stringify(echo));
+
+  /* A COMBAT QUAD'S PAYLOAD IS ITS WARHEAD (docs/COMBAT-DRONES.md section
+   * 3). The 7 inch chosen with the EMP, which this pilot does not own,
+   * goes as the wide it has equipped, so nothing new is said; chosen with
+   * the standard, which every pilot owns, the briefing's loadout becomes
+   * it and the room echoes it. */
+  const LOADOUT_NOW = `(() => {
+    const v = window.__war().view;
+    const sent = window.__sent.filter((m) => m && m.type === 'war' && m.op === 'loadout');
+    return { mine: v.loadouts ? v.loadouts[window.__rooms().seat] : null, sent: sent.map((m) => m.loadout.warhead) };
+  })()`;
+  await page.evaluate("(() => { window.__sent.length = 0; const s = window.__ui.settings; s.airframe = '7inch'; s.combat = { '7inch': { payload: 'emp', accessories: [] } }; return true; })()");
+  await page.sleep(1200);
+  const unowned = await page.evaluate(LOADOUT_NOW);
+  check('a combat quad\'s payload it does not own goes to war as the equipped warhead',
+    unowned.mine && unowned.mine.warhead === 'wide' && unowned.sent.length === 0, JSON.stringify(unowned));
+  await page.evaluate("(() => { window.__ui.settings.combat = { '7inch': { payload: 'standard', accessories: [] } }; return true; })()");
+  await page.until("(() => { const v = window.__war().view; const l = v.loadouts && v.loadouts[window.__rooms().seat]; return Boolean(l) && l.warhead === 'standard'; })()", 10000).catch(() => {});
+  const owned = await page.evaluate(LOADOUT_NOW);
+  check('and one it owns is the loadout\'s warhead, echoed by the room',
+    owned.mine && owned.mine.warhead === 'standard' && owned.mine.rack === 5 && owned.sent.includes('standard'), JSON.stringify(owned));
+  await page.evaluate("(() => { const s = window.__ui.settings; s.airframe = '5inch'; s.combat = {}; return true; })()");
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
   const before = await page.evaluate("JSON.stringify(window.__campaign.state())");

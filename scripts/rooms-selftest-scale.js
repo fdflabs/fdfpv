@@ -152,7 +152,10 @@ export async function scaleSection(check) {
   const quiet = flyRoom([0, 3000], 10, { silent: (p, now) => p.name === 'p1' && now > 5_006_000 + 5000 });
   const [qa, qd] = quiet.pilots;
   const lastSent = 5_006_000 + 5000;
-  const lastGot = qa.got.filter((g) => g.seat === qd.seat).at(-1);
+  /* The first arrival of D's newest pose: the room goes on repeating it
+   * for HOLD_MS afterwards (core.js), which is not what this times. */
+  const fromD = qa.got.filter((g) => g.seat === qd.seat);
+  const lastGot = fromD.find((g) => g.t === fromD.at(-1).t);
   check('a far peer that stops: its last pose still arrives, within a second', lastGot && lastGot.t + quiet.room.meta.epoch >= lastSent - 40 && lastGot.at - lastSent <= 1000 + 40,
     lastGot ? `${lastGot.at - lastSent} ms after` : 'none');
   const afterMenu = qd.got.filter((g) => g.at > lastSent + HERE_MS + 100);
