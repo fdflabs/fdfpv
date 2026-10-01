@@ -40,7 +40,7 @@ import * as THREE from 'three';
 import { buildCraft } from './craft.js';
 import { dressLivery } from './livery.js';
 import { readDecals } from './decals.js';
-import { readFinish } from './finish.js';
+import { readFinish, readWear } from './finish.js';
 import { dressParts } from './partsfit.js';
 import { CAMERA_FOV_DEFAULT } from './lens.js';
 
@@ -449,6 +449,7 @@ export function buildShell(canvas, opts) {
       drawn: [...drawn].sort(),
       finishes: readFinish(craft),
       decals: readDecals(craft),
+      wear: readWear(craft),
     };
   }
 

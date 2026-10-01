@@ -49,7 +49,7 @@ import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
 import { dressLivery } from './livery.js';
 import { paintTargets, readDecals } from './decals.js';
-import { readFinish } from './finish.js';
+import { readFinish, readFinishUniforms, readWear } from './finish.js';
 import { animateParts, dressParts } from './partsfit.js';
 import { powerOption } from '../../configs/power.js';
 import { buildHangarEnv, createHangarRig } from './hangarstage.js';
@@ -686,7 +686,7 @@ export function createCarouselStage(renderer) {
   /* A model's finishes and decals, for a check; null if not built. */
   function look(id) {
     const m = models.get(id);
-    return m ? { finishes: readFinish(m.craft), decals: readDecals(m.craft) } : null;
+    return m ? { finishes: readFinish(m.craft), decals: readDecals(m.craft), wear: readWear(m.craft), uniforms: readFinishUniforms(m.craft) } : null;
   }
 
   /* What a model is fitted with (src/render/partsfit.js), for a check. */

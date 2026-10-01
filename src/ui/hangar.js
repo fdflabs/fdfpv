@@ -56,6 +56,7 @@ import {
 import { currentLocale, str } from '../strings/index.js';
 import { sizeText, weightText } from './carousel.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
+import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
@@ -75,6 +76,8 @@ export const HANGAR_TABS = ['power', 'colours'];
  *     save(hangar) -> { key: value } top level settings to replace, or null,
  *     frame(hangar, now) -> numbers the renderer reads under
  *                  frame().hangar.tabs[id],
+ *     grams(hangar) -> what the tab's choice hangs on the plane, for the
+ *                  spec sheet's weight,
  *     close(hangar)  shut, saved or not }
  *
  * Every hook but id and paint is optional. Its label is the string
@@ -108,6 +111,22 @@ function eachHook(fn) {
 
 /* The model's turn under a drag: radians per CSS pixel. */
 const DRAG_TURN = 0.012;
+/*
+ * THE PILOT'S OWN VIEW over the one the tab asks for: the camera raised
+ * or lowered (radians over the floor, added to the view's) and moved in
+ * or out (a multiple of its distance), by a drag up and down, the wheel,
+ * I K U O on the keys and a pad's right stick. Turning is the drag across
+ * and J L. Kept while the hangar is open, back to the tab's when it opens.
+ */
+const ORBIT_ELEV = [-0.5, 0.9];
+const ORBIT_ZOOM = [0.5, 1.8];
+const DRAG_TILT = 0.006;
+const KEY_TURN = 0.3;
+const KEY_TILT = 0.12;
+const KEY_ZOOM = 1.15;
+/* A pad's right stick fully over, per poll (a frame). */
+const PAD_TURN = 0.05;
+const PAD_TILT = 0.025;
 /* How long a number takes to count to its new value, ms. */
 const COUNT_MS = 520;
 /* The fewest ms between two cursor sounds from the pointer passing over
@@ -159,8 +178,8 @@ export function stockPower(airframeId) {
   };
 }
 
-/* An entry on a scheme, its own colours dropped and its finishes and
- * decals (src/ui/hangar-paint.js) kept. */
+/* An entry on a scheme, its own colours dropped and its finishes, decals
+ * (src/ui/hangar-paint.js) and wear kept. */
 function withScheme(entry, scheme) {
   const out = scheme === 'stock' ? {} : { scheme };
   if (entry.finishes) {
@@ -168,6 +187,9 @@ function withScheme(entry, scheme) {
   }
   if (entry.decals) {
     out.decals = entry.decals;
+  }
+  if (entry.wear) {
+    out.wear = entry.wear;
   }
   return out;
 }
@@ -199,6 +221,7 @@ export class Hangar {
     this.padPrev = null;
     this.hintKind = 'key';
     this.focus = 'overview';
+    this.orbit = { elev: 0, zoom: 1 };
     this.hover = null;
     this.revealSeq = 0;
     this.pulseSeq = 0;
@@ -227,15 +250,22 @@ export class Hangar {
     this.tabs.append(this.tabPill);
     this.tabEls = {};
     this.buildTabs();
-    head.append(titles, this.tabs);
+    head.append(titles);
 
     this.stage = el('div', 'hangar-stage');
     this.bindStage();
+    /* The spec sheet over the stage's corner: the numbers every choice
+     * moves, on every tab but Power, which has them whole. */
+    this.specEl = el('div', 'hangar-spec');
+    this.stage.append(this.specEl);
     this.side = el('div', 'hangar-side');
     this.side.addEventListener('pointerleave', () => this.endHover());
 
+    /* THE CATEGORIES DOWN ONE SIDE, a garage's and not a form's: the tabs
+     * stand in a rail between the plane and what the tab edits (a row
+     * over the panel on a phone, index.html). */
     const body = el('div', 'hangar-body');
-    body.append(this.stage, this.side);
+    body.append(this.stage, this.tabs, this.side);
 
     const foot = el('div', 'hangar-foot');
     this.warnEl = el('p', 'carousel-warn hangar-warn');
@@ -287,8 +317,17 @@ export class Hangar {
     this.shop = new PaintShop(this);
     root.addEventListener('click', (e) => e.stopPropagation());
     root.addEventListener('keydown', (e) => {
-      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') {
+      /* Not in a field, or a name could not have a space in it. */
+      const typing = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
+      if (!typing && (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter')) {
         e.preventDefault();
+      }
+    });
+    /* The rail is a column on a wide screen and a row on a phone: the pill
+     * follows the tab when the window changes shape. */
+    window.addEventListener('resize', () => {
+      if (this.isOpen) {
+        this.placePill();
       }
     });
     this.host.append(root);
@@ -320,17 +359,26 @@ export class Hangar {
       if (e.pointerType === 'touch') {
         this.setHint('touch');
       }
-      this.drag = { id: e.pointerId, x: e.clientX, moved: 0 };
+      this.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 };
       s.setPointerCapture(e.pointerId);
     });
+    s.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.zoomBy(Math.exp(e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0015)));
+    }, { passive: false });
     s.addEventListener('pointermove', (e) => {
       if (!this.drag || e.pointerId !== this.drag.id) {
         this.shop.pointerMove(e);
         return;
       }
       this.turn += (e.clientX - this.drag.x) * DRAG_TURN;
-      this.drag.moved += Math.abs(e.clientX - this.drag.x);
+      /* Placing a decal the aim follows the pointer, so only a turn. */
+      if (!this.shop.placing) {
+        this.tiltBy((e.clientY - this.drag.y) * DRAG_TILT);
+      }
+      this.drag.moved += Math.abs(e.clientX - this.drag.x) + Math.abs(e.clientY - this.drag.y);
       this.drag.x = e.clientX;
+      this.drag.y = e.clientY;
     });
     const end = (e) => {
       if (this.drag && e.pointerId === this.drag.id) {
@@ -383,6 +431,7 @@ export class Hangar {
     this.tab = HANGAR_TABS.includes(tab) ? tab : HANGAR_TABS[0];
     this.hintKind = hint;
     this.turn = 0;
+    this.orbit = { elev: 0, zoom: 1 };
     this.drag = null;
     this.padPrev = null;
     this.hover = null;
@@ -744,8 +793,22 @@ export class Hangar {
       tab.classList.add(slide > 0 ? 'from-right' : 'from-left');
     }
     this.side.append(tab);
+    this.specEl.textContent = '';
+    if (this.tab !== 'power') {
+      this.specEl.append(this.statsBlock(this.addedGrams()));
+    }
     this.saveBtn.classList.toggle('dirty', this.dirty());
     this.paintHint();
+  }
+
+  /* What the registered tabs hang on the plane beyond its power setup,
+   * grams (the Parts tab's add-ons and prop, src/ui/hangar-parts.js). */
+  addedGrams() {
+    let g = 0;
+    eachHook((h) => {
+      g += h.grams ? h.grams(this) : 0;
+    });
+    return g;
   }
 
   /* The tabs' pill slides under the tab that is on. */
@@ -760,7 +823,8 @@ export class Hangar {
       return;
     }
     this.tabPill.style.width = `${b.offsetWidth}px`;
-    this.tabPill.style.transform = `translateX(${b.offsetLeft - 3}px)`;
+    this.tabPill.style.height = `${b.offsetHeight}px`;
+    this.tabPill.style.transform = `translate(${b.offsetLeft}px, ${b.offsetTop}px)`;
   }
 
   setHint(kind) {
@@ -862,8 +926,17 @@ export class Hangar {
    * new value (frame() moves it) and a bar against the most any choice on
    * offer makes, with the difference from the kit's own under it.
    */
-  statsBlock() {
-    const est = this.power.estimate(this.choice);
+  /* `extraG` grams on the plane beyond the power setup's (the spec
+   * sheet's, with the parts fitted): the weight takes them and the
+   * thrust to weight is thrust over that weight. */
+  statsBlock(extraG = 0) {
+    const est = { ...this.power.estimate(this.choice) };
+    if (extraG) {
+      if (est.thrustToWeight != null) {
+        est.thrustToWeight *= est.grams / (est.grams + extraG);
+      }
+      est.grams += extraG;
+    }
     const stock = this.power.estimate(this.power.stock);
     const all = [];
     for (const o of this.power.options) {
@@ -1042,7 +1115,56 @@ export class Hangar {
       }
       box.append(this.shop.finishRow(region));
     }
+    box.append(this.wearRow());
     return box;
+  }
+
+  /*
+   * WEAR, the whole plane's (configs/paint.js, drawn by src/render/
+   * finish.js): factory new to battle worn, two steps a press of the
+   * buttons either side, or a click along the bar, on the plane at once.
+   * Unlike a swatch a step is not tried on under the cursor: the plane
+   * would always show the step after the one the bar reads.
+   */
+  wearRow() {
+    const box = el('div', 'hangar-wear');
+    const w = this.entry.wear ?? 0;
+    box.append(el('h3', 'hangar-h', str('hangar.wear')));
+    const row = el('div', 'hangar-wear-row');
+    const step = (dir) => Math.max(0, Math.min(WEAR_MAX, w + dir * WEAR_STEP * 2));
+    const less = button('paint-step', '-');
+    less.dataset.key = 'wear-down';
+    less.dataset.focus = 'overview';
+    less.setAttribute('aria-label', str('hangar.wear_down'));
+    less.addEventListener('click', () => this.setWear(step(-1), 'wear-down'));
+    const more = button('paint-step', '+');
+    more.dataset.key = 'wear-up';
+    more.dataset.focus = 'overview';
+    more.setAttribute('aria-label', str('hangar.wear_up'));
+    more.addEventListener('click', () => this.setWear(step(1), 'wear-up'));
+    const bar = el('div', 'hangar-wear-bar');
+    const fill = el('span', 'hangar-wear-fill');
+    fill.style.width = `${w}%`;
+    bar.append(fill, el('span', 'hangar-wear-value', str('hangar.wear_value', { n: w })));
+    bar.addEventListener('click', (e) => {
+      const r = bar.getBoundingClientRect();
+      this.setWear((100 * (e.clientX - r.left)) / Math.max(1, r.width), 'wear-up');
+    });
+    row.append(less, bar, more);
+    const ends = el('div', 'hangar-wear-ends');
+    ends.append(el('span', null, str('hangar.wear_new')), el('span', null, str('hangar.wear_worn')));
+    box.append(row, ends);
+    return box;
+  }
+
+  setWear(v, focusKey) {
+    const w = cleanWear(Math.max(0, Math.min(WEAR_MAX, v))) ?? 0;
+    const e = { ...this.entry, wear: w };
+    if (!w) {
+      delete e.wear;
+    }
+    this.entry = e;
+    this.changed(focusKey, 'adjust');
   }
 
   filmRegion(id) {
@@ -1123,6 +1245,30 @@ export class Hangar {
     }
   }
 
+  /* The pilot's view: up and in are positive, each held to its range. */
+  tiltBy(rad) {
+    this.orbit.elev = Math.max(ORBIT_ELEV[0], Math.min(ORBIT_ELEV[1], this.orbit.elev + rad));
+  }
+
+  zoomBy(k) {
+    this.orbit.zoom = Math.max(ORBIT_ZOOM[0], Math.min(ORBIT_ZOOM[1], this.orbit.zoom * k));
+  }
+
+  /* The keys that move the view rather than the cursor. True if used. */
+  viewKey(code) {
+    const turn = { KeyJ: -KEY_TURN, KeyL: KEY_TURN }[code];
+    const tilt = { KeyI: KEY_TILT, KeyK: -KEY_TILT }[code];
+    const zoom = { KeyU: 1 / KEY_ZOOM, KeyO: KEY_ZOOM }[code];
+    if (turn) {
+      this.turn += turn;
+    } else if (tilt) {
+      this.tiltBy(tilt);
+    } else if (zoom) {
+      this.zoomBy(zoom);
+    }
+    return Boolean(turn || tilt || zoom);
+  }
+
   /* Every key while it is up is the hangar's. */
   handleKey(code) {
     this.setHint('key');
@@ -1133,6 +1279,9 @@ export class Hangar {
       return true;
     }
     if (this.shop.handleKey(code)) {
+      return true;
+    }
+    if (this.viewKey(code)) {
       return true;
     }
     if (code === 'ArrowLeft' || code === 'KeyA') {
@@ -1176,6 +1325,14 @@ export class Hangar {
     const edge = (k) => now[k] && !prev[k];
     if (Object.keys(now).some(edge)) {
       this.setHint('pad');
+    }
+    /* The right stick, a level and not an edge: the view moves for as
+     * long as it is held over. */
+    const look = nav.look;
+    if (look && (look.x || look.y)) {
+      this.setHint('pad');
+      this.turn += look.x * PAD_TURN;
+      this.tiltBy(-look.y * PAD_TILT);
     }
     /* The name for a new build, which a pad cannot type: A on the field
      * saves the name it was offered, B puts it away. */
@@ -1249,6 +1406,7 @@ export class Hangar {
       turn,
       hangar: {
         focus: (this.tab === 'colours' && this.shop.focus()) || this.focus,
+        orbit: { ...this.orbit },
         reveal: this.revealSeq,
         pulse: this.pulseSeq,
         hold: Boolean(this.drag),

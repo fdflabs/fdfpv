@@ -48,8 +48,8 @@
  */
 
 import {
-  DECAL_FONTS, DECAL_KINDS, DECAL_KIND_IDS, DECAL_LIMITS, FINISHES, MAX_DECALS, MAX_SAVED,
-  checkDecal, cleanName, encodeLivery, finishOf, newDecal, numberAspect,
+  DECAL_FONTS, DECAL_KINDS, DECAL_KIND_IDS, DECAL_LIMITS, FINISHES, MAX_DECALS, MAX_SAVED, TEXT_MAX,
+  checkDecal, cleanName, cleanText, encodeLivery, finishOf, newDecal, numberAspect, textAspect,
 } from '../../configs/paint.js';
 import { PALETTE, normaliseEntry, readCode } from '../../configs/liveries.js';
 import { drawDecal } from '../render/decalart.js';
@@ -328,6 +328,9 @@ export class PaintShop {
   }
 
   decalName(d) {
+    if (d.k === 'text') {
+      return d.t;
+    }
     return d.k === 'num' ? str('hangar.decal_number', { n: d.t }) : str(`hangar.decal_${d.k}`);
   }
 
@@ -535,6 +538,9 @@ export class PaintShop {
       }
       box.append(fonts);
     }
+    if (d.k === 'text') {
+      box.append(this.textRow(d, i));
+    }
 
     const slots = el('div', 'paint-row');
     for (const s of ['c', 'c2']) {
@@ -612,6 +618,71 @@ export class PaintShop {
     acts.append(mirror, move, del);
     box.append(acts);
     return box;
+  }
+
+  /*
+   * A TEXT DECAL'S WORDS, typed in place: each keystroke cleaned (upper
+   * case, the letters the lettering draws) and tried on the plane, and
+   * refused with a line under the field when the word filter finds a word
+   * in it (configs/paint.js checkDecal), the decal keeping its last good
+   * words. Then the lettering, as a number's.
+   */
+  textRow(d, i) {
+    const wrap = el('div', 'paint-text');
+    const row = el('div', 'paint-row');
+    row.append(el('span', 'paint-label', str('hangar.decal_words')));
+    const field = el('input', 'paint-name-field paint-text-field');
+    field.type = 'text';
+    field.maxLength = TEXT_MAX;
+    field.value = d.t;
+    field.dataset.key = 'text-field';
+    field.setAttribute('aria-label', str('hangar.decal_words'));
+    const why = el('p', 'paint-error');
+    why.hidden = true;
+    field.addEventListener('input', () => {
+      const ok = this.setText(field.value);
+      why.textContent = ok ? '' : str('hangar.decal_words_refused');
+      why.hidden = ok;
+    });
+    row.append(field);
+    wrap.append(row, why);
+    const fonts = el('div', 'paint-row');
+    fonts.append(el('span', 'paint-label', str('hangar.decal_font')));
+    for (const f of DECAL_FONTS) {
+      const b = button(`paint-chip${f === d.f ? ' on' : ''}`, str(`hangar.font_${f}`));
+      b.dataset.key = `font-${f}`;
+      b.setAttribute('aria-pressed', String(f === d.f));
+      this.h.trial(b, { decal: i, patch: { f } }, this.view);
+      b.addEventListener('click', () => this.patch({ f }, `font-${f}`));
+      fonts.append(b);
+    }
+    wrap.append(fonts);
+    return wrap;
+  }
+
+  /* The words of the chosen text decal, its stretch following their
+   * length. False when they cannot be kept: nothing left once cleaned, or
+   * a word the filter refuses. */
+  setText(raw) {
+    const d = this.decals[this.sel];
+    const t = cleanText(raw);
+    if (!d || d.k !== 'text' || !t) {
+      return false;
+    }
+    if (t === d.t) {
+      return true;
+    }
+    const next = this.patched(this.sel, { t, a: clamp(textAspect(t), DECAL_LIMITS.aspect) });
+    if (!next) {
+      return false;
+    }
+    const list = [...this.decals];
+    list[this.sel] = next;
+    this.h.entry = { ...this.h.entry, decals: list };
+    /* Typing: the field keeps the caret, only the plane changes. */
+    this.h.preview();
+    this.h.saveBtn.classList.toggle('dirty', this.h.dirty());
+    return true;
   }
 
   turned(r, by) {
@@ -986,8 +1057,9 @@ export class PaintShop {
         const back = this.form.mode === 'confirm' ? `delete-${this.form.index}` : this.form.mode === 'name' ? 'saved-new' : 'code-paste';
         this.closeForm(back, 'back');
       } else {
+        const words = a.dataset.key === 'text-field';
         a.blur();
-        this.h.focusKey('digits-up');
+        this.h.focusKey(words ? 'font-stencil' : 'digits-up');
       }
       return true;
     }
