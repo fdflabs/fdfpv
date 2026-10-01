@@ -149,10 +149,20 @@ function loadImage(url) {
   });
 }
 
+/* Every atlas canvas is kept in the page's memory, not on the GPU: the
+ * first getContext fixes the kind, and every later one returns this.
+ * Chrome restarts its GPU process when a frame hangs it under load. The
+ * WebGL context comes back and three uploads the atlases again, but a
+ * canvas Chrome had left on the GPU comes back blank: every mip level
+ * did (the top level survived, read back twice, which Chrome takes as
+ * reason to move a canvas off the GPU by itself), so every tree past a
+ * few metres was bare branches. scripts/swiss2-veg-check.js kills the
+ * GPU process to show it. */
 function canvas(w, h) {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
+  c.getContext('2d', { willReadFrequently: true });
   return c;
 }
 
