@@ -401,10 +401,14 @@ int sim_set_flight_style(int arcade);
  * (docs/TIGERMOTH-STAGE1.md), a 71 in scale de Havilland DH.82A on a .61
  * two stroke glow engine, a biplane on the plant's second wing
  * (docs/PITTS-STAGE1.md) whose ailerons are on its bottom wing alone, on
- * a taildragger's gear. Returns SIM_ERR_BAD_ARG for any id without an
- * aircraft.
+ * a taildragger's gear, and 24 and 25 the combat quads
+ * (docs/COMBAT-DRONES.md), a 7 inch and a 10 inch long range X frame on
+ * 6S Li-ion, flown by Betaflight as the five inch is, built to carry a
+ * payload through sim_set_addons. Returns SIM_ERR_BAD_ARG for any id
+ * without an aircraft.
  * 2 to 23 are fixed wings: no Betaflight, the sticks go to the plant, and
- * the sim_wing_* and sim_plane_surfaces entry points below apply.
+ * the sim_wing_* and sim_plane_surfaces entry points below apply. 0, 1, 24
+ * and 25 are quads.
  *
  * RESERVED: 13 (the Edge 540T), 14 (the Extra 300 3D), 18 (the Pitts
  * S-1S), 20 (the Wot 4) and 22 (the Quickie 500) were removed on
@@ -446,6 +450,8 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_UGLYSTIK1567_ID 19
 #define SIM_AIRFRAME_NRJ1490_ID 21
 #define SIM_AIRFRAME_TIGERMOTH1803_ID 23
+#define SIM_AIRFRAME_7IN_ID 24
+#define SIM_AIRFRAME_10IN_ID 25
 int sim_set_airframe(int id);
 
 /* Which airframe is in force. */
@@ -797,9 +803,11 @@ int sim_power_clear(void);
 int sim_power_state(double *out);
 
 /*
- * ADD-ONS, the hangar's Parts tab (configs/hangar-parts.js), fixed wings
- * only: what the pilot bolted on or taped up, handed over as one lumped
- * mass, one drag area and the main wheels' tyres.
+ * ADD-ONS, the hangar's Parts tab (configs/hangar-parts.js) on a fixed
+ * wing and a combat quad's payload and accessories (docs/COMBAT-DRONES.md)
+ * on a quad: what the pilot bolted on or taped up, handed over as one
+ * lumped mass, one drag area and the main wheels' tyres. A quad has no
+ * wheels, so WHEEL_R and ROLL_K are checked and read by nothing.
  *
  * sim_set_addons(in): the SIM_ADDON_DOUBLES below, SI units.
  *   MASS    kg added, -1 to 5 (a lighter prop takes a little off), a
@@ -836,8 +844,10 @@ int sim_power_state(double *out);
  * the reset after a part broke off. Once a part breaks off, the crash
  * physics flies the table's airframe until that reset, as it does a power
  * option. A host seats the power option, then the tuning, then these.
- * SIM_ERR_BAD_ARG on a quad, for a null pointer and for any value out of
- * its range; SIM_ERR_BAD_STATE before sim_init.
+ * SIM_ERR_BAD_ARG for a null pointer and for any value out of its range;
+ * SIM_ERR_BAD_STATE before sim_init. It was refused on a quad until the
+ * combat quads; a quad's drag acts at DRAG_X..DRAG_Z about the new CG and
+ * turns it, as a wing's does.
  *
  * Additive, version unchanged: with no add-ons set nothing reads any of
  * this and every trace is bit identical.
@@ -868,6 +878,23 @@ int sim_power_state(double *out);
 int sim_set_addons(const double *in);
 int sim_addons_clear(void);
 int sim_addons_state(double *out);
+
+/*
+ * sim_set_addon_inertia(in): the add-ons' own inertia about their lumped
+ * point, SIM_ADDON_INERTIA_DOUBLES, kg m^2, body axes: Ixx, Iyy, Izz, each
+ * 0 to 1. sim_set_addons lumps everything into one point mass, which is
+ * exact for one thing bolted on and loses the spread of two far apart: a
+ * pack on top and a payload underneath lump near the CG and carry almost
+ * none of the roll and pitch inertia they really add. The host sums each
+ * mass's m r^2 about the lump's point and hands it here; the plant adds it
+ * to the inertia the lump gives. Seated over the add-ons in force and
+ * zeroed by every sim_set_addons, so a host that never calls this flies
+ * exactly the lump. SIM_ERR_BAD_STATE with no add-ons seated, and
+ * SIM_ERR_BAD_ARG for a null pointer or a value out of range. Additive,
+ * version unchanged.
+ */
+#define SIM_ADDON_INERTIA_DOUBLES 3
+int sim_set_addon_inertia(const double *in);
 
 /*
  * THE PILOT'S TUNING, fixed wings only (airframes 2 to 23): what the

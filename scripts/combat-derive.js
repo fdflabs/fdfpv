@@ -69,7 +69,7 @@ const QUADS = {
       { name: 'arms', m: 0.024, arm: [0.030, 0.1575] },
       { name: 'plates and standoffs', m: 0.074, at: [0, 0, 0.012], box: [0.16, 0.075, 0.03] },
       { name: 'motors 2806.5', m: 0.050, motors: 0.016 },
-      { name: 'props 7x3.5x3', m: 0.009, motors: 0.040 },
+      { name: 'props 7x3.5x3', m: 0.009, motors: 0.037 },
       { name: 'FC and 4 in 1 ESC', m: 0.035, at: [0, 0, 0.010] },
       { name: 'video transmitter', m: 0.025, at: [-0.040, 0, 0.015] },
       { name: 'FPV camera', m: 0.012, at: [0.075, 0, 0.012] },
@@ -115,8 +115,8 @@ const QUADS = {
     parts: [
       { name: 'arms', m: 0.050, arm: [0.040, 0.210] },
       { name: 'plates and standoffs', m: 0.130, at: [0, 0, 0.014], box: [0.20, 0.090, 0.035] },
-      { name: 'motors 3115', m: 0.095, motors: 0.020 },
-      { name: 'props 10x5x3', m: 0.018, motors: 0.052 },
+      { name: 'motors 3115', m: 0.095, motors: 0.021 },
+      { name: 'props 10x5x3', m: 0.018, motors: 0.049 },
       { name: 'FC and 4 in 1 ESC', m: 0.045, at: [0, 0, 0.012] },
       { name: 'video transmitter', m: 0.035, at: [-0.050, 0, 0.018] },
       { name: 'FPV camera', m: 0.015, at: [0.095, 0, 0.014] },
@@ -261,40 +261,75 @@ function solveMotor(q, M) {
   };
 }
 
-for (const [id, q] of Object.entries(QUADS)) {
-  const ls = lumps(q);
-  const { M, c, I } = massProps(ls);
-  const a = q.diag / 2 / Math.SQRT2;
-  console.log(`\n== ${id} (simId ${q.simId}) ==`);
-  console.log(`bare all up mass        ${M.toFixed(4)} kg`);
-  console.log(`CG in the frame datum   [${c.map(r4).join(', ')}] m`);
-  console.log(`inertia about the CG    [${I.map(r6).join(', ')}] kg m^2`);
-  console.log(`arm_x = arm_y           ${a.toFixed(16)} m (${q.diag * 1000} mm diagonal)`);
-  const motor = solveMotor(q, M);
-  console.log(`prop_r                  ${motor.propR.toFixed(4)} m`);
-  console.log(`k_inflow                ${motor.kInflow.toFixed(6)} m/rad`);
-  console.log(`kt                      ${r6(motor.kt)}`);
-  console.log(`kq (FM ${q.fm})            ${r6(motor.kq)}`);
-  console.log(`ke                      ${r6(motor.ke)} (loaded ${motor.loadedKv.toFixed(0)} kV on a ${q.kv} kV plate)`);
-  console.log(`r_motor                 ${r6(motor.rMotor)} ohm`);
-  console.log(`r_cell                  ${q.rCell} ohm`);
-  console.log(`j_rotor                 ${q.jRotor}`);
-  console.log(`motor time constant     ${(motor.tau * 1000).toFixed(1)} ms (j R / ke^2)`);
-  console.log(`hover                   ${motor.hover.rpm.toFixed(0)} rpm, ${motor.hover.amps.toFixed(2)} A a motor, duty ${motor.hover.duty.toFixed(3)}, ${motor.hover.cellV.toFixed(3)} V a cell`);
-  console.log(`full throttle (static)  ${motor.full.rpm.toFixed(0)} rpm, ${motor.full.amps.toFixed(1)} A a motor, ${motor.full.pack.toFixed(0)} A pack, ${motor.full.cellV.toFixed(2)} V a cell`);
-  console.log(`                        ${motor.full.thrustN.toFixed(1)} N, thrust to weight ${motor.full.tw.toFixed(2)} bare`);
-  console.log(`motor positions z       ${(q.parts.find((p) => p.name.startsWith('motors')).motors - c[2]).toFixed(4)} m about the CG; prop discs ${(q.parts.find((p) => p.name.startsWith('props')).motors - c[2]).toFixed(4)}`);
-  console.log('payloads, about the CG:');
-  for (const p of q.payloads) {
-    const at = [p.x - c[0], -c[1], q.belly - p.d / 2 - c[2]];
-    const bottom = q.belly - p.d - c[2];
-    const tw = motor.full.thrustN / ((M + p.m) * G);
-    console.log(`  ${p.id.padEnd(11)} ${p.m.toFixed(2)} kg  cda ${r6(payloadCda(p))} m^2  cg [${at.map(r4).join(', ')}]  d ${p.d} len ${p.len}  bottom ${r4(bottom)}  T/W ${tw.toFixed(2)}`);
+/*
+ * Everything the doc and the code read, per quad: the plant's mass, CG and
+ * inertia, the motor set, and the `combat` descriptor configs/airframes.js
+ * carries (rounded as it is typed there), all about the bare CG.
+ */
+export function deriveCombat() {
+  const out = {};
+  for (const [id, q] of Object.entries(QUADS)) {
+    const { M, c, I } = massProps(lumps(q));
+    const motor = solveMotor(q, M);
+    const zOf = (prefix) => q.parts.find((p) => p.name.startsWith(prefix)).motors - c[2];
+    const payloads = q.payloads.map((p) => ({
+      id: p.id,
+      massKg: p.m,
+      dragArea_m2: r6(payloadCda(p)),
+      cgOffset_m: [r4(p.x - c[0]), 0, r4(q.belly - p.d / 2 - c[2])],
+      warhead: p.warhead,
+      dims: { d: p.d, len: p.len },
+    }));
+    const accessories = q.accessories.map((x) => ({
+      id: x.id, massKg: x.m, cgOffset_m: x.at.map((v, k) => r4(v - c[k])),
+    }));
+    out[id] = {
+      q, M, c, I, motor,
+      arm: q.diag / 2 / Math.SQRT2,
+      motorZ: zOf('motors'),
+      discZ: zOf('props'),
+      belly: q.belly - c[2],
+      hullDown: -(Math.min(...q.payloads.map((p) => q.belly - p.d)) - c[2]),
+      combat: { frame: id === '7inch' ? '7in' : '10in', payloads, accessories },
+    };
   }
-  console.log('accessories, about the CG:');
-  for (const x of q.accessories) {
-    console.log(`  ${x.id.padEnd(11)} ${x.m.toFixed(3)} kg  at [${x.at.map((v, k) => r4(v - c[k])).join(', ')}]`);
+  return out;
+}
+
+function print() {
+  for (const [id, d] of Object.entries(deriveCombat())) {
+    const { q, M, c, I, motor } = d;
+    console.log(`\n== ${id} (simId ${q.simId}) ==`);
+    console.log(`bare all up mass        ${M.toFixed(4)} kg`);
+    console.log(`CG in the frame datum   [${c.map(r4).join(', ')}] m`);
+    console.log(`inertia about the CG    [${I.map(r6).join(', ')}] kg m^2`);
+    console.log(`arm_x = arm_y           ${d.arm.toFixed(16)} m (${q.diag * 1000} mm diagonal)`);
+    console.log(`prop_r                  ${motor.propR.toFixed(4)} m`);
+    console.log(`k_inflow                ${motor.kInflow.toFixed(6)} m/rad`);
+    console.log(`kt                      ${r6(motor.kt)}`);
+    console.log(`kq (FM ${q.fm})            ${r6(motor.kq)}`);
+    console.log(`ke                      ${r6(motor.ke)} (loaded ${motor.loadedKv.toFixed(0)} kV on a ${q.kv} kV plate)`);
+    console.log(`r_motor                 ${r6(motor.rMotor)} ohm`);
+    console.log(`r_cell                  ${q.rCell} ohm`);
+    console.log(`j_rotor                 ${q.jRotor}`);
+    console.log(`motor time constant     ${(motor.tau * 1000).toFixed(1)} ms (j R / ke^2)`);
+    console.log(`hover                   ${motor.hover.rpm.toFixed(0)} rpm, ${motor.hover.amps.toFixed(2)} A a motor, duty ${motor.hover.duty.toFixed(3)}, ${motor.hover.cellV.toFixed(3)} V a cell`);
+    console.log(`full throttle (static)  ${motor.full.rpm.toFixed(0)} rpm, ${motor.full.amps.toFixed(1)} A a motor, ${motor.full.pack.toFixed(0)} A pack, ${motor.full.cellV.toFixed(2)} V a cell`);
+    console.log(`                        ${motor.full.thrustN.toFixed(1)} N, thrust to weight ${motor.full.tw.toFixed(2)} bare`);
+    console.log(`motor bells z           ${r4(d.motorZ)} m about the CG; prop discs ${r4(d.discZ)}`);
+    console.log(`belly plate underside   ${r4(d.belly)} m; hull down (deepest payload) ${r4(d.hullDown)} m`);
+    console.log('payloads, about the CG:');
+    for (const p of d.combat.payloads) {
+      const tw = motor.full.thrustN / ((M + p.massKg) * G);
+      console.log(`  ${p.id.padEnd(11)} ${p.massKg.toFixed(2)} kg  cda ${p.dragArea_m2} m^2  cg [${p.cgOffset_m.join(', ')}]  d ${p.dims.d} len ${p.dims.len}  T/W ${tw.toFixed(2)}`);
+    }
+    console.log('accessories, about the CG:');
+    for (const x of d.combat.accessories) {
+      console.log(`  ${x.id.padEnd(11)} ${x.massKg.toFixed(3)} kg  at [${x.cgOffset_m.join(', ')}]`);
+    }
   }
-  const deepest = Math.min(...q.payloads.map((p) => q.belly - p.d));
-  console.log(`hull down (deepest payload) ${r4(-(deepest - c[2]))} m below the CG`);
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  print();
 }

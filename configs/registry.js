@@ -174,6 +174,21 @@ export const TUNES = [
     note: 'Factory 4.5.1, untouched. What a freshly flashed quad flies.',
   },
   {
+    /* The combat quads' (docs/COMBAT-DRONES.md): stock 4.5.1 like the five
+     * inch's, on their own plants, with the build's motor kV, pack size and
+     * Li-ion cell limits written in. */
+    id: 'betaflight-7inch',
+    airframe: '7inch',
+    name: 'Betaflight default',
+    note: 'Factory 4.5.1 on the 7 inch: 1300 kV, a 4200 mAh Li-ion pack.',
+  },
+  {
+    id: 'betaflight-10inch',
+    airframe: '10inch',
+    name: 'Betaflight default',
+    note: 'Factory 4.5.1 on the 10 inch: 900 kV, an 8400 mAh Li-ion pack.',
+  },
+  {
     id: 'whoop-champion',
     airframe: null,
     name: 'Whoop stock',

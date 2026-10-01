@@ -436,6 +436,104 @@ static void whoop_scaled_build(void) {
   table_finish(t, SIM_AIRFRAME_5IN);
 }
 
+/*
+ * THE COMBAT QUADS' PARTS, SIM_AIRFRAME_7IN and SIM_AIRFRAME_10IN
+ * (docs/COMBAT-DRONES.md): the five inch's table as a dynamically similar
+ * model of each, the whoop's argument the other way up. In plan every
+ * length goes by L, the motor diagonals' ratio, which lands every motor,
+ * arm and disc centre on the plant's own; heights by Lz, since a 2806.5 is
+ * not much taller than a 2207 and a 3115 is a third taller; masses by M,
+ * the all up masses' ratio; and every limit by what those do to the loads
+ * of the same crash: forces by M L, moments by M L^2, stiffness by M,
+ * stresses by M / L. A crash a five inch survives maps onto one these
+ * survive, which is what a bigger frame of the same build is for.
+ *
+ * Four things are their own rather than scaled: the props are the
+ * plant's prop_r, the pack is the parts list's (on top, not slung under,
+ * and Li-ion), the camera's glass is at the plant's camera point, and the
+ * frame reaches down to the hull's floor, because the landing legs a
+ * payload drone stands on are bolted to it.
+ */
+typedef struct {
+  int id;
+  double L, Lz, M;
+  double base_z;          /* the motors' base about the CG, m */
+  double pack_m;
+  double pack_lo[3], pack_hi[3];
+} QuadScale;
+
+static void quad_scaled_build(const QuadScale *qs) {
+  const PlantParams *P = &PLANT_TABLE[qs->id];
+  Table *t = &T[qs->id];
+  const double L = qs->L, M = qs->M;
+  t->n = 0;
+  for (int i = 0; i < COUNT(PARTS_5IN); i += 1) {
+    PartDef d = PARTS_5IN[i];
+    part_expand(&d, SIM_AIRFRAME_5IN);
+    double c[3] = { 0.0, 0.0, 0.0 };
+    for (int k = 0; k < d.npts; k += 1) {
+      d.pts[k][0] *= L;
+      d.pts[k][1] *= L;
+      d.pts[k][2] = d.pts[k][2] * qs->Lz + qs->base_z;
+      for (int a = 0; a < 3; a += 1) c[a] += d.pts[k][a] / (double)d.npts;
+    }
+    d.joint[0] *= L;
+    d.joint[1] *= L;
+    d.joint[2] = d.joint[2] * qs->Lz + qs->base_z;
+    d.mass *= M;
+    d.m_max *= M * L * L;
+    d.m_max_z *= M * L * L;
+    d.f_max *= M * L;
+    d.k *= M;
+    d.crush_s *= M / L;
+    d.crush_a *= L * L;
+    d.crush_d *= L;
+    d.slip_d *= L;
+    if (d.kind == SIM_PART_PROP) {
+      /* The disc about its own centre, at the plant's radius. */
+      const double s = P->prop_r / (0.0635 * L);
+      for (int k = 0; k < d.npts; k += 1) {
+        d.pts[k][0] = c[0] + (d.pts[k][0] - c[0]) * s;
+        d.pts[k][1] = c[1] + (d.pts[k][1] - c[1]) * s;
+      }
+    } else if (d.kind == SIM_PART_BATTERY) {
+      const double lo[3] = { qs->pack_lo[0], qs->pack_lo[1], qs->pack_lo[2] };
+      const double hi[3] = { qs->pack_hi[0], qs->pack_hi[1], qs->pack_hi[2] };
+      d.mass = qs->pack_m;
+      d.joint[0] = 0.5 * (lo[0] + hi[0]);
+      d.joint[1] = 0.0;
+      d.joint[2] = lo[2];
+      for (int k = 0; k < 8; k += 1) {
+        d.pts[k][0] = (k & 1) ? hi[0] : lo[0];
+        d.pts[k][1] = (k & 2) ? hi[1] : lo[1];
+        d.pts[k][2] = (k & 4) ? hi[2] : lo[2];
+      }
+      d.npts = 8;
+    } else if (d.kind == SIM_PART_CAMERA) {
+      /* Its front face on the plant's glass, its centre at its height. */
+      double xhi = d.pts[0][0];
+      for (int k = 0; k < d.npts; k += 1) {
+        if (d.pts[k][0] > xhi) xhi = d.pts[k][0];
+      }
+      const double dx = P->camera_x - xhi;
+      const double dz = P->camera_z - c[2];
+      for (int k = 0; k < d.npts; k += 1) {
+        d.pts[k][0] += dx;
+        d.pts[k][2] += dz;
+      }
+      d.joint[0] += dx;
+      d.joint[2] += dz;
+    } else if (i == 0) {
+      /* The frame and its legs, down to the hull's floor. */
+      for (int k = 0; k < d.npts; k += 1) {
+        if (d.pts[k][2] < c[2]) d.pts[k][2] = -P->hull_hz_down;
+      }
+    }
+    table_add(t, &d, qs->id);
+  }
+  table_finish(t, qs->id);
+}
+
 static void tables_build(void) {
   struct { int id; const PartDef *p; int n; } src[] = {
     { SIM_AIRFRAME_5IN, PARTS_5IN, COUNT(PARTS_5IN) },
@@ -475,6 +573,18 @@ static void tables_build(void) {
                SIM_AIRFRAME_CUB1400F, 0.0264, 0.07, -0.02, -0.056, 0.106);
   table_finish(&T[SIM_AIRFRAME_CUB1400F], SIM_AIRFRAME_CUB1400F);
   whoop_scaled_build();
+  /* The packs' boxes are scripts/combat-derive.js's about the CG: the 7
+   * inch's one 6S1P brick, the 10 inch's two side by side. */
+  const QuadScale q7 = {
+    SIM_AIRFRAME_7IN, 0.1575 / 0.110, 1.0, 0.979 / 0.71, -0.0257, 0.429,
+    { -0.0377, -0.0315, 0.0003 }, { 0.0343, 0.0315, 0.0423 },
+  };
+  const QuadScale q10 = {
+    SIM_AIRFRAME_10IN, 0.210 / 0.110, 1.35, 1.848 / 0.71, -0.0319, 0.858,
+    { -0.0376, -0.063, 0.002 }, { 0.0344, 0.063, 0.044 },
+  };
+  quad_scaled_build(&q7);
+  quad_scaled_build(&q10);
   g_ready = 1;
 }
 
