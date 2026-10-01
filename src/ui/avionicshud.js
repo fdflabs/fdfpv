@@ -2,10 +2,20 @@
  * avionicshud.js: the HUDRenderer, the Avionics HUD preset over the FPV
  * camera (docs/AVIONICS-HUD.md section 8), laid out after the owner's
  * reference picture of 2026-10-01: a heading tape at the top, speed and
- * AGL tapes either side of the middle, an attitude arc and pitch ladder,
- * the reticle with LEAD and CLOSURE when there is a track, and four dark
- * corner panels: mode and tracking top left, link and compute top right,
- * energy bottom left, the camera with its picture in picture bottom right.
+ * AGL tapes either side of the middle, an attitude arc and a compact pitch
+ * ladder, the reticle with LEAD and CLOSURE when there is a track, and
+ * four translucent corner panels: mode and tracking top left (the primary
+ * track's whole readout), link and compute top right, energy bottom left,
+ * the camera with its picture in picture bottom right.
+ *
+ * THE MIDDLE IS SPARSE (the owner's brief): attitude, the reticle, the
+ * tracks as boxes with a one line tag, the lead cue and a line of closure.
+ * Everything else is at the perimeter. Three levels of it, the pilot's
+ * choice (Y): FULL adds the ladder's labels both sides, the line to the
+ * lead and the other tracks' numbers; STANDARD is the default; MINIMAL is
+ * the tapes, the attitude, the reticle and the primary's box alone. The
+ * war's own markers stand down for an object the HUD has a box on, and
+ * the war's kind for it goes into the box's tag: one marker an object.
  *
  * IT DRAWS STATE AND COMPUTES NONE. Every number comes from a system's
  * state object (src/avionics/telemetry.js, sensors.js, tracks.js,
@@ -86,9 +96,19 @@ const HDG_SPAN = 60;
  * TrackManager's: it holds AIR OBJECT until a class is likely. */
 const CONF_FIRM = 0.6;
 const BOX_MIN_PX = 18;
-/* A pitch rung's half width in azimuth, rad, and the horizon's. */
-const RUNG_HALF = 0.2;
-const RUNG_HORIZON = 0.34;
+/* A pitch rung's half width in azimuth, rad, and the horizon's: a compact
+ * ladder round the reticle, as a conventional HUD's. */
+const RUNG_HALF = 0.09;
+const RUNG_HORIZON = 0.2;
+/* The ladder's ink, thinner and dimmer than the instruments'. */
+const RUNG_ALPHA = 0.4;
+const RUNG_WIDTH = 0.9;
+/* An interval wider than this ratio (hi over lo) says too little to be
+ * drawn as one: it is shown as an estimate, ~ its geometric middle. */
+const WIDE_RATIO = 2;
+/* A war marker this close to a drawn box, CSS px past its half side, is
+ * the same object (the box is drawn at HUD_HZ, the markers every frame). */
+const CLAIM_PX = 14;
 /* A stale value's ink. */
 const STALE_ALPHA = 0.45;
 const GHOST_ALPHA = 0.3;
@@ -134,6 +154,7 @@ const CSS = `
 .avx-sel.on { color: ${WHITE}; border: 1px solid ${WHITE}; }
 .avx-rec { color: ${RED}; }
 #ui.avx-on .osd-top, #ui.avx-on .osd-corner { display: none; }
+.avx.avx-minimal .avx-panel, .avx-panel.avx-off { display: none; }
 `;
 
 /* A DOM element with a class and optional text. */
@@ -225,6 +246,16 @@ export class AvionicsHud {
     this.rungDir = [0, 0, 0];
     this.placed = [];
     this.stats = { ticks: 0, tickMs: 0, worstTickMs: 0 };
+    /* 'full', 'standard' or 'minimal': the pilot's choice (Y). */
+    this.level = 'standard';
+    /* The boxes drawn this paint, { id, x, y, r, tag }, which the war's
+     * markers read (src/ui/warmarkers.js setClaims) and write the war's
+     * kind into; and that kind by track id, kept from the paint before. */
+    this.claims = [];
+    this.kindOf = new Map();
+    /* What the last paint filled and wrote, CSS px, for the checks. */
+    this.fills = [];
+    this.texts = [];
     /* Whether the last paint drew IN RANGE on the primary, for the checks. */
     this.inRangeDrawn = false;
     this.build();
@@ -237,6 +268,10 @@ export class AvionicsHud {
       tapes: this.tapeRects(),
       keepOut: this.keepOut.map((r) => ({ ...r })),
       stats: { ...this.stats },
+      level: this.level,
+      fills: this.fills.map((r) => ({ ...r })),
+      texts: this.texts.map((r) => ({ ...r })),
+      claims: this.claims.map((c) => ({ ...c })),
       inRange: this.inRangeDrawn,
     });
   }
@@ -252,12 +287,22 @@ export class AvionicsHud {
     this.tabAssist = new Field(tabs, 'avx-tab');
     el('div', 'avx-head', mode, str('avionics.hud.tracking'));
     this.fAi = new Field(row(mode, str('avionics.hud.ai_track')));
-    this.fTarget = new Field(row(mode, str('avionics.hud.target')));
-    this.fConf = new Field(row(mode, str('avionics.hud.conf')));
+    /* The primary track's readout, here and not at the target, so the
+     * middle of the picture stays the pilot's. */
+    const target = row(mode, str('avionics.hud.target'));
+    this.fTarget = new Field(target);
+    this.fConf = new Field(target);
     const src = row(mode, str('avionics.hud.source'));
     this.fSource = new Field(src);
-    this.fTrackTime = new Field(row(mode, str('avionics.hud.track_time')));
-    this.fPredict = new Field(row(mode, str('avionics.hud.predict')));
+    const age = row(mode, str('avionics.hud.track_time'));
+    this.fTrackTime = new Field(age);
+    this.fVis = new Field(age);
+    const rng = row(mode, str('avionics.hud.rng'));
+    this.fRng = new Field(rng);
+    this.fBrg = new Field(rng);
+    const spd = row(mode, str('avionics.hud.spd'));
+    this.fSpd = new Field(spd);
+    this.fAlt = new Field(spd);
     const nav = row(mode, str('avionics.hud.nav'));
     this.fNav = new Field(nav);
     this.fState = new Field(row(mode, str('avionics.hud.state')));
@@ -380,6 +425,7 @@ export class AvionicsHud {
       this.el.style.opacity = paused ? '0.4' : '1';
     }
     if (!on) {
+      this.claims.length = 0;
       return;
     }
     this.src = src;
@@ -422,6 +468,15 @@ export class AvionicsHud {
     this.stats.ticks += 1;
     this.stats.tickMs += ms;
     this.stats.worstTickMs = Math.max(this.stats.worstTickMs, ms);
+  }
+
+  /* The declutter level, one of 'full', 'standard', 'minimal'. MINIMAL
+   * hides the corner panels too. */
+  setLevel(level) {
+    this.level = level;
+    this.el.classList.toggle('avx-minimal', level === 'minimal');
+    this.nextDrawMs = 0;
+    this.keepOutAt = 0;
   }
 
   resize() {
@@ -468,8 +523,17 @@ export class AvionicsHud {
     const tapes = this.tapeRects();
     const fixed = [tapes.heading];
     this.sizeInset(tapes.agl, fixed);
+    for (const [id] of order) {
+      this.panels[id].classList.remove('avx-off');
+    }
+    /* In precedence order: on a screen too crowded for all four (a phone
+     * in a war), the last ones give way rather than sit on the first. */
     for (const [id, ax, ay] of order) {
       const me = this.slide(this.panels[id], ax, ay, [...this.keepOut, ...this.placed, ...fixed]);
+      if (!me) {
+        this.panels[id].classList.add('avx-off');
+        continue;
+      }
       this.panels[id].style.left = `${Math.round(me.x)}px`;
       this.panels[id].style.top = `${Math.round(me.y)}px`;
       this.placed.push(me);
@@ -483,7 +547,7 @@ export class AvionicsHud {
    * a phone: when no place inside the window clears everything, the
    * panel dodges only what stays (not the soft banners), since sitting
    * under a passing line of text beats sitting on another panel or not
-   * being there. Failing that too, the last place inside the window.
+   * being there. Failing that too, null: no room for it on this screen.
    */
   slide(p, ax, ay, against) {
     const w = p.offsetWidth;
@@ -505,7 +569,7 @@ export class AvionicsHud {
         me.y = y;
       }
     }
-    return me;
+    return null;
   }
 
   /*
@@ -528,8 +592,9 @@ export class AvionicsHud {
     const chromeH = cam.offsetHeight - this.pip.offsetHeight;
     /* Where the top right panel will sit: under the game's chips there. */
     const health = this.slide(this.panels.health, 'r', 't', [...this.keepOut, ...fixed]);
+    const above = health ? health.y + health.h + PANEL_GAP : PANEL_EDGE;
     const roomW = this.w - PANEL_EDGE - (agl.x + agl.w + PANEL_GAP) - chromeW;
-    const roomH = this.h - PANEL_EDGE - (health.y + health.h + PANEL_GAP) - chromeH;
+    const roomH = this.h - PANEL_EDGE - above - chromeH;
     const w = Math.floor(Math.min(share * this.w, roomW, roomH * 1.6));
     /* No room for more than the small inset (a phone): small's layout,
      * with the larger size's sharper pixels in it. */
@@ -551,17 +616,29 @@ export class AvionicsHud {
     this.fAi.set(ai ? str('avionics.hud.on') : str('avionics.hud.off'), ai ? 'avx-ok' : '');
     if (prim) {
       const firm = prim.confidence >= CONF_FIRM;
-      this.fTarget.set(str(`avionics.track.cls.${prim.cls}`), prim.stale ? 'avx-stale' : '');
+      const kind = this.kindOf.get(prim.id);
+      const cls = str(`avionics.track.cls.${prim.cls}`);
+      this.fTarget.set(kind ? str('avionics.hud.kind_cls', { kind, cls }) : cls, prim.stale ? 'avx-stale' : '');
       this.fConf.set(`${Math.round(prim.confidence * 100)}%`, firm ? 'avx-ok' : 'avx-warn');
       this.fSource.set(str(`avionics.hud.src.${prim.sourceSensor.toLowerCase()}`));
       this.fTrackTime.set(str('avionics.hud.seconds', { s: prim.ageS.toFixed(1) }));
-      this.fPredict.set(prim.predicted && prim.predicted.length ? str('avionics.hud.on') : str('avionics.hud.off'));
+      this.fVis.set(prim.occlusion > 0.5 ? str('avionics.hud.occ') : str('avionics.hud.vis'), prim.occlusion > 0.5 ? 'avx-warn' : '');
+      const r = prim.rangeM;
+      this.fRng.set(r ? rangeText(r) : '--', r && wide(r) ? 'avx-stale' : '');
+      this.fBrg.set(str('avionics.hud.brg_of', { d: String(Math.round((prim.bearing.azRad * DEG + 360) % 360)).padStart(3, '0') }));
+      this.fSpd.set(prim.speedMs ? str('avionics.hud.kmh_est', { n: Math.round(((prim.speedMs.lo + prim.speedMs.hi) / 2) * 3.6) }) : '--');
+      const alt = prim.altM ? (prim.altM.lo + prim.altM.hi) / 2 : null;
+      this.fAlt.set(alt === null ? '' : str('avionics.hud.alt_of', { n: Math.round(alt), d: signed(Math.round(alt - tel.agl.m)) }));
     } else {
       this.fTarget.set(ai ? str('avionics.hud.searching') : str('avionics.hud.none'), ai ? 'avx-warn' : '');
-      this.fConf.set('--');
+      this.fConf.set('');
       this.fSource.set(ai ? str(`avionics.hud.src.${sensorFamily(sensor.mode).toLowerCase()}`) : '--');
       this.fTrackTime.set('--');
-      this.fPredict.set('--');
+      this.fVis.set('');
+      this.fRng.set('--');
+      this.fBrg.set('');
+      this.fSpd.set('--');
+      this.fAlt.set('');
     }
     const navCls = tel.nav.source === 'DR' ? 'avx-bad' : tel.nav.source === 'VIO' ? 'avx-warn' : 'avx-ok';
     this.fNav.set(str(`avionics.hud.navsrc.${tel.nav.source.toLowerCase()}`), navCls);
@@ -663,13 +740,46 @@ export class AvionicsHud {
     g.textBaseline = 'middle';
     g.shadowColor = HALO;
     g.shadowBlur = 3;
+    this.fills.length = 0;
+    this.texts.length = 0;
     this.heading(L, src, ink);
     this.speedTape(L, src.tel, ink);
     this.aglTape(L, src.tel, ink);
-    this.attitude(L, src, ink);
     this.reticle(L, ink);
     this.tracks(L, src);
+    /* After the tracks: a ladder number gives way to their words. */
+    this.attitude(L, src, ink);
     this.degraded(L, src.hud);
+  }
+
+  /* Where words drawn at x, y with the canvas's font and alignment go. */
+  textRect(text, x, y) {
+    const m = this.g.measureText(text);
+    return {
+      text, x: x - m.actualBoundingBoxLeft, y: y - m.actualBoundingBoxAscent, w: m.actualBoundingBoxLeft + m.actualBoundingBoxRight, h: m.actualBoundingBoxAscent + m.actualBoundingBoxDescent,
+    };
+  }
+
+  /* fillText, and where the words went, for the checks. */
+  say(text, x, y) {
+    this.g.fillText(text, x, y);
+    this.texts.push(this.textRect(text, x, y));
+  }
+
+  /* say(), unless the words would land on words already said. */
+  sayClear(text, x, y) {
+    const me = this.textRect(text, x, y);
+    if (!this.texts.some((r) => meets(r, me))) {
+      this.g.fillText(text, x, y);
+      this.texts.push(me);
+    }
+  }
+
+  /* fillRect, and where and how solid, for the checks. */
+  fillBox(x, y, w, h, style, alpha) {
+    this.g.fillStyle = style;
+    this.g.fillRect(x, y, w, h);
+    this.fills.push({ x, y, w, h, alpha });
   }
 
   heading(L, src, ink) {
@@ -690,9 +800,10 @@ export class AvionicsHud {
       g.moveTo(x, y);
       g.lineTo(x, y + (big ? L.font * 1.1 : L.font * 0.6));
       g.stroke();
-      if (big) {
+      /* Not under the boxed heading, which says it. */
+      if (big && Math.abs(x - L.cx) > L.font * 3.2) {
         const card = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[n];
-        g.fillText(card || String(n), x, y + L.font * 2);
+        this.say(card || String(n), x, y + L.font * 2);
       }
     }
     g.beginPath();
@@ -704,13 +815,12 @@ export class AvionicsHud {
     /* The lubber line and the boxed heading. */
     const bw = L.font * 3.6;
     const by = y + L.font * 1.35;
-    g.fillStyle = 'rgba(6, 12, 18, 0.7)';
-    g.fillRect(L.cx - bw / 2, by, bw, L.font * 1.6);
+    this.fillBox(L.cx - bw / 2, by, bw, L.font * 1.6, 'rgba(6, 12, 18, 0.7)', 0.7);
     g.strokeStyle = WHITE;
     g.strokeRect(L.cx - bw / 2, by, bw, L.font * 1.6);
     g.fillStyle = WHITE;
     g.font = `700 ${L.font * 1.1}px ${FONT}`;
-    g.fillText(String(Math.round(hdg) % 360).padStart(3, '0'), L.cx, by + L.font * 0.82);
+    this.say(String(Math.round(hdg) % 360).padStart(3, '0'), L.cx, by + L.font * 0.82);
     g.font = `${L.font}px ${FONT}`;
     g.beginPath();
     g.moveTo(L.cx, y - 1);
@@ -757,23 +867,23 @@ export class AvionicsHud {
       g.moveTo(x, y);
       g.lineTo(x + dir * (big ? L.font * 0.9 : L.font * 0.5), y);
       g.stroke();
-      if (big && Math.abs(y - L.cy) > L.font * 1.2) {
-        g.fillText(String(k), x + dir * L.font * 1.3, y);
+      /* Not over the box, nor over the unit under it. */
+      if (big && (y < L.cy - L.font * 1.2 || y > L.cy + L.font * 2.9)) {
+        this.say(String(k), x + dir * L.font * 1.3, y);
       }
     }
     g.textAlign = 'center';
-    g.fillText(title, x, top - L.font * 1.2);
+    this.say(title, x, top - L.font * 1.2);
     /* The box, across the line, with its pointer from the inside. */
     const bw = L.box;
     const bh = L.font * 1.9;
     const bx = x - bw / 2;
-    g.fillStyle = 'rgba(6, 12, 18, 0.75)';
-    g.fillRect(bx, L.cy - bh / 2, bw, bh);
+    this.fillBox(bx, L.cy - bh / 2, bw, bh, 'rgba(6, 12, 18, 0.45)', 0.45);
     g.strokeStyle = WHITE;
     g.strokeRect(bx, L.cy - bh / 2, bw, bh);
     g.fillStyle = WHITE;
     g.font = `700 ${L.font * 1.25}px ${FONT}`;
-    g.fillText(boxText, x, L.cy + 0.5);
+    this.say(boxText, x, L.cy + 0.5);
     g.font = `${L.font}px ${FONT}`;
     const px = dir > 0 ? bx - 3 : bx + bw + 3;
     g.beginPath();
@@ -792,7 +902,7 @@ export class AvionicsHud {
     this.tape(L, L.spdX, kph, SPD_SPAN, SPD_TICK, SPD_LABEL, 1, str('avionics.hud.spd'), text, ink, tel.nav.source === 'DR');
     this.g.textAlign = 'center';
     this.g.fillStyle = WHITE;
-    this.g.fillText('km/h', L.spdX, L.cy + L.font * 2);
+    this.say('km/h', L.spdX, L.cy + L.font * 2);
   }
 
   aglTape(L, tel, ink) {
@@ -801,7 +911,7 @@ export class AvionicsHud {
     const g = this.g;
     g.textAlign = 'center';
     g.fillStyle = WHITE;
-    g.fillText('m', L.aglX, L.cy + L.font * 2);
+    this.say('m', L.aglX, L.cy + L.font * 2);
     /* Vertical speed: a caret beside the box, 1 px per 0.1 m/s, held to
      * the tape. */
     const vy = Math.max(-L.tapeH / 2, Math.min(L.tapeH / 2, -tel.vs.ms * 10));
@@ -852,18 +962,25 @@ export class AvionicsHud {
 
     /* The ladder: the horizon and every 10 deg either side, each rung the
      * real direction at that elevation on the camera's azimuth, projected
-     * through the camera, so it lies on the picture's own horizon. */
+     * through the camera, so it lies on the picture's own horizon. Compact
+     * and dim, held to a band round the reticle; FULL reaches 20 deg and
+     * labels both ends, STANDARD 10 deg and the right end, MINIMAL is the
+     * horizon alone. */
     const cam = src.camera;
     attitudeOf(cam.quaternion, this.camAtt);
     const az = this.camAtt.heading / DEG;
     const base = Math.round(this.camAtt.pitch / 10) * 10;
+    const reach = { full: 20, standard: 10, minimal: 0 }[this.level];
+    const bandW = (L.aglX - L.spdX) * 0.5;
+    const bandH = L.h * 0.36;
     g.save();
     g.beginPath();
-    g.rect(L.spdX + L.box, L.hdgY + L.font * 4, L.aglX - L.spdX - 2 * L.box, L.h * 0.78 - L.hdgY - L.font * 4);
+    g.rect(L.cx - bandW / 2, L.cy - bandH / 2, bandW, bandH);
     g.clip();
     g.textAlign = 'center';
-    for (let d = base - 20; d <= base + 20; d += 10) {
-      if (d < -90 || d > 90) {
+    g.lineWidth = RUNG_WIDTH;
+    for (let d = base - reach; d <= base + reach; d += 10) {
+      if (d < -90 || d > 90 || (reach === 0 && d !== 0)) {
         continue;
       }
       const half = d === 0 ? RUNG_HORIZON : RUNG_HALF;
@@ -876,8 +993,8 @@ export class AvionicsHud {
       const gap = d === 0 ? 0.3 : 0.4;
       const mx = (a[0] + b[0]) / 2;
       const my = (a[1] + b[1]) / 2;
-      g.globalAlpha = d === 0 ? 0.85 : 0.5;
-      g.setLineDash(d < 0 ? [5, 4] : []);
+      g.globalAlpha = d === 0 ? 0.7 : RUNG_ALPHA;
+      g.setLineDash(d < 0 ? [4, 4] : []);
       g.beginPath();
       g.moveTo(a[0], a[1]);
       g.lineTo(a[0] + (mx - a[0]) * (1 - gap), a[1] + (my - a[1]) * (1 - gap));
@@ -885,12 +1002,15 @@ export class AvionicsHud {
       g.lineTo(b[0] + (mx - b[0]) * (1 - gap), b[1] + (my - b[1]) * (1 - gap));
       g.stroke();
       if (d !== 0) {
-        g.fillText(String(d), a[0] - L.font * 1.2, a[1]);
-        g.fillText(String(d), b[0] + L.font * 1.2, b[1]);
+        if (this.level === 'full') {
+          this.sayClear(String(d), a[0] - L.font * 1.2, a[1]);
+        }
+        this.sayClear(String(d), b[0] + L.font * 1.2, b[1]);
       }
     }
     g.setLineDash([]);
     g.globalAlpha = 1;
+    g.lineWidth = 1.25;
     g.restore();
   }
 
@@ -926,14 +1046,29 @@ export class AvionicsHud {
     }
   }
 
-  /* The tracks: boxes, the primary's callout, prediction, lead and
-   * closure, and ghosts for the lost. */
+  /*
+   * The tracks: boxes, the primary's one line tag, prediction, lead and
+   * closure, and ghosts for the lost. Every box drawn is a claim the war's
+   * markers stand down for; the kind they write into it comes back as the
+   * tag's first word on the next paint.
+   */
   tracks(L, src) {
     const { snap, hud, camera } = src;
     const g = this.g;
-    const degraded = hud.state === 'DEGRADED';
+    for (const c of this.claims) {
+      if (c.tag) {
+        this.kindOf.set(c.id, c.tag);
+      }
+    }
+    this.claims.length = 0;
     this.inRangeDrawn = false;
-    if (hud.ai) {
+    if (!hud.ai) {
+      this.kindOf.clear();
+      return;
+    }
+    const degraded = hud.state === 'DEGRADED';
+    const minimal = this.level === 'minimal';
+    if (!minimal) {
       for (const t of snap.lost) {
         if (this.project(camera, t.losW).ok) {
           const side = this.boxSide(L, camera, t);
@@ -944,7 +1079,8 @@ export class AvionicsHud {
       }
     }
     for (const t of snap.tracks) {
-      if (!hud.ai || (degraded && t.stale)) {
+      const primary = t.id === snap.primaryId;
+      if ((degraded && t.stale) || (minimal && !primary)) {
         continue;
       }
       if (!this.project(camera, t.losW).ok) {
@@ -953,24 +1089,54 @@ export class AvionicsHud {
       const x = this.proj.x;
       const y = this.proj.y;
       const side = this.boxSide(L, camera, t);
-      const primary = t.id === snap.primaryId;
+      /* inRange: this box carries the IN RANGE cue, so the war's marker
+       * may stand down for an attacker in range too. */
+      const cue = primary && Boolean(src.fuze);
+      this.claims.push({
+        id: t.id, x, y, r: side / 2 + CLAIM_PX, tag: null, inRange: cue,
+      });
       g.globalAlpha = t.stale ? STALE_ALPHA : primary ? 1 : 0.7;
       this.box(x, y, side, primary ? RED : AMBER, t.confidence < CONF_FIRM);
-      if (primary && src.fuze) {
+      if (cue) {
         this.inRange(L, x, y, side);
         this.inRangeDrawn = true;
       }
+      g.textAlign = 'center';
       if (primary) {
-        this.callout(L, x, y, side, t, src.tel);
-        if (!degraded) {
+        if (!minimal) {
+          this.primaryTag(L, x, y - side / 2 - L.font * 1.6, t);
+        }
+        if (!degraded && !minimal) {
           this.prediction(L, camera, t);
         }
       } else {
-        g.fillStyle = AMBER;
-        g.textAlign = 'center';
-        g.fillText(`T${String(t.id).padStart(2, '0')}`, x, y - side / 2 - L.font);
+        this.otherTag(L, x, y - side / 2 - L.font * 1.6, t);
       }
       g.globalAlpha = 1;
+    }
+  }
+
+  /* The one line at the primary: the war's kind when it has one, the
+   * class and the confidence. The rest is in the TRACKING block. */
+  primaryTag(L, x, y, t) {
+    const g = this.g;
+    const kind = this.kindOf.get(t.id);
+    const cls = str('avionics.track.cls.' + t.cls);
+    const pct = Math.round(t.confidence * 100);
+    g.fillStyle = RED;
+    g.font = '700 ' + L.font + 'px ' + FONT;
+    this.say(kind ? str('avionics.hud.tag_kind', { kind, cls, pct }) : str('avionics.hud.tag', { cls, pct }), x, y);
+    g.font = L.font + 'px ' + FONT;
+  }
+
+  /* Another track's: its kind, and in FULL its number too. */
+  otherTag(L, x, y, t) {
+    const kind = this.kindOf.get(t.id);
+    const id = 'T' + String(t.id).padStart(2, '0');
+    const said = this.level === 'full' ? (kind ? str('avionics.hud.id_kind', { id, kind }) : id) : kind;
+    if (said) {
+      this.g.fillStyle = AMBER;
+      this.say(said, x, y);
     }
   }
 
@@ -1005,13 +1171,13 @@ export class AvionicsHud {
     g.fill();
   }
 
-  /* IN RANGE on the primary's box: the box filled and the words under it. */
+  /* IN RANGE on the primary's box: the box washed red and the words
+   * under it. */
   inRange(L, x, y, side) {
     const g = this.g;
     const h = side / 2;
     g.globalAlpha = 0.25;
-    g.fillStyle = RED;
-    g.fillRect(x - h, y - h, side, side);
+    this.fillBox(x - h, y - h, side, side, RED, 0.25);
     g.globalAlpha = 1;
     g.lineWidth = 3;
     g.strokeStyle = RED;
@@ -1020,51 +1186,15 @@ export class AvionicsHud {
     g.font = `700 ${L.font}px ${FONT}`;
     g.textAlign = 'center';
     g.fillStyle = RED;
-    g.fillText(str('avionics.hud.in_range'), x, y + h + L.font * 1.3);
+    this.say(str('avionics.hud.in_range'), x, y + h + L.font * 1.3);
     g.font = `${L.font}px ${FONT}`;
   }
 
-  /* The primary's callout, beside its box: what it is and what is known
-   * of it, every estimate an interval. */
-  callout(L, x, y, side, t, tel) {
-    const g = this.g;
-    const lines = [
-      [str('avionics.hud.rng'), t.rangeM ? rangeText(t.rangeM) : '--'],
-      [str('avionics.hud.brg'), `${String(Math.round((t.bearing.azRad * DEG + 360) % 360)).padStart(3, '0')}°`],
-      [str('avionics.hud.spd'), t.speedMs ? str('avionics.hud.kmh_est', { n: Math.round(((t.speedMs.lo + t.speedMs.hi) / 2) * 3.6) }) : '--'],
-      [str('avionics.hud.alt'), t.altM ? str('avionics.hud.alt_est', { n: Math.round((t.altM.lo + t.altM.hi) / 2), d: signed(Math.round((t.altM.lo + t.altM.hi) / 2 - tel.agl.m)) }) : '--'],
-      [str('avionics.hud.track'), str('avionics.hud.age_vis', { s: t.ageS.toFixed(1), v: t.occlusion > 0.5 ? str('avionics.hud.occ') : str('avionics.hud.vis') })],
-    ];
-    const lh = L.font * 1.35;
-    const w = L.font * 16;
-    const h = lh * (lines.length + 1) + 6;
-    let bx = x + side / 2 + 14;
-    if (bx + w > this.w - 8) {
-      bx = x - side / 2 - 14 - w;
-    }
-    const by = Math.max(8, y - side / 2 - lh);
-    g.fillStyle = 'rgba(30, 6, 6, 0.6)';
-    g.fillRect(bx, by, w, h);
-    g.strokeStyle = 'rgba(255, 75, 75, 0.7)';
-    g.strokeRect(bx, by, w, h);
-    g.fillStyle = RED;
-    g.textAlign = 'left';
-    g.font = `700 ${L.font}px ${FONT}`;
-    g.fillText(str(`avionics.track.cls.${t.cls}`), bx + 6, by + lh * 0.6);
-    g.textAlign = 'right';
-    g.fillText(`${Math.round(t.confidence * 100)}%`, bx + w - 6, by + lh * 0.6);
-    g.font = `${L.font}px ${FONT}`;
-    lines.forEach(([k, v], i) => {
-      const yy = by + lh * (i + 1.6);
-      g.textAlign = 'left';
-      g.fillStyle = RED;
-      g.fillText(k, bx + 6, yy);
-      g.fillStyle = WHITE;
-      g.fillText(v, bx + 6 + L.font * 4.2, yy);
-    });
-  }
-
-  /* Dotted: where it is going, and where to point to meet it. */
+  /*
+   * Dotted: where it is going, and the cue to point at to meet it, with
+   * its time beside it; FULL draws the line to the cue from the reticle
+   * too. Closure is one line of text right of the reticle.
+   */
   prediction(L, camera, t) {
     const g = this.g;
     g.setLineDash([2, 4]);
@@ -1081,32 +1211,28 @@ export class AvionicsHud {
       g.stroke();
     }
     g.strokeStyle = GREEN;
-    if (t.lead && this.project(camera, t.lead.losW).ok) {
-      g.beginPath();
-      g.moveTo(L.cx, L.cy);
-      g.lineTo(this.proj.x, this.proj.y);
-      g.stroke();
+    /* Only between the tapes: a cue out past them is no aim, and its
+     * words landed on the panels. */
+    if (t.lead && this.project(camera, t.lead.losW).ok && this.proj.x > L.spdX + L.box && this.proj.x < L.aglX - L.box) {
+      if (this.level === 'full') {
+        g.beginPath();
+        g.moveTo(L.cx, L.cy);
+        g.lineTo(this.proj.x, this.proj.y);
+        g.stroke();
+      }
       g.setLineDash([]);
       g.beginPath();
       g.arc(this.proj.x, this.proj.y, 4, 0, Math.PI * 2);
       g.stroke();
       g.fillStyle = GREEN;
-      g.textAlign = 'center';
-      g.fillText(str('avionics.hud.lead', { s: t.lead.tS.toFixed(1) }), L.cx, L.cy - L.h * 0.07);
+      g.textAlign = 'left';
+      this.say(str('avionics.hud.lead', { s: t.lead.tS.toFixed(1) }), this.proj.x + 8, this.proj.y);
     }
     g.setLineDash([]);
     if (t.closureMs) {
-      const text = str('avionics.hud.closure_ms', { lo: Math.round(t.closureMs.lo), hi: Math.round(t.closureMs.hi) });
-      const w = Math.max(L.font * 6, g.measureText(text).width + 12);
-      const y = L.cy + L.h * 0.05;
-      g.fillStyle = 'rgba(6, 12, 18, 0.7)';
-      g.fillRect(L.cx - w / 2, y, w, L.font * 2.8);
-      g.strokeStyle = 'rgba(238, 247, 250, 0.5)';
-      g.strokeRect(L.cx - w / 2, y, w, L.font * 2.8);
       g.fillStyle = WHITE;
       g.textAlign = 'center';
-      g.fillText(str('avionics.hud.closure'), L.cx, y + L.font * 0.8);
-      g.fillText(text, L.cx, y + L.font * 2);
+      this.say(closureText(t.closureMs), L.cx, L.cy + L.h * 0.075);
     }
   }
 
@@ -1120,7 +1246,7 @@ export class AvionicsHud {
     g.textAlign = 'center';
     g.font = `700 ${L.font * 1.1}px ${FONT}`;
     const why = hud.reasons.map((r) => str(`avionics.hud.why.${r}`)).join('  ');
-    g.fillText(`${str('avionics.hud.st.degraded')}  ${why}`, L.cx, L.hdgY + L.font * 4.6);
+    this.say(`${str('avionics.hud.st.degraded')}  ${why}`, L.cx, L.hdgY + L.font * 4.6);
     g.font = `${L.font}px ${FONT}`;
   }
 }
@@ -1134,8 +1260,33 @@ function sensorFamily(mode) {
   return mode === 'eo' || mode === 'lowlight' || mode === 'contrast' ? 'EO' : 'IR';
 }
 
-/* An interval of metres, in km once it reaches one. */
+/* Closure, m/s: an interval, or ~ its middle when it is wider than that
+ * middle (it can be negative: opening), as rangeText does. */
+function closureText(c) {
+  const mid = (c.lo + c.hi) / 2;
+  return c.hi - c.lo > Math.abs(mid)
+    ? str('avionics.hud.closure_est', { n: Math.round(mid) })
+    : str('avionics.hud.closure_line', { lo: Math.round(c.lo), hi: Math.round(c.hi) });
+}
+
+/* Whether an interval is too wide to say as one (WIDE_RATIO). */
+function wide(r) {
+  return r.hi > WIDE_RATIO * Math.max(1, r.lo);
+}
+
+/*
+ * An interval of metres, in km once it reaches one. One too wide to mean
+ * much (0.1 to 2.1 km) is said as an estimate, ~ its geometric middle to
+ * one figure, rather than as a precise looking pair (the brief's
+ * uncertainty grammar: an estimate is soft).
+ */
 function rangeText(r) {
+  if (wide(r)) {
+    const mid = Math.sqrt(Math.max(1, r.lo) * r.hi);
+    const p = 10 ** Math.floor(Math.log10(mid));
+    const one = Math.round(mid / p) * p;
+    return one >= 1000 ? str('avionics.hud.range_est_km', { n: one / 1000 }) : str('avionics.hud.range_est_m', { n: one });
+  }
   return r.hi >= 1000
     ? str('avionics.hud.range_km', { lo: (r.lo / 1000).toFixed(1), hi: (r.hi / 1000).toFixed(1) })
     : str('avionics.hud.range_m', { lo: Math.round(r.lo), hi: Math.round(r.hi) });
