@@ -78,7 +78,9 @@ import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { LATE_MS } from '../src/game/midair.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
-import { waveSize } from '../src/share/war/missions/index.js';
+import { waveSize, waveTarget } from '../src/share/war/missions/index.js';
+import { wireStrike } from '../src/share/war/wires.js';
+import { wireDraw } from '../edge/rooms/war.js';
 import {
   darkFrom, DISTRICTS, CASCADE_MS, FLICKER_MS,
 } from '../src/share/war/grid.js';
@@ -435,6 +437,28 @@ try {
   check('each page\'s war client has its seat and the room\'s lobby from the welcome', w0.every((w, i) => w.seat === seats[i] && w.view.state === 'lobby'),
     w0.map((w) => `${w.seat} ${w.view.state}`).join(', '));
 
+  /* The room's seed, pinned to the first for which no Striker of the
+   * wave followed below flies into a power line on its way
+   * (src/share/war/wires.js): what is checked here is a Striker taken by
+   * A's warhead and the rest reaching the Switchyard. scripts/war-harness.js
+   * checks the lines' deaths. Its births' ids are the waves' before it at
+   * two pilots, then its own. */
+  {
+    const strike = itaipu1.waves.findIndex((w) => w.kind === 'strike');
+    const first = 1 + itaipu1.waves.slice(0, strike).reduce((n, w) => n + waveSize(w, 2), 0);
+    const w = itaipu1.waves[strike];
+    let pick = null;
+    for (let k = 1; k < 64 && pick === null; k += 1) {
+      const seed = Math.floor((k / 64) * 4294967296) >>> 0;
+      const clear = Array.from({ length: waveSize(w, 2) }, (_, i) => wireStrike(itaipu1, {
+        id: first + i, kind: w.kind, route: w.route, t0: 0, k: i, n: waveSize(w, 2), err: 0, target: waveTarget(w, i),
+      }, (j) => wireDraw(seed, first + i, j))).every((t) => t === null);
+      pick = clear ? k / 64 : null;
+    }
+    const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.war);
+    room.host.core.war.random = () => pick;
+    console.log(`  info  the room's seed pinned at ${pick}, no Striker of wave ${strike + 1} on the lines`);
+  }
   await a.evaluate(`window.__warDo('start', '${itaipu1.id}')`);
   for (const p of pages) {
     await p.until("window.__war().view.state === 'countdown' || window.__war().view.state === 'live'", 15000);
