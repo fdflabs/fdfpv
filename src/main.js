@@ -76,7 +76,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, AVX_INSETS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager } from './avionics/sensors.js';
@@ -702,6 +702,7 @@ export async function boot({
   const avionicsHud = new AvionicsHud(uiRoot);
   const telemetry = createFlightTelemetry();
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
+  sensors.setInset(ui.settings.avxInset);
   /* The top of the map under a point, for what hides a target. */
   const avxHeightAt = (x, z) => view.height(x, z, Infinity);
   const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
@@ -11708,6 +11709,8 @@ export async function boot({
     angle: angleModeOn,
   });
 
+  /* The Avionics HUD's keys (docs/AVIONICS-HUD.md section 9). */
+  const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU']);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -11759,9 +11762,15 @@ export async function boot({
     }
     /* The Avionics HUD's own keys, while it is on screen
      * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
-     * mode, K the zoom, I the sensor full screen or the pilot's picture. */
-    if (ui.screen === 'flight' && avionicsHud.on && (code === 'KeyH' || code === 'KeyJ' || code === 'KeyK' || code === 'KeyI')) {
-      if (code === 'KeyI') {
+     * mode, K the zoom, I the sensor full screen or the pilot's picture, U
+     * the inset's size (a setting, so it is kept). */
+    if (ui.screen === 'flight' && avionicsHud.on && AVX_KEYS.has(code)) {
+      if (code === 'KeyU') {
+        ui.settings.avxInset = AVX_INSETS[(AVX_INSETS.indexOf(ui.settings.avxInset) + 1) % AVX_INSETS.length];
+        ui.persistSettings();
+        sensors.setInset(ui.settings.avxInset);
+        notice = { text: str('avionics.hud.notice_inset', { size: str(`avionics.hud.inset.${ui.settings.avxInset}`) }), untilMs: performance.now() + 1600 };
+      } else if (code === 'KeyI') {
         sensors.setMainView(sensors.state.mainView === 'eo' ? 'sensor' : 'eo');
         notice = {
           text: sensors.state.mainView === 'sensor'

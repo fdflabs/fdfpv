@@ -46,6 +46,12 @@ const HUD_HZ = 30;
 const TEXT_HZ = 10;
 /* The game's furniture is looked for this often (it comes and goes). */
 const KEEP_OUT_MS = 1000;
+/* The inset's width as a share of the screen's at each size the pilot
+ * picks (U) above the small one, which is the fixed 13em it always was.
+ * place() gives a larger one less when the room right of the height tape,
+ * or under the top right panel, is narrower. */
+const INSET_SHARE = { medium: 0.2, large: 1 / 3 };
+const INSET_SMALL_EM = 13;
 /* The panels' margin from the window and from each other, CSS px. */
 const PANEL_EDGE = 16;
 const PANEL_GAP = 8;
@@ -119,7 +125,8 @@ const CSS = `
 .avx-motors { display: grid; grid-template-columns: repeat(4, auto) min-content; column-gap: 1.1em; align-items: center; }
 .avx-motors .avx-bar { height: 0.3em; margin: 0.15em 0 0; }
 .avx-cam { display: flex; gap: 0.9em; }
-.avx-pip { position: relative; width: 13em; aspect-ratio: 16 / 10; border: 1px solid rgba(120, 190, 215, 0.4);
+.avx-cam.avx-cam-col { flex-direction: column; gap: 0.5em; }
+.avx-pip { position: relative; width: ${INSET_SMALL_EM}em; aspect-ratio: 16 / 10; border: 1px solid rgba(120, 190, 215, 0.4);
   background: rgba(0, 0, 0, 0.55); overflow: hidden; }
 .avx-pip > canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .avx-pip > b { position: absolute; left: 0.45em; top: 0.25em; font-weight: 400; font-size: 0.9em; z-index: 1; }
@@ -304,6 +311,7 @@ export class AvionicsHud {
     this.fPipTitle = new Field(el('b', '', this.pip));
     this.pipCanvas = null;
     this.pipShown = true;
+    this.inset = 'small';
     const ctl = el('div', '', cam);
     const camRow = row(ctl, str('avionics.hud.cam'));
     this.fCamEo = new Field(camRow, 'avx-sel');
@@ -381,8 +389,9 @@ export class AvionicsHud {
     }
     /* The sensor full screen is the inset's picture already (I). */
     const pipShown = src.sensor.mainView !== 'sensor';
-    if (pipShown !== this.pipShown) {
+    if (pipShown !== this.pipShown || src.sensor.inset !== this.inset) {
       this.pipShown = pipShown;
+      this.inset = src.sensor.inset;
       this.pip.style.display = pipShown ? '' : 'none';
       /* The camera block changed size: place the panels again now. */
       this.keepOutAt = 0;
@@ -453,6 +462,7 @@ export class AvionicsHud {
     this.placed.length = 0;
     const tapes = this.tapeRects();
     const fixed = [tapes.heading];
+    this.sizeInset(tapes.agl, fixed);
     for (const [id, ax, ay] of order) {
       const me = this.slide(this.panels[id], ax, ay, [...this.keepOut, ...this.placed, ...fixed]);
       this.panels[id].style.left = `${Math.round(me.x)}px`;
@@ -491,6 +501,38 @@ export class AvionicsHud {
       }
     }
     return me;
+  }
+
+  /*
+   * A medium or large inset's width, CSS px: its share of the screen, but
+   * no wider than the room right of the height tape and no taller than
+   * the room under the top right panel, so it never sits on either.
+   */
+  sizeInset(agl, fixed) {
+    const share = INSET_SHARE[this.inset];
+    const cam = this.panels.cam;
+    cam.classList.remove('avx-cam-col');
+    this.pip.style.width = '';
+    if (!share || !this.pipShown) {
+      return;
+    }
+    /* Measured with the camera's rows under the picture, as it will be. */
+    cam.classList.add('avx-cam-col');
+    const cs = getComputedStyle(cam);
+    const chromeW = cam.offsetWidth - cam.clientWidth + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const chromeH = cam.offsetHeight - this.pip.offsetHeight;
+    /* Where the top right panel will sit: under the game's chips there. */
+    const health = this.slide(this.panels.health, 'r', 't', [...this.keepOut, ...fixed]);
+    const roomW = this.w - PANEL_EDGE - (agl.x + agl.w + PANEL_GAP) - chromeW;
+    const roomH = this.h - PANEL_EDGE - (health.y + health.h + PANEL_GAP) - chromeH;
+    const w = Math.floor(Math.min(share * this.w, roomW, roomH * 1.6));
+    /* No room for more than the small inset (a phone): small's layout,
+     * with the larger size's sharper pixels in it. */
+    if (w <= INSET_SMALL_EM * this.textPx) {
+      cam.classList.remove('avx-cam-col');
+      return;
+    }
+    this.pip.style.width = `${w}px`;
   }
 
   /* The panels' text from the state objects. */

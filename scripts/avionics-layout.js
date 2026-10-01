@@ -12,6 +12,8 @@
  *   - every panel and tape is inside the window
  *   - no two of them overlap
  *   - none meets the game's own furniture (chips, music dock, gimbals)
+ *   - U steps the inset small, medium, large: each drawn at its own
+ *     pixels, each larger on screen, and all of the above again at each
  *   - then in a live war, all of that again, and no panel meets the war
  *     HUD's box, its callouts or the markers' radar
  *
@@ -19,8 +21,11 @@
  * flies with the FPV OSD; the 7 inch with Avionics, whose state goes to
  * DEGRADED when GNSS and VIO are both denied (and only then); I puts its
  * sensor full screen, J then makes it thermal and the HUD THERMAL, and I
- * again restores the pilot's picture; a pilot who
+ * again restores the pilot's picture; a medium inset is kept across a
+ * reload; a pilot who
  * sets the 7 inch to the FPV OSD gets it after a reload.
+ *
+ * And a phone on its side (844x390, touch), alone, at each inset size.
  *
  * Pictures go in outdir (build/avionics-layout by default); look at them.
  *
@@ -52,6 +57,10 @@ import { airframeById } from '../configs/airframes.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'avionics-layout');
 const SIZES = [[1280, 720], [1920, 1080]];
+/* A phone on its side, the pilot's thumbs on the screen. */
+const PHONE = [844, 390];
+/* The inset's pixels at each size, src/render/sensorview.js. */
+const INSET_PX = { small: [320, 200], medium: [480, 300], large: [640, 400] };
 
 /* The radar's geometry, from warmarkers.js, and the copy avionicshud.js
  * keeps of it: they must agree, or the panels dodge a radar that is not
@@ -183,6 +192,7 @@ async function layout(width, height, rooms) {
     }
     judge(got, 'alone');
     await shot(page, `avionics-${width}x${height}-alone`);
+    await insetSizes(page, `${width}x${height}`, true);
 
     await page.evaluate("window.__warDo('start', 'itaipu-1')");
     await page.until("window.__war().view.state === 'live' && window.__war().hud.output !== ''", 30000);
@@ -207,6 +217,26 @@ async function layout(width, height, rooms) {
     const left = got.avx.tapes.speed;
     check('war: the speed tape clears the war HUD\'s column', !hud || hud.x + hud.w <= left.x, hud ? `HUD to x ${Math.round(hud.x + hud.w)}, tape from x ${Math.round(left.x)}` : '');
     await shot(page, `avionics-${width}x${height}-war`);
+    /* The large inset in the war: clear of the war HUD and the radar too. */
+    await page.tap('KeyU');
+    await page.tap('KeyU');
+    await page.until("window.__avionics.state().sensor.inset === 'large'", 10000).catch(() => {});
+    await page.evaluate('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))');
+    await page.sleep(300);
+    got = JSON.parse(await page.evaluate(READ));
+    const large = judge(got, 'war large inset');
+    const hitLarge = [];
+    for (const p of large) {
+      for (const w of [...got.war, radar]) {
+        if (meets(p, w)) {
+          hitLarge.push(`${p.id} ${box(p)} x ${w.c} ${box(w)}`);
+        }
+      }
+    }
+    check('war large inset: no panel meets the war HUD, its callouts or the radar', hitLarge.length === 0, hitLarge.join(' | '));
+    await shot(page, `avionics-${width}x${height}-war-inset-large`);
+    await page.tap('KeyU');
+    await page.until("window.__avionics.state().sensor.inset === 'small'", 10000).catch(() => {});
     /* The AI on (H), for the picture: what it tracks depends on where the
      * waves are, so the count is reported, not asserted. */
     await page.evaluate('window.__avionics.ai(true); true');
@@ -260,6 +290,65 @@ async function fullScreenThermal(page) {
   await shot(page, 'avionics-1280x720-pilot-view-again');
 }
 
+/*
+ * U steps the inset small, medium, large and back to small. At each size
+ * the inset is drawn at its own pixels (not a stretched 320x200), is never
+ * narrower than small, and the layout rows hold again. `roomy`: a larger
+ * size is also larger on screen. Not on the phone, whose right column
+ * under the chips and the top right panel leaves under 60 px of height for
+ * the picture, so medium and large keep small's footprint there.
+ */
+async function insetSizes(page, label, roomy) {
+  const INSET = `JSON.stringify({ size: window.__avionics.state().sensor.inset,
+    px: [window.__sensors.pip.width, window.__sensors.pip.height],
+    css: document.querySelector('.avx-pip').getBoundingClientRect().width })`;
+  let before = JSON.parse(await page.evaluate(INSET));
+  const smallCss = before.css;
+  check(`${label}: the inset starts small at 320x200`, before.size === 'small' && before.px.join('x') === '320x200', `${before.size} ${before.px.join('x')}`);
+  for (const size of ['medium', 'large', 'small']) {
+    await page.tap('KeyU');
+    await page.until(`window.__avionics.state().sensor.inset === '${size}'`, 10000).catch(() => {});
+    /* The panels are placed again on the change; two frames for it. */
+    await page.evaluate('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(true))))');
+    await page.sleep(300);
+    const got = JSON.parse(await page.evaluate(INSET));
+    const want = INSET_PX[size].join('x');
+    const grew = !roomy || (size === 'small' ? got.css < before.css : got.css > before.css);
+    check(`${label}: U gives the ${size} inset, drawn at ${want}, not narrower than small${roomy ? `, ${size === 'small' ? 'smaller' : 'larger'} on screen` : ''}`,
+      got.size === size && got.px.join('x') === want && got.css >= smallCss - 0.5 && grew,
+      `${got.size} ${got.px.join('x')}, ${Math.round(got.css)} css px after ${Math.round(before.css)}`);
+    judge(JSON.parse(await page.evaluate(READ)), `${label} ${size} inset`);
+    if (size !== 'small') {
+      await shot(page, `avionics-${label}-inset-${size}`);
+    }
+    before = got;
+  }
+}
+
+/* The phone: the layout, alone, at each inset size. */
+async function phone() {
+  const [width, height] = PHONE;
+  console.log(`${width}x${height} phone, 7 inch`);
+  const page = await openPage({ root, width, height, touch: true, seed: seed('7inch') });
+  try {
+    await fly(page);
+    await page.until('window.__avionicsHud().on', 120000).catch(() => {});
+    await page.sleep(1500);
+    const got = JSON.parse(await page.evaluate(READ));
+    check('phone: the 7 inch flies with the Avionics HUD', got.avx.on, `avionics ${got.avx.on}`);
+    if (!got.avx.on) {
+      return;
+    }
+    judge(got, 'phone');
+    await shot(page, `avionics-${width}x${height}-phone`);
+    await insetSizes(page, `${width}x${height}`, false);
+    const errs = page.errors.filter((e) => !e.startsWith('network:'));
+    check('phone: no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
+  } finally {
+    await page.close();
+  }
+}
+
 async function defaults() {
   console.log('1280x720, the default and the override');
   let page = await openPage({ root, width: 1280, height: 720, seed: seed('5inch') });
@@ -295,6 +384,15 @@ async function defaults() {
     st = JSON.parse(await page.evaluate('JSON.stringify(window.__avionics.state())'));
     check('and back to GNSS when they return', st.tel.nav.source === 'GNSS' && st.hud.state !== 'DEGRADED', `nav ${st.tel.nav.source}, HUD ${st.hud.state}`);
     await fullScreenThermal(page);
+    /* The inset's size is a setting: medium survives a reload. */
+    await page.tap('KeyU');
+    await page.until("window.__avionics.state().sensor.inset === 'medium'", 10000).catch(() => {});
+    await page.cdp.send('Page.reload', {}, page.sessionId);
+    await page.sleep(1000);
+    await fly(page);
+    await page.until('window.__avionicsHud().on', 120000).catch(() => {});
+    const kept = JSON.parse(await page.evaluate('JSON.stringify({ size: window.__avionics.state().sensor.inset, px: [window.__sensors.pip.width, window.__sensors.pip.height] })'));
+    check('the inset\'s size is kept across a reload', kept.size === 'medium' && kept.px.join('x') === '480x300', `${kept.size} ${kept.px.join('x')}`);
     /* What the menu's HUD style row writes for the seated airframe. */
     await page.evaluate(`(() => {
       const s = window.__ui.settings;
@@ -325,6 +423,7 @@ try {
     await layout(w, h, `http://127.0.0.1:${server.port}`);
   }
   await defaults();
+  await phone();
 } catch (e) {
   failed += 1;
   console.log(`  FAIL  ${e.stack || e}`);

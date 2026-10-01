@@ -203,3 +203,10 @@ number):
 The inset's thermal draw adds about 65 calls and a millisecond: no shadow
 maps (the frame's first draw made them) and no water mirror. A full screen
 thermal view is cheaper than the photo chain it replaces.
+
+Since the `I` key, a full screen sensor draws no inset, and the inset has
+three sizes (`U`, `INSET_SIZES`: 320x200, 480x300, 640x400). Measured
+2026-10-01 the same way, EO main with the white hot inset, GPU least, day
+/ night: small 4.13 / 2.58 ms, medium 3.56 / 4.16 ms, large 3.18 / 3.23
+ms, at most 238 / 241 calls at every size. The spread is the shared desk
+GPU's noise: the inset's pixels are a small share of a frame either way.
