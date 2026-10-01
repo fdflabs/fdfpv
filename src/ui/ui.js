@@ -12871,8 +12871,9 @@ export class Ui {
       return;
     }
     /* The room screen is home inside a room: Back stops there, and Leave
-     * is the way out (rule 4 and 5 of docs/FLOW-AUDIT.md). */
-    if (this.screen === 'friends' && this.inRoom && this.inRoom()) {
+     * is the way out (rule 4 and 5 of docs/FLOW-AUDIT.md). Reached from a
+     * paused run, Back is still that run. */
+    if (this.screen === 'friends' && this.returnTo !== 'paused' && this.inRoom && this.inRoom()) {
       return;
     }
     if (this.onUiSound) {
