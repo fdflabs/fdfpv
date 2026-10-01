@@ -438,7 +438,7 @@ is not the full size machine: it is a giant scale hobby airframe of
 glass and carbon over foam, on a 110 cc boxer twin or a 140 N class
 turbojet, about 14 kg. At the original's 200 kg the wing loads to about
 90 kg/m^2 and stalls near 35 m/s, which no rail in this game launches and
-no pilot lands; at 14 kg it stalls between 10.5 and 14 m/s with any
+no pilot lands; at 14 kg it stalls between 12.9 and 14.1 m/s with any
 warhead, leaves a 3 m rail at 19 m/s, and flies the air the Bramor (2.3
 m, 4.5 kg) and the combat quads fly. Sizing it to the drawing keeps one
 aircraft for the war's renderer, the shell, the plant, the crash parts
@@ -502,11 +502,11 @@ them onto another's (`configs/combat.js` `masses`).
 | inertia Ixx, Iyy, Izz | 1.646, 9.498, 11.03 kg m^2 | 1.619, 5.592, 7.064 kg m^2 |
 | static thrust, bare thrust to weight | 283 N, 2.09 | 140 N, 1.06 |
 | CD0 | 0.0238 (the uncowled twin 0.020 m^2 of drag area) | 0.0190 (the nacelle 0.010 m^2) |
-| cruise, 60 percent of the stick | 18.3 m/s | 44.9 m/s |
-| top speed, level, bare | 26.9 m/s, just over the raid's Strikers' 26.6 | 66.3 m/s |
-| best climb, bare | 13.8 m/s at 14.2 m/s | 25.2 m/s at 38 m/s |
-| trimmed stall, bare and with the standard warhead | 10.5 and 12.5 m/s | 11.1 and 13.3 m/s |
-| roll, full stick at cruise | 80 deg/s (7 deg of aileron) | 114 deg/s (4 deg) |
+| cruise, 60 percent of the stick, no warhead (the bay's trim lead aboard) | 18.1 m/s | 44.8 m/s |
+| top speed, level, no warhead | 26.8 m/s, just over the raid's Strikers' 26.6 | 66.3 m/s |
+| best climb, no warhead | 12.0 m/s at 14.3 m/s | 22.1 m/s at 38 m/s |
+| trimmed stall, no warhead and with the standard warhead | 12.9 and 13.0 m/s | 14.0 and 14.1 m/s |
+| roll, full stick at cruise | 79 deg/s (7 deg of aileron) | 113 deg/s (4 deg) |
 | engine response | the stick's, at once; idles at a quarter of its rpm | spools idle to 90 percent of full in 4.5 s; idles at 4 percent of full thrust, never stops; run up to full on the rail before the shot |
 
 The wing, both: the drawing's cranked delta, 2.47 m tip to tip at the
@@ -518,8 +518,8 @@ vortex lattice's on that planform and those fins (`scripts/lib/lattice.js`,
 the Zagi's, checked there on two textbook wings and against AVL), with
 the fuselage's Munk moment and side force added from Raymer; its CL max
 an MH 60 class reflexed section's, ESTIMATED; its drag a component build
-up, ESTIMATED. Each build's elevons are rigged to trim with the standard
-warhead at its own cruise, so the jet, which cruises two and a half times
+up, ESTIMATED. Each build's elevons are rigged to trim at the bay's trim
+CG (section 7.5) at the standard warhead's own cruise, so the jet, which cruises two and a half times
 as fast on the same wing, has the smaller reflex. The derive script's
 comments carry every source and say which numbers are estimates.
 
@@ -529,8 +529,20 @@ The warheads ride in the nose bay behind the cap's seam, on the axis,
 each ending at the bay's bulkhead 0.50 m from the nose. Under the
 airframe's own cap they add no drag; they are mass and inertia, a long
 way forward. A full size attacker's warhead is its counterweight, and so
-here: bare the Striker is stable but light in pitch (a 4 percent margin),
-and each warhead adds margin, nose heaviness and stall speed.
+here: bare the Striker is stable but light in pitch (a 4 percent margin).
+
+**The bay's trim lead.** A warhead moves the CG forward 2 to 3.6 times
+that bare margin, so no one reflex can trim every load: rigged for a
+warhead, the Striker with none sits at its stall and departs, and rigged
+for none, every warhead dives. A real airframe is ballasted for its
+payload, so the bay takes lead at its forward end on the axis (the
+descriptor's `ballast.at_m`, 1.426 m ahead of the CG) until the CG is
+where the most nose heavy warhead, the wide one, puts it: every load,
+none included, flies at one CG, and only the mass differs, none the
+lightest (`configs/combat.js` `trimBallastKg`, one rule from the
+payloads' masses and arms; 1.78 kg with none, 0.92 with `emp`, 0.56 with
+`standard`, 0.24 with `penetrator`, none with `wide`). It is internal:
+nothing draws it.
 
 | id | warhead | mass kg | cgOffset m (about the prop's CG) | d, len m |
 | --- | --- | --- | --- | --- |
@@ -546,16 +558,17 @@ and each warhead adds margin, nose heaviness and stall speed.
 What each costs, from the derivation and flown on the module
 (`npm run combat:gates`):
 
-| load | prop stall | prop climb | jet stall | jet climb |
+| load, with its trim lead | prop stall | prop climb | jet stall | jet climb |
 | --- | --- | --- | --- | --- |
-| `none` | 10.5 m/s | 13.8 m/s | 11.1 m/s | 25.2 m/s |
-| `emp` | 12.0 | 12.7 | 12.7 | 23.2 |
-| `standard` | 12.5 | 12.3 | 13.3 | 22.6 |
-| `penetrator` | 13.0 | 12.0 | 13.8 | 22.1 |
-| `wide` | 13.4 | 11.7 | 14.2 | 21.5 |
+| `none` | 12.9 m/s | 12.0 m/s | 14.0 m/s | 22.1 m/s |
+| `emp` | 13.0 | 11.8 | 14.1 | 21.8 |
+| `penetrator` | 13.0 | 11.8 | 14.1 | 21.8 |
+| `standard` | 13.0 | 11.8 | 14.1 | 21.7 |
+| `wide` | 13.0 | 11.7 | 14.1 | 21.5 |
 
-Its top speed barely moves with a warhead (it is mass, not drag), and
-never rises. In a war its payload is the room's warhead for its seat, as
+At one CG the loads differ by their all up mass alone, 1.78 to 2.20 kg
+in the bay, so they fly alike. Its top speed barely moves with a warhead
+(it is mass, not drag), and never rises. In a war its payload is the room's warhead for its seat, as
 a combat quad's is (section 3); `none` goes to war with the equipped one.
 
 ### 7.6 Taking off and coming down
@@ -566,7 +579,7 @@ L lets it go at 19 m/s along its nose, 1.3 times the trimmed stall of its
 heaviest warhead on the jet, the faster stalling of the two. The turbojet
 leaves at full power, run up on the rail. It comes down on its belly skid,
 251 mm under the CG (261 on the jet), which the plant parks it on; the
-pusher's lower blade hangs 108 mm under the skid, so a landing with the
+pusher's lower blade hangs 109 mm under the skid, so a landing with the
 piston engine turning breaks the prop, as on any pusher this size. No
 parachute.
 
@@ -600,24 +613,31 @@ parachute.
 ### 7.9 Checks
 
 - `npm run combat:derive`: prints sections 7.1 to 7.5.
-- `npm run combat:gates`: for each propulsion, the plant's mass and
+- `npm run combat:gates`: for each propulsion, every load's CG at the
+  bay's trim point and none the lightest; the plant's mass and
   inertia the derivation's; top speed and cruise within 3 percent of it,
   and the table's top speed what it flies; the piston one keeps up with
   the raid's Strikers and the jet runs them down at twice their speed;
   every load's trimmed stall within 6 percent and its climb within 12; a
-  heavier warhead climbs less, stalls faster and is never faster; the
+  heavier load, its trim lead counted, climbs less, stalls faster and is
+  never faster; the
   rail's release 1.3 times every load's stall; the jet's spool, idle to 90
   percent, in 2.5 to 5 s, and its idle held with the stick closed; the
   piston's thrust the stick's; off the rail and climbing, and a glide at
   idle to rest on the skid, upright; and the war's mapping and every
   warhead carried.
+- `npm run stab:glide` and `npm run stab:chop`: Stabilised's pitch down
+  and cruise throttle derived at the bay's trim CG, and every load on
+  both engines, none included, flown with the throttle closed onto its
+  own derived glide.
 - `npm run combat:shell`: the Striker stored on its jet is seated on plant
-  28 at its mass and voice; its Loadout tab offers both engines, every
+  28 at its mass, the trim lead included, and voice; its Loadout tab offers both engines, every
   warhead and the whip; choosing the piston there and saving refits it on
   plant 27.
 - `npm run war:harness`: the head on pass with the Striker as the
   defender, inside and outside BLAST_M, over random links.
 - `npm run check:craft`: the drawn Striker against its collider and hull,
-  the prop's lower blade pinned at its 108 mm under the skid.
+  the prop's lower blade pinned at its 109 mm under the skid, measured
+  over the prop's whole turn.
 - `npm run check:combat-models`: its propulsion and accessory ids the
   drawing's.

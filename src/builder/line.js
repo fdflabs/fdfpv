@@ -241,7 +241,7 @@ export function racingLine(gates, craft, heightAt) {
 const CLIP_STEP = 0.5;
 /* An opening must be this much wider than the aircraft's span: a tenth of
  * the span spare either side, room to fly it rather than thread it. */
-const SPAN_ROOM = 1.2;
+export const SPAN_ROOM = 1.2;
 /*
  * A sky hoop's disc must be this many spans across: a span of air all round
  * the wingtips, so the wing fits through with room to miss by a span in

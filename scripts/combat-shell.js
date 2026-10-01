@@ -12,7 +12,8 @@
  *   3. a reset keeps it;
  *   4. the picker's Customise on the 10 inch opens the same tab;
  *   5. the Striker (the doc's section 7), stored on its turbojet with the
- *      standard warhead, is seated on the jet's plant at its mass and
+ *      standard warhead, is seated on the jet's plant at its mass, the
+ *      bay's trim lead included, and
  *      speaks with the turbine's voice; its Loadout tab offers both
  *      engines, the warheads and the whip, and choosing the piston engine
  *      there and saving refits it on the piston's plant, drawn with it.
@@ -40,6 +41,7 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { trimBallastKg } from '../configs/combat.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const striker = airframeById('striker2500');
@@ -164,6 +166,8 @@ try {
   const jet = striker.combat.propulsion.find((x) => x.id === 'jet');
   const prop = striker.combat.propulsion.find((x) => x.id === 'prop');
   const standard = striker.combat.payloads.find((x) => x.id === 'standard');
+  /* The bay's trim lead that goes in with the standard warhead, on each engine. */
+  const lead = (pr) => trimBallastKg(pr.grams / 1000, striker.combat.payloads, standard, striker.combat.ballast.at_m[0]);
   const sp = await openPage({
     root,
     width: 960,
@@ -187,8 +191,8 @@ try {
     const near3 = (a, b) => Math.abs(a - b) < 1e-6;
     say(c.run === 'striker2500' && c.module === jet.simId && c.combat && c.combat.propulsion === 'jet',
       `the Striker is seated on plant ${c.module}, ${JSON.stringify(c.combat)}`);
-    say(c.addons && near3(c.addons.massKg, jet.grams / 1000 + standard.massKg),
-      `it flies ${c.addons ? c.addons.massKg.toFixed(3) : '?'} kg, the jet's ${jet.grams / 1000} and the ${standard.massKg} kg warhead`);
+    say(c.addons && near3(c.addons.massKg, jet.grams / 1000 + standard.massKg + lead(jet)),
+      `it flies ${c.addons ? c.addons.massKg.toFixed(3) : '?'} kg, the jet's ${jet.grams / 1000}, the ${standard.massKg} kg warhead and ${lead(jet).toFixed(3)} kg of trim lead`);
     const voice = await sp.evaluate('window.__hangarRev().voice');
     say(voice === jet.voice, `it speaks on the ${voice} voice`);
     await sp.tap('Escape');
@@ -209,7 +213,7 @@ try {
     c = await sp.evaluate('window.__craft()');
     const stored = await sp.evaluate("window.__ui.settings.combat.striker2500");
     say(stored && stored.propulsion === 'prop' && stored.payload === 'standard', `saved: ${JSON.stringify(stored)}`);
-    say(c.module === prop.simId && c.addons && near3(c.addons.massKg, prop.grams / 1000 + standard.massKg) && c.shown === 'striker2500',
+    say(c.module === prop.simId && c.addons && near3(c.addons.massKg, prop.grams / 1000 + standard.massKg + lead(prop)) && c.shown === 'striker2500',
       `refitted on plant ${c.module} at ${c.addons ? c.addons.massKg.toFixed(3) : '?'} kg, drawn as ${c.shown}`);
     const v2 = await sp.evaluate('window.__hangarRev().voice');
     say(v2 === prop.voice, `and speaks on the ${v2} voice`);

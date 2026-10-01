@@ -72,8 +72,9 @@
  * rack and disarms the seat by the same rule, so saying it again, or the
  * wreck that follows, takes nothing more.
  *
- * What a client sends (JSON text): the host only, a private room only
- * (core.js hostCheck refuses 'private' in a public one, section 9),
+ * What a client sends (JSON text): the host only, and in a public room
+ * only one made for the war (core.js hostCheck refuses 'private' in any
+ * other public one, section 9),
  *
  *   { type: 'war', op: 'start', mission }   count down and fight it
  *   { type: 'war', op: 'start', mission, intro: true }
@@ -729,7 +730,7 @@ export class RoomWar {
 
   start(core, conn, msg, now) {
     /* core.js hostCheck refuses it first; this holds without it. */
-    if (this.meta.public) {
+    if (this.meta.public && this.meta.mode !== 'war') {
       return this.error(conn, 'private');
     }
     if (core.game()) {
@@ -797,6 +798,9 @@ export class RoomWar {
       endAt: null,
     };
     this.nextId += 1;
+    /* The room's mission from now on, in a later welcome too: a reload
+     * between wars still names it (docs/FLOW-AUDIT.md D7). */
+    core.meta.mission = mission.id;
     this.live = new Map();
     this.hunters = new Hunters(floorOf(mission.map));
     this.lastStep = -Infinity;
@@ -808,7 +812,7 @@ export class RoomWar {
       r.armFrom = -Infinity;
       r.crashT = -Infinity;
     }
-    return this.changed(core);
+    return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
   }
 
   /* The host cuts the briefing short: the countdown runs from now, for

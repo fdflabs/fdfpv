@@ -41,7 +41,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { loadSim, SIM_OK, SIM_ERR_BAD_ARG, SIM_ERR_BAD_STATE } from '../tests/lib/simmod.js';
 import { ST } from '../tests/lib/replay.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
-import { combatAddon, combatChoice, combatSimId, payloadForWarhead, warPayload } from '../configs/combat.js';
+import { combatAddon, combatChoice, combatMass, combatSimId, payloadForWarhead, warPayload } from '../configs/combat.js';
+import { SIM_ADDON } from '../configs/hangar-parts.js';
 import { deriveCombat, deriveStriker } from './combat-derive.js';
 import { WARHEADS } from '../edge/rooms/war.js';
 import { KIND } from '../src/share/war/routes.js';
@@ -572,9 +573,25 @@ for (const af of strikers) {
     const tag = `${af.id} ${pid}`;
     const load = (payload) => ({ payload, accessories: [], propulsion: pid });
 
+    /* ---- the bay's trim lead: every load, none included, flies at one
+     * CG, the most nose heavy warhead's, and none is the lightest ---- */
+    {
+      const loads = ['none', ...af.combat.payloads.map((p) => p.id)];
+      const xs = loads.map((id) => {
+        const b = combatAddon(af, load(id)).block;
+        return b[SIM_ADDON.MASS] * b[SIM_ADDON.CG] / (pr.grams / 1000 + b[SIM_ADDON.MASS]);
+      });
+      const want = o.perf(null).dx;
+      report(`${tag} every load's CG is the trim point, the bay's lead making it up`, xs.every((x) => Math.abs(x - want) < 1e-4),
+        xs.map((x) => x.toFixed(4)).join(' '), `derived ${want.toFixed(4)} m ahead of the bare CG`);
+      const kg = loads.map((id) => combatMass(af, pr.grams, load(id)));
+      report(`${tag} with no warhead it is still the lightest`, kg.every((m, k) => k === 0 || m > kg[0]), kg.map((m) => m.toFixed(3)).join(' '), 'kg, none first');
+    }
+
     /* ---- the plant's table is the derivation's ---- */
     {
       const sim = await seat(load('none'));
+      must(sim.e.sim_addons_clear(), 'sim_addons_clear');
       const ptr = sim.e.malloc(4 * 8);
       sim.e.sim_live_inertia(ptr);
       const got = Array.from(new Float64Array(sim.e.memory.buffer, ptr, 4));
@@ -609,7 +626,9 @@ for (const af of strikers) {
      * load; and level at full throttle. Heavier is slower to climb and
      * faster to stall, and never faster. ---- */
     const rows = [];
-    for (const id of ['none', ...[...af.combat.payloads].sort((a, b) => a.massKg - b.massKg).map((p) => p.id)]) {
+    /* By the all up mass each flies, the bay's trim lead included. */
+    const allUp = (id) => combatMass(af, pr.grams, load(id));
+    for (const id of ['none', ...af.combat.payloads.map((p) => p.id)].sort((a, b) => allUp(a) - allUp(b))) {
       const p = payloadById(id);
       const pf = o.perf(p);
       let stallV = null;
@@ -625,18 +644,18 @@ for (const af of strikers) {
       const climb = flyStriker(await seat(load(id)), { thr: 1, v0: pf.climb.V, seconds: 30, hold: { v: pf.climb.V }, pitchMax: 1.2 });
       const level = id === 'none' ? top : flyStriker(await seat(load(id)), { thr: 1, v0, seconds: 60 });
       const st = o.trimmedStall(p);
-      rows.push({ id, m: p ? p.massKg : 0, stallV, stallWant: st.V, climb: climb.vz, climbWant: pf.climb.vz, top: level.v });
+      rows.push({ id, m: allUp(id) - pr.grams / 1000, stallV, stallWant: st.V, climb: climb.vz, climbWant: pf.climb.vz, top: level.v });
     }
     for (const r of rows) {
       report(`    ${tag} ${r.id}`, true, `stall ${r.stallV === null ? 'none' : r.stallV.toFixed(2)}`,
-        `${(r.m * 1000).toFixed(0)} g warhead; derived stall ${r.stallWant.toFixed(2)}; climb ${r.climb.toFixed(2)} m/s (derived ${r.climbWant.toFixed(2)}); top ${r.top.toFixed(2)} m/s`);
+        `${(r.m * 1000).toFixed(0)} g in the bay; derived stall ${r.stallWant.toFixed(2)}; climb ${r.climb.toFixed(2)} m/s (derived ${r.climbWant.toFixed(2)}); top ${r.top.toFixed(2)} m/s`);
     }
     report(`${tag} each load stalls where the derivation trims it`, rows.every((r) => r.stallV !== null && Math.abs(r.stallV - r.stallWant) / r.stallWant < 0.06),
       rows.map((r) => (r.stallV === null ? 'none' : r.stallV.toFixed(1))).join(' '), 'within 6 percent of the trimmed stall');
     report(`${tag} each load climbs as the derivation says`, rows.every((r) => Math.abs(r.climb - r.climbWant) / r.climbWant < 0.12),
       rows.map((r) => r.climb.toFixed(1)).join(' '), 'within 12 percent');
     const slower = rows.every((r, k) => k === 0 || (r.climb < rows[k - 1].climb && r.stallV > rows[k - 1].stallV && r.top <= rows[k - 1].top + 1e-6));
-    report(`${tag} a heavier warhead climbs less, stalls faster, and is never faster`, slower,
+    report(`${tag} a heavier load climbs less, stalls faster, and is never faster`, slower,
       `climb ${rows[0].climb.toFixed(2)} to ${rows[rows.length - 1].climb.toFixed(2)} m/s, stall ${rows[0].stallV.toFixed(2)} to ${rows[rows.length - 1].stallV.toFixed(2)}`);
     report(`${tag} the rail's release is 1.3 times every load's stall`, rows.every((r) => af.catapult.speed >= 1.3 * r.stallV), `${af.catapult.speed} m/s`);
 

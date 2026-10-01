@@ -3787,18 +3787,25 @@ static double bay_load(const Table *t, int j, const double Fj[3], double wall, d
  * blow; it keeps the part of the batch's change of speed its strap could
  * not give it, 1 - 1 / rho as a break would leave it, and that motion
  * relative to the craft is spent against the strap's force over the travel
- * it has left. A pack struck itself is still judged on its strap's limit:
- * held rigidly to a craft the contact stops whole, the rest cannot go on
- * over it, and a slide booked there would be counted again every batch the
- * rigid craft carries the pack back into the ground. A slide lasts
- * several milliseconds, longer than a batch, so its speed is carried from
- * batch to batch and slowed by the strap in between. Held, it slides as far
- * as that takes; not held, it leaves with what the whole travel could not
- * take. Returns 1 when it held, else 0 with the share of the batch's change
- * of speed it leaves with in g_slip_keep, which detach takes. The quads'
- * packs are its only users.
+ * it has left. A pack struck itself slides the same way, the other way
+ * round: the ground stops the pack and the rest of the craft goes on over
+ * it, so the strap has the rest to stop, not the pack (m, the mass on the
+ * side the contact is not on). It was once judged on its strap's limit
+ * alone, so a blow a little past 250 N or 6 N m threw it at once: a five
+ * inch dropped 0.3 to 0.5 m onto a roof, 2.1 to 3.5 J in all, lost its
+ * pack in 1 to 6 of 32 drops, though freeing it takes the strap's 250 N
+ * over its 36 mm, 9 J. That was kept out for fear the rigid craft,
+ * carried back into the ground batch after batch, would book one slide
+ * again and again. It does not: each batch books only its own change of
+ * speed. A slide lasts several milliseconds, longer than a batch, so its
+ * speed is carried from batch to batch and slowed by the strap in
+ * between. Held, it slides as far as that takes;
+ * not held, it leaves with what the whole travel could not take. Returns 1
+ * when it held, else 0 with the share of the batch's change of speed it
+ * leaves with in g_slip_keep, which detach takes. The quads' packs are its
+ * only users.
  */
-static int slip_take(SimState *s, const Table *t, int j, double rho, double *spent) {
+static int slip_take(SimState *s, const Table *t, int j, double rho, double m, double *spent) {
   const PartDef *d = &t->p[j];
   PartState *p = &PS[j];
   double r[3], dw[3], c[3], cw[3];
@@ -3809,10 +3816,6 @@ static int slip_take(SimState *s, const Table *t, int j, double rho, double *spe
   double dv[3];
   for (int a = 0; a < 3; a += 1) dv[a] = g_pre_vel[a] - s->vel[a] + cw[a];
   const double dvl = norm(dv);
-  double m = 0.0;
-  for (int i = 0; i < t->n; i += 1) {
-    if ((t->sub[j] & (1u << i)) && attached(i)) m += t->p[i].mass;
-  }
   const double f = d->f_max * p->strength;
   const double dec = f / m;
   /* A slide from an earlier batch of the same blow is still going, slowed
@@ -4259,14 +4262,18 @@ static void judge(SimState *s) {
         side = 1;
       }
     }
-    if (!side && t->p[best].slip_d > 0.0) {
+    if (t->p[best].slip_d > 0.0) {
+      double m_sub = 0.0;
+      for (int i = 0; i < n; i += 1) {
+        if ((t->sub[best] & (1u << i)) && attached(i) && !(gone & (1u << i))) m_sub += t->p[i].mass;
+      }
       double spent = 0.0;
-      const int held = slip_take(s, t, best, best_rho, &spent);
+      const int held = slip_take(s, t, best, best_rho, side ? m - m_sub : m_sub, &spent);
       PS[best].energy += spent;
       PS[best].damage = part_damage(best);
       changed = 1;
       if (held) {
-        /* It slid at its limit and stays on: the craft stopped it. */
+        /* It slid at its limit and stays on: the strap stopped the slide. */
         slid |= 1u << best;
         rho0[best] = 1.0;
         double pj[3], pw[3];

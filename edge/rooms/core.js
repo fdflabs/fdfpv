@@ -50,7 +50,7 @@ import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
-import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
+import { TYPE_PARTS, TYPE_STREAMER, WAR_JOIN } from '../../src/share/roomwire.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
@@ -233,7 +233,8 @@ function bump(counter, now, windowMs) {
 export class RoomCore {
   /*
    * meta: { code, cap, friendly, map, epoch, public, name, pick, mode,
-   * hidden }, what the room was made with (host.js init). epoch is the
+   * mission, hidden }, what the room was made with (host.js init), and
+   * mission the war mission its host last started since (war.js). epoch is the
    * wall ms the room's clock counts from, so room times fit the wire's
    * u32 for 49 days. name is the creator's typed name or null, pick the
    * picker name shown when there is none, mode the game the room was set
@@ -436,9 +437,11 @@ export class RoomCore {
     if (this.meta.public && msg.type === 'kick') {
       return refuse('public');
     }
-    /* The war mode is not for a room children may be in
-     * (docs/WARFARE-PLAN.md section 9). */
-    if (this.meta.public && start === 'war') {
+    /* A public room runs the war only when it was made for it: those are
+     * listed as the war's and a quick join never lands in one (lobby.js),
+     * so nobody is in one without having chosen it and passed the consent
+     * (docs/WARFARE-PLAN.md section 9, as the owner opened it 2026-10-01). */
+    if (this.meta.public && start === 'war' && this.meta.mode !== 'war') {
       return refuse('private');
     }
     if (s.seat !== this.host()) {
@@ -587,6 +590,11 @@ export class RoomCore {
     if (level < this.level()) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
+    /* A room made for the war seats only a build that asks the war's
+     * consent first (src/share/roomwire.js WAR_JOIN). */
+    if (this.meta.mode === 'war' && !(Number.isInteger(msg.war) && msg.war >= WAR_JOIN)) {
+      return [{ close: conn, code: CLOSE.update, reason: 'update' }];
+    }
     const token = typeof msg.token === 'string' && /^[0-9a-f]{32}$/.test(msg.token) ? msg.token : null;
     if (this.isKicked(token, now)) {
       return [{ close: conn, code: CLOSE.kicked, reason: 'kicked' }];
@@ -685,6 +693,7 @@ export class RoomCore {
         name: this.meta.name ?? null,
         pick: this.meta.pick ?? null,
         mode: this.meta.mode ?? null,
+        mission: this.meta.mission ?? null,
         map: this.meta.map,
         peers: this.peerList(conn),
         ...this.race.welcome(),

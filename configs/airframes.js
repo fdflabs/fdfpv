@@ -1574,9 +1574,9 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Its stall, m/s, trimmed with the standard warhead in the nose:
      * combat-derive's, which npm run combat:gates holds the module to. */
-    stall: 12.53,
+    stall: 12.98,
     /* Level at full throttle, m/s, combat-derive's, held the same way. */
-    topSpeed: 26.9,
+    topSpeed: 26.8,
     catapult: STRIKER_RAIL,
     voice: 'glow2',
     name: 'Striker',
@@ -1620,8 +1620,8 @@ export const AIRFRAMES = [
     combat: {
       frame: 'striker',
       propulsion: [
-        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 12.53, topSpeed: 26.9, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
-        { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 13.29, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
+        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 12.98, topSpeed: 26.8, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
+        { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 14.07, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
       ],
       payloads: [
         { id: 'standard', warhead: 'standard', massKg: 1.5, dragArea_m2: 0, cgOffset_m: [1.196, 0, 0.0196], dims: { d: 0.26, len: 0.3 } },
@@ -1632,6 +1632,9 @@ export const AIRFRAMES = [
       accessories: [
         { id: 'whip', massKg: 0.06, cgOffset_m: [0.446, 0, 0.2196] },
       ],
+      /* The bay's trim lead: whatever is carried, it brings the CG to the
+       * wide warhead's (configs/combat.js trimBallastKg). */
+      ballast: { at_m: [1.426, 0, 0.0196] },
     },
   },
 ];

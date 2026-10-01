@@ -278,7 +278,13 @@ box less its longest side; a pack on its strap is held flat on its broad
 face, its box less its side along the way from its joint to its centre.
 Measured across its end, the five inch's pack was levered off its strap by
 a push inside its own top face when it was dropped 0.2 m onto concrete
-tilted 35 degrees, or onto tin tilted 5.
+tilted 35 degrees, or onto tin tilted 5. A pack past its strap's limit
+slides in the strap whichever side the blow is on (crash.c, A PACK SLIDES
+IN ITS STRAP): not struck, the strap has the pack to stop; struck itself,
+the rest of the craft going on over it. Struck packs were thrown the
+moment the limit was passed, so a five inch dropped 0.3 to 0.5 m onto a
+roof (2.1 to 3.5 J) lost its pack in 1 to 6 of 32 drops onto each hard
+surface, where freeing it takes the strap's 250 N over its 36 mm, 9 J.
 
 **A wing panel rings** (round 3). A joint judged as above is judged as a
 rigid body: a foam panel's root would see its share of the craft's
