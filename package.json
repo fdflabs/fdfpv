@@ -259,6 +259,7 @@
     "itaipu:courses": "node scripts/itaipu-courses.js --check",
     "itaipu:collide": "node scripts/collide-audit-itaipu.js",
     "hangar:check": "node scripts/hangar-check.js",
+    "hangar:mine": "node scripts/my-hangar-check.js",
     "paint:selftest": "node scripts/paint-selftest.js",
     "sticker:check": "node scripts/sticker-check.js",
     "parts:check": "node scripts/parts-check.js",

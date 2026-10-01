@@ -55,6 +55,7 @@ import {
 } from '../../configs/liveries.js';
 import { currentLocale, str } from '../strings/index.js';
 import { sizeText, weightText } from './carousel.js';
+import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { PaintShop } from './hangar-paint.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
@@ -248,11 +249,21 @@ export class Hangar {
     this.resetBtn.addEventListener('click', () => this.reset());
     this.backBtn.addEventListener('click', () => this.cancel());
     this.saveBtn.addEventListener('click', () => this.save());
+    /* MY HANGAR (src/ui/builds.js): what is on the stand kept as a build
+     * of its own, named first in a line that takes the buttons' place
+     * (startMine). On a build, Save keeps it and this saves a new one. */
+    this.mineBtn = button('carousel-back hangar-mine', str('mine.save_new'));
+    this.mineBtn.dataset.key = 'mine-new';
+    this.mineBtn.addEventListener('click', () => this.startMine());
     const right = el('div', 'hangar-buttons-end');
-    right.append(this.backBtn, this.saveBtn);
+    right.append(this.mineBtn, this.backBtn, this.saveBtn);
     buttons.append(this.resetBtn, right);
+    this.buttonsEl = buttons;
+    this.mineForm = el('div', 'hangar-mine-form');
+    this.mineForm.hidden = true;
+    this.naming = false;
     this.hintEl = el('p', 'carousel-hint');
-    foot.append(this.warnEl, buttons, this.hintEl);
+    foot.append(this.warnEl, buttons, this.mineForm, this.hintEl);
 
     /* The pilot's own colour: the browser's picker, opened by a button. */
     this.customInput = el('input', 'hangar-custom-input');
@@ -347,10 +358,18 @@ export class Hangar {
    * hands back their patch as `settings` beside the rest; the paint shop
    * reads the plane's saved liveries from it too (settings.liverySaves),
    * and onLibrary(list) stores a changed list at once
-   * (src/ui/hangar-paint.js).
+   * (src/ui/hangar-paint.js). `mine` offers My Hangar, { name, suggest,
+   * full }: `name` the build being edited or null for the stock plane,
+   * `suggest` the name a new build is offered, `full` when there is no
+   * room for one; a save as a new build hands onSave `asNew: { name }`.
    */
-  open({ airframe, livery = null, power = null, floats = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
+  open({ airframe, livery = null, power = null, floats = null, mine = null, warn = '', hint = 'key', tab = null, settings = {}, onLibrary = null, onPreview, onSave, onCancel, onTry, sound } = {}) {
     this.buildTabs();
+    this.closeMine(false);
+    this.mine = mine;
+    this.mineBtn.hidden = !mine;
+    this.mineBtn.textContent = str(mine && mine.name ? 'mine.save_as_new' : 'mine.save_new');
+    this.titleEl.textContent = mine && mine.name ? mine.name : str('hangar.title');
     this.id = airframe;
     this.family = liveryKey(airframe);
     this.saved = normaliseEntry(this.family, livery) ?? {};
@@ -420,6 +439,7 @@ export class Hangar {
       return;
     }
     this.isOpen = false;
+    this.closeMine(false);
     this.shop.stopPlacing();
     eachHook((h) => h.close && h.close(this));
     this.opts = null;
@@ -603,7 +623,8 @@ export class Hangar {
     this.sound(sound);
   }
 
-  save() {
+  /* `asNew`, { name }, keeps it as a new My Hangar build instead. */
+  save(asNew = null) {
     const save = this.opts && this.opts.onSave;
     const result = {
       livery: normaliseEntry(this.family, this.entry),
@@ -611,6 +632,7 @@ export class Hangar {
       liveryChanged: JSON.stringify(normaliseEntry(this.family, this.entry)) !== JSON.stringify(normaliseEntry(this.family, this.saved)),
       powerChanged: this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack,
       settings: {},
+      asNew,
     };
     eachHook((h) => {
       if (h.save) {
@@ -621,6 +643,79 @@ export class Hangar {
     this.close();
     if (save) {
       save(result);
+    }
+  }
+
+  /* Save to My Hangar: the name first, in a field offered the next free
+   * one, so Enter alone (or A on a pad) saves it. */
+  startMine() {
+    if (!this.mine) {
+      return;
+    }
+    if (this.mine.full) {
+      this.warnEl.textContent = str('mine.full', { n: MAX_BUILDS });
+      this.warnEl.hidden = false;
+      return;
+    }
+    this.naming = true;
+    this.mineForm.textContent = '';
+    const field = el('input', 'paint-name-field hangar-mine-field');
+    field.type = 'text';
+    field.maxLength = 32;
+    field.value = this.mine.suggest;
+    field.dataset.key = 'mine-name';
+    field.setAttribute('aria-label', str('mine.name'));
+    field.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.submitMine();
+      }
+    });
+    const ok = button('carousel-choose', str('hangar.save'));
+    ok.dataset.key = 'mine-name-save';
+    ok.addEventListener('click', () => this.submitMine());
+    const no = button('carousel-back', str('ui.cancel'));
+    no.dataset.key = 'mine-name-cancel';
+    no.addEventListener('click', () => this.closeMine());
+    this.mineError = el('p', 'carousel-warn');
+    this.mineError.hidden = true;
+    const row = el('div', 'hangar-mine-row');
+    row.append(el('span', 'hangar-mine-label', str('mine.name')), field, ok, no);
+    this.mineForm.append(row, this.mineError);
+    this.buttonsEl.hidden = true;
+    this.mineForm.hidden = false;
+    this.sound('select');
+    field.focus();
+    field.select();
+  }
+
+  submitMine() {
+    const field = this.mineForm.querySelector('input');
+    if (!this.naming || !field) {
+      return;
+    }
+    const named = checkBuildName(field.value);
+    if (!named.name) {
+      this.mineError.textContent = str(`mine.name_${named.error}`);
+      this.mineError.hidden = false;
+      field.focus();
+      return;
+    }
+    this.save({ name: named.name });
+  }
+
+  /* The buttons back. `focus` puts the cursor on Save to My Hangar. */
+  closeMine(focus = true) {
+    if (!this.naming) {
+      return;
+    }
+    this.naming = false;
+    this.mineForm.textContent = '';
+    this.mineForm.hidden = true;
+    this.buttonsEl.hidden = false;
+    if (focus) {
+      this.sound('back');
+      this.focusKey('mine-new');
     }
   }
 
@@ -955,9 +1050,10 @@ export class Hangar {
     return Boolean(r && r.film);
   }
 
-  /* The controls the cursor walks: every enabled button showing. */
+  /* The controls the cursor walks: every enabled button showing, and My
+   * Hangar's name field while it is open. */
   stops() {
-    return [...this.panel.querySelectorAll('button')].filter((b) => !b.disabled && b.offsetParent !== null);
+    return [...this.panel.querySelectorAll('button, .hangar-mine-field')].filter((b) => !b.disabled && b.offsetParent !== null);
   }
 
   focusKey(key) {
@@ -1030,6 +1126,12 @@ export class Hangar {
   /* Every key while it is up is the hangar's. */
   handleKey(code) {
     this.setHint('key');
+    /* The name field takes its own typing (src/input/input.js), so only
+     * Escape reaches here from it: the name goes, the buttons come back. */
+    if (this.naming && (code === 'Escape' || code === 'Backspace')) {
+      this.closeMine();
+      return true;
+    }
     if (this.shop.handleKey(code)) {
       return true;
     }
@@ -1074,6 +1176,19 @@ export class Hangar {
     const edge = (k) => now[k] && !prev[k];
     if (Object.keys(now).some(edge)) {
       this.setHint('pad');
+    }
+    /* The name for a new build, which a pad cannot type: A on the field
+     * saves the name it was offered, B puts it away. */
+    if (this.naming) {
+      const a = document.activeElement;
+      if (edge('back')) {
+        this.closeMine();
+        return;
+      }
+      if (edge('select') && a && a.tagName === 'INPUT') {
+        this.submitMine();
+        return;
+      }
     }
     if (this.shop.pollPad(now, edge)) {
       return;

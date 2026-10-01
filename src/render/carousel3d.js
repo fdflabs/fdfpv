@@ -216,14 +216,20 @@ export function createCarouselStage(renderer) {
 
   const models = new Map();
   const previews = new Map();
-  function modelFor(id) {
-    let m = models.get(id);
+  /* A model by its key: the airframe id for the aircraft as the pilot has
+   * it, or a picker card's own key (a My Hangar build, src/ui/builds.js)
+   * for one drawn in a fit of its own, a model of its own. */
+  function modelFor(id, key = id) {
+    let m = models.get(key);
     if (m) {
       return m;
     }
     /* In a preview asked for before it was built, or the saved paint. */
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${id}`, fog: false }), id, previews.get(id) ?? undefined), id);
-    previews.delete(id);
+    const preview = key === id ? previews.get(id) : undefined;
+    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false }), id, preview ?? undefined), id);
+    if (key === id) {
+      previews.delete(id);
+    }
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -280,9 +286,25 @@ export function createCarouselStage(renderer) {
       radius,
       builtHalfY: 0.5 * size.y / radius,
       dressKey: null,
+      /* The look a picker card last dressed it in (dressCard), null for
+       * the airframe's own from src/render/livery.js. */
+      look: null,
     };
-    models.set(id, m);
+    models.set(key, m);
     return m;
+  }
+
+  /* A picker card's look on its model: one it brings (`it.look`) or, when
+   * it brings none, the airframe's own, dressed again only when that
+   * changes. The look is compared as an object, so the picker hands the
+   * same one every frame until it means another (src/ui/carousel.js
+   * relist). */
+  function dressCard(m, it) {
+    const look = it.look ?? null;
+    if (m.look !== look) {
+      dressLivery(m.craft, it.id, look ?? undefined);
+      m.look = look;
+    }
   }
 
   /* A model in what it is fitted with: the saved parts, or in the hangar
@@ -415,8 +437,9 @@ export function createCarouselStage(renderer) {
       m.holder.visible = false;
     }
     for (const it of view.items) {
-      const m = modelFor(it.id);
-      fitParts(m, it.id);
+      const m = modelFor(it.id, it.key ?? it.id);
+      dressCard(m, it);
+      fitParts(m, it.id, it.fit ?? null);
       const a = Math.abs(it.d);
       const back = Math.min(a, 2.5) * DEPTH;
       /* Put the model where slotX says on screen at its own depth. */
@@ -603,6 +626,7 @@ export function createCarouselStage(renderer) {
     const m = models.get(id);
     if (m) {
       dressLivery(m.craft, id, look ?? undefined);
+      m.look = null;
     } else if (look) {
       previews.set(id, look);
     } else {
