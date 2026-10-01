@@ -1196,7 +1196,7 @@ const TARGETS = `(async () => {
     T.push({ name: 'crest street lamp pole', at: best.p, dir: [0.975, 0, 0.215], expect: 'stopped' });
   }
   /* The powerhouse roof: a transmission gantry's leg, and the insulator
-   * string drawn under its beam (y 158 to 160.8, no collider). */
+   * string drawn under its beam (y 158 to 160.8, a pole inside it). */
   {
     const legs = [];
     for (let i = 0; i < col.staticCount; i += 1) {
@@ -1207,8 +1207,8 @@ const TARGETS = `(async () => {
     for (let j = 0; j < col.staticCount; j += 1) {
       if (col.fbox[j] || Math.abs(col.fay[j] - 161.4) > 0.05 || Math.abs(col.fby[j] - 161.4) > 0.05) continue;
       if (Math.hypot(col.fax[j] - col.fax[i], col.faz[j] - col.faz[i]) < 1 || Math.hypot(col.fbx[j] - col.fax[i], col.fbz[j] - col.faz[i]) < 1) {
-        T.push({ name: 'powerhouse gantry insulator string (drawn only)', at: [(col.fax[j] + col.fbx[j]) / 2, 159.4, (col.faz[j] + col.fbz[j]) / 2],
-          dir: perp([col.fbx[j] - col.fax[j], 0, col.fbz[j] - col.faz[j]]), expect: 'passed' });
+        T.push({ name: 'powerhouse gantry insulator string', at: [(col.fax[j] + col.fbx[j]) / 2, 159.4, (col.faz[j] + col.fbz[j]) / 2],
+          dir: perp([col.fbx[j] - col.fax[j], 0, col.fbz[j] - col.faz[j]]), expect: 'stopped' });
         break;
       }
     }

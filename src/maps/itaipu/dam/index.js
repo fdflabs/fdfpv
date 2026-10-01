@@ -1946,10 +1946,13 @@ export async function buildPart(ctx) {
       const [xa, za] = F.at(t, base + sa);
       const [xb, zb] = F.at(t, base + sb);
       addCapsule('pole', [xa, y1 - 0.6, za], [xb, y1 - 0.6, zb], GANTRY.leg);
-      /* The insulator strings hanging from the beam. */
+      /* The insulator strings hanging from the beam, each a post inside
+       * its drawn box, its foot's round end at the box's foot. */
       for (const f of [0.25, 0.5, 0.75]) {
         const ss = base + sa + (sb - sa) * f;
         frameBox(metal, F, t - 0.15, t + 0.15, ss - 0.15, ss + 0.15, y1 - 4, y1 - 1.2, TONE.coping);
+        const [x, z] = F.at(t, ss);
+        addCapsule('pole', [x, y1 - 4 + 0.15, z], [x, y1 - 1.2, z], 0.15);
       }
       /* The transformer bank under it: an octagonal tank lying across
        * the roof inside its capsule, its radiators along both sides and
