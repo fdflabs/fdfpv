@@ -932,7 +932,14 @@ export async function buildPart(ctx) {
   const addBox = (x0, y0, z0, x1, y1, z1) => {
     const i = ctx.colliders.addBox('wall', x0, y0, z0, x1, y1, z1);
     solids.push(i);
-    boxes.push([x0, y0, z0, x1, y1, z1, i]);
+    boxes.push({ i, lo: [x0, y0, z0], hi: [x1, y1, z1], u: [1, 0] });
+    return i;
+  };
+  /* A box turned to u = (ux, uz), collide.js addTurnedBox's frame. */
+  const addTurned = (ux, uz, u0, u1, y0, y1, w0, w1) => {
+    const i = ctx.colliders.addTurnedBox('wall', ux, uz, u0, u1, y0, y1, w0, w1);
+    solids.push(i);
+    boxes.push({ i, lo: [u0, y0, w0], hi: [u1, y1, w1], u: [ux, uz] });
     return i;
   };
   const addCapsule = (kind, a, b, r) => {
@@ -957,8 +964,15 @@ export async function buildPart(ctx) {
    * dam's runs of blocks end against each other, and cutting all their
    * ends cost 4 952 solids the static set has not got. Returns the
    * collider indices.
+   *
+   * A FLAT top turned off the world's axes is the same columns cut in
+   * dir's own frame instead, as turned boxes (collide.js addTurnedBox):
+   * there the long faces run square to the cut, so a block is one box
+   * where the world's frame cut it into columns a stair wide, and only
+   * its open ends still step. A planar top that is not flat keeps the
+   * world's columns, whose narrowness also steps it down its slope.
    */
-  const prismBoxes = (poly, y0, topAt, dir = null, ends = false) => {
+  const prismBoxes = (poly, y0, topAt, dir = null, ends = false, frame = null) => {
     let ex = dir ? dir[0] : 1;
     let ez = dir ? dir[1] : 0;
     let best = 0;
@@ -974,6 +988,14 @@ export async function buildPart(ctx) {
     }
     const k = Math.abs(ex) >= Math.abs(ez) ? 0 : 1;
     const turn = k === 0 ? Math.abs(ez / ex) : Math.abs(ex / ez);
+    const flat = poly.every(([x, z]) => topAt(x, z) === topAt(poly[0][0], poly[0][1]));
+    if (!frame && flat && turn > 1e-9) {
+      const l = Math.hypot(ex, ez);
+      const fx = ex / l;
+      const fz = ez / l;
+      const y = topAt(poly[0][0], poly[0][1]);
+      return prismBoxes(poly.map(([x, z]) => [x * fx + z * fz, z * fx - x * fz]), y0, () => y, [1, 0], ends, [fx, fz]);
+    }
     const w = Math.min(COLUMN_MAX, Math.max(COLUMN_MIN, STAIR / Math.max(turn, 1e-9)));
     const lo = Math.min(...poly.map((p) => p[k]));
     const hi = Math.max(...poly.map((p) => p[k]));
@@ -982,7 +1004,9 @@ export async function buildPart(ctx) {
     const out = [];
     let run = null;
     const flush = () => {
-      if (run) {
+      if (run && frame) {
+        out.push(addTurned(frame[0], frame[1], run[0], run[2], y0, run[4], run[1], run[3]));
+      } else if (run) {
         out.push(addBox(run[0], y0, run[1], run[2], run[4], run[3]));
       }
       run = null;
@@ -1004,9 +1028,26 @@ export async function buildPart(ctx) {
       || (ends === 'start' && along * ((a + c) / 2 - (lo + hi) / 2) < 0)
       || (ends === 'end' && along * ((a + c) / 2 - (lo + hi) / 2) > 0);
     const slices = [];
+    /* A turned prism's columns are as wide as COLUMN_MAX, so a slanted
+     * open end is halved until each piece stands at most a stair past it
+     * (a pier's nose stood 0.7 m out of its drawn face cut in END_STEP's
+     * even parts). */
+    const halve = (a, c) => {
+      const s = boxOver(a, c);
+      if (s && s.over > STAIR && c - a > 0.05) {
+        halve(a, (a + c) / 2);
+        halve((a + c) / 2, c);
+        return;
+      }
+      slices.push(s);
+    };
     for (let i = 0; i < n; i += 1) {
       const a = lo + i * step;
       const c = lo + (i + 1) * step;
+      if (frame && cut(a, c)) {
+        halve(a, c);
+        continue;
+      }
       const first = boxOver(a, c);
       const m = first && cut(a, c) ? Math.ceil(first.over / END_STEP - 1e-9) : 1;
       for (let j = 0; j < Math.max(1, m); j += 1) {
@@ -2888,11 +2929,17 @@ export async function buildPart(ctx) {
     }
     const [x, y, z] = t.at;
     for (const b of boxes) {
-      const dx = Math.max(b[0] - x, 0, x - b[3]);
-      const dy = Math.max(b[1] - y, 0, y - b[4]);
-      const dz = Math.max(b[2] - z, 0, z - b[5]);
-      if (dx * dx + dy * dy + dz * dz <= t.r * t.r) {
-        t.colliders.push(b[6]);
+      /* In the box's own frame: a turned one's world bounding box
+       * reaches past it. */
+      const [ux, uz] = b.u;
+      const p = [x * ux + z * uz, y, z * ux - x * uz];
+      let d2 = 0;
+      for (let a = 0; a < 3; a += 1) {
+        const o = Math.max(b.lo[a] - p[a], 0, p[a] - b.hi[a]);
+        d2 += o * o;
+      }
+      if (d2 <= t.r * t.r) {
+        t.colliders.push(b.i);
       }
     }
   }
