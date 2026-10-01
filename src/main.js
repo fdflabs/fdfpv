@@ -15628,6 +15628,7 @@ export async function boot({
   });
   window.__pickLook = (id) => pickStage.look(id);
   window.__pickParts = (id) => pickStage.fitted(id);
+  window.__pickCombat = (id) => pickStage.combat(id);
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,
