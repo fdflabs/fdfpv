@@ -14,8 +14,8 @@
  *   stream    the map's seam for the streamed set ({ wants, fill,
  *             swapped }, src/maps/itaipu.js): the walls of every
  *             building whose middle is within WALLS_R of the pilot, and
- *             every tower piece, street lamp (roads.js DRESSED) and wire
- *             chord within WIRES_R; swapped
+ *             every tower piece, insulator string, street lamp (roads.js
+ *             DRESSED) and wire chord (kind `wire`) within WIRES_R; swapped
  *             gives each roof its walls' indices, which roofs.js cover
  *             passes when the roof is the craft's ground.
  *
@@ -42,7 +42,7 @@ import {
   cleanRing, rectOf, styleOf, heightsOf, rectRing, roofOf, wallFaces, wallBoxes, landuseAreas,
 } from './plan.js';
 import { layRoads, deckOf } from './roads.js';
-import { layOut, piecesOf, bracesOf, WIRE_R } from './power.js';
+import { layOut, piecesOf, bracesOf, stringsOf } from './power.js';
 import { buildBridge } from './bridge.js';
 
 /*
@@ -76,6 +76,8 @@ export const MOVE = 300;
 const HERO_HALF = 5120;
 /* Galvanised steel, a shade darker than new. */
 const STEEL = [0.46, 0.47, 0.48];
+/* Toughened glass insulator discs, their blue green seen edge on. */
+const GLASS = [0.30, 0.40, 0.40];
 
 const EMPTY = Object.freeze([]);
 
@@ -247,6 +249,10 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
       sink.face('metal', STEEL, far.pts, far.n, { cast: true, lod: 'far' });
       pieces.push(p);
     }
+    for (const p of stringsOf(s)) {
+      sink.bar('metal', GLASS, p.slice(0, 3), p.slice(3, 6), p[6], { cast: true, lod: 'near' });
+      pieces.push(p);
+    }
   }
   progress(0.95);
 
@@ -259,8 +265,10 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
     lampsAt.push([(p[0] + p[3]) / 2, (p[1] + p[4]) / 2, (p[2] + p[5]) / 2]);
   }
 
-  /* The streamed colliders, flat: pieces then chords, with their middles. */
-  const caps = [...pieces, ...lampPieces, ...wires.map((w) => [...w, WIRE_R])];
+  /* The streamed colliders, flat: the pieces as `pole`, then the wires'
+   * chords as `wire` with their own radii, with their middles. */
+  const caps = [...pieces, ...lampPieces, ...wires];
+  const capWire = pieces.length + lampPieces.length;
   const capMid = new Float64Array(caps.length * 2);
   caps.forEach((c, i) => {
     capMid[i * 2] = (c[0] + c[3]) / 2;
@@ -340,7 +348,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
           continue;
         }
         const c = caps[i];
-        list.add('pole', c[0], c[1], c[2], c[3], c[4], c[5], c[6]);
+        list.add(i < capWire ? 'pole' : 'wire', c[0], c[1], c[2], c[3], c[4], c[5], c[6]);
         power += 1;
       }
       near.last = {
@@ -384,6 +392,7 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
       portals: structures.filter((s) => s.kind === 'portal').length,
       poles: structures.filter((s) => s.kind === 'pole').length,
       wireChords: wires.length,
+      wireConductors: wires.reduce((n, w) => n + w[7], 0),
       powerPieces: pieces.length,
     },
   };

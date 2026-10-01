@@ -158,6 +158,23 @@ Scout of a wave is dead, later waves get a seeded lateral error of up to
 `spread` metres. Killing scouts makes the defence easier; that is the
 Scout's whole job.
 
+**Power lines are a hazard to the attackers too** (the owner,
+2026-10-01: "make the enemy drones hit them sometimes"). At a scripted
+attacker's birth the room finds where its planned path crosses a span of
+the map's lines within 3 m of a wire's height
+(`src/share/war/wires.js`, on the chords `scripts/war-targets.js` writes
+into `src/share/war/itaipu-wires.js` from the built map), and draws from
+its seed, for each crossing in turn, whether it strikes (0.1 a crossing).
+The first that does goes into the birth record as `wire`, the room ms;
+`routes.js` ends the flight there (`end: 'wire'`), so every client flies
+it to the same point, and the room's death there is `why: 'wire'`, by
+nobody, taking no output. The routes are not moved off the lines: most
+crossings are the runs into the right bank switchyard, where every line
+of the dam converges. `npm run war:routes` prints the crossings and the
+strikes a game they make (0.3 to 1.5 in missions 1 and 4 from one pilot
+to eight, 0.5 to 2.3 in mission 2, 1.9 to 9.3 in mission 3); the HUD
+calls each one ("STRIKER DOWN ON THE LINES").
+
 ### 4.3 Detonation: the kamikaze referee
 
 A defender's warhead goes off when any part box of the defender comes
