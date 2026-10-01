@@ -401,19 +401,19 @@ int sim_set_flight_style(int arcade);
  * (docs/TIGERMOTH-STAGE1.md), a 71 in scale de Havilland DH.82A on a .61
  * two stroke glow engine, a biplane on the plant's second wing
  * (docs/PITTS-STAGE1.md) whose ailerons are on its bottom wing alone, on
- * a taildragger's gear, and 24 and 25 the combat quads
+ * a taildragger's gear, and 24 to 26 the combat quads
  * (docs/COMBAT-DRONES.md), a 7 inch and a 10 inch long range X frame on
- * 6S Li-ion, flown by Betaflight as the five inch is, built to carry a
- * payload through sim_set_addons, and 27 and 28 the Striker (the same
- * doc, section 7), the war's 2.5 m pusher delta with elevons and small
- * rudders on its wingtip fins, rail launched and landed on its belly
- * skid, 27 on a 110 cc boxer twin and a 30 in wooden prop, 28 on a 140 N
- * class turbojet whose thrust lags the stick, both carrying a warhead in
- * the nose through sim_set_addons. 26 is left for the third combat quad.
- * Returns SIM_ERR_BAD_ARG for any id without an aircraft.
+ * 6S Li-ion and a stretched X 7 inch interceptor on a 6S LiPo, flown by
+ * Betaflight as the five inch is, built to carry a payload through
+ * sim_set_addons, and 27 and 28 the Striker (the same doc, section 7), the
+ * war's 2.5 m pusher delta with elevons and small rudders on its wingtip
+ * fins, rail launched and landed on its belly skid, 27 on a 110 cc boxer
+ * twin and a 30 in wooden prop, 28 on a 140 N class turbojet whose thrust
+ * lags the stick, both carrying a warhead in the nose through
+ * sim_set_addons. Returns SIM_ERR_BAD_ARG for any id without an aircraft.
  * 2 to 23, 27 and 28 are fixed wings: no Betaflight, the sticks go to the
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
- * apply. 0, 1, 24 and 25 are quads.
+ * apply. 0, 1 and 24 to 26 are quads.
  *
  * RESERVED: 13 (the Edge 540T), 14 (the Extra 300 3D), 18 (the Pitts
  * S-1S), 20 (the Wot 4) and 22 (the Quickie 500) were removed on
@@ -457,6 +457,7 @@ int sim_set_flight_style(int arcade);
 #define SIM_AIRFRAME_TIGERMOTH1803_ID 23
 #define SIM_AIRFRAME_7IN_ID 24
 #define SIM_AIRFRAME_10IN_ID 25
+#define SIM_AIRFRAME_INTERCEPTOR_ID 26
 #define SIM_AIRFRAME_STRIKER_PROP_ID 27
 #define SIM_AIRFRAME_STRIKER_JET_ID 28
 int sim_set_airframe(int id);

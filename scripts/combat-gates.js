@@ -1,12 +1,14 @@
 /*
- * combat-gates.js: the combat quads, plants 24 and 25 (docs/COMBAT-DRONES.md),
+ * combat-gates.js: the combat quads, plants 24 to 26 (docs/COMBAT-DRONES.md),
  * flown on the real module against figures from outside this repository,
  * and their payloads held to what a payload has to do: make the machine
- * heavier, measurably, and nothing when there is none. And the Striker,
- * plants 27 and 28 (the doc's section 7), the war's fixed wing on its
- * piston engine and on its turbojet, held to its derivation: stall, cruise
- * and top speed, climb, the turbine's spool, the rail and the strip, and
- * what each warhead in its nose costs it.
+ * heavier, measurably, and nothing when there is none. The interceptor is
+ * held to what it is for: faster flat out and off the floor than every
+ * other quad, for less pack and a quicker roll. And the Striker, plants
+ * 27 and 28 (the doc's section 7), the war's fixed wing on its piston
+ * engine and on its turbojet, held to its derivation: stall, cruise and
+ * top speed, climb, the turbine's spool, the rail and the strip, and what
+ * each warhead in its nose costs it.
  *
  * Like scripts/whoop-gates.js and not in tests/, because every band in
  * tests/ was fitted to the five inch and tests/ is the harness's. A band
@@ -72,7 +74,28 @@ const BANDS = {
     'punch-sag': { min: 2.5, max: 3.4, unit: 'V a cell', why: 'A 6S2P 21700 at 120 to 150 A is 60 to 75 A a cell pair, the 7 inch\'s load on each.' },
     'roll-step': { min: 0, max: 0.35, unit: 'overshoot', why: 'The same as the 7 inch: stock 4.5.1 overshoots a heavy slow quad more, and must still settle.' },
   },
+  interceptor: {
+    'figure-of-merit': { min: 0.38, max: 0.52, unit: '', why: 'A high pitch 7 inch two blade is part stalled in a static hover: 0.798 C_T^1.5 / C_P on a thin electric 7x6\'s static table (C_T 0.11, C_P 0.06 to 0.075) is 0.39 to 0.48, and it is no better than the five inch triblade\'s 0.52.' },
+    'hover-bare': { min: 0.18, max: 0.30, unit: 'of stick', why: 'A 7 inch speed build of 0.75 to 0.9 kg on a 6S LiPo hovers at a fifth to a quarter of the stick, as a five inch race quad does at 1 g.' },
+    'thrust-to-weight': { min: 8.0, max: 12.0, unit: ': 1', why: 'Stand thrust of four 2807 1500 kV on 7 inch two blades on 6S, 8 to 9.5 kgf, over a 0.75 to 0.9 kg build, less the LiPo\'s small sag.' },
+    'motor-tau': { min: 0.015, max: 0.040, unit: 's', why: 'j R / ke^2 for a 2807 bell and an 8 g two blade on a hot wind is 25 to 30 ms: quicker than the 7 inch\'s by the lighter prop and the lower winding resistance. The same small step.' },
+    'punch-sag': { min: 3.2, max: 3.8, unit: 'V a cell', why: 'A 6S 1800 120C LiPo at 150 to 200 A: 4 to 5 mOhm a cell with its leads drops a fresh cell to about 3.4 V.' },
+    'roll-step': { min: 0, max: 0.35, unit: 'overshoot', why: 'Stock 4.5.1 on a light quad with twice the five inch\'s roll authority: a half stick step must still settle.' },
+  },
 };
+
+/*
+ * THE INTERCEPTOR AGAINST THE OTHER QUADS (docs/COMBAT-DRONES.md section 5a).
+ * Each flies bare, on a fresh pack, at the weight the shell flies it at with
+ * the Weight slider at 100 (`gravityBase`: 1.62 g on the five inch, 1 g on
+ * the combat quads), so the comparison is the one a pilot feels. The order
+ * is the request's (the owner, 2026-10-01: "ultra fast interceptor drones"):
+ * the interceptor first on both, then the five inch, the 7 inch and the 10
+ * inch.
+ */
+const RACE = ['interceptor', '5inch', '7inch', '10inch'];
+/* The combat quads built to carry: every warhead, a second pack. */
+const LOAD_CARRIERS = ['7inch', '10inch'];
 
 const results = [];
 function report(id, pass, measured = '', extra = '') {
@@ -100,14 +123,19 @@ function setBlock(sim, fn, values) {
   return rc;
 }
 
-/* The shell's order: airframe, init, the add-ons and their spread, reset. */
-async function fresh(af, choice, cellV = 4.2) {
+/* The shell's order: airframe, init, the add-ons and their spread, reset.
+ * `g` is the weight as a multiple of 1 g, the shell's gravityBase; the
+ * module's own default is 1. */
+async function fresh(af, choice, cellV = 4.2, g = 1) {
   const sim = await loadSim(wasm);
   if (sim.e.sim_set_airframe(af.simId) !== SIM_OK) {
     throw new Error(`sim_set_airframe(${af.simId}) refused`);
   }
   if (sim.init(await tune(af.defaultTune)) !== SIM_OK) {
     throw new Error('sim_init failed');
+  }
+  if (sim.e.sim_set_gravity(g) !== SIM_OK) {
+    throw new Error(`sim_set_gravity(${g}) refused`);
   }
   const add = choice ? combatAddon(af, choice) : null;
   if (add) {
@@ -141,13 +169,13 @@ function fly(sim, segs, onStep, startMs = 0) {
 }
 
 /* The throttle that holds a steady hover, tests/lib/checks.js's bisection. */
-async function trimHover(af, choice) {
+async function trimHover(af, choice, g = 1) {
   let lo = 0;
   let hi = 1;
   let best = 0.5;
   for (let i = 0; i < 24; i += 1) {
     const mid = 0.5 * (lo + hi);
-    const sim = await fresh(af, choice);
+    const sim = await fresh(af, choice, 4.2, g);
     let vz = 0;
     fly(sim, [{ ms: 2000, thr: mid }], (t, s) => { vz = s[ST.VZ]; });
     best = mid;
@@ -164,13 +192,84 @@ async function trimHover(af, choice) {
 }
 
 /* Height gained in two seconds of full throttle from a hover. */
-async function climb(af, choice, hover) {
-  const sim = await fresh(af, choice);
+async function climb(af, choice, hover, g = 1) {
+  const sim = await fresh(af, choice, 4.2, g);
   let z0 = 0;
   let z1 = 0;
   const t = fly(sim, [{ ms: 2000, thr: hover }], (tt, s) => { z0 = s[ST.PZ]; });
   fly(sim, [{ ms: 2000, thr: 1.0 }], (tt, s) => { z1 = s[ST.PZ]; }, t);
   return z1 - z0;
+}
+
+/*
+ * Level speed at full throttle: from a hover, full throttle with the nose
+ * held down by a harness pilot that trims the pitch angle until the craft
+ * neither climbs nor sinks, then the speed it settles at. Flown in acro, as
+ * Betaflight's rate loop holds the angle the stick leaves it at; the pilot
+ * reads the attitude off the state and flies the stick, nothing more. The
+ * module's pitch stick is positive nose up.
+ */
+async function levelTop(af, g) {
+  const sim = await fresh(af, null, 4.2, g);
+  let theta = 1.1;
+  let nextRc = 0;
+  let sum = 0;
+  let n = 0;
+  let vzMax = 0;
+  for (let t = 0; t < 30000; t += 1) {
+    const s = sim.readState().state;
+    const [w, x, y, z] = [s[ST.QW], s[ST.QX], s[ST.QY], s[ST.QZ]];
+    const nose = -Math.asin(Math.max(-1, Math.min(1, 2 * (x * z - w * y))));
+    const bank = Math.asin(Math.max(-1, Math.min(1, 2 * (y * z + w * x))));
+    if (t > 1000) {
+      theta = Math.max(0, Math.min(1.45, theta + 0.00004 * s[ST.VZ]));
+    }
+    if (nextRc <= t) {
+      const want = t < 1000 ? 0 : theta;
+      const pitch = Math.max(-1, Math.min(1, -(2.5 * (want - nose) - 0.05 * s[ST.Q])));
+      const roll = Math.max(-1, Math.min(1, -2.5 * bank));
+      sim.input(nextRc / 1000, roll, pitch, 0, t < 1000 ? 0.4 : 1.0);
+      nextRc += 4;
+    }
+    sim.step(1);
+    if (t >= 27000) {
+      const st = sim.readState().state;
+      sum += Math.hypot(st[ST.VX], st[ST.VY]);
+      n += 1;
+      vzMax = Math.max(vzMax, Math.abs(st[ST.VZ]));
+    }
+  }
+  return { v: sum / n, vz: vzMax, pitch: theta };
+}
+
+/* Mean pack current over the last half of two seconds held at a duty, A. */
+async function packAmps(af, thr, hover) {
+  const sim = await fresh(af, null);
+  const t = fly(sim, [{ ms: 2000, thr: hover }]);
+  let sum = 0;
+  let n = 0;
+  fly(sim, [{ ms: 2000, thr }], (tt, s) => {
+    if (tt - t > 1000) {
+      sum += s[ST.AMPS];
+      n += 1;
+    }
+  }, t);
+  return sum / n;
+}
+
+/*
+ * Roll response: half stick of roll from a hover, the time to 63 percent
+ * of the rate the craft holds at the end of 300 ms. Shorter is a quicker,
+ * twitchier machine on the same Betaflight gains and rates.
+ */
+async function rollRise(af, g) {
+  const sim = await fresh(af, null, 4.2, g);
+  const hover = await trimHover(af, null, g);
+  const t = fly(sim, [{ ms: 2000, thr: hover }]);
+  const p = [];
+  fly(sim, [{ ms: 300, roll: 0.5, thr: hover }], (tt, s) => { p.push(s[ST.P]); }, t);
+  const held = p[p.length - 1];
+  return (p.findIndex((v) => v >= 0.63 * held) + 1) / 1000;
 }
 
 function traceHash(sim, hover) {
@@ -273,6 +372,8 @@ for (const af of quads) {
 
   /* ---- the payloads: heavier, measurably, and nothing when none ---- */
   const byMass = [...af.combat.payloads].sort((a, b) => a.massKg - b.massKg);
+  const heaviest = byMass[byMass.length - 1].id;
+  const standard = combatChoice(af, null).payload;
   const rows = [{ id: 'none', m: 0, hover, climb: await climb(af, null, hover) }];
   for (const p of byMass) {
     const choice = { payload: p.id, accessories: [] };
@@ -302,8 +403,8 @@ for (const af of quads) {
     const bare = traceHash(await fresh(af, null), hover);
     const none = traceHash(await fresh(af, { payload: 'none', accessories: [] }), hover);
     report(`${id} no payload flies bit identical to the bare plant`, bare === none, `${bare} ${none}`);
-    const a = traceHash(await fresh(af, { payload: 'wide', accessories: [] }), hover);
-    const b = traceHash(await fresh(af, { payload: 'wide', accessories: [] }), hover);
+    const a = traceHash(await fresh(af, { payload: heaviest, accessories: [] }), hover);
+    const b = traceHash(await fresh(af, { payload: heaviest, accessories: [] }), hover);
     report(`${id} a payload's flight is deterministic`, a === b && a !== bare, `${a} ${b}`);
   }
   {
@@ -311,7 +412,7 @@ for (const af of quads) {
      * it is the table's, plus the lump's parallel axes, plus its own
      * spread: what configs/combat.js computes and hands over. */
     const all = af.combat.accessories.map((x) => x.id);
-    const choice = { payload: 'wide', accessories: all };
+    const choice = { payload: heaviest, accessories: all };
     const sim = await fresh(af, choice);
     const add = combatAddon(af, choice);
     const m = add.block[0];
@@ -332,17 +433,25 @@ for (const af of quads) {
     const lumpOnly = await fresh(af, null);
     lumpOnly.setAddons(add.block);
     const spread = got[0] - lumpOnly.e.sim_bf_debug(55);
-    report(`${id} the spread is real, not rounding`, spread > 0.1 * d.I[0], `Ixx +${spread.toPrecision(3)} over the lump alone`);
+    /* Gated on the load carriers, whose heaviest build stacks a pack on
+     * top over a payload as heavy as the machine, which is what the doc's
+     * case for the spread entry is about. The interceptor's whole set is
+     * 260 g over 15 cm: reported, and the equality above holds it. */
+    if (LOAD_CARRIERS.includes(id)) {
+      report(`${id} the spread is real, not rounding`, spread > 0.1 * d.I[0], `Ixx +${spread.toPrecision(3)} over the lump alone`);
+    } else {
+      report(`    ${id} the spread over the lump alone`, true, `Ixx +${spread.toPrecision(3)}`, `${(100 * spread / d.I[0]).toFixed(1)} percent of the bare Ixx; not gated`);
+    }
   }
   {
     /* sim_set_addon_inertia's contract. */
     const sim = await fresh(af, null);
     const before = setBlock(sim, 'sim_set_addon_inertia', [0.001, 0.001, 0.001]);
-    sim.setAddons(combatAddon(af, { payload: 'standard', accessories: [] }).block);
+    sim.setAddons(combatAddon(af, { payload: standard, accessories: [] }).block);
     const bad = setBlock(sim, 'sim_set_addon_inertia', [0.001, -0.001, 0.001]);
     const ok = setBlock(sim, 'sim_set_addon_inertia', [0.001, 0.001, 0.001]);
     const i1 = sim.e.sim_bf_debug(55);
-    sim.setAddons(combatAddon(af, { payload: 'standard', accessories: [] }).block);
+    sim.setAddons(combatAddon(af, { payload: standard, accessories: [] }).block);
     const zeroed = sim.e.sim_bf_debug(55);
     report(`${id} sim_set_addon_inertia: refused before add-ons, out of range, zeroed by sim_set_addons`,
       before === SIM_ERR_BAD_STATE && bad === SIM_ERR_BAD_ARG && ok === SIM_OK && Math.abs(i1 - zeroed - 0.001) < 1e-12);
@@ -366,9 +475,66 @@ for (const af of quads) {
   for (const [what, got, want] of cases) {
     report(`war: ${what}`, isDeepStrictEqual(got, want), JSON.stringify(got));
   }
-  const everyWarhead = quads.every((q) => WARHEADS.every((w) => q.combat.payloads.some((p) => p.warhead === w)));
-  report('war: every combat quad carries every warhead', everyWarhead, WARHEADS.join(', '));
+  /* The 7 and the 10 inch carry every warhead; the interceptor carries one
+   * light payload, the standard warhead's, which is the one every pilot
+   * owns and every fallback ends at, so every combat quad has it. */
+  const loaded = LOAD_CARRIERS.map(airframeById);
+  report('war: the 7 and the 10 inch carry every warhead', loaded.every((q) => WARHEADS.every((w) => q.combat.payloads.some((p) => p.warhead === w))), WARHEADS.join(', '));
+  report('war: every combat quad carries the standard warhead', quads.every((q) => q.combat.payloads.some((p) => p.warhead === 'standard')), quads.map((q) => q.id).join(', '));
   report('war: a stored choice is made valid', isDeepStrictEqual(combatChoice(af, { payload: 'bogus', accessories: ['gps', 'nope', 'pack2'] }), { payload: 'standard', accessories: ['pack2', 'gps'] }));
+  const fast = airframeById('interceptor');
+  const fastCases = [
+    ['the interceptor flies its proximity payload by default', combatChoice(fast, null), { payload: 'proximity', accessories: [] }],
+    ['the interceptor\'s proximity payload is the standard warhead', warPayload(fast, { payload: 'proximity', accessories: [] }, all), { payload: 'proximity', warhead: 'standard' }],
+    ['the interceptor with none and the wide equipped flies the standard', warPayload(fast, { payload: 'none', accessories: [] }, all, 'wide'), { payload: 'proximity', warhead: 'standard' }],
+    ['a peer\'s interceptor with a wide loadout draws its proximity payload', payloadForWarhead(fast, 'wide'), 'proximity'],
+  ];
+  for (const [what, got, want] of fastCases) {
+    report(`war: ${what}`, isDeepStrictEqual(got, want), JSON.stringify(got));
+  }
+}
+
+/* ---- the interceptor against every other quad (section 5a) ---- */
+{
+  const race = [];
+  for (const id of RACE) {
+    const af = airframeById(id);
+    const g = af.gravityBase ?? 1;
+    const level = await levelTop(af, g);
+    const hover = await trimHover(af, null, g);
+    const punch = await climb(af, null, hover, g);
+    const rise = await rollRise(af, g);
+    race.push({ id, af, g, top: level.v, hover, punch, rise });
+    report(`    ${id} at ${g} g`, true, `${level.v.toFixed(1)} m/s level`,
+      `${(level.v * 3.6).toFixed(0)} km/h at ${(level.pitch * DEG).toFixed(0)} deg nose down; hover ${hover.toFixed(3)}; ${punch.toFixed(1)} m in 2 s of full throttle; roll to 63 percent in ${(rise * 1000).toFixed(0)} ms`);
+    report(`${id} level flight is level`, level.vz < 0.1, `|vz| ${level.vz.toFixed(3)} m/s`, 'the harness pilot held the height within 0.1 m/s over the last 3 s');
+  }
+  const ordered = (key) => race.every((r, k) => k === 0 || r[key] < race[k - 1][key]);
+  report('top speed: interceptor > 5 inch > 7 inch > 10 inch', ordered('top'), race.map((r) => `${r.id} ${r.top.toFixed(1)} m/s`).join(', '));
+  report('punch-out: interceptor > 5 inch > 7 inch > 10 inch', ordered('punch'), race.map((r) => `${r.id} ${r.punch.toFixed(1)} m`).join(', '));
+  const [fast, five, seven] = race;
+  report('the interceptor rolls quicker than the 5 and the 7 inch', fast.rise < five.rise && fast.rise < seven.rise,
+    race.map((r) => `${r.id} ${(r.rise * 1000).toFixed(0)} ms`).join(', '), 'the same Betaflight gains and rates on each');
+  for (const r of race.filter((x) => x.af.combat)) {
+    report(`${r.id} topSpeed is the flown level speed`, Math.abs(r.af.topSpeed - r.top) < 0.5, `${r.af.topSpeed} against ${r.top.toFixed(2)} m/s`, 'configs/airframes.js against the module, within 0.5 m/s');
+  }
+
+  /* Endurance: four fifths of the pack's charge over the pack current the
+   * module draws, at a hover and at full throttle on the bench. The
+   * interceptor's LiPo is a speed pack; the 7 inch's Li-ion is a range one. */
+  const endurance = {};
+  for (const id of ['interceptor', '7inch']) {
+    const af = airframeById(id);
+    const hover = race.find((r) => r.id === id).hover;
+    const ah = derived[id].q.packAh;
+    const aHover = await packAmps(af, hover, hover);
+    const aFull = await packAmps(af, 1.0, hover);
+    endurance[id] = { hoverMin: 0.8 * ah * 60 / aHover, fullS: 0.8 * ah * 3600 / aFull };
+    report(`    ${id} endurance`, true, `${endurance[id].hoverMin.toFixed(1)} min hover`,
+      `${aHover.toFixed(1)} A at a hover, ${aFull.toFixed(0)} A flat out: ${endurance[id].fullS.toFixed(0)} s of full throttle in a ${ah} Ah pack`);
+  }
+  report('endurance: the interceptor\'s is shorter than the 7 inch\'s', endurance.interceptor.hoverMin < endurance['7inch'].hoverMin && endurance.interceptor.fullS < endurance['7inch'].fullS,
+    `${endurance.interceptor.hoverMin.toFixed(1)} against ${endurance['7inch'].hoverMin.toFixed(1)} min`, `${endurance.interceptor.fullS.toFixed(0)} against ${endurance['7inch'].fullS.toFixed(0)} s flat out`);
 }
 
 /*
@@ -590,7 +756,7 @@ for (const af of strikers) {
 
 let fails = 0;
 const w = Math.max(...results.map((r) => r.id.length));
-console.log('\ncombat-gates: the 7 inch, the 10 inch and the Striker, and what a payload does\n');
+console.log('\ncombat-gates: the 7 inch, the 10 inch, the interceptor and the Striker, and what a payload does\n');
 for (const r of results) {
   if (!r.pass) {
     fails += 1;
