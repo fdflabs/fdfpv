@@ -78,36 +78,37 @@ in the script's comments.
 
 The fast chaser of the war: it runs a Striker down at its cruise speed and
 rams it. `scripts/combat-derive.js` builds it from this parts list, the
-reference photograph's:
+reference photograph's, every powertrain part a published one since
+2026-10-01 (below, "Sourced"):
 
 | part | mass | notes |
 | --- | --- | --- |
 | stretched X frame, 5 mm arms | 140 g | 240 mm between motors fore and aft, 200 mm across, 312 mm on the diagonal |
-| four 2807 1500 kV motors | 224 g | the hot wind for 6S speed builds; about 50 mOhm phase to phase |
-| four 7 x 6 two blade props | 32 g | thin electric, high pitch; static C_T near 0.11, C_P near 0.066 |
+| four T-Motor Velox V2808 1300 kV | 244 g | 61.1 g each, 6S, 62.4 A peak; 0.131 ohm with ESC and leads from T-Motor's own rows |
+| four APC 7 x 9E two blade props | 40 g | thin electric, 9 inch pitch; APC's file: 20.622 N and 0.365 N m static at 20,000 rpm, figure of merit 0.4967 |
 | FC and 4 in 1 65 A ESC | 40 g | |
 | video transmitter, camera, receiver | 35 g | |
 | armoured nose | 40 g | the photograph's plated carbon box round the camera, part of the build |
 | wiring, XT60, straps, stock antennas | 43 g | |
 | landing legs | 10 g | down to the payload's belly, as on the 7 inch |
-| 6S 1800 mAh 120C LiPo | 285 g | one pack, strapped on top; 3 mOhm a cell, 1.5 of leads |
-| **bare all up** | **849 g** | |
+| Tattu R-Line 5.0 6S 1800 mAh 150C | 288 g | one pack, strapped on top; 3 mOhm a cell, 1.5 of leads |
+| **bare all up** | **880 g** | |
 
 | | interceptor |
 | --- | --- |
 | airframe id | `interceptor` |
 | plant (`simId`, `sim_set_airframe`) | 26 |
-| CG above the arm plate | 24.8 mm, 1.7 mm ahead of its middle |
-| inertia Ixx, Iyy, Izz | 0.00327, 0.00537, 0.00797 kg m^2 |
+| CG above the arm plate | 24.8 mm, 1.6 mm ahead of its middle |
+| inertia Ixx, Iyy, Izz | 0.00356, 0.00579, 0.00865 kg m^2 |
 | motor centre (x, y) | +-0.120 m, +-0.100 m (plant.c `arm_x`, `arm_y`) |
 | prop radius | 0.0889 m |
 | prop disc height about the CG | +0.0122 m |
-| figure of merit | 0.44: a high pitch two blade is part stalled in a hover |
-| static thrust, full throttle, fresh pack | 77.3 N (9.29 to 1 bare), 22,700 rpm, 180 A pack, 3.39 V a cell |
-| hover duty, bare, fresh pack | 0.240 |
-| motor time constant | 27 ms (the 7 inch's 36) |
+| figure of merit | 0.4967, APC's for the 7 x 9E: a high pitch two blade is part stalled in a hover |
+| static thrust, full throttle, fresh pack | 71.9 N (8.33 to 1 bare), 18,667 rpm, 157 A pack, 3.49 V a cell |
+| hover duty, bare, fresh pack | 0.243 (0.242 flown) |
+| motor time constant | 54 ms j R / ke^2, 44 ms flown as combat-gates steps it (the 7 inch's 36 and 38) |
 | gravity base | 1.0 g, as the other combat quads |
-| tune | `configs/betaflight-interceptor.diff`: stock 4.5.1, 1500 kV, 1800 mAh, LiPo cell limits |
+| tune | `configs/betaflight-interceptor.diff`: stock 4.5.1, 1300 kV, 1800 mAh, LiPo cell limits |
 
 **Its plan drag is the whoop's method, not the 7 inch's.** The 7 and the
 10 inch scale the five inch's fitted plan drag, which is a whole machine
@@ -125,23 +126,62 @@ own, at the whoop's `k_rotor_axial`. The 7 and the 10 inch are not changed
 here: moving them onto the same method would make them faster in a pass,
 which is a change to how they fly and the owner's call.
 
-**Top speed: 45.5 m/s level, 164 km/h, not the 200 to 250 km/h quoted for
+**Sourced.** On 2026-10-01 the owner asked for the interceptor to be
+built from published parts. It was a 2807 1500 kV on 7 x 6 two blades
+whose figures came from no table ("C_T near 0.11", "about 50 mOhm"). Now:
+
+- The prop is APC's 7 x 9E, from APC's own performance file
+  (https://www.apcprop.com/files/PER3_7x9E.dat): its static row at
+  20,000 rpm gives kt and kq, and its pitch the zero thrust speed. A 9 inch
+  pitch because APC's files show what a speed prop must have. At APC's
+  21,000 rpm limit a 7 x 6E is out of thrust by 228 km/h and a 7 x 7E by
+  262, where the 7 x 9E still makes 1.4 kg at 200 km/h.
+- The motor is T-Motor's Velox V2808 1300 kV
+  (https://www.t-hobby.com/products/fpv-brushless-motor-v2808), loaded
+  1.10 as the 7 inch's 1300 kV is. A 1300 kV keeps the 7 x 9E under APC's
+  rpm limit on 6S. T-Motor publishes no phase resistance. Two of its own
+  full throttle rows give the effective resistance without needing torque:
+  GF8040-3 at 24.3 V, 61.0 A and 19,222 rpm gives 0.1317 ohm; T7546-3 at
+  24.2 V, 62.4 A and 18,943 rpm gives 0.1310. A winding law estimate (0.071)
+  is what these rows contradict.
+- The pack is Tattu's R-Line 5.0 6S 1800 150C, 288 g.
+
+What it moved, and what the owner decided about it:
+
+- Level top speed went from 45.5 to 47.1 m/s.
+- Static thrust to weight went from 9.29 to 8.33. The 7 x 9E is heavier
+  loaded.
+- The rotor is slower: 44 ms flown against 27. A 9 inch pitch on a
+  0.131 ohm motor spools like a 7 inch's.
+- The heavier motors and props add 9 percent to Ixx, so it rolls at 20 ms,
+  with the five inch rather than ahead of it.
+- combat-gates' motor-tau band for it was 15 to 40 ms, argued from the old
+  invented inputs. It is now the 7 inch class's 20 to 60 ms.
+- The roll gate was "quicker than the five and the 7 inch". It is now "at
+  least as quickly as the 7 inch". Both are the owner's decision of
+  2026-10-01, each with its source in scripts/combat-gates.js.
+- "Fastest in level flight" stands, and holds.
+
+**Top speed: 47.1 m/s level, 170 km/h, not the 200 to 250 km/h quoted for
 such builds.** On this plant every quad's level top speed sits below the
-figures quoted for the real machine (the five inch flies 149 km/h at its
-1.62 g; the plant's P5 band for it is 120 to 165), because a fast pass is
+figures quoted for the real machine (the five inch flies 166 km/h at its
+1.62 g on T-Motor's measured row, docs/STOCK-5INCH.md; the plant's P5
+band for it is 120 to 165), because a fast pass is
 held up by the rotor H force and the body's plan drag at 70 degrees of
-pitch, and because the prop's load is clamped at 0.90 of its static value
-(`PLANT_TORQUE_QMIN`), so its rpm does not climb as it unloads at speed.
-Nothing in the parts list was tuned to a speed: the number is what the
-plant flies. It is the fastest quad in the game, flat out and off the
-floor (section 5a); a faster one is a plant change for every quad, not a
+pitch. It is not the clamp on the prop's load at 0.90 of its static
+value (`PLANT_TORQUE_QMIN`): flown with that clamp off, the sourced build
+holds the same 47.1 m/s (and 50.1 with the winding law's resistance, both
+measured on a scratch build). Nothing in the parts list was tuned to a
+speed: the number is what the plant flies. It is the fastest quad in
+the game, flat out and off the floor (section 5a); a faster one is a plant change for every quad, not a
 number for this one.
 
-What it costs: 1.8 Ah of LiPo, so 31 s of full throttle against the 7
-inch's 181, and under half the 7 inch's hover time; and a machine with
-nearly twice the five inch's roll authority (2 T a_y / Ixx, 1180 rad/s^2
-against 650), which reaches 63 percent of a half stick roll rate in 15 ms
-against the five inch's 20, on the same Betaflight gains.
+What it costs: 1.8 Ah of LiPo, so 33 s of full throttle against the 7
+inch's 181, and under half the 7 inch's hover time. Its roll authority
+(2 T a_y / Ixx, 1010 rad/s^2 against the five inch's 750) is a third
+more than the five inch's, but its 44 ms rotors spend it: it reaches 63
+percent of a half stick roll rate in 20 ms, against the five inch's 17 and
+the 7 inch's 23, on the same Betaflight gains.
 
 ## 2. The combat descriptor
 
@@ -209,7 +249,7 @@ Interceptor, belly plate underside at -0.0298 m about the CG:
 
 | id | warhead | mass kg | dragArea m^2 | cgOffset m | d, len m |
 | --- | --- | --- | --- | --- | --- |
-| `proximity` | standard | 0.20 | 0.004506 | 0.0183, 0, -0.0523 | 0.045, 0.16 |
+| `proximity` | standard | 0.20 | 0.004506 | 0.0184, 0, -0.0523 | 0.045, 0.16 |
 
 One light payload: the interceptor is built to catch, not to carry. Its
 war rule is the standard warhead because every warhead in the war already
@@ -237,8 +277,8 @@ and a pin as in the photograph:
 | --- | --- | --- | --- | --- |
 | `pack2` | 0.429 kg at (-0.0017, 0, 0.0633) | not offered | not offered | a second 6S1P brick strapped on top of the first, in parallel |
 | `cage` | 0.030 kg at (0.0833, 0, -0.0167) | 0.045 kg at (0.1034, 0, -0.0210) | not offered: its armoured nose is part of the build | a printed guard round the FPV camera |
-| `lrantenna` | 0.025 kg at (-0.0717, 0, 0.0613) | 0.035 kg at (-0.0866, 0, 0.0750) | 0.020 kg at (-0.0767, 0, 0.0602) | the tall video antenna on its mast and the two receiver whips, in place of the stock antennas (the interceptor's stock pair is the photograph's two) |
-| `gps` | 0.015 kg at (-0.0567, 0, 0.0313) | 0.020 kg at (-0.0666, 0, 0.0450) | 0.015 kg at (-0.0667, 0, 0.0532) | a GPS puck on a short mast |
+| `lrantenna` | 0.025 kg at (-0.0717, 0, 0.0613) | 0.035 kg at (-0.0866, 0, 0.0750) | 0.020 kg at (-0.0766, 0, 0.0602) | the tall video antenna on its mast and the two receiver whips, in place of the stock antennas (the interceptor's stock pair is the photograph's two) |
+| `gps` | 0.015 kg at (-0.0567, 0, 0.0313) | 0.020 kg at (-0.0666, 0, 0.0450) | 0.015 kg at (-0.0666, 0, 0.0532) | a GPS puck on a short mast |
 
 "Without accessories" is the bare machine: one pack (the 10 inch's one
 6S2P pair), the camera in a plain mount, a stubby video antenna and short
@@ -308,7 +348,7 @@ only). In a war:
 - The interceptor is the reference photograph of 2026-10-01: a stretched
   X, its motors 240 mm apart fore and aft and 200 mm across (not a square
   X: `arm_x` 0.120, `arm_y` 0.100), a long narrow body with one big pack
-  strapped on top, 2807 bells, clear two blade props, the armoured nose
+  strapped on top, 2808 bells, clear two blade props, the armoured nose
   round the camera, the photograph's two antennas at the back (replaced
   by the tall set with `lrantenna`), and short legs to 0.075 m under the
   CG.
@@ -362,8 +402,8 @@ full throttle from it.
 
 | payload | interceptor hover | interceptor climb |
 | --- | --- | --- |
-| `none` | 0.239 | 58.6 m |
-| `proximity` | 0.268 | 51.8 m |
+| `none` | 0.242 | 58.0 m |
+| `proximity` | 0.273 | 50.5 m |
 
 The 7 inch with its second pack, every accessory and the wide warhead has
 2.4 times the bare machine's roll inertia; the spread entry is most of
@@ -380,15 +420,15 @@ roll rate from a hover.
 
 | | level m/s | km/h | pitch | punch | roll | endurance |
 | --- | --- | --- | --- | --- | --- | --- |
-| interceptor | 45.5 | 164 | 69 deg | 58.6 m | 15 ms | 31 s flat out, 18 min hover |
-| 5 inch | 41.5 | 149 | 55 deg | 45.5 m | 20 ms | |
+| interceptor | 47.1 | 170 | 70 deg | 58.0 m | 20 ms | 33 s flat out, 18 min hover |
+| 5 inch | 46.0 | 166 | 60 deg | 55.8 m | 17 ms | |
 | 7 inch | 28.3 | 102 | 51 deg | 26.3 m | 23 ms | 181 s flat out, 42 min hover |
 | 10 inch | 27.7 | 100 | 47 deg | 23.7 m | 36 ms | |
 
 Endurance is four fifths of the pack over the pack current the module
 draws (the quad plant does not drain a pack). A Striker cruises at 26.6
 m/s (docs/WARFARE-PLAN.md section 3): the interceptor closes on one from
-behind at 18.9 m/s, the 7 inch at 1.7.
+behind at 20.5 m/s, the 7 inch at 1.7.
 
 ## 6. Checks
 
@@ -408,7 +448,7 @@ behind at 18.9 m/s, the 7 inch at 1.7.
   bare figures with `none`; the descriptor in `configs/airframes.js` equal
   to the derive script's; the war mapping of section 3; and section 5a:
   top speed and punch ordered interceptor, five inch, 7 inch, 10 inch,
-  the interceptor rolling quicker than the five and the 7 inch, its
+  the interceptor rolling at least as quickly as the 7 inch, its
   endurance shorter than the 7 inch's, and every combat quad's
   `topSpeed` the level speed the module flies.
 

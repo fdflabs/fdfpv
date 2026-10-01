@@ -168,40 +168,50 @@ const QUADS = {
      * keeps the front props' wash off the rear ones in a fast forward
      * pass, which is what the layout is for. */
     motorXY: [0.120, 0.100],
-    propIn: 7, pitchIn: 6,
-    /* A thin electric 7 x 6 two blade: the published static tables for
-     * that prop class put C_T near 0.11 and C_P near 0.066 (on n and D),
-     * which is 2.2 kgf at 24,000 rpm. Its thrust constant is the 7 inch's
-     * 7x3.5 three blade's and a little more; its zero thrust speed at the
-     * same rotor speed is 71 percent higher, which is the whole point of
-     * it. */
-    stand: { kgf: 2.2, rpm: 24000 },
-    /* A 2807 1500 kV, the hot wind of a 7 inch motor for 6S speed builds,
-     * where long range builds take 1300 or less. Loaded 1.15 over the
-     * plate: a hotter wind saturates more than the 7 inch's 1300 kV
-     * (1.10) and less than a 2207 run at 1900 (1.26). */
-    kv: 1500,
-    loaded: 1.15,
-    /* 0.798 C_T^1.5 / C_P = 0.44 from the same table: a high pitch two
-     * blade is partly stalled at the root in a static hover, so it is
-     * below both the 7 inch three blade's 0.55 and the five inch's 0.52.
-     * It pays for it at speed, where the pitch is what keeps the thrust. */
-    fm: 0.44,
-    /* A 6S 1800 mAh 120C LiPo: 3 mOhm a cell DC, and 1.5 mOhm a cell of
-     * leads and XT60. A sixth of the 7 inch's Li-ion cell. */
+    propIn: 7, pitchIn: 9,
+    /*
+     * SOURCED (docs/COMBAT-DRONES.md section 1a): APC's 7 x 9E thin
+     * electric two blade, its static row at 20,000 rpm in APC's own
+     * performance file, PER3_7x9E.dat (https://www.apcprop.com/files/):
+     * 20.622 N, 0.365 N m, figure of merit 0.4967. A 9 inch pitch because
+     * APC's files say what a speed prop has to: a 7 x 6E is out of thrust
+     * by 228 km/h and a 7 x 7E by 250 to 262, where the 7 x 9E still makes
+     * 1.4 kg at 200 km/h. It was a 7 x 6 two blade of "C_T near 0.11",
+     * from no file.
+     */
+    stand: { kgf: 20.622 / 9.80665, rpm: 20000 },
+    /*
+     * T-Motor's Velox V2808 1300 kV, 61.1 g, 6S, 62.4 A peak for 10 s
+     * (https://www.t-hobby.com/products/fpv-brushless-motor-v2808), loaded
+     * 1.10 over its plate, the 7 inch's 1300 kV's. It was a 2807 1500 kV
+     * from no table. A 1300 kV on a 9 inch pitch keeps APC's prop under
+     * its 21,400 rpm limit on 6S.
+     */
+    kv: 1300,
+    loaded: 1.10,
+    fm: 0.4967,
+    /* A 6S 1800 mAh LiPo, Tattu's R-Line 5.0 at 150C, 288 g (tattuworld.
+     * com): 3 mOhm a cell DC and 1.5 mOhm a cell of leads and XT60. */
     rCell: 0.0045,
     packAh: 1.8,
-    /* A 2807 1500 kV measures about 50 mOhm phase to phase (a 2806.5
-     * 1300 kV's 75 by the square of the kV ratio, a little more copper
-     * for the longer stator); 15 mOhm of FETs and leads. */
-    rMotor: 0.065,
-    /* An 8 g glass nylon two blade at 89 mm, m R^2 / 3, and a 2807 bell. */
-    jRotor: 2.2e-5,
+    /*
+     * The winding, the ESC and the stand's leads, from two of T-Motor's
+     * own full throttle rows for this motor, which need no torque: at the
+     * loaded ke the rest of the volts over the current is the resistance.
+     * GF8040-3, 24.3 V, 61.0 A, 19,222 rpm: 0.1317 ohm; T7546-3, 24.2 V,
+     * 62.4 A, 18,943 rpm: 0.1310. T-Motor publishes no phase resistance;
+     * a winding law estimate from BrotherHobby's SE 2808 (0.071 with the
+     * ESC) is what these two rows contradict.
+     */
+    rMotor: 0.131,
+    /* APC's 0.35 oz (9.9 g) glass filled two blade at 89 mm, m R^2 / 3,
+     * and a 2808 bell. */
+    jRotor: 2.7e-5,
     parts: [
       { name: 'arms', m: 0.020, arm: [0.030, Math.hypot(0.120, 0.100)] },
       { name: 'plates and standoffs', m: 0.060, at: [0, 0, 0.012], box: [0.16, 0.050, 0.03] },
-      { name: 'motors 2807', m: 0.056, motors: 0.016 },
-      { name: 'props 7x6x2', m: 0.008, motors: 0.037 },
+      { name: 'motors V2808 1300 kV', m: 0.0611, motors: 0.016 },
+      { name: 'props APC 7x9E', m: 0.0099, motors: 0.037 },
       { name: 'FC and 4 in 1 65 A ESC', m: 0.040, at: [0, 0, 0.010] },
       { name: 'video transmitter', m: 0.020, at: [-0.040, 0, 0.015] },
       { name: 'FPV camera', m: 0.010, at: [0.085, 0, 0.012] },
@@ -212,9 +222,9 @@ const QUADS = {
       { name: 'wiring, XT60, straps', m: 0.035, at: [0, 0, 0.015] },
       { name: 'stock antennas', m: 0.008, at: [-0.070, 0, 0.040] },
       { name: 'landing legs', m: 0.010, at: [0, 0, -0.035] },
-      /* 6S 1800 mAh 120C LiPo, about 285 g, long side fore and aft on the
+      /* Tattu's 6S 1800 mAh 150C, 288 g, long side fore and aft on the
        * top plate under two straps. */
-      { name: 'pack 6S 1800 LiPo', m: 0.285, at: [-0.005, 0, 0.048], box: [0.105, 0.037, 0.042] },
+      { name: 'pack 6S 1800 LiPo', m: 0.288, at: [-0.005, 0, 0.048], box: [0.105, 0.037, 0.042] },
     ],
     belly: -0.005,
     /* One payload: a small proximity charge, slim so it costs little

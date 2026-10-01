@@ -76,10 +76,10 @@ const BANDS = {
     'roll-step': { min: 0, max: 0.35, unit: 'overshoot', why: 'The same as the 7 inch: stock 4.5.1 overshoots a heavy slow quad more, and must still settle.' },
   },
   interceptor: {
-    'figure-of-merit': { min: 0.38, max: 0.52, unit: '', why: 'A high pitch 7 inch two blade is part stalled in a static hover: 0.798 C_T^1.5 / C_P on a thin electric 7x6\'s static table (C_T 0.11, C_P 0.06 to 0.075) is 0.39 to 0.48, and it is no better than the five inch triblade\'s 0.52.' },
+    'figure-of-merit': { min: 0.38, max: 0.52, unit: '', why: 'A high pitch 7 inch two blade is part stalled in a static hover: 0.798 C_T^1.5 / C_P on a thin electric 7x6\'s static table (C_T 0.11, C_P 0.06 to 0.075) is 0.39 to 0.48, and it is no better than the five inch triblade\'s 0.52. APC\'s own file for the 7 x 9E it flies gives 0.4967 static.' },
     'hover-bare': { min: 0.18, max: 0.30, unit: 'of stick', why: 'A 7 inch speed build of 0.75 to 0.9 kg on a 6S LiPo hovers at a fifth to a quarter of the stick, as a five inch race quad does at 1 g.' },
-    'thrust-to-weight': { min: 8.0, max: 12.0, unit: ': 1', why: 'Stand thrust of four 2807 1500 kV on 7 inch two blades on 6S, 8 to 9.5 kgf, over a 0.75 to 0.9 kg build, less the LiPo\'s small sag.' },
-    'motor-tau': { min: 0.015, max: 0.040, unit: 's', why: 'j R / ke^2 for a 2807 bell and an 8 g two blade on a hot wind is 25 to 30 ms: quicker than the 7 inch\'s by the lighter prop and the lower winding resistance. The same small step.' },
+    'thrust-to-weight': { min: 8.0, max: 12.0, unit: ': 1', why: 'Stand thrust of four 7 inch speed motors on 7 inch two blades on 6S, 8 to 9.5 kgf, over a 0.75 to 0.9 kg build, less the LiPo\'s small sag. The sourced build: APC\'s 7 x 9E at its 2.1 kgf static row on a V2808 1300 kV, 0.88 kg.' },
+    'motor-tau': { min: 0.020, max: 0.060, unit: 's', why: 'The 7 inch class\'s band, the owner\'s decision of 2026-10-01: a 9 inch pitch two blade (APC 7x9E, 0.365 N m at 20,000 rpm static) on a V2808 1300 kV whose resistance T-Motor\'s own full throttle rows put at 0.131 ohm is a 7 inch rotor, j R / ke^2 about 54 ms static. It was 15 to 40 ms, from a 2807 1500 kV and an 8 g 7x6 of no published table. The same small step.' },
     'punch-sag': { min: 3.2, max: 3.8, unit: 'V a cell', why: 'A 6S 1800 120C LiPo at 150 to 200 A: 4 to 5 mOhm a cell with its leads drops a fresh cell to about 3.4 V.' },
     'roll-step': { min: 0, max: 0.35, unit: 'overshoot', why: 'Stock 4.5.1 on a light quad with twice the five inch\'s roll authority: a half stick step must still settle.' },
   },
@@ -514,8 +514,18 @@ for (const af of quads) {
   report('top speed: interceptor > 5 inch > 7 inch > 10 inch', ordered('top'), race.map((r) => `${r.id} ${r.top.toFixed(1)} m/s`).join(', '));
   report('punch-out: interceptor > 5 inch > 7 inch > 10 inch', ordered('punch'), race.map((r) => `${r.id} ${r.punch.toFixed(1)} m`).join(', '));
   const [fast, five, seven] = race;
-  report('the interceptor rolls quicker than the 5 and the 7 inch', fast.rise < five.rise && fast.rise < seven.rise,
-    race.map((r) => `${r.id} ${(r.rise * 1000).toFixed(0)} ms`).join(', '), 'the same Betaflight gains and rates on each');
+  /*
+   * At least as quick as the 7 inch, its own frame class. It was "quicker
+   * than the 5 and the 7 inch", which the interceptor met on a 2807 1500 kV
+   * and an 8 g 7 x 6 of no published table. On the sourced build (T-Motor's
+   * V2808 1300 kV rows and APC's 7 x 9E file, docs/COMBAT-DRONES.md 1a) a
+   * 9 inch pitch two blade on a 0.131 ohm motor spools at 44 ms, and the
+   * heavier motors and props add 9 percent to Ixx: it rolls with the five
+   * inch, not ahead of it. The owner's decision of 2026-10-01. The five
+   * inch is reported beside it, not gated.
+   */
+  report('the interceptor rolls at least as quickly as the 7 inch', fast.rise <= seven.rise,
+    race.map((r) => `${r.id} ${(r.rise * 1000).toFixed(0)} ms`).join(', '), `the same Betaflight gains and rates on each; the 5 inch ${(five.rise * 1000).toFixed(0)} ms, not gated`);
   for (const r of race.filter((x) => x.af.combat)) {
     report(`${r.id} topSpeed is the flown level speed`, Math.abs(r.af.topSpeed - r.top) < 0.5, `${r.af.topSpeed} against ${r.top.toFixed(2)} m/s`, 'configs/airframes.js against the module, within 0.5 m/s');
   }

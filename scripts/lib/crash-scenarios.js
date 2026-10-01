@@ -557,14 +557,56 @@ export const CRASH_SCENARIOS = [
         const moved = Math.hypot(a[1] - b[1], a[2] - b[2], a[3] - b[3]);
         return [{ ok: moved < 0.002, what: 'at rest where the rigid contact left it', detail: `${(moved * 1000).toFixed(2)} mm apart` }];
       };
+      /*
+       * THE GRIP IS MEASURED ON A SLIDE IT CAN BE MEASURED ON. It was the
+       * landing kick's speed lost over its duration, and that kick is
+       * whatever the idle thrust and the impact leave: 0.189 m/s over 15
+       * ms on the old five inch, 0.144 m/s over 4 ms on T-Motor's row, and
+       * 0.214 m/s over 19 ms with the motors off, which read 0.493 on both
+       * and so never measured the grip at all; the row passed by the old
+       * table's particular kick. So, the lead's method of 2026-10-01: once
+       * the drop has settled, the craft is given a set 1 m/s sideways, and
+       * the grip is the friction over the REAL normal force, m |a_h| / N
+       * with N = m (g + a_z) less the rotors' thrust (kt w^2, the idle
+       * rotors carry about 7 percent of the weight), taken only over the
+       * longest stretch in which N holds within 5 percent of its settled
+       * value, after the impact spring has died. Against the grass's sled
+       * grip, tolerance unchanged.
+       */
       const slide = (on) => {
         const k = on.kick;
         const e = on.state();
-        const mu = k ? (k.v - k.vEnd) / ((k.msEnd - k.ms) * 0.001) / 9.80665 : NaN;
         const reach = k ? (k.v * k.v) / (2 * 0.45 * 9.80665) : NaN;
         const slid = k ? Math.hypot(e[1] - k.x, e[2] - k.y) : NaN;
+        const m = on.sim.e.sim_bf_debug(51);
+        const kt = on.sim.e.sim_bf_debug(10);
+        const rpmToRad = (2 * Math.PI) / 60;
+        on.velocity([1, 0, 0]);
+        let prev = on.state();
+        let run = [];
+        let longest = [];
+        on.run(600, [0, 0, 0, 0], (s) => {
+          const az = (s[6] - prev[6]) / 0.001;
+          const vh = Math.hypot(s[4], s[5]);
+          const ah = (vh - Math.hypot(prev[4], prev[5])) / 0.001;
+          let w2 = 0;
+          for (let i = 14; i < 18; i += 1) {
+            w2 += (s[i] * rpmToRad) ** 2;
+          }
+          const thrust = kt * w2;
+          const n = m * (9.80665 + az) - thrust;
+          if (vh > 0.02 && Math.abs(n - (m * 9.80665 - thrust)) < 0.05 * m * 9.80665) {
+            run.push((-ah * m) / n);
+          } else {
+            longest = run.length > longest.length ? run : longest;
+            run = [];
+          }
+          prev = s;
+        });
+        longest = run.length > longest.length ? run : longest;
+        const mu = longest.length ? longest.reduce((a, x) => a + x, 0) / longest.length : NaN;
         return [
-          { ok: Math.abs(mu - 0.45) < 0.02, what: 'slides out its landing kick at the sled\'s grip, 0.45', detail: k ? `${mu.toFixed(3)} g from ${k.v.toFixed(3)} m/s` : 'no kick found' },
+          { ok: Math.abs(mu - 0.45) < 0.02, what: 'slides at the sled\'s grip, 0.45, measured on a settled 1 m/s slide', detail: `${mu.toFixed(3)} over ${longest.length} ms` },
           { ok: slid <= reach, what: 'at rest within that grip\'s stopping distance of the kick', detail: `${(slid * 1000).toFixed(2)} mm, at most ${(reach * 1000).toFixed(2)}` },
         ];
       };

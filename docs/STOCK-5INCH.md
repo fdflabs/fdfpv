@@ -138,5 +138,7 @@ same stiff supply, makes 3827 g at 63.8 A, 13 percent under at the same
 current. iFlight publishes no rpm, so prop and motor cannot be told apart.
 It is left alone.
 
-**The interceptor.** No maker publishes a 7x6 two blade, so it cannot be
-checked this way. Its re-derivation on sourced data is its own change.
+**The interceptor** was rebuilt from published parts first, in its own
+change (docs/COMBAT-DRONES.md 1a): T-Motor's V2808 1300 kV on APC's
+7 x 9E, 47.1 m/s level. combat-gates holds it the fastest quad in level
+flight, and on this correction the five inch's 46.0 m/s sits under it.
