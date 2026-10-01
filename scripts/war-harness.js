@@ -26,6 +26,12 @@
  *           before its countdown, and the pass must go off as it does
  *           without one, INTRO_MS later, every client seeing the same
  *           briefing, countdown and go
+ *   wires   forty Strikers flown one after another across a power line
+ *           of the Itaipu map at its height (src/share/war/wires.js):
+ *           some fly into it or another line on the way, as many as the
+ *           room's births say, each dead by nobody on a line where and
+ *           when its birth's `wire` put it, the same on every client,
+ *           the same game on the same seed and another on another
  *   cost    eight pilots and sixty attackers at once: fifty two parked
  *           around the pilots just outside BLAST_M, none going off, and eight
  *           hunters steered by the room from far out. The room's CPU per
@@ -75,6 +81,8 @@ import {
   BLAST_M, KIND, planAgent, poseAt,
 } from '../src/share/war/routes.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
+import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
+import { BAND_M } from '../src/share/war/wires.js';
 
 const arg = (name, dflt) => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -326,7 +334,7 @@ function runOne(cfg) {
     code: 'W4RH00', cap: PRIVATE_CAP, friendly: false, map: 'itaipu', epoch: 0,
   });
   room.war.missions = { ...MISSIONS, [sc.mission.id]: sc.mission };
-  room.war.random = () => 0.5;
+  room.war.random = cfg.random || (() => 0.5);
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = sc.air.map((_, i) => ({
@@ -689,6 +697,80 @@ function briefing() {
   return failed;
 }
 
+/*
+ * The power lines: a route square across the middle chord of the first
+ * span the Itaipu map's attackers can meet, at its height, flown by forty
+ * Strikers half a second apart; one client hovering far off, on a zero
+ * latency link, so nothing else kills them. Run on two seeds, the first
+ * twice.
+ */
+function wires() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  const [, ...flat] = ITAIPU_WIRES.spans[0];
+  const k = Math.floor(flat.length / 12) * 6;
+  const c = flat.slice(k, k + 6);
+  const mid = [(c[0] + c[3]) / 2, (c[1] + c[4]) / 2, (c[2] + c[5]) / 2];
+  const l = Math.hypot(c[3] - c[0], c[5] - c[2]);
+  const across = [-(c[5] - c[2]) / l, 0, (c[3] - c[0]) / l];
+  /* Within BAND_M of a wire, over it in plan: this span's or another the
+   * route crosses. */
+  const onSpan = (p) => ITAIPU_WIRES.spans.some(([, ...w]) => {
+    for (let o = 0; o + 5 < w.length; o += 6) {
+      const vx = w[o + 3] - w[o];
+      const vz = w[o + 5] - w[o + 2];
+      const t = Math.max(0, Math.min(1, ((p[0] - w[o]) * vx + (p[2] - w[o + 2]) * vz) / (vx * vx + vz * vz)));
+      const d = Math.hypot(w[o] + vx * t - p[0], w[o + 2] + vz * t - p[2]);
+      if (d < 0.5 && Math.abs(w[o + 1] + (w[o + 4] - w[o + 1]) * t - p[1]) <= BAND_M + 0.05) {
+        return true;
+      }
+    }
+    return false;
+  });
+  const L = 600;
+  const route = [[mid[0] - across[0] * L, mid[1], mid[2] - across[2] * L], [mid[0] + across[0] * L, mid[1], mid[2] + across[2] * L]];
+  const waves = Array.from({ length: 40 }, (_, i) => ({ at: 1 + i * 0.5, kind: 'strike', n: 1, route: 'across' }));
+  const m = mission('wires', waves, { across: route });
+  const sc = {
+    name: 'wires', kind: 'wires', air: ['cub1400'], mission: m, paths: [hover([mid[0], mid[1] + 400, mid[2] + 3000])], end: GO + 1000 + 40 * 500 + ((2 * L) / KIND.strike.speed) * 1000,
+  };
+  const run = (seed) => {
+    const res = runOne({
+      sc, seed: 1, clock: 0, links: [{ base: 0, jitter: 0 }], random: () => seed,
+    });
+    const c0 = res.clients[0];
+    const struck = res.log.filter((e) => e.what === 'wire');
+    const dead = c0.events.filter((e) => e.startsWith('dead:'));
+    const wired = [...c0.born.values()].filter((a) => a.wire != null);
+    /* Each death where the client's own plan of its birth ends. */
+    let off = 0;
+    for (const e of struck) {
+      const a = c0.born.get(e.id);
+      const plan = a && planAgent(m, a);
+      const p = plan && poseAt(plan, plan.tEnd).p;
+      const ok = plan && plan.end === 'wire' && plan.tEnd === e.t && a.wire === e.t && dead.includes(`dead:${e.id}:${e.t}:0`) && onSpan(p);
+      off += ok ? 0 : 1;
+    }
+    return {
+      struck: struck.length, wired: wired.length, born: c0.born.size, off, key: struck.map((e) => `${e.id}@${e.t}`).join(','), lost: res.room.war.match.output,
+    };
+  };
+  const a = run(0.5);
+  const again = run(0.5);
+  const b = run(0.25);
+  console.log(`
+the power lines: ${a.born} Strikers across a span at its height; seed one ${a.struck} into it (${a.key}), seed two ${b.struck} (${b.key})`);
+  row('some fly into the line and most do not', a.struck > 0 && a.struck < a.born && b.struck > 0 && b.struck < b.born, `${a.struck} and ${b.struck} of ${a.born}`);
+  row('every one the room\'s births gave a wire died on it, and no other', a.struck === a.wired && b.struck === b.wired, `${a.wired} and ${b.wired} born with one`);
+  row('each died by nobody where and when the client\'s plan of its birth ends, on the line', a.off === 0 && b.off === 0, `${a.off + b.off} otherwise`);
+  row('the same seed is the same game, another seed another', again.key === a.key && b.key !== a.key, `${again.key === a.key ? 'same' : 'differs'}, ${b.key !== a.key ? 'other' : 'same'}`);
+  row('a wire death takes no output', a.lost === m.output && b.lost === m.output, `${a.lost} and ${b.lost} of ${m.output} MW`);
+  return failed;
+}
+
 const clocks = arg('run', 'both') === 'both' ? [0, 1] : arg('run', '') === 'cost' ? [] : [Number(arg('run', 1)) - 1];
 const started = Date.now();
 const list = scenarios();
@@ -699,6 +781,7 @@ for (const clock of clocks) {
 }
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
+  failed += wires();
 }
 /* The plan's 60 attackers, and twice that. In rounds, the most alive at
  * once in any Act 1 mission at 8 pilots is its largest round: 52
