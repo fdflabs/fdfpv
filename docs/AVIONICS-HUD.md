@@ -179,11 +179,23 @@ models in FlightTelemetry, driven only by things the game really has:
 ## 5. SensorManager (`src/avionics/sensors.js`, agent 2)
 
 The camera as a sensor: what it is looking with, and the picture in the
-picture.
+picture. Agent 2's detail is docs/AVIONICS-SENSORS.md.
+
+**The inset is the sensor.** As in the owner's reference, the main view
+stays the pilot's own picture (the map's look, 1x, untouched) and the camera
+block's inset shows the sensor: J's mode, K's zoom, the exposure and the
+stabilisation all apply to it, and `pipMode` is always `mode`, so the
+inset's label follows J. `setMainView('sensor')` puts the sensor full
+screen instead (no key yet); only then does the main view change mode.
 
 ```js
 const sensors = createSensorManager({ renderer, scene, camera });  // scene() is a function: maps swap scenes
-sensors.update(tS, dtS);        // every flight frame, after the camera is placed
+sensors.update(tS, dtS, video); // every flight frame, after the camera is placed; video is fpvfail's { snow, lost }
+sensors.render(post);           // in place of view.post.render() while the Avionics HUD is up: draws the main view and the inset
+sensors.setTracks(snapshot);    // once, TrackManager's snapshot (written in place): the inset boxes the tracks itself
+sensors.setMotorTemp(c);        // the hottest of telemetry.state.motors[].tempC, for the motors in a thermal picture
+sensors.project(losW, out, aspect, view)  // a world direction to NDC in 'main' or 'pip', through zoom, crop and stabilisation when that view shows the sensor
+sensors.setMainView(v);         // 'eo' (default) or 'sensor'
 sensors.cycleMode();            // J
 sensors.cycleZoom();            // K
 sensors.toggleRec();            // not bound yet
@@ -201,13 +213,16 @@ machine uses for THERMAL.
 mode       'eo' | 'ir_wh' | 'ir_bh' | 'lowlight' | 'fusion' | 'contrast'   (ids are string key safe: lower case, underscores)
 zoom       1 | 2 | 4            digital, degrading resolution, not magic
 zoomLevels [1, 2, 4]
-fovRad     the main view's vertical field of view after zoom
+fovRad     the sensor's vertical field of view after zoom and the stabilisation's crop
 exposure   { auto: bool, ev }   ev in stops
 stab       bool                 electronic stabilisation on
 rec        { on: bool, s }      recording and its length, sim seconds
-pipMode    the mode the picture in picture shows (the reference: IR white hot while the main view is EO)
+pipMode    the mode the picture in picture shows: always mode
+mainView   'eo' | 'sensor'      the pilot's picture (default) or the sensor full screen
 healthy    bool                 false while the picture is lost (fpvfail)
 noise      0..1                 how much the sensor's picture is noise (low light, zoom, snow); PerceptionAI reads it
+timeOfDay  'day' | 'night'      the map's, for the thermal weather
+detect     { sensor, pxPerRad, light, contrast, quality }   what a detector gets from this mode (docs/AVIONICS-SENSORS.md section 4)
 ```
 
 The renderer adopts `sensors.pip` into its camera panel (section 8) and
@@ -369,7 +384,7 @@ as truth anywhere else. Precedence, first that holds:
 | DEGRADED | link `lost` or `weak`, or video lost or snow at least 0.5, or nav `DR`, or battery `critical` | stripped down: attitude, tapes, energy and health blocks, a red `DEGRADED` line naming each cause; tracks only if not stale, no prediction or lead, EXT dimmed |
 | TRACK | AI on and `primaryId` set | everything: box, callout, LEAD, CLOSURE, TRACKING block full |
 | SEARCH | AI on, no primary | detections as thin boxes, `SEARCHING` in the TRACKING block |
-| THERMAL | AI off and the sensor mode is an IR mode or fusion | flight data unchanged, the HUD's ink turns white or black to read over the thermal picture |
+| THERMAL | AI off, the sensor mode is an IR mode or fusion and the sensor is full screen (`mainView` 'sensor') | flight data unchanged, the HUD's ink turns white or black to read over the thermal picture |
 | ASSIST | AI off, flight mode `angle` or `stab` | the MODE row lights `ACRO ASSIST` |
 | MANUAL | otherwise | the MODE row lights `MANUAL`, TRACKING says `AI TRACK OFF` |
 

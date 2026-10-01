@@ -706,6 +706,10 @@ export async function boot({
   const avxHeightAt = (x, z) => view.height(x, z, Infinity);
   const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
   const tracks = createTrackManager({ heightAt: avxHeightAt });
+  /* The inset boxes the tracks itself (docs/AVIONICS-SENSORS.md). */
+  sensors.setTracks(tracks.snapshot);
+  /* What the picture is doing, for the sensor: fpvfail's snow and loss. */
+  const avxVideo = { snow: 0, lost: false };
   /* Thermal's night advantage: what light the sensors have. */
   const avxEnv = { light: 1 };
   const avxHud = { state: 'MANUAL', reasons: [], ai: false };
@@ -13018,7 +13022,14 @@ export async function boot({
     }
     avxLastT = tS;
     if (!paused) {
-      sensors.update(tS, dtS);
+      avxVideo.snow = fpvFail.level(nowWall).snow;
+      avxVideo.lost = fpvFail.deadSince() >= 0;
+      let motorC = -Infinity;
+      for (const m of telemetry.state.motors) {
+        motorC = Math.max(motorC, m.tempC);
+      }
+      sensors.setMotorTemp(motorC);
+      sensors.update(tS, dtS, avxVideo);
       avxEnv.light = roomWar.night() ? 0.05 : 1;
       perception.update(tS, sensors.state, truth, avxOwn, avxEnv);
       tracks.update(tS, perception.detections, avxOwn);
@@ -14632,7 +14643,14 @@ export async function boot({
     /* The hangar covers the whole canvas with its own set, opaque, so the
      * world under it is not drawn at all while it is up. */
     if (worldLive && drawThis && !ui.hangar.isOpen) {
-      view.post.render();
+      /* With the Avionics HUD up the camera is a sensor: its picture in
+       * picture, and the main view in its mode when the pilot puts the
+       * sensor full screen (src/avionics/sensors.js). */
+      if (avionicsHud.on) {
+        sensors.render(view.post);
+      } else {
+        view.post.render();
+      }
       if (mode === 'replay') {
         crashCam.afterRender();
       }
