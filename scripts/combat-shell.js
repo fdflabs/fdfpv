@@ -143,7 +143,7 @@ try {
   await page.until('window.__ui.hangar.isOpen', 10000).catch(() => {});
   const fast = await page.evaluate("({ open: window.__ui.hangar.isOpen, id: window.__ui.hangar.id, tab: window.__ui.hangar.tab, keys: [...document.querySelectorAll('.hangar .combat-tab [data-key]')].map((b) => b.dataset.key), on: [...document.querySelectorAll('.hangar .combat-tab [aria-pressed=\"true\"]')].map((b) => b.dataset.key) })");
   say(fast.open && fast.id === 'interceptor' && fast.tab === 'loadout', `the picker's Customise opens ${JSON.stringify({ open: fast.open, id: fast.id, tab: fast.tab })}`);
-  say(fast.keys.join() === 'payload-none,payload-proximity,accessory-cage,accessory-lrantenna', `the interceptor offers ${fast.keys.join(', ')}`);
+  say(fast.keys.join() === 'payload-none,payload-proximity,accessory-lrantenna,accessory-gps', `the interceptor offers ${fast.keys.join(', ')}`);
   say(fast.on.join() === 'payload-proximity', `a pilot who never chose carries the proximity payload: ${fast.on.join(', ') || 'nothing on'}`);
   say(page.errors.length === 0, `no page errors${page.errors.length ? `: ${JSON.stringify(page.errors.slice(0, 5))}` : ''}`);
 } finally {

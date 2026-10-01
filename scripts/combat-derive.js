@@ -158,7 +158,7 @@ const QUADS = {
    */
   interceptor: {
     simId: 26,
-    frame: '7in-stretch',
+    frame: 'interceptor',
     /* Stretched X: 240 mm fore and aft between motors, 200 mm across,
      * 312 mm motor to motor on the diagonal. Across is as close as two
      * 7 inch discs allow (22 mm between the tips); the stretch is what
@@ -202,6 +202,9 @@ const QUADS = {
       { name: 'FC and 4 in 1 65 A ESC', m: 0.040, at: [0, 0, 0.010] },
       { name: 'video transmitter', m: 0.020, at: [-0.040, 0, 0.015] },
       { name: 'FPV camera', m: 0.010, at: [0.085, 0, 0.012] },
+      /* The photograph's armoured nose, part of the build: plated carbon
+       * round the camera from the bottom plate to under the props. */
+      { name: 'armoured nose', m: 0.040, at: [0.090, 0, 0.012] },
       { name: 'receiver', m: 0.005, at: [-0.050, 0, 0.020] },
       { name: 'wiring, XT60, straps', m: 0.035, at: [0, 0, 0.015] },
       { name: 'stock antennas', m: 0.008, at: [-0.070, 0, 0.040] },
@@ -218,11 +221,11 @@ const QUADS = {
     payloads: [
       { id: 'proximity', warhead: 'standard', m: 0.20, d: 0.045, len: 0.16, x: 0.020 },
     ],
+    /* The photograph's two antennas are the stock ones here; the tall set
+     * and a GPS puck behind the pack are what a pilot can add. */
     accessories: [
-      /* The photograph's armoured nose: a printed and plated guard round
-       * the camera, heavier than the 7 inch's printed cage. */
-      { id: 'cage', m: 0.040, at: [0.095, 0, 0.012] },
       { id: 'lrantenna', m: 0.020, at: [-0.075, 0, 0.085] },
+      { id: 'gps', m: 0.015, at: [-0.065, 0, 0.078] },
     ],
   },
 };

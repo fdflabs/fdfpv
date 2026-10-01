@@ -49,7 +49,7 @@ import { buildP51Craft } from './p51craft.js';
 import { buildZagiCraft } from './zagicraft.js';
 import { buildCombatDrone } from './combatcraft.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
-import { DEFAULT_CHOICE, combatFor } from '../../configs/combat.js';
+import { combatChoice, combatFor } from '../../configs/combat.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 
@@ -86,13 +86,17 @@ const BUILDERS = {
   /* The combat quads: one builder, its frame by airframe, and the pilot's
    * resolved choice in opts.combat (docs/COMBAT-DRONES.md section 4); a
    * caller that passes none draws what a pilot who never chose flies. */
-  '7inch': (opts) => buildCombatDrone({ ...opts, frame: '7in', ...(opts.combat ?? DEFAULT_CHOICE) }),
-  '10inch': (opts) => buildCombatDrone({ ...opts, frame: '10in', ...(opts.combat ?? DEFAULT_CHOICE) }),
-  /* The interceptor's airframe is another part's, not yet in the table;
-   * until it is, this entry is never reached (craftBuilderFor seats the
-   * table's id). */
-  interceptor: (opts) => buildCombatDrone({ ...opts, frame: 'interceptor', ...(opts.combat ?? DEFAULT_CHOICE) }),
+  '7inch': combatBuilder('7inch'),
+  '10inch': combatBuilder('10inch'),
+  interceptor: combatBuilder('interceptor'),
 };
+
+function combatBuilder(id) {
+  return (opts) => {
+    const af = airframeById(id);
+    return buildCombatDrone({ ...opts, frame: af.combat.frame, ...(opts.combat ?? combatChoice(af, null)) });
+  };
+}
 
 export function craftBuilderFor(airframeId) {
   return BUILDERS[airframeById(currentAirframeId(airframeId)).id] ?? buildHeroCraft;

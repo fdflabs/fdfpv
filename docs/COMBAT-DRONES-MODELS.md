@@ -15,29 +15,31 @@ what they need from the integration side.
 ```js
 buildCombatDrone({
   frame: '7in' | '10in' | 'interceptor',
-  payload: 'none' | 'standard' | 'wide' | 'penetrator' | 'emp',   // those the frame carries
+  payload: 'none' | 'standard' | 'wide' | 'penetrator' | 'emp' | 'proximity',   // those the frame carries
   accessories: ['pack2', 'cage', 'lrantenna', 'gps'],   // any subset the frame offers
   name, fog, lite, worldScale, measure,                 // every builder's options
 })
 ```
 
-Through the shell it is `craftBuilderFor('7inch')` or `'10inch'`
-(`src/render/craft.js`), which takes a resolved choice as
+Through the shell it is `craftBuilderFor('7inch')`, `'10inch'` or
+`'interceptor'` (`src/render/craft.js`), each on its airframe's
+`combat.frame`, which takes a resolved choice as
 `opts.combat = { payload, accessories }` and draws the doc's default
-(`configs/combat.js` `DEFAULT_CHOICE`) when a caller passes none.
+(`configs/combat.js` `combatChoice(airframe, null)`: the standard
+warhead's payload, no accessories) when a caller passes none.
 `buildCraft(airframeId, combat)`, the flown craft, takes the pilot's own
 seated choice, `combatFor(airframeId)`, when its caller passes none, as
 the shell's swap does. An unknown id, or an accessory the frame does not
 offer (`pack2` on the 10 inch), throws.
 
-The interceptor (`frame: 'interceptor'`, `craft.js` id `interceptor`) is
-PROVISIONAL: drawn to the owner's reference, a stretched X 7 inch (motors
-125 mm fore and aft and 98 mm across of the CG), clear two blade props, an
-armoured carbon box round the camera, one big pack strapped on top, two
-antennas at the back, no legs and no arm tape. It carries a light
-`standard` (40 by 160 mm) and offers `gps`. Its airframe and parts list
-are the interceptor agent's to write into `docs/COMBAT-DRONES.md`; the
-models follow them when they land (section 5).
+The interceptor (`frame: 'interceptor'`, `craft.js` id `interceptor`,
+docs/COMBAT-DRONES.md section 1a) is drawn to the owner's reference and
+its parts list: a stretched X 7 inch (motors 120 mm fore and aft and 100
+mm across of the CG), clear two blade props, an armoured carbon box round
+the camera, one big pack strapped on top, two antennas at the back, legs
+to the hull's 75 mm and no arm tape. It carries a light `proximity`
+(45 by 160 mm: a slim olive tube, an ogive nose with a dark sensor ring,
+no fins) and offers `lrantenna` and `gps`.
 
 It returns every builder's contract (`group`, `discs`, `blades`,
 `cameraMount`, `propSpin`, `stator`, `livery`) and `combat`:
@@ -180,9 +182,10 @@ the drawn machine inside 6 mm of the fixed hull on every axis.
    stand 14 mm either side of the centreline, where the doc puts their
    mass on it, so the GPS mast between them stays clear. The lumped mass
    the plant flies is unaffected.
-6. **The interceptor's interface.** Its `combat.frame` should be
-   `'interceptor'`, its payload and accessory ids from the shared set, and
-   its parts list in `scripts/combat-derive.js` like the other two. The
-   models' row (`COMBAT_FRAMES.interceptor`: motor axes, prop, belly, hull,
-   pack, camera, each payload's size and point, each accessory's point) is
-   then brought to it, and `check:combat-models` holds the two equal.
+6. **The interceptor's interface.** Settled: its `combat.frame` is
+   `'interceptor'`, its parts list is in `scripts/combat-derive.js` like
+   the other two, and the models' row (`COMBAT_FRAMES.interceptor`) is
+   brought to it; `check:combat-models` holds the two equal. Its payload
+   is its own id, `proximity`, on the war's standard warhead, so it has
+   its own kit; it keeps legs, since the plant parks every combat quad at
+   the deepest payload's belly whether it carries one or not.

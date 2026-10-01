@@ -125,47 +125,45 @@ export const COMBAT_FRAMES = {
     },
   },
   /*
-   * The interceptor, PROVISIONAL: the owner's reference (2026-10-01) is a
-   * stretched X 7 inch, its motors further apart fore and aft than across,
-   * clear two blade props, an armoured carbon box round the camera, one
-   * big pack strapped on top and two antennas at the back, light payload.
-   * Its airframe and parts list are another part's to write into
-   * docs/COMBAT-DRONES.md; until then these are the reference's
-   * proportions, and the check holds them to the airframe table the day
-   * the table has a combat block with this frame. `motor` is [fore and
-   * aft, across] about the CG; no legs, since it lands on its belly.
+   * The interceptor (docs/COMBAT-DRONES.md section 1a): the owner's
+   * reference of 2026-10-01, a stretched X 7 inch, its motors further apart
+   * fore and aft than across, clear two blade props, an armoured carbon box
+   * round the camera, one big pack strapped on top and two antennas at the
+   * back, one light payload. `motor` is [fore and aft, across] about the
+   * CG, plant.c's arm_x and arm_y. Its legs reach the hull's depth as the
+   * other two's do: the plant parks it there, payload or not.
    */
   interceptor: {
-    arm: 0.1588,
-    motor: [0.125, 0.098],
+    arm: 0.1562,
+    motor: [0.120, 0.100],
     propR: 0.0889,
     blades: 2,
     clearProps: true,
     nose: 'armour',
     antennas: 'twin',
-    legs: false,
     tape: false,
     armT: 0.005,
-    cg: [0, 0, 0.022],
-    belly: -0.0045,
-    plates: [0.17, 0.050, 0.026, 0.011],
-    propZ: 0.040,
-    motorR: 0.0160,
-    pack: { at: [0.005, 0, 0.046], box: [0.115, 0.046, 0.038], bricks: 1 },
-    camera: [0.100, 0, 0.012],
-    hullDown: 0.0665,
+    cg: [0.0017, 0, 0.0248],
+    belly: -0.005,
+    plates: [0.16, 0.050, 0.03, 0.012],
+    propZ: 0.037,
+    motorR: 0.0175,
+    pack: { at: [-0.005, 0, 0.048], box: [0.105, 0.037, 0.042], bricks: 1 },
+    camera: [0.085, 0, 0.012],
+    hullDown: 0.075,
     payloads: {
-      standard: { d: 0.040, len: 0.16, at: [0.010, 0, -0.0465] },
+      proximity: { d: 0.045, len: 0.16, at: [0.0183, 0, -0.0523] },
     },
     accessories: {
-      gps: [-0.040, 0, 0.0475],
+      lrantenna: [-0.0767, 0, 0.0602],
+      gps: [-0.0667, 0, 0.0532],
     },
   },
 };
 
 /* The payload ids, 'none' first, and the accessory ids, in the doc's order:
  * the order a build draws them in whatever order a list arrives in. */
-export const COMBAT_PAYLOAD_IDS = ['none', 'standard', 'wide', 'penetrator', 'emp'];
+export const COMBAT_PAYLOAD_IDS = ['none', 'standard', 'wide', 'penetrator', 'emp', 'proximity'];
 export const COMBAT_ACCESSORY_IDS = ['pack2', 'cage', 'lrantenna', 'gps'];
 
 /* ------------------------------------------------------------------ */
@@ -778,7 +776,24 @@ function emp(k, d, len, seg) {
   return { pin: [0, r * 0.9, z0 + cap * 0.5], straps: [-0.26, 0.26] };
 }
 
-const PAYLOAD_KITS = { standard, wide, penetrator, emp };
+/* The interceptor's proximity charge: a slim olive tube, short and clean,
+ * a small ogive nose with a dark ring of sensor windows round it, no fins.
+ * Light and fast, the opposite of the wide. */
+function proximity(k, d, len, seg) {
+  const r = d / 2;
+  const z0 = -len / 2;
+  const nose = len * 0.24;
+  const tail = len * 0.08;
+  const body = len - nose - tail;
+  k.add('olive', latheZ([[0.002, 0], [r * 0.42, nose * 0.22], [r * 0.78, nose * 0.58], [r, nose]], seg), [0, 0, z0]);
+  k.add('steelDark', band(r * 0.86, 0.005, seg), [0, 0, z0 + nose * 0.62], [0, 0, 0], { ink: false });
+  k.add('olive', cylZ(r, r, body, seg), [0, 0, z0 + nose + body / 2]);
+  k.add('olive', latheZ([[r, 0], [r * 0.84, tail]], seg), [0, 0, z0 + len - tail]);
+  k.add('oliveDark', cylZ(r * 0.84, r * 0.84, 0.002, seg), [0, 0, z0 + len - 0.001], [0, 0, 0], { ink: false });
+  return { pin: [0, r * 0.80, z0 + nose * 0.85], straps: [-0.14, 0.22] };
+}
+
+const PAYLOAD_KITS = { standard, wide, penetrator, emp, proximity };
 
 /*
  * The straps and the pin, about the payload's centre: a webbing band round

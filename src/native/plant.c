@@ -1726,8 +1726,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
  * ------------------------------------------------------------------- */
 [SIM_AIRFRAME_INTERCEPTOR] = {
   .kind = PLANT_KIND_QUAD,
-  .mass_kg = 0.809,
-  .inertia = { 0.003267, 0.005039, 0.007638 },
+  .mass_kg = 0.849,
+  .inertia = { 0.003274, 0.005374, 0.007966 },
   .gravity = 9.80665,
   .arm_x = 0.120,
   .arm_y = 0.100,
@@ -1756,19 +1756,19 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .spin = { -1.0, 1.0, 1.0, -1.0 },
   .pos_x = { -0.120, 0.120, -0.120, 0.120 },
   .pos_y = { -0.100, -0.100, 0.100, 0.100 },
-  .pos_z = { 0.0116, 0.0116, 0.0116, 0.0116 },
+  .pos_z = { 0.0122, 0.0122, 0.0122, 0.0122 },
   .cant_radial_deg = { 1.4, 0.85, 1.15, 0.6 },
   .cant_tangent_deg = { -0.9, 1.4, 0.6, -1.2 },
   /* Out to the motor bells; down to the payload's belly, which the legs
-   * reach; up to the pack's top and its straps. */
+   * reach; up to the GPS puck's top, the fullest loadout's highest. */
   .hull_hx = 0.140,
   .hull_hy = 0.120,
-  .hull_hz_down = 0.076,
-  .hull_hz_up = 0.050,
+  .hull_hz_down = 0.075,
+  .hull_hz_up = 0.057,
   .contact_patch_r = 0.080,
   .contact_arm_max = 0.27,
   .vib_ref_w = 2379.0, /* full throttle on a fresh pack */
-  .camera_x = 0.100,
+  .camera_x = 0.095,
   .camera_y = 0.0,
   .camera_z = -0.013,
 },

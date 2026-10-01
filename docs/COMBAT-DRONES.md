@@ -83,23 +83,24 @@ reference photograph's:
 | four 7 x 6 two blade props | 32 g | thin electric, high pitch; static C_T near 0.11, C_P near 0.066 |
 | FC and 4 in 1 65 A ESC | 40 g | |
 | video transmitter, camera, receiver | 35 g | |
+| armoured nose | 40 g | the photograph's plated carbon box round the camera, part of the build |
 | wiring, XT60, straps, stock antennas | 43 g | |
 | landing legs | 10 g | down to the payload's belly, as on the 7 inch |
 | 6S 1800 mAh 120C LiPo | 285 g | one pack, strapped on top; 3 mOhm a cell, 1.5 of leads |
-| **bare all up** | **809 g** | |
+| **bare all up** | **849 g** | |
 
 | | interceptor |
 | --- | --- |
 | airframe id | `interceptor` |
 | plant (`simId`, `sim_set_airframe`) | 26 |
-| CG above the arm plate | 25.4 mm |
-| inertia Ixx, Iyy, Izz | 0.00327, 0.00504, 0.00764 kg m^2 |
+| CG above the arm plate | 24.8 mm, 1.7 mm ahead of its middle |
+| inertia Ixx, Iyy, Izz | 0.00327, 0.00537, 0.00797 kg m^2 |
 | motor centre (x, y) | +-0.120 m, +-0.100 m (plant.c `arm_x`, `arm_y`) |
 | prop radius | 0.0889 m |
-| prop disc height about the CG | +0.0116 m |
+| prop disc height about the CG | +0.0122 m |
 | figure of merit | 0.44: a high pitch two blade is part stalled in a hover |
-| static thrust, full throttle, fresh pack | 77.3 N (9.75 to 1 bare), 22,700 rpm, 180 A pack, 3.39 V a cell |
-| hover duty, bare, fresh pack | 0.234 |
+| static thrust, full throttle, fresh pack | 77.3 N (9.29 to 1 bare), 22,700 rpm, 180 A pack, 3.39 V a cell |
+| hover duty, bare, fresh pack | 0.240 |
 | motor time constant | 27 ms (the 7 inch's 36) |
 | gravity base | 1.0 g, as the other combat quads |
 | tune | `configs/betaflight-interceptor.diff`: stock 4.5.1, 1500 kV, 1800 mAh, LiPo cell limits |
@@ -120,7 +121,7 @@ own, at the whoop's `k_rotor_axial`. The 7 and the 10 inch are not changed
 here: moving them onto the same method would make them faster in a pass,
 which is a change to how they fly and the owner's call.
 
-**Top speed: 45.2 m/s level, 163 km/h, not the 200 to 250 km/h quoted for
+**Top speed: 45.5 m/s level, 164 km/h, not the 200 to 250 km/h quoted for
 such builds.** On this plant every quad's level top speed sits below the
 figures quoted for the real machine (the five inch flies 149 km/h at its
 1.62 g; the plant's P5 band for it is 120 to 165), because a fast pass is
@@ -134,9 +135,9 @@ number for this one.
 
 What it costs: 1.8 Ah of LiPo, so 31 s of full throttle against the 7
 inch's 181, and under half the 7 inch's hover time; and a machine with
-twice the five inch's roll authority (2 T a_y / Ixx, 1180 rad/s^2 against
-650), which reaches 63 percent of a half stick roll rate in 15 ms against
-the five inch's 20, on the same Betaflight gains.
+nearly twice the five inch's roll authority (2 T a_y / Ixx, 1180 rad/s^2
+against 650), which reaches 63 percent of a half stick roll rate in 15 ms
+against the five inch's 20, on the same Betaflight gains.
 
 ## 2. The combat descriptor
 
@@ -144,7 +145,7 @@ Each combat quad's entry in `configs/airframes.js` carries:
 
 ```js
 combat: {
-  frame: '7in',                // '7in' | '10in' | '7in-stretch'
+  frame: '7in',                // '7in' | '10in' | 'interceptor'
   payloads: [                  // what can hang under it; ids are shared
     { id, massKg, dragArea_m2, cgOffset_m: [x, y, z], warhead,
       dims: { d, len } },      // the drawn cylinder, metres
@@ -199,11 +200,11 @@ standard warhead and no accessories: `standard` on the 7 and the 10 inch,
 | `penetrator` | penetrator | 1.30 | 0.01677 | 0.0534, 0, -0.0735 | 0.065, 0.42 |
 | `emp` | emp | 1.00 | 0.01290 | 0.0034, 0, -0.0835 | 0.085, 0.24 |
 
-Interceptor, belly plate underside at -0.0304 m about the CG:
+Interceptor, belly plate underside at -0.0298 m about the CG:
 
 | id | warhead | mass kg | dragArea m^2 | cgOffset m | d, len m |
 | --- | --- | --- | --- | --- | --- |
-| `proximity` | standard | 0.20 | 0.004506 | 0.0227, 0, -0.0529 | 0.045, 0.16 |
+| `proximity` | standard | 0.20 | 0.004506 | 0.0183, 0, -0.0523 | 0.045, 0.16 |
 
 One light payload: the interceptor is built to catch, not to carry. Its
 war rule is the standard warhead because every warhead in the war already
@@ -230,9 +231,9 @@ and a pin as in the photograph:
 | id | 7 inch | 10 inch | interceptor | what it is |
 | --- | --- | --- | --- | --- |
 | `pack2` | 0.429 kg at (-0.0017, 0, 0.0633) | not offered | not offered | a second 6S1P brick strapped on top of the first, in parallel |
-| `cage` | 0.030 kg at (0.0833, 0, -0.0167) | 0.045 kg at (0.1034, 0, -0.0210) | 0.040 kg at (0.0977, 0, -0.0134) | a printed guard round the FPV camera; on the interceptor the photograph's armoured nose, plated and heavier |
-| `lrantenna` | 0.025 kg at (-0.0717, 0, 0.0613) | 0.035 kg at (-0.0866, 0, 0.0750) | 0.020 kg at (-0.0723, 0, 0.0596) | the tall video antenna on its mast and the two receiver whips; on the interceptor the photograph's two antennas at the back |
-| `gps` | 0.015 kg at (-0.0567, 0, 0.0313) | 0.020 kg at (-0.0666, 0, 0.0450) | not offered | a GPS puck on a short mast |
+| `cage` | 0.030 kg at (0.0833, 0, -0.0167) | 0.045 kg at (0.1034, 0, -0.0210) | not offered: its armoured nose is part of the build | a printed guard round the FPV camera |
+| `lrantenna` | 0.025 kg at (-0.0717, 0, 0.0613) | 0.035 kg at (-0.0866, 0, 0.0750) | 0.020 kg at (-0.0767, 0, 0.0602) | the tall video antenna on its mast and the two receiver whips, in place of the stock antennas (the interceptor's stock pair is the photograph's two) |
+| `gps` | 0.015 kg at (-0.0567, 0, 0.0313) | 0.020 kg at (-0.0666, 0, 0.0450) | 0.015 kg at (-0.0667, 0, 0.0532) | a GPS puck on a short mast |
 
 "Without accessories" is the bare machine: one pack (the 10 inch's one
 6S2P pair), the camera in a plain mount, a stubby video antenna and short
@@ -257,7 +258,7 @@ payload. Between runs, deterministic, in C; nothing in JS does more than
 add up masses.
 
 The hull is fixed per plant: it reaches down to the deepest payload's belly
-(0.109 m on the 7 inch, 0.141 m on the 10 inch, 0.076 m on the
+(0.109 m on the 7 inch, 0.141 m on the 10 inch, 0.075 m on the
 interceptor), so the craft parks on
 that whether it carries one or not. **The models draw landing legs that
 reach that depth**, which is what a payload drone stands on: four legs under
@@ -296,15 +297,16 @@ only). In a war:
 ## 4. For the models (`src/render/**`)
 
 - Builders keyed by airframe id in `src/render/craft.js` `BUILDERS`:
-  `7inch`, `10inch` and `interceptor`. Until they exist the shell draws the
-  five inch for each, which is the fallback `craftBuilderFor` already has.
+  `7inch`, `10inch` and `interceptor`, each `buildCombatDrone` on its
+  airframe's `combat.frame` (`src/render/combatcraft.js`,
+  docs/COMBAT-DRONES-MODELS.md).
 - The interceptor is the reference photograph of 2026-10-01: a stretched
   X, its motors 240 mm apart fore and aft and 200 mm across (not a square
   X: `arm_x` 0.120, `arm_y` 0.100), a long narrow body with one big pack
-  strapped on top under two straps, 2807 bells, clear two blade props,
-  the stock camera in a plain mount (the armoured nose is `cage`), a
-  stubby video antenna and short receiver tails (the two tall ones are
-  `lrantenna`), and short legs to 0.076 m under the CG.
+  strapped on top, 2807 bells, clear two blade props, the armoured nose
+  round the camera, the photograph's two antennas at the back (replaced
+  by the tall set with `lrantenna`), and short legs to 0.075 m under the
+  CG.
 - Each builder receives `opts.combat = { payload, accessories }`, the
   resolved choice (section 2), and draws exactly those ids. The resolved
   choice of the pilot's own craft is `combatFor(airframeId)` in
@@ -355,8 +357,8 @@ full throttle from it.
 
 | payload | interceptor hover | interceptor climb |
 | --- | --- | --- |
-| `none` | 0.232 | 59.7 m |
-| `proximity` | 0.262 | 52.5 m |
+| `none` | 0.239 | 58.6 m |
+| `proximity` | 0.268 | 51.8 m |
 
 The 7 inch with its second pack, every accessory and the wide warhead has
 2.4 times the bare machine's roll inertia; the spread entry is most of
@@ -373,7 +375,7 @@ roll rate from a hover.
 
 | | level m/s | km/h | pitch | punch | roll | endurance |
 | --- | --- | --- | --- | --- | --- | --- |
-| interceptor | 45.2 | 163 | 70 deg | 59.7 m | 15 ms | 31 s flat out, 20 min hover |
+| interceptor | 45.5 | 164 | 69 deg | 58.6 m | 15 ms | 31 s flat out, 18 min hover |
 | 5 inch | 41.5 | 149 | 55 deg | 45.5 m | 20 ms | |
 | 7 inch | 28.3 | 102 | 51 deg | 26.3 m | 23 ms | 181 s flat out, 42 min hover |
 | 10 inch | 27.7 | 100 | 47 deg | 23.7 m | 36 ms | |
@@ -381,7 +383,7 @@ roll rate from a hover.
 Endurance is four fifths of the pack over the pack current the module
 draws (the quad plant does not drain a pack). A Striker cruises at 26.6
 m/s (docs/WARFARE-PLAN.md section 3): the interceptor closes on one from
-behind at 18.6 m/s, the 7 inch at 1.7.
+behind at 18.9 m/s, the 7 inch at 1.7.
 
 ## 6. Checks
 
