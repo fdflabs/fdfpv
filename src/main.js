@@ -223,9 +223,9 @@ import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight 
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
-import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
+import { collectTrees, groundSurface, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
 import {
-  DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, partLabel,
+  DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, WIRES_MAX, partLabel,
 } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
@@ -7478,6 +7478,7 @@ export async function boot({
   let crashTreesFrom = null;
   let crashTreesGen = 0;
   const treePick = [];
+  const wirePick = [];
   const solidPick = [];
   /* The colliders a roof covers, marked for nearestSolids to leave out;
    * made once for the map's collider count. */
@@ -7520,6 +7521,7 @@ export async function boot({
   let jellyArmed = true;
   const CRASH_LOG_MAX = 400;
   let crashTreesDeclared = 0;
+  let crashWiresDeclared = 0;
   let crashSolidsDeclared = 0;
   let fpvLensLive = false;
   /* Harness only: a crash capture's fixed camera stands outside the craft,
@@ -7543,6 +7545,10 @@ export async function boot({
   const CRASH_WORLD_MOVE = 12;
   const TREE_REACH = 80;
   const SOLID_REACH = 40;
+  /* An overhead line's chords within this of the craft, as many as the
+   * plant holds (WIRES_MAX): 40 m is more than a part flies between two
+   * refreshes, as for the solids. */
+  const WIRE_REACH = 40;
   /* And the roof cover looked at every this many steps: 10 ms is 0.14 m
    * at 14 m/s, inside the 0.25 m a wall column is wide. */
   const CRASH_COVER_STEP = 10;
@@ -7758,9 +7764,11 @@ export async function boot({
     clearCrashPass();
     if (damage.available) {
       sim.e.sim_tree_clear();
+      sim.e.sim_wire_clear();
       sim.e.sim_obstacle_clear();
     }
     crashTreesDeclared = 0;
+    crashWiresDeclared = 0;
     crashSolidsDeclared = 0;
     crashWorldX = NaN;
   }
@@ -7946,9 +7954,40 @@ export async function boot({
         passSet.push(t.post);
       }
     }
+    declareCrashWires(col, must);
     /* A tree the host met is the plant's now as a tree, passed like the
      * rest (its crown and trunk), not a solid besides. */
     declareCrashSolids(must >= 0 && col.pass[must] ? -1 : must);
+  }
+
+  /*
+   * THE WIRES ARE THE PLANT'S. Every chord of an overhead line within
+   * WIRE_REACH of crashProbe goes to the plant (sim_wire_add), which meets
+   * it with the parts' hull edges in every step, and the sweep lets it
+   * through, as it does a crown the plant holds. With `must` a wire the
+   * host met that was not among them, that one first.
+   */
+  function declareCrashWires(col, must) {
+    sim.e.sim_wire_clear();
+    crashWiresDeclared = 0;
+    nearestWires(col, crashProbe.x, crashProbe.y, crashProbe.z, WIRE_REACH, WIRES_MAX, wirePick);
+    if (must >= 0 && col.fkind[must] === KINDS.indexOf('wire') && !wirePick.some((o) => o.i === must)) {
+      wirePick.unshift({ d2: 0, i: must });
+      if (wirePick.length > WIRES_MAX) {
+        wirePick.length = WIRES_MAX;
+      }
+    }
+    for (const { i } of wirePick) {
+      worldPosToSim(col.fax[i], col.fay[i], col.faz[i], crashSimA);
+      worldPosToSim(col.fbx[i], col.fby[i], col.fbz[i], crashSimB);
+      const k = sim.e.sim_wire_add(crashSimA.x, crashSimA.y, crashSimA.z, crashSimB.x, crashSimB.y, crashSimB.z, col.fr[i]);
+      if (k < 0) {
+        throw new Error(`sim_wire_add: ${simErrorName(k)} for wire collider ${i}, ${crashWiresDeclared} declared`);
+      }
+      crashWiresDeclared += 1;
+      col.pass[i] = 1;
+      passSet.push(i);
+    }
   }
 
   /* The solids near crashProbe for the free bodies. A roof the craft is
@@ -8476,6 +8515,7 @@ export async function boot({
       pieces: wreckRig.summary(),
       debris: debris.active(),
       trees: crashTreesDeclared,
+      wires: crashWiresDeclared,
       treesOnMap: crashTrees.length,
       /* The streamed set's generation the crash world was declared from,
        * which follows the map's own (window.__colliders().streamGen). */
