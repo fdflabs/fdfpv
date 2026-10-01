@@ -11276,7 +11276,13 @@ export async function boot({
       buildWorld = null;
       roomRaceRetire();
       mode = 'title';
-      reset();
+      /* Not while a world swap is in flight: the old world is already
+       * disposed (syncWorldNow), its terrain gone under adoptSpawn, and the
+       * swap resets the run on the world it brings. Leave goes to the title
+       * at once now, so a Leave during a swap reached this. */
+      if (!swapInFlight) {
+        reset();
+      }
       /* Now, not on the next frame: a choice made on the title before a
        * frame has run must meet the world as the seat has it. */
       if (worldHold) {
