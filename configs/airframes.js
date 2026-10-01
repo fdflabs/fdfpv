@@ -456,7 +456,9 @@ export const AIRFRAMES = [
     sizeMm: 315,
     grams: 979,
     trackClass: 'full',
-    topSpeed: 33,
+    /* Level at full throttle in angle mode on a fresh pack, bare, measured
+     * on the module; the static thrust to weight is combat-derive's. */
+    topSpeed: 28.3,
     thrustToWeight: 4.75,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
@@ -519,7 +521,7 @@ export const AIRFRAMES = [
     sizeMm: 420,
     grams: 1848,
     trackClass: 'full',
-    topSpeed: 30,
+    topSpeed: 27.6,
     thrustToWeight: 4.69,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],

@@ -16,6 +16,7 @@
     "serve": "node scripts/serve.js",
     "whoop:gates": "node scripts/whoop-gates.js",
     "combat:derive": "node scripts/combat-derive.js",
+    "combat:gates": "node scripts/combat-gates.js",
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
     "lint:shell": "node scripts/shell-check.js",

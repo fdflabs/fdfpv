@@ -40,11 +40,11 @@ because the pack is on top.
 | props | 7 x 3.5 three blade | 10 x 5 three blade |
 | pack (base) | 6S1P 21700 Li-ion, 4200 mAh, 429 g, one brick | 6S2P 21700 Li-ion, 8400 mAh, 858 g, two bricks side by side |
 | bare all up mass | 0.979 kg | 1.848 kg |
-| CG above the arm plate | 28.9 mm | 35.0 mm |
-| inertia Ixx, Iyy, Izz | 0.00411, 0.00445, 0.00752 kg m^2 | 0.0143, 0.0143, 0.0259 kg m^2 |
+| CG above the arm plate | 28.7 mm | 35.0 mm |
+| inertia Ixx, Iyy, Izz | 0.00411, 0.00444, 0.00752 kg m^2 | 0.0143, 0.0142, 0.0259 kg m^2 |
 | motor centre (x, y) | +-0.11137 m | +-0.14849 m |
 | prop radius | 0.0889 m | 0.1270 m |
-| prop disc height about the CG | +0.011 m | +0.017 m |
+| prop disc height about the CG | +0.008 m | +0.014 m |
 | static thrust, full throttle, fresh pack | 45.6 N (4.75 to 1 bare) | 85.0 N (4.69 to 1 bare) |
 | hover duty, bare, fresh pack | 0.31 | 0.28 |
 | gravity base (the Weight slider's 100) | 1.0 g | 1.0 g |
@@ -104,14 +104,14 @@ A pilot who never chose has no entry, and that flies `{ payload:
 
 ### 2.1 Payloads
 
-7 inch, belly plate underside at -0.034 m about the CG:
+7 inch, belly plate underside at -0.0337 m about the CG:
 
 | id | warhead | mass kg | dragArea m^2 | cgOffset m | d, len m |
 | --- | --- | --- | --- | --- | --- |
-| `standard` | standard | 0.50 | 0.00969 | 0.0233, 0, -0.0639 | 0.060, 0.26 |
-| `wide` | wide | 0.75 | 0.01132 | 0.0133, 0, -0.0714 | 0.075, 0.24 |
-| `penetrator` | penetrator | 0.55 | 0.00983 | 0.0433, 0, -0.0589 | 0.050, 0.32 |
-| `emp` | emp | 0.40 | 0.00741 | 0.0033, 0, -0.0664 | 0.065, 0.18 |
+| `standard` | standard | 0.50 | 0.00969 | 0.0233, 0, -0.0637 | 0.060, 0.26 |
+| `wide` | wide | 0.75 | 0.01132 | 0.0133, 0, -0.0712 | 0.075, 0.24 |
+| `penetrator` | penetrator | 0.55 | 0.009829 | 0.0433, 0, -0.0587 | 0.050, 0.32 |
+| `emp` | emp | 0.40 | 0.007407 | 0.0033, 0, -0.0662 | 0.065, 0.18 |
 
 10 inch, belly plate underside at -0.041 m about the CG:
 
@@ -138,10 +138,10 @@ and a pin as in the photograph:
 
 | id | 7 inch | 10 inch | what it is |
 | --- | --- | --- | --- |
-| `pack2` | 0.429 kg at (-0.0017, 0, 0.0631) | not offered | a second 6S1P brick strapped on top of the first, in parallel |
-| `cage` | 0.030 kg at (0.0833, 0, -0.0169) | 0.045 kg at (0.1034, 0, -0.0210) | a printed guard round the FPV camera |
-| `lrantenna` | 0.025 kg at (-0.0717, 0, 0.0611) | 0.035 kg at (-0.0866, 0, 0.0750) | the tall video antenna on its mast and the two receiver whips |
-| `gps` | 0.015 kg at (-0.0567, 0, 0.0311) | 0.020 kg at (-0.0666, 0, 0.0450) | a GPS puck on a short mast |
+| `pack2` | 0.429 kg at (-0.0017, 0, 0.0633) | not offered | a second 6S1P brick strapped on top of the first, in parallel |
+| `cage` | 0.030 kg at (0.0833, 0, -0.0167) | 0.045 kg at (0.1034, 0, -0.0210) | a printed guard round the FPV camera |
+| `lrantenna` | 0.025 kg at (-0.0717, 0, 0.0613) | 0.035 kg at (-0.0866, 0, 0.0750) | the tall video antenna on its mast and the two receiver whips |
+| `gps` | 0.015 kg at (-0.0567, 0, 0.0313) | 0.020 kg at (-0.0666, 0, 0.0450) | a GPS puck on a short mast |
 
 "Without accessories" is the bare machine: one pack (the 10 inch's one
 6S2P pair), the camera in a plain mount, a stubby video antenna and short
@@ -206,7 +206,25 @@ only). In a war:
   `prop_r`, the legs reach the hull depth of section 2.3, and
   `npm run check:craft` style scale checks apply as for every aircraft.
 
-## 5. Checks
+## 5. What a payload does, measured
+
+`npm run combat:gates` on the module, fresh pack, no accessories. Hover is
+the stick that holds a hover; climb is the height gained in two seconds of
+full throttle from it.
+
+| payload | 7 inch hover | 7 inch climb | 10 inch hover | 10 inch climb |
+| --- | --- | --- | --- | --- |
+| `none` | 0.309 | 26.3 m | 0.278 | 23.7 m |
+| `emp` | 0.377 | 20.9 m | 0.363 | 17.8 m |
+| `standard` | 0.393 | 19.3 m | 0.381 | 16.5 m |
+| `penetrator` | 0.400 | 18.3 m | 0.389 | 15.6 m |
+| `wide` | 0.434 | 16.8 m | 0.431 | 13.8 m |
+
+The 7 inch with its second pack, every accessory and the wide warhead has
+2.4 times the bare machine's roll inertia; the spread entry is most of
+that. Level speed at full throttle, bare: 28.3 m/s and 27.6 m/s.
+
+## 6. Checks
 
 - `npm run combat:derive`: prints sections 1 and 2.
 - `npm run combat:gates`: both quads hover, and hover where section 1 says;
