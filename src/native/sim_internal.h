@@ -186,6 +186,13 @@ typedef struct {
                       * first is 1, so the hover is the static thrust.
                       * Read by the quad step's climb branch only; zero on
                       * a fixed wing, which never reads it. */
+  double torque_curve[15]; /* the same prop's shaft torque over its static
+                      * torque at the same mu, from the same files: the
+                      * load the motor turns against while the air comes
+                      * through the disc. The first is 1, so the hover is
+                      * kq w^2. Read for mu >= 0 only; descent keeps the
+                      * induced and profile split, which APC's data does
+                      * not reach. */
   /*
    * THE DUCT. Three numbers, and all three are 1, 0 and 0 on an open rotor,
    * which is what makes the five inch's arithmetic bit identical after this

@@ -98,7 +98,7 @@ export default {
   "carousel.lap_void": "Aeronave cambiada, vuelta anulada",
   "carousel.next": "Aeronave siguiente",
   "carousel.note.10inch": "Un carguero pesado con dos baterías de iones de litio, hecho para llevar una carga grande muy lejos.",
-  "carousel.note.5inch": "Un quad 6S de carreras y freestyle: casi diez a uno de empuje, cincuenta metros por segundo.",
+  "carousel.note.5inch": "Un quad 6S de carreras y freestyle: casi diez a uno de empuje, cincuenta y cuatro metros por segundo.",
   "carousel.note.7inch": "Un quad de largo alcance con batería de iones de litio, hecho para llevar una carga bajo la panza.",
   "carousel.note.interceptor": "El quad más rápido: un 7 pulgadas estirado de velocidad que alcanza a un dron de ataque y lo embiste.",
   "carousel.note.bombshell1118": "Un clásico de vuelo libre de 1940 en balsa y papel, con motor glow.",

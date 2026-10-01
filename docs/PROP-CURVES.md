@@ -96,15 +96,15 @@ method: blackbox GPS, wind stated), both bands are argued again from it.
 | check | band | before | after |
 | --- | --- | --- | --- |
 | 5 hover | 0.20 to 0.30 | 0.2578 | 0.2578 |
-| 6 punch-out | 76 to 117 m | 96.4 m | 113.9 m |
+| 6 punch-out | 76 to 117 m (now 95 to 147) | 96.4 m | 113.9 m |
 | 7 terminal velocity | was 30 to 40, now 35.7 to 56.8 m/s | 37.2 m/s | 44.2 m/s |
 | 8 motor step | 10 to 30 ms | 22 ms | 20 ms |
 | 11 battery sag | 4 to 15 percent | 11.45 | 11.00 |
 | hash | identical | 9a4c86d0dd19 | e34fb1961e08 |
 
-16 of 16. The punch, 113.9 m, sits near its band's top: the corrected
-five inch climbs on a curve that keeps its thrust, and the band was argued
-on the straight line. That is recorded here, not adjusted.
+16 of 16 on the thrust curve alone. The punch, 113.9 m, sat near its band's
+top; with the torque curve as well it passes it, and the band is argued
+again below.
 
 Level top speed at the shell's weights (scripts/combat-gates.js):
 
@@ -169,7 +169,7 @@ is the first:
      0.9.
    - So the motor is over loaded at speed and the rotors stay near 32,000
      rpm, where a real 2450 kV would climb toward its 56,000 no load.
-   - The next change.
+   - The second change, below.
 3. **Rotor H force and body drag at 65 to 80 degrees of pitch.**
    - No speed quad publishes a drag figure. The five inch's plan drag is
      fitted to a props level descent, a different flow.
@@ -178,11 +178,72 @@ is the first:
 The 0.90 torque clamp (`PLANT_TORQUE_QMIN`) is not what limits a fast
 pass: flown with it off, both the XLR and the interceptor flew the same.
 
+## The second change: torque at a high advance ratio
+
+Each quad table also carries `torque_curve`, the same prop's shaft torque
+over its static torque at the same mu, read from the same APC files at the
+same rpm (`npm run prop:curves`). For mu >= 0 the rotor's load is kq w^2
+times that curve. It was the induced and profile split, (1 - FM) kq w^2 +
+T (va + vi) / w, clamped to 0.9 to 1.6 of kq w^2.
+
+| mu | 5 x 4.6E | 7 x 4E | 10 x 5E | 7 x 9E |
+| --- | --- | --- | --- | --- |
+| 0.2 | 1.03 | 1.03 | 1.03 | 1.12 |
+| 0.4 | 1.07 | 1.01 | 1.01 | 1.31 |
+| 0.6 | 1.00 | 0.94 | 0.95 | 1.38 |
+| 0.8 | 0.79 | 0.79 | 0.81 | 1.06 |
+| 1.0 | 0.48 | 0.57 | 0.60 | 0.44 |
+
+- **The hover is unchanged.** Every curve's first point is exactly 1, so
+  at mu = 0 the load is kq w^2, exactly what the split gave there (the
+  identity plant.c's figure of merit note rests on). verify's hover reads
+  0.2578 before and after, and whoop W14's hover fingerprint is unchanged.
+- **Descent keeps the split.** APC's files cover a prop moving into the
+  air, not falling through its own wake: the windmill and the vortex ring
+  states still unload the rotor as before.
+- **Edgewise flow** is taken at the axial curve. APC's data is axial only;
+  in a fast pass at 65 to 80 degrees of pitch most of the flow through the
+  disc is axial.
+- **The whoop table** has no published curve (all zeros), so it keeps the
+  split. Its gates were fitted to it, and W1 to W13 pass.
+
+| | thrust curve only | thrust and torque curves |
+| --- | --- | --- |
+| interceptor level | 51.3 m/s | **55.9 m/s, 201 km/h** |
+| 5 inch level (1.62 g) | 50.7 m/s | 54.1 m/s, 195 km/h |
+| 7 inch level | 31.1 m/s | 33.4 m/s |
+| 10 inch level | 30.7 m/s | 33.3 m/s |
+| verify hover | 0.2578 | 0.2578 |
+| verify punch-out | 113.9 m | 121.0 m |
+| verify check 7 | 44.2 m/s | 47.3 m/s |
+| verify motor step | 20 ms | 21 ms |
+| verify battery sag | 11.00 percent | 11.85 percent |
+
+**Check 6's band moves again, and it is self referential.** The punch
+climbs on exactly the laws this corrects: 96.4 m on the old straight
+lines, 113.9 on the thrust curve, 121.0 on both. A search found no
+published, instrumented punch-out of a 6S five inch: no altitude in a set
+time from a hover, no measured full throttle climb rate. What is published
+is load cell thrust to weight. Bosello et al. (arXiv 2311.02667) measure
+7.5 static on an 870 g F60 Pro V 2020 kV / T5147 build, against this
+plant's 9.72 at 710 g. By the owner's decision the band is centred on the
+plant's own 121.0 m on the sourced laws, with the old band's 21.4 percent
+either side, as check 6 was before: **95 to 147 m**. It is argued again
+when an instrumented log is published.
+
+**OPEN ITEMS**, both waiting on a published or logged run of an F60 Pro V
+/ T5147 class five inch on 6S:
+1. A GPS logged, two way, level top speed (check 7, P5).
+2. A baro or GPS logged punch-out from a hover, altitude in 3 s
+   (check 6).
+
 ## What to feel
 
-- Every quad keeps pulling at speed instead of running out of prop.
-- Full throttle in a straight line goes about 10 percent faster: the five
-  inch about 183 km/h at its weight.
+- Every quad keeps pulling at speed instead of running out of prop, and
+  its motors spin up as the prop unloads.
+- Full throttle in a straight line goes about 17 percent faster: the five
+  inch about 195 km/h at its weight, the interceptor 201 km/h, the owner's
+  200 plus.
 - A punch climbs harder at the top.
 - Hover and the low stick are unchanged.
 - Throttle is a touch less damped in a fast climb: the prop no longer
