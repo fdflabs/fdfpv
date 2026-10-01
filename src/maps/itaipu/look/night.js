@@ -36,14 +36,15 @@
  *
  * WHY IT COSTS NEXT TO NOTHING. Section 13's budget (300 draw calls, 2.5 M
  * triangles a view) and the GPU's: every glowing thing is a point of a
- * THREE.Points (four draw calls in all, no triangles), sized in metres
- * but never under a pixel or two so a town reads from the air; every
- * pool is a texel of one RG texture over the hero square (POOL_PX), the
- * light it pours and the height it lies at, which every lit material
- * adds to its diffuse light in its own shader (cityLight), falling off
- * above and below that height so a crest pool does not light the face
- * under it; the windows are arithmetic in the walls' own shader. The
- * only real lights are the powerhouse's two.
+ * single THREE.Points (one draw call, and one in the reservoir's mirror;
+ * no triangles), sized in metres but never under a pixel or two so a
+ * town reads from the air; every pool is a texel of one RG texture over
+ * the hero square (POOL_PX), the light it pours and the height it lies
+ * at, which every lit material adds to its diffuse light in its own
+ * shader (cityLight), falling off above and below that height so a
+ * crest pool does not light the face under it; the windows are
+ * arithmetic in the walls' own shader. The only real lights are the
+ * powerhouse's two.
  *
  * THE OUTAGES. Each point, pool, window and the sky's glow is in a
  * district of grid.js (districtOf, the same Voronoi cells, in the shader
@@ -125,11 +126,11 @@ const AVIATION_H = 45;
 const POWERHOUSE_HALF = 49.5;
 const POWERHOUSE_ROWS = [-25, 25];
 const POWERHOUSE_SPACING = 30;
-const FACE_OUT = 60;
-const FACE_Y = 140;
+const FACE_OUT = 30;
+const FACE_Y = 150;
 const FACE_COLOR = new THREE.Color(0.85, 0.9, 1.0);
-const FACE_INTENSITY = 5000;
-const FACE_RANGE = 160;
+const FACE_INTENSITY = 2500;
+const FACE_RANGE = 120;
 
 /*
  * The pools: one texel per POOL_M metres over the hero square, R the
@@ -147,7 +148,7 @@ const POOL_IRR = 7;
 const POOL_COLOR = new THREE.Color(1.0, 0.74, 0.46);
 const POOL_ABOVE = 12;
 const POOL_BELOW = 3;
-const POOL_R = { street: 15, dam: 16, mast: 26, roof: 26 };
+const POOL_R = { street: 15, dam: 16, mast: 34, roof: 26 };
 
 /* Windows: a bay WINDOW_W wide and a storey WINDOW_H tall from FLOOR_0
  * over the ground, the pane the middle of each (WINDOW_PANE, as shares
@@ -321,17 +322,15 @@ function cityLight(mat, uniforms, windows) {
 
 const LIT_TYPES = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial', 'MeshToonMaterial']);
 
-/* The glow points' shader: sized in metres, never under MIN_PX, round,
- * added over what is behind; each point's district dims it, and a
- * blinking set (uBlink) is on half of each 1.4 s, its phase per point. */
-function glowMaterial(uniforms, sizeM, { blink = false } = {}) {
+/* The glow points' shader: each point aSize metres across, never under
+ * MIN_PX, round, added over what is behind; its district dims it, and a
+ * blinking one (aBlink) is on half of each 1.4 s, its phase by place. */
+function glowMaterial(uniforms) {
   return new THREE.ShaderMaterial({
     uniforms: {
       ...uniforms,
-      uSize: { value: sizeM },
       uMinPx: { value: MIN_PX },
       uHalfH: { value: 450 },
-      uBlink: { value: blink ? 1 : 0 },
       uTime: { value: 0 },
     },
     transparent: true,
@@ -339,22 +338,21 @@ function glowMaterial(uniforms, sizeM, { blink = false } = {}) {
     blending: THREE.AdditiveBlending,
     vertexShader: /* glsl */ `
       uniform float uCityLevel[${MAX_DISTRICTS}];
-      uniform float uSize;
       uniform float uMinPx;
       uniform float uHalfH;
-      uniform float uBlink;
       uniform float uTime;
       attribute float aDistrict;
+      attribute float aSize;
+      attribute float aBlink;
       attribute vec3 aColor;
       varying vec3 vCol;
       void main() {
         vec4 mv = modelViewMatrix * vec4(position, 1.0);
         gl_Position = projectionMatrix * mv;
-        float lv = uCityLevel[int(aDistrict + 0.5)];
-        if (uBlink > 0.5) {
-          lv = step(0.5, fract(uTime / 1.4 + fract(position.x * 0.013 + position.z * 0.007)));
-        }
-        float px = uSize * projectionMatrix[1][1] * uHalfH / max(-mv.z, 0.1);
+        float lv = aBlink > 0.5
+          ? step(0.5, fract(uTime / 1.4 + fract(position.x * 0.013 + position.z * 0.007)))
+          : uCityLevel[int(aDistrict + 0.5)];
+        float px = aSize * projectionMatrix[1][1] * uHalfH / max(-mv.z, 0.1);
         /* A light smaller than its least pixels is that many pixels,
          * dimmer by how much smaller, but never under a quarter. */
         vCol = aColor * lv * clamp(px / uMinPx, 0.25, 1.0);
@@ -376,30 +374,36 @@ function glowMaterial(uniforms, sizeM, { blink = false } = {}) {
   });
 }
 
-/* A THREE.Points of `pts` ([x, y, z, colour [r, g, b]]...), each in the
- * district round it. */
+/* Every glow as one THREE.Points, one draw call: `pts` [x, y, z, colour
+ * [r, g, b], size m, blink], each in the district round it. */
 function glowPoints(pts, material, name) {
   const pos = new Float32Array(pts.length * 3);
   const col = new Float32Array(pts.length * 3);
   const dis = new Float32Array(pts.length);
+  const size = new Float32Array(pts.length);
+  const blink = new Float32Array(pts.length);
   pts.forEach((p, i) => {
     pos.set([p[0], p[1], p[2]], i * 3);
     col.set(p[3], i * 3);
     dis[i] = districtOf(p[0], p[2]);
+    size[i] = p[4];
+    blink[i] = p[5] ? 1 : 0;
   });
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
   g.setAttribute('aDistrict', new THREE.BufferAttribute(dis, 1));
+  g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+  g.setAttribute('aBlink', new THREE.BufferAttribute(blink, 1));
   g.computeBoundingSphere();
   const points = new THREE.Points(g, material);
   points.name = name;
   /* The point size needs the target's height: the mirror's is not the
    * screen's. */
-  const size = new THREE.Vector2();
+  const px = new THREE.Vector2();
   points.onBeforeRender = (renderer) => {
     const rt = renderer.getRenderTarget();
-    material.uniforms.uHalfH.value = (rt ? rt.height : renderer.getDrawingBufferSize(size).y) / 2;
+    material.uniforms.uHalfH.value = (rt ? rt.height : renderer.getDrawingBufferSize(px).y) / 2;
     material.uniforms.uTime.value = performance.now() / 1000;
   };
   return points;
@@ -744,19 +748,13 @@ export function dressNight({
     cityLight(m, walls.has(m) ? wallUniforms : cityUniforms, walls.has(m));
   }
 
-  const lampPts = [
-    ...[...streets, ...dressed, ...dam, ...roof].map((l) => [...l.head, LAMP_RADIANCE]),
-  ];
-  const mastPts = masts.map((l) => [...l.head, MAST_RADIANCE]);
-  const glows = [
-    glowPoints(lampPts, glowMaterial(uniforms, LAMP_M), 'itaipu-night-lamps'),
-    glowPoints(mastPts, glowMaterial(uniforms, MAST_M), 'itaipu-night-masts'),
-    glowPoints(aviation, glowMaterial(uniforms, AVIATION_M, { blink: true }), 'itaipu-night-aviation'),
-    glowPoints(ring, glowMaterial(uniforms, RING_M), 'itaipu-night-cities'),
-  ].filter((p) => p.geometry.getAttribute('position').count > 0);
-  for (const p of glows) {
-    group.add(p);
-  }
+  const glows = glowPoints([
+    ...[...streets, ...dressed, ...dam, ...roof].map((l) => [...l.head, LAMP_RADIANCE, LAMP_M, false]),
+    ...masts.map((l) => [...l.head, MAST_RADIANCE, MAST_M, false]),
+    ...aviation.map((p) => [...p, AVIATION_M, true]),
+    ...ring.map((p) => [...p, RING_M, false]),
+  ], glowMaterial(uniforms), 'itaipu-night-glows');
+  group.add(glows);
 
   /* The powerhouse's two real lights, each in its district. */
   const lights = faces.map((p) => {
@@ -791,7 +789,6 @@ export function dressNight({
     litMaterials: lit.size,
     windowMaterials: walls.size,
     realLights: lights.length,
-    drawCalls: glows.length,
   };
   return {
     group,
@@ -809,10 +806,8 @@ export function dressNight({
     levels: () => Array.from(uniforms.uCityLevel.value.slice(0, DISTRICTS.length)),
     stats: () => ({ ...counts }),
     dispose() {
-      for (const p of glows) {
-        p.geometry.dispose();
-        p.material.dispose();
-      }
+      glows.geometry.dispose();
+      glows.material.dispose();
       for (const t of owned) {
         t.dispose();
       }
