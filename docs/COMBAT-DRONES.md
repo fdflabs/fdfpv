@@ -164,23 +164,24 @@ What it moved, and what the owner decided about it:
 
 **Top speed: 47.1 m/s level, 170 km/h, not the 200 to 250 km/h quoted for
 such builds.** On this plant every quad's level top speed sits below the
-figures quoted for the real machine (the five inch flies 149 km/h at its
-1.62 g; the plant's P5 band for it is 120 to 165), because a fast pass is
+figures quoted for the real machine (the five inch flies 166 km/h at its
+1.62 g on T-Motor's measured row, docs/STOCK-5INCH.md; the plant's P5
+band for it is 120 to 165), because a fast pass is
 held up by the rotor H force and the body's plan drag at 70 degrees of
 pitch. It is not the clamp on the prop's load at 0.90 of its static
 value (`PLANT_TORQUE_QMIN`): flown with that clamp off, the sourced build
 holds the same 47.1 m/s (and 50.1 with the winding law's resistance, both
 measured on a scratch build). Nothing in the parts list was tuned to a
-speed: the number is what the plant flies. It is the fastest quad in the game, flat out and off the
-floor (section 5a); a faster one is a plant change for every quad, not a
+speed: the number is what the plant flies. It is the fastest quad in
+the game, flat out and off the floor (section 5a); a faster one is a plant change for every quad, not a
 number for this one.
 
 What it costs: 1.8 Ah of LiPo, so 33 s of full throttle against the 7
 inch's 181, and under half the 7 inch's hover time. Its roll authority
-(2 T a_y / Ixx, 1010 rad/s^2 against the five inch's 650) is half again
-the five inch's, but its 44 ms rotors spend it: it reaches 63 percent of a
-half stick roll rate in 20 ms, as the five inch does, on the same
-Betaflight gains.
+(2 T a_y / Ixx, 1010 rad/s^2 against the five inch's 750) is a third
+more than the five inch's, but its 44 ms rotors spend it: it reaches 63
+percent of a half stick roll rate in 20 ms, against the five inch's 17 and
+the 7 inch's 23, on the same Betaflight gains.
 
 ## 2. The combat descriptor
 
@@ -420,7 +421,7 @@ roll rate from a hover.
 | | level m/s | km/h | pitch | punch | roll | endurance |
 | --- | --- | --- | --- | --- | --- | --- |
 | interceptor | 47.1 | 170 | 70 deg | 58.0 m | 20 ms | 33 s flat out, 18 min hover |
-| 5 inch | 41.5 | 149 | 55 deg | 45.5 m | 20 ms | |
+| 5 inch | 46.0 | 166 | 60 deg | 55.8 m | 17 ms | |
 | 7 inch | 28.3 | 102 | 51 deg | 26.3 m | 23 ms | 181 s flat out, 42 min hover |
 | 10 inch | 27.7 | 100 | 47 deg | 23.7 m | 36 ms | |
 
