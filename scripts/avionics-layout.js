@@ -174,6 +174,11 @@ async function layout(width, height, rooms) {
     await page.sleep(1500);
     let got = JSON.parse(await page.evaluate(READ));
     check('a combat airframe flies with the Avionics HUD by default', got.avx.on && !got.osd, `avionics ${got.avx.on}, FPV OSD ${got.osd}, room ${code}`);
+    if (!got.avx.on) {
+      /* Nothing to measure: the panels of a hidden HUD are all 0x0. */
+      await shot(page, `avionics-${width}x${height}-not-up`);
+      return;
+    }
     judge(got, 'alone');
     await shot(page, `avionics-${width}x${height}-alone`);
 

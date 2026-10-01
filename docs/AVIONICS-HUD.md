@@ -223,19 +223,31 @@ adapter the shell hands it, and nothing it emits says which truth it came
 from beyond what a real detector could know.
 
 ```js
-const perception = createPerception({ seed });
-perception.update(tS, sensors.state, truth, ownship);  // every flight frame
+const perception = createPerception({ seed, heightAt });
+perception.update(tS, sensors.state, truth, ownship, env);  // every flight frame
 perception.detections            // this frame's, read only
 perception.load                  // 0..1, a compute model (SIM), FlightTelemetry shows it
+perception.reset()               // a new run
 ```
+
+The full model (detection range, classes, noise, occlusion, the thermal
+advantage) is agent 3's, written up in `docs/AVIONICS-PERCEPTION.md`.
 
 - `truth`: the shell's adapter, today `roomWar.attackersAt(roomNow)` in a
   live war (`{ id, kind, p: [x, y, z], q }`, render metres), else an empty
   list. Combat drones outside a war are not targets yet.
-- `ownship`: `{ p: [x, y, z], v: [x, y, z], camera }`, the camera after it was
-  placed this frame (its pose and field of view), render frame.
-- A detection: `{ losW: [x, y, z], sizeRad, hypotheses: [{ cls, p }], quality, sensor: 'EO' | 'IR', truthKey }`.
-  `truthKey` is opaque and for the TrackManager's association only; the HUD
+- `heightAt(x, z)`: the top of the map under a point (ground, water, the
+  dam), `view.height(x, z, Infinity)`. Without it nothing is ever hidden
+  behind terrain or the dam.
+- `ownship`: `{ p: [x, y, z], v: [x, y, z], camera }`, render frame. `p` is
+  the CAMERA's position (the sensor is where it looks from, which matters
+  in a chase view), `v` the craft's velocity, `camera` as placed this frame.
+- `env`: `{ light }`, 0 at night to 1 by day; the shell passes 0.05 while
+  the war is at night (`roomWar.night()`), else 1.
+- A detection: `{ losW: [x, y, z], sizeRad, hypotheses: [{ cls, p }], quality, sensor: 'EO' | 'IR' | 'FUSION', rangeM: { lo, hi }, truthKey }`.
+  `truthKey` is opaque and for checks ONLY: the TrackManager associates by
+  direction and range like a real tracker, never by truthKey, or losing a
+  target behind the dam and swapping two tracks could never happen. The HUD
   never reads it.
 
 ## 7. TrackManager (`src/avionics/tracks.js`, agent 3)
@@ -243,7 +255,7 @@ perception.load                  // 0..1, a compute model (SIM), FlightTelemetry
 Turns detections into tracks with an age, an estimate and a prediction.
 
 ```js
-const tracks = createTrackManager();
+const tracks = createTrackManager({ heightAt });
 tracks.update(tS, perception.detections, ownship);
 tracks.snapshot                  // read only, written in place
 tracks.cycle(dir)                // pick the next track as primary (not bound yet)
@@ -266,7 +278,7 @@ Brief names on the right, camelCase in code because the code base is.
 id                 number, and label 'T07'                     track_id
 cls                top hypothesis class id                     class
 hypotheses         [{ cls, p }] sorted by p, sum <= 1         (top hypotheses)
-confidence         0..1                                        confidence
+confidence         0..1, that the track is a real object       confidence
 sourceSensor       'EO' | 'IR' | 'FUSION' | 'EXT'              source_sensor
 ageS               s since first detection                     track_age
 losW               [x, y, z] unit, render frame, now           bearing (direction)
@@ -283,13 +295,13 @@ predictionQuality  0..1                                        prediction_qualit
 stale              bool, no detection for STALE_S (0.6 s)
 lastSeenS          tS of the last detection
 predicted          [{ dtS, losW }]   future directions, every 0.5 s to 2 s
-lead               { tS, losW } | null  where to point to meet it at this vehicle's speed
+lead               { tS, losW } | null  where to point to meet it at this vehicle's speed; tS is a duration, s
 ```
 
 Class ids and their words (`avionics.track.cls.<id>`; string keys are `[a-z0-9_.]` only, so every id here is lower case with underscores): `fixed_wing_uav`,
 `multirotor`, `light_aircraft`, `loitering_munition`, `boat`, `air_object`,
-`unknown`. Below confidence 0.6 the label is `AIR OBJECT` whatever the top
-hypothesis says (owner's text).
+`unknown`. `cls` stays `air_object` until the top hypothesis reaches 0.6
+(owner's text: AIR OBJECT before UAV), and the renderer shows `cls` as given.
 
 ## 8. HUDRenderer (`src/ui/avionicshud.js`, agent 1)
 
@@ -343,7 +355,7 @@ more room.
 Centred on the projection of `losW`, side from `sizeRad` (at least 18 px),
 grown by `(1 - confidence)` as an uncertainty margin, solid red at confidence
 at least 0.6, dashed under it, dimmed when stale. The callout beside it:
-label (class words or `AIR OBJECT`) and confidence, RNG interval, BRG, SPD,
+the class words of `cls` and the confidence, RNG interval, BRG, SPD,
 ALT and the difference to ours, TRACK age, and `VIS` or `OCC`. With
 `predicted`, a dotted trail; with `lead`, the lead cue at the reticle.
 
