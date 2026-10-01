@@ -104,6 +104,7 @@
     "war:markers": "node scripts/war-markers.js",
     "war:radio": "node scripts/warradio-selftest.js",
     "war:hudlayout": "node scripts/war-hud-layout.js",
+    "check:avionics-layout": "node scripts/avionics-layout.js",
     "war:card": "node scripts/war-card-check.js",
     "campaign:check": "node scripts/campaign-check.js",
     "war:targets": "node scripts/war-targets.js --check",
