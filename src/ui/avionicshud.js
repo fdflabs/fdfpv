@@ -72,8 +72,9 @@ const AGL_TICK = 10;
 const AGL_LABEL = 20;
 /* Heading tape: degrees either side of the box. */
 const HDG_SPAN = 60;
-/* Track confidence under which the box is dashed and the label is the
- * generic class (docs/AVIONICS-HUD.md 8.2). */
+/* Track confidence (that the object is real) under which the box is
+ * dashed (docs/AVIONICS-HUD.md 8.2). The class words are the
+ * TrackManager's: it holds AIR OBJECT until a class is likely. */
 const CONF_FIRM = 0.6;
 const BOX_MIN_PX = 18;
 /* A pitch rung's half width in azimuth, rad, and the horizon's. */
@@ -472,7 +473,7 @@ export class AvionicsHud {
     this.fAi.set(ai ? str('avionics.hud.on') : str('avionics.hud.off'), ai ? 'avx-ok' : '');
     if (prim) {
       const firm = prim.confidence >= CONF_FIRM;
-      this.fTarget.set(str(`avionics.track.cls.${firm ? prim.cls : 'air_object'}`), prim.stale ? 'avx-stale' : '');
+      this.fTarget.set(str(`avionics.track.cls.${prim.cls}`), prim.stale ? 'avx-stale' : '');
       this.fConf.set(`${Math.round(prim.confidence * 100)}%`, firm ? 'avx-ok' : 'avx-warn');
       this.fSource.set(str(`avionics.hud.src.${prim.sourceSensor.toLowerCase()}`));
       this.fTrackTime.set(str('avionics.hud.seconds', { s: prim.ageS.toFixed(1) }));
@@ -925,7 +926,6 @@ export class AvionicsHud {
    * of it, every estimate an interval. */
   callout(L, x, y, side, t, tel) {
     const g = this.g;
-    const firm = t.confidence >= CONF_FIRM;
     const lines = [
       [str('avionics.hud.rng'), t.rangeM ? rangeText(t.rangeM) : '--'],
       [str('avionics.hud.brg'), `${String(Math.round((t.bearing.azRad * DEG + 360) % 360)).padStart(3, '0')}°`],
@@ -948,7 +948,7 @@ export class AvionicsHud {
     g.fillStyle = RED;
     g.textAlign = 'left';
     g.font = `700 ${L.font}px ${FONT}`;
-    g.fillText(str(`avionics.track.cls.${firm ? t.cls : 'air_object'}`), bx + 6, by + lh * 0.6);
+    g.fillText(str(`avionics.track.cls.${t.cls}`), bx + 6, by + lh * 0.6);
     g.textAlign = 'right';
     g.fillText(`${Math.round(t.confidence * 100)}%`, bx + w - 6, by + lh * 0.6);
     g.font = `${L.font}px ${FONT}`;

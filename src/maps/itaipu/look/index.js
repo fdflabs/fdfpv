@@ -30,9 +30,11 @@
  * the address (src/main.js loadMap). It never changes after the map is
  * built: night.js's fixtures go up once, in buildMap, once every part is
  * in. What it touches: the sun (dim, cool, standing in for the moon) and
- * the sky (dark and starred, sky.js), both light.js's; the lamps, the
- * windows and a few real light pools (look/night.js), never the dam's,
- * the town's or the water's own geometry.
+ * the sky (dark and starred, with the towns' glow, sky.js), both
+ * light.js's; the lamps, the windows, the light pools every lit material
+ * adds and the cities past the map (look/night.js), never the dam's, the
+ * town's or the water's own geometry. setPower dims them district by
+ * district as the war takes the grid down.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -188,13 +190,25 @@ export async function makeLook({
     ground,
     time: night ? 'night' : 'day',
     /* Mission 4's own fixtures, once every part is in (itaipu.js, after
-     * the parts loop): a no-op by day. See look/night.js. */
+     * the parts loop): a no-op by day. See look/night.js. The ground's
+     * material is lit too, though no terrain chunk may be in the scene's
+     * graph yet. */
     dressNight(extras) {
       if (!night) {
         return;
       }
-      nightFixtures = dressNight({ scene, ...extras });
+      nightFixtures = dressNight({
+        scene, heights, materials: [ground], ...extras,
+      });
     },
+    /* Each power district's level (src/share/war/grid.js), from the
+     * room's war: the night's lights dim with them. Nothing by day. */
+    setPower(levels) {
+      if (nightFixtures) {
+        nightFixtures.setPower(levels);
+      }
+    },
+    night: () => nightFixtures,
     /* ctx.mats: the photographic kit, the light every material goes
      * through, the surfaces' texture sets and the environment. */
     mats: {

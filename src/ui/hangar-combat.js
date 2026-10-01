@@ -5,6 +5,10 @@
  * and what each choice does to the plant; the drawing is the combat
  * model's, which reads the same choice.
  *
+ * On the Striker, a fixed wing pushed two ways, the tab picks its engine
+ * too, the piston or the turbojet, each its own plant (the doc's section
+ * 7).
+ *
  * Saved into settings.combat[airframeId] with the rest of the hangar, and
  * put on the quad at the next seat, or at once by a refit when it is the
  * quad in the air, like the Parts tab's add-ons. In a war the payload is
@@ -29,7 +33,7 @@
  */
 
 import { airframeById } from '../../configs/airframes.js';
-import { NO_PAYLOAD, combatChoice, combatMass } from '../../configs/combat.js';
+import { NO_PAYLOAD, combatChoice, combatMass, propulsionOf } from '../../configs/combat.js';
 import { currentLocale, str } from '../strings/index.js';
 import { registerHangarTab } from './hangar.js';
 
@@ -58,6 +62,33 @@ function number(n, digits = 0) {
 }
 
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/* What pushes it, on an aircraft pushed more than one way (the Striker):
+ * each its own engine, mass and speed. */
+function propulsionCards(hangar, box) {
+  const list = st.af.combat.propulsion;
+  if (!list) {
+    return;
+  }
+  box.append(el('h3', 'hangar-h', str('loadout.propulsion')));
+  const grid = el('div', 'hangar-cards hangar-cards-small');
+  list.forEach((x, i) => {
+    const on = st.entry.propulsion === x.id;
+    const b = button(`hangar-card${on ? ' on' : ''}`);
+    b.dataset.key = `propulsion-${x.id}`;
+    b.dataset.focus = 'overview';
+    b.style.setProperty('--i', String(i));
+    b.setAttribute('aria-pressed', String(on));
+    b.append(el('span', 'hangar-card-name', str(`loadout.propulsion.${x.id}`)));
+    b.append(el('span', 'hangar-card-detail', str('loadout.top_speed', { n: number(x.topSpeed * 3.6) })));
+    b.addEventListener('click', () => {
+      st.entry.propulsion = x.id;
+      hangar.changed(`propulsion-${x.id}`);
+    });
+    grid.append(b);
+  });
+  box.append(grid);
+}
 
 function payloadCards(hangar, box) {
   const c = st.af.combat;
@@ -114,11 +145,12 @@ function accessoryCards(hangar, box) {
 
 /* The all up mass and the thrust to weight it leaves, off the airframe's
  * own static figure (configs/airframes.js thrustToWeight, which is the
- * bare machine's). */
+ * bare machine's), or its propulsion's where it has them. */
 function statsBlock(box) {
   const af = st.af;
   const kg = combatMass(af, af.grams, st.entry);
-  const tw = af.thrustToWeight * (af.grams / 1000) / kg;
+  const bare = propulsionOf(af, st.entry) ?? af;
+  const tw = bare.thrustToWeight * (bare.grams / 1000) / kg;
   const grid = el('div', 'hangar-stats parts-stats');
   for (const [label, value] of [
     ['loadout.stat_all_up', str('loadout.kg', { n: number(kg, 2) })],
@@ -137,7 +169,7 @@ registerHangarTab({
   open(hangar, settings) {
     const af = airframeById(hangar.id);
     const saved = af.id === hangar.id ? combatChoice(af, settings.combat ? settings.combat[af.id] : null) : null;
-    st = saved ? { af, settings, saved, entry: { payload: saved.payload, accessories: [...saved.accessories] } } : null;
+    st = saved ? { af, settings, saved, entry: { ...saved, accessories: [...saved.accessories] } } : null;
   },
   close() {
     st = null;
@@ -166,6 +198,7 @@ registerHangarTab({
       box.append(el('p', 'hangar-note', str('loadout.none_here')));
       return box;
     }
+    propulsionCards(hangar, box);
     payloadCards(hangar, box);
     accessoryCards(hangar, box);
     statsBlock(box);

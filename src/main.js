@@ -134,6 +134,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { createGrid as createWarGrid } from './share/war/grid.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -168,12 +169,12 @@ import { ESTIMATES } from '../configs/power-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
-import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
+import { AIRFRAMES, STRIKER_CAMERA, airStartSpeed, airframeById } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
-import { combatAddon, combatChoice, payloadForWarhead, setCombatSource, warPayload } from '../configs/combat.js';
+import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
@@ -207,6 +208,7 @@ const WING_MOUNTS = {
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
+  striker2500: [STRIKER_CAMERA.forward, STRIKER_CAMERA.up],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
   timber1500f: [TIMBER_MOUNT_FORWARD, TIMBER_FLOAT_MOUNT_UP],
@@ -699,8 +701,12 @@ export async function boot({
   const avionicsHud = new AvionicsHud(uiRoot);
   const telemetry = createFlightTelemetry();
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
-  const perception = createPerception({ seed: 0x51ED5EED });
-  const tracks = createTrackManager();
+  /* The top of the map under a point, for what hides a target. */
+  const avxHeightAt = (x, z) => view.height(x, z, Infinity);
+  const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
+  const tracks = createTrackManager({ heightAt: avxHeightAt });
+  /* Thermal's night advantage: what light the sensors have. */
+  const avxEnv = { light: 1 };
   const avxHud = { state: 'MANUAL', reasons: [], ai: false };
   const avxOwn = { p: [0, 0, 0], v: [0, 0, 0], camera: shell.camera };
   const avxVel = new THREE.Vector3();
@@ -2095,6 +2101,10 @@ export async function boot({
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
+  /* The night raid's power outages (src/share/war/grid.js): which of the
+   * map's lights are out, from the war's events and view, the same on
+   * every screen. */
+  const warGrid = createWarGrid();
   /*
    * A COMBAT QUAD'S PAYLOAD AND ACCESSORIES (configs/combat.js,
    * docs/COMBAT-DRONES.md): the pilot's choice, except in a war, where the
@@ -2111,9 +2121,19 @@ export async function boot({
       return choice;
     }
     const l = roomWar.view().loadouts?.[roomWar.seat()];
-    return { payload: payloadForWarhead(af, l ? l.warhead : 'standard'), accessories: choice.accessories };
+    return { ...choice, payload: payloadForWarhead(af, l ? l.warhead : 'standard') };
   }
   setCombatSource(combatSeated);
+  /* The plant an aircraft seats: its own, or on an aircraft pushed more
+   * than one way (the Striker), the one its seated propulsion is
+   * (configs/combat.js combatSimId). */
+  function seatedSimId(id) {
+    const af = airframeById(id);
+    return af.combat ? combatSimId(af, combatSeated(af.id)) : af.simId;
+  }
+  /* The plant seated now, which a propulsion changes without the airframe
+   * changing. The module starts on the five inch's. */
+  let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
   const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card' };
@@ -3155,6 +3175,10 @@ export async function boot({
       audio.warRadio.duck(heard);
     }
     const events = roomWar.takeEvents();
+    warGrid.hear(events, v);
+    if (view && typeof view.setPower === 'function') {
+      view.setPower(warGrid.levels(v, now));
+    }
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
@@ -4212,6 +4236,14 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     night: warNightLog.slice(),
+    /* Each power district 'lit', 'flicker' or 'dark' now, and what the
+     * map was handed (src/share/war/grid.js). */
+    grid: {
+      at: roomLinkState.roomNow(),
+      state: warGrid.state(roomWar.view(), roomLinkState.roomNow()),
+      map: view && view.scene && view.scene.userData.itaipu && view.scene.userData.itaipu.look.night()
+        ? view.scene.userData.itaipu.look.night().levels() : null,
+    },
     hud: warHud.shown(),
     round: warRoundCard.shown(),
     markers: warMarkers.shown(),
@@ -7315,7 +7347,9 @@ export async function boot({
         throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(none)}`);
       }
       runCells = af.cells;
-      setFlownVoice(af.voice ?? 'wing');
+      /* An aircraft pushed more than one way speaks with the engine it has. */
+      const pushed = propulsionOf(af, combatSeated(af.id));
+      setFlownVoice((pushed && pushed.voice) ?? af.voice ?? 'wing');
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
@@ -9262,8 +9296,9 @@ export async function boot({
     ui.modeSyncedFor = to.id;
     ui.persistSettings();
     runAirframe = to.id;
-    if (sim.e.sim_set_airframe(to.simId) !== SIM_OK) {
-      throw new Error(`sim_set_airframe refused ${to.id}`);
+    runSimId = seatedSimId(to.id);
+    if (sim.e.sim_set_airframe(runSimId) !== SIM_OK) {
+      throw new Error(`sim_set_airframe refused ${to.id} (${runSimId})`);
     }
     bumpConfigGen();
     const nextPids = pidsDiffFor(s.pids, s.tune);
@@ -10115,10 +10150,14 @@ export async function boot({
        * five inch, which is what that build has.
        */
       const wantCraft = airframeById(s.airframe).id;
-      if (wantCraft !== runAirframe) {
+      /* A propulsion chosen on the Loadout tab is a plant of its own, so it
+       * changes the plant as an airframe does, on the same rule. */
+      const wantSim = seatedSimId(wantCraft);
+      if (wantCraft !== runAirframe || wantSim !== runSimId) {
         runAirframe = wantCraft;
+        runSimId = wantSim;
         if (typeof sim.e.sim_set_airframe === 'function') {
-          sim.e.sim_set_airframe(simIdFor(runAirframe));
+          sim.e.sim_set_airframe(runSimId);
         }
         /*
          * The plant changed under a module that is already initialised, so
@@ -12933,12 +12972,14 @@ export async function boot({
     }
     const tS = telemetry.state.tS;
     if (tS < avxLastT) {
+      perception.reset();
       tracks.reset();
     }
     avxLastT = tS;
     if (!paused) {
       sensors.update(tS, dtS);
-      perception.update(tS, sensors.state, truth, avxOwn);
+      avxEnv.light = roomWar.night() ? 0.05 : 1;
+      perception.update(tS, sensors.state, truth, avxOwn, avxEnv);
       tracks.update(tS, perception.detections, avxOwn);
     }
     hudStateOf(telemetry.state, sensors.state, tracks.snapshot, avxHud.ai, avxHud);
@@ -14855,9 +14896,11 @@ export async function boot({
         const feed = fpvFail.level(nowWall);
         telemetry.feed(osdView, osdCtx, fpvOsd, { videoSnow: feed.snow, cameraLost: fpvFail.deadSince() >= 0, load: perception.load });
         simPosToThree(st[4], st[5], st[6], avxVel);
-        avxOwn.p[0] = shell.quad.position.x;
-        avxOwn.p[1] = shell.quad.position.y;
-        avxOwn.p[2] = shell.quad.position.z;
+        /* The sensor looks from the camera, which a chase view puts
+         * behind the craft. */
+        avxOwn.p[0] = shell.camera.position.x;
+        avxOwn.p[1] = shell.camera.position.y;
+        avxOwn.p[2] = shell.camera.position.z;
         avxOwn.v[0] = avxVel.x;
         avxOwn.v[1] = avxVel.y;
         avxOwn.v[2] = avxVel.z;
@@ -15080,8 +15123,10 @@ export async function boot({
         ? str('main.throttle_up_flaps_f')
         : airframeById(runAirframe).gear
         ? str('main.throttle_up_to_take_off_from')
-        : airframeById(runAirframe).catapult
+        : airframeById(runAirframe).catapult && airframeById(runAirframe).chute
         ? str('main.launch_it_off_the_catapult')
+        : airframeById(runAirframe).catapult
+        ? str('main.launch_it_off_the_rail')
         : isWing
         ? str('main.throw_it_with_l')
         : ui.settings.launchControl
