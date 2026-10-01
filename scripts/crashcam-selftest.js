@@ -928,7 +928,12 @@ function file() {
     const paint = { finishes: { wing: 'chrome' }, decals: [newDecal('num', [0.05, 0, -0.1], [1, 0, 0])] };
     const painted = decodeReplay(encodeReplay({ ...c, meta: { ...c.meta, paint } }));
     check(JSON.stringify(painted.meta.paint) === JSON.stringify(paint), 'the finishes and decals come back with the clip');
+    /* The garage's: carbon, a text decal in stencil and the wear. */
+    const garage = { finishes: { wing: 'carbon', fuselage: 'aluminium' }, decals: [newDecal('text', [0, 0.05, 0], [0, 1, 0])], wear: 0.6 };
+    const worn = decodeReplay(encodeReplay({ ...c, meta: { ...c.meta, paint: garage } }));
+    check(JSON.stringify(worn.meta.paint) === JSON.stringify(garage), 'carbon, aluminium, words and wear come back with the clip');
   }
+  refused(withHeader((h) => { h.meta.paint = { decals: [], wear: 2 }; }), 'a wear past battle worn');
   refused(withHeader((h) => { h.meta.paint = { finishes: { wing: 'gold' }, decals: [] }; }), 'a finish that is not one');
   refused(withHeader((h) => { h.meta.paint = { decals: [{ k: 'num', url: 'x' }] }; }), 'a decal that is not one');
   refused(withHeader((h) => { h.meta.paint = { decals: [], script: 1 }; }), 'an unknown paint field');
