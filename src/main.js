@@ -128,6 +128,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { createGrid as createWarGrid } from './share/war/grid.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -2058,6 +2059,10 @@ export async function boot({
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
+  /* The night raid's power outages (src/share/war/grid.js): which of the
+   * map's lights are out, from the war's events and view, the same on
+   * every screen. */
+  const warGrid = createWarGrid();
   /*
    * A COMBAT QUAD'S PAYLOAD AND ACCESSORIES (configs/combat.js,
    * docs/COMBAT-DRONES.md): the pilot's choice, except in a war, where the
@@ -3128,6 +3133,10 @@ export async function boot({
       audio.warRadio.duck(heard);
     }
     const events = roomWar.takeEvents();
+    warGrid.hear(events, v);
+    if (view && typeof view.setPower === 'function') {
+      view.setPower(warGrid.levels(v, now));
+    }
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
@@ -4184,6 +4193,14 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     night: warNightLog.slice(),
+    /* Each power district 'lit', 'flicker' or 'dark' now, and what the
+     * map was handed (src/share/war/grid.js). */
+    grid: {
+      at: roomLinkState.roomNow(),
+      state: warGrid.state(roomWar.view(), roomLinkState.roomNow()),
+      map: view && view.scene && view.scene.userData.itaipu && view.scene.userData.itaipu.look.night()
+        ? view.scene.userData.itaipu.look.night().levels() : null,
+    },
     hud: warHud.shown(),
     round: warRoundCard.shown(),
     markers: warMarkers.shown(),
