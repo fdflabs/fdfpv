@@ -27,6 +27,13 @@
  *   damage off  the host's sweep (collide.js Colliders.hit) along the same
  *               path meets the chord as a `wire`, and a metre clear meets
  *               nothing
+ *   strings     a five inch and a Skyhunter flown across a 500 kV line into
+ *               a tower's outer insulator string at its middle, with the
+ *               strings and pieces near it handed to the plant as the
+ *               shell hands a `pole` (crashworld.js nearestSolids, an
+ *               upright cylinder in its surface) and the wires as above:
+ *               met, on that surface, within the string's radius of it,
+ *               something broken; a metre to its side, nothing
  *
  *   node scripts/wire-check.js        exit 1 on any failure
  *
@@ -59,8 +66,8 @@ import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { Rig } from './lib/crash-scenarios.js';
 import { DAMAGE_FLAGS, SURFACES, WIRES_MAX } from '../configs/parts.js';
 import { Colliders, KINDS } from '../src/game/collide.js';
-import { nearestWires } from '../src/game/crashworld.js';
-import { layOut, drawnWires } from '../src/maps/itaipu/town/power.js';
+import { nearestSolids, nearestWires, solidSurfaceAt } from '../src/game/crashworld.js';
+import { layOut, drawnWires, piecesOf, stringsOf } from '../src/maps/itaipu/town/power.js';
 import { loadHeight } from '../edge/rooms/warhunt.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -370,6 +377,80 @@ console.log('3. damage off: the host\'s sweep meets the wire as a wire');
     const k1 = sweep(s.w[6] + CLEAR + 0.2);
     check(`${s.name}: swept through it, a wire; a metre over, nothing`, k0 === WIRE && k1 < 0,
       `through: ${k0 >= 0 ? KINDS[k0] : 'nothing'}, over: ${k1 >= 0 ? KINDS[k1] : 'nothing'}`);
+  }
+}
+
+console.log('4. damage on: the insulator strings are solid where they hang');
+{
+  /* A tower on a 500 kV line or higher, standing clear of the others, its
+   * line's direction its frame's axis. */
+  const tower = town.structures.find((t) => t.kind === 'tower' && t.kv >= 400
+    && !town.structures.some((o) => o !== t && Math.hypot(o.x - t.x, o.z - t.z) < 60));
+  const string = stringsOf(tower)[0];
+  const mid = [string[0], (string[1] + string[4]) / 2, string[2]];
+  const r = string[6];
+  /* The plant's frame: x across the line from outside it, through the
+   * string toward the tower, so the craft crosses no conductor (they run
+   * along the line, below the string), z up. */
+  const s = { m: mid, w: [mid[0] - tower.ax, mid[1], mid[2] - tower.az, mid[0] + tower.ax, mid[1], mid[2] + tower.az] };
+  const fr = frameOf(s);
+  const col = new Colliders();
+  for (const p of [...piecesOf(tower), ...stringsOf(tower)]) {
+    col.add('pole', ...p);
+  }
+  for (const w of wires) {
+    if (segDist(w, mid) < 200) {
+      col.add('wire', w[0], w[1], w[2], w[3], w[4], w[5], w[6]);
+    }
+  }
+  col.build();
+  const stringAt = fr.toPlant(mid);
+  for (const a of AIRCRAFT.filter((x) => x.id === 0 || x.id === 3)) {
+    const flyAt = async (side, h = 0, declare = true) => {
+      const rig = await Rig.create(loadSim, wasm, cfg, { id: a.id, ground: null });
+      const { sim } = rig;
+      if (!a.quad) {
+        sim.e.sim_wing_set_stab(0);
+      }
+      const pick = [];
+      nearestSolids(col, mid[0], mid[1], mid[2], 40, declare ? 64 : 0, pick);
+      for (const { i } of pick) {
+        const pa = fr.toPlant([col.fax[i], Math.min(col.fay[i], col.fby[i]) - col.fr[i], col.faz[i]]);
+        const top = fr.toPlant([col.fax[i], Math.max(col.fay[i], col.fby[i]) + col.fr[i], col.faz[i]])[2];
+        const upright = Math.abs(col.fbx[i] - col.fax[i]) < 1e-3 && Math.abs(col.fbz[i] - col.faz[i]) < 1e-3;
+        if (upright && sim.e.sim_obstacle_cylinder(pa[0], pa[1], pa[2], top, col.fr[i], solidSurfaceAt(col, i)) < 0) {
+          throw new Error('sim_obstacle_cylinder refused a string');
+        }
+      }
+      const wp = [];
+      nearestWires(col, mid[0], mid[1], mid[2], WIRE_REACH, declare ? WIRES_MAX : 0, wp);
+      for (const { i } of wp) {
+        sim.e.sim_wire_add(...fr.toPlant([col.fax[i], col.fay[i], col.faz[i]]), ...fr.toPlant([col.fbx[i], col.fby[i], col.fbz[i]]), col.fr[i]);
+      }
+      rig.pose([-RUN_IN, side, h], [1, 0, 0, 0]);
+      if (a.quad) {
+        rig.velocity([a.speed, 0, 0]);
+      } else {
+        rig.launch(a.speed);
+      }
+      rig.path = [];
+      rig.run(FLY_MS, a.quad ? [0, 0, 0, 0.42] : [0, 0, 0, 0.75], (st) => rig.path.push([st[1], st[2], st[3]]));
+      return rig;
+    };
+    /* Started so its CG crosses the string's middle, its own path found
+     * by flying it once with nothing there. */
+    const h = -crossing((await flyAt(stringAt[1], 0, false)).path)[2];
+    const hit = await flyAt(stringAt[1], h);
+    const half = Math.max(...hit.parts.map((p) => Math.max(-p.boxMin[1], p.boxMax[1])));
+    const met = hit.events.filter((e) => e.typeName !== 'settle');
+    const pole = solidSurfaceAt(col, piecesOf(tower).length + 2);
+    const first = met.find((e) => e.surface === pole);
+    const off = first ? Math.hypot(first.point[0] - stringAt[0], first.point[1] - stringAt[1]) - r : Infinity;
+    check(`a ${tower.kv} kV tower's outer string, ${a.name} at ${a.speed} m/s into it: met on a pole's surface within its radius, damaged`,
+      Boolean(first) && off <= 0.08 && met.some((e) => ['break', 'crush', 'chip'].includes(e.typeName)),
+      first ? `${met.length} events, first ${first.typeName} on ${hit.parts[first.part].label} on ${SURFACES[first.surface]}, ${off.toFixed(3)} m outside the string; ${hit.summary().slice(0, 100)}` : 'nothing met');
+    const clear = await flyAt(stringAt[1] + r + CLEAR + half, h);
+    check(`a ${tower.kv} kV tower's outer string, ${a.name}: a metre to its side, nothing met`, clear.events.length === 0, `${clear.events.length} events`);
   }
 }
 
