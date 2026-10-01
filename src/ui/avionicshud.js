@@ -46,6 +46,9 @@ const HUD_HZ = 30;
 const TEXT_HZ = 10;
 /* The game's furniture is looked for this often (it comes and goes). */
 const KEEP_OUT_MS = 1000;
+/* The panels' margin from the window and from each other, CSS px. */
+const PANEL_EDGE = 16;
+const PANEL_GAP = 8;
 const MAX_DPR = 3;
 const DEG = 180 / Math.PI;
 
@@ -430,7 +433,8 @@ export class AvionicsHud {
       }
       const r = e.getBoundingClientRect();
       if (r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none') {
-        this.keepOut.push({ x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height });
+        /* A banner is a line of text that comes and goes: soft. */
+        this.keepOut.push({ x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height, soft: e.classList.contains('banner') });
       }
     }
     if (radar) {
@@ -445,30 +449,48 @@ export class AvionicsHud {
    * since they are the ones a pilot needs in a hurry.
    */
   place() {
-    const edge = 16;
-    const gap = 8;
     const order = [['energy', 'l', 'b'], ['cam', 'r', 'b'], ['mode', 'l', 't'], ['health', 'r', 't']];
     this.placed.length = 0;
     const tapes = this.tapeRects();
     const fixed = [tapes.heading];
     for (const [id, ax, ay] of order) {
-      const p = this.panels[id];
-      const w = p.offsetWidth;
-      const h = p.offsetHeight;
-      const x = ax === 'l' ? edge : this.w - edge - w;
-      let y = ay === 't' ? edge : this.h - edge - h;
+      const me = this.slide(this.panels[id], ax, ay, [...this.keepOut, ...this.placed, ...fixed]);
+      this.panels[id].style.left = `${Math.round(me.x)}px`;
+      this.panels[id].style.top = `${Math.round(me.y)}px`;
+      this.placed.push(me);
+    }
+  }
+
+  /*
+   * Panel p in its corner, slid away from the edge it hangs from until
+   * clear of `against`. On a narrow screen a centre banner reaches both
+   * columns, and sliding under it pushed the top panels off the bottom of
+   * a phone: when no place inside the window clears everything, the
+   * panel dodges only what stays (not the soft banners), since sitting
+   * under a passing line of text beats sitting on another panel or not
+   * being there. Failing that too, the last place inside the window.
+   */
+  slide(p, ax, ay, against) {
+    const w = p.offsetWidth;
+    const h = p.offsetHeight;
+    const x = ax === 'l' ? PANEL_EDGE : this.w - PANEL_EDGE - w;
+    const home = ay === 't' ? PANEL_EDGE : this.h - PANEL_EDGE - h;
+    let me = null;
+    for (const set of [against, against.filter((r) => !r.soft)]) {
+      me = { x, y: home, w, h };
       for (let tries = 0; tries < 16; tries += 1) {
-        const me = { x, y, w, h };
-        const hit = [...this.keepOut, ...this.placed, ...fixed].find((r) => meets(r, me));
+        const hit = set.find((r) => meets(r, me));
         if (!hit) {
+          return me;
+        }
+        const y = ay === 't' ? hit.y + hit.h + PANEL_GAP : hit.y - PANEL_GAP - h;
+        if (y < PANEL_EDGE || y + h > this.h - PANEL_EDGE) {
           break;
         }
-        y = ay === 't' ? hit.y + hit.h + gap : hit.y - gap - h;
+        me.y = y;
       }
-      p.style.left = `${Math.round(x)}px`;
-      p.style.top = `${Math.round(y)}px`;
-      this.placed.push({ x, y, w, h });
     }
+    return me;
   }
 
   /* The panels' text from the state objects. */
