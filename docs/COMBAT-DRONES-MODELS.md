@@ -144,13 +144,13 @@ These are requests, not edits: the files are the physics branch's.
    warhead as `opts.combat.payload` (the payload ids and the war's warhead
    ids are the same words in the doc).
 4. **The FPV camera.** The model's camera is where the parts list puts it,
-   about the CG 78.3 mm forward and 16.9 mm down on the 7 inch, 98.4 mm and
+   about the CG 78.3 mm forward and 16.7 mm down on the 7 inch, 98.4 mm and
    21.0 mm on the 10 inch. The FPV view is placed by `src/render/lens.js`
    (80 mm forward, 18 mm up, the five inch's). The near plane hides the
    difference in the picture, but the parallax a roll gives is the
    camera's height, so the view may want the combat quads' own mount.
 5. **The hull's top.** As drawn, the bare 7 inch's highest point (not
-   counting antennas) is its pack's top, 42.1 mm above the CG, 84.1 mm with
+   counting antennas) is its pack's top, 42.3 mm above the CG, 84.3 mm with
    `pack2`; the 10 inch's 44.0 mm. `scripts/craft-check.js` holds
    `vHalfUp` to the seated default's, which is the bare machine.
 6. **A render liberty.** The long range antenna and the receiver whips
