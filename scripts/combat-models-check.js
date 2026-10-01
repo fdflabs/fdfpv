@@ -275,6 +275,8 @@ try {
       check(`${name}: the prop is what spins`, propulsion === 'prop' ? r.war.spin > 0 : r.war.spin === 0, `${r.war.spin} vertices marked`);
       check(`${name}: garage model within the quads' budget`, r.full.draws <= budget.draws && r.lite.draws <= budget.liteDraws && r.full.tris <= budget.tris,
         `${r.full.draws} draws (${r.lite.draws} lite), ${r.full.tris} triangles`);
+      check(`${name}: on its launch rail, within the quads' budget`, r.railed.draws <= budget.draws && r.railed.tris <= budget.tris,
+        `${r.railed.draws} draws, ${r.railed.tris} triangles, ${r.railed.tris - r.full.tris} of them the launcher`);
       check(`${name}: same machine twice`, r.hashA === r.hashB, `${r.hashA} then ${r.hashB}`);
       const prior = strikerHashes.get(r.hashA);
       check(`${name}: distinct from the other builds`, !prior, prior ? `draws the same as ${prior}` : r.parts.join(' '));

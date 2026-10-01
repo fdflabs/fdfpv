@@ -5838,11 +5838,12 @@ export async function boot({
 
   /*
    * A CATAPULT LAUNCHED AIRCRAFT IS NOT THROWN EITHER, IT IS SHOT OFF A
-   * RAIL: the Bramor. Parked, it is drawn on the rail, `catapult.height`
-   * over the ground and `catapult.pitchDeg` nose up, facing the way it
-   * faced; L, or throttle, puts the plant at exactly that pose and lets it
-   * go at the rail's release speed along its nose, which is the end of the
-   * shuttle's stroke. The launcher stays where it stood. From anywhere else
+   * RAIL: the Bramor and the Striker. Parked, it is drawn on the rail,
+   * `catapult.height` over the ground and `catapult.pitchDeg` nose up,
+   * facing the way it faced; L, or throttle, puts the plant at exactly that
+   * pose and lets it go at the rail's release speed along its nose, which
+   * is the end of the shuttle's stroke. The launcher stays where it stood.
+   * From anywhere else
    * (it came down under its chute in a field) the same release happens
    * where it lies, the ground crew having carried the rail to it; a chute
    * still out is packed first.
@@ -6647,7 +6648,7 @@ export async function boot({
     return true;
   }
   /*
-   * The Bramor's catapult, once the aircraft has left it: the launcher's
+   * A catapult, once the aircraft has left it: the launcher's
    * world matrix, held so it stays at the spawn while the aircraft it is
    * parented to flies away (it is part of the craft's model, so it is
    * built, swapped and disposed with it and needs no scene of its own).

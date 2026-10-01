@@ -32,7 +32,10 @@ import {
 } from '../../src/render/combatcraft.js';
 import { dressDecals, readDecals } from '../../src/render/decals.js';
 import { readFinish } from '../../src/render/finish.js';
-import { buildStrikerCraft, strikerWarGeometry, STRIKER_PROPULSION } from '../../src/render/strikercraft.js';
+import {
+  buildStrikerCraft, buildStrikerLauncher, strikerWarGeometry, STRIKER_PROPULSION,
+} from '../../src/render/strikercraft.js';
+import { STRIKER_RAIL } from '../../configs/airframes.js';
 import { attackerGeometry, createAttackers } from '../../src/render/attackers.js';
 import { buildHeroCraft } from '../../src/render/herocraft.js';
 import { buildWhoopCraft } from '../../src/render/whoopcraft.js';
@@ -369,6 +372,11 @@ window.__combat = {
     const a = buildStrikerCraft({ ...choice, fog: false });
     const b = buildStrikerCraft({ ...choice, fog: false });
     const lite = buildStrikerCraft({ ...choice, fog: false, lite: true });
+    /* And parked on its launch rail, the launcher shown, as the shell
+     * draws it on the pad. */
+    const railed = buildStrikerCraft({ ...choice, fog: false });
+    buildStrikerLauncher(railed, STRIKER_RAIL, { fog: false });
+    railed.launcher.visible = true;
     const rotor = a.blades[0];
     let turns = null;
     if (rotor.children.length) {
@@ -415,6 +423,7 @@ window.__combat = {
       },
       full: cost(a.group),
       lite: cost(lite.group),
+      railed: cost(railed.group),
       hashA: hashOf(a.group),
       hashB: hashOf(b.group),
       insideOut: insideOut(a),
@@ -424,7 +433,7 @@ window.__combat = {
       slots: [a.blades.length, a.discs.length, a.propSpin.join(',')],
     };
     war.dispose();
-    for (const c of [a, b, lite]) {
+    for (const c of [a, b, lite, railed]) {
       release(c.group);
     }
     return r;

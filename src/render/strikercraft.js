@@ -27,6 +27,9 @@
  * repaint keeps its panel lines. Everything that is not skin samples a
  * clean texel of it.
  *
+ * THE LAUNCH RAIL a pilot's Striker is shot off is buildStrikerLauncher(),
+ * at the end: the garage's and the flown aircraft's, never the war's.
+ *
  * Generic and unmarked, as every war model is (docs/WARFARE-PLAN.md
  * section 3). Built in the model frame (src/render/frame.js: nose -z, top
  * +y, metres) about the airframe's centre, which is the point the room's
@@ -597,4 +600,152 @@ export function buildStrikerCraft(opts = {}) {
   };
   craft.combat.paint = paintHook(craft, coat, strikerSurfaces());
   return craft;
+}
+
+/* ------------------------------------------------------------------ */
+/* The launch rail.                                                    */
+/* ------------------------------------------------------------------ */
+
+/* The rail's box section, metres: shallow enough that the 30 in pusher's
+ * lower blade, 0.36 m under the CG, clears its top. */
+const RAIL_W = 0.08;
+const RAIL_H = 0.05;
+/* How far the rail runs on past the release point, under the nose. */
+const RAIL_LEAD = 0.15;
+
+/* A tube from a to b, as a geometry in the frame a and b are in. */
+function tubeGeo(a, b, r, seg) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  const g = new THREE.CylinderGeometry(r, r, d.length(), seg);
+  g.applyMatrix4(new THREE.Matrix4().compose(
+    a.clone().addScaledVector(d, 0.5),
+    new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()),
+    new THREE.Vector3(1, 1, 1),
+  ));
+  return g;
+}
+
+/* A box of size [w, h, d] with its centre at `at`, as a geometry. */
+function boxAt(size, at) {
+  return box(...size).translate(at.x, at.y, at.z);
+}
+
+/*
+ * THE LAUNCH RAIL the Striker is shot off, `rail` STRIKER_RAIL
+ * (configs/airframes.js): the full size machine's ground launcher, a steel
+ * box section rail on an A-frame, its foot on the ground, with the
+ * pneumatic ram under it that strokes the shuttle, and the shoe the belly
+ * skid sits in. Built about the CG and added to `craft.group`, so it is
+ * called once the drawing has been moved onto the CG (src/render/craft.js)
+ * and reads where the skid is from the parts as they then stand: the
+ * piston and the turbojet Striker hang their skid at slightly different
+ * depths, and each sits on the same rail.
+ *
+ * Its numbers are the rail's, with no new ones about where the aircraft
+ * leaves it: the release point is on the rail straight under the CG, the
+ * rail runs `railLength` aft and down from there at `pitchDeg`, and its
+ * underside's aft corner is on the ground, `height` under the CG, which
+ * sets how far under the belly the rail runs. That is the Bramor's
+ * catapult's rule (src/render/bramorcraft.js), and scripts/craft-check.js
+ * measures both against their numbers in the parked shell.
+ *
+ * Built level, as the Bramor's is, and turned by minus the rail's pitch,
+ * so that as a child of the aircraft pitched up on the rail it stands
+ * level on the ground; what lies along the rail is built square in the
+ * aircraft's own frame inside it. Named 'launcher' and hidden; the shell
+ * shows it (src/main.js). Sets craft.launcher and craft.launcherRest.
+ */
+export function buildStrikerLauncher(craft, rail, opts = {}) {
+  const fog = opts.fog !== false;
+  const lite = Boolean(opts.lite);
+  const seg = lite ? 6 : 10;
+  const theta = (rail.pitchDeg * Math.PI) / 180;
+  const cos = Math.cos(theta);
+  const sin = Math.sin(theta);
+  const steel = celMaterial({ color: 0x4d5247, fog, cloudShadow: 0, rim: 0.22, spec: 0.30, specWidth: 0.02 });
+  const dark = celMaterial({ color: 0x2b2d2f, fog, cloudShadow: 0, rim: 0.20, spec: 0.35, specWidth: 0.02 });
+
+  /* The skid's foot and its length, in the aircraft's frame. */
+  const skid = craft.combat.parts.skid;
+  const foot = new THREE.Box3();
+  for (const m of skid.children) {
+    m.geometry.computeBoundingBox();
+    foot.union(m.geometry.boundingBox);
+  }
+  foot.translate(skid.position);
+
+  /* The rail's underside runs `under` beneath the CG, perpendicular to the
+   * aircraft, so that `railLength` aft of the release point it meets the
+   * ground `height` down: under cos + railLength sin = height. */
+  const under = (rail.height - rail.railLength * sin) / cos;
+  const top = under - RAIL_H;
+  if (top <= -foot.min.y) {
+    throw new Error(`strikercraft: the rail's top, ${top.toFixed(3)} m under the CG, is not under the skid's foot, ${(-foot.min.y).toFixed(3)} m`);
+  }
+
+  const g = new THREE.Group();
+  g.name = 'launcher';
+  const along = new THREE.Group();
+  along.rotation.x = theta;
+  g.add(along);
+
+  /* Along the rail, in the aircraft's frame: z aft, y up. */
+  const railLen = rail.railLength + RAIL_LEAD;
+  const beam = new THREE.Mesh(box(RAIL_W, RAIL_H, railLen), steel);
+  beam.name = 'rail';
+  beam.position.set(0, -under + RAIL_H / 2, rail.railLength - railLen / 2);
+  beam.castShadow = !lite;
+  along.add(beam);
+  const zc = (foot.min.z + foot.max.z) / 2;
+  const shoeH = top + foot.min.y;
+  const ramR = 0.032;
+  const ram = mergeGeometries([
+    /* The shoe: a shuttle on the rail with the skid in its saddle. */
+    boxAt([0.11, shoeH, foot.max.z - foot.min.z + 0.06], new THREE.Vector3(0, foot.min.y - shoeH / 2, zc)),
+    boxAt([RAIL_W + 0.03, 0.03, 0.34], new THREE.Vector3(0, -top + 0.005, zc)),
+    /* The ram under the rail, on two hangers, from 0.3 m below the
+     * release point to where it would meet the ground. */
+    tubeGeo(new THREE.Vector3(0, -under - ramR - 0.02, 0.3), new THREE.Vector3(0, -under - ramR - 0.02, rail.railLength - 0.6), ramR, seg),
+    boxAt([0.03, 0.04, 0.03], new THREE.Vector3(0, -under - 0.02, 0.4)),
+    boxAt([0.03, 0.04, 0.03], new THREE.Vector3(0, -under - 0.02, rail.railLength - 0.7)),
+  ], false);
+  const ramMesh = new THREE.Mesh(ram, dark);
+  ramMesh.castShadow = !lite;
+  along.add(ramMesh);
+
+  /* On the ground, level: the A-frame from a third of the way down the
+   * rail, splayed forward to two feet, a brace across it, a base frame
+   * from the feet back to the rail's foot, and the air bottle on it. */
+  const ground = -rail.height;
+  const craftDown = new THREE.Vector3(0, -cos, -sin);
+  const railDir = new THREE.Vector3(0, -sin, cos);
+  const onRail = (s) => craftDown.clone().multiplyScalar(under).addScaledVector(railDir, s);
+  const hip = onRail(rail.railLength / 3);
+  const railFoot = onRail(rail.railLength);
+  /* Each leg ends on a pad on the base frame, whose top is 40 mm up: a
+   * tube's end cut square to the slanting leg would dip into the ground. */
+  const feet = [-1, 1].map((s) => new THREE.Vector3(s * 0.55, ground + 0.04, hip.z - 0.35));
+  const legR = 0.025;
+  const mid = (a, b, t) => a.clone().lerp(b, t);
+  const frame = [
+    ...feet.map((f) => tubeGeo(hip, f, legR, seg)),
+    ...feet.map((f) => boxAt([0.10, 0.02, 0.10], new THREE.Vector3(f.x, ground + 0.03, f.z))),
+    tubeGeo(mid(hip, feet[0], 0.55), mid(hip, feet[1], 0.55), legR * 0.8, seg),
+    ...feet.map((f) => boxAt([0.06, 0.04, railFoot.z - f.z], new THREE.Vector3(f.x, ground + 0.02, (f.z + railFoot.z) / 2))),
+    boxAt([1.16, 0.04, 0.06], new THREE.Vector3(0, ground + 0.02, railFoot.z - 0.03)),
+    boxAt([1.16, 0.04, 0.06], new THREE.Vector3(0, ground + 0.02, feet[0].z)),
+  ];
+  const frameMesh = new THREE.Mesh(mergeGeometries(frame, false), steel);
+  frameMesh.castShadow = !lite;
+  g.add(frameMesh);
+  const bottle = new THREE.Mesh(cylZ(0.09, 0.09, 0.7, seg).translate(0.32, ground + 0.09, railFoot.z - 0.55), dark);
+  bottle.castShadow = !lite;
+  g.add(bottle);
+
+  g.rotation.x = -theta;
+  g.visible = false;
+  craft.group.add(g);
+  craft.launcher = g;
+  craft.launcherRest = { position: g.position.clone(), quaternion: g.quaternion.clone() };
+  return g;
 }

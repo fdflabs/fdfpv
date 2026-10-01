@@ -574,7 +574,12 @@ a combat quad's is (section 3); `none` goes to war with the equipped one.
 ### 7.6 Taking off and coming down
 
 It is shot off a rail, as the full size machine is (that one on a
-booster): parked, the shell stands it on the rail's pose, and throttle or
+booster): parked, the shell stands it on the rail's pose, on the drawn
+launcher (`buildStrikerLauncher` in `src/render/strikercraft.js`, a box
+section rail on an A-frame with a pneumatic ram under it, its foot on the
+ground and the belly skid in its shoe, built from `STRIKER_RAIL` and held
+to it by `npm run check:craft`), which stays standing when the aircraft
+goes; throttle or
 L lets it go at 19 m/s along its nose, 1.3 times the trimmed stall of its
 heaviest warhead on the jet, the faster stalling of the two. The turbojet
 leaves at full power, run up on the rail. It comes down on its belly skid,
