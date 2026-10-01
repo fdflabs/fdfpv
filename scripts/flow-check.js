@@ -193,6 +193,13 @@ try {
   })`);
   check('the pause menu in a room: Leave the room, no row to the title',
     pause.screen === 'paused' && pause.rows.includes('friends-leave:Leave the room') && !pause.rows.some((r) => r.startsWith('title:')), JSON.stringify(pause));
+  await page.evaluate("(() => { window.__ui.act('friends'); return true; })()");
+  await page.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
+  await page.tap('Escape');
+  await page.sleep(400);
+  const fromPause = await page.evaluate(ROOM);
+  check('the room screen opened from the pause: Escape is the pause again, still in the room',
+    fromPause.screen === 'paused' && fromPause.phase === 'open', JSON.stringify(fromPause));
   await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
   await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
   await page.sleep(400);
