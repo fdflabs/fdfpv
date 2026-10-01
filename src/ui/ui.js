@@ -824,7 +824,8 @@ const DEFAULTS = {
   /* The My Hangar builds each family is wearing, by land plane id, with
    * the pilot's own customisation of the stock plane kept to come back
    * (src/ui/builds.js). Empty is every plane flying the slots above as it
-   * always has. Not synced: the builds live under their own key. */
+   * always has. Not synced: what a computer wears is its own. The builds
+   * live under their own key and follow the account (src/ui/accountui.js). */
   buildFits: {},
   /*
    * How heavy the quad is, as a percentage of the weight the airframe is

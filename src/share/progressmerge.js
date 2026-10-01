@@ -15,6 +15,14 @@
  * (a plane's paint reset to the kit's), and the removal wins over an older
  * value, so a reset on one computer is not undone by the other.
  *
+ * MY HANGAR. The builds (src/ui/builds.js) live under their own storage
+ * key, not in the settings; src/ui/accountui.js puts them into the synced
+ * view as `builds`, by build id, and takes them back out. A build carries
+ * its whole fit (the paint entry itself, catalog ids for the power and the
+ * parts), never a saved livery's name, so it needs nothing else to fly.
+ * Which build a plane wears (settings.buildFits) is this computer's, and
+ * is not synced.
+ *
  * THE RULES, by section kind:
  *
  *   progress   XP is the higher of the two; courses flown, challenges
@@ -22,8 +30,14 @@
  *              is set; Unlock all is on if either turned it on.
  *   union      liverySaves: each plane's saved liveries, both lists, one
  *              entry per name, the incoming side's first.
- *   keyed      one entry per plane (or per tune), the newer stamp wins
- *              entry by entry.
+ *   keyed      one entry per plane (or per tune, or per build), the newer
+ *              stamp wins entry by entry. A build deleted is its id
+ *              stamped and absent: the tombstone. It beats the build
+ *              another computer still holds unless that one was changed
+ *              later, and the stamp is never dropped, because a computer
+ *              that syncs a month late would bring the build back.
+ *              combat is a combat aircraft's stock loadout by airframe id;
+ *              builds is My Hangar by build id.
  *   whole      the section as one value, the newer stamp wins.
  *   campaign   Defend the Paraná (src/game/campaign.js mergeCampaign):
  *              the most stars per mission, the higher credits earned,
@@ -60,6 +74,9 @@
  */
 
 import { mergeCampaign } from '../game/campaign.js';
+import {
+  BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS,
+} from '../../tracks-api/limits.js';
 
 export const SYNCED_SECTIONS = {
   progress: 'progress',
@@ -74,6 +91,8 @@ export const SYNCED_SECTIONS = {
   tune: 'whole',
   rates: 'whole',
   campaign: 'campaign',
+  combat: 'keyed',
+  builds: 'keyed',
 };
 
 const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual'];
@@ -87,8 +106,62 @@ function stampOf(stamps, part) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+const ID_RE = /^[a-z0-9_-]{1,40}$/;
+const BUILD_ID_RE = /^[a-z0-9]{1,40}$/;
+const shortString = (v) => typeof v === 'string' && v.length <= 40;
+const when = (v) => v === undefined || (Number.isFinite(v) && v >= 0);
+
+/* The entries of the sections whose entries have a shape the server can
+ * hold them to, by section: whether one entry, under its key, has it. */
+const ENTRY_SHAPES = {
+  combat: (key, e) => ID_RE.test(key) && isRecord(e) && shortString(e.payload)
+    && Array.isArray(e.accessories) && e.accessories.length <= 16 && e.accessories.every(shortString)
+    && (e.propulsion === undefined || shortString(e.propulsion)),
+  builds: (key, b) => BUILD_ID_RE.test(key) && isRecord(b) && (b.id === undefined || b.id === key)
+    && typeof b.name === 'string' && b.name.length >= 1 && b.name.length <= 40
+    && typeof b.airframe === 'string' && ID_RE.test(b.airframe) && isRecord(b.fit) && when(b.created) && when(b.updated),
+};
+
+/*
+ * Why a blob a computer sent is refused, or null: more builds than one
+ * computer can hold, a build past its cap, more loadouts than there are
+ * aircraft with room over, or an entry of the wrong shape. Each is
+ * { status, section, why, limit }, `why` one of 'map', 'count', 'shape'
+ * or 'size'; tracks-api/accounts.js words the answer. Only what was SENT
+ * is held to the counts: two computers' builds merged may be more than
+ * one computer holds, and the account must still sync (each computer
+ * shows the oldest MAX_BUILDS, and the rest stay on the account).
+ */
+export function blobRefusal(raw) {
+  const data = isRecord(raw) && isRecord(raw.data) ? raw.data : {};
+  const counts = { builds: MAX_BUILDS, combat: COMBAT_MAX_ENTRIES };
+  for (const [section, shape] of Object.entries(ENTRY_SHAPES)) {
+    const value = data[section];
+    if (value === undefined) {
+      continue;
+    }
+    if (!isRecord(value)) {
+      return { status: 422, section, why: 'map' };
+    }
+    const entries = Object.entries(value);
+    if (entries.length > counts[section]) {
+      return { status: 413, section, why: 'count', limit: counts[section] };
+    }
+    for (const [key, entry] of entries) {
+      if (!shape(key, entry)) {
+        return { status: 422, section, why: 'shape' };
+      }
+      if (section === 'builds' && JSON.stringify(entry).length > BUILD_MAX_CHARS) {
+        return { status: 413, section, why: 'size', limit: BUILD_MAX_CHARS };
+      }
+    }
+  }
+  return null;
+}
+
 /* A blob with the right shape and nothing else in it: unknown sections
- * and stamps dropped, every section of its kind's type. */
+ * and stamps dropped, every section of its kind's type, and an entry of
+ * a section with an entry shape dropped when it has not got it. */
 export function cleanBlob(raw) {
   const out = { v: 1, data: {}, stamps: {} };
   if (!isRecord(raw) || !isRecord(raw.data)) {
@@ -99,9 +172,11 @@ export function cleanBlob(raw) {
     if (value === undefined) {
       continue;
     }
-    if (kind === 'whole' ? (value === null || typeof value === 'object' ? isRecord(value) : typeof value === 'string') : isRecord(value)) {
-      out.data[section] = value;
+    if (!(kind === 'whole' ? (value === null || typeof value === 'object' ? isRecord(value) : typeof value === 'string') : isRecord(value))) {
+      continue;
     }
+    const shape = ENTRY_SHAPES[section];
+    out.data[section] = shape ? Object.fromEntries(Object.entries(value).filter(([k, e]) => shape(k, e))) : value;
   }
   if (isRecord(raw.stamps)) {
     for (const [part, ms] of Object.entries(raw.stamps)) {
