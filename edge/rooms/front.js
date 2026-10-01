@@ -15,6 +15,9 @@
  *   GET  /v2/admin/health    the server's counters (edge/rooms/health.js),
  *                            with authorization: Bearer ADMIN_SECRET only;
  *                            404 on a platform that keeps none (Cloudflare)
+ *   GET  /v2/version         { commit, dirty }: the deployed commit the
+ *                            process started on (edge/node-http.js
+ *                            readRevision), commit null on Cloudflare
  *   GET  /                   a line of text, for a person checking it is up
  *
  * THE VALVE. While env.HEALTH says the server is busy (edge/rooms/health.js,
@@ -298,6 +301,9 @@ export default {
     }
     if (url.pathname === '/') {
       return new Response('fdfpv rooms, protocol 2\n', { headers: { 'content-type': 'text/plain' } });
+    }
+    if (url.pathname === '/v2/version') {
+      return Response.json(env.REVISION || { commit: null, dirty: false }, { headers: { ...cors(origin), 'cache-control': 'no-store' } });
     }
     return new Response('not found', { status: 404 });
   },

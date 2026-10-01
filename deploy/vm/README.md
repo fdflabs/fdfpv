@@ -86,6 +86,20 @@ Caddyfile (`install.sh`), restarts both servers, and fetches both through
 Caddy. A restart closes every room socket with 1012 and the simulator
 reconnects into its seat.
 
+Which commit is live: deploy.sh writes the commit it copied to
+`/opt/fdfpv/REVISION` (with ` dirty` after it from a checkout with
+uncommitted changes) before the restart, each server reads it as it
+starts, and `GET /v2/version` (rooms) and `GET /api/version` (tracks)
+answer `{"commit":"<sha>","dirty":false}`. deploy.sh fails at its last
+step if either does not name the commit it deployed. The board does the
+same at `GET /board/api/version` (`{"commit","fdfpv"}`), from the
+`/opt/fdfpv-board/REVISION` deploy-board.sh writes. Compare any of them
+with `git rev-parse origin/main`:
+
+```sh
+curl -s https://129.151.39.48/v2/version https://129.151.39.48/api/version https://129.151.39.48/board/api/version
+```
+
 The admin secret is generated on the VM the first time and written to the
 file named, mode 600: its first line is the secret, its second a dated
 note, so read it with `head -n1`. To rotate it, delete
