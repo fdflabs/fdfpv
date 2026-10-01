@@ -445,9 +445,17 @@ try {
    * address (edge/rooms/front.js CREATES_PER_MIN), and the steps above
    * used this minute's. */
   await page.sleep(61000);
+  /* Out of the briefing the last step started, and out of its room, so
+   * the campaign screen is not opened over a mission's intro. */
+  await page.evaluate("window.__warDo('end')");
+  await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await page.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
   const heldFrom = await page.evaluate('window.__rooms().code');
   await page.evaluate("(() => { window.__holdHello = true; window.__campaign.open(); return true; })()");
   await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
+  const reopened = await page.evaluate(`({ screen: ${SCREEN} !== null, dialog: document.querySelector('.name-dialog').hidden ? null : document.querySelector('.name-dialog').textContent.slice(0, 80) })`);
+  check('the campaign screen opens again, out of the room', reopened.screen, JSON.stringify(reopened));
   await click(page, '[data-mission="itaipu-2"] .campaign-play');
   await page.until(`window.__rooms().code && window.__rooms().code !== ${JSON.stringify(heldFrom)} && window.__rooms().phase === 'connecting'`, 30000).catch(() => {});
   await page.sleep(1000);
