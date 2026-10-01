@@ -4895,17 +4895,35 @@
       .hangar-floats[hidden] { display: none; }
       .hangar-tabs { position: relative; }
       .hangar-tab-pill {
-        position: absolute; top: 3px; left: 3px; height: calc(100% - 6px); width: 0;
+        position: absolute; top: 0; left: 0; height: 0; width: 0;
         border-radius: 999px; background: var(--cream);
         box-shadow: 0 2px 12px rgba(243, 234, 212, 0.25);
-        transition: transform 360ms var(--hg-spring), width 360ms var(--hg-spring);
+        transition: transform 360ms var(--hg-spring), width 360ms var(--hg-spring), height 360ms var(--hg-spring);
       }
       .hangar-tabs .hangar-tab-btn { position: relative; z-index: 1; padding: 10px 22px; font-size: 14px; transition: color 200ms; }
       .hangar-tabs .hangar-tab-btn.on { background: transparent; color: var(--deep); }
-      .hangar-body {
-        display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 410px);
-        gap: 20px; min-height: 0;
+      /* The rail: the categories one over another between the plane and
+         the panel, each a wide target, the one open filled. */
+      .hangar-tabs.carousel-tabs {
+        flex-direction: column; align-self: start; gap: 4px; padding: 6px; border-radius: 18px;
       }
+      .hangar-tabs .hangar-tab-btn { text-align: left; padding: 12px 18px; }
+      .hangar-body {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(320px, 410px);
+        gap: 16px; min-height: 0;
+      }
+      /* The spec sheet in the stage's upper corner, over the floor and
+         clear of the plane, which stands in the middle. */
+      .hangar-spec {
+        position: absolute; left: 0; top: 0; width: min(300px, 46%); pointer-events: none;
+      }
+      .hangar-spec .hangar-stats { grid-template-columns: 1fr 1fr; gap: 6px; margin: 0; }
+      .hangar-spec .hangar-stat {
+        padding: 6px 9px; background: rgba(10, 14, 11, 0.66); backdrop-filter: blur(4px);
+      }
+      .hangar-spec .hangar-stat-label { font-size: 10px; }
+      .hangar-spec .hangar-stat-value { font-size: 15px; }
+      .hangar-spec .hangar-stat-delta { display: none; }
       .hangar-stage { position: relative; min-height: 0; cursor: grab; }
       .hangar-stage:active { cursor: grabbing; }
       .hangar-side {
@@ -5072,6 +5090,24 @@
       .hangar .carousel-hint { text-align: center; }
       .hangar button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
       .carousel-custom[hidden] { display: none; }
+      /* Wear (src/ui/hangar.js wearRow): a bar from factory new to battle
+         worn between its two steps, its fill warming as it wears. */
+      .hangar-wear-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+      .hangar-wear-bar {
+        position: relative; height: 30px; border-radius: 8px; overflow: hidden; cursor: pointer;
+        background: rgba(243, 234, 212, 0.08); border: 1px solid rgba(243, 234, 212, 0.2);
+      }
+      .hangar-wear-fill {
+        position: absolute; top: 0; bottom: 0; left: 0;
+        background: linear-gradient(90deg, rgba(125, 255, 180, 0.35), rgba(255, 212, 92, 0.55), rgba(255, 140, 90, 0.75));
+        transition: width 300ms var(--hg-ease);
+      }
+      .hangar-wear-value {
+        position: relative; display: flex; align-items: center; justify-content: center; height: 100%;
+        font: 700 14px/1 var(--ui-font); font-variant-numeric: tabular-nums;
+      }
+      .hangar-wear-ends { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; color: var(--slate); }
+      .paint-text-field { text-transform: uppercase; letter-spacing: 0.06em; }
       /* My Hangar's Save as a build (src/ui/hangar.js startMine): a name in
          the line the buttons leave. */
       .hangar-buttons[hidden], .hangar-mine-form[hidden], .hangar-mine[hidden] { display: none; }
@@ -5244,7 +5280,14 @@
       }
       /* A phone upright: the plane over the panel. */
       @media (max-width: 760px) {
-        .hangar-body { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 32vh) minmax(0, 1fr); gap: 10px; }
+        .hangar-body { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 32vh) auto minmax(0, 1fr); gap: 10px; }
+        /* On a phone the rail is a row over the panel that scrolls
+           sideways rather than widening the page. */
+        .hangar-tabs.carousel-tabs {
+          flex-direction: row; max-width: 100%; overflow-x: auto; border-radius: 999px; scrollbar-width: none;
+        }
+        .hangar-tabs .hangar-tab-btn { flex: none; padding: 9px 14px; }
+        .hangar-spec { display: none; }
         .hangar-schemes { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
         .hangar-panel { gap: 8px; padding-left: 16px; padding-right: 16px; }
         .hangar-facts:not(:has(.hangar-floats)), .hangar-facts .carousel-fact { display: none; }
