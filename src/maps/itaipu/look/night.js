@@ -640,6 +640,7 @@ function ringCities(ground) {
 export function dressNight({
   scene, ground, half, roads, town, substations, powerhouse, heights, materials = [],
 }) {
+  const t0 = performance.now();
   const group = new THREE.Group();
   group.name = 'itaipu-night';
   const uniforms = districtUniforms();
@@ -789,6 +790,7 @@ export function dressNight({
     litMaterials: lit.size,
     windowMaterials: walls.size,
     realLights: lights.length,
+    buildMs: Math.round(performance.now() - t0),
   };
   return {
     group,
