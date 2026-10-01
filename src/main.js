@@ -2758,9 +2758,14 @@ export async function boot({
     const lobby = warLobby();
     const ready = warLobbyReady(lobby);
     const missions = campaignRef ? campaignRef.playable() : [];
+    /* Ready stays first: the cursor lands on it when the room opens, and
+     * warFromPublic learns the invite code only after that, so a row added
+     * above it would slide under the cursor. The code, where a public
+     * room's host made this private one for the war, comes next, above
+     * the host's rows. */
     const rows = [{
       label: str(ready ? 'lobby.unready' : 'lobby.ready'), note: str(ready ? 'lobby.unready_note' : 'lobby.ready_note'), action: 'friends-lobby-ready', primary: true,
-    }];
+    }, ...warInviteRows()];
     if (host) {
       rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: 'friends-war-start' });
       if (missions.length > 1) {

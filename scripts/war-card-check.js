@@ -208,7 +208,9 @@ function landedWell(v, pub = false) {
 }
 
 async function landed(page) {
-  await page.until("window.__rooms().phase === 'open' && window.__ui.items().some((it) => it.action === 'friends-war-start')", 60000).catch(() => {});
+  /* The lobby's panel is drawn on the frame after its rows (src/main.js
+   * warLobbyFrame). */
+  await page.until("window.__rooms().phase === 'open' && window.__ui.items().some((it) => it.action === 'friends-war-start') && document.querySelector('.war-lobby-title')", 60000).catch(() => {});
   await page.sleep(500);
   return page.evaluate(LANDED);
 }

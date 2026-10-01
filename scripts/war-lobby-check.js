@@ -229,7 +229,7 @@ try {
     JSON.stringify(chip && { value: chip.value, join: chip.join }));
   await openRooms();
   const battleRow = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || null)`);
-  check('and Rooms says in battle, mission 1, wave x of y', battleRow && /in battle, mission 1, wave \d+ of \d+\. Enter to join the battle\./.test(battleRow.note),
+  check('and Rooms says in battle, Defend Itaipu, mission 1, wave x of y', battleRow && /in battle, Defend Itaipu, mission 1, wave \d+ of \d+\. Enter to join the battle\./.test(battleRow.note),
     JSON.stringify(battleRow && battleRow.note));
   await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(rowAction)}); return true; })()`);
   await b.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 400000).catch(() => {});
