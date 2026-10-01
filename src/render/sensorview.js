@@ -71,9 +71,14 @@ import { renderThermal, THERMAL, T_SCALE } from './thermal.js';
 const THERMAL_W = 640;
 const LOWLIGHT_W = 1280;
 const INSET_RADIANCE_W = 480;
-/* The inset's own pixels, its panel's 16:10. */
-export const PIP_W = 320;
-export const PIP_H = 200;
+/* The inset's own pixels at each size the pilot can pick (U), its
+ * panel's 16:10. Small is the size it always had; the larger ones are
+ * drawn at their own resolution, not stretched. */
+export const INSET_SIZES = {
+  small: [320, 200],
+  medium: [480, 300],
+  large: [640, 400],
+};
 
 /* Seconds for the gain to move most of the way to a new scene. */
 const AGC_TAU = 0.6;
@@ -425,17 +430,29 @@ export function createSensorView(renderer, { onInset } = {}) {
   const views = new Map();
   const agcC = makeAgc(false);
   const agcT = makeAgc(true);
-  const pipTarget = target(PIP_W, PIP_H, { depth: false, float: false });
   const canvas = document.createElement('canvas');
-  canvas.width = PIP_W;
-  canvas.height = PIP_H;
   const ctx2d = canvas.getContext('2d');
-  const readback = makeReadback(gl, PIP_W, PIP_H, (image) => {
+  const drawInset = (image) => {
     ctx2d.putImageData(image, 0, 0);
     if (onInset) {
       onInset(ctx2d);
     }
-  });
+  };
+  let pipTarget = null;
+  let readback = null;
+  /* The inset's target, readback and canvas at w by h. A readback still
+   * in flight is dropped with its buffers: its frame was the old size. */
+  function insetSize(w, h) {
+    if (pipTarget) {
+      pipTarget.dispose();
+      readback.dispose();
+    }
+    pipTarget = target(w, h, { depth: false, float: false });
+    canvas.width = w;
+    canvas.height = h;
+    readback = makeReadback(gl, w, h, drawInset);
+  }
+  insetSize(...INSET_SIZES.small);
   let radiance = null;
   let thermal = null;
   let frameNo = 0;
@@ -551,6 +568,12 @@ export function createSensorView(renderer, { onInset } = {}) {
   return {
     canvas,
     stats,
+    /* The inset's pixels, w by h (one of INSET_SIZES). */
+    setInsetSize(w, h) {
+      if (w !== canvas.width || h !== canvas.height) {
+        insetSize(w, h);
+      }
+    },
     /*
      * One frame. `post` is the map's post chain ({ render, composer }),
      * `scene` and `camera` the frame's. Draws the main view to the screen
@@ -614,7 +637,7 @@ export function createSensorView(renderer, { onInset } = {}) {
       if (insetDue) {
         const comp = Boolean(composed) && !pipNeeds.raw;
         const v = viewMat(pip.mode, comp, true);
-        setView(v, pip, comp ? composed : radiance, thermal, camera, PIP_W / PIP_H);
+        setView(v, pip, comp ? composed : radiance, thermal, camera, canvas.width / canvas.height);
         renderer.setRenderTarget(pipTarget);
         v.quad.render(renderer);
         readback.read();

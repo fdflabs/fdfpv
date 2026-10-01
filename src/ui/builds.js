@@ -65,11 +65,11 @@ export const MAX_BUILDS = 48;
 
 const isRecord = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 
-/* An aircraft the hangar opens on: every plane (configs/liveries.js
- * paintable), a combat quad for its loadout, and a quad for its motors
+/* An aircraft the hangar opens on: every plane and combat aircraft
+ * (configs/liveries.js paintable), and a quad for its motors
  * (configs/motors.js). */
 export function customisable(id) {
-  return paintable(id) || Boolean(airframeById(id).combat) || hasMotors(id) || Object.hasOwn(STOCK_ONLY, id);
+  return paintable(id) || hasMotors(id) || Object.hasOwn(STOCK_ONLY, id);
 }
 
 /* An airframe a build can be made on: one the hangar opens. */

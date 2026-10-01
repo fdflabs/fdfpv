@@ -40,7 +40,13 @@ August before there was a plant, and the plant was fitted into it. On the
 measured row the five inch climbs 96.4 m; the band is that, with the old
 band's half width over its centre, 21.4 percent, either side. Every other
 band holds the corrected five inch unchanged. docs/STOCK-5INCH.md has the
-derivation and the numbers before and after.
+derivation and the numbers before and after. The same day each prop's
+thrust and torque against axial speed became its own APC curves
+(docs/PROP-CURVES.md); check 6 moved again, to 95 to 147 m by the same
+rule around the 121.0 m the five inch then climbs, and check 7 to 35.7 to
+56.8 m/s from four published top speed peaks. Both bands rest on no
+instrumented level run or punch-out log, which docs/PROP-CURVES.md lists
+as open items.
 The mass then moved twice more, 0.65 to 0.68 and then 0.71 kg on the
 owner's request after a pilot asked for the same quad a little heavier,
 which is where 8.4 to 1 comes from: thrust unchanged, sixty grams more
@@ -97,8 +103,8 @@ Every check is a numeric band in `tests/thresholds.json`. `npm run verify` runs 
 | 3 | determinism-cross-host | Replay in Node and headless Chrome, compare hashes | identical |
 | 4 | frame-independence | Same input at simulated render rates 30, 60, 144, 240 Hz | all four traces identical |
 | 5 | hover-throttle | Trim to steady hover at 4.0 V per cell | 0.20 to 0.30 |
-| 6 | punch-out | From hover, full throttle 3.0 s, altitude gained | 76 to 117 m |
-| 7 | terminal-velocity | Level, full throttle, 20 s, speed plateau | 30 to 40 m/s |
+| 6 | punch-out | From hover, full throttle 3.0 s, altitude gained | 95 to 147 m |
+| 7 | terminal-velocity | Level, full throttle, 20 s, speed plateau | 35.7 to 56.8 m/s |
 | 8 | motor-step-response | Step one motor 0 to 100 percent, time to 63 percent of final RPM | 10 to 30 ms |
 | 9 | rate-tracking | Full roll stick, steady-state roll rate vs configured max rate | within 3 percent |
 | 10 | yaw-coupling | Hard roll at constant throttle, yaw drift | build-tolerance scale (0.04 to 0.60 deg), correct sign. A symmetric quad cancels this coupling exactly; only asymmetry produces it, so the check bands the modeled tolerance rather than demanding a drift no real quad shows. |

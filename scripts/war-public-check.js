@@ -10,7 +10,7 @@
  *
  * Page A has the consent stored and mission 1 won. It plays mission 2
  * from the campaign: a public room, named for A, made for the war and
- * mission 2, its start row Start mission 2.
+ * mission 2, its lobby on mission 2.
  *
  * Page B is a fresh profile with no consent. It sees A's room on the
  * title's rooms panel marked War 2, and in Rooms as set up for
@@ -76,6 +76,7 @@ async function roomsServer() {
 }
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const n = document.querySelector(${JSON.stringify(selector)});
     if (!n) { return null; }
@@ -135,9 +136,10 @@ try {
   await a.sleep(600);
   const room = await a.evaluate(ROOM);
   const code = room.code;
-  const startRow = await a.evaluate("(window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null");
-  check('A plays mission 2: a public room named for A, Start mission 2', room.phase === 'open' && room.public === true
-    && /, Defend Itaipu$/.test(room.name || '') && startRow === 'Start mission 2', JSON.stringify({ room, startRow }));
+  await a.until("/Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
+  const startRow = await a.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || null");
+  check('A plays mission 2: a public room named for A, its lobby on mission 2', room.phase === 'open' && room.public === true
+    && /, Defend Itaipu$/.test(room.name || '') && /Mission 2: /.test(startRow || ''), JSON.stringify({ room, startRow }));
   const line = (await (await fetch(`${server.url}/v2/rooms`)).json()).rooms.find((r) => r.code === code);
   check('the room server lists it as the war\'s, mission 2', line && line.game === 'war' && line.mission === 'itaipu-2' && line.name === room.name,
     JSON.stringify(line));

@@ -641,7 +641,7 @@ console.log('the racing line');
   const tight = racingLine(ring(6), sky, flat);
   check('a Skyhunter cannot fly a 6 m circle: all of it is marked', tight.samples.every((p) => !p.ok));
   check('it can fly a 30 m one', racingLine(ring(30), sky, flat).samples.every((p) => p.ok));
-  check('speedAt caps and grows', speedAt(quad, 1e9) === 46 && near(speedAt(sky, 10), Math.sqrt(sky.aLat * 10), 1e-12));
+  check('speedAt caps and grows', speedAt(quad, 1e9) === 54.1 && near(speedAt(sky, 10), Math.sqrt(sky.aLat * 10), 1e-12));
 
   /* One gate: out of it and back into it. */
   const solo = newCourse('swiss2', 'Solo');

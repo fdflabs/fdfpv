@@ -208,7 +208,10 @@ async function climb(af, choice, hover, g = 1) {
  * neither climbs nor sinks, then the speed it settles at. Flown in acro, as
  * Betaflight's rate loop holds the angle the stick leaves it at; the pilot
  * reads the attitude off the state and flies the stick, nothing more. The
- * module's pitch stick is positive nose up.
+ * module's pitch stick is positive nose up. 45 s, the last 3 averaged: it
+ * was 30, and at the interceptor's 51 m/s on its prop's own thrust curve
+ * (docs/PROP-CURVES.md) the pilot's slow trim had not settled by then
+ * (|vz| 0.108 at 30 s, 0.017 at 45, the speed 0.02 m/s apart).
  */
 async function levelTop(af, g) {
   const sim = await fresh(af, null, 4.2, g);
@@ -217,7 +220,7 @@ async function levelTop(af, g) {
   let sum = 0;
   let n = 0;
   let vzMax = 0;
-  for (let t = 0; t < 30000; t += 1) {
+  for (let t = 0; t < 45000; t += 1) {
     const s = sim.readState().state;
     const [w, x, y, z] = [s[ST.QW], s[ST.QX], s[ST.QY], s[ST.QZ]];
     const nose = -Math.asin(Math.max(-1, Math.min(1, 2 * (x * z - w * y))));
@@ -233,7 +236,7 @@ async function levelTop(af, g) {
       nextRc += 4;
     }
     sim.step(1);
-    if (t >= 27000) {
+    if (t >= 42000) {
       const st = sim.readState().state;
       sum += Math.hypot(st[ST.VX], st[ST.VY]);
       n += 1;
@@ -321,12 +324,27 @@ for (const af of quads) {
     const sim = await fresh(af, null);
     const t = fly(sim, [{ ms: 2000, thr: hover }]);
     fly(sim, [{ ms: 2000, thr: 1.0 }], (tt, s) => {
-      fullRpm = Math.max(fullRpm, 0.25 * (s[ST.RPM0] + s[ST.RPM1] + s[ST.RPM2] + s[ST.RPM3]));
       if (tt - t > 1500) {
         sagSum += s[ST.VBAT];
         sagN += 1;
       }
     }, t);
+    /*
+     * STATIC thrust to weight, so the rotors' speed standing: every motor
+     * at full duty with the craft held still each step (sim_rest), as a
+     * stand measures it. It was the highest speed in the 2 s climb above,
+     * which equalled the standing speed while thrust fell as 1 - mu; on
+     * the prop's own curve (docs/PROP-CURVES.md) a climbing prop keeps
+     * its thrust and its load, and turns slower than it does standing.
+     */
+    const bench = await fresh(af, null);
+    must(bench.e.sim_motor_override(-1, 1.0), 'sim_motor_override');
+    for (let k = 0; k < 600; k += 1) {
+      bench.e.sim_rest();
+      bench.step(1);
+      fullRpm = 0.25 * (bench.readState().state[ST.RPM0] + bench.readState().state[ST.RPM1]
+        + bench.readState().state[ST.RPM2] + bench.readState().state[ST.RPM3]);
+    }
     const w = fullRpm / RPM;
     band(id, 'thrust-to-weight', (4 * d.motor.kt * w * w) / (d.M * G), (v) => v.toFixed(2));
     /* ST.VBAT is the pack's volts under load; the band is a cell's. */

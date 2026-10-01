@@ -121,6 +121,7 @@ async function arrowTo(page, want) {
 
 /* A mouse click on the menu row with this action, as a pilot's. */
 async function clickRow(page, action) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const i = window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)});
     const row = window.__ui.menuRows[i - window.__ui.rowOffset];

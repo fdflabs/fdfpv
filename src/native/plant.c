@@ -309,6 +309,12 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
                          * through, which IS the induced share of shaft
                          * torque at hover. It is a rotor property, so it
                          * belongs to the airframe. */
+  /* The T5147's thrust against axial speed: APC's 5 x 4.6E at 29,000 rpm, the
+   * same pitch over diameter (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 1.0065, 0.9753, 0.9348, 0.8819, 0.8125, 0.7244, 0.6177,
+                   0.4981, 0.3702, 0.2371, 0.1021, 0.0000, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 0.9916, 1.0303, 1.0544, 1.0673, 1.0525, 1.0003, 0.9148,
+                    0.7948, 0.6472, 0.4760, 0.2843, 0.0000, 0.0000, 0.0000 },
   /* An open rotor has no duct, so the three duct terms are the identity. */
   .k_duct = 1.0,
   .duct_fade = 0.0,
@@ -591,6 +597,11 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .k_inflow = 0.00283,
   .torque_ind = 0.310, /* the figure of merit above, and the same number */
+  /* No shell airframe flies this table, its gates were fitted to the old
+   * laws, and APC publishes no 31 mm prop: the old thrust law written out,
+   * and no torque curve, so the induced and profile split stays. */
+  .axial_curve = { 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3,
+                   0.2, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0 },
   /*
    * THE DUCT. 1.10 of static augmentation is the low end of the published
    * range and it is where a real whoop sits: the ideal duct of momentum
@@ -1623,6 +1634,13 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.014149, /* 3.5 inch pitch / 2 pi */
   .torque_ind = 0.55,
+  /* The HQ 7 x 3.5 x 3's thrust against axial speed: APC's 7 x 4E at
+   * 19,000 rpm, the nearest pitch over diameter APC publishes
+   * (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9617, 0.9164, 0.8633, 0.8018, 0.7317, 0.6534, 0.5664,
+                   0.4725, 0.3736, 0.2710, 0.1662, 0.0615, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 1.0186, 1.0281, 1.0281, 1.0145, 0.9858, 0.9368, 0.8725,
+                    0.7870, 0.6868, 0.5662, 0.4350, 0.2892, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1672,6 +1690,12 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.020213, /* 5 inch pitch / 2 pi */
   .torque_ind = 0.58,
+  /* The 10 x 5 x 3's thrust against axial speed: APC's 10 x 5E at 11,000
+   * rpm (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9587, 0.9112, 0.8567, 0.7950, 0.7256, 0.6485, 0.5643,
+                   0.4742, 0.3794, 0.2813, 0.1813, 0.0816, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 1.0169, 1.0259, 1.0252, 1.0125, 0.9892, 0.9461, 0.8859,
+                    0.8082, 0.7143, 0.6042, 0.4767, 0.3393, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1779,6 +1803,12 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.036383, /* 9 inch pitch / 2 pi */
   .torque_ind = 0.4967,
+  /* The 7 x 9E's own thrust against axial speed: APC's file at 19,000 rpm
+   * (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9959, 0.9916, 0.9833, 0.9625, 0.9178, 0.8342, 0.7007,
+                   0.5321, 0.3454, 0.1521, 0.0000, 0.0000, 0.0000, 0.0000 },
+  .torque_curve = { 1.0000, 1.0510, 1.1236, 1.2145, 1.3073, 1.3742, 1.3771, 1.2645,
+                    1.0558, 0.7718, 0.4374, 0.0000, 0.0000, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -3039,9 +3069,20 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
       }
     }
     if (mu >= 0.0) {
-      /* Climb and hover. Thrust falls as the craft chases its own wake, and
-       * crosses zero when the axial speed reaches the pitch speed. */
-      axial = 1.0 - mu;
+      /*
+       * Climb, hover and a fast pass. Thrust falls as the air comes through
+       * the disc faster, by the prop's own curve (axial_curve, from APC's
+       * performance files, docs/PROP-CURVES.md), linear between its points
+       * at every tenth of mu. It was 1 - mu, zero thrust at the geometric
+       * pitch speed, and no prop APC publishes behaves so: they hold most
+       * of their thrust to half the pitch speed and keep some past it.
+       * At mu 0 every curve is exactly 1, so the hover, and with it checks
+       * 5 and 8, is the static thrust as it always was.
+       */
+      const double x = mu * 10.0;
+      const int ix = (int)x;
+      axial = ix >= 14 ? PLANT.axial_curve[14]
+                       : PLANT.axial_curve[ix] + (x - (double)ix) * (PLANT.axial_curve[ix + 1] - PLANT.axial_curve[ix]);
       if (axial < 0.0) {
         axial = 0.0;
       }
@@ -3230,7 +3271,26 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     const double q_sign = (w_rel < 0.0 ? -1.0 : 1.0);
     const double qb_mag = PLANT.kq * w_rel * w_rel;
     double q_mag = (1.0 - PLANT.torque_ind) * qb_mag;
-    {
+    if (mu >= 0.0 && PLANT.torque_curve[0] > 0.0) {
+      /*
+       * AIR COMING THROUGH THE DISC: THE PROP'S OWN TORQUE CURVE
+       * (torque_curve, APC's files, docs/PROP-CURVES.md). The induced and
+       * profile split below, on the thrust the prop's own curve now keeps
+       * at speed, held the load near 0.9 of kq w^2 out past the pitch
+       * speed, where a real prop's falls away (APC: 0.56 at mu 1 on a 5.2
+       * x 6E), so the motors could not spin up as a prop unloads and a
+       * fast pass ran out of rotor speed. The curve's first point is 1, so
+       * the hover is kq w^2 as it always was (checks 5 and 8). APC's data
+       * is axial flow only: the edgewise share of a pass is the axial
+       * curve's, which the doc records. Descent keeps the split, and so
+       * does a table with no published curve (zeros, the whoop's).
+       */
+      const double x = mu * 10.0;
+      const int ix = (int)x;
+      const double qc = ix >= 14 ? PLANT.torque_curve[14]
+                                 : PLANT.torque_curve[ix] + (x - (double)ix) * (PLANT.torque_curve[ix + 1] - PLANT.torque_curve[ix]);
+      q_mag = qb_mag * qc;
+    } else {
       const double t_load = PLANT.kt * w * w * axial_oge;
       if (t_load > 1e-6) {
         const double vh2 = t_load / (2.0 * PLANT.rho * 3.14159265358979323846 *
