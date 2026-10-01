@@ -127,8 +127,8 @@ const V2808_1500 = {
 
 /*
  * Every quad's own. THE STOCK MOTOR is the one its table was solved for:
- * the five inch's plant.c's 2207 1900 kV, weighed as T-Motor's F60 Pro V,
- * its stock class; the combat quads' scripts/combat-derive.js's 2806.5
+ * the five inch's T-Motor F60 Pro V 1950 kV on its T5147, the measured row
+ * plant.c is solved against (docs/STOCK-5INCH.md); the combat quads' scripts/combat-derive.js's 2806.5
  * 1300 kV (50 g, 75 mOhm), 3115 900 kV (95 g, 70 mOhm) and 2807 1500 kV
  * (56 g, 50 mOhm). `tau` is the band the stock motor is held to: check 8's
  * on the five inch (tests/thresholds.json), combat-gates' motor-tau on
@@ -137,7 +137,7 @@ const V2808_1500 = {
 export const MOTORS = {
   '5inch': {
     table: {
-      massKg: 0.71, inertia: [0.0035, 0.0038, 0.0068], kt: 1.98e-6, kq: 3.04e-8, ke: 0.006336, rMotor: 0.1825, jRotor: 8.0e-6,
+      massKg: 0.71, inertia: [0.0035, 0.0038, 0.0068], kt: 1.805e-6, kq: 2.648e-8, ke: 0.005807, rMotor: 0.1137, jRotor: 8.0e-6,
       cells: 6, rCell: 0.0025,
       /* The stators sit about 12 mm under the prop discs, plant.c's
        * pos_z 0.020: 8 mm over the CG. */
@@ -150,7 +150,7 @@ export const MOTORS = {
     benchBand: 0.05,
     tau: { band: [0.010, 0.030], measure: 'check8' },
     options: [
-      { id: 'stock', name: 'motors.5inch.stock', detail: '2207, 1900 kV', kv: 1900, grams: 33.9, rPhase: r2207(1900), statorMm: 22, source: [PLANT_C, F60, F50] },
+      { id: 'stock', name: 'motors.5inch.stock', detail: 'T-Motor F60 Pro V 2207.5, 1950 kV', kv: 1950, grams: 33.9, rPhase: r2207(1950), statorMm: 22, source: [F60, PLANT_C, F50] },
       {
         id: 'f60pro-2020', name: 'motors.5inch.f60pro_2020', detail: 'T-Motor F60 Pro V 2207.5, 2020 kV', kv: 2020, grams: 33.8,
         rPhase: r2207(2020), statorMm: 22, maxA: 52.7, bench: row('T-Motor T5147 tri blade', 24.6, 52.7, 2025.5), pair: F60_1950, source: [F60, F50],

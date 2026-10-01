@@ -98,20 +98,27 @@ The resistance rule was chosen on evidence, not to pass a check. T-Motor
 ran the five inch's two upgrades and its stock class motor (F60 Pro V 1950
 kV) on one stand, one prop (T5147 tri blade) and 6S. Solved on a stiff
 supply at the stand's volts, the additive rule above gives the makers'
-ratios; scaling the whole table resistance by the phase resistances'
-ratio instead does not:
+ratios closer than scaling the whole table resistance by the phase
+resistances' ratio does. Since the five inch's table is itself T-Motor's
+F60 Pro V 1950 kV on the T5147 (docs/STOCK-5INCH.md), the pair's stock
+motor is the table:
 
-| upgrade over F60 Pro V 1950 | T-Motor's stand | additive | scaled |
+| upgrade over F60 Pro V 1950 | T-Motor's stand | additive (used) | scaled |
 | --- | --- | --- | --- |
-| F60 Pro V 2020 kV | 1.018 | 1.027 | 1.050 |
-| F40 Pro V 2150 kV | 1.059 | 1.057 | 1.127 |
+| F60 Pro V 2020 kV | 1.018 | 1.039 | 1.052 |
+| F40 Pro V 2150 kV | 1.059 | 1.092 | 1.133 |
+
+The derivation overstates T-Motor's gain by 2 and 3 percent, inside
+motors-check M4's 5 percent band. (On the table before the stock
+correction it met them within a percent, 1.027 and 1.057; the corrected
+table's lower resistance makes the kV ratio count for more.)
 
 The additive rule has a consequence that is real on this plant: the
-table's resistance is mostly not copper (the five inch's 0.1825 ohm against
-a 2207's 50 to 65 mOhm, plant.c says why), so a hotter wind, with less
-torque per amp against the same fixed resistance, spools a little slower.
-Check 8's measure on the F40 Pro V 2150 kV reads 29 ms against stock's 26
-and the band's 30.
+table's resistance is not all copper (the five inch's 0.1137 ohm against
+a 2207's 50 to 65 mOhm), so a hotter wind, with less torque per amp
+against the same fixed resistance, spools a little slower. Check 8's
+measure on the F40 Pro V 2150 kV reads 23 ms against stock's 22 and the
+band's 30.
 
 ## The motors
 
@@ -123,7 +130,7 @@ F50 2207 2150 kV, 50 mOhm, for the 2207 and 2306.8, BrotherHobby's SE 2808
 
 | quad | motor | kV | g | phase R | maker's full throttle row, 6S | source |
 | --- | --- | --- | --- | --- | --- | --- |
-| 5 inch | stock 2207 | 1900 | 33.9 | 64 mOhm, estimate | plant.c: 1.5 kgf, 33 A, 26,000 rpm on 5 x 4.3 x 3 | plant.c; weight T-Motor F60 Pro V |
+| 5 inch | stock T-Motor F60 Pro V 2207.5 | 1950 | 33.9 | 61 mOhm, estimate | T5147: 1990.4 g, 49.3 A, 31,401 rpm, 24.7 V | t-hobby.com; docs/STOCK-5INCH.md |
 | 5 inch | T-Motor F60 Pro V 2207.5 | 2020 | 33.8 | 57 mOhm, estimate | T5147: 2025.5 g, 52.7 A, 24.6 V | t-hobby.com |
 | 5 inch | T-Motor F40 Pro V 2306.8 | 2150 | 33.7 | 50 mOhm, estimate | T5147: 2108.3 g, 65.6 A, 24.2 V | t-hobby.com |
 | 7 inch | stock 2806.5 | 1300 | 50 | 75 mOhm | combat-derive: 1.9 kgf at 24,000 rpm on 7 x 3.5 x 3 | combat-derive.js |
@@ -166,9 +173,9 @@ rest at 1 g, standing, on a fresh pack.
 
 | quad | motor | weight | thrust to weight | hover | top speed | pack at full throttle | hover time | full throttle time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 5 inch | stock | 710 g | 8.10 | 0.266 | 41.52 m/s | 137 A, 3.86 V a cell | 13.9 min | 0.46 min |
-| 5 inch | F60 Pro V 2020 | 710 g | 8.48 | 0.253 | 42.19 m/s | 152 A, 3.82 V | 13.7 min | 0.41 min |
-| 5 inch | F40 Pro V 2150 | 709 g | 8.82 | 0.240 | 42.80 m/s | 168 A, 3.78 V | 13.6 min | 0.37 min |
+| 5 inch | stock F60 Pro V 1950 | 710 g | 9.72 | 0.245 | 45.98 m/s | 171 A, 3.77 V a cell | 14.4 min | 0.37 min |
+| 5 inch | F60 Pro V 2020 | 710 g | 10.05 | 0.237 | 46.54 m/s | 183 A, 3.74 V | 14.3 min | 0.34 min |
+| 5 inch | F40 Pro V 2150 | 709 g | 10.60 | 0.224 | 47.49 m/s | 205 A, 3.69 V | 14.3 min | 0.30 min |
 | 7 inch | stock | 979 g | 4.75 | 0.309 | 28.31 m/s | 72 A, 2.90 V | 43.4 min | 2.82 min |
 | 7 inch | SE 2808 1350 | 1012 g | 4.77 | 0.300 | 28.84 m/s | 78 A, 2.80 V | 41.6 min | 2.62 min |
 | 7 inch | V2808 1500 | 1021 g | 4.92 | 0.271 | 29.31 m/s | 90 A, 2.58 V | 40.9 min | 2.26 min |
@@ -184,11 +191,12 @@ upgrade buys a few percent.** A quad's thrust is its prop's, and its prop
 is already near what the pack can turn. T-Motor's own stand says the same:
 its hottest 6S five inch motor makes 6 percent more thrust than its stock
 class motor on the same prop, for 33 percent more current. The plant
-agrees within a percent. The Li-ion combat quads are pack bound: their
+agrees within 3 percent. The Li-ion combat quads are pack bound: their
 packs already sag under 3 V a cell at full throttle, so a hotter motor
 mostly drains the pack faster, which the full throttle time shows. Where
 an upgrade pulls past a published limit (every 7 and 10 inch upgrade
-pulls past its Li-ion pack's rating), it is not capped: it sags.
+pulls past its Li-ion pack's rating, and both five inch upgrades past the
+1300 pack's 130C), it is not capped: it sags.
 
 ## Findings outside this change
 
@@ -196,9 +204,11 @@ pulls past its Li-ion pack's rating), it is not capped: it sags.
   their own prop. BrotherHobby's Avenger 2806.5 1300 kV on the HQ 7 x 3.5
   x 3 at 23.8 V makes 2520 g at 44.4 A and 21,691 rpm; the 7 inch's table
   on a stiff 23.8 V supply makes 2030 g at 31 A and 24,800 rpm, a prop
-  lighter than the real one. The five inch's table makes 1592 g at 24.7 V
-  where T-Motor's T5147 makes 1990 g; its source is an unnamed stand on the
-  5 x 4.3 x 3. Neither is touched here: the stock aircraft stay as they are.
+  lighter than the real one. The five inch's table made 1592 g at 24.7 V
+  where T-Motor's T5147 makes 1990 g; its source was an unnamed stand on
+  the 5 x 4.3 x 3. The five inch is corrected to T-Motor's row by its own
+  change (docs/STOCK-5INCH.md), which this one sits on; the 7 inch is not
+  touched here.
 - `npm run hangar:check` has one failure on main before this change: "14
   planes have paint, one for each of the 15 fixed wings' families". The
   Striker has no paint.

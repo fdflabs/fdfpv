@@ -24,9 +24,9 @@
 
 export const MOTOR_ESTIMATES = {
   '5inch': {
-    stock: 41.52,
-    'f60pro-2020': 42.19,
-    'f40pro-2150': 42.8
+    stock: 45.98,
+    'f60pro-2020': 46.54,
+    'f40pro-2150': 47.49
   },
   '7inch': {
     stock: 28.31,
