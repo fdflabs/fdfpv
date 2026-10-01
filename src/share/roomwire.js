@@ -548,6 +548,18 @@ export const PUBLIC_CAP = 16;
 export const ROOM_NAME_MIN = 3;
 export const ROOM_NAME_MAX = 32;
 export const ROOM_MODES = ['race', 'tag', 'combat'];
+/*
+ * WHAT A ROOM MAY BE MADE FOR (POST /v2/create's mode): the games any room
+ * may be set up for, and the war, which only a private room on a war
+ * mission's map may be (docs/WARFARE-PLAN.md section 9, the server
+ * refuses the rest). A war room keeps its mission as room state: the
+ * create's `mission` (a mission on that map, or null for the first), and
+ * after that the mission its host last started. The welcome carries both
+ * as `mode` and `mission`; a server from before 2026-10-01 sends no
+ * `mission`, and a browser from before then reads `mode: 'war'` only as
+ * the room's heading.
+ */
+export const ROOM_SETUPS = [...ROOM_MODES, 'war'];
 /* A room with nobody in it closes this long after its last pilot left,
  * public or private (the owner, 2026-09-30: "room closes after 5 minutes of
  * it being empty"). One number for the three places that must agree: the

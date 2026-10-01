@@ -784,6 +784,9 @@ export class RoomWar {
       endAt: null,
     };
     this.nextId += 1;
+    /* The room's mission from now on, in a later welcome too: a reload
+     * between wars still names it (docs/FLOW-AUDIT.md D7). */
+    core.meta.mission = mission.id;
     this.live = new Map();
     this.hunters = new Hunters(floorOf(mission.map));
     this.lastStep = -Infinity;
@@ -795,7 +798,7 @@ export class RoomWar {
       r.armFrom = -Infinity;
       r.crashT = -Infinity;
     }
-    return this.changed(core);
+    return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
   }
 
   /* The host cuts the briefing short: the countdown runs from now, for

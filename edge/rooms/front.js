@@ -71,8 +71,9 @@
  */
 
 import {
-  LIST_EVERY_MS, PUBLIC_CAP, ROOM_MODES, codeFromBytes, normaliseCode, normaliseRoomName,
+  LIST_EVERY_MS, PUBLIC_CAP, ROOM_SETUPS, codeFromBytes, normaliseCode, normaliseRoomName,
 } from '../../src/share/roomwire.js';
+import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { sha256Base64 } from '../../src/share/identity.js';
 import { lobbyStub } from './lobby.js';
@@ -177,6 +178,16 @@ async function makeRoom(env, code, room) {
   return res.ok;
 }
 
+/* Whether a war room may be made on `map` with `mission` (an id, or null
+ * for the map's first): the map is some mission's, and so is the id. */
+function warFits(map, mission) {
+  const all = Object.values(MISSIONS);
+  if (mission === null) {
+    return all.some((m) => m.map === map);
+  }
+  return typeof mission === 'string' && Object.hasOwn(MISSIONS, mission) && MISSIONS[mission].map === map;
+}
+
 /* A typed name as the room keeps it: null for none, false for refused. */
 export function roomNameFor(raw) {
   if (raw == null || (typeof raw === 'string' && !raw.trim())) {
@@ -198,10 +209,20 @@ async function create(request, env, origin) {
   } catch (e) {
     return refuse(400, 'bad');
   }
-  if (!body || !MAP_RE.test(String(body.map)) || (body.mode != null && !ROOM_MODES.includes(body.mode))) {
+  if (!body || !MAP_RE.test(String(body.map)) || (body.mode != null && !ROOM_SETUPS.includes(body.mode))) {
     return refuse(400, 'bad');
   }
   const open = body.public === true;
+  /* The war only in a private room, on its own map, and a mission only
+   * for the war (src/share/roomwire.js ROOM_SETUPS). */
+  const war = body.mode === 'war';
+  if (war && open) {
+    return refuse(400, 'private');
+  }
+  const mission = body.mission ?? null;
+  if (war ? !warFits(body.map, mission) : mission !== null) {
+    return refuse(400, 'bad');
+  }
   if (open && env.PUBLIC_ROOMS !== 'on') {
     return refuse(403, 'closed');
   }
@@ -213,7 +234,9 @@ async function create(request, env, origin) {
   if (name === false) {
     return refuse(400, 'name');
   }
-  const room = { map: body.map, friendly: Boolean(body.friendly), public: open, name, mode: body.mode ?? null };
+  const room = {
+    map: body.map, friendly: Boolean(body.friendly), public: open, name, mode: body.mode ?? null, mission,
+  };
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = newCode();
     if (await makeRoom(env, code, room)) {
