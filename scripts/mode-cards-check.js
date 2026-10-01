@@ -30,7 +30,10 @@
  * onto All rooms and chooses it, and clicks Make a room. A second room
  * carries a name of the full 32 letters, and no name, load or count in the
  * panel is cut, at 1280 by 720, 390 by 844, 360 by 640 and 844 by 390, nor
- * any value in the room list on the phone.
+ * any value in the room list on the phone. Then two more rooms of 32
+ * letter names, newest: at the same four sizes every name in the panel is
+ * whole and the panel and cards still fit, an upright phone's panel
+ * listing two.
  *
  * THE UPDATE BAR (page G): a new version waiting puts it in the command
  * bar, clear of every card and the rooms panel at every size above. Up
@@ -437,6 +440,47 @@ try {
   await click(f, '.gate-room-make');
   await f.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
   check('a click on Make a room opens Make a room', await f.evaluate("window.__ui.screen === 'roomnew'"), await f.evaluate('window.__ui.screen'));
+
+  /* THREE 32 LETTER NAMES at the top of the panel, as campaign Play names
+   * its public war rooms ("<picker name>, Defend Itaipu"): two more such
+   * rooms, newest, beside the one above. Every name whole at every size,
+   * the panel and the cards still fit; an upright phone's panel lists two
+   * of them (src/ui/roombrowser.js TITLE_ROOMS_UPRIGHT). A minute first:
+   * the rooms server makes six rooms a minute for an address. */
+  await f.sleep(61000);
+  /* E leaves Open Club, which its pilot made the busiest room and so the
+   * panel's first. */
+  await e.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await e.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
+  const longNames = [LONG, 'Brave Capybara 17, Defend Itaipu', 'Happy Eagle 420, Defend Itaipu!!'];
+  for (const name of longNames.slice(1)) {
+    await fetch(`${rooms}/v2/create`, {
+      method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name }),
+    });
+  }
+  /* Back to the gate a screen at a time (Make a room, Fly with friends,
+   * the title): two taps sent together lost the second to the first's
+   * screen change. */
+  for (let i = 0; i < 4 && !(await f.evaluate('window.__ui.onGate()')); i += 1) {
+    const from = await f.evaluate('window.__ui.screen');
+    await f.tap('Escape');
+    await f.until(`window.__ui.screen !== ${JSON.stringify(from)}`, 5000).catch(() => {});
+    await f.sleep(300);
+  }
+  await f.until('window.__ui.onGate()', 10000).catch(() => {});
+  const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
+  for (const [w, h, upright] of [[390, 844, true], [360, 640, true], [844, 390, false], [1280, 720, false]]) {
+    await resize(f, w, h);
+    await f.until(`${LISTED_NAMES}.length === ${upright ? 2 : 3}`, 15000).catch(() => {});
+    const listed = await f.evaluate(LISTED_NAMES);
+    const cut = await f.evaluate(CUT(PANEL_TEXT));
+    const v = await f.evaluate(LAYOUT);
+    check(`${w} by ${h}, three 32 letter names: the panel lists ${upright ? 'two' : 'three'}, every name whole`,
+      listed.length === (upright ? 2 : 3) && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
+    check(`${w} by ${h}, three 32 letter names: the panel and the cards still fit`, panelLaidOut(v) && laidOut(v),
+      `panel ${JSON.stringify(v.panel)} cards ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar}`);
+    await shot(f, `panel-long-${w}x${h}`);
+  }
   const errs = [e, f].flatMap((p) => p.errors).filter((x) => !x.startsWith('network:'));
   check('no page error on the panel\'s pages', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
