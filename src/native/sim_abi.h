@@ -1294,7 +1294,8 @@ int sim_rate_guard_trips(void);
 #define SIM_SURF_FOLIAGE 10   /* a tree's crown: see the trees */
 #define SIM_SURF_WATER 11
 #define SIM_SURF_SAND 12
-#define SIM_SURFACES 13
+#define SIM_SURF_WIRE 13      /* an overhead conductor: see the wires */
+#define SIM_SURFACES 14
 int sim_material_info(int mat, double *out);
 int sim_set_ground_material(int mat);
 int sim_contact_at_mat(double nx, double ny, double nz, int mat,
@@ -1382,6 +1383,27 @@ int sim_tree_add(double x, double y, double z0, double trunk_r,
  */
 #define SIM_TREE_CLUMPS_MAX 32
 int sim_tree_clump_add(int tree, double x, double y, double z, double r);
+
+/*
+ * WIRES. sim_wire_add(ax, ay, az, bx, by, bz, r): a straight chord of an
+ * overhead line from a to b, plant frame, met within r of its axis (a
+ * phase's bundle of conductors, or one earth wire). A sagging span is
+ * declared as the chain of chords its catenary is drawn with. Every
+ * attached part meets the chords near it along its hull's edges, not only
+ * at its points, so a wire 3 cm thick is met between two hull points
+ * wherever it crosses a panel or a prop disc, at any speed the plant
+ * flies. The contact is SIM_SURF_WIRE's: no bounce, a grip that snags,
+ * blade hardness 1, and the crush of a 15 mm conductor cutting into foam.
+ * Returns the chord's index or SIM_ERR_BAD_STATE past SIM_WIRES_MAX,
+ * SIM_ERR_BAD_ARG for a value not finite, r not positive or a chord
+ * shorter than 1 mm. Kept across sim_reset, like the trees. Only read
+ * with the damage mode on: with it off the host's sweep meets the wires.
+ * Additive ABI, version unchanged: a host that never calls it has the
+ * contacts it had.
+ */
+#define SIM_WIRES_MAX 160
+int sim_wire_clear(void);
+int sim_wire_add(double ax, double ay, double az, double bx, double by, double bz, double r);
 
 /* Number of doubles sim_state writes. SIM_STATE_DOUBLES for this version. */
 int sim_state_size(void);

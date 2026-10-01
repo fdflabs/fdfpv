@@ -97,6 +97,17 @@ typedef struct {
  * 165 to 200). Less the stud plate's sled grip, 0.45 of 350 N, that is 212
  * to 272 N on 340 mm^2 of stud front, 0.62 to 0.80 MPa. DERIVED. */
 #define TURF_PLOUGH 0.7e6
+/* A WIRE (WIRES below) gives nothing back and holds what it catches: e 0,
+ * and a grip of 0.8, an aluminium strand biting into foam or a blade
+ * rather than a smooth face. Its stiffness is DERIVED from what a part
+ * meets in the few milliseconds it takes to stop on a tensioned
+ * conductor, the string's wave impedance sqrt(T m') each way: a 500 kV
+ * line's ACSR Grosbeak (1.3 kg/m, ACSR tables) strung at about 20 percent
+ * of its 112 kN breaking load, 22 kN, is 2 sqrt(22e3 x 1.3) = 340 N s/m.
+ * A 2 kg plane at 16 m/s stops in about m v / Z = 9 cm, a spring of
+ * m v^2 / x^2 = 6e4 N/m; a 0.7 kg quad in 3 cm, 2e5. 1.5e5 between them.
+ * Hardness 1: a blade meets a steel cored strand as it meets metal. */
+#define SURF_WIRE_MU 0.80
 #define SURF_OBSTACLE SIM_SURFACES
 static const Surface SURF[SIM_SURFACES + 1] = {
   [SIM_SURF_DEFAULT] = { 1.40, 0.0, 5.0e4, 0.01, 0.45, TURF_PLOUGH },
@@ -112,6 +123,7 @@ static const Surface SURF[SIM_SURFACES + 1] = {
   [SIM_SURF_FOLIAGE] = { 1.00, 0.0, 2.0e3, 0.02, 1.00 },
   [SIM_SURF_WATER] = { 0.05, 0.0, 1.0e4, 0.01, 0.05 },
   [SIM_SURF_SAND] = { 0.60, 0.0, 1.0e5, 0.40, 0.60 },
+  [SIM_SURF_WIRE] = { SURF_WIRE_MU, 0.0, 1.5e5, 1.00, SURF_WIRE_MU },
   [SURF_OBSTACLE] = { 0.40, 0.15, 2.0e6, 0.50, 0.40 },
 };
 
@@ -1670,6 +1682,10 @@ static double crush_area(const Table *t, int i, const double nb[3], const CrushS
  * plant knows (a pole's radius and axis, or a box's face), or a host's
  * obstacle, whose shape the plant does not know. */
 static int solid_cyl(int o, double z, double *x, double *y, double *z0, double *z1, double *r);
+static int wire_axis(int o, double u[3]);
+/* A conductor's own radius, ACSR of 25 to 32 mm: what cuts into a part,
+ * whatever the bundle's radius it is met within. */
+#define WIRE_CORE_R 0.015
 static CrushShape g_cr_shape;
 static void crush_shape(const SimState *s, CrushShape *sh) {
   sh->kind = g_surf_ground ? CR_FLAT : CR_EDGE;
@@ -1680,6 +1696,13 @@ static void crush_shape(const SimState *s, CrushShape *sh) {
   }
   double x, y, z0, z1, r;
   sh->kind = CR_FLAT;
+  double u[3];
+  if (wire_axis(g_tch[g_own].solid, u)) {
+    sh->kind = CR_POLE;
+    sh->r = WIRE_CORE_R;
+    qrot_inv(s->quat, u, sh->ax);
+    return;
+  }
   /* Only its radius is read, which is the same at every height. */
   if (solid_cyl(g_tch[g_own].solid, 0.0, &x, &y, &z0, &z1, &r)) {
     const double up[3] = { 0.0, 0.0, 1.0 };
@@ -4239,6 +4262,15 @@ static int g_ntr = 0;
 /* Each tree's clumps, x y z r, plant frame (sim_tree_clump_add). */
 static double CL[SIM_TREES_MAX][SIM_TREE_CLUMPS_MAX][4];
 
+/* The wires' chords (sim_wire_add), plant frame: a to b, the unit u along
+ * it and its length, and the radius it is met within. */
+typedef struct {
+  double a[3], b[3], u[3];
+  double len, r;
+} Wire;
+static Wire WR[SIM_WIRES_MAX];
+static int g_nwr = 0;
+
 static int finite(double x) {
   return x == x && x - x == 0.0;
 }
@@ -4548,6 +4580,40 @@ SIM_EXPORT int sim_tree_clump_add(int tree, double x, double y, double z, double
   return SIM_OK;
 }
 
+SIM_EXPORT int sim_wire_clear(void) {
+  g_nwr = 0;
+  return SIM_OK;
+}
+
+SIM_EXPORT int sim_wire_add(double ax, double ay, double az, double bx, double by, double bz, double r) {
+  if (!finite(ax) || !finite(ay) || !finite(az) || !finite(bx) || !finite(by) || !finite(bz)
+      || !finite(r) || !(r > 0.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  const double d[3] = { bx - ax, by - ay, bz - az };
+  const double len = norm(d);
+  if (!(len > 1.0e-3)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  if (g_nwr == SIM_WIRES_MAX) {
+    return SIM_ERR_BAD_STATE;
+  }
+  Wire *w = &WR[g_nwr];
+  w->a[0] = ax;
+  w->a[1] = ay;
+  w->a[2] = az;
+  w->b[0] = bx;
+  w->b[1] = by;
+  w->b[2] = bz;
+  for (int k = 0; k < 3; k += 1) {
+    w->u[k] = d[k] / len;
+  }
+  w->len = len;
+  w->r = r;
+  g_nwr += 1;
+  return g_nwr - 1;
+}
+
 /* Whether a point already inside tree k's cylinder is in its leaves: in
  * one of its clumps, or anywhere in a crown that has none. */
 static int crown_leaves(int k, const double p[3]) {
@@ -4624,6 +4690,148 @@ static int cylinder_pen(double x, double y, double z0, double z1, double r,
   return 1;
 }
 
+/*
+ * WIRES (sim_wire_add) are solids after the obstacles and the trunks in
+ * the one index, met as the rest are (THE PLANT MEETS THE SOLIDS IT KNOWS)
+ * but not at points. A conductor is 3 cm across and a phase's bundle half
+ * a metre, where a plane's panel is a metre between its hull points and
+ * the samples along its edges 10 cm apart: met at points, a wire through
+ * the middle of a panel or a prop disc is met only once a sample happens
+ * to be inside it, and at 30 m/s one is 3 cm on in a step. So a part meets
+ * a wire along every edge between two of its hull points, at the nearest
+ * the edge comes to the wire's axis, and a part flown at a wire meets it
+ * on the edge that leads, which a convex hull always does. A new contact
+ * is taken within the wire's radius and the step's travel, so nothing
+ * crosses a wire between two steps however fast: its depth is the radius
+ * less the distance, under 0 while the part is still closing (the solver
+ * stops the closing then and pushes nothing), its normal out from the
+ * axis to the part. Held, it is the depth along the held normal, so a
+ * part driven past the axis is pushed back the way it came, never through.
+ */
+static const Wire *wire_at(int o) {
+  const int k = o - g_nob - g_ntr;
+  return k >= 0 && k < g_nwr ? &WR[k] : 0;
+}
+
+static int wire_axis(int o, double u[3]) {
+  const Wire *w = wire_at(o);
+  if (!w) {
+    return 0;
+  }
+  u[0] = w->u[0];
+  u[1] = w->u[1];
+  u[2] = w->u[2];
+  return 1;
+}
+
+static double clamp01(double v) {
+  return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v);
+}
+
+/* The point of wire w nearest p. */
+static void wire_nearest(const Wire *w, const double p[3], double q[3]) {
+  const double r[3] = { p[0] - w->a[0], p[1] - w->a[1], p[2] - w->a[2] };
+  const double t = clamp01(dot(r, w->u) / w->len) * w->len;
+  for (int k = 0; k < 3; k += 1) {
+    q[k] = w->a[k] + w->u[k] * t;
+  }
+}
+
+/* The nearest points of the segment p0 p1 and wire w: c on the segment, q
+ * on the wire (Ericson, Real-Time Collision Detection, 5.1.9). */
+static void wire_segment(const Wire *w, const double p0[3], const double p1[3], double c[3], double q[3]) {
+  const double d1[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
+  const double d2[3] = { w->u[0] * w->len, w->u[1] * w->len, w->u[2] * w->len };
+  const double r[3] = { p0[0] - w->a[0], p0[1] - w->a[1], p0[2] - w->a[2] };
+  const double A = dot(d1, d1);
+  const double E = w->len * w->len;
+  const double F = dot(d2, r);
+  double s = 0.0, t;
+  if (!(A > 1.0e-12)) {
+    t = clamp01(F / E);
+  } else {
+    const double C = dot(d1, r);
+    const double B = dot(d1, d2);
+    const double den = A * E - B * B;
+    s = den > 1.0e-12 * A * E ? clamp01((B * F - C * E) / den) : 0.0;
+    t = (B * s + F) / E;
+    if (t < 0.0) {
+      t = 0.0;
+      s = clamp01(-C / A);
+    } else if (t > 1.0) {
+      t = 1.0;
+      s = clamp01((B - C) / A);
+    }
+  }
+  for (int k = 0; k < 3; k += 1) {
+    c[k] = p0[k] + d1[k] * s;
+    q[k] = w->a[k] + d2[k] * t;
+  }
+}
+
+/*
+ * A part's hull, its np points P (world), against wire w. held NULL: a new
+ * contact, found when an edge comes within the wire's radius and `reach`;
+ * its depth, normal and the point on the part. held a normal: the depth
+ * along it of the deepest edge still within the wire's radius across it.
+ * Returns 1 when the part meets the wire.
+ */
+static int wire_meet(const Wire *w, const double P[][3], int np, const double *held, double reach,
+                     double *pen, double nrm[3], double at[3]) {
+  int got = 0;
+  double best = -1.0e30;
+  for (int k = 0; k < np; k += 1) {
+    for (int l = np == 1 ? k : k + 1; l < np; l += 1) {
+      double c[3], q[3];
+      wire_segment(w, P[k], P[l], c, q);
+      const double d[3] = { c[0] - q[0], c[1] - q[1], c[2] - q[2] };
+      double depth;
+      if (held) {
+        const double along = dot(d, held);
+        const double x[3] = { d[0] - along * held[0], d[1] - along * held[1], d[2] - along * held[2] };
+        if (!(dot(x, x) < w->r * w->r)) {
+          continue;
+        }
+        depth = w->r - along;
+      } else {
+        const double dist = norm(d);
+        if (!(dist < w->r + reach)) {
+          continue;
+        }
+        depth = w->r - dist;
+      }
+      if (!(depth > best)) {
+        continue;
+      }
+      best = depth;
+      got = 1;
+      at[0] = c[0];
+      at[1] = c[1];
+      at[2] = c[2];
+      if (held) {
+        continue;
+      }
+      const double dist = norm(d);
+      if (dist > 1.0e-9) {
+        nrm[0] = d[0] / dist;
+        nrm[1] = d[1] / dist;
+        nrm[2] = d[2] / dist;
+      } else {
+        /* On the axis: up, square to the wire, or along x for a wire
+         * that stands straight up. */
+        const double a = w->u[2];
+        const double v[3] = { -a * w->u[0], -a * w->u[1], 1.0 - a * w->u[2] };
+        const double vl = norm(v);
+        nrm[0] = vl > 1.0e-9 ? v[0] / vl : 1.0;
+        nrm[1] = vl > 1.0e-9 ? v[1] / vl : 0.0;
+        nrm[2] = vl > 1.0e-9 ? v[2] / vl : 0.0;
+      }
+    }
+  }
+  *pen = best;
+  return got;
+}
+
 /* Whether a solid the plant knows is within the airframe's reach of the CG,
  * as it was built, and a little over: then the plant knows what the host
  * is meeting. */
@@ -4682,6 +4890,14 @@ static int solid_near(const SimState *s) {
       return 1;
     }
   }
+  for (int k = 0; k < g_nwr; k += 1) {
+    double q[3];
+    wire_nearest(&WR[k], c, q);
+    const double d[3] = { c[0] - q[0], c[1] - q[1], c[2] - q[2] };
+    if (norm(d) - WR[k].r < R) {
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -4710,13 +4926,14 @@ static int solid_near(const SimState *s) {
 #define OWN_TOUCH_SEG 8
 #define OWN_SAMPLES (SIM_PART_PTS_MAX + SIM_PART_PTS_MAX * (SIM_PART_PTS_MAX - 1) / 2 * OWN_TOUCH_SEG)
 
-/* The solids by one index: the obstacles, then the trees' trunks. */
+/* The solids by one index: the obstacles, then the trees' trunks, then
+ * the wires' chords. */
 static int solid_count(void) {
-  return g_nob + g_ntr;
+  return g_nob + g_ntr + g_nwr;
 }
 
 static int solid_mat(int o) {
-  return o < g_nob ? OB[o].mat : SIM_SURF_WOOD;
+  return o < g_nob ? OB[o].mat : (wire_at(o) ? SIM_SURF_WIRE : SIM_SURF_WOOD);
 }
 
 /* A vertical cylinder's numbers for solid o, 0 for a box; a post that
@@ -4739,6 +4956,9 @@ static int solid_cyl(int o, double z, double *x, double *y, double *z0, double *
     *r = OB[o].r;
     return 1;
   }
+  if (wire_at(o)) {
+    return 0;
+  }
   const Tree *tr = &TR[o - g_nob];
   *x = tr->x;
   *y = tr->y;
@@ -4759,6 +4979,21 @@ static int solid_in(int o, const double w[3], double nrm[3], double *pen) {
   if (solid_gone(o)) {
     return 0;
   }
+  const Wire *wr = wire_at(o);
+  if (wr) {
+    double q[3];
+    wire_nearest(wr, w, q);
+    const double d[3] = { w[0] - q[0], w[1] - q[1], w[2] - q[2] };
+    const double dist = norm(d);
+    if (!(dist < wr->r) || !(dist > 1.0e-9)) {
+      return 0;
+    }
+    for (int k = 0; k < 3; k += 1) {
+      nrm[k] = d[k] / dist;
+    }
+    *pen = wr->r - dist;
+    return 1;
+  }
   if (!solid_cyl(o, w[2], &x, &y, &z0, &z1, &r)) {
     return obstacle_pen(&OB[o], w, nrm, pen);
   }
@@ -4769,7 +5004,7 @@ static int solid_in(int o, const double w[3], double nrm[3], double *pen) {
  * solid's own width across n; -1 outside that width. */
 static double solid_along(int o, const double n[3], const double w[3]) {
   double x, y, z0, z1, r;
-  if (solid_gone(o)) {
+  if (solid_gone(o) || wire_at(o)) {
     return -1.0;
   }
   if (!solid_cyl(o, w[2], &x, &y, &z0, &z1, &r)) {
@@ -4813,6 +5048,13 @@ static int solid_reach(int o, const double c[3], double rad) {
   double g2 = 0.0;
   if (solid_gone(o)) {
     return 0;
+  }
+  const Wire *wr = wire_at(o);
+  if (wr) {
+    double q[3];
+    wire_nearest(wr, c, q);
+    const double d[3] = { c[0] - q[0], c[1] - q[1], c[2] - q[2] };
+    return norm(d) - wr->r < rad;
   }
   if (!solid_cyl(o, c[2], &x, &y, &z0, &z1, &r)) {
     const Obstacle *ob = &OB[o];
@@ -4876,6 +5118,11 @@ int crash_touches(const SimState *s) {
   const Table *t = tab();
   static double b[OWN_SAMPLES][3];
   static double w[OWN_SAMPLES][3];
+  double hp[SIM_PART_PTS_MAX][3];
+  /* The most any point of the craft goes in a step: a wire is met this
+   * far out, so no edge crosses one between two steps (WIRES). */
+  const double travel = g_nwr > 0 ? (norm(s->vel) + norm(s->omega) * craft_reach()) * SIM_DT : 0.0;
+  const int rigid = g_nob + g_ntr;
   for (int i = 0; i < t->n; i += 1) {
     if (!attached(i) || stowed(t, i)) {
       g_own_solid[i] = 0;
@@ -4897,16 +5144,44 @@ int crash_touches(const SimState *s) {
       const double r = norm(e);
       if (r > rad) rad = r;
     }
-    /* The contact it held, while the part is still behind that face. */
+    const int np = t->p[i].npts;
+    if (g_nwr > 0) {
+      for (int q = 0; q < np; q += 1) {
+        double pl[3], pw[3];
+        live_pt(t->p[i].pts[q], pl);
+        qrot(s->quat, pl, pw);
+        for (int a = 0; a < 3; a += 1) {
+          hp[q][a] = s->pos[a] + pw[a];
+        }
+      }
+    }
+    /* The contact it held, while the part is still behind that face. A
+     * wire's is met on the hull's edges, the rest at the samples; `at` is
+     * the point on a wire, world. */
     int best = -1;
+    int on_wire = 0;
+    double at[3] = { 0.0, 0.0, 0.0 };
     double best_pen = 0.0, n[3] = { 0.0, 0.0, 0.0 };
     const int held = g_own_solid[i] - 1;
     if (held >= 0 && held < solid_count() && solid_reach(held, c, rad)) {
-      for (int q = 0; q < ns; q += 1) {
-        const double dp = solid_along(held, g_own_n[i], w[q]);
-        if (dp > best_pen) {
+      const Wire *hw = wire_at(held);
+      if (hw) {
+        double dp, nrm[3], p[3];
+        if (wire_meet(hw, (const double (*)[3])hp, np, g_own_n[i], 0.0, &dp, nrm, p) && dp > best_pen) {
           best_pen = dp;
-          best = q;
+          best = 0;
+          on_wire = 1;
+          at[0] = p[0];
+          at[1] = p[1];
+          at[2] = p[2];
+        }
+      } else {
+        for (int q = 0; q < ns; q += 1) {
+          const double dp = solid_along(held, g_own_n[i], w[q]);
+          if (dp > best_pen) {
+            best_pen = dp;
+            best = q;
+          }
         }
       }
       if (best >= 0) {
@@ -4919,7 +5194,7 @@ int crash_touches(const SimState *s) {
     if (best < 0) {
       /* A new contact: the deepest point inside any solid, and its way
        * out is the normal held from now on. */
-      for (int o = 0; o < solid_count(); o += 1) {
+      for (int o = 0; o < rigid; o += 1) {
         if (!solid_reach(o, c, rad)) {
           continue;
         }
@@ -4935,6 +5210,24 @@ int crash_touches(const SimState *s) {
           }
         }
       }
+      /* A wire is taken from the step's travel out, still closing at a
+       * depth under 0, where nothing else is met. */
+      for (int o = rigid; o < solid_count(); o += 1) {
+        double pen, nrm[3], p[3];
+        if (!solid_reach(o, c, rad + travel)
+            || !wire_meet(wire_at(o), (const double (*)[3])hp, np, 0, travel, &pen, nrm, p)
+            || (best >= 0 && !(pen > best_pen))) {
+          continue;
+        }
+        best_pen = pen;
+        best = 0;
+        on_wire = 1;
+        solid = o;
+        for (int a = 0; a < 3; a += 1) {
+          n[a] = nrm[a];
+          at[a] = p[a];
+        }
+      }
     }
     if (best < 0) {
       g_own_solid[i] = 0;
@@ -4942,15 +5235,23 @@ int crash_touches(const SimState *s) {
     }
     g_own_solid[i] = solid + 1;
     Touch *h = &g_tch[g_ntch];
-    h->z = w[best][2];
     g_ntch += 1;
     h->part = i;
     h->solid = solid;
     h->pen0 = best_pen;
+    if (on_wire) {
+      const double d[3] = { at[0] - s->pos[0], at[1] - s->pos[1], at[2] - s->pos[2] };
+      qrot_inv(s->quat, d, h->b);
+      h->z = at[2];
+    } else {
+      for (int a = 0; a < 3; a += 1) {
+        h->b[a] = b[best][a];
+      }
+      h->z = w[best][2];
+    }
     for (int a = 0; a < 3; a += 1) {
       g_own_n[i][a] = n[a];
       h->n[a] = n[a];
-      h->b[a] = b[best][a];
       h->pos0[a] = s->pos[a];
     }
   }
