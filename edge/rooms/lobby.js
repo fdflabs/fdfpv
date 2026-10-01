@@ -26,7 +26,9 @@
  * it is listed with its pilots again.
  *
  * A HIDDEN ROOM (safety.js: enough pilots reported its name) is never
- * listed and never handed to a quick join. Its pilots fly on.
+ * listed and never handed to a quick join. Its pilots fly on. A ROOM MADE
+ * FOR THE WAR is listed, with its mission, and never handed to a quick
+ * join either.
  *
  * A quick join is counted as a pilot for PENDING_MS, until the room's own
  * count arrives, so a burst of joiners does not all land on one room past
@@ -87,6 +89,7 @@ export function listingOf(meta, n, activity, emptySince = null) {
     game: activity.game,
     state: activity.state,
     mode: meta.mode ?? null,
+    mission: meta.mission ?? null,
     hidden: Boolean(meta.hidden),
     created: meta.epoch,
     emptySince: n > 0 ? null : emptySince,
@@ -146,7 +149,7 @@ export class LobbyBook {
       .slice(0, LIST_MAX)
       .map((e) => ({
         code: e.code, name: e.name, pick: e.pick, map: e.map, n: e.n, cap: e.cap, game: e.game, state: e.state, mode: e.mode,
-        emptySince: e.emptySince,
+        mission: e.mission ?? null, emptySince: e.emptySince,
       }));
   }
 
@@ -166,7 +169,9 @@ export class LobbyBook {
     let best = null;
     let bestLoad = -1;
     for (const e of Object.values(this.rooms)) {
-      if (e.map !== map || e.hidden) {
+      /* Never into a room made for the war: nobody arrives there without
+       * having chosen it (docs/WARFARE-PLAN.md section 9). */
+      if (e.map !== map || e.hidden || e.mode === 'war') {
         continue;
       }
       const n = this.load(e, now);

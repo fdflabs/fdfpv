@@ -429,19 +429,31 @@ Package M, in `src/maps/itaipu/**` and `tools/itaipu/**`:
 The multiplayer design assumes children in public rooms
 (MULTIPLAYER-PLAN.md:8,23-25, section 9). This mode is not for them, so:
 
-- `war` starts only in a **private** room: `hostCheck` refuses it in a
-  public one, by code. Quick join never lands in a war game.
-- A title card shows it, because the owner asked for one on 2026-09-29;
-  no public room listing does. The card, Make a room's Game row and the
-  host's game menu all reach it only in a private room on the Itaipu map,
-  and only after the consent screen below.
+- `war` starts only in a room **made for the war** (`mode: 'war'`, on a
+  war mission's map), private or public. `hostCheck` refuses it in any
+  other public room, by code, and quick join never hands a pilot a room
+  made for the war (edge/rooms/lobby.js), so nobody is in one without
+  having chosen it.
+- The owner opened the war to public rooms on 2026-10-01: "in make a room,
+  i should be able to do a room for multiplayer itaipu missions, because
+  when i start a mission now, a new room isnt created and made public so
+  my friend cant easily join". A public war room is listed in Rooms and on
+  the title's rooms panel as the war's, with its mission. Campaign Play
+  makes one by default, named for its host.
+- Every pilot who enters a room made for the war, its host or a joiner by
+  the list, a link or a code, passes the consent screen below first if
+  they have not already; saying no leaves the room. A build from before
+  this asks nothing on joining, so the room closes its hello for a reload
+  (roomwire.js `WAR_JOIN`).
+- A title card shows it, because the owner asked for one on 2026-09-29.
+  The card, campaign Play and Make a room's Game row reach it only on the
+  Itaipu map, and only after the consent screen.
 - Everything else in section 9 of the multiplayer plan still holds in a
-  war room: no free text, picker names, report and kick.
+  war room: no free text beyond a room's filtered name, picker names,
+  report, and kick in a private room.
 - The first time a pilot opens it, one screen says what it is (simulated
   drone war, no people shown harmed) and asks to continue.
 - No people are shown harmed, ever: aircraft break, structures burn.
-
-Opening it wider is the owner's decision, later, and a one line change.
 
 ## 10. Work packages
 
