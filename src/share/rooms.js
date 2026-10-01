@@ -493,7 +493,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
 
   return {
     /* Make a room in `map`, private unless room.public; room.name is the
-     * typed name or null, room.mode the game it is set up for or null.
+     * typed name or null, room.mode the game it is set up for or null,
+     * room.mission the war's mission for a room made for the war.
      * Resolves to its code; throws Error('name') for a name the server
      * refused. */
     async create(map, friendly = false, room = {}) {
@@ -505,7 +506,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null,
+          map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null, mission: room.mission ?? null,
         }),
       });
       const body = await res.json().catch(() => ({}));

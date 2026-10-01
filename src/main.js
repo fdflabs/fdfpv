@@ -134,6 +134,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { startMessage } from './share/campaignwar.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
@@ -2673,9 +2674,25 @@ export async function boot({
     return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
   }
 
-  /* Set once the campaign screen exists (further down); the start row
-   * names the mission Play chose. */
+  /* Set once the campaign screen exists (further down): the start row
+   * carries its loadout. */
   let campaignRef = null;
+
+  /*
+   * THE ROOM'S MISSION (docs/FLOW-AUDIT.md rule 1): the war's own while one
+   * has been started here, else the one the room was made for, which the
+   * room keeps and every welcome carries, a reload's too (D7). Mission 1 in
+   * a room that says none (made by hand, or by a server from before).
+   */
+  function roomMission() {
+    const v = roomWar.view();
+    const w = roomLinkState.state().welcome;
+    const id = (v && v.id != null && v.mission) || (w && w.mission) || WAR_MISSION;
+    return Object.hasOwn(WAR_MISSIONS, id) ? id : WAR_MISSION;
+  }
+  function missionNumber(id) {
+    return Object.keys(WAR_MISSIONS).indexOf(id) + 1;
+  }
 
   /* The host's row, where the war may run: a private room on the Itaipu
    * map. A public room there gets warPublicRows instead. The title's card and Make a room reach it through warEnter. A
@@ -2694,8 +2711,8 @@ export async function boot({
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on() && v.state !== 'briefing') {
       return [head, ...warInviteRows(), {
-        label: str('war.start', { n: campaignRef ? campaignRef.selectedNumber() : 1 }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
-        primary: ui.roomGame === 'war',
+        label: str('war.start', { n: missionNumber(roomMission()) }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
+        primary: w.mode === 'war',
       }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
     }
     if (host) {
@@ -2704,11 +2721,6 @@ export async function boot({
     return [head, {
       label: str('war.row'), value: state, note: str(v.state === 'lobby' ? 'war.waiting' : 'war.row_note'), info: true,
     }];
-  }
-
-  /* Where the war may run, so where a room may say it is set up for it. */
-  function warFits(w) {
-    return Boolean(w) && !w.public && w.map === WAR_MAP;
   }
 
   /*
@@ -2776,30 +2788,29 @@ export async function boot({
 
   /* The start row's press. Consent first, whoever's room this is: a
    * room made by hand never went through warEnter's (FLOW-AUDIT.md D6).
-   * Then the mission campaign Play chose for this room, else mission 1. */
+   * Then the room's mission, with this pilot's campaign loadout. */
   async function warStart() {
-    if (await warConsented() && !campaignRef.startSelected()) {
-      roomWar.start(WAR_MISSION, { intro: true });
+    if (await warConsented()) {
+      roomLinkState.send(startMessage(roomMission(), campaignRef.loadout()));
     }
     ui.refreshFriends();
   }
 
   /*
-   * THE WAY IN FROM OUTSIDE A ROOM: the title's Defend Itaipu card
-   * (`card`, its action) and Make a room's Game row (`room.name`, the
-   * typed name or null). Consent first, then a private room on the Itaipu
-   * map with this pilot as host, seated there, on the room screen with the
-   * war's start row under the cursor. The room is made without a mode,
-   * because 'war' is not one of ROOM_MODES and never reaches the server's
-   * public list; ui.roomGame is what leads the room with it, here and, by
-   * the host's profile, for whoever joins. Resolves false when the pilot
-   * said Back; throws what the room server refused.
+   * THE WAY IN FROM OUTSIDE A ROOM: the title's Defend Itaipu card and
+   * campaign Play (`card`, the card's action; `room.mission`, Play's) and
+   * Make a room's Game row (`room.name`, the typed name or null). Consent
+   * first, then a private room on the Itaipu map made for the war and that
+   * mission (the room keeps both, edge/rooms/front.js), with this pilot as
+   * host, seated there, on the room screen with the war's start row under
+   * the cursor. Resolves the room's code, or null when the pilot said
+   * Back; throws what the room server refused.
    */
   async function warEnter(room = {}, card = null) {
     if (!(await warConsented())) {
       return null;
     }
-    const code = await roomLinkState.create(WAR_MAP, false, { name: room.name ?? null });
+    const code = await roomLinkState.create(WAR_MAP, false, { name: room.name ?? null, mode: 'war', mission: room.mission ?? null });
     if (ui.settings.map !== WAR_MAP) {
       ui.seatMap(WAR_MAP, { stay: true });
     }
@@ -2816,10 +2827,10 @@ export async function boot({
   /* The card's press. A room the server would not make is said, with a
    * second try on offer, and Back leaves the pilot on the title. Resolves
    * the code of the room it made, or null. */
-  ui.onWarCard = async (card) => {
+  ui.onWarCard = async (card, mission = null) => {
     for (;;) {
       try {
-        return await warEnter({}, card);
+        return await warEnter({ mission }, card);
       } catch (e) {
         const again = await ui.askConfirm({
           title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
@@ -4170,6 +4181,8 @@ export async function boot({
       slowSaid: roomSlow.said,
       public: Boolean(st.welcome && st.welcome.public),
       name: st.welcome ? st.welcome.name : null,
+      mode: st.welcome ? st.welcome.mode ?? null : null,
+      mission: st.welcome ? roomMission() : null,
       host: st.welcome ? st.welcome.host : null,
       heard: roomSafety.heard(),
       note: roomSafety.note(),
@@ -4442,19 +4455,12 @@ export async function boot({
        *
        * A room set up for a game puts that game first, its start row the
        * primary under the host's cursor, and the heading says what the
-       * room is for, to everybody in it. The room says so itself when it
-       * was made for one (Make a room, welcome.mode); otherwise the host's
-       * game is its own card's and a joiner's the host's, from the host's
-       * profile.
+       * room is for, to everybody in it, as the room itself says: the game
+       * it was made for (welcome.mode, which the server keeps, the war's
+       * included). Never a card's or the host's profile's game, which
+       * outlived the room they were picked for (docs/FLOW-AUDIT.md D8, D10).
        */
-      const hostPeer = w && !host ? roomPeers.get(w.host) : null;
-      const wanted = w ? (w.mode || (host ? ui.roomGame : (hostPeer && hostPeer.profile.game)) || null) : null;
-      /* A title card's game outlives the room it was picked for: a pilot
-       * who pressed Defend Itaipu and then went into a public room still
-       * carries 'war', and the heading said the public room was set up for
-       * it. The room says it only where the war may run; elsewhere its
-       * block still leads, saying why not. */
-      const game = wanted === 'war' && !warFits(w) ? null : wanted;
+      const game = w ? w.mode ?? null : null;
       const lead = (rows, action) => rows.map((it) => (it.action === action ? { ...it, primary: true } : it));
       const blocks = {
         race: roomRaceRows(host),
@@ -4462,10 +4468,9 @@ export async function boot({
         combat: combatRows(host, w, game === 'combat'),
         war: warRows(host, w),
       };
-      /* Defend Itaipu last, unless the room or its pilot came for it, and
-       * only on Itaipu (warRows): a public room there says why not. */
-      const first = game || (wanted === 'war' ? 'war' : null);
-      const order = first ? [first, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== first)] : ['race', 'tag', 'combat', 'war'];
+      /* Defend Itaipu last, unless the room was made for it, and only on
+       * Itaipu (warRows): a public room there says why not. */
+      const order = game ? [game, ...['race', 'tag', 'combat', 'war'].filter((g) => g !== game)] : ['race', 'tag', 'combat', 'war'];
       const games = [
         {
           label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
@@ -4556,7 +4561,7 @@ export async function boot({
   const campaign = createCampaignScreen({
     ui,
     inBuild: (id) => Object.hasOwn(WAR_MISSIONS, id),
-    enterWarRoom: () => ui.onWarCard('way-war'),
+    enterWarRoom: (mission) => ui.onWarCard('way-war', mission),
     send: (obj) => roomLinkState.send(obj),
     view: () => roomWar.view(),
     room: () => {

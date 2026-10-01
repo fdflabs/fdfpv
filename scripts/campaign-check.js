@@ -23,7 +23,8 @@
  * is dropped, a private Itaipu room made by hand after it starts mission
  * 1, and its start row asks the consent first (docs/FLOW-AUDIT.md D6).
  * Play mission 2 whose room is held before its welcome, then a room made
- * by hand: that room is not the mission's either.
+ * by hand: that room is not the mission's either. Mission 2's room keeps
+ * its mission across a reload (D7): the room holds it, not the page.
  *
  * No page error. Pictures in outdir, not in the repository.
  *
@@ -266,10 +267,10 @@ try {
   await page.sleep(600);
   const room = await page.evaluate(`(() => {
     const r = window.__rooms();
-    return { code: r.code, public: r.public, host: r.host === r.seat, map: window.__ui.settings.map, pending: window.__campaign.pending() };
+    return { code: r.code, public: r.public, host: r.host === r.seat, map: window.__ui.settings.map, mode: r.mode, mission: r.mission };
   })()`);
-  check('a private Itaipu room, this pilot its host, the mission remembered for it',
-    !room.public && room.host && room.map === 'itaipu' && room.pending && room.pending.mission === 'itaipu-1' && room.pending.code === room.code,
+  check('a private Itaipu room made for the war and mission 1, this pilot its host',
+    !room.public && room.host && room.map === 'itaipu' && room.mode === 'war' && room.mission === 'itaipu-1',
     JSON.stringify(room));
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.state === 'briefing'", 15000).catch(() => {});
@@ -359,6 +360,21 @@ try {
   await page.sleep(600);
   const row2 = await page.evaluate("(window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null");
   check('the mission 2 room\'s start row says Start mission 2', row2 === 'Start mission 2', row2);
+  /* A RELOAD THERE KEEPS THE MISSION (docs/FLOW-AUDIT.md D7): the room
+   * holds it, not the page. */
+  const code2 = await page.evaluate('window.__rooms().code');
+  await page.evaluate('(() => { window.__beforeReload = true; return true; })()');
+  await page.cdp.send('Page.reload', {}, page.sessionId);
+  await page.until('window.__beforeReload !== true && window.__shellReady === true', 300000);
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(code2)}
+    && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
+  await page.sleep(600);
+  const reloaded = await page.evaluate(`({
+    code: window.__rooms().code, mission: window.__rooms().mission,
+    row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null,
+  })`);
+  check('a reload in it: the same room, still Start mission 2', reloaded.code === code2 && reloaded.mission === 'itaipu-2' && reloaded.row === 'Start mission 2',
+    JSON.stringify(reloaded));
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
   const start2 = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
@@ -390,16 +406,16 @@ try {
   await page.tap('Escape');
   await page.until("document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
   await page.sleep(300);
-  const declined = await page.evaluate("({ pending: window.__campaign.pending(), phase: window.__rooms().phase, consent: window.__ui.settings.warConsent })");
-  check('Back on the consent of Play mission 2: no room, the mission dropped',
-    declined.pending === null && declined.phase === 'idle' && declined.consent === false, JSON.stringify(declined));
+  const declined = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, consent: window.__ui.settings.warConsent })");
+  check('Back on the consent of Play mission 2: no room made',
+    declined.phase === 'idle' && declined.code === null && declined.consent === false, JSON.stringify(declined));
   const handCode = await page.evaluate("(async () => { const c = await window.__roomCreate({ map: 'itaipu' }); window.__ui.show('friends'); return c; })()");
   await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(handCode)}
     && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
   await page.sleep(600);
-  const hand = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, pending: window.__campaign.pending() })");
+  const hand = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, mission: window.__rooms().mission })");
   check('a private Itaipu room made by hand after it: Start mission 1, no mission adopted',
-    hand.row === 'Start mission 1' && hand.pending === null, JSON.stringify(hand));
+    hand.row === 'Start mission 1' && hand.mission === 'itaipu-1', JSON.stringify(hand));
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()", 10000).catch(() => {});
   await page.sleep(700);
@@ -432,14 +448,14 @@ try {
   await click(page, '[data-mission="itaipu-2"] .campaign-play');
   await page.until(`window.__rooms().code && window.__rooms().code !== ${JSON.stringify(heldFrom)} && window.__rooms().phase === 'connecting'`, 30000).catch(() => {});
   await page.sleep(1000);
-  const held = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, pending: window.__campaign.pending() })");
+  const held = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code })");
   check('Play mission 2: its room made, held before the welcome', held.phase === 'connecting' && held.code !== heldFrom, JSON.stringify(held));
   const byHand = await page.evaluate("(async () => { window.__holdHello = false; const c = await window.__roomCreate({ map: 'itaipu' }); window.__ui.show('friends'); return c; })()");
   await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(byHand)}
     && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
   await page.sleep(600);
-  const other = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, pending: window.__campaign.pending() })");
-  check('a room made by hand after it: Start mission 1, the mission not adopted', other.row === 'Start mission 1' && other.pending === null, JSON.stringify(other));
+  const other = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, mission: window.__rooms().mission })");
+  check('a room made by hand after it: Start mission 1, the mission not adopted', other.row === 'Start mission 1' && other.mission === 'itaipu-1', JSON.stringify(other));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

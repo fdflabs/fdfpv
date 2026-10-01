@@ -8,14 +8,14 @@
  *                (ui.nameDialog, the node askConfirm uses), so the menu's
  *                keys are already held while it is open and closing it is
  *                closeNameDialog, as for every other dialog.
- *   Play         remembers the mission and goes through the Defend Itaipu
- *                card's own way in (enterWarRoom: its consent, a private
- *                Itaipu room, this pilot its host, the start row under the
- *                cursor). The start row then starts that mission with this
- *                pilot's loadout (startSelected), in that room only.
- *   the watch    every POLL_MS: a room the pilot has left forgets the
- *                mission; a loadout the room would take is said before
- *                the go; a result the room gives is recorded, once.
+ *   Play         goes through the Defend Itaipu card's own way in
+ *                (enterWarRoom: its consent, a private Itaipu room made
+ *                for the war and that mission, which the room keeps, this
+ *                pilot its host, the start row under the cursor). The
+ *                start row (src/main.js warStart) starts the room's
+ *                mission with this pilot's loadout.
+ *   the watch    every POLL_MS: a loadout the room would take is said
+ *                before the go; a result the room gives is recorded, once.
  *
  * A RESULT IS RECORDED ONCE, and only for a war this page watched go
  * undecided: a war first seen already decided (a reload after the end) is
@@ -41,7 +41,7 @@ import {
   ACT1, MAX_STARS, UPGRADES, applyResult, buy, cannotBuy, createCampaignStore, credits, equip, gateOpen, loadoutOf,
   starsOf, totalStars, unlocked,
 } from '../game/campaign.js';
-import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../share/campaignwar.js';
+import { loadoutDue, loadoutMessage, resultOf } from '../share/campaignwar.js';
 import { str } from '../strings/index.js';
 
 const POLL_MS = 250;
@@ -79,10 +79,10 @@ const skey = (id) => id.replace(/-/g, '_');
 
 /*
  * ui: the shell's UI (ui.js), whose settings keep the campaign. inBuild(id): whether
- * this build has that mission. enterWarRoom(): the Defend Itaipu card's
- * way in, resolving the code of the room it made, or null. send(obj): the
- * room's socket. view(): the war view (roomWar.view()). room(): { phase,
- * code, seat }.
+ * this build has that mission. enterWarRoom(mission): the Defend Itaipu
+ * card's way in, for that mission, resolving the code of the room it made,
+ * or null. send(obj): the room's socket. view(): the war view
+ * (roomWar.view()). room(): { phase, code, seat }.
  */
 export function createCampaignScreen({
   ui, inBuild, enterWarRoom, send, view, room, craftWarhead = null,
@@ -105,9 +105,6 @@ export function createCampaignScreen({
     return w ? { ...l, warhead: w } : l;
   };
   let page = null;
-  /* The mission Play chose: { mission, code (the room made for it) },
-   * or null. */
-  let pending = null;
   /* `${code}:${war id}` -> whether its result is already accounted for. */
   const watched = new Map();
   /* The last loadout said, as `${code}:${war id}:${json}`, so a room that
@@ -296,26 +293,7 @@ export function createCampaignScreen({
   async function play1(i) {
     const m = ACT1[i];
     close();
-    pending = null;
-    /* The mission is the room's that was made for it, by its code: never
-     * a room that opens later, which is how a Play declined at the
-     * consent, or one whose room never opened, used to start in a room
-     * made by hand. */
-    const code = await enterWarRoom();
-    pending = code ? { mission: m.id, code } : null;
-  }
-
-  /* The start row's press, in the room Play made: that mission, this
-   * pilot's loadout. False when the row is not the campaign's, and the
-   * Defend Itaipu start goes ahead as ever. */
-  function startSelected() {
-    const r = room();
-    bind(r);
-    if (!pending || r.code !== pending.code) {
-      return false;
-    }
-    send(startMessage(pending.mission, loadoutNow()));
-    return true;
+    await enterWarRoom(m.id);
   }
 
   function observe(v, code) {
@@ -351,26 +329,8 @@ export function createCampaignScreen({
     commit((s) => applyResult(s, v.mission, res));
   }
 
-  /* Forgets Play's mission once the pilot is in another room than the
-   * one made for it. */
-  function bind(r) {
-    if (pending && r.code !== pending.code) {
-      pending = null;
-    }
-  }
-
-  /* The mission number (1 based) the start row starts in this room: the
-   * one Play chose, else the first. */
-  function selectedNumber() {
-    const r = room();
-    bind(r);
-    const i = pending && pending.code === r.code ? ACT1.findIndex((m) => m.id === pending.mission) : -1;
-    return i >= 0 ? i + 1 : 1;
-  }
-
   function poll() {
     const r = room();
-    bind(r);
     if (r.phase !== 'open') {
       return;
     }
@@ -389,12 +349,11 @@ export function createCampaignScreen({
   return {
     open,
     close,
-    startSelected,
-    selectedNumber,
+    /* The loadout a war start carries: this pilot's, as the shop set it. */
+    loadout: loadoutNow,
     /* For the checks. */
     observe,
     state: cur,
-    pending: () => (pending ? { ...pending } : null),
     page: () => page,
   };
 }
