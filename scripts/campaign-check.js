@@ -13,7 +13,7 @@
  * guest's store, which the account syncs for a signed in pilot):
  * buy the wide blast warhead and Rack +1, equip and unequip, the loadout
  * line following. Play on mission 1: the Defend Itaipu card's consent and
- * private Itaipu room, and its start row starts mission 1 with the
+ * public Itaipu room made for the war, and its start row starts mission 1 with the
  * loadout in the start message (the room on main ignores the field and
  * starts the war anyway, and no loadout op goes to a room that does not
  * echo loadouts). A mission end with no result, as main gives: nothing
@@ -269,8 +269,8 @@ try {
     const r = window.__rooms();
     return { code: r.code, public: r.public, host: r.host === r.seat, map: window.__ui.settings.map, mode: r.mode, mission: r.mission };
   })()`);
-  check('a private Itaipu room made for the war and mission 1, this pilot its host',
-    !room.public && room.host && room.map === 'itaipu' && room.mode === 'war' && room.mission === 'itaipu-1',
+  check('a public Itaipu room made for the war and mission 1, this pilot its host (the owner, 2026-10-01: public so a friend finds it)',
+    room.public && room.host && room.map === 'itaipu' && room.mode === 'war' && room.mission === 'itaipu-1',
     JSON.stringify(room));
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.state === 'briefing'", 15000).catch(() => {});

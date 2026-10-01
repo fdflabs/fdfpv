@@ -109,7 +109,7 @@ import {
 } from './ui/roomhud.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
+  FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, normaliseRoomName, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import {
@@ -2162,6 +2162,7 @@ export async function boot({
       roomGone.clear();
       roomSessionWelcome(w);
       roomBootLand(w);
+      roomWarJoinGate(w);
       /* Crash damage is on in this room: a pilot already flying its world
        * with it off starts again, as a war's does (warBegin). */
       if (mode === 'flight' && damage.available && crashDamageWanted(ui.settings) !== runDamage && roomTagWorldReady(w.map)) {
@@ -2311,6 +2312,8 @@ export async function boot({
     ui, link: roomLinkState, roomName, here: () => seatWorld(), preset: () => ui.roomGame || null,
     war: (room) => warEnter(room),
     pilots: () => roomPeers.size + 1,
+    missions: () => (campaignRef ? campaignRef.playable() : []),
+    missionNumber: (id) => Math.max(1, missionNumber(id)),
   });
   /* The title too, for its rooms panel (ui.js renderTitleRooms). */
   const roomBrowsing = () => ui.screen === 'rooms' || ui.screen === 'title' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
@@ -2814,7 +2817,9 @@ export async function boot({
     if (!(await warConsented())) {
       return null;
     }
-    const code = await roomLinkState.create(WAR_MAP, false, { name: room.name ?? null, mode: 'war', mission: room.mission ?? null });
+    const code = await roomLinkState.create(WAR_MAP, false, {
+      name: room.name ?? null, mode: 'war', mission: room.mission ?? null, public: room.public === true,
+    });
     if (ui.settings.map !== WAR_MAP) {
       ui.seatMap(WAR_MAP, { stay: true });
     }
@@ -2828,13 +2833,41 @@ export async function boot({
     return code;
   }
 
+  /*
+   * A ROOM MADE FOR THE WAR asks its consent of every pilot who enters it,
+   * by the list, a link or a code (docs/WARFARE-PLAN.md section 9, as the
+   * owner opened the war to public rooms on 2026-10-01). The host who made
+   * it has answered already. A pilot who says no leaves it for the title,
+   * never half in it.
+   */
+  let warJoinAsking = false;
+  async function roomWarJoinGate(w) {
+    if (w.mode !== 'war' || ui.settings.warConsent || warJoinAsking) {
+      return;
+    }
+    warJoinAsking = true;
+    try {
+      if (!(await warConsented()) && roomLinkState.state().code === normaliseCode(w.code)) {
+        roomLeave();
+        ui.act('title');
+      }
+    } finally {
+      warJoinAsking = false;
+    }
+  }
+
   /* The card's press. A room the server would not make is said, with a
    * second try on offer, and Back leaves the pilot on the title. Resolves
    * the code of the room it made, or null. */
   ui.onWarCard = async (card, mission = null) => {
+    /* Campaign Play's room is public, named for its host, so a friend
+     * finds it in Rooms (the owner, 2026-10-01: "a new room isnt created
+     * and made public so my friend cant easily join"). A name the room
+     * rules would not take is left to the picked one. */
+    const name = normaliseRoomName(str('war.room_name', { name: roomName(ownName()) })) || null;
     for (;;) {
       try {
-        return await warEnter({ mission }, card);
+        return await warEnter({ mission, public: true, name }, card);
       } catch (e) {
         const again = await ui.askConfirm({
           title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),

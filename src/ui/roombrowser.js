@@ -56,10 +56,11 @@ const TITLE_ROOMS = 3;
  * title card set up, or null; war(room): the shell's way into Defend
  * Itaipu (src/main.js DEFEND ITAIPU), which asks its consent question and
  * makes the room itself, resolving once it has; pilots(): how many are in
- * the room this pilot is in, them included.
+ * the room this pilot is in, them included; missions(): the war missions
+ * this pilot may start, in order; missionNumber(id): a mission's number.
  */
 export function createRoomBrowser({
-  ui, link, roomName, here, preset = () => null, war = null, pilots = () => 1,
+  ui, link, roomName, here, preset = () => null, war = null, pilots = () => 1, missions = () => [], missionNumber = () => 1,
 }) {
   /*
    * WHERE THE CURSOR LANDS. Rooms opened before its list has ever arrived
@@ -91,12 +92,12 @@ export function createRoomBrowser({
   let joined = null;
 
   /*
-   * DEFEND ITAIPU ON THE GAME ROW, only for a private room on the Itaipu
-   * map (docs/WARFARE-PLAN.md section 9). It is not one of ROOM_MODES, so
-   * the server never hears it and no public room can be made for it: the
-   * shell makes a plain private room and leads it with the war.
+   * DEFEND ITAIPU ON THE GAME ROW, for a room on the Itaipu map, public or
+   * private since the owner opened it (2026-10-01, docs/WARFARE-PLAN.md
+   * section 9), with the mission it starts with. The shell makes the room
+   * (war: its consent first), set up for the war and that mission.
    */
-  const warFits = (d) => Boolean(war) && !d.public && d.map === 'itaipu';
+  const warFits = (d) => Boolean(war) && d.map === 'itaipu';
 
   function fresh() {
     const w = worlds();
@@ -109,7 +110,7 @@ export function createRoomBrowser({
   }
 
   function doing(r) {
-    return r.game ? str(`roombrowser.${r.game}_${r.state}`) : str('roombrowser.free');
+    return r.game ? str(`roombrowser.${r.game}_${r.state}`, { n: missionNumber(r.mission) }) : str('roombrowser.free');
   }
 
   /* What a room's pilots column says: full, how many of how many, or,
@@ -254,6 +255,12 @@ export function createRoomBrowser({
         (m) => str(`roombrowser.mode_${m || 'none'}`), (m) => {
           draft.mode = m;
         }),
+      ...(draft.mode === 'war' && missions().length
+        ? [choiceRow(str('roombrowser.mission'), str('roombrowser.mission_note'), missions(), missions().includes(draft.mission) ? draft.mission : missions()[0],
+          (id) => str('campaign.mission_n', { n: missionNumber(id) }), (id) => {
+            draft.mission = id;
+          })]
+        : []),
       {
         label: str(busy ? 'roombrowser.making' : 'roombrowser.make'),
         note: error || str(draft.public ? (list.busy() ? 'roombrowser.busy' : 'roombrowser.make_public_note') : 'roombrowser.make_private_note'),
@@ -304,7 +311,10 @@ export function createRoomBrowser({
       if (draft.mode === 'war') {
         /* False: the pilot said Back to the consent question, and the
          * form stays as it was. */
-        if (await war({ name: draft.name })) {
+        const mission = missions().includes(draft.mission) ? draft.mission : null;
+        const code = await war({ name: draft.name, public: draft.public, mission });
+        if (code) {
+          joined = draft.public ? code : null;
           draft = null;
         }
       } else {
@@ -348,7 +358,14 @@ export function createRoomBrowser({
       return [
         { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
         ...open.map((r) => ({
-          lobby: 'room', label: title(r), value: load(r, 'roombrowser.chip_empty'), join: str('roombrowser.join'), action: `lobby:${ROOM_ACTION}${r.code}`,
+          lobby: 'room',
+          label: title(r),
+          /* A room made for the war says so, and which mission. */
+          value: r.game === 'war'
+            ? str('roombrowser.chip_war', { n: missionNumber(r.mission), load: load(r, 'roombrowser.chip_empty') })
+            : load(r, 'roombrowser.chip_empty'),
+          join: str('roombrowser.join'),
+          action: `lobby:${ROOM_ACTION}${r.code}`,
         })),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },
         { lobby: 'make', label: str('roombrowser.new'), action: 'lobby:roomnew' },
