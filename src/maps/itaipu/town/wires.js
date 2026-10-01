@@ -143,8 +143,11 @@ export function wireMesh(THREE, chords) {
          * other through the face toward the eye. */
         transformedNormal = normalize(wEye + wSide * corner.y);`)
       .replace('#include <begin_vertex>', 'vec3 transformed = mix(aA, aB, corner.x);')
-      .replace('#include <project_vertex>', `
-        vec4 mvPosition = vec4(wP + wSide * wHalf * corner.y, 1.0);
+      /* The chunk stays, so the injections after it (look/light.js,
+       * look/night.js) find their anchor; the ribbon's corner replaces
+       * the axis point it projected. */
+      .replace('#include <project_vertex>', `#include <project_vertex>
+        mvPosition = vec4(wP + wSide * wHalf * corner.y, 1.0);
         gl_Position = projectionMatrix * mvPosition;`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
