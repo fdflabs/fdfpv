@@ -202,6 +202,13 @@ static double g_debug[20];
 static double g_fan_n = 0.0;
 static double g_fan_v = 0.0;
 static double g_esc_ramp = 0.0;
+
+/* A fan that idles is a turbine: a ducted fan's table with an idle. No
+ * table had both before the Striker's, so this is false on every other. */
+static int fan_idles(const FixedWingParams *fw) {
+  return fw && fw->fan_tau > 0.0 && fw->throttle_idle > 0.0;
+}
+
 /* THE DISCUS LAUNCH (FixedWingParams.discus_v): the phase, 0 none, 1 the
  * pilot's turn, 2 the zoom under the launch preset; the turn's time, s,
  * its centre, world x y, and the CG's height on it, m, the angle round it
@@ -683,7 +690,9 @@ void plant_wing_reset(void) {
       g_sep[i][j][1] = 0.0;
     }
   }
-  g_fan_n = 0.0;
+  /* A turbine is lit before the run and idles from its first step, as a
+   * glow engine does; an electric fan starts stopped. */
+  g_fan_n = fan_idles(PLANT.fw) ? PLANT.fw->throttle_idle : 0.0;
   g_fan_v = 0.0;
   g_esc_ramp = 0.0;
   g_discus = 0;
@@ -706,7 +715,9 @@ void plant_wing_reset(void) {
  */
 static double fan_spool(const FixedWingParams *fw, double throttle, double de, int off) {
   double target = de;
-  if (off || !(throttle > 0.0)) {
+  /* A turbine (throttle_idle over zero) is held at its idle by its ECU with
+   * the stick closed, which de already is; only an electric fan stops. */
+  if (off || (!(throttle > 0.0) && !(fw->throttle_idle > 0.0))) {
     target = 0.0;
     g_esc_ramp = 0.0;
   } else if (g_esc_ramp < 1.0) {
@@ -929,6 +940,12 @@ void plant_plane_surfaces(double out[4]) {
  * clear, so none of them moves. */
 void plant_wing_launch(SimState *s, double speed) {
   g_acro_held = 0;
+  /* A turbine leaves the rail at full power: the crew runs it up before
+   * the shot, since its spool takes seconds the rail does not give. */
+  if (fan_idles(PLANT.fw)) {
+    g_fan_n = 1.0;
+    g_fan_v = 0.0;
+  }
   const double fwd[3] = { speed, 0.0, 0.0 };
   double v[3];
   wquat_rotate(s->quat, fwd, v);
@@ -1410,7 +1427,9 @@ void plant_wing_step(SimState *s, const double rc[4]) {
     g_surf[0] = clip(de - da, fw->surface_max);
     g_surf[1] = clip(de + da, fw->surface_max);
     g_surf[2] = 0.0;
-    g_surf[3] = 0.0;
+    /* The Striker's fins carry small rudders; every other flying wing has
+     * none, and its slot stays exactly 0.0. */
+    g_surf[3] = fw->throw_r > 0.0 ? delta_r : 0.0;
     /* What the aero sees of two elevons: their mean. */
     delta_e = 0.5 * (g_surf[0] + g_surf[1]);
   } else {
@@ -3577,4 +3596,202 @@ const FixedWingParams FW_TIGERMOTH1803 = {
   .bip_x = { 0.1729, -0.2277 },
   .bip_ki = { 0.02655, 0.02399 },
   .bip_kx = { 0.01361, 0.01361 },
+};
+
+/* The Striker, docs/COMBAT-DRONES.md section 7: the war's pusher delta as
+ * a playable aircraft, at the size src/render/strikercraft.js draws it,
+ * 2.5 m over its wingtip fins. Every number is scripts/combat-derive.js's
+ * (npm run combat:derive) from a parts list and the drawn planform, the
+ * derivatives a vortex lattice's on the cranked delta and its fins
+ * (scripts/lib/lattice.js), the estimated ones marked there. Elevons, and
+ * a small rudder on each fin on the yaw stick. The two share the wing and
+ * its reflex and differ in what pushes them: FW_STRIKER_PROP a 110 cc
+ * boxer twin on a 30 x 14 wooden pusher, which idles as a glow engine
+ * does and burns its tank; FW_STRIKER_JET a 140 N class turbojet, the
+ * F-16's fan law with the jet's exit velocity for its pitch speed, whose
+ * spool lags the stick by seconds and which idles rather than stops. */
+const FixedWingParams FW_STRIKER_PROP = {
+  .mix = FW_MIX_ELEVON,
+  .span = 2.47,           /* the drawing's, tip to tip at the fins' roots */
+  .area = 2.2927,         /* the drawn cranked delta, the fairing included */
+  .chord = 0.9282,        /* S/b */
+  .cl_alpha = 3.2484,     /* the lattice, fins on */
+  .cl_max = 0.8469,       /* 0.9 of an MH 60 class section's 1.2, cos of the quarter chord's 38.4 deg */
+  .alpha_zl = 0.0,        /* a reflexed section: zero lift on the body axis */
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.0238,          /* a component build up, the uncowled twin 0.020 m^2 of it, ESTIMATED */
+  .k_induced = 0.1364,    /* 1/(pi e AR), Raymer's swept e 0.877 at AR 2.66 */
+  .cl_de = -1.0638,       /* elevon lift, per rad: trailing edge up sheds lift */
+  .cy_beta = -0.4950,     /* the fins' and the 0.34 m fuselage's */
+  .cy_dr = 0.0778,        /* the two small rudders */
+  .cl_beta = -0.0848,     /* the sweep's at the cruise's lift; the fins' centroid barely over the wing */
+  .cl_p = -0.2961,
+  .cl_da = 0.2291,
+  .cl_r_per_cl = 0.1934,
+  .cl_dr = 0.0035,
+  .cm_0 = 0.0570,         /* the reflex: trims with the standard warhead at its 18 m/s cruise */
+  .cm_alpha = -0.1570,    /* static margin 0.04 of the MAC bare; a warhead in the nose adds to it */
+  .cm_q = -1.4020,
+  .cm_de = 0.4516,        /* delta_e positive pitches the nose up */
+  .cn_beta = 0.0147,      /* the fins, less most of it back to the long fuselage */
+  .cn_r = -0.0633,
+  .cn_p_per_cl = -0.2325,
+  .cn_da_per_cl = 0.0337,
+  .cn_dr = -0.0285,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* The throws: seven degrees of aileron for a roll of 80 deg/s at the
+   * cruise, a big stable delta's; eighteen of elevator, which holds the
+   * heaviest warhead at its stall; each elevon clips at 24. */
+  .throw_a = 7.0 * WING_PI / 180.0,
+  .throw_e = 18.0 * WING_PI / 180.0,
+  .throw_r = 25.0 * WING_PI / 180.0,
+  .surface_max = 24.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 283.25, /* N: 8.2 kW at 5,000 rpm through the 30 in disc at a figure of merit of 0.55 */
+  .pitch_speed = 29.633,   /* the 14 in pitch at 5,000 rpm */
+  .rpm_no_load = 5882.4,   /* the plant's rule: 5,000 is 0.85 of it */
+  .torque_arm = 0.05529,   /* 15.7 N m on the shaft over the static thrust */
+  .thrust_z = 0.0196,      /* the shaft on the fuselage's axis, over the CG */
+  .current_full = 0.0,     /* the engine burns fuel, not the pack */
+  .duty_min = 0.02,
+  .stab_bank_max = 45.0 * WING_PI / 180.0,
+  .stab_pitch_max = 20.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 2.0,
+  .stab_roll_kd = 0.2,
+  .stab_pitch_kp = 4.0,
+  .stab_pitch_kd = 0.8,
+  .stab_pitch_down = 0.0,
+  .stab_trim_throttle = 0.6,
+  .acro_roll_rate = 90.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 40.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 5.0,
+  .acro_roll_kd = 0.4,
+  .acro_roll_ff = 0.715,  /* the stick for a rate at cruise, pb/2V 0.095 */
+  .acro_pitch_kp = 5.0,
+  .acro_pitch_kd = 0.8,
+  .acro_pitch_ff = 0.207, /* the stick for a pull's pitch rate at cruise */
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,     /* the rudders are the yaw stick's alone */
+  /* A gasoline twin's carburettor idles it at a quarter of its rpm; 2.5 l
+   * of fuel, 600 g/kWh at full and linear in the rpm through zero; a lean
+   * run over the last 5 percent, ESTIMATED. */
+  .throttle_idle = 0.25,
+  .tank_m3 = 0.0025,
+  .flow_full = 1.84685e-6,
+  .flow_idle = 4.61712e-7,
+  .lean_frac = 0.05,
+  .lean_gain = 0.03,
+  /* Past the stall: a reflexed section held 2.8 deg past its peak and
+   * keeping 0.92 of it, the MH45's at 2e5 (UIUC), the nearest published;
+   * the flying wing's arms. */
+  .stall_arm_ac = -0.0483,
+  .stall_arm_cp = 0.1983,
+  .stall_asym = 0.00108,
+  .stall_k = 0.92,
+  .stall_top = 2.8 * WING_PI / 180.0,
+  .strip_c = { 1.6690, 1.1360, 0.7850, 0.4341 }, /* the cranked planform's chords */
+  .j_prop = 0.01652,      /* the 30 in wooden blades and the crank */
+  .strip_tau = { 0.0, 0.4515, 0.5572, 0.4553 }, /* the elevons, 0.32 to 1.12 m out */
+  .surf_sep = 0.2939,     /* the elevon's chord fraction at the MAC over its tau */
+  .strip_r = { 0.7175, 0.9859, 1.2156, 1.6330 }, /* the lattice's span loading: the tips most */
+};
+
+const FixedWingParams FW_STRIKER_JET = {
+  .mix = FW_MIX_ELEVON,
+  .span = 2.47,
+  .area = 2.2927,
+  .chord = 0.9282,
+  .cl_alpha = 3.2484,
+  .cl_max = 0.8469,
+  .alpha_zl = 0.0,
+  .sin_zl = 0.0,
+  .cos_zl = 1.0,
+  .cd0 = 0.0190,          /* the nacelle's 0.010 m^2 in place of the twin's, ESTIMATED */
+  .k_induced = 0.1364,
+  .cl_de = -1.0638,
+  .cy_beta = -0.4969,
+  .cy_dr = 0.0778,
+  .cl_beta = -0.0384,     /* at its faster cruise's lower lift */
+  .cl_p = -0.2883,
+  .cl_da = 0.2253,
+  .cl_r_per_cl = 0.1934,
+  .cl_dr = 0.0031,
+  .cm_0 = 0.0570,         /* the same wing's reflex */
+  .cm_alpha = -0.1570,
+  .cm_q = -1.4020,
+  .cm_de = 0.4516,
+  .cn_beta = 0.0306,
+  .cn_r = -0.0653,
+  .cn_p_per_cl = -0.2325,
+  .cn_da_per_cl = 0.0337,
+  .cn_dr = -0.0285,
+  .stall_blend = 3.0 * WING_PI / 180.0,
+  /* Four degrees of aileron: it cruises at 45 m/s, and that rolls it at
+   * 110 deg/s. */
+  .throw_a = 4.0 * WING_PI / 180.0,
+  .throw_e = 18.0 * WING_PI / 180.0,
+  .throw_r = 25.0 * WING_PI / 180.0,
+  .surface_max = 24.0 * WING_PI / 180.0,
+  .expo = 0.30,
+  .thrust_static = 140.0, /* N, the class's */
+  .pitch_speed = 420.0,   /* the jet's exit velocity: T = mdot (Ve - V), ESTIMATED */
+  .rpm_no_load = 147058.8, /* the plant's rule on the class's 125,000 rpm at full */
+  .torque_arm = 0.0,      /* a turbojet's reaction is its own shaft's, nothing to the airframe */
+  .thrust_z = 0.1099,     /* the nacelle on the tail, over the axis: power pitches the nose down */
+  .current_full = 0.0,
+  .duty_min = 0.02,
+  .stab_bank_max = 45.0 * WING_PI / 180.0,
+  .stab_pitch_max = 20.0 * WING_PI / 180.0,
+  .stab_trim_pitch = 2.0 * WING_PI / 180.0,
+  .stab_deadband = 0.04,
+  .stab_roll_kp = 1.5,
+  .stab_roll_kd = 0.15,
+  .stab_pitch_kp = 2.5,
+  .stab_pitch_kd = 0.4,
+  .stab_pitch_down = 0.0,
+  .stab_trim_throttle = 0.6,
+  .acro_roll_rate = 120.0 * WING_PI / 180.0,
+  .acro_pitch_rate = 50.0 * WING_PI / 180.0,
+  .acro_expo = 0.30,
+  .acro_err_max = 5.0 * WING_PI / 180.0,
+  .acro_roll_kp = 4.0,
+  .acro_roll_kd = 0.3,
+  .acro_roll_ff = 0.505,
+  .acro_pitch_kp = 4.0,
+  .acro_pitch_kd = 0.5,
+  .acro_pitch_ff = 0.082,
+  .acro_roll_ki = 6.0,
+  .acro_pitch_ki = 8.0,
+  .acro_i_max = 0.30,
+  .yaw_coord_k = 0.0,
+  /* The turbine's idle, set by its thrust, 4 percent of full on the fan
+   * law's speed squared; 4 l of kerosene, 0.45 l/min at full and 0.10 at
+   * idle, ESTIMATED from the class. A turbine runs at an even speed to a
+   * dry tank: no lean run. */
+  .throttle_idle = 0.2,
+  .tank_m3 = 0.004,
+  .flow_full = 7.5e-6,
+  .flow_idle = 1.66667e-6,
+  .stall_arm_ac = -0.0483,
+  .stall_arm_cp = 0.1983,
+  .stall_asym = 0.00108,
+  .stall_k = 0.92,
+  .stall_top = 2.8 * WING_PI / 180.0,
+  .strip_c = { 1.6690, 1.1360, 0.7850, 0.4341 },
+  .j_prop = 0.00014,      /* the compressor, turbine wheels and shaft, ESTIMATED */
+  .strip_tau = { 0.0, 0.4515, 0.5572, 0.4553 },
+  .surf_sep = 0.2939,
+  .strip_r = { 0.7202, 0.9896, 1.2202, 1.6391 },
+  /* The spool: a critically damped second order response, idle to 90
+   * percent of full in about 3.5 s, a small turbine's ECU limited
+   * acceleration, ESTIMATED. No ESC start ramp: it is lit before the run. */
+  .fan_tau = 0.9,
+  .esc_start = 0.0,
 };
