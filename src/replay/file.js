@@ -121,7 +121,7 @@ import {
 import { normalisePlane } from '../../configs/hangar-parts.js';
 import { RIGS, defaults } from './cameras.js';
 import { EditError, checkEdit, isDefault } from './edit.js';
-import { FINISHES, MAX_DECALS, checkDecal } from '../../configs/paint.js';
+import { FINISHES, MAX_DECALS, checkDecal, cleanWear } from '../../configs/paint.js';
 import {
   BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N,
 } from './peers.js';
@@ -257,7 +257,7 @@ const FIGURE_KEYS = ['at', 'yaw'];
 const WHO_MAX = 64;
 const TABLES_MAX = 64;
 const META_KEYS = ['name', 'created', 'airframe', 'livery', 'paint', 'map', 'scale', 'size', 'parts', 'fpv', 'duration', 'fit'];
-const PAINT_KEYS = ['finishes', 'decals'];
+const PAINT_KEYS = ['finishes', 'decals', 'wear'];
 const FIT_KEYS = ['entry', 'option'];
 const PART_KEYS = ['kind', 'kindName', 'parent', 'material', 'cg', 'boxMin', 'boxMax'];
 const EVENT_KEYS = ['t', 'type', 'part', 'label', 'kind', 'point', 'normal', 'speed', 'surface', 'shed', 'floorY', 'level'];
@@ -451,6 +451,10 @@ function checkMeta(m) {
     const d = m.paint.decals ?? [];
     if (!Array.isArray(d) || d.length > MAX_DECALS || d.some((x) => checkDecal(x).error)) {
       throw new ReplayFileError('meta.paint.decals is not a list of decals');
+    }
+    /* The wear, a fraction as the renderer takes it; optional too. */
+    if (m.paint.wear !== undefined && cleanWear(m.paint.wear * 100) === null) {
+      throw new ReplayFileError('meta.paint.wear is not a wear');
     }
   }
   if (!Array.isArray(m.parts) || m.parts.length > PARTS_MAX) {

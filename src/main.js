@@ -11376,10 +11376,13 @@ export async function boot({
         back: btn.back,
         alt: input.padAltButton(),
         floats: input.padFloatsButton(),
+        look: input.padLookStick(),
       };
     }
     const raw = input.navRaw();
-    return { up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton(), floats: input.padFloatsButton() };
+    return {
+      up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton(), floats: input.padFloatsButton(), look: input.padLookStick(),
+    };
   }
 
   /* Any real key or pointer press is the user gesture browsers require
@@ -16909,8 +16912,8 @@ export async function boot({
     },
     paint: () => {
       const look = liveryFor(runAirframe);
-      return look && (Object.keys(look.finishes).length || look.decals.length)
-        ? { finishes: look.finishes, decals: look.decals } : null;
+      return look && (Object.keys(look.finishes).length || look.decals.length || look.wear)
+        ? { finishes: look.finishes, decals: look.decals, ...(look.wear ? { wear: look.wear } : {}) } : null;
     },
     mapId: () => view.id,
     /* The clock this frame's world is animated at, for the row. */

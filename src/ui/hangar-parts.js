@@ -277,6 +277,11 @@ registerHangarTab({
       st.entry.addons = [];
     }
   },
+  /* The grams the chosen add-ons and prop put on, for the spec sheet. */
+  grams(hangar) {
+    const now = st && st.entry ? optionNow(hangar) : null;
+    return now ? partsSummary(st.id, st.entry, now.option, baseMass(st.id, now)).grams : 0;
+  },
   save() {
     if (!st || !st.entry || sameEntry(st.entry, st.saved)) {
       return null;
