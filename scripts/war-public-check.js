@@ -76,6 +76,7 @@ async function roomsServer() {
 }
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const n = document.querySelector(${JSON.stringify(selector)});
     if (!n) { return null; }
