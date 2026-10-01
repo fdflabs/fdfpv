@@ -214,3 +214,66 @@ pulls past its Li-ion pack's rating), it is not capped: it sags.
   craft in the air to the table; the whoop opens on its stock motor and
   says why. Local, it drives headless Chromium.
 - `npm run verify`: 16 of 16, the five inch's replay hash unchanged.
+
+## Stage 2, the planes: what was searched for and why nothing was added
+
+A plane's power choice already exists (`configs/power.js`, docs/
+POWER-STAGE1.md). An upgrade is one more option there, derived by
+`scripts/power-derive.js` from a motor's kV, Rm and Io on APC's measured
+prop data, or taken from a maker's full throttle row. Either way it needs
+real published figures: the motor's weight, and its constants or a row on
+a named prop. Searched on 2026-10-01.
+
+**Planes that already have a real upgrade.** The figures are from
+configs/power.js and configs/power-estimates.js, at full throttle:
+
+| plane | stock | upgrade |
+| --- | --- | --- |
+| Skyhunter 1800 | T/W 1.31, 23.2 m/s | SunnySky X2820 800 kV on 13 x 8: 1.33, 26.9 m/s |
+| Slow Stick | T/W 0.65, 7.9 m/s | GWS 2215 on 3S: 1.35, 12.9 m/s |
+| Bombshell | T/W 0.51, 9.6 m/s | Himax HC2816 electric: 1.65, 16.5 m/s |
+| Kadet Senior | T/W 1.04, 18.1 m/s | O.S. FS-64: 1.28, 19.2 m/s; Himax HC5018 electric: 1.20, 21.9 m/s |
+| P-51D | T/W 1.33, 19.9 m/s | 650 kV: 1.55, 23.3 m/s |
+
+**Planes with no real upgrade, and why:**
+
+- **Turbo Timber Evolution.** The stock E-flite BL10 800 kV on 4S is
+  already the factory setup. E-flite lists no bigger motor for it. Horizon's
+  BL10 page names the Spektrum Avian 4240-800Kv as its replacement, at
+  125 g ([Spektrum](https://www.spektrumrc.com/product/avian-4240-800kv-outrunner-brushless-motor/SPMXAM4670.html)).
+  The swap with published figures is the Turnigy Aerodrive SK3 3548-840
+  ([PX4's Timber build](https://docs.px4.io/main/en/frames_plane/turbo_timber_evolution.html)):
+  174 g, Rm 0.025 ohm, with HobbyKing's own static rows
+  ([HobbyKing](https://hobbyking.com/turnigy-aerodrive-sk3-3548-840kv-brushless-outrunner-motor.html)).
+  None of the three ways to fly it is an upgrade:
+  - On the stock diameter (APC 11 x 7E, 4S) it makes 2625 g at 44 A,
+    against the stock 2549 g at the same 44 A. That is 3 percent for 49 g
+    more, at a slightly lower pitch speed: a sidegrade.
+  - Its 12 x 6 row makes 2771 g at 50 A, but on a 6 inch pitch its pitch
+    speed is 26.8 m/s against stock's 32, so it is slower.
+  - PX4 flies a 13 x 4. That is a bigger diameter than the gear was derived
+    for, HobbyKing publishes no 4S row on it, and PX4 also changed the ESC.
+  The Spektrum Avian 4250-800 an owner fitted publishes no Rm, Io or row.
+- **FMS J-3 Cub 1400.** The FMS 3541-840 that owners fit to the sister
+  PA-18 is rated 3S only, and its Rm, Io and thrust are not published. No 4S
+  setup is published for the J-3.
+- **Radian Pro (ParkZone).** The published upgrade is Graupner 11 x 6
+  folding blades on the stock 480 960 kV. APC makes no folder to measure,
+  and the stock motor's Rm and Io are not published, so the stock motor
+  cannot be moved to another prop on data.
+- **Bramor C4EYE.** C-Astral publishes no motor, prop or cell count.
+- **Zagi HP.** No maker upgrade, and only forum anecdotes on other Zagis,
+  with no figures.
+- **F-16 V3 70 mm.** Its 2957 2210 kV on 6S is already Freewing's top 70 mm
+  set, about 2450 g static at 70 A. The published alternatives make less:
+  JP Hobby's 70 mm 12 blade with a 3055 2250 kV makes 2350 g at 76.6 A on
+  22.2 V.
+- **Ugly Stik and Tiger Moth.** Their alternatives (the O.S. 46FX, the
+  FS-91 II) are not stronger. RCM's kit takes .40 to .61 engines, so the
+  stock 61FX is already the top of its range.
+
+**What would change this.** A maker's table (kV, Rm, Io, weight) for a
+motor that fits one of these mounts, or a static row on an APC prop of the
+stock diameter. With either, the option is a few lines in configs/power.js
+plus a `power:check --estimates` run, the same as every option there. The
+stall and stab gates move only where the mass moves.
