@@ -38,10 +38,15 @@
 import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
 import { paintable } from '../../configs/liveries.js';
+import { BUILD_PREFIX } from './builds.js';
 
 /* Which lists the tabs offer. A card or a row opens on one kind and the
  * pilot can widen it to every aircraft. */
 export const PICK_FILTERS = ['quad', 'plane', 'all'];
+/* And beside them My Hangar, the pilot's saved builds (src/ui/builds.js):
+ * one more tab, its cards keyed BUILD_PREFIX and the build's id. */
+export const MINE = 'mine';
+const TABS = [...PICK_FILTERS, MINE];
 
 export function kindOf(id) {
   return airframeById(id).fixedWing ? 'plane' : 'quad';
@@ -155,6 +160,7 @@ export class Carousel {
     this.isOpen = false;
     this.filter = 'all';
     this.ids = pickList('all');
+    this.drawn = new Map();
     this.index = 0;
     /* The list's animated position, in places, and its speed. */
     this.pos = 0;
@@ -179,8 +185,9 @@ export class Carousel {
     this.tabs = el('div', 'carousel-tabs');
     this.tabs.setAttribute('role', 'tablist');
     this.tabEls = {};
-    for (const f of PICK_FILTERS) {
-      const t = button('carousel-tab', str(`carousel.${f === 'quad' ? 'quads' : f === 'plane' ? 'planes' : 'all'}`));
+    const labels = { quad: 'carousel.quads', plane: 'carousel.planes', all: 'carousel.all', [MINE]: 'mine.tab' };
+    for (const f of TABS) {
+      const t = button(`carousel-tab${f === MINE ? ' carousel-tab-mine' : ''}`, str(labels[f]));
       t.setAttribute('role', 'tab');
       t.addEventListener('click', () => this.setFilter(f));
       this.tabEls[f] = t;
@@ -219,10 +226,27 @@ export class Carousel {
     this.floatsBtn.dataset.key = 'floats';
     this.floatsBtn.setAttribute('role', 'switch');
     this.floatsBtn.addEventListener('click', () => this.toggleFloats());
+    /* A build's card names the plane it is built on first; a stock card's
+     * row stays the span, the weight and the switch (paint). */
+    this.baseEl = el('span', 'carousel-fact carousel-base');
     this.factsEl.append(this.sizeEl, this.weightEl, this.floatsBtn);
+    /* A build's own two, Rename and Delete, on its card only, and the
+     * line that takes the name's place while one is open (startRename,
+     * startDelete). */
+    this.toolsEl = el('div', 'carousel-mine-tools');
+    this.renameBtn = button('carousel-mine-tool', str('mine.rename'));
+    this.renameBtn.dataset.key = 'mine-rename';
+    this.renameBtn.addEventListener('click', () => this.startRename());
+    this.deleteBtn = button('carousel-mine-tool', str('mine.delete'));
+    this.deleteBtn.dataset.key = 'mine-delete';
+    this.deleteBtn.addEventListener('click', () => this.startDelete());
+    this.toolsEl.append(this.renameBtn, this.deleteBtn);
+    this.formEl = el('div', 'carousel-mine-form');
+    this.formEl.hidden = true;
+    this.form = null;
     this.noteEl = el('p', 'carousel-note');
     this.dots = el('div', 'carousel-dots');
-    info.append(this.nameEl, this.factsEl, this.noteEl, this.dots);
+    info.append(this.nameEl, this.formEl, this.factsEl, this.toolsEl, this.noteEl, this.dots);
 
     const foot = el('div', 'carousel-foot');
     this.warnEl = el('p', 'carousel-warn');
@@ -249,7 +273,8 @@ export class Carousel {
     root.addEventListener('keydown', (e) => {
       /* The window's own listener routes the keys; the buttons must not
        * also fire on Enter and Space, or one press chooses twice. */
-      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') {
+      const typing = e.target && e.target.tagName === 'INPUT';
+      if (!typing && (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter')) {
         e.preventDefault();
       }
     });
@@ -346,22 +371,27 @@ export class Carousel {
    * Open it. `current` is centred first; `filter` is the tab it opens on;
    * `compact` is the in flight version, a band over the paused flight
    * rather than a page; `warn` is a line under the choice, for what a
-   * choice will cost. onChoose gets the aircraft id, onCancel nothing.
-   * `floats` is the Floats switch, { on(id), set(id, on) } by land plane
-   * id (src/ui/ui.js openPicker); without it no card shows one.
+   * choice will cost. onChoose gets the card's aircraft id and, for a
+   * build, the build; onCancel nothing; onCustomise the id, a reopen and
+   * the build. `floats` is the Floats switch, { on(id), set(id, on) } by
+   * land plane id (src/ui/ui.js openPicker); without it no card shows one.
+   * `builds` is My Hangar, { list(), drawn(card, build), rename(id, name),
+   * remove(id) } (src/ui/ui.js pickerBuilds); without it there is no tab.
    */
-  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, onChoose, onCancel, onCustomise } = {}) {
-    this.opts = { onChoose, onCancel, onCustomise, floats };
-    this.openArgs = { filter, compact, title, warn, floats, onChoose, onCancel, onCustomise };
+  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, builds = null, onChoose, onCancel, onCustomise } = {}) {
+    this.opts = { onChoose, onCancel, onCustomise, floats, builds };
+    this.openArgs = { filter, compact, title, warn, floats, builds, onChoose, onCancel, onCustomise };
     this.isOpen = true;
     this.hintKind = hint;
     this.root.classList.toggle('compact', Boolean(compact));
     this.titleEl.textContent = title;
     this.warnEl.textContent = warn || '';
     this.warnEl.hidden = !warn;
-    this.filter = PICK_FILTERS.includes(filter) ? filter : 'all';
-    this.ids = pickList(this.filter);
-    const at = this.ids.indexOf(landPlaneOf(current));
+    this.tabEls[MINE].hidden = !builds;
+    this.filter = this.offered().includes(filter) ? filter : 'all';
+    this.closeForm();
+    this.relist();
+    const at = this.ids.indexOf(this.filter === MINE ? current : landPlaneOf(current));
     this.index = at >= 0 ? at : 0;
     this.pos = this.index;
     this.vel = 0;
@@ -377,6 +407,7 @@ export class Carousel {
     if (!this.isOpen) {
       return;
     }
+    this.closeForm();
     this.isOpen = false;
     this.opts = null;
     this.drag = null;
@@ -384,20 +415,65 @@ export class Carousel {
     this.host.classList.remove('carousel-open');
   }
 
+  /* The tabs this opener offers: My Hangar only with its builds. */
+  offered() {
+    return this.opts && this.opts.builds ? TABS : PICK_FILTERS;
+  }
+
+  /*
+   * The tab's cards, and how each is drawn when it is not simply its
+   * airframe in the slots: a build in its own fit, a stock plane whose
+   * family is wearing a build in the pilot's own customisation. Made here
+   * and kept, not every frame, because the renderer repaints a model when
+   * the look it is handed is another object (src/render/carousel3d.js).
+   */
+  relist() {
+    const builds = this.opts && this.opts.builds;
+    this.ids = this.filter === MINE ? builds.list().map((b) => `${BUILD_PREFIX}${b.id}`) : pickList(this.filter);
+    this.drawn = new Map();
+    for (const key of this.ids) {
+      const build = this.buildOf(key);
+      const how = builds ? builds.drawn(build ? null : this.shown(key), build) : null;
+      if (how) {
+        this.drawn.set(key, how);
+      }
+    }
+  }
+
   current() {
     return this.ids[this.index];
   }
 
+  /* The build a card is, or null for a stock aircraft's. */
+  buildOf(key) {
+    const builds = this.opts && this.opts.builds;
+    if (!builds || typeof key !== 'string' || !key.startsWith(BUILD_PREFIX)) {
+      return null;
+    }
+    return builds.list().find((b) => `${BUILD_PREFIX}${b.id}` === key) ?? null;
+  }
+
+  /* The airframe a card stands for: a build's own, or the stock plane as
+   * its Floats switch is set. */
+  airframeOf(key) {
+    const build = this.buildOf(key);
+    return build ? build.airframe : this.shown(key);
+  }
+
   choose() {
     const pick = this.opts && this.opts.onChoose;
-    const id = this.current();
+    const key = this.current();
+    if (!key) {
+      return;
+    }
+    const build = this.buildOf(key);
     /* A plane progression has not opened (src/ui/progress-ui.js). */
-    if (this.blocked && this.blocked(id)) {
+    if (this.blocked && this.blocked(build ? landPlaneOf(build.airframe) : key)) {
       return;
     }
     this.close();
     if (pick) {
-      pick(id);
+      pick(build ? build.airframe : key, build);
     }
   }
 
@@ -411,24 +487,29 @@ export class Carousel {
 
   canCustomise() {
     /* A combat quad's Customise is its loadout (src/ui/hangar-combat.js). */
-    return Boolean(this.opts && this.opts.onCustomise) && (paintable(this.current()) || Boolean(airframeById(this.current()).combat));
+    const key = this.current();
+    const id = key ? this.airframeOf(key) : null;
+    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && (paintable(id) || Boolean(airframeById(id).combat));
   }
 
   /* To the hangar with the centred plane, the picker put away and handed
-   * over as `reopen`, which brings it back on the same plane and tab. */
+   * over as `reopen`, which brings it back on the same card and tab, or on
+   * a card it names (a build just saved), in My Hangar. */
   customise() {
     if (!this.canCustomise()) {
       return;
     }
-    const id = this.current();
+    const key = this.current();
+    const build = this.buildOf(key);
     const args = { ...this.openArgs, filter: this.filter, hint: this.hintKind };
     const go = this.opts.onCustomise;
     this.close();
-    go(id, () => this.open({ ...args, current: id }));
+    go(build ? build.airframe : key, (card) => this.open({ ...args, current: card ?? key, filter: card ? MINE : args.filter }), build);
   }
 
   /* A card's Floats switch: true or false, or null for a card with no
-   * float version or an opener that offers none. */
+   * float version or an opener that offers none. A build's floats are its
+   * airframe, changed in its Customise. */
   floatsOn(id) {
     const f = this.opts && this.opts.floats;
     return f && floatVersionOf(id) ? Boolean(f.on(id)) : null;
@@ -447,12 +528,14 @@ export class Carousel {
       return;
     }
     this.opts.floats.set(id, !on);
+    this.relist();
     this.paint();
   }
 
   goTo(i) {
     const n = Math.max(0, Math.min(this.ids.length - 1, i));
     if (n !== this.index) {
+      this.closeForm();
       this.index = n;
       this.paint();
     }
@@ -464,12 +547,13 @@ export class Carousel {
 
   /* A tab, keeping the centred aircraft if the new list has it. */
   setFilter(f) {
-    if (!PICK_FILTERS.includes(f) || f === this.filter) {
+    if (!this.offered().includes(f) || f === this.filter) {
       return;
     }
     const keep = this.current();
+    this.closeForm();
     this.filter = f;
-    this.ids = pickList(f);
+    this.relist();
     const at = this.ids.indexOf(keep);
     this.index = at >= 0 ? at : 0;
     this.pos = this.index;
@@ -478,46 +562,203 @@ export class Carousel {
   }
 
   cycleFilter(dir) {
-    const i = PICK_FILTERS.indexOf(this.filter);
-    this.setFilter(PICK_FILTERS[(i + dir + PICK_FILTERS.length) % PICK_FILTERS.length]);
+    const tabs = this.offered();
+    const i = tabs.indexOf(this.filter);
+    this.setFilter(tabs[(i + dir + tabs.length) % tabs.length]);
   }
 
   /* The words under the models: only when the centred one changes. */
   paint() {
-    const id = this.current();
-    const af = airframeById(id);
-    this.nameEl.textContent = af.name;
-    const seen = this.shown(id);
-    this.sizeEl.textContent = sizeText(seen);
-    this.weightEl.textContent = weightText(seen);
-    const floats = this.floatsOn(id);
-    this.floatsBtn.hidden = floats === null;
-    this.floatsBtn.classList.toggle('on', Boolean(floats));
-    this.floatsBtn.setAttribute('aria-checked', String(Boolean(floats)));
-    this.noteEl.textContent = str(`carousel.note.${id}`);
+    const key = this.current();
+    const build = this.buildOf(key);
+    this.root.classList.toggle('mine', this.filter === MINE);
     for (const [f, t] of Object.entries(this.tabEls)) {
       t.classList.toggle('on', f === this.filter);
       t.setAttribute('aria-selected', String(f === this.filter));
     }
     this.dots.textContent = '';
     this.ids.forEach((other, i) => {
+      const b = this.buildOf(other);
       const dot = button(`carousel-dot${i === this.index ? ' on' : ''}`, '');
-      dot.setAttribute('aria-label', airframeById(other).name);
+      dot.setAttribute('aria-label', b ? b.name : airframeById(other).name);
       dot.addEventListener('click', () => this.goTo(i));
       this.dots.append(dot);
     });
-    this.prevBtn.disabled = this.index === 0;
-    this.nextBtn.disabled = this.index === this.ids.length - 1;
+    this.prevBtn.disabled = this.index <= 0;
+    this.nextBtn.disabled = this.index >= this.ids.length - 1;
     this.chooseBtn.textContent = str('carousel.choose');
     this.customBtn.hidden = !this.canCustomise();
+    this.chooseBtn.hidden = !key;
+    this.toolsEl.hidden = !build || Boolean(this.form);
+    this.factsEl.hidden = !key;
     this.paintHint();
+    /* An empty My Hangar says how a build gets into it. */
+    if (!key) {
+      this.nameEl.textContent = str('mine.empty_title');
+      this.noteEl.textContent = str('mine.empty');
+      return;
+    }
+    const id = build ? build.airframe : key;
+    const seen = this.airframeOf(key);
+    this.nameEl.textContent = build ? build.name : airframeById(id).name;
+    this.nameEl.hidden = Boolean(this.form);
+    if (build) {
+      this.baseEl.textContent = airframeById(id).name;
+      this.factsEl.prepend(this.baseEl);
+    } else {
+      this.baseEl.remove();
+    }
+    this.sizeEl.textContent = sizeText(seen);
+    this.weightEl.textContent = weightText(seen);
+    const floats = build ? null : this.floatsOn(id);
+    this.floatsBtn.hidden = floats === null;
+    this.floatsBtn.classList.toggle('on', Boolean(floats));
+    this.floatsBtn.setAttribute('aria-checked', String(Boolean(floats)));
+    this.noteEl.textContent = str(`carousel.note.${id}`);
     if (this.decorate) {
-      this.decorate(this, id);
+      this.decorate(this, build ? landPlaneOf(id) : id);
     }
   }
 
   paintHint() {
-    this.hintEl.textContent = str(`carousel.hint_${this.hintKind === 'touch' ? 'touch' : this.hintKind === 'pad' ? 'pad' : 'keys'}`);
+    const kind = this.hintKind === 'touch' ? 'touch' : this.hintKind === 'pad' ? 'pad' : 'keys';
+    const mine = this.filter === MINE && this.buildOf(this.current()) && kind !== 'touch' ? '_mine' : '';
+    this.hintEl.textContent = str(`carousel.hint_${kind}${mine}`);
+  }
+
+  /*
+   * RENAME AND DELETE, a build's card's own, each in place on the card:
+   * Rename puts the name in a field (Enter keeps it, Escape leaves it as it
+   * was), Delete asks first with Keep under the cursor, so a stray Enter
+   * keeps the build.
+   */
+  startRename() {
+    const build = this.buildOf(this.current());
+    if (!build) {
+      return;
+    }
+    this.form = { mode: 'rename', id: build.id };
+    this.formEl.textContent = '';
+    const field = el('input', 'carousel-name-field');
+    field.type = 'text';
+    field.maxLength = 32;
+    field.value = build.name;
+    field.dataset.key = 'mine-name';
+    field.setAttribute('aria-label', str('mine.rename'));
+    field.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.submitRename();
+      }
+    });
+    const ok = button('carousel-mine-tool on', str('hangar.save'));
+    ok.dataset.key = 'mine-name-save';
+    ok.addEventListener('click', () => this.submitRename());
+    const no = button('carousel-mine-tool', str('ui.cancel'));
+    no.dataset.key = 'mine-name-cancel';
+    no.addEventListener('click', () => this.closeForm(true));
+    this.formError = el('p', 'carousel-mine-error');
+    this.formError.hidden = true;
+    const row = el('div', 'carousel-mine-row');
+    row.append(field, ok, no);
+    this.formEl.append(row, this.formError);
+    this.formEl.hidden = false;
+    this.paint();
+    field.focus();
+    field.select();
+  }
+
+  submitRename() {
+    const f = this.form;
+    const field = this.formEl.querySelector('input');
+    if (!f || f.mode !== 'rename' || !field) {
+      return;
+    }
+    const why = this.opts.builds.rename(f.id, field.value);
+    if (why) {
+      this.formError.textContent = why;
+      this.formError.hidden = false;
+      field.focus();
+      return;
+    }
+    this.closeForm(true);
+  }
+
+  startDelete() {
+    const build = this.buildOf(this.current());
+    if (!build) {
+      return;
+    }
+    this.form = { mode: 'delete', id: build.id };
+    this.formEl.textContent = '';
+    const ask = el('p', 'carousel-mine-ask', str('mine.delete_ask', { name: build.name }));
+    const keep = button('carousel-mine-tool on', str('mine.keep'));
+    keep.dataset.key = 'mine-keep';
+    keep.addEventListener('click', () => this.closeForm(true));
+    const del = button('carousel-mine-tool carousel-mine-danger', str('mine.delete'));
+    del.dataset.key = 'mine-delete-yes';
+    del.addEventListener('click', () => this.confirmDelete());
+    const row = el('div', 'carousel-mine-row');
+    row.append(keep, del);
+    this.formEl.append(ask, row);
+    this.formEl.hidden = false;
+    this.paint();
+    keep.focus();
+  }
+
+  confirmDelete() {
+    const f = this.form;
+    if (!f || f.mode !== 'delete') {
+      return;
+    }
+    this.opts.builds.remove(f.id);
+    this.closeForm();
+    this.relist();
+    this.index = Math.max(0, Math.min(this.index, this.ids.length - 1));
+    this.pos = this.index;
+    this.vel = 0;
+    this.paint();
+  }
+
+  /* The card's own line back. `repaint` when it was open on the card: a
+   * rename shows its new name, its models stay as they were. */
+  closeForm(repaint = false) {
+    if (!this.form) {
+      return;
+    }
+    this.form = null;
+    this.formEl.textContent = '';
+    this.formEl.hidden = true;
+    this.nameEl.hidden = false;
+    if (document.activeElement && this.root.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+    if (repaint) {
+      this.paint();
+    }
+  }
+
+  /* The keys while Rename or Delete is open. In the name field only Escape
+   * gets here (src/input/input.js leaves typing alone); on the question
+   * the arrows move between Keep and Delete and Enter presses one. */
+  formKey(code) {
+    if (code === 'Escape' || code === 'Backspace' || code === 'Tab') {
+      this.closeForm(true);
+      return;
+    }
+    if (this.form.mode === 'rename') {
+      if (code === 'Enter' || code === 'NumpadEnter') {
+        this.submitRename();
+      }
+      return;
+    }
+    const stops = [...this.formEl.querySelectorAll('button')];
+    const at = stops.indexOf(document.activeElement);
+    if (['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(code)) {
+      stops[at === 0 ? 1 : 0].focus();
+    } else if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
+      (stops[at] ?? stops[0]).click();
+    }
   }
 
   /* Every key while it is up is the carousel's. Returns true so the menu
@@ -526,6 +767,10 @@ export class Carousel {
     if (this.hintKind !== 'key') {
       this.hintKind = 'key';
       this.paintHint();
+    }
+    if (this.form) {
+      this.formKey(code);
+      return true;
     }
     if (code === 'ArrowLeft' || code === 'KeyA' || code === 'BracketLeft') {
       this.step(-1);
@@ -547,6 +792,10 @@ export class Carousel {
       this.toggleFloats();
     } else if (code === 'KeyC') {
       this.customise();
+    } else if (code === 'KeyR') {
+      this.startRename();
+    } else if (code === 'Delete') {
+      this.startDelete();
     } else if (code === 'Escape' || code === 'Backspace' || code === 'Tab') {
       this.cancel();
     }
@@ -581,6 +830,20 @@ export class Carousel {
       this.hintKind = 'pad';
       this.paintHint();
     }
+    /* Delete's question by pad: left and right between Keep and Delete, A
+     * presses the one under the cursor, B keeps. A name cannot be typed on
+     * a pad, so Rename waits for B. */
+    if (this.form) {
+      if (edge('left') || edge('right')) {
+        this.formKey('ArrowRight');
+      }
+      if (edge('select')) {
+        this.formKey('Enter');
+      } else if (edge('back')) {
+        this.closeForm(true);
+      }
+      return;
+    }
     if (edge('left')) {
       this.step(-1);
     }
@@ -595,9 +858,13 @@ export class Carousel {
     }
     /* A standard pad's X and Y are also buttons a menu takes as select, so
      * X customises first, Y flips the floats, and the same press chooses
-     * nothing. */
+     * nothing. On a build, which has no switch, Y asks to delete it. */
     if (edge('floats')) {
-      this.toggleFloats();
+      if (this.buildOf(this.current())) {
+        this.startDelete();
+      } else {
+        this.toggleFloats();
+      }
     } else if (edge('alt')) {
       this.customise();
     } else if (edge('select')) {
@@ -636,7 +903,8 @@ export class Carousel {
     for (let i = 0; i < this.ids.length; i += 1) {
       const d = i - this.pos;
       if (Math.abs(d) < 2.6) {
-        items.push({ id: this.shown(this.ids[i]), d });
+        const key = this.ids[i];
+        items.push({ id: this.airframeOf(key), d, ...(this.drawn.get(key) ?? {}) });
       }
     }
     const r = this.stage.getBoundingClientRect();
