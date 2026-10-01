@@ -80,7 +80,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { recordAt, roofSlabs } from '../../alps/roofs.js';
+import { recordAt, SLAB_T } from '../../alps/roofs.js';
 
 /* Section 6: the crest of every concrete part and its gantry rails. */
 const CREST_Y = 225;
@@ -90,6 +90,9 @@ const SKIN = 0.02;
 const STAIR = 0.25;
 const COLUMN_MIN = 0.5;
 const COLUMN_MAX = 4;
+/* The most a column's box may reach past its plan at an end, metres:
+ * under the half metre dam-check holds a drawn face to. */
+const END_STEP = 0.45;
 /* Axis metres per roof record and per run of columns: long records
  * register in every 8 m cell of their bounding box. */
 const CHUNK = 32;
@@ -307,11 +310,37 @@ const RING = {
 const RADIAL = {
   r: 21, beam: 0.9, cylinder: 0.4, ribs: 6,
 };
+/* The radius of the capsules a radial gate's skin is solid as: 0.35 m
+ * proud of its 0.3 m plate each side, inside the half metre dam-check
+ * holds a face to. */
+const SKIN_R = 0.5;
 /* The piers downstream of the bridge fall on a slope to their hoist
  * decks; upstream their noses stand into the reservoir. */
 const PIER = { slopeFrom: 7, slopeTo: 29, nose: 1.4 };
 
 /* ------------------------------------------------------------ plan math */
+
+/* How far (x, z) is outside a convex polygon [[x, z]...], either winding,
+ * 0 inside. */
+function outside(poly, x, z) {
+  let area = 0;
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    area += a[0] * b[1] - b[0] * a[1];
+  }
+  const sign = area > 0 ? 1 : -1;
+  let d = 0;
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (l > 1e-9) {
+      d = Math.max(d, (sign * ((b[0] - a[0]) * (a[1] - z) - (b[1] - a[1]) * (a[0] - x))) / l);
+    }
+  }
+  return d;
+}
 
 function dist(p, q) {
   return Math.hypot(q[0] - p[0], q[1] - p[1]);
@@ -517,6 +546,106 @@ class Mesher {
     g.computeBoundingBox();
     return g;
   }
+}
+
+/*
+ * The crash physics' slabs under a roof given in world space, in
+ * roofs.js roofSlabs' form ({ c, u, n, v, hu, hn, hv }, the top face the
+ * plane), held SLAB_SINK under it. roofSlabs takes a face's extents along
+ * its record's x, which for the dam's records, put with no turn, is the
+ * world's: a face turned off the axes got a box reaching metres past its
+ * edges, the spillway bridge's 114 m, a plate in the air over the open
+ * bays that wrecked the owner's Timber (2026-10-01). Here each face's slab
+ * is the largest rectangle in its plane, with a side along one of its
+ * edges, that stays inside it: short of a corner a broken part falls onto
+ * the columns under the top, where past an edge it met an invisible wall.
+ */
+const SLAB_SAMPLES = 33;
+function insideSlabs(top) {
+  const out = [];
+  const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
+  for (const poly of top) {
+    let nx = 0;
+    let ny = 0;
+    let nz = 0;
+    for (let i = 0; i < poly.length; i += 1) {
+      const a = poly[i];
+      const b = poly[(i + 1) % poly.length];
+      nx += (a[1] - b[1]) * (a[2] + b[2]);
+      ny += (a[2] - b[2]) * (a[0] + b[0]);
+      nz += (a[0] - b[0]) * (a[1] + b[1]);
+    }
+    /* Wound either way; on edge it is a wall, and no record's ground. */
+    const nl = Math.hypot(nx, ny, nz) * Math.sign(ny);
+    if (!(Math.abs(ny) > 1e-9 * Math.abs(nl))) {
+      continue;
+    }
+    const n = [nx / nl, ny / nl, nz / nl];
+    let best = null;
+    for (let i = 0; i < poly.length; i += 1) {
+      const e = poly[(i + 1) % poly.length].map((q, k) => q - poly[i][k]);
+      const en = dot(e, n);
+      const el = Math.hypot(e[0] - n[0] * en, e[1] - n[1] * en, e[2] - n[2] * en);
+      if (!(el > 1e-6)) {
+        continue;
+      }
+      const u = [0, 1, 2].map((k) => (e[k] - n[k] * en) / el);
+      const v = [u[1] * n[2] - u[2] * n[1], u[2] * n[0] - u[0] * n[2], u[0] * n[1] - u[1] * n[0]];
+      const P = poly.map((p) => [dot(p, u), dot(p, v)]);
+      const U0 = Math.min(...P.map((p) => p[0]));
+      const U1 = Math.max(...P.map((p) => p[0]));
+      /* The face's v range across it at U: low edge convex, high edge
+       * concave, so a rectangle over [Ua, Ub] fits between the higher of
+       * the two lows and the lower of the two highs. */
+      const span = (U) => {
+        let lo = Infinity;
+        let hi = -Infinity;
+        for (let k = 0; k < P.length; k += 1) {
+          const [ua, va] = P[k];
+          const [ub, vb] = P[(k + 1) % P.length];
+          if (ua === ub || U < Math.min(ua, ub) || U > Math.max(ua, ub)) {
+            continue;
+          }
+          const w = va + ((vb - va) * (U - ua)) / (ub - ua);
+          lo = Math.min(lo, w);
+          hi = Math.max(hi, w);
+        }
+        return [lo, hi];
+      };
+      const eps = (U1 - U0) * 1e-6;
+      const Us = Array.from({ length: SLAB_SAMPLES }, (_, k) => U0 + eps + ((U1 - U0 - 2 * eps) * k) / (SLAB_SAMPLES - 1));
+      const S = Us.map(span);
+      for (let a = 0; a < Us.length; a += 1) {
+        for (let b = a + 1; b < Us.length; b += 1) {
+          const lo = Math.max(S[a][0], S[b][0]);
+          const hi = Math.min(S[a][1], S[b][1]);
+          const area = (Us[b] - Us[a]) * (hi - lo);
+          if (hi > lo && (!best || area > best.area)) {
+            best = {
+              area, u, v, ua: Us[a], ub: Us[b], lo, hi,
+            };
+          }
+        }
+      }
+    }
+    if (!best) {
+      continue;
+    }
+    const { u, v } = best;
+    const um = (best.ua + best.ub) / 2;
+    const vm = (best.lo + best.hi) / 2;
+    const nm = dot(poly[0], n) - SLAB_T / 2 - SLAB_SINK;
+    out.push({
+      c: [0, 1, 2].map((k) => u[k] * um + v[k] * vm + n[k] * nm),
+      u,
+      n,
+      v,
+      hu: (best.ub - best.ua) / 2,
+      hn: SLAB_T / 2,
+      hv: (best.hi - best.lo) / 2,
+    });
+  }
+  return out;
 }
 
 /* A block's own shade: no two pours of concrete came out one grey. */
@@ -921,9 +1050,15 @@ export async function buildPart(ctx) {
    * narrow enough that those faces step at most STAIR, each column's top
    * held SKIN under the top over it, and runs of equal
    * columns merged. Its ends step as far as a column is wide, at most
-   * COLUMN_MAX. Returns the collider indices.
+   * COLUMN_MAX; with `ends` (true, or 'start' or 'end' along dir alone),
+   * for a prism whose end is in the open, a column whose box reaches more
+   * than END_STEP past the plan is cut narrower until it does not (a
+   * pier's end over the chute stood 0.7 m out). Not for every prism: the
+   * dam's runs of blocks end against each other, and cutting all their
+   * ends cost 4 952 solids the static set has not got. Returns the
+   * collider indices.
    */
-  const prismBoxes = (poly, y0, topAt, dir = null) => {
+  const prismBoxes = (poly, y0, topAt, dir = null, ends = false) => {
     let ex = dir ? dir[0] : 1;
     let ez = dir ? dir[1] : 0;
     let best = 0;
@@ -952,14 +1087,37 @@ export async function buildPart(ctx) {
       }
       run = null;
     };
-    for (let i = 0; i < n; i += 1) {
-      const q = clipAxis(poly, k, lo + i * step, lo + (i + 1) * step);
+    const boxOver = (a, c) => {
+      const q = clipAxis(poly, k, a, c);
       if (q.length < 3) {
-        continue;
+        return null;
       }
       const qx = q.map((p) => p[0]);
       const qz = q.map((p) => p[1]);
       const b = [Math.min(...qx), Math.min(...qz), Math.max(...qx), Math.max(...qz)];
+      return { q, b, over: Math.max(...[[b[0], b[1]], [b[2], b[1]], [b[2], b[3]], [b[0], b[3]]].map(([x, z]) => outside(poly, x, z))) };
+    };
+    /* Which slices may be cut: all, or those of the half at the end
+     * `ends` names, 'start' or 'end' along dir. */
+    const along = Math.sign(k === 0 ? ex : ez);
+    const cut = (a, c) => ends === true
+      || (ends === 'start' && along * ((a + c) / 2 - (lo + hi) / 2) < 0)
+      || (ends === 'end' && along * ((a + c) / 2 - (lo + hi) / 2) > 0);
+    const slices = [];
+    for (let i = 0; i < n; i += 1) {
+      const a = lo + i * step;
+      const c = lo + (i + 1) * step;
+      const first = boxOver(a, c);
+      const m = first && cut(a, c) ? Math.ceil(first.over / END_STEP - 1e-9) : 1;
+      for (let j = 0; j < Math.max(1, m); j += 1) {
+        slices.push(m > 1 ? boxOver(a + ((c - a) * j) / m, a + ((c - a) * (j + 1)) / m) : first);
+      }
+    }
+    for (const slice of slices) {
+      if (!slice) {
+        continue;
+      }
+      const { q, b } = slice;
       /* Under the top over the column's own plan: where the column's
        * box reaches past the plan (at most its stair) the top may stand
        * that stair's rise proud, a few centimetres on these slopes. */
@@ -980,17 +1138,16 @@ export async function buildPart(ctx) {
     return out;
   };
 
-  /* A roof record over world faces [[x, y, z]...], each convex. */
-  const addRoof = (top, kind, material = 'concrete') => {
+  /* A roof record over world faces [[x, y, z]...], each convex, and its
+   * slabs inside the faces `slabTop` gives (by default the same). */
+  const addRoof = (top, kind, material = 'concrete', slabTop = top) => {
     const rec = recordAt({
       top, dy: 1, hw: 0, hd: 0, open: true, kind,
     }, 'itaipu-dam', 0, 0, 0, 0);
     rec.material = material;
     rec.solids = [];
     rec.eaves = [];
-    rec.slabs = roofSlabs(rec).map((b) => ({
-      ...b, c: [b.c[0] - b.n[0] * SLAB_SINK, b.c[1] - b.n[1] * SLAB_SINK, b.c[2] - b.n[2] * SLAB_SINK],
-    }));
+    rec.slabs = insideSlabs(slabTop);
     ctx.roofs.push(rec);
     records.push(rec);
     return rec;
@@ -999,9 +1156,9 @@ export async function buildPart(ctx) {
    * standing on it through (roofs.js cover), with its neighbours' along
    * the same run so a craft on a record's edge is not caught on the next. */
   const flatRuns = [];
-  const flatBlock = (poly, y0, y, kind, run, dir = null) => {
+  const flatBlock = (poly, y0, y, kind, run, dir = null, ends = false) => {
     const rec = addRoof([poly.map(([x, z]) => [x, y, z])], kind);
-    const ids = prismBoxes(poly, y0, () => y, dir);
+    const ids = prismBoxes(poly, y0, () => y, dir, ends);
     if (run) {
       run.push({ rec, ids });
     }
@@ -1017,8 +1174,17 @@ export async function buildPart(ctx) {
     });
     flatRuns.push(run);
   };
-  /* A planar top's record: a quad's two triangles, each exactly planar. */
-  const slopeRoof = (A, B, C, D, kind) => addRoof([[A, B, C], [A, C, D]], kind);
+  /* A planar top's record: a quad's two triangles, each exactly planar.
+   * Its slab is the quad's when the quad is a plane (a triangle's largest
+   * rectangle is half of it), else each triangle's. */
+  const slopeRoof = (A, B, C, D, kind, material = 'concrete') => {
+    const e1 = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+    const e2 = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
+    const m = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]];
+    const off = ((D[0] - A[0]) * m[0] + (D[1] - A[1]) * m[1] + (D[2] - A[2]) * m[2]) / Math.hypot(m[0], m[1], m[2]);
+    const top = [[A, B, C], [A, C, D]];
+    return addRoof(top, kind, material, Math.abs(off) < 0.01 ? [[A, B, C, D]] : top);
+  };
 
   const concrete = new Mesher();
   const road = new Mesher();
@@ -1080,12 +1246,26 @@ export async function buildPart(ctx) {
     return P;
   };
 
-  /* A crest's parapets: capsules along both edges, CHUNK long at most. */
+  /* A crest's parapets: capsules along both edges, CHUNK long at most,
+   * the first and last let in by their radius so their caps end where
+   * the drawn wall does instead of standing 0.55 m past it. */
   const parapets = (secs, sUp, sDown) => {
+    const last = secs.length - 2;
     for (const s of [sUp, sDown]) {
-      for (let k = 0; k + 1 < secs.length; k += 1) {
-        const [ax, az] = offset(secs[k], s);
-        const [bx, bz] = offset(secs[k + 1], s);
+      for (let k = 0; k <= last; k += 1) {
+        let [ax, az] = offset(secs[k], s);
+        let [bx, bz] = offset(secs[k + 1], s);
+        const l = Math.hypot(bx - ax, bz - az);
+        const ux = (bx - ax) / l;
+        const uz = (bz - az) / l;
+        if (k === 0) {
+          ax += ux * PARAPET_R;
+          az += uz * PARAPET_R;
+        }
+        if (k === last) {
+          bx -= ux * PARAPET_R;
+          bz -= uz * PARAPET_R;
+        }
         addCapsule('wall', [ax, CREST_Y + PARAPET_R, az], [bx, CREST_Y + PARAPET_R, bz], PARAPET_R);
       }
     }
@@ -1209,16 +1389,14 @@ export async function buildPart(ctx) {
     for (const t of [t0, t1 - L]) {
       for (const s2 of [s0, s1 - L]) {
         const c = frameBox(metal, fr, t, t + L, s2, s2 + L, y0, legTop, col);
-        const xs = c.map((q) => q[0]);
-        const zs = c.map((q) => q[1]);
-        addBox(Math.min(...xs), y0, Math.min(...zs), Math.max(...xs), legTop, Math.max(...zs));
+        prismBoxes(c, y0, () => legTop + SKIN, fr.a, true);
       }
       frameBox(metal, fr, t, t + L, s0, s1, legTop - 1.6, legTop, col);
     }
     frameBox(metal, fr, t0 - 0.5, t1 + 0.5, s0 - 0.5, s1 + 0.5, legTop, houseTop, col);
     const poly = [fr.at(t0 - 0.5, s0 - 0.5), fr.at(t1 + 0.5, s0 - 0.5), fr.at(t1 + 0.5, s1 + 0.5), fr.at(t0 - 0.5, s1 + 0.5)];
     const run = [];
-    flatBlock(poly, legTop, houseTop, 'crane', run, fr.a);
+    flatBlock(poly, legTop, houseTop, 'crane', run, fr.a, true);
     closeRun(run);
   };
 
@@ -1356,7 +1534,9 @@ export async function buildPart(ctx) {
       const t1 = secs[k + 1].t;
       /* The crest and the column under it, the upstream face with it. */
       const poly = [F.at(t0, sUp(t0)), F.at(t1, sUp(t1)), F.at(t1, MAIN.crestDown), F.at(t0, MAIN.crestDown)];
-      flatBlock(poly, mainBase, CREST_Y, 'crest', crestRun, F.a);
+      /* Its first and last blocks meet the right wing and the diversion
+       * at an angle, their ends in the open. */
+      flatBlock(poly, mainBase, CREST_Y, 'crest', crestRun, F.a, (k === 0 && 'start') || (k + 2 === secs.length && 'end'));
       /* The downstream face, the ground a craft meets it as. */
       const [s0, y0] = toeOf(t0);
       const [s1, y1] = toeOf(t1);
@@ -1655,7 +1835,8 @@ export async function buildPart(ctx) {
     for (let k = 0; k < ph.units.length; k += 1) {
       const t = t0 + k * pitch;
       const [x, z] = F.at(t, VENT.s);
-      addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height, z], VENT.r);
+      /* Its cap ends at the dome's top, not a radius over it. */
+      addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height - VENT.r, z], VENT.r);
       /* The steel covers over its stoplog and gate slots in the deck. */
       for (const [a, b] of [[2.2, 3.4], [6, 7.6]]) {
         const C = (tt, ss) => {
@@ -1701,12 +1882,11 @@ export async function buildPart(ctx) {
   const alongA = [F.a[0], 0, F.a[1]];
   const acrossN = [F.n[0], 0, F.n[1]];
   const neg = (v) => v.map((q) => -q);
-  /* A box in the frame's collider: the world box round its footprint. */
+  /* A box in the frame's collider: columns under its footprint. The world
+   * box round it stood 0.6 m out of a turned cab's sides. */
   const boxOf = (t0, t1, s0, s1, y0, y1) => {
     const c = [[t0, s0], [t1, s0], [t1, s1], [t0, s1]].map(([t, s2]) => F.at(t, s2));
-    const xs = c.map((q) => q[0]);
-    const zs = c.map((q) => q[1]);
-    return addBox(Math.min(...xs), y0, Math.min(...zs), Math.max(...xs), y1, Math.max(...zs));
+    return prismBoxes(c, y0, () => y1 + SKIN, F.a, true);
   };
   /* A crane's machinery house, drawn: its panels, a band of the frame's
    * paint round its foot and its eaves, the panels' ribs every 0.9 m and
@@ -1773,14 +1953,16 @@ export async function buildPart(ctx) {
     const hs = [s0 - 0.5, s1 + 0.5];
     cladHouse(ht[0], ht[1], hs[0], hs[1], yL, yH, col, TONE.cladding);
     const run = [];
-    flatBlock([F.at(ht[0], hs[0]), F.at(ht[1], hs[0]), F.at(ht[1], hs[1]), F.at(ht[0], hs[1])], yL, yH, 'crane', run, F.a);
+    flatBlock([F.at(ht[0], hs[0]), F.at(ht[1], hs[0]), F.at(ht[1], hs[1]), F.at(ht[0], hs[1])], yL, yH, 'crane', run, F.a, true);
     closeRun(run);
     const block = [yL - 12.5, yL - 8];
     frameBox(metal, F, t - 0.45, t + 0.45, sm - 0.9, sm + 0.9, block[0], block[1], TONE.draft);
     for (const ds of [-0.6, 0.6]) {
       strut(metal, P3(t, sm + ds, yL), P3(t, sm + ds, block[1]), 0.05, TONE.steel);
     }
-    addCapsule('wall', P3(t, sm, block[0]), P3(t, sm, block[1]), 1.05);
+    /* The hook block's own box: a capsule round it stood 1 m under it
+     * and 0.6 m off its sides. */
+    boxOf(t - 0.45, t + 0.45, sm - 0.9, sm + 0.9, block[0], block[1]);
     for (const tt of [t0 + L / 2, t1 - L / 2]) {
       strut(metal, P3(tt, s0 + L, yL - g), P3(tt, s1 - L - 6, CREST_Y + 0.2), 0.04, TONE.steel);
       strut(metal, P3(tt, s1 - L, yL - g), P3(tt, s0 + L + 6, CREST_Y + 0.2), 0.04, TONE.steel);
@@ -1807,7 +1989,7 @@ export async function buildPart(ctx) {
     }
     cladHouse(t0, t1, s0, s1, yL, yH, col, TONE.boards);
     const run = [];
-    flatBlock([F.at(t0, s0), F.at(t1, s0), F.at(t1, s1), F.at(t0, s1)], yL, yH, 'crane', run, F.a);
+    flatBlock([F.at(t0, s0), F.at(t1, s0), F.at(t1, s1), F.at(t0, s1)], yL, yH, 'crane', run, F.a, true);
     closeRun(run);
     for (const [tt, out] of [[t0 - 0.06, neg(alongA)], [t1 + 0.06, alongA]]) {
       for (let i = 0; i < 3; i += 1) {
@@ -2183,7 +2365,9 @@ export async function buildPart(ctx) {
   sites.buttresses = ribs;
 
   /* ================================================== gravity parts */
-  const gravity = (e, section, name, colour, ribR = 0) => {
+  /* `openEnd`: the last block's end is in the open, not against the next
+   * part's concrete (the left wing's, against the rockfill dam's earth). */
+  const gravity = (e, section, name, colour, ribR = 0, openEnd = false) => {
     const secs = sectionsOf(e.axis);
     const base = bottomOf(e);
     const toe = section.crestDown + (section.bandY - base) * section.slope;
@@ -2220,7 +2404,7 @@ export async function buildPart(ctx) {
       const a = secs[k];
       const b = secs[k + 1];
       const poly = [offset(a, section.up), offset(b, section.up), offset(b, section.crestDown), offset(a, section.crestDown)];
-      flatBlock(poly, base, CREST_Y, `${name} crest`, run, [b.p[0] - a.p[0], b.p[1] - a.p[1]]);
+      flatBlock(poly, base, CREST_Y, `${name} crest`, run, [b.p[0] - a.p[0], b.p[1] - a.p[1]], openEnd && k + 2 === secs.length && 'end');
       const A = offset(a, section.crestDown);
       const B = offset(b, section.crestDown);
       const C = offset(b, toe);
@@ -2247,7 +2431,7 @@ export async function buildPart(ctx) {
   const leftLateral = need('left lateral dam');
   const rl = gravity(rightLateral, BUTTRESS, 'right lateral dam', TONE.face, RIB.wing);
   const dv = gravity(diversion, GRAVITY, 'diversion', TONE.concrete);
-  const ll = gravity(leftLateral, GRAVITY, 'left lateral dam', TONE.concrete);
+  const ll = gravity(leftLateral, GRAVITY, 'left lateral dam', TONE.concrete, 0, true);
   figures.rightLateralLength = rl.length;
   figures.rightLateralMaxHeight = CREST_Y - rl.found;
   figures.rightLateralBasalt = rl.found - rl.base;
@@ -2326,12 +2510,17 @@ export async function buildPart(ctx) {
 
     /* The approach under the bridge and the ogee to the gates. */
     block(concrete, -W, W, SPILL.upstream, SPILL.ogee, base, sp.figures.sillY, sp.figures.sillY, TONE.chute);
+    /* Its floor is ground, as the chute's is from the ogee down: the
+     * bays under the gates and the bridge were drawn with nothing under
+     * them but the flattened footprint 90 m down. A record, no solids:
+     * the piers stand on it and its upstream face is under the water. */
+    addRoof([plan(-W, W, SPILL.upstream, SPILL.ogee).map(([x, z]) => [x, sp.figures.sillY, z])], 'spillway sill');
     /* The bridge: its deck the road over the gates. */
     const deckRun = [];
     {
       const [d0, d1] = SPILL.deck;
       const top = block(concrete, -W, W, d0, d1, SPILL.deckUnder, CREST_Y, CREST_Y, TONE.deck, false);
-      flatBlock(plan(-W, W, d0, d1), SPILL.deckUnder, CREST_Y, 'spillway bridge', deckRun);
+      flatBlock(plan(-W, W, d0, d1), SPILL.deckUnder, CREST_Y, 'spillway bridge', deckRun, null, true);
       closeRun(deckRun);
       face('spillway bridge deck', 'roof', top);
       const a = C.at(-W, d0);
@@ -2385,7 +2574,7 @@ export async function buildPart(ctx) {
         face('spillway pier nose', 'wall', [at3(ua, da, 205), at3(ub, db, 205), at3(ub, db, CREST_Y), at3(ua, da, CREST_Y)]);
       }
       const run = [];
-      flatBlock(nose.map(([nu, nd]) => C.at(nu, nd)), base, CREST_Y, 'spillway pier', run);
+      flatBlock(nose.map(([nu, nd]) => C.at(nu, nd)), base, CREST_Y, 'spillway pier', run, null, true);
       block(concrete, u0, u1, SPILL.upstream, s0, base, CREST_Y, CREST_Y, col);
       flatBlock(plan(u0, u1, SPILL.upstream, s0), base, CREST_Y, 'spillway pier', run);
       closeRun(run);
@@ -2398,7 +2587,7 @@ export async function buildPart(ctx) {
       face('spillway pier slope', 'roof', top);
       block(concrete, u0, u1, s1, SPILL.pierEnd, base, yLow, yLow, col);
       const lowRun = [];
-      flatBlock(plan(u0, u1, s1, SPILL.pierEnd), base, yLow, 'spillway pier', lowRun, C.n);
+      flatBlock(plan(u0, u1, s1, SPILL.pierEnd), base, yLow, 'spillway pier', lowRun, C.n, 'end');
       closeRun(lowRun);
       for (const side of [u0, u1]) {
         face('spillway pier side', 'wall', [at3(side, s0, 205), at3(side, s1, 205), at3(side, s1, yLow), at3(side, s0, CREST_Y)]);
@@ -2475,7 +2664,21 @@ export async function buildPart(ctx) {
         const o = [C.n[0] * Math.sin(al) * dir, Math.cos(al) * dir, C.n[1] * Math.sin(al) * dir];
         metal.quad(arc(u0, R, al), arc(u1, R, al), arc(u1, R - 0.3, al), arc(u0, R - 0.3, al), TONE.gate, o);
       }
-      const ids = prismBoxes(plan(u0, u1, SPILL.gate[0], SPILL.gate[1]), gateBottom, () => gateTop);
+      /* The skin's solid is a stack of capsules across the bay along its
+       * arc: the flat slab of columns it had stood 1.6 m upstream of the
+       * drawn skin at its top and foot, where the arc has curved away,
+       * and cost more solids. Each capsule's cap ends at the skin's edge,
+       * so the opening under the gate stays open. */
+      const ids = [];
+      const rr = R - 0.15;
+      const a0 = -aMax + SKIN_R / rr;
+      const a1 = aMax - SKIN_R / rr;
+      /* Neighbours 4 % closer than touching, so no seam between them. */
+      const rows = Math.ceil((rr * (a1 - a0)) / (1.92 * SKIN_R)) + 1;
+      for (let i = 0; i < rows; i += 1) {
+        const al = a0 + ((a1 - a0) * i) / (rows - 1);
+        ids.push(addCapsule('wall', arc(u0, rr, al), arc(u1, rr, al), SKIN_R));
+      }
       /* gate-0 is the westernmost: u runs east. */
       /* On its upstream face; its reach at most half the gates' pitch,
        * so neighbours' spheres never overlap. */
@@ -2493,7 +2696,9 @@ export async function buildPart(ctx) {
           addCapsule('wall', T, E, 0.55);
         }
         addCapsule('wall', brace[0], brace[1], 0.4);
-        addCapsule('wall', arc(side, 0, 0), T, 0.95);
+        /* The trunnion's beam is 1.3 m square: a capsule as wide, whose
+         * cap past T stood 0.95 m into the bay with nothing drawn there. */
+        addCapsule('wall', arc(side, 0, 0), T, 0.65);
         addCapsule('wall', pivot, rodEnd, RADIAL.cylinder + 0.05);
         if (g > 0) {
           continue;
@@ -2636,6 +2841,9 @@ export async function buildPart(ctx) {
         const f0 = offset(a, side * (EMBANKMENT_HALF + 5.6));
         const f1 = offset(b, side * (EMBANKMENT_HALF + 5.6));
         concrete.quad([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], CREST_Y - 4, f1[1]], [f0[0], CREST_Y - 4, f0[1]], TONE.rock, up);
+        /* Ground where it is drawn: a craft off the road's edge lands on
+         * the edge, not on the terrain up to a metre under it. */
+        slopeRoof([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], CREST_Y - 4, f1[1]], [f0[0], CREST_Y - 4, f0[1]], `${name} edge`, 'rock');
       }
     }
     closeRun(run);
@@ -2894,6 +3102,7 @@ export async function buildPart(ctx) {
       figures,
       sites,
       solidIndices: solids.slice(),
+      records: records.slice(),
       colliders: ctx.colliders,
     }),
   };

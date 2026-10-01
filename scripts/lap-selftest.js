@@ -34,6 +34,7 @@
 import { encodeGhost } from '../src/share/ghostdata.js';
 import { checkLap, gatesFromCourse, LAP_TOLERANCE_MS, planesFor } from '../src/game/verify.js';
 import { AIRFRAMES } from '../configs/airframes.js';
+import { craftLimits, SPAN_ROOM } from '../src/builder/line.js';
 import { courseFromDocument } from '../src/game/trackdoc.js';
 import { Race } from '../src/game/race.js';
 import { trackClassOf } from '../src/trackbuilder/elements.js';
@@ -183,9 +184,15 @@ const ringPlanes = planesFor(ring);
 check('the ring of five inch gates takes the small planes only: the Cub in, the Skyhunter and the Bramor out',
   ringPlanes.includes('cub1400') && !ringPlanes.includes('sky1800') && !ringPlanes.includes('bramor2300'), ringPlanes.join());
 check('no plane races a field track through planesFor: the airfield is its own class', planesFor(wing).length === 0);
+/* Who a ring takes, by the builder's rule worked out here from the spans
+ * alone: every plane 1.2 of whose spans clear its narrowest gate. */
+const fitting = (widest) => AIRFRAMES.filter((af) => af.fixedWing && craftLimits(af).span * SPAN_ROOM <= widest).map((af) => af.id);
+const large = mapTrackDocument({ radius: 70, types: ['wideGate5', 'pylonPair', 'wideGate5'], name: 'Large ring' });
+check(`every fixed wing fits the 5 m gates and the pylon pair: ${planeIds.length} of them`,
+  JSON.stringify(planesFor(large)) === JSON.stringify(planeIds), planesFor(large).join());
 const wide = mapTrackDocument({ radius: 70, types: ['wideGate5', 'pylonPair', 'wideGate3'], name: 'Wide ring' });
-check(`every fixed wing fits the wide gates and the pylon pair: ${planeIds.length} of them`,
-  JSON.stringify(planesFor(wide)) === JSON.stringify(planeIds), planesFor(wide).join());
+check('with a 3 m gate in the ring, the planes 1.2 of whose spans clear 3 m and no others',
+  JSON.stringify(planesFor(wide)) === JSON.stringify(fitting(3)), `${planesFor(wide).join()} against ${fitting(3).join()}`);
 const wideLap = syntheticLap(wide, { speed: 20 });
 const wideBytes = encodeGhost(wideLap);
 check('a synthetic lap closes on the wide ring', wideLap.lapMs != null && wideLap.gates === 3, `${wideLap.lapMs} ${wideLap.gates}`);
@@ -206,10 +213,21 @@ check('and one naming no aircraft there is', unknown.ok === false && /not a fixe
 const wideSkipped = syntheticLap(wide, { speed: 20, skip: 1 });
 const planeSkip = checkLap(wide, encodeGhost(wideSkipped), wideSkipped.durationMs, 'sky1800');
 check('a plane\'s lap that skips the pylon pair is refused', planeSkip.ok === false && /never closed/.test(planeSkip.reason), planeSkip.reason);
-/* The narrowest plane gate there is: 1.2 spans of the Skyhunter, and the
- * widest planes are out while the smaller ones are in. */
+/* The narrowest plane gate there is: 3 m, which every plane up to 2.5 m
+ * across clears with 1.2 of its spans and the Striker, 3.15 m across its
+ * sweep, does not (3.78 m). It races the 5 m gates and the
+ * pylons and is turned away from a ring with a 3 m gate in it, by the
+ * same rule and the same words as any plane too big for a gate. */
 const tight = mapTrackDocument({ radius: 70, types: ['wideGate3', 'wideGate3', 'wideGate3'] });
-check('the 3 m gates take every plane, 1.2 spans of the widest is 2.76 m', planesFor(tight).length === planeIds.length, planesFor(tight).join());
+check('the 3 m gates take every plane 1.2 of whose spans clear 3 m and no others',
+  JSON.stringify(planesFor(tight)) === JSON.stringify(fitting(3)), `${planesFor(tight).join()} against ${fitting(3).join()}`);
+const largeLap = syntheticLap(large, { speed: 20 });
+const strikerOnLarge = checkLap(large, encodeGhost(largeLap), largeLap.lapMs, 'striker2500');
+check('a Striker lap through the 5 m gates and the pylons is accepted', strikerOnLarge.ok === true, strikerOnLarge.reason);
+const tightLap = syntheticLap(tight, { speed: 20 });
+const strikerOnTight = checkLap(tight, encodeGhost(tightLap), tightLap.lapMs, 'striker2500');
+check('and one through 3 m gates is refused: the Striker does not fit gate 1, 3.00 m wide',
+  strikerOnTight.ok === false && /Striker does not fit gate 1, 3\.00 m wide/.test(strikerOnTight.reason), strikerOnTight.reason);
 
 console.log(`\n${failed ? `${failed} FAILED, ` : ''}${passed} passed`);
 process.exit(failed ? 1 : 0);
