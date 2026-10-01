@@ -9534,7 +9534,7 @@ export async function boot({
       reset();
       ghostCourseChanged();
       mode = 'title';
-      ui.show('title');
+      ui.show(stayScreen === 'friends' ? 'friends' : 'title');
       ui.applyLocationHash();
       showCourseNotes();
     } else {
@@ -9717,8 +9717,11 @@ export async function boot({
      * pilot to the title. The 'fc' it replaces named a screen that no
      * longer exists, and would have failed silently: show() on an unknown
      * name displays no node and leaves the previous screen's rows behind.
+     * 'friends' because a card seats its own world on the room screen
+     * (ui.js, the card's world wins), and a swap to another world, which
+     * otherwise ends on the title, ends back there (adoptLoadedView).
      */
-    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits'];
+    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
     const stayScreen = STAY_SCREENS.includes(ui.screen) ? ui.screen : null;
     const stayMode = keepPlace ? mode : 'title';
     swapInFlight = true;
