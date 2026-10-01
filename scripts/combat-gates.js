@@ -2,7 +2,11 @@
  * combat-gates.js: the combat quads, plants 24 and 25 (docs/COMBAT-DRONES.md),
  * flown on the real module against figures from outside this repository,
  * and their payloads held to what a payload has to do: make the machine
- * heavier, measurably, and nothing when there is none.
+ * heavier, measurably, and nothing when there is none. And the Striker,
+ * plants 27 and 28 (the doc's section 7), the war's fixed wing on its
+ * piston engine and on its turbojet, held to its derivation: stall, cruise
+ * and top speed, climb, the turbine's spool, the rail and the strip, and
+ * what each warhead in its nose costs it.
  *
  * Like scripts/whoop-gates.js and not in tests/, because every band in
  * tests/ was fitted to the five inch and tests/ is the harness's. A band
@@ -35,9 +39,11 @@ import { isDeepStrictEqual } from 'node:util';
 import { loadSim, SIM_OK, SIM_ERR_BAD_ARG, SIM_ERR_BAD_STATE } from '../tests/lib/simmod.js';
 import { ST } from '../tests/lib/replay.js';
 import { AIRFRAMES, airframeById } from '../configs/airframes.js';
-import { combatAddon, combatChoice, payloadForWarhead, warPayload } from '../configs/combat.js';
-import { deriveCombat } from './combat-derive.js';
+import { combatAddon, combatChoice, combatSimId, payloadForWarhead, warPayload } from '../configs/combat.js';
+import { deriveCombat, deriveStriker } from './combat-derive.js';
 import { WARHEADS } from '../edge/rooms/war.js';
+import { KIND } from '../src/share/war/routes.js';
+import { flyStriker, seatStriker, wingDebug } from './lib/strikerpilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const G = 9.80665;
@@ -175,8 +181,15 @@ function traceHash(sim, hover) {
   return h.digest('hex').slice(0, 16);
 }
 
+function must(code, where) {
+  if (code !== SIM_OK) {
+    throw new Error(`${where}: the module returned ${code}`);
+  }
+}
+
 const derived = deriveCombat();
-const quads = AIRFRAMES.filter((a) => a.combat);
+/* The quads; the Striker, a fixed wing with a combat block, is below. */
+const quads = AIRFRAMES.filter((a) => a.combat && !a.fixedWing);
 report('the combat quads are the derive script\'s', isDeepStrictEqual(quads.map((a) => a.id), Object.keys(derived)), quads.map((a) => a.id).join(', '));
 
 for (const af of quads) {
@@ -358,6 +371,188 @@ for (const af of quads) {
   report('war: a stored choice is made valid', isDeepStrictEqual(combatChoice(af, { payload: 'bogus', accessories: ['gps', 'nope', 'pack2'] }), { payload: 'standard', accessories: ['pack2', 'gps'] }));
 }
 
+/*
+ * ---- the Striker, plants 27 and 28 (docs/COMBAT-DRONES.md section 7) ----
+ *
+ * Flown in Manual by scripts/lib/strikerpilot.js, so it is the airframe
+ * doing it. scripts/combat-derive.js predicts every figure from the parts
+ * list, the lattice and the engine laws; the module is held to it, and to
+ * what the war, the rail and the strip ask of it.
+ */
+const STRIKER_BANDS = {
+  'spool-90': { min: 2.5, max: 5.0, unit: 's', why: 'A small turbojet\'s ECU limits its acceleration, so idle to full takes seconds, where the F-16\'s ducted fan takes a fraction of one (its fan_tau, 0.08 s). ESTIMATED, as the derivation marks it.' },
+};
+const derivedStriker = deriveStriker();
+const strikers = AIRFRAMES.filter((a) => a.combat && a.combat.propulsion);
+report('the Striker is the derive script\'s fixed wing', strikers.length === 1 && strikers[0].id === 'striker2500' && strikers[0].fixedWing === true,
+  strikers.map((a) => a.id).join(', '));
+for (const af of strikers) {
+  report(`${af.id} combat block is combat-derive's`, isDeepStrictEqual(JSON.parse(JSON.stringify(af.combat)), JSON.parse(JSON.stringify(derivedStriker.combat))));
+  const first = af.combat.propulsion[0];
+  report(`${af.id} row is its first propulsion's`, af.simId === first.simId && af.grams === first.grams && af.stall === first.stall
+    && af.topSpeed === first.topSpeed && af.thrustToWeight === first.thrustToWeight && af.voice === first.voice, `plant ${af.simId}, ${af.grams} g`);
+  report(`${af.id} the rail lets it go at 1.3 times its highest stall or faster`,
+    af.catapult.speed >= 1.3 * Math.max(...af.combat.propulsion.map((pr) => derivedStriker.out[pr.id].trimmedStall(af.combat.payloads.find((p) => p.id === 'wide')).V)),
+    `${af.catapult.speed} m/s`);
+  const tuneText = await tune(af.defaultTune);
+  const seat = (choice) => seatStriker(loadSim, wasm, tuneText, af, choice);
+  const payloadById = (id) => af.combat.payloads.find((p) => p.id === id) ?? null;
+  const alphaStall = derivedStriker.CLmax / derivedStriker.CLa;
+  const tops = {};
+  for (const pr of af.combat.propulsion) {
+    const pid = pr.id;
+    const d = derivedStriker.variants[pid];
+    const o = derivedStriker.out[pid];
+    const tag = `${af.id} ${pid}`;
+    const load = (payload) => ({ payload, accessories: [], propulsion: pid });
+
+    /* ---- the plant's table is the derivation's ---- */
+    {
+      const sim = await seat(load('none'));
+      const ptr = sim.e.malloc(4 * 8);
+      sim.e.sim_live_inertia(ptr);
+      const got = Array.from(new Float64Array(sim.e.memory.buffer, ptr, 4));
+      sim.e.free(ptr);
+      const want = [d.M, ...d.I];
+      report(`${tag} plant mass and inertia are combat-derive's`, got.every((g, k) => Math.abs(g - want[k]) <= 1e-3 * want[k]),
+        got.map((v) => v.toPrecision(4)).join(' '), 'mass, Ixx, Iyy, Izz');
+      report(`${tag} grams is the plant's mass`, Math.abs(pr.grams / 1000 - got[0]) < 5e-4, `${pr.grams} g`);
+      report(`${tag} its plant is its propulsion's`, combatSimId(af, load('none')) === pr.simId && sim.e.sim_airframe() === pr.simId, `plant ${pr.simId}`);
+    }
+
+    /* ---- level at full throttle and at the cruise's 60 percent ---- */
+    const v0 = pid === 'prop' ? 22 : 50;
+    const top = flyStriker(await seat(load('none')), { thr: 1, v0, seconds: 60 });
+    const cruise = flyStriker(await seat(load('none')), { thr: 0.6, v0, seconds: 60 });
+    tops[pid] = top.v;
+    report(`${tag} top speed is the derivation's`, Math.abs(top.v - o.top) / o.top < 0.03 && Math.abs(top.vz) < 0.05,
+      `${top.v.toFixed(2)} m/s level`, `derived ${o.top.toFixed(2)}, within 3 percent`);
+    report(`${tag} cruise is the derivation's`, Math.abs(cruise.v - o.Vcruise) / o.Vcruise < 0.03 && Math.abs(cruise.vz) < 0.05,
+      `${cruise.v.toFixed(2)} m/s at 60 percent`, `derived ${o.Vcruise.toFixed(2)}, within 3 percent`);
+    report(`${tag} the table's top speed is what it flies`, Math.abs(pr.topSpeed - top.v) < 0.15, `${pr.topSpeed} m/s`, `flown ${top.v.toFixed(2)}`);
+    const raid = KIND.strike.speed;
+    if (pid === 'prop') {
+      report(`${tag} keeps up with the raid's Strikers`, top.v >= raid, `${top.v.toFixed(1)} m/s`, `the war flies them at ${raid} m/s (src/share/war/routes.js)`);
+    } else {
+      report(`${tag} runs the raid's Strikers down`, top.v >= 2 * raid, `${top.v.toFixed(1)} m/s`, `twice the war's ${raid} m/s`);
+    }
+
+    /* ---- what each warhead does: power off, the nose raised a third of a
+     * degree a second until the wing reaches its stall angle, the speed
+     * then; full throttle at the derivation's best climb speed for the
+     * load; and level at full throttle. Heavier is slower to climb and
+     * faster to stall, and never faster. ---- */
+    const rows = [];
+    for (const id of ['none', ...[...af.combat.payloads].sort((a, b) => a.massKg - b.massKg).map((p) => p.id)]) {
+      const p = payloadById(id);
+      const pf = o.perf(p);
+      let stallV = null;
+      const ss = await seat(load(id));
+      flyStriker(ss, {
+        thr: 0, v0: 24, seconds: 90, pitchMax: 0.9, hold: { pitch: (ms) => Math.min(0.8, -0.05 + 0.006 * ms / 1000) },
+        onStep: ({ ms, v }) => {
+          if (stallV === null && ms > 500 && wingDebug(ss)[0] > alphaStall) {
+            stallV = v;
+          }
+        },
+      });
+      const climb = flyStriker(await seat(load(id)), { thr: 1, v0: pf.climb.V, seconds: 30, hold: { v: pf.climb.V }, pitchMax: 1.2 });
+      const level = id === 'none' ? top : flyStriker(await seat(load(id)), { thr: 1, v0, seconds: 60 });
+      const st = o.trimmedStall(p);
+      rows.push({ id, m: p ? p.massKg : 0, stallV, stallWant: st.V, climb: climb.vz, climbWant: pf.climb.vz, top: level.v });
+    }
+    for (const r of rows) {
+      report(`    ${tag} ${r.id}`, true, `stall ${r.stallV === null ? 'none' : r.stallV.toFixed(2)}`,
+        `${(r.m * 1000).toFixed(0)} g warhead; derived stall ${r.stallWant.toFixed(2)}; climb ${r.climb.toFixed(2)} m/s (derived ${r.climbWant.toFixed(2)}); top ${r.top.toFixed(2)} m/s`);
+    }
+    report(`${tag} each load stalls where the derivation trims it`, rows.every((r) => r.stallV !== null && Math.abs(r.stallV - r.stallWant) / r.stallWant < 0.06),
+      rows.map((r) => (r.stallV === null ? 'none' : r.stallV.toFixed(1))).join(' '), 'within 6 percent of the trimmed stall');
+    report(`${tag} each load climbs as the derivation says`, rows.every((r) => Math.abs(r.climb - r.climbWant) / r.climbWant < 0.12),
+      rows.map((r) => r.climb.toFixed(1)).join(' '), 'within 12 percent');
+    const slower = rows.every((r, k) => k === 0 || (r.climb < rows[k - 1].climb && r.stallV > rows[k - 1].stallV && r.top <= rows[k - 1].top + 1e-6));
+    report(`${tag} a heavier warhead climbs less, stalls faster, and is never faster`, slower,
+      `climb ${rows[0].climb.toFixed(2)} to ${rows[rows.length - 1].climb.toFixed(2)} m/s, stall ${rows[0].stallV.toFixed(2)} to ${rows[rows.length - 1].stallV.toFixed(2)}`);
+    report(`${tag} the rail's release is 1.3 times every load's stall`, rows.every((r) => af.catapult.speed >= 1.3 * r.stallV), `${af.catapult.speed} m/s`);
+
+    /* ---- the engine: a turbine's spool lags the stick by seconds and it
+     * idles with the stick closed; a piston's thrust is the stick's ---- */
+    {
+      const sim = await seat(load('standard'));
+      const trace = [];
+      const vS = pid === 'prop' ? 18 : 30;
+      flyStriker(sim, {
+        thr: (ms) => (ms < 5000 ? 0 : 1), v0: vS, seconds: 20, hold: { v: vS }, pitchMax: 1.2,
+        onStep: ({ ms, s }) => trace.push([ms, wingDebug(sim)[8], s[ST.RPM0]]),
+      });
+      const at = (t) => trace.find(([ms]) => ms >= t);
+      const idle = at(4996);
+      const fin = trace[trace.length - 1][1];
+      const hit = trace.find(([ms, th]) => ms >= 5000 && th >= idle[1] + 0.9 * (fin - idle[1]));
+      const t90 = hit ? (hit[0] - 5000) / 1000 : NaN;
+      if (pid === 'jet') {
+        const b = STRIKER_BANDS['spool-90'];
+        report(`${tag} spool, idle to 90 percent of full`, t90 >= b.min && t90 <= b.max, `${t90.toFixed(2)} s`, `band ${b.min} to ${b.max}`);
+        report(`${tag} idles with the stick closed`, idle[2] > 0.1 * d.engine.rpmNoLoad && idle[1] > 0, `${idle[2].toFixed(0)} rpm, ${idle[1].toFixed(1)} N after 5 s closed`,
+          'a turbine is held at its idle, never stopped');
+      } else {
+        report(`${tag} the thrust is the stick's`, t90 < 0.05, `${(t90 * 1000).toFixed(0)} ms to 90 percent`, 'a piston engine on a fixed prop has no spool');
+      }
+    }
+
+    /* ---- off the rail and onto the strip, with the standard warhead ---- */
+    {
+      const sim = await seat(load('standard'));
+      must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'sim_set_ground');
+      const rail = af.catapult;
+      const h = (rail.pitchDeg * Math.PI) / 360;
+      let zMin = Infinity;
+      let vMin = Infinity;
+      const r = flyStriker(sim, {
+        thr: 1, z0: rail.height, v0: rail.speed, launch: true, quat: [Math.cos(h), 0, -Math.sin(h), 0], seconds: 12, meanS: 1, pitchMax: 1.2,
+        hold: { pitch: (ms) => (ms < 1000 ? (rail.pitchDeg * Math.PI) / 180 : 0.25) },
+        onStep: ({ s, v }) => {
+          zMin = Math.min(zMin, s[3]);
+          vMin = Math.min(vMin, v);
+        },
+      });
+      report(`${tag} flies off the rail at full throttle`, zMin >= rail.height - 0.5 && vMin >= rail.speed * 0.9 && r.z > 30,
+        `${r.z.toFixed(0)} m up after 12 s`, `lowest ${zMin.toFixed(2)} m, slowest ${vMin.toFixed(1)} m/s`);
+    }
+    {
+      const sim = await seat(load('standard'));
+      must(sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0), 'sim_set_ground');
+      let touch = null;
+      let end = null;
+      flyStriker(sim, {
+        thr: 0, z0: 30, v0: pid === 'prop' ? 18 : 22, seconds: 40, meanS: 1, pitchMax: 0.5,
+        hold: { vz: (z) => -Math.max(0.6, Math.min(3, 0.2 * (z - 0.3))) },
+        onStep: ({ ms, s, v, pitch, bank }) => {
+          if (touch === null && s[3] < af.dims.vHalfDown + 0.05) {
+            touch = { ms, vz: s[6], v };
+          }
+          end = { v, z: s[3], pitch, bank };
+        },
+      });
+      report(`${tag} glides in at idle and comes to rest on its skid, upright`,
+        Boolean(touch) && end.v < 0.3 && Math.abs(end.bank) < 0.05 && Math.abs(end.pitch) < 0.05 && end.z < af.dims.vHalfDown + 0.05,
+        touch ? `down at ${touch.v.toFixed(1)} m/s, ${(-touch.vz).toFixed(2)} m/s sink` : 'never down', end ? `at rest ${end.z.toFixed(3)} m up` : '');
+    }
+  }
+  report(`${af.id} the jet is the fast one`, tops.jet > 2 * tops.prop, `${tops.jet.toFixed(1)} against ${tops.prop.toFixed(1)} m/s`);
+  /* The war's mapping holds for it as for the quads, and the propulsion
+   * is the pilot's, kept whatever the warhead. */
+  const cases = [
+    ['war: the Striker\'s chosen payload is the warhead', warPayload(af, { payload: 'wide', accessories: [], propulsion: 'jet' }), { payload: 'wide', warhead: 'wide' }],
+    ['war: the Striker with none flies the fallback', warPayload(af, { payload: 'none', accessories: [], propulsion: 'prop' }, WARHEADS, 'emp'), { payload: 'emp', warhead: 'emp' }],
+    ['war: a stored Striker choice is made valid, on its first propulsion', combatChoice(af, { payload: 'bogus', accessories: ['whip', 'nope'], propulsion: 'rocket' }), { payload: 'standard', accessories: ['whip'], propulsion: 'prop' }],
+    ['war: the jet is plant 28', combatSimId(af, { payload: 'standard', accessories: [], propulsion: 'jet' }), 28],
+  ];
+  for (const [what, got, want] of cases) {
+    report(what, isDeepStrictEqual(got, want), JSON.stringify(got));
+  }
+  report('war: the Striker carries every warhead', WARHEADS.every((w) => af.combat.payloads.some((p) => p.warhead === w)), WARHEADS.join(', '));
+}
+
 /* ---- the five inch did not move ---- */
 {
   const five = airframeById('5inch');
@@ -395,12 +590,17 @@ for (const af of quads) {
 
 let fails = 0;
 const w = Math.max(...results.map((r) => r.id.length));
-console.log('\ncombat-gates: the 7 inch and the 10 inch, and what a payload does\n');
+console.log('\ncombat-gates: the 7 inch, the 10 inch and the Striker, and what a payload does\n');
 for (const r of results) {
   if (!r.pass) {
     fails += 1;
   }
   console.log(`${r.pass ? ' ok  ' : 'FAIL '} ${r.id.padEnd(w)}  ${String(r.measured).padEnd(24)} ${r.extra}`);
+}
+for (const [key, b] of Object.entries(STRIKER_BANDS)) {
+  if (results.some((x) => x.id.endsWith(key.replace('spool-90', 'spool, idle to 90 percent of full')) && !x.pass)) {
+    console.log(`  striker ${key}: ${b.why}`);
+  }
 }
 for (const [quad, bands] of Object.entries(BANDS)) {
   for (const [key, b] of Object.entries(bands)) {

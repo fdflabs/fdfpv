@@ -1589,4 +1589,120 @@ static const PartDef PARTS_NRJ1490[] = {
     BOX(0.19, 0.259, -0.012, 0.012, -0.038, -0.014) },
 };
 
+/* ------------------------------------------------------------------------
+ * STRIKER, SIM_AIRFRAME_STRIKER_PROP and SIM_AIRFRAME_STRIKER_JET,
+ * strikercraft.js, docs/COMBAT-DRONES.md section 7. A giant scale glass
+ * and carbon shell over foam: a 0.34 m tube, a cranked delta on a carbon
+ * spar in two panels, fins screwed to the tips, the warhead's bay under
+ * the nose cap. A composite shell cracks rather than crushes, as the
+ * Bramor's does, so nothing here crushes. Positions are the drawing's
+ * about each variant's CG (scripts/combat-derive.js); the two differ in
+ * the engine at the tail.
+ * --------------------------------------------------------------------- */
+static const PartDef PARTS_STRIKER_PROP[] = {
+  /* 0 the fuselage tube from the nose to the tail cone, the tank, the
+   * spar box, the skid and the rest: the residual. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .k = 2.0e6, BOX(-0.874, 1.546, -0.17, 0.17, -0.1504, 0.1896) },
+  /* 1, 2 the panels on their carbon spar, from the fuselage's side to the
+   * fin, 64 mm deep at the root and 26 at the tip. 600 N m, chosen: a 6 g
+   * pull loads a panel's root to about 180. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 1.10, .joint = { -0.054, 0.17, -0.0504 }, SHELL_SECTION(0.032), .m_max = 600.0, .m_max_z = SHELL_IN(600.0, 1.54, 0.064), .f_max = 5000.0, .k = 1.0e4,
+    .npts = 8, .pts = { { 0.706, 0.17, -0.0824 }, { -0.834, 0.17, -0.0824 }, { -0.594, 1.235, -0.0634 }, { -0.834, 1.235, -0.0634 },
+                        { 0.706, 0.17, -0.0184 }, { -0.834, 0.17, -0.0184 }, { -0.594, 1.235, -0.0374 }, { -0.834, 1.235, -0.0374 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 1.10, .joint = { -0.054, -0.17, -0.0504 }, SHELL_SECTION(0.032), .m_max = 600.0, .m_max_z = SHELL_IN(600.0, 1.54, 0.064), .f_max = 5000.0, .k = 1.0e4,
+    .npts = 8, .pts = { { 0.706, -0.17, -0.0824 }, { -0.834, -0.17, -0.0824 }, { -0.594, -1.235, -0.0634 }, { -0.834, -1.235, -0.0634 },
+                        { 0.706, -0.17, -0.0184 }, { -0.834, -0.17, -0.0184 }, { -0.594, -1.235, -0.0374 }, { -0.834, -1.235, -0.0374 } } },
+  /* 3, 4 the elevons, 0.15 m of chord from 0.32 to 1.12 m out. */
+  { .kind = SIM_PART_ELEVON, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.15, .joint = { -0.684, 0.72, -0.0504 }, .m_max = 5.0, .f_max = 250.0, .k = 5000.0,
+    BOX(-0.834, -0.684, 0.32, 1.12, -0.0614, -0.0394) },
+  { .kind = SIM_PART_ELEVON, .parent = 2, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.15, .joint = { -0.684, -0.72, -0.0504 }, .m_max = 5.0, .f_max = 250.0, .k = 5000.0,
+    BOX(-0.834, -0.684, -1.12, -0.32, -0.0614, -0.0394) },
+  /* 5, 6 the fins with their rudders and servos, screwed to the tips. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { -0.754, 1.235, -0.0504 }, .m_max = 15.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { -0.554, 1.235, -0.1704 }, { -0.874, 1.235, -0.1704 }, { -0.734, 1.235, 0.2496 }, { -0.954, 1.235, 0.2496 },
+                        { -0.554, 1.251, -0.1704 }, { -0.874, 1.251, -0.1704 }, { -0.734, 1.251, 0.2496 }, { -0.954, 1.251, 0.2496 } } },
+  { .kind = SIM_PART_FIN, .parent = 2, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { -0.754, -1.235, -0.0504 }, .m_max = 15.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { -0.554, -1.235, -0.1704 }, { -0.874, -1.235, -0.1704 }, { -0.734, -1.235, 0.2496 }, { -0.954, -1.235, 0.2496 },
+                        { -0.554, -1.251, -0.1704 }, { -0.874, -1.251, -0.1704 }, { -0.734, -1.251, 0.2496 }, { -0.954, -1.251, 0.2496 } } },
+  /* 7 the boxer twin and its mount on four standoffs from the firewall,
+   * 8 the 30 x 14 beech pusher: its blade root 40 by 12 mm, Z 9.6e-7 m^3
+   * at 100 MPa, 96 N m. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 3.30, .joint = { -0.874, 0.0, 0.0196 }, .m_max = 150.0, .f_max = 3000.0, .k = 1.0e6,
+    BOX(-1.034, -0.874, -0.21, 0.21, -0.0404, 0.1196) },
+  { .kind = SIM_PART_PROP, .parent = 7, .mat = SIM_MAT_PLY, .motor = 0, .wheel = -1, .shape = SH_DISCX,
+    .mass = 0.32, .joint = { -1.094, 0.0, 0.0196 }, .m_max = 96.0, .f_max = 1500.0, .k = 3000.0,
+    .npts = 8, .pts = { { -1.124, 0.0, 0.0196 }, { 0.381, 0.0, 0.0 } } },
+  /* 9 the ignition, receiver and servo packs, strapped in the bay
+   * under the avionics; 10 the nose cap over the warhead bay on its
+   * latches, which a nose in takes off first; 11 the FPV camera in it. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.60, .joint = { 0.946, 0.0, -0.0304 }, .m_max = 10.0, .f_max = 400.0, .k = 3.0e5,
+    BOX(0.866, 1.026, -0.06, 0.06, -0.0904, 0.0196) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1, .bay = { 1.0, 0.0, 0.0 },
+    .mass = 0.45, .joint = { 1.206, 0.0, 0.0196 }, .m_max = 20.0, .f_max = 400.0, .k = 2.0e4,
+    BOX(1.206, 1.546, -0.17, 0.17, -0.1504, 0.1896) },
+  { .kind = SIM_PART_CAMERA, .parent = 10, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { 1.496, 0.0, 0.0196 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(1.466, 1.526, -0.02, 0.02, -0.0004, 0.0396) },
+};
+
+static const PartDef PARTS_STRIKER_JET[] = {
+  /* 0 the fuselage tube from the nose to the tail cone, the tank, the
+   * spar box, the skid and the rest: the residual. */
+  { .kind = SIM_PART_FUSELAGE, .parent = -1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .k = 2.0e6, BOX(-0.874, 1.546, -0.17, 0.17, -0.1601, 0.1799) },
+  /* 1, 2 the panels on their carbon spar, from the fuselage's side to the
+   * fin, 64 mm deep at the root and 26 at the tip. 600 N m, chosen: a 6 g
+   * pull loads a panel's root to about 180. */
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 1.10, .joint = { -0.054, 0.17, -0.0601 }, SHELL_SECTION(0.032), .m_max = 600.0, .m_max_z = SHELL_IN(600.0, 1.54, 0.064), .f_max = 5000.0, .k = 1.0e4,
+    .npts = 8, .pts = { { 0.706, 0.17, -0.0921 }, { -0.834, 0.17, -0.0921 }, { -0.594, 1.235, -0.0731 }, { -0.834, 1.235, -0.0731 },
+                        { 0.706, 0.17, -0.0281 }, { -0.834, 0.17, -0.0281 }, { -0.594, 1.235, -0.0471 }, { -0.834, 1.235, -0.0471 } } },
+  { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 1.10, .joint = { -0.054, -0.17, -0.0601 }, SHELL_SECTION(0.032), .m_max = 600.0, .m_max_z = SHELL_IN(600.0, 1.54, 0.064), .f_max = 5000.0, .k = 1.0e4,
+    .npts = 8, .pts = { { 0.706, -0.17, -0.0921 }, { -0.834, -0.17, -0.0921 }, { -0.594, -1.235, -0.0731 }, { -0.834, -1.235, -0.0731 },
+                        { 0.706, -0.17, -0.0281 }, { -0.834, -0.17, -0.0281 }, { -0.594, -1.235, -0.0471 }, { -0.834, -1.235, -0.0471 } } },
+  /* 3, 4 the elevons, 0.15 m of chord from 0.32 to 1.12 m out. */
+  { .kind = SIM_PART_ELEVON, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.15, .joint = { -0.684, 0.72, -0.0601 }, .m_max = 5.0, .f_max = 250.0, .k = 5000.0,
+    BOX(-0.834, -0.684, 0.32, 1.12, -0.0711, -0.0491) },
+  { .kind = SIM_PART_ELEVON, .parent = 2, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.15, .joint = { -0.684, -0.72, -0.0601 }, .m_max = 5.0, .f_max = 250.0, .k = 5000.0,
+    BOX(-0.834, -0.684, -1.12, -0.32, -0.0711, -0.0491) },
+  /* 5, 6 the fins with their rudders and servos, screwed to the tips. */
+  { .kind = SIM_PART_FIN, .parent = 1, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { -0.754, 1.235, -0.0601 }, .m_max = 15.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { -0.554, 1.235, -0.1801 }, { -0.874, 1.235, -0.1801 }, { -0.734, 1.235, 0.2399 }, { -0.954, 1.235, 0.2399 },
+                        { -0.554, 1.251, -0.1801 }, { -0.874, 1.251, -0.1801 }, { -0.734, 1.251, 0.2399 }, { -0.954, 1.251, 0.2399 } } },
+  { .kind = SIM_PART_FIN, .parent = 2, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1,
+    .mass = 0.26, .joint = { -0.754, -1.235, -0.0601 }, .m_max = 15.0, .f_max = 300.0, .k = 3000.0,
+    .npts = 8, .pts = { { -0.554, -1.235, -0.1801 }, { -0.874, -1.235, -0.1801 }, { -0.734, -1.235, 0.2399 }, { -0.954, -1.235, 0.2399 },
+                        { -0.554, -1.251, -0.1801 }, { -0.874, -1.251, -0.1801 }, { -0.734, -1.251, 0.2399 }, { -0.954, -1.251, 0.2399 } } },
+  /* 7 the turbojet in its nacelle on two straps over the tail. No prop
+   * part: the wheels are inside the case. */
+  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
+    .mass = 1.81, .joint = { -0.854, 0.0, 0.0899 }, .m_max = 60.0, .f_max = 1500.0, .k = 1.0e6,
+    BOX(-1.214, -0.694, -0.12, 0.12, -0.0101, 0.2299) },
+  /* 8 the ignition, receiver and servo packs, strapped in the bay
+   * under the avionics; 9 the nose cap over the warhead bay on its
+   * latches, which a nose in takes off first; 10 the FPV camera in it. */
+  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1, IN_BAY,
+    .mass = 0.60, .joint = { 0.946, 0.0, -0.0401 }, .m_max = 10.0, .f_max = 400.0, .k = 3.0e5,
+    BOX(0.866, 1.026, -0.06, 0.06, -0.1001, 0.0099) },
+  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_CF_PLATE, .motor = -1, .wheel = -1, .bay = { 1.0, 0.0, 0.0 },
+    .mass = 0.45, .joint = { 1.206, 0.0, 0.0099 }, .m_max = 20.0, .f_max = 400.0, .k = 2.0e4,
+    BOX(1.206, 1.546, -0.17, 0.17, -0.1601, 0.1799) },
+  { .kind = SIM_PART_CAMERA, .parent = 9, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
+    .mass = 0.05, .joint = { 1.496, 0.0, 0.0099 }, .m_max = FPV_CAM_M, .f_max = FPV_CAM_F, .k = 3.0e4,
+    BOX(1.466, 1.526, -0.02, 0.02, -0.0101, 0.0299) },
+};
+
 #endif /* CRASH_PARTS_H */

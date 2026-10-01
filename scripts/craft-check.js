@@ -157,6 +157,14 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             and every accessory, and measured against it: the legs reach
  *             the payload's depth and the packs, straps and GPS the top.
  *             src/render/combatcraft.js draws them.
+ *   striker2500 the Striker of docs/COMBAT-DRONES.md section 7, which
+ *             src/render/strikercraft.js draws for the war and the shell
+ *             draws about its CG (src/render/craft.js): its nose, 1.546 m
+ *             ahead of the CG, reaches further than its 2.5 m span, so the
+ *             width this file measures is twice the nose's reach, 3092 mm,
+ *             and the reach is a fin's top trailing corner, 1.251 m out
+ *             and 0.954 m aft, 1573 mm; the span is held by
+ *             scripts/combat-models-check.js.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -185,6 +193,7 @@ const REAL = {
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
   '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
   '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
+  striker2500: { spanMm: 3092.0, sweepMm: 3146.6, tolMm: 6 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
@@ -394,7 +403,15 @@ async function main() {
       near(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach * k, real.tolMm * k);
       near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp * k, real.tolMm * k);
     }
-    if (af.fixedWing) {
+    if (af.id === 'striker2500') {
+      /* The Striker parks on its belly skid, 251 mm under the CG, which is
+       * the plant's hull; the 30 in pusher's lower blade, drawn as its
+       * disc, hangs 0.38 m under the hub, 108 mm lower. It is a crash part
+       * (src/native/crash_parts.h) and a landing with it turning breaks it,
+       * as docs/COMBAT-DRONES.md section 7 says. Pinned at what it is. */
+      pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 108.0,
+        'the pusher\'s lower blade hangs under the skid it parks on');
+    } else if (af.fixedWing) {
       /* The Skyhunter's belly skid and the Bramor's belly are the lowest
        * drawn things, and each hull reaches about as far. */
       near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
