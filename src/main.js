@@ -76,7 +76,13 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { AvionicsHud } from './ui/avionicshud.js';
+import { createFlightTelemetry } from './avionics/telemetry.js';
+import { createSensorManager } from './avionics/sensors.js';
+import { createPerception } from './avionics/perception.js';
+import { createTrackManager } from './avionics/tracks.js';
+import { hudStateOf } from './avionics/hudstate.js';
 import {
   adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
@@ -682,6 +688,36 @@ export async function boot({
   partsGearOf = (id) => (PROPS[id] ? partsGear(id, partsEntry(ui.settings.parts, id)) : null);
   /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
   const fpvOsd = new FpvOsd(uiRoot);
+  /*
+   * THE AVIONICS HUD (docs/AVIONICS-HUD.md): five systems and the state
+   * machine, fed from the same frame as the OSD. Only FlightTelemetry runs
+   * on every flight frame; the sensor, perception and tracks run while the
+   * Avionics HUD is on screen. avxTruth is the war's attackers this frame,
+   * handed over by roomWarFrame and taken once. avxHud.ai is the pilot's
+   * AI switch (H).
+   */
+  const avionicsHud = new AvionicsHud(uiRoot);
+  const telemetry = createFlightTelemetry();
+  const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
+  const perception = createPerception({ seed: 0x51ED5EED });
+  const tracks = createTrackManager();
+  const avxHud = { state: 'MANUAL', reasons: [], ai: false };
+  const avxOwn = { p: [0, 0, 0], v: [0, 0, 0], camera: shell.camera };
+  const avxVel = new THREE.Vector3();
+  const AVX_NO_TRUTH = [];
+  let avxTruth = AVX_NO_TRUTH;
+  let avxFed = false;
+  let avxLastT = -1;
+  window.__avionics = {
+    deny: (what, on) => telemetry.deny(what, on),
+    ai: (on) => { avxHud.ai = Boolean(on); },
+    state: () => ({
+      hud: { ...avxHud, reasons: [...avxHud.reasons] },
+      tel: JSON.parse(JSON.stringify(telemetry.state)),
+      sensor: { ...sensors.state },
+      tracks: tracks.snapshot.tracks.length,
+    }),
+  };
   /* Where the other pilots in a room are, when the picture does not say.
    * See src/ui/peermarks.js; a game mode marks its special pilot with
    * peerMarks.setRole(seat, 'ace'). */
@@ -3159,6 +3195,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
@@ -11622,6 +11659,22 @@ export async function boot({
       finishClipCrash();
       return;
     }
+    /* The Avionics HUD's own keys, while it is on screen
+     * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
+     * mode, K the zoom. */
+    if (ui.screen === 'flight' && avionicsHud.on && (code === 'KeyH' || code === 'KeyJ' || code === 'KeyK')) {
+      if (code === 'KeyH') {
+        avxHud.ai = !avxHud.ai;
+        notice = { text: str(avxHud.ai ? 'avionics.hud.notice_ai_on' : 'avionics.hud.notice_ai_off'), untilMs: performance.now() + 1600 };
+      } else if (code === 'KeyJ') {
+        sensors.cycleMode();
+        notice = { text: str('avionics.hud.notice_cam', { mode: str(`avionics.hud.cam_mode.${sensors.state.mode}`) }), untilMs: performance.now() + 1600 };
+      } else {
+        sensors.cycleZoom();
+        notice = { text: str('avionics.hud.notice_zoom', { z: sensors.state.zoom }), untilMs: performance.now() + 1600 };
+      }
+      return;
+    }
     if (code === 'KeyL' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
       if (!wrecked) {
         throwWing();
@@ -12860,6 +12913,41 @@ export async function boot({
    * `let` here would be in its temporal dead zone for every line of boot
    * above this one and reset() is reachable from several of them.
    */
+  /*
+   * The Avionics HUD's systems in their order (docs/AVIONICS-HUD.md): the
+   * sensor, perception over the war's attackers, the tracks, the state,
+   * then the renderer. After the render, so the camera is where this
+   * frame drew from. Nothing here reaches the plant.
+   */
+  function avionicsFrame(want, paused, nowWall, dtS) {
+    const truth = avxTruth;
+    avxTruth = AVX_NO_TRUTH;
+    if (!want) {
+      avionicsHud.tick(false, paused, nowWall, null);
+      return;
+    }
+    const tS = telemetry.state.tS;
+    if (tS < avxLastT) {
+      tracks.reset();
+    }
+    avxLastT = tS;
+    if (!paused) {
+      sensors.update(tS, dtS);
+      perception.update(tS, sensors.state, truth, avxOwn);
+      tracks.update(tS, perception.detections, avxOwn);
+    }
+    hudStateOf(telemetry.state, sensors.state, tracks.snapshot, avxHud.ai, avxHud);
+    avionicsHud.tick(true, paused, nowWall, {
+      tel: telemetry.state,
+      sensor: sensors.state,
+      sensors,
+      snap: tracks.snapshot,
+      hud: avxHud,
+      camera: shell.camera,
+      radar: roomWar.live() && mode === 'flight',
+    });
+  }
+
   function frame(nowWall) {
     requestAnimationFrame(frame);
     try {
@@ -14735,7 +14823,7 @@ export async function boot({
       };
       ui.setOsd(osdView);
       const powerNow = readPower();
-      fpvOsd.feed(osdView, {
+      const osdCtx = {
         st,
         sim,
         cells: runCells,
@@ -14756,7 +14844,20 @@ export async function boot({
         banner: ui.bannerText,
         /* The crash cam's REPLAY prompt, its key while it is up. */
         replayKey: crashCam ? crashCam.promptKey() : null,
-      });
+      };
+      fpvOsd.feed(osdView, osdCtx);
+      {
+        const feed = fpvFail.level(nowWall);
+        telemetry.feed(osdView, osdCtx, fpvOsd, { videoSnow: feed.snow, cameraLost: fpvFail.deadSince() >= 0, load: perception.load });
+        simPosToThree(st[4], st[5], st[6], avxVel);
+        avxOwn.p[0] = shell.quad.position.x;
+        avxOwn.p[1] = shell.quad.position.y;
+        avxOwn.p[2] = shell.quad.position.z;
+        avxOwn.v[0] = avxVel.x;
+        avxOwn.v[1] = avxVel.y;
+        avxOwn.v[2] = avxVel.z;
+        avxFed = true;
+      }
       progressTick(powerNow);
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
@@ -14784,9 +14885,11 @@ export async function boot({
     /* The OSD belongs to the FPV lens: up in flight and dimmed in pause
      * while that lens is the camera, and never over chase, line of sight,
      * the intro orbit or a menu. */
-    fpvOsd.tick(ui.settings.hudStyle === 'osd' && fpvLensLive && !camOverride
-      && (ui.screen === 'flight' || ui.screen === 'paused'), ui.screen === 'paused', nowWall);
-    peerMarks.begin(shell.camera, ui.settings.peerMarks, fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
+    const hudStyle = hudStyleFor(ui.settings, runAirframe);
+    const fpvHudUp = fpvLensLive && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused');
+    fpvOsd.tick(hudStyle === 'osd' && fpvHudUp, ui.screen === 'paused', nowWall);
+    avionicsFrame(hudStyle === 'avionics' && fpvHudUp && avxFed, ui.screen === 'paused', nowWall, dt / 1000);
+    peerMarks.begin(shell.camera, ui.settings.peerMarks, avionicsHud.on ? avionicsHud : fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
     for (const peer of roomPeers.values()) {
       if (peer.rig && peer.rig.group.visible) {
         const at = peer.rig.group.position;

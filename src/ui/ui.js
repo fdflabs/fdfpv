@@ -384,8 +384,26 @@ export const RENDER_SCALES = [100, 85, 70, 55];
 export const FPS_CAPS = [0, 90, 60, 30];
 /* What the FPV camera view draws over the picture: 'osd' is the flight
  * controller's on screen display (src/ui/fpvhud.js), 'game' the game's own
- * readout. Chase and line of sight always draw the game's. */
-export const HUD_STYLES = ['osd', 'game'];
+ * readout, 'avionics' the sensor and tracking display
+ * (src/ui/avionicshud.js, docs/AVIONICS-HUD.md). Chase and line of sight
+ * always draw the game's. */
+export const HUD_STYLES = ['osd', 'game', 'avionics'];
+
+/*
+ * The HUD an airframe flies with: the pilot's choice for it if there is
+ * one (settings.hudStyleBy, written by the menu, so changing one aircraft
+ * leaves the others alone), else Avionics for a combat airframe (one with
+ * a `combat` descriptor; the owner, 2026-10-01: "make this be the default
+ * for war drones, but not regular drones"), else the old global hudStyle,
+ * which keeps every racing pilot's HUD where they left it.
+ */
+export function hudStyleFor(s, airframeId) {
+  const own = s.hudStyleBy && s.hudStyleBy[airframeId];
+  if (own) {
+    return own;
+  }
+  return airframeById(airframeId).combat ? 'avionics' : s.hudStyle;
+}
 /* Expert is the full model and the default; arcade switches the
  * imperfection terms off in the module via sim_set_flight_style. */
 export const FLIGHT_STYLES = ['expert', 'arcade'];
@@ -758,6 +776,9 @@ const DEFAULTS = {
    * A quad flies FPV only. */
   wingView: 'fpv',
   hudStyle: 'osd',
+  /* Each airframe's HUD style where the pilot chose one: { id: style }.
+   * See hudStyleFor. */
+  hudStyleBy: {},
   /* The marks that point out the other pilots in a room when their
    * aircraft is small, hidden or off screen (src/ui/peermarks.js): 'on',
    * 'minimal' (the shapes without the names and ranges) or 'off'. */
@@ -1067,6 +1088,8 @@ export function loadSettings() {
   /* Power choices name an option and a pack each plane still offers, or
    * are dropped back to stock (configs/power.js). */
   s.power = normalizePower(s.power);
+  s.hudStyleBy = Object.fromEntries(Object.entries(s.hudStyleBy && typeof s.hudStyleBy === 'object' ? s.hudStyleBy : {})
+    .filter(([id, style]) => AIRFRAME_IDS.includes(id) && HUD_STYLES.includes(style)));
   s.parts = normaliseParts(s.parts);
   s.combat = normaliseCombat(s.combat, airframeById);
   s.floats = normaliseFloats(s.floats, s.airframe);
@@ -6902,9 +6925,9 @@ export class Ui {
           str('ui.hud_style'),
           str('ui.hud_style_note'),
           HUD_STYLES,
-          s.hudStyle,
-          (id) => (id === 'osd' ? str('ui.hud_osd') : str('ui.hud_game')),
-          (id) => { s.hudStyle = id; },
+          hudStyleFor(s, s.airframe),
+          (id) => str(`ui.hud_${id}`),
+          (id) => { s.hudStyleBy = { ...s.hudStyleBy, [s.airframe]: id }; },
         ),
         choice(
           str('ui.peer_marks'),
