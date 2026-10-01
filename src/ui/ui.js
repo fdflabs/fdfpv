@@ -4046,6 +4046,11 @@ export class Ui {
     const friends = el('div', 'screen screen-page screen-friends');
     friends.append(el('h2', null, str('friends.title')));
     friends.append(el('p', 'rates-lede', str('friends.lede')));
+    /* The war's lobby over the rows, in a room made for the war between
+     * its matches (setWarLobby). */
+    this.warLobbyEl = el('div', 'war-lobby');
+    this.warLobbyEl.hidden = true;
+    friends.append(this.warLobbyEl);
     const friendsBlock = wrapMenu();
     this.friendsMenu = friendsBlock.menu;
     this.friendsMenu.classList.add('menu-scroll');
@@ -4646,6 +4651,65 @@ export class Ui {
    * there (src/main.js seats it on welcome), so changing it inside one
    * would only put this pilot somewhere nobody else is.
    */
+  /*
+   * THE WAR'S LOBBY over the room screen's rows: LOBBY and the mission,
+   * when it starts in large, and the pilots, each ready or not. `v` is
+   * src/main.js warLobbyView(), or null for no lobby. Drawn again only when
+   * what it says changes.
+   */
+  setWarLobby(v) {
+    const on = Boolean(v);
+    if (on !== Boolean(this.warLobbyOn)) {
+      this.warLobbyOn = on;
+      this.warLobbyEl.hidden = !on;
+      this.screens.friends.classList.toggle('war-lobby-on', on);
+      this.warLobbyKey = null;
+      if (this.screen === 'friends') {
+        this.renderMenu();
+        if (on) {
+          this.setCursor(this.firstStop(this.items()));
+        }
+      }
+    }
+    if (!on) {
+      return;
+    }
+    const status = v.countdown != null
+      ? str('lobby.starting', { n: v.countdown })
+      : v.deadline != null
+        ? str('lobby.deadline', { t: `${Math.floor(v.deadline / 60)}:${String(v.deadline % 60).padStart(2, '0')}` })
+        : str('lobby.waiting');
+    const key = JSON.stringify([v.mission, status, v.pilots, v.last]);
+    if (key === this.warLobbyKey) {
+      return;
+    }
+    this.warLobbyKey = key;
+    const box = this.warLobbyEl;
+    box.textContent = '';
+    const head = el('div', 'war-lobby-head');
+    head.append(el('div', 'war-lobby-title', str('lobby.title')), el('div', 'war-lobby-mission', v.mission));
+    box.append(head);
+    box.append(el('div', `war-lobby-status${v.countdown != null ? ' go' : ''}`, status));
+    if (v.last) {
+      box.append(el('div', 'war-lobby-last', str(`lobby.last_${v.last.state}`, {
+        stars: v.last.stars ?? 0, kills: v.last.kills,
+      })));
+    }
+    const list = el('div', 'war-lobby-pilots');
+    for (const p of v.pilots) {
+      const row = el('div', `war-lobby-pilot${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}`);
+      const who = el('div', 'war-lobby-who');
+      who.append(el('span', 'war-lobby-name', p.name));
+      if (p.host) {
+        who.append(el('span', 'war-lobby-host', str('lobby.host')));
+      }
+      who.append(el('span', 'war-lobby-craft', p.aircraft));
+      row.append(who, el('span', 'war-lobby-flag', str(p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting')));
+      list.append(row);
+    }
+    box.append(list);
+  }
+
   roomSeatRows(inRoom) {
     const s = this.settings;
     const world = seatedFreestyleMap(s);
@@ -6391,6 +6455,12 @@ export class Ui {
        * (src/main.js friendsRows), and the cursor opens on it; Fly stays on
        * top but gives the screen's one primary up to it. */
       const started = rows.some((it) => it.primary);
+      /* The war's lobby is no free flight: no Fly, no world, the aircraft
+       * the war is flown in, and its own Leave in the shell's rows. */
+      if (this.warLobbyOn) {
+        const leave = rows.filter((it) => it.action === 'friends-leave');
+        return [...rows.filter((it) => it.action !== 'friends-leave'), ...(seat ? this.roomSeatRows(inRoom).slice(0, 1) : []), ...leave];
+      }
       return [
         ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: !started, note: str('friends.fly_note') }] : []),
         ...rows,

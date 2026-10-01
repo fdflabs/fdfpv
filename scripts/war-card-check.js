@@ -197,13 +197,14 @@ const LANDED = `(() => {
     here: here.action || here.label || null, primary: Boolean(here.primary),
     heading: (items.find((it) => it.section) || {}).label || null,
     war: items.some((it) => it.action === 'friends-war-start'),
+    lobby: (document.querySelector('.war-lobby-title') || {}).textContent || null,
   };
 })()`;
 
 function landedWell(v, pub = false) {
   return v.phase === 'open' && /^[A-Z0-9]{6}$/.test(v.code || '') && v.public === pub && v.host && v.screen === 'friends'
-    && v.map === 'itaipu' && v.game === 'war' && v.consent && v.war && v.here === 'friends-war-start' && v.primary
-    && /Defend Itaipu/.test(v.heading || '');
+    && v.map === 'itaipu' && v.game === 'war' && v.consent && v.war && v.here === 'friends-lobby-ready' && v.primary
+    && v.lobby === 'LOBBY';
 }
 
 async function landed(page) {
