@@ -2796,7 +2796,7 @@ export async function boot({
    */
   async function warEnter(room = {}, card = null) {
     if (!(await warConsented())) {
-      return false;
+      return null;
     }
     const code = await roomLinkState.create(WAR_MAP, false, { name: room.name ?? null });
     if (ui.settings.map !== WAR_MAP) {
@@ -2809,12 +2809,12 @@ export async function boot({
       ui.show('friends');
     }
     roomLinkState.join(code);
-    return true;
+    return code;
   }
 
   /* The card's press. A room the server would not make is said, with a
    * second try on offer, and Back leaves the pilot on the title. Resolves
-   * whether a room was made. */
+   * the code of the room it made, or null. */
   ui.onWarCard = async (card) => {
     for (;;) {
       try {
@@ -2824,7 +2824,7 @@ export async function boot({
           title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
         });
         if (!again) {
-          return false;
+          return null;
         }
       }
     }

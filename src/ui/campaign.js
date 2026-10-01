@@ -80,8 +80,9 @@ const skey = (id) => id.replace(/-/g, '_');
 /*
  * ui: the shell's UI (ui.js), whose settings keep the campaign. inBuild(id): whether
  * this build has that mission. enterWarRoom(): the Defend Itaipu card's
- * way in, resolving whether it made a room. send(obj): the room's socket.
- * view(): the war view (roomWar.view()). room(): { phase, code, seat }.
+ * way in, resolving the code of the room it made, or null. send(obj): the
+ * room's socket. view(): the war view (roomWar.view()). room(): { phase,
+ * code, seat }.
  */
 export function createCampaignScreen({
   ui, inBuild, enterWarRoom, send, view, room, craftWarhead = null,
@@ -104,8 +105,8 @@ export function createCampaignScreen({
     return w ? { ...l, warhead: w } : l;
   };
   let page = null;
-  /* The mission Play chose: { mission, from (the room code at Play),
-   * code (the room made for it, once open) }, or null. */
+  /* The mission Play chose: { mission, code (the room made for it) },
+   * or null. */
   let pending = null;
   /* `${code}:${war id}` -> whether its result is already accounted for. */
   const watched = new Map();
@@ -295,12 +296,13 @@ export function createCampaignScreen({
   async function play1(i) {
     const m = ACT1[i];
     close();
-    pending = { mission: m.id, from: room().code, code: null };
-    /* Back on the consent, or a room the server would not make: no room
-     * will ever be this mission's, so a later one must not adopt it. */
-    if (!(await enterWarRoom())) {
-      pending = null;
-    }
+    pending = null;
+    /* The mission is the room's that was made for it, by its code: never
+     * a room that opens later, which is how a Play declined at the
+     * consent, or one whose room never opened, used to start in a room
+     * made by hand. */
+    const code = await enterWarRoom();
+    pending = code ? { mission: m.id, code } : null;
   }
 
   /* The start row's press, in the room Play made: that mission, this
@@ -309,7 +311,7 @@ export function createCampaignScreen({
   function startSelected() {
     const r = room();
     bind(r);
-    if (!pending || !pending.code || r.code !== pending.code) {
+    if (!pending || r.code !== pending.code) {
       return false;
     }
     send(startMessage(pending.mission, loadoutNow()));
@@ -349,15 +351,10 @@ export function createCampaignScreen({
     commit((s) => applyResult(s, v.mission, res));
   }
 
-  /* Ties Play's mission to the room it made, the first time that room is
-   * open, and forgets it once the pilot is in another. */
+  /* Forgets Play's mission once the pilot is in another room than the
+   * one made for it. */
   function bind(r) {
-    if (!pending) {
-      return;
-    }
-    if (!pending.code && r.phase === 'open' && r.code && r.code !== pending.from) {
-      pending.code = r.code;
-    } else if (pending.code && r.code !== pending.code) {
+    if (pending && r.code !== pending.code) {
       pending = null;
     }
   }

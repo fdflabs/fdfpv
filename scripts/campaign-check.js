@@ -22,6 +22,8 @@
  * on a profile that has not consented, Back on the consent: the mission
  * is dropped, a private Itaipu room made by hand after it starts mission
  * 1, and its start row asks the consent first (docs/FLOW-AUDIT.md D6).
+ * Play mission 2 whose room is held before its welcome, then a room made
+ * by hand: that room is not the mission's either.
  *
  * No page error. Pictures in outdir, not in the repository.
  *
@@ -179,12 +181,15 @@ const SCREEN = `(() => {
   };
 })()`;
 
-/* Every text message the page puts on a socket, from before the app runs. */
+/* Every text message the page puts on a socket, from before the app runs.
+ * While window.__holdHello is set, a hello is kept back, so the room it
+ * was for never opens. */
 const SOCKET_TAP = `(() => {
   window.__sent = [];
   const send = WebSocket.prototype.send;
   WebSocket.prototype.send = function (data) {
     if (typeof data === 'string') { try { window.__sent.push(JSON.parse(data)); } catch (e) { window.__sent.push(data); } }
+    if (window.__holdHello && typeof data === 'string' && data.includes('"type":"hello"')) { return undefined; }
     return send.call(this, data);
   };
 })();`;
@@ -417,6 +422,24 @@ try {
     return { mission: s && s.mission, state: window.__war().view.state, consent: window.__ui.settings.warConsent };
   })()`);
   check('Continue on it starts mission 1', given.mission === 'itaipu-1' && given.state === 'briefing' && given.consent === true, JSON.stringify(given));
+
+  /* A PLAY WHOSE ROOM NEVER OPENS: the room made for mission 2 is held
+   * before its welcome, and the pilot makes another by hand. That one is
+   * not the mission's. */
+  const heldFrom = await page.evaluate('window.__rooms().code');
+  await page.evaluate("(() => { window.__holdHello = true; window.__campaign.open(); return true; })()");
+  await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
+  await click(page, '[data-mission="itaipu-2"] .campaign-play');
+  await page.until(`window.__rooms().code && window.__rooms().code !== ${JSON.stringify(heldFrom)} && window.__rooms().phase === 'connecting'`, 30000).catch(() => {});
+  await page.sleep(1000);
+  const held = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, pending: window.__campaign.pending() })");
+  check('Play mission 2: its room made, held before the welcome', held.phase === 'connecting' && held.code !== heldFrom, JSON.stringify(held));
+  const byHand = await page.evaluate("(async () => { window.__holdHello = false; const c = await window.__roomCreate({ map: 'itaipu' }); window.__ui.show('friends'); return c; })()");
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(byHand)}
+    && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
+  await page.sleep(600);
+  const other = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, pending: window.__campaign.pending() })");
+  check('a room made by hand after it: Start mission 1, the mission not adopted', other.row === 'Start mission 1' && other.pending === null, JSON.stringify(other));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
