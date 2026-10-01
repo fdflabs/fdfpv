@@ -12992,7 +12992,7 @@ export class Ui {
     this.act(this.returnTo === 'paused' ? 'paused' : 'title');
   }
 
-  act(action, picked = null) {
+  act(action, picked = null, { keepWorld = false } = {}) {
     if (action === 'update-reload') {
       window.location.reload();
       return;
@@ -13252,7 +13252,10 @@ export class Ui {
        * other world, for this visit.
        */
       const worlds = MAPS.filter((x) => x.mode === 'freestyle');
-      const home = way.home ? worlds.find((x) => x.id === way.home) : null;
+      /* keepWorld: the rooms panel's way in, which goes on to a room
+       * whose welcome seats that room's world, so seating the card's first
+       * would build a world only to swap it away. */
+      const home = way.home && !keepWorld ? worlds.find((x) => x.id === way.home) : null;
       const seated = seatedFreestyleMap(this.settings);
       if (home ? !seated || seated.id !== home.id : !seated) {
         /*
@@ -13332,7 +13335,7 @@ export class Ui {
     /* The gate's rooms panel: the Fly with friends card's way in, then
      * the room, the lobby or Make a room. */
     if (typeof action === 'string' && action.startsWith('lobby:')) {
-      this.act(WAYS.find((w) => w.id === 'friends').action);
+      this.act(WAYS.find((w) => w.id === 'friends').action, null, { keepWorld: true });
       this.act(action.slice('lobby:'.length));
       return;
     }
