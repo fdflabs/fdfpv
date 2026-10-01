@@ -266,6 +266,10 @@ try {
   const LONG_LISTED = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
     await resize(page, w, h);
+    /* The panel follows the window on its media query's change event, a
+     * frame or more after the resize. */
+    await page.until(`${LONG_LISTED}.length === ${row ? 3 : 2}`, 15000).catch(() => {});
+    await page.sleep(300);
     const v = await page.evaluate(LAYOUT);
     const tops = v.cards.map((x) => x.box[1]);
     const shape = row

@@ -448,14 +448,25 @@ try {
    * of them (src/ui/roombrowser.js TITLE_ROOMS_UPRIGHT). A minute first:
    * the rooms server makes six rooms a minute for an address. */
   await f.sleep(61000);
+  /* E leaves Open Club, which its pilot made the busiest room and so the
+   * panel's first. */
+  await e.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await e.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
   const longNames = [LONG, 'Brave Capybara 17, Defend Itaipu', 'Happy Eagle 420, Defend Itaipu!!'];
   for (const name of longNames.slice(1)) {
     await fetch(`${rooms}/v2/create`, {
       method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name }),
     });
   }
-  await f.tap('Escape');
-  await f.tap('Escape');
+  /* Back to the gate a screen at a time (Make a room, Fly with friends,
+   * the title): two taps sent together lost the second to the first's
+   * screen change. */
+  for (let i = 0; i < 4 && !(await f.evaluate('window.__ui.onGate()')); i += 1) {
+    const from = await f.evaluate('window.__ui.screen');
+    await f.tap('Escape');
+    await f.until(`window.__ui.screen !== ${JSON.stringify(from)}`, 5000).catch(() => {});
+    await f.sleep(300);
+  }
   await f.until('window.__ui.onGate()', 10000).catch(() => {});
   const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
   for (const [w, h, upright] of [[390, 844, true], [360, 640, true], [844, 390, false], [1280, 720, false]]) {
