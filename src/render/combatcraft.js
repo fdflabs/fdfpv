@@ -144,7 +144,7 @@ export const COMBAT_FRAMES = {
     antennas: 'twin',
     tape: false,
     armT: 0.005,
-    cg: [0.0017, 0, 0.0248],
+    cg: [0.0016, 0, 0.0248],
     belly: -0.005,
     plates: [0.16, 0.050, 0.03, 0.012],
     propZ: 0.037,
@@ -153,11 +153,11 @@ export const COMBAT_FRAMES = {
     camera: [0.085, 0, 0.012],
     hullDown: 0.075,
     payloads: {
-      proximity: { d: 0.045, len: 0.16, at: [0.0183, 0, -0.0523] },
+      proximity: { d: 0.045, len: 0.16, at: [0.0184, 0, -0.0523] },
     },
     accessories: {
-      lrantenna: [-0.0767, 0, 0.0602],
-      gps: [-0.0667, 0, 0.0532],
+      lrantenna: [-0.0766, 0, 0.0602],
+      gps: [-0.0666, 0, 0.0532],
     },
   },
 };

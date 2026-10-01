@@ -1672,34 +1672,38 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
 
 /* ---------------------------------------------------------------------
  * SIM_AIRFRAME_INTERCEPTOR: the fast chaser, docs/COMBAT-DRONES.md. A
- * stretched X 7 inch speed build on 2807 1500 kV motors, 7 x 6 two blades
- * and one 6S 1800 mAh LiPo, the owner's reference photograph of
- * 2026-10-01. scripts/combat-derive.js prints every number from its parts
- * list, solved on the same model as the 7 inch's, and
- * scripts/combat-gates.js holds it to bands from outside this repository.
+ * stretched X 7 inch speed build on T-Motor Velox V2808 1300 kV motors,
+ * APC 7 x 9E two blades and one Tattu 6S 1800 mAh LiPo, the owner's
+ * reference photograph of 2026-10-01, every part a published one since
+ * the same day: scripts/combat-derive.js prints every number from its
+ * parts list, the prop from APC's own performance file and the motor's
+ * resistance from T-Motor's own rows, solved on the same model as the 7
+ * inch's, and scripts/combat-gates.js holds it to bands from outside this
+ * repository.
  *
  * WHAT MAKES IT FAST is three things, and none of them is a speed knob.
- * The pitch: a 6 inch pitch two blade's zero thrust speed (k_inflow, w
- * times the pitch over 2 pi) is 71 percent above the 7 inch's 3.5 inch
- * three blade at the same rotor speed, so thrust is still there at a
- * speed where the 7 inch's props have unloaded. Its figure of merit,
- * 0.44, is the price: a high pitch blade is part stalled in a hover. The pack: a LiPo of 4.5
- * mOhm a cell holds 3.4 V a cell under a full punch where the 7 inch's
- * Li-ion falls to 2.9, so the motors get the volts. And the drag: one
- * slim pack and a narrow body, nothing slung, 0.014 of frontal area
- * against the 7 inch's 0.019.
+ * The pitch: a 9 inch pitch two blade's zero thrust speed (k_inflow, w
+ * times the pitch over 2 pi) is two and a half times the 7 inch's 3.5
+ * inch three blade's at the same rotor speed, so thrust is still there at
+ * a speed where the 7 inch's props have unloaded. Its figure of merit,
+ * APC's 0.4967, is the price: a high pitch blade is part stalled in a
+ * hover. The pack: a LiPo of 4.5 mOhm a cell holds 3.5 V a cell under a
+ * full punch where the 7 inch's Li-ion falls to 2.9, so the motors get
+ * the volts. And the drag: one slim pack and a narrow body, nothing
+ * slung, 0.014 of frontal area against the 7 inch's 0.019.
  *
- * WHAT IT COSTS is the pack (a quarter of the 7 inch's charge at four
- * times the draw at full throttle) and the handling: an Ixx of 0.0032,
+ * WHAT IT COSTS is the pack (under half the 7 inch's charge at more than
+ * twice the draw at full throttle) and the handling: an Ixx of 0.0036,
  * the stretch putting the motors closer across than fore and aft, so it
- * rolls faster than it pitches, on rotors of 27 ms.
+ * rolls faster than it pitches, on rotors of 44 ms: a 9 inch pitch on a
+ * 0.131 ohm motor spools like the 7 inch's, not like a five inch's.
  *
  * STRETCHED, so arm_x and arm_y differ: 120 mm fore and aft, 100 mm
  * across. Betaflight's QUADX mixer is the same as on a square frame, as
  * on a real one; the plant's own moment arms give the roll and pitch
  * authorities their difference.
  *
- * DRAG. Frontal: four 2807 bells (35 by 25 mm), the pack end on (37 by
+ * DRAG. Frontal: four 2808 bells (35 by 25 mm), the pack end on (37 by
  * 42), the stack and plates (50 by 30), the camera's nose (30 by 30) and
  * the arms edge on, 0.0117 m^2 at a bluff body Cd near 1.2. Side: the
  * pack's long face adds 0.0029 m^2 over its end.
@@ -1726,18 +1730,18 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
  * ------------------------------------------------------------------- */
 [SIM_AIRFRAME_INTERCEPTOR] = {
   .kind = PLANT_KIND_QUAD,
-  .mass_kg = 0.849,
-  .inertia = { 0.003274, 0.005374, 0.007966 },
+  .mass_kg = 0.880,
+  .inertia = { 0.003559, 0.005785, 0.008652 },
   .gravity = 9.80665,
   .arm_x = 0.120,
   .arm_y = 0.100,
-  .kt = 3.416e-6,   /* C_T 0.11, 2.2 kgf at 24,000 rpm on a 7x6x2 */
-  .kq = 5.817e-8,   /* figure of merit 0.44 */
-  .ke = 0.00732113, /* loaded 1304 kV on a 1500 kV plate */
-  .r_motor = 0.065,
-  .j_rotor = 2.2e-5,
+  .kt = 4.701e-6,   /* APC 7x9E, 20.622 N at 20,000 rpm, PER3_7x9E.dat */
+  .kq = 8.321e-8,   /* APC 7x9E, 0.365 N m there: figure of merit 0.4967 */
+  .ke = 0.00808,    /* loaded 1182 kV on the V2808's 1300 kV plate */
+  .r_motor = 0.131,  /* T-Motor's V2808 1300 kV rows, scripts/combat-derive.js */
+  .j_rotor = 2.7e-5,
   .cells = 6.0,
-  .r_cell = 0.0045, /* 6S 1800 120C LiPo, 3 mOhm a cell, leads and XT60 1.5 */
+  .r_cell = 0.0045, /* Tattu 6S 1800 150C LiPo, 3 mOhm a cell, leads and XT60 1.5 */
   .cda_plan = 0.021,
   .cda_front = 0.014,
   .cda_side = 0.0175,
@@ -1748,8 +1752,8 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_rotor_drag = 0.43842,
   .k_rotor_axial = 0.20,
   .k_ground = 0.0,
-  .k_inflow = 0.024255, /* 6 inch pitch / 2 pi */
-  .torque_ind = 0.44,
+  .k_inflow = 0.036383, /* 9 inch pitch / 2 pi */
+  .torque_ind = 0.4967,
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1767,7 +1771,7 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .hull_hz_up = 0.057,
   .contact_patch_r = 0.080,
   .contact_arm_max = 0.27,
-  .vib_ref_w = 2379.0, /* full throttle on a fresh pack */
+  .vib_ref_w = 1954.8, /* full throttle on a fresh pack, 18,667 rpm */
   .camera_x = 0.095,
   .camera_y = 0.0,
   .camera_z = -0.013,
