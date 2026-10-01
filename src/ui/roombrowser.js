@@ -393,9 +393,23 @@ export function createRoomBrowser({
     /* A new room's draft starts over each visit to Make a room. */
     opened(screen) {
       landedOn = null;
-      if (screen === 'rooms' && list.rooms() === null) {
+      /* The title's rooms panel keeps the list polled, so it can be up to
+       * LIST_EVERY_MS old here: a room a friend made a moment ago would be
+       * missing, and the cursor would land on Make a room with nothing to
+       * move it once the room arrived. Ask now, and treat an empty list as
+       * one that has not arrived, until that answer is in: an answer that
+       * changes nothing moves nothing, and a room made minutes later must
+       * not pull the cursor off Make a room under a pilot's Enter. */
+      const asked = (screen === 'rooms' || screen === 'friends') ? list.refresh() : null;
+      if (screen === 'rooms' && !(list.rooms() || []).length) {
         const here = ui.items()[ui.cursor];
-        landedOn = here ? here.action : null;
+        const landed = here ? here.action : null;
+        landedOn = landed;
+        Promise.resolve(asked).then(() => {
+          if (landedOn === landed && list.rooms() !== null) {
+            landedOn = null;
+          }
+        });
       }
       if (screen === 'roomnew') {
         draft = fresh();

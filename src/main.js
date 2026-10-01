@@ -11574,7 +11574,10 @@ export async function boot({
    * mouseLockMine is set when a capture this file asked for arrives.
    */
   let mouseLockAsked = false;
-  let mouseLockPending = false;
+  /* Asks not yet answered. A count, not a flag: the resume's ask and a
+   * click's can both be in flight, and one refused before the other is
+   * granted must not leave the granted capture unowned. */
+  let mouseLockAsks = 0;
   let mouseLockMine = false;
   let mouseExitAsked = false;
   let mouseEscGuardUntil = 0;
@@ -11585,7 +11588,7 @@ export async function boot({
       && !(build && build.active && !build.racing);
   }
   function askMouseLock() {
-    mouseLockPending = true;
+    mouseLockAsks += 1;
     const req = shell.canvas.requestPointerLock();
     if (req && typeof req.catch === 'function') {
       req.catch(() => {});
@@ -11627,12 +11630,14 @@ export async function boot({
     askMouseLock();
   });
   document.addEventListener('pointerlockerror', () => {
-    mouseLockPending = false;
+    mouseLockAsks = Math.max(0, mouseLockAsks - 1);
   });
   document.addEventListener('pointerlockchange', () => {
     if (mouseLocked()) {
-      mouseLockMine = mouseLockPending;
-      mouseLockPending = false;
+      /* Two asks granted each fire a change; the second must not disown
+       * the capture the first one took. */
+      mouseLockMine = mouseLockMine || mouseLockAsks > 0;
+      mouseLockAsks = 0;
       return;
     }
     const mine = mouseLockMine;
@@ -11650,6 +11655,7 @@ export async function boot({
     enabled: input.mouseEnabled,
     live: input.mouseLive,
     locked: mouseLocked(),
+    mine: mouseLockMine,
     wants: mouseWantsLock(),
     centring: input.mouseCentring(),
     step: input.mouseThrottleStep(),
