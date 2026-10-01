@@ -42,14 +42,6 @@ export function thermalMode(mode) {
   return mode === 'ir_wh' || mode === 'ir_bh' || mode === 'fusion';
 }
 
-/*
- * The inset shows the other band: thermal white hot under a visible main
- * view (the owner's reference), the day camera under a thermal one.
- */
-function pipFor(mode) {
-  return thermalMode(mode) ? 'eo' : 'ir_wh';
-}
-
 /* Electronic stabilisation: the smoothed camera's time constant, seconds,
  * and the margin it crops so a turned picture never shows an edge. */
 const STAB_TAU = 0.12;
@@ -110,13 +102,16 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     pipMode: 'ir_wh',
     healthy: true,
     noise: 0,
-    /* Additions to section 5.1, docs/AVIONICS-SENSORS.md section 4. */
+    /* Additions to section 5.1, docs/AVIONICS-SENSORS.md sections 1 and 4.
+     * mainView: 'eo', the pilot's own picture, the map's look at 1x, with
+     * the sensor (mode, zoom, exposure, stabilisation) in the inset, as
+     * the owner's reference has it; or 'sensor', the sensor full screen. */
+    mainView: 'eo',
     timeOfDay: 'day',
     detect: {
       sensor: 'EO', pxPerRad: 0, light: 1, contrast: 0.75, quality: 0.7,
     },
   };
-  let pipOverride = null;
   let lastT = null;
   let snow = 0;
   let tracks = null;
@@ -199,23 +194,26 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
   }
 
   /*
-   * Where a world direction lands in a view of the camera drawn with this
-   * sensor's zoom, crop and stabilisation: { x, y } in that view's
-   * normalised device coordinates (-1..1, y up), or null behind it.
-   * `aspect` is the view's width over height (the camera's for the main
-   * view). The HUD boxes a track where the pilot sees it, not where the
-   * unzoomed, unstabilised camera would have.
+   * Where a world direction lands in a view of the camera: { x, y } in
+   * that view's normalised device coordinates (-1..1, y up), or null
+   * behind it. `view` 'main' is the screen's picture, 'pip' the inset's;
+   * a view that shows the sensor is drawn through its zoom, crop and
+   * smoothed camera, and a box belongs where the pilot sees the target,
+   * not where the raw camera would put it. `aspect` is the view's width
+   * over height (the camera's for the main view).
    */
-  function project(losW, out = { x: 0, y: 0 }, aspect = camera ? camera.aspect : 1) {
+  function project(losW, out = { x: 0, y: 0 }, aspect = camera ? camera.aspect : 1, which = 'main') {
     if (!camera) {
       return null;
     }
-    dir.set(losW[0], losW[1], losW[2]).applyQuaternion(qa.copy(state.stab && smoothValid ? smooth : camera.quaternion).invert());
+    const sensorView = which === 'pip' || state.mainView === 'sensor';
+    const q = sensorView && state.stab && smoothValid ? smooth : camera.quaternion;
+    dir.set(losW[0], losW[1], losW[2]).applyQuaternion(qa.copy(q).invert());
     if (dir.z >= -1e-6) {
       return null;
     }
     const th = Math.tan(((camera.fov * Math.PI) / 180) / 2);
-    const k = state.zoom * cropOf();
+    const k = sensorView ? state.zoom * cropOf() : 1;
     const sx = Math.min(1, aspect / camera.aspect);
     const sy = Math.min(1, camera.aspect / aspect);
     out.x = ((dir.x / -dir.z) * k) / (th * camera.aspect) / sx;
@@ -234,7 +232,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     }
     const vfov = ((camera.fov * Math.PI) / 180) / (state.zoom * cropOf());
     const box = (t, ghost) => {
-      if (!t.losW || !project(t.losW, at, PIP_W / PIP_H)) {
+      if (!t.losW || !project(t.losW, at, PIP_W / PIP_H, 'pip')) {
         return;
       }
       /* On pixel centres, so a one pixel line is one pixel of red. */
@@ -278,6 +276,9 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
   };
   const pipView = { ...mainView };
   const bothViews = [mainView, pipView];
+  const PLAIN_EO = {
+    mode: 'eo', zoom: 1, ev: 0, auto: true, stab: null, crop: 1,
+  };
 
   const api = {
     state,
@@ -295,7 +296,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
       lastT = tS;
       snow = video ? Math.min(1, Math.max(0, video.snow || 0)) : 0;
       state.healthy = !(video && video.lost);
-      state.pipMode = pipOverride || pipFor(state.mode);
+      state.pipMode = state.mode;
       if (camera) {
         state.fovRad = (camera.fov * Math.PI) / 180 / (state.zoom * cropOf());
       }
@@ -329,8 +330,13 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
         v.stab = stab;
         v.crop = cropOf();
       }
+      pipView.mode = state.mode;
       mainView.mode = state.mode;
-      pipView.mode = state.pipMode;
+      if (state.mainView === 'eo') {
+        /* The pilot's picture: exactly the map's own, the composer to
+         * the screen. */
+        Object.assign(mainView, PLAIN_EO);
+      }
       pipView.snow = state.healthy ? snow : 1;
       view.frame(s, camera, post, mainView, pipView, dt);
     },
@@ -340,16 +346,16 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
         throw new Error(`sensors: no mode ${mode}`);
       }
       state.mode = mode;
-      state.pipMode = pipOverride || pipFor(mode);
+      state.pipMode = mode;
       detect();
     },
-    /* The inset's mode, or null for the other band (pipFor). */
-    setPipMode(mode) {
-      if (mode !== null && !SENSOR_MODES.includes(mode)) {
-        throw new Error(`sensors: no mode ${mode}`);
+    /* 'eo' (the pilot's picture, the sensor in the inset) or 'sensor'
+     * (the sensor full screen). */
+    setMainView(v) {
+      if (v !== 'eo' && v !== 'sensor') {
+        throw new Error(`sensors: no main view ${v}`);
       }
-      pipOverride = mode;
-      state.pipMode = pipOverride || pipFor(state.mode);
+      state.mainView = v;
     },
     setZoom(z) {
       if (!ZOOM_LEVELS.includes(z)) {

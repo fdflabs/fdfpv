@@ -20,34 +20,34 @@ What the lead's stub interface already had is kept exactly: `SENSOR_MODES`
 `scene` a getter, `update(tS, dtS)`, `cycleMode`, `cycleZoom`, `toggleRec`,
 `state`, and `pip`, now a 320 by 200 canvas (the panel's 16:10).
 
-**Proposed, and needed for the main view to change at all:**
+**The sensor is the inset.** As in the owner's reference, the main view is
+the pilot's own picture (the map's look, 1x, untouched) and the camera
+block's inset is the sensor: `state.mode` (J), `state.zoom` (K), exposure
+and stabilisation all apply to it, and `state.pipMode` is `state.mode`, so
+the inset's label follows the mode. `state.mainView` (added) is `'eo'` by
+default; `setMainView('sensor')` puts the sensor full screen (not bound to
+a key yet; the check uses it to measure every mode at full resolution).
+`state.fovRad` is the sensor's field after zoom and crop.
 
-1. **`sensors.render(post)` in place of `view.post.render()`** in the frame
-   loop while the Avionics HUD is up (`src/main.js`, the one line that draws
-   the world). It draws the main view in `state.mode` and the inset. With
-   the HUD down the shell keeps calling `view.post.render()` and nothing
-   changes. Without this line neither the main view nor the inset is
-   drawn: both come from `render`, not from `update`.
-2. **`sensors.project(losW, out, aspect)`** for the HUD's boxes, the pitch
-   ladder and the lead cue: a world direction to the main view's NDC (`x`,
-   `y` in -1..1, y up, or null behind), through the zoom, the
-   stabilisation's crop and its smoothed camera. Projecting through the raw
-   camera puts a box beside its target at 2x and 4x and wherever the
-   stabilisation is holding the picture still. `state.fovRad` is already
-   the field after zoom and crop.
-3. `sensors.setTracks(tracks.snapshot)` once (the snapshot is written in
-   place): the inset boxes tracks itself, primary in corner brackets,
-   dashed under 0.6 confidence, dimmed when stale, ghosts for `lost`.
-4. `update(tS, dtS, video)` with fpvfail's `{ snow, lost }` when the shell
-   has it: `healthy` goes false with a lost picture and the inset turns to
-   snow; snow adds to `noise`.
-5. Optional: `sensors.setMotorTemp(c)` with the hottest of
-   `telemetry.state.motors[].tempC`, for the own craft's motor kind.
+The shell (src/main.js) now:
 
-Other setters for the keys the lead binds: `setMode(m)`, `setZoom(z)`,
-`setPipMode(m | null)` (null: the other band, below), `setExposure(ev |
-null)` (null is auto), `setStab(on)`. `stats()` says what the last frame
-drew (sources, scene draws, insets) and `dispose()` frees the targets.
+1. calls **`sensors.render(view.post)` in place of `view.post.render()`**
+   while the Avionics HUD is up. It draws the main view and the inset;
+   with the HUD down nothing changes;
+2. hands `sensors.setTracks(tracks.snapshot)` once (written in place): the
+   inset boxes tracks itself, primary in corner brackets, dashed under 0.6
+   confidence, dimmed when stale, ghosts for `lost`;
+3. calls `update(tS, dtS, video)` with fpvfail's `{ snow, lost }`: a lost
+   picture makes the sensor unhealthy and the inset snow;
+4. calls `setMotorTemp(c)` with the hottest of
+   `telemetry.state.motors[].tempC`, for the motor kind (section 3).
+
+`sensors.project(losW, out, aspect, view)` puts a world direction in a
+view's NDC (`x`, `y` in -1..1, y up, or null behind): `view` 'main' or
+'pip'; a view showing the sensor goes through its zoom, crop and smoothed
+camera. Other setters: `setMode(m)`, `setZoom(z)`, `setExposure(ev |
+null)` (null is auto), `setStab(on)`, `setMainView(v)`. `stats()` says
+what the last frame drew and `dispose()` frees the targets.
 
 ## 2. The picture
 
@@ -81,9 +81,7 @@ an 8x8 grid of the source's mipmaps) move toward each frame's at a 0.6 s
 time constant, so a fire blows the thermal picture's gain out and it comes
 back, as a real camera's does.
 
-**The inset** shows the other band: white hot under a visible main view
-(the owner's reference), EO under a thermal one (`setPipMode` overrides).
-It leaves the GPU through a pixel pack buffer and a fence and is put into
+**The inset** shows the sensor's mode. It leaves the GPU through a pixel pack buffer and a fence and is put into
 the canvas a frame or two later, so the main view never waits on it; a
 frame whose two readback slots are both in flight skips the inset.
 
@@ -188,18 +186,19 @@ the inset's too, and sensor.json with every number.
 
 Measured 2026-10-01 at 1600x900 on the shared desk GPU (other agents'
 browsers running, so medians are noisy; the least frame is the comparable
-number), inset on:
+number):
 
 | Frame | GPU least, day / night | Calls, at most |
 | --- | --- | --- |
-| plain EO, composer only, no inset | 2.8 / 4.2 ms | 174 / 178 |
-| eo + IR inset | 3.8 / 5.4 ms | 240 / 246 |
-| ir_wh + EO inset | 0.6 / 3.9 ms | 222 / 228 |
-| ir_bh + EO inset | 0.6 / 2.8 ms | 222 / 228 |
-| lowlight + IR inset | 2.7 / 4.2 ms | 222 / 228 |
-| fusion + EO inset | 5.3 / 4.9 ms | 240 / 246 |
-| contrast + IR inset | 1.9 / 3.9 ms | 222 / 228 |
+| plain EO, composer only, no inset (before the sensor) | 2.3 / 2.5 ms | 174 / 176 |
+| the HUD's default: EO main, white hot inset | 3.4 / 3.1 ms | 239 / 242 |
+| sensor full screen, eo (inset the same) | 3.5 / 3.3 ms | 176 / 178 |
+| ir_wh | 0.7 / 0.7 ms | 97 / 98 |
+| ir_bh | 0.7 / 0.7 ms | 97 / 98 |
+| lowlight | 2.2 / 1.8 ms | 158 / 160 |
+| fusion | 4.8 / 3.7 ms | 240 / 243 |
+| contrast | 1.7 / 2.8 ms | 158 / 160 |
 
-The inset's thermal draw adds about 60 calls: no shadow maps (the frame's
-first draw made them) and no water mirror. A thermal main view is cheaper
-than the photo chain it replaces.
+The inset's thermal draw adds about 65 calls and a millisecond: no shadow
+maps (the frame's first draw made them) and no water mirror. A full screen
+thermal view is cheaper than the photo chain it replaces.

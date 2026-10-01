@@ -133,6 +133,9 @@ const INSTALL = /* js */ `(async () => {
   const real = post.render;
   const chain = { render: real, composer: post.composer };
   const routed = () => s.render(chain);
+  /* The sensor full screen, so each mode's main view is measured; the
+   * inset shows the same mode. */
+  s.setMainView('sensor');
   post.render = routed;
   const { createAttackers } = await import('/src/render/attackers.js');
   const { createExplosions } = await import('/src/render/explosion.js');
@@ -390,6 +393,19 @@ for (const time of opts.time.split(',')) {
         sc.post.render = sc.routed;
       }
     })()`);
+    /* The reference's frame, the HUD's default: the pilot's own picture
+     * with the white hot inset beside it. */
+    const insetGpu = await page.evaluate(`(async () => {
+      const s = window.__sc.s;
+      s.setMainView('eo');
+      s.setMode('ir_wh');
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        return await window.__scGpu(${FRAMES});
+      } finally {
+        s.setMainView('sensor');
+      }
+    })()`);
 
     for (const mode of MODES) {
       for (const zoom of (mode === 'eo' || mode === 'ir_wh') ? [1, 4] : [1]) {
@@ -428,8 +444,7 @@ for (const time of opts.time.split(',')) {
         })()`);
       }
     }
-    /* The inset, in its two usual modes: white hot under EO (the
-     * reference's) and EO under white hot. */
+    /* The inset, in the reference's white hot and in EO. */
     for (const mode of ['eo', 'ir_wh']) {
       await page.evaluate(`(window.__sc.s.setMode('${mode}'), '')`);
       await page.sleep(800);
@@ -453,11 +468,14 @@ for (const time of opts.time.split(',')) {
       check(`${time} ${m} zoom`, b.detail < ZOOM_DROP * a.detail, `detail ${a.detail.toFixed(3)} at 1x, ${b.detail.toFixed(3)} at 4x`);
     }
     console.log(`  plain EO (composer alone, no inset)  gpu ${plainGpu.gpuMs.toFixed(2)} (least ${plainGpu.gpuLeastMs.toFixed(2)}) ms, ${plainGpu.calls} calls`);
+    check(`${time} EO with the white hot inset cost`, !insetGpu.disjoint && insetGpu.gpuLeastMs < GPU_BUDGET_MS && insetGpu.callsMax <= CALL_BUDGET,
+      `${insetGpu.gpuLeastMs.toFixed(2)} ms least (median ${insetGpu.gpuMs.toFixed(2)}), at most ${insetGpu.callsMax} calls, inset in ${(100 * insetGpu.insetRate).toFixed(0)}% of frames`);
     for (const mode of MODES) {
       const g = rows[`${time}-${mode}`].gpu;
       check(`${time} ${mode} cost`, !g.disjoint && g.gpuLeastMs < GPU_BUDGET_MS && g.callsMax <= CALL_BUDGET, `${g.gpuLeastMs.toFixed(2)} ms least, at most ${g.callsMax} calls`);
     }
     rows.plain = plainGpu;
+    rows.eoWithInset = insetGpu;
     const real = page.errors.filter((e) => !/net::ERR_|Failed to load resource/.test(e));
     for (const e of real) {
       check('console', false, e);
