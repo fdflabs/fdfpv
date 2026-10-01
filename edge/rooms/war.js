@@ -9,15 +9,19 @@
  *
  *   waves     a mission's waves are born on the room clock at their `at`
  *             after the go, announced BIRTH_LEAD_MS early so every screen
- *             draws them from their first millisecond; a scripted
+ *             draws them from their first millisecond, each sized by the
+ *             match's pilots here then (a pilot seated in a war is one
+ *             of its players at once, enlist()); a scripted
  *             attacker's pose is never sent (routes.js), a hunter's is
  *             (AGENTS, 0xA0), because the room steers it at the pilots
  *   warheads  a defender detonates when any part box of it comes within
- *             BLAST_M of an attacker's centre: src/game/midair.js within,
- *             tag's bubble, with the attacker as the Ace. It kills the
+ *             its fuze radius of an attacker's centre: src/game/midair.js
+ *             within, tag's bubble, with the attacker as the Ace. The
+ *             radius is the seat's airframe and warhead's
+ *             (src/share/war/fuze.js fuzeM, blastOf). It kills the
  *             attacker, the defender, and every other attacker within
- *             BLAST_M of that attacker's centre then. A hunter that
- *             reaches a pilot is the same test: both go.
+ *             the same radius of that attacker's centre then. A hunter
+ *             that reaches a pilot is the same test: both go.
  *   output    an attacker alive at the end of its route takes its
  *             target's mw once, when its seeded error left it within the
  *             target's hitR (its r where it has none): it arrives at its
@@ -72,8 +76,9 @@
  * rack and disarms the seat by the same rule, so saying it again, or the
  * wreck that follows, takes nothing more.
  *
- * What a client sends (JSON text): the host only, a private room only
- * (core.js hostCheck refuses 'private' in a public one, section 9),
+ * What a client sends (JSON text): the host only, and in a public room
+ * only one made for the war (core.js hostCheck refuses 'private' in any
+ * other public one, section 9),
  *
  *   { type: 'war', op: 'start', mission }   count down and fight it
  *   { type: 'war', op: 'start', mission, intro: true }
@@ -95,12 +100,16 @@
  *   { type: 'war', war }                      the view (view()), on every
  *                                             change and in each welcome
  *   { type: 'war', op: 'born', agents }       [{ id, kind, route, t0, k,
- *                                             n, err, target }], routes.js
- *                                             planAgent's input
+ *                                             n, err, target, wire? }],
+ *                                             routes.js planAgent's input;
+ *                                             wire the room ms it flies
+ *                                             into a power line
+ *                                             (src/share/war/wires.js)
  *   { type: 'war', op: 'dead', ids, at, by, why, p }
  *                                             why 'boom' (by the seat),
  *                                             'arrive' (by 0, with target
- *                                             and hit) or 'leave' (by 0);
+ *                                             and hit), 'leave' (by 0) or
+ *                                             'wire' (by 0, on a line);
  *                                             scouts: true on the boom that
  *                                             killed a scout wave's last
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
@@ -144,7 +153,9 @@ import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
 import { MISSIONS, waveSize, waveTarget } from '../../src/share/war/missions/index.js';
+import { wireStrike } from '../../src/share/war/wires.js';
 import { INTRO_MS } from '../../src/share/war/intro.js';
+import { fuzeM } from '../../src/share/war/fuze.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
@@ -178,8 +189,7 @@ export const RACK_MIN = 4;
 export const RACK_MAX = 6;
 export const SPEED_MUL_MAX = 1.15;
 export const WARHEADS = ['standard', 'wide', 'penetrator', 'emp'];
-/* The wide warhead's bubble, and the EMP's reach and stall. */
-export const WIDE_M = 9;
+/* The EMP's reach and stall. */
 export const EMP_M = 30;
 export const EMP_MS = 4000;
 export const LOADOUT = Object.freeze({ rack: RACK_MIN, warhead: 'standard', speedMul: 1 });
@@ -219,7 +229,8 @@ export function resultOf(mission, m) {
     { id: 'output', met: m.output >= need, need },
   ];
   const stars = won ? criteria.filter((c) => c.met).length : 0;
-  const kills = Object.values(m.players).reduce((sum, p) => sum + p.kills, 0);
+  /* The team's: a pilot whose seat another took is still on it. */
+  const kills = [...Object.values(m.players), ...Object.values(m.away ?? {}).map((a) => a.player)].reduce((sum, p) => sum + p.kills, 0);
   return {
     won, stars, credits: 100 * stars + 10 * kills, criteria,
   };
@@ -293,17 +304,17 @@ function chord(a, b) {
 
 /*
  * THE HULL'S BROADPHASE. Whether no part box of hull h can come within
- * BLAST_M of the attacker's centre in (t0, t1], so within() need not
+ * `blast` of the attacker's centre in (t0, t1], so within() need not
  * measure the hull on every millisecond: the hull's distance at the
  * span's first millisecond, less the most either side can move in the
- * span (spread), is still outside BLAST_M. A hull's distance to a point
+ * span (spread), is still outside `blast`. A hull's distance to a point
  * changes by no more than the point and the parts move, so this never
  * skips a detonation; an attacker parked just outside the bubble costs
  * one hullDistance a span instead of one a millisecond. within()'s own
  * broadphase, on the centres, passes such a pair every millisecond,
- * since its centre is inside BLAST_M plus the hull's reach.
+ * since its centre is inside `blast` plus the hull's reach.
  */
-function clearOf(h, dTrack, aTrack, t0, t1, memo, blast = BLAST_M) {
+function clearOf(h, dTrack, aTrack, t0, t1, memo, blast) {
   const first = Math.floor(t0) + 1;
   const last = Math.floor(t1);
   const d = spanOf(dTrack, first, last, h.hull.reach, memo);
@@ -358,6 +369,14 @@ function clean(p) {
 /* A number a message carries, to the millimetre. */
 const mm = (v) => Math.round(v * 1000) / 1000;
 
+/* An attacker's draw for its j-th crossing of a power line
+ * (src/share/war/wires.js): the seed's with this and j mixed in, so it
+ * neither repeats nor moves the errors' draws. */
+const WIRE_SALT = 0x57495245;
+export function wireDraw(seed, id, j) {
+  return draw((seed ^ WIRE_SALT ^ Math.imul(j + 1, 0x632be5ab)) >>> 0, id);
+}
+
 /* A seeded draw in [0, 1) from two integers, the same on every engine. */
 function draw(seed, id) {
   let h = Math.imul((seed ^ Math.imul(id, 0x9e3779b1)) >>> 0, 0x85ebca6b) >>> 0;
@@ -393,8 +412,9 @@ export class RoomWar {
      * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
      *   'won'|'lost'|'ended', briefAt (the room ms a briefing began, or
      *   null), why, f, wave (the next to be born), output, down (target
-     *   ids hit), rack, rackMax, pilots (at the go, which size the
-     *   waves), players: { seat: { kills, assists, mw, token } },
+     *   ids hit), players: { seat: { kills, assists, mw, token } },
+     *   away: { token: { player, spent, earned, loadout, round } } (a
+     *   pilot whose seat another took, enlist()),
      *   agents: [birth records alive], nextAgent, scouts: { n, killed }
      *   of the last scout wave or null, hunters (Hunters save),
      *   endAt }, or null before the first game.
@@ -417,8 +437,9 @@ export class RoomWar {
     /* For the checks: every detonation, arrival and crash, with when it
      * was decided. Memory only. */
     this.log = [];
-    /* seat -> loadout sent before a game: memory, copied into the next
-     * match at its start. */
+    /* token -> loadout sent before a game: memory, copied into the match
+     * as its pilot joins it (enlist). By token, never by seat, so a seat's
+     * next pilot never flies its last one's. */
     this.loadouts = new Map();
   }
 
@@ -458,7 +479,7 @@ export class RoomWar {
   /* A seat's loadout, and its airframes a round (the mission's base when
    * it chose none). */
   loadoutOf(seat) {
-    return this.match?.loadouts?.[seat] ?? this.loadouts.get(seat) ?? { ...LOADOUT, rack: this.airframes() };
+    return this.match.loadouts[seat] ?? { ...LOADOUT, rack: this.airframes() };
   }
 
   baseOf(seat) {
@@ -466,9 +487,9 @@ export class RoomWar {
     return l ? l.rack : this.airframes();
   }
 
-  /* The bubble a seat's warhead goes off in. */
-  blastOf(seat) {
-    return this.loadoutOf(seat).warhead === 'wide' ? WIDE_M : BLAST_M;
+  /* The radius a seat's warhead goes off at, flying `airframe`. */
+  blastOf(seat, airframe) {
+    return fuzeM(airframe, this.loadoutOf(seat).warhead);
   }
 
   /* Whether a seat has spent every airframe of the round. */
@@ -544,6 +565,10 @@ export class RoomWar {
     const mission = this.mission();
     const flying = m.state !== 'briefing' && m.state !== 'countdown';
     const seats = Object.keys(m.players);
+    /* A pilot who left takes their airframes with them, and brings back
+     * what they had not spent (m.spent stays with the seat or the token). */
+    const present = seats.filter((seat) => here.has(Number(seat)));
+    const airframeOf = new Map([...core.seats.values()].map((s) => [s.seat, s.profile.airframe]));
     return {
       state: m.state,
       id: m.id,
@@ -556,10 +581,10 @@ export class RoomWar {
       output: m.output,
       floor: mission.floorMw,
       down: m.down.slice(),
-      /* The match's pilots' airframes left this round, and all they have
-       * had in it, earned ones too: none before the go. */
-      rack: flying ? seats.reduce((sum, seat) => sum + Math.max(0, this.allowance(seat) - (m.spent?.[seat] ?? 0)), 0) : 0,
-      rackMax: flying ? seats.reduce((sum, seat) => sum + this.allowance(seat), 0) : 0,
+      /* The airframes left this round of the match's pilots here, and all
+       * they have had in it, earned ones too: none before the go. */
+      rack: flying ? present.reduce((sum, seat) => sum + Math.max(0, this.allowance(seat) - (m.spent?.[seat] ?? 0)), 0) : 0,
+      rackMax: flying ? present.reduce((sum, seat) => sum + this.allowance(seat), 0) : 0,
       round: (m.round ?? 0) + 1,
       rounds: this.rounds(),
       roundState: m.roundState ?? 'live',
@@ -573,6 +598,7 @@ export class RoomWar {
       spent: { ...(m.spent ?? {}) },
       earned: { ...(m.earned ?? {}) },
       alive: m.agents.length,
+      /* The FPV standard radius, for clients from before `fuze`. */
       blast: BLAST_M,
       scores: Object.entries(m.players).map(([seat, p]) => ({
         seat: Number(seat), kills: p.kills, assists: p.assists, mw: p.mw, gone: !here.has(Number(seat)),
@@ -581,6 +607,10 @@ export class RoomWar {
       endAt: m.endAt,
       result: m.state === 'won' || m.state === 'lost' || m.state === 'ended' ? resultOf(mission, m) : null,
       loadouts: Object.fromEntries(seats.map((seat) => [seat, this.loadoutOf(Number(seat))])),
+      /* Each seat here's fuze radius, metres, on the airframe it flies
+       * now: what its IN RANGE cue is drawn against. */
+      fuze: Object.fromEntries(seats.filter((seat) => airframeOf.has(Number(seat)))
+        .map((seat) => [seat, this.blastOf(Number(seat), airframeOf.get(Number(seat)))])),
       disabled: { ...(m.disabled ?? {}) },
     };
   }
@@ -602,12 +632,92 @@ export class RoomWar {
     return [{ send: conn, data: JSON.stringify({ type: 'war', error }) }];
   }
 
-  /* A pilot just seated mid game: every attacker alive, as births. */
+  /* A pilot just seated in a briefing, a countdown or a live war: one of
+   * the match's players from now (enlist), told every attacker alive as
+   * births, and everybody the view with them in it (the welcome's was
+   * built before). */
   join(core, conn) {
-    if (!this.on() || !this.match.agents.length) {
+    if (!this.on()) {
       return [];
     }
-    return [{ send: conn, data: JSON.stringify({ type: 'war', op: 'born', agents: this.match.agents }) }];
+    this.enlist(core.seats.get(conn));
+    const out = this.changed(core);
+    if (this.match.agents.length) {
+      out.push({ send: conn, data: JSON.stringify({ type: 'war', op: 'born', agents: this.match.agents }) });
+    }
+    return out;
+  }
+
+  /*
+   * Seat s one of the match's players, with a share of the rack (its
+   * allowance) and a row of the scores. The match is keyed by seat, and a
+   * seat is the pilot's only while their token holds it: a seat already
+   * theirs is kept as it is; one holding another pilot's entry has that
+   * entry put away under its token (m.away) with what it spent and
+   * earned, so its kills still count and its spent airframes never
+   * ground the newcomer; and a pilot coming back (their token under
+   * another seat, or away) has their own entry back, never a second
+   * share. What it spent and earned comes back only within the same
+   * round, since both start again each round.
+   */
+  enlist(s) {
+    const m = this.match;
+    const had = m.players[s.seat];
+    if (had && (had.token == null || had.token === s.token)) {
+      return;
+    }
+    m.away ??= {};
+    if (had) {
+      this.putAway(s.seat);
+    }
+    const before = Object.keys(m.players).find((seat) => m.players[seat].token === s.token);
+    if (before != null) {
+      this.putAway(Number(before));
+    }
+    const back = m.away[s.token];
+    delete m.away[s.token];
+    if (!back) {
+      /* New to this match: the loadout it sent before, as at the go. A
+       * live war takes none (loadout()), so one arriving then without
+       * one flies the default. */
+      const l = this.loadouts.get(s.token);
+      if (l) {
+        m.loadouts[s.seat] = l;
+      }
+      m.players[s.seat] = {
+        kills: 0, assists: 0, mw: 0, token: s.token,
+      };
+      return;
+    }
+    m.players[s.seat] = back.player;
+    if (back.loadout) {
+      m.loadouts[s.seat] = back.loadout;
+    }
+    if (back.round === (m.round ?? 0)) {
+      if (back.spent) {
+        (m.spent ??= {})[s.seat] = back.spent;
+      }
+      if (back.earned) {
+        (m.earned ??= {})[s.seat] = back.earned;
+      }
+    }
+  }
+
+  /* A seat's entry out of the seat's maps, kept under its token. */
+  putAway(seat) {
+    const m = this.match;
+    const player = m.players[seat];
+    m.away[player.token] = {
+      player, spent: m.spent?.[seat] ?? 0, earned: m.earned?.[seat] ?? 0, loadout: m.loadouts[seat] ?? null, round: m.round ?? 0,
+    };
+    delete m.players[seat];
+    delete m.loadouts[seat];
+    if (m.spent) {
+      delete m.spent[seat];
+    }
+    if (m.earned) {
+      delete m.earned[seat];
+    }
   }
 
   /* The match's players who are here, by the seat's token (tag's rule). */
@@ -632,7 +742,7 @@ export class RoomWar {
       return this.lost(core, conn, s, now);
     }
     if (msg.op === 'loadout') {
-      return this.loadout(core, conn, s.seat, msg.loadout);
+      return this.loadout(core, conn, s, msg.loadout);
     }
     if (s.seat !== core.host()) {
       return [];
@@ -691,7 +801,7 @@ export class RoomWar {
    * nobody is left to play it (core.js settleGames). */
   /* A pilot's loadout, any time but a live game: kept for the next start,
    * and for the match counting down now. */
-  loadout(core, conn, seat, x) {
+  loadout(core, conn, s, x) {
     const l = parseLoadout(x);
     if (!l) {
       return this.error(conn, 'loadout');
@@ -699,9 +809,9 @@ export class RoomWar {
     if (this.match && this.match.state === 'live') {
       return this.error(conn, 'live');
     }
-    this.loadouts.set(seat, l);
+    this.loadouts.set(s.token, l);
     if (this.on()) {
-      this.match.loadouts[seat] = l;
+      this.match.loadouts[s.seat] = l;
     }
     return this.match ? this.changed(core) : [];
   }
@@ -716,7 +826,7 @@ export class RoomWar {
 
   start(core, conn, msg, now) {
     /* core.js hostCheck refuses it first; this holds without it. */
-    if (this.meta.public) {
+    if (this.meta.public && this.meta.mode !== 'war') {
       return this.error(conn, 'private');
     }
     if (core.game()) {
@@ -734,7 +844,7 @@ export class RoomWar {
       if (!l) {
         return this.error(conn, 'loadout');
       }
-      this.loadouts.set(core.host(), l);
+      this.loadouts.set(core.seats.get(conn).token, l);
     }
     /* A briefing is the intro's span before the countdown's. */
     const briefAt = msg.intro === true ? Math.ceil(core.roomMs(now)) : null;
@@ -742,12 +852,6 @@ export class RoomWar {
      * every screen has built its night world and seated its pilot well
      * before the go, never after it (itaipu-4.js). */
     const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : INTRO_MS) + COUNTDOWN_MS + (mission.prepMs ?? 0);
-    const players = {};
-    for (const t of core.seats.values()) {
-      players[t.seat] = {
-        kills: 0, assists: 0, mw: 0, token: t.token,
-      };
-    }
     this.match = {
       id: this.nextId,
       mission: mission.id,
@@ -760,9 +864,6 @@ export class RoomWar {
       wave: 0,
       output: mission.output,
       down: [],
-      rack: 0,
-      rackMax: 0,
-      pilots: 0,
       round: 0,
       roundState: 'live',
       roundResult: null,
@@ -774,8 +875,9 @@ export class RoomWar {
       results: [],
       lossy: false,
       disabled: {},
-      loadouts: Object.fromEntries([...core.seats.values()].filter((t) => this.loadouts.has(t.seat)).map((t) => [t.seat, this.loadouts.get(t.seat)])),
-      players,
+      loadouts: {},
+      players: {},
+      away: {},
       agents: [],
       nextAgent: 1,
       scouts: null,
@@ -783,7 +885,13 @@ export class RoomWar {
       hunters: null,
       endAt: null,
     };
+    for (const t of core.seats.values()) {
+      this.enlist(t);
+    }
     this.nextId += 1;
+    /* The room's mission from now on, in a later welcome too: a reload
+     * between wars still names it (docs/FLOW-AUDIT.md D7). */
+    core.meta.mission = mission.id;
     this.live = new Map();
     this.hunters = new Hunters(floorOf(mission.map));
     this.lastStep = -Infinity;
@@ -795,7 +903,7 @@ export class RoomWar {
       r.armFrom = -Infinity;
       r.crashT = -Infinity;
     }
-    return this.changed(core);
+    return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
   }
 
   /* The host cuts the briefing short: the countdown runs from now, for
@@ -838,9 +946,13 @@ export class RoomWar {
     if (!p || p.t > core.roomMs(now) + AHEAD_MS || s.profile.map !== core.meta.map) {
       return [];
     }
+    const was = this.seats.get(s.seat);
     const rec = this.seatOf(s);
+    /* A pilot who changed aircraft has a new fuze radius: the view says
+     * so on its first pose with it. */
+    const told = was && was.token === s.token && was.airframe !== rec.airframe ? this.changed(core) : [];
     if (!rec.track.push(p)) {
-      return [];
+      return told;
     }
     rec.trail.push([p.t, p.px, p.py, p.pz]);
     if (p.flags & FLAG_AIRBORNE) {
@@ -854,9 +966,6 @@ export class RoomWar {
     if (rec.trail[0][0] < p.t - TRAIL_MS - 1000) {
       rec.trail = rec.trail.filter(([t]) => t >= p.t - TRAIL_MS);
     }
-    this.match.players[s.seat] ??= {
-      kills: 0, assists: 0, mw: 0, token: s.token,
-    };
     /* Down after a blast until its own samples show the wreck and then a
      * clean airframe again. */
     if (rec.down && p.t > rec.down.at) {
@@ -867,7 +976,7 @@ export class RoomWar {
         rec.down = null;
       }
     }
-    return [];
+    return told;
   }
 
   tick(core, now) {
@@ -914,9 +1023,10 @@ export class RoomWar {
        * waves fly their routes exactly; once all of them are dead, each
        * attacker draws its error (section 4.2). */
       const blind = Boolean(m.scouts) && m.scouts.killed >= m.scouts.n;
-      /* Sized by the pilots at the go; a match stored before that was
-       * kept flies them as for one. */
-      const n = waveSize(w, m.pilots ?? 1);
+      /* Sized by the match's pilots here when it is announced, so one who
+       * joins or leaves mid war changes the next wave, never one already
+       * told (its n and k ride in the births, and no screen sizes one). */
+      const n = waveSize(w, Math.max(1, this.players(core).length));
       for (let k = 0; k < n; k += 1) {
         const id = m.nextAgent;
         m.nextAgent += 1;
@@ -924,6 +1034,11 @@ export class RoomWar {
         const a = {
           id, kind: w.kind, route: w.route, t0, k, n, err, target: waveTarget(w, k), wave: m.wave,
         };
+        /* Whether it flies into a power line on its way, and when. */
+        const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, id, j));
+        if (wire != null) {
+          a.wire = wire;
+        }
         m.agents.push(a);
         this.adopt(a);
         born.push(a);
@@ -1026,10 +1141,6 @@ export class RoomWar {
     }
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
-      const here = this.players(core);
-      m.pilots = Math.max(1, here.length);
-      m.rackMax = this.mission().rack * m.pilots;
-      m.rack = m.rackMax;
     }
     let dirty = m.state !== state;
     if (m.state === 'live') {
@@ -1117,7 +1228,7 @@ export class RoomWar {
         }
         /* Too far apart for anything in the span: each side has moved at
          * most its top speed since the span's start. */
-        const blast = this.blastOf(d.seat);
+        const blast = this.blastOf(d.seat, d.airframe);
         const reach = blast + d.hull.hull.reach + 1
           + (AGENT_MAX_MPS * Math.max(0, aLast.t - start) + POSE_MAX_SPEED * Math.max(0, dLast.t - start)) / 1000;
         const dx = aLast.px - dLast.px;
@@ -1218,7 +1329,7 @@ export class RoomWar {
     /* A penetrator's first hit of an airframe takes that one attacker and
      * the flight goes on; the next goes off as a standard warhead. */
     const pierce = warhead === 'penetrator' && !(d.rec.piercedAt > (d.rec.spentAt ?? -Infinity));
-    const radius = warhead === 'wide' ? WIDE_M : BLAST_M;
+    const radius = this.blastOf(d.seat, d.airframe);
     const killed = [];
     const stalled = [];
     for (const y of this.live.values()) {
@@ -1261,7 +1372,7 @@ export class RoomWar {
     this.remove(ids, true);
     const scoutsDown = Boolean(m.scouts) && scoutsWere < m.scouts.n && m.scouts.killed >= m.scouts.n;
     this.log.push({
-      what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow,
+      what: 'boom', t: tc, seat: d.seat, id: x.a.id, ids, decided: roomNow, ...(pierce ? { pierce: true } : {}),
     });
     const at = p.map(mm);
     const out = pierce ? [] : this.broadcast(core, {
@@ -1320,6 +1431,9 @@ export class RoomWar {
     const a = x.a;
     const t = x.plan.tEnd;
     const o = poseAt(x.plan, t);
+    if (x.plan.end === 'wire') {
+      return this.onWire(core, x, t, o, roomNow);
+    }
     const target = a.target != null ? this.mission().targets[a.target] : null;
     const hit = Boolean(target) && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
     this.take(a, hit);
@@ -1337,6 +1451,25 @@ export class RoomWar {
     }
     this.settle(t);
     return this.broadcast(core, msg);
+  }
+
+  /* An attacker that flew into a power line at t: dead where it struck,
+   * by nobody, its target untouched. A scout that does so is as dead as
+   * one a warhead took. */
+  onWire(core, x, t, o, roomNow) {
+    const m = this.match;
+    const a = x.a;
+    const scoutsWere = m.scouts ? m.scouts.killed : 0;
+    m.lastGone = t;
+    this.remove([a.id], true);
+    const scoutsDown = Boolean(m.scouts) && scoutsWere < m.scouts.n && m.scouts.killed >= m.scouts.n;
+    this.log.push({
+      what: 'wire', t, id: a.id, kind: a.kind, decided: roomNow,
+    });
+    this.settle(t);
+    return this.broadcast(core, {
+      type: 'war', op: 'dead', ids: [a.id], at: mm(t), by: 0, why: 'wire', p: o.p.map(mm), ...(scoutsDown ? { scouts: true } : {}),
+    });
   }
 
   /* Won or lost, at t, after anything that changed the count. */
@@ -1404,7 +1537,8 @@ export class RoomWar {
     const t = result === 'lost' ? m.f : Math.max(m.lastGone ?? m.f, m.roundAt ?? m.goAt);
     for (const a of [...m.agents]) {
       const x = this.live.get(a.id);
-      const through = result === 'lost' && a.target != null;
+      /* One bound for a power line on its way never gets through. */
+      const through = result === 'lost' && a.target != null && !(x && x.plan.end === 'wire');
       const target = through ? mission.targets[a.target] : null;
       const hit = through && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
       if (through) {

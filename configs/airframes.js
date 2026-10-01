@@ -580,6 +580,73 @@ export const AIRFRAMES = [
   },
   {
     /*
+     * THE INTERCEPTOR, plant 26, docs/COMBAT-DRONES.md: the fast chaser
+     * that runs a Striker down and rams it. A stretched X 7 inch speed
+     * build on 2807 1500 kV motors and 7 x 6 two blades, on one 6S 1800
+     * LiPo, the owner's reference photograph of 2026-10-01. Every number
+     * is scripts/combat-derive.js's from a parts list. It trades the 7
+     * inch's pack and payload for speed: the fastest quad here, flat out
+     * and off the floor, for under half the 7 inch's charge, on a machine
+     * that rolls quicker than the five inch. Flown at that speed it sits 70
+     * degrees nose down, so its camera is tilted like a racer's.
+     */
+    id: 'interceptor',
+    simId: 26,
+    name: 'Interceptor',
+    short: 'Interceptor',
+    blurb: 'An 849 gram stretched X 7 inch speed build on a 6S LiPo and high pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack, and it turns on a breath.',
+    facts: ['6S LiPo', '312 mm', '164 km/h'],
+    sizeMm: 312,
+    grams: 849,
+    trackClass: 'full',
+    /* Level at full throttle on a fresh pack, bare, measured on the module
+     * (scripts/combat-gates.js); the static thrust to weight is
+     * combat-derive's. */
+    topSpeed: 45.5,
+    thrustToWeight: 9.29,
+    cells: 6,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'betaflight-interceptor',
+    /* Its real weight, as the other combat quads (docs/COMBAT-DRONES.md
+     * section 1). */
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 95,
+    cameraAngle: 45,
+    dims: {
+      /* Half the motor diagonal; the stretch is plant.c's arm_x 0.120 and
+       * arm_y 0.100. */
+      arm: 0.1562,
+      propR: 0.0889,
+      hullR: 0.0889,
+      /* plant.c's hull_hz_down and hull_hz_up: the legs reach the
+       * payload's belly, and up is the GPS puck's top. */
+      vHalfDown: 0.075,
+      vHalfUp: 0.057,
+      bodyLength: 0.22,
+      bodyWidth: 0.06,
+      bodyHeight: 0.045,
+    },
+    combat: {
+      frame: 'interceptor',
+      payloads: [
+        { id: 'proximity', warhead: 'standard', massKg: 0.2, dragArea_m2: 0.004506, cgOffset_m: [0.0183, 0, -0.0523], dims: { d: 0.045, len: 0.16 } },
+      ],
+      accessories: [
+        { id: 'lrantenna', massKg: 0.02, cgOffset_m: [-0.0767, 0, 0.0602] },
+        { id: 'gps', massKg: 0.015, cgOffset_m: [-0.0667, 0, 0.0532] },
+      ],
+    },
+  },
+  {
+    /*
      * The Skyhunter 1800, docs/SKYHUNTER-STAGE1.md: a twin boom pusher
      * with ailerons, an elevator and a rudder, simId 3, on the wing's
      * plant with its own table. It flies the wing's track class, the
@@ -1507,9 +1574,9 @@ export const AIRFRAMES = [
     fixedWing: true,
     /* Its stall, m/s, trimmed with the standard warhead in the nose:
      * combat-derive's, which npm run combat:gates holds the module to. */
-    stall: 12.53,
+    stall: 12.98,
     /* Level at full throttle, m/s, combat-derive's, held the same way. */
-    topSpeed: 26.9,
+    topSpeed: 26.8,
     catapult: STRIKER_RAIL,
     voice: 'glow2',
     name: 'Striker',
@@ -1553,8 +1620,8 @@ export const AIRFRAMES = [
     combat: {
       frame: 'striker',
       propulsion: [
-        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 12.53, topSpeed: 26.9, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
-        { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 13.29, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
+        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 12.98, topSpeed: 26.8, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
+        { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 14.07, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
       ],
       payloads: [
         { id: 'standard', warhead: 'standard', massKg: 1.5, dragArea_m2: 0, cgOffset_m: [1.196, 0, 0.0196], dims: { d: 0.26, len: 0.3 } },
@@ -1565,6 +1632,9 @@ export const AIRFRAMES = [
       accessories: [
         { id: 'whip', massKg: 0.06, cgOffset_m: [0.446, 0, 0.2196] },
       ],
+      /* The bay's trim lead: whatever is carried, it brings the CG to the
+       * wide warhead's (configs/combat.js trimBallastKg). */
+      ballast: { at_m: [1.426, 0, 0.0196] },
     },
   },
 ];

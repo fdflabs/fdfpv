@@ -68,6 +68,7 @@
  */
 
 import * as THREE from 'three';
+import { thermalShader } from '../../../render/thermal.js';
 import { DISTRICTS, MAX_DISTRICTS, districtOf } from '../../../share/war/grid.js';
 
 /* The dam's own instanced lamp mesh (dam/index.js instanced(), 'lamps'),
@@ -313,7 +314,13 @@ function cityLight(mat, uniforms, windows) {
         reflectedLight.directDiffuse += cityPool(cityGeoNormal()) * BRDF_Lambert(material.diffuseColor);`);
     if (windows) {
       shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        totalEmissiveRadiance += cityWindows(inverseTransformDirection(normalize(vNormal), viewMatrix));`);
+        /* In a thermal frame (src/render/thermal.js) a lit window is a
+         * pane a few degrees warm, not the lamp behind it. */
+        totalEmissiveRadiance += cityWindows(inverseTransformDirection(normalize(vNormal), viewMatrix))
+        #ifdef TH_PARS
+          * (thEnv.x > 0.5 ? 0.3 : 1.0)
+        #endif
+        ;`);
     }
   };
   mat.customProgramCacheKey = () => `${prevKey}|city${windows ? 'w' : ''}`;
@@ -754,7 +761,7 @@ export function dressNight({
     ...masts.map((l) => [...l.head, MAST_RADIANCE, MAST_M, false]),
     ...aviation.map((p) => [...p, AVIATION_M, true]),
     ...ring.map((p) => [...p, RING_M, false]),
-  ], glowMaterial(uniforms), 'itaipu-night-glows');
+  ], thermalShader(glowMaterial(uniforms), 'float thT = thLum(vCol) * (a * a) * 0.15;', 'itaipu-night-glows'));
   group.add(glows);
 
   /* The powerhouse's two real lights, each in its district. */

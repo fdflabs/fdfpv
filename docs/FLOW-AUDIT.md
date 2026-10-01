@@ -241,6 +241,18 @@ Ten rules. Each one replaces a set of special cases rather than adding one.
 - **Storage keys.** `fdfpv.room`, `fdfpv.roomToken` (sessionStorage) and `webfpv.settings.v3` keep their names and shapes. `settings.freestyleMap` keeps being written; the card's world just wins over it at the card.
 - **The war's consent (`settings.warConsent`).** Unchanged as a key; D6 is a bug against it, not a change to it.
 
+### The owner's decisions since (2026-10-01)
+
+- All ten rules approved as written, rule 2 (a card always seats the world
+  it names) and rule 3 (the title is never in a room) included.
+- The war opens to public rooms (docs/WARFARE-PLAN.md section 9): a room
+  made for the war may be public, listed as the war's with its mission,
+  never handed to a quick join, and every pilot entering one passes the
+  consent first. Campaign Play makes a public war room by default. This
+  changes rule 9's "at the one place a room is set up for the war" to
+  "at the room set up for the war, for each pilot who enters it"; the
+  other rules stand.
+
 ## 6. Build order
 
 Small PRs, each green on its own, each with the check that proves it. The

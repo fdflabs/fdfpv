@@ -436,7 +436,7 @@ function checkMeta(m) {
       throw new ReplayFileError('meta.livery is not a livery');
     }
     for (const [k, v] of Object.entries(m.livery)) {
-      if (!/^[a-z][a-zA-Z0-9]{0,23}$/.test(k) || !Number.isInteger(v) || v < 0 || v > 0xffffff) {
+      if (!/^[a-z][a-zA-Z0-9_]{0,23}$/.test(k) || !Number.isInteger(v) || v < 0 || v > 0xffffff) {
         throw new ReplayFileError(`meta.livery.${k} is not a colour`);
       }
     }

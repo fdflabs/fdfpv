@@ -178,7 +178,7 @@ export class RoomHost {
 
   /* A new room, from front.js (POST /v2/create, or a quick join that
    * found no room): false when the code is already taken. body is {
-   * code, map, friendly, public, name, mode }, checked by the front; the
+   * code, map, friendly, public, name, mode, mission }, checked by the front; the
    * name typed and filtered there, or null for the picker name drawn
    * here. A public room is listed at once, before anybody joins it. */
   async init(body) {
@@ -198,6 +198,7 @@ export class RoomHost {
       name: body.name ?? null,
       pick: roomPick(),
       mode: body.mode ?? null,
+      mission: body.mission ?? null,
       hidden: false,
     });
     /* A room made and never joined is purged like an emptied one. */

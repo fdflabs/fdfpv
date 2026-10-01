@@ -79,10 +79,10 @@ const skey = (id) => id.replace(/-/g, '_');
 
 /*
  * ui: the shell's UI (ui.js), whose settings keep the campaign. inBuild(id): whether
- * this build has that mission. enterWarRoom(): the Defend Itaipu card's
- * way in, resolving the code of the room it made, or null. send(obj): the
- * room's socket. view(): the war view (roomWar.view()). room(): { phase,
- * code, seat }.
+ * this build has that mission. enterWarRoom(mission): the Defend Itaipu
+ * card's way in, for that mission, resolving the code of the room it made,
+ * or null. send(obj): the room's socket. view(): the war view
+ * (roomWar.view()). room(): { phase, code, seat }.
  */
 export function createCampaignScreen({
   ui, inBuild, enterWarRoom, send, view, room, craftWarhead = null,
@@ -301,7 +301,7 @@ export function createCampaignScreen({
      * a room that opens later, which is how a Play declined at the
      * consent, or one whose room never opened, used to start in a room
      * made by hand. */
-    const code = await enterWarRoom();
+    const code = await enterWarRoom(m.id);
     pending = code ? { mission: m.id, code } : null;
   }
 
@@ -360,12 +360,12 @@ export function createCampaignScreen({
   }
 
   /* The mission number (1 based) the start row starts in this room: the
-   * one Play chose, else the first. */
-  function selectedNumber() {
+   * one Play chose, else `fallback`, the room's own. */
+  function selectedNumber(fallback = 1) {
     const r = room();
     bind(r);
     const i = pending && pending.code === r.code ? ACT1.findIndex((m) => m.id === pending.mission) : -1;
-    return i >= 0 ? i + 1 : 1;
+    return i >= 0 ? i + 1 : fallback;
   }
 
   function poll() {
@@ -391,6 +391,10 @@ export function createCampaignScreen({
     close,
     startSelected,
     selectedNumber,
+    /* The missions this pilot may start, in order: built, open (the one
+     * before won) and inside the full game's gate (Make a room's Mission
+     * row, src/ui/roombrowser.js). */
+    playable: () => ACT1.filter((m, i) => inBuild(m.id) && unlocked(cur(), i) && gateOpen(i)).map((m) => m.id),
     /* For the checks. */
     observe,
     state: cur,

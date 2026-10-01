@@ -68,6 +68,7 @@ fixed wings as radio relays).
 | Aircraft | Top m/s | Role |
 | --- | --- | --- |
 | F-16 (f16878) | 45.8 | the only thing that runs down a Striker from behind |
+| Interceptor quad (interceptor) | 45.5 | the fast chaser: runs a Striker down from behind and rams it; the fastest quad, level and in a climb (docs/COMBAT-DRONES.md section 1a) |
 | 5 inch quad | 40 | interceptor: dives from altitude, point defence of the intakes |
 | Whoop 65 | 40 (five inch model) | close defence where only a whoop fits: gantries, under the switchyard wires, between penstocks |
 | Zagi | 29.7 | mid screen against Loiterers |
@@ -157,25 +158,64 @@ Scout of a wave is dead, later waves get a seeded lateral error of up to
 `spread` metres. Killing scouts makes the defence easier; that is the
 Scout's whole job.
 
+**Power lines are a hazard to the attackers too** (the owner,
+2026-10-01: "make the enemy drones hit them sometimes"). At a scripted
+attacker's birth the room finds where its planned path crosses a span of
+the map's lines within 3 m of a wire's height
+(`src/share/war/wires.js`, on the chords `scripts/war-targets.js` writes
+into `src/share/war/itaipu-wires.js` from the built map), and draws from
+its seed, for each crossing in turn, whether it strikes (0.1 a crossing).
+The first that does goes into the birth record as `wire`, the room ms;
+`routes.js` ends the flight there (`end: 'wire'`), so every client flies
+it to the same point, and the room's death there is `why: 'wire'`, by
+nobody, taking no output. The routes are not moved off the lines: most
+crossings are the runs into the right bank switchyard, where every line
+of the dam converges. `npm run war:routes` prints the crossings and the
+strikes a game they make (0.3 to 1.5 in missions 1 and 4 from one pilot
+to eight, 0.5 to 2.3 in mission 2, 1.9 to 9.3 in mission 3); the HUD
+calls each one ("STRIKER DOWN ON THE LINES").
+
 ### 4.3 Detonation: the kamikaze referee
 
 A defender's warhead goes off when any part box of the defender comes
-within `BLAST_M = 6` of an attacker's centre: `within()` in
-`src/game/midair.js:520-567`, the same test tag's bubble uses at
-`BUBBLE_M = 6`. The attacker is a Track of the room's own samples (no
+within its fuze radius of an attacker's centre: `within()` in
+`src/game/midair.js`, the same test tag's bubble uses at `BUBBLE_M = 6`.
+The radius is the seat's airframe and warhead's,
+`src/share/war/fuze.js` `fuzeM`, and the room sends each seat's own in
+its view (`fuze`, by seat). The attacker is a Track of the room's own samples (no
 lag on its side); the defender's is the relayed stream, judged on tag's
 single timeline (`tag.js:13-22`): the frontier is `LATE_MS` behind the
 room clock or the slowest seat heard from in `WAIT_MS`, the earliest
 detonation wins, a tie to the lower seat.
 
 - A detonation kills the attacker and the defender, and every other
-  attacker within `BLAST_M` of the point (a swarm dies together).
+  attacker within the same radius of the point (a swarm dies together).
 - Spawning and crashed defenders cannot detonate (`FLAG_SPAWNING`,
   `FLAG_CRASHED`), as in tag.
-- A Hunter that reaches `BLAST_M` of a defender detonates both, judged the
+- A Hunter that reaches the defender's radius detonates both, judged the
   same way with the roles swapped.
 - The harness holds tag's bands: no false detonation past r plus 5 cm, no
   miss 15 cm inside, the same answer as the zero latency run.
+
+**The fuze radii are a gameplay choice** (owner, 2026-10-01: "my drones
+arent exploding within proximity"). They grow with the payload a class
+carries (`configs/airframes.js` `combat.payloads`), so a bigger aircraft's
+warhead reaches further, but none is derived from explosive physics; they
+are tuned with `npm run war:balance` and nothing else. Metres:
+
+| Airframe | standard | wide | penetrator | emp |
+| --- | --- | --- | --- | --- |
+| FPV quads (5 and 7 inch, the interceptor's `proximity`), and any aircraft without a row | 6 | 9 | 6 | 6 |
+| 10 inch | 7 | 10 | 6 | 7 |
+| Striker (`striker2500`) | 9 | 12 | 8 | 9 |
+
+The war markers show the distance the room tests (the nearest part of
+the pilot's hull to the attacker's centre, on the pose the pilot last
+sent), to the metre under 30 m, and turn red with IN RANGE when it is
+inside the seat's radius: what the pilot sees is when the room goes off.
+The Avionics HUD keeps its sensor's range estimate and puts the same IN
+RANGE on its primary box when the primary's line of sight is on that
+attacker.
 
 ### 4.4 Hunters
 
@@ -411,19 +451,31 @@ Package M, in `src/maps/itaipu/**` and `tools/itaipu/**`:
 The multiplayer design assumes children in public rooms
 (MULTIPLAYER-PLAN.md:8,23-25, section 9). This mode is not for them, so:
 
-- `war` starts only in a **private** room: `hostCheck` refuses it in a
-  public one, by code. Quick join never lands in a war game.
-- A title card shows it, because the owner asked for one on 2026-09-29;
-  no public room listing does. The card, Make a room's Game row and the
-  host's game menu all reach it only in a private room on the Itaipu map,
-  and only after the consent screen below.
+- `war` starts only in a room **made for the war** (`mode: 'war'`, on a
+  war mission's map), private or public. `hostCheck` refuses it in any
+  other public room, by code, and quick join never hands a pilot a room
+  made for the war (edge/rooms/lobby.js), so nobody is in one without
+  having chosen it.
+- The owner opened the war to public rooms on 2026-10-01: "in make a room,
+  i should be able to do a room for multiplayer itaipu missions, because
+  when i start a mission now, a new room isnt created and made public so
+  my friend cant easily join". A public war room is listed in Rooms and on
+  the title's rooms panel as the war's, with its mission. Campaign Play
+  makes one by default, named for its host.
+- Every pilot who enters a room made for the war, its host or a joiner by
+  the list, a link or a code, passes the consent screen below first if
+  they have not already; saying no leaves the room. A build from before
+  this asks nothing on joining, so the room closes its hello for a reload
+  (roomwire.js `WAR_JOIN`).
+- A title card shows it, because the owner asked for one on 2026-09-29.
+  The card, campaign Play and Make a room's Game row reach it only on the
+  Itaipu map, and only after the consent screen.
 - Everything else in section 9 of the multiplayer plan still holds in a
-  war room: no free text, picker names, report and kick.
+  war room: no free text beyond a room's filtered name, picker names,
+  report, and kick in a private room.
 - The first time a pilot opens it, one screen says what it is (simulated
   drone war, no people shown harmed) and asks to continue.
 - No people are shown harmed, ever: aircraft break, structures burn.
-
-Opening it wider is the owner's decision, later, and a one line change.
 
 ## 10. Work packages
 
@@ -497,7 +549,8 @@ airframes a pilot plus one a kill, lost only on output):
   - `rack` 4 to 6 (rounded, clamped), in place of the base 4
   - `speedMul` 1 to 1.15 (clamped), flown by the client with the
     plant's boost
-  - `warhead`: `standard` (6 m); `wide` (9 m); `penetrator` (its first
+  - `warhead`: `standard`; `wide` (a longer fuze radius, section 4.3);
+    `penetrator` (its first
     hit of an airframe takes that one attacker and the flight goes on);
     or `emp` (goes off as standard, and stalls every attacker within
     30 m for 4 s: `op:'stall'`, the routes' clock stopped, a Hunter

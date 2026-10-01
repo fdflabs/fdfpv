@@ -70,16 +70,25 @@ export const STRIKER_PROP = { r: 0.38, hub: [0, 0, 1.27] };
 export const STRIKER_PROPULSION = ['prop', 'jet'];
 
 /* The airframe as built: its paint by key, each a 0xRRGGBB. The war's
- * vertices carry these; the garage's materials start from them. */
+ * vertices carry these; the garage's materials start from them, one a key,
+ * so the fuselage, the wing and the fins are keys of their own in the same
+ * aluminium, each a paint region of its own, and the skid and the small
+ * fittings are keys of their own in the engine's metals, left as built when
+ * the engine is painted. */
 export const STRIKER_COLOURS = {
   /* Bare aluminium, cool on purpose: the grade's warm gain in the lights
    * (src/render/post.js) turns a neutral light grey into sand. */
   skin: 0xa6b6c6,
+  wing: 0xa6b6c6,
+  fin: 0xa6b6c6,
   controls: 0x96a6b6,
+  rudder: 0x96a6b6,
   nose: 0xb8c6d4,
   band: 0x26282a,
   metal: 0x9aa0a6,
+  fitting: 0x9aa0a6,
   dark: 0x4c5054,
+  skid: 0x4c5054,
   wood: 0xc79a62,
   jet: 0x8c949c,
   nozzle: 0x34373a,
@@ -174,13 +183,13 @@ export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } 
   const outline = [...half, ...half.slice(1, -1).reverse().map(([x, z]) => [-x, z])];
   const wing = slab(outline, 0.064);
   thinToTips(wing);
-  add('wing', 'skin', wing, 'wing', [0, WING_Y, 0]);
+  add('wing', 'wing', wing, 'wing', [0, WING_Y, 0]);
   /* The elevons, a lighter strip along the trailing edge, and their
    * horns on top; two hatches over the bays. */
   for (const s of [-1, 1]) {
     const elevon = `elevon-${s < 0 ? 'left' : 'right'}`;
     add(elevon, 'controls', box(0.80, 0.022, 0.15), 'wing', [s * 0.72, WING_Y + 0.006, TE_Z - 0.075]);
-    add(elevon, 'metal', box(0.012, 0.045, 0.035), 'plain', [s * 0.62, WING_Y + 0.035, TE_Z - 0.12]);
+    add(elevon, 'fitting', box(0.012, 0.045, 0.035), 'plain', [s * 0.62, WING_Y + 0.035, TE_Z - 0.12]);
     add('wing', 'controls', box(0.20, 0.004, 0.16), 'wing', [s * 0.55, WING_Y + 0.024, 0.22]);
   }
 
@@ -190,13 +199,13 @@ export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } 
   for (const s of [-1, 1]) {
     const g = slab(fin.map(([y, z]) => [y, z]), FIN_T);
     g.rotateZ(Math.PI / 2);
-    add('fins', 'skin', g, 'fin', [s * (HALF + FIN_T / 2), WING_Y, 0]);
-    add(`rudder-${s < 0 ? 'left' : 'right'}`, 'controls', box(FIN_T * 1.3, 0.20, 0.07), 'fin', [s * (HALF + FIN_T / 2), WING_Y + 0.16, 1.05]);
+    add('fins', 'fin', g, 'fin', [s * (HALF + FIN_T / 2), WING_Y, 0]);
+    add(`rudder-${s < 0 ? 'left' : 'right'}`, 'rudder', box(FIN_T * 1.3, 0.20, 0.07), 'fin', [s * (HALF + FIN_T / 2), WING_Y + 0.16, 1.05]);
   }
 
   /* The skid under the belly. */
-  add('skid', 'dark', box(0.02, 0.12, 0.03), 'plain', [0, -0.20, 0.25]);
-  add('skid', 'dark', box(0.08, 0.012, 0.26), 'plain', [0, -0.265, 0.25]);
+  add('skid', 'skid', box(0.02, 0.12, 0.03), 'plain', [0, -0.20, 0.25]);
+  add('skid', 'skid', box(0.08, 0.012, 0.26), 'plain', [0, -0.265, 0.25]);
 
   if (propulsion === 'prop') {
     /* A twin piston engine on the tail: a crankcase, two finned cylinders
@@ -234,7 +243,7 @@ export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } 
   }
 
   if (antenna) {
-    add('antenna', 'metal', box(0.06, 0.012, 0.08), 'plain', [0, BODY_R + 0.004, -0.30]);
+    add('antenna', 'fitting', box(0.06, 0.012, 0.08), 'plain', [0, BODY_R + 0.004, -0.30]);
     add('antenna', 'antenna', new THREE.CylinderGeometry(0.003, 0.007, 0.36, 6), 'plain', [0, BODY_R + 0.19, -0.30]);
   }
   return out;
@@ -380,9 +389,19 @@ export function strikerSpin(mat) {
  * The war's drawing: every piece merged into one geometry, its colour in
  * its vertices and `aSpin` on the prop's. For src/render/attackers.js.
  */
+/* Each part's heat in a thermal picture (src/render/thermal.js's per
+ * vertex `thermal`, in units of 110 degrees over the skin): the piston
+ * engine's cylinders and exhaust, a turbojet's case hotter still, the
+ * fuselage a little warm from the engine bay. */
+const WAR_HEAT = {
+  engine: 1, jet: 2.5, fuselage: 0.03,
+};
+
 export function strikerWarGeometry(opts = {}) {
   const pieces = strikerParts(opts);
-  const geos = pieces.map(({ key, geo, spin }) => {
+  const geos = pieces.map(({
+    part, key, geo, spin,
+  }) => {
     const n = geo.attributes.position.count;
     const c = new THREE.Color(STRIKER_COLOURS[key]);
     const col = new Float32Array(n * 3);
@@ -393,6 +412,7 @@ export function strikerWarGeometry(opts = {}) {
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     geo.setAttribute('aSpin', new THREE.BufferAttribute(new Float32Array(n).fill(spin ? 1 : 0), 1));
+    geo.setAttribute('thermal', new THREE.BufferAttribute(new Float32Array(n).fill(WAR_HEAT[part] ?? 0), 1));
     return geo;
   });
   const g = mergeGeometries(geos, false);
@@ -410,15 +430,19 @@ export function strikerWarGeometry(opts = {}) {
 /* The garage's drawing.                                               */
 /* ------------------------------------------------------------------ */
 
-/* The paint keys a repaint takes along, by region: each region one colour
- * as built, its shades following it. */
+/* The paint keys a repaint takes along, by region (configs/liveries.js
+ * striker2500, in this order): each region one colour as built, its shades
+ * following it. The engine is the piston engine with the prop's spinner or
+ * the turbojet, whichever is fitted, by the metal both carry, so the two
+ * engines paint by the same regions. The wooden blades, the skid, the
+ * horns and the whip are left as they are. */
 const REGIONS = {
-  skin: { base: 'skin', shades: ['controls'] },
-  nose: { base: 'nose', shades: [] },
-  band: { base: 'band', shades: [] },
-  engine: { base: 'metal', shades: ['dark'] },
-  prop: { base: 'wood', shades: [] },
-  jet: { base: 'jet', shades: ['nozzle'] },
+  fuselage: { base: 'skin', shades: [] },
+  wing: { base: 'wing', shades: ['controls'] },
+  fins: { base: 'fin', shades: ['rudder'] },
+  nose_cap: { base: 'nose', shades: [] },
+  nose_band: { base: 'band', shades: [] },
+  engine: { base: 'metal', shades: ['dark', 'jet', 'nozzle'] },
 };
 
 /*

@@ -94,6 +94,15 @@ export function hitCall(ev) {
   return str(ev.target === 'yard-right' ? 'war.hit.yard' : 'war.hit.other', { mw: mw(ev.mw) });
 }
 
+/* The callout for an attacker that flew into a power line: what it was
+ * (a decoy is called as the Striker it looks like). */
+export function wireCall(ev) {
+  const a = ev.agents && ev.agents[0];
+  const kind = a && a.kind === 'decoy' ? 'strike' : a && a.kind;
+  const key = `war.wire.${kind}`;
+  return str(key in en ? key : 'war.wire.other');
+}
+
 /* m:ss, for the wave clock. */
 function clock(s) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -143,8 +152,10 @@ export function waveStatus(v, mission, roomNow) {
 
 /*
  * nameOf(seat) is the seat's picker name, or this pilot's own. restart
- * { host(), go(v) }: whether this pilot hosts the room, and what the
- * end banner's button does.
+ * { host(), go(v), back() }: whether this pilot hosts the room, what the
+ * end banner's button does, and the seconds until the room's lobby takes
+ * every pilot back (null outside a lobby), when the button is a notice
+ * instead.
  */
 export function createWarHud(nameOf, restart = null) {
   let box = null;
@@ -260,7 +271,7 @@ export function createWarHud(nameOf, restart = null) {
     }, banner);
     again.className = 'war-restart';
     again.addEventListener('click', () => {
-      if (restart && restart.host() && lastView) {
+      if (restart && restart.host() && restart.back() == null && lastView) {
         restart.go(lastView);
       }
     });
@@ -373,6 +384,8 @@ export function createWarHud(nameOf, restart = null) {
         } else {
           say(plural('war.kill_by', ev.ids.length, { name: nameOf(ev.by) }));
         }
+      } else if (ev.type === 'dead' && ev.why === 'wire') {
+        say(wireCall(ev));
       } else if (ev.type === 'boom' && ev.mine) {
         say(str('war.boom_mine'), 'warn');
       } else if (ev.type === 'scouts') {
@@ -423,8 +436,9 @@ export function createWarHud(nameOf, restart = null) {
     }
     allowWas = allow;
     const next = waveStatus(v, mission, roomNow);
-    const host = Boolean(restart && restart.host());
-    const key = JSON.stringify([next && next.text, host, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
+    const back = restart ? restart.back() : null;
+    const host = Boolean(restart && restart.host()) && back == null;
+    const key = JSON.stringify([next && next.text, host, back, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
     if (key === shown) {
       return;
     }
@@ -489,7 +503,7 @@ export function createWarHud(nameOf, restart = null) {
     banner.style.display = over ? 'block' : 'none';
     if (over) {
       banner.firstChild.nodeValue = endText(v);
-      again.textContent = str(host ? 'war.restart' : 'war.restart_wait');
+      again.textContent = back != null ? str('war.back_lobby', { n: back }) : str(host ? 'war.restart' : 'war.restart_wait');
       again.style.cursor = host ? 'pointer' : 'default';
       again.style.background = host ? GREEN : 'transparent';
       again.style.color = host ? '#04100a' : DIM;
