@@ -309,6 +309,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
                          * through, which IS the induced share of shaft
                          * torque at hover. It is a rotor property, so it
                          * belongs to the airframe. */
+  /* The T5147's thrust against axial speed: APC's 5 x 4.6E at 29,000 rpm, the
+   * same pitch over diameter (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 1.0065, 0.9753, 0.9348, 0.8819, 0.8125, 0.7244, 0.6177,
+                   0.4981, 0.3702, 0.2371, 0.1021, 0.0000, 0.0000, 0.0000 },
   /* An open rotor has no duct, so the three duct terms are the identity. */
   .k_duct = 1.0,
   .duct_fade = 0.0,
@@ -591,6 +595,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
    */
   .k_inflow = 0.00283,
   .torque_ind = 0.310, /* the figure of merit above, and the same number */
+  /* No shell airframe flies this table, its gates were fitted to the old
+   * 1 - mu law, and APC publishes no 31 mm prop: that law, written out. */
+  .axial_curve = { 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3,
+                   0.2, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0 },
   /*
    * THE DUCT. 1.10 of static augmentation is the low end of the published
    * range and it is where a real whoop sits: the ideal duct of momentum
@@ -1623,6 +1631,11 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.014149, /* 3.5 inch pitch / 2 pi */
   .torque_ind = 0.55,
+  /* The HQ 7 x 3.5 x 3's thrust against axial speed: APC's 7 x 4E at
+   * 19,000 rpm, the nearest pitch over diameter APC publishes
+   * (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9617, 0.9164, 0.8633, 0.8018, 0.7317, 0.6534, 0.5664,
+                   0.4725, 0.3736, 0.2710, 0.1662, 0.0615, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1672,6 +1685,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.020213, /* 5 inch pitch / 2 pi */
   .torque_ind = 0.58,
+  /* The 10 x 5 x 3's thrust against axial speed: APC's 10 x 5E at 11,000
+   * rpm (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9587, 0.9112, 0.8567, 0.7950, 0.7256, 0.6485, 0.5643,
+                   0.4742, 0.3794, 0.2813, 0.1813, 0.0816, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -1779,6 +1796,10 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .k_ground = 0.0,
   .k_inflow = 0.036383, /* 9 inch pitch / 2 pi */
   .torque_ind = 0.4967,
+  /* The 7 x 9E's own thrust against axial speed: APC's file at 19,000 rpm
+   * (scripts/prop-curves.js). */
+  .axial_curve = { 1.0000, 0.9959, 0.9916, 0.9833, 0.9625, 0.9178, 0.8342, 0.7007,
+                   0.5321, 0.3454, 0.1521, 0.0000, 0.0000, 0.0000, 0.0000 },
   .k_duct = 1.0,
   .duct_fade = 0.0,
   .k_duct_lip = 0.0,
@@ -3005,9 +3026,20 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
       }
     }
     if (mu >= 0.0) {
-      /* Climb and hover. Thrust falls as the craft chases its own wake, and
-       * crosses zero when the axial speed reaches the pitch speed. */
-      axial = 1.0 - mu;
+      /*
+       * Climb, hover and a fast pass. Thrust falls as the air comes through
+       * the disc faster, by the prop's own curve (axial_curve, from APC's
+       * performance files, docs/PROP-CURVES.md), linear between its points
+       * at every tenth of mu. It was 1 - mu, zero thrust at the geometric
+       * pitch speed, and no prop APC publishes behaves so: they hold most
+       * of their thrust to half the pitch speed and keep some past it.
+       * At mu 0 every curve is exactly 1, so the hover, and with it checks
+       * 5 and 8, is the static thrust as it always was.
+       */
+      const double x = mu * 10.0;
+      const int ix = (int)x;
+      axial = ix >= 14 ? PLANT.axial_curve[14]
+                       : PLANT.axial_curve[ix] + (x - (double)ix) * (PLANT.axial_curve[ix + 1] - PLANT.axial_curve[ix]);
       if (axial < 0.0) {
         axial = 0.0;
       }

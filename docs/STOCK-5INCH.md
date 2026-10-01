@@ -79,7 +79,8 @@ Static, on a fresh pack, at 1 g:
 The full throttle current is 171 A against the stock pack's 169 A, which is
 a CNHL 6S 1300 at its published 130C. That is a real race pack at its
 rating. Level top speed at the shell's 1.62 g goes from 41.5 to 46.0 m/s
-(scripts/combat-gates.js). STAGE1.md has always said a real 650 g 5 inch on
+(scripts/combat-gates.js), and to 50.7 once each prop's thrust against
+axial speed is its own APC curve (docs/PROP-CURVES.md). STAGE1.md has always said a real 650 g 5 inch on
 6S is "9 to 12 to 1"; the old table was 8.1.
 
 ## Check 6's band, argued again
@@ -141,4 +142,5 @@ It is left alone.
 **The interceptor** was rebuilt from published parts first, in its own
 change (docs/COMBAT-DRONES.md 1a): T-Motor's V2808 1300 kV on APC's
 7 x 9E, 47.1 m/s level. combat-gates holds it the fastest quad in level
-flight, and on this correction the five inch's 46.0 m/s sits under it.
+flight, and on this correction the five inch's 46.0 m/s sits under it
+(51.3 against 50.7 on the props' own curves, docs/PROP-CURVES.md).

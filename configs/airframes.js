@@ -119,7 +119,7 @@ export const AIRFRAMES = [
     name: 'Five inch',
     short: '5 inch',
     /* What a pilot calls it out loud, for a card and for the board. */
-    blurb: 'A 710 gram 6S freestyle and race quad. Nearly ten to one, forty six metres a second, and a field big enough to use it.',
+    blurb: 'A 710 gram 6S freestyle and race quad. Nearly ten to one, fifty metres a second, and a field big enough to use it.',
     facts: ['6S', '220 mm', '9.7 : 1'],
     /*
      * THE PICKER'S TWO NUMBERS (src/ui/carousel.js). `sizeMm` is the span of
@@ -139,10 +139,11 @@ export const AIRFRAMES = [
     /* Level speed at full throttle, m/s, and thrust over weight at 1 g: the
      * two figures in `blurb` and `facts`, read by the in-sim builder's
      * racing line (src/builder/line.js). On T-Motor's F60 Pro V and T5147
-     * row since 2026-10-01 (src/native/plant.c): 46.0 m/s level at the
-     * gravityBase below, scripts/combat-gates.js, and 9.72 static on a
-     * fresh pack (docs/STOCK-5INCH.md); 40 and 8.4 before. */
-    topSpeed: 46,
+     * row since 2026-10-01 (src/native/plant.c): 50.7 m/s level at the
+     * gravityBase below on its prop's own thrust curve (docs/PROP-CURVES.md),
+     * scripts/combat-gates.js, and 9.72 static on a fresh pack
+     * (docs/STOCK-5INCH.md); 40 and 8.4 before, 46 between. */
+    topSpeed: 50.7,
     thrustToWeight: 9.7,
     cells: 6,
     /* Pack open circuit volts a cell, in the order the launch card offers
@@ -302,7 +303,7 @@ export const AIRFRAMES = [
     grams: 23.4,
     trackClass: 'micro',
     /* The five inch's, since this flies the five inch's plant. */
-    topSpeed: 46,
+    topSpeed: 50.7,
     thrustToWeight: 9.7,
     /*
      * SIX, BECAUSE THE PLANT IS THE FIVE INCH'S AND ITS THRUST IS KEYED TO
@@ -475,7 +476,7 @@ export const AIRFRAMES = [
     trackClass: 'full',
     /* Level at full throttle in angle mode on a fresh pack, bare, measured
      * on the module; the static thrust to weight is combat-derive's. */
-    topSpeed: 28.3,
+    topSpeed: 31.1,
     thrustToWeight: 4.75,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
@@ -538,7 +539,7 @@ export const AIRFRAMES = [
     sizeMm: 420,
     grams: 1848,
     trackClass: 'full',
-    topSpeed: 27.6,
+    topSpeed: 30.7,
     thrustToWeight: 4.69,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
@@ -599,14 +600,14 @@ export const AIRFRAMES = [
     name: 'Interceptor',
     short: 'Interceptor',
     blurb: 'An 880 gram stretched X 7 inch speed build on a 6S LiPo and 9 inch pitch two blades: the fastest quad here, built to run a strike drone down and ram it. Half a minute of full throttle in the pack.',
-    facts: ['6S LiPo', '312 mm', '170 km/h'],
+    facts: ['6S LiPo', '312 mm', '185 km/h'],
     sizeMm: 312,
     grams: 880,
     trackClass: 'full',
     /* Level at full throttle on a fresh pack, bare, measured on the module
      * (scripts/combat-gates.js); the static thrust to weight is
      * combat-derive's. */
-    topSpeed: 47.1,
+    topSpeed: 51.3,
     thrustToWeight: 8.33,
     cells: 6,
     packVoltages: [4.2, 3.8, 3.5],
