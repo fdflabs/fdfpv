@@ -9196,9 +9196,7 @@ export class Ui {
         const node = el('div', `gate-room gate-room-${it.lobby}`);
         node.setAttribute('role', 'button');
         node.setAttribute('aria-label', it.value ? `${it.label}, ${it.value}` : it.label);
-        const name = el('span', 'gate-room-name', it.label);
-        name.title = it.label;
-        node.append(name);
+        node.append(el('span', 'gate-room-name', it.label));
         if (it.lobby === 'room') {
           node.append(el('span', 'gate-room-value', `${it.join} \u00b7 ${it.value}`));
         }
