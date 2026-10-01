@@ -11,6 +11,9 @@
  *                              the address no longer carries the code;
  *                              Leave, reload: out of the room, and it
  *                              stays out once the shell has run.
+ *   a reload keeps the room,   in a room made by hand, reload: back in
+ *   on its screen (D2)         the same room, on the room screen with
+ *                              its code, the title not shown.
  *
  * No page error.
  *
@@ -125,6 +128,24 @@ try {
   await page.sleep(2000);
   const after = await page.evaluate(ROOM);
   check('a reload after Leave stays out of the room', after.phase === 'idle' && after.code === null, JSON.stringify(after));
+
+  /* A RELOAD KEEPS THE ROOM, ON ITS SCREEN. */
+  const made = await page.evaluate("(async () => { const c = await window.__roomCreate({ map: 'swiss2' }); window.__ui.act('friends'); return c; })()");
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(made)}`, 60000).catch(() => {});
+  const inRoom = await page.evaluate(ROOM);
+  check('a room made by hand, on its screen', inRoom.phase === 'open' && inRoom.code === made && inRoom.screen === 'friends', JSON.stringify(inRoom));
+  await reload(page);
+  await page.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends'", 60000).catch(() => {});
+  const back = await page.evaluate(`(() => {
+    const friends = document.querySelector('.screen-friends');
+    return {
+      ...${ROOM},
+      title: document.querySelector('.screen-title').style.display !== 'none',
+      shown: Boolean(friends) && friends.style.display !== 'none' && friends.textContent.includes(window.__rooms().code),
+    };
+  })()`);
+  check('a reload is back in the same room', back.phase === 'open' && back.code === made, JSON.stringify(back));
+  check('on the room screen, its code on it, the title not shown', back.screen === 'friends' && back.shown && !back.title, JSON.stringify(back));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

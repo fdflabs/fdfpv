@@ -2097,6 +2097,7 @@ export async function boot({
       }
       roomGone.clear();
       roomSessionWelcome(w);
+      roomBootLand(w);
       /* Crash damage is on in this room: a pilot already flying its world
        * with it off starts again, as a war's does (warBegin). */
       if (mode === 'flight' && damage.available && crashDamageWanted(ui.settings) !== runDamage && roomTagWorldReady(w.map)) {
@@ -3336,6 +3337,31 @@ export async function boot({
   /* Every frame, after the aircraft is posed: send this one, draw the
    * others. wallMs is the render clock. */
   let roomAutoJoined = false;
+  /* The code the boot rejoins (a reload, or a ?room= link), until a
+   * welcome; null after. */
+  let roomBootJoin = null;
+
+  /*
+   * A RELOAD KEEPS YOU IN YOUR ROOM, AND ON ITS SCREEN. The owner
+   * (2026-10-01) decided a reload must keep the pilot in their room; it
+   * did, but the page booted on the gate with nothing saying so, and Free
+   * Flight from there flew inside the room (docs/FLOW-AUDIT.md D2). The
+   * boot's rejoin lands on the room screen as the Fly with friends card
+   * would, without seating anything: the welcome seats the room's world.
+   * Only while the title is still up: a pilot who has gone on is left
+   * where they went.
+   */
+  function roomBootLand(w) {
+    const wanted = roomBootJoin;
+    roomBootJoin = null;
+    if (!wanted || normaliseCode(w.code) !== wanted || ui.screen !== 'title') {
+      return;
+    }
+    ui.craftGate = false;
+    ui.mode = 'freestyle';
+    ui.returnTo = 'title';
+    ui.show('friends');
+  }
   function roomFrame(wallMs, dt) {
     raceHoldMs = 0;
     /* Put up again below when there is a live match to put it round. */
@@ -3348,6 +3374,7 @@ export async function boot({
       roomAutoJoined = true;
       const wanted = wantedRoom();
       if (wanted && roomLinkState.available()) {
+        roomBootJoin = wanted;
         roomLinkState.join(wanted);
       }
     }
