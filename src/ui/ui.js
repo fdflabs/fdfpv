@@ -129,13 +129,13 @@ import {
   setPidsExpert,
 } from '../../configs/pids.js';
 import {
-  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks, wikiPageUrl,
+  boardConfigured, boardPageUrl, fetchTrackDocument, fetchTrackList, fetchTrackTimes, pickFeaturedTracks,
 } from '../share/board.js';
 import { PATTERNS } from '../game/trickdetect.js';
 import { PROVEN } from '../game/proven.js';
 import { trickByName } from '../game/tricks.js';
 import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
-import { BOARD_WINDOW, WIKI_WINDOW, openNamedWindow } from '../share/windows.js';
+import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { crashRecord } from '../share/crashrecord.js';
 import { createShotTray } from './bugshots.js';
@@ -219,7 +219,7 @@ import {
  * appear here renders as a plain action, which is the safe default: it gets no
  * chevron it has not earned.
  */
-const LINK_ACTIONS = new Set(['leaderboard', 'wiki']);
+const LINK_ACTIONS = new Set(['leaderboard']);
 const SCREEN_ACTIONS = new Set([
   'courses', 'race', 'freestyle', 'pilot', 'quad', 'launch', 'standings', 'rates', 'pids', 'fc',
   'howto', 'tricks', 'credits', 'trackbuilder', 'remix', 'editown', 'choosepad',
@@ -3549,7 +3549,7 @@ export class Ui {
       }
     });
     this.show('title');
-    this.bindWikiHash();
+    this.bindLocationHash();
   }
 
   build() {
@@ -3717,10 +3717,6 @@ export class Ui {
     /* First run only. Replaced by the keep note once a lap has been flown. */
     this.firstNote = el('p', 'keep-note first-note', str('ui.a_quad_has_no_brakes_and'));
     brand.append(this.firstNote);
-    this.wikiTeaser = btn('wiki-teaser', str('ui.simulating_fpv_for_nerds'));
-    this.wikiTeaser.setAttribute('aria-label', str('ui.open_the_fpv_wiki'));
-    this.wikiTeaser.addEventListener('click', () => this.act('wiki'));
-    brand.append(this.wikiTeaser);
     const titleBlock = wrapMenu();
     this.titleMenu = titleBlock.menu;
     /*
@@ -3820,9 +3816,6 @@ export class Ui {
 
     this.howtoMode = el('p', 'howto-mode', '');
     howto.append(this.howtoMode);
-    const howtoWiki = btn('howto-wiki', str('ui.why_this_works_the_fpv_wiki'));
-    howtoWiki.addEventListener('click', () => this.act('wiki'));
-    howto.append(howtoWiki);
 
     const howtoBlock = wrapMenu();
     this.howtoMenu = howtoBlock.menu;
@@ -6071,8 +6064,8 @@ export class Ui {
       /*
        * The course actions that used to appear and vanish here live on the
        * Courses screen and on Results, where the course itself is what the
-       * player is looking at. FPV wiki opens the landing-site wiki. Report a bug
-       * is a stable last row so testers can send a ticket from title.
+       * player is looking at. Report a bug is a stable last row so testers
+       * can send a ticket from title.
        */
       /*
        * ONE ROW FOR THE PLACE, BECAUSE THE MODE IS ALREADY ANSWERED.
@@ -6228,11 +6221,6 @@ export class Ui {
           note: str('ui.you_and_your_radio_your_name'),
         },
         { label: str('ui.how_to_fly'), action: 'howto', note: str('ui.the_sticks_live_and_what_the') },
-        {
-          label: str('ui.fpv_wiki'),
-          action: 'wiki',
-          note: str('ui.the_closed_loop_the_plant_and'),
-        },
         {
           label: str('ui.tracks_and_statistics'),
           action: 'leaderboard',
@@ -7057,8 +7045,7 @@ export class Ui {
        * chip in the corner, or F8, so this list stays put. Flight feel
        * sits by the tuning rows because "this feels off" is the moment a
        * pilot pauses, and the report carries the tune and PIDs they are
-       * paused on. FPV wiki opens the landing-site wiki so a mid-flight
-       * "why did that happen" does not have to quit the run. */
+       * paused on. */
       /*
        * THE ONE COPY THAT EARNS ITS PLACE, and doors for the rest.
        *
@@ -7138,7 +7125,6 @@ export class Ui {
         },
         graphicsItem(s),
         { label: str('ui.how_to_fly'), action: 'howto' },
-        { label: str('ui.fpv_wiki'), action: 'wiki', note: str('ui.the_plant_the_compiled_controller_and') },
         { label: str('ui.credits'), action: 'credits', note: str('ui.who_made_this_who_flew_it') },
         /* Track mode's own way out: the list the track was played from. */
         ...(s.map === 'track' ? [{ label: str('ui.my_tracks'), action: 'mytracks', note: str('ui.back_to_the_list_of_tracks') }] : []),
@@ -7630,7 +7616,7 @@ export class Ui {
        * title dressed itself as the menu: `is-gate` never went on, and with
        * it went the rule that lays the two cards out
        * (`.screen-title.is-gate .gate-cards`), the rules that take the keep
-       * note, the wiki teaser and the best-lap chip off a screen that is
+       * note and the best-lap chip off a screen that is
        * asking one question, and the rule that hides an empty menu panel.
        * The pilot got a blank box where the aircraft should be, two
        * paragraphs that belong to a seat they had not chosen, and no way to
@@ -10249,7 +10235,7 @@ export class Ui {
     }
   }
 
-  bindWikiHash() {
+  bindLocationHash() {
     this.applyLocationHash();
     window.addEventListener('hashchange', () => this.applyLocationHash());
   }
@@ -10260,10 +10246,6 @@ export class Ui {
       if (this.screen !== 'credits' && this.screen !== 'flight' && this.screen !== 'paused') {
         this.act('credits');
       }
-      return;
-    }
-    if (h.startsWith('wiki/')) {
-      window.location.replace(wikiPageUrl(h));
       return;
     }
     if (this.screen === 'credits') {
@@ -13035,10 +13017,6 @@ export class Ui {
     if (action.startsWith('casualtrack:')) {
       this.newTrackOpen = false;
       this.openBuilder({ map: action.slice('casualtrack:'.length), casual: true });
-      return;
-    }
-    if (action === 'wiki') {
-      openNamedWindow(wikiPageUrl(), WIKI_WINDOW);
       return;
     }
     /*

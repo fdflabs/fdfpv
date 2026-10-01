@@ -85,7 +85,7 @@ const QUALITY = 82;
 const HIDE = [
   '.menu-stage', '.hint', '.lede', '.title-foot', '.bug-chip', '.brand',
   '.brand-best', '.keep-note', '.first-note', '.gate-note', '.beta-note',
-  '.wiki-teaser', '.craft-showcase', '.frame-top', '.frame-bot', '.music-dock',
+  '.craft-showcase', '.frame-top', '.frame-bot', '.music-dock',
   /*
    * AND THE CARDS THEMSELVES, which was missing and is why this list is
    * being read again. A capture run seeds a track and an aircraft into

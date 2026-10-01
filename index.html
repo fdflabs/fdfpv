@@ -1343,8 +1343,7 @@
       .first-note { display: none; }
       .screen-title.is-first .first-note { display: block; }
       .screen-title.is-first .keep-note:not(.first-note),
-      .screen-title.is-first .brand-best,
-      .screen-title.is-first .wiki-teaser { display: none; }
+      .screen-title.is-first .brand-best { display: none; }
       /* The gate. Everything about a seat comes off the screen, because
          the pilot has not said yet whether they are flying it, and
          everything about the product comes off too: the gate is one
@@ -1353,7 +1352,6 @@
          before the lap and not after it. */
       .screen-title.is-gate .keep-note,
       .screen-title.is-gate .brand-sub,
-      .screen-title.is-gate .wiki-teaser,
       .screen-title.is-gate .brand-best { display: none; }
       /*
        * THE GATE'S TWO CARDS.
@@ -1562,20 +1560,6 @@
       }
       .craft-plan { width: 100%; height: 100%; color: var(--cream); }
 
-      .wiki-teaser {
-        display: inline-flex; align-items: center; gap: 10px;
-        margin: 14px 0 0; padding: 0; border: 0; background: none;
-        color: var(--sakura); font: inherit; font-size: 13.5px;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        cursor: pointer; pointer-events: auto; text-align: left;
-        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
-      }
-      .wiki-teaser:hover, .wiki-teaser:focus-visible { color: var(--cream); }
-      .wiki-teaser::before {
-        content: "";
-        width: 28px; height: 2px; flex: 0 0 auto;
-        background: var(--sakura);
-      }
       .screen-title .brand-sub {
         text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75);
       }
@@ -1803,26 +1787,6 @@
       .screen-title.has-help .keep-note,
       .screen-title.has-help .first-note {
         opacity: 0;
-      }
-      /*
-       * AND THE TEASER, which is the third block of copy in this column and
-       * was left out of the handoff above. The note grows upward out of
-       * flow from the menu's top edge and lands exactly on it, so the front
-       * page drew two sentences on top of each other the moment the cursor
-       * moved off Fly: "2022 AU Nationals, and every other track" printed
-       * through "Simulating FPV, for nerds". Same transition as its two
-       * neighbours so the three fade as one block.
-       *
-       * pointer-events with the opacity, because unlike the notes this one
-       * is a BUTTON, and a button that is invisible but still clickable is
-       * worse than one that is not there.
-       */
-      .screen-title .wiki-teaser {
-        transition: opacity 140ms ease;
-      }
-      .screen-title.has-help .wiki-teaser {
-        opacity: 0;
-        pointer-events: none;
       }
       .craft-showcase {
         grid-column: 1;
@@ -3041,8 +3005,7 @@
         }
         .screen-title.is-gate .brand { display: block; }
         .screen-title.is-gate .brand .beta-note { margin: 10px 0 0; }
-        .screen-title .keep-note,
-        .screen-title .wiki-teaser { display: none; }
+        .screen-title .keep-note { display: none; }
         /* The storage note above goes at this width. The beta notice does
            not: a phone hits the same bugs a desktop does, and it is one
            line where that note was four. */
@@ -3203,7 +3166,6 @@
         .screen-title .brand-sub,
         .screen-title .brand-best,
         .screen-title .keep-note,
-        .screen-title .wiki-teaser,
         .screen-title .title-foot .hint {
           display: none;
         }
@@ -3526,15 +3488,6 @@
         max-width: 52em; margin: 20px auto 0;
         color: rgba(235, 230, 215, 0.62);
         font-size: 13.5px; line-height: 1.6; text-align: center;
-      }
-      .howto-wiki {
-        display: block; margin: 14px auto 0; padding: 8px 14px;
-        border: 0; border-radius: 4px; cursor: pointer; pointer-events: auto;
-        background: rgba(232, 168, 184, 0.16); color: var(--cream);
-        font: inherit; font-size: 14px;
-      }
-      .howto-wiki:hover, .howto-wiki:focus-visible {
-        background: rgba(232, 168, 184, 0.28);
       }
 
       .cols { display: flex; gap: 6vw; flex-wrap: wrap; justify-content: center; }
