@@ -56,6 +56,8 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial } from './celmat.js';
 import { WORLD_SCALE, bodyPosToModel } from './frame.js';
 import { PROP_SPIN } from './herocraft.js';
+import { paintRegions } from './livery.js';
+import { paintHook } from './combatpaint.js';
 
 /*
  * THE FRAMES, as docs/COMBAT-DRONES.md and scripts/combat-derive.js give
@@ -739,6 +741,42 @@ function materials(fog) {
   };
 }
 
+/*
+ * The paint regions (src/render/livery.js): each one colour as built, and
+ * the materials a repaint of it takes along as shades. What is metal,
+ * glass, copper, wire or circuit board stays as it is.
+ */
+function paintCoat(mats) {
+  const coat = paintRegions();
+  coat.base('frame', mats.carbon);
+  coat.shade('frame', mats.carbonDeep);
+  coat.shade('frame', mats.standoff);
+  coat.base('pack', mats.pack);
+  coat.shade('pack', mats.packEdge);
+  coat.base('payload', mats.olive);
+  coat.shade('payload', mats.oliveDark);
+  coat.shade('payload', mats.canister);
+  coat.base('tape', mats.tape);
+  coat.base('cage', mats.tpu);
+  coat.base('legs', mats.leg);
+  coat.base('props', mats.prop);
+  return coat;
+}
+
+/* Where decals go on the packs: the side of the block (and its twin) and
+ * its top, on the second brick when there is one. */
+function packSurfaces(f, pack2At) {
+  const { box: [lx, ly, lz], at, bricks } = f.spec.pack;
+  const base = f.D(...at);
+  const top = pack2At ?? base;
+  const w = ly;
+  const yTop = top[1] + lz / 2;
+  return [
+    { id: 'pack-side', p: [base[0] - w / 2, base[1], base[2]], n: [-1, 0, 0], size: Math.min(lz, lx) * 0.8, mirror: true },
+    { id: 'pack-top', p: [top[0] + (bricks > 1 ? -w / 4 : 0), yTop, top[2]], n: [0, 1, 0], size: Math.min(w / bricks, lx) * 0.8, mirror: bricks > 1 },
+  ];
+}
+
 /* ------------------------------------------------------------------ */
 /* The builder.                                                        */
 /* ------------------------------------------------------------------ */
@@ -781,6 +819,7 @@ export function buildCombatDrone(opts = {}) {
   const seg = lite ? 12 : 20;
   const f = measure(spec);
   const mats = materials(fog);
+  const coat = paintCoat(mats);
   const inkMat = new THREE.MeshBasicMaterial({ color: INK_COLOUR, side: THREE.BackSide, fog });
   inkMat.userData.hullColor = INK_COLOUR;
   const style = { shade, ink, inkMat };
@@ -800,6 +839,7 @@ export function buildCombatDrone(opts = {}) {
   }
 
   const parts = { accessories: {} };
+  const surfaces = packSurfaces(f, wanted.has('pack2') ? f.C(...spec.accessories.pack2) : null);
   const cam = f.D(...spec.camera);
   parts.frame = kitGroup(mountKit(frameKit(createKit(), f, lite), f, cam), 'frame', mats, style);
   parts.legs = kitGroup(legsKit(createKit(), f), 'legs', mats, style);
@@ -849,6 +889,8 @@ export function buildCombatDrone(opts = {}) {
     group.add(payload);
     parts.payload = payload;
     parts.payloadBody = body;
+    const r = p.d / 2;
+    surfaces.push({ id: 'payload-side', p: [centre[0] - r, centre[1], centre[2]], n: [-1, 0, 0], size: p.d * 0.8, mirror: true });
   }
 
   /* Rotors: the hub and three blades as one mesh a motor, turned by the
@@ -888,7 +930,7 @@ export function buildCombatDrone(opts = {}) {
   }
   blade.dispose();
 
-  return {
+  const craft = {
     group,
     discs,
     blades,
@@ -914,4 +956,6 @@ export function buildCombatDrone(opts = {}) {
       },
     },
   };
+  craft.combat.paint = paintHook(craft, coat, surfaces);
+  return craft;
 }

@@ -213,6 +213,21 @@ try {
       }
     }
   }
+  /* The garage's hook, on the fullest build of each frame and a bare one. */
+  for (const frame of frames) {
+    for (const choice of [{ frame, payload: 'standard', accessories: offered[frame] }, { frame, payload: 'none', accessories: [] }]) {
+      const name = `${frame}/${choice.payload}/${choice.accessories.join('+') || 'bare'}`;
+      const r = await page.evaluate(`window.__combat.paintAudit(${JSON.stringify(choice)})`);
+      const blank = r.surfaces.filter((sf) => !(sf.triangles > 0));
+      check(`${name}: a decal prints on every surface`, r.surfaces.length > 0 && blank.length === 0,
+        r.surfaces.map((sf) => `${sf.id} ${sf.triangles}`).join(', '));
+      const same = Object.entries(r.finishes).filter(([, v]) => JSON.stringify(v.colours) === JSON.stringify(r.stock));
+      check(`${name}: every finish with wear repaints`, same.length === 0, same.map(([f]) => f).join(' ') || r.regions.join(' '));
+      check(`${name}: aluminium is a metallic finish`, Object.values(r.finishes.aluminium.finish).every((v) => v === 'metallic'), JSON.stringify(r.finishes.aluminium.finish));
+      check(`${name}: an empty set() is the model as built`, r.restored, JSON.stringify(r.stock));
+      check(`${name}: an unknown finish, region or wear is refused`, r.refused === 3, `${r.refused} of 3`);
+    }
+  }
   check(`${builds} builds, every frame x payload x accessory set it offers`, builds === expected && fails === 0, `${fails} failures`);
   check('worst draws, full', worst.draws <= budget.draws, `${worst.draws} of ${budget.draws}, ${worst.at.draws}`);
   check('worst draws, lite', worst.liteDraws <= budget.liteDraws, `${worst.liteDraws} of ${budget.liteDraws}, ${worst.at.liteDraws}`);

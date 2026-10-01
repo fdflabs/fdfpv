@@ -30,6 +30,8 @@ import { buildComposer } from '../../src/render/post.js';
 import {
   buildCombatDrone, COMBAT_FRAMES, COMBAT_PAYLOAD_IDS, COMBAT_ACCESSORY_IDS,
 } from '../../src/render/combatcraft.js';
+import { dressDecals, readDecals } from '../../src/render/decals.js';
+import { readFinish } from '../../src/render/finish.js';
 import { buildHeroCraft } from '../../src/render/herocraft.js';
 import { buildWhoopCraft } from '../../src/render/whoopcraft.js';
 import { buildSkyCraft } from '../../src/render/skycraft.js';
@@ -305,6 +307,42 @@ window.__combat = {
     release(b.group);
     release(lite.group);
     return r;
+  },
+  /*
+   * The garage's hook on one build: a star on every decal surface must
+   * print on the skin there (decals.js projects it onto what is under the
+   * point, facing the normal), every finish and a full wear must change
+   * what the regions are drawn in, and set() with nothing must put back
+   * exactly the colours the model was built in.
+   */
+  paintAudit(choice, build = buildCombatDrone) {
+    const craft = build({ ...choice, name: 'combat', fog: false });
+    const paint = craft.combat.paint;
+    const out = { regions: paint.regions, surfaces: [], finishes: {}, restored: false };
+    for (const sf of paint.surfaces) {
+      dressDecals(craft, [{ k: 'star', p: sf.p, n: sf.n, s: sf.size * 0.9, a: 1, r: 0, m: false, c: 0xffffff, c2: 0x101010 }]);
+      out.surfaces.push({ id: sf.id, triangles: readDecals(craft).triangles });
+      dressDecals(craft, []);
+    }
+    const stock = JSON.stringify(craft.livery.stock());
+    for (const f of paint.finishes) {
+      paint.set({ finish: f, wear: 1 });
+      out.finishes[f] = { colours: craft.livery.read(), finish: readFinish(craft) };
+    }
+    paint.set({});
+    out.restored = JSON.stringify(craft.livery.read()) === stock;
+    out.stock = craft.livery.stock();
+    let threw = 0;
+    for (const bad of [{ finish: 'chrome-ish' }, { wear: 1.5 }, { colours: { nope: 0 } }]) {
+      try {
+        paint.set(bad);
+      } catch {
+        threw += 1;
+      }
+    }
+    out.refused = threw;
+    release(craft.group);
+    return out;
   },
   /* Put one build on the stage, replacing the last. */
   show(choice, { spin = 0.6, blur = false, onGround = false } = {}) {
