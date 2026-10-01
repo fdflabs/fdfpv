@@ -35,7 +35,7 @@ function must(code, where) {
   }
 }
 
-function setBlock(sim, fn, values) {
+export function setBlock(sim, fn, values) {
   const ptr = sim.e.malloc(values.length * 8);
   new Float64Array(sim.e.memory.buffer, ptr, values.length).set(values);
   const rc = sim.e[fn](ptr);
