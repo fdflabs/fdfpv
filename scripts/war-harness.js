@@ -26,6 +26,8 @@
  *           before its countdown, and the pass must go off as it does
  *           without one, INTRO_MS later, every client seeing the same
  *           briefing, countdown and go
+ *   striker the head on pass with the Striker (docs/COMBAT-DRONES.md
+ *           section 7) as the defender, inside and outside BLAST_M
  *   wires   forty Strikers flown one after another across a power line
  *           of the Itaipu map at its height (src/share/war/wires.js):
  *           some fly into it or another line on the way, as many as the
@@ -83,6 +85,7 @@ import {
 import { INTRO_MS } from '../src/share/war/intro.js';
 import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
 import { BAND_M } from '../src/share/war/wires.js';
+import { createGrid, districtOf, DISTRICTS, FLICKER_MS } from '../src/share/war/grid.js';
 
 const arg = (name, dflt) => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -259,14 +262,15 @@ function mission(id, waves, routes) {
 
 /* Head on: the Strike along +x through the origin, 300 m after its birth
  * at GO + 1 s, the defender along -x with its nearest part passing `reach` from it. `lead`
- * is a briefing before the countdown (INTRO_MS, or 0 for none). */
-function pass(reach, lead = 0) {
-  const air = ['cub1400'];
+ * is a briefing before the countdown (INTRO_MS, or 0 for none); `airframe`
+ * the defender, a Cub unless another is named. */
+function pass(reach, lead = 0, airframe = 'cub1400') {
+  const air = [airframe];
   const off = offsetFor(air[0], -20, reach);
   const meet = GO + lead + 1000 + (300 / KIND.strike.speed) * 1000;
   const m = mission('pass', [{ at: 1, kind: 'strike', n: 1, route: 'line' }], { line: [[-300, Y, 0], [300, Y, 0]] });
   const sc = {
-    name: `${lead ? 'briefed ' : ''}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,
+    name: `${lead ? 'briefed ' : ''}${airframe === 'cub1400' ? '' : `${airframe} `}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,
   };
   /* The truth: the closest the scripted pair comes, on the millisecond. */
   const plan = planAgent(m, {
@@ -338,7 +342,7 @@ function runOne(cfg) {
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = sc.air.map((_, i) => ({
-    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(), states: [], early: 0,
+    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(), states: [], early: 0, deads: [],
   }));
   const deliver = (actions, now) => {
     for (const a of actions) {
@@ -363,6 +367,9 @@ function runOne(cfg) {
             c.early += a.t0 < GO + (sc.lead || 0) ? 1 : 0;
           }
         } else if (m.type === 'war' && (m.op === 'boom' || m.op === 'dead')) {
+          if (m.op === 'dead') {
+            c.deads.push(m);
+          }
           c.events.push(m.op === 'boom' ? `boom:${m.seat}:${m.at}` : `dead:${m.ids.join('+')}:${m.at}:${m.by}`);
           if (m.op === 'boom' && m.seat === c.seat) {
             c.blasts.push(m.at);
@@ -698,6 +705,34 @@ function briefing() {
 }
 
 /*
+ * The Striker as a defender (docs/COMBAT-DRONES.md section 7): the war's
+ * own fixed wing, 2.5 m across and 2.7 m long, rammed head on into a
+ * Strike as the quads and the planes are. The referee judges it by its
+ * own part boxes (configs/hulls.js), so a pass inside BLAST_M of its
+ * nearest part goes off and one outside does not, on every link.
+ */
+function striker() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  const reaches = [5.0, 5.5, 6.5, 7.0];
+  const results = reaches.map((r) => sweep(pass(r, 0, 'striker2500'), 0));
+  const sum = (f) => results.reduce((n, x) => n + x[f], 0);
+  console.log(`
+the Striker as a defender: head on passes at ${reaches.join(', ')} m from its nearest part, ${sum('runs')} runs`);
+  row('its hull is the referee\'s', Boolean(hullFor('striker2500')) && hullFor('striker2500').boxes.length > 8, `${hullFor('striker2500') ? hullFor('striker2500').boxes.length : 0} part boxes`);
+  row('every client has the room\'s booms and deaths', sum('disagree') === 0, `${sum('disagree')} of ${sum('runs')} disagree`);
+  row('the booms and deaths are the zero latency run\'s, every run inside LATE_MS', sum('notRef') === 0, `${sum('notRef')} differ`);
+  row('the passes inside BLAST_M go off on every run and the ones outside never do',
+    results.every((r, k) => (reaches[k] < BLAST_M ? r.boomRuns === r.runs : r.booms === 0)),
+    results.map((r, k) => `${reaches[k]} m: ${r.boomRuns} of ${r.runs}`).join(', '));
+  row('no false detonation', sum('falseBooms') === 0, `${sum('falseBooms')} false`);
+  return failed;
+}
+
+/*
  * The power lines: a route square across the middle chord of the first
  * span the Itaipu map's attackers can meet, at its height, flown by forty
  * Strikers half a second apart; one client hovering far off, on a zero
@@ -754,8 +789,29 @@ function wires() {
       const ok = plan && plan.end === 'wire' && plan.tEnd === e.t && a.wire === e.t && dead.includes(`dead:${e.id}:${e.t}:0`) && onSpan(p);
       off += ok ? 0 : 1;
     }
+    /* The night grid (src/share/war/grid.js) hears the room's wire deaths
+     * as roomwar hands them on, { type: 'dead', why, at, p }: each puts out
+     * the town district nearest it, from its ms, and nothing else. */
+    const grid = createGrid();
+    const wireDeads = c0.deads.filter((d) => d.why === 'wire');
+    grid.hear(wireDeads.map((d) => ({
+      type: 'dead', ids: d.ids, at: d.at, by: d.by, why: d.why, p: d.p,
+    })), { id: 1 });
+    const from = grid.from({ id: 1, down: [] });
+    const firstAt = Math.min(...wireDeads.map((d) => d.at));
+    const dark = DISTRICTS.filter((d, i) => Number.isFinite(from[i]));
+    const before = grid.state({ id: 1, down: [] }, firstAt - 1);
+    const after = grid.state({ id: 1, down: [] }, Math.max(...wireDeads.map((d) => d.at)) + FLICKER_MS);
+    const shaped = wireDeads.every((d) => d.by === 0 && Array.isArray(d.p) && d.p.length === 3 && Number.isFinite(d.at));
+    const nearest = new Set(wireDeads.map((d) => {
+      const k = districtOf(d.p[0], d.p[2], (q) => q.bus === 'py' || q.bus === 'br');
+      return k >= 0 ? DISTRICTS[k].id : null;
+    }));
+    const blackout = shaped && dark.length > 0 && dark.every((d) => nearest.has(d.id))
+      && Object.values(before).every((v) => v === 'lit') && dark.every((d) => after[d.id] === 'dark');
     return {
       struck: struck.length, wired: wired.length, born: c0.born.size, off, key: struck.map((e) => `${e.id}@${e.t}`).join(','), lost: res.room.war.match.output,
+      blackout, dark: dark.map((d) => d.id).join(','),
     };
   };
   const a = run(0.5);
@@ -768,6 +824,8 @@ the power lines: ${a.born} Strikers across a span at its height; seed one ${a.st
   row('each died by nobody where and when the client\'s plan of its birth ends, on the line', a.off === 0 && b.off === 0, `${a.off + b.off} otherwise`);
   row('the same seed is the same game, another seed another', again.key === a.key && b.key !== a.key, `${again.key === a.key ? 'same' : 'differs'}, ${b.key !== a.key ? 'other' : 'same'}`);
   row('a wire death takes no output', a.lost === m.output && b.lost === m.output, `${a.lost} and ${b.lost} of ${m.output} MW`);
+  row('the night grid hears each as { dead, why wire, at, p }: the town district nearest goes dark from its ms, every district lit before',
+    a.blackout && b.blackout, `dark ${a.dark} and ${b.dark}`);
   return failed;
 }
 
@@ -781,6 +839,7 @@ for (const clock of clocks) {
 }
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
+  failed += striker();
   failed += wires();
 }
 /* The plan's 60 attackers, and twice that. In rounds, the most alive at
