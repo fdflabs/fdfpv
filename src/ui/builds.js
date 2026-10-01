@@ -12,12 +12,14 @@
  *   parts    the prop and the add-ons, configs/hangar-parts.js (never the
  *            damage: that is the airframe's last crash, not a build's)
  *   tuning   the bench setup, configs/tuning.js
+ *   combat   a combat quad's payload and accessories, configs/combat.js
  *
  * THE SLOTS STAY THE TRUTH. What is flown, drawn and sent to a room has
  * always been read from the per airframe settings (settings.livery,
  * .power, .parts, .tuning), by every reader in src/main.js and by the room
  * profile on the wire. Choosing a build FITS it: its fit is written into
- * those slots, and what they held before, the pilot's own customisation of
+ * those slots (and settings.combat), and what they held before, the
+ * pilot's own customisation of
  * the stock aircraft, is kept in settings.buildFits beside it until the
  * stock aircraft is chosen again, which puts it back. So every reader,
  * the seat, the swap and the wire carry on unchanged, and nothing a pilot
@@ -52,6 +54,7 @@ import { POWER, powerChoice } from '../../configs/power.js';
 import { normalizeEntry, setupFor, tuningFor } from '../../configs/tuning.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
 import { cleanName } from '../../configs/paint.js';
+import { combatChoice } from '../../configs/combat.js';
 import { badWordIn } from '../../tracks-api/words.js';
 
 export const BUILDS_KEY = 'webfpv.builds.v1';
@@ -61,10 +64,10 @@ export const MAX_BUILDS = 48;
 
 const isRecord = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 
-/* An airframe a build can be made on: one the hangar opens, which today is
- * every plane and no quad (configs/liveries.js paintable). */
+/* An airframe a build can be made on: one the hangar opens, every plane
+ * (configs/liveries.js paintable) and a combat quad for its loadout. */
 export function buildable(id) {
-  return typeof id === 'string' && airframeById(id).id === id && paintable(id);
+  return typeof id === 'string' && airframeById(id).id === id && (paintable(id) || Boolean(airframeById(id).combat));
 }
 
 /* A fit, valid for this airframe: whatever it cannot fly dropped back to
@@ -76,11 +79,13 @@ export function normaliseFit(id, fit) {
   const tuning = tuningFor(id) && isRecord(f.tuning)
     ? normalizeEntry(id, f.tuning, setupFor(id, powerChoice(id, power ? { [id]: power } : {})).limits)
     : null;
+  const combat = airframeById(id).combat && isRecord(f.combat) ? combatChoice(airframeById(id), f.combat) : null;
   return {
     livery: normaliseEntry(liveryKey(id), f.livery) ?? null,
     power,
     parts: plane ? { prop: plane.prop, addons: plane.addons } : null,
     tuning: tuning ?? null,
+    combat,
   };
 }
 
@@ -91,6 +96,7 @@ export function fitOf(s, id) {
     power: s.power && s.power[id],
     parts: s.parts && s.parts[id],
     tuning: s.tuning && s.tuning[id],
+    combat: s.combat && s.combat[id],
   });
 }
 
@@ -116,6 +122,9 @@ export function putFit(s, id, fit) {
   s.parts = withEntry(s.parts, id, normalisePlane(id, { prop: 'stock', addons: [], ...(fit.parts ?? {}), damage }));
   if (tuningFor(id)) {
     s.tuning = withEntry(s.tuning, id, fit.tuning);
+  }
+  if (airframeById(id).combat) {
+    s.combat = withEntry(s.combat, id, fit.combat);
   }
   return s;
 }

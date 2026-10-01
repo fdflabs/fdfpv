@@ -82,6 +82,7 @@ jobs:
       - run: npm run dlg:stab
       - run: npm run tigermoth:gates
       - run: npm run tigermoth:stab
+      - run: npm run combat:gates
       - run: npm run input:selftest
       - run: npm run ghost:selftest
       - run: npm run contact:selftest

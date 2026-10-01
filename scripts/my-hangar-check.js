@@ -28,6 +28,8 @@
  *      and B keeps.
  *   9. Reloaded: the builds, the one worn and the stock Timber's own
  *      customisation all kept, the stock card still drawn in it.
+ *  10. A drone: the 7 inch's loadout (src/ui/hangar-combat.js) saved as
+ *      a build, chosen and carried, and the stock 7 inch its own again.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/my-hangar-check.js [outdir]
@@ -420,6 +422,37 @@ async function main() {
     await page.until('!window.__ui.hangar.isOpen && window.__ui.carousel.isOpen', 10000);
     await shots(page, 'picker');
     await page.tap('Escape');
+
+    console.log('10. a drone: the 7 inch\'s loadout as a build');
+    await openPicker(page);
+    await toTab(page, 'quad');
+    await centre(page, '7inch');
+    await page.tap('KeyC');
+    await page.until('window.__ui.hangar.isOpen', 10000);
+    const loadout = await page.evaluate("({ tab: window.__ui.hangar.tab, mine: (document.querySelector('.hangar [data-key=\"mine-new\"]') || {}).textContent })");
+    say(loadout.tab === 'loadout' && loadout.mine === 'Save to My Hangar', `Customise on the 7 inch opens its loadout with Save to My Hangar: ${JSON.stringify(loadout)}`);
+    await page.evaluate(hangarKey('payload-wide'));
+    await page.evaluate(hangarKey('accessory-pack2'));
+    await page.evaluate(hangarKey('mine-new'));
+    await page.evaluate("(() => { const f = document.querySelector('.hangar [data-key=\"mine-name\"]'); f.value = 'Long range'; return true; })()");
+    await page.evaluate(hangarKey('mine-name-save'));
+    await page.until('!window.__ui.hangar.isOpen && window.__ui.carousel.isOpen', 10000);
+    st = await stored(page);
+    const quad = st.builds.find((b) => b.name === 'Long range');
+    say(Boolean(quad) && quad.airframe === '7inch' && same(quad.fit.combat, { payload: 'wide', accessories: ['pack2'] }) && !(st.settings.combat && st.settings.combat['7inch']),
+      `saved as a build, the stock 7 inch untouched: ${JSON.stringify(quad && quad.fit.combat)}`);
+    await page.tap('Enter');
+    await page.until('!window.__ui.carousel.isOpen', 10000);
+    ss = await page.evaluate('window.__ui.settings');
+    say(ss.airframe === '7inch' && same(ss.combat['7inch'], { payload: 'wide', accessories: ['pack2'] }) && ss.buildFits['7inch'].build === quad.id,
+      `chosen, the 7 inch is seated carrying it: ${JSON.stringify(ss.combat['7inch'])}`);
+    await openPicker(page);
+    await toTab(page, 'quad');
+    await centre(page, '7inch');
+    await page.tap('Enter');
+    await page.until('!window.__ui.carousel.isOpen', 10000);
+    ss = await page.evaluate('window.__ui.settings');
+    say(!(ss.combat && ss.combat['7inch']) && !ss.buildFits['7inch'], `the stock 7 inch chosen again carries its own: ${JSON.stringify(ss.combat)}`);
 
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);
