@@ -68,11 +68,14 @@
  *      turbojet's plant.
  *  11. The combat aircraft's paint: the Striker from the picker, its
  *      Customise on the Loadout tab, then Colours: the test scheme and a
- *      colour of the pilot's own on the engine, worn by the hangar's model
- *      before Save, stored by it, worn by the picker's; flown on the
- *      turbojet and refitted in the air on the piston engine, the flying
- *      model in it on both. And the 7 inch the same way, a two tone with
- *      its own colour on the frame, worn when it is swapped in in the air.
+ *      colour of the pilot's own on the engine and a number aimed onto its
+ *      side, worn by the hangar's model before Save; the livery saved by
+ *      name and its code imported back whole; stored, worn by the
+ *      picker's; flown on one engine and refitted in the air on the
+ *      other, the flying
+ *      model in it, decal and all, on both. And the 7 inch the same way, a
+ *      two tone with its own colour on the frame and a stripe aimed onto
+ *      its top, worn when it is swapped in in the air.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/hangar-check.js [map]     alps by default
@@ -1023,9 +1026,12 @@ async function combatPaintCheck(page) {
     const at = await page.evaluate(`window.__ui.carousel.ids.indexOf(${JSON.stringify(id)})`);
     await page.evaluate(`window.__ui.carousel.goTo(${at}); true`);
   };
-  /* Paint `id` in the hangar from the picker: a scheme and one region in
-   * a colour of the pilot's own, Save. Returns the colours it should wear. */
-  const paint = async (id, scheme, region, hex) => {
+  /* Paint `id` in the hangar from the picker: a scheme, one region in a
+   * colour of the pilot's own, a decal placed by aiming (`decal`, the
+   * arguments of placeDecal), the livery saved by name, its code copied,
+   * the aircraft reset and the code imported back; Save. Returns the
+   * colours it should wear. */
+  const paint = async (id, scheme, region, hex, decal) => {
     await toPicker(id);
     await page.tap('KeyC');
     await page.until('window.__ui.hangar.isOpen', 10000);
@@ -1044,10 +1050,30 @@ async function combatPaintCheck(page) {
     await page.until(wears(id, want), 60000).catch(() => {});
     const preview = await page.evaluate(`window.__pickPaint(${JSON.stringify(id)})`) ?? {};
     say(same(sorted(preview), sorted(want)), `the ${id} in the hangar wears ${scheme} with its own ${region} before Save: ${JSON.stringify(preview)}`);
+    await page.evaluate(click('page-decals'));
+    const placed = await placeDecal(page, ...decal);
+    say(Boolean(placed) && placed.k === decal[0], `aimed from ${decal[1]}, Enter puts a ${decal[0]} on the ${id} (normal ${JSON.stringify(placed && placed.n)})`);
+    const looked = await page.evaluate(`(async () => { for (let i = 0; i < 100; i += 1) { const l = window.__pickLook(${JSON.stringify(id)}); if (l && l.decals.decals === 1) return l; await new Promise((r) => setTimeout(r, 100)); } return window.__pickLook(${JSON.stringify(id)}); })()`);
+    say(Boolean(looked) && looked.decals.decals === 1 && looked.decals.triangles > 0, `the hangar's ${id} wears it: ${looked ? looked.decals.triangles : 0} triangles`);
+    const wanted = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.hangar.entry))');
+    await page.evaluate(click('page-saved'));
+    await page.evaluate(click('saved-new'));
+    await page.evaluate("(() => { const f = document.querySelector('.hangar [data-key=\"name-field\"]'); f.value = 'Mine'; f.dispatchEvent(new Event('input')); return true; })()");
+    await page.evaluate(click('name-save'));
+    await page.evaluate(click('code-copy'));
+    const code = await page.evaluate("document.querySelector('.hangar [data-key=\"code-out\"]').value");
+    await page.evaluate(click('reset'));
+    await page.evaluate(click('code-paste'));
+    await page.evaluate(`(() => { const f = document.querySelector('.hangar [data-key="code-field"]'); f.value = ${JSON.stringify(code)}; f.dispatchEvent(new Event('input')); return true; })()`);
+    await page.evaluate(click('code-import'));
+    const imported = await page.evaluate('JSON.parse(JSON.stringify(window.__ui.hangar.entry))');
+    const lib = await page.evaluate(`window.__ui.settings.liverySaves[${JSON.stringify(id)}].map((x) => x.name)`);
+    say(/^FPV1-/.test(code) && alike(imported, wanted) && lib.length === 2,
+      `saved by name, its code copied, reset and the code imported back, the same livery: ${JSON.stringify(lib)}`);
     await page.evaluate('window.__ui.hangar.saveBtn.click(); true');
     await page.until('!window.__ui.hangar.isOpen', 5000);
     const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).livery[${JSON.stringify(id)}]`);
-    say(same(stored, { scheme, regions: { [region]: hex } }), `Save stores it: ${JSON.stringify(stored)}`);
+    say(alike(stored, wanted) && stored.scheme === scheme && stored.regions[region] === hex, `Save stores it: ${JSON.stringify({ ...stored, decals: stored && stored.decals && stored.decals.length })}`);
     await page.until(`window.__ui.carousel.isOpen && ${wears(id, want)}`, 60000).catch(() => {});
     const picked = await page.evaluate(`window.__pickPaint(${JSON.stringify(id)})`) ?? {};
     say(same(sorted(picked), sorted(want)), `and the picker's ${id} wears it: ${JSON.stringify(picked)}`);
@@ -1058,33 +1084,37 @@ async function combatPaintCheck(page) {
    * on a drawn mesh. */
   const flownIn = async (id, want, own, what) => {
     await page.until(`window.__craftPaint().id === ${JSON.stringify(id)} && window.__craft().run === ${JSON.stringify(id)}`, 60000).catch(() => {});
+    await page.until('window.__craftPaint().decals.decals === 1', 60000).catch(() => {});
     const flown = await page.evaluate('window.__craftPaint()');
     const combat = (await page.evaluate('window.__craft()')).combat;
-    say(flown.id === id && same(sorted(flown.regions), sorted(want)) && flown.drawn.includes(own),
-      `flown ${what}, the ${id} is in it: ${JSON.stringify(flown.regions)}, its own ${own} on a drawn mesh (${JSON.stringify(combat)})`);
+    say(flown.id === id && same(sorted(flown.regions), sorted(want)) && flown.drawn.includes(own) && flown.decals.decals === 1 && flown.decals.triangles > 0,
+      `flown ${what}, the ${id} is in it: ${JSON.stringify(flown.regions)}, its own ${own} on a drawn mesh, its decal drawn as ${flown.decals.triangles} triangles (${JSON.stringify(combat)})`);
     return combat;
   };
 
   const striker = airframeById('striker2500');
   const [prop, jet] = striker.combat.propulsion;
-  const want = await paint('striker2500', 'test', 'engine', '#3355aa');
+  const want = await paint('striker2500', 'test', 'engine', '#3355aa', ['num', 'side_left', 'n[0] < -0.8']);
   await page.tap('Enter');
   await page.until('!window.__ui.carousel.isOpen', 10000);
   await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
-  const onJet = await flownIn('striker2500', want, '#3355aa', 'on the turbojet');
-  say(Boolean(onJet) && onJet.propulsion === jet.id, `and it is the turbojet that flies: ${JSON.stringify(onJet)}`);
+  /* Reset to stock in the paint shop put the loadout back on its stock
+   * engine too; whichever it flies on, the refit is the other. */
+  const first = await flownIn('striker2500', want, '#3355aa', 'on its engine');
   await page.evaluate("window.__ui.openSwap('flight'); true");
   await page.until('window.__ui.carousel.isOpen', 10000);
   await page.tap('KeyE');
   await page.tap('Enter');
-  await page.until(`window.__craft().module === ${prop.simId}`, 30000).catch(() => {});
+  const other = first && first.propulsion === jet.id ? prop : jet;
+  await page.until(`window.__craft().module === ${other.simId}`, 30000).catch(() => {});
   await page.sleep(300);
-  const onProp = await flownIn('striker2500', want, '#3355aa', 'refitted in the air on the piston engine');
-  say(Boolean(onProp) && onProp.propulsion === prop.id, `and it is the piston engine that flies: ${JSON.stringify(onProp)}`);
+  const second = await flownIn('striker2500', want, '#3355aa', 'refitted in the air on the other engine');
+  say(Boolean(first && second) && same([first.propulsion, second.propulsion].sort(), [jet.id, prop.id].sort()),
+    `and the two flights were on both engines: ${first && first.propulsion} then ${second && second.propulsion}`);
   await page.until("window.__ui.screen === 'flight'", 10000).catch(() => {});
 
-  const want7 = await paint('7inch', 'two_tone', 'frame', '#e73f0e');
+  const want7 = await paint('7inch', 'two_tone', 'frame', '#e73f0e', ['stripe', 'top', 'n[1] > 0.8']);
   await page.tap('Escape');
   await page.until('!window.__ui.carousel.isOpen', 10000);
   await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
