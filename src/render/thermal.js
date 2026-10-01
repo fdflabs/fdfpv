@@ -129,6 +129,7 @@ float thSun = -1.0;
 float thDist = 0.0;
 vec3 thN = vec3(0.0, 0.0, 1.0);
 vec3 thV = vec3(0.0, 0.0, 1.0);
+bool thDone = false;
 #ifdef THERMAL_ATTR
   varying float vThermal;
 #endif
@@ -176,10 +177,14 @@ const LIGHTS_END = /* glsl */ `
 #endif
 `;
 
-/* The output, last in every built in fragment shader. */
+/* The output, at the end of every built in fragment shader: after
+ * premultiplied_alpha_fragment, which every one has but a material that
+ * splices it out (swiss2/vehicles' glass), and after dithering_fragment,
+ * which every one has but points. Whichever comes first writes it. */
 const OUTPUT = /* glsl */ `
 #ifdef TH_PARS
-if (thEnv.x > 0.5) {
+if (thEnv.x > 0.5 && !thDone) {
+  thDone = true;
   #ifndef THERMAL_KIND
     #define THERMAL_KIND 0
   #endif
@@ -228,7 +233,7 @@ if (thEnv.x > 0.5) {
     thT += min(thLum(totalEmissiveRadiance) * 0.2, 1.5);
   #else
     /* Unlit and brighter than white is a light source: a lamp's head, a
-     * window, a navigation light. */
+     * fixture's glow. */
     thT += min(max(thAlb - 1.0, 0.0) * 0.25, 1.5);
   #endif
   #ifdef STANDARD
@@ -236,6 +241,9 @@ if (thEnv.x > 0.5) {
   #endif
   thT = thPath(thT, thDist);
   gl_FragColor = vec4(thT, 1.0, 0.0, gl_FragColor.a);
+  #ifdef PREMULTIPLIED_ALPHA
+    gl_FragColor.rgb *= gl_FragColor.a;
+  #endif
 }
 #endif
 `;
@@ -266,14 +274,16 @@ function patchChunk(name, add, where = 'after') {
 /*
  * The chunk patches and the shared uniforms, once, at import. Every
  * built in fragment shader includes color_pars_fragment before main and
- * premultiplied_alpha_fragment last but one; every built in vertex shader
- * includes color_pars_vertex and color_vertex. A shader that has the
- * output chunk without the pars chunk (a sprite) is left alone by the
- * TH_PARS guard.
+ * the output chunks at its end; every built in vertex shader includes
+ * color_pars_vertex and color_vertex. A shader that has an output chunk
+ * without the pars chunk (a sprite) is left alone by the TH_PARS guard.
+ * Light spliced in after dithering_fragment (celmat.js's rim, finish.js's
+ * paint) checks thEnv itself.
  */
 patchChunk('color_pars_fragment', PARS);
 patchChunk('lights_fragment_end', LIGHTS_END);
 patchChunk('premultiplied_alpha_fragment', OUTPUT);
+patchChunk('dithering_fragment', OUTPUT);
 patchChunk('color_pars_vertex', ATTR_PARS_VERTEX);
 patchChunk('color_vertex', ATTR_VERTEX);
 for (const lib of Object.values(THREE.ShaderLib)) {

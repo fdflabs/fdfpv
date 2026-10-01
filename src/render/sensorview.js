@@ -87,14 +87,12 @@ const MODE_ID = {
  * this frame. Low light and acquisition always take the radiance: one
  * needs the light before any look is applied, the other its mipmaps for
  * the local mean. */
-function needs(mode) {
-  return {
-    eo: mode === 'eo' || mode === 'fusion',
-    raw: mode === 'lowlight' || mode === 'contrast',
-    thermal: mode === 'ir_wh' || mode === 'ir_bh' || mode === 'fusion',
-  };
-}
-const RAW_MODES = new Set(['lowlight', 'contrast']);
+const NEEDS = Object.fromEntries(Object.keys(MODE_ID).map((mode) => [mode, {
+  eo: mode === 'eo' || mode === 'fusion',
+  raw: mode === 'lowlight' || mode === 'contrast',
+  thermal: mode === 'ir_wh' || mode === 'ir_bh' || mode === 'fusion',
+}]));
+const NEEDS_NOTHING = { eo: false, raw: false, thermal: false };
 
 const VERT = /* glsl */ `
   varying vec2 vUv;
@@ -447,7 +445,7 @@ export function createSensorView(renderer, { onInset } = {}) {
   };
 
   function viewMat(mode, composed, flip) {
-    const key = `${mode}|${composed ? 'c' : 'r'}|${flip ? 'f' : ''}`;
+    const key = MODE_ID[mode] * 4 + (composed ? 2 : 0) + (flip ? 1 : 0);
     let v = views.get(key);
     if (!v) {
       const defines = { MODE: MODE_ID[mode] };
@@ -525,7 +523,7 @@ export function createSensorView(renderer, { onInset } = {}) {
     stats.scenes += 1;
   }
 
-  function setView(v, o, src, composed, camera, outAspect, dtS) {
+  function setView(v, o, color, therm, camera, outAspect) {
     const u = v.mat.uniforms;
     const th = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
     u.uTanHalf.value.set(th * camera.aspect, th);
@@ -542,13 +540,12 @@ export function createSensorView(renderer, { onInset } = {}) {
     u.uFrame.value = frameNo % 4096;
     u.uSnow.value = o.snow;
     u.uAirC.value = THERMAL.env[1] * T_SCALE;
-    u.tColor.value = src.color ? src.color.texture : null;
-    u.uColorTexel.value.set(1 / (src.color ? src.color.width : 1), 1 / (src.color ? src.color.height : 1));
-    u.tThermal.value = src.thermal ? src.thermal.texture : null;
-    u.uThermalTexel.value.set(1 / (src.thermal ? src.thermal.width : 1), 1 / (src.thermal ? src.thermal.height : 1));
+    u.tColor.value = color ? color.texture : null;
+    u.uColorTexel.value.set(1 / (color ? color.width : 1), 1 / (color ? color.height : 1));
+    u.tThermal.value = therm ? therm.texture : null;
+    u.uThermalTexel.value.set(1 / (therm ? therm.width : 1), 1 / (therm ? therm.height : 1));
     u.tAgcC.value = agcC.texture;
     u.tAgcT.value = agcT.texture;
-    return composed;
   }
 
   return {
@@ -559,20 +556,18 @@ export function createSensorView(renderer, { onInset } = {}) {
      * `scene` and `camera` the frame's. Draws the main view to the screen
      * and, when `pip` is given and a readback slot is free, the inset.
      */
-    frame({
-      scene, camera, post, main, pip, dtS,
-    }) {
+    frame(scene, camera, post, main, pip, dtS) {
       frameNo += 1;
       stats.scenes = 0;
-      stats.sources = [];
+      stats.sources.length = 0;
       stats.inset = false;
       readback.poll();
       renderer.getDrawingBufferSize(size);
       const aspect = size.x / Math.max(1, size.y);
       const plain = main.mode === 'eo' && main.zoom === 1 && !main.stab && main.auto && main.ev === 0 && !main.snow;
-      const mainNeeds = needs(main.mode);
+      const mainNeeds = NEEDS[main.mode];
       const insetDue = Boolean(pip) && readback.free();
-      const pipNeeds = insetDue ? needs(pip.mode) : { eo: false, raw: false, thermal: false };
+      const pipNeeds = insetDue ? NEEDS[pip.mode] : NEEDS_NOTHING;
 
       /* The composer, when the main view is a visible one: it is the
        * map's look and the pilot's picture. */
@@ -609,18 +604,17 @@ export function createSensorView(renderer, { onInset } = {}) {
       }
 
       if (!plain) {
-        const comp = Boolean(composed) && !RAW_MODES.has(main.mode);
+        const comp = Boolean(composed) && !NEEDS[main.mode].raw;
         const v = viewMat(main.mode, comp, false);
-        setView(v, main, { color: comp ? composed : radiance, thermal }, comp, camera, aspect, dtS);
+        setView(v, main, comp ? composed : radiance, thermal, camera, aspect);
         renderer.setRenderTarget(null);
         v.quad.render(renderer);
       }
 
       if (insetDue) {
-        const comp = Boolean(composed) && !RAW_MODES.has(pip.mode);
-        const color = comp ? composed : radiance;
+        const comp = Boolean(composed) && !pipNeeds.raw;
         const v = viewMat(pip.mode, comp, true);
-        setView(v, pip, { color, thermal }, comp, camera, PIP_W / PIP_H, dtS);
+        setView(v, pip, comp ? composed : radiance, thermal, camera, PIP_W / PIP_H);
         renderer.setRenderTarget(pipTarget);
         v.quad.render(renderer);
         readback.read();

@@ -277,6 +277,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     mode: 'eo', zoom: 1, ev: 0, auto: true, stab: null, crop: 1, snow: 0,
   };
   const pipView = { ...mainView };
+  const bothViews = [mainView, pipView];
 
   const api = {
     state,
@@ -316,20 +317,22 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
       const dt = lastWall === null ? 0 : Math.min(0.1, (now - lastWall) / 1000);
       lastWall = now;
       const stab = stabilise(dt);
-      const unhealthy = state.healthy ? 0 : 1;
-      Object.assign(mainView, {
-        mode: state.mode,
-        zoom: state.zoom,
-        ev: state.exposure.auto ? 0 : state.exposure.ev,
-        auto: state.exposure.auto,
-        stab,
-        crop: cropOf(),
-        snow: 0,
-      });
-      Object.assign(pipView, mainView, { mode: state.pipMode, snow: Math.max(snow, unhealthy) });
-      view.frame({
-        scene: scene(), camera, post, main: mainView, pip: pipView, dtS: dt,
-      });
+      const s = scene();
+      if (!s) {
+        post.render();
+        return;
+      }
+      for (const v of bothViews) {
+        v.zoom = state.zoom;
+        v.ev = state.exposure.auto ? 0 : state.exposure.ev;
+        v.auto = state.exposure.auto;
+        v.stab = stab;
+        v.crop = cropOf();
+      }
+      mainView.mode = state.mode;
+      pipView.mode = state.pipMode;
+      pipView.snow = state.healthy ? snow : 1;
+      view.frame(s, camera, post, mainView, pipView, dt);
     },
     project,
     setMode(mode) {
