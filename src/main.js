@@ -11447,6 +11447,9 @@ export async function boot({
       notice = { text, untilMs: performance.now() + 4200 };
     },
   });
+  /* One sync now, resolving to whether it changed anything here, for
+   * scripts/account-browser-check.js, which cannot wait out the minute. */
+  window.__accountSync = () => accountUi.sync();
   ui.onAction = (action, s) => {
     if (s) {
       applySettings(s);

@@ -17,7 +17,9 @@
  * into view, and once a minute while something synced has changed. What
  * comes back is merged by the server and applied through ui.js
  * loadSettings, so whatever another computer sent is held to the same
- * rules as anything read out of local storage.
+ * rules as anything read out of local storage. My Hangar's builds ride
+ * along as the section `builds` (syncedView), and come back through
+ * src/ui/builds.js normaliseBuilds, the same judge as at boot.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -42,7 +44,9 @@ import {
   signedIn, startAccounts, syncProgress,
 } from '../share/account.js';
 import { SETTINGS_KEY, loadSettings } from './ui.js';
-import { fitBuild, stockView, unfitFamily } from './builds.js';
+import {
+  buildsBlob, buildsFromBlob, fitBuild, saveBuilds, stockView, unfitFamily,
+} from './builds.js';
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 const SYNC_EVERY_MS = 60 * 1000;
@@ -200,6 +204,12 @@ export function createAccountUi({ ui, identity, say }) {
   let lastSync = 0;
   let syncing = null;
 
+  /* What a sync carries: the settings as they are with every build taken
+   * off, and the builds themselves. */
+  function syncedView() {
+    return { ...stockView(ui.settings), builds: buildsBlob(ui.myBuilds) };
+  }
+
   /* The merge applied: every synced section put in ui.settings, the whole
    * blob read back through loadSettings, and only the synced sections
    * taken from that, so a plane or a scheme this build does not have is
@@ -208,15 +218,31 @@ export function createAccountUi({ ui, identity, say }) {
    * A family wearing a My Hangar build keeps the pilot's own paint, power,
    * parts and tuning aside (src/ui/builds.js), and those are what sync, so
    * a build never reaches another computer as the stock plane's. The
-   * builds come off for the merge and go back on over what it brought. */
+   * builds come off for the merge and go back on over what it brought,
+   * each as the merge has it: one deleted on another computer stays off,
+   * and its family flies the pilot's own customisation again.
+   *
+   * No `builds` in the merge leaves this computer's alone: a tracks
+   * server from before the builds synced drops the section, and that is
+   * not the account having none. */
   function apply(merged) {
     const s = ui.settings;
-    const worn = Object.values(s.buildFits || {}).map((e) => ui.myBuilds.find((b) => b.id === e.build)).filter(Boolean);
+    const worn = Object.values(s.buildFits || {}).map((e) => e.build);
+    const fitsBefore = JSON.stringify(s.buildFits || {});
     for (const land of Object.keys(s.buildFits || {})) {
       unfitFamily(s, land);
     }
+    const { builds, ...data } = merged.data;
     let changed = false;
-    for (const [k, v] of Object.entries(merged.data)) {
+    if (builds !== undefined) {
+      const list = buildsFromBlob(builds);
+      if (JSON.stringify(list) !== JSON.stringify(ui.myBuilds)) {
+        ui.buildList = list;
+        saveBuilds(list);
+        changed = true;
+      }
+    }
+    for (const [k, v] of Object.entries(data)) {
       if (JSON.stringify(s[k]) !== JSON.stringify(v)) {
         s[k] = v;
         changed = true;
@@ -226,16 +252,20 @@ export function createAccountUi({ ui, identity, say }) {
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
         const fresh = loadSettings();
-        for (const k of Object.keys(merged.data)) {
+        for (const k of Object.keys(data)) {
           s[k] = fresh[k];
         }
       } catch (e) {
         /* Private mode: the merge lives in this page. */
       }
     }
-    for (const b of worn) {
-      fitBuild(s, b);
+    for (const id of worn) {
+      const b = ui.myBuilds.find((x) => x.id === id);
+      if (b) {
+        fitBuild(s, b);
+      }
     }
+    changed = changed || JSON.stringify(s.buildFits || {}) !== fitsBefore;
     if (changed) {
       try {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
@@ -244,7 +274,7 @@ export function createAccountUi({ ui, identity, say }) {
       }
       ui.renderMenu();
     }
-    settled(stockView(s), merged);
+    settled(syncedView(), merged);
     return changed;
   }
 
@@ -253,7 +283,7 @@ export function createAccountUi({ ui, identity, say }) {
       return syncing || Promise.resolve(false);
     }
     lastSync = Date.now();
-    syncing = syncProgress(stockView(ui.settings)).then((merged) => {
+    syncing = syncProgress(syncedView()).then((merged) => {
       const changed = merged ? apply(merged) : false;
       if (loud || changed) {
         say(str('account.synced'));
@@ -360,7 +390,7 @@ export function createAccountUi({ ui, identity, say }) {
       setTimeout(() => sync(), 1500);
     }
     setInterval(() => {
-      if (signedIn() && progressChanged(stockView(ui.settings))) {
+      if (signedIn() && progressChanged(syncedView())) {
         sync();
       }
     }, SYNC_EVERY_MS);
@@ -372,6 +402,7 @@ export function createAccountUi({ ui, identity, say }) {
   }
 
   return {
+    sync,
     /* True when the action was the account's, and is being handled. */
     handle(action) {
       const fn = actions[action];

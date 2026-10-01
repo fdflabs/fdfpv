@@ -48,7 +48,9 @@
  *            so only the holder of a key can hand its tracks over
  *   GET    /api/account/progress   { progress }
  *   PUT    /api/account/progress   { progress }  merged with what is held;
- *            answers with the merge
+ *            answers with the merge. Refused 413 past the blob cap, and
+ *            413 or 422 when its builds or loadouts are too many, too big
+ *            or the wrong shape (progressmerge.js blobRefusal)
  *
  * Every route but the first takes `authorization: Bearer <session>`. All
  * of them answer 503 while GOOGLE_CLIENT_ID or ACCOUNTS_SECRET is unset,
@@ -74,7 +76,7 @@ import { normaliseName } from '../src/share/pilot.js';
 import {
   fromBase64, keyLinkMessage, sha256Base64, toBase64, verifySignature,
 } from '../src/share/identity.js';
-import { cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
+import { blobRefusal, cleanBlob, mergeBlobs } from '../src/share/progressmerge.js';
 import {
   NAME_ADJECTIVES, NAME_ANIMALS,
 } from '../src/share/roomwire.js';
@@ -351,6 +353,16 @@ async function putProgress(env, request, account) {
   const incoming = read.body && read.body.progress;
   if (!incoming || typeof incoming !== 'object') {
     return refuse(400, 'A sync carries the progress blob in `progress`.');
+  }
+  const refused = blobRefusal(incoming);
+  if (refused) {
+    const why = {
+      map: `The ${refused.section} section is not a map.`,
+      count: `More than ${refused.limit} ${refused.section} entries to sync.`,
+      shape: `An entry in ${refused.section} is not the right shape.`,
+      size: `A build is past ${refused.limit} characters, too big to sync.`,
+    };
+    return refuse(refused.status, why[refused.why]);
   }
   /* Read, merge, write only if nobody wrote between: two computers
    * syncing in the same instant each merge onto the other's result. */
