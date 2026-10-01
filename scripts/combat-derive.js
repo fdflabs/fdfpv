@@ -799,27 +799,30 @@ export function deriveStriker() {
     const D = derivatives(run, ref, { alpha: alphaCruise });
     const Db = derivatives(bareRun, ref, { alpha: alphaCruise });
     const clbFin = (D.Clb - Db.Clb) * (zFin / zFinUp);
-    /* The reflex: with the standard warhead, the design load, the prop
-     * Striker trims at its cruise with the elevons neutral (Cm about its
-     * CG is the table's less CL times its forward move over the chord).
-     * It is the wing's section and twist, so the jet, on the same wing,
-     * has the same, and flies its faster cruise on a touch of down. */
+    /* The reflex and the elevons' neutral: with the standard warhead, the
+     * design load, each trims at its own cruise with the sticks centred
+     * (Cm about its CG is the table's less CL times its forward move over
+     * the chord). The jet cruises at two and a half times the speed on the
+     * same wing, so its elevons are rigged that much lower. */
     const VcStd = std.level(0.6);
     const CLstd = std.W / (0.5 * RHO * VcStd * VcStd * S);
-    const Cm0 = pid === 'prop' ? CLstd * (SMc + std.dx / c) : out.prop.Cm0;
+    const Cm0 = CLstd * (SMc + std.dx / c);
     /* A load's trimmed stall: at the stall angle the up elevon that zeroes
      * the moment about its CG, and the lift that costs; short of it where
-     * the elevator's throw runs out. */
+     * the elevator's throw runs out. About a CG dx ahead of the table's the
+     * whole lift, the elevon's share too, pitches the nose down by dx/c a
+     * unit of CL. */
     const trimmedStall = (p) => {
       const { W, dx } = loadOf(p);
       const alphaS = CLmax / CLa;
       const cmA = Cma - CLa * dx / c;
-      let de = -(Cm0 + cmA * alphaS) / cmDe;
+      const cmE = cmDe - clDe * dx / c;
+      let de = -(Cm0 + cmA * alphaS) / cmE;
       let alpha = alphaS;
       let limited = false;
       if (de > throwE) {
         de = throwE;
-        alpha = -(Cm0 + cmDe * de) / cmA;
+        alpha = -(Cm0 + cmE * de) / cmA;
         limited = true;
       }
       const CL = CLa * alpha + clDe * de;
@@ -882,11 +885,33 @@ export function deriveStriker() {
   }
   const extra = { stripC, stripTau, surfSep, cfMac, zFin, zFinUp, cnbFus, cybFus, aFin, tauR, tanLE, tanC4 };
 
+  /*
+   * The descriptor configs/airframes.js carries (rounded as it is typed
+   * there): per propulsion its plant, bare mass, static thrust to weight,
+   * trimmed stall with the standard warhead, level speed at full
+   * throttle, voice (src/render/audio.js), its CG's height over the first
+   * one's, and the drawing's origin about its CG (src/render/craft.js
+   * draws strikercraft.js about the CG with it).
+   */
+  const VOICE = { prop: 'glow2', jet: 'edf' };
+  const propulsion = Object.entries(variants).map(([pid, v]) => ({
+    id: pid,
+    simId: v.P.simId,
+    grams: Math.round(v.M * 10000) / 10,
+    thrustToWeight: Math.round(100 * v.engine.Ts / v.W) / 100,
+    stall: Math.round(100 * out[pid].trimmedStall(payloads.find((p) => p.id === 'standard')).V) / 100,
+    topSpeed: Math.round(10 * out[pid].top) / 10,
+    voice: VOICE[pid],
+    cgDz_m: r4(v.zCG - variants.prop.zCG),
+    drawing_m: hulls[pid].origin.map(r4),
+  }));
+  const combat = { frame: 'striker', propulsion, payloads, accessories };
+
   return {
     SW, b, S, c, AR, mac, yMac, xMacLE, D0n, D0, xNPlattice, dCmaFus, xNP, xCG, SMc,
     SMmac: (xNP - xCG) / mac, CLa, Cma, Cmq, clDe, cmDe, CLmax, e, k, CD0,
     cd: { wing: cdWing, fus: cdFus, fins: cdFins, misc: cdMisc }, mWing, wingX,
-    variants, payloads, accessories, out, hulls, extra,
+    variants, payloads, accessories, out, hulls, extra, combat,
   };
 }
 

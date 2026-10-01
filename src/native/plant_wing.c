@@ -3642,7 +3642,7 @@ const FixedWingParams FW_STRIKER_PROP = {
   .stall_blend = 3.0 * WING_PI / 180.0,
   /* The throws: seven degrees of aileron for a roll of 80 deg/s at the
    * cruise, a big stable delta's; eighteen of elevator, which holds the
-   * heaviest warhead at its stall; each elevon clips at 24. */
+   * heaviest warhead in the nose at its stall; each elevon clips at 24. */
   .throw_a = 7.0 * WING_PI / 180.0,
   .throw_e = 18.0 * WING_PI / 180.0,
   .throw_r = 25.0 * WING_PI / 180.0,
@@ -3723,7 +3723,7 @@ const FixedWingParams FW_STRIKER_JET = {
   .cl_da = 0.2253,
   .cl_r_per_cl = 0.1934,
   .cl_dr = 0.0031,
-  .cm_0 = 0.0570,         /* the same wing's reflex */
+  .cm_0 = 0.0093,         /* its elevons rigged to trim with the standard warhead at its 45 m/s cruise */
   .cm_alpha = -0.1570,
   .cm_q = -1.4020,
   .cm_de = 0.4516,
