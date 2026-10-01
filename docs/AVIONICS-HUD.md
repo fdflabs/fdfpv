@@ -191,6 +191,10 @@ sensors.state                   // read only
 sensors.pip                     // HTMLCanvasElement or null, drawn by SensorManager
 ```
 
+The module also exports `SENSOR_MODES`, `ZOOM_LEVELS` and
+`thermalMode(mode)` (true for the IR modes and fusion), which the HUD state
+machine uses for THERMAL.
+
 ### 5.1 `sensors.state`
 
 ```
@@ -243,6 +247,7 @@ const tracks = createTrackManager();
 tracks.update(tS, perception.detections, ownship);
 tracks.snapshot                  // read only, written in place
 tracks.cycle(dir)                // pick the next track as primary (not bound yet)
+tracks.reset()                   // a new run: no tracks
 ```
 
 ### 7.1 `tracks.snapshot`
