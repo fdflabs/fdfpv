@@ -228,6 +228,8 @@ try {
   check('B\'s title panel shows the room in battle, its wave, Join battle', chip && /^In battle 1 · wave \d+\/\d+$/.test(chip.value) && chip.join === 'Join battle',
     JSON.stringify(chip && { value: chip.value, join: chip.join }));
   await openRooms();
+  /* Rooms reads its own listing, which can be a poll behind the panel's. */
+  await b.until(`/wave \\d+ of/.test((window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || {}).note || '')`, 15000).catch(() => {});
   const battleRow = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || null)`);
   check('and Rooms says in battle, Defend Itaipu, mission 1, wave x of y', battleRow && /in battle, Defend Itaipu, mission 1, wave \d+ of \d+\. Enter to join the battle\./.test(battleRow.note),
     JSON.stringify(battleRow && battleRow.note));
@@ -236,7 +238,18 @@ try {
   const hot = await b.evaluate(LOBBY);
   check('B joins mid battle: straight into it, flying, not the lobby', hot.flying === 'flight' && hot.screen === 'flight' && hot.war === 'live' && !hot.shown,
     JSON.stringify({ screen: hot.screen, flying: hot.flying, war: hot.war, lobby: hot.shown }));
+
+  /* THE END IN THE AIR, the owner's report (2026-10-01): a pilot who is
+   * not the host, on the end banner, read "WAITING FOR THE HOST TO
+   * RESTART" and had no way forward. */
   await a.evaluate("(() => { window.__warDo('end'); return true; })()");
+  await b.until("/^BACK TO THE LOBBY IN [1-8]$/.test(window.__war().hud.restart || '')", 10000).catch(() => {});
+  const said = await b.evaluate("window.__war().hud.restart || null");
+  check('the end, B flying and not the host: the banner reads BACK TO THE LOBBY IN n', /^BACK TO THE LOBBY IN [1-8]$/.test(said || ''), String(said));
+  await b.until("window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden", 15000).catch(() => {});
+  const after = await b.evaluate(LOBBY);
+  check('and B is put in the lobby with nothing pressed, its Ready under the cursor', after.shown && after.screen === 'friends' && after.here === 'friends-lobby-ready'
+    && after.flying !== 'flight', JSON.stringify({ shown: after.shown, screen: after.screen, here: after.here, flying: after.flying }));
 
   /* CAMPAIGN PLAY makes a lobby too. */
   await a.until("window.__war().view.state === 'ended'", 15000).catch(() => {});

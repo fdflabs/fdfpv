@@ -2881,6 +2881,7 @@ export default {
   "war.next_unknown": "NEXT WAVE: NOT KNOWN YET",
   "war.restart": "RESTART MISSION",
   "war.restart_wait": "WAITING FOR THE HOST TO RESTART",
+  "war.back_lobby": "BACK TO THE LOBBY IN {n}",
   "lobby.title": "LOBBY",
   "lobby.mission_line": "Defend Itaipu · Mission {n}: {name}",
   "lobby.starting": "Starting in {n}",

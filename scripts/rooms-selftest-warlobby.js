@@ -3,9 +3,10 @@
  * for rooms:selftest. A room made for the war, its pilots saying ready:
  * the five seconds when all are, stopped by one who is not and not by one
  * who joins; the 45 seconds from the first ready, with whoever is ready
- * then or nobody; the host's start now; the host's mission; a leaver; the
- * match clearing every flag, and its end finding the lobby again; no lobby
- * in a room not made for the war, nor during a match.
+ * then or nobody; the host's start now; the host's mission; a leaver; a
+ * host who leaves, the others starting without them; the match clearing
+ * every flag, and its end finding the lobby again; no lobby in a room not
+ * made for the war, nor during a match.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -163,6 +164,19 @@ export function warLobbySection(check) {
     e.ready(0);
     e.leave(1);
     check('the one not ready leaves: all here are ready, the five seconds', e.lobby(0).countdownAt === 100 + LOBBY_COUNTDOWN_MS, JSON.stringify(e.lobby(0)));
+  }
+  {
+    /* The owner, 2026-10-01: a non-host left on the end banner, "waiting
+     * for the host", with no way forward. Nobody waits on the host here. */
+    const e = lobbyRoom({ n: 3 });
+    e.at(100);
+    e.leave(0);
+    e.ready(1);
+    e.ready(2);
+    check('the host leaves: the next pilot hosts at once, every one told', e.r.host() === 2 && e.socks[2].got.some((m) => m.type === 'host' && m.seat === 2),
+      JSON.stringify({ host: e.r.host() }));
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('and the two left ready start the mission on their own', e.war().state === 'briefing' && e.war().mission === 'itaipu-1', e.war().state);
   }
   {
     const e = lobbyRoom({ mode: null });

@@ -2570,6 +2570,7 @@ export async function boot({
   const warHud = createWarHud(roomSeatName, {
     host: () => roomHost(roomLinkState.state().welcome),
     go: (v) => roomWar.start(v.mission),
+    back: () => (warBackAt != null && warLobby() ? Math.max(0, Math.ceil((warBackAt - performance.now()) / 1000)) : null),
   });
   /* Off the flight screen at once, not at the next frame (roomWarFrame
    * keeps it after): a frame can be a second long (war-card-check counted

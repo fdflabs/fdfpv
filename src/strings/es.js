@@ -2885,6 +2885,7 @@ export default {
   "war.next_unknown": "PRÓXIMA OLEADA: SIN DATOS AÚN",
   "war.restart": "REINICIAR MISIÓN",
   "war.restart_wait": "ESPERANDO QUE EL ANFITRIÓN REINICIE",
+  "war.back_lobby": "DE VUELTA A LA SALA DE ESPERA EN {n}",
   "lobby.title": "SALA DE ESPERA",
   "lobby.mission_line": "Defender Itaipú · Misión {n}: {name}",
   "lobby.starting": "Empieza en {n}",
