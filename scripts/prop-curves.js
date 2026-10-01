@@ -1,7 +1,8 @@
 /*
- * prop-curves.js: each stock quad prop's thrust against axial speed, from
- * APC's own performance files, as the plant's axial_curve tables
- * (src/native/plant.c). docs/PROP-CURVES.md says why and what it moves.
+ * prop-curves.js: each stock quad prop's thrust and shaft torque against
+ * axial speed, from APC's own performance files, as the plant's
+ * axial_curve and torque_curve tables (src/native/plant.c), each over its
+ * static value. docs/PROP-CURVES.md says why and what they move.
  *
  * A prop's thrust at a fixed rotor speed falls as the air comes through
  * its disc faster. The plant measures that by mu, the axial speed over
@@ -116,6 +117,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const c of await curves()) {
     console.log(`[${c.airframe}] ${c.prop}: PER3_${c.file}.dat at ${c.rpm} rpm, pitch speed ${c.pitchSpeed.toFixed(1)} m/s (${c.why})`);
     console.log(`  .axial_curve = { ${c.thrust.map((x) => x.toFixed(4)).join(', ')} },`);
-    console.log(`  torque over static: ${c.torque.map((x) => x.toFixed(3)).join(' ')}`);
+    console.log(`  .torque_curve = { ${c.torque.map((x) => x.toFixed(4)).join(', ')} },`);
   }
 }
