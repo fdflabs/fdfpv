@@ -220,9 +220,12 @@ function memoryStorage() {
 /* A socket as host.js sees one: the attachment is a structured clone both
  * ways, as it is on a Durable Object, so nothing aliases the core's state. */
 class Conn {
-  constructor(ws, counters) {
+  /* socket: the TCP socket Node's 'upgrade' event handed the server, which
+   * ws.handleUpgrade then writes this WebSocket's frames to (send). */
+  constructor(ws, counters, socket) {
     this.ws = ws;
     this.counters = counters;
+    this.socket = socket;
     this.attachment = null;
     this.corked = false;
     /* The last PROBE_KEEP protocol round trips, ms, and when the ping in
@@ -263,10 +266,13 @@ class Conn {
      * relay is 31 streamers a pilot a tenth of a second, each a syscall
      * that cost more than the rest of the room's work (rooms:load's
      * profile, 2026-09-29). Nothing waits: the turn ends, the write goes.
-     * _socket is ws's own field (ws is pinned, package.json); ws corks it
-     * round each frame, and corks nest. */
-    const socket = this.ws._socket;
-    if (!this.corked && socket) {
+     * The socket corked is the one the server was given by Node's http
+     * 'upgrade' event and passed to ws.handleUpgrade, which writes every
+     * frame to it: ours through Node's public API, not ws's private
+     * _socket field, so a ws upgrade cannot quietly stop the batching.
+     * ws corks it round each frame too, and corks nest. */
+    const { socket } = this;
+    if (!this.corked) {
       this.corked = true;
       socket.cork();
       setImmediate(() => {
@@ -344,7 +350,7 @@ class Room {
     }
     /* Taken in by whichever object holds the name by then, in case this
      * one was dropped while the handshake finished. */
-    return new Upgrade((ws) => this.env.ROOMS.get(this.name).connect(ws, request));
+    return new Upgrade((ws, socket) => this.env.ROOMS.get(this.name).connect(ws, request, socket));
   }
 
   /* A purged room, or a socket to a code nobody made, leaves an object
@@ -355,8 +361,8 @@ class Room {
     }
   }
 
-  connect(ws, request) {
-    const conn = new Conn(ws, this.counters);
+  connect(ws, request, socket) {
+    const conn = new Conn(ws, this.counters, socket);
     const address = request.headers.get('x-room-address') || '';
     this.sockets.add(conn);
     this.enqueue(() => this.host.accept(conn, request));
@@ -477,7 +483,7 @@ export function startRooms({
       await refuseUpgrade(socket, result);
       return;
     }
-    wss.handleUpgrade(req, socket, head, (ws) => result.accept(ws));
+    wss.handleUpgrade(req, socket, head, (ws) => result.accept(ws, socket));
   }));
 
   function stop() {
