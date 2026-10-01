@@ -1470,6 +1470,29 @@ which lifts the tip out of the turf. The plough can only stop a slide,
 and a part gets it once a batch (`crash_contact_grip`, called from the
 solver's friction clamp with the damage mode on only).
 
+**A FINDING, 2026-10-01, NOT YET EXPLAINED: a resting slide grips harder
+than its face grip, on every ground.** Measured with motors off, the five
+inch settled flat on the ground and then given 1 m/s sideways. The grip
+is the friction over the real normal force, m |a_h| / (m (g + a_z)),
+taken over the longest stretch in which the normal force holds within 5
+percent of the weight (crash:core's drop scenario, scripts/lib/
+crash-scenarios.js):
+
+| ground | spring k, N/m | face grip | measured |
+| --- | --- | --- | --- |
+| snow | 1e4 | 0.20 | 0.224 (+12%) |
+| grass | 5e4 | 0.45 | 0.519 (+15%) |
+| sand | 1e5 | 0.60 | 0.728 (+21%) |
+| pvc | 2e5 | 0.30 | 0.362 (+21%) |
+| dirt | 2e5 | 1.00 | 1.383 (+38%) |
+
+It is not the plough: a part flat on a face does not plough by the rule
+above, and only grass and the default ground have one. The excess grows
+with the ground spring's stiffness, which points at the damage mode's
+spring contact adding tangential resistance beyond Coulomb. crash:core's
+grip row holds the sled's 0.45 and fails on it (0.524) until the solver
+is investigated; nothing in crash.c is changed for it.
+
 The 0.7 MPa is DERIVED from two studs 13 mm long, each 170 mm^2 in side
 profile, under 350 N on a sand based natural turf pitch's samples. Fully
 in (gravimetric moisture 21.7 and 23.0 percent) they held 370 and 430 N at
