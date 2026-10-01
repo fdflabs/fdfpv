@@ -2325,5 +2325,717 @@
    "Friendship Bridge column @45": "stopped",
    "Friendship Bridge column @70": "stopped"
   }
+ },
+ "dam": {
+  "spillway gates, piers, hoists and bridge": {
+   "baseline": false,
+   "rays": 78460,
+   "invisible": 0,
+   "notSolid": 15616,
+   "invBy": {},
+   "nsBy": {
+    "dam/itaipu-dam-concrete": 3,
+    "water/itaipu-chute": 763,
+    "dam/itaipu-dam-gate-gear": 15
+   },
+   "invWorst": [],
+   "nsWorst": [
+    {
+     "n": 28,
+     "gap": 961.0738263251251,
+     "at": [
+      -787.7,
+      209,
+      -1059.4
+     ],
+     "what": "dam/itaipu-dam-concrete",
+     "other": "ground"
+    },
+    {
+     "n": 11,
+     "gap": 53.96180879021337,
+     "at": [
+      -1020.3,
+      197,
+      -943.4
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 32,
+     "gap": 53.46181644173738,
+     "at": [
+      -1110.8,
+      197,
+      -911.3
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 34,
+     "gap": 34.944420082366626,
+     "at": [
+      -1070,
+      199.5,
+      -946
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 31,
+     "gap": 34.94441802752148,
+     "at": [
+      -1069.1,
+      199.5,
+      -946.3
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 17,
+     "gap": 34.944414755733476,
+     "at": [
+      -1026.7,
+      199.5,
+      -961.4
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 30,
+     "gap": 34.94441473298619,
+     "at": [
+      -1024.8,
+      199.5,
+      -962
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 30,
+     "gap": 34.944413590530445,
+     "at": [
+      -1072.8,
+      199.5,
+      -945
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 33,
+     "gap": 34.94440775329572,
+     "at": [
+      -1064.4,
+      199.5,
+      -948
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 21,
+     "gap": 34.94440591457978,
+     "at": [
+      -1082.3,
+      199.5,
+      -941.6
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 31,
+     "gap": 34.94440345217513,
+     "at": [
+      -1085.1,
+      199.5,
+      -940.6
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 34,
+     "gap": 34.94440181057213,
+     "at": [
+      -1087,
+      199.5,
+      -939.9
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    }
+   ],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "spillway chute": {
+   "baseline": false,
+   "rays": 44390,
+   "invisible": 0,
+   "notSolid": 1186,
+   "invBy": {},
+   "nsBy": {
+    "water/itaipu-chute": 270
+   },
+   "invWorst": [],
+   "nsWorst": [
+    {
+     "n": 7,
+     "gap": 0.8320093170452552,
+     "at": [
+      -1051.5,
+      196.6,
+      -929.7
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 4,
+     "gap": 0.8320086284459336,
+     "at": [
+      -787.6,
+      196.6,
+      -1023.4
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 3,
+     "gap": 0.8320082455043973,
+     "at": [
+      -1002.5,
+      196.6,
+      -947.1
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 3,
+     "gap": 0.8320079900356134,
+     "at": [
+      -827.2,
+      196.6,
+      -1009.3
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 5,
+     "gap": 0.8320078958860435,
+     "at": [
+      -957.3,
+      196.6,
+      -963.1
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 1,
+     "gap": 0.8320076713120486,
+     "at": [
+      -825.3,
+      196.6,
+      -1010
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 5,
+     "gap": 0.8320075497410642,
+     "at": [
+      -1055.3,
+      196.6,
+      -928.3
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 3,
+     "gap": 0.8320074915666211,
+     "at": [
+      -791.4,
+      196.6,
+      -1022.1
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 2,
+     "gap": 0.8320073525884695,
+     "at": [
+      -823.4,
+      196.6,
+      -1010.7
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 3,
+     "gap": 0.8320070842896143,
+     "at": [
+      -961,
+      196.6,
+      -961.8
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 2,
+     "gap": 0.8320070560831994,
+     "at": [
+      -1006.3,
+      196.6,
+      -945.7
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    },
+    {
+     "n": 2,
+     "gap": 0.8320070446465664,
+     "at": [
+      -908.3,
+      196.6,
+      -980.6
+     ],
+     "what": "water/itaipu-chute",
+     "other": "ground"
+    }
+   ],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "right lateral dam crest": {
+   "baseline": false,
+   "rays": 142661,
+   "invisible": 0,
+   "notSolid": 0,
+   "invBy": {},
+   "nsBy": {},
+   "invWorst": [],
+   "nsWorst": [],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "right lateral dam faces": {
+   "baseline": true,
+   "rays": 89080,
+   "invisible": 0,
+   "notSolid": 43,
+   "invBy": {},
+   "nsBy": {
+    "dam/itaipu-dam-concrete": 2
+   },
+   "invWorst": [],
+   "nsWorst": [
+    {
+     "n": 22,
+     "gap": 6.565818017239532,
+     "at": [
+      -790.5,
+      205,
+      -1060.8
+     ],
+     "what": "dam/itaipu-dam-concrete",
+     "other": "dam wall capsule #4242"
+    },
+    {
+     "n": 21,
+     "gap": 3.9834404884143164,
+     "at": [
+      -788.7,
+      205,
+      -1059.9
+     ],
+     "what": "dam/itaipu-dam-concrete",
+     "other": "dam wall capsule #4242"
+    }
+   ],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "main dam and connecting blocks crest": {
+   "baseline": false,
+   "rays": 101396,
+   "invisible": 0,
+   "notSolid": 12,
+   "invBy": {},
+   "nsBy": {
+    "dam/itaipu-dam-steel": 5
+   },
+   "invWorst": [],
+   "nsWorst": [
+    {
+     "n": 2,
+     "gap": 963.5411602015728,
+     "at": [
+      445.2,
+      239.5,
+      -1676.3
+     ],
+     "what": "dam/itaipu-dam-steel",
+     "other": "ground"
+    },
+    {
+     "n": 1,
+     "gap": 963.4840988572491,
+     "at": [
+      444.3,
+      232,
+      -1672.4
+     ],
+     "what": "dam/itaipu-dam-steel",
+     "other": "ground"
+    },
+    {
+     "n": 2,
+     "gap": 957.6561264021764,
+     "at": [
+      449.6,
+      240,
+      -1669.1
+     ],
+     "what": "dam/itaipu-dam-steel",
+     "other": "ground"
+    },
+    {
+     "n": 3,
+     "gap": 951.8829281806617,
+     "at": [
+      455.6,
+      227,
+      -1669.8
+     ],
+     "what": "dam/itaipu-dam-steel",
+     "other": "ground"
+    },
+    {
+     "n": 4,
+     "gap": 863.1336818222665,
+     "at": [
+      -220.6,
+      226,
+      -1814.5
+     ],
+     "what": "dam/itaipu-dam-steel",
+     "other": "ground"
+    }
+   ],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "main dam and connecting blocks faces": {
+   "baseline": true,
+   "rays": 68896,
+   "invisible": 430,
+   "notSolid": 0,
+   "invBy": {
+    "dam wall capsule #3543": 3,
+    "dam wall capsule #3471": 5,
+    "dam wall capsule #3525": 5,
+    "dam wall capsule #3561": 4,
+    "dam wall capsule #3597": 5,
+    "dam wall capsule #3489": 4,
+    "dam wall capsule #3507": 3,
+    "dam wall capsule #3579": 3,
+    "dam wall box #3527": 1,
+    "dam wall box #3526": 1,
+    "dam wall box #3581": 1,
+    "dam wall box #3491": 1,
+    "dam wall box #3580": 1,
+    "dam wall box #3487": 1,
+    "dam wall box #3490": 1,
+    "dam wall box #3455": 1,
+    "dam wall box #3577": 1,
+    "dam wall box #3544": 1,
+    "dam wall box #3523": 1,
+    "dam wall box #3454": 1,
+    "dam wall box #3524": 1,
+    "dam wall capsule #3795": 5,
+    "dam wall capsule #3777": 4,
+    "dam wall capsule #3759": 3,
+    "dam wall capsule #3741": 4,
+    "dam wall capsule #3615": 3,
+    "dam wall capsule #3723": 3,
+    "dam wall capsule #3633": 5,
+    "dam wall capsule #3705": 5,
+    "dam wall capsule #3687": 3,
+    "dam wall capsule #3651": 3,
+    "dam wall capsule #3669": 5,
+    "dam wall box #3670": 1,
+    "dam wall box #3688": 1,
+    "dam wall box #3742": 1,
+    "dam wall box #3793": 1,
+    "dam wall box #3706": 1,
+    "dam wall box #3760": 1,
+    "dam wall capsule #3813": 3,
+    "dam wall box #3811": 1
+   },
+   "nsBy": {},
+   "invWorst": [
+    {
+     "n": 14,
+     "gap": 1.680383378811886,
+     "at": [
+      -77.7,
+      190.9,
+      -1726.7
+     ],
+     "what": "dam wall capsule #3543",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 13,
+     "gap": 1.6013186653046028,
+     "at": [
+      -212.4,
+      190.3,
+      -1756.5
+     ],
+     "what": "dam wall capsule #3471",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 10,
+     "gap": 1.5893249237778035,
+     "at": [
+      -209.5,
+      190.7,
+      -1755.9
+     ],
+     "what": "dam wall capsule #3471",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 11,
+     "gap": 1.5706129595189018,
+     "at": [
+      388.5,
+      191.7,
+      -1623.7
+     ],
+     "what": "dam wall capsule #3795",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 9,
+     "gap": 1.5569256199150756,
+     "at": [
+      -110.9,
+      190.7,
+      -1733.8
+     ],
+     "what": "dam wall capsule #3525",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 10,
+     "gap": 1.556739381800789,
+     "at": [
+      -110,
+      190.7,
+      -1733.6
+     ],
+     "what": "dam wall capsule #3525",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 10,
+     "gap": 1.5125982149763593,
+     "at": [
+      355.3,
+      191.6,
+      -1631.1
+     ],
+     "what": "dam wall capsule #3777",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 9,
+     "gap": 1.5081709334175868,
+     "at": [
+      354.3,
+      191.7,
+      -1631.3
+     ],
+     "what": "dam wall capsule #3777",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 7,
+     "gap": 1.5039964100750327,
+     "at": [
+      -74.8,
+      190.5,
+      -1726
+     ],
+     "what": "dam wall capsule #3543",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 4,
+     "gap": 1.460344411117732,
+     "at": [
+      -46.4,
+      190.6,
+      -1720
+     ],
+     "what": "dam wall capsule #3561",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 7,
+     "gap": 1.4586026355451986,
+     "at": [
+      323.1,
+      191.4,
+      -1638.3
+     ],
+     "what": "dam wall capsule #3759",
+     "other": "dam/itaipu-dam-penstocks"
+    },
+    {
+     "n": 9,
+     "gap": 1.4523487868015832,
+     "at": [
+      -44.5,
+      191.1,
+      -1719.6
+     ],
+     "what": "dam wall capsule #3561",
+     "other": "dam/itaipu-dam-penstocks"
+    }
+   ],
+   "nsWorst": [],
+   "damInvisibleBins": 98,
+   "otherInvisibleBins": 0
+  },
+  "diversion structure crest": {
+   "baseline": false,
+   "rays": 25189,
+   "invisible": 0,
+   "notSolid": 0,
+   "invBy": {},
+   "nsBy": {},
+   "invWorst": [],
+   "nsWorst": [],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "diversion structure faces": {
+   "baseline": true,
+   "rays": 15577,
+   "invisible": 0,
+   "notSolid": 2,
+   "invBy": {},
+   "nsBy": {
+    "dam/itaipu-dam-concrete": 2
+   },
+   "invWorst": [],
+   "nsWorst": [
+    {
+     "n": 1,
+     "gap": 997.5729424841745,
+     "at": [
+      634.6,
+      211.5,
+      -1600.7
+     ],
+     "what": "dam/itaipu-dam-concrete",
+     "other": "ground"
+    },
+    {
+     "n": 1,
+     "gap": 995.0000187484027,
+     "at": [
+      634.6,
+      211.5,
+      -1600.7
+     ],
+     "what": "dam/itaipu-dam-concrete",
+     "other": "ground"
+    }
+   ],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "left lateral dam crest": {
+   "baseline": false,
+   "rays": 13833,
+   "invisible": 0,
+   "notSolid": 0,
+   "invBy": {},
+   "nsBy": {},
+   "invWorst": [],
+   "nsWorst": [],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "left lateral dam faces": {
+   "baseline": true,
+   "rays": 8303,
+   "invisible": 0,
+   "notSolid": 0,
+   "invBy": {},
+   "nsBy": {},
+   "invWorst": [],
+   "nsWorst": [],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "rockfill dam crest": {
+   "baseline": false,
+   "rays": 25075,
+   "invisible": 0,
+   "notSolid": 0,
+   "invBy": {},
+   "nsBy": {},
+   "invWorst": [],
+   "nsWorst": [],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "left bank earth dam crest": {
+   "baseline": false,
+   "rays": 28800,
+   "invisible": 0,
+   "notSolid": 0,
+   "invBy": {},
+   "nsBy": {},
+   "invWorst": [],
+   "nsWorst": [],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  },
+  "right bank earth dam crest": {
+   "baseline": false,
+   "rays": 10925,
+   "invisible": 0,
+   "notSolid": 0,
+   "invBy": {},
+   "nsBy": {},
+   "invWorst": [],
+   "nsWorst": [],
+   "damInvisibleBins": 0,
+   "otherInvisibleBins": 0
+  }
  }
 }

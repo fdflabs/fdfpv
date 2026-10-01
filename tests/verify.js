@@ -242,6 +242,22 @@ async function main() {
      */
     scaleRun: memo(async () => {
       const out = join(root, 'dist/world-scale');
+      /*
+       * THE PARKED CAMERA'S LENS, PINNED. A park that sets only the eye and
+       * the aim measures whatever field of view the last frame left, and
+       * that is not always the same one: on the title the attract camera
+       * sets its 44 degrees (src/render/attract.js ATTRACT_FOV) every
+       * frame, but it is skipped while a harness camera is parked
+       * (src/main.js, the title branch's !camOverride), and a world load
+       * leaves the pilot's FPV lens on the camera (85 on the five inch).
+       * After the Swiss valley round trip the park sometimes landed before
+       * any title frame had put 44 back, so the Alps were measured through
+       * an 85 degree lens: 292 draw calls and 1611530 triangles against
+       * 282 and 1604546, the windsock, a road car and the strip coming into
+       * a frame they are outside of at 44, read as a leak (P5 and P10 did
+       * not move). 44 is what the boot figures were always measured at.
+       */
+      const PARK_FOV = 44;
       const collect = "JSON.stringify({ tag: 'urls', urls: performance.getEntriesByType('resource').map((e) => e.name) })";
       const steps = [
         `--out=${out}`,
@@ -269,7 +285,7 @@ async function main() {
          * is chosen. */
         'eval:JSON.stringify((() => {' +
           'const sp = window.__map().spawn;' +
-          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30);' +
+          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30, ' + PARK_FOV + ');' +
           'window.__camFrame = window.__boot().frames;' +
           'return { tag: "budget-pending" };' +
         '})())',
@@ -405,7 +421,7 @@ async function main() {
         'until:window.__map().id === "alps" && window.__map().ready',
         'eval:JSON.stringify((() => {' +
           'const sp = window.__map().spawn;' +
-          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30);' +
+          'window.__setCam(sp.x, sp.y + 1.6, sp.z, sp.x, sp.y + 1.2, sp.z - 30, ' + PARK_FOV + ');' +
           'window.__camFrame2 = window.__boot().frames;' +
           'return { tag: "budget2-pending" };' +
         '})())',

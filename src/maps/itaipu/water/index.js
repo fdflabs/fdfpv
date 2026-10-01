@@ -623,6 +623,10 @@ function viewTest(THREE) {
 
 export async function buildPart(ctx) {
   const { THREE } = ctx;
+  /* The thermal picture's kinds (src/render/thermal.js), handed in with
+   * the kit so this part stays free of a three import. */
+  const thermal = ctx.mats.thermal;
+  const water = (mat) => (thermal ? thermal.kind(mat, 'water') : mat);
   const [{ waterMaterial }, { planarMirror }, { waveTexture }, { makeWaves }] = await Promise.all([
     import('../../swiss2/water/surface.js'),
     import('../../swiss2/water/lake.js'),
@@ -712,7 +716,7 @@ export async function buildPart(ctx) {
       uItPlunge: { value: body.name === 'river' ? plunge : plunge.map(() => new THREE.Vector4()) },
       uItDown: { value: new THREE.Vector2(...PLUNGE_DOWN) },
     };
-    const env = withField(THREE, waterMaterial(opts), uniforms);
+    const env = water(withField(THREE, waterMaterial(opts), uniforms));
     env.name = `itaipu-water-${body.name}`;
     /* The mirror is made when this body first has the camera over it,
      * and freed when the camera leaves for the other: one at a time. */
@@ -734,9 +738,9 @@ export async function buildPart(ctx) {
   /* The chutes, drawn over D's floors, whose crash surface is water;
    * the jets off their flip buckets, and the plume where they land. */
   const lane = lanes(dam.find((p) => p.part === 'spillway').figures);
-  const chuteMat = chuteMaterial(THREE, {
+  const chuteMat = water(chuteMaterial(THREE, {
     waves, time, envMap, lane,
-  });
+  }));
   const chute = new THREE.Mesh(chuteGeometry(THREE, floors, axis, lane), chuteMat);
   chute.name = 'itaipu-chute';
   chute.receiveShadow = true;
@@ -747,6 +751,11 @@ export async function buildPart(ctx) {
   const spray = plume(THREE, spill, axis, PLUNGE_DOWN, WIND_TO, {
     waves, time, sun, riverY: river.y,
   });
+  if (thermal) {
+    /* Spray a little under the water's own temperature, and thin: a
+     * thermal camera sees through most of a plume. */
+    thermal.shader(spray.material, 'float thT = thEnv2.x - 0.02; float thA = 0.5;', 'itaipu-water-spray');
+  }
   group.add(spray);
   const records = floors.map(({ rec }) => rec);
   for (const rec of records) {
@@ -771,7 +780,7 @@ export async function buildPart(ctx) {
       const want = j === k && scale > 0;
       if (want && !m.mirror) {
         m.mirror = planarMirror(m.y, scale);
-        m.planar = withField(THREE, waterMaterial({ ...m.opts, planar: m.mirror }), m.uniforms);
+        m.planar = water(withField(THREE, waterMaterial({ ...m.opts, planar: m.mirror }), m.uniforms));
         m.planar.name = m.env.name;
         if (ctx.mats.lit) {
           ctx.mats.lit(m.planar);

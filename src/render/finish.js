@@ -251,7 +251,13 @@ function wrap(mat) {
          uniform float uFinAlu;
          uniform float uFinWear;
          ${FINISH_HELPERS}`)
-      .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n${FINISH_CHUNK}`);
+      .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+        /* Paint, so not in a thermal frame, whose temperature the output
+         * above has already written (src/render/thermal.js). */
+        #ifdef TH_PARS
+        if (thEnv.x < 0.5)
+        #endif
+        ${FINISH_CHUNK}`);
     if (!shader.fragmentShader.includes('finEnv') || !shader.vertexShader.includes(FINISH_VERTEX)) {
       throw new Error('finish: the lit shader changed and the finish chunk did not land');
     }

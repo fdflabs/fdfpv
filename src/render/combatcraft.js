@@ -58,6 +58,7 @@ import { WORLD_SCALE, bodyPosToModel } from './frame.js';
 import { PROP_SPIN } from './herocraft.js';
 import { paintRegions } from './livery.js';
 import { paintHook } from './combatpaint.js';
+import { thermalKind } from './thermal.js';
 
 /*
  * THE FRAMES, as docs/COMBAT-DRONES.md and scripts/combat-derive.js give
@@ -125,47 +126,45 @@ export const COMBAT_FRAMES = {
     },
   },
   /*
-   * The interceptor, PROVISIONAL: the owner's reference (2026-10-01) is a
-   * stretched X 7 inch, its motors further apart fore and aft than across,
-   * clear two blade props, an armoured carbon box round the camera, one
-   * big pack strapped on top and two antennas at the back, light payload.
-   * Its airframe and parts list are another part's to write into
-   * docs/COMBAT-DRONES.md; until then these are the reference's
-   * proportions, and the check holds them to the airframe table the day
-   * the table has a combat block with this frame. `motor` is [fore and
-   * aft, across] about the CG; no legs, since it lands on its belly.
+   * The interceptor (docs/COMBAT-DRONES.md section 1a): the owner's
+   * reference of 2026-10-01, a stretched X 7 inch, its motors further apart
+   * fore and aft than across, clear two blade props, an armoured carbon box
+   * round the camera, one big pack strapped on top and two antennas at the
+   * back, one light payload. `motor` is [fore and aft, across] about the
+   * CG, plant.c's arm_x and arm_y. Its legs reach the hull's depth as the
+   * other two's do: the plant parks it there, payload or not.
    */
   interceptor: {
-    arm: 0.1588,
-    motor: [0.125, 0.098],
+    arm: 0.1562,
+    motor: [0.120, 0.100],
     propR: 0.0889,
     blades: 2,
     clearProps: true,
     nose: 'armour',
     antennas: 'twin',
-    legs: false,
     tape: false,
     armT: 0.005,
-    cg: [0, 0, 0.022],
-    belly: -0.0045,
-    plates: [0.17, 0.050, 0.026, 0.011],
-    propZ: 0.040,
-    motorR: 0.0160,
-    pack: { at: [0.005, 0, 0.046], box: [0.115, 0.046, 0.038], bricks: 1 },
-    camera: [0.100, 0, 0.012],
-    hullDown: 0.0665,
+    cg: [0.0017, 0, 0.0248],
+    belly: -0.005,
+    plates: [0.16, 0.050, 0.03, 0.012],
+    propZ: 0.037,
+    motorR: 0.0175,
+    pack: { at: [-0.005, 0, 0.048], box: [0.105, 0.037, 0.042], bricks: 1 },
+    camera: [0.085, 0, 0.012],
+    hullDown: 0.075,
     payloads: {
-      standard: { d: 0.040, len: 0.16, at: [0.010, 0, -0.0465] },
+      proximity: { d: 0.045, len: 0.16, at: [0.0183, 0, -0.0523] },
     },
     accessories: {
-      gps: [-0.040, 0, 0.0475],
+      lrantenna: [-0.0767, 0, 0.0602],
+      gps: [-0.0667, 0, 0.0532],
     },
   },
 };
 
 /* The payload ids, 'none' first, and the accessory ids, in the doc's order:
  * the order a build draws them in whatever order a list arrives in. */
-export const COMBAT_PAYLOAD_IDS = ['none', 'standard', 'wide', 'penetrator', 'emp'];
+export const COMBAT_PAYLOAD_IDS = ['none', 'standard', 'wide', 'penetrator', 'emp', 'proximity'];
 export const COMBAT_ACCESSORY_IDS = ['pack2', 'cage', 'lrantenna', 'gps'];
 
 /* ------------------------------------------------------------------ */
@@ -772,13 +771,30 @@ function emp(k, d, len, seg) {
   const coils = 3;
   for (let i = 0; i < coils; i += 1) {
     const z = z0 + cap + (len - 2 * cap) * (0.18 + 0.32 * i);
-    k.add('copper', cylZ(r, r, len * 0.10, seg), [0, 0, z]);
+    k.add('coil', cylZ(r, r, len * 0.10, seg), [0, 0, z]);
   }
   k.add('xt', box(r * 0.5, 0.003, len * 0.12), [0, -r * 0.9, 0], [0, 0, 0], { ink: false });
   return { pin: [0, r * 0.9, z0 + cap * 0.5], straps: [-0.26, 0.26] };
 }
 
-const PAYLOAD_KITS = { standard, wide, penetrator, emp };
+/* The interceptor's proximity charge: a slim olive tube, short and clean,
+ * a small ogive nose with a dark ring of sensor windows round it, no fins.
+ * Light and fast, the opposite of the wide. */
+function proximity(k, d, len, seg) {
+  const r = d / 2;
+  const z0 = -len / 2;
+  const nose = len * 0.24;
+  const tail = len * 0.08;
+  const body = len - nose - tail;
+  k.add('olive', latheZ([[0.002, 0], [r * 0.42, nose * 0.22], [r * 0.78, nose * 0.58], [r, nose]], seg), [0, 0, z0]);
+  k.add('steelDark', band(r * 0.86, 0.005, seg), [0, 0, z0 + nose * 0.62], [0, 0, 0], { ink: false });
+  k.add('olive', cylZ(r, r, body, seg), [0, 0, z0 + nose + body / 2]);
+  k.add('olive', latheZ([[r, 0], [r * 0.84, tail]], seg), [0, 0, z0 + len - tail]);
+  k.add('oliveDark', cylZ(r * 0.84, r * 0.84, 0.002, seg), [0, 0, z0 + len - 0.001], [0, 0, 0], { ink: false });
+  return { pin: [0, r * 0.80, z0 + nose * 0.85], straps: [-0.14, 0.22] };
+}
+
+const PAYLOAD_KITS = { standard, wide, penetrator, emp, proximity };
 
 /*
  * The straps and the pin, about the payload's centre: a webbing band round
@@ -810,6 +826,9 @@ function slingKit(k, d, len, held, toBelly, toFront, seg) {
 
 function materials(fog) {
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
+  /* The motors' bells and windings warm with the throttle in a thermal
+   * picture (src/render/thermal.js, the motor kind). */
+  const motor = (o) => thermalKind(cel(o), 'motor');
   return {
     carbon: cel({ color: 0x1b1d1f, rim: 0.30, spec: 0.30, specWidth: 0.012 }),
     carbonDeep: cel({ color: 0x2c2f33, rim: 0.20, spec: 0.20 }),
@@ -817,8 +836,10 @@ function materials(fog) {
     brass: cel({ color: 0xc8a050, rim: 0.30, spec: 0.60, specWidth: 0.018 }),
     pcb: cel({ color: 0x2f4a3a, rim: 0.20, spec: 0.25 }),
     pcbDark: cel({ color: 0x15181a, rim: 0.20, spec: 0.30 }),
-    copper: cel({ color: 0xb8673a, rim: 0.30, spec: 0.55, specWidth: 0.02 }),
-    bell: cel({ color: 0x3a3c40, rim: 0.32, spec: 0.75, specWidth: 0.022 }),
+    copper: motor({ color: 0xb8673a, rim: 0.30, spec: 0.55, specWidth: 0.02 }),
+    /* The payload's coils: the motors' copper, not their heat. */
+    coil: cel({ color: 0xb8673a, rim: 0.30, spec: 0.55, specWidth: 0.02 }),
+    bell: motor({ color: 0x3a3c40, rim: 0.32, spec: 0.75, specWidth: 0.022 }),
     steel: cel({ color: 0x8e98a2, rim: 0.30, spec: 0.70, specWidth: 0.02, specColor: 0xe8eef4 }),
     steelDark: cel({ color: 0x55595e, rim: 0.30, spec: 0.60 }),
     strap: cel({ color: 0x141516, rim: 0.18, spec: 0.08 }),

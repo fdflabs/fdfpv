@@ -13,7 +13,7 @@
  * guest's store, which the account syncs for a signed in pilot):
  * buy the wide blast warhead and Rack +1, equip and unequip, the loadout
  * line following. Play on mission 1: the Defend Itaipu card's consent and
- * private Itaipu room, and its start row starts mission 1 with the
+ * public Itaipu room made for the war, and its start row starts mission 1 with the
  * loadout in the start message (the room on main ignores the field and
  * starts the war anyway, and no loadout op goes to a room that does not
  * echo loadouts). A mission end with no result, as main gives: nothing
@@ -56,7 +56,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
-import { PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
+import { PROTO, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[3] || join(root, 'build', 'campaign');
@@ -276,8 +276,8 @@ try {
     const r = window.__rooms();
     return { code: r.code, public: r.public, host: r.host === r.seat, map: window.__ui.settings.map, mode: r.mode, mission: r.mission };
   })()`);
-  check('a private Itaipu room made for the war and mission 1, this pilot its host',
-    !room.public && room.host && room.map === 'itaipu' && room.mode === 'war' && room.mission === 'itaipu-1',
+  check('a public Itaipu room made for the war and mission 1, this pilot its host (the owner, 2026-10-01: public so a friend finds it)',
+    room.public && room.host && room.map === 'itaipu' && room.mode === 'war' && room.mission === 'itaipu-1',
     JSON.stringify(room));
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.state === 'briefing'", 15000).catch(() => {});
@@ -322,6 +322,16 @@ try {
   const owned = await page.evaluate(LOADOUT_NOW);
   check('and one it owns is the loadout\'s warhead, echoed by the room',
     owned.mine && owned.mine.warhead === 'standard' && owned.mine.rack === 5 && owned.sent.includes('standard'), JSON.stringify(owned));
+  /* The interceptor carries one payload, the standard warhead's, so with
+   * the wide equipped and none chosen it goes as the standard, and the room
+   * is told so. Back on the wide first, so the change is seen. */
+  await page.evaluate("(() => { window.__ui.settings.combat = { '7inch': { payload: 'emp', accessories: [] } }; return true; })()");
+  await page.until("(() => { const v = window.__war().view; const l = v.loadouts && v.loadouts[window.__rooms().seat]; return Boolean(l) && l.warhead === 'wide'; })()", 10000).catch(() => {});
+  await page.evaluate("(() => { window.__sent.length = 0; const s = window.__ui.settings; s.airframe = 'interceptor'; s.combat = { interceptor: { payload: 'none', accessories: [] } }; return true; })()");
+  await page.until("(() => { const v = window.__war().view; const l = v.loadouts && v.loadouts[window.__rooms().seat]; return Boolean(l) && l.warhead === 'standard'; })()", 10000).catch(() => {});
+  const fast = await page.evaluate(LOADOUT_NOW);
+  check('the interceptor goes to war with its proximity payload, the standard warhead, whatever is equipped',
+    fast.mine && fast.mine.warhead === 'standard' && fast.mine.rack === 5 && fast.sent.includes('standard'), JSON.stringify(fast));
   await page.evaluate("(() => { const s = window.__ui.settings; s.airframe = '5inch'; s.combat = {}; return true; })()");
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
@@ -501,7 +511,7 @@ try {
     friend.on('error', reject);
   });
   friend.send(JSON.stringify({
-    type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 3, 21],
+    type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, war: WAR_JOIN, name: [2, 3, 21],
     profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
   }));
   await page.until('window.__rooms().peers.length === 1', 20000).catch(() => {});
