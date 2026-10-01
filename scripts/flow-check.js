@@ -26,6 +26,12 @@
  *                              picker, a quad chosen and then a plane:
  *                              each on Free Flight's menu, never My
  *                              tracks, and Fly is the Swiss valley.
+ *   the host changes the game  a room made for combat, a friend in it (a
+ *   in place (rule 8)          bare socket): the host's This room is for
+ *                              row turns it to Catch the Ace; the code,
+ *                              the friend and the room screen stay, the
+ *                              heading says Catch the Ace, the friend is
+ *                              told.
  *
  * No page error.
  *
@@ -50,7 +56,9 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
+import { PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -256,6 +264,54 @@ try {
   check('Free Flight\'s picker, a quad and a plane: each on Free Flight\'s menu, never My tracks, flown in the Swiss valley',
     picked.every((p) => p.menu.screen === 'title' && !p.menu.gate && p.menu.mode === 'freestyle' && p.menu.airframe === p.id
       && p.menu.map === 'swiss2' && p.flown.screen === 'flight' && p.flown.world === 'swiss2'), JSON.stringify(picked));
+
+  /* THE HOST CHANGES THE GAME IN PLACE. */
+  await page.evaluate("(() => { window.__ui.act('mode-gate'); window.__ui.act('way-friends'); return true; })()");
+  const combatCode = await page.evaluate("(async () => { const c = await window.__roomCreate({ map: 'swiss2', mode: 'combat' }); window.__ui.show('friends'); return c; })()");
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(combatCode)}`, 60000).catch(() => {});
+  const friend = new WebSocket(`${server.url.replace(/^http/, 'ws')}/v2/room/${combatCode}`, { headers: { origin: 'https://fdflabs.github.io' } });
+  const heard = [];
+  let friendClosed = null;
+  friend.on('message', (d) => {
+    try {
+      heard.push(JSON.parse(d.toString()));
+    } catch (e) {
+      /* A binary pose batch: not what this listens for. */
+    }
+  });
+  friend.on('close', (c) => {
+    friendClosed = c;
+  });
+  await new Promise((resolve, reject) => {
+    friend.on('open', resolve);
+    friend.on('error', reject);
+  });
+  friend.send(JSON.stringify({
+    type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 3, 21],
+    profile: { airframe: '5inch', map: 'swiss2', figure: 0, livery: null, parts: null, game: null },
+  }));
+  await page.until('window.__rooms().peers.length === 1', 20000).catch(() => {});
+  const heading = "(window.__ui.items().find((it) => it.section && /^Game/.test(it.label)) || {}).label || null";
+  const setUp = await page.evaluate(`({ mode: window.__rooms().mode, heading: ${heading} })`);
+  await page.evaluate(`(() => {
+    const i = window.__ui.items().findIndex((it) => it.label === 'This room is for');
+    window.__ui.setCursor(i);
+    return i;
+  })()`);
+  await page.tap('ArrowLeft');
+  await page.until("window.__rooms().mode === 'tag'", 10000).catch(() => {});
+  await page.sleep(600);
+  const switched = await page.evaluate(`({
+    mode: window.__rooms().mode, code: window.__rooms().code, peers: window.__rooms().peers.length, screen: window.__ui.screen,
+    heading: ${heading},
+    row: (window.__ui.items().find((it) => it.label === 'This room is for') || {}).value || null,
+  })`);
+  check('a room made for combat, a friend in it, its heading says so', setUp.mode === 'combat' && setUp.heading === 'Game: this room is set up for Toilet paper combat', JSON.stringify(setUp));
+  check('the host turns it to Catch the Ace in place: the same code and friend, the room screen, the heading, the friend told',
+    switched.mode === 'tag' && switched.code === combatCode && switched.peers === 1 && switched.screen === 'friends'
+    && switched.heading === 'Game: this room is set up for Catch the Ace!' && switched.row === 'Catch the Ace!'
+    && friendClosed === null && heard.some((m) => m.type === 'setup' && m.mode === 'tag'), JSON.stringify({ switched, friendClosed }));
+  friend.close();
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

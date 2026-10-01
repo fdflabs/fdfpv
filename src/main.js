@@ -2198,6 +2198,7 @@ export async function boot({
       ui.refreshFriends();
     },
     onRoom: () => ui.refreshFriends(),
+    onSetup: () => ui.refreshFriends(),
     onWorld: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
@@ -3284,6 +3285,34 @@ export async function boot({
   }
 
   /* The game running in this room, as this screen knows it, or null. */
+  /*
+   * THE HOST SETS THE ROOM UP IN PLACE (docs/FLOW-AUDIT.md rule 8): what
+   * the room is for, free flight or a game, changed on the room screen and
+   * everybody stays (edge/rooms/core.js setup). The war only where it may
+   * run. While a game is on the row says to end it first, with the end
+   * rows under it. Only where the room says it takes the message.
+   */
+  function roomSetupRows(host, w, game) {
+    if (!host || !w || w.setup !== true) {
+      return [];
+    }
+    const modes = [null, 'race', 'tag', 'combat', ...(!w.public && w.map === WAR_MAP ? ['war'] : [])];
+    const running = roomRunning();
+    const name = (m) => (m ? str(GAME_CARDS[m]) : str('friends.setup_free'));
+    if (running) {
+      return [{ label: str('friends.setup'), value: name(game), note: str('friends.setup_busy'), info: true }];
+    }
+    return [{
+      label: str('friends.setup'),
+      value: name(game),
+      note: str('friends.setup_note'),
+      adjust: (d) => {
+        const i = Math.max(0, modes.indexOf(game));
+        roomLinkState.send({ type: 'setup', mode: modes[(i + d + modes.length) % modes.length] });
+      },
+    }];
+  }
+
   function roomRunning() {
     const r = roomCombat.round();
     if (roomRace.race().state === 'on') {
@@ -4493,6 +4522,7 @@ export async function boot({
           label: game ? str('friends.games_for', { game: str(GAME_CARDS[game]) }) : str('friends.games'),
           section: true,
         },
+        ...roomSetupRows(host, w, game),
         ...roomEndRows(host, w),
         /* Who starts the games, for everybody else: without it a pilot
          * who is not the host sees rows that do nothing and no reason. */

@@ -18,7 +18,10 @@
  * listed, and a quick join. A room made for the war: a public one, one
  * off the war's map and a mission on another map refused; a private
  * Itaipu one made for mission 2 says so in its welcome, and once its
- * host has started mission 3 a later welcome says mission 3.
+ * host has started mission 3 a later welcome says mission 3. The host
+ * sets the private room up for Catch the Ace in place: both pilots told,
+ * the code and the pilots the same, a later welcome saying so; refused
+ * to the other pilot, and refused while a combat round is on.
  *
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
@@ -323,6 +326,25 @@ if (warCode) {
   w1.ws.close(1000);
   w2.ws.close(1000);
 }
+
+console.log('the host sets the room up in place');
+check('a welcome says the room takes the setup message', a.welcome.setup === true, String(a.welcome.setup));
+a.say({ type: 'setup', mode: 'tag' });
+const toldA = await a.until((x) => x.text('setup').find((m) => m.mode === 'tag'));
+const toldB = await b.until((x) => x.text('setup').find((m) => m.mode === 'tag'));
+check('the host sets it up for Catch the Ace: both pilots are told', Boolean(toldA && toldB), JSON.stringify(toldB));
+b.say({ type: 'setup', mode: 'combat' });
+check('the other pilot may not', Boolean(await b.until((x) => x.text('refused').find((m) => m.why === 'host'))));
+const third = await seat(`room/${code}`, { name: [4, 5, 66] });
+check('a later welcome: the same room, set up for Catch the Ace', third.welcome && third.welcome.code === code && third.welcome.mode === 'tag' && third.welcome.peers.length === 2,
+  JSON.stringify(third.welcome && { code: third.welcome.code, mode: third.welcome.mode, peers: third.welcome.peers.length }));
+third.ws.close(1000);
+a.say({ type: 'combat', op: 'start', minutes: 3 });
+await a.until((x) => x.text('combat').length > 0);
+a.say({ type: 'setup', mode: null });
+check('not while a game is on', Boolean(await a.until((x) => x.text('refused').find((m) => m.why === 'combat'))), JSON.stringify(a.text('refused')));
+a.say({ type: 'combat', op: 'stop' });
+await sleep(300);
 
 /* A raw request on its own connection: the first line of the answer. */
 function raw(text) {

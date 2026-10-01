@@ -412,6 +412,14 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.map = m.map;
         }
         handlers.onWorld?.(m.map);
+      } else if (m.type === 'setup') {
+        /* The host set the room up for another game, in place
+         * (edge/rooms/core.js setup). */
+        if (welcome) {
+          welcome.mode = m.mode ?? null;
+          welcome.mission = m.mission ?? null;
+        }
+        handlers.onSetup?.();
       } else if (m.type === 'room') {
         if (welcome) {
           welcome.name = m.name;

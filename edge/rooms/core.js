@@ -50,7 +50,8 @@ import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
-import { TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
+import { ROOM_SETUPS, TYPE_PARTS, TYPE_STREAMER } from '../../src/share/roomwire.js';
+import { MISSIONS } from '../../src/share/war/missions/index.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
@@ -687,6 +688,9 @@ export class RoomCore {
         pick: this.meta.pick ?? null,
         mode: this.meta.mode ?? null,
         mission: this.meta.mission ?? null,
+        /* This room takes the host's setup message (setup below), so a page
+         * offers the host its row; a server from before sends nothing. */
+        setup: true,
         map: this.meta.map,
         peers: this.peerList(conn),
         ...this.race.welcome(),
@@ -774,6 +778,9 @@ export class RoomCore {
     if (msg.type === 'world') {
       return this.world(conn, s, msg, now);
     }
+    if (msg.type === 'setup') {
+      return this.setup(conn, s, msg, now);
+    }
     const checked = this.hostCheck(conn, s, msg, now);
     if (checked && !checked.pass) {
       return checked;
@@ -837,6 +844,39 @@ export class RoomCore {
     }
     this.meta.map = msg.map;
     return [...out, { store: 'meta', value: this.meta }, ...this.others(null, JSON.stringify({ type: 'world', map: msg.map }))];
+  }
+
+  /*
+   * The host sets the room up for another game in place (docs/FLOW-AUDIT.md
+   * rule 8): { type: 'setup', mode }, mode one of ROOM_SETUPS or null for
+   * free flight. Everybody stays, and everybody is told, the host too:
+   * { type: 'setup', mode, mission }, a type a build from before passes
+   * over. Not while a game is on, which the host ends first, and the war
+   * only in a private room on a war mission's map, as at the create.
+   */
+  setup(conn, s, msg, now) {
+    const mode = msg.mode ?? null;
+    if (mode !== null && !ROOM_SETUPS.includes(mode)) {
+      return [];
+    }
+    const refuse = (why) => [{ send: conn, data: JSON.stringify({ type: 'refused', why }) }];
+    if (s.seat !== this.host()) {
+      return refuse('host');
+    }
+    if (mode === 'war' && (this.meta.public || !Object.values(MISSIONS).some((m) => m.map === this.meta.map))) {
+      return refuse('private');
+    }
+    const out = this.settleGames(now, true);
+    const game = this.game();
+    if (game) {
+      return [...out, ...refuse(game)];
+    }
+    this.meta.mode = mode;
+    return [
+      ...out,
+      { store: 'meta', value: this.meta },
+      ...this.others(null, JSON.stringify({ type: 'setup', mode, mission: this.meta.mission ?? null })),
+    ];
   }
 
   /* A host's kick: gone for the room's life, which is what the token and
