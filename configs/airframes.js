@@ -85,6 +85,20 @@ export const WHOOP_TRUE_DIMS = {
 export const BRAMOR_CATAPULT = { speed: 17, pitchDeg: 20, railLength: 3.1, height: 1.17 };
 
 /*
+ * THE STRIKER'S RAIL, docs/COMBAT-DRONES.md section 7: a 3 m launch rail
+ * at 15 deg, the aircraft's CG 1.2 m up on its shoe at the top, let go at
+ * 19 m/s, 1.3 times the trimmed stall of its heaviest warhead on the
+ * turbojet, the faster stalling of the two (scripts/combat-derive.js). The full size attacker leaves a rail on a
+ * booster; this one on a pneumatic catapult's stroke. The turbojet is run
+ * up to full on the rail before the shot (plant_wing.c plant_wing_launch).
+ */
+export const STRIKER_RAIL = { speed: 19, pitchDeg: 15, railLength: 3.0, height: 1.2 };
+
+/* Where the Striker's FPV camera sits, forward and up from the CG: the
+ * plant's camera point (src/native/plant.c), in the drawn nose. */
+export const STRIKER_CAMERA = { forward: 1.496, up: 0.0196 };
+
+/*
  * AN AIR START'S SPEED, for a run that begins in flight rather than on the
  * ground: the in-sim builder's test flight through a start gate hung in the
  * air (src/builder/course.js startFor). A fixed wing is let go level at
@@ -434,6 +448,134 @@ export const AIRFRAMES = [
       bodyLength: 0.155,
       bodyWidth: 0.088,
       bodyHeight: 0.034,
+    },
+  },
+  {
+    /*
+     * THE 7 INCH COMBAT QUAD, plant 24, docs/COMBAT-DRONES.md: a long range
+     * X frame on 2806.5 motors and 7 inch three blades, on a 6S1P 21700
+     * Li-ion pack, built to carry a payload slung under its belly. Every
+     * number is scripts/combat-derive.js's from a parts list. `grams` is
+     * the bare machine; the payload and accessories the pilot chose
+     * (settings.combat, configs/combat.js) reach the plant through
+     * sim_set_addons. A long range pilot tilts the camera less than a
+     * racer, since the machine cruises rather than sprints.
+     */
+    id: '7inch',
+    simId: 24,
+    name: 'Seven inch',
+    short: '7 inch',
+    blurb: 'A 979 gram 7 inch long range quad on a 6S Li-ion pack, built to carry a payload slung under its belly. The heavier the payload, the more of the stick it takes to hold it up.',
+    facts: ['6S Li-ion', '315 mm', 'Payload'],
+    sizeMm: 315,
+    grams: 979,
+    trackClass: 'full',
+    /* Level at full throttle in angle mode on a fresh pack, bare, measured
+     * on the module; the static thrust to weight is combat-derive's. */
+    topSpeed: 28.3,
+    thrustToWeight: 4.75,
+    cells: 6,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'betaflight-7inch',
+    /* Its real weight, not the five inch's feel multiplier: the payload is
+     * what makes it heavy (docs/COMBAT-DRONES.md section 1). */
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 90,
+    cameraAngle: 25,
+    dims: {
+      arm: 0.1575,
+      propR: 0.0889,
+      hullR: 0.0889,
+      /* plant.c's hull_hz_down and hull_hz_up: the legs reach the deepest
+       * payload's belly, and up is the second pack's top. */
+      vHalfDown: 0.109,
+      vHalfUp: 0.085,
+      bodyLength: 0.20,
+      bodyWidth: 0.10,
+      bodyHeight: 0.045,
+    },
+    combat: {
+      frame: '7in',
+      payloads: [
+        { id: 'standard', warhead: 'standard', massKg: 0.5, dragArea_m2: 0.00969, cgOffset_m: [0.0233, 0, -0.0637], dims: { d: 0.06, len: 0.26 } },
+        { id: 'wide', warhead: 'wide', massKg: 0.75, dragArea_m2: 0.01132, cgOffset_m: [0.0133, 0, -0.0712], dims: { d: 0.075, len: 0.24 } },
+        { id: 'penetrator', warhead: 'penetrator', massKg: 0.55, dragArea_m2: 0.009829, cgOffset_m: [0.0433, 0, -0.0587], dims: { d: 0.05, len: 0.32 } },
+        { id: 'emp', warhead: 'emp', massKg: 0.4, dragArea_m2: 0.007407, cgOffset_m: [0.0033, 0, -0.0662], dims: { d: 0.065, len: 0.18 } },
+      ],
+      accessories: [
+        { id: 'pack2', massKg: 0.429, cgOffset_m: [-0.0017, 0, 0.0633] },
+        { id: 'cage', massKg: 0.03, cgOffset_m: [0.0833, 0, -0.0167] },
+        { id: 'lrantenna', massKg: 0.025, cgOffset_m: [-0.0717, 0, 0.0613] },
+        { id: 'gps', massKg: 0.015, cgOffset_m: [-0.0567, 0, 0.0313] },
+      ],
+    },
+  },
+  {
+    /*
+     * THE 10 INCH COMBAT QUAD, plant 25, docs/COMBAT-DRONES.md: the 7
+     * inch's build a size up, on 3115 motors and 10 inch three blades, its
+     * 6S2P pack two bricks strapped side by side, which is the reference
+     * photograph's pair. It carries more than twice the 7 inch's payload
+     * and turns like the heavy machine it is.
+     */
+    id: '10inch',
+    simId: 25,
+    name: 'Ten inch',
+    short: '10 inch',
+    blurb: 'A 1.8 kilo 10 inch heavy lifter on two 6S Li-ion packs, carrying more than twice the payload of the 7 inch. Slow to turn, slow to stop, and it hits like it.',
+    facts: ['6S2P Li-ion', '420 mm', 'Heavy payload'],
+    sizeMm: 420,
+    grams: 1848,
+    trackClass: 'full',
+    topSpeed: 27.6,
+    thrustToWeight: 4.69,
+    cells: 6,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'betaflight-10inch',
+    /* Its real weight, not the five inch's feel multiplier: the payload is
+     * what makes it heavy (docs/COMBAT-DRONES.md section 1). */
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 90,
+    cameraAngle: 20,
+    dims: {
+      arm: 0.210,
+      propR: 0.127,
+      hullR: 0.127,
+      vHalfDown: 0.141,
+      vHalfUp: 0.055,
+      bodyLength: 0.24,
+      bodyWidth: 0.13,
+      bodyHeight: 0.05,
+    },
+    combat: {
+      frame: '10in',
+      payloads: [
+        { id: 'standard', warhead: 'standard', massKg: 1.2, dragArea_m2: 0.01691, cgOffset_m: [0.0284, 0, -0.081], dims: { d: 0.08, len: 0.34 } },
+        { id: 'wide', warhead: 'wide', massKg: 1.8, dragArea_m2: 0.02012, cgOffset_m: [0.0184, 0, -0.091], dims: { d: 0.1, len: 0.32 } },
+        { id: 'penetrator', warhead: 'penetrator', massKg: 1.3, dragArea_m2: 0.01677, cgOffset_m: [0.0534, 0, -0.0735], dims: { d: 0.065, len: 0.42 } },
+        { id: 'emp', warhead: 'emp', massKg: 1, dragArea_m2: 0.0129, cgOffset_m: [0.0034, 0, -0.0835], dims: { d: 0.085, len: 0.24 } },
+      ],
+      accessories: [
+        { id: 'cage', massKg: 0.045, cgOffset_m: [0.1034, 0, -0.021] },
+        { id: 'lrantenna', massKg: 0.035, cgOffset_m: [-0.0866, 0, 0.075] },
+        { id: 'gps', massKg: 0.02, cgOffset_m: [-0.0666, 0, 0.045] },
+      ],
     },
   },
   {
@@ -1342,6 +1484,87 @@ export const AIRFRAMES = [
       bodyLength: 0.959,
       bodyWidth: 1.49,
       bodyHeight: 0.222,
+    },
+  },
+  {
+    /*
+     * THE STRIKER, plants 27 and 28, docs/COMBAT-DRONES.md section 7: the
+     * war's pusher delta as a playable aircraft, at the size the war draws
+     * it (src/render/strikercraft.js), 2.5 m over its wingtip fins. A giant
+     * scale glass and carbon build: elevons, a small rudder on each fin, a
+     * warhead in the nose. Every number is scripts/combat-derive.js's from
+     * a parts list and the drawn planform. It is pushed two ways, its
+     * `combat.propulsion`: 'prop', a 110 cc boxer twin on a 30 in wooden
+     * pusher, and 'jet', a 140 N class turbojet whose thrust lags the stick
+     * by seconds. The pilot picks one on the Loadout tab, and each is its
+     * own plant (configs/combat.js combatSimId); the figures on this row
+     * are the first's, the jet's are its propulsion entry's. Shot off a
+     * rail (STRIKER_RAIL) and landed on its belly skid; a turning prop
+     * reaches under the skid, so the piston one breaks its prop doing it.
+     */
+    id: 'striker2500',
+    simId: 27,
+    fixedWing: true,
+    /* Its stall, m/s, trimmed with the standard warhead in the nose:
+     * combat-derive's, which npm run combat:gates holds the module to. */
+    stall: 12.53,
+    /* Level at full throttle, m/s, combat-derive's, held the same way. */
+    topSpeed: 26.9,
+    catapult: STRIKER_RAIL,
+    voice: 'glow2',
+    name: 'Striker',
+    short: 'Striker',
+    blurb: 'The raid\'s own pusher delta, 2.5 m across, on a 110 cc boxer twin or a small turbojet, with a warhead in its nose. Shoot it off the rail, fly it fast and level, put it into the target. It is stable and heavy, not aerobatic, and the jet takes seconds to spool.',
+    facts: ['Pusher delta', '2500 mm', 'Warhead'],
+    sizeMm: 2500,
+    grams: 13824.9,
+    thrustToWeight: 2.09,
+    trackClass: 'wing',
+    /* The ignition's and the receiver's pack: the engine burns fuel. */
+    cells: 2,
+    packVoltages: [4.2, 3.8, 3.5],
+    packLabels: { 4.2: 'Charged', 3.8: 'Half', 3.5: 'Nearly empty' },
+    defaultTune: 'striker-acro',
+    gravityBase: 1.0,
+    rates: {
+      type: 'ACTUAL',
+      roll: { rcRate: 7, srate: 67, expo: 0 },
+      pitch: { rcRate: 7, srate: 67, expo: 0 },
+      yaw: { rcRate: 7, srate: 67, expo: 0 },
+      throttleCap: 100,
+    },
+    cameraFov: 100,
+    cameraAngle: 5,
+    /* The drawn machine about its CG (combat-derive's hull): the furthest
+     * reach in plan is a fin's top trailing corner, the lowest point the
+     * belly skid's foot, which it lands on, and the highest the prop's
+     * upper blade; nose to hub 2.67 m. The contact box in plant.c is the
+     * skid and the fins' tops. */
+    dims: {
+      arm: 0,
+      propR: 0.381,
+      hullR: 1.5733,
+      vHalfDown: 0.2514,
+      vHalfUp: 0.4006,
+      bodyLength: 2.67,
+      bodyWidth: 2.502,
+      bodyHeight: 0.652,
+    },
+    combat: {
+      frame: 'striker',
+      propulsion: [
+        { id: 'prop', simId: 27, grams: 13824.9, thrustToWeight: 2.09, stall: 12.53, topSpeed: 26.9, voice: 'glow2', cgDz_m: 0, drawing_m: [0.146, 0, 0.0196] },
+        { id: 'jet', simId: 28, grams: 13492, thrustToWeight: 1.06, stall: 13.29, topSpeed: 66.3, voice: 'edf', cgDz_m: 0.0097, drawing_m: [0.146, 0, 0.0099] },
+      ],
+      payloads: [
+        { id: 'standard', warhead: 'standard', massKg: 1.5, dragArea_m2: 0, cgOffset_m: [1.196, 0, 0.0196], dims: { d: 0.26, len: 0.3 } },
+        { id: 'wide', warhead: 'wide', massKg: 2.2, dragArea_m2: 0, cgOffset_m: [1.186, 0, 0.0196], dims: { d: 0.28, len: 0.28 } },
+        { id: 'penetrator', warhead: 'penetrator', massKg: 1.8, dragArea_m2: 0, cgOffset_m: [1.246, 0, 0.0196], dims: { d: 0.16, len: 0.4 } },
+        { id: 'emp', warhead: 'emp', massKg: 1.1, dragArea_m2: 0, cgOffset_m: [1.156, 0, 0.0196], dims: { d: 0.26, len: 0.22 } },
+      ],
+      accessories: [
+        { id: 'whip', massKg: 0.06, cgOffset_m: [0.446, 0, 0.2196] },
+      ],
     },
   },
 ];

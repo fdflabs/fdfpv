@@ -1793,6 +1793,148 @@ export const CRASH_SCENARIOS = [
       ];
     },
   },
+  {
+    /*
+     * A five inch let down onto a hard roof from 0.2 m, 2 m/s at the
+     * slates, as a pilot sets one down short of the roof and it drops: a
+     * real one is picked up whole. The collision audit's let-down onto the
+     * swiss2 and alps roofs was thrown from 0.6 m and broke the pack on
+     * every slate, tin and shingle roof; the pack was levered off its strap
+     * by a push inside its own top face (crash.c, table_finish, the seat's
+     * footprint), on concrete from 35 degrees of slope and on tin from 5.
+     * Level onto every hard surface, and tilted 5 to 35 degrees each of
+     * four ways, the slope of a roof a quad is set down on: nothing breaks,
+     * crushes or bends.
+     */
+    name: 'a five inch dropped 0.2 m onto a hard roof breaks nothing',
+    async run(mk) {
+      const out = [];
+      for (const ground of ['wood', 'asphalt', 'concrete', 'rock', 'metal']) {
+        const r = await mk({ id: 0, ground });
+        const hurt = [];
+        let drops = 0;
+        for (let tilt = 0; tilt <= 35; tilt += 5) {
+          for (const ax of [[1, 0], [0, 1], [0.6, 0.8], [0.7071068, -0.7071068]]) {
+            r.sim.reset();
+            r.sim.e.sim_set_damage(1);
+            r.sim.e.sim_set_ground(1, 0, 0, 1, 0, 0, 0, 1.4, 0);
+            r.sim.e.sim_set_ground_material(SURFACE[ground]);
+            r.sim.rest();
+            const z = r.state()[3];
+            const h = (tilt * Math.PI) / 360;
+            r.pose([0, 0, z + 0.2], [Math.cos(h), Math.sin(h) * ax[0], Math.sin(h) * ax[1], 0]);
+            const from = r.events.length;
+            r.run(1500);
+            drops += 1;
+            const bad = r.events.slice(from).filter((e) => ['break', 'crush', 'bend'].includes(e.typeName));
+            if (bad.length) {
+              hurt.push(`${tilt} deg about (${ax.join(', ')}): ${bad.map((e) => `${e.typeName} ${r.parts[e.part].label} ${e.ratio.toFixed(2)}`).join(', ')}`);
+            }
+          }
+        }
+        out.push({ name: `onto ${ground}: ${drops} drops, nothing broken, crushed or bent`, ok: hurt.length === 0, detail: hurt.join('; ') || 'nothing' });
+      }
+      return out;
+    },
+  },
+  {
+    /*
+     * A part that breaks off takes the rigid motion it had, and what is
+     * left keeps its own: the split adds no energy. Every part of every
+     * airframe broken off alone, and every part one after another from
+     * either end of the table, in still air with the craft turning at 30
+     * rad/s about each body axis and about all three at once. The energy is
+     * each body's as the plant flies it: the craft's mass and inertia from
+     * sim_live_inertia, and each free body's from the parts it is made of,
+     * each a point mass at its centre plus its own box, about the body's
+     * own axes, as fb_spawn makes it (crash.c). On main a Slow Stick that
+     * lost its wing in a roll came out with 1.93 times the energy it went
+     * in with, and a Bramor its left wing turning at (20, 15, 0) rad/s with
+     * 1.33 (crash.c, live_rebuild and spin_cap).
+     */
+    name: 'a part that breaks off adds no energy',
+    async run(mk) {
+      const IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23];
+      const SPINS = [[30, 0, 0], [0, 30, 0], [0, 0, 30], [20, -15, 25]];
+      /* Rounding in a sum of a few dozen terms. */
+      const ROUND = 1e-9;
+      /* The thinnest a free body is let be about any axis (crash.c, fb_spawn). */
+      const FB_FLOOR = 1.0e-4;
+      const toBody = (q, v) => {
+        const [w, x, y, z] = [q[0], -q[1], -q[2], -q[3]];
+        const t = [2 * (y * v[2] - z * v[1]), 2 * (z * v[0] - x * v[2]), 2 * (x * v[1] - y * v[0])];
+        return [v[0] + w * t[0] + y * t[2] - z * t[1], v[1] + w * t[1] + z * t[0] - x * t[2], v[2] + w * t[2] + x * t[1] - y * t[0]];
+      };
+      const energy = (r) => {
+        const s = r.state();
+        const p = r.sim.e.malloc(4 * 8);
+        r.sim.e.sim_live_inertia(p);
+        const [m, ix, iy, iz] = Array.from(new Float64Array(r.sim.e.memory.buffer, p, 4));
+        r.sim.e.free(p);
+        let e = 0.5 * m * (s[4] * s[4] + s[5] * s[5] + s[6] * s[6]) + 0.5 * (ix * s[11] * s[11] + iy * s[12] * s[12] + iz * s[13] * s[13]);
+        const ps = r.partsState();
+        const bodies = new Map();
+        ps.forEach((q, i) => {
+          if (q.status === 0) return;
+          if (!bodies.has(q.body)) bodies.set(q.body, []);
+          bodies.get(q.body).push(i);
+        });
+        for (const idx of bodies.values()) {
+          const M = idx.reduce((t, i) => t + r.parts[i].mass, 0);
+          const cg = [0, 1, 2].map((a) => idx.reduce((t, i) => t + r.parts[i].mass * r.parts[i].cg[a], 0) / M);
+          const v = [0, 1, 2].map((a) => idx.reduce((t, i) => t + r.parts[i].mass * ps[i].vel[a], 0) / M);
+          const I = [0, 0, 0];
+          for (const i of idx) {
+            const d = r.parts[i];
+            const c = [0, 1, 2].map((a) => d.cg[a] - cg[a]);
+            const b = [0, 1, 2].map((a) => d.boxMax[a] - d.boxMin[a]);
+            I[0] += d.mass * (c[1] * c[1] + c[2] * c[2] + (b[1] * b[1] + b[2] * b[2]) / 12);
+            I[1] += d.mass * (c[0] * c[0] + c[2] * c[2] + (b[0] * b[0] + b[2] * b[2]) / 12);
+            I[2] += d.mass * (c[0] * c[0] + c[1] * c[1] + (b[0] * b[0] + b[1] * b[1]) / 12);
+          }
+          const w = toBody(ps[idx[0]].quat, ps[idx[0]].omega);
+          e += 0.5 * M * (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+          for (let a = 0; a < 3; a += 1) e += 0.5 * Math.max(I[a], M * FB_FLOOR) * w[a] * w[a];
+        }
+        return e;
+      };
+      let worst = { gain: -Infinity };
+      let breaks = 0;
+      const spun = (r, w) => {
+        r.sim.reset();
+        r.sim.e.sim_set_damage(1);
+        r.pose([0, 0, 100], [1, 0, 0, 0]);
+        r.velocity([0, 0, 0], w);
+      };
+      const judge = (r, j, w, how) => {
+        const e0 = energy(r);
+        r.sim.e.sim_part_break(j);
+        const gain = energy(r) / e0 - 1;
+        breaks += 1;
+        if (gain > worst.gain) worst = { gain, id: r.id, part: r.parts[j].label, w, how };
+      };
+      for (const id of IDS) {
+        const r = await mk({ id, ground: null });
+        r.id = id;
+        const all = r.parts.map((_, j) => j).slice(1);
+        for (const w of SPINS) {
+          for (const j of all) {
+            spun(r, w);
+            judge(r, j, w, 'alone');
+          }
+          for (const order of [all, [...all].reverse()]) {
+            spun(r, w);
+            for (const j of order) judge(r, j, w, 'one after another');
+          }
+        }
+      }
+      return [{
+        name: `${breaks} breaks: none leaves the craft and its parts with more energy than they had`,
+        ok: worst.gain <= ROUND,
+        detail: `worst ${(100 * worst.gain).toExponential(2)} percent, airframe ${worst.id} losing its ${worst.part} ${worst.how} turning at (${worst.w.join(', ')}) rad/s`,
+      }];
+    },
+  },
 ];
 
 export async function runScenario(loadSim, wasmBytes, configText, sc) {

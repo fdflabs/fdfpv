@@ -77,12 +77,30 @@ function roomPick() {
   return [r[0] % NAME_ADJECTIVES, r[1] % NAME_ANIMALS, NAME_NUMBER_MIN + (r[2] % (NAME_NUMBER_MAX - NAME_NUMBER_MIN + 1))];
 }
 
+/*
+ * THE TICK KEEPS THE ROOM'S CLOCK, not its own. A timer fires late by
+ * however long the event loop was busy, and a tick that set its next
+ * timer TICK_MS from when it ran added that lateness to every period: a
+ * loop 5 ms late on each ran the room at 26 Hz, not 30 (rooms:selftest).
+ * So each tick is due TICK_MS after the one before it was due, and the
+ * lateness of one is taken out of the wait for the next. When that moment
+ * has already gone (a stall longer than a tick, or a room whose tick had
+ * stopped and starts again) the cadence starts over TICK_MS from now: no
+ * tick is ever run twice to catch up, which would send a burst of batches
+ * carrying nothing new.
+ */
+export function nextTickDue(lastDue, now) {
+  const next = lastDue == null ? -Infinity : lastDue + TICK_MS;
+  return next > now ? next : now + TICK_MS;
+}
+
 export class RoomHost {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
     this.core = null;
     this.timer = null;
+    this.tickDue = null; /* wall ms the tick last timed was due, nextTickDue */
   }
 
   async load() {
@@ -143,13 +161,15 @@ export class RoomHost {
       } else if (a.store) {
         this.ctx.storage.put(a.store, a.value);
       } else if (a.tick && !this.timer) {
+        const now = Date.now();
+        this.tickDue = nextTickDue(this.tickDue, now);
         this.timer = setTimeout(() => {
           this.timer = null;
-          const now = Date.now();
-          this.run(this.core.tick(now));
+          const at = Date.now();
+          this.run(this.core.tick(at));
           /* A countdown runs out on a tick, and the browser shows it. */
-          reportRoom(this.env, this.core, now);
-        }, TICK_MS);
+          reportRoom(this.env, this.core, at);
+        }, this.tickDue - now);
       } else if (a.empty) {
         this.closeLater();
       }

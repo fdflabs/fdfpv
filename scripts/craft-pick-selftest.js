@@ -80,7 +80,7 @@ for (const af of AIRFRAMES) {
 }
 
 console.log('2. the lists and the cycle');
-check('the quads are the quads', pickList('quad').every((id) => !airframeById(id).fixedWing) && pickList('quad').length === 2);
+check('the quads are the quads', pickList('quad').every((id) => !airframeById(id).fixedWing) && pickList('quad').length === 4);
 /* A float version is its land plane's Floats toggle, not a card. */
 const CARDS = AIRFRAMES.filter((a) => !isFloatVersion(a.id));
 check('the float versions are the Timber\'s and the Cub\'s', AIRFRAMES.filter((a) => isFloatVersion(a.id)).map((a) => `${landPlaneOf(a.id)}>${a.id}`).join() === 'timber1500>timber1500f,cub1400>cub1400f');

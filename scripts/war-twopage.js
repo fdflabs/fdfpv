@@ -79,6 +79,9 @@ import { LATE_MS } from '../src/game/midair.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { waveSize } from '../src/share/war/missions/index.js';
+import {
+  darkFrom, DISTRICTS, CASCADE_MS, FLICKER_MS,
+} from '../src/share/war/grid.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const MAIN = process.argv.includes('--main');
@@ -657,6 +660,37 @@ try {
   check('both take each hit target\'s megawatts once, and call the Switchyard', ya.view.output === itaipu1.output - lost && yb.view.output === ya.view.output
     && JSON.stringify(ya.view.down) === JSON.stringify(hitTargets) && [ya, yb].every((w) => w.said.some((s) => s.includes('SWITCHYARD HIT'))),
   `${ya.view.output} and ${yb.view.output} MW, down ${hitTargets.join(',')}; ${ya.said.filter((s) => s.includes('HIT')).join(' | ')}`);
+  if (MAIN && itaipu1.night) {
+    /* The night raid's outages (src/share/war/grid.js): once every hit's
+     * cascade is over, both pages have the same districts dark, the ones
+     * the grid's rules put out for the hits the room sent, and each
+     * page's map was handed exactly those (look/night.js setPower). A hit
+     * landing while this waits starts the wait again. */
+    const hitsOf = (w) => [...new Set(w.log.filter((e) => e.type === 'dead' && e.hit).map((e) => e.target))].map((target) => ({
+      target, at: Math.min(...w.log.filter((e) => e.type === 'dead' && e.hit && e.target === target).map((e) => e.at)),
+    }));
+    let hits = hitsOf(ya);
+    let from = darkFrom(hits);
+    let grids = null;
+    for (let k = 0; k < 4; k += 1) {
+      const settled = Math.max(0, ...from.filter(Number.isFinite)) + FLICKER_MS + CASCADE_MS;
+      await watch(async () => (await nowOf(a)) > settled && (await nowOf(b)) > settled, settled + 30000);
+      const [wa, wb] = await Promise.all(pages.map(warOf));
+      const again = hitsOf(wa);
+      grids = [wa.grid, wb.grid];
+      if (JSON.stringify(again) === JSON.stringify(hits)) {
+        break;
+      }
+      hits = again;
+      from = darkFrom(hits);
+    }
+    const want = DISTRICTS.filter((d, i) => Number.isFinite(from[i])).map((d) => d.id);
+    const dark = grids.map((g) => Object.keys(g.state).filter((id) => g.state[id] === 'dark'));
+    const handed = grids.map((g) => Boolean(g.map) && g.map.every((v, i) => v === (Number.isFinite(from[i]) ? 0 : 1)));
+    check('the hits put the same districts out on both pages, the grid\'s, and each map has them dark',
+      want.length > 0 && dark.every((d) => JSON.stringify(d) === JSON.stringify(want)) && handed.every(Boolean),
+      `hits ${hits.map((h) => h.target).join(',')}; want ${want.join(',')}; A ${dark[0].join(',')}; B ${dark[1].join(',')}; maps handed ${handed.join(', ')}`);
+  }
   const hunterBoom = ya.log.filter((e) => e.type === 'boom')[1];
   const hunterBoomB = yb.log.filter((e) => e.type === 'boom')[1];
   check('a Hunter goes off on a pilot, and both pages agree who, when and where', hunterBoom && hunterBoomB

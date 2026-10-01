@@ -1531,6 +1531,213 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_z = -0.002,
   .fw = &FW_NRJ1490,
 },
+
+/* ---------------------------------------------------------------------
+ * SIM_AIRFRAME_7IN and SIM_AIRFRAME_10IN: the combat quads,
+ * docs/COMBAT-DRONES.md. Long range X frames on 6S Li-ion, built to carry
+ * a payload slung under the belly, flown by Betaflight on the same plant
+ * step as the five inch. Every number below is printed by
+ * scripts/combat-derive.js from a parts list, and the doc names the
+ * sources; scripts/combat-gates.js holds them to bands from outside this
+ * repository.
+ *
+ * THE MOTOR SET is solved on this file's own electrical model, as the five
+ * inch's was, but the other way round. The five inch fixed its hover duty
+ * and full throttle current off a stand and solved ke and r_motor; here ke
+ * is the plate's kV loaded by 1.10 (a slow wound motor saturates less than
+ * a 2207, which loads to 1.26) and r_motor is the motor's published
+ * winding resistance plus the ESC's FETs and the leads, and the hover duty
+ * is what comes out. kt is the prop's, from stand thrust and rpm; kq
+ * follows through momentum theory at the figure of merit, which is larger
+ * than the five inch triblade's 0.520 because a bigger blade runs at a
+ * higher Reynolds number.
+ *
+ * THE PACK IS LI-ION and its resistance is most of the character. A
+ * 21700 high drain cell measures about 16 mOhm, so a 6S1P sags to 2.9 V a
+ * cell under a full throttle punch where the five inch's race pack holds
+ * 3.9: the motors cannot have what a LiPo would give them, and a long
+ * range machine is flown on that. The 10 inch's 6S2P halves it.
+ *
+ * DRAG, scaled from the five inch's fitted figures by what each machine
+ * presents: frontal and side by the arms, stack and pack the parts list
+ * has (bluff body Cd near 1.2); plan by the motor diagonal squared, since
+ * the five inch's 0.0225 was fitted to its whole machine falling, discs
+ * included, and the discs grow with the frame. A payload's drag is the
+ * add-on's, at the payload (sim_set_addons).
+ *
+ * THE HULL reaches down to the deepest payload's belly, and the drawn
+ * landing legs reach as far: a payload drone stands on its legs with the
+ * payload clear between them, carrying one or not. Up is the second
+ * pack's top on the 7 inch and the GPS mast's foot on the 10 inch.
+ *
+ * Ground effect stays off, as on the five inch, for the same reason.
+ * ------------------------------------------------------------------- */
+[SIM_AIRFRAME_7IN] = {
+  .kind = PLANT_KIND_QUAD,
+  .mass_kg = 0.979,
+  .inertia = { 0.004105, 0.004443, 0.007519 },
+  .gravity = 9.80665,
+  .arm_x = 0.1113693180368812, /* 0.315 / (2 sqrt 2) */
+  .arm_y = 0.1113693180368812,
+  .kt = 2.9498e-6,  /* 1.9 kgf at 24,000 rpm, a 2806.5 on a 7x3.5x3 */
+  .kq = 3.7348e-8,  /* figure of merit 0.55 */
+  .ke = 0.00808017, /* loaded 1182 kV on a 1300 kV plate */
+  .r_motor = 0.090,
+  .j_rotor = 2.6e-5,
+  .cells = 6.0,
+  .r_cell = 0.018,  /* 21700 cell 16 mOhm, leads and XT60 2 */
+  .cda_plan = 0.040,
+  .cda_front = 0.019,
+  .cda_side = 0.020,
+  .k_body_lift = 0.015,
+  .rho = 1.225,
+  .k_propwash = 0.15,
+  .prop_r = 0.0889,
+  .k_rotor_drag = 0.43842,
+  .k_rotor_axial = 0.0,
+  .k_ground = 0.0,
+  .k_inflow = 0.014149, /* 3.5 inch pitch / 2 pi */
+  .torque_ind = 0.55,
+  .k_duct = 1.0,
+  .duct_fade = 0.0,
+  .k_duct_lip = 0.0,
+  .spin = { -1.0, 1.0, 1.0, -1.0 },
+  .pos_x = { -0.1113693180368812, 0.1113693180368812,
+             -0.1113693180368812, 0.1113693180368812 },
+  .pos_y = { -0.1113693180368812, -0.1113693180368812,
+             0.1113693180368812, 0.1113693180368812 },
+  .pos_z = { 0.0083, 0.0083, 0.0083, 0.0083 },
+  /* A bolted carbon frame's build tolerance, the five inch's. */
+  .cant_radial_deg = { 1.4, 0.85, 1.15, 0.6 },
+  .cant_tangent_deg = { -0.9, 1.4, 0.6, -1.2 },
+  .hull_hx = 0.131,
+  .hull_hy = 0.131,
+  .hull_hz_down = 0.109,
+  .hull_hz_up = 0.085,
+  .contact_patch_r = 0.085,
+  .contact_arm_max = 0.28,
+  .vib_ref_w = 1965.0, /* full throttle on a fresh pack */
+  .camera_x = 0.090,
+  .camera_y = 0.0,
+  .camera_z = -0.017,
+},
+[SIM_AIRFRAME_10IN] = {
+  .kind = PLANT_KIND_QUAD,
+  .mass_kg = 1.848,
+  .inertia = { 0.0143, 0.01424, 0.02593 },
+  .gravity = 9.80665,
+  .arm_x = 0.1484924240491750, /* 0.420 / (2 sqrt 2) */
+  .arm_y = 0.1484924240491750,
+  .kt = 1.6425e-5,  /* 3.6 kgf at 14,000 rpm, a 3115 on a 10x5x3 */
+  .kq = 3.2574e-7,  /* figure of merit 0.58 */
+  .ke = 0.0116714,  /* loaded 818 kV on a 900 kV plate */
+  .r_motor = 0.090,
+  .j_rotor = 1.2e-4,
+  .cells = 6.0,
+  .r_cell = 0.010,  /* two 21700 cells in parallel, 8 mOhm, leads 2 */
+  .cda_plan = 0.075,
+  .cda_front = 0.030,
+  .cda_side = 0.033,
+  .k_body_lift = 0.025,
+  .rho = 1.225,
+  .k_propwash = 0.15,
+  .prop_r = 0.127,
+  .k_rotor_drag = 0.43842,
+  .k_rotor_axial = 0.0,
+  .k_ground = 0.0,
+  .k_inflow = 0.020213, /* 5 inch pitch / 2 pi */
+  .torque_ind = 0.58,
+  .k_duct = 1.0,
+  .duct_fade = 0.0,
+  .k_duct_lip = 0.0,
+  .spin = { -1.0, 1.0, 1.0, -1.0 },
+  .pos_x = { -0.1484924240491750, 0.1484924240491750,
+             -0.1484924240491750, 0.1484924240491750 },
+  .pos_y = { -0.1484924240491750, -0.1484924240491750,
+             0.1484924240491750, 0.1484924240491750 },
+  .pos_z = { 0.014, 0.014, 0.014, 0.014 },
+  .cant_radial_deg = { 1.4, 0.85, 1.15, 0.6 },
+  .cant_tangent_deg = { -0.9, 1.4, 0.6, -1.2 },
+  .hull_hx = 0.170,
+  .hull_hy = 0.170,
+  .hull_hz_down = 0.141,
+  .hull_hz_up = 0.055,
+  .contact_patch_r = 0.110,
+  .contact_arm_max = 0.37,
+  .vib_ref_w = 1138.0,
+  .camera_x = 0.113,
+  .camera_y = 0.0,
+  .camera_z = -0.021,
+},
+/*
+ * The Striker on its piston engine, docs/COMBAT-DRONES.md section 7:
+ * scripts/combat-derive.js's parts list, 13.8 kg with 2.5 l of gasoline
+ * and the nose weight that balances it bare, a 110 cc boxer twin turning
+ * a 30 in wooden pusher 1.124 m behind the CG. The pack is the ignition's
+ * and the receiver's, which the engine draws nothing from. The hull is
+ * the contact code's centred box as src/render/strikercraft.js draws the
+ * aircraft: the fins' outer faces across, as far fore and aft as the
+ * tail reaches behind the CG (the nose's 0.33 m beyond it is the crash
+ * parts'), the belly skid's foot 0.251 m under the CG and the fins' tops
+ * 0.250 m over it. It lands on that skid; the prop's lower blade, 0.38 m
+ * under its hub, reaches below it, so a belly landing with the engine
+ * turning breaks the prop, as on any pusher this size. The camera is the
+ * drawing's, in the nose.
+ */
+[SIM_AIRFRAME_STRIKER_PROP] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 13.8249,
+  .inertia = { 1.6457, 9.4978, 11.0275 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.381,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -1.124, 0.0, 0.0, 0.0 },
+  .hull_hx = 1.214,
+  .hull_hy = 1.251,
+  .hull_hz_down = 0.2514,
+  .hull_hz_up = 0.2496,
+  .contact_patch_r = 0.15,
+  .contact_arm_max = 1.6,
+  .vib_ref_w = 1000.0,
+  .camera_x = 1.496,
+  .camera_y = 0.0,
+  .camera_z = 0.0196,
+  .fw = &FW_STRIKER_PROP,
+},
+/*
+ * The Striker on its turbojet: the same airframe, 13.5 kg with 4 l of
+ * kerosene in the tank that balances it, the 140 N class turbojet in its
+ * nacelle on the tail, 0.97 m behind the CG and 0.11 m over it. The hull
+ * as the piston one's, the skid's foot 0.261 m under this one's CG and
+ * the fins' tops 0.240 m over it; nothing turns below the skid, so it
+ * slides in on it. prop_r is the compressor's.
+ */
+[SIM_AIRFRAME_STRIKER_JET] = {
+  .kind = PLANT_KIND_WING,
+  .mass_kg = 13.4920,
+  .inertia = { 1.6186, 5.5916, 7.0636 },
+  .gravity = 9.81,
+  .cells = 2.0,
+  .r_cell = 0.030,
+  .rho = 1.225,
+  .prop_r = 0.065,
+  .spin = { -1.0, 0.0, 0.0, 0.0 },
+  .pos_x = { -0.974, 0.0, 0.0, 0.0 },
+  .hull_hx = 1.214,
+  .hull_hy = 1.251,
+  .hull_hz_down = 0.2611,
+  .hull_hz_up = 0.2399,
+  .contact_patch_r = 0.15,
+  .contact_arm_max = 1.6,
+  .vib_ref_w = 1000.0,
+  .camera_x = 1.496,
+  .camera_y = 0.0,
+  .camera_z = 0.0099,
+  .fw = &FW_STRIKER_JET,
+},
 };
 
 /*
@@ -1881,6 +2088,9 @@ int plant_tune_on(void) {
  */
 static PlantParams g_plant_add;
 static double g_addons_in[SIM_ADDON_DOUBLES];
+/* The add-ons' own inertia about their lumped point, sim_set_addon_inertia:
+ * zero unless the host hands it over after sim_set_addons. */
+static double g_addons_own_i[SIM_ADDON_INERTIA_DOUBLES];
 
 /* What the add-ons are laid over: the tuning over the power option over
  * the table, as far as each is seated. */
@@ -1907,6 +2117,9 @@ static void plant_seat(void) {
   g_plant_add.inertia[0] += m * (r[1] * r[1] + r[2] * r[2]) - M * (sh[1] * sh[1] + sh[2] * sh[2]);
   g_plant_add.inertia[1] += m * (r[0] * r[0] + r[2] * r[2]) - M * (sh[0] * sh[0] + sh[2] * sh[2]);
   g_plant_add.inertia[2] += m * (r[0] * r[0] + r[1] * r[1]) - M * (sh[0] * sh[0] + sh[1] * sh[1]);
+  for (int a = 0; a < 3; a += 1) {
+    g_plant_add.inertia[a] += g_addons_own_i[a];
+  }
   g_plant_add.mass_kg = M;
   for (int k = 0; k < SIM_MOTOR_COUNT; k += 1) {
     g_plant_add.pos_x[k] -= sh[0];
@@ -1940,7 +2153,7 @@ static void plant_seat(void) {
 
 int plant_set_addons(const double *in) {
   const PlantParams *base = &PLANT_TABLE[g_airframe];
-  if (in == 0 || base->kind != PLANT_KIND_WING || base->fw == 0) {
+  if (in == 0 || (base->kind == PLANT_KIND_WING && base->fw == 0)) {
     return SIM_ERR_BAD_ARG;
   }
   const double m0 = plant_under_addons()->mass_kg;
@@ -1958,13 +2171,38 @@ int plant_set_addons(const double *in) {
   for (int i = 0; i < SIM_ADDON_DOUBLES; i += 1) {
     g_addons_in[i] = in[i];
   }
+  for (int a = 0; a < SIM_ADDON_INERTIA_DOUBLES; a += 1) {
+    g_addons_own_i[a] = 0.0;
+  }
   g_addons_on = 1;
+  plant_seat();
+  return SIM_OK;
+}
+
+int plant_set_addon_inertia(const double *in) {
+  if (in == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  if (!g_addons_on) {
+    return SIM_ERR_BAD_STATE;
+  }
+  for (int a = 0; a < SIM_ADDON_INERTIA_DOUBLES; a += 1) {
+    if (!in_range(in[a], 0.0, 1.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  for (int a = 0; a < SIM_ADDON_INERTIA_DOUBLES; a += 1) {
+    g_addons_own_i[a] = in[a];
+  }
   plant_seat();
   return SIM_OK;
 }
 
 void plant_addons_clear(void) {
   g_addons_on = 0;
+  for (int a = 0; a < SIM_ADDON_INERTIA_DOUBLES; a += 1) {
+    g_addons_own_i[a] = 0.0;
+  }
   plant_seat();
 }
 
@@ -2918,6 +3156,28 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
     const double v_xy = sim_sqrt(v_body[0] * v_body[0] + v_body[1] * v_body[1]);
     f_body[1] -= 0.5 * PLANT.rho * PLANT.k_body_lift * v_xy * v_body[1];
   }
+  /* A payload's drag (sim_set_addons): quadratic in the air speed at its
+   * own point, with that point's arm about the CG the add-ons moved, so a
+   * cylinder slung under the belly pitches the nose into a fast pass the
+   * way a real one does. Scaled by the Air setting like the body's. */
+  double add_tau[3] = { 0.0, 0.0, 0.0 };
+  if (PLANT.add_on) {
+    const double ra[3] = { PLANT.add_drag_at[0] - PLANT.add_shift[0],
+                           PLANT.add_drag_at[1] - PLANT.add_shift[1],
+                           PLANT.add_drag_at[2] - PLANT.add_shift[2] };
+    const double va[3] = { v_body[0] + (q * ra[2] - r * ra[1]),
+                           v_body[1] + (r * ra[0] - p * ra[2]),
+                           v_body[2] + (p * ra[1] - q * ra[0]) };
+    const double vam = sim_sqrt(va[0] * va[0] + va[1] * va[1] + va[2] * va[2]);
+    const double kd = -0.5 * PLANT.rho * PLANT.add_cda * air * vam;
+    const double fd[3] = { kd * va[0], kd * va[1], kd * va[2] };
+    for (int a = 0; a < 3; a += 1) {
+      f_body[a] += fd[a];
+    }
+    add_tau[0] = ra[1] * fd[2] - ra[2] * fd[1];
+    add_tau[1] = ra[2] * fd[0] - ra[0] * fd[2];
+    add_tau[2] = ra[0] * fd[1] - ra[1] * fd[0];
+  }
   for (int m = 0; m < SIM_MOTOR_COUNT; m += 1) {
     f_body[0] += thrust[m] * AXIS[m][0];
     f_body[1] += thrust[m] * AXIS[m][1];
@@ -3149,6 +3409,11 @@ void plant_step(SimState *s, const double duty_in[SIM_MOTOR_COUNT]) {
   double tau[3] = { stator_torque[0] + rotor_drag_tau[0],
                     stator_torque[1] + rotor_drag_tau[1],
                     stator_torque[2] + rotor_drag_tau[2] };
+  if (PLANT.add_on) {
+    for (int a = 0; a < 3; a += 1) {
+      tau[a] += add_tau[a];
+    }
+  }
   for (int m = 0; m < SIM_MOTOR_COUNT; m += 1) {
     const double fx = thrust[m] * AXIS[m][0];
     const double fy = thrust[m] * AXIS[m][1];

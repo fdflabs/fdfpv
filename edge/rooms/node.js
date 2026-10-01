@@ -69,7 +69,9 @@ import front from './front.js';
 import { RoomHost } from './host.js';
 import { Lobby } from './lobby.js';
 import { Health, roomCounters } from './health.js';
-import { answer, listener, refuseUpgrade, upgradeListener } from '../node-http.js';
+import {
+  answer, listener, readRevision, refuseUpgrade, upgradeListener,
+} from '../node-http.js';
 import { normaliseName } from '../../src/share/pilot.js';
 import { turnMinter } from './turn.js';
 
@@ -220,9 +222,12 @@ function memoryStorage() {
 /* A socket as host.js sees one: the attachment is a structured clone both
  * ways, as it is on a Durable Object, so nothing aliases the core's state. */
 class Conn {
-  constructor(ws, counters) {
+  /* socket: the TCP socket Node's 'upgrade' event handed the server, which
+   * ws.handleUpgrade then writes this WebSocket's frames to (send). */
+  constructor(ws, counters, socket) {
     this.ws = ws;
     this.counters = counters;
+    this.socket = socket;
     this.attachment = null;
     this.corked = false;
     /* The last PROBE_KEEP protocol round trips, ms, and when the ping in
@@ -263,10 +268,13 @@ class Conn {
      * relay is 31 streamers a pilot a tenth of a second, each a syscall
      * that cost more than the rest of the room's work (rooms:load's
      * profile, 2026-09-29). Nothing waits: the turn ends, the write goes.
-     * _socket is ws's own field (ws is pinned, package.json); ws corks it
-     * round each frame, and corks nest. */
-    const socket = this.ws._socket;
-    if (!this.corked && socket) {
+     * The socket corked is the one the server was given by Node's http
+     * 'upgrade' event and passed to ws.handleUpgrade, which writes every
+     * frame to it: ours through Node's public API, not ws's private
+     * _socket field, so a ws upgrade cannot quietly stop the batching.
+     * ws corks it round each frame too, and corks nest. */
+    const { socket } = this;
+    if (!this.corked) {
       this.corked = true;
       socket.cork();
       setImmediate(() => {
@@ -344,7 +352,7 @@ class Room {
     }
     /* Taken in by whichever object holds the name by then, in case this
      * one was dropped while the handshake finished. */
-    return new Upgrade((ws) => this.env.ROOMS.get(this.name).connect(ws, request));
+    return new Upgrade((ws, socket) => this.env.ROOMS.get(this.name).connect(ws, request, socket));
   }
 
   /* A purged room, or a socket to a code nobody made, leaves an object
@@ -355,8 +363,8 @@ class Room {
     }
   }
 
-  connect(ws, request) {
-    const conn = new Conn(ws, this.counters);
+  connect(ws, request, socket) {
+    const conn = new Conn(ws, this.counters, socket);
     const address = request.headers.get('x-room-address') || '';
     this.sockets.add(conn);
     this.enqueue(() => this.host.accept(conn, request));
@@ -436,9 +444,12 @@ function lobbyObject(env) {
 
 /* roomCap: every new room's cap, for scripts/rooms-load.js alone; a seat
  * is a byte on the wire and the client colours sixteen, so the process's
- * own entry point below never reads it. */
+ * own entry point below never reads it. revision: what GET /v2/version
+ * answers, the deployed REVISION file's (node-http.js readRevision) unless
+ * a check passes its own. */
 export function startRooms({
   db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '', turnSecret = '', turnUrls = '',
+  revision = readRevision(new URL('../../REVISION', import.meta.url)),
 }) {
   if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
     throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
@@ -446,7 +457,7 @@ export function startRooms({
   const store = new Store(db);
   const env = {
     PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap, ACCOUNTS_ORIGIN: accountsOrigin.replace(/\/+$/, ''),
-    TURN: turnMinter(turnSecret, turnUrls),
+    TURN: turnMinter(turnSecret, turnUrls), REVISION: revision,
   };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
@@ -477,7 +488,7 @@ export function startRooms({
       await refuseUpgrade(socket, result);
       return;
     }
-    wss.handleUpgrade(req, socket, head, (ws) => result.accept(ws));
+    wss.handleUpgrade(req, socket, head, (ws) => result.accept(ws, socket));
   }));
 
   function stop() {

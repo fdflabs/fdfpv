@@ -194,6 +194,13 @@ try {
   s = await state();
   check('Down twice makes the orbit shot 0.25x, the others stay 1x', s.shots.map((x) => x.speed).join() === '1,0.25,1,1', JSON.stringify(s.shots));
   check('and its block says 0.25x', s.blocks[1].speed === '0.25x', s.blocks[1].speed);
+  /* One speed up, not straight to 1x: the crash cam reads setSpeed(1) as
+   * 1x, and Up called it, so 0.25x went to 1x in one press. */
+  await key('ArrowUp');
+  s = await state();
+  check('Up steps it one speed up, to 0.5x', s.shots[1].speed === 0.5 && s.blocks[1].speed === '0.5x', JSON.stringify(s.shots[1]));
+  await key('ArrowDown');
+  check('and Down takes it back to 0.25x', (await state()).shots[1].speed === 0.25);
   const enters = [];
   for (let k = 0; k < 3; k += 1) {
     await key('KeyT');
@@ -356,6 +363,13 @@ try {
   };
   s = await state();
   check('with a pad the hints name its buttons', s.hints.includes('LT RT') && s.hints.includes('Start'), s.hints.slice(0, 60));
+  await seek(4);
+  await seek(12);
+  await press(12);
+  s = await state();
+  check('the pad\'s up steps the 0.25x shot one speed up, to 0.5x', s.shots[1].speed === 0.5, JSON.stringify(s.shots[1]));
+  await press(13);
+  check('and its down takes it back to 0.25x', (await state()).shots[1].speed === 0.25);
   await seek(4);
   await press(3);
   s = await state();

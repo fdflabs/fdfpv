@@ -1279,10 +1279,10 @@ export function createEditor(api) {
         }
         break;
       case 'ArrowUp':
-        api.setSpeed(1);
+        api.speedBy(1);
         break;
       case 'ArrowDown':
-        api.setSpeed(-1);
+        api.speedBy(-1);
         break;
       case 'Home':
         api.jumpTo(0);
@@ -1431,10 +1431,10 @@ export function createEditor(api) {
       api.step(1);
     }
     if (b(PAD.up)) {
-      api.setSpeed(1);
+      api.speedBy(1);
     }
     if (b(PAD.down)) {
-      api.setSpeed(-1);
+      api.speedBy(-1);
     }
     if (b(PAD.lt)) {
       api.jumpCut(-1);

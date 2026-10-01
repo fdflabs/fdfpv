@@ -1908,6 +1908,29 @@ export class InputManager {
     return Boolean(gp.buttons[2] && gp.buttons[2].pressed);
   }
 
+  /* A standard pad's right stick, which the hangar's camera orbits on:
+   * { x, y }, each -1 to 1 with the middle fifth read as centred, right
+   * and down positive. Standard only, for the reason padSwapButtons
+   * gives. */
+  padLookStick() {
+    const gp = this.firstGamepad();
+    if (!gp || gp.mapping !== 'standard' || !gp.axes || gp.axes.length < 4) {
+      return { x: 0, y: 0 };
+    }
+    const dead = (v) => (Math.abs(v) < 0.2 ? 0 : v);
+    return { x: dead(gp.axes[2] || 0), y: dead(gp.axes[3] || 0) };
+  }
+
+  /* A standard pad's Y, which the aircraft picker takes as its Floats
+   * switch. Standard only, for the reason padSwapButtons gives. */
+  padFloatsButton() {
+    const gp = this.firstGamepad();
+    if (!gp || gp.mapping !== 'standard' || !gp.buttons) {
+      return false;
+    }
+    return Boolean(gp.buttons[3] && gp.buttons[3].pressed);
+  }
+
   padMenuButtons() {
     const gp = this.firstGamepad();
     if (gp && gp.axes && (!gp.buttons || !gp.buttons.length)) {

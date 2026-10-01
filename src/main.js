@@ -76,7 +76,13 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { AvionicsHud } from './ui/avionicshud.js';
+import { createFlightTelemetry } from './avionics/telemetry.js';
+import { createSensorManager } from './avionics/sensors.js';
+import { createPerception } from './avionics/perception.js';
+import { createTrackManager } from './avionics/tracks.js';
+import { hudStateOf } from './avionics/hudstate.js';
 import {
   adoptShareFromLocation, boardPageUrl, fetchGhost, fetchTrackDocument,
   fetchTrackTimes, postFreestyleRun, postTime,
@@ -128,6 +134,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { createGrid as createWarGrid } from './share/war/grid.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -162,11 +169,12 @@ import { ESTIMATES } from '../configs/power-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
-import { AIRFRAMES, airStartSpeed, airframeById, simIdFor } from '../configs/airframes.js';
+import { AIRFRAMES, STRIKER_CAMERA, airStartSpeed, airframeById } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
 import { PROPS, addonParams, normaliseParts, partsEntry, partsGear, partsPowerBlock, propShape } from '../configs/hangar-parts.js';
+import { combatAddon, combatChoice, combatSimId, payloadForWarhead, propulsionOf, setCombatSource, warPayload } from '../configs/combat.js';
 import { liveryKey, lookFor, paintable } from '../configs/liveries.js';
 import { SKY_MOUNT_FORWARD, SKY_MOUNT_UP } from './render/skycraft.js';
 import { CUB_MOUNT_FORWARD, CUB_MOUNT_UP, CUB_FLOAT_MOUNT_UP, CUB_FLOATS } from './render/cubcraft.js';
@@ -200,6 +208,7 @@ const WING_MOUNTS = {
   nrj1490: [DLG_MOUNT_FORWARD, DLG_MOUNT_UP],
   p51d1450: [P51_MOUNT_FORWARD, P51_MOUNT_UP],
   zagi1219: [ZAGI_MOUNT_FORWARD, ZAGI_MOUNT_UP],
+  striker2500: [STRIKER_CAMERA.forward, STRIKER_CAMERA.up],
   timber1500: [TIMBER_MOUNT_FORWARD, TIMBER_MOUNT_UP],
   /* On floats the CG is lower, so the camera stands higher over it. */
   timber1500f: [TIMBER_MOUNT_FORWARD, TIMBER_FLOAT_MOUNT_UP],
@@ -682,6 +691,42 @@ export async function boot({
   partsGearOf = (id) => (PROPS[id] ? partsGear(id, partsEntry(ui.settings.parts, id)) : null);
   /* The flight controller's OSD over the FPV camera. See src/ui/fpvhud.js. */
   const fpvOsd = new FpvOsd(uiRoot);
+  /*
+   * THE AVIONICS HUD (docs/AVIONICS-HUD.md): five systems and the state
+   * machine, fed from the same frame as the OSD. Only FlightTelemetry runs
+   * on every flight frame; the sensor, perception and tracks run while the
+   * Avionics HUD is on screen. avxTruth is the war's attackers this frame,
+   * handed over by roomWarFrame and taken once. avxHud.ai is the pilot's
+   * AI switch (H).
+   */
+  const avionicsHud = new AvionicsHud(uiRoot);
+  const telemetry = createFlightTelemetry();
+  const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
+  /* The top of the map under a point, for what hides a target. */
+  const avxHeightAt = (x, z) => view.height(x, z, Infinity);
+  const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
+  const tracks = createTrackManager({ heightAt: avxHeightAt });
+  /* Thermal's night advantage: what light the sensors have. */
+  const avxEnv = { light: 1 };
+  const avxHud = { state: 'MANUAL', reasons: [], ai: false };
+  const avxOwn = { p: [0, 0, 0], v: [0, 0, 0], camera: shell.camera };
+  const avxVel = new THREE.Vector3();
+  const AVX_NO_TRUTH = [];
+  let avxTruth = AVX_NO_TRUTH;
+  let avxFed = false;
+  let avxLastT = -1;
+  window.__avionics = {
+    deny: (what, on) => telemetry.deny(what, on),
+    ai: (on) => { avxHud.ai = Boolean(on); },
+    /* The TrackManager's snapshot, for a check to read or to seed. */
+    snapshot: () => tracks.snapshot,
+    state: () => ({
+      hud: { ...avxHud, reasons: [...avxHud.reasons] },
+      tel: JSON.parse(JSON.stringify(telemetry.state)),
+      sensor: { ...sensors.state },
+      tracks: tracks.snapshot.tracks.length,
+    }),
+  };
   /* Where the other pilots in a room are, when the picture does not say.
    * See src/ui/peermarks.js; a game mode marks its special pilot with
    * peerMarks.setRole(seat, 'ace'). */
@@ -2057,6 +2102,39 @@ export async function boot({
   const roomTag = createRoomTag((obj) => roomLinkState.send(obj));
   /* Defend Itaipu (src/share/roomwar.js), wired below at DEFEND ITAIPU. */
   const roomWar = createRoomWar((obj) => roomLinkState.send(obj));
+  /* The night raid's power outages (src/share/war/grid.js): which of the
+   * map's lights are out, from the war's events and view, the same on
+   * every screen. */
+  const warGrid = createWarGrid();
+  /*
+   * A COMBAT QUAD'S PAYLOAD AND ACCESSORIES (configs/combat.js,
+   * docs/COMBAT-DRONES.md): the pilot's choice, except in a war, where the
+   * payload is the warhead the room holds for this seat, so what is seen
+   * and flown is what goes off. The choice the room is sent is the
+   * campaign's poll (src/ui/campaign.js craftWarhead). Null for every
+   * other aircraft. The plant reads it at applyParts and the drawing at
+   * every build.
+   */
+  function combatSeated(id) {
+    const af = airframeById(id);
+    const choice = combatChoice(af, ui.settings.combat ? ui.settings.combat[af.id] : null);
+    if (!choice || !roomWar.on()) {
+      return choice;
+    }
+    const l = roomWar.view().loadouts?.[roomWar.seat()];
+    return { ...choice, payload: payloadForWarhead(af, l ? l.warhead : 'standard') };
+  }
+  setCombatSource(combatSeated);
+  /* The plant an aircraft seats: its own, or on an aircraft pushed more
+   * than one way (the Striker), the one its seated propulsion is
+   * (configs/combat.js combatSimId). */
+  function seatedSimId(id) {
+    const af = airframeById(id);
+    return af.combat ? combatSimId(af, combatSeated(af.id)) : af.simId;
+  }
+  /* The plant seated now, which a propulsion changes without the airframe
+   * changing. The module starts on the five inch's. */
+  let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
   const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card' };
@@ -3098,6 +3176,10 @@ export async function boot({
       audio.warRadio.duck(heard);
     }
     const events = roomWar.takeEvents();
+    warGrid.hear(events, v);
+    if (view && typeof view.setPower === 'function') {
+      view.setPower(warGrid.levels(v, now));
+    }
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
@@ -3140,6 +3222,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
     warDrawnAt = now;
     /* A Hunter newly on this pilot: Crest Control's hunter line, unless it
@@ -4154,6 +4237,14 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     night: warNightLog.slice(),
+    /* Each power district 'lit', 'flicker' or 'dark' now, and what the
+     * map was handed (src/share/war/grid.js). */
+    grid: {
+      at: roomLinkState.roomNow(),
+      state: warGrid.state(roomWar.view(), roomLinkState.roomNow()),
+      map: view && view.scene && view.scene.userData.itaipu && view.scene.userData.itaipu.look.night()
+        ? view.scene.userData.itaipu.look.night().levels() : null,
+    },
     hud: warHud.shown(),
     round: warRoundCard.shown(),
     markers: warMarkers.shown(),
@@ -4437,6 +4528,12 @@ export async function boot({
     room: () => {
       const st = roomLinkState.state();
       return { phase: st.phase, code: st.code, seat: roomWar.seat() };
+    },
+    /* A combat quad's chosen payload is its warhead (configs/combat.js). */
+    craftWarhead: (allowed, equipped) => {
+      const af = airframeById(ui.settings.airframe);
+      const w = warPayload(af, combatChoice(af, ui.settings.combat ? ui.settings.combat[af.id] : null), allowed, equipped);
+      return w ? w.warhead : null;
     },
   });
   campaignRef = campaign;
@@ -6513,6 +6610,7 @@ export async function boot({
   /* The model the scene draws: TITLE_CRAFT on the title, the seated
    * aircraft everywhere else. buildShell draws the five inch. */
   let drawnCraft = '5inch';
+  let drawnCombat = null;
   /* Where the seated aircraft bolts its camera, in its own frame. The quad's
    * numbers are lens.js's; the wing's are in the nose of its pod. */
   let camMountFwd = CAMERA_MOUNT_FORWARD;
@@ -7250,7 +7348,9 @@ export async function boot({
         throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(none)}`);
       }
       runCells = af.cells;
-      setFlownVoice(af.voice ?? 'wing');
+      /* An aircraft pushed more than one way speaks with the engine it has. */
+      const pushed = propulsionOf(af, combatSeated(af.id));
+      setFlownVoice((pushed && pushed.voice) ?? af.voice ?? 'wing');
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
@@ -7280,6 +7380,10 @@ export async function boot({
   function applyParts(s) {
     const af = airframeById(runAirframe);
     smokeOn = false;
+    if (af.combat) {
+      applyCombat(af);
+      return;
+    }
     if (!af.fixedWing || typeof sim.e.sim_set_addons !== 'function') {
       return;
     }
@@ -7297,6 +7401,28 @@ export async function boot({
     const code = block ? sim.setAddons(block) : sim.clearAddons();
     if (code !== SIM_OK) {
       throw new Error(`sim_set_addons refused ${JSON.stringify(parts)} on ${af.id}: ${simErrorName(code)}`);
+    }
+  }
+
+  /* A combat quad's payload and accessories, on the hangar parts' path and
+   * rule: one lumped mass and its spread, laid over the table between
+   * runs; nothing chosen clears them. */
+  let combatSeatKey = null;
+  function applyCombat(af) {
+    const seated = combatSeated(af.id);
+    combatSeatKey = JSON.stringify(seated);
+    const add = combatAddon(af, seated);
+    if (!add) {
+      const none = sim.clearAddons();
+      if (none !== SIM_OK) {
+        throw new Error(`sim_addons_clear refused on ${af.id}: ${simErrorName(none)}`);
+      }
+      return;
+    }
+    const code = sim.setAddons(add.block);
+    const spread = code === SIM_OK ? sim.setAddonInertia(add.inertia) : code;
+    if (spread !== SIM_OK) {
+      throw new Error(`the plant refused ${JSON.stringify(seated)} on ${af.id}: ${simErrorName(spread)}`);
     }
   }
 
@@ -8510,6 +8636,12 @@ export async function boot({
       qSpawn.setFromAxisAngle(AXIS_Y, startYaw);
       qSpawnInv.copy(qSpawn).invert();
     }
+    /* A war's warhead arrived or changed since the payload was seated (the
+     * room's loadout echo, combatSeated): seat it now, between runs, before
+     * the reset puts the moved CG at rest. */
+    if (airframeById(runAirframe).combat && JSON.stringify(combatSeated(runAirframe)) !== combatSeatKey) {
+      applyCombat(airframeById(runAirframe));
+    }
     sim.reset();
     plantStarts += 1;
     /* A war began or ended, or a room was joined or left, since the last
@@ -9165,8 +9297,9 @@ export async function boot({
     ui.modeSyncedFor = to.id;
     ui.persistSettings();
     runAirframe = to.id;
-    if (sim.e.sim_set_airframe(to.simId) !== SIM_OK) {
-      throw new Error(`sim_set_airframe refused ${to.id}`);
+    runSimId = seatedSimId(to.id);
+    if (sim.e.sim_set_airframe(runSimId) !== SIM_OK) {
+      throw new Error(`sim_set_airframe refused ${to.id} (${runSimId})`);
     }
     bumpConfigGen();
     const nextPids = pidsDiffFor(s.pids, s.tune);
@@ -9931,11 +10064,18 @@ export async function boot({
    */
   function dressCraft() {
     const want = mode === 'title' ? TITLE_CRAFT : runAirframe;
-    if (want === drawnCraft || typeof shell.swapCraft !== 'function') {
+    /* A combat quad is rebuilt when what hangs on it changes, too: its
+     * payload is a model, not a material (configs/combat.js combatFor).
+     * The seated aircraft's changes when the plant's does, at applyCombat,
+     * which is between runs. */
+    const combat = !airframeById(want).combat ? null
+      : want === runAirframe ? combatSeatKey : JSON.stringify(combatSeated(want));
+    if ((want === drawnCraft && combat === drawnCombat) || typeof shell.swapCraft !== 'function') {
       return;
     }
     shell.swapCraft(want);
     drawnCraft = want;
+    drawnCombat = combat;
   }
 
   function applySettings(s) {
@@ -10011,10 +10151,14 @@ export async function boot({
        * five inch, which is what that build has.
        */
       const wantCraft = airframeById(s.airframe).id;
-      if (wantCraft !== runAirframe) {
+      /* A propulsion chosen on the Loadout tab is a plant of its own, so it
+       * changes the plant as an airframe does, on the same rule. */
+      const wantSim = seatedSimId(wantCraft);
+      if (wantCraft !== runAirframe || wantSim !== runSimId) {
         runAirframe = wantCraft;
+        runSimId = wantSim;
         if (typeof sim.e.sim_set_airframe === 'function') {
-          sim.e.sim_set_airframe(simIdFor(runAirframe));
+          sim.e.sim_set_airframe(runSimId);
         }
         /*
          * The plant changed under a module that is already initialised, so
@@ -10739,7 +10883,10 @@ export async function boot({
     /* The tuning is the plane's own, not its family's. */
     const tuned = id === runAirframe && res.settings && res.settings.tuning
       && JSON.stringify(res.settings.tuning[id] ?? null) !== runTuneKey;
-    if (((res.powerChanged || partsChanged) && liveryKey(runAirframe) === family || tuned) && swapLive()) {
+    /* And a combat quad's loadout is the quad's own (src/ui/hangar-combat.js). */
+    const loaded = id === runAirframe && Boolean(res.settings && res.settings.combat)
+      && JSON.stringify(combatSeated(id)) !== combatSeatKey;
+    if (((res.powerChanged || partsChanged) && liveryKey(runAirframe) === family || tuned || loaded) && swapLive()) {
       await hotSwap(runAirframe, { refit: true });
     }
     if (partsChanged && drawnCraft === id && typeof shell.redressCraft === 'function') {
@@ -11290,10 +11437,14 @@ export async function boot({
         select: btn.select,
         back: btn.back,
         alt: input.padAltButton(),
+        floats: input.padFloatsButton(),
+        look: input.padLookStick(),
       };
     }
     const raw = input.navRaw();
-    return { up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton() };
+    return {
+      up: raw.up, down: raw.down, right: false, left: false, select: btn.select, back: btn.back, alt: input.padAltButton(), floats: input.padFloatsButton(), look: input.padLookStick(),
+    };
   }
 
   /* Any real key or pointer press is the user gesture browsers require
@@ -11551,6 +11702,22 @@ export async function boot({
       setCrashflip(false);
       turtleRecover = false;
       finishClipCrash();
+      return;
+    }
+    /* The Avionics HUD's own keys, while it is on screen
+     * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
+     * mode, K the zoom. */
+    if (ui.screen === 'flight' && avionicsHud.on && (code === 'KeyH' || code === 'KeyJ' || code === 'KeyK')) {
+      if (code === 'KeyH') {
+        avxHud.ai = !avxHud.ai;
+        notice = { text: str(avxHud.ai ? 'avionics.hud.notice_ai_on' : 'avionics.hud.notice_ai_off'), untilMs: performance.now() + 1600 };
+      } else if (code === 'KeyJ') {
+        sensors.cycleMode();
+        notice = { text: str('avionics.hud.notice_cam', { mode: str(`avionics.hud.cam_mode.${sensors.state.mode}`) }), untilMs: performance.now() + 1600 };
+      } else {
+        sensors.cycleZoom();
+        notice = { text: str('avionics.hud.notice_zoom', { z: sensors.state.zoom }), untilMs: performance.now() + 1600 };
+      }
       return;
     }
     if (code === 'KeyL' && ui.screen === 'flight' && airframeById(runAirframe).fixedWing) {
@@ -12791,6 +12958,43 @@ export async function boot({
    * `let` here would be in its temporal dead zone for every line of boot
    * above this one and reset() is reachable from several of them.
    */
+  /*
+   * The Avionics HUD's systems in their order (docs/AVIONICS-HUD.md): the
+   * sensor, perception over the war's attackers, the tracks, the state,
+   * then the renderer. After the render, so the camera is where this
+   * frame drew from. Nothing here reaches the plant.
+   */
+  function avionicsFrame(want, paused, nowWall, dtS) {
+    const truth = avxTruth;
+    avxTruth = AVX_NO_TRUTH;
+    if (!want) {
+      avionicsHud.tick(false, paused, nowWall, null);
+      return;
+    }
+    const tS = telemetry.state.tS;
+    if (tS < avxLastT) {
+      perception.reset();
+      tracks.reset();
+    }
+    avxLastT = tS;
+    if (!paused) {
+      sensors.update(tS, dtS);
+      avxEnv.light = roomWar.night() ? 0.05 : 1;
+      perception.update(tS, sensors.state, truth, avxOwn, avxEnv);
+      tracks.update(tS, perception.detections, avxOwn);
+    }
+    hudStateOf(telemetry.state, sensors.state, tracks.snapshot, avxHud.ai, avxHud);
+    avionicsHud.tick(true, paused, nowWall, {
+      tel: telemetry.state,
+      sensor: sensors.state,
+      sensors,
+      snap: tracks.snapshot,
+      hud: avxHud,
+      camera: shell.camera,
+      radar: roomWar.live() && mode === 'flight',
+    });
+  }
+
   function frame(nowWall) {
     requestAnimationFrame(frame);
     try {
@@ -13114,6 +13318,7 @@ export async function boot({
          * and the shell's step count with it, part way through the block. */
         let faulted = false;
         if (launchStaging) {
+          const sound = stateCurr;
           sim.e.sim_set_ground(0, 0, 0, 1, 0, 0, 0, 0, 0);
           if (steps > 1) {
             sim.step(steps - 1);
@@ -13123,7 +13328,14 @@ export async function boot({
           }
           sim.step(1);
           stateCurr = readState();
-          if (plantUpZ(stateCurr) < 0) {
+          /* The stand is stepped by the same plant, so its state is judged
+           * at the same boundary (plantFault): a bad one wrecks the craft
+           * where the block began, and the reset in that ends the staging. */
+          const bad = plantStateSound(statePrev) ? (plantStateSound(stateCurr) ? null : stateCurr) : statePrev;
+          if (bad) {
+            plantFault(bad, sound, nowWall);
+            faulted = true;
+          } else if (plantUpZ(stateCurr) < 0) {
             endLaunchStaging(false);
             takingOff = false;
           }
@@ -14658,7 +14870,7 @@ export async function boot({
       };
       ui.setOsd(osdView);
       const powerNow = readPower();
-      fpvOsd.feed(osdView, {
+      const osdCtx = {
         st,
         sim,
         cells: runCells,
@@ -14679,7 +14891,22 @@ export async function boot({
         banner: ui.bannerText,
         /* The crash cam's REPLAY prompt, its key while it is up. */
         replayKey: crashCam ? crashCam.promptKey() : null,
-      });
+      };
+      fpvOsd.feed(osdView, osdCtx);
+      {
+        const feed = fpvFail.level(nowWall);
+        telemetry.feed(osdView, osdCtx, fpvOsd, { videoSnow: feed.snow, cameraLost: fpvFail.deadSince() >= 0, load: perception.load });
+        simPosToThree(st[4], st[5], st[6], avxVel);
+        /* The sensor looks from the camera, which a chase view puts
+         * behind the craft. */
+        avxOwn.p[0] = shell.camera.position.x;
+        avxOwn.p[1] = shell.camera.position.y;
+        avxOwn.p[2] = shell.camera.position.z;
+        avxOwn.v[0] = avxVel.x;
+        avxOwn.v[1] = avxVel.y;
+        avxOwn.v[2] = avxVel.z;
+        avxFed = true;
+      }
       progressTick(powerNow);
       const ch = input.channels;
       const vis = turtleAxes(ch.roll, ch.pitch);
@@ -14707,9 +14934,11 @@ export async function boot({
     /* The OSD belongs to the FPV lens: up in flight and dimmed in pause
      * while that lens is the camera, and never over chase, line of sight,
      * the intro orbit or a menu. */
-    fpvOsd.tick(ui.settings.hudStyle === 'osd' && fpvLensLive && !camOverride
-      && (ui.screen === 'flight' || ui.screen === 'paused'), ui.screen === 'paused', nowWall);
-    peerMarks.begin(shell.camera, ui.settings.peerMarks, fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
+    const hudStyle = hudStyleFor(ui.settings, runAirframe);
+    const fpvHudUp = fpvLensLive && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused');
+    fpvOsd.tick(hudStyle === 'osd' && fpvHudUp, ui.screen === 'paused', nowWall);
+    avionicsFrame(hudStyle === 'avionics' && fpvHudUp && avxFed, ui.screen === 'paused', nowWall, dt / 1000);
+    peerMarks.begin(shell.camera, ui.settings.peerMarks, avionicsHud.on ? avionicsHud : fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
     for (const peer of roomPeers.values()) {
       if (peer.rig && peer.rig.group.visible) {
         const at = peer.rig.group.position;
@@ -14895,8 +15124,10 @@ export async function boot({
         ? str('main.throttle_up_flaps_f')
         : airframeById(runAirframe).gear
         ? str('main.throttle_up_to_take_off_from')
-        : airframeById(runAirframe).catapult
+        : airframeById(runAirframe).catapult && airframeById(runAirframe).chute
         ? str('main.launch_it_off_the_catapult')
+        : airframeById(runAirframe).catapult
+        ? str('main.launch_it_off_the_rail')
         : isWing
         ? str('main.throw_it_with_l')
         : ui.settings.launchControl
@@ -15148,7 +15379,11 @@ export async function boot({
     shown: drawnCraft,
     power: readPower(),
     cells: runCells,
-    addons: airframeById(runAirframe).fixedWing && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
+    addons: (airframeById(runAirframe).fixedWing || airframeById(runAirframe).combat) && typeof sim.e.sim_addons_state === 'function' ? sim.addonsState() : null,
+    /* A combat quad's seated payload and accessories, and its roll
+     * inertia, for scripts/combat-shell.js. */
+    combat: combatSeatKey && airframeById(runAirframe).combat ? JSON.parse(combatSeatKey) : null,
+    ixx: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(55) : 0,
     parts: shell.quad.userData.partsFit ?? null,
     smoke: { on: smokeOn, puffs: smoke.live() },
     bladeScale: audio.bladeScale,
@@ -16811,8 +17046,8 @@ export async function boot({
     },
     paint: () => {
       const look = liveryFor(runAirframe);
-      return look && (Object.keys(look.finishes).length || look.decals.length)
-        ? { finishes: look.finishes, decals: look.decals } : null;
+      return look && (Object.keys(look.finishes).length || look.decals.length || look.wear)
+        ? { finishes: look.finishes, decals: look.decals, ...(look.wear ? { wear: look.wear } : {}) } : null;
     },
     mapId: () => view.id,
     /* The clock this frame's world is animated at, for the row. */

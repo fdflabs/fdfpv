@@ -38,7 +38,7 @@ import {
 } from '../src/share/roomwire.js';
 import { PARTS_PER_S } from '../edge/rooms/wrecks.js';
 import {
-  ABANDON_MS, RESEAT_MS, RoomCore, KICK_MS, KICKED_JOIN_GAP_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, CLOCK_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
+  ABANDON_MS, HOLD_MS, REPEAT_MS, RESEAT_MS, RoomCore, TICK_MS, KICK_MS, KICKED_JOIN_GAP_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, CLOCK_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
 } from '../edge/rooms/core.js';
 import { HULLS } from '../configs/hulls.js';
 import { AIRFRAME_IDS } from '../configs/airframes.js';
@@ -198,7 +198,11 @@ check('and the sender nothing of its own', !a.got.some((m) => m instanceof Uint8
 ticks = 0;
 now += 33;
 run(room.tick(now));
-check('a tick with nothing new stops ticking', ticks === 0 && room.ticking === false);
+check('a tick with nothing new goes on while the sender is held (HOLD_MS)', ticks === 1 && room.ticking === true);
+ticks = 0;
+now += HOLD_MS;
+run(room.tick(now));
+check(`and stops once nobody has sent a pose for ${HOLD_MS} ms`, ticks === 0 && room.ticking === false);
 run(room.message(b, livePose(), now));
 check('the next pose starts it again', ticks === 1);
 now += 1000;
@@ -391,6 +395,93 @@ check('near is 1 to 60 m, far is 0 from 100 m, linear between', nearWeight(10) =
 const before2 = track.poses.length;
 track.push(at(10), 5000);
 check('an old sample is dropped, never reordered', track.poses.length === before2);
+const stillT = track.newest().t;
+track.push(at(stillT), 9000);
+check('the newest sample again is no new sample, but its pilot is not stale', track.poses.length === before2 && track.sample(9000 + STALE_MS - 1, 1, out) === true);
+
+console.log('a slow page stays in the room');
+check(`the room repeats a held pose every ${REPEAT_MS} ms, under the client's STALE_MS`, REPEAT_MS + 2 * TICK_MS < STALE_MS && HOLD_MS > STALE_MS);
+/*
+ * A pilot whose page draws a frame every FRAME ms sends each frame's 30 Hz
+ * poses at once (src/main.js roomPoseStep), and a watcher's page draws
+ * them through a PeerTrack every 16 ms, as src/main.js onBatch and
+ * roomDrawPeer do. `frames` is when the slow page's frames come, `status`
+ * a profile status the slow page sends at that room time, or null.
+ * Returns the watcher's track, the room, and how long, after the slow
+ * page's first frame, the watcher drew nothing.
+ */
+function slowRoom({ frame, seconds, stopAt = Infinity, status = null }) {
+  let clock = 3_000_000;
+  const smeta = { code: 'SLOW22', cap: PRIVATE_CAP, friendly: true, map: 'swiss2', epoch: clock - 1000 };
+  const r = new RoomCore(smeta);
+  const slow = sock('slow', '10.9.0.1');
+  const watcher = sock('watcher', '10.9.0.2');
+  const deliver = (actions) => {
+    for (const x of actions) {
+      if (x.send) {
+        x.send.got.push(typeof x.data === 'string' ? JSON.parse(x.data) : x.data);
+      }
+    }
+  };
+  for (const [i, s] of [slow, watcher].entries()) {
+    deliver(r.open(s, clock));
+    deliver(r.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 60 + i], profile }), clock, s.address, newToken));
+  }
+  const seat = r.seats.get(slow).seat;
+  const wtrack = new PeerTrack();
+  const end = clock + seconds * 1000;
+  let nextFrame = clock + frame;
+  let nextTick = clock;
+  let sentT = clock - smeta.epoch;
+  let seq = 0;
+  let hiddenMs = 0;
+  let lastHeard = null;
+  let toldStatus = false;
+  for (; clock < end; clock += 1) {
+    const roomNow = clock - smeta.epoch;
+    if (status && !toldStatus && clock >= stopAt) {
+      toldStatus = true;
+      deliver(r.message(slow, JSON.stringify({ type: 'profile', profile: { ...profile, status } }), clock));
+    }
+    if (clock >= nextFrame && clock < stopAt) {
+      for (; sentT + 1000 / 30 <= roomNow; sentT += 1000 / 30) {
+        seq += 1;
+        deliver(r.message(slow, encodePose({ ...pose, flags: FLAG_AIRBORNE, seq, t: Math.round(sentT + 1000 / 30) }), clock));
+      }
+      nextFrame += frame;
+    }
+    if (r.ticking && clock >= nextTick) {
+      deliver(r.tick(clock));
+      nextTick = clock + TICK_MS;
+    } else if (!r.ticking) {
+      nextTick = clock + TICK_MS;
+    }
+    for (const m of watcher.got.splice(0)) {
+      const b = m instanceof Uint8Array ? decodeBatch(m) : null;
+      for (const p of b ? b.poses : []) {
+        if (p.seat === seat) {
+          wtrack.push(p, roomNow);
+          lastHeard = clock;
+        }
+      }
+    }
+    if (clock % 16 === 0 && wtrack.newest() && clock < stopAt && !wtrack.sample(roomNow, 1, out)) {
+      hiddenMs += 16;
+    }
+  }
+  return { r, wtrack, hiddenMs, lastHeard, end, epoch: smeta.epoch };
+}
+const slowest = slowRoom({ frame: 2500, seconds: 15 });
+check('a pilot whose page draws a frame every 2.5 s is drawn by the others the whole time', slowest.hiddenMs === 0, `${slowest.hiddenMs} ms hidden in 15 s`);
+const crawl = slowRoom({ frame: 4500, seconds: 15 });
+check('and one at a frame every 4.5 s, still inside HOLD_MS', crawl.hiddenMs === 0, `${crawl.hiddenMs} ms hidden in 15 s`);
+const dead = slowRoom({ frame: 1000, seconds: 15, stopAt: 3_000_000 + 4000 });
+check('a page that stops sending is repeated no longer than HOLD_MS after its last pose', dead.lastHeard != null && dead.lastHeard <= 3_000_000 + 4000 + HOLD_MS,
+  `last heard ${dead.lastHeard - 3_000_000 - 4000} ms after it stopped`);
+check('and is then hidden, and the room stops ticking for it', !dead.wtrack.sample(dead.end - dead.epoch, 1, out) && dead.r.ticking === false);
+const menu = slowRoom({ frame: 1000, seconds: 8, stopAt: 3_000_000 + 4000, status: 'menu' });
+check('a page that says it went to a menu is not repeated at all', menu.lastHeard != null && menu.lastHeard <= 3_000_000 + 4000 + TICK_MS,
+  `last heard ${menu.lastHeard - 3_000_000 - 4000} ms after the menu`);
 
 console.log('slots');
 const sp = { x: 10, z: 40, yaw: Math.PI / 2 };
@@ -1905,6 +1996,114 @@ console.log('stale games and the host');
   join(r7, F, old, { token: 'a'.repeat(32), seat: 2 });
   check('a room with no stored host: the first pilot back holds it, stored, and its welcome says so',
     r7.host() === texts(F, 'welcome')[0].seat && texts(F, 'welcome')[0].host === texts(F, 'welcome')[0].seat && old.get('hosting').token === texts(F, 'welcome')[0].token);
+}
+
+console.log('the room tick keeps the clock');
+{
+  /*
+   * RoomHost's tick on a stand-in clock: every timer fires `late` ms after
+   * it was asked for, as on an event loop that is always that busy, and
+   * once, `stallAt`, a timer fires `stall` ms late. The core is a stand-in
+   * that wants ticking for ever and records when each tick ran.
+   */
+  const tickTimes = ({ late, seconds, stallAt = Infinity, stall = 0 }) => {
+    const real = { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, now: Date.now };
+    const start = 9_000_000;
+    let clock = start;
+    let pending = null;
+    const ran = [];
+    globalThis.setTimeout = (fn, ms) => {
+      pending = { at: clock + Math.max(0, ms) + late, fn };
+      return pending;
+    };
+    globalThis.clearTimeout = () => {
+      pending = null;
+    };
+    Date.now = () => clock;
+    try {
+      const h = new RoomHost({ storage: {}, getWebSockets: () => [] }, {});
+      h.core = {
+        meta: { public: false },
+        tick: (now) => {
+          ran.push(now);
+          return [{ tick: true }];
+        },
+      };
+      h.run([{ tick: true }]);
+      let stalled = false;
+      while (pending && clock < start + seconds * 1000) {
+        const p = pending;
+        pending = null;
+        clock = p.at;
+        if (!stalled && clock >= stallAt) {
+          stalled = true;
+          clock += stall;
+        }
+        p.fn();
+      }
+    } finally {
+      globalThis.setTimeout = real.setTimeout;
+      globalThis.clearTimeout = real.clearTimeout;
+      Date.now = real.now;
+    }
+    return ran;
+  };
+  const rate = (ran) => (ran.length - 1) / ((ran.at(-1) - ran[0]) / 1000);
+  const busy = tickTimes({ late: 5, seconds: 10 });
+  check(`with every timer 5 ms late the room still ticks at ${(1000 / TICK_MS).toFixed(0)} Hz`, Math.abs(rate(busy) - 1000 / TICK_MS) < 0.1, `${rate(busy).toFixed(2)} Hz`);
+  const busier = tickTimes({ late: 25, seconds: 10 });
+  check('and with every timer 25 ms late', Math.abs(rate(busier) - 1000 / TICK_MS) < 0.1, `${rate(busier).toFixed(2)} Hz`);
+  const stalled = tickTimes({ late: 1, seconds: 3, stallAt: 9_001_000, stall: 400 });
+  const gaps = stalled.slice(1).map((t, i) => t - stalled[i]);
+  /*
+   * The ticks now keep time with the senders, 30 Hz each, so a sender's
+   * jitter puts two of its poses between two ticks over and over. Every
+   * one of them must still reach a near peer, in order (core.js
+   * RECENT_POSES): poses every 1000 / 30 ms in phase with the ticks,
+   * each up to 4 ms early or late, ticks exactly every TICK_MS.
+   */
+  const jstart = 10_000_000;
+  const jr = new RoomCore({ code: 'JITTR2', cap: PRIVATE_CAP, friendly: true, map: 'swiss2', epoch: jstart - 1000 });
+  const sender = sock('jsender', '10.9.1.1');
+  const near = sock('jnear', '10.9.1.2');
+  for (const [i, so] of [sender, near].entries()) {
+    run(jr.open(so, jstart));
+    run(jr.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 70 + i], profile }), jstart, so.address, newToken));
+  }
+  let seed = 7;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  const sendAt = [];
+  for (let k = 0; k < 300; k += 1) {
+    sendAt.push(Math.round(jstart + TICK_MS + (k * 1000) / 30 + (rand() * 8 - 4)));
+  }
+  const relayed = new Set();
+  let twoInOne = 0;
+  let nextJTick = jstart + TICK_MS;
+  let sinceTick = 0;
+  for (let clock = jstart, k = 0; clock <= sendAt.at(-1) + 200; clock += 1) {
+    for (; k < sendAt.length && sendAt[k] <= clock; k += 1) {
+      run(jr.message(sender, encodePose({ ...pose, flags: FLAG_AIRBORNE, seq: k, t: sendAt[k] - jr.meta.epoch }), clock));
+      sinceTick += 1;
+    }
+    if (clock >= nextJTick) {
+      twoInOne += sinceTick > 1 ? 1 : 0;
+      sinceTick = 0;
+      run(jr.tick(clock));
+      nextJTick += TICK_MS;
+    }
+  }
+  for (const m of near.got) {
+    for (const p of m instanceof Uint8Array ? decodeBatch(m).poses : []) {
+      relayed.add(p.t);
+    }
+  }
+  check('with a sender\'s jitter putting two poses between ticks, a near peer is still sent every pose', twoInOne > 10 && relayed.size === sendAt.length,
+    `${relayed.size} of ${sendAt.length} relayed, ${twoInOne} ticks with two`);
+  check('a stall of 400 ms is one long gap, not a burst of ticks to catch up', Math.min(...gaps) >= TICK_MS - 1 && gaps.filter((g) => g > 2 * TICK_MS).length === 1,
+    `shortest gap ${Math.min(...gaps).toFixed(1)} ms`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

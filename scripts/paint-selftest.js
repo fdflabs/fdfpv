@@ -138,7 +138,7 @@ console.log('4. the decal kinds');
   const made = DECAL_KIND_IDS.map((k) => newDecal(k, [0, 0.1, 0], [0, 1, 0]));
   check(`every kind makes a valid decal: ${DECAL_KIND_IDS.join(', ')}`, made.every((d) => normaliseEntry('cub1400', { decals: [d] }).decals.length === 1));
   const text = DECAL_KIND_IDS.filter((k) => DECAL_KINDS[k].text);
-  check('only the number reads the right way round when mirrored', same(text, ['num']));
+  check('only the number and the words read the right way round when mirrored', same(text, ['num', 'text']));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

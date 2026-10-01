@@ -9,11 +9,18 @@
  * live here and a round that wants another angle adds one rather than
  * moving one.
  *
- *     SIM_GPU=1 node scripts/itaipu-views.js OUT_DIR [--views=aerial-dam,chute] [--time=night]
+ *     SIM_GPU=1 node scripts/itaipu-views.js OUT_DIR [--views=aerial-dam,chute] [--time=night] [--down=yard-right,intake-3]
  *
  * --time (default day) is the map's own option (src/maps/itaipu.js
  * options.time, look/index.js): night's files take a `-night` suffix so
- * a day and a night run can share one round folder.
+ * a day and a night run can share one round folder. A night run also
+ * shoots the NIGHT views, which judge the lit towns (look/night.js) and
+ * have no photograph; a day run never does.
+ *
+ * --down (night only) shoots the night after those war targets were hit,
+ * long enough ago that every outage they cause is over: the districts
+ * src/share/war/grid.js puts out are dark (the map's setPower, as the
+ * room's war hands it in a game). Its files take `-out` after `-night`.
  *
  * Writes OUT_DIR/<view>.png and OUT_DIR/stats.json: per view its camera,
  * its reference photograph (a name in ~/Desktop/fdfpv-photoref/itaipu,
@@ -73,6 +80,8 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { darkFrom, levelAt } from '../src/share/war/grid.js';
+import TARGETS from '../src/share/war/itaipu-targets.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -128,6 +137,21 @@ const VIEWS = [
   { id: 'yard-west', cam: [-2705.6, 286.4, -551.9, -2145.6, 226.4, -431.9], fov: 60, ref: 'powerlines' },
 ];
 
+/*
+ * The night's own views (look/night.js): from the crest road toward Foz do
+ * Iguacu's lit northern districts, over those districts, 300 m over the
+ * gorge below the dam looking down the river to the cities past the map,
+ * and Hernandarias across the reservoir's foot. No photograph: judged by
+ * eye and on section 13's budget, and paired on the sheet with the
+ * nearest day view.
+ */
+const NIGHT_VIEWS = [
+  { id: 'night-crest', cam: [-313.8, 226.7, -1818.0, 1500, 160, 2600], ref: 'crest-road' },
+  { id: 'night-foz', cam: [1500, 360, 1500, 3000, 200, 3300], ref: 'aerial-leftbank' },
+  { id: 'night-300', cam: [200, 420, -1100, -600, 140, 4000], ref: 'river-below' },
+  { id: 'night-hernandarias', cam: [-2800, 420, -1300, -4700, 200, -2400], ref: 'reservoir-forest-aerial' },
+];
+
 /* Section 13, at High. */
 const BUDGET = { calls: 300, triangles: 2.5e6, gpuMs: 12 };
 /* A camera nearer a solid than this sees its inside through the near
@@ -135,7 +159,7 @@ const BUDGET = { calls: 300, triangles: 2.5e6, gpuMs: 12 };
 const NEAR_SOLID = 0.5;
 const FRAMES = 60;
 
-const opts = { views: '', time: 'day' };
+const opts = { views: '', time: 'day', down: '' };
 const positional = [];
 for (const a of process.argv.slice(2)) {
   const m = a.match(/^--([a-z]+)=(.*)$/);
@@ -155,18 +179,32 @@ const outDir = resolve(positional[0]);
 if (outDir === root || outDir.startsWith(`${root}/`)) {
   throw new Error(`itaipu-views: ${outDir} is inside the repository; renders go outside it`);
 }
-const wanted = opts.views ? opts.views.split(',') : VIEWS.map((v) => v.id);
-const unknown = wanted.filter((id) => !VIEWS.some((v) => v.id === id));
-if (unknown.length) {
-  throw new Error(`itaipu-views: no view ${unknown.join(', ')}`);
-}
 if (opts.time !== 'day' && opts.time !== 'night') {
   throw new Error(`itaipu-views: --time is 'day' or 'night', got ${opts.time}`);
 }
+const ALL = opts.time === 'night' ? [...VIEWS, ...NIGHT_VIEWS] : VIEWS;
+const wanted = opts.views ? opts.views.split(',') : ALL.map((v) => v.id);
+const unknown = wanted.filter((id) => !ALL.some((v) => v.id === id));
+if (unknown.length) {
+  throw new Error(`itaipu-views: no view ${unknown.join(', ')}${opts.time === 'day' ? ' (the night views are --time=night only)' : ''}`);
+}
+const down = opts.down ? opts.down.split(',') : [];
+if (down.length && opts.time !== 'night') {
+  throw new Error('itaipu-views: --down is a night raid\'s, --time=night');
+}
+const unknownTargets = down.filter((id) => !(id in TARGETS));
+if (unknownTargets.length) {
+  throw new Error(`itaipu-views: no war target ${unknownTargets.join(', ')}`);
+}
+/* Every district's level once the hits' outages are over. */
+const power = (() => {
+  const from = darkFrom(down.map((target) => ({ target, at: 0 })));
+  return Array.from(from, (f, i) => levelAt(f, i, Infinity));
+})();
 /* Day's own files keep their bare names (every earlier round's tooling
  * reads them); night's take a suffix so a day and a night run can share
  * one round folder without one overwriting the other. */
-const suffix = opts.time === 'night' ? '-night' : '';
+const suffix = `${opts.time === 'night' ? '-night' : ''}${down.length ? '-out' : ''}`;
 await mkdir(outDir, { recursive: true });
 
 /*
@@ -282,8 +320,12 @@ try {
   await page.evaluate(`window.__crashThrow({ x: ${spawn.x}, y: ${spawn.y + 0.5}, z: ${spawn.z}, yaw: ${(spawn.yaw * 180) / Math.PI}, fresh: true })`);
   await page.until('window.__ground().landed', 30000);
   await page.sleep(2500);
+  if (down.length) {
+    await page.evaluate(`(window.__mapScene().userData.itaipu.look.setPower(${JSON.stringify(power)}), "")`);
+    console.log(`down: ${down.join(', ')}; dark: ${power.map((l, i) => (l === 0 ? i : -1)).filter((i) => i >= 0).length} districts`);
+  }
 
-  for (const v of VIEWS.filter((w) => wanted.includes(w.id))) {
+  for (const v of ALL.filter((w) => wanted.includes(w.id))) {
     const [x, y, z] = v.cam;
     const ground = await page.evaluate(`window.__heightAt(${x}, ${z})`);
     if (!(ground < y - 1)) {
