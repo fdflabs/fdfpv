@@ -2813,7 +2813,7 @@ export async function boot({
       return null;
     }
     const code = await roomLinkState.create(WAR_MAP, false, {
-      name: room.name ?? null, mode: 'war', mission: room.mission ?? null, public: room.public === true,
+      name: room.name ?? null, mode: 'war', mission: room.mission ?? WAR_MISSION, public: room.public === true,
     });
     if (ui.settings.map !== WAR_MAP) {
       ui.seatMap(WAR_MAP, { stay: true });

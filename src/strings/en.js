@@ -2604,7 +2604,7 @@ export default {
   "roombrowser.war_waiting": "set up for Defend Itaipu, mission {n}",
   "roombrowser.war_countdown": "Defend Itaipu, mission {n}, is starting",
   "roombrowser.war_on": "fighting Defend Itaipu, mission {n}",
-  "roombrowser.chip_war": "Defend Itaipu {n} · {load}",
+  "roombrowser.chip_war": "War {n} · {load}",
   "roombrowser.mission": "Mission",
   "roombrowser.mission_note": "The mission the room starts with. You can start another one there later.",
   "roombrowser.looking": "Looking for rooms",

@@ -13,7 +13,7 @@
  * mission 2, its start row Start mission 2.
  *
  * Page B is a fresh profile with no consent. It sees A's room on the
- * title's rooms panel marked Defend Itaipu 2, and in Rooms as set up for
+ * title's rooms panel marked War 2, and in Rooms as set up for
  * Defend Itaipu, mission 2. It joins and is asked the consent on arrival:
  * No leaves it out of the room, on the title, and A's room goes on
  * without B. It joins again and says Continue: in A's room. A starts the
@@ -155,7 +155,7 @@ try {
   const panelAction = `lobby:friends-room-${code}`;
   await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(panelAction)})`, 30000).catch(() => {});
   const chip = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(panelAction)}) || null)`);
-  check('B\'s title rooms panel shows it, marked Defend Itaipu 2', chip && chip.label === room.name && /^Defend Itaipu 2 · /.test(chip.value || ''),
+  check('B\'s title rooms panel shows it, marked War 2', chip && chip.label === room.name && /^War 2 · /.test(chip.value || ''),
     JSON.stringify(chip && { label: chip.label, value: chip.value }));
   const rowAction = `friends-room-${code}`;
   const openRooms = async () => {

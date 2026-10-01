@@ -2607,7 +2607,7 @@ export default {
   "roombrowser.war_waiting": "preparada para Defender Itaipú, misión {n}",
   "roombrowser.war_countdown": "Defender Itaipú, misión {n}, está por empezar",
   "roombrowser.war_on": "jugando Defender Itaipú, misión {n}",
-  "roombrowser.chip_war": "Defender Itaipú {n} · {load}",
+  "roombrowser.chip_war": "Guerra {n} · {load}",
   "roombrowser.mission": "Misión",
   "roombrowser.mission_note": "La misión con la que empieza la sala. Puedes empezar otra allí más tarde.",
   "roombrowser.combat_on": "en una ronda de combate",
