@@ -20,6 +20,12 @@
  *                              and no Back to title; Leave is out, on
  *                              the title; then every card from the title
  *                              starts out of a room.
+ *   the card's world wins      Itaipu seated (as a war leaves it): the
+ *   (rule 2, D4)               Free Flight and Fly with friends cards
+ *                              seat the Swiss valley. Free Flight's
+ *                              picker, a quad chosen and then a plane:
+ *                              each on Free Flight's menu, never My
+ *                              tracks, and Fly is the Swiss valley.
  *
  * No page error.
  *
@@ -207,6 +213,49 @@ try {
     cards.push(`${way}: ${r.screen} ${r.phase}`);
   }
   check('every card from the title starts out of a room', cards.every((c) => c.endsWith(' idle')), cards.join(' | '));
+
+  /* THE CARD'S WORLD WINS. */
+  const worldOf = async (way) => {
+    await page.evaluate(`(() => {
+      window.__ui.act('mode-gate');
+      window.__ui.seatMap('itaipu', { stay: true });
+      window.__ui.act('way-${way}');
+      return true;
+    })()`);
+    await page.sleep(600);
+    return page.evaluate('({ map: window.__ui.settings.map, screen: window.__ui.screen, phase: window.__rooms().phase })');
+  };
+  const free = await worldOf('freestyle-wing1000');
+  const friends = await worldOf('friends');
+  check('Itaipu seated, the Free Flight and Fly with friends cards seat the Swiss valley',
+    free.map === 'swiss2' && friends.map === 'swiss2' && friends.screen === 'friends', JSON.stringify({ free, friends }));
+
+  const picked = [];
+  for (const [kind, id] of [['quad', '5inch'], ['plane', 'bramor2300']]) {
+    await page.evaluate("(() => { window.__ui.act('mode-gate'); window.__ui.pickForWay('way-freestyle-wing1000'); return true; })()");
+    await page.until('window.__ui.carousel.isOpen', 10000).catch(() => {});
+    await page.evaluate(`(() => {
+      const c = window.__ui.carousel;
+      c.setFilter('all');
+      c.goTo(c.ids.indexOf(${JSON.stringify(id)}));
+      c.choose();
+      return true;
+    })()`);
+    await page.sleep(800);
+    const menu = await page.evaluate("({ screen: window.__ui.screen, mode: window.__ui.mode, gate: window.__ui.onGate(), airframe: window.__ui.settings.airframe, map: window.__ui.settings.map })");
+    await page.evaluate("(() => { window.__ui.act('fly'); return true; })()");
+    await page.until("window.__ui.screen === 'flight'", 400000).catch(() => {});
+    await page.sleep(500);
+    const flown = await page.evaluate("({ screen: window.__ui.screen, world: window.__map().id })");
+    picked.push({ kind, id, menu, flown });
+    await page.tap('Escape');
+    await page.until("window.__ui.screen === 'paused'", 10000).catch(() => {});
+    await page.evaluate("(() => { window.__ui.act('title'); return true; })()");
+    await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+  }
+  check('Free Flight\'s picker, a quad and a plane: each on Free Flight\'s menu, never My tracks, flown in the Swiss valley',
+    picked.every((p) => p.menu.screen === 'title' && !p.menu.gate && p.menu.mode === 'freestyle' && p.menu.airframe === p.id
+      && p.menu.map === 'swiss2' && p.flown.screen === 'flight' && p.flown.world === 'swiss2'), JSON.stringify(picked));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

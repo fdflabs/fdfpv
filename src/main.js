@@ -2303,7 +2303,7 @@ export async function boot({
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
-    ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
+    ui, link: roomLinkState, roomName, here: () => seatWorld(), preset: () => ui.roomGame || null,
     war: (room) => warEnter(room),
     pilots: () => roomPeers.size + 1,
   });

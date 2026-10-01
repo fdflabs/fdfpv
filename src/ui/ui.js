@@ -13213,10 +13213,10 @@ export class Ui {
        * cards; it is fixed here because this is the line that does it.
        */
       /* `picked` is the aircraft chosen in the carousel the card opens
-       * (pickForWay); a card answered without one, from a script or a
-       * link, keeps the rule it always had. */
-      const want = picked && way.airframes.includes(picked) ? picked
-        : way.airframes.includes(this.settings.airframe) ? this.settings.airframe : way.airframes[0];
+       * (pickForWay), whichever kind it is; a card answered without one,
+       * from a script or a link, keeps the rule it always had. */
+      const want = picked
+        || (way.airframes.includes(this.settings.airframe) ? this.settings.airframe : way.airframes[0]);
       if (want !== this.settings.airframe) {
         seatAirframe(this.settings, want);
       }
@@ -13243,7 +13243,17 @@ export class Ui {
         this.show('courses');
         return;
       }
-      if (!seatedFreestyleMap(this.settings)) {
+      /*
+       * THE CARD'S WORLD WINS (docs/FLOW-AUDIT.md rule 2, the owner's
+       * 2026-10-01): a card with a home seats it, whatever world was flown
+       * last. After a war every card opened on Itaipu, the Free Flight card
+       * saying the Swiss valley over it (D4). The World row still seats any
+       * other world, for this visit.
+       */
+      const worlds = MAPS.filter((x) => x.mode === 'freestyle');
+      const home = way.home ? worlds.find((x) => x.id === way.home) : null;
+      const seated = seatedFreestyleMap(this.settings);
+      if (home ? !seated || seated.id !== home.id : !seated) {
         /*
          * NO PICKER WHEN THERE IS NOTHING TO PICK.
          *
@@ -13255,17 +13265,14 @@ export class Ui {
          * possibly be going. That is a question with one answer, and a
          * question with one answer is a keypress somebody has to make.
          *
-         * The remembered world is still consulted FIRST, and the picker
-         * still comes back the moment there is a real choice, which is why
-         * this is written as "what is remembered, or the only one" rather
-         * than as the id of the town. A second freestyle world costs the
-         * registry entry and this branch and nothing else.
+         * For a card without a home the remembered world is consulted
+         * first, and the picker comes back the moment there is a real
+         * choice, which is why this is written as "what is remembered, or
+         * the only one" rather than as the id of the town.
          */
         const remembered = MAPS.find(
           (x) => x.id === this.settings.freestyleMap && x.mode === 'freestyle',
         );
-        const worlds = MAPS.filter((x) => x.mode === 'freestyle');
-        const home = way.home ? worlds.find((x) => x.id === way.home) : null;
         const want = home || remembered || (worlds.length === 1 ? worlds[0] : null);
         if (!want) {
           this.show('freestyle');
@@ -13913,8 +13920,12 @@ export class Ui {
         if (moved && id === s.airframe) {
           this.refitted(id);
         }
-        const chosen = way.airframes.includes(id) ? way : (WAYS.find((w) => w.airframes.includes(id)) ?? way);
-        this.act(chosen.action, id);
+        /* The card's own way, whatever was chosen in its picker: a quad
+         * chosen from Free Flight flies Free Flight's field. It used to go
+         * to the first card that listed it, Track mode, and so to My
+         * tracks (the owner, 2026-10-01: "the track selector should only
+         * open up when i click on the track mode card"). */
+        this.act(way.action, id);
       },
       onCancel: () => this.renderMenu(),
     });
