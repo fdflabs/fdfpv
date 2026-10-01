@@ -272,6 +272,8 @@ export function warSection(check) {
     const late = e.join(2);
     check('a joiner mid game gets the view in its welcome and every attacker alive', late.got.find((m) => m.type === 'welcome').war.state === 'live'
       && e.of(2, 'born').at(-1).agents.length === 1);
+    check('and is one of the match\'s players at once: its row, and its share of the rack, told to everybody', e.r.war.players(e.r).includes(3)
+      && e.view(0).rack === 6 && e.view(0).rackMax === 6 && e.view(2).scores.some((x) => x.seat === 3 && !x.gone), JSON.stringify(e.view(0).scores));
     e.say(0, { type: 'war', op: 'end' });
     check('the host ends it', e.view().state === 'ended' && !e.r.war.on() && !e.r.waiting());
   }
@@ -890,9 +892,18 @@ export function warSection(check) {
     const again = new RoomCore(e.r.meta);
     again.war.missions = e.r.war.missions;
     again.war.restore(saved);
+    const empty = again.war.view(again);
+    /* The rack is the pilots' here: none until they are back, by token. */
+    for (const i of [0, 1]) {
+      const so = { name: `back${i}`, address: `10.9.8.${i + 1}`, got: [] };
+      again.open(so, e.clock);
+      again.message(so, JSON.stringify({
+        type: 'hello', proto: PROTO, build: 't', token: e.socks[i].got.find((x) => x.type === 'welcome').token, seat: i + 1, name: [i, i, 20 + i], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+      }), e.clock, so.address, () => 'f'.repeat(32));
+    }
     const v = again.war.view(again);
-    check('a room that restarted keeps its war: state, attackers alive, the rack', again.war.on() && v.alive === 3 && v.rack === 4
-      && again.war.live.size === 3 && [...again.war.live.values()].every((x) => x.plan.end === 'arrive'));
+    check('a room that restarted keeps its war: state, attackers alive, the rack (its pilots\', once they are back)', again.war.on() && v.alive === 3 && empty.rack === 0 && v.rack === 4
+      && Object.keys(again.war.match.players).join() === '1,2' && again.war.live.size === 3 && [...again.war.live.values()].every((x) => x.plan.end === 'arrive'), `${empty.rack} then ${v.rack}`);
   }
 
   console.log('war: leaving');

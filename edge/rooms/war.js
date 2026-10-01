@@ -9,7 +9,9 @@
  *
  *   waves     a mission's waves are born on the room clock at their `at`
  *             after the go, announced BIRTH_LEAD_MS early so every screen
- *             draws them from their first millisecond; a scripted
+ *             draws them from their first millisecond, each sized by the
+ *             match's pilots here then (a pilot seated in a war is one
+ *             of its players at once, enlist()); a scripted
  *             attacker's pose is never sent (routes.js), a hunter's is
  *             (AGENTS, 0xA0), because the room steers it at the pilots
  *   warheads  a defender detonates when any part box of it comes within
@@ -225,7 +227,8 @@ export function resultOf(mission, m) {
     { id: 'output', met: m.output >= need, need },
   ];
   const stars = won ? criteria.filter((c) => c.met).length : 0;
-  const kills = Object.values(m.players).reduce((sum, p) => sum + p.kills, 0);
+  /* The team's: a pilot whose seat another took is still on it. */
+  const kills = [...Object.values(m.players), ...Object.values(m.away ?? {}).map((a) => a.player)].reduce((sum, p) => sum + p.kills, 0);
   return {
     won, stars, credits: 100 * stars + 10 * kills, criteria,
   };
@@ -407,8 +410,9 @@ export class RoomWar {
      * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
      *   'won'|'lost'|'ended', briefAt (the room ms a briefing began, or
      *   null), why, f, wave (the next to be born), output, down (target
-     *   ids hit), rack, rackMax, pilots (at the go, which size the
-     *   waves), players: { seat: { kills, assists, mw, token } },
+     *   ids hit), players: { seat: { kills, assists, mw, token } },
+     *   away: { token: { player, spent, earned, loadout, round } } (a
+     *   pilot whose seat another took, enlist()),
      *   agents: [birth records alive], nextAgent, scouts: { n, killed }
      *   of the last scout wave or null, hunters (Hunters save),
      *   endAt }, or null before the first game.
@@ -431,8 +435,9 @@ export class RoomWar {
     /* For the checks: every detonation, arrival and crash, with when it
      * was decided. Memory only. */
     this.log = [];
-    /* seat -> loadout sent before a game: memory, copied into the next
-     * match at its start. */
+    /* token -> loadout sent before a game: memory, copied into the match
+     * as its pilot joins it (enlist). By token, never by seat, so a seat's
+     * next pilot never flies its last one's. */
     this.loadouts = new Map();
   }
 
@@ -472,7 +477,7 @@ export class RoomWar {
   /* A seat's loadout, and its airframes a round (the mission's base when
    * it chose none). */
   loadoutOf(seat) {
-    return this.match?.loadouts?.[seat] ?? this.loadouts.get(seat) ?? { ...LOADOUT, rack: this.airframes() };
+    return this.match.loadouts[seat] ?? { ...LOADOUT, rack: this.airframes() };
   }
 
   baseOf(seat) {
@@ -558,6 +563,9 @@ export class RoomWar {
     const mission = this.mission();
     const flying = m.state !== 'briefing' && m.state !== 'countdown';
     const seats = Object.keys(m.players);
+    /* A pilot who left takes their airframes with them, and brings back
+     * what they had not spent (m.spent stays with the seat or the token). */
+    const present = seats.filter((seat) => here.has(Number(seat)));
     return {
       state: m.state,
       id: m.id,
@@ -570,10 +578,10 @@ export class RoomWar {
       output: m.output,
       floor: mission.floorMw,
       down: m.down.slice(),
-      /* The match's pilots' airframes left this round, and all they have
-       * had in it, earned ones too: none before the go. */
-      rack: flying ? seats.reduce((sum, seat) => sum + Math.max(0, this.allowance(seat) - (m.spent?.[seat] ?? 0)), 0) : 0,
-      rackMax: flying ? seats.reduce((sum, seat) => sum + this.allowance(seat), 0) : 0,
+      /* The airframes left this round of the match's pilots here, and all
+       * they have had in it, earned ones too: none before the go. */
+      rack: flying ? present.reduce((sum, seat) => sum + Math.max(0, this.allowance(seat) - (m.spent?.[seat] ?? 0)), 0) : 0,
+      rackMax: flying ? present.reduce((sum, seat) => sum + this.allowance(seat), 0) : 0,
       round: (m.round ?? 0) + 1,
       rounds: this.rounds(),
       roundState: m.roundState ?? 'live',
@@ -616,12 +624,92 @@ export class RoomWar {
     return [{ send: conn, data: JSON.stringify({ type: 'war', error }) }];
   }
 
-  /* A pilot just seated mid game: every attacker alive, as births. */
+  /* A pilot just seated in a briefing, a countdown or a live war: one of
+   * the match's players from now (enlist), told every attacker alive as
+   * births, and everybody the view with them in it (the welcome's was
+   * built before). */
   join(core, conn) {
-    if (!this.on() || !this.match.agents.length) {
+    if (!this.on()) {
       return [];
     }
-    return [{ send: conn, data: JSON.stringify({ type: 'war', op: 'born', agents: this.match.agents }) }];
+    this.enlist(core.seats.get(conn));
+    const out = this.changed(core);
+    if (this.match.agents.length) {
+      out.push({ send: conn, data: JSON.stringify({ type: 'war', op: 'born', agents: this.match.agents }) });
+    }
+    return out;
+  }
+
+  /*
+   * Seat s one of the match's players, with a share of the rack (its
+   * allowance) and a row of the scores. The match is keyed by seat, and a
+   * seat is the pilot's only while their token holds it: a seat already
+   * theirs is kept as it is; one holding another pilot's entry has that
+   * entry put away under its token (m.away) with what it spent and
+   * earned, so its kills still count and its spent airframes never
+   * ground the newcomer; and a pilot coming back (their token under
+   * another seat, or away) has their own entry back, never a second
+   * share. What it spent and earned comes back only within the same
+   * round, since both start again each round.
+   */
+  enlist(s) {
+    const m = this.match;
+    const had = m.players[s.seat];
+    if (had && (had.token == null || had.token === s.token)) {
+      return;
+    }
+    m.away ??= {};
+    if (had) {
+      this.putAway(s.seat);
+    }
+    const before = Object.keys(m.players).find((seat) => m.players[seat].token === s.token);
+    if (before != null) {
+      this.putAway(Number(before));
+    }
+    const back = m.away[s.token];
+    delete m.away[s.token];
+    if (!back) {
+      /* New to this match: the loadout it sent before, as at the go. A
+       * live war takes none (loadout()), so one arriving then without
+       * one flies the default. */
+      const l = this.loadouts.get(s.token);
+      if (l) {
+        m.loadouts[s.seat] = l;
+      }
+      m.players[s.seat] = {
+        kills: 0, assists: 0, mw: 0, token: s.token,
+      };
+      return;
+    }
+    m.players[s.seat] = back.player;
+    if (back.loadout) {
+      m.loadouts[s.seat] = back.loadout;
+    }
+    if (back.round === (m.round ?? 0)) {
+      if (back.spent) {
+        (m.spent ??= {})[s.seat] = back.spent;
+      }
+      if (back.earned) {
+        (m.earned ??= {})[s.seat] = back.earned;
+      }
+    }
+  }
+
+  /* A seat's entry out of the seat's maps, kept under its token. */
+  putAway(seat) {
+    const m = this.match;
+    const player = m.players[seat];
+    m.away[player.token] = {
+      player, spent: m.spent?.[seat] ?? 0, earned: m.earned?.[seat] ?? 0, loadout: m.loadouts[seat] ?? null, round: m.round ?? 0,
+    };
+    delete m.players[seat];
+    delete m.loadouts[seat];
+    if (m.spent) {
+      delete m.spent[seat];
+    }
+    if (m.earned) {
+      delete m.earned[seat];
+    }
   }
 
   /* The match's players who are here, by the seat's token (tag's rule). */
@@ -646,7 +734,7 @@ export class RoomWar {
       return this.lost(core, conn, s, now);
     }
     if (msg.op === 'loadout') {
-      return this.loadout(core, conn, s.seat, msg.loadout);
+      return this.loadout(core, conn, s, msg.loadout);
     }
     if (s.seat !== core.host()) {
       return [];
@@ -705,7 +793,7 @@ export class RoomWar {
    * nobody is left to play it (core.js settleGames). */
   /* A pilot's loadout, any time but a live game: kept for the next start,
    * and for the match counting down now. */
-  loadout(core, conn, seat, x) {
+  loadout(core, conn, s, x) {
     const l = parseLoadout(x);
     if (!l) {
       return this.error(conn, 'loadout');
@@ -713,9 +801,9 @@ export class RoomWar {
     if (this.match && this.match.state === 'live') {
       return this.error(conn, 'live');
     }
-    this.loadouts.set(seat, l);
+    this.loadouts.set(s.token, l);
     if (this.on()) {
-      this.match.loadouts[seat] = l;
+      this.match.loadouts[s.seat] = l;
     }
     return this.match ? this.changed(core) : [];
   }
@@ -748,7 +836,7 @@ export class RoomWar {
       if (!l) {
         return this.error(conn, 'loadout');
       }
-      this.loadouts.set(core.host(), l);
+      this.loadouts.set(core.seats.get(conn).token, l);
     }
     /* A briefing is the intro's span before the countdown's. */
     const briefAt = msg.intro === true ? Math.ceil(core.roomMs(now)) : null;
@@ -756,12 +844,6 @@ export class RoomWar {
      * every screen has built its night world and seated its pilot well
      * before the go, never after it (itaipu-4.js). */
     const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : INTRO_MS) + COUNTDOWN_MS + (mission.prepMs ?? 0);
-    const players = {};
-    for (const t of core.seats.values()) {
-      players[t.seat] = {
-        kills: 0, assists: 0, mw: 0, token: t.token,
-      };
-    }
     this.match = {
       id: this.nextId,
       mission: mission.id,
@@ -774,9 +856,6 @@ export class RoomWar {
       wave: 0,
       output: mission.output,
       down: [],
-      rack: 0,
-      rackMax: 0,
-      pilots: 0,
       round: 0,
       roundState: 'live',
       roundResult: null,
@@ -788,8 +867,9 @@ export class RoomWar {
       results: [],
       lossy: false,
       disabled: {},
-      loadouts: Object.fromEntries([...core.seats.values()].filter((t) => this.loadouts.has(t.seat)).map((t) => [t.seat, this.loadouts.get(t.seat)])),
-      players,
+      loadouts: {},
+      players: {},
+      away: {},
       agents: [],
       nextAgent: 1,
       scouts: null,
@@ -797,6 +877,9 @@ export class RoomWar {
       hunters: null,
       endAt: null,
     };
+    for (const t of core.seats.values()) {
+      this.enlist(t);
+    }
     this.nextId += 1;
     /* The room's mission from now on, in a later welcome too: a reload
      * between wars still names it (docs/FLOW-AUDIT.md D7). */
@@ -871,9 +954,6 @@ export class RoomWar {
     if (rec.trail[0][0] < p.t - TRAIL_MS - 1000) {
       rec.trail = rec.trail.filter(([t]) => t >= p.t - TRAIL_MS);
     }
-    this.match.players[s.seat] ??= {
-      kills: 0, assists: 0, mw: 0, token: s.token,
-    };
     /* Down after a blast until its own samples show the wreck and then a
      * clean airframe again. */
     if (rec.down && p.t > rec.down.at) {
@@ -931,9 +1011,10 @@ export class RoomWar {
        * waves fly their routes exactly; once all of them are dead, each
        * attacker draws its error (section 4.2). */
       const blind = Boolean(m.scouts) && m.scouts.killed >= m.scouts.n;
-      /* Sized by the pilots at the go; a match stored before that was
-       * kept flies them as for one. */
-      const n = waveSize(w, m.pilots ?? 1);
+      /* Sized by the match's pilots here when it is announced, so one who
+       * joins or leaves mid war changes the next wave, never one already
+       * told (its n and k ride in the births, and no screen sizes one). */
+      const n = waveSize(w, Math.max(1, this.players(core).length));
       for (let k = 0; k < n; k += 1) {
         const id = m.nextAgent;
         m.nextAgent += 1;
@@ -1048,10 +1129,6 @@ export class RoomWar {
     }
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
-      const here = this.players(core);
-      m.pilots = Math.max(1, here.length);
-      m.rackMax = this.mission().rack * m.pilots;
-      m.rack = m.rackMax;
     }
     let dirty = m.state !== state;
     if (m.state === 'live') {
