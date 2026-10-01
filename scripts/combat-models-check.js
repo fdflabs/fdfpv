@@ -27,7 +27,9 @@
  *     one.
  *
  * And the models' copy of the doc's numbers against configs/airframes.js
- * wherever the table has a combat block.
+ * wherever the table has a combat block; the garage's paint hook on the
+ * quads; and the Striker (src/render/strikercraft.js), the war's drawing
+ * and the garage's, prop and jet, with and without the whip.
  *
  *   node scripts/combat-models-check.js [--shots[=outDir]]
  *
@@ -228,12 +230,82 @@ try {
       check(`${name}: an unknown finish, region or wear is refused`, r.refused === 3, `${r.refused} of 3`);
     }
   }
+  /*
+   * The Striker. The war draws it as one instanced geometry, so its budget
+   * there is one draw call (attackers.js, war:twopage "at most one draw
+   * call a kind") and no more triangles than the heaviest aircraft; the
+   * garage's model is held to the quads' budget. Its size is the war's:
+   * 2.5 m across and 2.8 m nose to prop (src/render/attackers.js before
+   * it, docs/WARFARE-PLAN.md section 3).
+   */
+  const propulsions = await page.evaluate('window.__combat.propulsions');
+  const strikerHashes = new Map();
+  for (const propulsion of propulsions) {
+    for (const antenna of [false, true]) {
+      const choice = { propulsion, antenna };
+      const name = `striker/${propulsion}${antenna ? '+antenna' : ''}`;
+      const r = await page.evaluate(`window.__combat.strikerAudit(${JSON.stringify(choice)})`);
+      const mm = (v) => `${(v * 1000).toFixed(0)} mm`;
+      const span = r.war.max[0] - r.war.min[0];
+      const length = r.war.max[2] - r.war.min[2];
+      check(`${name}: war drawing within the budget`, r.war.tris <= budget.tris, `${r.war.tris} triangles in one geometry, of ${budget.tris}`);
+      check(`${name}: the war's size`, Math.abs(span - 2.5) < 0.03 && length <= 2.8 + 0.03 && length >= 2.6, `${mm(span)} across, ${mm(length)} long`);
+      check(`${name}: one geometry, colours, texture and spin in it`, ['aSpin', 'color', 'normal', 'position', 'uv'].every((k) => r.war.attrs.includes(k)), r.war.attrs.join(' '));
+      check(`${name}: the prop is what spins`, propulsion === 'prop' ? r.war.spin > 0 : r.war.spin === 0, `${r.war.spin} vertices marked`);
+      check(`${name}: garage model within the quads' budget`, r.full.draws <= budget.draws && r.lite.draws <= budget.liteDraws && r.full.tris <= budget.tris,
+        `${r.full.draws} draws (${r.lite.draws} lite), ${r.full.tris} triangles`);
+      check(`${name}: same machine twice`, r.hashA === r.hashB, `${r.hashA} then ${r.hashB}`);
+      const prior = strikerHashes.get(r.hashA);
+      check(`${name}: distinct from the other builds`, !prior, prior ? `draws the same as ${prior}` : r.parts.join(' '));
+      strikerHashes.set(r.hashA, name);
+      check(`${name}: nothing inside out`, r.insideOut.length === 0, r.insideOut.join('; '));
+      check(`${name}: the shell's four rotor slots`, r.slots[0] === 4 && r.slots[1] === 4 && r.slots[2] === '1,0,0,0', JSON.stringify(r.slots));
+      if (propulsion === 'prop') {
+        /* A quarter turn of the rotor swaps the prop's x and y reach and
+         * keeps its z: it turns about the fore and aft axis. */
+        const t = r.turns;
+        const ext = (q, i) => q.max[i] - q.min[i];
+        const ok = t && Math.abs(ext(t.p0, 2) - ext(t.p1, 2)) < 0.005 && Math.abs(ext(t.p0, 0) - ext(t.p1, 1)) < 0.01;
+        check(`${name}: the rotor turns the prop about the fore and aft axis`, Boolean(ok), JSON.stringify(t));
+      } else {
+        check(`${name}: no prop on a jet`, r.turns === null, JSON.stringify(r.turns));
+      }
+      const pa = await page.evaluate(`window.__combat.paintAudit(${JSON.stringify(choice)}, 'striker')`);
+      const blank = pa.surfaces.filter((sf) => !(sf.triangles > 0));
+      check(`${name}: a decal prints on every surface`, pa.surfaces.length === 7 && blank.length === 0, pa.surfaces.map((sf) => `${sf.id} ${sf.triangles}`).join(', '));
+      check(`${name}: every finish with wear repaints, and set() restores`, Object.values(pa.finishes).every((v) => JSON.stringify(v.colours) !== JSON.stringify(pa.stock)) && pa.restored && pa.refused === 3,
+        pa.regions.join(' '));
+    }
+  }
+
   check(`${builds} builds, every frame x payload x accessory set it offers`, builds === expected && fails === 0, `${fails} failures`);
   check('worst draws, full', worst.draws <= budget.draws, `${worst.draws} of ${budget.draws}, ${worst.at.draws}`);
   check('worst draws, lite', worst.liteDraws <= budget.liteDraws, `${worst.liteDraws} of ${budget.liteDraws}, ${worst.at.liteDraws}`);
   check('worst triangles', worst.tris <= budget.tris, `${worst.tris} of ${budget.tris}, ${worst.at.tris}`);
 
   if (shotsArg) {
+    await mkdir(outDir, { recursive: true });
+    /* The Striker as the war draws it, from where a defender sees it: a
+     * pass at 30 m, closing at 12 m, and the chase camera's 5 m behind;
+     * and the garage's, prop and jet. */
+    const strikerViews = [
+      ['war-12m', true, {}, [-140, 12, 12, 0, 0, 0, 70]],
+      ['war-30m', true, {}, [-60, 8, 30, 0, 0, 0, 70]],
+      ['war-chase', true, {}, [180, 19.3, 5.3, 0, 0, 0, 70]],
+      ['war-sheet', true, {}, [-35, 30, 6.5, 0, 0, 0.1, 30]],
+      ['garage-prop', false, { propulsion: 'prop', antenna: false }, [-35, 30, 6.5, 0, 0, 0.1, 30]],
+      ['garage-jet', false, { propulsion: 'jet', antenna: true }, [-35, 30, 6.5, 0, 0, 0.1, 30]],
+      ['garage-jet-rear', false, { propulsion: 'jet', antenna: true }, [160, 18, 5.0, 0, 0, 0.3, 30]],
+      ['garage-prop-side', false, { propulsion: 'prop', antenna: false }, [90, 2, 6.0, 0, 0, 0, 30]],
+    ];
+    for (const [name, war, choice, [az, el, dist, tx, ty, tz, fov]] of strikerViews) {
+      await page.evaluate(`window.__combat.showStriker(${JSON.stringify(choice)}, { war: ${war}, frames: 3 })`);
+      await page.evaluate(`window.__combat.view(${az}, ${el}, ${dist}, ${tx}, ${ty}, ${tz}, ${fov})`);
+      const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+      const path = join(outDir, `striker-${name}.png`);
+      await writeFile(path, Buffer.from(data, 'base64'));
+      console.log(`shot ${path}`);
+    }
     await mkdir(outDir, { recursive: true });
     for (const [name, choice] of SHOTS) {
       const big = choice.frame === '10in' ? 1.35 : 1;
@@ -254,6 +326,9 @@ try {
       }
     }
   }
+  /* A shader that failed to compile, a texture that failed to load: the
+   * page says so on its console, and nothing above would. */
+  check('the page logged no errors', page.errors.length === 0, page.errors.slice(0, 3).join(' | '));
 } finally {
   await page.close();
 }

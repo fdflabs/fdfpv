@@ -32,6 +32,8 @@ import {
 } from '../../src/render/combatcraft.js';
 import { dressDecals, readDecals } from '../../src/render/decals.js';
 import { readFinish } from '../../src/render/finish.js';
+import { buildStrikerCraft, strikerWarGeometry, STRIKER_PROPULSION } from '../../src/render/strikercraft.js';
+import { attackerGeometry, createAttackers } from '../../src/render/attackers.js';
 import { buildHeroCraft } from '../../src/render/herocraft.js';
 import { buildWhoopCraft } from '../../src/render/whoopcraft.js';
 import { buildSkyCraft } from '../../src/render/skycraft.js';
@@ -215,6 +217,9 @@ function vertexBox(craft, root) {
     }
     m.multiplyMatrices(inv, o.matrixWorld);
     const pos = o.geometry.attributes.position;
+    if (!pos) {
+      return;
+    }
     for (let i = 0; i < pos.count; i += 1) {
       box.expandByPoint(v.fromBufferAttribute(pos, i).applyMatrix4(m));
     }
@@ -243,9 +248,12 @@ function insideOut(craft) {
       return;
     }
     const g = o.geometry;
+    const pos = g.attributes.position;
+    if (!pos) {
+      return;
+    }
     g.computeBoundingBox();
     const centre = g.boundingBox.getCenter(new THREE.Vector3());
-    const pos = g.attributes.position;
     const at = g.index ? (i) => g.index.getX(i) : (i) => i;
     const n = g.index ? g.index.count : pos.count;
     let vol = 0;
@@ -315,7 +323,8 @@ window.__combat = {
    * what the regions are drawn in, and set() with nothing must put back
    * exactly the colours the model was built in.
    */
-  paintAudit(choice, build = buildCombatDrone) {
+  paintAudit(choice, which = 'quad') {
+    const build = which === 'striker' ? buildStrikerCraft : buildCombatDrone;
     const craft = build({ ...choice, name: 'combat', fog: false });
     const paint = craft.combat.paint;
     const out = { regions: paint.regions, surfaces: [], finishes: {}, restored: false };
@@ -344,11 +353,96 @@ window.__combat = {
     release(craft.group);
     return out;
   },
+  propulsions: STRIKER_PROPULSION,
+  /*
+   * The Striker, both drawings. The war's: one geometry (what
+   * attackers.js instances, asked of attackers.js itself), its triangles,
+   * its prop's vertices marked to spin, its size. The garage's: built
+   * twice and hashed, costed, weighed for inside out solids, its rotor
+   * turned to see that it turns the prop about the fore and aft axis.
+   */
+  strikerAudit(choice) {
+    const war = choice.propulsion === 'prop' && !choice.antenna ? attackerGeometry('strike') : strikerWarGeometry(choice);
+    war.computeBoundingBox();
+    const spinFlags = war.attributes.aSpin ? war.attributes.aSpin.array : [];
+    const a = buildStrikerCraft({ ...choice, fog: false });
+    const b = buildStrikerCraft({ ...choice, fog: false });
+    const lite = buildStrikerCraft({ ...choice, fog: false, lite: true });
+    const rotor = a.blades[0];
+    let turns = null;
+    if (rotor.children.length) {
+      a.group.updateMatrixWorld(true);
+      const probe = (angle) => {
+        rotor.rotation.y = angle;
+        a.group.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(rotor);
+        return { min: box.min.toArray(), max: box.max.toArray() };
+      };
+      const p0 = probe(0);
+      const p1 = probe(Math.PI / 2);
+      rotor.rotation.y = 0;
+      turns = { p0, p1 };
+    }
+    const r = {
+      war: {
+        tris: (war.index ? war.index.count : war.attributes.position.count) / 3,
+        spin: spinFlags.reduce((n, f) => n + (f > 0.5 ? 1 : 0), 0),
+        min: war.boundingBox.min.toArray(),
+        max: war.boundingBox.max.toArray(),
+        attrs: Object.keys(war.attributes).sort(),
+      },
+      full: cost(a.group),
+      lite: cost(lite.group),
+      hashA: hashOf(a.group),
+      hashB: hashOf(b.group),
+      insideOut: insideOut(a),
+      whole: vertexBox(a, a.group),
+      parts: Object.keys(a.combat.parts).sort(),
+      turns,
+      slots: [a.blades.length, a.discs.length, a.propSpin.join(',')],
+    };
+    war.dispose();
+    for (const c of [a, b, lite]) {
+      release(c.group);
+    }
+    return r;
+  },
+  /* A Striker on the stage: the war's drawing through the war's own layer
+   * (src/render/attackers.js), or the garage's model. */
+  showStriker(choice, { war = false, frames = 1 } = {}) {
+    if (shown) {
+      scene.remove(shown.group);
+      if (shown.dispose) {
+        shown.dispose();
+      } else {
+        release(shown.group);
+      }
+    }
+    if (war) {
+      const layer = createAttackers();
+      for (let i = 0; i < frames; i += 1) {
+        layer.update([{ id: 1, kind: 'strike', p: [0, 0, 0], q: [0, 0, 0, 1] }], null);
+      }
+      shown = { group: layer.group, dispose: () => layer.dispose(), drawn: layer.drawn() };
+      scene.add(layer.group);
+      ground.visible = false;
+      return shown.drawn;
+    }
+    shown = buildStrikerCraft({ ...choice, fog: false });
+    shown.blades[0].rotation.y = 0.5;
+    scene.add(shown.group);
+    ground.visible = false;
+    return cost(shown.group);
+  },
   /* Put one build on the stage, replacing the last. */
   show(choice, { spin = 0.6, blur = false, onGround = false } = {}) {
     if (shown) {
       scene.remove(shown.group);
-      release(shown.group);
+      if (shown.dispose) {
+        shown.dispose();
+      } else {
+        release(shown.group);
+      }
     }
     shown = buildCombatDrone({ ...choice, name: 'combat', fog: false });
     for (let m = 0; m < 4; m += 1) {
