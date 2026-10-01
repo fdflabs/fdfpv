@@ -233,7 +233,8 @@ function bump(counter, now, windowMs) {
 export class RoomCore {
   /*
    * meta: { code, cap, friendly, map, epoch, public, name, pick, mode,
-   * hidden }, what the room was made with (host.js init). epoch is the
+   * mission, hidden }, what the room was made with (host.js init), and
+   * mission the war mission its host last started since (war.js). epoch is the
    * wall ms the room's clock counts from, so room times fit the wire's
    * u32 for 49 days. name is the creator's typed name or null, pick the
    * picker name shown when there is none, mode the game the room was set
@@ -685,6 +686,7 @@ export class RoomCore {
         name: this.meta.name ?? null,
         pick: this.meta.pick ?? null,
         mode: this.meta.mode ?? null,
+        mission: this.meta.mission ?? null,
         map: this.meta.map,
         peers: this.peerList(conn),
         ...this.race.welcome(),
