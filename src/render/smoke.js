@@ -30,6 +30,7 @@
  */
 
 import * as THREE from 'three';
+import { thermalShader } from './thermal.js';
 
 const EMIT_HZ = 90;
 export const LIFE_S = 5;
@@ -96,6 +97,9 @@ export function createSmoke() {
     transparent: true,
     depthWrite: false,
   });
+  /* Smoke oil's trail is nearly at the air's temperature and thin in the
+   * long wave band (src/render/thermal.js). */
+  thermalShader(mat, 'float thT = thEnv.y + 0.03; float thA = 0.3;', 'smoke');
   const points = new THREE.Points(geo, mat);
   points.frustumCulled = false;
   points.renderOrder = 3;

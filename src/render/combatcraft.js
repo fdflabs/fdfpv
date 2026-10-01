@@ -58,6 +58,7 @@ import { WORLD_SCALE, bodyPosToModel } from './frame.js';
 import { PROP_SPIN } from './herocraft.js';
 import { paintRegions } from './livery.js';
 import { paintHook } from './combatpaint.js';
+import { thermalKind } from './thermal.js';
 
 /*
  * THE FRAMES, as docs/COMBAT-DRONES.md and scripts/combat-derive.js give
@@ -772,7 +773,7 @@ function emp(k, d, len, seg) {
   const coils = 3;
   for (let i = 0; i < coils; i += 1) {
     const z = z0 + cap + (len - 2 * cap) * (0.18 + 0.32 * i);
-    k.add('copper', cylZ(r, r, len * 0.10, seg), [0, 0, z]);
+    k.add('coil', cylZ(r, r, len * 0.10, seg), [0, 0, z]);
   }
   k.add('xt', box(r * 0.5, 0.003, len * 0.12), [0, -r * 0.9, 0], [0, 0, 0], { ink: false });
   return { pin: [0, r * 0.9, z0 + cap * 0.5], straps: [-0.26, 0.26] };
@@ -810,6 +811,9 @@ function slingKit(k, d, len, held, toBelly, toFront, seg) {
 
 function materials(fog) {
   const cel = (o) => celMaterial({ fog, cloudShadow: 0, ...o });
+  /* The motors' bells and windings warm with the throttle in a thermal
+   * picture (src/render/thermal.js, the motor kind). */
+  const motor = (o) => thermalKind(cel(o), 'motor');
   return {
     carbon: cel({ color: 0x1b1d1f, rim: 0.30, spec: 0.30, specWidth: 0.012 }),
     carbonDeep: cel({ color: 0x2c2f33, rim: 0.20, spec: 0.20 }),
@@ -817,8 +821,10 @@ function materials(fog) {
     brass: cel({ color: 0xc8a050, rim: 0.30, spec: 0.60, specWidth: 0.018 }),
     pcb: cel({ color: 0x2f4a3a, rim: 0.20, spec: 0.25 }),
     pcbDark: cel({ color: 0x15181a, rim: 0.20, spec: 0.30 }),
-    copper: cel({ color: 0xb8673a, rim: 0.30, spec: 0.55, specWidth: 0.02 }),
-    bell: cel({ color: 0x3a3c40, rim: 0.32, spec: 0.75, specWidth: 0.022 }),
+    copper: motor({ color: 0xb8673a, rim: 0.30, spec: 0.55, specWidth: 0.02 }),
+    /* The payload's coils: the motors' copper, not their heat. */
+    coil: cel({ color: 0xb8673a, rim: 0.30, spec: 0.55, specWidth: 0.02 }),
+    bell: motor({ color: 0x3a3c40, rim: 0.32, spec: 0.75, specWidth: 0.022 }),
     steel: cel({ color: 0x8e98a2, rim: 0.30, spec: 0.70, specWidth: 0.02, specColor: 0xe8eef4 }),
     steelDark: cel({ color: 0x55595e, rim: 0.30, spec: 0.60 }),
     strap: cel({ color: 0x141516, rim: 0.18, spec: 0.08 }),

@@ -53,6 +53,7 @@
  */
 
 import * as THREE from 'three';
+import { thermalShader } from './thermal.js';
 
 /* The pools. A standard explosion takes about 60 hot and 24 smoke slots,
  * so ten at once fit with room to spare. */
@@ -246,6 +247,14 @@ function createPool(cap, additive, tex) {
     side: THREE.DoubleSide,
     toneMapped: false,
   });
+  /* In a thermal picture the fire adds its heat, two hundred degrees for
+   * each unit of its light up to eight hundred, and the smoke is a thin
+   * veil a little over the air's (src/render/thermal.js). */
+  thermalShader(
+    mat,
+    additive ? 'float thT = a * min(thLum(vColor.rgb), 4.0) * 2.0;' : 'float thT = thEnv.y + 0.1; float thA = 0.3;',
+    additive ? 'explosion-hot' : 'explosion-smoke',
+  );
   const mesh = new THREE.Mesh(geo, mat);
   mesh.frustumCulled = false;
   mesh.renderOrder = additive ? 6 : 5;
@@ -316,6 +325,7 @@ export function createExplosions() {
     blending: THREE.AdditiveBlending,
     toneMapped: false,
   });
+  thermalShader(flashMat, 'float thT = level * 2.0;', 'explosion-flash');
   const flashMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), flashMat);
   flashMesh.frustumCulled = false;
   flashMesh.renderOrder = 999;

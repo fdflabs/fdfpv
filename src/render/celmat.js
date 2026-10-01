@@ -329,12 +329,19 @@ export function celMaterial(opts = {}) {
       .replace(
         '#include <dithering_fragment>',
         `#include <dithering_fragment>
+         /* Light, so not in a thermal frame, whose temperature the
+          * output above has already written (src/render/thermal.js). */
+         #ifdef TH_PARS
+         if (thEnv.x < 0.5)
+         #endif
+         {
 ${RIM_CHUNK}
          if (uCloudShadow > 0.0) {
            float cs = celCloudShadow(vCelWorld.xz, uCelTime) * uCloudShadow;
            // tint toward sky blue as well as darkening, so shaded ground
            // stays in the same warm/cool logic as everything else
            gl_FragColor.rgb = mix(gl_FragColor.rgb, gl_FragColor.rgb * uCloudTint * 1.35, cs);
+         }
          }`,
       );
   };
