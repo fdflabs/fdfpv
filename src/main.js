@@ -13183,6 +13183,7 @@ export async function boot({
          * and the shell's step count with it, part way through the block. */
         let faulted = false;
         if (launchStaging) {
+          const sound = stateCurr;
           sim.e.sim_set_ground(0, 0, 0, 1, 0, 0, 0, 0, 0);
           if (steps > 1) {
             sim.step(steps - 1);
@@ -13192,7 +13193,14 @@ export async function boot({
           }
           sim.step(1);
           stateCurr = readState();
-          if (plantUpZ(stateCurr) < 0) {
+          /* The stand is stepped by the same plant, so its state is judged
+           * at the same boundary (plantFault): a bad one wrecks the craft
+           * where the block began, and the reset in that ends the staging. */
+          const bad = plantStateSound(statePrev) ? (plantStateSound(stateCurr) ? null : stateCurr) : statePrev;
+          if (bad) {
+            plantFault(bad, sound, nowWall);
+            faulted = true;
+          } else if (plantUpZ(stateCurr) < 0) {
             endLaunchStaging(false);
             takingOff = false;
           }

@@ -272,14 +272,25 @@ static void table_finish(Table *t, int airframe) {
   }
   for (int i = 0; i < t->n; i += 1) {
     t->sub[i] = 1u << i;
-    /* The footprint is the part's box less its longest side: half the
-     * mean of the two shorter. */
+    /* The footprint is the face the part seats on its parent with, half
+     * the mean of that face's two sides. A part that stands out from its
+     * joint (an arm, a motor, a blade on its hub) seats on its end, its box
+     * less its longest side. A part on a strap (slip_d) is held flat against
+     * its parent by it, on the face across the way from its joint to its
+     * centre: a five inch's pack on its 72 by 36 mm top. Measured across its
+     * 36 by 39 mm end, it was levered off its strap by a push inside its own
+     * top face, on a 0.2 m drop onto a slate or tin roof. */
     double d[3];
     for (int a = 0; a < 3; a += 1) d[a] = t->hi[i][a] - t->lo[i][a];
-    double mx = d[0];
-    if (d[1] > mx) mx = d[1];
-    if (d[2] > mx) mx = d[2];
-    t->seat[i] = 0.25 * (d[0] + d[1] + d[2] - mx);
+    int side = 0;
+    for (int a = 1; a < 3; a += 1) {
+      if (t->p[i].slip_d > 0.0) {
+        if (sim_fabs(t->cg[i][a] - t->p[i].joint[a]) > sim_fabs(t->cg[i][side] - t->p[i].joint[side])) side = a;
+      } else if (d[a] > d[side]) {
+        side = a;
+      }
+    }
+    t->seat[i] = 0.25 * (d[0] + d[1] + d[2] - d[side]);
   }
   /* Parents precede children in every table, so one backward pass folds
    * each subtree into its parent. */
@@ -661,6 +672,9 @@ static double g_slip_keep[SIM_PARTS_MAX];
  * leaves, with the mass, inertia and every body frame position moved to
  * the new CG; PLANT_P points at it from then until the reset. */
 static double g_shift[3];
+/* How much more inertia the craft is flown with than its accounts leave
+ * it, xx yy zz xy xz yz, as of the last part to leave (live_rebuild). */
+static double g_excess[6];
 static PlantParams g_live;
 static int g_live_on = 0;
 
@@ -911,6 +925,24 @@ static void fb_budget(void) {
   }
 }
 
+/* A free body is flown with an inertia about its own axes and no products
+ * of inertia, so the spin it leaves with turns it with 1/2 sum I w^2 where
+ * the parts it is made of turn with 1/2 w.J w, J the full tensor about its
+ * CG {xx, yy, zz, xy, xz, yz}; and a thin one is given more than it has
+ * (the floor below). A spin that would turn it with more than J gives it is
+ * scaled down to what J gives, about the same axis; one under it is left
+ * alone. */
+static void spin_cap(const double I[3], const double J[6], double w[3]) {
+  const double e_flown = I[0] * w[0] * w[0] + I[1] * w[1] * w[1] + I[2] * w[2] * w[2];
+  const double e_parts = J[0] * w[0] * w[0] + J[1] * w[1] * w[1] + J[2] * w[2] * w[2]
+                       + 2.0 * (J[3] * w[0] * w[1] + J[4] * w[0] * w[2] + J[5] * w[1] * w[2]);
+  if (!(e_flown > e_parts)) {
+    return;
+  }
+  const double k = e_parts > 0.0 ? sim_sqrt(e_parts / e_flown) : 0.0;
+  for (int a = 0; a < 3; a += 1) w[a] *= k;
+}
+
 /* Make a free body of the parts in mask, which have just left the craft.
  * vel_w and w_body are the motion the craft had at its own CG; the body
  * takes the rigid motion of its own centre. */
@@ -969,6 +1001,7 @@ static int fb_spawn(const SimState *s, unsigned int mask, const double vel_w[3],
   }
   /* Inertia: each part a point mass at its centre plus its own box. */
   f->I[0] = f->I[1] = f->I[2] = 0.0;
+  double J[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
   f->npts = 0;
   for (int i = 0; i < t->n; i += 1) {
     if (!(mask & (1u << i))) {
@@ -982,6 +1015,9 @@ static int fb_spawn(const SimState *s, unsigned int mask, const double vel_w[3],
     f->I[0] += m * (d[1] * d[1] + d[2] * d[2]) + m * (by * by + bz * bz) / 12.0;
     f->I[1] += m * (d[0] * d[0] + d[2] * d[2]) + m * (bx * bx + bz * bz) / 12.0;
     f->I[2] += m * (d[0] * d[0] + d[1] * d[1]) + m * (bx * bx + by * by) / 12.0;
+    J[3] -= m * d[0] * d[1];
+    J[4] -= m * d[0] * d[2];
+    J[5] -= m * d[1] * d[2];
     for (int k = 0; k < t->p[i].npts && f->npts < FB_PTS; k += 1) {
       for (int a = 0; a < 3; a += 1) {
         f->pts[f->npts][a] = t->p[i].pts[k][a] - f->cg0[a];
@@ -992,6 +1028,7 @@ static int fb_spawn(const SimState *s, unsigned int mask, const double vel_w[3],
   /* A thin part still has some inertia about its thin axis. */
   const double floor = f->m * 1.0e-4;
   for (int a = 0; a < 3; a += 1) {
+    J[a] = f->I[a];
     if (f->I[a] < floor) f->I[a] = floor;
   }
   const double sx = hi[0] - lo[0], sy = hi[1] - lo[1], sz = hi[2] - lo[2];
@@ -1015,6 +1052,7 @@ static int fb_spawn(const SimState *s, unsigned int mask, const double vel_w[3],
     f->w[a] = w_body[a];
   }
   f->q[3] = s->quat[3];
+  spin_cap(f->I, J, f->w);
   for (int i = 0; i < t->n; i += 1) {
     if (mask & (1u << i)) {
       PS[i].status = SIM_PART_FREE;
@@ -1032,12 +1070,33 @@ static int fb_spawn(const SimState *s, unsigned int mask, const double vel_w[3],
  * ------------------------------------------------------------------- */
 static void samplers_rebuild(void);
 static int crush_foam(const Table *t, int i);
+/* What the table's parts give about the point c, each a point mass at its
+ * centre plus its own box, about body x, y and z: the attached ones, or
+ * with attached_only 0 all of them. */
+static void parts_inertia(const Table *t, int attached_only, const double c0[3], double out[3]) {
+  out[0] = out[1] = out[2] = 0.0;
+  for (int i = 0; i < t->n; i += 1) {
+    if (attached_only && !attached(i)) continue;
+    const double mi = t->p[i].mass;
+    const double c[3] = { t->cg[i][0] - c0[0], t->cg[i][1] - c0[1], t->cg[i][2] - c0[2] };
+    const double bx = t->hi[i][0] - t->lo[i][0];
+    const double by = t->hi[i][1] - t->lo[i][1];
+    const double bz = t->hi[i][2] - t->lo[i][2];
+    out[0] += mi * (c[1] * c[1] + c[2] * c[2]) + mi * (by * by + bz * bz) / 12.0;
+    out[1] += mi * (c[0] * c[0] + c[2] * c[2]) + mi * (bx * bx + bz * bz) / 12.0;
+    out[2] += mi * (c[0] * c[0] + c[1] * c[1]) + mi * (bx * bx + by * by) / 12.0;
+  }
+}
+
 static void live_rebuild(SimState *s) {
   const Table *t = tab();
   const PlantParams *P0 = &PLANT_TABLE[plant_airframe()];
   double m = 0.0;
   double mc[3] = { 0.0, 0.0, 0.0 };
   double Irem[3] = { P0->inertia[0], P0->inertia[1], P0->inertia[2] };
+  /* The products of inertia the parts gone leave in what is left, xy, xz,
+   * yz: the airframe's own are none. */
+  double Prem[3] = { 0.0, 0.0, 0.0 };
   for (int i = 0; i < t->n; i += 1) {
     const double *c = t->cg[i];
     const double mi = t->p[i].mass;
@@ -1047,10 +1106,20 @@ static void live_rebuild(SimState *s) {
         mc[a] += mi * c[a];
       }
     } else {
-      /* Take away its share about the table's origin: a point mass. */
-      Irem[0] -= mi * (c[1] * c[1] + c[2] * c[2]);
-      Irem[1] -= mi * (c[0] * c[0] + c[2] * c[2]);
-      Irem[2] -= mi * (c[0] * c[0] + c[1] * c[1]);
+      /* Take away its share about the table's origin: a point mass and its
+       * own box, which is what its free body spins with (fb_spawn). Taken
+       * away as a point mass alone, the box stayed in the craft as well,
+       * and a Slow Stick that lost its wing in a 30 rad/s roll came out of
+       * the break with 1.93 times the energy it went in with. */
+      const double bx = t->hi[i][0] - t->lo[i][0];
+      const double by = t->hi[i][1] - t->lo[i][1];
+      const double bz = t->hi[i][2] - t->lo[i][2];
+      Irem[0] -= mi * (c[1] * c[1] + c[2] * c[2]) + mi * (by * by + bz * bz) / 12.0;
+      Irem[1] -= mi * (c[0] * c[0] + c[2] * c[2]) + mi * (bx * bx + bz * bz) / 12.0;
+      Irem[2] -= mi * (c[0] * c[0] + c[1] * c[1]) + mi * (bx * bx + by * by) / 12.0;
+      Prem[0] += mi * c[0] * c[1];
+      Prem[1] += mi * c[0] * c[2];
+      Prem[2] += mi * c[1] * c[2];
     }
   }
   if (!(m > 0.0)) {
@@ -1082,9 +1151,77 @@ static void live_rebuild(SimState *s) {
     Irem[1] - m * (sh[0] * sh[0] + sh[2] * sh[2]),
     Irem[2] - m * (sh[0] * sh[0] + sh[1] * sh[1]),
   };
+  /* What is left is flown with no less than its own parts' share of the
+   * airframe's inertia: what they give it about its CG, each a point mass
+   * at its centre plus its own box, over what all of them give the whole
+   * airframe, times its measured inertia. Without it a Slow Stick that had
+   * shed its wing, tail and nose flew its fuselage at the 5 percent floor,
+   * and the crash suite's slowstick-nose-in read 522 g where it read 209
+   * with the boxes left in the craft (the band is 100 to 400). */
+  double Ip[3], Iall[3];
+  const double origin[3] = { 0.0, 0.0, 0.0 };
+  parts_inertia(t, 1, sh, Ip);
+  parts_inertia(t, 0, origin, Iall);
   for (int a = 0; a < 3; a += 1) {
-    const double lo = 0.05 * P0->inertia[a];
+    double lo = 0.05 * P0->inertia[a];
+    const double share = Iall[a] > 0.0 ? Ip[a] * P0->inertia[a] / Iall[a] : 0.0;
+    if (share > lo) lo = share;
     g_live.inertia[a] = Ic[a] > lo ? Ic[a] : lo;
+  }
+  /*
+   * The airframe's measured inertia less what the parts gone took, Ic, with
+   * the products of inertia they leave behind, is what the turning parts
+   * still on had, and the energy accounts are kept in it. What is left is
+   * flown with more wherever Ic is under the floor or under what its own
+   * parts give it (Ip), and without the products, and Ic can be less than
+   * nothing: the Slow Stick's wing panel, a uniform box, is 0.01253 kg m^2
+   * about x against the whole airframe's 0.0125. Flown at the spin it had,
+   * it would turn with energy nobody gave it: a Slow Stick that lost its
+   * wing in a 30 rad/s roll came out with 1.93 times what it went in with,
+   * a Bramor its left wing at (20, 15, 0) rad/s with 1.33. So what it would
+   * turn with past its accounts is paid for out of spin: first the free
+   * bodies' made in this step (the parts the table gave too much), then
+   * the craft's own, about the axis it turns on. g_excess is what the craft
+   * was already flown with past its accounts, paid for at an earlier break.
+   * Tensors are xx yy zz xy xz yz.
+   */
+  const double Jc[6] = {
+    Ic[0], Ic[1], Ic[2],
+    Prem[0] + m * sh[0] * sh[1], Prem[1] + m * sh[0] * sh[2], Prem[2] + m * sh[1] * sh[2],
+  };
+  const double *om = s->omega;
+  const double wpair[6] = {
+    om[0] * om[0], om[1] * om[1], om[2] * om[2], 2.0 * om[0] * om[1], 2.0 * om[0] * om[2], 2.0 * om[1] * om[2],
+  };
+  double e_flown = 0.0, e_kept = 0.0;
+  for (int k = 0; k < 6; k += 1) {
+    const double flown = k < 3 ? g_live.inertia[k] : 0.0;
+    if (k < 3) e_flown += flown * wpair[k];
+    e_kept += (Jc[k] + g_excess[k]) * wpair[k];
+    g_excess[k] = flown - Jc[k];
+  }
+  const double over = e_flown - e_kept;
+  if (over > 0.0) {
+    double avail = 0.0;
+    for (int b = 0; b < SIM_PARTS_MAX; b += 1) {
+      const FreeBody *f = &FB[b];
+      if (f->state != 0 && f->born == s->step_index) {
+        avail += f->I[0] * f->w[0] * f->w[0] + f->I[1] * f->w[1] * f->w[1] + f->I[2] * f->w[2] * f->w[2];
+      }
+    }
+    const double pay = over < avail ? over : avail;
+    if (pay > 0.0) {
+      const double keep = sim_sqrt(1.0 - pay / avail);
+      for (int b = 0; b < SIM_PARTS_MAX; b += 1) {
+        FreeBody *f = &FB[b];
+        if (f->state != 0 && f->born == s->step_index) {
+          for (int a = 0; a < 3; a += 1) f->w[a] *= keep;
+        }
+      }
+    }
+    const double left = e_flown - (over - pay);
+    const double scale = left > 0.0 ? sim_sqrt(left / e_flown) : 0.0;
+    for (int a = 0; a < 3; a += 1) s->omega[a] *= scale;
   }
   for (int k = 0; k < SIM_MOTOR_COUNT; k += 1) {
     g_live.pos_x[k] = P0->pos_x[k] - sh[0];
@@ -1379,6 +1516,7 @@ void crash_reset(void) {
     FB[i].state = 0;
   }
   g_shift[0] = g_shift[1] = g_shift[2] = 0.0;
+  for (int k = 0; k < 6; k += 1) g_excess[k] = 0.0;
   if (g_live_on) {
     /* Back to the airframe as the host seated it, its power option,
      * tuning and add-ons with it: plant_set_airframe here used to drop
@@ -5857,6 +5995,15 @@ SIM_EXPORT int sim_damage(void) {
 
 SIM_EXPORT int sim_parts_count(void) {
   return tab()->n;
+}
+
+SIM_EXPORT int sim_live_inertia(double *out) {
+  if (out == 0) {
+    return SIM_ERR_BAD_ARG;
+  }
+  out[0] = PLANT_P->mass_kg;
+  for (int a = 0; a < 3; a += 1) out[1 + a] = PLANT_P->inertia[a];
+  return SIM_OK;
 }
 
 SIM_EXPORT int sim_part_info(int part, double *out) {
