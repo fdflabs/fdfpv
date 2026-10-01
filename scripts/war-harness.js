@@ -34,6 +34,11 @@
  *           room's births say, each dead by nobody on a line where and
  *           when its birth's `wire` put it, the same on every client,
  *           the same game on the same seed and another on another
+ *   late    pilots coming and going mid war (latejoin): one seated after
+ *           the first wave is a player at once, with its share of the
+ *           rack, and the next wave is sized for it; one who leaves
+ *           sizes the next one down and takes its airframes; one back
+ *           with its token is its own entry, never a second share
  *   cost    eight pilots and sixty attackers at once: fifty two parked
  *           around the pilots just outside BLAST_M, none going off, and eight
  *           hunters steered by the room from far out. The room's CPU per
@@ -323,7 +328,11 @@ function flagsAt(blasts, t) {
 
 /* ---------------------------------------------------------------- run */
 
-/* One run. cfg: { sc, seed, links ([{ base, jitter }] per seat), clock }. */
+/* One run. cfg: { sc, seed, links ([{ base, jitter }] per seat), clock }.
+ * sc.at[i], when there is one, is client i's comings and goings, room ms:
+ * { join (else 0), leave, back (with its token and seat), token, seat (a
+ * token and seat the room does not know, as a reloaded tab sends) }. It
+ * flies only while seated. */
 function runOne(cfg) {
   const { sc } = cfg;
   const rand = rng(cfg.seed * 7919 + 17);
@@ -342,8 +351,10 @@ function runOne(cfg) {
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = sc.air.map((_, i) => ({
-    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(), states: [], early: 0, deads: [],
+    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(), states: [], early: 0, deads: [], token: null, views: [], welcomes: [],
   }));
+  const at = (i) => (sc.at && sc.at[i]) || {};
+  const seated = (i, t) => t >= (at(i).join ?? 0) && !(t >= (at(i).leave ?? Infinity) && t < (at(i).back ?? Infinity));
   const deliver = (actions, now) => {
     for (const a of actions) {
       if (!a.send || typeof a.data !== 'string') {
@@ -356,7 +367,10 @@ function runOne(cfg) {
         const m = JSON.parse(data);
         if (m.type === 'welcome') {
           c.seat = m.seat;
+          c.token = m.token;
+          c.welcomes.push({ at, seat: m.seat, token: m.token, war: m.war });
         } else if (m.type === 'war' && m.war) {
+          c.views.push({ at, war: m.war });
           const st = `${m.war.state}:${m.war.goAt}`;
           if (c.states.at(-1) !== st) {
             c.states.push(st);
@@ -379,14 +393,30 @@ function runOne(cfg) {
       });
     }
   };
-  for (const c of clients) {
-    deliver(room.open(c.conn, 0), 0);
+  const hello = (c, t, extra = {}) => {
+    deliver(room.open(c.conn, t), t);
     deliver(room.message(c.conn, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
-    }), 0, `10.9.0.${c.i + 1}`, newToken), 0);
+      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
+    }), t, `10.9.0.${c.i + 1}`, newToken), t);
+  };
+  const helloOf = (c) => (at(c.i).token ? { token: at(c.i).token, seat: at(c.i).seat } : {});
+  for (const c of clients.filter((x) => !at(x.i).join)) {
+    hello(c, 0, helloOf(c));
   }
   while (q.h.length) {
     q.pop().fn();
+  }
+  for (const c of clients) {
+    const { join, leave, back } = at(c.i);
+    if (join) {
+      q.push(join, () => hello(c, join, helloOf(c)));
+    }
+    if (leave != null) {
+      q.push(leave, () => deliver(room.close(c.conn, leave, 1001), leave));
+    }
+    if (back != null) {
+      q.push(back, () => hello(c, back, { token: c.token, seat: c.seat }));
+    }
   }
   deliver(room.message(clients[0].conn, JSON.stringify({
     type: 'war', op: 'start', mission: sc.mission.id, ...(sc.lead ? { intro: true } : {}),
@@ -400,6 +430,9 @@ function runOne(cfg) {
         break;
       }
       q.push(send, () => {
+        if (!seated(c.i, send)) {
+          return;
+        }
         const truth = sc.paths[c.i](send);
         const flags = flagsAt(c.blasts, send);
         const bytes = encodePose({
@@ -829,6 +862,115 @@ the power lines: ${a.born} Strikers across a span at its height; seed one ${a.st
   return failed;
 }
 
+/*
+ * Pilots coming and going mid war: A flies alone from the start; B joins
+ * after the first wave, holds on the second wave's line and takes one,
+ * leaves, and comes back with its token. Every wave is sized by the
+ * match's pilots here when the room announces it (BIRTH_LEAD_MS before
+ * its birth), and a pilot back is its own entry, never a second share.
+ * Then the same with C, a pilot new to the match, taking B's seat while B
+ * is away: B comes back in another seat, with what it had. Each on a
+ * zero latency link and on a lagged one.
+ */
+function latejoin() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  const L = 600;
+  const v = KIND.strike.speed;
+  const routes = { line: [[-L, Y, 0], [L, Y, 0]], far: [[-L, Y, 2000], [L, Y, 2000]] };
+  /* n + per x (pilots - 1): 1 for one pilot, 2 for two, 3 for three. */
+  const waves = [
+    { at: 1, kind: 'strike', n: 1, per: 1, route: 'far' },
+    { at: 6, kind: 'strike', n: 1, per: 1, route: 'line' },
+    { at: 16, kind: 'strike', n: 1, per: 1, route: 'far' },
+    { at: 21, kind: 'strike', n: 1, per: 1, route: 'far' },
+  ];
+  const m = { ...mission('latejoin', waves, routes), rack: 3 };
+  const JOIN = GO + 3000;
+  const LEAVE = GO + 11000;
+  const BACK = GO + 17000;
+  /* On the second wave's line, 2 s of flight from its start, where the
+   * first of a pair flies (routes.js puts a pair 12.5 m either side). */
+  const hold = hover([-L + 2 * v, Y, 12.5]);
+  const away = hover([0, Y + 400, -3000]);
+  const sizeOf = (c, wave) => [...c.born.values()].filter((a) => a.wave === wave).map((a) => a.n)[0] ?? null;
+  const viewAt = (c, t) => c.views.filter((x) => x.at <= t).at(-1)?.war;
+  const end = GO + 1000 * (21 + (2 * L) / v) + 3000;
+  const lagged = [{ base: 50, jitter: 30 }, { base: 120, jitter: 30 }, { base: 80, jitter: 10 }];
+  for (const links of [lagged.map(() => ({ base: 0, jitter: 0 })), lagged]) {
+    const lag = links[1].base ? `, lagged (${links.map((l) => `${l.base}/${l.jitter}`).join(' ')} ms)` : ', zero latency';
+    /* Long enough after a change for every view it caused to be heard. */
+    const settled = (t) => t + 2 * (links[0].base + links[0].jitter + links[1].base + links[1].jitter) + 200;
+    const sc = {
+      name: 'latejoin', kind: 'latejoin', air: ['cub1400', '5inch'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
+    };
+    const res = runOne({
+      sc, seed: 1, clock: 0, links,
+    });
+    const [a, b] = res.clients;
+    const w = res.room.war;
+    const bWelcome = b.welcomes[0];
+    const atJoin = viewAt(a, settled(JOIN));
+    console.log(`\npilots coming and going${lag}: A alone from the go, B in at +${(JOIN - GO) / 1000} s, out at +${(LEAVE - GO) / 1000} s, back at +${(BACK - GO) / 1000} s; waves at +1 +6 +16 +21 s, n + (pilots - 1)`);
+    row('B, seated mid war, is one of the match\'s players at once, with its token, and its share of the rack is on A\'s screen',
+      bWelcome.war.state === 'live' && w.match.players[bWelcome.seat]?.token === bWelcome.token && atJoin && atJoin.rack === 6 && atJoin.rackMax === 6,
+      `seat ${bWelcome.seat}, A's rack ${atJoin && atJoin.rack}/${atJoin && atJoin.rackMax} (3/3 before)`);
+    const first = [...a.born.values()].filter((x) => x.wave === 0).map((x) => x.id);
+    row('B\'s screen is told every attacker alive when it is seated', first.length === 1 && first.every((id) => b.born.has(id)),
+      `${first.filter((id) => b.born.has(id)).length} of ${first.length}`);
+    row('the wave before B is sized for 1, the next, announced after B came, for 2, on both screens',
+      sizeOf(a, 0) === 1 && sizeOf(a, 1) === 2 && sizeOf(b, 1) === 2, `${sizeOf(a, 0)}, then ${sizeOf(a, 1)} and ${sizeOf(b, 1)}`);
+    const booms = res.log.filter((e) => e.what === 'boom');
+    const heard = (c) => c.deads.some((d) => d.by === bWelcome.seat && d.why === 'boom');
+    row('B launches and takes one of that wave, and both screens hear it', booms.length === 1 && booms[0].seat === bWelcome.seat && heard(a) && heard(b),
+      `${booms.map((e) => `seat ${e.seat} at +${((e.t - GO) / 1000).toFixed(2)} s`).join(', ') || 'no boom'}`);
+    row('a wave announced while B is away is sized down to 1', sizeOf(a, 2) === 1, `${sizeOf(a, 2)}`);
+    const out = viewAt(a, BACK - 1);
+    row('and B\'s airframes leave with it: A\'s rack is A\'s own', out && out.rack === 3 && out.rackMax === 3, `${out && out.rack}/${out && out.rackMax}`);
+    const back = b.welcomes[1];
+    const after = viewAt(a, settled(BACK));
+    row('B back with its token is the same seat and the same entry, its kill kept, never a second share',
+      back && back.seat === bWelcome.seat && Object.keys(w.match.players).join() === '1,2' && w.match.players[back.seat].kills === 1
+      && after && after.rack === 6 && after.rackMax === 7,
+      `seat ${back && back.seat}, players ${Object.keys(w.match.players).join()}, rack ${after && after.rack}/${after && after.rackMax}: A's 3, B's 3 and 1 earned, 1 spent (a fresh share is 6/6)`);
+    row('the wave after B is back is sized for 2 again, on both screens', sizeOf(a, 3) === 2 && sizeOf(b, 3) === 2, `${sizeOf(a, 3)} and ${sizeOf(b, 3)}`);
+    const shared = [...b.born.keys()];
+    row('every birth B heard is the one A heard, field for field (n, k, t0, err, wire), and B heard every one born while it was seated',
+      shared.every((id) => JSON.stringify(a.born.get(id)) === JSON.stringify(b.born.get(id)))
+      && [...a.born.values()].filter((x) => x.wave !== 2).every((x) => b.born.has(x.id)), `${shared.length} of ${a.born.size}`);
+    row('the war is won with both pilots on its scores', w.match.state === 'won' && viewAt(a, Infinity).scores.length === 2, w.match.state);
+
+    /* C, new to the match, takes B's seat while B is away. */
+    const sc2 = {
+      ...sc,
+      air: ['cub1400', '5inch', 'cub1400'],
+      paths: [away, hold, away],
+      at: [{}, { join: JOIN, leave: LEAVE, back: BACK }, { join: GO + 13000, token: 'c'.repeat(32), seat: bWelcome.seat }],
+    };
+    const res2 = runOne({
+      sc: sc2, seed: 1, clock: 0, links,
+    });
+    const [a2, b2, c2] = res2.clients;
+    const w2 = res2.room.war;
+    const cSeat = c2.welcomes[0].seat;
+    const bBack = b2.welcomes[1].seat;
+    const after2 = viewAt(a2, settled(BACK));
+    row('C in B\'s seat while B is away is a new player there: none of B\'s kills, none of its airframes spent',
+      cSeat === bWelcome.seat && w2.match.players[cSeat].token === 'c'.repeat(32) && w2.match.players[cSeat].kills === 0 && !(w2.match.spent?.[cSeat] > 0),
+      `seat ${cSeat}, kills ${w2.match.players[cSeat].kills}, spent ${w2.match.spent?.[cSeat] ?? 0}`);
+    row('B back in another seat has its own entry back, its kill and its spent airframe, and the rack is the three pilots\'',
+      bBack !== cSeat && w2.match.players[bBack].token === b2.welcomes[0].token && w2.match.players[bBack].kills === 1 && w2.match.spent[bBack] === 1
+      && after2 && after2.rack === 9 && after2.rackMax === 10,
+      `seat ${bBack}, kills ${w2.match.players[bBack].kills}, rack ${after2 && after2.rack}/${after2 && after2.rackMax}`);
+    row('the waves follow: 2 with A and C, 3 once B is back, on every screen', sizeOf(a2, 2) === 2 && sizeOf(a2, 3) === 3 && sizeOf(b2, 3) === 3 && sizeOf(c2, 3) === 3,
+      `${sizeOf(a2, 2)}, then ${sizeOf(a2, 3)}`);
+  }
+  return failed;
+}
+
 const clocks = arg('run', 'both') === 'both' ? [0, 1] : arg('run', '') === 'cost' ? [] : [Number(arg('run', 1)) - 1];
 const started = Date.now();
 const list = scenarios();
@@ -841,6 +983,7 @@ if (arg('run', 'both') !== 'cost') {
   failed += briefing();
   failed += striker();
   failed += wires();
+  failed += latejoin();
 }
 /* The plan's 60 attackers, and twice that. In rounds, the most alive at
  * once in any Act 1 mission at 8 pilots is its largest round: 52
