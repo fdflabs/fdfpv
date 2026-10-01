@@ -108,6 +108,7 @@
     "campaign:check": "node scripts/campaign-check.js",
     "war:targets": "node scripts/war-targets.js --check",
     "war:routes": "node scripts/war-routes-check.js",
+    "check:perception": "node scripts/perception-check.js",
     "war:balance": "node scripts/war-balance.js",
     "war:boom": "node scripts/war-boom.js",
     "tag:twopage": "node scripts/tag-two-page.js",
