@@ -425,6 +425,29 @@ export const TUNES = [
     name: 'Manual',
     note: 'No flight controller. The sticks are the elevons, 14.5 degrees each way on both: it rolls fast, and a small touch of up is a lot, so be gentle in pitch. No rudder: it turns on the bank alone.',
   },
+  {
+    /* The Striker's three, a flying wing's modes on its own plants (the
+     * tunes go by the row's plant, the piston one's, and fly the jet's
+     * alike). Its fins carry small rudders, on the yaw stick in all three. */
+    id: 'striker-stab',
+    airframe: 'striker2500',
+    name: 'Stabilised',
+    note: 'A gyro holds the delta. Roll stick asks for a bank up to 45 degrees, pitch stick for a pitch up to 20, and centred sticks fly level. The yaw stick is the fins\' small rudders.',
+    wingStab: 1,
+  },
+  {
+    id: 'striker-acro',
+    airframe: 'striker2500',
+    name: 'Acro',
+    note: 'A gyro holds the delta where you leave it. Sticks ask for a roll rate up to 90 degrees a second, 120 on the jet, and a pitch rate up to 40, and centred sticks hold the attitude.',
+    wingStab: 2,
+  },
+  {
+    id: 'striker-manual',
+    airframe: 'striker2500',
+    name: 'Manual',
+    note: 'No flight controller. The sticks are the elevons and the fins\' rudders. A warhead in the nose makes it nose heavy and wants up elevon; without one it is light in pitch.',
+  },
 ];
 
 /*

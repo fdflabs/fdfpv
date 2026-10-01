@@ -10,7 +10,12 @@
  *      choosing no payload and no accessories there and saving refits the
  *      quad in the air at its bare mass;
  *   3. a reset keeps it;
- *   4. the picker's Customise on the 10 inch opens the same tab.
+ *   4. the picker's Customise on the 10 inch opens the same tab;
+ *   5. the Striker (the doc's section 7), stored on its turbojet with the
+ *      standard warhead, is seated on the jet's plant at its mass and
+ *      speaks with the turbine's voice; its Loadout tab offers both
+ *      engines, the warheads and the whip, and choosing the piston engine
+ *      there and saving refits it on the piston's plant, drawn with it.
  *
  *   node scripts/combat-shell.js
  *
@@ -37,6 +42,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const striker = airframeById('striker2500');
 const seven = airframeById('7inch');
 const wide = seven.combat.payloads.find((p) => p.id === 'wide');
 const pack2 = seven.combat.accessories.find((a) => a.id === 'pack2');
@@ -134,6 +140,69 @@ try {
   say(page.errors.length === 0, `no page errors${page.errors.length ? `: ${JSON.stringify(page.errors.slice(0, 5))}` : ''}`);
 } finally {
   await page.close();
+}
+
+/* 5. The Striker, on its turbojet, then on its piston engine. */
+{
+  const s5 = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'striker2500');
+  s5.graphics = 'low';
+  s5.combat = { striker2500: { payload: 'standard', accessories: [], propulsion: 'jet' } };
+  const jet = striker.combat.propulsion.find((x) => x.id === 'jet');
+  const prop = striker.combat.propulsion.find((x) => x.id === 'prop');
+  const standard = striker.combat.payloads.find((x) => x.id === 'standard');
+  const sp = await openPage({
+    root,
+    width: 960,
+    height: 600,
+    url: '/index.html',
+    seed: [`try {
+      const k = ${JSON.stringify(SETTINGS_KEY)};
+      const s = JSON.parse(localStorage.getItem(k) || '{}');
+      Object.assign(s, ${JSON.stringify(s5)});
+      s.airframeAsked = true;
+      localStorage.setItem(k, JSON.stringify(s));
+    } catch (e) { /* storage refused */ }`],
+  });
+  try {
+    await sp.until('!!window.__shellReady', 240000);
+    await sp.until('window.__map && window.__map().ready', 240000);
+    await sp.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+    await sp.until("window.__craftState && window.__craftState().mode === 'flight'", 120000);
+    await sp.sleep(500);
+    let c = await sp.evaluate('window.__craft()');
+    const near3 = (a, b) => Math.abs(a - b) < 1e-6;
+    say(c.run === 'striker2500' && c.module === jet.simId && c.combat && c.combat.propulsion === 'jet',
+      `the Striker is seated on plant ${c.module}, ${JSON.stringify(c.combat)}`);
+    say(c.addons && near3(c.addons.massKg, jet.grams / 1000 + standard.massKg),
+      `it flies ${c.addons ? c.addons.massKg.toFixed(3) : '?'} kg, the jet's ${jet.grams / 1000} and the ${standard.massKg} kg warhead`);
+    const voice = await sp.evaluate('window.__hangarRev().voice');
+    say(voice === jet.voice, `it speaks on the ${voice} voice`);
+    await sp.tap('Escape');
+    await sp.until("window.__ui.screen === 'paused'", 10000);
+    const row = await sp.evaluate("window.__ui.items().findIndex((it) => it.action === 'customise')");
+    say(row >= 0, 'the pause menu offers Customise on the Striker');
+    await sp.evaluate(`window.__ui.setCursor(${row}); true`);
+    await sp.tap('Enter');
+    await sp.until('window.__ui.hangar.isOpen', 10000);
+    await sp.until("window.__ui.hangar.tab === 'loadout'", 5000).catch(() => {});
+    const keys = await sp.evaluate("[...document.querySelectorAll('.hangar .combat-tab [data-key]')].map((b) => b.dataset.key)");
+    say(['propulsion-prop', 'propulsion-jet', 'payload-none', 'payload-standard', 'payload-wide', 'payload-penetrator', 'payload-emp', 'accessory-whip'].every((k) => keys.includes(k)),
+      `its Loadout tab offers both engines, every warhead and the whip: ${keys.join(', ')}`);
+    await sp.evaluate(`(() => { const b = document.querySelector('.hangar [data-key="propulsion-prop"]'); b.click(); return true; })()`);
+    await sp.evaluate('window.__ui.hangar.saveBtn.click(); true');
+    await sp.until('!window.__ui.hangar.isOpen', 5000);
+    await sp.sleep(800);
+    c = await sp.evaluate('window.__craft()');
+    const stored = await sp.evaluate("window.__ui.settings.combat.striker2500");
+    say(stored && stored.propulsion === 'prop' && stored.payload === 'standard', `saved: ${JSON.stringify(stored)}`);
+    say(c.module === prop.simId && c.addons && near3(c.addons.massKg, prop.grams / 1000 + standard.massKg) && c.shown === 'striker2500',
+      `refitted on plant ${c.module} at ${c.addons ? c.addons.massKg.toFixed(3) : '?'} kg, drawn as ${c.shown}`);
+    const v2 = await sp.evaluate('window.__hangarRev().voice');
+    say(v2 === prop.voice, `and speaks on the ${v2} voice`);
+    say(sp.errors.length === 0, `no page errors${sp.errors.length ? `: ${JSON.stringify(sp.errors.slice(0, 5))}` : ''}`);
+  } finally {
+    await sp.close();
+  }
 }
 console.log(failed ? `\n${failed} FAILED` : '\nall hold');
 process.exit(failed ? 1 : 0);

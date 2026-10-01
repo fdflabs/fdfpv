@@ -75,8 +75,10 @@ export const LAP_XP = { casual: 50, built: 40, map: 40 };
 export const FIRST_LAP_XP = 40;
 
 /* The planes a new pilot has, and the level each other one opens at.
- * Float planes go with their land plane. Quads are never locked. */
-export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180'];
+ * Float planes go with their land plane. Quads are never locked, and nor
+ * is the Striker, the war's own fixed wing: it flies there beside the
+ * combat quads, open from the start as they are. */
+export const STARTER_PLANES = ['timber1500', 'cub1400', 'slowstick1180', 'striker2500'];
 /* The Ugly Stik at 3, with the Skyhunter: the step after the Kadet, as
  * the sport plane has always been the second model after the trainer.
  * The first on the curve with ailerons that does not fly itself (RCM:
