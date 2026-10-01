@@ -134,6 +134,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { ACT1 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
@@ -2203,6 +2204,7 @@ export async function boot({
       ui.refreshFriends();
     },
     onRoom: () => ui.refreshFriends(),
+    onLobby: () => ui.refreshFriends(),
     onWorld: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
@@ -2521,6 +2523,8 @@ export async function boot({
   const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
+  /* How long the end banner stands before everybody is back in the lobby. */
+  const WAR_BACK_MS = 8000;
   /*
    * THE LOADOUT'S SPEED (edge/rooms/war.js parseLoadout): the room echoes
    * each seat's speedMul (1 to 1.15) in the view's loadouts, and this
@@ -2568,6 +2572,7 @@ export async function boot({
   const warHud = createWarHud(roomSeatName, {
     host: () => roomHost(roomLinkState.state().welcome),
     go: (v) => roomWar.start(v.mission),
+    back: () => (warBackAt != null && warLobby() ? Math.max(0, Math.ceil((warBackAt - performance.now()) / 1000)) : null),
   });
   /* Off the flight screen at once, not at the next frame (roomWarFrame
    * keeps it after): a frame can be a second long (war-card-check counted
@@ -2754,10 +2759,100 @@ export async function boot({
    * mission 1 (a room made by hand, or by a server from before). */
   function roomMission() {
     const w = roomLinkState.state().welcome;
-    return w && typeof w.mission === 'string' && Object.hasOwn(WAR_MISSIONS, w.mission) ? w.mission : WAR_MISSION;
+    const id = w && w.lobby && w.lobby.mission ? w.lobby.mission : w && w.mission;
+    return typeof id === 'string' && Object.hasOwn(WAR_MISSIONS, id) ? id : WAR_MISSION;
   }
   function missionNumber(id) {
     return Object.keys(WAR_MISSIONS).indexOf(id) + 1;
+  }
+
+  /*
+   * THE LOBBY of a room made for the war, between its matches (the owner,
+   * 2026-10-01: "its not hard to make people join a lobby and then start a
+   * mission, its on every single game"). It is that room's room screen:
+   * the panel over its rows (ui.setWarLobby) says LOBBY, the mission, when
+   * it starts and who is ready; the rows are Ready, the host's Start now
+   * and mission, the aircraft and Leave, nothing of free flight. The room
+   * starts the mission when everybody is ready, five seconds on, or 45
+   * seconds after the first ready with whoever is (edge/rooms/warlobby.js).
+   */
+  function warLobby() {
+    const st = roomLinkState.state();
+    const w = st.welcome;
+    return st.phase === 'open' && w && w.mode === 'war' && w.lobby && !roomWar.on() ? w.lobby : null;
+  }
+  function warLobbyReady(lobby = warLobby()) {
+    const w = roomLinkState.state().welcome;
+    return Boolean(lobby && w && lobby.ready[w.seat]);
+  }
+  function warLobbyToggle() {
+    const lobby = warLobby();
+    if (lobby) {
+      roomLinkState.send({ type: 'lobby', op: 'ready', ready: !warLobbyReady(lobby) });
+    }
+  }
+  function warLobbyRows(host) {
+    const lobby = warLobby();
+    const ready = warLobbyReady(lobby);
+    const missions = campaignRef ? campaignRef.playable() : [];
+    /* Ready stays first: the cursor lands on it when the room opens, and
+     * warFromPublic learns the invite code only after that, so a row added
+     * above it would slide under the cursor. The code, where a public
+     * room's host made this private one for the war, comes next, above
+     * the host's rows. */
+    const rows = [{
+      label: str(ready ? 'lobby.unready' : 'lobby.ready'), note: str(ready ? 'lobby.unready_note' : 'lobby.ready_note'), action: 'friends-lobby-ready', primary: true,
+    }, ...warInviteRows()];
+    if (host) {
+      rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: 'friends-war-start' });
+      if (missions.length > 1) {
+        const i = Math.max(0, missions.indexOf(lobby.mission));
+        rows.push({
+          label: str('lobby.mission'),
+          value: String(missionNumber(lobby.mission)),
+          note: str('lobby.mission_note'),
+          adjust: (d) => {
+            roomLinkState.send({ type: 'lobby', op: 'mission', mission: missions[(i + d + missions.length) % missions.length] });
+          },
+        });
+      }
+    }
+    rows.push({ label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
+    return rows;
+  }
+  /* What the panel shows: the mission, the time, the pilots, the last
+   * match's result. Null outside a lobby. */
+  function warLobbyView() {
+    const lobby = warLobby();
+    if (!lobby) {
+      return null;
+    }
+    const w = roomLinkState.state().welcome;
+    const now = roomLinkState.roomNow();
+    const secs = (at) => (at == null || now == null ? null : Math.max(0, Math.ceil((at - now) / 1000)));
+    const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
+    const seats = [w.seat, ...[...roomPeers.keys()].sort((a, b) => a - b)];
+    const v = roomWar.view();
+    const mine = v && Array.isArray(v.scores) ? v.scores.find((x) => x.seat === w.seat) : null;
+    return {
+      mission: str('lobby.mission_line', { n: missionNumber(mission), name: str(`campaign.m.${missionKey(mission)}`) }),
+      countdown: secs(lobby.countdownAt),
+      deadline: secs(lobby.deadlineAt),
+      pilots: seats.map((seat) => ({
+        name: roomSeatName(seat),
+        aircraft: airframeById(seat === w.seat ? runAirframe : roomPeers.get(seat).profile.airframe).name,
+        ready: Boolean(lobby.ready[seat]),
+        host: seat === w.host,
+        me: seat === w.seat,
+      })),
+      last: v && (v.state === 'won' || v.state === 'lost' || v.state === 'ended') && v.mission === mission ? {
+        state: v.state, stars: v.result ? v.result.stars : null, kills: mine ? mine.kills : 0,
+      } : null,
+    };
+  }
+  function missionKey(id) {
+    const m = ACT1.find((x) => x.id === id);
+    return m ? m.key : ACT1[0].key;
   }
 
   /*
@@ -2873,6 +2968,12 @@ export async function boot({
    */
   let warJoinAsking = false;
   async function roomWarJoinGate(w) {
+    if (w.mode === 'war' && w.lobby && ui.screen === 'title' && !roomWar.on()) {
+      ui.craftGate = false;
+      ui.mode = 'freestyle';
+      ui.returnTo = 'title';
+      ui.show('friends');
+    }
     if (w.mode !== 'war' || ui.settings.warConsent || warJoinAsking) {
       return;
     }
@@ -3216,6 +3317,36 @@ export async function boot({
   /* Every frame the room is open, after tag's. In the crash cam's replay
    * the war is not drawn and nothing reaches the plant: its events are
    * taken and logged, so none is applied late to the flight after it. */
+  /* The lobby's panel, kept current (its seconds), and the end of a
+   * match: the end banner a while, then every pilot back in the lobby,
+   * never on the title or in free flight. */
+  let warLobbyAt = 0;
+  let warBackAt = null;
+  let warSeenState = null;
+  function warLobbyFrame(wallMs) {
+    const v = roomWar.view();
+    const state = v ? v.state : null;
+    if (state !== warSeenState) {
+      if ((state === 'won' || state === 'lost' || state === 'ended') && warSeenState && warSeenState !== 'lobby') {
+        warBackAt = wallMs + WAR_BACK_MS;
+      }
+      warSeenState = state;
+    }
+    if (warBackAt != null && wallMs >= warBackAt) {
+      warBackAt = null;
+      if (warLobby() && (mode === 'flight' || mode === 'paused')) {
+        ui.returnTo = 'title';
+        ui.show('friends');
+        ui.onAction('title');
+      }
+    }
+    if (wallMs < warLobbyAt) {
+      return;
+    }
+    warLobbyAt = wallMs + 200;
+    ui.setWarLobby(ui.screen === 'friends' ? warLobbyView() : null);
+  }
+
   function roomWarFrame(now, wallMs, dt) {
     const scene = shell.quad.parent;
     if (scene && warAttackers.group.parent !== scene) {
@@ -3504,6 +3635,7 @@ export async function boot({
       }
     }
     roomBarFrame(wallMs);
+    warLobbyFrame(wallMs);
     const link = roomLinkState.state();
     if (link.phase !== 'open') {
       return;
@@ -4485,6 +4617,9 @@ export async function boot({
       /* A public room has a host too, since the room browser: the pilot
        * in longest, who starts its games. Kicking stays a private room's. */
       const host = w && w.host === w.seat;
+      if (warLobby()) {
+        return warLobbyRows(host);
+      }
       const kicks = host && !w.public;
       const world = w ? mapById(w.map).name : '';
       /*
@@ -4671,7 +4806,20 @@ export async function boot({
     }
   };
 
+  /* R says ready or not in the war's lobby, as the Ready row does. */
+  window.addEventListener('keydown', (e) => {
+    if ((e.key === 'r' || e.key === 'R') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey
+      && ui.screen === 'friends' && ui.nameDialog.hidden && warLobby()) {
+      e.preventDefault();
+      warLobbyToggle();
+    }
+  });
+
   ui.onFriends = async (action) => {
+    if (action === 'friends-lobby-ready') {
+      warLobbyToggle();
+      return;
+    }
     if (action === 'friends-war-start') {
       if (campaign.startSelected()) {
         ui.refreshFriends();

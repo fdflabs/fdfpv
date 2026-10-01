@@ -347,6 +347,15 @@ export async function openPage({
     }
   }
 
+  /* Until the loading screen is gone. It fades for 320 ms after the
+   * first frame (src/ui/loading.js finish), over the title and anything
+   * opened on it, and a mouse event in that time lands on it: war:public
+   * clicked campaign Play there, and no room was made. A key goes to the
+   * page either way; a click has to wait for this. */
+  async function loaded(timeoutMs = 15000) {
+    await until("document.getElementById('loading').hidden", timeoutMs);
+  }
+
   async function tap(code) {
     const info = keyInfo(code);
     await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...info }, sessionId);
@@ -373,6 +382,6 @@ export async function openPage({
 
   return {
     cdp, sessionId, errors, warnings, origin: server.origin, proc,
-    evaluate, until, tap, sleep, close,
+    evaluate, until, loaded, tap, sleep, close,
   };
 }
