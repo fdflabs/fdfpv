@@ -533,6 +533,8 @@ function byLine(t) {
 /* The Avionics HUD inset's sizes (src/render/sensorview.js INSET_SIZES,
  * which SensorManager.setInset checks a stored one against). */
 export const AVX_INSETS = ['small', 'medium', 'large'];
+/* How much the Avionics HUD draws, in Y's order (src/ui/avionicshud.js). */
+export const AVX_LEVELS = ['full', 'standard', 'minimal'];
 
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
@@ -794,6 +796,8 @@ const DEFAULTS = {
   /* The Avionics HUD's camera inset, cycled with U in flight: one of
    * AVX_INSETS, smallest first. */
   avxInset: 'small',
+  /* How much the Avionics HUD draws, cycled with Y: one of AVX_LEVELS. */
+  avxLevel: 'standard',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -1077,6 +1081,7 @@ export function loadSettings() {
     ['hudStyle', HUD_STYLES],
     ['peerMarks', MARK_STYLES],
     ['avxInset', AVX_INSETS],
+    ['avxLevel', AVX_LEVELS],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
