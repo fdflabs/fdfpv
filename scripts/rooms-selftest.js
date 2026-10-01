@@ -38,7 +38,7 @@ import {
 } from '../src/share/roomwire.js';
 import { PARTS_PER_S } from '../edge/rooms/wrecks.js';
 import {
-  ABANDON_MS, RESEAT_MS, RoomCore, KICK_MS, KICKED_JOIN_GAP_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, CLOCK_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
+  ABANDON_MS, HOLD_MS, REPEAT_MS, RESEAT_MS, RoomCore, TICK_MS, KICK_MS, KICKED_JOIN_GAP_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, CLOCK_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
 } from '../edge/rooms/core.js';
 import { HULLS } from '../configs/hulls.js';
 import { AIRFRAME_IDS } from '../configs/airframes.js';
@@ -198,7 +198,11 @@ check('and the sender nothing of its own', !a.got.some((m) => m instanceof Uint8
 ticks = 0;
 now += 33;
 run(room.tick(now));
-check('a tick with nothing new stops ticking', ticks === 0 && room.ticking === false);
+check('a tick with nothing new goes on while the sender is held (HOLD_MS)', ticks === 1 && room.ticking === true);
+ticks = 0;
+now += HOLD_MS;
+run(room.tick(now));
+check(`and stops once nobody has sent a pose for ${HOLD_MS} ms`, ticks === 0 && room.ticking === false);
 run(room.message(b, livePose(), now));
 check('the next pose starts it again', ticks === 1);
 now += 1000;
@@ -391,6 +395,93 @@ check('near is 1 to 60 m, far is 0 from 100 m, linear between', nearWeight(10) =
 const before2 = track.poses.length;
 track.push(at(10), 5000);
 check('an old sample is dropped, never reordered', track.poses.length === before2);
+const stillT = track.newest().t;
+track.push(at(stillT), 9000);
+check('the newest sample again is no new sample, but its pilot is not stale', track.poses.length === before2 && track.sample(9000 + STALE_MS - 1, 1, out) === true);
+
+console.log('a slow page stays in the room');
+check(`the room repeats a held pose every ${REPEAT_MS} ms, under the client's STALE_MS`, REPEAT_MS + 2 * TICK_MS < STALE_MS && HOLD_MS > STALE_MS);
+/*
+ * A pilot whose page draws a frame every FRAME ms sends each frame's 30 Hz
+ * poses at once (src/main.js roomPoseStep), and a watcher's page draws
+ * them through a PeerTrack every 16 ms, as src/main.js onBatch and
+ * roomDrawPeer do. `frames` is when the slow page's frames come, `status`
+ * a profile status the slow page sends at that room time, or null.
+ * Returns the watcher's track, the room, and how long, after the slow
+ * page's first frame, the watcher drew nothing.
+ */
+function slowRoom({ frame, seconds, stopAt = Infinity, status = null }) {
+  let clock = 3_000_000;
+  const smeta = { code: 'SLOW22', cap: PRIVATE_CAP, friendly: true, map: 'swiss2', epoch: clock - 1000 };
+  const r = new RoomCore(smeta);
+  const slow = sock('slow', '10.9.0.1');
+  const watcher = sock('watcher', '10.9.0.2');
+  const deliver = (actions) => {
+    for (const x of actions) {
+      if (x.send) {
+        x.send.got.push(typeof x.data === 'string' ? JSON.parse(x.data) : x.data);
+      }
+    }
+  };
+  for (const [i, s] of [slow, watcher].entries()) {
+    deliver(r.open(s, clock));
+    deliver(r.message(s, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 60 + i], profile }), clock, s.address, newToken));
+  }
+  const seat = r.seats.get(slow).seat;
+  const wtrack = new PeerTrack();
+  const end = clock + seconds * 1000;
+  let nextFrame = clock + frame;
+  let nextTick = clock;
+  let sentT = clock - smeta.epoch;
+  let seq = 0;
+  let hiddenMs = 0;
+  let lastHeard = null;
+  let toldStatus = false;
+  for (; clock < end; clock += 1) {
+    const roomNow = clock - smeta.epoch;
+    if (status && !toldStatus && clock >= stopAt) {
+      toldStatus = true;
+      deliver(r.message(slow, JSON.stringify({ type: 'profile', profile: { ...profile, status } }), clock));
+    }
+    if (clock >= nextFrame && clock < stopAt) {
+      for (; sentT + 1000 / 30 <= roomNow; sentT += 1000 / 30) {
+        seq += 1;
+        deliver(r.message(slow, encodePose({ ...pose, flags: FLAG_AIRBORNE, seq, t: Math.round(sentT + 1000 / 30) }), clock));
+      }
+      nextFrame += frame;
+    }
+    if (r.ticking && clock >= nextTick) {
+      deliver(r.tick(clock));
+      nextTick = clock + TICK_MS;
+    } else if (!r.ticking) {
+      nextTick = clock + TICK_MS;
+    }
+    for (const m of watcher.got.splice(0)) {
+      const b = m instanceof Uint8Array ? decodeBatch(m) : null;
+      for (const p of b ? b.poses : []) {
+        if (p.seat === seat) {
+          wtrack.push(p, roomNow);
+          lastHeard = clock;
+        }
+      }
+    }
+    if (clock % 16 === 0 && wtrack.newest() && clock < stopAt && !wtrack.sample(roomNow, 1, out)) {
+      hiddenMs += 16;
+    }
+  }
+  return { r, wtrack, hiddenMs, lastHeard, end, epoch: smeta.epoch };
+}
+const slowest = slowRoom({ frame: 2500, seconds: 15 });
+check('a pilot whose page draws a frame every 2.5 s is drawn by the others the whole time', slowest.hiddenMs === 0, `${slowest.hiddenMs} ms hidden in 15 s`);
+const crawl = slowRoom({ frame: 4500, seconds: 15 });
+check('and one at a frame every 4.5 s, still inside HOLD_MS', crawl.hiddenMs === 0, `${crawl.hiddenMs} ms hidden in 15 s`);
+const dead = slowRoom({ frame: 1000, seconds: 15, stopAt: 3_000_000 + 4000 });
+check('a page that stops sending is repeated no longer than HOLD_MS after its last pose', dead.lastHeard != null && dead.lastHeard <= 3_000_000 + 4000 + HOLD_MS,
+  `last heard ${dead.lastHeard - 3_000_000 - 4000} ms after it stopped`);
+check('and is then hidden, and the room stops ticking for it', !dead.wtrack.sample(dead.end - dead.epoch, 1, out) && dead.r.ticking === false);
+const menu = slowRoom({ frame: 1000, seconds: 8, stopAt: 3_000_000 + 4000, status: 'menu' });
+check('a page that says it went to a menu is not repeated at all', menu.lastHeard != null && menu.lastHeard <= 3_000_000 + 4000 + TICK_MS,
+  `last heard ${menu.lastHeard - 3_000_000 - 4000} ms after the menu`);
 
 console.log('slots');
 const sp = { x: 10, z: 40, yaw: Math.PI / 2 };
