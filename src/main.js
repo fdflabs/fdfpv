@@ -9563,7 +9563,9 @@ export async function boot({
       reset();
       ghostCourseChanged();
       mode = 'title';
-      ui.show(stayScreen === 'friends' ? 'friends' : 'title');
+      /* Back to the room screen only if the pilot is still on it: one who
+       * left for the title while the world loaded stays there. */
+      ui.show(stayScreen === 'friends' && ui.screen === 'friends' ? 'friends' : 'title');
       ui.applyLocationHash();
       showCourseNotes();
     } else {
