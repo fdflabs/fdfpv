@@ -121,6 +121,19 @@ const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0 });
 const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`the war's lobby, rooms at ${rooms}`);
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
+
+/* A REAL LOSS, decided by the room's own rule (edge/rooms/war.js settle:
+ * lost the instant the output is under the mission's floor), in this
+ * process's room server: the output taken to nothing, settled, and sent
+ * the way the room sends any change. Flying it to a loss takes minutes. */
+function loseNow(code) {
+  const room = [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.meta.code === code);
+  const { core } = room.host;
+  core.war.match.output = 0;
+  core.war.settle(core.war.match.f);
+  room.host.run(core.war.changed(core));
+  return core.war.match.state;
+}
 const a = await openPage({ root, url, width: 1920, height: 1080, seed: [SEED_A] });
 const b = await openPage({ root, url, width: 390, height: 844 });
 try {
@@ -201,10 +214,13 @@ try {
 
   /* ONLY A READY: the 45 seconds. */
   await a.tap('KeyR');
-  await a.until("/Starts in 0:4/.test(document.querySelector('.war-lobby-status').textContent)", 10000).catch(() => {});
+  /* B's panel is redrawn on its own frames, after A's. */
+  const told45 = "/Starts in 0:4/.test(document.querySelector('.war-lobby-status').textContent)";
+  await a.until(told45, 10000).catch(() => {});
+  await b.until(told45, 10000).catch(() => {});
   const deadline = await b.evaluate(LOBBY);
   check('only A ready: B is told the 45 s', /Starts in 0:4\d with whoever is ready/.test(deadline.status) && deadline.pilots.filter((p) => p.ready).length === 1,
-    JSON.stringify(deadline.status));
+    JSON.stringify({ b: deadline.status, a: (await a.evaluate(LOBBY)).status }));
   await a.until(briefing, LOBBY_DEADLINE_MS + 15000).catch(() => {});
   check('and at its end the mission starts on its own', await b.evaluate(briefing), await b.evaluate('window.__war().view.state'));
   await backInLobby('ended again');
@@ -239,20 +255,20 @@ try {
   check('B joins mid battle: straight into it, flying, not the lobby', hot.flying === 'flight' && hot.screen === 'flight' && hot.war === 'live' && !hot.shown,
     JSON.stringify({ screen: hot.screen, flying: hot.flying, war: hot.war, lobby: hot.shown }));
 
-  /* THE END IN THE AIR, the owner's report (2026-10-01): a pilot who is
-   * not the host, on the end banner, read "WAITING FOR THE HOST TO
-   * RESTART" and had no way forward. */
-  await a.evaluate("(() => { window.__warDo('end'); return true; })()");
-  await b.until("/^BACK TO THE LOBBY IN [1-8]$/.test(window.__war().hud.restart || '')", 10000).catch(() => {});
-  const said = await b.evaluate("window.__war().hud.restart || null");
-  check('the end, B flying and not the host: the banner reads BACK TO THE LOBBY IN n', /^BACK TO THE LOBBY IN [1-8]$/.test(said || ''), String(said));
+  /* A LOSS IN THE AIR, the owner's report (2026-10-01): a pilot who is
+   * not the host, on a lost mission's banner, read "WAITING FOR THE HOST
+   * TO RESTART" and had no way forward. */
+  const lost = loseNow(code);
+  await b.until("window.__war().view.state === 'lost' && /^BACK TO THE LOBBY IN [1-8]$/.test(window.__war().hud.restart || '')", 10000).catch(() => {});
+  const said = await b.evaluate("({ state: window.__war().view.state, restart: window.__war().hud.restart || null })");
+  check('the mission lost, B flying and not the host: the banner reads BACK TO THE LOBBY IN n', lost === 'lost' && said.state === 'lost'
+    && /^BACK TO THE LOBBY IN [1-8]$/.test(said.restart || ''), JSON.stringify({ server: lost, ...said }));
   await b.until("window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden", 15000).catch(() => {});
   const after = await b.evaluate(LOBBY);
   check('and B is put in the lobby with nothing pressed, its Ready under the cursor', after.shown && after.screen === 'friends' && after.here === 'friends-lobby-ready'
     && after.flying !== 'flight', JSON.stringify({ shown: after.shown, screen: after.screen, here: after.here, flying: after.flying }));
 
   /* CAMPAIGN PLAY makes a lobby too. */
-  await a.until("window.__war().view.state === 'ended'", 15000).catch(() => {});
   await a.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('title'); window.__campaign.open(); return true; })()");
   await a.until("document.querySelector('[data-mission=\"itaipu-1\"] .campaign-play')", 10000).catch(() => {});
   await a.evaluate("(() => { document.querySelector('[data-mission=\"itaipu-1\"] .campaign-play').click(); return true; })()");
