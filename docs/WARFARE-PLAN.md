@@ -68,6 +68,7 @@ fixed wings as radio relays).
 | Aircraft | Top m/s | Role |
 | --- | --- | --- |
 | F-16 (f16878) | 45.8 | the only thing that runs down a Striker from behind |
+| Interceptor quad (interceptor) | 45.5 | the fast chaser: runs a Striker down from behind and rams it; the fastest quad, level and in a climb (docs/COMBAT-DRONES.md section 1a) |
 | 5 inch quad | 40 | interceptor: dives from altitude, point defence of the intakes |
 | Whoop 65 | 40 (five inch model) | close defence where only a whoop fits: gantries, under the switchyard wires, between penstocks |
 | Zagi | 29.7 | mid screen against Loiterers |

@@ -89,7 +89,7 @@ const SHOTS = [
   ['10in-emp', { frame: '10in', payload: 'emp', accessories: ['lrantenna', 'gps'] }],
   ['10in-standard', { frame: '10in', payload: 'standard', accessories: ['cage', 'lrantenna'] }],
   ['interceptor', { frame: 'interceptor', payload: 'none', accessories: [] }],
-  ['interceptor-standard-gps', { frame: 'interceptor', payload: 'standard', accessories: ['gps'] }],
+  ['interceptor-proximity-gps', { frame: 'interceptor', payload: 'proximity', accessories: ['gps'] }],
 ];
 
 const rows = [];

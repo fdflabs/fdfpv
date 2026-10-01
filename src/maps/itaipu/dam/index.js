@@ -3001,6 +3001,11 @@ export async function buildPart(ctx) {
   }
   Object.freeze(targets);
   const damage = makeDamage(THREE, targetIds, targets);
+  if (ctx.mats.thermal) {
+    /* Fire flecks at six hundred degrees; the smoke a little over the
+     * air and thin in the long wave band (src/render/thermal.js). */
+    ctx.mats.thermal.shader(damage.points.material, 'float thT = mix(thEnv.y + 0.08, 6.0, vFire); float thA = mix(0.25, 1.0, vFire);', 'itaipu-dam-damage');
+  }
   group.add(damage.points);
   const states = Object.fromEntries(targetIds.map((id) => [id, 'ok']));
   const CHAR = 0.16;
