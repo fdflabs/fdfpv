@@ -384,7 +384,28 @@ window.__combat = {
       rotor.rotation.y = 0;
       turns = { p0, p1 };
     }
+    /* The surfaces' convention as numbers, as scripts/craft-preview.js
+     * holds every flying wing's: +0.35 rad on a left elevon lifts its
+     * trailing edge and leaves the right one; on the rudder it moves both
+     * trailing edges left. */
+    const boxOf = (name) => {
+      a.group.updateMatrixWorld(true);
+      const b3 = new THREE.Box3().setFromObject(a.combat.parts[name]);
+      return { min: b3.min.toArray(), max: b3.max.toArray() };
+    };
+    const still = { el: boxOf('elevon-left'), er: boxOf('elevon-right'), rl: boxOf('rudder-left'), rr: boxOf('rudder-right') };
+    a.setSurfaces(0.35, 0, 0, 0);
+    const leftUp = { el: boxOf('elevon-left'), er: boxOf('elevon-right') };
+    a.setSurfaces(0, 0, 0, 0.35);
+    const rudderLeft = { rl: boxOf('rudder-left'), rr: boxOf('rudder-right') };
+    a.setSurfaces(0, 0, 0, 0);
+    const surfaces = {
+      elevonUpMm: (leftUp.el.max[1] - still.el.max[1]) * 1000,
+      otherElevonMm: Math.abs(leftUp.er.max[1] - still.er.max[1]) * 1000,
+      rudderLeftMm: Math.min(still.rl.min[0] - rudderLeft.rl.min[0], still.rr.min[0] - rudderLeft.rr.min[0]) * 1000,
+    };
     const r = {
+      surfaces,
       war: {
         tris: (war.index ? war.index.count : war.attributes.position.count) / 3,
         spin: spinFlags.reduce((n, f) => n + (f > 0.5 ? 1 : 0), 0),

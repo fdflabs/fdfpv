@@ -178,8 +178,9 @@ export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } 
   /* The elevons, a lighter strip along the trailing edge, and their
    * horns on top; two hatches over the bays. */
   for (const s of [-1, 1]) {
-    add('wing', 'controls', box(0.80, 0.022, 0.15), 'wing', [s * 0.72, WING_Y + 0.006, TE_Z - 0.075]);
-    add('wing', 'metal', box(0.012, 0.045, 0.035), 'plain', [s * 0.62, WING_Y + 0.035, TE_Z - 0.12]);
+    const elevon = `elevon-${s < 0 ? 'left' : 'right'}`;
+    add(elevon, 'controls', box(0.80, 0.022, 0.15), 'wing', [s * 0.72, WING_Y + 0.006, TE_Z - 0.075]);
+    add(elevon, 'metal', box(0.012, 0.045, 0.035), 'plain', [s * 0.62, WING_Y + 0.035, TE_Z - 0.12]);
     add('wing', 'controls', box(0.20, 0.004, 0.16), 'wing', [s * 0.55, WING_Y + 0.024, 0.22]);
   }
 
@@ -190,7 +191,7 @@ export function strikerParts({ propulsion = 'prop', antenna = false, seg = 16 } 
     const g = slab(fin.map(([y, z]) => [y, z]), FIN_T);
     g.rotateZ(Math.PI / 2);
     add('fins', 'skin', g, 'fin', [s * (HALF + FIN_T / 2), WING_Y, 0]);
-    add('fins', 'controls', box(FIN_T * 1.3, 0.20, 0.07), 'fin', [s * (HALF + FIN_T / 2), WING_Y + 0.16, 1.05]);
+    add(`rudder-${s < 0 ? 'left' : 'right'}`, 'controls', box(FIN_T * 1.3, 0.20, 0.07), 'fin', [s * (HALF + FIN_T / 2), WING_Y + 0.16, 1.05]);
   }
 
   /* The skid under the belly. */
@@ -439,12 +440,22 @@ function strikerSurfaces() {
   ];
 }
 
+/* Where each moving surface hinges, in the model frame: an elevon on its
+ * leading edge across the wing, a rudder on its leading edge up the fin. */
+export const STRIKER_HINGES = {
+  'elevon-left': [-0.72, WING_Y + 0.006, TE_Z - 0.15],
+  'elevon-right': [0.72, WING_Y + 0.006, TE_Z - 0.15],
+  'rudder-left': [-(HALF + FIN_T / 2), WING_Y + 0.16, 1.015],
+  'rudder-right': [HALF + FIN_T / 2, WING_Y + 0.16, 1.015],
+};
+
 /* The one prop turns positive about the body's forward axis, as the
  * Zagi's and the Bramor's do; the other three slots are empty. */
 export const STRIKER_PROP_SPIN = [1, 0, 0, 0];
 
 /*
- * Build the Striker for the garage. `propulsion` 'prop' or 'jet',
+ * Build the Striker for the garage and for a pilot to fly: one aircraft,
+ * seen close in the hangar and the chase camera. `propulsion` 'prop' or 'jet',
  * `antenna` the whip; and every builder's name, fog, lite and worldScale.
  * Returns the shell's contract (group, discs, blades, cameraMount,
  * propSpin, stator, setSurfaces, all four rotor slots long, as the Zagi's)
@@ -456,7 +467,9 @@ export function buildStrikerCraft(opts = {}) {
   const antenna = Boolean(opts.antenna);
   const fog = opts.fog !== false;
   const lite = Boolean(opts.lite);
-  const pieces = strikerParts({ propulsion, antenna, seg: lite ? 12 : 16 });
+  /* The flown and the garage's Striker is one aircraft seen close, so it
+   * is drawn rounder than the war's (strikerWarGeometry's 16). */
+  const pieces = strikerParts({ propulsion, antenna, seg: lite ? 12 : 24 });
   const skin = strikerSkin(lite ? 128 : 256);
   const mats = {};
   for (const [key, hex] of Object.entries(STRIKER_COLOURS)) {
@@ -503,6 +516,9 @@ export function buildStrikerCraft(opts = {}) {
       }
       if (part === 'prop') {
         geo.applyMatrix4(toRotor);
+      } else if (STRIKER_HINGES[part]) {
+        const [x, y, z] = STRIKER_HINGES[part];
+        geo.translate(-x, -y, -z);
       }
       const mesh = new THREE.Mesh(geo, mats[key]);
       mesh.name = `${part}-${key}`;
@@ -525,6 +541,9 @@ export function buildStrikerCraft(opts = {}) {
       mount.add(disc);
       discs.push(disc);
     } else {
+      if (STRIKER_HINGES[part]) {
+        g.position.set(...STRIKER_HINGES[part]);
+      }
       group.add(g);
     }
     parts[part] = g;
@@ -551,9 +570,18 @@ export function buildStrikerCraft(opts = {}) {
     cameraMount,
     stator: mats.metal,
     propSpin: STRIKER_PROP_SPIN,
-    /* The elevons and rudders are drawn fixed: the war's Striker flies a
-     * route, not a pilot's sticks, and the garage shows it parked. */
-    setSurfaces: () => {},
+    /*
+     * The surfaces, radians, the shell's order for a flying wing: left and
+     * right elevon (positive is trailing edge up, as the Zagi's), the third
+     * slot unused, and the rudders together (positive is trailing edge
+     * left). The war's Striker flies a route and keeps them still.
+     */
+    setSurfaces(left = 0, right = 0, _elevator = 0, rudder = 0) {
+      parts['elevon-left'].rotation.x = -left;
+      parts['elevon-right'].rotation.x = -right;
+      parts['rudder-left'].rotation.y = -rudder;
+      parts['rudder-right'].rotation.y = -rudder;
+    },
     combat: { propulsion, antenna, parts },
   };
   craft.combat.paint = paintHook(craft, coat, strikerSurfaces());

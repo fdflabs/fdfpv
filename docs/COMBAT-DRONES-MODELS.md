@@ -69,7 +69,19 @@ It returns the shell's contract as the Zagi's does (four rotor slots,
 `propSpin` `[1, 0, 0, 0]`, the prop turning about the fore and aft axis
 on `blades[0].rotation.y`) and `combat = { propulsion, antenna, parts,
 paint }`, the parts named `fuselage`, `wing`, `fins`, `skid`, `engine`
-and `prop` or `jet`, and `antenna`.
+and `prop` or `jet`, `antenna`, and the four moving surfaces
+`elevon-left`, `elevon-right`, `rudder-left`, `rudder-right`, each a group
+on its hinge (`STRIKER_HINGES`). `setSurfaces(left, right, _, rudder)` moves
+them in radians: positive elevon is trailing edge up, as the Zagi's,
+positive rudder trailing edges left.
+
+This is also the builder for a pilot's own Striker, the flyable airframe
+another agent is adding: one aircraft seen close, so it is drawn rounder
+than the war's (24 segments round against 16). When that airframe's id
+lands in `docs/COMBAT-DRONES.md`, its `craft.js` entry is
+`(opts) => buildStrikerCraft({ ...opts, ...choice })` with the choice's
+propulsion and whip; a payload for it will need its ids and sizes in the
+doc first, as the quads' did.
 
 The war draws the same parts list (`strikerParts`) for the `strike` and
 `decoy` kinds in `src/render/attackers.js`: one merged geometry with the

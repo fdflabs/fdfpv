@@ -269,6 +269,9 @@ try {
       check(`${name}: distinct from the other builds`, !prior, prior ? `draws the same as ${prior}` : r.parts.join(' '));
       strikerHashes.set(r.hashA, name);
       check(`${name}: nothing inside out`, r.insideOut.length === 0, r.insideOut.join('; '));
+      check(`${name}: an elevon's trailing edge goes up, the other stays, the rudders go left`,
+        r.surfaces.elevonUpMm > 5 && r.surfaces.otherElevonMm < 0.01 && r.surfaces.rudderLeftMm > 5,
+        `${r.surfaces.elevonUpMm.toFixed(1)} mm up, ${r.surfaces.otherElevonMm.toFixed(2)} mm the other, ${r.surfaces.rudderLeftMm.toFixed(1)} mm left`);
       check(`${name}: the shell's four rotor slots`, r.slots[0] === 4 && r.slots[1] === 4 && r.slots[2] === '1,0,0,0', JSON.stringify(r.slots));
       if (propulsion === 'prop') {
         /* A quarter turn of the rotor swaps the prop's x and y reach and
