@@ -12,14 +12,17 @@
  *
  * The way in (ui.onWarCard, what the campaign's Play calls) with no consent stored: the consent screen; Back
  * leaves the pilot on the gate with no room; a second click and Continue:
- * a PRIVATE room, this pilot its host, Itaipu seated, the room screen with
- * the war's start row under the cursor. Reloaded (consent now stored),
- * Enter on the card goes to a new private Itaipu room with no consent
- * screen at all.
+ * a PUBLIC room named for its host (the owner opened the war to public
+ * rooms on 2026-10-01 so a friend finds it), this pilot its host, Itaipu
+ * seated, the room screen with the war's start row under the cursor,
+ * listed as the war's with its mission. Reloaded (consent now stored),
+ * the way in goes to a new Itaipu room with no consent screen at all.
  *
- * Make a room: the Game row offers Defend Itaipu only for a private room
- * on Itaipu, drops it when the room is made public, and making it asks
- * consent first when it is not stored, then lands the same way.
+ * Make a room: the Game row offers Defend Itaipu on Itaipu, public or
+ * private, with a Mission row, and only there; making it asks consent
+ * first when it is not stored, then lands the same way. A pilot without
+ * the consent who joins a room made for the war by its code is asked on
+ * arrival: Back leaves it, Continue stays.
  *
  * A public room on Itaipu, joined by a pilot who came in by the card:
  * the heading never says Defend Itaipu; a joiner reads why not and to ask
@@ -61,7 +64,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
-import { PROTO, ROOM_LEVEL } from '../src/share/roomwire.js';
+import { PROTO, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[3] || join(root, 'build', 'war-card');
@@ -148,6 +151,7 @@ async function resize(page, width, height) {
 }
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
     return [r.left + r.width / 2, r.top + r.height / 2];
@@ -194,17 +198,20 @@ const LANDED = `(() => {
     here: here.action || here.label || null, primary: Boolean(here.primary),
     heading: (items.find((it) => it.section) || {}).label || null,
     war: items.some((it) => it.action === 'friends-war-start'),
+    lobby: (document.querySelector('.war-lobby-title') || {}).textContent || null,
   };
 })()`;
 
-function landedWell(v) {
-  return v.phase === 'open' && /^[A-Z0-9]{6}$/.test(v.code || '') && !v.public && v.host && v.screen === 'friends'
-    && v.map === 'itaipu' && v.game === 'war' && v.consent && v.war && v.here === 'friends-war-start' && v.primary
-    && /Defend Itaipu/.test(v.heading || '');
+function landedWell(v, pub = false) {
+  return v.phase === 'open' && /^[A-Z0-9]{6}$/.test(v.code || '') && v.public === pub && v.host && v.screen === 'friends'
+    && v.map === 'itaipu' && v.game === 'war' && v.consent && v.war && v.here === 'friends-lobby-ready' && v.primary
+    && v.lobby === 'LOBBY';
 }
 
 async function landed(page) {
-  await page.until("window.__rooms().phase === 'open' && window.__ui.items().some((it) => it.action === 'friends-war-start')", 60000).catch(() => {});
+  /* The lobby's panel is drawn on the frame after its rows (src/main.js
+   * warLobbyFrame). */
+  await page.until("window.__rooms().phase === 'open' && window.__ui.items().some((it) => it.action === 'friends-war-start') && document.querySelector('.war-lobby-title')", 60000).catch(() => {});
   await page.sleep(500);
   return page.evaluate(LANDED);
 }
@@ -258,7 +265,11 @@ try {
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
   await answer(page, 'Continue');
   const one = await landed(page);
-  check('Continue: a private Itaipu room, this pilot its host, the war start row under the cursor', landedWell(one), JSON.stringify(one));
+  check('Continue: a public Itaipu room, this pilot its host, the war start row under the cursor', landedWell(one, true), JSON.stringify(one));
+  const named = await page.evaluate('window.__rooms().name');
+  const oneLine = (await (await fetch(`${server.url}/v2/rooms`)).json()).rooms.find((r) => r.code === one.code);
+  check('named for its host, and listed as the war\'s, mission 1', /, Defend Itaipu$/.test(named || '') && oneLine && oneLine.game === 'war' && oneLine.mission === 'itaipu-1',
+    JSON.stringify({ named, oneLine }));
   await shot(page, 'war-room-host');
 
   /* SECOND PRESS, CONSENT STORED: straight to a room. */
@@ -267,7 +278,7 @@ try {
   await page.evaluate(WATCH_DIALOG);
   await page.evaluate("(() => { window.__ui.onWarCard('way-war'); return true; })()");
   const two = await landed(page);
-  check('the way in again: a new private Itaipu room, the start row under the cursor', landedWell(two) && two.code !== one.code, JSON.stringify(two));
+  check('the way in again: a new public Itaipu room, the start row under the cursor', landedWell(two, true) && two.code !== one.code, JSON.stringify(two));
   check('and no consent screen on the way', (await page.evaluate('window.__warCardDialogs')) === 0, String(await page.evaluate('window.__warCardDialogs')));
 
   /* MAKE A ROOM'S GAME ROW. */
@@ -288,16 +299,16 @@ try {
   const pub = kinds.find((k) => !/code/i.test(k));
   const priv = kinds.find((k) => /code/i.test(k));
   await pick('Who can join', pub);
-  check('public on Itaipu: no Defend Itaipu in the Game row', !(await games()).includes('Defend Itaipu'), (await games()).join());
+  check('public on Itaipu: Defend Itaipu offered', (await games()).includes('Defend Itaipu'), (await games()).join());
+  await pick('Game', 'Defend Itaipu');
+  check('and with it a Mission row, mission 1', (await page.evaluate(`(${row('Mission')} || {}).value || null`)) === 'Mission 1',
+    String(await page.evaluate(`(${row('Mission')} || {}).value || null`)));
+  await pick('Game', 'Just fly');
   await pick('Who can join', priv);
   await pick('The world', worlds.find((x) => x !== itaipu));
-  check('private on another world: none either', !(await games()).includes('Defend Itaipu'), (await games()).join());
+  check('private on another world: none', !(await games()).includes('Defend Itaipu'), (await games()).join());
   await pick('The world', itaipu);
   check('private on Itaipu: Defend Itaipu offered', (await games()).includes('Defend Itaipu'), (await games()).join());
-  await pick('Game', 'Defend Itaipu');
-  await pick('Who can join', pub);
-  check('made public, the draft drops it', (await page.evaluate(`${row('Game')}.value`)) !== 'Defend Itaipu', await page.evaluate(`${row('Game')}.value`));
-  await pick('Who can join', priv);
   await pick('Game', 'Defend Itaipu');
   await shot(page, 'roomnew-war');
 
@@ -310,6 +321,56 @@ try {
   const three = await landed(page);
   check('Continue: a private Itaipu room, the start row under the cursor', landedWell(three) && three.code !== two.code, JSON.stringify(three));
   await shot(page, 'war-room-from-form');
+
+  /* JOINING A ROOM MADE FOR THE WAR with no consent stored, by its code:
+   * asked on arrival; Back leaves it for the title, Continue stays. A bare
+   * socket holds it. A minute first: the rooms server makes six rooms a
+   * minute for an address (edge/rooms/front.js). */
+  await page.sleep(61000);
+  const warMade = await fetch(`${server.url}/v2/create`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, mode: 'war', mission: 'itaipu-1' }),
+  });
+  const warJoinCode = (await warMade.json()).code;
+  const keeper = new WebSocket(`${server.url.replace(/^http/, 'ws')}/v2/room/${warJoinCode}`, { headers: { origin: 'https://fdflabs.github.io' } });
+  const keeperGot = [];
+  keeper.on('message', (data, binary) => {
+    if (!binary && data.toString() !== 'pong') {
+      keeperGot.push(JSON.parse(data.toString()));
+    }
+  });
+  await new Promise((resolve, reject) => {
+    keeper.on('open', resolve);
+    keeper.on('error', reject);
+  });
+  keeper.send(JSON.stringify({
+    type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, war: WAR_JOIN, name: [3, 3, 33],
+    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+  }));
+  for (let i = 0; i < 100 && !keeperGot.some((m) => m.type === 'welcome'); i += 1) {
+    await page.sleep(50);
+  }
+  await page.evaluate(`(() => {
+    window.__ui.act('friends-leave');
+    window.__ui.settings.warConsent = false;
+    window.__ui.persistSettings();
+    window.__roomJoin(${JSON.stringify(warJoinCode)});
+    return true;
+  })()`);
+  await page.until(`${DIALOG} !== null`, 15000).catch(() => {});
+  check('joining a room made for the war with no consent stored: asked on arrival', (await page.evaluate(DIALOG)) === 'Defend Itaipu', String(await page.evaluate(DIALOG)));
+  await answer(page, 'Back');
+  await page.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
+  await page.sleep(500);
+  const refusedJoin = await page.evaluate("({ phase: window.__rooms().phase, screen: window.__ui.screen, consent: window.__ui.settings.warConsent === true })");
+  check('Back leaves it, for the title, nothing stored', refusedJoin.phase === 'idle' && refusedJoin.screen === 'title' && !refusedJoin.consent, JSON.stringify(refusedJoin));
+  await page.evaluate(`(() => { window.__roomJoin(${JSON.stringify(warJoinCode)}); return true; })()`);
+  await page.until(`${DIALOG} !== null`, 15000).catch(() => {});
+  await answer(page, 'Continue');
+  await page.until('window.__ui.settings.warConsent === true', 10000).catch(() => {});
+  await page.sleep(1000);
+  const keptJoin = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, consent: window.__ui.settings.warConsent === true })");
+  check('Continue stays in it', keptJoin.phase === 'open' && keptJoin.code === warJoinCode && keptJoin.consent, JSON.stringify(keptJoin));
+  keeper.close();
 
   /* A PUBLIC ROOM ON ITAIPU, the owner's case: a pilot who came in by the
    * card (ui.roomGame 'war') in a public Itaipu room. Another pilot, a
@@ -351,7 +412,7 @@ try {
       code: r.code, public: r.public, host: r.host !== null && r.host === r.seat, seat: r.seat,
       heading: (items.find((it) => it.section) || {}).label || null,
       sections: items.filter((it) => it.section).map((it) => it.label),
-      needs: items.some((it) => it.label === 'Defend Itaipu needs a private room' && it.info),
+      needs: items.some((it) => it.label === 'Defend Itaipu needs a room made for it' && it.info),
       ask: items.some((it) => it.label === 'Ask the host to make a private war room' && it.info),
       make: items.some((it) => it.action === 'friends-war-private'),
       start: items.some((it) => it.action === 'friends-war-start'),

@@ -34,6 +34,11 @@
  * it chases what it cannot catch and what is going for a burning target).
  *
  *   node scripts/war-balance.js [--runs=12] [--pilots=1,2,4,8] [--skill=good,average,careless] [--jobs=N] [--spawn=x,z] [--mission=id]
+ *                               [--airframe=5inch] [--warhead=id]
+ *                                        the bots' airframe (its hull for
+ *                                        the referee) and the warhead they
+ *                                        load, for the fuze radii
+ *                                        (src/share/war/fuze.js)
  *   BAL_DEBUG=good,8,10 node scripts/war-balance.js    one game (skill,
  *                                        pilots, seed), the hunters and
  *                                        bots every 10 s, and its result
@@ -101,7 +106,10 @@ const SCOUT_AFTER_M = 2000;
 const STUCK_MS = 10000;
 const BREAK_MS = 3000;
 const FLOOR_CLEAR_M = 8;
-const AIRFRAME = '5inch';
+const AIRFRAME = arg('airframe', '5inch');
+/* No loadout is sent without --warhead: one would also set the rack
+ * (parseLoadout), and the mission's own airframes are what is tuned. */
+const WARHEAD = arg('warhead', null);
 /* The mission flown (--mission, itaipu-1 by default), and the middle of
  * what its waves go for: the bots' "dam" for their pick, where they
  * loiter with nothing to chase. */
@@ -205,6 +213,9 @@ function runOne({
         airframe: AIRFRAME, map: 'itaipu', figure: 0, livery: null, parts: null,
       },
     }), 0, `10.9.2.${b.i + 1}`, newToken));
+    if (WARHEAD) {
+      handle(room.message(b.conn, JSON.stringify({ type: 'war', op: 'loadout', loadout: { warhead: WARHEAD, rack: MISSION.airframes } }), 0, `10.9.2.${b.i + 1}`));
+    }
   }
   handle(room.message(bots[0].conn, JSON.stringify({ type: 'war', op: 'start', mission: MISSION.id }), 0, '10.9.2.1'));
   const w = room.war;
@@ -493,7 +504,7 @@ if (process.env.BAL_DEBUG) {
   const pct = (k, n) => `${Math.round((100 * k) / Math.max(1, n))}%`;
   const nRounds = Math.max(...MISSION.waves.map((wv) => wv.round ?? 0)) + 1;
   console.log(`mission ${MISSION.id}: ${nRounds} rounds, ${MISSION.airframes} airframes a pilot a round, floor ${MISSION.floorMw} of ${MISSION.output} MW; `
-    + `spawn ${SPAWN.length > 1 ? 'the crest seats' : SPAWN[0].join(', ')}; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
+    + `${AIRFRAME}${WARHEAD ? ` ${WARHEAD}` : ''}; spawn ${SPAWN.length > 1 ? 'the crest seats' : SPAWN[0].join(', ')}; ${RUNS} runs a row, ${JOBS} at once, ${((Date.now() - started) / 1000).toFixed(0)} s`);
   console.log('  skill     pilots  mission output* min   output  rounds win/damaged/lost        round s (by round)             earned a round  grounded  longest s  ends');
   for (const skill of SKILL) {
     for (const pilots of PILOTS) {

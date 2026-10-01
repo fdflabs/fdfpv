@@ -407,7 +407,9 @@ box carries its war kind, and in FULL its number.
 markers draw nothing for an attacker inside one, and write its kind's tag
 into the claim, which the next paint puts in the box's tag. An attacker the
 sensor has no track on keeps its war marker; off screen, its edge arrow and
-its radar dot stay.
+its radar dot stay. An attacker inside the fuze radius is claimed only by
+the box that draws IN RANGE itself (the primary's), so the cue is never
+lost to a box without it.
 
 ### 8.3 Declutter
 

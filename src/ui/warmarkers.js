@@ -7,6 +7,13 @@
  *   on screen   corner brackets round every live attacker in view, a down
  *               arrow over them, its kind above and its distance below;
  *               the one nearest the middle of the picture drawn heavier
+ *   in range    the distance is the fuze's: from the nearest part box of
+ *               this aircraft (its last pose sent to the room) to the
+ *               attacker's centre, src/game/midair.js hullDistance, the
+ *               room's own measure (edge/rooms/war.js), to the metre
+ *               under FINE_M. Within the seat's fuze radius (the room's
+ *               view, src/share/war/fuze.js) the brackets and the label
+ *               go red and read IN RANGE: the room would go off now
  *   off screen  an arrow on the edge for every attacker out of view,
  *               behind, above or below, placed where the pilot has to
  *               turn: at the angle of its direction in the camera's own
@@ -27,7 +34,8 @@
  * ONE MARKER AN OBJECT. With the Avionics HUD up and tracking, the HUD
  * boxes what its sensor has a track on (src/ui/avionicshud.js claims):
  * an attacker whose marker would sit on one of those boxes gets none here,
- * and its kind's tag is written into the claim for the HUD's own tag. Its
+ * and its kind's tag is written into the claim for the HUD's own tag. One
+ * in fuze range is claimed only by the box that draws IN RANGE itself. Its
  * arrow on the edge, when it is off screen, and its radar dot stay.
  *
  * Colour is threat: Hunters, which chase pilots, red and pulsing; what
@@ -73,6 +81,7 @@
  */
 
 import { str } from '../strings/index.js';
+import { hullDistance } from '../game/midair.js';
 
 const GREEN = '#7dff9a';
 const DIM = 'rgba(125, 255, 154, 0.35)';
@@ -119,6 +128,9 @@ const IN_PX = 24;
 const BOX_MIN = 15;
 const BOX_MAX = 70;
 const BODY_M = 2.5;
+/* Distances under this are to the metre, and the fuze's (hullDistance);
+ * past it by 10 m and from the centre, where a metre says nothing. */
+const FINE_M = 30;
 /* Markers closer than this on the picture share one label, the
  * nearest's, with a count: a Striker group or the FPV swarm is a few
  * metres apart, one pile of brackets at range. */
@@ -162,6 +174,9 @@ export function createWarMarkers(camera, view) {
   const kindOf = new Uint8Array(MAX);
   const threat = new Uint8Array(MAX);
   const dist = new Float32Array(MAX);
+  /* 1 where this aircraft is within its fuze radius of the attacker. */
+  const inRange = new Uint8Array(MAX);
+  let fuzeR = null;
   const sx = new Float32Array(MAX);
   const sy = new Float32Array(MAX);
   const half = new Float32Array(MAX);
@@ -184,6 +199,7 @@ export function createWarMarkers(camera, view) {
   const binX = new Float32Array(BINS);
   const binY = new Float32Array(BINS);
   const binDrawA = new Float32Array(BINS);
+  const binIn = new Uint8Array(BINS);
 
   /* Attacker id -> its target id, from the births; a Hunter has none. */
   const targetOf = new Map();
@@ -204,11 +220,12 @@ export function createWarMarkers(camera, view) {
   let costN = 0;
   let updateMs = 0;
 
-  /* Labels: the kinds' tags, and distances by 10 m to 1 km and by 100 m
-   * past it, made once a language. */
+  /* Labels: the kinds' tags, and distances by 1 m to FINE_M, by 10 m to
+   * 1 km and by 100 m past it, made once a language. */
   let lang = null;
   let tags = [];
   let distLabels = [];
+  let rangeLabels = [];
   let counts = [];
   let hunt = '';
   let radarUp = '';
@@ -222,17 +239,28 @@ export function createWarMarkers(camera, view) {
     tags = KINDS.map((k) => str(`war.mark.${k}`));
     tags.push('');
     distLabels = [];
+    rangeLabels = [];
     counts = [];
     hunt = str('war.mark.hunted');
     radarUp = str('war.mark.radar_up');
     north = str('war.mark.north');
   }
   function distLabel(d) {
-    const i = d < 995 ? Math.round(d / 10) : 100 + Math.min(400, Math.round(d / 100));
+    const i = d < FINE_M - 0.5 ? Math.round(d) : FINE_M + (d < 995 ? Math.round(d / 10) : 100 + Math.min(400, Math.round(d / 100)));
     let s = distLabels[i];
     if (s === undefined) {
-      s = i < 100 ? str('war.mark.dist_m', { n: i * 10 }) : str('war.mark.dist_km', { n: ((i - 100) / 10).toFixed(1) });
+      const j = i - FINE_M;
+      s = j < 0 ? str('war.mark.dist_m', { n: i }) : j < 100 ? str('war.mark.dist_m', { n: j * 10 }) : str('war.mark.dist_km', { n: ((j - 100) / 10).toFixed(1) });
       distLabels[i] = s;
+    }
+    return s;
+  }
+  function rangeLabel(d) {
+    const i = Math.max(0, Math.round(d));
+    let s = rangeLabels[i];
+    if (s === undefined) {
+      s = str('war.mark.in_range', { n: i });
+      rangeLabels[i] = s;
     }
     return s;
   }
@@ -301,10 +329,14 @@ export function createWarMarkers(camera, view) {
    * war (and in a replay, and off the flight screen) to hide it all. now
    * the room ms it is for; evs roomwar's takeEvents() of this frame; m
    * the mission (roomwar mission()); x, y, z this aircraft, scene metres;
-   * seat this pilot's (roomwar seat()), for a hunter's `hunts`. Returns true when a Hunter has newly picked this pilot, for the
+   * seat this pilot's (roomwar seat()), for a hunter's `hunts`. fuze:
+   * { hull (midair.js hullFor), pose (the room's pose of it: px..qw,
+   * motor), radius (the room view's fuze for the seat) }, or null when
+   * there is none to judge by: the distances are then from x, y, z.
+   * Returns true when a Hunter has newly picked this pilot, for the
    * radio's line.
    */
-  function update(live, now, evs, m, x, y, z, seat = null) {
+  function update(live, now, evs, m, x, y, z, seat = null, fuze = null) {
     const t0 = performance.now();
     if (evs && evs.length) {
       events(evs);
@@ -327,6 +359,8 @@ export function createWarMarkers(camera, view) {
     me[1] = y;
     me[2] = z;
     n = Math.min(live.length, MAX);
+    fuzeR = fuze ? fuze.radius : null;
+    const near = fuze ? FINE_M + fuze.hull.hull.reach : 0;
     const was = hunted;
     hunted = -1;
     huntedD = Infinity;
@@ -340,7 +374,8 @@ export function createWarMarkers(camera, view) {
       const k = KINDS.indexOf(kind);
       kindOf[i] = k < 0 ? UNKNOWN : k;
       threat[i] = THREAT[kind] ?? 0;
-      dist[i] = d;
+      dist[i] = d < near ? hullDistance(fuze.hull, fuze.pose, a.p[0], a.p[1], a.p[2]) : d;
+      inRange[i] = fuze && dist[i] <= fuze.radius ? 1 : 0;
       if (threat[i] !== 2 || d < 1e-3) {
         continue;
       }
@@ -416,6 +451,7 @@ export function createWarMarkers(camera, view) {
     let best = Infinity;
     aim = -1;
     binN.fill(0);
+    binIn.fill(0);
     for (let i = 0; i < n; i += 1) {
       const p = list[i].p;
       const vx = e[0] * p[0] + e[4] * p[1] + e[8] * p[2] + e[12];
@@ -450,6 +486,7 @@ export function createWarMarkers(camera, view) {
         binK[b] = kindOf[i];
       }
       binT[b] = binN[b] === 0 ? threat[i] : Math.max(binT[b], threat[i]);
+      binIn[b] |= inRange[i];
       binN[b] += 1;
     }
   }
@@ -520,7 +557,9 @@ export function createWarMarkers(camera, view) {
     for (const c of claims) {
       let best = -1;
       for (let i = 0; i < n; i += 1) {
-        if (bin[i] < 0 && Math.hypot(sx[i] - c.x, sy[i] - c.y) <= c.r) {
+        /* An attacker in range keeps its IN RANGE marker unless the box
+         * shows the cue itself. */
+        if (bin[i] < 0 && (!inRange[i] || c.inRange) && Math.hypot(sx[i] - c.x, sy[i] - c.y) <= c.r) {
           claimed[i] = 1;
           best = best < 0 || dist[i] < dist[best] ? i : best;
         }
@@ -545,7 +584,7 @@ export function createWarMarkers(camera, view) {
     const hunter = threat[i] === 2;
     const s = half[i] + (hunter ? pulse * 4 : 0) + (lead ? 4 : 0);
     const c = s * 0.45;
-    const colour = COLOUR[threat[i]];
+    const colour = inRange[i] ? RED : COLOUR[threat[i]];
     ctx.globalAlpha = hunter ? 0.7 + 0.3 * pulse : 1;
     ctx.beginPath();
     for (let k = 0; k < 4; k += 1) {
@@ -592,6 +631,10 @@ export function createWarMarkers(camera, view) {
     ctx.globalAlpha = 1;
     ctx.font = lead ? FONT_LEAD : FONT_MARK;
     label(group[i] > 1 ? groupLabel(i) : tags[kindOf[i]], x, top - 16, colour);
+    if (inRange[i]) {
+      label(rangeLabel(dist[i]), x, y + s + (lead ? 18 : 16), RED);
+      return;
+    }
     label(distLabel(dist[i]), x, y + s + (lead ? 18 : 16), lead ? '#ffffff' : colour);
   }
 
@@ -610,7 +653,7 @@ export function createWarMarkers(camera, view) {
     binX[b] = x;
     binY[b] = y;
     binDrawA[b] = a;
-    const colour = COLOUR[binT[b]];
+    const colour = binIn[b] ? RED : COLOUR[binT[b]];
     const big = binT[b] === 2 ? 1.15 + 0.15 * pulse : 1;
     const L = 20 * big;
     const W = 13 * big;
@@ -632,7 +675,7 @@ export function createWarMarkers(camera, view) {
     const ly = y - sa * 26;
     ctx.font = FONT_MARK;
     label(one ? tags[binK[b]] : countLabel(binN[b]), lx, ly - 2, colour);
-    label(distLabel(binD[b]), lx, ly + 12, colour);
+    label(binIn[b] ? rangeLabel(binD[b]) : distLabel(binD[b]), lx, ly + 12, colour);
   }
 
   function radar(nowMs) {
@@ -810,10 +853,25 @@ export function createWarMarkers(camera, view) {
     label(distLabel(huntedD), cx, cy + 26, RED);
   }
 
+  /* The nearest attacker this aircraft is within its fuze radius of, as
+   * of the last update: its scene position (held by reference), or null. */
+  function inRangeAt() {
+    if (!on || !list || fuzeR == null) {
+      return null;
+    }
+    let best = -1;
+    for (let i = 0; i < n; i += 1) {
+      if (inRange[i] && (best < 0 || dist[i] < dist[best])) {
+        best = i;
+      }
+    }
+    return best < 0 ? null : list[best].p;
+  }
+
   /* What the last paint showed, for the checks. Allocates; not per frame. */
   function shown() {
     if (!on || !list) {
-      return { on: false, at: null, marks: [], arrows: [], hunted: null, cost: costOf() };
+      return { on: false, at: null, marks: [], arrows: [], hunted: null, fuze: null, inRange: [], cost: costOf() };
     }
     const marks = [];
     const arrows = [];
@@ -821,7 +879,7 @@ export function createWarMarkers(camera, view) {
     for (let b = 0; b < BINS; b += 1) {
       if (binN[b] > 0) {
         const r = {
-          angle: binDrawA[b], x: binX[b], y: binY[b], n: binN[b], ids: [], colour: COLOUR[binT[b]],
+          angle: binDrawA[b], x: binX[b], y: binY[b], n: binN[b], ids: [], colour: binIn[b] ? RED : COLOUR[binT[b]], inRange: binIn[b] === 1,
         };
         arrowOf.set(b, r);
         arrows.push(r);
@@ -834,7 +892,8 @@ export function createWarMarkers(camera, view) {
         continue;
       }
       marks.push({
-        id: a.id, kind: a.kind, tag: tags[kindOf[i]] ?? '', p: a.p.slice(), x: sx[i], y: sy[i], aim: i === aim, colour: COLOUR[threat[i]], dist: dist[i], claimed: Boolean(claimed[i]),
+        id: a.id, kind: a.kind, tag: tags[kindOf[i]] ?? '', p: a.p.slice(), x: sx[i], y: sy[i], aim: i === aim, colour: inRange[i] ? RED : COLOUR[threat[i]], dist: dist[i],
+        inRange: inRange[i] === 1, label: inRange[i] ? rangeLabel(dist[i]) : distLabel(dist[i]), claimed: Boolean(claimed[i]),
       });
     }
     return {
@@ -845,6 +904,10 @@ export function createWarMarkers(camera, view) {
       marks,
       arrows,
       hunted: hunted >= 0 ? { id: list[hunted].id, dist: huntedD } : null,
+      fuze: fuzeR,
+      inRange: list.slice(0, n).filter((_, i) => inRange[i]).map((a) => a.id),
+      /* Every attacker under FINE_M, marked or arrowed, with its distance. */
+      near: list.slice(0, n).map((a, i) => ({ id: a.id, dist: dist[i], inRange: inRange[i] === 1 })).filter((x) => x.dist < FINE_M),
       cost: costOf(),
     };
   }
@@ -875,6 +938,6 @@ export function createWarMarkers(camera, view) {
   }
 
   return {
-    update, clear, shown, setClaims,
+    update, clear, shown, inRangeAt, setClaims,
   };
 }

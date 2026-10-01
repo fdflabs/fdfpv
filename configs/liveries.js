@@ -101,8 +101,12 @@ export const PALETTE = [
  * through film (it offers the transparent colours), `floats` one only the
  * float plane has. `schemes` stock first, each with where it was seen
  * (`source`, a label and an address) and only the regions it changes. No
- * scheme is listed without a source: the Skyhunter and the Slow Stick have
- * none found yet, so they offer their stock look and the palette.
+ * plane's scheme is listed without a source: the Skyhunter and the Slow
+ * Stick have none found yet, so they offer their stock look and the
+ * palette. The combat aircraft are the exception, because they are no
+ * maker's model: generic and unmarked (docs/WARFARE-PLAN.md section 3),
+ * they wear generic service and test colours, with no source to cite and
+ * no insignia (THE COMBAT AIRCRAFT, next).
  */
 const r = (id, stock, more = {}) => ({ id, stock, ...more });
 const src = (label, url) => ({ label, url });
@@ -110,6 +114,58 @@ const WIKI_CUB = src('Wikipedia, Piper J-3 Cub', 'https://en.wikipedia.org/wiki/
 const SIG_ARF = src('SIG Kadet Senior Sport ARF', 'https://sigmfg.com/products/sig-kadet-senior-sport-arf');
 const all = (hex, ids) => Object.fromEntries(ids.map((id) => [id, hex]));
 const FREEWING = 'https://www.freewing-model.com/';
+
+/*
+ * THE COMBAT AIRCRAFT. Their regions are their builders' own
+ * (src/render/strikercraft.js REGIONS, src/render/combatcraft.js
+ * paintCoat): the Striker by its fuselage, wing, fins, nose cap, nose band
+ * and engine (the piston engine and its spinner, or the turbojet), the
+ * same on either engine; a quad by its frame (the bottom plate and the
+ * camera mount), arms, top plate, and the parts its frame has. The stock
+ * scheme is the look each was built in. The rest are generic finishes by
+ * colour, by the same ids on every one: service colours (olive drab, desert
+ * tan, a two tone of the two, arctic white and grey), black, the orange and
+ * white of a test aircraft, and on a quad, whose stock is carbon, the light
+ * grey the Striker is built in. A scheme names a region only where the
+ * aircraft has it.
+ */
+const OLIVE = '#5a5434';
+const TAN = '#c2a882';
+const ARCTIC = '#eef0f1';
+const ARCTIC_GREY = '#c9ced2';
+const BLACK = '#1a1a1a';
+const GREY = '#b9bdc0';
+const WHITE = '#f2f2f2';
+const ORANGE = '#e73f0e';
+const generic = (id, colours) => ({ id, source: null, colours });
+const STRIKER_SCHEMES = [
+  generic('stock', {}),
+  generic('black', { ...all(BLACK, ['fuselage', 'wing', 'fins', 'nose_cap']), nose_band: '#5a5d62', engine: '#2e3034' }),
+  generic('olive', all(OLIVE, ['fuselage', 'wing', 'fins', 'nose_cap'])),
+  generic('tan', all(TAN, ['fuselage', 'wing', 'fins', 'nose_cap'])),
+  generic('two_tone', { ...all(TAN, ['fuselage', 'nose_cap']), ...all(OLIVE, ['wing', 'fins']) }),
+  generic('arctic', { ...all(ARCTIC, ['fuselage', 'wing', 'nose_cap']), fins: ARCTIC_GREY, nose_band: '#3b3f44' }),
+  generic('test', { ...all(WHITE, ['fuselage', 'wing']), ...all(ORANGE, ['fins', 'nose_cap']), nose_band: '#0e1213' }),
+];
+const BODY = ['frame', 'arms', 'top', 'armour'];
+const quadSchemes = (ids) => {
+  const only = (colours) => Object.fromEntries(Object.entries(colours).filter(([k]) => ids.includes(k)));
+  return [
+    generic('stock', {}),
+    generic('grey', only({ ...all(GREY, BODY), legs: '#55595e' })),
+    generic('black', only(all(BLACK, [...BODY, 'payload', 'legs']))),
+    generic('olive', only(all(OLIVE, [...BODY, 'payload', 'legs']))),
+    generic('tan', only({ ...all(TAN, [...BODY, 'payload', 'legs']), tape: OLIVE })),
+    generic('two_tone', only({ ...all(TAN, ['frame', 'armour', 'legs']), ...all(OLIVE, ['arms', 'top', 'payload']) })),
+    generic('arctic', only({ ...all(ARCTIC, [...BODY, 'legs']), payload: ARCTIC_GREY })),
+    generic('test', only({ ...all(WHITE, ['frame', 'arms']), ...all(ORANGE, ['top', 'armour', 'legs', 'payload']) })),
+  ];
+};
+const quad = (regions) => ({ regions, schemes: quadSchemes(regions.map((x) => x.id)) });
+const CARBON = '#1b1d1f';
+const QUAD_FRAME = [r('frame', CARBON), r('arms', CARBON), r('top', CARBON)];
+const QUAD_KIT = [r('pack', '#18191b'), r('payload', '#4d5130')];
+const QUAD_LONG = [...QUAD_FRAME, r('tape', '#5d6038'), ...QUAD_KIT, r('cage', '#3a3f2a'), r('legs', '#18191b'), r('props', '#232527')];
 export const LIVERIES = {
   sky1800: {
     regions: [r('wing', '#d4e2ee'), r('tail', '#d4e2ee'), r('pod', '#d4e2ee')],
@@ -237,7 +293,15 @@ export const LIVERIES = {
       { id: 'combat', source: src('Zagi, Zagi 5C product photograph', 'https://web.archive.org/web/2017/https://zagi.com/category/kits/'), colours: { wing: '#f0db2c', trim: '#17191b' } },
     ],
   },
+  striker2500: {
+    regions: [r('fuselage', '#a6b6c6'), r('wing', '#a6b6c6'), r('fins', '#a6b6c6'), r('nose_cap', '#b8c6d4'), r('nose_band', '#26282a'), r('engine', '#9aa0a6')],
+    schemes: STRIKER_SCHEMES,
+  },
+  '7inch': quad(QUAD_LONG),
+  '10inch': quad(QUAD_LONG),
+  interceptor: quad([...QUAD_FRAME, r('armour', '#2a2b2b'), ...QUAD_KIT, r('legs', '#18191b')]),
 };
+
 
 const FAMILY = { timber1500f: 'timber1500', cub1400f: 'cub1400' };
 
@@ -247,7 +311,8 @@ export function liveryKey(airframeId) {
   return FAMILY[airframeId] ?? airframeId;
 }
 
-/* Whether this aircraft can be painted at all: planes, not quads. */
+/* Whether this aircraft can be painted at all: the planes and the combat
+ * aircraft, not the racing quads. */
 export function paintable(airframeId) {
   return Boolean(LIVERIES[liveryKey(airframeId)]);
 }

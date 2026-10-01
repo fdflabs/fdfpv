@@ -410,7 +410,7 @@ function frameKit(k, f, lite) {
     [w * 0.40, l / 2], [-w * 0.40, l / 2], [-w / 2, l * 0.28], [-w / 2, -l * 0.28],
   ];
   k.add('carbon', slab(plate(bodyW, bodyL), plateT), [0, belly + plateT / 2, bodyZ]);
-  k.add('carbon', slab(plate(bodyW * 0.92, bodyL * 0.90), 0.002), [0, roof - 0.001, bodyZ + 0.004]);
+  k.add('topPlate', slab(plate(bodyW * 0.92, bodyL * 0.90), 0.002), [0, roof - 0.001, bodyZ + 0.004]);
   /* The arms, one slab each from under the plates to a wider pad at the
    * motor, a lighter slot of carbon down the middle and olive tape round
    * them twice, the reference's crew marking. */
@@ -426,7 +426,7 @@ function frameKit(k, f, lite) {
       [armW / 2, len * 0.70], [armW * 0.80, len - armW * 0.2], [armW * 0.74, len + armW * 0.66],
       [-armW * 0.74, len + armW * 0.66], [-armW * 0.80, len - armW * 0.2], [-armW / 2, len * 0.70],
     ];
-    k.add('carbon', slab(outline, armT), [0, armY, 0], [0, yaw, 0]);
+    k.add('arm', slab(outline, armT), [0, armY, 0], [0, yaw, 0]);
     k.add('carbonDeep', box(armW * 0.34, armT * 1.04, len * 0.40), [mx * 0.50, armY, mz * 0.50], [0, yaw, 0], { ink: false });
     for (const t of f.spec.tape === false ? [] : [0.56, 0.80]) {
       k.add('tape', box(armW * 1.12, armT * 1.4, len * 0.07), [mx * t, armY, mz * t], [0, yaw, 0], { ink: false });
@@ -829,8 +829,13 @@ function materials(fog) {
   /* The motors' bells and windings warm with the throttle in a thermal
    * picture (src/render/thermal.js, the motor kind). */
   const motor = (o) => thermalKind(cel(o), 'motor');
+  /* The bottom plate, the arms and the top plate are one carbon, a
+   * material each so each is a paint region of its own. */
+  const carbon = () => cel({ color: 0x1b1d1f, rim: 0.30, spec: 0.30, specWidth: 0.012 });
   return {
-    carbon: cel({ color: 0x1b1d1f, rim: 0.30, spec: 0.30, specWidth: 0.012 }),
+    carbon: carbon(),
+    arm: carbon(),
+    topPlate: carbon(),
     carbonDeep: cel({ color: 0x2c2f33, rim: 0.20, spec: 0.20 }),
     standoff: cel({ color: 0x232527, rim: 0.24, spec: 0.50 }),
     brass: cel({ color: 0xc8a050, rim: 0.30, spec: 0.60, specWidth: 0.018 }),
@@ -866,25 +871,42 @@ function materials(fog) {
 }
 
 /*
- * The paint regions (src/render/livery.js): each one colour as built, and
- * the materials a repaint of it takes along as shades. What is metal,
- * glass, copper, wire or circuit board stays as it is.
+ * The paint regions (src/render/livery.js), in the order the hangar lists
+ * them (configs/liveries.js, the frame's airframe): each one colour as
+ * built, and the materials a repaint of it takes along as shades. A frame
+ * has the regions it draws: the tape only where its arms are taped, the
+ * armour only round an armoured camera, the cage only where it offers one,
+ * the legs only where it stands on them and the props only where they are
+ * not clear. What is metal, glass, copper, wire or circuit board stays as
+ * it is.
  */
-function paintCoat(mats) {
+function paintCoat(mats, spec) {
   const coat = paintRegions();
   coat.base('frame', mats.carbon);
-  coat.shade('frame', mats.carbonDeep);
   coat.shade('frame', mats.standoff);
+  coat.base('arms', mats.arm);
+  coat.shade('arms', mats.carbonDeep);
+  coat.base('top', mats.topPlate);
+  if (spec.nose === 'armour') {
+    coat.base('armour', mats.armour);
+  }
+  if (spec.tape !== false) {
+    coat.base('tape', mats.tape);
+  }
   coat.base('pack', mats.pack);
   coat.shade('pack', mats.packEdge);
   coat.base('payload', mats.olive);
   coat.shade('payload', mats.oliveDark);
   coat.shade('payload', mats.canister);
-  coat.base('tape', mats.tape);
-  coat.base('cage', mats.tpu);
-  coat.base('legs', mats.leg);
-  coat.base('props', mats.prop);
-  coat.base('armour', mats.armour);
+  if (spec.accessories.cage) {
+    coat.base('cage', mats.tpu);
+  }
+  if (spec.legs !== false) {
+    coat.base('legs', mats.leg);
+  }
+  if (!spec.clearProps) {
+    coat.base('props', mats.prop);
+  }
   return coat;
 }
 
@@ -944,7 +966,7 @@ export function buildCombatDrone(opts = {}) {
   const seg = lite ? 12 : 20;
   const f = measure(spec);
   const mats = materials(fog);
-  const coat = paintCoat(mats);
+  const coat = paintCoat(mats, spec);
   const inkMat = new THREE.MeshBasicMaterial({ color: INK_COLOUR, side: THREE.BackSide, fog });
   inkMat.userData.hullColor = INK_COLOUR;
   const style = { shade, ink, inkMat };

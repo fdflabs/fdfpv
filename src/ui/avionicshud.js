@@ -256,6 +256,8 @@ export class AvionicsHud {
     /* What the last paint filled and wrote, CSS px, for the checks. */
     this.fills = [];
     this.texts = [];
+    /* Whether the last paint drew IN RANGE on the primary, for the checks. */
+    this.inRangeDrawn = false;
     this.build();
     window.addEventListener('resize', () => { this.sizeDirty = true; });
     window.__avionicsHud = () => ({
@@ -270,6 +272,7 @@ export class AvionicsHud {
       fills: this.fills.map((r) => ({ ...r })),
       texts: this.texts.map((r) => ({ ...r })),
       claims: this.claims.map((c) => ({ ...c })),
+      inRange: this.inRangeDrawn,
     });
   }
 
@@ -403,7 +406,9 @@ export class AvionicsHud {
   /*
    * Every frame. `want`: the Avionics style chosen, the FPV camera live,
    * flight or pause. src: { tel, sensor, sensors, snap, hud, camera,
-   * radar } (radar: the war markers are up, so their radar is furniture).
+   * radar, fuze } (radar: the war markers are up, so their radar is
+   * furniture; fuze: the room would set this aircraft's warhead off on
+   * the primary track's attacker now, src/ui/warmarkers.js inRangeAt).
    */
   tick(want, paused, nowMs, src) {
     const on = Boolean(want && src);
@@ -1056,6 +1061,7 @@ export class AvionicsHud {
       }
     }
     this.claims.length = 0;
+    this.inRangeDrawn = false;
     if (!hud.ai) {
       this.kindOf.clear();
       return;
@@ -1083,11 +1089,18 @@ export class AvionicsHud {
       const x = this.proj.x;
       const y = this.proj.y;
       const side = this.boxSide(L, camera, t);
+      /* inRange: this box carries the IN RANGE cue, so the war's marker
+       * may stand down for an attacker in range too. */
+      const cue = primary && Boolean(src.fuze);
       this.claims.push({
-        id: t.id, x, y, r: side / 2 + CLAIM_PX, tag: null,
+        id: t.id, x, y, r: side / 2 + CLAIM_PX, tag: null, inRange: cue,
       });
       g.globalAlpha = t.stale ? STALE_ALPHA : primary ? 1 : 0.7;
       this.box(x, y, side, primary ? RED : AMBER, t.confidence < CONF_FIRM);
+      if (cue) {
+        this.inRange(L, x, y, side);
+        this.inRangeDrawn = true;
+      }
       g.textAlign = 'center';
       if (primary) {
         if (!minimal) {
@@ -1156,6 +1169,25 @@ export class AvionicsHud {
     g.lineTo(x + 5, y - h - 11);
     g.closePath();
     g.fill();
+  }
+
+  /* IN RANGE on the primary's box: the box washed red and the words
+   * under it. */
+  inRange(L, x, y, side) {
+    const g = this.g;
+    const h = side / 2;
+    g.globalAlpha = 0.25;
+    this.fillBox(x - h, y - h, side, side, RED, 0.25);
+    g.globalAlpha = 1;
+    g.lineWidth = 3;
+    g.strokeStyle = RED;
+    g.strokeRect(x - h, y - h, side, side);
+    g.lineWidth = 1.5;
+    g.font = `700 ${L.font}px ${FONT}`;
+    g.textAlign = 'center';
+    g.fillStyle = RED;
+    this.say(str('avionics.hud.in_range'), x, y + h + L.font * 1.3);
+    g.font = `${L.font}px ${FONT}`;
   }
 
   /*
