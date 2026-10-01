@@ -258,10 +258,11 @@ check('an aircraft without a chute refuses the pull', sim.e.sim_wing_chute(1) !=
 must(sim.e.sim_set_airframe(0), 'five inch');
 check('and so does a quad', sim.e.sim_wing_chute(1) !== SIM_OK);
 check('anything but 0 or 1 is refused', sim.e.sim_wing_chute(2) !== SIM_OK);
-/* The table has 24 slots since the Edge (docs/EDGE-STAGE1.md), and the
- * empty ones fill in any order; past the end of the table is refused
- * whatever lands. */
-check('one past the table and beyond are refused and leave the airframe alone', [24, 99].every((id) => sim.e.sim_set_airframe(id) !== SIM_OK) && sim.e.sim_airframe() === 0);
+/* The table is SIM_AIRFRAME_COUNT slots, read from the header that sets
+ * it, and the empty ones fill in any order; past the end of the table is
+ * refused whatever lands. */
+const count = Number(/#define SIM_AIRFRAME_COUNT (\d+)/.exec(await readFile(join(root, 'src/native/sim_internal.h'), 'utf8'))[1]);
+check('one past the table and beyond are refused and leave the airframe alone', [count, 99].every((id) => sim.e.sim_set_airframe(id) !== SIM_OK) && sim.e.sim_airframe() === 0);
 must(sim.e.sim_set_airframe(BRAMOR_AIRFRAME), 'bramor');
 check('and 8 is the Bramor', sim.e.sim_airframe() === 8);
 

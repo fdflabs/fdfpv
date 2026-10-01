@@ -296,15 +296,16 @@ sf = surfaces();
 check('half left yaw: rudder trailing edge left, positive, with expo', sf[3] > 0 && sf[3] < 0.5 * R, sf.map(deg).join(' '));
 check('a null pointer is refused', sim.e.sim_plane_surfaces(0) !== SIM_OK);
 
-/* The table has 24 slots since the Edge (docs/EDGE-STAGE1.md), some held
- * empty for the aircraft still to come, which fill in any order: so past
- * the end, 24, is what is refused whatever lands, and a slot that is
- * refused, whichever it is, leaves the Radian selected. */
+/* The table is SIM_AIRFRAME_COUNT slots, read from the header that sets
+ * it, some held empty for the aircraft still to come, which fill in any
+ * order: so past the end is what is refused whatever lands, and a slot
+ * that is refused, whichever it is, leaves the Radian selected. */
 console.log('past the table');
-check('airframe 24, one past the table, is refused and the Radian stays selected', sim.e.sim_set_airframe(24) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
+const count = Number(/#define SIM_AIRFRAME_COUNT (\d+)/.exec(await readFile(join(root, 'src/native/sim_internal.h'), 'utf8'))[1]);
+check(`airframe ${count}, one past the table, is refused and the Radian stays selected`, sim.e.sim_set_airframe(count) !== SIM_OK && sim.e.sim_airframe() === GLIDER_AIRFRAME, `airframe ${sim.e.sim_airframe()}`);
 {
   const kept = [];
-  for (let id = 0; id < 24; id += 1) {
+  for (let id = 0; id < count; id += 1) {
     must(sim.e.sim_set_airframe(GLIDER_AIRFRAME), 'radian');
     if (sim.e.sim_set_airframe(id) !== SIM_OK) {
       kept.push(sim.e.sim_airframe() === GLIDER_AIRFRAME);
