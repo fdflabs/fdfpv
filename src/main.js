@@ -3789,8 +3789,7 @@ export async function boot({
     if (roomGameUp()) {
       return null;
     }
-    /* Nor on the title, which is out of the room (ui.onTitle): a reload
-     * rejoins there, and says nothing of it until the pilot flies. */
+    /* Nor on the title, which is never in a room (ui.inRoom). */
     if (ui.screen === 'title') {
       return null;
     }
@@ -4582,39 +4581,19 @@ export async function boot({
   }
 
   /*
-   * THE TITLE IS NOT IN A ROOM. The owner (2026-09-30), back on the title
-   * from a private war room: "its showing like this, like its showing the
-   * empty room thats playing while im here, that shouldnt happen". The war
-   * went on with nobody flying it, its callouts and the room's "You are
-   * alone" drawn over the cards. Going back to the title (the menus' row,
-   * Escape from a screen whose way back is the title) leaves the room the
-   * way the room screen's Leave does, so an empty room closes on the
-   * server's rule. The pause menu and the room screen keep it; so does a
-   * reload, which rejoins on the title (roomSessionWelcome).
+   * THE TITLE IS NEVER IN A ROOM (docs/FLOW-AUDIT.md rule 3, approved by
+   * the owner 2026-10-01). The owner (2026-09-30), back on the title from
+   * a private war room: "its showing like this, like its showing the empty
+   * room thats playing while im here, that shouldnt happen". Inside a room
+   * the room screen stands where the title would be (ui.show), Back and
+   * Escape stop there, and every row to the title is Leave (ui.roomExit),
+   * which leaves first and then goes to the title. So a card on the title
+   * never meets a room, and nothing leaves a room by the side effect of
+   * a screen.
    */
-  ui.onTitle = () => {
-    if (roomLinkState.state().phase !== 'idle') {
-      roomLeave();
-    }
-  };
-
-  /*
-   * A GAME'S TITLE CARD IN A ROOM RUNNING ANOTHER GAME leaves that room.
-   * The owner (2026-09-30), still in the private Itaipu room of a Defend
-   * Itaipu mission: "when i enter the toilet paper mode, it then switches
-   * to mission mode, in itaipu". The card opened that room, headed it as
-   * set up for combat, the room refused combat's start because the war
-   * was on, and the war's go flew the pilot into it. Out of the room, the
-   * card's screen is the one it always had without a room: Make a room
-   * first, under the card's game. Leaving ends nobody else's game, and a
-   * game with too few pilots left is ended by the room (edge/rooms/core.js
-   * settleGames).
-   */
-  ui.onGameCard = (game) => {
-    const running = roomLinkState.state().phase === 'open' ? roomRunning() : null;
-    if (running && running !== game) {
-      roomLeave();
-    }
+  ui.inRoom = () => {
+    const phase = roomLinkState.state().phase;
+    return phase === 'open' || phase === 'connecting';
   };
 
   ui.onFriends = async (action) => {
@@ -4677,7 +4656,7 @@ export async function boot({
     }
     if (action === 'friends-leave') {
       roomLeave();
-      ui.refreshFriends();
+      ui.act('title');
       return;
     }
     if (action === 'friends-copy') {

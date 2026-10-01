@@ -6061,7 +6061,20 @@ export class Ui {
    * repeated section headings and Back, which do.
    */
   items() {
-    return stampIds([...this.buildItems(), ...this.barStops()], this.screen);
+    return stampIds([...this.buildItems().map((it) => this.roomExit(it)), ...this.barStops()], this.screen);
+  }
+
+  /*
+   * THE TITLE IS NEVER IN A ROOM (docs/FLOW-AUDIT.md rule 3, the owner's
+   * 2026-10-01), so a row that goes to the title says what it does there:
+   * it leaves the room. Every Back to title and Quit to title, the pause
+   * menu's and the results' and the shell's own, is the one Leave.
+   */
+  roomExit(it) {
+    if (it.action !== 'title' || !(this.inRoom && this.inRoom())) {
+      return it;
+    }
+    return { ...it, label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' };
   }
 
   /*
@@ -10163,6 +10176,12 @@ export class Ui {
 
   show(screen) {
     this.closeDrop();
+    /* Inside a room the room screen is home, where the title would be
+     * (rule 3 and 4 of docs/FLOW-AUDIT.md): whatever ends on the title,
+     * a run quit, Escape on the results, a world swap, ends there. */
+    if (screen === 'title' && this.inRoom && this.inRoom()) {
+      screen = 'friends';
+    }
     /*
      * A STICK HELD THROUGH A SCREEN CHANGE IS NOT A GESTURE ON THE SCREEN
      * IT LANDS ON.
@@ -12851,6 +12870,11 @@ export class Ui {
     if (this.screen === 'flight') {
       return;
     }
+    /* The room screen is home inside a room: Back stops there, and Leave
+     * is the way out (rule 4 and 5 of docs/FLOW-AUDIT.md). */
+    if (this.screen === 'friends' && this.inRoom && this.inRoom()) {
+      return;
+    }
     if (this.onUiSound) {
       this.onUiSound('back');
     }
@@ -13203,11 +13227,6 @@ export class Ui {
        * by the shell's room rows (src/main.js friendsRows) and sent in this
        * pilot's profile, so the room screen leads with it. */
       this.roomGame = way.game ?? null;
-      /* The shell leaves a room that is running another game, so the card
-       * never opens on it (onGameCard, src/main.js). */
-      if (way.game && this.onGameCard) {
-        this.onGameCard(way.game);
-      }
       saveSettings(this.settings);
       /* The shell has to hear this before anything is flown: it is the
        * call that swaps the plant in the compiled module and reloads the
@@ -13635,8 +13654,6 @@ export class Ui {
      * way quitting to the title ends it, and the list is where a pilot
      * racing goes next. */
     if (action === 'mytracks') {
-      /* act('title')'s way, but for onTitle: the pilot lands on the list,
-       * not the title, and a room they are in keeps them. */
       this.show('title');
       if (this.onAction) {
         this.onAction('title', this.settings);
@@ -13650,10 +13667,6 @@ export class Ui {
     }
     if (action === 'title' || action === 'paused') {
       this.show(action);
-    }
-    /* The title is out of any room: the shell leaves it (src/main.js). */
-    if (action === 'title' && this.onTitle) {
-      this.onTitle();
     }
     /* Freestyle reaches the air through here rather than through the launch
      * card, so this is the other end of the same event. See flown(). */

@@ -14,6 +14,12 @@
  *   a reload keeps the room,   in a room made by hand, reload: back in
  *   on its screen (D2)         the same room, on the room screen with
  *                              its code, the title not shown.
+ *   the title is never in a    in that room, Back and Escape on the room
+ *   room (rule 3 to 5, D5)     screen, the lobby and Make a room stay in
+ *                              it; the pause menu offers Leave the room
+ *                              and no Back to title; Leave is out, on
+ *                              the title; then every card from the title
+ *                              starts out of a room.
  *
  * No page error.
  *
@@ -149,6 +155,58 @@ try {
   })()`);
   check('a reload is back in the same room', back.phase === 'open' && back.code === made, JSON.stringify(back));
   check('on the room screen, its code on it, the title not shown', back.screen === 'friends' && back.shown && !back.title, JSON.stringify(back));
+
+  /* THE TITLE IS NEVER IN A ROOM. */
+  const stays = [];
+  const here = async (what) => {
+    await page.sleep(400);
+    const r = await page.evaluate(ROOM);
+    stays.push(`${what}: ${r.screen} ${r.phase}`);
+    return r;
+  };
+  await page.evaluate("(() => { window.__ui.act('back'); return true; })()");
+  const afterBack = await here('Back on the room screen');
+  await page.tap('Escape');
+  const afterEsc = await here('Escape on the room screen');
+  await page.evaluate("(() => { window.__ui.act('rooms'); return true; })()");
+  await page.until("window.__ui.screen === 'rooms'", 10000).catch(() => {});
+  await page.tap('Escape');
+  const fromLobby = await here('Escape on Rooms');
+  await page.evaluate("(() => { window.__ui.act('rooms'); window.__ui.act('roomnew'); return true; })()");
+  await page.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
+  await page.tap('Escape');
+  const fromNew = await here('Escape on Make a room');
+  await page.tap('Escape');
+  const fromNew2 = await here('and again');
+  check('Back and Escape stay in the room, on its screen, from the room screen, Rooms and Make a room',
+    [afterBack, afterEsc, fromLobby, fromNew2].every((r) => r.phase === 'open' && r.code === made && r.screen === 'friends')
+    && fromNew.screen === 'rooms' && fromNew.phase === 'open', stays.join(' | '));
+
+  await page.evaluate("(() => { window.__ui.act('fly'); return true; })()");
+  await page.until("window.__ui.screen === 'flight'", 400000).catch(() => {});
+  await page.sleep(1500);
+  await page.tap('Escape');
+  await page.until("window.__ui.screen === 'paused'", 10000).catch(() => {});
+  const pause = await page.evaluate(`({
+    screen: window.__ui.screen,
+    rows: window.__ui.items().map((it) => it.action + ':' + it.label),
+  })`);
+  check('the pause menu in a room: Leave the room, no row to the title',
+    pause.screen === 'paused' && pause.rows.includes('friends-leave:Leave the room') && !pause.rows.some((r) => r.startsWith('title:')), JSON.stringify(pause));
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
+  await page.sleep(400);
+  const out = await page.evaluate(ROOM);
+  check('Leave from the pause: out of the room, on the title', out.phase === 'idle' && out.screen === 'title', JSON.stringify(out));
+
+  const cards = [];
+  for (const way of ['race-5inch', 'freestyle-wing1000', 'friends', 'combat', 'ace']) {
+    await page.evaluate(`(() => { window.__ui.act('mode-gate'); window.__ui.act('way-${way}'); return true; })()`);
+    await page.sleep(600);
+    const r = await page.evaluate(ROOM);
+    cards.push(`${way}: ${r.screen} ${r.phase}`);
+  }
+  check('every card from the title starts out of a room', cards.every((c) => c.endsWith(' idle')), cards.join(' | '));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

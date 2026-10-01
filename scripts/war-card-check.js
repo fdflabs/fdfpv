@@ -26,11 +26,12 @@
  * the host; the host has Make a private war room, which asks consent and
  * lands in a new private Itaipu room, war ready, its invite code on top.
  *
- * Back to the title from a war on: the pause keeps the room and draws
- * nothing of the war; the title is out of the room, and nothing of the
- * war or the room (callouts, splash, hint, HUD, banner, round card, the
- * room's notice) is drawn over it. Its rooms panel still lists a room and
- * joins it, and Escape from that room screen to the title leaves it too.
+ * Leave from a war on: the pause keeps the room, draws nothing of the war
+ * and offers Leave the room where Back to title was; the title is out of
+ * the room, and nothing of the war or the room (callouts, splash, hint,
+ * HUD, banner, round card, the room's notice) is drawn over it. Its rooms
+ * panel still lists a room and joins it; Escape on that room screen
+ * stays in it, and its Leave is the title, out of it.
  *
  * The Toilet paper combat card after that: the pilot is on the room
  * screen with Make a room under combat's heading, and not flown into the
@@ -452,11 +453,16 @@ try {
   const pausedRoom = await page.evaluate('window.__rooms()');
   check('paused: still in the war room, nothing of the war drawn over the menu',
     pausedRoom.phase === 'open' && pausedRoom.code === warCode && !pausedSeen.length, `${pausedRoom.phase} ${pausedRoom.code}, ${pausedFps} frames in the first second, ${JSON.stringify(pausedSeen.slice(0, 2))}`);
-  await page.evaluate("(() => { window.__ui.act('title'); return true; })()");
+  /* The pause's way to the title is Leave the room, since the title is
+   * never in a room (docs/FLOW-AUDIT.md rule 5). */
+  const leaveRow = await page.evaluate("(window.__ui.items().find((it) => it.action === 'friends-leave') || {}).label || null");
+  check('the pause in the war room offers Leave the room, no Back to title',
+    leaveRow === 'Leave the room' && !(await page.evaluate("window.__ui.items().some((it) => it.action === 'title')")), String(leaveRow));
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
   await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
   const titleSeen = await watchDrawn(8000);
   const titled = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase, code: window.__rooms().code, war: window.__war().view.state })");
-  check('Back to title from the war: out of the room', titled.screen === 'title' && titled.phase === 'idle' && titled.code !== warCode, JSON.stringify(titled));
+  check('Leave from the war: out of the room, on the title', titled.screen === 'title' && titled.phase === 'idle' && titled.code !== warCode, JSON.stringify(titled));
   check('and for eight seconds no callout, splash, hint, war HUD, banner, round card or room notice on the title',
     !titleSeen.length, JSON.stringify(titleSeen.slice(0, 2)));
   await shot(page, 'title-from-war');
@@ -497,12 +503,17 @@ try {
   const joinedPanel = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, screen: window.__ui.screen })");
   check('and its row joins it, onto the room screen', joinedPanel.phase === 'open' && joinedPanel.code === listedCode && joinedPanel.screen === 'friends', JSON.stringify(joinedPanel));
 
-  /* Escape from the room screen, whose way back is the title: out of it. */
+  /* Escape on the room screen stays in the room (docs/FLOW-AUDIT.md
+   * rule 4); its Leave is the title, out of it (rule 5). */
   await page.tap('Escape');
+  await page.sleep(600);
+  const escaped = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
+  check('Escape on the room screen stays in the room', escaped.screen === 'friends' && escaped.phase === 'open', JSON.stringify(escaped));
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
   await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
   await page.sleep(500);
-  const escaped = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
-  check('Escape from the room screen to the title leaves the room', escaped.screen === 'title' && escaped.phase === 'idle', JSON.stringify(escaped));
+  const left = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
+  check('its Leave is the title, out of the room', left.screen === 'title' && left.phase === 'idle', JSON.stringify(left));
   holder.close();
 
   /* THE TOILET PAPER COMBAT CARD after a war room, the owner's report
