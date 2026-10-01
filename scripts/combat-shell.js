@@ -130,7 +130,21 @@ try {
   const ten = await page.evaluate('({ open: window.__ui.hangar.isOpen, id: window.__ui.hangar.id, tab: window.__ui.hangar.tab })');
   say(ten.open && ten.id === '10inch' && ten.tab === 'loadout', `the picker's Customise opens ${JSON.stringify(ten)}`);
   const quadIds = await page.evaluate("window.__ui.carousel.ids");
-  say(quadIds.includes('7inch') && quadIds.includes('10inch'), `the picker lists ${quadIds.slice(0, 6).join(', ')}, ...`);
+  say(quadIds.includes('7inch') && quadIds.includes('10inch') && quadIds.includes('interceptor'), `the picker lists ${quadIds.slice(0, 6).join(', ')}, ...`);
+
+  /* 5. The interceptor's Loadout tab offers its own set and nothing else. */
+  await page.evaluate('window.__ui.hangar.cancel(); true');
+  await page.until('!window.__ui.hangar.isOpen', 5000);
+  await page.evaluate('if (!window.__ui.carousel.isOpen) window.__ui.openCraftRow(false); true');
+  await page.until('window.__ui.carousel.isOpen', 10000);
+  const fastAt = await page.evaluate("window.__ui.carousel.ids.indexOf('interceptor')");
+  await page.evaluate(`window.__ui.carousel.goTo(${fastAt}); true`);
+  await page.tap('KeyC');
+  await page.until('window.__ui.hangar.isOpen', 10000).catch(() => {});
+  const fast = await page.evaluate("({ open: window.__ui.hangar.isOpen, id: window.__ui.hangar.id, tab: window.__ui.hangar.tab, keys: [...document.querySelectorAll('.hangar .combat-tab [data-key]')].map((b) => b.dataset.key), on: [...document.querySelectorAll('.hangar .combat-tab [aria-pressed=\"true\"]')].map((b) => b.dataset.key) })");
+  say(fast.open && fast.id === 'interceptor' && fast.tab === 'loadout', `the picker's Customise opens ${JSON.stringify({ open: fast.open, id: fast.id, tab: fast.tab })}`);
+  say(fast.keys.join() === 'payload-none,payload-proximity,accessory-cage,accessory-lrantenna', `the interceptor offers ${fast.keys.join(', ')}`);
+  say(fast.on.join() === 'payload-proximity', `a pilot who never chose carries the proximity payload: ${fast.on.join(', ') || 'nothing on'}`);
   say(page.errors.length === 0, `no page errors${page.errors.length ? `: ${JSON.stringify(page.errors.slice(0, 5))}` : ''}`);
 } finally {
   await page.close();

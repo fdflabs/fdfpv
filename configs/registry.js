@@ -189,6 +189,12 @@ export const TUNES = [
     note: 'Factory 4.5.1 on the 10 inch: 900 kV, an 8400 mAh Li-ion pack.',
   },
   {
+    id: 'betaflight-interceptor',
+    airframe: 'interceptor',
+    name: 'Betaflight default',
+    note: 'Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo.',
+  },
+  {
     id: 'whoop-champion',
     airframe: null,
     name: 'Whoop stock',

@@ -1669,6 +1669,109 @@ const PlantParams PLANT_TABLE[SIM_AIRFRAME_COUNT] = {
   .camera_y = 0.0,
   .camera_z = -0.021,
 },
+
+/* ---------------------------------------------------------------------
+ * SIM_AIRFRAME_INTERCEPTOR: the fast chaser, docs/COMBAT-DRONES.md. A
+ * stretched X 7 inch speed build on 2807 1500 kV motors, 7 x 6 two blades
+ * and one 6S 1800 mAh LiPo, the owner's reference photograph of
+ * 2026-10-01. scripts/combat-derive.js prints every number from its parts
+ * list, solved on the same model as the 7 inch's, and
+ * scripts/combat-gates.js holds it to bands from outside this repository.
+ *
+ * WHAT MAKES IT FAST is three things, and none of them is a speed knob.
+ * The pitch: a 6 inch pitch two blade's zero thrust speed (k_inflow, w
+ * times the pitch over 2 pi) is 71 percent above the 7 inch's 3.5 inch
+ * three blade at the same rotor speed, so thrust is still there at a
+ * speed where the 7 inch's props have unloaded. Its figure of merit,
+ * 0.44, is the price: a high pitch blade is part stalled in a hover. The pack: a LiPo of 4.5
+ * mOhm a cell holds 3.4 V a cell under a full punch where the 7 inch's
+ * Li-ion falls to 2.9, so the motors get the volts. And the drag: one
+ * slim pack and a narrow body, nothing slung, 0.014 of frontal area
+ * against the 7 inch's 0.019.
+ *
+ * WHAT IT COSTS is the pack (a quarter of the 7 inch's charge at four
+ * times the draw at full throttle) and the handling: an Ixx of 0.0032,
+ * the stretch putting the motors closer across than fore and aft, so it
+ * rolls faster than it pitches, on rotors of 27 ms.
+ *
+ * STRETCHED, so arm_x and arm_y differ: 120 mm fore and aft, 100 mm
+ * across. Betaflight's QUADX mixer is the same as on a square frame, as
+ * on a real one; the plant's own moment arms give the roll and pitch
+ * authorities their difference.
+ *
+ * DRAG. Frontal: four 2807 bells (35 by 25 mm), the pack end on (37 by
+ * 42), the stack and plates (50 by 30), the camera's nose (30 by 30) and
+ * the arms edge on, 0.0117 m^2 at a bluff body Cd near 1.2. Side: the
+ * pack's long face adds 0.0029 m^2 over its end.
+ *
+ * PLAN IS THE WHOOP'S METHOD, NOT THE 7 INCH'S, and it is what lets this
+ * machine run. The 7 inch scales the five inch's fitted 0.0225, which is
+ * the whole machine falling props level, discs included, so it charges
+ * the four discs as a plate whichever way the air goes through them. In
+ * a fast pass at 60 to 70 degrees of pitch the air comes through the
+ * discs from above, where they are working propulsors whose momentum the
+ * inflow term already charges (the thrust falls with the axial speed),
+ * and the plate charges it again: on a 7 inch disc that is 30 N at
+ * 35 m/s, the whole of what holds a 7 inch to its top speed. The whoop's
+ * entry says the same about its ducts and puts its discs in
+ * k_rotor_axial, DESCENT ONLY. So here: cda_plan is the silhouette from
+ * above, plates 160 by 50 mm with the pack inside them, the four arms
+ * clear of the body (126 by 12 mm), the four bells (35 mm), 0.0180 m^2
+ * at a flat plate's 1.17; and the discs go in k_rotor_axial at the open
+ * rotor's own figure, which the five inch's fit gives: its 0.0225 less
+ * its silhouette by the same count (0.0108 m^2, 0.0126 at 1.17) is
+ * 0.0099 on 0.0507 m^2 of disc, 0.20. Falling props level the two add
+ * up to 0.041, the 7 inch's 0.040: the same machine in a fall, and
+ * not charged twice in a pass.
+ * ------------------------------------------------------------------- */
+[SIM_AIRFRAME_INTERCEPTOR] = {
+  .kind = PLANT_KIND_QUAD,
+  .mass_kg = 0.809,
+  .inertia = { 0.003267, 0.005039, 0.007638 },
+  .gravity = 9.80665,
+  .arm_x = 0.120,
+  .arm_y = 0.100,
+  .kt = 3.416e-6,   /* C_T 0.11, 2.2 kgf at 24,000 rpm on a 7x6x2 */
+  .kq = 5.817e-8,   /* figure of merit 0.44 */
+  .ke = 0.00732113, /* loaded 1304 kV on a 1500 kV plate */
+  .r_motor = 0.065,
+  .j_rotor = 2.2e-5,
+  .cells = 6.0,
+  .r_cell = 0.0045, /* 6S 1800 120C LiPo, 3 mOhm a cell, leads and XT60 1.5 */
+  .cda_plan = 0.021,
+  .cda_front = 0.014,
+  .cda_side = 0.0175,
+  .k_body_lift = 0.012,
+  .rho = 1.225,
+  .k_propwash = 0.15,
+  .prop_r = 0.0889,
+  .k_rotor_drag = 0.43842,
+  .k_rotor_axial = 0.20,
+  .k_ground = 0.0,
+  .k_inflow = 0.024255, /* 6 inch pitch / 2 pi */
+  .torque_ind = 0.44,
+  .k_duct = 1.0,
+  .duct_fade = 0.0,
+  .k_duct_lip = 0.0,
+  .spin = { -1.0, 1.0, 1.0, -1.0 },
+  .pos_x = { -0.120, 0.120, -0.120, 0.120 },
+  .pos_y = { -0.100, -0.100, 0.100, 0.100 },
+  .pos_z = { 0.0116, 0.0116, 0.0116, 0.0116 },
+  .cant_radial_deg = { 1.4, 0.85, 1.15, 0.6 },
+  .cant_tangent_deg = { -0.9, 1.4, 0.6, -1.2 },
+  /* Out to the motor bells; down to the payload's belly, which the legs
+   * reach; up to the pack's top and its straps. */
+  .hull_hx = 0.140,
+  .hull_hy = 0.120,
+  .hull_hz_down = 0.076,
+  .hull_hz_up = 0.050,
+  .contact_patch_r = 0.080,
+  .contact_arm_max = 0.27,
+  .vib_ref_w = 2379.0, /* full throttle on a fresh pack */
+  .camera_x = 0.100,
+  .camera_y = 0.0,
+  .camera_z = -0.013,
+},
 };
 
 /*
