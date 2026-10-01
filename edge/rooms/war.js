@@ -821,6 +821,9 @@ export class RoomWar {
     }
     m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     m.f = m.goAt;
+    /* Round 1's clock is the go: left at the full briefing's, a skipped
+     * intro's first wave came the rest of the intro after the go. */
+    m.roundAt = m.goAt;
     m.state = 'countdown';
     return this.changed(core);
   }

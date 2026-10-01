@@ -109,24 +109,43 @@ function clock(s) {
 }
 
 /*
- * What happens next in a live round, as { text, s }: the seconds to the
- * next wave (s), or no clock once the round's waves are all out. The
- * pilot never has to guess whether more are coming. roundAt comes from
- * the room's view; a room from before it knows only the first round's.
+ * What happens next, as { text, s }, whenever a war is on: the go
+ * (briefing and countdown), the next wave in a live round, that the
+ * round's waves are all out, or the next round after a round's result;
+ * s the seconds to it, or null with no clock. Never nothing while a war
+ * is on: a next event this screen cannot time (a view without its clock,
+ * a mission this build does not have) says so in words, since a blank
+ * line read as "nothing is coming" (the owner, 2026-10-01). null only
+ * with no war on. roundAt comes from the room's view; a room from before
+ * it knows only the first round's.
  */
 export function waveStatus(v, mission, roomNow) {
-  if (v.state !== 'live' || !mission || (v.roundState ?? 'live') !== 'live') {
+  const unknown = { text: str('war.next_unknown'), s: null };
+  const at = (key, t) => {
+    const s = Math.ceil((t - roomNow) / 1000);
+    return { text: str(key, { t: clock(Math.max(0, s)) }), s: Math.max(0, s) };
+  };
+  if (v.state === 'briefing' || v.state === 'countdown') {
+    return Number.isFinite(v.goAt) ? at('war.engage_in', v.goAt) : unknown;
+  }
+  if (v.state !== 'live') {
     return null;
+  }
+  if ((v.roundState ?? 'live') === 'result') {
+    return Number.isFinite(v.nextRoundAt) ? at('war.next_round', v.nextRoundAt) : unknown;
+  }
+  if (!mission) {
+    return unknown;
   }
   const r = (v.round ?? 1) - 1;
   const roundAt = v.roundAt ?? (r === 0 ? v.goAt : null);
   const next = mission.waves[v.wave];
-  if (next && (next.round ?? 0) === r && roundAt != null) {
+  if (next && (next.round ?? 0) === r) {
+    if (!Number.isFinite(roundAt)) {
+      return unknown;
+    }
     const s = Math.ceil((roundAt + next.at * 1000 - roomNow) / 1000);
     return s > 0 ? { text: str('war.next_wave', { t: clock(s) }), s } : { text: str('war.wave_inbound'), s: 0 };
-  }
-  if (next && (next.round ?? 0) === r) {
-    return null;
   }
   return { text: str(v.alive > 0 ? 'war.last_wave' : 'war.round_clear'), s: null };
 }
