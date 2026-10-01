@@ -256,8 +256,25 @@ export function warSection(check) {
     check('a mission on another map than the room\'s is refused "map"', !swiss.r.war.on() && swiss.errors(0).join() === 'map');
     e.say(0, { type: 'war', op: 'start', mission: 'nope' });
     check('an unknown mission is refused "mission"', !e.r.war.on() && e.errors(0).join() === 'mission');
-    e.say(0, { type: 'war', op: 'start', mission: 'test-1' });
+    const asked = e.r.message(e.socks[0], JSON.stringify({ type: 'war', op: 'start', mission: 'test-1' }), e.clock, e.socks[0].address);
+    e.apply(asked);
+    check('a start with nobody flying wakes the room\'s clock, which no pose will', asked.some((x) => x.tick), JSON.stringify(asked.filter((x) => !x.send)));
     const v = e.view(1);
+    {
+      /* The clock as edge/rooms/host.js runs it: a tick only when an
+       * action asked for one, and no pose from anybody. */
+      const quiet = warRoom({ mission: e.r.war.missions['test-1'], start: false, code: 'W4RQ00' });
+      let due = quiet.r.message(quiet.socks[0], JSON.stringify({ type: 'war', op: 'start', mission: 'test-1' }), 0, quiet.socks[0].address).some((x) => x.tick);
+      const states = [];
+      for (let t = 33; t <= COUNTDOWN_MS + 2000 && due; t += 33) {
+        const out = quiet.r.tick(t);
+        due = out.some((x) => x.tick);
+        if (states.at(-1) !== quiet.r.war.match.state) {
+          states.push(quiet.r.war.match.state);
+        }
+      }
+      check('and with nobody flying the room\'s own ticks take it from the countdown to live', states.join() === 'countdown,live', states.join() || 'never ticked');
+    }
     check('the host starts it: everybody gets the countdown, the output and the floor', e.r.war.on() && v.state === 'countdown'
       && v.goAt === COUNTDOWN_MS && v.output === 3000 && v.floor === 1500 && v.blast === BLAST_M);
     check('a war game keeps the room\'s clock running with nobody flying', e.r.waiting());

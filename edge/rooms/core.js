@@ -789,8 +789,11 @@ export class RoomCore {
     if (msg.type === 'combat') {
       return [...first, ...this.combat.message(this, conn, s, msg, now)];
     }
+    /* A war started from the menus has nobody flying, and the room's clock
+     * otherwise runs only on relayed poses: the war wakes it, or it never
+     * reaches its go. */
     if (msg.type === 'war') {
-      return [...first, ...this.war.message(this, conn, s, msg, now)];
+      return [...first, ...this.war.message(this, conn, s, msg, now), ...this.wake()];
     }
     const safe = this.safety.text(conn, s, msg, now);
     if (safe) {
