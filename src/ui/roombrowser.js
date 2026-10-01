@@ -55,11 +55,13 @@ const TITLE_ROOMS = 3;
  * language; here(): the world this pilot is in; preset(): the game a
  * title card set up, or null; war(room): the shell's way into Defend
  * Itaipu (src/main.js DEFEND ITAIPU), which asks its consent question and
- * makes the room itself, resolving once it has; pilots(): how many are in
- * the room this pilot is in, them included.
+ * makes the room itself, resolving its code once it has; pilots(): how
+ * many are in the room this pilot is in, them included; missions(): the
+ * war missions this pilot may start, in order; missionNumber(id): a
+ * mission's number.
  */
 export function createRoomBrowser({
-  ui, link, roomName, here, preset = () => null, war = null, pilots = () => 1,
+  ui, link, roomName, here, preset = () => null, war = null, pilots = () => 1, missions = () => [], missionNumber = () => 1,
 }) {
   /*
    * WHERE THE CURSOR LANDS. Rooms opened before its list has ever arrived
@@ -91,12 +93,12 @@ export function createRoomBrowser({
   let joined = null;
 
   /*
-   * DEFEND ITAIPU ON THE GAME ROW, only for a private room on the Itaipu
-   * map (docs/WARFARE-PLAN.md section 9). It is not one of ROOM_MODES, so
-   * the server never hears it and no public room can be made for it: the
-   * shell makes a plain private room and leads it with the war.
+   * DEFEND ITAIPU ON THE GAME ROW, for a room on the Itaipu map, public or
+   * private since the owner opened it (2026-10-01, docs/WARFARE-PLAN.md
+   * section 9), with the mission it starts with. The shell makes the room
+   * (war: its consent first), set up for the war and that mission.
    */
-  const warFits = (d) => Boolean(war) && !d.public && d.map === 'itaipu';
+  const warFits = (d) => Boolean(war) && d.map === 'itaipu';
 
   function fresh() {
     const w = worlds();
@@ -109,7 +111,7 @@ export function createRoomBrowser({
   }
 
   function doing(r) {
-    return r.game ? str(`roombrowser.${r.game}_${r.state}`) : str('roombrowser.free');
+    return r.game ? str(`roombrowser.${r.game}_${r.state}`, { n: missionNumber(r.mission), w: r.wave ?? 1, of: r.waves ?? 1 }) : str('roombrowser.free');
   }
 
   /* What a room's pilots column says: full, how many of how many, or,
@@ -129,7 +131,8 @@ export function createRoomBrowser({
   function roomRow(r) {
     const full = r.n >= r.cap;
     const vars = { world: mapById(r.map).name, doing: doing(r) };
-    const note = str(full ? 'roombrowser.row_full_note' : r.n ? 'roombrowser.row_note' : 'roombrowser.row_empty_note', vars);
+    const battle = r.game === 'war' && r.state !== 'waiting';
+    const note = str(full ? 'roombrowser.row_full_note' : battle ? 'roombrowser.row_battle_note' : r.n ? 'roombrowser.row_note' : 'roombrowser.row_empty_note', vars);
     return full
       ? { label: title(r), value: load(r), note, info: true }
       : { label: title(r), value: load(r), note, action: `${ROOM_ACTION}${r.code}` };
@@ -254,6 +257,12 @@ export function createRoomBrowser({
         (m) => str(`roombrowser.mode_${m || 'none'}`), (m) => {
           draft.mode = m;
         }),
+      ...(draft.mode === 'war' && missions().length
+        ? [choiceRow(str('roombrowser.mission'), str('roombrowser.mission_note'), missions(), missions().includes(draft.mission) ? draft.mission : missions()[0],
+          (id) => str('campaign.mission_n', { n: missionNumber(id) }), (id) => {
+            draft.mission = id;
+          })]
+        : []),
       {
         label: str(busy ? 'roombrowser.making' : 'roombrowser.make'),
         note: error || str(draft.public ? (list.busy() ? 'roombrowser.busy' : 'roombrowser.make_public_note') : 'roombrowser.make_private_note'),
@@ -304,7 +313,10 @@ export function createRoomBrowser({
       if (draft.mode === 'war') {
         /* False: the pilot said Back to the consent question, and the
          * form stays as it was. */
-        if (await war({ name: draft.name })) {
+        const mission = missions().includes(draft.mission) ? draft.mission : null;
+        const code = await war({ name: draft.name, public: draft.public, mission });
+        if (code) {
+          joined = draft.public ? code : null;
           draft = null;
         }
       } else {
@@ -348,7 +360,16 @@ export function createRoomBrowser({
       return [
         { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
         ...open.map((r) => ({
-          lobby: 'room', label: title(r), value: load(r, 'roombrowser.chip_empty'), join: str('roombrowser.join'), action: `lobby:${ROOM_ACTION}${r.code}`,
+          lobby: 'room',
+          label: title(r),
+          /* A room made for the war says so, and which mission. */
+          value: r.game === 'war' && r.state !== 'waiting'
+            ? str('roombrowser.chip_battle', { n: missionNumber(r.mission), w: r.wave ?? 1, of: r.waves ?? 1 })
+            : r.game === 'war'
+              ? str('roombrowser.chip_war', { n: missionNumber(r.mission), load: load(r, 'roombrowser.chip_empty') })
+              : load(r, 'roombrowser.chip_empty'),
+          join: str(r.game === 'war' && r.state !== 'waiting' ? 'roombrowser.join_battle' : 'roombrowser.join'),
+          action: `lobby:${ROOM_ACTION}${r.code}`,
         })),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },
         { lobby: 'make', label: str('roombrowser.new'), action: 'lobby:roomnew' },
@@ -393,9 +414,23 @@ export function createRoomBrowser({
     /* A new room's draft starts over each visit to Make a room. */
     opened(screen) {
       landedOn = null;
-      if (screen === 'rooms' && list.rooms() === null) {
+      /* The title's rooms panel keeps the list polled, so it can be up to
+       * LIST_EVERY_MS old here: a room a friend made a moment ago would be
+       * missing, and the cursor would land on Make a room with nothing to
+       * move it once the room arrived. Ask now, and treat an empty list as
+       * one that has not arrived, until that answer is in: an answer that
+       * changes nothing moves nothing, and a room made minutes later must
+       * not pull the cursor off Make a room under a pilot's Enter. */
+      const asked = (screen === 'rooms' || screen === 'friends') ? list.refresh() : null;
+      if (screen === 'rooms' && !(list.rooms() || []).length) {
         const here = ui.items()[ui.cursor];
-        landedOn = here ? here.action : null;
+        const landed = here ? here.action : null;
+        landedOn = landed;
+        Promise.resolve(asked).then(() => {
+          if (landedOn === landed && list.rooms() !== null) {
+            landedOn = null;
+          }
+        });
       }
       if (screen === 'roomnew') {
         draft = fresh();

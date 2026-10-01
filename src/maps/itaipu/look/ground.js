@@ -120,6 +120,7 @@
 import * as THREE from 'three';
 import { LAYERS } from '../../swiss2/assets.js';
 import { DRESSED } from '../town/roads.js';
+import { thermalKind } from '../../../render/thermal.js';
 
 /* Each mask channel's layer, by name, and the rock for the faces. */
 const LAYER = {
@@ -347,6 +348,10 @@ const NOISE_GLSL = /* glsl */ `
 `;
 
 const parsFor = (axisN) => /* glsl */ `
+  /* The land cover and the wet, for the thermal picture (thermal.js's
+   * ground kind): forest, field, bare soil and rock, town. */
+  vec4 itThCover = vec4(0.0, 1.0, 0.0, 0.0);
+  float itThWet = 0.0;
   uniform sampler2D uHeroCol;
   uniform sampler2D uRingCol;
   uniform sampler2D uHeroMask;
@@ -641,6 +646,7 @@ const ALBEDO = /* glsl */ `
     /* The beds under the water (the pipeline's, three metres down),
      * which the water veils: their colour and none of the detail. */
     bool bed = y < uWater.y - 1.0 || (res > 0.5 && y < uWater.x - 1.0);
+    itThWet = bed ? 1.0 : 0.0;
     vec3 albedo = macro;
     vec3 nOut = n;
     vec3 tsum = vec3(0.0, 0.0, 1.0);
@@ -703,6 +709,8 @@ const ALBEDO = /* glsl */ `
       float soilTex = (0.82 + 0.36 * n1.a) * (1.0 + 0.06 * rows * rowsK);
       float urbanTex = mix(1.0, 0.8 + 0.4 * itHash(floor(w / 17.0) + 0.3), 1.0 - smoothstep(4.0, 9.0, pix));
       col *= dot(sw, vec4(forestTex, fieldTex, soilTex, urbanTex));
+      itThCover = mask;
+      itThWet = watery;
 ${NEAR}
 
       float near = 1.0 - smoothstep(${(DETAIL_FAR / 3).toFixed(1)}, ${DETAIL_FAR.toFixed(1)}, dist);
@@ -783,6 +791,7 @@ ${NEAR}
         nOut = normalize(mix(nOut, nb, rockW));
         rough = mix(rough, mix(0.9, 0.65, margin), rockW);
         bare = max(bare, rockW * (1.0 - scrub));
+        itThCover = mix(itThCover, vec4(0.0, 0.0, 1.0, 0.0), rockW * (1.0 - scrub));
       }
 
       /* The reservoir's margin, a strip a few metres wide from a little
@@ -908,7 +917,7 @@ export function groundMaterial({
   };
   m.customProgramCacheKey = () => 'itaipu-ground';
   m.name = 'itaipu-ground';
-  return m;
+  return thermalKind(m, 'ground');
 }
 
 /*
@@ -1183,9 +1192,9 @@ export function makeTurf({
     uTurfRoads: { value: roads.texture },
     uTurfRoadsAt: { value: roads.at },
   };
-  const mat = new THREE.MeshStandardMaterial({
+  const mat = thermalKind(new THREE.MeshStandardMaterial({
     color: 0xffffff, roughness: 0.8, metalness: 0, side: THREE.DoubleSide,
-  });
+  }), 'vegetation');
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.vertexShader = shader.vertexShader

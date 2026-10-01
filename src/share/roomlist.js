@@ -36,7 +36,7 @@
  */
 
 import {
-  EMPTY_CLOSE_MS, LIST_EVERY_MS, ROOM_MODES, normaliseCode, normaliseRoomName, validNamePick,
+  EMPTY_CLOSE_MS, LIST_EVERY_MS, ROOM_SETUPS, normaliseCode, normaliseRoomName, validNamePick,
 } from './roomwire.js';
 import { roomsOrigin } from './rooms.js';
 
@@ -61,7 +61,7 @@ export function checkRoomLine(r, skew = 0) {
   if (r.name !== null && normaliseRoomName(r.name) !== r.name) {
     return null;
   }
-  const game = ROOM_MODES.includes(r.game) ? r.game : null;
+  const game = ROOM_SETUPS.includes(r.game) ? r.game : null;
   const empty = r.n === 0 && Number.isFinite(r.emptySince);
   return {
     code: r.code,
@@ -71,6 +71,11 @@ export function checkRoomLine(r, skew = 0) {
     n: r.n,
     cap: r.cap,
     game,
+    /* A room made for the war's mission (a server from before sends none). */
+    mission: typeof r.mission === 'string' && /^[a-z0-9_-]{1,32}$/.test(r.mission) ? r.mission : null,
+    /* A war on: the wave a pilot joining now meets, of how many. */
+    wave: Number.isInteger(r.wave) && r.wave > 0 ? r.wave : null,
+    waves: Number.isInteger(r.waves) && r.waves > 0 ? r.waves : null,
     state: STATES.includes(r.state) ? r.state : 'waiting',
     closesAt: empty ? r.emptySince + EMPTY_CLOSE_MS + skew : null,
   };
@@ -83,15 +88,23 @@ export function createRoomList(onChange = () => {}) {
   let busy = false; /* the server refuses new public rooms for now (edge/rooms/health.js) */
   let failed = false;
   let timer = null;
-  let asking = false;
+  let asking = null; /* the answer being waited for, which a second ask shares */
   let shown = '';
 
-  async function ask() {
+  function ask() {
+    if (!asking) {
+      asking = askOnce().finally(() => {
+        asking = null;
+      });
+    }
+    return asking;
+  }
+
+  async function askOnce() {
     const origin = roomsOrigin();
-    if (asking || !origin || (typeof document !== 'undefined' && document.hidden)) {
+    if (!origin || (typeof document !== 'undefined' && document.hidden)) {
       return;
     }
-    asking = true;
     try {
       const res = await fetch(`${origin}/v2/rooms`, { cache: 'no-store' });
       if (!res.ok) {
@@ -108,7 +121,6 @@ export function createRoomList(onChange = () => {}) {
        * the server is not answering until it does. */
       failed = true;
     }
-    asking = false;
     /* What the screen shows: the minutes left, not the ms, or every answer
      * would redraw it. */
     const seen = rooms && rooms.map((r) => ({ ...r, closesAt: closesInMin(r) }));

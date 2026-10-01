@@ -54,7 +54,9 @@ export function hudStateOf(tel, sensor, snap, aiOn, out) {
     out.state = 'DEGRADED';
   } else if (aiOn) {
     out.state = snap.primaryId != null ? 'TRACK' : 'SEARCH';
-  } else if (thermalMode(sensor.mode)) {
+  } else if (thermalMode(sensor.mode) && sensor.mainView === 'sensor') {
+    /* Only when the thermal picture is the main view: by default it is
+     * the inset, and the ink stays as it is over the pilot's picture. */
     out.state = 'THERMAL';
   } else if (tel.flightMode === 'angle' || tel.flightMode === 'stab') {
     out.state = 'ASSIST';

@@ -319,9 +319,13 @@ export function craftVerticalOffset() {
  * a size up built one to one, and an inflatable air race pylon. Appended,
  * so every index before them is what it was. `hoop` is a plane sky hoop's
  * inflated rim, appended after them for the same reason. */
+/* `wire` is an overhead line's conductor or earth wire, a chord of its
+ * sagging span (src/maps/itaipu/town/power.js); appended last for the same
+ * reason. With the damage mode on the plant meets the ones near the craft
+ * itself (sim_wire_add) and the sweep lets them through. */
 /* Exported so src/game/obstacles.js can name a kind rather than keeping a
  * second copy of this list. `fkind` is an index into it. */
-export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon', 'hoop'];
+export const KINDS = ['gate', 'obstacle', 'tree', 'canopy', 'rock', 'cliff', 'pole', 'wall', 'boom', 'train', 'banner', 'pylon', 'hoop', 'wire'];
 
 /*
  * The broadphase cell, in metres. The world is about 1700 m across and the
@@ -2993,6 +2997,11 @@ export function contactMaterial(kindName) {
   }
   if (kindName === 'tree' || kindName === 'canopy') {
     return { e: 0.12, mu: 0.50 };
+  }
+  /* A conductor catches what flies into it rather than throwing it back:
+   * the plant's wire surface (src/native/crash.c SURF), so the two agree. */
+  if (kindName === 'wire') {
+    return { e: 0.0, mu: 0.80 };
   }
   if (kindName === 'wall' || kindName === 'boom' || kindName === 'cliff' || kindName === 'rock') {
     return { e: 0.15, mu: 0.42 };

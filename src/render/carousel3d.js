@@ -215,21 +215,31 @@ export function createCarouselStage(renderer) {
   shadowGeo.rotateX(-Math.PI / 2);
 
   const models = new Map();
+  /* The look the hangar is previewing on an airframe as the pilot has it,
+   * until it is put back (repaint with none): every model of it built
+   * meanwhile, a combat aircraft's on another loadout too, is built in it. */
   const previews = new Map();
+  /* The model last drawn for each airframe id, for a check. */
+  const lastDrawn = new Map();
+  /* The model last drawn for each key (modelFor), whatever its loadout:
+   * a combat aircraft has one a loadout, so the key alone does not find
+   * it in `models`. What the hangar aims a decal at and the checks read. */
+  const lastByKey = new Map();
   /* A model by its key: the airframe id for the aircraft as the pilot has
    * it, or a picker card's own key (a My Hangar build, src/ui/builds.js)
-   * for one drawn in a fit of its own, a model of its own. */
-  function modelFor(id, key = id) {
-    let m = models.get(key);
+   * for one drawn in a fit of its own, a model of its own. A combat
+   * quad's loadout (configs/combat.js combatChoice) is built into its
+   * drawing, the Striker's engine above all, so each loadout handed is a
+   * model of its own too, kept like the rest. */
+  function modelFor(id, key = id, combat = null) {
+    const at = combat ? `${key}#${JSON.stringify(combat)}` : key;
+    let m = models.get(at);
     if (m) {
       return m;
     }
-    /* In a preview asked for before it was built, or the saved paint. */
+    /* In the hangar's preview, or the saved paint. */
     const preview = key === id ? previews.get(id) : undefined;
-    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false }), id, preview ?? undefined), id);
-    if (key === id) {
-      previews.delete(id);
-    }
+    const craft = dressParts(dressLivery(craftBuilderFor(id)({ name: `pick-${key}`, fog: false, combat: combat ?? undefined }), id, preview ?? undefined), id);
     if (craft.launcher) {
       craft.launcher.visible = false;
     }
@@ -289,8 +299,10 @@ export function createCarouselStage(renderer) {
       /* The look a picker card last dressed it in (dressCard), null for
        * the airframe's own from src/render/livery.js. */
       look: null,
+      /* The airframe it is as the pilot has it, or null for a build's. */
+      own: key === id ? id : null,
     };
-    models.set(key, m);
+    models.set(at, m);
     return m;
   }
 
@@ -437,7 +449,9 @@ export function createCarouselStage(renderer) {
       m.holder.visible = false;
     }
     for (const it of view.items) {
-      const m = modelFor(it.id, it.key ?? it.id);
+      const m = modelFor(it.id, it.key ?? it.id, it.combat ?? null);
+      lastDrawn.set(it.id, m);
+      lastByKey.set(it.key ?? it.id, m);
       dressCard(m, it);
       fitParts(m, it.id, it.fit ?? null);
       const a = Math.abs(it.d);
@@ -522,7 +536,11 @@ export function createCarouselStage(renderer) {
     } else if (target.width !== tw || target.height !== th) {
       target.setSize(tw, th);
     }
-    const m = modelFor(view.items[0].id);
+    /* The Loadout tab's choice before it is saved, as the Parts tab's. */
+    const loadout = view.hangar.tabs && view.hangar.tabs.loadout;
+    const m = modelFor(view.items[0].id, view.items[0].id, loadout && loadout.id === view.items[0].id ? loadout.combat : null);
+    lastDrawn.set(view.items[0].id, m);
+    lastByKey.set(view.items[0].id, m);
     fitParts(m, view.items[0].id, view.hangar.tabs ? view.hangar.tabs.parts : null, true);
     animateParts(m.craft, t0 / 1000);
     for (const other of models.values()) {
@@ -619,18 +637,21 @@ export function createCarouselStage(renderer) {
     stats.models = models.size;
   }
 
-  /* Paint a model again: in `look` (src/render/livery.js) for a preview,
-   * or in what the pilot has saved. A model not built yet will be built in
-   * the saved paint when it is first drawn. */
+  /* Paint an airframe as the pilot has it again, every model of it (one
+   * a loadout on a combat aircraft): in `look` (src/render/livery.js) for
+   * a preview, or in what the pilot has saved. A model built later is
+   * built in the same. */
   function repaint(id, look = null) {
-    const m = models.get(id);
-    if (m) {
-      dressLivery(m.craft, id, look ?? undefined);
-      m.look = null;
-    } else if (look) {
+    if (look) {
       previews.set(id, look);
     } else {
       previews.delete(id);
+    }
+    for (const m of models.values()) {
+      if (m.own === id) {
+        dressLivery(m.craft, id, look ?? undefined);
+        m.look = null;
+      }
     }
   }
 
@@ -644,7 +665,7 @@ export function createCarouselStage(renderer) {
   ray.layers.enableAll();
   const ndc = new THREE.Vector2();
   function pick(id, clientX, clientY) {
-    const m = models.get(id);
+    const m = lastByKey.get(id);
     if (!m || !m.holder.visible) {
       return null;
     }
@@ -674,9 +695,10 @@ export function createCarouselStage(renderer) {
     return { p: [p.x, p.y, p.z], n: [n.x, n.y, n.z] };
   }
 
-  /* A model's region colours as #rrggbb, for a check; null if not built. */
+  /* A model's region colours as #rrggbb, for a check; null if not built.
+   * `id` is its key: an airframe id, or a build's card key. */
   function paint(id) {
-    const m = models.get(id);
+    const m = lastByKey.get(id);
     if (!m || !m.craft.livery) {
       return null;
     }
@@ -685,15 +707,23 @@ export function createCarouselStage(renderer) {
 
   /* A model's finishes and decals, for a check; null if not built. */
   function look(id) {
-    const m = models.get(id);
+    const m = lastByKey.get(id);
     return m ? { finishes: readFinish(m.craft), decals: readDecals(m.craft), wear: readWear(m.craft), uniforms: readFinishUniforms(m.craft) } : null;
   }
 
   /* What a model is fitted with (src/render/partsfit.js), for a check. */
   function fitted(id) {
-    const m = models.get(id);
+    const m = lastByKey.get(id);
     return m ? m.craft.group.userData.partsFit ?? null : null;
   }
 
-  return { draw, repaint, paint, pick, look, fitted, stats: () => ({ ...stats }) };
+  /* The loadout the model last drawn for an airframe was built on, its
+   * drawing's own record ({ propulsion, antenna } on the Striker), for a
+   * check; null for one never drawn or with no loadout. */
+  function combat(id) {
+    const c = lastDrawn.has(id) ? lastDrawn.get(id).craft.combat : null;
+    return c ? { propulsion: c.propulsion ?? null, antenna: c.antenna ?? null } : null;
+  }
+
+  return { draw, repaint, paint, pick, look, fitted, combat, stats: () => ({ ...stats }) };
 }

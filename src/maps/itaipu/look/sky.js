@@ -63,6 +63,7 @@
 
 import * as THREE from 'three';
 import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
+import { thermalShader } from '../../../render/thermal.js';
 import {
   SUN_COLOR, SUN_IRRADIANCE, EXPOSURE, NIGHT_EXPOSURE, NIGHT_METER_KEY, NIGHT_SUN_COLOR, NIGHT_SUN_IRRADIANCE, isNight,
 } from './light.js';
@@ -321,6 +322,9 @@ export function skyBackdrop(sunDir, time) {
       }
     `,
   });
+  /* The clear sky's own temperature along the look (thermal.js thSky):
+   * the coldest thing in a thermal picture. */
+  thermalShader(mat, 'float thT = thSky(normalize(vDir).y);', 'itaipu-sky');
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), mat);
   sky.renderOrder = -1000;
   sky.frustumCulled = false;
