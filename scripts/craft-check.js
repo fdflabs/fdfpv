@@ -148,6 +148,15 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             the width and the reach this file measures are both the
  *             rudder's, 1769 mm, and the plan's 61.7 in span is held by
  *             src/render/uglystikcraft.js UGLYSTIK_DIMS.
+ *   7inch, 10inch  the combat quads of docs/COMBAT-DRONES.md: a 315 mm and
+ *             a 420 mm true X under 7 and 10 inch props, so the span is
+ *             the motor's axis offset plus the prop's radius, doubled, and
+ *             the sweep the arm plus the radius, doubled. The plant's hull
+ *             is fixed and sized to the fullest loadout (docs/COMBAT-DRONES.md
+ *             section 2.3), so each is seated with it, the deepest payload
+ *             and every accessory, and measured against it: the legs reach
+ *             the payload's depth and the packs, straps and GPS the top.
+ *             src/render/combatcraft.js draws them.
  *
  * `spanMm` is the AXIS ALIGNED width, two ducts about two motors, which is
  * the figure a manufacturer prints; `sweepMm` is the diagonal reach, which
@@ -174,6 +183,8 @@ const REAL = {
   uglystik1567: { spanMm: 1768.9, sweepMm: 1768.9, tolMm: 6 },
   nrj1490: { spanMm: 1490.0, sweepMm: 1502.4, tolMm: 6 },
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
+  '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
+  '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
 };
 
 /* Measure the drawn model, in the craft's own frame, from its vertices. */
@@ -276,11 +287,23 @@ function pinned(id, got, want, pinMm, why) {
     `against ${want.toFixed(1)}, ${off.toFixed(1)} off, a known ${pinMm.toFixed(1)}: ${why}`);
 }
 
+/* A combat quad's fullest loadout: the payload that hangs deepest and
+ * every accessory, which is what its fixed hull is sized to. */
+function fullest(af) {
+  const low = (p) => p.cgOffset_m[2] - p.dims.d / 2;
+  const deepest = af.combat.payloads.reduce((a, p) => (low(p) < low(a) ? p : a));
+  return { payload: deepest.id, accessories: af.combat.accessories.map((a) => a.id) };
+}
+
 async function measure(airframeId) {
   const seated = seatAirframe(
     { airframe: '5inch', rates: airframeById('5inch').rates },
     airframeId,
   );
+  const af = airframeById(airframeId);
+  if (af.combat) {
+    seated.combat = { [af.id]: fullest(af) };
+  }
   const page = await openPage({
     root,
     width: 960,
@@ -374,6 +397,11 @@ async function main() {
     if (af.fixedWing) {
       /* The Skyhunter's belly skid and the Bramor's belly are the lowest
        * drawn things, and each hull reaches about as far. */
+      near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
+    } else if (af.combat) {
+      /* A combat quad's legs are drawn to the hull's depth, which the plant
+       * parks it on with or without a payload (docs/COMBAT-DRONES.md
+       * section 2.3). */
       near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
     } else if (af.id === '5inch') {
       pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 15.0,

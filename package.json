@@ -242,6 +242,7 @@
     "trick:sweep": "node scripts/trick-sweep.js",
     "trick:proven": "node scripts/trick-sweep.js --all --write",
     "check:craft": "node scripts/craft-check.js",
+    "check:combat-models": "node scripts/combat-models-check.js",
     "builder:selftest": "node scripts/build-selftest.js",
     "builder:check": "node scripts/build-check.js",
     "builder:share": "node scripts/map-share-check.js",

@@ -98,6 +98,18 @@ export function simPosToThree(x, y, z, out) {
   return out;
 }
 
+/*
+ * A point on the aircraft, in the plant's body frame (x forward, y left,
+ * z up, metres about the CG), to the frame a model is built in (x right,
+ * y up, z aft). The same permutation as simPosToThree without the world's
+ * scale, because a builder draws at true size and scales its whole group
+ * once (worldScale). For parts lists written in the plant's frame, such as
+ * docs/COMBAT-DRONES.md's.
+ */
+export function bodyPosToModel(x, y, z) {
+  return [-y, z, -x];
+}
+
 /* Sim body-to-world quaternion (w x y z) to a Three.js Quaternion. */
 export function simQuatToThree(w, x, y, z, out) {
   out.set(-y, z, -x, w);
