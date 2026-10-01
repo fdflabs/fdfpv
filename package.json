@@ -53,6 +53,7 @@
     "boost:check": "node scripts/boost-check.js",
     "wreck:check": "node scripts/wreck-control-check.js",
     "crash:feel": "node scripts/crash-feel.js",
+    "crash:stand-fault": "node scripts/stand-fault-check.js",
     "score:selftest": "node scripts/score-selftest.js",
     "replay:selftest": "node scripts/replay-log.js --selftest",
     "crashcam:selftest": "node scripts/crashcam-selftest.js",
