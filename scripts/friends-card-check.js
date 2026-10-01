@@ -290,6 +290,11 @@ try {
   check('the code typed on the phone joins A\'s room on seat 2', joined.phase === 'open' && joined.code === room.code && joined.seat === 2,
     `${joined.phase} ${joined.code} seat ${joined.seat}`);
   check('and B stays on the room screen, the cursor on Fly', await b.evaluate("window.__ui.screen === 'friends' && window.__ui.items()[window.__ui.cursor].action === 'fly'"));
+  /* The welcome owes the seat a summon, carried out on a later frame once
+   * the world in hand is ready (main.js roomSummonStep): read straight
+   * after the join, the seat was still Yellowstone, and was the Swiss
+   * valley three seconds later. */
+  await b.until("window.__ui.settings.map === 'swiss2'", 15000).catch(() => {});
   const seated = await b.evaluate(`({
     map: window.__ui.settings.map,
     world: (window.__ui.items().find((it) => it.label === 'The world') || {}).value,
