@@ -3037,5 +3037,413 @@
    "damInvisibleBins": 0,
    "otherInvisibleBins": 0
   }
+ },
+ "roofslabs": {
+  "shed": {
+   "records": 35,
+   "slabs": 70,
+   "out": 0,
+   "up": 0,
+   "outWorst": 0,
+   "upWorst": 0,
+   "worst": [],
+   "cover": 0.999
+  },
+  "flat": {
+   "records": 4386,
+   "slabs": 18772,
+   "out": 3380,
+   "up": 0,
+   "outWorst": 57.66,
+   "upWorst": 0,
+   "worst": [
+    {
+     "osm": "w619298877",
+     "out": 57.66,
+     "up": 0,
+     "at": [
+      -4895.9,
+      6,
+      -3563.6
+     ]
+    },
+    {
+     "osm": "w608140880",
+     "out": 49.95,
+     "up": 0,
+     "at": [
+      1711.9,
+      6,
+      2827.6
+     ]
+    },
+    {
+     "osm": "w619300628",
+     "out": 46.97,
+     "up": 0,
+     "at": [
+      -4871.8,
+      6,
+      -3873.5
+     ]
+    },
+    {
+     "osm": "w306396720",
+     "out": 46.45,
+     "up": 0,
+     "at": [
+      -26.6,
+      6,
+      -176.3
+     ]
+    },
+    {
+     "osm": "w360399470",
+     "out": 43.39,
+     "up": 0,
+     "at": [
+      183.1,
+      6,
+      1863
+     ]
+    },
+    {
+     "osm": "w469123522",
+     "out": 42.21,
+     "up": 0,
+     "at": [
+      -4925.7,
+      6,
+      -305.3
+     ]
+    },
+    {
+     "osm": "w1260635670",
+     "out": 41.66,
+     "up": 0,
+     "at": [
+      -5027,
+      6,
+      -1505.1
+     ]
+    },
+    {
+     "osm": "w360411302",
+     "out": 37.13,
+     "up": 0,
+     "at": [
+      -183.6,
+      6,
+      0.9
+     ]
+    }
+   ],
+   "cover": 1
+  },
+  "house": {
+   "records": 6111,
+   "slabs": 24444,
+   "out": 0,
+   "up": 5876,
+   "outWorst": 0,
+   "upWorst": 3.81,
+   "worst": [
+    {
+     "osm": "w472971795",
+     "out": 0,
+     "up": 3.81,
+     "at": [
+      -4695.5,
+      6,
+      -1518.5
+     ]
+    },
+    {
+     "osm": "w522609462",
+     "out": 0,
+     "up": 3.71,
+     "at": [
+      -2973.7,
+      9.7,
+      -284.5
+     ]
+    },
+    {
+     "osm": "w306396722",
+     "out": 0,
+     "up": 3.69,
+     "at": [
+      105,
+      9.1,
+      -348.1
+     ]
+    },
+    {
+     "osm": "w469163164",
+     "out": 0,
+     "up": 3.69,
+     "at": [
+      -3721.3,
+      6.5,
+      -1868.5
+     ]
+    },
+    {
+     "osm": "w473015411",
+     "out": 0,
+     "up": 3.69,
+     "at": [
+      -4756.6,
+      9.7,
+      -1513.3
+     ]
+    },
+    {
+     "osm": "w469163160",
+     "out": 0,
+     "up": 3.68,
+     "at": [
+      -3643.9,
+      8.1,
+      -1983.1
+     ]
+    },
+    {
+     "osm": "w472960773",
+     "out": 0,
+     "up": 3.66,
+     "at": [
+      -4470,
+      9.6,
+      -1511.6
+     ]
+    },
+    {
+     "osm": "w483820618",
+     "out": 0,
+     "up": 3.65,
+     "at": [
+      -81.4,
+      6,
+      3969.3
+     ]
+    }
+   ],
+   "cover": 0.997
+  },
+  "bridge": {
+   "records": 27,
+   "slabs": 27,
+   "out": 0,
+   "up": 0,
+   "outWorst": 0,
+   "upWorst": 0,
+   "worst": [],
+   "cover": 1
+  }
+ },
+ "town": {
+  "foz": {
+   "rays": 90601,
+   "invisible": 4528,
+   "slabInvisibleBins": 965,
+   "otherInvisibleBins": 0,
+   "notSolidBins": 0,
+   "slabBy": {
+    "slab of flat": 37,
+    "slab of house": 928
+   },
+   "invWorst": [
+    {
+     "n": 15,
+     "gap": 5,
+     "at": [
+      2921,
+      240.6,
+      2697
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 5,
+     "gap": 5,
+     "at": [
+      2925,
+      240.6,
+      2694
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 3,
+     "gap": 5,
+     "at": [
+      2925,
+      240.6,
+      2695
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 10,
+     "gap": 5,
+     "at": [
+      3081,
+      240.7,
+      2566
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 10,
+     "gap": 4.9645302140609555,
+     "at": [
+      3081,
+      240.7,
+      2564
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 20,
+     "gap": 4.633809683340795,
+     "at": [
+      2924,
+      240.6,
+      2694
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 14,
+     "gap": 4.026615971125412,
+     "at": [
+      2919,
+      240.6,
+      2697
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 12,
+     "gap": 4,
+     "at": [
+      3092,
+      241.9,
+      2604
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    }
+   ]
+  },
+  "hernandarias": {
+   "rays": 90601,
+   "invisible": 5291,
+   "slabInvisibleBins": 962,
+   "otherInvisibleBins": 1,
+   "notSolidBins": 0,
+   "slabBy": {
+    "slab of flat": 479,
+    "slab of house": 483
+   },
+   "invWorst": [
+    {
+     "n": 15,
+     "gap": 5,
+     "at": [
+      -4650,
+      231.8,
+      -2688
+     ],
+     "what": "slab of flat",
+     "other": "town/itaipu-town-gravel-n-r"
+    },
+    {
+     "n": 10,
+     "gap": 5,
+     "at": [
+      -4650,
+      231.8,
+      -2669
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 10,
+     "gap": 5,
+     "at": [
+      -4633,
+      231.8,
+      -2669
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 10,
+     "gap": 5,
+     "at": [
+      -4629,
+      231.8,
+      -2671
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 4,
+     "gap": 5,
+     "at": [
+      -4630,
+      231.8,
+      -2670
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 23,
+     "gap": 5,
+     "at": [
+      -4620,
+      233.4,
+      -2750
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 4,
+     "gap": 5,
+     "at": [
+      -4604,
+      231.5,
+      -2662
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    },
+    {
+     "n": 4,
+     "gap": 5,
+     "at": [
+      -4591,
+      231.3,
+      -2634
+     ],
+     "what": "slab of flat",
+     "other": "ground"
+    }
+   ]
+  }
  }
 }

@@ -3,7 +3,7 @@
  * what is drawn there, swept, and held to a recorded baseline.
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/collide-audit-itaipu.js
- *       [--only=footprints,drawn,phantom,trees,refill,bridge,water,seats,fly,dam,damfly]
+ *       [--only=footprints,roofslabs,drawn,phantom,trees,refill,bridge,water,seats,fly,dam,damfly,town]
  *       [--record]
  *
  * The owner asked for "a complete audit on collision physics ... areas
@@ -20,6 +20,15 @@
  *               courtyard is filled. `slant`: a building within 10 degrees
  *               of the axes is one box per run, so a wall a few degrees
  *               off the axis has a wedge of invisible wall along it.
+ *   roofslabs   every roof and deck record the town makes (town/model.js
+ *               planTown): the crash physics' slabs under it (roofs.js
+ *               slabs, the records' own or roofSlabs) against the top they
+ *               stand under, on a grid of points over each slab's upper
+ *               face: how many records have a slab reaching more than
+ *               RAY_TOL past the drawn plan (a wall in the air off its
+ *               edge) or standing more than RAY_TOL over the drawn top (a
+ *               wall through the roof), and how much of the plan the slabs
+ *               cover, by record kind.
  *
  * In headless Chromium (tests/lib/page.js), the map built by the shell
  * with crash damage on, a five inch seated, then again with the F-16:
@@ -84,6 +93,11 @@
  *               and one the dam's own colliders or slabs make fails the
  *               run; drawn more than RAY_TOL in front of physics is drawn
  *               but not solid, held to the baseline.
+ *   town        the dam's rays, straight down only, over a TOWN_SIDE square
+ *               of each of the town's densest quarters (TOWN): every
+ *               static and streamed collider, every town record's slab, and
+ *               the roof or ground a craft is offered, against what is
+ *               drawn.
  *   damfly      the owner's crash (2026-10-01): a Timber flown over the
  *               spillway's open bays at the bridge deck's level and out
  *               from under the bridge, which must pass, and into a pier
@@ -125,7 +139,8 @@ import { airframeById } from '../configs/airframes.js';
 import {
   cleanRing, rectOf, styleOf, rectRing, wallBoxes, landuseAreas,
 } from '../src/maps/itaipu/town/plan.js';
-import { FINE_R, MOVE } from '../src/maps/itaipu/town/model.js';
+import { FINE_R, MOVE, planTown } from '../src/maps/itaipu/town/model.js';
+import { roofSlabs, roofTop } from '../src/maps/alps/roofs.js';
 import { CREST_SPAWN, AIR_SPAWN } from '../src/maps/itaipu/spawns.js';
 import { slotSpawn, SLOT_RIGHT_M } from '../src/game/slots.js';
 
@@ -136,7 +151,8 @@ const arg = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`));
   return a ? a.slice(name.length + 3) : dflt;
 };
-const ALL = ['footprints', 'drawn', 'phantom', 'trees', 'refill', 'bridge', 'water', 'seats', 'fly', 'dam', 'damfly'];
+const ALL = ['footprints', 'roofslabs', 'drawn', 'phantom', 'trees', 'refill', 'bridge', 'water', 'seats', 'fly', 'dam', 'damfly', 'town'];
+const NODE = new Set(['footprints', 'roofslabs']);
 const ONLY = new Set(arg('only', ALL.join(',')).split(','));
 const RECORD = process.argv.includes('--record');
 
@@ -172,6 +188,14 @@ const SLACK = (n) => Math.ceil(n * 0.1) + 20;
  * STAIR, 0.25 m, out of a turned face, and its tops SKIN under a record;
  * dam-check's faces hold drawn walls within 0.5 m of a solid. */
 const RAY_TOL = 0.5;
+/* The town's rays: the middle of the densest 400 m squares of Foz do
+ * Iguacu and of Hernandarias (osm/buildings.json), and the side of the
+ * square round each, metres. */
+const TOWN = [
+  ['foz', 3000, 2600],
+  ['hernandarias', -4600, -2600],
+];
+const TOWN_SIDE = 300;
 
 const failures = [];
 const fail = (m) => {
@@ -307,6 +331,95 @@ async function footprints() {
   return {
     buildings: buildings.features.length, over2: deepOver2, over5: deepOver5, concave: cls.concave, slant: cls.slant, worst: worst.slice(0, 20),
   };
+}
+
+/* Every town record's slabs against its drawn top: on an 8 x 8 grid over
+ * each slab's upper face, how far the point is outside the record's plan
+ * and how far over its top, and on a COVER_STEP grid over the plan, how
+ * much of it some slab is under. The plan is the town's own (planTown),
+ * on level ground: a slab's reach past its roof does not depend on how
+ * high the roof stands. */
+const COVER_STEP = 0.5;
+async function roofSlabSweep() {
+  const data = {};
+  for (const name of ['osm/buildings.json', 'osm/roads.json', 'osm/power.json', 'osm/landuse.json']) {
+    data[name] = JSON.parse(await readFile(join(DATA, name), 'utf8'));
+  }
+  const town = await planTown({ data, ground: () => 0, sink: { face() {}, bar() {} } });
+  const byKind = {};
+  for (const rec of town.records) {
+    const world = (lx, lz) => [rec.c * lx + rec.s * lz + rec.tx, -rec.s * lx + rec.c * lz + rec.tz];
+    const plans = rec.faces.map((f) => f.pts.map(([x, z]) => world(x, z)));
+    const outside = (x, z) => (plans.some((p) => pointIn(p, x, z)) ? 0 : Math.min(...plans.map((p) => edgeDist(p, x, z))));
+    const slabs = rec.slabs ?? roofSlabs(rec);
+    let out = 0;
+    let up = 0;
+    let at = null;
+    for (const sl of slabs) {
+      for (let a = -1; a <= 1 + 1e-9; a += 2 / 7) {
+        for (let b = -1; b <= 1 + 1e-9; b += 2 / 7) {
+          const p = [0, 1, 2].map((k) => sl.c[k] + sl.u[k] * sl.hu * a + sl.v[k] * sl.hv * b + sl.n[k] * sl.hn);
+          const o = outside(p[0], p[2]);
+          const t = roofTop(rec, p[0], p[2]);
+          const u = Number.isNaN(t) ? 0 : p[1] - t;
+          if (o > out || u > up) {
+            at = p.map((q) => +q.toFixed(1));
+          }
+          out = Math.max(out, o);
+          up = Math.max(up, u);
+        }
+      }
+    }
+    /* Under a slab: inside its upper face's rectangle in plan. */
+    const under = (x, z) => slabs.some((sl) => {
+      const dx = x - sl.c[0];
+      const dz = z - sl.c[2];
+      const lu = (dx * sl.u[0] + dz * sl.u[2]) / (sl.u[0] * sl.u[0] + sl.u[2] * sl.u[2] || 1);
+      const lv = (dx * sl.v[0] + dz * sl.v[2]) / (sl.v[0] * sl.v[0] + sl.v[2] * sl.v[2] || 1);
+      return Math.abs(lu) <= sl.hu && Math.abs(lv) <= sl.hv;
+    });
+    let pts = 0;
+    let held = 0;
+    for (const p of plans) {
+      const xs = p.map((q) => q[0]);
+      const zs = p.map((q) => q[1]);
+      for (let x = Math.min(...xs) + COVER_STEP / 2; x < Math.max(...xs); x += COVER_STEP) {
+        for (let z = Math.min(...zs) + COVER_STEP / 2; z < Math.max(...zs); z += COVER_STEP) {
+          if (!pointIn(p, x, z)) {
+            continue;
+          }
+          pts += 1;
+          held += under(x, z) ? 1 : 0;
+        }
+      }
+    }
+    const o = byKind[rec.kind] ?? (byKind[rec.kind] = {
+      records: 0, slabs: 0, out: 0, up: 0, outWorst: 0, upWorst: 0, pts: 0, held: 0, worst: [],
+    });
+    o.records += 1;
+    o.slabs += slabs.length;
+    o.pts += pts;
+    o.held += held;
+    o.out += out > RAY_TOL ? 1 : 0;
+    o.up += up > RAY_TOL ? 1 : 0;
+    o.outWorst = Math.max(o.outWorst, +out.toFixed(2));
+    o.upWorst = Math.max(o.upWorst, +up.toFixed(2));
+    if (out > RAY_TOL || up > RAY_TOL) {
+      o.worst.push({ osm: rec.osm ?? null, out: +out.toFixed(2), up: +up.toFixed(2), at });
+    }
+  }
+  for (const [k, o] of Object.entries(byKind)) {
+    o.cover = +(o.pts ? o.held / o.pts : 1).toFixed(3);
+    o.worst = o.worst.sort((p, c) => Math.max(c.out, c.up) - Math.max(p.out, p.up)).slice(0, 8);
+    delete o.pts;
+    delete o.held;
+    console.log(`roofslabs, ${k}: ${o.records} records, ${o.slabs} slabs; past ${RAY_TOL} m outside the drawn plan on ${o.out} (${f1(o.outWorst)} m at worst), `
+      + `over the drawn top on ${o.up} (${f1(o.upWorst)} m at worst); the slabs are under ${(100 * o.cover).toFixed(1)} % of the plan`);
+    for (const w of o.worst.slice(0, 3)) {
+      console.log(`    OSM ${w.osm}: ${f1(w.out)} m outside, ${f1(w.up)} m over, at (${w.at.join(', ')})`);
+    }
+  }
+  return byKind;
 }
 
 /* ------------------------------------------------------------ page side */
@@ -603,7 +716,14 @@ const DAM_RAYS = `(() => {
     it, col, eachTri, meshesOf, triDist,
   } = window.__ca;
   const dam = it.parts.dam.survey();
-  const slabs = dam.records.flatMap((r) => r.slabs.map((sl) => ({ sl, kind: r.kind })));
+  const damSlabs = dam.records.flatMap((r) => r.slabs.map((sl) => ({ sl, kind: r.kind })));
+  /* A town region's (R.town) are the town's records' slabs, as the crash
+   * physics is handed them (roofs.js slabs: the record's own, or
+   * roofSlabs' made once and kept on it), and its colliders the streamed
+   * set's as well as the static. */
+  const townSlabs = (x0, z0, x1, z1) => it.parts.town.town.records
+    .filter((r) => r.maxX >= x0 && r.minX <= x1 && r.maxZ >= z0 && r.minZ <= z1)
+    .flatMap((r) => (r.slabs ?? (r.slabs = window.__roofSlabsOf(r))).map((sl) => ({ sl, kind: r.kind })));
   const own = new Uint8Array(col.count);
   for (const i of dam.solidIndices) own[i] = 1;
   const CELL = 4;
@@ -707,9 +827,10 @@ const DAM_RAYS = `(() => {
     const bx0 = Math.min(...corners.map((c) => c[0])) - M, bx1 = Math.max(...corners.map((c) => c[0])) + M;
     const bz0 = Math.min(...corners.map((c) => c[1])) - M, bz1 = Math.max(...corners.map((c) => c[1])) + M;
     const box = [Math.floor(bx0 / CELL), Math.floor(bz0 / CELL), Math.floor(bx1 / CELL), Math.floor(bz1 / CELL)];
+    const slabs = R.town ? townSlabs(bx0, bz0, bx1, bz1) : damSlabs;
     /* What each 4 m cell holds. */
     const G = new Map();
-    for (let i = 0; i < col.staticCount; i += 1) {
+    for (let i = 0; i < (R.town ? col.baseCount : col.staticCount); i += 1) {
       const kn = col.kindName(col.fkind[i]);
       if (kn === 'tree' || kn === 'canopy') continue;
       const r = col.fbox[i] ? 0 : col.fr[i];
@@ -1472,6 +1593,10 @@ async function pageSweeps(out) {
       out.dam = await damRays(page);
     }
 
+    if (ONLY.has('town')) {
+      out.town = await townRays(page);
+    }
+
     const errors = page.errors.filter((e) => !/net::ERR_|Failed to load resource|favicon/.test(e));
     if (errors.length) {
       fail(`page errors with the five inch: ${errors.slice(0, 3).join(' | ')}`);
@@ -1623,6 +1748,44 @@ async function damRays(page) {
     }
     if (o.damInvisibleBins && !o.baseline) {
       fail(`dam rays, ${g}: ${o.damInvisibleBins} bins of invisible wall the dam's colliders or slabs make, ${f1(o.invWorst.find((w) => !w.what.startsWith('other '))?.gap)} m from anything drawn at worst`);
+    }
+  }
+  return out;
+}
+
+/* The town's rays (TOWN): down over a TOWN_SIDE square round each
+ * centre, with the streamed set filled round it. What a slab makes is
+ * counted apart from what a collider does (a wall column past its
+ * drawn wall is the footprints sweep's). */
+async function townRays(page) {
+  await page.evaluate("import('/src/maps/alps/roofs.js').then((m) => { window.__roofSlabsOf = m.roofSlabs; return 1; })");
+  await page.evaluate(DAM_RAYS);
+  const out = {};
+  for (const [name, x, z] of TOWN) {
+    if (!(await settle(page, x, z))) {
+      fail(`the streamed set and the terrain did not settle round ${name} (${x}, ${z}) in 30 s`);
+    }
+    const top = Math.ceil(await page.evaluate(`window.__surface(${x}, ${z}, 1e9)`)) + 120;
+    const h = TOWN_SIDE / 2;
+    const R = {
+      name, town: true, o: [x - h, z - h], a: [1, 0], t: [0, TOWN_SIDE], s: [0, TOWN_SIDE], y: [0, 0], top, step: 1, ystep: 0, along: 0, across: 0,
+    };
+    const r = JSON.parse(await page.evaluate(`JSON.stringify(window.__dr.run(${JSON.stringify(R)}, ${RAY_TOL}))`));
+    const slab = Object.entries(r.invBy).filter(([k]) => k.startsWith('slab of '));
+    const o = {
+      rays: r.rays,
+      invisible: r.invisible,
+      slabInvisibleBins: slab.reduce((n, [, v]) => n + v, 0),
+      otherInvisibleBins: Object.entries(r.invBy).filter(([k]) => !k.startsWith('slab of ')).reduce((n, [, v]) => n + v, 0),
+      notSolidBins: r.nsBins,
+      slabBy: Object.fromEntries(slab),
+      invWorst: r.invWorst.slice(0, 8),
+    };
+    out[name] = o;
+    console.log(`town rays, ${name}: ${o.rays} rays down; invisible wall past ${RAY_TOL} m on ${o.invisible}, ${o.slabInvisibleBins} 5 m bins a roof slab's `
+      + `(${slab.map(([k, v]) => `${v} ${k}`).join(', ') || 'none'}), ${o.otherInvisibleBins} a collider's; drawn but not solid in ${o.notSolidBins} bins`);
+    for (const w of o.invWorst.slice(0, 5)) {
+      console.log(`      ${w.gap >= 5 ? '5 m or more' : `${f1(w.gap)} m`} from anything drawn at (${w.at.join(', ')}): ${w.what}`);
     }
   }
   return out;
@@ -1797,6 +1960,16 @@ function metrics(out) {
       m[`refill.${v}.town`] = [s.town, 'down'];
     }
   }
+  /* Node's, so exact: no slack (compare). */
+  for (const [k, o] of Object.entries(out.roofslabs ?? {})) {
+    m[`roofslabs.${k}.out`] = [o.out, 'up'];
+    m[`roofslabs.${k}.up`] = [o.up, 'up'];
+    m[`roofslabs.${k}.cover`] = [o.cover, 'down'];
+  }
+  for (const [c, o] of Object.entries(out.town ?? {})) {
+    m[`town.${c}.slabInvisibleBins`] = [o.slabInvisibleBins, 'up'];
+    m[`town.${c}.otherInvisibleBins`] = [o.otherInvisibleBins, 'up'];
+  }
   if (out.bridge) {
     m['bridge.solids'] = [out.bridge.solids, 'down'];
     m['bridge.on'] = [out.bridge.on, 'down'];
@@ -1838,7 +2011,8 @@ function compare(out, base) {
       continue;
     }
     const b = then[k][0];
-    const bad = dir === 'up' ? v > b + (k.startsWith('seats.') ? 0 : SLACK(b)) : v < b - (k.startsWith('seats.') ? 0.1 : k.startsWith('refill.') ? 30 : SLACK(b));
+    const exact = k.startsWith('roofslabs.');
+    const bad = dir === 'up' ? v > b + (k.startsWith('seats.') || exact ? 0 : SLACK(b)) : v < b - (exact ? 0 : k.startsWith('seats.') ? 0.1 : k.startsWith('refill.') ? 30 : SLACK(b));
     if (bad) {
       worse += 1;
       fail(`${k}: ${v}, the baseline ${b}`);
@@ -1866,7 +2040,10 @@ async function main() {
   if (ONLY.has('footprints')) {
     out.footprints = await footprints();
   }
-  if ([...ONLY].some((k) => k !== 'footprints')) {
+  if (ONLY.has('roofslabs')) {
+    out.roofslabs = await roofSlabSweep();
+  }
+  if ([...ONLY].some((k) => !NODE.has(k))) {
     await pageSweeps(out);
   }
   if (RECORD) {
