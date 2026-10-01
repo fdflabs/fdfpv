@@ -46,6 +46,15 @@ const HUD_HZ = 30;
 const TEXT_HZ = 10;
 /* The game's furniture is looked for this often (it comes and goes). */
 const KEEP_OUT_MS = 1000;
+/* The inset's width as a share of the screen's at each size the pilot
+ * picks (U) above the small one, which is the fixed 13em it always was.
+ * place() gives a larger one less when the room right of the height tape,
+ * or under the top right panel, is narrower. */
+const INSET_SHARE = { medium: 0.2, large: 1 / 3 };
+const INSET_SMALL_EM = 13;
+/* The panels' margin from the window and from each other, CSS px. */
+const PANEL_EDGE = 16;
+const PANEL_GAP = 8;
 const MAX_DPR = 3;
 const DEG = 180 / Math.PI;
 
@@ -116,7 +125,8 @@ const CSS = `
 .avx-motors { display: grid; grid-template-columns: repeat(4, auto) min-content; column-gap: 1.1em; align-items: center; }
 .avx-motors .avx-bar { height: 0.3em; margin: 0.15em 0 0; }
 .avx-cam { display: flex; gap: 0.9em; }
-.avx-pip { position: relative; width: 13em; aspect-ratio: 16 / 10; border: 1px solid rgba(120, 190, 215, 0.4);
+.avx-cam.avx-cam-col { flex-direction: column; gap: 0.5em; }
+.avx-pip { position: relative; width: ${INSET_SMALL_EM}em; aspect-ratio: 16 / 10; border: 1px solid rgba(120, 190, 215, 0.4);
   background: rgba(0, 0, 0, 0.55); overflow: hidden; }
 .avx-pip > canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .avx-pip > b { position: absolute; left: 0.45em; top: 0.25em; font-weight: 400; font-size: 0.9em; z-index: 1; }
@@ -303,6 +313,8 @@ export class AvionicsHud {
     this.pip = el('div', 'avx-pip', cam);
     this.fPipTitle = new Field(el('b', '', this.pip));
     this.pipCanvas = null;
+    this.pipShown = true;
+    this.inset = 'small';
     const ctl = el('div', '', cam);
     const camRow = row(ctl, str('avionics.hud.cam'));
     this.fCamEo = new Field(camRow, 'avx-sel');
@@ -380,6 +392,15 @@ export class AvionicsHud {
         this.pip.prepend(this.pipCanvas);
       }
     }
+    /* The sensor full screen is the inset's picture already (I). */
+    const pipShown = src.sensor.mainView !== 'sensor';
+    if (pipShown !== this.pipShown || src.sensor.inset !== this.inset) {
+      this.pipShown = pipShown;
+      this.inset = src.sensor.inset;
+      this.pip.style.display = pipShown ? '' : 'none';
+      /* The camera block changed size: place the panels again now. */
+      this.keepOutAt = 0;
+    }
     const t0 = performance.now();
     if (nowMs >= this.nextTextMs) {
       this.nextTextMs = nowMs + 1000 / TEXT_HZ;
@@ -426,7 +447,8 @@ export class AvionicsHud {
       }
       const r = e.getBoundingClientRect();
       if (r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none') {
-        this.keepOut.push({ x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height });
+        /* A banner is a line of text that comes and goes: soft. */
+        this.keepOut.push({ x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height, soft: e.classList.contains('banner') });
       }
     }
     if (radar) {
@@ -441,30 +463,81 @@ export class AvionicsHud {
    * since they are the ones a pilot needs in a hurry.
    */
   place() {
-    const edge = 16;
-    const gap = 8;
     const order = [['energy', 'l', 'b'], ['cam', 'r', 'b'], ['mode', 'l', 't'], ['health', 'r', 't']];
     this.placed.length = 0;
     const tapes = this.tapeRects();
     const fixed = [tapes.heading];
+    this.sizeInset(tapes.agl, fixed);
     for (const [id, ax, ay] of order) {
-      const p = this.panels[id];
-      const w = p.offsetWidth;
-      const h = p.offsetHeight;
-      const x = ax === 'l' ? edge : this.w - edge - w;
-      let y = ay === 't' ? edge : this.h - edge - h;
+      const me = this.slide(this.panels[id], ax, ay, [...this.keepOut, ...this.placed, ...fixed]);
+      this.panels[id].style.left = `${Math.round(me.x)}px`;
+      this.panels[id].style.top = `${Math.round(me.y)}px`;
+      this.placed.push(me);
+    }
+  }
+
+  /*
+   * Panel p in its corner, slid away from the edge it hangs from until
+   * clear of `against`. On a narrow screen a centre banner reaches both
+   * columns, and sliding under it pushed the top panels off the bottom of
+   * a phone: when no place inside the window clears everything, the
+   * panel dodges only what stays (not the soft banners), since sitting
+   * under a passing line of text beats sitting on another panel or not
+   * being there. Failing that too, the last place inside the window.
+   */
+  slide(p, ax, ay, against) {
+    const w = p.offsetWidth;
+    const h = p.offsetHeight;
+    const x = ax === 'l' ? PANEL_EDGE : this.w - PANEL_EDGE - w;
+    const home = ay === 't' ? PANEL_EDGE : this.h - PANEL_EDGE - h;
+    let me = null;
+    for (const set of [against, against.filter((r) => !r.soft)]) {
+      me = { x, y: home, w, h };
       for (let tries = 0; tries < 16; tries += 1) {
-        const me = { x, y, w, h };
-        const hit = [...this.keepOut, ...this.placed, ...fixed].find((r) => meets(r, me));
+        const hit = set.find((r) => meets(r, me));
         if (!hit) {
+          return me;
+        }
+        const y = ay === 't' ? hit.y + hit.h + PANEL_GAP : hit.y - PANEL_GAP - h;
+        if (y < PANEL_EDGE || y + h > this.h - PANEL_EDGE) {
           break;
         }
-        y = ay === 't' ? hit.y + hit.h + gap : hit.y - gap - h;
+        me.y = y;
       }
-      p.style.left = `${Math.round(x)}px`;
-      p.style.top = `${Math.round(y)}px`;
-      this.placed.push({ x, y, w, h });
     }
+    return me;
+  }
+
+  /*
+   * A medium or large inset's width, CSS px: its share of the screen, but
+   * no wider than the room right of the height tape and no taller than
+   * the room under the top right panel, so it never sits on either.
+   */
+  sizeInset(agl, fixed) {
+    const share = INSET_SHARE[this.inset];
+    const cam = this.panels.cam;
+    cam.classList.remove('avx-cam-col');
+    this.pip.style.width = '';
+    if (!share || !this.pipShown) {
+      return;
+    }
+    /* Measured with the camera's rows under the picture, as it will be. */
+    cam.classList.add('avx-cam-col');
+    const cs = getComputedStyle(cam);
+    const chromeW = cam.offsetWidth - cam.clientWidth + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const chromeH = cam.offsetHeight - this.pip.offsetHeight;
+    /* Where the top right panel will sit: under the game's chips there. */
+    const health = this.slide(this.panels.health, 'r', 't', [...this.keepOut, ...fixed]);
+    const roomW = this.w - PANEL_EDGE - (agl.x + agl.w + PANEL_GAP) - chromeW;
+    const roomH = this.h - PANEL_EDGE - (health.y + health.h + PANEL_GAP) - chromeH;
+    const w = Math.floor(Math.min(share * this.w, roomW, roomH * 1.6));
+    /* No room for more than the small inset (a phone): small's layout,
+     * with the larger size's sharper pixels in it. */
+    if (w <= INSET_SMALL_EM * this.textPx) {
+      cam.classList.remove('avx-cam-col');
+      return;
+    }
+    this.pip.style.width = `${w}px`;
   }
 
   /* The panels' text from the state objects. */

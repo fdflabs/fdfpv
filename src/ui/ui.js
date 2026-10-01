@@ -530,6 +530,10 @@ function byLine(t) {
   return t && t.author ? str('ui.by_2', { author: t.author }) : '';
 }
 
+/* The Avionics HUD inset's sizes (src/render/sensorview.js INSET_SIZES,
+ * which SensorManager.setInset checks a stored one against). */
+export const AVX_INSETS = ['small', 'medium', 'large'];
+
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
    * or the Swiss valley flown in the world it names, and any other id is a
@@ -787,6 +791,9 @@ const DEFAULTS = {
    * aircraft is small, hidden or off screen (src/ui/peermarks.js): 'on',
    * 'minimal' (the shapes without the names and ranges) or 'off'. */
   peerMarks: 'on',
+  /* The Avionics HUD's camera inset, cycled with U in flight: one of
+   * AVX_INSETS, smallest first. */
+  avxInset: 'small',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -1069,6 +1076,7 @@ export function loadSettings() {
     ['fpsCap', FPS_CAPS],
     ['hudStyle', HUD_STYLES],
     ['peerMarks', MARK_STYLES],
+    ['avxInset', AVX_INSETS],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
