@@ -4436,12 +4436,13 @@ export class Ui {
     /* A newer deploy is out. Shown on menus and on Paused, never over a
      * flight: syncChips holds it until the pilot is off the sticks. */
     this.updateReady = false;
+    this.barStopCount = 0;
     this.updateBar = el('div', 'update-bar');
     this.updateBar.setAttribute('role', 'status');
     this.updateBar.hidden = true;
-    const reload = btn('update-reload', str('update.reload'));
-    reload.addEventListener('click', () => window.location.reload());
-    this.updateBar.append(el('span', null, str('update.new_version')), reload);
+    this.updateReload = btn('update-reload', str('update.reload'));
+    this.updateReload.addEventListener('click', () => this.act('update-reload'));
+    this.updateBar.append(el('span', null, str('update.new_version')), this.updateReload);
     this.checkVersion = watchVersion((stale) => {
       this.updateReady = stale;
       this.syncChips();
@@ -4456,11 +4457,7 @@ export class Ui {
     this.roomBar.hidden = true;
     this.roomBarText = el('span');
     this.roomBarButton = btn('update-reload', '');
-    this.roomBarButton.addEventListener('click', () => {
-      if (this.roomBarView && this.roomBarView.act) {
-        this.roomBarView.act();
-      }
-    });
+    this.roomBarButton.addEventListener('click', () => this.act('room-bar'));
     this.roomBar.append(this.roomBarText, this.roomBarButton);
 
     this.musicDock = el('div', 'music-dock');
@@ -4520,7 +4517,12 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.updateBar, this.roomBar, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.musicDock, this.nameDialog);
+    /* In the command bar, beside the primary: the screens are padded to
+     * clear that bar, so nothing drawn there can cover a card, the rooms
+     * panel or a row. Floating over the page, the update bar sat on the
+     * title's cards. */
+    this.framePrimary.before(this.roomBar, this.updateBar);
     this.carousel = new Carousel(r);
     this.hangar = new Hangar(r);
     this.progress = new Progress(this, r);
@@ -5136,6 +5138,23 @@ export class Ui {
     if (this.updateBar) {
       this.updateBar.hidden = dialog || !this.updateReady || this.screen === 'flight' || (roomBar && this.roomBarView.reload);
     }
+    /* A bar that goes takes its stop with it (barStops), and a cursor that
+     * was on it would point past the end of the list, where Enter does
+     * nothing. It goes back to the list's last stop. */
+    const stops = this.barStops().length;
+    if (stops !== this.barStopCount) {
+      this.barStopCount = stops;
+      const items = this.items();
+      if (this.cursor >= items.length) {
+        let i = items.length - 1;
+        while (i > 0 && !this.isStop(items[i])) {
+          i -= 1;
+        }
+        this.cursor = Math.max(0, i);
+        this.syncCursor(false);
+      }
+    }
+    this.markBars();
     /* The dock takes the second slot when there is a chip in the first and
      * the corner when there is not, which is the title. Written as a class
      * rather than as a top in pixels here, so the status bar's own offset
@@ -5983,7 +6002,42 @@ export class Ui {
    * repeated section headings and Back, which do.
    */
   items() {
-    return stampIds(this.buildItems(), this.screen);
+    return stampIds([...this.buildItems(), ...this.barStops()], this.screen);
+  }
+
+  /*
+   * THE BARS' BUTTONS ARE THE MENU'S LAST STOPS. Reload on the update bar
+   * and the room bar's button were mouse only: a pad has nothing but the
+   * cursor, and Enter on a keyboard selects the cursor's row, so a pad or
+   * keyboard pilot could read "A new version is out" and never press it.
+   * As items they are walked, lit and chosen like any row: Up from the
+   * first row or Down from the last lands on them. Last, so the cursor
+   * never opens on one, and drawn by the bar itself (renderMenu skips a
+   * `bar` item). Only while the bar is up, which syncChips decides and
+   * which is never in flight, so no flight input is taken.
+   */
+  barStops() {
+    const stops = [];
+    if (this.updateBar && !this.updateBar.hidden) {
+      stops.push({ bar: 'update', label: str('update.reload'), note: str('update.new_version'), action: 'update-reload' });
+    }
+    if (this.roomBar && !this.roomBar.hidden && this.roomBarView && this.roomBarView.button) {
+      stops.push({ bar: 'room', label: this.roomBarView.button, note: this.roomBarView.text, action: 'room-bar' });
+    }
+    return stops;
+  }
+
+  /* Light the bar button the cursor is on, the way markCards lights a card. */
+  markBars(items = null) {
+    const up = (this.updateBar && !this.updateBar.hidden) || (this.roomBar && !this.roomBar.hidden);
+    const here = up ? (items || this.items())[this.cursor] : null;
+    const on = here ? here.bar : null;
+    if (this.updateReload) {
+      this.updateReload.classList.toggle('on', on === 'update');
+    }
+    if (this.roomBarButton) {
+      this.roomBarButton.classList.toggle('on', on === 'room');
+    }
   }
 
   buildItems() {
@@ -7678,10 +7732,11 @@ export class Ui {
     host.textContent = '';
     /* The Courses screen draws its choices as cards above this menu, so the
      * rows here are only what is left over. */
+    const drawn = items.filter((it) => !it.bar);
     const rows = this.cardScreen()
-      ? items.filter((it) => !it.map && !it.course && !it.card && !it.lobby)
-      : items;
-    const offset = items.length - rows.length;
+      ? drawn.filter((it) => !it.map && !it.course && !it.card && !it.lobby)
+      : drawn;
+    const offset = drawn.length - rows.length;
     this.rowOffset = offset;
     this.menuRows = [];
     rows.forEach((it, k) => {
@@ -8023,6 +8078,7 @@ export class Ui {
 
   syncCursor(scroll = true) {
     const items = this.items();
+    this.markBars(items);
     /*
      * The id of the row the cursor is on, kept so that a REBUILD can put
      * the cursor back on the same row rather than the same index. The
@@ -12853,6 +12909,16 @@ export class Ui {
   }
 
   act(action, picked = null) {
+    if (action === 'update-reload') {
+      window.location.reload();
+      return;
+    }
+    if (action === 'room-bar') {
+      if (this.roomBarView && this.roomBarView.act) {
+        this.roomBarView.act();
+      }
+      return;
+    }
     /* The swap in place, from the pause menu's row. */
     if (action === 'hotswap') {
       this.openSwap('paused');

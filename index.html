@@ -4662,12 +4662,15 @@
       .signin-chip.first-slot { top: 16px; }
       .signin-chip[hidden] { display: none; }
 
-      /* A newer deploy is out: src/ui/update.js. Bottom centre over the
-         command bar, away from the chip stack in the top right, in the same
-         chip family. Menus and Paused only; syncChips hides it in flight. */
+      /* A newer deploy is out: src/ui/update.js. IN the command bar, beside
+         the primary, in the same chip family: every screen is padded to
+         clear that bar, so it cannot sit on a card, the rooms panel or a
+         row, which it did floating above the bar. Menus and Paused only;
+         syncChips hides it in flight. Its words wrap rather than push the
+         bar past the window on a phone, two lines at most in the bar's
+         52 px. */
       .update-bar {
-        position: absolute; left: 50%; bottom: calc(var(--bar-bot) + 12px); z-index: 7;
-        transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box;
+        flex: 0 1 auto; min-width: 0; box-sizing: border-box; max-height: 100%;
         display: flex; align-items: center; gap: 12px;
         pointer-events: auto;
         border: 1px solid rgba(232, 168, 184, 0.45);
@@ -4677,16 +4680,27 @@
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
       }
       .update-bar[hidden] { display: none; }
-      /* The room's bar (src/ui/ui.js setRoomBar) sits over the update bar,
-       * so both can be up at once. */
-      .room-bar { bottom: calc(var(--bar-bot) + 58px); border-color: rgba(168, 214, 232, 0.5); }
+      .update-bar > span { min-width: 0; }
+      /* The room's bar (src/ui/ui.js setRoomBar), in the same place: the two
+       * are never up together, because a room bar asking for the reload
+       * hides the update bar and otherwise the room bar only shows with no
+       * update waiting (src/main.js roomBarView). */
+      .room-bar { border-color: rgba(168, 214, 232, 0.5); }
       .room-bar .update-reload[hidden] { display: none; }
       .update-reload {
         appearance: none; border: 1px solid var(--sakura); border-radius: 3px;
         background: transparent; color: var(--sakura); cursor: pointer;
         font: inherit; padding: 5px 10px;
       }
-      .update-reload:hover { background: var(--sakura); color: #101611; }
+      .update-reload:hover, .update-reload.on { background: var(--sakura); color: #101611; }
+      .update-reload { flex: 0 0 auto; }
+      /* A phone's command bar holds the legend or a bar, not both: side by
+         side at 390 px the legend was cut to "Enter C" and the bar's words
+         ran to three lines. The bar is the one that needs reading; the
+         legend is back the moment it goes. */
+      @media (max-width: 600px) {
+        .frame-bot:has(> .update-bar:not([hidden])) .frame-legend { display: none; }
+      }
 
       /*
        * THE AIRCRAFT PICKER (src/ui/carousel.js). The models are drawn in
