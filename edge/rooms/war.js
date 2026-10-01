@@ -95,12 +95,16 @@
  *   { type: 'war', war }                      the view (view()), on every
  *                                             change and in each welcome
  *   { type: 'war', op: 'born', agents }       [{ id, kind, route, t0, k,
- *                                             n, err, target }], routes.js
- *                                             planAgent's input
+ *                                             n, err, target, wire? }],
+ *                                             routes.js planAgent's input;
+ *                                             wire the room ms it flies
+ *                                             into a power line
+ *                                             (src/share/war/wires.js)
  *   { type: 'war', op: 'dead', ids, at, by, why, p }
  *                                             why 'boom' (by the seat),
  *                                             'arrive' (by 0, with target
- *                                             and hit) or 'leave' (by 0);
+ *                                             and hit), 'leave' (by 0) or
+ *                                             'wire' (by 0, on a line);
  *                                             scouts: true on the boom that
  *                                             killed a scout wave's last
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
@@ -144,6 +148,7 @@ import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
 import { MISSIONS, waveSize, waveTarget } from '../../src/share/war/missions/index.js';
+import { wireStrike } from '../../src/share/war/wires.js';
 import { INTRO_MS } from '../../src/share/war/intro.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
@@ -357,6 +362,14 @@ function clean(p) {
 
 /* A number a message carries, to the millimetre. */
 const mm = (v) => Math.round(v * 1000) / 1000;
+
+/* An attacker's draw for its j-th crossing of a power line
+ * (src/share/war/wires.js): the seed's with this and j mixed in, so it
+ * neither repeats nor moves the errors' draws. */
+const WIRE_SALT = 0x57495245;
+export function wireDraw(seed, id, j) {
+  return draw((seed ^ WIRE_SALT ^ Math.imul(j + 1, 0x632be5ab)) >>> 0, id);
+}
 
 /* A seeded draw in [0, 1) from two integers, the same on every engine. */
 function draw(seed, id) {
@@ -927,6 +940,11 @@ export class RoomWar {
         const a = {
           id, kind: w.kind, route: w.route, t0, k, n, err, target: waveTarget(w, k), wave: m.wave,
         };
+        /* Whether it flies into a power line on its way, and when. */
+        const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, id, j));
+        if (wire != null) {
+          a.wire = wire;
+        }
         m.agents.push(a);
         this.adopt(a);
         born.push(a);
@@ -1323,6 +1341,9 @@ export class RoomWar {
     const a = x.a;
     const t = x.plan.tEnd;
     const o = poseAt(x.plan, t);
+    if (x.plan.end === 'wire') {
+      return this.onWire(core, x, t, o, roomNow);
+    }
     const target = a.target != null ? this.mission().targets[a.target] : null;
     const hit = Boolean(target) && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
     this.take(a, hit);
@@ -1340,6 +1361,25 @@ export class RoomWar {
     }
     this.settle(t);
     return this.broadcast(core, msg);
+  }
+
+  /* An attacker that flew into a power line at t: dead where it struck,
+   * by nobody, its target untouched. A scout that does so is as dead as
+   * one a warhead took. */
+  onWire(core, x, t, o, roomNow) {
+    const m = this.match;
+    const a = x.a;
+    const scoutsWere = m.scouts ? m.scouts.killed : 0;
+    m.lastGone = t;
+    this.remove([a.id], true);
+    const scoutsDown = Boolean(m.scouts) && scoutsWere < m.scouts.n && m.scouts.killed >= m.scouts.n;
+    this.log.push({
+      what: 'wire', t, id: a.id, kind: a.kind, decided: roomNow,
+    });
+    this.settle(t);
+    return this.broadcast(core, {
+      type: 'war', op: 'dead', ids: [a.id], at: mm(t), by: 0, why: 'wire', p: o.p.map(mm), ...(scoutsDown ? { scouts: true } : {}),
+    });
   }
 
   /* Won or lost, at t, after anything that changed the count. */
@@ -1407,7 +1447,8 @@ export class RoomWar {
     const t = result === 'lost' ? m.f : Math.max(m.lastGone ?? m.f, m.roundAt ?? m.goAt);
     for (const a of [...m.agents]) {
       const x = this.live.get(a.id);
-      const through = result === 'lost' && a.target != null;
+      /* One bound for a power line on its way never gets through. */
+      const through = result === 'lost' && a.target != null && !(x && x.plan.end === 'wire');
       const target = through ? mission.targets[a.target] : null;
       const hit = through && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
       if (through) {

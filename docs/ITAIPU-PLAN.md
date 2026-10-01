@@ -414,8 +414,14 @@ What the extract holds (check.py, OSM data to 2026-09-28 20:23 UTC, both extract
 - **Power**: every tower and line. Itaipu's switchyards and the lines
   leaving them are the tallest things in the landscape after
   the dam and the most likely thing a pilot hits. Towers are `pole`
-  colliders (a post per leg pair), conductors are `pole` capsules of 0.1 m
-  between towers with a catenary sag of 2 % of the span. Substations are
+  colliders (a post per leg pair), and so are the insulator strings the
+  phases hang from; conductors are `wire` capsules between towers with a
+  catenary sag of 2 % of the span, one round a phase's bundle (four
+  conductors 457 mm apart from 400 kV, else OSM's `wires`) and one a
+  single conductor or earth wire at its own radius (town/power.js). With
+  the damage mode on the plant meets the wires near the craft itself
+  (sim_wire_add, docs/CRASH-STAGE1.md, Wires), and they are drawn each
+  conductor at least 1.25 pixels wide (town/wires.js). Substations are
   fenced yards with gantries as boxes.
 - **Everything the extract holds outside the hero** is used only for
   masks (water, landuse) and is not built.

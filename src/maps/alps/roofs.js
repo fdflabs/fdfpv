@@ -483,7 +483,7 @@ export function gableSolids(rec, cut = cutOf(rec)) {
  * inside the house (src/main.js declares these). An old roof's dip is not
  * carried: the slab is the straight plane, at most the dip over the tiles.
  */
-const SLAB_T = 0.3;
+export const SLAB_T = 0.3;
 export function roofSlabs(rec) {
   const out = [];
   const turn = (x, y, z) => [rec.c * x + rec.s * z, y, -rec.s * x + rec.c * z];

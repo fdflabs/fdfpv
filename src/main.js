@@ -232,9 +232,9 @@ import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight 
 import { KINDS } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
-import { collectTrees, groundSurface, nearestSolids, nearestTrees, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
+import { collectTrees, groundSurface, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
 import {
-  DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, partLabel,
+  DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, WIRES_MAX, partLabel,
 } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
@@ -572,14 +572,14 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 27 (the town is 8 of them,
+ * itaipu: itaipu.js and src/maps/itaipu/, 28 (the town is 9 of them,
  * the vegetation 3, the spawns and the title's flight 2, the war's
  * switchyard 2, look/night.js, mission 4's fixtures, loaded whether
  * the map is built for day or night, and water/meet.js, where the water
  * meets the dam). The Yellowstone terrain engine and
  * the swiss2 look it is built with are under their own prefixes, as the
  * Alps' modules are for swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 27 };
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 28 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -706,6 +706,10 @@ export async function boot({
   const avxHeightAt = (x, z) => view.height(x, z, Infinity);
   const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
   const tracks = createTrackManager({ heightAt: avxHeightAt });
+  /* The inset boxes the tracks itself (docs/AVIONICS-SENSORS.md). */
+  sensors.setTracks(tracks.snapshot);
+  /* What the picture is doing, for the sensor: fpvfail's snow and loss. */
+  const avxVideo = { snow: 0, lost: false };
   /* Thermal's night advantage: what light the sensors have. */
   const avxEnv = { light: 1 };
   const avxHud = { state: 'MANUAL', reasons: [], ai: false };
@@ -7605,6 +7609,7 @@ export async function boot({
   let crashTreesFrom = null;
   let crashTreesGen = 0;
   const treePick = [];
+  const wirePick = [];
   const solidPick = [];
   /* The colliders a roof covers, marked for nearestSolids to leave out;
    * made once for the map's collider count. */
@@ -7647,6 +7652,7 @@ export async function boot({
   let jellyArmed = true;
   const CRASH_LOG_MAX = 400;
   let crashTreesDeclared = 0;
+  let crashWiresDeclared = 0;
   let crashSolidsDeclared = 0;
   let fpvLensLive = false;
   /* Harness only: a crash capture's fixed camera stands outside the craft,
@@ -7670,6 +7676,10 @@ export async function boot({
   const CRASH_WORLD_MOVE = 12;
   const TREE_REACH = 80;
   const SOLID_REACH = 40;
+  /* An overhead line's chords within this of the craft, as many as the
+   * plant holds (WIRES_MAX): 40 m is more than a part flies between two
+   * refreshes, as for the solids. */
+  const WIRE_REACH = 40;
   /* And the roof cover looked at every this many steps: 10 ms is 0.14 m
    * at 14 m/s, inside the 0.25 m a wall column is wide. */
   const CRASH_COVER_STEP = 10;
@@ -7885,9 +7895,11 @@ export async function boot({
     clearCrashPass();
     if (damage.available) {
       sim.e.sim_tree_clear();
+      sim.e.sim_wire_clear();
       sim.e.sim_obstacle_clear();
     }
     crashTreesDeclared = 0;
+    crashWiresDeclared = 0;
     crashSolidsDeclared = 0;
     crashWorldX = NaN;
   }
@@ -8073,9 +8085,40 @@ export async function boot({
         passSet.push(t.post);
       }
     }
+    declareCrashWires(col, must);
     /* A tree the host met is the plant's now as a tree, passed like the
      * rest (its crown and trunk), not a solid besides. */
     declareCrashSolids(must >= 0 && col.pass[must] ? -1 : must);
+  }
+
+  /*
+   * THE WIRES ARE THE PLANT'S. Every chord of an overhead line within
+   * WIRE_REACH of crashProbe goes to the plant (sim_wire_add), which meets
+   * it with the parts' hull edges in every step, and the sweep lets it
+   * through, as it does a crown the plant holds. With `must` a wire the
+   * host met that was not among them, that one first.
+   */
+  function declareCrashWires(col, must) {
+    sim.e.sim_wire_clear();
+    crashWiresDeclared = 0;
+    nearestWires(col, crashProbe.x, crashProbe.y, crashProbe.z, WIRE_REACH, WIRES_MAX, wirePick);
+    if (must >= 0 && col.fkind[must] === KINDS.indexOf('wire') && !wirePick.some((o) => o.i === must)) {
+      wirePick.unshift({ d2: 0, i: must });
+      if (wirePick.length > WIRES_MAX) {
+        wirePick.length = WIRES_MAX;
+      }
+    }
+    for (const { i } of wirePick) {
+      worldPosToSim(col.fax[i], col.fay[i], col.faz[i], crashSimA);
+      worldPosToSim(col.fbx[i], col.fby[i], col.fbz[i], crashSimB);
+      const k = sim.e.sim_wire_add(crashSimA.x, crashSimA.y, crashSimA.z, crashSimB.x, crashSimB.y, crashSimB.z, col.fr[i]);
+      if (k < 0) {
+        throw new Error(`sim_wire_add: ${simErrorName(k)} for wire collider ${i}, ${crashWiresDeclared} declared`);
+      }
+      crashWiresDeclared += 1;
+      col.pass[i] = 1;
+      passSet.push(i);
+    }
   }
 
   /* The solids near crashProbe for the free bodies. A roof the craft is
@@ -8603,6 +8646,7 @@ export async function boot({
       pieces: wreckRig.summary(),
       debris: debris.active(),
       trees: crashTreesDeclared,
+      wires: crashWiresDeclared,
       treesOnMap: crashTrees.length,
       /* The streamed set's generation the crash world was declared from,
        * which follows the map's own (window.__colliders().streamGen). */
@@ -11570,7 +11614,10 @@ export async function boot({
    * mouseLockMine is set when a capture this file asked for arrives.
    */
   let mouseLockAsked = false;
-  let mouseLockPending = false;
+  /* Asks not yet answered. A count, not a flag: the resume's ask and a
+   * click's can both be in flight, and one refused before the other is
+   * granted must not leave the granted capture unowned. */
+  let mouseLockAsks = 0;
   let mouseLockMine = false;
   let mouseExitAsked = false;
   let mouseEscGuardUntil = 0;
@@ -11581,7 +11628,7 @@ export async function boot({
       && !(build && build.active && !build.racing);
   }
   function askMouseLock() {
-    mouseLockPending = true;
+    mouseLockAsks += 1;
     const req = shell.canvas.requestPointerLock();
     if (req && typeof req.catch === 'function') {
       req.catch(() => {});
@@ -11623,12 +11670,14 @@ export async function boot({
     askMouseLock();
   });
   document.addEventListener('pointerlockerror', () => {
-    mouseLockPending = false;
+    mouseLockAsks = Math.max(0, mouseLockAsks - 1);
   });
   document.addEventListener('pointerlockchange', () => {
     if (mouseLocked()) {
-      mouseLockMine = mouseLockPending;
-      mouseLockPending = false;
+      /* Two asks granted each fire a change; the second must not disown
+       * the capture the first one took. */
+      mouseLockMine = mouseLockMine || mouseLockAsks > 0;
+      mouseLockAsks = 0;
       return;
     }
     const mine = mouseLockMine;
@@ -11646,6 +11695,7 @@ export async function boot({
     enabled: input.mouseEnabled,
     live: input.mouseLive,
     locked: mouseLocked(),
+    mine: mouseLockMine,
     wants: mouseWantsLock(),
     centring: input.mouseCentring(),
     step: input.mouseThrottleStep(),
@@ -12978,7 +13028,14 @@ export async function boot({
     }
     avxLastT = tS;
     if (!paused) {
-      sensors.update(tS, dtS);
+      avxVideo.snow = fpvFail.level(nowWall).snow;
+      avxVideo.lost = fpvFail.deadSince() >= 0;
+      let motorC = -Infinity;
+      for (const m of telemetry.state.motors) {
+        motorC = Math.max(motorC, m.tempC);
+      }
+      sensors.setMotorTemp(motorC);
+      sensors.update(tS, dtS, avxVideo);
       avxEnv.light = roomWar.night() ? 0.05 : 1;
       perception.update(tS, sensors.state, truth, avxOwn, avxEnv);
       tracks.update(tS, perception.detections, avxOwn);
@@ -14592,7 +14649,14 @@ export async function boot({
     /* The hangar covers the whole canvas with its own set, opaque, so the
      * world under it is not drawn at all while it is up. */
     if (worldLive && drawThis && !ui.hangar.isOpen) {
-      view.post.render();
+      /* With the Avionics HUD up the camera is a sensor: its picture in
+       * picture, and the main view in its mode when the pilot puts the
+       * sensor full screen (src/avionics/sensors.js). */
+      if (avionicsHud.on) {
+        sensors.render(view.post);
+      } else {
+        view.post.render();
+      }
       if (mode === 'replay') {
         crashCam.afterRender();
       }

@@ -102,7 +102,7 @@ import {
 } from '../src/builder/course.js';
 import { Colliders, KINDS, contactMaterial } from '../src/game/collide.js';
 import {
-  HOOP_ROOM, craftLimits, lineWarnings, misfitGate, openingBlocked, racingLine, speedAt,
+  HOOP_ROOM, SPAN_ROOM, craftLimits, lineWarnings, misfitGate, openingBlocked, racingLine, speedAt,
 } from '../src/builder/line.js';
 import { postGive } from '../src/game/crashworld.js';
 import { planesFor } from '../src/game/verify.js';
@@ -729,16 +729,21 @@ console.log('plane sized gates');
   const w3 = openingsOf({ type: 'wideGate3', dims: ELEMENTS.wideGate3.dims })[0];
   const w5 = openingsOf({ type: 'wideGate5', dims: ELEMENTS.wideGate5.dims })[0];
   check('the wide gates are built one to one: 3 m and 5 m', near(w3.clearW, 3, 1e-9) && near(w5.clearW, 5, 1e-9), `${w3.clearW} ${w5.clearW}`);
-  const small = wings.filter((af) => 2 * span(af) <= w3.clearW);
-  const big = wings.filter((af) => 2 * span(af) > w3.clearW);
-  check('every fixed wing has a wide gate two of its spans wide',
-    big.every((af) => 2 * span(af) <= w5.clearW), big.filter((af) => 2 * span(af) > w5.clearW).map((af) => af.id).join());
-  console.log(`  3 m: ${small.map((af) => `${af.id} ${span(af).toFixed(2)}`).join(', ')}; 5 m: ${big.map((af) => `${af.id} ${span(af).toFixed(2)}`).join(', ')}`);
   const pair = ELEMENTS.pylonPair.dims;
   const widest = Math.max(...wings.map(span));
   const rMid = (pair.baseRadius + pair.tipRadius) / 2;
+  const pairW = pair.clearW + 2 * pair.baseRadius - 2 * rMid;
   check('between the pylons at half their height, two spans of the widest wing',
-    pair.clearW + 2 * pair.baseRadius - 2 * rMid >= 2 * widest, `${(pair.clearW + 2 * pair.baseRadius - 2 * rMid).toFixed(2)} vs ${(2 * widest).toFixed(2)}`);
+    pairW >= 2 * widest, `${pairW.toFixed(2)} vs ${(2 * widest).toFixed(2)}`);
+  /* The banner gates are sized by the rule for the planes up to 2.5 m
+   * across. One wider, the Striker (3.15 m across its sweep), has no
+   * banner gate two of its spans wide and is sent between the pylons. */
+  const small = wings.filter((af) => 2 * span(af) <= w3.clearW);
+  const big = wings.filter((af) => 2 * span(af) > w3.clearW && 2 * span(af) <= w5.clearW);
+  const pylonsOnly = wings.filter((af) => 2 * span(af) > w5.clearW);
+  check('every fixed wing has a plane sized opening two of its spans wide: a wide gate, or past the 5 m one the pylon pair',
+    pylonsOnly.every((af) => 2 * span(af) <= pairW), pylonsOnly.filter((af) => 2 * span(af) > pairW).map((af) => af.id).join());
+  console.log(`  3 m: ${small.map((af) => `${af.id} ${span(af).toFixed(2)}`).join(', ')}; 5 m: ${big.map((af) => `${af.id} ${span(af).toFixed(2)}`).join(', ')}; the pylons: ${pylonsOnly.map((af) => `${af.id} ${span(af).toFixed(2)}`).join(', ')}`);
 
   const d = newCourse('swiss2', 'Air race');
   const up = qAxis(0, 1, 0, 0);
@@ -764,9 +769,15 @@ console.log('plane sized gates');
   addGate(d3, 'wideGate3', { x: 0, y: 100, z: 0 }, up);
   addGate(d3, 'wideGate3', { x: 0, y: 100, z: -80 }, up);
   /* The warning asks for 1.2 spans; the size rule here is two, so even
-   * the Bramor is only told off at a five inch's gate. */
-  check('the warning reads the 3 m gate as 3 m: no fixed wing is warned there',
-    wings.every((af) => smallFor(raceGatesOf(d3), af.id).length === 0));
+   * the Bramor is only told off at a five inch's gate. The Striker, 1.2
+   * of whose spans are 3.78 m, is told off at the 3 m one. */
+  const warned3 = wings.filter((af) => smallFor(raceGatesOf(d3), af.id).length > 0).map((af) => af.id);
+  const over3 = wings.filter((af) => span(af) * SPAN_ROOM > 3).map((af) => af.id);
+  check('the warning reads the 3 m gate as 3 m: a fixed wing is warned there when 1.2 of its spans are over 3 m, and only then',
+    JSON.stringify(warned3) === JSON.stringify(over3), `${warned3.join()} against ${over3.join()}`);
+  check('the Bramor is not warned there, and the Striker is, at both gates',
+    !warned3.includes('bramor2300') && JSON.stringify(smallFor(raceGatesOf(d3), 'striker2500')) === '[0,1]', JSON.stringify(smallFor(raceGatesOf(d3), 'striker2500')));
+  check('and the Striker is not warned at the 5 m gate, the pylon pair and round the pylon', smallFor(gates, 'striker2500').length === 0, JSON.stringify(smallFor(gates, 'striker2500')));
   const d4 = newCourse('swiss2', 'Five inch');
   addGate(d4, 'gate', { x: 0, y: 100, z: 0 }, up);
   addGate(d4, 'gate', { x: 0, y: 100, z: -80 }, up);

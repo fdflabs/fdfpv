@@ -38,6 +38,7 @@ export const FREE_BODIES_MAX = 12;
 export const OBSTACLES_MAX = 64;
 export const TREES_MAX = 32;
 export const TREE_CLUMPS_MAX = 32;
+export const WIRES_MAX = 160;
 
 /* SIM_PART_*, by id. */
 export const PART_KINDS = [
@@ -56,7 +57,7 @@ export const MATERIALS = [
  * sim_contact_at_mat. 'default' is today's contact. */
 export const SURFACES = [
   'default', 'grass', 'dirt', 'asphalt', 'concrete', 'rock', 'snow', 'wood',
-  'metal', 'pvc', 'foliage', 'water', 'sand',
+  'metal', 'pvc', 'foliage', 'water', 'sand', 'wire',
 ];
 export const SURFACE = Object.fromEntries(SURFACES.map((name, id) => [name, id]));
 
