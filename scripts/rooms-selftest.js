@@ -38,7 +38,7 @@ import {
 } from '../src/share/roomwire.js';
 import { PARTS_PER_S } from '../edge/rooms/wrecks.js';
 import {
-  ABANDON_MS, RESEAT_MS, RoomCore, KICK_MS, KICKED_JOIN_GAP_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, CLOCK_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
+  ABANDON_MS, RESEAT_MS, RoomCore, TICK_MS, KICK_MS, KICKED_JOIN_GAP_MS, PRIVATE_CAP, POSE_PER_S, TEXT_PER_S, CLOCK_PER_S, TEXT_CLOSE_PER_S, JOINS_PER_MIN,
 } from '../edge/rooms/core.js';
 import { HULLS } from '../configs/hulls.js';
 import { AIRFRAME_IDS } from '../configs/airframes.js';
@@ -1905,6 +1905,114 @@ console.log('stale games and the host');
   join(r7, F, old, { token: 'a'.repeat(32), seat: 2 });
   check('a room with no stored host: the first pilot back holds it, stored, and its welcome says so',
     r7.host() === texts(F, 'welcome')[0].seat && texts(F, 'welcome')[0].host === texts(F, 'welcome')[0].seat && old.get('hosting').token === texts(F, 'welcome')[0].token);
+}
+
+console.log('the room tick keeps the clock');
+{
+  /*
+   * RoomHost's tick on a stand-in clock: every timer fires `late` ms after
+   * it was asked for, as on an event loop that is always that busy, and
+   * once, `stallAt`, a timer fires `stall` ms late. The core is a stand-in
+   * that wants ticking for ever and records when each tick ran.
+   */
+  const tickTimes = ({ late, seconds, stallAt = Infinity, stall = 0 }) => {
+    const real = { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, now: Date.now };
+    const start = 9_000_000;
+    let clock = start;
+    let pending = null;
+    const ran = [];
+    globalThis.setTimeout = (fn, ms) => {
+      pending = { at: clock + Math.max(0, ms) + late, fn };
+      return pending;
+    };
+    globalThis.clearTimeout = () => {
+      pending = null;
+    };
+    Date.now = () => clock;
+    try {
+      const h = new RoomHost({ storage: {}, getWebSockets: () => [] }, {});
+      h.core = {
+        meta: { public: false },
+        tick: (now) => {
+          ran.push(now);
+          return [{ tick: true }];
+        },
+      };
+      h.run([{ tick: true }]);
+      let stalled = false;
+      while (pending && clock < start + seconds * 1000) {
+        const p = pending;
+        pending = null;
+        clock = p.at;
+        if (!stalled && clock >= stallAt) {
+          stalled = true;
+          clock += stall;
+        }
+        p.fn();
+      }
+    } finally {
+      globalThis.setTimeout = real.setTimeout;
+      globalThis.clearTimeout = real.clearTimeout;
+      Date.now = real.now;
+    }
+    return ran;
+  };
+  const rate = (ran) => (ran.length - 1) / ((ran.at(-1) - ran[0]) / 1000);
+  const busy = tickTimes({ late: 5, seconds: 10 });
+  check(`with every timer 5 ms late the room still ticks at ${(1000 / TICK_MS).toFixed(0)} Hz`, Math.abs(rate(busy) - 1000 / TICK_MS) < 0.1, `${rate(busy).toFixed(2)} Hz`);
+  const busier = tickTimes({ late: 25, seconds: 10 });
+  check('and with every timer 25 ms late', Math.abs(rate(busier) - 1000 / TICK_MS) < 0.1, `${rate(busier).toFixed(2)} Hz`);
+  const stalled = tickTimes({ late: 1, seconds: 3, stallAt: 9_001_000, stall: 400 });
+  const gaps = stalled.slice(1).map((t, i) => t - stalled[i]);
+  /*
+   * The ticks now keep time with the senders, 30 Hz each, so a sender's
+   * jitter puts two of its poses between two ticks over and over. Every
+   * one of them must still reach a near peer, in order (core.js
+   * RECENT_POSES): poses every 1000 / 30 ms in phase with the ticks,
+   * each up to 4 ms early or late, ticks exactly every TICK_MS.
+   */
+  const jstart = 10_000_000;
+  const jr = new RoomCore({ code: 'JITTR2', cap: PRIVATE_CAP, friendly: true, map: 'swiss2', epoch: jstart - 1000 });
+  const sender = sock('jsender', '10.9.1.1');
+  const near = sock('jnear', '10.9.1.2');
+  for (const [i, so] of [sender, near].entries()) {
+    run(jr.open(so, jstart));
+    run(jr.message(so, JSON.stringify({ type: 'hello', proto: PROTO, build: 'test', name: [1, 2, 70 + i], profile }), jstart, so.address, newToken));
+  }
+  let seed = 7;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  const sendAt = [];
+  for (let k = 0; k < 300; k += 1) {
+    sendAt.push(Math.round(jstart + TICK_MS + (k * 1000) / 30 + (rand() * 8 - 4)));
+  }
+  const relayed = new Set();
+  let twoInOne = 0;
+  let nextJTick = jstart + TICK_MS;
+  let sinceTick = 0;
+  for (let clock = jstart, k = 0; clock <= sendAt.at(-1) + 200; clock += 1) {
+    for (; k < sendAt.length && sendAt[k] <= clock; k += 1) {
+      run(jr.message(sender, encodePose({ ...pose, flags: FLAG_AIRBORNE, seq: k, t: sendAt[k] - jr.meta.epoch }), clock));
+      sinceTick += 1;
+    }
+    if (clock >= nextJTick) {
+      twoInOne += sinceTick > 1 ? 1 : 0;
+      sinceTick = 0;
+      run(jr.tick(clock));
+      nextJTick += TICK_MS;
+    }
+  }
+  for (const m of near.got) {
+    for (const p of m instanceof Uint8Array ? decodeBatch(m).poses : []) {
+      relayed.add(p.t);
+    }
+  }
+  check('with a sender\'s jitter putting two poses between ticks, a near peer is still sent every pose', twoInOne > 10 && relayed.size === sendAt.length,
+    `${relayed.size} of ${sendAt.length} relayed, ${twoInOne} ticks with two`);
+  check('a stall of 400 ms is one long gap, not a burst of ticks to catch up', Math.min(...gaps) >= TICK_MS - 1 && gaps.filter((g) => g > 2 * TICK_MS).length === 1,
+    `shortest gap ${Math.min(...gaps).toFixed(1)} ms`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -139,6 +139,19 @@ export const INTEREST = [
 /* A seat whose newest pose is older than this is not flying anywhere. */
 export const HERE_MS = 1000;
 
+/*
+ * THE TICK AND THE POSES RUN AT ONE RATE, 30 Hz each, on two clocks: the
+ * room's (host.js, held to the wall clock) and each sender's. A tick that
+ * relayed only the newest pose lost one whenever two arrived between two
+ * ticks, which jitter of a few milliseconds does over and over to a
+ * sender whose phase sits near the tick's: rooms:load measured near peers
+ * at 25 Hz once the tick stopped drifting. So a seat keeps its last
+ * RECENT_POSES, and a near peer is sent every one it has not been sent
+ * yet, in order; on average that is still one a tick. A far peer, sent
+ * every few ticks on purpose, gets its newest alone.
+ */
+export const RECENT_POSES = 3;
+
 /* A POSE's position, scene metres. */
 function poseAt(bytes) {
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -237,7 +250,7 @@ export class RoomCore {
   restore(conns) {
     for (const { conn, attachment } of conns) {
       if (attachment && attachment.seat) {
-        this.seats.set(conn, { ...attachment, pose: null, sent: new Map(), poseRate: { since: 0, n: 0 }, ...textRates(0) });
+        this.seats.set(conn, { ...attachment, pose: null, recent: [], sent: new Map(), poseRate: { since: 0, n: 0 }, ...textRates(0) });
         this.referee.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
         this.combat.seat(attachment.seat, attachment.profile && attachment.profile.airframe);
       } else {
@@ -608,6 +621,7 @@ export class RoomCore {
       joined,
       address: address || '',
       pose: null,
+      recent: [],
       sent: new Map(),
       poseRate: { since: now, n: 0 },
       level,
@@ -831,6 +845,10 @@ export class RoomCore {
       return checked.actions;
     }
     s.pose = checked.bytes;
+    s.recent.push(checked.bytes);
+    if (s.recent.length > RECENT_POSES) {
+      s.recent.shift();
+    }
     s.poseNow = now;
     /* The referee judges the bytes the room relays: Phase 5 sets
      * FLAG_SPAWNING on a spawning seat, which the rule leaves out. It
@@ -875,11 +893,17 @@ export class RoomCore {
         if (f === s || (last && last.pose === f.pose)) {
           continue;
         }
-        if (last && this.tickNo - last.tick < interestEvery(here, at.get(f))) {
+        const every = interestEvery(here, at.get(f));
+        if (last && this.tickNo - last.tick < every) {
           owed = true;
           continue;
         }
-        entries.push({ seat: f.seat, pose: f.pose });
+        /* A near peer is sent every pose since the last one it was sent
+         * (RECENT_POSES), a far one its newest. */
+        const since = every === 1 && last ? f.recent.slice(f.recent.indexOf(last.pose) + 1) : [f.pose];
+        for (const pose of since) {
+          entries.push({ seat: f.seat, pose });
+        }
         s.sent.set(f.seat, { pose: f.pose, tick: this.tickNo });
       }
       if (entries.length) {
