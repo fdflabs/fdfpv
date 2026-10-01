@@ -40,7 +40,8 @@
  *   crash world after a refill renumbers the streamed set, the crash
  *               world (src/main.js declareCrashWorld) is declared again
  *               from the new generation (window.__crash().streamGen);
- *   wires       a Skyhunter flown level into a conductor is a wreck;
+ *   wires       a Skyhunter flown level into a conductor is a wreck, and
+ *               its crash met the surface `wire`;
  *   towers      a Skyhunter flown level into a tower is a wreck;
  *   renumber    a Skyhunter flown into a streamed wall just after a refill
  *               renumbered the set is met by it, with no host contact the
@@ -715,10 +716,12 @@ async function skyhunterChecks(nodeTown) {
       /* Square across the wire. */
       const fly = await throwAt(page, [span.x, span.y, span.z], [-span.dz, span.dx]);
       const kinds = [...new Set(fly.log.map((r) => r.hit))].join(',');
-      if (fly.end.wrecked) {
-        ok(`wires: a Skyhunter level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}), 16 m/s, is a wreck (${fly.end.flags}; host saw ${kinds})`);
+      /* The crash names what it met (src/main.js onDamageEvent's log). */
+      const met = await js(page, '[...new Set(window.__crashLog().map((e) => e.surface))]');
+      if (fly.end.wrecked && met.includes('wire')) {
+        ok(`wires: a Skyhunter level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}), 16 m/s, is a wreck on the wire (${fly.end.flags}; crash met ${met.join(',')}; host saw ${kinds})`);
       } else {
-        fail(`wires: a Skyhunter level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}) flew on: ${JSON.stringify(fly.end)}; host saw ${kinds}`);
+        fail(`wires: a Skyhunter level into a conductor at (${span.x.toFixed(0)}, ${span.y.toFixed(1)}, ${span.z.toFixed(0)}) is not a wreck on the wire: ${JSON.stringify(fly.end)}; crash met ${met.join(',')}; host saw ${kinds}`);
       }
     }
 

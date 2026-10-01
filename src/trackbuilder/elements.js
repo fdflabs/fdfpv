@@ -766,9 +766,12 @@ export const ELEMENTS = {
     pitch: 0,
     dims: { levels: 1, sillH: 0, clearW: 3.0, clearH: 3.0, levelPitch: levelPitchFor(3.0) },
   },
-  /* THE LARGE WIDE GATE: 5 m, over two spans of the Bramor (2.30 m), the
-   * widest aircraft here, so the Timber, the Skyhunter and the Radian fly it
-   * too; the same five metres the wing class's own gate is (WING_GATE). */
+  /* THE LARGE WIDE GATE: 5 m, over two spans of the Bramor (2.30 m), so the
+   * Timber, the Skyhunter and the Radian fly it too; the same five metres
+   * the wing class's own gate is (WING_GATE). The Striker, 3.15 m across
+   * its sweep, is wider than this rule lets any banner gate of this pipe
+   * be: two of its spans are the pylon pair's, and by the warning's 1.2
+   * spans it still flies this gate. */
   wideGate5: {
     id: 'wideGate5',
     label: str('elements.wide_gate_5'),

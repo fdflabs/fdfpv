@@ -157,6 +157,12 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  *             and every accessory, and measured against it: the legs reach
  *             the payload's depth and the packs, straps and GPS the top.
  *             src/render/combatcraft.js draws them.
+ *   interceptor  the stretched X of docs/COMBAT-DRONES.md section 1a, motors
+ *             120 mm fore and aft and 100 mm across of the CG under 7 inch
+ *             props: the width this file measures is the larger of the
+ *             two, here fore and aft, (120 + 88.9) mm doubled; the sweep
+ *             is the motor diagonal's half plus the radius, doubled; seated
+ *             as the other two with its fullest loadout.
  *   striker2500 the Striker of docs/COMBAT-DRONES.md section 7, which
  *             src/render/strikercraft.js draws for the war and the shell
  *             draws about its CG (src/render/craft.js): its nose, 1.546 m
@@ -193,6 +199,7 @@ const REAL = {
   tigermoth1803: { spanMm: 2139.2, sweepMm: 2139.2, tolMm: 6 },
   '7inch': { spanMm: 400.5, sweepMm: 492.8, tolMm: 6, wheelbaseMm: 315 },
   '10inch': { spanMm: 551.0, sweepMm: 674.0, tolMm: 6, wheelbaseMm: 420 },
+  interceptor: { spanMm: 417.8, sweepMm: 490.2, tolMm: 6, wheelbaseMm: 312.4 },
   striker2500: { spanMm: 3092.0, sweepMm: 3146.6, tolMm: 6 },
 };
 
@@ -213,38 +220,53 @@ const MEASURE = `(() => {
   let across = 0;
   let verts = 0;
   let meshes = 0;
-  g.traverse((o) => {
-    if (!o.isMesh || !o.geometry || !o.geometry.getAttribute) { return; }
-    /* An outline hull is a back sided copy scaled 1.13. It is paint and it
-     * is not the aircraft: measuring it reports a machine 13 percent big. */
-    if (o.material && o.material.userData && o.material.userData.hullColor !== undefined) { return; }
-    if (o.visible === false) { return; }
-    /* And the antenna is wire, not aircraft. Both models name theirs: it
-     * is the tallest thing on either machine, 16 mm over the whoop's
-     * camera and 21 mm over the five inch's, and a rigid contact hull that
-     * covered it would make a quad bounce off its own aerial. */
-    if (o.name === 'antenna' || (o.parent && o.parent.name === 'antenna')) { return; }
-    /* Nor is the Bramor's catapult, which stands under it while it is
-     * parked, or its parachute: see src/render/bramorcraft.js. */
-    let gear = false;
-    o.traverseAncestors((p) => { gear = gear || p.name === 'launcher' || p.name === 'chute'; });
-    if (gear || o.name === 'chute') { return; }
-    const pos = o.geometry.getAttribute('position');
-    if (!pos) { return; }
-    o.updateMatrixWorld(true);
-    m.multiplyMatrices(inv, o.matrixWorld);
-    meshes += 1;
-    for (let i = 0; i < pos.count; i += 1) {
-      v.fromBufferAttribute(pos, i).applyMatrix4(m);
-      verts += 1;
-      if (v.y > up) { up = v.y; }
-      if (v.y < down) { down = v.y; }
-      const r = Math.hypot(v.x, v.z);
-      if (r > reach) { reach = r; }
-      const a = Math.max(Math.abs(v.x), Math.abs(v.z));
-      if (a > across) { across = a; }
-    }
-  });
+  /* A pusher's prop turns about a level axis, so where its blades and its
+   * disc polygon reach below the hub depends on the phase the frame count
+   * has turned it to (src/main.js turns it a step a frame, at rest too).
+   * The drawn machine is the prop's whole sweep: measure every extent over
+   * a full turn of each 'prop-mount''s spinning children, a degree a step,
+   * and put the phase back. A craft without one is measured once. */
+  const spinning = [];
+  g.traverse((o) => { if (o.name === 'prop-mount') { spinning.push(...o.children); } });
+  const phase0 = spinning.map((c) => c.rotation.y);
+  const turns = spinning.length ? 360 : 1;
+  for (let k = 0; k < turns; k += 1) {
+    const first = k === 0;
+    spinning.forEach((c, i) => { c.rotation.y = phase0[i] + (k * Math.PI) / 180; });
+    g.traverse((o) => {
+      if (!o.isMesh || !o.geometry || !o.geometry.getAttribute) { return; }
+      /* An outline hull is a back sided copy scaled 1.13. It is paint and it
+       * is not the aircraft: measuring it reports a machine 13 percent big. */
+      if (o.material && o.material.userData && o.material.userData.hullColor !== undefined) { return; }
+      if (o.visible === false) { return; }
+      /* And the antenna is wire, not aircraft. Both models name theirs: it
+       * is the tallest thing on either machine, 16 mm over the whoop's
+       * camera and 21 mm over the five inch's, and a rigid contact hull that
+       * covered it would make a quad bounce off its own aerial. */
+      if (o.name === 'antenna' || (o.parent && o.parent.name === 'antenna')) { return; }
+      /* Nor is the Bramor's catapult, which stands under it while it is
+       * parked, or its parachute: see src/render/bramorcraft.js. */
+      let gear = false;
+      o.traverseAncestors((p) => { gear = gear || p.name === 'launcher' || p.name === 'chute'; });
+      if (gear || o.name === 'chute') { return; }
+      const pos = o.geometry.getAttribute('position');
+      if (!pos) { return; }
+      o.updateMatrixWorld(true);
+      m.multiplyMatrices(inv, o.matrixWorld);
+      if (first) { meshes += 1; }
+      for (let i = 0; i < pos.count; i += 1) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(m);
+        if (first) { verts += 1; }
+        if (v.y > up) { up = v.y; }
+        if (v.y < down) { down = v.y; }
+        const r = Math.hypot(v.x, v.z);
+        if (r > reach) { reach = r; }
+        const a = Math.max(Math.abs(v.x), Math.abs(v.z));
+        if (a > across) { across = a; }
+      }
+    });
+  }
+  spinning.forEach((c, i) => { c.rotation.y = phase0[i]; });
   const th = window.__craftState().thresholds;
   return {
     up, down, reach, across, verts, meshes,
@@ -406,10 +428,14 @@ async function main() {
     if (af.id === 'striker2500') {
       /* The Striker parks on its belly skid, 251 mm under the CG, which is
        * the plant's hull; the 30 in pusher's lower blade, drawn as its
-       * disc, hangs 0.38 m under the hub, 108 mm lower. It is a crash part
-       * (src/native/crash_parts.h) and a landing with it turning breaks it,
-       * as docs/COMBAT-DRONES.md section 7 says. Pinned at what it is. */
-      pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 108.0,
+       * disc, hangs 0.38 m under the hub, 109 mm lower at the bottom of
+       * its sweep. It is a crash part (src/native/crash_parts.h) and a
+       * landing with it turning breaks it, as docs/COMBAT-DRONES.md
+       * section 7 says. Pinned at what it is. It was pinned at 108.0 from
+       * one frame's phase of the turning prop, which read 107.1 to 108.5
+       * as the frame count moved it; the sweep MEASURE takes is 109.0
+       * whatever the phase. */
+      pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 109.0,
         'the pusher\'s lower blade hangs under the skid it parks on');
     } else if (af.fixedWing) {
       /* The Skyhunter's belly skid and the Bramor's belly are the lowest

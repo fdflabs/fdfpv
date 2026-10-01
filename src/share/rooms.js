@@ -45,7 +45,7 @@
  */
 
 import {
-  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO, ROOM_LEVEL,
+  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO, ROOM_LEVEL, WAR_JOIN,
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 import { readAccount } from './pilot.js';
@@ -324,7 +324,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       const account = readAccount();
       const session = account && account.callsign ? { session: account.session } : {};
       sendText({
-        type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat, ...session,
+        type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, war: WAR_JOIN, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat, ...session,
       });
     };
     socket.onmessage = (ev) => {

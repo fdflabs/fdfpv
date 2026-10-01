@@ -45,6 +45,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { wireMesh } from './wires.js';
+
 /* The chunks' side, metres: small enough that the near shadow map's
  * 144 m square draws a handful, large enough that a batch holds a few
  * hundred and culls them in well under a millisecond a pass. */
@@ -123,6 +125,8 @@ export function makeSink(THREE, look) {
   let triangles = 0;
   /* The chunks with a lod, { mesh, id, sphere, near, shown }, once built. */
   const detail = [];
+  /* The overhead lines (wires.js), once built. */
+  let wires = null;
 
   const bucketFor = (group, x, z, opts) => {
     const q = opts.where ?? chunkOf(x, z);
@@ -271,8 +275,8 @@ export function makeSink(THREE, look) {
   /*
    * The meshes into `group`: a BatchedMesh a batch (surface group,
    * casting or not, road or not) holding its chunks, and the ring's
-   * structure as plain meshes. `lines` are the wires, chords
-   * [ax, ay, az, bx, by, bz], one LineSegments.
+   * structure as plain meshes. `lines` are the wires, layOut's chords,
+   * drawn as their conductors in one instanced mesh (wires.js).
    */
   function build(group, lines) {
     const materials = look.buildingGroups({ glass: null, water: null });
@@ -352,31 +356,23 @@ export function makeSink(THREE, look) {
       group.add(m);
       chunks += geoms.length;
     }
-    /* A conductor is a few centimetres of weathered aluminium: a pixel
-     * wide line of it is far wider than it looks, and a dozen parallel
-     * ones drawn solid made a black band across every view from the air.
-     * Half seen, in the grey it has against the sky. */
-    const lineMat = new THREE.LineBasicMaterial({
-      color: 0x4a4d50, transparent: true, opacity: 0.45, depthWrite: false,
-    });
-    const a = new Float32Array(lines.length * 6);
-    lines.forEach((c, i) => {
-      a.set(c, i * 6);
-    });
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(a, 3));
-    g.computeBoundingSphere();
-    const l = new THREE.LineSegments(g, lineMat);
-    l.name = 'itaipu-town-wires';
-    group.add(l);
+    if (lines.length) {
+      wires = wireMesh(THREE, lines);
+      group.add(wires.mesh);
+    }
     return {
-      meshes: batches.size + rings, chunks, detail: detail.length, lines: 1, segments: lines.length, triangles,
+      meshes: batches.size + rings, chunks, detail: detail.length, lines: 1, segments: lines.length,
+      conductors: wires ? wires.conductors : 0, wireTiles: wires ? wires.tiles : 0, triangles,
     };
   }
 
   /* Once a frame, before the draw: each chunk's near detail shown while
-   * the chunk is within NEAR of the camera, its far detail otherwise. */
+   * the chunk is within NEAR of the camera, its far detail otherwise, and
+   * the wires near and far. */
   function view(camera) {
+    if (wires) {
+      wires.view(camera);
+    }
     const eye = camera.position;
     for (const d of detail) {
       const show = (d.sphere.distanceToPoint(eye) < NEAR) === d.near;
@@ -388,6 +384,6 @@ export function makeSink(THREE, look) {
   }
 
   return {
-    face, bar, build, view, triangles: () => triangles,
+    face, bar, build, view, triangles: () => triangles, wires: () => (wires ? wires.shown() : null),
   };
 }

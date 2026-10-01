@@ -48,9 +48,9 @@
  *
  * POWER LINES. A struck line puts out the town district it feeds, from the
  * strike's room ms: createGrid().hear takes a { type: 'dead', why: 'wire',
- * at, p } event, the district being the town district nearest the strike.
- * No such event exists yet (the room does not strike lines); this is the
- * hook for the change that makes it.
+ * at, p } event, the district being the town district nearest the strike:
+ * the room's death of an attacker that flew into a line
+ * (src/share/war/wires.js, edge/rooms/war.js onWire).
  *
  * DETERMINISM. Integer hashing (Math.imul) and + - * / only.
  *

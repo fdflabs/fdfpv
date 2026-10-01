@@ -213,12 +213,10 @@ async function create(request, env, origin) {
     return refuse(400, 'bad');
   }
   const open = body.public === true;
-  /* The war only in a private room, on its own map, and a mission only
-   * for the war (src/share/roomwire.js ROOM_SETUPS). */
+  /* The war only on its own map, public or private since the owner opened
+   * it to public rooms (2026-10-01, docs/WARFARE-PLAN.md section 9), and a
+   * mission only for the war (src/share/roomwire.js ROOM_SETUPS). */
   const war = body.mode === 'war';
-  if (war && open) {
-    return refuse(400, 'private');
-  }
   const mission = body.mission ?? null;
   if (war ? !warFits(body.map, mission) : mission !== null) {
     return refuse(400, 'bad');

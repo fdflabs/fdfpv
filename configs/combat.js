@@ -7,16 +7,21 @@
  *
  * THE CONTRACT (the doc's sections 2 and 7)
  *
- *   airframe.combat = { frame, payloads, accessories, propulsion? },
+ *   airframe.combat = { frame, payloads, accessories, propulsion?, ballast? },
  *     configs/airframes.js; `propulsion` only on an aircraft with more
- *     than one way to be pushed (the Striker), each { id, simId, ... }
+ *     than one way to be pushed (the Striker), each { id, simId, ... };
+ *     `ballast` ({ at_m }) only on one trimmed for its payloads with nose
+ *     lead (the Striker, trimBallastKg below)
  *   settings.combat[airframeId] = { payload, accessories, propulsion? }
  *     payload      a payload id of that airframe's, or 'none'
  *     accessories  ids of that airframe's, in its own order
  *     propulsion   a propulsion id of that airframe's, only where it has
  *                  them; its first is the default
- *   A pilot who never chose has no entry and flies DEFAULT_CHOICE, on the
- *   first propulsion where there is one.
+ *   A pilot who never chose has no entry and flies the default: the
+ *   payload carrying the standard warhead, which every combat airframe has
+ *   (its id is 'standard' on the 7 and 10 inch and the Striker,
+ *   'proximity' on the interceptor), no accessories, and the first
+ *   propulsion where there is one.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -37,10 +42,15 @@
 import { SIM_ADDON, SIM_ADDON_DOUBLES } from './hangar-parts.js';
 
 export const NO_PAYLOAD = 'none';
-export const DEFAULT_CHOICE = Object.freeze({ payload: 'standard', accessories: Object.freeze([]) });
 
 /* The war's warheads, edge/rooms/war.js WARHEADS, in its order. */
 const WARHEADS = ['standard', 'wide', 'penetrator', 'emp'];
+
+/* The payload a combat quad flies when nothing else says which: the one
+ * with the standard warhead, the warhead every pilot owns. */
+function standardPayload(c) {
+  return c.payloads.find((p) => p.warhead === 'standard');
+}
 
 /* The stored choice for this airframe, made valid: an unknown payload is
  * the default, an unknown accessory is dropped, and the order is the
@@ -53,7 +63,7 @@ export function combatChoice(af, stored) {
   const s = stored && typeof stored === 'object' ? stored : {};
   const payload = s.payload === NO_PAYLOAD || c.payloads.some((p) => p.id === s.payload)
     ? s.payload
-    : DEFAULT_CHOICE.payload;
+    : standardPayload(c).id;
   const want = Array.isArray(s.accessories) ? s.accessories : [];
   const accessories = c.accessories.filter((a) => want.includes(a.id)).map((a) => a.id);
   if (!c.propulsion) {
@@ -142,7 +152,33 @@ function masses(af, choice) {
     const a = af.combat.accessories.find((x) => x.id === id);
     out.push({ m: a.massKg, at: about(a.cgOffset_m), own: [0, 0, 0] });
   }
+  const bay = af.combat.ballast;
+  if (bay) {
+    const kg = trimBallastKg((pr ? pr.grams : af.grams) / 1000, af.combat.payloads, p, bay.at_m[0]);
+    if (kg > 0) {
+      out.push({ m: kg, at: about(bay.at_m), own: [0, 0, 0] });
+    }
+  }
   return out;
+}
+
+/*
+ * THE TRIM BALLAST, docs/COMBAT-DRONES.md section 7.5: on an airframe whose
+ * combat block names a `ballast` point, the nose bay takes the lead that
+ * brings the CG, fore and aft, to where the most nose heavy payload puts it,
+ * whatever is carried (`payload` null for none). The airframe's mass is
+ * `bareKg`, every x about its CG, the ballast at `atX` ahead of all of them.
+ * Kilograms, zero for that heaviest payload itself.
+ */
+export function trimBallastKg(bareKg, payloads, payload, atX) {
+  const xOf = (p) => p.massKg * p.cgOffset_m[0] / (bareKg + p.massKg);
+  const xTrim = Math.max(...payloads.map(xOf));
+  if (!(atX > xTrim)) {
+    throw new Error(`combat: the ballast point ${atX} m is not ahead of the trim point ${xTrim} m`);
+  }
+  const m = payload ? payload.massKg : 0;
+  const mx = payload ? payload.massKg * payload.cgOffset_m[0] : 0;
+  return Math.max(0, (xTrim * (bareKg + m) - mx) / (atX - xTrim));
 }
 
 /*
@@ -201,6 +237,9 @@ export function combatMass(af, grams, choice) {
  *   `fallback`  the one to carry when the choice is not allowed or is
  *               'none' (the campaign's equipped warhead, else 'standard')
  *
+ * A quad with no payload for the fallback's warhead (the interceptor
+ * carries only the standard) carries its standard one.
+ *
  * Returns { payload, warhead }: the payload id to seat and the warhead to
  * say in the loadout. An aircraft without a combat block returns null and
  * its loadout is what it always was.
@@ -213,7 +252,7 @@ export function warPayload(af, choice, allowed = WARHEADS, fallback = 'standard'
   const chosen = payloadOf(af, choice);
   const p = ok(chosen) ? chosen
     : af.combat.payloads.find((x) => x.warhead === fallback && ok(x))
-      ?? af.combat.payloads.find((x) => x.warhead === 'standard');
+      ?? standardPayload(af.combat);
   return { payload: p.id, warhead: p.warhead };
 }
 
@@ -225,5 +264,5 @@ export function payloadForWarhead(af, warhead) {
     return null;
   }
   return (af.combat.payloads.find((p) => p.warhead === warhead)
-    ?? af.combat.payloads.find((p) => p.warhead === 'standard')).id;
+    ?? standardPayload(af.combat)).id;
 }

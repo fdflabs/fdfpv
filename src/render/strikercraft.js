@@ -380,9 +380,19 @@ export function strikerSpin(mat) {
  * The war's drawing: every piece merged into one geometry, its colour in
  * its vertices and `aSpin` on the prop's. For src/render/attackers.js.
  */
+/* Each part's heat in a thermal picture (src/render/thermal.js's per
+ * vertex `thermal`, in units of 110 degrees over the skin): the piston
+ * engine's cylinders and exhaust, a turbojet's case hotter still, the
+ * fuselage a little warm from the engine bay. */
+const WAR_HEAT = {
+  engine: 1, jet: 2.5, fuselage: 0.03,
+};
+
 export function strikerWarGeometry(opts = {}) {
   const pieces = strikerParts(opts);
-  const geos = pieces.map(({ key, geo, spin }) => {
+  const geos = pieces.map(({
+    part, key, geo, spin,
+  }) => {
     const n = geo.attributes.position.count;
     const c = new THREE.Color(STRIKER_COLOURS[key]);
     const col = new Float32Array(n * 3);
@@ -393,6 +403,7 @@ export function strikerWarGeometry(opts = {}) {
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     geo.setAttribute('aSpin', new THREE.BufferAttribute(new Float32Array(n).fill(spin ? 1 : 0), 1));
+    geo.setAttribute('thermal', new THREE.BufferAttribute(new Float32Array(n).fill(WAR_HEAT[part] ?? 0), 1));
     return geo;
   });
   const g = mergeGeometries(geos, false);

@@ -94,6 +94,15 @@ export function hitCall(ev) {
   return str(ev.target === 'yard-right' ? 'war.hit.yard' : 'war.hit.other', { mw: mw(ev.mw) });
 }
 
+/* The callout for an attacker that flew into a power line: what it was
+ * (a decoy is called as the Striker it looks like). */
+export function wireCall(ev) {
+  const a = ev.agents && ev.agents[0];
+  const kind = a && a.kind === 'decoy' ? 'strike' : a && a.kind;
+  const key = `war.wire.${kind}`;
+  return str(key in en ? key : 'war.wire.other');
+}
+
 /* m:ss, for the wave clock. */
 function clock(s) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -388,6 +397,8 @@ export function createWarHud(nameOf, restart = null) {
         } else {
           say(plural('war.kill_by', ev.ids.length, { name: nameOf(ev.by) }));
         }
+      } else if (ev.type === 'dead' && ev.why === 'wire') {
+        say(wireCall(ev));
       } else if (ev.type === 'boom' && ev.mine) {
         say(str('war.boom_mine'), 'warn');
       } else if (ev.type === 'scouts') {

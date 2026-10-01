@@ -164,6 +164,12 @@ function craftMaterial(cel, finish) {
     polygonOffsetUnits: cel.polygonOffsetUnits,
   });
   mat.name = `craft-${finish}`;
+  /* What the part is in a thermal picture (src/render/thermal.js): the
+   * cel material's kind, a motor's say, carried to its photographed twin. */
+  if (cel.userData.thermal) {
+    mat.defines = { ...mat.defines, THERMAL_KIND: cel.defines.THERMAL_KIND };
+    mat.userData.thermal = cel.userData.thermal;
+  }
   const grain = f.grain ?? 0;
   const weave = f.weave ?? 0;
   mat.onBeforeCompile = (shader) => {

@@ -1828,3 +1828,9 @@ export function recordTigermothFlight(sim) {
   }
   return samples;
 }
+
+/* The Striker, docs/COMBAT-DRONES.md section 7: one plant for each engine,
+ * its combat.propulsion in configs/airframes.js, which npm run
+ * combat:gates holds to the module. */
+export const STRIKER_PROP_AIRFRAME = 27;
+export const STRIKER_JET_AIRFRAME = 28;
