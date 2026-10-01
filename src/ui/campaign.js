@@ -80,8 +80,8 @@ const skey = (id) => id.replace(/-/g, '_');
 /*
  * ui: the shell's UI (ui.js), whose settings keep the campaign. inBuild(id): whether
  * this build has that mission. enterWarRoom(): the Defend Itaipu card's
- * way in. send(obj): the room's socket. view(): the war view
- * (roomWar.view()). room(): { phase, code, seat }.
+ * way in, resolving whether it made a room. send(obj): the room's socket.
+ * view(): the war view (roomWar.view()). room(): { phase, code, seat }.
  */
 export function createCampaignScreen({
   ui, inBuild, enterWarRoom, send, view, room,
@@ -282,7 +282,11 @@ export function createCampaignScreen({
     const m = ACT1[i];
     close();
     pending = { mission: m.id, from: room().code, code: null };
-    await enterWarRoom();
+    /* Back on the consent, or a room the server would not make: no room
+     * will ever be this mission's, so a later one must not adopt it. */
+    if (!(await enterWarRoom())) {
+      pending = null;
+    }
   }
 
   /* The start row's press, in the room Play made: that mission, this

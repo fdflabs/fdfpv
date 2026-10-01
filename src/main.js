@@ -2476,10 +2476,15 @@ export async function boot({
     return l && Number.isFinite(l.speedMul) ? l.speedMul : 1;
   }
   /* The end banner's restart: the host starts the same mission again,
-   * straight to the countdown; the room keeps the host's loadout. */
+   * straight to the countdown; the room keeps the host's loadout. A host
+   * handed the room by a leaving one may never have consented. */
   const warHud = createWarHud(roomSeatName, {
     host: () => roomHost(roomLinkState.state().welcome),
-    go: (v) => roomWar.start(v.mission),
+    go: async (v) => {
+      if (await warConsented()) {
+        roomWar.start(v.mission);
+      }
+    },
   });
   /* Off the flight screen at once, not at the next frame (roomWarFrame
    * keeps it after): a frame can be a second long (war-card-check counted
@@ -2689,8 +2694,11 @@ export async function boot({
     return go;
   }
 
+  /* The start row's press. Consent first, whoever's room this is: a
+   * room made by hand never went through warEnter's (FLOW-AUDIT.md D6).
+   * Then the mission campaign Play chose for this room, else mission 1. */
   async function warStart() {
-    if (await warConsented()) {
+    if (await warConsented() && !campaignRef.startSelected()) {
       roomWar.start(WAR_MISSION, { intro: true });
     }
     ui.refreshFriends();
@@ -2726,18 +2734,18 @@ export async function boot({
   }
 
   /* The card's press. A room the server would not make is said, with a
-   * second try on offer, and Back leaves the pilot on the title. */
+   * second try on offer, and Back leaves the pilot on the title. Resolves
+   * whether a room was made. */
   ui.onWarCard = async (card) => {
     for (;;) {
       try {
-        await warEnter({}, card);
-        return;
+        return await warEnter({}, card);
       } catch (e) {
         const again = await ui.askConfirm({
           title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
         });
         if (!again) {
-          return;
+          return false;
         }
       }
     }
@@ -4486,11 +4494,7 @@ export async function boot({
 
   ui.onFriends = async (action) => {
     if (action === 'friends-war-start') {
-      if (campaign.startSelected()) {
-        ui.refreshFriends();
-      } else {
-        await warStart();
-      }
+      await warStart();
       return;
     }
     if (action === 'friends-war-private') {
