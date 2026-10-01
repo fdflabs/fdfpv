@@ -238,7 +238,7 @@ try {
     free.map === 'swiss2' && friends.map === 'swiss2' && friends.screen === 'friends', JSON.stringify({ free, friends }));
 
   const picked = [];
-  for (const [kind, id] of [['quad', '5inch'], ['plane', 'bramor2300']]) {
+  for (const [kind, id] of [['quad', '5inch'], ['plane', 'cub1400']]) {
     await page.evaluate("(() => { window.__ui.act('mode-gate'); window.__ui.pickForWay('way-freestyle-wing1000'); return true; })()");
     await page.until('window.__ui.carousel.isOpen', 10000).catch(() => {});
     await page.evaluate(`(() => {
