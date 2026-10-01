@@ -495,10 +495,12 @@ async function main() {
      * table landed (hover 0.2790, punch 80.03 m, terminal 31.01 m/s, tau
      * 25 ms); measured again on 2026-10-01 when the five inch's motor and
      * prop moved, on purpose, to T-Motor's F60 Pro V and T5147 row
-     * (src/native/plant.c, docs/STOCK-5INCH.md).
+     * (src/native/plant.c, docs/STOCK-5INCH.md), and again when its thrust
+     * against axial speed became its prop's own APC curve
+     * (docs/PROP-CURVES.md): the hover to the digit, the rest moved.
      */
-    const REF = { hover: 0.2579999566078186, punch: 96.40430451469638,
-      terminal: 37.15640602651915, tau: 0.021 };
+    const REF = { hover: 0.2579999566078186, punch: 113.96480733857501,
+      terminal: 44.24704743685161, tau: 0.019 };
     const changed = [];
     const cmp = (name, got, want, tol) => {
       if (!(Math.abs(got - want) <= tol)) {

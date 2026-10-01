@@ -179,6 +179,13 @@ typedef struct {
                       * figure of merit kq was derived through. Was the file
                       * scope PLANT_TORQUE_IND; it is a property of the rotor
                       * and moves with the airframe. */
+  double axial_curve[15]; /* a quad's thrust over its static thrust at the
+                      * axial advance mu = va / (w k_inflow) of 0, 0.1, ...
+                      * 1.4, linear between: its prop's own, from APC's
+                      * performance files (scripts/prop-curves.js). The
+                      * first is 1, so the hover is the static thrust.
+                      * Read by the quad step's climb branch only; zero on
+                      * a fixed wing, which never reads it. */
   /*
    * THE DUCT. Three numbers, and all three are 1, 0 and 0 on an open rotor,
    * which is what makes the five inch's arithmetic bit identical after this

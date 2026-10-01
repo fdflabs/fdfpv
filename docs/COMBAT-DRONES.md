@@ -162,22 +162,22 @@ What it moved, and what the owner decided about it:
   2026-10-01, each with its source in scripts/combat-gates.js.
 - "Fastest in level flight" stands, and holds.
 
-**Top speed: 47.1 m/s level, 170 km/h, not the 200 to 250 km/h quoted for
-such builds.** On this plant every quad's level top speed sits below the
-figures quoted for the real machine (the five inch flies 166 km/h at its
-1.62 g on T-Motor's measured row, docs/STOCK-5INCH.md; the plant's P5
-band for it is 120 to 165), because a fast pass is
-held up by the rotor H force and the body's plan drag at 70 degrees of
-pitch. It is not the clamp on the prop's load at 0.90 of its static
-value (`PLANT_TORQUE_QMIN`): flown with that clamp off, the sourced build
-holds the same 47.1 m/s (and 50.1 with the winding law's resistance, both
-measured on a scratch build). Nothing in the parts list was tuned to a
-speed: the number is what the plant flies. It is the fastest quad in
-the game, flat out and off the floor (section 5a); a faster one is a plant change for every quad, not a
-number for this one.
+**Top speed: 51.3 m/s level, 185 km/h, not the 200 to 250 km/h quoted for
+such builds.** It was 47.1 m/s, 170 km/h, before the plant's thrust
+against axial speed became each prop's own APC curve (docs/PROP-CURVES.md).
+The five inch flies 183 km/h at its 1.62 g on the same footing. What still
+holds a fast pass below the quoted figures is the prop's torque at a high
+advance ratio, which the plant takes too high, so the rotors do not spin
+up as a real prop unloads; and the rotor H force and the body's drag at 70
+degrees of pitch, for which no speed quad publishes figures (the drag
+report, docs/PROP-CURVES.md). It is not the clamp on the prop's load at
+0.90 of its static value (`PLANT_TORQUE_QMIN`): flown with that clamp off,
+the sourced build flew the same speed. Nothing in the parts list was
+tuned to a speed: the number is what the plant flies. It is the fastest
+quad in the game, flat out and off the floor (section 5a).
 
-What it costs: 1.8 Ah of LiPo, so 33 s of full throttle against the 7
-inch's 181, and under half the 7 inch's hover time. Its roll authority
+What it costs: 1.8 Ah of LiPo, so 28 s of full throttle against the 7
+inch's 174, and under half the 7 inch's hover time. Its roll authority
 (2 T a_y / Ixx, 1010 rad/s^2 against the five inch's 750) is a third
 more than the five inch's, but its 44 ms rotors spend it: it reaches 63
 percent of a half stick roll rate in 20 ms, against the five inch's 17 and
@@ -420,15 +420,19 @@ roll rate from a hover.
 
 | | level m/s | km/h | pitch | punch | roll | endurance |
 | --- | --- | --- | --- | --- | --- | --- |
-| interceptor | 47.1 | 170 | 70 deg | 58.0 m | 20 ms | 33 s flat out, 18 min hover |
-| 5 inch | 46.0 | 166 | 60 deg | 55.8 m | 17 ms | |
-| 7 inch | 28.3 | 102 | 51 deg | 26.3 m | 23 ms | 181 s flat out, 42 min hover |
-| 10 inch | 27.7 | 100 | 47 deg | 23.7 m | 36 ms | |
+| interceptor | 51.3 | 185 | 73 deg | 66.6 m | 20 ms | 28 s flat out, 18 min hover |
+| 5 inch | 50.7 | 183 | 65 deg | 66.2 m | 17 ms | |
+| 7 inch | 31.1 | 112 | 57 deg | 31.3 m | 23 ms | 174 s flat out, 42 min hover |
+| 10 inch | 30.7 | 110 | 53 deg | 29.0 m | 36 ms | |
+
+Each prop's thrust against axial speed is its own APC curve since
+2026-10-01 (docs/PROP-CURVES.md); before it, on 1 - mu, the four flew 47.1,
+46.0, 28.3 and 27.7 m/s.
 
 Endurance is four fifths of the pack over the pack current the module
 draws (the quad plant does not drain a pack). A Striker cruises at 26.6
 m/s (docs/WARFARE-PLAN.md section 3): the interceptor closes on one from
-behind at 20.5 m/s, the 7 inch at 1.7.
+behind at 24.7 m/s, the 7 inch at 4.5.
 
 ## 6. Checks
 

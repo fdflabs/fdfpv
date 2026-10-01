@@ -132,9 +132,9 @@
         "source": "Loop A harness choice, speed averaged over the final window"
       },
       "band_m_s": {
-        "min": 30,
-        "max": 40,
-        "source": "STAGE1.md check 7, plateau 30 to 40 m/s"
+        "min": 35.7,
+        "max": 56.8,
+        "source": "STAGE1.md check 7, plateau 35.7 to 56.8 m/s: the spread of four published peak top speeds of stock class 6S five inch quads, 150 to 179 km/h (41.7 to 49.7 m/s), each end moved out by the old 30 to 40 m/s band's half width over its centre, 5 / 35 = 14.3 percent. The peaks are of unstated direction and level, so the band is deliberately wide; it is argued again when a GPS two way level run is published. docs/PROP-CURVES.md lists the four"
       }
     },
     "motor-step-response": {

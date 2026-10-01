@@ -98,7 +98,7 @@ Every check is a numeric band in `tests/thresholds.json`. `npm run verify` runs 
 | 4 | frame-independence | Same input at simulated render rates 30, 60, 144, 240 Hz | all four traces identical |
 | 5 | hover-throttle | Trim to steady hover at 4.0 V per cell | 0.20 to 0.30 |
 | 6 | punch-out | From hover, full throttle 3.0 s, altitude gained | 76 to 117 m |
-| 7 | terminal-velocity | Level, full throttle, 20 s, speed plateau | 30 to 40 m/s |
+| 7 | terminal-velocity | Level, full throttle, 20 s, speed plateau | 35.7 to 56.8 m/s |
 | 8 | motor-step-response | Step one motor 0 to 100 percent, time to 63 percent of final RPM | 10 to 30 ms |
 | 9 | rate-tracking | Full roll stick, steady-state roll rate vs configured max rate | within 3 percent |
 | 10 | yaw-coupling | Hard roll at constant throttle, yaw drift | build-tolerance scale (0.04 to 0.60 deg), correct sign. A symmetric quad cancels this coupling exactly; only asymmetry produces it, so the check bands the modeled tolerance rather than demanding a drift no real quad shows. |
