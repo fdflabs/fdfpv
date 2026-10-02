@@ -113,7 +113,7 @@
  * kind not here has none that strikes a structure. */
 export const CHARGE = Object.freeze({
   strike: Object.freeze({ charge: 120, r: 6 }),
-  loiter: Object.freeze({ charge: 70, r: 4 }),
+  loiter: Object.freeze({ charge: 40, r: 3 }),
   fpv: Object.freeze({ charge: 45, r: 3 }),
   boat: Object.freeze({ charge: 260, r: 9 }),
 });
@@ -128,7 +128,7 @@ export const DEFENDER = Object.freeze({
 
 /* Under water: r times this, for a blast within WET_ABOVE_M over the
  * surface on a chunk under it. */
-export const WATER_R = 3;
+export const WATER_R = 2;
 export const WET_ABOVE_M = 2;
 /* Nothing past this many r. */
 export const CUT_R = 5;

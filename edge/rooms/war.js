@@ -114,11 +114,38 @@
  *                                             killed a scout wave's last
  *   { type: 'war', op: 'boom', seat, at, p }  a defender detonated: that
  *                                             seat breaks its own craft
+ *   { type: 'war', op: 'damage', seq, at, target, chunks, fell, openings,
+ *     down, health, p, by }
+ *                                             what a warhead broke of one
+ *                                             target's structure
+ *                                             (src/share/war/damage.js):
+ *                                             seq its place in the match's
+ *                                             list, chunks the ids removed
+ *                                             (fell those that fell after),
+ *                                             openings the target's opening
+ *                                             when new or bigger (the dam
+ *                                             break contract's), down true
+ *                                             when it cost the target, p
+ *                                             where it went off, by the
+ *                                             attacker kind or 'defender'
  *   { type: 'war', error }                    to a refused sender
  *
  * and AGENTS (0xA0) to each seat on the room tick, thinned by distance on
  * the core's INTEREST bands, each followed by HUNTS (0xA1): the same
  * hunters' target seats.
+ *
+ * DAMAGE. Every warhead that goes off is a blast on the map's structures
+ * (src/share/war/damage.js blast): an attacker's at its aim point when it
+ * arrives, hit or miss (and when a lost round sends it through), or where
+ * it strikes a power line; a defender's where it goes off (a penetrator's
+ * first hit goes through and is none). It is decided in the judgement's
+ * order, at the judgement's ms, from the positions the room sends (to the
+ * millimetre), so the events say what the room decided and nothing else
+ * does. What each chunk has taken and which are gone is the match's
+ * (wreck), stored with it; each event is kept in order (damage) and sent
+ * again, in order, to a pilot who joins, so a late joiner or a reload
+ * applies the same list. A target an event costs is lost as a hit loses
+ * it (take): its megawatts once.
  *
  * WHAT OWNS WHAT. This object lives inside one RoomCore, which runs one
  * event at a time, so nothing here locks. The match (the attackers alive,
@@ -156,6 +183,8 @@ import { MISSIONS, waveSize, waveTarget } from '../../src/share/war/missions/ind
 import { wireStrike } from '../../src/share/war/wires.js';
 import { INTRO_MS } from '../../src/share/war/intro.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
+import { attackerCharge, blast, defenderCharge } from '../../src/share/war/damage.js';
+import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
 import { WAIT_MS } from './tag.js';
@@ -258,6 +287,10 @@ const AGENT_MAX_MPS = 80;
 const POINT = { id: 'point' };
 
 const KIND_ID = new Map(KINDS.map((k, i) => [k, i]));
+
+/* Each map's structures (src/share/war/damage.js); a map with none has
+ * nothing a warhead breaks. */
+const STRUCTURES = Object.freeze({ itaipu: ITAIPU_CHUNKS });
 
 /*
  * The most any point of a hull reaching `reach` from its centre moves,
@@ -417,6 +450,7 @@ export class RoomWar {
      *   pilot whose seat another took, enlist()),
      *   agents: [birth records alive], nextAgent, scouts: { n, killed }
      *   of the last scout wave or null, hunters (Hunters save),
+     *   wreck: { target: damage.js state }, damage: [events, in order],
      *   endAt }, or null before the first game.
      */
     this.match = null;
@@ -644,6 +678,10 @@ export class RoomWar {
     const out = this.changed(core);
     if (this.match.agents.length) {
       out.push({ send: conn, data: JSON.stringify({ type: 'war', op: 'born', agents: this.match.agents }) });
+    }
+    /* What the war has broken so far, each event as it was sent. */
+    for (const e of this.match.damage ?? []) {
+      out.push({ send: conn, data: JSON.stringify({ type: 'war', op: 'damage', ...e }) });
     }
     return out;
   }
@@ -883,6 +921,8 @@ export class RoomWar {
       scouts: null,
       spawned: [],
       hunters: null,
+      wreck: {},
+      damage: [],
       endAt: null,
     };
     for (const t of core.seats.values()) {
@@ -1384,6 +1424,9 @@ export class RoomWar {
     if (stalled.length) {
       out.push(...this.stall(core, stalled, tc));
     }
+    if (!pierce) {
+      out.push(...this.strike(core, p, defenderCharge(warhead), tc, 'defender'));
+    }
     this.settle(tc);
     return out;
   }
@@ -1449,8 +1492,14 @@ export class RoomWar {
       msg.target = a.target;
       msg.hit = hit;
     }
+    const out = this.broadcast(core, msg);
+    /* Its warhead goes off where it arrived, hit or miss: a scout
+     * leaving or a jammer parking carries none. */
+    if (x.plan.end === 'arrive') {
+      out.push(...this.strike(core, o.p, attackerCharge(a.kind), t, a.kind));
+    }
     this.settle(t);
-    return this.broadcast(core, msg);
+    return out;
   }
 
   /* An attacker that flew into a power line at t: dead where it struck,
@@ -1466,10 +1515,13 @@ export class RoomWar {
     this.log.push({
       what: 'wire', t, id: a.id, kind: a.kind, decided: roomNow,
     });
-    this.settle(t);
-    return this.broadcast(core, {
+    const out = this.broadcast(core, {
       type: 'war', op: 'dead', ids: [a.id], at: mm(t), by: 0, why: 'wire', p: o.p.map(mm), ...(scoutsDown ? { scouts: true } : {}),
     });
+    /* Its warhead goes off on the line. */
+    out.push(...this.strike(core, o.p, attackerCharge(a.kind), t, a.kind));
+    this.settle(t);
+    return out;
   }
 
   /* Won or lost, at t, after anything that changed the count. */
@@ -1483,13 +1535,53 @@ export class RoomWar {
 
   /* An attacker at its target: the target's mw off the output, once. */
   take(a, hit) {
+    if (hit) {
+      this.lose(a.target);
+    }
+  }
+
+  /* A target lost, by a hit or by what broke: its mw off the output,
+   * once. A target the mission does not name costs nothing. */
+  lose(id) {
     const m = this.match;
-    const target = a.target != null ? this.mission().targets[a.target] : null;
-    if (hit && !m.down.includes(a.target)) {
-      m.down.push(a.target);
+    const target = this.mission().targets[id];
+    if (target && !m.down.includes(id)) {
+      m.down.push(id);
       m.output = Math.max(0, m.output - target.mw);
       m.roundMw = (m.roundMw ?? 0) + target.mw;
     }
+  }
+
+  /*
+   * A warhead `w` ({ charge, r }, damage.js) gone off at p, at room ms t,
+   * by `by` (an attacker kind or 'defender'): what it broke of the map's
+   * structures, kept in the match and sent to everybody, each target it
+   * cost lost. p is to the millimetre, as the messages carry it.
+   */
+  strike(core, p, w, t, by) {
+    const m = this.match;
+    const structures = STRUCTURES[this.mission().map];
+    if (!structures || !w) {
+      return [];
+    }
+    m.wreck ??= {};
+    m.damage ??= [];
+    const at = p.map(mm);
+    const out = [];
+    for (const r of blast(structures, m.wreck, at, w, t)) {
+      const e = {
+        seq: m.damage.length, ...r, p: at, by,
+      };
+      m.damage.push(e);
+      if (r.down) {
+        this.lose(r.target);
+      }
+      this.log.push({
+        what: 'damage', t, target: r.target, chunks: r.chunks.length, open: r.openings.length > 0, down: r.down,
+      });
+      out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
+    }
+    return out;
   }
 
   /*
@@ -1559,6 +1651,10 @@ export class RoomWar {
         msg.hit = hit;
       }
       out.push(...this.broadcast(core, msg));
+      /* Through is an arrival: its warhead goes off at its aim point. */
+      if (through && o) {
+        out.push(...this.strike(core, poseAt(x.plan, x.plan.tEnd).p, attackerCharge(a.kind), t, a.kind));
+      }
     }
     this.log.push({
       what: 'round', t, round, result, mw: m.roundMw ?? 0, earned: Object.values(m.earned ?? {}).reduce((sum, k) => sum + k, 0),
