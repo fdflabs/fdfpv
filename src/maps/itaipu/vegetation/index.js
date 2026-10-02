@@ -49,7 +49,7 @@ import { windUniforms } from '../../swiss2/vegetation/plantmat.js';
 import { sunDirection } from '../look/light.js';
 import {
   CROWN_SPHERES, DENSE_M, FILL_SLICE_TREES, HALF, KINDS, NEAR_MOVE, NEAR_R,
-  addTree, canopyHeight, decodePng, heroCanopy, keepOff, makeCanopyAt, nearTrees, plantHero,
+  addTree, canopyHeight, decodePng, heroCanopy, keepOff, makeCanopyAt, nearTrees, onCut, plantHero,
 } from './plant.js';
 import {
   TIERS, treeLod, canopyShell, kindCrown,
@@ -146,6 +146,7 @@ export async function buildPart(ctx) {
     dam: d['dam.json'],
     roads: d['osm/roads.json'].features,
     buildings: d['osm/buildings.json'].features,
+    cut: ctx.cut,
   });
   const forest = plantHero({
     mask,
@@ -183,7 +184,11 @@ export async function buildPart(ctx) {
   /* The mask's forest weight alone, for the canopy's outline. */
   const forestWeight = new Uint8Array(mask.w * mask.h);
   for (let k = 0; k < forestWeight.length; k += 1) {
-    forestWeight[k] = mask.data[k * 4];
+    /* None on the rock cut round the concrete: the canopy's edge face
+     * would hang down the cut from the forest on its lip. */
+    const x = -HALF + ((k % mask.w) + 0.5) * 10;
+    const z = -HALF + (Math.floor(k / mask.w) + 0.5) * 10;
+    forestWeight[k] = onCut(off, x, z) ? 0 : mask.data[k * 4];
   }
   /* A canopy vertex stands at the forest's height when any mask texel
    * round it is forest, so the outline the fragment cuts (at the mask's
@@ -236,7 +241,9 @@ export async function buildPart(ctx) {
     },
   };
 
-  const canopyAt = makeCanopyAt({ mask, canopy, ground: ctx.ground });
+  const canopyAt = makeCanopyAt({
+    mask, canopy, ground: ctx.ground, off,
+  });
   const buildMs = Math.round(performance.now() - t0);
   return {
     group,

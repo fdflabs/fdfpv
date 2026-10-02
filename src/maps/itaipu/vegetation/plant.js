@@ -363,10 +363,19 @@ const DAM_GROUNDS = 350;
 
 /*
  * Where no tree stands, on a 5 m raster: the water bodies, the dam, the
- * roads and the buildings; and, as `grounds` on a 25 m raster, the dam's
- * grounds, where no pasture tree stands.
+ * roads, the buildings and the rock the ground was cut back to round the
+ * concrete (`cut`, the hero samples terrain/conform.js lowered, each
+ * CUT_REACH round it, value CUT: two steps of the canopy's shell, draw.js
+ * TIERS shell, so the shell's last vertex at the canopy's height is a
+ * step from any vertex down in the cut, and its edge face falls to the
+ * lip rather than hanging down the cut's face); and, as `grounds` on a
+ * 25 m raster, the dam's grounds, where no pasture tree stands.
  */
-export function keepOff({ water, dam, roads, buildings }) {
+export const CUT = 5;
+const CUT_REACH = 40;
+export function keepOff({
+  water, dam, roads, buildings, cut = [],
+}) {
   const r = raster(5);
   for (const b of buildings) {
     fillRings(r, [b.outer, ...(b.holes || [])], 1);
@@ -391,6 +400,10 @@ export function keepOff({ water, dam, roads, buildings }) {
     }
     stampLine(r, w.points, w.width / 2 + ROAD_VERGE, 4);
   }
+  /* Last, over the dam's and the water's: onCut reads this value. */
+  for (const [x, z] of cut) {
+    fillRings(r, [[[x - CUT_REACH, z - CUT_REACH], [x + CUT_REACH, z - CUT_REACH], [x + CUT_REACH, z + CUT_REACH], [x - CUT_REACH, z + CUT_REACH]]], CUT);
+  }
   r.grounds = raster(25);
   for (const p of dam) {
     if (p.footprint) {
@@ -402,6 +415,15 @@ export function keepOff({ water, dam, roads, buildings }) {
     }
   }
   return r;
+}
+
+/* Whether (x, z) is on the cut rock of keepOff's raster `off`. */
+export function onCut(off, x, z) {
+  if (!off) {
+    return false;
+  }
+  const t = texel(off, x, z);
+  return t >= 0 && off.data[t] === CUT;
 }
 
 /* A point in a polygon (even odd), for the few landuse areas. */
@@ -781,13 +803,16 @@ export function canopyHeight(canopy, x, z) {
 
 /*
  * The forest volume: the top of the canopy at (x, z), or -Infinity where
- * there is no closed forest. `mask` and `canopy` as plantHero's.
+ * there is no closed forest. `mask` and `canopy` as plantHero's, `off`
+ * keepOff's raster, whose cut rock has none.
  */
-export function makeCanopyAt({ mask, canopy, ground }) {
+export function makeCanopyAt({
+  mask, canopy, ground, off = null,
+}) {
   return (x, z) => {
     const i = Math.floor((x + HALF) / 10);
     const j = Math.floor((z + HALF) / 10);
-    if (i < 0 || j < 0 || i >= mask.w || j >= mask.h || mask.data[(j * mask.w + i) * 4] < 128) {
+    if (i < 0 || j < 0 || i >= mask.w || j >= mask.h || mask.data[(j * mask.w + i) * 4] < 128 || onCut(off, x, z)) {
       return -Infinity;
     }
     const h = canopyHeight(canopy, x, z);
