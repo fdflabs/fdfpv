@@ -62,7 +62,8 @@ const c = (name, ok, detail = '') => ({ name, ok: Boolean(ok), detail });
  * water must stay still: no current, no level moving, no volume lost.
  */
 export async function restLake(wasm) {
-  const nx = 64; const nz = 64; const dx = 4; const dt = 0.02;
+  /* dt at a Courant number of 0.44 on the deepest water, 8 m. */
+  const nx = 64; const nz = 64; const dx = 4; const dt = 0.1;
   const f = await solver(wasm, nx, nz, dx, dt);
   const b = f.bed(); const h = f.h();
   const LEVEL = 10;
@@ -75,7 +76,7 @@ export async function restLake(wasm) {
   }
   f.setManning(0, 0.03);
   const v0 = f.volume();
-  const steps = 30000;
+  const steps = 6000;
   f.step(steps);
   let speed = 0; let level = 0; let islands = 0;
   const hu = f.hu(); const hv = f.hv(); const hh = f.h();
@@ -92,6 +93,7 @@ export async function restLake(wasm) {
     c(`still water stays still for ${(steps * dt) / 60} min over a random bed with ${islands} island cells: fastest current under 1e-9 m/s`, speed < 1e-9, `${speed.toExponential(2)} m/s`),
     c('the level stays within a nanometre of where it was', level < 1e-9, `${level.toExponential(2)} m`),
     c('and the volume to 1e-12', dv < 1e-12, `${dv.toExponential(2)}`),
+    c('at a Courant number under 0.5', f.stat(1) < 0.5, f.stat(1).toFixed(3)),
   ], { speed, level, dv }, f);
 }
 
@@ -210,6 +212,41 @@ export async function dambreak(wasm, along = 'x') {
     }, f),
     profile: Array.from({ length: L }, (_, s) => depth(s)),
   };
+}
+
+/*
+ * NORMAL DEPTH: a wide channel on a uniform slope S with Manning's n,
+ * fed q per metre by an INFLOW boundary at its head and let out by a
+ * RATING boundary at its foot. Far from both it must run at Manning's
+ * normal depth, h = (n q / sqrt(S))^(3/5), and what comes in must go
+ * out.
+ */
+export async function normalDepth(wasm) {
+  const nx = 400; const nz = 8; const dx = 5; const dt = 0.1;
+  const S = 1e-3; const N = 0.03; const Q = 4;
+  const f = await solver(wasm, nx, nz, dx, dt);
+  const b = f.bed(); const h = f.h();
+  for (let j = 0; j < nz; j += 1) {
+    for (let i = 0; i < nx; i += 1) {
+      b[j * nx + i] = S * dx * (nx - i);
+      /* Started near the answer: the channel settles on it
+       * exponentially, a factor of e every 500 s or so. */
+      h[j * nx + i] = 2;
+    }
+  }
+  f.setManning(0, N);
+  const inlet = f.bound(SIDE.west, 0, nz - 1, BOUND.inflow, Q * nz * dx);
+  const outlet = f.bound(SIDE.east, 0, nz - 1, BOUND.rating, S);
+  f.step(40000);
+  const want = ((N * Q) / Math.sqrt(S)) ** 0.6;
+  const k = 3 * nx + nx / 2;
+  const got = f.h()[k];
+  const inn = f.boundRate(inlet); const out = -f.boundRate(outlet);
+  return result('normal depth', [
+    c(`a sloped channel between an INFLOW and a RATING runs at Manning's normal depth ${want.toFixed(4)} m, to 1 %`, Math.abs(got - want) < 0.01 * want, `${got.toFixed(4)} m`),
+    c('steady: the RATING lets out what the INFLOW brings, to 0.1 %', Math.abs(inn - out) < 1e-3 * inn, `in ${inn.toFixed(3)}, out ${out.toFixed(3)} m3/s`),
+    c('at a Courant number under 0.5', f.stat(1) < 0.5, f.stat(1).toFixed(3)),
+  ], { got, want }, f);
 }
 
 /*
@@ -362,6 +399,7 @@ export const SCENARIOS = [
   ['closed basin', closedBasin],
   ['Ritter along x', (w) => dambreak(w, 'x')],
   ['Ritter along z', (w) => dambreak(w, 'z')],
+  ['normal depth', normalDepth],
   ['crest', crest],
   ['opening, weir', (w) => opening(w, 'weir')],
   ['opening, orifice', (w) => opening(w, 'orifice')],

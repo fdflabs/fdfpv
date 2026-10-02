@@ -119,7 +119,7 @@ jobs:
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
       # writes; flying them is scripts/itaipu-spawns-check.js, local.
       - run: npm run itaipu:courses
-      - run: npm run water:check
+      - run: npm run water:check -- --no-chrome
       - run: npm run pick:selftest
       - run: npm run paint:selftest
       - run: npm run stab:glide
