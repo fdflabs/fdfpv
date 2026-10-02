@@ -392,13 +392,15 @@ export class RoomCore {
   }
 
   /* The games a room can run: whether each is on, its players' seats, and
-   * the fewest of them here that keep it going. */
+   * the fewest of them here that keep it going. A room made for combat or
+   * tag plays it alone too (the owner, 2026-10-02: "ready to go either
+   * single or multi"); anywhere else they still need two. */
   games(now) {
     const r = this.race.race;
     return [
       { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: 1, end: () => this.race.end(this) },
-      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: 2, end: () => this.tag.abandon(this, now) },
-      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: 2, end: () => this.combat.stop(this) },
+      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: this.meta.mode === 'tag' ? 1 : 2, end: () => this.tag.abandon(this, now) },
+      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: this.meta.mode === 'combat' ? 1 : 2, end: () => this.combat.stop(this) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: 1, end: () => this.war.abandon(this, now) },
     ];
   }

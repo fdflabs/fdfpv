@@ -1,46 +1,45 @@
 /*
- * gamelobby.js: the lobby of a room made for a game (meta.mode 'war',
- * 'combat' or 'tag'), between its rounds: who is ready, and when the next
- * one starts.
+ * gamelobby.js: the lobby of every room, between its rounds: who is ready,
+ * and when the next one starts. A room is made for a game (meta.mode
+ * 'war', 'combat', 'tag' or 'race') or for free flight (meta.mode null).
  *
  * The owner, 2026-10-01: "its not hard to make people join a lobby and
- * then start a mission, its on every single game", and on 2026-10-02, of
+ * then start a mission, its on every single game"; on 2026-10-02, of
  * Toilet paper combat and Catch the Ace: "when i click on them directly, it
- * should take me to the lobby of the room". Every pilot in the room says
- * ready or not. The room starts its game through the game's own start, as
- * its host would (war.js, combat.js, tag.js):
+ * should take me to the lobby of the room"; and the same day: "every click
+ * will take you to the lobby for it, ready to go either single or multi".
+ * Every pilot in the room says ready or not. The room starts its round
+ * through the game's own start, as its host would (war.js, combat.js,
+ * tag.js, race.js), or, for free flight, by saying its pilots fly:
  *
- *   all ready      every pilot here is ready, and there are at least the
- *                  game's fewest players here (core.js games(): one for
- *                  the war, two for combat and tag): in
+ *   all ready      every pilot here is ready, one alone as well: in
  *                  LOBBY_COUNTDOWN_MS. A pilot who says not ready in that
  *                  time stops it; one who joins in it is not ready and does
  *                  not stop it.
- *   the deadline   LOBBY_DEADLINE_MS after the game's fewest players are
- *                  ready, the room starts with whoever is ready then. With
- *                  fewer ready than that (a leave, a not ready) both times
- *                  fall, and a lone pilot in a combat or tag room who says
- *                  ready waits for a second: those games need two, and the
- *                  game's own start would refuse one. Counting from the
- *                  ready and not from the room's making, so an empty or
- *                  idle room never starts on its own.
+ *   the deadline   LOBBY_DEADLINE_MS after the first ready, the room starts
+ *                  with whoever is ready then, or, if nobody is, forgets
+ *                  it. Counting from the first ready and not from the
+ *                  room's making, so an empty or idle room never starts on
+ *                  its own.
  *   start now      the host's own start of the game, at once, as ever.
+ *
+ * A race needs its track first (the host's, race.js load): with none, the
+ * flags are kept and no time runs.
  *
  * A round on has no lobby: a pilot who joins then is in it (war.js late
  * join; combat.js seat() gives a newcomer paper; tag.js pose() makes a
- * newcomer a hunter). When the round starts every flag is cleared, so its
- * end finds the room back in the lobby with nobody ready. A combat room's
- * results still count down to its next round on their own (combat.js
- * continuous play), until the clients that draw this lobby are out.
- *
- * Race is not here: a race needs a track picked and a grid start, so there
- * is no round to join while it runs; its rooms keep the host's start.
+ * newcomer a hunter; free flight is just flying). A race on is the one
+ * that cannot be joined: it went off a grid, and its racers were the ones
+ * on it. When the round starts every flag is cleared, so its end finds the
+ * room back in the lobby with nobody ready. Free flight has no end: its
+ * round is on from its first start until the room is empty.
  *
  * WHAT THE ROUND IS. Each game's lobby carries the one thing its host sets
  * between rounds, kept on the room (core.meta) so a restart keeps it: the
  * war its mission, combat its minutes (combat.js ROUND_MINUTES), tag its
  * goal (src/share/roomtag.js). A room made without one starts with the
- * first.
+ * first. A race's track is its own (the host's { type: 'track' }), and
+ * shown here as `track`, its id or null; free flight has `live`.
  *
  * What a client sends: { type: 'lobby', op: 'ready', ready } from any
  * pilot; from the host, between rounds, { type: 'lobby', op: 'mission',
@@ -48,7 +47,7 @@
  * { op: 'goal', goal } in a tag room. What it is told: { type: 'lobby',
  * lobby } whenever the lobby changes, and `lobby` in the welcome:
  *
- *   { mission | minutes | goal, ready: { [seat]: true }, countdownAt, deadlineAt }
+ *   { mission | minutes | goal | track | live, ready: { [seat]: true }, countdownAt, deadlineAt }
  *
  * the two times on the room clock (ms), or null. A build from before this
  * passes over the type. The flags and times are the room's memory only: a
@@ -87,33 +86,58 @@ function warMission(core) {
   return first ? first.id : null;
 }
 
+const combatMinutes = (core) => (ROUND_MINUTES.includes(core.meta.minutes) ? core.meta.minutes : ROUND_MINUTES[0]);
+const tagGoal = (core) => (Number.isInteger(core.meta.goal) && core.meta.goal >= GOAL_MIN && core.meta.goal <= GOAL_MAX ? core.meta.goal : GOALS[0].goal);
+
 /*
- * The games a lobby runs, by meta.mode: the one setting the host chooses
- * (its key on the wire and on core.meta, its value now, whether a value
- * may be set), whether a round is on, and the round's start as the host
- * would make it.
+ * The games a lobby runs, by meta.mode (null is free flight): the one
+ * setting the host chooses between rounds (`set`: its key on the wire and
+ * on core.meta, and whether a value may be set), what the lobby shows of
+ * the round (`show`), whether the round can start (`can`) and whether one
+ * is on, and the round's start as the host would make it. A start returns
+ * the room's actions.
  */
 const GAMES = {
   war: {
-    key: 'mission',
-    value: warMission,
-    valid: (core, v) => typeof v === 'string' && Object.hasOwn(MISSIONS, v) && MISSIONS[v].map === core.meta.map,
+    set: { key: 'mission', valid: (core, v) => typeof v === 'string' && Object.hasOwn(MISSIONS, v) && MISSIONS[v].map === core.meta.map },
+    show: (core) => ({ mission: warMission(core) }),
+    can: (core) => warMission(core) !== null,
     on: (core) => core.war.on(),
-    start: (core, conn, s, v, now) => core.war.message(core, conn, s, { type: 'war', op: 'start', mission: v, intro: true }, now),
+    start: (core, conn, s, now) => core.war.message(core, conn, s, { type: 'war', op: 'start', mission: warMission(core), intro: true }, now),
   },
   combat: {
-    key: 'minutes',
-    value: (core) => (ROUND_MINUTES.includes(core.meta.minutes) ? core.meta.minutes : ROUND_MINUTES[0]),
-    valid: (core, v) => ROUND_MINUTES.includes(v),
+    set: { key: 'minutes', valid: (core, v) => ROUND_MINUTES.includes(v) },
+    show: (core) => ({ minutes: combatMinutes(core) }),
+    can: () => true,
     on: (core) => core.combat.on(),
-    start: (core, conn, s, v, now) => core.combat.message(core, conn, s, { type: 'combat', op: 'start', minutes: v }, now),
+    start: (core, conn, s, now) => core.combat.message(core, conn, s, { type: 'combat', op: 'start', minutes: combatMinutes(core) }, now),
   },
   tag: {
-    key: 'goal',
-    value: (core) => (Number.isInteger(core.meta.goal) && core.meta.goal >= GOAL_MIN && core.meta.goal <= GOAL_MAX ? core.meta.goal : GOALS[0].goal),
-    valid: (core, v) => Number.isInteger(v) && v >= GOAL_MIN && v <= GOAL_MAX,
+    set: { key: 'goal', valid: (core, v) => Number.isInteger(v) && v >= GOAL_MIN && v <= GOAL_MAX },
+    show: (core) => ({ goal: tagGoal(core) }),
+    can: () => true,
     on: (core) => core.tag.on(),
-    start: (core, conn, s, v, now) => core.tag.message(core, conn, s, { type: 'tag', op: 'start', goal: v }, now),
+    start: (core, conn, s, now) => core.tag.message(core, conn, s, { type: 'tag', op: 'start', goal: tagGoal(core) }, now),
+  },
+  /* The racers are the pilots on the track's grid when it goes (race.js
+   * start, its own ready): a pilot in the lobby has the room's track
+   * built under the lobby screen, and is on it. */
+  race: {
+    set: null,
+    show: (core) => ({ track: core.race.track ? core.race.track.id : null }),
+    can: (core) => Boolean(core.race.track),
+    on: (core) => Boolean(core.race.race && core.race.race.state === 'on'),
+    start: (core, conn, s, now) => core.race.message(core, conn, s, { type: 'race', op: 'start', laps: 3 }, now),
+  },
+  free: {
+    set: null,
+    show: (core) => ({ live: core.gameLobby.live }),
+    can: () => true,
+    on: (core) => core.gameLobby.live,
+    start: (core) => {
+      core.gameLobby.live = true;
+      return [];
+    },
   },
 };
 
@@ -123,11 +147,15 @@ export class RoomGameLobby {
     this.ready = new Set();
     this.countdownAt = null;
     this.deadlineAt = null;
+    /* Free flight's round: on from its first start until the room is
+     * empty. */
+    this.live = false;
   }
 
-  /* The room's game, when it was made for one with a lobby, else null. */
+  /* The room's game, or free flight's, else null. */
   game(core) {
-    return Object.hasOwn(GAMES, core.meta.mode) ? GAMES[core.meta.mode] : null;
+    const mode = core.meta.mode ?? 'free';
+    return Object.hasOwn(GAMES, mode) ? GAMES[mode] : null;
   }
 
   /* A room made for a game, between its rounds. */
@@ -136,17 +164,10 @@ export class RoomGameLobby {
     return Boolean(g) && !g.on(core);
   }
 
-  /* The fewest players the game is played with, as the room counts them
-   * (core.js games()). */
-  min(core) {
-    const g = core.games(0).find((x) => x.id === core.meta.mode);
-    return g ? g.min : 1;
-  }
-
   view(core) {
     const g = this.game(core);
     return {
-      [g.key]: g.value(core),
+      ...g.show(core),
       ready: Object.fromEntries([...this.ready].map((seat) => [seat, true])),
       countdownAt: this.countdownAt,
       deadlineAt: this.deadlineAt,
@@ -183,8 +204,7 @@ export class RoomGameLobby {
         this.ready.delete(seat);
       }
     }
-    const min = this.min(core);
-    if (this.ready.size < min) {
+    if (!this.ready.size || !this.game(core).can(core)) {
       this.countdownAt = null;
       this.deadlineAt = null;
       return;
@@ -218,15 +238,15 @@ export class RoomGameLobby {
       this.settle(core, now, true);
       return this.changed(core);
     }
-    const g = this.game(core);
-    if (msg.op === g.key) {
+    const { set } = this.game(core);
+    if (set && msg.op === set.key) {
       if (s.seat !== core.host()) {
         return [{ send: conn, data: JSON.stringify({ type: 'refused', why: 'host' }) }];
       }
-      if (!g.valid(core, msg[g.key])) {
+      if (!set.valid(core, msg[set.key])) {
         return [];
       }
-      core.meta[g.key] = msg[g.key];
+      core.meta[set.key] = msg[set.key];
       return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
     }
     return [];
@@ -246,7 +266,12 @@ export class RoomGameLobby {
       return [];
     }
     this.ready.delete(seat);
-    if (!this.open(core) || !core.seats.size) {
+    if (!core.seats.size) {
+      this.clear();
+      this.live = false;
+      return [];
+    }
+    if (!this.open(core)) {
       return [];
     }
     this.settle(core, now, true);
@@ -273,7 +298,7 @@ export class RoomGameLobby {
     if (!due) {
       return [];
     }
-    if (this.ready.size < this.min(core)) {
+    if (!this.ready.size) {
       this.clear();
       return this.changed(core);
     }
@@ -284,12 +309,12 @@ export class RoomGameLobby {
   start(core, now) {
     const g = this.game(core);
     const host = [...core.seats].find(([, s]) => s.seat === core.host());
-    const v = g.value(core);
     this.clear();
-    if (!host || v == null) {
+    if (!host || !g.can(core)) {
       return this.changed(core);
     }
     const [conn, s] = host;
-    return [...g.start(core, conn, s, v, now), ...this.changed(core)];
+    const out = g.start(core, conn, s, now);
+    return [...out, ...this.changed(core)];
   }
 }
