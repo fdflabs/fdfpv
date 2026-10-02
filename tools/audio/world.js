@@ -131,10 +131,13 @@ async function loadProcessor() {
  * as the offline page does. Returns { channels, stems, rate, seconds,
  * ms, stats }.
  */
-export async function renderScene(sc, { voices } = {}) {
+/* `guard`, off unless asked: an offline render is not real time, and the
+ * load guard on a wall clock would make it hear different samples each
+ * run (world-worklet.js meter). `loadBudget` to force its hot path. */
+export async function renderScene(sc, { voices, guard = false, loadBudget } = {}) {
   const P = await loadProcessor();
   globalThis.currentTime = 0;
-  const proc = new P({ processorOptions: { voices, timeline: { frames: sc.frames, booms: sc.booms } } });
+  const proc = new P({ processorOptions: { voices, guard, loadBudget, timeline: { frames: sc.frames, booms: sc.booms } } });
   const len = Math.round(sc.seconds * RATE);
   const L = new Float32Array(len);
   const R = new Float32Array(len);
@@ -142,7 +145,7 @@ export async function renderScene(sc, { voices } = {}) {
   const outs = [0, 1, 2].map(() => [new Float32Array(QUANTUM), new Float32Array(QUANTUM)]);
   /* limiterIn: the sum's peak where the live graph's limiter sees it,
    * before the master. */
-  const stats = { voicedMax: 0, beddedMax: 0, limiterIn: 0 };
+  const stats = { voicedMax: 0, beddedMax: 0, limiterIn: 0, stepMax: 0 };
   const t0 = performance.now();
   for (let off = 0; off < len; off += QUANTUM) {
     globalThis.currentTime = off / RATE;
@@ -163,6 +166,7 @@ export async function renderScene(sc, { voices } = {}) {
       }
     }
     stats.voicedMax = Math.max(stats.voicedMax, proc.stats.voiced);
+    stats.stepMax = proc.stats.stepMax;
     stats.beddedMax = Math.max(stats.beddedMax, proc.stats.bedded);
   }
   const ms = performance.now() - t0;
@@ -401,6 +405,17 @@ async function main() {
         worst = Math.max(worst, measure(r.channels, r.rate).harshShareA);
       }
       check(`a near explosion, twelve seeds, 2 to 5 kHz at most ${BARS.harshShareAMax} percent`, worst <= BARS.harshShareAMax, `worst ${worst}%`);
+      /* The load guard's hot path, forced: a budget no machine meets, so
+       * it sheds every step; the war must still sound, clean, and cost
+       * less than at full detail. */
+      const full = await renderScene(SCENES['war-full']);
+      const hot = await renderScene(SCENES['war-full'], { guard: true, loadBudget: 1e-9 });
+      const mh = measure(hot.channels, hot.rate);
+      const mf = measure(full.channels, full.rate);
+      check('the load guard, forced hot, sheds to its last step', hot.stats.stepMax === 3, `step ${hot.stats.stepMax}`);
+      check('the load guard, forced hot: still heard, within 6 LU of full detail', Math.abs(mh.lufs - mf.lufs) <= 6, `${mh.lufs} against ${mf.lufs} LUFS`);
+      check('the load guard, forced hot: no NaN, infinity or subnormal, true peak at most -1 dBTP', mh.nonFinite === 0 && mh.subnormal === 0 && mh.truePeakDbtp <= BARS.truePeakMax, `${mh.nonFinite}, ${mh.subnormal}, ${mh.truePeakDbtp} dBTP`);
+      check('the load guard, forced hot: cheaper than full detail', hot.ms < full.ms, `${(hot.ms / 1000 / hot.seconds).toFixed(3)} against ${(full.ms / 1000 / full.seconds).toFixed(3)} s/s`);
       /* And two engines: the same kind on the same circle, two ids. */
       for (const kind of ['strike', 'fpv', 'boat']) {
         const sc = calibrationScene(kind);

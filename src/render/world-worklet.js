@@ -86,11 +86,6 @@ const HIST_KEEP_S = 6;
  * more than a source 100 m up gives an ear 1.7 m up at any distance it is
  * loud at. A longer one is not tapped. */
 const REFL_LEN = 4096;
-/* The voice pool: the full war (120 attackers and a boom every half
- * second, tools/audio/world-scenes.js war-full) renders under the cost
- * bar with this many on Chromium's worklet (tools/audio/world.js
- * --browser; docs/AUDIO.md section 12). */
-const VOICES = 14;
 /* A source holding a voice keeps it unless another is this many times
  * louder (about 3 dB): the hysteresis that stops two sources at the same
  * distance trading one voice every quantum. */
@@ -100,6 +95,23 @@ const FADE_S = 0.06;
 const FLUSH = 1e-20;
 /* The far bed runs at this fraction of the rate (renderFar). */
 const FAR_DECIMATE = 4;
+/* The load guard (WorldProcessor.meter): the share of the audio's own
+ * time the worklet may take, the render cost bar of tools/audio/world.js;
+ * the quanta a measurement spans; the cool windows before a step back;
+ * and the steps it sheds through, the voice pool and whether the far bed
+ * keeps its partials. The first is the full pool: the full war (120
+ * attackers and a boom every half second, tools/audio/world-scenes.js
+ * war-full) renders under the cost bar with it on Chromium's worklet
+ * (tools/audio/world.js --browser; docs/AUDIO.md section 12). */
+const LOAD_BUDGET = 0.25;
+const GUARD_QUANTA = 128;
+const GUARD_COOL = 4;
+const SHED = [
+  { voices: 14, bedPartials: true },
+  { voices: 10, bedPartials: false },
+  { voices: 6, bedPartials: false },
+  { voices: 4, bedPartials: false },
+];
 /* An explosion's trim, set by measurement (tools/audio/world.js): a
  * warhead (level 0.67) at 40 m reads momentary -14.6 LUFS in the Node mix
  * and -15.3 through the live graph, whose limiter takes the difference,
@@ -785,7 +797,7 @@ class WorldProcessor extends AudioWorkletProcessor {
     super();
     const o = (options && options.processorOptions) || {};
     this.rate = sampleRate;
-    this.poolSize = o.voices || VOICES;
+    this.poolSize = o.voices || SHED[0].voices;
     this.tracks = new Map();
     this.voices = [];
     for (let i = 0; i < this.poolSize; i += 1) {
@@ -802,7 +814,16 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.stateA = new Float64Array(6);
     this.stateB = new Float64Array(6);
     this.far = new Map();
-    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, tracks: 0 };
+    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, tracks: 0, load: 0, step: 0, stepMax: 0 };
+    /* The load guard (meter): on unless the options say otherwise, with a
+     * budget of the audio's own time. */
+    this.guard = o.guard !== false;
+    this.loadBudget = o.loadBudget ?? LOAD_BUDGET;
+    this.step = 0;
+    this.cool = 0;
+    this.busyMs = 0;
+    this.audioMs = 0;
+    this.quanta = 0;
     this.port.onmessage = (e) => this.message(e.data);
     /* An offline render's whole timeline, { frames, booms }, here rather
      * than by message so it is in place before the first quantum. */
@@ -882,6 +903,55 @@ class WorldProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs, outputs) {
+    const started = this.guard ? Date.now() : 0;
+    this.work(outputs);
+    if (this.guard) {
+      this.meter(Date.now() - started, outputs[0][0].length);
+    }
+    return true;
+  }
+
+  /*
+   * THE LOAD GUARD. The worklet times its own quanta and, when a window of
+   * them took more than its budget of the audio's own time, sheds a step:
+   * fewer voices (a voice that loses its source fades out as ever, its
+   * source going to the bed) and a far bed of noise only. It gives a step
+   * back after several cool windows in a row, so it does not hunt. Date.now
+   * is all an AudioWorkletGlobalScope has (no performance.now), a
+   * millisecond, so the window is 128 quanta, 341 ms at 48 kHz, which
+   * measures to a fraction of a percent. Off for an offline render
+   * (processorOptions.guard false): a render is not real time, and a
+   * check must hear the same samples every time.
+   */
+  meter(ms, n) {
+    this.busyMs += ms;
+    this.audioMs += (n / this.rate) * 1000;
+    this.quanta += 1;
+    if (this.quanta < GUARD_QUANTA) {
+      return;
+    }
+    const load = this.busyMs / this.audioMs;
+    this.stats.load = Number(load.toFixed(3));
+    if (load > this.loadBudget && this.step < SHED.length - 1) {
+      this.step += 1;
+      this.cool = 0;
+    } else if (load < 0.5 * this.loadBudget && this.step > 0) {
+      this.cool += 1;
+      if (this.cool >= GUARD_COOL) {
+        this.step -= 1;
+        this.cool = 0;
+      }
+    } else {
+      this.cool = 0;
+    }
+    this.stats.step = this.step;
+    this.stats.stepMax = Math.max(this.stats.stepMax, this.step);
+    this.busyMs = 0;
+    this.audioMs = 0;
+    this.quanta = 0;
+  }
+
+  work(outputs) {
     const out0 = outputs[0];
     const out2 = outputs[2];
     const n = out0[0].length;
@@ -891,7 +961,7 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.ingestBooms(t0);
     if (!this.heard) {
       this.renderBlasts(out2, t0, n);
-      return true;
+      return;
     }
     const L = this.listener(t1, this.lisNow || (this.lisNow = new Float64Array(10)));
     this.lis.prune(t1 - HIST_KEEP_S);
@@ -918,7 +988,7 @@ class WorldProcessor extends AudioWorkletProcessor {
       live.push(tr);
     }
     live.sort((a, b) => (b.loud * (b.voice ? KEEP : 1)) - (a.loud * (a.voice ? KEEP : 1)));
-    const want = new Set(live.slice(0, this.poolSize));
+    const want = new Set(live.slice(0, Math.min(this.poolSize, SHED[this.step].voices)));
     /* Free the voices whose source fell out of the set: they fade. */
     for (const v of this.voices) {
       if (v.track && !want.has(v.track)) {
@@ -965,7 +1035,6 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.stats.voicedMax = Math.max(this.stats.voicedMax, voiced);
     this.stats.tracks = this.tracks.size;
     this.stats.bedded = Math.max(0, live.length - voiced);
-    return true;
   }
 
   renderVoice(v, out, t0, t1, n, L) {
@@ -1118,11 +1187,12 @@ class WorldProcessor extends AudioWorkletProcessor {
       const sub = rate / FAR_DECIMATE;
       const kA = onePole(Math.min(absorbHz(f.d), 1500), sub);
       const fN = svfF(note * 3, sub);
+      const partials = SHED[this.step].bedPartials ? 3 : 0;
       const gl = Math.sqrt(0.5 * (1 - f.pan));
       const gr = Math.sqrt(0.5 * (1 + f.pan));
       for (let i = 0; i < n; i += FAR_DECIMATE) {
         let y = 0;
-        for (let k = 0; k < 3; k += 1) {
+        for (let k = 0; k < partials; k += 1) {
           f.ph[k] += (note * (1 + 0.013 * (k - 1))) / sub;
           if (f.ph[k] >= 1) {
             f.ph[k] -= 1;

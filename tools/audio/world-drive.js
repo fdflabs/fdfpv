@@ -61,10 +61,11 @@ export async function renderWorld(id, mode) {
     /* The timeline goes in the node's options, which the processor has
      * before its first quantum; a port message would arrive whenever the
      * audio thread got to it, which on an offline render can be after the
-     * first quanta are already rendered. */
+     * first quanta are already rendered. The load guard is off: a render
+     * is not real time, and it must hear the same samples every run. */
     const node = new AudioWorkletNode(ctx, 'fdfpv-world', {
       numberOfInputs: 0, numberOfOutputs: 3, outputChannelCount: [2, 2, 2],
-      processorOptions: { timeline: { frames: sc.frames, booms: sc.booms } },
+      processorOptions: { guard: false, timeline: { frames: sc.frames, booms: sc.booms } },
     });
     a.attachWorld(node);
   }

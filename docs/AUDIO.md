@@ -694,7 +694,20 @@ with every kind and a boom every half second (`war-full`): 14 voices and
 Chromium's worklet in two runs (bar 0.25, a quarter of one core), 0.12
 in Node; 50 nodes. Measured on a shared host at load 25 on 20 cores; a
 run before the far bed went to a quarter rate read 0.26, which is why it
-did. The voices are most of it, about 0.009 s a second each. Every bar of `--check` passes: each kind at 16 m within 1 LU, each
+did. The voices are most of it, about 0.009 s a second each.
+
+**The load guard**, for a machine weaker than this one. The worklet
+times its own quanta (Date.now, all an AudioWorkletGlobalScope has, over
+windows of 128 quanta) and, when a window took more than 0.25 of the
+audio's own time, sheds a step: 14 voices, then 10 with the far bed
+reduced to its noise, then 6, then 4. A voice that loses its source
+fades out as ever and the source goes to the bed. It gives a step back
+after four cool windows (under half the budget) in a row, so it does not
+hunt. It is off in offline renders, which are not real time and must
+hear the same samples every run. Its hot path is a check row
+(`--check`, a budget no machine meets): it sheds to the last step, the
+full war is still heard within 0.2 LU of full detail (the explosions
+carry it), clean, at 0.07 s a second against 0.10. Every bar of `--check` passes: each kind at 16 m within 1 LU, each
 pass -30 to -20 LUFS with short term at most -18 and momentary at most
 -14, a near explosion at most -12, true peak at most -1 dBTP, no non
 finite or subnormal sample, at most 35 percent of the A weighted power in
