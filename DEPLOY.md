@@ -761,7 +761,7 @@ URL with no picture.
 `og.png` is that card, and it is a frame of the real shell rather than a
 drawing of one: `scripts/og.js` drives `scripts/shots.js`, which drives the
 actual page in headless Chromium, so the card cannot disagree with the product.
-It is the Itaipu key art at sunset, the picture behind the title's gate,
+It is the Itaipu key art at sunset (no longer on any screen in the game),
 with the name's lockup over it in a column on the right, quantised to a 256
 colour PNG so it stays under 300 KB.
 
@@ -776,8 +776,10 @@ node scripts/og.js . ../fdfpv-landing \
                      ../fdfpv-leaderboard/public
 ```
 
-The picture is `assets/keyart/wide.webp` and the name is the `.lockup` in
-`index.html`. Change either and rerun the generator, and the card follows.
+The picture is `assets/keyart/wide.webp` and the name is the base `.lockup`
+rules in `index.html` (the title restyles its own copy under `.screen-title`,
+which the card does not inherit). Change either and rerun the generator, and
+the card follows.
 
 **Every `og:image` is an absolute URL.** A crawler does not resolve a relative
 one against the page it found it on, so each page names its own copy in full:

@@ -83,8 +83,9 @@ export const CAMERA_FAR = 90000;
  * was a patch near the frame's foot, and the dam's buttresses, the
  * powerhouse and every tree past it cast no shadow at all, where in the
  * photographs from the air the dam's shaded side is the darkest thing in
- * the frame. From FAR_REACH_FROM metres over the ground the map's half
- * width grows FAR_REACH times the height, to FAR_HALF_MAX; its texel
+ * the frame. Once FAR_REACH times the camera's height over the ground
+ * passes swiss2's FAR_HALF (from 280 m up), that is the map's half width,
+ * to FAR_HALF_MAX; its texel
  * grows with it, so a high view's shadows are softer, as they are at that
  * distance anyway, and its normal bias with the texel so the coarser map
  * does not shade the ground it is cast on.
