@@ -77,10 +77,10 @@ export const EXPOSURE = 1.15;
  * a frame full of sky sits, and war:boom's striker looking up at the
  * cumulus came out at middle third lightness 236 (main's 178), too bright
  * for its fireball to show. The key moves only the frames the meter
- * reaches; at 0.128 (the base's 1.5 / 1.15 through the meter's 0.75) the
- * sky in the metered views was a third of a stop over the photographs',
- * so 0.1. */
-export const METER_KEY = 0.1;
+ * reaches (a frame of sky is at the floor whatever the key: war:boom's
+ * striker read 208 at a key of 0.128 and of 0.1). 0.125 is about the
+ * base's 1.5 / 1.15 through the meter's 0.75 adaptation. */
+export const METER_KEY = 0.125;
 
 /* The moon, standing where the sun does (sunDirection is shared: a
  * single shadow map serves either), cool and faint: 1.5% of the sun's
