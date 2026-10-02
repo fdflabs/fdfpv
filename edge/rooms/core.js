@@ -55,7 +55,7 @@ import { TYPE_PARTS, TYPE_STREAMER, WAR_JOIN } from '../../src/share/roomwire.js
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
-import { RoomWarLobby } from './warlobby.js';
+import { RoomGameLobby } from './gamelobby.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
 
 /* Event kinds each phase's module answers (docs/MULTIPLAYER-PLAN.md;
@@ -262,15 +262,56 @@ export class RoomCore {
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     this.war = new RoomWar(meta); /* Defend Itaipu, edge/rooms/war.js */
-    this.warLobby = new RoomWarLobby(); /* its lobby, edge/rooms/warlobby.js */
+    this.gameLobby = new RoomGameLobby(); /* a game room's lobby, edge/rooms/gamelobby.js */
     this.voice = new RoomVoice(options.turn || null); /* voice chat's signalling, edge/rooms/voice.js */
     this.hosting = new Hosting();
     /* game id -> room ms since it has had too few players. Memory only. */
     this.abandoned = new Map();
   }
 
+  /*
+   * THE ROOM'S CLOCK, which stands while the room is empty (the owner,
+   * 2026-10-02, of a war listed in battle with nobody in it: "once theyre
+   * done or empty they need to be closed out"). Every game's times are on
+   * it (a war's waves and births, a combat round's end, a tag match's
+   * frontier, the lobby's seconds), so a game in an empty room is paused,
+   * and a pilot back before the room is purged finds it where they left
+   * it. meta.emptyAt is when the last pilot left, meta.pausedMs the time
+   * the room has stood empty since it was made; both are kept with the
+   * meta, so a restart keeps the pause.
+   */
   roomMs(now) {
-    return now - this.meta.epoch;
+    return (this.meta.emptyAt ?? now) - this.meta.epoch - (this.meta.pausedMs || 0);
+  }
+
+  /* The first pilot back in an empty room: its clock goes on from where it
+   * stood. */
+  resume(now) {
+    if (this.meta.emptyAt == null) {
+      return [];
+    }
+    this.meta.pausedMs = (this.meta.pausedMs || 0) + Math.max(0, now - this.meta.emptyAt);
+    this.meta.emptyAt = null;
+    /* Who was missing, and since when, is counted again from now. */
+    this.abandoned.clear();
+    return [{ store: 'meta', value: this.meta }];
+  }
+
+  /* The last pilot gone: the clock stands, and the room is purged in
+   * host.js PURGE_MS, or at once when its game was over, whose result was
+   * only ever its pilots'. */
+  emptied(now) {
+    this.meta.emptyAt = now;
+    return [{ store: 'meta', value: this.meta }, { empty: true, ...(this.finished() ? { now: true } : {}) }];
+  }
+
+  /* Whether the room's last game is over: a war won, lost or ended, a
+   * combat round's results, a tag match's or a race's. */
+  finished() {
+    const m = this.war.match;
+    const r = this.race.race;
+    return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.combat.round.state === 'over'
+      || Boolean(this.tag.match && this.tag.match.state === 'results') || Boolean(r && r.state === 'results');
   }
 
   /* The seats as they were before a hibernation, from each socket's
@@ -376,9 +417,14 @@ export class RoomCore {
   }
 
   /* End every game on with too few of its players here: once that has
-   * lasted ABANDON_MS, or at once when `force` (a host starting another). */
+   * lasted ABANDON_MS, or at once when `force` (a host starting another).
+   * Never in an empty room, whose games stand paused (roomMs) for its
+   * pilots to come back to. */
   settleGames(now, force = false) {
     const out = [];
+    if (!this.seats.size) {
+      return out;
+    }
     for (const g of this.games(now)) {
       if (!g.on || this.present(g.players) >= g.min) {
         this.abandoned.delete(g.id);
@@ -396,9 +442,12 @@ export class RoomCore {
 
   /* The room's own clock: the tick runs while a game waits to be ended or
    * the host to come back, even with nobody flying, and never in an empty
-   * room, which the next arrival settles. */
+   * room, which the next arrival settles. A combat round or a tag match a
+   * lobby started is among them: its pilots are on the lobby screen when it
+   * counts down, and nothing else would move it on until one flies. */
   waiting() {
-    return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting() || this.war.on() || this.warLobby.waiting(this));
+    return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting()
+      || this.war.on() || this.gameLobby.waiting(this) || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
   }
 
   wake() {
@@ -465,7 +514,8 @@ export class RoomCore {
   /* What the room browser shows the room doing (edge/rooms/lobby.js):
    * { game, state }, game null for free flight, state 'countdown' or 'on'
    * for a game under way and 'waiting' otherwise, when a room set up for
-   * a game shows that game. */
+   * a game shows that game; and, for a game room in its lobby, `ready`,
+   * how many of its pilots said ready, for "2 ready of 3". */
   activity(now) {
     const r = this.race.race;
     if (r && r.state === 'on') {
@@ -476,7 +526,8 @@ export class RoomCore {
       return { game: 'tag', state: m.state === 'live' ? 'on' : 'countdown' };
     }
     if (this.combat.on()) {
-      return { game: 'combat', state: this.combat.round.state };
+      /* Its round's number, for "In round n". */
+      return { game: 'combat', state: this.combat.round.state, round: this.combat.round.n };
     }
     if (this.war.on()) {
       /* The wave a pilot joining now would meet, for "In battle, wave x/y". */
@@ -486,7 +537,9 @@ export class RoomCore {
         wave: Math.min(this.war.match.wave + 1, mission.waves.length), waves: mission.waves.length,
       };
     }
-    return { game: this.meta.mode ?? null, state: 'waiting' };
+    return {
+      game: this.meta.mode ?? null, state: 'waiting', ...(this.gameLobby.open(this) ? { ready: this.gameLobby.ready.size } : {}),
+    };
   }
 
   /* Reports took the room's typed name away (safety.js): it shows its
@@ -648,6 +701,9 @@ export class RoomCore {
     if (this.seats.size >= this.meta.cap) {
       return [...actions, { close: conn, code: CLOSE.full, reason: 'full' }];
     }
+    if (!this.seats.size) {
+      actions.push(...this.resume(now));
+    }
     const seat = this.freeSeat(wanted);
     if (token) {
       this.recent.delete(token);
@@ -707,7 +763,7 @@ export class RoomCore {
         ...this.race.welcome(),
         ...this.tag.welcome(this),
         ...this.war.welcome(this),
-        ...this.warLobby.welcome(this),
+        ...this.gameLobby.welcome(this),
       }),
     });
     actions.push(...this.others(conn, JSON.stringify({
@@ -718,7 +774,7 @@ export class RoomCore {
     this.combat.seat(seat, profile.airframe);
     actions.push(...this.combat.join(this, conn));
     actions.push(...this.war.join(this, conn));
-    actions.push(...this.warLobby.join(this, now));
+    actions.push(...this.gameLobby.join(this, now));
     actions.push(...this.settle(now));
     return actions;
   }
@@ -791,10 +847,10 @@ export class RoomCore {
     if (msg.type === 'world') {
       return this.world(conn, s, msg, now);
     }
-    /* The war's lobby: ready from anybody, the mission from the host
-     * (edge/rooms/warlobby.js), with the clock its times need. */
+    /* A game room's lobby: ready from anybody, the round's setting from
+     * the host (edge/rooms/gamelobby.js), with the clock its times need. */
     if (msg.type === 'lobby') {
-      return [...this.warLobby.message(this, conn, s, msg, now), ...this.wake()];
+      return [...this.gameLobby.message(this, conn, s, msg, now), ...this.wake()];
     }
     const checked = this.hostCheck(conn, s, msg, now);
     if (checked && !checked.pass) {
@@ -932,7 +988,7 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     this.tickNo += 1;
-    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.warLobby.tick(this, now)];
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.gameLobby.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
     const flying = [...this.seats.values()].filter((f) => f.pose);
     const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));
@@ -990,7 +1046,7 @@ export class RoomCore {
     this.pending.delete(conn);
     const s = this.seats.get(conn);
     if (!s) {
-      return this.seats.size ? [] : [{ empty: true }];
+      return this.seats.size ? [] : [{ empty: true, ...(this.finished() ? { now: true } : {}) }];
     }
     this.seats.delete(conn);
     this.referee.leave(s.seat);
@@ -1004,9 +1060,9 @@ export class RoomCore {
     this.recent.set(s.token, { seat: s.seat, joined: s.joined, until: now + RESEAT_MS });
     const out = this.others(conn, JSON.stringify({ type: 'leave', seat: s.seat, host: this.host(), ...(code === 1000 ? {} : { drop: true }) }));
     out.push(...this.race.leave(this, s.seat));
-    out.push(...this.warLobby.leave(this, s.seat, now));
+    out.push(...this.gameLobby.leave(this, s.seat, now));
     if (!this.seats.size) {
-      out.push({ empty: true });
+      out.push(...this.emptied(now));
       return out;
     }
     out.push(...this.settle(now));

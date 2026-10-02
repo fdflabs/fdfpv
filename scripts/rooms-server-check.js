@@ -283,13 +283,15 @@ if (pub.open) {
   publicCode = (await res.json()).code;
   check('a named public room is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(publicCode));
   let rooms = await listed();
-  const line = rooms.rooms.find((r) => r.code === publicCode);
-  check('the browser lists it with its name, before anybody joins', rooms.open === true && line && line.name === 'Server check' && line.n === 0, JSON.stringify(line));
+  /* The owner, 2026-10-02: an empty room is never listed. */
+  check('the browser does not list it before anybody joins', rooms.open === true && !rooms.rooms.some((r) => r.code === publicCode), JSON.stringify(rooms.rooms));
   check('and not the private room, which has pilots in it', !rooms.rooms.some((r) => r.code === code));
   res = await make({ map: 'swiss2', public: true, name: 'fuck this' });
   check('a name the word filter refuses is refused', res.status === 400 && (await res.json()).error === 'name');
   const p = await seat(`room/${publicCode}`);
   check('a pilot joins it by its code', p.welcome && p.welcome.public === true && p.welcome.code === publicCode && p.welcome.name === 'Server check' && p.welcome.cap === 16, JSON.stringify(p.welcome));
+  const line = (await listed()).rooms.find((r) => r.code === publicCode);
+  check('and the browser lists it, with its name', line && line.name === 'Server check' && line.n === 1, JSON.stringify(line));
   const q = await seat('public/swiss2', { name: [2, 3, 44] });
   check('a quick join on its world lands in the busiest room there', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
   rooms = await listed();
@@ -366,17 +368,17 @@ if (pub.open) {
   res = await make({ map: 'itaipu', public: true, mode: 'war', mission: 'itaipu-2', name: 'Server check war' });
   const pubWar = (await res.json()).code;
   check('a public Itaipu room made for the war is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(pubWar || ''), pubWar);
-  const warLine = (await listed()).rooms.find((r) => r.code === pubWar);
-  check('the browser lists it as the war\'s, with its mission', warLine && warLine.mode === 'war' && warLine.game === 'war' && warLine.mission === 'itaipu-2',
-    JSON.stringify(warLine));
   const pw = await seat(`room/${pubWar}`, { war: WAR_JOIN });
+  const warLine = (await listed()).rooms.find((r) => r.code === pubWar);
+  check('with its pilot in, the browser lists it as the war\'s, with its mission', warLine && warLine.mode === 'war' && warLine.game === 'war' && warLine.mission === 'itaipu-2',
+    JSON.stringify(warLine));
   const quick = await seat('public/itaipu', { name: [2, 5, 31] });
   check('a quick join on Itaipu is never handed it', quick.welcome && quick.welcome.code && quick.welcome.code !== pubWar && quick.welcome.mode !== 'war',
     JSON.stringify(quick.welcome && { code: quick.welcome.code, mode: quick.welcome.mode }));
   quick.say({ type: 'war', op: 'start', mission: 'itaipu-1' });
   check('and the public room it lands in, not made for the war, refuses the war', Boolean(await quick.until((x) => x.text('refused').find((m) => m.why === 'private'))),
     JSON.stringify(quick.text('refused')));
-  /* Its lobby (edge/rooms/warlobby.js): a second pilot, both ready, the
+  /* Its lobby (edge/rooms/gamelobby.js): a second pilot, both ready, the
    * five seconds on the room's clock, then mission 2's briefing. */
   const pw2 = await seat(`room/${pubWar}`, { war: WAR_JOIN, name: [3, 6, 41] });
   check('its lobby is in the welcome: mission 2, nobody ready', pw2.welcome && pw2.welcome.lobby && pw2.welcome.lobby.mission === 'itaipu-2'
@@ -465,7 +467,7 @@ if (server) {
   check('and then the host\'s combat round starts', Boolean(await a2.until((x) => x.text('combat').find((m) => m.state === 'countdown'))));
   if (publicCode) {
     const again = await listed();
-    check('the public room is back in the browser though nobody has come back to it', again.rooms.some((r) => r.code === publicCode), JSON.stringify(again));
+    check('the public room, back after the restart with nobody in it, is not listed', !again.rooms.some((r) => r.code === publicCode), JSON.stringify(again));
   }
   await server.stop();
   rmSync(scratch, { recursive: true, force: true });
