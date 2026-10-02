@@ -255,7 +255,7 @@ record(
   const summary = ratesSummary(mine);
   record(
     'F13 summary reads the profile in deg/s',
-    summary === 'Betaflight, 606 roll, 345 pitch, 444 yaw deg/s',
+    summary === 'Classic, 606 roll, 345 pitch, 444 yaw deg/s',
     summary,
   );
   /* A BETAFLIGHT roll_rc_rate of 100 is RC Rate 1.00, and it stays the

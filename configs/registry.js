@@ -170,7 +170,7 @@ export const TUNES = [
   {
     id: 'betaflight-default',
     airframe: '5inch',
-    name: 'Betaflight default',
+    name: 'Factory default',
     note: 'Factory 4.5.1, untouched. What a freshly flashed quad flies.',
   },
   {
@@ -179,19 +179,19 @@ export const TUNES = [
      * Li-ion cell limits written in. */
     id: 'betaflight-7inch',
     airframe: '7inch',
-    name: 'Betaflight default',
+    name: 'Factory default',
     note: 'Factory 4.5.1 on the 7 inch: 1300 kV, a 4200 mAh Li-ion pack.',
   },
   {
     id: 'betaflight-10inch',
     airframe: '10inch',
-    name: 'Betaflight default',
+    name: 'Factory default',
     note: 'Factory 4.5.1 on the 10 inch: 900 kV, an 8400 mAh Li-ion pack.',
   },
   {
     id: 'betaflight-interceptor',
     airframe: 'interceptor',
-    name: 'Betaflight default',
+    name: 'Factory default',
     note: 'Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo.',
   },
   {
@@ -210,7 +210,7 @@ export const TUNES = [
     id: 'whoop-freestyle',
     airframe: null,
     name: 'Whoop freestyle',
-    note: 'The 25000 kV variant on the bigger GF1219S prop. The highest gains of the three, and the only one the maker ships on Betaflight rates rather than Actual.',
+    note: 'The 25000 kV variant on the bigger GF1219S prop. The highest gains of the three, and the only one the maker ships on Classic rates rather than Actual.',
   },
   {
     /* The Slow Stick's three. It has no ailerons, so in every mode the

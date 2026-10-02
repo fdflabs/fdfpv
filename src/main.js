@@ -8299,6 +8299,26 @@ export async function boot({
     }
   }
 
+  /*
+   * Before every sim_step(1) with the mode on: the world again when the
+   * streamed set has been swapped since it was declared. What streamed in
+   * was not declared, and a throw or a respawn that the set refills round
+   * declares the world from the set before, round where the craft was:
+   * there a building far from the old centre is one box round its whole
+   * footprint. An Itaipu dive thrown 6 m over a conductor met it at step
+   * 192 of the 250 a refresh waits (collide-audit-itaipu, power
+   * conductor, dived onto); a five inch let down on a flat roof whose
+   * neighbour's footprint box held it was wrecked in the first step, the
+   * one an after-step check let through (town-check, roofs). A swap
+   * happens between steps, so before the step is the first it can be.
+   */
+  function crashBeforeStep(st) {
+    if (crashTreesFrom === view.colliders && view.colliders.streamGen !== crashTreesGen) {
+      crashWorldPhase = 0;
+      refreshCrashWorld(st);
+    }
+  }
+
   /* After every sim_step(1) with the mode on: the events, and the world. */
   function crashAfterStep(st) {
     tracePost(st);
@@ -8307,15 +8327,7 @@ export async function boot({
       syncCraftParts(st);
     }
     crashWorldPhase += 1;
-    /* And at once when the streamed set has been swapped since the world
-     * was declared: what streamed in was not declared, and a throw or a
-     * respawn that the set refills round after declares the world from
-     * the set before. An Itaipu dive thrown 6 m over a conductor met it at
-     * step 192 of the 250 a refresh waits, when the host's sweep met it,
-     * and the frame's travel was already past it (collide-audit-itaipu,
-     * power conductor, dived onto). */
-    const swapped = crashTreesFrom === view.colliders && view.colliders.streamGen !== crashTreesGen;
-    if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX) || swapped) {
+    if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX)) {
       crashWorldPhase = 0;
       refreshCrashWorld(st);
       return;
@@ -13824,6 +13836,9 @@ export async function boot({
               stNow[4] * stNow[4] + stNow[5] * stNow[5] + stNow[6] * stNow[6],
             );
             raiseGroundFromState(stNow);
+            if (runDamage) {
+              crashBeforeStep(stNow);
+            }
             tracePre(stNow);
             const sound = stNow;
             sim.step(1);

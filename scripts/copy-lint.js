@@ -30,6 +30,8 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { literals } from './lib/literals.js';
+
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', 'vendor', 'dist', 'tests', 'tmp', 'strings', 'vendored', 'native']);
@@ -77,81 +79,6 @@ const SHAPE_OK = [
   /^\s*[a-z-]+=\\?"[^"]*\\?"/,                                      /* markup attributes */
 ];
 const CONTEXT_OK = /(new Error|new TypeError|new RangeError|throw |console\.[a-z]+|\.style\.[a-zA-Z]+ *=|setProperty\(|\.cssText|className *=|classList\.|setAttribute\((['"])(d|viewBox|points|fill|stroke|transform|style|class|font|font-family)\1|\.font *=|\.textBaseline|\.textAlign|\.globalCompositeOperation|\.filter *=|localStorage\.|sessionStorage\.|Symbol\(|new RegExp|assert\(|must\(|import\(|from |\.matchMedia\(|querySelector(All)?\(|getContext\(|new URL\(|fetch\(|performance\.mark|performance\.measure|dataset\.[a-zA-Z]+ *=|\b(bad|missing): *$)[^;]*$/;
-
-function literals(src) {
-  const out = [];
-  let i = 0;
-  let line = 1;
-  const n = src.length;
-  while (i < n) {
-    const c = src[i];
-    if (c === '\n') {
-      line += 1;
-      i += 1;
-      continue;
-    }
-    if (c === '"' || c === "'" || c === '`') {
-      let j = i + 1;
-      /* A template's \${...} can hold strings of its own, backticks included,
-       * so a template is walked with the brace depth in hand and an inner
-       * string is stepped over whole. */
-      let depth = 0;
-      while (j < n) {
-        if (src[j] === '\\') {
-          j += 2;
-          continue;
-        }
-        if (c === '`' && depth > 0 && (src[j] === '"' || src[j] === "'" || src[j] === '`')) {
-          const q = src[j];
-          j += 1;
-          while (j < n && src[j] !== q) {
-            j += src[j] === '\\' ? 2 : 1;
-          }
-          j += 1;
-          continue;
-        }
-        if (c === '`' && src[j] === '$' && src[j + 1] === '{') {
-          depth += 1;
-          j += 2;
-          continue;
-        }
-        if (c === '`' && depth > 0 && src[j] === '}') {
-          depth -= 1;
-          j += 1;
-          continue;
-        }
-        if (src[j] === c && depth === 0) {
-          break;
-        }
-        if (src[j] === '\n') {
-          line += 1;
-        }
-        j += 1;
-      }
-      /* Two lines of context, because an Error's message often starts on the
-       * line after the throw. */
-      const lineStart = src.lastIndexOf('\n', i) + 1;
-      const prevStart = src.lastIndexOf('\n', lineStart - 2) + 1;
-      out.push({ line, text: src.slice(i + 1, Math.min(j, n)), before: src.slice(prevStart, i) });
-      i = j + 1;
-      continue;
-    }
-    if (c === '/' && src[i + 1] === '*') {
-      const j = src.indexOf('*/', i + 2);
-      const chunk = src.slice(i, j < 0 ? n : j + 2);
-      line += (chunk.match(/\n/g) || []).length;
-      i = j < 0 ? n : j + 2;
-      continue;
-    }
-    if (c === '/' && src[i + 1] === '/') {
-      const j = src.indexOf('\n', i);
-      i = j < 0 ? n : j;
-      continue;
-    }
-    i += 1;
-  }
-  return out;
-}
 
 function isProse(raw) {
   /* Innermost placeholders first, so a template inside a template blanks

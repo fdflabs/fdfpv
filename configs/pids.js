@@ -128,7 +128,7 @@ export const PID_FIELD_SPECS = {
   i: pidField('I', 250,
     'Integral: holds attitude against slow, persistent error. Too high winds during a held move and twitches when the stick centres.'),
   d: pidField('D', 250,
-    'Damping. This is the CLI’s d_min: the D flown most of the time. Configurator calls it D, the firmware calls it d_min, and both mean this number.'),
+    'Damping. This is the CLI’s d_min: the D flown most of the time. Configurator apps call it D, the firmware calls it d_min, and both mean this number.'),
   dmax: pidField('D max', 250,
     'The ceiling D rises to during fast moves and stops. This is the CLI’s d_roll / d_pitch / d_yaw. Careful at the bottom: at or below D the firmware turns the D-to-D-max range off and flies THIS value constant (pid_init.c gates on d_min < D), so D max 0 is zero damping, not damping held at D.'),
   f: pidField('Feedforward', 1000,
