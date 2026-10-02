@@ -466,6 +466,11 @@ async function buildItaipu(shell, progress, q, time) {
     setTargetState(id, state) {
       return parts.dam.setTargetState(id, state, this.targets);
     },
+    /* The targets cut into the chunks a warhead breaks
+     * (src/share/war/damage.js), and taking one out or back
+     * (src/maps/itaipu/damage.js applies the room's events). */
+    structures: parts.dam.structures,
+    setChunkGone: (id, i, gone) => parts.dam.setChunkGone(id, i, gone),
     /* The night raid's lights, district by district (src/share/war/grid.js
      * levels, from the room's war state): nothing by day. */
     setPower: (levels) => look.setPower(levels),

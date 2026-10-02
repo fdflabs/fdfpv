@@ -27,8 +27,14 @@
  * main dam's and the right wing's downstream faces, capsules, with their
  * recesses in shade; the penstocks' stiffener rings and roof flanges; the
  * spillway's piers with noses and sloped tops, and its gates radial, with
- * arms, trunnions and hoist cylinders, one instanced draw for fourteen;
- * the intake cranes' rails along the deck.
+ * arms, trunnions and hoist cylinders; the intake cranes' rails along
+ * the deck.
+ *
+ * DESTRUCTIBLE (the war's damage, src/share/war/damage.js): each target
+ * is cut into the chunks a warhead breaks (structures), each chunk's
+ * triangles a range of one mesh and its own colliders, so the map takes
+ * out exactly what broke (src/maps/itaipu/damage.js). A spillway gate is
+ * GATE_COLS columns of skin panels and its steel, drawn per gate.
  *
  * v4 (round 2): the powerhouse's roof and the crest from the photographs.
  * The central building moved to units 8 and 9 and drawn storey by storey;
@@ -341,6 +347,8 @@ const RADIAL = {
  * proud of its 0.3 m plate each side, inside the half metre dam-check
  * holds a face to. */
 const SKIN_R = 0.5;
+/* A radial gate's skin is this many columns of panels across its bay. */
+const GATE_COLS = 4;
 /* The piers downstream of the bridge fall on a slope to their hoist
  * decks; upstream their noses stand into the reservoir. */
 const PIER = { slopeFrom: 7, slopeTo: 29, nose: 1.4 };
@@ -1216,6 +1224,49 @@ export async function buildPart(ctx) {
    * what each one's damage darkens: a colour range of one of the meshes. */
   const targets = {};
   const darken = {};
+  /*
+   * Each target cut into the chunks a warhead breaks
+   * (src/share/war/damage.js reads them as a structure): by target id,
+   * { part, water, frame, chunks }, each chunk damage.js's { k, c, e, h,
+   * a, l, r } and what the map does when it goes: `draw`, the colour
+   * ranges of a mesh its triangles are ({ mesh, range }), and
+   * `colliders`, its static collider indices.
+   */
+  const structures = {};
+  /* The water an upstream part stands in: the reservoir's surface. */
+  const reservoirY = (ctx.data['water.json'] || []).find((b) => b.name === 'reservoir')?.y ?? null;
+  const structure = (id, part, water, frame) => {
+    structures[id] = {
+      part, water, frame, chunks: [],
+    };
+    return structures[id];
+  };
+  /* A chunk of s, a box at c along e0 and e1 (unit), h its half
+   * extents; returns its index. */
+  const chunk = (s, k, c, e0, e1, h, opts = {}) => {
+    s.chunks.push({
+      k, c, e: [...e0, ...e1], h, a: opts.anchor ? 1 : 0, l: [], r: opts.rect ?? null, draw: [], colliders: [],
+    });
+    return s.chunks.length - 1;
+  };
+  const link = (s, i, j) => {
+    if (i !== j && !s.chunks[i].l.includes(j)) {
+      s.chunks[i].l.push(j);
+      s.chunks[j].l.push(i);
+    }
+  };
+  /* The box round a beam from P to Q, `half` across, turned to `side`. */
+  const beamBox = (P, Q, half, side) => {
+    const d = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]];
+    const l = Math.hypot(d[0], d[1], d[2]);
+    const w = d.map((v) => v / l);
+    const k2 = side[0] * w[0] + side[1] * w[1] + side[2] * w[2];
+    const a = [side[0] - w[0] * k2, side[1] - w[1] * k2, side[2] - w[2] * k2];
+    const al = Math.hypot(a[0], a[1], a[2]);
+    return {
+      c: [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2, (P[2] + Q[2]) / 2], e0: w, e1: a.map((v) => v / al), h: [l / 2, half, half],
+    };
+  };
 
   const addBox = (x0, y0, z0, x1, y1, z1) => {
     const i = ctx.colliders.addBox('wall', x0, y0, z0, x1, y1, z1);
@@ -2685,10 +2736,6 @@ export async function buildPart(ctx) {
 
   /* ================================================== the spillway */
   const sp = need('spillway');
-  /* The gates' steel behind their skins, gate 0's, and where each gate's
-   * copy of it stands (one instanced draw, made with the meshes). */
-  const gear = new Mesher();
-  const gearAt = [];
   {
     /* u across (east), d down the chute from the middle of the gates. */
     const {
@@ -2854,8 +2901,8 @@ export async function buildPart(ctx) {
      * colliders and reach are v2's. Behind the skin its ribs and two
      * girders, and on each side two arms back to the trunnion, a brace
      * between them and the hoist cylinder from the pier's slope. The skin
-     * is drawn per gate, so a destroyed one chars alone; the steel behind
-     * it is the same for all fourteen, one instanced draw (gear).
+     * and its steel are drawn per gate, in chunks a warhead takes out one
+     * by one (structures), so a destroyed one chars alone.
      */
     const gateBottom = sp.figures.sillY + SPILL.gateOpen;
     const gateTop = sp.figures.sillY + sp.figures.gateHeight;
@@ -2867,10 +2914,10 @@ export async function buildPart(ctx) {
     /* The point at radius rr from the trunnion, al up from its level, at u. */
     const arc = (u, rr, al) => at3(u, tD - rr * Math.cos(al), tY + rr * Math.sin(al));
     const radialOut = (al) => [-C.n[0] * Math.cos(al), Math.sin(al), -C.n[1] * Math.cos(al)];
-    const gearFaces = [];
     const across = [C.a[0], 0, C.a[1]];
     /* A beam of square section, `half` across, from P to Q, its sides
-     * square to `side` and to itself; its long faces checked as `name`. */
+     * square to `side` and to itself, in the steel; its long faces
+     * checked as `name`. */
     const beam = (P, Q, half, side, col, name) => {
       const d = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]];
       const l = Math.hypot(d[0], d[1], d[2]);
@@ -2889,134 +2936,201 @@ export async function buildPart(ctx) {
         const j = (i + 1) % 4;
         const pts = [corner(P, i), corner(P, j), corner(Q, j), corner(Q, i)];
         const m = [0, 1, 2].map((q) => (pts[0][q] + pts[1][q]) / 2 - P[q]);
-        gear.quad(pts[0], pts[1], pts[2], pts[3], col, m);
+        metal.quad(pts[0], pts[1], pts[2], pts[3], col, m);
         if (name) {
-          gearFaces.push([name, pts]);
+          face(name, 'wall', pts);
         }
       }
-      gear.poly([0, 1, 2, 3].map((i) => corner(P, i)), col, w.map((v) => -v));
-      gear.poly([0, 1, 2, 3].map((i) => corner(Q, i)), col, w);
+      metal.poly([0, 1, 2, 3].map((i) => corner(P, i)), col, w.map((v) => -v));
+      metal.poly([0, 1, 2, 3].map((i) => corner(Q, i)), col, w);
+    };
+    /* What `draw` adds to the steel, as chunk i's range of it. */
+    const steelOf = (s, i, draw) => {
+      const mark = metal.c.length;
+      draw();
+      s.chunks[i].draw.push({ mesh: 'steel', range: [mark, metal.c.length] });
     };
     const aArm = aMax * 0.6;
     const armIn = R - 1.5;
     const gateR = Math.min(12.5, (SPILL.gateWidth + pierW) / 2);
+    /* The skin's panels, the chunks a warhead takes out of it: GATE_COLS
+     * across the bay, PANELS up its arc, each two of the ROWS drawn. */
+    const PANELS = ROWS / 2;
+    const rowA = (i) => -aMax + (2 * aMax * i) / ROWS;
+    const tangent = (al) => [C.n[0] * Math.sin(al), Math.cos(al), C.n[1] * Math.sin(al)];
+    const [fx, fz] = C.at(0, 0);
+    /* The skin's solid: a stack of capsules across each column along the
+     * arc. The flat slab of columns it had stood 1.6 m upstream of the
+     * drawn skin at its top and foot, where the arc has curved away, and
+     * cost more solids. Each capsule's cap ends at the skin's edge, so the
+     * opening under the gate stays open. */
+    const rr = R - 0.15;
+    const ca0 = -aMax + SKIN_R / rr;
+    const ca1 = aMax - SKIN_R / rr;
+    /* Neighbours 4 % closer than touching, so no seam between them. */
+    const capRows = Math.ceil((rr * (ca1 - ca0)) / (1.92 * SKIN_R)) + 1;
+    const panelOf = (al) => Math.min(PANELS - 1, Math.max(0, Math.floor(((al + aMax) * PANELS) / (2 * aMax))));
     for (let g = 0; g < SPILL.gates; g += 1) {
       const u0 = pierU[g] + pierW / 2;
       const u1 = pierU[g + 1] - pierW / 2;
+      const id = `gate-${g}`;
+      /* Water leaves through the bay downstream, down the chute. */
+      const s = structure(id, 'gate', reservoirY, { o: [fx, 0, fz], u: across, n: [C.n[0], 0, C.n[1]] });
+      const colU = (c) => u0 + ((u1 - u0) * c) / GATE_COLS;
+      const colOf = (u) => Math.min(GATE_COLS - 1, Math.max(0, Math.floor(((u - u0) * GATE_COLS) / (u1 - u0))));
       const from = metal.c.length;
-      for (let i = 0; i < ROWS; i += 1) {
-        const a0 = -aMax + (2 * aMax * i) / ROWS;
-        const a1 = -aMax + (2 * aMax * (i + 1)) / ROWS;
-        const skin = [arc(u0, R, a0), arc(u1, R, a0), arc(u1, R, a1), arc(u0, R, a1)];
-        metal.quad(...skin, TONE.gate, radialOut((a0 + a1) / 2));
-        metal.quad(arc(u0, R - 0.3, a0), arc(u1, R - 0.3, a0), arc(u1, R - 0.3, a1), arc(u0, R - 0.3, a1), TONE.gate, radialOut((a0 + a1) / 2).map((v) => -v));
-        face('spillway gate', 'wall', skin);
+      const panel = [];
+      for (let c = 0; c < GATE_COLS; c += 1) {
+        panel.push([]);
+        const ua = colU(c);
+        const ub = colU(c + 1);
+        for (let p = 0; p < PANELS; p += 1) {
+          const a0 = rowA(2 * p);
+          const a1 = rowA(2 * p + 2);
+          const half = (a1 - a0) / 2;
+          const sag = R * (1 - Math.cos(half));
+          /* From the skin's face to the ribs' backs, 1.2 m behind it. */
+          const i = chunk(s, 'skin', arc((ua + ub) / 2, R - 0.6 - sag / 2, (a0 + a1) / 2), across, tangent((a0 + a1) / 2),
+            [(ub - ua) / 2, R * Math.sin(half), 0.6 + sag / 2], { rect: [ua, ub, tY + R * Math.sin(a0), tY + R * Math.sin(a1)] });
+          panel[c].push(i);
+          steelOf(s, i, () => {
+            for (let r = 2 * p; r < 2 * p + 2; r += 1) {
+              const b0 = rowA(r);
+              const b1 = rowA(r + 1);
+              const skin = [arc(ua, R, b0), arc(ub, R, b0), arc(ub, R, b1), arc(ua, R, b1)];
+              metal.quad(...skin, TONE.gate, radialOut((b0 + b1) / 2));
+              metal.quad(arc(ua, R - 0.3, b0), arc(ub, R - 0.3, b0), arc(ub, R - 0.3, b1), arc(ua, R - 0.3, b1), TONE.gate, radialOut((b0 + b1) / 2).map((v) => -v));
+              face('spillway gate', 'wall', skin);
+            }
+            for (const [al, dir, last] of [[aMax, 1, PANELS - 1], [-aMax, -1, 0]]) {
+              if (p !== last) {
+                continue;
+              }
+              const o = [C.n[0] * Math.sin(al) * dir, Math.cos(al) * dir, C.n[1] * Math.sin(al) * dir];
+              metal.quad(arc(ua, R, al), arc(ub, R, al), arc(ub, R - 0.3, al), arc(ua, R - 0.3, al), TONE.gate, o);
+            }
+            /* The ribs in this column, 0.24 m plates from 0.3 to 1.2 m
+             * behind the skin. */
+            for (let j = 0; j < RADIAL.ribs; j += 1) {
+              const ur = u0 + ((j + 0.5) * (u1 - u0)) / RADIAL.ribs;
+              if (colOf(ur) !== c) {
+                continue;
+              }
+              for (let r = 2 * p; r < 2 * p + 2; r += 1) {
+                const b0 = rowA(r);
+                const b1 = rowA(r + 1);
+                for (const du of [-0.12, 0.12]) {
+                  metal.quad(arc(ur + du, R - 0.3, b0), arc(ur + du, R - 1.2, b0), arc(ur + du, R - 1.2, b1), arc(ur + du, R - 0.3, b1), TONE.gate, [C.a[0] * du, 0, C.a[1] * du]);
+                }
+                metal.quad(arc(ur - 0.12, R - 1.2, b0), arc(ur + 0.12, R - 1.2, b0), arc(ur + 0.12, R - 1.2, b1), arc(ur - 0.12, R - 1.2, b1), TONE.gate, radialOut((b0 + b1) / 2).map((v) => -v));
+              }
+            }
+          });
+        }
       }
-      for (const [al, dir] of [[aMax, 1], [-aMax, -1]]) {
-        const o = [C.n[0] * Math.sin(al) * dir, Math.cos(al) * dir, C.n[1] * Math.sin(al) * dir];
-        metal.quad(arc(u0, R, al), arc(u1, R, al), arc(u1, R - 0.3, al), arc(u0, R - 0.3, al), TONE.gate, o);
+      for (let c = 0; c < GATE_COLS; c += 1) {
+        for (let p = 0; p < PANELS; p += 1) {
+          if (c + 1 < GATE_COLS) {
+            link(s, panel[c][p], panel[c + 1][p]);
+          }
+          if (p + 1 < PANELS) {
+            link(s, panel[c][p], panel[c][p + 1]);
+          }
+        }
       }
-      /* The skin's solid is a stack of capsules across the bay along its
-       * arc: the flat slab of columns it had stood 1.6 m upstream of the
-       * drawn skin at its top and foot, where the arc has curved away,
-       * and cost more solids. Each capsule's cap ends at the skin's edge,
-       * so the opening under the gate stays open. */
       const ids = [];
-      const rr = R - 0.15;
-      const a0 = -aMax + SKIN_R / rr;
-      const a1 = aMax - SKIN_R / rr;
-      /* Neighbours 4 % closer than touching, so no seam between them. */
-      const rows = Math.ceil((rr * (a1 - a0)) / (1.92 * SKIN_R)) + 1;
-      for (let i = 0; i < rows; i += 1) {
-        const al = a0 + ((a1 - a0) * i) / (rows - 1);
-        ids.push(addCapsule('wall', arc(u0, rr, al), arc(u1, rr, al), SKIN_R));
+      for (let i = 0; i < capRows; i += 1) {
+        const al = ca0 + ((ca1 - ca0) * i) / (capRows - 1);
+        for (let c = 0; c < GATE_COLS; c += 1) {
+          const k = addCapsule('wall', arc(colU(c), rr, al), arc(colU(c + 1), rr, al), SKIN_R);
+          ids.push(k);
+          s.chunks[panel[c][panelOf(al)]].colliders.push(k);
+        }
       }
-      /* The two girders behind the skin (drawn below as gear), 1.2 m
-       * square and level across the bay: each is a box turned to the
-       * chute, the girder exactly. */
+      /* The two girders behind the skin, 1.2 m square and level across the
+       * bay: each is a box turned to the chute, the girder exactly. The
+       * skin's rows they cross hang off them. */
+      const girder = {};
       for (const al of [aArm, -aArm]) {
-        const [px, py, pz] = arc(u0 + 0.2, R - 0.9, al);
-        const [qx, , qz] = arc(u1 - 0.2, R - 0.9, al);
+        const P = arc(u0 + 0.2, R - 0.9, al);
+        const Q = arc(u1 - 0.2, R - 0.9, al);
+        const bx = beamBox(P, Q, 0.6, up);
+        const i = chunk(s, 'girder', bx.c, bx.e0, bx.e1, bx.h);
+        girder[al] = i;
+        steelOf(s, i, () => beam(P, Q, 0.6, up, TONE.gate, null));
         const [ux, uz] = C.a;
-        const ua = px * ux + pz * uz;
-        const ub = qx * ux + qz * uz;
-        const w = pz * ux - px * uz;
-        addTurned(ux, uz, Math.min(ua, ub), Math.max(ua, ub), py - 0.6, py + 0.6, w - 0.6, w + 0.6);
+        const ua = P[0] * ux + P[2] * uz;
+        const ub = Q[0] * ux + Q[2] * uz;
+        const w = P[2] * ux - P[0] * uz;
+        s.chunks[i].colliders.push(addTurned(ux, uz, Math.min(ua, ub), Math.max(ua, ub), P[1] - 0.6, P[1] + 0.6, w - 0.6, w + 0.6));
+        for (let c = 0; c < GATE_COLS; c += 1) {
+          link(s, i, panel[c][panelOf(al)]);
+        }
       }
-      /* The ribs (drawn below as gear), 0.24 m plates from 0.3 to 1.2 m
-       * behind the skin, whose solid reaches 0.65 m behind it: each a
-       * chain of four capsules of 0.3 m on chords of its arc, centred
-       * 0.82 m behind the skin so the chord's sag puts their inside at
-       * the rib's within 0.1 m, and the chain's round ends at the skin's
-       * top and foot. */
+      /* The ribs' solid, 0.24 m plates whose solid reaches 0.65 m behind
+       * the skin: each a chain of four capsules of 0.3 m on chords of its
+       * arc, centred 0.82 m behind the skin so the chord's sag puts their
+       * inside at the rib's within 0.1 m, and the chain's round ends at the
+       * skin's top and foot. A chord is its panel's. */
       const ribR = R - 0.82;
       const ribEnd = 0.3 / ribR;
       for (let j = 0; j < RADIAL.ribs; j += 1) {
         const ur = u0 + ((j + 0.5) * (u1 - u0)) / RADIAL.ribs;
-        for (let i = 0; i < 4; i += 1) {
-          const a0 = -aMax + (2 * aMax * i) / 4 + (i === 0 ? ribEnd : 0);
-          const a1 = -aMax + (2 * aMax * (i + 1)) / 4 - (i === 3 ? ribEnd : 0);
-          addCapsule('wall', arc(ur, ribR, a0), arc(ur, ribR, a1), 0.3);
+        for (let i = 0; i < PANELS; i += 1) {
+          const a0 = -aMax + (2 * aMax * i) / PANELS + (i === 0 ? ribEnd : 0);
+          const a1 = -aMax + (2 * aMax * (i + 1)) / PANELS - (i === PANELS - 1 ? ribEnd : 0);
+          s.chunks[panel[colOf(ur)][i]].colliders.push(addCapsule('wall', arc(ur, ribR, a0), arc(ur, ribR, a1), 0.3));
         }
       }
       /* gate-0 is the westernmost: u runs east. */
       /* On its upstream face; its reach at most half the gates' pitch,
        * so neighbours' spheres never overlap. */
-      targets[`gate-${g}`] = {
+      targets[id] = {
         at: arc((u0 + u1) / 2, R, 0), r: gateR, part: 'gate', colliders: ids,
       };
-      darken[`gate-${g}`] = [{ mesh: 'steel', range: [from, metal.c.length] }, { mesh: 'gate-gear', instance: g }];
+      /* Each side: the two arms from the girders' ends back to the
+       * trunnion on the pier, the brace between them, and the hoist
+       * cylinder from the pier's deck to the skin's top. The trunnion and
+       * the hoist are fixed to the pier; the girders hang off the arms. */
       for (const [side, us] of [[u0, u0 + 1], [u1, u1 - 1]]) {
         const T = arc(us, 0, 0);
         const ends = [aArm, -aArm].map((al) => arc(us, armIn, al));
         const brace = [arc(us, armIn * 0.55, aArm), arc(us, armIn * 0.55, -aArm)];
         const pivot = at3(us, 9.5, CREST_Y - 4);
         const rodEnd = arc(us, R - 0.9, aMax * 0.9);
-        for (const E of ends) {
-          addCapsule('wall', T, E, 0.55);
-        }
-        addCapsule('wall', brace[0], brace[1], 0.4);
+        const tb = beamBox(arc(side, 0, 0), T, 0.65, up);
+        const trunnion = chunk(s, 'trunnion', tb.c, tb.e0, tb.e1, tb.h, { anchor: true });
+        steelOf(s, trunnion, () => beam(arc(side, 0, 0), T, 0.65, up, TONE.steel, 'spillway gate trunnion'));
         /* The trunnion's beam is 1.3 m square: a capsule as wide, whose
          * cap past T stood 0.95 m into the bay with nothing drawn there. */
-        addCapsule('wall', arc(side, 0, 0), T, 0.65);
-        addCapsule('wall', pivot, rodEnd, RADIAL.cylinder + 0.05);
-        if (g > 0) {
-          continue;
-        }
-        for (const E of ends) {
-          beam(T, E, RADIAL.beam / 2, across, TONE.arm, 'spillway gate arm');
-        }
-        beam(brace[0], brace[1], 0.3, across, TONE.arm, 'spillway gate arm');
-        beam(arc(side, 0, 0), T, 0.65, up, TONE.steel, 'spillway gate trunnion');
+        s.chunks[trunnion].colliders.push(addCapsule('wall', arc(side, 0, 0), T, 0.65));
+        const arms = [aArm, -aArm].map((al, k) => {
+          const E = ends[k];
+          const ab = beamBox(T, E, RADIAL.beam / 2, across);
+          const i = chunk(s, 'arm', ab.c, ab.e0, ab.e1, ab.h);
+          steelOf(s, i, () => beam(T, E, RADIAL.beam / 2, across, TONE.arm, 'spillway gate arm'));
+          s.chunks[i].colliders.push(addCapsule('wall', T, E, 0.55));
+          link(s, i, trunnion);
+          link(s, i, girder[al]);
+          return i;
+        });
+        const bb = beamBox(brace[0], brace[1], 0.3, across);
+        const br = chunk(s, 'brace', bb.c, bb.e0, bb.e1, bb.h);
+        steelOf(s, br, () => beam(brace[0], brace[1], 0.3, across, TONE.arm, 'spillway gate arm'));
+        s.chunks[br].colliders.push(addCapsule('wall', brace[0], brace[1], 0.4));
+        link(s, br, arms[0]);
+        link(s, br, arms[1]);
         const mid = [0, 1, 2].map((q) => pivot[q] + (rodEnd[q] - pivot[q]) * 0.6);
-        beam(pivot, mid, RADIAL.cylinder * 0.9, across, TONE.arm, 'spillway hoist cylinder');
-        beam(mid, rodEnd, 0.14, across, TONE.steel, null);
+        const hb = beamBox(pivot, rodEnd, RADIAL.cylinder, across);
+        const hoist = chunk(s, 'hoist', hb.c, hb.e0, hb.e1, hb.h, { anchor: true });
+        steelOf(s, hoist, () => {
+          beam(pivot, mid, RADIAL.cylinder * 0.9, across, TONE.arm, 'spillway hoist cylinder');
+          beam(mid, rodEnd, 0.14, across, TONE.steel, null);
+        });
+        s.chunks[hoist].colliders.push(addCapsule('wall', pivot, rodEnd, RADIAL.cylinder + 0.05));
+        link(s, hoist, panel[colOf(us)][PANELS - 1]);
       }
-      if (g > 0) {
-        continue;
-      }
-      for (let j = 0; j < RADIAL.ribs; j += 1) {
-        const ur = u0 + ((j + 0.5) * (u1 - u0)) / RADIAL.ribs;
-        for (let i = 0; i < ROWS; i += 1) {
-          const a0 = -aMax + (2 * aMax * i) / ROWS;
-          const a1 = -aMax + (2 * aMax * (i + 1)) / ROWS;
-          for (const du of [-0.12, 0.12]) {
-            gear.quad(arc(ur + du, R - 0.3, a0), arc(ur + du, R - 1.2, a0), arc(ur + du, R - 1.2, a1), arc(ur + du, R - 0.3, a1), TONE.gate, [C.a[0] * du, 0, C.a[1] * du]);
-          }
-          gear.quad(arc(ur - 0.12, R - 1.2, a0), arc(ur + 0.12, R - 1.2, a0), arc(ur + 0.12, R - 1.2, a1), arc(ur - 0.12, R - 1.2, a1), TONE.gate, radialOut((a0 + a1) / 2).map((v) => -v));
-        }
-      }
-      for (const al of [aArm, -aArm]) {
-        beam(arc(u0 + 0.2, R - 0.9, al), arc(u1 - 0.2, R - 0.9, al), 0.6, up, TONE.gate, null);
-      }
-    }
-    const [ox, oz] = C.at(pierU[0], 0);
-    for (const u of pierU.slice(0, SPILL.gates)) {
-      const [x, z] = C.at(u, 0);
-      gearAt.push([x - ox, 0, z - oz]);
-      for (const [name, pts] of gearFaces) {
-        face(name, 'wall', pts.map((q) => [q[0] + x - ox, q[1], q[2] + z - oz]));
-      }
+      darken[id] = [{ mesh: 'steel', range: [from, metal.c.length] }];
     }
     figures.spillwayGates = SPILL.gates;
     figures.spillwayGateWidth = pierU[1] - pierU[0] - pierW;
@@ -3339,7 +3453,6 @@ export async function buildPart(ctx) {
     const mat = bounced(new THREE.MeshStandardMaterial({ color: new THREE.Color().setRGB(0.28, 0.28, 0.275, THREE.LinearSRGBColorSpace), roughness: 0.5, metalness: 0.1 }), 'column');
     instanced(mergeGeometries(THREE, [plinth, shaft, ...collars, capital, dome]), mat, vents, 'intake-columns', false);
   }
-  instanced(gear.geometry(THREE), metalMat, gearAt, 'gate-gear', false);
 
   /* ---- the targets' states: smoke and fire over them, and a destroyed
    * part drawn charred, its colours put back when it is anything else. */
@@ -3428,6 +3541,54 @@ export async function buildPart(ctx) {
     damage.points.visible = targetIds.some((t) => states[t] !== 'ok');
   };
   damage.points.visible = false;
+  /*
+   * A chunk gone (src/maps/itaipu/damage.js applies the room's damage
+   * events) or back for the next match: its triangles folded onto one
+   * point, so they draw nothing and cost no call, and its colliders
+   * retired (collide.js retire). The positions it had are kept to put
+   * back. Before build() nothing can go, and nothing does.
+   */
+  const folded = new Map();
+  const setChunkGone = (id, i, gone) => {
+    const s = structures[id];
+    const ch = s && s.chunks[i];
+    if (!ch) {
+      throw new Error(`itaipu dam: no chunk ${i} of ${id}`);
+    }
+    const key = `${id}#${i}`;
+    if (folded.has(key) === gone) {
+      return;
+    }
+    const kept = gone ? [] : folded.get(key);
+    ch.draw.forEach((d, n) => {
+      const attr = drawn[d.mesh].geometry.getAttribute('position');
+      const [a, b] = d.range;
+      if (gone) {
+        kept.push(attr.array.slice(a, b));
+        for (let j = a; j < b; j += 3) {
+          attr.array[j] = attr.array[a];
+          attr.array[j + 1] = attr.array[a + 1];
+          attr.array[j + 2] = attr.array[a + 2];
+        }
+      } else {
+        attr.array.set(kept[n], a);
+      }
+      attr.addUpdateRange(a, b - a);
+      attr.needsUpdate = true;
+    });
+    if (gone) {
+      folded.set(key, kept);
+    } else {
+      folded.delete(key);
+    }
+    for (const k of ch.colliders) {
+      if (gone) {
+        ctx.colliders.retire(k);
+      } else {
+        ctx.colliders.restore(k);
+      }
+    }
+  };
   ctx.progress(1);
   const buildMs = performance.now() - started;
 
@@ -3464,6 +3625,10 @@ export async function buildPart(ctx) {
      *     for the yard's placeholder). */
     targets,
     setTargetState,
+    /* The targets cut into chunks (damage.js's structures, with each
+     * chunk's `draw` and `colliders`), and taking one out or back. */
+    structures,
+    setChunkGone,
     targetState: (id) => states[id],
     /* What scripts/dam-check.js measures: the drawn faces the collision
      * must hold, the figures as built, where to fly (sites, with the
