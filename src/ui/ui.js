@@ -1843,7 +1843,14 @@ function wordmark() {
   slash.setAttribute('aria-hidden', 'true');
   const name = el('span', 'lockup-name');
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
-  h.append(slash, el('span', 'lockup-over', 'Paraguayan'), ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
+  /* The flag as the boot screen draws it, horizontal bands; the title
+   * shows it and hides the slash, the share card the other way round. */
+  const flag = el('span', 'py-flag');
+  flag.setAttribute('aria-hidden', 'true');
+  flag.append(el('span'), el('span'), el('span'));
+  const over = el('span', 'lockup-over');
+  over.append(flag, 'Paraguayan');
+  h.append(slash, over, ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
   return h;
 }
 
@@ -3126,7 +3133,7 @@ const WAYS = [
     mode: 'race',
     label: str('ui.track_mode'),
     art: 'assets/gate/race.jpg',
-    blurb: str('ui.gates_against_the_clock_on_a'),
+    blurb: str('ui.card_line_race'),
     facts: [str('ui.gates'), str('ui.the_clock'), str('ui.the_board')],
   },
   {
@@ -3146,7 +3153,7 @@ const WAYS = [
     home: 'swiss2',
     label: str('ui.free_flight_card'),
     art: 'assets/gate/flight.jpg',
-    blurb: str('ui.the_fixed_wings'),
+    blurb: str('ui.card_line_flight'),
     facts: [str('ui.every_plane'), str('ui.the_swiss_valley')],
   },
   {
@@ -3832,10 +3839,7 @@ export class Ui {
     copy.append(titleTop, this.gateCards, titleFoot);
     this.craftCanvas = el('canvas', 'craft-view');
     this.craftCanvas.setAttribute('aria-hidden', 'true');
-    /* The key art behind the gate. See armTitleArt and .title-art. */
-    const art = el('div', 'title-art');
-    art.setAttribute('aria-hidden', 'true');
-    title.append(art, copy);
+    title.append(copy);
     this.screens.title = title;
 
     /*
@@ -7838,9 +7842,6 @@ export class Ui {
       /* The gate is one question, so the lines that describe a seat the
        * pilot has not chosen to fly yet come off the screen behind it. */
       this.screens.title.classList.toggle('is-gate', gate);
-      if (gate) {
-        this.armTitleArt();
-      }
       this.setTitleHint(gate);
     }
     const host = {
@@ -10841,54 +10842,6 @@ export class Ui {
 
   onGate() {
     return this.screen === 'title' && (this.craftGate || !this.mode);
-  }
-
-  /*
-   * THE KEY ART, AFTER THE MENU HAS PAINTED.
-   *
-   * The gate is the game's front page, so it carries the game's picture
-   * (assets/keyart/, rendered by scripts/loading-art.js) rather than the
-   * fixed title world behind it, which on the gate is decoration: past the
-   * gate the live world is the pilot's chosen map and aircraft, and it
-   * shows again. The picture is never what the menu waits for. Nothing is
-   * fetched while the boot screen is up, because the boot is fetching the
-   * renderer and the map; once it has gone and the gate has painted, the
-   * file the window's shape wants is decoded off to the side and faded in.
-   * Until then, or for good if the fetch fails, the gate sits on the art's
-   * own darkest tone, which is .title-art's background.
-   */
-  armTitleArt() {
-    if (this.titleArtArmed) {
-      return;
-    }
-    this.titleArtArmed = true;
-    const boot = document.getElementById('loading');
-    const load = () => requestAnimationFrame(() => requestAnimationFrame(() => {
-      setTimeout(() => this.loadTitleArt(), 0);
-    }));
-    if (!boot || boot.hidden) {
-      load();
-      return;
-    }
-    const watch = new MutationObserver(() => {
-      if (boot.hidden) {
-        watch.disconnect();
-        load();
-      }
-    });
-    watch.observe(boot, { attributes: true, attributeFilter: ['hidden'] });
-  }
-
-  loadTitleArt() {
-    /* The same test as the stylesheet's, which picks the same file, so the
-     * file decoded here is the one the CSS then paints from the cache. */
-    const tall = window.matchMedia('(max-aspect-ratio: 4/5)').matches;
-    const img = new Image();
-    img.decoding = 'async';
-    img.addEventListener('load', () => {
-      this.screens.title.classList.add('has-art');
-    }, { once: true });
-    img.src = tall ? 'assets/keyart/tall.webp' : 'assets/keyart/wide.webp';
   }
 
   /* Every screen that draws some of its choices as cards. */
