@@ -1568,7 +1568,7 @@ export class RoomWar {
     m.damage ??= [];
     const at = p.map(mm);
     const out = [];
-    for (const r of blast(structures, m.wreck, at, w, t)) {
+    for (const r of blast(structures, m.wreck, at, w, mm(t))) {
       const e = {
         seq: m.damage.length, ...r, p: at, by,
       };

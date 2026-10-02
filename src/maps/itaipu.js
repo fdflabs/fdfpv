@@ -434,6 +434,9 @@ async function buildItaipu(shell, progress, q, time) {
       aimDrop: 40,
     },
     height: (x, z, fromY) => roofs.height(x, z, fromY, wet(x, z)),
+    /* The drawn ground or roof at or under fromY, never the water: where
+     * a broken chunk's piece comes to rest (src/share/war/debris.js). */
+    floorAt: (x, z, fromY) => roofs.height(x, z, fromY, terrain.height(x, z)),
     cover: (x, z, fromY) => roofs.cover(colliders, x, z, fromY),
     roofs: roofs.records,
     roofTop: (i, x, z) => roofs.top(i, x, z),
