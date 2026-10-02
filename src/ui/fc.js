@@ -105,6 +105,16 @@ function formatField(field, raw) {
   return String(raw);
 }
 
+/* Lookup values show as the CLI prints them, but for the rates type the
+ * CLI calls by the firmware's own name: the owner's rule (2 Oct 2026)
+ * keeps that name off the screen, so it shows as the Rates screen's
+ * Classic. Only the label: the value written and exported is unchanged. */
+const LOOKUP_LABEL = { BETAFLIGHT: 'CLASSIC' };
+
+function lookupLabel(value) {
+  return LOOKUP_LABEL[value] ?? value;
+}
+
 function sectionFor(field, page) {
   const k = field.key;
   if (page === 'pid') {
@@ -989,9 +999,9 @@ export class FcSession {
         label: field.key,
         key: field.key,
         note,
-        value: formatField(field, current),
+        value: formatField(field, lookupLabel(current)),
         current,
-        options: lut.map((c) => ({ value: c, label: c })),
+        options: lut.map((c) => ({ value: c, label: lookupLabel(c) })),
         pick: (v) => this.setValue(field.key, v),
         adjust: (d) => this.setValue(field.key, cycle(lut, current, d)),
         rowClass: greyClass,
@@ -1196,7 +1206,7 @@ export function downloadCli(filename, text) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename || 'betaflight.diff';
+  a.download = filename || 'flight-controller.diff';
   document.body.appendChild(a);
   a.click();
   a.remove();
