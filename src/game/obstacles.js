@@ -63,7 +63,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { KINDS } from './collide.js';
+import { KINDS, TURNED } from './collide.js';
 
 /* A vertical line: orbits, pole dancing, jump rope. */
 export const OB_POLE = 0;
@@ -541,8 +541,11 @@ export function deriveObstacles(colliders, groundAt) {
     const z1 = colliders.fbz[i];
     const cx = (x0 + x1) * 0.5;
     const cz = (z0 + z1) * 0.5;
-    const w = x1 - x0;
-    const d = z1 - z0;
+    /* A turned box (collide.js addTurnedBox) by its own sides, along its
+     * own axes: its world bounding box is neither. */
+    const turned = colliders.fbox[i] === TURNED;
+    const w = turned ? colliders.fu1[i] - colliders.fu0[i] : x1 - x0;
+    const d = turned ? colliders.fw1[i] - colliders.fw0[i] : z1 - z0;
     /*
      * Clamp the vertical extent to what is ABOVE THE GROUND. The town builds
      * some of its walls as boxes that reach sixty metres underground, and
@@ -571,9 +574,11 @@ export function deriveObstacles(colliders, groundAt) {
     if (foot >= BAR_LEN_MIN && thin <= BAR_THICK_MAX && h <= BAR_THICK_MAX
       && y0 - ground >= BAR_CLEAR_MIN) {
       const alongX = w > d;
+      const ux = turned ? colliders.fux[i] : 1;
+      const uz = turned ? colliders.fuz[i] : 0;
       field.add(
         OB_BAR, cx, (y0 + y1) * 0.5, cz,
-        alongX ? 1 : 0, 0, alongX ? 0 : 1,
+        alongX ? ux : -uz, 0, alongX ? uz : ux,
         foot * 0.5,
       );
     }

@@ -181,10 +181,9 @@ const FACES = `(() => {
     for (const i of grid.get(key(Math.floor(x / CELL), Math.floor(z / CELL))) || []) {
       let dd;
       if (col.fbox[i]) {
-        const dx = Math.max(col.fax[i] - x, 0, x - col.fbx[i]);
-        const dy = Math.max(col.fay[i] - y, 0, y - col.fby[i]);
-        const dz = Math.max(col.faz[i] - z, 0, z - col.fbz[i]);
-        dd = Math.hypot(dx, dy, dz);
+        /* Axis aligned or turned (collide.js addTurnedBox), not its
+         * world bounding box. */
+        dd = col.boxGap(i, x, y, z);
       } else {
         const ax = col.fax[i], ay = col.fay[i], az = col.faz[i];
         const vx = col.fbx[i] - ax, vy = col.fby[i] - ay, vz = col.fbz[i] - az;
@@ -278,7 +277,11 @@ const TARGETS = `(() => {
     let far = 0, foreign = 0;
     for (const i of t.colliders) {
       if (!solids.has(i)) foreign += 1;
-      const r = col.fbox[i] ? 0 : col.fr[i];
+      if (col.fbox[i]) {
+        far = Math.max(far, col.boxGap(i, x, y, z));
+        continue;
+      }
+      const r = col.fr[i];
       const dx = Math.max(Math.min(col.fax[i], col.fbx[i]) - r - x, 0, x - Math.max(col.fax[i], col.fbx[i]) - r);
       const dy = Math.max(Math.min(col.fay[i], col.fby[i]) - r - y, 0, y - Math.max(col.fay[i], col.fby[i]) - r);
       const dz = Math.max(Math.min(col.faz[i], col.fbz[i]) - r - z, 0, z - Math.max(col.faz[i], col.fbz[i]) - r);

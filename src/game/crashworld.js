@@ -429,6 +429,43 @@ export function nearestWires(colliders, x, y, z, reach, max, out) {
 }
 
 /*
+ * A TURNED BOX AS THE PLANT'S BOX (collide.js addTurnedBox): into `out`,
+ * its middle in the world (cx, cy, cz), its half extents along its own u,
+ * up and w (hu, hy, hw), and its turn about the vertical as a quaternion
+ * (0, qy, 0, qw), the turn taking world x onto u = (tx, tz) and world z
+ * onto w = (-tz, tx): about y by a with cos a = tx and sin a = -tz. The
+ * half turn by a square root, not a sine or a cosine (CLAUDE.md,
+ * determinism); square to the world it is (0, 0, 0, 1) exactly.
+ */
+export function turnedBoxPose(colliders, i, out) {
+  const tx = colliders.fux[i];
+  const tz = colliders.fuz[i];
+  const um = (colliders.fu0[i] + colliders.fu1[i]) / 2;
+  const wm = (colliders.fw0[i] + colliders.fw1[i]) / 2;
+  out.cx = um * tx - wm * tz;
+  out.cy = (colliders.fay[i] + colliders.fby[i]) / 2;
+  out.cz = um * tz + wm * tx;
+  out.hu = (colliders.fu1[i] - colliders.fu0[i]) / 2;
+  out.hy = (colliders.fby[i] - colliders.fay[i]) / 2;
+  out.hw = (colliders.fw1[i] - colliders.fw0[i]) / 2;
+  /* (1 + x.u, x cross u), normalised, for u made a unit vector first: a
+   * single precision one is not quite, and near a half turn that is the
+   * whole of 1 + x.u. */
+  const n = Math.sqrt(tx * tx + tz * tz);
+  const cw = 1 + tx / n;
+  const cy = 0 - tz / n;
+  const l = Math.sqrt(cw * cw + cy * cy);
+  if (l > 1e-9) {
+    out.qy = cy / l;
+    out.qw = cw / l;
+  } else {
+    out.qy = 1;
+    out.qw = 0;
+  }
+  return out;
+}
+
+/*
  * THE SOLIDS THE BROKEN PARTS MEET: the `max` static colliders nearest
  * (x, y, z) within `reach`, trees excluded (sim_tree_add gives every tree
  * it holds a trunk for the free bodies, and a crown is foliage) and wires

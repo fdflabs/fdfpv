@@ -741,6 +741,8 @@ const FROZEN = [
   ['fax', Float32Array], ['fay', Float32Array], ['faz', Float32Array],
   ['fbx', Float32Array], ['fby', Float32Array], ['fbz', Float32Array],
   ['fr', Float32Array], ['fkind', Int32Array], ['fbox', Uint8Array], ['pass', Uint8Array],
+  ['fux', Float32Array], ['fuz', Float32Array],
+  ['fu0', Float32Array], ['fu1', Float32Array], ['fw0', Float32Array], ['fw1', Float32Array],
 ];
 
 /* A ColliderList's construction arrays, frozen into FROZEN's typed arrays. */
@@ -761,6 +763,12 @@ function freeze(list) {
     fkind: Int32Array.from(list.kind),
     fbox: Uint8Array.from(list.box),
     pass: new Uint8Array(n),
+    fux: Float32Array.from(list.ux),
+    fuz: Float32Array.from(list.uz),
+    fu0: Float32Array.from(list.u0),
+    fu1: Float32Array.from(list.u1),
+    fw0: Float32Array.from(list.w0),
+    fw1: Float32Array.from(list.w1),
   };
 }
 
@@ -885,10 +893,28 @@ class ColliderList {
     this.bz = [];
     this.r = [];
     this.kind = [];
-    /* 0 for a capsule, 1 for a box. A box stores its minimum corner in a and
-     * its maximum corner in b, with r = 0. */
+    /* 0 for a capsule, 1 for a box, TURNED for a turned box. A box stores
+     * its minimum corner in a and its maximum corner in b, with r = 0; a
+     * turned box stores its world bounding box there, and its own frame in
+     * the six below (addTurnedBox), which are 0 for everything else. */
     this.box = [];
+    this.ux = [];
+    this.uz = [];
+    this.u0 = [];
+    this.u1 = [];
+    this.w0 = [];
+    this.w1 = [];
     this.maxR = 0;
+  }
+
+  /* The turned box's frame of a collider that has none. */
+  noFrame() {
+    this.ux.push(0);
+    this.uz.push(0);
+    this.u0.push(0);
+    this.u1.push(0);
+    this.w0.push(0);
+    this.w1.push(0);
   }
 
   /*
@@ -909,6 +935,7 @@ class ColliderList {
     this.r.push(r);
     this.kind.push(k);
     this.box.push(0);
+    this.noFrame();
     if (r > this.maxR) {
       this.maxR = r;
     }
@@ -955,9 +982,81 @@ class ColliderList {
     this.r.push(0);
     this.kind.push(k);
     this.box.push(1);
+    this.noFrame();
+    return i;
+  }
+
+  /*
+   * One box turned about the vertical: its own x axis is the horizontal
+   * (ux, uz), which need not be a unit vector, its z axis w = (-uz, ux)
+   * turned a quarter from it, and it spans u0 to u1 along u, w0 to w1
+   * along w (both measured from the world's origin, so a point's
+   * coordinates in its frame are x ux + z uz and z ux - x uz) and y0 to y1
+   * up. Returns its index.
+   *
+   * WHY IT EXISTS: a wall turned off the world's axes was columns of axis
+   * aligned boxes, each no wider than keeps its corner within a stair of
+   * the face, and the Itaipu dam's turned blocks were 12 210 of the 15 000
+   * static solids its plan allows (docs/ITAIPU-PLAN.md section 6). Every
+   * query meets one by turning itself into the box's frame and asking the
+   * axis aligned box's own question there, then turning the answer back:
+   * the same solver, so the same answer, and at u = (1, 0) the turn is
+   * x 1 + z 0 = x, exactly, so a turned box square to the world is met
+   * bit for bit as the box addBox makes (scripts/turned-box-check.js).
+   *
+   * Like a box it contributes nothing to maxR: it is registered over its
+   * world bounding box, every cell of it.
+   */
+  addTurnedBox(kindName, ux, uz, u0, u1, y0, y1, w0, w1) {
+    const k = KINDS.indexOf(kindName);
+    if (k < 0) {
+      throw new Error(`collide: unknown kind ${kindName}`);
+    }
+    const l = Math.sqrt(ux * ux + uz * uz);
+    if (!(l > 0) || !(u0 <= u1) || !(y0 <= y1) || !(w0 <= w1)) {
+      throw new Error(`collide: a turned box needs a direction and ordered extents, got (${ux}, ${uz}) ${u0}..${u1} ${y0}..${y1} ${w0}..${w1}`);
+    }
+    /* Stored as it is read: in single precision, like every extent. */
+    const cx = Math.fround(ux / l);
+    const cz = Math.fround(uz / l);
+    const i = this.ax.length;
+    let x0 = Infinity;
+    let x1 = -Infinity;
+    let z0 = Infinity;
+    let z1 = -Infinity;
+    for (const u of [u0, u1]) {
+      for (const w of [w0, w1]) {
+        const x = u * cx - w * cz;
+        const z = u * cz + w * cx;
+        x0 = Math.min(x0, x);
+        x1 = Math.max(x1, x);
+        z0 = Math.min(z0, z);
+        z1 = Math.max(z1, z);
+      }
+    }
+    /* Out by a hair, so the single precision corners still hold it. */
+    const pad = 1e-6 * (Math.abs(x0) + Math.abs(x1) + Math.abs(z0) + Math.abs(z1)) + 1e-6;
+    this.ax.push(x0 - pad);
+    this.ay.push(y0);
+    this.az.push(z0 - pad);
+    this.bx.push(x1 + pad);
+    this.by.push(y1);
+    this.bz.push(z1 + pad);
+    this.r.push(0);
+    this.kind.push(k);
+    this.box.push(TURNED);
+    this.ux.push(cx);
+    this.uz.push(cz);
+    this.u0.push(u0);
+    this.u1.push(u1);
+    this.w0.push(w0);
+    this.w1.push(w1);
     return i;
   }
 }
+
+/* Colliders.fbox's value for a turned box (ColliderList.addTurnedBox). */
+export const TURNED = 2;
 
 /*
  * THE NEXT STREAMED SET, being made: see Colliders.streamFill. Added to
@@ -991,6 +1090,13 @@ class StreamFill extends ColliderList {
       throw new Error('collide: add to a streamed set after its first step');
     }
     return super.addBox(...args);
+  }
+
+  addTurnedBox(...args) {
+    if (this.set) {
+      throw new Error('collide: add to a streamed set after its first step');
+    }
+    return super.addTurnedBox(...args);
   }
 
   /* One slice of the refill; true on the call that swapped it in. A fill
@@ -1102,6 +1208,7 @@ export class Colliders extends ColliderList {
     this.hitPart = -1;
     /* Scratch for the parts' sweep, allocated once. */
     this.partAxes = new Float64Array(9);
+    this.partAxesTurned = new Float64Array(9);
     this.partHit = hullContact();
     this.partBest = hullContact();
     this.partLo = new Float64Array(3);
@@ -1283,6 +1390,12 @@ export class Colliders extends ColliderList {
     this.bz = null;
     this.r = null;
     this.box = null;
+    this.ux = null;
+    this.uz = null;
+    this.u0 = null;
+    this.u1 = null;
+    this.w0 = null;
+    this.w1 = null;
     return this;
   }
 
@@ -1450,6 +1563,34 @@ export class Colliders extends ColliderList {
       }
     }
     return n;
+  }
+
+  /*
+   * How far (px, py, pz) is outside box i, axis aligned or turned, 0
+   * inside: the one distance gapAt, axisAt and the shell's contact log
+   * measure a box by.
+   */
+  boxGap(i, px, py, pz) {
+    let x = px;
+    let z = pz;
+    let x0 = this.fax[i];
+    let x1 = this.fbx[i];
+    let z0 = this.faz[i];
+    let z1 = this.fbz[i];
+    if (this.fbox[i] === TURNED) {
+      const ux = this.fux[i];
+      const uz = this.fuz[i];
+      x = px * ux + pz * uz;
+      z = pz * ux - px * uz;
+      x0 = this.fu0[i];
+      x1 = this.fu1[i];
+      z0 = this.fw0[i];
+      z1 = this.fw1[i];
+    }
+    const ox = Math.max(x0 - x, 0, x - x1);
+    const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
+    const oz = Math.max(z0 - z, 0, z - z1);
+    return Math.sqrt(ox * ox + oy * oy + oz * oz);
   }
 
   /*
@@ -1791,12 +1932,7 @@ export class Colliders extends ColliderList {
       }
       let gap;
       if (this.fbox[i]) {
-        /* Outside vector, componentwise. Zero on every axis means the
-         * point is inside the box, which is a gap of zero. */
-        const ox = Math.max(this.fax[i] - px, 0, px - this.fbx[i]);
-        const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
-        const oz = Math.max(this.faz[i] - pz, 0, pz - this.fbz[i]);
-        gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
+        gap = this.boxGap(i, px, py, pz);
       } else {
         this.axisToPoint(i, px, py, pz);
         const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
@@ -1852,10 +1988,7 @@ export class Colliders extends ColliderList {
       const i = cand[ci];
       let gap;
       if (this.fbox[i]) {
-        const ox = Math.max(this.fax[i] - px, 0, px - this.fbx[i]);
-        const oy = Math.max(this.fay[i] - py, 0, py - this.fby[i]);
-        const oz = Math.max(this.faz[i] - pz, 0, pz - this.fbz[i]);
-        gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
+        gap = this.boxGap(i, px, py, pz);
       } else {
         this.axisToPoint(i, px, py, pz);
         const d = Math.sqrt(this.nx * this.nx + this.ny * this.ny + this.nz * this.nz);
@@ -1871,6 +2004,48 @@ export class Colliders extends ColliderList {
     }
     this.axisFound = true;
     this.axisGap = best;
+    if (this.fbox[bestI] === TURNED) {
+      /* The same rule in the box's own frame: its longest side, through
+       * its middle, the query clamped along it; then back to the world. */
+      const ux = this.fux[bestI];
+      const uz = this.fuz[bestI];
+      const u0 = this.fu0[bestI];
+      const u1 = this.fu1[bestI];
+      const w0 = this.fw0[bestI];
+      const w1 = this.fw1[bestI];
+      const y0 = this.fay[bestI];
+      const y1 = this.fby[bestI];
+      const qu = px * ux + pz * uz;
+      const qw = pz * ux - px * uz;
+      let cu = (u0 + u1) * 0.5;
+      let cw = (w0 + w1) * 0.5;
+      let cy = (y0 + y1) * 0.5;
+      const lu = u1 - u0;
+      const ly = y1 - y0;
+      const lw = w1 - w0;
+      if (lu >= ly && lu >= lw) {
+        this.axisDx = ux;
+        this.axisDy = 0;
+        this.axisDz = uz;
+        cu = qu < u0 ? u0 : (qu > u1 ? u1 : qu);
+      } else if (ly >= lu && ly >= lw) {
+        this.axisDx = 0;
+        this.axisDy = 1;
+        this.axisDz = 0;
+        cy = py < y0 ? y0 : (py > y1 ? y1 : py);
+      } else {
+        this.axisDx = -uz;
+        this.axisDy = 0;
+        this.axisDz = ux;
+        cw = qw < w0 ? w0 : (qw > w1 ? w1 : qw);
+      }
+      /* Back by the turn's exact inverse, as hitParts' contact point. */
+      const n2 = ux * ux + uz * uz;
+      this.axisCx = (cu * ux - cw * uz) / n2;
+      this.axisCy = cy;
+      this.axisCz = (cu * uz + cw * ux) / n2;
+      return true;
+    }
     if (this.fbox[bestI]) {
       /* The longest dimension is the direction; the centre line runs through
        * the box along it, and the nearest point on that line is the query's
@@ -2166,7 +2341,22 @@ export class Colliders extends ColliderList {
         ) {
           continue;
         }
-        const t = this.boxEarliestT(i, px, py, pz, d1x, d1y, d1z, crx, vh, crz);
+        let t;
+        if (this.fbox[i] === TURNED) {
+          /* In the box's frame, where the X's reach along the box's own
+           * axes is what crx and crz are along the world's. 0 - tz, not
+           * -tz: at tz = 0 that is +0, the world's own z. */
+          const tx = this.fux[i];
+          const tz = this.fuz[i];
+          t = this.boxSlabWalk(
+            this.fu0[i], this.fay[i], this.fw0[i], this.fu1[i], this.fby[i], this.fw1[i],
+            px * tx + pz * tz, py, pz * tx - px * tz, d1x * tx + d1z * tz, d1y, d1z * tx - d1x * tz,
+            clampRadius(discSupport(tx, 0, tz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)), vh,
+            clampRadius(discSupport(0 - tz, 0, tx, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)),
+          );
+        } else {
+          t = this.boxEarliestT(i, px, py, pz, d1x, d1y, d1z, crx, vh, crz);
+        }
         if (t >= 0 && t < bestT) {
           bestT = t;
           bestI = i;
@@ -2343,27 +2533,40 @@ export class Colliders extends ColliderList {
     this.hitPen = 0;
     this.hitOverlap = 0;
     if (this.fbox[bestI]) {
-      nx = cxp < this.fax[bestI] ? cxp - this.fax[bestI] : cxp > this.fbx[bestI] ? cxp - this.fbx[bestI] : 0;
+      /* A turned box answers in its own frame (addTurnedBox), with the X's
+       * reach along its own axes, and its normal is turned back below. */
+      const turned = this.fbox[bestI] === TURNED;
+      const tx = turned ? this.fux[bestI] : 1;
+      const tz = turned ? this.fuz[bestI] : 0;
+      const lx = turned ? cxp * tx + czp * tz : cxp;
+      const lz = turned ? czp * tx - cxp * tz : czp;
+      const x0 = turned ? this.fu0[bestI] : this.fax[bestI];
+      const x1 = turned ? this.fu1[bestI] : this.fbx[bestI];
+      const z0 = turned ? this.fw0[bestI] : this.faz[bestI];
+      const z1 = turned ? this.fw1[bestI] : this.fbz[bestI];
+      const rX = turned ? clampRadius(discSupport(tx, 0, tz, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)) : crx;
+      const rZ = turned ? clampRadius(discSupport(0 - tz, 0, tx, exx, exy, exz, ezx, ezy, ezz, ux, uy, uz)) : crz;
+      nx = lx < x0 ? lx - x0 : lx > x1 ? lx - x1 : 0;
       ny = cyp < this.fay[bestI] ? cyp - this.fay[bestI] : cyp > this.fby[bestI] ? cyp - this.fby[bestI] : 0;
-      nz = czp < this.faz[bestI] ? czp - this.faz[bestI] : czp > this.fbz[bestI] ? czp - this.fbz[bestI] : 0;
+      nz = lz < z0 ? lz - z0 : lz > z1 ? lz - z1 : 0;
       if (nx === 0 && ny === 0 && nz === 0) {
-        const dx0 = cxp - this.fax[bestI];
-        const dx1 = this.fbx[bestI] - cxp;
+        const dx0 = lx - x0;
+        const dx1 = x1 - lx;
         const dy0 = cyp - this.fay[bestI];
         const dy1 = this.fby[bestI] - cyp;
-        const dz0 = czp - this.faz[bestI];
-        const dz1 = this.fbz[bestI] - czp;
+        const dz0 = lz - z0;
+        const dz1 = z1 - lz;
         let best = dx0;
         nx = -1;
         ny = 0;
         nz = 0;
-        let rAxis = crx;
+        let rAxis = rX;
         if (dx1 < best) {
           best = dx1;
           nx = 1;
           ny = 0;
           nz = 0;
-          rAxis = crx;
+          rAxis = rX;
         }
         if (dy0 < best) {
           best = dy0;
@@ -2384,14 +2587,14 @@ export class Colliders extends ColliderList {
           nx = 0;
           ny = 0;
           nz = -1;
-          rAxis = crz;
+          rAxis = rZ;
         }
         if (dz1 < best) {
           best = dz1;
           nx = 0;
           ny = 0;
           nz = 1;
-          rAxis = crz;
+          rAxis = rZ;
         }
         this.hitPen = best + rAxis;
         if (this.hitPen > 8) {
@@ -2406,10 +2609,15 @@ export class Colliders extends ColliderList {
          * is no approach left to solve, just get out", and a hull overlap
          * with the centre outside is a contact that still has an impulse
          * owing. See ellipsoidPen. */
-        this.hitOverlap = ellipsoidPen(nx, ny, nz, crx, vh, crz);
+        this.hitOverlap = ellipsoidPen(nx, ny, nz, rX, vh, rZ);
         if (this.hitOverlap > 8) {
           this.hitOverlap = 8;
         }
+      }
+      if (turned) {
+        const wx = nx * tx - nz * tz;
+        nz = nx * tz + nz * tx;
+        nx = wx;
       }
     } else {
       this.axisToPoint(bestI, cxp, cyp, czp);
@@ -2495,6 +2703,43 @@ export class Colliders extends ColliderList {
           || (pz < this.faz[i] - reach && qz < this.faz[i] - reach)
           || (pz > this.fbz[i] + reach && qz > this.fbz[i] + reach)
         ) {
+          continue;
+        }
+        if (this.fbox[i] === TURNED) {
+          /* The craft and its travel turned into the box's frame, and a
+           * part that wins turned back, its point and its normal. */
+          const tx = this.fux[i];
+          const tz = this.fuz[i];
+          const lax = this.partAxesTurned;
+          for (let k = 0; k < 9; k += 3) {
+            lax[k] = ax[k] * tx + ax[k + 2] * tz;
+            lax[k + 1] = ax[k + 1];
+            lax[k + 2] = ax[k + 2] * tx - ax[k] * tz;
+          }
+          lo[0] = this.fu0[i];
+          lo[1] = this.fay[i];
+          lo[2] = this.fw0[i];
+          hi[0] = this.fu1[i];
+          hi[1] = this.fby[i];
+          hi[2] = this.fw1[i];
+          const lpx = px * tx + pz * tz;
+          const lpz = pz * tx - px * tz;
+          const ldx = d1x * tx + d1z * tz;
+          const ldz = d1z * tx - d1x * tz;
+          if (this.partsAgainstBox(hull, lax, lpx, py, lpz, ldx, d1y, ldz, lo, hi, got, best)) {
+            bestI = i;
+            /* The point back by the turn's exact inverse: a single
+             * precision axis is not quite a unit one, and its transpose
+             * would carry that 3e-8 over the thousands of metres the point
+             * stands from the origin. Square to the world n2 is 1. */
+            const n2 = tx * tx + tz * tz;
+            const bx = (best.px * tx - best.pz * tz) / n2;
+            best.pz = (best.px * tz + best.pz * tx) / n2;
+            best.px = bx;
+            const nx = best.nx * tx - best.nz * tz;
+            best.nz = best.nx * tz + best.nz * tx;
+            best.nx = nx;
+          }
           continue;
         }
         lo[0] = this.fax[i];
@@ -2647,6 +2892,15 @@ export class Colliders extends ColliderList {
     if (!this.built || i < 0 || i >= this.count) {
       return 0;
     }
+    if (this.fbox[i] === TURNED) {
+      const tx = this.fux[i];
+      const tz = this.fuz[i];
+      return boxPointInterior(
+        this.fu0[i], this.fay[i], this.fw0[i],
+        this.fu1[i], this.fby[i], this.fw1[i],
+        x * tx + z * tz, y, z * tx - x * tz,
+      );
+    }
     if (this.fbox[i]) {
       return boxPointInterior(
         this.fax[i], this.fay[i], this.faz[i],
@@ -2690,6 +2944,20 @@ export class Colliders extends ColliderList {
   crossedStatic(i, ax, ay, az, bx, by, bz) {
     if (!this.built || i < 0 || i >= this.count) {
       return false;
+    }
+    if (this.fbox[i] === TURNED) {
+      const tx = this.fux[i];
+      const tz = this.fuz[i];
+      const pax = ax * tx + az * tz;
+      const paz = az * tx - ax * tz;
+      const pbx = bx * tx + bz * tz;
+      const pbz = bz * tx - bx * tz;
+      const x0 = this.fu0[i];
+      const x1 = this.fu1[i];
+      const z0 = this.fw0[i];
+      const z1 = this.fw1[i];
+      return boxOppositeSides(x0, this.fay[i], z0, x1, this.fby[i], z1, pax, ay, paz, pbx, by, pbz)
+        && segmentHitsAabb(x0, this.fay[i], z0, x1, this.fby[i], z1, pax, ay, paz, pbx, by, pbz);
     }
     if (this.fbox[i]) {
       if (!boxOppositeSides(
@@ -2760,15 +3028,18 @@ export class Colliders extends ColliderList {
       }
     }
     let boxes = 0;
+    let turned = 0;
     if (this.fbox) {
       for (let i = 0; i < this.fbox.length; i += 1) {
-        boxes += this.fbox[i];
+        boxes += this.fbox[i] ? 1 : 0;
+        turned += this.fbox[i] === TURNED ? 1 : 0;
       }
     }
     return {
       count: this.count ?? 0,
       byKind,
       boxes,
+      turned,
       capsules: (this.count ?? 0) - boxes,
       static: this.staticCount,
       streamed: this.streamCount,
