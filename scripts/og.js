@@ -7,22 +7,21 @@
  * renderer, through scripts/shots.js, which is the same harness every
  * rendering bug in this project was found with.
  *
- * WHAT THE FRAME IS. The loading screen: the Itaipu key art
- * (assets/loading/wide.webp, from scripts/loading-art.js and
- * tools/loading-art/grade.py) under the name's lockup, PARAGUAYAN over
- * DRONE COMBAT over SIMULATOR with the red, white and blue slash. That
- * screen is already the product's poster, laid out by index.html's own
- * rules, so the card is that screen rather than a second design of it that
- * could disagree with it. The run waits for the shell to boot and the
- * screen to go, then brings it back over the title, so the capture is
- * never taken halfway through the fade.
+ * WHAT THE FRAME IS. The Itaipu key art (assets/keyart/wide.webp, from
+ * scripts/loading-art.js and tools/loading-art/grade.py), the picture
+ * behind the title's gate, with the name's lockup over it in a column on
+ * the right: PARAGUAYAN over DRONE COMBAT over SIMULATOR with the red,
+ * white and blue slash. The lockup is the title's own heading and the
+ * page's own .lockup rules, cloned, so the name on the card cannot disagree
+ * with the name in the game. The column and the grade below are the card's
+ * own layout, because no screen in the game puts the name over the picture
+ * this way: the boot screen is the bootloader and carries neither, and the
+ * gate puts its cards over the picture. The run waits for the shell to boot and
+ * the boot screen to go, so nothing is captured mid fade.
  *
- * WHY THE BAR AND THE TAGLINE GO AND THE NAME STAYS. A share card is read
- * at about 500 px wide in a feed, next to a headline. The load bar and the
- * joke under it belong to a boot that is not happening, and the tagline is
- * 11 px of spaced capitals that turn to dust at that size. The name
- * survives the shrink, and it is the one thing on the card that says which
- * product this is.
+ * WHY ONLY THE NAME. A share card is read at about 500 px wide in a feed,
+ * next to a headline. The name survives the shrink, and it is the one thing
+ * on the card that says which product this is.
  *
  * WHY A PALETTE. The frame is a photograph as far as PNG is concerned,
  * about 700 KB at full colour, and a crawler fetches it for every share.
@@ -67,16 +66,27 @@ const W = 1200;
 const H = 630;
 
 /*
- * Everything that is not the art and the name: the title screen under the
- * loading screen, the load bar and its joke, the failure panel and the
- * tagline.
+ * The card, over everything else on the page. The picture's position and
+ * the grade are the ones the loading screen gave it when it carried the
+ * art, so the card is the one already shared: the right hand third and the
+ * foot darkened under the name, the Striker on the left left as rendered.
  */
-const HIDE = ['#ui', '.loading-status', '.loading-help', '.loading-tag'];
+const ART = 'assets/keyart/wide.webp';
+const CARD = 'position:fixed;inset:0;z-index:50;'
+  + `background:#0c0e0d url("${ART}") 30% 50% / cover no-repeat;`;
+const GRADE = 'position:absolute;inset:0;background:'
+  + 'linear-gradient(90deg, rgba(8, 10, 9, 0) 34%, rgba(8, 10, 9, 0.52) 64%, rgba(8, 10, 9, 0.74) 100%),'
+  + 'linear-gradient(0deg, rgba(8, 10, 9, 0.62) 0%, rgba(8, 10, 9, 0) 34%);';
+const COLUMN = 'position:absolute;top:0;bottom:0;right:6vw;width:min(40vw, 700px);'
+  + 'display:flex;flex-direction:column;justify-content:center;';
 
-const show = `const l = document.getElementById('loading');`
-  + `l.hidden = false; l.style.opacity = '1';`
-  + `${JSON.stringify(HIDE)}.forEach((s) => document.querySelectorAll(s)`
-  + `.forEach((n) => { n.style.display = 'none'; }));`
+const show = `const card = document.createElement('div');`
+  + `card.id = 'og-card'; card.style.cssText = ${JSON.stringify(CARD)};`
+  + `const grade = document.createElement('div'); grade.style.cssText = ${JSON.stringify(GRADE)};`
+  + `const col = document.createElement('div'); col.style.cssText = ${JSON.stringify(COLUMN)};`
+  + `const name = document.querySelector('.screen-title .lockup').cloneNode(true);`
+  + `name.style.fontSize = 'clamp(56px, 8.5vw, 170px)'; name.style.alignSelf = 'flex-start';`
+  + `col.append(name); card.append(grade, col); document.body.append(card);`
   + `'shown'`;
 
 /* LIBIMAGEQUANT by name, so a Pillow built without it fails here instead
@@ -103,15 +113,19 @@ try {
      * cheapest preset: at High, headless Chromium's software rasteriser
      * took about 25 s to draw the first frame, longer than an until: waits. */
     '--graphics=low',
-    /* Gone, not fading: finish() in src/ui/loading.js hides the screen
-     * 320 ms after it starts the fade, and a screen shown again before
-     * that would be hidden again under the capture. */
+    /* The simulator in, the world built, then the boot screen gone, not
+     * fading: the card goes over the gate, never over the boot screen's
+     * fade. One wait per stage, because each until: gives up at 20 s and a
+     * cold boot on a busy machine takes longer than that end to end. */
+    'until:window.__loading.timings.sim',
+    'until:window.__loading.timings.world',
     "until:document.getElementById('loading').hidden",
     `eval:(() => { ${show} })()`,
-    /* The art is preloaded in the head, so this is for layout and paint,
-     * not for the fetch. */
-    'wait:400',
-    'expect:getComputedStyle(document.getElementById("loading")).backgroundImage.includes("wide.webp")',
+    /* The art is fetched by this background, so this waits for the file
+     * the gate itself decoded (armTitleArt) as well as for layout. */
+    "until:document.querySelector('.screen-title.has-art')",
+    'wait:600',
+    `expect:getComputedStyle(document.getElementById("og-card")).backgroundImage.includes(${JSON.stringify(ART)})`,
     'shot:og',
   ], { cwd: root, stdio: 'inherit' });
 

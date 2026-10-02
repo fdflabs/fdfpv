@@ -195,7 +195,6 @@ import {
 import { ScoreHud } from './scorehud.js';
 import { MARK_STYLES } from './peermarks.js';
 import { formatScore } from '../game/score.js';
-import { JOKE_MS, quotedJoke } from './loading.js';
 import { fillCredits } from './credits.js';
 import { mountRatesPanel } from './ratespanel.js';
 import { mountPidsPanel } from './pidspanel.js';
@@ -1834,9 +1833,10 @@ function hintWithKeys(keys, text) {
   return n;
 }
 
-/* The name as the owner's key art sets it, the same lockup as the loading
- * screen's in index.html. English in every locale, because it is the mark
- * and not a sentence. The spaces keep the heading's text the name. */
+/* The name as the owner's key art sets it (index.html .lockup), which the
+ * share card clones too (scripts/og.js). English in every locale, because
+ * it is the mark and not a sentence. The spaces keep the heading's text
+ * the name. */
 function wordmark() {
   const h = el('h1', 'wordmark lockup');
   const slash = el('span', 'lockup-slash');
@@ -1849,8 +1849,8 @@ function wordmark() {
 
 /*
  * First-time thumbnail wait. Recording a clip takes several seconds
- * (a valley, longer). A blank card looks like a stall. Same copy as the
- * boot screen: "loading" and a joke. Cached visits never see it.
+ * (a valley, longer). A blank card looks like a stall, so the card says
+ * "loading" over it. Cached visits never see it.
  */
 
 /* A menu plus a side column for its note, so the note cannot resize the rows. */
@@ -3832,7 +3832,10 @@ export class Ui {
     copy.append(titleTop, this.gateCards, titleFoot);
     this.craftCanvas = el('canvas', 'craft-view');
     this.craftCanvas.setAttribute('aria-hidden', 'true');
-    title.append(copy);
+    /* The key art behind the gate. See armTitleArt and .title-art. */
+    const art = el('div', 'title-art');
+    art.setAttribute('aria-hidden', 'true');
+    title.append(art, copy);
     this.screens.title = title;
 
     /*
@@ -7835,6 +7838,9 @@ export class Ui {
       /* The gate is one question, so the lines that describe a seat the
        * pilot has not chosen to fly yet come off the screen behind it. */
       this.screens.title.classList.toggle('is-gate', gate);
+      if (gate) {
+        this.armTitleArt();
+      }
       this.setTitleHint(gate);
     }
     const host = {
@@ -9854,11 +9860,7 @@ export class Ui {
         misses.push(c);
       }
       if (misses.length) {
-        misses.forEach((c, i) => {
-          c.jokeOff = i;
-          this.showReelWait(c, session);
-        });
-        this.startReelJokes(session);
+        misses.forEach((c) => this.showReelWait(c));
       }
       const currentMiss = misses.filter((c) => c.id === current);
       const otherMiss = misses.filter((c) => c.id !== current);
@@ -9911,7 +9913,6 @@ export class Ui {
     c.liveCanvas = null;
     c.clip = node;
     c.wait = null;
-    c.waitJoke = null;
     c.still.textContent = '';
     c.shot.replaceChildren(node);
     if (document.hidden && node.pause) {
@@ -9919,38 +9920,14 @@ export class Ui {
     }
   }
 
-  showReelWait(c, session) {
+  showReelWait(c) {
     let wait = c.wait;
     if (!wait || !c.shot.contains(wait)) {
       wait = el('div', 'map-reel-wait');
-      const stage = el('div', 'map-reel-wait-stage', 'loading');
-      const joke = el('div', 'map-reel-wait-joke');
-      wait.append(stage, joke);
+      wait.append(el('div', 'map-reel-wait-stage', 'loading'));
       c.wait = wait;
-      c.waitJoke = joke;
       c.shot.append(wait);
     }
-    c.waitJoke.textContent = quotedJoke(session.jokeAt, c.jokeOff);
-  }
-
-  startReelJokes(session) {
-    if (session.jokeTimer != null) {
-      return;
-    }
-    session.jokeAt = 0;
-    const tick = () => {
-      session.jokeAt += 1;
-      for (const c of this.mapCards || []) {
-        if (c.waitJoke) {
-          c.waitJoke.textContent = quotedJoke(session.jokeAt, c.jokeOff);
-        }
-      }
-    };
-    session.jokeTimer = setInterval(tick, JOKE_MS);
-    session.unsub.push(() => {
-      clearInterval(session.jokeTimer);
-      session.jokeTimer = null;
-    });
   }
 
   /*
@@ -9972,7 +9949,7 @@ export class Ui {
     c.shot.append(canvas);
     c.liveCanvas = canvas;
     c.still.textContent = '';
-    this.showReelWait(c, session);
+    this.showReelWait(c);
     try {
       await withCaptureLock(async () => {
         if (this.reelSession !== session) {
@@ -9996,7 +9973,6 @@ export class Ui {
         return;
       }
       c.wait = null;
-      c.waitJoke = null;
       c.shot.replaceChildren();
       c.still.textContent = str('ui.preview_unavailable');
     } finally {
@@ -10016,7 +9992,7 @@ export class Ui {
     frame.tabIndex = -1;
     frame.setAttribute('aria-hidden', 'true');
     c.shot.append(frame);
-    this.showReelWait(c, session);
+    this.showReelWait(c);
     this.reelFreezeWorld = true;
     try {
       await whenVisible(session.ac.signal);
@@ -10071,7 +10047,6 @@ export class Ui {
         return;
       }
       c.wait = null;
-      c.waitJoke = null;
       c.shot.replaceChildren();
       c.still.textContent = str('ui.preview_unavailable');
     } finally {
@@ -10866,6 +10841,54 @@ export class Ui {
 
   onGate() {
     return this.screen === 'title' && (this.craftGate || !this.mode);
+  }
+
+  /*
+   * THE KEY ART, AFTER THE MENU HAS PAINTED.
+   *
+   * The gate is the game's front page, so it carries the game's picture
+   * (assets/keyart/, rendered by scripts/loading-art.js) rather than the
+   * fixed title world behind it, which on the gate is decoration: past the
+   * gate the live world is the pilot's chosen map and aircraft, and it
+   * shows again. The picture is never what the menu waits for. Nothing is
+   * fetched while the boot screen is up, because the boot is fetching the
+   * renderer and the map; once it has gone and the gate has painted, the
+   * file the window's shape wants is decoded off to the side and faded in.
+   * Until then, or for good if the fetch fails, the gate sits on the art's
+   * own darkest tone, which is .title-art's background.
+   */
+  armTitleArt() {
+    if (this.titleArtArmed) {
+      return;
+    }
+    this.titleArtArmed = true;
+    const boot = document.getElementById('loading');
+    const load = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      setTimeout(() => this.loadTitleArt(), 0);
+    }));
+    if (!boot || boot.hidden) {
+      load();
+      return;
+    }
+    const watch = new MutationObserver(() => {
+      if (boot.hidden) {
+        watch.disconnect();
+        load();
+      }
+    });
+    watch.observe(boot, { attributes: true, attributeFilter: ['hidden'] });
+  }
+
+  loadTitleArt() {
+    /* The same test as the stylesheet's, which picks the same file, so the
+     * file decoded here is the one the CSS then paints from the cache. */
+    const tall = window.matchMedia('(max-aspect-ratio: 4/5)').matches;
+    const img = new Image();
+    img.decoding = 'async';
+    img.addEventListener('load', () => {
+      this.screens.title.classList.add('has-art');
+    }, { once: true });
+    img.src = tall ? 'assets/keyart/tall.webp' : 'assets/keyart/wide.webp';
   }
 
   /* Every screen that draws some of its choices as cards. */

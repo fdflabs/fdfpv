@@ -61,7 +61,7 @@
  */
 
 import * as THREE from 'three';
-import { buildValley } from './alps.js';
+import { buildValley, valleyPhases } from './alps.js';
 import { qualityFor } from '../render/quality.js';
 import { str } from '../strings/index.js';
 import { makeRng } from './alps/noise.js';
@@ -690,6 +690,9 @@ function photoStyle() {
   };
   return style;
 }
+
+/* photoStyle has a finish hook (the farms' walls, the huts and bales). */
+export const PHASES = valleyPhases(true);
 
 export async function buildMap(shell, onProgress, options) {
   const progress = onProgress ?? (() => {});

@@ -51,13 +51,7 @@ const ALLOWED_KEYS = new Map([
 ]);
 
 /* Exact text in a served page that may name the firmware, and why. */
-const ALLOWED_HTML = [
-  {
-    file: 'index.html',
-    text: 'Real Betaflight in your browser',
-    why: 'boot loader markup, owned by the loader rewrite; delete this entry when it lands',
-  },
-];
+const ALLOWED_HTML = [];
 
 const PAGES = ['index.html', 'terms.html', 'privacy.html', 'src/trackbuilder/index.html', 'src/share/orbit.html'];
 
