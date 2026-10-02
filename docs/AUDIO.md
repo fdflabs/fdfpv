@@ -738,7 +738,7 @@ is where it is drawn, room synced as the traffic is.
 | bus | a six cylinder diesel through five gears, its knock; it idles at its stop and pulls away loud | -29 |
 | tractor | a four cylinder diesel held at 1800 rpm on its work, its knock | -31 |
 | cabin | the haul rope's rumble through the grip, the hanger's swing | -50 |
-| liftdrive | an electric motor at 1500 rpm, its 100 Hz hum, a 17 tooth gear mesh | -38 |
+| liftdrive | an electric motor at 1500 rpm, its 100 Hz hum, a 17 tooth gear mesh (425 Hz) | -38 |
 | sailboat | its hull through the water | -50 |
 
 A road vehicle's rpm climbs through each gear with its speed and drops at
@@ -773,10 +773,11 @@ graph 51 nodes, load 0.021, never shed.
 
 Not voiced, and why: people and dogs (footsteps at 1.25 m/s are not heard
 past a few metres, and nothing here is a few metres from a pilot for
-long); the paragliders (silent but for their wind); the cattle's bells,
-which are ambience (the next pull request); a tower's sheaves clacking as
+long); the paragliders (silent but for their wind); a tower's sheaves
+clacking as
 a cabin's grip passes (the cabins carry their rumble; the clack wants a
-per tower event, left for later).
+per tower event, left for later). The cattle's bells are the ambience's
+(below).
 
 ### The ambience
 

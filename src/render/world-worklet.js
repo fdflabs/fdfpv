@@ -466,6 +466,7 @@ class Track {
  *   prop      a propeller's blade pass and harmonics, its broadband chopped
  *             at the blade pass
  *   electric  a motor's whine at (poles / 2) times the shaft rate
+ *   mesh      a gearbox's teeth passing
  *   rotors    four small props a few percent apart, beating (a quad)
  *   knock     a diesel's combustion tick on each firing
  *   tyres     rolling noise, a band near 1 kHz, level with speed
@@ -555,6 +556,7 @@ class Voice {
       }
     }
     this.slap = 0;
+    this.meshPh = 0;
     this.swing = Math.abs(r());
     /* The ambience's parts: their states, and what of each is this
      * source's own (a bell's pitch, a bird's species and pitch, a
@@ -757,6 +759,15 @@ class Voice {
         this.whine -= Math.floor(this.whine);
       }
       y += s.whine * (sinC(this.whine) + 0.4 * sinC(2 * this.whine));
+    }
+    if (s.mesh) {
+      /* A gearbox's mesh: its teeth passing, a tone at teeth x the shaft
+       * rate and a little of its second. */
+      this.meshPh += (fRot * s.teeth) / rate;
+      if (this.meshPh >= 1) {
+        this.meshPh -= Math.floor(this.meshPh);
+      }
+      y += s.mesh * (sinC(this.meshPh) + 0.3 * sinC(2 * this.meshPh));
     }
     if (s.rotors) {
       /* A quad: four props a few percent apart, beating, each a blade

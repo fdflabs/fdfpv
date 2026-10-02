@@ -30,6 +30,8 @@
  *   tyres        tyre and road noise level
  *   rope         a gondola cabin's rope rumble level
  *   blades, prop a propeller's blade count and level
+ *   mesh, teeth  a gearbox's mesh tone, its level and the teeth on the
+ *                shaft the rpm is of
  *   powerDive    winds up in a dive rather than windmilling (a munition's
  *                terminal run)
  *   whine, poles an electric motor's whine level and pole count
@@ -187,9 +189,10 @@ Object.assign(WORLD_KINDS, {
   cabin: { lufs16: -50, amp: 0.0459, cruise: 5, rope: 1, ground: 0.5, farHz: 70, farGain: 1 },
   /* The lift's drive in its station: an electric motor held at 1500 rpm
    * (a four pole machine on 50 Hz), its magnetostriction hum at 100 Hz
-   * (8 poles' worth of whine), and its gearbox's mesh, 17 teeth. */
+   * (8 poles' worth of whine), and its gearbox's mesh, 17 teeth on the
+   * motor's shaft, 425 Hz. */
   liftdrive: {
-    lufs16: -38, amp: 0.0187, cruise: 0, cruiseRpm: 1500, fixed: true, whine: 0.6, poles: 8, blades: 17, prop: 0.25,
+    lufs16: -38, amp: 0.0182, cruise: 0, cruiseRpm: 1500, fixed: true, whine: 0.6, poles: 8, mesh: 0.3, teeth: 17,
     ground: 0.6, farHz: 100, farGain: 1,
   },
   /* The Swiss lake's sailing boat: no engine, its hull through the water. */
@@ -249,7 +252,7 @@ Object.assign(WORLD_KINDS, {
 const FIELDS = [
   'lufs16', 'lufsNear', 'amp', 'cruise', 'cruiseRpm', 'fixed', 'powerDive', 'gears', 'idleRpm', 'shiftRpm',
   'fires', 'muffler', 'mufflerDecay', 'pulseDecay', 'jitter', 'miss', 'exhaust', 'knock', 'knockLevel',
-  'blades', 'prop', 'whine', 'poles', 'rotors', 'rotorBlades', 'tyres', 'rope', 'water',
+  'blades', 'prop', 'whine', 'poles', 'mesh', 'teeth', 'rotors', 'rotorBlades', 'tyres', 'rope', 'water',
   'bed', 'line', 'near', 'height', 'ground', 'farHz', 'farGain',
   'roar', 'flow', 'bubbles', 'lap', 'hum', 'mainsHz', 'corona', 'bell', 'song', 'chirp', 'croak', 'buzz',
 ];
