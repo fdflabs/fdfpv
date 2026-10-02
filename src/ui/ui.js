@@ -85,7 +85,7 @@ import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
 import { liveryKey, lookFor, normaliseLiveries, normaliseSaves, paintable } from '../../configs/liveries.js';
 import {
-  BUILD_PREFIX, MAX_BUILDS, checkBuildName, familyFitted, fitBuild, fitOf, fittedBuild, loadBuilds, newBuildId, normaliseBuildFits, normaliseFit,
+  BUILD_PREFIX, MAX_BUILDS, checkBuildName, customisable, familyFitted, fitBuild, fitOf, fittedBuild, loadBuilds, newBuildId, normaliseBuildFits, normaliseFit,
   putFit, saveBuilds, setStockFit, stockFit, unfitFamily,
 } from './builds.js';
 import { normaliseProgress } from '../game/progress.js';
@@ -7283,9 +7283,10 @@ export class Ui {
           action: 'hotswap',
           note: str('carousel.row_note'),
         },
-        /* The hangar for the aircraft being flown: its power, its paint
-         * and a combat aircraft's loadout, saved into the air where it is. */
-        ...(paintable(s.airframe) ? [{
+        /* The hangar for the aircraft being flown: its power, its paint,
+         * a combat aircraft's loadout and a quad's motors, saved into the
+         * air where it is. */
+        ...(customisable(s.airframe) ? [{
           label: str('hangar.customise'),
           action: 'customise',
           note: str('hangar.row_note'),
@@ -14173,9 +14174,12 @@ export class Ui {
     /* A build opens on the airframe it was built on; a stock plane on the
      * version its toggle names, whichever of the two it was asked for. */
     const id = build ? build.airframe : withFloats(s, landPlaneOf(card));
-    if (!paintable(id) || this.hangar.isOpen) {
+    if (!customisable(id) || this.hangar.isOpen) {
       return;
     }
+    /* A combat aircraft opens on what it carries (src/ui/hangar-combat.js);
+     * a quad without paint on its motors. */
+    const firstTab = airframeById(id).combat ? 'loadout' : paintable(id) ? null : 'power';
     const family = liveryKey(id);
     const inSlots = !build && !familyFitted(s, id);
     const held = build ? build.fit : stockFit(s, id);
@@ -14243,8 +14247,7 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
-      /* A combat aircraft opens on what it carries (src/ui/hangar-combat.js). */
-      tab: airframeById(id).combat ? 'loadout' : null,
+      tab: firstTab,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {

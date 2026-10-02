@@ -46,8 +46,14 @@ import { MAPS, mapById } from '../maps/registry.js';
 import { plural, str } from '../strings/index.js';
 
 const ROOM_ACTION = 'friends-room-';
-/* Rooms on the title's panel: the busiest few with a seat. */
+/* Rooms on the title's panel: the busiest few with a seat. Two on an
+ * upright phone, where the rooms stack a line each and a room's whole
+ * name (32 letters, never cut) takes two lines beside its load: three
+ * such put the cards' tags under the command bar, 7 px at 390 by 844 and
+ * 21 px at 360 by 640. All rooms lists the rest. */
 const TITLE_ROOMS = 3;
+const TITLE_ROOMS_UPRIGHT = 2;
+const UPRIGHT_PHONE = '(max-width: 860px) and (min-height: 521px)';
 
 /*
  * ui: the menu (show, askForm, refreshFriends); link: the room socket
@@ -84,6 +90,10 @@ export function createRoomBrowser({
     }
   });
   const worlds = () => MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id);
+  const upright = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(UPRIGHT_PHONE) : null;
+  if (upright) {
+    upright.addEventListener('change', () => ui.refreshFriends());
+  }
   let draft = null;
   let busy = false;
   let error = null;
@@ -356,7 +366,7 @@ export function createRoomBrowser({
      * then the rooms, All rooms and Make a room. `lobby:` actions go the
      * Fly with friends card's way in first (ui.js act). */
     titleItems() {
-      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, TITLE_ROOMS);
+      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, upright && upright.matches ? TITLE_ROOMS_UPRIGHT : TITLE_ROOMS);
       return [
         { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
         ...open.map((r) => ({
