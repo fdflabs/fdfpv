@@ -135,6 +135,21 @@ const VIEWS = [
    * sheet pairs it with powerlines because tools/swiss2-loop/sheet.py
    * wants one. */
   { id: 'yard-west', cam: [-2705.6, 286.4, -551.9, -2145.6, 226.4, -431.9], fov: 60, ref: 'powerlines' },
+  /* Where water, ground and concrete meet (the owner, 1 October: "all of
+   * the spots where the water meets the river need to be better
+   * finished"), judged by eye beside the nearest photograph: over the
+   * chute's west training wall looking down the chute, the owner's own
+   * view; the plunge pool from its east bank; the powerhouse's east end
+   * over the tailrace, where the left bank stands against its roof; the
+   * reservoir against the spillway's gates where the right bank's earth
+   * dam meets them; and the river's west bank under the town, posed for
+   * section 13's triangles (a pose further down, into the town, drew
+   * 3.3 M). */
+  { id: 'edge-chute-west', cam: [-994.2, 260, -786.5, -1040.9, 165, -663.9], ref: 'chute-running' },
+  { id: 'edge-plunge', cam: [-700, 175, -380, -900, 110, -510], ref: 'spill-plume' },
+  { id: 'edge-tailrace', cam: [700, 230, -1330, 560, 150, -1480], ref: 'powerhouse' },
+  { id: 'edge-reservoir-dam', cam: [-1080, 260, -1060, -1135, 210, -945], ref: 'reservoir-dam' },
+  { id: 'edge-river-bank', cam: [-850, 160, 250, -1135, 104, 330], ref: 'river-below' },
 ];
 
 /*

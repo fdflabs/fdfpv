@@ -351,7 +351,8 @@ async function buildItaipu(shell, progress, q, time) {
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
   scene.userData.itaipu = {
-    terrain, camera, parts, look, stream: streamer.stats,
+    /* The water as drawn, for scripts/itaipu-check.js edges. */
+    terrain, camera, parts, look, stream: streamer.stats, water: data['water.json'],
   };
   return {
     id: 'itaipu',
