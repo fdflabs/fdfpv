@@ -1,6 +1,6 @@
 /*
  * boot-loader-check.js: the boot screen is the PDCS bootloader, every row on
- * it is a real step, and the key art is the title's.
+ * it is a real step, and the title stands on the same ground.
  *
  * The owner, 2 October: the very first loading screen should not show
  * Itaipu, because it comes back on every load and is not representative of
@@ -8,7 +8,9 @@
  * (initial boot, system check, map loading, finalizing), branding subdued
  * to PDCS and a flag marker that is always red over white over blue; a
  * short load shows only the boot mark and a bar; progress is real work.
- * The key art lives in the main menu instead. This drives the real shell
+ * The owner, later the same day: the main menu follows the same aesthetic,
+ * so the key art that moved to the title has gone from it too (og.png
+ * keeps it). This drives the real shell
  * in headless Chromium and holds all of it:
  *
  * A RECORDED LOAD, at a desktop window and an upright phone, and once more
@@ -39,9 +41,9 @@
  * duration decides it): a load planned under the threshold shows the first
  * screen alone; one planned over it does not.
  *
- * THE TITLE. Once the boot screen has gone, the gate carries the key art
- * for the window's shape, over its fallback colour and under a scrim, and
- * the art is not requested before the boot screen has gone.
+ * THE TITLE. Once the boot screen has gone, the gate stands on the boot
+ * screen's own ground (the gradient and the grid over the same colour),
+ * under the cards, and the key art is never requested at all.
  *
  * And fail() still makes a readable dead end.
  *
@@ -221,9 +223,9 @@ const PICTURES = `(() => {
 })()`;
 
 const SIZES = [
-  { label: 'desktop 1440 by 900', width: 1440, height: 900, art: 'wide.webp', map: 'swiss2' },
-  { label: 'phone 390 by 844', width: 390, height: 844, art: 'tall.webp', map: 'swiss2', touch: true, phone: true },
-  { label: 'Itaipu, desktop 1440 by 900', width: 1440, height: 900, art: 'wide.webp', map: 'itaipu', url: '/index.html?map=itaipu' },
+  { label: 'desktop 1440 by 900', width: 1440, height: 900, map: 'swiss2' },
+  { label: 'phone 390 by 844', width: 390, height: 844, map: 'swiss2', touch: true, phone: true },
+  { label: 'Itaipu, desktop 1440 by 900', width: 1440, height: 900, map: 'itaipu', url: '/index.html?map=itaipu' },
 ];
 
 for (const size of SIZES) {
@@ -371,28 +373,28 @@ for (const size of SIZES) {
     check('the screen\'s pictures are the drone and this map\'s own poster', shownPics.length === 2
       && shownPics.includes('assets/boot/drone.svg') && shownPics.includes(poster), shownPics.join(', '));
 
-    /* The key art. */
-    await page.until("document.querySelector('.screen-title.has-art')", 60000).catch(() => {});
-    const art = JSON.parse(await page.evaluate(`JSON.stringify((() => {
-      const a = document.querySelector('.screen-title .title-art');
+    /* The title's ground. A second after the boot screen has gone, so a
+     * picture fetched once the gate has painted would be in the log. */
+    await page.until('window.__ui.onGate()', 60000).catch(() => {});
+    await page.sleep(1000);
+    const ground = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+      const t = document.querySelector('.screen-title');
+      const cs = getComputedStyle(t);
+      const boot = getComputedStyle(document.getElementById('loading'));
       return {
-        gate: window.__ui.onGate(),
-        hasArt: document.querySelector('.screen-title').classList.contains('has-art'),
-        shown: a ? getComputedStyle(a).display !== 'none' : false,
-        fallback: a ? getComputedStyle(a).backgroundColor : '',
-        picture: a ? getComputedStyle(a, '::before').backgroundImage : '',
-        scrim: a ? getComputedStyle(a, '::after').backgroundImage : '',
-        copyOver: Number(getComputedStyle(document.querySelector('.screen-title .title-copy')).zIndex) > Number(a ? getComputedStyle(a).zIndex : 0),
-        requests: window.__bootLog.pictures.filter((p) => /assets\\/(keyart|loading)\\//.test(p.name)),
+        gate: window.__ui.onGate() && t.classList.contains('is-gate'),
+        colour: cs.backgroundColor,
+        bootColour: boot.backgroundColor,
+        image: cs.backgroundImage,
+        cardsOver: Number(getComputedStyle(t.querySelector('.title-copy')).zIndex) >= 1,
+        requests: window.__bootLog.pictures.filter((p) => /assets\\/(keyart|loading)\\//.test(p.name)).map((p) => p.name),
       };
     })())`));
-    check('the title is on its gate, with the key art on', art.gate && art.hasArt && art.shown, JSON.stringify([art.gate, art.hasArt, art.shown]));
-    check(`the picture is the one for this shape, ${size.art}`, art.picture.includes(`assets/keyart/${size.art}`), art.picture.slice(0, 80));
-    check('over the art\'s own dark fallback colour', art.fallback === 'rgb(12, 14, 13)', art.fallback);
-    check('under a scrim, under the cards', art.scrim.includes('linear-gradient') && art.copyOver, art.scrim.slice(0, 40));
-    const early = art.requests.filter((r) => r.start < log.hiddenAt || /assets\/loading\//.test(r.name));
-    check('and nothing of it was asked for while the boot screen was up', art.requests.length >= 1 && early.length === 0,
-      JSON.stringify({ hiddenAt: Math.round(log.hiddenAt), requests: art.requests.map((r) => `${r.name}@${Math.round(r.start)}`) }));
+    check('the title is on its gate, on the boot screen\'s own colour', ground.gate && ground.colour === ground.bootColour
+      && ground.colour === 'rgb(7, 9, 10)', JSON.stringify([ground.gate, ground.colour, ground.bootColour]));
+    check('under its grid and its radial gradient, the cards over them', /linear-gradient/.test(ground.image) && /radial-gradient/.test(ground.image)
+      && ground.cardsOver, ground.image.slice(0, 60));
+    check('and the key art is never asked for', ground.requests.length === 0, ground.requests.join(', '));
     check('the gate scrolls nothing sideways', await page.evaluate('document.documentElement.scrollWidth <= innerWidth'));
     const errs = page.errors.filter((x) => !x.startsWith('network:'));
     check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

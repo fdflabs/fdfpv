@@ -142,9 +142,14 @@
         --py-red: #d52b1e;
         --py-white: #f4f4f0;
         --py-blue: #0038a8;
+        /* The owner's grid is --pdcs-line-soft at 0.22 opacity; the
+           product is written here so a background can carry it. */
+        --pdcs-grid-line: rgba(220, 225, 225, 0.0176);
         --pdcs-grid:
-          linear-gradient(90deg, var(--pdcs-line-soft) 1px, transparent 1px) 0 0 / 100px 100px,
-          linear-gradient(0deg, var(--pdcs-line-soft) 1px, transparent 1px) 0 0 / 100px 100px;
+          linear-gradient(90deg, var(--pdcs-grid-line) 1px, transparent 1px) 0 0 / 100px 100px,
+          linear-gradient(0deg, var(--pdcs-grid-line) 1px, transparent 1px) 0 0 / 100px 100px;
+        /* The ground, translucent, for a menu over the live world. */
+        --pdcs-scrim: radial-gradient(circle at 50% 40%, rgba(16, 20, 22, 0.88) 0%, rgba(8, 10, 11, 0.92) 48%, rgba(5, 6, 7, 0.95) 100%);
         --pdcs-fine-grid:
           linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 50px 50px,
           linear-gradient(0deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 50px 50px;
@@ -967,10 +972,9 @@
         justify-content: safe center;
         padding: calc(2vh + var(--bar-top)) 6vw calc(2vh + var(--bar-bot));
         box-sizing: border-box;
-        /* Enough scrim to read type over a bright valley, not enough to
-           turn a warm afternoon into night. Forest-tinted, not navy. */
-        background:
-          radial-gradient(120% 90% at 50% 42%, rgba(18, 26, 18, 0.58), rgba(12, 18, 14, 0.76));
+        /* The bootloader's ground and grid, translucent: the world under
+           a menu is a dim shape behind an instrument, not a picture. */
+        background: var(--pdcs-grid), var(--pdcs-scrim);
       }
       /* The title is a HUD over the live map. Copy on the left (or top
          and bottom on a phone), the world and the flying airframe fill
@@ -988,58 +992,16 @@
           linear-gradient(180deg, rgba(12, 18, 14, 0.32) 0%, transparent 22%, transparent 64%, rgba(12, 18, 14, 0.38) 100%);
       }
       /*
-       * THE KEY ART, on the gate only (armTitleArt in src/ui/ui.js). A
-       * frame of the Itaipu map at sunset with a war Striker banking past
-       * the spillway, rendered by the shell (scripts/loading-art.js) and
-       * graded (tools/loading-art/grade.py); its own file for an upright
-       * window, composed on its own. It covers the title world, which on
-       * the gate is decoration; past the gate the world is the pilot's
-       * chosen map, and this layer goes.
-       *
-       * The colour is the frame's own darkest tone, so the gate reads as
-       * finished before the picture lands. The picture is only named under
-       * .has-art, which the script adds once the file has decoded, so the
-       * stylesheet never starts the fetch on its own.
+       * THE GATE'S GROUND is the bootloader's, opaque: the boot screen
+       * fades out onto the same gradient and grid, so the menu reads as
+       * the system that just initialised rather than a promo splash. The
+       * title world behind it is decoration on the gate (past the gate the
+       * live world is the pilot's chosen map, and it shows again), so it
+       * is covered rather than dimmed.
        */
-      .title-art { display: none; }
-      .screen-title.is-gate .title-art {
-        display: block; position: absolute; inset: 0; z-index: 0;
-        pointer-events: none; overflow: hidden;
-        background: #0c0e0d;
-      }
-      .title-art::before, .title-art::after {
-        content: ""; position: absolute; inset: 0;
-      }
-      .title-art::before {
-        background: 30% 50% / cover no-repeat;
-        opacity: 0;
-        transition: opacity 0.6s ease;
-      }
-      .screen-title.has-art .title-art::before {
-        background-image: url("assets/keyart/wide.webp");
-        opacity: 1;
-      }
-      /* The grade the type needs and the picture does not: the left hand
-         column, where the name and the rooms panel sit, and the foot, where
-         the cards are, darkened; the dam and the sky in between left as
-         rendered. */
-      .title-art::after {
-        background:
-          linear-gradient(90deg, rgba(8, 10, 9, 0.74) 0%, rgba(8, 10, 9, 0.4) 34%, rgba(8, 10, 9, 0.08) 64%, rgba(8, 10, 9, 0.18) 100%),
-          linear-gradient(180deg, rgba(8, 10, 9, 0.5) 0%, rgba(8, 10, 9, 0) 26%, rgba(8, 10, 9, 0) 46%, rgba(8, 10, 9, 0.82) 100%);
-      }
-      @media (max-aspect-ratio: 4/5) {
-        .screen-title.has-art .title-art::before {
-          background-image: url("assets/keyart/tall.webp");
-          background-position: 50% 50%;
-        }
-        .title-art::after {
-          background:
-            linear-gradient(180deg, rgba(8, 10, 9, 0.7) 0%, rgba(8, 10, 9, 0.2) 24%, rgba(8, 10, 9, 0.2) 44%, rgba(8, 10, 9, 0.86) 70%, rgba(8, 10, 9, 0.92) 100%);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .title-art::before { transition: none; }
+      .screen-title.is-gate {
+        background: var(--pdcs-grid), var(--pdcs-ground);
+        background-color: var(--pdcs-bg);
       }
       .title-copy {
         display: flex;
@@ -4272,7 +4234,7 @@
       }
       #loading[hidden] { display: none; }
       .pdcs-grid {
-        position: absolute; inset: 0; pointer-events: none; opacity: 0.22;
+        position: absolute; inset: 0; pointer-events: none;
         background: var(--pdcs-grid);
       }
       .pdcs-head {

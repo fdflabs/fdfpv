@@ -8,15 +8,15 @@
  * rendering bug in this project was found with.
  *
  * WHAT THE FRAME IS. The Itaipu key art (assets/keyart/wide.webp, from
- * scripts/loading-art.js and tools/loading-art/grade.py), the picture
- * behind the title's gate, with the name's lockup over it in a column on
- * the right: PARAGUAYAN over DRONE COMBAT over SIMULATOR with the red,
- * white and blue slash. The lockup is the title's own heading and the
- * page's own .lockup rules, cloned, so the name on the card cannot disagree
- * with the name in the game. The column and the grade below are the card's
- * own layout, because no screen in the game puts the name over the picture
- * this way: the boot screen is the bootloader and carries neither, and the
- * gate puts its cards over the picture. The run waits for the shell to boot and
+ * scripts/loading-art.js and tools/loading-art/grade.py), with the name's
+ * lockup over it in a column on the right: PARAGUAYAN over DRONE COMBAT
+ * over SIMULATOR with the red, white and blue slash. The lockup is the
+ * title's own heading, cloned out of the title, so the base .lockup rules
+ * draw it: the title restyles it only under .screen-title, in the
+ * bootloader's aesthetic, and the card keeps the look it was shared in.
+ * The column and the grade below are the card's own layout, because no
+ * screen in the game puts the name over the picture: the boot screen and
+ * the menus stand on the bootloader's ground. The run waits for the shell to boot and
  * the boot screen to go, so nothing is captured mid fade.
  *
  * WHY ONLY THE NAME. A share card is read at about 500 px wide in a feed,
@@ -87,6 +87,7 @@ const show = `const card = document.createElement('div');`
   + `const name = document.querySelector('.screen-title .lockup').cloneNode(true);`
   + `name.style.fontSize = 'clamp(56px, 8.5vw, 170px)'; name.style.alignSelf = 'flex-start';`
   + `col.append(name); card.append(grade, col); document.body.append(card);`
+  + `window.__ogArt = new Image(); window.__ogArt.src = ${JSON.stringify(ART)};`
   + `'shown'`;
 
 /* LIBIMAGEQUANT by name, so a Pillow built without it fails here instead
@@ -121,9 +122,9 @@ try {
     'until:window.__loading.timings.world',
     "until:document.getElementById('loading').hidden",
     `eval:(() => { ${show} })()`,
-    /* The art is fetched by this background, so this waits for the file
-     * the gate itself decoded (armTitleArt) as well as for layout. */
-    "until:document.querySelector('.screen-title.has-art')",
+    /* The art is this card's own background, so this waits for the file
+     * to have arrived and decoded as well as for layout. */
+    'until:window.__ogArt.complete && window.__ogArt.naturalWidth > 0',
     'wait:600',
     `expect:getComputedStyle(document.getElementById("og-card")).backgroundImage.includes(${JSON.stringify(ART)})`,
     'shot:og',
