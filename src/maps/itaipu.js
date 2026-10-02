@@ -88,6 +88,14 @@ const PARTS = [
 ];
 
 /*
+ * The phases buildItaipu names to its progress callback, in the order it
+ * runs them, for the boot screen's rows (src/ui/loading.js mapPhases): the
+ * imagery and the data together, the elevation tiles, each part, and the
+ * scene's programs compiled.
+ */
+export const PHASES = ['imagery', 'data', 'heightmaps', ...PARTS.map(([name]) => name), 'shaders'];
+
+/*
  * THE STREAMED COLLIDERS (docs/ITAIPU-PLAN.md sections 7, 9 and 13): what
  * the parts keep only near the pilot (the town's walls, the near trees),
  * in the one streamed set Colliders has (src/game/collide.js
@@ -251,7 +259,7 @@ async function buildItaipu(shell, progress, q, time) {
   const camera = shell.camera;
   const base = dataBase();
   const manifest = await readManifest(base);
-  progress(0.02);
+  progress(0.02, ['imagery', 'data']);
   const [look, data] = await Promise.all([
     makeLook({
       renderer, camera, q, base, manifest, time,
@@ -262,7 +270,7 @@ async function buildItaipu(shell, progress, q, time) {
    * reads it, so the drawn sheet and the plant's lake are one outline. */
   data['water.json'] = meetDam(data['water.json'], data['dam.json']);
   const { scene } = look;
-  progress(0.2);
+  progress(0.2, 'heightmaps');
   await yieldToPaint();
 
   const spawnAt = new THREE.Vector3(SPAWN.x, 0, SPAWN.z);
@@ -306,6 +314,7 @@ async function buildItaipu(shell, progress, q, time) {
   let done = 0;
   for (const [name, build, share] of PARTS) {
     const at = done;
+    progress(0.7 + 0.2 * at, name);
     parts[name] = await build({
       THREE,
       scene,
@@ -361,7 +370,7 @@ async function buildItaipu(shell, progress, q, time) {
     : undefined;
   look.setHeights(ground, HERO_HALF, 10);
   look.finish();
-  progress(0.93);
+  progress(0.93, 'shaders');
 
   const bodies = plantWater;
   const lakes = lakesOf(bodies, ground);

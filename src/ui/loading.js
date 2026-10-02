@@ -197,6 +197,30 @@ const MIN_SHARE = 0.05;
 export const STALL_MS = 6000;
 
 /*
+ * WHICH SCREEN EACH STAGE IS ON. The bootloader has four screens, one per
+ * part of the real load: the renderer's fetch is the initial boot; the
+ * board and the simulator are the system check; the map's module graph and
+ * its build are the map loading; the first frame is the finalizing, which
+ * the map's own last phase (its shader compile, 'shaders') opens early. A
+ * load only ever moves forward through them.
+ */
+const SCREEN_OF = { three: 1, board: 2, sim: 2, module: 3, world: 3, frame: 4 };
+
+/*
+ * A LOAD PLANNED UNDER THIS SHOWS THE FIRST SCREEN ONLY: the boot mark, the
+ * line and the bar, because four screens flashing past in a second are
+ * noise. Planned, from the measured stage durations above and the map's
+ * MAP_BUILD_MS, never from a timer: a swap to the Alps plans about 1.4 s
+ * (module 29, world 917, frame 431) and stays minimal; a swap to the Swiss
+ * valley (2.5 s of world) or Itaipu, and every cold boot, show the four.
+ */
+const MINIMAL_MS = 1500;
+
+/* What a row says in each state. A row says OK only once the step it names
+ * has happened on this load, and N/A when this load has no such step. */
+const ROW_STATES = ['wait', 'loading', 'ready', 'standby', 'na', 'fail'];
+
+/*
  * Stage plan for one load. `worldMs` is the map's own measured build time, so
  * the world stage takes the share it actually needs.
  */
@@ -456,6 +480,15 @@ export class Loading {
     this.pctEl = root.querySelector('.loading-pct');
     this.errorEl = root.querySelector('.loading-error');
     this.elapsedEl = root.querySelector('.loading-elapsed');
+    this.stepEl = root.querySelector('.pdcs-step');
+    this.stageNameEl = root.querySelector('.pdcs-stage-name');
+    this.mapRowsEl = root.querySelector('.pdcs-rows[data-group="map"]');
+    this.mapNameEl = root.querySelector('.pdcs-map-name');
+    this.mapImg = root.querySelector('.pdcs-map');
+    this.screen = 1;
+    /* The phases the map being built declared, in the order it builds
+     * them (its module's PHASES). */
+    this.phases = [];
     /* The percentage last written. The text and aria-valuenow only ever
      * rise within a load, the same rule as the bar they describe. */
     this.shownPct = 0;
@@ -517,6 +550,26 @@ export class Loading {
     this.stageEl.textContent = 'loading';
     this.shownPct = 0;
     this.writePct(0);
+    const planned = stages.reduce((a, s) => a + (s.ms || 0), 0);
+    this.root.classList.toggle('is-minimal', planned < MINIMAL_MS);
+    this.root.classList.remove('is-stalled');
+    this.labelScreens();
+    for (const li of this.root.querySelectorAll('.pdcs-rows li[data-row]')) {
+      this.setRow(li, 'wait');
+    }
+    this.phases = [];
+    if (this.mapRowsEl) {
+      this.mapRowsEl.textContent = '';
+    }
+    if (this.mapNameEl) {
+      this.mapNameEl.textContent = '';
+    }
+    if (this.mapImg) {
+      this.mapImg.hidden = true;
+      this.mapImg.removeAttribute('src');
+    }
+    this.screen = 0;
+    this.showScreen(stages.length ? SCREEN_OF[stages[0].id] || 1 : 1);
     /* The markup carries the English for the first paint, before any
      * locale has loaded; a later load, a map swap, says it in the pilot's. */
     if (this.track) {
@@ -555,6 +608,10 @@ export class Loading {
     this.index = i;
     this.frac = 0;
     this.stageStartedAt = performance.now();
+    this.showScreen(SCREEN_OF[id] || this.screen);
+    if (id === 'frame') {
+      this.final('frame', 'loading');
+    }
     this.paint();
     /*
      * And set the bar creeping across the slot this stage has just been
@@ -595,7 +652,163 @@ export class Loading {
     this.timings[id] = performance.now() - this.stageStartedAt;
     this.index = i;
     this.frac = 1;
+    if (id === 'world') {
+      this.closePhases(this.phases);
+    }
+    if (id === 'frame') {
+      this.final('frame', 'ready');
+    }
     this.paint();
+  }
+
+  /*
+   * THE BOOTLOADER'S SCREENS AND ROWS. Everything below only writes what a
+   * caller reports: a screen when its stage starts, a row when the step it
+   * names starts or ends. Nothing here moves on a timer.
+   */
+
+  /* Forward only, like the bar: a load never goes back a screen. */
+  showScreen(n) {
+    if (!n || n <= this.screen) {
+      return;
+    }
+    this.screen = n;
+    this.root.dataset.screen = String(n);
+    if (this.stepEl) {
+      this.stepEl.textContent = `[ 0${n} ]`;
+    }
+    if (this.stageNameEl) {
+      this.stageNameEl.textContent = str(`loading.pdcs_stage_${n}`);
+    }
+  }
+
+  /* The static markup is English for the first paint; a later load says
+   * the screens' words in the pilot's language. */
+  labelScreens() {
+    const set = (sel, key) => {
+      const n = this.root.querySelector(sel);
+      if (n) {
+        n.textContent = str(key);
+      }
+    };
+    set('.pdcs-init', 'loading.pdcs_initializing');
+    for (const n of [2, 3, 4]) {
+      set(`.pdcs-screen[data-n="${n}"] .pdcs-title`, `loading.pdcs_title_${n}`);
+    }
+    for (const li of this.root.querySelectorAll('.pdcs-rows[data-group="system"] li, .pdcs-rows[data-group="final"] li')) {
+      li.querySelector('.pdcs-row-name').textContent = str(`loading.row_${li.dataset.row}`);
+    }
+  }
+
+  setRow(li, state) {
+    if (!li || !ROW_STATES.includes(state)) {
+      return;
+    }
+    li.dataset.state = state;
+    const label = li.querySelector('.pdcs-row-state');
+    if (label) {
+      label.textContent = str(`loading.state_${state}`);
+    }
+  }
+
+  /* A system check row: fc, physics, input, audio, online. */
+  system(id, state) {
+    this.setRow(this.root.querySelector(`.pdcs-rows[data-group="system"] li[data-row="${id}"]`), state);
+  }
+
+  /* A finalizing row: shaders, world, frame. */
+  final(id, state) {
+    this.setRow(this.root.querySelector(`.pdcs-rows[data-group="final"] li[data-row="${id}"]`), state);
+  }
+
+  mapRow(id, state) {
+    if (!this.mapRowsEl) {
+      return;
+    }
+    this.setRow(this.mapRowsEl.querySelector(`li[data-row="${id}"]`), state);
+  }
+
+  /*
+   * The map about to be loaded: its name, and its card's poster for the
+   * preview when it has one. Asked before the module graph, so the picture
+   * has arrived by the time the build blocks the thread.
+   */
+  mapInfo({ name, poster }) {
+    if (this.mapNameEl) {
+      this.mapNameEl.textContent = name || '';
+    }
+    if (this.mapImg && poster) {
+      this.mapImg.src = poster;
+      this.mapImg.hidden = false;
+    }
+  }
+
+  /*
+   * Once the map's module has arrived: one row per phase its builder
+   * declares (PHASES in the map's module), each waiting.
+   */
+  mapPhases(phases) {
+    this.phases = (phases || []).filter((ph) => ph !== 'shaders');
+    if (!this.mapRowsEl) {
+      return;
+    }
+    this.mapRowsEl.textContent = '';
+    for (const ph of this.phases) {
+      const li = document.createElement('li');
+      li.dataset.row = ph;
+      const label = document.createElement('span');
+      label.className = 'pdcs-row-name';
+      label.textContent = str(`loading.phase_${ph}`);
+      const state = document.createElement('span');
+      state.className = 'pdcs-row-state';
+      li.append(label, state);
+      this.mapRowsEl.append(li);
+      this.setRow(li, 'wait');
+    }
+  }
+
+  /*
+   * The builder has started a phase, or several at once. Every phase it
+   * declared before them is over, because a builder runs its phases in the
+   * order it declared them. 'shaders' is the last: the world is built and
+   * its programs are compiling, which is the finalizing screen's first row.
+   */
+  phase(ids) {
+    const started = [].concat(ids).filter(Boolean);
+    if (!started.length) {
+      return;
+    }
+    if (started.includes('shaders')) {
+      this.closePhases(this.phases);
+      this.showScreen(4);
+      this.final('shaders', 'loading');
+      return;
+    }
+    const known = started.map((ph) => this.phases.indexOf(ph)).filter((k) => k >= 0);
+    if (!known.length) {
+      return;
+    }
+    const first = Math.min(...known);
+    this.closePhases(this.phases.filter((ph, k) => k < first && !started.includes(ph)));
+    for (const ph of started) {
+      this.mapRow(ph, 'loading');
+    }
+  }
+
+  /*
+   * Phases the builder has moved past. One it started is done; one it
+   * declared and never started did not happen on this load, so it says
+   * N/A rather than OK.
+   */
+  closePhases(ids) {
+    for (const ph of ids) {
+      const li = this.mapRowsEl && this.mapRowsEl.querySelector(`li[data-row="${ph}"]`);
+      if (li && li.dataset.state === 'loading') {
+        this.setRow(li, 'ready');
+      } else if (li && li.dataset.state === 'wait') {
+        this.setRow(li, 'na');
+      }
+    }
   }
 
   /*
@@ -795,6 +1008,7 @@ export class Loading {
     const stage = this.index >= 0 ? this.stages[this.index] : null;
     const running = this.stageStartedAt ? performance.now() - this.stageStartedAt : 0;
     let text = 'loading';
+    this.root.classList.toggle('is-stalled', Boolean(stage && running > STALL_MS));
     if (stage && running > STALL_MS) {
       const name = (STAGE_NAMES[stage.id] || stage.id).toLowerCase();
       text = str('loading.still_loading_the', { name });
@@ -841,6 +1055,9 @@ export class Loading {
       this.errorEl.hidden = false;
     }
     this.root.classList.add('is-failed');
+    for (const li of this.root.querySelectorAll('.pdcs-rows li[data-state="loading"]')) {
+      this.setRow(li, 'fail');
+    }
     /* Full, red, and STILL: a sweep under a dead end is a page pretending to
      * work on something. transition none as well as the aim, because the
      * creep it interrupts would otherwise take five seconds to arrive. */

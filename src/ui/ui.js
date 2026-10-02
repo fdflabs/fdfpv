@@ -1833,9 +1833,10 @@ function hintWithKeys(keys, text) {
   return n;
 }
 
-/* The name as the owner's key art sets it, the same lockup as the loading
- * screen's in index.html. English in every locale, because it is the mark
- * and not a sentence. The spaces keep the heading's text the name. */
+/* The name as the owner's key art sets it (index.html .lockup), which the
+ * share card clones too (scripts/og.js). English in every locale, because
+ * it is the mark and not a sentence. The spaces keep the heading's text
+ * the name. */
 function wordmark() {
   const h = el('h1', 'wordmark lockup');
   const slash = el('span', 'lockup-slash');

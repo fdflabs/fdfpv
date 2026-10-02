@@ -45,6 +45,7 @@
     "gen:music": "node scripts/music.js",
     "gen:icons": "node scripts/icons.js sakura .",
     "gen:og": "node scripts/og.js .",
+    "gen:drone": "node scripts/drone-wireframe.js",
     "gen:posters": "node scripts/posters.js",
     "gen:gatecards": "node scripts/gatecards.js",
     "gen:friendscard": "node scripts/friendscard.js",

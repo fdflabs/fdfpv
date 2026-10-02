@@ -614,6 +614,7 @@ async function loadMap(shell, id, loading, mapOptions) {
   if (entry.id !== id || !entry.load) {
     throw new Error(`${id} is not a world that can be built`);
   }
+  loading.mapInfo({ name: entry.name, poster: entry.poster });
   loading.start('module');
   const counter = moduleCounter(
     `/src/maps/${id}`,
@@ -628,14 +629,26 @@ async function loadMap(shell, id, loading, mapOptions) {
   }
   loading.done('module');
   loading.detail = '';
+  loading.mapPhases(mod.PHASES);
   loading.start('world');
   await yieldToPaint();
-  const map = await mod.buildMap(shell, (f) => loading.progress('world', f), options);
+  /* A builder names each phase as it starts it (its module's PHASES), and
+   * the boot screen's rows follow; a phase named without a fraction moves
+   * the rows and not the bar. */
+  const map = await mod.buildMap(shell, (f, phase) => {
+    loading.phase(phase);
+    if (f !== undefined) {
+      loading.progress('world', f);
+    }
+  }, options);
+  loading.final('shaders', 'ready');
+  loading.final('world', 'loading');
   map.graphics = normalizeGraphics(options && options.quality);
   /* The map's water, as the plant is told it: src/game/water.js. */
   map.water = await waterFor(id, map);
   /* The ground over a river or a pool is its water, as over the lake. */
   map.height = wetHeight(map.height, map.water);
+  loading.final('world', 'ready');
   loading.done('world');
   return map;
 }
@@ -681,6 +694,7 @@ export async function boot({
    * See src/input/input.js for what that was costing feedforward.
    */
   input.startPolling(2);
+  loading.system('input', 'ready');
   const ui = new Ui(uiRoot);
   /* Every model of a plane is built in the pilot's paint for it
    * (src/render/livery.js, configs/liveries.js), read from the settings as
@@ -1018,8 +1032,12 @@ export async function boot({
    * will go looking for the wrong problem.
    */
   loading.start('board');
+  loading.system('online', 'loading');
   try {
     const fromUrl = await adoptShareFromLocation();
+    /* The board is asked only for a link that names a published track;
+     * any other boot makes no connection here. */
+    loading.system('online', fromUrl ? 'ready' : 'na');
     if (fromUrl) {
       /*
        * THE AIRCRAFT THAT MAY RACE THE LINKED TRACK, before anything reads
@@ -1041,6 +1059,7 @@ export async function boot({
       ui.renderMenu();
     }
   } catch (e) {
+    loading.system('online', 'fail');
     ui.setBanner(str('main.could_not_open_that_published_track', { v1: e.message ?? e }), true);
   }
   /* Done either way: a board that was down is a board that has finished
@@ -1160,6 +1179,10 @@ export async function boot({
     };
   }
   const audio = new MotorAudio();
+  /* Built, and silent until the pilot's first press: a browser starts an
+   * AudioContext only on a gesture (MotorAudio.start), so the boot screen
+   * says standby, not OK. */
+  loading.system('audio', 'standby');
   audio.music.onChange = (st) => {
     ui.setMusicNow(st);
   };
@@ -1205,6 +1228,7 @@ export async function boot({
   };
 
   loading.start('sim');
+  loading.system('physics', 'loading');
   simStageLive = true;
   if (simProgress) {
     /* Whatever arrived while the board was being asked. Usually all of it. */
@@ -1238,6 +1262,10 @@ export async function boot({
   if (typeof sim.e.sim_set_launch_stand !== 'function') {
     throw new Error('sim.wasm does not export sim_set_launch_stand');
   }
+  /* The module is in and answers for every entry point the shell calls:
+   * the plant is up. The controller is up once its tune is applied, below. */
+  loading.system('physics', 'ready');
+  loading.system('fc', 'loading');
   /*
    * The flight controller comes entirely from a Betaflight diff, so which
    * diff is chosen IS the tune. The choice is a setting; the boot path and
@@ -1375,6 +1403,7 @@ export async function boot({
     });
   }
   publishPids();
+  loading.system('fc', 'ready');
   loading.done('sim');
   loading.detail = '';
 

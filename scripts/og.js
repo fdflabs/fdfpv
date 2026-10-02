@@ -11,12 +11,12 @@
  * scripts/loading-art.js and tools/loading-art/grade.py), the picture
  * behind the title's gate, with the name's lockup over it in a column on
  * the right: PARAGUAYAN over DRONE COMBAT over SIMULATOR with the red,
- * white and blue slash. The lockup is the page's own markup and the page's
- * own .lockup rules, cloned out of the boot screen, so the name on the card
- * cannot disagree with the name in the game. The column and the grade
- * below are the card's own layout, because no screen in the game puts the
- * name over the picture this way: the boot screen carries no picture and
- * the gate puts its cards over it. The run waits for the shell to boot and
+ * white and blue slash. The lockup is the title's own heading and the
+ * page's own .lockup rules, cloned, so the name on the card cannot disagree
+ * with the name in the game. The column and the grade below are the card's
+ * own layout, because no screen in the game puts the name over the picture
+ * this way: the boot screen is the bootloader and carries neither, and the
+ * gate puts its cards over the picture. The run waits for the shell to boot and
  * the boot screen to go, so nothing is captured mid fade.
  *
  * WHY ONLY THE NAME. A share card is read at about 500 px wide in a feed,
@@ -84,7 +84,7 @@ const show = `const card = document.createElement('div');`
   + `card.id = 'og-card'; card.style.cssText = ${JSON.stringify(CARD)};`
   + `const grade = document.createElement('div'); grade.style.cssText = ${JSON.stringify(GRADE)};`
   + `const col = document.createElement('div'); col.style.cssText = ${JSON.stringify(COLUMN)};`
-  + `const name = document.querySelector('#loading .lockup').cloneNode(true);`
+  + `const name = document.querySelector('.screen-title .lockup').cloneNode(true);`
   + `name.style.fontSize = 'clamp(56px, 8.5vw, 170px)'; name.style.alignSelf = 'flex-start';`
   + `col.append(name); card.append(grade, col); document.body.append(card);`
   + `'shown'`;
@@ -113,9 +113,12 @@ try {
      * cheapest preset: at High, headless Chromium's software rasteriser
      * took about 25 s to draw the first frame, longer than an until: waits. */
     '--graphics=low',
-    /* Gone, not fading: finish() in src/ui/loading.js hides the screen
-     * 320 ms after it starts the fade, and a screen shown again before
-     * that would be hidden again under the capture. */
+    /* The simulator in, the world built, then the boot screen gone, not
+     * fading: the card goes over the gate, never over the boot screen's
+     * fade. One wait per stage, because each until: gives up at 20 s and a
+     * cold boot on a busy machine takes longer than that end to end. */
+    'until:window.__loading.timings.sim',
+    'until:window.__loading.timings.world',
     "until:document.getElementById('loading').hidden",
     `eval:(() => { ${show} })()`,
     /* The art is fetched by this background, so this waits for the file
