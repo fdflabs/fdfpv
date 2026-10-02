@@ -617,6 +617,17 @@ power system (src/main.js applyPower):
   'parachute'.
 - `audio.propStrike(level, hardness, atTime)`.
 
+**Other pilots** (src/main.js roomHearPeers, once a frame):
+
+- `audio.setListener(x, y, z, rx, ry, rz, ground)`: where the player hears
+  from, the camera's position and right hand unit vector, in the frame the
+  pilots' positions are in (the shell's scene frame, metres, y up), and
+  the ground's height under the listener on y for the reflection, or null.
+- `audio.updatePeers(peers, atTime)`: every pilot heard this frame,
+  `{ id, spec, rpm: [4], x, y, z, vx, vy, vz }`. The `PEER_VOICES` nearest
+  and loudest are heard (section 13); a pilot missing from the list is
+  gone and its voice fades.
+
 **Frames and units.** Everything is SI. A position the world hands its
 own worklet is its own business; the propagation in the engine takes
 distances, not positions, so it has no frame to get wrong.
@@ -952,3 +963,57 @@ night, load 0.07 and 0.09, never shed; `war:boom` over Itaipu 10 tracks,
   against the terrain per voice per frame is the cheap form.
 - Interceptions are the pilots' own aircraft (section 10, the player
   track); a hunter's sound is its quad's.
+## 13. Other pilots, and the voice budget
+
+Each pilot in a room is heard with their own aircraft's engine (their
+profile's airframe through `engineSpecFor`, on its stock power: the wire
+carries no power option), driven by the rotor speeds they send, where
+their aircraft is drawn, through the propagation of section 5: distance,
+the air, the delay, the Doppler, the ground's reflection under the
+listener. A crashed or hidden pilot is not heard.
+
+**The wire's rotor speeds were rpm in a rad/s field.** `src/share/roomwire.js`
+carries a quad's rotors as rad/s at 40 a count in one signed byte, but the
+sender put the plant's rpm in it, so every quad above 5,080 rpm (all of
+hover and every punch) went out as the same clamped value, and nothing a
+receiver could hear or draw told a hover from a punch. The sender now
+sends rad/s, as the wire always said; `src/render/peers.js` turns them
+back to the rpm its prop spin was tuned on, so the drawn props of a peer
+on this build turn as they did. `ROOM_LEVEL` goes to 2 with it, so a room
+holding this build closes an older tab with CLOSE.update (a reload) rather
+than letting its rpm be read as rad/s, nine and a half times too fast.
+A plane's prop, a byte at 80 rad/s a count, now reads zero below 40 rad/s
+(380 rpm), which the mid air test takes as a stopped prop.
+
+**The budget.** Every pilot heard is one more engine node, so a room of 32
+could be 32 nodes and 32 engines' worth of audio thread. `PEER_VOICES`
+(4) voices are made once, on the first frame with a pilot in range
+(400 m), and given to the loudest: nearest and turning. A pilot takes a
+voice from a holder only when 1.5 times louder, so two pilots at the same
+distance do not trade it back and forth, and a voice that changes hands
+fades out over 0.3 s first. Each voice plays its pilot at the Motors
+bus's default stem (`PEER_LEVEL`), so the engine's `REF_M` holds: a pilot
+16 m away is as loud as the player's own aircraft.
+
+A voice heard off board is cheaper than the player's own: at most 16
+shaft orders (five blade passes of a three blade prop, what tells one
+aircraft from another at a distance), mono broadband, no air of its own,
+and no tone above the air's corner at its distance. The engine's motors
+turn on phasors stepped once a render quantum rather than a sine and a
+cosine a sample.
+
+Measured, `npm run audio:lab -- --only=room-4,room-32,quad-hover` on this
+host under a load average near 30 (wall time over audio time, offline):
+
+| Render | Engine nodes | Nodes | LUFS | dBTP | Cost, s a second |
+| --- | --- | --- | --- | --- | --- |
+| The player's five inch alone (quad-hover) | 1 | 49 | -26.68 | -18.75 | 0.07 to 0.08 |
+| With four pilots near (room-4) | 5 | 53 | -22.91 | -10.54 | 0.201 |
+| With 31 pilots on a ring from 15 to 320 m (room-32) | 5 | 53 | -23.60 | -10.23 | 0.199 |
+
+A room of 32 costs what a room of 4 does, and both stay under the 0.25 s a
+second bar. Before the phasors and the off board trims the same room
+measured 0.534 s a second. Live, the pool adds 4 nodes: 50 on the title
+alone, 52 in a war, 56 with the pool; the world's node and its connections
+have the rest of the 64.
+

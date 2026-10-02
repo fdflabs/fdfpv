@@ -25,27 +25,27 @@
    "cost": 0.023
   },
   "new": {
-   "lufs": -26.72,
-   "lufsShortMax": -26.18,
-   "lufsMomentaryMax": -24.39,
-   "lra": 0.91,
-   "truePeakDbtp": -18.93,
+   "lufs": -26.68,
+   "lufsShortMax": -26.08,
+   "lufsMomentaryMax": -24.44,
+   "lra": 0.94,
+   "truePeakDbtp": -18.75,
    "harshShareA": 3.4,
    "bandShareA": {
     "sub": 0,
     "low": 0,
-    "lowmid": 87.5,
-    "mid": 8.7,
+    "lowmid": 87.7,
+    "mid": 8.6,
     "harsh": 3.4,
     "air": 0.4
    },
-   "centroidHz": 584,
-   "repetition": 0.077,
+   "centroidHz": 582,
+   "repetition": 0.085,
    "repetitionLagS": 2.25,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.104
+   "cost": 0.079
   }
  },
  "quad-punch": {
@@ -71,30 +71,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.025
   },
   "new": {
-   "lufs": -22.91,
-   "lufsShortMax": -19.57,
-   "lufsMomentaryMax": -16.48,
-   "lra": 11.86,
-   "truePeakDbtp": -11.4,
-   "harshShareA": 6.6,
+   "lufs": -22.51,
+   "lufsShortMax": -19.48,
+   "lufsMomentaryMax": -16.57,
+   "lra": 12,
+   "truePeakDbtp": -11.75,
+   "harshShareA": 6.5,
    "bandShareA": {
     "sub": 0,
     "low": 0.3,
-    "lowmid": 9.6,
-    "mid": 82.4,
-    "harsh": 6.6,
-    "air": 1.1
+    "lowmid": 9.5,
+    "mid": 82.7,
+    "harsh": 6.5,
+    "air": 1
    },
-   "centroidHz": 1336,
-   "repetition": 0.655,
+   "centroidHz": 1338,
+   "repetition": 0.661,
    "repetitionLagS": 0.42,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.108
+   "cost": 0.073
   }
  },
  "quad-dive": {
@@ -120,30 +120,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.026
+   "cost": 0.027
   },
   "new": {
    "lufs": -25.28,
-   "lufsShortMax": -21.42,
-   "lufsMomentaryMax": -19.38,
+   "lufsShortMax": -21.41,
+   "lufsMomentaryMax": -19.32,
    "lra": 8.74,
-   "truePeakDbtp": -12.85,
-   "harshShareA": 7.6,
+   "truePeakDbtp": -12.9,
+   "harshShareA": 7.4,
    "bandShareA": {
     "sub": 0,
     "low": 2,
     "lowmid": 12.5,
-    "mid": 76.6,
-    "harsh": 7.6,
+    "mid": 76.8,
+    "harsh": 7.4,
     "air": 1.2
    },
-   "centroidHz": 1111,
-   "repetition": 0.419,
+   "centroidHz": 1110,
+   "repetition": 0.424,
    "repetitionLagS": 0.28,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.113
+   "cost": 0.077
   }
  },
  "quad-propwash": {
@@ -172,27 +172,27 @@
    "cost": 0.027
   },
   "new": {
-   "lufs": -25.68,
-   "lufsShortMax": -21.99,
-   "lufsMomentaryMax": -19.48,
-   "lra": 8.98,
-   "truePeakDbtp": -13.1,
-   "harshShareA": 8.9,
+   "lufs": -25.61,
+   "lufsShortMax": -21.9,
+   "lufsMomentaryMax": -19.6,
+   "lra": 9.05,
+   "truePeakDbtp": -13.06,
+   "harshShareA": 8.3,
    "bandShareA": {
     "sub": 0,
-    "low": 0.7,
-    "lowmid": 12.8,
-    "mid": 76.3,
-    "harsh": 8.9,
+    "low": 0.6,
+    "lowmid": 12.5,
+    "mid": 77.2,
+    "harsh": 8.3,
     "air": 1.4
    },
-   "centroidHz": 1126,
-   "repetition": 0.532,
+   "centroidHz": 1132,
+   "repetition": 0.534,
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.117
+   "cost": 0.088
   }
  },
  "quad-crash-grass": {
@@ -218,30 +218,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.024
   },
   "new": {
-   "lufs": -26.23,
-   "lufsShortMax": -25.66,
-   "lufsMomentaryMax": -22.46,
+   "lufs": -26.21,
+   "lufsShortMax": -25.64,
+   "lufsMomentaryMax": -22.42,
    "lra": 1.16,
-   "truePeakDbtp": -9.96,
+   "truePeakDbtp": -9.84,
    "harshShareA": 3.1,
    "bandShareA": {
     "sub": 0.1,
     "low": 0.2,
     "lowmid": 88.2,
-    "mid": 8.1,
+    "mid": 8.2,
     "harsh": 3.1,
     "air": 0.3
    },
-   "centroidHz": 426,
-   "repetition": 0.698,
+   "centroidHz": 427,
+   "repetition": 0.702,
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.103
+   "cost": 0.083
   }
  },
  "quad-crash-concrete": {
@@ -267,14 +267,14 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.025
   },
   "new": {
    "lufs": -25.91,
-   "lufsShortMax": -25.23,
-   "lufsMomentaryMax": -21.19,
+   "lufsShortMax": -25.21,
+   "lufsMomentaryMax": -21.15,
    "lra": 1.49,
-   "truePeakDbtp": -6.54,
+   "truePeakDbtp": -6.53,
    "harshShareA": 7.4,
    "bandShareA": {
     "sub": 0,
@@ -282,15 +282,15 @@
     "lowmid": 75.2,
     "mid": 8.1,
     "harsh": 7.4,
-    "air": 9.1
+    "air": 9
    },
-   "centroidHz": 1161,
-   "repetition": 0.413,
+   "centroidHz": 1159,
+   "repetition": 0.409,
    "repetitionLagS": 0.26,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.098
+   "cost": 0.07
   }
  },
  "quad-strike": {
@@ -316,30 +316,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.022
+   "cost": 0.024
   },
   "new": {
-   "lufs": -25.77,
-   "lufsShortMax": -25.26,
-   "lufsMomentaryMax": -21.07,
-   "lra": 1.14,
-   "truePeakDbtp": -7.11,
-   "harshShareA": 21.4,
+   "lufs": -25.8,
+   "lufsShortMax": -25.24,
+   "lufsMomentaryMax": -21.13,
+   "lra": 1.21,
+   "truePeakDbtp": -7.09,
+   "harshShareA": 21.5,
    "bandShareA": {
     "sub": 0,
     "low": 0,
     "lowmid": 69.5,
     "mid": 6.8,
-    "harsh": 21.4,
+    "harsh": 21.5,
     "air": 2.3
    },
-   "centroidHz": 827,
-   "repetition": 0.171,
+   "centroidHz": 829,
+   "repetition": 0.17,
    "repetitionLagS": 2.45,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.11
+   "cost": 0.086
   }
  },
  "quad-crash-rock": {
@@ -369,10 +369,10 @@
   },
   "new": {
    "lufs": -25.91,
-   "lufsShortMax": -25.23,
-   "lufsMomentaryMax": -21.19,
+   "lufsShortMax": -25.21,
+   "lufsMomentaryMax": -21.15,
    "lra": 1.49,
-   "truePeakDbtp": -6.54,
+   "truePeakDbtp": -6.53,
    "harshShareA": 7.4,
    "bandShareA": {
     "sub": 0,
@@ -380,15 +380,15 @@
     "lowmid": 75.2,
     "mid": 8.1,
     "harsh": 7.4,
-    "air": 9.1
+    "air": 9
    },
-   "centroidHz": 1161,
-   "repetition": 0.413,
+   "centroidHz": 1159,
+   "repetition": 0.409,
    "repetitionLagS": 0.26,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.091
+   "cost": 0.075
   }
  },
  "whoop65-punch": {
@@ -417,27 +417,27 @@
    "cost": 0.024
   },
   "new": {
-   "lufs": -25.63,
-   "lufsShortMax": -22.65,
-   "lufsMomentaryMax": -21.17,
-   "lra": 8.81,
-   "truePeakDbtp": -15.24,
-   "harshShareA": 30.2,
+   "lufs": -25.62,
+   "lufsShortMax": -22.63,
+   "lufsMomentaryMax": -21.09,
+   "lra": 8.92,
+   "truePeakDbtp": -14.94,
+   "harshShareA": 30.3,
    "bandShareA": {
     "sub": 0,
     "low": 0,
-    "lowmid": 8.5,
-    "mid": 24.7,
-    "harsh": 30.2,
-    "air": 36.6
+    "lowmid": 8.4,
+    "mid": 25.2,
+    "harsh": 30.3,
+    "air": 36
    },
-   "centroidHz": 3510,
-   "repetition": 0.192,
+   "centroidHz": 3479,
+   "repetition": 0.204,
    "repetitionLagS": 2.99,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.104
+   "cost": 0.072
   }
  },
  "7inch-punch": {
@@ -466,27 +466,27 @@
    "cost": 0.023
   },
   "new": {
-   "lufs": -25.69,
-   "lufsShortMax": -22.96,
-   "lufsMomentaryMax": -21.13,
-   "lra": 6.88,
-   "truePeakDbtp": -13.97,
-   "harshShareA": 4.5,
+   "lufs": -25.72,
+   "lufsShortMax": -23.01,
+   "lufsMomentaryMax": -21.21,
+   "lra": 6.95,
+   "truePeakDbtp": -14.28,
+   "harshShareA": 4.7,
    "bandShareA": {
     "sub": 0,
     "low": 0.3,
-    "lowmid": 87.1,
-    "mid": 7.5,
-    "harsh": 4.5,
+    "lowmid": 86.5,
+    "mid": 7.9,
+    "harsh": 4.7,
     "air": 0.6
    },
-   "centroidHz": 805,
+   "centroidHz": 807,
    "repetition": 0.679,
    "repetitionLagS": 0.26,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.113
+   "cost": 0.081
   }
  },
  "10inch-punch": {
@@ -512,30 +512,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.025
+   "cost": 0.026
   },
   "new": {
-   "lufs": -26.09,
-   "lufsShortMax": -24.03,
-   "lufsMomentaryMax": -21.19,
-   "lra": 4.37,
-   "truePeakDbtp": -14.87,
+   "lufs": -26.11,
+   "lufsShortMax": -24.07,
+   "lufsMomentaryMax": -21.32,
+   "lra": 4.29,
+   "truePeakDbtp": -15.41,
    "harshShareA": 5.1,
    "bandShareA": {
     "sub": 0,
     "low": 5.9,
-    "lowmid": 75.1,
-    "mid": 13.5,
+    "lowmid": 75,
+    "mid": 13.6,
     "harsh": 5.1,
     "air": 0.4
    },
-   "centroidHz": 451,
-   "repetition": 0.634,
+   "centroidHz": 449,
+   "repetition": 0.641,
    "repetitionLagS": 0.26,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.118
+   "cost": 0.084
   }
  },
  "interceptor-punch": {
@@ -561,30 +561,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.024
+   "cost": 0.026
   },
   "new": {
-   "lufs": -25.4,
-   "lufsShortMax": -22.58,
-   "lufsMomentaryMax": -19.34,
-   "lra": 9.61,
-   "truePeakDbtp": -13.66,
-   "harshShareA": 6.7,
+   "lufs": -25.43,
+   "lufsShortMax": -22.61,
+   "lufsMomentaryMax": -19.65,
+   "lra": 9.56,
+   "truePeakDbtp": -13.67,
+   "harshShareA": 6.6,
    "bandShareA": {
     "sub": 0,
     "low": 5.7,
-    "lowmid": 68.2,
-    "mid": 18.8,
-    "harsh": 6.7,
+    "lowmid": 68,
+    "mid": 19.1,
+    "harsh": 6.6,
     "air": 0.6
    },
-   "centroidHz": 562,
-   "repetition": 0.778,
+   "centroidHz": 561,
+   "repetition": 0.78,
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.099
+   "cost": 0.087
   }
  },
  "cub1400-flight": {
@@ -610,25 +610,25 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.023
   },
   "new": {
    "lufs": -26.67,
    "lufsShortMax": -25.2,
-   "lufsMomentaryMax": -25.08,
-   "lra": 9.09,
-   "truePeakDbtp": -19.34,
+   "lufsMomentaryMax": -25.09,
+   "lra": 9.08,
+   "truePeakDbtp": -19.31,
    "harshShareA": 5,
    "bandShareA": {
     "sub": 0,
     "low": 6.7,
     "lowmid": 70.6,
-    "mid": 17.1,
+    "mid": 17.2,
     "harsh": 5,
     "air": 0.6
    },
    "centroidHz": 353,
-   "repetition": 0.802,
+   "repetition": 0.803,
    "repetitionLagS": 0.27,
    "nonFinite": 0,
    "subnormal": 0,
@@ -659,7 +659,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.025
   },
   "new": {
    "lufs": -26.12,
@@ -682,7 +682,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.049
+   "cost": 0.057
   }
  },
  "bombshell1118-flight": {
@@ -708,7 +708,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.024
   },
   "new": {
    "lufs": -25.83,
@@ -731,7 +731,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.05
+   "cost": 0.056
   }
  },
  "tigermoth1803-flight": {
@@ -757,7 +757,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.022
+   "cost": 0.023
   },
   "new": {
    "lufs": -24.74,
@@ -780,7 +780,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.048
+   "cost": 0.054
   }
  },
  "p51d1450-flight": {
@@ -806,14 +806,14 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.025
+   "cost": 0.022
   },
   "new": {
    "lufs": -22.31,
    "lufsShortMax": -21.09,
    "lufsMomentaryMax": -21.05,
    "lra": 2.97,
-   "truePeakDbtp": -15.59,
+   "truePeakDbtp": -15.56,
    "harshShareA": 3,
    "bandShareA": {
     "sub": 0,
@@ -824,7 +824,7 @@
     "air": 0.2
    },
    "centroidHz": 401,
-   "repetition": 0.077,
+   "repetition": 0.075,
    "repetitionLagS": 3.83,
    "nonFinite": 0,
    "subnormal": 0,
@@ -855,14 +855,14 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.024
   },
   "new": {
    "lufs": -26.54,
    "lufsShortMax": -24.31,
-   "lufsMomentaryMax": -24.28,
+   "lufsMomentaryMax": -24.27,
    "lra": 5.2,
-   "truePeakDbtp": -22.26,
+   "truePeakDbtp": -22.05,
    "harshShareA": 32.4,
    "bandShareA": {
     "sub": 0,
@@ -870,15 +870,15 @@
     "lowmid": 1,
     "mid": 1.5,
     "harsh": 32.4,
-    "air": 65.1
+    "air": 65.2
    },
    "centroidHz": 7105,
-   "repetition": 0.218,
+   "repetition": 0.228,
    "repetitionLagS": 0.28,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.062
+   "cost": 0.049
   }
  },
  "nrj1490-flight": {
@@ -904,7 +904,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.02
+   "cost": 0.023
   },
   "new": {
    "lufs": -37.42,
@@ -953,14 +953,14 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.024
+   "cost": 0.022
   },
   "new": {
-   "lufs": -25.2,
+   "lufs": -25.21,
    "lufsShortMax": -24.25,
    "lufsMomentaryMax": -21.24,
    "lra": 9.85,
-   "truePeakDbtp": -6.12,
+   "truePeakDbtp": -6.1,
    "harshShareA": 9.9,
    "bandShareA": {
     "sub": 0,
@@ -971,7 +971,7 @@
     "air": 3.9
    },
    "centroidHz": 962,
-   "repetition": 0.447,
+   "repetition": 0.446,
    "repetitionLagS": 0.27,
    "nonFinite": 0,
    "subnormal": 0,
@@ -1002,7 +1002,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.022
   },
   "new": {
    "lufs": -23.71,
@@ -1025,7 +1025,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.047
+   "cost": 0.046
   }
  },
  "striker-prop-cruise": {
@@ -1051,7 +1051,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.02
+   "cost": 0.022
   },
   "new": {
    "lufs": -26.39,
@@ -1074,7 +1074,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.045
+   "cost": 0.048
   }
  },
  "striker-prop-flyby": {
@@ -1100,30 +1100,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.022
   },
   "new": {
-   "lufs": -32.29,
-   "lufsShortMax": -28.53,
-   "lufsMomentaryMax": -26.65,
-   "lra": 9.66,
-   "truePeakDbtp": -18.88,
-   "harshShareA": 0.6,
+   "lufs": -31.48,
+   "lufsShortMax": -27.86,
+   "lufsMomentaryMax": -26.6,
+   "lra": 10.51,
+   "truePeakDbtp": -17.8,
+   "harshShareA": 0.5,
    "bandShareA": {
     "sub": 0,
-    "low": 19.2,
-    "lowmid": 67.6,
-    "mid": 12.5,
-    "harsh": 0.6,
-    "air": 0.1
+    "low": 18,
+    "lowmid": 71.7,
+    "mid": 9.8,
+    "harsh": 0.5,
+    "air": 0
    },
    "centroidHz": 279,
-   "repetition": 0.736,
+   "repetition": 0.744,
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.049
+   "cost": 0.043
   }
  },
  "striker-jet-takeoff": {
@@ -1172,7 +1172,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.042
+   "cost": 0.044
   }
  },
  "striker-jet-cruise": {
@@ -1198,7 +1198,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.024
   },
   "new": {
    "lufs": -27.41,
@@ -1221,7 +1221,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
-   "cost": 0.049
+   "cost": 0.048
   }
  },
  "striker-jet-flyby": {
@@ -1247,30 +1247,128 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.023
   },
   "new": {
    "lufs": -34.27,
-   "lufsShortMax": -31.62,
-   "lufsMomentaryMax": -26.6,
-   "lra": 14.2,
-   "truePeakDbtp": -17.75,
-   "harshShareA": 31.6,
+   "lufsShortMax": -31.77,
+   "lufsMomentaryMax": -26.95,
+   "lra": 14.04,
+   "truePeakDbtp": -17.77,
+   "harshShareA": 31.7,
    "bandShareA": {
     "sub": 0,
     "low": 0.5,
-    "lowmid": 14.5,
-    "mid": 51.4,
-    "harsh": 31.6,
-    "air": 1.9
+    "lowmid": 14.4,
+    "mid": 51.5,
+    "harsh": 31.7,
+    "air": 2
    },
-   "centroidHz": 1395,
-   "repetition": 0.759,
+   "centroidHz": 1458,
+   "repetition": 0.761,
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 49,
    "cost": 0.045
+  }
+ },
+ "room-4": {
+  "title": "room-4",
+  "old": {
+   "lufs": -27.17,
+   "lufsShortMax": -26.68,
+   "lufsMomentaryMax": -25.38,
+   "lra": 0.9,
+   "truePeakDbtp": -18.42,
+   "harshShareA": 0.1,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0,
+    "lowmid": 94.7,
+    "mid": 5.2,
+    "harsh": 0.1,
+    "air": 0
+   },
+   "centroidHz": 591,
+   "repetition": 0.706,
+   "repetitionLagS": 4,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.022
+  },
+  "new": {
+   "lufs": -22.91,
+   "lufsShortMax": -20.08,
+   "lufsMomentaryMax": -15.91,
+   "lra": 6.05,
+   "truePeakDbtp": -10.54,
+   "harshShareA": 4,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.2,
+    "lowmid": 54.7,
+    "mid": 40.5,
+    "harsh": 4,
+    "air": 0.6
+   },
+   "centroidHz": 811,
+   "repetition": 0.266,
+   "repetitionLagS": 2.53,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 53,
+   "cost": 0.201
+  }
+ },
+ "room-32": {
+  "title": "room-32",
+  "old": {
+   "lufs": -27.17,
+   "lufsShortMax": -26.68,
+   "lufsMomentaryMax": -25.38,
+   "lra": 0.9,
+   "truePeakDbtp": -18.42,
+   "harshShareA": 0.1,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0,
+    "lowmid": 94.7,
+    "mid": 5.2,
+    "harsh": 0.1,
+    "air": 0
+   },
+   "centroidHz": 591,
+   "repetition": 0.706,
+   "repetitionLagS": 4,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.021
+  },
+  "new": {
+   "lufs": -23.6,
+   "lufsShortMax": -21,
+   "lufsMomentaryMax": -16.88,
+   "lra": 5.18,
+   "truePeakDbtp": -10.23,
+   "harshShareA": 4.1,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.2,
+    "lowmid": 56.4,
+    "mid": 38.7,
+    "harsh": 4.1,
+    "air": 0.6
+   },
+   "centroidHz": 765,
+   "repetition": 0.258,
+   "repetitionLagS": 2.54,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 53,
+   "cost": 0.199
   }
  }
 }

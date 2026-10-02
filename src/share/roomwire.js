@@ -64,7 +64,7 @@ export const PROTO = 2;
  * rad/s, as the layout above always said; builds below sent the plant's
  * rpm in them, which clamped every quad above 5,080 rpm and which a level
  * 2 receiver would hear nine and a half times too fast (docs/AUDIO.md
- * section 12).
+ * section 13).
  */
 export const ROOM_LEVEL = 2;
 

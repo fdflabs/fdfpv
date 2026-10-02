@@ -3780,6 +3780,7 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
+    roomHearPeers();
     tagMarkPeers();
     tagBubble(now, wallMs, scene);
     tagCrownFrame(scene, dt);
@@ -4282,6 +4283,56 @@ export async function boot({
     }
     const world = MAPS.find((m) => m.id === peer.profile.map);
     return world ? str('rooms.away_world', { name, world: world.name }) : str('rooms.away_elsewhere', { name });
+  }
+
+  /*
+   * THE OTHER PILOTS, HEARD (src/render/audio.js updatePeers): each drawn
+   * peer's engine from its aircraft (its profile's, on stock power: the
+   * wire does not carry the power option) and the rotor speeds it sends,
+   * where it is drawn, from where the camera is. The audio picks the few it
+   * has voices for. A crashed or hidden peer is not in the list, so its
+   * voice fades.
+   */
+  const peerHeard = [];
+  const camRight = new THREE.Vector3();
+  function roomHearPeers() {
+    peerHeard.length = 0;
+    if (mode !== 'replay') {
+      for (const peer of roomPeers.values()) {
+        const p = peer.drawnPose;
+        if (!p || (p.flags & FLAG_CRASHED) || !peer.rig || !peer.rig.group.visible) {
+          continue;
+        }
+        if (!peer.audio || peer.audio.key !== peer.profile.airframe) {
+          peer.audio = {
+            key: peer.profile.airframe,
+            id: peer.seat,
+            spec: airframeById(peer.profile.airframe) ? engineSpecFor(peer.profile.airframe, {}, {}) : null,
+            rpm: [0, 0, 0, 0],
+            x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
+          };
+        }
+        const a = peer.audio;
+        /* The wire's rotor speeds are rad/s (src/share/roomwire.js). */
+        const quad = (p.flags & FLAG_QUAD) !== 0;
+        a.rpm[0] = (quad ? p.c0 : p.motor) * RPM_PER_RAD_S;
+        a.rpm[1] = quad ? p.c1 * RPM_PER_RAD_S : 0;
+        a.rpm[2] = quad ? p.c2 * RPM_PER_RAD_S : 0;
+        a.rpm[3] = quad ? p.c3 * RPM_PER_RAD_S : 0;
+        a.x = p.px;
+        a.y = p.py;
+        a.z = p.pz;
+        a.vx = p.vx;
+        a.vy = p.vy;
+        a.vz = p.vz;
+        peerHeard.push(a);
+      }
+    }
+    const cam = shell.camera;
+    camRight.setFromMatrixColumn(cam.matrixWorld, 0);
+    audio.setListener(cam.position.x, cam.position.y, cam.position.z, camRight.x, camRight.y, camRight.z,
+      groundAt(cam.position.x, cam.position.z));
+    audio.updatePeers(peerHeard);
   }
 
   function roomDrawPeer(peer, now, scene, dt, simT) {
