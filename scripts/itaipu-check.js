@@ -30,7 +30,8 @@
  *               after tent and hero have read the files) within
  *               0.05 m (the water's surface where the point is on a
  *               body), and the ground under the camera there is drawn at
- *               10 m;
+ *               10 m; and at every hero sample the cut lowered, the
+ *               page's finest ground is the Node cut's;
  *   water       the reservoir and the river are drawn at 219.0 and
  *               103.5 m, and height() on each body's spawn is its level;
  *   budget      chunk buffers under 24 MB and tiles under 12 MB
@@ -567,11 +568,12 @@ async function main() {
    * (terrain/conform.js): the same cut here, after the file checks. */
   const bound = conformBound(junctionRims(dam), embankmentCrests(dam));
   let cut = 0;
+  const cutHero = [];
   for (const [key, data] of tiles) {
     const [level, i, j] = key.split(':').map(Number);
-    cut += conformTile(level, i, j, data, ITAIPU_FRAME.half, bound);
+    cut += conformTile(level, i, j, data, ITAIPU_FRAME.half, bound, cutHero);
   }
-  console.log(`conform: ${cut} samples cut to the concrete's rims`);
+  console.log(`conform: ${cut} samples cut to the concrete's rims, ${cutHero.length} of them the hero's`);
 
   const page = await openPage({
     root,
@@ -719,6 +721,17 @@ async function main() {
       }
       if (notHero) {
         fail(`${notHero} of ${n} hero points under the camera not drawn at 10 m`);
+      }
+      /* And every hero sample the cut lowered, where the random points
+       * seldom fall: the page's finest ground there is the Node cut's. */
+      const cutGot = JSON.parse(await page.evaluate(`JSON.stringify(${JSON.stringify(cutHero)}.map(([x, z]) => window.__mapScene().userData.itaipu.terrain.finestAt(x, z)))`));
+      let cutWorst = 0;
+      cutHero.forEach(([x, z], k) => {
+        cutWorst = Math.max(cutWorst, Math.abs(cutGot[k] - heroGround(get, x, z)));
+      });
+      console.log(`ground: the ${cutHero.length} hero samples cut, worst |page - Node| ${cutWorst.toFixed(4)} m`);
+      if (!(cutWorst <= GROUND_TOL)) {
+        fail(`the page's cut ground is off the Node cut's by ${cutWorst} m`);
       }
 
       /* Budgets, and the frame at two places. */
