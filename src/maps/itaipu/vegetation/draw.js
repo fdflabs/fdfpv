@@ -1005,7 +1005,7 @@ function shellMaterial(band, forestTex, noise) {
           /* The crowns and their clumps while each is a few pixels
            * across; under that their mean, and the understorey inside the
            * trees' band has neither. */
-          vegK = (1.0 - smoothstep(${(0.2 * CROWN_M).toFixed(2)}, ${(0.7 * CROWN_M).toFixed(2)}, px)) * (1.0 - vSink);
+          vegK = (1.0 - smoothstep(${(0.25 * CROWN_M).toFixed(2)}, ${(0.9 * CROWN_M).toFixed(2)}, px)) * (1.0 - vSink);
           vegKc = (1.0 - smoothstep(${(0.2 * CLUMP_M).toFixed(2)}, ${(0.7 * CLUMP_M).toFixed(2)}, px)) * (1.0 - vSink);
           vegCrown = vec4(0.0, 0.0, 1.0, 0.5);
           vegClump = vec4(0.0, 0.0, 1.0, 0.5);
@@ -1042,6 +1042,11 @@ function shellMaterial(band, forestTex, noise) {
           float own = 0.75 + 0.5 * fract(vegCrown.w * 13.1);
           float lit = mix(1.0, dome * own / ${DOME_MEAN.toFixed(2)}, vegK) * mix(1.0, clump / ${CLUMP_MEAN.toFixed(2)}, vegKc) * leaf;
           lit *= 0.84 + 0.32 * vegStand.x;
+          /* Past the crowns, their groups: the big crowns and the gaps
+           * between stands as value noise a crown or two across, which its
+           * own mipmaps fade, so a far forest is still a textured mass. */
+          vec4 groups = vegTex(vVegW.xz, 11.0, 0.29) * 0.6 + vegTex(vVegW.xz, 27.0, 0.53) * 0.4;
+          lit *= mix(0.55 + 0.9 * groups.r, 1.0, vegK);
           vec3 hue = mix(vec3(1.0), vegPalette(vegCrown.w), vegK) * mix(vec3(0.95, 1.0, 1.05), vec3(1.05, 1.01, 0.9), vegStand.z);
           /* The understorey, in the crowns' shade: dark, broken, no crown. */
           vec3 under = vec3(0.3) * (0.7 + 0.6 * vegFine.b);
