@@ -67,6 +67,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
+import { seatPilot } from '../tests/lib/roompilot.js';
 import { PROTO, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -255,10 +256,13 @@ try {
    * name whole, and the cards where they were. An upright phone's panel
    * lists two of them (src/ui/roombrowser.js TITLE_ROOMS_UPRIGHT). */
   const longNames = ['Brave Capybara 17, Defend Itaipu', 'Sunday Morning Freestyle Session', 'Happy Eagle 420, Defend Itaipu!!'];
-  for (const name of longNames) {
-    await fetch(`${server.url}/v2/create`, {
+  /* A pilot in each: an empty room is never listed. */
+  const longPilots = [];
+  for (const [i, name] of longNames.entries()) {
+    const longMade = await fetch(`${server.url}/v2/create`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true, name }),
     });
+    longPilots.push(await seatPilot(server.url, (await longMade.json()).code, [i, i + 1, 60 + i]));
   }
   await page.until("document.querySelectorAll('.gate-rooms-list .gate-room').length === 3", 30000).catch(() => {});
   const PANEL_CUT = `[...document.querySelectorAll('.gate-rooms-count, .gate-room-name, .gate-room-value')]
@@ -284,6 +288,9 @@ try {
     await shot(page, `gate-listed-${w}x${h}`);
   }
   await resize(page, 1280, 720);
+  for (const p of longPilots) {
+    p.close();
+  }
   /* The rooms server makes six rooms a minute for an address
    * (edge/rooms/front.js), and the steps below make three more at once. */
   await page.sleep(61000);
