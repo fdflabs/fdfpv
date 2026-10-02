@@ -58,7 +58,8 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
-import { MotorAudio, VOICES, engineModelForCraft } from './render/audio.js';
+import { MotorAudio, VOICES } from './render/audio.js';
+import { engineSpecFor } from './render/enginespec.js';
 import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
 import { revRpm } from './ui/hangar-polish.js';
@@ -236,7 +237,7 @@ import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight 
 import { KINDS, TURNED } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
-import { collectTrees, groundSurface, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt, turnedBoxPose } from './game/crashworld.js';
+import { collectTrees, groundSurface, kindMaterial, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt, turnedBoxPose } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, WIRES_MAX, partLabel,
 } from '../configs/parts.js';
@@ -1180,6 +1181,14 @@ export async function boot({
     };
   }
   const audio = new MotorAudio();
+  /* The ground's material where the craft is, as the plant was last told
+   * (declareGroundMaterial), for what a hit on it sounds like. */
+  let groundMaterialNow = SURFACE.grass;
+  /* The flaps' angle and the gear's position last frame, for the sound of
+   * them moving, and whether the gear was moving. */
+  let flapAngleWas = 0;
+  let gearWas = 0;
+  let gearMovingWas = false;
   /* Everything in the world that sounds and is not this aircraft: the
    * war's attackers and its explosions (src/render/world-audio.js). Fed
    * a frame at a time; silent until the mix gives it a bus. */
@@ -6183,6 +6192,7 @@ export async function boot({
     stateCurr = readState();
     statePrev = stateCurr;
     notice = { text: str('main.catapulted_keep_it_flying'), untilMs: performance.now() + 2200 };
+    audio.mechanical('catapult');
     return true;
   }
 
@@ -6285,6 +6295,7 @@ export async function boot({
       return false;
     }
     notice = { text: str('main.parachute_out_motor_cut'), untilMs: performance.now() + 2600 };
+    audio.mechanical('parachute');
     return true;
   }
 
@@ -7279,11 +7290,21 @@ export async function boot({
     if (u > 1) {
       u = 1;
     }
-    if (typeof audio.event === 'function') {
-      /* Still two cues, because there are two samples, but the level and
-       * the choice now come off the impulse rather than off a speed the
-       * contact may never have had. */
-      audio.event(u > 0.45 ? 'crash' : 'clip', null, u);
+    /*
+     * THE SOUND OF THE HIT: what it hit and how hard. A light touch is the
+     * graze cue, a race's penalty; a real hit is the engine's impact, at
+     * the surface's own hardness (sim_material_info: concrete 1, grass
+     * 0.05) and the momentum the hit took, the craft's mass times the
+     * closing speed. The ground's material is the one the plant was handed
+     * for this spot; an obstacle's is its kind's (crashworld.js
+     * kindMaterial).
+     */
+    const material = kind === 'ground' ? groundMaterialNow : kindMaterial(kind);
+    const hardness = materialHardness[material] ?? 0.5;
+    if (u > 0.45) {
+      audio.impact((airframeById(runAirframe).grams / 1000) * scale, hardness, scale);
+    } else {
+      audio.event('clip', null, u);
     }
     /* A kick about all three camera axes. The sign walks so two hits in a
      * row do not throw the picture the same way; it is a render effect and
@@ -7299,6 +7320,7 @@ export async function boot({
      * belly landing does not spin the props down. */
     if (kind !== 'ground' && typeof sim.e.sim_prop_strike === 'function') {
       sim.e.sim_prop_strike(IMPACT_PROP_MAX * u);
+      audio.propStrike(u, hardness);
       stateCurr = readState();
     }
     if (u > 0.25) {
@@ -7649,6 +7671,9 @@ export async function boot({
    */
   function applyPower(s) {
     const af = airframeById(runAirframe);
+    /* What the engine is heard as: the same choice the plant is built
+     * from (src/render/enginespec.js). */
+    setFlownSpec(engineSpecFor(af.id, s.power, s.combat));
     if (hasMotors(af.id) && typeof sim.e.sim_set_motors === 'function') {
       const choice = powerChoice(af.id, s.power);
       const cleared = sim.clearPower();
@@ -7681,7 +7706,6 @@ export async function boot({
       /* An aircraft pushed more than one way speaks with the engine it has. */
       const pushed = propulsionOf(af, combatSeated(af.id));
       setFlownVoice((pushed && pushed.voice) ?? af.voice ?? 'wing');
-      audio.setEngineModel(engineModelForCraft(af.id, pushed && pushed.id));
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
@@ -7818,6 +7842,15 @@ export async function boot({
       audio.setVoice(v);
     }
   }
+  /* The flown craft's engine spec, put back after the stand has played its
+   * own (the stand plays a voice's model with the model's own numbers). */
+  let flownSpec = null;
+  function setFlownSpec(spec) {
+    flownSpec = spec;
+    if (!standVoiceOn) {
+      audio.setEngineSpec(spec);
+    }
+  }
 
   /* The plant's pack and tank, for the OSD. Null on a quad and on a build
    * that predates the export. */
@@ -7901,6 +7934,23 @@ export async function boot({
     smoke.update(stateCurr ? stateCurr[0] : 0, on ? smokeAt : null, smokeVel, shell.canvas.clientHeight || 720, shell.camera.fov);
   }
   const fpvFail = createFpvFail(shell.canvas);
+  /* Every material's hardness, 0 to 1, as the module has it
+   * (sim_material_info [3]): what a hit on it sounds like. A module
+   * without the call hears every surface as middling. */
+  const materialHardness = (() => {
+    const out = new Float64Array(SURFACES.length).fill(0.5);
+    if (typeof sim.e.sim_material_info !== 'function') {
+      return out;
+    }
+    const p = sim.e.malloc(4 * 8);
+    for (let m = 0; m < SURFACES.length; m += 1) {
+      if (sim.e.sim_material_info(m, p) === SIM_OK) {
+        out[m] = new Float64Array(sim.e.memory.buffer, p, 4)[3];
+      }
+    }
+    sim.e.free(p);
+    return out;
+  })();
   /* Collider kind to the module's surface, where the numbers agree. */
   const kindSurface = (() => {
     if (!damage.available || typeof sim.e.sim_material_info !== 'function') {
@@ -8239,7 +8289,8 @@ export async function boot({
   function declareGroundMaterial(wx, wz, hy) {
     const w = view.water && view.water.length ? waterAt(wx, wz) : null;
     const wet = w != null && hy >= surfaceAt(w, wx, wz) - 0.05;
-    sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet, hy));
+    groundMaterialNow = groundSurface(view, wx, wz, groundNWorld.y, wet, hy);
+    sim.e.sim_set_ground_material(groundMaterialNow);
   }
 
   /* The obstacle contact's material, or -1 for the shell's own numbers. */
@@ -10456,7 +10507,6 @@ export async function boot({
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
     setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
-    audio.setEngineModel(null);
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
@@ -15255,6 +15305,7 @@ export async function boot({
     if (over) {
       if (standVoiceOn !== over.voice) {
         audio.setVoice(over.voice);
+        audio.setEngineSpec(null);
         standVoiceOn = over.voice;
       }
       if (hangarRev) {
@@ -15264,6 +15315,7 @@ export async function boot({
       }
     } else if (standVoiceOn) {
       audio.setVoice(flownVoice);
+      audio.setEngineSpec(flownSpec);
       standVoiceOn = null;
     }
     /* The replay plays its own motors, slowed with its picture. */
@@ -15279,6 +15331,19 @@ export async function boot({
       audioAir.v = 2 * (qx * qy - qw * qz) * vx + (1 - 2 * (qx * qx + qz * qz)) * vy + 2 * (qy * qz + qw * qx) * vz;
       audioAir.w = 2 * (qx * qz + qw * qy) * vx + 2 * (qy * qz - qw * qx) * vy + (1 - 2 * (qx * qx + qy * qy)) * vz;
       audioAir.amps = motorsTurning ? st[19] : 0;
+      /* The flaps and the gear while they travel, read off the plant, and
+       * the gear's clunk when it arrives. */
+      const flap = typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0;
+      audioAir.flapsMoving = Math.abs(flap - flapAngleWas) > 1e-5;
+      flapAngleWas = flap;
+      const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
+      const gearMoving = Math.abs(gear - gearWas) > 1e-6;
+      if (gearMovingWas && !gearMoving && (gear === 0 || gear === 1)) {
+        audio.mechanical('gear');
+      }
+      gearMovingWas = gearMoving;
+      gearWas = gear;
+      audioAir.gearMoving = gearMoving;
       air = audioAir;
     }
     audio.update(audioRpm, replayWind >= 0 ? replayWind : (motorsTurning ? speed : 0), undefined, air);
@@ -15774,7 +15839,7 @@ export async function boot({
    * literal in the audio.update call. */
   const audioRpm = [0, 0, 0, 0];
   /* The engine's extra state, the same way: written in place. */
-  const audioAir = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0 };
+  const audioAir = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0, flapsMoving: false, gearMoving: false };
   /*
    * The other way the mix can be left holding a tone, and it is the same
    * defect from the other end: the whole mix is driven from inside frame(),

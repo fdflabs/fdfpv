@@ -18,7 +18,9 @@
  * THE BARS, for NEW only (docs/AUDIO.md, "the mix", says why each). The
  * renders are the aircraft alone, motors or engine and air, at the shell's
  * default volume, with no music:
- *   integrated loudness of a flight      -29 to -22 LUFS; for a fly-by,
+ *   integrated loudness of a flight      -29 to -22 LUFS; a glider, whose
+ *                                        only sound is its air, -40 to -30,
+ *                                        quiet but there; for a fly-by,
  *                                        heard off board, the pass instead:
  *                                        its loudest 400 ms, -30 to -20 LUFS,
  *                                        because a fly-by is far away for
@@ -64,6 +66,8 @@ const outDir = join(root, 'build/audio-lab');
 export const BARS = {
   lufsMin: -29,
   lufsMax: -22,
+  gliderMin: -40,
+  gliderMax: -30,
   passMin: -30,
   passMax: -20,
   shortMax: -18,
@@ -178,7 +182,9 @@ async function main() {
       if (!n) {
         continue;
       }
-      if (flights[id].listener) {
+      if (flights[id].glider) {
+        check(`${id} the air alone, ${BARS.gliderMin} to ${BARS.gliderMax} LUFS`, n.lufs >= BARS.gliderMin && n.lufs <= BARS.gliderMax, `${n.lufs} LUFS`);
+      } else if (flights[id].listener) {
         check(`${id} the pass, loudest 400 ms, ${BARS.passMin} to ${BARS.passMax} LUFS`, n.lufsMomentaryMax >= BARS.passMin && n.lufsMomentaryMax <= BARS.passMax, `${n.lufsMomentaryMax} LUFS`);
       } else {
         check(`${id} loudness ${BARS.lufsMin} to ${BARS.lufsMax} LUFS`, n.lufs >= BARS.lufsMin && n.lufs <= BARS.lufsMax, `${n.lufs} LUFS`);

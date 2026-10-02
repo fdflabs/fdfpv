@@ -31,7 +31,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { MotorAudio, engineModelForCraft } from '../../src/render/audio.js';
+import { MotorAudio } from '../../src/render/audio.js';
+import { engineSpecFor } from '../../src/render/enginespec.js';
 import { MotorAudio as OldAudio } from './old-audio.js';
 
 export const RATE = 48000;
@@ -86,8 +87,8 @@ export async function renderFlight(id, mode, stem = '') {
   const a = lab ? new MotorAudio() : new OldAudio();
   a.setVoice(f.voice);
   if (lab) {
-    const [af, prop] = f.craft === '5inch' ? [null, null] : ['striker2500', f.craft.split('-')[1]];
-    a.setEngineModel(engineModelForCraft(af, prop));
+    /* The same spec the shell builds from the same configs. */
+    a.setEngineSpec(engineSpecFor(f.airframe, f.power || {}, f.combat || {}));
   }
   a.attach(ctx);
   await a.ready;
@@ -103,8 +104,12 @@ export async function renderFlight(id, mode, stem = '') {
   }
   a.setEnabled(true);
   const rpm = [0, 0, 0, 0];
-  const air = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0 };
+  const air = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0, flapsMoving: false, gearMoving: false };
   const events = f.events.slice();
+  /* The flaps and the gear, read as src/main.js reads them off the plant. */
+  let flapWas = rows.length ? rows[0][11] : 0;
+  let gearWas = rows.length ? rows[0][12] : 0;
+  let gearMovingWas = false;
   for (let i = 0; i < rows.length; i += 1) {
     const r = rows[i];
     const t = i / data.rate;
@@ -116,13 +121,33 @@ export async function renderFlight(id, mode, stem = '') {
     air.v = r[5];
     air.w = r[6];
     air.amps = r[10];
+    air.flapsMoving = Math.abs(r[11] - flapWas) > 1e-5;
+    flapWas = r[11];
+    const gearMoving = Math.abs(r[12] - gearWas) > 1e-6;
+    if (lab && gearMovingWas && !gearMoving && (r[12] === 0 || r[12] === 1)) {
+      a.mechanical('gear', t);
+    }
+    gearMovingWas = gearMoving;
+    gearWas = r[12];
+    air.gearMoving = gearMoving;
     if (f.listener) {
       Object.assign(air, listenerView(r, f.listener));
     }
     a.update(rpm, Math.hypot(r[4], r[5], r[6]), t, air);
     while (events.length && events[0].t <= t + 1e-9) {
       const e = events.shift();
-      if (lab) {
+      if (e.kind === 'mech') {
+        /* OLD had no mechanisms at all. */
+        if (lab) {
+          a.mechanical(e.what, e.t);
+        }
+      } else if (e.kind === 'strike') {
+        if (lab) {
+          a.propStrike(e.level, e.hardness, e.t);
+        } else {
+          a.wreck('chip', e.level, e.t);
+        }
+      } else if (lab) {
         a.impact(e.impulse, e.hardness, e.speed, e.t);
       } else {
         /* The shell's call (src/main.js feelImpact): a level off the
