@@ -1,12 +1,20 @@
-# Audio: audit, design and the physically driven prototype
+# Audio: audit, design, the physically driven engine, and its API
 
 The owner, 2 October 2026: "I want to change all of them for real audio,
 that's responsive, doesn't feel tiring, done right". The plan has four
 phases: (1) audit, design and measurement tools, (2) a prototype of the
 motor and prop sound and the wind for the 5 inch and the Striker (prop and
-jet) with a listening page, (3) the owner's verdict, (4) roll out. This
-file is phases 1 and 2. Nothing here reaches a player: the prototype is
-behind a flag that is off (section 8).
+jet) with a listening page, (3) the owner's verdict, (4) roll out.
+
+Phases 1 and 2 shipped in #349. Phase 3, the owner on 2 October after the
+listening page: "theyre good - it sounds good... can we do them for every
+single plane, every single motor, every vehicle, all of it?" Phase 4 is in
+progress, in two tracks: this file's (the engine, the mix, every aircraft
+the player flies, other pilots) and the world's (vehicles, boats, the
+war's attackers, explosions, ambience: src/render/world-worklet.js), which
+plays through the API in section 11. The engine is the game's sound now;
+the flag is gone (section 8). Sections 1 to 9 are the record as #349 wrote
+it, amended where the roll out changed a fact.
 
 Every figure below is from a command in this repository, named next to
 it. A loudness is LUFS (ITU-R BS.1770-4) unless it says dBFS.
@@ -73,7 +81,32 @@ the F-16's ducted fan voice (`edf`, `configs/airframes.js` l.1630).
   with a +1.9 dBFS sample peak in the file itself.
 - The wind is fed ground speed, not airspeed, and has no sideslip.
 
+**Where each stands after the first phase 4 pull request:** the noise is
+real noise (`Math.imul`) in every audio generator (the cue buffer and the
+explosion's crackle; the worklet's own were always xorshift); the graph
+stands at 49 nodes offline and well under 64 live (section 11); every
+music record is levelled and the bed sits at -30 LUFS, under the aircraft
+again; the war's music and voice play through the graph, and the combat
+file is under -1 dBTP (it needed 3.67 dB, `tools/voice/music.py`); the
+engine reads the body frame airspeed and the sideslip. Not audio, and left
+alone: the same float generator seeds `src/render/explosion.js`'s
+particles and several `scripts/*` test fixtures, whose outputs other
+checks depend on.
+
 ## 2. The graph and its limits
+
+The graph as of phase 4 (`src/render/audio.js` attach):
+
+    engine (worklet) out 0 ─> motorBus ─> highpass 60 Hz ─┐
+                     out 1 ─> windBus ───────────────────┤
+    world (worklet)  out 0 ─> otherBus ──────────────────┼─> flightDuck ─┐
+                     out 1 ─> ambienceBus ─> ambienceDuck ───────────────┤
+    engine out 2, world out 2, wreck, SCHWING, coin ─> effectsBus ───────┤
+    war radio calls (MediaElementSource) ─> voiceBus ────────────────────┼─> limiter ─> tanh ─> master ─> out
+    music crate and war beds ─> ... ─> music duck ───────────────────────┤
+    race cues (gate, graze, land, takeoff), menu taps, focus tone ───────┘
+
+What follows is the graph #349 found:
 
     sources ─> motorBus ─> highpass 60 Hz ─┐
     noise   ─> windBus  ───────────────────┼─> flightDuck ─┐
@@ -113,7 +146,7 @@ read by `main.js` every frame:
 
 ## 4. The model per source class
 
-The prototype is `src/render/engine-worklet.js`, one AudioWorkletProcessor.
+The engine is `src/render/engine-worklet.js`, one AudioWorkletProcessor.
 Its numbers are physics where there is a source and tuning where there is
 not; the tuning ones are marked ESTIMATED.
 
@@ -303,23 +336,22 @@ on. Phase 4's recordings: a budget of **1.5 MB** in total, Opus at 64 to
 listening page's traces (`tools/audio/flights.json`, 366 KB) are a
 developer file; the page fetches them only when opened.
 
-## 8. The prototype, and how to hear it
+## 8. The engine, and how to hear it
 
-Behind a flag, **off by default**:
-
-- in the game: `?audiolab=1` on the URL, or `localStorage
-  'fdfpv.audiolab' = '1'`, before the first key press;
-- in code: `MotorAudio.setLab(true)` before `attach()`.
-
-With it off, `attach()` builds exactly the graph it always did (the old
-chains moved into `attachVoices` unchanged). With it on, the four motor
-chains and the wind chain (21 nodes) are not built; one AudioWorkletNode
-(`src/render/engine-worklet.js`) with three outputs (engine onto the
-Motors bus, air onto the Wind bus, impacts beside the cues) and a limiter
-replace them. Per frame state goes in as AudioParams, never port
-messages, so an offline render hears exactly what the live page does.
-`main.js` adds the body frame velocity and the pack current; the Striker
-says which engine it has (`labModelForCraft`).
+**The engine is the game's sound.** Since phase 4 there is no flag: the
+four motor chains, the wind loop, the old crash cue and their tables are
+deleted (21 nodes), and one AudioWorkletNode (`src/render/engine-worklet.js`)
+with three outputs (engine onto the Motors bus, air onto the Wind bus,
+impacts onto the Effects bus) and the limiter replace them. The
+`?audiolab=0` escape the lead allowed "only if it's free" is not there: it
+would have meant keeping every deleted line. The old sound survives only as
+`tools/audio/old-audio.js`, a frozen copy the listening page renders OLD
+from and the game never loads. Per frame state goes in as AudioParams,
+never port messages, so an offline render hears exactly what the live page
+does. `main.js` adds the body frame velocity and the pack current; the
+Striker says which engine it has (`engineModelForCraft`); the hangar's
+prop its blade count (`setBladeScale`, now a whole blade count in the
+engine rather than a pitch multiplier).
 
 **The listening page**: `tools/audio/listen.html`. Run `npm run serve`,
 open http://127.0.0.1:8000/tools/audio/listen.html, and press OLD or NEW
@@ -416,25 +448,85 @@ between two runs of the same code, so they are not usable for this.) The
 live shell with the flag off: 64 nodes, music playing; with it on: 45
 nodes, the engine loaded, no console errors.
 
-## 10. Roll out (phase 4), once the owner has listened
+## 10. Roll out (phase 4)
 
-1. The owner's verdict on the listening page, flight by flight.
-2. Fix the noise generator in the shipped voices (`Math.imul`), whatever
-   the verdict: it is a defect on its own.
-3. Make the prototype the default for the quads and the Striker, then the
-   other airframes' models (`wing`, `edf`, `glow2`, `glow4` already exist
-   in the worklet, untuned).
-4. Hand the crash path its surface material and impulse (`feelImpact`
-   knows the contact; the prototype currently strikes a middling surface
-   from the shell's crash call).
-5. Voice other aircraft (peers, the war's attackers) through the
-   propagation: one worklet instance can carry several sources once a
-   source list replaces the single engine.
-6. Explosions on the propagation; music normalised per title to -30;
-   the war's media elements routed through the graph; the new sliders.
-7. Recordings for impacts and explosions within the 1.5 MB budget, each
-   credited.
-8. When the prototype is the default, verify check 14 (which asserts four
-   motor chains, `motors.length === 4`) and `scripts/audio-probe.js` (built
-   on the oscillator chains) move to the engine node; the 64 node bar
-   stays.
+The owner listened on 2 October and asked for all of it. In order, as
+pull requests:
+
+1. **Done in the first:** the engine is the default and the old chains are
+   deleted; the noise generator fixed; every music record levelled and the
+   bed at -30 LUFS; the war's music and voice through the graph and its
+   ducks, the combat file under -1 dBTP; the limiter for everything; the
+   music and the ambience ducked under impacts and explosions; Settings
+   rows for Motors and engines, Wind, Other aircraft, Effects, Ambience,
+   Voice and Music beside Volume; the world's API (section 11). Check 14
+   now asserts the engine node is attached where it asserted four motor
+   chains; the 64 node bar is unchanged. `scripts/audio-probe.js`, built on
+   the deleted chains, is retired; `tools/audio/render.js` replaces it.
+2. Every aircraft the player flies, each with its own engine: the quads
+   (5 inch, whoop, 7 inch, 10 inch, interceptor) with their blade counts,
+   poles and the hangar's motors and props; the fixed wings' electric
+   outrunners, glow two and four strokes, the Tiger Moth and the P-51, the
+   F-16's ducted fan as a fan (not the turbojet), the Striker on both
+   engines; gliders silent but for their air; flaps, gear, the catapult and
+   the parachute; the crash path handing its surface and impulse over;
+   prop strikes and wreck parts.
+3. Other pilots in rooms, each from its sent state, through the
+   propagation, with a voice budget: the nearest few loud, the rest culled
+   smoothly.
+
+**The settings are saved, not synced.** The account sync
+(`src/share/progressmerge.js` SYNCED_SECTIONS) carries progress, builds and
+loadouts, not the Settings screen, and a new section needs its own limits
+on the server (`tracks-api`). The sound levels stay in this browser's
+storage like every other Settings row.
+
+## 11. The public API
+
+`src/render/audio.js` exports `MotorAudio`; the shell holds one as
+`audio`. What another module may call, and what it promises. A change to
+anything here is announced to the lead first.
+
+**The world's node.** `audio.attachWorld(node)`: `node` is any AudioNode
+with three stereo outputs (src/render/world-worklet.js is the one this is
+for). Output 0 goes to the Other aircraft bus (other pilots, the war's
+attackers, vehicles, boats), 1 to the Ambience bus, 2 to the Effects bus
+(explosions), each under its Settings row, through the flight duck (0),
+the action duck (1), the limiter and the master. Safe before `attach()`:
+the node is held and connected when the graph is built. One world node; a
+second call replaces the first. The caller owns the node; `nodeCount()`
+counts it once it is connected, so it is inside the 64 node budget that
+check 14 and `war:boom` hold the page to.
+
+**Ducking under action.** `audio.duckAction(atTime, depth, seconds)`:
+ducks the music and the ambience to `depth` (the gain at the bottom, 0
+to 1), recovering over `seconds`; a deeper duck already running wins. For
+explosions and impacts in the world. `audio.duckFlight(atTime, depth,
+seconds)` is the same for the flight stems (the pilot's engine, the wind,
+other aircraft), for a sound that must cut through them.
+
+**The pilot's own aircraft**, driven by the shell (src/main.js):
+
+- `audio.update(rpm, speed, atTime, air)` once a frame: `rpm` the four
+  motor RPMs, Betaflight order, a fixed wing's engine in slot 0; `speed`
+  m/s; `atTime` the context time (omitted live); `air` optional,
+  `{ u, v, w, amps, dist, dist2, pan }`: body frame velocity m/s (forward,
+  left, up), the pack current A, and for a source heard off board the
+  distance, the ground reflection's path, metres, and the pan, -1 to 1.
+- `audio.setVoice(name)` (a VOICES key), `audio.setEngineModel(name)`
+  (an ENGINE_MODELS name or null), `audio.setBladeScale(k)`.
+- `audio.impact(impulse, hardness, speed, atTime)`: N s, the surface's
+  hardness 0 to 1 (`sim_material_info`), m/s.
+- `audio.event(kind, atTime, level)`, `wreck(kind, level, atTime)`,
+  `schwing(level, atTime)`, `coin(level, atTime)`, `boom(level, distM,
+  atTime)` and its `booms` counter, `ui(kind)`: the cues, unchanged.
+- `audio.ready`: a promise that resolves when the engine node exists. An
+  offline render awaits it before scheduling (src/replay/soundtrack.js,
+  tools/audio/drive.js).
+- `audio.setMix({ motors, wind, music, focus, effects, voice, ambience,
+  other })`, each 0 to 1, any subset; an unknown key throws.
+- `audio.nodeCount()`.
+
+**Frames and units.** Everything is SI. A position the world hands its
+own worklet is its own business; the propagation in the engine takes
+distances, not positions, so it has no frame to get wrong.

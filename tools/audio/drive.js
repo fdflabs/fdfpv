@@ -6,7 +6,7 @@
  *
  *   OLD  the sound before the engine (tools/audio/old-audio.js, frozen):
  *        the four oscillator chains, the wind loop, the crash cue
- *   NEW  the same class with the audiolab flag: src/render/engine-worklet.js
+ *   NEW  src/render/audio.js as the game plays it: src/render/engine-worklet.js
  *        behind a limiter, fed the extra state the flight carries (body
  *        velocity, current, an off board listener, the impact's surface)
  *
@@ -31,7 +31,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { MotorAudio, labModelForCraft } from '../../src/render/audio.js';
+import { MotorAudio, engineModelForCraft } from '../../src/render/audio.js';
 import { MotorAudio as OldAudio } from './old-audio.js';
 
 export const RATE = 48000;
@@ -84,13 +84,10 @@ export async function renderFlight(id, mode, stem = '') {
   const ctx = new OfflineAudioContext(2, Math.round(seconds * RATE), RATE);
   const lab = mode === 'new';
   const a = lab ? new MotorAudio() : new OldAudio();
-  if (lab) {
-    a.setLab(true);
-  }
   a.setVoice(f.voice);
   if (lab) {
     const [af, prop] = f.craft === '5inch' ? [null, null] : ['striker2500', f.craft.split('-')[1]];
-    a.setLabModel(labModelForCraft(af, prop));
+    a.setEngineModel(engineModelForCraft(af, prop));
   }
   a.attach(ctx);
   await a.ready;
