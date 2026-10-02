@@ -155,7 +155,7 @@
         --pdcs-blue-strong: #8cbcd8;
         --pdcs-blue-dim: #3f6f8f;
         --pdcs-blue-wash: rgba(106, 163, 200, 0.1);
-        --pdcs-plate: #111b22;
+        --pdcs-plate: #132532;
         --pdcs-green-live: #5f9c80;
         --pdcs-green-dim: #4e8a6c;
         --pdcs-fail: #ff8f8f;
@@ -1620,7 +1620,16 @@
         box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
         transition: box-shadow 0.14s ease;
       }
-      .gate-card.on { box-shadow: inset 0 0 0 1px var(--pdcs-blue); }
+      /* The cursor's card: a full blue frame and a heavier rule along its top,
+         the others left calm. */
+      .gate-card { position: relative; }
+      /* Over the plate, which would cover an inset shadow: the frame is an
+         outline and the rule a layer of its own. */
+      .gate-card.on { outline: 1px solid var(--pdcs-blue-strong); outline-offset: -1px; }
+      .gate-card.on::after {
+        content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 2;
+        background: var(--pdcs-blue-strong); pointer-events: none;
+      }
       .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
       .gate-card-art {
         position: relative;
