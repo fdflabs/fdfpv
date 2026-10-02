@@ -976,9 +976,15 @@
         font-family: var(--ui-font);
       }
       .screen-lede, .rates-lede, .howto-lede, .menu-help, .beta-note, .keep-note,
-      .gate-card-blurb, .credits-roll, .name-dialog p {
+      .gate-card-blurb, .credits-roll, .name-dialog p, .howto-keys dd, .howto-mode {
         font-family: var(--pdcs-read);
       }
+      /* The hangar is a workbench of dense labelled controls whose panel is
+         sized to fit without scrolling (scripts/hangar-check.js), so it
+         keeps the readable face throughout, the monospace only for its
+         name and its tabs. */
+      .hangar { --ui-font: var(--pdcs-read); font-family: var(--ui-font); }
+      .hangar .hangar-name, .hangar .hangar-tab-btn { font-family: var(--pdcs-mono); }
 
       /* Screens. */
       .screen {
