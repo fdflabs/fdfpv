@@ -2296,8 +2296,8 @@
    "Friendship Bridge column @45": "stopped"
   },
   "f16": {
-   "power conductor, dived onto @45": "through",
-   "power conductor, dived onto @70": "passed",
+   "power conductor, dived onto @45": "stopped",
+   "power conductor, dived onto @70": "stopped",
    "power conductor, crossed level @45": "stopped",
    "power conductor, crossed level @70": "stopped",
    "lattice tower leg @45": "stopped",

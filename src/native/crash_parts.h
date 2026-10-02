@@ -1084,16 +1084,24 @@ static const PartDef PARTS_F16878[] = {
   /* 6, 7 the panels on the 6 mm carbon tube: a 6 x 4 mm tube, Z 1.70e-8
    * m^3 at the 1,000 MPa the other spars take, 17 N m, ESTIMATED as the
    * tube's bore is not published. In their own plane the foam slab at
-   * the root, 320 mm of chord 17 mm deep. */
+   * the root, 320 mm of chord 17 mm deep.
+   * Each panel's hull reaches in to the fuselage's side, y 0.065, with
+   * the strake between: the drawn jet (f16craft.js) is solid there, and a
+   * hull from the exposed root at 0.117 left 52 mm a side where a
+   * conductor met nothing until the tail. Its leading edge runs on
+   * straight from the root's (0.090, 0.117) to 0.132, which is behind the
+   * strakes' drawn leading edge at every span station (0.333 at 0.065):
+   * the strake ahead of it is left out, as a convex hull out to there
+   * would stand up to 0.17 m ahead of the wing's own leading edge. */
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.130, .joint = { -0.05, 0.117, 0.0 }, CARBON_SPAR(0.003), .m_max = 17.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.32, 0.017), .f_max = 300.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0006, .crush_d = 0.05,
-    .npts = 8, .pts = { { 0.090, 0.117, -0.008 }, { -0.230, 0.117, -0.008 }, { 0.090, 0.117, 0.008 }, { -0.230, 0.117, 0.008 },
+    .npts = 8, .pts = { { 0.132, 0.065, -0.008 }, { -0.230, 0.065, -0.008 }, { 0.132, 0.065, 0.008 }, { -0.230, 0.065, 0.008 },
                         { -0.147, 0.410, -0.002 }, { -0.230, 0.410, -0.002 }, { -0.147, 0.410, 0.002 }, { -0.230, 0.410, 0.002 } } },
   { .kind = SIM_PART_WING, .parent = 0, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.130, .joint = { -0.05, -0.117, 0.0 }, CARBON_SPAR(0.003), .m_max = 17.0, .m_max_z = SLAB_M(EPO_TENSILE, 0.32, 0.017), .f_max = 300.0, .k = 3000.0,
     .crush_s = EPO_CRUSH, .crush_a = 0.0006, .crush_d = 0.05,
-    .npts = 8, .pts = { { 0.090, -0.117, -0.008 }, { -0.230, -0.117, -0.008 }, { 0.090, -0.117, 0.008 }, { -0.230, -0.117, 0.008 },
+    .npts = 8, .pts = { { 0.132, -0.065, -0.008 }, { -0.230, -0.065, -0.008 }, { 0.132, -0.065, 0.008 }, { -0.230, -0.065, 0.008 },
                         { -0.147, -0.410, -0.002 }, { -0.230, -0.410, -0.002 }, { -0.147, -0.410, 0.002 }, { -0.230, -0.410, 0.002 } } },
   { .kind = SIM_PART_AILERON, .parent = 6, .mat = SIM_MAT_EPO, .motor = -1, .wheel = -1,
     .mass = 0.010, .joint = { -0.19, 0.20, 0.0 }, .m_max = PL_SURF_M, .f_max = PL_SURF_F, .k = 2000.0,
