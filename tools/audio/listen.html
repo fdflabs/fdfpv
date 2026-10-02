@@ -127,7 +127,9 @@
           out = ctx.createGain();
           out.connect(ctx.destination);
         }
-        await ctx.resume();
+        /* Not awaited: a click is the gesture that lets it start, and a page
+         * driven without one (a headless check) must still render. */
+        ctx.resume();
         button.disabled = true;
         status.textContent = `rendering ${mode.toUpperCase()}...`;
         try {
