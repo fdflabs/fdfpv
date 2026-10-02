@@ -34,6 +34,11 @@
  *               upright cylinder in its surface) and the wires as above:
  *               met, on that surface, within the string's radius of it,
  *               something broken; a metre to its side, nothing
+ *   dive        an F-16 dived nose down at 45 and 70 m/s onto a 500 kV
+ *               chord, its CG on the chord's axis (its own path found by
+ *               diving it once with no wire), its span along the chord and
+ *               across it: met on the wire surface by the fuselage, and
+ *               stopped there, never on past the wire at speed
  *
  *   node scripts/wire-check.js        exit 1 on any failure
  *
@@ -451,6 +456,63 @@ console.log('4. damage on: the insulator strings are solid where they hang');
       first ? `${met.length} events, first ${first.typeName} on ${hit.parts[first.part].label} on ${SURFACES[first.surface]}, ${off.toFixed(3)} m outside the string; ${hit.summary().slice(0, 100)}` : 'nothing met');
     const clear = await flyAt(stringAt[1] + r + CLEAR + half, h);
     check(`a ${tower.kv} kV tower's outer string, ${a.name}: a metre to its side, nothing met`, clear.events.length === 0, `${clear.events.length} events`);
+  }
+}
+
+console.log('5. damage on: an F-16 dived nose down onto a conductor is stopped on it');
+{
+  /* #299 says a wire is met from a step's travel out, so nothing crosses
+   * one between two steps at any speed. The audit's F-16 dive at 45 m/s
+   * went on through a conductor and the one at 70 passed it: both had
+   * pulled 0.23 m and 0.47 m off the line before they got there, so the
+   * wire met a wing, which it broke, or nothing. Here the CG is put on
+   * the axis, so what meets the wire is the fuselage. */
+  const s = SPANS[0];
+  const col = collidersOf(s);
+  const fr = frameOf(s);
+  const F16 = AIRCRAFT.find((a) => a.id === 16);
+  const DROP = 6;
+  const dive = async (v, yaw, at, declare) => {
+    const rig = await Rig.create(loadSim, wasm, cfg, { id: F16.id, ground: null });
+    const { sim } = rig;
+    sim.e.sim_wing_set_stab(0);
+    if (declare) {
+      const pick = [];
+      nearestWires(col, s.m[0], s.m[1], s.m[2], WIRE_REACH, WIRES_MAX, pick);
+      for (const { i } of pick) {
+        sim.e.sim_wire_add(...fr.toPlant([col.fax[i], col.fay[i], col.faz[i]]), ...fr.toPlant([col.fbx[i], col.fby[i], col.fbz[i]]), col.fr[i]);
+      }
+    }
+    /* Nose down (a quarter turn about y), then turned about z. */
+    const c = Math.cos(yaw / 2);
+    const z = Math.sin(yaw / 2);
+    const h = Math.SQRT1_2;
+    rig.pose([at[0], at[1], DROP], [c * h, -z * h, c * h, z * h]);
+    rig.velocity([0, 0, -v]);
+    let cross = null;
+    let past = null;
+    rig.run(Math.round((1000 * (DROP + 3)) / v) + 200, [0, 0, 0, 0], (st) => {
+      if (cross === null && st[3] <= 0) {
+        cross = [st[1], st[2]];
+      }
+      if (past === null && st[3] <= -2) {
+        past = Math.hypot(st[4], st[5], st[6]);
+      }
+    });
+    return { rig, cross, past };
+  };
+  for (const v of [45, 70]) {
+    for (const [yaw, how] of [[0, 'its span along the chord'], [Math.PI / 2, 'its span across it']]) {
+      const free = await dive(v, yaw, [0, 0], false);
+      const at = [-free.cross[0], -free.cross[1]];
+      const hit = await dive(v, yaw, at, true);
+      const onWire = hit.rig.events.filter((e) => SURFACES[e.surface] === 'wire');
+      const parts = [...new Set(onWire.map((e) => hit.rig.parts[e.part].label))];
+      check(`an F-16 dived at ${v} m/s onto ${s.name}, ${how}, its CG on the axis: met on the wire by the fuselage and stopped`,
+        parts.includes('fuselage') && hit.past === null,
+        `started ${Math.hypot(...at).toFixed(2)} m aside for its pull; ${onWire.length} wire events on ${parts.join(', ') || 'nothing'}; `
+          + `${hit.past === null ? 'never 2 m past the wire' : `${hit.past.toFixed(1)} m/s 2 m past the wire`}`);
+    }
   }
 }
 

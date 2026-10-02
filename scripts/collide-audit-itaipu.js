@@ -1335,6 +1335,37 @@ async function riseOver(page, t, v, D, yaw) {
   return 0;
 }
 
+/*
+ * The same for a dive: thrown UP over its line and flown down to UP over
+ * the target in clear air, and where the CG is across the ground when it
+ * gets there, against where it was aimed. A jet dived with its stick
+ * centred pulls off the line on its trim: the F-16 thrown 9 m over a
+ * conductor at 45 m/s crossed its height 0.23 m to the side and met it
+ * with a wing, and at 70 m/s from 14 m, 0.47 m to the side, beside it.
+ */
+async function pullOver(page, t, v, D, yaw, pitch) {
+  const up = 40;
+  await page.evaluate(`window.__crashThrow(${JSON.stringify({
+    x: t.at[0] - t.dir[0] * D, y: t.at[1] - t.dir[1] * D + up, z: t.at[2] - t.dir[2] * D, yaw, pitch, vx: t.dir[0] * v, vy: t.dir[1] * v, vz: t.dir[2] * v, hold: true, fresh: true,
+  })})`);
+  await page.evaluate('window.__stick(0, 0, 0, 0)');
+  await page.sleep(300);
+  await page.evaluate('window.__releasePose()');
+  let prev = null;
+  const T0 = Date.now();
+  while (Date.now() - T0 < 3000) {
+    const r = JSON.parse(await page.evaluate('JSON.stringify((() => { const s = window.__craftState(); return [s.worldX, s.worldY, s.worldZ]; })())'));
+    if (r[1] <= t.at[1] + up) {
+      const f = prev && prev[1] > r[1] ? (prev[1] - (t.at[1] + up)) / (prev[1] - r[1]) : 1;
+      const at = prev ? [prev[0] + (r[0] - prev[0]) * f, prev[2] + (r[2] - prev[2]) * f] : [r[0], r[2]];
+      return [at[0] - t.at[0], at[1] - t.at[2]];
+    }
+    prev = r;
+    await page.sleep(5);
+  }
+  return [0, 0];
+}
+
 /* One flight: thrown at `t` from far enough to be flying straight, held
  * until the streamed set is filled round the throw, then released and
  * watched. */
@@ -1348,10 +1379,13 @@ async function flyAt(page, t, v) {
    * reaching the target, so it crosses at the target's height whatever
    * the craft's lift. */
   const drop = dy === 0 && !t.land ? await riseOver(page, t, v, D, yaw) : 0;
+  /* A dive at a solid starts aside by what it pulls, so the CG crosses the
+   * target's height on the target (pullOver). */
+  const pull = dy !== 0 && !t.land && !t.invisible ? await pullOver(page, t, v, D, yaw, pitch) : [0, 0];
   const plan = t.land
     ? { x: t.at[0], y: t.at[1] + 4, z: t.at[2], yaw, pitch: 0, vx: t.dir[0] * 3, vy: -4, vz: t.dir[2] * 3 }
     : {
-      x: t.at[0] - t.dir[0] * D, y: t.at[1] - dy * D + drop, z: t.at[2] - t.dir[2] * D, yaw, pitch, vx: t.dir[0] * v, vy: dy * v, vz: t.dir[2] * v,
+      x: t.at[0] - t.dir[0] * D - pull[0], y: t.at[1] - dy * D + drop, z: t.at[2] - t.dir[2] * D - pull[1], yaw, pitch, vx: t.dir[0] * v, vy: dy * v, vz: t.dir[2] * v,
     };
   await page.evaluate(`window.__crashThrow(${JSON.stringify({ ...plan, hold: true, fresh: true })})`);
   await page.evaluate('window.__stick(0, 0, 0, 0)');
@@ -1398,9 +1432,19 @@ async function flyAt(page, t, v) {
       result = 'passed';
     }
   }
+  /* How far across the line from the target the CG went by it. */
+  const k = log.findIndex((r) => along(r) >= 0);
+  const by = k > 0 ? (() => {
+    const a = log[k - 1];
+    const b = log[k];
+    const f = -along(a) / (along(b) - along(a));
+    const p = [0, 1, 2].map((q) => a[q] + (b[q] - a[q]) * f - t.at[q]);
+    const d = p[0] * t.dir[0] + p[1] * dy + p[2] * t.dir[2];
+    return +Math.hypot(p[0] - d * t.dir[0], p[1] - d * dy, p[2] - d * t.dir[2]).toFixed(2);
+  })() : null;
   return {
     result, firstAt: firstAt == null ? null : +firstAt.toFixed(1), firstHit: first ? first[6] : null,
-    endSpeed: +last[3].toFixed(1), end: last.slice(0, 3).map((q) => +q.toFixed(1)),
+    endSpeed: +last[3].toFixed(1), end: last.slice(0, 3).map((q) => +q.toFixed(1)), by,
   };
 }
 
@@ -1946,7 +1990,7 @@ async function flights(page, craft, speeds) {
       const r = await flyAt(page, t, v);
       out[`${t.name} @${v}`] = r.result;
       console.log(`fly: ${craft} at ${v} m/s into ${t.name}: ${r.result}${r.firstAt == null ? '' : `, first contact ${f1(r.firstAt)} m along from it`}`
-        + `, ${f1(r.endSpeed)} m/s at the end at (${r.end.join(', ')})`);
+        + `${r.by == null || r.result === 'stopped' ? '' : `, the CG ${r.by} m across from it`}, ${f1(r.endSpeed)} m/s at the end at (${r.end.join(', ')})`);
     }
   }
   return out;
