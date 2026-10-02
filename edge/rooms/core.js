@@ -46,6 +46,7 @@
 import {
   CLOSE, POSE_BYTES, PROTO, PUBLIC_CAP, TYPE_POSE, checkProfile, encodeBatch, validId, validNamePick,
 } from '../../src/share/roomwire.js';
+import { retiredMap } from '../../src/maps/retired.js';
 import { Referee } from './referee.js';
 import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
@@ -838,10 +839,11 @@ export class RoomCore {
    * too: { type: 'world', map }, a type a build from before it passes
    * over. A private room only, because a public room is listed under its
    * world (lobby.js), and not while a game is on, which is played where it
-   * began.
+   * began. A retired world (src/maps/retired.js), which an old page can
+   * still offer, is not one, the same as an id that is not an id.
    */
   world(conn, s, msg, now) {
-    if (!validId(msg.map)) {
+    if (!validId(msg.map) || retiredMap(msg.map)) {
       return [];
     }
     const refuse = (why) => [{ send: conn, data: JSON.stringify({ type: 'refused', why }) }];

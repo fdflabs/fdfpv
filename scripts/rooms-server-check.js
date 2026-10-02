@@ -329,6 +329,8 @@ console.log('a room made for the war');
 await sleep(Math.max(0, 61000 - (Date.now() - minuteFrom)));
 check('the private room made for nothing says no game and no mission', a.welcome.mode === null && a.welcome.mission === null,
   JSON.stringify({ mode: a.welcome.mode, mission: a.welcome.mission }));
+res = await make({ map: 'yellowstone' });
+check('a room on a retired world is refused (src/maps/retired.js)', res.status === 400 && (await res.json()).error === 'bad');
 res = await make({ map: 'swiss2', mode: 'war' });
 check('a war room off the war\'s map is refused', res.status === 400 && (await res.json()).error === 'bad');
 res = await make({ map: 'itaipu', mode: 'war', mission: 'nowhere-1' });
