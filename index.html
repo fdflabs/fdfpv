@@ -1066,6 +1066,12 @@
         overflow-y: auto;
         overscroll-behavior: contain;
       }
+      /* Paused over a run the pilot is coming back to: the same ground,
+         thinner, so the frozen frame stays readable under the grid. */
+      .screen-modal {
+        background: var(--pdcs-grid),
+          radial-gradient(circle at 50% 40%, rgba(16, 20, 22, 0.7) 0%, rgba(8, 10, 11, 0.78) 48%, rgba(5, 6, 7, 0.86) 100%);
+      }
       /* One line under a screen's title, saying what the screen is showing
          when the screen is showing a filtered view of something. Slate,
          because it recedes: it is context, not an instruction. */
@@ -1471,7 +1477,7 @@
          width three want. The world behind it still shows around and under
          them. */
       .screen-title.is-gate .title-copy {
-        width: min(78em, 94vw);
+        width: 100%;
         justify-content: flex-start;
       }
       .screen-title.is-gate .gate-cards {
@@ -1517,7 +1523,9 @@
       .screen-title.is-gate .gate-rooms:not([hidden]) {
         display: flex; flex-direction: column; gap: 7px;
         flex: 0 1 31em; min-width: 0;
-        margin: 0 clamp(190px, 16vw, 210px) 0 auto;
+        /* Its right edge on the cards' right edge, level with the foot of
+           the name, which is below the corner's chips. */
+        margin: 0 0 0 auto;
         padding: 10px 12px 11px;
         background: var(--pdcs-panel);
         border-top: 1px solid var(--pdcs-line);
@@ -1581,7 +1589,9 @@
       .gate-card-art {
         position: relative;
         width: 100%;
-        height: clamp(120px, 24vh, 260px);
+        /* Taller as the window is: the plates take the height a tall
+           window has to spare, and give it back below 720. */
+        height: clamp(120px, calc(62vh - 300px), 400px);
         background: var(--pdcs-bg);
         border-bottom: 1px solid var(--pdcs-line-soft);
         overflow: hidden;
@@ -1761,28 +1771,45 @@
          the mission over the time in large and the pilots, the menu's rows
          under it. The free flight heading and lede go while it is up. */
       .screen-friends.war-lobby-on > h2, .screen-friends.war-lobby-on .rates-lede { display: none; }
-      .war-lobby { display: flex; flex-direction: column; gap: 10px; width: min(100%, 44em); margin: 0 auto 14px; }
+      /*
+       * THE LOBBY as the boot screen's system check: a header strip (the
+       * stage in brackets, then the mission), the status as the boot
+       * screen's status line, and the pilots as its system rows, each
+       * READY in the sparse green or NOT READY dim.
+       */
+      .war-lobby { display: flex; flex-direction: column; gap: 12px; width: min(100%, 44em); margin: 0 auto 18px; }
       .war-lobby[hidden] { display: none; }
-      .war-lobby-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-      .war-lobby-title { font-size: clamp(26px, 5vw, 40px); font-weight: 900; letter-spacing: 0.18em; color: var(--mint); }
-      .war-lobby-mission { font-size: clamp(16px, 2.6vw, 21px); font-weight: 650; color: var(--cream); }
-      .war-lobby-status { font-size: clamp(20px, 4vw, 30px); font-weight: 800; color: var(--cream); }
-      .war-lobby-status.go { color: var(--mint); }
-      .war-lobby-last { font-size: 14px; color: rgba(215, 221, 221, 0.8); }
-      .war-lobby-pilots { display: flex; flex-direction: column; gap: 6px; }
-      .war-lobby-pilot {
-        display: flex; align-items: center; justify-content: space-between; gap: 12px;
-        padding: 8px 12px; border-radius: 0; background: rgba(215, 221, 221, 0.07);
-        border-left: 4px solid rgba(215, 221, 221, 0.3);
+      .war-lobby-head {
+        display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap;
+        padding-bottom: 10px; border-bottom: 1px solid var(--pdcs-line);
+        font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
       }
-      .war-lobby-pilot.ready { border-left-color: var(--mint); background: rgba(111, 207, 162, 0.1); }
-      .war-lobby-pilot.me .war-lobby-name { color: var(--sakura); }
-      .war-lobby-who { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
-      .war-lobby-name { font-size: 17px; font-weight: 700; color: var(--cream); overflow-wrap: anywhere; }
-      .war-lobby-host { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: var(--mint); }
-      .war-lobby-craft { font-size: 13px; color: rgba(215, 221, 221, 0.72); }
-      .war-lobby-flag { flex: 0 0 auto; font-size: 13px; font-weight: 900; letter-spacing: 0.14em; color: rgba(215, 221, 221, 0.55); }
+      .war-lobby-title { color: var(--slate); }
+      .war-lobby-title::before { content: "[ "; }
+      .war-lobby-title::after { content: " ]"; }
+      .war-lobby-mission { color: var(--cream); }
+      .war-lobby-status {
+        font-size: clamp(13px, 1.4vw, 15px); letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream);
+      }
+      .war-lobby-status.go { color: var(--mint); animation: pdcs-blink 0.9s ease-in-out infinite alternate; }
+      .war-lobby-last { font-family: var(--pdcs-read); font-size: 13.5px; color: var(--slate); }
+      .war-lobby-pilots { display: flex; flex-direction: column; }
+      .war-lobby-pilot {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 10px 0; border-bottom: 1px solid var(--pdcs-line-soft);
+      }
+      .war-lobby-who { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; min-width: 0; }
+      .war-lobby-name { font-size: 13px; letter-spacing: 0.08em; color: var(--cream); overflow-wrap: anywhere; }
+      .war-lobby-pilot.me .war-lobby-name { color: var(--pdcs-bright); }
+      .war-lobby-host { font-size: 10.5px; letter-spacing: 0.14em; color: var(--slate); }
+      .war-lobby-host::before { content: "[ "; }
+      .war-lobby-host::after { content: " ]"; }
+      .war-lobby-craft { font-size: 11.5px; letter-spacing: 0.06em; color: var(--slate); }
+      .war-lobby-flag { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.14em; color: var(--pdcs-dim); }
       .war-lobby-pilot.ready .war-lobby-flag { color: var(--mint); }
+      @media (prefers-reduced-motion: reduce) {
+        .war-lobby-status.go { animation: none; }
+      }
       @media (max-width: 860px) {
         .war-lobby { gap: 6px; margin-bottom: 8px; }
         .war-lobby-pilot { padding: 5px 9px; }
@@ -2146,7 +2173,7 @@
         display: flex; justify-content: space-between; align-items: center; gap: 16px;
         padding: 10px 22px 10px 28px; border-left: 2px solid transparent;
         color: rgba(215, 221, 221, 0.8);
-        font-size: clamp(14px, 1.35vw, 17px); letter-spacing: 0.06em; cursor: pointer;
+        font-size: clamp(14px, 1.35vw, 17px); letter-spacing: 0.03em; cursor: pointer;
       }
       /* The cursor is a bar and a lift, not a slab: the boot screen's
          green, which on every PDCS surface means the live thing, as a 2 px
@@ -2526,7 +2553,7 @@
          line by the shared dd nowrap, so the floor is wider than the rates
          cells' four-number floor. */
       .pids-readout { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-      .row-label { min-width: 0; flex: 1 1 auto; text-transform: uppercase; }
+      .row-label { min-width: 0; flex: 1 1 auto; }
       /*
        * THE SELECTED LABEL IS EMBOLDENED WITHOUT CHANGING ITS METRICS.
        *
@@ -4549,15 +4576,16 @@
       .name-dialog {
         position: absolute; inset: 0; z-index: 8;
         display: flex; align-items: center; justify-content: center;
-        background: rgba(10, 13, 14, 0.72);
+        background: var(--pdcs-grid), rgba(7, 9, 10, 0.8);
         pointer-events: auto;
         user-select: text;
       }
       .name-dialog[hidden] { display: none; }
       .name-dialog-box {
         width: min(420px, 86vw); padding: 22px 24px 20px;
-        background: var(--panel); border-radius: 0;
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.35), 0 18px 40px rgba(0, 0, 0, 0.55);
+        background: var(--panel);
+        border-top: 1px solid var(--pdcs-line);
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
       }
       .name-dialog-box.bug {
         width: min(520px, 92vw);
@@ -4565,7 +4593,8 @@
         overflow-y: auto;
       }
       .name-dialog-box h2 {
-        margin: 0 0 10px; font-size: 22px; color: var(--cream);
+        margin: 0 0 12px; font-size: 16px; font-weight: 500; letter-spacing: 0.16em;
+        text-transform: uppercase; color: var(--cream);
       }
       .name-dialog-box .lede {
         margin: 0 0 10px; text-align: left; max-width: none; font-size: 14px;
@@ -4600,14 +4629,18 @@
       .name-dialog-row { display: flex; flex-wrap: wrap; gap: 8px; }
       .name-dialog-btn {
         appearance: none; border: 1px solid rgba(215, 221, 221, 0.16);
-        background: #0d1012; color: var(--slate); font: inherit;
-        padding: 7px 14px; border-radius: 0; cursor: pointer;
+        background: #0d1012; color: var(--cream); font: inherit;
+        font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase;
+        padding: 8px 14px; cursor: pointer;
       }
       .name-dialog-btn.on {
         background: var(--mint); border-color: var(--mint);
         color: var(--deep); font-weight: 600;
       }
-      .name-dialog-btn:disabled { opacity: 0.45; cursor: default; }
+      .name-dialog-btn:disabled {
+        cursor: default; background: transparent; color: var(--slate);
+        border-color: var(--pdcs-line-soft); font-weight: 400;
+      }
       /* Discard, on the unsaved guard. The only button in this product
          that throws work away, so it is the only one wearing a warning
          colour: quiet until the pointer is on it, and never the default. */
@@ -4626,15 +4659,19 @@
       }
       /* The campaign is fought at Itaipu, so its screen stands over the
          dam's poster, not over the title's flyover of another world. */
+      /* As the boot screen shows the map it loads: the poster without its
+         colour (the grey layer's hue and saturation over it), darkened,
+         under the grid. */
       .name-dialog:has(.campaign-box) {
-        background: linear-gradient(rgba(10, 13, 14, 0.55), rgba(10, 13, 14, 0.75)),
+        background: var(--pdcs-grid), var(--pdcs-scrim), linear-gradient(#777, #777),
           url('assets/posters/itaipu.jpg') center / cover no-repeat;
+        background-blend-mode: normal, normal, normal, color, normal;
       }
       .campaign-eyebrow {
-        font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sakura);
+        margin-bottom: 4px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate);
       }
       .campaign-bank { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0 0 10px; color: var(--slate); font-size: 14px; }
-      .campaign-credits { color: var(--amber); font-weight: 600; }
+      .campaign-credits { color: var(--pdcs-bright); }
       .campaign-list { display: grid; gap: 8px; margin: 0 0 14px; }
       .campaign-mission, .campaign-item {
         padding: 10px 12px; border-radius: 0; background: #0d1012;
@@ -4646,13 +4683,14 @@
       .campaign-n { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--slate); }
       .campaign-tag {
         font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; padding: 1px 6px; border-radius: 0;
-        color: var(--amber); box-shadow: inset 0 0 0 1px rgba(217, 180, 108, 0.45);
+        color: var(--slate); box-shadow: inset 0 0 0 1px var(--pdcs-line);
       }
       .campaign-tag.free { color: var(--mint); box-shadow: inset 0 0 0 1px rgba(111, 207, 162, 0.45); }
       .campaign-stars { margin-left: auto; font-size: 18px; letter-spacing: 2px; color: rgba(215, 221, 221, 0.3); }
-      .campaign-star.on { color: var(--amber); }
-      .campaign-name { color: var(--cream); font-size: 16px; font-weight: 600; }
+      .campaign-star.on { color: var(--pdcs-bright); }
+      .campaign-name { color: var(--cream); font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
       .campaign-line, .campaign-best { color: var(--slate); font-size: 13px; }
+      .campaign-line, .campaign-last, .name-dialog-box .lede { font-family: var(--pdcs-read); }
       .campaign-item { display: flex; align-items: center; gap: 12px; }
       .campaign-item-text { flex: 1 1 auto; display: grid; gap: 2px; }
       .campaign-item .campaign-buy { flex: 0 0 auto; }
@@ -4671,7 +4709,7 @@
       .feel-chip {
         appearance: none; border: 1px solid rgba(215, 221, 221, 0.16);
         background: #0d1012; color: var(--cream); font: inherit;
-        font-size: 13px; padding: 6px 11px; border-radius: 999px;
+        font-size: 13px; padding: 6px 11px;
         cursor: pointer;
       }
       .feel-chip:hover { border-color: var(--sakura); }
@@ -4716,7 +4754,7 @@
       .shot-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
       .shot-chip {
         display: inline-flex; align-items: center; gap: 6px;
-        padding: 3px 4px 3px 3px; border-radius: 999px;
+        padding: 3px 4px 3px 3px;
         border: 1px solid rgba(215, 221, 221, 0.16); background: #0d1012;
         color: var(--cream); font-size: 13px;
       }
@@ -4756,19 +4794,21 @@
       .bug-chip {
         position: absolute; top: 16px; right: 16px; z-index: 7;
         pointer-events: auto;
-        appearance: none; border: 1px solid rgba(215, 221, 221, 0.45);
-        background: rgba(10, 13, 14, 0.82); color: var(--cream);
-        font: 600 12px/1 var(--ui-font); letter-spacing: 0.06em;
-        padding: 8px 12px; border-radius: 0; cursor: pointer;
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+        appearance: none; border: 0;
+        background: rgba(10, 13, 14, 0.72); color: var(--cream);
+        font: 500 11px/1 var(--ui-font); letter-spacing: 0.12em; text-transform: uppercase;
+        padding: 8px 10px; cursor: pointer;
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
       }
+      .bug-chip::before { content: "[ "; color: var(--pdcs-dim); }
+      .bug-chip::after { content: " ]"; color: var(--pdcs-dim); }
       /* Live flight: same corner, a shade quieter so the FPV frame still
          reads, still a real button. */
       .bug-chip.on-flight {
         background: rgba(10, 13, 14, 0.55);
         text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
       }
-      .bug-chip:hover { border-color: var(--sakura); color: var(--sakura); }
+      .bug-chip:hover { color: var(--pdcs-bright); box-shadow: inset 0 0 0 1px var(--pdcs-line); }
       .bug-chip[hidden] { display: none; }
 
       /* Music skip. Tiny, out of the FPV instruments. Menus park it at the
@@ -4784,9 +4824,9 @@
         position: absolute; right: 16px; top: 16px; z-index: 6;
         display: flex; align-items: center; gap: 4px;
         pointer-events: auto;
-        padding: 3px 6px 3px 3px; border-radius: 0;
-        background: rgba(10, 13, 14, 0.50);
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.16);
+        padding: 3px 6px 3px 3px;
+        background: rgba(10, 13, 14, 0.72);
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
         text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
       }
 
@@ -4870,9 +4910,8 @@
         pointer-events: auto;
         border: 1px solid rgba(215, 221, 221, 0.45);
         background: rgba(10, 13, 14, 0.9); color: var(--cream);
-        font: 600 12px/1.3 var(--ui-font); letter-spacing: 0.06em;
-        padding: 6px 6px 6px 14px; border-radius: 0;
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+        font: 500 11.5px/1.3 var(--ui-font); letter-spacing: 0.06em;
+        padding: 6px 6px 6px 14px;
       }
       .update-bar[hidden] { display: none; }
       .update-bar > span { min-width: 0; }
@@ -4880,7 +4919,7 @@
        * are never up together, because a room bar asking for the reload
        * hides the update bar and otherwise the room bar only shows with no
        * update waiting (src/main.js roomBarView). */
-      .room-bar { border-color: rgba(168, 214, 232, 0.5); }
+      .room-bar { border-color: var(--pdcs-line); }
       .room-bar .update-reload[hidden] { display: none; }
       .update-reload {
         appearance: none; border: 1px solid var(--sakura); border-radius: 0;
@@ -4923,17 +4962,17 @@
         gap: 12px; flex-wrap: wrap;
       }
       .carousel-title {
-        font-size: clamp(20px, 2.8vw, 28px); font-weight: 700; letter-spacing: 0.01em;
+        font-size: clamp(15px, 1.6vw, 19px); font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
         text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
       }
       .carousel-tabs {
-        display: flex; gap: 2px; padding: 3px; border-radius: 999px;
-        background: rgba(10, 13, 14, 0.62); border: 1px solid rgba(215, 221, 221, 0.14);
+        display: flex; gap: 2px; padding: 3px;
+        background: rgba(10, 13, 14, 0.72); border: 1px solid var(--pdcs-line-soft);
       }
       .carousel-tab {
         appearance: none; border: 0; background: transparent; color: var(--slate);
-        font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em;
-        padding: 8px 16px; border-radius: 999px; cursor: pointer;
+        font: 500 12px/1 var(--ui-font); letter-spacing: 0.12em; text-transform: uppercase;
+        padding: 8px 16px; cursor: pointer;
       }
       .carousel-tab:hover { color: var(--cream); }
       .carousel-tab.on { background: var(--cream); color: var(--deep); }
@@ -4953,7 +4992,7 @@
       .carousel-mine-form { display: flex; flex-direction: column; align-items: center; gap: 8px; }
       .carousel-mine-tool {
         appearance: none; font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; cursor: pointer;
-        padding: 8px 14px; border-radius: 999px; text-shadow: none;
+        padding: 8px 14px; text-shadow: none;
         background: rgba(10, 13, 14, 0.55); color: var(--cream); border: 1px solid rgba(215, 221, 221, 0.3);
       }
       .carousel-mine-tool:hover, .carousel-mine-tool:focus-visible { border-color: var(--mint); color: var(--mint); outline: none; }
@@ -4975,8 +5014,8 @@
       .carousel-stage:active { cursor: grabbing; }
       .carousel-arrow {
         position: absolute; top: 50%; transform: translateY(-50%);
-        width: 46px; height: 46px; border-radius: 50%;
-        border: 1px solid rgba(215, 221, 221, 0.3); background: rgba(10, 13, 14, 0.55);
+        width: 44px; height: 44px;
+        border: 1px solid var(--pdcs-line); background: rgba(10, 13, 14, 0.55);
         color: var(--cream); font: 400 30px/1 var(--ui-font); cursor: pointer;
         display: flex; align-items: center; justify-content: center; padding: 0 0 4px;
       }
@@ -4985,31 +5024,31 @@
       .carousel-prev { left: 0; }
       .carousel-next { right: 0; }
       .carousel-info { text-align: center; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7); }
-      .carousel-name { font-size: clamp(24px, 3.6vw, 36px); font-weight: 700; letter-spacing: 0.01em; }
+      .carousel-name { font-size: clamp(20px, 2.6vw, 30px); font-weight: 500; letter-spacing: 0.06em; }
       .carousel-facts { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
       .carousel-fact {
-        font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; color: var(--amber);
-        padding: 6px 12px; border-radius: 999px;
-        background: rgba(10, 13, 14, 0.55); border: 1px solid rgba(217, 180, 108, 0.3);
+        font: 500 12px/1 var(--ui-font); letter-spacing: 0.08em; color: var(--cream);
+        padding: 6px 12px;
+        background: rgba(10, 13, 14, 0.62); border: 1px solid var(--pdcs-line-soft);
         text-shadow: none;
       }
-      .carousel-note { margin: 10px auto 0; max-width: 40em; font-size: 15px; line-height: 1.4; }
+      .carousel-note { margin: 10px auto 0; max-width: 40em; font-family: var(--pdcs-read); font-size: 15px; line-height: 1.45; }
       .carousel-dots { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
       .carousel-dot {
-        appearance: none; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%;
+        appearance: none; width: 7px; height: 7px; padding: 0; border: 0;
         background: rgba(215, 221, 221, 0.28); cursor: pointer;
       }
-      .carousel-dot.on { background: var(--mint); transform: scale(1.35); }
+      .carousel-dot.on { background: var(--mint); }
       .carousel-foot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
       .carousel-warn { margin: 0; font-size: 13px; color: var(--amber); }
       .carousel-warn[hidden] { display: none; }
       .carousel-buttons { display: flex; gap: 10px; }
       .carousel-choose, .carousel-back {
-        appearance: none; font: 700 15px/1 var(--ui-font); letter-spacing: 0.03em;
-        padding: 12px 30px; border-radius: 999px; cursor: pointer;
+        appearance: none; font: 600 13px/1 var(--ui-font); letter-spacing: 0.14em; text-transform: uppercase;
+        padding: 12px 30px; cursor: pointer;
       }
       .carousel-choose { background: var(--mint); color: var(--deep); border: 1px solid var(--mint); }
-      .carousel-choose:hover { background: #a6ffcc; }
+      .carousel-choose:hover { background: #8fdcb8; }
       .carousel-back { background: rgba(10, 13, 14, 0.55); color: var(--cream); border: 1px solid rgba(215, 221, 221, 0.4); }
       .carousel-back:hover { border-color: var(--cream); }
       .carousel-hint { margin: 0; font-size: 12px; color: var(--slate); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8); }
@@ -5087,11 +5126,11 @@
       .hangar-floats {
         display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
         font: 600 13px/1 var(--ui-font); letter-spacing: 0.04em; color: var(--cream);
-        padding: 6px 12px; border-radius: 999px;
+        padding: 6px 12px;
         background: rgba(10, 13, 14, 0.55); border: 1px solid rgba(215, 221, 221, 0.45);
       }
       .hangar-floats::before {
-        content: ''; width: 22px; height: 12px; border-radius: 999px;
+        content: ''; width: 22px; height: 12px;
         background: rgba(215, 221, 221, 0.25) radial-gradient(circle at 6px 6px, var(--cream) 4px, transparent 5px);
         transition: background-color 160ms;
       }
@@ -5113,7 +5152,7 @@
       .hangar-tabs { position: relative; }
       .hangar-tab-pill {
         position: absolute; top: 0; left: 0; height: 0; width: 0;
-        border-radius: 999px; background: var(--cream);
+        background: var(--cream);
         box-shadow: 0 2px 12px rgba(215, 221, 221, 0.25);
         transition: transform 360ms var(--hg-spring), width 360ms var(--hg-spring), height 360ms var(--hg-spring);
       }
@@ -5190,7 +5229,7 @@
       .hangar-regions { display: flex; flex-wrap: wrap; gap: 6px; }
       .hangar-region {
         appearance: none; display: flex; align-items: center; gap: 8px;
-        padding: 6px 13px 6px 6px; border-radius: 999px; cursor: pointer;
+        padding: 6px 13px 6px 6px; cursor: pointer;
         border: 1px solid rgba(215, 221, 221, 0.18); background: rgba(215, 221, 221, 0.03); color: var(--cream);
         font: 600 13px/1 var(--ui-font);
         transition: transform 240ms var(--hg-spring), background 160ms, border-color 160ms, color 160ms;
@@ -5283,7 +5322,7 @@
       .parts-damage-row.taped .parts-damage-state { color: #c9cdd1; }
       .parts-damage-acts { display: flex; gap: 6px; flex: none; }
       .parts-act {
-        appearance: none; padding: 7px 11px; border-radius: 999px; cursor: pointer;
+        appearance: none; padding: 7px 11px; cursor: pointer;
         border: 1px solid rgba(215, 221, 221, 0.3); background: rgba(215, 221, 221, 0.06); color: var(--cream);
         font: 700 12px/1 var(--ui-font); transition: transform 220ms var(--hg-spring), background 160ms, border-color 160ms;
       }
@@ -5363,7 +5402,7 @@
       }
       .paint-chip, .paint-wide {
         appearance: none; display: inline-flex; align-items: center; gap: 7px;
-        padding: 7px 12px; border-radius: 999px; cursor: pointer; color: var(--cream);
+        padding: 7px 12px; cursor: pointer; color: var(--cream);
         border: 1px solid rgba(215, 221, 221, 0.18); background: rgba(215, 221, 221, 0.03);
         font: 600 13px/1 var(--ui-font);
         transition: transform 240ms var(--hg-spring), background 160ms, border-color 160ms, color 160ms;
@@ -5501,7 +5540,7 @@
         /* On a phone the rail is a row over the panel that scrolls
            sideways rather than widening the page. */
         .hangar-tabs.carousel-tabs {
-          flex-direction: row; max-width: 100%; overflow-x: auto; border-radius: 999px; scrollbar-width: none;
+          flex-direction: row; max-width: 100%; overflow-x: auto; scrollbar-width: none;
         }
         .hangar-tabs .hangar-tab-btn { flex: none; padding: 9px 14px; }
         .hangar-spec { display: none; }
@@ -5526,8 +5565,8 @@
       .music-skip {
         appearance: none; border: 0; border-radius: 0;
         width: 26px; height: 24px; padding: 0;
-        background: rgba(215, 221, 221, 0.14); color: var(--cream);
-        font: 700 16px/1 var(--ui-font); cursor: pointer;
+        background: transparent; color: var(--slate);
+        font: 500 15px/1 var(--ui-font); cursor: pointer;
       }
       .music-skip:hover { background: rgba(215, 221, 221, 0.32); color: var(--sakura); }
       /* The name is the mute, so it is a button and has to stop looking
