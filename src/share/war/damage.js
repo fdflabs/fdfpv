@@ -69,12 +69,16 @@
  *   emp 0; r 2.5
  *
  *   chunk      hp     chunk       hp     chunk       hp
- *   skin       60     leaf        45     shell      100
- *   girder     90     frame      140     tank        40
- *   arm        80     column      50     bushing     20
- *   brace      50     cover       40     post        70
+ *   skin       90     leaf        45     shell      100
+ *   girder     90     column      50     tank        40
+ *   arm        80     cover       40     bushing     20
+ *   brace      50                        post        70
  *   trunnion  200                        beam        50
  *   hoist      60
+ *
+ *   (skin, girder, arm, brace, trunnion, hoist: a spillway gate's; leaf,
+ *   column, cover: an intake's; shell: a penstock's segment; tank,
+ *   bushing, beam (a conservator or a gantry's beam), post: the yard's)
  *
  * THE SUPPORT CHECK. After the breaks, a chunk still standing that no
  * chain of standing chunks joins to an anchor falls: it is removed as a
@@ -147,7 +151,6 @@ export const HP = Object.freeze({
   trunnion: 200,
   hoist: 60,
   leaf: 45,
-  frame: 140,
   column: 50,
   cover: 40,
   shell: 100,
