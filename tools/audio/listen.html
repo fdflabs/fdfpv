@@ -76,7 +76,8 @@
       <p class="lede">
         Each flight was flown by the simulator's own physics. Press OLD or NEW to hear it through the
         game's sound as it ships, or through the prototype. Both play at the same loudness, so judge the
-        character, not the volume. Use headphones. The first press renders, which takes a moment.
+        character, not the volume: a flight is matched on its average, a fly-by on its loudest moment,
+        the pass. Use headphones. The first press renders, which takes a moment.
       </p>
       <div class="bar">
         <label>Level <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" /></label>
@@ -98,6 +99,9 @@
       let ctx = null;
       let out = null;
       let playing = null;
+      /* The match gain of what is playing, dB, so the Level slider moves
+       * the volume without undoing the match. */
+      let playingDb = 0;
 
       function stop() {
         if (playing) {
@@ -138,11 +142,17 @@
           const buf = ctx.createBuffer(2, r.channels[0].length, r.rate);
           buf.copyToChannel(r.channels[0], 0);
           buf.copyToChannel(r.channels[1], 1);
-          /* Levelled to the target, never pushed past a -1 dBTP peak. */
+          /* Levelled to the target, never pushed past a -1 dBTP peak. A
+           * fly-by is far away for most of its length, so its average says
+           * how long it is far, not how loud it is: it is matched on the
+           * pass, its loudest 400 ms (tools/audio/render.js judges it the
+           * same way). */
+          const level = data.flights[id].listener ? r.m.lufsMomentaryMax : r.m.lufs;
           let gainDb = 0;
-          if (match.checked && Number.isFinite(r.m.lufs)) {
-            gainDb = Math.min(TARGET_LUFS - r.m.lufs, -1 - r.m.truePeakDbtp);
+          if (match.checked && Number.isFinite(level)) {
+            gainDb = Math.min(TARGET_LUFS - level, -1 - r.m.truePeakDbtp);
           }
+          playingDb = gainDb;
           out.gain.value = Number(vol.value) * 10 ** (gainDb / 20);
           const src = ctx.createBufferSource();
           src.buffer = buf;
@@ -170,7 +180,7 @@
 
       vol.addEventListener('input', () => {
         if (playing) {
-          out.gain.value = Number(vol.value);
+          out.gain.value = Number(vol.value) * 10 ** (playingDb / 20);
         }
       });
 

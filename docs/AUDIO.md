@@ -325,7 +325,8 @@ says which engine it has (`labModelForCraft`).
 open http://127.0.0.1:8000/tools/audio/listen.html, and press OLD or NEW
 on any flight. Both are rendered in the browser through the real graph
 from the same plant trace, and played matched to -23 LUFS (never past a
--1 dBTP peak), so the comparison is of character, not of level.
+-1 dBTP peak), so the comparison is of character, not of level: a flight
+on its integrated loudness, a fly-by on its pass (loudest 400 ms).
 
 ## 9. Measurement tools, and the before and after
 
@@ -341,7 +342,9 @@ from the same plant trace, and played matched to -23 LUFS (never past a
 - `tools/audio/flights.js`: the twelve scripted flights flown by
   `dist/sim.wasm` in Node, written to `tools/audio/flights.json`.
   `npm run audio:flights` re flies them and fails if the file is not what
-  the plant flies now. In CI.
+  the plant flies now. In CI, so a change to the plant's trajectories has
+  to regenerate the file (`node tools/audio/flights.js`) and re-render the
+  comparison: the sound was measured on the old flights.
 - `tools/audio/render.js` (`npm run audio:lab`): renders every flight OLD
   and NEW in headless Chromium through the real graph, writes WAVs to
   `build/audio-lab`, measures them, `--check` holds NEW to the bars,
@@ -431,3 +434,7 @@ nodes, the engine loaded, no console errors.
    the war's media elements routed through the graph; the new sliders.
 7. Recordings for impacts and explosions within the 1.5 MB budget, each
    credited.
+8. When the prototype is the default, verify check 14 (which asserts four
+   motor chains, `motors.length === 4`) and `scripts/audio-probe.js` (built
+   on the oscillator chains) move to the engine node; the 64 node bar
+   stays.
