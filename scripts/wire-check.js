@@ -38,7 +38,10 @@
  *               chord, its CG on the chord's axis (its own path found by
  *               diving it once with no wire), its span along the chord and
  *               across it: met on the wire surface by the fuselage, and
- *               stopped there, never on past the wire at speed
+ *               stopped there, never on past the wire at speed; and with
+ *               the chord through the strake between the fuselage's side
+ *               and the wing's exposed root (0.085 and 0.095 m from the
+ *               centre line), met by a wing panel before the tail
  *
  *   node scripts/wire-check.js        exit 1 on any failure
  *
@@ -468,17 +471,17 @@ console.log('5. damage on: an F-16 dived nose down onto a conductor is stopped o
    * wire met a wing, which it broke, or nothing. Here the CG is put on
    * the axis, so what meets the wire is the fuselage. */
   const s = SPANS[0];
-  const col = collidersOf(s);
-  const fr = frameOf(s);
   const F16 = AIRCRAFT.find((a) => a.id === 16);
   const DROP = 6;
-  const dive = async (v, yaw, at, declare) => {
+  const dive = async (v, yaw, at, declare, span = s) => {
+    const col = collidersOf(span);
+    const fr = frameOf(span);
     const rig = await Rig.create(loadSim, wasm, cfg, { id: F16.id, ground: null });
     const { sim } = rig;
     sim.e.sim_wing_set_stab(0);
     if (declare) {
       const pick = [];
-      nearestWires(col, s.m[0], s.m[1], s.m[2], WIRE_REACH, WIRES_MAX, pick);
+      nearestWires(col, span.m[0], span.m[1], span.m[2], WIRE_REACH, WIRES_MAX, pick);
       for (const { i } of pick) {
         sim.e.sim_wire_add(...fr.toPlant([col.fax[i], col.fay[i], col.faz[i]]), ...fr.toPlant([col.fbx[i], col.fby[i], col.fbz[i]]), col.fr[i]);
       }
@@ -512,6 +515,23 @@ console.log('5. damage on: an F-16 dived nose down onto a conductor is stopped o
         parts.includes('fuselage') && hit.past === null,
         `started ${Math.hypot(...at).toFixed(2)} m aside for its pull; ${onWire.length} wire events on ${parts.join(', ') || 'nothing'}; `
           + `${hit.past === null ? 'never 2 m past the wire' : `${hit.past.toFixed(1)} m/s 2 m past the wire`}`);
+    }
+    /* The strake: a single conductor across the span between the
+     * fuselage's side (0.065) and the wing's exposed root (0.117), clear
+     * of the fuselage by more than its radius, where the drawn jet is
+     * solid and the part table had nothing until the tail (the gear leg
+     * or a stabilator met it first). A wing panel meets it before
+     * anything of the tail does; what it does after is the cut the owner
+     * keeps, the panel broken and the rest on. */
+    const one = SPANS[2];
+    const free = await dive(v, Math.PI / 2, [0, 0], false, one);
+    for (const y of [0.085, 0.095]) {
+      const hit = await dive(v, Math.PI / 2, [y - free.cross[0], -free.cross[1]], true, one);
+      const met = hit.rig.events.filter((e) => SURFACES[e.surface] === 'wire').map((e) => hit.rig.parts[e.part].label);
+      const wing = met.findIndex((l) => /^wing /.test(l));
+      const tail = met.findIndex((l) => /^(hstab|boom|fin|rudder)/.test(l));
+      check(`an F-16 dived at ${v} m/s onto ${one.name}, the conductor through the strake ${y} m from its centre line: a wing panel meets it before the tail`,
+        wing >= 0 && (tail < 0 || wing < tail), `on the wire, in order: ${met.join(', ') || 'nothing'}`);
     }
   }
 }
