@@ -7,7 +7,7 @@
  * multi"):
  *
  *   SIM_GPU=1 node scripts/game-lobby-check.js --game=combat [outdir]
- *   (--game= combat, tag, war or free; npm run game:lobby -- --game=tag)
+ *   (--game= combat, tag, war, free or race; npm run game:lobby -- --game=tag)
  *
  *   A clicks the card, one click, and is in the lobby of a public room
  *   made for the game, named for A. A alone presses R: the five seconds,
@@ -25,10 +25,15 @@
  *   and is in the round, flying; the panel said it was flying, not in a
  *   lobby, before C clicked.
  *
- * Race is not here: its round goes off a track the host chooses, which
- * the race checks drive (scripts/rooms-race-two-page.js), and its lobby is
- * in rooms:selftest. Every click a page makes is counted (tests/lib/page.js
- * click), and the rows say how many it took.
+ * The race (--game=race): A's lobby has no track yet, and its Track row
+ * opens My tracks; A plays its own track there and is back in the lobby,
+ * the room's track that one. R: the race goes, A on the grid. B's one
+ * click lands in A's lobby with the track; both ready, both race. A race
+ * on is the one round a newcomer cannot join (it went off a grid): C's
+ * click on the panel lands C in the lobby, not racing.
+ *
+ * Every click a page makes is counted (tests/lib/page.js click), and the
+ * rows say how many it took.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -52,6 +57,7 @@ import { mkdtempSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=combat').slice('--game='.length);
@@ -89,6 +95,18 @@ const GAMES = {
     on: 'Boolean(window.__rooms().lobby && window.__rooms().lobby.live)',
     end: null,
   },
+  race: {
+    card: 'race-5inch', world: 'swiss2', chip: 'Race', upMs: 120000,
+    on: "window.__roomRace().race.state === 'on'",
+    end: (core) => core.race.end(core),
+  },
+};
+/* A's own track for the race: three gates on a ring hung over the Swiss
+ * valley's field, in A's My tracks (src/trackbuilder/storage.js). */
+const TRACK_ID = 'trk-lobby0001';
+const trackSeed = () => {
+  const doc = mapTrackDocument({ id: TRACK_ID, name: 'Lobby ring', map: 'swiss2', types: ['gate', 'hoop30', 'gate'], radius: 50 });
+  return `(() => { localStorage.setItem('webfpv.trackbuilder.library.v1', JSON.stringify({ ${JSON.stringify(TRACK_ID)}: ${JSON.stringify(doc)} })); })();`;
 };
 const G = GAMES[GAME];
 if (!G) {
@@ -160,7 +178,7 @@ function endRound(code) {
   room.host.run(G.end(room.host.core, now));
 }
 
-const a = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
+const a = await openPage({ root, url, width: 1280, height: 720, seed: GAME === 'race' ? [SEED, trackSeed()] : [SEED] });
 const b = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
 const c = await openPage({ root, url, width: 1280, height: 720, seed: [SEED] });
 try {
@@ -181,6 +199,22 @@ try {
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   const code = la.code;
   await shot(a, '1-a-lobby');
+
+  /* THE RACE'S TRACK: the host's Track row, My tracks, Play: back in the
+   * lobby, the room's track A's. */
+  if (GAME === 'race') {
+    check('the race lobby has no track yet, and the host a Track row', /no track yet/.test(la.line) && la.rows.includes('friends-lobby-track'), JSON.stringify(la));
+    await a.evaluate("(() => { window.__ui.act('friends-lobby-track'); return true; })()");
+    const cardOf = `window.__ui.items().find((it) => it.course && it.course.track.id === ${JSON.stringify(TRACK_ID)})`;
+    await a.until(`window.__ui.screen === 'courses' && Boolean(${cardOf})`, 30000).catch(() => {});
+    check('Track opens My tracks, A\'s own track on it', await a.evaluate(`window.__ui.screen === 'courses' && Boolean(${cardOf})`), await a.evaluate('window.__ui.screen'));
+    await a.evaluate(`(() => { window.__ui.actOnCard('card-fly', ${cardOf}); return true; })()`);
+    await a.until(`${IN_LOBBY} && window.__roomRace().track && window.__roomRace().track.id === ${JSON.stringify(TRACK_ID)}`, 120000).catch(() => {});
+    const lt = await a.evaluate(LOBBY);
+    check('Play on it: back in the lobby, the room\'s track A\'s', lt.shown && /Lobby ring/.test(lt.line)
+      && (await a.evaluate('(window.__roomRace().track || {}).id')) === TRACK_ID, JSON.stringify({ line: lt.line, screen: lt.screen }));
+    await a.until('window.__roomRace().ready', 120000).catch(() => {});
+  }
 
   /* A ALONE: ready, the five seconds, the round. */
   await a.tap('KeyR');
@@ -240,11 +274,12 @@ try {
   }
   check('the round is on', await a.evaluate(G.on));
 
-  /* C: ONE CLICK FROM THE TITLE'S PANEL, INTO THE ROUND. */
+  /* C: ONE CLICK FROM THE TITLE'S PANEL, INTO THE ROUND (a race: into the
+   * lobby, its race being one off a grid). */
   const chip = `lobby:friends-room-${code}`;
   await c.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(chip)} && /flying/.test(it.value || ''))`, 30000).catch(() => {});
   const listed = await c.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(chip)}) || null)`);
-  check(`C's title panel lists the room as ${G.chip}, its pilots flying, not in a lobby`, listed && listed.value.startsWith(G.chip) && /\d+ flying/.test(listed.value)
+  check(`C's title panel lists the room as ${G.chip}, its pilots flying (racing), not in a lobby`, listed && listed.value.startsWith(G.chip) && /\d+ flying/.test(listed.value)
     && !/lobby/.test(listed.value), JSON.stringify(listed && { value: listed.value, join: listed.join }));
   await c.evaluate(`(() => {
     const ui = window.__ui;
@@ -254,10 +289,18 @@ try {
   })()`);
   const cBefore = c.clicks;
   await c.click('[data-check="here"]');
-  await c.until(FLYING, 400000).catch(() => {});
-  check(`C: one click on the panel (${c.clicks - cBefore}) and C is in the room's round, flying`, c.clicks - cBefore === 1
-    && (await c.evaluate('window.__rooms().code')) === code && await c.evaluate(FLYING) && await c.evaluate(G.on),
-  JSON.stringify({ code: await c.evaluate('window.__rooms().code'), screen: await c.evaluate('window.__ui.screen'), on: await c.evaluate(G.on) }));
+  if (GAME === 'race') {
+    await c.until(`window.__rooms().code === ${JSON.stringify(code)} && window.__ui.screen === 'friends'`, 60000).catch(() => {});
+    await c.sleep(2000);
+    const cr = await c.evaluate("({ code: window.__rooms().code, screen: window.__ui.screen, role: window.__roomRace().role })");
+    check(`C: one click on the panel (${c.clicks - cBefore}) and C is in the room, waiting out the race on its screen, no racer`, c.clicks - cBefore === 1
+      && cr.code === code && cr.screen === 'friends' && cr.role !== 'racing', JSON.stringify(cr));
+  } else {
+    await c.until(FLYING, 400000).catch(() => {});
+    check(`C: one click on the panel (${c.clicks - cBefore}) and C is in the room's round, flying`, c.clicks - cBefore === 1
+      && (await c.evaluate('window.__rooms().code')) === code && await c.evaluate(FLYING) && await c.evaluate(G.on),
+    JSON.stringify({ code: await c.evaluate('window.__rooms().code'), screen: await c.evaluate('window.__ui.screen'), on: await c.evaluate(G.on) }));
+  }
   await shot(c, '3-c-hot-join');
 
   const errs = [a, b, c].flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));
