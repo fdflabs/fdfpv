@@ -225,12 +225,16 @@ const STAR_CHANCE = 0.9935;
  *   of every frame (28 steps over a frame half sky cost 2 to 3 ms, and
  *   a per pixel dither of its steps showed as a fine hatching). So the
  *   whole sky, clouds and all, is marched into a cube round the camera,
- *   SKY_CUBE_PX a side, one face a frame, the face drawn longest ago, and
- *   all six at once when there is no cube yet or the camera has jumped
- *   SKY_CUBE_CUT metres; the backdrop reads the cube with five taps a
- *   texel apart, which averages the dither away. The clouds are 1.6 km
- *   up and more, so the six frames a face may be behind the camera are a
- *   fraction of a degree of parallax even at a plane's speed. The disc
+ *   SKY_CUBE_PX a side, one band of a face a frame (SKY_CUBE_BANDS to a
+ *   face), the band drawn longest ago, and all six faces at once when
+ *   there is no cube yet or the camera has jumped SKY_CUBE_CUT metres in
+ *   a frame; the backdrop reads the cube with five taps a texel apart,
+ *   which averages the dither away. A whole face a frame at 768 a side
+ *   cost 3 to 6 ms of GPU every frame, enough to slow a loaded frame
+ *   (check:avionics-layout's scene); a band at 640 is a sixth of that.
+ *   The clouds are 1.6 km up and more, so the 24 frames a band may be
+ *   behind the camera are under a degree of parallax for a drone and a
+ *   few degrees at a jet's speed low down. The disc
  *   is drawn by the backdrop itself, not the cube. The backdrop is drawn
  *   last of the opaque things, only where nothing else is.
  */
@@ -266,9 +270,11 @@ const CITY_GLOW = new THREE.Color(1.0, 0.56, 0.26);
 /* A point over the dam the environment is drawn from, and its size. */
 const ENV_AT = new THREE.Vector3(0, 400, -1500);
 const ENV_PX = 256;
-/* The sky cube's side, and the jump in metres past which all six of its
- * faces are drawn at once (THE SKY IS A CUBE, in the module doc). */
-const SKY_CUBE_PX = 768;
+/* The sky cube's side, the bands each face is drawn in, one band a
+ * frame, and the jump in one frame, metres, past which all six faces are
+ * drawn at once (THE SKY IS A CUBE, in the module doc). */
+const SKY_CUBE_PX = 640;
+const SKY_CUBE_BANDS = 4;
 const SKY_CUBE_CUT = 40;
 /* The environment's share of the backdrop's radiance (THE LIGHT IS THIS
  * SKY, in the module doc, says why it is not 1). */
@@ -559,9 +565,11 @@ export function skyBackdrop(sunDir, time) {
   };
   cubeScene.add(local);
   const at = new THREE.Vector3();
-  const facesAt = Array.from({ length: 6 }, () => null);
+  const last = new THREE.Vector3();
+  let drawn = false;
   let next = 0;
-  function drawFaces(renderer, faces) {
+  /* `faces` whole, or the one band `band` of the one face in it. */
+  function drawFaces(renderer, faces, band = -1) {
     const prevTarget = renderer.getRenderTarget();
     const prevFace = renderer.getActiveCubeFace();
     const prevLevel = renderer.getActiveMipmapLevel();
@@ -576,23 +584,30 @@ export function skyBackdrop(sunDir, time) {
     mat.uniforms.uCube.value = null;
     const disc = mat.uniforms.uDisc.value;
     mat.uniforms.uDisc.value = 0;
+    const h = SKY_CUBE_PX / SKY_CUBE_BANDS;
+    cube.scissorTest = band >= 0;
+    cube.scissor.set(0, Math.max(0, band) * h, SKY_CUBE_PX, h);
     for (const f of faces) {
       renderer.setRenderTarget(cube, f);
       /* The shell draws with autoClear off (its composer clears), and the
        * backdrop is depth tested at the far plane. */
       renderer.clear();
       renderer.render(cubeScene, eye.children[f]);
-      facesAt[f] = (facesAt[f] || new THREE.Vector3()).copy(at);
     }
+    cube.scissorTest = false;
     mat.uniforms.uDisc.value = disc;
     mat.uniforms.uDirect.value = 0;
     renderer.setRenderTarget(prevTarget, prevFace, prevLevel);
     renderer.xr.enabled = prevXr;
     renderer.shadowMap.autoUpdate = prevShadow;
   }
-  /* Once a frame, before the frame is drawn (look/index.js): the face of
+  /* Once a frame, before the frame is drawn (look/index.js): the band of
    * the cube drawn longest ago, from where the camera now is; all six
-   * when there is no cube yet or the camera has jumped. */
+   * faces when there is no cube yet or the camera has jumped since the
+   * last frame. (Measured against the last frame, not against when each
+   * face was drawn: against the face, a camera moving 40 m in the 24
+   * frames a refresh takes, a plane's cruise, redrew all six faces every
+   * frame, 26 ms of GPU each.) */
   sky.updateCube = (renderer, camera) => {
     if (eye.coordinateSystem !== renderer.coordinateSystem) {
       eye.coordinateSystem = renderer.coordinateSystem;
@@ -601,9 +616,15 @@ export function skyBackdrop(sunDir, time) {
     at.setFromMatrixPosition(camera.matrixWorld);
     eye.position.copy(at);
     eye.updateMatrixWorld();
-    const cut = facesAt.some((f) => f === null || f.distanceTo(at) > SKY_CUBE_CUT);
-    drawFaces(renderer, cut ? [0, 1, 2, 3, 4, 5] : [next]);
-    next = (next + 1) % 6;
+    const cut = !drawn || last.distanceTo(at) > SKY_CUBE_CUT;
+    last.copy(at);
+    drawn = true;
+    if (cut) {
+      drawFaces(renderer, [0, 1, 2, 3, 4, 5]);
+    } else {
+      drawFaces(renderer, [Math.floor(next / SKY_CUBE_BANDS)], next % SKY_CUBE_BANDS);
+      next = (next + 1) % (6 * SKY_CUBE_BANDS);
+    }
     mat.uniforms.uCube.value = cube.texture;
   };
   sky.disposeCube = () => cube.dispose();
