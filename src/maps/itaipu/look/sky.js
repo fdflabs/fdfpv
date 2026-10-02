@@ -73,7 +73,7 @@ import * as THREE from 'three';
 import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
 import { thermalShader } from '../../../render/thermal.js';
 import {
-  EXPOSURE, NIGHT_EXPOSURE, NIGHT_METER_KEY, isNight, timeOf, sunFor,
+  EXPOSURE, METER_KEY, NIGHT_EXPOSURE, NIGHT_METER_KEY, isNight, timeOf, sunFor,
 } from './light.js';
 import { MAX_DISTRICTS } from '../../../share/war/grid.js';
 
@@ -95,16 +95,16 @@ export const AIR = {
   ...VALLEY_AIR,
   haze: new THREE.Color().setRGB(0.31, 0.37, 0.47, THREE.LinearSRGBColorSpace),
   exposure: EXPOSURE,
+  meterKey: METER_KEY,
   contrast: 0.85,
-  spread: 1.5,
-  slopeMax: 2.2,
 };
-/* Round 4's numbers for the haze and the print (look_measure.py over the
- * eight matched views): the haze 0.85 of round 2's, the horizon band of
- * river-below having come out sRGB (180, 193, 210) against its
- * photograph's (132, 163, 191); the print's slope, spread over 1.5 rather
- * than 1.2 stops and up to 2.2, because once the sun was counted once the
- * ground's 5th to 95th percentile was 0.18 to 0.59 against 0.12 to 0.65. */
+/* Round 4's haze: 0.85 of round 2's, the horizon band of river-below
+ * having come out sRGB (180, 193, 210) against its photograph's (132,
+ * 163, 191). The print's slope stays the valley's: spread over 1.5 stops
+ * up to 2.2, it took the ground's 5th to 95th percentile from 0.18 to
+ * 0.59 to 0.14 to 0.62 (the photographs' 0.12 to 0.65), but it steepens a
+ * frame of sky and cloud most of all, and drove war:boom's cumulus to
+ * white. */
 
 /* Night's air: the same extinction shape over a haze that is the
  * moonlit horizon rather than the clear day's, dim enough that a lamp a
@@ -154,7 +154,7 @@ export function airFor(time) {
 
 /* The sky overhead, linear radiance in the sun's units (THE LIGHT IS
  * THIS SKY, in the module doc, for why round 4 raised it). */
-const ZENITH = new THREE.Color().setRGB(0.045, 0.2, 0.56, THREE.LinearSRGBColorSpace);
+const ZENITH = new THREE.Color().setRGB(0.035, 0.15, 0.43, THREE.LinearSRGBColorSpace);
 /* Each time's (light.js TIMES): the morning's lower sun leaves the
  * zenith a little darker, noon's the day's, the golden hour's deep and
  * dim, and night's a deep moonlit blue, most of it black. */
@@ -228,16 +228,16 @@ const CLOUD_BASE = 1600;
 const CLOUD_SIZE = 1500;
 const CLOUD_GROUP = 9000;
 const CLOUD_GROUP_W = 0.32;
-const CLOUD_EDGE = [0.59, 0.67];
+const CLOUD_EDGE = [0.64, 0.72];
 const CLOUD_DEPTH = 900;
 const CLOUD_STEPS = 24;
 const CLOUD_SPAN = 5000;
-const CLOUD_FADE = 16000;
-const CLOUD_LIT = 0.36;
+const CLOUD_FADE = 9000;
+const CLOUD_LIT = 0.23;
 const CLOUD_SELF = 0.45;
 const CLOUD_PROBE = 220;
 const CLOUD_PUFF = 240;
-const CLOUD_SHADE = 0.12;
+const CLOUD_SHADE = 0.07;
 
 /* The towns' glow at night (look/night.js hands the levels over): the
  * light of every lit town district (src/share/war/grid.js, its seed and

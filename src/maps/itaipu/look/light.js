@@ -67,12 +67,20 @@ export const SUN_IRRADIANCE = 3.51;
 /* The post chain's base exposure (swiss2/post.js AIR.exposure), before
  * the meter. The valley's 1.45 left the views light under the clear sky:
  * the ground's median lightness 0.51 over eight of the loop's views, the
- * photographs' 0.41 over all of them, and 1.15 made it 0.40. That was
- * with the sun counted twice on High (THE CASCADES ARE ONE SUN, below):
- * counted once, the eight views matched to photographs in round 4 fell
- * from mean lightness 0.47 to 0.43 against the photographs' 0.50, and at
- * 1.5 they are at 0.52. */
-export const EXPOSURE = 1.5;
+ * photographs' 0.41 over all of them. At 1.15 it is 0.40 over all 22. */
+export const EXPOSURE = 1.15;
+/* The meter's target by day (swiss2/post.js air.meterKey; the valley's
+ * KEY is 0.09). With the sun counted once on High (THE CASCADES ARE ONE
+ * SUN, below) the eight views matched to photographs in round 4 fell from
+ * mean lightness 0.47 to 0.43 against the photographs' 0.50. Raising the
+ * base exposure instead also raised the floor of the meter's range, where
+ * a frame full of sky sits, and war:boom's striker looking up at the
+ * cumulus came out at middle third lightness 236 (main's 178), too bright
+ * for its fireball to show. The key moves only the frames the meter
+ * reaches; at 0.128 (the base's 1.5 / 1.15 through the meter's 0.75) the
+ * sky in the metered views was a third of a stop over the photographs',
+ * so 0.1. */
+export const METER_KEY = 0.1;
 
 /* The moon, standing where the sun does (sunDirection is shared: a
  * single shadow map serves either), cool and faint: 1.5% of the sun's
