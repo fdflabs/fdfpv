@@ -212,7 +212,9 @@ const SCREEN_OF = { three: 1, board: 2, sim: 2, module: 3, world: 3, frame: 4 };
  * noise. Planned, from the measured stage durations above and the map's
  * MAP_BUILD_MS, never from a timer: a swap to the Alps plans about 1.4 s
  * (module 29, world 917, frame 431) and stays minimal; a swap to the Swiss
- * valley (2.5 s of world) or Itaipu, and every cold boot, show the four.
+ * valley (2.5 s of world) or Itaipu shows its screens. A cold boot (a plan
+ * with the renderer's stage) always shows all four, whatever it plans: an
+ * Alps cold boot plans 1.53 s, too near this line to leave to the numbers.
  */
 const MINIMAL_MS = 1500;
 
@@ -551,7 +553,8 @@ export class Loading {
     this.shownPct = 0;
     this.writePct(0);
     const planned = stages.reduce((a, s) => a + (s.ms || 0), 0);
-    this.root.classList.toggle('is-minimal', planned < MINIMAL_MS);
+    const cold = stages.some((s) => s.id === 'three');
+    this.root.classList.toggle('is-minimal', !cold && planned < MINIMAL_MS);
     this.root.classList.remove('is-stalled');
     this.labelScreens();
     for (const li of this.root.querySelectorAll('.pdcs-rows li[data-row]')) {

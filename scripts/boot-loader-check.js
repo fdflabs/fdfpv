@@ -416,6 +416,9 @@ for (const size of SIZES) {
     check('a load planned short shows the first screen alone', short.minimal && short.visible.join() === '1', JSON.stringify(short));
     const long = JSON.parse(await plan(['module', 'world', 'frame'], 2500));
     check('one planned long shows its own screen', !long.minimal && long.visible.join() === '3', JSON.stringify(long));
+    const coldAlps = JSON.parse(await plan(['three', 'board', 'sim', 'module', 'world', 'frame'], 917));
+    check('and a cold boot of the Alps, the shortest world, is never minimal', !coldAlps.minimal && coldAlps.visible.join() === '1',
+      JSON.stringify(coldAlps));
     await page.until("document.getElementById('loading').hidden", 5000).catch(() => {});
 
     /* Reduced motion: the sweep and the blink stop. */
