@@ -4802,6 +4802,13 @@
       }
       .bug-chip::before { content: "[ "; color: var(--pdcs-dim); }
       .bug-chip::after { content: " ]"; color: var(--pdcs-dim); }
+      /* A phone's corner holds the chip level with the name's first line,
+         and Spanish's sign in label is the longest: the brackets and the
+         wide tracking go so it stays clear of PARAGUAYAN at 360 px. */
+      @media (max-width: 600px) {
+        .bug-chip { letter-spacing: 0.04em; padding: 8px 8px; }
+        .bug-chip::before, .bug-chip::after { content: none; }
+      }
       /* Live flight: same corner, a shade quieter so the FPV frame still
          reads, still a real button. */
       .bug-chip.on-flight {
