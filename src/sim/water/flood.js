@@ -106,6 +106,7 @@ export async function loadFlood(wasmBytes) {
     linkPipe: (i, z, area, loss, c) => must(e.flood_link_pipe(i, z, area, loss, c), 'link pipe'),
     linkQ: (i) => e.flood_link_q(i),
     linkVol: (i) => e.flood_link_vol(i),
+    linkLevels: (i) => [e.flood_link_level(i, 0), e.flood_link_level(i, 1)],
     step: (count) => must(e.flood_step(count), 'step'),
     volume: () => e.flood_volume(),
     stat: (k) => e.flood_stat(k),

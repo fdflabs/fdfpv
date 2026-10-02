@@ -133,8 +133,9 @@ typedef struct {
    * FIXED: the sill the upstream water must stand over, the discharge
    * and the outlet's area. */
   double z, area, loss, qset;
-  /* Last step's discharge, m3/s, and the volume passed, m3. */
-  double q, vol;
+  /* Last step's discharge, m3/s, the volume passed, m3, and the levels
+   * upstream and down the discharge was computed from, m. */
+  double q, vol, eta1, eta2;
 } Link;
 
 static struct {
@@ -360,6 +361,11 @@ FLOOD_EXPORT int flood_link_pipe(int i, double z, double area, double loss, doub
 
 FLOOD_EXPORT double flood_link_q(int i) { return i >= 0 && i < F.nlink ? F.link[i].q : 0.0; }
 FLOOD_EXPORT double flood_link_vol(int i) { return i >= 0 && i < F.nlink ? F.link[i].vol : 0.0; }
+/* The levels the last step's discharge came from: 0 upstream, 1 down. */
+FLOOD_EXPORT double flood_link_level(int i, int side) {
+  if (i < 0 || i >= F.nlink) return 0.0;
+  return side ? F.link[i].eta2 : F.link[i].eta1;
+}
 
 /* The integral of sqrt(eta1 - max(z, eta2)) dz from lo to hi, z under
  * eta1: the strips formula for one band, less Cd w sqrt(2 g). */
@@ -420,6 +426,8 @@ static void stepLinks(void) {
     double eta2 = levelOf(L->down0, L->ndown, &down);
     double q = 0.0, speed = 0.0;
     int flip = 0;
+    L->eta1 = eta1;
+    L->eta2 = eta2;
     if (L->type == LINK_OPENING) {
       /* Backward flow where the downstream side stands higher. */
       if (eta2 > eta1) {

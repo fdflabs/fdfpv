@@ -65,6 +65,10 @@ for (const [name, run] of SCENARIOS) {
   for (const k of r.checks) {
     check(k.name, k.ok, k.detail);
   }
+  if (r.figures.tip) {
+    const t = r.figures.tip;
+    console.log(`        the ${t.d} m tip, not held to Ritter's: ${t.speed.toFixed(2)} m/s against ${t.want.toFixed(2)}, ${(100 * (1 - t.speed / t.want)).toFixed(1)} % slow`);
+  }
   hashes.push(`${name}: ${r.hash}`);
   console.log(`        ${name}: ${(performance.now() - t0).toFixed(0)} ms, hash ${r.hash}`);
 }
