@@ -363,6 +363,9 @@ export function buildFauna(ctx) {
       const at = fenceLoop.at(s);
       const y = heightAt(at.x, at.z);
       const step = s * 2.4 + w.phase;
+      w.x = at.x;
+      w.y = y;
+      w.z = at.z;
       const swing = 0.32 * Math.sin(step);
       const bob = 0.015 * Math.abs(Math.cos(step));
       herd.walkBody.setMatrixAt(i, partMatrix(M, at.x, y + bob, at.z, at.yaw, 0, 0, 0, 0));
@@ -485,5 +488,16 @@ export function buildFauna(ctx) {
     },
     cattle: grazers.length + walkers.length,
     goats: 8,
+    /* Every cow's bell, for the world's sound (src/render/world-audio.js):
+     * add(id, kind, x, y, z), ids from idBase, at the bell under the
+     * neck, the walkers where update last put them. */
+    audioSources(add, idBase) {
+      grazers.forEach((c, i) => add(idBase + i, 'cowbell', c.x, c.y + 0.9, c.z));
+      walkers.forEach((w, i) => {
+        if (w.x !== undefined) {
+          add(idBase + grazers.length + i, 'cowbell', w.x, w.y + 0.9, w.z);
+        }
+      });
+    },
   };
 }

@@ -575,7 +575,9 @@ export function buildLife(ctx) {
 
   /* Everything that drives, for the world's sound (src/render/world-audio.js
    * traffic): add(id, kind, x, y, z) for each, where updateAnim last put
-   * it. The trailer is the tractor's and rolls in its sound. */
+   * it. The trailer is the tractor's and rolls in its sound. The cows'
+   * bells come too: they are on the wall clock, where fauna last put
+   * them. */
   function audioSources(add) {
     const at = (id, kind, g) => add(id, kind, g.position.x, g.position.y, g.position.z);
     at(0, 'bus', bus.group);
@@ -586,6 +588,7 @@ export function buildLife(ctx) {
     });
     at(20, 'tractor', tractor.group);
     lift.audioSources(add, 100);
+    fauna.audioSources(add, 500);
   }
 
   return {
