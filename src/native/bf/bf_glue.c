@@ -721,6 +721,10 @@ double sim_bf_debug(int what) {
   case 73: return rcData[ROLL];
   case 74: return rxIsReceivingSignal() ? 1.0 : 0.0;
   case 75: return (double)failsafePhase();
+  /* The prop's figure of merit and pitch radius as the plant flies them,
+   * for scripts/motors-check.js: sim_set_prop_pack seats both. */
+  case 76: return PLANT.torque_ind;
+  case 77: return PLANT.k_inflow;
   default: return 0.0;
   }
 }

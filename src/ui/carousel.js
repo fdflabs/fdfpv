@@ -37,9 +37,8 @@
 
 import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
-import { paintable } from '../../configs/liveries.js';
 import { propulsionOf } from '../../configs/combat.js';
-import { BUILD_PREFIX } from './builds.js';
+import { BUILD_PREFIX, customisable } from './builds.js';
 
 /* Which lists the tabs offer. A card or a row opens on one kind and the
  * pilot can widen it to every aircraft. */
@@ -504,9 +503,11 @@ export class Carousel {
   }
 
   canCustomise() {
+    /* Every plane and combat aircraft has paint (configs/liveries.js
+     * paintable); a quad has its motors. */
     const key = this.current();
     const id = key ? this.airframeOf(key) : null;
-    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && paintable(id);
+    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && customisable(id);
   }
 
   /* To the hangar with the centred plane, the picker put away and handed

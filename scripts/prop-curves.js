@@ -45,7 +45,7 @@ const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
  * Each stock quad's prop, the APC file its curve is read from, that
  * file's pitch, and the rotor speed it is read at: the machine's own full
  * throttle on a fresh pack (motors-check's static solve), to APC's
- * nearest 1000 rpm row.
+ * nearest 1000 rpm row. Then the hangar's other props the same way.
  */
 const PROPS = [
   { airframe: 'SIM_AIRFRAME_5IN', prop: 'T-Motor T5147, 5.1 x 4.7 x 3 (pitch over diameter 0.92)', file: '5x46E', pitchIn: 4.6, rpm: 29000,
@@ -56,6 +56,13 @@ const PROPS = [
     why: 'APC\'s 10 x 5E, the same size' },
   { airframe: 'SIM_AIRFRAME_INTERCEPTOR', prop: 'APC 7 x 9E', file: '7x9E', pitchIn: 9, rpm: 19000,
     why: 'its own file' },
+  /* The hangar's other props (configs/motors.js), each at its own full
+   * throttle on the stock motor (motorStats), printed as the arrays that
+   * file holds. */
+  { option: 'GF51466', prop: 'Gemfan 51466 V2, 5.1 x 3.6 x 3 (0.71)', file: '5x4E-3', pitchIn: 4, rpm: 31000,
+    why: 'APC makes no 5 x 3.6; its 5 x 4E three blade is the nearest pitch over diameter it publishes, 0.80 (its 5 x 3E is 0.60)' },
+  { option: 'T5143S', prop: 'T-Motor T5143S, 5.1 x 4.3 x 3 (0.84)', file: '5x43E', pitchIn: 4.3, rpm: 31000,
+    why: 'APC makes no T5143S; its 5 x 4.3E is the nearest pitch over diameter it publishes, 0.86' },
 ];
 
 async function rows(file, rpm) {
@@ -115,8 +122,14 @@ export async function curves() {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   for (const c of await curves()) {
-    console.log(`[${c.airframe}] ${c.prop}: PER3_${c.file}.dat at ${c.rpm} rpm, pitch speed ${c.pitchSpeed.toFixed(1)} m/s (${c.why})`);
-    console.log(`  .axial_curve = { ${c.thrust.map((x) => x.toFixed(4)).join(', ')} },`);
-    console.log(`  .torque_curve = { ${c.torque.map((x) => x.toFixed(4)).join(', ')} },`);
+    const list = (v) => v.map((x) => x.toFixed(4)).join(', ');
+    console.log(`[${c.airframe ?? c.option}] ${c.prop}: PER3_${c.file}.dat at ${c.rpm} rpm, pitch speed ${c.pitchSpeed.toFixed(1)} m/s (${c.why})`);
+    if (c.option) {
+      console.log(`const AXIAL_${c.option} = [${list(c.thrust)}];`);
+      console.log(`const TORQUE_${c.option} = [${list(c.torque)}];`);
+    } else {
+      console.log(`  .axial_curve = { ${list(c.thrust)} },`);
+      console.log(`  .torque_curve = { ${list(c.torque)} },`);
+    }
   }
 }

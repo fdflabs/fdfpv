@@ -2042,6 +2042,10 @@ static void plant_build_axes(void) {
 /* The power option, the tuning and the hangar's add-ons in force, below;
  * plant_seat lays them over the airframe's table in that order. */
 static int g_power_on = 0;
+/* On a quad the power option is two blocks, the motors and the prop and
+ * pack (quad_live_build below), and g_power_on is either being seated. */
+static int g_motors_on = 0;
+static int g_prop_pack_on = 0;
 static int g_tune_on = 0;
 static int g_addons_on = 0;
 static void plant_seat(void);
@@ -2052,6 +2056,8 @@ void plant_set_airframe(int id) {
   }
   g_airframe = id;
   g_power_on = 0;
+  g_motors_on = 0;
+  g_prop_pack_on = 0;
   g_tune_on = 0;
   g_addons_on = 0;
   PLANT_P = &PLANT_TABLE[id];
@@ -2132,8 +2138,112 @@ int plant_set_power(const double *in) {
   return SIM_OK;
 }
 
+/*
+ * A QUAD'S MOTORS, sim_set_motors in sim_abi.h: the table's entry with a
+ * real motor's constants and the machine's mass and inertia with it laid
+ * over it, in the power option's copy and under its flag, since that is
+ * what it is on a quad: what turns the prop. The prop's kt, kq, pitch and
+ * figure of merit are the table's.
+ */
+static double g_motors_in[SIM_MOTORS_DOUBLES];
+static double g_prop_pack_in[SIM_PROP_PACK_DOUBLES];
+
+/* The quad's live copy: the table, the motors block over it and the prop
+ * and pack block over that, as far as each is seated. Rebuilt whole from
+ * the stored blocks on every change, so the order the host seated them in
+ * cannot matter. */
+static void quad_live_build(void) {
+  g_plant_live = PLANT_TABLE[g_airframe];
+  if (g_motors_on) {
+    const double *in = g_motors_in;
+    g_plant_live.mass_kg = in[SIM_MOTORS_MASS];
+    g_plant_live.inertia[0] = in[SIM_MOTORS_IXX];
+    g_plant_live.inertia[1] = in[SIM_MOTORS_IYY];
+    g_plant_live.inertia[2] = in[SIM_MOTORS_IZZ];
+    g_plant_live.ke = in[SIM_MOTORS_KE];
+    g_plant_live.r_motor = in[SIM_MOTORS_R];
+    g_plant_live.j_rotor = in[SIM_MOTORS_J_ROTOR];
+  }
+  if (g_prop_pack_on) {
+    const double *in = g_prop_pack_in;
+    g_plant_live.kt = in[SIM_PROP_PACK_KT];
+    g_plant_live.kq = in[SIM_PROP_PACK_KQ];
+    g_plant_live.k_inflow = in[SIM_PROP_PACK_PITCH_R];
+    g_plant_live.torque_ind = in[SIM_PROP_PACK_FM];
+    g_plant_live.cells = in[SIM_PROP_PACK_CELLS];
+    g_plant_live.r_cell = in[SIM_PROP_PACK_R_CELL];
+    for (int i = 0; i < 15; i += 1) {
+      g_plant_live.axial_curve[i] = in[SIM_PROP_PACK_AXIAL + i];
+      g_plant_live.torque_curve[i] = in[SIM_PROP_PACK_TORQUE + i];
+    }
+  }
+  g_power_on = g_motors_on || g_prop_pack_on;
+  plant_seat();
+}
+
+int plant_set_motors(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_QUAD) {
+    return SIM_ERR_BAD_ARG;
+  }
+  if (!in_range(in[SIM_MOTORS_MASS], 0.01, 50.0)
+      || !in_range(in[SIM_MOTORS_IXX], 1.0e-7, 10.0)
+      || !in_range(in[SIM_MOTORS_IYY], 1.0e-7, 10.0)
+      || !in_range(in[SIM_MOTORS_IZZ], 1.0e-7, 10.0)
+      || !in_range(in[SIM_MOTORS_KE], 1.0e-5, 0.1)
+      || !in_range(in[SIM_MOTORS_R], 0.001, 5.0)
+      || !in_range(in[SIM_MOTORS_J_ROTOR], 1.0e-10, 0.01)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 0; i < SIM_MOTORS_DOUBLES; i += 1) {
+    g_motors_in[i] = in[i];
+  }
+  g_motors_on = 1;
+  quad_live_build();
+  return SIM_OK;
+}
+
+/*
+ * A QUAD'S PROP AND PACK, sim_set_prop_pack in sim_abi.h: the prop's
+ * thrust and torque constants, its pitch, its figure of merit (torque_ind,
+ * which the descent's torque split reads) and its two curves against axial
+ * speed, the pack's cells and their resistance, laid over the motors
+ * block or the table. Each curve's first point must be exactly 1, so the
+ * hover stays kq w^2 and the static thrust. What either weighs
+ * is in the motors block's mass and inertia, which the host computes for
+ * the whole machine.
+ */
+int plant_set_prop_pack(const double *in) {
+  const PlantParams *base = &PLANT_TABLE[g_airframe];
+  if (in == 0 || base->kind != PLANT_KIND_QUAD) {
+    return SIM_ERR_BAD_ARG;
+  }
+  if (!in_range(in[SIM_PROP_PACK_KT], 1.0e-10, 1.0e-3)
+      || !in_range(in[SIM_PROP_PACK_KQ], 1.0e-12, 1.0e-4)
+      || !in_range(in[SIM_PROP_PACK_PITCH_R], 0.001, 0.2)
+      || !in_range(in[SIM_PROP_PACK_FM], 0.1, 0.9)
+      || !in_range(in[SIM_PROP_PACK_CELLS], 1.0, 14.0)
+      || !in_range(in[SIM_PROP_PACK_R_CELL], 0.0, 1.0)
+      || !(in[SIM_PROP_PACK_AXIAL] == 1.0 && in[SIM_PROP_PACK_TORQUE] == 1.0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  for (int i = 1; i < 15; i += 1) {
+    if (!in_range(in[SIM_PROP_PACK_AXIAL + i], 0.0, 2.0) || !in_range(in[SIM_PROP_PACK_TORQUE + i], 0.0, 2.0)) {
+      return SIM_ERR_BAD_ARG;
+    }
+  }
+  for (int i = 0; i < SIM_PROP_PACK_DOUBLES; i += 1) {
+    g_prop_pack_in[i] = in[i];
+  }
+  g_prop_pack_on = 1;
+  quad_live_build();
+  return SIM_OK;
+}
+
 void plant_power_clear(void) {
   g_power_on = 0;
+  g_motors_on = 0;
+  g_prop_pack_on = 0;
   plant_seat();
 }
 
