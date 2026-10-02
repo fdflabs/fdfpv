@@ -2928,6 +2928,7 @@
    "source_sha256": "f177a515fe3a4640311f87aa1d4263e2562cf1ed8782c63f031e8c393a94fee7",
    "seconds": 70.0,
    "loop": false,
+   "ceiling_db": 0.0,
    "files": {
     "webm": {
      "bytes": 755624,
@@ -2944,14 +2945,15 @@
    "source_sha256": "b92302f5207effff4db81a7b65f1e041e4c65c96ddc49c52eca361f85eb0d562",
    "seconds": 165.046,
    "loop": true,
+   "ceiling_db": -3.67,
    "files": {
     "webm": {
-     "bytes": 1606299,
-     "sha256": "2b6eaf1fe7ae0a279001c8fff24dfeb0f049b3f9bab303e36577653a5dc547cf"
+     "bytes": 1605663,
+     "sha256": "66aba68b3fc721e15d9e4e63d17d296597cb40d97613f4b9d87950060e45b166"
     },
     "mp3": {
-     "bytes": 2204756,
-     "sha256": "631e0018d60f4b77751c68a51c3433089d1a686c7bb76727763374c01a3e6f1a"
+     "bytes": 2146892,
+     "sha256": "ea62ca652268bbdc6263d76616adf26ce7f7e1d4314d725ac296921c4a2b9d45"
     }
    }
   }
