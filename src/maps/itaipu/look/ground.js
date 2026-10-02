@@ -6,12 +6,11 @@
  * 10 m over the hero, imagery/ring.jpg at 40 m over the ring), already
  * display sRGB by the pipeline's fixed curve, so the map never guesses an
  * exposure. Close to, a 10 m pixel is a blur, so the detail comes from
- * swiss2's CC0 terrain photographs (src/maps/swiss2/assets.js LAYERS),
- * chosen per texel by package A's splat masks (masks/*.png: forest,
- * field, red soil, urban, summing to 255): the forest floor, the meadow,
- * the worn earth (tinted red by the colour above it: the region's terra
- * roxa), and the fine gravel for what is paved. Rock on anything too
- * steep for the photograph from above to mean much.
+ * CC0 terrain photographs (LAYERS below, docs/ITAIPU-ASSETS.md), chosen
+ * per texel by package A's splat masks (masks/*.png: forest, field, red
+ * soil, urban, summing to 255): the forest floor's dry leaves, the
+ * pasture, the red laterite, and the fine gravel for what is paved. Rock
+ * on anything too steep for the photograph from above to mean much.
  *
  * THE COLOUR IS A REFLECTANCE. The pipeline wrote each pixel as the sRGB
  * transfer of min(1, reflectance / white) (manifest imagery.colour: white
@@ -118,32 +117,92 @@
  */
 
 import * as THREE from 'three';
-import { LAYERS } from '../../swiss2/assets.js';
 import { DRESSED } from '../town/roads.js';
 import { thermalKind } from '../../../render/thermal.js';
+import { decodePng } from '../vegetation/plant.js';
 
-/* Each mask channel's layer, by name, and the rock for the faces. */
-const LAYER = {
-  forest: LAYERS.indexOf('forest'),
-  field: LAYERS.indexOf('meadow'),
-  soil: LAYERS.indexOf('path'),
-  urban: LAYERS.indexOf('shore'),
-  rock: LAYERS.indexOf('rock'),
-  rubble: LAYERS.indexOf('scree'),
-};
-/* Metres a tile of each covers: swiss2/ground.js's TILE for the same
- * photographs. */
-const TILE = {
-  forest: 2.4, field: 1.9, soil: 2.6, urban: 3.0, rock: 30, rubble: 3.6,
-};
+/*
+ * THE PHOTOGRAPHS (round 4). Swiss2's were a Bernese valley's: a beech
+ * wood's litter, an alpine meadow, a grey trail. Itaipu's own are the
+ * place's (docs/ITAIPU-ASSETS.md, every one CC0 from Poly Haven): a
+ * subtropical forest's dry broad leaves, a leafy pasture and a sparse one,
+ * red laterite with its stones, and red mud rutted by tyres for the
+ * tracks; the gravel and the canyon's rock are still swiss2's files. Only
+ * the layers the ground reads are loaded: seven, where swiss2's arrays
+ * were nine. `tile` is the photograph's own size in metres, as Poly Haven
+ * gives it, so a leaf or a stone is its real size.
+ */
+const ITAIPU_ASSETS = new URL('../../../../assets/itaipu/ground/', import.meta.url);
+const SWISS2_ASSETS = new URL('../../../../assets/swiss2/', import.meta.url);
+const LAYERS = [
+  { name: 'forest', file: 'litter', base: ITAIPU_ASSETS, tile: 2.0 },
+  { name: 'field', file: 'grass', base: ITAIPU_ASSETS, tile: 2.0 },
+  { name: 'sparse', file: 'grass_sparse', base: ITAIPU_ASSETS, tile: 2.0 },
+  { name: 'soil', file: 'laterite', base: ITAIPU_ASSETS, tile: 2.0 },
+  { name: 'tracks', file: 'tracks', base: ITAIPU_ASSETS, tile: 2.25 },
+  { name: 'urban', file: 'shore', base: SWISS2_ASSETS, tile: 3.0 },
+  { name: 'rock', file: 'rock', base: SWISS2_ASSETS, tile: 30 },
+];
+const LAYER = Object.fromEntries(LAYERS.map((l, k) => [l.name, k]));
+const TILE = Object.fromEntries(LAYERS.map((l) => [l.name, l.tile]));
 const DETAIL_HUE = 0.3;
+
+/*
+ * The layers as two texture arrays, `size` square a layer: the albedo
+ * (sRGB) and the normal and height (data), packed as swiss2's are
+ * (swiss2/assets.js loadTerrainArrays, whose decoding this follows: no
+ * colour management, rows top first). Returns { col, nrh }.
+ */
+export async function loadGroundArrays(size, anisotropy) {
+  const fetchBitmap = async (url) => {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`itaipu ground: ${url}: HTTP ${res.status}`);
+    }
+    return createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
+  };
+  const bitmaps = await Promise.all(LAYERS.flatMap((l) => ['col', 'nrh'].map((m) => fetchBitmap(new URL(`${l.file}_${m}.jpg`, l.base)))));
+  const canvas = new OffscreenCanvas(size, size);
+  const g = canvas.getContext('2d', { willReadFrequently: true });
+  const layer = size * size * 4;
+  const col = new Uint8Array(layer * LAYERS.length);
+  const nrh = new Uint8Array(layer * LAYERS.length);
+  LAYERS.forEach((l, k) => {
+    for (const [bmp, out] of [[bitmaps[k * 2], col], [bitmaps[k * 2 + 1], nrh]]) {
+      g.clearRect(0, 0, size, size);
+      g.drawImage(bmp, 0, 0, size, size);
+      out.set(g.getImageData(0, 0, size, size).data, k * layer);
+      bmp.close();
+    }
+  });
+  const make = (data, srgb) => {
+    const t = new THREE.DataArrayTexture(data, size, size, LAYERS.length);
+    t.format = THREE.RGBAFormat;
+    t.type = THREE.UnsignedByteType;
+    t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+    t.wrapS = THREE.RepeatWrapping;
+    t.wrapT = THREE.RepeatWrapping;
+    t.magFilter = THREE.LinearFilter;
+    t.minFilter = THREE.LinearMipmapLinearFilter;
+    t.generateMipmaps = true;
+    t.anisotropy = anisotropy;
+    t.needsUpdate = true;
+    return t;
+  };
+  return { col: make(col, true), nrh: make(nrh, false) };
+}
 /* Where the grain has faded into its mean and is not worth reading. */
 const DETAIL_FAR = 1800;
 
 /* Linear reflectance per class (forest, field, red soil, urban): data
- * v2's hero means, and the colour each is graded to. */
+ * v2's hero means, and the colour each is graded to. Red soil (round 4):
+ * the Alto Parana photographs' bare terra roxa (refs/ground, measured with
+ * tools/swiss2-loop/ground.py) is 1.6 to 1.9 red over green and 0.25 to
+ * 0.45 blue over green in linear light; round 1's 0.63 blue over green
+ * was the salmon pink the renders had, so the blue is taken down and the
+ * lightness kept. */
 const CLASS_MEAN = [[0.0267, 0.0516, 0.028], [0.0584, 0.0761, 0.0447], [0.0904, 0.0794, 0.0582], [0.1512, 0.1406, 0.117]];
-const CLASS_TARGET = [[0.029, 0.05, 0.017], [0.07, 0.083, 0.03], [0.125, 0.079, 0.05], [0.15, 0.139, 0.112]];
+const CLASS_TARGET = [[0.029, 0.05, 0.017], [0.07, 0.083, 0.03], [0.135, 0.075, 0.032], [0.15, 0.139, 0.112]];
 const GRADE = CLASS_TARGET.map((target, k) => target.map((t, c) => t / CLASS_MEAN[k][c]));
 /* The forest's multiplier, for the canopy over it (vegetation/draw.js),
  * so the canopy and the ground under its edge are graded alike. */
@@ -155,7 +214,7 @@ const BASALT = [0.046, 0.036, 0.031];
 const BASALT_WET = [0.026, 0.022, 0.02];
 const ROCKFILL = [0.05, 0.035, 0.03];
 const RIPRAP = [0.07, 0.058, 0.05];
-const RED_EARTH = [0.15, 0.075, 0.042];
+const RED_EARTH = [0.15, 0.08, 0.034];
 /* A basalt flow's step, m, and the height under which the canyon is. */
 const FLOW_M = 9;
 const CANYON_TOP = 192;
@@ -234,17 +293,192 @@ function outlineMask(outline, ringHalf) {
 }
 
 /*
+ * THE CROPS (round 4). The masks have one class for a field, and most
+ * of the hero's is pasture; but the parcels south of the river and east
+ * of the town are soy and corn, and in December, the imagery's month, a
+ * crop in full leaf is a deeper green than any pasture: over the hero's
+ * field texels, green over red in linear light is 1.1 to 1.4 on the
+ * pastures by the dam and 1.8 to 2.3 on those parcels (measured on data
+ * v2's hero.jpg). A field texel well inside the field class whose green
+ * over red, over 50 m, is past CROP_GR is a crop. OpenStreetMap maps
+ * landuse=farmland over about a square kilometre of the hero, under half
+ * of what this finds, so it is not used.
+ *
+ * Each parcel (a connected run of crop texels) gets its rows along its
+ * long axis, the way a field is drilled: the principal axis of its
+ * texels. Written as a texture over the hero, a texel a mask texel: the
+ * crop's weight (r), the rows' direction as cos and sin of twice its
+ * angle (g, b, so a direction and its reverse are one), and a number of
+ * the parcel's own (a) for its crop and its growth.
+ */
+const CROP_GR = [1.6, 2.0];
+const CROP_FIELD = [0.75, 0.95];
+/* Texels a parcel needs before it is drilled (0.4 ha). */
+const CROP_MIN = 40;
+
+async function inflate(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+async function cropRaster(base, hero) {
+  const [colRes, maskRes] = await Promise.all([fetch(`${base}${hero.file}`), fetch(`${base}${hero.masks}`)]);
+  if (!colRes.ok || !maskRes.ok) {
+    throw new Error(`itaipu look: ${hero.file} or ${hero.masks}: HTTP ${colRes.status}, ${maskRes.status}`);
+  }
+  const bitmap = await createImageBitmap(await colRes.blob(), { colorSpaceConversion: 'none' });
+  const n = bitmap.width;
+  const canvas = new OffscreenCanvas(n, n);
+  const g2 = canvas.getContext('2d', { willReadFrequently: true });
+  g2.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const rgb = g2.getImageData(0, 0, n, n).data;
+  /* The mask's alpha is a class's weight, which a canvas would
+   * premultiply away: decoded by hand, as the vegetation does. */
+  const mask = await decodePng(new Uint8Array(await maskRes.arrayBuffer()), inflate);
+  if (mask.w !== n || mask.h !== n) {
+    throw new Error(`itaipu look: the hero mask is ${mask.w} x ${mask.h}, the imagery ${n} square`);
+  }
+  const lin = new Float32Array(256).map((v, i) => {
+    const c = i / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const N = n * n;
+  const red = new Float32Array(N);
+  const green = new Float32Array(N);
+  const field = new Float32Array(N);
+  for (let i = 0; i < N; i += 1) {
+    red[i] = lin[rgb[i * 4]];
+    green[i] = lin[rgb[i * 4 + 1]];
+    field[i] = mask.data[i * 4 + 1] / 255;
+  }
+  /* Over 50 m: a 5 x 5 box, rows then columns. */
+  const box = (a) => {
+    const t = new Float32Array(N);
+    const out = new Float32Array(N);
+    for (let j = 0; j < n; j += 1) {
+      for (let i = 0; i < n; i += 1) {
+        let s = 0;
+        for (let k = -2; k <= 2; k += 1) {
+          s += a[j * n + Math.min(n - 1, Math.max(0, i + k))];
+        }
+        t[j * n + i] = s / 5;
+      }
+    }
+    for (let j = 0; j < n; j += 1) {
+      for (let i = 0; i < n; i += 1) {
+        let s = 0;
+        for (let k = -2; k <= 2; k += 1) {
+          s += t[Math.min(n - 1, Math.max(0, j + k)) * n + i];
+        }
+        out[j * n + i] = s / 5;
+      }
+    }
+    return out;
+  };
+  const rB = box(red);
+  const gB = box(green);
+  const fB = box(field);
+  const step = (e, x) => {
+    const t = Math.min(1, Math.max(0, (x - e[0]) / (e[1] - e[0])));
+    return t * t * (3 - 2 * t);
+  };
+  const weight = new Float32Array(N);
+  for (let i = 0; i < N; i += 1) {
+    weight[i] = step(CROP_GR, gB[i] / Math.max(rB[i], 1e-4)) * step(CROP_FIELD, fB[i]);
+  }
+  /* The parcels, and each one's long axis. */
+  const label = new Int32Array(N).fill(-1);
+  const queue = new Int32Array(N);
+  const out = new Uint8Array(N * 4);
+  for (let i = 0; i < N; i += 1) {
+    out[i * 4] = Math.round(255 * weight[i]);
+    out[i * 4 + 1] = 128;
+    out[i * 4 + 2] = 128;
+  }
+  let parcels = 0;
+  for (let s = 0; s < N; s += 1) {
+    if (label[s] >= 0 || weight[s] < 0.5) {
+      continue;
+    }
+    let head = 0;
+    let tail = 0;
+    queue[tail++] = s;
+    label[s] = parcels;
+    let sx = 0;
+    let sy = 0;
+    let sxx = 0;
+    let syy = 0;
+    let sxy = 0;
+    while (head < tail) {
+      const p = queue[head++];
+      const x = p % n;
+      const y = (p - x) / n;
+      sx += x;
+      sy += y;
+      sxx += x * x;
+      syy += y * y;
+      sxy += x * y;
+      for (const q of [x > 0 ? p - 1 : -1, x < n - 1 ? p + 1 : -1, y > 0 ? p - n : -1, y < n - 1 ? p + n : -1]) {
+        if (q >= 0 && label[q] < 0 && weight[q] >= 0.5) {
+          label[q] = parcels;
+          queue[tail++] = q;
+        }
+      }
+    }
+    if (tail >= CROP_MIN) {
+      const mx = sx / tail;
+      const my = sy / tail;
+      /* Twice the major axis's angle, in the image's x (east) and y
+       * (south, the world's z). */
+      const a2 = Math.atan2(2 * (sxy / tail - mx * my), (sxx / tail - mx * mx) - (syy / tail - my * my));
+      const own = Math.round(255 * (((Math.sin(mx * 12.9898 + my * 78.233) * 43758.5453) % 1 + 1) % 1));
+      for (let k = 0; k < tail; k += 1) {
+        const p = queue[k];
+        out[p * 4 + 1] = Math.round(127.5 + 127.5 * Math.cos(a2));
+        out[p * 4 + 2] = Math.round(127.5 + 127.5 * Math.sin(a2));
+        out[p * 4 + 3] = own;
+      }
+    }
+    parcels += 1;
+  }
+  /* The direction carried two texels past each parcel's edge, so the
+   * filtered texture's rows keep their line to where the weight ends. */
+  for (let pass = 0; pass < 2; pass += 1) {
+    const src = out.slice();
+    for (let i = 0; i < N; i += 1) {
+      if (src[i * 4 + 1] !== 128 || src[i * 4 + 2] !== 128) {
+        continue;
+      }
+      const x = i % n;
+      for (const q of [x > 0 ? i - 1 : -1, x < n - 1 ? i + 1 : -1, i - n, i + n]) {
+        if (q >= 0 && q < N && (src[q * 4 + 1] !== 128 || src[q * 4 + 2] !== 128)) {
+          out[i * 4 + 1] = src[q * 4 + 1];
+          out[i * 4 + 2] = src[q * 4 + 2];
+          out[i * 4 + 3] = src[q * 4 + 3];
+          break;
+        }
+      }
+    }
+  }
+  return { data: out, size: n };
+}
+
+/*
  * Read the site from the data folder at `base`. Returns { reservoir,
- * reservoirY, riverY, rockfill: { axis: [THREE.Vector2], crestHalf,
- * toeY }, roads: [{ points: [[x, z]], width }] }; the caller owns
- * reservoir, a texture.
+ * reservoirY, riverY, crops: { data, size } (cropRaster's, which
+ * groundMaterial makes its texture of), rockfill: { axis:
+ * [THREE.Vector2], crestHalf, toeY }, roads: [{ points: [[x, z]], width
+ * }] }; the caller owns reservoir, a texture.
  */
 export async function loadSite(base, ringHalf) {
-  const [water, dam, roads] = await Promise.all([
+  const [water, dam, roads, manifest] = await Promise.all([
     fetchJson(`${base}water.json`),
     fetchJson(`${base}dam.json`),
     fetchJson(`${base}osm/roads.json`),
+    fetchJson(`${base}manifest.json`),
   ]);
+  const crops = await cropRaster(base, manifest.imagery.hero);
   const body = (name) => {
     const b = water.find((w) => w.name === name);
     if (!b) {
@@ -261,6 +495,7 @@ export async function loadSite(base, ringHalf) {
     reservoir: outlineMask(reservoir.outline, ringHalf),
     reservoirY: reservoir.y,
     riverY: body('river').y,
+    crops,
     rockfill: {
       axis: fill.axis.map(([x, z]) => new THREE.Vector2(x, z)),
       crestHalf: fill.sections[0].crestWidth / 2,
@@ -358,6 +593,7 @@ const parsFor = (axisN) => /* glsl */ `
   uniform sampler2D uRingMask;
   uniform sampler2D uReservoir;
   uniform sampler2D uNoise;
+  uniform sampler2D uCrops;
   uniform highp sampler2DArray uLayerCol;
   uniform highp sampler2DArray uLayerNrh;
   uniform vec2 uHalf;
@@ -371,6 +607,9 @@ const parsFor = (axisN) => /* glsl */ `
   varying vec3 vItNormal;
   vec3 itNrm = vec3(0.0, 1.0, 0.0);
   float itRough = 0.92;
+  /* How much of the ground is a crop (CROPS), for the eye level detail. */
+  float itCrop = 0.0;
+  vec3 itCropT = vec3(1.0);
 ${NOISE_GLSL}
   /* A layer's grain round 1, and its normal's tangent part. */
   vec3 itGrain(float k, vec2 uv, out vec3 tn) {
@@ -476,8 +715,12 @@ ${NOISE_GLSL}
  */
 /* Where the eye-level detail has faded out and is not worked out. */
 const NEAR_FAR = 700;
-/* Tints on the graded class colour. */
-const STRAW = [1.28, 1.1, 0.66];
+/* Tints on the graded class colour. The straw was 1.28, 1.1, 0.66 in
+ * round 2: its patches, metres across and hard edged, read from a drone
+ * at 12 to 25 m as yellow camouflage painted on a lawn (round 4's
+ * ground-field-low and ground-pasture-low); a December pasture is green
+ * with drier patches, not straw, so they are half as far from the lush. */
+const STRAW = [1.14, 1.06, 0.8];
 const LUSH = [0.9, 1.02, 0.86];
 const CLOVER = [0.82, 1.12, 0.98];
 /* The pasture's tint over its patches, about one straw to six lush
@@ -495,7 +738,7 @@ const PASTURE_SAT = 1.2;
 /* Bare terra roxa in a pasture and on its tracks, at a pasture's
  * lightness: a deeper, less blue red than the shore's red earth, which
  * at this lightness read pink. */
-const TERRA = [0.13, 0.052, 0.027];
+const TERRA = [0.13, 0.065, 0.027];
 const UNDERGROWTH = [0.7, 1.45, 0.62];
 const LITTER = [1.22, 0.95, 0.72];
 /* The graded field and soil colours, for bare soil in a pasture and
@@ -538,6 +781,9 @@ const NEAR = /* glsl */ `
         float bareF = smoothstep(0.74, 0.82, itBare(pt) + 0.25 * (clump.r - 0.5)) * (1.0 - smoothstep(0.1, 0.35, pix)) * (1.0 - 0.6 * smoothstep(0.55, 0.7, fine.a));
         vec3 soilHere = ${v3(TERRA)} * (lumC / ${lum(FIELD_COL).toFixed(4)}) / max(col, vec3(0.005));
         grass = mix(grass, soilHere * (0.75 + 0.5 * fine.r), bareF);
+        /* A crop is one stand of one plant, sown on one day: none of the
+         * pasture's patches, only its leaves' grain (the rows are CROPS'). */
+        grass = mix(grass, vec3(0.92 + 0.16 * fine.g), itCrop);
 
         /* Red soil. */
         vec3 soil = vec3(0.8 + 0.4 * fine.b) * (0.85 + 0.3 * clump.g);
@@ -572,7 +818,7 @@ const NEAR = /* glsl */ `
          * band of bare earth, grass come back down its middle, and a rut
          * worn deeper either side. */
         float open = sw.g + sw.b;
-        float kTrack = (1.0 - smoothstep(2.5, 8.0, pix)) * smoothstep(0.5, 0.8, open) * (1.0 - smoothstep(0.2, 0.35, slope0));
+        float kTrack = (1.0 - smoothstep(2.5, 8.0, pix)) * smoothstep(0.5, 0.8, open) * (1.0 - smoothstep(0.2, 0.35, slope0)) * (1.0 - itCrop);
         if (kTrack > 0.0) {
           vec4 tr = itTrack(w, sw.b);
           float d = tr.x;
@@ -584,7 +830,11 @@ const NEAR = /* glsl */ `
           float trackK = kTrack * used * step(ad, 3.0 + pix);
           float middle = (1.0 - smoothstep(0.2, 0.45, ad)) * 0.6 * (1.0 - smoothstep(0.3, 1.0, pix));
           vec3 rutCol = soilHere * mix(0.62, 0.9, fine.b);
-          tint = mix(tint, soilHere * (0.85 + 0.3 * fine.a), band * trackK * (1.0 - middle));
+          /* The band is the tyre rutted mud's photograph, laid along the
+           * track. */
+          vec2 along = normalize(vec2(-tg.y, tg.x) + 1e-6);
+          float mud = itPattern(${LAYER.tracks.toFixed(1)}, vec2(dot(w, along), d) / ${TILE.tracks.toFixed(2)});
+          tint = mix(tint, soilHere * (0.85 + 0.3 * fine.a) * mud, band * trackK * (1.0 - middle));
           tint = mix(tint, rutCol, rut * trackK);
           /* The rut's sides face into it. */
           vec2 across = normalize(tg + 1e-6) * sign(d) * sign(ad - 0.85);
@@ -596,6 +846,62 @@ const NEAR = /* glsl */ `
         /* The pasture's green, a little deeper close to (PASTURE_SAT). */
         float lumP = dot(col, vec3(0.3, 0.59, 0.11));
         col = max(vec3(lumP) + (col - lumP) * (1.0 + ${(PASTURE_SAT - 1).toFixed(2)} * sw.g * nearK), vec3(0.0));
+      }
+`;
+
+/*
+ * THE CROPS' ROWS (round 4), over cropRaster's parcels: soy drilled at
+ * SOY_ROW and corn at CORN_ROW (the region's spacings, a parcel's own
+ * number picks which and how far its leaves have closed over the
+ * ground), the sprayer's tramlines, a pair of wheel tracks every TRAM_M
+ * across the rows that every aerial of a Parana soy field has, and on a
+ * field that slopes the terraces (terracos em nivel), a grassed bank
+ * along the contour every TERRACE_H of height. All of it multiplies the
+ * satellite's colour by a tint whose mean is one, so the parcel is its
+ * own colour from the air, and each fades as it shrinks under a pixel.
+ */
+const SOY_ROW = 0.45;
+const CORN_ROW = 0.8;
+const TRAM_M = 27;
+const TERRACE_H = 2.0;
+/* How the rows move the crop's colour, per unit of their wave: the
+ * plants lighter and greener, the gaps between darker and redder with
+ * the soil and the shade in them. In a wheel track, the soil in the sun
+ * and the flattened leaves, against the crop's mean. */
+const ROW_TINT = [0.4, 0.6, 0.6];
+const WHEEL = [2.1, 1.05, 1.1];
+const CROPS = /* glsl */ `
+      if (inHero > 0.0) {
+        vec4 cr = texture2D(uCrops, (w + uHalf.x) / (2.0 * uHalf.x));
+        float cropW = smoothstep(0.45, 0.8, cr.r) * sw.g * inHero;
+        vec2 c2 = cr.gb * 2.0 - 1.0;
+        float l2 = length(c2);
+        if (cropW > 0.0 && l2 > 0.3) {
+          /* The rows' direction from twice its angle. */
+          c2 /= l2;
+          vec2 dir = vec2(sqrt(max(0.5 + 0.5 * c2.x, 0.0)), sign(c2.y) * sqrt(max(0.5 - 0.5 * c2.x, 0.0)));
+          float across = dot(w, vec2(-dir.y, dir.x));
+          float ph = across / mix(${SOY_ROW.toFixed(2)}, ${CORN_ROW.toFixed(2)}, step(0.62, cr.a));
+          /* The rows as the first two harmonics of their profile, each
+           * faded as a pixel spans more of its cycle (near enough a box
+           * filter's loss): the mean is one at any distance and nothing
+           * aliases. The more open the canopy, the stronger the rows. */
+          float fw = fwidth(ph);
+          float cover = mix(0.5, 0.85, fract(cr.a * 7.31));
+          float rows = (0.35 * (1.0 - cover) + 0.25) * (cos(6.2832 * ph) * exp(-24.0 * fw * fw) + 0.35 * cos(12.566 * ph) * exp(-96.0 * fw * fw));
+          vec3 cropT = vec3(1.0) + rows * ${v3(ROW_TINT)};
+          float tram = abs(fract(across / ${TRAM_M.toFixed(1)} + 0.37) - 0.5) * ${TRAM_M.toFixed(1)};
+          float wheel = itRut(abs(tram - 0.9), 0.45, max(fwidth(across), 0.01));
+          cropT = mix(cropT, ${v3(WHEEL)}, wheel);
+          float terraced = smoothstep(0.02, 0.05, slope0);
+          if (terraced > 0.0) {
+            float level = (y + 1.2 * (n3.g - 0.5)) / ${TERRACE_H.toFixed(1)};
+            float bank = abs(fract(level + 0.5) - 0.5) * ${TERRACE_H.toFixed(1)} / max(slope0, 0.01);
+            cropT *= mix(vec3(1.0), vec3(1.1, 1.08, 0.9), itRut(bank, 2.2, pix) * terraced);
+          }
+          itCropT = cropT;
+          itCrop = cropW;
+        }
       }
 `;
 
@@ -711,7 +1017,11 @@ const ALBEDO = /* glsl */ `
       col *= dot(sw, vec4(forestTex, fieldTex, soilTex, urbanTex));
       itThCover = mask;
       itThWet = watery;
+${CROPS}
 ${NEAR}
+      /* After the eye level detail, which flattens the satellite's blots
+       * toward their class and would take the rows down with them. */
+      col *= mix(vec3(1.0), itCropT, itCrop);
 
       float near = 1.0 - smoothstep(${(DETAIL_FAR / 3).toFixed(1)}, ${DETAIL_FAR.toFixed(1)}, dist);
       vec3 grain = vec3(1.0);
@@ -724,10 +1034,11 @@ ${NEAR}
         g += itGrain(${LAYER.field.toFixed(1)}, w / ${TILE.field.toFixed(2)}, tn) * sw.g; tsum += tn * sw.g;
         g += itGrain(${LAYER.soil.toFixed(1)}, w / ${TILE.soil.toFixed(2)}, tn) * sw.b; tsum += tn * sw.b;
         g += itGrain(${LAYER.urban.toFixed(1)}, w / ${TILE.urban.toFixed(2)}, tn) * sw.a; tsum += tn * sw.a;
-        /* A second read five times the size under the first, so a field is
-         * not a thousand copies of one tile. */
+        /* A second photograph five times the size under the first, the
+         * sparse pasture's thin and bare patches, so a field is not a
+         * thousand copies of one tile. */
         vec3 tb;
-        vec3 big = itGrain(${LAYER.field.toFixed(1)}, w / ${(TILE.field * 5.3).toFixed(2)} + vec2(0.37, 0.71), tb);
+        vec3 big = itGrain(${LAYER.sparse.toFixed(1)}, mat2(0.8, 0.6, -0.6, 0.8) * w / ${(TILE.sparse * 5.3).toFixed(2)} + vec2(0.37, 0.71), tb);
         g *= mix(vec3(1.0), big, 0.35 * (sw.g + sw.r));
         grain = mix(vec3(1.0), g, near);
         tsum = mix(vec3(0.0, 0.0, 1.0), tsum, near);
@@ -888,7 +1199,14 @@ export function groundMaterial({
   const axis = site.rockfill.axis;
   const box = new THREE.Box2().setFromPoints(axis).expandByScalar(FILL_REACH + 10);
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, metalness: 0 });
+  const crops = new THREE.DataTexture(site.crops.data, site.crops.size, site.crops.size, THREE.RGBAFormat, THREE.UnsignedByteType);
+  crops.magFilter = THREE.LinearFilter;
+  crops.minFilter = THREE.LinearFilter;
+  crops.generateMipmaps = false;
+  crops.needsUpdate = true;
+  m.addEventListener('dispose', () => crops.dispose());
   m.onBeforeCompile = (shader) => {
+    shader.uniforms.uCrops = { value: crops };
     shader.uniforms.uHeroCol = { value: tex.heroCol };
     shader.uniforms.uRingCol = { value: tex.ringCol };
     shader.uniforms.uHeroMask = { value: tex.heroMask };

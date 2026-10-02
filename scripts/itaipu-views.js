@@ -101,6 +101,29 @@ const FOV = 44;
  * photograph in round 0 by rendering and comparing; what was moved and
  * why is in docs/ITAIPU-LOOP.md.
  */
+/*
+ * The ground and the vegetation away from the dam (round 4, part B): a
+ * drone's low pass over the fields at 12 m, a pasture by the right bank's
+ * powerlines, the red soil of the clearing south west of the river, a
+ * forest edge seen across its field, the riparian forest on the river's
+ * east bank, the Atlantic forest's canopy from 100 m, the crop parcels and
+ * the forest beside them from 250 m, and a wide aerial up the river to the
+ * dam. Their photographs are not in the fdfpv-photoref folder: each `ref`
+ * names one in ~/Desktop/fdfpv-loop/itaipu/round-4/refs/ground, whose
+ * refs.md gives its source. Every pose was measured under section 13 on
+ * main before the round's changes.
+ */
+const GROUND_VIEWS = [
+  { id: 'ground-field-low', cam: [-1500, 186.1, 3800, -1350, 174.3, 4300], ref: 'ground-low-soy-field-red-road-alto-parana-py' },
+  { id: 'ground-pasture-low', cam: [300, 189.5, -900, 600, 168.8, -700], ref: 'riparian-forest-rio-monday-pasture-alto-parana-py' },
+  { id: 'ground-red-soil', cam: [-1600, 210, 3800, -1950, 185.5, 4200], ref: 'red-dirt-road-forest-terra-roxa-pr' },
+  { id: 'ground-forest-edge', cam: [-1650, 191.1, 3850, -1900, 175.7, 3500], ref: 'forest-patch-farmland-dirt-trail-terra-rica-pr' },
+  { id: 'ground-riverbank', cam: [-1600, 152.7, 2700, -1050, 181.5, 2350], ref: 'parana-river-shoreline-riparian-ilha-solteira-sp' },
+  { id: 'ground-canopy', cam: [1380, 304.7, 380, 1900, 207, 900], ref: 'aerial-iguacu-falls-canopy' },
+  { id: 'ground-crops-aerial', cam: [-600, 250, 3300, -1500, 0, 4400], ref: 'elevated-soy-field-red-soil-porto-maua-rs' },
+  { id: 'ground-wide', cam: [-1500, 600, 5000, -500, 150, 2000], ref: 'wide-aerial-itaipu-dam-landcover-1' },
+];
+
 const VIEWS = [
   { id: 'aerial-dam', cam: [900, 800, -1150, -400, 150, -2300], ref: 'aerial-dam' },
   { id: 'aerial-dam-wide', cam: [300, 800, 200, -700, 180, -1300], ref: 'aerial-dam-2' },
@@ -151,6 +174,7 @@ const VIEWS = [
   { id: 'edge-tailrace', cam: [700, 230, -1330, 560, 150, -1480], ref: 'powerhouse' },
   { id: 'edge-reservoir-dam', cam: [-1080, 260, -1060, -1135, 210, -945], ref: 'reservoir-dam' },
   { id: 'edge-river-bank', cam: [-850, 160, 250, -1135, 104, 330], ref: 'river-below' },
+  ...GROUND_VIEWS,
 ];
 
 /*

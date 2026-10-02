@@ -322,6 +322,10 @@ async function buildItaipu(shell, progress, q, time) {
       colliders,
       roofs: roofRecords,
       mats: look.mats,
+      /* The look's sun, which is the time of day's: what a part lights or
+       * shadows by hand (the vegetation's impostors) takes it here rather
+       * than the day's from light.js. */
+      sunDir: look.sunDir,
       progress: (f) => progress(0.7 + 0.2 * (at + share * Math.max(0, Math.min(1, f)))),
     });
     scene.add(parts[name].group);
