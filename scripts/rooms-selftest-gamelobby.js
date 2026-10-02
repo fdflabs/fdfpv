@@ -34,7 +34,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
+import { ABANDON_MS, PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { ROUND_MINUTES } from '../edge/rooms/combat.js';
 import { GOALS } from '../src/share/roomtag.js';
 import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
@@ -81,6 +81,17 @@ function lobbyRoom({ n = 2, mode = 'war', mission = 'itaipu-1' } = {}) {
     }
   };
   env.leave = (i) => env.apply(r.close(env.socks[i], env.clock));
+  /* Pilot i back on a new socket with the seat token it was given. */
+  env.rejoin = (i) => {
+    const was = env.socks[i].got.find((m) => m && m.type === 'welcome');
+    const so = { name: `lobby${i}b`, address: env.socks[i].address, got: [] };
+    env.socks[i] = so;
+    env.apply(r.open(so, env.clock));
+    env.apply(r.message(so, JSON.stringify({
+      type: 'hello', proto: PROTO, build: 't', war: 1, token: was.token, name: [i, i, 30 + i], profile: { airframe: 'cub1400', map: 'itaipu', figure: 1, livery: null, parts: null },
+    }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
+    return so;
+  };
   /* The newest lobby a pilot was told, or its welcome's. */
   env.lobby = (i = 0) => {
     const told = env.socks[i].got.filter((m) => m && m.type === 'lobby').at(-1);
@@ -288,5 +299,55 @@ export function gameLobbySection(check) {
     e.ready(0);
     e.ready(1);
     check('a race room has no lobby: none in the welcome, ready passed over', !('lobby' in w) && !e.socks[0].got.some((m) => m.type === 'lobby'));
+  }
+}
+
+/* The owner, 2026-10-02, of wars listed in battle with nobody in them:
+ * "once theyre done or empty they need to be closed out". */
+export function emptyRoomSection(check) {
+  console.log('an empty room: its game paused, a finished one closed');
+  {
+    const e = lobbyRoom({ n: 1 });
+    e.at(100);
+    e.say(0, { type: 'war', op: 'start', mission: 'itaipu-1' });
+    e.at(e.war().goAt + 30000);
+    const before = { roomMs: e.r.roomMs(e.clock), wave: e.war().wave, state: e.war().state };
+    const closed = e.r.close(e.socks[0], e.clock);
+    check('the last pilot leaves a war under way: the room is held, not closed at once', closed.some((x) => x.empty && !x.now), JSON.stringify(closed));
+    e.at(e.clock + 120000);
+    check('two minutes empty, the room\'s clock has stood still', e.r.roomMs(e.clock) === before.roomMs, `${e.r.roomMs(e.clock)} ${before.roomMs}`);
+    e.rejoin(0);
+    const after = { roomMs: e.r.roomMs(e.clock), wave: e.war().wave, state: e.war().state };
+    check('a pilot back finds the war where it was: the same wave, on, the clock going on from there',
+      after.state === before.state && after.wave === before.wave && after.roomMs === before.roomMs, JSON.stringify({ before, after }));
+    e.at(e.clock + ABANDON_MS + 1000);
+    check('and it runs again, the war still on with its pilot back', e.r.roomMs(e.clock) === before.roomMs + ABANDON_MS + 1000 && e.r.war.on(),
+      `${e.war().state}`);
+  }
+  {
+    const e = lobbyRoom({ mode: 'combat', mission: null, n: 1 });
+    e.say(0, { type: 'combat', op: 'start', minutes: 3 });
+    e.at(30000);
+    const left = e.r.combat.round.endsAt - e.r.roomMs(e.clock);
+    e.r.close(e.socks[0], e.clock);
+    e.at(e.clock + 60000);
+    e.join(1);
+    check('a combat round in an empty room is paused too: the same time left when a pilot is back', e.r.combat.round.endsAt - e.r.roomMs(e.clock) === left,
+      `${e.r.combat.round.endsAt - e.r.roomMs(e.clock)} ${left}`);
+  }
+  {
+    const e = lobbyRoom({ n: 1 });
+    e.say(0, { type: 'war', op: 'start', mission: 'itaipu-1' });
+    e.at(e.war().goAt + 1000);
+    e.say(0, { type: 'war', op: 'end' });
+    e.at(e.clock + 100);
+    const closed = e.r.close(e.socks[0], e.clock);
+    check('a finished match in a room that empties closes it at once, its result only its pilots\'', e.war().state === 'ended'
+      && closed.some((x) => x.empty && x.now), JSON.stringify(closed));
+  }
+  {
+    const e = lobbyRoom({ mode: null, n: 1 });
+    const closed = e.r.close(e.socks[0], e.clock);
+    check('a free flight room with no game over is held its five minutes', closed.some((x) => x.empty && !x.now));
   }
 }

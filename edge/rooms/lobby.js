@@ -16,14 +16,14 @@
  *   GET /v2/public/<map>   quick join: the busiest listed room of that map
  *                          with a seat, or a new one (front.js)
  *
- * AN EMPTIED ROOM stays listed, marked empty with the time it emptied,
- * until the room itself is purged, five minutes after its last pilot left
- * (host.js PURGE_MS): LIST_GRACE_MS is that same number, and the time is
- * the room's own (emptySince in its line), so the list never offers a room
- * that has gone, and a pilot whose tab reloaded, or who left a moment too
- * soon, finds it there to join again. A room just made is listed before
- * its maker's socket arrives. A pilot back before the purge keeps it, and
- * it is listed with its pilots again.
+ * AN EMPTY ROOM IS NEVER LISTED, nor handed to a quick join (the owner,
+ * 2026-10-02, of rooms listed in battle with nobody in them: "once theyre
+ * done or empty they need to be closed out"). The room itself is held five
+ * minutes after its last pilot left (host.js PURGE_MS), its game paused
+ * (core.js roomMs), for whoever comes back by its code, a link or a
+ * reload; a pilot back before the purge keeps it, and it is listed with
+ * its pilots again. A room just made is listed once its maker is in it,
+ * or a quick join has booked it.
  *
  * A HIDDEN ROOM (safety.js: enough pilots reported its name) is never
  * listed and never handed to a quick join. Its pilots fly on. A ROOM MADE
@@ -112,7 +112,7 @@ export class LobbyBook {
   }
 
   listed(e, now) {
-    return !e.hidden && Boolean(e.pick) && (this.load(e, now) > 0 || now - e.emptySince < LIST_GRACE_MS);
+    return !e.hidden && Boolean(e.pick) && this.load(e, now) > 0;
   }
 
   /* A room booked by a quick join that never reported (its making
@@ -178,8 +178,9 @@ export class LobbyBook {
       if (e.map !== map || e.hidden || e.mode === 'war') {
         continue;
       }
+      /* Nor into an empty one, whose last pilots may come back to it. */
       const n = this.load(e, now);
-      if (n < e.cap && (n > bestLoad || (n === bestLoad && e.created < best.created))) {
+      if (n > 0 && n < e.cap && (n > bestLoad || (n === bestLoad && e.created < best.created))) {
         best = e;
         bestLoad = n;
       }
