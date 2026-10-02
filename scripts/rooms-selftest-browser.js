@@ -213,6 +213,32 @@ export async function browserSection(check) {
   check('no public room while public rooms are closed', refusedPublic.status === 403);
   check('and the list says so, empty', JSON.stringify(await closed.list()) === '{"open":false,"rooms":[]}');
 
+  /* Yellowstone was retired on 2026-10-01 (src/maps/retired.js), and a
+   * page from before then still offers it. */
+  console.log('room browser: a retired world');
+  const old = server();
+  const retiredPublic = await old.create({ map: 'yellowstone', public: true });
+  const retiredPrivate = await old.create({ map: 'yellowstone' });
+  check('a room on a retired world is refused, public or private, as a bad request',
+    retiredPublic.status === 400 && retiredPublic.error === 'bad' && retiredPrivate.status === 400 && retiredPrivate.error === 'bad'
+    && old.stores.size === 0, `${JSON.stringify(retiredPublic)} ${JSON.stringify(retiredPrivate)}`);
+  const quickOld = await old.join({ map: 'yellowstone' });
+  check('and so is a quick join on one, with no room made for it', quickOld.refused === 404 && old.stores.size === 0, JSON.stringify(quickOld));
+  const unretired = await old.create({ map: 'itaipu' });
+  check('a world the simulator has is made as before', unretired.status === 200);
+  /* A room stored on Yellowstone before the deploy, as the VM's SQLite
+   * keeps it across the restart that brings this build. */
+  const keptOld = await old.create({ map: 'alps' });
+  const oldStore = old.stores.get(`prv:${keptOld.code}`);
+  oldStore.kept.set('meta', { ...oldStore.kept.get('meta'), map: 'yellowstone' });
+  const after = server(old.stores);
+  const wakes = await after.join({ code: keptOld.code });
+  check('a room stored on a retired world wakes in the Swiss valley, keeps its code, and stores the move',
+    wakes.welcome && wakes.welcome.map === 'swiss2' && oldStore.kept.get('meta').map === 'swiss2',
+    `${wakes.welcome && wakes.welcome.map} ${oldStore.kept.get('meta').map}`);
+  await wakes.say({ type: 'world', map: 'yellowstone' });
+  check('and its host cannot move it back there', oldStore.kept.get('meta').map === 'swiss2' && texts(wakes, 'world').length === 0);
+
   console.log('room browser: the list');
   let list = await s.list();
   const codes = list.rooms.map((r) => r.code);

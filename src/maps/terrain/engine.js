@@ -1,5 +1,5 @@
 /*
- * engine.js: the streaming, levelled terrain for the 100 km square.
+ * engine.js: the streaming, levelled terrain over a map's square.
  *
  * CHUNKED QUADTREE LOD, and why not a geometry clipmap. A clipmap draws a
  * few fixed rings of grid that move with the camera and read heights from
@@ -13,8 +13,8 @@
  * cel material every other map uses, and a node's triangles are its data
  * level's own grid, which the ground query reads back exactly.
  *
- * THE TREE. A node is 64 cells of its level on a side (chunks.js). Level 5
- * nodes are the roots, four of them over the extent. A node at level L >= 1
+ * THE TREE. A node is 64 cells of its level on a side (chunks.js). The
+ * frame's coarsest level's nodes are the roots. A node at level L >= 1
  * splits into the four level L - 1 nodes under it, all read from one level
  * L - 1 tile. A level 0 node splits into the nine hero nodes under it
  * (30 m to 10 m is a factor of three, not two), where the hero set has all
@@ -63,7 +63,7 @@
 
 import * as THREE from 'three';
 import {
-  HERO, TILE_CELLS, TILE_SAMPLES, YELLOWSTONE_FRAME, cellOf, tileSizeOf, decode,
+  HERO, TILE_CELLS, TILE_SAMPLES, cellOf, tileSizeOf, decode,
 } from './frame.js';
 import { TileStore, tileKey } from './tiles.js';
 import { CHUNK, chunkJob, chunkTriangles, disposeChunkIndices, recycleChunk } from './chunks.js';
@@ -128,16 +128,18 @@ class Node {
 
 export class Terrain {
   /*
-   * opts: { base, manifest, material, scene, cover (landcover.js, or
-   * null), quality: { split, buildMs, tileCeiling, meshCap, prefetch,
-   * prefetchHero }, frame (frame.js makeFrame, Yellowstone's when not
-   * given) }. Call load() once, then update() every frame.
+   * opts: { base, manifest, material, scene, quality: { split, buildMs,
+   * tileCeiling, meshCap, prefetch, prefetchHero }, frame (frame.js
+   * makeFrame, the map's own square) }. Call load() once, then update()
+   * every frame.
    */
   constructor(opts) {
-    this.f = opts.frame || YELLOWSTONE_FRAME;
+    if (!opts.frame) {
+      throw new Error('terrain: a map passes its own frame (frame.js makeFrame)');
+    }
+    this.f = opts.frame;
     this.q = opts.quality;
     this.material = opts.material;
-    this.cover = opts.cover || null;
     this.store = new TileStore({
       base: opts.base,
       manifest: opts.manifest,
@@ -145,7 +147,7 @@ export class Terrain {
       fetchImpl: opts.fetchImpl,
     });
     this.group = new THREE.Group();
-    this.group.name = 'yellowstone-terrain';
+    this.group.name = 'terrain';
     opts.scene.add(this.group);
     this.nodes = new Map();
     this.roots = [];
@@ -278,7 +280,7 @@ export class Terrain {
       || nd.x0 + nd.size >= half || nd.z0 + nd.size >= half;
     const t0 = performance.now();
     const job = chunkJob({
-      nx: nd.nx, nz: nd.nz, cell: nd.cell, x0: nd.x0, z0: nd.z0, sample, rim, cover: this.cover,
+      nx: nd.nx, nz: nd.nz, cell: nd.cell, sample, rim,
     });
     return { nd, job, ms: performance.now() - t0, stale: () => stale };
   }
@@ -606,12 +608,12 @@ export class Terrain {
     await this.store.settle(coarse, (got, all) => progress(0.2 * got / all));
     for (const r of this.roots) {
       if (!this.store.isReady(r.level, r.ti, r.tj)) {
-        throw new Error(`yellowstone: the coarsest tile ${r.level}/${r.ti}_${r.tj} did not load`);
+        throw new Error(`terrain: the coarsest tile ${r.level}/${r.ti}_${r.tj} did not load`);
       }
       const j = this.startBuild(r);
       this.install(r, j.job.step(Infinity), j.stale());
     }
-    this.apron = buildApron((x, z) => this.coarseAt(x, z), this.material, this.cover, this.f);
+    this.apron = buildApron((x, z) => this.coarseAt(x, z), this.material, this.f);
     this.group.add(this.apron.mesh);
     /* Walk the selection to a fixed point: each pass asks for what the
      * last one could not split into yet. */

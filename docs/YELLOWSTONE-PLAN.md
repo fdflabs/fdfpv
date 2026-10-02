@@ -1,5 +1,16 @@
 # Yellowstone: the plan and the contract
 
+> **Removed on 2026-10-01** on the owner's ask ("kill yellowstone, its
+> useless"). The map, its data loader (`?ysdata=`), its pipeline
+> (`tools/yellowstone/`) and its checks are gone from the simulator; the
+> data repository, fdflabs/fdfpv-yellowstone-data, was left as it is. The
+> streamed terrain engine this plan specified lives on as
+> `src/maps/terrain/`, which Itaipu runs on, without Yellowstone's paint,
+> land cover or default frame. A stored setting or a link naming
+> `yellowstone` lands in the Swiss valley (`src/maps/retired.js`). This
+> file is kept as the record of what was built and why; the paths in it
+> are as they were.
+
 A 100 by 100 km map of Yellowstone National Park at real scale, from
 public domain data: USGS 3DEP elevation, USGS NHD hydrography, the NPS
 thermal feature inventory and NLCD land cover. Three parts are built in

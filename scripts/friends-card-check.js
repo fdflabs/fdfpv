@@ -293,8 +293,8 @@ try {
   check('and B stays on the room screen, the cursor on Fly', await b.evaluate("window.__ui.screen === 'friends' && window.__ui.items()[window.__ui.cursor].action === 'fly'"));
   /* The welcome owes the seat a summon, carried out on a later frame once
    * the world in hand is ready (main.js roomSummonStep): read straight
-   * after the join, the seat was still Yellowstone, and was the Swiss
-   * valley three seconds later. */
+   * after the join, the seat was still the world B picked, and was the
+   * Swiss valley three seconds later. */
   await b.until("window.__ui.settings.map === 'swiss2'", 15000).catch(() => {});
   const seated = await b.evaluate(`({
     map: window.__ui.settings.map,

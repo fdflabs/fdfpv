@@ -11,11 +11,13 @@ targets alive at a time, which is what keeps P5's 120 MB budget meaningful.
 fetch its whole graph at boot for a player who only ever flies the Alps.
 `tests/lib/checks.js` check 16 measures it.
 
-The worlds are the Alps, the Swiss valley and Yellowstone. The freestyle city
-(Sakura City, 59 vendored MIT files) and the airfield were retired on
-2026-09-28 on the owner's ask ("leave only alps and swiss"), and Industrial
-bando, Municipal baths and Bardwell's yard before them on 2026-08-30. All of
-them are in the history. `retired.js` names the retired ids and where a
+The worlds are the Alps, the Swiss valley and Itaipu. Yellowstone was removed
+on 2026-10-01 on the owner's ask ("kill yellowstone, its useless"); the
+streamed terrain engine it was written with is `terrain/`, which Itaipu runs
+on. The freestyle city (Sakura City, 59 vendored MIT files) and the airfield
+were retired on 2026-09-28 on the owner's ask ("leave only alps and swiss"),
+and Industrial bando, Municipal baths and Bardwell's yard before them on
+2026-08-30. All of them are in the history. `retired.js` names the retired ids and where a
 stored setting or a link that names one goes, so a pilot is told rather
 than quietly moved.
 
@@ -31,7 +33,7 @@ selects the graphics preset in `src/render/quality.js`. The instance stamps
 
 A MapInstance is:
 
-    id            'alps' | 'swiss2' | 'yellowstone'
+    id            'alps' | 'swiss2' | 'itaipu'
     name          what the menu shows
     mode          'race' | 'freestyle'
     graphics      'low' | 'medium' | 'high'

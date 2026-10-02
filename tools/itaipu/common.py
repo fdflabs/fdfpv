@@ -29,7 +29,7 @@ from pyproj import Transformer
 
 # World frame, as docs/ITAIPU-PLAN.md section 2 states it: x = E - E0
 # (east), z = -(N - N0) (south), y = height in metres above EGM2008, the
-# DEMs' own datum, with no offset: Yellowstone's tile encoding (decimetres
+# DEMs' own datum, with no offset: the terrain engine's tile encoding (decimetres
 # from 1000 m below y 0) covers Itaipu's 90 to 340 m as it is. Both DEMs
 # read the reservoir at 219.0, 1.3 m under Itaipu's published 220.30.
 # The origin is 1.7 km south of the main dam's crest so that the mapped
@@ -40,7 +40,7 @@ N0 = 7186000.0
 UTM = 'EPSG:32721'
 
 # Half widths, metres (docs/ITAIPU-PLAN.md section 3). The elevation
-# tiles keep Yellowstone's origin rule (tile i starts at x = -RING_HALF +
+# tiles keep the terrain engine's origin rule (tile i starts at x = -RING_HALF +
 # i * size), so both squares are whole numbers of 2560 m hero tiles:
 # HERO_HALF is two tiles, RING_HALF eight. HERO is where solids, OSM
 # buildings and 10 m terrain live; RING is drawn terrain only. Imagery and
@@ -62,7 +62,7 @@ WORK = DATA / '_work'
 RESERVOIR_Y = 219.0
 RIVER_Y = 103.5
 
-# The tile pyramid, Yellowstone's (tools/yellowstone/common.py) with this
+# The tile pyramid, the terrain engine's (src/maps/terrain/frame.js) with this
 # map's frame: 257 by 257 samples, level L's cell 30 * 2^L m, level -1
 # (hero) 10 m, tile (i, j) starting at x, z = -RING_HALF + (i, j) * size.
 # Y0 is 0: the encoding holds 96 to 336 m as they are.

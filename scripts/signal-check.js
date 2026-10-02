@@ -42,7 +42,7 @@ import { execFileSync } from 'node:child_process';
 
 import {
   decode, HERO, TILE_CELLS, TILE_SAMPLES, cellOf,
-} from '../src/maps/yellowstone/terrain/frame.js';
+} from '../src/maps/terrain/frame.js';
 import {
   ITAIPU_FRAME, LANDMARKS, RESERVOIR_Y, RIVER_Y,
 } from '../src/maps/itaipu/terrain/frame.js';

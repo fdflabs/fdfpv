@@ -73,23 +73,25 @@ export function sessionSection(check) {
   hello(room, host, { level: ROOM_LEVEL });
   hello(room, b, { level: ROOM_LEVEL });
   check('the room\'s world is in the welcome', got(b, 'welcome')[0].map === 'alps');
-  say(room, b, { type: 'world', map: 'yellowstone' });
+  say(room, b, { type: 'world', map: 'itaipu' });
   check('a pilot who is not the host cannot move the room',
     meta.map === 'alps' && got(b, 'refused').some((m) => m.why === 'host') && got(host, 'world').length === 0);
-  const stored = say(room, host, { type: 'world', map: 'yellowstone' });
+  const stored = say(room, host, { type: 'world', map: 'itaipu' });
   check('the host moves it, and the room keeps it with its meta',
-    meta.map === 'yellowstone' && stored.some((a) => a.store === 'meta' && a.value.map === 'yellowstone'));
+    meta.map === 'itaipu' && stored.some((a) => a.store === 'meta' && a.value.map === 'itaipu'));
   check('everybody is told, the host too',
-    got(host, 'world').at(-1)?.map === 'yellowstone' && got(b, 'world').at(-1)?.map === 'yellowstone');
+    got(host, 'world').at(-1)?.map === 'itaipu' && got(b, 'world').at(-1)?.map === 'itaipu');
   say(room, host, { type: 'world', map: 'Not A World' });
-  check('a world that is not an id is nothing', meta.map === 'yellowstone');
+  check('a world that is not an id is nothing', meta.map === 'itaipu');
+  say(room, host, { type: 'world', map: 'yellowstone' });
+  check('nor is a retired world, which an old page can still offer', meta.map === 'itaipu' && got(host, 'world').at(-1)?.map === 'itaipu');
   const c = sock('ccc');
   hello(room, c, { level: ROOM_LEVEL });
-  check('a joiner is welcomed into the world the host moved it to', got(c, 'welcome')[0].map === 'yellowstone');
+  check('a joiner is welcomed into the world the host moved it to', got(c, 'welcome')[0].map === 'itaipu');
   run(room.message(host, JSON.stringify({ type: 'combat', op: 'start', minutes: 3 }), now));
   const busy = say(room, host, { type: 'world', map: 'alps' });
   check('not while a game is on, and it says which',
-    meta.map === 'yellowstone' && busy.some((a) => a.send === host && JSON.parse(a.data).why === 'combat'));
+    meta.map === 'itaipu' && busy.some((a) => a.send === host && JSON.parse(a.data).why === 'combat'));
   const pub = new RoomCore({ ...meta, code: 'PUBL22', map: 'alps', public: true });
   const ph = sock('pubhost');
   hello(pub, ph, { level: ROOM_LEVEL });

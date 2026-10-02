@@ -2,7 +2,7 @@
  * shell.js: everything that outlives a map.
  *
  * Every map is a world built by its own module with its own post chain: the
- * Alps, the Swiss valley and Yellowstone. What they share is
+ * Alps, the Swiss valley and Itaipu. What they share is
  * a renderer, a canvas, a camera and an airframe, and none of those may be
  * rebuilt when the player changes map: a WebGL context is expensive, the
  * camera's layer mask is a contract the post chains read, and re-creating the

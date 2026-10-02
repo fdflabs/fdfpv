@@ -7,7 +7,7 @@
  * This file is the order things are built in and the contract the shell
  * reads. What it builds from lives in src/maps/itaipu/:
  *
- *   terrain/     the frame, the ground on Yellowstone's engine, and the
+ *   terrain/     the frame, the ground on the terrain engine, and the
  *                gaps between the tiles and that engine closed
  *   look/        swiss2's photographic style over it: the sun, the sky,
  *                the ground's material, the kit and the post chain
@@ -15,8 +15,7 @@
  *                the four parts, each built against one seam (the part
  *                interface, in any of their index.js files)
  *
- * WHERE THE DATA COMES FROM, as Yellowstone's does (src/maps/yellowstone.js):
- * DATA_BASE on the public site, the data's own repository on GitHub
+ * WHERE THE DATA COMES FROM: DATA_BASE on the public site, the data's own repository on GitHub
  * Pages, and on a page served from this machine LOCAL_BASE beside it,
  * which scripts/serve.js and tests/lib/server.js serve from the folder
  * FDFPV_ITAIPU_DATA names, by default ~/Desktop/fdfpv-itaipu-data, the
@@ -182,11 +181,19 @@ function makeStreamer(colliders, parts, uncover) {
   };
 }
 
+/*
+ * LOCAL_BASE is beside the site's index.html, which is two levels above
+ * this module, not beside whatever page loaded it: the title's world
+ * previews build the map inside src/share/orbit.html, where a page
+ * relative path asked for src/share/itaipu-data/ and got a 404.
+ * ?itdata= is the page's own, so it stays relative to the page.
+ */
 export function dataBase() {
   const loc = window.location;
   const param = new URLSearchParams(loc.search).get('itdata');
-  const fallback = LOCAL_HOSTS.has(loc.hostname) ? LOCAL_BASE : DATA_BASE;
-  const url = new URL(param || fallback, document.baseURI).href;
+  const url = param ? new URL(param, document.baseURI).href
+    : LOCAL_HOSTS.has(loc.hostname) ? new URL(`../../${LOCAL_BASE}`, import.meta.url).href
+      : DATA_BASE;
   return url.endsWith('/') ? url : `${url}/`;
 }
 
@@ -332,7 +339,7 @@ async function buildItaipu(shell, progress, q, time) {
   const bodies = data['water.json'];
   const lakes = lakesOf(bodies, ground);
   /* The drawn ground, and over the water its still surface, so a craft
-   * rests on the water it sees (as on Yellowstone's lakes) whether or not
+   * rests on the water it sees whether or not
    * the shell has declared the bodies to the plant; then the roofs, the
    * highest within a step of fromY (alps/roofs.js). */
   const wet = (x, z) => {

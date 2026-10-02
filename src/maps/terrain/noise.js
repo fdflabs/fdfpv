@@ -1,9 +1,8 @@
 /*
- * noise.js: value noise for the ground's paint and the synthetic tiles.
+ * noise.js: value noise for the country the apron invents (apron.js).
  *
  * A copy of the idea in src/maps/alps/noise.js rather than an import of
- * it: choosing Yellowstone must not fetch a module under src/maps/alps,
- * and scripts/memory-check.js fails a world that does.
+ * it, so the engine does not reach into another world's directory.
  *
  * This file is part of WebFPVSimulator.
  *
