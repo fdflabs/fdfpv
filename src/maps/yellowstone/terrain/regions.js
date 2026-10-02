@@ -37,7 +37,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { HALF, HERO, tileSizeOf } from './frame.js';
+import { HALF, HERO, tileSizeOf } from '../../terrain/frame.js';
 
 /* Frames a region stays loaded after its last finest chunk goes, so the
  * level changing back and forth at the edge of the split distance does

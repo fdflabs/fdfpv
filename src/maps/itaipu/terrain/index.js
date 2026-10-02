@@ -1,7 +1,7 @@
 /*
  * terrain/index.js: Itaipu's ground, on Yellowstone's terrain engine.
  *
- * The engine (src/maps/yellowstone/terrain/engine.js) is a quadtree of
+ * The engine (src/maps/terrain/engine.js) is a quadtree of
  * 64 cell chunks over a tile pyramid, streamed round the craft and the
  * camera; here it runs on Itaipu's frame (frame.js), the ring of 40.96 km
  * and the hero of 10.24 km. The whole pyramid is 86 tiles, 11.4 MB, so
@@ -35,9 +35,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Terrain } from '../../yellowstone/terrain/engine.js';
-import { tileKey } from '../../yellowstone/terrain/tiles.js';
-import { HERO } from '../../yellowstone/terrain/frame.js';
+import { Terrain } from '../../terrain/engine.js';
+import { tileKey } from '../../terrain/tiles.js';
+import { HERO } from '../../terrain/frame.js';
 import { ITAIPU_FRAME } from './frame.js';
 
 /*

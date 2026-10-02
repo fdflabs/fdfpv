@@ -28,8 +28,8 @@
  */
 
 import * as THREE from 'three';
-import { HALF, TILE_CELLS, TILE_SAMPLES } from './frame.js';
-import { noise2 } from './noise.js';
+import { HALF, TILE_CELLS, TILE_SAMPLES } from '../../terrain/frame.js';
+import { noise2 } from '../../terrain/noise.js';
 
 const CELL = 60;
 

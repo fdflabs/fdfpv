@@ -73,9 +73,9 @@ const HEAVY = ['yellowstone', 'swiss2', 'itaipu'];
  * fault, and so is the Alps pulling in swiss2, which the boot half below
  * catches with the Alps as the baseline.
  */
-/* Itaipu is Yellowstone's terrain engine under swiss2's look, on purpose
- * (docs/ITAIPU-PLAN.md section 1, point 5). */
-const SHARES = { swiss2: ['alps'], itaipu: ['yellowstone', 'swiss2'] };
+/* Itaipu is swiss2's look on purpose (docs/ITAIPU-PLAN.md section 1,
+ * point 5). Its terrain engine is src/maps/terrain/, which is no world's. */
+const SHARES = { swiss2: ['alps'], itaipu: ['swiss2'] };
 
 /*
  * Every URL the page has fetched, as a plain list. Resource timing is the

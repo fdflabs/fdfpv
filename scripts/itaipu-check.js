@@ -62,7 +62,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import {
   HERO, TILE_CELLS, TILE_SAMPLES, decode,
-} from '../src/maps/yellowstone/terrain/frame.js';
+} from '../src/maps/terrain/frame.js';
 import { ITAIPU_FRAME, RESERVOIR_Y, RIVER_Y } from '../src/maps/itaipu/terrain/frame.js';
 import { insideWater } from '../src/game/water.js';
 
@@ -254,7 +254,7 @@ function moduleOf(url) {
  * engine it runs on, swiss2's look and the Alps' modules swiss2's look
  * and the roofs are made from. Yellowstone's features and its map module
  * are Yellowstone's alone. */
-const MAY_FETCH = [/^maps\/itaipu(\.js|\/)/, /^maps\/yellowstone\/terrain\//, /^maps\/swiss2\//, /^maps\/alps(\.js|\/)/];
+const MAY_FETCH = [/^maps\/itaipu(\.js|\/)/, /^maps\/terrain\//, /^maps\/swiss2\//, /^maps\/alps(\.js|\/)/];
 
 async function main() {
   const manifest = JSON.parse(await readFile(join(DATA, 'manifest.json'), 'utf8'));

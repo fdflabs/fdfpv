@@ -39,8 +39,8 @@ import { join, resolve } from 'node:path';
 import {
   HALF, TILE_CELLS, TILE_SAMPLES, HERO, LEVELS, LANDMARKS,
   cellOf, tileSizeOf, tilesPerAxis, tilePath, encode,
-} from './frame.js';
-import { fbm, noise2, smoothstep } from './noise.js';
+} from '../../terrain/frame.js';
+import { fbm, noise2, smoothstep } from '../../terrain/noise.js';
 
 /* A bump that is 1 at the centre and 0 past r. */
 function dome(x, z, cx, cz, r) {

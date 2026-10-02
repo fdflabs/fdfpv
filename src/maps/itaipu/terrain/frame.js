@@ -25,7 +25,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { makeFrame } from '../../yellowstone/terrain/frame.js';
+import { makeFrame } from '../../terrain/frame.js';
 
 export const RING_HALF = 20480;
 export const HERO_HALF = 5120;

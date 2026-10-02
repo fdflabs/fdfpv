@@ -4,7 +4,7 @@
  *
  * The hero's ground is a 10 m grid of heights drawn as two triangles a
  * cell, split on the diagonal from (x0, z0 + 10) to (x0 + 10, z0)
- * (src/maps/yellowstone/terrain/engine.js tri, which ctx.ground reads).
+ * (src/maps/terrain/engine.js tri, which ctx.ground reads).
  * So the ground is a plane over every triangle bounded by the lines
  * x = 10 i, z = 10 j and x + z = 10 k (the grid's origin, -20 480 m, is a
  * whole number of cells). A convex piece cut along those lines lies in

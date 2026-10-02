@@ -81,7 +81,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import {
   decode, HERO, TILE_CELLS, TILE_SAMPLES,
-} from '../src/maps/yellowstone/terrain/frame.js';
+} from '../src/maps/terrain/frame.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
 import {
   planTown, WALLS_R, FINE_R, MOVE,

@@ -34,7 +34,7 @@
  */
 
 import * as THREE from 'three';
-import { HALF } from './frame.js';
+import { HALF } from '../../terrain/frame.js';
 
 /* Anchors are bucketed on the level 0 chunk grid so a frame only looks at
  * the buckets near the camera. */
