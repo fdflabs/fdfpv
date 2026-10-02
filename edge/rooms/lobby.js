@@ -92,6 +92,7 @@ export function listingOf(meta, n, activity, emptySince = null) {
     mission: meta.mission ?? null,
     wave: activity.wave ?? null,
     waves: activity.waves ?? null,
+    round: activity.round ?? null,
     hidden: Boolean(meta.hidden),
     created: meta.epoch,
     emptySince: n > 0 ? null : emptySince,
@@ -151,7 +152,7 @@ export class LobbyBook {
       .slice(0, LIST_MAX)
       .map((e) => ({
         code: e.code, name: e.name, pick: e.pick, map: e.map, n: e.n, cap: e.cap, game: e.game, state: e.state, mode: e.mode,
-        mission: e.mission ?? null, wave: e.wave ?? null, waves: e.waves ?? null, emptySince: e.emptySince,
+        mission: e.mission ?? null, wave: e.wave ?? null, waves: e.waves ?? null, round: e.round ?? null, emptySince: e.emptySince,
       }));
   }
 
