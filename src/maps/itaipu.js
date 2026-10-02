@@ -233,6 +233,20 @@ async function readData(base, manifest) {
   return Object.fromEntries(names.map((n, k) => [n, parsed[k]]));
 }
 
+/* The middle of the town's buildings, for its murmur: their mean, on the
+ * ground there. */
+function townMiddle(buildings, terrain) {
+  let x = 0;
+  let z = 0;
+  for (const b of buildings) {
+    x += b.x;
+    z += b.z;
+  }
+  x /= Math.max(1, buildings.length);
+  z /= Math.max(1, buildings.length);
+  return { kind: 'townhum', x, y: terrain.height(x, z) + 10, z };
+}
+
 /* The water bodies in src/game/water.js's lake form, for the plant, over
  * `bed` the ground under them. */
 function lakesOf(bodies, bed) {
@@ -436,6 +450,14 @@ async function buildItaipu(shell, progress, q, time) {
     /* The concrete faces an explosion's sound echoes off
      * (src/render/world-audio.js damWalls). */
     audioWalls: damWalls(data['dam.json']),
+    /* The world's sound's ambience (src/render/world-audio.js): the
+     * spillway's roar where its jets come down, the town's murmur from its
+     * middle; and the power lines, whose nearest point hums. */
+    audioBeds: [
+      ...parts.water.plunges.map((p) => ({ kind: 'spillway', x: p.x, y: p.y + 4, z: p.z })),
+      townMiddle(parts.town.town.buildings, terrain),
+    ],
+    audioLines: parts.town.town.wires,
     /* The war mode's targets and their damage, the dam part's
      * (docs/WARFARE-PLAN.md section 8). */
     targets: parts.dam.targets,

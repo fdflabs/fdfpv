@@ -15188,7 +15188,7 @@ export async function boot({
     worldAudio.setWalls(view && view.audioWalls);
     {
       const c = shell.camera.position;
-      worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN);
+      worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, worldTime);
     }
 
     /* Overlay. */
