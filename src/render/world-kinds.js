@@ -9,11 +9,15 @@
  * default volume: tools/audio/world.js --calibrate measures it and
  * --check holds every kind within a decibel of it.
  *
- * Fields, all optional but `amp`, `cruise` and `cruiseRpm`:
+ * Fields, all optional but `amp`:
  *   lufs16       the kind's loudness at 16 m, cruising, LUFS (the target)
  *   amp          the trim that meets it
- *   cruise       m/s at which it turns cruiseRpm
+ *   cruise       m/s at which it turns cruiseRpm (a road vehicle: the
+ *                speed it is calibrated at)
  *   cruiseRpm    the shaft's rpm at cruise
+ *   fixed        the rpm is cruiseRpm whatever the speed (a machine)
+ *   gears        a road vehicle's top speed in each gear, m/s, with
+ *   idleRpm, shiftRpm  its idle and the rpm it changes up at
  *   fires        firings a revolution (cylinders for a two stroke, half
  *                that for a four stroke)
  *   muffler      three resonances, Hz, and mufflerDecay their ring, s
@@ -21,6 +25,10 @@
  *   jitter       cycle to cycle variation (Heywood 1988, 9.4), miss the
  *                share of cycles that misfire
  *   exhaust      the exhaust's level in the mix of the source
+ *   knock, knockLevel  a diesel's combustion tick: the block's ring, Hz,
+ *                and its level
+ *   tyres        tyre and road noise level
+ *   rope         a gondola cabin's rope rumble level
  *   blades, prop a propeller's blade count and level
  *   powerDive    winds up in a dive rather than windmilling (a munition's
  *                terminal run)
@@ -93,11 +101,11 @@ export const WORLD_KINDS = {
   /* fpv and hunter: 0.25 m quads (attackers.js), the pilot's own class:
    * four three blade props near 20,000 rpm in fast forward flight. */
   fpv: {
-    lufs16: -29, amp: 0.0478, cruise: 21, cruiseRpm: 20000, rotors: 1, rotorBlades: 3,
+    lufs16: -29, amp: 0.0482, cruise: 21, cruiseRpm: 20000, rotors: 1, rotorBlades: 3,
     whine: 0.02, poles: 14, ground: 0.5, farHz: 1000, farGain: 1,
   },
   hunter: {
-    lufs16: -29, amp: 0.0512, cruise: 25.2, cruiseRpm: 21000, rotors: 1, rotorBlades: 3,
+    lufs16: -29, amp: 0.0514, cruise: 25.2, cruiseRpm: 21000, rotors: 1, rotorBlades: 3,
     whine: 0.02, poles: 14, ground: 0.5, farHz: 1050, farGain: 1,
   },
   /* boat: a 5 m speedboat on an outboard (attackers.js): a three cylinder
@@ -118,6 +126,70 @@ export const WORLD_KINDS = {
     water: 0.3, ground: 0.9, farHz: 30, farGain: 1,
   },
 };
+
+/*
+ * THE VALLEY (src/maps/alps/life.js, lift.js; swiss2/props/lakeside.js).
+ *
+ * The levels at 16 m come from what each is in the street, not from the
+ * war's mix: a dB(A) at 7.5 m from the pass by literature (a car at
+ * 50 km/h about 68, a van 71, a motorbike 75, a bus or a lorry 79, a
+ * modern tractor at its work 77; ISO 362 and the EU's 540/2014 limits
+ * bound them),
+ * less 6.6 dB to 16 m, mapped to the mix by the war's FPV quad: a 5 inch
+ * class quad at 16 m is about 72 dB(A) and its kind is -29 LUFS here, so
+ * LUFS = dB(A) - 101. A car on the road at 30 m is then about -45 LUFS:
+ * there, under the pilot's own aircraft (-27), as a street is under a
+ * drone overhead. ESTIMATED, every one: the literature is a range and a
+ * model's car is no particular car.
+ */
+const ROAD = { pulseDecay: 0.9, jitter: 0.03, exhaust: 1, miss: 0, cruise: 14, ground: 0.6 };
+
+Object.assign(WORLD_KINDS, {
+  /* A petrol four cylinder four stroke (two firings a rev), five gears,
+   * and its tyres, which at 50 km/h are most of it. */
+  car: {
+    ...ROAD, lufs16: -40, amp: 0.0643, fires: 2, idleRpm: 800, shiftRpm: 2900, gears: [4, 8, 13, 19, 27],
+    muffler: [95, 310, 1100], mufflerDecay: [0.03, 0.01, 0.003], tyres: 1.2, farHz: 67, farGain: 1,
+  },
+  /* A delivery van: a four cylinder diesel, its knock and heavier tyres. */
+  van: {
+    ...ROAD, lufs16: -37, amp: 0.135, fires: 2, idleRpm: 750, shiftRpm: 2600, gears: [4, 8, 13, 19, 26],
+    muffler: [80, 270, 950], mufflerDecay: [0.035, 0.012, 0.003], knock: 1700, knockLevel: 0.25,
+    tyres: 0.8, farHz: 60, farGain: 1,
+  },
+  /* A motorbike: a single cylinder four stroke (half a firing a rev),
+   * six gears, revving high; the bark the street knows. */
+  motorbike: {
+    ...ROAD, lufs16: -33, amp: 0.264, fires: 0.5, idleRpm: 1300, shiftRpm: 6500, gears: [5, 10, 15, 20, 26, 32],
+    muffler: [150, 540, 1700], mufflerDecay: [0.025, 0.009, 0.003], jitter: 0.06, tyres: 0.5, farHz: 45, farGain: 1,
+  },
+  /* The PostAuto: a six cylinder diesel (three firings a rev), its knock,
+   * its tyres; it idles at its stop and pulls away hard. */
+  bus: {
+    ...ROAD, lufs16: -29, amp: 0.433, fires: 3, idleRpm: 600, shiftRpm: 2000, gears: [3, 6, 10, 15, 22],
+    muffler: [70, 240, 880], mufflerDecay: [0.04, 0.014, 0.004], knock: 1500, knockLevel: 0.3,
+    tyres: 0.5, farHz: 55, farGain: 1,
+  },
+  /* The farm tractor at its work, 2.4 m/s round its field with the
+   * trailer: a four cylinder diesel held at 1800 rpm. */
+  tractor: {
+    ...ROAD, lufs16: -31, amp: 0.497, cruise: 2.4, cruiseRpm: 1800, fixed: true, fires: 2,
+    muffler: [75, 250, 900], mufflerDecay: [0.04, 0.014, 0.004], jitter: 0.05, knock: 1600, knockLevel: 0.35,
+    farHz: 60, farGain: 1,
+  },
+  /* A gondola cabin on its rope at 5 m/s: no engine, the rope's rumble
+   * through the grip, quiet. */
+  cabin: { lufs16: -50, amp: 0.0458, cruise: 5, rope: 1, ground: 0.5, farHz: 70, farGain: 1 },
+  /* The lift's drive in its station: an electric motor held at 1500 rpm
+   * (a four pole machine on 50 Hz), its magnetostriction hum at 100 Hz
+   * (8 poles' worth of whine), and its gearbox's mesh, 17 teeth. */
+  liftdrive: {
+    lufs16: -38, amp: 0.0187, cruise: 0, cruiseRpm: 1500, fixed: true, whine: 0.6, poles: 8, blades: 17, prop: 0.25,
+    ground: 0.6, farHz: 100, farGain: 1,
+  },
+  /* The Swiss lake's sailing boat: no engine, its hull through the water. */
+  sailboat: { lufs16: -50, amp: 0.126, cruise: 2.4, water: 1, ground: 0.9, farHz: 40, farGain: 1 },
+});
 
 /* The kind numbers on the wire: an index into this list. Appending is
  * safe; reordering changes what an old frame means. */

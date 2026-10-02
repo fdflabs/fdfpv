@@ -432,6 +432,9 @@ class Track {
  *             at the blade pass
  *   electric  a motor's whine at (poles / 2) times the shaft rate
  *   rotors    four small props a few percent apart, beating (a quad)
+ *   knock     a diesel's combustion tick on each firing
+ *   tyres     rolling noise, a band near 1 kHz, level with speed
+ *   rope      a gondola cabin's haul rope rumble
  *   water     a hull's wash and slap, level with speed
  *
  * Everything is synthesised at the source's own time and frequencies times
@@ -448,8 +451,11 @@ class Voice {
     this.panPrev = 0;
     this.gainPrev = 0;
     this.muff = [new Mode(), new Mode(), new Mode()];
+    this.knock = new Mode();
     this.bb = new Svf();
     this.wash = new Svf();
+    this.tyre = new Svf();
+    this.rope = new Svf();
     this.absorb = 0;
     this.reflAbsorb = 0;
     this.back = [0, 0];
@@ -492,6 +498,8 @@ class Voice {
       }
     }
     this.slap = 0;
+    this.swing = Math.abs(r());
+    this.speed = undefined;
     for (let m = 0; m < 4; m += 1) {
       this.rotor[m] = Math.abs(r());
       this.rotorRpm[m] = 1 + 0.035 * r();
@@ -510,30 +518,71 @@ class Voice {
   }
 
   /*
-   * The engine's state at the emission time: rpm from the speed through
-   * the air, load from the climb and the acceleration. `state` is [x, y,
-   * z, vx, vy, vz]. The engine sits near its cruise rpm, a little over in
-   * a climb, under in a glide or a dive (which windmills it); a munition
-   * that powers into its dive (powerDive) winds up instead, the rising
-   * whine of its terminal run.
+   * The engine's state at the emission time, `state` [x, y, z, vx, vy,
+   * vz]: its rpm, its load and its level.
+   *
+   *   a road vehicle (gears)  rpm climbs through each gear with the speed
+   *                           and drops at the change up, idles at a
+   *                           standstill; its load is how hard it is
+   *                           accelerating, so a bus pulling away from its
+   *                           stop is loud and one coasting in is not
+   *   a machine (fixed)       its rpm, whatever its speed: a generator, a
+   *                           lift's drive, a tractor on its work
+   *   an aircraft or a boat   near its cruise rpm, a little over in a
+   *                           climb, under in a glide or a dive (which
+   *                           windmills it); a munition that powers into
+   *                           its dive (powerDive) winds up instead, the
+   *                           rising whine of its terminal run
    */
   drive(state, dt) {
     const s = this.spec;
     const sp = Math.sqrt(state[3] * state[3] + state[4] * state[4] + state[5] * state[5]);
-    const climb = sp > 1 ? state[4] / sp : 0;
-    const x = Math.min(1.3, sp / Math.max(1, s.cruise));
-    let rpm = s.cruiseRpm * (0.75 + 0.25 * x) * (1 + 0.12 * (s.powerDive ? Math.abs(climb) : climb));
+    const step = Math.max(1e-3, dt);
+    let rpm = 0;
+    let want = 0.6;
+    if (s.gears) {
+      if (sp < 0.5) {
+        rpm = s.idleRpm;
+      } else {
+        let g = 0;
+        while (g < s.gears.length - 1 && sp > s.gears[g]) {
+          g += 1;
+        }
+        const lo = g === 0 ? 0 : s.gears[g - 1] * 0.82;
+        const x = Math.max(0, Math.min(1, (sp - lo) / Math.max(0.1, s.gears[g] - lo)));
+        rpm = s.idleRpm + (s.shiftRpm - s.idleRpm) * (0.35 + 0.65 * x);
+      }
+      const accel = this.speed === undefined ? 0 : (sp - this.speed) / step;
+      want = 0.5 + 0.5 * Math.max(-0.6, Math.min(1, accel / 1.2));
+    } else if (s.fixed) {
+      rpm = s.cruiseRpm;
+    } else if (s.cruiseRpm) {
+      const climb = sp > 1 ? state[4] / sp : 0;
+      const x = Math.min(1.3, sp / Math.max(1, s.cruise));
+      rpm = s.cruiseRpm * (0.75 + 0.25 * x) * (1 + 0.12 * (s.powerDive ? Math.abs(climb) : climb));
+      want = 0.6 + 0.5 * (state[4] / Math.max(4, sp));
+    }
     rpm *= this.rpmTrim;
-    const accel = (rpm - this.rpm) / Math.max(1e-3, dt) / s.cruiseRpm;
+    const ref = s.gears ? s.shiftRpm : s.cruiseRpm || 1;
+    if (!s.gears && s.cruiseRpm) {
+      const spin = (rpm - this.rpm) / step / ref;
+      want += 0.4 * Math.sign(spin) * Math.min(1, Math.abs(spin));
+    }
     this.rpm = this.rpm === 0 ? rpm : this.rpm + 0.3 * (rpm - this.rpm);
-    const want = Math.max(0.2, Math.min(1.5, 0.6 + 0.4 * Math.sign(accel) * Math.min(1, Math.abs(accel)) + 0.5 * (state[4] / Math.max(4, sp))));
-    this.load += 0.1 * (want - this.load);
+    this.load += 0.1 * (Math.max(0.2, Math.min(1.5, want)) - this.load);
     this.speed = sp;
-    /* Level with rpm to the first power: about 2 dB from cruise to a
-     * powered dive, compressed from the aeroacoustic fourth to sixth
-     * for the reason the engine's own law is (engine-worklet.js
-     * motorAmps). */
-    this.level = Math.min(1.6, this.rpm / s.cruiseRpm);
+    /* Level with rpm to the first power (about 2 dB from cruise to a
+     * powered dive), compressed from the aeroacoustic fourth to sixth for
+     * the reason the engine's own law is (engine-worklet.js motorAmps);
+     * a road vehicle's with its load as well: a bus idling at its stop
+     * measures 5 dB under the same bus pulling away (the bus-stop scene;
+     * the street's figures, idle 65 to 70 dB(A) at 7.5 m and a pull away
+     * 75 to 80, say up to 10, which this leaves the owner to call). A source with no engine is its parts' own level. */
+    if (s.gears) {
+      this.level = (0.4 + 0.6 * this.rpm / s.shiftRpm) * (0.45 + 0.55 * this.load);
+    } else {
+      this.level = s.cruiseRpm ? Math.min(1.6, this.rpm / s.cruiseRpm) : 1;
+    }
   }
 
   /* Everything a quantum holds still: the shaft rate with the Doppler
@@ -547,6 +596,10 @@ class Voice {
     this.fBb = svfF(Math.min(5000, Math.max(300, this.fRot * bladesBb * (s.rotors ? 5 : 4))), rate);
     this.fWash = svfF(350 * dop, rate);
     this.gWash = s.water ? s.water * Math.min(1.5, this.speed / 10) : 0;
+    this.fTyre = svfF(900 * dop, rate);
+    this.gTyre = s.tyres ? s.tyres * Math.min(1.5, (this.speed / 14) ** 1.5) : 0;
+    this.fRope = svfF(140 * dop, rate);
+    this.gRope = s.rope ? s.rope * Math.min(1.5, this.speed / 5) : 0;
     this.ld = Math.max(0.2, Math.min(1.5, this.load));
   }
 
@@ -575,6 +628,12 @@ class Voice {
        * models): a short decaying half wave each cycle. */
       const bd = BD[(this.cycle * BD_N) | 0] * this.cycleAmp;
       y += s.exhaust * (0.5 * bd + ex);
+      if (s.knock) {
+        /* A diesel's combustion knock: the pressure rise's tick, the
+         * block's ring struck by the square of the pulse so only the
+         * firing's peak reaches it. */
+        y += s.knockLevel * this.knock.run(exc * exc);
+      }
     }
     if (s.blades) {
       /* The prop: its harmonics from this one's own table, and its
@@ -615,6 +674,20 @@ class Voice {
       this.bb.run(nz(), this.fBb, 0.9);
       y += s.rotors * (0.25 * q + 0.5 * this.bb.bp);
     }
+    if (this.gTyre > 1e-4) {
+      /* Tyre and road: broadband near 1 kHz, its level with speed to the
+       * 2.5 power compressed to the 1.5 (a tyre's noise is the larger
+       * part of a car's above about 40 km/h, Sandberg and Ejsmont 2002). */
+      this.tyre.run(nz(), this.fTyre, 1.1);
+      y += this.gTyre * this.tyre.bp;
+    }
+    if (this.gRope > 1e-4) {
+      /* A cabin on its rope: the haul rope's low rumble through the grip
+       * and the hanger's slow swing. */
+      this.rope.run(nz(), this.fRope, 1.0);
+      this.swing += 0.35 / rate;
+      y += this.gRope * this.rope.lo * (1 + 0.4 * sinC(this.swing));
+    }
     if (this.gWash > 1e-4) {
       /* A hull: the wash, and the slap of the hull meeting the chop a few
        * times a second, faster the faster it goes. */
@@ -632,7 +705,7 @@ class Voice {
     const s = this.spec;
     const nz = this.nz;
     const rpm = this.rpm;
-    const ref = s.cruiseRpm;
+    const ref = s.gears ? s.shiftRpm : s.cruiseRpm;
     const idle = Math.max(0, 1 - rpm / ref);
     const jit = s.jitter * (0.5 + idle);
     this.cycleAmp = 1 + jit * nz();
@@ -644,6 +717,9 @@ class Voice {
     const lift = 1 + 0.15 * Math.min(1.2, rpm / ref);
     for (let q = 0; q < 3; q += 1) {
       this.muff[q].tune(s.muffler[q] * lift * this.muffTrim[q] * this.dop, s.mufflerDecay[q], this.rate);
+    }
+    if (s.knock) {
+      this.knock.tune(s.knock * this.dop * (1 + 0.04 * nz()), 0.0025, this.rate);
     }
   }
 }

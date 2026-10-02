@@ -36,7 +36,10 @@
  *                                       is right)
  *   aircraft passing (a wave, one)      the pass, the loudest 400 ms, -30
  *                                       to -20 LUFS (as tools/audio/render.js
- *                                       judges a fly by); short term at
+ *                                       judges a fly by), a valley scene's
+ *                                       in its own quieter window
+ *                                       (world-scenes.js VALLEY_PASS); short
+ *                                       term at
  *                                       most -18; momentary at most -14; 2
  *                                       to 5 kHz at most 35 percent A
  *                                       weighted
@@ -380,7 +383,8 @@ async function main() {
       } else {
         /* The aircraft alone: a scene's explosion is judged as one. */
         const o = m.other;
-        check(`${id} the pass, loudest 400 ms, ${BARS.passMin} to ${BARS.passMax} LUFS`, o.lufsMomentaryMax >= BARS.passMin && o.lufsMomentaryMax <= BARS.passMax, `${o.lufsMomentaryMax} LUFS`);
+        const [lo, hi] = sc.pass || [BARS.passMin, BARS.passMax];
+        check(`${id} the pass, loudest 400 ms, ${lo} to ${hi} LUFS`, o.lufsMomentaryMax >= lo && o.lufsMomentaryMax <= hi, `${o.lufsMomentaryMax} LUFS`);
         check(`${id} loudest 3 s at most ${BARS.shortMax} LUFS`, o.lufsShortMax <= BARS.shortMax, `${o.lufsShortMax} LUFS`);
         check(`${id} loudest 400 ms at most ${BARS.momentaryMax} LUFS`, o.lufsMomentaryMax <= BARS.momentaryMax, `${o.lufsMomentaryMax} LUFS`);
       }
@@ -417,7 +421,7 @@ async function main() {
       check('the load guard, forced hot: no NaN, infinity or subnormal, true peak at most -1 dBTP', mh.nonFinite === 0 && mh.subnormal === 0 && mh.truePeakDbtp <= BARS.truePeakMax, `${mh.nonFinite}, ${mh.subnormal}, ${mh.truePeakDbtp} dBTP`);
       check('the load guard, forced hot: cheaper than full detail', hot.ms < full.ms, `${(hot.ms / 1000 / hot.seconds).toFixed(3)} against ${(full.ms / 1000 / full.seconds).toFixed(3)} s/s`);
       /* And two engines: the same kind on the same circle, two ids. */
-      for (const kind of ['strike', 'fpv', 'boat']) {
+      for (const kind of ['strike', 'fpv', 'boat', 'car', 'bus']) {
         const sc = calibrationScene(kind);
         const other = { ...sc, frames: sc.frames.map((f) => ({ ...f, src: f.src.map((v, i) => (i % 8 === 0 ? v + 1 : v)) })) };
         const [e, f] = await Promise.all([renderScene(sc), renderScene(other)]);

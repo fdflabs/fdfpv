@@ -52,9 +52,11 @@ function prng(seed) {
 /*
  * Build a scene from `paths`: [{ id, kind, at(t) -> [x, y, z], from, to }]
  * with velocities by central difference, a listener, and booms. Returns
- * { seconds, frames: [{ t, lis, src }], booms, title, group, listen }.
+ * { seconds, frames: [{ t, lis, src }], booms, title, group, role, note,
+ * pass }: `pass` the window a pass is judged in, [min, max] LUFS of its
+ * loudest 400 ms, when not an aircraft's (tools/audio/world.js BARS).
  */
-function scene({ title, group, seconds, lis, paths, booms = [], role = 'other', note = '' }) {
+function scene({ title, group, seconds, lis, paths, booms = [], role = 'other', note = '', pass = null }) {
   const frames = [];
   const n = Math.round(seconds * FRAME_HZ);
   const h = 1e-3;
@@ -77,7 +79,7 @@ function scene({ title, group, seconds, lis, paths, booms = [], role = 'other', 
     });
     frames.push({ t, lis: typeof lis === 'function' ? lis(t) : lis, src });
   }
-  return { title, group, seconds, frames, booms, role, note };
+  return { title, group, seconds, frames, booms, role, note, pass };
 }
 
 /* A straight line at speed v from p0 along unit d. */
@@ -182,6 +184,109 @@ export const SCENES = {
     return scene({ title: 'War: the full war, 120 attackers (cost)', group: 'Budget', seconds: 18, lis: standing(0, 0, 0), paths, booms, note: 'cost' });
   })(),
 };
+
+/*
+ * THE VALLEY'S SCENES. A street, a bus stop, a field, a gondola, a lake:
+ * the Alps and Swiss valley's traffic as src/maps/alps/life.js drives it
+ * (ROAD_V 14 m/s on the road, 8.5 in the village street, the bus's 20 s
+ * at its stop, the tractor's 2.4, the cabins' 5 at 130 m spacing, the
+ * sailing boat's 2.4). They are judged on a quieter window than an
+ * aircraft's pass (VALLEY_PASS): a street at 30 m is there, under the
+ * pilot's own aircraft, never over it.
+ */
+export const VALLEY_PASS = [-48, -27];
+
+/* Along +x at speed v from x0, starting at t0 (before it, not there). */
+function road(x0, z, y, v, t0 = 0) {
+  return { at: (t) => [x0 + v * (t - t0), y, z], from: t0 };
+}
+
+/* A bus coming in at v to stop at x = 0 (z, y), its dwell, then away at
+ * a constant pull to v again: [arrive, decelerate, dwell, accelerate]. */
+function busStop(z, y, v, dwell) {
+  const dec = 1.0;
+  const acc = 1.2;
+  const tDec = v / dec;
+  const xDec = (v * tDec) / 2;
+  const tIn = 6;
+  const x0 = -(v * tIn + xDec);
+  return (t) => {
+    if (t < tIn) {
+      return [x0 + v * t, y, z];
+    }
+    if (t < tIn + tDec) {
+      const u = t - tIn;
+      return [-xDec + v * u - (dec * u * u) / 2, y, z];
+    }
+    if (t < tIn + tDec + dwell) {
+      return [0, y, z];
+    }
+    const u = t - tIn - tDec - dwell;
+    const tAcc = v / acc;
+    return [u < tAcc ? (acc * u * u) / 2 : (acc * tAcc * tAcc) / 2 + v * (u - tAcc), y, z];
+  };
+}
+
+Object.assign(SCENES, {
+  /* A village street at 30 m: the PostAuto at the street's 8.5 m/s, then
+   * cars at the road's 14, a motorbike, a van, and one the other way. */
+  'street-30': scene({
+    title: 'Valley: a street at 30 m (the bus, cars, a motorbike, a van)', group: 'Valley', seconds: 36, lis: standing(0, 0, 0), pass: VALLEY_PASS,
+    paths: [
+      { id: 1, kind: 'bus', ...road(-150, -30, 1.2, 8.5) },
+      { id: 2, kind: 'car', ...road(-230, -32, 0.6, 14, 6) },
+      { id: 3, kind: 'motorbike', ...road(-230, -32, 0.6, 14, 12) },
+      { id: 4, kind: 'van', ...road(-230, -32, 0.8, 14, 18) },
+      { id: 5, kind: 'car', at: (t) => [230 - 14 * (t - 3), 0.6, -28], from: 3 },
+    ],
+  }),
+  /* The PostAuto at its stop 12 m away: in, its 8 s at idle, and away. */
+  'bus-stop': scene({
+    title: 'Valley: the PostAuto stops 12 m away, idles, pulls away', group: 'Valley', seconds: 36, lis: standing(0, 0, 0), pass: VALLEY_PASS,
+    paths: [{ id: 1, kind: 'bus', at: busStop(-12, 1.2, 8.5, 8) }],
+  }),
+  /* The tractor round its field, the listener 12 m outside its edge. */
+  'tractor-field': scene({
+    title: 'Valley: the tractor at work round its field', group: 'Valley', seconds: 30, lis: standing(0, 0, 0), pass: VALLEY_PASS,
+    paths: [{ id: 1, kind: 'tractor', at: (t) => { const a = Math.PI / 2 + (2.4 * t) / 47; return [36 * Math.cos(a), 1, -70 + 58 * Math.sin(a)]; } }],
+  }),
+  /* Under the gondola near its bottom station: cabins up and down every
+   * 26 s (130 m at 5 m/s) 18 m overhead, the drive 60 m off. */
+  gondola: scene({
+    title: 'Valley: under the gondola near its station', group: 'Valley', seconds: 40, lis: standing(0, 0, 0), pass: VALLEY_PASS,
+    paths: [
+      { id: 1, kind: 'liftdrive', at: () => [-60, 3, -10] },
+      ...[0, 1, 2].map((k) => ({ id: 10 + k, kind: 'cabin', at: (t) => [-150 + 130 * k + 5 * t, 18, -3] })),
+      ...[0, 1, 2].map((k) => ({ id: 20 + k, kind: 'cabin', at: (t) => [150 - 130 * k - 5 * t, 18, 3] })),
+    ],
+  }),
+  /* The sailing boat past the shore at 25 m. */
+  'lake-sail': scene({
+    title: 'Valley: the sailing boat past the shore at 25 m', group: 'Valley', seconds: 30, lis: standing(0, 0, 0), pass: [-60, -27],
+    paths: [{ id: 1, kind: 'sailboat', ...road(-36, -25, -1, 2.4) }],
+  }),
+  /*
+   * THE COST SCENE for a busy valley: everything the valley drives at
+   * once (the bus, eight cars on both lanes, the tractor, 30 cabins and
+   * the drive, the boat) within a kilometre.
+   */
+  'valley-busy': (() => {
+    const paths = [{ id: 1, kind: 'bus', ...road(-300, -30, 1.2, 8.5) }];
+    const cars = ['car', 'car', 'van', 'car', 'car', 'motorbike', 'car', 'van'];
+    cars.forEach((kind, k) => {
+      const dir = k % 2 ? -1 : 1;
+      paths.push({ id: 2 + k, kind, at: (t) => [dir * (-400 + 90 * k + 14 * t), 0.6, -30 + 4 * dir] });
+    });
+    paths.push({ id: 20, kind: 'tractor', at: (t) => [200 + 36 * Math.cos((2.4 * t) / 47), 1, 40 + 58 * Math.sin((2.4 * t) / 47)] });
+    paths.push({ id: 30, kind: 'liftdrive', at: () => [-300, 3, 200] });
+    for (let k = 0; k < 30; k += 1) {
+      const up = k % 2 ? 1 : -1;
+      paths.push({ id: 100 + k, kind: 'cabin', at: (t) => [-300 + up * ((65 * k + 5 * t) % 1900), 20 + 0.2 * ((65 * k + 5 * t) % 1900), 200 + 4 * up] });
+    }
+    paths.push({ id: 200, kind: 'sailboat', ...road(-200, -250, -1, 2.4) });
+    return scene({ title: 'Valley: everything that drives (cost)', group: 'Budget', seconds: 18, lis: standing(0, 0, 0), paths, note: 'cost' });
+  })(),
+});
 
 /* The calibration scene for one kind: circling the listener at 16 m and
  * the listener's height, at its cruise, for 6 s. */
