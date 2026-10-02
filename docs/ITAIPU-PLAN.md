@@ -68,6 +68,10 @@ or wrong:
    swiss2's photoreal materials, driven by Sentinel-2 colour and masks.
    Neither existing map does this, and section 14 splits it so each part
    can be built and checked alone.
+   (2026-10-01: Yellowstone was removed, and the engine moved to
+   `src/maps/terrain/`, without Yellowstone's paint or default frame.
+   The `src/maps/yellowstone/terrain/` paths below are as they were when
+   this was written.)
 6. **"The tree clump capability exists."** It does (`sim_tree_add`,
    `sim_tree_clump_add`), but only as the crash world's nearest 32 trees
    within 80 m, and swiss2 gives trees colliders only within 700 m of its
