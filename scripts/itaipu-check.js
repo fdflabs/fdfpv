@@ -25,17 +25,65 @@
  *               the modules it is built from: its own, the terrain engine
  *               (src/maps/terrain/) and swiss2's look;
  *   ground      map.height() under every roof at 200 random hero points,
- *               each with the camera over it, equals the tiles within
+ *               each with the camera over it, equals the tiles (cut to
+ *               the concrete as the page cuts them, terrain/conform.js,
+ *               after tent and hero have read the files) within
  *               0.05 m (the water's surface where the point is on a
  *               body), and the ground under the camera there is drawn at
- *               10 m;
+ *               10 m; and at every hero sample the cut lowered or the
+ *               fill raised, the page's finest ground is the Node's;
  *   water       the reservoir and the river are drawn at 219.0 and
  *               103.5 m, and height() on each body's spawn is its level;
  *   budget      chunk buffers under 24 MB and tiles under 12 MB
  *               (section 13), and the frame's draw calls and triangles
- *               at the spawn and from the air, printed.
+ *               at the spawn and from the air, printed;
+ *   edges       where the ground meets the dam's concrete and the water
+ *               (the owner, 1 October, over the chute's west wall: the
+ *               ground's 10 m triangles poking over the training wall in
+ *               a sawtooth, grey wall showing between them). On the hero
+ *               ground (terrain.finestAt, the 10 m data the engine draws
+ *               within a kilometre of the camera, so no camera is moved):
+ *                 poke     every drawn face the dam lists (survey()
+ *                          faces): along a wall's top edge every
+ *                          EDGE_STEP, where a side of the wall is open
+ *                          (the ground EDGE_OPEN off it under its top),
+ *                          on it and EDGE_OFF toward each open side, and
+ *                          over a top's (a floor's, a crest's, a roof's,
+ *                          not a sloping face's) plan every EDGE_STEP,
+ *                          the ground is at most EDGE_TOL over the
+ *                          concrete;
+ *                 gap      every EDGE_STEP along each body's outline as
+ *                          the map draws it (water/meet.js meetDam and
+ *                          meetBanks, read from the page) over the hero,
+ *                          EDGE_OFF outside it and not under a dam
+ *                          footprint or top (its roof records), the
+ *                          ground is at least the water's level less
+ *                          EDGE_TOL: no sheet's edge hanging over lower
+ *                          ground with the void under it;
+ *                 ragged   along every wall's top edge every metre where
+ *                          it has an open side, the ground at the face is
+ *                          either over the top (hiding it) or under it
+ *                          (showing it); each change from one to the
+ *                          other is a corner of a bare wall triangle
+ *                          between two spikes of ground. A finished
+ *                          junction shows the wall's top as one line, so
+ *                          there are none;
+ *                 void     every EDGE_STEP along each embankment crest
+ *                          edge's lip (its drawn lowest line), the ground
+ *                          at most VOID_TOL under it, or the dam's drawn
+ *                          toe from the lip down to it: no black gap
+ *                          under a road or a fill where an earth dam
+ *                          meets the concrete;
+ *                 buildings the OpenStreetMap buildings the map does not
+ *                          build over the cut (terrain/conform.js
+ *                          offCut), counted, and the same as the rule
+ *                          gives on the Node cut.
  *
- *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/itaipu-check.js
+ *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/itaipu-check.js [--only=edges]
+ *
+ * --only=edges builds the map and runs the edges alone (and the builds
+ * and water rows, which come with the build), for the loop round a
+ * junction change wants; without it every row runs.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -65,9 +113,34 @@ import {
 } from '../src/maps/terrain/frame.js';
 import { ITAIPU_FRAME, RESERVOIR_Y, RIVER_Y } from '../src/maps/itaipu/terrain/frame.js';
 import { insideWater } from '../src/game/water.js';
+import {
+  conformBound, conformTile, fillUnder, offCut,
+} from '../src/maps/itaipu/terrain/conform.js';
+import { embankmentCrests, embankmentSection, junctionRims } from '../src/maps/itaipu/dam/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
+const onlyArg = process.argv.find((a) => a.startsWith('--only='));
+const ONLY_EDGES = onlyArg === '--only=edges';
+if (onlyArg && !ONLY_EDGES) {
+  throw new Error(`itaipu-check: --only takes edges, got ${onlyArg}`);
+}
+
+/* The edges' samples: their spacing, how far off a face or an outline
+ * the ground beside it is read, and how far over the concrete (or under
+ * the water) the ground may be, m: the tiles' encoding step. */
+const EDGE_STEP = 2;
+const EDGE_OFF = 0.5;
+const EDGE_TOL = 0.1;
+/* How far either side of a wall its open side is looked for, m: past the
+ * thickest training wall's 5.5 m. And the least upward part of a top's
+ * normal: the steepest chute floor is 23 degrees (0.92), the steepest
+ * pier top 29 (0.88), the dam's downstream faces 42 and more (0.74). */
+const EDGE_OPEN = 6;
+/* How far under an embankment edge's drawn lip the ground may be, m:
+ * the fill stands 0.3 under its drawn top (terrain/conform.js). */
+const VOID_TOL = 0.5;
+const EDGE_FLAT = 0.8;
 
 /* Section 14's tolerance: the encoding's own half decimetre. */
 const GROUND_TOL = 0.05;
@@ -244,6 +317,337 @@ function heroGround(get, x, z) {
 
 /* ------------------------------------------------------------- Browser */
 
+/* The poke and ragged rows, in the page: per face name, the samples the
+ * ground stands over the concrete at, the worst and where, and the
+ * changes along walls' top edges. */
+const EDGE_FACES = `(() => {
+  const faces = window.__mapScene().userData.itaipu.parts.dam.survey().faces;
+  const t = window.__mapScene().userData.itaipu.terrain;
+  const g = (x, z) => t.finestAt(x, z);
+  const STEP = ${EDGE_STEP}, OFF = ${EDGE_OFF}, TOL = ${EDGE_TOL}, OPEN = ${EDGE_OPEN}, FLAT = ${EDGE_FLAT};
+  const rows = {};
+  const row = (name, kind) => (rows[name + '|' + kind] ||= { name, kind, faces: 0, samples: 0, poke: 0, worst: 0, worstAt: null, ragged: 0, where: {} });
+  const over = (r, x, y, z) => {
+    r.samples += 1;
+    const d = g(x, z) - y;
+    if (d > TOL) {
+      r.poke += 1;
+      const c = Math.round(x / 50) * 50 + ',' + Math.round(z / 50) * 50;
+      r.where[c] = (r.where[c] || 0) + 1;
+    }
+    if (d > r.worst) { r.worst = d; r.worstAt = [+x.toFixed(1), +y.toFixed(1), +z.toFixed(1)]; }
+  };
+  for (const f of faces) {
+    const P = f.pts;
+    if (P.length < 3) continue;
+    const r = row(f.name, f.kind);
+    r.faces += 1;
+    /* The face's normal, from its first three corners. */
+    const u = [P[1][0] - P[0][0], P[1][1] - P[0][1], P[1][2] - P[0][2]];
+    const v = [P[2][0] - P[0][0], P[2][1] - P[0][1], P[2][2] - P[0][2]];
+    const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    const nl = Math.hypot(n[0], n[1], n[2]);
+    if (!(nl > 1e-9)) continue;
+    const flat = Math.hypot(n[0], n[2]) / nl;
+    if (f.kind === 'wall' && flat > 0.5) {
+      /* A wall: its highest edge, sampled on it and either side. */
+      let top = 0, best = -Infinity;
+      for (let i = 0; i < P.length; i += 1) {
+        const m = (P[i][1] + P[(i + 1) % P.length][1]) / 2;
+        if (m > best) { best = m; top = i; }
+      }
+      const A = P[top], B = P[(top + 1) % P.length];
+      const h = [n[0], n[2]];
+      const hl = Math.hypot(h[0], h[1]);
+      const len = Math.hypot(B[0] - A[0], B[2] - A[2]);
+      const k = Math.max(1, Math.round(len / STEP));
+      for (let i = 0; i <= k; i += 1) {
+        const a = i / k;
+        const x = A[0] + (B[0] - A[0]) * a, y = A[1] + (B[1] - A[1]) * a, z = A[2] + (B[2] - A[2]) * a;
+        /* Only where the wall has an open side, the ground under its top
+         * OPEN off it: ground over a wall's top on both sides of it is the
+         * wall buried (a buttress's foot in its abutment), nothing drawn.
+         * On the face, and OFF toward each open side; on a closed side
+         * the ground may rise from the top (the bank behind a training
+         * wall). */
+        const ux = h[0] / hl, uz = h[1] / hl;
+        const plus = g(x + ux * OPEN, z + uz * OPEN) < y - TOL;
+        const minus = g(x - ux * OPEN, z - uz * OPEN) < y - TOL;
+        if (!plus && !minus) continue;
+        over(r, x, y, z);
+        if (plus) over(r, x + ux * OFF, y, z + uz * OFF);
+        if (minus) over(r, x - ux * OFF, y, z - uz * OFF);
+      }
+      /* The ragged line: every metre along the top, over or under it. */
+      const m = Math.max(1, Math.round(len));
+      let was = null;
+      for (let i = 0; i <= m; i += 1) {
+        const a = i / m;
+        const x = A[0] + (B[0] - A[0]) * a, y = A[1] + (B[1] - A[1]) * a, z = A[2] + (B[2] - A[2]) * a;
+        const ux = h[0] / hl, uz = h[1] / hl;
+        const open = Math.min(g(x + ux * OPEN, z + uz * OPEN), g(x - ux * OPEN, z - uz * OPEN)) < y - TOL;
+        const hid = open && g(x, z) > y + TOL;
+        if (was !== null && hid !== was) {
+          r.ragged += 1;
+          const c = Math.round(x / 50) * 50 + ',' + Math.round(z / 50) * 50;
+          r.where[c] = (r.where[c] || 0) + 1;
+        }
+        was = hid;
+      }
+      continue;
+    }
+    /* A top: a crest, a floor, a roof, not a face falling to its foot
+     * (the main dam's downstream face, 42 to 62 degrees, runs into its
+     * abutments under the ground, as a dam's ends do). Its plan, fanned
+     * from its first corner, every STEP. */
+    if (Math.abs(n[1]) / nl < FLAT) continue;
+    for (let i = 1; i + 1 < P.length; i += 1) {
+      const A = P[0], B = P[i], C = P[i + 1];
+      const lb = Math.hypot(B[0] - A[0], B[2] - A[2]), lc = Math.hypot(C[0] - A[0], C[2] - A[2]);
+      const k = Math.max(1, Math.ceil(Math.max(lb, lc) / STEP));
+      for (let p = 0; p <= k; p += 1) {
+        for (let q = 0; p + q <= k; q += 1) {
+          const a = p / k, b = q / k;
+          over(r, A[0] + (B[0] - A[0]) * a + (C[0] - A[0]) * b, A[1] + (B[1] - A[1]) * a + (C[1] - A[1]) * b, A[2] + (B[2] - A[2]) * a + (C[2] - A[2]) * b);
+        }
+      }
+    }
+  }
+  return Object.values(rows);
+})()`;
+
+/* The gap row's points, in Node: every EDGE_STEP along each body's
+ * outline as drawn, EDGE_OFF outside it, over the hero, less those under
+ * a dam footprint (the concrete stands over the water's edge there,
+ * meet.js) or in the other body. The outlines were traced on the hero's
+ * 10 m ground; past it the ring is drawn at 30 m and coarser, a
+ * kilometre and more from anywhere the craft can stand. */
+function gapPoints(bodies, dam, hero) {
+  const lakes = bodies.map((b) => ({ kind: 'lake', outline: b.outline.map(([x, z]) => ({ x, z })) }));
+  const feet = dam.filter((p) => (p.footprint || []).length > 2)
+    .map((p) => ({ kind: 'lake', outline: p.footprint.map(([x, z]) => ({ x, z })) }));
+  const out = [];
+  bodies.forEach((b, k) => {
+    const o = b.outline;
+    for (let i = 0; i < o.length; i += 1) {
+      const [ax, az] = o[i];
+      const [bx, bz] = o[(i + 1) % o.length];
+      const len = Math.hypot(bx - ax, bz - az);
+      if (!(len > 0)) {
+        continue;
+      }
+      const nx = (bz - az) / len;
+      const nz = -(bx - ax) / len;
+      for (let t = EDGE_STEP / 2; t < len; t += EDGE_STEP) {
+        const px = ax + ((bx - ax) * t) / len;
+        const pz = az + ((bz - az) * t) / len;
+        /* Out is the side the body is not on. */
+        const s = insideWater(lakes[k], px + nx * EDGE_OFF, pz + nz * EDGE_OFF) ? -1 : 1;
+        const x = px + s * nx * EDGE_OFF;
+        const z = pz + s * nz * EDGE_OFF;
+        if (Math.abs(x) > hero || Math.abs(z) > hero || insideWater(lakes[k], x, z) || lakes.some((l, j) => j !== k && insideWater(l, x, z))
+          || feet.some((f) => insideWater(f, x, z))) {
+          continue;
+        }
+        out.push([b.name, b.y, +x.toFixed(2), +z.toFixed(2)]);
+      }
+    }
+  });
+  return out;
+}
+
+/* The edges rows, printed and failed. */
+async function edgesCheck(page, dam, hero, buildings, cutHero) {
+  const faces = JSON.parse(await page.evaluate(`JSON.stringify(${EDGE_FACES})`));
+  let poke = 0;
+  let ragged = 0;
+  let samples = 0;
+  console.log(`edges: ground against the dam's ${faces.reduce((n, r) => n + r.faces, 0)} drawn faces, `
+    + `every ${EDGE_STEP} m, tolerance ${EDGE_TOL} m:`);
+  for (const r of faces.sort((a, b) => b.poke + b.ragged - a.poke - a.ragged)) {
+    poke += r.poke;
+    ragged += r.ragged;
+    samples += r.samples;
+    if (r.poke || r.ragged) {
+      console.log(`  BAD  ${r.kind} ${r.name} (${r.faces} faces): ${r.poke} of ${r.samples} samples under the ground, `
+        + `worst ${r.worst.toFixed(2)} m at ${JSON.stringify(r.worstAt)}${r.kind === 'wall' ? `, ${r.ragged} ragged` : ''}`);
+      const where = Object.entries(r.where).sort((a, b) => b[1] - a[1]);
+      console.log(`         where (x,z to 50 m: samples): ${where.slice(0, 6).map(([c, k]) => `${c}: ${k}`).join('; ')}${where.length > 6 ? `; ${where.length - 6} more` : ''}`);
+    }
+  }
+  console.log(`  poke: ${poke} of ${samples} samples; ragged: ${ragged} changes along the walls' tops`);
+  if (poke) {
+    fail(`edges: the ground stands more than ${EDGE_TOL} m over the dam's concrete at ${poke} samples`);
+  }
+  if (ragged) {
+    fail(`edges: the ground's line along the walls' tops changes side ${ragged} times`);
+  }
+  const drawn = JSON.parse(await page.evaluate('JSON.stringify(window.__mapScene().userData.itaipu.water)'));
+  const pts = gapPoints(drawn, dam, hero);
+  /* Per point the ground, and the highest of the dam's tops over it (its
+   * roof records, as alps/roofs.js roofTop reads them), or null: water
+   * whose edge runs under a crest or a floor is hidden by it. */
+  const got = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+    const t = window.__mapScene().userData.itaipu.terrain;
+    const recs = window.__mapScene().userData.itaipu.parts.dam.survey().records;
+    const CELL = 50;
+    const grid = new Map();
+    const inside = (P, x, z) => {
+      let sign = 0;
+      for (let i = 0; i < P.length; i += 1) {
+        const a = P[i], b = P[(i + 1) % P.length];
+        const c = (b[0] - a[0]) * (z - a[1]) - (b[1] - a[1]) * (x - a[0]);
+        if (c !== 0) {
+          if (sign && Math.sign(c) !== sign) return false;
+          sign = Math.sign(c);
+        }
+      }
+      return true;
+    };
+    for (const r of recs) {
+      for (const f of r.faces) {
+        const w = f.pts.map(([lx, lz]) => [r.tx + r.c * lx + r.s * lz, r.tz - r.s * lx + r.c * lz]);
+        const xs = w.map((p) => p[0]), zs = w.map((p) => p[1]);
+        for (let a = Math.floor(Math.min(...xs) / CELL); a <= Math.floor(Math.max(...xs) / CELL); a += 1) {
+          for (let b = Math.floor(Math.min(...zs) / CELL); b <= Math.floor(Math.max(...zs) / CELL); b += 1) {
+            const k = a + ',' + b;
+            if (!grid.has(k)) grid.set(k, []);
+            grid.get(k).push([r, f]);
+          }
+        }
+      }
+    }
+    const top = (x, z) => {
+      let best = null;
+      for (const [r, f] of grid.get(Math.floor(x / CELL) + ',' + Math.floor(z / CELL)) || []) {
+        const dx = x - r.tx, dz = z - r.tz;
+        const lx = r.c * dx - r.s * dz, lz = r.s * dx + r.c * dz;
+        if (!inside(f.pts, lx, lz)) continue;
+        const y = r.lift + r.ty + f.a * lx + f.b * lz + f.d;
+        if (best === null || y > best) best = y;
+      }
+      return best;
+    };
+    return ${JSON.stringify(pts.map(([, , x, z]) => [x, z]))}.map(([x, z]) => [t.finestAt(x, z), top(x, z)]);
+  })())`));
+  const byBody = {};
+  let covered = 0;
+  pts.forEach(([name, y, x, z], k) => {
+    const [ground, roof] = got[k];
+    if (roof !== null && roof >= y - EDGE_TOL) {
+      covered += 1;
+      return;
+    }
+    const b = (byBody[name] ||= { n: 0, gap: 0, worst: 0, worstAt: null });
+    b.n += 1;
+    const d = y - ground;
+    if (d > EDGE_TOL) {
+      b.gap += 1;
+    }
+    if (d > b.worst) {
+      b.worst = d;
+      b.worstAt = [x, z];
+    }
+  });
+  let gaps = 0;
+  console.log(`  gap: ${covered} points under the dam's tops, left out`);
+  for (const [name, b] of Object.entries(byBody)) {
+    gaps += b.gap;
+    console.log(`  ${b.gap ? 'BAD ' : 'ok  '} gap ${name}: ${b.gap} of ${b.n} points outside its edge under its level, `
+      + `worst ${b.worst.toFixed(2)} m${b.worstAt ? ` at ${JSON.stringify(b.worstAt)}` : ''}`);
+  }
+  if (gaps) {
+    fail(`edges: ${gaps} points just outside the water's edge lie more than ${EDGE_TOL} m under its level`);
+  }
+
+  /* The void under a fill: the ground under each embankment edge's lip,
+   * its drawn lowest line. */
+  const lips = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+    const t = window.__mapScene().userData.itaipu.terrain;
+    const all = window.__mapScene().userData.itaipu.parts.dam.survey().records;
+    const recs = all.filter((r) => / edge$/.test(r.kind || ''));
+    /* The concrete's tops: a lip over a pier is over concrete, not a void. */
+    const concrete = all.filter((r) => !/ (edge|crest)$/.test(r.kind || ''));
+    const over = (x, y, z) => concrete.some((r) => r.faces.some((f) => {
+      const dx = x - r.tx, dz = z - r.tz;
+      const lx = r.c * dx - r.s * dz, lz = r.s * dx + r.c * dz;
+      let sign = 0;
+      for (let i = 0; i < f.pts.length; i += 1) {
+        const a = f.pts[i], b = f.pts[(i + 1) % f.pts.length];
+        const c = (b[0] - a[0]) * (lz - a[1]) - (b[1] - a[1]) * (lx - a[0]);
+        if (c !== 0) {
+          if (sign && Math.sign(c) !== sign) return false;
+          sign = Math.sign(c);
+        }
+      }
+      return r.lift + r.ty + f.a * lx + f.b * lz + f.d >= y - ${VOID_TOL};
+    }));
+    /* The toes the dam draws under a lip over lower ground (dam/index.js):
+     * a lip point over one reaching down to the ground is closed. */
+    const toes = window.__mapScene().userData.itaipu.parts.dam.survey().toes;
+    const t0 = window.__mapScene().userData.itaipu.terrain;
+    const toeAt = (x, z) => toes.some(({ pts: [A, B, C] }) => {
+      const ex = B[0] - A[0], ez = B[2] - A[2];
+      const l2 = ex * ex + ez * ez;
+      const t = Math.max(0, Math.min(1, ((x - A[0]) * ex + (z - A[2]) * ez) / l2));
+      return Math.hypot(x - A[0] - ex * t, z - A[2] - ez * t) < 0.3 && C[1] <= t0.finestAt(C[0], C[2]) + 0.1;
+    });
+    const out = { n: 0, bad: 0, covered: 0, toed: 0, toes: toes.length, worst: 0, worstAt: null, where: {}, pts: [] };
+    for (const r of recs) {
+      const w = [];
+      for (const f of r.faces) {
+        for (const [lx, lz] of f.pts) {
+          w.push([r.tx + r.c * lx + r.s * lz, r.lift + r.ty + f.a * lx + f.b * lz + f.d, r.tz - r.s * lx + r.c * lz]);
+        }
+      }
+      const low = Math.min(...w.map((p) => p[1]));
+      const lip = w.filter((p) => p[1] < low + 0.01);
+      const [A, B] = [lip[0], lip.reduce((m, p) => (Math.hypot(p[0] - lip[0][0], p[2] - lip[0][2]) > Math.hypot(m[0] - lip[0][0], m[2] - lip[0][2]) ? p : m), lip[0])];
+      const len = Math.hypot(B[0] - A[0], B[2] - A[2]);
+      const k = Math.max(1, Math.round(len / ${EDGE_STEP}));
+      for (let i = 0; i <= k; i += 1) {
+        const x = A[0] + ((B[0] - A[0]) * i) / k, y = A[1] + ((B[1] - A[1]) * i) / k, z = A[2] + ((B[2] - A[2]) * i) / k;
+        if (over(x, y, z)) {
+          out.covered += 1;
+          continue;
+        }
+        const g = t.finestAt(x, z);
+        const d = y - g;
+        out.n += 1;
+        if (d > ${VOID_TOL} && toeAt(x, z)) {
+          out.toed += 1;
+          continue;
+        }
+        if (d > ${VOID_TOL}) {
+          out.bad += 1;
+          if (out.pts.length < 12) out.pts.push([+x.toFixed(1), +z.toFixed(1), +d.toFixed(1)]);
+          const c = Math.round(x / 50) * 50 + ',' + Math.round(z / 50) * 50;
+          out.where[c] = (out.where[c] || 0) + 1;
+        }
+        if (d > out.worst) { out.worst = d; out.worstAt = [+x.toFixed(1), +y.toFixed(1), +z.toFixed(1)]; }
+      }
+    }
+    return out;
+  })())`));
+  const lipWhere = Object.entries(lips.where).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([c, k]) => `${c}: ${k}`).join('; ');
+  console.log(`  ${lips.bad ? 'BAD ' : 'ok  '} void: ${lips.bad} of ${lips.n} points under the embankments' crest edges' lips (${lips.covered} over the concrete, left out; ${lips.toed} closed by the dam's ${lips.toes} drawn toes) with the ground more than ${VOID_TOL} m under them and no toe, `
+    + `worst ${lips.worst.toFixed(2)} m${lips.worstAt ? ` at ${JSON.stringify(lips.worstAt)}` : ''}${lipWhere ? `; where ${lipWhere}` : ''}`);
+  if (lips.bad) {
+    console.log(`         the first, [x, z, metres]: ${JSON.stringify(lips.pts)}`);
+    fail(`edges: the ground stands more than ${VOID_TOL} m under an embankment's drawn crest edge at ${lips.bad} points`);
+  }
+
+  /* The buildings over the cut: the page's dropped set is the rule's on
+   * the Node cut, and none of them is drawn. */
+  const dropped = JSON.parse(await page.evaluate('JSON.stringify(window.__mapScene().userData.itaipu.offCut)'));
+  const want = offCut(buildings, cutHero).dropped.map((f) => f.id);
+  const same = dropped.length === want.length && want.every((id) => dropped.includes(id));
+  console.log(`  ${same ? 'ok  ' : 'BAD '} buildings over the cut, not built: ${dropped.length} (${dropped.join(' ') || 'none'}), the rule on the Node cut ${want.length}`);
+  if (!same) {
+    fail(`edges: the page dropped ${JSON.stringify(dropped)} over the cut, the rule says ${JSON.stringify(want)}`);
+  }
+}
+
 /* A module URL's place in the tree, or null for anything not a module. */
 function moduleOf(url) {
   const m = /\/src\/(.*\.js)$/.exec(new URL(url).pathname);
@@ -258,8 +662,24 @@ const MAY_FETCH = [/^maps\/itaipu(\.js|\/)/, /^maps\/terrain\//, /^maps\/swiss2\
 async function main() {
   const manifest = JSON.parse(await readFile(join(DATA, 'manifest.json'), 'utf8'));
   const water = JSON.parse(await readFile(join(DATA, 'water.json'), 'utf8'));
+  const dam = JSON.parse(await readFile(join(DATA, 'dam.json'), 'utf8'));
   const tiles = await readTiles(manifest);
   const get = nodeChecks(manifest, tiles);
+  /* The ground the page draws is the files cut to the concrete
+   * (terrain/conform.js): the same cut here, after the file checks. */
+  const buildings = JSON.parse(await readFile(join(DATA, 'osm', 'buildings.json'), 'utf8')).features;
+  const shape = { bound: conformBound(junctionRims(dam), embankmentCrests(dam)), fill: fillUnder(embankmentSection(dam)) };
+  let cut = 0;
+  let raised = 0;
+  const cutHero = [];
+  const raisedHero = [];
+  for (const [key, data] of tiles) {
+    const [level, i, j] = key.split(':').map(Number);
+    const n = conformTile(level, i, j, data, ITAIPU_FRAME.half, shape, cutHero, raisedHero);
+    cut += n.cut;
+    raised += n.raised;
+  }
+  console.log(`conform: ${cut} samples cut to the concrete's rims, ${cutHero.length} of them the hero's; ${raised} filled under the embankments' crests`);
 
   const page = await openPage({
     root,
@@ -349,85 +769,102 @@ async function main() {
       }
     }
 
-    /* The ground: clusters of points round camera placements over the
-     * whole hero, each settled before it is read. */
-    let s = 20260929;
-    const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
-    const lakes = water.map((b) => ({ kind: 'lake', surfaceY: b.y, outline: b.outline.map(([x, z]) => ({ x, z })) }));
-    const hero = manifest.frame.hero;
-    let worst = 0;
-    let worstAt = null;
-    let notHero = 0;
-    let onWater = 0;
-    let n = 0;
-    for (let c = 0; c < GROUND_POINTS / CLUSTER; c += 1) {
-      const cx = hero[0] + CLUSTER_R + rnd() * (hero[1] - hero[0] - 2 * CLUSTER_R);
-      const cz = hero[0] + CLUSTER_R + rnd() * (hero[1] - hero[0] - 2 * CLUSTER_R);
-      const pts = [];
-      for (let k = 0; k < CLUSTER; k += 1) {
-        pts.push([cx + (rnd() * 2 - 1) * CLUSTER_R, cz + (rnd() * 2 - 1) * CLUSTER_R]);
-      }
-      const gy = heroGround(get, cx, cz);
-      await page.evaluate(`window.__setCam(${cx}, ${gy + 120}, ${cz}, ${cx + 1}, ${gy}, ${cz + 1})`);
-      await settle(page);
-      /* The bare ground: height() asked from far below every roof record
-       * (src/maps/alps/roofs.js offers a roof only within a step of the
-       * height it is asked from), so a point under a building's roof, the
-       * dam's crest or a bridge deck reads the terrain and the water the
-       * tiles hold, not the roof over it. */
-      const got = JSON.parse(await page.evaluate(`JSON.stringify(${JSON.stringify(pts)}.map(([x, z]) => {
-        const t = window.__mapScene().userData.itaipu.terrain;
-        const leaf = t.leafAt(x, z);
-        return [window.__surface(x, z, -1e9), leaf ? leaf.level : null];
-      }))`));
-      pts.forEach(([x, z], k) => {
-        let want = heroGround(get, x, z);
-        const lake = lakes.find((l) => l.surfaceY > want && insideWater(l, x, z));
-        if (lake) {
-          want = lake.surfaceY;
-          onWater += 1;
-        }
-        const d = Math.abs(got[k][0] - want);
-        n += 1;
-        if (d > worst) {
-          worst = d;
-          worstAt = { x, z, want, got: got[k][0], level: got[k][1] };
-        }
-        if (got[k][1] !== HERO) {
-          notHero += 1;
-        }
-      });
-    }
-    console.log(`ground: ${n} hero points in ${GROUND_POINTS / CLUSTER} camera placements, ${onWater} on the water, `
-      + `worst |height() - tiles| ${worst.toFixed(4)} m (tolerance ${GROUND_TOL}), ${notHero} not drawn at 10 m`);
-    if (worst > GROUND_TOL) {
-      fail(`height() off the tiles by ${worst} m at ${JSON.stringify(worstAt)}`);
-    }
-    if (notHero) {
-      fail(`${notHero} of ${n} hero points under the camera not drawn at 10 m`);
-    }
+    await edgesCheck(page, dam, manifest.frame.hero[1], buildings, cutHero);
 
-    /* Budgets, and the frame at two places. */
-    for (const [label, cam] of [
-      ['spawn, eye height, toward the crest', [m.spawn.x, m.spawn.y + 1.7, m.spawn.z, 59, 200, -1672]],
-      ['air, 400 m over the reservoir', [1500, 619, -4200, 59, 225, -1672]],
-    ]) {
-      await page.evaluate(`window.__setCam(${cam.join(',')})`);
-      await settle(page);
-      const st = JSON.parse(await page.evaluate('JSON.stringify(window.__map().terrain)'));
-      const rs = JSON.parse(await page.evaluate('JSON.stringify(window.__renderStats())'));
-      console.log(`${label}: whole frame ${rs.calls} calls ${rs.triangles} tris; terrain ${st.leaves} leaves `
-        + `${JSON.stringify(st.perLevel)} ${st.leafTriangles} tris; chunks ${st.meshes} built `
-        + `${(st.gpuBytes / 1e6).toFixed(1)} MB; tiles ${st.tiles.tiles} ${(st.tiles.bytes / 1e6).toFixed(2)} MB, `
-        + `${st.tiles.fetched} fetched, ${st.tiles.evicted} evicted, ${st.tiles.failed} failed`);
-      if (st.gpuBytes > BUDGET.chunkBytes) {
-        fail(`${label}: chunk buffers ${st.gpuBytes} bytes, budget ${BUDGET.chunkBytes}`);
+    if (!ONLY_EDGES) {
+      /* The ground: clusters of points round camera placements over the
+       * whole hero, each settled before it is read. */
+      let s = 20260929;
+      const rnd = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+      const lakes = water.map((b) => ({ kind: 'lake', surfaceY: b.y, outline: b.outline.map(([x, z]) => ({ x, z })) }));
+      const hero = manifest.frame.hero;
+      let worst = 0;
+      let worstAt = null;
+      let notHero = 0;
+      let onWater = 0;
+      let n = 0;
+      for (let c = 0; c < GROUND_POINTS / CLUSTER; c += 1) {
+        const cx = hero[0] + CLUSTER_R + rnd() * (hero[1] - hero[0] - 2 * CLUSTER_R);
+        const cz = hero[0] + CLUSTER_R + rnd() * (hero[1] - hero[0] - 2 * CLUSTER_R);
+        const pts = [];
+        for (let k = 0; k < CLUSTER; k += 1) {
+          pts.push([cx + (rnd() * 2 - 1) * CLUSTER_R, cz + (rnd() * 2 - 1) * CLUSTER_R]);
+        }
+        const gy = heroGround(get, cx, cz);
+        await page.evaluate(`window.__setCam(${cx}, ${gy + 120}, ${cz}, ${cx + 1}, ${gy}, ${cz + 1})`);
+        await settle(page);
+        /* The bare ground: height() asked from far below every roof record
+         * (src/maps/alps/roofs.js offers a roof only within a step of the
+         * height it is asked from), so a point under a building's roof, the
+         * dam's crest or a bridge deck reads the terrain and the water the
+         * tiles hold, not the roof over it. */
+        const got = JSON.parse(await page.evaluate(`JSON.stringify(${JSON.stringify(pts)}.map(([x, z]) => {
+          const t = window.__mapScene().userData.itaipu.terrain;
+          const leaf = t.leafAt(x, z);
+          return [window.__surface(x, z, -1e9), leaf ? leaf.level : null];
+        }))`));
+        pts.forEach(([x, z], k) => {
+          let want = heroGround(get, x, z);
+          const lake = lakes.find((l) => l.surfaceY > want && insideWater(l, x, z));
+          if (lake) {
+            want = lake.surfaceY;
+            onWater += 1;
+          }
+          const d = Math.abs(got[k][0] - want);
+          n += 1;
+          if (d > worst) {
+            worst = d;
+            worstAt = { x, z, want, got: got[k][0], level: got[k][1] };
+          }
+          if (got[k][1] !== HERO) {
+            notHero += 1;
+          }
+        });
       }
-      if (st.tiles.bytes > BUDGET.tileBytes) {
-        fail(`${label}: tiles ${st.tiles.bytes} bytes, budget ${BUDGET.tileBytes}`);
+      console.log(`ground: ${n} hero points in ${GROUND_POINTS / CLUSTER} camera placements, ${onWater} on the water, `
+        + `worst |height() - tiles| ${worst.toFixed(4)} m (tolerance ${GROUND_TOL}), ${notHero} not drawn at 10 m`);
+      if (worst > GROUND_TOL) {
+        fail(`height() off the tiles by ${worst} m at ${JSON.stringify(worstAt)}`);
       }
-      if (st.tiles.evicted || st.tiles.failed) {
-        fail(`${label}: ${st.tiles.evicted} tiles evicted and ${st.tiles.failed} failed; the whole pyramid is meant to stay`);
+      if (notHero) {
+        fail(`${notHero} of ${n} hero points under the camera not drawn at 10 m`);
+      }
+      /* And every hero sample the cut lowered or the fill raised, where
+       * the random points seldom fall: the page's finest ground there is
+       * the Node's. */
+      const changed = [...cutHero, ...raisedHero];
+      const cutGot = JSON.parse(await page.evaluate(`JSON.stringify(${JSON.stringify(changed)}.map(([x, z]) => window.__mapScene().userData.itaipu.terrain.finestAt(x, z)))`));
+      let cutWorst = 0;
+      changed.forEach(([x, z], k) => {
+        cutWorst = Math.max(cutWorst, Math.abs(cutGot[k] - heroGround(get, x, z)));
+      });
+      console.log(`ground: the ${changed.length} hero samples cut or filled, worst |page - Node| ${cutWorst.toFixed(4)} m`);
+      if (!(cutWorst <= GROUND_TOL)) {
+        fail(`the page's cut ground is off the Node cut's by ${cutWorst} m`);
+      }
+
+      /* Budgets, and the frame at two places. */
+      for (const [label, cam] of [
+        ['spawn, eye height, toward the crest', [m.spawn.x, m.spawn.y + 1.7, m.spawn.z, 59, 200, -1672]],
+        ['air, 400 m over the reservoir', [1500, 619, -4200, 59, 225, -1672]],
+      ]) {
+        await page.evaluate(`window.__setCam(${cam.join(',')})`);
+        await settle(page);
+        const st = JSON.parse(await page.evaluate('JSON.stringify(window.__map().terrain)'));
+        const rs = JSON.parse(await page.evaluate('JSON.stringify(window.__renderStats())'));
+        console.log(`${label}: whole frame ${rs.calls} calls ${rs.triangles} tris; terrain ${st.leaves} leaves `
+          + `${JSON.stringify(st.perLevel)} ${st.leafTriangles} tris; chunks ${st.meshes} built `
+          + `${(st.gpuBytes / 1e6).toFixed(1)} MB; tiles ${st.tiles.tiles} ${(st.tiles.bytes / 1e6).toFixed(2)} MB, `
+          + `${st.tiles.fetched} fetched, ${st.tiles.evicted} evicted, ${st.tiles.failed} failed`);
+        if (st.gpuBytes > BUDGET.chunkBytes) {
+          fail(`${label}: chunk buffers ${st.gpuBytes} bytes, budget ${BUDGET.chunkBytes}`);
+        }
+        if (st.tiles.bytes > BUDGET.tileBytes) {
+          fail(`${label}: tiles ${st.tiles.bytes} bytes, budget ${BUDGET.tileBytes}`);
+        }
+        if (st.tiles.evicted || st.tiles.failed) {
+          fail(`${label}: ${st.tiles.evicted} tiles evicted and ${st.tiles.failed} failed; the whole pyramid is meant to stay`);
+        }
       }
     }
     const heap = await page.evaluate('performance.memory ? performance.memory.usedJSHeapSize : 0');

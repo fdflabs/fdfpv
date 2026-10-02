@@ -39,6 +39,7 @@ import { Terrain } from '../../terrain/engine.js';
 import { tileKey } from '../../terrain/tiles.js';
 import { HERO } from '../../terrain/frame.js';
 import { ITAIPU_FRAME } from './frame.js';
+import { conformTile } from './conform.js';
 
 /*
  * The engine's budgets per preset:
@@ -86,10 +87,13 @@ function listed(manifest) {
 
 /*
  * Build the terrain. `spawn` and `eye` are THREE.Vector3s the first
- * selection is made from; `progress(f)` in [0, 1].
+ * selection is made from; `shape` conform.js's { bound, fill }, the
+ * heights the ground is held under and over, applied to every tile
+ * before a chunk is built from it, the hero samples it lowered left in
+ * terrain.cut as [x, z]; `progress(f)` in [0, 1].
  */
 export async function buildTerrain({
-  base, manifest, material, scene, quality, spawn, eye, progress,
+  base, manifest, material, scene, quality, spawn, eye, shape, progress,
 }) {
   const terrain = new Terrain({
     base, manifest, material, scene, quality, frame: ITAIPU_FRAME,
@@ -114,6 +118,13 @@ export async function buildTerrain({
     const [first] = store.failed.values();
     throw new Error(`itaipu: ${store.failed.size} terrain tile(s) failed to load, first: ${first}`);
   }
+  /* The hero samples the cut lowered (one listed twice where two tiles
+   * share it): the planting keeps off them (terrain.cut). */
+  const cut = [];
+  for (const [level, i, j] of all) {
+    conformTile(level, i, j, store.get(level, i, j), ITAIPU_FRAME.half, shape, cut);
+  }
+  terrain.cut = cut;
   await terrain.load(spawn, eye, (f) => progress(0.7 + 0.3 * f));
   return terrain;
 }
