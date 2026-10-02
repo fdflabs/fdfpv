@@ -666,6 +666,11 @@ function photoStyle() {
           sweep(fromMs, toMs);
           lake.sweepSolids(fromMs, toMs);
         };
+        const heard = map.audioSources;
+        map.audioSources = (add) => {
+          heard(add);
+          lake.audioSources(add, 400);
+        };
       }
       /* The flown aircraft in the valley's materials, for as long as the
        * valley is seated; the cel craft comes back before the world goes. */
