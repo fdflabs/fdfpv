@@ -140,9 +140,8 @@ const AIRS = {
   },
   golden: {
     ...AIR,
-    haze: new THREE.Color().setRGB(0.21, 0.21, 0.25, THREE.LinearSRGBColorSpace),
-    beta: VALLEY_AIR.beta.clone().multiplyScalar(1.2),
-    mie: 0.9,
+    haze: new THREE.Color().setRGB(0.1, 0.13, 0.21, THREE.LinearSRGBColorSpace),
+    mie: 0.55,
   },
   night: AIR_NIGHT,
 };
@@ -162,7 +161,7 @@ const ZENITHS = {
   day: ZENITH,
   morning: new THREE.Color().setRGB(0.04, 0.16, 0.48, THREE.LinearSRGBColorSpace),
   noon: ZENITH,
-  golden: new THREE.Color().setRGB(0.025, 0.07, 0.21, THREE.LinearSRGBColorSpace),
+  golden: new THREE.Color().setRGB(0.02, 0.07, 0.26, THREE.LinearSRGBColorSpace),
   night: new THREE.Color().setRGB(0.006, 0.012, 0.03, THREE.LinearSRGBColorSpace),
 };
 /* How fast the zenith gives way to the haze going down: the haze's share
@@ -181,63 +180,72 @@ const STAR_SCALE = 240.0;
 const STAR_CHANCE = 0.9935;
 
 /*
- * The cumulus, fair weather cells with flat grey bases and sunlit domes.
+ * The cumulus: scattered fair weather cells, soft edged, with sunlit
+ * tops and grey bases shaded by the cell itself.
  *
- * Round 2's deck was one flat sheet of noise CLOUD_SIZE across: from
- * under it every cloud was a ragged streak the same size as every other,
- * spread evenly over the sky, where the photographs (dam-downstream-2,
- * canyon, powerlines, river-below) have fewer, bigger cells in groups,
- * each a flat base under a heaped top. Two things make that here:
+ * Round 2's deck was one flat sheet of noise: from under it every cloud
+ * was a ragged streak the same size as every other, spread evenly. Round
+ * 4's first try drew each cell as a hard height field, which read as cut
+ * outs with bright rims and vertical streaks. So the cells are a volume:
  *
- *   THE FIELD. The noise that draws the cells (skyFbm, mean 0.48,
- *   deviation 0.12, domain warped so the edges curl) is raised and
- *   lowered by a second, CLOUD_GROUP across, so cells crowd together in
- *   some parts of the sky and leave others clear. A cell is where the sum
- *   is over CLOUD_EDGE's first value, solid from its second.
+ *   THE FIELD. The noise that places the cells (skyFbm, mean 0.48,
+ *   deviation 0.12, domain warped so the edges curl), CLOUD_SIZE across,
+ *   is raised and lowered by a second, CLOUD_GROUP across, so cells
+ *   crowd in some parts of the sky and leave others clear.
  *
- *   THE DOME. Each cell is a height field over the base at CLOUD_BASE:
- *   its top stands CLOUD_DEPTH over the base where the field is well
- *   over the edge, falling to nothing at the edge. A ray from under the
- *   deck that meets a cell at the base sees the base; one that slips
- *   past the base is marched up through the slab, CLOUD_STEPS steps over
- *   at most CLOUD_SPAN metres of ground, each pixel's steps offset by a
- *   fraction of a step (what a step skips is then a fine dither, where
- *   eight even steps drew horizontal bands across every cell), and the
- *   hit refined by halving between the last two steps. So a cell toward
- *   the horizon shows its side and heaped top over its base, as a
- *   cumulus does, and one overhead shows its base. The top is not the
- *   field itself, which drew snowy peaks, but a gentle dome over the
- *   field's rise, its surface a lattice of spheres CLOUD_PUFF metres
- *   apart (cloudPuff): a cumulus is heaped billows.
+ *   THE SLAB. Between CLOUD_BASE and CLOUD_DEPTH over it, the density at
+ *   a point is how far the field stands over an edge that rises with the
+ *   height (CLOUD_EDGE at the base, CLOUD_TAPER more at the top), over a
+ *   soft band CLOUD_SOFT wide: each cell is a dome, wide at its flat
+ *   base, round at its top, thin and translucent at its rim.
  *
- *   THE COST. The march is the backdrop's dearest part, so the backdrop
- *   is drawn last of the opaque things (only where nothing else is), and
- *   the water's mirror, which shows the sky through ripples and blurs it
- *   past a few hundred metres, sees the bases only.
+ *   THE MARCH. A ray from under the deck takes CLOUD_STEPS samples across
+ *   the slab, over at most CLOUD_SPAN metres of ground, each pixel's
+ *   samples offset by its own fraction of a step so what a step skips is
+ *   a fine dither, and adds each sample's light by how much of the ray
+ *   it stops (CLOUD_SIGMA per metre at full density), in front of what
+ *   it has already gathered. There are no surfaces, so no rims.
  *
- * The light, as shares of the sun's irradiance: a base is lit by the
- * sky and what comes through the cell, CLOUD_SHADE, darker the thicker
- * the cell; a side or top is CLOUD_LIT where it faces the sun, and as
- * little as CLOUD_SELF of that where more of the cell stands between it
- * and the sun (the field sampled CLOUD_PROBE metres toward the sun: a
- * thicker cell that way is a shaded face), each billow lit by its own
- * sphere's normal. A thin edge toward the sun glows. The air takes a cloud over CLOUD_FADE metres. A camera over the
- * deck sees none: every view and course is under it.
+ *   THE LIGHT, as shares of the sun's irradiance. Each sample is lit by
+ *   the sun through the cell toward the sun (the density CLOUD_PROBE
+ *   metres up the sun's ray, Beer's law at CLOUD_SHADOW), CLOUD_LIT at
+ *   most, more the higher in the cell (a base is in its own shade, a top
+ *   in the open), plus the sky's own light, more at the top than the
+ *   base, and a forward glow round the sun. So the bases are grey, the
+ *   tops white and a thin edge toward the sun glows. The air takes a
+ *   cloud over CLOUD_FADE metres. A camera over the deck sees none:
+ *   every view and course is under it.
+ *
+ *   THE SKY IS A CUBE. The march is too dear to run for every sky pixel
+ *   of every frame (28 steps over a frame half sky cost 2 to 3 ms, and
+ *   a per pixel dither of its steps showed as a fine hatching). So the
+ *   whole sky, clouds and all, is marched into a cube round the camera,
+ *   SKY_CUBE_PX a side, one face a frame, the face drawn longest ago, and
+ *   all six at once when there is no cube yet or the camera has jumped
+ *   SKY_CUBE_CUT metres; the backdrop reads the cube with five taps a
+ *   texel apart, which averages the dither away. The clouds are 1.6 km
+ *   up and more, so the six frames a face may be behind the camera are a
+ *   fraction of a degree of parallax even at a plane's speed. The disc
+ *   is drawn by the backdrop itself, not the cube. The backdrop is drawn
+ *   last of the opaque things, only where nothing else is.
  */
 const CLOUD_BASE = 1600;
-const CLOUD_SIZE = 1500;
-const CLOUD_GROUP = 9000;
-const CLOUD_GROUP_W = 0.32;
-const CLOUD_EDGE = [0.64, 0.72];
-const CLOUD_DEPTH = 900;
-const CLOUD_STEPS = 24;
-const CLOUD_SPAN = 5000;
+const CLOUD_SIZE = 850;
+const CLOUD_GROUP = 7000;
+const CLOUD_GROUP_W = 0.3;
+const CLOUD_EDGE = 0.6;
+const CLOUD_TAPER = 0.16;
+const CLOUD_SOFT = 0.07;
+const CLOUD_BILLOW = 260;
+const CLOUD_ERODE = 0.09;
+const CLOUD_DEPTH = 800;
+const CLOUD_STEPS = 40;
+const CLOUD_SPAN = 4000;
+const CLOUD_SIGMA = 0.02;
 const CLOUD_FADE = 9000;
-const CLOUD_LIT = 0.23;
-const CLOUD_SELF = 0.45;
-const CLOUD_PROBE = 220;
-const CLOUD_PUFF = 240;
-const CLOUD_SHADE = 0.07;
+const CLOUD_LIT = 0.3;
+const CLOUD_PROBE = 160;
+const CLOUD_SHADOW = 2.2;
 
 /* The towns' glow at night (look/night.js hands the levels over): the
  * light of every lit town district (src/share/war/grid.js, its seed and
@@ -253,20 +261,25 @@ const CITY_GLOW = new THREE.Color(1.0, 0.56, 0.26);
 /* A point over the dam the environment is drawn from, and its size. */
 const ENV_AT = new THREE.Vector3(0, 400, -1500);
 const ENV_PX = 256;
+/* The sky cube's side, and the jump in metres past which all six of its
+ * faces are drawn at once (THE SKY IS A CUBE, in the module doc). */
+const SKY_CUBE_PX = 768;
+const SKY_CUBE_CUT = 40;
 /* The environment's share of the backdrop's radiance (THE LIGHT IS THIS
  * SKY, in the module doc, says why it is not 1). */
 const ENV_GAIN = 0.55;
 
 const SKY_GLSL = /* glsl */ `
   uniform vec3 uSun;
-  uniform vec2 uSunXZ;
   uniform vec3 uSunCol;
   uniform vec3 uZenith;
   uniform vec3 uHaze;
   uniform vec3 uAirSun;
   uniform vec3 uCam;
   uniform float uDisc;
-  uniform float uMarch;
+  uniform float uDirect;
+  uniform samplerCube uCube;
+  uniform float uCubeTexel;
   uniform float uGain;
   uniform float uStars;
   uniform float uCityOn;
@@ -335,7 +348,7 @@ const SKY_GLSL = /* glsl */ `
     return s;
   }
   /* The cumulus's field at a point of the deck (the module doc, THE
-   * FIELD), and the height of a cell's top over the base for it. */
+   * FIELD). */
   float cloudField(vec2 w, int octaves) {
     vec2 p = w / ${CLOUD_SIZE.toFixed(1)};
     vec2 g = w / ${CLOUD_GROUP.toFixed(1)};
@@ -343,39 +356,31 @@ const SKY_GLSL = /* glsl */ `
     vec2 warp = 0.35 * vec2(skyNoise(p * 0.5 + 7.1), skyNoise(p * 0.5 + 3.3));
     return skyFbm(p + warp, octaves) + ${CLOUD_GROUP_W.toFixed(3)} * (group - 0.5);
   }
-  /* The billows: a lattice of spheres CLOUD_PUFF metres apart, each
-   * jittered in its cell; at w, the nearest one's height over the deck,
-   * 0 to 1, and its normal. A cumulus's top is heaped spheres, and a
-   * height field drawn from smooth or ridged noise drew snowy peaks. */
-  float cloudPuff(vec2 w, out vec3 nrm) {
-    vec2 p = w / ${CLOUD_PUFF.toFixed(1)};
-    vec2 i = floor(p);
-    vec2 f = p - i;
-    float best = 1e9;
-    vec2 off = vec2(0.0);
-    for (int k = 0; k < 9; k++) {
-      vec2 o = vec2(float(k - 3 * (k / 3)) - 1.0, float(k / 3) - 1.0);
-      vec2 c = o + vec2(skyHash(i + o), skyHash(i + o + 19.1)) * 0.8 + 0.1;
-      vec2 dv = f - c;
-      float d2 = dot(dv, dv);
-      if (d2 < best) {
-        best = d2;
-        off = dv;
-      }
-    }
-    float h = sqrt(max(0.0, 1.0 - best / 0.81));
-    nrm = normalize(vec3(off.x, h, off.y));
-    return h;
+  /* The density at q (the module doc, THE SLAB): 0 outside a cell, 1
+   * well inside it. */
+  /* Value noise in three dimensions, from two slices of the 2D one: the
+   * billows' detail, which varies with the height as well, so a cell is
+   * not its base's outline drawn straight up (the first volume, lit only
+   * by a field over the ground, read as curtains). */
+  float skyNoise3(vec3 p) {
+    float y = floor(p.y);
+    float f = fract(p.y);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(skyNoise(p.xz + y * 17.13), skyNoise(p.xz + (y + 1.0) * 17.13), f);
   }
-  /* A cell's top over the base at w: a dome, round in section, over the
-   * field's rise past the edge, its surface the billows; never below the
-   * base inside the cell. */
-  float cloudTop(float n, vec2 w) {
-    float k = 1.0 - clamp((n - ${CLOUD_EDGE[0].toFixed(3)}) / 0.3, 0.0, 1.0);
-    vec3 nrm;
-    float puff = cloudPuff(w, nrm);
-    float dome = 1.0 - k * k;
-    return (${(CLOUD_DEPTH - CLOUD_PUFF).toFixed(1)} * dome + ${CLOUD_PUFF.toFixed(1)} * puff * sqrt(dome)) * (n > ${CLOUD_EDGE[0].toFixed(3)} ? 1.0 : -1.0);
+  float cloudDensity(vec3 q, int octaves) {
+    float h = (q.y - ${CLOUD_BASE.toFixed(1)}) / ${CLOUD_DEPTH.toFixed(1)};
+    if (h < 0.0 || h > 1.0) {
+      return 0.0;
+    }
+    float edge = ${CLOUD_EDGE.toFixed(3)} + ${CLOUD_TAPER.toFixed(3)} * h * h;
+    /* The tops lean a little downwind, and the field is eroded by the
+     * billows, more at the cell's rim and top than in its body. */
+    vec2 at = q.xz + vec2(0.35, 0.2) * (q.y - ${CLOUD_BASE.toFixed(1)});
+    float n = cloudField(at, octaves);
+    float billow = 0.6 * skyNoise3(q / ${CLOUD_BILLOW.toFixed(1)}) + 0.4 * skyNoise3(q / ${(CLOUD_BILLOW * 0.43).toFixed(1)} + 5.3);
+    n -= ${CLOUD_ERODE.toFixed(3)} * (1.0 - billow) * (0.6 + 0.8 * h);
+    return smoothstep(edge, edge + ${CLOUD_SOFT.toFixed(3)}, n) * smoothstep(0.0, 0.06, h);
   }
 
   vec3 skyAt(vec3 d) {
@@ -396,77 +401,41 @@ const SKY_GLSL = /* glsl */ `
       c += cityCol * (${CITY_AIR.toFixed(3)} * cityGlowAt(pAir) * exp(-runAir / 40000.0) * (1.0 - smoothstep(0.0, 0.5, d.y)));
     }
     if (d.y > 0.01 && uCam.y < ${CLOUD_BASE.toFixed(1)}) {
-      float horizon = smoothstep(0.01, 0.05, d.y);
-      vec3 fill = uZenith * 0.6 + uHaze * 0.25;
-      /* The base. */
-      float run = (${CLOUD_BASE.toFixed(1)} - uCam.y) / d.y;
-      vec2 at = uCam.xz + d.xz * run;
-      float n = cloudField(at, 6);
-      float base = smoothstep(${CLOUD_EDGE[0].toFixed(3)}, ${CLOUD_EDGE[1].toFixed(3)}, n);
-      /* The side and top past it. */
-      float t0 = run;
+      float horizon = smoothstep(0.01, 0.06, d.y);
+      vec3 sky = uZenith * 0.7 + uHaze * 0.3;
+      float t0 = (${CLOUD_BASE.toFixed(1)} - uCam.y) / d.y;
       float t1 = min((${(CLOUD_BASE + CLOUD_DEPTH).toFixed(1)} - uCam.y) / d.y,
-        run + ${CLOUD_SPAN.toFixed(1)} / max(length(d.xz), 1e-3));
-      float hitT = -1.0;
-      float lo = t0;
-      if (uMarch > 0.0) {
-      /* Each pixel's steps start a different fraction of a step in, so
-       * what a step skips is a fine dither, not a band. */
+        t0 + ${CLOUD_SPAN.toFixed(1)} / max(length(d.xz), 1e-3));
+      float dt = (t1 - t0) / ${CLOUD_STEPS.toFixed(1)};
       float jit = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+      float trans = 1.0;
+      vec3 light = vec3(0.0);
       for (int i = 0; i < ${CLOUD_STEPS}; i++) {
-        float t = mix(t0, t1, (float(i) + jit) / ${CLOUD_STEPS.toFixed(1)});
-        vec3 q = uCam + d * t;
-        if (cloudTop(cloudField(q.xz, 4), q.xz) > q.y - ${CLOUD_BASE.toFixed(1)}) {
-          hitT = t;
+        if (trans < 0.03) {
           break;
         }
-        lo = t;
-      }
-      }
-      vec3 side = c;
-      float sideA = 0.0;
-      if (hitT > 0.0) {
-        float hi = hitT;
-        for (int k = 0; k < 4; k++) {
-          float m = 0.5 * (lo + hi);
-          vec3 q = uCam + d * m;
-          if (cloudTop(cloudField(q.xz, 4), q.xz) > q.y - ${CLOUD_BASE.toFixed(1)}) {
-            hi = m;
-          } else {
-            lo = m;
-          }
+        vec3 q = uCam + d * (t0 + (float(i) + jit) * dt);
+        float dens = cloudDensity(q, 5);
+        if (dens < 0.002) {
+          continue;
         }
-        vec3 q = uCam + d * hi;
-        float nq = cloudField(q.xz, 4);
-        float toSun = cloudField(q.xz + uSunXZ * ${CLOUD_PROBE.toFixed(1)}, 4);
         float h = (q.y - ${CLOUD_BASE.toFixed(1)}) / ${CLOUD_DEPTH.toFixed(1)};
-        float self = clamp(0.5 + 6.0 * (nq - toSun), 0.0, 1.0) * mix(0.5, 1.0, h);
-        /* The billows' own light and shade, and a soft silhouette: how
-         * far the ray is inside the cell a little further on. */
-        vec3 puffN;
-        cloudPuff(q.xz, puffN);
-        float lumps = 0.4 + 0.75 * clamp(0.8 * dot(puffN, uSun) + 0.2, 0.0, 1.0);
-        vec3 q2 = q + d * 120.0;
-        float inside = cloudTop(cloudField(q2.xz, 4), q2.xz) - (q2.y - ${CLOUD_BASE.toFixed(1)});
-        float thin = 1.0 - smoothstep(${CLOUD_EDGE[0].toFixed(3)}, ${(CLOUD_EDGE[1] + 0.1).toFixed(3)}, nq);
-        float lit = ${CLOUD_LIT.toFixed(3)} * mix(${CLOUD_SELF.toFixed(3)}, 1.0, self) * lumps + 0.35 * hg * thin;
-        side = mix(uSunCol * lit + fill, c, 1.0 - exp(-hi / ${CLOUD_FADE.toFixed(1)}));
-        sideA = horizon * smoothstep(0.0, 150.0, inside);
-      }
-      c = mix(c, side, sideA);
-      if (base > 0.0) {
-        float thick = smoothstep(${CLOUD_EDGE[0].toFixed(3)}, ${(CLOUD_EDGE[1] + 0.2).toFixed(3)}, n);
-        /* What comes through a cell falls away as the sun goes down to
-         * the horizon: at the golden hour the bases are grey blue under
-         * orange sides. */
-        float lit = ${CLOUD_SHADE.toFixed(3)} * (1.3 - 0.6 * thick) * smoothstep(0.0, 0.6, uSun.y)
-          + 0.3 * hg * (1.0 - thick);
-        vec3 cloud = uSunCol * lit + fill;
+        float toSun = cloudDensity(q + uSun * ${CLOUD_PROBE.toFixed(1)}, 3);
+        float sunT = exp(-${CLOUD_SHADOW.toFixed(2)} * (toSun + 0.5 * dens)) * mix(0.45, 1.0, h);
+        vec3 lq = uSunCol * (sunT * (${CLOUD_LIT.toFixed(3)} + 0.5 * hg * (1.0 - dens)))
+          + sky * mix(0.55, 1.0, h);
         if (uCityOn > 0.0) {
-          cloud += cityCol * (${CITY_CLOUD.toFixed(3)} * cityGlowAt(at));
+          lq += cityCol * (${CITY_CLOUD.toFixed(3)} * cityGlowAt(q.xz) * (1.0 - h));
         }
-        float air = 1.0 - exp(-run / ${CLOUD_FADE.toFixed(1)});
-        c = mix(c, mix(cloud, c, air), base * horizon);
+        float a = 1.0 - exp(-${CLOUD_SIGMA.toFixed(4)} * dens * dt);
+        light += trans * a * lq;
+        trans *= 1.0 - a;
+      }
+      float cover = 1.0 - trans;
+      if (cover > 0.0) {
+        vec3 cloud = light / cover;
+        float air = 1.0 - exp(-t0 / ${CLOUD_FADE.toFixed(1)});
+        c = mix(c, mix(cloud, c, air), cover * horizon);
       }
     }
     return c;
@@ -490,16 +459,17 @@ export function skyBackdrop(sunDir, time) {
     fog: false,
     uniforms: {
       uSun: { value: sunDir.clone() },
-      /* Toward the sun along the deck: the cumulus's self shadow. */
-      uSunXZ: { value: new THREE.Vector2(sunDir.x, sunDir.z).normalize() },
       uSunCol: { value: sunCol },
       uZenith: { value: ZENITHS[timeOf(time)].clone() },
       uHaze: { value: airFor(time).haze.clone() },
       uAirSun: { value: sunColor.clone().multiplyScalar(airFor(time).mie) },
       uCam: { value: new THREE.Vector3() },
       uDisc: { value: night ? 0 : 1 },
-      /* 0 in the water's mirror (onBeforeRender below). */
-      uMarch: { value: 1 },
+      /* 1 while drawn into a cube (the sky cube, the environment), 0 for
+       * the backdrop, which reads the sky cube. */
+      uDirect: { value: 1 },
+      uCube: { value: null },
+      uCubeTexel: { value: 1.5 / SKY_CUBE_PX },
       /* 1 but while the environment is drawn (skyEnvironment). */
       uGain: { value: 1 },
       uStars: { value: night ? 1 : 0 },
@@ -526,7 +496,19 @@ export function skyBackdrop(sunDir, time) {
       ${SKY_GLSL}
       void main() {
         vec3 d = normalize(vDir);
-        vec3 c = skyAt(d);
+        vec3 c;
+        if (uDirect > 0.5) {
+          c = skyAt(d);
+        } else {
+          /* The sky cube (THE SKY IS A CUBE, in the module doc), five taps
+           * a texel apart: the march's per texel dither, averaged away. */
+          vec3 tu = normalize(cross(d, abs(d.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+          vec3 tv = cross(d, tu);
+          float k = uCubeTexel;
+          c = 0.4 * textureCube(uCube, d).rgb
+            + 0.15 * (textureCube(uCube, d + (tu + tv) * k).rgb + textureCube(uCube, d + (tu - tv) * k).rgb
+              + textureCube(uCube, d - (tu + tv) * k).rgb + textureCube(uCube, d - (tu - tv) * k).rgb);
+        }
         float disc = smoothstep(0.99998, 0.999992, dot(d, uSun));
         gl_FragColor = vec4((c + uSunCol * (1000.0 * disc * uDisc)) * uGain, 1.0);
       }
@@ -537,9 +519,8 @@ export function skyBackdrop(sunDir, time) {
   thermalShader(mat, 'float thT = thSky(normalize(vDir).y);', 'itaipu-sky');
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), mat);
   /* Last of the opaque things, depth tested on the far plane (the vertex
-   * shader puts it there), so the clouds' march runs only on the pixels
-   * that show sky: drawn first under everything it was the whole frame's
-   * dearest pass, about 2.5 ms of it, for pixels then painted over. */
+   * shader puts it there), so it reads the sky cube only on the pixels
+   * that show sky, never for pixels then painted over. */
   sky.renderOrder = 1000;
   sky.frustumCulled = false;
   sky.name = 'sky';
@@ -547,15 +528,71 @@ export function skyBackdrop(sunDir, time) {
     sky.position.setFromMatrixPosition(camera.matrixWorld);
     sky.updateMatrixWorld();
     mat.uniforms.uCam.value.copy(sky.position);
-    /* The water's planar mirror (swiss2/water/lake.js planarMirror) draws
-     * through an oblique near plane, which no other camera has: there the
-     * sky is a half resolution reflection under ripples and the blurred
-     * environment past a few hundred metres (water/index.js, THE SKY IN
-     * THE WATER IS BLURRED), and the cumulus's bases alone are sky enough.
-     * Marched there too, the reflection cost a reservoir view 2 ms. */
-    const e = camera.projectionMatrix.elements;
-    mat.uniforms.uMarch.value = e[2] === 0 && e[6] === 0 ? 1 : 0;
   };
+
+  /* THE SKY IS A CUBE: see the module doc. */
+  const cube = new THREE.WebGLCubeRenderTarget(SKY_CUBE_PX, { type: THREE.HalfFloatType });
+  cube.texture.generateMipmaps = false;
+  cube.texture.minFilter = THREE.LinearFilter;
+  const eye = new THREE.CubeCamera(1, 4000, cube);
+  const cubeScene = new THREE.Scene();
+  const local = new THREE.Mesh(sky.geometry, mat);
+  local.frustumCulled = false;
+  local.onBeforeRender = (renderer, scene, camera) => {
+    local.position.setFromMatrixPosition(camera.matrixWorld);
+    local.updateMatrixWorld();
+    mat.uniforms.uCam.value.copy(local.position);
+  };
+  cubeScene.add(local);
+  const at = new THREE.Vector3();
+  const facesAt = Array.from({ length: 6 }, () => null);
+  let next = 0;
+  function drawFaces(renderer, faces) {
+    const prevTarget = renderer.getRenderTarget();
+    const prevFace = renderer.getActiveCubeFace();
+    const prevLevel = renderer.getActiveMipmapLevel();
+    const prevXr = renderer.xr.enabled;
+    const prevShadow = renderer.shadowMap.autoUpdate;
+    renderer.xr.enabled = false;
+    renderer.shadowMap.autoUpdate = false;
+    mat.uniforms.uDirect.value = 1;
+    /* Unbound while its own faces are drawn: a texture bound for reading
+     * while it is the target is a feedback loop, and the driver refuses
+     * the draw (the faces came out the clear's black). */
+    mat.uniforms.uCube.value = null;
+    const disc = mat.uniforms.uDisc.value;
+    mat.uniforms.uDisc.value = 0;
+    for (const f of faces) {
+      renderer.setRenderTarget(cube, f);
+      /* The shell draws with autoClear off (its composer clears), and the
+       * backdrop is depth tested at the far plane. */
+      renderer.clear();
+      renderer.render(cubeScene, eye.children[f]);
+      facesAt[f] = (facesAt[f] || new THREE.Vector3()).copy(at);
+    }
+    mat.uniforms.uDisc.value = disc;
+    mat.uniforms.uDirect.value = 0;
+    renderer.setRenderTarget(prevTarget, prevFace, prevLevel);
+    renderer.xr.enabled = prevXr;
+    renderer.shadowMap.autoUpdate = prevShadow;
+  }
+  /* Once a frame, before the frame is drawn (look/index.js): the face of
+   * the cube drawn longest ago, from where the camera now is; all six
+   * when there is no cube yet or the camera has jumped. */
+  sky.updateCube = (renderer, camera) => {
+    if (eye.coordinateSystem !== renderer.coordinateSystem) {
+      eye.coordinateSystem = renderer.coordinateSystem;
+      eye.updateCoordinateSystem();
+    }
+    at.setFromMatrixPosition(camera.matrixWorld);
+    eye.position.copy(at);
+    eye.updateMatrixWorld();
+    const cut = facesAt.some((f) => f === null || f.distanceTo(at) > SKY_CUBE_CUT);
+    drawFaces(renderer, cut ? [0, 1, 2, 3, 4, 5] : [next]);
+    next = (next + 1) % 6;
+    mat.uniforms.uCube.value = cube.texture;
+  };
+  sky.disposeCube = () => cube.dispose();
   return sky;
 }
 

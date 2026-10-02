@@ -139,7 +139,7 @@ export const TIMES = {
     azimuth: 180, elevation: 87, color: new THREE.Color(1.0, 0.95, 0.87), irradiance: 3.65,
   },
   golden: {
-    azimuth: 248, elevation: 8, color: new THREE.Color(1.0, 0.66, 0.38), irradiance: 2.2,
+    azimuth: 248, elevation: 8, color: new THREE.Color(1.0, 0.58, 0.28), irradiance: 3.2,
   },
   night: {
     azimuth: SUN_AZIMUTH_DEG, elevation: SUN_ELEVATION_DEG, color: NIGHT_SUN_COLOR, irradiance: NIGHT_SUN_IRRADIANCE,
