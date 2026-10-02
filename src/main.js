@@ -378,6 +378,8 @@ const TAKEOFF_WINDOW_MS = 250;
  * own structure and the underside slab collider crashes it.
  */
 const SURFACE_BIAS = 0.40;
+/* The plant reports motor speed in rpm; the rooms' wire carries rad/s. */
+const RPM_PER_RAD_S = 60 / (2 * Math.PI);
 /*
  * How far the CAMERA is lifted while the craft is sitting on the ground, in
  * world metres. Render only: nothing about the physics, the collision test
@@ -4206,7 +4208,10 @@ export async function boot({
     roomQLast.copy(quat);
     roomLastSendT = now;
     const surf = !quad && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null;
-    const rotors = [st[14], st[15], st[16], st[17]];
+    /* rad/s, the wire's unit (src/share/roomwire.js): the plant reports
+     * rpm, and sending rpm in a field of 40 rad/s counts clamped every
+     * quad above 5,080 rpm, so hover and every punch went out the same. */
+    const rotors = [st[14] / RPM_PER_RAD_S, st[15] / RPM_PER_RAD_S, st[16] / RPM_PER_RAD_S, st[17] / RPM_PER_RAD_S];
     const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
     const chute = typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0;
     const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
