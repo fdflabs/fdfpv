@@ -279,6 +279,7 @@
     "parts:derive": "node scripts/parts-derive.js",
     "trackmode:check": "node scripts/track-mode-check.js",
     "progress:selftest": "node scripts/progress-selftest.js",
+    "retired:selftest": "node scripts/retired-maps-selftest.js",
     "campaign:selftest": "node scripts/campaign-selftest.js",
     "progress:check": "node scripts/progress-check.js"
   },

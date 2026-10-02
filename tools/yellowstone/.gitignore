@@ -1,3 +1,0 @@
-# The uv environment and bytecode; the data folder lives outside the repo.
-.venv/
-__pycache__/

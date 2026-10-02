@@ -21,9 +21,9 @@
  *   builds      with no console error, and the world stage's time is
  *               printed for src/maps/build-cost.js;
  *   fetches     only its own data (itaipu-data/, never the public host
- *               from a local page, never Yellowstone's data) and only the
- *               modules it is built from: its own, Yellowstone's terrain
- *               engine and swiss2's look, never Yellowstone's features;
+ *               from a local page, never another folder's data) and only
+ *               the modules it is built from: its own, the terrain engine
+ *               (src/maps/terrain/) and swiss2's look;
  *   ground      map.height() under every roof at 200 random hero points,
  *               each with the camera over it, equals the tiles within
  *               0.05 m (the water's surface where the point is on a
@@ -138,8 +138,8 @@ function sampleAt(get, level, gx, gz) {
 }
 
 /* One coarser sample from the finer level's nine round it, in the
- * pipeline's integers: Yellowstone's (1 2 1) x (1 2 1) / 16 rounded half
- * up (tools/itaipu/build_terrain.py tent_down). */
+ * pipeline's integers: (1 2 1) x (1 2 1) / 16 rounded half up
+ * (tools/itaipu/build_terrain.py tent_down). */
 function tentAt(get, level, kx, kz) {
   const w = [1, 2, 1];
   let sum = 0;
@@ -252,8 +252,7 @@ function moduleOf(url) {
 
 /* What choosing Itaipu may fetch from src/maps: its own, the terrain
  * engine it runs on, swiss2's look and the Alps' modules swiss2's look
- * and the roofs are made from. Yellowstone's features and its map module
- * are Yellowstone's alone. */
+ * and the roofs are made from. */
 const MAY_FETCH = [/^maps\/itaipu(\.js|\/)/, /^maps\/terrain\//, /^maps\/swiss2\//, /^maps\/alps(\.js|\/)/];
 
 async function main() {
@@ -300,7 +299,8 @@ async function main() {
     /* What the choice fetched. */
     const urls = JSON.parse(await page.evaluate(`JSON.stringify(performance.getEntriesByType('resource').slice(${mark}).map((e) => e.name))`));
     const data = urls.filter((u) => new URL(u).pathname.includes('/itaipu-data/'));
-    const wrongData = urls.filter((u) => /yellowstone-data\/|fdfpv-itaipu-data|fdfpv-yellowstone-data/.test(u));
+    /* Another map's data folder, or any data repository's public host. */
+    const wrongData = urls.filter((u) => /(?<!\/itaipu)-data\/|fdfpv-[a-z]+-data/.test(u));
     const mods = urls.map(moduleOf).filter(Boolean);
     const mapMods = mods.filter((p) => p.startsWith('maps/'));
     const stray = mapMods.filter((p) => !MAY_FETCH.some((re) => re.test(p)));

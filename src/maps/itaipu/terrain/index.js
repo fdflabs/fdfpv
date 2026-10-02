@@ -1,5 +1,5 @@
 /*
- * terrain/index.js: Itaipu's ground, on Yellowstone's terrain engine.
+ * terrain/index.js: Itaipu's ground, on the streamed terrain engine.
  *
  * The engine (src/maps/terrain/engine.js) is a quadtree of
  * 64 cell chunks over a tile pyramid, streamed round the craft and the
@@ -41,8 +41,20 @@ import { HERO } from '../../terrain/frame.js';
 import { ITAIPU_FRAME } from './frame.js';
 
 /*
- * The engine's budgets per preset (src/maps/yellowstone.js has what each
- * one is). The tile ceiling holds the whole pyramid, 86 tiles of 132 098
+ * The engine's budgets per preset:
+ *
+ *   split      a node splits when a focus is nearer its box than this many
+ *              times its children's side doubled (engine.js).
+ *   buildMs    main thread time a frame may spend building chunk meshes,
+ *              sliced by rows and carried over to the next frame.
+ *   tileCeiling  bytes of elevation tiles held when nothing pins them.
+ *   meshCap    built chunk meshes kept, drawn or not, before the least
+ *              recently drawn are freed.
+ *   prefetch, prefetchHero  radius round the craft, metres, inside which
+ *              the finest tiles are fetched before the selection needs
+ *              them.
+ *
+ * The tile ceiling holds the whole pyramid, 86 tiles of 132 098
  * bytes on data v2, 11.4 MB, under section 13's 12 MB. The mesh
  * cap holds the chunk buffers under section 13's 24 MB: a chunk is 126 kB
  * (measured, 35.1 MB over 279 at Yellowstone's cap of 300), so 180 is
@@ -51,9 +63,9 @@ import { ITAIPU_FRAME } from './frame.js';
  * for the ones just flown past.
  */
 export const TERRAIN_Q = {
-  low: { split: 0.7, buildMs: 1.5, anchorMs: 1, tileCeiling: 12e6, meshCap: 140, prefetch: 6000, prefetchHero: 2500 },
-  medium: { split: 0.85, buildMs: 2, anchorMs: 1.5, tileCeiling: 12e6, meshCap: 160, prefetch: 6000, prefetchHero: 2500 },
-  high: { split: 1, buildMs: 2, anchorMs: 2, tileCeiling: 12e6, meshCap: 180, prefetch: 6000, prefetchHero: 3000 },
+  low: { split: 0.7, buildMs: 1.5, tileCeiling: 12e6, meshCap: 140, prefetch: 6000, prefetchHero: 2500 },
+  medium: { split: 0.85, buildMs: 2, tileCeiling: 12e6, meshCap: 160, prefetch: 6000, prefetchHero: 2500 },
+  high: { split: 1, buildMs: 2, tileCeiling: 12e6, meshCap: 180, prefetch: 6000, prefetchHero: 3000 },
 };
 
 /* Every tile the manifest lists, as [level, i, j]. */

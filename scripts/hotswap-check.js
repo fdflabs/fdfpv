@@ -28,7 +28,7 @@
  * what it costs a frame. The picker's part ran on the race field, then the
  * airfield, until each was retired.
  *
- *   node scripts/hotswap-check.js [alps|swiss2|yellowstone|itaipu ...]
+ *   node scripts/hotswap-check.js [alps|swiss2|itaipu ...]
  *
  * Every map by default. Slow on a software rasteriser: a map build and two
  * dozen swaps each.
@@ -60,7 +60,7 @@ import { tunesFor } from '../configs/registry.js';
 import { powerCells, powerChoice, powerParams } from '../configs/power.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const ALL_MAPS = ['alps', 'swiss2', 'yellowstone', 'itaipu'];
+const ALL_MAPS = ['alps', 'swiss2', 'itaipu'];
 const maps = process.argv.slice(2).length ? process.argv.slice(2) : ALL_MAPS;
 /* How far the new aircraft may stand from the old one's spot, metres, and
  * turn from its heading, radians: numerical, the swap copies both. */

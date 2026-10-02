@@ -117,8 +117,8 @@ const ok = (m) => console.log(`  ok   ${m}`);
 /* ---------------------------------------------------------------- Node */
 
 /*
- * The ground as the engine reads it (src/maps/yellowstone/terrain/
- * engine.js finestAt and tri): the finest tile's two triangles a cell,
+ * The ground as the engine reads it (src/maps/terrain/engine.js
+ * finestAt and tri): the finest tile's two triangles a cell,
  * on the same tiles the page draws.
  */
 async function groundFrom(manifest) {

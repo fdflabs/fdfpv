@@ -4,9 +4,10 @@
  * Restated from docs/ITAIPU-PLAN.md sections 2 and 3 and nothing else.
  * World x = E - 742 500 (east), z = -(N - 7 186 000) (north is -z), y is
  * metres above EGM2008 with no offset, so every height here can be
- * checked against a source. The tiles are Yellowstone's format on a
- * smaller square: the ring reaches 20 480 m each way, the hero 5 120 m,
- * and the pyramid stops at level 3, whose one tile covers the ring.
+ * checked against a source. The tiles are the terrain engine's format
+ * (src/maps/terrain/frame.js) on a smaller square than it was written
+ * for: the ring reaches 20 480 m each way, the hero 5 120 m, and the
+ * pyramid stops at level 3, whose one tile covers the ring.
  * Plain data, no three.js, so the Node check reads the same copy.
  *
  * This file is part of WebFPVSimulator.
@@ -32,8 +33,8 @@ export const HERO_HALF = 5120;
 
 /*
  * The apron past the ring is the Parana plateau the fog takes: rolling
- * farmland between about 220 and 290 m, where Yellowstone's invented
- * foothills would stand a kilometre over the reservoir. Sixty kilometres
+ * farmland between about 220 and 290 m, where the engine's first map's
+ * invented foothills would stand a kilometre over the reservoir. Sixty kilometres
  * deep, past the 53 km horizon from the crest.
  */
 export const ITAIPU_FRAME = makeFrame({

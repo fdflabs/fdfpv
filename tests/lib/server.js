@@ -25,12 +25,11 @@ import { createReadStream } from 'node:fs';
 import { join, normalize, extname, resolve } from 'node:path';
 import { homedir } from 'node:os';
 
-/* The Yellowstone and Itaipu data are built outside the repository
-   (docs/YELLOWSTONE-PLAN.md, docs/ITAIPU-PLAN.md) and each map reads its
-   own from <map>-data/ beside the page, so each of those paths is served
-   from the folder its variable names, the pipeline's output by default. */
+/* The Itaipu data are built outside the repository (docs/ITAIPU-PLAN.md)
+   and the map reads its own from itaipu-data/ beside the page, so that
+   path is served from the folder its variable names, the pipeline's
+   output by default. */
 const DATA_DIRS = [
-  ['yellowstone-data/', resolve(process.env.FDFPV_YELLOWSTONE_DATA || join(homedir(), 'Desktop', 'fdfpv-yellowstone-data'))],
   ['itaipu-data/', resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'))],
 ];
 
