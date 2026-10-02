@@ -246,6 +246,7 @@
     "tracks:e2e": "node scripts/tracks-online-check.js",
     "lint:nouns": "node scripts/noun-lint.js",
     "lint:copy": "node scripts/copy-lint.js",
+    "lint:bf": "node scripts/brand-lint.js",
     "lint:devices": "node scripts/device-check.js",
     "lint:arcade": "node scripts/arcade-check.js",
     "lint:responsive": "node scripts/responsive-check.js",

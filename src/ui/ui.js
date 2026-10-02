@@ -4230,28 +4230,13 @@ export class Ui {
     const fc = el('div', 'screen screen-page screen-fc');
     const fcHead = el('div', 'fc-head');
     const fcBrand = el('div', 'fc-brand');
-    fcBrand.append(el('span', 'fc-wordmark', str('ui.betaflight')));
+    fcBrand.append(el('span', 'fc-wordmark', str('ui.fc_wordmark')));
     fcBrand.append(el('span', 'fc-fw', '4.5.1'));
     fcBrand.append(el('span', 'fc-conn', str('ui.wasm')));
     this.fcDirty = el('span', 'fc-dirty', '');
     fcBrand.append(this.fcDirty);
     fcHead.append(fcBrand);
-    const homage = el('p', 'fc-homage');
-    const cfgLink = el('a', null, str('ui.betaflight_configurator'));
-    cfgLink.href = 'https://github.com/betaflight/betaflight-configurator';
-    cfgLink.target = '_blank';
-    cfgLink.rel = 'noopener noreferrer';
-    const bfLink = el('a', null, 'Betaflight');
-    bfLink.href = 'https://github.com/betaflight/betaflight';
-    bfLink.target = '_blank';
-    bfLink.rel = 'noopener noreferrer';
-    homage.append(
-      document.createTextNode(str('ui.homage_of')),
-      cfgLink,
-      document.createTextNode(str('ui.10_10_colours_and_tabs_not')),
-      bfLink,
-      document.createTextNode(str('ui.4_5_1_with_thanks_to')),
-    );
+    const homage = el('p', 'fc-homage', str('ui.fc_bench_lede'));
     fcHead.append(homage);
     const fcExit = el('div', 'fc-exit');
     this.fcSaveExit = btn('fc-exit-btn fc-exit-save', str('ui.save_and_exit'));
@@ -13626,7 +13611,7 @@ export class Ui {
       return;
     }
     if (action === 'fc-export') {
-      downloadCli('betaflight.diff', this.fc.exportText());
+      downloadCli('flight-controller.diff', this.fc.exportText());
       return;
     }
     if (action === 'fc-back') {
