@@ -1031,7 +1031,7 @@ old build sent both as a clamped 5,080. Saved replays recorded before the
 change hold the old rpm valued numbers, so a peer's props in an old replay
 turn nine and a half times faster on screen; nothing in a replay plays a
 peer's sound. Before the phasors and the off board trims the same room
-measured 0.534 s a second. Live, the pool adds 4 nodes: 50 on the title
-alone, 52 in a war, 56 with the pool; the world's node and its connections
-have the rest of the 64.
+measured 0.534 s a second. Live, the pool adds 4 nodes: with the world's
+node (section 12) in, 51 on the title (check 14) and 53 in a war room
+without the pool, 57 with it (war:boom), 7 under the 64.
 
