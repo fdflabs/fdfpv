@@ -919,6 +919,7 @@ int plant_set_power(const double *in);
 /* A quad's motors, sim_set_motors in sim_abi.h, on the power option's
  * copy and flag: plant_power_clear takes them off. */
 int plant_set_motors(const double *in);
+int plant_set_prop_pack(const double *in);
 void plant_power_clear(void);
 int plant_power_custom(void);
 /* The hangar's add-ons, the sim_set_addons layout in sim_abi.h, seated

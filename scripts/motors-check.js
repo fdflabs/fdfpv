@@ -2,7 +2,8 @@
  * motors-check.js: every quad's motors against their data and the plant,
  * docs/MOTORS-STAGE1.md. For each quad in configs/motors.js:
  *
- *   M1 the table configs/motors.js restates is the module's own entry;
+ *   M1 the table configs/motors.js restates is the module's own entry,
+ *      its prop's pitch and figure of merit with it;
  *   M2 the stock motor seated through sim_set_motors flies a trace bit
  *      identical to the table's, and sim_power_clear puts the table back
  *      bit for bit, so the stock aircraft is untouched;
@@ -23,7 +24,24 @@
  *   M9 the contract: refused on a fixed wing and out of range, a MODE
  *      kept across sim_reset, cleared by another airframe, deterministic.
  *
- * Run with npm run motors:check. With --estimates it flies every option's
+ * and for each prop and pack the hangar offers, on the stock motor:
+ *
+ *   P1 the stock prop and pack through sim_set_prop_pack fly a trace bit
+ *      identical to the table's, curves and all, and each offered one
+ *      reaches the plant: mass, inertia, kt, kq, pitch, figure of merit,
+ *      cells, a cell's resistance and the rotor's inertia;
+ *   P2 it hovers where the static solve puts it;
+ *   P3 a prop's thrust over the stock prop's, flown on the plant's motor
+ *      model on the maker's stand, is the maker's within the band;
+ *   P4 a pack's full throttle current against its maker's rating, the sag
+ *      it is paid in said;
+ *   P5 the contract: the block refused on a wing, out of range and with a
+ *      curve not starting at 1, and a clear takes it off;
+ *
+ * and E, every motor, prop and pack together, flown level at full
+ * throttle, is the hangar's top speed (configs/motor-estimates.js).
+ *
+ * Run with npm run motors:check. With --estimates it flies every choice's
  * top speed instead and writes configs/motor-estimates.js.
  *
  * This file is part of WebFPVSimulator.
@@ -49,7 +67,10 @@ import { fileURLToPath } from 'node:url';
 import { loadSim, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { ST } from '../tests/lib/replay.js';
 import { airframeById } from '../configs/airframes.js';
-import { MOTORS, SIM_MOTORS, SIM_MOTORS_DOUBLES, motorBench, motorPlant, motorStats, motorsBlock } from '../configs/motors.js';
+import {
+  MOTORS, SIM_MOTORS, SIM_MOTORS_DOUBLES, SIM_PROP_PACK, choiceKey, motorBench, motorStats, motorsBlock, propPackBlock, propPackDoubles,
+  propRatios, quadChoices, quadPlant,
+} from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -84,16 +105,23 @@ function must(code, where) {
   }
 }
 
-/* The shell's order: airframe, init, the motors, reset, a fresh pack. At
- * 1 g, the machine's real weight, where the makers' figures are, unless
- * `g` says otherwise. */
-async function fresh(af, block, g = 1) {
+/* What a choice seats: its two blocks, either null where it is stock. */
+const seatOf = (id, choice) => ({ motors: motorsBlock(id, choice), propPack: propPackBlock(id, choice) });
+
+/* The shell's order: airframe, init, the motors, the prop and pack,
+ * reset, a fresh pack. `seat` is null or { motors, propPack }. At 1 g,
+ * the machine's real weight, where the makers' figures are, unless `g`
+ * says otherwise. */
+async function fresh(af, seat, g = 1) {
   const sim = await loadSim(wasm);
   must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
   must(sim.init(await tune(af)), 'sim_init');
   must(sim.e.sim_set_gravity(g), 'sim_set_gravity');
-  if (block) {
-    must(sim.setMotors(block), 'sim_set_motors');
+  if (seat && seat.motors) {
+    must(sim.setMotors(seat.motors), 'sim_set_motors');
+  }
+  if (seat && seat.propPack) {
+    must(sim.setPropPack(seat.propPack), 'sim_set_prop_pack');
   }
   sim.reset();
   must(sim.setCellVoltage(4.2), 'sim_set_cell_voltage');
@@ -129,13 +157,13 @@ function traceHash(sim) {
 }
 
 /* The throttle that holds a steady hover, tests/lib/checks.js's bisection. */
-async function trimHover(af, block) {
+async function trimHover(af, seat) {
   let lo = 0;
   let hi = 1;
   let best = 0.5;
   for (let i = 0; i < 24; i += 1) {
     const mid = 0.5 * (lo + hi);
-    const sim = await fresh(af, block);
+    const sim = await fresh(af, seat);
     let vz = 0;
     fly(sim, [{ ms: 2000, thr: mid }], (t, s) => { vz = s[ST.VZ]; });
     best = mid;
@@ -155,8 +183,8 @@ async function trimHover(af, block) {
  * step, so no inflow): the standing operating point a bench measures.
  * The mean rotor speed, rad/s, the pack's current and its loaded volts a
  * cell over the last 100 ms. */
-async function standing(af, block) {
-  const sim = await fresh(af, block);
+async function standing(af, seat) {
+  const sim = await fresh(af, seat);
   must(sim.e.sim_motor_override(-1, 1.0), 'sim_motor_override');
   let w = 0;
   let amps = 0;
@@ -186,9 +214,9 @@ async function standing(af, block) {
  * quads: every motor at the hover's duty for 600 ms, motor 0 up a tenth,
  * the time to 63 percent of the rise over 1.5 s.
  */
-async function stepTau(af, block, hover, measure) {
+async function stepTau(af, seat, hover, measure) {
   const [from, to, holdMs, settleMs] = measure === 'check8' ? [0, 1, 200, 1000] : [hover, hover + 0.1, 600, 1500];
-  const sim = await fresh(af, block);
+  const sim = await fresh(af, seat);
   must(sim.e.sim_motor_override(-1, from), 'sim_motor_override');
   const t = fly(sim, [{ ms: holdMs, thr: 0 }]);
   const w0 = sim.readState().state[ST.RPM0];
@@ -208,8 +236,8 @@ async function stepTau(af, block, hover, measure) {
  * on the five inch, 1 g on the combat quads), since it is the speed the
  * pilot will see. 45 s, the last 3 averaged, as combat-gates flies it.
  */
-async function levelTop(af, block) {
-  const sim = await fresh(af, block, af.gravityBase);
+async function levelTop(af, seat) {
+  const sim = await fresh(af, seat, af.gravityBase);
   let theta = 1.1;
   let nextRc = 0;
   let sum = 0;
@@ -241,7 +269,7 @@ async function levelTop(af, block) {
 
 /* The stock motor as a block, the table's own values: what M2 seats. */
 function stockBlock(id) {
-  const p = motorPlant(id, MOTORS[id].options[0].id);
+  const p = quadPlant(id, MOTORS[id].options[0].id);
   const out = new Float64Array(SIM_MOTORS_DOUBLES);
   out[SIM_MOTORS.MASS] = p.massKg;
   out[SIM_MOTORS.IXX] = p.inertia[0];
@@ -260,18 +288,20 @@ if (ESTIMATE) {
   for (const id of Object.keys(MOTORS)) {
     const af = airframeById(id);
     out[id] = {};
-    for (const o of MOTORS[id].options) {
-      out[id][o.id] = r2(await levelTop(af, motorsBlock(id, o.id)));
-      console.log(`  ${id} ${o.id}: ${out[id][o.id]} m/s`);
+    for (const c of quadChoices(id)) {
+      const key = choiceKey(c);
+      out[id][key] = r2(await levelTop(af, seatOf(id, c)));
+      console.log(`  ${id} ${key}: ${out[id][key]} m/s`);
     }
   }
   const text = `/*
  * motor-estimates.js: GENERATED by node scripts/motors-check.js
- * --estimates; do not edit. Each quad motor's top speed, m/s, level at
- * full throttle on a fresh pack at the weight the shell flies the quad at
+ * --estimates; do not edit. Each quad choice's top speed, m/s, keyed by
+ * its motor, prop and pack (configs/motors.js choiceKey), level at full
+ * throttle on a fresh pack at the weight the shell flies the quad at
  * (configs/airframes.js gravityBase), flown on the plant
- * (docs/MOTORS-STAGE1.md). npm run motors:check M6 holds every option to
- * it.
+ * (docs/MOTORS-STAGE1.md). npm run motors:check M6 and E hold every
+ * choice to it.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -306,8 +336,8 @@ for (const [id, m] of Object.entries(MOTORS)) {
   {
     const sim = await fresh(af, null);
     const d = (k) => sim.e.sim_bf_debug(k);
-    const got = [d(51), d(55), d(56), d(57), d(10), d(11), d(62), d(61), d(60), d(63), d(54)];
-    const want = [t.massKg, ...t.inertia, t.kt, t.kq, t.ke, t.rMotor, t.jRotor, t.rCell, t.cells];
+    const got = [d(51), d(55), d(56), d(57), d(10), d(11), d(62), d(61), d(60), d(63), d(54), d(77), d(76)];
+    const want = [t.massKg, ...t.inertia, t.kt, t.kq, t.ke, t.rMotor, t.jRotor, t.rCell, t.cells, t.kInflow, t.fm];
     check(`M1 ${id} the table restated is the module's`, got.every((g, k) => g === want[k]), got.map((v) => v.toPrecision(5)).join(' '));
     check(`M1 ${id} the restated mass is the picker's grams`, Math.abs(af.grams / 1000 - t.massKg) < 5e-4, `${af.grams} g`);
   }
@@ -315,10 +345,10 @@ for (const [id, m] of Object.entries(MOTORS)) {
   /* M2 */
   {
     const table = traceHash(await fresh(af, null));
-    const seated = await fresh(af, stockBlock(id));
+    const seated = await fresh(af, { motors: stockBlock(id), propPack: null });
     const on = seated.powerState().custom;
     const viaBlock = traceHash(seated);
-    const cleared = await fresh(af, motorsBlock(id, m.options[m.options.length - 1].id));
+    const cleared = await fresh(af, seatOf(id, m.options[m.options.length - 1].id));
     must(cleared.clearPower(), 'sim_power_clear');
     cleared.reset();
     must(cleared.setCellVoltage(4.2), 'sim_set_cell_voltage');
@@ -334,23 +364,25 @@ for (const [id, m] of Object.entries(MOTORS)) {
   const top0 = await levelTop(af, null);
   const tau0 = await stepTau(af, null, hover0, m.tau.measure);
   check(`M5 ${id} stock hovers where the static solve puts it`, Math.abs(hover0 - st0.hover.duty) < 0.01, `${hover0.toFixed(3)} flown, ${st0.hover.duty.toFixed(3)} solved`);
-  check(`M6 ${id} stock top speed is the estimate`, Math.abs(top0 - MOTOR_ESTIMATES[id][stock.id]) < 0.05, `${top0.toFixed(2)} m/s`);
+  const estimate = (o) => MOTOR_ESTIMATES[id][choiceKey({ option: o, prop: m.props[0].id, pack: m.packs[0].id })];
+  check(`M6 ${id} stock top speed is the estimate`, Math.abs(top0 - estimate(stock.id)) < 0.05, `${top0.toFixed(2)} m/s`);
   note(`${id} stock`, `T/W ${st0.tw.toFixed(2)}, ${(bench0.amps).toFixed(0)} A full, ${bench0.cellV.toFixed(2)} V a cell, hover ${st0.hoverMin.toFixed(1)} min, full ${st0.fullMin.toFixed(2)} min`);
 
   for (const o of m.options.slice(1)) {
-    const block = motorsBlock(id, o.id);
+    const seat = seatOf(id, o.id);
+    const block = seat.motors;
     const st = motorStats(id, o.id);
     const name = `${id} ${o.id}`;
 
     /* M3 */
     {
-      const sim = await fresh(af, block);
+      const sim = await fresh(af, seat);
       const d = (k) => sim.e.sim_bf_debug(k);
       const got = [d(51), d(55), d(56), d(57), d(62), d(61), d(60), d(10), d(11)];
       const want = [...block.slice(0, 4), block[SIM_MOTORS.KE], block[SIM_MOTORS.R], block[SIM_MOTORS.J_ROTOR], t.kt, t.kq];
       check(`M3 ${name} reaches the plant`, got.every((g, k) => g === want[k]), `${(got[0] * 1000).toFixed(0)} g, ke ${got[4].toPrecision(4)}, R ${got[5].toPrecision(4)}, J ${got[6].toPrecision(3)}`);
     }
-    const bench = await standing(af, block);
+    const bench = await standing(af, seat);
     /* Over stock's, flown and solved: the static solve leaves out what
      * the plant adds standing near the floor (the combat quads' ground
      * effect and inflow), which is the same on both motors and is
@@ -376,19 +408,19 @@ for (const [id, m] of Object.entries(MOTORS)) {
 
     /* M5 */
     {
-      const hover = await trimHover(af, block);
+      const hover = await trimHover(af, seat);
       check(`M5 ${name} hovers where the static solve puts it`, Math.abs(hover - st.hover.duty) < 0.01, `${hover.toFixed(3)} flown, ${st.hover.duty.toFixed(3)} solved`);
       check(`M5 ${name} hovers lower up the stick than stock and out climbs it`, hover < hover0 && st.tw > st0.tw,
         `hover ${hover.toFixed(3)} against ${hover0.toFixed(3)}, T/W ${st.tw.toFixed(2)} against ${st0.tw.toFixed(2)}`);
-      const tau = await stepTau(af, block, hover, m.tau.measure);
+      const tau = await stepTau(af, seat, hover, m.tau.measure);
       check(`M8 ${name} rotor time constant is in its class's band`, tau >= m.tau.band[0] && tau <= m.tau.band[1],
         `${(tau * 1000).toFixed(1)} ms flown against stock's ${(tau0 * 1000).toFixed(1)}, band ${m.tau.band[0] * 1000} to ${m.tau.band[1] * 1000} ms, ${m.tau.measure}`);
     }
 
     /* M6 */
     {
-      const top = await levelTop(af, block);
-      check(`M6 ${name} top speed is the estimate and above stock's`, Math.abs(top - MOTOR_ESTIMATES[id][o.id]) < 0.05 && top > top0,
+      const top = await levelTop(af, seat);
+      check(`M6 ${name} top speed is the estimate and above stock's`, Math.abs(top - estimate(o.id)) < 0.05 && top > top0,
         `${top.toFixed(2)} m/s against ${top0.toFixed(2)}`);
     }
 
@@ -397,7 +429,7 @@ for (const [id, m] of Object.entries(MOTORS)) {
       check(`M7 ${name} draws more and sags harder than stock at full throttle`, bench.amps > bench0.amps && bench.cellV < bench0.cellV,
         `${bench.amps.toFixed(0)} A, ${bench.cellV.toFixed(2)} V a cell against ${bench0.amps.toFixed(0)} A, ${bench0.cellV.toFixed(2)} V`);
       const perMotor = bench.amps / 4;
-      const packLimit = m.pack.maxA;
+      const packLimit = m.packs[0].maxA;
       const over = [];
       if (perMotor > o.maxA) {
         over.push(`the motor's ${o.maxA} A peak`);
@@ -412,14 +444,98 @@ for (const [id, m] of Object.entries(MOTORS)) {
     }
   }
 
+  /* P1 to P5: the props and the packs, each on the stock motor. */
+  {
+    const base = { option: stock.id, prop: m.props[0].id, pack: m.packs[0].id };
+    const viaBlock = traceHash(await fresh(af, { motors: stockBlock(id), propPack: propPackDoubles(id, base) }));
+    const table = traceHash(await fresh(af, null));
+    check(`P1 ${id} the stock prop and pack through sim_set_prop_pack are the table, curves and all, bit for bit`, viaBlock === table, `${viaBlock} ${table}`);
+    check(`P1 ${id} the stock prop and pack are no block`, propPackBlock(id, base) === null);
+    const fmTable = (await fresh(af, null)).e.sim_bf_debug(12);
+    note(`${id} figure of merit`, `${t.fm} in the table, ${fmTable.toFixed(4)} from its kt and kq on the plant's disc`);
+  }
+  const parts = [
+    ...m.props.slice(1).map((p) => ({ kind: 'prop', item: p, choice: { option: stock.id, prop: p.id, pack: m.packs[0].id } })),
+    ...m.packs.slice(1).map((k) => ({ kind: 'pack', item: k, choice: { option: stock.id, prop: m.props[0].id, pack: k.id } })),
+  ];
+  for (const { kind, item, choice } of parts) {
+    const name = `${id} ${kind} ${item.id}`;
+    const seat = seatOf(id, choice);
+    const p = quadPlant(id, choice);
+    const st = motorStats(id, choice);
+    {
+      const sim = await fresh(af, seat);
+      const d = (k) => sim.e.sim_bf_debug(k);
+      const got = [d(51), d(55), d(56), d(57), d(10), d(11), d(77), d(76), d(54), d(63), d(60)];
+      const want = [p.massKg, ...p.inertia, p.kt, p.kq, p.kInflow, p.fm, p.cells, p.rCell, p.jRotor];
+      check(`P1 ${name} reaches the plant`, got.every((g, k) => g === want[k]),
+        `${(got[0] * 1000).toFixed(1)} g, kt ${got[4].toPrecision(4)}, kq ${got[5].toPrecision(4)}, pitch ${got[6].toPrecision(4)} m/rad, FM ${got[7].toFixed(4)}, ${(got[9] * 1000).toFixed(2)} mOhm a cell`);
+    }
+    const hover = await trimHover(af, seat);
+    check(`P2 ${name} hovers where the static solve puts it`, Math.abs(hover - st.hover.duty) < 0.01, `${hover.toFixed(3)} flown, ${st.hover.duty.toFixed(3)} solved`);
+    const bench = await standing(af, seat);
+    if (kind === 'prop') {
+      const s = item.stand;
+      const ratio = motorBench(id, { option: s.option, prop: item.id }, s.prop.volts).thrustN
+        / motorBench(id, { option: s.option, prop: m.props[0].id }, s.stock.volts).thrustN;
+      const maker = s.prop.grams / s.stock.grams;
+      const r = propRatios(item);
+      check(`P3 ${name} its thrust over the stock prop's on the maker's stand is the maker's`, Math.abs(ratio / maker - 1) <= m.benchBand,
+        `${ratio.toFixed(3)} derived, ${maker.toFixed(3)} measured (${s.prop.grams} g over ${s.stock.grams} g on ${s.option}), kt x${r.kt.toFixed(4)}, kq x${r.kq.toFixed(4)}, band ${(100 * m.benchBand).toFixed(0)} percent`);
+    } else {
+      const over = bench.amps > item.maxA;
+      note(`P4 ${name}`, `${bench.amps.toFixed(0)} A standing against its maker's ${item.maxA} A, ${bench.cellV.toFixed(2)} V a cell (stock pack ${m.packs[0].maxA} A); ${over ? 'past its rating, paid in sag' : 'inside its rating'}`);
+    }
+    note(`${name}`, `${(st.massKg * 1000).toFixed(0)} g, T/W ${st.tw.toFixed(2)}, hover ${st.hover.duty.toFixed(3)}, ${bench.amps.toFixed(0)} A full, hover ${st.hoverMin.toFixed(1)} min, full ${st.fullMin.toFixed(2)} min, top ${MOTOR_ESTIMATES[id][choiceKey(choice)]} m/s`);
+  }
+
+  /* P5 */
+  if (parts.length) {
+    const block = propPackDoubles(id, parts[0].choice);
+    const sim = await fresh(af, { motors: motorsBlock(id, parts[0].choice), propPack: block });
+    sim.reset();
+    const kept = sim.e.sim_bf_debug(10) === block[SIM_PROP_PACK.KT] && sim.e.sim_bf_debug(63) === block[SIM_PROP_PACK.R_CELL];
+    const bad = (k, v) => {
+      const b = Float64Array.from(block);
+      b[k] = v;
+      return sim.setPropPack(b) === SIM_ERR_BAD_ARG;
+    };
+    const refused = bad(SIM_PROP_PACK.KT, 0) && bad(SIM_PROP_PACK.FM, 1.2) && bad(SIM_PROP_PACK.AXIAL, 0.99) && bad(SIM_PROP_PACK.TORQUE + 3, 2.5);
+    must(sim.clearPower(), 'sim_power_clear');
+    const cleared = sim.e.sim_bf_debug(10) === t.kt && sim.e.sim_bf_debug(63) === t.rCell && sim.e.sim_bf_debug(76) === t.fm;
+    must(sim.e.sim_set_airframe(airframeById('timber1500').simId), 'sim_set_airframe');
+    const wingRefused = sim.setPropPack(block) === SIM_ERR_BAD_ARG;
+    check(`P5 ${id} the prop and pack are kept across sim_reset, refused out of range, off a curve's 1 and on a wing, and cleared`,
+      kept && refused && cleared && wingRefused, `${kept} ${refused} ${cleared} ${wingRefused}`);
+  }
+
+  /* E: every motor, prop and pack together. */
+  {
+    const off = [];
+    let worst = 0;
+    const rows = [];
+    for (const c of quadChoices(id)) {
+      const key = choiceKey(c);
+      const top = await levelTop(af, seatOf(id, c));
+      const d = Math.abs(top - MOTOR_ESTIMATES[id][key]);
+      worst = Math.max(worst, d);
+      if (!(d < 0.05)) {
+        off.push(`${key} ${top.toFixed(2)} against ${MOTOR_ESTIMATES[id][key]}`);
+      }
+      rows.push(`${key} ${top.toFixed(2)}`);
+    }
+    check(`E ${id} every one of its ${rows.length} choices flies its estimated top speed`, off.length === 0,
+      off.length ? off.join('; ') : `worst ${worst.toFixed(3)} m/s off`);
+  }
+
   /* M9 */
   {
     const up = motorsBlock(id, m.options[1].id);
-    const a = traceHash(await fresh(af, up));
-    const b = traceHash(await fresh(af, up));
+    const a = traceHash(await fresh(af, { motors: up }));
+    const b = traceHash(await fresh(af, { motors: up }));
     const table = traceHash(await fresh(af, null));
     check(`M9 ${id} an upgrade flies deterministically and not as the table`, a === b && a !== table, `${a} ${b}`);
-    const sim = await fresh(af, up);
+    const sim = await fresh(af, { motors: up });
     sim.reset();
     const kept = sim.e.sim_bf_debug(62) === up[SIM_MOTORS.KE];
     must(sim.e.sim_set_airframe(airframeById('timber1500').simId), 'sim_set_airframe');

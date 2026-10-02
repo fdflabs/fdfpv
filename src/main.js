@@ -167,7 +167,7 @@ import { retiredMap } from './maps/retired.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, SIM_POWER } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
-import { MOTORS, hasMotors, motorOption, motorStats, motorsBlock } from '../configs/motors.js';
+import { MOTORS, choiceKey, hasMotors, motorChoice, motorStats, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
@@ -6091,11 +6091,12 @@ export async function boot({
 
   /*
    * A CATAPULT LAUNCHED AIRCRAFT IS NOT THROWN EITHER, IT IS SHOT OFF A
-   * RAIL: the Bramor. Parked, it is drawn on the rail, `catapult.height`
-   * over the ground and `catapult.pitchDeg` nose up, facing the way it
-   * faced; L, or throttle, puts the plant at exactly that pose and lets it
-   * go at the rail's release speed along its nose, which is the end of the
-   * shuttle's stroke. The launcher stays where it stood. From anywhere else
+   * RAIL: the Bramor and the Striker. Parked, it is drawn on the rail,
+   * `catapult.height` over the ground and `catapult.pitchDeg` nose up,
+   * facing the way it faced; L, or throttle, puts the plant at exactly that
+   * pose and lets it go at the rail's release speed along its nose, which
+   * is the end of the shuttle's stroke. The launcher stays where it stood.
+   * From anywhere else
    * (it came down under its chute in a field) the same release happens
    * where it lies, the ground crew having carried the rail to it; a chute
    * still out is packed first.
@@ -6900,7 +6901,7 @@ export async function boot({
     return true;
   }
   /*
-   * The Bramor's catapult, once the aircraft has left it: the launcher's
+   * A catapult, once the aircraft has left it: the launcher's
    * world matrix, held so it stays at the spawn while the aircraft it is
    * parented to flies away (it is part of the craft's model, so it is
    * built, swapped and disposed with it and needs no scene of its own).
@@ -7590,17 +7591,29 @@ export async function boot({
    * seated in the plant with the airframe, on the same between-runs rule
    * and at a hot swap. The stock system on its stock pack is the plant's
    * own table, so it clears rather than sets. The pack's cells and the
-   * option's voice follow it. A quad's is its motors (configs/motors.js),
-   * on the same rule: the stock motor is the table and clears.
+   * option's voice follow it. A quad's is its motors, prop and pack
+   * (configs/motors.js), on the same rule: the stock choice is the table
+   * and clears. The plant keeps each block until a clear, so a swap clears
+   * first and seats what the new choice has, or a prop put back to stock
+   * would stay seated.
    */
   function applyPower(s) {
     const af = airframeById(runAirframe);
     if (hasMotors(af.id) && typeof sim.e.sim_set_motors === 'function') {
-      const { option } = powerChoice(af.id, s.power);
-      const block = motorsBlock(af.id, option);
-      const code = block ? sim.setMotors(block) : sim.clearPower();
+      const choice = powerChoice(af.id, s.power);
+      const cleared = sim.clearPower();
+      if (cleared !== SIM_OK) {
+        throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(cleared)}`);
+      }
+      const motors = motorsBlock(af.id, choice);
+      const code = motors ? sim.setMotors(motors) : SIM_OK;
       if (code !== SIM_OK) {
-        throw new Error(`sim_set_motors refused ${option} on ${af.id}: ${simErrorName(code)}`);
+        throw new Error(`sim_set_motors refused ${choice.option} on ${af.id}: ${simErrorName(code)}`);
+      }
+      const propPack = propPackBlock(af.id, choice);
+      const packed = propPack ? sim.setPropPack(propPack) : SIM_OK;
+      if (packed !== SIM_OK) {
+        throw new Error(`sim_set_prop_pack refused ${choice.prop} and ${choice.pack} on ${af.id}: ${simErrorName(packed)}`);
       }
       return;
     }
@@ -11227,29 +11240,36 @@ export async function boot({
     const m = /^https?:\/\/(?:www\.)?([^/]+)/.exec(url);
     return m ? m[1] : url;
   };
-  /* A quad's motors (configs/motors.js) in the same shape: one pack, so
-   * no pack row; the weight, the thrust to weight, the hover and full
-   * throttle times from the static operating point the checks hold
-   * (motorStats), and the top speed flown on the plant ahead of time
+  /* A quad's motors, props and packs (configs/motors.js) in the same
+   * shape: every motor offers the same packs, so the pack row and the
+   * pack a motor change keeps work as a plane's do, and `props` is the
+   * row a plane has none of. The weight, the thrust to weight, the hover
+   * and full throttle times from the static operating point the checks
+   * hold (motorStats), and the top speed flown on the plant ahead of time
    * (configs/motor-estimates.js). */
-  const quadPower = (id) => ({
-    options: MOTORS[id].options.map((o) => ({
-      id: o.id, name: str(o.name), detail: o.detail, kind: 'electric', source: hostOf(o.source[0]), packs: [],
-    })),
-    stock: { option: MOTORS[id].options[0].id, pack: null },
-    chosen: powerChoice(id, ui.settings.power),
-    estimate: (choice) => {
-      const o = motorOption(id, choice && choice.option);
-      const st = motorStats(id, o.id);
-      return {
-        grams: Math.round(st.massKg * 1000),
-        topSpeed: (MOTOR_ESTIMATES[id] || {})[o.id] ?? null,
-        thrustToWeight: st.tw,
-        hoverMinutes: st.hoverMin,
-        fullMinutes: st.fullMin,
-      };
-    },
-  });
+  const quadPower = (id) => {
+    const m = MOTORS[id];
+    const packs = m.packs.map((p) => ({ id: p.id, name: str(p.name), detail: str('carousel.grams', { n: p.grams }) }));
+    return {
+      options: m.options.map((o) => ({
+        id: o.id, name: str(o.name), detail: o.detail, kind: 'electric', source: hostOf(o.source[0]), packs,
+      })),
+      props: m.props.map((p) => ({ id: p.id, name: str(p.name), detail: p.detail })),
+      stock: quadChoices(id)[0],
+      chosen: powerChoice(id, ui.settings.power),
+      estimate: (choice) => {
+        const c = motorChoice(id, { [id]: choice });
+        const st = motorStats(id, c);
+        return {
+          grams: Math.round(st.massKg * 1000),
+          topSpeed: (MOTOR_ESTIMATES[id] || {})[choiceKey(c)] ?? null,
+          thrustToWeight: st.tw,
+          hoverMinutes: st.hoverMin,
+          fullMinutes: st.fullMin,
+        };
+      },
+    };
+  };
   const hangarPower = (id) => {
     if (hasMotors(id)) {
       return quadPower(id);
@@ -15781,11 +15801,15 @@ export async function boot({
      * inertia, for scripts/combat-shell.js. */
     combat: combatSeatKey && airframeById(runAirframe).combat ? JSON.parse(combatSeatKey) : null,
     ixx: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(55) : 0,
-    /* A quad's motors as the plant flies them, for scripts/
-     * garage-motors-check.js: the loaded torque constant, the resistance
-     * and the rotor's inertia, sim_set_motors's three. */
+    /* A quad's motors, prop and pack as the plant flies them, for
+     * scripts/garage-motors-check.js: the loaded torque constant, the
+     * resistance and the rotor's inertia, sim_set_motors's three, and the
+     * prop's thrust constant and a cell's resistance, sim_set_prop_pack's. */
     motors: hasMotors(runAirframe) && typeof sim.e.sim_bf_debug === 'function'
-      ? { ke: sim.e.sim_bf_debug(62), r: sim.e.sim_bf_debug(61), j: sim.e.sim_bf_debug(60) } : null,
+      ? {
+        ke: sim.e.sim_bf_debug(62), r: sim.e.sim_bf_debug(61), j: sim.e.sim_bf_debug(60),
+        kt: sim.e.sim_bf_debug(10), rCell: sim.e.sim_bf_debug(63),
+      } : null,
     parts: shell.quad.userData.partsFit ?? null,
     smoke: { on: smokeOn, puffs: smoke.live() },
     bladeScale: audio.bladeScale,

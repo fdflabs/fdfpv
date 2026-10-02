@@ -244,8 +244,8 @@ const MEASURE = `(() => {
        * camera and 21 mm over the five inch's, and a rigid contact hull that
        * covered it would make a quad bounce off its own aerial. */
       if (o.name === 'antenna' || (o.parent && o.parent.name === 'antenna')) { return; }
-      /* Nor is the Bramor's catapult, which stands under it while it is
-       * parked, or its parachute: see src/render/bramorcraft.js. */
+      /* Nor is a catapult, which stands under it while it is parked, or
+       * the Bramor's parachute: see src/render/bramorcraft.js. */
       let gear = false;
       o.traverseAncestors((p) => { gear = gear || p.name === 'launcher' || p.name === 'chute'; });
       if (gear || o.name === 'chute') { return; }
@@ -278,6 +278,98 @@ const MEASURE = `(() => {
   };
 })()`;
 
+/*
+ * The catapult under a parked aircraft, for one that has one: what the
+ * shell draws on the pad before the first shot, measured in the world
+ * against the rail's numbers (configs/airframes.js `catapult`), which are
+ * what the plant is released from. The rail is the launcher's mesh named
+ * 'rail', a box whose length is its own z: its slope, where the CG's foot
+ * falls on it and how far that is from the low end. Then the launcher's
+ * lowest point against the ground under the CG, and its highest point
+ * under the aircraft (inside the hull's plan, in the craft's frame)
+ * against the lowest point of the hull that does not turn, which is the
+ * aircraft sitting on it. In world units; the caller divides.
+ */
+const MEASURE_LAUNCHER = `(() => {
+  const THREE = window.__three;
+  const scene = window.__mapScene();
+  let g = null;
+  scene.traverse((o) => { if (o.name === 'craft') { g = o; } });
+  if (!g) { return { error: 'no craft in the scene' }; }
+  let launcher = null;
+  g.traverse((o) => { if (o.name === 'launcher') { launcher = o; } });
+  if (!launcher) { return { launcher: false }; }
+  const rail = launcher.getObjectByName('rail');
+  if (!rail) { return { launcher: true, rail: false }; }
+  g.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert();
+  const cg = new THREE.Vector3().setFromMatrixPosition(g.matrixWorld);
+  const v = new THREE.Vector3();
+  const w = new THREE.Vector3();
+  const m = new THREE.Matrix4();
+  const paint = (o) => o.material && o.material.userData && o.material.userData.hullColor !== undefined;
+  /* The hull that does not turn, in the craft's frame: its lowest point
+   * and its plan. A pusher's blade sweeps past the rail; it is the skid or
+   * the belly that sits on it. */
+  const plan = new THREE.Box3();
+  let belly = Infinity;
+  g.traverse((o) => {
+    if (!o.isMesh || !o.visible || paint(o) || o.name === 'chute') { return; }
+    let skip = false;
+    o.traverseAncestors((p) => { skip = skip || ['launcher', 'chute', 'antenna', 'prop-mount'].includes(p.name) || !p.visible; });
+    const pos = o.geometry.getAttribute('position');
+    if (skip || !pos) { return; }
+    m.multiplyMatrices(inv, o.matrixWorld);
+    for (let i = 0; i < pos.count; i += 1) {
+      v.fromBufferAttribute(pos, i).applyMatrix4(m);
+      plan.expandByPoint(v);
+      if (v.y < belly) { belly = v.y; }
+    }
+  });
+  let low = Infinity;
+  let top = -Infinity;
+  let tris = 0;
+  let draws = 0;
+  launcher.traverse((o) => {
+    if (!o.isMesh || paint(o)) { return; }
+    const pos = o.geometry.getAttribute('position');
+    draws += 1;
+    tris += (o.geometry.index ? o.geometry.index.count : pos.count) / 3;
+    m.multiplyMatrices(inv, o.matrixWorld);
+    for (let i = 0; i < pos.count; i += 1) {
+      v.fromBufferAttribute(pos, i);
+      w.copy(v).applyMatrix4(o.matrixWorld);
+      if (w.y < low) { low = w.y; }
+      v.applyMatrix4(m);
+      const under = v.x >= plan.min.x && v.x <= plan.max.x && v.z >= plan.min.z && v.z <= plan.max.z;
+      if (under && v.y > top) { top = v.y; }
+    }
+  });
+  rail.geometry.computeBoundingBox();
+  const bb = rail.geometry.boundingBox;
+  const a = new THREE.Vector3(0, 0, bb.min.z).applyMatrix4(rail.matrixWorld);
+  const b = new THREE.Vector3(0, 0, bb.max.z).applyMatrix4(rail.matrixWorld);
+  const lo = a.y < b.y ? a : b;
+  const hi = a.y < b.y ? b : a;
+  const u = hi.clone().sub(lo).normalize();
+  const nose = new THREE.Vector3(0, 0, -1).applyQuaternion(g.getWorldQuaternion(new THREE.Quaternion()));
+  const gr = window.__ground();
+  return {
+    launcher: true,
+    rail: true,
+    visible: launcher.visible,
+    railPitchDeg: (Math.asin(u.y) * 180) / Math.PI,
+    noseOffRailDeg: (Math.acos(Math.min(1, nose.dot(u))) * 180) / Math.PI,
+    releaseToLow: cg.clone().sub(lo).dot(u),
+    cgOverGround: cg.y - gr.surf,
+    lowOverGround: low - gr.surf,
+    top,
+    belly,
+    tris,
+    draws,
+  };
+})()`;
+
 const rows = [];
 let fails = 0;
 function report(id, pass, measured, extra = '') {
@@ -286,6 +378,11 @@ function report(id, pass, measured, extra = '') {
     fails += 1;
   }
 }
+/* How far a drawn launcher may sit from its rail's numbers. The Bramor's
+ * catapult, drawn first, is a box rail whose centre line meets the ground
+ * 11 mm short of its foot, so its lower corner is 12 mm into it. */
+const LAUNCHER_TOL_MM = 20;
+const LAUNCHER_TOL_DEG = 0.5;
 function near(id, got, want, tolMm, unit = 'mm') {
   const off = Math.abs(got - want);
   report(id, off <= tolMm,
@@ -326,14 +423,29 @@ function fullest(af) {
   return { payload: deepest.id, accessories: af.combat.accessories.map((a) => a.id) };
 }
 
-async function measure(airframeId) {
+function reportLauncher(tag, cat, c, s) {
+  report(`${tag}: launcher drawn, with its rail, shown on the pad`, Boolean(c && c.launcher && c.rail && c.visible),
+    c ? `launcher ${c.launcher}, rail ${c.rail}, visible ${c.visible}` : 'no answer',
+    c && c.launcher ? `${c.draws} draws, ${c.tris} triangles` : '');
+  if (!c || !c.rail) {
+    return;
+  }
+  near(`${tag}: rail pitch`, c.railPitchDeg, cat.pitchDeg, LAUNCHER_TOL_DEG, 'deg');
+  near(`${tag}: rail along the nose`, c.noseOffRailDeg, 0, LAUNCHER_TOL_DEG, 'deg');
+  near(`${tag}: CG over the ground`, (c.cgOverGround / s) * 1000, cat.height * 1000, LAUNCHER_TOL_MM);
+  near(`${tag}: release point to the rail's foot`, (c.releaseToLow / s) * 1000, cat.railLength * 1000, LAUNCHER_TOL_MM);
+  near(`${tag}: launcher stands on the ground`, (c.lowOverGround / s) * 1000, 0, LAUNCHER_TOL_MM);
+  near(`${tag}: aircraft sits on the launcher`, (c.top / s) * 1000, (c.belly / s) * 1000, LAUNCHER_TOL_MM);
+}
+
+async function measure(airframeId, propulsion = null) {
   const seated = seatAirframe(
     { airframe: '5inch', rates: airframeById('5inch').rates },
     airframeId,
   );
   const af = airframeById(airframeId);
   if (af.combat) {
-    seated.combat = { [af.id]: fullest(af) };
+    seated.combat = { [af.id]: { ...fullest(af), ...(propulsion ? { propulsion } : {}) } };
   }
   const page = await openPage({
     root,
@@ -362,6 +474,9 @@ async function measure(airframeId) {
       + JSON.stringify(airframeId), 20000);
     await page.sleep(500);
     const got = await page.evaluate(MEASURE);
+    if (af.catapult) {
+      got.catapult = await page.evaluate(MEASURE_LAUNCHER);
+    }
     return got;
   } finally {
     await page.close();
@@ -470,6 +585,24 @@ async function main() {
       r.craftRadiusTrue * 1000, (dims.arm + dims.hullR) * 1000, 0.001);
     near(`${af.id}: table up`, r.craftUpTrue * 1000, dims.vHalfUp * 1000, 0.001);
     near(`${af.id}: table down`, r.craftDownTrue * 1000, dims.vHalfDown * 1000, 0.001);
+
+    /*
+     * 4. An aircraft shot off a rail stands on its launcher on the pad, and
+     * the launcher drawn is the rail the plant is released from: the
+     * shell's own parked pose, so a launcher the model lacks, the shell
+     * fails to show, or that disagrees with the rail's numbers about where
+     * the aircraft leaves it, is caught here. The Bramor's rail is held to
+     * the same numbers as every other.
+     */
+    if (af.catapult) {
+      reportLauncher(af.id, af.catapult, r.catapult, s);
+      /* Every way it is pushed stands on the same rail: the turbojet
+       * Striker hangs its skid 10 mm lower than the piston one. */
+      for (const pr of (af.combat?.propulsion ?? []).slice(1)) {
+        const rp = await measure(af.id, pr.id);
+        reportLauncher(`${af.id}/${pr.id}`, af.catapult, rp && rp.catapult, rp ? rp.worldScale : s);
+      }
+    }
 
     /*
      * And the wheelbase a manufacturer prints, which is the arm doubled.

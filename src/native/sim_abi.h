@@ -846,6 +846,47 @@ int sim_power_state(double *out);
 int sim_set_motors(const double *in);
 
 /*
+ * A QUAD'S PROP AND PACK, the hangar's Power tab on a quad beside its
+ * motors (configs/motors.js, docs/MOTORS-STAGE1.md): a real prop of the
+ * frame's own diameter and a real pack, laid over the motors block or the
+ * table. What the prop and the pack weigh, and where, is not here: the
+ * host folds it into sim_set_motors's mass and inertia, which describe the
+ * whole machine, so a stock motor with a heavier pack seats both blocks.
+ *
+ * sim_set_prop_pack(in): the SIM_PROP_PACK_DOUBLES below, SI units. The
+ * prop's thrust and torque constants, thrust kt w^2 and torque kq w^2 on
+ * a rotor at w rad/s, and its pitch over 2 pi, metres per radian (plant.c
+ * k_inflow: a rotor at w has a pitch speed of w times it) and its figure
+ * of merit, kt^1.5 / (kq sqrt(2 rho A)) on the plant's disc (plant.c
+ * torque_ind: the descent's torque split uses it, so a prop's own keeps
+ * that split equal to kq w^2 at mu 0); the pack's
+ * series cells and each cell's resistance, ohms; and the prop's thrust and
+ * torque over their static values at axial advance mu 0, 0.1, ... 1.4
+ * (plant.c axial_curve and torque_curve, docs/PROP-CURVES.md), each from
+ * 0 to 2, the first of each exactly 1. A MODE on the same rules
+ * as sim_set_motors: kept across sim_reset and sim_init, cleared by
+ * sim_set_airframe to a different airframe and by sim_power_clear, which
+ * clears both blocks. sim_power_state [9] reads 1 while either is seated.
+ * SIM_ERR_BAD_ARG on a fixed wing, for a null pointer and for any value
+ * out of its range (plant_set_prop_pack in src/native/plant.c);
+ * SIM_ERR_BAD_STATE before sim_init.
+ *
+ * Additive, version unchanged: with nothing seated no step reads any of
+ * it, and seated with the table's own values every trace is bit identical
+ * (scripts/motors-check.js).
+ */
+#define SIM_PROP_PACK_KT 0       /* N per (rad/s)^2, 1e-10 to 1e-3 */
+#define SIM_PROP_PACK_KQ 1       /* N m per (rad/s)^2, 1e-12 to 1e-4 */
+#define SIM_PROP_PACK_PITCH_R 2  /* pitch over 2 pi, m per rad, 0.001 to 0.2 */
+#define SIM_PROP_PACK_FM 3       /* figure of merit, 0.1 to 0.9 */
+#define SIM_PROP_PACK_CELLS 4    /* series cells, 1 to 14 */
+#define SIM_PROP_PACK_R_CELL 5   /* ohms a cell, 0 to 1 */
+#define SIM_PROP_PACK_AXIAL 6    /* 15: thrust over static at mu 0 to 1.4 */
+#define SIM_PROP_PACK_TORQUE 21  /* 15: torque over static at mu 0 to 1.4 */
+#define SIM_PROP_PACK_DOUBLES 36
+int sim_set_prop_pack(const double *in);
+
+/*
  * ADD-ONS, the hangar's Parts tab (configs/hangar-parts.js) on a fixed
  * wing and a combat quad's payload and accessories (docs/COMBAT-DRONES.md)
  * on a quad: what the pilot bolted on or taped up, handed over as one

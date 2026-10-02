@@ -354,13 +354,15 @@ export function buildShell(canvas, opts) {
     /* Only a craft with a folding prop has one; the Radian does, and the
      * Bramor. */
     setProp: craft.setProp ?? null,
-    /* The Bramor's parachute and its catapult; null on every other
-     * aircraft. See src/render/bramorcraft.js. */
+    /* The Bramor's parachute; null on every other aircraft. See
+     * src/render/bramorcraft.js. */
     setChute: craft.setChute ?? null,
     /* Only a craft with flaps has one; the Timber does. */
     setFlaps: craft.setFlaps ?? null,
     /* Only a craft with retracts has one; the P-51 does. */
     setGear: craft.setGear ?? null,
+    /* The launcher of an aircraft shot off a rail, the Bramor's and the
+     * Striker's, and its pose on the aircraft; null on every other. */
     launcher: craft.launcher ?? null,
     launcherRest: craft.launcherRest ?? null,
     resize,

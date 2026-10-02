@@ -2519,6 +2519,18 @@ SIM_EXPORT int sim_set_motors(const double *in) {
   return rc;
 }
 
+/* A quad's prop and pack, sim_abi.h, on the motors' rule: a fresh pack. */
+SIM_EXPORT int sim_set_prop_pack(const double *in) {
+  if (!g_initialised) {
+    return SIM_ERR_BAD_STATE;
+  }
+  const int rc = plant_set_prop_pack(in);
+  if (rc == SIM_OK) {
+    plant_power_reset(&S);
+  }
+  return rc;
+}
+
 SIM_EXPORT int sim_power_clear(void) {
   plant_power_clear();
   contact_build_corners();
