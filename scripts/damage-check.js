@@ -55,7 +55,10 @@ import { createRoomWar } from '../src/share/roomwar.js';
 import STRUCTURES from '../src/share/war/itaipu-chunks.js';
 
 /* "A few well placed hits open a breach" (the owner, 2 October): at
- * least one and at most this many, for every kind at its own targets. */
+ * least HITS_MIN, so one attacker alone, hit or near miss, never opens a
+ * target (a hit already takes its megawatts, war.js take), and at most
+ * HITS, for every kind at its own targets. */
+const HITS_MIN = 2;
 const HITS = 4;
 const GATE = 'gate-3';
 
@@ -110,12 +113,12 @@ function table() {
   for (const [key, r] of rows) {
     const k = `${r.kind} at a ${r.part}`;
     by.set(k, [...(by.get(k) ?? []), r.hits]);
-    if (!(r.hits >= 1 && r.hits <= HITS)) {
-      check(false, `${key} opens in 1 to ${HITS} hits`, `${r.hits}`);
+    if (!(r.hits >= HITS_MIN && r.hits <= HITS)) {
+      check(false, `${key} opens in ${HITS_MIN} to ${HITS} hits`, `${r.hits}`);
     }
   }
   for (const [k, list] of by) {
-    check(list.every((h) => h >= 1 && h <= HITS), `${k}: ${Math.min(...list)} to ${Math.max(...list)} hits`, `${list.length} targets`);
+    check(list.every((h) => h >= HITS_MIN && h <= HITS), `${k}: ${Math.min(...list)} to ${Math.max(...list)} hits`, `${list.length} targets`);
   }
 }
 

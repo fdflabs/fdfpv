@@ -117,10 +117,10 @@
 /* Each attacker kind's warhead where it arrives (routes.js KINDS): a
  * kind not here has none that strikes a structure. */
 export const CHARGE = Object.freeze({
-  strike: Object.freeze({ charge: 120, r: 6 }),
+  strike: Object.freeze({ charge: 80, r: 6 }),
   loiter: Object.freeze({ charge: 40, r: 3 }),
   fpv: Object.freeze({ charge: 45, r: 3 }),
-  boat: Object.freeze({ charge: 260, r: 9 }),
+  boat: Object.freeze({ charge: 70, r: 9 }),
 });
 
 /* A defender's warhead where it goes off (edge/rooms/war.js WARHEADS). */
@@ -140,7 +140,7 @@ export const CUT_R = 5;
 
 /* What a chunk of each kind takes before it breaks. */
 export const HP = Object.freeze({
-  skin: 60,
+  skin: 90,
   girder: 90,
   arm: 80,
   brace: 50,
