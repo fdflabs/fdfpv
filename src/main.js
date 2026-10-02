@@ -2953,7 +2953,7 @@ export async function boot({
      * the host's rows. */
     const rows = [{
       label: str(ready ? 'lobby.unready' : 'lobby.ready'), note: str(ready ? 'lobby.unready_note' : 'lobby.ready_note'), action: 'friends-lobby-ready', primary: true,
-    }, ...(lobbyGame() === 'war' ? warInviteRows() : [])];
+    }, ...lobbyInviteRows()];
     rows.push(...game.rows(host));
     if (host && game.start) {
       rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: game.start });
@@ -3041,6 +3041,20 @@ export async function boot({
     }
     return [{
       label: str('war.invite', { code }), note: roomNote || str('war.invite_note'), action: 'friends-copy',
+    }];
+  }
+
+  /* A private room's lobby gives its code to read to friends (Make a
+   * room's private room, a war room made from a public one): Enter copies
+   * the link that opens it. A public room is found in Rooms instead. */
+  function lobbyInviteRows() {
+    const st = roomLinkState.state();
+    if (!st.code || !st.welcome || st.welcome.public) {
+      return [];
+    }
+    const war = st.code === warInviteCode;
+    return [{
+      label: str('war.invite', { code: st.code }), note: roomNote || str(war ? 'war.invite_note' : 'friends.code_note'), action: 'friends-copy',
     }];
   }
 
