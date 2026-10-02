@@ -279,7 +279,7 @@ export function buildChecks() {
     {
       num: 6,
       id: 'punch-out',
-      thresholdText: '55 to 85 m',
+      thresholdText: '95 to 147 m',
       async run(ctx) {
         const th = ctx.th.checks['punch-out'];
         const th5 = ctx.th.checks['hover-throttle'];
@@ -303,7 +303,7 @@ export function buildChecks() {
     {
       num: 7,
       id: 'terminal-velocity',
-      thresholdText: '30 to 40 m/s',
+      thresholdText: '35.7 to 56.8 m/s',
       async run(ctx) {
         const th = ctx.th.checks['terminal-velocity'];
         const sim = await ctx.freshSim();
