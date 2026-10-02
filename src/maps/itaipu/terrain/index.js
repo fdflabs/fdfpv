@@ -56,11 +56,11 @@ import { ITAIPU_FRAME } from './frame.js';
  *
  * The tile ceiling holds the whole pyramid, 86 tiles of 132 098
  * bytes on data v2, 11.4 MB, under section 13's 12 MB. The mesh
- * cap holds the chunk buffers under section 13's 24 MB: a chunk is 126 kB
- * (measured, 35.1 MB over 279 at Yellowstone's cap of 300), so 180 is
- * 22.6 MB, and the selection draws 105 to 116 of them at High from the
- * spawn and from 400 m (scripts/itaipu-check.js), which leaves the rest
- * for the ones just flown past.
+ * cap holds the chunk buffers under section 13's 24 MB: a chunk is 67 kB
+ * of positions and normals (chunks.js; measured 11.0 MB over 173 built,
+ * scripts/itaipu-check.js), so 180 is 12.1 MB, and the selection draws
+ * 105 to 116 of them at High from the spawn and from 400 m, which leaves
+ * the rest for the ones just flown past.
  */
 export const TERRAIN_Q = {
   low: { split: 0.7, buildMs: 1.5, tileCeiling: 12e6, meshCap: 140, prefetch: 6000, prefetchHero: 2500 },
@@ -92,7 +92,7 @@ export async function buildTerrain({
   base, manifest, material, scene, quality, spawn, eye, progress,
 }) {
   const terrain = new Terrain({
-    base, manifest, material, scene, cover: null, quality, frame: ITAIPU_FRAME,
+    base, manifest, material, scene, quality, frame: ITAIPU_FRAME,
   });
   terrain.group.name = 'itaipu-terrain';
   /* Drawn after the scene's other opaque things (three sorts by a group's

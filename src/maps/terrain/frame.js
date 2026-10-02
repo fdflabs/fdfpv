@@ -1,10 +1,10 @@
 /*
- * frame.js: the Yellowstone contract's numbers, in one place.
+ * frame.js: the terrain engine's tile format, in one place.
  *
- * Everything here is restated from docs/YELLOWSTONE-PLAN.md and nothing
- * else: the extent, the tile pyramid and its encoding. Plain data and a
- * few pure functions, no three.js, so the synthetic tile writer in Node
- * and the engine in the browser read the same copy.
+ * The tile pyramid and its encoding, which every map on the engine
+ * shares, and the frame value a map passes for its own square. Plain data
+ * and a few pure functions, no three.js, so the Node checks and the
+ * engine in the browser read the same copy.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -22,23 +22,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* World x and z both run over [-HALF, HALF]. */
-export const HALF = 50000;
-export const EXTENT = 2 * HALF;
-
-/* World y is metres above sea level minus this. */
-export const Y0 = 2200;
-
 /* A tile is this many cells on a side and one more sample, sharing its
  * edge samples with its neighbours. */
 export const TILE_CELLS = 256;
 export const TILE_SAMPLES = TILE_CELLS + 1;
 export const TILE_BYTES = TILE_SAMPLES * TILE_SAMPLES * 2;
 
-/* Level -1 is the ten metre hero level, 0 to 5 the pyramid. */
+/* Level -1 is the ten metre hero level, 0 up to the frame's coarsest the
+ * pyramid. */
 export const HERO = -1;
-export const COARSEST = 5;
-export const LEVELS = [-1, 0, 1, 2, 3, 4, 5];
 
 /* Metres per cell at a level. */
 export function cellOf(level) {
@@ -50,12 +42,6 @@ export function tileSizeOf(level) {
   return TILE_CELLS * cellOf(level);
 }
 
-/* Tiles per axis that touch the extent at a level. The last one runs past
- * the far edge: 100 km is not a whole number of tiles at any level. */
-export function tilesPerAxis(level) {
-  return Math.ceil(EXTENT / tileSizeOf(level));
-}
-
 /* The path of a tile under the data's base URL. */
 export function tilePath(level, i, j) {
   return level === HERO ? `hero/${i}_${j}.bin` : `${level}/${i}_${j}.bin`;
@@ -63,41 +49,20 @@ export function tilePath(level, i, j) {
 
 /*
  * THE FRAME AS A VALUE, for the engine (engine.js) and the apron
- * (apron.js), which take one so a second map can run the same terrain on
- * its own square. The level scheme, the tile paths and the encoding are
- * fixed; what a map chooses is how far its square reaches, its coarsest
- * level, and the country the apron invents past the edge (base and amp
- * metres of world y, depth metres past the edge). This is Yellowstone's,
- * the default wherever a frame is not passed, and it reads exactly the
- * numbers above.
+ * (apron.js), which every map passes for its own square. The level
+ * scheme, the tile paths and the encoding are fixed; what a map chooses
+ * is how far its square reaches (world x and z run over [-half, half]),
+ * its coarsest level, and the country the apron invents past the edge
+ * (base and amp metres of world y, depth metres past the edge).
  */
-export const YELLOWSTONE_FRAME = makeFrame({
-  half: HALF,
-  coarsest: COARSEST,
-  apron: { base: 250, amp: 650, depth: 80000 },
-});
-
 export function makeFrame({ half, coarsest, apron }) {
   return {
     half, extent: 2 * half, coarsest, apron,
   };
 }
 
-/* The encoding: decimetres from a kilometre below Y0. */
+/* The encoding: decimetres from a kilometre below world y 0. */
 export function decode(v) {
   return v * 0.1 - 1000;
 }
 
-export function encode(y) {
-  return Math.max(0, Math.min(65535, Math.round((y + 1000) * 10)));
-}
-
-/* Landmarks from the contract's table, world metres. */
-export const LANDMARKS = {
-  oldFaithful: { x: -26325, z: 17964 },
-  grandPrismatic: { x: -27143, z: 10790 },
-  mammoth: { x: -17033, z: -38420 },
-  lowerFalls: { x: -83, z: -10748 },
-  lakeCentre: { x: 11718, z: 18939 },
-  westYellowstone: { x: -49335, z: -7343 },
-};

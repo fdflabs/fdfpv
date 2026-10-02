@@ -1,19 +1,17 @@
 /*
- * apron.js: the country beyond the hundred kilometre square.
+ * apron.js: the country beyond the map's square.
  *
- * The contract draws nothing outside the extent, and at three kilometres
- * a pilot sees fifty: from Old Faithful the west edge is twenty four
- * kilometres off and West Yellowstone's airport is six hundred metres from
- * it. Past the edge there would be the scene background under the horizon,
- * a pale void. So one coarse ring of ground stands outside, eighty
- * kilometres deep, grown from the coarsest level's own border heights out
- * into invented foothills, painted with the same paint, and ground a craft
- * can land on rather than a hole to fall through.
+ * The data draws nothing outside the extent, and from altitude a pilot
+ * sees tens of kilometres. Past the edge there would be the scene
+ * background under the horizon, a pale void. So one coarse ring of ground
+ * stands outside, the frame's apron.depth deep, grown from the coarsest
+ * level's own border heights out into invented country, and ground a
+ * craft can land on rather than a hole to fall through.
  *
  * Its inner edge sits 200 m inside the extent and well below the border:
- * no level's last whole cell reaches the edge exactly (level 5 stops at
- * 49 840 m), so the ring tucks under the terrain rather than leaving a
- * strip, and the terrain chunks' own skirts close the step down to it.
+ * a level's last whole cell need not reach the edge exactly, so the ring
+ * tucks under the terrain rather than leaving a strip, and the terrain
+ * chunks' own skirts close the step down to it.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -32,8 +30,6 @@
  */
 
 import * as THREE from 'three';
-import { YELLOWSTONE_FRAME } from './frame.js';
-import { paint, GRAIN_M } from './chunks.js';
 import { fbm, smoothstep } from './noise.js';
 
 /* How far inside the extent's edge the apron starts. */
@@ -76,11 +72,11 @@ function lines(inner, outer) {
 /*
  * `border(x, z)` is the terrain's height at the nearest point of the
  * extent's edge, read from the coarsest level. The apron eases from just
- * under it to a rolling upland that the fog takes: on Yellowstone's frame
- * (the default) 2 300 to 2 900 m, on another the frame's apron.base and
- * apron.amp.
+ * under it to a rolling upland that the fog takes, at the frame's
+ * apron.base and apron.amp. Positions only, as the chunks are (chunks.js
+ * chunkJob says why).
  */
-export function buildApron(border, material, cover, frame = YELLOWSTONE_FRAME) {
+export function buildApron(border, material, frame) {
   const HALF = frame.half;
   const APRON_IN = HALF - APRON_TUCK_IN;
   const APRON_OUT = HALF + frame.apron.depth;
@@ -121,23 +117,10 @@ export function buildApron(border, material, cover, frame = YELLOWSTONE_FRAME) {
   /* Cells wholly inside the inner square are not drawn. */
   const inside = (q, r) => xs[q] >= -APRON_IN && xs[q + 1] <= APRON_IN && xs[r] >= -APRON_IN && xs[r + 1] <= APRON_IN;
   const pos = [];
-  const col = [];
-  const uv = [];
   const idx = [];
-  const tmp = [0, 0, 0];
   for (let r = 0; r < n; r += 1) {
     for (let q = 0; q < n; q += 1) {
-      const y = h[r * n + q];
-      pos.push(xs[q], y, xs[r]);
-      uv.push(xs[q] / GRAIN_M, xs[r] / GRAIN_M);
-      const qa = Math.max(0, q - 1);
-      const qb = Math.min(n - 1, q + 1);
-      const ra = Math.max(0, r - 1);
-      const rb = Math.min(n - 1, r + 1);
-      const sx = (h[r * n + qb] - h[r * n + qa]) / Math.max(1, xs[qb] - xs[qa]);
-      const sz = (h[rb * n + q] - h[ra * n + q]) / Math.max(1, xs[rb] - xs[ra]);
-      paint(xs[q], xs[r], y, Math.hypot(sx, sz), tmp, 0, cover, 1000);
-      col.push(tmp[0], tmp[1], tmp[2]);
+      pos.push(xs[q], h[r * n + q], xs[r]);
     }
   }
   for (let r = 0; r < n - 1; r += 1) {
@@ -152,12 +135,10 @@ export function buildApron(border, material, cover, frame = YELLOWSTONE_FRAME) {
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
   const mesh = new THREE.Mesh(geo, material);
-  mesh.name = 'yellowstone-apron';
+  mesh.name = 'terrain-apron';
   mesh.receiveShadow = true;
   /* Colour pass only, as the far chunks are (engine.js). */
   mesh.layers.set(1);

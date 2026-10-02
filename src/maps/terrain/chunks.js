@@ -1,5 +1,5 @@
 /*
- * chunks.js: one quadtree node's mesh, and the ground's paint.
+ * chunks.js: one quadtree node's mesh.
  *
  * A chunk is 64 cells of its own level on a side, every sample drawn, so
  * the triangles on screen are the level's grid itself and the ground query
@@ -16,8 +16,6 @@
  * edge moves the fine chunk's border vertices onto the coarse line, which
  * changes the ground under a craft at a chunk border depending on what the
  * neighbour happens to be drawn at; a skirt changes nothing on the surface.
- * scripts/yellowstone-check.js samples every drawn border to prove the
- * depth is enough.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -36,8 +34,6 @@
  */
 
 import * as THREE from 'three';
-import { Y0, LANDMARKS } from './frame.js';
-import { fbm, noise2, smoothstep } from './noise.js';
 
 /* Cells per chunk side. 64 keeps a chunk to one draw of 8 192 triangles
  * plus its skirts, and makes four chunks of a level exactly one tile. */
@@ -51,104 +47,6 @@ const SKIRT_MIN = 40;
 /* Extra depth on the extent's edge, past how far apron.js can tuck the
  * apron under the border. */
 const RIM_SKIRT = 1200;
-
-/*
- * THE PAINT, as five grounds mixed on height, slope and noise: meadow on
- * the flat valley floors, lodgepole forest over the plateau in a mosaic of
- * old burns and regrowth, rock on the steep faces and above the tree line,
- * snow on the high ground that will hold it, and pale sinter on the
- * geyser basins. Every input is world position and the level's own slope,
- * so the same place is the same colour at every level, give or take the
- * slope a coarse level smooths away.
- */
-const SRGB = (hex) => new THREE.Color(hex);
-const MEADOW = SRGB(0xa3ad5c);
-const SAGE = SRGB(0x9aa27a);
-const FOREST = SRGB(0x2f4d2a);
-const REGROWTH = SRGB(0x587440);
-const ROCK = SRGB(0x847b70);
-const SNOW = SRGB(0xeef2f6);
-const SINTER = SRGB(0xd9cfb4);
-
-/* Where the ground is sinter: the geyser basins and Mammoth's terraces,
- * as discs round the contract's landmarks, broken up by noise. The thermal
- * features part draws the features themselves; this is only the pale
- * ground they stand on, so a basin reads from altitude. */
-const BASINS = [
-  { x: LANDMARKS.oldFaithful.x, z: LANDMARKS.oldFaithful.z - 250, r: 520 },
-  { x: LANDMARKS.grandPrismatic.x, z: LANDMARKS.grandPrismatic.z, r: 480 },
-  { x: -27700, z: 5200, r: 700 },
-  { x: LANDMARKS.mammoth.x, z: LANDMARKS.mammoth.z, r: 400 },
-];
-
-function sinterAt(x, z) {
-  let s = 0;
-  for (const b of BASINS) {
-    const d = Math.hypot(x - b.x, z - b.z) / b.r;
-    if (d < 1.2) {
-      s = Math.max(s, 1 - smoothstep(0.55, 1.1, d + 0.35 * (noise2(x / 180, z / 180) - 0.5)));
-    }
-  }
-  return s;
-}
-
-const c = new THREE.Color();
-const mix = (col, t) => {
-  c.r += (col.r - c.r) * t;
-  c.g += (col.g - c.g) * t;
-  c.b += (col.b - c.b) * t;
-};
-
-/*
- * Linear rgb of the ground at a point, into out[k..k+2]. `cover` is the
- * land cover (landcover.js) when the data has it, and `footprint` the
- * metres one vertex stands for, which is how wide a patch of it is
- * averaged. Without land cover the grounds are guessed from height and
- * slope alone, which is what the synthetic tiles get, and the apron past
- * where the land cover reaches.
- */
-export function paint(x, z, y, slope, out, k, cover, footprint) {
-  const asl = y + Y0;
-  const grain = fbm(x / 1400, z / 1400, 3);
-  const fine = noise2(x / 90, z / 90);
-  if (cover && cover.covers(x, z)) {
-    const barren = cover.colourAt(x, z, footprint, lc);
-    c.setRGB(lc[0], lc[1], lc[2]);
-    /* Barren is sinter on the flat and bare rock on a slope or a peak. */
-    mix(ROCK, barren * Math.max(smoothstep(0.3, 0.55, slope), smoothstep(2650, 2850, asl)));
-  } else {
-    guess(x, z, asl, slope, grain, fine);
-  }
-  /* Rock on faces too steep for anything, whatever the cover says. */
-  mix(ROCK, smoothstep(0.75, 1.1, slope + 0.2 * (fine - 0.5)));
-  /* Snow where the ground is high and will hold it. */
-  const snow = smoothstep(3150, 3300, asl + 180 * (grain - 0.5)) * (1 - smoothstep(0.9, 1.3, slope));
-  mix(SNOW, snow);
-  /* A little tone so a forest a kilometre wide is not one flat colour. */
-  const tone = 0.92 + 0.16 * fine;
-  out[k] = c.r * tone;
-  out[k + 1] = c.g * tone;
-  out[k + 2] = c.b * tone;
-}
-
-const lc = [0, 0, 0];
-
-function guess(x, z, asl, slope, grain, fine) {
-  c.copy(FOREST);
-  /* The 1988 burns and what grew back: a mosaic kilometres across. */
-  mix(REGROWTH, smoothstep(0.52, 0.66, grain) * 0.85);
-  /* Meadow in patches on flat low ground, the way the valley floors open
-   * out of the forest; sage in the dry north. */
-  const flat = 1 - smoothstep(0.035, 0.11, slope + 0.03 * (fine - 0.5));
-  const opening = smoothstep(0.5, 0.64, fbm(x / 2600 + 5.1, z / 2600 - 2.7, 3));
-  mix(MEADOW, flat * opening * (1 - smoothstep(2500, 2750, asl + 120 * grain)));
-  mix(SAGE, 1 - smoothstep(1950, 2150, asl + 80 * fine));
-  mix(ROCK, smoothstep(2950, 3100, asl + 150 * (grain - 0.5)));
-  const sinter = sinterAt(x, z);
-  if (sinter > 0) {
-    mix(SINTER, sinter * flat);
-  }
-}
 
 /*
  * Index buffers, shared by every chunk of the same clipped size: a full
@@ -224,14 +122,18 @@ function perimeterWalk(nx, nz) {
  *
  * Returns a job: step(deadline) fills rows until performance.now() passes
  * the deadline and returns the finished { geo, minY, maxY, bottom, bytes }
- * once the last row is in, else null. A chunk is a couple of milliseconds
- * of paint on this machine and a frame's ration is three, so a build that
- * could not be split would be the hitch the ration exists to prevent.
+ * once the last row is in, else null. A frame's ration is a couple of
+ * milliseconds, so a build that could not be split would be the hitch the
+ * ration exists to prevent.
+ *
+ * Positions and normals only: the material that draws the ground shades
+ * it from world position (src/maps/itaipu/look/ground.js), so a vertex
+ * colour or a uv would be bytes nothing reads.
  *
  * Positions are local to the chunk's min corner, which the mesh is placed
  * at, so a vertex 50 km out keeps millimetre precision in float32.
  */
-export function chunkJob({ nx, nz, cell, x0, z0, sample, rim, cover }) {
+export function chunkJob({ nx, nz, cell, sample, rim }) {
   const row = nx + 1;
   const grid = row * (nz + 1);
   const perimeter = 2 * (nx + nz);
@@ -248,12 +150,6 @@ export function chunkJob({ nx, nz, cell, x0, z0, sample, rim, cover }) {
   const set = spare && spare.length ? spare.pop() : null;
   const pos = set ? set.pos : new Float32Array(count * 3);
   const nrm = set ? set.nrm : new Int8Array(count * 3);
-  /* Linear colour in sixteen bits: eight bands a dark forest green into
-   * visible steps, and float would be twice the bytes for nothing. */
-  const col = set ? set.col : new Uint16Array(count * 3);
-  const rgb = [0, 0, 0];
-  const uv = set ? set.uv : new Float32Array(count * 2);
-  const du = cell / GRAIN_M;
   const inv2 = 1 / (2 * cell);
   let minY = Infinity;
   let maxY = -Infinity;
@@ -266,8 +162,6 @@ export function chunkJob({ nx, nz, cell, x0, z0, sample, rim, cover }) {
       pos[k * 3] = q * cell;
       pos[k * 3 + 1] = y;
       pos[k * 3 + 2] = r * cell;
-      uv[k * 2] = q * du;
-      uv[k * 2 + 1] = r * du;
       if (y < minY) {
         minY = y;
       }
@@ -280,10 +174,6 @@ export function chunkJob({ nx, nz, cell, x0, z0, sample, rim, cover }) {
       nrm[k * 3] = Math.round((-sx / len) * 127);
       nrm[k * 3 + 1] = Math.round((1 / len) * 127);
       nrm[k * 3 + 2] = Math.round((-sz / len) * 127);
-      paint(x0 + q * cell, z0 + r * cell, y, Math.sqrt(sx * sx + sz * sz), rgb, 0, cover, cell);
-      col[k * 3] = Math.min(65535, Math.round(rgb[0] * 65535));
-      col[k * 3 + 1] = Math.min(65535, Math.round(rgb[1] * 65535));
-      col[k * 3 + 2] = Math.min(65535, Math.round(rgb[2] * 65535));
     }
   }
 
@@ -302,23 +192,16 @@ export function chunkJob({ nx, nz, cell, x0, z0, sample, rim, cover }) {
       nrm[b * 3] = nrm[t * 3];
       nrm[b * 3 + 1] = nrm[t * 3 + 1];
       nrm[b * 3 + 2] = nrm[t * 3 + 2];
-      col[b * 3] = col[t * 3];
-      col[b * 3 + 1] = col[t * 3 + 1];
-      col[b * 3 + 2] = col[t * 3 + 2];
-      uv[b * 2] = uv[t * 2];
-      uv[b * 2 + 1] = uv[t * 2 + 1] + 0.25;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('normal', new THREE.BufferAttribute(nrm, 3, true));
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3, true));
-    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     geo.setIndex(gridIndex(nx, nz));
     /* Bounds by hand: computeBoundingSphere walks every vertex again, and
      * these are known. The skirt is inside them. */
     geo.boundingBox = new THREE.Box3(new THREE.Vector3(0, bottom, 0), new THREE.Vector3(nx * cell, maxY, nz * cell));
     geo.boundingSphere = geo.boundingBox.getBoundingSphere(new THREE.Sphere());
-    return { geo, minY, maxY, bottom, bytes: pos.byteLength + nrm.byteLength + col.byteLength + uv.byteLength };
+    return { geo, minY, maxY, bottom, bytes: pos.byteLength + nrm.byteLength };
   }
 
   return {
@@ -336,66 +219,9 @@ export function chunkJob({ nx, nz, cell, x0, z0, sample, rim, cover }) {
 }
 
 /*
- * THE GRAIN: a grey texture the vertex paint is multiplied by, tiled every
- * GRAIN_M metres in world space, so ground seen from two metres has
- * texture where the paint is thirty metre vertex colour: blotches a few
- * metres across, dark crowns and shrubs a metre or two wide, and a fine
- * speckle. Every node side is a whole number of tiles (640 m is four), so
- * a chunk's local uv joins its neighbour's without a seam. Its mean is
- * near 0.9, so it darkens the paint a little and evenly once mipmapped.
- */
-export const GRAIN_M = 160;
-
-export function groundGrain(anisotropy) {
-  const N = 512;
-  const c = document.createElement('canvas');
-  c.width = N;
-  c.height = N;
-  const ctx = c.getContext('2d');
-  const img = ctx.createImageData(N, N);
-  /* Periodic value noise: the lattice wraps at `per` cells. */
-  const pnoise = (x, y, per) => {
-    const i = Math.floor(x);
-    const j = Math.floor(y);
-    const fx = x - i;
-    const fy = y - j;
-    const u = fx * fx * (3 - 2 * fx);
-    const v = fy * fy * (3 - 2 * fy);
-    const h = (a, b) => noise2(((a % per) + per) % per + 0.5, ((b % per) + per) % per + 0.5);
-    const a = h(i, j);
-    const b = h(i + 1, j);
-    const cc = h(i, j + 1);
-    const d = h(i + 1, j + 1);
-    return a + (b - a) * u + (cc - a) * v + (a - b - cc + d) * u * v;
-  };
-  for (let y = 0; y < N; y += 1) {
-    for (let x = 0; x < N; x += 1) {
-      const blot = pnoise((x / N) * 24, (y / N) * 24, 24);
-      const crown = pnoise((x / N) * 96 + 3, (y / N) * 96 + 7, 96);
-      const fine = pnoise((x / N) * 256, (y / N) * 256, 256);
-      let v = 0.9 + 0.12 * (blot - 0.5) + 0.08 * (fine - 0.5);
-      v -= 0.2 * smoothstep(0.62, 0.78, crown);
-      const k = (y * N + x) * 4;
-      const g = Math.round(Math.max(0, Math.min(1, v)) * 255);
-      img.data[k] = g;
-      img.data[k + 1] = g;
-      img.data[k + 2] = g;
-      img.data[k + 3] = 255;
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.RepeatWrapping;
-  tex.anisotropy = anisotropy;
-  tex.colorSpace = THREE.NoColorSpace;
-  return tex;
-}
-
-/*
  * Vertex arrays of freed chunks, kept for the next chunk of the same size.
  * Once the mesh cap is reached a chunk is freed for every one built, so
- * without this each build is 130 kB of new typed arrays for the collector,
+ * without this each build is 67 kB of new typed arrays for the collector,
  * and its pauses land in whatever frame it picks.
  */
 const pool = new Map();
@@ -416,8 +242,6 @@ export function recycleChunk(geo) {
     list.push({
       pos: pos.array,
       nrm: geo.getAttribute('normal').array,
-      col: geo.getAttribute('color').array,
-      uv: geo.getAttribute('uv').array,
     });
   }
 }
