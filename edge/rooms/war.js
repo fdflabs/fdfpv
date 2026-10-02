@@ -1610,7 +1610,7 @@ export class RoomWar {
     if (cues.length) {
       dirty = true;
       out.push(...this.broadcast(core, {
-        type: 'war', op: 'cue', cues: cues.map(({ t, cue }) => ({ ...cue, at: t, stage: st.id })),
+        type: 'war', op: 'cue', cues: cues.map(({ t, cue: { when: _w, at: _a, ...cue } }) => ({ ...cue, at: t, stage: st.id })),
       }));
     }
     const due = exitDue(mission, ctx);

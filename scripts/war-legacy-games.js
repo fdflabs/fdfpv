@@ -47,6 +47,8 @@
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { runOne } from './war-balance.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -120,7 +122,8 @@ export function firstDifference(want, got) {
 const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url));
 const name = (g) => `${g.mission} ${g.skill} x${g.pilots} seed ${g.seed}`;
 
-if (process.argv.includes('--record')) {
+const main = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (main && process.argv.includes('--record')) {
   const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   const games = GAMES.map((g) => playGame(g, floorBuf));
   writeFileSync(FIXTURE, `${JSON.stringify({ commit, games })}\n`);
@@ -128,7 +131,7 @@ if (process.argv.includes('--record')) {
     console.log(`${name(g).padEnd(34)} ${String(g.births.length).padStart(3)} births ${String(g.deaths.length).padStart(3)} deaths ${g.rounds.length} round changes, ${g.end ? `${g.end.state}:${g.end.why}` : 'unfinished'}`);
   }
   console.log(`war:legacy recorded ${games.length} games at ${commit}`);
-} else {
+} else if (main) {
   const rec = JSON.parse(readFileSync(FIXTURE, 'utf8'));
   let bad = 0;
   for (const want of rec.games) {

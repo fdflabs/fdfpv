@@ -45,9 +45,10 @@
  *   at      seconds after the stage's entry, or [lo, hi]: a time in that
  *           window
  *   route   a route's id, or a list of them: one of the family
- *   az      [lo, hi] degrees: the route turned about its own last point
- *           by an angle in that window (routes.js planAgent), so the same
- *           approach comes in from somewhere else on each seed
+ *   az      [lo, hi] radians: the route turned about the vertical through
+ *           its own last point by an angle in that window, positive to
+ *           the left (routes.js planAgent), so the same approach comes in
+ *           from another bearing on each seed
  *   when    a trigger: born `at` seconds after it fires, not after the
  *           entry
  *   group   a name for the triggers to count it by ({ killed, group })
@@ -218,7 +219,7 @@ export function enter(mission, idx, at, seed, entry) {
   const st = stagesOf(mission)[idx];
   const due = st.spawns.map((w, i) => {
     const route = Array.isArray(w.route) ? w.route[Math.floor(drawFor(seed, SALT.route, entry, i) * w.route.length)] : w.route;
-    const az = Array.isArray(w.az) ? round1(w.az[0] + (w.az[1] - w.az[0]) * drawFor(seed, SALT.az, entry, i)) : null;
+    const az = Array.isArray(w.az) ? milli(w.az[0] + (w.az[1] - w.az[0]) * drawFor(seed, SALT.az, entry, i)) : null;
     const s = Array.isArray(w.at) ? w.at[0] + (w.at[1] - w.at[0]) * drawFor(seed, SALT.at, entry, i) : (w.at ?? 0);
     return {
       i, t: w.when ? null : at + Math.round(s * 1000), ms: Math.round(s * 1000), route, az, born: false,
@@ -229,7 +230,8 @@ export function enter(mission, idx, at, seed, entry) {
   };
 }
 
-const round1 = (v) => Math.round(v * 10) / 10;
+/* An angle as the birth carries it, to the milliradian. */
+const milli = (v) => Math.round(v * 1000) / 1000;
 
 /*
  * Something that happened in the stage, for the triggers: [t, type, a,
