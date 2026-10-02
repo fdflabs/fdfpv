@@ -148,11 +148,19 @@ export function createRoomBrowser({
   function flyingNow(r) {
     return r.state !== 'waiting' || (r.mode == null && r.ready == null);
   }
-  function doingNow(r) {
+  /* Its pilots alone: "1 in lobby", "2 ready of 3", "3 flying". */
+  function who(r) {
     if (!flyingNow(r)) {
       return r.ready ? str('roombrowser.lobby_ready', { ready: r.ready, n: r.n }) : str('roombrowser.lobby_in', { n: r.n });
     }
-    const flying = str('roombrowser.flying_n', { n: r.n });
+    return str('roombrowser.flying_n', { n: r.n });
+  }
+  /* And where the game is, for the title's chips, which say no more. */
+  function doingNow(r) {
+    if (!flyingNow(r)) {
+      return who(r);
+    }
+    const flying = who(r);
     if (r.game === 'war' && r.wave) {
       return str('roombrowser.flying_wave', { flying, w: r.wave, of: r.waves });
     }
@@ -164,7 +172,7 @@ export function createRoomBrowser({
 
   function roomRow(r) {
     const full = r.n >= r.cap;
-    const vars = { world: mapById(r.map).name, doing: `${doing(r)}, ${doingNow(r)}` };
+    const vars = { world: mapById(r.map).name, doing: `${doing(r)}, ${who(r)}` };
     const battle = r.game === 'war' && r.state !== 'waiting';
     const note = str(full ? 'roombrowser.row_full_note' : battle ? 'roombrowser.row_battle_note' : r.n ? 'roombrowser.row_note' : 'roombrowser.row_empty_note', vars);
     return full
@@ -407,7 +415,7 @@ export function createRoomBrowser({
           /* The game, then what its pilots are doing: "War 2 · 1 in
            * lobby", "Combat · 2 flying · round 3". */
           value: str('roombrowser.chip', { game: str(`roombrowser.chip_${r.mode || r.game || 'free'}`, { n: missionNumber(r.mission) }), doing: doingNow(r) }),
-          join: str(r.state !== 'waiting' && r.game !== 'race' && r.game !== null ? 'roombrowser.join_round' : 'roombrowser.join'),
+          join: str(r.state === 'waiting' || r.game === 'race' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
           action: `lobby:${ROOM_ACTION}${r.code}`,
         })),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },

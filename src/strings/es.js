@@ -2720,6 +2720,7 @@ export default {
   "roombrowser.chip_tag": "Atrapa al As",
   "roombrowser.chip_combat": "Combate",
   "roombrowser.join_round": "Unirse",
+  "roombrowser.join_battle": "Entrar a la batalla",
   "roombrowser.title_count_empty": "{rooms} abiertas, nadie volando todavía",
   "roombrowser.title_none": "Todavía no hay salas abiertas. Crea una y cualquiera puede entrar.",
   "roombrowser.join": "Entrar",

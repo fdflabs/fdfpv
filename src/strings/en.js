@@ -2716,6 +2716,7 @@ export default {
   "roombrowser.chip_tag": "Catch the Ace",
   "roombrowser.chip_combat": "Combat",
   "roombrowser.join_round": "Join in",
+  "roombrowser.join_battle": "Join battle",
   "roombrowser.title_count_empty": "{rooms} open, nobody flying yet",
   "roombrowser.title_none": "No open rooms yet. Make one and anybody can join.",
   "roombrowser.join": "Join",
