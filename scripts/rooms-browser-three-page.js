@@ -58,6 +58,7 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
+import { seatPilot } from '../tests/lib/roompilot.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import en from '../src/strings/en.js';
@@ -294,15 +295,19 @@ try {
   check('a public room nobody joins is made', /^[A-Z0-9]{6}$/.test(owls.code || ''), JSON.stringify(owls));
   const owlsAction = `friends-room-${owls.code}`;
   await b.evaluate("window.__ui.act('rooms'); true");
-  await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(owlsAction)})`, 20000).catch(() => {});
+  await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.label === ${JSON.stringify(en['roombrowser.here_section'])})`, 20000).catch(() => {});
+  await b.sleep(2000);
+  check('a public room nobody is in is not listed (the owner, 2026-10-02)', !(await b.evaluate(ROWS)).some((r) => r.action === owlsAction));
+  const owlPilot = await seatPilot(rooms, owls.code, [9, 9, 99]);
+  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(owlsAction)})`, 20000).catch(() => {});
   const lobby = await b.evaluate(ROWS);
   check('Rooms opens with the room B is in on top: its name, its pilots, and Leave',
     lobby[0].label === en['roombrowser.here_section'] && lobby[1].label === NAME && lobby[1].value === '3 pilots' && lobby[2].action === 'friends-leave',
     lobby.slice(0, 3).map((r) => `${r.label}=${r.value}`).join(' | '));
   check('and does not list it again below', !lobby.some((r) => r.action === action));
   const owlRow = lobby.find((r) => r.action === owlsAction);
-  check('the empty room is listed, with the minutes before it closes', owlRow && owlRow.label === OWLS && owlRow.value === 'Empty, closes in 5 min',
-    JSON.stringify(owlRow));
+  check('and is, with its pilot in it', owlRow && owlRow.label === OWLS && owlRow.value === '1 of 16', JSON.stringify(owlRow));
+  owlPilot.close();
   check('Make a room and Join with a code are on the same screen', lobby.some((r) => r.action === 'roomnew') && lobby.some((r) => r.action === 'friends-join'));
   await shot(b, '4-lobby-in-room');
   check('the cursor reaches Leave', await arrowTo(b, 'friends-leave'));

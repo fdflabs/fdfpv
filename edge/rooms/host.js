@@ -144,9 +144,9 @@ export class RoomHost {
     return alarmAt == null ? null : alarmAt - PURGE_MS;
   }
 
-  /* The purge PURGE_MS from now, and the room empty since now. */
-  closeLater() {
-    const at = Date.now() + PURGE_MS;
+  /* The purge PURGE_MS from now, or `soon`, and the room empty since now. */
+  closeLater(soon = PURGE_MS) {
+    const at = Date.now() + soon;
     if (this.core) {
       this.core.emptySince = this.emptySinceOf(at);
     }
@@ -182,7 +182,7 @@ export class RoomHost {
           reportRoom(this.env, this.core, at);
         }, this.tickDue - now);
       } else if (a.empty) {
-        this.closeLater();
+        this.closeLater(a.now ? 0 : PURGE_MS);
       }
     }
   }
