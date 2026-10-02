@@ -4596,6 +4596,9 @@ export async function boot({
       slowSaid: roomSlow.said,
       public: Boolean(st.welcome && st.welcome.public),
       name: st.welcome ? st.welcome.name : null,
+      /* What the room was made for (null free flight), and its lobby. */
+      mode: st.welcome ? st.welcome.mode ?? null : null,
+      lobby: st.welcome && st.welcome.lobby ? { ...st.welcome.lobby } : null,
       host: st.welcome ? st.welcome.host : null,
       heard: roomSafety.heard(),
       note: roomSafety.note(),

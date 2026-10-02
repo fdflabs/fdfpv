@@ -58,10 +58,12 @@ const GAME = (process.argv.find((a) => a.startsWith('--game=')) || '--game=comba
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', `game-lobby-${GAME}`);
 
 /* Each game: its title card, its world, the panel's word for it, what a
- * round on looks like on a page, and how the room ends one. */
+ * round on looks like on a page, how the room ends one, and how long its
+ * start takes to put a pilot in the air (the war's briefing is its 70 s
+ * intro, src/share/war/intro.js, then its countdown). */
 const GAMES = {
   combat: {
-    card: 'combat', world: 'swiss2', chip: 'Combat',
+    card: 'combat', world: 'swiss2', chip: 'Combat', upMs: 60000,
     on: "['countdown', 'on'].includes(window.__combat ? window.__combat().round.state : '')",
     end: (core, now) => {
       core.combat.round.endsAt = Math.ceil(core.roomMs(now));
@@ -69,12 +71,12 @@ const GAMES = {
     },
   },
   tag: {
-    card: 'ace', world: 'swiss2', chip: 'Catch the Ace',
+    card: 'ace', world: 'swiss2', chip: 'Catch the Ace', upMs: 60000,
     on: "['countdown', 'live'].includes(window.__roomTag().view.state)",
     end: (core, now) => core.tag.abandon(core, now),
   },
   war: {
-    card: 'campaign', world: 'itaipu', chip: 'War 1',
+    card: 'campaign', world: 'itaipu', chip: 'War 1', upMs: 150000,
     on: "['briefing', 'countdown', 'live'].includes(window.__war().view.state)",
     end: (core) => {
       core.war.match.output = 0;
@@ -83,8 +85,8 @@ const GAMES = {
     },
   },
   free: {
-    card: 'freestyle-wing1000', world: 'swiss2', chip: 'Free flight',
-    on: '(() => { const w = window.__rooms().welcome; return Boolean(w && w.lobby && w.lobby.live); })()',
+    card: 'freestyle-wing1000', world: 'swiss2', chip: 'Free flight', upMs: 60000,
+    on: 'Boolean(window.__rooms().lobby && window.__rooms().lobby.live)',
     end: null,
   },
 };
@@ -130,7 +132,7 @@ const LOBBY = `(() => {
     rows: ui.items().map((it) => it.action || it.label),
     here: here.action || here.label || null,
     flying: window.__craftState().mode,
-    phase: r.phase, code: r.code, public: r.public, name: r.name, mode: r.welcome ? r.welcome.mode : null,
+    phase: r.phase, code: r.code, public: r.public, name: r.name, mode: r.mode,
   };
 })()`;
 const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
@@ -186,7 +188,7 @@ try {
   check('A alone presses R: the five seconds start, nobody else needed', /Starting in [1-5]/.test((await a.evaluate(LOBBY)).status),
     (await a.evaluate(LOBBY)).status);
   await a.until(G.on, 20000).catch(() => {});
-  await a.until(FLYING, 60000).catch(() => {});
+  await a.until(FLYING, G.upMs).catch(() => {});
   check('and the round is on, A flying it alone', await a.evaluate(G.on) && await a.evaluate(FLYING),
     JSON.stringify({ on: await a.evaluate(G.on), flying: await a.evaluate('window.__craftState().mode'), screen: await a.evaluate('window.__ui.screen') }));
   if (G.end) {

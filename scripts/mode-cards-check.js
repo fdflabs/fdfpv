@@ -177,7 +177,7 @@ const LOBBY_OF = `(() => {
     line: box ? (box.querySelector('.war-lobby-mission') || {}).textContent || '' : '',
     rows: ui.items().map((it) => it.action || it.label),
     here: here.action || here.label || null,
-    code: r.code, public: r.public, mode: r.welcome ? r.welcome.mode : null,
+    code: r.code, public: r.public, mode: r.mode,
   };
 })()`;
 
