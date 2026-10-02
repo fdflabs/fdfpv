@@ -182,7 +182,7 @@ export async function makeLook({
   scene.userData.timeOfDay = night ? 'night' : 'day';
   scene.background = AIR.haze.clone();
   const sky = skyBackdrop(sunDir, time);
-  const envTarget = skyEnvironment(renderer, sky);
+  const envTarget = skyEnvironment(renderer, sky, when);
   scene.add(sky);
   scene.environment = envTarget.texture;
   camera.far = CAMERA_FAR;

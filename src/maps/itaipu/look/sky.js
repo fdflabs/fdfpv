@@ -273,6 +273,11 @@ const SKY_CUBE_CUT = 40;
 /* The environment's share of the backdrop's radiance (THE LIGHT IS THIS
  * SKY, in the module doc, says why it is not 1). */
 const ENV_GAIN = 0.55;
+/* The golden hour's: its sky is a dark blue (ZENITHS) and the sun is 8
+ * degrees up, so a shade is lit by that sky alone, and at ENV_GAIN the
+ * dam's long shadow over the ground was black where a photograph's is a
+ * deep blue. */
+const ENV_GAIN_LOW_SUN = 1.0;
 
 const SKY_GLSL = /* glsl */ `
   uniform vec3 uSun;
@@ -606,7 +611,7 @@ export function skyBackdrop(sunDir, time) {
  * ENV_AT and prefiltered. Called before the backdrop is added to the
  * map's scene. Returns the PMREM target; the caller owns it.
  */
-export function skyEnvironment(renderer, sky) {
+export function skyEnvironment(renderer, sky, time) {
   const cube = new THREE.WebGLCubeRenderTarget(ENV_PX, { type: THREE.HalfFloatType });
   const eye = new THREE.CubeCamera(1, 4000, cube);
   eye.position.copy(ENV_AT);
@@ -615,7 +620,7 @@ export function skyEnvironment(renderer, sky) {
   scene.add(sky);
   const disc = sky.material.uniforms.uDisc.value;
   sky.material.uniforms.uDisc.value = 0;
-  sky.material.uniforms.uGain.value = ENV_GAIN;
+  sky.material.uniforms.uGain.value = timeOf(time) === 'golden' ? ENV_GAIN_LOW_SUN : ENV_GAIN;
   eye.update(renderer, scene);
   sky.material.uniforms.uDisc.value = disc;
   sky.material.uniforms.uGain.value = 1;
