@@ -198,19 +198,22 @@ const CASCADE_PRELUDE = /* glsl */ `
     float itNear = smoothstep(0.0, 0.07, min(itEdge.x, itEdge.y)) * step(itCas.z, 1.0);
   #endif
 `;
-const CASCADE_FIND = 'getDirectionalLightInfo( directionalLight, directLight );';
-const CASCADE_LIGHT = /* glsl */ `getDirectionalLightInfo( directionalLight, directLight );
+/* After the directional light's own sun is worked out, its share: the
+ * near map's light where the near map covers, the far's elsewhere. No
+ * declaration: the unrolled loop's copies share one scope. */
+const CASCADE_SHARE = /* glsl */ `
     #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
-      #if UNROLLED_LOOP_INDEX == 0
-        directLight.color *= itNear;
-      #else
-        directLight.color *= 1.0 - itNear;
-      #endif
+      directLight.color *= vec3(UNROLLED_LOOP_INDEX == 0 ? itNear : 1.0 - itNear);
     #endif`;
-if (!THREE.ShaderChunk.lights_fragment_begin.includes(CASCADE_FIND)) {
-  throw new Error('itaipu light: three renamed getDirectionalLightInfo; the cascades would silently light every surface twice');
-}
-const CASCADE_LOOP = THREE.ShaderChunk.lights_fragment_begin.replace(CASCADE_FIND, CASCADE_LIGHT);
+const CASCADE_LOOP = (() => {
+  const loop = THREE.ShaderChunk.lights_fragment_begin;
+  const at = loop.indexOf('getDirectionalLightInfo(');
+  if (at < 0 || loop.lastIndexOf('getDirectionalLightInfo(') !== at) {
+    throw new Error('itaipu light: three changed its directional light loop; the cascades would silently light every surface twice');
+  }
+  const end = loop.indexOf(';', at) + 1;
+  return `${loop.slice(0, end)}${CASCADE_SHARE}${loop.slice(end)}`;
+})();
 
 function inject(shader) {
   shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
