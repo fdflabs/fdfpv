@@ -856,7 +856,10 @@ int sim_set_motors(const double *in);
  * sim_set_prop_pack(in): the SIM_PROP_PACK_DOUBLES below, SI units. The
  * prop's thrust and torque constants, thrust kt w^2 and torque kq w^2 on
  * a rotor at w rad/s, and its pitch over 2 pi, metres per radian (plant.c
- * k_inflow: a rotor at w has a pitch speed of w times it); the pack's
+ * k_inflow: a rotor at w has a pitch speed of w times it) and its figure
+ * of merit, kt^1.5 / (kq sqrt(2 rho A)) on the plant's disc (plant.c
+ * torque_ind: the descent's torque split uses it, so a prop's own keeps
+ * that split equal to kq w^2 at mu 0); the pack's
  * series cells and each cell's resistance, ohms; and the prop's thrust and
  * torque over their static values at axial advance mu 0, 0.1, ... 1.4
  * (plant.c axial_curve and torque_curve, docs/PROP-CURVES.md), each from
@@ -875,11 +878,12 @@ int sim_set_motors(const double *in);
 #define SIM_PROP_PACK_KT 0       /* N per (rad/s)^2, 1e-10 to 1e-3 */
 #define SIM_PROP_PACK_KQ 1       /* N m per (rad/s)^2, 1e-12 to 1e-4 */
 #define SIM_PROP_PACK_PITCH_R 2  /* pitch over 2 pi, m per rad, 0.001 to 0.2 */
-#define SIM_PROP_PACK_CELLS 3    /* series cells, 1 to 14 */
-#define SIM_PROP_PACK_R_CELL 4   /* ohms a cell, 0 to 1 */
-#define SIM_PROP_PACK_AXIAL 5    /* 15: thrust over static at mu 0 to 1.4 */
-#define SIM_PROP_PACK_TORQUE 20  /* 15: torque over static at mu 0 to 1.4 */
-#define SIM_PROP_PACK_DOUBLES 35
+#define SIM_PROP_PACK_FM 3       /* figure of merit, 0.1 to 0.9 */
+#define SIM_PROP_PACK_CELLS 4    /* series cells, 1 to 14 */
+#define SIM_PROP_PACK_R_CELL 5   /* ohms a cell, 0 to 1 */
+#define SIM_PROP_PACK_AXIAL 6    /* 15: thrust over static at mu 0 to 1.4 */
+#define SIM_PROP_PACK_TORQUE 21  /* 15: torque over static at mu 0 to 1.4 */
+#define SIM_PROP_PACK_DOUBLES 36
 int sim_set_prop_pack(const double *in);
 
 /*

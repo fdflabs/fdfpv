@@ -1,19 +1,23 @@
 /*
- * garage-motors-check.js: a quad's motors in the hangar (src/ui/hangar.js
- * Power tab, configs/motors.js), in the real shell, headless.
+ * garage-motors-check.js: a quad's motors, props and packs in the hangar
+ * (src/ui/hangar.js Power tab, configs/motors.js), in the real shell,
+ * headless.
  *
- *   1. The five inch's Customise opens the hangar on its motors: the
- *      stock motor and every upgrade, each with its maker's name.
- *   2. Choosing an upgrade previews it: the thrust to weight, the weight,
- *      the top speed and the two flight times read the upgrade's own,
- *      motorStats and configs/motor-estimates.js, and the stock motor's
- *      ghost stays beside each for the before and after.
+ *   1. The five inch's Customise opens the hangar on its motors, props and
+ *      packs: the stock one and every other of each.
+ *   2. Choosing a motor, a prop and a pack previews them: the thrust to
+ *      weight, the weight, the top speed and the two flight times read the
+ *      choice's own, motorStats and configs/motor-estimates.js, and the
+ *      stock choice's ghost stays beside each for the before and after.
  *   3. Saved, it is the slot settings.power holds, and flown, the plant
  *      flies it: its loaded torque constant, resistance, rotor inertia
- *      and mass are the sim_set_motors block's.
- *   4. Saved to My Hangar as a build, the build keeps the motor.
+ *      and mass are the sim_set_motors block's, its prop's thrust
+ *      constant and a cell's resistance the sim_set_prop_pack block's.
+ *   4. Saved to My Hangar as a build, the build keeps all three.
  *   5. Reloaded, the choice is kept and flown again.
- *   6. Back to stock clears it: the plant is the table again.
+ *   6. From the pause menu, refitted in the air: the prop and pack back to
+ *      stock leave the motor and take their block off, and the motor back
+ *      to stock leaves the table.
  *   7. The whoop's Customise opens on its one stock motor and says why.
  * And no console error or uncaught exception anywhere.
  *
@@ -45,7 +49,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { BUILDS_KEY } from '../src/ui/builds.js';
 import { airframeById } from '../configs/airframes.js';
-import { MOTORS, SIM_MOTORS, motorStats, motorsBlock } from '../configs/motors.js';
+import { MOTORS, SIM_MOTORS, SIM_PROP_PACK, choiceKey, motorStats, motorsBlock, propPackBlock } from '../configs/motors.js';
 import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -63,9 +67,14 @@ function say(ok, what) {
 }
 
 const Q = '5inch';
-const options = MOTORS[Q].options;
+const { options, props, packs } = MOTORS[Q];
 const UP = options[options.length - 1];
-const block = motorsBlock(Q, UP.id);
+const CHOICE = { option: UP.id, prop: props[props.length - 1].id, pack: packs[2].id };
+const block = motorsBlock(Q, CHOICE);
+const propPack = propPackBlock(Q, CHOICE);
+const MOTOR_ONLY = { option: UP.id, prop: props[0].id, pack: packs[0].id };
+const motorOnly = motorsBlock(Q, MOTOR_ONLY);
+const same = (c) => Boolean(c) && c.option === CHOICE.option && c.prop === CHOICE.prop && c.pack === CHOICE.pack;
 const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, Q);
 s.map = 'alps';
 s.graphics = 'low';
@@ -141,6 +150,7 @@ async function toTitle(page) {
 
 const flies = (c, b) => Boolean(c.motors) && c.motors.ke === b[SIM_MOTORS.KE] && c.motors.r === b[SIM_MOTORS.R]
   && c.motors.j === b[SIM_MOTORS.J_ROTOR] && c.massKg === b[SIM_MOTORS.MASS];
+const propFlies = (c, b) => Boolean(c.motors) && c.motors.kt === b[SIM_PROP_PACK.KT] && c.motors.rCell === b[SIM_PROP_PACK.R_CELL];
 
 async function main() {
   if (outdir) {
@@ -153,9 +163,11 @@ async function main() {
 
     console.log('1. the five inch opens on its motors');
     await openOn(page, Q);
-    const shown = await page.evaluate("({ tab: window.__ui.hangar.tab, cards: [...document.querySelectorAll('.hangar [data-key^=\"option-\"]')].map((b) => b.dataset.key.slice(7)) })");
-    say(shown.tab === 'power' && JSON.stringify(shown.cards) === JSON.stringify(options.map((o) => o.id)),
-      `on the Power tab, every motor offered: ${shown.cards.join(', ')}`);
+    const cards = (prefix) => `[...document.querySelectorAll('.hangar [data-key^="${prefix}-"]')].map((b) => b.dataset.key.slice(${prefix.length + 1}))`;
+    const shown = await page.evaluate(`({ tab: window.__ui.hangar.tab, motors: ${cards('option')}, props: ${cards('prop')}, packs: ${cards('pack')} })`);
+    const ids = (list) => JSON.stringify(list.map((o) => o.id));
+    say(shown.tab === 'power' && JSON.stringify(shown.motors) === ids(options) && JSON.stringify(shown.props) === ids(props) && JSON.stringify(shown.packs) === ids(packs),
+      `on the Power tab, every motor, prop and pack offered: ${shown.motors.join(', ')}; ${shown.props.join(', ')}; ${shown.packs.join(', ')}`);
 
     /* The five inch is the first quad without a loadout in the hangar:
      * every other tab must open on it and say it has nothing there. */
@@ -167,16 +179,20 @@ async function main() {
     const back = await page.evaluate('window.__ui.hangar.tab');
     say(back === 'power' && faults(page).length === 0, `every tab opens on it: ${tabs.map((k) => k.slice(4)).join(', ')}`);
 
-    console.log('2. an upgrade previewed');
+    console.log('2. a motor, a prop and a pack previewed');
     const stats = () => page.evaluate("Object.fromEntries([...document.querySelectorAll('.hangar-side .hangar-stat')].map((b) => [b.querySelector('.hangar-stat-label').textContent, b.querySelector('.hangar-stat-value').textContent]))");
     const before = await stats();
-    await page.evaluate(click(`option-${UP.id}`));
+    await page.evaluate(click(`option-${CHOICE.option}`));
+    await page.evaluate(click(`prop-${CHOICE.prop}`));
+    await page.evaluate(click(`pack-${CHOICE.pack}`));
     await page.sleep(800);
-    const est = await page.evaluate(`window.__ui.hangar.power.estimate({ option: ${JSON.stringify(UP.id)} })`);
-    const want = motorStats(Q, UP.id);
+    const chosen = await page.evaluate('({ ...window.__ui.hangar.choice })');
+    const est = await page.evaluate(`window.__ui.hangar.power.estimate(${JSON.stringify(CHOICE)})`);
+    const want = motorStats(Q, CHOICE);
+    say(same(chosen), `the three cards make the choice: ${JSON.stringify(chosen)}`);
     say(Math.abs(est.thrustToWeight - want.tw) < 1e-9 && est.grams === Math.round(want.massKg * 1000)
-      && est.topSpeed === MOTOR_ESTIMATES[Q][UP.id] && Math.abs(est.fullMinutes - want.fullMin) < 1e-9,
-      `the readouts are the upgrade's: T/W ${est.thrustToWeight.toFixed(2)}, ${est.grams} g, ${est.topSpeed} m/s, ${est.hoverMinutes.toFixed(1)} and ${est.fullMinutes.toFixed(2)} min`);
+      && est.topSpeed === MOTOR_ESTIMATES[Q][choiceKey(CHOICE)] && Math.abs(est.fullMinutes - want.fullMin) < 1e-9 && Math.abs(est.hoverMinutes - want.hoverMin) < 1e-9,
+      `the readouts are the choice's: T/W ${est.thrustToWeight.toFixed(2)}, ${est.grams} g, ${est.topSpeed} m/s, ${est.hoverMinutes.toFixed(1)} and ${est.fullMinutes.toFixed(2)} min`);
     const after = await stats();
     say(JSON.stringify(before) !== JSON.stringify(after), `the panel shows it: ${JSON.stringify(after)}`);
     const ghosts = await page.evaluate("document.querySelectorAll('.hangar-side .hangar-stat-ghost.on').length");
@@ -190,13 +206,13 @@ async function main() {
     await page.evaluate(click('save'));
     await page.until('!window.__ui.hangar.isOpen', 10000);
     const slot = await page.evaluate(`window.__ui.settings.power[${JSON.stringify(Q)}]`);
-    say(slot && slot.option === UP.id, `settings.power holds it: ${JSON.stringify(slot)}`);
+    say(same(slot), `settings.power holds it: ${JSON.stringify(slot)}`);
     if (await page.evaluate('window.__ui.carousel.isOpen')) {
       await page.tap('Enter');
       await page.until('!window.__ui.carousel.isOpen', 10000);
     }
     const flown = await fly(page);
-    say(flies(flown, block), `the plant flies it: ke ${flown.motors.ke}, R ${flown.motors.r}, J ${flown.motors.j}, ${flown.massKg} kg`);
+    say(flies(flown, block) && propFlies(flown, propPack), `the plant flies it: ke ${flown.motors.ke}, R ${flown.motors.r}, J ${flown.motors.j}, ${flown.massKg} kg, kt ${flown.motors.kt}, ${flown.motors.rCell} ohm a cell`);
     say(!flies(table, block) && table.motors && table.motors.ke !== block[SIM_MOTORS.KE], `and not the table it flew before: ke ${table.motors && table.motors.ke}`);
 
     console.log('4. My Hangar');
@@ -207,19 +223,32 @@ async function main() {
     await page.evaluate(click('mine-name-save'));
     await page.until('!window.__ui.hangar.isOpen', 10000);
     const built = await page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(BUILDS_KEY)}) || '{}').builds || []).find((b) => b.name === 'Hot Five')`);
-    say(Boolean(built) && built.airframe === Q && built.fit.power && built.fit.power.option === UP.id, `the build keeps the motor: ${JSON.stringify(built && built.fit.power)}`);
+    say(Boolean(built) && built.airframe === Q && same(built.fit.power), `the build keeps all three: ${JSON.stringify(built && built.fit.power)}`);
     await page.tap('Escape');
 
     console.log('5. reloaded');
     await page.cdp.send('Page.reload', {}, page.sessionId);
     await ready(page);
     const kept = await page.evaluate(`window.__ui.settings.power[${JSON.stringify(Q)}]`);
-    say(kept && kept.option === UP.id, `kept: ${JSON.stringify(kept)}`);
+    say(same(kept), `kept: ${JSON.stringify(kept)}`);
     const again = await fly(page);
-    say(flies(again, block), `and flown again: ke ${again.motors.ke}`);
+    say(flies(again, block) && propFlies(again, propPack), `and flown again: ke ${again.motors.ke}, kt ${again.motors.kt}`);
 
     console.log('6. back to stock, from the pause menu, refitted in the air');
     await pause(page);
+    await page.evaluate("window.__ui.act('customise'); true");
+    await page.until("window.__ui.hangar.isOpen && window.__ui.hangar.tab === 'power'", 10000);
+    await page.evaluate(click(`prop-${props[0].id}`));
+    await page.evaluate(click(`pack-${packs[0].id}`));
+    await page.evaluate(click('save'));
+    await page.until('!window.__ui.hangar.isOpen', 10000);
+    await page.until(`window.__craft().motors && window.__craft().motors.kt === ${table.motors.kt}`, 60000).catch(() => {});
+    const half = await page.evaluate('window.__craft()');
+    say(flies(half, motorOnly) && half.motors.kt === table.motors.kt && half.motors.rCell === table.motors.rCell,
+      `the stock prop and pack take their block off and leave the motor: kt ${half.motors.kt}, ${half.motors.rCell} ohm a cell, ke ${half.motors.ke}`);
+    if (await page.evaluate("window.__ui.screen !== 'paused'")) {
+      await pause(page);
+    }
     await page.evaluate("window.__ui.act('customise'); true");
     await page.until("window.__ui.hangar.isOpen && window.__ui.hangar.tab === 'power'", 10000);
     await page.evaluate(click(`option-${options[0].id}`));
@@ -227,7 +256,7 @@ async function main() {
     await page.until('!window.__ui.hangar.isOpen', 10000);
     await page.until(`window.__craft().motors && window.__craft().motors.ke === ${table.motors.ke}`, 60000).catch(() => {});
     const stock = await page.evaluate('window.__craft()');
-    say(stock.motors.ke === table.motors.ke && stock.motors.r === table.motors.r && stock.massKg === table.massKg,
+    say(stock.motors.ke === table.motors.ke && stock.motors.r === table.motors.r && stock.massKg === table.massKg && stock.motors.kt === table.motors.kt,
       `the stock motor is the table again, at once: ke ${stock.motors.ke}`);
 
     console.log('7. the whoop flies stock');

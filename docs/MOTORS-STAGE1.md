@@ -10,8 +10,10 @@ choice (`configs/power.js`, docs/POWER-STAGE1.md); their upgrades are
 stage 2, as more options on that same path.
 
 The data are in `configs/motors.js`; the plant's side is `sim_set_motors`
-in `src/native/sim_abi.h` and `plant_set_motors` in `src/native/plant.c`;
-the checks are `npm run motors:check` and `npm run hangar:motors`.
+and `sim_set_prop_pack` in `src/native/sim_abi.h`, `plant_set_motors` and
+`plant_set_prop_pack` in `src/native/plant.c`; the checks are `npm run
+motors:check` and `npm run hangar:motors`. Props and packs came after the
+motors, as stage 3, below.
 
 ## What was there, and what was not
 
@@ -40,22 +42,25 @@ same flag a fixed wing's power option uses, so everything that already
 handles a power option handles it: `sim_power_clear` takes it off, another
 airframe drops it, the add-ons (a combat quad's payload) are laid over it,
 `sim_reset` keeps it, and `sim_power_state` [9] reads 1 while it is on.
-The prop's `kt`, `kq`, pitch and figure of merit are the table's, because
-they are the prop's and the frame keeps its prop. With nothing seated the
+The prop's `kt`, `kq`, pitch and figure of merit are not in it: they are
+the prop's, and the prop and pack block carries them (stage 3, below).
+With nothing seated the
 plant reads the const table, so every existing trace is bit identical; the
 stock motor seated through the block is bit identical too (M2 below).
 
-**The choice.** `settings.power[quadId] = { option, pack: null }`, the slot
+**The choice.** `settings.power[quadId]`, now `{ option, prop, pack }`, the slot
 a fixed wing's power choice already has, which the hangar already saves,
 My Hangar builds already carry (`src/ui/builds.js`) and the hot swap
 already refits. `configs/power.js` hands a quad's choice to
-`configs/motors.js` motorChoice. `src/main.js` applyPower seats
-`sim_set_motors` on a quad, or clears for the stock motor.
+`configs/motors.js` motorChoice. `src/main.js` applyPower clears and then
+seats `sim_set_motors` and `sim_set_prop_pack` on a quad where the choice
+has them.
 
 **The hangar.** The Power tab draws a quad's motors exactly as it draws a
 plane's power options: one card per motor with its stator and kV, the
 maker's site under it, and the readouts with the stock motor's ghost
-beside each. A quad has one pack, so no pack row. The readouts are the
+beside each, and a Prop row (where there is more than one) and a Battery
+row under them. The readouts are the
 weight, the thrust to weight, the top speed and two flight times, at a
 hover and at full throttle.
 
@@ -210,6 +215,165 @@ an upgrade pulls past a published limit (every 7 and 10 inch upgrade
 pulls past its Li-ion pack's rating, and both five inch upgrades past the
 1300 pack's 130C), it is not capped: it sags.
 
+## Props and packs (stage 3)
+
+The owner chose real props and packs in the garage next (2026-10-01). A
+quad's Power tab now has a Prop row and a Battery row beside its motors,
+and any motor, prop and pack fly together.
+
+**The plant.** `sim_set_prop_pack(in)` takes 36 doubles: the prop's `kt`,
+`kq`, pitch over 2 pi, figure of merit, the pack's series cells and a
+cell's resistance, and the prop's thrust and torque curves against axial
+speed (docs/PROP-CURVES.md), 15 points each, the first exactly 1 so the
+hover is untouched. It is laid over the motors block or the table, and the
+plant rebuilds its live copy from both stored blocks on every change, so
+the order they are seated in cannot matter. `sim_power_clear` takes both
+off, which is why the shell clears first and then seats what the new
+choice has: a prop put back to stock must not stay seated. The figure of
+merit is carried because the descent's torque split reads it (plant.c
+`torque_ind`): with a new `kq` and the table's figure of merit, the split
+would jump at mu 0 on every descent. What a prop and a pack weigh is in
+the motors block, which carries the whole machine's mass and inertia, so
+any part that is not stock seats it.
+
+**The choice.** `settings.power[quadId] = { option, prop, pack }`. The
+stock choice is the table and clears, as before. My Hangar builds and the
+hot swap carry the slot whole.
+
+**A prop** is offered only where one maker ran it and the stock prop on
+one motor and one stand, so its constants over the stock prop's are a
+measured fact about the two props:
+
+- thrust goes as `kt w^2`, so `kt` moves by the two rows' grams over rpm
+  squared;
+- at the same motor efficiency the electrical watts go as `kq w^3`, so
+  `kq` moves by watts over rpm cubed. That equal efficiency is an
+  ASSUMPTION; T-Motor's F50 2207 table, which publishes torque, holds the
+  efficiency within 2 percent across three props at full throttle;
+- the pitch is the prop's own, the figure of merit moves as `kt^1.5 /
+  kq`, and the curves are APC's file of the nearest pitch over diameter,
+  read at that prop's own full throttle speed on the stock motor
+  (`node scripts/prop-curves.js`);
+- its mass sits at the motors and its inertia is the blades', `m R^2 / 3`,
+  the rule scripts/combat-derive.js uses.
+
+| prop | maker's rows (rpm, g, W) | kt | kq | figure of merit | curve |
+| --- | --- | --- | --- | --- | --- |
+| T-Motor T5147, 5.1 x 4.7, 4.4 g (stock) | | 1 | 1 | 0.520 | APC 5 x 4.6E |
+| Gemfan Hurricane 51466 V2, 5.1 x 3.6, 4.2 g | F60 Pro V 1950 kV, 24.7 V: 33,163, 1958.3, 1158.9 against the T5147's 31,401, 1990.4, 1215.8 | x 0.8821 | x 0.8092 | 0.532 | APC 5 x 4E three blade, 31,000 rpm |
+| T-Motor T5143S, 5.1 x 4.3, 4.1 g | F40 Pro V 2150 kV, 24.3 V: 36,418.5, 1966.5, 1470.4 against the T5147's 33,384.2, 2108.3, 1591.0 at 24.2 V | x 0.7838 | x 0.7119 | 0.507 | APC 5 x 4.3E, 31,000 rpm |
+
+Sources: T-Motor's F60 Pro V and F40 Pro V pages (the URLs in
+configs/motors.js); Gemfan's 2025 catalogue lists the 51466 V2 as 5.1 x
+3.6 at 4.2 g (https://img03.71360.com/w3/5p3560/20251117/50ffa18f7578335345b42f12d991fd78.pdf);
+T-Motor's T5143S page lists 5.1 x 4.3 at 4.1 g; the T5147's 4.4 g is a
+retailer's (https://www.getfpv.com/t-motor-t5147-propeller-set-of-10.html),
+since T-Motor no longer lists it. The F40 Pro V's own GF51466 pair gives a
+`kt` 3 percent lower than the F60's; the F60 row is used, because the F60
+Pro V 1950 kV is the stock motor.
+
+Not offered, and why:
+
+- **The interceptor.** APC's neighbours of its 7 x 9E are the 7 x 7E and
+  the 7 x 11E (APC publishes no 7 x 8E or 7 x 10E). APC's own static rows
+  at 19,000 rpm put their figures of merit at 0.588 and 0.375, outside the
+  0.38 to 0.52 the class is gated to (scripts/combat-gates.js
+  `figure-of-merit`). The ceiling of that band is argued from part
+  stalled high pitch props, so the 7 x 7E is the one an owner's decision
+  could admit.
+- **The 7 inch and the 10 inch.** No maker's table runs their stock prop
+  beside another.
+
+**A pack** is a real 6S pack with a published weight and rating; every
+quad motor is a 6S motor. Its cell resistance is the one thing no LiPo
+maker publishes, so it is an ESTIMATE: a pack's C rating is its maker's
+heat limit, so a cell's resistance is taken to go as 1 / (C Ah). Li-ion
+cells publish theirs: Molicel's datasheets give the P42A 16 mOhm and the
+P45B 15 mOhm DC. Only the cell's part of the table's resistance moves: the
+leads and the plug stay (scripts/combat-derive.js: 2 mOhm a cell on the
+Li-ion quads, 1.5 on the interceptor; plant.c's five inch figure is the
+whole race pack's). The pack's mass and inertia move as a box on the stock
+pack's strap, its footprint the stock pack's and its height scaled by its
+mass (an ESTIMATE, no maker publishes a pack's inertia), the boxes being
+crash.c's and crash_parts.h's. The CG's move with a heavier pack, 5 mm on
+the five inch's 2200, is left out, as the motors' is. Flight times use the
+pack's own capacity.
+
+| quad | packs (stock first), weight, rating | source |
+| --- | --- | --- |
+| 5 inch | CNHL Black V2 1300 130C 215 g; Black V2 1100 130C 197.5 g; Black V2 1500 130C 238 g; MiniStar 1800 120C 302 g; Black 2200 40C 372 g | chinahobbyline.com product pages |
+| 7 inch | six P42A in series, 429 g (combat-derive's weight); GNB 6S1P P45B 4500, 460 g | Molicel datasheets, gaoneng.shop |
+| 10 inch | 6S2P P42A, 858 g; GNB 6S1P P45B 4500, 460 g; GNB 6S2P P45B 9000, 900 g | Molicel datasheets, gaoneng.shop |
+| interceptor | Tattu R-Line 5.0 1800 150C 287 g; 1400 222 g; 1550 254 g; 2200 346 g | genstattu.com product pages |
+
+Not offered: Tattu's R-Line 1800 150C on the five inch (see the open item
+below); Auline and iFlight Fullsend Li-ion packs, which do not name their
+cells, so they have no datasheet resistance.
+
+**OPEN ITEM: the two tables disagree on a race pack's resistance.**
+plant.c puts the five inch's CNHL 1300 130C at 2.5 mOhm a cell, the whole
+pack; scripts/combat-derive.js puts the interceptor's Tattu R-Line 1800
+150C at 4.5 (3 cell, 1.5 leads). By the C Ah rule the Tattu would be the
+lower of the two by 1.6 times, and it is the higher by 1.8. Each quad's
+packs are scaled from its own stock, so each quad is consistent with
+itself, but one pack offered on both would have two resistances. That is
+why the R-Line 1800 is not offered on the five inch. It is argued again
+when a measured internal resistance of either pack is published.
+
+**The readouts.** On the stock motor (`npm run motors:check` P notes,
+top speeds flown, `configs/motor-estimates.js`):
+
+| quad | choice | weight | T/W | hover | top speed | full throttle | a cell | hover time | full time |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 5inch | stock | 710 g | 9.72 | 0.247 | 54.13 m/s (195 km/h) | 171 A, 3.77 V | 2.50 mOhm | 14.4 min | 0.37 min |
+| 5inch | prop Gemfan Hurricane 51466 V2, 5.1 x 3.6 tri blade | 709 g | 9.41 | 0.260 | 49.81 m/s (179 km/h) | 152 A, 3.82 V | 2.50 mOhm | 14.9 min | 0.41 min |
+| 5inch | prop T-Motor T5143S, 5.1 x 4.3 tri blade | 709 g | 8.81 | 0.274 | 52.18 m/s (188 km/h) | 140 A, 3.85 V | 2.50 mOhm | 14.3 min | 0.44 min |
+| 5inch | pack cnhl-1100-130 (197.5 g) | 693 g | 9.69 | 0.244 | 53.48 m/s (193 km/h) | 166 A, 3.71 V | 2.95 mOhm | 12.6 min | 0.32 min |
+| 5inch | pack cnhl-1500-130 (238 g) | 733 g | 9.62 | 0.251 | 54.69 m/s (197 km/h) | 175 A, 3.82 V | 2.17 mOhm | 15.8 min | 0.41 min |
+| 5inch | pack ministar-1800-120 (302 g) | 797 g | 8.97 | 0.263 | 55.46 m/s (200 km/h) | 177 A, 3.85 V | 1.96 mOhm | 16.7 min | 0.49 min |
+| 5inch | pack cnhl-2200-40 (372 g) | 867 g | 6.97 | 0.276 | 53.17 m/s (191 km/h) | 150 A, 3.48 V | 4.80 mOhm | 17.8 min | 0.71 min |
+| 5inch | fastest: f40pro-2150 stock ministar-1800-120 | 796 g | 9.84 | 0.240 | 57.75 m/s (208 km/h) | 214 A, 3.78 V | 1.96 mOhm | 16.5 min | 0.40 min |
+| 7inch | stock | 979 g | 4.75 | 0.309 | 33.39 m/s (120 km/h) | 71 A, 2.91 V | 18.00 mOhm | 43.4 min | 2.82 min |
+| 7inch | pack gnb-p45b-6s1p (460 g) | 1010 g | 4.72 | 0.314 | 33.80 m/s (122 km/h) | 73 A, 2.95 V | 17.00 mOhm | 44.3 min | 2.95 min |
+| 7inch | fastest: v2808-1500 stock gnb-p45b-6s1p | 1052 g | 4.92 | 0.276 | 35.31 m/s (127 km/h) | 92 A, 2.64 V | 17.00 mOhm | 41.9 min | 2.35 min |
+| 10inch | stock | 1848 g | 4.69 | 0.276 | 33.34 m/s (120 km/h) | 145 A, 2.75 V | 10.00 mOhm | 47.4 min | 2.79 min |
+| 10inch | pack gnb-p45b-6s1p (460 g) | 1450 g | 4.53 | 0.243 | 29.60 m/s (107 km/h) | 110 A, 2.34 V | 17.00 mOhm | 36.8 min | 1.97 min |
+| 10inch | pack gnb-p45b-6s2p (900 g) | 1890 g | 4.70 | 0.280 | 33.69 m/s (121 km/h) | 148 A, 2.79 V | 9.50 mOhm | 49.0 min | 2.92 min |
+| 10inch | fastest: v3115-1050 stock gnb-p45b-6s2p | 1961 g | 4.92 | 0.240 | 35.07 m/s (126 km/h) | 187 A, 2.42 V | 9.50 mOhm | 47.2 min | 2.31 min |
+| interceptor | stock | 880 g | 8.33 | 0.243 | 55.90 m/s (201 km/h) | 157 A, 3.49 V | 4.50 mOhm | 18.8 min | 0.55 min |
+| interceptor | pack tattu-1400-150 (222 g) | 815 g | 8.59 | 0.233 | 54.53 m/s (196 km/h) | 150 A, 3.39 V | 5.36 mOhm | 16.5 min | 0.45 min |
+| interceptor | pack tattu-1550-150 (254 g) | 847 g | 8.43 | 0.238 | 55.13 m/s (198 km/h) | 153 A, 3.44 V | 4.98 mOhm | 17.2 min | 0.49 min |
+| interceptor | pack tattu-2200-150 (346 g) | 939 g | 8.04 | 0.252 | 56.87 m/s (205 km/h) | 162 A, 3.56 V | 3.95 mOhm | 20.8 min | 0.65 min |
+| interceptor | fastest: v2808-1500 stock tattu-2200-150 | 937 g | 8.73 | 0.222 | 58.78 m/s (212 km/h) | 203 A, 3.40 V | 3.95 mOhm | 20.5 min | 0.52 min |
+
+What these say:
+
+- **A prop is a trade, not an upgrade.** Both offered props make less
+  thrust at full throttle than the stock T5147 on T-Motor's own stands
+  (1.6 and 6.7 percent), and the plant reproduces that within 3.5 and 4.1
+  percent (P3). In exchange they draw less current, so the full throttle
+  time grows. Their lower pitch gives up top speed: 179 and 188 km/h
+  against 195.
+- **A pack is weight against capacity and sag.** A lighter pack takes
+  weight off but, smaller, sags more under the estimate, so its thrust to
+  weight barely moves (9.69 against 9.72 on the five inch) and it lands
+  sooner; a bigger one flies longer. Bigger packs at the same C sag less,
+  and that, not the weight, is why their level top speed is a little
+  higher.
+  The 2200 40C is the one heavy pack that sags more: T/W 6.97 and 3.48 V a
+  cell at full throttle.
+- **Past a rating, the pack sags; nothing caps.** The five inch's 1100 and
+  2200 packs and every Li-ion choice pull past their maker's rating at
+  full throttle (P4 says by how much), as the stock Li-ion packs already
+  do.
+
+**What to feel.** The five inch on the Gemfan 51466: it should hover a
+touch higher on the stick (0.260 against 0.247), feel a little softer at
+the top of a punch and run out of speed sooner (179 km/h against 195),
+with a little more time at full throttle. On the 2200 40C pack it should
+feel heavy and lazy: a slower punch, a deeper sag on the OSD, and more
+minutes. Anything that feels like a different airframe would be wrong.
+
 ## Findings outside this change
 
 - The combat quads' stock tables disagree with the one maker table on
@@ -227,12 +391,16 @@ pulls past its Li-ion pack's rating, and both five inch upgrades past the
 
 ## Checks
 
-- `npm run motors:check` (M1 to M9 in its header), 103 rows, in
-  checks.yml.
-- `npm run hangar:motors`: the five inch's hangar opens on its motors; an
-  upgrade previews its own readouts with stock's beside them; saved, it is
-  flown (the plant's ke, R, J and mass are the block's); a My Hangar build
-  keeps it; a reload keeps it; back to stock from the pause menu refits the
-  craft in the air to the table; the whoop opens on its stock motor and
-  says why. Local, it drives headless Chromium.
+- `npm run motors:check`, in checks.yml: M1 to M9 for the motors, P1 to
+  P5 for each prop and pack on the stock motor, and E, every motor, prop
+  and pack together (75 choices) flown level at full throttle against the
+  hangar's top speed. 145 rows.
+- `npm run hangar:motors`: the five inch's hangar opens on its motors,
+  props and packs; a motor, a prop and a pack chosen together preview
+  their own readouts with stock's beside them; saved, they are flown (the
+  plant's ke, R, J, mass, kt and a cell's resistance are the blocks'); a My
+  Hangar build keeps all three; a reload keeps them; from the pause menu,
+  the prop and pack back to stock take their block off and leave the
+  motor, and the motor back to stock leaves the table; the whoop opens on
+  its stock motor and says why. Local, it drives headless Chromium.
 - `npm run verify`: 16 of 16, the five inch's replay hash unchanged.

@@ -2169,6 +2169,7 @@ static void quad_live_build(void) {
     g_plant_live.kt = in[SIM_PROP_PACK_KT];
     g_plant_live.kq = in[SIM_PROP_PACK_KQ];
     g_plant_live.k_inflow = in[SIM_PROP_PACK_PITCH_R];
+    g_plant_live.torque_ind = in[SIM_PROP_PACK_FM];
     g_plant_live.cells = in[SIM_PROP_PACK_CELLS];
     g_plant_live.r_cell = in[SIM_PROP_PACK_R_CELL];
     for (int i = 0; i < 15; i += 1) {
@@ -2204,7 +2205,8 @@ int plant_set_motors(const double *in) {
 
 /*
  * A QUAD'S PROP AND PACK, sim_set_prop_pack in sim_abi.h: the prop's
- * thrust and torque constants, its pitch and its two curves against axial
+ * thrust and torque constants, its pitch, its figure of merit (torque_ind,
+ * which the descent's torque split reads) and its two curves against axial
  * speed, the pack's cells and their resistance, laid over the motors
  * block or the table. Each curve's first point must be exactly 1, so the
  * hover stays kq w^2 and the static thrust. What either weighs
@@ -2219,6 +2221,7 @@ int plant_set_prop_pack(const double *in) {
   if (!in_range(in[SIM_PROP_PACK_KT], 1.0e-10, 1.0e-3)
       || !in_range(in[SIM_PROP_PACK_KQ], 1.0e-12, 1.0e-4)
       || !in_range(in[SIM_PROP_PACK_PITCH_R], 0.001, 0.2)
+      || !in_range(in[SIM_PROP_PACK_FM], 0.1, 0.9)
       || !in_range(in[SIM_PROP_PACK_CELLS], 1.0, 14.0)
       || !in_range(in[SIM_PROP_PACK_R_CELL], 0.0, 1.0)
       || !(in[SIM_PROP_PACK_AXIAL] == 1.0 && in[SIM_PROP_PACK_TORQUE] == 1.0)) {

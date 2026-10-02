@@ -698,7 +698,8 @@ export function choosesPower(airframeId) {
 }
 
 /* The pilot's choice for one airframe, valid: stock where anything is
- * missing or unknown. A quad's is its motor (configs/motors.js). */
+ * missing or unknown. A quad's is its motor, prop and pack
+ * (configs/motors.js). */
 export function powerChoice(airframeId, stored) {
   if (hasMotors(airframeId)) {
     return motorChoice(airframeId, stored);

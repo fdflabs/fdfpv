@@ -71,7 +71,7 @@ export const POINTERS = {
   sim_init: { in: 0, unreplayable: true },
   sim_set_power: { in: 0, doubles: 17 },
   sim_set_motors: { in: 0, doubles: 7 },
-  sim_set_prop_pack: { in: 0, doubles: 35 },
+  sim_set_prop_pack: { in: 0, doubles: 36 },
   sim_wing_set_tune: { in: 0, doubles: 11 },
   sim_set_addons: { in: 0, doubles: 10 },
   sim_set_addon_inertia: { in: 0, doubles: 3 },
