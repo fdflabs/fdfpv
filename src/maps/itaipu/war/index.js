@@ -16,7 +16,15 @@
  * does not burn), the points a hit yard burns at (`fires`) and the OSM
  * outline. takeYard puts it on the map as map.targets['yard-right'].
  *
- * Everything is in the static set: the yard is one of Itaipu's structures
+ * DESTRUCTIBLE (the war's damage, src/share/war/damage.js): the yard is
+ * also `structures['yard-right']`, its chunks: each transformer's tank,
+ * conservator and bushings, drawn in a mesh of their own (equipment) so
+ * one is taken out alone, and the town's gantries inside the fence, two
+ * posts and a beam each, which the town draws and collides (town/model.js
+ * power) and this part takes out through it: a beam gone, the spans whose
+ * wires end on it are down, lying on the ground and no longer solid.
+ *
+ * Its own solids are in the static set: the yard is one of Itaipu's structures
  * (docs/ITAIPU-PLAN.md section 7). What a craft meets is what is drawn,
  * in the one turned shape the shell has, the capsule: a transformer is
  * three (HOLD), two along the tank stacked so its corners, top and plinth
@@ -49,9 +57,10 @@ import {
 } from './plan.js';
 
 /* Linear tints: galvanised steel, the tanks' grey paint, concrete, and
- * the bushings' brown porcelain. Every piece is in the kit's plain group
- * (the finish keys below), which the town's sink bakes into one mesh: the
- * yard is two draw calls and their shadows, not one per finish. */
+ * the bushings' brown porcelain. The plinths and the fence are in the
+ * kit's plain group (the finish keys below), which the town's sink bakes
+ * into one mesh; what breaks is in the equipment mesh: the yard is three
+ * draw calls and their shadows, not one per finish or per piece. */
 const STEEL = [0.46, 0.47, 0.48];
 const PAINT = [0.3, 0.33, 0.32];
 const CONCRETE = [0.32, 0.31, 0.29];
