@@ -181,11 +181,19 @@ function makeStreamer(colliders, parts, uncover) {
   };
 }
 
+/*
+ * LOCAL_BASE is beside the site's index.html, which is two levels above
+ * this module, not beside whatever page loaded it: the title's world
+ * previews build the map inside src/share/orbit.html, where a page
+ * relative path asked for src/share/itaipu-data/ and got a 404.
+ * ?itdata= is the page's own, so it stays relative to the page.
+ */
 export function dataBase() {
   const loc = window.location;
   const param = new URLSearchParams(loc.search).get('itdata');
-  const fallback = LOCAL_HOSTS.has(loc.hostname) ? LOCAL_BASE : DATA_BASE;
-  const url = new URL(param || fallback, document.baseURI).href;
+  const url = param ? new URL(param, document.baseURI).href
+    : LOCAL_HOSTS.has(loc.hostname) ? new URL(`../../${LOCAL_BASE}`, import.meta.url).href
+      : DATA_BASE;
   return url.endsWith('/') ? url : `${url}/`;
 }
 
