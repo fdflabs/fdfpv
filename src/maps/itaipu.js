@@ -50,6 +50,7 @@ import { HERO_HALF } from './itaipu/terrain/frame.js';
 import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
 import { conformBound, fillUnder, offCut } from './itaipu/terrain/conform.js';
 import { makeLook } from './itaipu/look/index.js';
+import { TIMES } from './itaipu/look/light.js';
 import {
   buildPart as buildDam, embankmentCrests, embankmentSection, junctionRims,
 } from './itaipu/dam/index.js';
@@ -485,14 +486,16 @@ async function buildItaipu(shell, progress, q, time) {
 }
 
 /*
- * The look's time of day: `options.time` ('day', the default, or
- * 'night', for mission 4, "Night raid"), or `?time=night` in the
- * address, which src/main.js's loadMap folds into options before this is
- * called. Anything else is day: a stray query param must never turn the
- * lights off on a pilot who typed the wrong thing.
+ * The look's time of day: `options.time` (one of look/light.js TIMES:
+ * 'day', the default, 'morning', 'noon', 'golden', or 'night', for
+ * mission 4, "Night raid"), or `?time=` in the address, which
+ * src/main.js's loadMap folds into options before this is called.
+ * Anything else is day: a stray query param must never turn the lights
+ * off on a pilot who typed the wrong thing.
  */
 function timeFor(options) {
-  return options && options.time === 'night' ? 'night' : 'day';
+  const time = options && options.time;
+  return typeof time === 'string' && Object.hasOwn(TIMES, time) ? time : 'day';
 }
 
 export async function buildMap(shell, onProgress, options) {

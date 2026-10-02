@@ -25,12 +25,15 @@
  * a terrain, so it draws nothing (clouds.js: until setTerrain, "the march
  * draws nothing"): the post chain takes one, and the day was clear.
  *
- * TIME OF DAY: `time`, makeLook's own option ('day', the default, or
+ * TIME OF DAY: `time`, makeLook's own option ('day', the default;
+ * 'morning', 'noon' or 'golden', the other suns of light.js TIMES; or
  * 'night', for mission 4, "Night raid"), read from options.time when the
- * map is built (src/maps/itaipu.js buildMap) and from `?time=night` in
- * the address (src/main.js loadMap). It never changes after the map is
+ * map is built (src/maps/itaipu.js buildMap) and from `?time=` in the
+ * address (src/main.js loadMap). It never changes after the map is
  * built: night.js's fixtures go up once, in buildMap, once every part is
- * in. What it touches: the sun (dim, cool, standing in for the moon) and
+ * in. The other days move the sun, its colour and strength, the sky
+ * and the air (light.js, sky.js); for whatever draws by the time of day
+ * without being handed the look, every one of them is 'day'. What it touches: the sun (dim, cool, standing in for the moon) and
  * the sky (dark and starred, with the towns' glow, sky.js), both
  * light.js's; the lamps, the windows, the light pools every lit material
  * adds and the cities past the map (look/night.js), never the dam's, the
@@ -63,7 +66,7 @@ import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
 import {
-  sunDirection, makeLit, sunFor, isNight, makeNightAmbient,
+  sunDirection, makeLit, sunFor, isNight, timeOf, makeNightAmbient,
 } from './light.js';
 import { skyBackdrop, skyEnvironment, airFor } from './sky.js';
 import {
@@ -83,6 +86,7 @@ export async function makeLook({
   renderer, camera, q, base, manifest, time,
 }) {
   const night = isNight(time);
+  const when = timeOf(time);
   const sunLight = sunFor(time);
   const AIR = airFor(time);
   const owned = [];
@@ -115,7 +119,7 @@ export async function makeLook({
     own(sets[k].arm);
   });
 
-  const sunDir = sunDirection();
+  const sunDir = sunDirection(when);
   const scene = new THREE.Scene();
   /* For whatever draws by the time of day without being handed the look:
    * the sensor's thermal weather (src/avionics/sensors.js). */
@@ -189,7 +193,7 @@ export async function makeLook({
     sunDir,
     lit,
     ground,
-    time: night ? 'night' : 'day',
+    time: when,
     /* Mission 4's own fixtures, once every part is in (itaipu.js, after
      * the parts loop): a no-op by day. See look/night.js. The ground's
      * material is lit too, though no terrain chunk may be in the scene's

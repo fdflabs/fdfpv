@@ -131,11 +131,11 @@ function rewrites() {
     ['src/maps/itaipu/look/light.js', 'export const SUN_ELEVATION_DEG = 65.8;', `export const SUN_ELEVATION_DEG = ${SUNSET.elev};`],
     ['src/maps/itaipu/look/light.js', 'export const SUN_COLOR = new THREE.Color(1.0, 0.93, 0.82);', `export const SUN_COLOR = new THREE.Color(${f(SUNSET.sun)});`],
     ['src/maps/itaipu/look/light.js', 'export const SUN_IRRADIANCE = 3.51;', `export const SUN_IRRADIANCE = ${SUNSET.irradiance};`],
-    ['src/maps/itaipu/look/sky.js', 'const ZENITH = new THREE.Color().setRGB(0.04, 0.16, 0.5, THREE.LinearSRGBColorSpace);',
+    ['src/maps/itaipu/look/sky.js', 'const ZENITH = new THREE.Color().setRGB(0.07, 0.3, 0.85, THREE.LinearSRGBColorSpace);',
       `const ZENITH = new THREE.Color().setRGB(${f(SUNSET.zenith)}, THREE.LinearSRGBColorSpace);`],
     ['src/maps/itaipu/look/sky.js', 'haze: new THREE.Color().setRGB(0.36, 0.43, 0.54, THREE.LinearSRGBColorSpace),',
       `haze: new THREE.Color().setRGB(${f(SUNSET.haze)}, THREE.LinearSRGBColorSpace),`],
-    ['src/maps/itaipu/look/sky.js', 'const CLOUD_EDGE = [0.6, 0.7];', `const CLOUD_EDGE = [${SUNSET.cloudEdge.join(', ')}];`],
+    ['src/maps/itaipu/look/sky.js', 'const CLOUD_EDGE = [0.59, 0.67];', `const CLOUD_EDGE = [${SUNSET.cloudEdge.join(', ')}];`],
   ];
 }
 

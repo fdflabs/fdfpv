@@ -72,7 +72,7 @@ import * as THREE from 'three';
 import { AIR as VALLEY_AIR } from '../../swiss2/post.js';
 import { thermalShader } from '../../../render/thermal.js';
 import {
-  SUN_COLOR, SUN_IRRADIANCE, EXPOSURE, NIGHT_EXPOSURE, NIGHT_METER_KEY, NIGHT_SUN_COLOR, NIGHT_SUN_IRRADIANCE, isNight,
+  EXPOSURE, NIGHT_EXPOSURE, NIGHT_METER_KEY, isNight, timeOf, sunFor,
 } from './light.js';
 import { MAX_DISTRICTS } from '../../../share/war/grid.js';
 
@@ -108,16 +108,53 @@ export const AIR_NIGHT = {
   meterKey: NIGHT_METER_KEY,
 };
 
+/*
+ * The other times of day (light.js TIMES), each the day's air with its
+ * own horizon. The morning's is paler and its air half again as thick:
+ * the humid night's haze not yet burnt off. Noon's is the day's a little
+ * brighter. The golden hour's is a darker blue grey, as the sky away from
+ * a sun that low is, and its warmth is all toward the sun: the air's
+ * forward glow (mie) nearly twice the day's, in the sun's orange (a warm
+ * haze all round, loading-art.js's sunset's, drew a beige sky).
+ */
+const AIRS = {
+  day: AIR,
+  morning: {
+    ...AIR,
+    haze: new THREE.Color().setRGB(0.4, 0.45, 0.53, THREE.LinearSRGBColorSpace),
+    beta: VALLEY_AIR.beta.clone().multiplyScalar(1.5),
+  },
+  noon: {
+    ...AIR,
+    haze: new THREE.Color().setRGB(0.39, 0.46, 0.57, THREE.LinearSRGBColorSpace),
+  },
+  golden: {
+    ...AIR,
+    haze: new THREE.Color().setRGB(0.21, 0.21, 0.25, THREE.LinearSRGBColorSpace),
+    beta: VALLEY_AIR.beta.clone().multiplyScalar(1.2),
+    mie: 0.9,
+  },
+  night: AIR_NIGHT,
+};
+
 /* The air for the time picked, for the post chain and the backdrop. */
 export function airFor(time) {
-  return isNight(time) ? AIR_NIGHT : AIR;
+  return AIRS[timeOf(time)];
 }
 
 /* The sky overhead, linear radiance in the sun's units (THE LIGHT IS
  * THIS SKY, in the module doc, for why round 4 raised it). */
 const ZENITH = new THREE.Color().setRGB(0.07, 0.3, 0.85, THREE.LinearSRGBColorSpace);
-/* Night's zenith: a deep moonlit blue, most of it black. */
-const ZENITH_NIGHT = new THREE.Color().setRGB(0.006, 0.012, 0.03, THREE.LinearSRGBColorSpace);
+/* Each time's (light.js TIMES): the morning's lower sun leaves the
+ * zenith a little darker, noon's the day's, the golden hour's deep and
+ * dim, and night's a deep moonlit blue, most of it black. */
+const ZENITHS = {
+  day: ZENITH,
+  morning: new THREE.Color().setRGB(0.06, 0.24, 0.72, THREE.LinearSRGBColorSpace),
+  noon: ZENITH,
+  golden: new THREE.Color().setRGB(0.025, 0.07, 0.21, THREE.LinearSRGBColorSpace),
+  night: new THREE.Color().setRGB(0.006, 0.012, 0.03, THREE.LinearSRGBColorSpace),
+};
 /* How fast the zenith gives way to the haze going down: the haze's share
  * is (1 - sin elevation)^FALL. */
 const FALL = 3.5;
@@ -398,7 +435,7 @@ const SKY_GLSL = /* glsl */ `
          * far the ray is inside the cell a little further on. */
         vec3 puffN;
         cloudPuff(q.xz, puffN);
-        float lumps = 0.68 + 0.45 * max(dot(puffN, uSun), 0.0);
+        float lumps = 0.4 + 0.75 * clamp(0.8 * dot(puffN, uSun) + 0.2, 0.0, 1.0);
         vec3 q2 = q + d * 120.0;
         float inside = cloudTop(cloudField(q2.xz, 4), q2.xz) - (q2.y - ${CLOUD_BASE.toFixed(1)});
         float thin = 1.0 - smoothstep(${CLOUD_EDGE[0].toFixed(3)}, ${(CLOUD_EDGE[1] + 0.1).toFixed(3)}, nq);
@@ -409,7 +446,11 @@ const SKY_GLSL = /* glsl */ `
       c = mix(c, side, sideA);
       if (base > 0.0) {
         float thick = smoothstep(${CLOUD_EDGE[0].toFixed(3)}, ${(CLOUD_EDGE[1] + 0.2).toFixed(3)}, n);
-        float lit = ${CLOUD_SHADE.toFixed(3)} * (1.3 - 0.6 * thick) + 0.3 * hg * (1.0 - thick);
+        /* What comes through a cell falls away as the sun goes down to
+         * the horizon: at the golden hour the bases are grey blue under
+         * orange sides. */
+        float lit = ${CLOUD_SHADE.toFixed(3)} * (1.3 - 0.6 * thick) * smoothstep(0.0, 0.6, uSun.y)
+          + 0.3 * hg * (1.0 - thick);
         vec3 cloud = uSunCol * lit + fill;
         if (uCityOn > 0.0) {
           cloud += cityCol * (${CITY_CLOUD.toFixed(3)} * cityGlowAt(at));
@@ -431,9 +472,7 @@ const SKY_GLSL = /* glsl */ `
  */
 export function skyBackdrop(sunDir, time) {
   const night = isNight(time);
-  const { color: sunColor, irradiance: sunIrradiance } = night
-    ? { color: NIGHT_SUN_COLOR, irradiance: NIGHT_SUN_IRRADIANCE }
-    : { color: SUN_COLOR, irradiance: SUN_IRRADIANCE };
+  const { color: sunColor, irradiance: sunIrradiance } = sunFor(time);
   const sunCol = sunColor.clone().multiplyScalar(sunIrradiance);
   const mat = new THREE.ShaderMaterial({
     side: THREE.BackSide,
@@ -444,9 +483,9 @@ export function skyBackdrop(sunDir, time) {
       /* Toward the sun along the deck: the cumulus's self shadow. */
       uSunXZ: { value: new THREE.Vector2(sunDir.x, sunDir.z).normalize() },
       uSunCol: { value: sunCol },
-      uZenith: { value: (night ? ZENITH_NIGHT : ZENITH).clone() },
-      uHaze: { value: (night ? AIR_NIGHT : AIR).haze.clone() },
-      uAirSun: { value: sunColor.clone().multiplyScalar(AIR.mie) },
+      uZenith: { value: ZENITHS[timeOf(time)].clone() },
+      uHaze: { value: airFor(time).haze.clone() },
+      uAirSun: { value: sunColor.clone().multiplyScalar(airFor(time).mie) },
       uCam: { value: new THREE.Vector3() },
       uDisc: { value: night ? 0 : 1 },
       /* 0 in the water's mirror (onBeforeRender below). */
