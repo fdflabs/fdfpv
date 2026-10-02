@@ -3285,22 +3285,24 @@
         .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
         /* The plate is too small for an index beside the drawing. */
         .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before { display: none; }
-        /* SIX, with Defend Itaipu: tighter type again, because six at the
-           five card size ran 4 px under the command bar at 360 by 640. */
-        .gate-cards:is([data-count="6"], [data-count="7"]) { gap: 5px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
-        /* SIX OR SEVEN (six since Defend Itaipu left the title on
-           2026-09-30), with Defend the Paraná: one tag line and a shorter
+        /* FIVE TO SEVEN: tighter type again, because six at the old five
+           card size ran 4 px under the command bar at 360 by 640, and the
+           five of 2026-10-02 (no Fly with friends) under the rooms panel
+           ran 62 px under it there, the combat card's tags on two lines. */
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) { gap: 5px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
+        /* FIVE TO SEVEN (five since Fly with friends left the title on
+           2026-10-02), with Defend the Paraná: one tag line and a shorter
            picture, because seven at the six card size ran 81 px under the
            command bar at 360 by 640, their tags wrapping to two lines
            (scripts/campaign-check.js). The first tag is the card's own.
            The picture is laid over its box rather than sizing it, or its
            own aspect holds every card at 70 px whatever the rule says. */
-        .gate-cards:is([data-count="6"], [data-count="7"]) { gap: 4px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-art { min-height: 56px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 56px; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
+        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
         .screen-maps .menu-stage {
           display: block;
           position: relative;

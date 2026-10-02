@@ -421,10 +421,9 @@ try {
   check('Continue stays in it', keptJoin.phase === 'open' && keptJoin.code === warJoinCode && keptJoin.consent, JSON.stringify(keptJoin));
   keeper.close();
 
-  /* A PUBLIC ROOM ON ITAIPU, the owner's case: a pilot who came in by the
-   * card (ui.roomGame 'war') in a public Itaipu room. Another pilot, a
-   * bare socket, holds it first and says 'war' in its profile too, so the
-   * page sees it first as a joiner, then as the host once handed it. */
+  /* A PUBLIC ROOM ON ITAIPU made for no game, which a pilot who came for
+   * the war (ui.roomGame 'war') joins. Another pilot, a bare socket, holds
+   * it first and says 'war' in its profile too. */
   const made = await fetch(`${server.url}/v2/create`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ map: 'itaipu', public: true }),
   });
@@ -454,53 +453,24 @@ try {
   await page.evaluate(`(() => { window.__ui.act('friends-leave'); window.__ui.roomGame = 'war'; window.__roomJoin(${JSON.stringify(pubCode)}); window.__ui.show('friends'); return true; })()`);
   await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(pubCode)} && window.__rooms().peers.length === 1`, 30000).catch(() => {});
   await page.sleep(500);
+  /* Every room has a lobby (the owner, 2026-10-02): this one, made for
+   * no game, is free flight's, and the war is not started in it. Its way
+   * is Defend the Paraná's own lobby, one click from the title. */
   const PUBLIC = `(() => {
     const items = window.__ui.items();
     const r = window.__rooms();
     return {
-      code: r.code, public: r.public, host: r.host !== null && r.host === r.seat, seat: r.seat,
-      heading: (items.find((it) => it.section) || {}).label || null,
-      sections: items.filter((it) => it.section).map((it) => it.label),
-      needs: items.some((it) => it.label === 'Defend Itaipu needs a room made for it' && it.info),
-      ask: items.some((it) => it.label === 'Ask the host to make a private war room' && it.info),
-      make: items.some((it) => it.action === 'friends-war-private'),
-      start: items.some((it) => it.action === 'friends-war-start'),
+      code: r.code, public: r.public, host: r.host !== null && r.host === r.seat, mode: r.mode,
+      line: (document.querySelector('.war-lobby-mission') || {}).textContent || '',
+      start: items.some((it) => it.action === 'friends-war-start' || it.action === 'friends-war-private'),
     };
   })()`;
+  await page.until(`(document.querySelector('.war-lobby-mission') || {}).textContent`, 10000).catch(() => {});
   const joiner = await page.evaluate(PUBLIC);
-  check('public Itaipu room, joiner: the heading does not say Defend Itaipu',
-    joiner.code === pubCode && joiner.public && !joiner.host && !/Defend Itaipu/.test(joiner.heading || ''),
+  check('a public room on Itaipu made for no game: free flight\'s lobby, no war started there',
+    joiner.code === pubCode && joiner.public && joiner.mode === null && /^Free flight/.test(joiner.line) && !joiner.start,
     `${JSON.stringify(joiner)} other ${otherClosed || 'seated'}`);
-  check('joiner: the info line and ask the host, no make row, no start row',
-    joiner.needs && joiner.ask && !joiner.make && !joiner.start, JSON.stringify(joiner));
-  await shot(page, 'public-itaipu-joiner');
-
-  other.send(JSON.stringify({ type: 'handhost', seat: joiner.seat }));
-  await page.until("(() => { const r = window.__rooms(); return r.host === r.seat; })()", 10000).catch(() => {});
-  await page.sleep(300);
-  const hosting = await page.evaluate(PUBLIC);
-  check('public Itaipu room, host: the heading does not say Defend Itaipu',
-    hosting.public && hosting.host && !/Defend Itaipu/.test(hosting.heading || ''), JSON.stringify(hosting));
-  check('host: the info line and the make a private war room row, no ask line, no start row',
-    hosting.needs && hosting.make && !hosting.ask && !hosting.start, JSON.stringify(hosting));
-  await shot(page, 'public-itaipu-host');
-
-  await page.evaluate("(() => { window.__ui.settings.warConsent = false; window.__ui.persistSettings(); return true; })()");
-  await page.evaluate("(() => { window.__ui.act('friends-war-private'); return true; })()");
-  await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
-  check('Make a private war room: the consent screen first', (await page.evaluate(DIALOG)) === 'Defend Itaipu', String(await page.evaluate(DIALOG)));
-  await answer(page, 'Continue');
-  await page.until(`window.__rooms().code !== ${JSON.stringify(pubCode)}`, 30000).catch(() => {});
-  const four = await landed(page);
-  check('Continue: a new private Itaipu room, this pilot its host, the war ready under the cursor',
-    landedWell(four) && four.code !== pubCode, JSON.stringify(four));
-  const invite = await page.evaluate(`(() => {
-    const items = window.__ui.items();
-    const i = items.findIndex((it) => it.label === 'Invite code: ' + window.__rooms().code && it.action === 'friends-copy');
-    return { i, start: items.findIndex((it) => it.action === 'friends-war-start') };
-  })()`);
-  check('its invite code on top of the war block, above the start row', invite.i >= 0 && invite.i < invite.start, JSON.stringify(invite));
-  await shot(page, 'war-room-from-public');
+  await shot(page, 'public-itaipu-free-lobby');
   other.close();
 
   /* BACK TO THE TITLE FROM A WAR, the owner's report (2026-09-30), on the
@@ -628,19 +598,21 @@ try {
   /* THE TOILET PAPER COMBAT CARD after a war room, the owner's report
    * (2026-09-30): "when i enter the toilet paper mode, it then switches to
    * mission mode, in itaipu". The title is out of the room now; the combat
-   * card from it: Make a room under the cursor under combat's heading, and
-   * still there well past a countdown's length, never flown into the war. */
+   * card from it is one click into a combat lobby (2026-10-02), in the
+   * Swiss valley, and still there well past a countdown's length, never
+   * flown into the war. */
   for (let i = 0; i < 4 && !(await page.evaluate('window.__ui.onGate()')); i += 1) {
     await page.tap('Escape');
     await page.sleep(600);
   }
   await click(page, '.gate-card-combat');
-  await page.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
+  await page.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends'", 30000).catch(() => {});
   await page.sleep(8000);
   const combat = await page.evaluate(LANDED);
-  check('the combat card after the war room: in no room, Make a room under the cursor, under Toilet paper combat',
-    combat.phase === 'idle' && combat.code !== warCode && combat.screen === 'friends' && combat.game === 'combat'
-    && combat.here === 'roomnew' && combat.primary && combat.heading === 'Toilet paper combat', `${JSON.stringify(combat)} war room ${warCode}`);
+  const combatRoom = await page.evaluate("({ mode: window.__rooms().mode, world: window.__rooms().world, flying: window.__craftState().mode })");
+  check('the combat card after the war room: one click into a combat lobby in the Swiss valley, Ready under the cursor, never the war',
+    combat.phase === 'open' && combat.code !== warCode && combat.screen === 'friends' && combat.lobby === 'LOBBY' && combat.here === 'friends-lobby-ready'
+    && combatRoom.mode === 'combat' && combatRoom.world === 'swiss2' && combatRoom.flying !== 'flight', `${JSON.stringify({ ...combat, ...combatRoom })} war room ${warCode}`);
   await shot(page, 'combat-card-from-war');
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));

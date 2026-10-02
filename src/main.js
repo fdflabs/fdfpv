@@ -4873,10 +4873,62 @@ export async function boot({
       /* A public room has a host too, since the room browser: the pilot
        * in longest, who starts its games. Kicking stays a private room's. */
       const host = w && w.host === w.seat;
-      if (gameLobby()) {
-        return gameLobbyRows(host);
-      }
       const kicks = host && !w.public;
+      /* Every other pilot here: mute, report, make host (and kick, a
+       * private room's host), and their voice. */
+      const peopleRows = () => {
+        const out = [];
+        for (const peer of roomPeers.values()) {
+          const craft = airframeById(peer.profile.airframe).name;
+          const muted = roomSafety.isMuted(peer.seat);
+          const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
+          /* A report picked from this row asks here before it is sent. */
+          const question = roomSafety.question(peer.seat);
+          out.push({
+            label: question || (w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown),
+            value: craft,
+            note: question ? str('friends.report_confirm_note')
+              : str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
+            current: '',
+            pickOnly: true,
+            /* The host hands the room over from any pilot's row. */
+            options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host && !question ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
+            pick: (v) => {
+              const picked = roomSafety.peerPick(peer.seat, v);
+              if (picked === 'kick') {
+                roomLinkState.kick(peer.seat);
+              } else if (picked === 'handhost') {
+                roomLinkState.send({ type: 'handhost', seat: peer.seat });
+              }
+              ui.refreshFriends();
+            },
+          });
+          out.push(...voiceUi.peerRows(peer.seat, shown));
+          out.push(...roomSafety.undoRows(peer.seat).map((row) => ({
+            ...row,
+            pick: (v) => {
+              row.pick(v);
+              ui.refreshFriends();
+            },
+          })));
+        }
+        return out;
+      };
+      /* A lobby is a room screen too: under its own rows, the room's name
+       * and its report, what to say, voice and every pilot's row, then
+       * Leave (the owner's safety rows are every room's). */
+      if (gameLobby()) {
+        const lobbyRows = gameLobbyRows(host);
+        const leave = lobbyRows.filter((it) => it.action === 'friends-leave');
+        return [
+          ...lobbyRows.filter((it) => it.action !== 'friends-leave'),
+          ...roomBrowser.nameRows(w),
+          ...roomSafety.sayRows(),
+          ...voiceUi.rows(),
+          ...peopleRows(),
+          ...leave,
+        ];
+      }
       const world = w ? mapById(w.map).name : '';
       /*
        * A PRIVATE ROOM'S GAMES, ALL THREE, right under the screen's Fly
@@ -4942,40 +4994,7 @@ export async function boot({
         ...roomSafety.sayRows(),
         ...voiceUi.rows(),
       ];
-      for (const peer of roomPeers.values()) {
-        const craft = airframeById(peer.profile.airframe).name;
-        const muted = roomSafety.isMuted(peer.seat);
-        const shown = muted ? str('friends.peer_muted', { name: roomName(peer.name) }) : roomName(peer.name);
-        /* A report picked from this row asks here before it is sent. */
-        const question = roomSafety.question(peer.seat);
-        rows.push({
-          label: question || (w && peer.seat === w.host ? str('friends.peer_host', { name: shown }) : shown),
-          value: craft,
-          note: question ? str('friends.report_confirm_note')
-            : str(kicks ? 'friends.peer_note_host' : 'friends.peer_note', { craft, world: mapById(peer.profile.map).name }),
-          current: '',
-          pickOnly: true,
-          /* The host hands the room over from any pilot's row. */
-          options: [...roomSafety.peerOptions(peer.seat, kicks), ...(host && !question ? [{ value: 'handhost', label: str('friends.make_host') }] : [])],
-          pick: (v) => {
-            const picked = roomSafety.peerPick(peer.seat, v);
-            if (picked === 'kick') {
-              roomLinkState.kick(peer.seat);
-            } else if (picked === 'handhost') {
-              roomLinkState.send({ type: 'handhost', seat: peer.seat });
-            }
-            ui.refreshFriends();
-          },
-        });
-        rows.push(...voiceUi.peerRows(peer.seat, shown));
-        rows.push(...roomSafety.undoRows(peer.seat).map((row) => ({
-          ...row,
-          pick: (v) => {
-            row.pick(v);
-            ui.refreshFriends();
-          },
-        })));
-      }
+      rows.push(...peopleRows());
       rows.push(nameRow, figureRow, { label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
       return rows;
     }
