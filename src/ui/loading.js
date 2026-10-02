@@ -677,6 +677,9 @@ export class Loading {
     }
     this.screen = n;
     this.root.dataset.screen = String(n);
+    /* Again on every screen: a cold boot's first screen is up before the
+     * pilot's locale has loaded, and the next one is not. */
+    this.labelScreens();
     if (this.stepEl) {
       this.stepEl.textContent = `[ 0${n} ]`;
     }
@@ -700,6 +703,9 @@ export class Loading {
     }
     for (const li of this.root.querySelectorAll('.pdcs-rows[data-group="system"] li, .pdcs-rows[data-group="final"] li')) {
       li.querySelector('.pdcs-row-name').textContent = str(`loading.row_${li.dataset.row}`);
+    }
+    for (const li of this.root.querySelectorAll('.pdcs-rows li[data-state]')) {
+      li.querySelector('.pdcs-row-state').textContent = str(`loading.state_${li.dataset.state}`);
     }
   }
 
