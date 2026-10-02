@@ -946,18 +946,24 @@ hold the one thing that fixes it.
 
 ## 3. Line count
 
-| Mission | Story lines | With shared calls (11) |
+| Mission | Stage, twist and debrief lines | Film lines (INTROS.md) |
 | --- | --- | --- |
-| 1 | 22 | |
-| 2 | 16 | |
-| 3 | 14 | |
-| 4 | 13 | |
-| 5 | 13 | |
-| 6 | 13 | |
-| 7 | 18 | |
-| Total | 109 | 120 lines, 240 files with Spanish |
+| 1 | 22 | 7 |
+| 2 | 16 | 4 |
+| 3 | 14 | 4 |
+| 4 | 13 | 4 |
+| 5 | 13 | 4 |
+| 6 | 13 | 4 |
+| 7 | 18 | 5 |
+| Shared calls (1.8) | 11 | |
+| Total | 120 | 32 |
 
-Plus the intros' narration (INTROS.md). Today's `lines.json` has 54 lines
-(108 files). Every story line here passed `tools/voice/script.py`'s
-`load()` checks (no digit, no dash, no tú form) when extracted to a
-lines.json shaped scratch file; the result is in the pull request.
+152 lines, 304 voice files with Spanish, against 54 lines (108 files) in
+`lines.json` today; the existing intro, mission and debrief lines they
+replace are about 20 of those 54. Every line in MISSIONS.md and INTROS.md
+was extracted into a lines.json shaped scratch file and passed
+`tools/voice/script.py` `load()` (no digit, no en or em dash, no tú form,
+valid id and delivery). A second scan for spelled quantity words found
+only the year (the fiction's date, allowed by the script's own rule),
+the idioms "las dos márgenes", "de a dos" and "uno de los dos", and the
+ordinal "a second hull"; none is a figure.
