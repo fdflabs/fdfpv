@@ -135,7 +135,7 @@ function rewrites() {
       `const ZENITH = new THREE.Color().setRGB(${f(SUNSET.zenith)}, THREE.LinearSRGBColorSpace);`],
     ['src/maps/itaipu/look/sky.js', 'haze: new THREE.Color().setRGB(0.31, 0.37, 0.47, THREE.LinearSRGBColorSpace),',
       `haze: new THREE.Color().setRGB(${f(SUNSET.haze)}, THREE.LinearSRGBColorSpace),`],
-    ['src/maps/itaipu/look/sky.js', 'const CLOUD_EDGE = 0.6;', `const CLOUD_EDGE = ${SUNSET.cloudEdge[0]};`],
+    ['src/maps/itaipu/look/sky.js', 'const CLOUD_EDGE = 0.58;', `const CLOUD_EDGE = ${SUNSET.cloudEdge[0]};`],
   ];
 }
 

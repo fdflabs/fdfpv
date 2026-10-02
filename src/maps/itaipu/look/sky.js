@@ -197,7 +197,12 @@ const STAR_CHANCE = 0.9935;
  *   a point is how far the field stands over an edge that rises with the
  *   height (CLOUD_EDGE at the base, CLOUD_TAPER more at the top), over a
  *   soft band CLOUD_SOFT wide: each cell is a dome, wide at its flat
- *   base, round at its top, thin and translucent at its rim.
+ *   base, round at its top, thin and translucent at its rim. The field
+ *   is only its coarse octaves; the fine detail is a billow noise in
+ *   three dimensions, CLOUD_BILLOW across, that eats CLOUD_ERODE of the
+ *   field away, more at the top and the rim: a field's fine octaves
+ *   drawn straight up the slab read as vertical streaks, and a cell's
+ *   top as cauliflower needs detail that changes with the height.
  *
  *   THE MARCH. A ray from under the deck takes CLOUD_STEPS samples across
  *   the slab, over at most CLOUD_SPAN metres of ground, each pixel's
@@ -233,17 +238,17 @@ const CLOUD_BASE = 1600;
 const CLOUD_SIZE = 850;
 const CLOUD_GROUP = 7000;
 const CLOUD_GROUP_W = 0.3;
-const CLOUD_EDGE = 0.6;
+const CLOUD_EDGE = 0.58;
 const CLOUD_TAPER = 0.16;
 const CLOUD_SOFT = 0.07;
-const CLOUD_BILLOW = 260;
-const CLOUD_ERODE = 0.09;
+const CLOUD_BILLOW = 220;
+const CLOUD_ERODE = 0.14;
 const CLOUD_DEPTH = 800;
-const CLOUD_STEPS = 40;
+const CLOUD_STEPS = 64;
 const CLOUD_SPAN = 4000;
-const CLOUD_SIGMA = 0.02;
+const CLOUD_SIGMA = 0.032;
 const CLOUD_FADE = 9000;
-const CLOUD_LIT = 0.3;
+const CLOUD_LIT = 0.4;
 const CLOUD_PROBE = 160;
 const CLOUD_SHADOW = 2.2;
 
@@ -402,7 +407,7 @@ const SKY_GLSL = /* glsl */ `
     }
     if (d.y > 0.01 && uCam.y < ${CLOUD_BASE.toFixed(1)}) {
       float horizon = smoothstep(0.01, 0.06, d.y);
-      vec3 sky = uZenith * 0.7 + uHaze * 0.3;
+      vec3 sky = uZenith * 0.45 + uHaze * 0.4;
       float t0 = (${CLOUD_BASE.toFixed(1)} - uCam.y) / d.y;
       float t1 = min((${(CLOUD_BASE + CLOUD_DEPTH).toFixed(1)} - uCam.y) / d.y,
         t0 + ${CLOUD_SPAN.toFixed(1)} / max(length(d.xz), 1e-3));
@@ -415,7 +420,7 @@ const SKY_GLSL = /* glsl */ `
           break;
         }
         vec3 q = uCam + d * (t0 + (float(i) + jit) * dt);
-        float dens = cloudDensity(q, 5);
+        float dens = cloudDensity(q, 3);
         if (dens < 0.002) {
           continue;
         }
