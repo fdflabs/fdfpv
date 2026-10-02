@@ -46,7 +46,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { TRACKS, MENU_TRACKS, trackUrl } from '../src/render/tracks.js';
+import { TRACKS, MENU_TRACKS, MUSIC_REF_LUFS, trackGain, trackUrl } from '../src/render/tracks.js';
 
 /*
  * The two bus gains, restated. Not imported, because music.js does not
@@ -55,8 +55,8 @@ import { TRACKS, MENU_TRACKS, trackUrl } from '../src/render/tracks.js';
  * written down twice on purpose, and if music.js moves one of them this
  * is the thing that says so.
  */
-const MUSIC_BUS = 0.60;
-const MENU_BUS = 0.20;
+const MUSIC_BUS = 0.90;
+const MENU_BUS = 0.30;
 
 const fails = [];
 function check(what, cond, note = '') {
@@ -243,6 +243,13 @@ check('the element holds a menu record', isMenu(el.src), idOf(el.src));
 check('the bus is the menu bus', Math.abs(m.gain.gain.value - 0.5 * MENU_BUS) < 1e-9,
   `${m.gain.gain.value} against ${0.5 * MENU_BUS}`);
 check('the menu bed does not loop', el.loop === false);
+{
+  const t = MENU_TRACKS.find((x) => x.id === idOf(el.src));
+  check('the record plays levelled, at its own gain', Math.abs(el.volume - trackGain(t)) < 1e-12, `${el.volume} against ${trackGain(t)}`);
+}
+check('every record has a measured loudness and is only ever turned down',
+  [...TRACKS, ...MENU_TRACKS].every((t) => Number.isFinite(t.lufs) && t.lufs >= MUSIC_REF_LUFS && trackGain(t) <= 1),
+  [...TRACKS, ...MENU_TRACKS].map((t) => `${t.id} ${t.lufs}`).join(', '));
 check('preload is still none', el.preload === 'none');
 check('status names the crate', m.status().context === 'menu');
 const openedOn = idOf(el.src);

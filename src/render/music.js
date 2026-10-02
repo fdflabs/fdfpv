@@ -88,20 +88,24 @@ import {
   pickMenuTrack,
   trackById,
   trackUrl,
+  trackGain,
 } from './tracks.js';
 
 /*
- * Bus gain at a Music setting of ten, in flight. Recorded tracks are
- * mastered hotter than the old generated bed, so this is lower than the
- * 0.85 the oscillators used. Default setting 5 lands at 0.30, which the
- * live audio-bed check still sees as well above its 0.05 floor.
+ * Bus gain at a Music setting of ten, in flight. Every record is levelled
+ * to -17.2 LUFS first (src/render/tracks.js trackGain, on the element),
+ * and this puts the levelled bed at -30 LUFS at the default Volume (6) and
+ * Music (5): 0.5 x 0.90 is -6.9 dB, the master 0.6 x 0.85 another -5.9
+ * (docs/AUDIO.md, the mix). It was 0.60 against unlevelled records, which
+ * put the crate anywhere from -29.3 to -33.5. The live audio-bed check
+ * reads the MENU bus, 0.15 at defaults, three times its 0.05 floor.
  *
  * The re-encode did not move this. scripts/music.js fails the encode if
  * either output drifts more than 0.5 LU from its master, measured with
  * ebur128, precisely so that a codec change cannot quietly rebalance the
  * mix against the motors.
  */
-const MUSIC_BUS = 0.60;
+const MUSIC_BUS = 0.90;
 
 /*
  * The same, in the menus. A third of the flight bus, 9.5 dB down.
@@ -120,12 +124,14 @@ const MUSIC_BUS = 0.60;
  * is trying to read rows. A third takes the bed back to roughly where it
  * sits under the motors, which is the level it was balanced at.
  *
- * At the default Music setting of 5 this is 0.5 times 0.20, so 0.10,
- * twice the audio-bed check's 0.05 floor. Take this below 0.10 and that
- * floor starts to mean something; the check taps a key on the title
- * screen, so what it measures is this bus and not MUSIC_BUS.
+ * 0.30 against records levelled to -17.2 LUFS is where 0.20 left the
+ * unlevelled menu records (-39.5 LUFS at defaults against -40), so the
+ * menus did not move when the levelling arrived. At the default Music
+ * setting of 5 it is 0.15, three times the audio-bed check's 0.05 floor;
+ * the check taps a key on the title screen, so what it measures is this
+ * bus and not MUSIC_BUS.
  */
-const MENU_BUS = 0.20;
+const MENU_BUS = 0.30;
 
 /*
  * How close to the end of a track the next one starts buffering. Long
@@ -565,6 +571,7 @@ export class Music {
     if (this.loadedUrl !== url) {
       this.loadedUrl = url;
       this.el.src = url;
+      this.el.volume = trackGain(this.track);
       /* Parked for onMeta, which is the first moment the element will
        * accept it. A skip is a request for the top of the record, so it
        * spends the resume rather than honouring it. */
