@@ -2,9 +2,6 @@
  * engine-worklet.js: the physically driven aircraft voice, one
  * AudioWorkletProcessor (docs/AUDIO.md, "the model per source class").
  *
- * PROTOTYPE, behind the audiolab flag (src/render/audio.js LAB). With the
- * flag off this file is never loaded.
- *
  * Why one worklet and not a graph of oscillators: the live graph's budget is
  * 64 nodes (tests/thresholds.json audio-bed max_nodes, scripts/war-boom.js)
  * and it already stands near it. Four motors with harmonics, a motor whine,
@@ -192,9 +189,16 @@ class EngineProcessor extends AudioWorkletProcessor {
     super();
     const o = (options && options.processorOptions) || {};
     this.rate = sampleRate;
+    this.bladeScale = o.bladeScale > 0 ? o.bladeScale : 1;
     this.setModel(o.model || 'quad');
     this.port.onmessage = (e) => {
-      if (e.data && e.data.model) {
+      if (!e.data) {
+        return;
+      }
+      if (e.data.bladeScale > 0) {
+        this.bladeScale = e.data.bladeScale;
+      }
+      if (e.data.model) {
         this.setModel(e.data.model);
       }
     };
@@ -279,6 +283,9 @@ class EngineProcessor extends AudioWorkletProcessor {
     }
     this.model = m;
     this.modelName = name;
+    /* A prop's blade count, times the hangar prop's over the stock one
+     * (MotorAudio.setBladeScale), whole blades. */
+    this.blades = Math.max(1, Math.round((m.blades || 2) * this.bladeScale));
   }
 
   /*
@@ -376,7 +383,7 @@ class EngineProcessor extends AudioWorkletProcessor {
         motorsLive += 1;
       }
       if (m.kind !== 'turbojet') {
-        this.motorAmps(mo, m.blades, m.rpmRef);
+        this.motorAmps(mo, this.blades, m.rpmRef);
       }
       if (m.kind === 'multirotor') {
         /* The motor's whine follows its current: the pack's, shared out in
@@ -411,7 +418,7 @@ class EngineProcessor extends AudioWorkletProcessor {
 
     /* Broadband blade vortex noise: one shared band of noise for all the
      * motors, centred a few blade passes up, level with tip speed. */
-    const bladesBb = m.blades || 2;
+    const bladesBb = this.blades;
     const bbHz = Math.min(5200, Math.max(400, (rpmMean / 60) * bladesBb * 5));
     const bbF = svfF(bbHz, rate);
     let bbLevel = 0;
@@ -469,7 +476,7 @@ class EngineProcessor extends AudioWorkletProcessor {
           }
           y *= am;
           /* The blade pass phase, for chopping the broadband. */
-          chop += Math.cos(TAU * mo.theta * m.blades);
+          chop += Math.cos(TAU * mo.theta * this.blades);
           /* The whine: the electrical frequency and its second harmonic. */
           if (mo.whine > 0.001) {
             mo.whinePhase += (fRot * m.poles / 2) / rate;
@@ -546,7 +553,7 @@ class EngineProcessor extends AudioWorkletProcessor {
           const level = 0.5 + 0.5 * x;
           const b0 = this.bb[0];
           b0.run(nz[0](), bbF, 0.9);
-          const prop = 0.45 * y + 0.06 * x * x * b0.bp * (1 + 0.5 * Math.cos(TAU * mo.theta * m.blades));
+          const prop = 0.45 * y + 0.06 * x * x * b0.bp * (1 + 0.5 * Math.cos(TAU * mo.theta * this.blades));
           /* The blowdown itself, the pressure pulse as the port opens:
            * the same physics as the shipped glow voices' wave (Heywood,
            * 1988), here per cycle, so every cycle's strength and timing is

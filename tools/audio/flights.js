@@ -16,7 +16,7 @@
  * airspeed zero (main.js `motorsTurning`).
  *
  * Rows are at 62.5 Hz, 768 samples at 48 kHz, an exact multiple of the
- * 128 sample render quantum (scripts/audio-probe.js chose the same rate
+ * 128 sample render quantum (the retired scripts/audio-probe.js chose the same rate
  * for the same reason). Columns, `COLS` below:
  *
  *   r0..r3    motor RPM, Betaflight order (a fixed wing's engine is r0)

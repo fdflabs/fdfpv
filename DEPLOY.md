@@ -832,7 +832,7 @@ icon, it is an explicitly empty one, and it wins over `/favicon.ico`, so
 committing the files without editing those tags would have changed nothing
 on any of them. The landing page was the exception and already had a real
 mark, drawn inline as a data URI; it now points at the file like the rest.
-The eighth, `scripts/audio-probe.html`, has no icon tag at all and was the
+The eighth, `scripts/audio-probe.html` (retired since, with the probe), had no icon tag at all and was the
 one page in the project actually requesting `/favicon.ico` and getting a
 404. It now gets the file.
 
