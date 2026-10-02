@@ -104,6 +104,9 @@ jobs:
       - run: npm run audio:metrics
       - run: npm run audio:specs
       - run: npm run audio:flights
+      # The world's sound (docs/AUDIO.md section 12) rendered in Node and
+      # held to its bars; its browser half, --browser, stays local.
+      - run: npm run audio:world -- --check
       # The war audio against its script, credits and manifest: python3's
       # standard library only, no GPU and no model download.
       - run: npm run voice:check

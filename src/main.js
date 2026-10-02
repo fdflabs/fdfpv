@@ -60,6 +60,7 @@ import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirTo
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
 import { MotorAudio, VOICES } from './render/audio.js';
 import { engineSpecFor } from './render/enginespec.js';
+import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT } from './input/input.js';
@@ -1188,6 +1189,10 @@ export async function boot({
   let flapAngleWas = 0;
   let gearWas = 0;
   let gearMovingWas = false;
+  /* Everything in the world that sounds and is not this aircraft: the
+   * war's attackers and its explosions (src/render/world-audio.js). Fed
+   * a frame at a time; silent until the mix gives it a bus. */
+  const worldAudio = new WorldAudio();
   /* Built, and silent until the pilot's first press: a browser starts an
    * AudioContext only on a gesture (MotorAudio.start), so the boot screen
    * says standby, not OK. */
@@ -2680,7 +2685,7 @@ export async function boot({
   };
   /* The loudest explosion heard this frame, rung once: its level over
    * distance, level and metres. */
-  const warBoomHeard = { score: 0, level: 0, dist: 0 };
+  const warBoomHeard = { score: 0, level: 0, dist: 0, world: false };
   let warAudioPeak = 0;
   /* The damage mode is due again at the next reset: a war began or
    * ended. See applyCrashMode. */
@@ -3312,6 +3317,12 @@ export async function boot({
     }
     const d = mine ? 0 : Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]);
     const level = mine ? 1 : Math.min(1, 0.35 + 0.2 * size);
+    /* Every explosion is its own sound in the world's voice, from where
+     * it went off; without one, the loudest of the frame rings
+     * MotorAudio.boom below. */
+    if (worldAudio.boom(mine ? null : p, level)) {
+      warBoomHeard.world = true;
+    }
     const score = level / (1 + d / 250);
     if (score > warBoomHeard.score) {
       warBoomHeard.score = score;
@@ -3476,10 +3487,21 @@ export async function boot({
       }
     }
     if (warBoomHeard.score > 0) {
-      if (audio.enabled && typeof audio.boom === 'function') {
+      if (warBoomHeard.world) {
+        /* The world rang it; the flight, the music and the ambience
+         * still duck under the loudest when it arrives, as boom() ducks
+         * them. */
+        const lv = warBoomHeard.level / (1 + warBoomHeard.dist / 250);
+        if (audio.ctx) {
+          const t = audio.ctx.currentTime + Math.min(2.5, warBoomHeard.dist / 343);
+          audio.duckFlight(t, 0.35 + 0.35 * (1 - lv), 1.2);
+          audio.duckAction(t, 0.4 + 0.4 * (1 - lv), 1.6);
+        }
+      } else if (audio.enabled && typeof audio.boom === 'function') {
         audio.boom(warBoomHeard.level, warBoomHeard.dist);
       }
       warBoomHeard.score = 0;
+      warBoomHeard.world = false;
     }
     warAudioPeak = Math.max(warAudioPeak, typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0);
     warBooms.update(dt);
@@ -3495,6 +3517,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
     warDrawnAt = now;
@@ -4531,7 +4554,7 @@ export async function boot({
     fx: warBooms.stats(),
     shake: warShakePeak,
     feedHeldMs: warFeedHeldMs,
-    boomSound: { rung: audio.booms || 0, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
+    boomSound: { rung: (audio.booms || 0) + worldAudio.booms, world: worldAudio.booms, heard: worldAudio.stats, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
     seat: roomWar.seat(),
     view: roomWar.view(),
     error: roomWar.error(),
@@ -15202,6 +15225,15 @@ export async function boot({
         /* Already gone. */
       }
       showcase = null;
+    }
+
+    /* The world's sound: the sources added this frame, heard from where
+     * the camera is now, over the ground under it. */
+    worldAudio.attach(audio);
+    worldAudio.setWalls(view && view.audioWalls);
+    {
+      const c = shell.camera.position;
+      worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN);
     }
 
     /* Overlay. */

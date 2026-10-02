@@ -620,3 +620,201 @@ power system (src/main.js applyPower):
 **Frames and units.** Everything is SI. A position the world hands its
 own worklet is its own business; the propagation in the engine takes
 distances, not positions, so it has no frame to get wrong.
+
+## 12. The world: everything that sounds and is not the pilot's aircraft
+
+The owner, 2 October, after the prototype: "can we do them for every
+single plane, every single motor, every vehicle, all of it ?" The player's
+aircraft, other pilots and the mix are sections 8 to 11. This section is
+the rest: the war first, then the vehicles, then the ambience, each its
+own pull request.
+
+### What there is to voice (checked against the code, 2 October)
+
+- **The war** (`src/share/war/routes.js` KIND, `src/render/attackers.js`):
+  strike (the Striker airframe, the Shahed class, 26.6 m/s), decoy (the
+  same airframe), scout (a 3 m twin boom pusher, 10.5 m/s), loiter (a
+  1.2 m X wing tube with an electric pusher, 19.6 m/s, diving at 28), fpv
+  and hunter (0.25 m quads, 21 and 25.2 m/s), boat (a 5 m speedboat on an
+  outboard, 9.8 m/s), jammer (a mast on a raft, 3.5 m/s). About 45 alive
+  at once in itaipu-1's fourth round with eight pilots; the renderer's
+  budget is 60. `roomWar.attackersAt(now)` gives every live one's position
+  each frame (no velocity: `WorldAudio` differences positions). The
+  explosions are `warBoomAt` in `src/main.js`: a warhead, every kill, a
+  swarm's, a target hit.
+- **Not in the game**, though the brief listed them: Itaipu has no road
+  traffic, people or boats (its town's `update` is empty); no map has a
+  train; the jammer is used by no mission (`itaipu-1.js`); the spillway
+  has no gate state (`SPILL.gateOpen` is a constant 5); there are no
+  sirens or alarms; time of day on `main` is day or night only (morning,
+  noon and golden are pull request #344, unmerged).
+- **Vehicles, for the next pull request**, all in the Alps and Swiss
+  valley (`src/maps/alps/life.js`, room synced): the PostAuto bus, eight
+  road cars (one a motorbike), a tractor and trailer, the gondola cabins
+  (`alps/lift.js`), the Swiss lake's sailing boat; people and animals on
+  the wall clock (hikers, a dog, paragliders, cattle, the village's 21
+  figures).
+
+### One node, many voices
+
+`src/render/world-worklet.js` is one AudioWorkletProcessor carrying every
+world source; `src/render/world-audio.js` is its main thread side. The
+graph pays one node (`MotorAudio.attachWorld`, section 11): 53 nodes on
+the war's live page (`war:boom`), 50 in a world scene, against the 64
+bar.
+
+- **Transport.** A source's state is not an AudioParam (a war has more
+  sources than a node can have params). Each frame `WorldAudio.post`
+  sends the listener (the camera: position, forward, right, the ground
+  under it) and every source (id, kind, position, velocity) stamped with
+  the context time. The processor keeps a history of each and reads it at
+  the time the sound left the source. An offline render hands the whole
+  timeline over in `processorOptions`, so the listening page and the
+  checks run the same code as the live page. Proof: the Node render and
+  Chromium's agree to 0.15 LU on every scene the limiter leaves alone
+  (`npm run audio:world -- --browser --check`).
+- **Propagation, per voice, without a delay line.** Each voice is
+  synthesised at the source's retarded time, te = t - d(te) / 343, solved
+  by fixed point steps; its phases run at the source's frequencies times
+  dte / dt, which is the Doppler factor exactly. Then spherical spreading
+  from 16 m (the engine's REF_M: another aircraft at 16 m is as loud as
+  the pilot's own), never louder than at 6 m; the engine's air absorption
+  lowpass; the ground's image through an 85 ms line (the comb of a real
+  fly by); an equal power pan and a darker far ear behind the head.
+- **Culling.** A pool of 14 voices goes to the sources loudest at the
+  listener, with a 3 dB hysteresis so two at the same distance do not
+  trade a voice, and a 60 ms fade in and out. Every other source is
+  folded into a far bed per kind: its summed power at its power weighted
+  pan and distance, as three detuned copies of the kind's note through
+  that distance's air. A swarm at two kilometres is a drone.
+
+### The models (`src/render/world-kinds.js`)
+
+Every kind is a set of parts with numbers: an engine's firing (a pulse
+each cycle, its strength and timing varied as Heywood 1988, 9.4,
+describes, the odd misfire, ringing three muffler resonances), a prop's
+blade pass and harmonics from its own seeded table (each voice's
+imbalance its own, so no two engines of a kind are alike: two of a kind
+on the same path correlate at most 0.05), its broadband chopped at the
+blade pass, an electric motor's whine, a quad's four props beating, a
+hull's wash and slap. Rpm follows the speed and the climb; a munition
+that powers into its dive (`powerDive`, the loiter) winds up instead of
+windmilling. Level follows rpm.
+
+| Kind | Engine, as modelled | Note at cruise | At 16 m (target) |
+| --- | --- | --- | --- |
+| strike | the player's Striker engine (`boxer2`): a 110 cc two stroke boxer twin firing together, one pulse a rev, 4200 rpm ESTIMATED, a two blade pusher | firing 70 Hz, blade pass 140 Hz | -25 LUFS |
+| decoy | a smaller two stroke at 7200 rpm, the same airframe (ESTIMATED: the sound is the tell) | 120 Hz | -28 |
+| scout | a 30 cc class two stroke single, 6000 rpm (ESTIMATED) | 100 Hz | -29 |
+| loiter | electric pusher, 7000 rpm, 14 poles, two blades (ESTIMATED) | blade pass 233 Hz, whine 817 Hz | -30 |
+| fpv, hunter | four three blade props near 20,000 rpm | blade pass about 1 kHz | -29 |
+| boat | a three cylinder two stroke outboard, 5500 rpm, its exhaust under water (ESTIMATED), and the hull | firing 275 Hz | -26 |
+| jammer | a four stroke generator single, 3600 rpm, and a little wash | 30 Hz | -31 |
+
+The Shahed's "moped" is the strike's engine: a two stroke's raw firing
+with a pusher's blade pass an octave over it. "50 cc" is the nickname,
+not a displacement: the game's spec is the 110 cc twin above, and the
+real Shahed-136's engine is a 550 cc class four cylinder two stroke. The
+levels at 16 m are ESTIMATED, ordered by what each machine is (an
+outboard over a two stroke drone over a quad over an electric loiterer)
+and set inside the mix's targets; `amp` in world-kinds.js is the trim
+that meets each (`--calibrate` prints it), and the check holds every kind
+within 1 LU.
+
+### Explosions
+
+Every explosion is its own sound now (OLD rang only the loudest a frame),
+from where it went off, each a `Blast` in the worklet: the crack (the
+shock's N wave, near only), the body (noise whose top falls from what the
+air leaves of 1.6 kHz to 120 Hz), the thump (a low sine falling an
+octave), the rumble (one shared diffuse low noise for all of them, shaped
+by the sum of their envelopes, longer the farther) and a crackle of debris
+near. Each draws its numbers from its own seed: two explosions at one
+place correlate at 0.11, and the near one's 2 to 5 kHz share is under the
+bar for every one of twelve seeds (worst 20.6 percent). It arrives d / 343
+s after it went off.
+
+- **Distance law: 4.5 dB a doubling past 60 m, not 6** (ESTIMATED, a mix
+  decision for the owner's ears). A warhead at 300 m is far louder than
+  an aircraft at 16 m; a mix that keeps the aircraft at its level has to
+  compress the explosions' range to keep a boom across the valley a
+  boom. The air's lowpass still takes its top.
+- **Echoes off the dam.** The Itaipu map declares its concrete faces
+  (`map.audioWalls`, from dam.json: every part's axis from its base to its
+  crest, but the earth and rockfill embankments, which scatter). An
+  explosion gets an image in each wall that it and the listener both
+  face, where the path crosses the wall inside its length and height; the
+  two nearest are heard, darker, at half the level times the wall's 0.6.
+- **A soft knee** on the effects output from the limiter's threshold
+  (-6 dBFS) to -0.9 dBFS: a near blast's first milliseconds are noise
+  peaks 14 dB over its loudness, which the limiter's 2 ms attack would
+  let through.
+- **The ducks are boom()'s**: the flight and, through `duckAction`, the
+  music and the ambience, under the loudest of the frame when it arrives.
+
+### Measured
+
+`npm run audio:world -- --check` (Node, in CI) and `-- --browser --check`
+(headless Chromium through the real graph, local). Default volume, every
+world bus at its default, the pilot's own motors stopped. A pass is its
+loudest 400 ms.
+
+| Scene | NEW LUFS | NEW loudest 400 ms | NEW dBTP | NEW 2 to 5 kHz % | OLD loudest 400 ms |
+| --- | --- | --- | --- | --- | --- |
+| an attack wave passing (6 Strikers, 4 loiterers, 5 FPV, 2 boats) | -35.2 | -29.2 | -20.6 | 11.7 | silent |
+| one Strike attacker past at 20 m | -34.4 | -26.6 | -20.7 | 1.2 | silent |
+| a loiterer circles and dives on a point 25 m away, and its warhead | -25.2 | -15.0 | -6.4 | 11.8 | -13.5 (the warhead) |
+| explosion at 40 m | -20.4 | -15.3 | -6.4 | 21.3 | -13.5 |
+| explosion at 100 m | -21.8 | -17.2 | -6.8 | 13.2 | -20.6 |
+| explosion at 300 m | -32.1 | -25.9 | -10.8 | 6.3 | -20.3 |
+| explosion at 300 m, the dam behind | -32.9 | -25.9 | -10.8 | 6.3 | -20.3 |
+| explosion at 1000 m | -36.3 | -30.1 | -17.1 | 2.3 | -24.6 |
+| ten in two seconds at 400 m | -24.2 | -21.0 | -10.5 | 10.7 | -23.5 |
+
+Browser figures; Node's agree to 0.15 LU where the limiter is idle. OLD
+is the frozen baseline (`tools/audio/old-audio.js`), which voiced no
+attacker. Its far explosions are louder than NEW's: its law was
+`1 / (1 + d / 250)`, so a boom at a kilometre was 11 dB under one at
+40 m, against NEW's 15. Whether a distant boom should be louder is for
+the owner's ears on the listening page.
+
+**The budget.** The full war, 120 attackers spread over three kilometres
+with every kind and a boom every half second (`war-full`): 14 voices and
+107 sources bedded, render cost **0.21 and 0.22 s a second of audio** on
+Chromium's worklet in two runs (bar 0.25, a quarter of one core), 0.12
+in Node; 50 nodes. Measured on a shared host at load 25 on 20 cores; a
+run before the far bed went to a quarter rate read 0.26, which is why it
+did. The voices are most of it, about 0.009 s a second each.
+
+**The load guard**, for a machine weaker than this one. The worklet
+times its own quanta (Date.now, all an AudioWorkletGlobalScope has, over
+windows of 128 quanta) and, when a window took more than 0.25 of the
+audio's own time, sheds a step: 14 voices, then 10 with the far bed
+reduced to its noise, then 6, then 4. A voice that loses its source
+fades out as ever and the source goes to the bed. It gives a step back
+after four cool windows (under half the budget) in a row, so it does not
+hunt. It is off in offline renders, which are not real time and must
+hear the same samples every run. Its hot path is a check row
+(`--check`, a budget no machine meets): it sheds to the last step, the
+full war is still heard within 0.2 LU of full detail (the explosions
+carry it), clean, at 0.07 s a second against 0.10. Every bar of `--check` passes: each kind at 16 m within 1 LU, each
+pass -30 to -20 LUFS with short term at most -18 and momentary at most
+-14, a near explosion at most -12, true peak at most -1 dBTP, no non
+finite or subnormal sample, at most 35 percent of the A weighted power in
+2 to 5 kHz, and no identical repeats.
+
+**Recordings: none.** Everything here is synthesised: 0 bytes, nothing
+to credit; the 1.5 MB budget of section 7 is untouched.
+
+**The listening page** lists the world's scenes after the flights, OLD
+and NEW, matched on the pass; `tools/audio/world-scenes.js` is where a
+scene is added.
+
+### Not yet
+
+- Vehicles (the next pull request: a road vehicle's gears, its tyres on
+  the road, a diesel's knock) and ambience (the one after).
+- Occlusion (a hill between a source and the listener): not done; one ray
+  against the terrain per voice per frame is the cheap form.
+- Interceptions are the pilots' own aircraft (section 10, the player
+  track); a hunter's sound is its quad's.
