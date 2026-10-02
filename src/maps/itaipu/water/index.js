@@ -67,8 +67,7 @@
  */
 
 import { insideWater } from '../../../game/water.js';
-import { SUN_COLOR, SUN_IRRADIANCE } from '../../swiss2/light.js';
-import { sunDirection } from '../look/light.js';
+import { sunFor } from '../look/light.js';
 import {
   bays, chuteMaterial, gateJets, lanes, plume, PLUNGE_GLSL,
 } from './spill.js';
@@ -133,20 +132,31 @@ const SKY_BLUR = [0.14, 0.42];
 const SKY_BLUR_REACH = [40, 1200];
 const MIRROR_KEEP = [200, 1400];
 const MIRROR_KEEP_DOWN = [0.12, 0.35];
+const MIRROR_SMEAR = [0.04, 0.005];
+/* The roughness the wind's sheen reads the sky at in place of the mirror. */
+const SHEEN_BLUR = 0.35;
+/* The sky's roughness between the shores in the mirror close to the
+ * camera: SKY_BLUR's near 0.14 still drew the cumulus as pale blots at
+ * eye level (reservoir-dam). */
+const MIRROR_SKY_BLUR = 0.24;
 
 /*
  * The colours, linear. Itaipu's water is a tropical reservoir's, not a
  * glacier's: a blue green that reads blue from the air for the sky it
  * holds, green brown over its mud shallows, and the river below a greyer
  * green with the sediment the turbines stir (reservoir-dam, aerial-dam,
- * river-below).
+ * river-below). Round 4 measured them against the photographs: the
+ * reservoir from the air (aerial-dam) at a mean sRGB (116, 155, 201)
+ * where v3 drew (82, 113, 140), so its body and deep are two thirds
+ * brighter at the same hue; the river below (river-below) at (73, 96,
+ * 106) where v3 drew (68, 81, 93), so it is greener.
  */
 const LOOK = {
   reservoir: {
-    body: [0.018, 0.055, 0.09], shallow: [0.04, 0.07, 0.06], deep: [0.012, 0.042, 0.078], clarity: 0.9, ripple: 0.15, roughness: 0.03, mottle: 0.15, gust: 0.4,
+    body: [0.03, 0.094, 0.152], shallow: [0.04, 0.07, 0.06], deep: [0.02, 0.07, 0.13], clarity: 0.9, ripple: 0.15, roughness: 0.03, mottle: 0.15, gust: 0.4,
   },
   river: {
-    body: [0.024, 0.036, 0.03], shallow: [0.05, 0.047, 0.032], deep: [0.018, 0.03, 0.028], clarity: 2.5, ripple: 0.25, roughness: 0.05, mottle: 0, gust: 0.5,
+    body: [0.03, 0.052, 0.048], shallow: [0.05, 0.047, 0.032], deep: [0.022, 0.04, 0.038], clarity: 2.5, ripple: 0.25, roughness: 0.05, mottle: 0, gust: 0.5,
   },
 };
 
@@ -467,6 +477,40 @@ function withField(THREE, mat, uniforms) {
    * and mirror have set `radiance`, before three's light loop spends it. */
   const LIGHTS_END = '#include <lights_fragment_end>';
   const f3 = (v) => v.toFixed(3);
+  /* swiss2's planar mirror, read once at a point and mixed with the sky's
+   * sharp image where the wind roughens the water (WATER_PLANAR). The mix
+   * is a pattern, as MOTT. */
+  const MIRROR_READ = 'vec3 mirror = texture2DProj(uReflect, rc).rgb;';
+  const MIRROR_MIX = /radiance = mix\(mirror, radiance, max\(wFoam, wSheen\)\);/;
+  /*
+   * THE MIRROR HOLDS THE SHORES, THE SKY IS BLURRED. Near the camera the
+   * mirror kept the cumulus sharp, broken by the drawn ripples into hard
+   * white blots (reservoir-dam, round 4), where a real reservoir's
+   * wavelets smear the sky's image over tens of degrees. So the mirror is
+   * drawn without the sky (renderMirror below: no sky dome, cleared to
+   * nothing), its alpha what of the dam and the shores it holds, and the
+   * sky between them is the environment's blurred image (MIRROR_SKY_BLUR
+   * near to SKY_BLUR's far, by distance). The mirror itself is read in
+   * five taps along its vertical, over MIRROR_SMEAR's near to far of its
+   * height (a fraction of the image), as wavelets stretch a reflection
+   * into a streak, longest close to and at a grazing look. Where the wind
+   * takes over from the mirror it hands to the blurred sky too
+   * (SHEEN_BLUR), not to the environment's sharp image.
+   */
+  const SMEAR = `vec3 mirror;
+          {
+            float mFar = smoothstep(${f3(SKY_BLUR_REACH[0])}, ${f3(SKY_BLUR_REACH[1])}, distance(vWaterWorld, cameraPosition));
+            vec4 mUp = vec4(0.0, mix(${f3(MIRROR_SMEAR[0])}, ${f3(MIRROR_SMEAR[1])}, mFar) * rc.w, 0.0, 0.0);
+            vec4 mHeld = texture2DProj(uReflect, rc) * 0.3
+              + (texture2DProj(uReflect, rc + mUp * 0.4) + texture2DProj(uReflect, rc - mUp * 0.4)) * 0.2
+              + (texture2DProj(uReflect, rc + mUp) + texture2DProj(uReflect, rc - mUp)) * 0.15;
+            float mRough = max(material.roughness, mix(${f3(MIRROR_SKY_BLUR)}, ${f3(SKY_BLUR[1])}, mFar));
+            mirror = mHeld.rgb + (1.0 - clamp(mHeld.a, 0.0, 1.0)) * getIBLRadiance(geometryViewDir, geometryNormal, mRough);
+          }`;
+  const SMEAR_MIX = `{
+            vec3 mWind = getIBLRadiance(geometryViewDir, geometryNormal, max(material.roughness, ${f3(SHEEN_BLUR)}));
+            radiance = mix(mirror, mWind, max(wFoam, wSheen));
+          }`;
   const BLUR = `#if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
         {
           vec3 bLook = vWaterWorld - cameraPosition;
@@ -488,11 +532,14 @@ function withField(THREE, mat, uniforms) {
     base.call(this, shader, renderer);
     Object.assign(shader.uniforms, uniforms);
     const fs = shader.fragmentShader;
-    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MOTT.test(fs) || !fs.includes(WINDY) || !MAIN.test(fs) || !fs.includes(LIGHTS_END)) {
+    if (!fs.includes(DECL) || !fs.includes(FOAM) || !MOTT.test(fs) || !fs.includes(WINDY) || !MAIN.test(fs) || !fs.includes(LIGHTS_END)
+      || !fs.includes(MIRROR_READ) || !MIRROR_MIX.test(fs)) {
       throw new Error('itaipu water: swiss2\'s water shader no longer has the lines the depth field is spliced at');
     }
     shader.fragmentShader = fs
       .replace(LIGHTS_END, BLUR)
+      .replace(MIRROR_READ, SMEAR)
+      .replace(MIRROR_MIX, SMEAR_MIX)
       .replace(DECL, '@DECL@')
       .replace(/\bvWater\b/g, 'iWater')
       .replace('@DECL@', `${DECL}\n${FIELD_GLSL}`)
@@ -510,24 +557,34 @@ function withField(THREE, mat, uniforms) {
             float rag = texture2D(uWaves, sq / 7.9 + vec2(uTime * 0.05, 0.0)).a;
             float fine = texture2D(uWaves, sq / 2.3 - vec2(0.0, uTime * 0.3)).a;
             /* Water full of air is milky jade, not clear: the bed and
-             * the mirror are lost in it (spill-plume). */
-            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.1, 0.15, 0.12), smoothstep(0.0, 0.5, spill) * 0.85);
+             * the mirror are lost in it, paler where it is most churned
+             * (spill-plume). */
+            diffuseColor.rgb = mix(diffuseColor.rgb, mix(vec3(0.1, 0.15, 0.12), vec3(0.17, 0.22, 0.17), smoothstep(0.6, 1.0, spill)),
+              smoothstep(0.0, 0.5, spill) * 0.85);
             /* Far off, or seen along the water from near it, a pixel
-             * holds many of the rags and the fine lace and the foam is a
-             * paler sheet torn only at its edges: the fine terms alone
-             * alias into a regular grain, and at a grazing look into a
-             * crazed web. */
+             * holds many of the rags and the fine lace and the foam is
+             * torn only at its edges: the fine terms alone alias into a
+             * regular grain, and at a grazing look into a crazed web. */
             vec3 look = vWaterWorld - cameraPosition;
             float far = max(smoothstep(150.0, 900.0, length(look)), 1.0 - smoothstep(0.03, 0.12, abs(look.y) / length(look)));
-            /* Downstream of the boil the foam lies in patches and lines,
-             * the eddies the current tears off it: the lace's crests and
-             * its ridges, thickest where the water is most churned. */
-            float ridge = 1.0 - abs(lace * 2.0 - 1.0);
-            float lines = smoothstep(0.93 - 0.35 * spill, 0.99 - 0.2 * spill, ridge * 0.8 + rag * 0.2 + fine * 0.1) * 0.4;
-            float patches = smoothstep(0.62 - 0.3 * spill, 0.8 - 0.25 * spill, lace * 0.6 + rag * 0.4);
+            /*
+             * How much of the water is white. Round 4 measured the
+             * photographs (spill-plume, spill-run-5): white all through
+             * only where a jet comes down, about half of it a little way
+             * off in torn patches with the jade between, and further down
+             * the tongue a few lines and rafts of foam on green water.
+             * v3 drew the whole tongue white (edge-plunge), a field of
+             * snow. So the threshold the foam's height must clear climbs
+             * as the churn falls: the boil's heart (spill 1) about 85 per
+             * cent foam, the tongue at the landings (0.85) a little under
+             * half, at 0.6 about a tenth.
+             */
             float lift = mix(lace * 0.45 + rag * 0.35 + fine * 0.2, lace * 0.7 + 0.15, far);
-            float boiled = smoothstep(0.66 - 0.55 * spill, mix(0.8, 0.9, far) - 0.4 * spill, lift) * smoothstep(0.35, 0.85, spill);
-            wFoam = max(wFoam, max(boiled * (1.0 - 0.25 * far), mix(max(lines, patches * 0.7), 0.4 * spill, far)) * min(1.0, spill * 1.4));
+            float bar = 0.78 - 0.36 * spill * spill;
+            float boiled = smoothstep(bar, bar + 0.08, lift);
+            float ridge = 1.0 - abs(lace * 2.0 - 1.0);
+            float lines = smoothstep(0.9, 0.97, ridge * 0.8 + rag * 0.2 + fine * 0.1) * 0.45 * smoothstep(0.1, 0.5, spill);
+            wFoam = max(wFoam, max(boiled, lines * (1.0 - 0.5 * far)));
             wSlope *= 1.0 + 3.0 * spill * (1.0 - 0.8 * far);
           }
         }
@@ -536,8 +593,19 @@ function withField(THREE, mat, uniforms) {
           if (churn > 0.0) {
             float boil = texture2D(uWaves, vWaterWorld.xz / 4.1 + vec2(uTime * 0.21, -uTime * 0.17)).a;
             float fine = texture2D(uWaves, vWaterWorld.xz / 1.3 - vec2(0.0, uTime * 0.5)).a;
-            wFoam = max(wFoam, churn * smoothstep(0.3, 0.62, boil * 0.6 + fine * 0.4 + 0.25 * churn));
-            wSlope *= 1.0 + 2.5 * churn;
+            float b = boil * 0.6 + fine * 0.4;
+            /* The draft tubes' boils (dam-downstream, powerhouse): the
+             * tailrace is green water heaving in pale swells, sediment
+             * brown from the turbines and paler for the air in it (the
+             * photograph's tailrace measures sRGB (120, 131, 127)), with
+             * only flecks of foam at the swells' hearts; v3's foam over
+             * most of it drew a white slab along the face (round 4
+             * measured 53 per cent of the powerhouse view's tailrace white
+             * against the photograph's 2). */
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.08, 0.11, 0.08), churn * 0.6);
+            diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.14, 0.19, 0.15), churn * smoothstep(0.4, 0.75, b) * 0.6);
+            wFoam = max(wFoam, churn * smoothstep(0.74, 0.86, b + 0.08 * churn) * 0.7);
+            wSlope *= 1.0 + 2.0 * churn;
           }
         }
         ${FOAM}`);
@@ -745,8 +813,9 @@ export async function buildPart(ctx) {
   chute.name = 'itaipu-chute';
   chute.receiveShadow = true;
   group.add(chute);
+  /* The look's own sun (itaipu.js hands it in), whatever the time of day. */
   const sun = {
-    direction: sunDirection(), color: SUN_COLOR, irradiance: SUN_IRRADIANCE, sky: SPRAY_SKY,
+    direction: ctx.sunDir, ...sunFor(ctx.time), sky: SPRAY_SKY,
   };
   const spray = plume(THREE, spill, axis, PLUNGE_DOWN, WIND_TO, {
     waves, time, sun, riverY: river.y,
@@ -792,7 +861,11 @@ export async function buildPart(ctx) {
     });
     stats.mirrorsLive = made.filter((m) => m.mirror).length;
   };
-  const hide = [group];
+  /* The sky dome is not drawn into the mirror: the water's shader puts
+   * the sky's blurred image where the mirror holds nothing (SMEAR). */
+  const sky = ctx.scene.getObjectByName('sky');
+  const hide = sky ? [group, sky] : [group];
+  const clearWas = new THREE.Color();
   const renderMirror = (renderer, scene, camera) => {
     camera.updateMatrixWorld();
     eye.setFromMatrixPosition(camera.matrixWorld);
@@ -819,7 +892,19 @@ export async function buildPart(ctx) {
     const info = renderer.info.render;
     const calls = info.calls;
     const triangles = info.triangles;
-    stats.mirrorDrawn = made[k].mirror.render(renderer, scene, camera, hide);
+    /* Cleared to no colour and no alpha, with no background drawn, so its
+     * alpha is what of the scene it holds. */
+    const background = scene.background;
+    const alphaWas = renderer.getClearAlpha();
+    renderer.getClearColor(clearWas);
+    scene.background = null;
+    renderer.setClearColor(0x000000, 0);
+    try {
+      stats.mirrorDrawn = made[k].mirror.render(renderer, scene, camera, hide);
+    } finally {
+      scene.background = background;
+      renderer.setClearColor(clearWas, alphaWas);
+    }
     stats.mirrorCalls = info.calls - calls;
     stats.mirrorTriangles = info.triangles - triangles;
     return stats.mirrorDrawn;
