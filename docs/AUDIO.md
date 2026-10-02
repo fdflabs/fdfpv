@@ -778,9 +778,85 @@ which are ambience (the next pull request); a tower's sheaves clacking as
 a cabin's grip passes (the cabins carry their rumble; the clack wants a
 per tower event, left for later).
 
+### The ambience
+
+On its own bus (output 1, the Ambience row; the player track ducks it
+under explosions and impacts) and its own pool of 8 voices, so a dawn
+chorus never takes an attacker's voice. Under a swarm (more sources
+moving than voices for them) it keeps its loudest 3: the place is masked.
+
+- **What the maps say is there.** Itaipu: the spillway's roar from where
+  its three jets come down (the water part's plunges), the town's murmur
+  from the middle of its buildings, never nearer than 300 m, and the
+  power lines (the town's wire chords), heard from the nearest point
+  within 500 m. Every map's water (`view.water`, the plant's own list):
+  a lake's shore lapping from its nearest point, a river running from its
+  nearest point, or right under the listener when it is over the river.
+  The valley's cows each carry a bell (`fauna.js`), struck as they graze
+  and more often as they walk.
+- **What is scattered round the listener.** Birds, crickets, frogs and
+  cicadas on a grid of 60 m cells, two cells each way, at most one a
+  cell, where a seeded hash of the cell says, so a tree that sang sings
+  again when the pilot comes back. By the time of day (`worldTime`):
+  birds most at dawn and least at noon, crickets and frogs (within 90 m
+  of a shore) at night, cicadas by day and only at Itaipu. `main` has day
+  and night today; morning, noon and golden are #344's and are already
+  mapped. None over water.
+- **Spreading.** A river, a shore, a power line, a spillway and a town
+  spread at 3 dB a doubling (a line or an area); the spillway is never
+  nearer than 80 m and the town 300. A source below the listener's ground
+  (a lake under its bank) reflects off its own level.
+
+| Kind | Made of | Level |
+| --- | --- | --- |
+| spillway | three bands of one noise, the plunge's low heaviest, surging | -31 LUFS each at 80 m |
+| river | a band of noise and its bubbles, each a ring at its size's pitch (Minnaert) | -40 at 16 m |
+| lapping | a wave every second or two: a slap, a clop off the stones, its wash | -42 at 16 m |
+| townhum | traffic's low murmur, swelling, and the transformers' 100 Hz | -44 at 300 m |
+| powerline | 100 Hz hum and corona's crackle, the crackle kept above 5 kHz | -45 at 16 m |
+| cowbell | four inharmonic partials of a hammered bell, its pitch its own | -40 at 16 m |
+| birds | phrases of notes in one of three shapes (a falling whistle, a trill, rising chirps) | -38 at 16 m |
+| crickets | chirps of three pulses of its own tone, 4.2 to 5 kHz | -48 at 16 m |
+| frogs | a croak, pulses at 30 a second through its throat | -40 at 16 m |
+| cicada | a 5.2 to 6.1 kHz buzz modulated at 210 Hz, long calls | -42 at 16 m |
+
+ESTIMATED, every level, chosen under the aircraft. The ambience's scenes
+are judged in `AMBIENCE_PASS`, -60 to -28 LUFS at their loudest 400 ms,
+and on the 2 to 5 kHz band's own loudness, at most -42 LUFS (10 dB under
+what the aircraft's 35 percent of -27 allows) rather than its share: a
+bird sings in that band by nature, and a quiet bed's share says little.
+
+| Scene | NEW LUFS | loudest 400 ms | dBTP | 2 to 5 kHz % |
+| --- | --- | --- | --- | --- |
+| flying up the river to the spillway, 1.4 km to 200 m | -36.5 | -32.1 | -21.3 | 12.7 |
+| night by the reservoir | -37.9 | -31.6 | -18.0 | 22.6 |
+| morning at the forest edge (birds, the river below) | -46.4 | -39.4 | -29.2 | 58.7 |
+| walking under a 500 kV line | -42.3 | -39.4 | -32.8 | 62.7 |
+| an alpine meadow (cow bells, the stream) | -40.5 | -34.3 | -24.0 | 5.7 |
+| the town 1.2 km off | -48.3 | -43.6 | -35.1 | 83.9 |
+
+Browser figures; OLD silent in every one (the ambience stem was empty).
+
+**The budget, a war over Itaipu as it would sound**
+(`itaipu-war-full`): the full war with the spillway, the river, the
+shore, the town, a power line and 14 singers: 0.217 s a second on
+Chromium's worklet (bar 0.25), 50 nodes. One change made that fit: every
+kind now has one object shape (`world-kinds.js` FIELDS), which took the
+same render in Node from 0.19 s a second to 0.12, because the worklet's
+dozen reads of its kind a sample went monomorphic. Live: `world:live`
+reads 76 tracks and 8 ambience voices in the Swiss valley by day, 83 at
+night, load 0.07 and 0.09, never shed; `war:boom` over Itaipu 10 tracks,
+53 nodes, load 0.08.
+
+**Recordings: none.** All synthesised, 0 bytes.
+
 ### Not yet
 
-- Ambience (the next pull request).
+- Occlusion (a hill between a source and the listener).
+- The swiss2 waterfall (its layout is inside the map's stage, not
+  exposed), and per tower sheave clacks on the gondola.
+- Biome beyond Itaipu's subtropical and the valley's alpine: the
+  singers do not yet read a map's canopy.
 - Occlusion (a hill between a source and the listener): not done; one ray
   against the terrain per voice per frame is the cheap form.
 - Interceptions are the pilots' own aircraft (section 10, the player

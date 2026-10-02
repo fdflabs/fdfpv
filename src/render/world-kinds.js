@@ -37,6 +37,11 @@
  *   water        a hull's wash level
  *   ground       the ground image's pressure ratio (grass about 0.5, water
  *                0.9)
+ *   bed, line, near, lufsNear  the ambience's: see THE AMBIENCE below
+ *   height       where it is, metres over its ground, and where it is
+ *                calibrated (else at the ear)
+ *   roar, flow, bubbles, lap, hum, mainsHz, corona, bell, song, chirp,
+ *   croak, buzz  the ambience's parts and their levels
  *   farHz, farGain  the far bed's note and its level against a voice
  *
  * This file is part of WebFPVSimulator.
@@ -101,11 +106,11 @@ export const WORLD_KINDS = {
   /* fpv and hunter: 0.25 m quads (attackers.js), the pilot's own class:
    * four three blade props near 20,000 rpm in fast forward flight. */
   fpv: {
-    lufs16: -29, amp: 0.0482, cruise: 21, cruiseRpm: 20000, rotors: 1, rotorBlades: 3,
+    lufs16: -29, amp: 0.0476, cruise: 21, cruiseRpm: 20000, rotors: 1, rotorBlades: 3,
     whine: 0.02, poles: 14, ground: 0.5, farHz: 1000, farGain: 1,
   },
   hunter: {
-    lufs16: -29, amp: 0.0514, cruise: 25.2, cruiseRpm: 21000, rotors: 1, rotorBlades: 3,
+    lufs16: -29, amp: 0.0509, cruise: 25.2, cruiseRpm: 21000, rotors: 1, rotorBlades: 3,
     whine: 0.02, poles: 14, ground: 0.5, farHz: 1050, farGain: 1,
   },
   /* boat: a 5 m speedboat on an outboard (attackers.js): a three cylinder
@@ -173,13 +178,13 @@ Object.assign(WORLD_KINDS, {
   /* The farm tractor at its work, 2.4 m/s round its field with the
    * trailer: a four cylinder diesel held at 1800 rpm. */
   tractor: {
-    ...ROAD, lufs16: -31, amp: 0.497, cruise: 2.4, cruiseRpm: 1800, fixed: true, fires: 2,
+    ...ROAD, lufs16: -31, amp: 0.498, cruise: 2.4, cruiseRpm: 1800, fixed: true, fires: 2,
     muffler: [75, 250, 900], mufflerDecay: [0.04, 0.014, 0.004], jitter: 0.05, knock: 1600, knockLevel: 0.35,
     farHz: 60, farGain: 1,
   },
   /* A gondola cabin on its rope at 5 m/s: no engine, the rope's rumble
    * through the grip, quiet. */
-  cabin: { lufs16: -50, amp: 0.0458, cruise: 5, rope: 1, ground: 0.5, farHz: 70, farGain: 1 },
+  cabin: { lufs16: -50, amp: 0.0459, cruise: 5, rope: 1, ground: 0.5, farHz: 70, farGain: 1 },
   /* The lift's drive in its station: an electric motor held at 1500 rpm
    * (a four pole machine on 50 Hz), its magnetostriction hum at 100 Hz
    * (8 poles' worth of whine), and its gearbox's mesh, 17 teeth. */
@@ -188,8 +193,74 @@ Object.assign(WORLD_KINDS, {
     ground: 0.6, farHz: 100, farGain: 1,
   },
   /* The Swiss lake's sailing boat: no engine, its hull through the water. */
-  sailboat: { lufs16: -50, amp: 0.126, cruise: 2.4, water: 1, ground: 0.9, farHz: 40, farGain: 1 },
+  sailboat: { height: 0, lufs16: -50, amp: 0.0893, cruise: 2.4, water: 1, ground: 0.9, farHz: 40, farGain: 1 },
 });
+
+/*
+ * THE AMBIENCE (output 1, the Ambience bus; `bed` puts a kind there, in
+ * its own pool of voices). What the maps say is there (src/maps/itaipu.js
+ * audioBeds and audioLines, every map's lakes and rivers, the valley's
+ * cattle) and what src/render/world-audio.js scatters round the listener
+ * by the time of day (birds, crickets, frogs, cicadas).
+ *
+ * All of it is under the mix's own targets: it is the place, not an
+ * event, and a bed that pulls the ear is a bed that tires it. A source as
+ * big as a spillway or a town is never nearer than its `near`, metres,
+ * and its level is given there (`lufsNear`); a line or an area spreads at
+ * 3 dB a doubling (`line`). ESTIMATED, every level: chosen so a pilot over
+ * the dam hears the spillway's three pools together at -26 LUFS at most
+ * and still at -42 three kilometres off, a river at 20 m about -41, a bird 40 m off about -46,
+ * all under the aircraft's -27.
+ */
+const BED = { bed: true, ground: 0.5, cruise: 0 };
+
+Object.assign(WORLD_KINDS, {
+  /* Itaipu's spillway, its plunge pools: a mass of falling water a few
+   * hundred metres across, so never nearer than 80 m. */
+  spillway: { ...BED, height: 4, line: true, near: 80, lufsNear: -31, amp: 0.618, roar: 1 },
+  /* A river from its nearest point: its flow and bubbles. */
+  river: { ...BED, height: 0, line: true, lufs16: -40, amp: 0.0436, flow: 1, bubbles: 70 },
+  /* A lake's shore from its nearest point: small waves lapping. */
+  lapping: { ...BED, height: 0, line: true, lufs16: -42, amp: 0.106, lap: 1, ground: 0.9 },
+  /* A town from its middle, never nearer than 300 m: its murmur and its
+   * transformers' hum. Paraguay's mains, 50 Hz (Itaipu's town is on the
+   * Paraguayan bank). */
+  townhum: { ...BED, height: 10, line: true, near: 300, lufsNear: -44, amp: 0.232, hum: 1, mainsHz: 50 },
+  /* A 500 kV line from its nearest point: hum at twice the mains and
+   * corona's crackle. */
+  powerline: { ...BED, height: 25, line: true, lufs16: -45, amp: 0.0154, corona: 1, mainsHz: 50 },
+  /* A cow's bell, struck as it grazes, often as it walks. */
+  cowbell: { ...BED, height: 1, lufs16: -40, amp: 0.0332, bell: 1, cruise: 0.4 },
+  /* A songbird in a tree. */
+  birds: { ...BED, height: 5, lufs16: -38, amp: 0.0265, song: 1 },
+  /* A cricket in the grass, at night. */
+  crickets: { ...BED, height: 0.3, lufs16: -48, amp: 0.0120, chirp: 1 },
+  /* A frog by the water, at night. */
+  frogs: { ...BED, height: 0.3, lufs16: -40, amp: 0.0234, croak: 1, ground: 0.9 },
+  /* A cicada in a subtropical tree, by day. */
+  cicada: { ...BED, height: 5, lufs16: -42, amp: 0.0133, buzz: 1 },
+});
+
+/* Every kind with every field, in one order, absent ones zero (a height
+ * null: at the ear): the
+ * worklet reads a dozen of them a sample, and kinds of one shape keep
+ * those reads monomorphic (measured in Node: the war over Itaipu with its
+ * ambience, 0.19 s a second when every kind had its own shape, 0.12). */
+const FIELDS = [
+  'lufs16', 'lufsNear', 'amp', 'cruise', 'cruiseRpm', 'fixed', 'powerDive', 'gears', 'idleRpm', 'shiftRpm',
+  'fires', 'muffler', 'mufflerDecay', 'pulseDecay', 'jitter', 'miss', 'exhaust', 'knock', 'knockLevel',
+  'blades', 'prop', 'whine', 'poles', 'rotors', 'rotorBlades', 'tyres', 'rope', 'water',
+  'bed', 'line', 'near', 'height', 'ground', 'farHz', 'farGain',
+  'roar', 'flow', 'bubbles', 'lap', 'hum', 'mainsHz', 'corona', 'bell', 'song', 'chirp', 'croak', 'buzz',
+];
+for (const [name, spec] of Object.entries(WORLD_KINDS)) {
+  const unknown = Object.keys(spec).filter((k) => !FIELDS.includes(k));
+  if (unknown.length) {
+    throw new Error(`world-kinds: ${name} has ${unknown.join(', ')}, not in FIELDS`);
+  }
+  const shaped = Object.fromEntries(FIELDS.map((k) => [k, k === 'height' ? null : 0]));
+  WORLD_KINDS[name] = Object.assign(shaped, spec);
+}
 
 /* The kind numbers on the wire: an index into this list. Appending is
  * safe; reordering changes what an old frame means. */
