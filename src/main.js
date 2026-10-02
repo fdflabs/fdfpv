@@ -58,7 +58,7 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
-import { MotorAudio, VOICES } from './render/audio.js';
+import { MotorAudio, VOICES, labModelForCraft } from './render/audio.js';
 import { courseKind } from './game/progress.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT } from './input/input.js';
@@ -1179,6 +1179,19 @@ export async function boot({
     };
   }
   const audio = new MotorAudio();
+  /*
+   * The audiolab prototype (docs/AUDIO.md): ?audiolab=1 on the URL, or
+   * localStorage 'fdfpv.audiolab' = '1', before the first press builds the
+   * graph. Off for every player; nothing in the Settings screen reaches it
+   * until the owner has heard it (the roll out, docs/AUDIO.md section 7).
+   */
+  {
+    let lab = new URLSearchParams(window.location.search).get('audiolab') === '1';
+    try {
+      lab = lab || localStorage.getItem('fdfpv.audiolab') === '1';
+    } catch (e) { /* storage refused: the URL is the only switch */ }
+    audio.setLab(lab);
+  }
   /* Built, and silent until the pilot's first press: a browser starts an
    * AudioContext only on a gesture (MotorAudio.start), so the boot screen
    * says standby, not OK. */
@@ -7658,6 +7671,7 @@ export async function boot({
       /* An aircraft pushed more than one way speaks with the engine it has. */
       const pushed = propulsionOf(af, combatSeated(af.id));
       setFlownVoice((pushed && pushed.voice) ?? af.voice ?? 'wing');
+      audio.setLabModel(labModelForCraft(af.id, pushed && pushed.id));
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
@@ -10432,6 +10446,7 @@ export async function boot({
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
     setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
+    audio.setLabModel(null);
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
@@ -15226,7 +15241,20 @@ export async function boot({
     }
     /* The replay plays its own motors, slowed with its picture. */
     const replayWind = mode === 'replay' ? crashCam.sound(audioRpm) : -1;
-    audio.update(audioRpm, replayWind >= 0 ? replayWind : (motorsTurning ? speed : 0));
+    let air = null;
+    if (audio.lab && replayWind < 0) {
+      /* Body frame velocity, the world's turned back by the attitude
+       * (body to world, w x y z): what the prototype's wind, sideslip and
+       * prop wash read. Zero when the motors are not turning, as speed is. */
+      const qw = st[7], qx = st[8], qy = st[9], qz = st[10];
+      const vx = motorsTurning ? st[4] : 0, vy = motorsTurning ? st[5] : 0, vz = motorsTurning ? st[6] : 0;
+      audioAir.u = (1 - 2 * (qy * qy + qz * qz)) * vx + 2 * (qx * qy + qw * qz) * vy + 2 * (qx * qz - qw * qy) * vz;
+      audioAir.v = 2 * (qx * qy - qw * qz) * vx + (1 - 2 * (qx * qx + qz * qz)) * vy + 2 * (qy * qz + qw * qx) * vz;
+      audioAir.w = 2 * (qx * qz + qw * qy) * vx + 2 * (qy * qz - qw * qx) * vy + (1 - 2 * (qx * qx + qy * qy)) * vz;
+      audioAir.amps = motorsTurning ? st[19] : 0;
+      air = audioAir;
+    }
+    audio.update(audioRpm, replayWind >= 0 ? replayWind : (motorsTurning ? speed : 0), undefined, air);
     const audioMs = performance.now() - audioStart;
     if (frames > 2 && audioMs > worstAudioMs) {
       worstAudioMs = audioMs;
@@ -15718,6 +15746,8 @@ export async function boot({
   /* Hoisted: P8 forbids a new array per frame, and this one used to be a
    * literal in the audio.update call. */
   const audioRpm = [0, 0, 0, 0];
+  /* The prototype's extra state, the same way: written in place. */
+  const audioAir = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0 };
   /*
    * The other way the mix can be left holding a tone, and it is the same
    * defect from the other end: the whole mix is driven from inside frame(),

@@ -98,6 +98,11 @@ jobs:
       - run: npm run export:selftest
       - run: npm run link:selftest
       - run: npm run music:selftest
+      # The audio lab's meter against EBU Tech 3341's cases, and the scripted
+      # flights against the plant that flew them (tools/audio). The renders
+      # themselves need Chromium and stay local: npm run audio:lab.
+      - run: npm run audio:metrics
+      - run: npm run audio:flights
       # The war audio against its script, credits and manifest: python3's
       # standard library only, no GPU and no model download.
       - run: npm run voice:check

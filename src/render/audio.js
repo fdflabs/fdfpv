@@ -162,6 +162,26 @@ export const VOICES = {
 };
 
 /*
+ * The prototype's models (src/render/engine-worklet.js MODELS). A shipped
+ * voice names one by default; an aircraft whose voice is wrong for what it
+ * is says which model it is through setLabModel: the Striker's boxer twin
+ * is on 'glow2' and its turbojet on 'edf', the ducted fan's, in VOICES,
+ * and the prototype voices them as what they are.
+ */
+export const LAB_MODELS = new Set(['quad', 'wing', 'edf', 'glow2', 'glow4', 'boxer2', 'turbojet']);
+export function labModelFor(voice) {
+  const name = Object.keys(VOICES).find((k) => VOICES[k] === voice);
+  return LAB_MODELS.has(name) ? name : 'quad';
+}
+/* The Striker's two propulsions as the prototype hears them. */
+export function labModelForCraft(airframeId, propulsionId) {
+  if (airframeId === 'striker2500') {
+    return propulsionId === 'jet' ? 'turbojet' : 'boxer2';
+  }
+  return null;
+}
+
+/*
  * The motor lowpass tracks the fundamental so the timbre holds across the
  * throttle range, but it is capped, and the cap is the single number that
  * decides whether this mix hurts. 1000 Hz keeps at most the first six
@@ -416,6 +436,42 @@ export class MotorAudio {
      * the count is kept where the nodes are made rather than derived by
      * reading the file later. */
     this.nodes = [];
+    /* The physically driven prototype (src/render/engine-worklet.js,
+     * docs/AUDIO.md), off unless the page asked for it before attach. */
+    this.lab = false;
+    this.labModel = null;
+    this.engine = null;
+    this.ready = Promise.resolve();
+  }
+
+  /*
+   * THE AUDIOLAB PROTOTYPE, behind a flag that is off for every player.
+   * Read once, by attach(): the graph is built one way or the other. With
+   * it on, the four motor chains and the wind chain are not built and one
+   * AudioWorkletNode replaces them, with a limiter in front of the soft
+   * clip. With it off, attach() builds exactly what it always has.
+   */
+  setLab(on) {
+    if (this.ctx) {
+      throw new Error('audio: setLab after attach');
+    }
+    this.lab = Boolean(on);
+  }
+
+  /* Which machine the prototype voices, LAB_MODELS below; null is the
+   * voice's own. Safe either side of attach. */
+  setLabModel(name) {
+    if (name != null && !LAB_MODELS.has(name)) {
+      throw new Error(`audio: no lab model ${name}`);
+    }
+    this.labModel = name;
+    this.postLabModel();
+  }
+
+  postLabModel() {
+    if (this.engine) {
+      this.engine.port.postMessage({ model: this.labModel ?? labModelFor(this.voice) });
+    }
   }
 
   /* P12: steady state AudioNode count. */
@@ -521,6 +577,7 @@ export class MotorAudio {
     }
     const waveChanged = voice.wave !== this.voice.wave;
     this.voice = voice;
+    this.postLabModel();
     const wave = waveChanged && this.ctx ? this.waveFor(voice) : null;
     for (let m = 0; m < this.motors.length; m += 1) {
       const { pan, osc } = this.motors[m];
@@ -657,6 +714,22 @@ export class MotorAudio {
     master.connect(out);
     this.master = master;
     this.preMaster = shaper;
+    /*
+     * The prototype's master limiter, ahead of the soft clip: a fast, high
+     * ratio compressor that holds the sum under -6 dBFS so the tanh is a
+     * safety net rather than a sound (docs/AUDIO.md, the mix). Everything
+     * that went to the shaper goes here instead.
+     */
+    let inlet = shaper;
+    if (this.lab) {
+      inlet = keep(ctx.createDynamicsCompressor());
+      inlet.threshold.value = -6;
+      inlet.knee.value = 3;
+      inlet.ratio.value = 20;
+      inlet.attack.value = 0.002;
+      inlet.release.value = 0.2;
+      inlet.connect(shaper);
+    }
 
     /* Stem buses. Everything a setting can move lands on one of these. */
     /*
@@ -670,7 +743,7 @@ export class MotorAudio {
      */
     const flightDuck = keep(ctx.createGain());
     flightDuck.gain.value = 1;
-    flightDuck.connect(shaper);
+    flightDuck.connect(inlet);
     this.flightDuck = flightDuck;
 
     const motorBus = keep(ctx.createGain());
@@ -692,9 +765,227 @@ export class MotorAudio {
     this.windBus = windBus;
     const focusBus = keep(ctx.createGain());
     focusBus.gain.value = 0;
-    focusBus.connect(shaper);
+    focusBus.connect(inlet);
     this.focusBus = focusBus;
 
+    /* One second of deterministic noise: the wind's loop and every cue's
+     * noise voice below. */
+    const len = Math.floor(ctx.sampleRate);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    let s = 12345;
+    for (let i = 0; i < len; i += 1) {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      ch[i] = (s / 0x3fffffff) - 1.0;
+    }
+
+    if (this.lab) {
+      this.attachEngine(ctx, keep, motorBus, windBus, inlet);
+    } else {
+      this.attachVoices(ctx, keep, motorBus, windBus, buf);
+    }
+
+    /*
+     * The binaural focus tone: one carrier per ear, differing by the beat
+     * frequency, merged so the left oscillator reaches only the left channel
+     * and the right only the right. That separation is the whole thing: a
+     * monaural beat puts both carriers in both ears and each ear hears the
+     * modulation, while a binaural beat gives each ear one steady tone and
+     * neither ear hears any modulation at all.
+     *
+     * Note for anyone measuring this: the mono SUM of a binaural pair does
+     * beat, because two carriers a few Hz apart added together are an
+     * amplitude modulation at their difference by simple trigonometry. The
+     * discriminator is per channel absence, not mono sum absence. The
+     * derivation is in .loop/threshold-disputes.md entry 5.
+     */
+    const merger = keep(ctx.createChannelMerger(2));
+    this.focusOscs = [];
+    for (let e = 0; e < 2; e += 1) {
+      const osc = keep(ctx.createOscillator());
+      osc.type = 'sine';
+      osc.frequency.value = FOCUS_CARRIER_HZ + (e === 1 ? FOCUS_BEAT_HZ : 0);
+      const g = keep(ctx.createGain());
+      g.gain.value = 0.5;
+      osc.connect(g);
+      g.connect(merger, 0, e);
+      osc.start();
+      this.focusOscs.push(osc);
+    }
+    merger.connect(focusBus);
+
+    /*
+     * One shot cues, pooled: a persistent oscillator and a persistent noise
+     * chain, shared by the gate and graze clicks, the landing and takeoff
+     * blips, the crash, and the menu's ui() taps. Nothing is created per
+     * event, which is what A10 asks for by name.
+     *
+     * They go in AHEAD of the soft clip but not through a stem bus, because
+     * a cue the player has turned down is a cue that costs them a race.
+     */
+    const cueOsc = keep(ctx.createOscillator());
+    cueOsc.type = 'triangle';
+    cueOsc.frequency.value = 880;
+    const cueGain = keep(ctx.createGain());
+    cueGain.gain.value = 0;
+    cueOsc.connect(cueGain);
+    cueGain.connect(inlet);
+    cueOsc.start();
+    this.cueOsc = cueOsc;
+    this.cueGain = cueGain;
+
+    const crashSrc = keep(ctx.createBufferSource());
+    crashSrc.buffer = buf;
+    crashSrc.loop = true;
+    const crashLp = keep(ctx.createBiquadFilter());
+    crashLp.type = 'lowpass';
+    crashLp.frequency.value = 1400;
+    crashLp.Q.value = 1.1;
+    const crashGain = keep(ctx.createGain());
+    crashGain.gain.value = 0;
+    crashSrc.connect(crashLp);
+    crashLp.connect(crashGain);
+    crashGain.connect(inlet);
+    crashSrc.start();
+    this.crashGain = crashGain;
+    this.crashLp = crashLp;
+
+    /*
+     * The wreck's voice: a third pooled noise chain, band passed, for the
+     * sounds a breaking aircraft makes that the crash cue's low thump does
+     * not: a carbon arm or a prop snapping (a hard, bright crack), foam
+     * crushing (a short grainy crunch), a blade chipping on the ground (a
+     * tick) and a splash. Its own chain so a snap and the thump of the same
+     * hit sound together rather than one cancelling the other's envelope.
+     * Three nodes, created once, like every cue here.
+     */
+    const wreckSrc = keep(ctx.createBufferSource());
+    wreckSrc.buffer = buf;
+    wreckSrc.loop = true;
+    const wreckBp = keep(ctx.createBiquadFilter());
+    wreckBp.type = 'bandpass';
+    wreckBp.frequency.value = 2400;
+    wreckBp.Q.value = 1.2;
+    const wreckGain = keep(ctx.createGain());
+    wreckGain.gain.value = 0;
+    wreckSrc.connect(wreckBp);
+    wreckBp.connect(wreckGain);
+    wreckGain.connect(inlet);
+    wreckSrc.start();
+    this.wreckGain = wreckGain;
+    this.wreckBp = wreckBp;
+
+    /*
+     * The combat cut's SCHWING (docs/COMBAT-PLAN.md section 5.4), a sword
+     * drawn, all synthesis, no sample: the lead's recipe, which the owner
+     * heard rendered and chose. A blade scrape (the wreck's noise, band
+     * passed and swept up, gated at 380 Hz into a rasp), a whoosh (a lower
+     * band swept up), a shing (a high band struck), and the blade's ring:
+     * four partials at the inharmonic 1, 2.76, 5.40, 8.93 of a thin bar,
+     * the fundamental doubled 0.35 percent sharp for its shimmer, each
+     * higher partial dying faster, into the master's tanh. Eighteen nodes,
+     * made once, fed by the wreck voice's noise loop; schwing() only moves
+     * their envelopes. Only the fundamental is doubled: the graph's budget
+     * is 64 nodes (tests/thresholds.json max_nodes), and a pair on every
+     * partial would pass it.
+     */
+    const bandOf = (type, q) => {
+      const f = keep(ctx.createBiquadFilter());
+      f.type = type;
+      f.Q.value = q;
+      return f;
+    };
+    const envOf = () => {
+      const g = keep(ctx.createGain());
+      g.gain.value = 0;
+      return g;
+    };
+    const scrapeBp = bandOf('bandpass', 2.2);
+    const scrapeGate = keep(ctx.createGain());
+    scrapeGate.gain.value = 0.625;
+    const gateOsc = keep(ctx.createOscillator());
+    /* A square of amplitude 0.375 about 0.625: the gate's 1.0 and 0.25. */
+    const sq = new Float32Array(16);
+    const sqIm = new Float32Array(16);
+    for (let k = 1; k < 16; k += 2) {
+      sqIm[k] = (SCRAPE_GATE_AMP * 4) / (Math.PI * k);
+    }
+    gateOsc.setPeriodicWave(ctx.createPeriodicWave(sq, sqIm, { disableNormalization: true }));
+    gateOsc.frequency.value = SCRAPE_GATE_HZ;
+    gateOsc.connect(scrapeGate.gain);
+    gateOsc.start();
+    const scrapeEnv = envOf();
+    wreckSrc.connect(scrapeBp);
+    scrapeBp.connect(scrapeGate);
+    scrapeGate.connect(scrapeEnv);
+    scrapeEnv.connect(inlet);
+    const whooshBp = bandOf('bandpass', 1.6);
+    const whooshEnv = envOf();
+    wreckSrc.connect(whooshBp);
+    whooshBp.connect(whooshEnv);
+    whooshEnv.connect(inlet);
+    const shingBp = bandOf('bandpass', 3);
+    shingBp.frequency.value = 6500;
+    const shingEnv = envOf();
+    wreckSrc.connect(shingBp);
+    shingBp.connect(shingEnv);
+    shingEnv.connect(inlet);
+    const ringEnv = envOf();
+    ringEnv.connect(inlet);
+    const partials = [];
+    for (const [k, ratio] of [1, 2.76, 5.4, 8.93].entries()) {
+      const g = envOf();
+      g.connect(ringEnv);
+      const oscs = [];
+      for (const detune of k === 0 ? [1, 1.0035] : [1]) {
+        const o = keep(ctx.createOscillator());
+        o.type = 'sine';
+        o.frequency.value = 560 * ratio * detune;
+        o.connect(g);
+        o.start();
+        oscs.push({ o, mult: ratio * detune });
+      }
+      partials.push({ g, oscs, amp: [1, 0.7, 0.45, 0.28][k], rate: 1.2 + 1.8 * k });
+    }
+    this.schwingVoice = {
+      scrapeBp, scrapeEnv, whooshBp, whooshEnv, shingBp, shingEnv, ringEnv, partials,
+    };
+    this.schwings = 0;
+
+    /*
+     * Catch the Ace's coin (docs/TAG-PLAN.md), the crown changing hands:
+     * the owner's pick of four renders, "b arcade coin", the classic two
+     * note square wave coin. B5 for 80 ms, then E6 struck and dying at a
+     * 180 ms time constant, gone by 580 ms.
+     *
+     * ONE NODE, its envelope. The tone is the SCHWING's scrape gate above,
+     * already a square (fifteen harmonics, 0.375 each way): coin() tunes
+     * it to the notes and puts it back to SCRAPE_GATE_HZ after, and the
+     * scrape stays silent meanwhile because its own envelope is shut. A
+     * room runs one game at a time (docs/TAG-PLAN.md decision 10), so a
+     * SCHWING and a coin never sound together. The graph's budget is 64
+     * nodes (tests/thresholds.json max_nodes) and it stood at 63, so an
+     * oscillator of the coin's own would have passed it.
+     */
+    const coinEnv = envOf();
+    gateOsc.connect(coinEnv);
+    coinEnv.connect(inlet);
+    this.coinVoice = { osc: gateOsc, env: coinEnv };
+    this.coins = 0;
+    this.booms = 0;
+
+    /* The bed. It brings its own nodes and counts them through keep. */
+    this.music.attach(ctx, inlet, keep);
+    this.music.setLevel(this.mix.music);
+    this.applyBuses();
+  }
+
+  /*
+   * The shipped voices: four motor chains and the wind chain, 21 nodes.
+   * Built where attach() always built them, so with the lab off the graph
+   * and its node order are what they were.
+   */
+  attachVoices(ctx, keep, motorBus, windBus, buf) {
     /*
      * One slow noise source feeding every motor's detune, so the blade pass
      * tone wanders instead of sitting on an exact frequency. One buffer and one
@@ -756,17 +1047,9 @@ export class MotorAudio {
       this.motors.push({ osc, lp1, gain, pan });
     }
 
-    /* Air rush: one second of deterministic noise, looped. Lowpassed, not
-     * bandpassed: a bandpass on noise is a whistle, and what a pilot hears
-     * at speed is broadband air. */
-    const len = Math.floor(ctx.sampleRate);
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const ch = buf.getChannelData(0);
-    let s = 12345;
-    for (let i = 0; i < len; i += 1) {
-      s = (s * 1103515245 + 12345) & 0x7fffffff;
-      ch[i] = (s / 0x3fffffff) - 1.0;
-    }
+    /* Air rush: the shared noise, looped. Lowpassed, not bandpassed: a
+     * bandpass on noise is a whistle, and what a pilot hears at speed is
+     * broadband air. */
     const noise = keep(ctx.createBufferSource());
     noise.buffer = buf;
     noise.loop = true;
@@ -782,200 +1065,30 @@ export class MotorAudio {
     noise.start();
     this.noiseGain = ng;
     this.noiseFilter = nf;
-
-    /*
-     * The binaural focus tone: one carrier per ear, differing by the beat
-     * frequency, merged so the left oscillator reaches only the left channel
-     * and the right only the right. That separation is the whole thing: a
-     * monaural beat puts both carriers in both ears and each ear hears the
-     * modulation, while a binaural beat gives each ear one steady tone and
-     * neither ear hears any modulation at all.
-     *
-     * Note for anyone measuring this: the mono SUM of a binaural pair does
-     * beat, because two carriers a few Hz apart added together are an
-     * amplitude modulation at their difference by simple trigonometry. The
-     * discriminator is per channel absence, not mono sum absence. The
-     * derivation is in .loop/threshold-disputes.md entry 5.
-     */
-    const merger = keep(ctx.createChannelMerger(2));
-    this.focusOscs = [];
-    for (let e = 0; e < 2; e += 1) {
-      const osc = keep(ctx.createOscillator());
-      osc.type = 'sine';
-      osc.frequency.value = FOCUS_CARRIER_HZ + (e === 1 ? FOCUS_BEAT_HZ : 0);
-      const g = keep(ctx.createGain());
-      g.gain.value = 0.5;
-      osc.connect(g);
-      g.connect(merger, 0, e);
-      osc.start();
-      this.focusOscs.push(osc);
-    }
-    merger.connect(focusBus);
-
-    /*
-     * One shot cues, pooled: a persistent oscillator and a persistent noise
-     * chain, shared by the gate and graze clicks, the landing and takeoff
-     * blips, the crash, and the menu's ui() taps. Nothing is created per
-     * event, which is what A10 asks for by name.
-     *
-     * They go in AHEAD of the soft clip but not through a stem bus, because
-     * a cue the player has turned down is a cue that costs them a race.
-     */
-    const cueOsc = keep(ctx.createOscillator());
-    cueOsc.type = 'triangle';
-    cueOsc.frequency.value = 880;
-    const cueGain = keep(ctx.createGain());
-    cueGain.gain.value = 0;
-    cueOsc.connect(cueGain);
-    cueGain.connect(shaper);
-    cueOsc.start();
-    this.cueOsc = cueOsc;
-    this.cueGain = cueGain;
-
-    const crashSrc = keep(ctx.createBufferSource());
-    crashSrc.buffer = buf;
-    crashSrc.loop = true;
-    const crashLp = keep(ctx.createBiquadFilter());
-    crashLp.type = 'lowpass';
-    crashLp.frequency.value = 1400;
-    crashLp.Q.value = 1.1;
-    const crashGain = keep(ctx.createGain());
-    crashGain.gain.value = 0;
-    crashSrc.connect(crashLp);
-    crashLp.connect(crashGain);
-    crashGain.connect(shaper);
-    crashSrc.start();
-    this.crashGain = crashGain;
-    this.crashLp = crashLp;
-
-    /*
-     * The wreck's voice: a third pooled noise chain, band passed, for the
-     * sounds a breaking aircraft makes that the crash cue's low thump does
-     * not: a carbon arm or a prop snapping (a hard, bright crack), foam
-     * crushing (a short grainy crunch), a blade chipping on the ground (a
-     * tick) and a splash. Its own chain so a snap and the thump of the same
-     * hit sound together rather than one cancelling the other's envelope.
-     * Three nodes, created once, like every cue here.
-     */
-    const wreckSrc = keep(ctx.createBufferSource());
-    wreckSrc.buffer = buf;
-    wreckSrc.loop = true;
-    const wreckBp = keep(ctx.createBiquadFilter());
-    wreckBp.type = 'bandpass';
-    wreckBp.frequency.value = 2400;
-    wreckBp.Q.value = 1.2;
-    const wreckGain = keep(ctx.createGain());
-    wreckGain.gain.value = 0;
-    wreckSrc.connect(wreckBp);
-    wreckBp.connect(wreckGain);
-    wreckGain.connect(shaper);
-    wreckSrc.start();
-    this.wreckGain = wreckGain;
-    this.wreckBp = wreckBp;
-
-    /*
-     * The combat cut's SCHWING (docs/COMBAT-PLAN.md section 5.4), a sword
-     * drawn, all synthesis, no sample: the lead's recipe, which the owner
-     * heard rendered and chose. A blade scrape (the wreck's noise, band
-     * passed and swept up, gated at 380 Hz into a rasp), a whoosh (a lower
-     * band swept up), a shing (a high band struck), and the blade's ring:
-     * four partials at the inharmonic 1, 2.76, 5.40, 8.93 of a thin bar,
-     * the fundamental doubled 0.35 percent sharp for its shimmer, each
-     * higher partial dying faster, into the master's tanh. Eighteen nodes,
-     * made once, fed by the wreck voice's noise loop; schwing() only moves
-     * their envelopes. Only the fundamental is doubled: the graph's budget
-     * is 64 nodes (tests/thresholds.json max_nodes), and a pair on every
-     * partial would pass it.
-     */
-    const bandOf = (type, q) => {
-      const f = keep(ctx.createBiquadFilter());
-      f.type = type;
-      f.Q.value = q;
-      return f;
-    };
-    const envOf = () => {
-      const g = keep(ctx.createGain());
-      g.gain.value = 0;
-      return g;
-    };
-    const scrapeBp = bandOf('bandpass', 2.2);
-    const scrapeGate = keep(ctx.createGain());
-    scrapeGate.gain.value = 0.625;
-    const gateOsc = keep(ctx.createOscillator());
-    /* A square of amplitude 0.375 about 0.625: the gate's 1.0 and 0.25. */
-    const sq = new Float32Array(16);
-    const sqIm = new Float32Array(16);
-    for (let k = 1; k < 16; k += 2) {
-      sqIm[k] = (SCRAPE_GATE_AMP * 4) / (Math.PI * k);
-    }
-    gateOsc.setPeriodicWave(ctx.createPeriodicWave(sq, sqIm, { disableNormalization: true }));
-    gateOsc.frequency.value = SCRAPE_GATE_HZ;
-    gateOsc.connect(scrapeGate.gain);
-    gateOsc.start();
-    const scrapeEnv = envOf();
-    wreckSrc.connect(scrapeBp);
-    scrapeBp.connect(scrapeGate);
-    scrapeGate.connect(scrapeEnv);
-    scrapeEnv.connect(shaper);
-    const whooshBp = bandOf('bandpass', 1.6);
-    const whooshEnv = envOf();
-    wreckSrc.connect(whooshBp);
-    whooshBp.connect(whooshEnv);
-    whooshEnv.connect(shaper);
-    const shingBp = bandOf('bandpass', 3);
-    shingBp.frequency.value = 6500;
-    const shingEnv = envOf();
-    wreckSrc.connect(shingBp);
-    shingBp.connect(shingEnv);
-    shingEnv.connect(shaper);
-    const ringEnv = envOf();
-    ringEnv.connect(shaper);
-    const partials = [];
-    for (const [k, ratio] of [1, 2.76, 5.4, 8.93].entries()) {
-      const g = envOf();
-      g.connect(ringEnv);
-      const oscs = [];
-      for (const detune of k === 0 ? [1, 1.0035] : [1]) {
-        const o = keep(ctx.createOscillator());
-        o.type = 'sine';
-        o.frequency.value = 560 * ratio * detune;
-        o.connect(g);
-        o.start();
-        oscs.push({ o, mult: ratio * detune });
-      }
-      partials.push({ g, oscs, amp: [1, 0.7, 0.45, 0.28][k], rate: 1.2 + 1.8 * k });
-    }
-    this.schwingVoice = {
-      scrapeBp, scrapeEnv, whooshBp, whooshEnv, shingBp, shingEnv, ringEnv, partials,
-    };
-    this.schwings = 0;
-
-    /*
-     * Catch the Ace's coin (docs/TAG-PLAN.md), the crown changing hands:
-     * the owner's pick of four renders, "b arcade coin", the classic two
-     * note square wave coin. B5 for 80 ms, then E6 struck and dying at a
-     * 180 ms time constant, gone by 580 ms.
-     *
-     * ONE NODE, its envelope. The tone is the SCHWING's scrape gate above,
-     * already a square (fifteen harmonics, 0.375 each way): coin() tunes
-     * it to the notes and puts it back to SCRAPE_GATE_HZ after, and the
-     * scrape stays silent meanwhile because its own envelope is shut. A
-     * room runs one game at a time (docs/TAG-PLAN.md decision 10), so a
-     * SCHWING and a coin never sound together. The graph's budget is 64
-     * nodes (tests/thresholds.json max_nodes) and it stood at 63, so an
-     * oscillator of the coin's own would have passed it.
-     */
-    const coinEnv = envOf();
-    gateOsc.connect(coinEnv);
-    coinEnv.connect(shaper);
-    this.coinVoice = { osc: gateOsc, env: coinEnv };
-    this.coins = 0;
-    this.booms = 0;
-
-    /* The bed. It brings its own nodes and counts them through keep. */
-    this.music.attach(ctx, shaper, keep);
-    this.music.setLevel(this.mix.music);
-    this.applyBuses();
+  }
+  /*
+   * The prototype's voice: one AudioWorkletNode (src/render/engine-worklet.js)
+   * for the motors, the engine, the air and the impacts. addModule is
+   * async and attach() is not, so the node arrives on `ready`, which the
+   * offline renderers await before they schedule anything; update() and
+   * impact() do nothing until it is there. A load failure rejects `ready`
+   * and is logged, loudly, rather than leaving a silent aircraft.
+   */
+  attachEngine(ctx, keep, motorBus, windBus, inlet) {
+    const url = new URL('./engine-worklet.js', import.meta.url);
+    this.ready = ctx.audioWorklet.addModule(url).then(() => {
+      const node = keep(new AudioWorkletNode(ctx, 'fdfpv-engine', {
+        numberOfInputs: 0,
+        numberOfOutputs: 3,
+        outputChannelCount: [2, 2, 2],
+        processorOptions: { model: this.labModel ?? labModelFor(this.voice) },
+      }));
+      node.connect(motorBus, 0);
+      node.connect(windBus, 1);
+      node.connect(inlet, 2);
+      this.engine = node;
+    });
+    this.ready.catch((e) => console.error('audio: the audiolab engine failed to load', e));
   }
 
   toggle() {
@@ -1017,6 +1130,13 @@ export class MotorAudio {
     if (level != null && level === level) {
       lv = level < 0 ? 0 : level > 1 ? 1 : level;
       lv = 0.42 + 0.58 * lv;
+    }
+    /* The prototype strikes its own impact. The shell's crash call knows
+     * how hard but not on what, so the surface is a middling one until
+     * the contact path hands its material over (docs/AUDIO.md, roll out). */
+    if (kind === 'crash' && this.engine) {
+      this.impact(4 * lv, 0.5, 12 * lv, t);
+      return;
     }
     if (kind === 'crash') {
       const g = this.crashGain.gain;
@@ -1413,10 +1533,68 @@ export class MotorAudio {
     duckParam(this.flightDuck.gain, atTime, depth, seconds, 0.010);
   }
 
+  /*
+   * The prototype's per frame state, as AudioParams on the engine node so
+   * an offline render schedules it sample accurately. `air`, when given, is
+   * { u, v, w, amps, dist, dist2, pan }: body frame velocity, m/s, the pack
+   * current, A, and an off board listener's distance, ground reflection
+   * path and pan. Without it the airspeed is taken as straight ahead and
+   * the listener as on board.
+   */
+  updateEngine(rpm, speed, t, air) {
+    const node = this.engine;
+    if (!node) {
+      return;
+    }
+    const p = node.parameters;
+    const set = (name, v, tau) => {
+      p.get(name).setTargetAtTime(Number.isFinite(v) ? v : 0, t, tau);
+    };
+    for (let m = 0; m < 4; m += 1) {
+      set(`rpm${m}`, Math.max(0, rpm[m]), 0.012);
+    }
+    const a = air || null;
+    set('u', a ? a.u : speed, 0.03);
+    set('v', a ? a.v : 0, 0.03);
+    set('w', a ? a.w : 0, 0.03);
+    set('amps', a ? a.amps : 0, 0.05);
+    /* Distance moves as a straight line between frames, not as a lag:
+     * a lagged distance is a lagged delay, and its Doppler would be wrong. */
+    for (const k of ['dist', 'dist2', 'pan']) {
+      const v = a && Number.isFinite(a[k]) ? a[k] : 0;
+      if (this.engineLinked) {
+        p.get(k).linearRampToValueAtTime(v, t);
+      } else {
+        p.get(k).setValueAtTime(v, t);
+      }
+    }
+    this.engineLinked = true;
+  }
+
+  /*
+   * An impact for the prototype: `impulse` N s, the surface's `hardness`
+   * 0..1 (sim_material_info), the closing `speed` m/s. A rising edge on the
+   * engine's impact param; the duck is the crash cue's.
+   */
+  impact(impulse, hardness, speed, atTime) {
+    if (!this.engine) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const p = this.engine.parameters;
+    p.get('hardness').setValueAtTime(hardness, t);
+    p.get('impactSpeed').setValueAtTime(speed, t);
+    p.get('impact').setValueAtTime(Math.max(1e-3, impulse), t);
+    p.get('impact').setValueAtTime(0, t + 0.03);
+    this.duckFlight(t, 0.35, 0.5);
+    this.music.duckNow(t, 0.3, 0.55);
+  }
+
   /* rpm is the four motor RPM values, speed is airspeed in m/s. atTime is
    * the context time to schedule at, for offline rendering; the live path
-   * omits it and gets ctx.currentTime. */
-  update(rpm, speed, atTime) {
+   * omits it and gets ctx.currentTime. `air` is the prototype's extra
+   * state, updateEngine; the shipped voices ignore it. */
+  update(rpm, speed, atTime, air) {
     if (!this.ctx || !this.master) {
       return;
     }
@@ -1437,6 +1615,11 @@ export class MotorAudio {
     }
     if (!this.enabled) {
       this.music.pause();
+      return;
+    }
+    if (this.lab) {
+      this.updateEngine(rpm, speed, t, air);
+      this.music.tick(t);
       return;
     }
     const voice = this.voice;

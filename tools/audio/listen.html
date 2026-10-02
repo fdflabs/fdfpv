@@ -1,0 +1,218 @@
+<!doctype html>
+<!--
+  listen.html: OLD against NEW, the same scripted flight, one click each.
+
+  Every flight in tools/audio/flights.json was flown by the real plant; this
+  page renders it through the real audio graph in your browser, both ways
+  (tools/audio/drive.js), measures both (tools/audio/metrics.js) and plays
+  them at the same integrated loudness, so the louder one does not win by
+  being louder. Nothing is downloaded but the trace file; the sound is made
+  here.
+
+  Open it from a local server: npm run serve, then
+  http://127.0.0.1:8000/tools/audio/listen.html
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify it
+  under the terms of the GNU General Public License as published by the Free
+  Software Foundation, either version 3 of the License, or (at your option)
+  any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+  Public License for more details.
+
+  You should have received a copy of the GNU General Public License along
+  with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FDFPV audio lab</title>
+    <style>
+      :root {
+        --bg: #101611; --panel: #18211a; --line: #2c3a2e; --text: #e9e4d4;
+        --dim: #9aa597; --old: #c9a24a; --new: #6fc3a0; --bad: #e0705c;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; background: var(--bg); color: var(--text);
+        font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      p.lede { color: var(--dim); margin: 0 0 20px; max-width: 70ch; }
+      .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0 0 20px; color: var(--dim); }
+      .bar label { display: flex; gap: 6px; align-items: center; }
+      h2 { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin: 28px 0 8px; }
+      .row {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+        padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); margin: 0 0 8px;
+      }
+      .name { font-weight: 600; }
+      .meta { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; grid-column: 1 / -1; min-height: 1em; }
+      button {
+        font: inherit; font-weight: 600; min-width: 84px; padding: 8px 14px; border-radius: 5px; cursor: pointer;
+        border: 1px solid currentColor; background: transparent;
+      }
+      button.old { color: var(--old); }
+      button.new { color: var(--new); }
+      button.playing { background: currentColor; }
+      button.playing span { color: var(--bg); }
+      button:disabled { opacity: 0.5; cursor: progress; }
+      .err { color: var(--bad); }
+      @media (max-width: 560px) {
+        .row { grid-template-columns: 1fr 1fr; }
+        .name { grid-column: 1 / -1; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Audio lab: old against new</h1>
+      <p class="lede">
+        Each flight was flown by the simulator's own physics. Press OLD or NEW to hear it through the
+        game's sound as it ships, or through the prototype. Both play at the same loudness, so judge the
+        character, not the volume: a flight is matched on its average, a fly-by on its loudest moment,
+        the pass. Use headphones. The first press renders, which takes a moment.
+      </p>
+      <div class="bar">
+        <label>Level <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" /></label>
+        <label><input id="match" type="checkbox" checked /> Loudness matched (to -23 LUFS)</label>
+        <span id="status"></span>
+      </div>
+      <div id="list"></div>
+    </main>
+    <script type="module">
+      import { loadFlights, renderFlight } from './drive.js';
+      import { measure } from './metrics.js';
+
+      const TARGET_LUFS = -23;
+      const list = document.getElementById('list');
+      const status = document.getElementById('status');
+      const vol = document.getElementById('vol');
+      const match = document.getElementById('match');
+      const cache = new Map();
+      let ctx = null;
+      let out = null;
+      let playing = null;
+      /* The match gain of what is playing, dB, so the Level slider moves
+       * the volume without undoing the match. */
+      let playingDb = 0;
+
+      function stop() {
+        if (playing) {
+          playing.src.onended = null;
+          try { playing.src.stop(); } catch (e) { /* already ended */ }
+          playing.button.classList.remove('playing');
+          playing = null;
+        }
+      }
+
+      async function rendered(id, mode) {
+        const key = `${id}:${mode}`;
+        if (!cache.has(key)) {
+          cache.set(key, renderFlight(id, mode).then((r) => ({ ...r, m: measure(r.channels, r.rate) })));
+        }
+        return cache.get(key);
+      }
+
+      async function play(id, mode, button, meta) {
+        const was = playing && playing.button === button;
+        stop();
+        if (was) {
+          return;
+        }
+        ctx ??= new AudioContext();
+        if (!out) {
+          out = ctx.createGain();
+          out.connect(ctx.destination);
+        }
+        /* Not awaited: a click is the gesture that lets it start, and a page
+         * driven without one (a headless check) must still render. */
+        ctx.resume();
+        button.disabled = true;
+        status.textContent = `rendering ${mode.toUpperCase()}...`;
+        try {
+          const r = await rendered(id, mode);
+          const other = cache.get(`${id}:${mode === 'old' ? 'new' : 'old'}`);
+          const buf = ctx.createBuffer(2, r.channels[0].length, r.rate);
+          buf.copyToChannel(r.channels[0], 0);
+          buf.copyToChannel(r.channels[1], 1);
+          /* Levelled to the target, never pushed past a -1 dBTP peak. A
+           * fly-by is far away for most of its length, so its average says
+           * how long it is far, not how loud it is: it is matched on the
+           * pass, its loudest 400 ms (tools/audio/render.js judges it the
+           * same way). */
+          const level = data.flights[id].listener ? r.m.lufsMomentaryMax : r.m.lufs;
+          let gainDb = 0;
+          if (match.checked && Number.isFinite(level)) {
+            gainDb = Math.min(TARGET_LUFS - level, -1 - r.m.truePeakDbtp);
+          }
+          playingDb = gainDb;
+          out.gain.value = Number(vol.value) * 10 ** (gainDb / 20);
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(out);
+          src.start();
+          playing = { src, button };
+          button.classList.add('playing');
+          src.onended = () => stop();
+          const line = (k, x) => `${k} ${x.m.lufs} LUFS, peak ${x.m.truePeakDbtp} dBTP, 2 to 5 kHz ${x.m.harshShareA}%`;
+          const otherLine = other ? await other.then((o) => ` | ${line(o.mode.toUpperCase(), o)}`).catch(() => '') : '';
+          meta.textContent = `${line(mode.toUpperCase(), r)}${otherLine} | played ${gainDb >= 0 ? '+' : ''}${gainDb.toFixed(1)} dB`;
+          status.textContent = '';
+        } catch (e) {
+          meta.innerHTML = '';
+          const err = document.createElement('span');
+          err.className = 'err';
+          err.textContent = `failed: ${e.message}`;
+          meta.append(err);
+          status.textContent = '';
+          throw e;
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      vol.addEventListener('input', () => {
+        if (playing) {
+          out.gain.value = Number(vol.value) * 10 ** (playingDb / 20);
+        }
+      });
+
+      const data = await loadFlights();
+      let group = '';
+      for (const [id, f] of Object.entries(data.flights)) {
+        const g = f.title.split(':')[0];
+        if (g !== group) {
+          group = g;
+          const h = document.createElement('h2');
+          h.textContent = g;
+          list.append(h);
+        }
+        const row = document.createElement('div');
+        row.className = 'row';
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = f.title.split(':').slice(1).join(':').trim();
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const bOld = document.createElement('button');
+        bOld.className = 'old';
+        bOld.innerHTML = '<span>OLD</span>';
+        const bNew = document.createElement('button');
+        bNew.className = 'new';
+        bNew.innerHTML = '<span>NEW</span>';
+        bOld.addEventListener('click', () => play(id, 'old', bOld, meta));
+        bNew.addEventListener('click', () => play(id, 'new', bNew, meta));
+        row.append(name, bOld, bNew, meta);
+        list.append(row);
+      }
+      window.__listenReady = true;
+    </script>
+  </body>
+</html>
