@@ -373,8 +373,10 @@ loads; 50 MB as mp3), the war's music and voice 4.6 MB (webm). Phase 2
 adds: the worklet, about 30 KB of JavaScript, loaded only with the flag
 on. Phase 4's recordings: a budget of **1.5 MB** in total, Opus at 64 to
 96 kb/s mono, loaded lazily with the world that needs them. The
-listening page's traces (`tools/audio/flights.json`, 366 KB) are a
-developer file; the page fetches them only when opened.
+listening page's traces (`tools/audio/flights.json`, 849 KB since phase
+4's 26 flights; 366 KB with #349's 12) are a developer file the site
+serves with the rest of the tree; only the listening page fetches them,
+when opened, and the game never does.
 
 ## 8. The engine, and how to hear it
 
@@ -453,6 +455,11 @@ music; `tools/audio/measured.json` has every field):
 
 Render cost: OLD 0.02 s a second, NEW 0.04 (Striker) to 0.11 (four
 motors) s a second, all under the 0.25 bar.
+
+The tables in this section are the figures as each pull request measured
+them; the third's phasors moved every NEW figure by a few hundredths of a
+LU (hover -26.72 to -26.68), and `tools/audio/measured.json` is always the
+current render.
 
 Phase 4's classes, the same command (NEW from the engine with each
 aircraft's own spec; OLD the frozen baseline playing each one's old
@@ -1012,7 +1019,18 @@ host under a load average near 30 (wall time over audio time, offline):
 | With 31 pilots on a ring from 15 to 320 m (room-32) | 5 | 53 | -23.60 | -10.23 | 0.199 |
 
 A room of 32 costs what a room of 4 does, and both stay under the 0.25 s a
-second bar. Before the phasors and the off board trims the same room
+second bar. One caveat on the offline rooms: when a voice changes hands its
+new model goes by port message, which an OfflineAudioContext does not
+deliver at a sample (the levels and distances are AudioParams and are);
+the cost and loudness figures do not depend on it.
+
+The wire's units, round tripped through `encodePose` and `decodePose`
+(Node): a quad at 9,407 rpm goes out as 985.1 rad/s and is heard at 9,549
+rpm (the wire's 40 rad/s step is 382 rpm), at 29,325 rpm as 29,412; the
+old build sent both as a clamped 5,080. Saved replays recorded before the
+change hold the old rpm valued numbers, so a peer's props in an old replay
+turn nine and a half times faster on screen; nothing in a replay plays a
+peer's sound. Before the phasors and the off board trims the same room
 measured 0.534 s a second. Live, the pool adds 4 nodes: 50 on the title
 alone, 52 in a war, 56 with the pool; the world's node and its connections
 have the rest of the 64.
