@@ -188,7 +188,10 @@ try {
   /* BOTH READY. */
   await a.tap('KeyR');
   await b.tap('Enter');
-  await a.until("/Starting in/.test(document.querySelector('.war-lobby-status').textContent)", 10000).catch(() => {});
+  /* Each page draws its panel on its own frames. */
+  const starting = "/Starting in/.test(document.querySelector('.war-lobby-status').textContent)";
+  await a.until(starting, 10000).catch(() => {});
+  await b.until(starting, 10000).catch(() => {});
   const counting = await Promise.all([a, b].map((p) => p.evaluate(LOBBY)));
   check('A presses R, B Enter on Ready: both see both ready and the five seconds', counting.every((v) => /Starting in [1-5]/.test(v.status)
     && v.pilots.every((p) => p.ready)), JSON.stringify(counting.map((v) => v.status)));
