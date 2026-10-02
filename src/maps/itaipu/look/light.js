@@ -127,6 +127,43 @@ export function makeNightAmbient() {
 
 const LIT_TYPES = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial', 'MeshToonMaterial']);
 
+/*
+ * THE CASCADES ARE ONE SUN. On High, swiss2's makeSun (swiss2/light.js)
+ * stands two directional lights in the sun's place, each at the sun's
+ * full irradiance: a sharp shadow map round the craft and a wide one
+ * past it. swiss2's injector hands each fragment to one of them, the
+ * near where its map covers the fragment and the far elsewhere, with a
+ * short blend at the near map's edge. Until round 4 this injector left
+ * that out, so on High every lit surface took the sun twice, and past
+ * the near map's 72 m every shadow was only the far light's, half the
+ * sun still falling in it: the grey shade from the air that round 4's
+ * measurements found (the ground's darkest twentieth at lightness 0.16
+ * against the photographs' 0.12). This is swiss2's own blend.
+ */
+const CASCADE_PRELUDE = /* glsl */ `
+  #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
+    vec3 itCas = vDirectionalShadowCoord[ 0 ].xyz / vDirectionalShadowCoord[ 0 ].w;
+    vec2 itEdge = min(itCas.xy, 1.0 - itCas.xy);
+    float itNear = smoothstep(0.0, 0.07, min(itEdge.x, itEdge.y)) * step(itCas.z, 1.0);
+  #endif
+`;
+/* After the directional light's own sun is worked out, its share: the
+ * near map's light where the near map covers, the far's elsewhere. No
+ * declaration: the unrolled loop's copies share one scope. */
+const CASCADE_SHARE = /* glsl */ `
+    #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
+      directLight.color *= vec3(UNROLLED_LOOP_INDEX == 0 ? itNear : 1.0 - itNear);
+    #endif`;
+const CASCADE_LOOP = (() => {
+  const loop = THREE.ShaderChunk.lights_fragment_begin;
+  const at = loop.indexOf('getDirectionalLightInfo(');
+  if (at < 0 || loop.lastIndexOf('getDirectionalLightInfo(') !== at) {
+    throw new Error('itaipu light: three changed its directional light loop; the cascades would silently light every surface twice');
+  }
+  const end = loop.indexOf(';', at) + 1;
+  return `${loop.slice(0, end)}${CASCADE_SHARE}${loop.slice(end)}`;
+})();
+
 function inject(shader) {
   shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
   if (shader.vertexShader.includes('#include <project_vertex>')) {
@@ -143,8 +180,12 @@ function inject(shader) {
   } else {
     throw new Error('itaipu light: a lit material leaves no place to find its world position');
   }
+  if (!shader.fragmentShader.includes('#include <lights_fragment_begin>')) {
+    throw new Error('itaipu light: a lit material has no #include <lights_fragment_begin> to take one sun from the cascades');
+  }
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
+    .replace('#include <common>', '#include <common>\nvarying vec3 vS2World;')
+    .replace('#include <lights_fragment_begin>', `${CASCADE_PRELUDE}\n${CASCADE_LOOP}`);
 }
 
 /*
