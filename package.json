@@ -118,6 +118,7 @@
     "check:perception": "node scripts/perception-check.js",
     "war:grid": "node scripts/war-grid-check.js",
     "war:balance": "node scripts/war-balance.js",
+    "war:legacy": "node scripts/war-legacy-games.js",
     "war:boom": "node scripts/war-boom.js",
     "war:fuze": "node scripts/war-fuze-cue.js",
     "tag:twopage": "node scripts/tag-two-page.js",
