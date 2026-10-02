@@ -141,6 +141,31 @@ const FLIGHT_STEM = 0.3;
 const BUS_UNITY_AT = 0.5;
 
 /*
+ * THE VOICE BUDGET for other pilots: how many are heard at once. Each is
+ * one more engine node (an AudioWorkletNode, the pilot's own engine run
+ * off board), so this is nodes and audio thread time, both measured in
+ * docs/AUDIO.md section 13: a room of 32 costs what a room of 4 does. The
+ * rest are culled smoothly: a voice that loses its place fades over
+ * PEER_FADE_S, and a pilot takes a place only when clearly louder than the
+ * one holding it (PEER_SWAP), so two pilots at the same distance do not
+ * trade the voice back and forth.
+ */
+export const PEER_VOICES = 4;
+const PEER_FADE_S = 0.3;
+const PEER_SWAP = 1.5;
+/* A pilot's voice level on the Other aircraft bus (unity at its default):
+ * the Motors bus's default stem, 0.5 of FLIGHT_STEM, so that the engine's
+ * REF_M holds, a pilot 16 m away as loud as this one's own engine. */
+const PEER_LEVEL = 0.5 * FLIGHT_STEM;
+/* Past this, a pilot is not heard at all, metres: an FPV quad at 400 m is
+ * under the air and the wind of a real field. */
+const PEER_RANGE_M = 400;
+/* The nearest a pilot is heard from, metres: closer is inside the
+ * engine's on board threshold (engine-worklet.js ONBOARD_M), which would
+ * play another pilot as if it were this one. */
+const ONBOARD_OFF_M = 1;
+
+/*
  * The coin (coin()): the approved render's notes and timing, B5 988 Hz
  * then E6 1319 Hz at 80 ms, the E6 held 500 ms on a 180 ms decay.
  * COIN_PEAK is the E6's peak into the master at level 1, set by an
@@ -227,6 +252,11 @@ export class MotorAudio {
     this.ready = Promise.resolve();
     /* A world node handed to attachWorld before the graph existed. */
     this.worldNode = null;
+    /* Other pilots: the listener (setListener) and the voice pool
+     * (updatePeers), made on the first frame with a pilot to hear. */
+    this.listener = { x: 0, y: 0, z: 0, rx: 1, ry: 0, rz: 0, ground: null };
+    this.peerSlots = null;
+    this.peerRank = [];
   }
 
   /* Which machine the engine voices, ENGINE_MODELS; null is the voice's
@@ -780,6 +810,160 @@ export class MotorAudio {
       }
     });
     this.ready.catch((e) => console.error('audio: the engine failed to load', e));
+  }
+
+  /*
+   * PUBLIC API: where the player hears from, once a frame before
+   * updatePeers: the camera's position and its right hand unit vector, in
+   * any one right handed frame the peers' positions are in too (the shell
+   * uses the scene's, metres, y up), and `ground`, the height of the ground
+   * under the listener on the frame's up axis (y), for the reflection, or
+   * null for none.
+   */
+  setListener(x, y, z, rx, ry, rz, ground = null) {
+    const l = this.listener;
+    l.x = x;
+    l.y = y;
+    l.z = z;
+    l.rx = rx;
+    l.ry = ry;
+    l.rz = rz;
+    l.ground = ground;
+  }
+
+  /*
+   * PUBLIC API: the other pilots this frame, `peers` an array of
+   * { id, spec, rpm: [4], x, y, z, vx, vy, vz }: an id that stays the
+   * same for a pilot, the engine spec of their aircraft (enginespec.js
+   * engineSpecFor), their four motor RPMs (a plane's engine in slot 0),
+   * and their position and velocity, metres and m/s, in the listener's
+   * frame. The PEER_VOICES nearest and loudest are heard, through the
+   * propagation (distance, the air, the delay, the Doppler, the ground's
+   * reflection), on the Other aircraft bus; the rest are culled smoothly.
+   * A pilot not in the list is gone. The pool's nodes are made once, on
+   * the first frame with a pilot in it.
+   */
+  updatePeers(peers, atTime) {
+    if (!this.ctx || !this.engine) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    if (!this.peerSlots) {
+      if (!peers.length) {
+        return;
+      }
+      this.peerSlots = [];
+      for (let k = 0; k < PEER_VOICES; k += 1) {
+        const node = new AudioWorkletNode(this.ctx, 'fdfpv-engine', {
+          numberOfInputs: 0,
+          numberOfOutputs: 3,
+          outputChannelCount: [2, 2, 2],
+          processorOptions: { model: 'quad' },
+        });
+        this.nodes.push(node);
+        node.parameters.get('level').setValueAtTime(0, t);
+        node.connect(this.otherBus, 0);
+        this.peerSlots.push({ node, id: null, score: 0, freeAt: 0, linked: false, model: '' });
+      }
+    }
+    /* Each pilot's place: nearer and turning is louder; out of range is
+     * not heard. `rank` holds the pilots in range, loudest first. */
+    const l = this.listener;
+    const rank = this.peerRank;
+    rank.length = 0;
+    for (const pr of peers) {
+      const d = Math.hypot(pr.x - l.x, pr.y - l.y, pr.z - l.z);
+      /* A pilot with no finite position is not anywhere to be heard from;
+       * NaN fails the range test and is dropped with the far ones. */
+      if (!(d <= PEER_RANGE_M)) {
+        continue;
+      }
+      const turning = pr.rpm[0] > 300 || pr.rpm[1] > 300 || pr.rpm[2] > 300 || pr.rpm[3] > 300;
+      rank.push({ pr, d, score: (turning ? 1 : 0.3) / Math.max(1, d) });
+    }
+    rank.sort((a, b) => b.score - a.score);
+    const heldBy = (id) => this.peerSlots.find((x) => x.id === id) || null;
+    const entryOf = (id) => rank.find((e) => e.pr.id === id) || null;
+    /* The loudest pilot in range with no voice: the one a holder that has
+     * fallen out of the top PEER_VOICES must beat to keep its place. */
+    let challenger = null;
+    for (let k = 0; k < rank.length && k < PEER_VOICES; k += 1) {
+      if (!heldBy(rank[k].pr.id)) {
+        challenger = rank[k];
+        break;
+      }
+    }
+    for (const slot of this.peerSlots) {
+      if (!slot.id) {
+        continue;
+      }
+      const e = entryOf(slot.id);
+      const top = e && rank.indexOf(e) < PEER_VOICES;
+      if (e && (top || !challenger || challenger.score < e.score * PEER_SWAP)) {
+        continue;
+      }
+      slot.node.parameters.get('level').setTargetAtTime(0, t, PEER_FADE_S / 3);
+      slot.id = null;
+      slot.freeAt = t + PEER_FADE_S;
+      slot.linked = false;
+    }
+    for (let k = 0; k < rank.length && k < PEER_VOICES; k += 1) {
+      const pr = rank[k].pr;
+      if (heldBy(pr.id)) {
+        continue;
+      }
+      const slot = this.peerSlots.find((x) => !x.id && x.freeAt <= t);
+      if (!slot) {
+        break;
+      }
+      slot.id = pr.id;
+      slot.linked = false;
+      const model = pr.spec && pr.spec.model ? pr.spec.model : 'quad';
+      slot.node.port.postMessage({ model, params: pr.spec ? pr.spec.params : null, bladeScale: 1 });
+      slot.node.parameters.get('level').setTargetAtTime(PEER_LEVEL, t, PEER_FADE_S / 3);
+    }
+    for (const slot of this.peerSlots) {
+      const e = slot.id ? entryOf(slot.id) : null;
+      if (e) {
+        this.voicePeer(slot, e.pr, e.d, t);
+      }
+    }
+  }
+
+  /* One held voice's state: its motors, its airspeed, and where it is to
+   * the listener. */
+  voicePeer(slot, pr, dist, t) {
+    const p = slot.node.parameters;
+    const l = this.listener;
+    /* The same rule as updateEngine: a value that is not a number is 0. */
+    const num = (v) => (Number.isFinite(v) ? v : 0);
+    for (let m = 0; m < 4; m += 1) {
+      p.get(`rpm${m}`).setTargetAtTime(Math.max(0, num(pr.rpm[m])), t, 0.03);
+    }
+    p.get('u').setTargetAtTime(num(Math.hypot(pr.vx, pr.vy, pr.vz)), t, 0.05);
+    const dx = pr.x - l.x;
+    const dy = pr.y - l.y;
+    const dz = pr.z - l.z;
+    const d = Math.max(ONBOARD_OFF_M, dist);
+    let d2 = 0;
+    if (l.ground != null) {
+      /* The image under the ground plane y = ground. */
+      const hs = pr.y - l.ground;
+      const hl = l.y - l.ground;
+      d2 = Math.hypot(dx, hs + hl, dz);
+    }
+    const pan = Math.max(-1, Math.min(1, (dx * l.rx + dy * l.ry + dz * l.rz) / d));
+    const set = (k, v) => {
+      if (slot.linked) {
+        p.get(k).linearRampToValueAtTime(v, t);
+      } else {
+        p.get(k).setValueAtTime(v, t);
+      }
+    };
+    set('dist', d);
+    set('dist2', d2);
+    set('pan', pan);
+    slot.linked = true;
   }
 
   /*

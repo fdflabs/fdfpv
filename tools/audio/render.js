@@ -124,6 +124,10 @@ const PULL = `(c, off, n) => {
 
 async function main() {
   const flights = JSON.parse(await readFile(join(root, 'tools/audio/flights.json'), 'utf8')).flights;
+  /* The rooms (tools/audio/drive.js SCENES): heard as another flight. */
+  for (const id of ['room-4', 'room-32']) {
+    flights[id] = { title: id, room: true };
+  }
   const ids = args.only ? String(args.only).split(',') : Object.keys(flights);
   await mkdir(outDir, { recursive: true });
   const page = await openPage({ root, url: '/tools/audio/listen.html', width: 800, height: 600 });

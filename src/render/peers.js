@@ -178,7 +178,9 @@ export function buildPeerCraft(profile, look = null) {
   function drive(p, spinK, gearAt) {
     const rotors = (p.flags & FLAG_QUAD) ? [p.c0, p.c1, p.c2, p.c3] : [p.motor, p.motor, p.motor, p.motor];
     for (let m = 0; m < craft.discs.length && m < 4; m += 1) {
-      const spin = (rotors[m] * 1e-4 + (rotors[m] > 0 ? 0.10 : 0)) * spinK;
+      /* The wire's rad/s, turned back into the rpm this spin was tuned
+       * on (60 / 2 pi). */
+      const spin = (rotors[m] * 9.549e-4 + (rotors[m] > 0 ? 0.10 : 0)) * spinK;
       craft.discs[m].rotation.y += spin;
       if (craft.blades && craft.blades[m]) {
         craft.blades[m].rotation.y += spin * (craft.propSpin ? craft.propSpin[m] : 1);

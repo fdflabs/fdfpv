@@ -59,8 +59,14 @@ export const PROTO = 2;
  * shows as a reload. PROTO stays, so a restart of the rooms server under
  * tabs from before this never refuses them: they fly as they did until a
  * newer build joins their room.
+ *
+ * 2: a quad's rotor speeds and a plane's motor speed in the POSE are
+ * rad/s, as the layout above always said; builds below sent the plant's
+ * rpm in them, which clamped every quad above 5,080 rpm and which a level
+ * 2 receiver would hear nine and a half times too fast (docs/AUDIO.md
+ * section 13).
  */
-export const ROOM_LEVEL = 1;
+export const ROOM_LEVEL = 2;
 
 /*
  * A hello's `war`: this build asks the war's consent (docs/WARFARE-PLAN.md
