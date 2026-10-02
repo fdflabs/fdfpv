@@ -25,11 +25,11 @@
    "cost": 0.023
   },
   "new": {
-   "lufs": -26.71,
-   "lufsShortMax": -26.17,
+   "lufs": -26.72,
+   "lufsShortMax": -26.18,
    "lufsMomentaryMax": -24.39,
    "lra": 0.91,
-   "truePeakDbtp": -18.92,
+   "truePeakDbtp": -18.93,
    "harshShareA": 3.4,
    "bandShareA": {
     "sub": 0,
@@ -44,8 +44,8 @@
    "repetitionLagS": 2.25,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.089
+   "nodes": 49,
+   "cost": 0.104
   }
  },
  "quad-punch": {
@@ -71,14 +71,14 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.024
+   "cost": 0.023
   },
   "new": {
    "lufs": -22.91,
    "lufsShortMax": -19.57,
-   "lufsMomentaryMax": -16.47,
+   "lufsMomentaryMax": -16.48,
    "lra": 11.86,
-   "truePeakDbtp": -11.39,
+   "truePeakDbtp": -11.4,
    "harshShareA": 6.6,
    "bandShareA": {
     "sub": 0,
@@ -89,12 +89,12 @@
     "air": 1.1
    },
    "centroidHz": 1336,
-   "repetition": 0.654,
+   "repetition": 0.655,
    "repetitionLagS": 0.42,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.109
+   "nodes": 49,
+   "cost": 0.108
   }
  },
  "quad-dive": {
@@ -126,24 +126,24 @@
    "lufs": -25.28,
    "lufsShortMax": -21.42,
    "lufsMomentaryMax": -19.38,
-   "lra": 8.73,
+   "lra": 8.74,
    "truePeakDbtp": -12.85,
-   "harshShareA": 7.7,
+   "harshShareA": 7.6,
    "bandShareA": {
     "sub": 0,
     "low": 2,
-    "lowmid": 12.6,
-    "mid": 76.5,
-    "harsh": 7.7,
+    "lowmid": 12.5,
+    "mid": 76.6,
+    "harsh": 7.6,
     "air": 1.2
    },
    "centroidHz": 1111,
-   "repetition": 0.416,
+   "repetition": 0.419,
    "repetitionLagS": 0.28,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.103
+   "nodes": 49,
+   "cost": 0.113
   }
  },
  "quad-propwash": {
@@ -169,30 +169,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.023
+   "cost": 0.027
   },
   "new": {
    "lufs": -25.68,
-   "lufsShortMax": -21.98,
+   "lufsShortMax": -21.99,
    "lufsMomentaryMax": -19.48,
    "lra": 8.98,
    "truePeakDbtp": -13.1,
    "harshShareA": 8.9,
    "bandShareA": {
     "sub": 0,
-    "low": 0.6,
+    "low": 0.7,
     "lowmid": 12.8,
     "mid": 76.3,
     "harsh": 8.9,
     "air": 1.4
    },
    "centroidHz": 1126,
-   "repetition": 0.535,
+   "repetition": 0.532,
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.102
+   "nodes": 49,
+   "cost": 0.117
   }
  },
  "quad-crash-grass": {
@@ -218,11 +218,11 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.023
   },
   "new": {
-   "lufs": -26.22,
-   "lufsShortMax": -25.65,
+   "lufs": -26.23,
+   "lufsShortMax": -25.66,
    "lufsMomentaryMax": -22.46,
    "lra": 1.16,
    "truePeakDbtp": -9.96,
@@ -240,8 +240,8 @@
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.093
+   "nodes": 49,
+   "cost": 0.103
   }
  },
  "quad-crash-concrete": {
@@ -267,11 +267,11 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.023
   },
   "new": {
    "lufs": -25.91,
-   "lufsShortMax": -25.22,
+   "lufsShortMax": -25.23,
    "lufsMomentaryMax": -21.19,
    "lra": 1.49,
    "truePeakDbtp": -6.54,
@@ -289,8 +289,694 @@
    "repetitionLagS": 0.26,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.086
+   "nodes": 49,
+   "cost": 0.098
+  }
+ },
+ "quad-strike": {
+  "title": "5 inch: prop strike on a post",
+  "old": {
+   "lufs": -27.22,
+   "lufsShortMax": -26.93,
+   "lufsMomentaryMax": -25,
+   "lra": 0.51,
+   "truePeakDbtp": -13.32,
+   "harshShareA": 0.5,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0,
+    "lowmid": 94.7,
+    "mid": 4.7,
+    "harsh": 0.5,
+    "air": 0.1
+   },
+   "centroidHz": 600,
+   "repetition": 0.066,
+   "repetitionLagS": 2.47,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.022
+  },
+  "new": {
+   "lufs": -25.77,
+   "lufsShortMax": -25.26,
+   "lufsMomentaryMax": -21.07,
+   "lra": 1.14,
+   "truePeakDbtp": -7.11,
+   "harshShareA": 21.4,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0,
+    "lowmid": 69.5,
+    "mid": 6.8,
+    "harsh": 21.4,
+    "air": 2.3
+   },
+   "centroidHz": 827,
+   "repetition": 0.171,
+   "repetitionLagS": 2.45,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.11
+  }
+ },
+ "quad-crash-rock": {
+  "title": "5 inch: crash on rock",
+  "old": {
+   "lufs": -25.08,
+   "lufsShortMax": -24.02,
+   "lufsMomentaryMax": -17.84,
+   "lra": 2.91,
+   "truePeakDbtp": -5.84,
+   "harshShareA": 7.8,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.3,
+    "lowmid": 53.7,
+    "mid": 37.8,
+    "harsh": 7.8,
+    "air": 0.3
+   },
+   "centroidHz": 836,
+   "repetition": 0.195,
+   "repetitionLagS": 0.26,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.025
+  },
+  "new": {
+   "lufs": -25.91,
+   "lufsShortMax": -25.23,
+   "lufsMomentaryMax": -21.19,
+   "lra": 1.49,
+   "truePeakDbtp": -6.54,
+   "harshShareA": 7.4,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.2,
+    "lowmid": 75.2,
+    "mid": 8.1,
+    "harsh": 7.4,
+    "air": 9.1
+   },
+   "centroidHz": 1161,
+   "repetition": 0.413,
+   "repetitionLagS": 0.26,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.091
+  }
+ },
+ "whoop65-punch": {
+  "title": "Whoop: hover and punch-out",
+  "old": {
+   "lufs": -28.52,
+   "lufsShortMax": -26.92,
+   "lufsMomentaryMax": -24.98,
+   "lra": 2.13,
+   "truePeakDbtp": -18.04,
+   "harshShareA": 1,
+   "bandShareA": {
+    "sub": 0,
+    "low": 2,
+    "lowmid": 71.5,
+    "mid": 25.5,
+    "harsh": 1,
+    "air": 0
+   },
+   "centroidHz": 566,
+   "repetition": 0.746,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.024
+  },
+  "new": {
+   "lufs": -25.63,
+   "lufsShortMax": -22.65,
+   "lufsMomentaryMax": -21.17,
+   "lra": 8.81,
+   "truePeakDbtp": -15.24,
+   "harshShareA": 30.2,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0,
+    "lowmid": 8.5,
+    "mid": 24.7,
+    "harsh": 30.2,
+    "air": 36.6
+   },
+   "centroidHz": 3510,
+   "repetition": 0.192,
+   "repetitionLagS": 2.99,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.104
+  }
+ },
+ "7inch-punch": {
+  "title": "7 inch: hover and punch-out",
+  "old": {
+   "lufs": -27.82,
+   "lufsShortMax": -26.88,
+   "lufsMomentaryMax": -25.58,
+   "lra": 2.61,
+   "truePeakDbtp": -18.46,
+   "harshShareA": 0.3,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.9,
+    "lowmid": 91.2,
+    "mid": 7.7,
+    "harsh": 0.3,
+    "air": 0
+   },
+   "centroidHz": 582,
+   "repetition": 0.592,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.023
+  },
+  "new": {
+   "lufs": -25.69,
+   "lufsShortMax": -22.96,
+   "lufsMomentaryMax": -21.13,
+   "lra": 6.88,
+   "truePeakDbtp": -13.97,
+   "harshShareA": 4.5,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.3,
+    "lowmid": 87.1,
+    "mid": 7.5,
+    "harsh": 4.5,
+    "air": 0.6
+   },
+   "centroidHz": 805,
+   "repetition": 0.679,
+   "repetitionLagS": 0.26,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.113
+  }
+ },
+ "10inch-punch": {
+  "title": "10 inch: hover and punch-out",
+  "old": {
+   "lufs": -28.9,
+   "lufsShortMax": -27.46,
+   "lufsMomentaryMax": -25.6,
+   "lra": 2.88,
+   "truePeakDbtp": -18.02,
+   "harshShareA": 0.3,
+   "bandShareA": {
+    "sub": 0,
+    "low": 5,
+    "lowmid": 80.2,
+    "mid": 14.4,
+    "harsh": 0.3,
+    "air": 0
+   },
+   "centroidHz": 415,
+   "repetition": 0.622,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.025
+  },
+  "new": {
+   "lufs": -26.09,
+   "lufsShortMax": -24.03,
+   "lufsMomentaryMax": -21.19,
+   "lra": 4.37,
+   "truePeakDbtp": -14.87,
+   "harshShareA": 5.1,
+   "bandShareA": {
+    "sub": 0,
+    "low": 5.9,
+    "lowmid": 75.1,
+    "mid": 13.5,
+    "harsh": 5.1,
+    "air": 0.4
+   },
+   "centroidHz": 451,
+   "repetition": 0.634,
+   "repetitionLagS": 0.26,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.118
+  }
+ },
+ "interceptor-punch": {
+  "title": "Interceptor: hover and punch-out",
+  "old": {
+   "lufs": -28.68,
+   "lufsShortMax": -27.18,
+   "lufsMomentaryMax": -24.6,
+   "lra": 3.5,
+   "truePeakDbtp": -17.82,
+   "harshShareA": 0.9,
+   "bandShareA": {
+    "sub": 0,
+    "low": 1.8,
+    "lowmid": 86.6,
+    "mid": 10.6,
+    "harsh": 0.9,
+    "air": 0
+   },
+   "centroidHz": 509,
+   "repetition": 0.785,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.024
+  },
+  "new": {
+   "lufs": -25.4,
+   "lufsShortMax": -22.58,
+   "lufsMomentaryMax": -19.34,
+   "lra": 9.61,
+   "truePeakDbtp": -13.66,
+   "harshShareA": 6.7,
+   "bandShareA": {
+    "sub": 0,
+    "low": 5.7,
+    "lowmid": 68.2,
+    "mid": 18.8,
+    "harsh": 6.7,
+    "air": 0.6
+   },
+   "centroidHz": 562,
+   "repetition": 0.778,
+   "repetitionLagS": 0.25,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.099
+  }
+ },
+ "cub1400-flight": {
+  "title": "Cub (electric): climb, cruise, glide",
+  "old": {
+   "lufs": -35.7,
+   "lufsShortMax": -33.1,
+   "lufsMomentaryMax": -32.85,
+   "lra": 8.79,
+   "truePeakDbtp": -25.19,
+   "harshShareA": 7.3,
+   "bandShareA": {
+    "sub": 0,
+    "low": 2.9,
+    "lowmid": 48.2,
+    "mid": 41.3,
+    "harsh": 7.3,
+    "air": 0.2
+   },
+   "centroidHz": 568,
+   "repetition": 0.65,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.021
+  },
+  "new": {
+   "lufs": -26.67,
+   "lufsShortMax": -25.2,
+   "lufsMomentaryMax": -25.08,
+   "lra": 9.09,
+   "truePeakDbtp": -19.34,
+   "harshShareA": 5,
+   "bandShareA": {
+    "sub": 0,
+    "low": 6.7,
+    "lowmid": 70.6,
+    "mid": 17.1,
+    "harsh": 5,
+    "air": 0.6
+   },
+   "centroidHz": 353,
+   "repetition": 0.802,
+   "repetitionLagS": 0.27,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.05
+  }
+ },
+ "kadet1981-flight": {
+  "title": "Kadet Senior (four stroke glow): climb, cruise, idle",
+  "old": {
+   "lufs": -36.29,
+   "lufsShortMax": -33.8,
+   "lufsMomentaryMax": -33.5,
+   "lra": 6.24,
+   "truePeakDbtp": -23.01,
+   "harshShareA": 9.1,
+   "bandShareA": {
+    "sub": 0,
+    "low": 2.2,
+    "lowmid": 36.5,
+    "mid": 51.8,
+    "harsh": 9.1,
+    "air": 0.3
+   },
+   "centroidHz": 750,
+   "repetition": 0.634,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.023
+  },
+  "new": {
+   "lufs": -26.12,
+   "lufsShortMax": -23.06,
+   "lufsMomentaryMax": -22.79,
+   "lra": 9.97,
+   "truePeakDbtp": -17.48,
+   "harshShareA": 2.8,
+   "bandShareA": {
+    "sub": 0,
+    "low": 9.6,
+    "lowmid": 74,
+    "mid": 13.5,
+    "harsh": 2.8,
+    "air": 0.2
+   },
+   "centroidHz": 390,
+   "repetition": 0.701,
+   "repetitionLagS": 0.27,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.049
+  }
+ },
+ "bombshell1118-flight": {
+  "title": "Bombshell (two stroke glow): climb, cruise, idle",
+  "old": {
+   "lufs": -35.66,
+   "lufsShortMax": -34.69,
+   "lufsMomentaryMax": -34.36,
+   "lra": 2.03,
+   "truePeakDbtp": -26.62,
+   "harshShareA": 2,
+   "bandShareA": {
+    "sub": 0,
+    "low": 12.4,
+    "lowmid": 70,
+    "mid": 15.6,
+    "harsh": 2,
+    "air": 0.1
+   },
+   "centroidHz": 380,
+   "repetition": 0.562,
+   "repetitionLagS": 1,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.021
+  },
+  "new": {
+   "lufs": -25.83,
+   "lufsShortMax": -23.34,
+   "lufsMomentaryMax": -22.85,
+   "lra": 6.81,
+   "truePeakDbtp": -17.74,
+   "harshShareA": 3.2,
+   "bandShareA": {
+    "sub": 0,
+    "low": 10.8,
+    "lowmid": 68.5,
+    "mid": 17.4,
+    "harsh": 3.2,
+    "air": 0.2
+   },
+   "centroidHz": 414,
+   "repetition": 0.413,
+   "repetitionLagS": 0.29,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.05
+  }
+ },
+ "tigermoth1803-flight": {
+  "title": "Tiger Moth (two stroke glow): climb, cruise, idle",
+  "old": {
+   "lufs": -35.24,
+   "lufsShortMax": -32.95,
+   "lufsMomentaryMax": -32.71,
+   "lra": 5.9,
+   "truePeakDbtp": -22.32,
+   "harshShareA": 9.5,
+   "bandShareA": {
+    "sub": 0,
+    "low": 1.8,
+    "lowmid": 37.1,
+    "mid": 51.4,
+    "harsh": 9.5,
+    "air": 0.3
+   },
+   "centroidHz": 845,
+   "repetition": 0.579,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.022
+  },
+  "new": {
+   "lufs": -24.74,
+   "lufsShortMax": -22.98,
+   "lufsMomentaryMax": -22.79,
+   "lra": 11.55,
+   "truePeakDbtp": -17.49,
+   "harshShareA": 5.2,
+   "bandShareA": {
+    "sub": 0,
+    "low": 7.5,
+    "lowmid": 70.3,
+    "mid": 16.7,
+    "harsh": 5.2,
+    "air": 0.2
+   },
+   "centroidHz": 482,
+   "repetition": 0.515,
+   "repetitionLagS": 0.36,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.048
+  }
+ },
+ "p51d1450-flight": {
+  "title": "P-51 (electric, four blades): gear up, flaps, cruise",
+  "old": {
+   "lufs": -33.89,
+   "lufsShortMax": -33.4,
+   "lufsMomentaryMax": -33.27,
+   "lra": 1.11,
+   "truePeakDbtp": -25.54,
+   "harshShareA": 10,
+   "bandShareA": {
+    "sub": 0,
+    "low": 5.9,
+    "lowmid": 33.2,
+    "mid": 50.5,
+    "harsh": 10,
+    "air": 0.3
+   },
+   "centroidHz": 581,
+   "repetition": 0.645,
+   "repetitionLagS": 4,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.025
+  },
+  "new": {
+   "lufs": -22.31,
+   "lufsShortMax": -21.09,
+   "lufsMomentaryMax": -21.05,
+   "lra": 2.97,
+   "truePeakDbtp": -15.59,
+   "harshShareA": 3,
+   "bandShareA": {
+    "sub": 0,
+    "low": 6.2,
+    "lowmid": 79.9,
+    "mid": 10.7,
+    "harsh": 3,
+    "air": 0.2
+   },
+   "centroidHz": 401,
+   "repetition": 0.077,
+   "repetitionLagS": 3.83,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.063
+  }
+ },
+ "f16878-flight": {
+  "title": "F-16 (ducted fan): spool, full, cruise",
+  "old": {
+   "lufs": -35.04,
+   "lufsShortMax": -33.11,
+   "lufsMomentaryMax": -32.26,
+   "lra": 3.78,
+   "truePeakDbtp": -24.04,
+   "harshShareA": 18.2,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.5,
+    "lowmid": 25.1,
+    "mid": 46.6,
+    "harsh": 18.2,
+    "air": 9.5
+   },
+   "centroidHz": 1961,
+   "repetition": 0.527,
+   "repetitionLagS": 0.44,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.023
+  },
+  "new": {
+   "lufs": -26.54,
+   "lufsShortMax": -24.31,
+   "lufsMomentaryMax": -24.28,
+   "lra": 5.2,
+   "truePeakDbtp": -22.26,
+   "harshShareA": 32.4,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0,
+    "lowmid": 1,
+    "mid": 1.5,
+    "harsh": 32.4,
+    "air": 65.1
+   },
+   "centroidHz": 7105,
+   "repetition": 0.218,
+   "repetitionLagS": 0.28,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.062
+  }
+ },
+ "nrj1490-flight": {
+  "title": "NRJ glider: the air alone",
+  "old": {
+   "lufs": -49.13,
+   "lufsShortMax": -49.01,
+   "lufsMomentaryMax": -48.83,
+   "lra": 0.13,
+   "truePeakDbtp": -40.13,
+   "harshShareA": 4.6,
+   "bandShareA": {
+    "sub": 0,
+    "low": 1.3,
+    "lowmid": 56.6,
+    "mid": 37.4,
+    "harsh": 4.6,
+    "air": 0.2
+   },
+   "centroidHz": 715,
+   "repetition": 0.873,
+   "repetitionLagS": 4,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.02
+  },
+  "new": {
+   "lufs": -37.42,
+   "lufsShortMax": -37.31,
+   "lufsMomentaryMax": -36.96,
+   "lra": 0.16,
+   "truePeakDbtp": -26.15,
+   "harshShareA": 1.4,
+   "bandShareA": {
+    "sub": 0,
+    "low": 7.3,
+    "lowmid": 81.6,
+    "mid": 9.6,
+    "harsh": 1.4,
+    "air": 0.1
+   },
+   "centroidHz": 357,
+   "repetition": 0.115,
+   "repetitionLagS": 3.17,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.035
+  }
+ },
+ "bramor2300-catapult": {
+  "title": "Bramor: catapult launch, climb, parachute",
+  "old": {
+   "lufs": -31.03,
+   "lufsShortMax": -29.94,
+   "lufsMomentaryMax": -29.8,
+   "lra": 20.82,
+   "truePeakDbtp": -22.17,
+   "harshShareA": 14,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.4,
+    "lowmid": 36.3,
+    "mid": 48.9,
+    "harsh": 14,
+    "air": 0.4
+   },
+   "centroidHz": 894,
+   "repetition": 0.861,
+   "repetitionLagS": 0.25,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 63,
+   "cost": 0.024
+  },
+  "new": {
+   "lufs": -25.2,
+   "lufsShortMax": -24.25,
+   "lufsMomentaryMax": -21.24,
+   "lra": 9.85,
+   "truePeakDbtp": -6.12,
+   "harshShareA": 9.9,
+   "bandShareA": {
+    "sub": 0,
+    "low": 0.1,
+    "lowmid": 67.5,
+    "mid": 18.7,
+    "harsh": 9.9,
+    "air": 3.9
+   },
+   "centroidHz": 962,
+   "repetition": 0.447,
+   "repetitionLagS": 0.27,
+   "nonFinite": 0,
+   "subnormal": 0,
+   "nodes": 49,
+   "cost": 0.052
   }
  },
  "striker-prop-takeoff": {
@@ -316,30 +1002,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.023
   },
   "new": {
-   "lufs": -23.92,
-   "lufsShortMax": -23.77,
-   "lufsMomentaryMax": -23.57,
-   "lra": 1.14,
-   "truePeakDbtp": -17.06,
-   "harshShareA": 0.6,
+   "lufs": -23.71,
+   "lufsShortMax": -23.19,
+   "lufsMomentaryMax": -20.56,
+   "lra": 1.04,
+   "truePeakDbtp": -9.79,
+   "harshShareA": 4.9,
    "bandShareA": {
     "sub": 0,
-    "low": 25.5,
-    "lowmid": 63.6,
-    "mid": 10.2,
-    "harsh": 0.6,
-    "air": 0.1
+    "low": 22.8,
+    "lowmid": 57.5,
+    "mid": 12,
+    "harsh": 4.9,
+    "air": 2.8
    },
-   "centroidHz": 252,
-   "repetition": 0.498,
+   "centroidHz": 403,
+   "repetition": 0.232,
    "repetitionLagS": 0.29,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.044
+   "nodes": 49,
+   "cost": 0.047
   }
  },
  "striker-prop-cruise": {
@@ -387,8 +1073,8 @@
    "repetitionLagS": 0.31,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.037
+   "nodes": 49,
+   "cost": 0.045
   }
  },
  "striker-prop-flyby": {
@@ -414,7 +1100,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.02
+   "cost": 0.021
   },
   "new": {
    "lufs": -32.29,
@@ -436,8 +1122,8 @@
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.044
+   "nodes": 49,
+   "cost": 0.049
   }
  },
  "striker-jet-takeoff": {
@@ -463,30 +1149,30 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.022
   },
   "new": {
-   "lufs": -22.92,
-   "lufsShortMax": -21.18,
-   "lufsMomentaryMax": -20.98,
-   "lra": 6.65,
-   "truePeakDbtp": -12.93,
-   "harshShareA": 31.6,
+   "lufs": -22.8,
+   "lufsShortMax": -21,
+   "lufsMomentaryMax": -19.41,
+   "lra": 6.71,
+   "truePeakDbtp": -9.58,
+   "harshShareA": 31.9,
    "bandShareA": {
     "sub": 0,
     "low": 0.4,
-    "lowmid": 12.4,
-    "mid": 47.2,
-    "harsh": 31.6,
-    "air": 8.4
+    "lowmid": 12.1,
+    "mid": 46.5,
+    "harsh": 31.9,
+    "air": 9.1
    },
-   "centroidHz": 2275,
-   "repetition": 0.879,
+   "centroidHz": 2481,
+   "repetition": 0.772,
    "repetitionLagS": 0.26,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.038
+   "nodes": 49,
+   "cost": 0.042
   }
  },
  "striker-jet-cruise": {
@@ -512,7 +1198,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.021
+   "cost": 0.023
   },
   "new": {
    "lufs": -27.41,
@@ -534,8 +1220,8 @@
    "repetitionLagS": 3.33,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.042
+   "nodes": 49,
+   "cost": 0.049
   }
  },
  "striker-jet-flyby": {
@@ -561,7 +1247,7 @@
    "nonFinite": 0,
    "subnormal": 0,
    "nodes": 63,
-   "cost": 0.019
+   "cost": 0.021
   },
   "new": {
    "lufs": -34.27,
@@ -583,8 +1269,8 @@
    "repetitionLagS": 0.25,
    "nonFinite": 0,
    "subnormal": 0,
-   "nodes": 44,
-   "cost": 0.05
+   "nodes": 49,
+   "cost": 0.045
   }
  }
 }

@@ -146,6 +146,19 @@ class Mode {
  *               ringing a muffler; the prop's blade pass and its broadband
  *   turbojet    the shaft's tone, the compressor's blade pass whine, the
  *               jet's mixing roar and combustion rumble, all off the spool
+ *
+ * A ducted fan is a multirotor of one rotor with many blades, a duct and
+ * an inrunner: its blade pass IS the sound (12 blades at 41,700 rpm pass
+ * 8.3 kHz), so its tones fade higher (`toneTop`), its broadband sits under
+ * the blade pass rather than over it (`bbMul`), and the duct adds an inlet
+ * roar (`duct`).
+ *
+ * Every model is a base; the shell hands each aircraft's own numbers over
+ * as parameters (src/render/enginespec.js, MotorAudio.setEngineParams):
+ * blades, poles, motors, the reference rpm the loudness law is normalised
+ * to, the induced velocity, and `rpmScale`, the whoop's: it flies the five
+ * inch's plant in a world built larger, so its motors are heard at the
+ * speed a 65 mm whoop's turn (docs/AUDIO.md).
  */
 const MODELS = {
   quad: {
@@ -154,8 +167,13 @@ const MODELS = {
      * motor through a 5.1 in disc, v = sqrt(T / (2 rho A)). */
     washV: 7.2, pan: [0.42, 0.3, -0.42, -0.3], gain: 0.27,
   },
-  wing: { kind: 'multirotor', motors: 1, blades: 2, poles: 14, rpmRef: 12000, washV: 0, pan: [0, 0, 0, 0], gain: 1 },
-  edf: { kind: 'multirotor', motors: 1, blades: 12, poles: 14, rpmRef: 30000, washV: 0, pan: [0, 0, 0, 0], gain: 0.5 },
+  wing: { kind: 'multirotor', motors: 1, blades: 2, poles: 14, rpmRef: 12000, washV: 0, pan: [0, 0, 0, 0], gain: 0.8 },
+  /* The F-16's 70 mm fan: 12 blades on a four pole inrunner (ESTIMATED,
+   * the class's usual motor). */
+  edf: {
+    kind: 'multirotor', motors: 1, blades: 12, poles: 4, rpmRef: 35000, washV: 0, pan: [0, 0, 0, 0], gain: 0.5,
+    toneTop: 14000, bbMul: 0.5, duct: true,
+  },
   /* The Striker's 110 cc boxer twin: a two stroke whose cylinders fire
    * together, so one pulse a revolution (ASSUMED, docs/AUDIO.md). */
   boxer2: { kind: 'piston', firesPerRev: 1, blades: 2, rpmRef: 5000, idleRpm: 1250, muffler: [115, 420, 1500], gain: 1.2 },
@@ -165,6 +183,9 @@ const MODELS = {
    * compressor of 7 main and 7 splitter blades, a 60 mm nozzle. */
   turbojet: { kind: 'turbojet', rpmRef: 125000, idleRpm: 25000, compBlades: 14, nozzleM: 0.06, vjFull: 420, gain: 11 },
 };
+
+/* The parameters an aircraft may set on its model, and nothing else. */
+const MODEL_PARAMS = new Set(['motors', 'blades', 'poles', 'rpmRef', 'washV', 'rpmScale', 'idleRpm', 'gain', 'windRef', 'windGain']);
 
 const PARAMS = [
   'rpm0', 'rpm1', 'rpm2', 'rpm3',
@@ -178,6 +199,13 @@ const PARAMS = [
   /* An impact: impulse in N s, rising edge triggered; the surface's
    * hardness 0..1 (sim_material_info) and the closing speed, m/s. */
   'impact', 'hardness', 'impactSpeed',
+  /* A one shot mechanism (2 the gear locking, 3 the catapult, 4 the
+   * parachute), rising edge triggered, and the two that run while they
+   * move, 0 to 1: the flaps' servos and the retracts' motor. */
+  'mech', 'servo', 'retract',
+  /* A prop strike, rising edge triggered: how hard, 0..1; the surface is
+   * `hardness` above. */
+  'strike',
 ];
 
 class EngineProcessor extends AudioWorkletProcessor {
@@ -190,7 +218,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     const o = (options && options.processorOptions) || {};
     this.rate = sampleRate;
     this.bladeScale = o.bladeScale > 0 ? o.bladeScale : 1;
-    this.setModel(o.model || 'quad');
+    this.setModel(o.model || 'quad', o.params);
     this.port.onmessage = (e) => {
       if (!e.data) {
         return;
@@ -199,7 +227,7 @@ class EngineProcessor extends AudioWorkletProcessor {
         this.bladeScale = e.data.bladeScale;
       }
       if (e.data.model) {
-        this.setModel(e.data.model);
+        this.setModel(e.data.model, e.data.params);
       }
     };
     const rate = this.rate;
@@ -257,6 +285,30 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.hitThumpHz = 0;
     this.lastImpact = 0;
     this.hitRng = rng(0x51ed270b);
+    /* Mechanisms and prop strikes, on the effects output. */
+    this.mechKind = 0;
+    this.mechT = 0;
+    this.mechJit = 1;
+    this.mechRng = rng(0x2545f491);
+    this.servoLevel = 0;
+    this.servoPhase = 0;
+    this.retractLevel = 0;
+    this.retractPhase = 0;
+    this.servoBand = new Svf();
+    this.mechBand = new Svf();
+    this.mechBody = new Mode();
+    this.mechRing = [new Mode(), new Mode()];
+    this.lastMech = 0;
+    this.strikeTicks = 0;
+    this.strikeBurst = 0;
+    this.strikeTickAmp = 0;
+    this.strikeLeft = 0;
+    this.strikeNext = 0;
+    this.strikeGap = 0;
+    this.strikeAmp = 0;
+    this.strikeModes = [new Mode(), new Mode()];
+    this.lastStrike = 0;
+    this.duct = new Svf();
     /* Propagation: a mono line the engine and air are written into and
      * read back at the delay the distance sets, which is also what makes
      * the Doppler shift, since a delay that shortens is a pitch that
@@ -276,10 +328,17 @@ class EngineProcessor extends AudioWorkletProcessor {
     this.harshGain = 1;
   }
 
-  setModel(name) {
-    const m = MODELS[name];
-    if (!m) {
+  setModel(name, params) {
+    const base = MODELS[name];
+    if (!base) {
       throw new Error(`engine-worklet: no model ${name}`);
+    }
+    const m = { ...base };
+    for (const [k, v] of Object.entries(params || {})) {
+      if (!MODEL_PARAMS.has(k) || !(Number.isFinite(v) && v >= 0)) {
+        throw new Error(`engine-worklet: ${name} cannot take ${k} = ${v}`);
+      }
+      m[k] = v;
     }
     this.model = m;
     this.modelName = name;
@@ -314,7 +373,9 @@ class EngineProcessor extends AudioWorkletProcessor {
       /* Tones fade out between 6 and 9 kHz rather than stopping at an
        * order, which would be an edge the ear finds, and never reach
        * Nyquist. Above them the broadband is the prop. */
-      const fade = f >= nyq ? 0 : f < 6000 ? 1 : f < 9000 ? (9000 - f) / 3000 : 0;
+      const top = this.model.toneTop || 9000;
+      const knee = top * (2 / 3);
+      const fade = f >= nyq ? 0 : f < knee ? 1 : f < top ? (top - f) / (top - knee) : 0;
       let a = 0;
       if (n % blades === 0) {
         const k = n / blades;
@@ -362,6 +423,17 @@ class EngineProcessor extends AudioWorkletProcessor {
       this.strike(imp, p('hardness'), p('impactSpeed'));
     }
     this.lastImpact = imp;
+    const mech = p('mech');
+    if (mech > 0 && this.lastMech <= 0) {
+      this.mechStart(Math.round(mech));
+    }
+    this.lastMech = mech;
+    const servoWant = Math.max(0, Math.min(1, p('servo')));
+    const retractWant = Math.max(0, Math.min(1, p('retract')));
+    const kServo = onePole(30, this.rate);
+    const strk = p('strike');
+    const strikeNow = strk > 0 && this.lastStrike <= 0;
+    this.lastStrike = strk;
 
     /* ---- per quantum state ---- */
     let rpmSum = 0;
@@ -369,7 +441,7 @@ class EngineProcessor extends AudioWorkletProcessor {
     const motors = m.kind === 'multirotor' ? m.motors : 1;
     for (let k = 0; k < motors; k += 1) {
       const mo = this.motor[k];
-      const r = Math.max(0, p(`rpm${k}`));
+      const r = Math.max(0, p(`rpm${k}`)) * (m.rpmScale || 1);
       /* Load: thrust proxy (rpm over the reference, squared) plus how fast
        * the motor is being driven up, which is the prop biting harder than
        * its steady state. Smoothed over a few quanta. */
@@ -393,6 +465,9 @@ class EngineProcessor extends AudioWorkletProcessor {
       }
     }
     const rpmMean = motors > 0 ? rpmSum / motors : 0;
+    if (strikeNow) {
+      this.strikeStart(strk, p('hardness'), rpmMean);
+    }
 
     /* Prop wash: sinking along the thrust axis into the rotors' own wake.
      * x is the descent rate over the induced velocity at this rpm; the
@@ -408,7 +483,10 @@ class EngineProcessor extends AudioWorkletProcessor {
     /* Wind over the airframe: level with speed to the 1.2 (aerodynamic
      * noise goes as a high power of speed; compressed for the same reason as
      * the motors), louder and gustier in a sideslip, brighter with speed. */
-    const vRef = m.kind === 'multirotor' && m.motors === 4 ? 30 : 40;
+    /* The airspeed the air is at unity at, m/s, and its trim: a quad's
+     * 30, a plane's 40; a glider, whose whole sound this is, its own
+     * (src/render/enginespec.js). */
+    const vRef = m.windRef || (m.kind === 'multirotor' && m.motors === 4 ? 30 : 40);
     const windWant = Math.min(1.6, (speed / vRef) ** 1.2) * (1 + 1.5 * Math.min(0.6, Math.abs(beta)));
     const windF = svfF(Math.min(1800, 200 + 35 * speed), rate);
     const windQ = 1.2;
@@ -419,8 +497,9 @@ class EngineProcessor extends AudioWorkletProcessor {
     /* Broadband blade vortex noise: one shared band of noise for all the
      * motors, centred a few blade passes up, level with tip speed. */
     const bladesBb = this.blades;
-    const bbHz = Math.min(5200, Math.max(400, (rpmMean / 60) * bladesBb * 5));
+    const bbHz = Math.min(5200, Math.max(400, (rpmMean / 60) * bladesBb * (m.bbMul || 5)));
     const bbF = svfF(bbHz, rate);
+    const ductF = svfF(320, rate);
     let bbLevel = 0;
     for (let k = 0; k < motors; k += 1) {
       bbLevel += (this.motor[k].rpm / m.rpmRef) ** 0.9;
@@ -499,6 +578,14 @@ class EngineProcessor extends AudioWorkletProcessor {
           b1.run(nz[1](), bbF, 0.9);
           eL += g * b0.bp;
           eR += g * b1.bp;
+        }
+        /* A duct's inlet roar: low, broad, with the fan's speed squared. */
+        if (m.duct && rpmMean > 300) {
+          const x = rpmMean / m.rpmRef;
+          this.duct.run(nz[2](), ductF, 0.9);
+          const d = 0.12 * x * x * this.duct.lo;
+          eL += d;
+          eR += d;
         }
       } else if (m.kind === 'piston') {
         const mo = this.motor[0];
@@ -617,7 +704,7 @@ class EngineProcessor extends AudioWorkletProcessor {
       let aR = 0;
       if (this.windLevel > 1e-4) {
         this.gust += lpGust * (nz[2]() - this.gust);
-        const g = 0.3 * this.windLevel * (1 + gustDepth * 2.5 * this.gust);
+        const g = 0.3 * (m.windGain || 1) * this.windLevel * (1 + gustDepth * 2.5 * this.gust);
         winL.run(nz[4](), windF, windQ);
         winR.run(nz[5](), windF, windQ);
         /* A first order high pass at 40 Hz: the rumble under the hiss is
@@ -719,12 +806,164 @@ class EngineProcessor extends AudioWorkletProcessor {
         this.hitEnv = 0;
         this.hitThump = 0;
       }
+      if (this.mechKind) {
+        h += this.mechSample();
+      }
+      this.servoLevel += kServo * (servoWant - this.servoLevel);
+      this.retractLevel += kServo * (retractWant - this.retractLevel);
+      if (this.servoLevel > 1e-4 || this.retractLevel > 1e-4) {
+        h += this.motionSample();
+      } else {
+        this.servoLevel = 0;
+        this.retractLevel = 0;
+      }
+      if (this.strikeLeft > 0) {
+        h += this.strikeSample();
+      }
       fx[0][i] = h;
       fx[1][i] = h;
     }
     this.distPrev = dist;
     this.dist2Prev = dist2;
     return true;
+  }
+
+  /*
+   * The airframe's own mechanisms, heard from its camera: small, close and
+   * mechanical, ESTIMATED in their pitches and levels, each start jittered
+   * so no two are the same. While they move (the shell reads the plant's
+   * flap angle and gear position every frame):
+   *
+   *   servo    the flaps' servos, a gear train's buzz near 210 Hz with its
+   *            harmonics and a little gear noise
+   *   retract  the retracts' motor, a whir near 300 Hz
+   *
+   * and once (mechStart):
+   *
+   *   2 gear     the leg locking, a clunk
+   *   3 catapult the shuttle's release: a thump, the rail's rattle, the
+   *              bungee or the ram letting go
+   *   4 chute    the hatch's pop, then the canopy filling: a swell of
+   *              fluttering air
+   */
+  motionSample() {
+    const rate = this.rate;
+    this.servoPhase += 210 / rate;
+    this.retractPhase += 300 / rate;
+    if (this.servoPhase >= 1) {
+      this.servoPhase -= 1;
+    }
+    if (this.retractPhase >= 1) {
+      this.retractPhase -= 1;
+    }
+    const ps = TAU * this.servoPhase;
+    const pr = TAU * this.retractPhase;
+    this.servoBand.run(this.mechRng(), svfF(1800, rate), 0.5);
+    const servo = Math.sin(ps) + 0.4 * Math.sin(2 * ps) + 0.2 * Math.sin(3 * ps) + 0.2 * this.servoBand.bp;
+    const retract = Math.sin(pr) + 0.3 * Math.sin(2 * pr) + 0.2 * this.servoBand.bp;
+    return 0.035 * this.servoLevel * servo + 0.05 * this.retractLevel * retract;
+  }
+
+  mechStart(kind) {
+    this.mechKind = kind >= 2 && kind <= 4 ? kind : 0;
+    this.mechT = 0;
+    this.mechJit = 1 + 0.05 * this.mechRng();
+    const rate = this.rate;
+    if (kind === 2) {
+      this.mechBody.tune(95 * this.mechJit, 0.06, rate);
+      this.mechRing[0].tune(1130 * this.mechJit, 0.12, rate);
+      this.mechRing[1].tune(2310 * this.mechJit, 0.08, rate);
+      this.mechRing[0].run(1);
+      this.mechRing[1].run(1);
+    } else if (kind === 3) {
+      this.mechBody.tune(62 * this.mechJit, 0.09, rate);
+    } else if (kind === 4) {
+      this.mechBody.tune(110 * this.mechJit, 0.05, rate);
+    }
+    this.mechBody.run(1);
+  }
+
+  mechSample() {
+    const rate = this.rate;
+    const t = this.mechT / rate;
+    this.mechT += 1;
+    const r = this.mechRng;
+    const k = this.mechKind;
+    let y;
+    if (k === 2) {
+      y = 2.2 * this.mechBody.run(0) + 0.5 * (this.mechRing[0].run(0) + this.mechRing[1].run(0));
+      if (t > 0.5) {
+        this.mechKind = 0;
+      }
+      return y;
+    }
+    if (k === 3) {
+      this.mechBand.run(r(), svfF(1500, rate), 1.2);
+      const rattle = this.mechBand.bp * (1 + Math.sin(TAU * 55 * t)) * Math.exp(-t / 0.12);
+      const hiss = r() * Math.exp(-t / 0.35);
+      y = 3.0 * this.mechBody.run(0) + 0.25 * rattle + 0.05 * hiss;
+      if (t > 1.2) {
+        this.mechKind = 0;
+      }
+      return y;
+    }
+    /* The parachute. */
+    const pop = t < 0.006 ? 0.3 * r() : 0;
+    const swell = t < 0.6 ? t / 0.6 : Math.exp(-(t - 0.6) / 0.8);
+    this.mechBand.run(r(), svfF(400 + 300 * Math.min(1, t / 0.6), rate), 0.6);
+    const flutter = 1 + 0.5 * Math.sin(TAU * 11 * this.mechJit * t);
+    y = pop + 1.8 * this.mechBody.run(0) + 0.15 * swell * flutter * this.mechBand.bp;
+    /* Gone by 6 s, where the swell is 0.1 percent: an end, not a cut. */
+    if (t > 6) {
+      this.mechKind = 0;
+    }
+    return y;
+  }
+
+  /*
+   * A prop strike: the blades ticking on the surface, one tick a blade
+   * pass at the rpm the motors had, the props slowing as they hit, a
+   * dozen ticks. Bright on a hard surface, dull on a soft one.
+   */
+  strikeStart(level, hardness, rpm) {
+    const rate = this.rate;
+    const hd = Math.max(0, Math.min(1, hardness));
+    const f = Math.max(40, ((rpm > 600 ? rpm : 3000) / 60) * this.blades);
+    this.strikeGap = rate / f;
+    this.strikeNext = 0;
+    this.strikeTicks = 12;
+    /* The ticks, then 50 ms for the last one's ring to die. */
+    let left = 0;
+    for (let k = 0, g = this.strikeGap; k < 12; k += 1, g *= 1.08) {
+      left += g;
+    }
+    this.strikeLeft = left + 0.05 * rate;
+    this.strikeAmp = 0.5 * Math.max(0.1, Math.min(1, level));
+    this.strikeModes[0].tune((1300 + 2200 * hd) * (1 + 0.05 * this.hitRng()), 0.006 + 0.004 * hd, rate);
+    this.strikeModes[1].tune((3400 + 2600 * hd) * (1 + 0.05 * this.hitRng()), 0.004, rate);
+  }
+
+  strikeSample() {
+    this.strikeLeft -= 1;
+    if (this.strikeNext <= 0 && this.strikeTicks > 0) {
+      /* Each tick a 1.5 ms burst: a blade's edge is not a delta. */
+      this.strikeBurst = Math.round(0.0015 * this.rate);
+      this.strikeTickAmp = this.strikeAmp * (0.7 + 0.3 * this.hitRng());
+      this.strikeAmp *= 0.8;
+      this.strikeGap *= 1.08;
+      this.strikeNext = this.strikeGap;
+      this.strikeTicks -= 1;
+    }
+    this.strikeNext -= 1;
+    let x = 0;
+    if (this.strikeBurst > 0) {
+      this.strikeBurst -= 1;
+      x = this.strikeTickAmp * this.hitRng();
+    }
+    /* The modes have unity gain at their peaks (Mode.tune), so a burst
+     * reaches them at a fraction of its level; the direct burst is the
+     * edge, the modes the blade ringing. */
+    return 0.4 * x + 40 * this.strikeModes[0].run(x) + 20 * this.strikeModes[1].run(x);
   }
 
   /* The line, read `d` metres back: linear interpolation at the fractional

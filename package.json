@@ -243,6 +243,7 @@
     "mouse:shell": "node scripts/mouse-shell.js",
     "music:selftest": "node scripts/music-selftest.js",
     "audio:metrics": "node tools/audio/metrics-selftest.js",
+    "audio:specs": "node tools/audio/specs-selftest.js",
     "audio:flights": "node tools/audio/flights.js --check",
     "audio:lab": "node tools/audio/render.js",
     "voice:check": "python3 tools/voice/check.py",

@@ -79,6 +79,10 @@ export const VOICES = {
  * 'glow2' and its turbojet on 'edf', the ducted fan's, in VOICES, and the
  * engine voices them as what they are.
  */
+/* The one shot mechanisms MotorAudio.mechanical knows, by the worklet's
+ * codes. The flaps and the gear while they move are update()'s `air`. */
+const MECH_KINDS = { gear: 2, catapult: 3, parachute: 4 };
+
 export const ENGINE_MODELS = new Set(['quad', 'wing', 'edf', 'glow2', 'glow4', 'boxer2', 'turbojet']);
 export function engineModelFor(voice) {
   const name = Object.keys(VOICES).find((k) => VOICES[k] === voice);
@@ -199,7 +203,12 @@ export class MotorAudio {
      * (setEngineModel), and the hangar prop's blade count over the stock
      * prop's (setBladeScale). */
     this.engineModel = null;
+    this.engineParams = null;
     this.bladeScale = 1;
+    /* A seeded generator for the cues' variation, Math.imul so it does not
+     * repeat in a few thousand draws; seeded so an offline render is the
+     * same render twice. */
+    this.vary = 0x6a09e667;
     this.music = new Music();
     /* The war mode's radio and music (src/render/warradio.js), made on
      * the first war, and whether the music setting wants a bed at all:
@@ -230,10 +239,42 @@ export class MotorAudio {
     this.postEngineModel();
   }
 
+  /*
+   * PUBLIC API: the flown aircraft's own numbers on its model, from
+   * src/render/enginespec.js engineSpecFor: { motors, blades, poles,
+   * rpmRef, washV, rpmScale, idleRpm, gain }, any subset, or null for the
+   * model's own. The engine refuses any other key. Safe either side of
+   * attach.
+   */
+  setEngineParams(params) {
+    this.engineParams = params ? { ...params } : null;
+    this.postEngineModel();
+  }
+
+  /* The whole engine choice at once: { model, params } as engineSpecFor
+   * returns it. */
+  setEngineSpec(spec) {
+    this.engineModel = spec && spec.model ? spec.model : null;
+    if (this.engineModel != null && !ENGINE_MODELS.has(this.engineModel)) {
+      throw new Error(`audio: no engine model ${this.engineModel}`);
+    }
+    this.setEngineParams(spec ? spec.params : null);
+  }
+
   postEngineModel() {
     if (this.engine) {
-      this.engine.port.postMessage({ model: this.engineModel ?? engineModelFor(this.voice), bladeScale: this.bladeScale });
+      this.engine.port.postMessage(this.engineMessage());
     }
+  }
+
+  engineMessage() {
+    return { model: this.engineModel ?? engineModelFor(this.voice), params: this.engineParams, bladeScale: this.bladeScale };
+  }
+
+  /* 0 to 1, for a cue's variation. */
+  jitter() {
+    this.vary = (Math.imul(this.vary, 1664525) + 1013904223) >>> 0;
+    return this.vary / 4294967296;
   }
 
   /* P12: steady state AudioNode count. */
@@ -728,7 +769,7 @@ export class MotorAudio {
         numberOfInputs: 0,
         numberOfOutputs: 3,
         outputChannelCount: [2, 2, 2],
-        processorOptions: { model: this.engineModel ?? engineModelFor(this.voice), bladeScale: this.bladeScale },
+        processorOptions: this.engineMessage(),
       }));
       node.connect(this.motorBus, 0);
       node.connect(this.windBus, 1);
@@ -890,6 +931,10 @@ export class MotorAudio {
     }
     const t = atTime == null ? this.ctx.currentTime : atTime;
     const lv = level == null || level !== level ? 1 : 0.35 + 0.65 * Math.min(1, Math.max(0, level));
+    /* No two the same: every break is a few percent off the last in its
+     * pitch and its length. */
+    const fv = 0.9 + 0.2 * this.jitter();
+    const dv = 0.85 + 0.3 * this.jitter();
     const g = this.wreckGain.gain;
     const f = this.wreckBp.frequency;
     const q = this.wreckBp.Q;
@@ -900,20 +945,20 @@ export class MotorAudio {
     if (kind === 'snap') {
       /* Carbon and nylon fail in a crack well above the motors' band,
        * falling fast as the pieces separate. */
-      f.setValueAtTime(3800, t);
-      f.exponentialRampToValueAtTime(1500, t + 0.05);
+      f.setValueAtTime(3800 * fv, t);
+      f.exponentialRampToValueAtTime(1500 * fv, t + 0.05 * dv);
       q.setValueAtTime(2.2, t);
       g.exponentialRampToValueAtTime(3.2 * lv, t + 0.0015);
-      g.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      g.exponentialRampToValueAtTime(0.0001, t + 0.09 * dv);
       this.duckFlight(t, 0.5, 0.25);
       return;
     }
     if (kind === 'crunch') {
       /* Foam gives in grains: three quick bumps in the mids. */
-      f.setValueAtTime(900, t);
+      f.setValueAtTime(900 * fv, t);
       q.setValueAtTime(0.9, t);
       for (let k = 0; k < 3; k += 1) {
-        const tk = t + k * 0.028;
+        const tk = t + k * 0.028 * dv;
         g.setValueAtTime(0.0001, tk);
         g.exponentialRampToValueAtTime((2.0 - 0.45 * k) * lv, tk + 0.004);
         g.exponentialRampToValueAtTime(0.0001, tk + 0.026);
@@ -921,18 +966,18 @@ export class MotorAudio {
       return;
     }
     if (kind === 'chip') {
-      f.setValueAtTime(3000, t);
+      f.setValueAtTime(3000 * fv, t);
       q.setValueAtTime(3.0, t);
       g.exponentialRampToValueAtTime(1.4 * lv, t + 0.001);
-      g.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      g.exponentialRampToValueAtTime(0.0001, t + 0.025 * dv);
       return;
     }
     /* A splash: a wide burst that darkens as the water falls back. */
-    f.setValueAtTime(2200, t);
-    f.exponentialRampToValueAtTime(420, t + 0.55);
+    f.setValueAtTime(2200 * fv, t);
+    f.exponentialRampToValueAtTime(420 * fv, t + 0.55 * dv);
     q.setValueAtTime(0.6, t);
     g.exponentialRampToValueAtTime(2.2 * lv, t + 0.012);
-    g.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    g.exponentialRampToValueAtTime(0.0001, t + 0.6 * dv);
     this.duckFlight(t, 0.6, 0.4);
   }
 
@@ -1184,10 +1229,11 @@ export class MotorAudio {
   /*
    * The engine's per frame state, as AudioParams on the engine node so an
    * offline render schedules it sample accurately. `air`, when given, is
-   * { u, v, w, amps, dist, dist2, pan }: body frame velocity, m/s, the pack
-   * current, A, and an off board listener's distance, ground reflection
-   * path and pan. Without it the airspeed is taken as straight ahead and
-   * the listener as on board.
+   * { u, v, w, amps, dist, dist2, pan, flapsMoving, gearMoving }: body frame
+   * velocity, m/s, the pack current, A, an off board listener's distance,
+   * ground reflection path and pan, and whether the flaps and the gear are
+   * travelling this frame. Without it the airspeed is taken as straight
+   * ahead and the listener as on board.
    */
   updateEngine(rpm, speed, t, air) {
     const node = this.engine;
@@ -1206,6 +1252,8 @@ export class MotorAudio {
     set('v', a ? a.v : 0, 0.03);
     set('w', a ? a.w : 0, 0.03);
     set('amps', a ? a.amps : 0, 0.05);
+    set('servo', a && a.flapsMoving ? 1 : 0, 0.02);
+    set('retract', a && a.gearMoving ? 1 : 0, 0.02);
     /* Distance moves as a straight line between frames, not as a lag:
      * a lagged distance is a lagged delay, and its Doppler would be wrong. */
     for (const k of ['dist', 'dist2', 'pan']) {
@@ -1237,6 +1285,43 @@ export class MotorAudio {
     p.get('impact').setValueAtTime(0, t + 0.03);
     this.duckFlight(t, 0.35, 0.5);
     this.duckAction(t, 0.3, 0.55);
+  }
+
+  /*
+   * PUBLIC API: a one shot mechanism of the pilot's aircraft, on the
+   * Effects bus: 'gear' (a leg locking), 'catapult' (the shuttle's
+   * release), 'parachute' (the hatch and the canopy filling). The flaps'
+   * servos and the retracts' motor while they move are update()'s `air`
+   * (flapsMoving, gearMoving). Unknown kinds throw.
+   */
+  mechanical(kind, atTime) {
+    const code = MECH_KINDS[kind];
+    if (!code) {
+      throw new Error(`audio: no mechanism named ${kind}`);
+    }
+    if (!this.engine) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const p = this.engine.parameters;
+    p.get('mech').setValueAtTime(code, t);
+    p.get('mech').setValueAtTime(0, t + 0.03);
+  }
+
+  /*
+   * PUBLIC API: a prop strike on the pilot's aircraft: `level` 0 to 1, the
+   * surface's `hardness` 0 to 1. The blades tick at the rate the motors
+   * were turning, slowing.
+   */
+  propStrike(level, hardness, atTime) {
+    if (!this.engine) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const p = this.engine.parameters;
+    p.get('hardness').setValueAtTime(hardness, t);
+    p.get('strike').setValueAtTime(Math.max(0.01, Math.min(1, level)), t);
+    p.get('strike').setValueAtTime(0, t + 0.03);
   }
 
   /*

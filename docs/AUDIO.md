@@ -228,6 +228,46 @@ impulse, because a hard surface stops the craft in a fraction of the time,
 which is a far higher peak force. Every strike draws its own mode tuning
 and decay: no two hits are the same samples.
 
+### Every aircraft the player flies (phase 4)
+
+`src/render/enginespec.js` engineSpecFor(airframe, power, combat) names the
+model and the aircraft's own numbers, from the configs, for every airframe
+on every power option and every quad motor and prop (`npm run audio:specs`
+holds all of them, and the quads' hover rpm to the plant within 1 percent):
+
+| Class | Airframes | Model | Its own numbers |
+| --- | --- | --- | --- |
+| Quads | 5 inch, 7 inch, 10 inch, interceptor | `quad` | blades from the prop (`configs/motors.js` props, the #334 options included: all tri blade, the interceptor's APC two blade), 14 poles (12N14P, every 22 to 31 mm stator here), rpmRef its hover rpm in the plant (9407, 8666, 5049, 6534), washV from its weight and prop disc. A #321 motor changes the rpm the plant reports, and the sound follows it |
+| Whoop | whoop65 | `quad` | it flies the five inch's plant in a hall built larger, so the plant's rpm is heard 3.2 times faster (a 65 mm whoop hovers near 30,000 rpm, ESTIMATED from the class), on four blade props and 12 pole motors: the whoop's own whine |
+| Electric planes | Sky, Cub, Radian, Bramor, Slow Stick, Timber, floats, P-51, Zagi, the electric options | `wing` | blades from the power option (the P-51's four), 14 poles, rpmRef three quarters of its full rpm |
+| Glow two strokes | Bombshell, Ugly Stik, Tiger Moth | `glow2` | blades, rpmRef, idle rpm from the option |
+| Glow four strokes | Kadet Senior, the Tiger Moth's FS-91 | `glow4` | the same |
+| Ducted fan | F-16 | `edf` | a fan, not the turbojet: 12 blades whose pass is the sound, tones up to 14 kHz, broadband under the pass, an inlet roar, a 4 pole inrunner's whine (ESTIMATED) |
+| Striker | prop and jet | `boxer2`, `turbojet` | the base models (section 4 above) |
+| Gliders | the NRJ DLG | `wing`, nothing turning | the air is the whole sound: unity at 15 m/s and 15.6 dB up (ESTIMATED), so a 7 m/s glide is quiet but there |
+
+### Contacts and mechanisms (phase 4)
+
+- **Every hit names its surface.** The shell's contact path
+  (`src/main.js` feelImpact) hands the engine the material the plant was
+  told for that spot (the ground's, `declareGroundMaterial`) or the
+  collider's (`src/game/crashworld.js` kindMaterial: a gate's PVC, a
+  tree's wood, a wall's concrete, a cliff's rock, a crown's foliage), its
+  hardness from the module (`sim_material_info`), and the momentum, the
+  craft's mass times the closing speed. A light touch stays the graze cue.
+- **Prop strikes**: a blade on an obstacle (the shell's sim_prop_strike)
+  ticks at the blade pass the motors were turning, a dozen ticks slowing
+  as the props are knocked down, bright on a hard surface and dull on a
+  soft one.
+- **Wreck parts** (snap, crunch, chip, splash) keep their voices, now on
+  real noise and each a few percent off the last in pitch and length.
+- **Mechanisms**, heard from the airframe's own camera: the flaps' servos
+  while the plant's flap angle moves, the retracts' motor while the gear
+  travels and a clunk as it locks, the catapult's release, and the
+  parachute's hatch and its canopy filling. The moving ones follow the
+  plant (sim_wing_flaps, sim_wing_gear) rather than a timer, so they last
+  exactly as long as the travel.
+
 ### Explosions (phase 4)
 
 The existing `boom()` already delays by d / 343 and darkens with distance.
@@ -414,6 +454,41 @@ music; `tools/audio/measured.json` has every field):
 Render cost: OLD 0.02 s a second, NEW 0.04 (Striker) to 0.11 (four
 motors) s a second, all under the 0.25 bar.
 
+Phase 4's classes, the same command (NEW from the engine with each
+aircraft's own spec; OLD the frozen baseline playing each one's old
+voice; `tools/audio/measured.json` has every field). The Striker's rows
+above moved by a few tenths where the rail's catapult release is now heard.
+
+| Flight | OLD LUFS | NEW LUFS | NEW short max | NEW dBTP | 2 to 5 kHz % A, OLD / NEW | repetition OLD / NEW |
+| --- | --- | --- | --- | --- | --- | --- |
+| 5 inch, prop strike on a post | -27.22 | -25.77 | -25.26 | -7.11 | 0.5 / 21.4 | 0.066 / 0.171 |
+| 5 inch, crash on rock | -25.08 | -25.91 | -25.23 | -6.54 | 7.8 / 7.4 | 0.195 / 0.413 |
+| Whoop, hover and punch | -28.52 | -25.63 | -22.65 | -15.24 | 1.0 / 30.2 | 0.746 / 0.192 |
+| 7 inch, hover and punch | -27.82 | -25.69 | -22.96 | -13.97 | 0.3 / 4.5 | 0.592 / 0.679 |
+| 10 inch, hover and punch | -28.90 | -26.09 | -24.03 | -14.87 | 0.3 / 5.1 | 0.622 / 0.634 |
+| Interceptor, hover and punch | -28.68 | -25.40 | -22.58 | -13.66 | 0.9 / 6.7 | 0.785 / 0.778 |
+| Cub (electric) | -35.70 | -26.67 | -25.20 | -19.34 | 7.3 / 5.0 | 0.650 / 0.802 |
+| Kadet Senior (four stroke) | -36.29 | -26.12 | -23.06 | -17.48 | 9.1 / 2.8 | 0.634 / 0.701 |
+| Bombshell (two stroke) | -35.66 | -25.83 | -23.34 | -17.74 | 2.0 / 3.2 | 0.562 / 0.413 |
+| Tiger Moth (two stroke) | -35.24 | -24.74 | -22.98 | -17.49 | 9.5 / 5.2 | 0.579 / 0.515 |
+| P-51 (four blade electric), gear and flaps | -33.89 | -22.31 | -21.09 | -15.59 | 10.0 / 3.0 | 0.645 / 0.077 |
+| F-16 (ducted fan) | -35.04 | -26.54 | -24.31 | -22.26 | 18.2 / 32.4 | 0.527 / 0.218 |
+| NRJ glider (air alone) | -49.13 | -37.42 | -37.31 | -26.15 | 4.6 / 1.4 | 0.873 / 0.115 |
+| Bramor, catapult and parachute | -31.03 | -25.20 | -24.25 | -6.12 | 14.0 / 9.9 | 0.861 / 0.447 |
+
+Every NEW row meets its bars; the glider's is its own, -40 to -30 LUFS,
+because its air is its only sound and a quiet one. That bar was written
+after the glider's first render came back at -63.2 LUFS against the
+powered flights' band, which it was never meant to be in. Two
+trims were set by these renders, in this order: the electric plane model
+went from 1 to 0.85 and then 0.8 when the P-51, the loudest electric
+flight (four blades at 0.8 throttle), measured -21.00 and then -21.89
+against the -22 ceiling; and the glider's air was raised from the
+planes' (-63.2 LUFS, inaudible) to unity at 15 m/s and 15.6 dB up. The
+whoop and the fan are the harshest NEW sounds (30.2 and 32.4 percent in
+2 to 5 kHz, under 35): a whoop's whine and a fan's blade pass are what
+those machines are.
+
 Reading it:
 
 - **Responsive**: OLD's loudness range on the punch-out is 2.1 LU, NEW's
@@ -463,7 +538,9 @@ pull requests:
    now asserts the engine node is attached where it asserted four motor
    chains; the 64 node bar is unchanged. `scripts/audio-probe.js`, built on
    the deleted chains, is retired; `tools/audio/render.js` replaces it.
-2. Every aircraft the player flies, each with its own engine: the quads
+2. **Done in the second** (section 4, "Every aircraft the player flies" and
+   "Contacts and mechanisms"; the figures below). Every aircraft the player
+   flies, each with its own engine: the quads
    (5 inch, whoop, 7 inch, 10 inch, interceptor) with their blade counts,
    poles and the hangar's motors and props; the fixed wings' electric
    outrunners, glow two and four strokes, the Tiger Moth and the P-51, the
@@ -526,6 +603,19 @@ other aircraft), for a sound that must cut through them.
 - `audio.setMix({ motors, wind, music, focus, effects, voice, ambience,
   other })`, each 0 to 1, any subset; an unknown key throws.
 - `audio.nodeCount()`.
+
+**The pilot's aircraft's identity**, set by the shell where it seats the
+power system (src/main.js applyPower):
+
+- `audio.setEngineSpec({ model, params })`: what `engineSpecFor` returns;
+  `audio.setEngineParams(params)` alone. Params are any of motors, blades,
+  poles, rpmRef, washV, rpmScale, idleRpm, gain, windRef, windGain; the
+  engine throws on any other.
+- `air.flapsMoving`, `air.gearMoving` (update()'s `air`): the flaps and
+  the retracts travelling this frame.
+- `audio.mechanical(kind, atTime)`: 'gear' (a leg locking), 'catapult',
+  'parachute'.
+- `audio.propStrike(level, hardness, atTime)`.
 
 **Frames and units.** Everything is SI. A position the world hands its
 own worklet is its own business; the propagation in the engine takes
