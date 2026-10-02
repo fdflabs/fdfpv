@@ -312,6 +312,25 @@ export async function syncProgress(settings) {
   return mergeBlobs(got.progress, null);
 }
 
+/*
+ * The merge a sync would answer, with nothing sent: for a computer with
+ * no change of its own since its last sync, which would otherwise not
+ * hear of another computer's until it changed something or the page was
+ * loaded again. Merged here exactly as the server would merge this
+ * computer's settings sent with no new stamps, never the account's blob
+ * taken as it is: something this computer holds that never reached the
+ * account (a build settled as synced by a server that dropped the
+ * section) is kept, and the next sync that sends takes it up.
+ */
+export async function pullProgress(settings) {
+  if (!signedIn()) {
+    return null;
+  }
+  const kept = readJson(SYNCED_KEY);
+  const got = await api('GET', '/api/account/progress');
+  return mergeBlobs({ v: 1, data: pickSynced(settings), stamps: (kept && kept.stamps) || {} }, got.progress);
+}
+
 export function settled(settings, merged) {
   writeJson(SYNCED_KEY, { data: pickSynced(settings), stamps: merged.stamps });
 }
