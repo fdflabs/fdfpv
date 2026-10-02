@@ -4299,8 +4299,11 @@ export async function boot({
     peerHeard.length = 0;
     if (mode !== 'replay') {
       for (const peer of roomPeers.values()) {
-        const p = peer.drawnPose;
-        if (!p || (p.flags & FLAG_CRASHED) || !peer.rig || !peer.rig.group.visible) {
+        /* Where it is drawn, and what its newest sample says it is doing
+         * (the drawn pose carries position and attitude only). */
+        const at = peer.drawnPose;
+        const p = peer.last;
+        if (!at || !p || (p.flags & FLAG_CRASHED) || !peer.rig || !peer.rig.group.visible) {
           continue;
         }
         if (!peer.audio || peer.audio.key !== peer.profile.airframe) {
@@ -4319,9 +4322,9 @@ export async function boot({
         a.rpm[1] = quad ? p.c1 * RPM_PER_RAD_S : 0;
         a.rpm[2] = quad ? p.c2 * RPM_PER_RAD_S : 0;
         a.rpm[3] = quad ? p.c3 * RPM_PER_RAD_S : 0;
-        a.x = p.px;
-        a.y = p.py;
-        a.z = p.pz;
+        a.x = at.px;
+        a.y = at.py;
+        a.z = at.pz;
         a.vx = p.vx;
         a.vy = p.vy;
         a.vz = p.vz;

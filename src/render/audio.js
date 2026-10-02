@@ -873,7 +873,9 @@ export class MotorAudio {
     rank.length = 0;
     for (const pr of peers) {
       const d = Math.hypot(pr.x - l.x, pr.y - l.y, pr.z - l.z);
-      if (d > PEER_RANGE_M) {
+      /* A pilot with no finite position is not anywhere to be heard from;
+       * NaN fails the range test and is dropped with the far ones. */
+      if (!(d <= PEER_RANGE_M)) {
         continue;
       }
       const turning = pr.rpm[0] > 300 || pr.rpm[1] > 300 || pr.rpm[2] > 300 || pr.rpm[3] > 300;
@@ -933,10 +935,12 @@ export class MotorAudio {
   voicePeer(slot, pr, dist, t) {
     const p = slot.node.parameters;
     const l = this.listener;
+    /* The same rule as updateEngine: a value that is not a number is 0. */
+    const num = (v) => (Number.isFinite(v) ? v : 0);
     for (let m = 0; m < 4; m += 1) {
-      p.get(`rpm${m}`).setTargetAtTime(Math.max(0, pr.rpm[m] || 0), t, 0.03);
+      p.get(`rpm${m}`).setTargetAtTime(Math.max(0, num(pr.rpm[m])), t, 0.03);
     }
-    p.get('u').setTargetAtTime(Math.hypot(pr.vx, pr.vy, pr.vz), t, 0.05);
+    p.get('u').setTargetAtTime(num(Math.hypot(pr.vx, pr.vy, pr.vz)), t, 0.05);
     const dx = pr.x - l.x;
     const dy = pr.y - l.y;
     const dz = pr.z - l.z;
