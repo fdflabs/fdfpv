@@ -1472,10 +1472,8 @@
        */
       .gate-cards { display: none; }
       /* The menu column is 36em of the window; the gate is the page, so it
-         takes the width back. 64em was two cards' worth and left three of
-         them huddled in the left two thirds of a wide screen, so it is the
-         width three want. The world behind it still shows around and under
-         them. */
+         takes the whole content width back: a capped column left six cards
+         huddled in the left two thirds of a wide screen. */
       .screen-title.is-gate .title-copy {
         width: 100%;
         justify-content: flex-start;
@@ -1523,14 +1521,20 @@
       .screen-title.is-gate .gate-rooms:not([hidden]) {
         display: flex; flex-direction: column; gap: 7px;
         flex: 0 1 31em; min-width: 0;
-        /* Its right edge on the cards' right edge, level with the foot of
-           the name, which is below the corner's chips. */
-        margin: 0 0 0 auto;
+        /* Short of the right edge, where the sign in chip and the music
+           dock sit over the page: a panel listing rooms grows upward into
+           that corner (measured at 1280 by 720, scripts/mode-cards-check.js). */
+        margin: 0 clamp(190px, 16vw, 210px) 0 auto;
         padding: 10px 12px 11px;
         background: var(--pdcs-panel);
         border-top: 1px solid var(--pdcs-line);
         box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
         pointer-events: auto;
+      }
+      /* A window tall enough that the name's foot is far below the corner
+         chips: the panel's right edge goes onto the cards' right edge. */
+      @media (min-width: 861px) and (min-height: 1000px) {
+        .screen-title.is-gate .gate-rooms:not([hidden]) { margin-right: 0; }
       }
       .gate-rooms-head { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
       .gate-rooms-title {
@@ -3438,8 +3442,8 @@
       }
 
       /* The map screen. One card per world, each playing a short flight
-         through it. The cursor is the same bar and colour the menu rows
-         use, turned on its side: a sakura edge and a lift, never a slab. */
+         through it. The cursor is the gate card's: a full strength hairline,
+         never a slab. */
       /* Symmetric, so the row list sits under the middle of the card grid
          rather than pushed right by a help column with no counterweight. */
       .screen-maps .menu-stage {
@@ -3461,31 +3465,21 @@
         width: 100%;
       }
       .map-card {
-        width: min(340px, 82vw); cursor: pointer; border-radius: 0;
+        width: min(340px, 82vw); cursor: pointer;
         overflow: hidden; position: relative;
-        background: rgba(10, 13, 14, 0.72);
-        border-top: 2px solid rgba(215, 221, 221, 0.28);
-        box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.10);
-        transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+        background: var(--pdcs-panel);
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+        transition: box-shadow 0.14s ease;
       }
-      .map-card.on {
-        transform: translateY(-4px);
-        border-top-color: var(--sakura);
-        box-shadow: inset 0 0 0 2px var(--sakura), 0 12px 28px rgba(0, 0, 0, 0.45);
-      }
+      /* The gate card's cursor: a full strength hairline, no lift. */
+      .map-card.on { box-shadow: inset 0 0 0 1px var(--pdcs-text); }
       /* The card whose actions are showing below the strip. It has to read as
          chosen even when the cursor has moved off it onto its own list, which
-         is the whole reason the list is not floating free any more. Mint
-         rather than sakura: sakura is the cursor, and two pinks a card apart
-         would be one state drawn twice. */
-      .map-card.chosen {
-        border-top-color: var(--mint);
-        box-shadow: inset 0 0 0 2px var(--mint), 0 12px 28px rgba(0, 0, 0, 0.45);
-      }
-      .map-card.chosen.on {
-        box-shadow: inset 0 0 0 2px var(--sakura), 0 0 0 3px var(--mint),
-          0 12px 28px rgba(0, 0, 0, 0.45);
-      }
+         is the whole reason the list is not floating free any more. Green
+         rather than the cursor's white: two whites a card apart would be one
+         state drawn twice. */
+      .map-card.chosen { box-shadow: inset 0 0 0 1px var(--mint); }
+      .map-card.chosen.on { box-shadow: inset 0 0 0 1px var(--pdcs-text), 0 0 0 2px var(--mint); }
       .map-card.chosen .map-card-name { color: var(--mint); }
       /* 16 by 9, so the thumbnail is the shape of the thing it is a
          thumbnail of. A looping clip of the title shot fills this box. */
