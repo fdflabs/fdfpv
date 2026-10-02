@@ -31,6 +31,9 @@
  *   r   for a barrier, a chunk that holds water back: its face as
  *       [u0, u1, y0, y1], metres along the frame's u from its o, and
  *       world heights
+ *   w   for a gantry's beam, the power line spans whose wires end on it
+ *       (src/share/war/itaipu-wires.js's span ids): it gone, they are
+ *       down
  *
  *   water  the surface the structure stands in (the reservoir), or null
  *   frame  where an opening is measured: o a point, u the horizontal
@@ -67,7 +70,7 @@
  *
  *   chunk      hp     chunk       hp     chunk       hp
  *   skin       60     leaf        45     shell      100
- *   girder     90     frame      140     tank        60
+ *   girder     90     frame      140     tank        40
  *   arm        80     column      50     bushing     20
  *   brace      50     cover       40     post        70
  *   trunnion  200                        beam        50
@@ -91,7 +94,7 @@
  * WHAT IT COSTS THE WAR. A target with an opening is lost, as a hit
  * loses it (war.js take): its unit's or its gate's megawatts, once. The
  * yard holds no water: it is lost when YARD_DOWN of its transformers'
- * tanks are gone. Wider consequences (a flooded powerhouse taking its
+ * tanks are gone, wherever in it. Wider consequences (a flooded powerhouse taking its
  * neighbours, a yard part lost shedding part of its side) are not decided
  * here; they are the lead's to decide.
  *
@@ -148,14 +151,14 @@ export const HP = Object.freeze({
   column: 50,
   cover: 40,
   shell: 100,
-  tank: 60,
+  tank: 40,
   bushing: 20,
   post: 70,
   beam: 50,
 });
 
-/* The share of the yard's transformer tanks whose loss loses the yard. */
-export const YARD_DOWN = 0.5;
+/* How many of the yard's transformer tanks lost lose the yard. */
+export const YARD_DOWN = 3;
 
 /* The contract's opening kinds, by the part a target is. */
 const OPENING_KIND = Object.freeze({ intake: 'intake', gate: 'gate', penstock: 'penstock' });
@@ -234,7 +237,9 @@ function sphereOf(s) {
 /* A target's state in the match, plain arrays (the room stores it as
  * JSON): what each chunk has taken, and which are gone (1). */
 export function freshState(s) {
-  return { dmg: s.chunks.map(() => 0), gone: s.chunks.map(() => 0), open: null, down: false };
+  return {
+    dmg: s.chunks.map(() => 0), gone: s.chunks.map(() => 0), open: null, down: false, cut: [],
+  };
 }
 
 /* The standing chunks no chain of standing chunks joins to an anchor. */
@@ -325,7 +330,7 @@ export function lostBy(s, st) {
       gone += st.gone[i];
     }
   });
-  return tanks > 0 && gone >= YARD_DOWN * tanks;
+  return tanks > 0 && gone >= Math.min(YARD_DOWN, tanks);
 }
 
 /* What is left of a target, by its chunks' hp, 0 to 1. */
@@ -345,11 +350,12 @@ export function healthOf(s, st) {
  * { id: state } (freshState), changed in place. Returns one record a
  * target that lost something, in the structures' order:
  *
- *   { target, at, chunks, fell, openings, down, health }
+ *   { target, at, chunks, fell, openings, down, health, cut }
  *
  * chunks every one removed (broken, then fallen), fell those that fell,
  * openings the target's opening when it is new or bigger ([] when not),
- * down true when this cost the target (lostBy) and it had not before.
+ * down true when this cost the target (lostBy) and it had not before,
+ * cut the power line spans newly down (the gone chunks' `w`).
  */
 export function blast(structures, wreck, p, w, at) {
   const out = [];
@@ -399,8 +405,18 @@ export function blast(structures, wreck, p, w, at) {
     if (lost) {
       st.down = true;
     }
+    st.cut ??= [];
+    const cut = [];
+    for (const i of [...broke, ...fell]) {
+      for (const span of s.chunks[i].w ?? []) {
+        if (!st.cut.includes(span) && !cut.includes(span)) {
+          cut.push(span);
+        }
+      }
+    }
+    st.cut.push(...cut);
     out.push({
-      target: id, at, chunks: [...broke, ...fell], fell, openings: grew ? [open] : [], down: lost, health: healthOf(s, st),
+      target: id, at, chunks: [...broke, ...fell], fell, openings: grew ? [open] : [], down: lost, health: healthOf(s, st), cut,
     });
   }
   return out;

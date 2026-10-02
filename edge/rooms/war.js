@@ -127,7 +127,9 @@
  *                                             break contract's), down true
  *                                             when it cost the target, p
  *                                             where it went off, by the
- *                                             attacker kind or 'defender'
+ *                                             attacker kind or 'defender',
+ *                                             cut the power line spans
+ *                                             whose gantry fell
  *   { type: 'war', error }                    to a refused sender
  *
  * and AGENTS (0xA0) to each seat on the room tick, thinned by distance on
@@ -451,6 +453,7 @@ export class RoomWar {
      *   agents: [birth records alive], nextAgent, scouts: { n, killed }
      *   of the last scout wave or null, hunters (Hunters save),
      *   wreck: { target: damage.js state }, damage: [events, in order],
+     *   cut: [power line span ids down],
      *   endAt }, or null before the first game.
      */
     this.match = null;
@@ -1075,7 +1078,7 @@ export class RoomWar {
           id, kind: w.kind, route: w.route, t0, k, n, err, target: waveTarget(w, k), wave: m.wave,
         };
         /* Whether it flies into a power line on its way, and when. */
-        const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, id, j));
+        const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, id, j), m.cut && m.cut.length ? new Set(m.cut) : null);
         if (wire != null) {
           a.wire = wire;
         }
@@ -1573,6 +1576,10 @@ export class RoomWar {
         seq: m.damage.length, ...r, p: at, by,
       };
       m.damage.push(e);
+      /* Lines whose gantry fell: no attacker born from now strikes them. */
+      if (r.cut.length) {
+        m.cut = [...(m.cut ?? []), ...r.cut];
+      }
       if (r.down) {
         this.lose(r.target);
       }

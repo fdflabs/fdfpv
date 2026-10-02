@@ -130,7 +130,9 @@ function inHero(points, what) {
  * The town. `data` is ctx.data, `ground` ctx.ground, `sink` { face, bar }
  * (mesh.js, or a counter), `progress(f)` the part's share of the bar.
  */
-export async function planTown({ data, ground, sink, progress = () => {}, yieldEvery = async () => {} }) {
+export async function planTown({
+  data, ground, sink, breakable = null, progress = () => {}, yieldEvery = async () => {},
+}) {
   const buildingsData = need(data, 'osm/buildings.json');
   const roadsData = need(data, 'osm/roads.json');
   const powerData = need(data, 'osm/power.json');
@@ -237,10 +239,19 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
   /* Power. */
   const { structures, wires } = layOut(powerData, ground);
   const pieces = [];
+  /* A gantry's pieces can break (the war's damage): drawn apart from the
+   * sink, in `breakable`, by structure id, each { range, cap }: its range
+   * of that mesh and its index among the streamed caps. */
+  const portals = new Map();
   for (const s of structures) {
     inHero([[s.x, s.z]], `power ${s.id}`);
     for (const p of piecesOf(s)) {
-      sink.bar('metal', STEEL, p.slice(0, 3), p.slice(3, 6), p[6], { cast: true });
+      if (s.kind === 'portal' && breakable) {
+        const b = breakable.bar(p.slice(0, 3), p.slice(3, 6), p[6], p[6], STEEL);
+        portals.set(s.id, [...(portals.get(s.id) ?? []), { range: b.range, cap: pieces.length }]);
+      } else {
+        sink.bar('metal', STEEL, p.slice(0, 3), p.slice(3, 6), p[6], { cast: true });
+      }
       pieces.push(p);
     }
     for (const p of bracesOf(s)) {
@@ -274,6 +285,10 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
     capMid[i * 2] = (c[0] + c[3]) / 2;
     capMid[i * 2 + 1] = (c[2] + c[5]) / 2;
   });
+
+  /* The caps taken out of the streamed set: a gantry's piece that broke,
+   * a wire whose span is down. */
+  const dropped = new Set();
 
   /* The roofs that had walls in the set in force, what the refill in
    * progress took (for swapped), and where the set was last filled. */
@@ -347,6 +362,9 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
         if (dx * dx + dz * dz > w2) {
           continue;
         }
+        if (dropped.has(i)) {
+          continue;
+        }
         const c = caps[i];
         list.add(i < capWire ? 'pole' : 'wire', c[0], c[1], c[2], c[3], c[4], c[5], c[6]);
         power += 1;
@@ -371,12 +389,48 @@ export async function planTown({ data, ground, sink, progress = () => {}, yieldE
     },
   };
 
+  /*
+   * What broke, out of the streamed set or back: a gantry's piece k
+   * (piecesOf's order), every chord of the spans `down`. The set is
+   * refilled at once round where it was (wants() says so), so a craft
+   * meets what stands and flies through what fell.
+   */
+  const power = {
+    portals,
+    setPieceGone(id, k, gone) {
+      const piece = (portals.get(id) ?? [])[k];
+      if (!piece) {
+        throw new Error(`town: no gantry piece ${k} of ${id}`);
+      }
+      breakable.gone(piece.range, gone);
+      if (gone) {
+        dropped.add(piece.cap);
+      } else {
+        dropped.delete(piece.cap);
+      }
+      near.x = NaN;
+    },
+    setSpansDown(spans) {
+      const down = new Set(spans);
+      for (let i = capWire; i < caps.length; i += 1) {
+        if (down.has(caps[i][10])) {
+          dropped.add(i);
+        } else {
+          dropped.delete(i);
+        }
+      }
+      sink.setWiresDown(down, ground);
+      near.x = NaN;
+    },
+  };
+
   progress(1);
   return {
     records,
     fixed,
     fixedCaps,
     stream,
+    power,
     buildings,
     structures,
     wires,

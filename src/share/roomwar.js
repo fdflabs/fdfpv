@@ -247,7 +247,7 @@ export function createRoomWar(send) {
         if (Number.isInteger(m.seq) && !damage[m.seq]) {
           const e = {
             type: 'damage', seq: m.seq, at: m.at, target: m.target, chunks: m.chunks || [], fell: m.fell || [],
-            openings: m.openings || [], down: m.down === true, health: m.health, p: m.p, by: m.by,
+            openings: m.openings || [], down: m.down === true, health: m.health, p: m.p, by: m.by, cut: m.cut || [],
           };
           damage[m.seq] = e;
           events.push(e);
@@ -333,7 +333,7 @@ export function createRoomWar(send) {
      *                                          fly with their error
      *   { type: 'state', from, to, why }
      *   { type: 'damage', seq, at, target, chunks, fell, openings, down,
-     *     health, p, by }                     what a warhead broke
+     *     health, p, by, cut }                     what a warhead broke
      *                                          (edge/rooms/war.js strike),
      *                                          each seq once */
     takeEvents() {

@@ -241,7 +241,8 @@ function renderChunks(structures) {
     rows.push('    chunks: [');
     for (const ch of s.chunks) {
       const r = ch.r ? `, r: ${list(ch.r)}` : '';
-      rows.push(`      { k: '${ch.k}', c: ${list(ch.c)}, e: ${list(ch.e, um)}, h: ${list(ch.h)}, a: ${ch.a}, l: [${ch.l.join(', ')}]${r} },`);
+      const w = ch.w ? `, w: [${ch.w.join(', ')}]` : '';
+      rows.push(`      { k: '${ch.k}', c: ${list(ch.c)}, e: ${list(ch.e, um)}, h: ${list(ch.h)}, a: ${ch.a}, l: [${ch.l.join(', ')}]${r}${w} },`);
     }
     rows.push('    ],');
     rows.push('  },');
