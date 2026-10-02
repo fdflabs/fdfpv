@@ -287,21 +287,24 @@ export function chuteMaterial(THREE, {
           float fine = mix(clump, 0.5, far);
           float h = body * 0.6 + fine * 0.4;
           chuteFoam = smoothstep(0.42 - 0.3 * aer, 0.56 - 0.22 * aer, h) * mix(0.6, 1.0, aer);
-          chuteFoam *= 1.0 - 0.6 * wake;
+          chuteFoam *= 1.0 - 0.35 * wake;
           /* A jet's water tears white where it runs along the piers. */
           chuteFoam = max(chuteFoam, jet * smoothstep(0.7, 1.0, e) * smoothstep(0.35, 0.6, clump * 0.6 + streak * 0.4));
           /* Glassy green grey water where it is thin or not yet
            * aerated, and the foam cream white on its crests and grey in
-           * its hollows. */
-          vec3 water = mix(vec3(0.06, 0.09, 0.07), vec3(0.13, 0.16, 0.13), aer);
+           * its hollows. Round 4 measured the running chute from the air
+           * (aerial-spill-2, spill-run-1): a warm cream, sRGB (209, 200,
+           * 180), 82 per cent of it near white, where v3's greener foam
+           * drew (180, 183, 179) and half: the foam warmer and paler. */
+          vec3 water = mix(vec3(0.06, 0.09, 0.07), vec3(0.13, 0.15, 0.12), aer);
           float lit = smoothstep(0.3, 0.72, mix(fine * 0.65 + body * 0.35, body, far)) + 0.3 * fin;
-          vec3 foam = mix(vec3(0.2, 0.24, 0.21), vec3(0.54, 0.57, 0.52), clamp(lit, 0.0, 1.0));
+          vec3 foam = mix(vec3(0.25, 0.25, 0.21), vec3(0.64, 0.61, 0.53), clamp(lit, 0.0, 1.0));
           diffuseColor.rgb = mix(water, foam, chuteFoam);
           /* How much of the floor it hides: thin at the walls and in the
            * wakes, where only its foam is opaque, and each jet gone into
            * the chute's sheet by its end. */
           float thin = max(smoothstep(0.8, 1.0, e) * (1.0 - jet), wake);
-          diffuseColor.a = 1.0 - (1.0 - chuteFoam) * thin * 0.75;
+          diffuseColor.a = 1.0 - (1.0 - chuteFoam) * thin * 0.5;
           diffuseColor.a *= 1.0 - jet * max(smoothstep(${(PIER_END + 2).toFixed(1)}, ${JET_TOP[JET_TOP.length - 1][0].toFixed(1)}, d),
             smoothstep(0.6, 1.0, e) * smoothstep(${(PIER_END - 6).toFixed(1)}, ${(PIER_END + 4).toFixed(1)}, d));
           vec3 n1 = texture2D(uWaves, vec2(u / 45.0 + 0.31, (d - t * 1.05) / 15.0)).xyz * 2.0 - 1.0;

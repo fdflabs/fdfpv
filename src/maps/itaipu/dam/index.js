@@ -188,8 +188,11 @@ const TONE = {
   /* The rockfill's dumped basalt, dark red brown (rockfill-road photo). */
   rock: [0.22, 0.16, 0.14],
   /* The radial gates' skin plates, rust red, and their arms and hoist
-   * cylinders, orange (spill-gates photo). */
-  gate: [0.2, 0.045, 0.025],
+   * cylinders, orange (spill-gates photo). Round 4 measured the skins:
+   * a weathered brown red, sRGB (54, 42, 39) at saturation 0.34, where
+   * v3's [0.2, 0.045, 0.025] drew a fresh paint red (107, 64, 56) at 0.51;
+   * darker and greyer here, the steel's weathering (STEEL_BODY) on it. */
+  gate: [0.13, 0.042, 0.03],
   arm: [0.4, 0.13, 0.05],
   /* White paint. The sun and the ground's bounce (BOUNCE) take a tone
    * much over this to clipped white: v2's 0.82 drew as a flat white plank
@@ -209,14 +212,19 @@ const TONE = {
   /* The intake gantry cranes' paint: a violet, purple in sun and blue
    * grey in shade (crest-road, dam-downstream); v2's pastel lilac read
    * as a toy and v3's [0.2, 0.18, 0.22] as grey, its green as high as
-   * its red where the photographs' is well under both. */
-  craneViolet: [0.17, 0.095, 0.22],
+   * its red where the photographs' is well under both. Round 4: the
+   * legs' lit side measures sRGB (74, 83, 95) in crest-road, a blue grey
+   * with the violet only in its shade, where [0.17, 0.095, 0.22] drew
+   * (97, 86, 122); a greyer violet. */
+  craneViolet: [0.15, 0.1, 0.18],
   /* Their machinery houses' corrugated cladding, a light blue grey. */
   cladding: [0.2, 0.225, 0.24],
   /* The jib cranes' weathered boarding (crest-road). */
   boards: [0.3, 0.29, 0.27],
   craneOrange: [0.5, 0.2, 0.05],
-  craneRust: [0.28, 0.1, 0.05],
+  /* The crest's jib crane, a dark rust red brown in crest-road; v3's
+   * [0.28, 0.1, 0.05] drew orange beside it. */
+  craneRust: [0.2, 0.075, 0.045],
   steel: [0.32, 0.33, 0.34],
   glass: [0.05, 0.06, 0.07],
   draft: [0.02, 0.022, 0.02],
@@ -612,8 +620,7 @@ const BOUNCE = /* glsl */ `
  * vS2World is declared by the look's light (look/light.js inject), which
  * every material in the scene goes through.
  */
-const AGE_PARS = /* glsl */ `
-  vec3 itdN = vec3(0.0, 1.0, 0.0);
+const NOISE_PARS = /* glsl */ `
   float itdHash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -627,6 +634,25 @@ const AGE_PARS = /* glsl */ `
                mix(itdHash(i + vec2(0.0, 1.0)), itdHash(i + vec2(1.0, 1.0)), u.x), u.y);
   }
 `;
+const AGE_PARS = /* glsl */ `
+  vec3 itdN = vec3(0.0, 1.0, 0.0);
+  ${NOISE_PARS}
+`;
+/*
+ * Round 4 (the owner's photorealism pass) measured the concrete against
+ * the photographs (refs in ~/Desktop/fdfpv-loop/itaipu/round-4/refs/
+ * dam-water): sunlit pier faces in spill-gates are a warm beige, mean
+ * sRGB (137, 123, 101), HSV saturation 0.23, where v3 drew a neutral
+ * (84, 83, 81) at 0.05; the crest road (145, 129, 108) at 0.25 against
+ * v3's (152, 147, 143) at 0.06; and the photographs' faces span three
+ * times v3's luminance range, p10 to p90 0.04 to 0.68 against 0.03 to
+ * 0.23, the dark of it the rain's streaks. So the pours are warmer (`warm`,
+ * each patch its own between the two), the streaks are long dark brown
+ * runs at two widths, the wide ones from the crest band and the narrow
+ * drips under every lift, with the washed concrete between them paler,
+ * and the face is damp and dark for metres over the tailwater, its top
+ * edge ragged where the spray and the waves reach.
+ */
 const AGE_BODY = /* glsl */ `
   {
     vec3 wn = inverseTransformDirection(normal, viewMatrix);
@@ -637,14 +663,19 @@ const AGE_BODY = /* glsl */ `
     float y = vS2World.y;
     float far = smoothstep(150.0, 900.0, length(vViewPosition));
     float blot = itdNoise(vS2World.xz / 29.0 + y / 37.0) * 0.6 + itdNoise(vS2World.xz / 7.0 - y / 11.0) * 0.4;
-    diffuseColor.rgb *= 0.82 + 0.3 * blot;
+    diffuseColor.rgb *= 0.8 + 0.34 * blot;
+    float warm = itdNoise(vS2World.xz / 53.0 - y / 41.0 + 5.0);
+    diffuseColor.rgb *= mix(vec3(1.03, 1.0, 0.95), vec3(1.12, 1.0, 0.82), warm);
     float lift = abs(fract(y / 2.4) - 0.5) * 2.4;
     float block = abs(fract(h / 15.42) - 0.5) * 15.42;
     float joint = max(1.0 - smoothstep(0.03, 0.09, 1.2 - lift), 1.0 - smoothstep(0.03, 0.1, 7.71 - block));
-    diffuseColor.rgb *= 1.0 - 0.28 * joint * steep * (1.0 - far);
+    diffuseColor.rgb *= 1.0 - 0.15 * joint * steep * (1.0 - far);
     float run = itdNoise(vec2(h * 0.45, y * 0.03)) * 0.65 + itdNoise(vec2(h * 1.9 + 17.0, y * 0.07)) * 0.35;
-    float underCrest = 0.55 + 0.45 * smoothstep(150.0, 215.0, y);
-    diffuseColor.rgb *= 1.0 - 0.45 * smoothstep(0.46, 0.8, run) * steep * underCrest;
+    float drips = itdNoise(vec2(h * 3.1 + 11.0, y * 0.045)) * 0.6 + itdNoise(vec2(h * 7.7, y * 0.11)) * 0.4;
+    float underCrest = 0.8 + 0.2 * smoothstep(150.0, 215.0, y);
+    float stain = smoothstep(0.38, 0.7, run) * 0.85 + smoothstep(0.56, 0.84, drips) * 0.4 * (1.0 - 0.6 * far);
+    stain = clamp(stain, 0.0, 1.0) * steep * underCrest;
+    diffuseColor.rgb *= mix(vec3(1.0 + 0.14 * steep * (1.0 - smoothstep(0.2, 0.45, run))), vec3(0.3, 0.28, 0.26), stain);
     float drip = fract(y / 2.4);
     float patchy = smoothstep(0.62, 0.86, itdNoise(vec2(h * 0.35 + 3.0, floor(y / 2.4) * 0.7)));
     float runs = smoothstep(0.35, 0.8, itdNoise(vec2(h * 2.3 + 9.0, y * 0.05)));
@@ -653,15 +684,53 @@ const AGE_BODY = /* glsl */ `
     float rust = smoothstep(0.78, 0.95, itdNoise(vec2(h * 0.9 + 41.0, y * 0.04))) * steep * smoothstep(140.0, 160.0, y);
     diffuseColor.rgb *= mix(vec3(1.0), vec3(1.05, 0.78, 0.6), rust * 0.5);
     diffuseColor.rgb *= mix(vec3(0.42, 0.46, 0.38), vec3(1.0), smoothstep(103.5, 109.0, y));
+    diffuseColor.rgb *= mix(0.68, 1.0, smoothstep(104.0, 112.0 + 9.0 * run, y) + (1.0 - steep));
     diffuseColor.rgb *= 1.0 - 0.3 * steep * (1.0 - smoothstep(0.0, 2.2, abs(y - 220.0)));
   }
 `;
 
+/*
+ * The dam's steel, weathered (spill-gates, spill-run-4 and crest-road
+ * photographs): the paint chalked paler and greyer by the sun, rust in
+ * blotches a metre or two across, and dirt and rust run down from every
+ * edge in streaks, with the rust rougher than the paint. World space, as
+ * the concrete's, so fourteen gates are fourteen gates.
+ */
+const STEEL_BODY = /* glsl */ `
+  {
+    vec3 p = vS2World;
+    float blot = itdNoise(p.xz * 0.9 + p.y * 0.7) * 0.6 + itdNoise(p.xz * 3.1 - p.y * 2.3) * 0.4;
+    float run = itdNoise(vec2((p.x + p.z) * 1.7, p.y * 0.12)) * 0.6 + itdNoise(vec2((p.x - p.z) * 4.3 + 7.0, p.y * 0.3)) * 0.4;
+    float rust = smoothstep(0.58, 0.86, blot);
+    float grey = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(grey), 0.15);
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 0.065, 0.035), rust * 0.5);
+    diffuseColor.rgb *= 1.0 - 0.32 * smoothstep(0.5, 0.85, run);
+    roughnessFactor = clamp(roughnessFactor + 0.3 * rust, 0.0, 1.0);
+  }
+`;
+
+/*
+ * The crest roads' concrete and the embankments' asphalt, worn: warm
+ * patches as the concrete's (the crest-road photograph's road is the
+ * beige of the parapets, not grey) and the tyres' and the rain's darker
+ * blotches at a few scales, so the road is not one clean grey.
+ */
+const ROAD_BODY = /* glsl */ `
+  {
+    vec2 q = vS2World.xz;
+    diffuseColor.rgb *= mix(vec3(1.04, 1.0, 0.94), vec3(1.14, 1.0, 0.8), itdNoise(q / 23.0 + 3.0));
+    float worn = itdNoise(q / 11.0) * 0.4 + itdNoise(q / 3.7) * 0.35 + itdNoise(q / 1.3) * 0.25;
+    diffuseColor.rgb *= 0.72 + 0.3 * smoothstep(0.25, 0.75, worn);
+  }
+`;
+
 /* The same bounce on the dam's painted steel and its plain paints. */
-function bounced(mat, key) {
+function bounced(mat, key, body = '') {
   mat.onBeforeCompile = (shader) => {
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nvec3 itdN = inverseTransformDirection(normal, viewMatrix);')
+      .replace('#include <common>', `#include <common>\n${body ? NOISE_PARS : ''}`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\nvec3 itdN = inverseTransformDirection(normal, viewMatrix);\n${body}`)
       .replace('#include <aomap_fragment>', `${BOUNCE}\n#include <aomap_fragment>`);
   };
   mat.customProgramCacheKey = () => `itaipu-dam-${key}`;
@@ -674,6 +743,10 @@ function concreteMaterial(THREE, set, key) {
     vertexColors: true,
     map: set.col,
     normalMap: set.nrm,
+    /* The photograph is a worn floor's: at full strength its cracks and
+     * board marks drew the piers as blockwork from 100 m (round 4's
+     * gates-close shot); poured walls show a fainter grain. */
+    normalScale: new THREE.Vector2(0.5, 0.5),
     roughnessMap: set.arm,
     roughness: 1,
     aoMap: set.arm,
@@ -2644,7 +2717,15 @@ export async function buildPart(ctx) {
     /* A box in the chute's frame, drawn: its four sides and its top,
      * which is flat, or a plane given at its two d ends; its sides under
      * the rock line basalt. */
-    const block = (mesh, u0, u1, d0, d1, y0, yA, yB, col, rock = true) => {
+    /* `ends` [at d0, at d1]: whether to draw the block's faces across it
+     * there. A run of blocks one after another along d (a training wall
+     * in its pieces) draws only the run's own two ends: the faces between
+     * two of its blocks are inside the wall, where no one sees them and
+     * nothing is solid (its solids are the skins along its faces), and
+     * once the ground was cut to the wall (terrain/conform.js, #336) they
+     * stood over the ground the audit's drawn sweep reads them over, 1 106
+     * of its points against the spillway's 341. */
+    const block = (mesh, u0, u1, d0, d1, y0, yA, yB, col, rock = true, ends = [true, true]) => {
       const P = [[u0, d0, yA], [u1, d0, yA], [u1, d1, yB], [u0, d1, yB]];
       const top = P.map(([u, d, y]) => at3(u, d, y));
       const bot = P.map(([u, d]) => at3(u, d, y0));
@@ -2652,6 +2733,9 @@ export async function buildPart(ctx) {
       mesh.poly(top, col, up);
       const cu = C.at((u0 + u1) / 2, (d0 + d1) / 2);
       for (let i = 0; i < 4; i += 1) {
+        if ((i === 0 && !ends[0]) || (i === 2 && !ends[1])) {
+          continue;
+        }
         const j = (i + 1) % 4;
         const m = [(top[i][0] + top[j][0]) / 2 - cu[0], 0, (top[i][2] + top[j][2]) / 2 - cu[1]];
         concrete.quad(bot[i], bot[j], cut[j], cut[i], shade(TONE.basalt, 9000 + i + 7 * d0, 0.12), m);
@@ -2994,7 +3078,7 @@ export async function buildPart(ctx) {
         const d1 = ds[i + 1];
         const yA = floor(d0) + SPILL.wallHeight;
         const yB = floor(d1) + SPILL.wallHeight;
-        const top = block(concrete, u0, u1, d0, d1, base, yA, yB, shade(TONE.concrete, 4000 + 50 * k + i, 0.05));
+        const top = block(concrete, u0, u1, d0, d1, base, yA, yB, shade(TONE.concrete, 4000 + 50 * k + i, 0.05), true, [i === 0, i + 2 === ds.length]);
         /* The coping: a paler cap proud of the wall and over both its
          * faces, whose shadow line finishes the top where the bank meets
          * it (terrain/conform.js). Drawn only: under half a metre, its
@@ -3181,10 +3265,10 @@ export async function buildPart(ctx) {
   const concreteMat = concreteMaterial(THREE, kit.concrete, 'concrete');
   /* The crest roads are concrete (crest-road photo), the embankments'
    * asphalt: one photograph, the asphalt a darker tone of it. */
-  const roadMat = new THREE.MeshStandardMaterial({
+  const roadMat = bounced(new THREE.MeshStandardMaterial({
     color: 0xffffff, vertexColors: true, map: kit.concrete.col, normalMap: kit.concrete.nrm, roughnessMap: kit.concrete.arm, roughness: 1,
-  });
-  const metalMat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.15 }), 'steel');
+  }), 'roads', ROAD_BODY);
+  const metalMat = bounced(new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.15 }), 'steel', STEEL_BODY);
   const meshes = [[concrete, concreteMat, 'concrete'], [road, roadMat, 'roads'], [metal, metalMat, 'steel']];
   const drawn = {};
   let triangles = 0;
