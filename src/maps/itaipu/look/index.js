@@ -79,6 +79,24 @@ import { thermalKind, thermalShader } from '../../../render/thermal.js';
 export const CAMERA_FAR = 90000;
 
 /*
+ * THE FAR SHADOW MAP IS SIZED TO THE VIEW. swiss2's makeSun keeps its far
+ * map 700 m either side of a point ahead of the camera, which from the
+ * craft is the whole shadowed world; from 600 m up (the aerial views) it
+ * was a patch near the frame's foot, and the dam's buttresses, the
+ * powerhouse and every tree past it cast no shadow at all, where in the
+ * photographs from the air the dam's shaded side is the darkest thing in
+ * the frame. From FAR_REACH_FROM metres over the ground the map's half
+ * width grows FAR_REACH times the height, to FAR_HALF_MAX; its texel
+ * grows with it, so a high view's shadows are softer, as they are at that
+ * distance anyway, and its normal bias with the texel so the coarser map
+ * does not shade the ground it is cast on.
+ */
+const FAR_HALF = 700;
+const FAR_REACH = 2.5;
+const FAR_HALF_MAX = 2500;
+const FAR_NORMAL_BIAS = 0.6;
+
+/*
  * Load everything the look needs and make the scene it draws. `base` is
  * the data folder's URL. Returns the stage the map builds into.
  */
@@ -244,6 +262,22 @@ export async function makeLook({
       finishScene(scene, lit);
     },
     updateShadowFocus(target) {
+      const far = sun.lights[1];
+      if (far && groundAt) {
+        const over = camera.position.y - groundAt(camera.position.x, camera.position.z);
+        const half = THREE.MathUtils.clamp(over * FAR_REACH, FAR_HALF, FAR_HALF_MAX);
+        if (Math.abs(half - far.userData.half) > 25) {
+          const c = far.shadow.camera;
+          c.left = -half;
+          c.right = half;
+          c.top = half;
+          c.bottom = -half;
+          c.updateProjectionMatrix();
+          far.userData.half = half;
+          far.userData.texel = (2 * half) / far.shadow.mapSize.x;
+          far.shadow.normalBias = FAR_NORMAL_BIAS * (half / FAR_HALF);
+        }
+      }
       sun.update(target, camera);
       turf.update(camera, groundAt);
     },
