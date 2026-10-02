@@ -4,8 +4,8 @@
  * plays what it returns and tools/audio/render.js measures it, so the
  * owner's comparison and the checks hear the same samples.
  *
- *   OLD  src/render/audio.js as it ships: the four oscillator chains, the
- *        wind loop, the crash cue
+ *   OLD  the sound before the engine (tools/audio/old-audio.js, frozen):
+ *        the four oscillator chains, the wind loop, the crash cue
  *   NEW  the same class with the audiolab flag: src/render/engine-worklet.js
  *        behind a limiter, fed the extra state the flight carries (body
  *        velocity, current, an off board listener, the impact's surface)
@@ -32,6 +32,7 @@
  */
 
 import { MotorAudio, labModelForCraft } from '../../src/render/audio.js';
+import { MotorAudio as OldAudio } from './old-audio.js';
 
 export const RATE = 48000;
 /* The shell's defaults: volume 6 of 10 (src/ui/ui.js DEFAULTS). */
@@ -81,9 +82,11 @@ export async function renderFlight(id, mode, stem = '') {
   const rows = f.rows;
   const seconds = rows.length / data.rate;
   const ctx = new OfflineAudioContext(2, Math.round(seconds * RATE), RATE);
-  const a = new MotorAudio();
   const lab = mode === 'new';
-  a.setLab(lab);
+  const a = lab ? new MotorAudio() : new OldAudio();
+  if (lab) {
+    a.setLab(true);
+  }
   a.setVoice(f.voice);
   if (lab) {
     const [af, prop] = f.craft === '5inch' ? [null, null] : ['striker2500', f.craft.split('-')[1]];
