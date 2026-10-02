@@ -64,7 +64,7 @@ const LOOK = {
 };
 const STEEL_COL = [0.4, 0.13, 0.05];
 const CONCRETE_COL = [0.42, 0.41, 0.38];
-const SCORCH = 0.45;
+const SCORCH = 0.7;
 
 function hash(a, b) {
   let h = Math.imul(a + 3, 0x9e3779b1) ^ Math.imul(b + 5, 0x85ebca6b);
@@ -103,6 +103,9 @@ export function createBreakage(opts = {}) {
   group.add(pieceMesh, edgeMesh);
 
   let map = null;
+  /* Every event applied this match, in order: what a new map (a rebuild
+   * of the same one) has applied to it again. */
+  let applied = [];
   let pieces = [];
   let edges = 0;
   /* target -> Set of chunk indices taken out, to put back. */
@@ -167,13 +170,18 @@ export function createBreakage(opts = {}) {
 
   const api = {
     group,
-    /* The map now drawn, or null: a new map's structures start whole. */
-    setMap(next) {
+    /* The map now drawn, or null. A new one (the same map built again)
+     * has this match's events applied to it, the pieces where they are. */
+    setMap(next, now) {
       if (next === map) {
         return;
       }
+      const again = applied;
       api.reset();
       map = next && next.structures && typeof next.setChunkGone === 'function' ? next : null;
+      for (const e of again) {
+        api.apply(e, now, true);
+      }
     },
     /* Everything put back: the next match. */
     reset() {
@@ -186,13 +194,17 @@ export function createBreakage(opts = {}) {
       }
       gone = new Map();
       openings = new Map();
+      applied = [];
       pieces = [];
       edges = 0;
       pieceMesh.count = 0;
       edgeMesh.count = 0;
     },
-    /* One roomwar 'damage' event, at room ms now. */
-    apply(e, now) {
+    /* One roomwar 'damage' event, at room ms now; `quiet` for one
+     * applied again to a rebuilt map, which throws no dust and makes no
+     * sound and tells the water nothing new. */
+    apply(e, now, quiet = false) {
+      applied.push(e);
       const st = map && map.structures[e.target];
       if (!st) {
         return false;
@@ -226,7 +238,7 @@ export function createBreakage(opts = {}) {
       pieces.forEach((pc, k) => drawPiece(k, pc));
       pieceMesh.instanceMatrix.needsUpdate = true;
       /* Dust and sparks where each broke, only for what is happening now. */
-      const recent = now - e.at < 3000;
+      const recent = !quiet && now - e.at < 3000;
       if (recent && opts.debris) {
         for (const i of e.chunks) {
           const ch = st.chunks[i];
@@ -243,7 +255,7 @@ export function createBreakage(opts = {}) {
       }
       for (const o of e.openings) {
         openings.set(o.id, o);
-        if (opts.onOpening) {
+        if (opts.onOpening && !quiet) {
           opts.onOpening(o, e);
         }
       }

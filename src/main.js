@@ -3426,7 +3426,7 @@ export async function boot({
     if (scene && warBreakage.group.parent !== scene) {
       scene.add(warBreakage.group);
     }
-    warBreakage.setMap(view);
+    warBreakage.setMap(view, now);
     const replay = mode === 'replay';
     warHud.drawn(mode === 'flight' && ui.screen === 'flight');
     warAttackers.group.visible = !replay;
@@ -4592,7 +4592,12 @@ export async function boot({
       on: warSpectating(), seat: warWatchSeat, cam: shell.camera.position.toArray(), wrecked, banner: ui.bannerText,
     },
     damage: runDamage,
-    breakage: { ...warBreakage.stats(), heard: roomWar.damage().length, retired: view && view.colliders && view.colliders.retired ? view.colliders.retired() : 0 },
+    breakage: {
+      ...warBreakage.stats(),
+      heard: roomWar.damage().length,
+      retired: view && view.colliders && view.colliders.retired ? view.colliders.retired() : 0,
+      staticColliders: view && view.colliders ? view.colliders.staticCount : 0,
+    },
     openings: warOpenings.slice(),
     burning: Object.fromEntries(warBurning),
     log: warLog.map((e) => ({
@@ -7938,9 +7943,11 @@ export async function boot({
     onSound: (p, level) => {
       worldAudio.boom(p, level);
     },
-    onBurn: (target, e) => {
-      if (e.down || e.chunks.length > 2) {
-        warBurn(target, 'fire', performance.now());
+    /* A target that lost something smokes, unless it already burns
+     * from a hit (roomWarFrame). */
+    onBurn: (target) => {
+      if (!warBurning.has(target)) {
+        warBurn(target, 'smoke', performance.now());
       }
     },
   });
