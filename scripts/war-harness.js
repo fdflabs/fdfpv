@@ -27,13 +27,23 @@
  *           without one, INTRO_MS later, every client seeing the same
  *           briefing, countdown and go
  *   striker the head on pass with the Striker (docs/COMBAT-DRONES.md
- *           section 7) as the defender, inside and outside BLAST_M
+ *           section 7) as the defender at 40 m/s, inside and outside its
+ *           fuze radius
+ *   fuzes   every fuze radius (src/share/war/fuze.js), each airframe class
+ *           and warhead, inside and outside by 30 cm, and the chain: a
+ *           second Strike alongside dies inside the same radius of the
+ *           burst and lives outside it
  *   wires   forty Strikers flown one after another across a power line
  *           of the Itaipu map at its height (src/share/war/wires.js):
  *           some fly into it or another line on the way, as many as the
  *           room's births say, each dead by nobody on a line where and
  *           when its birth's `wire` put it, the same on every client,
  *           the same game on the same seed and another on another
+ *   late    pilots coming and going mid war (latejoin): one seated after
+ *           the first wave is a player at once, with its share of the
+ *           rack, and the next wave is sized for it; one who leaves
+ *           sizes the next one down and takes its airframes; one back
+ *           with its token is its own entry, never a second share
  *   cost    eight pilots and sixty attackers at once: fifty two parked
  *           around the pilots just outside BLAST_M, none going off, and eight
  *           hunters steered by the room from far out. The room's CPU per
@@ -44,9 +54,9 @@
  *   2. the booms and deaths are the zero latency run's, for every run whose
  *      samples all reached the room inside LATE_MS
  *   3. no false detonation: at every boom the defender's true hull is
- *      within BLAST_M (plus 5 cm, the 30 Hz interpolation) of the
+ *      within its fuze radius (plus 5 cm, the 30 Hz interpolation) of the
  *      attacker's true centre
- *   4. no miss: a pass whose truth reach is 15 cm or more inside BLAST_M
+ *   4. no miss: a pass whose truth reach is 15 cm or more inside its radius
  *      goes off on every run inside LATE_MS
  *   5. no boom is decided later than LATE_MS and a tick after it happened
  * Run 1 has exact clocks; run 2 puts each client's clock off by up to 10 ms
@@ -77,12 +87,13 @@ import {
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
-import { MISSIONS } from '../edge/rooms/war.js';
+import { MISSIONS, WARHEADS } from '../edge/rooms/war.js';
 import { LATE_MS, hullDistance, hullFor } from '../src/game/midair.js';
 import {
   BLAST_M, KIND, planAgent, poseAt,
 } from '../src/share/war/routes.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
+import { fuzeM } from '../src/share/war/fuze.js';
 import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
 import { BAND_M } from '../src/share/war/wires.js';
 import { createGrid, districtOf, DISTRICTS, FLICKER_MS } from '../src/share/war/grid.js';
@@ -260,18 +271,36 @@ function mission(id, waves, routes) {
   };
 }
 
+/* A seat's fuze radius in a scenario: its airframe's, with the warhead
+ * the scenario loads for it (standard when none), src/share/war/fuze.js. */
+function radiusOf(sc, seat) {
+  return fuzeM(sc.air[seat - 1], (sc.warheads && sc.warheads[seat - 1]) || 'standard');
+}
+
 /* Head on: the Strike along +x through the origin, 300 m after its birth
- * at GO + 1 s, the defender along -x with its nearest part passing `reach` from it. `lead`
- * is a briefing before the countdown (INTRO_MS, or 0 for none); `airframe`
- * the defender, a Cub unless another is named. */
-function pass(reach, lead = 0, airframe = 'cub1400') {
+ * at GO + 1 s, the defender along -x at `speed` with its nearest part
+ * passing `reach` from it. `lead` is a briefing before the countdown
+ * (INTRO_MS, or 0 for none); `airframe` the defender, a Cub unless another
+ * is named; `warhead` the loadout it sends (none: the standard). `chain`
+ * puts a second Strike flying alongside the first, that many metres from
+ * it on the side away from the defender, for the blast to take with it. */
+function pass(reach, lead = 0, airframe = 'cub1400', { speed = 20, warhead = null, chain = null } = {}) {
   const air = [airframe];
-  const off = offsetFor(air[0], -20, reach);
+  const off = offsetFor(air[0], -speed, reach);
   const meet = GO + lead + 1000 + (300 / KIND.strike.speed) * 1000;
-  const m = mission('pass', [{ at: 1, kind: 'strike', n: 1, route: 'line' }], { line: [[-300, Y, 0], [300, Y, 0]] });
+  const waves = [{ at: 1, kind: 'strike', n: 1, route: 'line' }];
+  const routes = { line: [[-300, Y, 0], [300, Y, 0]] };
+  if (chain != null) {
+    waves.push({ at: 1, kind: 'strike', n: 1, route: 'beside' });
+    routes.beside = [[-300, Y, -chain], [300, Y, -chain]];
+  }
+  const m = mission('pass', waves, routes);
+  const label = [lead ? 'briefed' : '', airframe === 'cub1400' ? '' : airframe, warhead || '', speed === 20 ? '' : `${speed} m/s`].filter(Boolean).join(' ');
   const sc = {
-    name: `${lead ? 'briefed ' : ''}${airframe === 'cub1400' ? '' : `${airframe} `}pass ${reach.toFixed(2)} m`, kind: 'pass', reach, air, mission: m, paths: [level(off, -20, 20 * meet / 1000)], end: meet + 1500, lead,
+    name: `${label ? `${label} ` : ''}pass ${reach.toFixed(2)} m${chain != null ? `, second ${chain.toFixed(2)} m` : ''}`,
+    kind: 'pass', reach, air, mission: m, paths: [level(off, -speed, speed * meet / 1000)], end: meet + 1500, lead, warheads: warhead ? [warhead] : null,
   };
+  sc.blast = radiusOf(sc, 1);
   /* The truth: the closest the scripted pair comes, on the millisecond. */
   const plan = planAgent(m, {
     id: 1, kind: 'strike', route: 'line', t0: GO + lead + 1000, k: 0, n: 1, err: 0, target: null,
@@ -323,7 +352,11 @@ function flagsAt(blasts, t) {
 
 /* ---------------------------------------------------------------- run */
 
-/* One run. cfg: { sc, seed, links ([{ base, jitter }] per seat), clock }. */
+/* One run. cfg: { sc, seed, links ([{ base, jitter }] per seat), clock }.
+ * sc.at[i], when there is one, is client i's comings and goings, room ms:
+ * { join (else 0), leave, back (with its token and seat), token, seat (a
+ * token and seat the room does not know, as a reloaded tab sends) }. It
+ * flies only while seated. */
 function runOne(cfg) {
   const { sc } = cfg;
   const rand = rng(cfg.seed * 7919 + 17);
@@ -342,8 +375,10 @@ function runOne(cfg) {
   let tokens = 0;
   const newToken = () => (tokens += 1).toString(16).padStart(32, '0');
   const clients = sc.air.map((_, i) => ({
-    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(), states: [], early: 0, deads: [],
+    i, conn: { i }, seat: 0, events: [], blasts: [], late: 0, sent: [], born: new Map(), states: [], early: 0, deads: [], token: null, views: [], welcomes: [],
   }));
+  const at = (i) => (sc.at && sc.at[i]) || {};
+  const seated = (i, t) => t >= (at(i).join ?? 0) && !(t >= (at(i).leave ?? Infinity) && t < (at(i).back ?? Infinity));
   const deliver = (actions, now) => {
     for (const a of actions) {
       if (!a.send || typeof a.data !== 'string') {
@@ -356,7 +391,10 @@ function runOne(cfg) {
         const m = JSON.parse(data);
         if (m.type === 'welcome') {
           c.seat = m.seat;
+          c.token = m.token;
+          c.welcomes.push({ at, seat: m.seat, token: m.token, war: m.war });
         } else if (m.type === 'war' && m.war) {
+          c.views.push({ at, war: m.war });
           const st = `${m.war.state}:${m.war.goAt}`;
           if (c.states.at(-1) !== st) {
             c.states.push(st);
@@ -379,14 +417,34 @@ function runOne(cfg) {
       });
     }
   };
-  for (const c of clients) {
-    deliver(room.open(c.conn, 0), 0);
+  const hello = (c, t, extra = {}) => {
+    deliver(room.open(c.conn, t), t);
     deliver(room.message(c.conn, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null },
-    }), 0, `10.9.0.${c.i + 1}`, newToken), 0);
+      type: 'hello', proto: PROTO, build: 'harness', name: [c.i, 2, 40 + c.i], profile: { airframe: sc.air[c.i], map: 'itaipu', figure: 0, livery: null, parts: null }, ...extra,
+    }), t, `10.9.0.${c.i + 1}`, newToken), t);
+    const warhead = sc.warheads && sc.warheads[c.i];
+    if (warhead) {
+      deliver(room.message(c.conn, JSON.stringify({ type: 'war', op: 'loadout', loadout: { warhead, rack: 6 } }), t, `10.9.0.${c.i + 1}`), t);
+    }
+  };
+  const helloOf = (c) => (at(c.i).token ? { token: at(c.i).token, seat: at(c.i).seat } : {});
+  for (const c of clients.filter((x) => !at(x.i).join)) {
+    hello(c, 0, helloOf(c));
   }
   while (q.h.length) {
     q.pop().fn();
+  }
+  for (const c of clients) {
+    const { join, leave, back } = at(c.i);
+    if (join) {
+      q.push(join, () => hello(c, join, helloOf(c)));
+    }
+    if (leave != null) {
+      q.push(leave, () => deliver(room.close(c.conn, leave, 1001), leave));
+    }
+    if (back != null) {
+      q.push(back, () => hello(c, back, { token: c.token, seat: c.seat }));
+    }
   }
   deliver(room.message(clients[0].conn, JSON.stringify({
     type: 'war', op: 'start', mission: sc.mission.id, ...(sc.lead ? { intro: true } : {}),
@@ -400,6 +458,9 @@ function runOne(cfg) {
         break;
       }
       q.push(send, () => {
+        if (!seated(c.i, send)) {
+          return;
+        }
         const truth = sc.paths[c.i](send);
         const flags = flagsAt(c.blasts, send);
         const bytes = encodePose({
@@ -420,7 +481,8 @@ function runOne(cfg) {
   const events = [];
   for (const e of room.war.log) {
     if (e.what === 'boom') {
-      events.push(`boom:${e.seat}:${e.t}`, `dead:${e.ids.join('+')}:${e.t}:${e.seat}`);
+      /* A penetrator's pierce is a death and no boom: the defender flies on. */
+      events.push(...(e.pierce ? [] : [`boom:${e.seat}:${e.t}`]), `dead:${e.ids.join('+')}:${e.t}:${e.seat}`);
     }
   }
   return { clients, room, log: room.war.log.map((e) => ({ ...e })), events };
@@ -443,7 +505,7 @@ function truthReach(sc, res, e) {
 function sweep(sc, clock) {
   const r = {
     name: sc.name, kind: sc.kind, reach: sc.truthMin ?? null, runs: 0, onTime: 0, disagree: 0, notRef: 0, falseBooms: 0, misses: 0,
-    booms: 0, boomRuns: 0, delays: [], reaches: [], examples: [], slowBoom: 0,
+    booms: 0, boomRuns: 0, chained: 0, delays: [], reaches: [], examples: [], slowBoom: 0,
   };
   const seeds = sc.kind === 'swarm' ? [Number(sc.name.split(' ')[1])] : [1, 2, 3];
   for (const seed of seeds) {
@@ -479,16 +541,17 @@ function sweep(sc, clock) {
       const booms = res.log.filter((e) => e.what === 'boom');
       r.booms += booms.length;
       r.boomRuns += booms.length ? 1 : 0;
+      r.chained += booms.some((e) => e.ids.length > 1) ? 1 : 0;
       for (const e of booms) {
         const g = truthReach(sc, res, e);
         r.reaches.push(g);
-        if (g > BLAST_M + INTERP_M) {
+        if (g > radiusOf(sc, e.seat) + INTERP_M) {
           r.falseBooms += 1;
           note(`false boom at ${e.t}: truth reach ${g.toFixed(3)} m`);
         }
         r.delays.push(e.decided - e.t);
       }
-      if (sc.kind === 'pass' && onTime && sc.truthMin <= BLAST_M - DEEP_M && !booms.length) {
+      if (sc.kind === 'pass' && onTime && sc.truthMin <= sc.blast - DEEP_M && !booms.length) {
         r.misses += 1;
         note(`miss at ${sc.truthMin.toFixed(3)} m`);
       }
@@ -652,9 +715,9 @@ function report(clock, results) {
   row('the swarms go off: detonations happen', sum('booms', swarms) > 0, `${sum('booms', swarms)}`);
   const reaches = all('reaches');
   const accuracy = (name, ok, detail) => (clock ? console.log(`  band  ${name}  (${detail})`) : row(name, ok, detail));
-  accuracy(`no false detonation: the truth reach at every boom is within BLAST_M plus ${INTERP_M * 100} cm`, sum('falseBooms') === 0,
+  accuracy(`no false detonation: the truth reach at every boom is within the seat's fuze radius plus ${INTERP_M * 100} cm`, sum('falseBooms') === 0,
     `${sum('falseBooms')} false of ${reaches.length}; truth reach at the boom max ${pct(reaches, 1).toFixed(3)} m, p95 ${pct(reaches, 0.95).toFixed(3)} m`);
-  accuracy(`no miss: a pass ${DEEP_M * 100} cm or more inside BLAST_M goes off`, sum('misses') === 0, `${sum('misses')} misses`);
+  accuracy(`no miss: a pass ${DEEP_M * 100} cm or more inside the fuze radius goes off`, sum('misses') === 0, `${sum('misses')} misses`);
   const d = all('delays');
   console.log(`  info  decision delay, boom decided less the boom: median ${pct(d, 0.5).toFixed(0)} ms, p95 ${pct(d, 0.95).toFixed(0)} ms, max ${pct(d, 1).toFixed(0)} ms over ${d.length} booms (LATE_MS ${LATE_MS})`);
   row('no boom is decided later than LATE_MS and a tick after it happened', !(pct(d, 1) > LATE_MS + SAMPLE_MS), `max ${pct(d, 1).toFixed(0)} ms`);
@@ -707,9 +770,9 @@ function briefing() {
 /*
  * The Striker as a defender (docs/COMBAT-DRONES.md section 7): the war's
  * own fixed wing, 2.5 m across and 2.7 m long, rammed head on into a
- * Strike as the quads and the planes are. The referee judges it by its
- * own part boxes (configs/hulls.js), so a pass inside BLAST_M of its
- * nearest part goes off and one outside does not, on every link.
+ * Strike at 40 m/s, as the owner flew it. The referee judges it by its
+ * own part boxes (configs/hulls.js), so a pass inside its fuze radius of
+ * its nearest part goes off and one outside does not, on every link.
  */
 function striker() {
   let failed = 0;
@@ -717,17 +780,64 @@ function striker() {
     console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
     failed += ok ? 0 : 1;
   };
-  const reaches = [5.0, 5.5, 6.5, 7.0];
-  const results = reaches.map((r) => sweep(pass(r, 0, 'striker2500'), 0));
+  const r = fuzeM('striker2500', 'standard');
+  const reaches = [r - 1, r - 0.3, r + 0.3, r + 1];
+  const results = reaches.map((x) => sweep(pass(x, 0, 'striker2500', { speed: 40 }), 0));
   const sum = (f) => results.reduce((n, x) => n + x[f], 0);
   console.log(`
-the Striker as a defender: head on passes at ${reaches.join(', ')} m from its nearest part, ${sum('runs')} runs`);
+the Striker as a defender at 40 m/s: head on passes at ${reaches.join(', ')} m from its nearest part, ${sum('runs')} runs`);
   row('its hull is the referee\'s', Boolean(hullFor('striker2500')) && hullFor('striker2500').boxes.length > 8, `${hullFor('striker2500') ? hullFor('striker2500').boxes.length : 0} part boxes`);
   row('every client has the room\'s booms and deaths', sum('disagree') === 0, `${sum('disagree')} of ${sum('runs')} disagree`);
   row('the booms and deaths are the zero latency run\'s, every run inside LATE_MS', sum('notRef') === 0, `${sum('notRef')} differ`);
-  row('the passes inside BLAST_M go off on every run and the ones outside never do',
-    results.every((r, k) => (reaches[k] < BLAST_M ? r.boomRuns === r.runs : r.booms === 0)),
-    results.map((r, k) => `${reaches[k]} m: ${r.boomRuns} of ${r.runs}`).join(', '));
+  row(`the passes inside its standard fuze radius (${r} m) go off on every run and the ones outside never do`,
+    results.every((x, k) => (reaches[k] < r ? x.boomRuns === x.runs : x.booms === 0)),
+    results.map((x, k) => `${reaches[k]} m: ${x.boomRuns} of ${x.runs}`).join(', '));
+  row('no false detonation', sum('falseBooms') === 0, `${sum('falseBooms')} false`);
+  return failed;
+}
+
+/*
+ * Every fuze radius (src/share/war/fuze.js): for each airframe class and
+ * warhead, a head on pass FUZE_BAND_M inside the radius goes off on every
+ * run and one FUZE_BAND_M outside never does, the Striker at 40 m/s, the
+ * quads at 20. Then the chain: a second Strike flying alongside the one a
+ * standard or wide warhead goes off on dies with it FUZE_BAND_M inside the
+ * same radius of its centre, and lives FUZE_BAND_M outside it.
+ */
+const FUZE_BAND_M = 0.3;
+const FUZE_CLASSES = [['striker2500', 40], ['10inch', 20], ['7inch', 20]];
+function fuzes() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  console.log(`\nthe fuze radii: head on passes ${FUZE_BAND_M} m inside and outside each airframe's radius for each warhead`);
+  const all = [];
+  for (const [airframe, speed] of FUZE_CLASSES) {
+    for (const warhead of WARHEADS) {
+      const r = fuzeM(airframe, warhead);
+      const [inside, outside] = [r - FUZE_BAND_M, r + FUZE_BAND_M].map((x) => sweep(pass(x, 0, airframe, { speed, warhead }), 0));
+      all.push(inside, outside);
+      row(`${airframe} ${warhead} at ${speed} m/s, ${r} m: inside goes off every run, outside never`,
+        inside.boomRuns === inside.runs && outside.booms === 0,
+        `${inside.boomRuns} of ${inside.runs} inside, ${outside.booms} booms outside`);
+    }
+  }
+  for (const [airframe, speed] of FUZE_CLASSES.slice(0, 2)) {
+    for (const warhead of ['standard', 'wide']) {
+      const r = fuzeM(airframe, warhead);
+      const [near, far] = [r - FUZE_BAND_M, r + FUZE_BAND_M].map((d) => sweep(pass(r - 1, 0, airframe, { speed, warhead, chain: d }), 0));
+      all.push(near, far);
+      const deaths = (x) => x.chained;
+      row(`${airframe} ${warhead}: a second Strike ${r - FUZE_BAND_M} m from the burst dies with it, one ${r + FUZE_BAND_M} m away lives`,
+        deaths(near) === near.runs && deaths(far) === 0 && near.boomRuns === near.runs && far.boomRuns === far.runs,
+        `${deaths(near)} of ${near.runs} chained inside, ${deaths(far)} of ${far.runs} outside`);
+    }
+  }
+  const sum = (f) => all.reduce((n, x) => n + x[f], 0);
+  row('every client has the room\'s booms and deaths', sum('disagree') === 0, `${sum('disagree')} of ${sum('runs')} disagree`);
+  row('the booms and deaths are the zero latency run\'s, every run inside LATE_MS', sum('notRef') === 0, `${sum('notRef')} differ`);
   row('no false detonation', sum('falseBooms') === 0, `${sum('falseBooms')} false`);
   return failed;
 }
@@ -829,6 +939,115 @@ the power lines: ${a.born} Strikers across a span at its height; seed one ${a.st
   return failed;
 }
 
+/*
+ * Pilots coming and going mid war: A flies alone from the start; B joins
+ * after the first wave, holds on the second wave's line and takes one,
+ * leaves, and comes back with its token. Every wave is sized by the
+ * match's pilots here when the room announces it (BIRTH_LEAD_MS before
+ * its birth), and a pilot back is its own entry, never a second share.
+ * Then the same with C, a pilot new to the match, taking B's seat while B
+ * is away: B comes back in another seat, with what it had. Each on a
+ * zero latency link and on a lagged one.
+ */
+function latejoin() {
+  let failed = 0;
+  const row = (name, ok, detail) => {
+    console.log(`  ${ok ? 'pass' : 'FAIL'}  ${name}  (${detail})`);
+    failed += ok ? 0 : 1;
+  };
+  const L = 600;
+  const v = KIND.strike.speed;
+  const routes = { line: [[-L, Y, 0], [L, Y, 0]], far: [[-L, Y, 2000], [L, Y, 2000]] };
+  /* n + per x (pilots - 1): 1 for one pilot, 2 for two, 3 for three. */
+  const waves = [
+    { at: 1, kind: 'strike', n: 1, per: 1, route: 'far' },
+    { at: 6, kind: 'strike', n: 1, per: 1, route: 'line' },
+    { at: 16, kind: 'strike', n: 1, per: 1, route: 'far' },
+    { at: 21, kind: 'strike', n: 1, per: 1, route: 'far' },
+  ];
+  const m = { ...mission('latejoin', waves, routes), rack: 3 };
+  const JOIN = GO + 3000;
+  const LEAVE = GO + 11000;
+  const BACK = GO + 17000;
+  /* On the second wave's line, 2 s of flight from its start, where the
+   * first of a pair flies (routes.js puts a pair 12.5 m either side). */
+  const hold = hover([-L + 2 * v, Y, 12.5]);
+  const away = hover([0, Y + 400, -3000]);
+  const sizeOf = (c, wave) => [...c.born.values()].filter((a) => a.wave === wave).map((a) => a.n)[0] ?? null;
+  const viewAt = (c, t) => c.views.filter((x) => x.at <= t).at(-1)?.war;
+  const end = GO + 1000 * (21 + (2 * L) / v) + 3000;
+  const lagged = [{ base: 50, jitter: 30 }, { base: 120, jitter: 30 }, { base: 80, jitter: 10 }];
+  for (const links of [lagged.map(() => ({ base: 0, jitter: 0 })), lagged]) {
+    const lag = links[1].base ? `, lagged (${links.map((l) => `${l.base}/${l.jitter}`).join(' ')} ms)` : ', zero latency';
+    /* Long enough after a change for every view it caused to be heard. */
+    const settled = (t) => t + 2 * (links[0].base + links[0].jitter + links[1].base + links[1].jitter) + 200;
+    const sc = {
+      name: 'latejoin', kind: 'latejoin', air: ['cub1400', '5inch'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
+    };
+    const res = runOne({
+      sc, seed: 1, clock: 0, links,
+    });
+    const [a, b] = res.clients;
+    const w = res.room.war;
+    const bWelcome = b.welcomes[0];
+    const atJoin = viewAt(a, settled(JOIN));
+    console.log(`\npilots coming and going${lag}: A alone from the go, B in at +${(JOIN - GO) / 1000} s, out at +${(LEAVE - GO) / 1000} s, back at +${(BACK - GO) / 1000} s; waves at +1 +6 +16 +21 s, n + (pilots - 1)`);
+    row('B, seated mid war, is one of the match\'s players at once, with its token, and its share of the rack is on A\'s screen',
+      bWelcome.war.state === 'live' && w.match.players[bWelcome.seat]?.token === bWelcome.token && atJoin && atJoin.rack === 6 && atJoin.rackMax === 6,
+      `seat ${bWelcome.seat}, A's rack ${atJoin && atJoin.rack}/${atJoin && atJoin.rackMax} (3/3 before)`);
+    const first = [...a.born.values()].filter((x) => x.wave === 0).map((x) => x.id);
+    row('B\'s screen is told every attacker alive when it is seated', first.length === 1 && first.every((id) => b.born.has(id)),
+      `${first.filter((id) => b.born.has(id)).length} of ${first.length}`);
+    row('the wave before B is sized for 1, the next, announced after B came, for 2, on both screens',
+      sizeOf(a, 0) === 1 && sizeOf(a, 1) === 2 && sizeOf(b, 1) === 2, `${sizeOf(a, 0)}, then ${sizeOf(a, 1)} and ${sizeOf(b, 1)}`);
+    const booms = res.log.filter((e) => e.what === 'boom');
+    const heard = (c) => c.deads.some((d) => d.by === bWelcome.seat && d.why === 'boom');
+    row('B launches and takes one of that wave, and both screens hear it', booms.length === 1 && booms[0].seat === bWelcome.seat && heard(a) && heard(b),
+      `${booms.map((e) => `seat ${e.seat} at +${((e.t - GO) / 1000).toFixed(2)} s`).join(', ') || 'no boom'}`);
+    row('a wave announced while B is away is sized down to 1', sizeOf(a, 2) === 1, `${sizeOf(a, 2)}`);
+    const out = viewAt(a, BACK - 1);
+    row('and B\'s airframes leave with it: A\'s rack is A\'s own', out && out.rack === 3 && out.rackMax === 3, `${out && out.rack}/${out && out.rackMax}`);
+    const back = b.welcomes[1];
+    const after = viewAt(a, settled(BACK));
+    row('B back with its token is the same seat and the same entry, its kill kept, never a second share',
+      back && back.seat === bWelcome.seat && Object.keys(w.match.players).join() === '1,2' && w.match.players[back.seat].kills === 1
+      && after && after.rack === 6 && after.rackMax === 7,
+      `seat ${back && back.seat}, players ${Object.keys(w.match.players).join()}, rack ${after && after.rack}/${after && after.rackMax}: A's 3, B's 3 and 1 earned, 1 spent (a fresh share is 6/6)`);
+    row('the wave after B is back is sized for 2 again, on both screens', sizeOf(a, 3) === 2 && sizeOf(b, 3) === 2, `${sizeOf(a, 3)} and ${sizeOf(b, 3)}`);
+    const shared = [...b.born.keys()];
+    row('every birth B heard is the one A heard, field for field (n, k, t0, err, wire), and B heard every one born while it was seated',
+      shared.every((id) => JSON.stringify(a.born.get(id)) === JSON.stringify(b.born.get(id)))
+      && [...a.born.values()].filter((x) => x.wave !== 2).every((x) => b.born.has(x.id)), `${shared.length} of ${a.born.size}`);
+    row('the war is won with both pilots on its scores', w.match.state === 'won' && viewAt(a, Infinity).scores.length === 2, w.match.state);
+
+    /* C, new to the match, takes B's seat while B is away. */
+    const sc2 = {
+      ...sc,
+      air: ['cub1400', '5inch', 'cub1400'],
+      paths: [away, hold, away],
+      at: [{}, { join: JOIN, leave: LEAVE, back: BACK }, { join: GO + 13000, token: 'c'.repeat(32), seat: bWelcome.seat }],
+    };
+    const res2 = runOne({
+      sc: sc2, seed: 1, clock: 0, links,
+    });
+    const [a2, b2, c2] = res2.clients;
+    const w2 = res2.room.war;
+    const cSeat = c2.welcomes[0].seat;
+    const bBack = b2.welcomes[1].seat;
+    const after2 = viewAt(a2, settled(BACK));
+    row('C in B\'s seat while B is away is a new player there: none of B\'s kills, none of its airframes spent',
+      cSeat === bWelcome.seat && w2.match.players[cSeat].token === 'c'.repeat(32) && w2.match.players[cSeat].kills === 0 && !(w2.match.spent?.[cSeat] > 0),
+      `seat ${cSeat}, kills ${w2.match.players[cSeat].kills}, spent ${w2.match.spent?.[cSeat] ?? 0}`);
+    row('B back in another seat has its own entry back, its kill and its spent airframe, and the rack is the three pilots\'',
+      bBack !== cSeat && w2.match.players[bBack].token === b2.welcomes[0].token && w2.match.players[bBack].kills === 1 && w2.match.spent[bBack] === 1
+      && after2 && after2.rack === 9 && after2.rackMax === 10,
+      `seat ${bBack}, kills ${w2.match.players[bBack].kills}, rack ${after2 && after2.rack}/${after2 && after2.rackMax}`);
+    row('the waves follow: 2 with A and C, 3 once B is back, on every screen', sizeOf(a2, 2) === 2 && sizeOf(a2, 3) === 3 && sizeOf(b2, 3) === 3 && sizeOf(c2, 3) === 3,
+      `${sizeOf(a2, 2)}, then ${sizeOf(a2, 3)}`);
+  }
+  return failed;
+}
+
 const clocks = arg('run', 'both') === 'both' ? [0, 1] : arg('run', '') === 'cost' ? [] : [Number(arg('run', 1)) - 1];
 const started = Date.now();
 const list = scenarios();
@@ -840,7 +1059,9 @@ for (const clock of clocks) {
 if (arg('run', 'both') !== 'cost') {
   failed += briefing();
   failed += striker();
+  failed += fuzes();
   failed += wires();
+  failed += latejoin();
 }
 /* The plan's 60 attackers, and twice that. In rounds, the most alive at
  * once in any Act 1 mission at 8 pilots is its largest round: 52

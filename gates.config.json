@@ -27,7 +27,8 @@
   },
   "P5": {
     "prop_figure_of_merit": [0.4, 0.6],
-    "max_level_speed_kmh": [120, 165],
+    "max_level_speed_kmh": [126, 207],
+    "_max_level_speed_note": "Moved 2026-10-01 by the owner's decision from [120, 165], which was authored at creation from no source: the spread of four published peak top speeds of stock class 6S five inch quads, 150 to 179 km/h (docs/PROP-CURVES.md), each end moved out by the old band's half width over its centre, 22.5 / 142.5 = 15.8 percent. Peaks of unstated direction and level, so deliberately wide; argued again when a GPS two way level run is published. No script reads this band today.",
     "zero_to_100_kmh_s": [1.3, 1.9],
     "descent_terminal_m_s": [15, 30],
     "_descent_terminal_note": "Authored at creation. Props level, idle throttle. Real props off freefall runs faster; with idle props windmilling and the plan drag this airframe carries, 15 to 30 is the defensible band. Tension with tests/thresholds.json check 7 is recorded in .loop/threshold-disputes.md."

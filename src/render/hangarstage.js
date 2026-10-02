@@ -64,6 +64,10 @@ const VIEWS = {
   nose: { yaw: Math.PI - 0.62, elev: 0.2, zoom: 0.6, along: -0.85, up: -0.1 },
   motor: { yaw: Math.PI - 0.95, elev: 0.16, zoom: 0.4, along: -1.05, up: 0 },
   pack: { yaw: Math.PI / 2 + 0.55, elev: 0.12, zoom: 0.42, along: -0.5, up: -0.3 },
+  /* A quad's Power tab: its motors are at its arms' ends and not at a
+   * nose, so the whole machine three quarters on from the front and a
+   * little above, the near motors closest (src/ui/hangar.js tabFocus). */
+  quad: { yaw: Math.PI - 0.7, elev: 0.5, zoom: 0.8, along: -0.2, up: 0.1 },
   canopy: { yaw: Math.PI - 0.7, elev: 0.3, zoom: 0.58, along: -0.35, up: 0.2 },
   fuse_trim: { yaw: Math.PI - 0.6, elev: 0.2, zoom: 0.62, along: -0.6, up: 0 },
   floats: { yaw: Math.PI / 2 + 0.35, elev: 0.06, zoom: 0.82, along: 0, up: -0.45 },

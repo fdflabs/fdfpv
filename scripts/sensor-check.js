@@ -38,8 +38,11 @@
  *             HOT_MARGIN; a smoke trail (render/smoke.js) is drawn beside
  *             it, so both thermal shaders are compiled and run;
  *   inset     the picture in the picture is drawn, is not flat, and a
- *             track handed to setTracks is boxed in red where the drone is;
- *   cost      each mode's frame, inset included, within section 13's
+ *             track handed to setTracks is boxed in red where the drone is,
+ *             at the small size and at the large one (its own 640x400);
+ *   cost      each mode's frame full screen (which draws no inset), and the
+ *             pilot's picture with the white hot inset at each inset size
+ *             (small, medium, large), within section 13's
  *             budget (docs/ITAIPU-PLAN.md): its GPU time under 12 ms, the
  *             least of FRAMES frames as scripts/itaipu-views.js measures
  *             it, and at most 300 draw calls in any of them. The plain EO
@@ -94,6 +97,8 @@ const CALL_BUDGET = 300;
 const FRAMES = 40;
 
 const MODES = ['eo', 'ir_wh', 'ir_bh', 'lowlight', 'fusion', 'contrast'];
+/* The inset's sizes, src/render/sensorview.js INSET_SIZES. */
+const INSET_SIZES = ['small', 'medium', 'large'];
 
 const opts = { time: 'day,night' };
 const positional = [];
@@ -134,7 +139,7 @@ const INSTALL = /* js */ `(async () => {
   const chain = { render: real, composer: post.composer };
   const routed = () => s.render(chain);
   /* The sensor full screen, so each mode's main view is measured; the
-   * inset shows the same mode. */
+   * inset is not drawn then (docs/AVIONICS-HUD.md section 5). */
   s.setMainView('sensor');
   post.render = routed;
   const { createAttackers } = await import('/src/render/attackers.js');
@@ -273,7 +278,7 @@ const PIP = /* js */ `(() => {
     hi = Math.max(hi, l);
     if (d[i] > 200 && d[i + 1] < 90 && d[i + 2] < 90) { red += 1; }
   }
-  return { png: c.toDataURL('image/png'), lo, hi, red, drawn: s.stats().insetsDrawn };
+  return { png: c.toDataURL('image/png'), lo, hi, red, drawn: s.stats().insetsDrawn, px: c.width + 'x' + c.height };
 })()`;
 
 const GPU = /* js */ `(() => {
@@ -394,18 +399,23 @@ for (const time of opts.time.split(',')) {
       }
     })()`);
     /* The reference's frame, the HUD's default: the pilot's own picture
-     * with the white hot inset beside it. */
-    const insetGpu = await page.evaluate(`(async () => {
-      const s = window.__sc.s;
-      s.setMainView('eo');
-      s.setMode('ir_wh');
-      await new Promise((r) => setTimeout(r, 1000));
-      try {
-        return await window.__scGpu(${FRAMES});
-      } finally {
-        s.setMainView('sensor');
-      }
-    })()`);
+     * with the white hot inset beside it, at each size the pilot can pick. */
+    const insetGpu = {};
+    for (const size of INSET_SIZES) {
+      insetGpu[size] = await page.evaluate(`(async () => {
+        const s = window.__sc.s;
+        s.setMainView('eo');
+        s.setMode('ir_wh');
+        s.setInset('${size}');
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+          return await window.__scGpu(${FRAMES});
+        } finally {
+          s.setInset('small');
+          s.setMainView('sensor');
+        }
+      })()`);
+    }
 
     for (const mode of MODES) {
       for (const zoom of (mode === 'eo' || mode === 'ir_wh') ? [1, 4] : [1]) {
@@ -444,16 +454,20 @@ for (const time of opts.time.split(',')) {
         })()`);
       }
     }
-    /* The inset, in the reference's white hot and in EO. */
-    for (const mode of ['eo', 'ir_wh']) {
-      await page.evaluate(`(window.__sc.s.setMode('${mode}'), '')`);
+    /* The inset, in the reference's white hot and in EO, beside the
+     * pilot's picture (full screen draws none), and white hot large. */
+    await page.evaluate("(window.__sc.s.setMainView('eo'), '')");
+    for (const [mode, size] of [['eo', 'small'], ['ir_wh', 'small'], ['ir_wh', 'large']]) {
+      await page.evaluate(`(window.__sc.s.setMode('${mode}'), window.__sc.s.setInset('${size}'), '')`);
       await page.sleep(800);
       const pip = await page.evaluate(PIP);
       const pipMode = await page.evaluate('window.__sc.s.state.pipMode');
-      await writeFile(join(outDir, `${time}-${pipMode}-pip.png`), Buffer.from(pip.png.split(',')[1], 'base64'));
-      rows[`pip-${pipMode}`] = { lo: pip.lo, hi: pip.hi, red: pip.red, drawn: pip.drawn };
-      check(`${time} inset ${pipMode}`, pip.drawn > 0 && pip.hi - pip.lo > 40 && pip.red >= 12, `${pip.drawn} drawn, range ${pip.lo.toFixed(0)}..${pip.hi.toFixed(0)}, ${pip.red} red box pixels`);
+      const tag = `${pipMode}${size === 'small' ? '' : `-${size}`}`;
+      await writeFile(join(outDir, `${time}-${tag}-pip.png`), Buffer.from(pip.png.split(',')[1], 'base64'));
+      rows[`pip-${tag}`] = { lo: pip.lo, hi: pip.hi, red: pip.red, drawn: pip.drawn, px: pip.px };
+      check(`${time} inset ${tag}`, pip.drawn > 0 && pip.hi - pip.lo > 40 && pip.red >= 12, `${pip.px} px, ${pip.drawn} drawn, range ${pip.lo.toFixed(0)}..${pip.hi.toFixed(0)}, ${pip.red} red box pixels`);
     }
+    await page.evaluate("(window.__sc.s.setInset('small'), window.__sc.s.setMainView('sensor'), '')");
 
     const wh = rows[`${time}-ir_wh`];
     const bh = rows[`${time}-ir_bh`];
@@ -468,8 +482,11 @@ for (const time of opts.time.split(',')) {
       check(`${time} ${m} zoom`, b.detail < ZOOM_DROP * a.detail, `detail ${a.detail.toFixed(3)} at 1x, ${b.detail.toFixed(3)} at 4x`);
     }
     console.log(`  plain EO (composer alone, no inset)  gpu ${plainGpu.gpuMs.toFixed(2)} (least ${plainGpu.gpuLeastMs.toFixed(2)}) ms, ${plainGpu.calls} calls`);
-    check(`${time} EO with the white hot inset cost`, !insetGpu.disjoint && insetGpu.gpuLeastMs < GPU_BUDGET_MS && insetGpu.callsMax <= CALL_BUDGET,
-      `${insetGpu.gpuLeastMs.toFixed(2)} ms least (median ${insetGpu.gpuMs.toFixed(2)}), at most ${insetGpu.callsMax} calls, inset in ${(100 * insetGpu.insetRate).toFixed(0)}% of frames`);
+    for (const size of INSET_SIZES) {
+      const g = insetGpu[size];
+      check(`${time} EO with the white hot ${size} inset cost`, !g.disjoint && g.gpuLeastMs < GPU_BUDGET_MS && g.callsMax <= CALL_BUDGET,
+        `${g.gpuLeastMs.toFixed(2)} ms least (median ${g.gpuMs.toFixed(2)}), at most ${g.callsMax} calls, inset in ${(100 * g.insetRate).toFixed(0)}% of frames`);
+    }
     for (const mode of MODES) {
       const g = rows[`${time}-${mode}`].gpu;
       check(`${time} ${mode} cost`, !g.disjoint && g.gpuLeastMs < GPU_BUDGET_MS && g.callsMax <= CALL_BUDGET, `${g.gpuLeastMs.toFixed(2)} ms least, at most ${g.callsMax} calls`);

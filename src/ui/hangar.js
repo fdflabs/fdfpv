@@ -58,6 +58,7 @@ import { sizeText, weightText } from './carousel.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
+import { STOCK_ONLY } from '../../configs/motors.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
 
@@ -93,12 +94,21 @@ export function registerHangarTab(tab) {
   HANGAR_TABS.push(tab.id);
 }
 
-function tabFocus(t) {
+/* `quad`: a quad's motors are at its arms' ends, not at a nose, so its
+ * Power tab has the one view (src/render/hangarstage.js `quad`). */
+function tabFocus(t, quad) {
   const h = TAB_HOOKS[t];
   if (h && h.focus) {
     return typeof h.focus === 'function' ? h.focus() : h.focus;
   }
-  return t === 'power' ? 'nose' : 'overview';
+  if (t !== 'power') {
+    return 'overview';
+  }
+  return quad ? 'quad' : 'nose';
+}
+
+function motorFocus(quad) {
+  return quad ? 'quad' : 'motor';
 }
 
 function eachHook(fn) {
@@ -175,6 +185,8 @@ export function stockPower(airframeId) {
     options: [{ id: 'stock', name: str('hangar.stock_setup'), kind: af.voice === 'glow' ? 'glow' : 'electric', packs: [] }],
     stock: { option: 'stock', pack: null },
     estimate: () => ({ grams: af.grams, topSpeed: af.topSpeed ?? null, minutes: null, thrustToWeight: null }),
+    /* Why there is nothing else to fit (configs/motors.js STOCK_ONLY). */
+    note: STOCK_ONLY[airframeId] ? str(STOCK_ONLY[airframeId]) : null,
   };
 }
 
@@ -194,13 +206,20 @@ function withScheme(entry, scheme) {
   return out;
 }
 
-/* The power choice a stored one names, made valid for these options. */
+/* The power choice a stored one names, made valid for these options. A
+ * quad's has a prop as well (`power.props`, src/main.js quadPower). */
 export function powerChoice(power, stored) {
   const option = power.options.find((o) => stored && o.id === stored.option) ?? power.options[0];
   const packs = option.packs ?? [];
   const pack = packs.find((p) => stored && p.id === stored.pack) ?? packs[0] ?? null;
-  return { option: option.id, pack: pack ? pack.id : null };
+  const out = { option: option.id, pack: pack ? pack.id : null };
+  if (power.props) {
+    out.prop = (power.props.find((p) => stored && p.id === stored.prop) ?? power.props[0]).id;
+  }
+  return out;
 }
+
+const samePower = (a, b) => a.option === b.option && a.pack === b.pack && a.prop === b.prop;
 
 /* The readouts on the Power tab: how each is shown, and which way is up. */
 const STATS = [
@@ -208,6 +227,10 @@ const STATS = [
   { key: 'topSpeed', label: 'hangar.top_speed', text: (v) => str('hangar.kmh', { n: number(v * 3.6) }) },
   { key: 'thrustToWeight', label: 'hangar.thrust', text: (v) => str('hangar.thrust_ratio', { n: number(v, 1) }) },
   { key: 'minutes', label: 'hangar.flight_time', text: (v) => str('hangar.minutes', { n: number(v) }) },
+  /* A quad's (configs/motors.js motorStats): its pack at a hover and at
+   * full throttle, which is where a hotter motor costs the pack. */
+  { key: 'hoverMinutes', label: 'hangar.hover_time', text: (v) => str('hangar.minutes', { n: number(v, 1) }) },
+  { key: 'fullMinutes', label: 'hangar.full_time', text: (v) => str('hangar.minutes', { n: number(v, 1) }) },
 ];
 
 export class Hangar {
@@ -439,7 +462,7 @@ export class Hangar {
     this.customTarget = null;
     this.shop.reset({ library: (settings.liverySaves || {})[this.family] ?? [], onLibrary });
     this.revealSeq += 1;
-    this.focus = tabFocus(this.tab);
+    this.focus = tabFocus(this.tab, this.quad());
     this.isOpen = true;
     eachHook((h) => h.open && h.open(this, settings));
     const af = airframeById(airframe);
@@ -502,6 +525,11 @@ export class Hangar {
     if (this.opts && this.opts.sound) {
       this.opts.sound(kind);
     }
+  }
+
+  /* Whether the aircraft on the stand is a quad. */
+  quad() {
+    return Boolean(this.id) && !airframeById(this.id).fixedWing;
   }
 
   colours(entry = this.entry) {
@@ -575,7 +603,7 @@ export class Hangar {
     eachHook((h) => {
       tabs = tabs || Boolean(h.dirty && h.dirty());
     });
-    return tabs || a !== b || this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack;
+    return tabs || a !== b || !samePower(this.choice, this.savedPower);
   }
 
   setTab(t) {
@@ -586,7 +614,7 @@ export class Hangar {
     this.shop.stopPlacing();
     this.tab = t;
     this.hover = null;
-    this.focus = tabFocus(t);
+    this.focus = tabFocus(t, this.quad());
     this.paint(dir);
     this.preview();
     this.focusKey(`tab-${t}`);
@@ -634,8 +662,8 @@ export class Hangar {
   }
 
   pickOption(id) {
-    this.choice = powerChoice(this.power, { option: id, pack: this.choice.pack });
-    this.focus = 'motor';
+    this.choice = powerChoice(this.power, { ...this.choice, option: id });
+    this.focus = motorFocus(this.quad());
     this.changed(`option-${id}`);
     if (this.opts && this.opts.onTry) {
       this.opts.onTry({ ...this.choice });
@@ -646,6 +674,16 @@ export class Hangar {
     this.choice = { ...this.choice, pack: id };
     this.focus = 'pack';
     this.changed(`pack-${id}`);
+  }
+
+  /* A quad's prop turns at its own speed, so the stand hears it. */
+  pickProp(id) {
+    this.choice = { ...this.choice, prop: id };
+    this.focus = motorFocus(this.quad());
+    this.changed(`prop-${id}`);
+    if (this.opts && this.opts.onTry) {
+      this.opts.onTry({ ...this.choice });
+    }
   }
 
   /* A card progression may not have opened yet: src/ui/progress-ui.js
@@ -679,7 +717,7 @@ export class Hangar {
       livery: normaliseEntry(this.family, this.entry),
       power: { ...this.choice },
       liveryChanged: JSON.stringify(normaliseEntry(this.family, this.entry)) !== JSON.stringify(normaliseEntry(this.family, this.saved)),
-      powerChanged: this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack,
+      powerChanged: !samePower(this.choice, this.savedPower),
       settings: {},
       asNew,
     };
@@ -873,7 +911,7 @@ export class Hangar {
     this.power.options.forEach((o, i) => {
       const b = button(`hangar-card${o.id === option.id ? ' on' : ''}`);
       b.dataset.key = `option-${o.id}`;
-      b.dataset.focus = 'motor';
+      b.dataset.focus = motorFocus(this.quad());
       b.style.setProperty('--i', String(i));
       b.append(el('span', 'hangar-card-name', o.name));
       if (o.detail) {
@@ -881,13 +919,35 @@ export class Hangar {
       }
       b.setAttribute('aria-pressed', String(o.id === option.id));
       b.addEventListener('pointerenter', () => {
-        this.focus = 'motor';
+        this.focus = motorFocus(this.quad());
       });
       b.addEventListener('click', () => this.pickOption(o.id));
       this.lockMark(b, 'power', o.id);
       opts.append(b);
     });
     box.append(opts);
+    const props = this.power.props ?? [];
+    if (props.length > 1) {
+      box.append(el('h3', 'hangar-h', str('hangar.prop')));
+      const row = el('div', 'hangar-cards hangar-cards-small');
+      props.forEach((p, i) => {
+        const b = button(`hangar-card${p.id === this.choice.prop ? ' on' : ''}`);
+        b.dataset.key = `prop-${p.id}`;
+        b.dataset.focus = motorFocus(this.quad());
+        b.style.setProperty('--i', String(i));
+        b.append(el('span', 'hangar-card-name', p.name));
+        if (p.detail) {
+          b.append(el('span', 'hangar-card-detail', p.detail));
+        }
+        b.setAttribute('aria-pressed', String(p.id === this.choice.prop));
+        b.addEventListener('pointerenter', () => {
+          this.focus = motorFocus(this.quad());
+        });
+        b.addEventListener('click', () => this.pickProp(p.id));
+        row.append(b);
+      });
+      box.append(row);
+    }
     const packs = option.packs ?? [];
     if (packs.length) {
       box.append(el('h3', 'hangar-h', str(glow ? 'hangar.tank' : 'hangar.pack')));
@@ -914,6 +974,9 @@ export class Hangar {
     if (none) {
       box.append(el('p', 'hangar-note', str('hangar.no_motor_note')));
     }
+    if (this.power.note) {
+      box.append(el('p', 'hangar-note', this.power.note));
+    }
     box.append(el('p', 'hangar-note', str(`carousel.note.${this.id}`)));
     if (option.source) {
       box.append(el('p', 'hangar-source', str('hangar.source', { source: option.source })));
@@ -939,10 +1002,13 @@ export class Hangar {
     }
     const stock = this.power.estimate(this.power.stock);
     const all = [];
+    const props = this.power.props ?? [{ id: undefined }];
     for (const o of this.power.options) {
       const packs = (o.packs && o.packs.length) ? o.packs : [{ id: null }];
       for (const p of packs) {
-        all.push(this.power.estimate({ option: o.id, pack: p.id }));
+        for (const q of props) {
+          all.push(this.power.estimate({ option: o.id, pack: p.id, prop: q.id }));
+        }
       }
     }
     const stats = el('div', 'hangar-stats');

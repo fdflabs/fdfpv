@@ -27,7 +27,9 @@
  *
  * settings.buildFits, by land plane id (one fit per family, as the paint
  * is one per family): { build, airframe, stock: { [airframe id]: fit } }.
- * The builds themselves are under their own localStorage key, BUILDS_KEY.
+ * The builds themselves are under their own localStorage key, BUILDS_KEY,
+ * and a signed in pilot's follow the account (buildsBlob, below). Which
+ * build a family wears is this computer's and does not.
  *
  * Pure and DOM free apart from the storage calls, which are guarded:
  * scripts import it in Node.
@@ -50,31 +52,40 @@
 
 import { AIRFRAMES, airframeById, landPlaneOf } from '../../configs/airframes.js';
 import { liveryKey, normaliseEntry, paintable } from '../../configs/liveries.js';
-import { POWER, powerChoice } from '../../configs/power.js';
+import { choosesPower, powerChoice } from '../../configs/power.js';
+import { STOCK_ONLY, hasMotors } from '../../configs/motors.js';
 import { normalizeEntry, setupFor, tuningFor } from '../../configs/tuning.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
 import { cleanName } from '../../configs/paint.js';
 import { combatChoice } from '../../configs/combat.js';
 import { badWordIn } from '../../tracks-api/words.js';
+import { MAX_BUILDS } from '../../tracks-api/limits.js';
 
 export const BUILDS_KEY = 'webfpv.builds.v1';
 /* Enough for three of every plane with room over; a list this long is
- * still one swipe a build. */
-export const MAX_BUILDS = 48;
+ * still one swipe a build. In tracks-api/limits.js, since the accounts
+ * server refuses a sync carrying more. */
+export { MAX_BUILDS };
 
 const isRecord = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v);
 
-/* An airframe a build can be made on: one the hangar opens, every plane
- * (configs/liveries.js paintable) and a combat quad for its loadout. */
+/* An aircraft the hangar opens on: every plane and combat aircraft
+ * (configs/liveries.js paintable), and a quad for its motors
+ * (configs/motors.js). */
+export function customisable(id) {
+  return paintable(id) || hasMotors(id) || Object.hasOwn(STOCK_ONLY, id);
+}
+
+/* An airframe a build can be made on: one the hangar opens. */
 export function buildable(id) {
-  return typeof id === 'string' && airframeById(id).id === id && (paintable(id) || Boolean(airframeById(id).combat));
+  return typeof id === 'string' && airframeById(id).id === id && customisable(id);
 }
 
 /* A fit, valid for this airframe: whatever it cannot fly dropped back to
  * stock, the same judges loadSettings uses for the slots. */
 export function normaliseFit(id, fit) {
   const f = isRecord(fit) ? fit : {};
-  const power = POWER[id] && isRecord(f.power) ? powerChoice(id, { [id]: f.power }) : null;
+  const power = choosesPower(id) && isRecord(f.power) ? powerChoice(id, { [id]: f.power }) : null;
   const plane = isRecord(f.parts) ? normalisePlane(id, { ...f.parts, damage: null }) : null;
   const tuning = tuningFor(id) && isRecord(f.tuning)
     ? normalizeEntry(id, f.tuning, setupFor(id, powerChoice(id, power ? { [id]: power } : {})).limits)
@@ -115,7 +126,7 @@ function withEntry(map, key, value) {
  * keep the airframe's own damage. */
 export function putFit(s, id, fit) {
   s.livery = withEntry(s.livery, liveryKey(id), fit.livery);
-  if (POWER[id]) {
+  if (choosesPower(id)) {
     s.power = withEntry(s.power, id, fit.power);
   }
   const damage = s.parts && isRecord(s.parts[id]) ? s.parts[id].damage : null;
@@ -281,6 +292,22 @@ export function saveBuilds(list) {
 
 export function newBuildId(now = Date.now()) {
   return `${now.toString(36)}${Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0')}`;
+}
+
+/*
+ * The builds as the account sync carries them (src/share/progressmerge.js,
+ * section `builds`): by id, so each build merges and is stamped on its
+ * own. And back: the oldest first, as they were made, so a merge of two
+ * computers' builds past MAX_BUILDS keeps the same ones on every computer.
+ */
+export function buildsBlob(list) {
+  return Object.fromEntries(list.map((b) => [b.id, b]));
+}
+
+export function buildsFromBlob(map) {
+  const list = Object.entries(isRecord(map) ? map : {}).map(([id, b]) => ({ ...(isRecord(b) ? b : {}), id }));
+  list.sort((x, y) => (x.created || 0) - (y.created || 0) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+  return normaliseBuilds({ builds: list });
 }
 
 /* The card key a build has in the picker, beside the airframe ids. */

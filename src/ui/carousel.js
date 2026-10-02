@@ -37,8 +37,8 @@
 
 import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } from '../../configs/airframes.js';
 import { currentLocale, str } from '../strings/index.js';
-import { paintable } from '../../configs/liveries.js';
-import { BUILD_PREFIX } from './builds.js';
+import { propulsionOf } from '../../configs/combat.js';
+import { BUILD_PREFIX, customisable } from './builds.js';
 
 /* Which lists the tabs offer. A card or a row opens on one kind and the
  * pilot can widen it to every aircraft. */
@@ -77,8 +77,11 @@ export function sizeText(id) {
   return str(af.fixedWing ? 'carousel.span' : 'carousel.wheelbase', { mm: af.sizeMm });
 }
 
-export function weightText(id) {
-  const g = airframeById(id).grams;
+/* An aircraft with more than one engine (the Striker) weighs what the
+ * engine in its loadout `combat` weighs (configs/combat.js propulsionOf). */
+export function weightText(id, combat = null) {
+  const af = airframeById(id);
+  const g = (propulsionOf(af, combat) ?? af).grams;
   if (g < 1000) {
     return str('carousel.grams', { n: Math.round(g) });
   }
@@ -226,6 +229,13 @@ export class Carousel {
     this.floatsBtn.dataset.key = 'floats';
     this.floatsBtn.setAttribute('role', 'switch');
     this.floatsBtn.addEventListener('click', () => this.toggleFloats());
+    /* And for an aircraft with more than one engine, the engine it has,
+     * which a click switches (toggleEngine): in the row only on its card,
+     * as the build's base plane is (paint). */
+    this.engineBtn = button('carousel-fact carousel-engine', '');
+    this.engineBtn.dataset.key = 'engine';
+    this.engineBtn.title = str('carousel.engine_switch');
+    this.engineBtn.addEventListener('click', () => this.toggleEngine());
     /* A build's card names the plane it is built on first; a stock card's
      * row stays the span, the weight and the switch (paint). */
     this.baseEl = el('span', 'carousel-fact carousel-base');
@@ -375,12 +385,16 @@ export class Carousel {
    * build, the build; onCancel nothing; onCustomise the id, a reopen and
    * the build. `floats` is the Floats switch, { on(id), set(id, on) } by
    * land plane id (src/ui/ui.js openPicker); without it no card shows one.
-   * `builds` is My Hangar, { list(), drawn(card, build), rename(id, name),
-   * remove(id) } (src/ui/ui.js pickerBuilds); without it there is no tab.
+   * `engine` is the Engine switch, { of(id), set(id, propulsion) } by
+   * airframe id, `of` giving a combat card's loadout (configs/combat.js
+   * combatChoice), which is also what its model is drawn in; without it
+   * no card shows one. `builds` is My Hangar, { list(), drawn(card,
+   * build), rename(id, name), remove(id) } (src/ui/ui.js pickerBuilds);
+   * without it there is no tab.
    */
-  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, builds = null, onChoose, onCancel, onCustomise } = {}) {
-    this.opts = { onChoose, onCancel, onCustomise, floats, builds };
-    this.openArgs = { filter, compact, title, warn, floats, builds, onChoose, onCancel, onCustomise };
+  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, engine = null, builds = null, onChoose, onCancel, onCustomise } = {}) {
+    this.opts = { onChoose, onCancel, onCustomise, floats, engine, builds };
+    this.openArgs = { filter, compact, title, warn, floats, engine, builds, onChoose, onCancel, onCustomise };
     this.isOpen = true;
     this.hintKind = hint;
     this.root.classList.toggle('compact', Boolean(compact));
@@ -423,19 +437,22 @@ export class Carousel {
   /*
    * The tab's cards, and how each is drawn when it is not simply its
    * airframe in the slots: a build in its own fit, a stock plane whose
-   * family is wearing a build in the pilot's own customisation. Made here
-   * and kept, not every frame, because the renderer repaints a model when
-   * the look it is handed is another object (src/render/carousel3d.js).
+   * family is wearing a build in the pilot's own customisation, a combat
+   * quad in its loadout. Made here and kept, not every frame, because the
+   * renderer repaints a model when the look it is handed is another object
+   * (src/render/carousel3d.js).
    */
   relist() {
     const builds = this.opts && this.opts.builds;
+    const engine = this.opts && this.opts.engine;
     this.ids = this.filter === MINE ? builds.list().map((b) => `${BUILD_PREFIX}${b.id}`) : pickList(this.filter);
     this.drawn = new Map();
     for (const key of this.ids) {
       const build = this.buildOf(key);
       const how = builds ? builds.drawn(build ? null : this.shown(key), build) : null;
-      if (how) {
-        this.drawn.set(key, how);
+      const combat = !build && engine ? engine.of(this.shown(key)) : null;
+      if (how || combat) {
+        this.drawn.set(key, { ...how, ...(combat ? { combat } : {}) });
       }
     }
   }
@@ -486,10 +503,11 @@ export class Carousel {
   }
 
   canCustomise() {
-    /* A combat quad's Customise is its loadout (src/ui/hangar-combat.js). */
+    /* Every plane and combat aircraft has paint (configs/liveries.js
+     * paintable); a quad has its motors. */
     const key = this.current();
     const id = key ? this.airframeOf(key) : null;
-    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && (paintable(id) || Boolean(airframeById(id).combat));
+    return Boolean(this.opts && this.opts.onCustomise) && Boolean(id) && customisable(id);
   }
 
   /* To the hangar with the centred plane, the picker put away and handed
@@ -528,6 +546,30 @@ export class Carousel {
       return;
     }
     this.opts.floats.set(id, !on);
+    this.relist();
+    this.paint();
+  }
+
+  /* A card's engine, a propulsion id, or null for a build (its engine is
+   * its own, changed in its Customise), an aircraft with one way to be
+   * pushed or an opener that offers no switch. */
+  engineOf(key) {
+    const combat = this.buildOf(key) ? null : (this.drawn.get(key) || {}).combat;
+    const list = combat ? airframeById(key).combat.propulsion : null;
+    return list && list.length > 1 ? combat.propulsion : null;
+  }
+
+  /* The next engine in the airframe's own order, saved where the Loadout
+   * tab saves it, so the two always agree. */
+  toggleEngine() {
+    const id = this.current();
+    const now = this.engineOf(id);
+    if (now === null) {
+      return;
+    }
+    const list = airframeById(id).combat.propulsion;
+    const at = list.findIndex((x) => x.id === now);
+    this.opts.engine.set(id, list[(at + 1) % list.length].id);
     this.relist();
     this.paint();
   }
@@ -609,11 +651,21 @@ export class Carousel {
       this.baseEl.remove();
     }
     this.sizeEl.textContent = sizeText(seen);
-    this.weightEl.textContent = weightText(seen);
+    this.weightEl.textContent = weightText(seen, (this.drawn.get(key) || {}).combat);
     const floats = build ? null : this.floatsOn(id);
     this.floatsBtn.hidden = floats === null;
     this.floatsBtn.classList.toggle('on', Boolean(floats));
     this.floatsBtn.setAttribute('aria-checked', String(Boolean(floats)));
+    const engine = this.engineOf(key);
+    if (engine === null) {
+      this.engineBtn.remove();
+    } else {
+      this.engineBtn.textContent = str('carousel.engine', { engine: str(`loadout.propulsion.${engine}`) });
+      /* Put in once, so a switch by keyboard keeps its focus. */
+      if (this.engineBtn.parentNode !== this.factsEl) {
+        this.factsEl.append(this.engineBtn);
+      }
+    }
     this.noteEl.textContent = str(`carousel.note.${id}`);
     if (this.decorate) {
       this.decorate(this, build ? landPlaneOf(id) : id);
@@ -786,10 +838,14 @@ export class Carousel {
       this.goTo(this.ids.length - 1);
     } else if (code === 'Space' && document.activeElement === this.floatsBtn) {
       this.toggleFloats();
+    } else if (code === 'Space' && document.activeElement === this.engineBtn) {
+      this.toggleEngine();
     } else if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
       this.choose();
     } else if (code === 'KeyF') {
       this.toggleFloats();
+    } else if (code === 'KeyE') {
+      this.toggleEngine();
     } else if (code === 'KeyC') {
       this.customise();
     } else if (code === 'KeyR') {
@@ -805,9 +861,9 @@ export class Carousel {
   /*
    * A gamepad or a radio, as the shell resolves it: { up, down, left, right,
    * select, back, alt, floats }, levels, alt being a standard pad's X and
-   * floats its Y. Edge triggered, and the first poll after
-   * opening only learns where the sticks are, because the press that
-   * opened this is usually still held.
+   * floats its Y, which is also the Engine switch: no card has both. Edge
+   * triggered, and the first poll after opening only learns where the
+   * sticks are, because the press that opened this is usually still held.
    */
   pollPad(nav) {
     const now = {
@@ -857,11 +913,14 @@ export class Carousel {
       this.cycleFilter(1);
     }
     /* A standard pad's X and Y are also buttons a menu takes as select, so
-     * X customises first, Y flips the floats, and the same press chooses
-     * nothing. On a build, which has no switch, Y asks to delete it. */
+     * X customises first, Y flips the floats or the engine, and the same
+     * press chooses nothing. On a build, which has no switch, Y asks to
+     * delete it. */
     if (edge('floats')) {
       if (this.buildOf(this.current())) {
         this.startDelete();
+      } else if (this.engineOf(this.current()) !== null) {
+        this.toggleEngine();
       } else {
         this.toggleFloats();
       }

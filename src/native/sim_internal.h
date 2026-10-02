@@ -179,6 +179,20 @@ typedef struct {
                       * figure of merit kq was derived through. Was the file
                       * scope PLANT_TORQUE_IND; it is a property of the rotor
                       * and moves with the airframe. */
+  double axial_curve[15]; /* a quad's thrust over its static thrust at the
+                      * axial advance mu = va / (w k_inflow) of 0, 0.1, ...
+                      * 1.4, linear between: its prop's own, from APC's
+                      * performance files (scripts/prop-curves.js). The
+                      * first is 1, so the hover is the static thrust.
+                      * Read by the quad step's climb branch only; zero on
+                      * a fixed wing, which never reads it. */
+  double torque_curve[15]; /* the same prop's shaft torque over its static
+                      * torque at the same mu, from the same files: the
+                      * load the motor turns against while the air comes
+                      * through the disc. The first is 1, so the hover is
+                      * kq w^2. Read for mu >= 0 only; descent keeps the
+                      * induced and profile split, which APC's data does
+                      * not reach. */
   /*
    * THE DUCT. Three numbers, and all three are 1, 0 and 0 on an open rotor,
    * which is what makes the five inch's arithmetic bit identical after this
@@ -902,6 +916,10 @@ void plant_wing_reset(void);
  * change does. plant_power_state fills the sim_power_state block. */
 void plant_power_reset(SimState *s);
 int plant_set_power(const double *in);
+/* A quad's motors, sim_set_motors in sim_abi.h, on the power option's
+ * copy and flag: plant_power_clear takes them off. */
+int plant_set_motors(const double *in);
+int plant_set_prop_pack(const double *in);
 void plant_power_clear(void);
 int plant_power_custom(void);
 /* The hangar's add-ons, the sim_set_addons layout in sim_abi.h, seated

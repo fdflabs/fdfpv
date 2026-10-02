@@ -487,15 +487,20 @@ async function main() {
     })();
     const tau5 = await motorTau(fiveCfg, AF_5IN);
     /*
-     * These four are the values the five inch produced BEFORE the airframe
-     * table landed, measured on the checked in dist/sim.wasm of the commit
-     * before this one and written down here so a regression has something to
-     * fail against. They are not thresholds and they are not in tests/: they
-     * are a fingerprint, and the tolerances are tight enough that any change
-     * at all to the five inch's arithmetic trips them.
+     * These four are the five inch's own values, written down here so a
+     * regression has something to fail against. They are not thresholds
+     * and they are not in tests/: they are a fingerprint, and the
+     * tolerances are tight enough that any change at all to the five
+     * inch's arithmetic trips them. First measured before the airframe
+     * table landed (hover 0.2790, punch 80.03 m, terminal 31.01 m/s, tau
+     * 25 ms); measured again on 2026-10-01 when the five inch's motor and
+     * prop moved, on purpose, to T-Motor's F60 Pro V and T5147 row
+     * (src/native/plant.c, docs/STOCK-5INCH.md), and again when its thrust
+     * against axial speed, and then its torque, became its prop's own APC
+     * curves (docs/PROP-CURVES.md): the hover to the digit, the rest moved.
      */
-    const REF = { hover: 0.2789999842643738, punch: 80.02533350994806,
-      terminal: 31.010392473266936, tau: 0.025 };
+    const REF = { hover: 0.2579999566078186, punch: 121.08992892911083,
+      terminal: 47.316337901718995, tau: 0.02 };
     const changed = [];
     const cmp = (name, got, want, tol) => {
       if (!(Math.abs(got - want) <= tol)) {

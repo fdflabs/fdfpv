@@ -45,7 +45,7 @@
  */
 
 import {
-  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO, ROOM_LEVEL,
+  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO, ROOM_LEVEL, WAR_JOIN,
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 import { readAccount } from './pilot.js';
@@ -142,6 +142,23 @@ export function wantedRoom() {
     /* No location: no link. */
   }
   return normaliseCode(read('session', ROOM_KEY));
+}
+
+/* A ?room= link is used once: once its room has welcomed this tab, the
+ * code goes from the address, so Leave then a reload stays left
+ * (docs/FLOW-AUDIT.md D3). A reload still rejoins by the tab's own
+ * session key while the pilot is in the room. */
+function dropRoomLink() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('room')) {
+      return;
+    }
+    url.searchParams.delete('room');
+    window.history.replaceState(window.history.state, '', url.toString());
+  } catch (e) {
+    /* No location or history to change: the link stays, as before. */
+  }
 }
 
 /* The share link for a code: this page with ?room=. */
@@ -307,7 +324,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       const account = readAccount();
       const session = account && account.callsign ? { session: account.session } : {};
       sendText({
-        type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat, ...session,
+        type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, war: WAR_JOIN, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat, ...session,
       });
     };
     socket.onmessage = (ev) => {
@@ -347,6 +364,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           fullRetried = false;
         }
         write('session', ROOM_KEY, code);
+        dropRoomLink();
         clock.resync();
         stopTimers();
         ping();
@@ -394,6 +412,12 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
           welcome.map = m.map;
         }
         handlers.onWorld?.(m.map);
+      } else if (m.type === 'lobby') {
+        /* The war's lobby changed (edge/rooms/warlobby.js). */
+        if (welcome) {
+          welcome.lobby = m.lobby;
+        }
+        handlers.onLobby?.();
       } else if (m.type === 'room') {
         if (welcome) {
           welcome.name = m.name;
@@ -475,7 +499,8 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
 
   return {
     /* Make a room in `map`, private unless room.public; room.name is the
-     * typed name or null, room.mode the game it is set up for or null.
+     * typed name or null, room.mode the game it is set up for or null,
+     * room.mission the war's mission for a room made for the war.
      * Resolves to its code; throws Error('name') for a name the server
      * refused. */
     async create(map, friendly = false, room = {}) {
@@ -487,7 +512,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null,
+          map, friendly: Boolean(friendly), public: room.public === true, name: room.name ?? null, mode: room.mode ?? null, mission: room.mission ?? null,
         }),
       });
       const body = await res.json().catch(() => ({}));

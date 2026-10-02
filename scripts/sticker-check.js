@@ -4,7 +4,7 @@
  *
  *   node scripts/sticker-check.js [--shots DIR]
  *
- * For the Skyhunter, the Timber and the Cub: a stripe on the wing's top
+ * For the Skyhunter, the Timber, the Cub, the Striker and the 7 inch: a stripe on the wing's top
  * skin, a roundel under the wing and a number on the fuselage's left side,
  * each placed where a ray from off the model meets the skin (the hangar's
  * pick, src/render/carousel3d.js), and the two wing ones again at 400 mm,
@@ -51,7 +51,7 @@ import { airframeById } from '../configs/airframes.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const shotsAt = process.argv.indexOf('--shots');
 const shotDir = shotsAt > 0 ? process.argv[shotsAt + 1] : null;
-const IDS = ['sky1800', 'timber1500', 'cub1400'];
+const IDS = ['sky1800', 'timber1500', 'cub1400', 'striker2500', '7inch'];
 /* The larger size of the two wing decals, metres. */
 const BIG = 0.4;
 
@@ -94,16 +94,18 @@ const seed = [`try {
  * copy at a time, whose direction is known. With the lowest point of the
  * decals and of the skin. Written without src/render/decals.js's own list of targets, which is the
  * thing under test: skin here is any mesh under the group with nothing
- * hidden on the way up, that is not a decal and not an ink hull (drawn
- * inside out, and scaled up round the mesh's origin, so it stands off the
- * skin by design).
+ * hidden on the way up to it, that is not a decal and not an ink hull
+ * (drawn inside out, and scaled up round the mesh's origin, so it stands
+ * off the skin by design). The group itself may be hidden: a quad's pilot
+ * looks through its camera, so the shell hides the flown model whole, and
+ * that hides its stickers with its skin, never one from the other.
  */
 const HELPERS = `
   const THREE = await import('three');
   const { DECAL_LIFT } = await import('/src/render/decals.js');
   const ON = DECAL_LIFT + 0.001;
   const OVER = 0.02;
-  const shownIn = (o, top) => { for (let p = o; p && p !== top.parent; p = p.parent) { if (!p.visible) return false; } return true; };
+  const shownIn = (o, top) => { for (let p = o; p && p !== top; p = p.parent) { if (!p.visible) return false; } return true; };
   /* A spinning part, a blade or a prop disc, is not skin: a blade that
    * stopped over the fuselage does not hide what is painted under it. */
   const spinning = (o, spins) => { for (let p = o; p; p = p.parent) { if (spins.has(p)) return true; } return false; };

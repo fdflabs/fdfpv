@@ -73,7 +73,7 @@ import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionO
 import { POWER, normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { PROPS, normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
-import { normaliseCombat } from '../../configs/combat.js';
+import { combatChoice, normaliseCombat } from '../../configs/combat.js';
 import { Carousel, cycleCraft, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
@@ -85,7 +85,7 @@ import { Progress, bindProgress } from './progress-ui.js';
 import { installHangarPolish } from './hangar-polish.js';
 import { liveryKey, lookFor, normaliseLiveries, normaliseSaves, paintable } from '../../configs/liveries.js';
 import {
-  BUILD_PREFIX, MAX_BUILDS, checkBuildName, familyFitted, fitBuild, fitOf, fittedBuild, loadBuilds, newBuildId, normaliseBuildFits, normaliseFit,
+  BUILD_PREFIX, MAX_BUILDS, checkBuildName, customisable, familyFitted, fitBuild, fitOf, fittedBuild, loadBuilds, newBuildId, normaliseBuildFits, normaliseFit,
   putFit, saveBuilds, setStockFit, stockFit, unfitFamily,
 } from './builds.js';
 import { normaliseProgress } from '../game/progress.js';
@@ -530,6 +530,12 @@ function byLine(t) {
   return t && t.author ? str('ui.by_2', { author: t.author }) : '';
 }
 
+/* The Avionics HUD inset's sizes (src/render/sensorview.js INSET_SIZES,
+ * which SensorManager.setInset checks a stored one against). */
+export const AVX_INSETS = ['small', 'medium', 'large'];
+/* How much the Avionics HUD draws, in Y's order (src/ui/avionicshud.js). */
+export const AVX_LEVELS = ['full', 'standard', 'minimal'];
+
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
    * or the Swiss valley flown in the world it names, and any other id is a
@@ -787,6 +793,11 @@ const DEFAULTS = {
    * aircraft is small, hidden or off screen (src/ui/peermarks.js): 'on',
    * 'minimal' (the shapes without the names and ranges) or 'off'. */
   peerMarks: 'on',
+  /* The Avionics HUD's camera inset, cycled with U in flight: one of
+   * AVX_INSETS, smallest first. */
+  avxInset: 'small',
+  /* How much the Avionics HUD draws, cycled with Y: one of AVX_LEVELS. */
+  avxLevel: 'standard',
   renderScale: 100,
   fpsCap: 0,
   packVoltage: 4.2,
@@ -824,7 +835,8 @@ const DEFAULTS = {
   /* The My Hangar builds each family is wearing, by land plane id, with
    * the pilot's own customisation of the stock plane kept to come back
    * (src/ui/builds.js). Empty is every plane flying the slots above as it
-   * always has. Not synced: the builds live under their own key. */
+   * always has. Not synced: what a computer wears is its own. The builds
+   * live under their own key and follow the account (src/ui/accountui.js). */
   buildFits: {},
   /*
    * How heavy the quad is, as a percentage of the weight the airframe is
@@ -1069,6 +1081,8 @@ export function loadSettings() {
     ['fpsCap', FPS_CAPS],
     ['hudStyle', HUD_STYLES],
     ['peerMarks', MARK_STYLES],
+    ['avxInset', AVX_INSETS],
+    ['avxLevel', AVX_LEVELS],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
@@ -1426,14 +1440,15 @@ export function withFloats(s, id) {
 
 /* A picker card drawn in a fit rather than in the slots, a My Hangar
  * build's or a stock plane's kept aside (src/ui/builds.js), as
- * src/render/carousel3d.js takes it: the model's own key, its look and
- * what it is fitted with. */
+ * src/render/carousel3d.js takes it: the model's own key, its look, what
+ * it is fitted with and a combat quad's loadout. */
 function drawnFit(key, id, fit) {
   const parts = PROPS[id] ? { prop: 'stock', addons: [], damage: null, ...(fit.parts ?? {}) } : null;
   return {
     key,
     look: lookFor(id, fit.livery),
     fit: parts ? { id, entry: parts, option: POWER[id] ? powerChoice(id, { [id]: fit.power }).option : null } : null,
+    combat: fit.combat ?? null,
   };
 }
 
@@ -4046,6 +4061,11 @@ export class Ui {
     const friends = el('div', 'screen screen-page screen-friends');
     friends.append(el('h2', null, str('friends.title')));
     friends.append(el('p', 'rates-lede', str('friends.lede')));
+    /* The war's lobby over the rows, in a room made for the war between
+     * its matches (setWarLobby). */
+    this.warLobbyEl = el('div', 'war-lobby');
+    this.warLobbyEl.hidden = true;
+    friends.append(this.warLobbyEl);
     const friendsBlock = wrapMenu();
     this.friendsMenu = friendsBlock.menu;
     this.friendsMenu.classList.add('menu-scroll');
@@ -4646,6 +4666,65 @@ export class Ui {
    * there (src/main.js seats it on welcome), so changing it inside one
    * would only put this pilot somewhere nobody else is.
    */
+  /*
+   * THE WAR'S LOBBY over the room screen's rows: LOBBY and the mission,
+   * when it starts in large, and the pilots, each ready or not. `v` is
+   * src/main.js warLobbyView(), or null for no lobby. Drawn again only when
+   * what it says changes.
+   */
+  setWarLobby(v) {
+    const on = Boolean(v);
+    if (on !== Boolean(this.warLobbyOn)) {
+      this.warLobbyOn = on;
+      this.warLobbyEl.hidden = !on;
+      this.screens.friends.classList.toggle('war-lobby-on', on);
+      this.warLobbyKey = null;
+      if (this.screen === 'friends') {
+        this.renderMenu();
+        if (on) {
+          this.setCursor(this.firstStop(this.items()));
+        }
+      }
+    }
+    if (!on) {
+      return;
+    }
+    const status = v.countdown != null
+      ? str('lobby.starting', { n: v.countdown })
+      : v.deadline != null
+        ? str('lobby.deadline', { t: `${Math.floor(v.deadline / 60)}:${String(v.deadline % 60).padStart(2, '0')}` })
+        : str('lobby.waiting');
+    const key = JSON.stringify([v.mission, status, v.pilots, v.last]);
+    if (key === this.warLobbyKey) {
+      return;
+    }
+    this.warLobbyKey = key;
+    const box = this.warLobbyEl;
+    box.textContent = '';
+    const head = el('div', 'war-lobby-head');
+    head.append(el('div', 'war-lobby-title', str('lobby.title')), el('div', 'war-lobby-mission', v.mission));
+    box.append(head);
+    box.append(el('div', `war-lobby-status${v.countdown != null ? ' go' : ''}`, status));
+    if (v.last) {
+      box.append(el('div', 'war-lobby-last', str(`lobby.last_${v.last.state}`, {
+        stars: v.last.stars ?? 0, kills: v.last.kills,
+      })));
+    }
+    const list = el('div', 'war-lobby-pilots');
+    for (const p of v.pilots) {
+      const row = el('div', `war-lobby-pilot${p.ready ? ' ready' : ''}${p.me ? ' me' : ''}`);
+      const who = el('div', 'war-lobby-who');
+      who.append(el('span', 'war-lobby-name', p.name));
+      if (p.host) {
+        who.append(el('span', 'war-lobby-host', str('lobby.host')));
+      }
+      who.append(el('span', 'war-lobby-craft', p.aircraft));
+      row.append(who, el('span', 'war-lobby-flag', str(p.ready ? 'lobby.flag_ready' : 'lobby.flag_waiting')));
+      list.append(row);
+    }
+    box.append(list);
+  }
+
   roomSeatRows(inRoom) {
     const s = this.settings;
     const world = seatedFreestyleMap(s);
@@ -6061,7 +6140,20 @@ export class Ui {
    * repeated section headings and Back, which do.
    */
   items() {
-    return stampIds([...this.buildItems(), ...this.barStops()], this.screen);
+    return stampIds([...this.buildItems().map((it) => this.roomExit(it)), ...this.barStops()], this.screen);
+  }
+
+  /*
+   * THE TITLE IS NEVER IN A ROOM (docs/FLOW-AUDIT.md rule 3, the owner's
+   * 2026-10-01), so a row that goes to the title says what it does there:
+   * it leaves the room. Every Back to title and Quit to title, the pause
+   * menu's and the results' and the shell's own, is the one Leave.
+   */
+  roomExit(it) {
+    if (it.action !== 'title' || !(this.inRoom && this.inRoom())) {
+      return it;
+    }
+    return { ...it, label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' };
   }
 
   /*
@@ -6391,6 +6483,12 @@ export class Ui {
        * (src/main.js friendsRows), and the cursor opens on it; Fly stays on
        * top but gives the screen's one primary up to it. */
       const started = rows.some((it) => it.primary);
+      /* The war's lobby is no free flight: no Fly, no world, the aircraft
+       * the war is flown in, and its own Leave in the shell's rows. */
+      if (this.warLobbyOn) {
+        const leave = rows.filter((it) => it.action === 'friends-leave');
+        return [...rows.filter((it) => it.action !== 'friends-leave'), ...(seat ? this.roomSeatRows(inRoom).slice(0, 1) : []), ...leave];
+      }
       return [
         ...(between && inRoom ? [{ label: str('ui.fly_label'), action: 'fly', primary: !started, note: str('friends.fly_note') }] : []),
         ...rows,
@@ -7185,9 +7283,10 @@ export class Ui {
           action: 'hotswap',
           note: str('carousel.row_note'),
         },
-        /* The hangar for the plane being flown: its power and its paint,
-         * saved into the air where it is; a combat quad's loadout. */
-        ...(paintable(s.airframe) || airframeById(s.airframe).combat ? [{
+        /* The hangar for the aircraft being flown: its power, its paint,
+         * a combat aircraft's loadout and a quad's motors, saved into the
+         * air where it is. */
+        ...(customisable(s.airframe) ? [{
           label: str('hangar.customise'),
           action: 'customise',
           note: str('hangar.row_note'),
@@ -10163,6 +10262,12 @@ export class Ui {
 
   show(screen) {
     this.closeDrop();
+    /* Inside a room the room screen is home, where the title would be
+     * (rule 3 and 4 of docs/FLOW-AUDIT.md): whatever ends on the title,
+     * a run quit, Escape on the results, a world swap, ends there. */
+    if (screen === 'title' && this.inRoom && this.inRoom()) {
+      screen = 'friends';
+    }
     /*
      * A STICK HELD THROUGH A SCREEN CHANGE IS NOT A GESTURE ON THE SCREEN
      * IT LANDS ON.
@@ -12851,6 +12956,12 @@ export class Ui {
     if (this.screen === 'flight') {
       return;
     }
+    /* The room screen is home inside a room: Back stops there, and Leave
+     * is the way out (rule 4 and 5 of docs/FLOW-AUDIT.md). Reached from a
+     * paused run, Back is still that run. */
+    if (this.screen === 'friends' && this.returnTo !== 'paused' && this.inRoom && this.inRoom()) {
+      return;
+    }
     if (this.onUiSound) {
       this.onUiSound('back');
     }
@@ -12967,7 +13078,7 @@ export class Ui {
     this.act(this.returnTo === 'paused' ? 'paused' : 'title');
   }
 
-  act(action, picked = null) {
+  act(action, picked = null, { keepWorld = false } = {}) {
     if (action === 'update-reload') {
       window.location.reload();
       return;
@@ -13189,10 +13300,10 @@ export class Ui {
        * cards; it is fixed here because this is the line that does it.
        */
       /* `picked` is the aircraft chosen in the carousel the card opens
-       * (pickForWay); a card answered without one, from a script or a
-       * link, keeps the rule it always had. */
-      const want = picked && way.airframes.includes(picked) ? picked
-        : way.airframes.includes(this.settings.airframe) ? this.settings.airframe : way.airframes[0];
+       * (pickForWay), whichever kind it is; a card answered without one,
+       * from a script or a link, keeps the rule it always had. */
+      const want = picked
+        || (way.airframes.includes(this.settings.airframe) ? this.settings.airframe : way.airframes[0]);
       if (want !== this.settings.airframe) {
         seatAirframe(this.settings, want);
       }
@@ -13203,11 +13314,6 @@ export class Ui {
        * by the shell's room rows (src/main.js friendsRows) and sent in this
        * pilot's profile, so the room screen leads with it. */
       this.roomGame = way.game ?? null;
-      /* The shell leaves a room that is running another game, so the card
-       * never opens on it (onGameCard, src/main.js). */
-      if (way.game && this.onGameCard) {
-        this.onGameCard(way.game);
-      }
       saveSettings(this.settings);
       /* The shell has to hear this before anything is flown: it is the
        * call that swaps the plant in the compiled module and reloads the
@@ -13224,7 +13330,20 @@ export class Ui {
         this.show('courses');
         return;
       }
-      if (!seatedFreestyleMap(this.settings)) {
+      /*
+       * THE CARD'S WORLD WINS (docs/FLOW-AUDIT.md rule 2, the owner's
+       * 2026-10-01): a card with a home seats it, whatever world was flown
+       * last. After a war every card opened on Itaipu, the Free Flight card
+       * saying the Swiss valley over it (D4). The World row still seats any
+       * other world, for this visit.
+       */
+      const worlds = MAPS.filter((x) => x.mode === 'freestyle');
+      /* keepWorld: the rooms panel's way in, which goes on to a room
+       * whose welcome seats that room's world, so seating the card's first
+       * would build a world only to swap it away. */
+      const home = way.home && !keepWorld ? worlds.find((x) => x.id === way.home) : null;
+      const seated = seatedFreestyleMap(this.settings);
+      if (home ? !seated || seated.id !== home.id : !seated) {
         /*
          * NO PICKER WHEN THERE IS NOTHING TO PICK.
          *
@@ -13236,17 +13355,14 @@ export class Ui {
          * possibly be going. That is a question with one answer, and a
          * question with one answer is a keypress somebody has to make.
          *
-         * The remembered world is still consulted FIRST, and the picker
-         * still comes back the moment there is a real choice, which is why
-         * this is written as "what is remembered, or the only one" rather
-         * than as the id of the town. A second freestyle world costs the
-         * registry entry and this branch and nothing else.
+         * For a card without a home the remembered world is consulted
+         * first, and the picker comes back the moment there is a real
+         * choice, which is why this is written as "what is remembered, or
+         * the only one" rather than as the id of the town.
          */
         const remembered = MAPS.find(
           (x) => x.id === this.settings.freestyleMap && x.mode === 'freestyle',
         );
-        const worlds = MAPS.filter((x) => x.mode === 'freestyle');
-        const home = way.home ? worlds.find((x) => x.id === way.home) : null;
         const want = home || remembered || (worlds.length === 1 ? worlds[0] : null);
         if (!want) {
           this.show('freestyle');
@@ -13255,9 +13371,14 @@ export class Ui {
         /* The cursor lands on Fly when the world comes back, for the same
          * reason as below: the fourth card is not the menu's fourth row. */
         this.setCursor(this.titleStop());
-        this.seatMap(want.id);
+        /* A room card's screen is up before the seat changes, so the world
+         * swap the seat starts knows to come back to it (main.js
+         * syncWorldNow), not to the title it shows while it loads. */
         if (way.room) {
           this.show('friends');
+          this.seatMap(want.id, { stay: true });
+        } else {
+          this.seatMap(want.id);
         }
         return;
       }
@@ -13300,7 +13421,7 @@ export class Ui {
     /* The gate's rooms panel: the Fly with friends card's way in, then
      * the room, the lobby or Make a room. */
     if (typeof action === 'string' && action.startsWith('lobby:')) {
-      this.act(WAYS.find((w) => w.id === 'friends').action);
+      this.act(WAYS.find((w) => w.id === 'friends').action, null, { keepWorld: true });
       this.act(action.slice('lobby:'.length));
       return;
     }
@@ -13635,8 +13756,6 @@ export class Ui {
      * way quitting to the title ends it, and the list is where a pilot
      * racing goes next. */
     if (action === 'mytracks') {
-      /* act('title')'s way, but for onTitle: the pilot lands on the list,
-       * not the title, and a room they are in keeps them. */
       this.show('title');
       if (this.onAction) {
         this.onAction('title', this.settings);
@@ -13650,10 +13769,6 @@ export class Ui {
     }
     if (action === 'title' || action === 'paused') {
       this.show(action);
-    }
-    /* The title is out of any room: the shell leaves it (src/main.js). */
-    if (action === 'title' && this.onTitle) {
-      this.onTitle();
     }
     /* Freestyle reaches the air through here rather than through the launch
      * card, so this is the other end of the same event. See flown(). */
@@ -13692,6 +13807,17 @@ export class Ui {
    */
   openPicker(opts) {
     const s = this.settings;
+    /*
+     * The Engine switch on the seated aircraft: its loadout before the
+     * first flip and after the last. A flip seated by Choose is a refit;
+     * one put away is undone, as settleFloats undoes the Floats switch, so
+     * what is flying is what the slots say. Only while nothing else (the
+     * Loadout tab's Save, through Customise) has changed it since.
+     */
+    const seat = s.airframe;
+    const flip = { before: null, after: null };
+    const flipped = () => Boolean(flip.before) && JSON.stringify(this.stockLoadout(seat)) === JSON.stringify(flip.after)
+      && JSON.stringify(flip.after) !== JSON.stringify(flip.before);
     this.carousel.open({
       ...opts,
       floats: {
@@ -13699,6 +13825,17 @@ export class Ui {
         set: (id, on) => {
           s.floats = { ...s.floats, [id]: on };
           this.persistSettings();
+        },
+      },
+      engine: {
+        of: (id) => this.stockLoadout(id),
+        set: (id, propulsion) => {
+          const was = this.stockLoadout(id);
+          this.setStockLoadout(id, { ...was, propulsion });
+          if (id === seat) {
+            flip.before = flip.before ?? was;
+            flip.after = this.stockLoadout(id);
+          }
         },
       },
       builds: this.pickerBuilds(),
@@ -13709,13 +13846,42 @@ export class Ui {
         if (moved) {
           this.persistSettings();
         }
+        /* Refitted as the Loadout tab's Save refits, in the air where it
+         * is when a run is up, before the opener's own swap, which is
+         * refused for the same aircraft. */
+        if (!build && id === seat && flipped()) {
+          this.refitted(id).then(() => opts.onChoose(id, moved));
+          return;
+        }
         opts.onChoose(id, moved);
       },
       onCancel: () => {
         this.settleFloats();
+        if (flipped()) {
+          this.setStockLoadout(seat, flip.before);
+        }
         opts.onCancel();
       },
     });
+  }
+
+  /* A combat quad's loadout as its stock card has it (src/ui/builds.js
+   * stockFit: in the slots, or kept beside a build the family wears), made
+   * valid; null for any other aircraft. The Loadout tab edits the same. */
+  stockLoadout(id) {
+    const af = airframeById(id);
+    return af.combat ? combatChoice(af, stockFit(this.settings, id).combat) : null;
+  }
+
+  setStockLoadout(id, choice) {
+    const s = this.settings;
+    const combat = combatChoice(airframeById(id), choice);
+    if (familyFitted(s, id)) {
+      setStockFit(s, id, { ...stockFit(s, id), combat });
+    } else {
+      s.combat = { ...s.combat, [id]: combat };
+    }
+    this.persistSettings();
   }
 
   /* The seated plane's toggle back in step with the seat, as seatAirframe
@@ -13900,8 +14066,12 @@ export class Ui {
         if (moved && id === s.airframe) {
           this.refitted(id);
         }
-        const chosen = way.airframes.includes(id) ? way : (WAYS.find((w) => w.airframes.includes(id)) ?? way);
-        this.act(chosen.action, id);
+        /* The card's own way, whatever was chosen in its picker: a quad
+         * chosen from Free Flight flies Free Flight's field. It used to go
+         * to the first card that listed it, Track mode, and so to My
+         * tracks (the owner, 2026-10-01: "the track selector should only
+         * open up when i click on the track mode card"). */
+        this.act(way.action, id);
       },
       onCancel: () => this.renderMenu(),
     });
@@ -14004,12 +14174,12 @@ export class Ui {
     /* A build opens on the airframe it was built on; a stock plane on the
      * version its toggle names, whichever of the two it was asked for. */
     const id = build ? build.airframe : withFloats(s, landPlaneOf(card));
-    /* A combat quad has a hangar for its payload and accessories
-     * (src/ui/hangar-combat.js) before it has paint. */
-    const loadoutOnly = !paintable(id) && Boolean(airframeById(id).combat);
-    if ((!paintable(id) && !loadoutOnly) || this.hangar.isOpen) {
+    if (!customisable(id) || this.hangar.isOpen) {
       return;
     }
+    /* A combat aircraft opens on what it carries (src/ui/hangar-combat.js);
+     * a quad without paint on its motors. */
+    const firstTab = airframeById(id).combat ? 'loadout' : paintable(id) ? null : 'power';
     const family = liveryKey(id);
     const inSlots = !build && !familyFitted(s, id);
     const held = build ? build.fit : stockFit(s, id);
@@ -14077,7 +14247,7 @@ export class Ui {
     } : null;
     this.hangar.open({
       airframe: id,
-      tab: loadoutOnly ? 'loadout' : null,
+      tab: firstTab,
       floats: onFloats ? { on: isFloatVersion(id), set: onFloats } : null,
       livery: view.livery[family],
       mine: {

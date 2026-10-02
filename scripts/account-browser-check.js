@@ -16,8 +16,17 @@
  *     goes up; the board refuses the callsign to any other key.
  *   B, a guest, joins A's room and sees A's callsign; A sees B's picker
  *     name; B's Pilot screen still offers sign in and B flies as before.
+ *   A, before C exists, makes two My Hangar builds (a Timber in the
+ *     Timber X scheme, a 7 inch carrying the wide payload and the second
+ *     pack), wears the 7 inch one, and puts the Striker on its turbojet;
+ *     a sync takes all three up.
  *   C, a second computer, signs in to the same account and gets A's pilot
- *     key and A's progress; signing out gives C its own key back.
+ *     key and A's progress, and both builds and the Striker's turbojet:
+ *     each build chosen in the picker's My Hangar tab and flown wears and
+ *     carries what A built, and the Striker flies on the turbojet's
+ *     plant. C deletes the 7 inch build; after A's next sync it is gone
+ *     from A too, and A's 7 inch, which was wearing it, flies the pilot's
+ *     own again. Signing out gives C its own key back.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -43,6 +52,9 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
+import { BUILDS_KEY } from '../src/ui/builds.js';
+import { airframeById } from '../configs/airframes.js';
+import { coloursFor } from '../configs/liveries.js';
 import { GOOGLE_CLIENT_ID } from '../src/share/account.js';
 import { ACCOUNT_KEY } from '../src/share/pilot.js';
 import { KEY_STORAGE, createIdentity, memoryStorage, nameClaimMessage } from '../src/share/identity.js';
@@ -154,6 +166,44 @@ const chipVisible = "Boolean(document.querySelector('.signin-chip')) && !documen
 const account = (p) => p.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)}) || 'null')`);
 const pilotKey = (p) => p.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(KEY_STORAGE)}) || 'null') || {}).publicRaw || null`);
 
+const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+const sorted = (o) => Object.fromEntries(Object.entries(o ?? {}).sort(([x], [y]) => x.localeCompare(y)));
+const builds = (p) => p.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(BUILDS_KEY)}) || '{}').builds) || []`);
+const JET = airframeById('striker2500').combat.propulsion.find((x) => x.id === 'jet');
+const LOADOUT = { payload: 'wide', accessories: ['pack2'] };
+
+/* A card in the picker, the way a pilot reaches it: the tabs with the
+ * arrows until one lists it, then centred and chosen with Enter. */
+async function choose(p, key) {
+  await p.evaluate('window.__ui.openCraftRow(false); true');
+  await p.until('window.__ui.carousel.isOpen', 10000);
+  for (let i = 0; i < 6 && !(await p.evaluate(`window.__ui.carousel.ids.includes(${JSON.stringify(key)})`)); i += 1) {
+    await p.tap('ArrowDown');
+  }
+  const at = await p.evaluate(`window.__ui.carousel.ids.indexOf(${JSON.stringify(key)})`);
+  if (at < 0) {
+    throw new Error(`no card ${key} in the picker`);
+  }
+  await p.evaluate(`window.__ui.carousel.goTo(${at}); true`);
+  await p.tap('Enter');
+  await p.until('!window.__ui.carousel.isOpen', 10000);
+}
+
+/* Flown, then Quit to title, which ends the run so the next Fly seats
+ * what the picker chose: what the craft in the air was. */
+async function fly(p) {
+  await p.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
+  await p.until('window.__craftPaint().id === window.__craft().run', 60000).catch(() => {});
+  await p.sleep(500);
+  const got = await p.evaluate('({ paint: window.__craftPaint(), craft: window.__craft() })');
+  await p.tap('Escape');
+  await p.until("window.__ui.screen === 'paused'", 10000);
+  await p.evaluate("window.__ui.onAction('title'); window.__ui.show('title'); true");
+  await p.until("window.__craftState().mode === 'title'", 30000);
+  return got;
+}
+
 async function signInThrough(p, sub, carry) {
   await p.evaluate(`window.__credential = ${JSON.stringify(await idToken(sub))}; window.__ui.onAction('accountsignin'); true`);
   await p.until("Boolean(document.querySelector('#gis-mock'))", 15000);
@@ -200,6 +250,28 @@ try {
     await a.sleep(250);
   }
   check('its progress went up to the account', held && held.data.progress && held.data.progress.xp === 420, JSON.stringify(held && held.data.progress));
+
+  console.log('A builds My Hangar and puts the Striker on its turbojet');
+  /* What the hangar's Save to My Hangar and the Loadout tab call
+   * (src/ui/ui.js addBuild, setStockLoadout); scripts/my-hangar-check.js
+   * drives the hangar itself. */
+  const made = await a.evaluate(`import('/src/ui/builds.js').then((m) => {
+    const ui = window.__ui;
+    const bush = ui.addBuild('Bush', 'timber1500', m.normaliseFit('timber1500', { livery: { scheme: 'timber_x' } }));
+    const range = ui.addBuild('Long range', '7inch', m.normaliseFit('7inch', { combat: ${JSON.stringify(LOADOUT)} }));
+    ui.wearBuild(range);
+    ui.persistSettings();
+    ui.setStockLoadout('striker2500', { payload: 'standard', accessories: [], propulsion: 'jet' });
+    return { bush: bush.id, range: range.id };
+  })`);
+  await a.evaluate('window.__accountSync()');
+  held = (await fetch(`${T}/api/account/progress`, { headers: { authorization: `Bearer ${acc.session}` } }).then((r) => r.json())).progress;
+  check('both builds and the Striker\'s turbojet went up to the account',
+    held.data.builds && held.data.builds[made.bush] && held.data.builds[made.range] && held.data.combat && held.data.combat.striker2500.propulsion === 'jet'
+    && Number.isFinite(held.stamps[`builds/${made.bush}`]),
+    JSON.stringify({ builds: Object.keys(held.data.builds || {}), combat: held.data.combat }));
+  check('which build A wears stays A\'s, and the stock 7 inch synced is the pilot\'s own',
+    !('buildFits' in held.data) && !(held.data.combat && held.data.combat['7inch']), JSON.stringify(held.data.combat));
 
   console.log('a guest in A\'s room');
   const code = await a.evaluate('window.__roomCreate()');
@@ -250,6 +322,50 @@ try {
   const cProgress = await c.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).progress`);
   check('and has the account\'s progress', cProgress && cProgress.xp === 420 && cProgress.courses['track:trk-aaaa0001'] === true, JSON.stringify(cProgress));
   check('the room would show the callsign here too', (await c.evaluate("window.__ui.show('friends'); document.body.textContent.includes('Maverick')")) === true);
+  await c.evaluate("window.__ui.show('title'); true");
+
+  console.log('C finds A\'s hangar, and flies it');
+  await c.until(`((JSON.parse(localStorage.getItem(${JSON.stringify(BUILDS_KEY)}) || '{}').builds) || []).length === 2`, 20000).catch(() => {});
+  const cBuilds = await builds(c);
+  check('both builds arrived, named as A named them', same(cBuilds.map((x) => x.name).sort(), ['Bush', 'Long range']) && same(cBuilds.map((x) => x.id).sort(), [made.bush, made.range].sort()),
+    JSON.stringify(cBuilds.map((x) => x.name)));
+  let cs = await c.evaluate('window.__ui.settings');
+  check('and the Striker\'s turbojet with them', cs.combat && cs.combat.striker2500 && cs.combat.striker2500.propulsion === 'jet', JSON.stringify(cs.combat));
+  check('C wears no build until it chooses one', same(cs.buildFits, {}), JSON.stringify(cs.buildFits));
+  await c.until('window.__map && window.__map().ready', 400000);
+  await choose(c, `build:${made.bush}`);
+  cs = await c.evaluate('window.__ui.settings');
+  check('Bush is in the picker\'s My Hangar, and choosing it seats it', cs.airframe === 'timber1500' && cs.buildFits.timber1500 && cs.buildFits.timber1500.build === made.bush
+    && same(cs.livery.timber1500, { scheme: 'timber_x' }), JSON.stringify(cs.livery.timber1500));
+  let flown = await fly(c);
+  check('flown, Bush wears the Timber X scheme', flown.craft.run === 'timber1500' && same(sorted(flown.paint.regions), sorted(coloursFor('timber1500', { scheme: 'timber_x' }))),
+    JSON.stringify(flown.paint && flown.paint.regions));
+  await choose(c, `build:${made.range}`);
+  check('Long range is in My Hangar too, and choosing it seats the 7 inch', (await c.evaluate('window.__ui.settings.airframe')) === '7inch');
+  flown = await fly(c);
+  check('Long range flies on the 7 inch carrying the wide payload and the second pack', flown.craft.run === '7inch' && same(flown.craft.combat, LOADOUT),
+    JSON.stringify({ run: flown.craft.run, combat: flown.craft.combat }));
+  await choose(c, 'striker2500');
+  flown = await fly(c);
+  check(`the Striker flies on the turbojet's plant, ${JET.simId}`, flown.craft.run === 'striker2500' && flown.craft.module === JET.simId && flown.craft.combat && flown.craft.combat.propulsion === 'jet',
+    JSON.stringify({ module: flown.craft.module, combat: flown.craft.combat }));
+
+  console.log('C deletes a build; A loses it at its next sync');
+  await c.evaluate(`window.__ui.removeBuild(${JSON.stringify(made.range)}); true`);
+  await c.evaluate('window.__accountSync()');
+  held = (await fetch(`${T}/api/account/progress`, { headers: { authorization: `Bearer ${acc.session}` } }).then((r) => r.json())).progress;
+  check('the account holds the delete', !held.data.builds[made.range] && Number.isFinite(held.stamps[`builds/${made.range}`]) && Boolean(held.data.builds[made.bush]));
+  const aBefore = await a.evaluate('window.__ui.settings.buildFits');
+  check('A was wearing it', Boolean(aBefore['7inch']) && aBefore['7inch'].build === made.range, JSON.stringify(aBefore));
+  await a.evaluate('window.__accountSync()');
+  const aBuilds = await builds(a);
+  const aNow = await a.evaluate('({ fits: window.__ui.settings.buildFits, combat: window.__ui.settings.combat, list: window.__ui.myBuilds.map((x) => x.id) })');
+  check('after A syncs it is gone from A\'s My Hangar, and Bush is still there', same(aBuilds.map((x) => x.id), [made.bush]) && same(aNow.list, [made.bush]),
+    JSON.stringify(aBuilds.map((x) => x.name)));
+  check('and A\'s 7 inch wears the pilot\'s own again', !aNow.fits['7inch'] && !(aNow.combat && aNow.combat['7inch']), JSON.stringify(aNow));
+  await a.evaluate('window.__accountSync()');
+  await c.evaluate('window.__accountSync()');
+  check('nor does a sync from either computer bring it back', !(await builds(c)).some((x) => x.id === made.range) && !(await builds(a)).some((x) => x.id === made.range));
   await c.evaluate("window.__ui.show('pilot'); window.__ui.onAction('accountsignout'); true");
   await c.until(`!localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)})`, 15000);
   await c.sleep(300);

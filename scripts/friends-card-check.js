@@ -18,8 +18,9 @@
  * Page B, 390 by 844, a phone held upright: the six cards stack inside
  * the window with no sideways scroll; a click on the third, Join with a
  * code, the code typed into the form, and B is in A's room on seat 2.
- * Escape to the title is out of the room; the gate, Track mode, its
- * menu's Fly with friends row and the code again: Fly on top of the room.
+ * Escape on the room screen stays in the room, its Leave is the title
+ * and out of it; the gate, Track mode, its menu's Fly with friends row
+ * and the code again: Fly on top of the room.
  *
  * No page error on either. Pictures in outdir, which is not in the
  * repository: a picture is evidence for one round.
@@ -107,6 +108,7 @@ async function onCard(page) {
 }
 
 async function click(page, selector) {
+  await page.loaded();
   const at = await page.evaluate(`(() => {
     const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
     return [r.left + r.width / 2, r.top + r.height / 2];
@@ -289,6 +291,11 @@ try {
   check('the code typed on the phone joins A\'s room on seat 2', joined.phase === 'open' && joined.code === room.code && joined.seat === 2,
     `${joined.phase} ${joined.code} seat ${joined.seat}`);
   check('and B stays on the room screen, the cursor on Fly', await b.evaluate("window.__ui.screen === 'friends' && window.__ui.items()[window.__ui.cursor].action === 'fly'"));
+  /* The welcome owes the seat a summon, carried out on a later frame once
+   * the world in hand is ready (main.js roomSummonStep): read straight
+   * after the join, the seat was still Yellowstone, and was the Swiss
+   * valley three seconds later. */
+  await b.until("window.__ui.settings.map === 'swiss2'", 15000).catch(() => {});
   const seated = await b.evaluate(`({
     map: window.__ui.settings.map,
     world: (window.__ui.items().find((it) => it.label === 'The world') || {}).value,
@@ -297,16 +304,22 @@ try {
 
   /*
    * THE OWNER'S REPORT: in a room reached from Track mode's menu row
-   * there was no way to start flying. B goes back to the title, which is
-   * out of the room (the owner, 2026-09-30: the title is not in a room),
-   * to the gate, answers Track mode, and joins the room again by the
-   * menu's Fly with friends row: Fly is on top, under the cursor.
+   * there was no way to start flying. B leaves the room for the title
+   * (the owner, 2026-10-01: the title is never in a room, Escape stops at
+   * the room screen and Leave is the way out, docs/FLOW-AUDIT.md rules 3
+   * to 5), goes to the gate, answers Track mode, and joins the room again
+   * by the menu's Fly with friends row: Fly is on top, under the cursor.
    */
   await b.tap('Escape');
+  await b.sleep(600);
+  const kept = await b.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
+  check('Escape on the room screen stays in the room, on its screen', kept.screen === 'friends' && kept.phase === 'open', JSON.stringify(kept));
+  check('the cursor reaches Leave the room', await arrowTo(b, 'friends-leave'));
+  await b.tap('Enter');
   await b.until("window.__ui.screen === 'title'", 10000).catch(() => {});
   await b.until("window.__rooms().phase === 'idle'", 5000).catch(() => {});
   const titled = await b.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
-  check('Escape from the room screen to the title leaves the room', titled.screen === 'title' && titled.phase === 'idle', JSON.stringify(titled));
+  check('Leave is the title, out of the room', titled.screen === 'title' && titled.phase === 'idle', JSON.stringify(titled));
   await b.tap('Escape');
   await b.until('window.__ui.onGate()', 10000).catch(() => {});
   await b.evaluate("(() => { const i = window.__ui.items().findIndex((it) => it.action === 'way-race-5inch'); window.__ui.setCursor(i); return true; })()");

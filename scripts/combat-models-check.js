@@ -28,7 +28,8 @@
  *
  * And the models' copy of the doc's numbers against configs/airframes.js
  * wherever the table has a combat block; the garage's paint hook on the
- * quads; and the Striker (src/render/strikercraft.js), the war's drawing
+ * quads, its regions in the order and the stock colours configs/liveries.js
+ * lists for the frame's airframe; and the Striker (src/render/strikercraft.js), the war's drawing
  * and the garage's, prop and jet, with and without the whip.
  *
  *   node scripts/combat-models-check.js [--shots[=outDir]]
@@ -59,8 +60,18 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { AIRFRAMES } from '../configs/airframes.js';
+import { LIVERIES } from '../configs/liveries.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+/* The paint regions configs/liveries.js gives the airframe a combat frame
+ * is flown as, region id to its stock colour as a number, in its order. */
+function liveryRegions(frame) {
+  const af = AIRFRAMES.find((a) => a.combat && a.combat.frame === frame);
+  const l = af && LIVERIES[af.id];
+  return l ? Object.fromEntries(l.regions.map((x) => [x.id, parseInt(x.stock.slice(1), 16)])) : null;
+}
+const sameRegions = (stock, frame) => JSON.stringify(stock) === JSON.stringify(liveryRegions(frame));
+
 const shotsArg = process.argv.find((a) => a.startsWith('--shots'));
 const outDir = shotsArg && shotsArg.includes('=') ? shotsArg.split('=')[1] : join(tmpdir(), 'combat-models');
 
@@ -249,6 +260,7 @@ try {
       check(`${name}: aluminium is a metallic finish`, Object.values(r.finishes.aluminium.finish).every((v) => v === 'metallic'), JSON.stringify(r.finishes.aluminium.finish));
       check(`${name}: an empty set() is the model as built`, r.restored, JSON.stringify(r.stock));
       check(`${name}: an unknown finish, region or wear is refused`, r.refused === 3, `${r.refused} of 3`);
+      check(`${name}: its regions and stock colours are configs/liveries.js's, in its order`, sameRegions(r.stock, frame), JSON.stringify(r.stock));
     }
   }
   /*
@@ -275,6 +287,8 @@ try {
       check(`${name}: the prop is what spins`, propulsion === 'prop' ? r.war.spin > 0 : r.war.spin === 0, `${r.war.spin} vertices marked`);
       check(`${name}: garage model within the quads' budget`, r.full.draws <= budget.draws && r.lite.draws <= budget.liteDraws && r.full.tris <= budget.tris,
         `${r.full.draws} draws (${r.lite.draws} lite), ${r.full.tris} triangles`);
+      check(`${name}: on its launch rail, within the quads' budget`, r.railed.draws <= budget.draws && r.railed.tris <= budget.tris,
+        `${r.railed.draws} draws, ${r.railed.tris} triangles, ${r.railed.tris - r.full.tris} of them the launcher`);
       check(`${name}: same machine twice`, r.hashA === r.hashB, `${r.hashA} then ${r.hashB}`);
       const prior = strikerHashes.get(r.hashA);
       check(`${name}: distinct from the other builds`, !prior, prior ? `draws the same as ${prior}` : r.parts.join(' '));
@@ -299,6 +313,7 @@ try {
       check(`${name}: a decal prints on every surface`, pa.surfaces.length === 7 && blank.length === 0, pa.surfaces.map((sf) => `${sf.id} ${sf.triangles}`).join(', '));
       check(`${name}: every finish with wear repaints, and set() restores`, Object.values(pa.finishes).every((v) => JSON.stringify(v.colours) !== JSON.stringify(pa.stock)) && pa.restored && pa.refused === 3,
         pa.regions.join(' '));
+      check(`${name}: its regions and stock colours are configs/liveries.js's, in its order`, sameRegions(pa.stock, 'striker'), JSON.stringify(pa.stock));
     }
   }
 

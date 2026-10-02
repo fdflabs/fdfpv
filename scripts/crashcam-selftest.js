@@ -118,6 +118,7 @@ import {
   NODES_MAX, PAPER_ERR_M, PAPER_PILOTS, checkPaper, createPaperRing, createPaperRow, createPaperSample, readRow, samplePaper,
 } from '../src/replay/paper.js';
 import { newDecal } from '../configs/paint.js';
+import { LIVERIES, lookFor } from '../configs/liveries.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -156,7 +157,7 @@ console.log('1. the journal\'s tables against sim_abi.h and the module');
   /* The doubles an `in` pointer carries are the header's own count. */
   const counts = {
     sim_set_power: 'SIM_POWER_DOUBLES', sim_wing_set_tune: 'SIM_TUNE_DOUBLES', sim_set_addons: 'SIM_ADDON_DOUBLES',
-    sim_set_addon_inertia: 'SIM_ADDON_INERTIA_DOUBLES',
+    sim_set_addon_inertia: 'SIM_ADDON_INERTIA_DOUBLES', sim_set_motors: 'SIM_MOTORS_DOUBLES', sim_set_prop_pack: 'SIM_PROP_PACK_DOUBLES',
   };
   const inputs = Object.keys(POINTERS).filter((n) => POINTERS[n].doubles);
   const sized = inputs.map((n) => {
@@ -926,6 +927,25 @@ function file() {
   refused(withHeader((h) => { h.keys[0].rig = 'drone'; }), 'an unknown camera');
   refused(withHeader((h) => { h.events[0].type = 'script'; }), 'an unknown event');
   refused(withHeader((h) => { h.meta.livery.body = -5; }), 'a colour out of range');
+  /* The colours a clip keeps are every region of the aircraft's paint
+   * (src/main.js crash cam host, configs/liveries.js lookFor), so every
+   * paintable aircraft's region ids, the Kadet's wing_trim and the
+   * Striker's nose_cap among them, must come back. */
+  {
+    const lost = [];
+    for (const id of Object.keys(LIVERIES)) {
+      const livery = lookFor(id, null).colours;
+      try {
+        const back = decodeReplay(encodeReplay({ ...c, meta: { ...c.meta, airframe: id, livery } }));
+        if (JSON.stringify(back.meta.livery) !== JSON.stringify(livery)) {
+          lost.push(`${id}: changed`);
+        }
+      } catch (err) {
+        lost.push(`${id}: ${err.message}`);
+      }
+    }
+    check(lost.length === 0, `every paintable aircraft's colours come back with the clip, ${Object.keys(LIVERIES).length} of them`, lost.join('; '));
+  }
   /* The paint shop's finishes and decals ride beside the colours. */
   {
     const paint = { finishes: { wing: 'chrome' }, decals: [newDecal('num', [0.05, 0, -0.1], [1, 0, 0])] };

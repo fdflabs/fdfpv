@@ -450,12 +450,15 @@ function buildLauncher(cat, cel, lite) {
   const foot = top.clone().addScaledVector(railDir, cat.railLength);
   const nose = top.clone().addScaledVector(railDir, -0.10);
   const beam = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.05, nose.distanceTo(foot)), metal);
+  beam.name = 'rail';
   beam.position.copy(nose).add(foot).multiplyScalar(0.5);
   beam.rotation.x = theta;
   beam.castShadow = !lite;
   g.add(beam);
+  /* The bungee stops 0.2 m short of the rail's foot, where it would
+   * otherwise run into the ground. */
   const under = craftDown.clone().multiplyScalar(0.05);
-  g.add(tube(nose.clone().add(under), foot.clone().add(under), 0.011, bungee, seg));
+  g.add(tube(nose.clone().add(under), foot.clone().add(under).addScaledVector(railDir, -0.2), 0.011, bungee, seg));
   const cradle = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.035, 0.22), metal);
   cradle.position.copy(craftDown).multiplyScalar(0.08);
   cradle.rotation.x = theta;

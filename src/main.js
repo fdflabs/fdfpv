@@ -76,7 +76,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager } from './avionics/sensors.js';
@@ -109,11 +109,11 @@ import {
 } from './ui/roomhud.js';
 import {
   FIGURE_COUNT, FLAG_AIRBORNE, FLAG_CHUTE, FLAG_CRASHED, FLAG_GEAR_DOWN, FLAG_LIGHTS, FLAG_QUAD, FLAG_SMOKE,
-  FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, streamerColour,
+  FLAG_SPAWNING, checkCrashTable, checkWhack, decodePartsRelay, encodePose, normaliseCode, normaliseRoomName, streamerColour,
 } from './share/roomwire.js';
 import { PeerTrack, nearWeight } from './game/peer.js';
 import {
-  LATE_MS, applyHit, checkHit, roomForcesDamage, sideFor,
+  LATE_MS, applyHit, checkHit, hullFor, roomForcesDamage, sideFor,
 } from './game/midair.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from './game/slots.js';
 import { buildPeerCraft, buildPilotFigure, profileKey } from './render/peers.js';
@@ -134,6 +134,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { ACT1 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
@@ -166,6 +167,8 @@ import { retiredMap } from './maps/retired.js';
 import { TUNES, tuneById, tunePath } from '../configs/registry.js';
 import { POWER, powerBlock, powerCells, powerChoice, powerOption, powerParams, SIM_POWER } from '../configs/power.js';
 import { ESTIMATES } from '../configs/power-estimates.js';
+import { MOTORS, choiceKey, hasMotors, motorChoice, motorStats, motorsBlock, propPackBlock, quadChoices } from '../configs/motors.js';
+import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
@@ -700,8 +703,10 @@ export async function boot({
    * AI switch (H).
    */
   const avionicsHud = new AvionicsHud(uiRoot);
+  avionicsHud.setLevel(ui.settings.avxLevel);
   const telemetry = createFlightTelemetry();
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
+  sensors.setInset(ui.settings.avxInset);
   /* The top of the map under a point, for what hides a target. */
   const avxHeightAt = (x, z) => view.height(x, z, Infinity);
   const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
@@ -2033,6 +2038,8 @@ export async function boot({
   let roomSeq = 0;
   let roomNextSend = 0;
   let roomLastSendT = null;
+  /* The last pose sent to the room, as sent: what it judges the warhead by. */
+  let roomSentPose = null;
   /* This frame's plant steps on the room clock (roomPoseFrame), or null
    * when the plant is not flying this frame and the frame sends. */
   let roomPoseMap = null;
@@ -2160,6 +2167,8 @@ export async function boot({
       }
       roomGone.clear();
       roomSessionWelcome(w);
+      roomBootLand(w);
+      roomWarJoinGate(w);
       /* Crash damage is on in this room: a pilot already flying its world
        * with it off starts again, as a war's does (warBegin). */
       if (mode === 'flight' && damage.available && crashDamageWanted(ui.settings) !== runDamage && roomTagWorldReady(w.map)) {
@@ -2200,6 +2209,7 @@ export async function boot({
       ui.refreshFriends();
     },
     onRoom: () => ui.refreshFriends(),
+    onLobby: () => ui.refreshFriends(),
     onWorld: () => ui.refreshFriends(),
     onProfile: (seat, profile) => {
       const peer = roomPeers.get(seat);
@@ -2306,9 +2316,11 @@ export async function boot({
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
-    ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
+    ui, link: roomLinkState, roomName, here: () => seatWorld(), preset: () => ui.roomGame || null,
     war: (room) => warEnter(room),
     pilots: () => roomPeers.size + 1,
+    missions: () => (campaignRef ? campaignRef.playable() : []),
+    missionNumber: (id) => Math.max(1, missionNumber(id)),
   });
   /* The title too, for its rooms panel (ui.js renderTitleRooms). */
   const roomBrowsing = () => ui.screen === 'rooms' || ui.screen === 'title' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
@@ -2516,6 +2528,8 @@ export async function boot({
   const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
   /* A hit target burns, then smokes, for the rest of the war. */
   const WAR_FIRE_MS = 20000;
+  /* How long the end banner stands before everybody is back in the lobby. */
+  const WAR_BACK_MS = 8000;
   /*
    * THE LOADOUT'S SPEED (edge/rooms/war.js parseLoadout): the room echoes
    * each seat's speedMul (1 to 1.15) in the view's loadouts, and this
@@ -2559,10 +2573,16 @@ export async function boot({
     return l && Number.isFinite(l.speedMul) ? l.speedMul : 1;
   }
   /* The end banner's restart: the host starts the same mission again,
-   * straight to the countdown; the room keeps the host's loadout. */
+   * straight to the countdown; the room keeps the host's loadout. A host
+   * handed the room by a leaving one may never have consented. */
   const warHud = createWarHud(roomSeatName, {
     host: () => roomHost(roomLinkState.state().welcome),
-    go: (v) => roomWar.start(v.mission),
+    go: async (v) => {
+      if (await warConsented()) {
+        roomWar.start(v.mission);
+      }
+    },
+    back: () => (warBackAt != null && warLobby() ? Math.max(0, Math.ceil((warBackAt - performance.now()) / 1000)) : null),
   });
   /* Off the flight screen at once, not at the next frame (roomWarFrame
    * keeps it after): a frame can be a second long (war-card-check counted
@@ -2577,6 +2597,8 @@ export async function boot({
   };
   const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
+  /* One marker an object: the Avionics HUD's boxes, by reference. */
+  warMarkers.setClaims(avionicsHud.claims);
   const warCalls = createWarCalls();
   /* The events of each frame as they were taken, for window.__war. */
   const warLog = [];
@@ -2666,6 +2688,40 @@ export async function boot({
     return roomPeers.get(warWatchSeat);
   }
 
+  /* What the room judges this aircraft's warhead by (edge/rooms/war.js):
+   * its hull, the last pose the room has of it, and the view's radius for
+   * its seat; a spectator's is the watched teammate's. Null without them. */
+  const warFuze = { hull: null, pose: null, radius: 0 };
+  function warFuzeOf(v, watched) {
+    const seat = watched ? watched.seat : roomWar.seat();
+    const radius = v && v.fuze ? v.fuze[seat] : undefined;
+    warFuze.hull = hullFor(watched ? watched.profile.airframe : runAirframe);
+    warFuze.pose = watched ? watched.last : roomSentPose;
+    warFuze.radius = radius;
+    return radius != null && warFuze.hull && warFuze.pose ? warFuze : null;
+  }
+
+  /* The room would set this aircraft's warhead off on the primary track's
+   * attacker: one is in range (the war markers) and the primary's line of
+   * sight is within AVX_FUZE_RAD of it, or of its size where that is more.
+   * The track never knows which attacker it is (src/avionics/tracks.js),
+   * so the line of sight is the match. */
+  const AVX_FUZE_RAD = 0.2;
+  function avxFuzeOn(snap) {
+    const p = warMarkers.inRangeAt();
+    const prim = p && snap.primaryId != null ? snap.tracks.find((t) => t.id === snap.primaryId) : null;
+    if (!prim) {
+      return false;
+    }
+    const c = shell.camera.position;
+    const dx = p[0] - c.x;
+    const dy = p[1] - c.y;
+    const dz = p[2] - c.z;
+    const d = Math.hypot(dx, dy, dz);
+    const cos = (dx * prim.losW[0] + dy * prim.losW[1] + dz * prim.losW[2]) / Math.max(d, 1e-6);
+    return cos >= Math.cos(Math.max(AVX_FUZE_RAD, prim.sizeRad));
+  }
+
   function warWatchBanner() {
     const peer = warWatch();
     return peer ? str('war.out', { name: roomName(peer.name) }) : str('war.out_none');
@@ -2684,7 +2740,8 @@ export async function boot({
       return [];
     }
     const head = { label: str('war.card'), section: true };
-    if (w.public) {
+    /* A public room runs the war only when it was made for it. */
+    if (w.public && w.mode !== 'war') {
       return [head, ...warPublicRows(host)];
     }
     const v = roomWar.view();
@@ -2692,8 +2749,8 @@ export async function boot({
     const state = WAR_STATES.includes(v.state) ? str(`war.state_${v.state}`) : '';
     if (host && !roomWar.on() && v.state !== 'briefing') {
       return [head, ...warInviteRows(), {
-        label: str('war.start', { n: campaignRef ? campaignRef.selectedNumber() : 1 }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
-        primary: ui.roomGame === 'war',
+        label: str('war.start', { n: campaignRef ? campaignRef.selectedNumber(missionNumber(roomMission())) : missionNumber(roomMission()) }), ...(state && v.state !== 'lobby' ? { value: state } : {}), note: str('war.row_note'), action: 'friends-war-start',
+        primary: ui.roomGame === 'war' || w.mode === 'war',
       }, { label: str('war.intro.watch'), note: str('war.intro.watch_note'), action: 'friends-war-intro' }];
     }
     if (host) {
@@ -2704,9 +2761,110 @@ export async function boot({
     }];
   }
 
-  /* Where the war may run, so where a room may say it is set up for it. */
+  /* Where the war may run, so where a room may say it is set up for it:
+   * a private room on its map, or a public one made for it. */
   function warFits(w) {
-    return Boolean(w) && !w.public && w.map === WAR_MAP;
+    return Boolean(w) && w.map === WAR_MAP && (!w.public || w.mode === 'war');
+  }
+
+  /* The mission a room made for the war was made for (the welcome's), or
+   * mission 1 (a room made by hand, or by a server from before). */
+  function roomMission() {
+    const w = roomLinkState.state().welcome;
+    const id = w && w.lobby && w.lobby.mission ? w.lobby.mission : w && w.mission;
+    return typeof id === 'string' && Object.hasOwn(WAR_MISSIONS, id) ? id : WAR_MISSION;
+  }
+  function missionNumber(id) {
+    return Object.keys(WAR_MISSIONS).indexOf(id) + 1;
+  }
+
+  /*
+   * THE LOBBY of a room made for the war, between its matches (the owner,
+   * 2026-10-01: "its not hard to make people join a lobby and then start a
+   * mission, its on every single game"). It is that room's room screen:
+   * the panel over its rows (ui.setWarLobby) says LOBBY, the mission, when
+   * it starts and who is ready; the rows are Ready, the host's Start now
+   * and mission, the aircraft and Leave, nothing of free flight. The room
+   * starts the mission when everybody is ready, five seconds on, or 45
+   * seconds after the first ready with whoever is (edge/rooms/warlobby.js).
+   */
+  function warLobby() {
+    const st = roomLinkState.state();
+    const w = st.welcome;
+    return st.phase === 'open' && w && w.mode === 'war' && w.lobby && !roomWar.on() ? w.lobby : null;
+  }
+  function warLobbyReady(lobby = warLobby()) {
+    const w = roomLinkState.state().welcome;
+    return Boolean(lobby && w && lobby.ready[w.seat]);
+  }
+  function warLobbyToggle() {
+    const lobby = warLobby();
+    if (lobby) {
+      roomLinkState.send({ type: 'lobby', op: 'ready', ready: !warLobbyReady(lobby) });
+    }
+  }
+  function warLobbyRows(host) {
+    const lobby = warLobby();
+    const ready = warLobbyReady(lobby);
+    const missions = campaignRef ? campaignRef.playable() : [];
+    /* Ready stays first: the cursor lands on it when the room opens, and
+     * warFromPublic learns the invite code only after that, so a row added
+     * above it would slide under the cursor. The code, where a public
+     * room's host made this private one for the war, comes next, above
+     * the host's rows. */
+    const rows = [{
+      label: str(ready ? 'lobby.unready' : 'lobby.ready'), note: str(ready ? 'lobby.unready_note' : 'lobby.ready_note'), action: 'friends-lobby-ready', primary: true,
+    }, ...warInviteRows()];
+    if (host) {
+      rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: 'friends-war-start' });
+      if (missions.length > 1) {
+        const i = Math.max(0, missions.indexOf(lobby.mission));
+        rows.push({
+          label: str('lobby.mission'),
+          value: String(missionNumber(lobby.mission)),
+          note: str('lobby.mission_note'),
+          adjust: (d) => {
+            roomLinkState.send({ type: 'lobby', op: 'mission', mission: missions[(i + d + missions.length) % missions.length] });
+          },
+        });
+      }
+    }
+    rows.push({ label: str('friends.leave'), note: str('friends.leave_note'), action: 'friends-leave' });
+    return rows;
+  }
+  /* What the panel shows: the mission, the time, the pilots, the last
+   * match's result. Null outside a lobby. */
+  function warLobbyView() {
+    const lobby = warLobby();
+    if (!lobby) {
+      return null;
+    }
+    const w = roomLinkState.state().welcome;
+    const now = roomLinkState.roomNow();
+    const secs = (at) => (at == null || now == null ? null : Math.max(0, Math.ceil((at - now) / 1000)));
+    const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
+    const seats = [w.seat, ...[...roomPeers.keys()].sort((a, b) => a - b)];
+    const v = roomWar.view();
+    const mine = v && Array.isArray(v.scores) ? v.scores.find((x) => x.seat === w.seat) : null;
+    return {
+      mission: str('lobby.mission_line', { n: missionNumber(mission), name: str(`campaign.m.${missionKey(mission)}`) }),
+      countdown: secs(lobby.countdownAt),
+      deadline: secs(lobby.deadlineAt),
+      pilots: seats.map((seat) => ({
+        name: roomSeatName(seat),
+        aircraft: airframeById(seat === w.seat ? runAirframe : roomPeers.get(seat).profile.airframe).name,
+        ready: Boolean(lobby.ready[seat]),
+        host: seat === w.host,
+        me: seat === w.seat,
+      })),
+      last: v && (v.state === 'won' || v.state === 'lost' || v.state === 'ended') && v.mission === mission ? {
+        state: v.state, stars: v.result ? v.result.stars : null, kills: mine ? mine.kills : 0,
+      } : null,
+    };
+  }
+  function missionKey(id) {
+    const m = ACT1.find((x) => x.id === id);
+    return m ? m.key : ACT1[0].key;
   }
 
   /*
@@ -2772,9 +2930,12 @@ export async function boot({
     return go;
   }
 
+  /* The start row's press. Consent first, whoever's room this is: a
+   * room made by hand never went through warEnter's (FLOW-AUDIT.md D6).
+   * Then the mission campaign Play chose for this room, else mission 1. */
   async function warStart() {
-    if (await warConsented()) {
-      roomWar.start(WAR_MISSION, { intro: true });
+    if (await warConsented() && !campaignRef.startSelected()) {
+      roomWar.start(roomMission(), { intro: true });
     }
     ui.refreshFriends();
   }
@@ -2787,14 +2948,19 @@ export async function boot({
    * war's start row under the cursor. The room is made without a mode,
    * because 'war' is not one of ROOM_MODES and never reaches the server's
    * public list; ui.roomGame is what leads the room with it, here and, by
-   * the host's profile, for whoever joins. Resolves false when the pilot
-   * said Back; throws what the room server refused.
+   * the host's profile, for whoever joins. Since the owner opened the war
+   * to public rooms (2026-10-01) the room is made for the war (mode 'war')
+   * and `room.mission`, public when `room.public`, so the room server lists
+   * it as the war's. Resolves its code, or null when the pilot said Back;
+   * throws what the room server refused.
    */
   async function warEnter(room = {}, card = null) {
     if (!(await warConsented())) {
-      return false;
+      return null;
     }
-    const code = await roomLinkState.create(WAR_MAP, false, { name: room.name ?? null });
+    const code = await roomLinkState.create(WAR_MAP, false, {
+      name: room.name ?? null, mode: 'war', mission: room.mission ?? WAR_MISSION, public: room.public === true,
+    });
     if (ui.settings.map !== WAR_MAP) {
       ui.seatMap(WAR_MAP, { stay: true });
     }
@@ -2805,22 +2971,56 @@ export async function boot({
       ui.show('friends');
     }
     roomLinkState.join(code);
-    return true;
+    return code;
   }
 
-  /* The card's press. A room the server would not make is said, with a
-   * second try on offer, and Back leaves the pilot on the title. */
-  ui.onWarCard = async (card) => {
+  /*
+   * A ROOM MADE FOR THE WAR asks its consent of every pilot who enters it,
+   * by the list, a link or a code (docs/WARFARE-PLAN.md section 9, as the
+   * owner opened the war to public rooms on 2026-10-01). The host who made
+   * it has answered already. A pilot who says no leaves it for the title,
+   * never half in it.
+   */
+  let warJoinAsking = false;
+  async function roomWarJoinGate(w) {
+    if (w.mode === 'war' && w.lobby && ui.screen === 'title' && !roomWar.on()) {
+      ui.craftGate = false;
+      ui.mode = 'freestyle';
+      ui.returnTo = 'title';
+      ui.show('friends');
+    }
+    if (w.mode !== 'war' || ui.settings.warConsent || warJoinAsking) {
+      return;
+    }
+    warJoinAsking = true;
+    try {
+      if (!(await warConsented()) && roomLinkState.state().code === normaliseCode(w.code)) {
+        roomLeave();
+        ui.act('title');
+      }
+    } finally {
+      warJoinAsking = false;
+    }
+  }
+
+  /* The card's press, campaign Play's way in. A room the server would not
+   * make is said, with a second try on offer, and Back leaves the pilot on
+   * the title. Its room is public, named for its host, so a friend finds
+   * it in Rooms (the owner, 2026-10-01: "a new room isnt created and made
+   * public so my friend cant easily join"); a name the room rules would
+   * not take is left to the picked one. Resolves the code of the room it
+   * made, or null. */
+  ui.onWarCard = async (card, mission = null) => {
+    const name = normaliseRoomName(str('war.room_name', { name: roomName(ownName()) })) || null;
     for (;;) {
       try {
-        await warEnter({}, card);
-        return;
+        return await warEnter({ mission, public: true, name }, card);
       } catch (e) {
         const again = await ui.askConfirm({
           title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
         });
         if (!again) {
-          return;
+          return null;
         }
       }
     }
@@ -3132,6 +3332,36 @@ export async function boot({
   /* Every frame the room is open, after tag's. In the crash cam's replay
    * the war is not drawn and nothing reaches the plant: its events are
    * taken and logged, so none is applied late to the flight after it. */
+  /* The lobby's panel, kept current (its seconds), and the end of a
+   * match: the end banner a while, then every pilot back in the lobby,
+   * never on the title or in free flight. */
+  let warLobbyAt = 0;
+  let warBackAt = null;
+  let warSeenState = null;
+  function warLobbyFrame(wallMs) {
+    const v = roomWar.view();
+    const state = v ? v.state : null;
+    if (state !== warSeenState) {
+      if ((state === 'won' || state === 'lost' || state === 'ended') && warSeenState && warSeenState !== 'lobby') {
+        warBackAt = wallMs + WAR_BACK_MS;
+      }
+      warSeenState = state;
+    }
+    if (warBackAt != null && wallMs >= warBackAt) {
+      warBackAt = null;
+      if (warLobby() && (mode === 'flight' || mode === 'paused')) {
+        ui.returnTo = 'title';
+        ui.show('friends');
+        ui.onAction('title');
+      }
+    }
+    if (wallMs < warLobbyAt) {
+      return;
+    }
+    warLobbyAt = wallMs + 200;
+    ui.setWarLobby(ui.screen === 'friends' ? warLobbyView() : null);
+  }
+
   function roomWarFrame(now, wallMs, dt) {
     const scene = shell.quad.parent;
     if (scene && warAttackers.group.parent !== scene) {
@@ -3194,7 +3424,7 @@ export async function boot({
       }
       /* At the go, how a warhead goes off: the pilots look for a trigger. */
       if (ev.type === 'state' && ev.to === 'live') {
-        warHud.hint(str('war.hint_go'));
+        warHud.hint(str('war.hint_go', { n: v.fuze && v.fuze[roomWar.seat()] != null ? v.fuze[roomWar.seat()] : v.blast }));
       }
       if (replay) {
         continue;
@@ -3235,7 +3465,7 @@ export async function boot({
      * and a Hunter on it framed, but not said as on this pilot. */
     const watched = warWatch();
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
-    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat()) && !watched) {
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
         warSay(['wave-hunter']);
@@ -3404,6 +3634,31 @@ export async function boot({
   /* Every frame, after the aircraft is posed: send this one, draw the
    * others. wallMs is the render clock. */
   let roomAutoJoined = false;
+  /* The code the boot rejoins (a reload, or a ?room= link), until a
+   * welcome; null after. */
+  let roomBootJoin = null;
+
+  /*
+   * A RELOAD KEEPS YOU IN YOUR ROOM, AND ON ITS SCREEN. The owner
+   * (2026-10-01) decided a reload must keep the pilot in their room; it
+   * did, but the page booted on the gate with nothing saying so, and Free
+   * Flight from there flew inside the room (docs/FLOW-AUDIT.md D2). The
+   * boot's rejoin lands on the room screen as the Fly with friends card
+   * would, without seating anything: the welcome seats the room's world.
+   * Only while the title is still up: a pilot who has gone on is left
+   * where they went.
+   */
+  function roomBootLand(w) {
+    const wanted = roomBootJoin;
+    roomBootJoin = null;
+    if (!wanted || normaliseCode(w.code) !== wanted || ui.screen !== 'title') {
+      return;
+    }
+    ui.craftGate = false;
+    ui.mode = 'freestyle';
+    ui.returnTo = 'title';
+    ui.show('friends');
+  }
   function roomFrame(wallMs, dt) {
     raceHoldMs = 0;
     /* Put up again below when there is a live match to put it round. */
@@ -3416,10 +3671,12 @@ export async function boot({
       roomAutoJoined = true;
       const wanted = wantedRoom();
       if (wanted && roomLinkState.available()) {
+        roomBootJoin = wanted;
         roomLinkState.join(wanted);
       }
     }
     roomBarFrame(wallMs);
+    warLobbyFrame(wallMs);
     const link = roomLinkState.state();
     if (link.phase !== 'open') {
       return;
@@ -3758,8 +4015,7 @@ export async function boot({
     if (roomGameUp()) {
       return null;
     }
-    /* Nor on the title, which is out of the room (ui.onTitle): a reload
-     * rejoins there, and says nothing of it until the pilot flies. */
+    /* Nor on the title, which is never in a room (ui.inRoom). */
     if (ui.screen === 'title') {
       return null;
     }
@@ -3901,7 +4157,7 @@ export async function boot({
       | (gear < 0.5 ? FLAG_GEAR_DOWN : 0)
       | (quad ? FLAG_QUAD : 0);
     roomSeq = (roomSeq + 1) & 0xffff;
-    roomLinkState.sendPose(encodePose({
+    roomSentPose = {
       flags,
       seq: roomSeq,
       t: now,
@@ -3924,7 +4180,8 @@ export async function boot({
       c3: surf ? surf[3] : rotors[3],
       motor: quad ? (rotors[0] + rotors[1] + rotors[2] + rotors[3]) / 4 : rotors[0],
       flaps: typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0,
-    }));
+    };
+    roomLinkState.sendPose(encodePose(roomSentPose));
   }
 
   /* Everything of a peer's that is drawn, put away. */
@@ -4400,6 +4657,9 @@ export async function boot({
       /* A public room has a host too, since the room browser: the pilot
        * in longest, who starts its games. Kicking stays a private room's. */
       const host = w && w.host === w.seat;
+      if (warLobby()) {
+        return warLobbyRows(host);
+      }
       const kicks = host && !w.public;
       const world = w ? mapById(w.map).name : '';
       /*
@@ -4526,7 +4786,7 @@ export async function boot({
   const campaign = createCampaignScreen({
     ui,
     inBuild: (id) => Object.hasOwn(WAR_MISSIONS, id),
-    enterWarRoom: () => ui.onWarCard('way-war'),
+    enterWarRoom: (mission) => ui.onWarCard('way-war', mission),
     send: (obj) => roomLinkState.send(obj),
     view: () => roomWar.view(),
     room: () => {
@@ -4551,48 +4811,37 @@ export async function boot({
   }
 
   /*
-   * THE TITLE IS NOT IN A ROOM. The owner (2026-09-30), back on the title
-   * from a private war room: "its showing like this, like its showing the
-   * empty room thats playing while im here, that shouldnt happen". The war
-   * went on with nobody flying it, its callouts and the room's "You are
-   * alone" drawn over the cards. Going back to the title (the menus' row,
-   * Escape from a screen whose way back is the title) leaves the room the
-   * way the room screen's Leave does, so an empty room closes on the
-   * server's rule. The pause menu and the room screen keep it; so does a
-   * reload, which rejoins on the title (roomSessionWelcome).
+   * THE TITLE IS NEVER IN A ROOM (docs/FLOW-AUDIT.md rule 3, approved by
+   * the owner 2026-10-01). The owner (2026-09-30), back on the title from
+   * a private war room: "its showing like this, like its showing the empty
+   * room thats playing while im here, that shouldnt happen". Inside a room
+   * the room screen stands where the title would be (ui.show), Back and
+   * Escape stop there, and every row to the title is Leave (ui.roomExit),
+   * which leaves first and then goes to the title. So a card on the title
+   * never meets a room, and nothing leaves a room by the side effect of
+   * a screen.
    */
-  ui.onTitle = () => {
-    if (roomLinkState.state().phase !== 'idle') {
-      roomLeave();
-    }
+  ui.inRoom = () => {
+    const phase = roomLinkState.state().phase;
+    return phase === 'open' || phase === 'connecting';
   };
 
-  /*
-   * A GAME'S TITLE CARD IN A ROOM RUNNING ANOTHER GAME leaves that room.
-   * The owner (2026-09-30), still in the private Itaipu room of a Defend
-   * Itaipu mission: "when i enter the toilet paper mode, it then switches
-   * to mission mode, in itaipu". The card opened that room, headed it as
-   * set up for combat, the room refused combat's start because the war
-   * was on, and the war's go flew the pilot into it. Out of the room, the
-   * card's screen is the one it always had without a room: Make a room
-   * first, under the card's game. Leaving ends nobody else's game, and a
-   * game with too few pilots left is ended by the room (edge/rooms/core.js
-   * settleGames).
-   */
-  ui.onGameCard = (game) => {
-    const running = roomLinkState.state().phase === 'open' ? roomRunning() : null;
-    if (running && running !== game) {
-      roomLeave();
+  /* R says ready or not in the war's lobby, as the Ready row does. */
+  window.addEventListener('keydown', (e) => {
+    if ((e.key === 'r' || e.key === 'R') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey
+      && ui.screen === 'friends' && ui.nameDialog.hidden && warLobby()) {
+      e.preventDefault();
+      warLobbyToggle();
     }
-  };
+  });
 
   ui.onFriends = async (action) => {
+    if (action === 'friends-lobby-ready') {
+      warLobbyToggle();
+      return;
+    }
     if (action === 'friends-war-start') {
-      if (campaign.startSelected()) {
-        ui.refreshFriends();
-      } else {
-        await warStart();
-      }
+      await warStart();
       return;
     }
     if (action === 'friends-war-private') {
@@ -4650,7 +4899,11 @@ export async function boot({
     }
     if (action === 'friends-leave') {
       roomLeave();
-      ui.refreshFriends();
+      ui.act('title');
+      /* The row remembered on the room screen was one of the room's, gone
+       * with it: the next visit opens on the screen's primary, as entering
+       * a room forgets the row from outside one (ui.refreshFriends). */
+      delete ui.cursorMemory.friends;
       return;
     }
     if (action === 'friends-copy') {
@@ -5838,11 +6091,12 @@ export async function boot({
 
   /*
    * A CATAPULT LAUNCHED AIRCRAFT IS NOT THROWN EITHER, IT IS SHOT OFF A
-   * RAIL: the Bramor. Parked, it is drawn on the rail, `catapult.height`
-   * over the ground and `catapult.pitchDeg` nose up, facing the way it
-   * faced; L, or throttle, puts the plant at exactly that pose and lets it
-   * go at the rail's release speed along its nose, which is the end of the
-   * shuttle's stroke. The launcher stays where it stood. From anywhere else
+   * RAIL: the Bramor and the Striker. Parked, it is drawn on the rail,
+   * `catapult.height` over the ground and `catapult.pitchDeg` nose up,
+   * facing the way it faced; L, or throttle, puts the plant at exactly that
+   * pose and lets it go at the rail's release speed along its nose, which
+   * is the end of the shuttle's stroke. The launcher stays where it stood.
+   * From anywhere else
    * (it came down under its chute in a field) the same release happens
    * where it lies, the ground crew having carried the rail to it; a chute
    * still out is packed first.
@@ -6644,7 +6898,7 @@ export async function boot({
     return true;
   }
   /*
-   * The Bramor's catapult, once the aircraft has left it: the launcher's
+   * A catapult, once the aircraft has left it: the launcher's
    * world matrix, held so it stays at the spawn while the aircraft it is
    * parented to flies away (it is part of the craft's model, so it is
    * built, swapped and disposed with it and needs no scene of its own).
@@ -7334,10 +7588,32 @@ export async function boot({
    * seated in the plant with the airframe, on the same between-runs rule
    * and at a hot swap. The stock system on its stock pack is the plant's
    * own table, so it clears rather than sets. The pack's cells and the
-   * option's voice follow it. A quad has none of this.
+   * option's voice follow it. A quad's is its motors, prop and pack
+   * (configs/motors.js), on the same rule: the stock choice is the table
+   * and clears. The plant keeps each block until a clear, so a swap clears
+   * first and seats what the new choice has, or a prop put back to stock
+   * would stay seated.
    */
   function applyPower(s) {
     const af = airframeById(runAirframe);
+    if (hasMotors(af.id) && typeof sim.e.sim_set_motors === 'function') {
+      const choice = powerChoice(af.id, s.power);
+      const cleared = sim.clearPower();
+      if (cleared !== SIM_OK) {
+        throw new Error(`sim_power_clear refused on ${af.id}: ${simErrorName(cleared)}`);
+      }
+      const motors = motorsBlock(af.id, choice);
+      const code = motors ? sim.setMotors(motors) : SIM_OK;
+      if (code !== SIM_OK) {
+        throw new Error(`sim_set_motors refused ${choice.option} on ${af.id}: ${simErrorName(code)}`);
+      }
+      const propPack = propPackBlock(af.id, choice);
+      const packed = propPack ? sim.setPropPack(propPack) : SIM_OK;
+      if (packed !== SIM_OK) {
+        throw new Error(`sim_set_prop_pack refused ${choice.prop} and ${choice.pack} on ${af.id}: ${simErrorName(packed)}`);
+      }
+      return;
+    }
     if (!af.fixedWing || typeof sim.e.sim_set_power !== 'function') {
       return;
     }
@@ -9117,6 +9393,9 @@ export async function boot({
       airStart(sp.air.y);
     }
     progressKey = '';
+    /* A run starts on the pilot's own picture, whatever the last one left
+     * full screen (I). */
+    sensors.setMainView('eo');
   }
 
   /*
@@ -9579,7 +9858,9 @@ export async function boot({
       reset();
       ghostCourseChanged();
       mode = 'title';
-      ui.show('title');
+      /* Back to the room screen only if the pilot is still on it: one who
+       * left for the title while the world loaded stays there. */
+      ui.show(stayScreen === 'friends' && ui.screen === 'friends' ? 'friends' : 'title');
       ui.applyLocationHash();
       showCourseNotes();
     } else {
@@ -9762,15 +10043,21 @@ export async function boot({
      * pilot to the title. The 'fc' it replaces named a screen that no
      * longer exists, and would have failed silently: show() on an unknown
      * name displays no node and leaves the previous screen's rows behind.
+     * 'friends' because a card seats its own world on the room screen
+     * (ui.js, the card's world wins), and a swap to another world, which
+     * otherwise ends on the title, ends back there (adoptLoadedView).
      */
-    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits'];
+    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
     const stayScreen = STAY_SCREENS.includes(ui.screen) ? ui.screen : null;
     const stayMode = keepPlace ? mode : 'title';
     swapInFlight = true;
     mapReady = false;
     if (!keepPlace) {
       mode = 'title';
-      ui.show('title');
+      /* The room screen stays up under the loading bar when the swap comes
+       * back to it: the title shown for a moment put its rows under a
+       * press still going on (a card's mouse up landed on the title's). */
+      ui.show(stayScreen === 'friends' ? 'friends' : 'title');
     }
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
@@ -10961,17 +11248,51 @@ export async function boot({
    * stock choice and the stored one, and the readouts for any choice: the
    * all up weight and thrust to weight from the option's own data, the top
    * speed and the flight time at cruise flown on the plant ahead of time
-   * (configs/power-estimates.js). Null for a quad, which has none.
+   * (configs/power-estimates.js). A quad's are its motors, quadPower
+   * below; null for an aircraft with neither.
    */
+  const hostOf = (url) => {
+    const m = /^https?:\/\/(?:www\.)?([^/]+)/.exec(url);
+    return m ? m[1] : url;
+  };
+  /* A quad's motors, props and packs (configs/motors.js) in the same
+   * shape: every motor offers the same packs, so the pack row and the
+   * pack a motor change keeps work as a plane's do, and `props` is the
+   * row a plane has none of. The weight, the thrust to weight, the hover
+   * and full throttle times from the static operating point the checks
+   * hold (motorStats), and the top speed flown on the plant ahead of time
+   * (configs/motor-estimates.js). */
+  const quadPower = (id) => {
+    const m = MOTORS[id];
+    const packs = m.packs.map((p) => ({ id: p.id, name: str(p.name), detail: str('carousel.grams', { n: p.grams }) }));
+    return {
+      options: m.options.map((o) => ({
+        id: o.id, name: str(o.name), detail: o.detail, kind: 'electric', source: hostOf(o.source[0]), packs,
+      })),
+      props: m.props.map((p) => ({ id: p.id, name: str(p.name), detail: p.detail })),
+      stock: quadChoices(id)[0],
+      chosen: powerChoice(id, ui.settings.power),
+      estimate: (choice) => {
+        const c = motorChoice(id, { [id]: choice });
+        const st = motorStats(id, c);
+        return {
+          grams: Math.round(st.massKg * 1000),
+          topSpeed: (MOTOR_ESTIMATES[id] || {})[choiceKey(c)] ?? null,
+          thrustToWeight: st.tw,
+          hoverMinutes: st.hoverMin,
+          fullMinutes: st.fullMin,
+        };
+      },
+    };
+  };
   const hangarPower = (id) => {
+    if (hasMotors(id)) {
+      return quadPower(id);
+    }
     const list = POWER[id];
     if (!list) {
       return null;
     }
-    const hostOf = (url) => {
-      const m = /^https?:\/\/(?:www\.)?([^/]+)/.exec(url);
-      return m ? m[1] : url;
-    };
     const stock = list[0];
     return {
       options: list.map((o) => ({
@@ -11200,6 +11521,9 @@ export async function boot({
       notice = { text, untilMs: performance.now() + 4200 };
     },
   });
+  /* One sync now, resolving to whether it changed anything here, for
+   * scripts/account-browser-check.js, which cannot wait out the minute. */
+  window.__accountSync = () => accountUi.sync();
   ui.onAction = (action, s) => {
     if (s) {
       applySettings(s);
@@ -11313,7 +11637,13 @@ export async function boot({
       buildWorld = null;
       roomRaceRetire();
       mode = 'title';
-      reset();
+      /* Not while a world swap is in flight: the old world is already
+       * disposed (syncWorldNow), its terrain gone under adoptSpawn, and the
+       * swap resets the run on the world it brings. Leave goes to the title
+       * at once now, so a Leave during a swap reached this. */
+      if (!swapInFlight) {
+        reset();
+      }
       /* Now, not on the next frame: a choice made on the title before a
        * frame has run must meet the world as the seat has it. */
       if (worldHold) {
@@ -11720,6 +12050,8 @@ export async function boot({
     angle: angleModeOn,
   });
 
+  /* The Avionics HUD's keys (docs/AVIONICS-HUD.md section 9). */
+  const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY']);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -11771,9 +12103,28 @@ export async function boot({
     }
     /* The Avionics HUD's own keys, while it is on screen
      * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
-     * mode, K the zoom. */
-    if (ui.screen === 'flight' && avionicsHud.on && (code === 'KeyH' || code === 'KeyJ' || code === 'KeyK')) {
-      if (code === 'KeyH') {
+     * mode, K the zoom, I the sensor full screen or the pilot's picture, U
+     * the inset's size and Y how much is drawn (settings, so kept). */
+    if (ui.screen === 'flight' && avionicsHud.on && AVX_KEYS.has(code)) {
+      if (code === 'KeyY') {
+        ui.settings.avxLevel = AVX_LEVELS[(AVX_LEVELS.indexOf(ui.settings.avxLevel) + 1) % AVX_LEVELS.length];
+        ui.persistSettings();
+        avionicsHud.setLevel(ui.settings.avxLevel);
+        notice = { text: str('avionics.hud.notice_level', { level: str(`avionics.hud.level.${ui.settings.avxLevel}`) }), untilMs: performance.now() + 1600 };
+      } else if (code === 'KeyU') {
+        ui.settings.avxInset = AVX_INSETS[(AVX_INSETS.indexOf(ui.settings.avxInset) + 1) % AVX_INSETS.length];
+        ui.persistSettings();
+        sensors.setInset(ui.settings.avxInset);
+        notice = { text: str('avionics.hud.notice_inset', { size: str(`avionics.hud.inset.${ui.settings.avxInset}`) }), untilMs: performance.now() + 1600 };
+      } else if (code === 'KeyI') {
+        sensors.setMainView(sensors.state.mainView === 'eo' ? 'sensor' : 'eo');
+        notice = {
+          text: sensors.state.mainView === 'sensor'
+            ? str('avionics.hud.notice_view_sensor', { mode: str(`avionics.hud.cam_mode.${sensors.state.mode}`) })
+            : str('avionics.hud.notice_view_pilot'),
+          untilMs: performance.now() + 1600,
+        };
+      } else if (code === 'KeyH') {
         avxHud.ai = !avxHud.ai;
         notice = { text: str(avxHud.ai ? 'avionics.hud.notice_ai_on' : 'avionics.hud.notice_ai_off'), untilMs: performance.now() + 1600 };
       } else if (code === 'KeyJ') {
@@ -13064,6 +13415,7 @@ export async function boot({
       hud: avxHud,
       camera: shell.camera,
       radar: roomWar.live() && mode === 'flight',
+      fuze: avxFuzeOn(tracks.snapshot),
     });
   }
 
@@ -15448,6 +15800,7 @@ export async function boot({
   });
   window.__pickLook = (id) => pickStage.look(id);
   window.__pickParts = (id) => pickStage.fitted(id);
+  window.__pickCombat = (id) => pickStage.combat(id);
   window.__craft = () => ({
     setting: ui.settings.airframe,
     run: runAirframe,
@@ -15463,6 +15816,15 @@ export async function boot({
      * inertia, for scripts/combat-shell.js. */
     combat: combatSeatKey && airframeById(runAirframe).combat ? JSON.parse(combatSeatKey) : null,
     ixx: typeof sim.e.sim_bf_debug === 'function' ? sim.e.sim_bf_debug(55) : 0,
+    /* A quad's motors, prop and pack as the plant flies them, for
+     * scripts/garage-motors-check.js: the loaded torque constant, the
+     * resistance and the rotor's inertia, sim_set_motors's three, and the
+     * prop's thrust constant and a cell's resistance, sim_set_prop_pack's. */
+    motors: hasMotors(runAirframe) && typeof sim.e.sim_bf_debug === 'function'
+      ? {
+        ke: sim.e.sim_bf_debug(62), r: sim.e.sim_bf_debug(61), j: sim.e.sim_bf_debug(60),
+        kt: sim.e.sim_bf_debug(10), rCell: sim.e.sim_bf_debug(63),
+      } : null,
     parts: shell.quad.userData.partsFit ?? null,
     smoke: { on: smokeOn, puffs: smoke.live() },
     bladeScale: audio.bladeScale,
