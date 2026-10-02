@@ -2717,7 +2717,15 @@ export async function buildPart(ctx) {
     /* A box in the chute's frame, drawn: its four sides and its top,
      * which is flat, or a plane given at its two d ends; its sides under
      * the rock line basalt. */
-    const block = (mesh, u0, u1, d0, d1, y0, yA, yB, col, rock = true) => {
+    /* `ends` [at d0, at d1]: whether to draw the block's faces across it
+     * there. A run of blocks one after another along d (a training wall
+     * in its pieces) draws only the run's own two ends: the faces between
+     * two of its blocks are inside the wall, where no one sees them and
+     * nothing is solid (its solids are the skins along its faces), and
+     * once the ground was cut to the wall (terrain/conform.js, #336) they
+     * stood over the ground the audit's drawn sweep reads them over, 1 106
+     * of its points against the spillway's 341. */
+    const block = (mesh, u0, u1, d0, d1, y0, yA, yB, col, rock = true, ends = [true, true]) => {
       const P = [[u0, d0, yA], [u1, d0, yA], [u1, d1, yB], [u0, d1, yB]];
       const top = P.map(([u, d, y]) => at3(u, d, y));
       const bot = P.map(([u, d]) => at3(u, d, y0));
@@ -2725,6 +2733,9 @@ export async function buildPart(ctx) {
       mesh.poly(top, col, up);
       const cu = C.at((u0 + u1) / 2, (d0 + d1) / 2);
       for (let i = 0; i < 4; i += 1) {
+        if ((i === 0 && !ends[0]) || (i === 2 && !ends[1])) {
+          continue;
+        }
         const j = (i + 1) % 4;
         const m = [(top[i][0] + top[j][0]) / 2 - cu[0], 0, (top[i][2] + top[j][2]) / 2 - cu[1]];
         concrete.quad(bot[i], bot[j], cut[j], cut[i], shade(TONE.basalt, 9000 + i + 7 * d0, 0.12), m);
@@ -3067,7 +3078,7 @@ export async function buildPart(ctx) {
         const d1 = ds[i + 1];
         const yA = floor(d0) + SPILL.wallHeight;
         const yB = floor(d1) + SPILL.wallHeight;
-        const top = block(concrete, u0, u1, d0, d1, base, yA, yB, shade(TONE.concrete, 4000 + 50 * k + i, 0.05));
+        const top = block(concrete, u0, u1, d0, d1, base, yA, yB, shade(TONE.concrete, 4000 + 50 * k + i, 0.05), true, [i === 0, i + 2 === ds.length]);
         /* The coping: a paler cap proud of the wall and over both its
          * faces, whose shadow line finishes the top where the bank meets
          * it (terrain/conform.js). Drawn only: under half a metre, its

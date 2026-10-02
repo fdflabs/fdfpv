@@ -602,7 +602,7 @@
   "spillway": {
    "dam/itaipu-dam-concrete": {
     "pts": 38605,
-    "miss": 341,
+    "miss": 287,
     "loose": 373,
     "bins": 101,
     "worst": [
