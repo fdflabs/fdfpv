@@ -48,7 +48,7 @@ import { buildTimberCraft } from './timbercraft.js';
 import { buildP51Craft } from './p51craft.js';
 import { buildZagiCraft } from './zagicraft.js';
 import { buildCombatDrone } from './combatcraft.js';
-import { buildStrikerCraft } from './strikercraft.js';
+import { buildStrikerCraft, buildStrikerLauncher } from './strikercraft.js';
 import { bodyPosToModel } from './frame.js';
 import { airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
@@ -107,7 +107,8 @@ function combatBuilder(id) {
  * the whip when it is fitted. That drawing is about the war's pose point;
  * the plant's origin is the CG, so every part moves by where the drawing's
  * origin sits about the CG (the propulsion's `drawing_m`, in the body
- * frame, turned into the model's by src/render/frame.js).
+ * frame, turned into the model's by src/render/frame.js). Its launch rail
+ * is built about the CG once they have moved, as the Bramor's catapult is.
  */
 function buildFlownStriker(opts) {
   const af = airframeById('striker2500');
@@ -119,6 +120,7 @@ function buildFlownStriker(opts) {
     part.position.y += oy;
     part.position.z += oz;
   }
+  buildStrikerLauncher(craft, af.catapult, opts);
   return craft;
 }
 
