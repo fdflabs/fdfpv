@@ -414,17 +414,18 @@ export function buildLife(ctx) {
    * runs the road's own.
    */
   const roadTime = roadLen / ROAD_V;
+  /* `sound` is the kind each is heard as (src/render/world-kinds.js). */
   const south = [
-    { built: V.buildCar('hatch', PAINT.silver), offset: 95 },
-    { built: V.buildCar('estate', PAINT.blue), offset: 190 },
-    { built: V.buildCar('van', PAINT.white), offset: 280 },
+    { built: V.buildCar('hatch', PAINT.silver), offset: 95, sound: 'car' },
+    { built: V.buildCar('estate', PAINT.blue), offset: 190, sound: 'car' },
+    { built: V.buildCar('van', PAINT.white), offset: 280, sound: 'van' },
   ];
   const north = [
-    { built: V.buildCar('hatch', PAINT.red), offset: 30 },
-    { built: V.buildCar('hatch', PAINT.white), offset: 120 },
-    { built: V.buildMotorbike(PAINT.blue), offset: 170 },
-    { built: V.buildCar('estate', PAINT.silver), offset: 230 },
-    { built: V.buildCar('van', PAINT.silver), offset: 300 },
+    { built: V.buildCar('hatch', PAINT.red), offset: 30, sound: 'car' },
+    { built: V.buildCar('hatch', PAINT.white), offset: 120, sound: 'car' },
+    { built: V.buildMotorbike(PAINT.blue), offset: 170, sound: 'motorbike' },
+    { built: V.buildCar('estate', PAINT.silver), offset: 230, sound: 'car' },
+    { built: V.buildCar('van', PAINT.silver), offset: 300, sound: 'van' },
   ];
   [...south, ...north].forEach((c, i) => {
     c.mover = V.mover(c.built);
@@ -572,10 +573,29 @@ export function buildLife(ctx) {
     fauna.update(t);
   }
 
+  /* Everything that drives, for the world's sound (src/render/world-audio.js
+   * traffic): add(id, kind, x, y, z) for each, where updateAnim last put
+   * it. The trailer is the tractor's and rolls in its sound. The cows'
+   * bells come too: they are on the wall clock, where fauna last put
+   * them. */
+  function audioSources(add) {
+    const at = (id, kind, g) => add(id, kind, g.position.x, g.position.y, g.position.z);
+    at(0, 'bus', bus.group);
+    [...south, ...north].forEach((c, i) => {
+      if (c.mover.group.visible) {
+        at(1 + i, c.sound, c.mover.group);
+      }
+    });
+    at(20, 'tractor', tractor.group);
+    lift.audioSources(add, 100);
+    fauna.audioSources(add, 500);
+  }
+
   return {
     updateAnim,
     sweepSolids,
     updateWind,
+    audioSources,
     parked,
     movers: 1 + south.length + north.length + 1,
     cattle: fauna.cattle,

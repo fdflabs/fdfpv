@@ -15105,6 +15105,11 @@ export async function boot({
       }
       view.updateAnim(animMs);
       animDrawnMs = animMs;
+      /* Its traffic, heard (src/render/world-audio.js), where it was just
+       * placed. */
+      if (view.audioSources) {
+        view.audioSources(worldAudio.traffic(animMs));
+      }
 
       const focus = camOverride || warIntro || (build && build.cameraLive) || mode === 'replay'
         ? shell.camera.position
@@ -15233,7 +15238,7 @@ export async function boot({
     worldAudio.setWalls(view && view.audioWalls);
     {
       const c = shell.camera.position;
-      worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN);
+      worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, worldTime);
     }
 
     /* Overlay. */
@@ -17352,6 +17357,9 @@ export async function boot({
     lap: simTimeMs,
     offset: trafficOffsetMs,
     room: roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null,
+    /* The world's sound of it: what the worklet last said it voiced
+     * (src/render/world-audio.js stats), null before the mix is up. */
+    sound: worldAudio.stats,
   });
   /* The active map's scene graph, for measurement. tests/lib/checks.js walks
    * it to assert that reference objects measure what this project claims they

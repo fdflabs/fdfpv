@@ -358,6 +358,8 @@ export async function buildValley(shell, progress, q, style) {
     },
     updateAnim: life.updateAnim,
     sweepSolids: life.sweepSolids,
+    /* What drives, for the world's sound (src/render/world-audio.js). */
+    audioSources: life.audioSources,
     /* The plant's waves on the lake: the shell hands them over at every
      * reset in the map's frame, and the sim clock every drawn frame
      * (src/render/lakewaves.js). probeWater is the drawn surface's height

@@ -98,19 +98,21 @@ const FAR_DECIMATE = 4;
 /* The load guard (WorldProcessor.meter): the share of the audio's own
  * time the worklet may take, the render cost bar of tools/audio/world.js;
  * the quanta a measurement spans; the cool windows before a step back;
- * and the steps it sheds through, the voice pool and whether the far bed
- * keeps its partials. The first is the full pool: the full war (120
+ * and the steps it sheds through, the voice pool, the ambience's pool
+ * and whether the far bed keeps its partials. The first is the full pool: the full war (120
  * attackers and a boom every half second, tools/audio/world-scenes.js
  * war-full) renders under the cost bar with it on Chromium's worklet
  * (tools/audio/world.js --browser; docs/AUDIO.md section 12). */
 const LOAD_BUDGET = 0.25;
+/* The ambience's voices while the moving sources outnumber theirs. */
+const BEDS_MASKED = 3;
 const GUARD_QUANTA = 128;
 const GUARD_COOL = 4;
 const SHED = [
-  { voices: 14, bedPartials: true },
-  { voices: 10, bedPartials: false },
-  { voices: 6, bedPartials: false },
-  { voices: 4, bedPartials: false },
+  { voices: 14, beds: 8, bedPartials: true },
+  { voices: 10, beds: 6, bedPartials: false },
+  { voices: 6, beds: 4, bedPartials: false },
+  { voices: 4, beds: 3, bedPartials: false },
 ];
 /* An explosion's trim, set by measurement (tools/audio/world.js): a
  * warhead (level 0.67) at 40 m reads momentary -14.6 LUFS in the Node mix
@@ -155,6 +157,20 @@ for (let i = 0; i <= ROTOR_N; i += 1) {
   const th = i / ROTOR_N;
   FAR[i] = sinC(th) + 0.5 * sinC(2 * th) + 0.25 * sinC(3 * th) + 0.12 * sinC(4 * th);
 }
+/* A cow's bell: a hammered bell's four partials, their levels and their
+ * decays, s (ESTIMATED, a 10 cm Swiss Treichel class bell). */
+const BELL_RATIO = [1, 1.56, 2.18, 3.12];
+const BELL_AMP = [1, 0.6, 0.4, 0.25];
+const BELL_DECAY = [0.55, 0.32, 0.2, 0.12];
+/* A bird's three shapes: a falling whistle (a blackbird's or a thrush's
+ * phrase), a trill, a run of rising chirps; a note's length and the gap
+ * after it, s, its sweep over the note, its trill rate, its pitch, Hz.
+ * Songbirds sing between 2 and 8 kHz; these sit low in that. */
+const SONGS = [
+  { len: 0.22, gap: 0.12, sweep: -0.25, trill: 0, hz: 2600 },
+  { len: 0.6, gap: 0.3, sweep: 0.05, trill: 28, hz: 4200 },
+  { len: 0.05, gap: 0.06, sweep: 0.6, trill: 0, hz: 3100 },
+];
 /* A prop's own table, built per voice at bind: one revolution. */
 const PROP_N = 1024;
 
@@ -212,6 +228,7 @@ function onePole(hz, rate) {
 class Mode {
   constructor() {
     this.y1 = 0;
+    this.sinW = 0;
     this.y2 = 0;
     this.a1 = 0;
     this.a2 = 0;
@@ -221,9 +238,17 @@ class Mode {
   tune(hz, decayS, rate) {
     const r = Math.exp(-1 / (decayS * rate));
     const w = (TAU * Math.min(hz, rate / 2.5)) / rate;
+    this.sinW = Math.sin(w);
     this.a1 = 2 * r * Math.cos(w);
     this.a2 = -r * r;
     this.b0 = (1 - r) * Math.sqrt(1 - 2 * r * Math.cos(2 * w) + r * r);
+  }
+
+  /* Struck: a decaying sine of amplitude a starts from here, on top of
+   * whatever still rings (an impulse through the unity peak gain above
+   * would be b0 small, a few hundred times too quiet). */
+  strike(a) {
+    this.y1 += a * this.sinW;
   }
 
   run(x) {
@@ -255,6 +280,16 @@ function knee(x) {
   const over = a - KNEE_T;
   const y = KNEE_T + over / (1 + over / (KNEE_K - KNEE_T));
   return x < 0 ? -y : y;
+}
+
+/* Spreading to d metres against REF_M, never nearer than NEAR_M (or the
+ * kind's own `near`, for a source as big as a spillway or a town): a point
+ * source's 1 / d, a line's or an area's (a river, a shore, a power line
+ * heard from its nearest point; a spillway; a town) 1 / sqrt(d), 3 dB a
+ * doubling. */
+function spread(spec, d) {
+  const r = REF_M / Math.max(spec.near || NEAR_M, d);
+  return spec.line ? Math.sqrt(r) : r;
 }
 
 /* Air absorption's lowpass corner at d metres: engine-worklet.js's fit to
@@ -431,8 +466,23 @@ class Track {
  *   prop      a propeller's blade pass and harmonics, its broadband chopped
  *             at the blade pass
  *   electric  a motor's whine at (poles / 2) times the shaft rate
+ *   mesh      a gearbox's teeth passing
  *   rotors    four small props a few percent apart, beating (a quad)
+ *   knock     a diesel's combustion tick on each firing
+ *   tyres     rolling noise, a band near 1 kHz, level with speed
+ *   rope      a gondola cabin's haul rope rumble
  *   water     a hull's wash and slap, level with speed
+ *
+ * and the ambience's (output 1, spec.bed):
+ *
+ *   roar      falling water: a spillway, a waterfall
+ *   flow      running water and its bubbles
+ *   lap       small waves on a shore
+ *   hum       a town far off, its murmur and its mains
+ *   corona    a high voltage line's hum and crackle
+ *   bell      a cow's bell, struck as it moves
+ *   song      a bird's phrases
+ *   chirp     a cricket; croak, a frog; buzz, a cicada
  *
  * Everything is synthesised at the source's own time and frequencies times
  * the Doppler factor `dop`, so a pass falls in pitch as it does outside.
@@ -448,8 +498,22 @@ class Voice {
     this.panPrev = 0;
     this.gainPrev = 0;
     this.muff = [new Mode(), new Mode(), new Mode()];
+    this.knock = new Mode();
     this.bb = new Svf();
     this.wash = new Svf();
+    this.tyre = new Svf();
+    this.rope = new Svf();
+    this.roarLo = new Svf();
+    this.roarMid = new Svf();
+    this.roarHi = new Svf();
+    this.flowBand = new Svf();
+    this.bubble = new Mode();
+    this.lapBand = new Svf();
+    this.clop = new Mode();
+    this.humBand = new Svf();
+    this.crackBand = new Svf();
+    this.bellModes = [new Mode(), new Mode(), new Mode(), new Mode()];
+    this.croak = new Mode();
     this.absorb = 0;
     this.reflAbsorb = 0;
     this.back = [0, 0];
@@ -492,6 +556,39 @@ class Voice {
       }
     }
     this.slap = 0;
+    this.meshPh = 0;
+    this.swing = Math.abs(r());
+    /* The ambience's parts: their states, and what of each is this
+     * source's own (a bell's pitch, a bird's species and pitch, a
+     * cricket's tone, a frog's throat). */
+    this.surge = 0;
+    this.lapIn = Math.abs(r()) * this.rate;
+    this.lapEnv = 0;
+    this.mains = 0;
+    this.crackEnv = 0;
+    this.tone = 0;
+    this.am = 0;
+    const bellHz = 420 + 340 * Math.abs(r());
+    for (let q = 0; q < 4; q += 1) {
+      this.bellModes[q].tune(bellHz * BELL_RATIO[q] * (1 + 0.02 * r()), BELL_DECAY[q] * (0.8 + 0.4 * Math.abs(r())), this.rate);
+    }
+    this.songShape = SONGS[Math.floor(Math.abs(r()) * SONGS.length) % SONGS.length];
+    this.songHz = this.songShape.hz * (1 + 0.15 * r());
+    this.noteT = 0;
+    this.noteLen = 0;
+    this.notesLeft = 0;
+    this.gapT = Math.abs(r()) * 3;
+    this.chirpT = Math.abs(r()) * 0.4;
+    this.chirpGap = 0.4;
+    this.chirpHz = 4200 + 800 * Math.abs(r());
+    this.croakT = Math.abs(r()) * 2;
+    this.croakGap = 2;
+    this.croakHz = 380 + 260 * Math.abs(r());
+    this.buzzT = 0;
+    this.buzzOn = r() > 0;
+    this.buzzLen = 1 + 4 * Math.abs(r());
+    this.buzzHz = 5200 + 900 * Math.abs(r());
+    this.speed = undefined;
     for (let m = 0; m < 4; m += 1) {
       this.rotor[m] = Math.abs(r());
       this.rotorRpm[m] = 1 + 0.035 * r();
@@ -510,30 +607,71 @@ class Voice {
   }
 
   /*
-   * The engine's state at the emission time: rpm from the speed through
-   * the air, load from the climb and the acceleration. `state` is [x, y,
-   * z, vx, vy, vz]. The engine sits near its cruise rpm, a little over in
-   * a climb, under in a glide or a dive (which windmills it); a munition
-   * that powers into its dive (powerDive) winds up instead, the rising
-   * whine of its terminal run.
+   * The engine's state at the emission time, `state` [x, y, z, vx, vy,
+   * vz]: its rpm, its load and its level.
+   *
+   *   a road vehicle (gears)  rpm climbs through each gear with the speed
+   *                           and drops at the change up, idles at a
+   *                           standstill; its load is how hard it is
+   *                           accelerating, so a bus pulling away from its
+   *                           stop is loud and one coasting in is not
+   *   a machine (fixed)       its rpm, whatever its speed: a generator, a
+   *                           lift's drive, a tractor on its work
+   *   an aircraft or a boat   near its cruise rpm, a little over in a
+   *                           climb, under in a glide or a dive (which
+   *                           windmills it); a munition that powers into
+   *                           its dive (powerDive) winds up instead, the
+   *                           rising whine of its terminal run
    */
   drive(state, dt) {
     const s = this.spec;
     const sp = Math.sqrt(state[3] * state[3] + state[4] * state[4] + state[5] * state[5]);
-    const climb = sp > 1 ? state[4] / sp : 0;
-    const x = Math.min(1.3, sp / Math.max(1, s.cruise));
-    let rpm = s.cruiseRpm * (0.75 + 0.25 * x) * (1 + 0.12 * (s.powerDive ? Math.abs(climb) : climb));
+    const step = Math.max(1e-3, dt);
+    let rpm = 0;
+    let want = 0.6;
+    if (s.gears) {
+      if (sp < 0.5) {
+        rpm = s.idleRpm;
+      } else {
+        let g = 0;
+        while (g < s.gears.length - 1 && sp > s.gears[g]) {
+          g += 1;
+        }
+        const lo = g === 0 ? 0 : s.gears[g - 1] * 0.82;
+        const x = Math.max(0, Math.min(1, (sp - lo) / Math.max(0.1, s.gears[g] - lo)));
+        rpm = s.idleRpm + (s.shiftRpm - s.idleRpm) * (0.35 + 0.65 * x);
+      }
+      const accel = this.speed === undefined ? 0 : (sp - this.speed) / step;
+      want = 0.5 + 0.5 * Math.max(-0.6, Math.min(1, accel / 1.2));
+    } else if (s.fixed) {
+      rpm = s.cruiseRpm;
+    } else if (s.cruiseRpm) {
+      const climb = sp > 1 ? state[4] / sp : 0;
+      const x = Math.min(1.3, sp / Math.max(1, s.cruise));
+      rpm = s.cruiseRpm * (0.75 + 0.25 * x) * (1 + 0.12 * (s.powerDive ? Math.abs(climb) : climb));
+      want = 0.6 + 0.5 * (state[4] / Math.max(4, sp));
+    }
     rpm *= this.rpmTrim;
-    const accel = (rpm - this.rpm) / Math.max(1e-3, dt) / s.cruiseRpm;
+    const ref = s.gears ? s.shiftRpm : s.cruiseRpm || 1;
+    if (!s.gears && s.cruiseRpm) {
+      const spin = (rpm - this.rpm) / step / ref;
+      want += 0.4 * Math.sign(spin) * Math.min(1, Math.abs(spin));
+    }
     this.rpm = this.rpm === 0 ? rpm : this.rpm + 0.3 * (rpm - this.rpm);
-    const want = Math.max(0.2, Math.min(1.5, 0.6 + 0.4 * Math.sign(accel) * Math.min(1, Math.abs(accel)) + 0.5 * (state[4] / Math.max(4, sp))));
-    this.load += 0.1 * (want - this.load);
+    this.load += 0.1 * (Math.max(0.2, Math.min(1.5, want)) - this.load);
     this.speed = sp;
-    /* Level with rpm to the first power: about 2 dB from cruise to a
-     * powered dive, compressed from the aeroacoustic fourth to sixth
-     * for the reason the engine's own law is (engine-worklet.js
-     * motorAmps). */
-    this.level = Math.min(1.6, this.rpm / s.cruiseRpm);
+    /* Level with rpm to the first power (about 2 dB from cruise to a
+     * powered dive), compressed from the aeroacoustic fourth to sixth for
+     * the reason the engine's own law is (engine-worklet.js motorAmps);
+     * a road vehicle's with its load as well: a bus idling at its stop
+     * measures 5 dB under the same bus pulling away (the bus-stop scene;
+     * the street's figures, idle 65 to 70 dB(A) at 7.5 m and a pull away
+     * 75 to 80, say up to 10, which this leaves the owner to call). A source with no engine is its parts' own level. */
+    if (s.gears) {
+      this.level = (0.4 + 0.6 * this.rpm / s.shiftRpm) * (0.45 + 0.55 * this.load);
+    } else {
+      this.level = s.cruiseRpm ? Math.min(1.6, this.rpm / s.cruiseRpm) : 1;
+    }
   }
 
   /* Everything a quantum holds still: the shaft rate with the Doppler
@@ -547,6 +685,23 @@ class Voice {
     this.fBb = svfF(Math.min(5000, Math.max(300, this.fRot * bladesBb * (s.rotors ? 5 : 4))), rate);
     this.fWash = svfF(350 * dop, rate);
     this.gWash = s.water ? s.water * Math.min(1.5, this.speed / 10) : 0;
+    this.fTyre = svfF(900 * dop, rate);
+    this.gTyre = s.tyres ? s.tyres * Math.min(1.5, (this.speed / 14) ** 1.5) : 0;
+    this.fRope = svfF(140 * dop, rate);
+    this.gRope = s.rope ? s.rope * Math.min(1.5, this.speed / 5) : 0;
+    this.fRoarLo = svfF(170 * dop, rate);
+    this.fRoarMid = svfF(650 * dop, rate);
+    this.fRoarHi = svfF(2400 * dop, rate);
+    this.kSurge = onePole(0.4, rate);
+    this.kSwell = onePole(0.05, rate);
+    this.fFlow = svfF(900 * dop, rate);
+    this.bubbleOdds = 1 - (s.bubbles || 0) / rate;
+    this.fLap = svfF(380 * dop, rate);
+    this.kLap = Math.exp(-1 / (0.35 * rate));
+    this.fHum = svfF(170 * dop, rate);
+    this.crackOdds = 1 - 40 / rate;
+    this.fCrack = svfF(6500 * dop, rate);
+    this.bellOdds = 1 - (0.15 + 4 * this.speed) / rate;
     this.ld = Math.max(0.2, Math.min(1.5, this.load));
   }
 
@@ -575,6 +730,12 @@ class Voice {
        * models): a short decaying half wave each cycle. */
       const bd = BD[(this.cycle * BD_N) | 0] * this.cycleAmp;
       y += s.exhaust * (0.5 * bd + ex);
+      if (s.knock) {
+        /* A diesel's combustion knock: the pressure rise's tick, the
+         * block's ring struck by the square of the pulse so only the
+         * firing's peak reaches it. */
+        y += s.knockLevel * this.knock.run(exc * exc);
+      }
     }
     if (s.blades) {
       /* The prop: its harmonics from this one's own table, and its
@@ -599,6 +760,15 @@ class Voice {
       }
       y += s.whine * (sinC(this.whine) + 0.4 * sinC(2 * this.whine));
     }
+    if (s.mesh) {
+      /* A gearbox's mesh: its teeth passing, a tone at teeth x the shaft
+       * rate and a little of its second. */
+      this.meshPh += (fRot * s.teeth) / rate;
+      if (this.meshPh >= 1) {
+        this.meshPh -= Math.floor(this.meshPh);
+      }
+      y += s.mesh * (sinC(this.meshPh) + 0.3 * sinC(2 * this.meshPh));
+    }
     if (s.rotors) {
       /* A quad: four props a few percent apart, beating, each a blade
        * pass with two harmonics (ROTOR); the vortex noise is the bb band. */
@@ -615,6 +785,20 @@ class Voice {
       this.bb.run(nz(), this.fBb, 0.9);
       y += s.rotors * (0.25 * q + 0.5 * this.bb.bp);
     }
+    if (this.gTyre > 1e-4) {
+      /* Tyre and road: broadband near 1 kHz, its level with speed to the
+       * 2.5 power compressed to the 1.5 (a tyre's noise is the larger
+       * part of a car's above about 40 km/h, Sandberg and Ejsmont 2002). */
+      this.tyre.run(nz(), this.fTyre, 1.1);
+      y += this.gTyre * this.tyre.bp;
+    }
+    if (this.gRope > 1e-4) {
+      /* A cabin on its rope: the haul rope's low rumble through the grip
+       * and the hanger's slow swing. */
+      this.rope.run(nz(), this.fRope, 1.0);
+      this.swing += 0.35 / rate;
+      y += this.gRope * this.rope.lo * (1 + 0.4 * sinC(this.swing));
+    }
     if (this.gWash > 1e-4) {
       /* A hull: the wash, and the slap of the hull meeting the chop a few
        * times a second, faster the faster it goes. */
@@ -623,7 +807,151 @@ class Voice {
       const slap = 1 + 0.6 * sinC(this.slap) * (0.5 + 0.5 * sinC(0.37 * this.slap));
       y += this.gWash * this.wash.lo * slap;
     }
+    if (s.roar) {
+      /* Falling water: the plunge's thunder under the spray's hiss, three
+       * bands of one noise, the low heaviest, surging slowly. */
+      const w = nz();
+      this.roarLo.run(w, this.fRoarLo, 0.8);
+      this.roarMid.run(w, this.fRoarMid, 1.1);
+      this.roarHi.run(w, this.fRoarHi, 1.2);
+      this.surge += this.kSurge * (nz() - this.surge);
+      y += s.roar * (1 + 1.2 * this.surge) * (this.roarLo.lo + 0.4 * this.roarMid.bp + 0.05 * this.roarHi.bp);
+    }
+    if (s.flow) {
+      /* Running water: a band of noise and the bubbles in it, each a short
+       * ring at the pitch its size gives it (Minnaert: 3.26 m/s over the
+       * radius, so 2 to 10 mm rings 330 Hz to 1.6 kHz). */
+      this.flowBand.run(nz(), this.fFlow, 0.8);
+      if (nz() > this.bubbleOdds) {
+        this.bubble.tune(330 + 1300 * Math.abs(nz()) ** 2, 0.006 + 0.012 * Math.abs(nz()), rate);
+        this.bubble.strike(0.3 + 0.7 * Math.abs(nz()));
+      }
+      y += s.flow * (0.5 * this.flowBand.bp + 0.4 * this.bubble.run(0));
+    }
+    if (s.lap) {
+      /* Small waves on a shore: one every second or two, each a slap, a
+       * clop off the stones and its wash back. */
+      if ((this.lapIn -= 1) <= 0) {
+        this.lapIn = (0.9 + 1.8 * Math.abs(nz())) * rate;
+        this.lapEnv = 0.4 + 0.6 * Math.abs(nz());
+        this.clop.tune(160 + 260 * Math.abs(nz()), 0.025, rate);
+        this.clop.strike(this.lapEnv);
+      }
+      this.lapEnv = this.lapEnv * this.kLap < FLUSH ? 0 : this.lapEnv * this.kLap;
+      this.lapBand.run(nz(), this.fLap, 0.9);
+      y += s.lap * (this.lapEnv * this.lapBand.lo + 0.3 * this.clop.run(0));
+    }
+    if (s.hum) {
+      /* A town far off: its traffic's murmur, low and swelling, and the
+       * mains' hum of its transformers. */
+      this.humBand.run(nz(), this.fHum, 0.7);
+      this.surge += this.kSwell * (nz() - this.surge);
+      this.mains += (2 * s.mainsHz) / rate;
+      y += s.hum * ((0.8 + 2 * this.surge) * this.humBand.lo + 0.08 * sinC(this.mains));
+    }
+    if (s.corona) {
+      /* A high voltage line: the hum at twice its mains, and corona's
+       * fizz and crackle, which a damp day makes worse; the crackle kept
+       * high, over the band the ear tires in. */
+      this.mains += (2 * s.mainsHz) / rate;
+      if (nz() > this.crackOdds) {
+        this.crackEnv = 0.5 + 0.5 * Math.abs(nz());
+      }
+      this.crackEnv = this.crackEnv < FLUSH ? 0 : this.crackEnv * 0.93;
+      this.crackBand.run(nz(), this.fCrack, 1.0);
+      y += s.corona * (0.5 * sinC(this.mains) + 0.2 * sinC(2 * this.mains) + (0.15 + this.crackEnv) * this.crackBand.bp);
+    }
+    if (s.bell) {
+      /* A cow's bell: struck as it moves its head, more often walking,
+       * four inharmonic partials of a hammered bell, each its own decay. */
+      if (nz() > this.bellOdds) {
+        const k = 0.4 + 0.6 * Math.abs(nz());
+        for (let q = 0; q < 4; q += 1) {
+          this.bellModes[q].strike(k * BELL_AMP[q]);
+        }
+      }
+      for (let q = 0; q < 4; q += 1) {
+        y += s.bell * this.bellModes[q].run(0);
+      }
+    }
+    if (s.song) {
+      y += s.song * this.songSample(nz);
+    }
+    if (s.chirp) {
+      /* A cricket: a chirp of three pulses of its tone, two or three
+       * chirps a second, the tone its own. */
+      this.chirpT += 1 / rate;
+      if (this.chirpT >= this.chirpGap) {
+        this.chirpT = 0;
+        this.chirpGap = 0.35 + 0.15 * Math.abs(nz());
+      }
+      const pulse = this.chirpT < 0.09 ? Math.max(0, sinC(this.chirpT * 33)) : 0;
+      this.tone += this.chirpHz / rate;
+      y += s.chirp * pulse * sinC(this.tone);
+    }
+    if (s.croak) {
+      /* A frog: a croak, a train of pulses at 30 a second through its
+       * throat's resonance, every few seconds. */
+      this.croakT += 1 / rate;
+      if (this.croakT >= this.croakGap) {
+        this.croakT = 0;
+        this.croakGap = 1.2 + 2.5 * Math.abs(nz());
+        this.croak.tune(this.croakHz, 0.012, rate);
+      }
+      if (this.croakT < 0.35 && ((this.croakT * 30) % 1) < 30 / rate) {
+        this.croak.strike(1);
+      }
+      y += s.croak * this.croak.run(0);
+    }
+    if (s.buzz) {
+      /* A cicada: its tymbals' buzz, a high carrier amplitude modulated a
+       * few hundred times a second, in long calls with rests between. */
+      this.buzzT += 1 / rate;
+      if (this.buzzT >= this.buzzLen) {
+        this.buzzT = 0;
+        this.buzzOn = !this.buzzOn;
+        this.buzzLen = this.buzzOn ? 3 + 5 * Math.abs(nz()) : 2 + 6 * Math.abs(nz());
+      }
+      if (this.buzzOn) {
+        const ramp = Math.min(1, this.buzzT / 0.6, (this.buzzLen - this.buzzT) / 0.4);
+        this.tone += this.buzzHz / rate;
+        this.am += 210 / rate;
+        y += s.buzz * ramp * (0.5 + 0.5 * sinC(this.am)) * sinC(this.tone);
+      }
+    }
     return y;
+  }
+
+  /* A bird: phrases of notes, each a sweep of its species' shape, with a
+   * rest before each phrase; three shapes (a falling whistle, a trill, a
+   * run of rising chirps) by the voice's seed, its pitch its own. */
+  songSample(nz) {
+    const rate = this.rate;
+    const sh = this.songShape;
+    if (this.noteT >= this.noteLen) {
+      if (this.gapT > 0) {
+        this.gapT -= 1 / rate;
+        return 0;
+      }
+      if (this.notesLeft <= 0) {
+        this.notesLeft = 2 + Math.floor(6 * Math.abs(nz()));
+        this.gapT = 1.5 + 5 * Math.abs(nz());
+        return 0;
+      }
+      this.notesLeft -= 1;
+      this.noteT = 0;
+      this.noteLen = sh.len * (0.8 + 0.4 * Math.abs(nz()));
+      this.noteHz = this.songHz * (1 + 0.08 * nz());
+      this.gapT = sh.gap * (0.7 + 0.6 * Math.abs(nz()));
+    }
+    const u = this.noteT / this.noteLen;
+    this.noteT += 1 / rate;
+    this.tone += (this.noteHz * (1 + sh.sweep * u)) / rate;
+    let env = sinC(0.5 * u);
+    if (sh.trill) {
+      env *= 0.5 + 0.5 * sinC(this.noteT * sh.trill);
+    }
+    return env * (sinC(this.tone) + 0.15 * sinC(2 * this.tone));
   }
 
   /* A firing: this cycle's strength and timing (Heywood 1988, 9.4), a
@@ -632,7 +960,7 @@ class Voice {
     const s = this.spec;
     const nz = this.nz;
     const rpm = this.rpm;
-    const ref = s.cruiseRpm;
+    const ref = s.gears ? s.shiftRpm : s.cruiseRpm;
     const idle = Math.max(0, 1 - rpm / ref);
     const jit = s.jitter * (0.5 + idle);
     this.cycleAmp = 1 + jit * nz();
@@ -644,6 +972,9 @@ class Voice {
     const lift = 1 + 0.15 * Math.min(1.2, rpm / ref);
     for (let q = 0; q < 3; q += 1) {
       this.muff[q].tune(s.muffler[q] * lift * this.muffTrim[q] * this.dop, s.mufflerDecay[q], this.rate);
+    }
+    if (s.knock) {
+      this.knock.tune(s.knock * this.dop * (1 + 0.04 * nz()), 0.0025, this.rate);
     }
   }
 }
@@ -799,9 +1130,16 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.rate = sampleRate;
     this.poolSize = o.voices || SHED[0].voices;
     this.tracks = new Map();
+    /* Two pools: the things that move (output 0) and the ambience's beds
+     * and emitters (output 1, spec.bed), so a dawn chorus never takes an
+     * attacker's voice nor a swarm a river's. */
     this.voices = [];
     for (let i = 0; i < this.poolSize; i += 1) {
       this.voices.push(new Voice(this.rate));
+    }
+    this.beds = [];
+    for (let i = 0; i < SHED[0].beds; i += 1) {
+      this.beds.push(new Voice(this.rate));
     }
     /* The listener's history: x, y, z, forward, right, its ground's y. */
     this.lis = new History(10);
@@ -814,7 +1152,7 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.stateA = new Float64Array(6);
     this.stateB = new Float64Array(6);
     this.far = new Map();
-    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, tracks: 0, load: 0, step: 0, stepMax: 0 };
+    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, beds: 0, bedsMax: 0, tracks: 0, load: 0, step: 0, stepMax: 0 };
     /* The load guard (meter): on unless the options say otherwise, with a
      * budget of the audio's own time. */
     this.guard = o.guard !== false;
@@ -968,6 +1306,7 @@ class WorldProcessor extends AudioWorkletProcessor {
 
     /* ---- who is heard: every track's loudness at the listener ---- */
     const live = [];
+    const ambient = [];
     for (const [id, tr] of this.tracks) {
       /* Gone: its last frame is more than its travel time and a tail old. */
       const spec = WORLD_KINDS[KIND_NAMES[tr.kind]];
@@ -982,49 +1321,27 @@ class WorldProcessor extends AudioWorkletProcessor {
         tr.loud = 0;
         continue;
       }
-      const g = spec.amp * REF_M / Math.max(NEAR_M, dNow);
+      const g = spec.amp * spread(spec, dNow);
       tr.loud = g * g * Math.min(1, absorbHz(dNow) / 2000);
       tr.dNow = dNow;
-      live.push(tr);
+      (spec.bed ? ambient : live).push(tr);
     }
-    live.sort((a, b) => (b.loud * (b.voice ? KEEP : 1)) - (a.loud * (a.voice ? KEEP : 1)));
-    const want = new Set(live.slice(0, Math.min(this.poolSize, SHED[this.step].voices)));
-    /* Free the voices whose source fell out of the set: they fade. */
-    for (const v of this.voices) {
-      if (v.track && !want.has(v.track)) {
-        v.fadeTo = 0;
-      }
-      if (v.track && v.track.seen + TAIL_S < v.teEnd) {
-        /* The source is gone and its last sound has arrived. */
-        v.fadeTo = 0;
-      }
-    }
-    for (const tr of want) {
-      if (tr.voice && tr.voice.track === tr) {
-        tr.voice.fadeTo = tr.voice.track.seen + TAIL_S < tr.voice.teEnd ? 0 : 1;
-        continue;
-      }
-      const v = this.voices.find((x) => !x.track) || null;
-      if (!v) {
-        continue;
-      }
-      v.bind(tr, WORLD_KINDS[KIND_NAMES[tr.kind]]);
-      tr.voice = v;
-    }
+    const shed = SHED[this.step];
+    this.choose(this.voices, live, Math.min(this.poolSize, shed.voices));
+    /* Under a swarm the place is masked: with more sources moving than
+     * the voices for them, the ambience keeps only its loudest few, and
+     * a war's worth of work is not spent on birds no one hears. */
+    this.choose(this.beds, ambient, live.length > this.voices.length ? Math.min(shed.beds, BEDS_MASKED) : shed.beds);
 
     /* ---- the voices ---- */
     for (const v of this.voices) {
-      if (!v.track) {
-        continue;
-      }
       this.renderVoice(v, out0, t0, t1, n, L);
-      if (v.fade <= 0 && v.fadeTo === 0) {
-        v.track.voice = null;
-        v.track = null;
-      }
+    }
+    for (const v of this.beds) {
+      this.renderVoice(v, outputs[1], t0, t1, n, L);
     }
 
-    /* ---- the far bed: everyone without a voice ---- */
+    /* ---- the far bed: everyone without a voice that moves ---- */
     this.renderFar(live, out0, n, L);
     this.renderBlasts(out2, t0, n);
     let voiced = 0;
@@ -1033,11 +1350,55 @@ class WorldProcessor extends AudioWorkletProcessor {
     }
     this.stats.voiced = voiced;
     this.stats.voicedMax = Math.max(this.stats.voicedMax, voiced);
+    let beds = 0;
+    for (const v of this.beds) {
+      beds += v.track ? 1 : 0;
+    }
+    this.stats.beds = beds;
+    this.stats.bedsMax = Math.max(this.stats.bedsMax, beds);
     this.stats.tracks = this.tracks.size;
     this.stats.bedded = Math.max(0, live.length - voiced);
   }
 
+  /*
+   * Give a pool's voices to the `size` loudest of `tracks`, the ones
+   * holding a voice favoured by KEEP; a voice whose source fell out of the
+   * set, or whose source is gone and its last sound arrived, fades.
+   */
+  choose(pool, tracks, size) {
+    tracks.sort((a, b) => (b.loud * (b.voice ? KEEP : 1)) - (a.loud * (a.voice ? KEEP : 1)));
+    const want = new Set(tracks.slice(0, size));
+    for (const v of pool) {
+      if (v.track && (!want.has(v.track) || v.track.seen + TAIL_S < v.teEnd)) {
+        v.fadeTo = 0;
+      }
+    }
+    for (const tr of want) {
+      if (tr.voice && tr.voice.track === tr) {
+        tr.voice.fadeTo = tr.seen + TAIL_S < tr.voice.teEnd ? 0 : 1;
+        continue;
+      }
+      const v = pool.find((x) => !x.track);
+      if (!v) {
+        continue;
+      }
+      v.bind(tr, WORLD_KINDS[KIND_NAMES[tr.kind]]);
+      tr.voice = v;
+    }
+  }
+
   renderVoice(v, out, t0, t1, n, L) {
+    if (!v.track) {
+      return;
+    }
+    this.renderSource(v, out, t0, t1, n, L);
+    if (v.fade <= 0 && v.fadeTo === 0) {
+      v.track.voice = null;
+      v.track = null;
+    }
+  }
+
+  renderSource(v, out, t0, t1, n, L) {
     const rate = this.rate;
     const tr = v.track;
     const d = this.retard(tr, t1, L);
@@ -1061,12 +1422,16 @@ class WorldProcessor extends AudioWorkletProcessor {
     const back = front < 0 ? -front : 0;
     /* The ground's image under the listener's ground: its path's extra
      * length is the reflection's delay. */
-    const gy = L[9];
+    /* The reflecting plane: the listener's ground, or the source's own
+     * level when it is lower (a boat on a lake below the bank, a shore's
+     * water), where its image all but coincides with it: the pressure
+     * doubling of a source on a hard surface. */
+    const gy = Math.min(L[9], st[1]);
     const iy = 2 * gy - st[1];
     const d2 = Math.hypot(dx, iy - L[1], dz);
     const extra = Math.max(0, (d2 - d) / C_AIR) * rate;
     const reflG = extra < REFL_LEN - 2 ? v.spec.ground * d / Math.max(d, d2) : 0;
-    const g1 = v.spec.amp * v.level * REF_M / Math.max(NEAR_M, d);
+    const g1 = v.spec.amp * v.level * spread(v.spec, d);
     const kA = onePole(absorbHz(d), rate);
     const kR = onePole(absorbHz(d2) * 0.5, rate);
     const kB = onePole(1800 + 12000 * (1 - back), rate);
@@ -1110,16 +1475,32 @@ class WorldProcessor extends AudioWorkletProcessor {
        * each side that opens fully in front. */
       const l = x * (l0 + dl * i);
       const r = x * (r0 + dr * i);
-      v.back[0] += kB * (l - v.back[0]);
-      v.back[1] += kB * (r - v.back[1]);
-      oL[i] += v.back[0];
-      oR[i] += v.back[1];
+      /* Flushed a sample at a time: a voice that has gone quiet (a
+       * cricket between chirps) decays through float32's subnormals
+       * within a quantum otherwise. */
+      let bl = v.back[0] + kB * (l - v.back[0]);
+      let br = v.back[1] + kB * (r - v.back[1]);
+      if (bl < FLUSH && bl > -FLUSH) {
+        bl = 0;
+      }
+      if (br < FLUSH && br > -FLUSH) {
+        br = 0;
+      }
+      v.back[0] = bl;
+      v.back[1] = br;
+      oL[i] += bl;
+      oR[i] += br;
     }
     if (Math.abs(v.absorb) < FLUSH) {
       v.absorb = 0;
     }
     if (Math.abs(v.reflAbsorb) < FLUSH) {
       v.reflAbsorb = 0;
+    }
+    for (let c = 0; c < 2; c += 1) {
+      if (Math.abs(v.back[c]) < FLUSH) {
+        v.back[c] = 0;
+      }
     }
     v.distPrev = d;
     v.panPrev = pan;

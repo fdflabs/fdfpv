@@ -984,6 +984,11 @@ export function buildLakeside({
       place(fromMs);
       place(toMs);
     },
+    /* The boat for the world's sound (src/render/world-audio.js): add(id,
+     * kind, x, y, z), at its waterline. */
+    audioSources(add, id) {
+      add(id, 'sailboat', sail.position.x, LAKE_Y, sail.position.z);
+    },
     stats: {
       houses, sheds, boats, benches, lamps, stones, triangles: m.pos.length / 9,
     },

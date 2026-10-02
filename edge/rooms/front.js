@@ -15,6 +15,8 @@
  *   GET  /v2/admin/health    the server's counters (edge/rooms/health.js),
  *                            with authorization: Bearer ADMIN_SECRET only;
  *                            404 on a platform that keeps none (Cloudflare)
+ *   GET  /v2/admin/rooms     who is on: every room with anybody in it and
+ *                            its seats (core.js who()), the same way
  *   GET  /v2/version         { commit, dirty }: the deployed commit the
  *                            process started on (edge/node-http.js
  *                            readRevision), commit null on Cloudflare
@@ -180,6 +182,17 @@ async function health(request, env) {
   return Response.json(env.HEALTH.report(), { headers: { 'cache-control': 'no-store' } });
 }
 
+/* Who is on (env.WHO, the VM's: edge/rooms/node.js). */
+async function whoIsOn(request, env) {
+  if (!env.WHO || request.method !== 'GET') {
+    return new Response('not found', { status: 404 });
+  }
+  if (!(await isAdmin(env, request))) {
+    return Response.json({ error: 'admin' }, { status: 401 });
+  }
+  return Response.json(env.WHO(), { headers: { 'cache-control': 'no-store' } });
+}
+
 /* Make the room `code` (host.js init); false when the code was taken. */
 async function makeRoom(env, code, room) {
   const stub = env.ROOMS.get(env.ROOMS.idFromName(`prv:${code}`));
@@ -314,6 +327,9 @@ export default {
     }
     if (url.pathname === '/v2/admin/health') {
       return health(request, env);
+    }
+    if (url.pathname === '/v2/admin/rooms') {
+      return whoIsOn(request, env);
     }
     if (url.pathname === '/v2/create' && request.method === 'POST') {
       return create(request, env, origin);
