@@ -64,7 +64,7 @@ import { bakeImpostors, impostorMaterial, impostorDepthMaterial } from '../../sw
 import {
   HALF, KINDS, YAW_COS, YAW_SIN,
 } from './plant.js';
-import { FOREST_GRADE } from '../look/ground.js';
+import { FOREST_GRADE, noiseTexture } from '../look/ground.js';
 import { thermalKind } from '../../../render/thermal.js';
 
 /*
@@ -852,11 +852,12 @@ vec4 vegCells(vec2 g) {
   return vec4(-o1, sqrt(d2) - sqrt(d1), id);
 }
 /* The crowns as domes: in each cell a sphere's cap round a jittered
- * point, of its own radius; where caps overlap the higher one shows, so
- * two crowns meet in a crease that curves, and where none reaches is a
- * gap. Returns the dome's slope (xy, clamped), its height over its radius
- * (z, -1 in a gap) and the crown's number (w). */
-vec4 vegCaps(vec2 g) {
+ * point, of its own radius times open (under 1, more gaps); where caps
+ * overlap the higher one shows, so two crowns meet in a crease that
+ * curves, and where none reaches is a gap. Returns the dome's slope (xy,
+ * clamped), its height over its radius (z, -1 in a gap) and the crown's
+ * number (w). */
+vec4 vegCaps(vec2 g, float open) {
   vec2 ip = floor(g);
   vec2 fp = fract(g);
   float best = -1.0;
@@ -868,7 +869,7 @@ vec4 vegCaps(vec2 g) {
       vec2 b = vec2(float(i), float(j));
       vec2 h = vegHash2(ip + b);
       vec2 d = fp - (b + 0.2 + 0.6 * h);
-      float r = 0.6 + 0.28 * fract(h.x * 13.7 + h.y * 3.1);
+      float r = (0.6 + 0.28 * fract(h.x * 13.7 + h.y * 3.1)) * open;
       float q = r * r - dot(d, d);
       if (q > 0.0) {
         float top = sqrt(q);
@@ -920,7 +921,38 @@ const SINK_GLSL = (eye) => /* glsl */ `
 `;
 const SINK_PARS = 'uniform vec4 uShellBand;\nattribute float aLift;\nvarying float vSink;';
 
-function shellMaterial(band, forestTex) {
+/* Each crown's own green, as a multiplier on the graded satellite colour,
+ * by its number: the Atlantic forest from the air in summer is a mosaic of
+ * them, deep blue green, plain, the yellow green of the pioneers, olive
+ * and bronze, grey green, and here and there the silver of an embauba
+ * (Cecropia). [upper bound of the number, r, g, b], normalised below so
+ * the mosaic's mean is the satellite's colour. */
+const CROWN_PALETTE = [
+  [0.3, 0.86, 0.96, 0.92],
+  [0.55, 1.0, 1.0, 1.0],
+  [0.75, 1.12, 1.1, 0.84],
+  [0.88, 1.04, 0.95, 0.78],
+  [0.96, 0.92, 1.0, 1.06],
+  [1.0, 1.22, 1.2, 1.12],
+];
+const PALETTE_MEAN = [1, 2, 3].map((c) => CROWN_PALETTE.reduce((s, e, k) => s + e[c] * (e[0] - (k ? CROWN_PALETTE[k - 1][0] : 0)), 0));
+const PALETTE_GLSL = (() => {
+  const rgb = (e) => [1, 2, 3].map((c) => (e[c] / PALETTE_MEAN[c - 1]).toFixed(3)).join(', ');
+  let out = `vec3(${rgb(CROWN_PALETTE[CROWN_PALETTE.length - 1])})`;
+  for (let k = CROWN_PALETTE.length - 2; k >= 0; k -= 1) {
+    out = `(id < ${CROWN_PALETTE[k][0].toFixed(2)} ? vec3(${rgb(CROWN_PALETTE[k])}) : ${out})`;
+  }
+  return `vec3 vegPalette(float id) { return ${out}; }`;
+})();
+/* The crown pattern's mean: the dome's shade over a cell (its cap, its
+ * edge and the gaps) and a clump's, worked out over a cap's area. The
+ * pattern is divided by it, so the forest's mean is the satellite's
+ * reflectance at every distance and the crowns fading out under a pixel
+ * or two neither lighten nor darken it. */
+const DOME_MEAN = 0.8;
+const CLUMP_MEAN = 0.81;
+
+function shellMaterial(band, forestTex, noise) {
   const mat = new THREE.MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.9,
@@ -931,6 +963,7 @@ function shellMaterial(band, forestTex) {
     uShellBand: { value: new THREE.Vector4(...band) },
     uForest: { value: forestTex },
     uHalf: { value: HALF },
+    uVegNoise: { value: noise },
   };
   mat.userData.shell = uniforms;
   mat.onBeforeCompile = (shader) => {
@@ -940,38 +973,84 @@ function shellMaterial(band, forestTex) {
       .replace('#include <begin_vertex>', `#include <begin_vertex>\n${SINK_GLSL('cameraPosition')}`)
       .replace('#include <project_vertex>', `#include <project_vertex>\n${SHELL_VERTEX}`);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${CROWN_GLSL}\nvarying float vSink;\nvec4 vegCrown;\nvec4 vegClump;\nvec4 vegStand;`)
+      .replace('#include <common>', `#include <common>
+        ${CROWN_GLSL}
+        ${PALETTE_GLSL}
+        uniform sampler2D uVegNoise;
+        varying float vSink;
+        vec4 vegCrown;
+        vec4 vegClump;
+        vec4 vegFine;
+        vec4 vegStand;
+        float vegK;
+        float vegKc;
+        /* The noise texture as value noise m metres a feature, faded to
+         * its mean by its own mipmaps. */
+        vec4 vegTex(vec2 w, float m, float o) {
+          return texture2D(uVegNoise, w / (256.0 * m) + o);
+        }`)
       .replace('#include <clipping_planes_fragment>', `
         if (!vegInside(vVegW)) discard;
         {
           /* On the top the pattern lies in the ground's plane; on the
            * edge's face, up it. */
           vec2 p = abs(vVegN.y) > 0.6 ? vVegW.xz : vec2(vVegW.x + vVegW.z, vVegW.y * 1.4);
-          vegCrown = vegCaps(p / ${CROWN_M.toFixed(1)});
-          {
+          float px = max(length(fwidth(p)), 1e-3);
+          /* The stands, smooth: a slow brightness (x), how open the
+           * canopy is (y, fewer and smaller crowns), and the region's
+           * cast, bluer or yellower (z), over 60 and 220 m. */
+          vec4 s1 = vegTex(vVegW.xz, 60.0, 0.17);
+          vec4 s2 = vegTex(vVegW.xz, 220.0, 0.61);
+          vegStand = vec4(s1.r * 0.6 + s2.r * 0.4, smoothstep(0.3, 0.7, s1.g * 0.5 + s2.g * 0.5), s2.b, 0.0);
+          /* The crowns and their clumps while each is a few pixels
+           * across; under that their mean, and the understorey inside the
+           * trees' band has neither. */
+          vegK = (1.0 - smoothstep(${(0.25 * CROWN_M).toFixed(2)}, ${(0.9 * CROWN_M).toFixed(2)}, px)) * (1.0 - vSink);
+          vegKc = (1.0 - smoothstep(${(0.2 * CLUMP_M).toFixed(2)}, ${(0.7 * CLUMP_M).toFixed(2)}, px)) * (1.0 - vSink);
+          vegCrown = vec4(0.0, 0.0, 1.0, 0.5);
+          vegClump = vec4(0.0, 0.0, 1.0, 0.5);
+          /* No crown is round: the pattern is wandered a few metres, so
+           * an outline is lobed where its clumps stand out of it. */
+          p += (vegTex(p, 5.0, 0.43).rg - 0.5) * 5.0 + (vegTex(p, 1.6, 0.87).ba - 0.5) * 1.6;
+          if (vegK > 0.0) {
+            vegCrown = vegCaps(p / ${CROWN_M.toFixed(1)}, mix(1.04, 0.84, vegStand.y));
             /* A crown's top in metres is its cap's height over its
              * radius times its size; a big one stands 3 m under its own
              * top among the small ones, as a crown does in its
              * neighbours. */
-            vec4 big = vegCaps(p / ${BIG_M.toFixed(1)} + 3.7);
+            vec4 big = vegCaps(p / ${BIG_M.toFixed(1)} + 3.7, 1.0);
             if (big.z * ${BIG_M.toFixed(1)} - 3.0 > vegCrown.z * ${CROWN_M.toFixed(1)}) {
               vegCrown = vec4(big.xy, big.z, fract(big.w * 3.1 + 0.37));
             }
           }
-          vegClump = vegCaps(p / ${CLUMP_M.toFixed(1)} + 17.0);
-          vegStand = vegCells(vVegW.xz / ${STAND_M.toFixed(1)} + 5.0);
+          if (vegKc > 0.0) {
+            vegClump = vegCaps(p / ${CLUMP_M.toFixed(1)} + 17.0, 1.0);
+          }
+          /* The leaves: two octaves under a metre, the clumps of a crown's
+           * outer foliage, as brightness (r, a) and the tilt of each (gb). */
+          vegFine = vegTex(p, 0.85, 0.33) * 0.6 + vegTex(p, 0.37, 0.71) * 0.4;
         }
         #include <clipping_planes_fragment>`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
-          /* A crown is lit on its dome and dark down its sides and in
-           * the gaps; a clump on it the same, less. */
-          float dome = vegCrown.z < 0.0 ? 0.35 : mix(0.5, 1.0, sqrt(vegCrown.z));
-          float fine = vegClump.z < 0.0 ? 0.8 : mix(0.84, 1.0, vegClump.z);
-          float lit = dome * fine * (0.84 + 0.32 * vegCrown.w) * (0.88 + 0.24 * vegStand.w);
-          vec3 hue = mix(vec3(0.95, 1.0, 1.06), vec3(1.07, 1.03, 0.88), fract(vegCrown.w * 7.31));
-          /* The understorey is in the crowns' shade. */
-          diffuseColor.rgb *= lit * hue * mix(1.0, 0.45, vSink);
+          /* A crown is lit on its dome and dark down its sides, and a gap
+           * between crowns is deep shade; a clump on it the same, less.
+           * Each crown its own green and brightness, round the stand's. */
+          float dome = vegCrown.z < 0.0 ? 0.22 : mix(0.5, 1.0, sqrt(vegCrown.z));
+          float clump = vegClump.z < 0.0 ? 0.5 : mix(0.6, 1.0, vegClump.z);
+          float leaf = 0.8 + 0.4 * (vegFine.r * 0.5 + vegFine.a * 0.5);
+          float own = 0.75 + 0.5 * fract(vegCrown.w * 13.1);
+          float lit = mix(1.0, dome * own / ${DOME_MEAN.toFixed(2)}, vegK) * mix(1.0, clump / ${CLUMP_MEAN.toFixed(2)}, vegKc) * leaf;
+          lit *= 0.84 + 0.32 * vegStand.x;
+          /* Past the crowns, their groups: the big crowns and the gaps
+           * between stands as value noise a crown or two across, which its
+           * own mipmaps fade, so a far forest is still a textured mass. */
+          vec4 groups = vegTex(vVegW.xz, 11.0, 0.29) * 0.6 + vegTex(vVegW.xz, 27.0, 0.53) * 0.4;
+          lit *= mix(0.55 + 0.9 * groups.r, 1.0, vegK);
+          vec3 hue = mix(vec3(1.0), vegPalette(vegCrown.w), vegK) * mix(vec3(0.95, 1.0, 1.05), vec3(1.05, 1.01, 0.9), vegStand.z);
+          /* The understorey, in the crowns' shade: dark, broken, no crown. */
+          vec3 under = vec3(0.3) * (0.7 + 0.6 * vegFine.b);
+          diffuseColor.rgb *= mix(lit * hue, under, vSink);
         }`)
       .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
         material.specularF90 = 0.3;
@@ -981,7 +1060,10 @@ function shellMaterial(band, forestTex) {
           vec3 up = normalize(vVegN);
           vec3 tu = abs(up.y) > 0.6 ? vec3(1.0, 0.0, 0.0) : normalize(vec3(1.0, 0.0, 1.0));
           vec3 tv = abs(up.y) > 0.6 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-          vec2 slope = vegCrown.xy * 0.9 + vegClump.xy * 0.35;
+          vec2 slope = vegCrown.xy * 0.45 * vegK + vegClump.xy * 0.75 * vegKc + (vegFine.gb - 0.5) * 2.0;
+          /* No facet steeper than about 60 degrees: past it a cap's rim is
+           * a black crease, where a crown's edge is a soft shadow. */
+          slope *= min(1.0, 1.7 / max(length(slope), 1e-3));
           vec3 nW = normalize(up + tu * slope.x + tv * slope.y);
           normal = normalize((viewMatrix * vec4(nW, 0.0)).xyz);
         }`);
@@ -1043,7 +1125,8 @@ export function canopyShell({
   forestTex.minFilter = THREE.LinearFilter;
   forestTex.generateMipmaps = false;
   forestTex.needsUpdate = true;
-  const mat = shellMaterial(band, forestTex);
+  const noise = noiseTexture(4);
+  const mat = shellMaterial(band, forestTex, noise);
   const depth = shellDepthMaterial(band, eye, forestTex);
   const step = tier.shell;
   const m = SHELL_CHUNK / step;
@@ -1142,6 +1225,7 @@ export function canopyShell({
       mat.dispose();
       depth.dispose();
       forestTex.dispose();
+      noise.dispose();
     },
   };
 }

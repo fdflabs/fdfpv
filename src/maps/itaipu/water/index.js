@@ -813,9 +813,11 @@ export async function buildPart(ctx) {
   chute.name = 'itaipu-chute';
   chute.receiveShadow = true;
   group.add(chute);
-  /* The look's own sun (itaipu.js hands it in), whatever the time of day. */
+  /* The look's own sun, whatever the time of day: its direction as
+   * itaipu.js hands it to the parts, its light the time's
+   * (look/index.js writes the scene's timeOfDay). */
   const sun = {
-    direction: ctx.sunDir, ...sunFor(ctx.time), sky: SPRAY_SKY,
+    direction: ctx.sunDir, ...sunFor(ctx.scene.userData.timeOfDay), sky: SPRAY_SKY,
   };
   const spray = plume(THREE, spill, axis, PLUNGE_DOWN, WIND_TO, {
     waves, time, sun, riverY: river.y,
