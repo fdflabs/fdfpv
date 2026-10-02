@@ -544,14 +544,14 @@ export function buildChecks() {
         const gainOk = a.musicGain >= th.min_music_gain.value;
         const advanceOk = a.musicAdvance >= th.min_music_advance_s.value;
         const nodesOk = a.nodes > 0 && a.nodes <= th.max_nodes.value;
-        const liveOk = a.state === 'running' && a.motorsAttached && a.musicAttached;
+        const liveOk = a.state === 'running' && a.engineAttached && a.musicAttached;
         const pass = gainOk && advanceOk && nodesOk && liveOk;
         const reasons = [];
         if (a.state !== 'running') {
           reasons.push(`context ${a.state}`);
         }
-        if (!a.motorsAttached) {
-          reasons.push('motor graph not attached');
+        if (!a.engineAttached) {
+          reasons.push('engine not attached');
         }
         if (!a.musicAttached) {
           reasons.push('music graph not attached');

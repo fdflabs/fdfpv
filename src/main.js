@@ -58,7 +58,8 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
-import { MotorAudio, VOICES, labModelForCraft } from './render/audio.js';
+import { MotorAudio, VOICES, engineModelForCraft } from './render/audio.js';
+import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT } from './input/input.js';
@@ -1184,19 +1185,10 @@ export async function boot({
     };
   }
   const audio = new MotorAudio();
-  /*
-   * The audiolab prototype (docs/AUDIO.md): ?audiolab=1 on the URL, or
-   * localStorage 'fdfpv.audiolab' = '1', before the first press builds the
-   * graph. Off for every player; nothing in the Settings screen reaches it
-   * until the owner has heard it (the roll out, docs/AUDIO.md section 7).
-   */
-  {
-    let lab = new URLSearchParams(window.location.search).get('audiolab') === '1';
-    try {
-      lab = lab || localStorage.getItem('fdfpv.audiolab') === '1';
-    } catch (e) { /* storage refused: the URL is the only switch */ }
-    audio.setLab(lab);
-  }
+  /* Everything in the world that sounds and is not this aircraft: the
+   * war's attackers and its explosions (src/render/world-audio.js). Fed
+   * a frame at a time; silent until the mix gives it a bus. */
+  const worldAudio = new WorldAudio();
   /* Built, and silent until the pilot's first press: a browser starts an
    * AudioContext only on a gesture (MotorAudio.start), so the boot screen
    * says standby, not OK. */
@@ -2689,7 +2681,7 @@ export async function boot({
   };
   /* The loudest explosion heard this frame, rung once: its level over
    * distance, level and metres. */
-  const warBoomHeard = { score: 0, level: 0, dist: 0 };
+  const warBoomHeard = { score: 0, level: 0, dist: 0, world: false };
   let warAudioPeak = 0;
   /* The damage mode is due again at the next reset: a war began or
    * ended. See applyCrashMode. */
@@ -3321,6 +3313,12 @@ export async function boot({
     }
     const d = mine ? 0 : Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]);
     const level = mine ? 1 : Math.min(1, 0.35 + 0.2 * size);
+    /* Every explosion is its own sound in the world's voice, from where
+     * it went off; without one, the loudest of the frame rings
+     * MotorAudio.boom below. */
+    if (worldAudio.boom(mine ? null : p, level)) {
+      warBoomHeard.world = true;
+    }
     const score = level / (1 + d / 250);
     if (score > warBoomHeard.score) {
       warBoomHeard.score = score;
@@ -3485,10 +3483,21 @@ export async function boot({
       }
     }
     if (warBoomHeard.score > 0) {
-      if (audio.enabled && typeof audio.boom === 'function') {
+      if (warBoomHeard.world) {
+        /* The world rang it; the flight, the music and the ambience
+         * still duck under the loudest when it arrives, as boom() ducks
+         * them. */
+        const lv = warBoomHeard.level / (1 + warBoomHeard.dist / 250);
+        if (audio.ctx) {
+          const t = audio.ctx.currentTime + Math.min(2.5, warBoomHeard.dist / 343);
+          audio.duckFlight(t, 0.35 + 0.35 * (1 - lv), 1.2);
+          audio.duckAction(t, 0.4 + 0.4 * (1 - lv), 1.6);
+        }
+      } else if (audio.enabled && typeof audio.boom === 'function') {
         audio.boom(warBoomHeard.level, warBoomHeard.dist);
       }
       warBoomHeard.score = 0;
+      warBoomHeard.world = false;
     }
     warAudioPeak = Math.max(warAudioPeak, typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0);
     warBooms.update(dt);
@@ -3504,6 +3513,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
     warDrawnAt = now;
@@ -4540,7 +4550,7 @@ export async function boot({
     fx: warBooms.stats(),
     shake: warShakePeak,
     feedHeldMs: warFeedHeldMs,
-    boomSound: { rung: audio.booms || 0, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
+    boomSound: { rung: (audio.booms || 0) + worldAudio.booms, world: worldAudio.booms, heard: worldAudio.stats, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
     seat: roomWar.seat(),
     view: roomWar.view(),
     error: roomWar.error(),
@@ -7676,7 +7686,7 @@ export async function boot({
       /* An aircraft pushed more than one way speaks with the engine it has. */
       const pushed = propulsionOf(af, combatSeated(af.id));
       setFlownVoice((pushed && pushed.voice) ?? af.voice ?? 'wing');
-      audio.setLabModel(labModelForCraft(af.id, pushed && pushed.id));
+      audio.setEngineModel(engineModelForCraft(af.id, pushed && pushed.id));
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
@@ -10451,7 +10461,7 @@ export async function boot({
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
     setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
-    audio.setLabModel(null);
+    audio.setEngineModel(null);
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
@@ -11919,7 +11929,10 @@ export async function boot({
       mixArg.wind = s.windLevel / 10;
       mixArg.music = s.musicLevel / 10;
       mixArg.focus = 1;
-      mixArg.ambience = 0;
+      mixArg.effects = s.effectsLevel / 10;
+      mixArg.voice = s.voiceLevel / 10;
+      mixArg.ambience = s.ambientLevel / 10;
+      mixArg.other = s.otherLevel / 10;
       audio.setMix(mixArg);
     }
     if (typeof audio.setMusicEnabled === 'function') {
@@ -12309,7 +12322,7 @@ export async function boot({
 
   /* Reused, not rebuilt: applySettings runs off a menu keypress, but the
    * same object also keeps the shape of the call obvious in one place. */
-  const mixArg = { motors: 1, wind: 1, music: 1, focus: 1, ambience: 1 };
+  const mixArg = { motors: 1, wind: 1, music: 1, focus: 1, effects: 1, voice: 1, ambience: 1, other: 1 };
   const pPrev = new THREE.Vector3();
   const pCurr = new THREE.Vector3();
   const qPrev = new THREE.Quaternion();
@@ -15047,6 +15060,11 @@ export async function boot({
       }
       view.updateAnim(animMs);
       animDrawnMs = animMs;
+      /* Its traffic, heard (src/render/world-audio.js), where it was just
+       * placed. */
+      if (view.audioSources) {
+        view.audioSources(worldAudio.traffic(animMs));
+      }
 
       const focus = camOverride || warIntro || (build && build.cameraLive) || mode === 'replay'
         ? shell.camera.position
@@ -15169,6 +15187,15 @@ export async function boot({
       showcase = null;
     }
 
+    /* The world's sound: the sources added this frame, heard from where
+     * the camera is now, over the ground under it. */
+    worldAudio.attach(audio);
+    worldAudio.setWalls(view && view.audioWalls);
+    {
+      const c = shell.camera.position;
+      worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN);
+    }
+
     /* Overlay. */
     const st = stateCurr;
     /* speedNow, not a second square root of the same three numbers: it is
@@ -15247,9 +15274,9 @@ export async function boot({
     /* The replay plays its own motors, slowed with its picture. */
     const replayWind = mode === 'replay' ? crashCam.sound(audioRpm) : -1;
     let air = null;
-    if (audio.lab && replayWind < 0) {
+    if (replayWind < 0) {
       /* Body frame velocity, the world's turned back by the attitude
-       * (body to world, w x y z): what the prototype's wind, sideslip and
+       * (body to world, w x y z): what the engine's wind, sideslip and
        * prop wash read. Zero when the motors are not turning, as speed is. */
       const qw = st[7], qx = st[8], qy = st[9], qz = st[10];
       const vx = motorsTurning ? st[4] : 0, vy = motorsTurning ? st[5] : 0, vz = motorsTurning ? st[6] : 0;
@@ -15751,7 +15778,7 @@ export async function boot({
   /* Hoisted: P8 forbids a new array per frame, and this one used to be a
    * literal in the audio.update call. */
   const audioRpm = [0, 0, 0, 0];
-  /* The prototype's extra state, the same way: written in place. */
+  /* The engine's extra state, the same way: written in place. */
   const audioAir = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0 };
   /*
    * The other way the mix can be left holding a tone, and it is the same
@@ -17270,6 +17297,9 @@ export async function boot({
     lap: simTimeMs,
     offset: trafficOffsetMs,
     room: roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null,
+    /* The world's sound of it: what the worklet last said it voiced
+     * (src/render/world-audio.js stats), null before the mix is up. */
+    sound: worldAudio.stats,
   });
   /* The active map's scene graph, for measurement. tests/lib/checks.js walks
    * it to assert that reference objects measure what this project claims they

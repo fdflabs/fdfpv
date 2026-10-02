@@ -13,7 +13,14 @@
 # credit says so, as CC BY asks.
 #
 # No loudness processing, for the reason scripts/music.js gives: the
-# level is a mix decision, and the file stays as its author mastered it.
+# level is a mix decision (src/render/tracks.js carries each file's
+# measured LUFS and the mix levels them). One exception, a ceiling: a file
+# whose true peak, four times oversampled, is over CEILING_DBTP is turned
+# down until it is not, and nothing else. The combat bed measured +2.6
+# dBTP as shipped, which a converter clips (docs/AUDIO.md); a gain is not a
+# remaster. It is measured on the ENCODED files, decoded, because a lossy
+# codec rings past the source's peak: the combat bed's own decode peaks
+# 1.9 dB over its source.
 #
 # This file is part of WebFPVSimulator.
 #
@@ -47,6 +54,7 @@ SR = 48000
 LOOP_S = 3.0
 OPUS_KBPS = 80
 LAME_Q = 7
+CEILING_DBTP = -1.0
 BITEXACT = ['-fflags', '+bitexact', '-flags:a', '+bitexact']
 
 # Every field here is repeated, for people, in assets/audio/war/CREDITS.md.
@@ -91,6 +99,21 @@ def make_loop(y):
     return np.concatenate([head, y[n:-n]])
 
 
+def true_peak_db(y):
+    """Four times oversampled peak, dBTP, by zero stuffing and a windowed sinc."""
+    taps = 48
+    k = np.arange(-taps // 2, taps // 2 + 1)
+    up = 4
+    h = np.sinc(k / up) * np.blackman(len(k))
+    h /= h.sum() / up
+    peak = 0.0
+    for c in range(y.shape[1]):
+        z = np.zeros(len(y) * up)
+        z[::up] = y[:, c]
+        peak = max(peak, float(np.max(np.abs(np.convolve(z, h, mode='same')))))
+    return 20 * np.log10(peak) if peak > 0 else -np.inf
+
+
 def encode(wav, base):
     common = ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-fflags', '+bitexact', '-i', str(wav),
               '-map_metadata', '-1', '-vn', '-ac', '2', '-ar', str(SR)]
@@ -119,15 +142,24 @@ def main():
         if t['loop']:
             y = make_loop(y)
         wav = out / '_work' / f'music-{name}.wav'
-        sf.write(wav, y.astype(np.float32), SR, subtype='FLOAT')
         base = out / 'music' / name
-        encode(wav, base)
+        gain_db = 0.0
+        for _ in range(4):
+            sf.write(wav, (y * 10 ** (gain_db / 20)).astype(np.float32), SR, subtype='FLOAT')
+            encode(wav, base)
+            tp = max(true_peak_db(decode(Path(f'{base}.{fmt}'))) for fmt in script.FORMATS)
+            if tp <= CEILING_DBTP:
+                break
+            gain_db += CEILING_DBTP - tp - 0.1
+        else:
+            raise SystemExit(f'music: {name} is still over {CEILING_DBTP} dBTP after four encodes')
         files = {fmt: {'bytes': Path(f'{base}.{fmt}').stat().st_size,
                        'sha256': hashlib.sha256(Path(f'{base}.{fmt}').read_bytes()).hexdigest()}
                  for fmt in script.FORMATS}
         manifest['music'][name] = {'source': t['url'], 'source_sha256': t['sha256'],
-                                   'seconds': round(len(y) / SR, 3), 'loop': t['loop'], 'files': files}
-        print(f'ok   music/{name:8s} {len(y) / SR:6.1f}s webm {files["webm"]["bytes"]:>9,d} mp3 {files["mp3"]["bytes"]:>9,d}')
+                                   'seconds': round(len(y) / SR, 3), 'loop': t['loop'], 'ceiling_db': round(gain_db, 2),
+                                   'files': files}
+        print(f'ok   music/{name:8s} {len(y) / SR:6.1f}s {gain_db:+.2f} dB webm {files["webm"]["bytes"]:>9,d} mp3 {files["mp3"]["bytes"]:>9,d}')
     manifest_path.write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
 
 

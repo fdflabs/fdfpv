@@ -23,8 +23,9 @@
  * Then the lobby (the owner, 2026-09-30): B opens Rooms from inside the
  * room and finds it on top, with its pilots and Leave, and not again in
  * the list; a public room nobody has joined is listed as empty with the
- * minutes before it closes. B leaves with the arrows and Enter, and the
- * list counts two.
+ * minutes before it closes. B leaves with the arrows and Enter: Leave is
+ * the one way out of a room and goes to the title (docs/FLOW-AUDIT.md
+ * rule 5), whose rooms panel and then Rooms list the room again with two.
  *
  * A server that is already in use (the live VM) has other rooms, left by
  * earlier runs or flown by pilots, so the room's name carries this run's
@@ -57,6 +58,7 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
+import { seatPilot } from '../tests/lib/roompilot.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import en from '../src/strings/en.js';
@@ -293,26 +295,37 @@ try {
   check('a public room nobody joins is made', /^[A-Z0-9]{6}$/.test(owls.code || ''), JSON.stringify(owls));
   const owlsAction = `friends-room-${owls.code}`;
   await b.evaluate("window.__ui.act('rooms'); true");
-  await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(owlsAction)})`, 20000).catch(() => {});
+  await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.label === ${JSON.stringify(en['roombrowser.here_section'])})`, 20000).catch(() => {});
+  await b.sleep(2000);
+  check('a public room nobody is in is not listed (the owner, 2026-10-02)', !(await b.evaluate(ROWS)).some((r) => r.action === owlsAction));
+  const owlPilot = await seatPilot(rooms, owls.code, [9, 9, 99]);
+  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(owlsAction)})`, 20000).catch(() => {});
   const lobby = await b.evaluate(ROWS);
   check('Rooms opens with the room B is in on top: its name, its pilots, and Leave',
     lobby[0].label === en['roombrowser.here_section'] && lobby[1].label === NAME && lobby[1].value === '3 pilots' && lobby[2].action === 'friends-leave',
     lobby.slice(0, 3).map((r) => `${r.label}=${r.value}`).join(' | '));
   check('and does not list it again below', !lobby.some((r) => r.action === action));
   const owlRow = lobby.find((r) => r.action === owlsAction);
-  check('the empty room is listed, with the minutes before it closes', owlRow && owlRow.label === OWLS && owlRow.value === 'Empty, closes in 5 min',
-    JSON.stringify(owlRow));
+  check('and is, with its pilot in it', owlRow && owlRow.label === OWLS && owlRow.value === '1 of 16', JSON.stringify(owlRow));
+  owlPilot.close();
   check('Make a room and Join with a code are on the same screen', lobby.some((r) => r.action === 'roomnew') && lobby.some((r) => r.action === 'friends-join'));
   await shot(b, '4-lobby-in-room');
   check('the cursor reaches Leave', await arrowTo(b, 'friends-leave'));
   await b.tap('Enter');
-  await b.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
-  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(action)} && it.value === '2 of 16')`, 20000).catch(() => {});
+  await b.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
+  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(`lobby:${action}`)} && it.value === '2 of 16')`, 20000).catch(() => {});
+  const gate = await b.evaluate(ROWS);
+  check('Enter on it leaves for the title (Leave goes to the title, FLOW-AUDIT rule 5), whose rooms panel lists the room again, with two',
+    await b.evaluate("window.__rooms().phase === 'idle' && window.__ui.onGate()") && gate.some((r) => r.action === `lobby:${action}` && r.value === '2 of 16'),
+    gate.map((r) => `${r.label}=${r.value}`).join(' | '));
+  await shot(b, '5-title-after-leave');
+  await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+  await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(action)} && it.value === '2 of 16')`, 20000).catch(() => {});
   const after = await b.evaluate(ROWS);
-  check('Enter on it leaves: B stays in Rooms, the room is listed again, with two',
+  check('and Rooms lists it with two, and no room of B\'s on top',
     await b.evaluate("window.__ui.screen === 'rooms'") && after.some((r) => r.action === action && r.value === '2 of 16')
     && !after.some((r) => r.label === en['roombrowser.here_section']), after.map((r) => `${r.label}=${r.value}`).join(' | '));
-  await shot(b, '5-lobby-after-leave');
+  await shot(b, '6-lobby-after-leave');
 
   const errs = [...a.errors, ...b.errors, ...c.errors].filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));

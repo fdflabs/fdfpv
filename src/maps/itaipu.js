@@ -60,6 +60,7 @@ import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
 import { attractPath } from './itaipu/attract.js';
+import { damWalls } from '../render/world-audio.js';
 
 /* The one place the public data's address is written. */
 export const DATA_BASE = 'https://fdflabs.github.io/fdfpv-itaipu-data/';
@@ -433,6 +434,9 @@ async function buildItaipu(shell, progress, q, time) {
      * (src/render/lakewaves.js). */
     setWaves: (bodies) => parts.water.setWaves(bodies),
     updateWaves: (t) => parts.water.updateWaves(t),
+    /* The concrete faces an explosion's sound echoes off
+     * (src/render/world-audio.js damWalls). */
+    audioWalls: damWalls(data['dam.json']),
     /* The war mode's targets and their damage, the dam part's
      * (docs/WARFARE-PLAN.md section 8). */
     targets: parts.dam.targets,

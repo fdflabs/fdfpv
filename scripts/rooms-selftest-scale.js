@@ -248,6 +248,9 @@ export async function scaleSection(check) {
   check('and with no secret set on the server, nobody does', res.status === 401);
   const open = await s.create({ map: 'swiss2', public: true, name: 'Open Sky' });
   check('an open valve makes public rooms as ever', open.status === 200);
+  /* A pilot in it: an empty room is never listed nor quick joined. */
+  const flying = await s.join({ code: open.code });
+  check('and its first pilot is in', Boolean(flying.welcome));
   busyNow = true;
   const shut = await s.create({ map: 'swiss2', public: true, name: 'Too Late' });
   check('a closed one refuses a new public room, busy, and counts it', shut.status === 503 && shut.error === 'busy' && refused === 1);

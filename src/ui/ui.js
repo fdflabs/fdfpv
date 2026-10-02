@@ -863,6 +863,15 @@ const DEFAULTS = {
   motorLevel: 5,
   windLevel: 5,
   musicLevel: 5,
+  /* The buses that arrived with the engine (src/render/audio.js): 5 is
+   * unity, so nothing moves for a returning player. `ambientLevel`, not
+   * `ambienceLevel`: that key was a real setting once, then ignored, and a
+   * stored 0 from those days would silence the new Ambience bus for
+   * anyone who ever touched it. */
+  effectsLevel: 5,
+  voiceLevel: 5,
+  ambientLevel: 5,
+  otherLevel: 5,
   /* Which record: 'rotation' starts on a random track each visit then
    * walks the crate, a track id pins one. A string so the typeof gate
    * accepts it, and an unknown id (including the old generated-bed ids)
@@ -7058,11 +7067,23 @@ export class Ui {
         stepper(str('ui.volume'), str('ui.overall_level_zero_to_ten'), `${s.volume}`, (d) => {
           s.volume = Math.max(0, Math.min(10, s.volume + d));
         }),
-        stepper(str('catalog.motors'), str('ui.the_blade_pass_tone_you_fly'), `${s.motorLevel}`, (d) => {
+        stepper(str('ui.motors_and_engines'), str('ui.the_blade_pass_tone_you_fly'), `${s.motorLevel}`, (d) => {
           s.motorLevel = Math.max(0, Math.min(10, s.motorLevel + d));
         }),
         stepper(str('ui.wind'), str('ui.air_over_the_airframe_rises_with'), `${s.windLevel}`, (d) => {
           s.windLevel = Math.max(0, Math.min(10, s.windLevel + d));
+        }),
+        stepper(str('ui.other_aircraft'), str('ui.other_aircraft_note'), `${s.otherLevel}`, (d) => {
+          s.otherLevel = Math.max(0, Math.min(10, s.otherLevel + d));
+        }),
+        stepper(str('ui.effects'), str('ui.effects_note'), `${s.effectsLevel}`, (d) => {
+          s.effectsLevel = Math.max(0, Math.min(10, s.effectsLevel + d));
+        }),
+        stepper(str('ui.ambience'), str('ui.ambience_note'), `${s.ambientLevel}`, (d) => {
+          s.ambientLevel = Math.max(0, Math.min(10, s.ambientLevel + d));
+        }),
+        stepper(str('ui.voice_level'), str('ui.voice_level_note'), `${s.voiceLevel}`, (d) => {
+          s.voiceLevel = Math.max(0, Math.min(10, s.voiceLevel + d));
         }),
         stepper(
           str('ui.music'),
@@ -9289,7 +9310,10 @@ export class Ui {
         node.setAttribute('aria-label', it.value ? `${it.label}, ${it.value}` : it.label);
         node.append(el('span', 'gate-room-name', it.label));
         if (it.lobby === 'room') {
-          node.append(el('span', 'gate-room-value', `${it.join} \u00b7 ${it.value}`));
+          node.classList.toggle('is-live', Boolean(it.live));
+          const value = el('span', 'gate-room-value');
+          value.append(el('span', 'gate-room-join', it.join), ` \u00b7 ${it.value}`);
+          node.append(value);
         }
         node.addEventListener('mousemove', (e) => this.hoverCursor(e, i));
         node.addEventListener('click', () => {

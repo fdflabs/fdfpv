@@ -64,6 +64,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
+import { seatPilot } from '../tests/lib/roompilot.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const rooms = process.argv[2] || 'http://127.0.0.1:8797';
@@ -361,6 +362,8 @@ const madeLong = await (await fetch(`${rooms}/v2/create`, {
   method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name: LONG }),
 })).json();
 check('and one with a name of the full 32 letters', LONG.length === 32 && /^[A-Z0-9]{6}$/.test(madeLong.code || ''), JSON.stringify(madeLong));
+/* A pilot in each: an empty room is never listed (the owner, 2026-10-02). */
+const panelPilots = [await seatPilot(rooms, made.code, [4, 4, 44]), await seatPilot(rooms, madeLong.code, [5, 5, 55])];
 /* The text in these nodes that the layout cuts: wider than its box. */
 const CUT = (selector) => `[...document.querySelectorAll(${JSON.stringify(selector)})].filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;
 const PANEL_TEXT = '.gate-rooms-count, .gate-room-name, .gate-room-value';
@@ -453,10 +456,13 @@ try {
   await e.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
   await e.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
   const longNames = [LONG, 'Brave Capybara 17, Defend Itaipu', 'Happy Eagle 420, Defend Itaipu!!'];
-  for (const name of longNames.slice(1)) {
-    await fetch(`${rooms}/v2/create`, {
+  /* Open Club's pilot goes too, so the three long names are the panel's. */
+  panelPilots[0].close();
+  for (const [i, name] of longNames.slice(1).entries()) {
+    const longMade = await (await fetch(`${rooms}/v2/create`, {
       method: 'POST', headers: { origin: 'http://127.0.0.1', 'content-type': 'application/json' }, body: JSON.stringify({ map: 'swiss2', public: true, name }),
-    });
+    })).json();
+    panelPilots.push(await seatPilot(rooms, longMade.code, [6 + i, 6 + i, 66 + i]));
   }
   /* Back to the gate a screen at a time (Make a room, Fly with friends,
    * the title): two taps sent together lost the second to the first's
@@ -486,6 +492,9 @@ try {
 } finally {
   await e.close();
   await f.close();
+  for (const p of panelPilots) {
+    p.close();
+  }
 }
 
 /*

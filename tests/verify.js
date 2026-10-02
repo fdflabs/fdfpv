@@ -171,7 +171,7 @@ async function main() {
     /*
      * The live audio bed, driven through the real shell rather than through
      * an OfflineAudioContext the harness builds itself. That distinction is
-     * the whole point of this check: scripts/audio-probe.js calls
+     * the whole point of this check: tools/audio/render.js calls
      * MotorAudio.attach on its own offline context, so every spectral claim
      * in this project stays true even if the shell stops building a graph at
      * all, which is exactly the defect that was reported as no music
@@ -197,11 +197,15 @@ async function main() {
         /* Wait until the media element has started, not a wall clock guess
          * at how long a 5 MB mp3 takes to buffer off localhost. */
         'until:window.__audio && window.__audio.music && window.__audio.music.el && window.__audio.music.el.currentTime > 0.05',
+        /* The engine is an AudioWorklet module and arrives asynchronously:
+         * waited for, so a slow load is not read as a missing engine, and a
+         * load that never lands still reads false below. */
+        'until:window.__audio && window.__audio.engine',
         "eval:(()=>{window.__abBase = window.__audio.music.el.currentTime; window.__abT = window.__audio.ctx.currentTime; return 'ok'})()",
         `wait:${windowMs}`,
         'eval:JSON.stringify({' +
           "state: window.__audio.ctx ? window.__audio.ctx.state : 'none'," +
-          'motorsAttached: Array.isArray(window.__audio.motors) && window.__audio.motors.length === 4,' +
+          'engineAttached: !!window.__audio.engine,' +
           'musicAttached: !!window.__audio.music.gain,' +
           'musicGain: window.__audio.music.gain ? window.__audio.music.gain.gain.value : 0,' +
           'musicAdvance: window.__audio.music.el ? window.__audio.music.el.currentTime - window.__abBase : 0,' +

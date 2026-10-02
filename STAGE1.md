@@ -111,12 +111,12 @@ Every check is a numeric band in `tests/thresholds.json`. `npm run verify` runs 
 | 11 | battery-sag | Identical punch-out at 4.20 V and 3.60 V per cell, peak RPM | 3.60 V run lower by 4 to 15 percent |
 | 12 | diff-passthrough | Parse two Betaflight diffs differing only in rates, run identical input | resulting max roll rates differ by the ratio in the diffs, within 2 percent |
 | 13 | console-clean | Browser harness run | zero errors, zero warnings |
-| 14 | audio-bed | Real key gesture into the real shell, then read the live audio graph | context running, motor and music graphs attached, music bus above zero at default settings, scheduler advancing, node count inside the 64 budget |
+| 14 | audio-bed | Real key gesture into the real shell, then read the live audio graph | context running, engine and music graphs attached, music bus above zero at default settings, scheduler advancing, node count inside the 64 budget |
 
 Check 12 is the one that catches a bad port.
 
 Check 14 exists because every other audio claim in this project is measured
-by `scripts/audio-probe.js`, which builds its own graph on an
+by `tools/audio/render.js`, which builds its own graph on an
 OfflineAudioContext. That makes the spectral claims reproducible and it also
 means the shell could stop building a graph at all without a single check
 noticing, which is what happened: a user reported that no music played. This

@@ -14,7 +14,7 @@ This file is part of WebFPVSimulator, licensed GPLv3 or later.
 | File | Title | Author | Licence | Source | Changes |
 | --- | --- | --- | --- | --- | --- |
 | `music/intro.webm`, `music/intro.mp3` | Cinematic Suspense Trailer (Cinematic Trailer Music, 14) | Gregor Quendel, www.gregorquendel.com | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | [OpenGameArt](https://opengameart.org/content/cinematic-trailer-music-collection), [file](https://opengameart.org/sites/default/files/gregor_quendel_-_cinematic_trailer_music_-_14_-_cinematic_suspense_trailer.mp3) | re-encoded only |
-| `music/combat.webm`, `music/combat.mp3` | Enemy spotted | Alexandr Zhelanov, https://soundcloud.com/alexandr-zhelanov | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [OpenGameArt](https://opengameart.org/content/enemy-spotted), [file](https://opengameart.org/sites/default/files/Enemy%20spotted.mp3) | modified: the last 3 s crossfaded over the first 3 s so the file loops, then re-encoded |
+| `music/combat.webm`, `music/combat.mp3` | Enemy spotted | Alexandr Zhelanov, https://soundcloud.com/alexandr-zhelanov | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) | [OpenGameArt](https://opengameart.org/content/enemy-spotted), [file](https://opengameart.org/sites/default/files/Enemy%20spotted.mp3) | modified: the last 3 s crossfaded over the first 3 s so the file loops, turned down 3.67 dB so its true peak stays under -1 dBTP after encoding, then re-encoded |
 
 Attribution, to be shown wherever the game credits its music:
 
