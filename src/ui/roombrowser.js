@@ -379,6 +379,10 @@ export function createRoomBrowser({
               ? str('roombrowser.chip_war', { n: missionNumber(r.mission), load: load(r, 'roombrowser.chip_empty') })
               : load(r, 'roombrowser.chip_empty'),
           join: str(r.game === 'war' && r.state !== 'waiting' ? 'roombrowser.join_battle' : 'roombrowser.join'),
+          /* Somebody is in the air in it: a war past its lobby, or any
+           * other room with a pilot in it. The panel paints it green, a
+           * room still waiting blue (index.html, THE ROOMS PANEL). */
+          live: r.game === 'war' ? r.state !== 'waiting' : r.n > 0,
           action: `lobby:${ROOM_ACTION}${r.code}`,
         })),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },

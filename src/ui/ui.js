@@ -9310,7 +9310,10 @@ export class Ui {
         node.setAttribute('aria-label', it.value ? `${it.label}, ${it.value}` : it.label);
         node.append(el('span', 'gate-room-name', it.label));
         if (it.lobby === 'room') {
-          node.append(el('span', 'gate-room-value', `${it.join} \u00b7 ${it.value}`));
+          node.classList.toggle('is-live', Boolean(it.live));
+          const value = el('span', 'gate-room-value');
+          value.append(el('span', 'gate-room-join', it.join), ` \u00b7 ${it.value}`);
+          node.append(value);
         }
         node.addEventListener('mousemove', (e) => this.hoverCursor(e, i));
         node.addEventListener('click', () => {
