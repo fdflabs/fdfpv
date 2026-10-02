@@ -34,7 +34,8 @@
  *
  *   water  the surface the structure stands in (the reservoir), or null
  *   frame  where an opening is measured: o a point, u the horizontal
- *          along the face, n the way water flows out through it
+ *          along the face, n the way water flows out through it, and for
+ *          a pipe its bore, m2, the most an opening of it passes
  *
  * THE ONE TABLE. A warhead's damage to a chunk at distance d (from the
  * blast's centre to the nearest point of the chunk's box, 0 inside it) is
@@ -44,19 +45,20 @@
  * added to what the chunk has taken; it breaks when the sum reaches its
  * kind's hp. Under water the blast reaches further: a chunk under the
  * structure's water, struck by a warhead at or under its surface (within
- * WET_ABOVE_M over it), sees r times WATER_R, since water carries a shock
- * where air spends it (the reason a dam is attacked at depth). The charges
+ * WET_ABOVE_M over it), takes charge / (1 + d / (WATER_R r)), falling as
+ * 1/d where air's falls as 1/d^2, since water carries a shock's peak
+ * pressure where air spends it (the reason a dam is attacked at depth). The charges
  * are gameplay numbers, not explosive physics: they stand in the order of
  * the real payloads (a Shahed class strike 50 kg, a Lancet class loiterer
  * 3 kg, an FPV's 1.5 kg, an explosive boat a few hundred) squeezed so each
  * kind's own targets open in a few hits at its aim (scripts/damage-check.js
  * measures hits to open per kind and target, and holds them to HITS).
  *
- *   attacker   charge  r m   what its targets take to open, at no error
- *   strike     120     6     an intake from the surface over it: 2
- *   loiter      70     4     a spillway gate: 2 to 3; an intake: 4
- *   fpv         45     3     a penstock: 3
- *   boat       260     9     an intake: 1
+ *   attacker   charge  r m   hits to open its own targets, at no error
+ *   strike     120     6     an intake 1, a gate 1
+ *   loiter      40     3     a gate 2, an intake 4
+ *   fpv         45     3     a penstock 3
+ *   boat       260     9     an intake 1, a gate 1
  *   decoy, scout, jammer, hunter: no warhead that hits a structure
  *
  *   defender's warhead (war.js WARHEADS) where it goes off: standard 12,
@@ -64,7 +66,7 @@
  *   emp 0; r 2.5
  *
  *   chunk      hp     chunk       hp     chunk       hp
- *   skin       60     leaf        60     shell      100
+ *   skin       60     leaf        45     shell      100
  *   girder     90     frame      140     tank        60
  *   arm        80     column      50     bushing     20
  *   brace      50     cover       40     post        70
@@ -128,7 +130,7 @@ export const DEFENDER = Object.freeze({
 
 /* Under water: r times this, for a blast within WET_ABOVE_M over the
  * surface on a chunk under it. */
-export const WATER_R = 2;
+export const WATER_R = 3;
 export const WET_ABOVE_M = 2;
 /* Nothing past this many r. */
 export const CUT_R = 5;
@@ -141,7 +143,7 @@ export const HP = Object.freeze({
   brace: 50,
   trunnion: 200,
   hoist: 60,
-  leaf: 60,
+  leaf: 45,
   frame: 140,
   column: 50,
   cover: 40,
@@ -195,7 +197,7 @@ export function hitOn(s, ch, p, w) {
     return 0;
   }
   const q = d / r;
-  return w.charge / (1 + q * q);
+  return w.charge / (1 + (wet ? q : q * q));
 }
 
 function dist3(a, b) {
@@ -286,6 +288,10 @@ export function openingOf(id, s, gone, at) {
   const f = s.frame;
   const u = mid / area;
   const height = top - sill;
+  /* A burst pipe passes no more than its bore. */
+  if (f.bore != null && area > f.bore) {
+    area = f.bore;
+  }
   return {
     id,
     target: id,

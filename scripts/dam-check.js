@@ -657,8 +657,8 @@ async function main() {
       const r2 = await fly(page, drop, 1800, [0, 0, 0, 0]);
       const l2 = r2.log[r2.log.length - 1];
       const met = r2.log.find((r) => r.hit !== 'none');
-      const metIt = (met && met.hitIndex === a.index) || l2.obstacle > 0;
-      console.log(`gap: ${metIt ? 'ok' : 'BAD'}; onto penstock ${k + 1} (collider ${a.index}): shell hit ${met ? `${met.hit} ${met.hitIndex}` : 'none'}, `
+      const metIt = (met && a.indices.includes(met.hitIndex)) || l2.obstacle > 0;
+      console.log(`gap: ${metIt ? 'ok' : 'BAD'}; onto penstock ${k + 1} (colliders ${a.indices.join(' ')}): shell hit ${met ? `${met.hit} ${met.hitIndex}` : 'none'}, `
         + `plant contacts ${l2.obstacle}, damage events ${l2.events - r2.before.c.events}`);
       if (!metIt) {
         fail('a Timber let down onto a penstock did not meet it');

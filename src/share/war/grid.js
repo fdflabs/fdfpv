@@ -9,7 +9,9 @@
  * ONLY THE ROOM'S STATE. Every input is something the room already sends
  * (edge/rooms/war.js): the view's `down`, the targets hit, and the room ms
  * of each hit, the `at` of its { op: 'dead', target, hit: true } record
- * (src/share/roomwar.js passes it on as a 'dead' event). Nothing here is
+ * (src/share/roomwar.js passes it on as a 'dead' event), or of the
+ * { op: 'damage', down: true } event that lost it to what broke (a
+ * 'damage' event). Nothing here is
  * random and nothing reads a clock: the level of a district at room ms t
  * is a function of those and t, so two screens asked at the same room ms
  * answer the same, and a screen that joins late answers what the others
@@ -326,6 +328,13 @@ export function createGrid() {
     hear(events, view) {
       forMatch(view ? view.id : match);
       for (const e of events) {
+        /* A target lost to what broke (edge/rooms/war.js strike) goes out
+         * from that event, as a hit does. */
+        if (e.type === 'damage' && e.down === true && e.target && !heard.has(e.target)) {
+          heard.set(e.target, e.at);
+          key = '';
+          continue;
+        }
         if (e.type !== 'dead') {
           continue;
         }

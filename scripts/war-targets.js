@@ -236,7 +236,8 @@ function renderChunks(structures) {
     }
     const f = s.frame;
     rows.push(`  '${id}': {`);
-    rows.push(`    part: '${s.part}', water: ${s.water == null ? 'null' : mm(s.water)}, frame: { o: ${list(f.o)}, u: ${list(f.u, um)}, n: ${list(f.n, um)} },`);
+    const bore = f.bore == null ? '' : `, bore: ${mm(f.bore)}`;
+    rows.push(`    part: '${s.part}', water: ${s.water == null ? 'null' : mm(s.water)}, frame: { o: ${list(f.o)}, u: ${list(f.u, um)}, n: ${list(f.n, um)}${bore} },`);
     rows.push('    chunks: [');
     for (const ch of s.chunks) {
       const r = ch.r ? `, r: ${list(ch.r)}` : '';

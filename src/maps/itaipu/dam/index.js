@@ -347,6 +347,12 @@ const RADIAL = {
  * proud of its 0.3 m plate each side, inside the half metre dam-check
  * holds a face to. */
 const SKIN_R = 0.5;
+/* A penstock's exposed run is cut into segments about this long, the
+ * chunks a warhead breaks. */
+const PEN_SEG_M = 9;
+/* An intake's gate leaf is this many panels across and up. */
+const INTAKE_COLS = 2;
+const INTAKE_ROWS = 4;
 /* A radial gate's skin is this many columns of panels across its bay. */
 const GATE_COLS = 4;
 /* The piers downstream of the bridge fall on a slope to their hoist
@@ -1955,24 +1961,64 @@ export async function buildPart(ctx) {
     const B = F.at(t, sFoot);
     penEnds.push([[A[0], 185 + 6 * k, A[1]], [B[0], ph.figures.roofY - 5, B[1]]]);
   }
-  const penIndex = penEnds.map(([A, B]) => addCapsule('wall', A, B, penR));
+  /* Each penstock's capsules, along it: the one inside its hood, its
+   * segments (PEN_SEG_M or so each, the chunks a warhead breaks), and the
+   * one into the roof. Made with the drawing, once the hoods are placed. */
+  const penIndex = [];
   /* Drawn at the capsule's radius, with the stiffener rings and the
    * flange at the roof RING.proud and RING.flange over it, once the hoods
-   * have said where each leaves the face (drawPenstocks). */
+   * have said where each leaves the face (drawPenstocks): segment by
+   * segment, each its own range of the triangles. */
   const penstockTris = { p: [], n: [], c: [] };
   const penRanges = [];
   const drawPenstocks = () => penEnds.forEach(([A, B], k) => {
     const from = penstockTris.c.length;
     const len = Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]);
-    tube(A, B, penR, 32, TONE.penstock, penstockTris);
     const sA = F.local(A[0], A[2])[1];
     const sB = F.local(B[0], B[2])[1];
     const out = ((hoodFront[k] - sA) / (sB - sA)) * len;
     const roof = ((ph.figures.roofY - A[1]) / (B[1] - A[1])) * len;
-    for (let m = out + 1.5; m + RING.width < roof - RING.flangeLength; m += RING.pitch) {
-      collar(A, B, m, m + RING.width, penR, penR + RING.proud, RING.sides, TONE.ring, penstockTris);
+    const at = (m) => [0, 1, 2].map((q) => A[q] + ((B[q] - A[q]) * m) / len);
+    const segs = Math.max(1, Math.round((roof - out) / PEN_SEG_M));
+    const cuts = Array.from({ length: segs + 1 }, (_, i) => out + ((roof - out) * i) / segs);
+    const id = `penstock-${k}`;
+    const [ox, oz] = F.at(0, 0);
+    /* A burst jets downstream, off the face; no more than the bore. */
+    const st = structure(id, 'penstock', null, {
+      o: [ox, 0, oz], u: [F.a[0], 0, F.a[1]], n: [F.n[0], 0, F.n[1]], bore: Math.PI * penR * penR,
+    });
+    const ids = [addCapsule('wall', A, at(out), penR)];
+    tube(A, at(out), penR, 32, TONE.penstock, penstockTris);
+    const side = [F.a[0], 0, F.a[1]];
+    for (let i = 0; i < segs; i += 1) {
+      const [m0, m1] = [cuts[i], cuts[i + 1]];
+      const P = at(m0);
+      const Q = at(m1);
+      const bx = beamBox(P, Q, penR, side);
+      const uc = F.local((P[0] + Q[0]) / 2, (P[2] + Q[2]) / 2)[0];
+      /* Each segment rests on its saddles on the face: fixed. */
+      const c = chunk(st, 'shell', bx.c, bx.e0, bx.e1, bx.h, {
+        anchor: true, rect: [uc - penR, uc + penR, Math.min(P[1], Q[1]) - penR, Math.max(P[1], Q[1]) + penR],
+      });
+      const mark = penstockTris.c.length;
+      tube(P, Q, penR, 32, TONE.penstock, penstockTris);
+      for (let m = out + 1.5; m + RING.width < roof - RING.flangeLength; m += RING.pitch) {
+        if (m >= m0 && m < m1) {
+          collar(A, B, m, m + RING.width, penR, penR + RING.proud, RING.sides, TONE.ring, penstockTris);
+        }
+      }
+      st.chunks[c].draw.push({ mesh: 'penstocks', range: [mark, penstockTris.c.length] });
+      const ci = addCapsule('wall', P, Q, penR);
+      st.chunks[c].colliders.push(ci);
+      ids.push(ci);
+      if (i > 0) {
+        link(st, c - 1, c);
+      }
     }
+    tube(at(roof), B, penR, 32, TONE.penstock, penstockTris);
     collar(A, B, roof - RING.flangeLength, roof + 0.5, penR, penR + RING.flange, 32, TONE.penstock, penstockTris);
+    ids.push(addCapsule('wall', at(roof), B, penR));
+    penIndex[k] = ids;
     penRanges.push([from, penstockTris.c.length]);
   });
   /* Each penstock's target: a capsule round its drawn length, from where
@@ -1998,7 +2044,7 @@ export async function buildPart(ctx) {
       at: [P[0] + (u[0] / ul) * penR, P[1] + (u[1] / ul) * penR, P[2] + (u[2] / ul) * penR],
       r: 8,
       part: 'penstock',
-      colliders: [penIndex[k]],
+      colliders: penIndex[k].slice(),
     };
     darken[`penstock-${k}`] = { mesh: 'penstocks', range: penRanges[k] };
   });
@@ -2127,22 +2173,36 @@ export async function buildPart(ctx) {
     for (let k = 0; k < ph.units.length; k += 1) {
       const t = t0 + k * pitch;
       const [x, z] = F.at(t, VENT.s);
-      /* Its cap ends at the dome's top, not a radius over it. */
-      addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height - VENT.r, z], VENT.r);
+      const intake = need('intakes').figures;
+      const id = `intake-${k}`;
+      const [ox, oz] = F.at(0, 0);
+      /* Water leaves the reservoir through it downstream, into the
+       * penstock. */
+      const st = structure(id, 'intake', reservoirY, { o: [ox, 0, oz], u: [F.a[0], 0, F.a[1]], n: [F.n[0], 0, F.n[1]] });
+      const alongF = [F.a[0], 0, F.a[1]];
+      const acrossF = [F.n[0], 0, F.n[1]];
+      /* The column on the deck: fixed to it; its capsule's cap ends at the
+       * dome's top, not a radius over it. */
+      const col = chunk(st, 'column', [x, CREST_Y + VENT.height / 2, z], [0, 1, 0], alongF, [VENT.height / 2, VENT.r + 0.3, VENT.r + 0.3], { anchor: true });
+      st.chunks[col].draw.push({ mesh: 'intake-columns', instance: vents.length });
+      st.chunks[col].colliders.push(addCapsule('pole', [x, CREST_Y, z], [x, CREST_Y + VENT.height - VENT.r, z], VENT.r));
       /* The steel covers over its stoplog and gate slots in the deck. */
       for (const [a, b] of [[2.2, 3.4], [6, 7.6]]) {
         const C = (tt, ss) => {
           const [cx, cz] = F.at(tt, sUp(t) + ss);
           return [cx, CREST_Y + 0.04, cz];
         };
+        const [cx, cz] = F.at(t, sUp(t) + (a + b) / 2);
+        const cv = chunk(st, 'cover', [cx, CREST_Y, cz], alongF, acrossF, [5, (b - a) / 2, 0.3], { anchor: true });
+        const mark = road.c.length;
         road.quad(C(t - 5, a), C(t + 5, a), C(t + 5, b), C(t - 5, b), TONE.steel.map((v) => v * 0.6), up);
+        st.chunks[cv].draw.push({ mesh: 'roads', range: [mark, road.c.length] });
       }
       /* An intake: dam.json's point is on the crest road's centre line,
        * the intake itself is its gate in the upstream face, 8.2 m wide and
        * 19.3 m tall on a 177.6 m sill: its target the middle of that gate,
        * on the face; its colliders the face's columns within its reach
        * (intakeColliders); its damage the frame and its column. */
-      const intake = need('intakes').figures;
       const mid = intake.sillY + intake.gateHeight / 2;
       const [ix, iz] = F.at(t, sUp(t));
       targets[`intake-${k}`] = {
@@ -2161,6 +2221,37 @@ export async function buildPart(ctx) {
         return [x, y, z];
       };
       metal.quad(Q(t - hw, intake.sillY), Q(t + hw, intake.sillY), Q(t + hw, intake.sillY + intake.gateHeight), Q(t - hw, intake.sillY + intake.gateHeight), TONE.draft, outward);
+      /* The gate's leaf in front of it, INTAKE_COLS by INTAKE_ROWS panels
+       * in its slots, the outer ones fixed there; the draft's dark behind
+       * is what a broken panel shows. The frame's u is t. */
+      const L = (tt, y) => {
+        const [lx, lz] = F.at(tt, sUp(tt) - 0.3);
+        return [lx, y, lz];
+      };
+      const leaf = [];
+      for (let c = 0; c < INTAKE_COLS; c += 1) {
+        leaf.push([]);
+        const ta = t - hw + (2 * hw * c) / INTAKE_COLS;
+        const tb = t - hw + (2 * hw * (c + 1)) / INTAKE_COLS;
+        for (let r = 0; r < INTAKE_ROWS; r += 1) {
+          const ya = intake.sillY + (intake.gateHeight * r) / INTAKE_ROWS;
+          const yb = intake.sillY + (intake.gateHeight * (r + 1)) / INTAKE_ROWS;
+          const [lx, lz] = F.at((ta + tb) / 2, sUp((ta + tb) / 2) - 0.3);
+          const i = chunk(st, 'leaf', [lx, (ya + yb) / 2, lz], alongF, [0, 1, 0], [(tb - ta) / 2, (yb - ya) / 2, 0.3], {
+            anchor: c === 0 || c === INTAKE_COLS - 1, rect: [ta, tb, ya, yb],
+          });
+          const mark = metal.c.length;
+          metal.quad(L(ta, ya), L(tb, ya), L(tb, yb), L(ta, yb), TONE.steel.map((v) => v * 0.7), outward);
+          st.chunks[i].draw.push({ mesh: 'steel', range: [mark, metal.c.length] });
+          leaf[c].push(i);
+          if (r > 0) {
+            link(st, leaf[c][r - 1], i);
+          }
+          if (c > 0) {
+            link(st, leaf[c - 1][r], i);
+          }
+        }
+      }
       darken[`intake-${k}`] = [{ mesh: 'intake-columns', instance: vents.length }, { mesh: 'steel', range: [from, metal.c.length] }];
       vents.push([x, CREST_Y, z]);
     }
@@ -2651,7 +2742,7 @@ export async function buildPart(ctx) {
   }
   /* `exitY`: the axis's height where it leaves its hood's cowl. */
   sites.penstocks = penEnds.map(([a, b], k) => ({
-    a, b, r: penR, index: penIndex[k], exitY: targets[`penstock-${k}`].a[1],
+    a, b, r: penR, indices: penIndex[k].slice(), exitY: targets[`penstock-${k}`].a[1],
   }));
   sites.face = {
     crestDown: MAIN.crestDown, bandY: MAIN.bandY, roofY: ph.figures.roofY, n: F.n, a: F.a,
@@ -3561,6 +3652,20 @@ export async function buildPart(ctx) {
     }
     const kept = gone ? [] : folded.get(key);
     ch.draw.forEach((d, n) => {
+      /* An instance: its matrix kept, and scaled to nothing. */
+      if (d.instance != null) {
+        const mesh = drawn[d.mesh];
+        if (gone) {
+          const m = new THREE.Matrix4();
+          mesh.getMatrixAt(d.instance, m);
+          kept.push(m);
+          mesh.setMatrixAt(d.instance, new THREE.Matrix4().makeScale(0, 0, 0));
+        } else {
+          mesh.setMatrixAt(d.instance, kept[n]);
+        }
+        mesh.instanceMatrix.needsUpdate = true;
+        return;
+      }
       const attr = drawn[d.mesh].geometry.getAttribute('position');
       const [a, b] = d.range;
       if (gone) {
