@@ -222,6 +222,27 @@ if (adminSecret) {
   check('and a private room is listed without its code', health && health.perRoom.length >= 1 && health.perRoom.every((r) => r.room !== code));
 }
 
+console.log('who is on, for the admin');
+res = await fetch(`${origin}/v2/admin/rooms`);
+check('who is on is refused without the admin secret', res.status === 401 || res.status === 404, `${res.status}`);
+res = await fetch(`${origin}/v2/admin/rooms`, { headers: { authorization: 'Bearer not-the-secret' } });
+check('and with a wrong one', res.status === 401 || res.status === 404, `${res.status}`);
+if (adminSecret) {
+  a.ws.send(pose(a));
+  await sleep(100);
+  res = await fetch(`${origin}/v2/admin/rooms`, { headers: { authorization: `Bearer ${adminSecret}` } });
+  const who = res.ok ? await res.json() : null;
+  const room = who && who.rooms.find((r) => r.seats.length === 2 && r.room === 'private');
+  const [one, two] = room ? room.seats : [];
+  check('with it: the private room, without its code, and its two seats', Boolean(room) && !who.rooms.some((r) => r.room === code),
+    JSON.stringify(who && who.rooms.map((r) => ({ room: r.room, seats: r.seats.length }))));
+  check('each seat named, its aircraft, what it is doing, and its seconds connected and since last heard', Boolean(one && two)
+    && one.seat === 1 && one.host === true && typeof one.name === 'string' && one.name.length > 0 && typeof one.aircraft === 'string'
+    && one.state === 'flying' && two.state === 'lobby' && /^[A-Z][a-z]+ [A-Z][a-z]+ 77$/.test(two.name)
+    && Number.isInteger(one.connectedS) && one.connectedS >= 0 && Number.isInteger(one.heardS) && one.heardS <= 1,
+  JSON.stringify(room && room.seats));
+}
+
 console.log('a race track (Phase 4), a wreck (Phase 2) and quick chat (Phase 5)');
 const raceDoc = mapTrackDocument({ id: 'trk-check001', name: 'Server check', types: ['gate', 'hoop30', 'gate'], radius: 60 });
 a.say({ type: 'track', doc: raceDoc });
