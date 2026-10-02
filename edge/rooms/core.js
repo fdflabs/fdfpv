@@ -539,6 +539,10 @@ export class RoomCore {
         wave: Math.min(this.war.match.wave + 1, mission.waves.length), waves: mission.waves.length,
       };
     }
+    /* A free flight room flying since its lobby's start. */
+    if (this.meta.mode == null && this.gameLobby.live) {
+      return { game: null, state: 'on' };
+    }
     return {
       game: this.meta.mode ?? null, state: 'waiting', ...(this.gameLobby.open(this) ? { ready: this.gameLobby.ready.size } : {}),
     };

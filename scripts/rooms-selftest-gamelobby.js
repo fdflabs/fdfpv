@@ -349,6 +349,7 @@ export function gameLobbySection(check) {
     e.join(2);
     const w3 = e.socks[2].got.find((m) => m.type === 'welcome');
     check('a pilot who comes then is told it flies, and has no lobby to wait in', w3.lobby.live === true && !e.r.gameLobby.open(e.r));
+    check('and the browser lists it flying', e.r.activity(e.clock).state === 'on' && e.r.activity(e.clock).game === null, JSON.stringify(e.r.activity(e.clock)));
     e.leave(0);
     e.leave(1);
     e.leave(2);
