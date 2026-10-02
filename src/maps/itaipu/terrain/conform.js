@@ -61,7 +61,7 @@
 
 import {
   HERO, TILE_CELLS, TILE_SAMPLES, cellOf, decode,
-} from '../../yellowstone/terrain/frame.js';
+} from '../../terrain/frame.js';
 
 /* Metres of rise per metre out from the rim, and of fall per metre in. */
 const OUT_SLOPE = 2;

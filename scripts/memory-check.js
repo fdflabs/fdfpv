@@ -18,8 +18,8 @@
  * WHAT THIS ADDS:
  *
  *   1. The other maps. Check 16 covers the Swiss valley against the Alps;
- *      this also takes Yellowstone, and asks of each that choosing it drags
- *      in no other world's directory, which nothing else measures.
+ *      this also takes Itaipu, and asks of each that choosing it drags in
+ *      no other world's directory, which nothing else measures.
  *   2. Release, not just laziness. After switching away, three.js's own count
  *      of live geometries and textures has to come back down. A lazy load
  *      that never frees is a leak with extra steps.
@@ -61,7 +61,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * world, since the title always has a world behind it. */
 const BASE = 'alps';
 /* The lazily loaded worlds. */
-const HEAVY = ['yellowstone', 'swiss2', 'itaipu'];
+const HEAVY = ['swiss2', 'itaipu'];
 
 /*
  * Worlds built from another world's code on purpose, and whose graph that
@@ -69,13 +69,13 @@ const HEAVY = ['yellowstone', 'swiss2', 'itaipu'];
  * style by the Alps' own builders (src/maps/swiss2.js), so choosing it
  * fetches src/maps/alps.js and src/maps/alps/; copying them to keep the
  * graphs apart would be six thousand lines kept twice. Only a declared
- * dependency is let through: swiss2 pulling in Yellowstone is still a
+ * dependency is let through: swiss2 pulling in Itaipu is still a
  * fault, and so is the Alps pulling in swiss2, which the boot half below
  * catches with the Alps as the baseline.
  */
-/* Itaipu is Yellowstone's terrain engine under swiss2's look, on purpose
- * (docs/ITAIPU-PLAN.md section 1, point 5). */
-const SHARES = { swiss2: ['alps'], itaipu: ['yellowstone', 'swiss2'] };
+/* Itaipu is swiss2's look on purpose (docs/ITAIPU-PLAN.md section 1,
+ * point 5). Its terrain engine is src/maps/terrain/, which is no world's. */
+const SHARES = { swiss2: ['alps'], itaipu: ['swiss2'] };
 
 /*
  * Every URL the page has fetched, as a plain list. Resource timing is the

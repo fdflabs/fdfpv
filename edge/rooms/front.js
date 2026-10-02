@@ -76,6 +76,7 @@ import {
 import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { sha256Base64 } from '../../src/share/identity.js';
+import { retiredMap } from '../../src/maps/retired.js';
 import { lobbyStub } from './lobby.js';
 
 /*
@@ -135,6 +136,14 @@ const joinAllowed = limiter(PUBLIC_JOINS_PER_MIN);
 const listAllowed = limiter(LISTS_PER_MIN);
 
 const MAP_RE = /^[a-z0-9_]{1,32}$/;
+
+/* A world a room can be made on: an id of the right shape, and not one
+ * the simulator has retired (src/maps/retired.js), which an old page can
+ * still offer. Other ids are not checked against a list, so a world
+ * added to the simulator needs no deploy here. */
+function roomMap(id) {
+  return MAP_RE.test(String(id)) && !retiredMap(id);
+}
 
 const newCode = () => codeFromBytes(crypto.getRandomValues(new Uint8Array(6)));
 
@@ -209,7 +218,7 @@ async function create(request, env, origin) {
   } catch (e) {
     return refuse(400, 'bad');
   }
-  if (!body || !MAP_RE.test(String(body.map)) || (body.mode != null && !ROOM_SETUPS.includes(body.mode))) {
+  if (!body || !roomMap(body.map) || (body.mode != null && !ROOM_SETUPS.includes(body.mode))) {
     return refuse(400, 'bad');
   }
   const open = body.public === true;
@@ -274,7 +283,7 @@ async function publicRoute(request, env, url, headers) {
     return Response.json({ open, cap: PUBLIC_CAP, busy: busy(env) }, { headers });
   }
   const m = url.pathname.match(/^\/v2\/public\/([a-z0-9_]{1,32})$/);
-  if (!m || !open || request.headers.get('upgrade') !== 'websocket') {
+  if (!m || !roomMap(m[1]) || !open || request.headers.get('upgrade') !== 'websocket') {
     return new Response(open ? 'no such room' : 'public rooms are closed', { status: 404 });
   }
   if (!joinAllowed(address, Date.now())) {

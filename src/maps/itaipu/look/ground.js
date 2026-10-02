@@ -939,7 +939,7 @@ export function groundMaterial({
  *             ground's patch is;
  *   height    on the hero's 10 m heights (look/index.js setHeights),
  *             interpolated over the same triangles the terrain draws
- *             (yellowstone/terrain/engine.js tri), so a clump stands on
+ *             (terrain/engine.js tri), so a clump stands on
  *             the ground rather than in it.
  *
  * The instances are a fixed disc of cell offsets from the camera's cell,

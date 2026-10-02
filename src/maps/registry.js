@@ -31,7 +31,7 @@
  * `build` marks a world a track can be built inside (src/builder/), and so
  * the worlds Track mode flies and My tracks offers a new track in. The two
  * valleys: one terrain, one height function and nothing to fly under, which
- * is where placement was proven. Yellowstone comes later.
+ * is where placement was proven.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -92,19 +92,7 @@ export const MAPS = [
     build: true,
     load: () => import('./swiss2.js'),
   },
-  /* In development, and the name says so, so a pilot who picks it knows
-   * what they are getting: rough edges, no roads, and a first build of
-   * the streamed terrain. */
-  {
-    id: 'yellowstone',
-    poster: 'assets/posters/yellowstone.jpg',
-    name: str('registry.yellowstone'),
-    mode: 'freestyle',
-    note: str('registry.yellowstone_note'),
-    buildMs: MAP_BUILD_MS.yellowstone,
-    load: () => import('./yellowstone.js'),
-  },
-  /* In development, and named so, as Yellowstone is (docs/ITAIPU-PLAN.md).
+  /* In development, and named so (docs/ITAIPU-PLAN.md).
    * A builder world: its two courses are builder documents
    * (docs/itaipu-courses/). */
   {

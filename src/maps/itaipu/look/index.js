@@ -1,6 +1,7 @@
 /*
  * look/index.js: how Itaipu is drawn. swiss2's photographic style over
- * Yellowstone's terrain engine (docs/ITAIPU-PLAN.md section 1, point 5).
+ * the terrain engine, src/maps/terrain/ (docs/ITAIPU-PLAN.md section 1,
+ * point 5).
  *
  * From swiss2, unchanged and shared: the terrain photographs and the
  * surfaces (swiss2/assets.js), the material kit every part is handed

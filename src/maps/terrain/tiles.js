@@ -79,7 +79,7 @@ export function manifestTiles(manifest) {
     }
   }
   if (!have.size) {
-    throw new Error('yellowstone: the manifest lists no tiles');
+    throw new Error('terrain: the manifest lists no tiles');
   }
   return have;
 }
@@ -207,7 +207,7 @@ export class TileStore {
          * stays on its coarser level, which is drawn and is ground. */
         this.failed.set(key, String(e.message || e));
         if (!this.disposed) {
-          console.error(`yellowstone: tile ${url} failed: ${e.message || e}`);
+          console.error(`terrain: tile ${url} failed: ${e.message || e}`);
           this.pump();
         }
       });

@@ -580,9 +580,9 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * switchyard 2, look/night.js, mission 4's fixtures, loaded whether
  * the map is built for day or night, water/meet.js, where the water
  * meets the dam, and terrain/conform.js, where the ground does). The
- * Yellowstone terrain engine and
- * the swiss2 look it is built with are under their own prefixes, as the
- * Alps' modules are for swiss2. */
+ * terrain engine (src/maps/terrain/) and the swiss2 look it is built
+ * with are under their own prefixes, as the Alps' modules are for
+ * swiss2. */
 const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 29 };
 
 /* The world a boot that could not build its own falls back to: the Alps,

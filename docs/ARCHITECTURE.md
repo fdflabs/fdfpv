@@ -35,7 +35,7 @@ in the world, and lap times post back against its id.
 | `src/input/input.js` | 3.3k | Gamepad API, keyboard, touch. Calibration wizard |
 | `src/game/` | 13k | `race.js` gates and laps, `track.js` lap maths, `collide.js`, `ghost.js`, `score.js` (freestyle only) |
 | `src/render/` | 13k | Three.js scene, `frame.js` coordinate boundary, audio, post |
-| `src/maps/` | | `registry.js` is the seam. `alps.js`, `swiss2.js` (the two worlds tracks are built in), `yellowstone.js`. The freestyle city and the airfield were retired on 2026-09-28; `retired.js` says where a stored or linked id of either goes |
+| `src/maps/` | | `registry.js` is the seam. `alps.js`, `swiss2.js` and `itaipu.js`, the worlds tracks are built in; `terrain/`, the streamed terrain engine Itaipu runs on. The freestyle city and the airfield were retired on 2026-09-28 and Yellowstone on 2026-10-01; `retired.js` says where a stored or linked id of any of them goes |
 | `src/builder/` | | The in-sim track builder (B in flight, or My tracks' Edit and New track) |
 | `src/trackbuilder/` | | The track document: its model, the pilot's library in localStorage, and the field document's geometry the board's lap check still reads |
 | `src/share/` | 5.7k | `board.js` HTTP client and origin constants, `session.js` localStorage seats, ghost encoding |
