@@ -206,13 +206,20 @@ function withScheme(entry, scheme) {
   return out;
 }
 
-/* The power choice a stored one names, made valid for these options. */
+/* The power choice a stored one names, made valid for these options. A
+ * quad's has a prop as well (`power.props`, src/main.js quadPower). */
 export function powerChoice(power, stored) {
   const option = power.options.find((o) => stored && o.id === stored.option) ?? power.options[0];
   const packs = option.packs ?? [];
   const pack = packs.find((p) => stored && p.id === stored.pack) ?? packs[0] ?? null;
-  return { option: option.id, pack: pack ? pack.id : null };
+  const out = { option: option.id, pack: pack ? pack.id : null };
+  if (power.props) {
+    out.prop = (power.props.find((p) => stored && p.id === stored.prop) ?? power.props[0]).id;
+  }
+  return out;
 }
+
+const samePower = (a, b) => a.option === b.option && a.pack === b.pack && a.prop === b.prop;
 
 /* The readouts on the Power tab: how each is shown, and which way is up. */
 const STATS = [
@@ -596,7 +603,7 @@ export class Hangar {
     eachHook((h) => {
       tabs = tabs || Boolean(h.dirty && h.dirty());
     });
-    return tabs || a !== b || this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack;
+    return tabs || a !== b || !samePower(this.choice, this.savedPower);
   }
 
   setTab(t) {
@@ -655,7 +662,7 @@ export class Hangar {
   }
 
   pickOption(id) {
-    this.choice = powerChoice(this.power, { option: id, pack: this.choice.pack });
+    this.choice = powerChoice(this.power, { ...this.choice, option: id });
     this.focus = motorFocus(this.quad());
     this.changed(`option-${id}`);
     if (this.opts && this.opts.onTry) {
@@ -667,6 +674,16 @@ export class Hangar {
     this.choice = { ...this.choice, pack: id };
     this.focus = 'pack';
     this.changed(`pack-${id}`);
+  }
+
+  /* A quad's prop turns at its own speed, so the stand hears it. */
+  pickProp(id) {
+    this.choice = { ...this.choice, prop: id };
+    this.focus = motorFocus(this.quad());
+    this.changed(`prop-${id}`);
+    if (this.opts && this.opts.onTry) {
+      this.opts.onTry({ ...this.choice });
+    }
   }
 
   /* A card progression may not have opened yet: src/ui/progress-ui.js
@@ -700,7 +717,7 @@ export class Hangar {
       livery: normaliseEntry(this.family, this.entry),
       power: { ...this.choice },
       liveryChanged: JSON.stringify(normaliseEntry(this.family, this.entry)) !== JSON.stringify(normaliseEntry(this.family, this.saved)),
-      powerChanged: this.choice.option !== this.savedPower.option || this.choice.pack !== this.savedPower.pack,
+      powerChanged: !samePower(this.choice, this.savedPower),
       settings: {},
       asNew,
     };
@@ -909,6 +926,28 @@ export class Hangar {
       opts.append(b);
     });
     box.append(opts);
+    const props = this.power.props ?? [];
+    if (props.length > 1) {
+      box.append(el('h3', 'hangar-h', str('hangar.prop')));
+      const row = el('div', 'hangar-cards hangar-cards-small');
+      props.forEach((p, i) => {
+        const b = button(`hangar-card${p.id === this.choice.prop ? ' on' : ''}`);
+        b.dataset.key = `prop-${p.id}`;
+        b.dataset.focus = motorFocus(this.quad());
+        b.style.setProperty('--i', String(i));
+        b.append(el('span', 'hangar-card-name', p.name));
+        if (p.detail) {
+          b.append(el('span', 'hangar-card-detail', p.detail));
+        }
+        b.setAttribute('aria-pressed', String(p.id === this.choice.prop));
+        b.addEventListener('pointerenter', () => {
+          this.focus = motorFocus(this.quad());
+        });
+        b.addEventListener('click', () => this.pickProp(p.id));
+        row.append(b);
+      });
+      box.append(row);
+    }
     const packs = option.packs ?? [];
     if (packs.length) {
       box.append(el('h3', 'hangar-h', str(glow ? 'hangar.tank' : 'hangar.pack')));
@@ -963,10 +1002,13 @@ export class Hangar {
     }
     const stock = this.power.estimate(this.power.stock);
     const all = [];
+    const props = this.power.props ?? [{ id: undefined }];
     for (const o of this.power.options) {
       const packs = (o.packs && o.packs.length) ? o.packs : [{ id: null }];
       for (const p of packs) {
-        all.push(this.power.estimate({ option: o.id, pack: p.id }));
+        for (const q of props) {
+          all.push(this.power.estimate({ option: o.id, pack: p.id, prop: q.id }));
+        }
       }
     }
     const stats = el('div', 'hangar-stats');
