@@ -48,7 +48,7 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS, waveTarget } from '../src/share/war/missions/index.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import {
-  attackerCharge, blast, unsupported,
+  DEFENDER, attackerCharge, blast, unsupported,
 } from '../src/share/war/damage.js';
 import { LIFE_MS, advance, piecesOf } from '../src/share/war/debris.js';
 import { createRoomWar } from '../src/share/roomwar.js';
@@ -108,6 +108,18 @@ function table() {
         rows.set(key, { hits: open ? hits : Infinity, part: s.part, kind: w.kind });
       }
     }
+  }
+  /* A defender's warhead going off on a target's face: far less than an
+   * attacker's, so intercepting at the dam does not wreck it. */
+  for (const id of ['gate-3', 'intake-7', 'penstock-7']) {
+    const s = STRUCTURES[id];
+    const p = s.chunks[0].c;
+    const wreck = {};
+    let n = 0;
+    while (n < 50 && !blast({ [id]: s }, wreck, p, DEFENDER.standard, n).some((r) => r.down)) {
+      n += 1;
+    }
+    check(n > HITS, `a defender's standard warhead on ${id}'s face opens it only after more than ${HITS}`, n >= 50 ? 'not in 50' : `${n + 1}`);
   }
   const by = new Map();
   for (const [key, r] of rows) {
