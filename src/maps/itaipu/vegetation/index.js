@@ -46,7 +46,6 @@
 
 import { loadAtlases } from '../../swiss2/vegetation/atlas.js';
 import { windUniforms } from '../../swiss2/vegetation/plantmat.js';
-import { sunDirection } from '../look/light.js';
 import {
   CROWN_SPHERES, DENSE_M, FILL_SLICE_TREES, HALF, KINDS, NEAR_MOVE, NEAR_R,
   addTree, canopyHeight, decodePng, heroCanopy, keepOff, makeCanopyAt, nearTrees, onCut, plantHero,
@@ -161,7 +160,12 @@ export async function buildPart(ctx) {
 
   const crowns = crownsOf();
   const wind = windUniforms();
-  const sunDir = sunDirection();
+  /* The look's sun (itaipu.js hands it in), so the impostors are lit and
+   * the far trees' shadows thrown from the time of day the look draws. */
+  const { sunDir } = ctx;
+  if (!sunDir || !sunDir.isVector3) {
+    throw new Error('itaipu vegetation: ctx.sunDir, the look\'s sun direction, is missing');
+  }
   const trees = treeLod({
     forest, atlases, tier, group, sunDir, wind,
   });
