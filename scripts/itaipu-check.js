@@ -30,8 +30,8 @@
  *               after tent and hero have read the files) within
  *               0.05 m (the water's surface where the point is on a
  *               body), and the ground under the camera there is drawn at
- *               10 m; and at every hero sample the cut lowered, the
- *               page's finest ground is the Node cut's;
+ *               10 m; and at every hero sample the cut lowered or the
+ *               fill raised, the page's finest ground is the Node's;
  *   water       the reservoir and the river are drawn at 219.0 and
  *               103.5 m, and height() on each body's spawn is its level;
  *   budget      chunk buffers under 24 MB and tiles under 12 MB
@@ -67,7 +67,17 @@
  *                          other is a corner of a bare wall triangle
  *                          between two spikes of ground. A finished
  *                          junction shows the wall's top as one line, so
- *                          there are none.
+ *                          there are none;
+ *                 void     every EDGE_STEP along each embankment crest
+ *                          edge's lip (its drawn lowest line), the ground
+ *                          at most VOID_TOL under it, or the dam's drawn
+ *                          toe from the lip down to it: no black gap
+ *                          under a road or a fill where an earth dam
+ *                          meets the concrete;
+ *                 buildings the OpenStreetMap buildings the map does not
+ *                          build over the cut (terrain/conform.js
+ *                          offCut), counted, and the same as the rule
+ *                          gives on the Node cut.
  *
  *   [SIM_GPU=1] [FDFPV_ITAIPU_DATA=DIR] node scripts/itaipu-check.js [--only=edges]
  *
@@ -103,8 +113,10 @@ import {
 } from '../src/maps/yellowstone/terrain/frame.js';
 import { ITAIPU_FRAME, RESERVOIR_Y, RIVER_Y } from '../src/maps/itaipu/terrain/frame.js';
 import { insideWater } from '../src/game/water.js';
-import { conformBound, conformTile } from '../src/maps/itaipu/terrain/conform.js';
-import { embankmentCrests, junctionRims } from '../src/maps/itaipu/dam/index.js';
+import {
+  conformBound, conformTile, fillUnder, offCut,
+} from '../src/maps/itaipu/terrain/conform.js';
+import { embankmentCrests, embankmentSection, junctionRims } from '../src/maps/itaipu/dam/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
@@ -125,6 +137,9 @@ const EDGE_TOL = 0.1;
  * normal: the steepest chute floor is 23 degrees (0.92), the steepest
  * pier top 29 (0.88), the dam's downstream faces 42 and more (0.74). */
 const EDGE_OPEN = 6;
+/* How far under an embankment edge's drawn lip the ground may be, m:
+ * the fill stands 0.3 under its drawn top (terrain/conform.js). */
+const VOID_TOL = 0.5;
 const EDGE_FLAT = 0.8;
 
 /* Section 14's tolerance: the encoding's own half decimetre. */
@@ -442,7 +457,7 @@ function gapPoints(bodies, dam, hero) {
 }
 
 /* The edges rows, printed and failed. */
-async function edgesCheck(page, dam, hero) {
+async function edgesCheck(page, dam, hero, buildings, cutHero) {
   const faces = JSON.parse(await page.evaluate(`JSON.stringify(${EDGE_FACES})`));
   let poke = 0;
   let ragged = 0;
@@ -544,6 +559,93 @@ async function edgesCheck(page, dam, hero) {
   if (gaps) {
     fail(`edges: ${gaps} points just outside the water's edge lie more than ${EDGE_TOL} m under its level`);
   }
+
+  /* The void under a fill: the ground under each embankment edge's lip,
+   * its drawn lowest line. */
+  const lips = JSON.parse(await page.evaluate(`JSON.stringify((() => {
+    const t = window.__mapScene().userData.itaipu.terrain;
+    const all = window.__mapScene().userData.itaipu.parts.dam.survey().records;
+    const recs = all.filter((r) => / edge$/.test(r.kind || ''));
+    /* The concrete's tops: a lip over a pier is over concrete, not a void. */
+    const concrete = all.filter((r) => !/ (edge|crest)$/.test(r.kind || ''));
+    const over = (x, y, z) => concrete.some((r) => r.faces.some((f) => {
+      const dx = x - r.tx, dz = z - r.tz;
+      const lx = r.c * dx - r.s * dz, lz = r.s * dx + r.c * dz;
+      let sign = 0;
+      for (let i = 0; i < f.pts.length; i += 1) {
+        const a = f.pts[i], b = f.pts[(i + 1) % f.pts.length];
+        const c = (b[0] - a[0]) * (lz - a[1]) - (b[1] - a[1]) * (lx - a[0]);
+        if (c !== 0) {
+          if (sign && Math.sign(c) !== sign) return false;
+          sign = Math.sign(c);
+        }
+      }
+      return r.lift + r.ty + f.a * lx + f.b * lz + f.d >= y - ${VOID_TOL};
+    }));
+    /* The toes the dam draws under a lip over lower ground (dam/index.js):
+     * a lip point over one reaching down to the ground is closed. */
+    const toes = window.__mapScene().userData.itaipu.parts.dam.survey().toes;
+    const t0 = window.__mapScene().userData.itaipu.terrain;
+    const toeAt = (x, z) => toes.some(({ pts: [A, B, C] }) => {
+      const ex = B[0] - A[0], ez = B[2] - A[2];
+      const l2 = ex * ex + ez * ez;
+      const t = Math.max(0, Math.min(1, ((x - A[0]) * ex + (z - A[2]) * ez) / l2));
+      return Math.hypot(x - A[0] - ex * t, z - A[2] - ez * t) < 0.3 && C[1] <= t0.finestAt(C[0], C[2]) + 0.1;
+    });
+    const out = { n: 0, bad: 0, covered: 0, toed: 0, toes: toes.length, worst: 0, worstAt: null, where: {}, pts: [] };
+    for (const r of recs) {
+      const w = [];
+      for (const f of r.faces) {
+        for (const [lx, lz] of f.pts) {
+          w.push([r.tx + r.c * lx + r.s * lz, r.lift + r.ty + f.a * lx + f.b * lz + f.d, r.tz - r.s * lx + r.c * lz]);
+        }
+      }
+      const low = Math.min(...w.map((p) => p[1]));
+      const lip = w.filter((p) => p[1] < low + 0.01);
+      const [A, B] = [lip[0], lip.reduce((m, p) => (Math.hypot(p[0] - lip[0][0], p[2] - lip[0][2]) > Math.hypot(m[0] - lip[0][0], m[2] - lip[0][2]) ? p : m), lip[0])];
+      const len = Math.hypot(B[0] - A[0], B[2] - A[2]);
+      const k = Math.max(1, Math.round(len / ${EDGE_STEP}));
+      for (let i = 0; i <= k; i += 1) {
+        const x = A[0] + ((B[0] - A[0]) * i) / k, y = A[1] + ((B[1] - A[1]) * i) / k, z = A[2] + ((B[2] - A[2]) * i) / k;
+        if (over(x, y, z)) {
+          out.covered += 1;
+          continue;
+        }
+        const g = t.finestAt(x, z);
+        const d = y - g;
+        out.n += 1;
+        if (d > ${VOID_TOL} && toeAt(x, z)) {
+          out.toed += 1;
+          continue;
+        }
+        if (d > ${VOID_TOL}) {
+          out.bad += 1;
+          if (out.pts.length < 12) out.pts.push([+x.toFixed(1), +z.toFixed(1), +d.toFixed(1)]);
+          const c = Math.round(x / 50) * 50 + ',' + Math.round(z / 50) * 50;
+          out.where[c] = (out.where[c] || 0) + 1;
+        }
+        if (d > out.worst) { out.worst = d; out.worstAt = [+x.toFixed(1), +y.toFixed(1), +z.toFixed(1)]; }
+      }
+    }
+    return out;
+  })())`));
+  const lipWhere = Object.entries(lips.where).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([c, k]) => `${c}: ${k}`).join('; ');
+  console.log(`  ${lips.bad ? 'BAD ' : 'ok  '} void: ${lips.bad} of ${lips.n} points under the embankments' crest edges' lips (${lips.covered} over the concrete, left out; ${lips.toed} closed by the dam's ${lips.toes} drawn toes) with the ground more than ${VOID_TOL} m under them and no toe, `
+    + `worst ${lips.worst.toFixed(2)} m${lips.worstAt ? ` at ${JSON.stringify(lips.worstAt)}` : ''}${lipWhere ? `; where ${lipWhere}` : ''}`);
+  if (lips.bad) {
+    console.log(`         the first, [x, z, metres]: ${JSON.stringify(lips.pts)}`);
+    fail(`edges: the ground stands more than ${VOID_TOL} m under an embankment's drawn crest edge at ${lips.bad} points`);
+  }
+
+  /* The buildings over the cut: the page's dropped set is the rule's on
+   * the Node cut, and none of them is drawn. */
+  const dropped = JSON.parse(await page.evaluate('JSON.stringify(window.__mapScene().userData.itaipu.offCut)'));
+  const want = offCut(buildings, cutHero).dropped.map((f) => f.id);
+  const same = dropped.length === want.length && want.every((id) => dropped.includes(id));
+  console.log(`  ${same ? 'ok  ' : 'BAD '} buildings over the cut, not built: ${dropped.length} (${dropped.join(' ') || 'none'}), the rule on the Node cut ${want.length}`);
+  if (!same) {
+    fail(`edges: the page dropped ${JSON.stringify(dropped)} over the cut, the rule says ${JSON.stringify(want)}`);
+  }
 }
 
 /* A module URL's place in the tree, or null for anything not a module. */
@@ -566,14 +668,19 @@ async function main() {
   const get = nodeChecks(manifest, tiles);
   /* The ground the page draws is the files cut to the concrete
    * (terrain/conform.js): the same cut here, after the file checks. */
-  const bound = conformBound(junctionRims(dam), embankmentCrests(dam));
+  const buildings = JSON.parse(await readFile(join(DATA, 'osm', 'buildings.json'), 'utf8')).features;
+  const shape = { bound: conformBound(junctionRims(dam), embankmentCrests(dam)), fill: fillUnder(embankmentSection(dam)) };
   let cut = 0;
+  let raised = 0;
   const cutHero = [];
+  const raisedHero = [];
   for (const [key, data] of tiles) {
     const [level, i, j] = key.split(':').map(Number);
-    cut += conformTile(level, i, j, data, ITAIPU_FRAME.half, bound, cutHero);
+    const n = conformTile(level, i, j, data, ITAIPU_FRAME.half, shape, cutHero, raisedHero);
+    cut += n.cut;
+    raised += n.raised;
   }
-  console.log(`conform: ${cut} samples cut to the concrete's rims, ${cutHero.length} of them the hero's`);
+  console.log(`conform: ${cut} samples cut to the concrete's rims, ${cutHero.length} of them the hero's; ${raised} filled under the embankments' crests`);
 
   const page = await openPage({
     root,
@@ -662,7 +769,7 @@ async function main() {
       }
     }
 
-    await edgesCheck(page, dam, manifest.frame.hero[1]);
+    await edgesCheck(page, dam, manifest.frame.hero[1], buildings, cutHero);
 
     if (!ONLY_EDGES) {
       /* The ground: clusters of points round camera placements over the
@@ -722,14 +829,16 @@ async function main() {
       if (notHero) {
         fail(`${notHero} of ${n} hero points under the camera not drawn at 10 m`);
       }
-      /* And every hero sample the cut lowered, where the random points
-       * seldom fall: the page's finest ground there is the Node cut's. */
-      const cutGot = JSON.parse(await page.evaluate(`JSON.stringify(${JSON.stringify(cutHero)}.map(([x, z]) => window.__mapScene().userData.itaipu.terrain.finestAt(x, z)))`));
+      /* And every hero sample the cut lowered or the fill raised, where
+       * the random points seldom fall: the page's finest ground there is
+       * the Node's. */
+      const changed = [...cutHero, ...raisedHero];
+      const cutGot = JSON.parse(await page.evaluate(`JSON.stringify(${JSON.stringify(changed)}.map(([x, z]) => window.__mapScene().userData.itaipu.terrain.finestAt(x, z)))`));
       let cutWorst = 0;
-      cutHero.forEach(([x, z], k) => {
+      changed.forEach(([x, z], k) => {
         cutWorst = Math.max(cutWorst, Math.abs(cutGot[k] - heroGround(get, x, z)));
       });
-      console.log(`ground: the ${cutHero.length} hero samples cut, worst |page - Node| ${cutWorst.toFixed(4)} m`);
+      console.log(`ground: the ${changed.length} hero samples cut or filled, worst |page - Node| ${cutWorst.toFixed(4)} m`);
       if (!(cutWorst <= GROUND_TOL)) {
         fail(`the page's cut ground is off the Node cut's by ${cutWorst} m`);
       }

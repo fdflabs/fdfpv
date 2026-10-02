@@ -75,13 +75,13 @@ function listed(manifest) {
 
 /*
  * Build the terrain. `spawn` and `eye` are THREE.Vector3s the first
- * selection is made from; `bound(x, z)` the height the ground is held
- * under (conform.js, Infinity where nothing holds it), applied to every
- * tile before a chunk is built from it, the hero samples it lowered left
- * in terrain.cut as [x, z]; `progress(f)` in [0, 1].
+ * selection is made from; `shape` conform.js's { bound, fill }, the
+ * heights the ground is held under and over, applied to every tile
+ * before a chunk is built from it, the hero samples it lowered left in
+ * terrain.cut as [x, z]; `progress(f)` in [0, 1].
  */
 export async function buildTerrain({
-  base, manifest, material, scene, quality, spawn, eye, bound, progress,
+  base, manifest, material, scene, quality, spawn, eye, shape, progress,
 }) {
   const terrain = new Terrain({
     base, manifest, material, scene, cover: null, quality, frame: ITAIPU_FRAME,
@@ -110,7 +110,7 @@ export async function buildTerrain({
    * share it): the planting keeps off them (terrain.cut). */
   const cut = [];
   for (const [level, i, j] of all) {
-    conformTile(level, i, j, store.get(level, i, j), ITAIPU_FRAME.half, bound, cut);
+    conformTile(level, i, j, store.get(level, i, j), ITAIPU_FRAME.half, shape, cut);
   }
   terrain.cut = cut;
   await terrain.load(spawn, eye, (f) => progress(0.7 + 0.3 * f));

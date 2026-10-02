@@ -49,9 +49,11 @@ import { str } from '../strings/index.js';
 import { makeRoofs } from './alps/roofs.js';
 import { HERO_HALF } from './itaipu/terrain/frame.js';
 import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
-import { conformBound } from './itaipu/terrain/conform.js';
+import { conformBound, fillUnder, offCut } from './itaipu/terrain/conform.js';
 import { makeLook } from './itaipu/look/index.js';
-import { buildPart as buildDam, embankmentCrests, junctionRims } from './itaipu/dam/index.js';
+import {
+  buildPart as buildDam, embankmentCrests, embankmentSection, junctionRims,
+} from './itaipu/dam/index.js';
 import { buildPart as buildWater } from './itaipu/water/index.js';
 import { meetBanks, meetDam } from './itaipu/water/meet.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
@@ -266,9 +268,13 @@ async function buildItaipu(shell, progress, q, time) {
     quality: TERRAIN_Q[q.id] || TERRAIN_Q.high,
     spawn: spawnAt,
     eye,
-    /* The ground cut to the concrete where they meet (terrain/conform.js),
-     * before any part or the plant reads it. */
-    bound: conformBound(junctionRims(data['dam.json']), embankmentCrests(data['dam.json'])),
+    /* The ground cut to the concrete where they meet, and filled under
+     * the embankments' crests (terrain/conform.js), before any part or
+     * the plant reads it. */
+    shape: {
+      bound: conformBound(junctionRims(data['dam.json']), embankmentCrests(data['dam.json'])),
+      fill: fillUnder(embankmentSection(data['dam.json'])),
+    },
     progress: (f) => progress(0.2 + 0.5 * f),
   });
   /* The ground the parts place on and the plant stands on near the
@@ -280,6 +286,10 @@ async function buildItaipu(shell, progress, q, time) {
    * (water/meet.js meetBanks), on the ground as cut. */
   const plantWater = data['water.json'];
   data['water.json'] = meetBanks(plantWater, data['dam.json'], ground, HERO_HALF);
+  /* No building over the cut (terrain/conform.js offCut), for every part
+   * that reads the buildings. */
+  const overCut = offCut(data['osm/buildings.json'].features, terrain.cut);
+  data['osm/buildings.json'] = { ...data['osm/buildings.json'], features: overCut.kept };
   progress(0.7);
   await yieldToPaint();
 
@@ -361,8 +371,10 @@ async function buildItaipu(shell, progress, q, time) {
 
   const AIM = { active: false, sceneIndex: -1, correct: true, distance: 0 };
   scene.userData.itaipu = {
-    /* The water as drawn, for scripts/itaipu-check.js edges. */
+    /* The water as drawn and the buildings not built over the cut, for
+     * scripts/itaipu-check.js edges. */
     terrain, camera, parts, look, stream: streamer.stats, water: data['water.json'],
+    offCut: overCut.dropped.map((f) => f.id),
   };
   return {
     id: 'itaipu',

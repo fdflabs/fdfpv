@@ -133,6 +133,16 @@ const END_RAMP = 10;
 /* A training wall's coping, m: out past each face, over the top, and its
  * edge's depth under the top. */
 const COPING = { lip: 0.2, rise: 0.25, drop: 0.35 };
+/* An embankment edge's toe (below): its pieces along the lip, m; how far
+ * under the lip the ground must be for one, and its foot under the
+ * ground; its run across per metre down (a riprap face's 1.5), and the
+ * farthest it runs. */
+const TOE_STEP = 2;
+const TOE_GAP = 0.25;
+const TOE_RUN = 1.5;
+const TOE_REACH = 80;
+/* How far past a crest's edge the reservoir is looked for, m. */
+const WET_PROBE = 20;
 
 /* The spillway: the published 362 m, 15 piers and 14 gates 20 m wide,
  * so a pier is (362 - 14 x 20) / 15 across. Three chutes of 4, 4 and 6
@@ -177,6 +187,9 @@ const TONE = {
   shoulder: [0.7, 0.6, 0.5],
   /* The rockfill's dumped basalt, dark red brown (rockfill-road photo). */
   rock: [0.22, 0.16, 0.14],
+  /* The riprap an embankment's wet side is faced with, greyer and lighter
+   * than the dumped basalt, as the reservoir's banks are. */
+  riprap: [0.75, 0.66, 0.58],
   /* The radial gates' skin plates, rust red, and their arms and hoist
    * cylinders, orange (spill-gates photo). */
   gate: [0.2, 0.045, 0.025],
@@ -841,7 +854,7 @@ function spillLayout(sp) {
  *               end at the bays' lips (the floor's profile), and over the
  *               outer piers (225 under the bridge, down their slope to the
  *               hoist decks); its upstream edge in the reservoir at the
- *               sill. An outer wall's last END_RAMP falls to the lip
+ *               sill between the outer piers. An outer wall's last END_RAMP falls to the lip
  *               beside its end, so the hill round the wall's end is cut
  *               to the lip and does not stand over the bay;
  *   powerhouse  its plan at its roof, 148, over the tailrace.
@@ -895,7 +908,9 @@ export function junctionRims(dam) {
   for (const [d, y] of side(wallEnd(last)).reverse()) {
     uv.push([W, d, y]);
   }
-  uv.push([W - pierW, SPILL.upstream, sp.figures.sillY], [-W + pierW, SPILL.upstream, sp.figures.sillY]);
+  /* The upstream edge: the outer piers at their tops, the sill between. */
+  uv.push([W - pierW, SPILL.upstream, CREST_Y], [W - pierW, SPILL.upstream, sp.figures.sillY]);
+  uv.push([-W + pierW, SPILL.upstream, sp.figures.sillY], [-W + pierW, SPILL.upstream, CREST_Y]);
   const spillFloor = Math.min(...sp.groundProfile.map(([, y]) => y)) - 2;
 
   const ph = part('powerhouse');
@@ -925,6 +940,25 @@ export function embankmentCrests(dam) {
     const secs = sectionsOf(e.axis);
     return [...secs.map((sec) => offset(sec, -half)), ...secs.slice().reverse().map((sec) => offset(sec, half))];
   });
+}
+
+/* The embankments' crests as drawn, for the ground under them
+ * (terrain/conform.js fillUnder): each axis as the drawing's section
+ * points, the road's height and half width, and its rock edges' reach
+ * out and fall. */
+export function embankmentSection(dam) {
+  return {
+    axes: EMBANKMENTS.map((name) => {
+      const e = dam.find((p) => p.part === name);
+      if (!e) {
+        throw new Error(`itaipu dam: dam.json has no part "${name}"`);
+      }
+      return sectionsOf(e.axis).map((sec) => sec.p);
+    }),
+    crestY: CREST_Y,
+    half: EMBANKMENT_HALF,
+    edge: EMBANKMENT_EDGE,
+  };
 }
 
 /* A frame round a direction: two unit vectors square to it and each other. */
@@ -1162,6 +1196,9 @@ export async function buildPart(ctx) {
   const capsules = [];
   const records = [];
   const faces = [];
+  /* The embankments' toes (below): drawn only, so not among the faces
+   * scripts/dam-check.js holds to the solids. */
+  const toes = [];
   const figures = {};
   const sites = {};
   /* The war mode's targets (docs/WARFARE-PLAN.md section 8), by id, and
@@ -2966,6 +3003,23 @@ export async function buildPart(ctx) {
   }
 
   /* ================================================== embankment crests */
+  /* Which side of a crest the reservoir wets: its edge and toe are the
+   * greyer riprap there, as the ground's rockfill faces are (look/
+   * ground.js), the dark dumped basalt on the dry side. */
+  const reservoir = (ctx.data['water.json'] || []).find((b) => b.name === 'reservoir');
+  const wet = (x, z) => {
+    if (!reservoir) {
+      return false;
+    }
+    const o = reservoir.outline;
+    let odd = false;
+    for (let j = 0, k = o.length - 1; j < o.length; k = j, j += 1) {
+      if ((o[j][1] > z) !== (o[k][1] > z) && x < o[j][0] + ((z - o[j][1]) * (o[k][0] - o[j][0])) / (o[k][1] - o[j][1])) {
+        odd = !odd;
+      }
+    }
+    return odd;
+  };
   for (const name of EMBANKMENTS) {
     const e = need(name);
     const secs = sectionsOf(e.axis);
@@ -2983,10 +3037,37 @@ export async function buildPart(ctx) {
         const f0 = offset(a, side * (EMBANKMENT_HALF + EMBANKMENT_EDGE.out));
         const f1 = offset(b, side * (EMBANKMENT_HALF + EMBANKMENT_EDGE.out));
         const yEdge = CREST_Y - EMBANKMENT_EDGE.down;
-        concrete.quad([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], TONE.rock, up);
+        const reach = offset(a, side * (EMBANKMENT_HALF + EMBANKMENT_EDGE.out + WET_PROBE));
+        const tone = wet(reach[0], reach[1]) ? TONE.riprap : TONE.rock;
+        concrete.quad([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], tone, up);
         /* Ground where it is drawn: a craft off the road's edge lands on
          * the edge, not on the terrain up to a metre under it. */
         slopeRoof([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], `${name} edge`, 'rock');
+        /* The toe: where the ground under the edge's lip is still lower
+         * than it after the fill under the crest (terrain/conform.js), the
+         * fill's riprap face on down from the lip at TOE_RUN across to one
+         * down, to where it meets the ground, so the lip never hangs over
+         * a void. The 10 m ground cannot stand at the road's 221 m within
+         * a few metres of the spillway's 199 m sill, where the right
+         * bank's road meets the west pier. Drawn only. */
+        const out = [(side * a.m[0]) / Math.hypot(a.m[0], a.m[1]), (side * a.m[1]) / Math.hypot(a.m[0], a.m[1])];
+        const foot = (p) => {
+          let s = 0;
+          while (s < TOE_REACH && yEdge - s / TOE_RUN > ctx.ground(p[0] + out[0] * s, p[1] + out[1] * s) - TOE_GAP) {
+            s += TOE_STEP / 4;
+          }
+          return [p[0] + out[0] * s, yEdge - s / TOE_RUN, p[1] + out[1] * s];
+        };
+        const n = Math.max(1, Math.ceil(dist(f0, f1) / TOE_STEP));
+        for (let i = 0; i < n; i += 1) {
+          const p0 = [f0[0] + ((f1[0] - f0[0]) * i) / n, f0[1] + ((f1[1] - f0[1]) * i) / n];
+          const p1 = [f0[0] + ((f1[0] - f0[0]) * (i + 1)) / n, f0[1] + ((f1[1] - f0[1]) * (i + 1)) / n];
+          if (Math.min(ctx.ground(...p0), ctx.ground(...p1)) < yEdge - TOE_GAP) {
+            const pts = [[p0[0], yEdge, p0[1]], [p1[0], yEdge, p1[1]], foot(p1), foot(p0)];
+            concrete.quad(pts[0], pts[1], pts[2], pts[3], tone, [out[0], TOE_RUN, out[1]]);
+            toes.push({ name: `${name} toe`, pts });
+          }
+        }
       }
     }
     closeRun(run);
@@ -3242,6 +3323,7 @@ export async function buildPart(ctx) {
     survey: () => ({
       ...counts(),
       faces,
+      toes,
       figures,
       sites,
       solidIndices: solids.slice(),
