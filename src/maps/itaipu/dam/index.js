@@ -187,9 +187,6 @@ const TONE = {
   shoulder: [0.7, 0.6, 0.5],
   /* The rockfill's dumped basalt, dark red brown (rockfill-road photo). */
   rock: [0.22, 0.16, 0.14],
-  /* The riprap an embankment's wet side is faced with, greyer and lighter
-   * than the dumped basalt, as the reservoir's banks are. */
-  riprap: [0.75, 0.66, 0.58],
   /* The radial gates' skin plates, rust red, and their arms and hoist
    * cylinders, orange (spill-gates photo). */
   gate: [0.2, 0.045, 0.025],
@@ -961,6 +958,45 @@ export function embankmentSection(dam) {
   };
 }
 
+/* The bank strips (the embankments' wet edges and toes) as one indexed
+ * geometry: each strip a run of columns [crest edge, lip, foot], each
+ * vertex's normal the mean of the quads round it, facing up, so the
+ * ground's material shades it smooth, as it shades the terrain. */
+function bankGeometry(THREE, strips) {
+  const pos = [];
+  const idx = [];
+  for (const st of strips) {
+    const base = pos.length / 3;
+    for (const col of st) {
+      for (const p of col) {
+        pos.push(p[0], p[1], p[2]);
+      }
+    }
+    for (let i = 0; i + 1 < st.length; i += 1) {
+      for (let r = 0; r < 2; r += 1) {
+        const a = base + i * 3 + r;
+        const b = base + (i + 1) * 3 + r;
+        idx.push(a, b, b + 1, a, b + 1, a + 1);
+      }
+    }
+  }
+  /* Each triangle up facing, whichever way its strip runs. */
+  for (let t = 0; t < idx.length; t += 3) {
+    const [a, b, c] = [idx[t], idx[t + 1], idx[t + 2]];
+    const ny = (pos[b * 3 + 2] - pos[a * 3 + 2]) * (pos[c * 3] - pos[a * 3]) - (pos[b * 3] - pos[a * 3]) * (pos[c * 3 + 2] - pos[a * 3 + 2]);
+    if (ny < 0) {
+      idx[t + 1] = c;
+      idx[t + 2] = b;
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  return g;
+}
+
 /* A frame round a direction: two unit vectors square to it and each other. */
 function basisOf(d) {
   const len = Math.hypot(d[0], d[1], d[2]);
@@ -1199,6 +1235,8 @@ export async function buildPart(ctx) {
   /* The embankments' toes (below): drawn only, so not among the faces
    * scripts/dam-check.js holds to the solids. */
   const toes = [];
+  /* The reservoir's side of the embankments' crests, drawn as the bank. */
+  const bankStrips = [];
   const figures = {};
   const sites = {};
   /* The war mode's targets (docs/WARFARE-PLAN.md section 8), by id, and
@@ -3003,9 +3041,9 @@ export async function buildPart(ctx) {
   }
 
   /* ================================================== embankment crests */
-  /* Which side of a crest the reservoir wets: its edge and toe are the
-   * greyer riprap there, as the ground's rockfill faces are (look/
-   * ground.js), the dark dumped basalt on the dry side. */
+  /* Which side of a crest the reservoir wets: its edge and toe are drawn
+   * in the ground's material there, the bank beside them (look/ground.js
+   * riprap at the water), the dark dumped basalt on the dry side. */
   const reservoir = (ctx.data['water.json'] || []).find((b) => b.name === 'reservoir');
   const wet = (x, z) => {
     if (!reservoir) {
@@ -3024,6 +3062,7 @@ export async function buildPart(ctx) {
     const e = need(name);
     const secs = sectionsOf(e.axis);
     const run = [];
+    const strips = { [-1]: null, 1: null };
     for (let k = 0; k + 1 < secs.length; k += 1) {
       const a = secs[k];
       const b = secs[k + 1];
@@ -3038,8 +3077,10 @@ export async function buildPart(ctx) {
         const f1 = offset(b, side * (EMBANKMENT_HALF + EMBANKMENT_EDGE.out));
         const yEdge = CREST_Y - EMBANKMENT_EDGE.down;
         const reach = offset(a, side * (EMBANKMENT_HALF + EMBANKMENT_EDGE.out + WET_PROBE));
-        const tone = wet(reach[0], reach[1]) ? TONE.riprap : TONE.rock;
-        concrete.quad([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], tone, up);
+        const isWet = wet(reach[0], reach[1]);
+        if (!isWet) {
+          concrete.quad([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], TONE.rock, up);
+        }
         /* Ground where it is drawn: a craft off the road's edge lands on
          * the edge, not on the terrain up to a metre under it. */
         slopeRoof([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], `${name} edge`, 'rock');
@@ -3059,14 +3100,39 @@ export async function buildPart(ctx) {
           return [p[0] + out[0] * s, yEdge - s / TOE_RUN, p[1] + out[1] * s];
         };
         const n = Math.max(1, Math.ceil(dist(f0, f1) / TOE_STEP));
+        const along = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+        const needs = [];
         for (let i = 0; i < n; i += 1) {
-          const p0 = [f0[0] + ((f1[0] - f0[0]) * i) / n, f0[1] + ((f1[1] - f0[1]) * i) / n];
-          const p1 = [f0[0] + ((f1[0] - f0[0]) * (i + 1)) / n, f0[1] + ((f1[1] - f0[1]) * (i + 1)) / n];
-          if (Math.min(ctx.ground(...p0), ctx.ground(...p1)) < yEdge - TOE_GAP) {
+          const p0 = along(f0, f1, i / n);
+          const p1 = along(f0, f1, (i + 1) / n);
+          needs.push(Math.min(ctx.ground(...p0), ctx.ground(...p1)) < yEdge - TOE_GAP);
+          if (needs[i]) {
             const pts = [[p0[0], yEdge, p0[1]], [p1[0], yEdge, p1[1]], foot(p1), foot(p0)];
-            concrete.quad(pts[0], pts[1], pts[2], pts[3], tone, [out[0], TOE_RUN, out[1]]);
             toes.push({ name: `${name} toe`, pts });
+            if (!isWet) {
+              concrete.quad(pts[0], pts[1], pts[2], pts[3], TONE.rock, [out[0], TOE_RUN, out[1]]);
+            }
           }
+        }
+        /* On the reservoir's side the edge and its toe are the bank: one
+         * strip of columns (the crest's edge, the lip, the toe's foot or
+         * the lip again where none is needed, so a toe tapers into the
+         * bank where the ground comes up to it) in the ground's own
+         * material (bankStrips, below), riprap at the water as the
+         * reservoir's banks are, smooth across its pieces. */
+        if (!isWet) {
+          strips[side] = null;
+          continue;
+        }
+        if (!strips[side]) {
+          strips[side] = [];
+          bankStrips.push(strips[side]);
+        }
+        for (let i = strips[side].length ? 1 : 0; i <= n; i += 1) {
+          const e = along(e0, e1, i / n);
+          const f = along(f0, f1, i / n);
+          const toe = needs[i - 1] || needs[i];
+          strips[side].push([[e[0], CREST_Y, e[1]], [f[0], yEdge, f[1]], toe ? foot(f) : [f[0], yEdge, f[1]]]);
         }
       }
     }
@@ -3149,6 +3215,14 @@ export async function buildPart(ctx) {
     group.add(mesh);
     drawn[name] = mesh;
     triangles += m.triangles;
+  }
+  if (bankStrips.length) {
+    const mesh = new THREE.Mesh(bankGeometry(THREE, bankStrips), ctx.groundMaterial);
+    mesh.name = 'itaipu-dam-bank';
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    drawn.bank = mesh;
+    triangles += bankStrips.reduce((t, st) => t + 4 * (st.length - 1), 0);
   }
   group.add(penstockMesh);
   drawn.penstocks = penstockMesh;

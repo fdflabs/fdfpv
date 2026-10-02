@@ -315,6 +315,9 @@ async function buildItaipu(shell, progress, q, time) {
       manifest,
       ground,
       cut: terrain.cut,
+      /* The terrain's own material, for what the dam draws as the bank
+       * (its embankments' wet edges and toes). */
+      groundMaterial: look.ground,
       colliders,
       roofs: roofRecords,
       mats: look.mats,
