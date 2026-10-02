@@ -1,5 +1,5 @@
 /*
- * loading-art.js: the loading screen's key art, rendered by the game.
+ * loading-art.js: the key art behind the title, rendered by the game.
  *
  * WHAT THIS MAKES. Two raw frames of the Itaipu map at sunset with a war
  * Striker (src/render/attackers.js, the pusher delta) banking close to the
@@ -7,7 +7,7 @@
  * desktop, and `tall`, a phone's portrait, composed on its own because no
  * crop of the wide frame holds both the Striker and the spillway.
  * tools/loading-art/grade.py turns them into the shipped files in
- * assets/loading/. Nothing in either picture is painted or generated:
+ * assets/keyart/. Nothing in either picture is painted or generated:
  * every pixel of a raw frame is the renderer's, and the grade is a curve,
  * a split tone and a vignette.
  *
@@ -27,7 +27,7 @@
  * REGENERATE, DO NOT EDIT:
  *
  *     SIM_GPU=1 node scripts/loading-art.js OUT_DIR
- *     python3 tools/loading-art/grade.py OUT_DIR assets/loading
+ *     python3 tools/loading-art/grade.py OUT_DIR assets/keyart
  *
  * OUT_DIR is outside the repository: the raw frames are working files.
  * About two minutes on this machine's GPU.

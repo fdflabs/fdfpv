@@ -761,9 +761,9 @@ URL with no picture.
 `og.png` is that card, and it is a frame of the real shell rather than a
 drawing of one: `scripts/og.js` drives `scripts/shots.js`, which drives the
 actual page in headless Chromium, so the card cannot disagree with the product.
-It is the loading screen, the Itaipu key art at sunset under the name's
-lockup, with the load bar, its joke and the tagline hidden, and quantised to
-a 256 colour PNG so it stays under 300 KB.
+It is the Itaipu key art at sunset, the picture behind the title's gate,
+with the name's lockup over it in a column on the right, quantised to a 256
+colour PNG so it stays under 300 KB.
 
 Regenerate, do not edit, the same rule as the icons:
 
@@ -776,7 +776,7 @@ node scripts/og.js . ../fdfpv-landing \
                      ../fdfpv-leaderboard/public
 ```
 
-The picture is `assets/loading/wide.webp` and the name is the `.lockup` in
+The picture is `assets/keyart/wide.webp` and the name is the `.lockup` in
 `index.html`. Change either and rerun the generator, and the card follows.
 
 **Every `og:image` is an absolute URL.** A crawler does not resolve a relative

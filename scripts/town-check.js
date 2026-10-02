@@ -4,10 +4,13 @@
  *
  * In Node, the whole town built from the data folder's own files
  * (FDFPV_ITAIPU_DATA, by default ~/Desktop/fdfpv-itaipu-data) over the
- * hero's ground read off its tiles as the terrain engine reads them:
+ * hero's ground read off its tiles as the terrain engine reads them, cut
+ * to the concrete as the map cuts it (terrain/conform.js), and without
+ * the buildings the map drops over that cut (offCut), as the page builds
+ * it:
  *
- *   counts      every building in osm/buildings.json planned, drawn and
- *               roofed: as many roof records as buildings, one per OSM id;
+ *   counts      every building in osm/buildings.json not over the cut
+ *               planned, drawn and roofed: as many roof records as buildings, one per OSM id;
  *               every tower in osm/power.json stood;
  *   roofs       every wall box of every building is under its roof's
  *               upper face at each of its corners, and every roof is over
@@ -84,6 +87,10 @@ import {
 } from '../src/maps/terrain/frame.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
 import {
+  conformBound, conformTile, fillUnder, offCut,
+} from '../src/maps/itaipu/terrain/conform.js';
+import { embankmentCrests, embankmentSection, junctionRims } from '../src/maps/itaipu/dam/index.js';
+import {
   planTown, WALLS_R, FINE_R, MOVE,
 } from '../src/maps/itaipu/town/model.js';
 import { roofTop } from '../src/maps/alps/roofs.js';
@@ -118,10 +125,12 @@ const ok = (m) => console.log(`  ok   ${m}`);
 
 /*
  * The ground as the engine reads it (src/maps/terrain/engine.js
- * finestAt and tri): the finest tile's two triangles a cell,
- * on the same tiles the page draws.
+ * finestAt and tri): the finest tile's two triangles a cell, on the same
+ * tiles the page draws, cut to the concrete and filled under the
+ * embankments as src/maps/itaipu.js has them (terrain/conform.js), and
+ * the hero samples that cut lowered (terrain.cut), for offCut.
  */
-async function groundFrom(manifest) {
+async function groundFrom(manifest, dam) {
   const half = manifest.frame.ring[1];
   const tiles = new Map();
   const load = async (level, i, j) => {
@@ -140,9 +149,15 @@ async function groundFrom(manifest) {
     jobs.push(load(HERO, i, j));
   }
   await Promise.all(jobs);
+  const shape = { bound: conformBound(junctionRims(dam), embankmentCrests(dam)), fill: fillUnder(embankmentSection(dam)) };
+  const cut = [];
+  for (const [key, d] of tiles) {
+    const [level, i, j] = key.split(':').map(Number);
+    conformTile(level, i, j, d, ITAIPU_FRAME.half, shape, cut);
+  }
   const get = (level, i, j) => tiles.get(`${level}:${i}:${j}`) ?? null;
   const extent = 2 * half;
-  return (x, z) => {
+  const ground = (x, z) => {
     for (let level = HERO; level <= ITAIPU_FRAME.coarsest; level += 1) {
       const cell = level === HERO ? 10 : 30 * 2 ** level;
       const gx = (x + half) / cell;
@@ -171,6 +186,7 @@ async function groundFrom(manifest) {
     }
     throw new Error(`no tile holds (${x}, ${z})`);
   };
+  return { ground, cut };
 }
 
 /* A counting fill: what stream(fill, x, z) adds, counted, indices made up. */
@@ -856,7 +872,12 @@ async function main() {
   for (const n of OSM_FILES) {
     data[n] = JSON.parse(await readFile(join(DATA, n), 'utf8'));
   }
-  const ground = await groundFrom(manifest);
+  const dam = JSON.parse(await readFile(join(DATA, 'dam.json'), 'utf8'));
+  const { ground, cut } = await groundFrom(manifest, dam);
+  /* The map builds no building over the cut (src/maps/itaipu.js). */
+  const over = offCut(data['osm/buildings.json'].features, cut);
+  data['osm/buildings.json'] = { ...data['osm/buildings.json'], features: over.kept };
+  console.log(`Node: ${over.dropped.length} building(s) over the cut not built, as the map has it: ${over.dropped.map((f) => f.id).join(' ') || 'none'}`);
   const { town, most } = await nodeChecks(data, ground);
   town.most = most;
   if (!NODE_ONLY) {

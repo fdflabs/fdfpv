@@ -1,0 +1,148 @@
+/*
+ * drone-wireframe.js: the boot screen's drone, drawn from the drone.
+ *
+ * The bootloader's system check shows a wireframe of the craft the
+ * simulator flies (src/ui/loading.js, index.html .pdcs-drone). A drawn
+ * placeholder would drift from the model the first time the model changed,
+ * so this builds the real 5 inch quad with src/render/craft.js in headless
+ * Chromium, takes each mesh's hard edges (three.js EdgesGeometry, creases
+ * over EDGE_DEG), turns them to a three quarter view from above the nose,
+ * projects them flat and writes them as one SVG path. The lines are the
+ * model's own edges, unsmoothed and unretouched; only the view, the
+ * threshold and the stroke are chosen here.
+ *
+ * REGENERATE, DO NOT EDIT, the same rule as the icons:
+ *
+ *     npm run gen:drone
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { openPage } from '../tests/lib/page.js';
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const OUT = join(root, 'assets/boot/drone.svg');
+
+/* The picture's box, and the view: yaw round the craft and the camera's
+ * drop below the horizon, in degrees. */
+const W = 360;
+const H = 240;
+const PAD = 14;
+const YAW_DEG = 35;
+const PITCH_DEG = 32;
+/* Creases sharper than this are drawn. Low enough to keep the arms, the
+ * motor bells and the camera; high enough that a smooth bell is its
+ * outline and not every facet. */
+const EDGE_DEG = 28;
+
+const EXTRACT = `(async () => {
+  const THREE = await import('three');
+  const { buildCraft } = await import('/src/render/craft.js');
+  const craft = buildCraft('5inch');
+  const group = craft.group;
+  group.position.set(0, 0, 0);
+  group.quaternion.identity();
+  group.updateMatrixWorld(true);
+  const yaw = ${YAW_DEG} * Math.PI / 180;
+  const pitch = ${PITCH_DEG} * Math.PI / 180;
+  const view = new THREE.Matrix4().makeRotationX(pitch).multiply(new THREE.Matrix4().makeRotationY(yaw));
+  const segs = [];
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  group.traverse((o) => {
+    if (!o.isMesh || !o.visible || !o.geometry) {
+      return;
+    }
+    const edges = new THREE.EdgesGeometry(o.geometry, ${EDGE_DEG});
+    const p = edges.attributes.position;
+    const m = new THREE.Matrix4().multiplyMatrices(view, o.matrixWorld);
+    for (let i = 0; i < p.count; i += 2) {
+      a.fromBufferAttribute(p, i).applyMatrix4(m);
+      b.fromBufferAttribute(p, i + 1).applyMatrix4(m);
+      segs.push([a.x, -a.y, b.x, -b.y]);
+    }
+    edges.dispose();
+  });
+  return JSON.stringify(segs);
+})()`;
+
+const page = await openPage({ root, width: 800, height: 600 });
+let segs;
+try {
+  /* The shell boots behind this; the import map only has to be in. */
+  await page.until("document.readyState === 'complete'", 60000);
+  segs = JSON.parse(await page.evaluate(EXTRACT));
+} finally {
+  await page.close();
+}
+if (!segs.length) {
+  throw new Error('the craft has no edges to draw');
+}
+
+let minX = Infinity;
+let minY = Infinity;
+let maxX = -Infinity;
+let maxY = -Infinity;
+for (const [x1, y1, x2, y2] of segs) {
+  minX = Math.min(minX, x1, x2);
+  maxX = Math.max(maxX, x1, x2);
+  minY = Math.min(minY, y1, y2);
+  maxY = Math.max(maxY, y1, y2);
+}
+const scale = Math.min((W - 2 * PAD) / (maxX - minX), (H - 2 * PAD) / (maxY - minY));
+const offX = (W - (maxX - minX) * scale) / 2;
+const offY = (H - (maxY - minY) * scale) / 2;
+const px = (v, min, off) => (Math.round(((v - min) * scale + off) * 10) / 10).toString();
+
+/* One decimal of a 360 px box, and every segment once. */
+const seen = new Set();
+const parts = [];
+for (const [x1, y1, x2, y2] of segs) {
+  const p1 = `${px(x1, minX, offX)} ${px(y1, minY, offY)}`;
+  const p2 = `${px(x2, minX, offX)} ${px(y2, minY, offY)}`;
+  if (p1 === p2) {
+    continue;
+  }
+  const key = p1 < p2 ? `${p1}|${p2}` : `${p2}|${p1}`;
+  if (seen.has(key)) {
+    continue;
+  }
+  seen.add(key);
+  parts.push(`M${p1}L${p2}`);
+}
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+  <!--
+    The simulator's 5 inch quad as a wireframe, for the boot screen.
+    Generated by scripts/drone-wireframe.js in fdflabs/fdfpv from
+    src/render/craft.js; regenerate, do not edit.
+
+    This file is part of WebFPVSimulator.
+
+    WebFPVSimulator is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at
+    your option) any later version.
+  -->
+  <path d="${parts.join('')}" fill="none" stroke="#d7dddd" stroke-opacity="0.7" stroke-width="0.6" stroke-linecap="round"/>
+</svg>
+`;
+await mkdir(dirname(OUT), { recursive: true });
+await writeFile(OUT, svg);
+console.log(`${parts.length} segments, ${(svg.length / 1024).toFixed(1)} KB -> ${OUT}`);

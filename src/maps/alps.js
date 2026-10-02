@@ -157,12 +157,26 @@ const CEL_STYLE = {
  * built in, each with a seeded rng of its own, so every style stands the
  * same village on the same ground.
  */
+/*
+ * The phases buildValley names to its progress callback, in the order it
+ * runs them, for the boot screen's rows (src/ui/loading.js mapPhases). A
+ * style with a finish hook has that phase too. A phase named without a
+ * fraction is one whose start the bar has no number for: its parts report
+ * their own through paint.
+ */
+export function valleyPhases(withFinish) {
+  return ['look', 'terrain', 'nature', 'village', 'life', ...(withFinish ? ['finish'] : []), 'shaders'];
+}
+
+export const PHASES = valleyPhases(Boolean(CEL_STYLE.finish));
+
 export async function buildValley(shell, progress, q, style) {
   const renderer = shell.renderer;
   const camera = shell.camera;
+  progress(0, 'look');
   const stage = await style.stage(shell, q);
   const { scene } = stage;
-  progress(0.1);
+  progress(0.1, 'terrain');
   await yieldToPaint();
 
   /* A style may bring its own field (swiss2's walls, swiss2/terrain.js);
@@ -171,7 +185,7 @@ export async function buildValley(shell, progress, q, style) {
   scene.add(await style.ground(field, stage));
   const far = farRange(field, style.look);
   scene.add(far.mesh);
-  progress(0.45);
+  progress(0.45, 'nature');
   await yieldToPaint();
 
   /* The strip, on the flat the terrain holds for it. */
@@ -200,7 +214,9 @@ export async function buildValley(shell, progress, q, style) {
   const base = { scene, heightAt, valleyAxis, colliders, mats, paint, look: style.look };
 
   const nature = await style.nature({ ...base, rng: makeRng(20260924), stage, field, renderer, quality: q, camera });
+  progress(undefined, 'village');
   const village = await buildVillage({ ...base, rng: makeRng(20260925) });
+  progress(undefined, 'life');
   const life = buildLife({
     ...base, rng: makeRng(20260926), road: village.road, onGround: village.onGround, villageY: village.villageY,
     roofs: village.roofs, parts: village.parts,
@@ -210,6 +226,7 @@ export async function buildValley(shell, progress, q, style) {
    * own, so the broadphase is built after it, and roofs of its own, into
    * the village's list. */
   if (style.finish) {
+    progress(undefined, 'finish');
     await style.finish(scene, stage, {
       field, far, colliders, heightAt, nature, roofs: village.roofs,
     });
@@ -219,7 +236,7 @@ export async function buildValley(shell, progress, q, style) {
    * a style's own and nature's (the jetty's deck), as ground a craft can
    * land on (alps/roofs.js). */
   const roofs = makeRoofs([...village.roofs, ...(nature.roofs ?? [])]);
-  progress(0.9);
+  progress(0.9, 'shaders');
   await yieldToPaint();
 
   scene.add(shell.quad);

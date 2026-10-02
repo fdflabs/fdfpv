@@ -1,7 +1,7 @@
-# grade.py: the loading screen's key art, from the raw frames to the
+# grade.py: the key art behind the title, from the raw frames to the
 # shipped files.
 #
-#   python3 tools/loading-art/grade.py RAW_DIR assets/loading
+#   python3 tools/loading-art/grade.py RAW_DIR assets/keyart
 #
 # RAW_DIR holds wide.png and tall.png from scripts/loading-art.js, which
 # renders them in the game; this only grades them. Every step is a

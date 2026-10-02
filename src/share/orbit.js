@@ -206,6 +206,10 @@ async function renderAndCapture(mapId, key) {
 
   const mod = await spec.load();
   const view = await mod.buildMap(shell, (f) => {
+    /* A builder may name a phase with no fraction (src/maps/alps.js). */
+    if (f === undefined) {
+      return;
+    }
     setStatus(str('orbit.building_percent', { name: spec.name, v2: Math.round(f * 100) }));
   }, { quality: 'low' });
   pinThumb(shell, view, THREE);

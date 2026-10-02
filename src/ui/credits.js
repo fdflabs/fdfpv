@@ -21,11 +21,10 @@ import { str } from '../strings/index.js';
  * The project cards below could not be wrapped anyway: their copy
  * already carries links, and an <a> inside an <a> is not a document.
  *
- * Marks live in assets/credits (sim) or credits/ (board). The four
- * project marks are the official ones: Betaflight's dark wordmark,
- * TrackDraw's dark-background colour mark, Grok's 2025 wordmark,
- * Claude's starburst. The faces are the channels' own pictures, at the
- * size YouTube serves them. All of them are used only to name the work.
+ * Marks live in assets/credits (sim) or credits/ (board). The three
+ * project marks are the official ones: TrackDraw's dark-background
+ * colour mark, Grok's 2025 wordmark, Claude's starburst. The faces are
+ * the channels' own pictures, at the size YouTube serves them. All of them are used only to name the work.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -196,7 +195,7 @@ function handleLine(text) {
 /*
  * A project card: the mark across the top, and copy under it.
  *
- * THE MARK IS THE HEADING. Betaflight's wordmark says Betaflight, so a
+ * THE MARK IS THE HEADING. TrackDraw's wordmark says TrackDraw, so a
  * card that showed the wordmark and then wrote the name underneath said
  * it twice, which is what the roll used to do. The mark carries the
  * link and `alt` carries the accessible name, so a screen reader still
@@ -335,22 +334,23 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
   pilots.append(row);
   host.append(pilots);
 
+  /*
+   * The controller's GPLv3 attribution, and the only place in the game
+   * that names it (the owner's rule, 2 Oct 2026, held by npm run
+   * lint:bf): its name, its notice as upstream states it (the sources
+   * carry no copyright holder line, only "part of Cleanflight and
+   * Betaflight"), the licence, and the corresponding source, which is
+   * this repository's pinned vendor/betaflight with patches/. No mark.
+   */
   const controller = section(str('credits.the_controller'), '');
-  const bfBody = el('p');
-  bfBody.append(
-    document.createTextNode(str('credits.the_rates_the_pid_loop_the')),
-    link('https://github.com/betaflight/betaflight', 'Betaflight'),
-    document.createTextNode(str('credits.is_gplv3_so_this_is_too')),
-    link('https://github.com/betaflight/betaflight-configurator', str('ui.betaflight_configurator')),
-    document.createTextNode(str('credits.10_10_tab_names_4_5')),
+  const notice = el('p', 'credit-room');
+  notice.append(
+    document.createTextNode(str('credits.betaflight_notice')),
+    link('https://github.com/fdflabs/fdfpv', 'github.com/fdflabs/fdfpv'),
   );
-  controller.append(projectCard({
-    src: src('betaflight.svg'),
-    alt: 'Betaflight',
-    title: 'Betaflight',
-    href: 'https://betaflight.com',
-    body: bfBody,
-  }));
+  const noticeList = el('div', 'credit-rooms');
+  noticeList.append(notice);
+  controller.append(noticeList);
   host.append(controller);
 
   const tracks = section(str('credits.the_track_language'), '');

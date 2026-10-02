@@ -72,7 +72,7 @@ import { angleRateDeg } from '../src/fc/ratescurve.js';
 export const RATE_TYPES = ['BETAFLIGHT', 'RACEFLIGHT', 'KISS', 'ACTUAL', 'QUICK'];
 
 export const RATE_TYPE_LABEL = {
-  BETAFLIGHT: 'Betaflight',
+  BETAFLIGHT: 'Classic',
   RACEFLIGHT: 'Raceflight',
   KISS: 'KISS',
   ACTUAL: 'Actual',
@@ -141,7 +141,7 @@ const RATE_SYSTEMS = {
   KISS: {
     fields: {
       rcRate: field('RC rate', 1, 255, 0.01, 2, '',
-        'KISS\'s linear term. The curve is Betaflight\'s with KISS\'s own scaling, so the numbers look like Betaflight\'s and do not mean quite the same thing.'),
+        'KISS\'s linear term. The curve is the Classic one with KISS\'s own scaling, so the numbers look like Classic rates and do not mean quite the same thing.'),
       srate: field('Rate', 0, 99, 0.01, 2, '',
         'KISS\'s super rate, stopping at 0.99 because 1.00 divides by zero at full stick and the firmware would sit on its own clamp.'),
       expo: field('RC curve', 0, 100, 0.01, 2, '',
@@ -152,7 +152,7 @@ const RATE_SYSTEMS = {
   ACTUAL: {
     fields: {
       rcRate: field('Centre sensitivity', 1, 200, 10, 0, 'deg/s',
-        'How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator calls this column Center Sensitivity.'),
+        'How quickly the quad answers a small stick move, as the SLOPE of the curve at the middle. Low is calm for a smooth line, high is twitchy and quick. It is not the rate at half stick: read the curve. Configurator apps call this column Center Sensitivity.'),
       srate: field('Max rate', 1, 200, 10, 0, 'deg/s',
         'What the quad does at full stick, exactly. This is the number Actual rates exist for: the end of the curve is the number you type, whatever expo does to the middle.'),
       expo: field('Expo', 0, 100, 0.01, 2, '',
@@ -163,9 +163,9 @@ const RATE_SYSTEMS = {
   QUICK: {
     fields: {
       rcRate: field('RC rate', 1, 255, 0.01, 2, '',
-        'The slope at centre, in Betaflight\'s units: 1.00 is 200 deg/s of centre sensitivity. Quick rates work out the super rate for you from this and Max rate.'),
+        'The slope at centre, in Classic units: 1.00 is 200 deg/s of centre sensitivity. Quick rates work out the super rate for you from this and Max rate.'),
       srate: field('Max rate', 1, 200, 10, 0, 'deg/s',
-        'What the quad does at full stick. Quick rates are Betaflight rates with the super rate solved for you, so this end of the curve is exact and the middle is whatever RC rate says.'),
+        'What the quad does at full stick. Quick rates are Classic rates with the super rate solved for you, so this end of the curve is exact and the middle is whatever RC rate says.'),
       expo: field('Expo', 0, 100, 0.01, 2, '',
         'Softens the middle of the stick and leaves the ends alone.'),
     },
@@ -206,7 +206,7 @@ export const THROTTLE_CURVE_FIELDS = Object.freeze({
   thrMid: field('Throttle mid', 0, 100, 0.01, 2, '',
     'Where the curve pivots. 0.50 is the factory middle; pilots who hover low often bring it down toward their hover stick so the expo softens the right part of the travel.'),
   thrExpo: field('Throttle expo', 0, 100, 0.01, 2, '',
-    'Flattens the throttle around the mid point and steepens the ends, exactly Betaflight\'s thr_expo. 0 is the factory straight line.'),
+    'Flattens the throttle around the mid point and steepens the ends, exactly the firmware\'s thr_expo. 0 is the factory straight line.'),
 });
 
 /*
