@@ -50,10 +50,15 @@ const ROOM_ACTION = 'friends-room-';
  * upright phone, where the rooms stack a line each and a room's whole
  * name (32 letters, never cut) takes two lines beside its load: three
  * such put the cards' tags under the command bar, 7 px at 390 by 844 and
- * 21 px at 360 by 640. All rooms lists the rest. */
+ * 21 px at 360 by 640. One on a short upright phone (360 by 640), where
+ * two rooms saying what their pilots are doing ("Free flight · 1 in
+ * lobby", 2026-10-02) put the tags 42 px under it. All rooms lists the
+ * rest. */
 const TITLE_ROOMS = 3;
 const TITLE_ROOMS_UPRIGHT = 2;
+const TITLE_ROOMS_SHORT = 1;
 const UPRIGHT_PHONE = '(max-width: 860px) and (min-height: 521px)';
+const SHORT_PHONE = '(max-width: 860px) and (min-height: 521px) and (max-height: 700px)';
 
 /*
  * ui: the menu (show, askForm, refreshFriends); link: the room socket
@@ -91,9 +96,13 @@ export function createRoomBrowser({
   });
   const worlds = () => MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id);
   const upright = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(UPRIGHT_PHONE) : null;
-  if (upright) {
-    upright.addEventListener('change', () => ui.refreshFriends());
+  const short = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(SHORT_PHONE) : null;
+  for (const q of [upright, short]) {
+    if (q) {
+      q.addEventListener('change', () => ui.refreshFriends());
+    }
   }
+  const titleRooms = () => (short && short.matches ? TITLE_ROOMS_SHORT : upright && upright.matches ? TITLE_ROOMS_UPRIGHT : TITLE_ROOMS);
   let draft = null;
   let busy = false;
   let error = null;
@@ -406,7 +415,7 @@ export function createRoomBrowser({
      * then the rooms, All rooms and Make a room. `lobby:` actions go the
      * Fly with friends card's way in first (ui.js act). */
     titleItems() {
-      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, upright && upright.matches ? TITLE_ROOMS_UPRIGHT : TITLE_ROOMS);
+      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, titleRooms());
       return [
         { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
         ...open.map((r) => ({

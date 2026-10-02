@@ -270,11 +270,13 @@ try {
   const PANEL_CUT = `[...document.querySelectorAll('.gate-rooms-count, .gate-room-name, .gate-room-value')]
     .filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;
   const LONG_LISTED = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
-  for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
+  /* How many rooms the panel lists (src/ui/roombrowser.js): one on a
+   * short upright phone, two on an upright one, three otherwise. */
+  for (const [w, h, row, n] of [[1280, 720, true, 3], [1920, 1080, true, 3], [390, 844, false, 2], [360, 640, false, 1], [844, 390, true, 3]]) {
     await resize(page, w, h);
     /* The panel follows the window on its media query's change event, a
      * frame or more after the resize. */
-    await page.until(`${LONG_LISTED}.length === ${row ? 3 : 2}`, 15000).catch(() => {});
+    await page.until(`${LONG_LISTED}.length === ${n}`, 15000).catch(() => {});
     await page.sleep(300);
     const v = await page.evaluate(LAYOUT);
     const tops = v.cards.map((x) => x.box[1]);
@@ -285,7 +287,7 @@ try {
     const cut = await page.evaluate(PANEL_CUT);
     check(`${w} by ${h}, three 32 letter names listed: five cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
-    check(`${w} by ${h}: the panel lists ${row ? 'three' : 'two'} of them, no name cut`, listed.length === (row ? 3 : 2)
+    check(`${w} by ${h}: the panel lists ${['none', 'one', 'two', 'three'][n]} of them, no name cut`, listed.length === n
       && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
     await shot(page, `gate-listed-${w}x${h}`);
   }
@@ -479,7 +481,13 @@ try {
    * The war is on and the pilot flying it, a callout up. The pause keeps
    * the room and draws nothing of the war; Back to title leaves it, and
    * for eight seconds nothing of the war or the room is drawn over the
-   * title. */
+   * title. The war room is the Defend the Paraná card's, one click from
+   * the title into its lobby. */
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await page.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
+  await click(page, '.gate-card-campaign');
+  await page.until("window.__rooms().phase === 'open' && window.__rooms().mode === 'war' && window.__ui.screen === 'friends'", 60000).catch(() => {});
+  await page.sleep(500);
   await page.evaluate("window.__warDo('start')");
   await page.until("window.__war().view.state === 'live' && window.__ui.screen === 'flight'", 60000).catch(() => {});
   await page.until('window.__war().hud.calls.length > 0', 30000).catch(() => {});

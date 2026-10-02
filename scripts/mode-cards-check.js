@@ -431,14 +431,16 @@ try {
   }
   await f.until('window.__ui.onGate()', 10000).catch(() => {});
   const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
-  for (const [w, h, upright] of [[390, 844, true], [360, 640, true], [844, 390, false], [1280, 720, false]]) {
+  /* How many rooms the panel lists (src/ui/roombrowser.js): one on a
+   * short upright phone, two on an upright one, three otherwise. */
+  for (const [w, h, n] of [[390, 844, 2], [360, 640, 1], [844, 390, 3], [1280, 720, 3]]) {
     await resize(f, w, h);
-    await f.until(`${LISTED_NAMES}.length === ${upright ? 2 : 3}`, 15000).catch(() => {});
+    await f.until(`${LISTED_NAMES}.length === ${n}`, 15000).catch(() => {});
     const listed = await f.evaluate(LISTED_NAMES);
     const cut = await f.evaluate(CUT(PANEL_TEXT));
     const v = await f.evaluate(LAYOUT);
-    check(`${w} by ${h}, three 32 letter names: the panel lists ${upright ? 'two' : 'three'}, every name whole`,
-      listed.length === (upright ? 2 : 3) && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
+    check(`${w} by ${h}, three 32 letter names: the panel lists ${['none', 'one', 'two', 'three'][n]}, every name whole`,
+      listed.length === n && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
     check(`${w} by ${h}, three 32 letter names: the panel and the cards still fit`, panelLaidOut(v) && laidOut(v),
       `panel ${JSON.stringify(v.panel)} cards ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar}`);
     await shot(f, `panel-long-${w}x${h}`);

@@ -218,6 +218,8 @@ try {
   /* EVERY CARD IS ONE PRESS INTO ITS LOBBY (the owner, 2026-10-02). The
    * rooms server makes six rooms a minute for an address. */
   await page.sleep(61000);
+  /* The war's consent is the war card's own question (war-card-check). */
+  await page.evaluate("(() => { window.__ui.settings.warConsent = true; window.__ui.persistSettings(); return true; })()");
   const LOBBY_UP = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
   const cards = [];
   for (const [way, game] of [['race-5inch', 'race'], ['freestyle-wing1000', null], ['combat', 'combat'], ['ace', 'tag'], ['campaign', 'war']]) {
