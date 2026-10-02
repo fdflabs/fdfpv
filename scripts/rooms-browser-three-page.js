@@ -23,8 +23,9 @@
  * Then the lobby (the owner, 2026-09-30): B opens Rooms from inside the
  * room and finds it on top, with its pilots and Leave, and not again in
  * the list; a public room nobody has joined is listed as empty with the
- * minutes before it closes. B leaves with the arrows and Enter, and the
- * list counts two.
+ * minutes before it closes. B leaves with the arrows and Enter: Leave is
+ * the one way out of a room and goes to the title (docs/FLOW-AUDIT.md
+ * rule 5), whose rooms panel and then Rooms list the room again with two.
  *
  * A server that is already in use (the live VM) has other rooms, left by
  * earlier runs or flown by pilots, so the room's name carries this run's
@@ -306,13 +307,20 @@ try {
   await shot(b, '4-lobby-in-room');
   check('the cursor reaches Leave', await arrowTo(b, 'friends-leave'));
   await b.tap('Enter');
-  await b.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
-  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(action)} && it.value === '2 of 16')`, 20000).catch(() => {});
+  await b.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
+  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(`lobby:${action}`)} && it.value === '2 of 16')`, 20000).catch(() => {});
+  const gate = await b.evaluate(ROWS);
+  check('Enter on it leaves for the title (Leave goes to the title, FLOW-AUDIT rule 5), whose rooms panel lists the room again, with two',
+    await b.evaluate("window.__rooms().phase === 'idle' && window.__ui.onGate()") && gate.some((r) => r.action === `lobby:${action}` && r.value === '2 of 16'),
+    gate.map((r) => `${r.label}=${r.value}`).join(' | '));
+  await shot(b, '5-title-after-leave');
+  await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
+  await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(action)} && it.value === '2 of 16')`, 20000).catch(() => {});
   const after = await b.evaluate(ROWS);
-  check('Enter on it leaves: B stays in Rooms, the room is listed again, with two',
+  check('and Rooms lists it with two, and no room of B\'s on top',
     await b.evaluate("window.__ui.screen === 'rooms'") && after.some((r) => r.action === action && r.value === '2 of 16')
     && !after.some((r) => r.label === en['roombrowser.here_section']), after.map((r) => `${r.label}=${r.value}`).join(' | '));
-  await shot(b, '5-lobby-after-leave');
+  await shot(b, '6-lobby-after-leave');
 
   const errs = [...a.errors, ...b.errors, ...c.errors].filter((e) => !e.startsWith('network:'));
   check('no page error on any page', errs.length === 0, errs.slice(0, 3).join(' | '));
