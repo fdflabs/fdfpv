@@ -401,9 +401,9 @@ const SKY_GLSL = /* glsl */ `
     float up = max(d.y, 0.0);
     float t = pow(1.0 - up, ${FALL.toFixed(2)});
     vec3 c = mix(uZenith, uHaze, t) + uAirSun * hg * mix(${GLOW_HIGH.toFixed(2)}, 1.0, t);
-    if (uStars > 0.0) {
-      c += vec3(0.9, 0.94, 1.0) * (starsAt(d) * uStars);
-    }
+    /* The stars are added last, behind the clouds: veiled by the air
+     * with the cloud, a far cloud let them through as if it were sky. */
+    float starsSeen = uStars;
     vec3 cityCol = vec3(${CITY_GLOW.r.toFixed(3)}, ${CITY_GLOW.g.toFixed(3)}, ${CITY_GLOW.b.toFixed(3)});
     if (uCityOn > 0.0 && d.y > 0.0 && uCam.y < ${CITY_AIR_Y.toFixed(1)}) {
       float runAir = (${CITY_AIR_Y.toFixed(1)} - uCam.y) / max(d.y, 0.015);
@@ -446,7 +446,11 @@ const SKY_GLSL = /* glsl */ `
         vec3 cloud = light / cover;
         float air = 1.0 - exp(-t0 / ${CLOUD_FADE.toFixed(1)});
         c = mix(c, mix(cloud, c, air), cover * horizon);
+        starsSeen *= 1.0 - cover * horizon;
       }
+    }
+    if (starsSeen > 0.0) {
+      c += vec3(0.9, 0.94, 1.0) * (starsAt(d) * starsSeen);
     }
     return c;
   }
