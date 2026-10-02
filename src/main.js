@@ -76,7 +76,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, AVX_INSETS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager } from './avionics/sensors.js';
@@ -703,6 +703,7 @@ export async function boot({
    * AI switch (H).
    */
   const avionicsHud = new AvionicsHud(uiRoot);
+  avionicsHud.setLevel(ui.settings.avxLevel);
   const telemetry = createFlightTelemetry();
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
   sensors.setInset(ui.settings.avxInset);
@@ -2166,6 +2167,7 @@ export async function boot({
       }
       roomGone.clear();
       roomSessionWelcome(w);
+      roomBootLand(w);
       roomWarJoinGate(w);
       /* Crash damage is on in this room: a pilot already flying its world
        * with it off starts again, as a war's does (warBegin). */
@@ -2314,7 +2316,7 @@ export async function boot({
   /* The room browser and Make a room (src/ui/roombrowser.js), whose list
    * is fetched only while somebody could be reading it. */
   const roomBrowser = createRoomBrowser({
-    ui, link: roomLinkState, roomName, here: () => (view ? view.id : worldId()), preset: () => ui.roomGame || null,
+    ui, link: roomLinkState, roomName, here: () => seatWorld(), preset: () => ui.roomGame || null,
     war: (room) => warEnter(room),
     pilots: () => roomPeers.size + 1,
     missions: () => (campaignRef ? campaignRef.playable() : []),
@@ -2571,10 +2573,15 @@ export async function boot({
     return l && Number.isFinite(l.speedMul) ? l.speedMul : 1;
   }
   /* The end banner's restart: the host starts the same mission again,
-   * straight to the countdown; the room keeps the host's loadout. */
+   * straight to the countdown; the room keeps the host's loadout. A host
+   * handed the room by a leaving one may never have consented. */
   const warHud = createWarHud(roomSeatName, {
     host: () => roomHost(roomLinkState.state().welcome),
-    go: (v) => roomWar.start(v.mission),
+    go: async (v) => {
+      if (await warConsented()) {
+        roomWar.start(v.mission);
+      }
+    },
     back: () => (warBackAt != null && warLobby() ? Math.max(0, Math.ceil((warBackAt - performance.now()) / 1000)) : null),
   });
   /* Off the flight screen at once, not at the next frame (roomWarFrame
@@ -2590,6 +2597,8 @@ export async function boot({
   };
   const warRoundCard = createWarRoundCard(roomSeatName);
   const warMarkers = createWarMarkers(shell.camera, shell.renderer.domElement);
+  /* One marker an object: the Avionics HUD's boxes, by reference. */
+  warMarkers.setClaims(avionicsHud.claims);
   const warCalls = createWarCalls();
   /* The events of each frame as they were taken, for window.__war. */
   const warLog = [];
@@ -2921,8 +2930,11 @@ export async function boot({
     return go;
   }
 
+  /* The start row's press. Consent first, whoever's room this is: a
+   * room made by hand never went through warEnter's (FLOW-AUDIT.md D6).
+   * Then the mission campaign Play chose for this room, else mission 1. */
   async function warStart() {
-    if (await warConsented()) {
+    if (await warConsented() && !campaignRef.startSelected()) {
       roomWar.start(roomMission(), { intro: true });
     }
     ui.refreshFriends();
@@ -2996,19 +3008,19 @@ export async function boot({
    * the title. Its room is public, named for its host, so a friend finds
    * it in Rooms (the owner, 2026-10-01: "a new room isnt created and made
    * public so my friend cant easily join"); a name the room rules would
-   * not take is left to the picked one. */
+   * not take is left to the picked one. Resolves the code of the room it
+   * made, or null. */
   ui.onWarCard = async (card, mission = null) => {
     const name = normaliseRoomName(str('war.room_name', { name: roomName(ownName()) })) || null;
     for (;;) {
       try {
-        await warEnter({ mission, public: true, name }, card);
-        return;
+        return await warEnter({ mission, public: true, name }, card);
       } catch (e) {
         const again = await ui.askConfirm({
           title: str('war.card'), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
         });
         if (!again) {
-          return;
+          return null;
         }
       }
     }
@@ -3622,6 +3634,31 @@ export async function boot({
   /* Every frame, after the aircraft is posed: send this one, draw the
    * others. wallMs is the render clock. */
   let roomAutoJoined = false;
+  /* The code the boot rejoins (a reload, or a ?room= link), until a
+   * welcome; null after. */
+  let roomBootJoin = null;
+
+  /*
+   * A RELOAD KEEPS YOU IN YOUR ROOM, AND ON ITS SCREEN. The owner
+   * (2026-10-01) decided a reload must keep the pilot in their room; it
+   * did, but the page booted on the gate with nothing saying so, and Free
+   * Flight from there flew inside the room (docs/FLOW-AUDIT.md D2). The
+   * boot's rejoin lands on the room screen as the Fly with friends card
+   * would, without seating anything: the welcome seats the room's world.
+   * Only while the title is still up: a pilot who has gone on is left
+   * where they went.
+   */
+  function roomBootLand(w) {
+    const wanted = roomBootJoin;
+    roomBootJoin = null;
+    if (!wanted || normaliseCode(w.code) !== wanted || ui.screen !== 'title') {
+      return;
+    }
+    ui.craftGate = false;
+    ui.mode = 'freestyle';
+    ui.returnTo = 'title';
+    ui.show('friends');
+  }
   function roomFrame(wallMs, dt) {
     raceHoldMs = 0;
     /* Put up again below when there is a live match to put it round. */
@@ -3634,6 +3671,7 @@ export async function boot({
       roomAutoJoined = true;
       const wanted = wantedRoom();
       if (wanted && roomLinkState.available()) {
+        roomBootJoin = wanted;
         roomLinkState.join(wanted);
       }
     }
@@ -3977,8 +4015,7 @@ export async function boot({
     if (roomGameUp()) {
       return null;
     }
-    /* Nor on the title, which is out of the room (ui.onTitle): a reload
-     * rejoins there, and says nothing of it until the pilot flies. */
+    /* Nor on the title, which is never in a room (ui.inRoom). */
     if (ui.screen === 'title') {
       return null;
     }
@@ -4774,39 +4811,19 @@ export async function boot({
   }
 
   /*
-   * THE TITLE IS NOT IN A ROOM. The owner (2026-09-30), back on the title
-   * from a private war room: "its showing like this, like its showing the
-   * empty room thats playing while im here, that shouldnt happen". The war
-   * went on with nobody flying it, its callouts and the room's "You are
-   * alone" drawn over the cards. Going back to the title (the menus' row,
-   * Escape from a screen whose way back is the title) leaves the room the
-   * way the room screen's Leave does, so an empty room closes on the
-   * server's rule. The pause menu and the room screen keep it; so does a
-   * reload, which rejoins on the title (roomSessionWelcome).
+   * THE TITLE IS NEVER IN A ROOM (docs/FLOW-AUDIT.md rule 3, approved by
+   * the owner 2026-10-01). The owner (2026-09-30), back on the title from
+   * a private war room: "its showing like this, like its showing the empty
+   * room thats playing while im here, that shouldnt happen". Inside a room
+   * the room screen stands where the title would be (ui.show), Back and
+   * Escape stop there, and every row to the title is Leave (ui.roomExit),
+   * which leaves first and then goes to the title. So a card on the title
+   * never meets a room, and nothing leaves a room by the side effect of
+   * a screen.
    */
-  ui.onTitle = () => {
-    if (roomLinkState.state().phase !== 'idle') {
-      roomLeave();
-    }
-  };
-
-  /*
-   * A GAME'S TITLE CARD IN A ROOM RUNNING ANOTHER GAME leaves that room.
-   * The owner (2026-09-30), still in the private Itaipu room of a Defend
-   * Itaipu mission: "when i enter the toilet paper mode, it then switches
-   * to mission mode, in itaipu". The card opened that room, headed it as
-   * set up for combat, the room refused combat's start because the war
-   * was on, and the war's go flew the pilot into it. Out of the room, the
-   * card's screen is the one it always had without a room: Make a room
-   * first, under the card's game. Leaving ends nobody else's game, and a
-   * game with too few pilots left is ended by the room (edge/rooms/core.js
-   * settleGames).
-   */
-  ui.onGameCard = (game) => {
-    const running = roomLinkState.state().phase === 'open' ? roomRunning() : null;
-    if (running && running !== game) {
-      roomLeave();
-    }
+  ui.inRoom = () => {
+    const phase = roomLinkState.state().phase;
+    return phase === 'open' || phase === 'connecting';
   };
 
   /* R says ready or not in the war's lobby, as the Ready row does. */
@@ -4824,11 +4841,7 @@ export async function boot({
       return;
     }
     if (action === 'friends-war-start') {
-      if (campaign.startSelected()) {
-        ui.refreshFriends();
-      } else {
-        await warStart();
-      }
+      await warStart();
       return;
     }
     if (action === 'friends-war-private') {
@@ -4886,7 +4899,11 @@ export async function boot({
     }
     if (action === 'friends-leave') {
       roomLeave();
-      ui.refreshFriends();
+      ui.act('title');
+      /* The row remembered on the room screen was one of the room's, gone
+       * with it: the next visit opens on the screen's primary, as entering
+       * a room forgets the row from outside one (ui.refreshFriends). */
+      delete ui.cursorMemory.friends;
       return;
     }
     if (action === 'friends-copy') {
@@ -9813,7 +9830,9 @@ export async function boot({
       reset();
       ghostCourseChanged();
       mode = 'title';
-      ui.show('title');
+      /* Back to the room screen only if the pilot is still on it: one who
+       * left for the title while the world loaded stays there. */
+      ui.show(stayScreen === 'friends' && ui.screen === 'friends' ? 'friends' : 'title');
       ui.applyLocationHash();
       showCourseNotes();
     } else {
@@ -9996,15 +10015,21 @@ export async function boot({
      * pilot to the title. The 'fc' it replaces named a screen that no
      * longer exists, and would have failed silently: show() on an unknown
      * name displays no node and leaves the previous screen's rows behind.
+     * 'friends' because a card seats its own world on the room screen
+     * (ui.js, the card's world wins), and a swap to another world, which
+     * otherwise ends on the title, ends back there (adoptLoadedView).
      */
-    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits'];
+    const STAY_SCREENS = ['pilot', 'quad', 'launch', 'rates', 'paused', 'title', 'credits', 'friends'];
     const stayScreen = STAY_SCREENS.includes(ui.screen) ? ui.screen : null;
     const stayMode = keepPlace ? mode : 'title';
     swapInFlight = true;
     mapReady = false;
     if (!keepPlace) {
       mode = 'title';
-      ui.show('title');
+      /* The room screen stays up under the loading bar when the swap comes
+       * back to it: the title shown for a moment put its rows under a
+       * press still going on (a card's mouse up landed on the title's). */
+      ui.show(stayScreen === 'friends' ? 'friends' : 'title');
     }
     const entry = mapById(wantId);
     loading.run(planStages(['module', 'world', 'frame'], entry.buildMs));
@@ -11461,6 +11486,9 @@ export async function boot({
       notice = { text, untilMs: performance.now() + 4200 };
     },
   });
+  /* One sync now, resolving to whether it changed anything here, for
+   * scripts/account-browser-check.js, which cannot wait out the minute. */
+  window.__accountSync = () => accountUi.sync();
   ui.onAction = (action, s) => {
     if (s) {
       applySettings(s);
@@ -11574,7 +11602,13 @@ export async function boot({
       buildWorld = null;
       roomRaceRetire();
       mode = 'title';
-      reset();
+      /* Not while a world swap is in flight: the old world is already
+       * disposed (syncWorldNow), its terrain gone under adoptSpawn, and the
+       * swap resets the run on the world it brings. Leave goes to the title
+       * at once now, so a Leave during a swap reached this. */
+      if (!swapInFlight) {
+        reset();
+      }
       /* Now, not on the next frame: a choice made on the title before a
        * frame has run must meet the world as the seat has it. */
       if (worldHold) {
@@ -11982,7 +12016,7 @@ export async function boot({
   });
 
   /* The Avionics HUD's keys (docs/AVIONICS-HUD.md section 9). */
-  const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU']);
+  const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY']);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -12035,9 +12069,14 @@ export async function boot({
     /* The Avionics HUD's own keys, while it is on screen
      * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
      * mode, K the zoom, I the sensor full screen or the pilot's picture, U
-     * the inset's size (a setting, so it is kept). */
+     * the inset's size and Y how much is drawn (settings, so kept). */
     if (ui.screen === 'flight' && avionicsHud.on && AVX_KEYS.has(code)) {
-      if (code === 'KeyU') {
+      if (code === 'KeyY') {
+        ui.settings.avxLevel = AVX_LEVELS[(AVX_LEVELS.indexOf(ui.settings.avxLevel) + 1) % AVX_LEVELS.length];
+        ui.persistSettings();
+        avionicsHud.setLevel(ui.settings.avxLevel);
+        notice = { text: str('avionics.hud.notice_level', { level: str(`avionics.hud.level.${ui.settings.avxLevel}`) }), untilMs: performance.now() + 1600 };
+      } else if (code === 'KeyU') {
         ui.settings.avxInset = AVX_INSETS[(AVX_INSETS.indexOf(ui.settings.avxInset) + 1) % AVX_INSETS.length];
         ui.persistSettings();
         sensors.setInset(ui.settings.avxInset);

@@ -2,7 +2,7 @@
  * avionics-layout.js: the Avionics HUD (src/ui/avionicshud.js,
  * docs/AVIONICS-HUD.md) on the real shell, at 1280x720 and 1920x1080:
  *
- *   SIM_GPU=1 npm run check:avionics-layout [-- outdir]
+ *   SIM_GPU=1 npm run check:avionics-layout [-- outdir] [--owner]
  *
  * One page at a time. Per size, the 7 inch (a combat airframe) seated on
  * Itaipu in a private room with this pilot alone in it, and what must
@@ -26,6 +26,20 @@
  * sets the 7 inch to the FPV OSD gets it after a reload.
  *
  * And a phone on its side (844x390, touch), alone, at each inset size.
+ *
+ * And the owner's scene ("overlays too obtrusive"): the Striker in a live
+ * war over Itaipu, thrown nose on at mission 1's first Striker coming
+ * head on (his two loiterers are round 3's, minutes in), the AI tracking, at 1280x720, 1625x1034 (his screenshot's) and the phone,
+ * at each declutter level Y gives (standard first, the default):
+ *
+ *   - nothing opaque (a fill at least half solid, or a corner panel) in
+ *     the middle of the picture, between the tapes' inner edges and in
+ *     the middle third of its height: the reticle and the track boxes
+ *     are lines
+ *   - one marker an object: no war marker drawn on an object the HUD has
+ *     a box on, and the war's kind in that box's tag
+ *   - no two of the HUD's words on each other, nor on a panel
+ *   - MINIMAL hides the corner panels; the level is kept as a setting
  *
  * Pictures go in outdir (build/avionics-layout by default); look at them.
  *
@@ -59,6 +73,10 @@ const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(ro
 const SIZES = [[1280, 720], [1920, 1080]];
 /* A phone on its side, the pilot's thumbs on the screen. */
 const PHONE = [844, 390];
+/* The owner's screenshot of the obtrusive overlays. */
+const OWNER = [1625, 1034];
+/* The owner's scene's throw, m/s: over the Striker's prop stall (13). */
+const CRUISE_MS = 22;
 /* The inset's pixels at each size, src/render/sensorview.js. */
 const INSET_PX = { small: [320, 200], medium: [480, 300], large: [640, 400] };
 
@@ -349,6 +367,112 @@ async function phone() {
   }
 }
 
+/*
+ * The owner's scene. Mission 1's first Striker is sampled twice for its
+ * heading, and our Striker thrown 900 m ahead of it on that line, nose
+ * on, so the two close for a quarter of a minute while the AI tracks it. (The FPV pair, 0.25 m across, is under what the sensor
+ * detects at that range.)
+ */
+const SCENE = `JSON.stringify((() => {
+  const hud = window.__avionicsHud();
+  const m = window.__war().markers;
+  const panels = [...document.querySelectorAll('.avx-panel')].filter((e) => getComputedStyle(e).display !== 'none')
+    .map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0)
+    .map((r) => ({ x: r.left, y: r.top, w: r.width, h: r.height }));
+  return { hud, marks: m.marks || [], panels, vw: innerWidth, vh: innerHeight, state: window.__avionics.state().hud.state };
+})())`;
+
+/* The middle of the picture, the pilot's: between the tapes' inner
+ * edges (the HUD's own frame round it), the middle third of the height. */
+function judgeScene(got, label) {
+  const t = got.hud.tapes;
+  const third = { x: t.speed.x + t.speed.w, y: got.vh / 3, w: t.agl.x - (t.speed.x + t.speed.w), h: got.vh / 3 };
+  const solid = [...(got.hud.fills || []).filter((f) => f.alpha >= 0.5), ...got.panels.map((r) => ({ ...r, alpha: 1 }))].filter((f) => meets(f, third));
+  check(`${label}: nothing opaque in the middle, between the tapes (the reticle and the boxes are lines)`, solid.length === 0, solid.map((f) => `${box(f)} alpha ${f.alpha}`).join(' | '));
+  const claims = got.hud.claims || [];
+  const inClaim = (k) => claims.some((c) => Math.hypot(k.x - c.x, k.y - c.y) <= c.r);
+  const twice = got.marks.filter((k) => !k.claimed && inClaim(k));
+  const boxed = got.marks.filter((k) => k.claimed);
+  check(`${label}: one marker an object (no war marker on a HUD box)`, twice.length === 0 && boxed.every((k) => inClaim(k)),
+    `${claims.length} boxes, ${boxed.length} war markers stood down, ${got.marks.length - boxed.length} drawn${twice.length ? `, doubled: ${twice.map((k) => k.tag).join(',')}` : ''}`);
+  const texts = got.hud.texts || [];
+  const pairs = [];
+  for (let i = 0; i < texts.length; i += 1) {
+    for (let j = i + 1; j < texts.length; j += 1) {
+      if (meets(texts[i], texts[j])) {
+        pairs.push(`"${texts[i].text}" x "${texts[j].text}"`);
+      }
+    }
+    for (const p of got.panels) {
+      if (meets(texts[i], p)) {
+        pairs.push(`"${texts[i].text}" x panel ${box(p)}`);
+      }
+    }
+  }
+  check(`${label}: no two of the HUD's words overlap, nor meet a panel`, texts.length > 0 && pairs.length === 0, pairs.slice(0, 6).join(' | ') || `${texts.length} words`);
+}
+
+async function ownerScene(width, height, rooms, touch = false) {
+  const label = `owner ${width}x${height}`;
+  console.log(`${width}x${height}${touch ? ' phone' : ''}, the Striker, the owner's scene`);
+  const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(rooms)}`, width, height, touch, seed: seed('striker2500') });
+  try {
+    await page.until('window.__shellReady === true', 300000);
+    await page.until('window.__map && window.__map().ready && window.__crashCam', 600000);
+    await page.evaluate("window.__roomCreate({ map: 'itaipu' })");
+    await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
+    await fly(page);
+    await page.until('window.__avionicsHud().on', 120000).catch(() => {});
+    await page.evaluate("window.__warDo('start', 'itaipu-1')");
+    await page.until("window.__war().view.state === 'live'", 30000);
+    const them = "window.__warAt(window.__rooms().roomNow).filter((a) => a.kind === 'strike')";
+    await page.until(`${them}.length >= 1`, 60000);
+    const a = await page.evaluate(`${them}.map((x) => x.p)`);
+    await page.sleep(1000);
+    const b = await page.evaluate(`${them}.map((x) => x.p)`);
+    const mid = (ps) => [0, 1, 2].map((k) => ps.reduce((sum, q) => sum + q[k], 0) / ps.length);
+    const p0 = mid(a);
+    const p1 = mid(b);
+    const v = p1.map((x, k) => x - p0[k]);
+    const vn = Math.hypot(v[0], v[2]) || 1;
+    const at = [p1[0] + (v[0] / vn) * 900, p1[1] + 15, p1[2] + (v[2] / vn) * 900];
+    const d = p1.map((x, k) => x - at[k]);
+    const yaw = (Math.atan2(-d[0], -d[2]) * 180) / Math.PI;
+    const pitch = (Math.atan2(d[1], Math.hypot(d[0], d[2])) * 180) / Math.PI;
+    /* Flying, not held: the sensor runs on the sim's clock, which a held
+     * pose stops. Thrown at a cruise along the nose, it glides on at it. */
+    const dn = Math.hypot(...d);
+    const vel = d.map((x) => (x / dn) * CRUISE_MS);
+    await page.evaluate(`window.__crashThrow({ x: ${at[0]}, y: ${at[1]}, z: ${at[2]}, yaw: ${yaw}, pitch: ${pitch}, roll: 0, vx: ${vel[0]}, vy: ${vel[1]}, vz: ${vel[2]}, hold: false, fresh: false, showCraft: true })`);
+    await page.evaluate('window.__avionics.ai(true); true');
+    await page.until("window.__avionicsHud().state === 'TRACK' && (window.__avionicsHud().claims || []).some((c) => c.tag)", 20000).catch(() => {});
+    await page.sleep(600);
+    for (const level of ['standard', 'minimal', 'full']) {
+      const got = JSON.parse(await page.evaluate(SCENE));
+      check(`${label} ${level}: the HUD is at ${level}, tracking`, got.hud.level === level && got.state === 'TRACK', `level ${got.hud.level}, HUD ${got.state}`);
+      judgeScene(got, `${label} ${level}`);
+      const tagged = (got.hud.claims || []).filter((c) => c.tag);
+      if (level !== 'minimal') {
+        check(`${label} ${level}: the primary's tag carries the war's kind`, tagged.length > 0 && (got.hud.texts || []).some((t) => tagged.some((c) => t.text.startsWith(c.tag))),
+          tagged.map((c) => c.tag).join(',') || 'no kind');
+      } else {
+        check(`${label} minimal: the corner panels are hidden`, got.panels.length === 0, `${got.panels.length} shown`);
+      }
+      await shot(page, `owner-${width}x${height}-${level}`);
+      await page.tap('KeyY');
+      await page.until(`window.__avionicsHud().level !== '${level}'`, 10000).catch(() => {});
+      /* The notice the key raised, gone before the next read. */
+      await page.sleep(2000);
+    }
+    const stored = await page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) || '{}').avxLevel`);
+    check(`${label}: Y steps standard, minimal, full and back, and the level is kept`, stored === 'standard', `stored ${stored}`);
+    const errs = page.errors.filter((e) => !e.startsWith('network:'));
+    check(`${label}: no page error`, errs.length === 0, errs.slice(0, 3).join(' | '));
+  } finally {
+    await page.close();
+  }
+}
+
 async function defaults() {
   console.log('1280x720, the default and the override');
   let page = await openPage({ root, width: 1280, height: 720, seed: seed('5inch') });
@@ -419,11 +543,18 @@ const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-avx-'));
 const { startRooms } = await import('../edge/rooms/node.js');
 const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
 try {
-  for (const [w, h] of SIZES) {
-    await layout(w, h, `http://127.0.0.1:${server.port}`);
+  const rooms = `http://127.0.0.1:${server.port}`;
+  /* --owner: the owner's scene alone, for its pictures. */
+  if (!process.argv.includes('--owner')) {
+    for (const [w, h] of SIZES) {
+      await layout(w, h, rooms);
+    }
+    await defaults();
+    await phone();
   }
-  await defaults();
-  await phone();
+  await ownerScene(1280, 720, rooms);
+  await ownerScene(OWNER[0], OWNER[1], rooms);
+  await ownerScene(PHONE[0], PHONE[1], rooms, true);
 } catch (e) {
   failed += 1;
   console.log(`  FAIL  ${e.stack || e}`);
