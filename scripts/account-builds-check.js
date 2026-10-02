@@ -17,8 +17,9 @@
  *            `combat`), and made its builds with the code of the day,
  *            wearing one. Then H, his home computer, signs in first on the
  *            code that syncs builds and writes the account's empty map.
- *            Then A loads the page again, and H, already signed in, must
- *            have them after its next sync.
+ *            Then A loads the page again, and H, a tab left open and
+ *            untouched, must have them within the minute, by a pull that
+ *            sends nothing (src/ui/accountui.js), with no reload.
  *   guest    A made its builds as a guest, then signs in to an account a
  *            first computer already made.
  *   first    A made its builds as a guest, then signs in to a new account.
@@ -267,12 +268,25 @@ try {
     const held = await heldProgress(home);
     check('old: H signing in first leaves the account an empty My Hangar', same(held.data.builds, {}) && !Object.keys(held.stamps).some((k) => k.startsWith('builds/')),
       JSON.stringify(held.data.builds));
+    await home.evaluate(`(() => {
+      const f = window.fetch;
+      window.__progressCalls = [];
+      window.fetch = (u, o) => {
+        if (String(u).includes('/api/account/progress')) {
+          window.__progressCalls.push((o && o.method) || 'GET');
+        }
+        return f(u, o);
+      };
+      return true;
+    })()`);
     await reload(a);
     return made;
   });
-  await home.evaluate('window.__accountSync()');
-  check('old: H, signed in before A loaded again, has them after its next sync', same(ids(await storedBuilds(home)), oldMade.made),
-    JSON.stringify(ids(await storedBuilds(home))));
+  await home.until(`((JSON.parse(localStorage.getItem(${JSON.stringify(BUILDS_KEY)}) || '{}').builds) || []).length === 2`, 150000).catch(() => {});
+  const calls = await home.evaluate('window.__progressCalls');
+  check('old: H, an open tab left alone, has them within the minute, by a pull that sent nothing',
+    same(ids(await storedBuilds(home)), oldMade.made) && calls.length > 0 && calls.every((m) => m === 'GET'),
+    JSON.stringify({ builds: ids(await storedBuilds(home)), calls }));
   check('old: and shows them in its My Hangar', same((await home.evaluate('window.__ui.myBuilds.map((x) => x.id)')).sort(), oldMade.made));
 
   await story('first', 'sub-first', 'Firstie', async (a, sub, callsign) => {
@@ -299,6 +313,22 @@ try {
       const kept = JSON.parse(localStorage.getItem(k));
       kept.data.builds = m.buildsBlob(ui.myBuilds);
       localStorage.setItem(k, JSON.stringify(kept));`);
+    /* Nothing changed here since that record, so the open tab pulls the
+     * account, which has none of them: a pull must not take them away. */
+    await a.evaluate(`window.__pulled = 0; (() => {
+      const f = window.fetch;
+      window.fetch = (u, o) => {
+        if (String(u).includes('/api/account/progress') && (o && o.method) === 'GET') {
+          window.__pulled += 1;
+        }
+        return f(u, o);
+      };
+      return true;
+    })()`);
+    await a.until('window.__pulled > 0', 90000).catch(() => {});
+    await a.sleep(1000);
+    check('stale: a pull into the open tab keeps the builds the account has not got', (await a.evaluate('window.__pulled')) > 0
+      && same(ids(await storedBuilds(a)), made), JSON.stringify(ids(await storedBuilds(a))));
     await reload(a);
     return made;
   });

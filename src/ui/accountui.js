@@ -40,8 +40,8 @@
 import { currentLocale, str } from '../strings/index.js';
 import { nameRules, normaliseName, readAccount, readPilotName } from '../share/pilot.js';
 import {
-  GOOGLE_CLIENT_ID, accountsAvailable, chooseCallsign, deleteAccount, progressChanged, settled, signIn, signOut,
-  signedIn, startAccounts, syncProgress,
+  GOOGLE_CLIENT_ID, accountsAvailable, chooseCallsign, deleteAccount, progressChanged, pullProgress, settled, signIn,
+  signOut, signedIn, startAccounts, syncProgress,
 } from '../share/account.js';
 import { SETTINGS_KEY, loadSettings } from './ui.js';
 import {
@@ -278,19 +278,29 @@ export function createAccountUi({ ui, identity, say }) {
     return changed;
   }
 
-  function sync({ loud = false } = {}) {
+  /* A pull sends nothing and applies the account merged with this
+   * computer's settings (src/share/account.js pullProgress): only for a
+   * computer with no change since its last sync, so applying it loses
+   * nothing of this computer's and settles nothing it has not sent. One
+   * changed while the pull was out is left for the next sync to send. */
+  function sync({ loud = false, pull = false } = {}) {
     if (!signedIn() || syncing) {
       return syncing || Promise.resolve(false);
     }
     lastSync = Date.now();
-    syncing = syncProgress(syncedView()).then((merged) => {
+    syncing = (pull ? pullProgress(syncedView()) : syncProgress(syncedView())).then((merged) => {
+      if (pull && progressChanged(syncedView())) {
+        return false;
+      }
       const changed = merged ? apply(merged) : false;
       if (loud || changed) {
         say(str('account.synced'));
       }
       return changed;
     }).catch((e) => {
-      if (signedIn() || loud) {
+      /* A pull that fails changed nothing on either side, and offline it
+       * would say so every minute: the next sync that sends says it. */
+      if (!pull && (signedIn() || loud)) {
         say(str('account.sync_failed', { why: whyText(e) }));
       }
       return false;
@@ -389,9 +399,18 @@ export function createAccountUi({ ui, identity, say }) {
     if (signedIn()) {
       setTimeout(() => sync(), 1500);
     }
+    /* A tab left open hears of another computer's changes within the
+     * minute (the owner's home tab, 2026-10-02, waited on the office's
+     * builds): sent when this computer changed something, else pulled
+     * while it is in view, since a hidden one syncs on coming back. */
     setInterval(() => {
-      if (signedIn() && progressChanged(syncedView())) {
+      if (!signedIn()) {
+        return;
+      }
+      if (progressChanged(syncedView())) {
         sync();
+      } else if (document.visibilityState === 'visible') {
+        sync({ pull: true });
       }
     }, SYNC_EVERY_MS);
     document.addEventListener('visibilitychange', () => {
