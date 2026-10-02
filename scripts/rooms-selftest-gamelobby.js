@@ -218,6 +218,7 @@ export function gameLobbySection(check) {
     e.ready(0);
     check('one ready of two: no times, combat needs two', e.lobby(1).ready['1'] === true && e.lobby(1).deadlineAt === null && e.lobby(1).countdownAt === null,
       JSON.stringify(e.lobby(1)));
+    check('the browser lists it waiting, one ready', e.r.activity(0).state === 'waiting' && e.r.activity(0).ready === 1, JSON.stringify(e.r.activity(0)));
     e.at(2000);
     e.ready(1);
     check('both ready: the five seconds and the 45 s', e.lobby(0).countdownAt === 2000 + LOBBY_COUNTDOWN_MS && e.lobby(0).deadlineAt === 2000 + LOBBY_DEADLINE_MS,

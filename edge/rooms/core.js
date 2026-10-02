@@ -468,7 +468,8 @@ export class RoomCore {
   /* What the room browser shows the room doing (edge/rooms/lobby.js):
    * { game, state }, game null for free flight, state 'countdown' or 'on'
    * for a game under way and 'waiting' otherwise, when a room set up for
-   * a game shows that game. */
+   * a game shows that game; and, for a game room in its lobby, `ready`,
+   * how many of its pilots said ready, for "2 ready of 3". */
   activity(now) {
     const r = this.race.race;
     if (r && r.state === 'on') {
@@ -490,7 +491,9 @@ export class RoomCore {
         wave: Math.min(this.war.match.wave + 1, mission.waves.length), waves: mission.waves.length,
       };
     }
-    return { game: this.meta.mode ?? null, state: 'waiting' };
+    return {
+      game: this.meta.mode ?? null, state: 'waiting', ...(this.gameLobby.open(this) ? { ready: this.gameLobby.ready.size } : {}),
+    };
   }
 
   /* Reports took the room's typed name away (safety.js): it shows its
