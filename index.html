@@ -112,6 +112,44 @@
         --panel: #1a241c;
         --ink: rgba(12, 18, 14, 0.86);
         --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        /*
+         * PDCS, THE ONE PALETTE the boot screen and the menus share (the
+         * owner's bootloader tokens, 2 October). The flight display above
+         * keeps its own warm tokens; every menu surface maps them onto
+         * these (.screen and its neighbours, further down).
+         *
+         * --pdcs-dim is the owner's #71797d, 4.5:1 on --pdcs-bg and under
+         * it on the gradient's lighter centre, so it is for rules, ticks
+         * and the boot screen's large labels. Small text a pilot has to
+         * read takes --pdcs-muted, over 7:1 on the same ground.
+         *
+         * Still no webfont: IBM Plex Mono and Plex Sans where installed,
+         * the system's monospace and sans everywhere else.
+         */
+        --pdcs-bg: #07090a;
+        --pdcs-ground: radial-gradient(circle at 50% 40%, #101416 0%, #080a0b 48%, #050607 100%);
+        --pdcs-line: rgba(220, 225, 225, 0.28);
+        --pdcs-line-soft: rgba(220, 225, 225, 0.08);
+        --pdcs-text: #d7dddd;
+        --pdcs-bright: #f1f4f4;
+        --pdcs-muted: #9aa3a7;
+        --pdcs-dim: #71797d;
+        --pdcs-green: #6fcfa2;
+        --pdcs-fill: #d6dddd;
+        --pdcs-fail: #ff8f8f;
+        --pdcs-warn: #d9b46c;
+        --pdcs-panel: rgba(10, 13, 14, 0.86);
+        --py-red: #d52b1e;
+        --py-white: #f4f4f0;
+        --py-blue: #0038a8;
+        --pdcs-grid:
+          linear-gradient(90deg, var(--pdcs-line-soft) 1px, transparent 1px) 0 0 / 100px 100px,
+          linear-gradient(0deg, var(--pdcs-line-soft) 1px, transparent 1px) 0 0 / 100px 100px;
+        --pdcs-fine-grid:
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 50px 50px,
+          linear-gradient(0deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 50px 50px;
+        --pdcs-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+        --pdcs-read: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       }
       /* overscroll-behavior is for phones: a drag that starts on the world
          must not become a pull-to-refresh mid-flight. */
@@ -4221,16 +4259,11 @@
          Still no webfont: IBM Plex Mono where it is installed, and the
          system's monospace everywhere else. */
       #loading {
-        --pdcs-line: rgba(220, 225, 225, 0.28);
-        --pdcs-line-soft: rgba(220, 225, 225, 0.08);
-        --pdcs-text: #d7dddd;
-        --pdcs-dim: #71797d;
-        --pdcs-green: #6fcfa2;
         --pdcs-gutter: 34px;
         position: fixed; inset: 0; z-index: 10;
-        background: radial-gradient(circle at 50% 40%, #101416 0%, #080a0b 48%, #050607 100%);
-        background-color: #07090a;
-        font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+        background: var(--pdcs-ground);
+        background-color: var(--pdcs-bg);
+        font-family: var(--pdcs-mono);
         color: var(--pdcs-text);
         font-variant-numeric: tabular-nums;
         text-transform: uppercase;
@@ -4240,9 +4273,7 @@
       #loading[hidden] { display: none; }
       .pdcs-grid {
         position: absolute; inset: 0; pointer-events: none; opacity: 0.22;
-        background:
-          linear-gradient(90deg, var(--pdcs-line-soft) 1px, transparent 1px) 0 0 / 100px 100px,
-          linear-gradient(0deg, var(--pdcs-line-soft) 1px, transparent 1px) 0 0 / 100px 100px;
+        background: var(--pdcs-grid);
       }
       .pdcs-head {
         position: absolute; top: max(26px, env(safe-area-inset-top));
@@ -4260,9 +4291,9 @@
         border: 1px solid rgba(255, 255, 255, 0.18);
       }
       .py-flag > span { flex: 1; }
-      .py-flag > span:nth-child(1) { background: #d52b1e; }
-      .py-flag > span:nth-child(2) { background: #f4f4f0; }
-      .py-flag > span:nth-child(3) { background: #0038a8; }
+      .py-flag > span:nth-child(1) { background: var(--py-red); }
+      .py-flag > span:nth-child(2) { background: var(--py-white); }
+      .py-flag > span:nth-child(3) { background: var(--py-blue); }
       .py-flag-wide { width: 54px; height: 7px; }
       .loading-col {
         position: absolute;
@@ -4307,7 +4338,7 @@
         color: var(--pdcs-text);
         animation: pdcs-blink 0.9s ease-in-out infinite alternate;
       }
-      .pdcs-rows li[data-state="fail"] .pdcs-row-state { color: #ff8f8f; }
+      .pdcs-rows li[data-state="fail"] .pdcs-row-state { color: var(--pdcs-fail); }
       .pdcs-rows li[data-state="wait"] .pdcs-row-name,
       .pdcs-rows li[data-state="na"] .pdcs-row-name { color: var(--pdcs-dim); }
       @keyframes pdcs-blink { from { opacity: 0.35; } to { opacity: 1; } }
@@ -4315,9 +4346,7 @@
         position: relative; min-height: 300px; overflow: hidden;
         display: flex; align-items: center; justify-content: center;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background:
-          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 50px 50px,
-          linear-gradient(0deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 50px 50px;
+        background: var(--pdcs-fine-grid);
       }
       .pdcs-drone { width: min(86%, 420px); height: auto; opacity: 0.9; }
       /* The world being loaded, as a survey plate: its own card's poster,
@@ -4364,7 +4393,7 @@
       }
       .loading-pct { color: var(--pdcs-text); min-width: 3.2em; text-align: right; }
       .loading-error {
-        margin-top: 12px; font-size: 13px; line-height: 1.45; color: #ff8f8f;
+        margin-top: 12px; font-size: 13px; line-height: 1.45; color: var(--pdcs-fail);
         text-transform: none; word-break: break-word;
       }
       .pdcs-foot {
@@ -4446,7 +4475,7 @@
         position: absolute; inset: 0;
         transform: scaleX(0);
         transform-origin: left center;
-        background: #d6dddd;
+        background: var(--pdcs-fill);
         transition: transform 0.18s linear;
         will-change: transform;
       }
