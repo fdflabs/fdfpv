@@ -45,12 +45,16 @@ music crates, the war radio's voice lines and the war's two music tracks.
 | Voice chat | `src/share/voice.js` | push to talk | WebRTC, its own AudioContext | distance law 30 to 400 m, floor 0.3 | its own graph |
 | Replay and movie sound | `src/replay/crashcam.js` `sound()`, `src/replay/soundtrack.js` | replay and export | a second `MotorAudio` | as live | its own |
 
-What is NOT voiced at all: another pilot's aircraft (peers are silent),
-the war's attackers in flight (only their explosion is heard), the
-environment (the ambience stem was removed), the surface a crash hit
-(grass and concrete sound identical: the OLD crash renders below are the
-same to the hundredth of a LU), and the jet: the Striker's turbojet plays
-the F-16's ducted fan voice (`edf`, `configs/airframes.js` l.1630).
+What was NOT voiced at all when #349 audited it: another pilot's aircraft
+(peers were silent), the war's attackers in flight (only their explosion
+was heard), the environment (the ambience stem had been removed), the
+surface a crash hit (grass and concrete sounded identical: the OLD crash
+renders below are the same to the hundredth of a LU), and the jet: the
+Striker's turbojet played the F-16's ducted fan voice (`edf`,
+`configs/airframes.js` l.1630). Since then the world track voices the
+attackers and the environment (#353, #358, #360; section 12), and this
+file's track the other pilots (section 13), every crash's surface and the
+Striker's own turbojet (section 4).
 
 ### Findings the audit turned up
 
