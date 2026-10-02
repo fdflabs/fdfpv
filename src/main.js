@@ -8277,7 +8277,15 @@ export async function boot({
       syncCraftParts(st);
     }
     crashWorldPhase += 1;
-    if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX)) {
+    /* And at once when the streamed set has been swapped since the world
+     * was declared: what streamed in was not declared, and a throw or a
+     * respawn that the set refills round after declares the world from
+     * the set before. An Itaipu dive thrown 6 m over a conductor met it at
+     * step 192 of the 250 a refresh waits, when the host's sweep met it,
+     * and the frame's travel was already past it (collide-audit-itaipu,
+     * power conductor, dived onto). */
+    const swapped = crashTreesFrom === view.colliders && view.colliders.streamGen !== crashTreesGen;
+    if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX) || swapped) {
       crashWorldPhase = 0;
       refreshCrashWorld(st);
       return;
