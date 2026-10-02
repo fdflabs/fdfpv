@@ -937,10 +937,10 @@ const CROWN_PALETTE = [
 ];
 const PALETTE_MEAN = [1, 2, 3].map((c) => CROWN_PALETTE.reduce((s, e, k) => s + e[c] * (e[0] - (k ? CROWN_PALETTE[k - 1][0] : 0)), 0));
 const PALETTE_GLSL = (() => {
-  const col = (e) => `vec3(${[1, 2, 3].map((c) => (e[c] / PALETTE_MEAN[c - 1]).toFixed(3)).join(', ')})`;
-  let out = col(CROWN_PALETTE[CROWN_PALETTE.length - 1]);
+  const rgb = (e) => [1, 2, 3].map((c) => (e[c] / PALETTE_MEAN[c - 1]).toFixed(3)).join(', ');
+  let out = `vec3(${rgb(CROWN_PALETTE[CROWN_PALETTE.length - 1])})`;
   for (let k = CROWN_PALETTE.length - 2; k >= 0; k -= 1) {
-    out = `(id < ${CROWN_PALETTE[k][0].toFixed(2)} ? ${col(CROWN_PALETTE[k])} : ${out})`;
+    out = `(id < ${CROWN_PALETTE[k][0].toFixed(2)} ? vec3(${rgb(CROWN_PALETTE[k])}) : ${out})`;
   }
   return `vec3 vegPalette(float id) { return ${out}; }`;
 })();
