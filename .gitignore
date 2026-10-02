@@ -1,6 +1,7 @@
 node_modules/
 dist/*
 !dist/sim.wasm
+!dist/flood.wasm
 build/
 *.log
 .DS_Store

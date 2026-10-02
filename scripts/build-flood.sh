@@ -8,7 +8,8 @@
 # as build-wasm.sh's and as load-bearing: no fast math, no fp
 # contraction, no SIMD. dist/flood.wasm is committed, so CI's checks run
 # without a toolchain; rebuild and commit it with every change to
-# flood.c (scripts/water-check.js fails when they disagree).
+# flood.c (scripts/water-check.js fails when they disagree). FLOOD_OUT
+# names another output, for that check's rebuild.
 #
 # This file is part of WebFPVSimulator.
 #
@@ -43,7 +44,8 @@ if ! command -v emcc >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p dist
+OUT="${FLOOD_OUT:-dist/flood.wasm}"
+mkdir -p "$(dirname "$OUT")"
 
 emcc src/sim/water/flood.c \
   -I src/native \
@@ -52,6 +54,6 @@ emcc src/sim/water/flood.c \
   -sSTANDALONE_WASM=1 \
   -sEXPORTED_FUNCTIONS=_malloc,_free \
   -sALLOW_MEMORY_GROWTH=1 \
-  -o dist/flood.wasm
+  -o "$OUT"
 
-echo "build:flood: wrote dist/flood.wasm"
+echo "build:flood: wrote $OUT"

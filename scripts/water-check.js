@@ -33,7 +33,9 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { performance } from 'node:perf_hooks';
@@ -55,6 +57,23 @@ function check(name, ok, detail = '') {
     failed += 1;
     console.log(`  FAIL  ${name}${detail ? `  (${detail})` : ''}`);
   }
+}
+
+console.log('1. dist/flood.wasm is flood.c as it stands');
+{
+  const dir = await mkdtemp(join(tmpdir(), 'flood-'));
+  const out = join(dir, 'flood.wasm');
+  const r = spawnSync('bash', [join(root, 'scripts/build-flood.sh')], { env: { ...process.env, FLOOD_OUT: out }, encoding: 'utf8' });
+  if (r.status !== 0 && /emcc not found/.test(r.stderr)) {
+    console.log('  SKIP  no Emscripten here; a skip is not a pass');
+  } else if (r.status !== 0) {
+    check('flood.c compiles', false, r.stderr.trim().split('\n').slice(-3).join(' / '));
+  } else {
+    const built = new Uint8Array(await readFile(out));
+    const same = built.length === wasm.length && built.every((v, i) => v === wasm[i]);
+    check('a rebuild is byte identical to the committed dist/flood.wasm', same, same ? `${wasm.length} bytes` : 'rebuild with npm run build:flood and commit it');
+  }
+  await rm(dir, { recursive: true, force: true });
 }
 
 console.log('2. the cases with known answers');

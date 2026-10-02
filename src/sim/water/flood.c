@@ -141,7 +141,7 @@ typedef struct {
 static struct {
   int nx, nz, n, tx, tz;
   double x0, z0, dx, dt, area;
-  double *b, *h, *hu, *hv, *u, *v, *rh, *ru, *rv;
+  double *b, *h, *hu, *hv, *u, *v, *c, *rh, *ru, *rv;
   unsigned char *cls, *tileWet;
   double n2[CLASSES];
   Bound bound[BOUNDS_MAX];
@@ -171,8 +171,20 @@ static double cbrt_pos(double x) {
   return y;
 }
 
+/* The same first guess and two Newton steps: 1e-5 of the cube root,
+ * which is all Manning's friction needs of it, and its cost per wet
+ * cell every step is what the full one cost too much in. */
+static inline double cbrt_rough(double x) {
+  union { double d; uint64_t u; } g = { x };
+  g.u = g.u / 3 + (uint64_t)0x2A9F7893782DA1CEULL;
+  double y = g.d;
+  y = (2.0 * y + x / (y * y)) / 3.0;
+  y = (2.0 * y + x / (y * y)) / 3.0;
+  return y;
+}
+
 static void freeAll(void) {
-  free(F.b); free(F.h); free(F.hu); free(F.hv); free(F.u); free(F.v);
+  free(F.b); free(F.h); free(F.hu); free(F.hv); free(F.u); free(F.v); free(F.c);
   free(F.rh); free(F.ru); free(F.rv); free(F.cls); free(F.tileWet);
   memset(&F, 0, sizeof F);
 }
@@ -198,12 +210,13 @@ FLOOD_EXPORT int flood_init(int nx, int nz, double x0, double z0, double dx, dou
   F.hv = calloc(n, sizeof(double));
   F.u = calloc(n, sizeof(double));
   F.v = calloc(n, sizeof(double));
+  F.c = calloc(n, sizeof(double));
   F.rh = calloc(n, sizeof(double));
   F.ru = calloc(n, sizeof(double));
   F.rv = calloc(n, sizeof(double));
   F.cls = calloc(n, 1);
   F.tileWet = calloc((size_t)(F.tx * F.tz), 1);
-  if (!F.b || !F.h || !F.hu || !F.hv || !F.u || !F.v || !F.rh || !F.ru || !F.rv || !F.cls || !F.tileWet) {
+  if (!F.b || !F.h || !F.hu || !F.hv || !F.u || !F.v || !F.c || !F.rh || !F.ru || !F.rv || !F.cls || !F.tileWet) {
     freeAll();
     return -3;
   }
@@ -511,8 +524,8 @@ static void stepLinks(void) {
  * sides' pressure corrections (each added to its own side's normal
  * momentum flux).
  */
-static inline void faceFlux(double hL, double unL, double utL, double bL,
-                            double hR, double unR, double utR, double bR,
+static inline void faceFlux(double hL, double unL, double utL, double bL, double cL,
+                            double hR, double unR, double utR, double bR, double cR,
                             double *fh, double *fn, double *ft, double *pL, double *pR) {
   double bs = bL > bR ? bL : bR;
   double hl = hL + bL - bs;
@@ -528,8 +541,10 @@ static inline void faceFlux(double hL, double unL, double utL, double bL,
     *fh = 0.0; *fn = 0.0; *ft = 0.0;
     return;
   }
-  double cl = sim_sqrt(G * hl);
-  double cr = sim_sqrt(G * hr);
+  /* The side the reconstruction left whole keeps the celerity prepare
+   * found for it; only a cut side needs its own. */
+  double cl = hl == hL ? cL : sim_sqrt(G * hl);
+  double cr = hr == hR ? cR : sim_sqrt(G * hr);
   double qnl = hl * unL, qnr = hr * unR;
   double fhl = qnl, fnl = qnl * unL + HALF_G * hl * hl, ftl = qnl * utL;
   double fhr = qnr, fnr = qnr * unR + HALF_G * hr * hr, ftr = qnr * utR;
@@ -563,13 +578,6 @@ static inline void faceFlux(double hL, double unL, double utL, double bL,
   }
 }
 
-/* The fastest signal a cell carries, |u| + c, for the Courant number. */
-static inline double signal(double h, double u, double v) {
-  double c = sim_sqrt(G * h);
-  double au = u < 0.0 ? -u : u, av = v < 0.0 ? -v : v;
-  return au + av + 2.0 * c;
-}
-
 /* Velocities from the state, and which tiles hold water or touch a
  * tile that does. A dry cell's velocity is zero and so is its
  * momentum. */
@@ -585,12 +593,15 @@ static void prepare(void) {
         double u = F.hu[c] / h, v = F.hv[c] / h;
         F.u[c] = u;
         F.v[c] = v;
-        double s = signal(h, u, v);
+        double ce = sim_sqrt(G * h);
+        F.c[c] = ce;
+        double s = (u < 0.0 ? -u : u) + (v < 0.0 ? -v : v) + 2.0 * ce;
         if (s > vmax) vmax = s;
         F.tileWet[(j / TILE) * F.tx + i / TILE] = 1;
       } else {
         F.u[c] = 0.0;
         F.v[c] = 0.0;
+        F.c[c] = 0.0;
         F.hu[c] = 0.0;
         F.hv[c] = 0.0;
         if (h < 0.0) {
@@ -623,7 +634,7 @@ static int tileLive(int ti, int tj) {
  * belongs to the tile of the cell on its low side. */
 static void interiorFluxes(void) {
   int nx = F.nx, nz = F.nz;
-  const double *b = F.b, *h = F.h, *u = F.u, *v = F.v;
+  const double *b = F.b, *h = F.h, *u = F.u, *v = F.v, *cc = F.c;
   double *rh = F.rh, *ru = F.ru, *rv = F.rv;
   for (int tj = 0; tj < F.tz; tj += 1) {
     for (int ti = 0; ti < F.tx; ti += 1) {
@@ -637,7 +648,7 @@ static void interiorFluxes(void) {
           if (i + 1 < nx) {
             int r = c + 1;
             if (h[c] > DRY || h[r] > DRY) {
-              faceFlux(h[c], u[c], v[c], b[c], h[r], u[r], v[r], b[r], &fh, &fn, &ft, &pL, &pR);
+              faceFlux(h[c], u[c], v[c], b[c], cc[c], h[r], u[r], v[r], b[r], cc[r], &fh, &fn, &ft, &pL, &pR);
               rh[c] -= fh; ru[c] -= fn + pL; rv[c] -= ft;
               rh[r] += fh; ru[r] += fn + pR; rv[r] += ft;
             } else {
@@ -648,7 +659,7 @@ static void interiorFluxes(void) {
           if (j + 1 < nz) {
             int r = c + nx;
             if (h[c] > DRY || h[r] > DRY) {
-              faceFlux(h[c], v[c], u[c], b[c], h[r], v[r], u[r], b[r], &fh, &fn, &ft, &pL, &pR);
+              faceFlux(h[c], v[c], u[c], b[c], cc[c], h[r], v[r], u[r], b[r], cc[r], &fh, &fn, &ft, &pL, &pR);
               rh[c] -= fh; rv[c] -= fn + pL; ru[c] -= ft;
               rh[r] += fh; rv[r] += fn + pR; ru[r] += ft;
             } else {
@@ -682,7 +693,7 @@ static void edgeFace(int c, int side, const Bound *B, double weight, double *flo
     if (hg < 0.0) hg = 0.0;
     double pL, pR;
     /* Inside on the left: the normal axis points outward. */
-    faceFlux(h, out * un, ut, b, hg, out * un, ut, b, &fh, &fn, &ft, &pL, &pR);
+    faceFlux(h, out * un, ut, b, sim_sqrt(G * h), hg, out * un, ut, b, sim_sqrt(G * hg), &fh, &fn, &ft, &pL, &pR);
     fn += pL;
     fh *= out; ft *= out;
   } else if (B && B->type == BOUND_RATING) {
@@ -693,7 +704,7 @@ static void edgeFace(int c, int side, const Bound *B, double weight, double *flo
       ug = r * r * sim_sqrt(B->slope / n2);
     }
     double pL, pR;
-    faceFlux(h, out * un, ut, b, hg, ug, ut, b, &fh, &fn, &ft, &pL, &pR);
+    faceFlux(h, out * un, ut, b, sim_sqrt(G * h), hg, ug, ut, b, sim_sqrt(G * hg), &fh, &fn, &ft, &pL, &pR);
     fn += pL;
     fh *= out; ft *= out;
   } else if (B && B->type == BOUND_INFLOW) {
@@ -748,7 +759,7 @@ static void friction(void) {
     double qx = F.hu[c], qy = F.hv[c];
     double q = sim_sqrt(qx * qx + qy * qy);
     if (q == 0.0) continue;
-    double h43 = h * cbrt_pos(h);
+    double h43 = h * cbrt_rough(h);
     double k = 1.0 + dt * G * n2 * q / (h * h43);
     F.hu[c] = qx / k;
     F.hv[c] = qy / k;
