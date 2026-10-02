@@ -54,9 +54,7 @@
  */
 
 import * as THREE from 'three';
-import {
-  loadTerrainArrays, loadSurface, SURFACES,
-} from '../../swiss2/assets.js';
+import { loadSurface, SURFACES } from '../../swiss2/assets.js';
 import { makeSun } from '../../swiss2/light.js';
 import { makePhotoLook, finishScene } from '../../swiss2/look.js';
 import { buildPhotoComposer } from '../../swiss2/post.js';
@@ -67,7 +65,7 @@ import {
 } from './light.js';
 import { skyBackdrop, skyEnvironment, airFor } from './sky.js';
 import {
-  groundMaterial, makeTurf, noiseTexture, loadImage, loadSite,
+  groundMaterial, makeTurf, noiseTexture, loadImage, loadSite, loadGroundArrays,
 } from './ground.js';
 import { dressNight } from './night.js';
 import { thermalKind, thermalShader } from '../../../render/thermal.js';
@@ -96,7 +94,7 @@ export async function makeLook({
   const layerPx = q.id === 'high' ? 1024 : 512;
   const im = manifest.imagery;
   const [arrays, site, heroCol, ringCol, heroMask, ringMask, ...sets] = await Promise.all([
-    loadTerrainArrays(layerPx, aniso),
+    loadGroundArrays(layerPx, aniso),
     loadSite(base, manifest.frame.ring[1]),
     loadImage(`${base}${im.hero.file}`, true, aniso),
     loadImage(`${base}${im.ring.file}`, true, aniso),
