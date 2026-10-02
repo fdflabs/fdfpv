@@ -124,6 +124,8 @@ export class WorldAudio {
     this.lis = new Float64Array(10);
     this.seed = 1;
     this.frameNo = 0;
+    this.trafficT = 0;
+    this.trafficSink = (id, kind, x, y, z) => this.add('traffic', id, kind, x, y, z, this.trafficT);
     /* The worklet's own count, asked for once a second, for the checks:
      * { voiced, bedded, tracks }. */
     this.stats = null;
@@ -169,26 +171,28 @@ export class WorldAudio {
   }
 
   /* One source this frame: `family` an ID_BASE key, `id` its number in
-   * it, `kind` a world-kinds.js name, `p` [x, y, z], `t` seconds of the
-   * source's own clock (room or traffic time), for its velocity. */
-  add(family, id, kind, p, t) {
+   * it, `kind` a world-kinds.js name, at x, y, z, and `t` seconds of the
+   * source's own clock (room or traffic time), for its velocity. A clock
+   * that went back (a replay rewound) or jumped a second starts the
+   * source afresh rather than drawing a velocity across the jump. */
+  add(family, id, kind, x, y, z, t) {
     const k = KIND_INDEX[kind];
     if (k === undefined) {
-      return;
+      throw new Error(`world audio: no kind ${kind}`);
     }
     const key = ID_BASE[family] + id;
     let v = this.last.get(key);
-    if (!v) {
-      v = { x: p[0], y: p[1], z: p[2], t, vx: 0, vy: 0, vz: 0, seen: 0 };
+    if (!v || t < v.t || t - v.t > 1) {
+      v = { x, y, z, t, vx: 0, vy: 0, vz: 0, seen: 0 };
       this.last.set(key, v);
     } else if (t > v.t) {
       const dt = t - v.t;
-      v.vx += VEL_SMOOTH * ((p[0] - v.x) / dt - v.vx);
-      v.vy += VEL_SMOOTH * ((p[1] - v.y) / dt - v.vy);
-      v.vz += VEL_SMOOTH * ((p[2] - v.z) / dt - v.vz);
-      v.x = p[0];
-      v.y = p[1];
-      v.z = p[2];
+      v.vx += VEL_SMOOTH * ((x - v.x) / dt - v.vx);
+      v.vy += VEL_SMOOTH * ((y - v.y) / dt - v.vy);
+      v.vz += VEL_SMOOTH * ((z - v.z) / dt - v.vz);
+      v.x = x;
+      v.y = y;
+      v.z = z;
       v.t = t;
     }
     v.seen = this.frameNo;
@@ -201,9 +205,9 @@ export class WorldAudio {
     const s = this.src;
     s[o] = key;
     s[o + 1] = k;
-    s[o + 2] = p[0];
-    s[o + 3] = p[1];
-    s[o + 4] = p[2];
+    s[o + 2] = x;
+    s[o + 3] = y;
+    s[o + 4] = z;
     s[o + 5] = v.vx;
     s[o + 6] = v.vy;
     s[o + 7] = v.vz;
@@ -214,8 +218,16 @@ export class WorldAudio {
    * room ms `now`. */
   war(live, now) {
     for (const a of live) {
-      this.add('war', a.id, a.kind, a.p, now / 1000);
+      this.add('war', a.id, a.kind, a.p[0], a.p[1], a.p[2], now / 1000);
     }
+  }
+
+  /* The valley's traffic at traffic ms `ms`: the sink a map's
+   * audioSources(add) calls, add(id, kind, x, y, z), one per source. Made
+   * once, so a frame allocates nothing for it. */
+  traffic(ms) {
+    this.trafficT = ms / 1000;
+    return this.trafficSink;
   }
 
   /*

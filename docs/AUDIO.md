@@ -720,10 +720,67 @@ to credit; the 1.5 MB budget of section 7 is untouched.
 and NEW, matched on the pass; `tools/audio/world-scenes.js` is where a
 scene is added.
 
+### The valley's traffic
+
+The Alps and the Swiss valley (`src/maps/alps/life.js`, `lift.js`,
+`swiss2/props/lakeside.js`) say what drives through `map.audioSources(add)`:
+the PostAuto, the eight road cars by what they are (car, van, motorbike),
+the tractor, the gondola's cabins and its drive in the bottom station, the
+Swiss lake's sailing boat. `src/main.js` hands them over with the traffic
+clock each frame, right after `updateAnim` placed them, so what is heard
+is where it is drawn, room synced as the traffic is.
+
+| Kind | Made of | At 16 m |
+| --- | --- | --- |
+| car | a petrol four cylinder four stroke through five gears (idle 800, up at 2900 rpm), muffled; tyres, most of it at 50 km/h | -40 LUFS |
+| van | a four cylinder diesel, its knock, heavier tyres | -37 |
+| motorbike | a single cylinder four stroke through six gears, revving to 6500; little tyre | -33 |
+| bus | a six cylinder diesel through five gears, its knock; it idles at its stop and pulls away loud | -29 |
+| tractor | a four cylinder diesel held at 1800 rpm on its work, its knock | -31 |
+| cabin | the haul rope's rumble through the grip, the hanger's swing | -50 |
+| liftdrive | an electric motor at 1500 rpm, its 100 Hz hum, a 17 tooth gear mesh | -38 |
+| sailboat | its hull through the water | -50 |
+
+A road vehicle's rpm climbs through each gear with its speed and drops at
+the change up, and its level follows its rpm and how hard it pulls, so
+the bus idling at its stop measures 5 dB under the bus pulling away (the
+street's figures say up to 10: a call for the owner's ears). The levels
+come from the street, not from the war's mix: pass by figures in dB(A)
+at 7.5 m (a car at 50 km/h about 68, a van 71, a motorbike 75, a bus 79,
+a modern tractor at work 77), 6.6 dB less at 16 m, mapped to the mix by
+the war's quad (a 5 inch class at 16 m, about 72 dB(A), is -29 LUFS),
+so LUFS = dB(A) - 101. ESTIMATED, every one. A street at 30 m is then
+under the pilot's own aircraft, as a street is under a drone.
+
+Their scenes are judged in a quieter window than an aircraft's pass,
+`VALLEY_PASS`, -48 to -27 LUFS: there, and never over the pilot's own
+aircraft.
+
+| Scene | NEW LUFS | NEW loudest 400 ms | NEW dBTP | NEW 2 to 5 kHz % |
+| --- | --- | --- | --- | --- |
+| a street at 30 m (the bus, cars, a motorbike, a van) | -40.0 | -36.9 | -23.7 | 12.8 |
+| the PostAuto stops 12 m away, idles, pulls away | -35.8 | -28.9 | -15.9 | 5.4 |
+| the tractor at work round its field (12 m at its nearest) | -32.6 | -27.7 | -15.1 | 1.2 |
+| under the gondola near its station | -47.4 | -44.5 | -34.1 | 1.4 |
+| the sailing boat past the shore at 25 m | -52.6 | -49.1 | -36.9 | 1.1 |
+
+Browser figures, OLD silent in every one (nothing voiced the valley). The
+whole valley at once (`valley-busy`: the bus, eight cars, the tractor, 30
+cabins and the drive, the boat) costs 0.14 s a second on Chromium's
+worklet, 14 voices and 29 bedded. Live, `npm run world:live` boots the
+Swiss valley on the real shell and reads the worklet: 30 tracks, the
+graph 51 nodes, load 0.021, never shed.
+
+Not voiced, and why: people and dogs (footsteps at 1.25 m/s are not heard
+past a few metres, and nothing here is a few metres from a pilot for
+long); the paragliders (silent but for their wind); the cattle's bells,
+which are ambience (the next pull request); a tower's sheaves clacking as
+a cabin's grip passes (the cabins carry their rumble; the clack wants a
+per tower event, left for later).
+
 ### Not yet
 
-- Vehicles (the next pull request: a road vehicle's gears, its tyres on
-  the road, a diesel's knock) and ambience (the one after).
+- Ambience (the next pull request).
 - Occlusion (a hill between a source and the listener): not done; one ray
   against the terrain per voice per frame is the cheap form.
 - Interceptions are the pilots' own aircraft (section 10, the player
