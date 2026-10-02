@@ -16,7 +16,7 @@
 #      spillway a ground that falls with the chute.
 #   4. Level 0 = ANADEM with each body's bed 1 m under its level, and
 #      the hero's own samples wherever the hero tiles are; levels 1 to 3
-#      from level 0's codes (Yellowstone's integer tent). So every level
+#      from level 0's codes (the integer tent). So every level
 #      agrees with the hero over it, and the terrain engine has nothing
 #      to reconcile.
 #   5. Canopy: Copernicus minus ANADEM on G30, 0 to 40 m, 0 on water.
@@ -69,7 +69,7 @@ NDWI_WATER = 0.2
 
 def tent_down(codes):
     # One level coarser: the (1 2 1) x (1 2 1) / 16 average centred on
-    # every other sample, rounded half up, in integers (Yellowstone's).
+    # every other sample, rounded half up, in integers.
     a = np.pad(codes.astype(np.int64), 1, mode='edge')
     a = a[:-2] + 2 * a[1:-1] + a[2:]
     a = a[::2]

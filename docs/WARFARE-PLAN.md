@@ -333,7 +333,8 @@ frame for the local craft:
 - **Ground station**: the pilot's standing point, `stationFor(sp, slot)`
   (`slots.js:55-59`), at 1.5 m.
 - **Line of sight**: sample the segment station to craft every 20 m on
-  `terrain.finestAt(x, z)` (`src/maps/yellowstone/terrain/engine.js:731-754`),
+  `terrain.finestAt(x, z)` (`src/maps/terrain/engine.js`, moved there from
+  Yellowstone's directory on 2026-10-01),
   never `terrain.height`, whose answer depends on the camera's LOD. Blocked
   when terrain stands above the line less 2 m.
 - **Range**: quality 1 to 1 500 m, falling linearly to 0 at 4 000 m.

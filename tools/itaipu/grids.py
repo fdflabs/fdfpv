@@ -8,7 +8,7 @@
 # level 0 at every third sample before the hero's own edits.
 #
 # Samples, not pixels: a raster warped onto a grid here has its pixel
-# centres on the samples (Yellowstone's build_dem.py, the same rule).
+# centres on the samples.
 #
 # This file is part of WebFPVSimulator.
 #

@@ -58,7 +58,7 @@ import {
 } from '../edge/rooms/warhunt.js';
 import { insideWater } from '../src/game/water.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
-import { HERO } from '../src/maps/yellowstone/terrain/frame.js';
+import { HERO } from '../src/maps/terrain/frame.js';
 
 /* The engine imports three.js for drawing; finestAt uses none of it, so a
  * stand in with the one constructor its modules call at load (chunks.js's
@@ -68,7 +68,7 @@ const THREE_STUB = 'export class Color { constructor() { this.r = 0; this.g = 0;
 register(`data:text/javascript,${encodeURIComponent(
   `export async function resolve(s, c, n) { return s === 'three' ? { url: ${JSON.stringify(`data:text/javascript,${encodeURIComponent(THREE_STUB)}`)}, shortCircuit: true } : n(s, c); }`,
 )}`);
-const { Terrain } = await import('../src/maps/yellowstone/terrain/engine.js');
+const { Terrain } = await import('../src/maps/terrain/engine.js');
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));

@@ -113,6 +113,7 @@ jobs:
       - run: npm run stab:chop
       - run: npm run power:check
       - run: npm run progress:selftest
+      - run: npm run retired:selftest
       - run: npm run campaign:selftest
       - run: npm run parts:check
       - run: npm run tuning:check

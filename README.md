@@ -185,12 +185,11 @@ people's work, and each of them keeps their credit:
 - The in-game credits, Credits on the title and pause menus or `#credits`,
   built by `src/ui/credits.js`: the upstream maker, the beta test pilots,
   Betaflight, Track Draw and the Dutch Drone Squad, and the data behind
-  the Yellowstone and Itaipu maps with their licence notices.
+  the Itaipu map with its licence notices.
 - [assets/audio/war/CREDITS.md](assets/audio/war/CREDITS.md): every war
   mode music and voice file, its author, source and licence.
-- The map data repositories carry their own source attributions:
-  [fdfpv-yellowstone-data](https://github.com/fdflabs/fdfpv-yellowstone-data)
-  and [fdfpv-itaipu-data](https://github.com/fdflabs/fdfpv-itaipu-data).
+- The map data repository carries its own source attributions:
+  [fdfpv-itaipu-data](https://github.com/fdflabs/fdfpv-itaipu-data).
 
 ## Licence
 

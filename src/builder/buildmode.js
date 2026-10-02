@@ -90,8 +90,7 @@
  * HAS NO GHOST: the track changes under it between runs, so a lap recorded
  * on one is a lap of a track that may no longer exist.
  *
- * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the town and
- * Yellowstone.
+ * WHAT IT DOES NOT DO YET, by the plan agreed with the owner: the town.
  *
  * THE GATES ARE SOLID, the way a field gate is: every edit hands the whole
  * built set to the valley's colliders (Colliders.setBuilt), which put it in

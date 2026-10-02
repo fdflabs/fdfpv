@@ -181,7 +181,7 @@ export async function openPage({
   const server = await startServer(root);
   const userDataDir = await mkdtemp(join(tmpdir(), 'sim-page-'));
   /* SIM_GPU=1 renders on this machine's GPU instead of SwiftShader, for a
-   * check that measures frame time (scripts/yellowstone-check.js): a CPU
+   * check that measures frame time (scripts/itaipu-check.js): a CPU
    * rasteriser's frame says nothing about a GPU's, and its threads compete
    * with the page's main thread for the cores. Every other run keeps the
    * software rasteriser every machine has. */

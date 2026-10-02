@@ -81,7 +81,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import {
   decode, HERO, TILE_CELLS, TILE_SAMPLES,
-} from '../src/maps/yellowstone/terrain/frame.js';
+} from '../src/maps/terrain/frame.js';
 import { ITAIPU_FRAME } from '../src/maps/itaipu/terrain/frame.js';
 import {
   planTown, WALLS_R, FINE_R, MOVE,
@@ -117,8 +117,8 @@ const ok = (m) => console.log(`  ok   ${m}`);
 /* ---------------------------------------------------------------- Node */
 
 /*
- * The ground as the engine reads it (src/maps/yellowstone/terrain/
- * engine.js finestAt and tri): the finest tile's two triangles a cell,
+ * The ground as the engine reads it (src/maps/terrain/engine.js
+ * finestAt and tri): the finest tile's two triangles a cell,
  * on the same tiles the page draws.
  */
 async function groundFrom(manifest) {

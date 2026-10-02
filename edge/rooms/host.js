@@ -53,6 +53,7 @@ import {
   CLOSE, EMPTY_CLOSE_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PUBLIC_CAP,
 } from '../../src/share/roomwire.js';
 import { reportRoom } from './lobby.js';
+import { retiredMap } from '../../src/maps/retired.js';
 
 /*
  * AN EMPTY ROOM CLOSES PURGE_MS AFTER ITS LAST PILOT LEFT, and a pilot
@@ -110,6 +111,16 @@ export class RoomHost {
     const meta = await this.ctx.storage.get('meta');
     if (!meta) {
       return null;
+    }
+    /* A room stored on a world since retired (src/maps/retired.js) wakes
+     * in the world that replaced it, as a pilot's own stored setting does,
+     * rather than being closed: its code stays good for the friends it was
+     * given to, and every pilot it seats is told its world in the welcome.
+     * No game can be on one: Yellowstone took no tracks and no war. */
+    const gone = retiredMap(meta.map);
+    if (gone) {
+      meta.map = gone.to;
+      await this.ctx.storage.put('meta', meta);
     }
     /* env.TURN is node.js's TURN credential minter, when the VM has one. */
     this.core = new RoomCore(meta, { turn: this.env.TURN || null });

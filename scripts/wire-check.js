@@ -4,7 +4,7 @@
  *
  * Itaipu is the only map with power lines (src/maps/itaipu/town/power.js:
  * 97 lines, 474 towers). The Alps' and swiss2's telegraph poles carry no
- * wire, and Yellowstone has none. On Itaipu it lays the lines out as the
+ * wire. On Itaipu it lays the lines out as the
  * map does (power.js layOut, on the war's heightfield for the ground,
  * itaipu-height.bin), takes four spans of the kinds there are (a 500 kV
  * quad bundle, a 765 kV one, a 66 kV single conductor and an earth wire),

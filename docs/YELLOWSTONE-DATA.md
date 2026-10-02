@@ -1,5 +1,10 @@
 # Yellowstone data: sources, pipeline and checks
 
+> **Removed on 2026-10-01** with the map (docs/YELLOWSTONE-PLAN.md has the
+> note). `tools/yellowstone/` is gone from the repository and nothing in
+> the simulator reads the data folder any more. This file is kept as the
+> record of where the data came from; the paths in it are as they were.
+
 How the Yellowstone map's data folder is built. The contract it builds to
 is docs/YELLOWSTONE-PLAN.md; this file says where every byte comes from,
 what each file holds field by field, and how it was checked.
