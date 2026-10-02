@@ -1,0 +1,69 @@
+# Defend the Paraná, Act 1: one page
+
+For the owner, 2026-10-02. The detail is in BIBLE.md (the world and the
+voices), MISSIONS.md (the seven missions), INTROS.md (seven films) and
+TECH-NEEDS.md (what the engine has to grow).
+
+## The arc in ten lines
+
+1. 2030. For a month, unmarked drones have been hitting the region's power. The interceptors ran out in the first week.
+2. Itaipu has not been touched. Everyone on both banks knows that if the war comes to the river, it comes here.
+3. What the two banks have is their own pilots: hobby fliers, racers, survey crews, with a warhead under every aircraft.
+4. Day one, dawn: the first scout over the reservoir. The enemy is looking, then it is not (First Light).
+5. That afternoon the reservoir is high and the spillway must open; the enemy goes for the gates that can (The Spillway).
+6. At dusk it goes for the switchyard and learns to lie: decoys in the stream, and the towns' lights at stake (Lights Out).
+7. The first night: boats with no lights, Hunters that come for the pilots, held until sunrise (The Long Night).
+8. Day two: the other flight downriver runs out of birds, and something on the river is launching the swarms (The River Below).
+9. Day two, dusk: the enemy stops hitting the dam and starts cutting the lines; the squad must split (The Corridor).
+10. Day three, before dawn: heavy hulls built to open the face. Kill them far out; if one gets through, close the breach (Breach).
+
+The story is told only by five radio voices, the HUD, the world (lights,
+smoke, water) and the camera. No person is ever on screen, the enemy is
+never named, and no line speaks a number.
+
+## The missions
+
+| # | Title | One line |
+| --- | --- | --- |
+| 1 | First Light (`itaipu-1`, reworked) | Kill the scout, meet the probes, then three kinds from three bearings at once at dawn. |
+| 2 | The Spillway (`itaipu-2`, reworked) | Hold the seed's working gates for the spill while boats come down the channel. |
+| 3 | Lights Out (`itaipu-3`, reworked) | Hold the switchyard while Dispatch reroutes the grid, through decoys, as the town lights come on. |
+| 4 | The Long Night (`itaipu-4`, reworked) | A minute of silence, then dark boats and Hunters until sunrise. |
+| 5 | The River Below (new) | A new axis up the gorge from the river, and a carrier boat launching swarms until it dies. |
+| 6 | The Corridor (new) | Towers along the 500 kV lines; spread out, spotters mark for everyone, hold the last corridor. |
+| 7 | Breach (new) | Kill the breachers far out; if one reaches the face, protect the gantry while the stoplogs close it. |
+
+Every mission is 4 to 6 stages opened by events, with a lull and a story
+beat between them, and four dials drawn from the match's seed (bearing,
+composition, timing, which of two or three twists fires), so no two
+plays land the same. Every mission has its own 45 to 70 s film, timed by
+its voice lines, unskippable the first time and hold to skip after.
+
+Found on the way: today's intro is mistimed because its Strikers are
+timed from 38 m/s while they now fly at 26.6. Its swarm shot's pass
+happens after the shot ends (measured: 11.2 s in an 11 s shot, the ten
+at 23 s), and every mission's title card says "Mission 1".
+
+## Five decisions I need from you
+
+1. **Seven missions.** Four reworked (ids kept, so saved progress holds),
+   three new. Or six: drop The Corridor, the biggest new engine work
+   (towers, spotting). Seven or six?
+2. **Where the dam can open.** The damage work on its branch lets a
+   single Striker hit open an intake to the water. I propose openings
+   only in Breach, the act's finale, and only smoke and broken steel in
+   missions 1 to 6. Or openings anywhere, with a "contain it" stage any
+   mission can fall into. Finale only, or anywhere?
+3. **The voice cast.** Crest Control stays. I propose four new voices:
+   Mirador (intel), Taller (the hangar chief, with a little Guaraní),
+   Despacho (the grid dispatcher) and Carancho (the other flight,
+   downriver). That is 152 new lines, about 300 generated files, each
+   take chosen by ear. All four, or only Mirador and Taller?
+4. **Interference as sound only.** You took jamming out of the war on
+   29 September. Can the radio voices break up in two moments (The
+   Corridor, Breach) as a sound effect, with no effect on any aircraft's
+   flight or video? Yes or no?
+5. **Losing a long mission.** Missions now run 10 to 20 minutes. Today a
+   loss restarts from the start. I propose: a lost mission can restart
+   from the stage where it was lost, with the output it had then, and at
+   most two stars. Restart from the stage, or from the start?
