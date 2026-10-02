@@ -1843,7 +1843,14 @@ function wordmark() {
   slash.setAttribute('aria-hidden', 'true');
   const name = el('span', 'lockup-name');
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
-  h.append(slash, el('span', 'lockup-over', 'Paraguayan'), ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
+  /* The flag as the boot screen draws it, horizontal bands; the title
+   * shows it and hides the slash, the share card the other way round. */
+  const flag = el('span', 'py-flag');
+  flag.setAttribute('aria-hidden', 'true');
+  flag.append(el('span'), el('span'), el('span'));
+  const over = el('span', 'lockup-over');
+  over.append(flag, 'Paraguayan');
+  h.append(slash, over, ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
   return h;
 }
 
@@ -3126,7 +3133,7 @@ const WAYS = [
     mode: 'race',
     label: str('ui.track_mode'),
     art: 'assets/gate/race.jpg',
-    blurb: str('ui.gates_against_the_clock_on_a'),
+    blurb: str('ui.card_line_race'),
     facts: [str('ui.gates'), str('ui.the_clock'), str('ui.the_board')],
   },
   {
@@ -3146,7 +3153,7 @@ const WAYS = [
     home: 'swiss2',
     label: str('ui.free_flight_card'),
     art: 'assets/gate/flight.jpg',
-    blurb: str('ui.the_fixed_wings'),
+    blurb: str('ui.card_line_flight'),
     facts: [str('ui.every_plane'), str('ui.the_swiss_valley')],
   },
   {
