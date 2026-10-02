@@ -39,6 +39,7 @@ import { Terrain } from '../../yellowstone/terrain/engine.js';
 import { tileKey } from '../../yellowstone/terrain/tiles.js';
 import { HERO } from '../../yellowstone/terrain/frame.js';
 import { ITAIPU_FRAME } from './frame.js';
+import { conformTile } from './conform.js';
 
 /*
  * The engine's budgets per preset (src/maps/yellowstone.js has what each
@@ -74,10 +75,13 @@ function listed(manifest) {
 
 /*
  * Build the terrain. `spawn` and `eye` are THREE.Vector3s the first
- * selection is made from; `progress(f)` in [0, 1].
+ * selection is made from; `bound(x, z)` the height the ground is held
+ * under (conform.js, Infinity where nothing holds it), applied to every
+ * tile before a chunk is built from it, the hero samples it lowered left
+ * in terrain.cut as [x, z]; `progress(f)` in [0, 1].
  */
 export async function buildTerrain({
-  base, manifest, material, scene, quality, spawn, eye, progress,
+  base, manifest, material, scene, quality, spawn, eye, bound, progress,
 }) {
   const terrain = new Terrain({
     base, manifest, material, scene, cover: null, quality, frame: ITAIPU_FRAME,
@@ -102,6 +106,13 @@ export async function buildTerrain({
     const [first] = store.failed.values();
     throw new Error(`itaipu: ${store.failed.size} terrain tile(s) failed to load, first: ${first}`);
   }
+  /* The hero samples the cut lowered (one listed twice where two tiles
+   * share it): the planting keeps off them (terrain.cut). */
+  const cut = [];
+  for (const [level, i, j] of all) {
+    conformTile(level, i, j, store.get(level, i, j), ITAIPU_FRAME.half, bound, cut);
+  }
+  terrain.cut = cut;
   await terrain.load(spawn, eye, (f) => progress(0.7 + 0.3 * f));
   return terrain;
 }

@@ -120,10 +120,19 @@ const GRAVITY = { up: -20, crestDown: 8, bandY: 215, slope: 0.75 };
  * the upstream edge, the buttresses' faces reaching the footprint's
  * downstream edge 29 m out at groundY. */
 const BUTTRESS = { up: -5, crestDown: 6, bandY: 221, slope: 0.53 };
-/* The embankments' crest (dam.json sections: crestWidth 14). */
+/* The embankments' crest (dam.json sections: crestWidth 14), and its
+ * edges' rock down the fill: how far out past the crest, and down. */
 const EMBANKMENT_HALF = 7;
+const EMBANKMENT_EDGE = { out: 5.6, down: 4 };
+const EMBANKMENTS = ['rockfill dam', 'left bank earth dam', 'right bank earth dam'];
 /* A training wall's collision skin along each face, metres. */
 const WALL_SKIN = 0.5;
+/* How far before its end an outer training wall's rim (junctionRims)
+ * falls to the lip of the bay beside it: one cell of the hero ground. */
+const END_RAMP = 10;
+/* A training wall's coping, m: out past each face, over the top, and its
+ * edge's depth under the top. */
+const COPING = { lip: 0.2, rise: 0.25, drop: 0.35 };
 
 /* The spillway: the published 362 m, 15 piers and 14 gates 20 m wide,
  * so a pier is (362 - 14 x 20) / 15 across. Three chutes of 4, 4 and 6
@@ -785,6 +794,137 @@ export function chuteFloor(spill) {
   const dem = chute.floor.filter(([d]) => d >= 90);
   const knots = [[SPILL.upstream, spill.figures.sillY], [SPILL.ogee, spill.figures.sillY], [40, 196.6], [60.4, 193.8], ...dem];
   return { knots, y: linear(knots) };
+}
+
+/*
+ * The spillway laid out in its chute's frame from dam.json's entry `sp`:
+ * C (u across, east; d down the chute from the middle of the gates), the
+ * half width W, the piers' width and their centres pierU, and the
+ * training walls, the outer two and the dividers, by index k from the
+ * west: wallU(k) their faces' u, wallEnd(k) the d they run to (the
+ * longer of the bays beside them).
+ */
+function spillLayout(sp) {
+  const chute = sp.sections.find((s) => s.at === 'chute');
+  const [c0, c1] = chute.axis;
+  const C = frameOf(c0, [c1[1] - c0[1], -(c1[0] - c0[0])]);
+  const W = SPILL.width / 2;
+  const pierW = (SPILL.width - SPILL.gates * SPILL.gateWidth) / (SPILL.gates + 1);
+  const pierU = Array.from({ length: SPILL.gates + 1 }, (_, k) => -W + pierW / 2 + k * (pierW + SPILL.gateWidth));
+  const walls = [0, ...SPILL.dividers, SPILL.gates];
+  const wallU = (k) => {
+    const u = pierU[walls[k]];
+    const half = k === 0 || k === walls.length - 1 ? pierW / 2 : SPILL.dividerWidth / 2;
+    return [u - half, u + half];
+  };
+  const wallEnd = (k) => Math.max(k > 0 ? SPILL.bayEnds[k - 1] : 0, k < SPILL.bayEnds.length ? SPILL.bayEnds[k] : 0);
+  return {
+    C, W, pierW, pierU, walls, wallU, wallEnd,
+  };
+}
+
+/*
+ * THE CONCRETE'S RIMS, for the ground beside it (terrain/conform.js).
+ * The ground is a 10 m grid; a part's walls and floors are not on it, so
+ * a cell straddling a wall draws a triangle from the hillside outside it
+ * to the flattened footprint inside, over the wall's top and into what
+ * it holds (the owner, 1 October: the hill's teeth over the chute's west
+ * wall). Each rim is the outline of a part's concrete in plan, every
+ * corner with the height of the drawn concrete's top there, the height
+ * the ground may meet it at, and `floor`, the flattened ground the part
+ * was built on less the 2 m bottomOf hides (dam.json groundY, or the
+ * least of the spillway's groundProfile). For the parts that stand where
+ * the water meets the banks:
+ *
+ *   spillway    round its outer training walls' outer faces (their tops,
+ *               the chute floor's profile 8 m up), across the chute's
+ *               end at the bays' lips (the floor's profile), and over the
+ *               outer piers (225 under the bridge, down their slope to the
+ *               hoist decks); its upstream edge in the reservoir at the
+ *               sill. An outer wall's last END_RAMP falls to the lip
+ *               beside its end, so the hill round the wall's end is cut
+ *               to the lip and does not stand over the bay;
+ *   powerhouse  its plan at its roof, 148, over the tailrace.
+ *
+ * Returns [{ part, ring: [[x, z, y]...], floor }].
+ */
+export function junctionRims(dam) {
+  const part = (name) => {
+    const e = dam.find((p) => p.part === name);
+    if (!e) {
+      throw new Error(`itaipu dam: dam.json has no part "${name}"`);
+    }
+    return e;
+  };
+  const sp = part('spillway');
+  const {
+    C, W, pierW, walls, wallU, wallEnd,
+  } = spillLayout(sp);
+  const floor = chuteFloor(sp).y;
+  const knots = chuteFloor(sp).knots.map(([d]) => d);
+  const wallTop = (d) => floor(d) + SPILL.wallHeight;
+  /* An outer wall's top from the bridge to its end, as [d, y]: the outer
+   * pier's (the bridge, its slope, its hoist deck), then the wall's, and
+   * over its last END_RAMP down to the lip of the bay beside its end. */
+  const side = (end) => [
+    [SPILL.upstream, CREST_Y], [PIER.slopeFrom, CREST_Y], [PIER.slopeTo, SPILL.pierLow], [SPILL.pierEnd - 0.01, SPILL.pierLow],
+    ...[SPILL.pierEnd, ...knots.filter((d) => d > SPILL.pierEnd && d < end - END_RAMP), end - END_RAMP].map((d) => [d, wallTop(d)]),
+    [end, floor(end)],
+  ];
+  const last = walls.length - 1;
+  const uv = [];
+  for (const [d, y] of side(wallEnd(0))) {
+    uv.push([-W, d, y]);
+  }
+  /* Across the ends, west to east, at the chute floor's height: each
+   * bay's lip, and back up a divider's face to where the next bay ends
+   * short of it. */
+  for (let k = 0; k < last; k += 1) {
+    const end = wallEnd(k);
+    const bay = SPILL.bayEnds[k];
+    const [, wallOut] = wallU(k);
+    const [nextIn, nextOut] = wallU(k + 1);
+    for (const d of [end, ...knots.filter((q) => q < end && q > bay).reverse(), bay]) {
+      uv.push([wallOut, d, floor(d)]);
+    }
+    uv.push([nextIn, bay, floor(bay)]);
+    if (k + 1 < last) {
+      uv.push([nextOut, bay, floor(bay)]);
+    }
+  }
+  for (const [d, y] of side(wallEnd(last)).reverse()) {
+    uv.push([W, d, y]);
+  }
+  uv.push([W - pierW, SPILL.upstream, sp.figures.sillY], [-W + pierW, SPILL.upstream, sp.figures.sillY]);
+  const spillFloor = Math.min(...sp.groundProfile.map(([, y]) => y)) - 2;
+
+  const ph = part('powerhouse');
+  const secs = sectionsOf(ph.axis, 34);
+  const phRing = [
+    ...secs.map((s) => offset(s, -POWERHOUSE.halfWidth)),
+    ...secs.slice().reverse().map((s) => offset(s, POWERHOUSE.halfWidth)),
+  ].map(([x, z]) => [x, z, ph.figures.roofY]);
+
+  return [
+    { part: 'spillway', ring: uv.map(([u, d, y]) => [...C.at(u, d), y]), floor: spillFloor },
+    { part: 'powerhouse', ring: phRing, floor: ph.groundY - 2 },
+  ];
+}
+
+/* The embankments' crest roads with their rock edges in plan, one
+ * outline [[x, z]...] each: where the ground is the earth dam's fill
+ * under a drawn road, which the cut round the concrete
+ * (terrain/conform.js) leaves standing where an embankment meets it. */
+export function embankmentCrests(dam) {
+  const half = EMBANKMENT_HALF + EMBANKMENT_EDGE.out;
+  return EMBANKMENTS.map((name) => {
+    const e = dam.find((p) => p.part === name);
+    if (!e) {
+      throw new Error(`itaipu dam: dam.json has no part "${name}"`);
+    }
+    const secs = sectionsOf(e.axis);
+    return [...secs.map((sec) => offset(sec, -half)), ...secs.slice().reverse().map((sec) => offset(sec, half))];
+  });
 }
 
 /* A frame round a direction: two unit vectors square to it and each other. */
@@ -2446,13 +2586,10 @@ export async function buildPart(ctx) {
   const gear = new Mesher();
   const gearAt = [];
   {
-    const chute = sp.sections.find((s) => s.at === 'chute');
-    const [c0, c1] = chute.axis;
     /* u across (east), d down the chute from the middle of the gates. */
-    const C = frameOf(c0, [c1[1] - c0[1], -(c1[0] - c0[0])]);
-    const W = SPILL.width / 2;
-    const pierW = (SPILL.width - SPILL.gates * SPILL.gateWidth) / (SPILL.gates + 1);
-    const pierU = Array.from({ length: SPILL.gates + 1 }, (_, k) => -W + pierW / 2 + k * (pierW + SPILL.gateWidth));
+    const {
+      C, W, pierW, pierU, walls, wallU, wallEnd,
+    } = spillLayout(sp);
     /* The floor: chuteFloor, the published sill eased onto the surface
      * model's profile. */
     const cf = chuteFloor(sp);
@@ -2746,12 +2883,6 @@ export async function buildPart(ctx) {
 
     /* The chutes: the floor between the walls, per bay, as ground; each
      * bay's end the flip into the plunge pool. */
-    const walls = [0, ...SPILL.dividers, SPILL.gates];
-    const wallU = (k) => {
-      const u = pierU[walls[k]];
-      const half = k === 0 || k === walls.length - 1 ? pierW / 2 : SPILL.dividerWidth / 2;
-      return [u - half, u + half];
-    };
     let longest = 0;
     for (let b = 0; b < SPILL.bayEnds.length; b += 1) {
       const u0 = wallU(b)[1];
@@ -2797,8 +2928,7 @@ export async function buildPart(ctx) {
      * a WALL_SKIN thick along its faces, and a cap across its end. */
     for (let k = 0; k < walls.length; k += 1) {
       const [u0, u1] = wallU(k);
-      const ends = [k > 0 ? SPILL.bayEnds[k - 1] : 0, k < SPILL.bayEnds.length ? SPILL.bayEnds[k] : 0];
-      const end = Math.max(...ends);
+      const end = wallEnd(k);
       const ds = [SPILL.pierEnd, ...knots.filter((d) => d > SPILL.pierEnd && d < end), end];
       for (let i = 0; i + 1 < ds.length; i += 1) {
         const d0 = ds[i];
@@ -2806,6 +2936,18 @@ export async function buildPart(ctx) {
         const yA = floor(d0) + SPILL.wallHeight;
         const yB = floor(d1) + SPILL.wallHeight;
         const top = block(concrete, u0, u1, d0, d1, base, yA, yB, shade(TONE.concrete, 4000 + 50 * k + i, 0.05));
+        /* The coping: a paler cap proud of the wall and over both its
+         * faces, whose shadow line finishes the top where the bank meets
+         * it (terrain/conform.js). Drawn only: under half a metre, its
+         * wall's solids and record stand for it. */
+        {
+          const [c0, c1] = [u0 - COPING.lip, u1 + COPING.lip];
+          const [hA, hB] = [yA + COPING.rise, yB + COPING.rise];
+          concrete.poly([at3(c0, d0, hA), at3(c1, d0, hA), at3(c1, d1, hB), at3(c0, d1, hB)], TONE.coping, up);
+          for (const [cu, sign] of [[c0, -1], [c1, 1]]) {
+            concrete.quad(at3(cu, d0, yA - COPING.drop), at3(cu, d1, yB - COPING.drop), at3(cu, d1, hB), at3(cu, d0, hA), TONE.coping, [C.a[0] * sign, 0, C.a[1] * sign]);
+          }
+        }
         slopeRoof(top[0], top[1], top[2], top[3], 'spillway wall');
         const topAt = planeTop(top[0], top[1], top[3]);
         prismBoxes(plan(u0, u0 + WALL_SKIN, d0, d1), base, topAt, C.n);
@@ -2824,7 +2966,7 @@ export async function buildPart(ctx) {
   }
 
   /* ================================================== embankment crests */
-  for (const name of ['rockfill dam', 'left bank earth dam', 'right bank earth dam']) {
+  for (const name of EMBANKMENTS) {
     const e = need(name);
     const secs = sectionsOf(e.axis);
     const run = [];
@@ -2838,12 +2980,13 @@ export async function buildPart(ctx) {
       for (const side of [-1, 1]) {
         const e0 = offset(a, side * EMBANKMENT_HALF);
         const e1 = offset(b, side * EMBANKMENT_HALF);
-        const f0 = offset(a, side * (EMBANKMENT_HALF + 5.6));
-        const f1 = offset(b, side * (EMBANKMENT_HALF + 5.6));
-        concrete.quad([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], CREST_Y - 4, f1[1]], [f0[0], CREST_Y - 4, f0[1]], TONE.rock, up);
+        const f0 = offset(a, side * (EMBANKMENT_HALF + EMBANKMENT_EDGE.out));
+        const f1 = offset(b, side * (EMBANKMENT_HALF + EMBANKMENT_EDGE.out));
+        const yEdge = CREST_Y - EMBANKMENT_EDGE.down;
+        concrete.quad([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], TONE.rock, up);
         /* Ground where it is drawn: a craft off the road's edge lands on
          * the edge, not on the terrain up to a metre under it. */
-        slopeRoof([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], CREST_Y - 4, f1[1]], [f0[0], CREST_Y - 4, f0[1]], `${name} edge`, 'rock');
+        slopeRoof([e0[0], CREST_Y, e0[1]], [e1[0], CREST_Y, e1[1]], [f1[0], yEdge, f1[1]], [f0[0], yEdge, f0[1]], `${name} edge`, 'rock');
       }
     }
     closeRun(run);

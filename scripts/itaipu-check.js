@@ -25,7 +25,9 @@
  *               modules it is built from: its own, Yellowstone's terrain
  *               engine and swiss2's look, never Yellowstone's features;
  *   ground      map.height() under every roof at 200 random hero points,
- *               each with the camera over it, equals the tiles within
+ *               each with the camera over it, equals the tiles (cut to
+ *               the concrete as the page cuts them, terrain/conform.js,
+ *               after tent and hero have read the files) within
  *               0.05 m (the water's surface where the point is on a
  *               body), and the ground under the camera there is drawn at
  *               10 m;
@@ -50,8 +52,8 @@
  *                          the ground is at most EDGE_TOL over the
  *                          concrete;
  *                 gap      every EDGE_STEP along each body's outline as
- *                          the map draws it (read from the page) over the
- *                          hero,
+ *                          the map draws it (water/meet.js meetDam and
+ *                          meetBanks, read from the page) over the hero,
  *                          EDGE_OFF outside it and not under a dam
  *                          footprint or top (its roof records), the
  *                          ground is at least the water's level less
@@ -100,6 +102,8 @@ import {
 } from '../src/maps/yellowstone/terrain/frame.js';
 import { ITAIPU_FRAME, RESERVOIR_Y, RIVER_Y } from '../src/maps/itaipu/terrain/frame.js';
 import { insideWater } from '../src/game/water.js';
+import { conformBound, conformTile } from '../src/maps/itaipu/terrain/conform.js';
+import { embankmentCrests, junctionRims } from '../src/maps/itaipu/dam/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
@@ -559,6 +563,15 @@ async function main() {
   const dam = JSON.parse(await readFile(join(DATA, 'dam.json'), 'utf8'));
   const tiles = await readTiles(manifest);
   const get = nodeChecks(manifest, tiles);
+  /* The ground the page draws is the files cut to the concrete
+   * (terrain/conform.js): the same cut here, after the file checks. */
+  const bound = conformBound(junctionRims(dam), embankmentCrests(dam));
+  let cut = 0;
+  for (const [key, data] of tiles) {
+    const [level, i, j] = key.split(':').map(Number);
+    cut += conformTile(level, i, j, data, ITAIPU_FRAME.half, bound);
+  }
+  console.log(`conform: ${cut} samples cut to the concrete's rims`);
 
   const page = await openPage({
     root,

@@ -253,3 +253,120 @@ export function wetFaces(bodies, dam, step, off) {
   }
   return out;
 }
+
+/*
+ * WATER MEETS THE BANK. Away from the dam an outline's edge is a chord
+ * across the 10 m ground, and in places it runs a little inside where the
+ * ground rises through the water's level: just past the edge the ground
+ * is under the level, and the sheet's edge hangs over it with nothing
+ * under it (a decimetre to a metre over the hero, scripts/itaipu-check.js
+ * edges, gap). A real reservoir floods that ground. So every edge with
+ * ground under the level BANK_OFF past it is cut into pieces of at most
+ * BANK_STEP, and each piece's start moved out along the edge's normal, in
+ * BANK_MARCH steps up to BANK_REACH, to where the ground BANK_OFF further
+ * out is BANK_RISE over the level (or under the dam's concrete, or the
+ * other body's water). Over the hero (|x| and |z| within `half`), where
+ * the outlines were traced and the ground is drawn at 10 m; past it the
+ * ring is drawn at 30 m and coarser, kilometres off. Applied after the
+ * terrain is cut (src/maps/itaipu.js), for what is drawn: the sheet, its
+ * depth field and the planting. The plant keeps meetDam's outline: its
+ * water takes 256 corners a body (src/game/water.js), meetDam's are 244
+ * and 254, and this adds some 170. Where the two differ, the drawn sheet
+ * lies over a sliver at most BANK_REACH wide whose ground is under the
+ * level by what the gap row measured (at most 1.2 m over the hero), and
+ * the plant reads that ground. `ground(x, z)` is the drawn ground.
+ */
+const BANK_STEP = 2;
+const BANK_OFF = 0.5;
+const BANK_MARCH = 0.5;
+const BANK_REACH = 15;
+const BANK_RISE = 0.1;
+/* A pass moves each piece along its own edge's normal; what a pass left
+ * wet between two moved pieces, the next takes out in turn. */
+const BANK_PASSES = 3;
+
+export function meetBanks(bodies, dam, ground, half) {
+  const feet = footprints(dam).map((f) => f.ring);
+  let out = bodies;
+  for (let pass = 0; pass < BANK_PASSES; pass += 1) {
+    out = banksOnce(out, feet, ground, half);
+  }
+  return out;
+}
+
+function banksOnce(bodies, feet, ground, half) {
+  const lakes = bodies.map((b) => ({ kind: 'lake', outline: b.outline.map(([x, z]) => ({ x, z })) }));
+  return bodies.map((body, k) => {
+    const lake = lakes[k];
+    const dry = (x, z) => ground(x, z) >= body.y + BANK_RISE
+      || feet.some((f) => insideWater(f, x, z)) || lakes.some((l, j) => j !== k && insideWater(l, x, z));
+    /* Out of the water from (x, z) along (nx, nz), to where the ground
+     * BANK_OFF further is dry; or where it was if that is past
+     * BANK_REACH. */
+    const march = (x, z, nx, nz) => {
+      let r = 0;
+      while (r < BANK_REACH && !dry(x + nx * (r + BANK_OFF), z + nz * (r + BANK_OFF))) {
+        r += BANK_MARCH;
+      }
+      return r < BANK_REACH ? [x + nx * r, z + nz * r] : [x, z];
+    };
+    const o = body.outline.filter((p, i, all) => {
+      const q = all[(i + 1) % all.length];
+      return p[0] !== q[0] || p[1] !== q[1];
+    });
+    /* Each edge's way out (the side the body is not on), and each of its
+     * pieces' ground just past its middle: wet where it is under the
+     * level. Past the hero an edge is left as it is. */
+    const edges = o.map(([ax, az], i) => {
+      const [bx, bz] = o[(i + 1) % o.length];
+      const len = Math.sqrt((bx - ax) * (bx - ax) + (bz - az) * (bz - az));
+      let nx = (bz - az) / len;
+      let nz = -(bx - ax) / len;
+      if (insideWater(lake, (ax + bx) / 2 + nx * BANK_OFF, (az + bz) / 2 + nz * BANK_OFF)) {
+        nx = -nx;
+        nz = -nz;
+      }
+      const m = Math.ceil(len / BANK_STEP);
+      const wet = [];
+      const far = Math.max(Math.abs(ax), Math.abs(az), Math.abs(bx), Math.abs(bz)) > half;
+      for (let q = 0; q < m && !far; q += 1) {
+        const t = (q + 0.5) / m;
+        const x = ax + (bx - ax) * t + nx * BANK_OFF;
+        const z = az + (bz - az) * t + nz * BANK_OFF;
+        wet.push(!insideWater(lake, x, z) && !dry(x, z));
+      }
+      return {
+        ax, az, bx, bz, nx, nz, m, wet,
+      };
+    });
+    const out = [];
+    edges.forEach((e, i) => {
+      /* The corner it starts at moves where either edge beside it is wet
+       * there, out along the two edges' ways out together, so the moved
+       * corner stays between the two moved edges. */
+      const prev = edges[(i - 1 + edges.length) % edges.length];
+      if (e.wet[0] || prev.wet[prev.wet.length - 1]) {
+        const cx = e.nx + prev.nx;
+        const cz = e.nz + prev.nz;
+        const cl = Math.sqrt(cx * cx + cz * cz);
+        out.push(cl > 1e-6 ? march(e.ax, e.az, cx / cl, cz / cl) : march(e.ax, e.az, e.nx, e.nz));
+      } else {
+        out.push([e.ax, e.az]);
+      }
+      /* Inside it, a piece's start moves where either piece beside it is
+       * wet; a run of dry pieces keeps only the ends that hold the moved
+       * ones, so a long chord with one dip gains a few vertices, not one
+       * every BANK_STEP. */
+      const moves = (q) => e.wet[q - 1] || e.wet[q];
+      for (let q = 1; q < e.m; q += 1) {
+        if (!moves(q) && !moves(q - 1) && !moves(q + 1)) {
+          continue;
+        }
+        const px = e.ax + ((e.bx - e.ax) * q) / e.m;
+        const pz = e.az + ((e.bz - e.az) * q) / e.m;
+        out.push(moves(q) ? march(px, pz, e.nx, e.nz) : [px, pz]);
+      }
+    });
+    return { ...body, outline: out };
+  });
+}

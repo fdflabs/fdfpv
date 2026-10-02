@@ -49,10 +49,11 @@ import { str } from '../strings/index.js';
 import { makeRoofs } from './alps/roofs.js';
 import { HERO_HALF } from './itaipu/terrain/frame.js';
 import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
+import { conformBound } from './itaipu/terrain/conform.js';
 import { makeLook } from './itaipu/look/index.js';
-import { buildPart as buildDam } from './itaipu/dam/index.js';
+import { buildPart as buildDam, embankmentCrests, junctionRims } from './itaipu/dam/index.js';
 import { buildPart as buildWater } from './itaipu/water/index.js';
-import { meetDam } from './itaipu/water/meet.js';
+import { meetBanks, meetDam } from './itaipu/water/meet.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
@@ -265,12 +266,20 @@ async function buildItaipu(shell, progress, q, time) {
     quality: TERRAIN_Q[q.id] || TERRAIN_Q.high,
     spawn: spawnAt,
     eye,
+    /* The ground cut to the concrete where they meet (terrain/conform.js),
+     * before any part or the plant reads it. */
+    bound: conformBound(junctionRims(data['dam.json']), embankmentCrests(data['dam.json'])),
     progress: (f) => progress(0.2 + 0.5 * f),
   });
   /* The ground the parts place on and the plant stands on near the
    * craft: the finest level, which is what the engine draws wherever it
    * can draw 10 m. */
   const ground = (x, z) => terrain.finestAt(x, z);
+  /* The plant's water is meetDam's outline, within its 256 corners a
+   * body; what the parts draw is also brought to the banks
+   * (water/meet.js meetBanks), on the ground as cut. */
+  const plantWater = data['water.json'];
+  data['water.json'] = meetBanks(plantWater, data['dam.json'], ground, HERO_HALF);
   progress(0.7);
   await yieldToPaint();
 
@@ -288,6 +297,7 @@ async function buildItaipu(shell, progress, q, time) {
       base,
       manifest,
       ground,
+      cut: terrain.cut,
       colliders,
       roofs: roofRecords,
       mats: look.mats,
@@ -329,7 +339,7 @@ async function buildItaipu(shell, progress, q, time) {
   look.finish();
   progress(0.93);
 
-  const bodies = data['water.json'];
+  const bodies = plantWater;
   const lakes = lakesOf(bodies, ground);
   /* The drawn ground, and over the water its still surface, so a craft
    * rests on the water it sees (as on Yellowstone's lakes) whether or not
