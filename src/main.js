@@ -232,10 +232,10 @@ import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
 import { currentLocale, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
-import { KINDS } from './game/collide.js';
+import { KINDS, TURNED } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
-import { collectTrees, groundSurface, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt } from './game/crashworld.js';
+import { collectTrees, groundSurface, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt, turnedBoxPose } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, WIRES_MAX, partLabel,
 } from '../configs/parts.js';
@@ -6773,10 +6773,7 @@ export async function boot({
     for (const i of crashKnownList) {
       let gap;
       if (col.fbox[i]) {
-        const ox = Math.max(col.fax[i] - pProbe.x, 0, pProbe.x - col.fbx[i]);
-        const oy = Math.max(col.fay[i] - pProbe.y, 0, pProbe.y - col.fby[i]);
-        const oz = Math.max(col.faz[i] - pProbe.z, 0, pProbe.z - col.fbz[i]);
-        gap = Math.sqrt(ox * ox + oy * oy + oz * oz);
+        gap = col.boxGap(i, pProbe.x, pProbe.y, pProbe.z);
       } else {
         col.axisToPoint(i, pProbe.x, pProbe.y, pProbe.z);
         gap = Math.sqrt(col.nx * col.nx + col.ny * col.ny + col.nz * col.nz) - col.fr[i];
@@ -7945,6 +7942,10 @@ export async function boot({
   /* A box's orientation in the plant frame: the spawn's yaw undone,
    * which is how an axis aligned world box stands in the plant. */
   const boxQuat = new THREE.Quaternion();
+  /* A turned box's own turn about the vertical (declareSolid). */
+  const turnPose = {};
+  const turnQuat = new THREE.Quaternion();
+  const turnedQuat = new THREE.Quaternion();
   /* Refresh the trees and solids every this many steps, when the craft has
    * moved this far since the last time, and take them from this far. The
    * plant holds 32 trees and 64 solids; 80 m of trees is more than a plane
@@ -8277,7 +8278,15 @@ export async function boot({
       syncCraftParts(st);
     }
     crashWorldPhase += 1;
-    if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX)) {
+    /* And at once when the streamed set has been swapped since the world
+     * was declared: what streamed in was not declared, and a throw or a
+     * respawn that the set refills round after declares the world from
+     * the set before. An Itaipu dive thrown 6 m over a conductor met it at
+     * step 192 of the 250 a refresh waits, when the host's sweep met it,
+     * and the frame's travel was already past it (collide-audit-itaipu,
+     * power conductor, dived onto). */
+    const swapped = crashTreesFrom === view.colliders && view.colliders.streamGen !== crashTreesGen;
+    if (crashWorldPhase >= CRASH_WORLD_STEP || !(crashWorldX === crashWorldX) || swapped) {
       crashWorldPhase = 0;
       refreshCrashWorld(st);
       return;
@@ -8570,6 +8579,20 @@ export async function boot({
     const bx = col.fbx[i];
     const by = col.fby[i];
     const bz = col.fbz[i];
+    if (col.fbox[i] === TURNED) {
+      /* The box's frame is the spawn's turned by the box's own turn
+       * (crashworld.js turnedBoxPose); as the axis aligned box below, the
+       * plant box's x is along the box's w, y along its u, z up. */
+      const b = turnedBoxPose(col, i, turnPose);
+      worldPosToSim(b.cx, b.cy, b.cz, crashSimA);
+      turnQuat.set(0, b.qy, 0, b.qw);
+      turnedQuat.multiplyQuaternions(boxQuat, turnQuat);
+      return sim.e.sim_obstacle_box(
+        crashSimA.x, crashSimA.y, crashSimA.z,
+        b.hw, b.hu, b.hy,
+        turnedQuat.w, -turnedQuat.z, -turnedQuat.x, turnedQuat.y, mat,
+      );
+    }
     if (col.fbox[i]) {
       worldPosToSim((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2, crashSimA);
       /* The box's own frame is the world's turned by the spawn: its x half
@@ -16040,7 +16063,8 @@ export async function boot({
         continue;
       }
       /* The seventh number is the collider's index, which a roof's
-       * `solids` (window.__roofs) name. */
+       * `solids` (window.__roofs) name. A turned box is its world
+       * bounding box here; __crashSolids has its own frame. */
       out.push([c.fax[i], c.fay[i], c.faz[i], c.fbx[i], c.fby[i], c.fbz[i], i]);
     }
     return out;
@@ -16096,8 +16120,10 @@ export async function boot({
          * no diagnostic. A box is a bar only if it is thin in BOTH of the
          * two directions that are not its length.
          */
-        const w = Math.abs(c.fbx[i] - c.fax[i]);
-        const d = Math.abs(c.fbz[i] - c.faz[i]);
+        /* A turned box by its own sides, not its world bounding box. */
+        const turned = c.fbox[i] === TURNED;
+        const w = turned ? c.fu1[i] - c.fu0[i] : Math.abs(c.fbx[i] - c.fax[i]);
+        const d = turned ? c.fw1[i] - c.fw0[i] : Math.abs(c.fbz[i] - c.faz[i]);
         const h = Math.abs(c.fby[i] - c.fay[i]);
         const foot = w > d ? w : d;
         const thin = w > d ? d : w;
@@ -16638,8 +16664,11 @@ export async function boot({
       }
       const d = Math.hypot((c.fax[i] + c.fbx[i]) / 2 - x, (c.faz[i] + c.fbz[i]) / 2 - z);
       if (d <= r) {
+        /* A turned box's a and b are its world bounding box, and `turned`
+         * its own frame: [ux, uz, u0, u1, w0, w1] (collide.js addTurnedBox). */
         out.push({
           d, box: Boolean(c.fbox[i]), a: [c.fax[i], c.fay[i], c.faz[i]], b: [c.fbx[i], c.fby[i], c.fbz[i]], r: c.fr[i],
+          turned: c.fbox[i] === TURNED ? [c.fux[i], c.fuz[i], c.fu0[i], c.fu1[i], c.fw0[i], c.fw1[i]] : null,
         });
       }
     }

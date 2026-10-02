@@ -80,7 +80,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { recordAt, SLAB_T } from '../../alps/roofs.js';
+import { insideSlabs, recordAt } from '../../alps/roofs.js';
 
 /* Section 6: the crest of every concrete part and its gantry rails. */
 const CREST_Y = 225;
@@ -96,7 +96,7 @@ const END_STEP = 0.45;
 /* Axis metres per roof record and per run of columns: long records
  * register in every 8 m cell of their bounding box. */
 const CHUNK = 32;
-/* How far a record's crash slab (roofs.js roofSlabs) sits under its top.
+/* How far a record's crash slab (roofs.js insideSlabs) sits under its top.
  * The crest is many records edge to edge in one plane, and the crash
  * physics is handed every roof's slab but the one the craft is on: a
  * neighbour's slab flush with the ground plane was a step the wheels met
@@ -565,106 +565,6 @@ class Mesher {
     g.computeBoundingBox();
     return g;
   }
-}
-
-/*
- * The crash physics' slabs under a roof given in world space, in
- * roofs.js roofSlabs' form ({ c, u, n, v, hu, hn, hv }, the top face the
- * plane), held SLAB_SINK under it. roofSlabs takes a face's extents along
- * its record's x, which for the dam's records, put with no turn, is the
- * world's: a face turned off the axes got a box reaching metres past its
- * edges, the spillway bridge's 114 m, a plate in the air over the open
- * bays that wrecked the owner's Timber (2026-10-01). Here each face's slab
- * is the largest rectangle in its plane, with a side along one of its
- * edges, that stays inside it: short of a corner a broken part falls onto
- * the columns under the top, where past an edge it met an invisible wall.
- */
-const SLAB_SAMPLES = 33;
-function insideSlabs(top) {
-  const out = [];
-  const dot = (p, q) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2];
-  for (const poly of top) {
-    let nx = 0;
-    let ny = 0;
-    let nz = 0;
-    for (let i = 0; i < poly.length; i += 1) {
-      const a = poly[i];
-      const b = poly[(i + 1) % poly.length];
-      nx += (a[1] - b[1]) * (a[2] + b[2]);
-      ny += (a[2] - b[2]) * (a[0] + b[0]);
-      nz += (a[0] - b[0]) * (a[1] + b[1]);
-    }
-    /* Wound either way; on edge it is a wall, and no record's ground. */
-    const nl = Math.hypot(nx, ny, nz) * Math.sign(ny);
-    if (!(Math.abs(ny) > 1e-9 * Math.abs(nl))) {
-      continue;
-    }
-    const n = [nx / nl, ny / nl, nz / nl];
-    let best = null;
-    for (let i = 0; i < poly.length; i += 1) {
-      const e = poly[(i + 1) % poly.length].map((q, k) => q - poly[i][k]);
-      const en = dot(e, n);
-      const el = Math.hypot(e[0] - n[0] * en, e[1] - n[1] * en, e[2] - n[2] * en);
-      if (!(el > 1e-6)) {
-        continue;
-      }
-      const u = [0, 1, 2].map((k) => (e[k] - n[k] * en) / el);
-      const v = [u[1] * n[2] - u[2] * n[1], u[2] * n[0] - u[0] * n[2], u[0] * n[1] - u[1] * n[0]];
-      const P = poly.map((p) => [dot(p, u), dot(p, v)]);
-      const U0 = Math.min(...P.map((p) => p[0]));
-      const U1 = Math.max(...P.map((p) => p[0]));
-      /* The face's v range across it at U: low edge convex, high edge
-       * concave, so a rectangle over [Ua, Ub] fits between the higher of
-       * the two lows and the lower of the two highs. */
-      const span = (U) => {
-        let lo = Infinity;
-        let hi = -Infinity;
-        for (let k = 0; k < P.length; k += 1) {
-          const [ua, va] = P[k];
-          const [ub, vb] = P[(k + 1) % P.length];
-          if (ua === ub || U < Math.min(ua, ub) || U > Math.max(ua, ub)) {
-            continue;
-          }
-          const w = va + ((vb - va) * (U - ua)) / (ub - ua);
-          lo = Math.min(lo, w);
-          hi = Math.max(hi, w);
-        }
-        return [lo, hi];
-      };
-      const eps = (U1 - U0) * 1e-6;
-      const Us = Array.from({ length: SLAB_SAMPLES }, (_, k) => U0 + eps + ((U1 - U0 - 2 * eps) * k) / (SLAB_SAMPLES - 1));
-      const S = Us.map(span);
-      for (let a = 0; a < Us.length; a += 1) {
-        for (let b = a + 1; b < Us.length; b += 1) {
-          const lo = Math.max(S[a][0], S[b][0]);
-          const hi = Math.min(S[a][1], S[b][1]);
-          const area = (Us[b] - Us[a]) * (hi - lo);
-          if (hi > lo && (!best || area > best.area)) {
-            best = {
-              area, u, v, ua: Us[a], ub: Us[b], lo, hi,
-            };
-          }
-        }
-      }
-    }
-    if (!best) {
-      continue;
-    }
-    const { u, v } = best;
-    const um = (best.ua + best.ub) / 2;
-    const vm = (best.lo + best.hi) / 2;
-    const nm = dot(poly[0], n) - SLAB_T / 2 - SLAB_SINK;
-    out.push({
-      c: [0, 1, 2].map((k) => u[k] * um + v[k] * vm + n[k] * nm),
-      u,
-      n,
-      v,
-      hu: (best.ub - best.ua) / 2,
-      hn: SLAB_T / 2,
-      hv: (best.hi - best.lo) / 2,
-    });
-  }
-  return out;
 }
 
 /* A block's own shade: no two pours of concrete came out one grey. */
@@ -1247,7 +1147,14 @@ export async function buildPart(ctx) {
   const addBox = (x0, y0, z0, x1, y1, z1) => {
     const i = ctx.colliders.addBox('wall', x0, y0, z0, x1, y1, z1);
     solids.push(i);
-    boxes.push([x0, y0, z0, x1, y1, z1, i]);
+    boxes.push({ i, lo: [x0, y0, z0], hi: [x1, y1, z1], u: [1, 0] });
+    return i;
+  };
+  /* A box turned to u = (ux, uz), collide.js addTurnedBox's frame. */
+  const addTurned = (ux, uz, u0, u1, y0, y1, w0, w1) => {
+    const i = ctx.colliders.addTurnedBox('wall', ux, uz, u0, u1, y0, y1, w0, w1);
+    solids.push(i);
+    boxes.push({ i, lo: [u0, y0, w0], hi: [u1, y1, w1], u: [ux, uz] });
     return i;
   };
   const addCapsule = (kind, a, b, r) => {
@@ -1272,8 +1179,15 @@ export async function buildPart(ctx) {
    * dam's runs of blocks end against each other, and cutting all their
    * ends cost 4 952 solids the static set has not got. Returns the
    * collider indices.
+   *
+   * A FLAT top turned off the world's axes is the same columns cut in
+   * dir's own frame instead, as turned boxes (collide.js addTurnedBox):
+   * there the long faces run square to the cut, so a block is one box
+   * where the world's frame cut it into columns a stair wide, and only
+   * its open ends still step. A planar top that is not flat keeps the
+   * world's columns, whose narrowness also steps it down its slope.
    */
-  const prismBoxes = (poly, y0, topAt, dir = null, ends = false) => {
+  const prismBoxes = (poly, y0, topAt, dir = null, ends = false, frame = null) => {
     let ex = dir ? dir[0] : 1;
     let ez = dir ? dir[1] : 0;
     let best = 0;
@@ -1289,6 +1203,14 @@ export async function buildPart(ctx) {
     }
     const k = Math.abs(ex) >= Math.abs(ez) ? 0 : 1;
     const turn = k === 0 ? Math.abs(ez / ex) : Math.abs(ex / ez);
+    const flat = poly.every(([x, z]) => topAt(x, z) === topAt(poly[0][0], poly[0][1]));
+    if (!frame && flat && turn > 1e-9) {
+      const l = Math.hypot(ex, ez);
+      const fx = ex / l;
+      const fz = ez / l;
+      const y = topAt(poly[0][0], poly[0][1]);
+      return prismBoxes(poly.map(([x, z]) => [x * fx + z * fz, z * fx - x * fz]), y0, () => y, [1, 0], ends, [fx, fz]);
+    }
     const w = Math.min(COLUMN_MAX, Math.max(COLUMN_MIN, STAIR / Math.max(turn, 1e-9)));
     const lo = Math.min(...poly.map((p) => p[k]));
     const hi = Math.max(...poly.map((p) => p[k]));
@@ -1297,7 +1219,9 @@ export async function buildPart(ctx) {
     const out = [];
     let run = null;
     const flush = () => {
-      if (run) {
+      if (run && frame) {
+        out.push(addTurned(frame[0], frame[1], run[0], run[2], y0, run[4], run[1], run[3]));
+      } else if (run) {
         out.push(addBox(run[0], y0, run[1], run[2], run[4], run[3]));
       }
       run = null;
@@ -1319,9 +1243,26 @@ export async function buildPart(ctx) {
       || (ends === 'start' && along * ((a + c) / 2 - (lo + hi) / 2) < 0)
       || (ends === 'end' && along * ((a + c) / 2 - (lo + hi) / 2) > 0);
     const slices = [];
+    /* A turned prism's columns are as wide as COLUMN_MAX, so a slanted
+     * open end is halved until each piece stands at most a stair past it
+     * (a pier's nose stood 0.7 m out of its drawn face cut in END_STEP's
+     * even parts). */
+    const halve = (a, c) => {
+      const s = boxOver(a, c);
+      if (s && s.over > STAIR && c - a > 0.05) {
+        halve(a, (a + c) / 2);
+        halve((a + c) / 2, c);
+        return;
+      }
+      slices.push(s);
+    };
     for (let i = 0; i < n; i += 1) {
       const a = lo + i * step;
       const c = lo + (i + 1) * step;
+      if (frame && cut(a, c)) {
+        halve(a, c);
+        continue;
+      }
       const first = boxOver(a, c);
       const m = first && cut(a, c) ? Math.ceil(first.over / END_STEP - 1e-9) : 1;
       for (let j = 0; j < Math.max(1, m); j += 1) {
@@ -1362,7 +1303,7 @@ export async function buildPart(ctx) {
     rec.material = material;
     rec.solids = [];
     rec.eaves = [];
-    rec.slabs = insideSlabs(slabTop);
+    rec.slabs = insideSlabs(slabTop, SLAB_SINK);
     ctx.roofs.push(rec);
     records.push(rec);
     return rec;
@@ -1982,7 +1923,19 @@ export async function buildPart(ctx) {
     const rIn = penR + 0.05;
     const lip = Math.sqrt(R * R - rIn * rIn);
     const exit = m0 + HOOD.extend;
-    const C0 = along(m0 - 2);
+    /* The cowl starts far enough inside the block that its first ring is
+     * wholly behind the block's front. The penstock falls at about 39
+     * degrees, so a ring 2 m in along it stood about 3 m out in front of
+     * the front over the cowl: a notch nothing was drawn in, which the
+     * capsule's round end filled, up to 1.7 m from anything drawn (the
+     * dam's rays, main dam faces). From here the drawn cowl and its
+     * capsule both come out of the front, and the round end stays under
+     * the block's top. */
+    const en = e[0] * F.n[0] + e[2] * F.n[1];
+    const C0 = along(m0 - (R * Math.sqrt(1 - en * en)) / en - 0.1);
+    if (!(en > 0.1) || !(C0[1] + R < top - SKIN)) {
+      throw new Error(`dam: penstock ${k}'s cowl does not start inside its hood (along the front ${en}, its round end's top ${C0[1] + R} under ${top})`);
+    }
     const C1 = along(exit - lip);
     const X = along(exit);
     hoodFront[k] = F.local(X[0], X[2])[1];
@@ -2261,10 +2214,13 @@ export async function buildPart(ctx) {
       const [xa, za] = F.at(t, base + sa);
       const [xb, zb] = F.at(t, base + sb);
       addCapsule('pole', [xa, y1 - 0.6, za], [xb, y1 - 0.6, zb], GANTRY.leg);
-      /* The insulator strings hanging from the beam. */
+      /* The insulator strings hanging from the beam, each a post inside
+       * its drawn box, its foot's round end at the box's foot. */
       for (const f of [0.25, 0.5, 0.75]) {
         const ss = base + sa + (sb - sa) * f;
         frameBox(metal, F, t - 0.15, t + 0.15, ss - 0.15, ss + 0.15, y1 - 4, y1 - 1.2, TONE.coping);
+        const [x, z] = F.at(t, ss);
+        addCapsule('pole', [x, y1 - 4 + 0.15, z], [x, y1 - 1.2, z], 0.15);
       }
       /* The transformer bank under it: an octagonal tank lying across
        * the roof inside its capsule, its radiators along both sides and
@@ -2891,6 +2847,34 @@ export async function buildPart(ctx) {
         const al = a0 + ((a1 - a0) * i) / (rows - 1);
         ids.push(addCapsule('wall', arc(u0, rr, al), arc(u1, rr, al), SKIN_R));
       }
+      /* The two girders behind the skin (drawn below as gear), 1.2 m
+       * square and level across the bay: each is a box turned to the
+       * chute, the girder exactly. */
+      for (const al of [aArm, -aArm]) {
+        const [px, py, pz] = arc(u0 + 0.2, R - 0.9, al);
+        const [qx, , qz] = arc(u1 - 0.2, R - 0.9, al);
+        const [ux, uz] = C.a;
+        const ua = px * ux + pz * uz;
+        const ub = qx * ux + qz * uz;
+        const w = pz * ux - px * uz;
+        addTurned(ux, uz, Math.min(ua, ub), Math.max(ua, ub), py - 0.6, py + 0.6, w - 0.6, w + 0.6);
+      }
+      /* The ribs (drawn below as gear), 0.24 m plates from 0.3 to 1.2 m
+       * behind the skin, whose solid reaches 0.65 m behind it: each a
+       * chain of four capsules of 0.3 m on chords of its arc, centred
+       * 0.82 m behind the skin so the chord's sag puts their inside at
+       * the rib's within 0.1 m, and the chain's round ends at the skin's
+       * top and foot. */
+      const ribR = R - 0.82;
+      const ribEnd = 0.3 / ribR;
+      for (let j = 0; j < RADIAL.ribs; j += 1) {
+        const ur = u0 + ((j + 0.5) * (u1 - u0)) / RADIAL.ribs;
+        for (let i = 0; i < 4; i += 1) {
+          const a0 = -aMax + (2 * aMax * i) / 4 + (i === 0 ? ribEnd : 0);
+          const a1 = -aMax + (2 * aMax * (i + 1)) / 4 - (i === 3 ? ribEnd : 0);
+          addCapsule('wall', arc(ur, ribR, a0), arc(ur, ribR, a1), 0.3);
+        }
+      }
       /* gate-0 is the westernmost: u runs east. */
       /* On its upstream face; its reach at most half the gates' pitch,
        * so neighbours' spheres never overlap. */
@@ -3283,11 +3267,17 @@ export async function buildPart(ctx) {
     }
     const [x, y, z] = t.at;
     for (const b of boxes) {
-      const dx = Math.max(b[0] - x, 0, x - b[3]);
-      const dy = Math.max(b[1] - y, 0, y - b[4]);
-      const dz = Math.max(b[2] - z, 0, z - b[5]);
-      if (dx * dx + dy * dy + dz * dz <= t.r * t.r) {
-        t.colliders.push(b[6]);
+      /* In the box's own frame: a turned one's world bounding box
+       * reaches past it. */
+      const [ux, uz] = b.u;
+      const p = [x * ux + z * uz, y, z * ux - x * uz];
+      let d2 = 0;
+      for (let a = 0; a < 3; a += 1) {
+        const o = Math.max(b.lo[a] - p[a], 0, p[a] - b.hi[a]);
+        d2 += o * o;
+      }
+      if (d2 <= t.r * t.r) {
+        t.colliders.push(b.i);
       }
     }
   }

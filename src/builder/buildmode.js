@@ -118,7 +118,7 @@ import { str } from '../strings/index.js';
 import en from '../strings/en.js';
 import { readPilotName } from '../share/pilot.js';
 import { AIRFRAMES, airframeById } from '../../configs/airframes.js';
-import { KINDS } from '../game/collide.js';
+import { KINDS, TURNED } from '../game/collide.js';
 import { ELEMENTS, KIND } from '../trackbuilder/elements.js';
 import {
   elementById, normalize, toPlain, touch,
@@ -2960,9 +2960,12 @@ export function createBuildMode(host) {
         const cx = (c.fax[i] + c.fbx[i]) / 2;
         const cy = (c.fay[i] + c.fby[i]) / 2;
         const cz = (c.faz[i] + c.fbz[i]) / 2;
-        const size = c.fbox[i]
-          ? [c.fbx[i] - c.fax[i], c.fby[i] - c.fay[i], c.fbz[i] - c.faz[i]]
-          : [2 * c.fr[i], 2 * c.fr[i], 2 * c.fr[i]];
+        /* A turned box by its own sides (collide.js addTurnedBox). */
+        const size = c.fbox[i] === TURNED
+          ? [c.fu1[i] - c.fu0[i], c.fby[i] - c.fay[i], c.fw1[i] - c.fw0[i]]
+          : c.fbox[i]
+            ? [c.fbx[i] - c.fax[i], c.fby[i] - c.fay[i], c.fbz[i] - c.faz[i]]
+            : [2 * c.fr[i], 2 * c.fr[i], 2 * c.fr[i]];
         const d = Math.hypot(cx - x, cz - z);
         if (Math.min(...size) > 4 && (!best || d < best.d)) {
           best = { centre: [cx, cy, cz], size, box: Boolean(c.fbox[i]), d };

@@ -47,7 +47,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { roofRecord, frameElements, roofTop, gableTop } from '../../alps/roofs.js';
+import { roofRecord, frameElements, roofTop, gableTop, insideSlabs } from '../../alps/roofs.js';
 
 /* How far a wall may stand inside its box, metres: the wedge of solid a
  * craft can meet with nothing drawn there. A wall 30 m long 5 degrees
@@ -278,6 +278,54 @@ export function triangulate(ring, id) {
   return { tris: out, crossed: false, id };
 }
 
+/*
+ * A footprint's triangles (triangulate) merged into convex pieces, as
+ * index lists into `ring`: two pieces sharing an edge are one while the
+ * union stays convex (Hertel and Mehlhorn), so a convex footprint is one
+ * piece and a concave one at most four times the fewest it could be cut
+ * into.
+ */
+export function convexPieces(ring, tris) {
+  const cross = (a, b, c) => (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  /* Wound the way triangulate winds, positive, with collinear corners
+   * allowed: a footprint's straight run is cut by its triangles too. */
+  const convex = (piece) => piece.every((k, i) => cross(ring[piece[(i + piece.length - 1) % piece.length]], ring[k], ring[piece[(i + 1) % piece.length]]) >= -1e-9);
+  const pieces = tris.map((t) => t.slice());
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let a = 0; a < pieces.length && !merged; a += 1) {
+      for (let b = a + 1; b < pieces.length && !merged; b += 1) {
+        const P = pieces[a];
+        const Q = pieces[b];
+        /* An edge P[i] to P[i + 1] that Q has the other way round. */
+        for (let i = 0; i < P.length && !merged; i += 1) {
+          const p0 = P[i];
+          const p1 = P[(i + 1) % P.length];
+          const j = Q.findIndex((k, jj) => k === p1 && Q[(jj + 1) % Q.length] === p0);
+          if (j < 0) {
+            continue;
+          }
+          /* P from p1 round to p0, then Q's corners strictly between p0
+           * and p1 going round from p0. */
+          const U = [];
+          for (let k = 0; k < P.length; k += 1) {
+            U.push(P[(i + 1 + k) % P.length]);
+          }
+          for (let k = 2; k < Q.length; k += 1) {
+            U.push(Q[(j + k) % Q.length]);
+          }
+          if (convex(U)) {
+            pieces[a] = U;
+            pieces.splice(b, 1);
+            merged = true;
+          }
+        }
+      }
+    }
+  }
+  return pieces;
+}
+
 function inside(ring, x, z) {
   let c = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
@@ -402,6 +450,13 @@ export function roofOf(style, ring, rect, plate, id) {
     const rec = roofRecord({ top, dy: 0.15, hw: (x1 - x0) / 2, hd: (z1 - z0) / 2, kind: style.kind }, frameElements(cx, plate, cz, 0), spec.key);
     rec.material = spec.material;
     const faces = tris.map((t) => ({ pts: t.map((k) => [ring[k][0], plate, ring[k][1]]), n: [0, 1, 0] }));
+    /* The crash physics' slabs (roofs.js insideSlabs), two inside each of
+     * the roof's convex pieces rather than one round each triangle:
+     * roofSlabs' rectangle round a triangle reached 57.7 m past a roof's
+     * edge, and a triangle's largest rectangle is half of it. Two to a
+     * piece are as many slabs as there were and under 80 % of the plan,
+     * where one is 72 % (scripts/collide-audit-itaipu.js roofslabs). */
+    rec.slabs = insideSlabs(convexPieces(ring, tris).map((piece) => piece.map((k) => [ring[k][0], plate, ring[k][1]])), 0, 2);
     return { rec, faces, gables: [] };
   }
   const hw = rect.hs;
@@ -434,6 +489,13 @@ export function roofOf(style, ring, rect, plate, id) {
   const s = e[8];
   const world = ([lx, ly, lz]) => [c * lx + s * lz + rect.cx, plate + ly, -s * lx + c * lz + rect.cz];
   const turnN = ([nx, ny, nz]) => [c * nx + s * nz, ny, -s * nx + c * nz];
+  /* The crash physics' slabs inside the upper faces (roofs.js insideSlabs):
+   * roofSlabs' rectangle round a hip's end runs on up through the slopes
+   * beside it, 3.8 m over the tiles at worst. One to a face, as many as
+   * before: they are under 56 % of a hipped roof's plan, and two to a face
+   * would be 65 % for twice the slabs, which share the crash physics' 64
+   * obstacles with the walls. */
+  rec.slabs = insideSlabs(top.map((poly) => poly.map(world)));
   const faces = [];
   for (const poly of top) {
     /* The face's own normal, up out of the roof. */
