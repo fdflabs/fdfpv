@@ -9,8 +9,8 @@ import { str } from '../strings/index.js';
  * last does. A bar on a timer is wrong in both cases and, worse, it is wrong
  * in a way that hides which one is the problem. So every stage here is named
  * and every stage's progress comes from something that actually happened. The
- * player just sees "loading" and a joke. The bar still tracks real work, so a
- * stall is a bar that stopped rather than a spinner that lied.
+ * player sees the stage by name, a bar and a percentage, and the bar tracks
+ * real work, so a stall is a bar that stopped rather than a spinner that lied.
  *
  * WHERE THE PROGRESS COMES FROM, per stage:
  *
@@ -183,52 +183,18 @@ const CREEP_EASE = str('loading.cubic_bezier_0_2_0_4');
  */
 const MIN_SHARE = 0.05;
 
-export const JOKE_MS = 4800;
-
 /*
- * How long a single stage may run before the screen names it.
+ * How long a single stage may run before the line says it is stalled.
  *
- * The calm version of this screen is the right default: "loading" and a joke,
- * because on a normal load every stage is over in well under a second and a
- * parade of technical stage names would be noise. But a stall in the CDN
- * fetch and a stall in the world build look identical when the only word on
- * screen is "loading", and they have completely different answers. So the
- * stage name arrives only when a stage has outstayed its welcome, which is
- * exactly when a player has started to wonder.
+ * A stall in the CDN fetch and a stall in the world build have completely
+ * different answers, so once a stage has outstayed its welcome the line says
+ * "still loading" and adds the detail the caller passed, which is exactly
+ * when a player has started to wonder.
  *
  * Six seconds because the slowest stage on this container, the city's world
  * build, measures about three, so a healthy load never reaches this.
  */
 export const STALL_MS = 6000;
-
-export const LOADING_JOKES = [
-  str('loading.i_complimented_my_quad_on_its'),
-  str('loading.my_flight_controller_only_eats_greek'),
-  str('loading.my_lipo_went_to_prison_it'),
-  str('loading.my_quad_is_a_helicopter_parent'),
-  str('loading.my_tiny_whoop_just_won_the'),
-  str('loading.someone_snapped_my_carbon_i_ve'),
-  str('loading.my_quad_broke_an_arm_and'),
-  str('loading.race_directors_are_so_exclusive_pure'),
-  str('loading.my_racing_record_is_chequered_that'),
-  str('loading.my_vtx_and_i_just_click'),
-  str('loading.my_battery_reads_the_news_every'),
-  str('loading.the_packs_went_on_strike_it'),
-  str('loading.my_old_lipo_refuses_to_change'),
-  str('loading.my_battery_left_the_army_honourable'),
-  str('loading.why_did_the_pilot_bring_soap'),
-  str('loading.what_does_a_baby_battery_call'),
-  str('loading.my_quad_went_low_carb_kept'),
-  str('loading.my_quad_was_on_a_roll'),
-  str('loading.my_quad_asked_for_a_raise'),
-  str('loading.the_start_gates_are_in_mint'),
-];
-
-export function quotedJoke(index, offset) {
-  const n = LOADING_JOKES.length;
-  const i = (((index || 0) + (offset || 0)) % n + n) % n;
-  return `"${LOADING_JOKES[i]}"`;
-}
 
 /*
  * Stage plan for one load. `worldMs` is the map's own measured build time, so
@@ -469,16 +435,34 @@ export function recoveryAdvice(probe, message) {
   return { why, steps };
 }
 
+/*
+ * The quiet line at the foot of the screen. A deployed page carries the
+ * commit it was built from in <meta name="fdfpv-version">, which
+ * scripts/stamp-version.js writes; a page served from a checkout has none.
+ */
+function buildLine() {
+  const meta = document.querySelector('meta[name="fdfpv-version"]');
+  const version = meta ? meta.getAttribute('content') : '';
+  return version ? str('loading.build', { version }) : str('loading.local_build');
+}
+
 export class Loading {
   constructor(root) {
     this.root = root;
     this.bar = root.querySelector('.loading-fill');
     this.sweepEl = root.querySelector('.loading-sweep');
+    this.track = root.querySelector('.loading-track');
     this.stageEl = root.querySelector('.loading-stage');
-    this.jokeEl = root.querySelector('.loading-joke');
-    this.stepEl = root.querySelector('.loading-step');
+    this.pctEl = root.querySelector('.loading-pct');
+    this.errorEl = root.querySelector('.loading-error');
     this.elapsedEl = root.querySelector('.loading-elapsed');
-    this.tagEl = root.querySelector('.loading-tag');
+    /* The percentage last written. The text and aria-valuenow only ever
+     * rise within a load, the same rule as the bar they describe. */
+    this.shownPct = 0;
+    const build = root.querySelector('.loading-build');
+    if (build) {
+      build.textContent = buildLine();
+    }
     /* Where the bar has been TOLD to go, which is not where it is: the
      * transition between the two is the whole point, and it runs on the
      * compositor. Kept so the bar can never be aimed backwards, which is
@@ -488,7 +472,6 @@ export class Loading {
     this.index = -1;
     this.frac = 0;
     this.failed = false;
-    this.jokeSeed = 0;
     this.startedAt = 0;
     this.stageStartedAt = 0;
     /* Every stage's real duration, for the harness and for re-measuring the
@@ -520,22 +503,25 @@ export class Loading {
     this.index = -1;
     this.frac = 0;
     this.failed = false;
-    this.jokeSeed = Math.floor(Math.random() * LOADING_JOKES.length);
     this.startedAt = performance.now();
     this.timings = {};
     this.root.hidden = false;
     this.root.style.opacity = '1';
     this.bar.style.background = '';
-    this.jokeEl.classList.remove('is-error');
     this.root.classList.remove('is-failed');
-    /* The markup carries the English for the first paint, before any
-     * locale has loaded; a later load, a map swap, says it in the pilot's.
-     * The name above it is the mark and reads the same in every locale. */
-    if (this.tagEl) {
-      this.tagEl.textContent = str('loading.tagline_under');
+    if (this.errorEl) {
+      this.errorEl.hidden = true;
+      this.errorEl.textContent = '';
     }
     this.visible = true;
     this.stageEl.textContent = 'loading';
+    this.shownPct = 0;
+    this.writePct(0);
+    /* The markup carries the English for the first paint, before any
+     * locale has loaded; a later load, a map swap, says it in the pilot's. */
+    if (this.track) {
+      this.track.setAttribute('aria-label', str('loading.progress_label'));
+    }
     /* Back to nothing, with no transition, or the new load's first aim is a
      * five second slide back from wherever the last one finished. */
     this.aimed = 0;
@@ -555,7 +541,6 @@ export class Loading {
          * stopped calling progress(), so the tick is the only thing still
          * running. */
         this.paintStage();
-        this.paintJoke();
         this.paintMeta();
         this.creepOn();
       }, 250);
@@ -763,29 +748,27 @@ export class Loading {
      */
     this.aim(this.value(), 200, 'linear');
     this.paintStage();
-    this.paintJoke();
     this.paintMeta();
   }
 
   /*
-   * Which stage of how many, and how long the load has taken.
+   * How far through the load, as a number, and how long it has taken.
    *
-   * The step count is what gives the wait a shape: a stage that outstays its
-   * slot is still one of six with more to come, which a bar alone cannot
-   * say. The seconds stop while the main thread is blocked and catch up when
-   * it returns; that window is what the bar's creep and the sweep are for,
-   * and a frozen clock next to a moving bar is the honest picture of a
-   * thread that is busy rather than gone.
+   * The percentage is read off the bar as DRAWN, not as aimed: the aim is
+   * the far end of a creep that may take seconds to get there, and a number
+   * that ran ahead of the bar beside it would be the lie this file exists to
+   * avoid. Both the number and the seconds are main thread text, so they
+   * stop while the world build blocks the thread and catch up when it
+   * returns; the composited bar and the sweep carry that window, and a
+   * frozen number next to a moving bar is the honest picture of a thread
+   * that is busy rather than gone.
    */
   paintMeta() {
-    if (!this.stepEl || !this.elapsedEl) {
-      return;
+    if (!this.failed) {
+      this.writePct(Math.floor(this.current() * 100));
     }
-    const step = this.index >= 0 && this.stages.length
-      ? str('loading.step_of', { v1: this.index + 1, length: this.stages.length })
-      : '';
-    if (this.stepEl.textContent !== step) {
-      this.stepEl.textContent = step;
+    if (!this.elapsedEl) {
+      return;
     }
     const secs = this.startedAt ? Math.floor((performance.now() - this.startedAt) / 1000) : 0;
     /* Nothing at all for the first couple of seconds. A healthy load is over
@@ -826,14 +809,18 @@ export class Loading {
     }
   }
 
-  paintJoke() {
-    if (!this.visible || this.failed) {
-      return;
+  /*
+   * The number beside the bar and the progressbar's aria-valuenow, always
+   * the same value. Never backwards within a load: run() resets shownPct.
+   */
+  writePct(pct) {
+    const v = Math.max(this.shownPct, Math.min(100, Math.max(0, Math.round(pct))));
+    this.shownPct = v;
+    if (this.pctEl && this.pctEl.textContent !== `${v}%`) {
+      this.pctEl.textContent = `${v}%`;
     }
-    const at = this.jokeSeed + Math.floor((performance.now() - this.startedAt) / JOKE_MS);
-    const text = quotedJoke(at);
-    if (this.jokeEl.textContent !== text) {
-      this.jokeEl.textContent = text;
+    if (this.track && this.track.getAttribute('aria-valuenow') !== String(v)) {
+      this.track.setAttribute('aria-valuenow', String(v));
     }
   }
 
@@ -849,8 +836,10 @@ export class Loading {
   fail(message) {
     this.failed = true;
     this.stageEl.textContent = str('loading.could_not_start');
-    this.jokeEl.textContent = message;
-    this.jokeEl.classList.add('is-error');
+    if (this.errorEl) {
+      this.errorEl.textContent = message;
+      this.errorEl.hidden = false;
+    }
     this.root.classList.add('is-failed');
     /* Full, red, and STILL: a sweep under a dead end is a page pretending to
      * work on something. transition none as well as the aim, because the
@@ -997,6 +986,9 @@ export class Loading {
      * the creep somewhere short and the screen fades out over a bar that
      * never arrived. */
     this.aim(1, 180, 'linear');
+    /* Written here rather than left to a tick: the screen is about to go,
+     * and the last thing it says is that the load is complete. */
+    this.writePct(100);
     if (this.ticker) {
       clearInterval(this.ticker);
       this.ticker = null;

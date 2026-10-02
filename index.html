@@ -86,16 +86,6 @@
     <link rel="icon" href="favicon.ico" sizes="32x32" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta name="theme-color" content="#141c16" />
-    <!--
-      The loading screen's picture (the #loading rule below), asked for
-      before the stylesheet is even parsed so it is usually there for the
-      screen's first paint. One file per shape, and the media queries are
-      the stylesheet's, so a page fetches only the one it shows. It is
-      130 KB against the renderer's 1.2 MB, and the boot never waits on
-      it: the screen paints its dark fallback first either way.
-    -->
-    <link rel="preload" as="image" type="image/webp" href="assets/loading/wide.webp" media="not all and (max-aspect-ratio: 4/5)" />
-    <link rel="preload" as="image" type="image/webp" href="assets/loading/tall.webp" media="(max-aspect-ratio: 4/5)" />
     <style>
       :root {
         --cream: #f3ead4;
@@ -958,6 +948,60 @@
         background:
           linear-gradient(90deg, rgba(12, 18, 14, 0.78) 0%, rgba(12, 18, 14, 0.42) 26%, rgba(12, 18, 14, 0.08) 52%, rgba(12, 18, 14, 0.10) 100%),
           linear-gradient(180deg, rgba(12, 18, 14, 0.32) 0%, transparent 22%, transparent 64%, rgba(12, 18, 14, 0.38) 100%);
+      }
+      /*
+       * THE KEY ART, on the gate only (armTitleArt in src/ui/ui.js). A
+       * frame of the Itaipu map at sunset with a war Striker banking past
+       * the spillway, rendered by the shell (scripts/loading-art.js) and
+       * graded (tools/loading-art/grade.py); its own file for an upright
+       * window, composed on its own. It covers the title world, which on
+       * the gate is decoration; past the gate the world is the pilot's
+       * chosen map, and this layer goes.
+       *
+       * The colour is the frame's own darkest tone, so the gate reads as
+       * finished before the picture lands. The picture is only named under
+       * .has-art, which the script adds once the file has decoded, so the
+       * stylesheet never starts the fetch on its own.
+       */
+      .title-art { display: none; }
+      .screen-title.is-gate .title-art {
+        display: block; position: absolute; inset: 0; z-index: 0;
+        pointer-events: none; overflow: hidden;
+        background: #0c0e0d;
+      }
+      .title-art::before, .title-art::after {
+        content: ""; position: absolute; inset: 0;
+      }
+      .title-art::before {
+        background: 30% 50% / cover no-repeat;
+        opacity: 0;
+        transition: opacity 0.6s ease;
+      }
+      .screen-title.has-art .title-art::before {
+        background-image: url("assets/keyart/wide.webp");
+        opacity: 1;
+      }
+      /* The grade the type needs and the picture does not: the left hand
+         column, where the name and the rooms panel sit, and the foot, where
+         the cards are, darkened; the dam and the sky in between left as
+         rendered. */
+      .title-art::after {
+        background:
+          linear-gradient(90deg, rgba(8, 10, 9, 0.74) 0%, rgba(8, 10, 9, 0.4) 34%, rgba(8, 10, 9, 0.08) 64%, rgba(8, 10, 9, 0.18) 100%),
+          linear-gradient(180deg, rgba(8, 10, 9, 0.5) 0%, rgba(8, 10, 9, 0) 26%, rgba(8, 10, 9, 0) 46%, rgba(8, 10, 9, 0.82) 100%);
+      }
+      @media (max-aspect-ratio: 4/5) {
+        .screen-title.has-art .title-art::before {
+          background-image: url("assets/keyart/tall.webp");
+          background-position: 50% 50%;
+        }
+        .title-art::after {
+          background:
+            linear-gradient(180deg, rgba(8, 10, 9, 0.7) 0%, rgba(8, 10, 9, 0.2) 24%, rgba(8, 10, 9, 0.2) 44%, rgba(8, 10, 9, 0.86) 70%, rgba(8, 10, 9, 0.92) 100%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .title-art::before { transition: none; }
       }
       .title-copy {
         display: flex;
@@ -3402,8 +3446,8 @@
         color: var(--cream); text-shadow: 0 1px 4px rgba(8, 12, 9, 0.9);
       }
       .map-card-still:empty { display: none; }
-      /* First-time clip wait. Same copy as the boot screen: "loading"
-         and a joke. Cached visits never see it. */
+      /* First-time clip wait: "loading" over the card. Cached visits never
+         see it. */
       .map-reel-wait {
         position: absolute; inset: 0; z-index: 2;
         display: flex; flex-direction: column;
@@ -3434,10 +3478,6 @@
       }
       .map-reel-wait-stage {
         font-size: 13px; letter-spacing: 0.06em; color: var(--cream);
-      }
-      .map-reel-wait-joke {
-        font-size: 12px; line-height: 1.4; font-style: italic;
-        color: var(--slate); max-width: 22em; min-height: 2.8em;
       }
       .map-card-body {
         display: flex; align-items: baseline; gap: 10px;
@@ -4168,80 +4208,89 @@
          so the three.js fetch is a stage the player can see rather than a
          blank page. src/ui/loading.js only ever writes into it.
 
-         THE PICTURE IS THE GAME'S. assets/loading/ is a frame of the Itaipu
-         map at sunset with a war Striker banking past the spillway,
-         rendered by the shell itself (scripts/loading-art.js) and graded
-         (tools/loading-art/grade.py). Its own file for a phone's portrait,
-         composed on its own, because no crop of the wide frame holds both
-         the Striker and the dam. The colour under it is the frame's own
-         darkest tone, so the screen reads as finished before the picture
-         lands and does not flash when it does: the preload in the head
-         starts it early, and nothing on this screen waits for it. */
+         NO PICTURE, ON PURPOSE. This screen comes back on every map swap,
+         so it shows the game rather than any one world in it: the name, the
+         stage being loaded, how far through it is, and the build. The key
+         art lives on the title (.title-art), which is the screen a pilot
+         actually looks at. The colour is a neutral near black, the same in
+         every map, and the column is centred so it reads the same in a
+         wide window and an upright phone. */
       #loading {
         position: fixed; inset: 0; z-index: 10;
-        background: #0c0e0d url("assets/loading/wide.webp") 30% 50% / cover no-repeat;
+        background: #0b0c0d;
         font-family: var(--ui-font); color: var(--cream);
         font-variant-numeric: tabular-nums;
         transition: opacity 0.3s ease;
       }
-      /* The grade the type needs and the picture does not: the right hand
-         third and the foot darkened under the words, the rest left as
-         rendered. */
-      #loading::before {
-        content: ""; position: absolute; inset: 0; pointer-events: none;
-        background:
-          linear-gradient(90deg, rgba(8, 10, 9, 0) 34%, rgba(8, 10, 9, 0.52) 64%, rgba(8, 10, 9, 0.74) 100%),
-          linear-gradient(0deg, rgba(8, 10, 9, 0.62) 0%, rgba(8, 10, 9, 0) 34%);
-      }
       #loading[hidden] { display: none; }
       /*
-       * One column on the right, over the dam and the sky, clear of the
-       * Striker on the left: the name in the middle of it and the load at
-       * its foot. It scrolls only while the failure panel is open (below),
-       * because a scroller clips sideways too and would cut the slash.
+       * One centred column: the name, then the status under it. It scrolls
+       * only while the failure panel is open (below), because a scroller
+       * clips sideways too and would cut the slash.
        */
       .loading-col {
-        position: absolute; top: 0; bottom: 0; right: 6vw;
-        width: min(40vw, 700px);
+        position: absolute; inset: 0;
         display: flex; flex-direction: column;
-        padding: 7vh 0 7vh; box-sizing: border-box;
+        align-items: center; justify-content: center;
+        padding: max(6vh, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+          max(6vh, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        box-sizing: border-box;
       }
-      /* The name (the .lockup rules), in the middle of the column, sized
-         to its width: COMBAT, the widest line, is about 3.9 of its em. */
-      .loading-brand { margin: auto 0; }
-      #loading .lockup { font-size: clamp(56px, 8.5vw, 170px); }
-      .loading-tag {
-        margin-top: 1.6em;
-        font-size: clamp(11px, 0.9vw, 16px); font-weight: 500; line-height: 1;
-        letter-spacing: 0.3em; text-transform: uppercase; white-space: nowrap;
-        color: rgba(243, 234, 212, 0.7);
-        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+      /* The name (the .lockup rules), sized to the window: COMBAT, the
+         widest line, is about 3.9 of its em, plus the slash's 0.7. */
+      #loading .lockup { font-size: clamp(40px, min(7vw, 11vh), 112px); }
+      /* The lockup's shadows are for type over a picture. Over flat near
+         black they only draw a darker box around the name. */
+      #loading .lockup-over, #loading .lockup-under, #loading .lockup-name { text-shadow: none; }
+      .loading-status {
+        width: min(440px, 100%);
+        margin-top: clamp(28px, 7vh, 72px);
       }
-      .loading-status { width: 100%; }
       .loading-row {
         display: flex; align-items: baseline; justify-content: space-between;
         gap: 14px;
       }
       .loading-stage {
-        font-size: clamp(12px, 0.72vw, 14px); font-weight: 600; line-height: 1.35;
-        letter-spacing: 0.2em; text-transform: uppercase;
-        color: var(--cream);
-        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+        min-width: 0;
+        font-size: 12px; font-weight: 600; line-height: 1.35;
+        letter-spacing: 0.18em; text-transform: uppercase;
+        color: rgba(243, 234, 212, 0.86);
       }
-      .loading-joke {
-        margin-top: 12px; font-size: clamp(14px, 0.86vw, 17px); line-height: 1.45;
-        font-style: italic; color: rgba(214, 222, 228, 0.78);
-        min-height: 2.9em;
-        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+      /*
+       * How long the load has taken and how far through it is. The seconds
+       * stop counting while the thread is blocked and catch up when it
+       * returns, which is honest and is why the bar and the sweep are the
+       * ones carrying that window.
+       */
+      .loading-meta {
+        display: flex; gap: 12px; align-items: baseline; flex: none;
+        font-size: 12px; letter-spacing: 0.08em;
+        color: rgba(214, 222, 228, 0.5);
+      }
+      .loading-pct { color: var(--cream); font-weight: 600; min-width: 3.2em; text-align: right; }
+      .loading-error {
+        margin-top: 12px; font-size: 14px; line-height: 1.45; color: #ff8f8f;
+        word-break: break-word;
+      }
+      /* The quiet foot line: which build this is. */
+      .loading-build {
+        position: absolute; left: 0; right: 0;
+        bottom: max(18px, env(safe-area-inset-bottom));
+        padding: 0 16px;
+        text-align: center;
+        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+        color: rgba(214, 222, 228, 0.32);
       }
       /* The failure panel. Only ever painted by fail(), which is why it
          carries its own type sizes rather than inheriting the calm ones
          above: this is the one moment the screen has to be read rather
          than glanced at. */
       .loading-help {
+        width: min(560px, 100%); box-sizing: border-box;
         margin-top: 20px; text-align: left;
         padding: 16px 18px; border-radius: 4px;
-        background: rgba(8, 10, 9, 0.82);
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.1);
         color: var(--cream); font-size: 14.5px; line-height: 1.55;
       }
       .loading-help h3 {
@@ -4274,14 +4323,11 @@
       .loading-actions button:focus-visible {
         outline: 2px solid var(--cream); outline-offset: 2px;
       }
-      .loading-joke.is-error {
-        font-style: normal; color: #ff8f8f;
-      }
       .loading-track {
         position: relative;
-        width: 100%; height: 2px;
-        margin-top: 10px;
-        background: rgba(243, 234, 212, 0.16);
+        width: 100%; height: 3px;
+        margin-top: 12px;
+        background: rgba(243, 234, 212, 0.12);
         overflow: hidden;
       }
       /*
@@ -4319,67 +4365,35 @@
       .loading-sweep {
         position: absolute; inset: 0;
         background: linear-gradient(90deg,
-          transparent, rgba(243, 234, 212, 0.55), transparent);
+          transparent, rgba(243, 234, 212, 0.35), transparent);
         transform: translateX(-100%);
-        animation: loading-sweep 1.35s linear infinite;
+        animation: loading-sweep 1.6s linear infinite;
         will-change: transform;
       }
       @keyframes loading-sweep { to { transform: translateX(100%); } }
-      /*
-       * What is happening, how far through the load it is, and how long it
-       * has taken. The step count is what gives the wait a shape: a stage
-       * that outstays its slot is still one of six, and the next one is
-       * still coming. The seconds stop counting while the thread is blocked
-       * and catch up when it returns, which is honest and is why the bar
-       * and the sweep are the ones carrying that window.
-       */
-      .loading-meta {
-        display: flex; gap: 10px; align-items: baseline; flex: none;
-        font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
-        color: rgba(214, 222, 228, 0.7);
-        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
-      }
-      .loading-meta .loading-elapsed { color: rgba(214, 222, 228, 0.48); }
       @media (prefers-reduced-motion: reduce) {
         /* The sweep is decoration and goes. The fill is not: it is the one
            thing on this screen carrying how far through the load we are, so
-           it keeps its transition. */
+           it keeps its transition. The fade out goes as well. */
         .loading-sweep { animation: none; opacity: 0; }
+        #loading { transition: none; }
       }
       /* A failure is read, not glanced at: the name steps back to make the
-         room the steps need. */
-      #loading.is-failed .loading-col { overflow-y: auto; scrollbar-width: none; }
-      #loading.is-failed .loading-brand { margin: 0 0 4vh; }
-      #loading.is-failed .loading-tag { display: none; }
-      #loading.is-failed .lockup { font-size: clamp(36px, 4vw, 60px); }
-      /*
-       * A phone, or any window taller than it is wide: the portrait frame,
-       * the name over the sky at the top, the load at the foot, both the
-       * full width less a thumb's margin.
-       */
+         room the steps need, and the number beside a dead bar goes. */
+      #loading.is-failed .loading-col { justify-content: safe center; overflow-y: auto; scrollbar-width: none; }
+      #loading.is-failed .lockup { font-size: clamp(32px, 4vw, 56px); }
+      #loading.is-failed .loading-status { margin-top: 4vh; }
+      #loading.is-failed .loading-meta { display: none; }
+      #loading.is-failed .loading-build { display: none; }
+      /* An upright phone has the width for a bigger name than 7vw. */
       @media (max-aspect-ratio: 4/5) {
-        #loading { background-image: url("assets/loading/tall.webp"); background-position: 50% 50%; }
-        #loading::before {
-          background:
-            linear-gradient(180deg, rgba(8, 10, 9, 0.62) 0%, rgba(8, 10, 9, 0) 30%),
-            linear-gradient(0deg, rgba(8, 10, 9, 0.86) 0%, rgba(8, 10, 9, 0.5) 22%, rgba(8, 10, 9, 0) 40%);
-        }
-        .loading-col {
-          left: max(22px, env(safe-area-inset-left)); right: max(22px, env(safe-area-inset-right)); width: auto;
-          padding: max(8vh, env(safe-area-inset-top)) 0 max(5vh, env(safe-area-inset-bottom));
-        }
-        .loading-brand { margin: 0 0 auto; }
-        /* Over the sky and clear of the Striker below it, which is why
-           the tagline sits this one out. */
-        #loading .lockup { font-size: clamp(44px, 15vw, 100px); }
-        .loading-tag { display: none; }
+        #loading .lockup { font-size: clamp(40px, 15vw, 96px); }
       }
       /* A landscape phone: the column is short, so the name shrinks rather
          than pushing the bar off the bottom. */
-      @media (max-height: 520px) and (min-aspect-ratio: 4/5) {
-        .loading-col { padding: 4vh 0; }
-        #loading .lockup { font-size: clamp(40px, 13vh, 72px); }
-        .loading-joke { min-height: 0; }
+      @media (max-height: 520px) {
+        #loading .lockup { font-size: clamp(32px, 12vh, 64px); }
+        .loading-status { margin-top: 5vh; }
       }
 
       .name-dialog {
@@ -5465,22 +5479,19 @@
     <div id="ui"></div>
     <div id="loading">
       <div class="loading-col">
-        <div class="loading-brand">
-          <div class="lockup">
-            <span class="lockup-slash" aria-hidden="true"></span>
-            <span class="lockup-over">Paraguayan</span>
-            <span class="lockup-name"><span>Drone</span> <span>Combat</span></span>
-            <span class="lockup-under">Simulator</span>
-          </div>
-          <div class="loading-tag">Real Betaflight in your browser</div>
+        <div class="lockup" role="img" aria-label="Paraguayan Drone Combat Simulator">
+          <span class="lockup-slash" aria-hidden="true"></span>
+          <span class="lockup-over" aria-hidden="true">Paraguayan</span>
+          <span class="lockup-name" aria-hidden="true"><span>Drone</span> <span>Combat</span></span>
+          <span class="lockup-under" aria-hidden="true">Simulator</span>
         </div>
         <div class="loading-status">
           <div class="loading-row">
             <div class="loading-stage">loading</div>
-            <div class="loading-meta"><span class="loading-step"></span><span class="loading-elapsed"></span></div>
+            <div class="loading-meta"><span class="loading-elapsed"></span><span class="loading-pct">0%</span></div>
           </div>
-          <div class="loading-track"><div class="loading-fill"></div><div class="loading-sweep"></div></div>
-          <div class="loading-joke">"I complimented my quad on its propellers. It said thanks for the props."</div>
+          <div class="loading-track" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="loading-fill"></div><div class="loading-sweep"></div></div>
+          <div class="loading-error" hidden></div>
         </div>
         <!-- Empty until something fails. See fail() in src/ui/loading.js: a
              boot that dies used to leave a red bar, a sentence and no way
@@ -5488,6 +5499,7 @@
              looking at. aria-live so a screen reader hears the failure. -->
         <div class="loading-help" hidden role="alert" aria-live="assertive"></div>
       </div>
+      <div class="loading-build"></div>
     </div>
     <!-- boot.js, not main.js. It imports nothing at module scope except the
          loading screen, so the screen is alive and reporting BEFORE the

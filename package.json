@@ -142,6 +142,7 @@
     "strings:selftest": "node scripts/strings-selftest.js",
     "version:check": "node scripts/version-check.js",
     "version:reload": "node scripts/version-reload-check.js",
+    "boot:loader": "node scripts/boot-loader-check.js",
     "waves:selftest": "node scripts/waves-selftest.js",
     "river:check": "node scripts/river-water-check.js",
     "river:page": "node scripts/river-page-check.js",
