@@ -54,6 +54,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { MOTORS, hasMotors, motorChoice } from './motors.js';
+
 /* sim_abi.h's SIM_POWER_* layout. */
 export const SIM_POWER = {
   KIND: 0, MASS: 1, CG_SHIFT: 2, CELLS: 3, R_CELL: 4, PACK_C: 5, THRUST: 6, PITCH_SPEED: 7,
@@ -689,9 +691,18 @@ function packOf(option, packId) {
   return option.packs.find((p) => p.id === packId) || option.packs.find((p) => p.id === option.pack);
 }
 
+/* Whether the pilot chooses this airframe's power system at all: a fixed
+ * wing's here, a quad's motors in configs/motors.js. */
+export function choosesPower(airframeId) {
+  return Boolean(optionsOf(airframeId)) || hasMotors(airframeId);
+}
+
 /* The pilot's choice for one airframe, valid: stock where anything is
- * missing or unknown. */
+ * missing or unknown. A quad's is its motor (configs/motors.js). */
 export function powerChoice(airframeId, stored) {
+  if (hasMotors(airframeId)) {
+    return motorChoice(airframeId, stored);
+  }
   const list = optionsOf(airframeId);
   if (!list) {
     return { option: null, pack: null };
@@ -709,7 +720,7 @@ export function normalizePower(stored) {
   if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
     return out;
   }
-  for (const id of Object.keys(POWER)) {
+  for (const id of [...Object.keys(POWER), ...Object.keys(MOTORS)]) {
     if (stored[id] && typeof stored[id] === 'object') {
       out[id] = powerChoice(id, stored);
     }
