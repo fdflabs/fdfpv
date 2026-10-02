@@ -67,8 +67,12 @@ export const SUN_IRRADIANCE = 3.51;
 /* The post chain's base exposure (swiss2/post.js AIR.exposure), before
  * the meter. The valley's 1.45 left the views light under the clear sky:
  * the ground's median lightness 0.51 over eight of the loop's views, the
- * photographs' 0.41 over all of them. At 1.15 it is 0.40 over all 22. */
-export const EXPOSURE = 1.15;
+ * photographs' 0.41 over all of them, and 1.15 made it 0.40. That was
+ * with the sun counted twice on High (THE CASCADES ARE ONE SUN, below):
+ * counted once, the eight views matched to photographs in round 4 fell
+ * from mean lightness 0.47 to 0.43 against the photographs' 0.50, and at
+ * 1.5 they are at 0.52. */
+export const EXPOSURE = 1.5;
 
 /* The moon, standing where the sun does (sunDirection is shared: a
  * single shadow map serves either), cool and faint: 1.5% of the sun's
@@ -174,6 +178,40 @@ export function makeNightAmbient() {
 
 const LIT_TYPES = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial', 'MeshToonMaterial']);
 
+/*
+ * THE CASCADES ARE ONE SUN. On High, swiss2's makeSun (swiss2/light.js)
+ * stands two directional lights in the sun's place, each at the sun's
+ * full irradiance: a sharp shadow map round the craft and a wide one
+ * past it. swiss2's injector hands each fragment to one of them, the
+ * near where its map covers the fragment and the far elsewhere, with a
+ * short blend at the near map's edge. Until round 4 this injector left
+ * that out, so on High every lit surface took the sun twice, and past
+ * the near map's 72 m every shadow was only the far light's, half the
+ * sun still falling in it: the grey shade from the air that round 4's
+ * measurements found (the ground's darkest twentieth at lightness 0.16
+ * against the photographs' 0.12). This is swiss2's own blend.
+ */
+const CASCADE_PRELUDE = /* glsl */ `
+  #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
+    vec3 itCas = vDirectionalShadowCoord[ 0 ].xyz / vDirectionalShadowCoord[ 0 ].w;
+    vec2 itEdge = min(itCas.xy, 1.0 - itCas.xy);
+    float itNear = smoothstep(0.0, 0.07, min(itEdge.x, itEdge.y)) * step(itCas.z, 1.0);
+  #endif
+`;
+const CASCADE_FIND = 'getDirectionalLightInfo( directionalLight, directLight );';
+const CASCADE_LIGHT = /* glsl */ `getDirectionalLightInfo( directionalLight, directLight );
+    #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 1
+      #if UNROLLED_LOOP_INDEX == 0
+        directLight.color *= itNear;
+      #else
+        directLight.color *= 1.0 - itNear;
+      #endif
+    #endif`;
+if (!THREE.ShaderChunk.lights_fragment_begin.includes(CASCADE_FIND)) {
+  throw new Error('itaipu light: three renamed getDirectionalLightInfo; the cascades would silently light every surface twice');
+}
+const CASCADE_LOOP = THREE.ShaderChunk.lights_fragment_begin.replace(CASCADE_FIND, CASCADE_LIGHT);
+
 function inject(shader) {
   shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
   if (shader.vertexShader.includes('#include <project_vertex>')) {
@@ -190,8 +228,12 @@ function inject(shader) {
   } else {
     throw new Error('itaipu light: a lit material leaves no place to find its world position');
   }
+  if (!shader.fragmentShader.includes('#include <lights_fragment_begin>')) {
+    throw new Error('itaipu light: a lit material has no #include <lights_fragment_begin> to take one sun from the cascades');
+  }
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vS2World;');
+    .replace('#include <common>', '#include <common>\nvarying vec3 vS2World;')
+    .replace('#include <lights_fragment_begin>', `${CASCADE_PRELUDE}\n${CASCADE_LOOP}`);
 }
 
 /*

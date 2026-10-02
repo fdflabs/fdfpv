@@ -34,13 +34,14 @@
  * dam without the disc (the sun is the directional light), then
  * prefiltered. So the sky fill is the same blue as the sky in the frame,
  * and as weak as a clear sky is against a high sun: its irradiance on the
- * level is about a fifth of the sun's (light.js). Round 4 drew the zenith
- * half again as bright and bluer, because the frames' sky came out darker
- * and greyer than the photographs' (sRGB about (90, 125, 170) overhead
- * against their (95, 145, 195) to (115, 165, 205), after the meter, AgX
- * and the print); the light the sky gives did not change with it, so the
- * environment is drawn at ENV_GAIN of the backdrop, which keeps its fill
- * where round 2 measured it.
+ * level is about a fifth of the sun's (light.js). In round 4 the frames'
+ * sky came out darker and greyer than the photographs' (sRGB about (90,
+ * 125, 170) overhead against their (95, 145, 195) to (115, 165, 205),
+ * after the meter, AgX and the print), and with the sun counted once on
+ * High (light.js, THE CASCADES ARE ONE SUN) the meter now lifts the frame
+ * so that ZENITH, a little bluer than round 2's, draws (110, 155, 200).
+ * The environment is drawn at ENV_GAIN of the backdrop: at the full sky
+ * the shade from the air was a stop lighter than the photographs'.
  *
  * NIGHT (mission 4, "Night raid"): the same backdrop, built with `time`
  * set to 'night' instead of drawn fresh, so it keeps the horizon-is-the-
@@ -87,14 +88,23 @@ import { MAX_DISTRICTS } from '../../../share/war/grid.js';
  * round 4 (tools/itaipu/look_measure.py) the ground's darkest twentieth
  * sat at lightness 0.16 against the photographs' 0.12, a grey wash the
  * air was not the cause of (with no air at all, 0.19 to 0.16 on the three
- * views tried) nor the sky's fill (at half the fill, 0.22 to 0.21).
+ * views tried) nor the sky's fill (at half the fill, 0.22 to 0.21); most
+ * of it was the sun counted twice (light.js).
  */
 export const AIR = {
   ...VALLEY_AIR,
-  haze: new THREE.Color().setRGB(0.36, 0.43, 0.54, THREE.LinearSRGBColorSpace),
+  haze: new THREE.Color().setRGB(0.31, 0.37, 0.47, THREE.LinearSRGBColorSpace),
   exposure: EXPOSURE,
   contrast: 0.85,
+  spread: 1.5,
+  slopeMax: 2.2,
 };
+/* Round 4's numbers for the haze and the print (look_measure.py over the
+ * eight matched views): the haze 0.85 of round 2's, the horizon band of
+ * river-below having come out sRGB (180, 193, 210) against its
+ * photograph's (132, 163, 191); the print's slope, spread over 1.5 rather
+ * than 1.2 stops and up to 2.2, because once the sun was counted once the
+ * ground's 5th to 95th percentile was 0.18 to 0.59 against 0.12 to 0.65. */
 
 /* Night's air: the same extinction shape over a haze that is the
  * moonlit horizon rather than the clear day's, dim enough that a lamp a
@@ -126,7 +136,7 @@ const AIRS = {
   },
   noon: {
     ...AIR,
-    haze: new THREE.Color().setRGB(0.39, 0.46, 0.57, THREE.LinearSRGBColorSpace),
+    haze: new THREE.Color().setRGB(0.33, 0.39, 0.5, THREE.LinearSRGBColorSpace),
   },
   golden: {
     ...AIR,
@@ -144,13 +154,13 @@ export function airFor(time) {
 
 /* The sky overhead, linear radiance in the sun's units (THE LIGHT IS
  * THIS SKY, in the module doc, for why round 4 raised it). */
-const ZENITH = new THREE.Color().setRGB(0.07, 0.3, 0.85, THREE.LinearSRGBColorSpace);
+const ZENITH = new THREE.Color().setRGB(0.045, 0.2, 0.56, THREE.LinearSRGBColorSpace);
 /* Each time's (light.js TIMES): the morning's lower sun leaves the
  * zenith a little darker, noon's the day's, the golden hour's deep and
  * dim, and night's a deep moonlit blue, most of it black. */
 const ZENITHS = {
   day: ZENITH,
-  morning: new THREE.Color().setRGB(0.06, 0.24, 0.72, THREE.LinearSRGBColorSpace),
+  morning: new THREE.Color().setRGB(0.04, 0.16, 0.48, THREE.LinearSRGBColorSpace),
   noon: ZENITH,
   golden: new THREE.Color().setRGB(0.025, 0.07, 0.21, THREE.LinearSRGBColorSpace),
   night: new THREE.Color().setRGB(0.006, 0.012, 0.03, THREE.LinearSRGBColorSpace),
@@ -223,7 +233,7 @@ const CLOUD_DEPTH = 900;
 const CLOUD_STEPS = 24;
 const CLOUD_SPAN = 5000;
 const CLOUD_FADE = 16000;
-const CLOUD_LIT = 0.42;
+const CLOUD_LIT = 0.36;
 const CLOUD_SELF = 0.45;
 const CLOUD_PROBE = 220;
 const CLOUD_PUFF = 240;
