@@ -376,7 +376,7 @@ if (pub.open) {
   quick.say({ type: 'war', op: 'start', mission: 'itaipu-1' });
   check('and the public room it lands in, not made for the war, refuses the war', Boolean(await quick.until((x) => x.text('refused').find((m) => m.why === 'private'))),
     JSON.stringify(quick.text('refused')));
-  /* Its lobby (edge/rooms/warlobby.js): a second pilot, both ready, the
+  /* Its lobby (edge/rooms/gamelobby.js): a second pilot, both ready, the
    * five seconds on the room's clock, then mission 2's briefing. */
   const pw2 = await seat(`room/${pubWar}`, { war: WAR_JOIN, name: [3, 6, 41] });
   check('its lobby is in the welcome: mission 2, nobody ready', pw2.welcome && pw2.welcome.lobby && pw2.welcome.lobby.mission === 'itaipu-2'

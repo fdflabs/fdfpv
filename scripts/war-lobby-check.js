@@ -49,7 +49,7 @@ import { mkdtempSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
-import { LOBBY_DEADLINE_MS } from '../edge/rooms/warlobby.js';
+import { LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || join(root, 'build', 'war-lobby');
