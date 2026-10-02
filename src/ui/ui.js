@@ -3131,6 +3131,9 @@ const WAYS = [
     id: 'race-5inch',
     airframes: AIRFRAME_IDS,
     mode: 'race',
+    /* The game of the lobby its one press lands in (onGameCard): null is
+     * free flight. */
+    lobby: 'race',
     label: str('ui.track_mode'),
     art: 'assets/gate/race.jpg',
     blurb: str('ui.card_line_race'),
@@ -3144,6 +3147,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
+    lobby: null,
     airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'uglystik1567', 'tigermoth1803', 'p51d1450', 'f16878', 'zagi1219', 'nrj1490', 'striker2500'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
@@ -3171,6 +3175,11 @@ const WAYS = [
      * to land on a room card. On the gate only where there is a
      * rooms server (friendsItems), the same rule as the menu row. */
     id: 'friends',
+    /* OFF THE TITLE since the owner's word on 2026-10-02 ("delete the fly
+     * with friends...every click will take you to the lobby for it"):
+     * every card is a room now. The title's rooms panel still goes in by
+     * this card's way ('lobby:' actions, act), so the entry stays. */
+    gate: false,
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'swiss2',
@@ -3192,6 +3201,7 @@ const WAYS = [
    */
   {
     id: 'combat',
+    lobby: 'combat',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'swiss2',
@@ -3205,6 +3215,7 @@ const WAYS = [
   },
   {
     id: 'ace',
+    lobby: 'tag',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'swiss2',
@@ -3253,6 +3264,7 @@ const WAYS = [
      * reads of this table (seatedWay) still land on it for the war.
      */
     id: 'campaign',
+    lobby: 'war',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'itaipu',
@@ -10512,10 +10524,13 @@ export class Ui {
     }
     if (action === 'card-fly') {
       this.cardSubject = null;
+      /* In a race lobby, the host's choice is the room's track: back to
+       * the lobby with it seated (src/main.js onTrackChosen), not up. */
+      const go = () => (this.onTrackChosen && this.onTrackChosen() ? null : this.play());
       if (board) {
-        this.openBoardCourse(t.id, () => this.play());
+        this.openBoardCourse(t.id, go);
       } else if (this.seatLocal(t.id)) {
-        this.play();
+        go();
       }
       return;
     }
@@ -14005,6 +14020,17 @@ export class Ui {
     }
     /* A room's aircraft is chosen in the room, once it is known who is
      * flying what: the card goes straight to the room screen. */
+    /*
+     * EVERY CARD, ONE PRESS, into its game's lobby (the owner, 2026-10-02:
+     * "every click will take you to the lobby for it, ready to go either
+     * single or multi"; src/main.js onGameCard), its aircraft chosen
+     * there. Defend the Paraná's lobby is the war's, its campaign a row
+     * of it. With no rooms server the cards fly alone as they always did.
+     */
+    if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
+      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
+      return;
+    }
     if (way.campaign && this.onCampaignCard) {
       this.onCampaignCard();
       return;

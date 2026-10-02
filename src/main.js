@@ -230,7 +230,7 @@ import { planStages, moduleCounter, yieldToPaint } from './ui/loading.js';
 import { FpvOsd } from './ui/fpvhud.js';
 import { PeerMarks } from './ui/peermarks.js';
 import { loadSim, simErrorName, SIM_OK, SIM_ERR_BAD_ARG } from '../tests/lib/simmod.js';
-import { currentLocale, str } from './strings/index.js';
+import { currentLocale, plural, str } from './strings/index.js';
 import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight } from './game/water.js';
 import { KINDS, TURNED } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
@@ -2191,7 +2191,7 @@ export async function boot({
   let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
-  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card' };
+  const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
@@ -2836,12 +2836,18 @@ export async function boot({
    * starts the round when everybody is ready, five seconds on, or 45
    * seconds after enough are ready (edge/rooms/gamelobby.js).
    *
-   * LOBBY_GAMES: what differs by game. on(), whether a round is on as this
-   * screen knows it; ended(), whether the last one is over; start, the
-   * host's Start now; setting, the host's row for the room's one setting
-   * between rounds (the war's mission, combat's minutes, the Ace's goal):
-   * its key on the wire, its choices and its label; line, the panel's line
-   * under LOBBY; two, whether the game needs two pilots.
+   * LOBBY_GAMES: what differs by game, by the room's meta.mode ('free' for
+   * free flight, a room made for no game). on(), whether a round is on as
+   * this screen knows it; ended(), whether the last one is over; start,
+   * the host's Start now, or null; setting, the host's row for the room's
+   * one setting between rounds (the war's mission, combat's minutes, the
+   * Ace's goal): its key on the wire, its choices and its label, or null;
+   * rows(host), the game's own rows (the war's campaign, the race's
+   * track); line, the panel's line under LOBBY.
+   *
+   * Every one is played alone as well (the owner, 2026-10-02: "ready to go
+   * either single or multi"): Ready with nobody else starts the five
+   * seconds (edge/rooms/gamelobby.js).
    */
   const LOBBY_GAMES = {
     war: {
@@ -2855,11 +2861,11 @@ export async function boot({
         note: 'lobby.mission_note',
         value: (id) => String(missionNumber(id)),
       },
+      rows: () => [{ label: str('lobby.campaign'), note: str('lobby.campaign_note'), action: 'friends-lobby-campaign' }],
       line: (lobby) => {
         const mission = WAR_MISSIONS[lobby.mission] ? lobby.mission : roomMission();
         return str('lobby.mission_line', { n: missionNumber(mission), name: str(`campaign.m.${missionKey(mission)}`) });
       },
-      two: false,
     },
     combat: {
       on: () => ['countdown', 'on'].includes(roomCombat.round().state),
@@ -2872,8 +2878,8 @@ export async function boot({
         note: 'lobby.minutes_note',
         value: (n) => str('lobby.minutes_value', { n }),
       },
+      rows: () => [],
       line: (lobby) => str('lobby.combat_line', { n: lobby.minutes }),
-      two: true,
     },
     tag: {
       on: () => roomTag.on(),
@@ -2884,16 +2890,41 @@ export async function boot({
         choices: () => GOALS.map((g) => g.goal),
         label: 'lobby.goal',
         note: 'lobby.goal_note',
-        value: (n) => str('lobby.goal_value', { n }),
+        value: (n) => plural('count.points', n),
       },
+      rows: () => [],
       line: (lobby) => str('lobby.tag_line', { n: lobby.goal }),
-      two: true,
+    },
+    /* The race goes off the track the host chose, from My tracks; the
+     * pilots in the lobby have it built under the lobby screen, and are on
+     * its grid when it goes (edge/rooms/race.js start). */
+    race: {
+      on: () => roomRace.race().state === 'on',
+      ended: () => roomRace.race().state === 'results',
+      start: 'friends-lobby-start',
+      setting: null,
+      rows: (host) => (host ? [{
+        label: str('lobby.track'), value: roomRace.track() ? roomRace.track().name : str('lobby.track_none'), note: str('lobby.track_note'), action: 'friends-lobby-track',
+      }] : []),
+      line: () => (roomRace.track() ? str('lobby.race_line', { name: roomRace.track().name }) : str('lobby.race_none')),
+    },
+    /* Free flight's round is just flying, on from the first start until
+     * the room is empty: a pilot who comes then flies straight in. */
+    free: {
+      on: () => Boolean(roomLinkState.state().welcome && roomLinkState.state().welcome.lobby && roomLinkState.state().welcome.lobby.live),
+      ended: () => false,
+      start: null,
+      setting: null,
+      rows: () => [],
+      line: () => str('lobby.free_line', { world: mapById(roomLinkState.state().welcome.map).name }),
     },
   };
-  /* The room's game when it has a lobby, else null. */
+  /* The room's game when it has a lobby ('free' for free flight), else
+   * null: a room from a server before the lobby has none. */
   function lobbyGame() {
     const w = roomLinkState.state().welcome;
-    return w && Object.hasOwn(LOBBY_GAMES, w.mode) ? w.mode : null;
+    const mode = w ? w.mode ?? 'free' : null;
+    return w && w.lobby && Object.hasOwn(LOBBY_GAMES, mode) ? mode : null;
   }
   /* The lobby, between rounds of the room's game, or null. */
   function gameLobby() {
@@ -2923,8 +2954,11 @@ export async function boot({
     const rows = [{
       label: str(ready ? 'lobby.unready' : 'lobby.ready'), note: str(ready ? 'lobby.unready_note' : 'lobby.ready_note'), action: 'friends-lobby-ready', primary: true,
     }, ...(lobbyGame() === 'war' ? warInviteRows() : [])];
-    if (host) {
+    rows.push(...game.rows(host));
+    if (host && game.start) {
       rows.push({ label: str('lobby.start_now'), note: str('lobby.start_now_note'), action: game.start });
+    }
+    if (host && game.setting) {
       const { key, choices, label, note, value } = game.setting;
       const all = choices();
       if (all.length > 1) {
@@ -2961,9 +2995,6 @@ export async function boot({
       mission: LOBBY_GAMES[game].line(lobby),
       countdown: secs(lobby.countdownAt),
       deadline: secs(lobby.deadlineAt),
-      /* Combat and the Ace are played by two or more: alone, the panel
-       * says it waits for a second pilot. */
-      waiting: LOBBY_GAMES[game].two && seats.length < 2 ? str('lobby.waiting_two') : null,
       pilots: seats.map((seat) => ({
         name: roomSeatName(seat),
         aircraft: airframeById(seat === w.seat ? runAirframe : roomPeers.get(seat).profile.airframe).name,
@@ -3120,27 +3151,42 @@ export async function boot({
   }
 
   /*
-   * TOILET PAPER COMBAT AND CATCH THE ACE, ONE PRESS (the owner,
-   * 2026-10-02: "it should take me to the lobby of the room ... one two
-   * clicks max"). The card joins the busiest public room made for its
-   * game on its world with a seat, into its lobby, or into its round when
-   * one is on; with none, it makes one, public, named for this pilot and
-   * the game, and lands in its lobby. A room the server would not make is
-   * said, with a second try on offer, and Back leaves the pilot on the
-   * title. Resolves the code of the room, or null.
+   * EVERY CARD, ONE PRESS (the owner, 2026-10-02: "it should take me to
+   * the lobby of the room ... one two clicks max", and "every click will
+   * take you to the lobby for it, ready to go either single or multi").
+   * The card joins the busiest public room made for its game on its world
+   * with a seat, into its lobby, or into its round when one is on; with
+   * none, it makes one, public, named for this pilot and the game, and
+   * lands in its lobby. The war asks its consent first. `game` is null for
+   * free flight. A room the server would not make is said, with a second
+   * try on offer, and Back leaves the pilot on the title. Resolves the code
+   * of the room, or null.
    */
   ui.onGameCard = async (card, game, world) => {
+    if (game === 'war' && !(await warConsented())) {
+      return null;
+    }
     for (;;) {
       try {
         const found = await roomBrowser.bestRoom(game, world);
-        const name = normaliseRoomName(str(`lobby.room_name_${game}`, { name: roomName(ownName()) })) || null;
+        const name = normaliseRoomName(str(`lobby.room_name_${game || 'free'}`, { name: roomName(ownName()) })) || null;
         const code = found || await roomLinkState.create(world, false, { name, mode: game, public: true });
+        if (ui.settings.map !== world) {
+          ui.seatMap(world, { stay: true });
+        }
         ui.act(card);
+        /* The lobby, whatever the card's own screen was (Track mode's is
+         * My tracks): its track, its aircraft, its world are chosen
+         * there. */
+        if (ui.screen !== 'friends') {
+          ui.returnTo = 'title';
+          ui.show('friends');
+        }
         roomLinkState.join(code);
         return code;
       } catch (e) {
         const again = await ui.askConfirm({
-          title: str(GAME_CARDS[game]), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
+          title: str(GAME_CARDS[game || 'free']), detail: str('roombrowser.make_failed'), yes: str('loading.try_again'), no: str('war.consent_no'),
         });
         if (!again) {
           return null;
@@ -3490,6 +3536,11 @@ export async function boot({
     if (seen !== lobbySeen) {
       if (seen === 'over' && lobbySeen === 'on') {
         lobbyBackAt = wallMs + LOBBY_BACK_MS;
+      }
+      /* Free flight has no start of its own to put pilots in the air: its
+       * lobby's start does, and a pilot who came while it flies goes up. */
+      if (seen === 'on' && game === 'free') {
+        roomCall('game');
       }
       lobbySeen = seen;
     }
@@ -4934,7 +4985,19 @@ export async function boot({
   const campaign = createCampaignScreen({
     ui,
     inBuild: (id) => Object.hasOwn(WAR_MISSIONS, id),
-    enterWarRoom: (mission) => ui.onWarCard('way-war', mission),
+    /* From a war lobby (its Campaign row), Play sets that room's mission,
+     * the host's to set, and the pilot is back in the lobby to say ready;
+     * from anywhere else, the war's way in. */
+    enterWarRoom: async (mission) => {
+      if (lobbyGame() !== 'war') {
+        return ui.onWarCard('way-war', mission);
+      }
+      if (roomHost(roomLinkState.state().welcome)) {
+        roomLinkState.send({ type: 'lobby', op: 'mission', mission });
+      }
+      ui.show('friends');
+      return roomLinkState.state().code;
+    },
     send: (obj) => roomLinkState.send(obj),
     view: () => roomWar.view(),
     room: () => {
@@ -4950,6 +5013,13 @@ export async function boot({
   });
   campaignRef = campaign;
   ui.onCampaignCard = () => campaign.open();
+  ui.onTrackChosen = () => {
+    if (lobbyGame() !== 'race' || !roomHost(roomLinkState.state().welcome)) {
+      return false;
+    }
+    ui.show('friends');
+    return true;
+  };
   window.__campaign = campaign;
 
   function roomLeave() {
@@ -4988,15 +5058,29 @@ export async function boot({
       gameLobbyToggle();
       return;
     }
-    /* The host's Start now in a combat or an Ace lobby: the round the
-     * room is set for (the war's is friends-war-start, its consent first). */
+    /* The host's Start now in a combat, an Ace or a race lobby: the round
+     * the room is set for (the war's is friends-war-start, its consent
+     * first). */
     if (action === 'friends-lobby-start') {
       const lobby = gameLobby();
       if (lobby && lobbyGame() === 'combat') {
         roomCombat.start(lobby.minutes);
       } else if (lobby && lobbyGame() === 'tag') {
         roomTag.start(lobby.goal);
+      } else if (lobby && lobbyGame() === 'race') {
+        roomLinkState.send({ type: 'race', op: 'start', laps: 3 });
       }
+      return;
+    }
+    /* A race lobby's host chooses its track in My tracks (ui.onTrackChosen
+     * brings them back here); a war lobby's campaign is a row of it. */
+    if (action === 'friends-lobby-track') {
+      ui.returnTo = 'friends';
+      ui.show('courses');
+      return;
+    }
+    if (action === 'friends-lobby-campaign') {
+      campaign.open();
       return;
     }
     if (action === 'friends-war-start') {
