@@ -542,6 +542,26 @@ export class RoomCore {
     };
   }
 
+  /*
+   * WHO IS ON, for the admin only (GET /v2/admin/rooms, front.js): every
+   * seat with its callsign or picker name, its aircraft, what it is doing
+   * (flying when a pose came in the last HERE_MS, else ready or in the
+   * lobby by the room's lobby), and how long ago its socket said hello
+   * and was last heard from, in whole seconds. Never sent to a pilot.
+   */
+  who(now) {
+    return [...this.seats.values()].sort((a, b) => a.seat - b.seat).map((s) => ({
+      seat: s.seat,
+      host: s.seat === this.host(),
+      callsign: s.callsign ?? null,
+      pick: s.name,
+      aircraft: s.profile ? s.profile.airframe : null,
+      state: s.pose && now - s.poseNow <= HERE_MS ? 'flying' : this.gameLobby.ready.has(s.seat) ? 'ready' : 'lobby',
+      connectedS: Math.round((now - s.connectedAt) / 1000),
+      heardS: Math.round((now - s.heardAt) / 1000),
+    }));
+  }
+
   /* Reports took the room's typed name away (safety.js): it shows its
    * picker name from now on, to its pilots at once, and the browser no
    * longer lists it. Kept in storage with the rest of the meta. */
@@ -715,6 +735,10 @@ export class RoomCore {
       callsign,
       profile,
       joined,
+      /* Memory only, for the admin's who is on (who()): this socket's
+       * hello, and the last thing heard on it. */
+      connectedAt: now,
+      heardAt: now,
       address: address || '',
       pose: null,
       recent: [],
@@ -781,6 +805,9 @@ export class RoomCore {
 
   message(conn, data, now, address = '', newToken = null, callsign = null) {
     const s = this.seats.get(conn);
+    if (s) {
+      s.heardAt = now;
+    }
     if (typeof data !== 'string') {
       if (s && data[0] === TYPE_PARTS) {
         return wrecks.onParts(this, conn, s, data, now);
