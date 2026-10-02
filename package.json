@@ -113,6 +113,7 @@
     "flow:check": "node scripts/flow-check.js",
     "war:public": "node scripts/war-public-check.js",
     "war:lobby": "node scripts/war-lobby-check.js",
+    "game:lobby": "node scripts/game-lobby-check.js",
     "war:targets": "node scripts/war-targets.js --check",
     "war:routes": "node scripts/war-routes-check.js",
     "check:perception": "node scripts/perception-check.js",
