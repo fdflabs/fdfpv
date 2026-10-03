@@ -143,13 +143,17 @@ function edgeRuns(bed, grid) {
  * THE TWO STARTS (the lead, 2 October and 3 October). A war's water is
  * the turbines' river with the spillway's gates shut, until a mission
  * hoists them (setGate, a hoist event). Free Flight's is a typical
- * spill, the look the map has always drawn: all fourteen gates 5 m open
- * (dam/index.js SPILL.gateOpen), 15 527 m3/s over the turbines' 13 800.
+ * spill: all fourteen gates 2 m open, 6534 m3/s over the turbines' 13 800,
+ * which runs all three chutes white and throws all three plumes as the
+ * map has always drawn them (the chute and the plume are drawn whole
+ * from a quarter of the 5 m spill's water, spill.js). The 5 m the gates
+ * are drawn at would pass 15 527 m3/s and stand the river 4.6 m over its
+ * drawn 103.5 m by the dam; 2 m stands it 2.3 m over (docs/FLOOD.md).
  * `spill` is the metres every gate stands open at the start.
  */
 export const STARTS = {
   war: { spill: 0, file: 'itaipu-flood-warm-war.bin' },
-  free: { spill: 5, file: 'itaipu-flood-warm-free.bin' },
+  free: { spill: 2, file: 'itaipu-flood-warm-free.bin' },
 };
 
 /*

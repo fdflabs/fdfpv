@@ -17859,6 +17859,13 @@ export async function boot({
     return true;
   };
   window.__mapFlows = () => (view && view.waterFlows ? view.waterFlows() : null);
+  /* A mission's gate state handed to the map (map.setGateState), for
+   * scripts/itaipu-views.js --gates. Harness only. */
+  window.__mapGates = (list) => {
+    if (!view || typeof view.setGateState !== 'function') return false;
+    view.setGateState(list);
+    return true;
+  };
   window.__animMs = () => animDrawnMs;
   /* The declared departure from MultiGP's published obstacle dimensions, so
    * check 15 can assert the threshold file and the course agree about how big

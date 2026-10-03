@@ -31,6 +31,7 @@ import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
+import { STARTS } from '../src/maps/itaipu/water/flood.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -64,7 +65,7 @@ try {
   const flood = () => page.evaluate('JSON.stringify(window.__map().parts.water.flood)').then(JSON.parse);
   await page.until('window.__map().parts.water.flood.state === "ready"', 60000);
   const before = await flood();
-  check('Free Flight\'s spill loads with the map, every gate 5 m open, not stepped', before.mode === 'free' && before.lips.every((v) => v === 5) && before.step === 0,
+  check(`Free Flight's spill loads with the map, every gate ${STARTS.free.spill} m open, not stepped`, before.mode === 'free' && before.lips.every((v) => v === STARTS.free.spill) && before.step === 0,
     `${before.state} ${before.mode} step ${before.step}`);
   const at = await page.evaluate('window.__animMs()');
   /* The DAMAGE agent's first opening, gate 3's notch, at the map's

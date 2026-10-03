@@ -358,7 +358,7 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
   const live = liveFlood({ fetchBytes, now: () => performance.now() });
   await settle(live);
   let st = live.stats();
-  check('Free Flight: the spill loads with the map, every gate 5 m open', st.state === 'ready' && st.mode === 'free' && st.lips.every((v) => v === 5), `${st.state} ${st.mode} lips ${st.lips.join(',')}`);
+  check(`Free Flight: the spill loads with the map, every gate ${STARTS.free.spill} m open`, st.state === 'ready' && st.mode === 'free' && st.lips.every((v) => v === STARTS.free.spill), `${st.state} ${st.mode} lips ${st.lips.join(',')}`);
   live.advance(60000);
   check('and with nothing happening it is never stepped', live.stats().step === 0, `step ${live.stats().step}`);
   /* A war: M2's gate state (gate 5 hoisted 3 m at AT, then 6 m 10 s
@@ -393,7 +393,7 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
   live.setGates(null);
   await settle(live);
   st = live.stats();
-  check('no war again: Free Flight\'s spill', st.mode === 'free' && st.lips.every((v) => v === 5) && st.step === 0, `${st.mode} step ${st.step}`);
+  check('no war again: Free Flight\'s spill', st.mode === 'free' && st.lips.every((v) => v === STARTS.free.spill) && st.step === 0, `${st.mode} step ${st.step}`);
   report.live = { frames, ...st };
 }
 
