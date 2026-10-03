@@ -2,7 +2,7 @@
  * flow-check.js: where a pilot ends up across a reload, driven through the
  * real shell against a local rooms server (never the live one), one page:
  *
- *   npm run flow:check                      starts its own on port 8829
+ *   npm run flow:check                      starts its own on a free port
  *   npm run flow:check -- http://127.0.0.1:8797
  *
  * docs/FLOW-AUDIT.md is the map; each step here is one of its dead ends.
@@ -53,10 +53,8 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -69,33 +67,6 @@ function check(name, ok, detail = '') {
   } else {
     failed += 1;
   }
-}
-
-async function roomsServer() {
-  if (process.argv[2]) {
-    return { url: process.argv[2], stop: async () => {} };
-  }
-  const dir = await mkdtemp(join(tmpdir(), 'flow-rooms-'));
-  const port = 8829;
-  const proc = spawn(process.execPath, [join(root, 'edge/rooms/node.js')], {
-    env: { ...process.env, ROOMS_DB: join(dir, 'rooms.db'), PORT: String(port) },
-    stdio: ['ignore', 'ignore', 'inherit'],
-  });
-  const url = `http://127.0.0.1:${port}`;
-  const stop = async () => {
-    proc.kill('SIGTERM');
-    await rm(dir, { recursive: true, force: true });
-  };
-  for (let i = 0; i < 100; i += 1) {
-    try {
-      await fetch(`${url}/v2/rooms`);
-      return { url, stop };
-    } catch (e) {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
-  await stop();
-  throw new Error(`rooms server did not come up on ${url}`);
 }
 
 /* The shell up, and enough frames run that its once-only autojoin
@@ -123,7 +94,7 @@ const ROOM = `(() => {
   return { phase: r.phase, code: r.code, search: window.location.search, screen: window.__ui.screen };
 })()`;
 
-const server = await roomsServer();
+const server = await roomsServer(process.argv[2], 'flow');
 console.log(`Flow, rooms at ${server.url}`);
 const res = await fetch(`${server.url}/v2/create`, {
   method: 'POST',

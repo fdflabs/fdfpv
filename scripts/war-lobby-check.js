@@ -50,6 +50,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
+import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[2] || join(root, 'build', 'war-lobby');
@@ -166,6 +167,21 @@ try {
     && la.here === 'friends-lobby-ready', JSON.stringify(la));
   check('and nothing of free flight: no Fly, no world row, no other games, never in the air', !la.rows.includes('fly') && !la.rows.includes('The world')
     && !la.rows.some((r) => /^friends-(combat|tag|race)/.test(r)) && la.flying !== 'flight', la.rows.join());
+  /* THE WAR'S AIRCRAFT (the owner, 3 October): the room's Aircraft row
+   * offers only them, on every tab. */
+  const offered = JSON.parse(await a.evaluate(`(() => {
+    window.__ui.openCraftRow(false);
+    const c = window.__ui.carousel;
+    c.setFilter('all');
+    const all = c.ids.slice();
+    c.setFilter('quad');
+    const quads = c.ids.slice();
+    c.close();
+    window.__ui.renderMenu();
+    return JSON.stringify({ all, quads, seated: window.__ui.settings.airframe });
+  })()`));
+  check('in a war room the Aircraft picker offers only the war\'s aircraft: every tab', offered.all.join() === WAR_AIRFRAMES.join()
+    && offered.quads.every((id) => WAR_AIRFRAMES.includes(id)) && offered.quads.length === 3, JSON.stringify(offered));
 
   /* B FINDS IT AND JOINS. */
   const rowAction = `friends-room-${code}`;
@@ -201,6 +217,11 @@ try {
   await b.until(briefing, 5000).catch(() => {});
   const ids = await Promise.all([a, b].map((p) => p.evaluate("(() => { const v = window.__war().view; return v.state + ':' + v.mission + ':' + v.id; })()")));
   check('and both are in mission 1\'s briefing, the same war', ids[0] === ids[1] && ids[0].startsWith('briefing:itaipu-1'), ids.join(' / '));
+  /* Each came to it in the default aircraft, no war one, so each is put
+   * in the Striker, the war's default, and told so once the film is over. */
+  const crafts = await Promise.all([a, b].map((p) => p.evaluate("({ seated: window.__ui.settings.airframe, craft: window.__war().craft })")));
+  check('a pilot coming into a war in another aircraft is put in the Striker, its line ready to say', crafts.every((c) => c.seated === WAR_DEFAULT
+    && c.craft.length === 1 && c.craft[0].id === WAR_DEFAULT && /Striker/.test(c.craft[0].said)), JSON.stringify(crafts));
 
   /* THE END: back in the lobby. */
   const backInLobby = async (what) => {

@@ -14,9 +14,9 @@
  *   shots     every shot drawn, and what each is for there: the title
  *             "2030"; the lone Striker in the long lens and then over the
  *             lens; the ten; the counter reaching 14 000 MW; the line of
- *             eight aircraft; a quad's props, the thrown Skyhunter, the
- *             F-16; the wave (Strikers, FPVs, Loiterers), six defenders
- *             and the mission's own card
+ *             eight war aircraft; a quad's props, the Striker off its
+ *             rail, the interceptor; the wave (Strikers, FPVs,
+ *             Loiterers), six defenders and the mission's own card
  *   the voice every line decoded in the browser as long as the manifest
  *             measured it (so the film's shot lengths, which are built on
  *             the manifest, are the files' real lengths, INTROS section
@@ -89,6 +89,10 @@ if (!FILM) {
 /* What the room plays for the in game part: mission 1's own film. */
 const GAME_FILM = filmFor(MISSIONS['itaipu-1']);
 const GAME_MS = timing(GAME_FILM).ms;
+/* The mission card the film is held under: the first mission playing it
+ * (mission 1's for "2030", which none names now). */
+const FILM_MISSION = Object.values(MISSIONS).findIndex((m) => filmFor(m).id === FILM.id);
+const FILM_TITLE = { key: FILM_MISSION < 0 ? 'war.mission.itaipu_1' : Object.values(MISSIONS)[FILM_MISSION].title, n: Math.max(0, FILM_MISSION) + 1 };
 const TIMED = timing(FILM);
 const SHOTS = TIMED.shots;
 const LINES = linesOf(TIMED);
@@ -173,7 +177,7 @@ const DRIVE = /* js */ `(async (opts) => {
   const h = play(bare ? new THREE.Scene() : window.__mapScene(), cam, {
     audio: bare ? null : window.__audio,
     ground: (x, z) => window.__heightAt(x, z),
-    title: { key: 'war.mission.itaipu_1', n: 1 },
+    title: ${JSON.stringify(FILM_TITLE)},
     film: (await import('/src/share/war/films/index.js')).FILMS[${JSON.stringify(FILM.id)}],
     clock: () => performance.now() - t0,
     seen: Boolean(opts.seen),
@@ -211,6 +215,7 @@ const DRIVE = /* js */ `(async (opts) => {
         if (s.title && !x.titles.includes(s.title)) { x.titles.push(s.title); }
         if (s.subtitle && !x.subs.includes(s.subtitle)) { x.subs.push(s.subtitle); }
         if (s.counter) { x.counter = s.counter; }
+        if (s.scope) { x.scope = { contacts: Math.max(x.scope?.contacts ?? 0, s.scope.contacts), off: Math.max(x.scope?.off ?? 0, s.scope.contacts - s.scope.onScope) }; }
         if (s.sound && s.sound.musicPlaying) { x.music = s.sound.track; }
         /* The stats are the last draw's: a shot's first frames count the
          * shot before. */
@@ -297,19 +302,33 @@ try {
   }
   console.log('');
   row('every shot is drawn', SHOTS.every((x) => shot(x.id).frames >= 30), SHOTS.map((x) => shot(x.id).frames).join(' '));
-  row('dawn: the title "2030"', shot('dawn').titles.includes('2030'), shot('dawn').titles.join(' | '));
-  row('haze and pass: the lone Striker, and no other attacker', shot('haze').drawn.strike === 1 && shot('pass').drawn.strike === 1,
-    `${shot('haze').drawn.strike} ${shot('pass').drawn.strike}`);
-  row('ten: the ten Strikers', shot('ten').drawn.strike === 10, `${shot('ten').drawn.strike}`);
-  row('face: the counter reaches 14 000 MW', /14\s?000 MW/.test(shot('face').counter || ''), shot('face').counter || 'none');
-  const LINE = ['p51', 'cub', 'q1', 'q2', 'q3', 'sky', 'f16', 'timber'];
-  row('line: the eight aircraft on the crest', LINE.every((n) => shot('line').cast.includes(n)), shot('line').cast.join(' '));
-  row('props, thrown, fan: the quad spinning up, the thrown Skyhunter, the F-16', shot('props').cast.includes('q2s') && shot('thrown').cast.includes('skys')
-    && shot('fan').cast.includes('f16'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
-  row('wave: Strikers, FPVs and Loiterers, and six defenders rising', shot('wave').drawn.strike >= 10 && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
-    && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
-  row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes(EN['war.mission.itaipu_1']), shot('wave').titles.join(' | '));
-  row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
+  /* The shots' own rows: "2030"'s cut (2030.js, first-light.js), or the
+   * Spillway's (spillway.js). */
+  if (SHOTS.some((x) => x.id === 'dawn')) {
+    row('dawn: the title "2030"', shot('dawn').titles.includes('2030'), shot('dawn').titles.join(' | '));
+    row('haze and pass: the lone Striker, and no other attacker', shot('haze').drawn.strike === 1 && shot('pass').drawn.strike === 1,
+      `${shot('haze').drawn.strike} ${shot('pass').drawn.strike}`);
+    row('ten: the ten Strikers', shot('ten').drawn.strike === 10, `${shot('ten').drawn.strike}`);
+    row('face: the counter reaches 14 000 MW', /14\s?000 MW/.test(shot('face').counter || ''), shot('face').counter || 'none');
+    const LINE = ['ten', 'q1', 'q2', 'q3', 'strk', 'int', 'ten2', 'int2'];
+    row('line: the eight aircraft on the crest', LINE.every((n) => shot('line').cast.includes(n)), shot('line').cast.join(' '));
+    row('props, thrown, fan: the quad spinning up, the Striker off its rail, the interceptor', shot('props').cast.includes('q2s') && shot('thrown').cast.includes('strks')
+      && shot('fan').cast.includes('ints'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
+    row('wave: Strikers, FPVs and Loiterers, and six defenders rising', shot('wave').drawn.strike >= 10 && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
+      && ['q4', 'q5', 'q6', 'q7', 'strks', 'int3'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
+    row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes(EN['war.mission.itaipu_1']), shot('wave').titles.join(' | '));
+    row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
+  }
+  if (FILM.id === 'spillway') {
+    row('water and skin: the reservoir and the gate, no attacker', Object.values(shot('water').drawn).every((n) => !n) && Object.values(shot('skin').drawn).every((n) => !n),
+      `${JSON.stringify(shot('water').drawn)} ${JSON.stringify(shot('skin').drawn)}`);
+    row('scope: MIRADOR\'s scope over the frame, its six contacts appearing, every one on the scope', shot('scope').scope?.contacts === 6 && shot('scope').scope?.off === 0,
+      JSON.stringify(shot('scope').scope ?? null));
+    row('channel: riding the one Striker up the channel', shot('channel').drawn.strike === 1, `${shot('channel').drawn.strike}`);
+    row('pier: the ten inch on a pier by the gates', shot('pier').cast.includes('ten'), shot('pier').cast.join(' '));
+    row('orbit: the mission\'s own card, its title over "Mission 2"', shot('orbit').titles.includes(EN['war.mission.itaipu_2']), shot('orbit').titles.join(' | '));
+    row('the hand-off: the letterbox open by the last frame', shot('orbit').opened > 0.95, shot('orbit').opened.toFixed(3));
+  }
 
   /* The voice: decoded here, as long as the manifest says. */
   const decoded = s.sound ? s.sound.decoded : {};

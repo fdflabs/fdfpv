@@ -34,10 +34,15 @@ import itaipu2 from './itaipu-2.js';
 import itaipu3 from './itaipu-3.js';
 import itaipu4 from './itaipu-4.js';
 import drill from './itaipu-drill.js';
+import { idsOf } from '../stages.js';
+import { WAR_AIRFRAMES } from '../../../../configs/airframes.js';
 
 /* Act 1 of the campaign, Defend the Paraná, in order, and after it the
- * drill (itaipu-drill.js), which no campaign offers. */
-export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, drill].map((m) => [m.id, m])));
+ * drill (itaipu-drill.js), which no campaign offers. Each flown only in
+ * the war's aircraft (`aircraft`, configs/airframes.js WAR_AIRFRAMES):
+ * the room refuses any other (edge/rooms/war.js flies). */
+export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, drill]
+  .map((m) => [m.id, { ...m, aircraft: WAR_AIRFRAMES }])));
 
 /* The time of day a mission is flown at (TECH-NEEDS T1.11): its `time`,
  * 'night' for the night raid's older `night` flag, or null for the map's
@@ -51,8 +56,12 @@ export function waveSize(wave, pilots) {
   return Math.max(1, Math.round(wave.n + (wave.per || 0) * (Math.max(1, pilots) - 1)));
 }
 
-/* The target of a wave's k-th attacker, or null for a wave with none. */
-export function waveTarget(wave, k) {
-  const t = wave.target;
-  return Array.isArray(t) ? t[k % t.length] : t ?? null;
+/* The target of a wave's k-th attacker, or null for a wave with none.
+ * A target of { set } is the match's draw of that set (sets, m.sets). */
+export function waveTarget(wave, k, sets = null) {
+  if (wave.target == null) {
+    return null;
+  }
+  const t = idsOf(wave.target, sets);
+  return t[k % t.length];
 }

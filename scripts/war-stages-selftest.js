@@ -54,8 +54,11 @@ import {
 } from '../edge/rooms/war.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
-  beatOf, enter, failedAny, fired, note, objectives, objectivesView, slotKind, stagesOf,
+  beatOf, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
 } from '../src/share/war/stages.js';
+import { waveTarget } from '../src/share/war/missions/index.js';
+import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
+import { SPRAY_HIDE_M, inSpray } from '../src/ui/warmarkers.js';
 import { firstDifference, playGame } from './war-legacy-games.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
@@ -88,7 +91,26 @@ function lint(mission) {
   if (ids.size !== stages.length) {
     out.push('two stages share an id');
   }
-  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'visited', 'all', 'any'];
+  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'held', 'visited', 'all', 'any'];
+  /* A target spec's ids: a working set's every target it may draw. */
+  const targetsOf = (spec, where) => {
+    if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
+      const set = mission.sets?.[spec.set];
+      if (!set) {
+        out.push(`${where}: no set ${spec.set}`);
+        return [];
+      }
+      return set.from;
+    }
+    return spec == null ? [] : [spec].flat();
+  };
+  for (const [name, set] of Object.entries(mission.sets ?? {})) {
+    for (const id of set.from) {
+      if (!mission.targets[id]) {
+        out.push(`${mission.id} sets ${name}: no target ${id}`);
+      }
+    }
+  }
   const trig = (x, where) => {
     if (!x || typeof x !== 'object' || !KEYS.some((k) => x[k] != null)) {
       out.push(`${where}: not a trigger ${JSON.stringify(x)}`);
@@ -101,6 +123,9 @@ function lint(mission) {
     }
     if (x.crossed != null && !mission.lines?.[x.crossed]) {
       out.push(`${where}: no line ${x.crossed}`);
+    }
+    if (x.hit != null && typeof x.hit === 'object' && !Array.isArray(x.hit)) {
+      targetsOf(x.hit, where);
     }
     if (x.visited != null && !ids.has(x.visited)) {
       out.push(`${where}: no stage ${x.visited}`);
@@ -126,7 +151,7 @@ function lint(mission) {
           out.push(`${where}: no route ${r}`);
         }
       }
-      for (const t of w.target == null ? [] : [w.target].flat()) {
+      for (const t of targetsOf(w.target, where)) {
         if (!mission.targets[t]) {
           out.push(`${where}: no target ${t}`);
         }
@@ -141,6 +166,14 @@ function lint(mission) {
       }
     }
     for (const o of st.objectives ?? []) {
+      for (const t of targetsOf(o.targets, `${where} ${o.id}`)) {
+        if (!mission.targets[t]) {
+          out.push(`${where} ${o.id}: no target ${t}`);
+        }
+      }
+      if (o.open != null && (o.ms == null || o.targets == null)) {
+        out.push(`${where} ${o.id}: opens gates but is no hold with targets`);
+      }
       for (const key of ['done', 'fail', 'from']) {
         if (o[key]) {
           trig(o[key], `${where} ${o.id}`);
@@ -156,6 +189,13 @@ function lint(mission) {
       out.push(`${where}: no exit`);
     }
     for (const x of st.exits ?? []) {
+      /* A twist's branches play as many rounds each (roundsOf). */
+      if (x.to && typeof x.to === 'object') {
+        const counts = x.to.pick.map((to) => roundsOf(mission, stages.findIndex((y) => y.id === to)));
+        if (new Set(counts).size > 1) {
+          out.push(`${where}: its twist's branches play ${counts.join(', ')} rounds`);
+        }
+      }
       trig(x.when, where);
       for (const to of x.to && typeof x.to === 'object' ? x.to.pick : [x.to ?? 'next']) {
         if (to === 'next' ? i + 1 >= stages.length : !(to === 'won' || to === 'lost' || ids.has(to))) {
@@ -182,6 +222,10 @@ console.log('data');
       [...problems, ...radio, ...music].join('; '));
   }
 }
+
+check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6',
+  roundsOf(MISSIONS['itaipu-1']) === 5 && roundsOf(MISSIONS['itaipu-2']) === 4 && stagesOf(MISSIONS['itaipu-1']).filter((x) => x.round).length === 7,
+  `${roundsOf(MISSIONS['itaipu-1'])} ${roundsOf(MISSIONS['itaipu-2'])}`);
 
 /* ------------------------------------------------------------ triggers */
 
@@ -362,6 +406,87 @@ console.log('triggers');
       exits: [{ when: { any: [{ crossed: 'nope' }, { visited: 'nada' }] }, to: 'won' }],
     }],
   }).length === 5);
+}
+
+console.log('working sets');
+{
+  /* M2's working gates (TECH-NEEDS T1.3, T1.9): drawn once by the seed for
+   * the pilots, aimed at, worth more in a stage, opened by a hold. */
+  const gates = Array.from({ length: 14 }, (_, k) => `gate-${k}`);
+  const mission = {
+    id: 'sets',
+    targets: Object.fromEntries(gates.map((id, k) => [id, { mw: 350, at: [k * 24, Y, 0], r: 12 }])),
+    routes: { r: [[0, Y, -3000], [0, Y, -1000]] },
+    sets: { working: { from: gates, n: { 1: 3, 4: 4 } } },
+    stages: [{
+      id: 'open',
+      worth: { working: 2 },
+      spawns: [{
+        at: 1, kind: 'loiter', n: 3, route: 'r', target: { set: 'working' },
+      }],
+      objectives: [{
+        id: 'spill', text: 'x', kind: 'hold', ms: 120000, targets: { set: 'working' }, open: 3, fail: { hit: { set: 'working' } },
+      }],
+      exits: [{ when: { time: 999 }, to: 'won' }],
+    }],
+  };
+  check('a mission with sets lints clean, and lint names a set it has not got', lint(mission).length === 0
+    && lint({ ...mission, stages: [{ ...mission.stages[0], spawns: [{ ...mission.stages[0].spawns[0], target: { set: 'nope' } }] }] }).length === 1);
+  const sizes = new Set();
+  const seen = new Set();
+  let stable = true;
+  let ordered = true;
+  for (let seed = 1; seed <= 300; seed += 1) {
+    const three = drawSets(mission, seed, 3).working;
+    const four = drawSets(mission, seed, 4).working;
+    sizes.add(`${three.length},${four.length},${drawSets(mission, seed, 1).working.length},${drawSets(mission, seed, 8).working.length}`);
+    three.forEach((id) => seen.add(id));
+    stable &&= JSON.stringify(drawSets(mission, seed, 3)) === JSON.stringify({ working: three });
+    ordered &&= three.every((id, k) => k === 0 || gates.indexOf(id) > gates.indexOf(three[k - 1]));
+  }
+  check('three working gates for 1 to 3 pilots, four from 4, the same for a seed, every gate drawn over seeds', sizes.size === 1 && sizes.has('3,4,3,4') && stable && ordered && seen.size === 14,
+    [...sizes].join(' '));
+  const sets = drawSets(mission, 7, 2);
+  const w = mission.stages[0].spawns[0];
+  check('a spawn aimed at the set goes for its gates in turn', [0, 1, 2, 3].map((k) => waveTarget(w, k, sets)).join() === [...sets.working, sets.working[0]].join());
+  const st = enter(mission, 0, 10000, 7, 1);
+  const m = { sets, downAt: {}, output: 14000 };
+  const other = gates.find((id) => !sets.working.includes(id));
+  check('worth: a working gate costs double in the stage, another its own mw, and outside the stage its own',
+    worthOf(mission, st, m, sets.working[0]) === 700 && worthOf(mission, st, m, other) === 350 && worthOf(mission, null, m, sets.working[0]) === 350);
+  const c = (f) => ({
+    mission, m, st, f, here: [1], pilots: [], allBorn: true, cleared: false, lastGone: null, allOut: false, spent: 0,
+  });
+  objectives(c(10000));
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  check('the hold opens at the entry: is active from it, and every gate stands at Free Flight\'s 2 m before', fired({ objective: 'spill', is: 'active' }, c(10000)) === 10000
+    && openAt(gatesOf(mission, st, m), sets.working[0], 9999) === FREE_OPEN_M);
+  check('held 0.5: halfway through, not before the frontier', fired({ held: 'spill', f: 0.5 }, c(69999)) === null && fired({ held: 'spill', f: 0.5 }, c(70000)) === 70000);
+  const g0 = gatesOf(mission, st, m);
+  check('each working gate\'s hoist starts at the hold\'s start toward its opening, at the hoist\'s rate (2.5 m halfway, 3 m at the end, and there it stops); the others stay at 2 m',
+    g0.length === 3 && g0.every((g) => g.at === 10000 && g.open_m === 3)
+    && near(openAt(g0, sets.working[1], 70000), 2.5) && near(openAt(g0, sets.working[1], 130000), 3) && near(openAt(g0, sets.working[1], 999999), 3)
+    && openAt(g0, other, 70000) === FREE_OPEN_M && spilling(g0, 10001) && !spilling(g0, 9000), JSON.stringify(g0));
+  /* A working gate hit 30 s into the hold. */
+  note(st, { t: 40000, e: 'down', target: sets.working[2] });
+  m.downAt[sets.working[2]] = 40000;
+  objectives(c(41000));
+  const g1 = gatesOf(mission, st, m);
+  check('a hit working gate fails the hold at the hit, its hoist stopping where it was, the rest opening on',
+    st.obj.spill.state === 'failed' && st.obj.spill.t === 40000 && fired({ objective: 'spill', is: 'failed' }, c(41000)) === 40000
+    && near(openAt(g1, sets.working[2], 999999), 2.25) && near(openAt(g1, sets.working[0], 130000), 3), JSON.stringify(g1));
+  check('and held 0.5 never fires for a hold failed before its half', fired({ held: 'spill', f: 0.5 }, c(80000)) === null);
+  const st2 = enter(mission, 0, 10000, 7, 2);
+  const m2 = { sets, downAt: { [sets.working[0]]: 5000 }, output: 14000 };
+  objectives({ ...c(10000), m: m2, st: st2 });
+  /* The Spillway's spray (itaipu-2.js `spray`), as a screen's markers
+   * read it while the spill runs. */
+  const spray = MISSIONS['itaipu-2'].spray;
+  const deep = [spray.at[0], 200, spray.at[1]];
+  check(`the spray hides an attacker deep in it from a pilot over ${SPRAY_HIDE_M} m off, not one within, nor one out of it or over it`,
+    inSpray(spray, deep, [deep[0] + 400, 220, deep[2]]) && !inSpray(spray, deep, [deep[0] + 100, 220, deep[2]])
+    && !inSpray(spray, [deep[0] + spray.r + 10, 200, deep[2]], [0, 0, 0]) && !inSpray(spray, [deep[0], spray.y[1] + 10, deep[2]], [0, 0, 0]));
+  check('a working gate hit before the hold began never moves', openAt(gatesOf(mission, st2, m2), sets.working[0], 200000) === FREE_OPEN_M);
 }
 
 console.log('dials');

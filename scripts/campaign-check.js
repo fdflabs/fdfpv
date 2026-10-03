@@ -2,7 +2,7 @@
  * campaign-check.js: Defend the Paraná through the real shell, in one
  * page, against a local rooms server (never the live one):
  *
- *   npm run campaign:check                  starts its own on port 8823
+ *   npm run campaign:check                  starts its own on a free port
  *   npm run campaign:check -- http://127.0.0.1:8797 [outdir]
  *
  * The gate draws five cards, the campaign's last, inside the window at
@@ -43,10 +43,9 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[3] || join(root, 'build', 'campaign');
@@ -68,33 +67,6 @@ async function shot(page, name) {
   const path = join(outDir, `${name}.png`);
   await writeFile(path, Buffer.from(data, 'base64'));
   console.log(`  shot ${path}`);
-}
-
-async function roomsServer() {
-  if (process.argv[2]) {
-    return { url: process.argv[2], stop: async () => {} };
-  }
-  const dir = await mkdtemp(join(tmpdir(), 'campaign-rooms-'));
-  const port = 8823;
-  const proc = spawn(process.execPath, [join(root, 'edge/rooms/node.js')], {
-    env: { ...process.env, ROOMS_DB: join(dir, 'rooms.db'), PORT: String(port) },
-    stdio: ['ignore', 'ignore', 'inherit'],
-  });
-  const url = `http://127.0.0.1:${port}`;
-  const stop = async () => {
-    proc.kill('SIGTERM');
-    await rm(dir, { recursive: true, force: true });
-  };
-  for (let i = 0; i < 100; i += 1) {
-    try {
-      await fetch(`${url}/v2/rooms`);
-      return { url, stop };
-    } catch (e) {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
-  await stop();
-  throw new Error(`rooms server did not come up on ${url}`);
 }
 
 async function resize(page, width, height) {
@@ -197,7 +169,7 @@ const SEED = `(() => {
   }
 })();`;
 
-const server = await roomsServer();
+const server = await roomsServer(process.argv[2], 'campaign');
 console.log(`Defend the Paraná, rooms at ${server.url}`);
 const page = await openPage({
   root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720, seed: [SOCKET_TAP, SEED],

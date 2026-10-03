@@ -107,17 +107,20 @@ The order:
 5. Rerun `deploy/vm/deploy-board.sh` so the board's Fly links point at the
    domain (`SIM_ORIGIN`, changed in the CNAME pull request).
 
-Google sign in (Google Cloud project fdfpv-510202, the Web client in
-`src/share/account.js`). The page uses the Sign in with Google button with
-a callback that takes the ID token in the page, so only Authorised
-JavaScript origins matter. Add:
+Google sign in (Google Cloud project paraguayan-drone-combat-sim, the Web
+client in `src/share/account.js`). The page uses the Sign in with Google
+button with a callback that takes the ID token in the page, so only
+Authorised JavaScript origins matter. Add:
 
 - https://paraguayandronecombatsimulator.com
 - https://www.paraguayandronecombatsimulator.com
 
 and keep https://fdflabs.github.io and http://127.0.0.1:8080. No
 authorised redirect URI is needed. The tracks server checks the token's
-audience, the client id, not the page's origin, so it needs no change.
+audience, the client id, not the page's origin: moving the client id to a
+new Google Cloud project (as happened 2026-10-03, from fdfpv-510202) means
+the tracks server's GOOGLE_CLIENT_ID list (deploy/vm/README.md) needs the
+new id added, old id kept until no page in the wild can still hold it.
 
 # The tracks server
 

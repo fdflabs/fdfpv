@@ -596,6 +596,12 @@ const DEFAULTS = {
    */
   warConsent: false,
   /*
+   * The war aircraft (configs/airframes.js WAR_AIRFRAMES) this pilot flew
+   * last in a war, which a war puts them back in when they come to it in
+   * another (main.js warSeatCraft); '' for none yet: the Striker.
+   */
+  warAirframe: '',
+  /*
    * Whether this profile has been told, and said it understands, that its
    * voice may be kept in other pilots' replays (src/ui/voiceui.js): until
    * then voice chat listens only.
@@ -1916,7 +1922,7 @@ function hintWithKeys(keys, text) {
 }
 
 /* The name as the owner's lockup sets it (index.html .lockup-box), which
- * the share card clones too (scripts/og.js, the heading alone). English in
+ * the share card clones too (scripts/og.js, the whole box). English in
  * every locale, because it is the mark and not a sentence. The spaces keep
  * the heading's text the name.
  *
@@ -1932,8 +1938,8 @@ function wordmark() {
   /* The bevel draws the name twice more behind itself, from this. */
   name.dataset.text = 'Drone Combat';
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
-  /* The flag as the boot screen draws it, horizontal bands; the title
-   * shows it and hides the slash, the share card the other way round. */
+  /* The flag as the boot screen draws it, horizontal bands; the box
+   * shows it and hides the slash, on the title and the share card alike. */
   const flag = el('span', 'py-flag');
   flag.setAttribute('aria-hidden', 'true');
   flag.append(el('span'), el('span'), el('span'));
@@ -14079,6 +14085,13 @@ export class Ui {
    * opener's onChoose is handed the airframe to seat and whether its slots
    * moved, which on the plane already seated is a refit (refitted).
    */
+  /* The aircraft the pickers and the cycle may offer: the shell's
+   * `craftLimit` (a war room's, configs/airframes.js WAR_AIRFRAMES), or
+   * null for every one. */
+  craftOnly() {
+    return typeof this.craftLimit === 'function' ? this.craftLimit() : null;
+  }
+
   openPicker(opts) {
     const s = this.settings;
     /*
@@ -14094,6 +14107,7 @@ export class Ui {
       && JSON.stringify(flip.after) !== JSON.stringify(flip.before);
     this.carousel.open({
       ...opts,
+      only: this.craftOnly(),
       floats: {
         on: (id) => Boolean(s.floats && s.floats[id]),
         set: (id, on) => {
@@ -14655,7 +14669,7 @@ export class Ui {
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
     if (this.onHotSwap && this.screen === 'flight') {
-      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir)));
+      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }
   }
 

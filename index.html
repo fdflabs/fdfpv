@@ -46,15 +46,22 @@
          root now carries touch-action: manipulation, which stops the
          double-tap and keeps the pinch. -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Paraguayan Drone Combat Simulator</title>
+    <title>Paraguayan Drone Combat Simulator: free drone combat in your browser</title>
     <meta name="author" content="fdflabs.com" />
-    <meta name="description" content="Fly a five inch quad in a browser, on real flight controller firmware compiled to WebAssembly. Build a track, set a lap, put it on the public board." />
+    <meta name="description" content="A realistic drone combat and flight simulator set in Paraguay. Defend the Itaipu dam, race and dogfight. Free in your browser, solo or with friends." />
     <!--
       A link to this page posted anywhere renders a 1200 by 630 card, and
       og.png is a frame of the real shell rather than a drawing of one, so it
-      cannot disagree with the thing it advertises. scripts/og.js in the
-      simulator's repository regenerates it, and the URL is absolute because a
-      crawler does not resolve a relative one.
+      cannot disagree with the thing it advertises. scripts/og.js regenerates
+      it and writes the ?h= on its URL, the first 8 hex of its SHA 256, so a
+      new card is a new URL and WhatsApp, Telegram and the rest fetch it
+      instead of the one they cached. The URL is absolute because a crawler
+      does not resolve a relative one. scripts/og-check.js holds these tags,
+      the card and the hash together.
+
+      One page in every language: the shell picks Spanish from ?lang= or the
+      browser, after a crawler has gone, so the copy here is English and
+      es_PY is named as the page's other locale.
 
       No animated card. Facebook, Messenger, X, LinkedIn, WhatsApp and iMessage
       all flatten a link preview to one still frame; Discord is the only place
@@ -63,19 +70,21 @@
     <link rel="canonical" href="https://paraguayandronecombatsimulator.com/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Paraguayan Drone Combat Simulator" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="es_PY" />
     <meta property="og:url" content="https://paraguayandronecombatsimulator.com/" />
-    <meta property="og:title" content="Paraguayan Drone Combat Simulator, fly it in your browser" />
-    <meta property="og:description" content="Real flight controller firmware compiled to WebAssembly, a race track, and a lap timer. Plug in a gamepad and go." />
-    <meta property="og:image" content="https://paraguayandronecombatsimulator.com/og.png" />
+    <meta property="og:title" content="Paraguayan Drone Combat Simulator: free drone combat in your browser" />
+    <meta property="og:description" content="A realistic drone combat and flight simulator set in Paraguay, on real flight controller firmware. Defend the Itaipu dam, race, dogfight or just fly. Free in your browser, solo or with friends." />
+    <meta property="og:image" content="https://paraguayandronecombatsimulator.com/og.png?h=66c9ec65" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The Paraguayan Drone Combat Simulator name, with a red, white and blue slash, beside a delta wing drone banking past the spillway of the Itaipu dam at sunset." />
+    <meta property="og:image:alt" content="The Paraguayan Drone Combat Simulator name in brushed metal with Paraguay's flag, over a combat drone banking past the spillway of the Itaipu dam at sunset, rendered by the game." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Paraguayan Drone Combat Simulator, fly it in your browser" />
-    <meta name="twitter:description" content="Real flight controller firmware compiled to WebAssembly, a race track, and a lap timer. Plug in a gamepad and go." />
-    <meta name="twitter:image" content="https://paraguayandronecombatsimulator.com/og.png" />
-    <meta name="twitter:image:alt" content="The Paraguayan Drone Combat Simulator name, with a red, white and blue slash, beside a delta wing drone banking past the spillway of the Itaipu dam at sunset." />
+    <meta name="twitter:title" content="Paraguayan Drone Combat Simulator: free drone combat in your browser" />
+    <meta name="twitter:description" content="A realistic drone combat and flight simulator set in Paraguay, on real flight controller firmware. Defend the Itaipu dam, race, dogfight or just fly. Free in your browser, solo or with friends." />
+    <meta name="twitter:image" content="https://paraguayandronecombatsimulator.com/og.png?h=66c9ec65" />
+    <meta name="twitter:image:alt" content="The Paraguayan Drone Combat Simulator name in brushed metal with Paraguay's flag, over a combat drone banking past the spillway of the Itaipu dam at sunset, rendered by the game." />
 
     <!--
       The mark is four propellers, an X frame and the stack in the middle, one
@@ -1364,15 +1373,16 @@
        * THE NAME, as the owner's key art sets it: PARAGUAYAN thin and spaced
        * over a rule, DRONE COMBAT huge, bold and condensed on two lines,
        * SIMULATOR between two rules, and Paraguay's red, white and blue as
-       * one slash down the left. One lockup, the title's heading and the
-       * share card's name (scripts/og.js), sized by its font-size alone:
-       * every part is in its em, so a page sets one number per window and
-       * nothing else.
+       * one slash down the left, sized by its font-size alone: every part
+       * is in its em, so a page sets one number per window and nothing
+       * else. These base rules are the structure .lockup-box builds on;
+       * the slash and the narrow face are the retired card's look, and the
+       * title and the share card (scripts/og.js) both draw the box below.
        *
-       * No webfont in these base rules, which only the share card draws
-       * (the title's face is Saira, below): every desktop has a narrow sans
-       * under one of these names, Android answers to sans-serif-condensed,
-       * and font-stretch asks Apple's system face for its condensed width.
+       * No webfont in these base rules (the box's face is Saira, below):
+       * every desktop has a narrow sans under one of these names, Android
+       * answers to sans-serif-condensed, and font-stretch asks Apple's
+       * system face for its condensed width.
        */
       .lockup {
         position: relative; display: inline-flex; flex-direction: column;
@@ -1419,9 +1429,9 @@
        * a short rule; DRONE COMBAT on one line in a heavy square sans with
        * a polished metal face; SIMULATOR spaced between two rules under it.
        * The slash above is the flag on its side and is not drawn here.
-       * Every rule is under .lockup-box because the share card clones
-       * the heading alone out of the title (scripts/og.js) and keeps the
-       * base rules above, which is the card already shared.
+       * Every rule is under .lockup-box, the component wordmark() builds,
+       * which the share card clones whole out of the title (scripts/og.js),
+       * so the card and the title draw one mark.
        *
        * THE FACE is Saira (SIL Open Font License, assets/fonts/OFL-Saira.txt),
        * the page's one webfont, cut down to the name's own capitals:

@@ -3,7 +3,7 @@
  * Defend Itaipu game, driven through the real shell the way a pilot drives
  * them, in one page, against a local rooms server (never the live one):
  *
- *   npm run war:card                       starts its own on port 8819
+ *   npm run war:card                       starts its own on a free port
  *   npm run war:card -- http://127.0.0.1:8797 [outdir]
  *
  * The gate draws five cards, no Defend Itaipu among them (the owner took
@@ -64,11 +64,10 @@
 
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, writeFile } from 'node:fs/promises';
 import WebSocket from 'ws';
 import { openPage } from '../tests/lib/page.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 import { seatPilot } from '../tests/lib/roompilot.js';
 import { PROTO, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
 
@@ -92,34 +91,6 @@ async function shot(page, name) {
   const path = join(outDir, `${name}.png`);
   await writeFile(path, Buffer.from(data, 'base64'));
   console.log(`  shot ${path}`);
-}
-
-/* A rooms server of our own unless one is named, on a throwaway database. */
-async function roomsServer() {
-  if (process.argv[2]) {
-    return { url: process.argv[2], stop: async () => {} };
-  }
-  const dir = await mkdtemp(join(tmpdir(), 'war-card-rooms-'));
-  const port = 8819;
-  const proc = spawn(process.execPath, [join(root, 'edge/rooms/node.js')], {
-    env: { ...process.env, ROOMS_DB: join(dir, 'rooms.db'), PORT: String(port) },
-    stdio: ['ignore', 'ignore', 'inherit'],
-  });
-  const url = `http://127.0.0.1:${port}`;
-  const stop = async () => {
-    proc.kill('SIGTERM');
-    await rm(dir, { recursive: true, force: true });
-  };
-  for (let i = 0; i < 100; i += 1) {
-    try {
-      await fetch(`${url}/v2/rooms`);
-      return { url, stop };
-    } catch (e) {
-      await new Promise((r) => setTimeout(r, 100));
-    }
-  }
-  await stop();
-  throw new Error(`rooms server did not come up on ${url}`);
 }
 
 const HUBS = 'Flight Club,Operations,Hangar';
@@ -246,7 +217,7 @@ async function toClub(p) {
   }
 }
 
-const server = await roomsServer();
+const server = await roomsServer(process.argv[2], 'war-card');
 console.log(`the Defend Itaipu card, rooms at ${server.url}`);
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720 });
 try {
@@ -431,7 +402,7 @@ try {
   });
   keeper.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, war: WAR_JOIN, name: [3, 3, 33],
-    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+    profile: { airframe: '7inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
   }));
   for (let i = 0; i < 100 && !keeperGot.some((m) => m.type === 'welcome'); i += 1) {
     await page.sleep(50);
@@ -483,7 +454,7 @@ try {
   });
   other.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 1, 11],
-    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: 'war' },
+    profile: { airframe: '7inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: 'war' },
   }));
   for (let i = 0; i < 100 && !otherGot.some((m) => m.type === 'welcome'); i += 1) {
     await page.sleep(50);
@@ -609,7 +580,7 @@ try {
   });
   holder.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 2, 12],
-    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+    profile: { airframe: '7inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
   }));
   for (let i = 0; i < 4 && !(await page.evaluate('window.__ui.onGate()')); i += 1) {
     await page.tap('Escape');

@@ -33,6 +33,7 @@ import {
   BLAST_M, KIND, KINDS, LEAVE_M, cosDet, planAgent, poseAt, sinDet,
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { contactAt } from '../src/share/war/contact.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
@@ -239,6 +240,8 @@ export function warSection(check) {
     let ok = true;
     const unplanned = [];
     for (const m of Object.values(MISSIONS)) {
+      /* A working set's spawn may go for any target the set is drawn from. */
+      const sets = Object.fromEntries(Object.entries(m.sets ?? {}).map(([name, d]) => [name, d.from]));
       for (const w of m.waves) {
         const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
           ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat();
@@ -246,7 +249,7 @@ export function warSection(check) {
           for (const route of routes) {
             try {
               planAgent(m, {
-                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
+                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0, sets),
               });
             } catch (x) {
               ok = false;
@@ -312,6 +315,27 @@ export function warSection(check) {
       && e.view(0).rack === 6 && e.view(0).rackMax === 6 && e.view(2).scores.some((x) => x.seat === 3 && !x.gone), JSON.stringify(e.view(0).scores));
     e.say(0, { type: 'war', op: 'end' });
     check('the host ends it', e.view().state === 'ended' && !e.r.war.on() && !e.r.waiting());
+  }
+
+  console.log('war: the war\'s aircraft (configs/airframes.js WAR_AIRFRAMES)');
+  {
+    /* The owner, 3 October: only combat drones fly in wars. A tab from
+     * before the rule flying a Cub into a campaign mission. */
+    const e = warRoom({ air: ['cub1400', WAR_DEFAULT], start: false, code: 'W4RCR4' });
+    e.say(0, { type: 'war', op: 'start', mission: 'itaipu-drill' });
+    e.paths[0] = hover([0, 400, 0]);
+    e.paths[1] = hover([50, 400, 0]);
+    e.fly(COUNTDOWN_MS + 4000);
+    const v = e.view(1);
+    check('every campaign mission names the war\'s aircraft: the seven and ten inch, the interceptor and the Striker',
+      Object.values(MISSIONS).every((m) => m.aircraft === WAR_AIRFRAMES) && WAR_AIRFRAMES.join() === '7inch,10inch,interceptor,striker2500');
+    check('the room refuses a Cub in a war: told "airframe" once, and not in the war\'s flying, the Striker beside it is',
+      e.errors(0).filter((x) => x === 'airframe').length === 1 && e.errors(1).length === 0
+      && !e.r.war.flying(e.r).some((d) => d.seat === 1) && e.r.war.flying(e.r).some((d) => d.seat === 2), JSON.stringify([e.errors(0), e.errors(1), v.state]));
+    const free = warRoom({ air: 'cub1400', mission: testMission([{ at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' }], { r: [[-3000, Y, 0], [-2000, Y, 0]] }), code: 'W4RCR5' });
+    free.paths[0] = hover([0, 400, 0]);
+    free.fly(COUNTDOWN_MS + 2000);
+    check('and a mission that names no aircraft, as these checks write theirs, lets any', free.errors(0).length === 0 && free.r.war.flying(free.r).some((d) => d.seat === 1));
   }
 
   console.log('war: the briefing (the intro, section 7.1)');
@@ -1022,7 +1046,7 @@ export function warSection(check) {
     const ON = new Set(['briefing', 'countdown', 'live']);
     for (const skip of [false, true]) {
       const c = createRoomWar(() => {});
-      const one = warRoom({ n: 1, start: false, code: 'M1SS10' });
+      const one = warRoom({ n: 1, start: false, code: 'M1SS10', air: WAR_DEFAULT });
       one.say(0, {
         type: 'war', op: 'start', mission: 'itaipu-1', intro: true,
       });
@@ -1031,7 +1055,7 @@ export function warSection(check) {
       feed(c, one.socks[0], 0);
       const first = c.match();
       c.clear();
-      const two = warRoom({ n: 1, start: false, code: 'M1SS20' });
+      const two = warRoom({ n: 1, start: false, code: 'M1SS20', air: WAR_DEFAULT });
       two.paths[0] = hover([0, 400, 0]);
       two.say(0, {
         type: 'war', op: 'start', mission: 'itaipu-2', intro: true,
@@ -1040,9 +1064,13 @@ export function warSection(check) {
       const label = skip ? 'mission 2, the host skipping the intro' : 'mission 2, the whole intro';
       check(`${label}: the same war id as mission 1's room, and still another war to the shell`, c.view().id === 1 && first === 'M1SS10:1'
         && c.match() === 'M1SS20:1', `${first} then ${c.match()}`);
+      const working = c.view().sets?.working ?? [];
+      check(`${label}: its working gates drawn as it starts, three for one pilot, every one a gate, in the view to every screen`,
+        working.length === 3 && working.every((id) => /^gate-\d+$/.test(id)) && Array.isArray(c.view().gates), JSON.stringify(c.view().sets));
       if (skip) {
         two.fly(4000);
-        two.say(0, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version } });
+        const film = filmFor(MISSIONS['itaipu-2']);
+        two.say(0, { type: 'war', op: 'seen', films: { [film.id]: film.version } });
         two.say(0, { type: 'war', op: 'skipIntro' });
       }
       const blank = [];
@@ -1071,11 +1099,13 @@ export function warSection(check) {
         [...(skip ? [] : ['briefing']), 'countdown', 'live', 'result'].every((x) => states.has(x)) && !ON.has(c.view().state),
         `${[...states].join()} then ${c.view().state}`);
       check(`${label}: the HUD said what comes next at every read while the war was on`, blank.length === 0, blank.slice(0, 3).join(' | '));
-      /* Round 1's waves are all announced at the go (BIRTH_LEAD_MS), so
-       * the first clock is round 2's strike at 30 s. */
+      /* Every clock never goes up, and one over a second long goes down
+       * (a wave announced 3.2 s after the go reads 3 at both of its
+       * reads); the Spillway's Loiterers, 15 to 30 s into its first
+       * stage (paced 1.6 for one pilot), are a long one among them. */
       const runs = [...clocks.values()];
-      check(`${label}: NEXT WAVE IN counted down to each wave it named, round 2's 30 s strike among them`,
-        clocks.has('round 2 wave 3') && runs.every((x) => x.length >= 2 && x[0] > x.at(-1) && x.every((y, i) => i === 0 || y <= x[i - 1])),
+      check(`${label}: NEXT WAVE IN counted down to each wave it named, stage 1's Loiterers among them`,
+        (clocks.get('round 1 wave 1') ?? [0])[0] >= 24 && runs.every((x) => x.length >= 2 && (x[0] > x.at(-1) || x[0] <= 3) && x.every((y, i) => i === 0 || y <= x[i - 1])),
         [...clocks].map(([k, x]) => `${k}: ${x[0]}..${x.at(-1)}`).join(', '));
     }
 

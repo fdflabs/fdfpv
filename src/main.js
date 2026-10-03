@@ -147,6 +147,7 @@ import { createGrid as createWarGrid } from './share/war/grid.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { filmFor } from './share/war/films/index.js';
+import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -183,7 +184,9 @@ import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
-import { AIRFRAMES, STRIKER_CAMERA, airStartSpeed, airframeById } from '../configs/airframes.js';
+import {
+  AIRFRAMES, STRIKER_CAMERA, WAR_AIRFRAMES, WAR_DEFAULT, airStartSpeed, airframeById, isWarAirframe,
+} from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
@@ -2400,7 +2403,9 @@ export async function boot({
       }
       if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
         /* The room's word on this pilot's war start, said like a refusal. */
-        if (m.type === 'war' && m.error) {
+        /* Not the room's refusal of the aircraft a war just put this pilot
+         * out of (warSeatCraft): only one still flown says it. */
+        if (m.type === 'war' && m.error && !(m.error === 'airframe' && isWarAirframe(ui.settings.airframe))) {
           roomRefused(m.error === 'private' ? 'private' : `war_${m.error}`);
         }
         ui.refreshFriends();
@@ -3547,6 +3552,62 @@ export async function boot({
    * seated while one is live. Damage mode is forced on at the next reset,
    * so a pilot already flying starts again on the slot (as Catch the Ace
    * does) and one on a room screen takes off. */
+  /*
+   * THE WAR'S AIRCRAFT (the owner, 3 October: only combat drones fly in
+   * wars; configs/airframes.js WAR_AIRFRAMES). In a room made for the war,
+   * or one where a war is on, the pickers and the [ ] cycle offer only
+   * them, and a pilot coming into a war in another is put in the war
+   * aircraft flown last (settings.warAirframe) or the Striker, and told so
+   * in one line. The room refuses any other (edge/rooms/war.js flies).
+   */
+  function inWarRoom() {
+    return roomWar.view().state !== 'lobby' || lobbyGame() === 'war';
+  }
+  ui.craftLimit = () => (inWarRoom() ? WAR_AIRFRAMES : null);
+  function warSeatCraft() {
+    const s = ui.settings;
+    if (isWarAirframe(s.airframe)) {
+      return;
+    }
+    const id = isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
+    seatAirframe(s, id);
+    /* Carrying the warhead the pilot's loadout equips (a combat
+     * aircraft's payload is its warhead, campaign.js craftWarhead), so
+     * the switch does not trade it for the stock one. */
+    const af = airframeById(id);
+    const equipped = roomWar.view().loadouts?.[roomWar.seat()]?.warhead;
+    if (equipped) {
+      const had = combatChoice(af, s.combat ? s.combat[id] : null);
+      s.combat = { ...(s.combat ?? {}), [id]: { ...had, payload: payloadForWarhead(af, equipped) } };
+    }
+    s.airframeAsked = true;
+    /* As a swap seats it: the mode that goes with the aircraft waits for
+     * the title, and the war's world stays. */
+    ui.modeSyncedFor = id;
+    ui.persistSettings();
+    warCraftSaid = str('war.craft_switched', { name: airframeById(id).name });
+    warCraftLog.push({ id, at: roomLinkState.roomNow(), said: warCraftSaid });
+  }
+  /* Each time a war put this pilot in another aircraft, for checks; and
+   * its line, said once the film is over and the pilot can read it. */
+  const warCraftLog = [];
+  let warCraftSaid = null;
+  /* Said, and the war aircraft flown kept for the next war. */
+  function warCraftFrame(v) {
+    /* From the briefing, so the pilot is seated in it before the go. */
+    if (v.state === 'briefing' || roomWar.on()) {
+      warSeatCraft();
+    }
+    if (warCraftSaid && !warIntro && (v.state === 'countdown' || v.state === 'live')) {
+      notice = { text: warCraftSaid, untilMs: performance.now() + 5000 };
+      warCraftSaid = null;
+    }
+    if (roomWar.on() && isWarAirframe(runAirframe) && ui.settings.warAirframe !== runAirframe) {
+      ui.settings.warAirframe = runAirframe;
+      ui.persistSettings();
+    }
+  }
+
   function warBegin(v, wallMs) {
     warBegunId = roomWar.match();
     warCalls.reset();
@@ -3678,10 +3739,13 @@ export async function boot({
     if (briefing && warIntroShown !== roomWar.match() && worldUp) {
       warIntroShown = roomWar.match();
       const briefAt = v.briefAt;
+      /* The match's working sets, for a shot that outlines them. */
+      const targets = WAR_MISSIONS[v.mission]?.targets ?? {};
       warIntroPlay(v.id, {
         mission: v.mission,
         clock: () => roomLinkState.roomNow() - briefAt,
         hold: true,
+        named: Object.values(v.sets ?? {}).flat().filter((id) => targets[id]).map((id) => targets[id].at),
         onSkip: () => {
           const w = roomLinkState.state().welcome;
           if (w && w.host === w.seat) {
@@ -3964,6 +4028,7 @@ export async function boot({
     warGatesFrame(v);
     warTimeFrame();
     warIntroFrame(v);
+    warCraftFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {
       warBegin(v, wallMs);
     } else if (!roomWar.on() && warBegunId != null) {
@@ -4080,8 +4145,9 @@ export async function boot({
     /* A spectator's markers are the watched teammate's: its distances,
      * and a Hunter on it framed, but not said as on this pilot. */
     const watched = warWatch();
+    warMarkers.setNamed(v.sets);
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
-    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched)) && !watched) {
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched), spilling(v.gates, now)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
         warSay(['wave-hunter']);
@@ -5199,6 +5265,7 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     night: warTimeLog.slice(),
+    craft: warCraftLog.slice(),
     /* Each power district 'lit', 'flicker' or 'dark' now, and what the
      * map was handed (src/share/war/grid.js). */
     grid: {
