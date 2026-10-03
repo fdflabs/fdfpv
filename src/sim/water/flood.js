@@ -87,6 +87,16 @@ export async function loadFlood(wasmBytes) {
       must(e.flood_init(nx, nz, x0, z0, dx, dt), 'init');
       n = nx * nz;
     },
+    /* A second block, its cells after the first's; before any state is
+     * written. Returns its index. */
+    addBlock(nx, nz, x0, z0, dx) {
+      const k = must(e.flood_add_block(nx, nz, x0, z0, dx), 'add block');
+      n += nx * nz;
+      return k;
+    },
+    /* Block `coarse` (twice the cells) joined below block `fine`. */
+    join: (fine, coarse) => must(e.flood_join(fine, coarse), 'join'),
+    boundIn: (blk, side, k0, k1, type, a) => must(e.flood_bound_in(blk, side, k0, k1, type, a), 'bound'),
     bed: () => f64(e.flood_bed()),
     h: () => f64(e.flood_h()),
     hu: () => f64(e.flood_hu()),

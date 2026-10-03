@@ -4,10 +4,18 @@
  * spillway, its chute, the plunge pool and the river below, and every
  * opening a war tears in the dam (docs/FLOOD.md).
  *
- * THE FRAME. A cell (i, j) covers x in x0 + [i, i + 1) dx and z in
- * z0 + [j, j + 1) dx, x and z the map's own plan axes (the scene's, x
- * east and z south on Itaipu), and every height is the map's y, metres
- * up. The state has no up axis: depth h, and the two plan components of
+ * THE FRAME. A cell (i, j) of a block covers x in x0 + [i, i + 1) dx
+ * and z in z0 + [j, j + 1) dx, x and z the grid's plan axes (the host
+ * maps them to its world), and every height is the map's y, metres up.
+ *
+ * BLOCKS. The grid is one block, or a fine block and a coarse one of
+ * twice its cells joined along the fine block's south edge, the coarse
+ * block's north (flood_add_block, flood_join): the water where little
+ * happens costs a quarter. The cells are numbered block after block,
+ * one array each for the whole grid. Each fine face along the join is
+ * computed once, between its fine cell and the coarse cell beyond, and
+ * applied to both, so what leaves one block is exactly what enters the
+ * other, and water at rest across the join stays at rest. The state has no up axis: depth h, and the two plan components of
  * the unit discharge, hu along x and hv along z, m2/s. Nothing here is
  * converted from or to the plant's Z-up frame, because nothing here is
  * the plant's.
@@ -107,13 +115,19 @@
 #define POOL_MAX 65536
 
 #define TILE 16
+#define BLOCKS_MAX 2
 
 enum { SIDE_W = 0, SIDE_E = 1, SIDE_N = 2, SIDE_S = 3 };
 enum { BOUND_STAGE = 1, BOUND_INFLOW = 2, BOUND_RATING = 3 };
 enum { LINK_OPENING = 1, LINK_PIPE = 2, LINK_FIXED = 3 };
 
 typedef struct {
-  int side, k0, k1, type;
+  int nx, nz, n, off, tx, tz, toff;
+  double x0, z0, dx, area;
+} Block;
+
+typedef struct {
+  int blk, side, k0, k1, type;
   /* STAGE: the level outside. INFLOW: the discharge, m3/s, and each
    * cell's share of it (weights in the pool). RATING: the slope. */
   double level, q, slope;
@@ -129,6 +143,8 @@ typedef struct {
 
 typedef struct {
   int type, up0, nup, down0, ndown, tail0, ntail, nbands;
+  /* The area of every one of its cells, m2: a link lies in one block. */
+  double cell;
   Band band[BANDS_MAX];
   /* The plan direction the water leaves along, a vector whose length is
    * the share of the jet's speed that is horizontal. */
@@ -143,8 +159,11 @@ typedef struct {
 } Link;
 
 static struct {
-  int nx, nz, n, tx, tz;
-  double x0, z0, dx, dt, area;
+  Block blk[BLOCKS_MAX];
+  int nblk, n, ntiles;
+  /* The joined blocks, fine and coarse, or -1. */
+  int fine, coarse;
+  double dt;
   double *b, *h, *hu, *hv, *u, *v, *c, *rh, *ru, *rv, *fx, *fz;
   unsigned char *cls, *tileWet;
   double n2[CLASSES];
@@ -187,26 +206,22 @@ static inline double cbrt_rough(double x) {
   return y;
 }
 
-static void freeAll(void) {
+static void freeArrays(void) {
   free(F.b); free(F.h); free(F.hu); free(F.hv); free(F.u); free(F.v); free(F.c);
   free(F.rh); free(F.ru); free(F.rv); free(F.fx); free(F.fz); free(F.cls); free(F.tileWet);
-  memset(&F, 0, sizeof F);
+  F.b = F.h = F.hu = F.hv = F.u = F.v = F.c = F.rh = F.ru = F.rv = F.fx = F.fz = NULL;
+  F.cls = F.tileWet = NULL;
 }
 
-/*
- * A grid nx by nz of dx metres from (x0, z0), stepped dt seconds at a
- * time. Every cell dry on a bed at 0 and of class 0 until the host
- * writes flood_bed, flood_cls and the state. 0 on success.
- */
-FLOOD_EXPORT int flood_init(int nx, int nz, double x0, double z0, double dx, double dt) {
-  freeAll();
-  if (nx < 2 || nz < 2 || !(dx > 0.0) || !(dt > 0.0)) {
-    return -2;
-  }
-  F.nx = nx; F.nz = nz; F.n = nx * nz;
-  F.x0 = x0; F.z0 = z0; F.dx = dx; F.dt = dt; F.area = dx * dx;
-  F.tx = (nx + TILE - 1) / TILE;
-  F.tz = (nz + TILE - 1) / TILE;
+static void freeAll(void) {
+  freeArrays();
+  memset(&F, 0, sizeof F);
+  F.fine = F.coarse = -1;
+}
+
+/* Every array for the blocks there are, zeroed: a dry bed at 0. */
+static int allocate(void) {
+  freeArrays();
   size_t n = (size_t)F.n;
   F.b = calloc(n, sizeof(double));
   F.h = calloc(n, sizeof(double));
@@ -221,11 +236,78 @@ FLOOD_EXPORT int flood_init(int nx, int nz, double x0, double z0, double dx, dou
   F.fx = calloc(n, sizeof(double));
   F.fz = calloc(n, sizeof(double));
   F.cls = calloc(n, 1);
-  F.tileWet = calloc((size_t)(F.tx * F.tz), 1);
+  F.tileWet = calloc((size_t)F.ntiles, 1);
   if (!F.b || !F.h || !F.hu || !F.hv || !F.u || !F.v || !F.c || !F.rh || !F.ru || !F.rv || !F.fx || !F.fz || !F.cls || !F.tileWet) {
     freeAll();
     return -3;
   }
+  return 0;
+}
+
+static int addBlock(int nx, int nz, double x0, double z0, double dx) {
+  if (F.nblk >= BLOCKS_MAX || nx < 2 || nz < 2 || !(dx > 0.0)) {
+    return -2;
+  }
+  Block *K = &F.blk[F.nblk];
+  K->nx = nx; K->nz = nz; K->n = nx * nz; K->off = F.n;
+  K->x0 = x0; K->z0 = z0; K->dx = dx; K->area = dx * dx;
+  K->tx = (nx + TILE - 1) / TILE;
+  K->tz = (nz + TILE - 1) / TILE;
+  K->toff = F.ntiles;
+  F.n += K->n;
+  F.ntiles += K->tx * K->tz;
+  int r = allocate();
+  return r < 0 ? r : F.nblk++;
+}
+
+/* The block cell c is in. */
+static const Block *blockOf(int c) {
+  int k = F.nblk - 1;
+  while (k > 0 && c < F.blk[k].off) k -= 1;
+  return &F.blk[k];
+}
+
+/*
+ * A grid nx by nz of dx metres from (x0, z0), stepped dt seconds at a
+ * time. Every cell dry on a bed at 0 and of class 0 until the host
+ * writes flood_bed, flood_cls and the state. 0 on success.
+ */
+FLOOD_EXPORT int flood_init(int nx, int nz, double x0, double z0, double dx, double dt) {
+  freeAll();
+  if (!(dt > 0.0)) {
+    return -2;
+  }
+  F.dt = dt;
+  int r = addBlock(nx, nz, x0, z0, dx);
+  return r < 0 ? r : 0;
+}
+
+/*
+ * A second block, after flood_init and before anything is written to the
+ * state (the arrays are made again, all dry). Its cells follow block 0's.
+ * Returns its index.
+ */
+FLOOD_EXPORT int flood_add_block(int nx, int nz, double x0, double z0, double dx) {
+  if (F.nblk < 1 || F.nbound || F.nlink) {
+    return -2;
+  }
+  return addBlock(nx, nz, x0, z0, dx);
+}
+
+/*
+ * Join block `coarse` below block `fine`: twice its cells, as wide, its
+ * north edge on the fine block's south edge. Anything else is refused.
+ */
+FLOOD_EXPORT int flood_join(int fine, int coarse) {
+  if (fine < 0 || coarse < 0 || fine >= F.nblk || coarse >= F.nblk || fine == coarse || F.fine >= 0) {
+    return -2;
+  }
+  const Block *A = &F.blk[fine], *C = &F.blk[coarse];
+  if (C->dx != 2.0 * A->dx || C->x0 != A->x0 || 2 * C->nx != A->nx || C->z0 != A->z0 + A->nz * A->dx) {
+    return -2;
+  }
+  F.fine = fine;
+  F.coarse = coarse;
   return 0;
 }
 
@@ -251,25 +333,35 @@ FLOOD_EXPORT int flood_set_manning(int k, double n) {
 
 /* ------------------------------------------------------- the boundaries */
 
-static int sideLength(int side) {
-  return side == SIDE_W || side == SIDE_E ? F.nz : F.nx;
+static int sideLength(const Block *K, int side) {
+  return side == SIDE_W || side == SIDE_E ? K->nz : K->nx;
 }
 
-static int sideCell(int side, int k) {
+static int sideCell(const Block *K, int side, int k) {
   switch (side) {
-    case SIDE_W: return k * F.nx;
-    case SIDE_E: return k * F.nx + F.nx - 1;
-    case SIDE_N: return k;
-    default: return (F.nz - 1) * F.nx + k;
+    case SIDE_W: return K->off + k * K->nx;
+    case SIDE_E: return K->off + k * K->nx + K->nx - 1;
+    case SIDE_N: return K->off + k;
+    default: return K->off + (K->nz - 1) * K->nx + k;
   }
+}
+
+/* Whether a side of block k is the join, not an edge. */
+static int joined(int k, int side) {
+  return (k == F.fine && side == SIDE_S) || (k == F.coarse && side == SIDE_N);
 }
 
 /*
  * A boundary on `side` (0 west, i = 0; 1 east; 2 north, j = 0; 3 south)
- * from cell k0 to k1 inclusive along it. Returns its index.
+ * of block `blk`, from cell k0 to k1 inclusive along it. Returns its
+ * index. flood_bound is block 0's.
  */
-FLOOD_EXPORT int flood_bound(int side, int k0, int k1, int type, double a) {
-  if (F.nbound >= BOUNDS_MAX || side < 0 || side > 3 || k0 < 0 || k1 < k0 || k1 >= sideLength(side)) {
+FLOOD_EXPORT int flood_bound_in(int blk, int side, int k0, int k1, int type, double a) {
+  if (blk < 0 || blk >= F.nblk || side < 0 || side > 3 || joined(blk, side)) {
+    return -2;
+  }
+  const Block *K = &F.blk[blk];
+  if (F.nbound >= BOUNDS_MAX || k0 < 0 || k1 < k0 || k1 >= sideLength(K, side)) {
     return -2;
   }
   if (type != BOUND_STAGE && type != BOUND_INFLOW && type != BOUND_RATING) {
@@ -280,7 +372,7 @@ FLOOD_EXPORT int flood_bound(int side, int k0, int k1, int type, double a) {
   }
   Bound *B = &F.bound[F.nbound];
   memset(B, 0, sizeof *B);
-  B->side = side; B->k0 = k0; B->k1 = k1; B->type = type;
+  B->blk = blk; B->side = side; B->k0 = k0; B->k1 = k1; B->type = type;
   if (type == BOUND_STAGE) {
     B->level = a;
   } else if (type == BOUND_RATING) {
@@ -292,7 +384,7 @@ FLOOD_EXPORT int flood_bound(int side, int k0, int k1, int type, double a) {
     B->w0 = F.nweight;
     double sum = 0.0;
     for (int k = k0; k <= k1; k += 1) {
-      double h = F.h[sideCell(side, k)];
+      double h = F.h[sideCell(K, side, k)];
       double w = h > DRY ? h * cbrt_pos(h) * cbrt_pos(h) : 0.0;
       F.weight[F.nweight + k - k0] = w;
       sum += w;
@@ -304,6 +396,10 @@ FLOOD_EXPORT int flood_bound(int side, int k0, int k1, int type, double a) {
     F.nweight += k1 - k0 + 1;
   }
   return F.nbound++;
+}
+
+FLOOD_EXPORT int flood_bound(int side, int k0, int k1, int type, double a) {
+  return flood_bound_in(0, side, k0, k1, type, a);
 }
 
 /* A boundary's level (STAGE), discharge (INFLOW) or slope (RATING). */
@@ -337,8 +433,12 @@ FLOOD_EXPORT int flood_link(int type, const int *up, int nup, const int *down, i
   }
   for (int k = 0; k < nup; k += 1) if (up[k] < 0 || up[k] >= F.n) return -2;
   for (int k = 0; k < ndown; k += 1) if (down[k] < 0 || down[k] >= F.n) return -2;
+  const Block *K = blockOf(up[0]);
+  for (int k = 0; k < nup; k += 1) if (blockOf(up[k]) != K) return -2;
+  for (int k = 0; k < ndown; k += 1) if (blockOf(down[k]) != K) return -2;
   Link *L = &F.link[F.nlink];
   memset(L, 0, sizeof *L);
+  L->cell = K->area;
   L->type = type;
   L->up0 = F.npool; L->nup = nup;
   memcpy(&F.pool[F.npool], up, (size_t)nup * sizeof(int));
@@ -355,6 +455,7 @@ FLOOD_EXPORT int flood_link_tail(int i, const int *tail, int n) {
   if (i < 0 || i >= F.nlink || n < 1 || F.npool + n > POOL_MAX) return -2;
   for (int k = 0; k < n; k += 1) if (tail[k] < 0 || tail[k] >= F.n) return -2;
   Link *L = &F.link[i];
+  for (int k = 0; k < n; k += 1) if (blockOf(tail[k])->area != L->cell) return -2;
   L->tail0 = F.npool; L->ntail = n;
   memcpy(&F.pool[F.npool], tail, (size_t)n * sizeof(int));
   F.npool += n;
@@ -494,7 +595,7 @@ static void stepLinks(void) {
     }
     /* The step takes at most half of what the source side holds, so no
      * cell goes negative; counted when it binds, which a check reads. */
-    double avail = (flip ? down : up) * F.area;
+    double avail = (flip ? down : up) * L->cell;
     double vol = q * dt;
     if (vol > 0.5 * avail) {
       vol = 0.5 * avail;
@@ -510,7 +611,7 @@ static void stepLinks(void) {
     /* Out of the source cells in proportion to their depth (each gives
      * at most half of its own, since vol is at most half of all), their
      * velocity kept: the water that leaves takes its momentum with it. */
-    double depth = vol / F.area;
+    double depth = vol / L->cell;
     double sum = 0.0;
     for (int k = 0; k < ns; k += 1) {
       int c = F.pool[s0 + k];
@@ -523,7 +624,7 @@ static void stepLinks(void) {
       F.hv[c] *= keep;
       sum += dh;
     }
-    double taken = sum * F.area;
+    double taken = sum * L->cell;
     /* Into the target cells evenly, moving along dir at the jet speed. */
     double each = sum / nd;
     double sx = (flip ? -L->dirx : L->dirx) * speed;
@@ -606,12 +707,14 @@ static inline void faceFlux(double hL, double unL, double utL, double bL, double
  * tile that does. A dry cell's velocity is zero and so is its
  * momentum. */
 static void prepare(void) {
-  int nx = F.nx;
+  memset(F.tileWet, 0, (size_t)F.ntiles);
+  for (int bk = 0; bk < F.nblk; bk += 1) {
+  const Block *K = &F.blk[bk];
+  int nx = K->nx;
   double vmax = 0.0;
-  memset(F.tileWet, 0, (size_t)(F.tx * F.tz));
-  for (int j = 0; j < F.nz; j += 1) {
+  for (int j = 0; j < K->nz; j += 1) {
     for (int i = 0; i < nx; i += 1) {
-      int c = j * nx + i;
+      int c = K->off + j * nx + i;
       double h = F.h[c];
       if (h > DRY) {
         double u = F.hu[c] / h, v = F.hv[c] / h;
@@ -621,7 +724,7 @@ static void prepare(void) {
         F.c[c] = ce;
         double s = (u < 0.0 ? -u : u) + (v < 0.0 ? -v : v) + 2.0 * ce;
         if (s > vmax) vmax = s;
-        F.tileWet[(j / TILE) * F.tx + i / TILE] = 1;
+        F.tileWet[K->toff + (j / TILE) * K->tx + i / TILE] = 1;
       } else {
         F.u[c] = 0.0;
         F.v[c] = 0.0;
@@ -631,38 +734,39 @@ static void prepare(void) {
         if (h < 0.0) {
           /* Rounding's negative depth, set to none and counted: the
            * Courant condition keeps it to the last few bits. */
-          F.clamped -= h * F.area;
+          F.clamped -= h * K->area;
           F.h[c] = 0.0;
         }
       }
     }
   }
   /* 2D, unsplit: both directions' signals in one step. */
-  double courant = vmax * F.dt / F.dx;
+  double courant = vmax * F.dt / K->dx;
   if (courant > F.courant) F.courant = courant;
+  }
 }
 
 /* Whether the tile (ti, tj) or one of its four neighbours holds water. */
-static int tileLive(int ti, int tj) {
-  const unsigned char *w = F.tileWet;
-  int tx = F.tx;
+static int tileLive(const Block *K, int ti, int tj) {
+  const unsigned char *w = F.tileWet + K->toff;
+  int tx = K->tx;
   if (w[tj * tx + ti]) return 1;
   if (ti > 0 && w[tj * tx + ti - 1]) return 1;
   if (ti + 1 < tx && w[tj * tx + ti + 1]) return 1;
   if (tj > 0 && w[(tj - 1) * tx + ti]) return 1;
-  if (tj + 1 < F.tz && w[(tj + 1) * tx + ti]) return 1;
+  if (tj + 1 < K->tz && w[(tj + 1) * tx + ti]) return 1;
   return 0;
 }
 
 /* The faces inside the grid, x faces then z faces, tile by tile; a face
  * belongs to the tile of the cell on its low side. */
-static void interiorFluxes(void) {
-  int nx = F.nx, nz = F.nz;
-  const double *b = F.b, *h = F.h, *u = F.u, *v = F.v, *cc = F.c;
-  double *rh = F.rh, *ru = F.ru, *rv = F.rv, *fx = F.fx, *fz = F.fz;
-  for (int tj = 0; tj < F.tz; tj += 1) {
-    for (int ti = 0; ti < F.tx; ti += 1) {
-      if (!tileLive(ti, tj)) continue;
+static void interiorFluxes(const Block *K) {
+  int nx = K->nx, nz = K->nz;
+  const double *b = F.b + K->off, *h = F.h + K->off, *u = F.u + K->off, *v = F.v + K->off, *cc = F.c + K->off;
+  double *rh = F.rh + K->off, *ru = F.ru + K->off, *rv = F.rv + K->off, *fx = F.fx + K->off, *fz = F.fz + K->off;
+  for (int tj = 0; tj < K->tz; tj += 1) {
+    for (int ti = 0; ti < K->tx; ti += 1) {
+      if (!tileLive(K, ti, tj)) continue;
       int j0 = tj * TILE, j1 = j0 + TILE < nz ? j0 + TILE : nz;
       int i0 = ti * TILE, i1 = i0 + TILE < nx ? i0 + TILE : nx;
       for (int j = j0; j < j1; j += 1) {
@@ -700,12 +804,39 @@ static void interiorFluxes(void) {
 }
 
 /*
+ * The join: each fine cell of the fine block's last row against the
+ * coarse cell beyond its south face, half of that cell's north face. The
+ * fine side takes the face's fluxes per metre as any face's; the coarse
+ * side takes them over its whole face, so times dx_fine / dx_coarse.
+ */
+static void joinFluxes(void) {
+  if (F.fine < 0) return;
+  const Block *A = &F.blk[F.fine], *C = &F.blk[F.coarse];
+  const double *b = F.b, *h = F.h, *u = F.u, *v = F.v, *cc = F.c;
+  double share = A->dx / C->dx;
+  for (int i = 0; i < A->nx; i += 1) {
+    int f = A->off + (A->nz - 1) * A->nx + i;
+    int g = C->off + i / 2;
+    double fh, fn, ft, pL, pR;
+    if (!(h[f] > DRY) && !(h[g] > DRY)) {
+      F.rv[f] -= HALF_G * h[f] * h[f];
+      F.rv[g] += share * HALF_G * h[g] * h[g];
+      continue;
+    }
+    faceFlux(h[f], v[f], u[f], b[f], cc[f], h[g], v[g], u[g], b[g], cc[g], &fh, &fn, &ft, &pL, &pR);
+    F.fz[f] = fh;
+    F.rh[f] -= fh; F.rv[f] -= fn + pL; F.ru[f] -= ft;
+    F.rh[g] += share * fh; F.rv[g] += share * (fn + pR); F.ru[g] += share * ft;
+  }
+}
+
+/*
  * The grid's own edges. A wall's face pushes back with the cell's own
  * pressure and passes nothing. A boundary's face is a face to a ghost
  * cell outside, on the same bed, through faceFlux like any other.
  * `out` is the outward sign along the face's normal axis.
  */
-static void edgeFace(int c, int side, const Bound *B, double weight, double *flow) {
+static void edgeFace(const Block *K, int c, int side, const Bound *B, double weight, double *flow) {
   int alongX = side == SIDE_W || side == SIDE_E;
   double out = side == SIDE_E || side == SIDE_S ? 1.0 : -1.0;
   double h = F.h[c], b = F.b[c];
@@ -735,7 +866,7 @@ static void edgeFace(int c, int side, const Bound *B, double weight, double *flo
     fh *= out; ft *= out;
   } else if (B && B->type == BOUND_INFLOW) {
     /* The cell's share of the discharge, per metre of face, inward. */
-    double q = B->q * weight / F.dx;
+    double q = B->q * weight / K->dx;
     double hc = cbrt_pos(q * q / G);
     double hh = h > hc ? h : hc;
     fh = -out * q;
@@ -746,30 +877,34 @@ static void edgeFace(int c, int side, const Bound *B, double weight, double *flo
   F.rh[c] -= out * fh;
   rn[c] -= out * fn;
   rt[c] -= out * ft;
-  *flow -= out * fh * F.dx;
+  *flow -= out * fh * K->dx;
 }
 
 static void edgeFluxes(void) {
+  for (int bk = 0; bk < F.nblk; bk += 1) {
+  const Block *K = &F.blk[bk];
   for (int side = 0; side < 4; side += 1) {
-    int len = sideLength(side);
+    if (joined(bk, side)) continue;
+    int len = sideLength(K, side);
     for (int k = 0; k < len; k += 1) {
-      int c = sideCell(side, k);
+      int c = sideCell(K, side, k);
       const Bound *B = NULL;
       double w = 0.0;
       for (int i = 0; i < F.nbound; i += 1) {
         const Bound *b = &F.bound[i];
-        if (b->side == side && k >= b->k0 && k <= b->k1) {
+        if (b->blk == bk && b->side == side && k >= b->k0 && k <= b->k1) {
           B = b;
           if (b->type == BOUND_INFLOW) w = F.weight[b->w0 + k - b->k0];
           break;
         }
       }
       double flow = 0.0;
-      edgeFace(c, side, B, w, &flow);
+      edgeFace(K, c, side, B, w, &flow);
       if (B) {
         ((Bound *)B)->rate += flow;
       }
     }
+  }
   }
 }
 
@@ -795,7 +930,6 @@ static void friction(void) {
 /* One step: velocities, every face's flux into the residuals, the
  * update, the links, then friction. */
 static void step(void) {
-  double k = F.dt / F.dx;
   memset(F.rh, 0, (size_t)F.n * sizeof(double));
   memset(F.ru, 0, (size_t)F.n * sizeof(double));
   memset(F.rv, 0, (size_t)F.n * sizeof(double));
@@ -803,14 +937,19 @@ static void step(void) {
   memset(F.fz, 0, (size_t)F.n * sizeof(double));
   for (int i = 0; i < F.nbound; i += 1) F.bound[i].rate = 0.0;
   prepare();
-  interiorFluxes();
+  for (int bk = 0; bk < F.nblk; bk += 1) interiorFluxes(&F.blk[bk]);
+  joinFluxes();
   edgeFluxes();
-  for (int c = 0; c < F.n; c += 1) {
-    double rh = F.rh[c];
-    if (rh == 0.0 && F.ru[c] == 0.0 && F.rv[c] == 0.0) continue;
-    F.h[c] += k * rh;
-    F.hu[c] += k * F.ru[c];
-    F.hv[c] += k * F.rv[c];
+  for (int bk = 0; bk < F.nblk; bk += 1) {
+    const Block *K = &F.blk[bk];
+    double k = F.dt / K->dx;
+    for (int c = K->off; c < K->off + K->n; c += 1) {
+      double rh = F.rh[c];
+      if (rh == 0.0 && F.ru[c] == 0.0 && F.rv[c] == 0.0) continue;
+      F.h[c] += k * rh;
+      F.hu[c] += k * F.ru[c];
+      F.hv[c] += k * F.rv[c];
+    }
   }
   for (int i = 0; i < F.nbound; i += 1) {
     F.bound[i].vol += F.bound[i].rate * F.dt;
@@ -832,9 +971,14 @@ FLOOD_EXPORT int flood_step(int n) {
 
 /* Water in the grid, m3. */
 FLOOD_EXPORT double flood_volume(void) {
-  double s = 0.0;
-  for (int c = 0; c < F.n; c += 1) s += F.h[c];
-  return s * F.area;
+  double v = 0.0;
+  for (int bk = 0; bk < F.nblk; bk += 1) {
+    const Block *K = &F.blk[bk];
+    double s = 0.0;
+    for (int c = K->off; c < K->off + K->n; c += 1) s += F.h[c];
+    v += s * K->area;
+  }
+  return v;
 }
 
 /* The figures a check or a host reads: 0 steps, 1 the largest Courant

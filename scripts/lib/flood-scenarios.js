@@ -373,6 +373,98 @@ export async function opening(wasm, regime) {
 }
 
 /*
+ * THE JOIN: a fine block of 2 m cells over a coarse block of 4 m, joined
+ * (flood.c BLOCKS). Three things must hold across it. Still water over a
+ * random bed with islands, ten minutes, stays still. A column released
+ * in the fine block runs through the join into the coarse one and the
+ * volume is what it was. And a sloped channel running down through the
+ * join, an INFLOW at its head in the fine block and a RATING at its foot
+ * in the coarse one, runs at Manning's normal depth in both blocks, with
+ * what comes in going out.
+ */
+async function joinedGrid(wasm, nxF, nzF, nzC, dx, dt) {
+  const f = await loadFlood(wasm);
+  f.init(nxF, nzF, 0, 0, dx, dt);
+  const coarse = f.addBlock(nxF / 2, nzC, 0, nzF * dx, 2 * dx);
+  f.join(0, coarse);
+  /* Each cell's centre, block after block. */
+  const centres = [];
+  for (let j = 0; j < nzF; j += 1) for (let i = 0; i < nxF; i += 1) centres.push([(i + 0.5) * dx, (j + 0.5) * dx]);
+  for (let j = 0; j < nzC; j += 1) for (let i = 0; i < nxF / 2; i += 1) centres.push([(i + 0.5) * 2 * dx, nzF * dx + (j + 0.5) * 2 * dx]);
+  return { f, coarse, centres, nF: nxF * nzF };
+}
+
+export async function joinRest(wasm) {
+  const { f, centres } = await joinedGrid(wasm, 64, 32, 24, 2, 0.05);
+  const b = f.bed(); const h = f.h();
+  const LEVEL = 10;
+  centres.forEach(([x, z], k) => {
+    const i = Math.floor(x / 2); const j = Math.floor(z / 2);
+    b[k] = bump(i, j, 1) % (1 / 13) < 1 / 160 ? 12 : 2 + 6 * bump(i, j, 2);
+    h[k] = Math.max(0, LEVEL - b[k]);
+  });
+  f.setManning(0, 0.03);
+  const v0 = f.volume();
+  f.step(12000);
+  let speed = 0; let level = 0;
+  const hu = f.hu(); const hv = f.hv(); const hh = f.h();
+  for (let k = 0; k < centres.length; k += 1) {
+    if (b[k] >= LEVEL) continue;
+    speed = Math.max(speed, Math.sqrt(hu[k] * hu[k] + hv[k] * hv[k]) / hh[k]);
+    level = Math.max(level, Math.abs(hh[k] + b[k] - LEVEL));
+  }
+  const dv = Math.abs(f.volume() - v0) / v0;
+  return result('join at rest', [
+    c('across a join of 2 m and 4 m cells, still water over a random bed stays still for 10 min: under 1e-9 m/s', speed < 1e-9, `${speed.toExponential(2)} m/s`),
+    c('and its level within a nanometre, its volume to 1e-12', level < 1e-9 && dv < 1e-12, `${level.toExponential(2)} m, ${dv.toExponential(2)}`),
+  ], { speed, level, dv }, f);
+}
+
+export async function joinMass(wasm) {
+  const { f, centres, nF } = await joinedGrid(wasm, 32, 60, 60, 2, 0.02);
+  const b = f.bed(); const h = f.h();
+  centres.forEach(([x, z], k) => {
+    b[k] = 2 * bump(Math.floor(x), Math.floor(z), 3) - z / 200;
+    h[k] = z < 40 ? Math.max(0, 8 - b[k]) : 0;
+  });
+  f.setManning(0, 0.03);
+  const v0 = f.volume();
+  f.step(6000);
+  const dv = Math.abs(f.volume() - v0) / v0;
+  let below = 0;
+  for (let k = nF; k < centres.length; k += 1) below += f.h()[k] * 16;
+  return result('join mass', [
+    c('a dam break in the fine block runs into the coarse one, and the volume is what it was to 1e-12', dv < 1e-12, `${dv.toExponential(2)}`),
+    c('water crossed the join', below > 0.1 * v0, `${((100 * below) / v0).toFixed(0)} % of it now in the coarse block`),
+  ], { dv, below }, f);
+}
+
+export async function joinNormal(wasm) {
+  const S = 1e-3; const N = 0.03; const Q = 4; const dx = 2;
+  const nx = 8; const nzF = 200; const nzC = 100;
+  const { f, coarse, centres } = await joinedGrid(wasm, nx, nzF, nzC, dx, 0.05);
+  const b = f.bed(); const h = f.h();
+  const L = nzF * dx + nzC * 2 * dx;
+  centres.forEach(([, z], k) => {
+    b[k] = S * (L - z);
+    h[k] = 2;
+  });
+  f.setManning(0, N);
+  const inlet = f.bound(SIDE.north, 0, nx - 1, BOUND.inflow, Q * nx * dx);
+  const outlet = f.boundIn(coarse, SIDE.south, 0, nx / 2 - 1, BOUND.rating, S);
+  f.step(60000);
+  const want = ((N * Q) / Math.sqrt(S)) ** 0.6;
+  const fine = f.h()[(nzF / 2) * nx + 3];
+  const coarseDepth = f.h()[nx * nzF + (nzC / 2) * (nx / 2) + 1];
+  const inn = f.boundRate(inlet); const out = -f.boundRate(outlet);
+  return result('join normal depth', [
+    c(`a channel down through the join runs at Manning's normal depth ${want.toFixed(4)} m in the fine block and in the coarse one, to 1 %`,
+      Math.abs(fine - want) < 0.01 * want && Math.abs(coarseDepth - want) < 0.01 * want, `fine ${fine.toFixed(4)} m, coarse ${coarseDepth.toFixed(4)} m`),
+    c('steady: the coarse block lets out what the fine one takes in, to 0.1 %', Math.abs(inn - out) < 1e-3 * inn, `in ${inn.toFixed(3)}, out ${out.toFixed(3)} m3/s`),
+  ], { fine, coarseDepth, want }, f);
+}
+
+/*
  * THE CLOCK: one flood, five clients. A basin held at 10 m behind a wall
  * with an opening link through it that each opening widens (2 m, then
  * 6, then 12, the last torn 40 ms after the second). Every client steps
@@ -520,5 +612,8 @@ export const SCENARIOS = [
   ['opening, weir', (w) => opening(w, 'weir')],
   ['opening, orifice', (w) => opening(w, 'orifice')],
   ['opening, drowned', (w) => opening(w, 'drowned')],
+  ['join at rest', joinRest],
+  ['join mass', joinMass],
+  ['join normal depth', joinNormal],
   ['the room clock', hostClock],
 ];
