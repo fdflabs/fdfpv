@@ -321,15 +321,19 @@ console.log('triggers');
      * of what it guards; and its count shown as it grows. */
     const s3 = enter(mission, 0, 0, 1, 3);
     const c3 = (f) => ({ ...ctx(), st: s3, f });
-    const held = (f) => objectivesView(c3(f)).find((o) => o.id === 'h');
+    /* The room settles its objectives before its view, every step. */
+    const held = (f) => {
+      objectives(c3(f));
+      return objectivesView(c3(f)).find((o) => o.id === 'h');
+    };
     const before = held(500);
     const mid = held(2500);
     objectives(c3(3999));
-    const notYet = s3.obj.h;
+    const notYet = s3.obj.h.state;
     objectives(c3(4000));
-    check('a hold counts from its own trigger, is held ms later, and the view shows how long',
-      before.heldMs === 0 && mid.heldMs === 1500 && notYet === undefined && s3.obj.h.state === 'done' && s3.obj.h.t === 4000 && held(9000).heldMs === 3000,
-      JSON.stringify([before, mid, s3.obj.h]));
+    check('a hold counts from its own trigger, is held ms later, and the view shows how long and since when',
+      before.heldMs === 0 && mid.heldMs === 1500 && mid.heldFrom === 1000 && notYet === 'active' && s3.obj.h.state === 'done' && s3.obj.h.t === 4000
+      && held(9000).heldMs === 3000, JSON.stringify([before, mid, s3.obj.h]));
     const s4 = enter(mission, 0, 0, 1, 4);
     note(s4, { t: 2000, e: 'down', target: 'b' });
     objectives({ ...ctx(), st: s4, f: 5000 });
@@ -724,6 +728,39 @@ console.log('the room: ready, a region, a breach');
   e.r.war.breach('a', GO + 9500);
   e.fly(GO + 10000);
   check('breach: the room\'s opening ends it', e.view().state === 'won' && e.view().why === 'breach' && e.view().endAt === GO + 9500);
+}
+
+console.log('the room: a hold that starts when the pilots reach a place');
+{
+  /* The view never runs a trigger: a hold whose start is a region (which
+   * needs the pilots' places) is settled by the step and read by the
+   * view, in every welcome too. */
+  const HOLD = {
+    ...STORY,
+    id: 'hold-test',
+    stages: [{
+      id: 'hold',
+      spawns: [],
+      objectives: [{
+        id: 'stay', text: 'war.obj.stay', kind: 'hold', ms: 4000, from: { region: { at: [0, 900], r: 30 }, pilots: 'all' },
+      }],
+      exits: [{ when: { objective: 'stay' }, to: 'won', why: 'held' }],
+    }],
+  };
+  const e = warRoom(HOLD, { n: 1 });
+  e.fly(GO + 2000);
+  const idle = e.view().stage.objectives[0];
+  e.paths[0] = () => [0, Y, 905];
+  e.fly(GO + 3000);
+  const holding = e.view().stage.objectives[0];
+  const late = e.join(1);
+  const welcome = late.got.find((m) => m.type === 'welcome');
+  e.fly(GO + 9000);
+  const v = e.view();
+  check('a region-started hold: not begun while nobody is there, then held from the pilots\' arrival, told to a joiner too',
+    idle.heldFrom == null && idle.heldMs === 0 && holding.heldFrom >= GO + 2000 && holding.heldFrom <= GO + 2100
+    && welcome.war.stage.objectives[0].heldFrom === holding.heldFrom, JSON.stringify([idle, holding]));
+  check('and done its ms after, ending the stage', v.state === 'won' && v.why === 'held' && v.endAt === holding.heldFrom + 4000, `${v.state} ${v.endAt}`);
 }
 
 console.log('the room: the birth lead');

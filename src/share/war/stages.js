@@ -517,24 +517,30 @@ function holdFrom(o, ctx) {
   return o.from ? fired(o.from, ctx) : ctx.st.at;
 }
 
-/* Settle the stage's objectives that have now done or failed. */
+/* Settle the stage's objectives that have now done or failed. A hold's
+ * start is kept once it fires (st.obj[id] { state: 'active', from }), so
+ * the view reads it and never runs a trigger. */
 export function objectives(ctx) {
   const st = ctx.st;
   for (const o of stagesOf(ctx.mission)[st.idx].objectives ?? []) {
-    if (st.obj[o.id]) {
+    const had = st.obj[o.id];
+    if (had && had.state !== 'active') {
       continue;
     }
     let done = o.done ? fired(o.done, ctx) : null;
     if (o.ms != null) {
-      const from = holdFrom(o, ctx);
+      const from = had?.from ?? holdFrom(o, ctx);
+      if (from != null && !had) {
+        st.obj[o.id] = { state: 'active', from };
+      }
       const t = from == null ? null : from + o.ms;
       done = t != null && t <= ctx.f ? t : null;
     }
     const fail = o.fail ? fired(o.fail, ctx) : null;
     if (done != null && (fail == null || done <= fail)) {
-      st.obj[o.id] = { state: 'done', t: done };
+      st.obj[o.id] = { ...st.obj[o.id], state: 'done', t: done };
     } else if (fail != null) {
-      st.obj[o.id] = { state: 'failed', t: fail };
+      st.obj[o.id] = { ...st.obj[o.id], state: 'failed', t: fail };
     }
   }
 }
@@ -565,10 +571,10 @@ export function objectivesView(ctx) {
       out.progress = [Math.min(d.n ?? 1, st.ev.filter((x) => x.e === 'down' && want.some((w) => isPart(x.target, w))).length), d.n ?? 1];
     }
     if (o.ms != null) {
-      /* A hold running is told by when it began (heldFrom, room ms), so
-       * a screen counts it on its own clock between the room's views; a
-       * settled one by how long it was held. */
-      const from = holdFrom(o, ctx);
+      /* A hold running is told by when it began (heldFrom, room ms, as
+       * objectives() kept it), so a screen counts it on its own clock
+       * between the room's views; a settled one by how long it was held. */
+      const from = st.obj[o.id]?.from ?? null;
       out.ms = o.ms;
       if (state === 'active') {
         out.heldFrom = from;
