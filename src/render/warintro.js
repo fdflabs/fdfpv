@@ -1,44 +1,48 @@
 /*
- * warintro.js: "2030", the war mode's cinematic intro
- * (docs/WARFARE-PLAN.md section 7.1), played in engine on the Itaipu map.
+ * warintro.js: the player of the war's intro films (docs/campaign/
+ * INTROS.md, TECH-NEEDS.md T2), in engine on the Itaipu map. A film is
+ * data on the timeline of src/share/war/film.js (src/share/war/films);
+ * this draws it: the cast, the attackers, the camera, the overlays, the
+ * voice and the music, on one clock.
  *
- * THE FILM IS DATA. SHOTS below is the plan's table less its shot 6, the
- * feed's static in the gorge: the owner took the signal system (link
- * loss, static, relays, jammers) out of the war mode for now, so the film
- * does not teach it, and its line, intro-6, is not played.
- * each one's camera as keyframes, which voice line starts when, which
- * attackers fly which routes (src/share/war/routes.js, the function the
- * room and every screen fly them by), which of the hangar's aircraft
- * stand or fly where (the game's own builders, src/render/craft.js), the
- * title cards and the output counter. Times are
- * milliseconds from the shot's start; each shot's length is
- * src/share/war/intro.js SHOT_MS, which the room's briefing also sums.
+ * ONE CLOCK. The picture runs on opts.clock(), film ms: in a room the
+ * room's clock less the briefing's start, so every screen is on the same
+ * frame of the same shot within a frame of each other, and a screen that
+ * joins late starts where the room is. The voice runs on the audio
+ * context's clock, every line decoded before it is due (fetched at the
+ * film's start, in the preload span, in the page's language) and
+ * scheduled with AudioBufferSourceNode.start at the film ms it is cut to,
+ * one anchor between the two clocks; a line already under way is started
+ * from its offset, never dropped (INTROS section 0, faults 4 and 5). The
+ * anchor is set again whenever the clocks part by ANCHOR_SLIP_MS, and the
+ * lines not yet started go with it. The music is the war bed's 'intro',
+ * from the first shot, sought to where the film is. Before a gesture has
+ * started the audio there is no context: the film runs silent, its
+ * subtitles still on the clock.
+ *
+ * SKIPPING (INTROS section 3). The first viewing of a film's cut is never
+ * skippable. A pilot who has seen it (opts.seen) holds any key, button
+ * or tap for SKIP_HOLD_MS to skip, a ring filling in the corner; letting
+ * go cancels. The skip leaves the film for an orbit of the dam over the
+ * briefing's seconds until the room's briefing ends (a host's skip also
+ * asks the room to end it for everybody, which it does only when every
+ * pilot there has seen it: edge/rooms/war.js). opts.onSeen() is called
+ * once the film's last shot is reached on a viewing that began at its
+ * first, which is what makes it seen.
+ *
+ * THE HAND-OFF (INTROS section 4). Over the last shot's final HANDOFF_MS
+ * the camera blends from the film's to the one the shell's own chain set
+ * this frame (the pilot's seat), and the letterbox opens.
  *
  * THE PLAYER. play(scene, camera, opts) stages the film's scenery in the
  * scene and returns a handle; its owner calls handle.frame(nowMs) once a
- * rendered frame, after its own camera logic and before the draw, and the
- * frame poses the camera, the attackers and the aircraft, and runs the
- * overlays. It owns no animation loop, so it cannot fight the shell's
- * camera for the frame. Any key, click or tap skips; with holdUntilMs set
- * (a room's briefing still running) the camera then circles the dam over
- * a "Briefing: N s" line until then. handle.done resolves when it is over,
- * skipped past the hold, or disposed; dispose() takes everything back out.
- *
- * SOUND. The war's own radio and music (src/render/warradio.js, the
- * shell's MotorAudio.war()), so the intro and the mission never fight
- * over the speakers and the volume, sound and music settings hold as for
- * every war call: each shot's line is Crest Control's (lines.json
- * intro-N, in the page's language), and the music is the war bed's
- * 'intro' track, started here unless the owner already runs it (a room's
- * briefing does) and put back as it was when the film ends. Before a
- * gesture has started the shell's audio there is no radio, and the film
- * runs silent: the subtitles are on the clock whatever the audio does,
- * lines.json's text shown for each file's measured length
- * (manifest.json).
+ * rendered frame, after its own camera logic and before the draw, and
+ * handle.afterDraw(canvas) after the draw (a dissolve keeps the outgoing
+ * shot's last frame from it). It owns no loop. handle.done resolves when
+ * it is over, skipped past the briefing, or disposed.
  *
  * CONTENT. The enemy is never named and wears no markings (attackers.js
- * builds them unmarked); no person is shown, harmed or otherwise: the
- * aircraft stand on their own, the thrown one is already in the air.
+ * builds them unmarked); no person is shown, harmed or otherwise.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -61,308 +65,35 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createAttackers } from './attackers.js';
 import { celMaterial } from './celmat.js';
 import { craftBuilderFor } from './craft.js';
-import { planAgent, poseAt } from '../share/war/routes.js';
-import { SHOT_MS, INTRO_MS } from '../share/war/intro.js';
-import itaipu1 from '../share/war/missions/itaipu-1.js';
+import { warVoiceUrl } from './warradio.js';
+import { poseAt } from '../share/war/routes.js';
+import {
+  HANDOFF_MS, OUT_S, PRELOAD_MS, blackAt, anchor, cameraAt, castAt, lensFov, lineAt, linesOf, placeAgents, shotIndex, spinAt, timing,
+} from '../share/war/film.js';
+import { filmFor } from '../share/war/films/index.js';
+import { INTRO_MS } from '../share/war/intro.js';
 import { str, currentLocale } from '../strings/index.js';
 
 export { INTRO_MS };
 
-/* ------------------------------------------------------------ the frame */
+/* Hold this long to skip a film already seen. */
+export const SKIP_HOLD_MS = 2000;
+/* The voice's anchor to the picture's clock is set again past this. */
+export const ANCHOR_SLIP_MS = 40;
+/* A line is scheduled on the audio clock this far ahead of its start. */
+const SCHEDULE_AHEAD_MS = 1500;
+/* A line joined this close to its end is left: a word's tail is noise. */
+const LATE_TAIL_S = 0.25;
 
-/* The intakes' line on the upstream face, west to east (ITAIPU-PLAN
- * section 2 frame, the mission's own numbers), and the crest's height. */
-const INTAKE_W = [-202.2, -1794.2];
-const INTAKE_E = [430.8, -1655.0];
 const CREST_Y = 225;
 const WATER_Y = 219;
-const ALONG = (() => {
-  const dx = INTAKE_E[0] - INTAKE_W[0];
-  const dz = INTAKE_E[1] - INTAKE_W[1];
-  const m = Math.hypot(dx, dz);
-  return [dx / m, dz / m];
-})();
-/* Upstream, toward the reservoir: the crest's line turned to -z. */
-const UP = [ALONG[1], -ALONG[0]];
-
-/* A point on the crest: intake i's place (fractional), `off` metres
- * upstream of the intake line, `along` metres east along it, at y. The
- * crest's top runs from about 5 m downstream of the line to 35 m up. */
-function crest(i, off, y, along = 0) {
-  const u = i / 19;
-  return [
-    INTAKE_W[0] + (INTAKE_E[0] - INTAKE_W[0]) * u + UP[0] * off + ALONG[0] * along,
-    y,
-    INTAKE_W[1] + (INTAKE_E[1] - INTAKE_W[1]) * u + UP[1] * off + ALONG[1] * along,
-  ];
-}
-
-/* The yaw that turns a body's nose (-z) onto the horizontal (hx, hz). */
-const yawTo = (hx, hz) => Math.atan2(-hx, -hz);
-const FACE_UP = yawTo(UP[0], UP[1]);
-const FACE_EAST = yawTo(ALONG[0], ALONG[1]);
-
-/* The dam's middle, which the briefing's orbit circles. */
-const DAM = [59, 212, -1672];
-
-/* ------------------------------------------------------------ the cast */
-
-/*
- * The hangar's aircraft the film stages, by name: which airframe, and
- * whether a shot turns its props where they can be seen (`spins`). Every
- * one carries its warhead slung under (section 6.3: "a warhead under
- * every belly"). Built once when the film starts, shown only in the
- * shots that list them.
- */
-const CAST = {
-  p51: { airframe: 'p51d1450' },
-  cub: { airframe: 'cub1400' },
-  q1: { airframe: '5inch' },
-  q2: { airframe: '5inch' },
-  q2s: { airframe: '5inch', spins: true },
-  q3: { airframe: '5inch' },
-  sky: { airframe: 'sky1800' },
-  skys: { airframe: 'sky1800', spins: true },
-  f16: { airframe: 'f16878' },
-  timber: { airframe: 'timber1500' },
-  float: { airframe: 'timber1500f', spins: true },
-  zagi: { airframe: 'zagi1219' },
-  q4: { airframe: '5inch' },
-  q5: { airframe: '5inch' },
-  q6: { airframe: '5inch' },
-  q7: { airframe: '5inch' },
-};
-
-/* Shot 4's line on the crest: the aircraft side by side 3.2 m apart
- * along the middle of the crest's deck (its downstream parapet is a wall
- * from about 0 to 5 m upstream of the intake line, the intakes'
- * servomotor houses stand at about 30), round intake 10.5, noses toward
- * the reservoir, where the camera stands, the parapet behind them. */
-const LINE = ['p51', 'cub', 'q1', 'q2', 'q3', 'sky', 'f16', 'timber'];
-const LINE_AT = 10.5;
-const LINE_OFF = 16;
-const LINE_GAP = 3.2;
-function linePlace(name) {
-  return crest(LINE_AT, LINE_OFF, null, linePlaceAlong(name));
-}
-const standing = (name) => ({ keys: [{ t: 0, p: linePlace(name), yaw: FACE_UP }] });
-
-/* ------------------------------------------------------------ the routes */
-
-/* The film's own routes, in the mission's form, over the reservoir north
- * of the dam. The attackers fly them by routes.js, as in a game. */
-const ROUTES = {
-  /* Shot 2: the lone Striker straight over the camera, then the ten. */
-  'lone-low': [[150, 236, -3700], [150, 236, -1900]],
-  'ten-low': [[190, 250, -4300], [190, 250, -1900]],
-  /* Shot 7: the first wave out over the water, and scouts high. */
-  'wave-low': [[80, 262, -3200], [80, 262, -1900]],
-  'wave-west': [[-300, 270, -3100], [-150, 270, -1900]],
-  'wave-high': [[600, 420, -3600], [250, 380, -2300]],
-  'wave-far': [[180, 250, -3400], [180, 250, -1900]],
-};
-const STAGE_MISSION = { routes: ROUTES, targets: itaipu1.targets };
-
-/* ------------------------------------------------------------ the shots */
-
-/*
- * Each shot:
- *   voice   the line (lines.json id) and when it starts
- *   cam     keyframes { t, p, look, fov, roll }: look is a point, or a
- *           cast member's name to follow; `cut: true` starts a new camera
- *           set up there with no move from the one before; `shake` is
- *           metres of hand held jitter
- *   cast    { name: { keys: [{ t, p, yaw, pitch, roll }], spin: [[t, rad/s]] } };
- *           a p with y null stands on the ground, WATER floats
- *   agents  [{ kind, route, n, t0, stagger }]: a group born at t0 (shot
- *           ms, before the shot is fine), each rank `stagger` ms behind
- *           the middle one, so a line abreast reads as a V
- *   titles  [{ key or text, from, to, kind }]
- *   counter { from, to }: the output counting up to 14 000 MW
- *   fade    [[t, black]]: to and from black
- *   grade   the shot's colour grade, one of GRADES
- */
 const WATER = 'water';
+/* The briefing's orbit after a skip: once round the dam in ORBIT_MS. */
+const DAM = [59, 212, -1672];
+const ORBIT_R = 820;
+const ORBIT_Y = 430;
+const ORBIT_MS = 150000;
 
-export const SHOTS = [
-  {
-    id: 'dawn',
-    voice: { line: 'intro-1', at: 2600 },
-    grade: 'dawn',
-    cam: [
-      { t: 0, p: [70, 262, -3900], look: [60, 238, -1700], fov: 38 },
-      { t: 7000, p: [66, 250, -3540], look: [60, 234, -1700], fov: 36 },
-    ],
-    titles: [{ text: '2030', from: 1500, to: 6200, kind: 'year' }],
-    fade: [[0, 1], [1400, 1], [3200, 0], [6600, 0], [7000, 0.6]],
-  },
-  {
-    id: 'swarm',
-    voice: { line: 'intro-2', at: 3000 },
-    grade: 'steel',
-    cam: [
-      { t: 0, p: [138, 222.4, -2920], look: [150, 236, -3400], fov: 50 },
-      { t: 2600, p: [139, 222.6, -2905], look: [150, 252, -3000], fov: 52 },
-      { t: 4600, p: [140, 222.8, -2890], look: [185, 250, -3500], fov: 46 },
-      { t: 7600, p: [141, 223.0, -2875], look: [190, 262, -3000], fov: 50 },
-      { t: 9200, p: [141.5, 223.1, -2868], look: [190, 300, -2860], fov: 58 },
-      { t: 11000, p: [142, 223.2, -2860], look: [195, 262, -2450], fov: 56 },
-    ],
-    /* The lone one passes 13 m over the camera at 2.4 s; the ten are
-     * 1.1 km out at 4 s and pass beside it at about 9 s. */
-    agents: [
-      { kind: 'strike', route: 'lone-low', n: 1, t0: 2400 - (780 / 38) * 1000 },
-      {
-        kind: 'strike', route: 'ten-low', n: 10, t0: 9000 - (1440 / 38) * 1000, stagger: 450,
-      },
-    ],
-    fade: [[0, 0.6], [500, 0]],
-  },
-  {
-    id: 'crest',
-    voice: { line: 'intro-3', at: 2400 },
-    grade: 'steel',
-    cam: [
-      { t: 0, p: crest(1, -190, 262), look: crest(4, 0, 205), fov: 42 },
-      { t: 10000, p: crest(13, -175, 256), look: crest(16, 0, 200), fov: 42 },
-    ],
-    counter: { from: 900, to: 3600 },
-  },
-  {
-    id: 'hangar',
-    voice: { line: 'intro-4', at: 2000 },
-    grade: 'warm',
-    cam: [
-      { t: 0, p: crest(LINE_AT, LINE_OFF + 3.2, CREST_Y + 0.8, -13.5), look: crest(LINE_AT, LINE_OFF - 1, CREST_Y + 0.2, -10.5), fov: 40 },
-      { t: 10000, p: crest(LINE_AT, LINE_OFF + 2.8, CREST_Y + 0.9, 12.5), look: crest(LINE_AT, LINE_OFF - 1, CREST_Y + 0.25, 15.5), fov: 40 },
-    ],
-    cast: Object.fromEntries(LINE.map((n) => [n, standing(n)])),
-  },
-  {
-    id: 'spinup',
-    voice: { line: 'intro-5', at: 1500 },
-    grade: 'warm',
-    cam: [
-      /* The quad's props, close. */
-      {
-        t: 0, p: crest(LINE_AT, LINE_OFF + 0.75, CREST_Y + 0.28, linePlaceAlong('q2') + 0.12), fov: 40, lookAt: 'q2', lookUp: 0.03,
-      },
-      {
-        t: 2500, p: crest(LINE_AT, LINE_OFF + 0.62, CREST_Y + 0.24, linePlaceAlong('q2') + 0.05), fov: 36, lookAt: 'q2', lookUp: 0.03,
-      },
-      /* The Skyhunter, already thrown, climbing out over the water. */
-      {
-        t: 2500, cut: true, p: crest(LINE_AT, 20, CREST_Y + 1.2, 0.5), fov: 48, lookAt: 'launch',
-      },
-      { t: 5000, p: crest(LINE_AT, 42, CREST_Y + 4.6, -1), fov: 34, lookAt: 'launch' },
-      /* The float plane taxiing on the reservoir, beside it at the water. */
-      {
-        t: 5000, cut: true, p: crest(6, 95, WATER_Y + 0.7, -8), fov: 42, lookAt: 'float', lookUp: 0.2,
-      },
-      { t: 7500, p: crest(6, 95, WATER_Y + 0.7, 4.5), fov: 42, lookAt: 'float', lookUp: 0.2 },
-      /* The F-16 spooling, from behind and low. */
-      {
-        t: 7500, cut: true, p: crest(LINE_AT, LINE_OFF - 2.1, CREST_Y + 0.42, linePlaceAlong('f16') + 0.7), fov: 48, lookAt: 'f16', lookUp: 0.05, shake: 0.002,
-      },
-      {
-        t: 12000, p: crest(LINE_AT, LINE_OFF - 1.6, CREST_Y + 0.4, linePlaceAlong('f16') + 0.4), fov: 44, lookAt: 'f16', lookUp: 0.05, shake: 0.014,
-      },
-    ],
-    cast: {
-      ...Object.fromEntries(LINE.filter((n) => n !== 'sky').map((n) => [n, standing(n)])),
-      q2: { as: 'q2s', ...standing('q2'), spin: [[0, 0], [300, 0], [1700, 70], [2500, 90]] },
-      f16: {
-        keys: [
-          { t: 0, p: linePlace('f16'), yaw: FACE_UP },
-          { t: 10800, p: linePlace('f16'), yaw: FACE_UP },
-          { t: 12000, p: crest(LINE_AT, LINE_OFF + 1.4, null, linePlaceAlong('f16')), yaw: FACE_UP },
-        ],
-        spin: [[7500, 5], [10800, 60], [12000, 120]],
-      },
-      /* Thrown at 2.3 s from the reservoir side of the crest, 13 m/s and
-       * climbing at 12 degrees, chased by the camera. */
-      launch: {
-        as: 'skys',
-        keys: [
-          { t: 2300, p: crest(LINE_AT, 24, CREST_Y + 2.0, 2), yaw: FACE_UP, pitch: 0.21 },
-          { t: 5000, p: crest(LINE_AT, 24 + 34, CREST_Y + 2.0 + 7.4, 2), yaw: FACE_UP, pitch: 0.21 },
-        ],
-        spin: [[2300, 110]],
-      },
-      float: {
-        keys: [
-          { t: 5000, p: crest(6, 106, WATER, -12), yaw: FACE_EAST },
-          { t: 7500, p: crest(6, 106, WATER, 1), yaw: FACE_EAST },
-        ],
-        spin: [[5000, 60]],
-        bob: 0.04,
-      },
-    },
-    fade: [[0, 0.5], [250, 0]],
-  },
-  {
-    id: 'wave',
-    voice: { line: 'intro-7', at: 2000 },
-    grade: 'steel',
-    /* From the crest, tight on the wave coming in over the water, then
-     * wide as the defenders climb past the camera to meet it. */
-    cam: [
-      { t: 0, p: crest(8.5, 20, 231), look: [90, 262, -2500], fov: 11 },
-      { t: 5000, p: crest(8.5, 19.5, 231.2), look: [95, 262, -2400], fov: 14 },
-      { t: 8500, p: crest(8.5, 18, 231.6), look: [100, 268, -2300], fov: 55 },
-      { t: 20000, p: crest(8.5, 14, 233.4), look: [100, 280, -2150], fov: 62 },
-    ],
-    agents: [
-      {
-        kind: 'strike', route: 'wave-low', n: 6, t0: -14000, stagger: 600,
-      },
-      {
-        kind: 'strike', route: 'wave-west', n: 4, t0: -11000, stagger: 500,
-      },
-      { kind: 'fpv', route: 'wave-far', n: 8, t0: -25000 },
-      { kind: 'loiter', route: 'wave-high', n: 3, t0: -30000 },
-    ],
-    /* Rising past the lens from both banks, close enough to read at their
-     * size (a quad is a quarter metre): the quads climb into the frame
-     * from under it, the planes pass from behind the camera. */
-    cast: {
-      p51: rise(crest(8.5, 8, 233, 10), 22, 40, 0.2, 7400),
-      q4: rise(crest(8.5, 23, 227.5, 3), 9, 70, -0.25, 8200),
-      q5: rise(crest(8.5, 22, 227.5, -4), 8, 64, -0.25, 9500),
-      zagi: rise(crest(8.5, 6, 233, -12), 20, 45, 0.2, 10500),
-      q6: rise(crest(8.5, 24, 227, 6), 10, 60, -0.25, 12000),
-      q7: rise(crest(8.5, 23, 227.5, -7), 9, 55, -0.25, 13500),
-    },
-    titles: [
-      {
-        key: 'war.intro.defend', sub: 'war.intro.mission', from: 13200, to: 19400, kind: 'mission',
-      },
-      { key: 'war.intro.music', from: 14200, to: 19400, kind: 'credit' },
-    ],
-    fade: [[0, 0.5], [300, 0], [19300, 0], [20000, 1]],
-  },
-];
-
-/* The along offset of a line place, for the cameras that sit by one. */
-function linePlaceAlong(name) {
-  return (LINE.indexOf(name) - (LINE.length - 1) / 2) * LINE_GAP;
-}
-
-/* A defender climbing out north over the water from `from`: `speed` m/s,
- * `climb` metres over the shot, nose pitched `pitch` (a quad noses down to
- * fly, a plane up to climb), from `t0`. */
-function rise(from, speed, climb, pitch, t0) {
-  const t1 = 20000;
-  const s = (speed * (t1 - t0)) / 1000;
-  return {
-    keys: [
-      { t: t0, p: from, yaw: FACE_UP, pitch },
-      { t: t1, p: [from[0] + UP[0] * s, from[1] + climb, from[2] + UP[1] * s], yaw: FACE_UP, pitch },
-    ],
-    spin: [[0, 90]],
-    from: t0,
-  };
-}
 
 /* The warhead's olive drab. */
 const WARHEAD = 0x5b6140;
@@ -471,114 +202,16 @@ function bakeCraft(holder, built, spins, mat) {
   bake(holder, mat, rotors);
 }
 
-/* Each shot's start, intro ms. */
-const STARTS = SHOT_MS.map((_, i) => SHOT_MS.slice(0, i).reduce((a, b) => a + b, 0));
-if (SHOTS.length !== SHOT_MS.length) {
-  throw new Error(`warintro: ${SHOTS.length} shots, but intro.js times ${SHOT_MS.length}`);
-}
-
 /* The colour grade over each shot: a CSS filter on the world's canvas and
  * a tint laid over it. */
 const GRADES = {
   dawn: { filter: 'contrast(1.12) saturate(0.8) brightness(0.95)', tint: 'linear-gradient(180deg, rgba(255,150,70,0.22), rgba(255,120,60,0.06) 55%, rgba(20,40,70,0.18))' },
   steel: { filter: 'contrast(1.14) saturate(0.62) brightness(0.96)', tint: 'linear-gradient(180deg, rgba(40,70,90,0.18), rgba(30,50,60,0.06) 50%, rgba(10,20,30,0.22))' },
   warm: { filter: 'contrast(1.1) saturate(0.72) brightness(0.97)', tint: 'linear-gradient(180deg, rgba(255,170,90,0.12), rgba(40,60,70,0.12))' },
+  night: { filter: 'contrast(1.18) saturate(0.55) brightness(0.9)', tint: 'linear-gradient(180deg, rgba(20,30,70,0.25), rgba(10,15,40,0.1) 50%, rgba(0,0,10,0.3))' },
 };
 
-/* A subtitle stays this long after its line ends. */
-const SUB_TAIL_MS = 500;
-/* A late joiner hears a line only this soon after its cue: the radio
- * plays a line from its start, and one begun late runs over the next
- * shot. */
-const SAY_LATE_MS = 1200;
-
-/* The briefing's orbit: once round the dam in ORBIT_MS. */
-const ORBIT_R = 820;
-const ORBIT_Y = 430;
-const ORBIT_MS = 150000;
-
-/* ---------------------------------------------------------- the player */
-
 const smooth = (u) => u * u * (3 - 2 * u);
-
-/* Piecewise linear over [[t, v], ...], held at the ends. */
-function track(pairs, t) {
-  if (!pairs || !pairs.length) {
-    return 0;
-  }
-  if (t <= pairs[0][0]) {
-    return pairs[0][1];
-  }
-  for (let i = 1; i < pairs.length; i += 1) {
-    if (t <= pairs[i][0]) {
-      const [t0, v0] = pairs[i - 1];
-      const [t1, v1] = pairs[i];
-      return t1 > t0 ? v0 + (v1 - v0) * ((t - t0) / (t1 - t0)) : v1;
-    }
-  }
-  return pairs[pairs.length - 1][1];
-}
-
-/* The integral of track() from 0 to t: a spin's angle from its rate. */
-function trackArea(pairs, t) {
-  let a = 0;
-  let prevT = 0;
-  let prevV = track(pairs, 0);
-  const points = pairs.map((p) => p[0]).filter((x) => x > 0 && x < t);
-  for (const x of [...points, t]) {
-    const v = track(pairs, x);
-    a += ((prevV + v) / 2) * (x - prevT);
-    prevT = x;
-    prevV = v;
-  }
-  return a / 1000;
-}
-
-/* A shot's camera keys split at its cuts, each run a Catmull-Rom curve
- * through its positions, timed so the curve passes each key at its t. */
-function cameraRuns(keys) {
-  const runs = [];
-  for (const k of keys) {
-    if (!runs.length || k.cut) {
-      runs.push([]);
-    }
-    runs[runs.length - 1].push(k);
-  }
-  return runs.map((run) => {
-    const pts = run.map((k) => new THREE.Vector3(...k.p));
-    const looks = run.map((k) => (Array.isArray(k.look) && !k.lookAt ? new THREE.Vector3(...k.look) : null));
-    return {
-      keys: run,
-      from: run[0].t,
-      to: run[run.length - 1].t,
-      path: pts.length > 1 ? new THREE.CatmullRomCurve3(pts) : null,
-      point: pts[0],
-      look: looks.every(Boolean) && looks.length > 1 ? new THREE.CatmullRomCurve3(looks) : null,
-      lookPoint: looks[0],
-    };
-  });
-}
-
-/* Where a run is at shot ms t: its curve parameter. */
-function runU(run, t) {
-  const ks = run.keys;
-  if (ks.length < 2 || t <= ks[0].t) {
-    return 0;
-  }
-  for (let i = 1; i < ks.length; i += 1) {
-    if (t <= ks[i].t) {
-      const u = (t - ks[i - 1].t) / Math.max(1, ks[i].t - ks[i - 1].t);
-      return (i - 1 + u) / (ks.length - 1);
-    }
-  }
-  return 1;
-}
-
-/* A key field interpolated over a run at t, linear between keys. */
-function runField(run, t, field, dflt) {
-  const pairs = run.keys.filter((k) => k[field] != null).map((k) => [k.t, k[field]]);
-  return pairs.length ? track(pairs, t) : dflt;
-}
 
 /* A style written only when it changes: the overlay is set every frame,
  * and a write of the same value still costs the page a style pass. */
@@ -610,23 +243,34 @@ function el(tag, css, parent, text) {
 const TITLE_FONT = 'Impact, "Oswald", "Bebas Neue", "Arial Narrow", "Helvetica Neue", var(--ui-font, sans-serif)';
 
 /*
- * Play the intro. `scene` and `camera` are the shell's; opts:
- *   canvas       the world's canvas (the grade and the feed's static go
- *                on it), default #view
+ * Play a film. `scene` and `camera` are the shell's; opts:
+ *   film         the film (src/share/war/films), the default's without
+ *   title        { key, n }: the mission's title's string key and number,
+ *                for the preload's card and the film's mission card
+ *   clock()      film ms now; without it the film runs from its start on
+ *                this screen's own clock (Watch intro)
+ *   hold         true in a room's briefing: a skip waits on the orbit
+ *                until the film's end, the briefing's
+ *   seen         this pilot has seen this film's cut: it may hold to skip
+ *   onSeen()     the film's last shot reached on a viewing from its start
+ *   onSkip()     this pilot held to skip
+ *   canvas       the world's canvas (the grade goes on it), default #view
  *   audio        the shell's MotorAudio, or null
- *   ground(x, z) the ground's height, for the aircraft standing on it
- *   startMs      where in the film to start (a pilot joining a briefing
- *                late starts where the room is), default 0
- *   holdUntilMs  performance.now() the room's briefing ends, or null
- *   onSkip()     called when the viewer skips (a room's host cuts the
- *                briefing short for everybody with it)
+ *   ground(x, z) the ground's height, for cast standing on it
  */
 export function play(scene, camera, opts = {}) {
+  const film = opts.film ?? filmFor(null);
+  const timed = timing(film);
+  const agents = placeAgents(film, timed);
   const canvas = opts.canvas || document.getElementById('view');
   const ground = opts.ground || (() => CREST_Y);
-  const base = new URL('../../assets/audio/war/', import.meta.url).href;
   const lang = currentLocale() === 'es' ? 'es' : 'en';
   const audio = opts.audio || null;
+  const t0Wall = performance.now();
+  const clock = opts.clock ?? (() => performance.now() - t0Wall);
+  const startT = clock();
+  /* Seen counts only a viewing from its first shot (INTROS section 3). */
+  const fromStart = startT <= timed.shots[0].start;
 
   const root = new THREE.Group();
   root.name = 'war-intro';
@@ -639,7 +283,7 @@ export function play(scene, camera, opts = {}) {
   const box = new THREE.Box3();
   const bakedMat = celMaterial({ color: 0xffffff });
   bakedMat.vertexColors = true;
-  for (const [name, def] of Object.entries(CAST)) {
+  for (const [name, def] of Object.entries(film.cast ?? {})) {
     /* Lite: the Settings studio's build, the same silhouette with no ink
      * hulls or shadow casters, so eight on the crest cost what one full
      * build does against the 300 call budget. */
@@ -665,31 +309,10 @@ export function play(scene, camera, opts = {}) {
     holder.visible = false;
     root.add(holder);
     cast.set(name, {
-      holder,
-      built,
-      lift: quad ? r * 1.6 : 0,
-      /* Each rotor's own turn as built: a spin is added to it. */
-      base: (built.blades || []).map((b) => b.rotation.y),
+      holder, built, lift: quad ? r * 1.6 : 0, base: (built.blades || []).map((b) => b.rotation.y),
     });
   }
-  /* A shot's name for a cast member, or the one it plays (`as`): the
-   * thrown Skyhunter and the spinning quad are their turning copies. */
   const who = (name, def) => cast.get(def && def.as ? def.as : name);
-
-  /* The shots, prepared. */
-  const shots = SHOTS.map((s, i) => ({
-    ...s,
-    start: STARTS[i],
-    ms: SHOT_MS[i],
-    runs: cameraRuns(s.cam),
-    plans: (s.agents || []).flatMap((g, gi) => Array.from({ length: g.n }, (_, k) => {
-      const rank = Math.abs(k - (g.n - 1) / 2);
-      const plan = planAgent(STAGE_MISSION, {
-        id: 1000 * i + 100 * gi + k, kind: g.kind, route: g.route, t0: STARTS[i] + g.t0 + (g.stagger || 0) * rank, k, n: g.n, err: 0, target: null,
-      });
-      return { id: 1000 * i + 100 * gi + k, kind: g.kind, plan };
-    })),
-  }));
 
   /* ------------------------------------------------------- the overlay */
   const overlay = el('div', 'position:fixed;inset:0;z-index:9000;pointer-events:none;overflow:hidden;'
@@ -701,10 +324,14 @@ export function play(scene, camera, opts = {}) {
   hide.dataset.warIntro = '1';
   document.body.classList.add('war-intro');
   const tint = el('div', 'position:absolute;inset:0;', overlay);
+  /* The outgoing shot's last frame, fading over the next: a dissolve. */
+  const dissolve = el('canvas', 'position:absolute;inset:0;width:100%;height:100%;opacity:0;', overlay);
   el('div', 'position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);', overlay);
-  const barCss = 'position:absolute;left:0;right:0;height:max(0px, calc((100vh - 100vw / 2.39) / 2));background:#000;';
-  el('div', `${barCss}top:0;`, overlay);
-  el('div', `${barCss}bottom:0;`, overlay);
+  /* The 2.39 letterbox, opened by the hand-off: a scale on each bar. */
+  const BAR = 'max(0px, calc((100vh - 100vw / 2.39) / 2))';
+  const barCss = `position:absolute;left:0;right:0;height:${BAR};background:#000;will-change:transform;`;
+  const barTop = el('div', `${barCss}top:0;transform-origin:top;`, overlay);
+  const barBottom = el('div', `${barCss}bottom:0;transform-origin:bottom;`, overlay);
   /* The layers that fade are their own compositor layers, so a fade is
    * an opacity on the GPU and not a repaint. */
   const black = el('div', 'position:absolute;inset:0;background:#000;opacity:1;will-change:opacity;', overlay);
@@ -713,22 +340,32 @@ export function play(scene, camera, opts = {}) {
     + 'text-shadow:0 0 24px rgba(0,0,0,0.55);', titleBox);
   const titleSub = el('div', `font-family:${TITLE_FONT};font-weight:700;text-transform:uppercase;letter-spacing:0.5em;`
     + 'font-size:clamp(14px, 2.2vw, 30px);margin-top:0.8em;color:#d9b36a;', titleBox);
-  const credit = el('div', 'position:absolute;right:4vw;bottom:calc(max(0px, (100vh - 100vw / 2.39) / 2) + 1.2em);'
+  const credit = el('div', `position:absolute;right:4vw;bottom:calc(${BAR} + 1.2em);`
     + 'font-size:clamp(9px, 0.9vw, 12px);opacity:0;color:#cfc9bb;letter-spacing:0.04em;', overlay);
-  const sub = el('div', 'position:absolute;left:8vw;right:8vw;bottom:calc(max(0px, (100vh - 100vw / 2.39) / 2) + 3.2em);'
+  const sub = el('div', `position:absolute;left:8vw;right:8vw;bottom:calc(${BAR} + 3.2em);`
     + 'text-align:center;font-size:clamp(15px, 1.7vw, 26px);font-weight:600;line-height:1.35;'
     + 'text-shadow:0 1px 3px #000, 0 0 12px rgba(0,0,0,0.8);opacity:0;', overlay);
-  const counter = el('div', 'position:absolute;left:5vw;top:calc(max(0px, (100vh - 100vw / 2.39) / 2) + 2.4em);'
+  const counter = el('div', `position:absolute;left:5vw;top:calc(${BAR} + 2.4em);`
     + 'font-family:ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;letter-spacing:0.08em;opacity:0;', overlay);
-  const counterLabel = el('div', 'font-size:clamp(11px, 1vw, 14px);color:#9fd8a8;text-transform:uppercase;', counter, str('war.output'));
+  el('div', 'font-size:clamp(11px, 1vw, 14px);color:#9fd8a8;text-transform:uppercase;', counter, str('war.output'));
   const counterValue = el('div', 'font-size:clamp(24px, 3vw, 44px);font-weight:800;color:#e9f5e6;', counter);
   const counterUnits = el('div', 'display:flex;gap:3px;margin-top:6px;', counter);
   const units = Array.from({ length: 20 }, () => el('div', 'width:9px;height:14px;background:#9fd8a8;opacity:0.15;', counterUnits));
-  const hold = el('div', 'position:absolute;left:0;right:0;bottom:calc(max(0px, (100vh - 100vw / 2.39) / 2) + 2em);'
+  const hold = el('div', `position:absolute;left:0;right:0;bottom:calc(${BAR} + 2em);`
     + 'text-align:center;font-size:clamp(14px, 1.4vw, 20px);font-weight:700;letter-spacing:0.12em;text-transform:uppercase;'
     + 'color:#d9b36a;text-shadow:0 1px 3px #000;display:none;', overlay);
-  const skipHint = el('div', 'position:absolute;right:3vw;top:calc(max(0px, (100vh - 100vw / 2.39) / 2) + 1em);'
-    + 'font-size:clamp(10px, 0.9vw, 12px);letter-spacing:0.1em;text-transform:uppercase;opacity:0.55;', overlay, str('war.intro.skip'));
+  /* Hold to skip: a hint and a ring, subtle, only on a film seen. */
+  const skipBox = el('div', `position:absolute;right:3vw;top:calc(${BAR} + 1em);display:${opts.seen ? 'flex' : 'none'};align-items:center;gap:8px;`
+    + 'font-size:clamp(10px, 0.9vw, 12px);letter-spacing:0.1em;text-transform:uppercase;opacity:0.5;', overlay);
+  const ring = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  ring.setAttribute('viewBox', '0 0 20 20');
+  ring.setAttribute('width', '18');
+  ring.setAttribute('height', '18');
+  ring.innerHTML = '<circle cx="10" cy="10" r="8" fill="none" stroke="rgba(241,236,224,0.25)" stroke-width="2"/>'
+    + '<circle cx="10" cy="10" r="8" fill="none" stroke="#f1ece0" stroke-width="2" stroke-dasharray="50.27" stroke-dashoffset="50.27" transform="rotate(-90 10 10)"/>';
+  skipBox.appendChild(ring);
+  const ringArc = ring.lastChild;
+  el('span', '', skipBox, str('war.intro.skip'));
   const canvasFilter = canvas.style.filter;
 
   /* ------------------------------------------------------- the sound */
@@ -736,240 +373,311 @@ export function play(scene, camera, opts = {}) {
   if (radio) {
     radio.setLang(lang);
   }
+  const ctx = radio && radio.filmVoice ? audio.ctx : null;
   const bedWas = radio ? radio.track : '';
   let bedSet = false;
-  const said = [];
-  /* The subtitles: lines.json's text, and each file's measured length. */
+  /* line id -> AudioBuffer, decoded at the start; and each line's state. */
+  const buffers = new Map();
+  const filmLines = linesOf(timed);
+  const scheduled = new Map();
+  const cued = [];
+  let anchorS = null;
   let lines = null;
-  let seconds = null;
-
-  const text = fetch(`${base}lines.json`).then((r) => r.json()).then((j) => {
-    lines = Object.fromEntries(j.lines.filter((l) => l.group === 'intro').map((l) => [l.id, l[lang] || l.en]));
+  const text = fetch(new URL('../../assets/audio/war/lines.json', import.meta.url).href).then((r) => r.json()).then((j) => {
+    lines = Object.fromEntries(j.lines.map((l) => [l.id, l[lang] || l.en]));
   });
-  const lengths = fetch(`${base}manifest.json`).then((r) => r.json()).then((j) => {
-    seconds = Object.fromEntries(Object.entries(j.voice).filter(([k]) => k.endsWith(`.${lang}`)).map(([k, v]) => [k.slice(0, -lang.length - 1), v.seconds]));
-  });
-  /* The subtitles wait on the text; a failed fetch leaves none, loudly. */
-  Promise.all([text, lengths]).catch((e) => console.warn(`warintro: no subtitles: ${e.message}`));
+  text.catch((e) => console.warn(`warintro: no subtitles: ${e.message}`));
+  if (ctx) {
+    for (const id of new Set(filmLines.map((l) => l.line))) {
+      fetch(warVoiceUrl(lang, id, radio.ext)).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b)).then((buf) => {
+        buffers.set(id, buf);
+      }).catch((e) => console.warn(`warintro: ${id} not decoded: ${e.message}`));
+    }
+  }
 
   /* ------------------------------------------------------- the clock */
-  const startMs = Math.max(0, Math.min(INTRO_MS, opts.startMs || 0));
-  let holdUntil = opts.holdUntilMs ?? null;
-  let t0Wall = null;
-  let lastWall = null;
   let skipped = false;
   let ended = false;
+  let seenTold = false;
   let finished;
   const done = new Promise((resolve) => {
     finished = resolve;
   });
-  const frames = SHOTS.map(() => 0);
-  const voiced = new Set();
+  const frames = timed.shots.map(() => 0);
+  let held = null;
+  let state = { t: startT, shot: -1, orbit: false, done: false };
+  /* How far the hand-off has opened the letterbox, 0 to 1. */
+  let opened = 0;
+  /* The last frame of a shot ending on a dissolve, kept by afterDraw. */
+  let dissolveFor = -1;
+  const shellPos = new THREE.Vector3();
+  const shellQuat = new THREE.Quaternion();
+  const filmQuat = new THREE.Quaternion();
   const look = new THREE.Vector3();
-  const upV = new THREE.Vector3();
-  const fwd = new THREE.Vector3();
   const tmp = new THREE.Vector3();
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-  let state = {
-    t: startMs, shot: -1, orbit: false, done: false,
-  };
 
-  function onInput(ev) {
-    if (ended || skipped) {
+  /* Any key, button or tap held SKIP_HOLD_MS skips a film already seen;
+   * nothing skips a first viewing. Every input is the film's while it
+   * runs, so a held key flies nothing. */
+  function onDown(ev) {
+    if (ended || skipped || state.orbit) {
       return;
     }
     if (ev.type === 'keydown' && (ev.repeat || ['Shift', 'Control', 'Alt', 'Meta'].includes(ev.key))) {
+      ev.preventDefault();
       return;
     }
     ev.preventDefault();
     ev.stopPropagation();
-    handle.skip();
-    if (opts.onSkip) {
-      opts.onSkip();
+    if (opts.seen && held == null) {
+      held = performance.now();
     }
   }
-  window.addEventListener('keydown', onInput, true);
-  window.addEventListener('pointerdown', onInput, true);
+  function onUp() {
+    held = null;
+    ringArc.setAttribute('stroke-dashoffset', '50.27');
+  }
+  window.addEventListener('keydown', onDown, true);
+  window.addEventListener('pointerdown', onDown, true);
+  window.addEventListener('keyup', onUp, true);
+  window.addEventListener('pointerup', onUp, true);
+  window.addEventListener('blur', onUp);
 
-  function place(name, def, t, shot) {
+  function holdFrame(nowWall) {
+    if (held == null) {
+      return;
+    }
+    const u = Math.min(1, (nowWall - held) / SKIP_HOLD_MS);
+    ringArc.setAttribute('stroke-dashoffset', (50.27 * (1 - u)).toFixed(2));
+    if (u >= 1) {
+      held = null;
+      skipped = true;
+      if (opts.onSkip) {
+        opts.onSkip();
+      }
+    }
+  }
+
+  /* A cast member at shot ms t, shown and posed. */
+  function place(name, def, s, t, shown) {
     const c = who(name, def);
-    const keys = def.keys;
-    if (def.from != null && t < def.from) {
+    const at = castAt(def, s, t);
+    if (!at.shown) {
       c.holder.visible = false;
       return;
     }
     c.holder.visible = true;
-    let a = keys[0];
-    let b = keys[keys.length - 1];
-    for (let i = 1; i < keys.length; i += 1) {
-      if (t <= keys[i].t) {
-        a = keys[i - 1];
-        b = keys[i];
-        break;
-      }
-    }
-    const u = b.t > a.t ? Math.max(0, Math.min(1, (t - a.t) / (b.t - a.t))) : 1;
-    const at = (k) => {
-      const [x, , z] = k.p;
-      if (k.p[1] === WATER) {
-        return WATER_Y;
-      }
-      return k.p[1] == null ? ground(x, z) + c.lift : k.p[1];
-    };
-    const y = at(a) + (at(b) - at(a)) * u;
-    c.holder.position.set(a.p[0] + (b.p[0] - a.p[0]) * u, y, a.p[2] + (b.p[2] - a.p[2]) * u);
+    const [x, y, z] = at.p;
+    c.holder.position.set(x, y === WATER ? WATER_Y : y == null ? ground(x, z) + c.lift : y, z);
     if (def.bob) {
       c.holder.position.y += def.bob * Math.sin((t / 1000) * 5.2);
     }
-    euler.set(a.pitch ?? 0, a.yaw ?? 0, a.roll ?? 0);
+    euler.set(at.pitch, at.yaw, at.roll);
     c.holder.quaternion.setFromEuler(euler);
-    const spin = def.spin ? trackArea(def.spin, t) : 0;
+    const spin = spinAt(def, s, t);
     const { blades, propSpin } = c.built;
     for (let m = 0; blades && m < blades.length; m += 1) {
       blades[m].rotation.y = c.base[m] + spin * (propSpin ? propSpin[m] : 1);
     }
-    shot.shown.add(c);
+    shown.add(c);
   }
 
-  /* The camera at shot ms t of shot s. */
-  function aim(s, t) {
-    let run = s.runs[0];
-    for (const r of s.runs) {
-      if (t >= r.from) {
-        run = r;
+  /* Where things are at shot ms t, for the camera's targets: a cast
+   * member from its keys (a drone camera asks where it was a lag ago), a
+   * group's middle from its plan. */
+  const resolveFor = (s) => ({
+    cast: (name, t) => {
+      const def = s.cast?.[name];
+      const c = def ? who(name, def) : null;
+      if (!c) {
+        throw new Error(`warintro: ${s.id} follows no cast member ${name}`);
       }
-    }
-    const u = runU(run, t);
-    if (run.path) {
-      run.path.getPoint(u, camera.position);
-    } else {
-      camera.position.copy(run.point);
-    }
-    const target = run.keys[0].lookAt;
-    if (target) {
-      const def = s.cast[target];
-      const c = who(target, def);
-      c.holder.getWorldPosition(look);
-      look.y += runField(run, t, 'lookUp', 0);
-    } else if (run.look) {
-      run.look.getPoint(u, look);
-    } else {
-      look.copy(run.lookPoint);
-    }
-    const shake = runField(run, t, 'shake', 0);
-    if (shake > 0) {
-      const w = t / 1000;
-      camera.position.x += shake * Math.sin(w * 53.1) * Math.cos(w * 17.3);
-      camera.position.y += shake * Math.sin(w * 61.7 + 1.3);
-      camera.position.z += shake * Math.cos(w * 47.9 + 0.4);
-    }
-    const roll = runField(run, t, 'roll', 0);
-    fwd.subVectors(look, camera.position).normalize();
-    upV.set(0, 1, 0).applyAxisAngle(fwd, -roll);
-    camera.up.copy(upV);
-    camera.lookAt(look);
-    camera.up.set(0, 1, 0);
-    const fov = runField(run, t, 'fov', camera.fov);
-    if (camera.fov !== fov) {
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
-    }
-  }
+      const at = castAt(def, s, Math.max(0, t));
+      const [x, y, z] = at.shown ? at.p : [c.holder.position.x, c.holder.position.y, c.holder.position.z];
+      return [x, y === WATER ? WATER_Y : y == null ? ground(x, z) + c.lift : y, z];
+    },
+    agent: (id, t, k) => {
+      const a = (k != null ? agents.find((x) => x.group === id && x.a.k === k) : null)
+        ?? agents.find((x) => x.group === id && x.pass) ?? agents.find((x) => x.group === id);
+      /* Before its birth, where it will be born. */
+      return poseAt(a.plan, Math.max(a.plan.t0, s.start + t)).p;
+    },
+  });
 
-  function overlays(s, t, tIntro, nowWall) {
+  function overlays(s, i, t, tFilm) {
     const g = GRADES[s.grade] || GRADES.steel;
     put(canvas, 'filter', g.filter);
     put(tint, 'background', g.tint);
-    put(black, 'opacity', String(Math.max(0, Math.min(1, track(s.fade, t)))));
+    put(black, 'opacity', String(Math.max(0, Math.min(1, blackAt(timed, i, t)))));
+    /* A dissolve from the shot before: its last frame, fading. */
+    const prev = timed.shots[i - 1];
+    const dMs = prev && prev.out === 'dissolve' ? (prev.outS ?? OUT_S) * 1000 : 0;
+    put(dissolve, 'opacity', dMs > 0 && t < dMs ? (1 - t / dMs).toFixed(3) : '0');
     /* Titles. */
     let title = null;
     for (const x of s.titles || []) {
-      if (x.kind !== 'credit' && t >= x.from && t < x.to) {
+      if (x.kind !== 'credit' && t >= anchor(x.from, s) && t < anchor(x.to, s)) {
         title = x;
       }
     }
-    if (title) {
-      const inU = Math.min(1, (t - title.from) / 700);
-      const outU = Math.min(1, (title.to - t) / 600);
-      const a = smooth(Math.max(0, Math.min(inU, outU)));
-      put(titleBox, 'opacity', a.toFixed(3));
-      const main = title.text ?? str(title.key);
-      if (titleMain.textContent !== main) {
-        titleMain.textContent = main;
-      }
-      const year = title.kind === 'year';
-      put(titleMain, 'fontSize', year ? 'clamp(64px, 13vw, 220px)' : 'clamp(40px, 7.5vw, 130px)');
-      put(titleMain, 'letterSpacing', `${year ? 0.08 : 0.04}em`);
-      /* The title settles from wide to its tracking as it fades in: a
-       * transform, so the text is laid out and painted once. */
-      put(titleMain, 'transform', `scaleX(${(1 + (1 - smooth(inU)) * 0.12).toFixed(3)})`);
-      const subText = title.sub ? str(title.sub, { n: 1 }) : '';
-      if (titleSub.textContent !== subText) {
-        titleSub.textContent = subText;
-      }
-    } else {
-      put(titleBox, 'opacity', '0');
-    }
-    const cr = (s.titles || []).find((x) => x.kind === 'credit' && t >= x.from && t < x.to);
-    put(credit, 'opacity', cr ? String(Math.min(0.8, (t - cr.from) / 800, (cr.to - t) / 600)) : '0');
+    titleShown(title ? {
+      ...titleText(title), from: anchor(title.from, s), to: anchor(title.to, s), kind: title.kind,
+    } : null, t);
+    const cr = (s.titles || []).find((x) => x.kind === 'credit' && t >= anchor(x.from, s) && t < anchor(x.to, s));
+    put(credit, 'opacity', cr ? String(Math.min(0.8, (t - anchor(cr.from, s)) / 800, (anchor(cr.to, s) - t) / 600)) : '0');
     if (cr && credit.textContent !== str(cr.key)) {
       credit.textContent = str(cr.key);
     }
     /* The output counter. */
     if (s.counter) {
-      const u = Math.max(0, Math.min(1, (t - s.counter.from) / (s.counter.to - s.counter.from)));
+      const from = anchor(s.counter.from, s);
+      const to = anchor(s.counter.to, s);
+      const u = Math.max(0, Math.min(1, (t - from) / Math.max(1, to - from)));
       const lit = Math.round(20 * smooth(u));
-      put(counter, 'opacity', String(Math.min(1, Math.max(0, (t - s.counter.from + 400) / 400), (s.ms - t) / 500)));
-      const mw = lit * 700;
-      const shown = str('war.output_mw', { mw: mw.toLocaleString(lang === 'es' ? 'es' : 'en').replace(/[.,]/g, ' ') });
+      put(counter, 'opacity', String(Math.min(1, Math.max(0, (t - from + 400) / 400), (s.ms - t) / 500)));
+      const shown = str('war.output_mw', { mw: (lit * 700).toLocaleString(lang === 'es' ? 'es' : 'en').replace(/[.,]/g, ' ') });
       if (counterValue.textContent !== shown) {
         counterValue.textContent = shown;
       }
-      for (let i = 0; i < 20; i += 1) {
-        put(units[i], 'opacity', i < lit ? '1' : '0.15');
+      for (let k = 0; k < 20; k += 1) {
+        put(units[k], 'opacity', k < lit ? '1' : '0.15');
       }
     } else {
       put(counter, 'opacity', '0');
     }
-    /* Subtitles, over each voice file's measured length. */
-    let line = null;
-    if (lines && seconds && s.voice) {
-      const from = s.voice.at;
-      const to = from + seconds[s.voice.line] * 1000 + SUB_TAIL_MS;
-      if (t >= from && t < to) {
-        line = lines[s.voice.line];
-      }
+    subtitle(tFilm);
+  }
+
+  /* A title's words: its text, its key, or the mission's own card. */
+  function titleText(x) {
+    if (x.mission) {
+      return { main: opts.title ? str(opts.title.key) : '', sub: opts.title ? str('war.intro.mission', { n: opts.title.n }) : '' };
     }
+    return { main: x.text ?? str(x.key), sub: x.sub ? str(x.sub) : '' };
+  }
+
+  function titleShown(title, t) {
+    if (!title) {
+      put(titleBox, 'opacity', '0');
+      return;
+    }
+    const inU = Math.min(1, (t - title.from) / 700);
+    const outU = Math.min(1, (title.to - t) / 600);
+    put(titleBox, 'opacity', smooth(Math.max(0, Math.min(inU, outU))).toFixed(3));
+    if (titleMain.textContent !== title.main) {
+      titleMain.textContent = title.main;
+    }
+    const year = title.kind === 'year';
+    put(titleMain, 'fontSize', year ? 'clamp(64px, 13vw, 220px)' : 'clamp(40px, 7.5vw, 130px)');
+    put(titleMain, 'letterSpacing', `${year ? 0.08 : 0.04}em`);
+    /* The title settles from wide to its tracking as it fades in: a
+     * transform, so the text is laid out and painted once. */
+    put(titleMain, 'transform', `scaleX(${(1 + (1 - smooth(Math.max(0, inU))) * 0.12).toFixed(3)})`);
+    if (titleSub.textContent !== title.sub) {
+      titleSub.textContent = title.sub;
+    }
+  }
+
+  /* The line under way in the page's language, for its own length. */
+  function subtitle(tFilm) {
+    const l = lineAt(timed, tFilm, lang);
+    const line = l && lines ? lines[l.line] : null;
     put(sub, 'opacity', line ? '1' : '0');
     if (line && sub.textContent !== line) {
       sub.textContent = line;
     }
   }
 
-  function sounds(s, t, tIntro) {
-    if (radio && !bedSet && bedWas !== 'intro') {
-      bedSet = true;
-      audio.setWarBed('intro');
-    }
-    if (!s.voice || t < s.voice.at || voiced.has(s.voice.line)) {
+  /*
+   * The voice on the audio clock: one anchor, film ms 0 at anchorS on the
+   * context's clock, set again when the picture's clock and it part by
+   * ANCHOR_SLIP_MS (the lines not yet playing go with it). Each line is
+   * scheduled SCHEDULE_AHEAD_MS ahead of its start, or from its offset
+   * when it is already under way, never dropped while there is more than
+   * LATE_TAIL_S of it left.
+   */
+  function sounds(tFilm) {
+    if (!ctx) {
       return;
     }
-    voiced.add(s.voice.line);
-    if (radio && t - s.voice.at < SAY_LATE_MS) {
-      radio.say(s.voice.line);
-      said.push({ line: s.voice.line, at: tIntro });
+    const lead = ctx.outputLatency || ctx.baseLatency || 0;
+    const want = ctx.currentTime + lead - tFilm / 1000;
+    if (anchorS == null || Math.abs(want - anchorS) * 1000 > ANCHOR_SLIP_MS) {
+      anchorS = want;
+      for (const [id, x] of scheduled) {
+        if (x.src && x.when > ctx.currentTime) {
+          x.src.stop();
+          scheduled.delete(id);
+          const k = cued.findIndex((c) => c.at === id);
+          if (k >= 0) {
+            cued.splice(k, 1);
+          }
+        }
+      }
+    }
+    for (const l of filmLines) {
+      if (scheduled.has(l.start) || tFilm < l.start - SCHEDULE_AHEAD_MS) {
+        continue;
+      }
+      const buf = buffers.get(l.line);
+      if (!buf) {
+        continue;
+      }
+      const when = anchorS + l.start / 1000;
+      const offset = Math.max(0, ctx.currentTime - when);
+      if (offset > buf.duration - LATE_TAIL_S) {
+        scheduled.set(l.start, { when, src: null, late: true });
+        continue;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(radio.filmVoice);
+      if (offset > 0) {
+        src.start(ctx.currentTime, offset);
+      } else {
+        src.start(when);
+      }
+      scheduled.set(l.start, { when, src, offset });
+      cued.push({
+        line: l.line, at: l.start, offset: Math.round(offset * 1000), decoded: Math.round(buf.duration * 1000),
+      });
     }
   }
 
-  /* The bed back as the film found it. */
+  /* The music from the first shot, where the film is. */
+  function music(tFilm) {
+    if (!radio || bedSet || tFilm < PRELOAD_MS) {
+      return;
+    }
+    bedSet = true;
+    audio.setWarBed('intro', (tFilm - PRELOAD_MS) / 1000);
+  }
+
+  /* The bed as the film found it, but in a room's briefing: there the
+   * intro's music runs on under the countdown into the fight's loop
+   * (INTROS section 4: no silence between the film and the first stage). */
   function bedBack() {
-    if (bedSet) {
+    if (bedSet && !opts.hold) {
       bedSet = false;
       audio.setWarBed(bedWas);
     }
   }
 
-  function orbit(nowWall) {
+  function stopVoice() {
+    for (const x of scheduled.values()) {
+      if (x.src) {
+        try {
+          x.src.stop();
+        } catch {
+          /* A source that never started has nothing to stop. */
+        }
+      }
+    }
+    scheduled.clear();
+  }
+
+  function orbit(nowWall, tFilm) {
     const a = ((nowWall % ORBIT_MS) / ORBIT_MS) * Math.PI * 2;
     camera.position.set(DAM[0] + ORBIT_R * Math.sin(a), ORBIT_Y, DAM[2] + ORBIT_R * Math.cos(a));
     camera.up.set(0, 1, 0);
@@ -978,16 +686,16 @@ export function play(scene, camera, opts = {}) {
       camera.fov = 50;
       camera.updateProjectionMatrix();
     }
-    const left = Math.max(0, Math.ceil((holdUntil - nowWall) / 1000));
+    const left = Math.max(0, Math.ceil((timed.ms - tFilm) / 1000));
     const msg = str('war.intro.briefing', { s: left });
     if (hold.textContent !== msg) {
       hold.textContent = msg;
     }
   }
 
-  /* Out of the film: into the hold, or over. */
-  function leaveFilm(nowWall) {
-    bedBack();
+  /* Out of the film: into the briefing's orbit, or over. */
+  function leaveFilm(tFilm) {
+    stopVoice();
     attackers.clear();
     for (const c of cast.values()) {
       c.holder.visible = false;
@@ -998,9 +706,10 @@ export function play(scene, camera, opts = {}) {
     counter.style.opacity = '0';
     credit.style.opacity = '0';
     black.style.opacity = '0';
+    dissolve.style.opacity = '0';
     tint.style.background = 'none';
-    skipHint.style.display = 'none';
-    if (holdUntil != null && nowWall < holdUntil) {
+    skipBox.style.display = 'none';
+    if (opts.hold && tFilm < timed.ms) {
       state.orbit = true;
       hold.style.display = 'block';
       return;
@@ -1012,9 +721,24 @@ export function play(scene, camera, opts = {}) {
     if (ended) {
       return;
     }
+    bedBack();
     ended = true;
     state.done = true;
     finished();
+  }
+
+  /* The preload: black, and the mission's title over it. */
+  function preload(tFilm) {
+    put(black, 'opacity', '1');
+    titleShown(opts.title ? {
+      main: str(opts.title.key), sub: str('war.intro.mission', { n: opts.title.n }), from: 0, to: PRELOAD_MS, kind: 'mission',
+    } : null, tFilm);
+    /* The first shot's camera, so the world draws its first frame there
+     * under the black. */
+    const s = timed.shots[0];
+    const cam = cameraAt(s, 0, resolveFor(s), 0);
+    camera.position.set(...cam.p);
+    camera.lookAt(look.set(...cam.look));
   }
 
   const handle = {
@@ -1026,78 +750,116 @@ export function play(scene, camera, opts = {}) {
       if (ended) {
         return;
       }
-      if (t0Wall == null) {
-        t0Wall = nowMs - startMs;
-      }
-      const dtS = lastWall == null ? 0 : Math.min(0.1, (nowMs - lastWall) / 1000);
-      lastWall = nowMs;
+      const tFilm = clock();
       if (state.orbit) {
-        if (holdUntil == null || nowMs >= holdUntil) {
+        if (tFilm >= timed.ms) {
           finish();
           return;
         }
-        orbit(nowMs);
+        orbit(nowMs, tFilm);
         return;
       }
-      const tIntro = nowMs - t0Wall;
-      if (skipped || tIntro >= INTRO_MS) {
-        leaveFilm(nowMs);
+      holdFrame(nowMs);
+      if (skipped || tFilm >= timed.ms) {
+        leaveFilm(tFilm);
         if (state.orbit) {
-          orbit(nowMs);
+          orbit(nowMs, tFilm);
         }
         return;
       }
-      let i = SHOT_MS.length - 1;
-      while (i > 0 && tIntro < STARTS[i]) {
-        i -= 1;
+      sounds(tFilm);
+      music(tFilm);
+      const i = shotIndex(timed, tFilm);
+      state = { ...state, t: tFilm, shot: i };
+      if (i < 0) {
+        preload(tFilm);
+        return;
       }
-      const s = shots[i];
-      const t = tIntro - s.start;
-      state = { ...state, t: tIntro, shot: i };
+      const s = timed.shots[i];
+      const t = tFilm - s.start;
       frames[i] += 1;
+      if (i === timed.shots.length - 1 && fromStart && !seenTold) {
+        seenTold = true;
+        if (opts.onSeen) {
+          opts.onSeen();
+        }
+      }
+      /* The shell's camera as its own chain left it: the hand-off's end. */
+      shellPos.copy(camera.position);
+      shellQuat.copy(camera.quaternion);
+      const shellFov = camera.fov;
       /* The cast first: a camera may follow one of them. */
-      s.shown = new Set();
+      const shown = new Set();
       for (const [name, def] of Object.entries(s.cast || {})) {
-        place(name, def, t, s);
+        place(name, def, s, t, shown);
       }
       for (const c of cast.values()) {
-        if (!s.shown.has(c)) {
+        if (!shown.has(c)) {
           c.holder.visible = false;
         }
       }
       const list = [];
-      for (const a of s.plans) {
-        if (tIntro < a.plan.t0 || tIntro > a.plan.tEnd) {
+      for (const a of agents) {
+        if ((a.shots && !a.shots.has(s.id)) || tFilm < a.plan.t0 || tFilm > a.plan.tEnd) {
           continue;
         }
-        const pose = poseAt(a.plan, tIntro);
+        const pose = poseAt(a.plan, tFilm);
         list.push({
-          id: a.id, kind: a.kind, p: pose.p.slice(), q: pose.q.slice(),
+          id: a.a.id, kind: a.a.kind, p: pose.p.slice(), q: pose.q.slice(),
         });
       }
-      attackers.update(list, dtS);
-      aim(s, t);
-      overlays(s, t, tIntro, nowMs);
-      sounds(s, t, tIntro);
+      attackers.update(list, 1 / 60);
+      const cam = cameraAt(s, t, resolveFor(s), i);
+      camera.position.set(...cam.p);
+      camera.up.set(0, 1, 0);
+      camera.lookAt(look.set(...cam.look));
+      let fov = lensFov(cam.lens, camera.aspect);
+      /* The hand-off: the last HANDOFF_MS blend into the shell's camera,
+       * the letterbox opening with it. */
+      let open = 0;
+      if (s.out === 'handoff' && t > s.ms - HANDOFF_MS) {
+        open = smooth(Math.min(1, (t - (s.ms - HANDOFF_MS)) / HANDOFF_MS));
+        filmQuat.copy(camera.quaternion);
+        camera.position.lerp(shellPos, open);
+        camera.quaternion.slerpQuaternions(filmQuat, shellQuat, open);
+        fov += (shellFov - fov) * open;
+      }
+      opened = open;
+      put(barTop, 'transform', `scaleY(${(1 - open).toFixed(3)})`);
+      put(barBottom, 'transform', `scaleY(${(1 - open).toFixed(3)})`);
+      if (Math.abs(camera.fov - fov) > 1e-6) {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+      }
+      dissolveFor = s.out === 'dissolve' && t > s.ms - 100 ? i : -1;
+      overlays(s, i, t, tFilm);
     },
 
-    /* Any key: out of the film, into the hold if the room is still
-     * briefing. */
-    skip() {
-      skipped = true;
+    /* After the shell's draw: the frame kept for a dissolve. */
+    afterDraw(drawn) {
+      if (dissolveFor < 0 || !drawn) {
+        return;
+      }
+      if (dissolve.width !== drawn.width || dissolve.height !== drawn.height) {
+        dissolve.width = drawn.width;
+        dissolve.height = drawn.height;
+      }
+      dissolve.getContext('2d').drawImage(drawn, 0, 0);
     },
 
-    /* A room's briefing moved: its end, performance.now() ms, or null. */
-    holdUntil(ms) {
-      holdUntil = ms;
-    },
-
-    /* What the checks read: where the film is, per shot the frames drawn,
-     * the attackers drawn now, the sound's route. */
+    /* What the checks read: where the film is, the frames drawn per
+     * shot, the attackers drawn, the words on screen, the voice. */
     state() {
       return {
         ...state,
+        film: film.id,
+        version: film.version,
+        ms: timed.ms,
+        shots: timed.shots.map((s) => ({ id: s.id, start: s.start, ms: s.ms })),
+        lines: filmLines,
         skipped,
+        skippable: Boolean(opts.seen),
+        fromStart,
         frames: frames.slice(),
         drawn: attackers.drawn().counts,
         cast: [...cast.entries()].filter(([, c]) => c.holder.visible).map(([n]) => n),
@@ -1105,15 +867,22 @@ export function play(scene, camera, opts = {}) {
         title: titleBox.style.opacity !== '0' ? titleMain.textContent : null,
         counter: counter.style.opacity !== '0' ? counterValue.textContent : null,
         hold: state.orbit ? hold.textContent : null,
-        sound: radio ? { ...radio.status(), cued: said.slice() } : null,
-        seconds,
-        lines,
+        fov: camera.fov,
+        opened,
+        seenTold,
+        sound: ctx ? {
+          ...radio.status(), cued: cued.slice(), decoded: Object.fromEntries([...buffers].map(([id, b]) => [id, Math.round(b.duration * 1000)])), anchor: anchorS,
+        } : null,
       };
     },
 
     dispose() {
-      window.removeEventListener('keydown', onInput, true);
-      window.removeEventListener('pointerdown', onInput, true);
+      window.removeEventListener('keydown', onDown, true);
+      window.removeEventListener('pointerdown', onDown, true);
+      window.removeEventListener('keyup', onUp, true);
+      window.removeEventListener('pointerup', onUp, true);
+      window.removeEventListener('blur', onUp);
+      stopVoice();
       bedBack();
       attackers.dispose();
       scene.remove(root);

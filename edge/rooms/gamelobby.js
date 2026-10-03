@@ -38,7 +38,7 @@
  *
  * WHAT THE ROUND IS. Each game's lobby carries the one thing its host sets
  * between rounds, kept on the room (core.meta) so a restart keeps it: the
- * war its mission, combat its minutes (combat.js ROUND_MINUTES), tag its
+ * war its mission, combat its minutes (src/share/modes.js ROUND_MINUTES), tag its
  * goal (src/share/roomtag.js). A room made without one starts with the
  * first. A race's track is its own (the host's { type: 'track' }), and
  * shown here as `track`, its id or null; free flight has `live`.
@@ -73,10 +73,16 @@
 
 import { MISSIONS } from '../../src/share/war/missions/index.js';
 import { GOALS, GOAL_MAX, GOAL_MIN } from '../../src/share/roomtag.js';
-import { ROUND_MINUTES } from './combat.js';
+import { MODES, ROUND_MINUTES, modeById, modeOfWire } from '../../src/share/modes.js';
 
 export const LOBBY_COUNTDOWN_MS = 5000;
 export const LOBBY_DEADLINE_MS = 45000;
+
+/* The lost match's stage the lobby's mission restarts from, or null. */
+function warCheckpoint(core) {
+  const id = warMission(core);
+  return id ? core.war.checkpointOf(MISSIONS[id]) : null;
+}
 
 /* The war's mission: the room's own, else the first on its map. */
 function warMission(core) {
@@ -91,31 +97,40 @@ function warMission(core) {
 const combatMinutes = (core) => (ROUND_MINUTES.includes(core.meta.minutes) ? core.meta.minutes : ROUND_MINUTES[0]);
 const tagGoal = (core) => (Number.isInteger(core.meta.goal) && core.meta.goal >= GOAL_MIN && core.meta.goal <= GOAL_MAX ? core.meta.goal : GOALS[0].goal);
 
+/* The key of game `id`'s one setting, from the mode registry. */
+const settingKey = (id) => modeById(id).setting.key;
+
 /*
- * The games a lobby runs, by meta.mode (null is free flight): the one
+ * What a lobby does for each game of the mode registry (src/share/modes.js),
+ * by its id ('free' for free flight, meta.mode null): the one
  * setting the host chooses between rounds (`set`: its key on the wire and
- * on core.meta, and whether a value may be set), what the lobby shows of
+ * on core.meta, the registry's, and whether a value may be set), what the lobby shows of
  * the round (`show`), whether the round can start (`can`) and whether one
  * is on, and the round's start as the host would make it. A start returns
  * the room's actions.
  */
 const GAMES = {
   war: {
-    set: { key: 'mission', valid: (core, v) => typeof v === 'string' && Object.hasOwn(MISSIONS, v) && MISSIONS[v].map === core.meta.map },
+    set: { key: settingKey('war'), valid: (core, v) => typeof v === 'string' && Object.hasOwn(MISSIONS, v) && MISSIONS[v].map === core.meta.map },
     show: (core) => ({ mission: warMission(core) }),
     can: (core) => warMission(core) !== null,
     on: (core) => core.war.on(),
-    start: (core, conn, s, now) => core.war.message(core, conn, s, { type: 'war', op: 'start', mission: warMission(core), intro: true }, now),
+    /* After a loss, the same mission again from the stage it was lost in
+     * (the owner, 2 Oct; war.js checkpointOf), with no briefing; else the
+     * mission from its start, with its film. */
+    start: (core, conn, s, now) => core.war.message(core, conn, s, warCheckpoint(core)
+      ? { type: 'war', op: 'start', mission: warMission(core), from: 'checkpoint' }
+      : { type: 'war', op: 'start', mission: warMission(core), intro: true }, now),
   },
   combat: {
-    set: { key: 'minutes', valid: (core, v) => ROUND_MINUTES.includes(v) },
+    set: { key: settingKey('combat'), valid: (core, v) => ROUND_MINUTES.includes(v) },
     show: (core) => ({ minutes: combatMinutes(core) }),
     can: () => true,
     on: (core) => core.combat.on(),
     start: (core, conn, s, now) => core.combat.message(core, conn, s, { type: 'combat', op: 'start', minutes: combatMinutes(core) }, now),
   },
   tag: {
-    set: { key: 'goal', valid: (core, v) => Number.isInteger(v) && v >= GOAL_MIN && v <= GOAL_MAX },
+    set: { key: settingKey('tag'), valid: (core, v) => Number.isInteger(v) && v >= GOAL_MIN && v <= GOAL_MAX },
     show: (core) => ({ goal: tagGoal(core) }),
     can: () => true,
     on: (core) => core.tag.on(),
@@ -143,6 +158,17 @@ const GAMES = {
   },
 };
 
+/* Every activity has its lobby here, and nothing else does: a mode added
+ * to the registry without one fails when the rooms server starts, not
+ * when its first room is made. */
+{
+  const missing = MODES.filter((m) => !Object.hasOwn(GAMES, m.id) || (GAMES[m.id].set === null) !== (m.setting === null)).map((m) => m.id);
+  const extra = Object.keys(GAMES).filter((id) => !modeById(id));
+  if (missing.length || extra.length) {
+    throw new Error(`gamelobby.js and src/share/modes.js disagree: ${[...missing, ...extra].join(', ')}`);
+  }
+}
+
 export class RoomGameLobby {
   constructor() {
     /* seat -> true, for the pilots here who said ready. */
@@ -156,7 +182,7 @@ export class RoomGameLobby {
 
   /* The room's game, or free flight's, else null. */
   game(core) {
-    const mode = core.meta.mode ?? 'free';
+    const mode = modeOfWire(core.meta.mode);
     return Object.hasOwn(GAMES, mode) ? GAMES[mode] : null;
   }
 

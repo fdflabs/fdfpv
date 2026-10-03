@@ -36,12 +36,17 @@ import { KIND_INDEX, SOURCE_STRIDE } from './world-kinds.js';
 
 /* Ids on the wire: each family of sources in its own range, so a war's
  * attacker 7 and a valley's car 7 are two tracks. */
-export const ID_BASE = { war: 0, traffic: 1e6, ambience: 2e6 };
+export const ID_BASE = { war: 0, traffic: 1e6, ambience: 2e6, breach: 3e6 };
 /* A concrete wall's reflection, pressure ratio (the dam's face; an earth
  * dam's slope scatters and is not declared). */
 const WALL_GAIN = 0.6;
 /* At most this many echoes an explosion: the strongest. */
 const ECHOES_MAX = 2;
+/* What a breach can be made of (WorldAudio.breach). */
+const BREACH_MATERIALS = new Set(['concrete', 'steel', 'transformer']);
+/* A break heard this late or later is not heard at all, s: what the
+ * breakage draws as happening now (src/render/breakage.js, 3000 ms). */
+const BREACH_LATE_S = 3;
 /* A source's velocity is the difference of its last two positions,
  * smoothed this much a frame: a hunter's pose comes off the room's 20 Hz
  * samples and its difference steps. */
@@ -198,6 +203,10 @@ export class WorldAudio {
     this.seed = 1;
     this.frameNo = 0;
     this.trafficT = 0;
+    /* Breaches sent, for the checks, and the map last posted with, for
+     * the ground a breach's pieces fall to. */
+    this.breaches = 0;
+    this.view = null;
     /* The ambience's scratch: a nearest point, and the singers' grid as
      * last built (singers). */
     this.near = new Float64Array(4);
@@ -276,11 +285,11 @@ export class WorldAudio {
       v.t = t;
     }
     v.seen = this.frameNo;
-    this.write(key, k, x, y, z, v.vx, v.vy, v.vz);
+    this.write(key, k, x, y, z, v.vx, v.vy, v.vz, 0);
   }
 
   /* One source into this frame's list. */
-  write(key, k, x, y, z, vx, vy, vz) {
+  write(key, k, x, y, z, vx, vy, vz, drive) {
     if ((this.count + 1) * SOURCE_STRIDE > this.src.length) {
       const grown = new Float64Array(this.src.length * 2);
       grown.set(this.src);
@@ -296,6 +305,7 @@ export class WorldAudio {
     s[o + 5] = vx;
     s[o + 6] = vy;
     s[o + 7] = vz;
+    s[o + 8] = drive;
     this.count += 1;
   }
 
@@ -307,7 +317,7 @@ export class WorldAudio {
     if (k === undefined) {
       throw new Error(`world audio: no kind ${kind}`);
     }
-    this.write(ID_BASE.ambience + id, k, x, y, z, 0, 0, 0);
+    this.write(ID_BASE.ambience + id, k, x, y, z, 0, 0, 0, 0);
   }
 
   /*
@@ -467,6 +477,57 @@ export class WorldAudio {
   }
 
   /*
+   * A structure breaking, one break event (docs/AUDIO.md section 12, the
+   * dam break): `at` its room ms, `position` [x, y, z] scene metres,
+   * `material` 'concrete', 'steel' or 'transformer', `mass` kg; `now` the
+   * room ms it is heard at. The pieces fall to the map's ground under it;
+   * it echoes off the walls the map declares. One more than BREACH_LATE_S
+   * late is history, not a sound, and is dropped. Returns whether it was
+   * sent (false without a node, as boom()).
+   */
+  breach({ at, position, material, mass }, now) {
+    if (!BREACH_MATERIALS.has(material)) {
+      throw new Error(`world audio: no breach material ${material}`);
+    }
+    if (!Array.isArray(position) || position.length !== 3 || !position.every(Number.isFinite)) {
+      throw new Error(`world audio: a breach's position is [x, y, z], got ${JSON.stringify(position)}`);
+    }
+    if (!(mass > 0)) {
+      throw new Error(`world audio: a breach's mass is kg over 0, got ${mass}`);
+    }
+    const late = Math.max(0, (now - at) / 1000);
+    if (!this.node || late > BREACH_LATE_S) {
+      return false;
+    }
+    this.breaches += 1;
+    const [x, y, z] = position;
+    const ground = this.view && this.view.height ? this.view.height(x, z, y) : y - 10;
+    this.node.port.postMessage({
+      breach: {
+        t: this.ctx.currentTime, p: position, material, mass, late,
+        fall: Math.max(1, y - ground), seed: this.seed++,
+        images: echoImages(position, this.lis, this.walls),
+      },
+    });
+    return true;
+  }
+
+  /*
+   * Water through one breach this frame (the water's to call, once a
+   * frame for each opening it has): `id` the opening's, stable while it
+   * flows, at x, y, z (scene metres, the opening's middle) with `discharge`
+   * m3/s. Heard as the kind breachflow, its level and its roar from the
+   * discharge (world-kinds.js); an opening not posted for a frame falls
+   * silent as any source does.
+   */
+  flow(id, x, y, z, discharge) {
+    if (!Number.isFinite(discharge) || discharge < 0) {
+      throw new Error(`world audio: a discharge is m3/s, 0 or more, got ${discharge}`);
+    }
+    this.write(ID_BASE.breach + id, KIND_INDEX.breachflow, x, y, z, 0, 0, 0, discharge);
+  }
+
+  /*
    * Post this frame: the listener from `camera` (a THREE camera: its
    * position, forward -z and right +x through its quaternion), the ground
    * under it from groundY, every source added since the last post, and
@@ -493,6 +554,7 @@ export class WorldAudio {
     rot(0, 0, -1, L, 3);
     rot(1, 0, 0, L, 6);
     L[9] = Number.isFinite(groundY) ? groundY : p.y - 1.7;
+    this.view = view;
     if (view) {
       this.ambience(view, time);
     }

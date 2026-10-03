@@ -121,7 +121,7 @@ async function roomsServer() {
   throw new Error(`rooms server did not come up on ${url}`);
 }
 
-const NAMES = 'Track mode,Free Flight,Toilet paper combat,Catch the Ace!,Defend the Paraná';
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Defend the Paraná';
 
 const LAYOUT = `(() => ({
   w: window.innerWidth, h: window.innerHeight, sw: document.documentElement.scrollWidth,

@@ -42,6 +42,7 @@
  */
 
 import { MAPS, mapById } from '../maps/registry.js';
+import { modeById, wireMode } from '../share/modes.js';
 import { retiredMap } from '../maps/retired.js';
 import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
@@ -3137,7 +3138,24 @@ function craftSvg(a) {
  * photograph of a room and a photograph of a field cannot say that: they
  * are both a picture that fills a card.
  */
-const WAYS = [
+/* A card's face and its lobby from the mode registry (src/share/modes.js):
+ * its name, line, tags and picture, the world it seats, and the game its
+ * lobby is for (null for free flight). The registry names the way each
+ * card is, which modes:selftest holds to this table. */
+function modeCard(id) {
+  const c = modeById(id).card;
+  return {
+    lobby: wireMode(id),
+    ...(c.home ? { home: c.home } : {}),
+    label: str(c.label),
+    art: c.art,
+    blurb: str(c.blurb),
+    facts: c.facts.map((k) => str(k)),
+  };
+}
+
+/* Exported for scripts/modes-selftest.js, which holds it to the registry. */
+export const WAYS = [
   {
     /* EVERY AIRCRAFT, ONE CARD: a track built in a world is raced by every
      * quad and by every fixed wing that fits its gates (src/game/verify.js
@@ -3150,11 +3168,7 @@ const WAYS = [
     mode: 'race',
     /* The game of the lobby its one press lands in (onGameCard): null is
      * free flight. */
-    lobby: 'race',
-    label: str('ui.track_mode'),
-    art: 'assets/gate/race.jpg',
-    blurb: str('ui.card_line_race'),
-    facts: [str('ui.gates'), str('ui.the_clock'), str('ui.the_board')],
+    ...modeCard('race'),
   },
   {
     /* EVERY FIXED WING, ONE CARD. A card is a kind of flying, not a
@@ -3164,18 +3178,14 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
-    lobby: null,
     airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'uglystik1567', 'tigermoth1803', 'p51d1450', 'f16878', 'zagi1219', 'nrj1490', 'striker2500'],
     mode: 'freestyle',
-    /* The card's own world. A card with a home skips the picker. The
+    /* The card's own world, its home in the mode registry. A card with a
+     * home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
      * strip for the wheels, a lake for the floats and room for the rest. The
      * Map row still seats any other world. */
-    home: 'swiss2',
-    label: str('ui.free_flight_card'),
-    art: 'assets/gate/flight.jpg',
-    blurb: str('ui.card_line_flight'),
-    facts: [str('ui.every_plane'), str('ui.the_swiss_valley')],
+    ...modeCard('free'),
   },
   {
     /* FLY WITH FRIENDS, the owner's third card (2026-09-28). Free flight
@@ -3218,31 +3228,21 @@ const WAYS = [
    */
   {
     id: 'combat',
-    lobby: 'combat',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
-    home: 'swiss2',
     room: true,
     game: 'combat',
-    label: str('combat.card'),
-    art: 'assets/gate/combat.jpg',
+    ...modeCard('combat'),
     svg: streamerSvg(),
-    blurb: str('combat.card_blurb'),
-    facts: [str('combat.card_cut'), str('combat.card_rounds'), str('friends.card_code')],
   },
   {
     id: 'ace',
-    lobby: 'tag',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
-    home: 'swiss2',
     room: true,
     game: 'tag',
-    label: str('roomtag.section'),
-    art: 'assets/gate/ace.jpg',
+    ...modeCard('tag'),
     svg: crownSvg(),
-    blurb: str('roomtag.card_blurb'),
-    facts: [str('roomtag.card_crown'), str('roomtag.card_touch'), str('friends.card_code')],
   },
   {
     /*
@@ -3281,18 +3281,13 @@ const WAYS = [
      * reads of this table (seatedWay) still land on it for the war.
      */
     id: 'campaign',
-    lobby: 'war',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
-    home: 'itaipu',
     room: true,
     game: 'war',
     campaign: true,
-    label: str('campaign.card'),
-    art: 'assets/posters/itaipu.jpg',
+    ...modeCard('war'),
     svg: reticleSvg(),
-    blurb: str('campaign.card_blurb'),
-    facts: [str('campaign.card_act'), str('campaign.card_missions'), str('campaign.card_shop')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 

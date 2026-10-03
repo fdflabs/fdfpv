@@ -103,6 +103,7 @@ import { createVoiceUi } from './ui/voiceui.js';
 import { createRoomBrowser } from './ui/roombrowser.js';
 import { createRoomRace } from './share/roomrace.js';
 import { GOALS, GOAL_STEP, createRoomTag, goalOf } from './share/roomtag.js';
+import { MODES, modeById, modeOfRoom, modeOfWire } from './share/modes.js';
 import {
   createTagShout, tagHudView, tagResultsView, tagRows,
 } from './ui/roomtaghud.js';
@@ -136,9 +137,13 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
-import { ACT1 } from './game/campaign.js';
+import {
+  ACT1, createCampaignStore, markSeen, seenFilm,
+} from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
-import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
+import { play as playWarIntro } from './render/warintro.js';
+import { filmFor } from './share/war/films/index.js';
+import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
 
@@ -595,19 +600,24 @@ const FLOOR_WORLD = 'alps';
 
 /*
  * `?time=night` (Itaipu's mission 4, "Night raid"; src/maps/itaipu.js
- * options.time): read once, here, rather than at every loadMap call
- * site, and left out of `options` entirely unless it says 'night', so a
- * map with no notion of time sees nothing new. Not stored: a link with
- * it in stays a link into the night, never a standing setting. */
+ * options.time), or one of Itaipu's other times of day (`morning`,
+ * `noon`, `golden`: src/maps/itaipu/look/light.js TIMES, named here and
+ * not imported, so the shell does not load a map's module before the map
+ * is picked): read once, here, rather than at every loadMap call site,
+ * and left out of `options` entirely unless it names one, so a map with
+ * no notion of time sees nothing new. Not stored: a link with it in
+ * stays a link into the night, never a standing setting. A caller's own
+ * time (the night raid's) wins over the address's. */
+const ADDRESS_TIMES = new Set(['night', 'morning', 'noon', 'golden']);
 function withTimeOption(options) {
   const time = new URLSearchParams(window.location.search).get('time');
-  return time === 'night' ? { ...options, time } : options;
+  return ADDRESS_TIMES.has(time) && !(options && options.time) ? { ...options, time } : options;
 }
 
-/* The time a world is built at: night for the address's ?time=night or
- * when a caller asks for it (the night raid), day otherwise. */
+/* The time a world is built at: the night raid's night when a caller
+ * asks for it, else the address's ?time=, else day. */
 function timeOf(options) {
-  return withTimeOption(options).time === 'night' ? 'night' : 'day';
+  return withTimeOption(options).time || 'day';
 }
 
 async function loadMap(shell, id, loading, mapOptions) {
@@ -623,7 +633,7 @@ async function loadMap(shell, id, loading, mapOptions) {
   const counter = moduleCounter(
     `/src/maps/${id}`,
     MAP_MODULE_COUNT[id] ?? 4,
-    (f, got, total) => loading.progress('module', f, str('main.of_modules', { got, total })),
+    (f, got, total) => loading.report('module', f, str('main.of_modules', { got, total })),
   );
   let mod;
   try {
@@ -642,17 +652,19 @@ async function loadMap(shell, id, loading, mapOptions) {
   const map = await mod.buildMap(shell, (f, phase) => {
     loading.phase(phase);
     if (f !== undefined) {
-      loading.progress('world', f);
+      loading.report('world', f);
     }
   }, options);
-  loading.final('shaders', 'ready');
-  loading.final('world', 'loading');
+  /* The builder has returned, so every phase it ran is over (the scene's
+   * compile among them). */
+  loading.closePhases();
+  loading.finalSystem('world', 'loading');
   map.graphics = normalizeGraphics(options && options.quality);
   /* The map's water, as the plant is told it: src/game/water.js. */
   map.water = await waterFor(id, map);
   /* The ground over a river or a pool is its water, as over the lake. */
   map.height = wetHeight(map.height, map.water);
-  loading.final('world', 'ready');
+  loading.finalSystem('world', 'ready');
   loading.done('world');
   return map;
 }
@@ -692,6 +704,7 @@ export async function boot({
     desynchronized: true,
     powerPreference: gpuQuery === 'low' ? 'low-power' : 'high-performance',
   });
+  loading.system('input', 'loading');
   const input = new InputManager();
   /*
    * Sample the sticks on their own timer rather than once per rendered frame.
@@ -723,7 +736,10 @@ export async function boot({
    */
   const avionicsHud = new AvionicsHud(uiRoot);
   avionicsHud.setLevel(ui.settings.avxLevel);
+  /* The boot screen's TELEMETRY row is this model being built. */
+  loading.system('telemetry', 'loading');
   const telemetry = createFlightTelemetry();
+  loading.system('telemetry', 'ready');
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
   sensors.setInset(ui.settings.avxInset);
   /* The top of the map under a point, for what hides a target. */
@@ -1008,7 +1024,7 @@ export async function boot({
    * a minute to wake. Starting it here costs nothing and takes those round
    * trips off the critical path.
    *
-   * The progress callback is deliberately gated. loading.progress(id) starts
+   * The progress callback is deliberately gated. loading.report(id) starts
    * that stage if it is not the current one, so an ungated callback would
    * flip the screen to "Flight controller" while it is really waiting on the
    * board, which is the same lie in a new place. Instead the last reading is
@@ -1019,7 +1035,7 @@ export async function boot({
   const simBytes = fetchBytes(WASM_URL, (f, got, total) => {
     simProgress = [f, str('main.of_kb', { v1: (got / 1024).toFixed(0), v2: (total / 1024).toFixed(0) })];
     if (simStageLive) {
-      loading.progress('sim', simProgress[0], simProgress[1]);
+      loading.report('sim', simProgress[0], simProgress[1]);
     }
   });
   /* A rejection here is handled at the await below, in the stage that owns
@@ -1248,7 +1264,7 @@ export async function boot({
   simStageLive = true;
   if (simProgress) {
     /* Whatever arrived while the board was being asked. Usually all of it. */
-    loading.progress('sim', simProgress[0], simProgress[1]);
+    loading.report('sim', simProgress[0], simProgress[1]);
   }
   const sim = await loadSim(await simBytes);
   /* The crash cam's journal stands between the shell and the module from
@@ -1281,7 +1297,7 @@ export async function boot({
   /* The module is in and answers for every entry point the shell calls:
    * the plant is up. The controller is up once its tune is applied, below. */
   loading.system('physics', 'ready');
-  loading.system('fc', 'loading');
+  loading.system('flight', 'loading');
   /*
    * The flight controller comes entirely from a Betaflight diff, so which
    * diff is chosen IS the tune. The choice is a setting; the boot path and
@@ -1419,7 +1435,7 @@ export async function boot({
     });
   }
   publishPids();
-  loading.system('fc', 'ready');
+  loading.system('flight', 'ready');
   loading.done('sim');
   loading.detail = '';
 
@@ -2195,6 +2211,25 @@ export async function boot({
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
   const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
+  /*
+   * THE BOOTLOADER OVER A ROOM LINK BEING RETRIED (src/ui/loading.js hold):
+   * a room's socket that dropped, or a rooms server that said it was
+   * restarting, holds the minimal loader over the menus until the link is
+   * back or given up on. Only a link that had a room: a first join that
+   * retries is the room browser's to show. Never over flight: a room is
+   * peers, the run carries on through an outage on its own, and a pilot
+   * under the screen would be flying blind; each retry asks again, so one
+   * who takes off under it is let go at the next.
+   */
+  function roomLinkHold(st) {
+    const retrying = st.phase === 'connecting' && (st.reason === 'retrying' || st.reason === 'restart')
+      && Boolean(roomLinkState.state().welcome);
+    if (retrying && ui.screen !== 'flight') {
+      loading.hold(st.reason === 'restart' ? 'restart' : 'reconnect', str('loading.held_attempt', { n: st.attempt, of: st.attempts }));
+    } else {
+      loading.release();
+    }
+  }
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
@@ -2313,6 +2348,7 @@ export async function boot({
       }
     },
     onState: (st) => {
+      roomLinkHold(st);
       if (st.phase !== 'open') {
         roomSlot = -1;
       }
@@ -2628,7 +2664,8 @@ export async function boot({
     host: () => roomHost(roomLinkState.state().welcome),
     go: async (v) => {
       if (await warConsented()) {
-        roomWar.start(v.mission);
+        /* A lost mission again from the stage it was lost in. */
+        roomWar.start(v.mission, { from: v.state === 'lost' && v.checkpoint ? 'checkpoint' : null });
       }
     },
     back: () => (lobbyBackAt != null && gameLobby() ? Math.max(0, Math.ceil((lobbyBackAt - performance.now()) / 1000)) : null),
@@ -2839,12 +2876,16 @@ export async function boot({
    * starts the round when everybody is ready, five seconds on, or 45
    * seconds after enough are ready (edge/rooms/gamelobby.js).
    *
-   * LOBBY_GAMES: what differs by game, by the room's meta.mode ('free' for
-   * free flight, a room made for no game). on(), whether a round is on as
-   * this screen knows it; ended(), whether the last one is over; start,
-   * the host's Start now, or null; setting, the host's row for the room's
-   * one setting between rounds (the war's mission, combat's minutes, the
-   * Ace's goal): its key on the wire, its choices and its label, or null;
+   * LOBBY_GAMES: what the lobby does for each activity of the mode
+   * registry (src/share/modes.js), by its id ('free' for free flight, a
+   * room made for no game); what each activity IS (its setting's key and
+   * values, its consent, whether it ends) is the registry's. on(), whether
+   * a round is on as this screen knows it; ended(), whether the last one
+   * is over; start, the host's Start now action, or null; begin(lobby),
+   * what that Start now sends, or null; setting, the host's row for the
+   * room's one setting between rounds (the war's mission, combat's
+   * minutes, the Ace's goal): its key on the wire, its choices and its
+   * label, or null;
    * rows(host), the game's own rows (the war's campaign, the race's
    * track); line, the panel's line under LOBBY.
    *
@@ -2857,8 +2898,9 @@ export async function boot({
       on: () => roomWar.on(),
       ended: () => ['won', 'lost', 'ended'].includes((roomWar.view() || {}).state),
       start: 'friends-war-start',
+      begin: null,
       setting: {
-        key: 'mission',
+        key: modeById('war').setting.key,
         choices: () => (campaignRef ? campaignRef.playable() : []),
         label: 'lobby.mission',
         note: 'lobby.mission_note',
@@ -2874,9 +2916,10 @@ export async function boot({
       on: () => ['countdown', 'on'].includes(roomCombat.round().state),
       ended: () => roomCombat.round().state === 'over',
       start: 'friends-lobby-start',
+      begin: (lobby) => roomCombat.start(lobby.minutes),
       setting: {
-        key: 'minutes',
-        choices: () => [3, 5],
+        key: modeById('combat').setting.key,
+        choices: () => modeById('combat').setting.choices,
         label: 'lobby.minutes',
         note: 'lobby.minutes_note',
         value: (n) => str('lobby.minutes_value', { n }),
@@ -2888,9 +2931,10 @@ export async function boot({
       on: () => roomTag.on(),
       ended: () => roomTag.view().state === 'results',
       start: 'friends-lobby-start',
+      begin: (lobby) => roomTag.start(lobby.goal),
       setting: {
-        key: 'goal',
-        choices: () => GOALS.map((g) => g.goal),
+        key: modeById('tag').setting.key,
+        choices: () => modeById('tag').setting.choices,
         label: 'lobby.goal',
         note: 'lobby.goal_note',
         value: (n) => plural('count.points', n),
@@ -2905,6 +2949,7 @@ export async function boot({
       on: () => roomRace.race().state === 'on',
       ended: () => roomRace.race().state === 'results',
       start: 'friends-lobby-start',
+      begin: () => roomLinkState.send({ type: 'race', op: 'start', laps: 3 }),
       setting: null,
       rows: (host) => (host ? [{
         label: str('lobby.track'), value: roomRace.track() ? roomRace.track().name : str('lobby.track_none'), note: str('lobby.track_note'), action: 'friends-lobby-track',
@@ -2917,16 +2962,26 @@ export async function boot({
       on: () => Boolean(roomLinkState.state().welcome && roomLinkState.state().welcome.lobby && roomLinkState.state().welcome.lobby.live),
       ended: () => false,
       start: null,
+      begin: null,
       setting: null,
       rows: () => [],
       line: () => str('lobby.free_line', { world: mapById(roomLinkState.state().welcome.map).name }),
     },
   };
+  /* One lobby per activity of the mode registry, and no other: a mode
+   * added there without its rows here fails at load, not in a lobby. */
+  {
+    const ids = MODES.map((m) => m.id);
+    const odd = [...ids.filter((id) => !Object.hasOwn(LOBBY_GAMES, id)), ...Object.keys(LOBBY_GAMES).filter((id) => !ids.includes(id))];
+    if (odd.length) {
+      throw new Error(`LOBBY_GAMES and src/share/modes.js disagree: ${odd.join(', ')}`);
+    }
+  }
   /* The room's game when it has a lobby ('free' for free flight), else
    * null: a room from a server before the lobby has none. */
   function lobbyGame() {
     const w = roomLinkState.state().welcome;
-    const mode = w ? w.mode ?? 'free' : null;
+    const mode = w ? modeOfWire(w.mode) : null;
     return w && w.lobby && Object.hasOwn(LOBBY_GAMES, mode) ? mode : null;
   }
   /* The lobby, between rounds of the room's game, or null. */
@@ -3153,7 +3208,7 @@ export async function boot({
       ui.returnTo = 'title';
       ui.show('friends');
     }
-    if (w.mode !== 'war' || ui.settings.warConsent || warJoinAsking) {
+    if (!modeOfRoom(w.mode)?.consent || ui.settings.warConsent || warJoinAsking) {
       return;
     }
     warJoinAsking = true;
@@ -3180,7 +3235,7 @@ export async function boot({
    * of the room, or null.
    */
   ui.onGameCard = async (card, game, world) => {
-    if (game === 'war' && !(await warConsented())) {
+    if (modeOfRoom(game).consent && !(await warConsented())) {
       return null;
     }
     for (;;) {
@@ -3237,14 +3292,31 @@ export async function boot({
   };
 
   /* Crest Control's lines, in the UI's language, while the sound is on. */
-  function warSay(ids) {
-    if (!ids.length || !audio.enabled) {
+  /* Each item a line id, or a list said as one (warradio.js PRIORITY);
+   * prio 'story' for a stage's own radio cue. */
+  function warSay(items, prio = 'call') {
+    if (!items.length || !audio.enabled) {
       return;
     }
     const radio = audio.war();
     radio.setLang(currentLocale());
-    for (const id of ids) {
-      radio.say(id);
+    for (const item of items) {
+      radio.say(item, performance.now(), prio);
+    }
+  }
+
+  /* A stage's cue (src/share/war/stages.js), as the room told it: the
+   * radio's line, the war bed's track, a cutaway. Its text is the view's
+   * and the HUD's. */
+  function warCue(ev, wallMs) {
+    if (ev.radio) {
+      warSay([ev.radio], 'story');
+    }
+    if (ev.music !== undefined && audio.enabled) {
+      audio.setWarBed(ev.music);
+    }
+    if (ev.cutaway) {
+      warCutaway.request(ev.cutaway, wallMs, ev.at);
     }
   }
 
@@ -3289,7 +3361,9 @@ export async function boot({
     /* The intro's music is already on when a briefing came first
      * (warIntroFrame), and runs out into the loop by itself. */
     if (!audio.warRadio || !audio.warRadio.track) {
-      audio.setWarBed(v.state === 'countdown' ? 'intro' : 'combat');
+      /* A pilot seated mid stage hears the stage's own music. */
+      const staged = v.stage && v.stage.music != null ? v.stage.music : 'combat';
+      audio.setWarBed(v.state === 'countdown' ? 'intro' : staged);
     }
     const w = roomLinkState.state().welcome;
     if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
@@ -3327,12 +3401,44 @@ export async function boot({
   let warIntroShown = null;
   let warIntroFov = 0;
 
+  /* The films this pilot has watched to their end (src/game/campaign.js
+   * films), in the synced campaign section; and the room told of them, so
+   * its host's skip knows who has (edge/rooms/war.js seen). */
+  const warFilmStore = createCampaignStore(ui.settings, () => ui.persistSettings());
+  let warSeenTold = null;
+  function warSeenTell() {
+    const w = roomLinkState.state().welcome;
+    const films = warFilmStore.load().films;
+    const key = w ? `${w.code}:${w.seat}:${JSON.stringify(films)}` : null;
+    if (key && key !== warSeenTold) {
+      warSeenTold = key;
+      roomWar.seen(films);
+    }
+  }
+
+  /* A mission's film, and its title card's words. */
+  function warFilmOf(missionId) {
+    const mission = WAR_MISSIONS[missionId] ?? WAR_MISSIONS[WAR_MISSION];
+    return { film: filmFor(mission), title: { key: mission.title, n: missionNumber(mission.id) } };
+  }
+
   function warIntroPlay(forWhat, opts = {}) {
     warIntroStop();
     warIntroFor = forWhat;
     warIntroFov = shell.camera.fov;
+    const { film, title } = warFilmOf(opts.mission ?? roomMission());
     const h = playWarIntro(shell.quad.parent || view.scene, shell.camera, {
-      canvas: shell.canvas, audio, ground: (x, z) => view.height(x, z, Infinity), ...opts,
+      canvas: shell.canvas,
+      audio,
+      ground: (x, z) => view.height(x, z, Infinity),
+      film,
+      title,
+      seen: seenFilm(warFilmStore.load(), film.id, film.version),
+      onSeen: () => {
+        warFilmStore.save(markSeen(warFilmStore.load(), film.id, film.version));
+        warSeenTell();
+      },
+      ...opts,
     });
     warIntro = h;
     h.done.then(() => {
@@ -3356,14 +3462,27 @@ export async function boot({
     }
   }
 
-  function warIntroFrame(v, roomNow) {
+  /* A room's briefing plays its mission's film on the room's clock, from
+   * where the room is in it (a pilot joining late starts there, and that
+   * viewing does not make it seen); its music and lines are the film's
+   * own. A pilot who holds to skip waits on the orbit; a host's skip asks
+   * the room to end the briefing, which it does once every pilot there
+   * has seen this cut. */
+  function warIntroFrame(v) {
+    warSeenTell();
     const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
-    if (briefing && warIntroShown !== roomWar.match()) {
+    /* Not while the world is being built for the mission (the night
+     * raid's, warNightFrame, at the briefing's start): the film's scenery
+     * would go with the old map. It starts once the world is up, where the
+     * room is by then, the film's preload span having covered most of it. */
+    const worldUp = mapReady && !worldSync && !swapInFlight;
+    if (briefing && warIntroShown !== roomWar.match() && worldUp) {
       warIntroShown = roomWar.match();
-      audio.setWarBed('intro');
+      const briefAt = v.briefAt;
       warIntroPlay(v.id, {
-        startMs: roomNow - v.briefAt,
-        holdUntilMs: performance.now() + (v.briefAt + INTRO_MS - roomNow),
+        mission: v.mission,
+        clock: () => roomLinkState.roomNow() - briefAt,
+        hold: true,
         onSkip: () => {
           const w = roomLinkState.state().welcome;
           if (w && w.host === w.seat) {
@@ -3383,6 +3502,7 @@ export async function boot({
     }
     warAttackers.clear();
     warBooms.clear();
+    warCutaway.dispose();
     warFeedCut = null;
     warHud.update(null);
     warHud.drawn(false);
@@ -3563,7 +3683,7 @@ export async function boot({
       }
       /* Free flight has no start of its own to put pilots in the air: its
        * lobby's start does, and a pilot who came while it flies goes up. */
-      if (seen === 'on' && game === 'free') {
+      if (seen === 'on' && modeById(game).openEnded) {
         roomCall('game');
       }
       lobbySeen = seen;
@@ -3601,7 +3721,7 @@ export async function boot({
     warFeedFrame(wallMs);
     const v = roomWar.view();
     warNightFrame();
-    warIntroFrame(v, now);
+    warIntroFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {
       warBegin(v, wallMs);
     } else if (!roomWar.on() && warBegunId != null) {
@@ -3653,6 +3773,9 @@ export async function boot({
         continue;
       }
       warBoomEvent(ev);
+      if (ev.type === 'cue') {
+        warCue(ev, wallMs);
+      }
       if (ev.type === 'dead') {
         warAttackers.dead(ev);
       } else if (ev.type === 'boom' && ev.mine) {
@@ -4878,6 +5001,8 @@ export async function boot({
   /* The intro while it plays (warintro.js state()), or null; and the
    * host's Watch intro, for the checks. Harness only. */
   window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
+  window.__warCutaway = () => warCutaway.state();
+  window.__warCutawayTest = (cue, pip) => warCutaway.request(cue, performance.now(), null, pip);
   window.__warIntroWatch = () => warIntroPlay('watch');
   window.__warDo = (op, arg) => {
     if (op === 'start') {
@@ -5227,16 +5352,13 @@ export async function boot({
       return;
     }
     /* The host's Start now in a combat, an Ace or a race lobby: the round
-     * the room is set for (the war's is friends-war-start, its consent
-     * first). */
+     * the room is set for, its game's begin (the war's is
+     * friends-war-start, its consent first; free flight has none). */
     if (action === 'friends-lobby-start') {
       const lobby = gameLobby();
-      if (lobby && lobbyGame() === 'combat') {
-        roomCombat.start(lobby.minutes);
-      } else if (lobby && lobbyGame() === 'tag') {
-        roomTag.start(lobby.goal);
-      } else if (lobby && lobbyGame() === 'race') {
-        roomLinkState.send({ type: 'race', op: 'start', laps: 3 });
+      const begin = lobby && LOBBY_GAMES[lobbyGame()].begin;
+      if (begin) {
+        begin(lobby);
       }
       return;
     }
@@ -8259,6 +8381,23 @@ export async function boot({
   shell.keepAcrossMaps(warAttackers.group);
   const warBooms = createExplosions();
   shell.keepAcrossMaps(warBooms.group);
+  /* A stage's cutaways (src/render/warcutaway.js): a picture in picture
+   * for a pilot in control, a cut for one who is not. */
+  const warCutaway = createWarCutaway({
+    renderer: shell.renderer,
+    scene: () => shell.quad.parent,
+    camera: shell.camera,
+    place: (cue) => {
+      if (Array.isArray(cue.at)) {
+        return cue.at;
+      }
+      const t = roomWar.mission()?.targets?.[cue.target];
+      return t ? t.at : null;
+    },
+    inControl: () => mode === 'flight' && !warSpectating() && Boolean(roomSentPose) && (roomSentPose.flags & FLAG_AIRBORNE) !== 0
+      && (roomSentPose.flags & FLAG_CRASHED) === 0 && (roomWar.view().roundState ?? 'live') === 'live',
+  });
+  let warCutFov = null;
   /*
    * THE SMOKE SYSTEM (the Parts tab's 'smoke' add-on): O in flight turns
    * it on and off, and the trail leaves the tail's nozzle on the sim clock
@@ -15425,6 +15564,16 @@ export async function boot({
         warIntro.frame(nowWall);
       }
     }
+    /* A stage's cutaway over the chain (never over the intro or the crash
+     * cam's replay): a cut poses the camera, and its lens goes back after. */
+    const cutting = !warIntro && mode !== 'replay' && warCutaway.frame(nowWall);
+    if (cutting && warCutFov == null) {
+      warCutFov = shell.camera.fov;
+    } else if (!cutting && warCutFov != null) {
+      shell.camera.fov = warCutFov;
+      shell.camera.updateProjectionMatrix();
+      warCutFov = null;
+    }
     /* Harness camera. The cost ledger has to be published for three views,
      * and two of them are not views the shell puts the camera in: the
      * ledger's mid course view is a point on the racing line, and flying
@@ -15523,6 +15672,10 @@ export async function boot({
       }
       if (mode === 'replay') {
         crashCam.afterRender();
+      } else if (warIntro) {
+        warIntro.afterDraw(shell.canvas);
+      } else {
+        warCutaway.drawPip(nowWall);
       }
     }
     if (ui.screen === 'courses') {

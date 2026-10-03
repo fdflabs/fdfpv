@@ -73,6 +73,7 @@ import {
   BUBBLE_M, CROWNS_SHOWN, GOAL_MAX, GOAL_MIN, POINT_MS, PROTECT_MS, orderScores,
 } from '../../src/share/roomtag.js';
 import { COUNTDOWN_MS } from './race.js';
+import { minPlayersFor } from '../../src/share/modes.js';
 import { AHEAD_MS } from './referee.js';
 
 /* A seat silent for longer than this (a menu, a tab in the background) is
@@ -273,8 +274,8 @@ export class RoomTag {
     if (!Number.isInteger(msg.goal) || msg.goal < GOAL_MIN || msg.goal > GOAL_MAX) {
       return this.error(conn, 'goal');
     }
-    /* Alone only in a room made for it (core.js games()). */
-    if (core.seats.size < 2 && core.meta.mode !== 'tag') {
+    /* Alone only in a room made for it (the mode registry, core.js games()). */
+    if (core.seats.size < minPlayersFor('tag', core.meta.mode)) {
       return this.error(conn, 'alone');
     }
     /* A whole room millisecond: the judgement steps on them. */

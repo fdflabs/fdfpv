@@ -119,6 +119,11 @@
     "check:perception": "node scripts/perception-check.js",
     "war:grid": "node scripts/war-grid-check.js",
     "war:balance": "node scripts/war-balance.js",
+    "war:legacy": "node scripts/war-legacy-games.js",
+    "war:stages": "node scripts/war-stages-selftest.js",
+    "war:stagescreen": "node scripts/war-stage-screen-check.js",
+    "films:time": "node scripts/films-time.js",
+    "films:lint": "node scripts/films-lint.js",
     "war:boom": "node scripts/war-boom.js",
     "war:fuze": "node scripts/war-fuze-cue.js",
     "tag:twopage": "node scripts/tag-two-page.js",
@@ -299,7 +304,10 @@
     "progress:selftest": "node scripts/progress-selftest.js",
     "retired:selftest": "node scripts/retired-maps-selftest.js",
     "campaign:selftest": "node scripts/campaign-selftest.js",
-    "progress:check": "node scripts/progress-check.js"
+    "progress:check": "node scripts/progress-check.js",
+    "ui:playground": "node scripts/playground-check.js",
+    "modes:selftest": "node scripts/modes-selftest.js",
+    "lint:dashes": "node scripts/dash-lint.js"
   },
   "dependencies": {
     "ws": "8.21.3"
