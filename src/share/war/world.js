@@ -10,9 +10,10 @@
  * showed at t, and a step back is only another t.
  *
  * A TARGET HIT burns for FIRE_MS of room clock from the room ms of its
- * hit, then smokes for the rest of the match; one hit before this screen
- * heard of it (at -Infinity: it joined later) smokes at once. The room
- * never restores a target within a match (edge/rooms/war.js take).
+ * latest hit (another attacker arriving on it lights it again), then
+ * smokes for the rest of the match; one hit before this screen heard of
+ * it (at -Infinity: it joined later) smokes at once. The room never
+ * restores a target within a match (edge/rooms/war.js take).
  *
  * Pure: no clock, no DOM, + - * / and comparisons only.
  *
@@ -37,8 +38,8 @@ import { DISTRICTS, darkFrom, levelAt } from './grid.js';
 /* A hit target burns this long, room ms, then smokes. */
 export const FIRE_MS = 20000;
 
-/* A target hit at room ms `at` (-Infinity: before this screen heard), at
- * room ms t: 'ok' before the hit, 'fire', then 'smoke'. */
+/* A target last hit at room ms `at` (-Infinity: before this screen
+ * heard), at room ms t: 'ok' before the hit, 'fire', then 'smoke'. */
 export function burnAt(at, t) {
   if (at === -Infinity) {
     return 'smoke';
@@ -51,9 +52,10 @@ export function burnAt(at, t) {
 
 /*
  * One match's world as the replay keeps it: { from, off, hits: [{ target,
- * at }], cuts: [{ at, x, z }] }, at null for a hit from before this screen
- * heard of it, off the room ms the war stopped being fought (the targets
- * are whole again on screen from then, src/main.js warFinish) or null.
+ * at }], cuts: [{ at, x, z }] }, a hit for each arrival on a target, at
+ * null for one from before this screen heard of it, off the room ms the
+ * war stopped being fought (the targets are whole again on screen from
+ * then, src/main.js warFinish) or null.
  * At room ms t: { targets: { id: state } of every target not 'ok',
  * levels: a Float32Array a district } (levels refilled on every call
  * with the same cache). `cache` is an object the caller keeps per match.
@@ -68,11 +70,16 @@ export function matchAt(m, t, cache) {
   }
   const targets = {};
   if (m.off === null || t < m.off) {
+    /* Each target's latest hit by t. */
+    const last = new Map();
     for (const h of m.hits) {
-      const s = burnAt(h.at === null ? -Infinity : h.at, t);
-      if (s !== 'ok') {
-        targets[h.target] = s;
+      const at = h.at === null ? -Infinity : h.at;
+      if (at <= t && !(last.get(h.target) >= at)) {
+        last.set(h.target, at);
       }
+    }
+    for (const [target, at] of last) {
+      targets[target] = burnAt(at, t);
     }
   }
   for (let i = 0; i < DISTRICTS.length; i += 1) {

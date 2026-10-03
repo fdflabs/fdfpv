@@ -2652,9 +2652,13 @@ export async function boot({
   let warBegunId = null;
   let warHudAt = 0;
   let warDrawnAt = null;
-  /* Target id -> the room ms it was hit, -Infinity for one hit before
+  /* Target id -> the room ms it was last hit, -Infinity for one hit before
    * this screen heard (src/share/war/world.js burnAt says fire or smoke). */
   const warBurning = new Map();
+  /* The room ms this frame's war is drawn at (roomWarFrame's `now`), for
+   * the crash cam's tap: sampling the room clock again would put the
+   * map's row a fraction of a ms off the attackers' and the live map's. */
+  let warFrameNow = null;
   /* Harness only (window.__warMapLog): each live frame's map, while on. */
   let warMapLog = null;
   const WAR_MAP_LOG_MAX = 20000;
@@ -3088,9 +3092,10 @@ export async function boot({
   }
 
   /* A target reached at room ms `at`: on fire, smoke later, on the map's
-   * own damage (warMapDraw). */
+   * own damage (warMapDraw). Another arrival on it lights it again: its
+   * fire runs from the latest hit. */
   function warBurn(id, at) {
-    if (!warBurning.has(id)) {
+    if (!(warBurning.get(id) >= at)) {
       warBurning.set(id, at);
     }
   }
@@ -3437,6 +3442,7 @@ export async function boot({
   }
 
   function roomWarFrame(now, wallMs, dt) {
+    warFrameNow = now;
     const scene = shell.quad.parent;
     if (scene && warAttackers.group.parent !== scene) {
       scene.add(warAttackers.group);
@@ -17843,7 +17849,7 @@ export async function boot({
   /* A war's explosions, the same way. */
   crashCam.tapBooms(warBooms);
   /* And its attackers, so a replay flies them where they were. */
-  crashCam.tapWar(roomWar, warAttackers, () => roomLinkState.roomNow());
+  crashCam.tapWar(roomWar, warAttackers, () => warFrameNow);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

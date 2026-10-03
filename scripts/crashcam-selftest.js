@@ -2130,7 +2130,7 @@ function warWorld(withClock, refused) {
   const grid = createGrid();
   /* Room ms a row: far enough apart that the clip spans a fire's whole
    * FIRE_MS and the cascades' flicker. */
-  const dt = Math.max(500, Math.ceil((FIRE_MS * 2) / n));
+  const dt = Math.max(500, Math.ceil((FIRE_MS * 3) / n));
   const room = (k) => 500000 + k * dt;
   const at = (k) => room(k) - 37;
   const view = (id, state, down) => ({
@@ -2156,6 +2156,10 @@ function warWorld(withClock, refused) {
     })],
     [half, () => war.onMessage({
       type: 'war', op: 'dead', ids: [6], at: at(half), by: 0, why: 'arrive', p: [-2176, 220, -459], target: 'yard-right', hit: true,
+    })],
+    /* A second arrival on the intake, long after its first: alight again. */
+    [half + 4, () => war.onMessage({
+      type: 'war', op: 'dead', ids: [7], at: at(half + 4), by: 0, why: 'arrive', p: [10, 200, -900], target: 'intake-3', hit: true,
     })],
     [n - 8, () => war.onMessage({ type: 'war', war: view(1, 'won', ['gate-2', 'intake-3', 'yard-right']) })],
     [n - 5, () => war.onMessage({ type: 'war', war: { state: 'lobby' } })],
@@ -2189,7 +2193,7 @@ function warWorld(withClock, refused) {
     }
     grid.hear(evs, v);
     for (const ev of evs) {
-      if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target && !burning.has(ev.target)) {
+      if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target && !(burning.get(ev.target) >= ev.at)) {
         burning.set(ev.target, ev.at);
       }
     }
@@ -2206,11 +2210,14 @@ function warWorld(withClock, refused) {
     && seen((w) => w.targets['yard-right'] === 'fire') && seen((w) => w.states.yard === 'dark') && seen((w) => w.states['dam-0'] === 'flicker')
     && seen((w) => w.states['hernandarias-w'] === 'dark') && seen((w) => w.states.spillway === 'dark'),
   'the live map had a gate down before the join, an intake on fire then smoking, the switchyard on fire, a quarter of the dam flickering, and the yard, the spillway and a town struck through its line dark');
+  const relit = live.findIndex((w, k) => k > 5 && w.targets['intake-3'] === 'smoke');
+  check(relit > 0 && relit < half + 4 && live[half + 4].targets['intake-3'] === 'fire',
+    'the intake smokes after its fire, and burns again when another attacker arrives on it', `smoke from row ${relit}, alight again at row ${half + 4}`);
   check(live[n - 6].levels.some((x) => x === 0) && Object.keys(live[n - 6].targets).length === 0 && live[n - 4].levels.every((x) => x === 1),
     'after the war the targets are whole and the lights stay out until the lobby, as src/main.js draws it');
 
   const clip = ring.clip(0, n);
-  check(clip && clip.world && clip.world.length === 2 && clip.world[0].hits.length === 3 && clip.world[0].hits[0].at === null && clip.world[0].cuts.length === 1
+  check(clip && clip.world && clip.world.length === 2 && clip.world[0].hits.length === 4 && clip.world[0].hits[0].at === null && clip.world[0].cuts.length === 1
     && clip.world[0].off === room(n - 8) && Number.isNaN(clip.clock[n - 4]),
   'the clip keeps two matches, the gate as a snapshot (null), the intake and the yard at their room ms, the struck line, the end, and no clock in the lobby',
   clip && clip.world ? JSON.stringify(clip.world.map((m) => ({
@@ -2266,10 +2273,6 @@ function warWorld(withClock, refused) {
     w[0].hits[1].target = 'the-moon';
     return w;
   }), 'a hit on a target the mission does not have');
-  refused(badWorld((w) => {
-    w[0].hits.push({ ...w[0].hits[1] });
-    return w;
-  }), 'a target hit twice in one match');
   refused(badWorld((w) => {
     w[0].cuts[0].x = 'west';
     return w;

@@ -32,8 +32,8 @@
  * the room clock (src/share/war/world.js), so that is what is kept, not
  * the map: per match this screen saw, the room ms it first saw it
  * (`from`), the room ms the war stopped being fought (`off`, the targets
- * whole on screen again), every hit target with the room ms of its hit
- * (null for one already down when this screen joined: the snapshot), and
+ * whole on screen again), every hit with its target and room ms (null for
+ * one already down when this screen joined: the snapshot), and
  * every struck line with its room ms and place. Nothing comes back within
  * a match, so the snapshot and the journal after it are one list. PER
  * ROW, the room ms the frame drew the map at (NaN where no match was
@@ -46,8 +46,8 @@
  * clock, one f64 a row; more hunters than that in one row are counted
  * (stats.dropped), never silently lost. The map's journal is at most
  * MATCHES_MAX matches of at most HITS_MAX hits and CUTS_MAX lines each,
- * a few kilobytes of JSON at most; a line past CUTS_MAX is counted
- * (stats.cutsDropped).
+ * a few kilobytes of JSON at most; one past either is counted
+ * (stats.hitsDropped, stats.cutsDropped).
  *
  * A clip's `war` is { agents: [{ mission, a, last }], room (f64[n]),
  * slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
@@ -87,11 +87,11 @@ export const HUNTER_N = 8;
 export const AGENTS_MAX = 512;
 const AGENT_KEYS = ['id', 'kind', 'route', 't0', 'k', 'n', 'err', 'target'];
 /* The map's journal: the matches a clip can span (a war ends and the
- * host starts the next inside the window), the targets a mission has
- * (Itaipu's 55, with room), and the struck lines of one match (a
- * mission flies 23 to 128 attackers, and only some strike). */
+ * host starts the next inside the window), and the hits and the struck
+ * lines of one match (a mission flies 23 to 128 attackers, each at most
+ * one of them). */
 export const MATCHES_MAX = 4;
-export const HITS_MAX = 64;
+export const HITS_MAX = 256;
 export const CUTS_MAX = 256;
 const MATCH_KEYS = ['mission', 'from', 'off', 'hits', 'cuts'];
 
@@ -111,7 +111,7 @@ export function createWarRing(capacity) {
   const matches = [];
   /* Per row, the room ms the map was drawn at. */
   let clock = null;
-  const stats = { dropped: 0, cutsDropped: 0 };
+  const stats = { dropped: 0, hitsDropped: 0, cutsDropped: 0 };
 
   function alloc() {
     room = new Float64Array(capacity).fill(NaN);
@@ -167,11 +167,15 @@ export function createWarRing(capacity) {
     clock[row] = roomMs;
   }
 
-  /* A target hit at `at`, once a match. A target the mission does not
-   * name changes nothing on any map (grid.js unitOf, the dam's states),
-   * so it is not kept. */
+  /* A target hit at `at` (null: in the snapshot, once a target). A
+   * target the mission does not name changes nothing on any map (grid.js
+   * unitOf, the dam's states), so it is not kept. */
   function hit(m, target, at) {
-    if (!(target in MISSIONS[m.mission].targets) || m.hits.some((h) => h.target === target) || m.hits.length >= HITS_MAX) {
+    if (!(target in MISSIONS[m.mission].targets) || (at === null && m.hits.some((h) => h.target === target))) {
+      return;
+    }
+    if (m.hits.length >= HITS_MAX) {
+      stats.hitsDropped += 1;
       return;
     }
     m.hits.push({ target, at });
@@ -440,13 +444,10 @@ function checkWorld(world, clock, n) {
     if (!Array.isArray(m.hits) || m.hits.length > HITS_MAX || !Array.isArray(m.cuts) || m.cuts.length > CUTS_MAX) {
       throw new Error('a match of the war\'s map holds too much');
     }
-    const seen = new Set();
     for (const h of m.hits) {
-      if (!h || Object.keys(h).length !== 2 || typeof h.target !== 'string' || !(h.target in MISSIONS[m.mission].targets)
-        || seen.has(h.target) || !isClock(h.at)) {
+      if (!h || Object.keys(h).length !== 2 || typeof h.target !== 'string' || !(h.target in MISSIONS[m.mission].targets) || !isClock(h.at)) {
         throw new Error('a hit on the war\'s map is not one');
       }
-      seen.add(h.target);
     }
     for (const x of m.cuts) {
       if (!x || Object.keys(x).length !== 3 || ![x.at, x.x, x.z].every(Number.isFinite)) {
