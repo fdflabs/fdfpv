@@ -3345,6 +3345,9 @@ export async function boot({
   /* The code of the room a title card's press made or joined, or null
    * (ui.onLobbyBack). */
   let lobbyCardCode = null;
+  /* Where that room's Back goes after the cards, or null for the cards:
+   * the campaign's page for a room its Play made. */
+  let lobbyCardBack = null;
   ui.onGameCard = async (card, game, world) => {
     if (modeOfRoom(game).consent && !(await warConsented())) {
       return null;
@@ -3360,6 +3363,7 @@ export async function boot({
         ui.act(card);
         ui.lobbyCard = card;
         lobbyCardCode = code;
+        lobbyCardBack = null;
         /* The lobby, whatever the card's own screen was (Track mode's is
          * My tracks): its track, its aircraft, its world are chosen
          * there. */
@@ -5523,7 +5527,18 @@ export async function boot({
      * from anywhere else, the war's way in. */
     enterWarRoom: async (mission) => {
       if (lobbyGame() !== 'war') {
-        return ui.onWarCard('way-war', mission);
+        /* Play is the press that made this room, so its Back undoes it:
+         * out of the room, onto this page again. Back on the consent, or
+         * on a room the server would not make, is this page too. */
+        const code = await ui.onWarCard('way-war', mission);
+        if (!code) {
+          campaign.open();
+          return null;
+        }
+        ui.lobbyCard = 'way-campaign';
+        lobbyCardCode = code;
+        lobbyCardBack = () => campaign.open();
+        return code;
       }
       if (roomHost(roomLinkState.state().welcome)) {
         roomLinkState.send({ type: 'lobby', op: 'mission', mission });
@@ -5605,6 +5620,7 @@ export async function boot({
    */
   function leaveToCards() {
     lobbyCardCode = null;
+    lobbyCardBack = null;
     roomLeave();
     /* The title first, which ends a run left from the pause, then its
      * cards. */
@@ -5629,8 +5645,12 @@ export async function boot({
     if (roomLinkState.state().code !== lobbyCardCode) {
       return;
     }
+    const back = lobbyCardBack;
     leaveToCards();
     delete ui.cursorMemory.friends;
+    if (back) {
+      back();
+    }
   };
 
   /* R says ready or not in a game room's lobby, as the Ready row does. */

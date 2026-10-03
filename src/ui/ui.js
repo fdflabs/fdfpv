@@ -14344,15 +14344,17 @@ export class Ui {
      * EVERY CARD, ONE PRESS, into its game's lobby (the owner, 2026-10-02:
      * "every click will take you to the lobby for it, ready to go either
      * single or multi"; src/main.js onGameCard), its aircraft chosen
-     * there. Defend the Paraná's lobby is the war's, its campaign a row
-     * of it. With no rooms server the cards fly alone as they always did.
+     * there. With no rooms server the cards fly alone as they always did.
+     * Defend the Paraná is the exception: its front door is the campaign's
+     * page, the missions with their stars (the owner, 2026-10-03), and a
+     * mission's Play makes the room for it, onto its briefing.
      */
-    if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
-      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
-      return;
-    }
     if (way.campaign && this.onCampaignCard) {
       this.onCampaignCard();
+      return;
+    }
+    if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
+      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
       return;
     }
     if (way.game === 'war' && this.onWarCard) {

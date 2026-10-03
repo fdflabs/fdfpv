@@ -13,13 +13,16 @@
  * with three public rooms of 32 letter names listed above them, no name
  * cut, an upright phone's panel listing two.
  *
- * The way in (ui.onWarCard, what the campaign's Play calls) with no consent stored: the consent screen; Back
- * leaves the pilot on the gate with no room; a second click and Continue:
+ * The way in: Defend the Paraná on home opens its campaign page, four
+ * missions; mission 1's Play with no consent stored is the consent
+ * screen; Back leaves the pilot on that page with no room; Play again and
+ * Continue:
  * a PUBLIC room named for its host (the owner opened the war to public
  * rooms on 2026-10-01 so a friend finds it), this pilot its host, Itaipu
  * seated, the room screen with the war's start row under the cursor,
  * listed as the war's with its mission. Reloaded (consent now stored),
- * the way in goes to a new Itaipu room with no consent screen at all.
+ * the way in (the page, then Play) goes to a new Itaipu room with no
+ * consent screen at all.
  *
  * Make a room, opened while the lobby still builds the mission's world,
  * stays up when that build ends. Its Game row offers Defend the Paraná on
@@ -172,7 +175,37 @@ async function click(page, selector) {
 }
 
 /* The consent screen, open: its title, or null. */
-const DIALOG = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden ? (d.querySelector('h2') || {}).textContent || '' : null; })()";
+/* The open dialog's title, or null; the campaign's page, which shares
+ * the dialog and the operation's name, is not a dialog here. */
+const DIALOG = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !d.querySelector('.campaign-box') ? (d.querySelector('h2') || {}).textContent || '' : null; })()";
+/* The campaign's page, its page and missions, or null when it is not up. */
+const PAGE = "(() => { const d = document.querySelector('.name-dialog'); const box = d && !d.hidden ? d.querySelector('.campaign-box') : null; return box ? { page: box.dataset.page, missions: box.querySelectorAll('.campaign-mission').length } : null; })()";
+
+/* The way in: Defend the Paraná on home, its campaign page, mission 1's Play. */
+async function playMission1(page) {
+  /* A reload puts the pilot back in the room it was in, once its
+   * autojoin (main.js roomFrame) has had its frames: Leave first. */
+  await page.evaluate(`new Promise((done) => {
+    let n = 0;
+    const step = () => (n += 1) >= 30 ? done(true) : requestAnimationFrame(step);
+    requestAnimationFrame(step);
+  })`);
+  if (await page.evaluate("window.__rooms().phase !== 'idle'")) {
+    await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+    await page.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
+  }
+  await page.until('window.__ui.onGate()', 60000).catch(() => {});
+  for (let i = 0; i < 2 && await page.evaluate('window.__ui.hub !== null'); i += 1) {
+    await page.tap('Escape');
+    await page.sleep(400);
+  }
+  await page.until('window.__ui.hub === null', 10000).catch(() => {});
+  await click(page, '.gate-card-campaign');
+  await page.until(`${PAGE} !== null`, 10000).catch(() => {});
+  const v = await page.evaluate(PAGE);
+  await click(page, '[data-mission="itaipu-1"] .campaign-play');
+  return v;
+}
 
 /* Answer the open dialog from the keyboard, Enter for Continue and
  * Escape for Back, once its deaf period (askConfirm) has passed. */
@@ -187,7 +220,7 @@ const WATCH_DIALOG = `(() => {
   let open = false;
   setInterval(() => {
     const d = document.querySelector('.name-dialog');
-    const now = Boolean(d && !d.hidden);
+    const now = Boolean(d && !d.hidden && !d.querySelector('.campaign-box'));
     if (now && !open) { window.__warCardDialogs += 1; }
     open = now;
   }, 20);
@@ -323,20 +356,24 @@ try {
    * (edge/rooms/front.js), and the steps below make three more at once. */
   await page.sleep(61000);
 
-  /* FIRST PRESS, NO CONSENT STORED: the question, and Back is the gate. */
+  /* FIRST PRESS, NO CONSENT STORED: Defend the Paraná on home, its
+   * campaign page, mission 1's Play: the question, and Back is the page. */
   check('a fresh profile has not consented', await page.evaluate('window.__ui.settings.warConsent !== true'));
-  await page.evaluate("(() => { window.__ui.onWarCard('way-war'); return true; })()");
+  const firstPage = await playMission1(page);
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
-  check('the Defend the Paraná way in (the campaign\'s Play) opens the consent screen first', (await page.evaluate(DIALOG)) === 'Defend the Paraná', String(await page.evaluate(DIALOG)));
+  check('Defend the Paraná on home is its campaign page, four missions, and Play on mission 1 the consent screen',
+    firstPage && firstPage.page === 'missions' && firstPage.missions === 4 && (await page.evaluate(DIALOG)) === 'Defend the Paraná',
+    JSON.stringify({ firstPage, dialog: await page.evaluate(DIALOG) }));
   await shot(page, 'consent');
   await answer(page, 'Back');
-  await page.until(`${DIALOG} === null`, 5000).catch(() => {});
+  await page.until(`${DIALOG} === null && ${PAGE} !== null`, 5000).catch(() => {});
   await page.sleep(800);
-  const back = await page.evaluate("({ gate: window.__ui.onGate(), phase: window.__rooms().phase, consent: window.__ui.settings.warConsent === true })");
-  check('Back leaves the pilot on the gate, no room, nothing stored', back.gate && back.phase === 'idle' && !back.consent, JSON.stringify(back));
+  const back = await page.evaluate(`({ page: ${PAGE}, phase: window.__rooms().phase, consent: window.__ui.settings.warConsent === true })`);
+  check('Back leaves the pilot on the campaign page, no room, nothing stored', back.page && back.page.page === 'missions' && back.phase === 'idle' && !back.consent,
+    JSON.stringify(back));
 
-  /* Continue: the private room. */
-  await page.evaluate("(() => { window.__ui.onWarCard('way-war'); return true; })()");
+  /* Continue: the public room. */
+  await click(page, '[data-mission="itaipu-1"] .campaign-play');
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
   await answer(page, 'Continue');
   const one = await landed(page);
@@ -351,7 +388,7 @@ try {
   await toGate(page);
   check('consent survives a reload', await page.evaluate('window.__ui.settings.warConsent === true'));
   await page.evaluate(WATCH_DIALOG);
-  await page.evaluate("(() => { window.__ui.onWarCard('way-war'); return true; })()");
+  await playMission1(page);
   const two = await landed(page);
   check('the way in again: a new public Itaipu room, the start row under the cursor', landedWell(two, true) && two.code !== one.code, JSON.stringify(two));
   check('and no consent screen on the way', (await page.evaluate('window.__warCardDialogs')) === 0, String(await page.evaluate('window.__warCardDialogs')));
@@ -517,17 +554,11 @@ try {
    * The war is on and the pilot flying it, a callout up. The pause keeps
    * the room and draws nothing of the war; Back to title leaves it, and
    * for eight seconds nothing of the war or the room is drawn over the
-   * title. The war room is the Defend the Paraná card's, one click from
-   * the title into its lobby. */
+   * title. The war room is mission 1's, by Defend the Paraná on home and
+   * Play on its campaign page. */
   await page.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('mode-gate'); return true; })()");
   await page.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
-  /* Home, where Defend the Paraná is Operations' link: Escape walks out
-   * of a hub. */
-  for (let i = 0; i < 2 && await page.evaluate('window.__ui.hub !== null'); i += 1) {
-    await page.tap('Escape');
-    await page.sleep(400);
-  }
-  await click(page, '.gate-card-campaign');
+  await playMission1(page);
   await page.until("window.__rooms().phase === 'open' && window.__rooms().mode === 'war' && window.__ui.screen === 'friends'", 60000).catch(() => {});
   await page.sleep(500);
   await page.evaluate("window.__warDo('start')");

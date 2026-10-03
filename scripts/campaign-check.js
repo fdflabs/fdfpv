@@ -7,16 +7,18 @@
  *
  * The gate draws five cards, the campaign's last, inside the window at
  * 1280x720, 390x844 and 360x640, with the rooms panel above them and
- * clear of them. Its card is one click into the war's lobby (the owner,
- * 2026-10-02): the Defend the Paraná consent first, asked once (Back: no
- * room, the title), then a public Itaipu room made for the war, named for
- * this pilot. The lobby's Campaign row opens the campaign screen: mission
- * 1 playable and free, missions 2 to 4 marked Campaign. The shop, with
+ * clear of them. Its card is one click onto the campaign's page (the
+ * owner, 2026-10-03), before any consent or room: four missions with
+ * their stars, mission 1 playable and free, missions 2 to 4 marked
+ * Campaign. The shop, with
  * credits seeded in the stored settings' campaign section (the guest's
  * store, which the account syncs for a signed in pilot): buy the wide
  * blast warhead and Rack +1, equip and unequip, the loadout line
- * following. Play on mission 1: back in the lobby, the room's mission
- * mission 1, and Start now starts it with the loadout in the start
+ * following. Play on mission 1: the Defend the Paraná consent first,
+ * asked once (Back: no room, the campaign's page again), then the
+ * briefing of a public Itaipu room made for mission 1, named for this
+ * pilot, which Escape leaves for the campaign's page; Play again, and
+ * Start now starts it with the loadout in the start
  * message. A mission end with no result, as main gives: nothing paid, a
  * quiet note. A mocked room result, since the room gives none yet: stars
  * and credits on the screen follow it. Play mission 2 from the lobby's
@@ -166,6 +168,7 @@ const SCREEN = `(() => {
     missions: [...box.querySelectorAll('.campaign-mission')].map((m) => ({
       id: m.dataset.mission,
       stars: m.querySelectorAll('.campaign-star.on').length,
+      starSlots: m.querySelectorAll('.campaign-star').length,
       tag: m.querySelector('.campaign-tag').textContent,
       best: m.querySelector('.campaign-best').textContent,
       play: m.querySelector('.campaign-play').textContent,
@@ -224,36 +227,15 @@ try {
   await page.tap('Escape');
   await page.until('window.__ui.hub === null', 10000).catch(() => {});
 
-  /* One click into the war's lobby, its consent asked first, once. */
-  const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend the Paraná/.test(d.textContent); })()";
+  /* ONE CLICK ONTO THE CAMPAIGN'S PAGE: no consent, no room yet. */
   await click(page, '.gate-card-campaign');
-  await page.until(CONSENT, 10000).catch(() => {});
-  check('the card asks the Defend the Paraná consent first', await page.evaluate(CONSENT));
-  await page.sleep(700);
-  await page.tap('Escape');
-  await page.until("document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
-  await page.sleep(500);
-  const declined = await page.evaluate("({ phase: window.__rooms().phase, gate: window.__ui.onGate(), consent: window.__ui.settings.warConsent === true })");
-  check('Back on it: no room, the title, nothing stored', declined.phase === 'idle' && declined.gate && !declined.consent, JSON.stringify(declined));
-  await click(page, '.gate-card-campaign');
-  await page.until(CONSENT, 10000).catch(() => {});
-  await page.sleep(700);
-  await page.tap('Enter');
-  const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
-  await page.until(IN_LOBBY, 60000).catch(() => {});
-  await page.sleep(600);
-  const room = await page.evaluate(`(() => {
-    const r = window.__rooms();
-    return { code: r.code, public: r.public, host: r.host === r.seat, mode: r.mode, name: r.name, map: window.__ui.settings.map,
-      rows: window.__ui.items().map((it) => it.action) };
-  })()`);
-  check('Continue: the lobby of a public Itaipu room made for the war, named for this pilot, its host, a Campaign row',
-    room.public && room.host && room.mode === 'war' && room.map === 'itaipu' && /, Paraná$/.test(room.name || '')
-    && room.rows.includes('friends-lobby-campaign'), JSON.stringify(room));
-  await page.evaluate("(() => { window.__ui.act('friends-lobby-campaign'); return true; })()");
   await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
   const first = await page.evaluate(SCREEN);
-  check('its Campaign row opens the campaign on its missions', first && first.page === 'missions' && first.missions.length === 4, JSON.stringify(first));
+  const unasked = await page.evaluate("({ phase: window.__rooms().phase, consent: window.__ui.settings.warConsent === true })");
+  check('the card opens the campaign\'s page: four missions, each with its three stars, no room, nothing asked',
+    first && first.page === 'missions' && first.missions.length === 4 && first.missions.every((m) => m.starSlots === 3)
+    && first.missions.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4' && unasked.phase === 'idle' && !unasked.consent,
+    JSON.stringify({ first, unasked }));
   check('mission 1: free, playable, not flown; 2 to 4 marked Campaign',
     first.missions[0].tag === 'Free' && first.missions[0].playable && first.missions[0].best === 'Not flown yet'
     && first.missions.slice(1).every((m) => m.tag === 'Campaign' && !m.playable), JSON.stringify(first.missions));
@@ -285,18 +267,53 @@ try {
   })()`));
   await shot(page, 'shop');
 
-  /* PLAY MISSION 1, from the lobby: back in it, the room's mission that. */
+  /* PLAY MISSION 1: its consent first, asked once, then the briefing of
+   * a room made for it. */
+  const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && !document.querySelector('.campaign-box') && /Defend the Paraná/.test(d.textContent); })()";
   await click(page, '.campaign-box .name-dialog-row button');
   await click(page, '[data-mission="itaipu-1"] .campaign-play');
-  await page.until(`${IN_LOBBY} && /Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 15000).catch(() => {});
+  await page.until(CONSENT, 10000).catch(() => {});
+  check('Play mission 1 asks the Defend the Paraná consent first', await page.evaluate(CONSENT));
+  await page.sleep(700);
+  await page.tap('Escape');
+  await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
+  await page.sleep(500);
+  const declined = await page.evaluate(`({ phase: window.__rooms().phase, page: (${SCREEN} || {}).page || null, consent: window.__ui.settings.warConsent === true })`);
+  check('Back on it: no room, the campaign\'s page again, nothing stored', declined.phase === 'idle' && declined.page === 'missions' && !declined.consent,
+    JSON.stringify(declined));
+  await click(page, '[data-mission="itaipu-1"] .campaign-play');
+  await page.until(CONSENT, 10000).catch(() => {});
+  await page.sleep(700);
+  await page.tap('Enter');
+  const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+  await page.until(`${IN_LOBBY} && /Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000).catch(() => {});
   await page.sleep(600);
-  const played = await page.evaluate(`(() => {
+  const ROOM = `(() => {
     const r = window.__rooms();
-    return { code: r.code, line: (document.querySelector('.war-lobby-mission') || {}).textContent || '', pending: window.__campaign.pending() };
-  })()`);
-  check('Play mission 1: back in the same lobby, no second consent, the room on mission 1, the mission remembered for it',
-    played.code === room.code && /Mission 1: /.test(played.line) && played.pending && played.pending.mission === 'itaipu-1' && played.pending.code === room.code,
-    JSON.stringify(played));
+    return { code: r.code, public: r.public, host: r.host === r.seat, mode: r.mode, name: r.name, map: window.__ui.settings.map,
+      title: (document.querySelector('.war-lobby-title') || {}).textContent || '',
+      line: (document.querySelector('.war-lobby-mission') || {}).textContent || '',
+      facts: [...document.querySelectorAll('.war-brief-facts dt')].map((d) => d.textContent),
+      rows: window.__ui.items().map((it) => it.action), pending: window.__campaign.pending() };
+  })()`;
+  const room = await page.evaluate(ROOM);
+  check('Continue: the BRIEFING of a public Itaipu room made for mission 1, named for this pilot, its host, a Campaign row',
+    room.public && room.host && room.mode === 'war' && room.map === 'itaipu' && /, Paraná$/.test(room.name || '')
+    && room.title === 'BRIEFING' && /Mission 1: /.test(room.line) && room.facts.length > 0
+    && room.rows.includes('friends-lobby-campaign') && room.pending && room.pending.mission === 'itaipu-1' && room.pending.code === room.code,
+    JSON.stringify(room));
+  /* Back undoes the press: Escape leaves the room Play made, for the page. */
+  await page.tap('Escape');
+  await page.until(`window.__rooms().phase === 'idle' && ${SCREEN} !== null`, 10000).catch(() => {});
+  const undone = await page.evaluate(`({ phase: window.__rooms().phase, page: (${SCREEN} || {}).page || null })`);
+  check('Escape on that briefing: out of the room, the campaign\'s page again', undone.phase === 'idle' && undone.page === 'missions', JSON.stringify(undone));
+  await click(page, '[data-mission="itaipu-1"] .campaign-play');
+  await page.until(`${IN_LOBBY} && /Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 60000).catch(() => {});
+  await page.sleep(600);
+  const played = await page.evaluate(ROOM);
+  check('Play again: no second consent, a new room\'s briefing, mission 1 remembered for it',
+    played.code && played.code !== room.code && played.title === 'BRIEFING' && played.pending && played.pending.mission === 'itaipu-1'
+    && played.pending.code === played.code, JSON.stringify(played));
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.state === 'briefing'", 15000).catch(() => {});
   const start = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");

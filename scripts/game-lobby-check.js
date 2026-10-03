@@ -35,6 +35,15 @@
  * on is the one round a newcomer cannot join (it went off a grid): C's
  * click on the panel lands C in the lobby, not racing.
  *
+ * The war (--game=war) has a page between its link and its lobby (the
+ * owner, 2026-10-03): the link opens the campaign's page, its four
+ * missions with their stars, no room yet, and mission 1's Play makes the
+ * room for it, onto its briefing: two clicks from home, three through
+ * Operations. Escape from that briefing is out of the room and on the
+ * page again, and Escape on the page is the cards. B comes into A's war
+ * by the rooms panel, Flight Club then the room, two clicks, onto the
+ * same briefing, since Play makes a room of its own.
+ *
  * Every click a page makes is counted (tests/lib/page.js click), and the
  * rows say how many it took.
  *
@@ -193,16 +202,43 @@ try {
     await p.until('window.__ui.onGate()', 60000).catch(() => {});
   }
   const cardSel = `.gate-card-${G.card}`;
+  /* The war's page between its link and its lobby: what it shows, or
+   * null when it is not up. */
+  const PAGE = `(() => {
+    const box = document.querySelector('.campaign-box');
+    if (!box || document.querySelector('.name-dialog').hidden) { return null; }
+    return { page: box.dataset.page, phase: window.__rooms().phase, missions: [...box.querySelectorAll('.campaign-mission')].map((m) => ({
+      id: m.dataset.mission, stars: m.querySelectorAll('.campaign-star').length, playable: !m.querySelector('.campaign-play').disabled })) };
+  })()`;
+  const pageOk = (v) => Boolean(v) && v.page === 'missions' && v.phase === 'idle' && v.missions.length === 4
+    && v.missions.every((m) => m.stars === 3) && v.missions[0].id === 'itaipu-1' && v.missions[0].playable;
+  /* Clicks from an activity's card to its lobby: the war's Play is one more. */
+  const CLICKS = GAME === 'war' ? 2 : 1;
+  /* The card's click, and for the war mission 1's Play on the page it
+   * opens: what that page showed, or null for every other game. */
+  async function intoLobby(p, sel) {
+    await p.click(sel);
+    if (GAME !== 'war') {
+      return null;
+    }
+    await p.until(`${PAGE} !== null`, 10000).catch(() => {});
+    const v = await p.evaluate(PAGE);
+    await p.click('[data-mission="itaipu-1"] .campaign-play');
+    return v;
+  }
 
   /* A: ONE CLICK, A LOBBY OF ITS OWN: the activity's link on its hub's
    * card on home (src/ui/ui.js HUBS), which wears the card's class. */
   const aBefore = a.clicks;
-  await a.click(cardSel);
+  const pageA = await intoLobby(a, cardSel);
   await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
   await a.sleep(800);
   const la = await a.evaluate(LOBBY);
-  check(`A: one click on its link on home (${a.clicks - aBefore}) and A is in the LOBBY of a public room made for ${GAME}, named for A, Ready under the cursor`,
-    a.clicks - aBefore === 1 && la.shown && la.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
+  if (GAME === 'war') {
+    check('the war\'s link opens the campaign\'s page first: four missions with their stars, mission 1 playable, no room yet', pageOk(pageA), JSON.stringify(pageA));
+  }
+  check(`A: ${CLICKS === 1 ? 'one click on its link on home' : 'its link on home, then Play'} (${a.clicks - aBefore}) and A is in the LOBBY of a public room made for ${GAME}, named for A, Ready under the cursor`,
+    a.clicks - aBefore === CLICKS && la.shown && la.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   await shot(a, '1-a-lobby');
 
@@ -228,7 +264,15 @@ try {
       && brief.values.every((x) => x.length > 0) && /Public/.test(brief.values[4]) && brief.ready === 'Deploy' && !brief.difficulty, JSON.stringify(brief));
   }
 
-  /* ESCAPE: the cards, out of the room, this card under the cursor. */
+  /* ESCAPE: the cards, out of the room, this card under the cursor; for
+   * the war, the campaign's page first, out of the room. */
+  if (GAME === 'war') {
+    await a.tap('Escape');
+    await a.until(`${PAGE} !== null && window.__rooms().phase === 'idle'`, 15000).catch(() => {});
+    const undone = await a.evaluate(PAGE);
+    check('Escape from the briefing Play made: out of the room, the campaign\'s page again', pageOk(undone), JSON.stringify(undone));
+    await a.sleep(700);
+  }
   await a.tap('Escape');
   await a.until("window.__ui.onGate() && window.__rooms().phase === 'idle'", 15000).catch(() => {});
   await a.sleep(500);
@@ -242,7 +286,7 @@ try {
   /* ESCAPE AT ONCE: the lobby a card opened is left by an Escape the
    * moment the room says it is a lobby, its panel drawn or not (the panel
    * is drawn on a later tick, and an Escape before it did nothing). */
-  await a.click(`.gate-card${cardSel}`);
+  await intoLobby(a, `.gate-card${cardSel}`);
   await a.until("window.__rooms().phase === 'open' && window.__ui.inLobby && window.__ui.inLobby()", 60000).catch(() => {});
   const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn), phase: window.__rooms().phase, screen: window.__ui.screen, dialog: !document.querySelector('.name-dialog').hidden })");
   await a.tap('Escape');
@@ -250,6 +294,12 @@ try {
   check(`Escape the moment a card's lobby is up (panel drawn: ${quick.panel}): out of the room, its hub's cards again`,
     quick.lobby && await a.evaluate("window.__ui.onGate() && window.__rooms().phase === 'idle'"),
     `before ${JSON.stringify(quick)} after ${await a.evaluate("JSON.stringify({ gate: window.__ui.onGate(), phase: window.__rooms().phase, screen: window.__ui.screen })")}`);
+  if (GAME === 'war') {
+    check('and the war\'s is the campaign\'s page again', pageOk(await a.evaluate(PAGE)), JSON.stringify(await a.evaluate(PAGE)));
+    await a.sleep(700);
+    await a.tap('Escape');
+    await a.until("document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
+  }
 
   /* THROUGH THE HUB: Escape again is home; its hub's card, then the
    * activity's card, is a lobby again in two clicks (the owner: "one two
@@ -261,11 +311,14 @@ try {
   const aHub = a.clicks;
   await a.click(`.gate-card-hub-${hubOf} .gate-card-name`);
   await a.until(`window.__ui.hub === ${JSON.stringify(hubOf)} && document.querySelector('.gate-card${cardSel}')`, 10000).catch(() => {});
-  await a.click(`.gate-card${cardSel}`);
+  const pageHub = await intoLobby(a, `.gate-card${cardSel}`);
   await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
   await a.sleep(800);
   const la2 = await a.evaluate(LOBBY);
-  check(`through the hub: its card, then ${G.card}'s card, ${a.clicks - aHub} clicks, a lobby again`, a.clicks - aHub === 2
+  if (GAME === 'war') {
+    check('through Operations its card opens the campaign\'s page too', pageOk(pageHub), JSON.stringify(pageHub));
+  }
+  check(`through the hub: its card, then ${G.card}'s card${CLICKS === 2 ? ', then Play' : ''}, ${a.clicks - aHub} clicks, a lobby again`, a.clicks - aHub === 1 + CLICKS
     && la2.shown && la2.phase === 'open' && la2.here === 'friends-lobby-ready', JSON.stringify(la2));
   const code = la2.code;
 
@@ -324,9 +377,26 @@ try {
       JSON.stringify({ screen: back.screen, shown: back.shown, flying: back.flying }));
   }
 
-  /* B: ONE CLICK, INTO A'S LOBBY (or, free flight, into A's flight). */
+  /* B: ONE CLICK, INTO A'S LOBBY (or, free flight, into A's flight). The
+   * war's card makes B a room of B's own, so B comes in by the rooms
+   * panel: Flight Club, then A's room, onto A's briefing. */
   const bBefore = b.clicks;
-  await b.click(cardSel);
+  const B_CLICKS = GAME === 'war' ? 2 : 1;
+  if (GAME === 'war') {
+    const bChip = `lobby:friends-room-${code}`;
+    await b.click('.gate-card-hub-club .gate-card-name');
+    await b.until("window.__ui.hub === 'club'", 10000).catch(() => {});
+    await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(bChip)})`, 30000).catch(() => {});
+    await b.evaluate(`(() => {
+      const ui = window.__ui;
+      const row = ui.titleRoomEls.find((e) => ui.items()[e.i].action === ${JSON.stringify(bChip)});
+      row.node.dataset.check = 'here';
+      return true;
+    })()`);
+    await b.click('[data-check="here"]');
+  } else {
+    await b.click(cardSel);
+  }
   await b.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(code)}`, 60000).catch(() => {});
   if (GAME === 'free') {
     await b.until(FLYING, 60000).catch(() => {});
@@ -337,8 +407,8 @@ try {
     await a.until('window.__rooms().peers.length === 1', 15000).catch(() => {});
     await b.sleep(800);
     const [a2, b2] = await Promise.all([a, b].map((p) => p.evaluate(LOBBY)));
-    check(`B: one click on the same card (${b.clicks - bBefore}) and B is in A's lobby, each in the other's pilots`, b.clicks - bBefore === 1
-      && b2.code === code && b2.shown && a2.pilots.length === 2 && b2.pilots.length === 2 && b2.flying !== 'flight', JSON.stringify({ a: a2.pilots, b: b2.pilots, code: b2.code }));
+    check(`B: ${GAME === 'war' ? 'Flight Club, then A\'s room on its panel' : 'one click on the same card'} (${b.clicks - bBefore}) and B is in A's lobby, each in the other's pilots`,
+      b.clicks - bBefore === B_CLICKS && b2.code === code && b2.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && b2.shown && a2.pilots.length === 2 && b2.pilots.length === 2 && b2.flying !== 'flight', JSON.stringify({ a: a2.pilots, b: b2.pilots, code: b2.code }));
     await shot(b, '2-b-lobby');
 
     /* BOTH READY: the round on both; its end, both back. */
