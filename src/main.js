@@ -3613,6 +3613,12 @@ export async function boot({
     warTargetsClear();
     warBreakage.reset();
     warOpenings.length = 0;
+    /* The last match's water goes with its breakage; this one's gates
+     * are handed on the next frame. */
+    if (view && typeof view.setGateState === 'function') {
+      view.setGateState(null);
+    }
+    warGatesKey = null;
     for (const id of v.down || []) {
       warBurn(id, -Infinity);
     }
@@ -3977,8 +3983,12 @@ export async function boot({
   /*
    * The match's spillway gates (the war view's `gates`, the stage
    * engine's stored and replayed state: [{ gate, at, open_m }]) to the
-   * map, which turns its leaves and its water to them on the room clock;
-   * none, Free Flight's. Handed again when it changes or the map is new.
+   * map, which turns its leaves and its water to them on the room clock.
+   * In a war with no gate state, [] (the leaves at Free Flight's opening):
+   * null is no war at all, which also takes the war's openings out of
+   * the water (water/live.js setGates), so it is handed only out of a
+   * war and as a match begins (warBegin). Handed again when it changes or
+   * the map is new.
    */
   let warGatesKey = null;
   let warGatesView = null;
@@ -3986,7 +3996,7 @@ export async function boot({
     if (!view || typeof view.setGateState !== 'function') {
       return;
     }
-    const gates = Array.isArray(v.gates) && v.gates.length ? v.gates : null;
+    const gates = !roomWar.on() ? null : Array.isArray(v.gates) ? v.gates : [];
     const key = gates ? JSON.stringify(gates) : '';
     if (key === warGatesKey && view === warGatesView) {
       return;

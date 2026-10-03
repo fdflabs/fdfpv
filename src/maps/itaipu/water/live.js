@@ -258,6 +258,8 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
         clockMs: lastMs,
         behind: host && roomMs != null ? host.behind(roomMs) : 0,
         events: events.length,
+        /* Each event heard, [id, at]: two clients that disagree show why. */
+        heard: events.map((e) => [e.id, e.at]),
         unplaced: flood ? flood.unplaced() : [],
         lips: flood ? flood.lips() : null,
         hashes: host ? host.hashes() : {},
