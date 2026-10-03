@@ -223,6 +223,8 @@ try {
     await b.until(`window.__crashCam.h().voicesPlaying().includes(${seatA})`, 5000).catch(() => {});
     check('opened on it, the replay plays A\'s voice', (await b.evaluate('window.__crashCam.h().voicesPlaying()')).includes(seatA));
   }
+  /* The live gain falls on a 50 ms time constant (voice.js frame). */
+  await b.until(`window.__voice.debug().then((d) => d.links.find((l) => l.seat === ${seatA}).gain < 0.001)`, 3000).catch(() => {});
   const heldGain = await b.evaluate(`window.__voice.debug().then((d) => d.links.find((l) => l.seat === ${seatA}).gain)`);
   check('the live voices are held silent under the replay', heldGain != null && heldGain < 0.001, String(heldGain));
   const plan = await b.evaluate(`(async () => {
