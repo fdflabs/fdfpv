@@ -140,7 +140,13 @@ function corridor() {
     if (m.map !== 'itaipu') {
       continue;
     }
-    for (const w of m.waves) {
+    /* A spawn's every way in (src/share/war/stages.js draws one): a
+     * route's id, one of a list, or every route of its sectors; and each
+     * kind of a mix. */
+    const waysOf = (w) => (typeof w.route === 'string' ? [w.route] : Array.isArray(w.route) ? w.route
+      : [w.route.sector].flat().flatMap((sec) => m.sectors[sec]));
+    const kindsOf = (w) => (w.mix ? w.mix.map(([kind]) => kind) : [w.kind]);
+    for (const w of m.waves.flatMap((x) => kindsOf(x).flatMap((kind) => waysOf(x).map((route) => ({ ...x, kind, route }))))) {
       if (w.kind === 'hunter') {
         continue;
       }
