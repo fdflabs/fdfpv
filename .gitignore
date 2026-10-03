@@ -18,3 +18,7 @@ assets/music-src/
 # edge/rooms/ locally.
 .wrangler/
 tracks-api/.dev.vars
+# The war voice build's scratch and the takes kept for a person to pick
+# (tools/voice/build.py --takes): never committed.
+assets/audio/war/_work/
+assets/audio/war/_review/

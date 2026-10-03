@@ -2,7 +2,7 @@
  * drone-wireframe.js: the boot screen's drone, drawn from the drone.
  *
  * The bootloader's system check shows a wireframe of the craft the
- * simulator flies (src/ui/loading.js, index.html .pdcs-drone). A drawn
+ * simulator flies (src/ui/loading.js, index.html .drone-wireframe). A drawn
  * placeholder would drift from the model the first time the model changed,
  * so this builds the real 5 inch quad with src/render/craft.js in headless
  * Chromium, takes each mesh's hard edges (three.js EdgesGeometry, creases

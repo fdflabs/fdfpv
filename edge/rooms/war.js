@@ -215,6 +215,7 @@ import {
   RESULT_MS, allBorn, arm, beatOf, crossings, draw, dueCues, dueSpawns, enter, exitDue, failedAny, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind,
   stagesOf, target as exitTarget, wavesOf,
 } from '../../src/share/war/stages.js';
+import { madeFor, modeById } from '../../src/share/modes.js';
 import { wireStrike } from '../../src/share/war/wires.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
@@ -952,7 +953,7 @@ export class RoomWar {
 
   start(core, conn, msg, now) {
     /* core.js hostCheck refuses it first; this holds without it. */
-    if (this.meta.public && this.meta.mode !== 'war') {
+    if (this.meta.public && modeById('war').publicOnlyWhenMadeFor && !madeFor(this.meta.mode, 'war')) {
       return this.error(conn, 'private');
     }
     if (core.game()) {
