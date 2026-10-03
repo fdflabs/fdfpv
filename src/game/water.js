@@ -310,10 +310,12 @@ function channelNearest(body, x, z) {
 }
 
 /* The still surface's height of a body at (x, z), which should be inside
- * it. */
+ * it: a lake's surfaceY, or its levelAt(x, z) where it has one and that
+ * answers (water whose level is not one height, Itaipu's flood). */
 export function surfaceAt(body, x, z) {
   if (body.kind !== 'channel') {
-    return body.surfaceY;
+    const y = body.levelAt ? body.levelAt(x, z) : null;
+    return y ?? body.surfaceY;
   }
   const n = channelNearest(body, x, z);
   return n ? n.y : -Infinity;

@@ -39,7 +39,7 @@
 
 import * as THREE from 'three';
 import { Colliders, STREAM_SLICE } from '../game/collide.js';
-import { insideWater } from '../game/water.js';
+import { insideWater, surfaceAt } from '../game/water.js';
 import { disposeSceneGraph } from '../render/shell.js';
 import { SESSION_TEXTURES } from '../render/session-textures.js';
 import { yieldToPaint } from '../ui/loading.js';
@@ -399,11 +399,20 @@ async function buildItaipu(shell, progress, q, time) {
    * spot from a coarse node, and in the river's canyon that node stands
    * 1.3 m over the surface, so the drawn height alone handed the plant a
    * ground over the water that threw the aircraft up and broke its boom. */
+  /* The river's level is the flood's (water/live.js levelAt), at the
+   * water clock the shell sets for the plant's step (setWaterClock), so
+   * the drawn water, the ground over it and the floats' water are one. */
+  let waterClockMs = NaN;
+  const riverLake = lakes.find((l) => l.name === 'river');
+  if (riverLake) {
+    riverLake.levelAt = (x, z) => parts.water.levelAt(x, z, waterClockMs);
+  }
   const wet = (x, z) => {
     const h = terrain.height(x, z);
     for (const l of lakes) {
-      if ((l.surfaceY > h || l.surfaceY > l.bed(x, z)) && insideWater(l, x, z)) {
-        return l.surfaceY;
+      const y = surfaceAt(l, x, z);
+      if ((y > h || y > l.bed(x, z)) && insideWater(l, x, z)) {
+        return y;
       }
     }
     return h;
@@ -470,6 +479,22 @@ async function buildItaipu(shell, progress, q, time) {
       townMiddle(parts.town.town.buildings, terrain),
     ],
     audioLines: parts.town.town.wires,
+    /* An opening the war's damage tore in the dam (the dam break
+     * contract's): the water part's flood takes it. */
+    onOpening: (o) => parts.water.onOpening(o),
+    /* The room's time the water's level is read at for the plant
+     * (water/live.js levelAt): the shell's, at each step it feeds the
+     * plant the ground and the water. */
+    setWaterClock(ms) {
+      waterClockMs = ms;
+    },
+    /* A mission's spillway gates over the room's clock, [{ gate: 'gate-N',
+     * at: room ms, open_m }], or null for no war: the water follows them
+     * (water/live.js). */
+    setGateState: (list) => parts.water.setGates(list),
+    /* The water through each opening this frame, m3/s, for the world's
+     * sound (src/render/world-audio.js flow). */
+    waterFlows: () => parts.water.flows(),
     /* The war mode's targets and their damage, the dam part's
      * (docs/WARFARE-PLAN.md section 8). */
     targets: parts.dam.targets,

@@ -181,7 +181,9 @@ import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
-import { AIRFRAMES, STRIKER_CAMERA, airStartSpeed, airframeById } from '../configs/airframes.js';
+import {
+  AIRFRAMES, STRIKER_CAMERA, WAR_AIRFRAMES, WAR_DEFAULT, airStartSpeed, airframeById, isWarAirframe,
+} from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
@@ -587,15 +589,18 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 29 (the town is 9 of them,
+ * itaipu: itaipu.js and src/maps/itaipu/, 34 (the town is 9 of them,
  * the vegetation 3, the spawns and the title's flight 2, the war's
  * switchyard 2, look/night.js, mission 4's fixtures, loaded whether
  * the map is built for day or night, water/meet.js, where the water
- * meets the dam, and terrain/conform.js, where the ground does). The
+ * meets the dam, terrain/conform.js, where the ground does, and the
+ * flood's water/live.js, surface.js, bed.js and flood.js, whose water
+ * Free Flight draws from the map's build on, and breach.js, the water
+ * through a hole torn in a gate, drawn with it, docs/FLOOD.md). The
  * terrain engine (src/maps/terrain/) and the swiss2 look it is built
  * with are under their own prefixes, as the Alps' modules are for
  * swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 29 };
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 34 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -2330,7 +2335,9 @@ export async function boot({
       }
       if (roomRace.onMessage(m) || roomTag.onMessage(m) || roomWar.onMessage(m)) {
         /* The room's word on this pilot's war start, said like a refusal. */
-        if (m.type === 'war' && m.error) {
+        /* Not the room's refusal of the aircraft a war just put this pilot
+         * out of (warSeatCraft): only one still flown says it. */
+        if (m.type === 'war' && m.error && !(m.error === 'airframe' && isWarAirframe(ui.settings.airframe))) {
           roomRefused(m.error === 'private' ? 'private' : `war_${m.error}`);
         }
         ui.refreshFriends();
@@ -3454,6 +3461,62 @@ export async function boot({
    * seated while one is live. Damage mode is forced on at the next reset,
    * so a pilot already flying starts again on the slot (as Catch the Ace
    * does) and one on a room screen takes off. */
+  /*
+   * THE WAR'S AIRCRAFT (the owner, 3 October: only combat drones fly in
+   * wars; configs/airframes.js WAR_AIRFRAMES). In a room made for the war,
+   * or one where a war is on, the pickers and the [ ] cycle offer only
+   * them, and a pilot coming into a war in another is put in the war
+   * aircraft flown last (settings.warAirframe) or the Striker, and told so
+   * in one line. The room refuses any other (edge/rooms/war.js flies).
+   */
+  function inWarRoom() {
+    return roomWar.view().state !== 'lobby' || lobbyGame() === 'war';
+  }
+  ui.craftLimit = () => (inWarRoom() ? WAR_AIRFRAMES : null);
+  function warSeatCraft() {
+    const s = ui.settings;
+    if (isWarAirframe(s.airframe)) {
+      return;
+    }
+    const id = isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
+    seatAirframe(s, id);
+    /* Carrying the warhead the pilot's loadout equips (a combat
+     * aircraft's payload is its warhead, campaign.js craftWarhead), so
+     * the switch does not trade it for the stock one. */
+    const af = airframeById(id);
+    const equipped = roomWar.view().loadouts?.[roomWar.seat()]?.warhead;
+    if (equipped) {
+      const had = combatChoice(af, s.combat ? s.combat[id] : null);
+      s.combat = { ...(s.combat ?? {}), [id]: { ...had, payload: payloadForWarhead(af, equipped) } };
+    }
+    s.airframeAsked = true;
+    /* As a swap seats it: the mode that goes with the aircraft waits for
+     * the title, and the war's world stays. */
+    ui.modeSyncedFor = id;
+    ui.persistSettings();
+    warCraftSaid = str('war.craft_switched', { name: airframeById(id).name });
+    warCraftLog.push({ id, at: roomLinkState.roomNow(), said: warCraftSaid });
+  }
+  /* Each time a war put this pilot in another aircraft, for checks; and
+   * its line, said once the film is over and the pilot can read it. */
+  const warCraftLog = [];
+  let warCraftSaid = null;
+  /* Said, and the war aircraft flown kept for the next war. */
+  function warCraftFrame(v) {
+    /* From the briefing, so the pilot is seated in it before the go. */
+    if (v.state === 'briefing' || roomWar.on()) {
+      warSeatCraft();
+    }
+    if (warCraftSaid && !warIntro && (v.state === 'countdown' || v.state === 'live')) {
+      notice = { text: warCraftSaid, untilMs: performance.now() + 5000 };
+      warCraftSaid = null;
+    }
+    if (roomWar.on() && isWarAirframe(runAirframe) && ui.settings.warAirframe !== runAirframe) {
+      ui.settings.warAirframe = runAirframe;
+      ui.persistSettings();
+    }
+  }
+
   function warBegin(v, wallMs) {
     warBegunId = roomWar.match();
     warCalls.reset();
@@ -3843,6 +3906,7 @@ export async function boot({
     const v = roomWar.view();
     warTimeFrame();
     warIntroFrame(v);
+    warCraftFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {
       warBegin(v, wallMs);
     } else if (!roomWar.on() && warBegunId != null) {
@@ -5065,6 +5129,7 @@ export async function boot({
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
     night: warTimeLog.slice(),
+    craft: warCraftLog.slice(),
     /* Each power district 'lit', 'flicker' or 'dark' now, and what the
      * map was handed (src/share/war/grid.js). */
     grid: {
@@ -13343,8 +13408,41 @@ export async function boot({
     return !(dx * dx + dz * dz < 1);
   }
 
+  /*
+   * WATER WHOSE LEVEL IS NOT ONE HEIGHT (a body with levelAt, Itaipu's
+   * flood, docs/FLOOD.md): the plant is told its level at the aircraft
+   * with the ground, at the same steps, the map's water clock set to the
+   * room's time of this step first, so the floats sit on the water drawn
+   * and the level depends on where and when, never on how frames fell.
+   */
+  const waterLevelSim = { x: 0, y: 0, z: 0 };
+  function feedWaterLevels(x, z) {
+    const bodies = (view && view.water) || [];
+    if (typeof sim.e.sim_water_level !== 'function') {
+      return;
+    }
+    bodies.forEach((w, k) => {
+      if (!w.levelAt) {
+        return;
+      }
+      const y = w.levelAt(x, z);
+      if (y == null || !insideWater(w, x, z)) {
+        return;
+      }
+      worldPosToSim(x, y, z, waterLevelSim);
+      sim.e.sim_water_level(k, waterLevelSim.z);
+      if (stepTrace.on) {
+        stepTrace.water = traceHash(0x811c9dc5 | 0, waterLevelSim.z);
+      }
+    });
+  }
+
   function raiseGroundFromState(st) {
     poseFromState(st, pProbe);
+    if (view.setWaterClock) {
+      view.setWaterClock(trafficMs(simTimeMs));
+    }
+    feedWaterLevels(pProbe.x, pProbe.z);
     const hy = floorHeight(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
     worldPosToSim(pProbe.x, hy, pProbe.z, pSim);
     /*
@@ -15984,6 +16082,13 @@ export async function boot({
      * the camera is now, over the ground under it. */
     worldAudio.attach(audio);
     worldAudio.setWalls(view && view.audioWalls);
+    /* The water through the dam's openings (the map's flood,
+     * docs/FLOOD.md), its roar with its discharge. */
+    if (view && view.waterFlows) {
+      for (const w of view.waterFlows()) {
+        worldAudio.flow(w.key, w.x, w.y, w.z, w.q);
+      }
+    }
     {
       const c = shell.camera.position;
       worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, worldTime);
@@ -18080,6 +18185,23 @@ export async function boot({
     ...(view.stats ? view.stats() : {}),
   });
   window.__maps = () => MAPS.map((m) => ({ id: m.id, name: m.name, mode: m.mode }));
+  /* An opening in the dam as the war's damage hands one to the map
+   * (map.onOpening, docs/FLOOD.md), and the water through every opening
+   * this frame (map.waterFlows), for scripts/water-page.js. Harness only. */
+  window.__mapOpening = (o) => {
+    if (!view || typeof view.onOpening !== 'function') return false;
+    view.onOpening(o);
+    return true;
+  };
+  window.__mapFlows = () => (view && view.waterFlows ? view.waterFlows() : null);
+  /* A mission's gate state handed to the map (map.setGateState), for
+   * scripts/itaipu-views.js --gates. Harness only. */
+  window.__mapGates = (list) => {
+    if (!view || typeof view.setGateState !== 'function') return false;
+    view.setGateState(list);
+    return true;
+  };
+  window.__animMs = () => animDrawnMs;
   /* The declared departure from MultiGP's published obstacle dimensions, so
    * check 15 can assert the threshold file and the course agree about how big
    * a gate is rather than each believing its own copy. Harness only. */

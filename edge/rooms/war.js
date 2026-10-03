@@ -586,6 +586,15 @@ export class RoomWar {
     return fuzeM(airframe, this.loadoutOf(seat).warhead);
   }
 
+  /* Whether the war's mission lets an airframe fly it: its `aircraft`
+   * (every campaign mission names the war's, configs/airframes.js
+   * WAR_AIRFRAMES), or any where it names none, as the room's own checks
+   * write theirs. */
+  flies(airframe) {
+    const a = this.mission().aircraft;
+    return !a || a.includes(airframe);
+  }
+
   /* Whether a seat has spent every airframe of the round. */
   spentOut(seat) {
     return (this.match.spent?.[seat] ?? 0) >= this.allowance(seat);
@@ -1163,6 +1172,19 @@ export class RoomWar {
     const p = decodePose(bytes);
     if (!p || p.t > core.roomMs(now) + AHEAD_MS || s.profile.map !== core.meta.map) {
       return [];
+    }
+    /* Another aircraft than the war's, from a tab older than the rule (a
+     * new one changes it on the way in): not in the war, its pose judged
+     * by nothing here, and told so once a match. */
+    if (!this.flies(s.profile.airframe)) {
+      this.seats.delete(s.seat);
+      const m = this.match;
+      if ((m.refused ??= {})[s.seat]) {
+        return [];
+      }
+      m.refused[s.seat] = true;
+      const conn = [...core.seats].find(([, x]) => x === s)?.[0];
+      return conn == null ? [] : this.error(conn, 'airframe');
     }
     const was = this.seats.get(s.seat);
     const rec = this.seatOf(s);

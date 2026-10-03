@@ -176,6 +176,22 @@ int water_count(void) {
   return g_water_count;
 }
 
+/* A still body's level moved to z0, its outline and its waves as they
+ * were: the host's water whose level is not one height (Itaipu's flood),
+ * told at the aircraft. -1 for no such body or a channel, whose heights
+ * are its points'. */
+int water_level(int body, double z0) {
+  if (body < 0 || body >= g_water_count) {
+    return -1;
+  }
+  WaterBody *b = &g_water[body];
+  if (b->half_width > 0.0) {
+    return -1;
+  }
+  b->z0 = z0;
+  return 0;
+}
+
 int water_add(double z0, double ox, double oy) {
   if (g_water_count >= WATER_BODIES_MAX) {
     return -1;

@@ -78,6 +78,11 @@ import {
   TIMBERF_AIRFRAME, CUBF_AIRFRAME, FLOAT_REST, RC_STEP_MS, floatState, must,
 } from '../tests/lib/wingpilot.js';
 import { declareBodies, insideWater } from '../src/game/water.js';
+
+/* On the river's thalweg 200 m below the chutes' lips (docs/FLOOD.md's
+ * stations), where Free Flight's flood stands the river over its outline's
+ * level. */
+const DAM_RIVER = [-720, -200];
 import { threePosToSim, threeDirToSim } from '../src/render/frame.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -408,20 +413,53 @@ async function browser() {
       pts.push([w.spawn.x + (rnd() - 0.5) * 3000, w.spawn.z + (rnd() - 0.5) * 3000]);
     }
     const plant = await page.evaluate(`${JSON.stringify(pts)}.map(([x, z]) => window.__waterSample(x, z))`);
+    /* The plant holds one level a still body, and the river's is moved to
+     * the flood's water under the aircraft (docs/FLOOD.md): its level here
+     * is the drawn water where the Timber is, after the river's taxi. */
+    const here = await page.evaluate('(() => { const c = window.__craftState(); return window.__heightAt(c.worldX, c.worldZ); })()');
+    const levelOf = (k) => (k === 1 ? here : LAKES[k].surfaceY);
     let agree = 0;
     const disagree = [];
     pts.forEach(([x, z], i) => {
       const want = LAKES.findIndex((w) => insideWater(w, x, z));
       const got = plant[i].body;
-      if (want === got && (want < 0 || Math.abs(plant[i].plant - LAKES[want].surfaceY) < 0.5)) {
+      if (want === got && (want < 0 || Math.abs(plant[i].plant - levelOf(want)) < 0.5)) {
         agree += 1;
       } else {
-        disagree.push({ x: Math.round(x), z: Math.round(z), want, got });
+        disagree.push({
+          x: Math.round(x), z: Math.round(z), want, got, plant: plant[i].plant, level: want < 0 ? null : levelOf(want),
+        });
       }
     });
     check('the plant\'s body under 60 points round the spawns is the Node forms\' (so they are the shell\'s)',
       agree === pts.length,
       `${agree} of ${pts.length} agree${disagree.length ? `, first off ${JSON.stringify(disagree[0])}` : ''}; ${pts.filter((_, i) => plant[i].body >= 0).length} on water`);
+
+    /* By the dam the river stands where the flood puts it (docs/FLOOD.md:
+     * Free Flight's spill stands it some 1.6 m over its outline's 103.5 m
+     * on the thalweg 200 m below the chutes' lips): the map draws it
+     * there, and the floats must float on that water, told the plant at
+     * the aircraft (water/live.js levelAt, main.js feedWaterLevels), not
+     * on the outline's still level under it. */
+    {
+      const [x, z] = DAM_RIVER;
+      await page.until('window.__map().parts.water.flood.state === "ready"', 120000);
+      await page.evaluate(`window.__respawn(${x}, ${z}, 0)`);
+      await waitSim(4);
+      const drawn = await page.evaluate(`window.__heightAt(${x}, ${z})`);
+      const c = await page.evaluate('(() => { const c = window.__craftState(); return { x: c.worldX, y: c.worldY, z: c.worldZ, floats: c.floats && c.floats.state.slice() }; })()');
+      const under = await page.evaluate(`window.__waterSample(${c.x}, ${c.z})`);
+      const drawnAt = await page.evaluate(`window.__heightAt(${c.x}, ${c.z})`);
+      const rest = FLOAT_REST[TIMBERF_AIRFRAME].z;
+      check(`by the dam the drawn river stands over its outline's ${water[1].y} m: the flood's water`, drawn > water[1].y + 1,
+        `${drawn.toFixed(2)} m at (${x}, ${z})`);
+      check('a Timber on floats respawned there rests on the drawn water, not under it',
+        c.floats && c.floats[9] === 1 && Math.abs(c.y - (drawnAt + rest)) < 0.25,
+        `CG at ${c.y.toFixed(3)} m, the drawn water ${drawnAt.toFixed(3)} m + rest ${rest} = ${(drawnAt + rest).toFixed(3)}; body ${c.floats && c.floats[9]}`);
+      check('and the plant\'s water under it is the drawn water, to a centimetre',
+        under.body === 1 && Math.abs(under.plant - drawnAt) < 0.01,
+        `plant ${under.plant == null ? 'none' : under.plant.toFixed(3)} m, drawn ${drawnAt.toFixed(3)} m`);
+    }
 
     /* The chutes: D's floors, water to the crash world, the sheet over
      * them. */

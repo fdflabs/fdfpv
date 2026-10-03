@@ -764,8 +764,18 @@ async function main() {
       if (!flat || body.y !== y) {
         fail(`water ${name}: drawn at ${JSON.stringify(planes)}, want ${y}`);
       }
-      if (Math.abs(at - y) > 1e-6) {
-        fail(`water ${name}: height() at its spawn is ${at}, want ${y}`);
+      /* The river's water is the flood's where it stands (docs/FLOOD.md,
+       * THE WATER THE PLANT FEELS: the lead, 3 October), over its
+       * outline's level by the dam; height() is that water's, not the
+       * outline's flat level under it. */
+      const want = name === 'river'
+        ? await page.evaluate(`window.__mapScene().userData.itaipu.parts.water.levelAt(${body.spawn.x}, ${body.spawn.z})`)
+        : y;
+      if (name === 'river' && !(want > y)) {
+        fail(`water river: the flood's level at its spawn is ${want}, want it standing over the outline's ${y}`);
+      }
+      if (!(Math.abs(at - want) <= 1e-6)) {
+        fail(`water ${name}: height() at its spawn is ${at}, want ${want}`);
       }
     }
 

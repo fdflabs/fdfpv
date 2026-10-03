@@ -4,11 +4,12 @@
  * the gates, the scope showing what gathers in the west arm. Data only
  * (src/share/war/film.js).
  *
- * Two departures from 5.2, both waiting on work elsewhere: the gates do
- * not open on screen (their hoists are the map's to draw, from the
- * room's `gates`, TECH-NEEDS T1.9), so the last shot's half orbit ends on
- * the spill's spray over the chute; and there is no rain on the water or
- * on the float plane's wing, which the world does not draw.
+ * Three departures from 5.2. The gates do not open on screen (their
+ * hoists are the map's to draw, from the room's `gates`, TECH-NEEDS
+ * T1.9), so the last shot's turn ends on the spill's spray over the
+ * chute; there is no rain, which the world does not draw; and shot 5's
+ * float plane is the ten inch, a war film showing only the war's
+ * aircraft (the owner, 3 October; configs/airframes.js WAR_AIRFRAMES).
  *
  * THE FRAME. Scene metres, y up, -z north. The fourteen gates' upstream
  * faces run GATE_W to GATE_E (src/share/war/itaipu-targets.js gate-0 and
@@ -64,7 +65,7 @@ export default {
   id: 'spillway',
   version: 1,
   cast: {
-    timber: { airframe: 'timber1500', spins: true },
+    ten: { airframe: '10inch', spins: true },
   },
   routes: {
     /* The ride up the approach channel, a Striker's line onto the gates. */
@@ -151,16 +152,16 @@ export default {
       out: 'cut',
     },
     {
-      id: 'float',
+      id: 'pier',
       min: 6,
       grade: 'warm',
-      /* On the crest road by the gates: the Timber, its warhead slung,
-       * its prop turning. */
+      /* On a pier's nose by the gates: the ten inch, its warhead slung,
+       * its props spinning up. */
       camera: {
-        type: 'handheld', lens: 50, at: gate(1.1, 2, 226.4), look: { cast: 'timber', up: 0.25 }, amp: 0.012, drift: 2,
+        type: 'handheld', lens: 50, at: gate(1.38, 2.6, 225.9), look: { cast: 'ten', up: 0.08 }, amp: 0.006, drift: 2,
       },
       cast: {
-        timber: { keys: [{ t: 0, p: gate(1.5, 3.5, null), yaw: UPSTREAM_A }], spin: [[0, 20], [2, 110]] },
+        ten: { keys: [{ t: 0, p: gate(1.5, 3.5, null), yaw: UPSTREAM_A }], spin: [[0, 20], [2, 110]] },
       },
       out: 'cut',
     },
