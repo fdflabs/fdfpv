@@ -33,6 +33,16 @@
  * It prints each wave's lowest clearance before the terminal run and in
  * it, and how deep under the surface it goes.
  *
+ * And the structures (src/share/war/damage.js's chunks: the dam's targets
+ * and the switchyard's equipment): every attacker with a target, cut where
+ * contact.js says it first meets one (as the room cuts it, its birth
+ * record's `meet`), is outside every chunk's box grown by CONTACT_M,
+ * sampled every CONTACT_SAMPLE_MS, until it goes off. Measured with
+ * damage.js's chunkDistance, not contact.js's own slabs. Before contact.js
+ * a Striker's last leg into the switchyard ran through tanks and bushings
+ * for up to 27 m short of its aim point (the owner: "shahed should have
+ * exploded by now").
+ *
  * And the power lines in the attackers' way (src/share/war/wires.js): for
  * each mission at 1, 2, 4 and 8 pilots, at no error, every crossing of a
  * span low enough to strike, and the strikes a game that makes at
@@ -68,12 +78,22 @@ import { waveSize, waveTarget } from '../src/share/war/missions/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { BAND_M, STRIKE_P, wireCrossings } from '../src/share/war/wires.js';
 import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
+import { CONTACT_M, contactAt } from '../src/share/war/contact.js';
+import { chunkDistance } from '../src/share/war/damage.js';
+import ITAIPU_CHUNKS from '../src/share/war/itaipu-chunks.js';
 
 const MIN_CLEAR_M = 15;
 const WATER_Y = 219;
 const SURFACE_TOL_M = 0.01;
 const SAMPLE_MS = 50;
 const PILOTS = [1, 2, 3, 4, 5, 6, 7, 8];
+/* The structures' check samples every CONTACT_SAMPLE_MS (under 0.3 m of
+ * flight at a dive's 28 m/s, less than any chunk grown by CONTACT_M is
+ * thick) and allows CONTACT_TOL_M into a grown box: the contact's ms is
+ * floored, at most a millisecond's flight short. */
+const CONTACT_SAMPLE_MS = 10;
+const CONTACT_TOL_M = 0.05;
+const STRUCTURES = { itaipu: ITAIPU_CHUNKS };
 
 const floor = loadHeight(readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url)));
 
@@ -139,8 +159,53 @@ function wavesOf(mission) {
 
 const routeName = (w) => [w.route].flat().join('|') + (Array.isArray(w.az) ? ' az' : '');
 
+/* Each map's structures as { lo, hi, list: [{ id, lo, hi, chunks }] },
+ * axis-aligned bounds (each chunk's bounding sphere) grown by CONTACT_M,
+ * all of them and each, for the structures' check. */
+const BOUNDS = {};
+for (const [map, all] of Object.entries(STRUCTURES)) {
+  const list = Object.entries(all).map(([id, st]) => {
+    const r = st.chunks.map((ch) => Math.hypot(...ch.h) + CONTACT_M);
+    const lo = [0, 1, 2].map((j) => Math.min(...st.chunks.map((ch, i) => ch.c[j] - r[i])));
+    const hi = [0, 1, 2].map((j) => Math.max(...st.chunks.map((ch, i) => ch.c[j] + r[i])));
+    return {
+      id, lo, hi, chunks: st.chunks,
+    };
+  });
+  BOUNDS[map] = {
+    lo: [0, 1, 2].map((j) => Math.min(...list.map((b) => b.lo[j]))),
+    hi: [0, 1, 2].map((j) => Math.max(...list.map((b) => b.hi[j]))),
+    list,
+  };
+}
+const within = (b, p) => p[0] >= b.lo[0] && p[0] <= b.hi[0] && p[1] >= b.lo[1] && p[1] <= b.hi[1] && p[2] >= b.lo[2] && p[2] <= b.hi[2];
+
+/* The chunk point p is inside (its box grown by CONTACT_M less
+ * CONTACT_TOL_M), as `target#i kind`, or null: measured with damage.js's
+ * chunkDistance, not contact.js's slabs. */
+function insideStructure(map, p) {
+  const all = BOUNDS[map];
+  if (!all || !within(all, p)) {
+    return null;
+  }
+  for (const s of all.list) {
+    if (!within(s, p)) {
+      continue;
+    }
+    for (const [i, ch] of s.chunks.entries()) {
+      if (chunkDistance(ch, p) < CONTACT_M - CONTACT_TOL_M) {
+        return `${s.id}#${i} ${ch.k}`;
+      }
+    }
+  }
+  return null;
+}
+
 const failures = [];
 let worstAll = Infinity;
+/* The structures' check, over every mission: attackers planned, those
+ * cut short at a structure, the furthest short of its aim point. */
+const contact = { n: 0, met: 0, short: 0, where: null };
 for (const mission of Object.values(MISSIONS)) {
   console.log(`mission ${mission.id}: ${wavesOf(mission).length} waves, 1 to 8 pilots, every attacker at err 0 and +-spread, every ${SAMPLE_MS} ms`);
   console.log('  wave  at   kind    route             n(1..8)          before terminal   in terminal   terminal m under water');
@@ -168,6 +233,32 @@ for (const mission of Object.values(MISSIONS)) {
               where = p;
             }
             continue;
+          }
+          if (agent.target != null) {
+            const met = contactAt(mission.map, plan);
+            const cut = met ? planAgent(mission, { ...agent, meet: met.t }) : plan;
+            contact.n += 1;
+            if (met) {
+              contact.met += 1;
+              const q = poseAt(cut, cut.tEnd).p;
+              const aim = poseAt(plan, plan.tEnd).p;
+              const short = Math.hypot(q[0] - aim[0], q[1] - aim[1], q[2] - aim[2]);
+              if (short > contact.short) {
+                contact.short = short;
+                contact.where = `${mission.id} wave ${i + 1} ${w.kind} ${route} k ${k} of ${n} err ${err} onto ${met.target}#${met.chunk}`;
+              }
+              if (cut.end !== 'arrive' || cut.tEnd !== met.t) {
+                failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${route}): given its contact at ${met.t} ms it ends ${cut.end} at ${cut.tEnd}`);
+              }
+            }
+            for (let t = cut.t0; t < cut.tEnd; t += CONTACT_SAMPLE_MS) {
+              const p = poseAt(cut, t).p;
+              const inside = insideStructure(mission.map, p);
+              if (inside) {
+                failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${route}, k ${k} of ${n}, err ${err}): inside ${inside} at ${t} ms, ${((cut.tEnd - t) / 1000).toFixed(2)} s before it goes off, at (${p.map((v) => v.toFixed(1)).join(', ')})`);
+                break;
+              }
+            }
           }
           const tt = terminalFrom(plan, w.kind);
           const end = Number.isFinite(plan.tEnd) ? plan.tEnd : 0;
@@ -294,6 +385,8 @@ for (const mission of Object.values(MISSIONS)) {
 }
 
 console.log('');
+console.log(`structures: ${contact.n} attackers with a target, ${contact.met} meet a structure short of their aim point and go off there (contact.js, within ${CONTACT_M} m of a chunk); the furthest short, ${contact.short.toFixed(1)} m: ${contact.where ?? 'none'}`);
+console.log('');
 if (failures.length) {
   for (const f of failures) {
     console.log(`  FAIL ${f}`);
@@ -301,5 +394,5 @@ if (failures.length) {
   console.error(`FAIL, ${failures.length} route problem(s)`);
   process.exitCode = 1;
 } else {
-  console.log(`PASS, every flying attacker clears the floor by ${worstAll.toFixed(1)} m or more until its terminal run (at least ${MIN_CLEAR_M}), every boat sails on the water, and nothing goes under the reservoir's ${WATER_Y} m surface (within ${SURFACE_TOL_M} m), terminal run included`);
+  console.log(`PASS, every flying attacker clears the floor by ${worstAll.toFixed(1)} m or more until its terminal run (at least ${MIN_CLEAR_M}), every boat sails on the water, nothing goes under the reservoir's ${WATER_Y} m surface (within ${SURFACE_TOL_M} m), terminal run included, and none flies into a structure before it goes off`);
 }

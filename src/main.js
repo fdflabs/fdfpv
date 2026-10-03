@@ -78,7 +78,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager } from './avionics/sensors.js';
@@ -91,6 +91,9 @@ import {
 } from './share/board.js';
 import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
+import {
+  addFlight, createFlightClock, deviceId, mergeFlightTime, stepsAreFlight,
+} from './share/flighttime.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
@@ -842,10 +845,13 @@ export async function boot({
    * both halves of the answer live: a radio and a game controller both
    * arrive through the Gamepad API and are the same answer to "did they use
    * sticks", and the board has no business knowing which radio.
+   *
+   * The craft is the real airframe id; stats.js folds it onto the board's
+   * own list at the wire (wireCraft), because the board refuses others.
    */
   const flightStats = createFlightStats({
     describe: () => ({
-      craft: ui.settings.airframe === 'whoop65' ? 'whoop65' : '5inch',
+      craft: ui.settings.airframe,
       /* The board's stats still spell Track mode 'custom', the seat's old
        * name (STATS_MAPS in fdfpv-leaderboard's validate.js). */
       map: ui.settings.map === 'track' ? 'custom' : ui.settings.map,
@@ -871,12 +877,72 @@ export async function boot({
    * finds the counters already cleared and sends a flush of noughts, which
    * costs the board one row it already had.
    */
-  window.addEventListener('pagehide', () => flightStats.leaving());
+  window.addEventListener('pagehide', () => {
+    flightStats.leaving();
+    commitFlightTime();
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       flightStats.leaving();
+      commitFlightTime();
     }
   });
+
+  /*
+   * THE PILOT'S OWN FLIGHT TIME (src/share/flighttime.js), the record that
+   * is theirs rather than the board's counter above. The clock is fed the
+   * milliseconds the plant stepped in flight (see the step block in
+   * frameBody), so a pause, a menu, a replay, the crash hold, a turtle
+   * wait and the launch stand add nothing; it is written into the settings
+   * every FLIGHT_COMMIT_MS of flying, when the flying stops, and when the
+   * page goes away, never once a frame.
+   *
+   * The write merges what local storage holds first: a second tab in this
+   * browser shares the device slot, and its writes are in storage, not in
+   * this page's settings. Larger wins counter by counter, so the two tabs
+   * add to the slot rather than overwrite each other.
+   */
+  const FLIGHT_COMMIT_MS = 10000;
+  const flightClock = createFlightClock();
+  const flightDevice = deviceId((() => {
+    try {
+      return window.localStorage;
+    } catch (e) {
+      return null;
+    }
+  })());
+  let flightClockFlew = false;
+  function commitFlightTime() {
+    const got = flightClock.take();
+    if (!got.length) {
+      return;
+    }
+    let stored = null;
+    try {
+      stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').flightTime;
+    } catch (e) {
+      stored = null;
+    }
+    const day = new Date().toISOString().slice(0, 10);
+    let record = mergeFlightTime(ui.settings.flightTime, stored);
+    for (const g of got) {
+      record = addFlight(record, flightDevice, g.airframe, g.activity, g.seconds, day);
+    }
+    ui.settings.flightTime = record;
+    ui.persistSettings();
+  }
+  /* The activity flown, as the mode registry's id (src/share/modes.js):
+   * the room's game in a room, else Track Day on a race map and Free
+   * Flight anywhere else. Every game but those two is played in a room,
+   * alone or not (LOBBY_GAMES). */
+  function flightActivity() {
+    const st = roomLinkState.state();
+    if (st.phase === 'open' && st.welcome) {
+      const id = modeOfWire(st.welcome.mode);
+      return modeById(id) ? id : 'free';
+    }
+    return view && view.mode === 'race' ? 'race' : 'free';
+  }
 
   const gpuInfo = readGpuInfo(shell.renderer);
   ui.setGpuInfo(gpuInfo);
@@ -14474,6 +14540,13 @@ export async function boot({
       flying: flownThisRun && !landed && !crashed && !wrecked && !turtleWait && !turtleRecover,
       laps: race.laps.length,
     });
+    /* The pilot's own flight time, written when enough is held or when
+     * the last frame's steps were not flight (THE PILOT'S OWN FLIGHT TIME,
+     * above); flightClockFlew is set again by this frame's step block. */
+    if (flightClock.held() >= FLIGHT_COMMIT_MS || (!flightClockFlew && flightClock.held() >= 1000)) {
+      commitFlightTime();
+    }
+    flightClockFlew = false;
 
     /* The seated world's note, released on the first frame of a flight and
      * not one frame earlier. See showCourseNotes. */
@@ -14873,6 +14946,14 @@ export async function boot({
           simStepIdx += steps;
         }
         frameSteps = steps;
+        /* The pilot's flight time: the steps the plant just took, if they
+         * were flight (src/share/flighttime.js stepsAreFlight). */
+        flightClockFlew = stepsAreFlight({
+          mode, screen: ui.screen, landed, launchStaging, faulted, crashed, wrecked, turtleWait, turtleRecover,
+        });
+        flightClock.note(steps * MS_PER_STEP, {
+          airborne: flightClockFlew, airframe: runAirframe, activity: flightActivity(),
+        });
         /* Launch stand constraint runs inside sim_step. Ground contact
          * runs after plant_step at 1 kHz when the plane is raised. */
         flightLog.push(stateCurr, rcHeld, FULL_THROTTLE_RPM);

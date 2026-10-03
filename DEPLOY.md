@@ -10,14 +10,15 @@ working way to host the board somewhere else.
 
 | Resource | Where | How |
 | --- | --- | --- |
-| Simulator | GitHub Pages, https://fdflabs.github.io/fdfpv/ | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
-| Tracks server | The owner's VM, https://129.151.39.48/api | `deploy/vm/deploy.sh`, see `deploy/vm/README.md`. The Cloudflare Worker plus D1 below is still deployed, as the way back. |
-| Rooms server | The owner's VM, https://129.151.39.48/v2 | The same deploy. `edge/rooms/README.md` is the code; the Worker `fdfpv-rooms` is still deployed. |
-| Board | The owner's VM, https://129.151.39.48/board/ | `deploy/vm/deploy-board.sh` with a checkout of fdflabs/fdfpv-leaderboard beside this one, see `deploy/vm/README.md`. Postgres 16 on the same VM. Tracks and lap times, bug tickets, site statistics, live ghost rooms. |
+| Simulator | GitHub Pages, https://paraguayandronecombatsimulator.com (CNAME; https://fdflabs.github.io/fdfpv/ redirects there) | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
+| Tracks server | The owner's VM, https://api.paraguayandronecombatsimulator.com/api (and https://129.151.39.48/api) | `deploy/vm/deploy.sh`, see `deploy/vm/README.md`. The Cloudflare Worker plus D1 below is still deployed, as the way back. |
+| Rooms server | The owner's VM, https://api.paraguayandronecombatsimulator.com/v2 (and the address) | The same deploy. `edge/rooms/README.md` is the code; the Worker `fdfpv-rooms` is still deployed. |
+| Board | The owner's VM, https://api.paraguayandronecombatsimulator.com/board/ (and the address) | `deploy/vm/deploy-board.sh` with a checkout of fdflabs/fdfpv-leaderboard beside this one, see `deploy/vm/README.md`. Postgres 16 on the same VM. Tracks and lap times, bug tickets, site statistics, live ghost rooms. |
 
 The simulator finds the board through `PRODUCTION_BOARD_ORIGIN` in
-`src/share/board.js` (https://129.151.39.48/board), and the board finds the
-simulator through `SIM_ORIGIN` in its unit (https://fdflabs.github.io/fdfpv).
+`src/share/board.js` (the API name's /board, `src/share/api.js`), and the
+board finds the simulator through `SIM_ORIGIN` in its unit
+(https://paraguayandronecombatsimulator.com).
 The Cloudflare Worker under `edge/` is not deployed: it joined three
 deploys under one domain, fdfpv.example, which never existed.
 
@@ -27,6 +28,96 @@ track from the builder, posts a verified lap, opens a live room from two
 pages, counts a visit, loads the board and its bugs page, and takes back
 what it made. See its header, and `deploy/vm/README.md` for the sign in
 file it needs.
+
+# The move to the game's own domain
+
+The owner's decision of 3 October 2026: the game lives at
+https://paraguayandronecombatsimulator.com, served by GitHub Pages from this
+repository, with www sent to the apex by Pages. The servers answer at
+https://api.paraguayandronecombatsimulator.com, the VM by name.
+
+DNS, at Hostinger:
+
+| Name | Record | Value |
+| --- | --- | --- |
+| paraguayandronecombatsimulator.com | A | GitHub Pages: 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153 (AAAA 2606:50c0:8000::153 to 8003::153 if wanted) |
+| www.paraguayandronecombatsimulator.com | CNAME | fdflabs.github.io |
+| api.paraguayandronecombatsimulator.com | A | 129.151.39.48 |
+
+What each piece does:
+
+- `src/share/api.js` names the servers once. The page asks
+  `https://api.paraguayandronecombatsimulator.com/api/health` as it boots,
+  and only when the name does not answer (its DNS still spreading, or Caddy
+  still waiting for its certificate) it uses https://129.151.39.48, the
+  address it used before. The answer is never stored. Delete the fallback
+  once the name answers everywhere.
+- `deploy/vm/Caddyfile` serves the same routes at the name and at the bare
+  address. Caddy fetches the name's certificate by itself once its DNS
+  points at the VM: rerun
+  `deploy/vm/deploy.sh` after the DNS is in.
+- The rooms server allows the apex, its www and fdflabs.github.io
+  (`edge/rooms/front.js`). The tracks server answers every origin and the
+  board reflects the asking origin, so neither has a list to extend.
+- Every URL the page asks its own site for is relative, so the same build
+  works at the domain's root and at /fdfpv/ (`npm run base:check`).
+
+A guest's storage, carried once (`src/share/move.js`). localStorage is
+per origin, so a guest's settings, builds, progress, stars, tracks and
+pilot key stay on https://fdflabs.github.io. A push from the old page
+cannot work with GitHub Pages: until the custom domain is set nothing
+serves the domain, and once it is set Pages answers every request under
+/fdfpv/ with a 301, so the old page never runs again. But localStorage
+belongs to the origin, not the path, so a page anywhere else under
+https://fdflabs.github.io/ can still read it, after the switch, for as long
+as it is wanted. That page is `deploy/landing-move.html`, copied as it is
+to fdflabs/fdfpv-landing as `move/index.html`
+(https://fdflabs.github.io/fdfpv-landing/move/). On a visitor's first load
+of the domain with no game state there, the game asks whether that page
+exists, goes to it, and it comes back with the old storage in the URL
+fragment (never sent to a server; a long one in parts, one bounce each).
+The domain takes it only because it asked, writes it, and strips the
+fragment. Everyone after that, and everyone who already has state on the
+domain, costs nothing. Server overrides and the account session stay
+behind; a signed in pilot signs in again. Saved replays (IndexedDB, files
+of megabytes) do not go: a pilot who wants one downloads it from My clips
+on the old address before the switch.
+
+The order:
+
+1. Merge and deploy the domain change (Pages, then `deploy/vm/deploy.sh`
+   for the rooms allowlist and the Caddyfile). The game still runs at
+   https://fdflabs.github.io/fdfpv/ and now speaks to the API name, falling
+   back to the address while DNS spreads.
+2. Merge the carry. On the old address it does nothing; it waits for the
+   domain.
+3. With the DNS above in place, set the custom domain in the repository's
+   Pages settings to paraguayandronecombatsimulator.com and tick Enforce
+   HTTPS once the certificate is issued, and merge the CNAME pull request
+   in the same sitting (Settings is the switch; the file records it, and
+   the canonical and og URLs and the board's links change with it). From this
+   moment /fdfpv/ redirects to the domain, path and query kept.
+4. Copy `deploy/landing-move.html` to fdflabs/fdfpv-landing as
+   `move/index.html` and let its Pages deploy. Do it right after step 3:
+   a guest who opens the domain before the page exists is not stranded
+   (the game checks the page first) but has state on the domain from then
+   on, so is not asked again. Check with `npm run move:check` (local) and
+   by hand: open the old address once in a fresh profile, play a little,
+   then open the domain.
+5. Rerun `deploy/vm/deploy-board.sh` so the board's Fly links point at the
+   domain (`SIM_ORIGIN`, changed in the CNAME pull request).
+
+Google sign in (Google Cloud project fdfpv-510202, the Web client in
+`src/share/account.js`). The page uses the Sign in with Google button with
+a callback that takes the ID token in the page, so only Authorised
+JavaScript origins matter. Add:
+
+- https://paraguayandronecombatsimulator.com
+- https://www.paraguayandronecombatsimulator.com
+
+and keep https://fdflabs.github.io and http://127.0.0.1:8080. No
+authorised redirect URI is needed. The tracks server checks the token's
+audience, the client id, not the page's origin, so it needs no change.
 
 # The tracks server
 
