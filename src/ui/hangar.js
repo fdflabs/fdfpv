@@ -54,7 +54,8 @@ import {
   coloursFor, liveryKey, lookFor, normaliseEntry, paletteColour, paletteFor, regionsFor, schemesFor,
 } from '../../configs/liveries.js';
 import { currentLocale, str } from '../strings/index.js';
-import { sizeText, weightText } from './carousel.js';
+import { flightTimeText, sizeText, weightText } from './carousel.js';
+import { flightTotals } from '../share/flighttime.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
@@ -465,7 +466,14 @@ export class Hangar {
     const af = airframeById(airframe);
     this.nameEl.textContent = af.name;
     this.factsEl.textContent = '';
-    for (const f of [sizeText(airframe), weightText(airframe)]) {
+    /* The pilot's time in the air on this aircraft, once there is some
+     * (settings.flightTime, src/share/flighttime.js). */
+    const flown = flightTotals(settings.flightTime).byAirframe[airframe] || 0;
+    const facts = [sizeText(airframe), weightText(airframe)];
+    if (flown > 0) {
+      facts.push(str('flight.on_craft', { time: flightTimeText(flown), craft: af.name }));
+    }
+    for (const f of facts) {
       this.factsEl.append(el('span', 'carousel-fact', f));
     }
     /* A plane with a float version has the Floats toggle beside its span and

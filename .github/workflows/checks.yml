@@ -134,6 +134,9 @@ jobs:
       - run: npm run stab:chop
       - run: npm run power:check
       - run: npm run progress:selftest
+      # The pilot's own flight time: only flight counts, and the words
+      # (src/share/flighttime.js); its merge is in test:tracks.
+      - run: npm run flighttime:selftest
       - run: npm run retired:selftest
       - run: npm run retired:aircraft
       - run: npm run campaign:selftest

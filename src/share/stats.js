@@ -76,6 +76,23 @@ const SOURCE_DAYS = 30;
  * board folds it into `other` rather than refusing the event. */
 const SOURCE_RE = /^[a-z0-9-]{2,32}$/;
 
+/*
+ * MIRRORS STATS_CRAFT in the board's src/validate.js, which REFUSES a
+ * session or a flush naming any other aircraft: the board's list is the
+ * two quads it was written for, and the simulator flies twenty more. The
+ * shell hands this file the real airframe id (describe() in src/main.js)
+ * and wireCraft folds it onto the board's list here, at the wire, so the
+ * fold is one function to delete once the board takes every airframe id
+ * (folding an unknown one to `other`, as it already does for maps). Until
+ * then every aircraft but the whoop counts as a five inch on the board,
+ * which is what it has done since the planes arrived.
+ */
+export const STATS_CRAFT = ['5inch', 'whoop65'];
+
+export function wireCraft(airframe) {
+  return STATS_CRAFT.includes(airframe) ? airframe : STATS_CRAFT[0];
+}
+
 /* One flush a minute. It is also the heartbeat that answers "flying now",
  * so it is sent even when nothing happened in the minute. */
 export const FLUSH_MS = 60_000;
@@ -324,8 +341,6 @@ function bounded(value, max) {
  * a tab that lives for an hour sends sixty small numbers rather than one
  * growing one.
  */
-const STATS_CRAFT = '5inch';
-
 export function createFlightStats({ describe, url = eventsUrl() } = {}) {
   const tab = newTab();
   let started = false;
@@ -337,23 +352,16 @@ export function createFlightStats({ describe, url = eventsUrl() } = {}) {
   let nextFlush = 0;
   let stopped = false;
 
-  /*
-   * `craft` is a WIRE WORD, not an aircraft: the board accepts '5inch' and
-   * 'whoop65' only (fdfpv-leaderboard src/validate.js STATS_CRAFT), and
-   * every aircraft but the whoop always reported '5inch'. Both machines
-   * were removed on 2026-10-03, so every flight is the board's '5inch'
-   * bucket now; sending an aircraft id would be refused.
-   */
   const facts = () => {
     try {
       const d = (typeof describe === 'function' ? describe() : null) || {};
       return {
-        craft: STATS_CRAFT,
+        craft: wireCraft(d.craft),
         map: String(d.map || 'custom'),
         input: String(d.input || 'keyboard'),
       };
     } catch (e) {
-      return { craft: STATS_CRAFT, map: 'custom', input: 'keyboard' };
+      return { craft: wireCraft(null), map: 'custom', input: 'keyboard' };
     }
   };
 
@@ -461,4 +469,26 @@ export function createFlightStats({ describe, url = eventsUrl() } = {}) {
       stopped = true;
     },
   };
+}
+
+/*
+ * Every pilot's flight time added up: the board's all time sum of the
+ * flight seconds the flushes above carried, from the statistics page's
+ * own GET /api/stats (allTime.flightS). A sum over days, with no row for
+ * any one pilot. Null when there is no board, it does not answer, or its
+ * answer has no such number, and the screen then shows nothing rather
+ * than a number it made up.
+ */
+export async function boardFlightSeconds(origin = boardOrigin()) {
+  try {
+    const res = await fetch(`${String(origin || '').replace(/\/+$/, '')}/api/stats`, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) {
+      return null;
+    }
+    const got = await res.json();
+    const s = got && got.allTime ? got.allTime.flightS : null;
+    return Number.isFinite(s) && s >= 0 ? s : null;
+  } catch (e) {
+    return null;
+  }
 }
