@@ -31,10 +31,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createFloodHost } from '../../../sim/water/host.js';
-import { unpackBed } from './bed.js';
-import { DT_MS, makeFlood } from './flood.js';
-
 /* Main thread time a frame may spend stepping, ms. At some 2.5 ms a step
  * the flood keeps up with the room only with more than this; docs/FLOOD.md
  * states the budget and what would meet it. */
@@ -50,12 +46,17 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
   let flood = null;
   let host = null;
   let error = null;
+  let lastMs = null;
   const pending = [];
 
   const start = async () => {
     state = 'loading';
     try {
-      const [wasm, json, bin] = await Promise.all([fetchBytes(WASM_URL), fetchBytes(BED_URL), fetchBytes(BIN_URL)]);
+      /* The modules too, so a map that never floods fetches none of it. */
+      const [wasm, json, bin, { createFloodHost }, { unpackBed }, { DT_MS, makeFlood }] = await Promise.all([
+        fetchBytes(WASM_URL), fetchBytes(BED_URL), fetchBytes(BIN_URL),
+        import('../../../sim/water/host.js'), import('./bed.js'), import('./flood.js'),
+      ]);
       const bed = unpackBed(JSON.parse(new TextDecoder().decode(json)), bin);
       flood = await makeFlood(wasm, bed, {});
       host = createFloodHost(flood, { dtMs: DT_MS });
@@ -82,6 +83,7 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
     /* Every frame, with the room's clock (the map's animation clock is
      * the room's in a room). */
     advance(roomMs) {
+      lastMs = roomMs;
       if (!host) return 0;
       return host.advance(roomMs, { budgetMs: FRAME_BUDGET_MS, clock: now });
     },
@@ -92,6 +94,11 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
         state,
         error,
         step: host ? host.step() : 0,
+        /* The openings' clock and the one it steps on: a flood that
+         * never moves with an origin far from the clock is a mismatch
+         * between them. */
+        origin: host ? host.origin() : null,
+        clockMs: lastMs,
         behind: host && roomMs != null ? host.behind(roomMs) : 0,
         unplaced: flood ? flood.unplaced() : [],
         ...(host ? host.stats : {}),
