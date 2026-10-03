@@ -96,8 +96,10 @@ function seed() {
 
 /* The same map: the same targets not whole, and each level the same as
  * the uniform holds it (f32). */
+/* Targets compared as sets: the map lists them in its own order. */
+const canon = (o) => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
 function sameMap(got, want) {
-  if (!got || !want || JSON.stringify(got.targets) !== JSON.stringify(want.targets)) {
+  if (!got || !want || canon(got.targets) !== canon(want.targets)) {
     return false;
   }
   return got.levels.length === want.levels.length && got.levels.every((x, i) => x === Math.fround(want.levels[i]))
@@ -217,10 +219,10 @@ try {
     await a.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${k})); true`);
     await a.sleep(120);
     const [w, map] = await a.evaluate('[window.__crashCam.h().warWorld(), window.__warMap()]');
-    const ok = w && w.t === f.t && JSON.stringify(w.targets) === JSON.stringify(f.targets) && w.levels.every((x, i) => x === f.levels[i]) && sameMap(map, f);
+    const ok = w && w.t === f.t && canon(w.targets) === canon(f.targets) && w.levels.every((x, i) => x === f.levels[i]) && sameMap(map, f);
     if (!ok) {
       wrong += 1;
-      misses.push(`row ${k} at ${f.t}: replay ${describe(w)} map ${describe(map)} live ${describe(f)}`);
+      misses.push(`row ${k} at ${f.t}: replay ${describe(w)} map ${describe(map)} live ${describe(f)}${map && map.broken.pieces !== f.broken.pieces ? ` pieces ${map.broken.pieces.slice(0, 120)} live ${f.broken.pieces.slice(0, 120)}` : ''}`);
     }
     shown.add(Object.keys(f.targets).join('+') || 'none');
   }
