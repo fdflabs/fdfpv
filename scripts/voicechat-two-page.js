@@ -96,6 +96,9 @@ function seedFor(id) {
   s.graphics = 'low';
   s.fpsCap = 0;
   s.airframeAsked = true;
+  /* Both have read the replay notice (src/ui/voiceui.js): this check is
+   * about talking; scripts/replay-voice-two-page.js asks it. */
+  s.voiceReplayAck = true;
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');

@@ -39,10 +39,19 @@
  *              combat is a combat aircraft's stock loadout by airframe id;
  *              builds is My Hangar by build id.
  *   whole      the section as one value, the newer stamp wins.
+ *   flag       a yes the pilot gave, true once either side is: the
+ *              replay notice for voice chat (voiceReplayAck,
+ *              src/ui/voiceui.js), read and accepted on one computer,
+ *              is accepted on all of them. Stamps play no part.
  *   campaign   Defend the Paraná (src/game/campaign.js mergeCampaign):
  *              the most stars per mission, the higher credits earned,
  *              the union of upgrades owned at the price paid; credits to
  *              spend are earned less those prices. Stamps play no part.
+ *   devices    flightTime, the pilot's time in the air
+ *              (src/share/flighttime.js): one grow only slot per
+ *              browser, merged counter by counter to the larger, so two
+ *              computers flying offline both keep their time and a slot
+ *              sent twice is counted once. Stamps play no part.
  *
  * AT A TIE the account's value wins over the one just sent, and the one
  * just sent fills in where the account has none. A tie is nearly always
@@ -74,6 +83,7 @@
  */
 
 import { mergeCampaign } from '../game/campaign.js';
+import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import {
   BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS,
 } from '../../tracks-api/limits.js';
@@ -93,6 +103,8 @@ export const SYNCED_SECTIONS = {
   campaign: 'campaign',
   combat: 'keyed',
   builds: 'keyed',
+  voiceReplayAck: 'flag',
+  flightTime: 'devices',
 };
 
 const FLAG_MAPS = ['courses', 'challenges', 'seen', 'casual'];
@@ -156,6 +168,13 @@ export function blobRefusal(raw) {
       }
     }
   }
+  const flight = data.flightTime;
+  if (flight !== undefined && !isRecord(flight)) {
+    return { status: 422, section: 'flightTime', why: 'map' };
+  }
+  if (isRecord(flight) && Object.keys(flight).length > FLIGHT_DEVICES_MAX) {
+    return { status: 413, section: 'flightTime', why: 'count', limit: FLIGHT_DEVICES_MAX };
+  }
   return null;
 }
 
@@ -170,6 +189,18 @@ export function cleanBlob(raw) {
   for (const [section, kind] of Object.entries(SYNCED_SECTIONS)) {
     const value = raw.data[section];
     if (value === undefined) {
+      continue;
+    }
+    if (kind === 'flag') {
+      if (typeof value === 'boolean') {
+        out.data[section] = value;
+      }
+      continue;
+    }
+    if (kind === 'devices') {
+      if (isRecord(value)) {
+        out.data[section] = cleanFlightTime(value);
+      }
       continue;
     }
     if (!(kind === 'whole' ? (value === null || typeof value === 'object' ? isRecord(value) : typeof value === 'string') : isRecord(value))) {
@@ -246,6 +277,10 @@ export function mergeBlobs(incoming, held) {
       merged = av === undefined && bv === undefined ? undefined : mergeUnion(av, bv);
     } else if (kind === 'campaign') {
       merged = av === undefined && bv === undefined ? undefined : mergeCampaign(av, bv);
+    } else if (kind === 'flag') {
+      merged = av === undefined && bv === undefined ? undefined : av === true || bv === true;
+    } else if (kind === 'devices') {
+      merged = av === undefined && bv === undefined ? undefined : mergeFlightTime(av, bv);
     } else if (kind === 'whole') {
       merged = pick(stampOf(a.stamps, section), stampOf(b.stamps, section), av !== undefined, av, bv !== undefined, bv);
     } else {

@@ -59,9 +59,12 @@ import { mergeBlobs, pickSynced, stampChanges } from './progressmerge.js';
 
 /*
  * THE CLIENT ID, Google Cloud project fdfpv-510202, a Web client whose
- * authorised JavaScript origins are https://fdflabs.github.io and
- * http://127.0.0.1:8080. It is public by design: it names this site to
- * Google and grants nothing. Set it to '' to switch sign-in off.
+ * authorised JavaScript origins are https://paraguayandronecombatsimulator.com,
+ * https://www.paraguayandronecombatsimulator.com, https://fdflabs.github.io
+ * and http://127.0.0.1:8080. The button's callback takes the ID token in
+ * the page, so no redirect URI is involved. It is public by design: it
+ * names this site to Google and grants nothing. Set it to '' to switch
+ * sign-in off.
  */
 export const GOOGLE_CLIENT_ID = '533228474420-ij6t37upmahvcg96tava16ild8mdno4t.apps.googleusercontent.com';
 

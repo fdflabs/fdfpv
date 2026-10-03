@@ -75,7 +75,7 @@ import { POWER, normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { PROPS, normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
 import { combatChoice, normaliseCombat } from '../../configs/combat.js';
-import { Carousel, cycleCraft, kindOf } from './carousel.js';
+import { Carousel, cycleCraft, flightTimeText, kindOf } from './carousel.js';
 import { Hangar } from './hangar.js';
 /* Registers the hangar's Tuning tab, then the Parts tab. */
 import './hangar-tuning.js';
@@ -145,6 +145,8 @@ import { TrickFilmPlayer, filmFor, VIEW_LABEL } from './trickfilm.js';
 import { BOARD_WINDOW, openNamedWindow } from '../share/windows.js';
 import { BUG_KINDS, submitBug } from '../share/bugs.js';
 import { crashRecord } from '../share/crashrecord.js';
+import { cleanFlightTime, flightTotals } from '../share/flighttime.js';
+import { boardFlightSeconds } from '../share/stats.js';
 import { createShotTray } from './bugshots.js';
 import { watchVersion } from './update.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from '../share/pilot.js';
@@ -593,6 +595,18 @@ const DEFAULTS = {
    * mature content, so a host is told what it is once before starting it.
    */
   warConsent: false,
+  /*
+   * Whether this profile has been told, and said it understands, that its
+   * voice may be kept in other pilots' replays (src/ui/voiceui.js): until
+   * then voice chat listens only.
+   */
+  voiceReplayAck: false,
+  /*
+   * The pilot's time in the air, one grow only slot per browser
+   * (src/share/flighttime.js), written by src/main.js and synced with the
+   * account.
+   */
+  flightTime: {},
   /*
    * The tune each aircraft was last flown on, by airframe id, so that
    * changing aircraft and changing back, which a swap in flight makes a
@@ -1140,6 +1154,7 @@ export function loadSettings() {
   s.progress = normaliseProgress(stored.progress, { existing: Object.keys(stored).length > 0 });
   s.liverySaves = normaliseSaves(s.liverySaves);
   s.campaign = cleanCampaign(s.campaign);
+  s.flightTime = cleanFlightTime(s.flightTime);
   /*
    * The rate profile, from whichever shape this blob was written in.
    *
@@ -1807,6 +1822,63 @@ function accountRows(account) {
     { label: str('account.delete'), action: 'accountdelete', note: str('account.delete_note') },
   ];
 }
+
+/*
+ * The pilot's flight time, and everybody's: the two rows in Pilot.
+ *
+ * The first is this pilot's record (src/share/flighttime.js), summed
+ * over every computer the account has flown on: the total, and in the
+ * note the first day and the split by activity. The second is the
+ * board's all time sum (src/share/stats.js boardFlightSeconds), shown
+ * only once the board has answered with one: `everyone` is null until
+ * then, and stays null with no board, so no number is made up.
+ */
+function flightTimeRows(record, everyone) {
+  const t = flightTotals(record);
+  const rows = [];
+  if (t.seconds > 0) {
+    const split = FLIGHT_ACTIVITY_LABELS
+      .filter(([id]) => t.byActivity[id] > 0)
+      .map(([id, key]) => str('flight.split_item', { activity: str(key), time: flightTimeText(t.byActivity[id]) }))
+      .join(', ');
+    const since = t.first
+      ? new Date(`${t.first}T00:00:00Z`).toLocaleDateString(currentLocale(), {
+        timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric',
+      })
+      : null;
+    rows.push({
+      id: 'pilot:flight-time',
+      label: str('flight.time'),
+      value: flightTimeText(t.seconds),
+      note: since ? str('flight.time_note', { since, split }) : split,
+      info: true,
+    });
+  } else {
+    rows.push({
+      id: 'pilot:flight-time', label: str('flight.time'), value: str('flight.none'), note: str('flight.none_note'), info: true,
+    });
+  }
+  if (Number.isFinite(everyone)) {
+    rows.push({
+      id: 'pilot:flight-everyone',
+      label: str('flight.everyone'),
+      value: plural('count.hours_flown', Math.floor(everyone / 3600), { n: Math.floor(everyone / 3600).toLocaleString(currentLocale()) }),
+      note: str('flight.everyone_note'),
+      info: true,
+    });
+  }
+  return rows;
+}
+
+/* The activities in the order the split reads, each with its card's
+ * name; an activity missing here is still in the total. */
+const FLIGHT_ACTIVITY_LABELS = [
+  ['race', 'ui.track_mode'],
+  ['free', 'ui.free_flight_card'],
+  ['combat', 'combat.card'],
+  ['tag', 'flight.act_tag'],
+  ['war', 'hub.ops'],
+];
 
 /* Signed in or not: what signing in stores, and the terms, one row each. */
 function accountPageRows() {
@@ -6977,6 +7049,7 @@ export class Ui {
           },
         ]),
         ...(accountsAvailable() ? accountPageRows() : []),
+        ...flightTimeRows(s.flightTime, this.everyoneFlight()),
         { label: str('ui.sticks'), section: true },
         {
           label: str('ui.choose_joystick'),
@@ -12308,6 +12381,25 @@ export class Ui {
 
   persistSettings() {
     saveSettings(this.settings);
+  }
+
+  /* The board's all time flight seconds, asked once a page the first time
+   * Pilot is drawn: null until it answers, and for good if it cannot. */
+  everyoneFlight() {
+    if (this.everyoneFlightAsked) {
+      return this.everyoneFlightS;
+    }
+    this.everyoneFlightAsked = true;
+    this.everyoneFlightS = null;
+    if (boardConfigured()) {
+      boardFlightSeconds().then((n) => {
+        this.everyoneFlightS = n;
+        if (n != null && this.screen === 'pilot') {
+          this.renderMenu();
+        }
+      });
+    }
+    return null;
   }
 
   setGpuInfo(info) {

@@ -63,9 +63,11 @@ export function burnAt(at, t) {
  * then, src/main.js warFinish) or null.
  * `damage` the match's damage events in the order heard. At room ms t:
  * { targets: { id: state } of every target not 'ok', levels: a
- * Float32Array a district, damage: the events by t } (levels refilled on
- * every call with the same cache). `cache` is an object the caller keeps
- * per match.
+ * Float32Array a district, damage: the events by t, openings: every
+ * opening the match's damage tore, whenever (the flood's own clock places
+ * each: src/sim/water/host.js, so its water at t is the same as live) }
+ * (levels refilled on every call with the same cache). `cache` is an
+ * object the caller keeps per match.
  */
 export function matchAt(m, t, cache) {
   if (!cache.from) {
@@ -74,6 +76,7 @@ export function matchAt(m, t, cache) {
       m.cuts,
     );
     cache.levels = new Float32Array(DISTRICTS.length);
+    cache.openings = m.damage.flatMap((d) => d.openings);
   }
   const targets = {};
   if (m.off === null || t < m.off) {
@@ -98,10 +101,14 @@ export function matchAt(m, t, cache) {
   for (let i = 0; i < DISTRICTS.length; i += 1) {
     cache.levels[i] = levelAt(cache.from[i], i, t);
   }
-  return { targets, levels: cache.levels, damage };
+  return {
+    targets, levels: cache.levels, damage, openings: cache.openings,
+  };
 }
 
 /* The map as no war has touched it: every target whole, every light on. */
 export function untouched() {
-  return { targets: {}, levels: new Float32Array(DISTRICTS.length).fill(1), damage: [] };
+  return {
+    targets: {}, levels: new Float32Array(DISTRICTS.length).fill(1), damage: [], openings: [],
+  };
 }
