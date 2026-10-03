@@ -94,10 +94,6 @@ const ORBIT_R = 820;
 const ORBIT_Y = 430;
 const ORBIT_MS = 150000;
 
-
-/* The warhead's olive drab. */
-const WARHEAD = 0x5b6140;
-
 /*
  * Everything drawn under `root` as one draw call: its visible meshes but
  * those under `skip` merged into one geometry in root's frame, each
@@ -295,21 +291,12 @@ export function play(scene, camera, opts = {}) {
     /* Stand it on its lowest point: the builders' origin is the CG. */
     built.group.updateMatrixWorld(true);
     box.setFromObject(built.group);
-    const size = box.getSize(new THREE.Vector3());
     built.group.position.y = -box.min.y;
-    /* The warhead, slung under the belly between the gear, a tube of a
-     * size to the aircraft. */
-    const quad = def.airframe === '5inch';
-    const len = quad ? 0.16 : Math.min(0.42, size.z * 0.22);
-    const r = quad ? 0.024 : len * 0.12;
-    const wh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: WARHEAD }));
-    wh.position.set(0, quad ? -box.min.y - r * 0.2 : size.y * 0.24, quad ? 0.01 : -size.z * 0.05);
-    holder.add(wh);
     bakeCraft(holder, built, Boolean(def.spins), bakedMat);
     holder.visible = false;
     root.add(holder);
     cast.set(name, {
-      holder, built, lift: quad ? r * 1.6 : 0, base: (built.blades || []).map((b) => b.rotation.y),
+      holder, built, base: (built.blades || []).map((b) => b.rotation.y),
     });
   }
   const who = (name, def) => cast.get(def && def.as ? def.as : name);
@@ -469,7 +456,7 @@ export function play(scene, camera, opts = {}) {
     }
     c.holder.visible = true;
     const [x, y, z] = at.p;
-    c.holder.position.set(x, y === WATER ? WATER_Y : y == null ? ground(x, z) + c.lift : y, z);
+    c.holder.position.set(x, y === WATER ? WATER_Y : y == null ? ground(x, z) : y, z);
     if (def.bob) {
       c.holder.position.y += def.bob * Math.sin((t / 1000) * 5.2);
     }
@@ -495,7 +482,7 @@ export function play(scene, camera, opts = {}) {
       }
       const at = castAt(def, s, Math.max(0, t));
       const [x, y, z] = at.shown ? at.p : [c.holder.position.x, c.holder.position.y, c.holder.position.z];
-      return [x, y === WATER ? WATER_Y : y == null ? ground(x, z) + c.lift : y, z];
+      return [x, y === WATER ? WATER_Y : y == null ? ground(x, z) : y, z];
     },
     agent: (id, t, k) => {
       const a = (k != null ? agents.find((x) => x.group === id && x.a.k === k) : null)

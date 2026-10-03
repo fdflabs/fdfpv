@@ -124,6 +124,9 @@ jobs:
       # The game's own domain: which servers the page picks, the probe's
       # fallback to the VM's address, the rooms allowlist and the Caddyfile.
       - run: npm run domain:selftest
+      # A guest's storage carried from fdflabs.github.io to the domain: the
+      # pack, the merge rule, the parts. In Chromium: npm run move:check.
+      - run: npm run move:selftest
       - run: npm run crash:rules
       - run: npm run river:check
       - run: npm run builder:selftest

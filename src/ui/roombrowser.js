@@ -475,7 +475,11 @@ export function createRoomBrowser({
      */
     async bestRoom(game, world) {
       await list.refresh();
-      const fits = (list.rooms() || []).filter((r) => r.mode === game && r.map === world && r.n < r.cap);
+      /* A room with a pilot in it: one that has just emptied can still be
+       * on a list fetched a moment before (the pilot's own, left a second
+       * ago), and it closes as it empties, so joining it left the card's
+       * press in no room at all (game:lobby's Escape row, war, caught it). */
+      const fits = (list.rooms() || []).filter((r) => r.mode === game && r.map === world && r.n > 0 && r.n < r.cap);
       return fits.length ? fits[0].code : null;
     },
     /* Poll the list while it is on screen. */

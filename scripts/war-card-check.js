@@ -21,8 +21,9 @@
  * listed as the war's with its mission. Reloaded (consent now stored),
  * the way in goes to a new Itaipu room with no consent screen at all.
  *
- * Make a room: the Game row offers Defend Itaipu on Itaipu, public or
- * private, with a Mission row, and only there; making it asks consent
+ * Make a room, opened while the lobby still builds the mission's world,
+ * stays up when that build ends. Its Game row offers Defend Itaipu on
+ * Itaipu, public or private, with a Mission row, and only there; making it asks consent
  * first when it is not stored, then lands the same way. A pilot without
  * the consent who joins a room made for the war by its code is asked on
  * arrival: Back leaves it, Continue stays.
@@ -121,7 +122,7 @@ async function roomsServer() {
   throw new Error(`rooms server did not come up on ${url}`);
 }
 
-const HUBS = 'Operations,Flight Club,Hangar';
+const HUBS = 'Flight Club,Operations,Hangar';
 const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
 
 const LAYOUT = `(() => ({
@@ -257,7 +258,7 @@ try {
    * link Defend the Paraná. */
   const first = await page.evaluate(LAYOUT);
   check('home is three hubs; Operations\' one link is Defend the Paraná: no Defend Itaipu card (the owner took it off, 2026-09-30), no Fly with friends (2026-10-02)',
-    first.cards.map((x) => x.name).join() === HUBS && first.cards[0].links.join() === 'Defend the Paraná'
+    first.cards.map((x) => x.name).join() === HUBS && first.cards[1].links.join() === 'Defend the Paraná'
     && !first.cards.some((x) => x.links.includes('Defend Itaipu') || x.links.includes('Fly with friends')), JSON.stringify(first.cards.map((x) => [x.name, x.links])));
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
@@ -355,9 +356,21 @@ try {
   check('the way in again: a new public Itaipu room, the start row under the cursor', landedWell(two, true) && two.code !== one.code, JSON.stringify(two));
   check('and no consent screen on the way', (await page.evaluate('window.__warCardDialogs')) === 0, String(await page.evaluate('window.__warCardDialogs')));
 
-  /* MAKE A ROOM'S GAME ROW. */
+  /* MAKE A ROOM'S GAME ROW, opened while the lobby still builds the
+   * mission's morning world (warTimeFrame, about 5 s): that build ending
+   * must leave the pilot on the form, not throw them back to a room
+   * screen with no room. */
+  const building = await page.evaluate('!window.__loading.root.hidden');
   await page.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.roomGame = null; window.__ui.show('roomnew'); return true; })()");
   await page.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
+  /* Twice: out of the room, the map's own time comes back with a second
+   * build once the first is done. */
+  await page.until('window.__loading.root.hidden', 120000).catch(() => {});
+  await page.sleep(1500);
+  await page.until('window.__loading.root.hidden', 120000).catch(() => {});
+  const stayed = await page.evaluate("({ screen: window.__ui.screen, built: window.__loading.root.hidden, rows: window.__ui.items().map((it) => it.label).join() })");
+  check('a world build ending under Make a room leaves the pilot on it', stayed.screen === 'roomnew' && stayed.built && stayed.rows.includes('Game'),
+    JSON.stringify({ building, ...stayed }));
   const row = (label) => `(window.__ui.items().find((it) => it.label === ${JSON.stringify(label)}) || null)`;
   const pick = (label, want) => page.evaluate(`(() => {
     const r = ${row(label)};
@@ -418,7 +431,7 @@ try {
   });
   keeper.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, war: WAR_JOIN, name: [3, 3, 33],
-    profile: { airframe: 'interceptor', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+    profile: { airframe: '7inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
   }));
   for (let i = 0; i < 100 && !keeperGot.some((m) => m.type === 'welcome'); i += 1) {
     await page.sleep(50);
@@ -470,7 +483,7 @@ try {
   });
   other.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 1, 11],
-    profile: { airframe: 'interceptor', map: 'itaipu', figure: 0, livery: null, parts: null, game: 'war' },
+    profile: { airframe: '7inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: 'war' },
   }));
   for (let i = 0; i < 100 && !otherGot.some((m) => m.type === 'welcome'); i += 1) {
     await page.sleep(50);
@@ -596,7 +609,7 @@ try {
   });
   holder.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 2, 12],
-    profile: { airframe: 'interceptor', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+    profile: { airframe: '7inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
   }));
   for (let i = 0; i < 4 && !(await page.evaluate('window.__ui.onGate()')); i += 1) {
     await page.tap('Escape');

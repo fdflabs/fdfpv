@@ -147,7 +147,7 @@ const TAP_SEED = `(() => {
 })();`;
 
 function seedFor(colour, crashDamage = true) {
-  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, '7inch');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
   s.graphics = 'low';
@@ -156,7 +156,7 @@ function seedFor(colour, crashDamage = true) {
   s.airframeAsked = true;
   s.crashDamage = crashDamage;
   s.warConsent = true;
-  s.livery = { 'interceptor': { regions: { frame: colour } } };
+  s.livery = { '7inch': { regions: { frame: colour } } };
   s.parts = {};
   return [...(MAIN ? [] : [TAP_SEED]), `try {
     const k = ${JSON.stringify(SETTINGS_KEY)};

@@ -593,6 +593,12 @@ const DEFAULTS = {
    */
   warConsent: false,
   /*
+   * The war aircraft (configs/airframes.js WAR_AIRFRAMES) this pilot flew
+   * last in a war, which a war puts them back in when they come to it in
+   * another (main.js warSeatCraft); '' for none yet: the Striker.
+   */
+  warAirframe: '',
+  /*
    * Whether this profile has been told, and said it understands, that its
    * voice may be kept in other pilots' replays (src/ui/voiceui.js): until
    * then voice chat listens only.
@@ -3186,9 +3192,11 @@ const GATE_WAYS = WAYS.filter((w) => w.gate !== false);
  * card itself opens the hub, where each activity is a card as before.
  * Each hub has its own accent (--hub-ops, --hub-club, --hub-hangar).
  */
+/* In the owner's order (2026-10-03: "flight club first, operations
+ * second"): the card numbers follow it, and home opens on Flight Club. */
 const HUBS = [
-  { id: 'ops', label: 'hub.ops', blurb: 'hub.ops_blurb', art: 'assets/posters/itaipu.jpg', category: 'operations' },
   { id: 'club', label: 'hub.club', blurb: 'hub.club_blurb', art: 'assets/posters/swiss2.jpg', category: 'flightclub' },
+  { id: 'ops', label: 'hub.ops', blurb: 'hub.ops_blurb', art: 'assets/posters/itaipu.jpg', category: 'operations' },
   { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg', category: null },
 ];
 
@@ -9196,6 +9204,15 @@ export class Ui {
         host.append(card);
         return { card };
       });
+      /* THE FIRST SIGHT OF HOME opens on Flight Club (the owner,
+       * 2026-10-03). The title's list was the menu's before the gate came
+       * up at boot, and the cursor kept that list's index (Fly's, the
+       * third row), which on home is the Hangar. Once: after that the
+       * cursor is where the pilot put it. */
+      if (this.onGate() && !this.hub && !this.homeSeen) {
+        this.homeSeen = true;
+        this.cursor = this.titleStop();
+      }
     }
     this.markCards();
   }
@@ -10780,10 +10797,10 @@ export class Ui {
   titleStop() {
     const items = this.items();
     if (this.onGate()) {
-      /* At home, the hub of the seated aircraft's card; in a hub, that
-       * card. */
+      /* At home, Flight Club, the first hub (the owner, 2026-10-03); in
+       * a hub, the seated aircraft's card. */
       const seated = seatedWay(this.settings, this.mode).action;
-      const want = this.hub ? seated : `hub-${hubOfAction(seated)}`;
+      const want = this.hub ? seated : `hub-${HUBS[0].id}`;
       const at = items.findIndex((it) => it.action === want);
       if (at >= 0) {
         return at;
@@ -13786,6 +13803,13 @@ export class Ui {
    * opener's onChoose is handed the airframe to seat and whether its slots
    * moved, which on the plane already seated is a refit (refitted).
    */
+  /* The aircraft the pickers and the cycle may offer: the shell's
+   * `craftLimit` (a war room's, configs/airframes.js WAR_AIRFRAMES), or
+   * null for every one. */
+  craftOnly() {
+    return typeof this.craftLimit === 'function' ? this.craftLimit() : null;
+  }
+
   openPicker(opts) {
     const s = this.settings;
     /*
@@ -13801,6 +13825,7 @@ export class Ui {
       && JSON.stringify(flip.after) !== JSON.stringify(flip.before);
     this.carousel.open({
       ...opts,
+      only: this.craftOnly(),
       floats: {
         on: (id) => Boolean(s.floats && s.floats[id]),
         set: (id, on) => {
@@ -14362,7 +14387,7 @@ export class Ui {
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
     if (this.onHotSwap && this.screen === 'flight') {
-      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir)));
+      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }
   }
 

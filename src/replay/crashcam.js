@@ -62,7 +62,6 @@ import { createPeerRing, peerPose } from './peers.js';
 import { createPeerScene } from './peerscene.js';
 import { createPaperRing } from './paper.js';
 import { createPaperScene } from './paperscene.js';
-import { SIZE_MAX } from '../render/explosion.js';
 import { createWarRing } from './warrec.js';
 import { createWarScene } from './warscene.js';
 import {
@@ -403,6 +402,20 @@ export function createCrashCam(host) {
     }
   }
 
+  /* The clip time at which the rows' room clock reaches `ms`, or null
+   * where no row does. */
+  function clipTimeOfRoom(clock, ms) {
+    for (let k = 0; k < S.clip.n; k += 1) {
+      if (clock[k] >= ms) {
+        const k0 = Math.max(0, k - 1);
+        const span = clock[k] - clock[k0];
+        const u = span > 0 && Number.isFinite(clock[k0]) ? Math.max(0, (ms - clock[k0]) / span) : 1;
+        return S.clip.time[k0] + (S.clip.time[k] - S.clip.time[k0]) * Math.min(1, u);
+      }
+    }
+    return null;
+  }
+
   /* Where src/share/voice.js sends the voices it hears (setRecorder). */
   const voiceSink = {
     now: () => (host.roomNow ? host.roomNow() : null),
@@ -575,12 +588,18 @@ export function createCrashCam(host) {
   function tapBooms(fx) {
     const play = fx.play;
     fx.play = (p, size = 1, ageS = 0) => {
-      if (!S && recording && host.mode() === 'flight') {
-        paperRing.boom(rec.now() - ageS, p, Math.min(1, size / SIZE_MAX));
+      /* On the room's clock, whatever the pilot is doing (warrec.js THE
+       * EXPLOSIONS): a strike that lands while the pilot is a wreck,
+       * between lives or on a menu is the world's, and its replay's. */
+      const at = !S && warClock ? warClock() : null;
+      if (at != null) {
+        warRing.boom(at - ageS * 1000, p, size);
       }
       return play(p, size, ageS);
     };
   }
+  /* The room clock the war's frame is drawn at (tapWar's), or null. */
+  let warClock = null;
 
   /*
    * A war (src/share/roomwar.js and src/render/attackers.js): each birth
@@ -592,6 +611,7 @@ export function createCrashCam(host) {
    * only written while the recorder has one open.
    */
   function tapWar(war, layer, clock) {
+    warClock = clock;
     const take = war.takeEvents;
     war.takeEvents = () => {
       const evs = take();
@@ -846,7 +866,7 @@ export function createCrashCam(host) {
     /* Combat's paper, when the clip has it. */
     const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor, host.worldBoom || null) : null;
     /* A war's attackers, when the clip has them. */
-    const war = clip.war ? createWarScene(clip.war, clip.n, parent) : null;
+    const war = clip.war ? createWarScene(clip.war, clip.n, parent, { audio, worldBoom: host.worldBoom || null }) : null;
     return {
       craft, wreck, debris, smoke, peers, paper, war, undoLook, sig: 0, state: new Float64Array(11), qSpawn: new THREE.Quaternion(),
     };
@@ -1208,7 +1228,7 @@ export function createCrashCam(host) {
     /* After the camera: the ribbons are never drawn thinner than a few
      * pixels, so they are drawn from where it is this frame. */
     if (S.scene.war) {
-      S.scene.war.frame(s.k, s.a);
+      S.scene.war.frame(s.k, s.a, step, running && step > 0 ? speed : 0);
       /* The map as the war had it then, when the clip kept it. */
       const w = S.scene.war.world();
       if (w && host.drawWar) {
@@ -2435,8 +2455,25 @@ export function createCrashCam(host) {
       paperEvents: () => (S && S.clip.paper ? S.clip.paper.events : []),
       /* A war's explosions in the clip, on its clock, and what the replay
        * drew of them this frame. */
-      booms: () => (S && S.clip.paper ? S.clip.paper.events.filter((e) => e.type === 'boom').map((e) => e.t) : []),
-      boomFx: () => (S && S.scene.paper ? S.scene.paper.summary().booms : null),
+      /* A war's explosions in the clip, on its clock (the map's since
+       * version 14, the paper's before), and what the replay drew of them
+       * this frame. */
+      booms: () => {
+        if (!S) {
+          return [];
+        }
+        const w = S.clip.war;
+        if (w && w.booms) {
+          return w.booms.map((b) => clipTimeOfRoom(w.clock, b.at)).filter((t) => t !== null);
+        }
+        return S.clip.paper ? S.clip.paper.events.filter((e) => e.type === 'boom').map((e) => e.t) : [];
+      },
+      boomFx: () => {
+        if (S && S.scene.war && S.clip.war.booms) {
+          return S.scene.war.summary().booms;
+        }
+        return S && S.scene.paper ? S.scene.paper.summary().booms : null;
+      },
       /* A war's attackers as the replay drew them this frame, and the
        * clip row drawn at a room ms, for scripts/war-boom.js. */
       warDrawn: () => (S && S.scene.war ? S.scene.war.summary() : null),

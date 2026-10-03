@@ -20,6 +20,9 @@
  *             screen, every HERO_STEP_MS of its window (the whole shot by
  *             default): a group that is dots until its last frame fails
  *   anchors   every anchor of every shot inside the shot
+ *   aircraft  every aircraft a film shows one of the war's (configs/
+ *             airframes.js WAR_AIRFRAMES: the owner, 3 October, "only the
+ *             war ones should be shown")
  *   names     every cast member and every title key known (the cast in
  *             the film's table, the keys in both string tables), every
  *             camera a primitive of film.js, every grade and transition
@@ -54,6 +57,7 @@ import { MISSIONS } from '../src/share/war/missions/index.js';
 import { KIND } from '../src/share/war/routes.js';
 import VOICE from '../src/share/war/voicelen.js';
 import en from '../src/strings/en.js';
+import { WAR_AIRFRAMES } from '../configs/airframes.js';
 import es from '../src/strings/es.js';
 
 const PASS_M = 2;
@@ -209,6 +213,11 @@ for (const film of Object.values(FILMS)) {
         }
       }
     }
+  }
+  const shown = Object.entries(film.cast ?? {}).filter(([, c]) => !WAR_AIRFRAMES.includes(c.airframe));
+  console.log(`  aircraft ${[...new Set(Object.values(film.cast ?? {}).map((c) => c.airframe))].join(', ') || 'none'}`);
+  if (shown.length) {
+    fail(`${film.id}: shows aircraft that are not the war's: ${shown.map(([name, c]) => `${name} (${c.airframe})`).join(', ')}`);
   }
   for (const g of film.agents ?? []) {
     for (const id of g.shots ?? []) {

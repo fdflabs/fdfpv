@@ -94,7 +94,7 @@ const REPLAY_HUNTER_M = 0.01;
 const AUDIO_NODES_MAX = 64;
 
 function seedFor(colour, crashDamage = true) {
-  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, '7inch');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
   s.graphics = 'low';
@@ -103,7 +103,7 @@ function seedFor(colour, crashDamage = true) {
   s.airframeAsked = true;
   s.crashDamage = crashDamage;
   s.warConsent = true;
-  s.livery = { 'interceptor': { regions: { frame: colour } } };
+  s.livery = { '7inch': { regions: { frame: colour } } };
   s.parts = {};
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
@@ -412,7 +412,7 @@ try {
      * rows a minute. */
     const forty = Math.round(rowsMin * (8 + 8 + 4 * 32) + 40 * (size.agentsJson / Math.max(1, size.agents)));
     console.log(`  info  replay size: ${size.withWar - size.without} bytes of war in a ${size.seconds.toFixed(1)} s clip (${size.agents} scripted, ${size.slots} hunter slots, ${Math.round(rowsMin)} rows a minute): ${perMin(size.withWar - size.without)} bytes a minute of the whole ${perMin(size.withWar)}; forty attackers with four Hunters about ${forty} bytes a minute`);
-    check('a saved replay of a war flight is version 12, the map and the sound with it', size.version === 12, `version ${size.version}`);
+    check('a saved replay of a war flight is version 14, the map, the sound and the explosions with it', size.version === 14, `version ${size.version}`);
     await b.evaluate('window.__crashCam.h().api.close(); true');
   }
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));

@@ -33,6 +33,7 @@ import {
   BLAST_M, KIND, KINDS, LEAVE_M, cosDet, planAgent, poseAt, sinDet,
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import { WAR_AIRFRAMES, WAR_DEFAULT } from '../configs/airframes.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { contactAt } from '../src/share/war/contact.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
@@ -312,6 +313,27 @@ export function warSection(check) {
       && e.view(0).rack === 6 && e.view(0).rackMax === 6 && e.view(2).scores.some((x) => x.seat === 3 && !x.gone), JSON.stringify(e.view(0).scores));
     e.say(0, { type: 'war', op: 'end' });
     check('the host ends it', e.view().state === 'ended' && !e.r.war.on() && !e.r.waiting());
+  }
+
+  console.log('war: the war\'s aircraft (configs/airframes.js WAR_AIRFRAMES)');
+  {
+    /* The owner, 3 October: only combat drones fly in wars. A tab from
+     * before the rule flying a Cub into a campaign mission. */
+    const e = warRoom({ air: ['cub1400', WAR_DEFAULT], start: false, code: 'W4RCR4' });
+    e.say(0, { type: 'war', op: 'start', mission: 'itaipu-drill' });
+    e.paths[0] = hover([0, 400, 0]);
+    e.paths[1] = hover([50, 400, 0]);
+    e.fly(COUNTDOWN_MS + 4000);
+    const v = e.view(1);
+    check('every campaign mission names the war\'s aircraft: the seven and ten inch, the interceptor and the Striker',
+      Object.values(MISSIONS).every((m) => m.aircraft === WAR_AIRFRAMES) && WAR_AIRFRAMES.join() === '7inch,10inch,interceptor,striker2500');
+    check('the room refuses a Cub in a war: told "airframe" once, and not in the war\'s flying, the Striker beside it is',
+      e.errors(0).filter((x) => x === 'airframe').length === 1 && e.errors(1).length === 0
+      && !e.r.war.flying(e.r).some((d) => d.seat === 1) && e.r.war.flying(e.r).some((d) => d.seat === 2), JSON.stringify([e.errors(0), e.errors(1), v.state]));
+    const free = warRoom({ air: 'cub1400', mission: testMission([{ at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' }], { r: [[-3000, Y, 0], [-2000, Y, 0]] }), code: 'W4RCR5' });
+    free.paths[0] = hover([0, 400, 0]);
+    free.fly(COUNTDOWN_MS + 2000);
+    check('and a mission that names no aircraft, as these checks write theirs, lets any', free.errors(0).length === 0 && free.r.war.flying(free.r).some((d) => d.seat === 1));
   }
 
   console.log('war: the briefing (the intro, section 7.1)');
@@ -1022,7 +1044,7 @@ export function warSection(check) {
     const ON = new Set(['briefing', 'countdown', 'live']);
     for (const skip of [false, true]) {
       const c = createRoomWar(() => {});
-      const one = warRoom({ n: 1, start: false, code: 'M1SS10' });
+      const one = warRoom({ n: 1, start: false, code: 'M1SS10', air: WAR_DEFAULT });
       one.say(0, {
         type: 'war', op: 'start', mission: 'itaipu-1', intro: true,
       });
@@ -1031,7 +1053,7 @@ export function warSection(check) {
       feed(c, one.socks[0], 0);
       const first = c.match();
       c.clear();
-      const two = warRoom({ n: 1, start: false, code: 'M1SS20' });
+      const two = warRoom({ n: 1, start: false, code: 'M1SS20', air: WAR_DEFAULT });
       two.paths[0] = hover([0, 400, 0]);
       two.say(0, {
         type: 'war', op: 'start', mission: 'itaipu-2', intro: true,

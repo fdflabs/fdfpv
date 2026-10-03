@@ -1292,6 +1292,25 @@ export const AIRFRAME_IDS = AIRFRAMES.map((a) => a.id);
  */
 export const DEFAULT_AIRFRAME = 'interceptor';
 
+/*
+ * THE WAR'S AIRCRAFT (the owner, 3 October, superseding 29 September's
+ * "all aircraft"): the only ones a war room lets a pilot fly and the only
+ * ones a war film shows. They are the catalog's combat aircraft, the ones
+ * with a `combat` block (a warhead in their payload slots, configs/
+ * combat.js): the seven and ten inch FPV warhead quads, the interceptor
+ * and the Striker. No trainer, Cub, Tiger Moth, glider, racing quad
+ * without a warhead or whoop. WAR_DEFAULT is the one a pilot is put in
+ * who has flown none of them in a war yet.
+ */
+export const WAR_AIRFRAMES = Object.freeze(AIRFRAMES.filter((a) => a.combat).map((a) => a.id));
+export const WAR_DEFAULT = 'striker2500';
+export function isWarAirframe(id) {
+  return WAR_AIRFRAMES.includes(id);
+}
+if (!WAR_AIRFRAMES.includes(WAR_DEFAULT)) {
+  throw new Error(`airframes: the war's default ${WAR_DEFAULT} is not a combat aircraft`);
+}
+
 export function airframeById(id) {
   return AIRFRAMES.find((a) => a.id === id) ?? AIRFRAMES.find((a) => a.id === DEFAULT_AIRFRAME);
 }

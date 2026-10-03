@@ -63,28 +63,32 @@ const FACE_UP = yawTo(UP[0], UP[1]);
 export const WATER = 'water';
 
 /* The hangar's aircraft the film stages: which airframe, and whether the
- * film turns its props (`spins`). */
+ * film turns its props (`spins`). Only the war's aircraft (the owner, 3
+ * October: "only the war ones should be shown"; configs/airframes.js
+ * WAR_AIRFRAMES, which films:lint holds every film to): the Striker, the
+ * seven and ten inch warhead quads, the interceptor. */
 const CAST = {
-  p51: { airframe: 'p51d1450' },
-  cub: { airframe: 'cub1400' },
-  q1: { airframe: '5inch' },
-  q2: { airframe: '5inch' },
-  q2s: { airframe: '5inch', spins: true },
-  q3: { airframe: '5inch' },
-  sky: { airframe: 'sky1800' },
-  skys: { airframe: 'sky1800', spins: true },
-  f16: { airframe: 'f16878', spins: true },
-  timber: { airframe: 'timber1500' },
-  zagi: { airframe: 'zagi1219' },
-  q4: { airframe: '5inch' },
-  q5: { airframe: '5inch' },
-  q6: { airframe: '5inch' },
-  q7: { airframe: '5inch' },
+  strk: { airframe: 'striker2500' },
+  strks: { airframe: 'striker2500', spins: true },
+  ten: { airframe: '10inch' },
+  ten2: { airframe: '10inch' },
+  q1: { airframe: '7inch' },
+  q2: { airframe: '7inch' },
+  q2s: { airframe: '7inch', spins: true },
+  q3: { airframe: '7inch' },
+  int: { airframe: 'interceptor' },
+  ints: { airframe: 'interceptor', spins: true },
+  int2: { airframe: 'interceptor' },
+  int3: { airframe: 'interceptor' },
+  q4: { airframe: '7inch' },
+  q5: { airframe: '7inch' },
+  q6: { airframe: '7inch' },
+  q7: { airframe: '7inch' },
 };
 
 /* The line of aircraft on the crest deck, side by side 3.2 m apart round
  * intake 10.5, noses to the reservoir. */
-const LINE = ['p51', 'cub', 'q1', 'q2', 'q3', 'sky', 'f16', 'timber'];
+const LINE = ['ten', 'q1', 'q2', 'q3', 'strk', 'int', 'ten2', 'int2'];
 const LINE_AT = 10.5;
 const LINE_OFF = 16;
 const LINE_GAP = 3.2;
@@ -111,7 +115,7 @@ const LONE_PASS = [150, 228, -2500];
 
 export default {
   id: '2030',
-  version: 2,
+  version: 3,
   cast: CAST,
   routes: {
     /* The lone Striker, low over the water straight at the lens. */
@@ -240,7 +244,7 @@ export default {
         type: 'handheld', lens: 35, at: crest(LINE_AT, LINE_OFF + 0.7, CREST_Y + 0.26, along('q2') + 0.09), look: { cast: 'q2', up: 0.03 }, amp: 0.01, drift: 2,
       },
       cast: {
-        ...lineCast(['q2', 'sky']),
+        ...lineCast(['q2', 'strk']),
         q2: { as: 'q2s', ...standing('q2'), spin: [[0, 0], [0.3, 0], [1.7, 70], [2.5, 90]] },
       },
       out: 'smash',
@@ -249,13 +253,13 @@ export default {
       id: 'thrown',
       min: 3,
       grade: 'warm',
-      /* Behind the Skyhunter just thrown off the crest, climbing out. */
+      /* Behind the Striker just off its rail on the crest, climbing out. */
       camera: {
-        type: 'drone', lens: 18, ride: { cast: 'launch' }, back: 2.5, up: 0.6, lag: 250, ease: 'lin',
+        type: 'drone', lens: 18, ride: { cast: 'launch' }, back: 4.5, up: 1.0, lag: 250, ease: 'lin',
       },
       cast: {
         launch: {
-          as: 'skys',
+          as: 'strks',
           keys: [
             { t: 0, p: crest(LINE_AT, 24, CREST_Y + 2.0, 2), yaw: FACE_UP, pitch: 0.21 },
             { t: 3, p: crest(LINE_AT, 24 + 40, CREST_Y + 2.0 + 8.7, 2), yaw: FACE_UP, pitch: 0.21 },
@@ -269,13 +273,13 @@ export default {
       id: 'fan',
       min: 3,
       grade: 'warm',
-      /* The F-16 from behind and low, its fan spooling. */
+      /* The interceptor from behind and low, its props spooling. */
       camera: {
-        type: 'handheld', lens: 50, at: crest(LINE_AT, LINE_OFF - 2.1, CREST_Y + 0.42, along('f16') + 0.7), look: { cast: 'f16', up: 0.05 }, amp: 0.008, drift: 1.5,
+        type: 'handheld', lens: 50, at: crest(LINE_AT, LINE_OFF - 1.4, CREST_Y + 0.32, along('int') + 0.5), look: { cast: 'int', up: 0.05 }, amp: 0.008, drift: 1.5,
       },
       cast: {
-        ...lineCast(['sky']),
-        f16: { ...standing('f16'), spin: [[0, 30], [3, 120]] },
+        ...lineCast(['strk', 'int']),
+        int: { as: 'ints', ...standing('int'), spin: [[0, 30], [3, 120]] },
       },
       out: 'cut',
     },
@@ -290,10 +294,10 @@ export default {
         type: 'telephoto', lens: [200, 24], ease: 'io', at: crest(8.5, 20, 231), look: [[90, 262, -2500], [100, 280, -2150]],
       },
       cast: {
-        p51: rise(crest(8.5, 8, 233, 10), 22, 40, 0.2, 7.4),
+        strk: { as: 'strks', ...rise(crest(8.5, 8, 233, 10), 22, 40, 0.2, 7.4) },
         q4: rise(crest(8.5, 23, 227.5, 3), 9, 70, -0.25, 8.2),
         q5: rise(crest(8.5, 22, 227.5, -4), 8, 64, -0.25, 9.5),
-        zagi: rise(crest(8.5, 6, 233, -12), 20, 45, 0.2, 10.5),
+        int3: rise(crest(8.5, 6, 233, -12), 20, 45, -0.25, 10.5),
         q6: rise(crest(8.5, 24, 227, 6), 10, 60, -0.25, 12.0),
         q7: rise(crest(8.5, 23, 227.5, -7), 9, 55, -0.25, 13.5),
       },
