@@ -23,9 +23,10 @@
 
 import film2030 from './2030.js';
 import firstLight from './first-light.js';
+import spillway from './spillway.js';
 import { filmMs } from '../film.js';
 
-export const FILMS = Object.freeze(Object.fromEntries([film2030, firstLight].map((f) => [f.id, f])));
+export const FILMS = Object.freeze(Object.fromEntries([film2030, firstLight, spillway].map((f) => [f.id, f])));
 export const DEFAULT_FILM = '2030';
 
 /* The film a mission plays: its own, or the default. A mission naming a

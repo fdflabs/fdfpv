@@ -218,7 +218,7 @@ import {
   MISSIONS, missionTime, waveSize, waveTarget,
 } from '../../src/share/war/missions/index.js';
 import {
-  RESULT_MS, allBorn, arm, beatOf, crossings, draw, dueCues, dueSpawns, enter, exitDue, failedAny, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind,
+  RESULT_MS, allBorn, arm, beatOf, crossings, draw, drawSets, dueCues, dueSpawns, enter, exitDue, failedAny, gatesOf, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind, worthOf,
   stagesOf, target as exitTarget, wavesOf,
 } from '../../src/share/war/stages.js';
 import { madeFor, modeById } from '../../src/share/modes.js';
@@ -728,6 +728,12 @@ export class RoomWar {
         })),
         ready: Object.keys(m.stage.ready).map(Number),
       } : null,
+      /* The working sets drawn (stages.js drawSets), and the spillway's
+       * gate state: [{ gate, at, open_m }], each a gate's hoist starting
+       * at room ms `at` toward open_m metres (src/share/war/hoist.js
+       * openAt; the damage, the map and the flood read it, T1.9). */
+      sets: m.sets ?? null,
+      gates: this.gates(),
       airframes: this.airframes(),
       spent: { ...(m.spent ?? {}) },
       earned: { ...(m.earned ?? {}) },
@@ -1081,6 +1087,11 @@ export class RoomWar {
     for (const t of core.seats.values()) {
       this.enlist(t);
     }
+    /* The working sets (stages.js drawSets), drawn as the match starts
+     * so its film shows the same as its stages, for the pilots enlisted;
+     * a restart keeps the ones it had. */
+    this.match.sets = cp ? cp.sets : drawSets(mission, this.match.seed, Math.max(1, this.players(core).length));
+    this.match.gates = cp ? cp.gates.map((g) => ({ ...g })) : [];
     this.nextId += 1;
     /* The room's mission from now on, in a later welcome too: a reload
      * between wars still names it (docs/FLOW-AUDIT.md D7). */
@@ -1270,7 +1281,7 @@ export class RoomWar {
         m.nextAgent += 1;
         const err = blind && w.spread ? mm(w.spread * (2 * draw(m.seed, id) - 1)) : 0;
         const a = {
-          id, kind: slotKind(w, d, k, m.seed, st.entry), route: d.route, t0, k, n, err, target: waveTarget(w, k), wave: w.si,
+          id, kind: slotKind(w, d, k, m.seed, st.entry), route: d.route, t0, k, n, err, target: waveTarget(w, k, m.sets), wave: w.si,
         };
         /* The route turned by the seed's azimuth, and the sector it was
          * drawn from (stages.js enter). */
@@ -1608,7 +1619,7 @@ export class RoomWar {
     };
     player.kills += killed.length;
     for (const a of killed) {
-      player.mw += a.target != null && a.kind !== 'decoy' ? mission.targets[a.target].mw : 0;
+      player.mw += a.target != null && a.kind !== 'decoy' ? worthOf(mission, m.stage, m, a.target) : 0;
     }
     for (const o of fly) {
       if (o.seat === d.seat || !m.players[o.seat]) {
@@ -1779,9 +1790,18 @@ export class RoomWar {
       if (m.stage) {
         note(m.stage, { t, e: 'down', target: id });
       }
-      m.output = Math.max(0, m.output - target.mw);
-      m.roundMw = (m.roundMw ?? 0) + target.mw;
+      /* A working gate while the spill runs costs more (stages.js worthOf). */
+      const mw = worthOf(this.mission(), m.stage, m, id);
+      m.output = Math.max(0, m.output - mw);
+      m.roundMw = (m.roundMw ?? 0) + mw;
     }
+  }
+
+  /* Every hoist move of the match (stages.js gatesOf): the stages' before
+   * this one, then this one's. */
+  gates() {
+    const m = this.match;
+    return [...(m.gates ?? []), ...(m.stage ? gatesOf(this.mission(), m.stage, m) : [])];
   }
 
   /*
@@ -1849,6 +1869,8 @@ export class RoomWar {
       damage: (m.damage ?? []).map((e) => ({ ...e })),
       cut: (m.cut ?? []).slice(),
       path: (m.path ?? []).map((x) => ({ ...x })),
+      sets: m.sets ?? null,
+      gates: this.gates().map((g) => ({ ...g })),
       was: m.was ?? null,
       round: m.round ?? 0,
       roundsIn: m.roundsIn ?? null,
@@ -1858,6 +1880,8 @@ export class RoomWar {
       wave: m.wave,
       nextAgent: m.nextAgent,
     };
+    /* The hoists the stage leaving moved stay where it left them. */
+    m.gates = this.gates();
     m.stage = enter(mission, idx, at, m.seed, m.entries, { was: m.was ?? null, pilots: Math.max(1, this.players(core).length) });
     (m.path ??= []).push({ id: def.id, at });
     m.roundState = 'live';

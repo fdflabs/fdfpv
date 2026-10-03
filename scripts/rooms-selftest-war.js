@@ -240,6 +240,8 @@ export function warSection(check) {
     let ok = true;
     const unplanned = [];
     for (const m of Object.values(MISSIONS)) {
+      /* A working set's spawn may go for any target the set is drawn from. */
+      const sets = Object.fromEntries(Object.entries(m.sets ?? {}).map(([name, d]) => [name, d.from]));
       for (const w of m.waves) {
         const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
           ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat();
@@ -247,7 +249,7 @@ export function warSection(check) {
           for (const route of routes) {
             try {
               planAgent(m, {
-                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
+                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0, sets),
               });
             } catch (x) {
               ok = false;
@@ -1062,9 +1064,13 @@ export function warSection(check) {
       const label = skip ? 'mission 2, the host skipping the intro' : 'mission 2, the whole intro';
       check(`${label}: the same war id as mission 1's room, and still another war to the shell`, c.view().id === 1 && first === 'M1SS10:1'
         && c.match() === 'M1SS20:1', `${first} then ${c.match()}`);
+      const working = c.view().sets?.working ?? [];
+      check(`${label}: its working gates drawn as it starts, three for one pilot, every one a gate, in the view to every screen`,
+        working.length === 3 && working.every((id) => /^gate-\d+$/.test(id)) && Array.isArray(c.view().gates), JSON.stringify(c.view().sets));
       if (skip) {
         two.fly(4000);
-        two.say(0, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version } });
+        const film = filmFor(MISSIONS['itaipu-2']);
+        two.say(0, { type: 'war', op: 'seen', films: { [film.id]: film.version } });
         two.say(0, { type: 'war', op: 'skipIntro' });
       }
       const blank = [];
@@ -1093,11 +1099,13 @@ export function warSection(check) {
         [...(skip ? [] : ['briefing']), 'countdown', 'live', 'result'].every((x) => states.has(x)) && !ON.has(c.view().state),
         `${[...states].join()} then ${c.view().state}`);
       check(`${label}: the HUD said what comes next at every read while the war was on`, blank.length === 0, blank.slice(0, 3).join(' | '));
-      /* Round 1's waves are all announced at the go (BIRTH_LEAD_MS), so
-       * the first clock is round 2's strike at 30 s. */
+      /* Every clock never goes up, and one over a second long goes down
+       * (a wave announced 3.2 s after the go reads 3 at both of its
+       * reads); the Spillway's Loiterers, 15 to 30 s into its first
+       * stage (paced 1.6 for one pilot), are a long one among them. */
       const runs = [...clocks.values()];
-      check(`${label}: NEXT WAVE IN counted down to each wave it named, round 2's 30 s strike among them`,
-        clocks.has('round 2 wave 3') && runs.every((x) => x.length >= 2 && x[0] > x.at(-1) && x.every((y, i) => i === 0 || y <= x[i - 1])),
+      check(`${label}: NEXT WAVE IN counted down to each wave it named, stage 1's Loiterers among them`,
+        (clocks.get('round 1 wave 1') ?? [0])[0] >= 24 && runs.every((x) => x.length >= 2 && (x[0] > x.at(-1) || x[0] <= 3) && x.every((y, i) => i === 0 || y <= x[i - 1])),
         [...clocks].map(([k, x]) => `${k}: ${x[0]}..${x.at(-1)}`).join(', '));
     }
 
