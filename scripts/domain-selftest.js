@@ -8,7 +8,7 @@
  * GitHub Pages address and loopback, and the probe's fallback to the VM's
  * bare address while the API name's DNS spreads. Then the rooms server's
  * origin allowlist (edge/rooms/front.js), through its own fetch handler,
- * and the Caddyfile's three sites. The Caddyfile is read as text here; it
+ * and the Caddyfile's two sites. The Caddyfile is read as text here; it
  * is run for real with `caddy validate` by deploy/vm/install.sh.
  *
  * Nothing here touches a network: fetch is a stand in, and the page's
@@ -155,7 +155,6 @@ const allowed = [
   'http://127.0.0.1:8123',
 ];
 const refused = [
-  'https://paraguayanfightdronesimulator.com',
   'http://paraguayandronecombatsimulator.com',
   'https://paraguayandronecombatsimulator.com.evil.example',
   'https://evil.paraguayandronecombatsimulator.com',
@@ -203,9 +202,9 @@ console.log('the Caddyfile');
   check('the bare address keeps its shortlived certificate and imports the routes', Boolean(ip) && /profile shortlived/.test(ip) && /import servers/.test(ip));
   const name = block('api.paraguayandronecombatsimulator.com');
   check('the API name imports the same routes', Boolean(name) && /import servers/.test(name));
-  const second = block('paraguayanfightdronesimulator.com, www.paraguayanfightdronesimulator.com');
-  check('the second domain and its www go to the game, path and query kept, 301',
-    Boolean(second) && /redir https:\/\/paraguayandronecombatsimulator\.com\{uri\} 301/.test(second));
+  check('nothing else: the bare address and the API name are the only sites',
+    (caddy.match(/^\S[^\n]*\{\s*$/gm) || []).map((l) => l.trim()).join(' | ') === '(servers) { | 129.151.39.48 { | api.paraguayandronecombatsimulator.com {',
+    (caddy.match(/^\S[^\n]*\{\s*$/gm) || []).map((l) => l.trim()).join(' | '));
   check('the game\'s apex and www are not here (GitHub Pages serves them)',
     !/^(www\.)?paraguayandronecombatsimulator\.com\b/m.test(caddy));
 }
