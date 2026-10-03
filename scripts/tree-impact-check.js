@@ -37,6 +37,13 @@
  *     with the tree met);
  * and the run passes when every throw does and the pages logged no error.
  *
+ * THE AUDIT'S OWN TREES, with the F-16 seated: the trunks #254 threw it
+ * into when it went NaN (AUDIT_TREES), at 60 m/s along a clear line, each
+ * judged as above; then the throw that froze the page after them, a fresh
+ * one in clear air, which must come back within THROW_MS, finite, and
+ * fall as a throw does (scripts/tree-nan-selftest.js is the plant's half,
+ * in checks.yml).
+ *
  * One browser at a time, through tests/lib/page.js. About five minutes a
  * map on this machine's GPU.
  *
@@ -84,6 +91,11 @@ const HELD = 1 / 3;
 const DAMAGE = ['break', 'crush', 'crack', 'bend', 'chip', 'knock'];
 /* A throw that does not come back in this long froze the page. */
 const THROW_MS = 30000;
+/* #254's item 1: the trunks an F-16 at 60 m/s went NaN at, world x y z. */
+const AUDIT_TREES = {
+  swiss2: [[1885.7, 445, -1235.3], [1386.8, 675.9, 2071.5], [1596.4, 387.7, -1298.9]],
+  alps: [[395.1, 66.7, -2280.1], [615.2, 148.9, -2402.9]],
+};
 
 function seeds(map, airframe) {
   const settings = {
@@ -176,6 +188,20 @@ function pageTargets(o) {
   /* A broadleaf's leaves: the canopy spheres within its crown's reach. */
   const leaves = (p) => solids.filter((s) => s.kind === 'canopy' && Math.hypot(s.a[0] - p.a[0], s.a[2] - p.a[2]) < 8);
   const out = {};
+  /* The audit's trees: the post nearest each point, at the point's height,
+   * on a clear line, the trunk's run up. */
+  if (o.at) {
+    o.at.forEach(([x, y, z], i) => {
+      const p = posts.slice().sort((a, b) => Math.hypot(a.a[0] - x, a.a[2] - z) - Math.hypot(b.a[0] - x, b.a[2] - z))[0];
+      if (!p || Math.hypot(p.a[0] - x, p.a[2] - z) > 3) {
+        return;
+      }
+      const own = new Set([p, ...leaves(p)]);
+      const u = line(p.a[0], y, p.a[2], own, RUN_TRUNK);
+      if (u) out[`audit${i + 1}`] = { x: p.a[0], y, z: p.a[2], ...u };
+    });
+    return JSON.stringify(out);
+  }
   for (const p of posts) {
     if (out.conifer && out.trunk && out.crown) break;
     const cx = p.a[0], cz = p.a[2];
@@ -344,6 +370,37 @@ for (const map of MAPS) {
             break;
           }
         }
+      }
+    }
+    if (!frozen && AIR.includes('f16878') && AUDIT_TREES[map]) {
+      await seat(page, 'f16878');
+      const at = AUDIT_TREES[map];
+      const audit = JSON.parse(await page.evaluate(`(${pageTargets.toString()})(${JSON.stringify({ RUN_TRUNK, RUN_OUT, at })})`));
+      at.forEach((p, i) => {
+        if (!audit[`audit${i + 1}`]) {
+          failed += 1;
+          console.log(`  FAIL  no clear line to the audit's tree at (${p.join(', ')})`);
+        }
+      });
+      for (const [k, t] of Object.entries(audit)) {
+        if (frozen) break;
+        const row = await throwOnce(page, { ...t, v: 60 });
+        flown += 1;
+        const why = judge(row, 60);
+        console.log(`  ${why ? 'FAIL' : 'pass'}  f16878         ${k} (${[t.x, t.y, t.z].map((v) => v.toFixed(1)).join(', ')}) 60 m/s  ${why || `gain ${(100 * row.gain).toFixed(2)}%, top ${row.vMax.toFixed(1)} m/s, end ${row.end.toFixed(1)} m/s, ${row.log.join(',')}`}`);
+        if (why) failed += 1;
+        frozen = Boolean(row.frozen);
+      }
+      if (!frozen) {
+        /* The audit's freeze: the next throw after them. In clear air 300 m
+         * over the spawn, level at 30 m/s, nothing to meet: it comes back,
+         * stays finite and falls. */
+        const sp = JSON.parse(await page.evaluate('JSON.stringify(window.__map().spawn)'));
+        const row = await throwOnce(page, { x: sp.x, y: sp.y + 300, z: sp.z, ux: 1, uz: 0, run: 0, v: 30 });
+        flown += 1;
+        const why = row.frozen ? 'froze the page' : row.error ? row.error : !row.finite ? 'the state went NaN' : row.faults > 0 ? `${row.faults} plant faults` : '';
+        console.log(`  ${why ? 'FAIL' : 'pass'}  f16878         the next throw, in clear air, comes back finite  ${why || `top ${row.vMax.toFixed(1)} m/s, ${row.met ? 'met something' : 'met nothing'}`}`);
+        if (why) failed += 1;
       }
     }
     const errors = [...new Set(page.errors)];
