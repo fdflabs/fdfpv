@@ -981,7 +981,21 @@ export async function buildPart(ctx) {
   ctx.progress(1);
   /* The flood (live.js): Free Flight's typical spill until a war says
    * otherwise. */
-  const flood = liveFlood();
+  const live = liveFlood();
+  /*
+   * THE REPLAY'S WATER (src/replay/warrec.js, the crash cam). A replay
+   * hands its clip's openings (replayFlood): a flood of its own is made
+   * from them and stepped on the clip's clock (update's step is the
+   * playhead's room ms then), rewinding when the playhead goes back
+   * (host.js), and it is the one drawn and heard. The live flood is not
+   * stepped meanwhile and nothing of the replay reaches it; when the
+   * replay hands null the live one is drawn again and catches up on the
+   * room's clock a budget at a time. The plant's level stays the live
+   * one's: the plant does not step under a replay.
+   */
+  let replay = null;
+  let replayKey = '';
+  const active = () => replay || live;
   let clockMs = null;
   /*
    * The spillway's state from the flood, for the chute, the plume and the
@@ -1035,7 +1049,7 @@ export async function buildPart(ctx) {
   const FRONT_STEP = 10;
   const spillShare = new Float32Array(BAYS);
   const readSpill = (stepped) => {
-    const fl = flood.flood();
+    const fl = active().flood();
     readAge += 1;
     if (!fl || (fl === readFrom && !(stepped > 0 && readAge >= READ_EVERY))) return;
     readFrom = fl;
@@ -1105,18 +1119,36 @@ export async function buildPart(ctx) {
     /* An opening in the dam (docs/DAMBREAK-CONTRACT), from the war's
      * damage: into the flood. */
     onOpening(o) {
-      flood.open(o);
+      live.open(o);
+    },
+    /* A replay's water from its openings (the contract's, in the order
+     * the clip heard them), or null when the replay closes. The same list
+     * again keeps the flood it made. */
+    replayFlood(openings) {
+      if (openings === null) {
+        replay = null;
+        replayKey = '';
+        readFrom = null;
+        return;
+      }
+      const key = JSON.stringify(openings);
+      if (replay && key === replayKey) return;
+      replayKey = key;
+      replay = liveFlood();
+      for (const o of openings) replay.open(o);
+      readFrom = null;
     },
     /* A mission's gate state ({ gate, at, open_m } each), or null for
      * no war (live.js). */
     setGates(list) {
-      flood.setGates(list);
+      live.setGates(list);
     },
-    /* Each opening's discharge, m3/s, and where (world, y up). */
-    flows: () => flood.flows(),
+    /* Each opening's discharge, m3/s, and where (world, y up): the
+     * replay's water's while one plays. */
+    flows: () => active().flows(),
     /* The river's level under (x, z) at room time `ms` for the plant, or
      * null where the flood has none (live.js levelAt). */
-    levelAt: (x, z, ms) => flood.levelAt(x, z, ms),
+    levelAt: (x, z, ms) => live.levelAt(x, z, ms),
     /* Where the spillway's jets come down, for its roar
      * (src/render/world-audio.js audioBeds). */
     plunges: spill.map((b) => b.land),
@@ -1128,7 +1160,7 @@ export async function buildPart(ctx) {
       /* In a room the animation clock is the room's (src/main.js
        * trafficMs), the clock the flood steps on. */
       clockMs = step;
-      const stepped = flood.advance(step);
+      const stepped = active().advance(step);
       readSpill(stepped);
     },
     /* The shell's waves, in the map's frame, in view.water's order
@@ -1169,7 +1201,8 @@ export async function buildPart(ctx) {
     stats: () => ({
       ...stats,
       bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })),
-      flood: flood.stats(clockMs),
+      flood: live.stats(clockMs),
+      replayFlood: replay ? replay.stats(clockMs) : null,
     }),
   };
 }

@@ -492,6 +492,9 @@ async function buildItaipu(shell, progress, q, time) {
      * at: room ms, open_m }], or null for no war: the water follows them
      * (water/live.js). */
     setGateState: (list) => parts.water.setGates(list),
+    /* A crash cam replay's water from its clip's openings, or null
+     * (water/index.js replayFlood). */
+    replayFlood: (openings) => parts.water.replayFlood(openings),
     /* The water through each opening this frame, m3/s, for the world's
      * sound (src/render/world-audio.js flow). */
     waterFlows: () => parts.water.flows(),
