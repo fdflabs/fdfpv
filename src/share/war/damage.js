@@ -34,11 +34,16 @@
  *   w   for a gantry's beam, the power line spans whose wires end on it
  *       (src/share/war/itaipu-wires.js's span ids): it gone, they are
  *       down
+ *   m   1 for a part of a spillway gate's leaf, which turns with it
+ *       (frame.hinge): written where it stands with the leaf at rest
  *
  *   water  the surface the structure stands in (the reservoir), or null
  *   frame  where an opening is measured: o a point, u the horizontal
  *          along the face, n the way water flows out through it, and for
- *          a pipe its bore, m2, the most an opening of it passes
+ *          a pipe its bore, m2, the most an opening of it passes; for a
+ *          spillway gate its hinge (src/share/war/leaf.js): blast() takes
+ *          the leaf where it stands (turnOf), and its opening is measured
+ *          on the leaf
  *
  * THE ONE TABLE. A warhead's damage to a chunk at distance d (from the
  * blast's centre to the nearest point of the chunk's box, 0 inside it) is

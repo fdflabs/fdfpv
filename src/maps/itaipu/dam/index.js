@@ -3346,8 +3346,13 @@ export async function buildPart(ctx) {
       /* gate-0 is the westernmost: u runs east. */
       /* On its upstream face; its reach at most half the gates' pitch,
        * so neighbours' spheres never overlap. */
+      /* At the skin's middle as Free Flight draws it, its height turned
+       * with the leaf (its place across and along the dam the rest's, a
+       * few centimetres off it, so the missions' aim points stay put):
+       * every capsule of the skin within its reach. */
+      const mid = arc((u0 + u1) / 2, R, 0);
       targets[id] = {
-        at: arc((u0 + u1) / 2, R, 0), r: gateR, part: 'gate', colliders: ids,
+        at: [mid[0], turnPoint(hinge, leafTurn(hinge, FREE_OPEN_M), mid)[1], mid[2]], r: gateR, part: 'gate', colliders: ids,
       };
       /* Each side: the two arms from the girders' ends back to the
        * trunnion on the pier, the brace between them, and the hoist
