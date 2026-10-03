@@ -393,11 +393,16 @@ async function buildItaipu(shell, progress, q, time) {
   /* The drawn ground, and over the water its still surface, so a craft
    * rests on the water it sees whether or not
    * the shell has declared the bodies to the plant; then the roofs, the
-   * highest within a step of fromY (alps/roofs.js). */
+   * highest within a step of fromY (alps/roofs.js). Water is water where
+   * either the drawn ground or the data's (the lake's bed) is under the
+   * surface: for a few frames after a respawn the engine draws the new
+   * spot from a coarse node, and in the river's canyon that node stands
+   * 1.3 m over the surface, so the drawn height alone handed the plant a
+   * ground over the water that threw the aircraft up and broke its boom. */
   const wet = (x, z) => {
     const h = terrain.height(x, z);
     for (const l of lakes) {
-      if (l.surfaceY > h && insideWater(l, x, z)) {
+      if ((l.surfaceY > h || l.surfaceY > l.bed(x, z)) && insideWater(l, x, z)) {
         return l.surfaceY;
       }
     }
