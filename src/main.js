@@ -13167,8 +13167,41 @@ export async function boot({
     return !(dx * dx + dz * dz < 1);
   }
 
+  /*
+   * WATER WHOSE LEVEL IS NOT ONE HEIGHT (a body with levelAt, Itaipu's
+   * flood, docs/FLOOD.md): the plant is told its level at the aircraft
+   * with the ground, at the same steps, the map's water clock set to the
+   * room's time of this step first, so the floats sit on the water drawn
+   * and the level depends on where and when, never on how frames fell.
+   */
+  const waterLevelSim = { x: 0, y: 0, z: 0 };
+  function feedWaterLevels(x, z) {
+    const bodies = (view && view.water) || [];
+    if (typeof sim.e.sim_water_level !== 'function') {
+      return;
+    }
+    bodies.forEach((w, k) => {
+      if (!w.levelAt) {
+        return;
+      }
+      const y = w.levelAt(x, z);
+      if (y == null || !insideWater(w, x, z)) {
+        return;
+      }
+      worldPosToSim(x, y, z, waterLevelSim);
+      sim.e.sim_water_level(k, waterLevelSim.z);
+      if (stepTrace.on) {
+        stepTrace.water = traceHash(0x811c9dc5 | 0, waterLevelSim.z);
+      }
+    });
+  }
+
   function raiseGroundFromState(st) {
     poseFromState(st, pProbe);
+    if (view.setWaterClock) {
+      view.setWaterClock(trafficMs(simTimeMs));
+    }
+    feedWaterLevels(pProbe.x, pProbe.z);
     const hy = floorHeight(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
     worldPosToSim(pProbe.x, hy, pProbe.z, pSim);
     /*

@@ -3046,6 +3046,13 @@ SIM_EXPORT int sim_water_add(double z0, double ox, double oy) {
   return i < 0 ? SIM_ERR_BAD_STATE : i;
 }
 
+SIM_EXPORT int sim_water_level(int body, double z0) {
+  if (!sim_finite(z0)) {
+    return SIM_ERR_BAD_ARG;
+  }
+  return water_level(body, z0) < 0 ? SIM_ERR_BAD_ARG : SIM_OK;
+}
+
 SIM_EXPORT int sim_water_vertex(int body, double x, double y) {
   if (!sim_finite(x) || !sim_finite(y)) {
     return SIM_ERR_BAD_ARG;

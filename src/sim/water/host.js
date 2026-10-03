@@ -31,6 +31,12 @@
  *   Wall clock decides only how soon a client sees the water, never what
  *   the water is.
  *
+ * onSave(step), if given, is called at every snapshot step with the
+ * water as it stands there, and onDrop(step) when the steps after `step`
+ * are to be stepped again (a rewind, a start again): a host that keeps
+ * something of each snapshot step (live.js's levels for the plant) keeps
+ * it right through both.
+ *
  * The flood is any host's: `flood` gives the solver (`f`, flood.js's)
  * and `apply(opening)`, which turns a contract opening into changes to
  * the solver's bed and links, and `reset()`, which puts them back as
@@ -67,7 +73,9 @@ function before(a, b) {
   return a.o.id < b.o.id ? -1 : a.o.id > b.o.id ? 1 : 0;
 }
 
-export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = SNAP_STEPS, snaps = SNAPS } = {}) {
+export function createFloodHost(flood, {
+  dtMs, delayMs = DELAY_MS, snapSteps = SNAP_STEPS, snaps = SNAPS, onSave = null, onDrop = null,
+} = {}) {
   if (!(dtMs > 0)) {
     throw new Error('flood host: dtMs must be positive');
   }
@@ -91,6 +99,7 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
 
   const save = () => {
     hashes.set(step, f.hash());
+    if (onSave) onSave(step);
     if (hashes.size > HASHES) hashes.delete(hashes.keys().next().value);
     ring = ring.filter((r) => r.step !== step);
     ring.push({ step, applied, state: [f.h().slice(), f.hu().slice(), f.hv().slice()] });
@@ -110,6 +119,7 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
     ring = [];
     /* Steps from a new origin are other times: their hashes too. */
     hashes.clear();
+    if (onDrop) onDrop(-1);
     stats.restarts += 1;
   };
   /* Back to the last snapshot at or before step s (taken before that
@@ -130,6 +140,7 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
     }
     step = snap.step;
     applied = snap.applied;
+    if (onDrop) onDrop(snap.step);
     ring = ring.filter((r) => r.step <= snap.step);
     stats.rewinds += 1;
   };
@@ -198,6 +209,12 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
       }
       stats.steps += taken;
       return taken;
+    },
+    /* Step on, without a budget, until the water stands at `target`:
+     * for a reader that needs a step the frames have not reached yet. */
+    stepTo(target) {
+      if (origin === null || target <= step) return 0;
+      return this.advance(origin + delayMs + (target + 1) * dtMs - 1e-6);
     },
     /* How far behind the room's clock less the delay the water is. */
     behind(nowMs) {

@@ -41,6 +41,21 @@
  * Chrome (docs/FLOOD.md) some 154 steps a second at 60 frames, three
  * times the room's 50. */
 export const FRAME_BUDGET_MS = 3;
+/*
+ * THE LEVEL THE PLANT FEELS (levelAt). The aircraft floats on and crashes
+ * into the water the map draws, so the plant is told its level at the
+ * aircraft; and the plant's inputs are the same for the same flight, so
+ * that level is a function of the place and the room's time alone, never
+ * of how the frames fell. With nothing happening (Free Flight's spill, a
+ * war before its first event) the water does not change and its level is
+ * the place's. In a war it is read from the levels the host keeps at
+ * every snapshot step (every 2 s), LEVEL_LAG steps behind the flood's own
+ * clock and between the two snapshot steps either side, which every
+ * client has kept by then: at most some 3 s behind the water drawn, the
+ * same on every client.
+ */
+const LEVEL_LAG = 100;
+const LEVELS_KEPT = 8;
 
 const search = new URL(import.meta.url).search;
 const url = (name) => new URL(`${name}${search}`, import.meta.url).href;
@@ -60,6 +75,18 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
   let loading = null;
   let generation = 0;
   let mods = null;
+  /* The water's level, Float32 a cell, at each snapshot step kept. */
+  const levels = new Map();
+  const keepLevel = (step) => {
+    const h = flood.f.h(); const b = flood.f.bed();
+    const out = new Float32Array(h.length);
+    for (let k = 0; k < h.length; k += 1) out[k] = h[k] > 0.02 ? h[k] + b[k] : -Infinity;
+    levels.set(step, out);
+    if (levels.size > LEVELS_KEPT) levels.delete(Math.min(...levels.keys()));
+  };
+  const dropLevels = (from) => {
+    for (const s of [...levels.keys()]) if (s > from) levels.delete(s);
+  };
 
   const load = async () => {
     const gen = generation;
@@ -67,12 +94,12 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
     state = 'loading';
     try {
       if (!mods) {
-        const [wasm, json, bin, { createFloodHost }, { unpackBed }, F] = await Promise.all([
+        const [wasm, json, bin, { createFloodHost, DELAY_MS }, { unpackBed }, F] = await Promise.all([
           fetchBytes(WASM_URL), fetchBytes(url('itaipu-flood.json')), fetchBytes(url('itaipu-flood.bin')),
           import('../../../sim/water/host.js'), import('./bed.js'), import('./flood.js'),
         ]);
         mods = {
-          wasm, bed: unpackBed(JSON.parse(new TextDecoder().decode(json)), bin), createFloodHost, F, warm: new Map(),
+          wasm, bed: unpackBed(JSON.parse(new TextDecoder().decode(json)), bin), createFloodHost, delay: DELAY_MS, F, warm: new Map(),
         };
       }
       const start = mods.F.STARTS[m];
@@ -83,7 +110,8 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
       if (gen !== generation) return;
       flood = fl;
       mode = m;
-      host = mods.createFloodHost(flood, { dtMs: mods.F.DT_MS });
+      levels.clear();
+      host = mods.createFloodHost(flood, { dtMs: mods.F.DT_MS, onSave: keepLevel, onDrop: dropLevels });
       for (const e of events) host.open(e);
       state = 'ready';
     } catch (e) {
@@ -148,6 +176,33 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
     /* The flood ready to read, or null: its solver (`f`), its bed and
      * its gates' lips (flood.js). */
     flood: () => (state === 'ready' ? flood : null),
+    /* The water's level under world (x, z) at room time `roomMs` for the
+     * plant (THE LEVEL THE PLANT FEELS), or null where there is none. */
+    levelAt(x, z, roomMs) {
+      if (!flood) return null;
+      const k = flood.cellAt(x, z);
+      if (k < 0) return null;
+      const origin = host ? host.origin() : null;
+      if (origin === null || !Number.isFinite(roomMs)) {
+        const h = flood.f.h()[k];
+        return h > 0.02 ? h + flood.f.bed()[k] : null;
+      }
+      const SNAP = 100;
+      const s = (roomMs - mods.delay - origin) / mods.F.DT_MS - LEVEL_LAG;
+      const n0 = Math.max(0, Math.floor(s / SNAP) * SNAP);
+      const n1 = n0 + SNAP;
+      /* A snapshot step's level is kept as the step after it begins. */
+      if (!levels.has(n1)) host.stepTo(n1 + 1);
+      const a = levels.get(n0);
+      const b = levels.get(n1);
+      if (!a || !b) return null;
+      const t = Math.min(1, Math.max(0, (s - n0) / SNAP));
+      const la = a[k]; const lb = b[k];
+      if (!Number.isFinite(la) && !Number.isFinite(lb)) return null;
+      if (!Number.isFinite(la)) return t >= 0.5 ? lb : null;
+      if (!Number.isFinite(lb)) return t < 0.5 ? la : null;
+      return la + (lb - la) * t;
+    },
     /* Each opening's discharge and place, for the world's sound. */
     flows: () => (flood && host && host.origin() !== null ? flood.flows() : []),
     loaded: () => loading,

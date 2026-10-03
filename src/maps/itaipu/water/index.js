@@ -1072,6 +1072,9 @@ export async function buildPart(ctx) {
     },
     /* Each opening's discharge, m3/s, and where (world, y up). */
     flows: () => flood.flows(),
+    /* The river's level under (x, z) at room time `ms` for the plant, or
+     * null where the flood has none (live.js levelAt). */
+    levelAt: (x, z, ms) => flood.levelAt(x, z, ms),
     /* Where the spillway's jets come down, for its roar
      * (src/render/world-audio.js audioBeds). */
     plunges: spill.map((b) => b.land),
