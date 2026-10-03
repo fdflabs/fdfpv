@@ -258,6 +258,9 @@ export function createPeerScene(peers, time, n, parent, look) {
   return {
     pose,
     smokeTo,
+    /* The peers as pose() last sampled them (src/replay/sound.js
+     * peerVoicesAt hears them from it). */
+    sample: () => sample,
     dispose,
     /* Where the Ace's bubble is drawn this frame, the new Ace a crown
      * flies to (src/replay/paperscene.js), or null: none, or the free
