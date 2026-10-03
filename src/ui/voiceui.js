@@ -16,6 +16,13 @@
  * The Talk mode and Distance voice are kept in localStorage; whether voice
  * is on is not, so a reload starts with it off, as a new page does.
  *
+ * THE NOTICE. Voices are kept in replays (src/share/voice.js). Before this
+ * pilot's microphone first goes live, a notice says their voice may be
+ * kept in other pilots' replays and the movies made from them; it is
+ * answered once a profile (the settings, which follow the account), and
+ * until it is accepted voice is on to listen only: the others are heard,
+ * nothing is sent. The Microphone row asks again.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -72,8 +79,11 @@ function keyName(code) {
 export const TICK_MS = 50;
 
 /* voice: the engine; input: the shell's (src/input/input.js), for the
- * talk key and the pad; changed(): the room screen should be redrawn. */
-export function createVoiceUi(voice, input, changed) {
+ * talk key and the pad; changed(): the room screen should be redrawn;
+ * notice: { acknowledged(), acknowledge(), confirm({ title, detail, yes,
+ * no }) resolving true for yes }, the replay notice's answer and how it
+ * is asked. */
+export function createVoiceUi(voice, input, changed, notice) {
   const prefs = readPrefs();
   voice.setMode(prefs.mode === 'open' ? 'open' : 'ptt');
   voice.setDistance(prefs.distance === true);
@@ -102,6 +112,23 @@ export function createVoiceUi(voice, input, changed) {
     badge.style.display = on ? 'block' : 'none';
   }
 
+  /* Whether this pilot may talk: the notice accepted, now or before. */
+  async function mayTalk() {
+    if (notice.acknowledged()) {
+      return true;
+    }
+    const yes = await notice.confirm({
+      title: str('voicechat.replay_title'),
+      detail: str('voicechat.replay_detail'),
+      yes: str('voicechat.replay_yes'),
+      no: str('voicechat.replay_no'),
+    });
+    if (yes) {
+      notice.acknowledge();
+    }
+    return yes;
+  }
+
   async function setOn(want) {
     if (busy) {
       return voice.isOn();
@@ -109,7 +136,7 @@ export function createVoiceUi(voice, input, changed) {
     busy = true;
     try {
       if (want) {
-        await voice.enable();
+        await voice.enable({ talk: await mayTalk() });
       } else {
         voice.disable();
       }
@@ -151,6 +178,27 @@ export function createVoiceUi(voice, input, changed) {
         },
       ];
       if (!on) {
+        return rows;
+      }
+      if (!voice.canTalk()) {
+        rows.push({
+          id: 'voice-mic',
+          label: str('voicechat.mic'),
+          note: str('voicechat.mic_note'),
+          current: 'off',
+          options: [{ value: 'off', label: str('voicechat.off') }, { value: 'on', label: str('voicechat.on') }],
+          pick: async (v) => {
+            if (v === 'on' && !busy && (await mayTalk())) {
+              busy = true;
+              try {
+                await voice.enableTalk();
+              } finally {
+                busy = false;
+                changed();
+              }
+            }
+          },
+        });
         return rows;
       }
       rows.push({

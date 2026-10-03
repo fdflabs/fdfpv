@@ -112,12 +112,16 @@ import {
   AIR_N, EVENTS_MAX, RPM_PER_RAD_S, airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt, trimSound,
 } from '../src/replay/sound.js';
 import { soundPlan } from '../src/replay/soundtrack.js';
+import {
+  MIMES, SEGMENT_MS, VOICE_BYTES_MAX, createVoiceRing, voiceClockAt, voicesAt,
+} from '../src/replay/voicerec.js';
+import { OPUS_BPS } from '../src/share/voice.js';
 import { FLAG_CRASHED, FLAG_QUAD } from '../src/share/roomwire.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
 import {
-  cut, defaultEdit, fromKeys, setCam, setEnter, setSpeed,
+  cut, defaultEdit, fromKeys, movieTime, setCam, setEnter, setSpeed,
 } from '../src/replay/edit.js';
 import {
   BUBBLE, BUBBLE_N, PEER, PEER_N, PEERS_MAX, PIECE_N, PIECES_MAX, bubbleAt, createPeerRing, createPeerSample, peerPose, samplePeers,
@@ -2041,6 +2045,7 @@ function animRecord() {
   warFile(withClock, bBuf, refused);
   warWorld(withClock, refused);
   soundFile(withClock, refused);
+  voiceFile(withClock, refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -2461,6 +2466,109 @@ function soundFile(withClock, refused) {
   refused(() => reheader(encodeReplay(old), 12), 'a version 12 file without its sound');
   refused(() => encodeReplay({ ...clip, sound: { ...sound, events: [{ t: 0, call: 'launch', args: [] }] } }), 'a call that is not one');
   refused(() => encodeReplay({ ...clip, sound: { ...sound, air: sound.air.map((x, i) => (i === 7 ? NaN : x)) } }), 'air that is not a number');
+}
+
+/*
+ * 20. The room's voices as this page heard them (src/replay/voicerec.js;
+ * the owner, 2026-10-02: voice chat is kept in replays). Each row is
+ * stamped on the room clock; pieces of each pilot's voice arrive as
+ * src/share/voice.js sends them (Opus at OPUS_BPS, a piece of
+ * SEGMENT_MS each). The clip keeps the pieces its rows overlap; asked
+ * anywhere, forwards or back, a replay plays each voice speaking at the
+ * row's room ms from where it had got to; the ring holds to its budget;
+ * the movie's plan places each piece on the movie's clock, a pause in the
+ * flight (the room's clock running on) cut out. Saved as version 13.
+ */
+function voiceFile(withClock, refused) {
+  console.log('20. the room\'s voices, as heard here: stamped, bounded, played, saved (version 13)');
+  const n = withClock.n;
+  const ring = createVoiceRing(n);
+  /* 24 kbit/s for SEGMENT_MS is this many bytes. */
+  const pieceBytes = (OPUS_BPS / 8) * (SEGMENT_MS / 1000);
+  const fake = (seed) => Uint8Array.from({ length: pieceBytes }, (_, i) => (i * 31 + seed) & 255);
+  /* The room's clock runs with the clip's but for a pause of 4 s after
+   * row 12 (the flight stood still, the room did not). */
+  const R0 = 9e6;
+  const room = (k) => R0 + withClock.time[k] * 1000 + (k > 12 ? 4000 : 0);
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    ring.at(k === 3 ? null : room(k));
+  }
+  check(ring.bytes() === n * 8, 'out of a room a row has no clock, and nothing else is held before a voice', `${ring.bytes()} bytes`);
+  /* Seat 2 speaks across the start, seat 3 in the middle, a piece long
+   * before the window, and one that is not one. */
+  ring.add({
+    seat: 2, from: R0 - 3000, to: R0 + 200, mime: MIMES[0], bytes: fake(1),
+  });
+  ring.add({
+    seat: 3, from: room(6), to: room(n - 5), mime: MIMES[0], bytes: fake(2),
+  });
+  ring.add({
+    seat: 4, from: R0 - 60000, to: R0 - 55000, mime: MIMES[0], bytes: fake(3),
+  });
+  ring.add({
+    seat: 2, from: room(5), to: room(4), mime: 'audio/wav', bytes: fake(4),
+  });
+  check(ring.stats.refused === 1, 'a piece that is not one is counted and not kept');
+  ring.prune(room(n - 1), 30000);
+  const voice = ring.clip(0, n);
+  check(voice && voice.pieces.length === 2 && voice.pieces[0].seat === 2 && Number.isNaN(voice.clock[3]),
+    'the clip keeps the pieces its rows overlap, and the one long before the window is gone', voice ? voice.pieces.map((p) => p.seat).join() : 'none');
+  let wrong = '';
+  const order = [...Array.from({ length: n }, (_, k) => k), ...Array.from({ length: n }, (_, k) => n - 1 - k), 7, 0, 12, 2];
+  for (const k of order) {
+    const ms = voiceClockAt(voice, n, k, 0);
+    const got = voicesAt(voice, ms).map((x) => `${x.piece.seat}@${x.at.toFixed(3)}`).join();
+    const want = Number.isNaN(room(k)) || k === 3 ? '' : voice.pieces
+      .filter((p) => room(k) >= p.from && room(k) < p.to).map((p) => `${p.seat}@${((room(k) - p.from) / 1000).toFixed(3)}`).join();
+    if (got !== want) {
+      wrong = wrong || `row ${k}: ${got} want ${want}`;
+    }
+  }
+  check(!wrong, 'at every row, forwards, backwards and in jumps, the voices speaking then, from where they had got to', wrong || `${order.length} rows`);
+
+  /* The budget: a full public room, fifteen others, talking over all of
+   * a long window. */
+  const loud = createVoiceRing(n);
+  loud.begin(0);
+  loud.at(R0);
+  for (let i = 0; i < 15 * 12; i += 1) {
+    loud.add({
+      seat: 2 + (i % 15), from: R0 + Math.floor(i / 15) * SEGMENT_MS, to: R0 + (Math.floor(i / 15) + 1) * SEGMENT_MS, mime: MIMES[0], bytes: fake(i),
+    });
+  }
+  const perMin = (OPUS_BPS / 8) * 60;
+  check(loud.bytes() <= VOICE_BYTES_MAX + n * 8 && loud.stats.dropped > 0,
+    `a room louder than the budget keeps ${(VOICE_BYTES_MAX / 1048576).toFixed(0)} MB, the oldest let go and counted`,
+    `${(loud.bytes() / 1024).toFixed(0)} KB held, ${loud.stats.dropped} dropped; ${(perMin / 1024).toFixed(0)} KB a minute a pilot speaking`);
+
+  const clip = { ...withClock, voice };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 13 && back.voice.pieces.length === 2
+    && Buffer.from(back.voice.pieces[1].bytes).equals(Buffer.from(voice.pieces[1].bytes))
+    && back.voice.clock.every((x, k) => Object.is(x, voice.clock[k])),
+  'a clip with voices is saved as version 13 and comes back as it was', `${buf.byteLength - encodeReplay(withClock).byteLength} bytes for ${voice.pieces.length} pieces`);
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  refused(() => reheader(buf, 8), 'voices in a file that says version 8');
+  refused(() => buf.slice(0, buf.byteLength - 1), 'a version 13 file cut short of its voices');
+  refused(() => encodeReplay({ ...clip, voice: { ...voice, pieces: [{ ...voice.pieces[0], seat: 0 }] } }), 'a voice that is nobody\'s');
+  /* From past the end of seat 2's piece. */
+  const k0 = withClock.time.findIndex((x) => x * 1000 > 250);
+  const t = trimWhole(clip, clip.time[k0], clip.time[n - 1]);
+  check(k0 > 0 && k0 < n - 5 && t.voice.clock.length === t.n && t.voice.pieces.length === 1 && t.voice.pieces[0].seat === 3, 'a trim keeps the voices of the rows it keeps', `from row ${k0}: ${t.voice.pieces.map((p) => p.seat).join()}, ${t.voice.clock.length} of ${t.n}`);
+
+  /* The movie: one shot at full speed, then a half speed one from row
+   * 9; the pause after row 12 cut out. */
+  let edit = defaultEdit(clip.time[n - 1], { rig: 'chase', target: -1, watch: 0, p: defaults('chase', 1) });
+  edit = setSpeed(cut(edit, clip.time[9]), 1, 0.5);
+  const plan = soundPlan(clip, edit);
+  const seat3 = plan.voices.filter((v) => v.piece === 1);
+  const roomRate = 1;
+  check(plan.voices.length >= 3 && seat3.every((v) => v.dur > 0 && Math.abs(v.rate - roomRate * (v.m >= movieTime(edit, clip.time[9]) - 1e-9 ? 0.5 : 1)) < 1e-6)
+    && !plan.voices.some((v) => v.m > movieTime(edit, clip.time[12]) + 1e-9 && v.m < movieTime(edit, clip.time[13]) - 1e-9),
+  'each voice on the movie\'s clock at the room\'s pace times the shot\'s speed, and nothing over the pause',
+  plan.voices.map((v) => `${v.piece}@${v.m.toFixed(2)}+${v.dur.toFixed(2)}x${v.rate.toFixed(2)} from ${v.at.toFixed(2)}`).join(' '));
 }
 
 ring();
