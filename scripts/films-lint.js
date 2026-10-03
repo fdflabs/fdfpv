@@ -14,6 +14,10 @@
  *             to the millisecond by construction, and within PASS_M of
  *             the point (and a weaving kind's weave besides); the pass
  *             inside its shot and the flight alive then
+ *   heroes    a shot's hero group (its `hero`) all inside the frame and
+ *             the nearest at least minPx of wingspan on a HERO_PX wide
+ *             screen, every HERO_STEP_MS of its window (the whole shot by
+ *             default): a group that is dots until its last frame fails
  *   anchors   every anchor of every shot inside the shot
  *   names     every cast member and every title key known (the cast in
  *             the film's table, the keys in both string tables), every
@@ -73,10 +77,39 @@ function resolver(film, t, placed, shot) {
       const y = c.p[1] == null ? DECK_Y : c.p[1] === 'water' ? WATER_Y : c.p[1];
       return [c.p[0], y, c.p[2]];
     },
-    agent(id, ms) {
-      const a = placed.find((x) => x.group === id && x.pass) ?? placed.find((x) => x.group === id);
+    agent(id, ms, k) {
+      const a = (k != null ? placed.find((x) => x.group === id && x.a.k === k) : null)
+        ?? placed.find((x) => x.group === id && x.pass) ?? placed.find((x) => x.group === id);
       return poseAt(a.plan, Math.max(a.plan.t0, shot.start + ms)).p;
     },
+  };
+}
+
+/* Each kind's wingspan, metres, as src/render/attackers.js builds it (the
+ * boat's beam is its length's fifth; a quad's arms are its span). */
+const SPAN_M = {
+  scout: 3, loiter: 1.2, strike: 2.5, decoy: 2.5, fpv: 0.25, hunter: 0.25, boat: 1,
+};
+/* The screen a hero shot's sizes are judged on (INTROS 1.1's lens holds
+ * the horizontal field, so the width is what counts). */
+const HERO_PX = 1920;
+const HERO_STEP_MS = 100;
+
+/* A point on screen: u across and v up, -1 to 1 inside the 2.39 frame. */
+function onScreen(cam, p) {
+  const d = [cam.look[0] - cam.p[0], cam.look[1] - cam.p[1], cam.look[2] - cam.p[2]];
+  const dl = Math.hypot(...d);
+  const fwd = d.map((v) => v / dl);
+  const rh = Math.hypot(fwd[2], fwd[0]);
+  const right = [-fwd[2] / rh, 0, fwd[0] / rh];
+  const up = [right[1] * fwd[2] - right[2] * fwd[1], right[2] * fwd[0] - right[0] * fwd[2], right[0] * fwd[1] - right[1] * fwd[0]];
+  const q = [p[0] - cam.p[0], p[1] - cam.p[1], p[2] - cam.p[2]];
+  const z = q[0] * fwd[0] + q[1] * fwd[1] + q[2] * fwd[2];
+  const tanH = 18 / cam.lens;
+  return {
+    u: (q[0] * right[0] + q[1] * right[1] + q[2] * right[2]) / z / tanH,
+    v: (q[0] * up[0] + q[1] * up[1] + q[2] * up[2]) / z / (tanH / 2.39),
+    z,
   };
 }
 
@@ -205,6 +238,61 @@ for (const film of Object.values(FILMS)) {
     const off = offAxis(cam, poseAt(a.plan, shot.start + at).p);
     if (off.h > off.hHalf || off.v > off.vHalf) {
       fail(`${film.id} agents ${a.group}: at ${(at / 1000).toFixed(2)} s into ${shot.id} it is ${off.h.toFixed(1)} deg across and ${off.v.toFixed(1)} deg up from the lens axis, outside the frame's ${off.hHalf.toFixed(1)} by ${off.vHalf.toFixed(1)}`);
+    }
+  }
+}
+
+/* Each hero shot: its whole group in the frame, the nearest big enough to
+ * read as an aircraft (the lead, 3 Oct: "ten aircraft, not dots"). */
+for (const film of Object.values(FILMS)) {
+  const t = timing(film);
+  const placed = placeAgents(film, t);
+  for (const [i, def] of film.shots.entries()) {
+    if (!def.hero) {
+      continue;
+    }
+    const shot = t.shots[i];
+    const group = placed.filter((a) => a.group === def.hero.agent);
+    const span = SPAN_M[group[0]?.a.kind];
+    if (!group.length || span == null) {
+      fail(`${film.id} ${shot.id}: a hero ${def.hero.agent} with no group or no span`);
+      continue;
+    }
+    /* Every HERO_STEP_MS of its window (the whole shot by default): all of
+     * the group in frame, and the nearest's wingspan. */
+    const from = def.hero.from != null ? anchor(def.hero.from, shot) : 0;
+    const to = def.hero.to != null ? anchor(def.hero.to, shot) : shot.ms;
+    let worstIn = group.length;
+    let worstPx = Infinity;
+    let worstAt = from;
+    for (let ms = from; ms <= to; ms += HERO_STEP_MS) {
+      const cam = cameraAt(shot, ms, resolver(film, t, placed, shot), i);
+      let inside = 0;
+      let px = 0;
+      for (const a of group) {
+        const o = poseAt(a.plan, Math.max(a.plan.t0, shot.start + ms));
+        const c = onScreen(cam, o.p);
+        inside += c.z > 0 && Math.abs(c.u) <= 1 && Math.abs(c.v) <= 1 ? 1 : 0;
+        /* The wingspan across the flight, level. */
+        const h = Math.hypot(o.v[0], o.v[2]) || 1;
+        const side = [-o.v[2] / h, 0, o.v[0] / h].map((x) => (x * span) / 2);
+        const l = onScreen(cam, [o.p[0] - side[0], o.p[1], o.p[2] - side[2]]);
+        const r = onScreen(cam, [o.p[0] + side[0], o.p[1], o.p[2] + side[2]]);
+        px = Math.max(px, (Math.abs(l.u - r.u) * HERO_PX) / 2);
+      }
+      worstIn = Math.min(worstIn, inside);
+      if (px < worstPx) {
+        worstPx = px;
+        worstAt = ms;
+      }
+    }
+    console.log(`  hero ${film.id} ${shot.id}: from ${(from / 1000).toFixed(1)} to ${(to / 1000).toFixed(1)} s, at least ${worstIn} of ${group.length} ${def.hero.agent} in frame, `
+      + `the nearest at least ${worstPx.toFixed(1)} px of wingspan at ${HERO_PX} px wide (least at ${(worstAt / 1000).toFixed(1)} s)`);
+    if (worstIn < group.length) {
+      fail(`${film.id} ${shot.id}: only ${worstIn} of the ${group.length} ${def.hero.agent} in frame at some point of the shot`);
+    }
+    if (worstPx < def.hero.minPx) {
+      fail(`${film.id} ${shot.id}: the nearest ${def.hero.agent} falls to ${worstPx.toFixed(1)} px of wingspan at ${(worstAt / 1000).toFixed(1)} s, under ${def.hero.minPx}`);
     }
   }
 }

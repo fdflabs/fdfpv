@@ -497,8 +497,9 @@ export function play(scene, camera, opts = {}) {
       const [x, y, z] = at.shown ? at.p : [c.holder.position.x, c.holder.position.y, c.holder.position.z];
       return [x, y === WATER ? WATER_Y : y == null ? ground(x, z) + c.lift : y, z];
     },
-    agent: (id, t) => {
-      const a = agents.find((x) => x.group === id && x.pass) ?? agents.find((x) => x.group === id);
+    agent: (id, t, k) => {
+      const a = (k != null ? agents.find((x) => x.group === id && x.a.k === k) : null)
+        ?? agents.find((x) => x.group === id && x.pass) ?? agents.find((x) => x.group === id);
       /* Before its birth, where it will be born. */
       return poseAt(a.plan, Math.max(a.plan.t0, s.start + t)).p;
     },

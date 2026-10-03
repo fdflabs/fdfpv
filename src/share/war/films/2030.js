@@ -130,10 +130,10 @@ export default {
         shot: 'pass', at: 2.5, point: LONE_PASS, seen: 1.0,
       }, shots: ['haze', 'pass'],
     },
-    /* The ten in a loose line abreast, their middle 750 m out at the
-     * cut. */
+    /* The ten in a loose V abreast, their middle 900 m out from the dam
+     * at the cut. */
     {
-      id: 'ten', kind: 'strike', route: 'ten-low', n: 10, stagger: 0.45, pass: { shot: 'ten', at: { at: 'end' }, point: [190, 250, -2700] }, shots: ['ten'],
+      id: 'ten', kind: 'strike', route: 'ten-low', n: 10, stagger: 0.45, pass: { shot: 'ten', at: { at: 'end' }, point: [190, 250, -2600] }, shots: ['ten'],
     },
     /* The first wave, each group crossing the frame of the last shot's
      * long lens as it widens. */
@@ -191,10 +191,13 @@ export default {
       id: 'ten',
       min: 6,
       grade: 'steel',
-      /* The ten, compressed by the lens, coming on. */
+      /* Flying with the ten, 40 m behind and 20 m out from the end of
+       * their line, looking across the V: every one in frame, the nearest
+       * an aircraft, not a dot (the lead, 3 Oct). */
       camera: {
-        type: 'telephoto', lens: [180, 135], ease: 'lin', at: [190, 224, -1950], look: { agent: 'ten' },
+        type: 'drone', lens: 35, ride: { agent: 'ten', k: 9 }, off: [20, 5, -40], lag: 0, look: { agent: 'ten', k: 5 },
       },
+      hero: { agent: 'ten', minPx: 40 },
       out: 'cut',
     },
     {

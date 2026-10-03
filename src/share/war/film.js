@@ -47,6 +47,11 @@
  *              counter  { from, to }: the output counting up
  *              fade     [[t, black 0..1]]
  *              grade    the player's colour grade by name
+ *              hero     { agent, minPx, from?, to? }: the group the shot
+ *                       is about, every one of it inside the frame and
+ *                       the nearest at least minPx of wingspan on a 1920
+ *                       px wide screen, from `from` to `to` (the whole
+ *                       shot without them; films:lint)
  *              out      the transition to the next: 'cut', 'smash',
  *                       'match' (cuts), 'dip' (to black and back over
  *                       outS), 'dissolve' (the last frame fading over the
@@ -59,8 +64,9 @@
  * three.js's vertical field for the screen's aspect, so the horizontal
  * framing holds on every screen); ease 'lin', 'io' (the default), 'out',
  * 'in' or 'hold', over the anchors from and to (the whole shot without
- * them). A target is a point [x, y, z], { cast: name } or { agent: id },
- * with an optional `up` metres added. By type:
+ * them). A target is a point [x, y, z], { cast: name } or { agent: id,
+ * k? } (the group's middle, or its k-th), with an optional `up` metres
+ * or `off` [x, y, z] added. By type:
  *
  *   dolly      path: [points] (a Catmull-Rom curve through them), look: a
  *              target or [points] (a curve of its own)
@@ -72,7 +78,9 @@
  *              period): a seeded smooth noise, the same on every screen,
  *              never a sum of sines
  *   drone      ride: a target, back and up metres off its line of flight,
- *              lag ms: the camera rides a flight
+ *              lag ms: the camera rides a flight; or off: [x, y, z] from
+ *              where the rider was lag ms ago and look: a target, flying
+ *              alongside it
  *   telephoto  at, look: a target or [from, to], panned by the ease
  *
  * This file is part of WebFPVSimulator.
@@ -366,8 +374,9 @@ function aimAt(target, t, resolve) {
   if (Array.isArray(target)) {
     return target;
   }
-  const p = target.cast != null ? resolve.cast(target.cast, t) : resolve.agent(target.agent, t);
-  return [p[0], p[1] + (target.up ?? 0), p[2]];
+  const p = target.cast != null ? resolve.cast(target.cast, t) : resolve.agent(target.agent, t, target.k);
+  const off = target.off ?? [0, 0, 0];
+  return [p[0] + off[0], p[1] + (target.up ?? 0) + off[1], p[2] + off[2]];
 }
 
 /*
@@ -405,6 +414,11 @@ export function cameraAt(shot, t, resolve, seed = 0) {
   if (c.type === 'drone') {
     const now = aimAt(c.ride, t, resolve);
     const was = aimAt(c.ride, t - (c.lag ?? 300), resolve);
+    /* Flying alongside: at its lagged place plus a world offset, looking
+     * at a target of its own. */
+    if (c.off) {
+      return { p: [was[0] + c.off[0], was[1] + c.off[1], was[2] + c.off[2]], look: aimAt(c.look, t, resolve), lens };
+    }
     const d = [now[0] - was[0], now[1] - was[1], now[2] - was[2]];
     const m = Math.hypot(d[0], d[1], d[2]) || 1;
     const dir = d.map((v) => v / m);
