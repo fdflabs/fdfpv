@@ -189,12 +189,13 @@ export function warLobbySection(check) {
     e.at(go + 200);
     e.r.war.finish(go + 150, 'lost', 'output');
     e.at(go + 400);
-    check('after a loss the war names the stage the mission restarts from', e.war().state === 'lost' && e.war().checkpoint && e.war().checkpoint.n === 0,
-      JSON.stringify(e.war().checkpoint));
+    const lostIn = e.war().checkpoint;
+    check('after a loss the war names the stage the mission restarts from', e.war().state === 'lost' && lostIn && lostIn.n === 0,
+      JSON.stringify(lostIn));
     e.ready(0);
     e.ready(1);
     e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
-    check('and starts it again from there, with no briefing', e.war().state === 'countdown' && e.war().restarted === 'round-1' && e.war().mission === 'itaipu-1',
+    check('and starts it again from there, with no briefing', e.war().state === 'countdown' && e.war().restarted === lostIn.stage && e.war().mission === 'itaipu-1',
       JSON.stringify({ state: e.war().state, restarted: e.war().restarted }));
     e.say(0, { type: 'war', op: 'end' });
     e.at(e.clock + 100);

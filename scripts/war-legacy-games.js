@@ -27,7 +27,10 @@
  * THE RECORD (tests/fixtures/war-legacy-games.json) was written by
  * --record at the commit named in it, before the engine existed. Writing
  * it again makes the check prove the engine equal to itself: do it only
- * on purpose, with the reason in the pull request.
+ * on purpose, with the reason in the pull request. A mission rewritten on
+ * purpose (First Light, docs/campaign/MISSIONS.md M1) is recorded again
+ * alone, --record=<mission>, each of its games naming where it was; the
+ * other missions keep the record from before the engine.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -54,7 +57,7 @@ import { runOne } from './war-balance.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const FIXTURE = new URL('../tests/fixtures/war-legacy-games.json', import.meta.url);
-const MISSION_IDS = ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'];
+const MISSION_IDS = ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4', 'itaipu-drill'];
 const GAMES = MISSION_IDS.flatMap((mission) => ['good', 'careless'].flatMap((skill) => [1, 3].flatMap((pilots) => [1, 2].map((seed) => ({
   mission, skill, pilots, seed,
 })))));
@@ -123,26 +126,43 @@ const floorBuf = readFileSync(new URL('../src/share/war/itaipu-height.bin', impo
 const name = (g) => `${g.mission} ${g.skill} x${g.pilots} seed ${g.seed}`;
 
 const main = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (main && process.argv.includes('--record')) {
-  const commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-  const games = GAMES.map((g) => playGame(g, floorBuf));
-  writeFileSync(FIXTURE, `${JSON.stringify({ commit, games })}\n`);
-  for (const g of games) {
+/* --record writes every game; --record=itaipu-1 only that mission's, the
+ * others' records kept as they were: a mission rewritten on purpose gets
+ * new games, and only that one (each game says where it was recorded). */
+const recordArg = process.argv.find((a) => a === '--record' || a.startsWith('--record='));
+const where = () => {
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+  const dirty = execFileSync('git', ['status', '--porcelain', '--', 'src', 'edge'], { encoding: 'utf8' }).trim() !== '';
+  return dirty ? `${head} with the working tree's changes` : head;
+};
+const recordOf = (rec, g) => g.commit ?? rec.commit;
+if (main && recordArg) {
+  const only = recordArg.includes('=') ? recordArg.split('=')[1] : null;
+  if (only && !MISSION_IDS.includes(only)) {
+    throw new Error(`war:legacy: no mission ${only}`);
+  }
+  const at = where();
+  const rec = only ? JSON.parse(readFileSync(FIXTURE, 'utf8')) : { commit: at, games: [] };
+  const fresh = GAMES.filter((g) => !only || g.mission === only).map((g) => ({ ...playGame(g, floorBuf), ...(only ? { commit: at } : {}) }));
+  rec.games = only ? GAMES.map((g) => (g.mission === only ? fresh.shift() : rec.games.find((x) => name(x) === name(g)))) : fresh;
+  writeFileSync(FIXTURE, `${JSON.stringify(rec)}\n`);
+  for (const g of rec.games.filter((x) => !only || x.mission === only)) {
     console.log(`${name(g).padEnd(34)} ${String(g.births.length).padStart(3)} births ${String(g.deaths.length).padStart(3)} deaths ${g.rounds.length} round changes, ${g.end ? `${g.end.state}:${g.end.why}` : 'unfinished'}`);
   }
-  console.log(`war:legacy recorded ${games.length} games at ${commit}`);
+  console.log(`war:legacy recorded ${only ? `${only}'s games` : 'every game'} at ${at}`);
 } else if (main) {
   const rec = JSON.parse(readFileSync(FIXTURE, 'utf8'));
   let bad = 0;
   for (const want of rec.games) {
     const got = playGame(want, floorBuf);
     const diff = firstDifference(want, got);
-    console.log(`${diff ? 'FAIL' : 'ok  '} ${name(want).padEnd(34)} ${String(got.births.length).padStart(3)} births ${String(got.deaths.length).padStart(3)} deaths${diff ? `\n     ${diff}` : ''}`);
+    console.log(`${diff ? 'FAIL' : 'ok  '} ${name(want).padEnd(34)} ${String(got.births.length).padStart(3)} births ${String(got.deaths.length).padStart(3)} deaths${diff ? `\n     ${diff} (recorded at ${recordOf(rec, want)})` : ''}`);
     bad += diff ? 1 : 0;
   }
+  const at = [...new Set(rec.games.map((g) => recordOf(rec, g)))].join('; ');
   if (bad) {
-    console.log(`war:legacy FAIL: ${bad} of ${rec.games.length} games differ from the record (${rec.commit})`);
+    console.log(`war:legacy FAIL: ${bad} of ${rec.games.length} games differ from their record (${at})`);
     process.exit(1);
   }
-  console.log(`war:legacy ok: ${rec.games.length} games equal to the record of ${rec.commit}`);
+  console.log(`war:legacy ok: ${rec.games.length} games equal to their record (${at})`);
 }
