@@ -3410,7 +3410,7 @@ export async function boot({
      * the clip's clock (map.replayFlood). The mission's gate state is
      * not journalled yet (no war feeds map.setGateState), so none. */
     if (w.openings && typeof view.replayFlood === 'function') {
-      view.replayFlood({ openings: w.openings, gates: null });
+      view.replayFlood({ openings: w.openings, gates: null, fromMs: w.from ?? w.t ?? 0 });
     }
   }
 

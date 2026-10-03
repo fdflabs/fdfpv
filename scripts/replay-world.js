@@ -27,8 +27,10 @@
  *     piece of rubble where it lay, to the millimetre) is that too: before the
  *     first hit nothing burns, after it the intake burns, the yard's
  *     districts and a town past the struck line go dark in their turn
- *   - the water: the replay's own flood, made from the clip's opening and
- *     stepped on the clip's clock, stands at the step the live one stood
+ *   - the water: a first breach (gate-6) long before the clip, so the
+ *     replay's own flood is forked from the live flood's checkpoint
+ *     (live.js fork), and a second (gate-4) inside it; the replay's
+ *     flood, stepped on the clip's clock, stands at the step the live one stood
  *     at for each row looked at, forwards and back, with the same water
  *     to the bit at every snapshot step both kept (host.js hashes), the
  *     breach pouring through the gate (its flow, for the roar); while it
@@ -170,6 +172,15 @@ try {
   const born = (id, t) => hear({
     type: 'war', op: 'born', agents: [{ id, kind: 'strike', route: strike.route, t0: t, k: 0, n: 1, err: 0, target: strike.target }],
   });
+  /* The first breach, long before the clip: the live flood's water runs
+   * from it and checkpoints (host.js, every 10 s) before the clip. */
+  const gate6 = STRUCTURES['gate-6'];
+  const torn6 = gate6.chunks.map((c, i) => i).filter((i) => gate6.chunks[i].r).slice(0, 4);
+  const opening6 = openingOf('gate-6', gate6, gate6.chunks.map((c, i) => torn6.includes(i)), 0);
+  const originAt = await hear({
+    type: 'war', op: 'damage', seq: 899, at: 0, target: 'gate-6', chunks: torn6, fell: [], openings: [opening6], down: false, health: 0.8, p: gate6.chunks[torn6[0]].c, by: 0, cut: [],
+  });
+  await a.sleep(45000);
   let t = await now();
   const firstHit = await hear({
     type: 'war', op: 'dead', ids: [], at: 0, by: 0, why: 'arrive', p: AT['intake-3'].at, target: 'intake-3', hit: true,
@@ -218,10 +229,10 @@ try {
   check('the live map burned the intake and the switchyard and put districts out',
     liveNow && liveNow.targets['intake-3'] === 'fire' && liveNow.targets['yard-right'] === 'fire'
     && liveNow.levels[districtIndex('yard')] === 0 && liveNow.levels[districtIndex('hernandarias-w')] === 0
-    && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === torn.length && liveNow.broken.pieces.length > 0, describe(liveNow));
+    && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === torn.length + torn6.length && liveNow.broken.pieces.length > 0, describe(liveNow));
   const WATER = "(() => { const w = window.__map().parts.water; return { live: w.flood, replay: w.replayFlood, flows: window.__mapFlows(), water: window.__mapReplayWater(), room: window.__rooms().roomNow, toast: (() => { const v = window.__crashCam.live() ? window.__crashCam.h().view() : null; return v ? v.toast || null : null; })() }; })()";
   const waterLive = (await a.evaluate(WATER)).live;
-  check('the live flood took the opening and stepped on', waterLive.state === 'ready' && waterLive.origin === breachAt && waterLive.step > 200,
+  check('the live flood took both openings and stepped on', waterLive.state === 'ready' && waterLive.origin === originAt && waterLive.step > 2500,
     `${waterLive.state}, origin ${waterLive.origin}, step ${waterLive.step}`);
 
   await a.evaluate('window.__crashCam.open(); true');
@@ -259,12 +270,12 @@ try {
       wrong += 1;
       misses.push(`row ${k} at ${f.t} (replay at ${w && w.t}, clip ${await a.evaluate(`window.__crashCam.h().clipTime(${k})`)} prev ${await a.evaluate(`window.__crashCam.h().clipTime(${k - 1})`)}): replay ${describe(w)} map ${describe(map)} live ${describe(f)}${map && map.broken.pieces !== f.broken.pieces ? ` pieces ${map.broken.pieces.slice(0, 120)} live ${f.broken.pieces.slice(0, 120)}` : ''}`);
     }
-    shown.add(Object.keys(f.targets).join('+') || 'none');
+    shown.add(Object.keys(f.targets).sort().join('+') || 'none');
   }
   console.log(`  info  ${order.length} rows looked at, ${rows.length} distinct; the targets seen: ${[...shown].join(' | ')}`);
   check('at every row looked at, forwards, backwards and in jumps, the replay and the map drawn are the live frame\'s', order.length >= 20 && wrong === 0,
     misses.slice(0, 3).join(' || ') || `${order.length} rows`);
-  check('the rows looked at include the map before the first hit, with both fires, and with the gate broken', shown.has('none') && [...shown].some((s) => s.includes('intake-3') && s.includes('yard-right'))
+  check('the rows looked at include the map before the first hit, with both fires, and with the gate broken', shown.has('gate-6') && [...shown].some((s) => s.includes('intake-3') && s.includes('yard-right'))
     && [...shown].some((s) => s.includes('gate-4')),
     [...shown].join(' | '));
 
@@ -272,18 +283,27 @@ try {
    * row looked at, it is not drawn or heard, and the replay says so. */
   const atOpen = (await a.evaluate(WATER)).live;
   const holding = [];
-  const until = Date.now() + 3000;
+  /* From the checkpoint before the clip to the playhead near its end is
+   * most of 40 s of water, at the frame budget (live.js): seconds. */
+  const until = Date.now() + 60000;
   while (Date.now() < until) {
     const w = await a.evaluate(WATER);
-    holding.push({ drawn: w.water ? w.water.drawn : null, flows: (w.flows || []).length, toast: w.toast ? w.toast.text : '' });
+    holding.push({
+      drawn: w.water ? w.water.drawn : null, flows: (w.flows || []).length, toast: w.toast ? w.toast.text : '', fork: w.water ? w.water.fork : null,
+    });
     if (w.water && w.water.drawn) {
       break;
     }
+    await a.sleep(50);
   }
+  const caughtMs = 60000 - (until - Date.now());
   const held = holding.filter((x) => x.drawn === false);
-  check('while the replay\'s water catches up it is held, unheard, and the replay says so', held.length > 0
-    && held.every((x) => x.flows === 0 && x.toast === WATER_TEXT) && holding[holding.length - 1].drawn === true,
-  `${held.length} frames held, then ${holding[holding.length - 1].drawn ? 'drawn' : 'still held'}; ${JSON.stringify(held[0] || null)}`);
+  /* Forked from the live flood (live.js fork), from its checkpoint before
+   * the clip: the first breach is 45 s before it. */
+  const fork = holding[holding.length - 1].fork;
+  check('the replay\'s water is forked from the live flood, and while it catches up it is held, unheard, and the replay says so',
+    fork === 'checkpoint' && held.every((x) => x.flows === 0 && x.toast === WATER_TEXT) && holding[holding.length - 1].drawn === true,
+  `forked from the ${fork}; held ${(caughtMs / 1000).toFixed(1)} s over ${held.length} polls, then ${holding[holding.length - 1].drawn ? 'drawn' : 'still held'}; ${JSON.stringify(held[0] || null)}`);
   /* The water: rows from just before the breach to the end, forwards
    * then back, each waited on until the replay's flood stands at it. */
   const waterRows = [];
@@ -301,21 +321,22 @@ try {
   for (const { k } of waterOrder) {
     await a.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${k})); true`);
     const anim = await a.evaluate(`window.__crashCam.h().clipAnim(${k})`);
-    const want = Math.max(0, Math.floor((anim - DELAY_MS - breachAt) / DT_MS));
+    const want = Math.max(0, Math.floor((anim - DELAY_MS - originAt) / DT_MS));
     await a.until(`(() => { const r = window.__map().parts.water.replayFlood; const d = window.__mapReplayWater(); return r && r.state === 'ready' && r.step === ${want} && d && d.drawn; })()`, 20000).catch(() => {});
     const w = await a.evaluate(WATER);
     const r = w.replay;
     const common = Object.keys(r ? r.hashes : {}).filter((s) => s in atOpen.hashes);
     const same = common.every((s) => r.hashes[s] === atOpen.hashes[s]);
-    if (!r || r.step !== want || !same || r.origin !== breachAt) {
+    if (!r || r.step !== want || !same || r.origin !== originAt) {
       waterMisses.push(`row ${k}: replay ${r ? `${r.state} step ${r.step} origin ${r.origin}` : 'none'}, want step ${want}; ${common.filter((s) => r.hashes[s] !== atOpen.hashes[s]).length} of ${common.length} hashes differ`);
     }
-    if (want === 0) {
+    if (anim < breachAt + DELAY_MS) {
       dry += 1;
     }
     /* A row whose own step is past a snapshot step that held the water
      * moving, and compared there. */
-    if (want > 100 && common.some((s) => Number(s) >= 100 && Number(s) <= want)) {
+    const after = Math.floor((breachAt + DELAY_MS - originAt) / DT_MS);
+    if (want > after && common.some((s) => Number(s) >= after && Number(s) <= want)) {
       poured += 1;
     }
     if ((w.flows || []).some((x) => x.q > 0)) {
@@ -323,14 +344,14 @@ try {
     }
     /* The live flood, meanwhile, on with the room's clock: never back,
      * never rewound, and its water where it was. */
-    const liveWant = Math.floor((w.room - 100 - DELAY_MS - breachAt) / DT_MS);
+    const liveWant = Math.floor((w.room - 100 - DELAY_MS - originAt) / DT_MS);
     if (w.live.step < lastLive || w.live.rewinds !== atOpen.rewinds || w.live.restarts !== atOpen.restarts || w.live.step < liveWant - 10
       || Object.keys(atOpen.hashes).some((s) => s in w.live.hashes && w.live.hashes[s] !== atOpen.hashes[s])) {
       waterMisses.push(`row ${k}: the live flood at step ${w.live.step} (from ${lastLive}, the room's ${liveWant}), rewinds ${w.live.rewinds} from ${atOpen.rewinds}`);
     }
     lastLive = w.live.step;
   }
-  console.log(`  info  water: ${waterOrder.length} rows, ${dry} before the water moved, ${poured} past a snapshot step, the breach flowing at ${wet.length}`);
+  console.log(`  info  water: ${waterOrder.length} rows, ${dry} before the second breach, ${poured} past a snapshot step after it, water flowing at ${wet.length}`);
   check('the replay\'s water stands where the live water stood at each row, to the bit at every snapshot both kept, forwards and back, the breach pouring',
     waterOrder.length >= 6 && waterMisses.length === 0 && dry >= 2 && poured >= 2 && wet.length >= 2, waterMisses.slice(0, 3).join(' || ') || `${waterOrder.length} rows`);
 

@@ -984,10 +984,12 @@ export async function buildPart(ctx) {
   const live = liveFlood();
   /*
    * THE REPLAY'S WATER (src/replay/warrec.js, the crash cam). A replay
-   * hands its clip's openings and gate state (replayFlood): a flood of
-   * its own is made from them and stepped on the clip's clock (update's
-   * step is the playhead's room ms then), rewinding when the playhead
-   * goes back (host.js). The live flood steps on alongside on the room's
+   * hands its clip's openings and gate state and the room ms it starts
+   * at (replayFlood): the live flood forks a flood of the replay's own
+   * from them (live.js fork: from its checkpoint before the clip when it
+   * heard the same, else from the origin), stepped on the clip's clock
+   * (update's step is the playhead's room ms then) and rewinding when the
+   * playhead goes back (host.js). The live flood steps on alongside on the room's
    * clock (advanceLive), so the plant's level (levelAt, live) never has a
    * replay's worth of steps to make at once when the replay closes, and
    * nothing of the replay reaches it. The replay's water is drawn and
@@ -1002,6 +1004,9 @@ export async function buildPart(ctx) {
   const replayDrawn = () => {
     if (!replay || replayClockMs === null) return false;
     const st = replay.stats(replayClockMs);
+    /* A clip with nothing in it and a live flood with nothing either is
+     * the live water itself (fork 'still'), drawn while that holds. */
+    if (st.fork === 'still') return !st.held;
     return st.state === 'ready' && st.behind <= HOLD_STEPS;
   };
   const active = () => replay || live;
@@ -1132,8 +1137,9 @@ export async function buildPart(ctx) {
       live.open(o);
     },
     /* A replay's water: { openings (the contract's, in the order the
-     * clip heard them), gates (setGates's list, or null) }, or null when
-     * the replay closes. The same again keeps the flood it made. */
+     * clip heard them), gates (setGates's list, or null), fromMs (the
+     * room ms the clip starts at) }, or null when the replay closes. The
+     * same again keeps the flood it made. */
     replayFlood(given) {
       if (given === null) {
         replay = null;
@@ -1145,9 +1151,7 @@ export async function buildPart(ctx) {
       const key = JSON.stringify(given);
       if (replay && key === replayKey) return;
       replayKey = key;
-      replay = liveFlood();
-      for (const o of given.openings) replay.open(o);
-      if (given.gates) replay.setGates(given.gates);
+      replay = live.fork(given.openings, given.fromMs, given.gates);
       replayClockMs = null;
       readFrom = null;
     },
@@ -1162,7 +1166,9 @@ export async function buildPart(ctx) {
     replayWater() {
       if (!replay) return null;
       const st = replay.stats(replayClockMs);
-      return { state: st.state, behind: st.behind, drawn: replayDrawn() };
+      return {
+        state: st.state, behind: st.behind, drawn: replayDrawn(), fork: st.fork,
+      };
     },
     /* A mission's gate state ({ gate, at, open_m } each), or null for
      * no war (live.js). */
