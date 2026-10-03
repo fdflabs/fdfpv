@@ -101,14 +101,15 @@ export function matchAt(m, t, cache) {
   for (let i = 0; i < DISTRICTS.length; i += 1) {
     cache.levels[i] = levelAt(cache.from[i], i, t);
   }
+  /* The match's gate state, whole (hoist.js places each entry). */
   return {
-    targets, levels: cache.levels, damage, openings: cache.openings,
+    targets, levels: cache.levels, damage, openings: cache.openings, gates: m.gates && m.gates.length ? m.gates : null,
   };
 }
 
 /* The map as no war has touched it: every target whole, every light on. */
 export function untouched() {
   return {
-    targets: {}, levels: new Float32Array(DISTRICTS.length).fill(1), damage: [], openings: [],
+    targets: {}, levels: new Float32Array(DISTRICTS.length).fill(1), damage: [], openings: [], gates: null,
   };
 }

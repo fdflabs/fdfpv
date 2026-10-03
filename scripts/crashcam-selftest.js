@@ -108,6 +108,7 @@ import {
   BOOM_LIFE_MS, boomsAt, createWarRing, warAt, worldAt, HUNTER_N,
 } from '../src/replay/warrec.js';
 import { createRoomWar } from '../src/share/roomwar.js';
+import { openAt } from '../src/share/war/hoist.js';
 import { createGrid } from '../src/share/war/grid.js';
 import { FIRE_MS, burnAt } from '../src/share/war/world.js';
 import {
@@ -2047,6 +2048,7 @@ function animRecord() {
   warFile(withClock, bBuf, refused);
   warWorld(withClock, refused);
   boomFile(withClock, refused);
+  gateFile(withClock, refused);
   soundFile(withClock, refused);
   voiceFile(withClock, refused);
 }
@@ -2678,6 +2680,56 @@ function boomFile(withClock, refused) {
   refused(() => reheader(buf, 11), 'explosions on the map\'s clock in a file that says version 11');
   refused(() => reheader(encodeReplay(bare), 14), 'a version 14 file without them');
   refused(() => encodeReplay({ ...clip, war: { ...war, booms: [{ ...war.booms[0], size: 99 }] } }), 'an explosion bigger than any');
+}
+
+/*
+ * 22. The spillway's gate state with the war's map (src/replay/warrec.js
+ * THE GATES). The ring is handed the gate state as src/main.js
+ * warGatesTo hands the map it: the whole list each time it changes, in
+ * flight or not. The clip keeps each entry once; a replay asked at any
+ * row has the match's whole list, so hoist.js turns each leaf to where it
+ * stood then; a new match keeps its own. Saved as version 15.
+ */
+function gateFile(withClock, refused) {
+  console.log('22. the spillway\'s gate state with the war\'s map, saved (version 15)');
+  const n = withClock.n;
+  const ring = createWarRing(n);
+  const room = (k) => 900000 + k * 1000;
+  const first = [{ gate: 'gate-2', at: room(2), open_m: 12 }];
+  const both = [...first, { gate: 'gate-5', at: room(6), open_m: 0 }];
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    ring.world('TEST:1', 'itaipu-1', [], true, room(k));
+    ring.gates(k < 6 ? first : both);
+    if (k === 4) {
+      /* Handed again while the pilot is down: no row open, nothing new. */
+      ring.begin(-1);
+      ring.gates(first);
+    }
+  }
+  const war = ring.clip(0, n);
+  const m = war.world[0];
+  check(JSON.stringify(m.gates) === JSON.stringify(both), 'the clip keeps every entry of the gate state once', JSON.stringify(m.gates));
+  let wrong = '';
+  for (const k of [0, 3, 7, n - 1, 5, 1]) {
+    const w = worldAt(war, n, k, 0, new Map());
+    const open = openAt(w.gates, 'gate-2', w.t);
+    const want = openAt(both, 'gate-2', room(k));
+    if (open !== want || JSON.stringify(w.gates) !== JSON.stringify(both)) {
+      wrong = wrong || `row ${k}: ${open} want ${want}`;
+    }
+  }
+  check(!wrong, 'a replay at any row has the whole state, so each leaf stands where it stood then', wrong || `gate-2 ${openAt(both, 'gate-2', room(2))} to ${openAt(both, 'gate-2', room(n - 1)).toFixed(4)} m`);
+  const clip = { ...withClock, war };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 15 && JSON.stringify(back.war.world) === JSON.stringify(war.world),
+    'a war with its gate state is saved as version 15 and comes back as it was');
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  const none = { ...clip, war: { ...war, world: war.world.map((x) => { const y = { ...x }; delete y.gates; return y; }) } };
+  check(new DataView(encodeReplay(none)).getUint32(4, true) === 11, 'the same war without gates is version 11, as before');
+  refused(() => reheader(buf, 11), 'a gate state in a file that says version 11');
+  refused(() => encodeReplay({ ...clip, war: { ...war, world: [{ ...m, gates: [{ gate: 'the-moon', at: 1, open_m: 1 }] }] } }), 'a gate entry that is not one');
 }
 
 ring();

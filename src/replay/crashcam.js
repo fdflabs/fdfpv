@@ -598,6 +598,13 @@ export function createCrashCam(host) {
       return play(p, size, ageS);
     };
   }
+  /* The spillway's gate state handed to the map (src/main.js warGatesTo),
+   * into the war's record whatever the pilot is doing. */
+  function recordGates(list) {
+    if (!S) {
+      warRing.gates(list);
+    }
+  }
   /* The room clock the war's frame is drawn at (tapWar's), or null. */
   let warClock = null;
 
@@ -2338,6 +2345,7 @@ export function createCrashCam(host) {
     tapBooms,
     tapWar,
     recordAir,
+    recordGates,
     voiceSink,
     noteCrash,
     promptKey: () => promptKey,

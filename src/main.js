@@ -3472,11 +3472,14 @@ export async function boot({
     if (w.damage) {
       warBreakageAt(w.damage, w.t ?? 0);
     }
-    /* And its water: a flood of the replay's own from the openings, on
-     * the clip's clock (map.replayFlood). The mission's gate state is
-     * not journalled yet (no war feeds map.setGateState), so none. */
+    /* And its water: a flood of the replay's own from the openings and
+     * the gate state, on the clip's clock (map.replayFlood); and the
+     * leaves turned to that gate state (map.replayGates). */
+    if (w.openings && typeof view.replayGates === 'function') {
+      view.replayGates({ list: w.gates ?? null });
+    }
     if (w.openings && typeof view.replayFlood === 'function') {
-      view.replayFlood({ openings: w.openings, gates: null, fromMs: w.from ?? w.t ?? 0 });
+      view.replayFlood({ openings: w.openings, gates: w.gates ?? null, fromMs: w.from ?? w.t ?? 0 });
     }
   }
 
@@ -3509,6 +3512,9 @@ export async function boot({
   function warBreakageLive(now) {
     if (view && typeof view.replayFlood === 'function') {
       view.replayFlood(null);
+    }
+    if (view && typeof view.replayGates === 'function') {
+      view.replayGates(null);
     }
     if (!warBreakageShown) {
       return;
@@ -3924,7 +3930,15 @@ export async function boot({
     }
     warGatesKey = key;
     warGatesView = view;
-    view.setGateState(gates);
+    warGatesTo(gates);
+  }
+  /* The gate state to the map, and to the crash cam's record of it
+   * (src/replay/warrec.js THE GATES), so a replay turns the same leaves. */
+  function warGatesTo(list) {
+    view.setGateState(list);
+    if (crashCam) {
+      crashCam.recordGates(list);
+    }
   }
 
   function roomWarFrame(now, wallMs, dt) {
@@ -18311,9 +18325,13 @@ export async function boot({
    * scripts/itaipu-views.js --gates. Harness only. */
   window.__mapGates = (list) => {
     if (!view || typeof view.setGateState !== 'function') return false;
-    view.setGateState(list);
+    warGatesTo(list);
     return true;
   };
+  /* A gate's leaf turn at room ms t as the map would draw it now, a
+   * replay's gate state while one plays (map.leafTurnAt), for
+   * scripts/replay-world.js. Harness only. */
+  window.__mapLeaf = (id, t) => (view && view.leafTurnAt ? view.leafTurnAt(id, t) : null);
   window.__animMs = () => animDrawnMs;
   /* The declared departure from MultiGP's published obstacle dimensions, so
    * check 15 can assert the threshold file and the course agree about how big
