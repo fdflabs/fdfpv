@@ -22,6 +22,10 @@
  *   is handed every opening at once (the war's list) and steps from the
  *   origin to the room's clock.
  *
+ *   A CLOCK THAT GOES BACK (a replay's playhead) rewinds the water to
+ *   that time the same way, and forward again steps it on: the water at
+ *   a room time is the same however the clock got there.
+ *
  *   THE BUDGET. advance steps at most until a budget of wall clock is
  *   spent; what it does not reach this call it reaches on a later one.
  *   Wall clock decides only how soon a client sees the water, never what
@@ -159,6 +163,12 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
     advance(nowMs, { budgetMs = Infinity, clock = () => 0, maxSteps = Infinity } = {}) {
       if (origin === null) return 0;
       const target = Math.floor((nowMs - delayMs - origin) / dtMs);
+      if (target < step) {
+        /* The clock went back (a replay's playhead): the water it shows
+         * is the water then, from the last snapshot before it or from
+         * the start. */
+        rewind(Math.max(0, target));
+      }
       const t0 = clock();
       let taken = 0;
       while (step < target && taken < maxSteps) {

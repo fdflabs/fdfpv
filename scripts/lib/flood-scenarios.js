@@ -445,6 +445,23 @@ export async function hostClock(wasm) {
   for (const o of OPENINGS.slice().reverse()) reverse.host.open(o);
   reverse.host.advance(END);
   while (slow.host.behind(END) > 0) slow.host.advance(END, { maxSteps: 3 });
+  /* A replay: the clock back 5 s (inside the snapshots) and 12 s (past
+   * them), each against a client stepped straight there, and forward to
+   * the end again. */
+  const replay = await client();
+  for (const o of OPENINGS) replay.host.open(o);
+  replay.host.advance(END);
+  const back = [];
+  for (const ago of [5000, 12000]) {
+    replay.host.advance(END - ago);
+    const fresh = await client();
+    for (const o of OPENINGS) fresh.host.open(o);
+    fresh.host.advance(END - ago);
+    back.push({
+      ago, same: replay.f.hash() === fresh.f.hash() && replay.host.step() === fresh.host.step(), step: replay.host.step(),
+    });
+  }
+  replay.host.advance(END);
   /* The control: the later openings applied where a client heard them,
    * 3 s after the first, must not be the same water. (All of them 3 s
    * late is the same water 3 s later: the origin moves with them.) */
@@ -464,6 +481,8 @@ export async function hostClock(wasm) {
     c('the late client rewound and the reverse client started again, and still agree', late.host.stats.rewinds > 0 && reverse.host.stats.restarts > 0,
       `late ${late.host.stats.rewinds} rewinds, reverse ${reverse.host.stats.restarts} restarts`),
     c('water went through the openings', through > 100, `${through.toFixed(0)} m3`),
+    c('a replay\'s clock back 5 s and 12 s holds the water of then, and forward again the water of now', back.every((x) => x.same) && replay.f.hash() === hash.live && replay.host.step() === steps.live,
+      `${back.map((x) => `${x.ago / 1000} s back: step ${x.step} ${x.same ? 'same' : 'DIFFERENT'}`).join(', ')}; ${replay.host.stats.rewinds} rewinds, ${replay.host.stats.restarts} restarts`),
     c('and the control, the openings applied 3 s late, is other water', wrong.f.hash() !== hash.live, wrong.f.hash()),
   ], { hash, steps }, live.f);
 }
