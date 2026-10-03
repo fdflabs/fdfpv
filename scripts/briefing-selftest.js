@@ -4,9 +4,9 @@
  *
  * Node only. For each mission of Act 1 (src/game/campaign.js ACT1) and
  * each locale: a title, the campaign's line, the five facts (where, the
- * aircraft, the length, the pilots, the room), each with a value; a length
- * from the design (docs/campaign/MISSIONS.md section 2) for every
- * campaign mission; the room told as public or as private with its code;
+ * aircraft, the length, the pilots, the room), each with a value; every
+ * campaign mission's definition carrying estimatedMinutes, [low, high]
+ * (src/share/war/missions), and the briefing showing it; the room told as public or as private with its code;
  * no difficulty anywhere; no em or en dash in what it says. And the
  * mission whose opening stage has objectives (the stage engine's) shows
  * them.
@@ -32,7 +32,7 @@
 import { ACT1 } from '../src/game/campaign.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { LOCALES, useLocale } from '../src/strings/index.js';
-import { MINUTES, briefingOf } from '../src/ui/briefing.js';
+import { briefingOf } from '../src/ui/briefing.js';
 
 let failed = 0;
 let passed = 0;
@@ -54,7 +54,9 @@ for (const locale of LOCALES) {
     const priv = briefingOf(m.id, { public: false, code: 'ABC123' });
     check(`${m.id}: a briefing with a title and the campaign's line`, Boolean(pub) && pub.title.length > 0 && pub.line.length > 0, JSON.stringify(pub && [pub.title, pub.line]));
     check(`${m.id}: five facts, each with a value`, pub.facts.length === 5 && pub.facts.every((f) => f.label && f.value), JSON.stringify(pub.facts));
-    check(`${m.id}: a length from the design`, Array.isArray(MINUTES[m.id]) && MINUTES[m.id][0] < MINUTES[m.id][1] && /\d/.test(pub.facts[2].value), pub.facts[2].value);
+    const est = MISSIONS[m.id].estimatedMinutes;
+    check(`${m.id}: its definition carries estimatedMinutes, and the briefing shows it`, Array.isArray(est) && est.length === 2
+      && est.every((x) => Number.isInteger(x) && x > 0) && est[0] < est[1] && pub.facts[2].value.includes(String(est[0])), `${JSON.stringify(est)} ${pub.facts[2].value}`);
     check(`${m.id}: the room told as public, or private with its code`, pub.facts[4].value !== priv.facts[4].value && priv.facts[4].value.includes('ABC123'),
       `${pub.facts[4].value} / ${priv.facts[4].value}`);
     const text = JSON.stringify(pub);

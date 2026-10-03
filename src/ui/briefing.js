@@ -9,11 +9,10 @@
  *
  * WHAT IS THE MISSION'S AND WHAT IS THE SCREEN'S. The mission data
  * (src/share/war/missions, the stage engine's, not this file's) gives the
- * title, the map, the airframes a pilot has and the objectives of its
- * opening stage, where it has stages. The campaign (src/game/campaign.js
- * ACT1) gives its line. The estimated length is the design's
- * (docs/campaign/MISSIONS.md section 2), held here until the missions
- * carry it; a mission it does not list says so rather than guessing.
+ * title, the map, the airframes a pilot has, its estimatedMinutes and the
+ * objectives of its opening stage, where it has stages. The campaign
+ * (src/game/campaign.js ACT1) gives its line. A mission with no
+ * estimatedMinutes says its length is open rather than guessing.
  * There is no difficulty: the war scales by its pilots and its seed
  * (docs/PILLARS.md section 3).
  *
@@ -37,14 +36,6 @@ import { MISSIONS } from '../share/war/missions/index.js';
 import { ACT1 } from '../game/campaign.js';
 import { str } from '../strings/index.js';
 
-/* Minutes, low and high, from docs/campaign/MISSIONS.md section 2. */
-export const MINUTES = {
-  'itaipu-1': [9, 13],
-  'itaipu-2': [10, 14],
-  'itaipu-3': [10, 14],
-  'itaipu-4': [12, 16],
-};
-
 /* Pilots a mission is built for (docs/campaign/MISSIONS.md 1.6). */
 export const PILOTS = [1, 8];
 
@@ -64,7 +55,7 @@ export function briefingOf(id, room = { public: true, code: null }) {
     return null;
   }
   const act = ACT1.find((m) => m.id === id);
-  const minutes = MINUTES[id];
+  const minutes = mission.estimatedMinutes;
   return {
     title: str(mission.title),
     line: act ? str(`campaign.m.${act.key}_blurb`) : '',

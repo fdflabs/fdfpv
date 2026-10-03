@@ -36,6 +36,9 @@ export default withWaves({
   /* A string key (src/strings): Save the spillway gates. */
   title: 'war.mission.itaipu_2',
   map: 'itaipu',
+  /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
+   * Operations' briefing shows it (src/ui/briefing.js). */
+  estimatedMinutes: [10, 14],
   targets,
   output: 14000,
   floorMw: 11200,
