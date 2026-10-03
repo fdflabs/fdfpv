@@ -3346,13 +3346,23 @@ export async function buildPart(ctx) {
       /* gate-0 is the westernmost: u runs east. */
       /* On its upstream face; its reach at most half the gates' pitch,
        * so neighbours' spheres never overlap. */
-      /* At the skin's middle as Free Flight draws it, its height turned
-       * with the leaf (its place across and along the dam the rest's, a
-       * few centimetres off it, so the missions' aim points stay put):
-       * every capsule of the skin within its reach. */
-      const mid = arc((u0 + u1) / 2, R, 0);
+      /* At the skin's most upstream point, level with the trunnions, which
+       * the leaf passes through at Free Flight's opening and every one up
+       * to the trunnions' height over the sill, so the missions' aim
+       * points stay put; its colliders the skin's capsules
+       * within its reach with the leaf at Free Flight's opening (the full
+       * leaf's top row stands past it). */
+      const at = arc((u0 + u1) / 2, R, 0);
+      const free = leafTurn(hinge, FREE_OPEN_M);
+      const reached = ids.filter((k) => {
+        const c = rig.caps.find((q) => q.i === k);
+        const a = turnPoint(hinge, free, c.a);
+        const b = turnPoint(hinge, free, c.b);
+        const gap = [0, 1, 2].map((q) => Math.max(Math.min(a[q], b[q]) - c.r - at[q], 0, at[q] - Math.max(a[q], b[q]) - c.r));
+        return Math.hypot(...gap) <= gateR;
+      });
       targets[id] = {
-        at: [mid[0], turnPoint(hinge, leafTurn(hinge, FREE_OPEN_M), mid)[1], mid[2]], r: gateR, part: 'gate', colliders: ids,
+        at, r: gateR, part: 'gate', colliders: reached,
       };
       /* Each side: the two arms from the girders' ends back to the
        * trunnion on the pier, the brace between them, and the hoist
