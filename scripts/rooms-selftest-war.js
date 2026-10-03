@@ -35,6 +35,7 @@ import {
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
+import { filmFor } from '../src/share/war/films/index.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
@@ -232,20 +233,31 @@ export function warSection(check) {
       threw = true;
     }
     check('a route the mission lacks fails loudly', threw);
-    /* The mission file: every wave's route and target exist. */
+    /* The mission files: every wave plans, on every route its family or
+     * sector may draw, as every kind it may be. */
     let ok = true;
-    for (const w of itaipu1.waves) {
-      try {
-        planAgent(itaipu1, {
-          id: 1, kind: w.kind, route: w.route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
-        });
-      } catch (x) {
-        ok = false;
+    const unplanned = [];
+    for (const m of Object.values(MISSIONS)) {
+      for (const w of m.waves) {
+        const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
+          ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat();
+        for (const kind of w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat()) {
+          for (const route of routes) {
+            try {
+              planAgent(m, {
+                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
+              });
+            } catch (x) {
+              ok = false;
+              unplanned.push(`${m.id} ${kind} ${route}: ${x.message}`);
+            }
+          }
+        }
       }
     }
     const intakes = Object.keys(itaipu1.targets).filter((k) => k.startsWith('intake-'));
-    check('itaipu-1: every wave plans, twenty intakes of 700 MW make its 14 000', ok && intakes.length === 20
-      && intakes.reduce((s, k) => s + itaipu1.targets[k].mw, 0) === itaipu1.output && itaipu1.output === 14000);
+    check('every mission\'s every wave plans; twenty intakes of 700 MW make the plant\'s 14 000', ok && intakes.length === 20
+      && intakes.reduce((s, k) => s + itaipu1.targets[k].mw, 0) === itaipu1.output && itaipu1.output === 14000, unplanned.slice(0, 3).join(' | '));
   }
 
   console.log('war: starting a game');
@@ -336,6 +348,20 @@ export function warSection(check) {
       type: 'war', op: 'start', mission: 'test-1', intro: true,
     });
     s.fly(5000);
+    /* The host's skip cuts a briefing only once every pilot here has seen
+     * the film (docs/campaign/INTROS.md section 3, the owner's: a first
+     * viewing is never cut). */
+    const seen = { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version } };
+    s.say(0, seen);
+    s.say(0, { type: 'war', op: 'skipIntro' });
+    check('the host\'s skip with a pilot here who has not seen the film is refused "unwatched", and the briefing holds',
+      s.errors(0).at(-1) === 'unwatched' && s.view(1).state === 'briefing' && JSON.stringify(s.view(1).seen) === JSON.stringify([1]), JSON.stringify(s.view(1).seen));
+    s.say(1, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version - 1 } });
+    s.say(0, { type: 'war', op: 'skipIntro' });
+    check('and so is it when that pilot saw only an older cut of it', s.errors(0).at(-1) === 'unwatched' && s.view(1).state === 'briefing');
+    s.say(1, { type: 'war', op: 'seen', films: 'all' });
+    check('a seen that is not { film: version } is refused "seen"', s.errors(1).at(-1) === 'seen');
+    s.say(1, seen);
     s.say(0, { type: 'war', op: 'skipIntro' });
     const k = s.view(1);
     check('the host skips it: the countdown starts now, for everybody', k.state === 'countdown' && k.goAt === 5000 + COUNTDOWN_MS
@@ -671,8 +697,8 @@ export function warSection(check) {
       && k.e.view().result.won && k.e.view().result.stars === 3 && k.e.view().result.credits === 320
       && k.e.view().result.criteria.map((c) => `${c.id}:${c.met}`).join() === 'held:true,noLosses:true,output:true', JSON.stringify(k.e.view().result));
     check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
-    check('itaipu-4 is mission 1 at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
-      && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-1'].waves);
+    check('itaipu-4 is the drill (mission 1 as it was) at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
+      && !MISSIONS['itaipu-drill'].night && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-drill'].waves);
     const n = warRoom({ mission: MISSIONS['itaipu-4'] });
     check('the night raid counts down prepMs longer, so every screen has built its night before the go',
       MISSIONS['itaipu-4'].prepMs >= 10000 && n.view().state === 'countdown' && n.view().goAt === COUNTDOWN_MS + MISSIONS['itaipu-4'].prepMs,
@@ -989,6 +1015,7 @@ export function warSection(check) {
         && c.match() === 'M1SS20:1', `${first} then ${c.match()}`);
       if (skip) {
         two.fly(4000);
+        two.say(0, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version } });
         two.say(0, { type: 'war', op: 'skipIntro' });
       }
       const blank = [];

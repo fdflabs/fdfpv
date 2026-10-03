@@ -52,6 +52,8 @@ const RED = '#ff4a3a';
 const DIM = 'rgba(125, 255, 154, 0.35)';
 const SCRIM = 'rgba(4, 10, 6, 0.55)';
 const CALL_MS = 4500;
+/* A stage's title stands this long (TECH-NEEDS T4: 3 s). */
+const LOWER_MS = 3000;
 const CALLS_SHOWN = 3;
 /* The display's top, under the room's lines at their longest (see the
  * header), and its left, inside the left edge arrows and their words
@@ -116,8 +118,10 @@ function clock(s) {
  * is on: a next event this screen cannot time (a view without its clock,
  * a mission this build does not have) says so in words, since a blank
  * line read as "nothing is coming" (the owner, 2026-10-01). null only
- * with no war on. roundAt comes from the room's view; a room from before
- * it knows only the first round's.
+ * with no war on. A room that runs stages (src/share/war/stages.js) says
+ * when its next wave is born (nextAt), which a seeded window or a trigger
+ * decides; one from before them is timed from roundAt and the mission's
+ * waves, and one from before roundAt knows only the first round's.
  */
 export function waveStatus(v, mission, roomNow) {
   const unknown = { text: str('war.next_unknown'), s: null };
@@ -133,6 +137,13 @@ export function waveStatus(v, mission, roomNow) {
   }
   if ((v.roundState ?? 'live') === 'result') {
     return Number.isFinite(v.nextRoundAt) ? at('war.next_round', v.nextRoundAt) : unknown;
+  }
+  if (v.stage !== undefined) {
+    if (Number.isFinite(v.nextAt)) {
+      const s = Math.ceil((v.nextAt - roomNow) / 1000);
+      return s > 0 ? { text: str('war.next_wave', { t: clock(s) }), s } : { text: str('war.wave_inbound'), s: 0 };
+    }
+    return { text: str(v.alive > 0 ? 'war.last_wave' : 'war.round_clear'), s: null };
   }
   if (!mission) {
     return unknown;
@@ -165,6 +176,7 @@ export function createWarHud(nameOf, restart = null) {
   let outFloor = null;
   let outText = null;
   let line = null;
+  let goals = null;
   let calls = null;
   let banner = null;
   let status = null;
@@ -176,6 +188,7 @@ export function createWarHud(nameOf, restart = null) {
   /* The big centred kill call and the start's hint, over the picture's
    * middle, each built when first shown. */
   let splashEl = null;
+  let lowerEl = null;
   /* Under the splash, in rounds: the airframes the kill earned. */
   let earnedEl = null;
   /* This pilot's allowance at the last update, to pulse the pips when a
@@ -251,6 +264,12 @@ export function createWarHud(nameOf, restart = null) {
     status = el({
       background: SCRIM, border: `1px solid ${DIM}`, padding: '4px 10px', fontSize: '18px', fontWeight: '800', display: 'none',
     }, box);
+    /* The stage's line and its objectives (stages.js), when it has any. */
+    goals = el({
+      background: SCRIM, border: `1px solid ${DIM}`, padding: '4px 10px', fontSize: '13px', display: 'none', textTransform: 'none',
+      flexDirection: 'column', gap: '2px',
+    }, box);
+    goals.className = 'war-objectives';
     calls = root({
       position: 'fixed', top: '15%', left: '50%', transform: 'translateX(-50%)', zIndex: '41', pointerEvents: 'none',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', maxWidth: '80vw',
@@ -275,6 +294,30 @@ export function createWarHud(nameOf, restart = null) {
         restart.go(lastView);
       }
     });
+  }
+
+  /* The stage's text over its objectives: each a mark (open, done,
+   * failed), its words and, for a count, how far it has got. */
+  function objectivesShown(stage, roomNow) {
+    const list = stage ? stage.objectives ?? [] : [];
+    goals.replaceChildren();
+    goals.style.display = stage && (stage.text || list.length) ? 'flex' : 'none';
+    if (stage && stage.text) {
+      const t = el({ color: AMBER, fontWeight: '800', textTransform: 'uppercase' }, goals);
+      t.textContent = str(stage.text);
+    }
+    for (const o of list) {
+      const mark = o.state === 'done' ? '\u2713' : o.state === 'failed' ? '\u2717' : '\u25b8';
+      const d = el({ color: o.state === 'failed' ? RED : o.state === 'done' ? DIM : GREEN }, goals);
+      const heldMs = o.ms == null ? null : o.heldFrom != null ? Math.max(0, Math.min(o.ms, roomNow - o.heldFrom)) : o.heldMs;
+      const held = heldMs != null ? ` ${Math.floor(heldMs / 1000)}/${Math.round(o.ms / 1000)} s` : '';
+      d.textContent = `${mark} ${str(o.text)}${o.progress ? ` ${o.progress[0]}/${o.progress[1]}` : ''}${held}`;
+      d.dataset.state = o.state;
+      if (heldMs != null && o.state === 'active') {
+        const bar = el({ height: '3px', marginTop: '2px', background: 'rgba(125, 255, 154, 0.15)' }, d);
+        el({ height: '100%', width: `${((100 * heldMs) / o.ms).toFixed(1)}%`, background: AMBER }, bar);
+      }
+    }
   }
 
   /* One callout under the voice, for a while; `tone` 'warn' or 'bad'
@@ -390,8 +433,35 @@ export function createWarHud(nameOf, restart = null) {
         say(str('war.boom_mine'), 'warn');
       } else if (ev.type === 'scouts') {
         say(str('war.scouts_down'));
+      } else if (ev.type === 'stage' && ev.title) {
+        lowerThird(str(ev.title));
       }
     }
+  }
+
+  /* A stage's title, low on the left for LOWER_MS as it opens. */
+  function lowerThird(text) {
+    if (!lowerEl) {
+      lowerEl = root({
+        position: 'fixed', left: '6vw', bottom: '22vh', zIndex: '43', pointerEvents: 'none', opacity: '0',
+        fontWeight: '900', fontSize: 'clamp(18px, 2.4vw, 34px)', letterSpacing: '0.14em', color: AMBER, textTransform: 'uppercase',
+        borderLeft: `4px solid ${AMBER}`, padding: '4px 14px', background: 'rgba(4, 10, 6, 0.55)',
+        textShadow: '0 0 4px rgba(0, 0, 0, 0.95), 0 2px 3px rgba(0, 0, 0, 0.95)',
+      });
+      lowerEl.className = 'war-stage-title';
+    }
+    said.push(text);
+    if (said.length > 40) {
+      said.shift();
+    }
+    lowerEl.textContent = text;
+    lowerEl.getAnimations().forEach((a) => a.cancel());
+    lowerEl.animate([
+      { opacity: 0, transform: 'translateX(-24px)' },
+      { opacity: 1, transform: 'translateX(0)', offset: 0.12 },
+      { opacity: 1, transform: 'translateX(0)', offset: 0.85 },
+      { opacity: 0, transform: 'translateX(0)' },
+    ], { duration: LOWER_MS, easing: 'ease-out' });
   }
 
   function endText(v) {
@@ -438,7 +508,10 @@ export function createWarHud(nameOf, restart = null) {
     const next = waveStatus(v, mission, roomNow);
     const back = restart ? restart.back() : null;
     const host = Boolean(restart && restart.host()) && back == null;
-    const key = JSON.stringify([next && next.text, host, back, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow]);
+    const stage = v.state === 'live' && v.stage ? v.stage : null;
+    const key = JSON.stringify([next && next.text, host, back, v.state, v.output, v.floor, v.wave, v.waves, v.alive, v.rack, v.rackMax, mine && mine.kills, countdown, v.why, full, performance.now() - lostOutput < 1500, round && round.n, round && round.of, left, allow,
+      stage && stage.text, stage && stage.objectives,
+      stage && (stage.objectives ?? []).some((o) => o.heldFrom != null) ? Math.floor(roomNow / 1000) : 0]);
     if (key === shown) {
       return;
     }
@@ -452,6 +525,7 @@ export function createWarHud(nameOf, restart = null) {
       status.style.color = next.s === 0 ? RED : (soon ? AMBER : GREEN);
       status.style.borderColor = soon || next.s === 0 ? status.style.color : DIM;
     }
+    objectivesShown(stage, roomNow);
     outLabel.textContent = str('war.output');
     outText.textContent = str('war.output_mw', { mw: mw(v.output) });
     const low = v.output < v.floor * 1.25;
@@ -503,7 +577,9 @@ export function createWarHud(nameOf, restart = null) {
     banner.style.display = over ? 'block' : 'none';
     if (over) {
       banner.firstChild.nodeValue = endText(v);
-      again.textContent = back != null ? str('war.back_lobby', { n: back }) : str(host ? 'war.restart' : 'war.restart_wait');
+      const fromStage = v.state === 'lost' && v.checkpoint;
+      again.textContent = back != null ? str('war.back_lobby', { n: back })
+        : !host ? str('war.restart_wait') : fromStage ? str('war.restart_stage', { n: v.checkpoint.n + 1 }) : str('war.restart');
       again.style.cursor = host ? 'pointer' : 'default';
       again.style.background = host ? GREEN : 'transparent';
       again.style.color = host ? '#04100a' : DIM;
@@ -528,6 +604,7 @@ export function createWarHud(nameOf, restart = null) {
       calls: calls ? [...calls.children].map((c) => c.textContent) : [],
       banner: banner && banner.style.display !== 'none' ? banner.firstChild.nodeValue : '',
       status: status && status.style.display !== 'none' ? status.textContent : '',
+      objectives: goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
       splashSeen,

@@ -1058,6 +1058,10 @@ class ColliderList {
 /* Colliders.fbox's value for a turned box (ColliderList.addTurnedBox). */
 export const TURNED = 2;
 
+/* Where Colliders.retire puts a collider: exact in single precision, and
+ * further under any map than anything is ever asked about. */
+export const SUNK_Y = -100000;
+
 /*
  * THE NEXT STREAMED SET, being made: see Colliders.streamFill. Added to
  * like a Colliders before build(), then step() freezes it and registers it
@@ -1352,6 +1356,51 @@ export class Colliders extends ColliderList {
     }
     this.fby[index] = top;
     return this;
+  }
+
+  /*
+   * Take static collider `index` out of the world after build(), for a
+   * part of a structure that broke (src/share/war/damage.js), and put it
+   * back with restore(). Retired, both ends of its vertical extent sit at
+   * SUNK_Y, so every query (the sweep, gapAt, axisAt, the crossings, the
+   * crash world's nearestSolids) meets it as a solid a hundred kilometres
+   * under the map, which is to say never. The grid is indexed on x and z
+   * only (setBoxExtentY), so nothing is rebuilt and the static count does
+   * not change: a capsule, a box and a turned box all keep their place.
+   * Only the static set: a streamed one is refilled from its source, which
+   * is where a broken streamed piece has to be left out.
+   */
+  retire(index) {
+    if (!this.built) {
+      throw new Error('collide: retire before build');
+    }
+    if (!(index >= 0 && index < this.staticCount)) {
+      throw new Error(`collide: retire ${index} is not a static collider`);
+    }
+    this.sunk ??= new Map();
+    if (this.sunk.has(index)) {
+      return this;
+    }
+    this.sunk.set(index, [this.fay[index], this.fby[index]]);
+    this.fay[index] = SUNK_Y;
+    this.fby[index] = SUNK_Y;
+    return this;
+  }
+
+  restore(index) {
+    const was = this.sunk ? this.sunk.get(index) : null;
+    if (!was) {
+      return this;
+    }
+    this.fay[index] = was[0];
+    this.fby[index] = was[1];
+    this.sunk.delete(index);
+    return this;
+  }
+
+  /* How many static colliders are retired now. */
+  retired() {
+    return this.sunk ? this.sunk.size : 0;
   }
 
   /*

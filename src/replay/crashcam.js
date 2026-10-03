@@ -373,9 +373,13 @@ export function createCrashCam(host) {
         if (!said.has(radio)) {
           said.add(radio);
           const say = radio.say.bind(radio);
-          radio.say = (id, ...rest) => {
-            keep('radio', [id, radio.lang]);
-            return say(id, ...rest);
+          /* A line, or a list said back to back: each kept on its own,
+           * and said again in turn. */
+          radio.say = (ids, ...rest) => {
+            for (const id of Array.isArray(ids) ? ids : [ids]) {
+              keep('radio', [id, radio.lang]);
+            }
+            return say(ids, ...rest);
           };
         }
         return radio;
@@ -507,6 +511,8 @@ export function createCrashCam(host) {
           warRing.born(v.mission, ev.agents);
         } else if (ev.type === 'dead') {
           warRing.dead(ev);
+        } else if (ev.type === 'damage') {
+          warRing.damage(ev);
         }
       }
       return evs;

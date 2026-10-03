@@ -42,6 +42,7 @@
  */
 
 import { MAPS, mapById } from '../maps/registry.js';
+import { modeById, wireMode } from '../share/modes.js';
 import { retiredMap } from '../maps/retired.js';
 import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
@@ -1842,15 +1843,22 @@ function hintWithKeys(keys, text) {
   return n;
 }
 
-/* The name as the owner's key art sets it (index.html .lockup), which the
- * share card clones too (scripts/og.js). English in every locale, because
- * it is the mark and not a sentence. The spaces keep the heading's text
- * the name. */
+/* The name as the owner's lockup sets it (index.html .lockup-box), which
+ * the share card clones too (scripts/og.js, the heading alone). English in
+ * every locale, because it is the mark and not a sentence. The spaces keep
+ * the heading's text the name.
+ *
+ * Self contained: the box is a size container and the lockup fills its
+ * width, so a screen places it by giving the box a width and nothing else
+ * (the title's is .screen-title .lockup-box). */
 function wordmark() {
+  const box = el('div', 'lockup-box');
   const h = el('h1', 'wordmark lockup');
   const slash = el('span', 'lockup-slash');
   slash.setAttribute('aria-hidden', 'true');
   const name = el('span', 'lockup-name');
+  /* The bevel draws the name twice more behind itself, from this. */
+  name.dataset.text = 'Drone Combat';
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
   /* The flag as the boot screen draws it, horizontal bands; the title
    * shows it and hides the slash, the share card the other way round. */
@@ -1860,7 +1868,8 @@ function wordmark() {
   const over = el('span', 'lockup-over');
   over.append(flag, 'Paraguayan');
   h.append(slash, over, ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
-  return h;
+  box.append(h);
+  return box;
 }
 
 /*
@@ -3129,7 +3138,24 @@ function craftSvg(a) {
  * photograph of a room and a photograph of a field cannot say that: they
  * are both a picture that fills a card.
  */
-const WAYS = [
+/* A card's face and its lobby from the mode registry (src/share/modes.js):
+ * its name, line, tags and picture, the world it seats, and the game its
+ * lobby is for (null for free flight). The registry names the way each
+ * card is, which modes:selftest holds to this table. */
+function modeCard(id) {
+  const c = modeById(id).card;
+  return {
+    lobby: wireMode(id),
+    ...(c.home ? { home: c.home } : {}),
+    label: str(c.label),
+    art: c.art,
+    blurb: str(c.blurb),
+    facts: c.facts.map((k) => str(k)),
+  };
+}
+
+/* Exported for scripts/modes-selftest.js, which holds it to the registry. */
+export const WAYS = [
   {
     /* EVERY AIRCRAFT, ONE CARD: a track built in a world is raced by every
      * quad and by every fixed wing that fits its gates (src/game/verify.js
@@ -3140,10 +3166,9 @@ const WAYS = [
     id: 'race-5inch',
     airframes: AIRFRAME_IDS,
     mode: 'race',
-    label: str('ui.track_mode'),
-    art: 'assets/gate/race.jpg',
-    blurb: str('ui.card_line_race'),
-    facts: [str('ui.gates'), str('ui.the_clock'), str('ui.the_board')],
+    /* The game of the lobby its one press lands in (onGameCard): null is
+     * free flight. */
+    ...modeCard('race'),
   },
   {
     /* EVERY FIXED WING, ONE CARD. A card is a kind of flying, not a
@@ -3155,15 +3180,12 @@ const WAYS = [
     id: 'freestyle-wing1000',
     airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'uglystik1567', 'tigermoth1803', 'p51d1450', 'f16878', 'zagi1219', 'nrj1490', 'striker2500'],
     mode: 'freestyle',
-    /* The card's own world. A card with a home skips the picker. The
+    /* The card's own world, its home in the mode registry. A card with a
+     * home skips the picker. The
      * photoreal Swiss valley, by the owner's choice (2026-09-27): it has a
      * strip for the wheels, a lake for the floats and room for the rest. The
      * Map row still seats any other world. */
-    home: 'swiss2',
-    label: str('ui.free_flight_card'),
-    art: 'assets/gate/flight.jpg',
-    blurb: str('ui.card_line_flight'),
-    facts: [str('ui.every_plane'), str('ui.the_swiss_valley')],
+    ...modeCard('free'),
   },
   {
     /* FLY WITH FRIENDS, the owner's third card (2026-09-28). Free flight
@@ -3180,6 +3202,11 @@ const WAYS = [
      * to land on a room card. On the gate only where there is a
      * rooms server (friendsItems), the same rule as the menu row. */
     id: 'friends',
+    /* OFF THE TITLE since the owner's word on 2026-10-02 ("delete the fly
+     * with friends...every click will take you to the lobby for it"):
+     * every card is a room now. The title's rooms panel still goes in by
+     * this card's way ('lobby:' actions, act), so the entry stays. */
+    gate: false,
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'swiss2',
@@ -3203,27 +3230,19 @@ const WAYS = [
     id: 'combat',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
-    home: 'swiss2',
     room: true,
     game: 'combat',
-    label: str('combat.card'),
-    art: 'assets/gate/combat.jpg',
+    ...modeCard('combat'),
     svg: streamerSvg(),
-    blurb: str('combat.card_blurb'),
-    facts: [str('combat.card_cut'), str('combat.card_rounds'), str('friends.card_code')],
   },
   {
     id: 'ace',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
-    home: 'swiss2',
     room: true,
     game: 'tag',
-    label: str('roomtag.section'),
-    art: 'assets/gate/ace.jpg',
+    ...modeCard('tag'),
     svg: crownSvg(),
-    blurb: str('roomtag.card_blurb'),
-    facts: [str('roomtag.card_crown'), str('roomtag.card_touch'), str('friends.card_code')],
   },
   {
     /*
@@ -3264,15 +3283,11 @@ const WAYS = [
     id: 'campaign',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
-    home: 'itaipu',
     room: true,
     game: 'war',
     campaign: true,
-    label: str('campaign.card'),
-    art: 'assets/posters/itaipu.jpg',
+    ...modeCard('war'),
     svg: reticleSvg(),
-    blurb: str('campaign.card_blurb'),
-    facts: [str('campaign.card_act'), str('campaign.card_missions'), str('campaign.card_shop')],
   },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
@@ -3785,7 +3800,7 @@ export class Ui {
     this.brandSub = el('div', 'brand-sub', '');
     brand.append(wordmark(), this.brandSub);
     /* Beta notice. The only line on this screen that is about the
-     * software rather than about flying, so it wears the amber an
+     * software rather than about flying, so it wears the blue an
      * instrument wears rather than the mint a record does, and it sits
      * directly under the wordmark: a pilot who is about to meet a bug
      * should have been told before the lap, not after it. It is not
@@ -3794,7 +3809,7 @@ export class Ui {
     const beta = el('p', 'beta-note');
     beta.append(
       el('span', 'beta-tag', str('ui.beta')),
-      el('span', null, str('ui.expect_bugs_and_rough_edges_it')),
+      el('span', null, str('ui.realistic_drone_combat_inspired_by_paraguay')),
     );
     brand.append(beta);
     this.titleBest = el('div', 'brand-best', '');
@@ -10536,10 +10551,13 @@ export class Ui {
     }
     if (action === 'card-fly') {
       this.cardSubject = null;
+      /* In a race lobby, the host's choice is the room's track: back to
+       * the lobby with it seated (src/main.js onTrackChosen), not up. */
+      const go = () => (this.onTrackChosen && this.onTrackChosen() ? null : this.play());
       if (board) {
-        this.openBoardCourse(t.id, () => this.play());
+        this.openBoardCourse(t.id, go);
       } else if (this.seatLocal(t.id)) {
-        this.play();
+        go();
       }
       return;
     }
@@ -12945,6 +12963,12 @@ export class Ui {
      * is the way out (rule 4 and 5 of docs/FLOW-AUDIT.md). Reached from a
      * paused run, Back is still that run. */
     if (this.screen === 'friends' && this.returnTo !== 'paused' && this.inRoom && this.inRoom()) {
+      /* A game's lobby is a card's one press (the owner, 2026-10-02), so
+       * Back from it is back to the cards, out of the room, the card it
+       * came from under the cursor (src/main.js onLobbyBack). */
+      if (this.warLobbyOn && this.onLobbyBack) {
+        this.onLobbyBack();
+      }
       return;
     }
     if (this.onUiSound) {
@@ -14029,6 +14053,17 @@ export class Ui {
     }
     /* A room's aircraft is chosen in the room, once it is known who is
      * flying what: the card goes straight to the room screen. */
+    /*
+     * EVERY CARD, ONE PRESS, into its game's lobby (the owner, 2026-10-02:
+     * "every click will take you to the lobby for it, ready to go either
+     * single or multi"; src/main.js onGameCard), its aircraft chosen
+     * there. Defend the Paraná's lobby is the war's, its campaign a row
+     * of it. With no rooms server the cards fly alone as they always did.
+     */
+    if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
+      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
+      return;
+    }
     if (way.campaign && this.onCampaignCard) {
       this.onCampaignCard();
       return;

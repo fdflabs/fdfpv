@@ -76,6 +76,7 @@ function scene({ title, group, seconds, lis, paths, booms = [], role = 'other', 
       src[o + 5] = (b[0] - a[0]) / h;
       src[o + 6] = (b[1] - a[1]) / h;
       src[o + 7] = (b[2] - a[2]) / h;
+      src[o + 8] = p.drive ? p.drive(t) : 0;
     });
     frames.push({ t, lis: typeof lis === 'function' ? lis(t) : lis, src });
   }
@@ -402,6 +403,40 @@ Object.assign(SCENES, {
   })(),
 });
 
+/*
+ * THE DAM BREAK'S SCENES (WorldAudio.breach and flow): a structure
+ * breaking by material, and water through the breach as the opening
+ * grows. A break is an effect, judged as an explosion is; the water is
+ * judged on its own pass window, BREACH_PASS: as loud as the war at its
+ * loudest, never louder than the pilot's own aircraft at full (-18).
+ */
+export const BREACH_PASS = [-40, -18];
+
+Object.assign(SCENES, {
+  'breach-concrete': scene({
+    title: 'Dam break: 10 t of concrete breaks off 60 m away, 20 m up', group: 'Dam break', seconds: 7, lis: standing(0, 0, 0), paths: [], role: 'fx',
+    booms: [{ t: 0.3, p: [20, 20, -56], material: 'concrete', mass: 10000, fall: 20, seed: 21 }],
+  }),
+  'breach-concrete-far': scene({
+    title: 'Dam break: 500 t of the dam goes 300 m off, its echo off the face', group: 'Dam break', seconds: 14, lis: standing(0, 0, 0), paths: [], role: 'fx',
+    booms: [{ t: 0.3, p: [100, 60, -283], material: 'concrete', mass: 500000, fall: 60, seed: 22, images: [[100, 60, 683, 0.6]] }],
+  }),
+  'breach-steel': scene({
+    title: 'Dam break: a 40 t spillway gate tears away 80 m off', group: 'Dam break', seconds: 8, lis: standing(0, 0, 0), paths: [], role: 'fx',
+    booms: [{ t: 0.3, p: [-30, 12, -74], material: 'steel', mass: 40000, fall: 12, seed: 23 }],
+  }),
+  'breach-transformer': scene({
+    title: 'Dam break: a switchyard transformer arcs and burns 120 m off', group: 'Dam break', seconds: 14, lis: standing(0, 0, 0), paths: [], role: 'fx',
+    booms: [{ t: 0.3, p: [60, 4, -104], material: 'transformer', mass: 300000, fall: 2, seed: 24 }],
+  }),
+  /* The opening 200 m off, its discharge rising from nothing to 5000 m3/s
+   * over 20 s and holding. */
+  'breach-flow': scene({
+    title: 'Dam break: water through the breach, 0 to 5000 m3/s, 200 m off', group: 'Dam break', seconds: 30, lis: standing(0, 0, 0), pass: BREACH_PASS,
+    paths: [{ id: 1, kind: 'breachflow', at: () => [0, 4, -200], drive: (t) => 5000 * Math.min(1, t / 20) }],
+  }),
+});
+
 /* Where a kind's level is given: 16 m and its lufs16, or for a source as
  * big as a spillway its own `near` and lufsNear. */
 export function calibrationOf(spec) {
@@ -417,6 +452,6 @@ export function calibrationScene(kind) {
   const { m } = calibrationOf(spec);
   return scene({
     title: `calibration: ${kind}`, group: 'calibration', seconds: spec.bed ? 30 : 6, lis: standing(0, 0, 0),
-    paths: [{ id: 1, kind, at: circle([0, 0, 0], m, spec.height ?? EAR_M, Math.max(0.5, spec.cruise)) }],
+    paths: [{ id: 1, kind, at: circle([0, 0, 0], m, spec.height ?? EAR_M, Math.max(0.5, spec.cruise)), drive: spec.flowRef ? () => spec.flowRef : null }],
   });
 }

@@ -17,9 +17,17 @@
  * and a burst of events (a swarm dying together, a wave born with a hit)
  * is common. So a line waits its turn in a queue of QUEUE_MAX, a line
  * already waiting is not queued twice, and a line that waited longer than
- * STALE_MS is dropped when its turn comes, since a call about a moment
- * that has passed is noise. The mission's end is said at once: it clears
- * the queue and cuts in.
+ * its staleness is dropped when its turn comes, since a call about a
+ * moment that has passed is noise. The mission's end is said at once: it
+ * clears the queue and cuts in.
+ *
+ * PRIORITY (docs/campaign/TECH-NEEDS.md T3.1). End lines over everything;
+ * then a mission's story lines (its stages' radio cues), which wait up to
+ * STORY_STALE_MS and push the oldest waiting call out of a full queue;
+ * then the calls (bearing, kind, hit, kill), STALE_MS, which never push a
+ * story line out. An item may be several lines said one after another
+ * with nothing between them: a group's bearing and then its kind
+ * (MIRADOR's "Out of the west arm." then CREST's "Strikers, low ...").
  *
  * This file is part of WebFPVSimulator.
  *
@@ -42,13 +50,22 @@ import { MISSIONS } from '../share/war/missions/index.js';
 
 export const QUEUE_MAX = 3;
 export const STALE_MS = 6000;
+export const STORY_STALE_MS = 12000;
 /* Each Act 1 mission's briefing, said over its countdown, and its
- * debrief, said at its end in place of the generic win or lose line
- * (lines.json group 'mission'): brief-<id>-1, -2; debrief-<id>-win, -lose. */
-export const BRIEF_LINES = Object.fromEntries(Object.keys(MISSIONS).map((id) => [id, [`brief-${id}-1`, `brief-${id}-2`]]));
+ * debrief, said at its end in place of the generic win or lose line: the
+ * mission's own `radio` (docs/campaign/TECH-NEEDS.md T1.13: { brief: [ids],
+ * win, lose }), or by its id, brief-<id>-1, -2 and debrief-<id>-win, -lose,
+ * for a mission written before it had one. */
+const radioOf = (m) => ({
+  brief: m.radio?.brief ?? [`brief-${m.id}-1`, `brief-${m.id}-2`],
+  win: m.radio?.win ?? `debrief-${m.id}-win`,
+  lose: m.radio?.lose ?? `debrief-${m.id}-lose`,
+});
+export const BRIEF_LINES = Object.fromEntries(Object.values(MISSIONS).map((m) => [m.id, radioOf(m).brief]));
+export const DEBRIEF_LINES = Object.fromEntries(Object.values(MISSIONS).map((m) => [m.id, { win: radioOf(m).win, lose: radioOf(m).lose }]));
 /* The lines that end a mission: said at once, over whatever was queued. */
 export const END_LINES = new Set(['win', 'lose-output', 'lose-rack',
-  ...Object.keys(MISSIONS).flatMap((id) => [`debrief-${id}-win`, `debrief-${id}-lose`])]);
+  ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
 /* The music's level on the music setting, before the master: the intro
  * is a trailer and carries the countdown, the loop sits under the voice. */
 export const INTRO_BUS = 0.5;
@@ -59,6 +76,9 @@ export const COMBAT_BUS = 0.335;
 /* How far the motors and wind duck under a call, and the voice's level. */
 const VOICE_LEVEL = 1.0;
 export const VOICE_DUCK = 0.55;
+/* The music already playing is moved to a film's time only when it is
+ * this far off it, so the film's own clock never makes it stutter. */
+export const MUSIC_SEEK_S = 0.25;
 /* Under a teammate on voice chat the radio and the music step aside:
  * DUCK_DB down in DUCK_ATTACK_MS, back up over DUCK_RELEASE_MS once the
  * last one stops. Ramped in dB, so the attack and the release are even. */
@@ -113,13 +133,17 @@ export function createWarCalls() {
       } else if (ev.type === 'state' && ev.to === 'live') {
         out.push('start');
       } else if (ev.type === 'state' && (ev.to === 'won' || ev.to === 'lost')) {
-        const debrief = v && `debrief-${v.mission}-${ev.to === 'won' ? 'win' : 'lose'}`;
+        const debrief = v && DEBRIEF_LINES[v.mission]?.[ev.to === 'won' ? 'win' : 'lose'];
         out.push(END_LINES.has(debrief) ? debrief : ev.to === 'won' ? 'win' : 'lose-output');
       } else if (ev.type === 'born') {
-        /* A decoy is called as what it looks like. */
+        /* A decoy is called as what it looks like. A group drawn from a
+         * sector (src/share/war/stages.js) is MIRADOR's bearing first,
+         * then the kind, as one item. */
         const kind = ev.agents[0].kind === 'decoy' ? 'strike' : ev.agents[0].kind;
         if (!QUIET_WAVES.has(kind)) {
-          out.push(v.wave >= v.waves && v.waves > 0 ? 'wave-last' : `wave-${kind}`);
+          const call = v.wave >= v.waves && v.waves > 0 ? 'wave-last' : `wave-${kind}`;
+          const sector = ev.agents[0].sector;
+          out.push(sector ? [`bearing-${sector.toLowerCase()}`, call] : call);
         }
       } else if (ev.type === 'boom') {
         blasts += 1;
@@ -272,7 +296,13 @@ export class WarRadio {
     }
     keep(ctx.createMediaElementSource(this.voice.el)).connect(voiceDest);
     keep(ctx.createMediaElementSource(this.bed.el)).connect(musicDest);
+    /* The intro film's lines, decoded and scheduled on the context's
+     * clock (src/render/warintro.js): into the calls' destination at the
+     * calls' level, so they duck and obey the settings as a call does. */
+    this.filmVoice = keep(ctx.createGain());
+    this.filmVoice.connect(voiceDest);
     this.routed = true;
+    this.applyLevel();
   }
 
   /* An Opus file this browser said it could play and then could not: the
@@ -289,7 +319,7 @@ export class WarRadio {
     }
     this.ext = 'mp3';
     if (el === this.voice.el && this.current) {
-      this.play(this.current.id);
+      this.play(this.current.ids, this.current.i);
     } else if (el === this.bed.el && this.track) {
       const t = this.track;
       this.track = '';
@@ -301,38 +331,55 @@ export class WarRadio {
     this.lang = lang === 'es' ? 'es' : 'en';
   }
 
-  /* One line by its lines.json id, in its turn. */
-  say(id, nowMs = performance.now()) {
-    if (END_LINES.has(id)) {
+  /*
+   * A line by its lines.json id, or a list of them said back to back, in
+   * its turn: prio 'call' (the default) or 'story' (PRIORITY above).
+   */
+  say(ids, nowMs = performance.now(), prio = 'call') {
+    const list = Array.isArray(ids) ? ids : [ids];
+    if (list.some((id) => END_LINES.has(id))) {
       this.queue = [];
-      this.said.push(id);
-      this.play(id);
+      this.said.push(...list);
+      this.play(list);
       return;
     }
-    if (this.queue.some((q) => q.id === id) || (this.current && this.current.id === id)) {
+    const key = list.join('+');
+    if (this.queue.some((q) => q.key === key) || (this.current && this.current.key === key)) {
       return;
     }
     if (!this.current) {
-      this.said.push(id);
-      this.play(id);
+      this.said.push(...list);
+      this.play(list);
       return;
     }
+    const item = {
+      key, ids: list, at: nowMs, prio,
+    };
     if (this.queue.length < QUEUE_MAX) {
-      this.queue.push({ id, at: nowMs });
+      this.queue.push(item);
+      return;
+    }
+    /* A full queue: a story line pushes the oldest call out; a call never
+     * pushes a story line. */
+    const call = prio === 'story' ? this.queue.findIndex((q) => q.prio !== 'story') : -1;
+    if (call >= 0) {
+      this.queue.splice(call, 1);
+      this.queue.push(item);
     }
   }
 
-  play(id) {
-    this.current = { id };
+  /* An item's lines, from its i-th. */
+  play(ids, i = 0) {
+    this.current = { key: ids.join('+'), ids, i, id: ids[i] };
     if (this.said.length > 40) {
-      this.said.shift();
+      this.said.splice(0, this.said.length - 40);
     }
     if (!this.voice) {
       this.current = null;
       return;
     }
     const el = this.voice.el;
-    el.src = warVoiceUrl(this.lang, id, this.ext);
+    el.src = warVoiceUrl(this.lang, ids[i], this.ext);
     const p = el.play();
     if (p && typeof p.catch === 'function') {
       p.catch(() => this.next());
@@ -342,22 +389,33 @@ export class WarRadio {
     }
   }
 
+  /* The current item's next line, or the queue's next item still fresh:
+   * a story line before a call, each by its own staleness. */
   next(nowMs = performance.now()) {
+    const cur = this.current;
+    if (cur && cur.i + 1 < cur.ids.length) {
+      this.play(cur.ids, cur.i + 1);
+      return;
+    }
     this.current = null;
-    while (this.queue.length) {
-      const q = this.queue.shift();
-      if (nowMs - q.at <= STALE_MS) {
-        this.said.push(q.id);
-        this.play(q.id);
-        return;
-      }
+    this.queue = this.queue.filter((q) => nowMs - q.at <= (q.prio === 'story' ? STORY_STALE_MS : STALE_MS));
+    const k = Math.max(0, this.queue.findIndex((q) => q.prio === 'story'));
+    const q = this.queue.splice(k, 1)[0];
+    if (q) {
+      this.said.push(...q.ids);
+      this.play(q.ids);
     }
   }
 
   /* 'intro', 'combat', or '' for none. The level is the music setting's,
-   * 0 when music is off. */
-  music(track) {
+   * 0 when music is off. `at` seconds in: a screen that starts the intro
+   * film late hears its music where the film is (an element seeks once
+   * its length is known). */
+  music(track, at = 0) {
     if (track === this.track) {
+      if (track && at > 0 && this.bed && Math.abs(this.bed.el.currentTime - at) > MUSIC_SEEK_S) {
+        this.bed.el.currentTime = at;
+      }
       return;
     }
     this.track = track;
@@ -373,6 +431,12 @@ export class WarRadio {
     }
     el.loop = track === 'combat';
     el.src = warMusicUrl(track, this.ext);
+    if (at > 0) {
+      const seek = () => {
+        el.currentTime = at;
+      };
+      el.addEventListener('loadedmetadata', seek, { once: true });
+    }
     this.applyLevel();
     const p = el.play();
     if (p && typeof p.catch === 'function') {
@@ -399,6 +463,9 @@ export class WarRadio {
     if (this.voice) {
       this.voice.el.volume = Math.min(1, this.output * VOICE_LEVEL) * duck;
     }
+    if (this.filmVoice) {
+      this.filmVoice.gain.value = Math.min(1, this.output * VOICE_LEVEL) * duck;
+    }
     if (this.bed) {
       const bus = this.track === 'intro' ? INTRO_BUS : COMBAT_BUS;
       this.bed.el.volume = Math.min(1, this.output * this.musicLevel * bus) * duck;
@@ -418,7 +485,7 @@ export class WarRadio {
   status() {
     return {
       speaking: this.current ? this.current.id : null,
-      queue: this.queue.map((q) => q.id),
+      queue: this.queue.flatMap((q) => q.ids),
       said: this.said.slice(),
       track: this.track,
       lang: this.lang,

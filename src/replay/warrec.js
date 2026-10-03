@@ -34,7 +34,10 @@
  * (`from`), the room ms the war stopped being fought (`off`, the targets
  * whole on screen again), every hit with its target and room ms (null for
  * one already down when this screen joined: the snapshot), and
- * every struck line with its room ms and place. Nothing comes back within
+ * every struck line with its room ms and place, and every damage event
+ * (src/render/breakage.js: what a warhead broke off a structure, the
+ * power lines that fell with it, the openings for the water) as the room
+ * sent it. Nothing comes back within
  * a match, so the snapshot and the journal after it are one list. PER
  * ROW, the room ms the frame drew the map at (NaN where no match was
  * known: the map untouched). A replay at row k draws matchAt of the match
@@ -45,13 +48,14 @@
  * the recorder's CAPACITY rows, HUNTERS_MAX slots wide, and the map's
  * clock, one f64 a row; more hunters than that in one row are counted
  * (stats.dropped), never silently lost. The map's journal is at most
- * MATCHES_MAX matches of at most HITS_MAX hits and CUTS_MAX lines each,
- * a few kilobytes of JSON at most; one past either is counted
- * (stats.hitsDropped, stats.cutsDropped).
+ * MATCHES_MAX matches of at most HITS_MAX hits, CUTS_MAX lines and
+ * DAMAGE_MAX damage events each (an event at most DAMAGE_BYTES of JSON),
+ * some tens of kilobytes at most; one past any is counted
+ * (stats.hitsDropped, cutsDropped, damageDropped).
  *
  * A clip's `war` is { agents: [{ mission, a, last }], room (f64[n]),
  * slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
- * world: [{ mission, from, off, hits, cuts }], clock (f64[n]) }, or
+ * world: [{ mission, from, off, hits, cuts, damage }], clock (f64[n]) }, or
  * absent when no war was drawn in it. src/replay/file.js saves it
  * (version 10, 11 with the map); src/replay/warscene.js draws it.
  *
@@ -93,7 +97,12 @@ const AGENT_KEYS = ['id', 'kind', 'route', 't0', 'k', 'n', 'err', 'target'];
 export const MATCHES_MAX = 4;
 export const HITS_MAX = 256;
 export const CUTS_MAX = 256;
-const MATCH_KEYS = ['mission', 'from', 'off', 'hits', 'cuts'];
+/* A mission's structures break in tens of events; an event names its
+ * chunks, a few hundred at most. */
+export const DAMAGE_MAX = 512;
+export const DAMAGE_BYTES = 16384;
+const MATCH_KEYS = ['mission', 'from', 'off', 'hits', 'cuts', 'damage'];
+const DAMAGE_KEYS = ['seq', 'at', 'target', 'chunks', 'fell', 'openings', 'down', 'health', 'p', 'by', 'cut'];
 
 export function createWarRing(capacity) {
   let room = null;
@@ -111,7 +120,9 @@ export function createWarRing(capacity) {
   const matches = [];
   /* Per row, the room ms the map was drawn at. */
   let clock = null;
-  const stats = { dropped: 0, hitsDropped: 0, cutsDropped: 0 };
+  const stats = {
+    dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0,
+  };
 
   function alloc() {
     room = new Float64Array(capacity).fill(NaN);
@@ -143,7 +154,7 @@ export function createWarRing(capacity) {
     let m = matches[matches.length - 1];
     if (!m || m.key !== key) {
       m = {
-        key, mission, from: roomMs, off: null, on: false, hits: [], cuts: [],
+        key, mission, from: roomMs, off: null, on: false, hits: [], cuts: [], damage: [],
       };
       for (const target of down || []) {
         hit(m, target, null);
@@ -186,6 +197,24 @@ export function createWarRing(capacity) {
     for (const a of list) {
       agents.set(a.id, { mission, a: { ...a }, last: Infinity });
     }
+  }
+
+  /* A damage event heard (roomwar.js's 'damage'), once a seq, into the
+   * match now: what the room sent, without its type. */
+  function damage(ev) {
+    const m = matches[matches.length - 1];
+    if (!m || !Number.isFinite(ev.at) || m.damage.some((d) => d.seq === ev.seq)) {
+      return;
+    }
+    const d = {};
+    for (const k of DAMAGE_KEYS) {
+      d[k] = ev[k] === undefined ? null : JSON.parse(JSON.stringify(ev[k]));
+    }
+    if (m.damage.length >= DAMAGE_MAX || !damageOk(d)) {
+      stats.damageDropped += 1;
+      return;
+    }
+    m.damage.push(d);
   }
 
   /* A death heard (roomwar.js's 'dead' event): the attackers in it last
@@ -299,6 +328,7 @@ export function createWarRing(capacity) {
       off: m.off !== null && m.off <= hi ? m.off : null,
       hits: m.hits.filter((h) => h.at === null || h.at <= hi).map((h) => ({ ...h })),
       cuts: m.cuts.filter((x) => x.at <= hi).map((x) => ({ ...x })),
+      damage: m.damage.filter((d) => d.at <= hi).map((d) => JSON.parse(JSON.stringify(d))),
     }));
     return { world: list, clock: c };
   }
@@ -350,6 +380,7 @@ export function createWarRing(capacity) {
     begin,
     born,
     dead,
+    damage,
     world,
     draw,
     clear,
@@ -370,7 +401,7 @@ export function trimWar(war, a, b) {
     hunters: war.hunters.slice(a * war.slots * HUNTER_N, (a + n) * war.slots * HUNTER_N),
     ...(war.world ? {
       world: war.world.map((m) => ({
-        ...m, hits: m.hits.map((h) => ({ ...h })), cuts: m.cuts.map((x) => ({ ...x })),
+        ...m, hits: m.hits.map((h) => ({ ...h })), cuts: m.cuts.map((x) => ({ ...x })), damage: JSON.parse(JSON.stringify(m.damage)),
       })),
       clock: war.clock.slice(a, b + 1),
     } : {}),
@@ -425,6 +456,20 @@ export function checkWar(war, n) {
 }
 
 const isClock = (x) => x === null || Number.isFinite(x);
+const isIndexList = (a) => Array.isArray(a) && a.length <= 4096 && a.every((i) => Number.isInteger(i) && i >= 0);
+
+/* One damage event as a clip keeps it: the room's fields, of their kinds
+ * (src/share/roomwar.js), and not more than DAMAGE_BYTES. */
+function damageOk(d) {
+  if (!d || typeof d !== 'object' || Object.keys(d).length !== DAMAGE_KEYS.length || !DAMAGE_KEYS.every((k) => k in d)) {
+    return false;
+  }
+  return Number.isInteger(d.seq) && d.seq >= 0 && Number.isFinite(d.at) && typeof d.target === 'string' && d.target.length <= 40
+    && isIndexList(d.chunks) && isIndexList(d.fell) && Array.isArray(d.openings) && d.openings.every((o) => o && typeof o === 'object')
+    && (d.p === null || (Array.isArray(d.p) && d.p.length === 3 && d.p.every(Number.isFinite)))
+    && (d.by === null || Number.isInteger(d.by)) && Array.isArray(d.cut)
+    && JSON.stringify(d).length <= DAMAGE_BYTES;
+}
 
 /* The map's journal and clock (version 11), as checkWar needs them. */
 function checkWorld(world, clock, n) {
@@ -453,6 +498,10 @@ function checkWorld(world, clock, n) {
       if (!x || Object.keys(x).length !== 3 || ![x.at, x.x, x.z].every(Number.isFinite)) {
         throw new Error('a struck line on the war\'s map is not one');
       }
+    }
+    if (!Array.isArray(m.damage) || m.damage.length > DAMAGE_MAX || !m.damage.every(damageOk)
+      || new Set(m.damage.map((d) => d.seq)).size !== m.damage.length) {
+      throw new Error('a damage event on the war\'s map is not one');
     }
   }
   if (!(clock instanceof Float64Array) || clock.length !== n) {

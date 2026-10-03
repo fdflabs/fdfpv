@@ -433,8 +433,9 @@ export class MotorAudio {
     return this.warRadio;
   }
 
-  /* The war's music on, or off and the crate's back. */
-  setWarBed(track) {
+  /* The war's music on, or off and the crate's back; `at` seconds into
+   * the track (the intro film's late start). */
+  setWarBed(track, at = 0) {
     /* Under a replay the radio is the replay's: the live war's music is
      * what it goes back to when the replay closes. */
     if (this.replayRadio && this.replayRadio.open) {
@@ -445,7 +446,7 @@ export class MotorAudio {
     const radio = this.war();
     this.warBed = Boolean(track);
     this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
-    radio.music(track);
+    radio.music(track, at);
   }
 
   /*

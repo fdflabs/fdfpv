@@ -25,12 +25,15 @@
  * a terrain, so it draws nothing (clouds.js: until setTerrain, "the march
  * draws nothing"): the post chain takes one, and the day was clear.
  *
- * TIME OF DAY: `time`, makeLook's own option ('day', the default, or
+ * TIME OF DAY: `time`, makeLook's own option ('day', the default;
+ * 'morning', 'noon' or 'golden', the other suns of light.js TIMES; or
  * 'night', for mission 4, "Night raid"), read from options.time when the
- * map is built (src/maps/itaipu.js buildMap) and from `?time=night` in
- * the address (src/main.js loadMap). It never changes after the map is
+ * map is built (src/maps/itaipu.js buildMap) and from `?time=` in the
+ * address (src/main.js loadMap). It never changes after the map is
  * built: night.js's fixtures go up once, in buildMap, once every part is
- * in. What it touches: the sun (dim, cool, standing in for the moon) and
+ * in. The other days move the sun, its colour and strength, the sky
+ * and the air (light.js, sky.js); for whatever draws by the time of day
+ * without being handed the look, every one of them is 'day'. What it touches: the sun (dim, cool, standing in for the moon) and
  * the sky (dark and starred, with the towns' glow, sky.js), both
  * light.js's; the lamps, the windows, the light pools every lit material
  * adds and the cities past the map (look/night.js), never the dam's, the
@@ -61,7 +64,7 @@ import { buildPhotoComposer } from '../../swiss2/post.js';
 import { makeClouds } from '../../swiss2/clouds.js';
 import { photoCraftLook } from '../../swiss2/craftlook.js';
 import {
-  sunDirection, makeLit, sunFor, isNight, makeNightAmbient,
+  sunDirection, makeLit, sunFor, isNight, timeOf, makeNightAmbient,
 } from './light.js';
 import { skyBackdrop, skyEnvironment, airFor } from './sky.js';
 import {
@@ -91,6 +94,45 @@ const FAR_HALF = 700;
 const FAR_REACH = 2.5;
 const FAR_HALF_MAX = 2500;
 const FAR_NORMAL_BIAS = 0.6;
+/*
+ * A LOW SUN'S SHADOW MAPS ARE SQUASHED ALONG THE SUN. Each map is a square
+ * in the light's frame; laid on the ground, its side across the sun's
+ * azimuth stays its width, but its side along the azimuth stretches by
+ * 1 / sin(elevation): 1.1 at the day's 65.8 degrees, 7.2 at the golden
+ * hour's 8, where a 1.4 km map took in a strip 10 km long, every building
+ * and tree in it a caster (yard-west drew 2.64 M triangles, over section
+ * 13's 2.5 M, the near map 0.2 M of that and the far 0.12 M). Each map's
+ * height in the light's frame is scaled by sin(elevation) over the
+ * day's, so on the ground it covers what the day's does, and the day's,
+ * a square, is unchanged. A caster up the sun's azimuth still throws its
+ * long shadow in: the map's depth runs along the sun's ray. Its texel
+ * along the azimuth is finer for it.
+ */
+const DAY_SUN_SIN = sunDirection('day').y;
+/* Under this sine of the sun's elevation (about 17 degrees) the near
+ * shadow map is put out and the far one, squashed as above, is the whole
+ * sun: the town's and the canopy's meshes are drawn into every map whole
+ * (they are not frustum culled), and at the golden hour's 8 degrees the
+ * second map took yard-west over section 13 (2.64 M triangles). A low
+ * sun's shadows are long and soft, which the far map's texel serves; the
+ * near map's sharp contact shadow round the craft is what is given up.
+ * With one map the cascade blend (light.js) has nothing to hand off. */
+const LOW_SUN_ONE_MAP = 0.3;
+
+/* A cascade's frame: `half` across the sun's azimuth, that times its
+ * squash (above) along it. swiss2's makeSun snaps both axes to one texel,
+ * so the finer of the two. */
+function shape(light, half) {
+  const up = half * light.userData.squash;
+  const c = light.shadow.camera;
+  c.left = -half;
+  c.right = half;
+  c.top = up;
+  c.bottom = -up;
+  c.updateProjectionMatrix();
+  light.userData.half = half;
+  light.userData.texel = (2 * up) / light.shadow.mapSize.x;
+}
 
 /*
  * Load everything the look needs and make the scene it draws. `base` is
@@ -100,6 +142,7 @@ export async function makeLook({
   renderer, camera, q, base, manifest, time,
 }) {
   const night = isNight(time);
+  const when = timeOf(time);
   const sunLight = sunFor(time);
   const AIR = airFor(time);
   const owned = [];
@@ -132,14 +175,14 @@ export async function makeLook({
     own(sets[k].arm);
   });
 
-  const sunDir = sunDirection();
+  const sunDir = sunDirection(when);
   const scene = new THREE.Scene();
   /* For whatever draws by the time of day without being handed the look:
    * the sensor's thermal weather (src/avionics/sensors.js). */
   scene.userData.timeOfDay = night ? 'night' : 'day';
   scene.background = AIR.haze.clone();
   const sky = skyBackdrop(sunDir, time);
-  const envTarget = skyEnvironment(renderer, sky);
+  const envTarget = skyEnvironment(renderer, sky, when);
   scene.add(sky);
   scene.environment = envTarget.texture;
   camera.far = CAMERA_FAR;
@@ -206,7 +249,7 @@ export async function makeLook({
     sunDir,
     lit,
     ground,
-    time: night ? 'night' : 'day',
+    time: when,
     /* Mission 4's own fixtures, once every part is in (itaipu.js, after
      * the parts loop): a no-op by day. See look/night.js. The ground's
      * material is lit too, though no terrain chunk may be in the scene's
@@ -257,23 +300,29 @@ export async function makeLook({
       finishScene(scene, lit);
     },
     updateShadowFocus(target) {
-      const far = sun.lights[1];
+      const [near, far] = sun.lights;
+      if (near.userData.squash === undefined) {
+        near.userData.squash = Math.min(1, sunDir.y / DAY_SUN_SIN);
+        if (near.userData.squash < 1) {
+          shape(near, near.userData.half);
+        }
+        /* A sun this low has the far map alone (LOW_SUN_ONE_MAP). */
+        if (far && sunDir.y < LOW_SUN_ONE_MAP) {
+          near.visible = false;
+        }
+      }
       if (far && groundAt) {
         const over = camera.position.y - groundAt(camera.position.x, camera.position.z);
         const half = THREE.MathUtils.clamp(over * FAR_REACH, FAR_HALF, FAR_HALF_MAX);
-        if (Math.abs(half - far.userData.half) > 25) {
-          const c = far.shadow.camera;
-          c.left = -half;
-          c.right = half;
-          c.top = half;
-          c.bottom = -half;
-          c.updateProjectionMatrix();
-          far.userData.half = half;
-          far.userData.texel = (2 * half) / far.shadow.mapSize.x;
+        far.userData.squash = near.userData.squash;
+        const c = far.shadow.camera;
+        if (Math.abs(half - c.right) > 25 || Math.abs(half * far.userData.squash - c.top) > 25) {
+          shape(far, half);
           far.shadow.normalBias = FAR_NORMAL_BIAS * (half / FAR_HALF);
         }
       }
       sun.update(target, camera);
+      sky.updateCube(renderer, camera);
       turf.update(camera, groundAt);
     },
     /* The post chain and the photographed craft, onto a built map. */
@@ -303,6 +352,7 @@ export async function makeLook({
         nightFixtures.dispose();
       }
       envTarget.dispose();
+      sky.disposeCube();
       clouds.dispose();
       ground.dispose();
       turf.dispose();

@@ -48,6 +48,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { MAKEABLE, SETUPS } from './modes.js';
+
 export const PROTO = 2;
 
 /*
@@ -562,7 +564,9 @@ export const PUBLIC_CAP = 16;
  */
 export const ROOM_NAME_MIN = 3;
 export const ROOM_NAME_MAX = 32;
-export const ROOM_MODES = ['race', 'tag', 'combat'];
+/* The games a room may be made for as is, in this order: the mode
+ * registry's (src/share/modes.js MAKEABLE), whose order is the wire's. */
+export const ROOM_MODES = MAKEABLE;
 /*
  * WHAT A ROOM MAY BE MADE FOR (POST /v2/create's mode): the games any room
  * may be set up for, and the war, which only a room on a war mission's map
@@ -574,7 +578,7 @@ export const ROOM_MODES = ['race', 'tag', 'combat'];
  * `mission`, and a browser from before then reads `mode: 'war'` only as
  * the room's heading.
  */
-export const ROOM_SETUPS = [...ROOM_MODES, 'war'];
+export const ROOM_SETUPS = SETUPS;
 /* A room with nobody in it closes this long after its last pilot left,
  * public or private (the owner, 2026-09-30: "room closes after 5 minutes of
  * it being empty"). One number for the three places that must agree: the

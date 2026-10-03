@@ -2,6 +2,12 @@
 # of every voice line, and names the files a line becomes. Shared by
 # build.py, which speaks the lines, and check.py, which audits the output.
 #
+# lines.json has `voices`, the speakers of docs/campaign/BIBLE.md 5.2 (each
+# a role, and per language a Kokoro stock voice, a g2p and the reference
+# text that voice reads), and `lines`, each with its `speaker` and, once a
+# person has listened and chosen, the pinned `take` (a seed per language,
+# build.py --takes).
+#
 # This file is part of WebFPVSimulator.
 #
 # WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -35,6 +41,11 @@ AUDIO = REPO / 'assets/audio/war'
 DEFAULT_OUT = Path(os.environ.get('WAR_AUDIO', AUDIO))
 
 ID = re.compile(r'^[a-z][a-z0-9-]*$')
+# The g2p names a voice may use: build.py turns each into Kokoro's own.
+G2P = ('en-us', 'en-gb', 'es-419')
+# The radio's colour for each speaker (radio.py), named here so a check
+# with no numpy can hold lines.json to it.
+PRESETS = ('crest', 'mirador', 'taller', 'despacho', 'carancho')
 # The plan's rule is that no real figure is spoken until the plan sources
 # it. No line has a sourced figure yet, so no line may speak a digit or a
 # spelled number that reads as a quantity; the one year in the intro is
@@ -67,10 +78,20 @@ def load():
     """lines.json, checked. Raises ValueError naming every fault at once."""
     doc = json.loads(LINES.read_text(encoding='utf-8'))
     faults = []
-    for lang in LANGS:
-        v = doc['voice'].get(lang)
-        if not v or not v.get('kokoro') or not v.get('g2p') or not v.get('reference'):
-            faults.append(f'voice.{lang}: needs kokoro, g2p and reference')
+    voices = doc.get('voices') or {}
+    if 'crest' not in voices:
+        faults.append('voices: needs crest, the commander, whose lines are every line from before speakers')
+    for name, voice in voices.items():
+        if not ID.match(name) or not voice.get('role'):
+            faults.append(f'voices.{name}: a lower case name and a role')
+        for lang in LANGS:
+            v = voice.get(lang)
+            if not v or not v.get('kokoro') or v.get('g2p') not in G2P or not v.get('reference'):
+                faults.append(f'voices.{name}.{lang}: needs kokoro, a g2p of {", ".join(G2P)}, and reference')
+            elif DIGIT.search(v['reference']):
+                faults.append(f'voices.{name}.{lang}: a digit in the reference')
+        if voice.get('preset', name) not in PRESETS:
+            faults.append(f'voices.{name}: no radio preset {voice.get("preset", name)!r} (radio.py PRESETS)')
     seen = set()
     for i, line in enumerate(doc['lines']):
         where = line.get('id', f'lines[{i}]')
@@ -79,6 +100,11 @@ def load():
         if where in seen:
             faults.append(f'{where}: duplicate id')
         seen.add(where)
+        if line.get('speaker') not in voices:
+            faults.append(f'{where}: speaker {line.get("speaker")!r} is not in voices')
+        for lang, seed in (line.get('take') or {}).items():
+            if lang not in LANGS or not isinstance(seed, int) or seed < 0:
+                faults.append(f'{where}.take.{lang}: a pinned take is a seed, a whole number')
         if line.get('delivery') not in doc['delivery']:
             faults.append(f'{where}: delivery {line.get("delivery")!r} is not in the delivery table')
         if not line.get('notes') or not line.get('group'):
@@ -113,6 +139,9 @@ def voice_files(doc):
 # here, not in build.py, so check.py can hold every committed take to it
 # with no model: the manifest keeps what Whisper heard.
 MAX_WER = 0.15
+# The most sound a take may have after its last word, ms (build.py
+# tail_ms): a mumble after the line passes Whisper, which leaves it out.
+MAX_TAIL_MS = 150
 
 # Whisper writes a small spoken number as a digit about half the time.
 DIGITS = {'en': {'1': 'one', '2': 'two', '3': 'three'}, 'es': {'1': 'uno', '2': 'dos', '3': 'tres'}}

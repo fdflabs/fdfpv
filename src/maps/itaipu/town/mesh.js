@@ -384,6 +384,98 @@ export function makeSink(THREE, look) {
   }
 
   return {
-    face, bar, build, view, triangles: () => triangles, wires: () => (wires ? wires.shown() : null),
+    face,
+    bar,
+    build,
+    view,
+    triangles: () => triangles,
+    wires: () => (wires ? wires.shown() : null),
+    /* The spans whose wires are down now (wires.js setDown). */
+    setWiresDown: (spans, ground) => (wires ? wires.setDown(spans, ground) : null),
   };
+}
+
+/*
+ * PIECES THAT BREAK (the war's damage, src/share/war/damage.js): square
+ * bars in one plain mesh of their own, outside the sink's batches, each
+ * its own range of the triangles, so one is taken out alone (gone) and
+ * put back: its triangles folded onto one point, which draws nothing and
+ * costs no call. bar(P, Q, r, h, tint) adds one from P to Q, r across and
+ * h up its section (sink.bar's frame), and returns { c, e, h, range }:
+ * its box as damage.js reads a chunk's, and its range. build(name) makes
+ * the mesh, after the last bar.
+ */
+/* The kit's photographed surfaces darken a tint by about this much (the
+ * yard's tanks and gantries drawn through the sink, review-344's
+ * yard-west); a breakable piece's plain material has no photograph, so
+ * its tint is taken down by it to match. */
+const ALBEDO = 0.45;
+
+export function makeBreakable(THREE) {
+  const p = [];
+  const c = [];
+  const folded = new Map();
+  let geo = null;
+  function bar(P, Q, r, h, tint) {
+    const d = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]];
+    const l = Math.hypot(d[0], d[1], d[2]);
+    const w = d.map((v) => v / l);
+    let side = [w[2], 0, -w[0]];
+    const sl = Math.hypot(side[0], side[2]);
+    side = sl < 1e-6 ? [1, 0, 0] : [side[0] / sl, 0, side[2] / sl];
+    const u = [w[1] * side[2] - w[2] * side[1], w[2] * side[0] - w[0] * side[2], w[0] * side[1] - w[1] * side[0]];
+    const at = (o, a, b) => [0, 1, 2].map((k) => o[k] + side[k] * a + u[k] * b);
+    const ring = [[r, h], [-r, h], [-r, -h], [r, -h]];
+    const from = p.length;
+    const quad = (A, B, C, D) => {
+      for (const v of [A, B, C, A, C, D]) {
+        p.push(...v);
+        c.push(...tint);
+      }
+    };
+    for (let k = 0; k < 4; k += 1) {
+      const [a0, b0] = ring[k];
+      const [a1, b1] = ring[(k + 1) % 4];
+      quad(at(P, a0, b0), at(P, a1, b1), at(Q, a1, b1), at(Q, a0, b0));
+    }
+    quad(...ring.map(([a, b]) => at(Q, a, b)));
+    quad(...ring.slice().reverse().map(([a, b]) => at(P, a, b)));
+    return {
+      c: [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2, (P[2] + Q[2]) / 2], e: [...w, ...u], h: [l / 2, h, r], range: [from, p.length],
+    };
+  }
+  function build(name, opts = {}) {
+    geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(c.map((v) => v * ALBEDO), 3));
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: 0xffffff, vertexColors: true, roughness: opts.roughness ?? 0.6, metalness: opts.metalness ?? 0.2, flatShading: true,
+    }));
+    mesh.name = name;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+  function gone(range, on) {
+    const key = range[0];
+    if (folded.has(key) === on) {
+      return;
+    }
+    const attr = geo.getAttribute('position');
+    const [a, b] = range;
+    if (on) {
+      folded.set(key, attr.array.slice(a, b));
+      for (let j = a; j < b; j += 3) {
+        attr.array.set(attr.array.subarray(a, a + 3), j);
+      }
+    } else {
+      attr.array.set(folded.get(key), a);
+      folded.delete(key);
+    }
+    attr.addUpdateRange(a, b - a);
+    attr.needsUpdate = true;
+  }
+  return { bar, build, gone };
 }
