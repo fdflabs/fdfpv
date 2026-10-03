@@ -248,6 +248,7 @@ import {
 } from '../configs/parts.js';
 import { createWreck } from './render/wreck.js';
 import { createDebris } from './render/debris.js';
+import { createBreakage } from './render/breakage.js';
 import { createSmoke } from './render/smoke.js';
 import { createFpvFail } from './render/fpvfail.js';
 import { createJournal } from './replay/journal.js';
@@ -3358,6 +3359,8 @@ export async function boot({
     warBegunId = roomWar.match();
     warCalls.reset();
     warTargetsClear();
+    warBreakage.reset();
+    warOpenings.length = 0;
     for (const id of v.down || []) {
       warBurn(id, 'smoke', wallMs);
     }
@@ -3717,6 +3720,10 @@ export async function boot({
     if (scene && warBooms.group.parent !== scene) {
       scene.add(warBooms.group);
     }
+    if (scene && warBreakage.group.parent !== scene) {
+      scene.add(warBreakage.group);
+    }
+    warBreakage.setMap(view, now);
     const replay = mode === 'replay';
     warHud.drawn(mode === 'flight' && ui.screen === 'flight');
     warAttackers.group.visible = !replay;
@@ -3773,6 +3780,10 @@ export async function boot({
       if (ev.type === 'state' && ev.to === 'live') {
         warHud.hint(str('war.hint_go', { n: v.fuze && v.fuze[roomWar.seat()] != null ? v.fuze[roomWar.seat()] : v.blast }));
       }
+      /* The map is what the room broke, in a replay too. */
+      if (ev.type === 'damage') {
+        warBreakage.apply(ev, now);
+      }
       if (replay) {
         continue;
       }
@@ -3805,6 +3816,7 @@ export async function boot({
     }
     warAudioPeak = Math.max(warAudioPeak, typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0);
     warBooms.update(dt);
+    warBreakage.update(now);
     if (warLog.length > WAR_LOG_MAX) {
       warLog.splice(0, warLog.length - WAR_LOG_MAX);
     }
@@ -4951,6 +4963,13 @@ export async function boot({
       on: warSpectating(), seat: warWatchSeat, cam: shell.camera.position.toArray(), wrecked, banner: ui.bannerText,
     },
     damage: runDamage,
+    breakage: {
+      ...warBreakage.stats(),
+      heard: roomWar.damage().length,
+      retired: view && view.colliders && view.colliders.retired ? view.colliders.retired() : 0,
+      staticColliders: view && view.colliders ? view.colliders.staticCount : 0,
+    },
+    openings: warOpenings.slice(),
     burning: Object.fromEntries(warBurning),
     log: warLog.map((e) => ({
       type: e.type, why: e.why, ids: e.ids, seat: e.seat, by: e.by, at: e.at, p: e.p, target: e.target, hit: e.hit, mine: e.mine, to: e.to,
@@ -8416,6 +8435,43 @@ export async function boot({
       && (roomSentPose.flags & FLAG_CRASHED) === 0 && (roomWar.view().roundState ?? 'live') === 'live',
   });
   let warCutFov = null;
+  /*
+   * What the war's warheads broke (src/render/breakage.js, the room's
+   * damage events): the map's chunks out, their pieces on the room clock,
+   * the torn edges. Each opening goes to the map's water (map.onOpening,
+   * the water's to provide under the dam break contract); until a map has
+   * one it is logged, and every opening is kept for __war().
+   */
+  const warOpenings = [];
+  const warBreakage = createBreakage({
+    debris,
+    floorAt: (x, z, y) => (view && typeof view.floorAt === 'function' ? view.floorAt(x, z, y) : groundAt(x, z)),
+    /* Kept once each (a rebuilt map is handed them all again), and
+     * always handed to the map now drawn. */
+    onOpening: (o) => {
+      if (!warOpenings.some((x) => x.id === o.id && x.at === o.at)) {
+        warOpenings.push(o);
+      }
+      if (view && typeof view.onOpening === 'function') {
+        view.onOpening(o);
+      } else {
+        console.info(`[war damage] opening ${JSON.stringify(o)}`);
+      }
+    },
+    /* One break heard: the world's sound's breach, by its material and
+     * mass, on the room clock (src/render/world-audio.js). */
+    onSound: (b, now) => {
+      worldAudio.breach(b, now);
+    },
+    /* A target that lost something smokes, unless it already burns
+     * from a hit (roomWarFrame). */
+    onBurn: (target) => {
+      if (!warBurning.has(target)) {
+        warBurn(target, 'smoke', performance.now());
+      }
+    },
+  });
+  shell.keepAcrossMaps(warBreakage.group);
   /*
    * THE SMOKE SYSTEM (the Parts tab's 'smoke' add-on): O in flight turns
    * it on and off, and the trail leaves the tail's nozzle on the sim clock
@@ -17082,7 +17138,9 @@ export async function boot({
     /* Biased like the OSD's altitude and like every contact query. A
      * harness reading this against a flight is reading the same number the
      * pilot is. */
-    groundClearance: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, shell.quad.position.y - SURFACE_BIAS),
+    /* Null while a world swap is under way: the world in `view` is the
+     * one being left, already disposed. */
+    groundClearance: mapReady ? shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, shell.quad.position.y - SURFACE_BIAS) : null,
     fpvY: lastFpvY,
     camFloor: lastCamFloor,
     camClear: lastCamClear,

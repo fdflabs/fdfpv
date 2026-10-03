@@ -124,6 +124,10 @@ export function createRoomWar(send) {
   let agents = new Map();
   /* What happened since the shell last asked, oldest first. */
   let events = [];
+  /* The match's damage events (war.js strike) heard, by seq: the room
+   * sends the whole list again to a pilot who joins, and each is applied
+   * once. */
+  let damage = [];
 
   function mission() {
     return war.mission ? MISSIONS[war.mission] ?? null : null;
@@ -132,6 +136,7 @@ export function createRoomWar(send) {
   /* A new match, or none: nothing of the old one is drawn. */
   function reset() {
     agents = new Map();
+    damage = [];
   }
 
   function adopt(list) {
@@ -248,6 +253,15 @@ export function createRoomWar(send) {
         events.push({
           type: 'stall', ids: m.ids || [], at: m.at, ms: m.ms,
         });
+      } else if (m.op === 'damage') {
+        if (Number.isInteger(m.seq) && !damage[m.seq]) {
+          const e = {
+            type: 'damage', seq: m.seq, at: m.at, target: m.target, chunks: m.chunks || [], fell: m.fell || [],
+            openings: m.openings || [], down: m.down === true, health: m.health, p: m.p, by: m.by, cut: m.cut || [],
+          };
+          damage[m.seq] = e;
+          events.push(e);
+        }
       } else if (m.op === 'boom') {
         events.push({
           type: 'boom', seat: m.seat, at: m.at, p: m.p, mine: m.seat === seat,
@@ -337,7 +351,11 @@ export function createRoomWar(send) {
      *   { type: 'stage', id, n, at, title } a stage entered, at its room ms
      *   { type: 'cue', at, stage, radio | music | cutaway | text }
      *                                          a stage's cue, at its room
-     *                                          ms (stages.js) */
+     *                                          ms (stages.js)
+     *   { type: 'damage', seq, at, target, chunks, fell, openings, down,
+     *     health, p, by, cut }                 what a warhead broke
+     *                                          (edge/rooms/war.js strike),
+     *                                          each seq once */
     takeEvents() {
       const out = events;
       events = [];
@@ -360,6 +378,10 @@ export function createRoomWar(send) {
       return war.state === 'live';
     },
     mission,
+    /* Every damage event of this match heard so far, in seq order. */
+    damage() {
+      return damage.filter(Boolean);
+    },
     /* Which war this is, unique across rooms, or null with none: what
      * the shell keys its once per war work on (the intro, the begin, a
      * round's restart). The id alone repeats: a campaign's mission 2 is

@@ -650,8 +650,34 @@ try {
     await page.sleep(400);
   }
   await click(page, '.gate-card-combat');
+  /* Through the world swap the card starts (Itaipu to the Swiss valley),
+   * the craft's state is read as a capture reads it: the world being
+   * left is disposed, and reading its ground threw (a TypeError in
+   * Terrain.readNode, a tile no longer held). */
+  const swapReads = await page.evaluate(`new Promise((resolve) => {
+    const t0 = performance.now();
+    const seen = { reads: 0, nulls: 0, thrown: null };
+    const step = () => {
+      try {
+        const c = window.__craftState();
+        seen.reads += 1;
+        if (c.groundClearance === null) {
+          seen.nulls += 1;
+        }
+      } catch (e) {
+        seen.thrown = String(e && e.message || e);
+      }
+      if (performance.now() - t0 < 8000 && !seen.thrown) {
+        setTimeout(step, 20);
+      } else {
+        resolve(seen);
+      }
+    };
+    step();
+  })`);
+  check('the craft\'s state is read through the world swap without a throw, its ground null while the world is gone',
+    !swapReads.thrown && swapReads.reads > 0, JSON.stringify(swapReads));
   await page.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends'", 30000).catch(() => {});
-  await page.sleep(8000);
   const combat = await page.evaluate(LANDED);
   const combatRoom = await page.evaluate("({ mode: window.__rooms().mode, world: window.__rooms().world, flying: window.__craftState().mode })");
   check('the combat card after the war room: one click into a combat lobby in the Swiss valley, Ready under the cursor, never the war',
