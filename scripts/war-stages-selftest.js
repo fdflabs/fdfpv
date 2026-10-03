@@ -58,6 +58,7 @@ import {
 } from '../src/share/war/stages.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
+import { SPRAY_HIDE_M, inSpray } from '../src/ui/warmarkers.js';
 import { firstDifference, playGame } from './war-legacy-games.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
@@ -478,6 +479,13 @@ console.log('working sets');
   const st2 = enter(mission, 0, 10000, 7, 2);
   const m2 = { sets, downAt: { [sets.working[0]]: 5000 }, output: 14000 };
   objectives({ ...c(10000), m: m2, st: st2 });
+  /* The Spillway's spray (itaipu-2.js `spray`), as a screen's markers
+   * read it while the spill runs. */
+  const spray = MISSIONS['itaipu-2'].spray;
+  const deep = [spray.at[0], 200, spray.at[1]];
+  check(`the spray hides an attacker deep in it from a pilot over ${SPRAY_HIDE_M} m off, not one within, nor one out of it or over it`,
+    inSpray(spray, deep, [deep[0] + 400, 220, deep[2]]) && !inSpray(spray, deep, [deep[0] + 100, 220, deep[2]])
+    && !inSpray(spray, [deep[0] + spray.r + 10, 200, deep[2]], [0, 0, 0]) && !inSpray(spray, [deep[0], spray.y[1] + 10, deep[2]], [0, 0, 0]));
   check('a working gate hit before the hold began never moves', openAt(gatesOf(mission, st2, m2), sets.working[0], 200000) === FREE_OPEN_M);
 }
 
