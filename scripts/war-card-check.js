@@ -600,6 +600,14 @@ try {
   const escaped = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase, gate: window.__ui.onGate() })");
   check('Escape on its lobby at once, before the panel is drawn: the title\'s cards, out of the room',
     escaped.screen === 'title' && escaped.phase === 'idle' && escaped.gate, JSON.stringify(escaped));
+  /* Back in by the panel's row, drawn again since. */
+  await page.until(LISTED, 30000).catch(() => {});
+  await page.evaluate(`(() => {
+    const ui = window.__ui;
+    const row = ui.titleRoomEls.find((e) => (ui.items()[e.i].action || '').endsWith(${JSON.stringify(listedCode)}));
+    row.node.dataset.check = 'listed';
+    return true;
+  })()`);
   await click(page, '.gate-rooms [data-check="listed"]');
   await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(listedCode)}`, 30000).catch(() => {});
   await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
