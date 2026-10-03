@@ -147,6 +147,8 @@ function corridor() {
     const routesOf = (w) => (w.route && typeof w.route === 'object' && !Array.isArray(w.route)
       ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat());
     const kindsOf = (w) => (w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat());
+    /* A working set's spawn may go for any target the set is drawn from. */
+    const sets = Object.fromEntries(Object.entries(m.sets ?? {}).map(([name, d]) => [name, d.from]));
     const each = m.waves.flatMap((w) => kindsOf(w).flatMap((kind) => routesOf(w).map((route) => ({ ...w, kind, route }))));
     for (const w of each) {
       if (w.kind === 'hunter') {
@@ -154,10 +156,12 @@ function corridor() {
       }
       for (let pilots = 1; pilots <= 8; pilots += 1) {
         const n = waveSize(w, pilots);
-        for (let k = 0; k < n; k += 1) {
+        /* Every target of a set, whatever n is. */
+        const ks = w.target && w.target.set ? Math.max(n, sets[w.target.set].length) : n;
+        for (let k = 0; k < ks; k += 1) {
           for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
             const plan = planAgent(m, {
-              id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k),
+              id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k, sets),
             });
             const end = Number.isFinite(plan.tEnd) ? plan.tEnd : plan.phases[plan.phases.length - 1].t1;
             for (let t = 0; t <= end; t += 250) {
