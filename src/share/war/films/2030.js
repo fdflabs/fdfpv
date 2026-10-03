@@ -192,10 +192,10 @@ export default {
       min: 6,
       grade: 'steel',
       /* Flying with the ten, 40 m behind and 20 m out from the end of
-       * their line, looking across the V: every one in frame, the nearest
-       * an aircraft, not a dot (the lead, 3 Oct). */
+       * their line, looking across the V: every one wholly in frame, the
+       * nearest an aircraft, not a dot (the lead, 3 Oct). */
       camera: {
-        type: 'drone', lens: 35, ride: { agent: 'ten', k: 9 }, off: [20, 5, -40], lag: 0, look: { agent: 'ten', k: 5 },
+        type: 'drone', lens: 32, ride: { agent: 'ten', k: 9 }, off: [20, 5, -40], lag: 0, look: { agent: 'ten', k: 6 },
       },
       hero: { agent: 'ten', minPx: 40 },
       out: 'cut',

@@ -14,7 +14,8 @@
  *             to the millisecond by construction, and within PASS_M of
  *             the point (and a weaving kind's weave besides); the pass
  *             inside its shot and the flight alive then
- *   heroes    a shot's hero group (its `hero`) all inside the frame and
+ *   heroes    a shot's hero group (its `hero`) wholly inside the frame,
+ *             centre and wingtips HERO_MARGIN in from every edge, and
  *             the nearest at least minPx of wingspan on a HERO_PX wide
  *             screen, every HERO_STEP_MS of its window (the whole shot by
  *             default): a group that is dots until its last frame fails
@@ -94,6 +95,9 @@ const SPAN_M = {
  * the horizontal field, so the width is what counts). */
 const HERO_PX = 1920;
 const HERO_STEP_MS = 100;
+/* How far in from the frame's edges a hero must stay, a share of its half
+ * width and half height: 0.05 is 48 px at 1920 wide. */
+const HERO_MARGIN = 0.05;
 
 /* A point on screen: u across and v up, -1 to 1 inside the 2.39 frame. */
 function onScreen(cam, p) {
@@ -272,12 +276,15 @@ for (const film of Object.values(FILMS)) {
       for (const a of group) {
         const o = poseAt(a.plan, Math.max(a.plan.t0, shot.start + ms));
         const c = onScreen(cam, o.p);
-        inside += c.z > 0 && Math.abs(c.u) <= 1 && Math.abs(c.v) <= 1 ? 1 : 0;
         /* The wingspan across the flight, level. */
         const h = Math.hypot(o.v[0], o.v[2]) || 1;
         const side = [-o.v[2] / h, 0, o.v[0] / h].map((x) => (x * span) / 2);
         const l = onScreen(cam, [o.p[0] - side[0], o.p[1], o.p[2] - side[2]]);
         const r = onScreen(cam, [o.p[0] + side[0], o.p[1], o.p[2] + side[2]]);
+        /* Wholly inside: its centre and both wingtips, HERO_MARGIN in from
+         * every edge. */
+        const lim = 1 - HERO_MARGIN;
+        inside += [c, l, r].every((x) => x.z > 0 && Math.abs(x.u) <= lim && Math.abs(x.v) <= lim) ? 1 : 0;
         px = Math.max(px, (Math.abs(l.u - r.u) * HERO_PX) / 2);
       }
       worstIn = Math.min(worstIn, inside);
@@ -286,10 +293,10 @@ for (const film of Object.values(FILMS)) {
         worstAt = ms;
       }
     }
-    console.log(`  hero ${film.id} ${shot.id}: from ${(from / 1000).toFixed(1)} to ${(to / 1000).toFixed(1)} s, at least ${worstIn} of ${group.length} ${def.hero.agent} in frame, `
+    console.log(`  hero ${film.id} ${shot.id}: from ${(from / 1000).toFixed(1)} to ${(to / 1000).toFixed(1)} s, at least ${worstIn} of ${group.length} ${def.hero.agent} wholly in frame, `
       + `the nearest at least ${worstPx.toFixed(1)} px of wingspan at ${HERO_PX} px wide (least at ${(worstAt / 1000).toFixed(1)} s)`);
     if (worstIn < group.length) {
-      fail(`${film.id} ${shot.id}: only ${worstIn} of the ${group.length} ${def.hero.agent} in frame at some point of the shot`);
+      fail(`${film.id} ${shot.id}: only ${worstIn} of the ${group.length} ${def.hero.agent} wholly in frame at some point of the shot`);
     }
     if (worstPx < def.hero.minPx) {
       fail(`${film.id} ${shot.id}: the nearest ${def.hero.agent} falls to ${worstPx.toFixed(1)} px of wingspan at ${(worstAt / 1000).toFixed(1)} s, under ${def.hero.minPx}`);
