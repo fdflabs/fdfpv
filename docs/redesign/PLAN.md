@@ -1,7 +1,7 @@
 # The redesign: three hubs, one session system, one design system
 
-**Status: APPROVED 2026-10-02, with the decisions in section 6.** Nothing in this file
-is built yet except the UI playground (section 4.5). Written 2026-10-02
+**Status: APPROVED 2026-10-02, with the decisions in section 6.** Phases 0
+to 5 have shipped since (section 5 has each one's state). Written 2026-10-02
 against `main` at 6ba32c70, with the unmerged lobby work read from branch
 `one-click-lobbies` (c4dd2abe) and PR #359. OVERVIEW.md is the one page
 version for the owner.
@@ -497,22 +497,23 @@ shows it, and every "[ ]" bracket that frames a non interactive label.
 ## 5. The roadmap
 
 One list for the redesign and for docs/PILLARS.md, PROGRESSION.md,
-SESSIONS.md and TRAINING.md. Each phase ships alone, behind its checks,
+SESSIONS.md, TRAINING.md and COMPLETENESS.md. Each phase ships alone, behind its checks,
 and changes nothing a later phase needs undone. Browser checks run
 locally (they are not in CI); each PR states their output. The order is
 PILLARS section 42's: what is in flight lands first, then the first five
 minutes (the controller and training), then the end of every flight (the
 debrief), then reasons to come back (progression), then the world (wind,
-AI). Status as of 2026-10-03.
+AI). The foundations of phases 19 to 31 come first where a later phase
+builds on them (the note under the table). Status as of 2026-10-03.
 
 | # | What ships | Checks it rewrites or adds | Status |
 | --- | --- | --- | --- |
-| 0 | This plan, OVERVIEW.md, PILLARS.md, the three docs beside this one, the UI playground and its check. | Adds `ui:playground` (Node, CI). | #371 |
-| 1 | `src/share/modes.js`: the four mode tables read one registry, the inline branches become fields. No visible change. | Adds `modes:selftest` (Node, CI); `rooms:*`, `game:lobby` x5, `modes:card` green. | #374 |
-| 2 | The renames: `combat.card` "Streamer Combat" (Spanish "Combate de serpentinas"), `ui.track_mode` "Track Day" ("Día de pista"); the registry's card keys. | `strings:selftest`, `lint:copy`, `modes:selftest`; `modes:card`, `war:card`, `friends:card` read the new names. | next |
-| 3 | The campaign engine and films (#363, #365), and the replay work (#367, #369, #370): not the redesign's, but every later phase assumes them. | Their own. | in flight |
-| 4 | Tokens of section 4.1 into the sheet, the sheet moved into its own file, Saira Condensed, the danger button on `--pdcs-fail`, a repo wide no dash lint. Pixel identical except the name face. | `ui:playground` grows to the new tokens; adds `lint:dashes` (Node, CI); `boot:loader`, `lint:responsive`; `shots` before and after. | planned |
-| 5 | Home becomes three hubs with activity links; hubs as screens; the rooms panel to Flight Club's Join a session; breadcrumb from state. | Rewrites `lint:shell`, `modes:card` (adds 2560x1080), `friends:card`, `war:card`, `campaign:check`, `boot:loader`, `flow:check`. | planned |
+| 0 | This plan, OVERVIEW.md, PILLARS.md, the three docs beside this one, the UI playground and its check. | Adds `ui:playground` (Node, CI). | merged, #371 |
+| 1 | `src/share/modes.js`: the four mode tables read one registry, the inline branches become fields. No visible change. | Adds `modes:selftest` (Node, CI); `rooms:*`, `game:lobby` x5, `modes:card` green. | merged, #374 |
+| 2 | The renames: `combat.card` "Streamer Combat" (Spanish "Combate de serpentinas"), `ui.track_mode` "Track Day" ("Día de pista"); the registry's card keys. | `strings:selftest`, `lint:copy`, `modes:selftest`; `modes:card`, `war:card`, `friends:card` read the new names. | merged, #378 |
+| 3 | The campaign engine and films (#363, #365), and the replay work (#367, #369, #370): not the redesign's, but every later phase assumes them. | Their own. | merged: #363, #365, #367, #369, #370 (and #379, #380) |
+| 4 | Tokens of section 4.1 into the sheet, the sheet moved into its own file, Saira Condensed, the danger button on `--pdcs-fail`, a repo wide no dash lint. Pixel identical except the name face. | `ui:playground` grows to the new tokens; adds `lint:dashes` (Node, CI); `boot:loader`, `lint:responsive`; `shots` before and after. | merged, #376 |
+| 5 | Home becomes three hubs with activity links; hubs as screens; the rooms panel to Flight Club's Join a session; breadcrumb from state. | Rewrites `lint:shell`, `modes:card` (adds 2560x1080), `friends:card`, `war:card`, `campaign:check`, `boot:loader`, `flow:check`. | merged, #382; Flight Club first on home is #386, open |
 | 6 | Session visibility: Solo, Friends, Public; public by default, each pilot's last choice remembered per activity; empty slots; the in place change (server first) (SESSIONS.md 2). | `game:lobby` x5 adds the visibility rows; `rooms:server` adds the op; `flow:check`. | planned |
 | 7 | The controller question for a new pilot, routed by device (TRAINING.md 2), and the controller screen: dead zone, gamepad expo, a channel editor, presets per device, profiles per aircraft class. | `input:selftest` (Node, CI) extended; `lint:input`, `lint:devices`; `flow:check` adds the first run question. | planned |
 | 8 | Training tracks 1 and 4 (TRAINING.md 3), a `training` activity in the registry; certifications stored. | `progress:selftest` runs each lesson's judge on recorded inputs; `modes:selftest` adds the activity. | planned |
@@ -526,6 +527,26 @@ AI). Status as of 2026-10-03.
 | 16 | Training track 5 (Defence), on the stage engine. | as 8, plus `war:harness`. | planned, after 3 |
 | 17 | A watch seat in any room (SESSIONS.md 5). | `rooms:server` (a seat that does not fly or count against the cap); `game:lobby`. | planned |
 | 18 | A race opponent driven along a ghost's line, the first AI pilot (PILLARS 12). | Its own harness, against the plant. | later |
+| 19 | Versioned save: `src/share/save.js`, one envelope with `saveVersion` over today's keys, an ordered migration list (the whoop's generations and retired airframes moved in; the 5 inch and whoop removal as its first new step), a `.prev` backup and `.corrupt` keep, Reset settings and Reset progress apart, the war's result saved whoever watched (COMPLETENESS 1 to 3, 58). The sync blob's sections keep their shape. | Adds `save:selftest` (Node, CI) over a fixture of every historic profile; `campaign:check` adds a reload at the result card. | planned, first |
+| 20 | Input actions and device profiles: an action table in src/input that every reader uses (crashcam, builder, voice, turtle and flip move onto it), mappings keyed per device, the stuck channel message, controller loss defined (solo pauses; a room centres the sticks and holds the throttle) (COMPLETENESS 15 to 18, 20). Before phase 7. | `input:selftest` (CI) gains hot plug, swap, loss and per action cases; `lint:input` fails on a device read outside src/input. | planned |
+| 21 | Named session states: `SESSION_STATES` in modes.js with each game's mapping, a load failure reported and counted out, `allowDropIn` read by the server, close 4005 final, the authority table in MULTIPLAYER-PLAN.md, the pause and abandon rules written (COMPLETENESS 4, 6 to 8, 23, 58). No wire change. | `modes:selftest` (every state maps), `rooms:selftest` (load failure, drop in from the field, pause). | planned |
+| 22 | The gameplay event log: `src/game/events.js`, one typed append only log per flight on the sim and room clocks; RunWatch reads it first. Before phases 10, 11 and 14, which consume it (COMPLETENESS 25 to 28). | Adds `events:selftest` (Node, CI). | planned |
+| 23 | Diagnostics: the build in credits, Settings, replay meta and bug reports; the bug report's aircraft, activity, controller and a categorised error ring; `npm run smoke` (local) from boot to a finished drill and a reload (COMPLETENESS 64 to 68); funnel counters only if the owner says yes (63). | Adds `bugs:selftest` (Node, CI); `crashrecord:selftest` grows the ring. | planned |
+| 24 | Words: the last English strings into the tables, Spanish layout checks, one glossary (operation, mission, activity, session, round) and its noun rules, session.js renamed (COMPLETENESS 38, 39, 78, 83). | `lint:copy`, `lint:nouns` (CI) tighten; `modes:card`, `lint:devices` run again in `?lang=es`. | planned |
+| 25 | Comfort: Camera shake (on, reduced, off; reduced under `prefers-reduced-motion`), chase smoothing, captions for the war radio, a UI scale (COMPLETENESS 40, 41). Remapping lands in phase 7. | `war:radio` (captions), `lint:responsive` at 130 percent (local). | planned |
+| 26 | Content in one place: `ACT1` derived from the mission registry, the aircraft checklist that phase 12's `airframes:check` enforces, a `hidden` field on activities and missions instead of a flags system (COMPLETENESS 80, 81). | `campaign:selftest`, `war:stages`, `modes:selftest` (CI). | planned |
+| 27 | Session continuity: a Continue link under the hub that holds the last activity (home's order unchanged, Flight Club first); a private room's host changes its activity between rounds, the war's consent asked of each pilot (COMPLETENESS 57, 77). | `modes:card` (local), `rooms:server` (CI), `game:lobby` (local). | planned |
+| 28 | Developer mode: state changing `window.__` hooks only under `?dev=1` or a local host, one hook index, the attackers' debug overlay, skip and complete ops refused by public rooms (COMPLETENESS 33 to 36). | `lint:shell` (no hook without the flag), `rooms:selftest` (public refusal). | planned |
+| 29 | World edges and budgets: spawn checks for every world, the chase camera against buildings, one boundary rule (turn back, then reset, never a wall), the budget and frame rate table in ARCHITECTURE.md with a check per row (COMPLETENESS 45, 46, 50, 51, 53, 71). | `itaipu:spawns` generalised; `itaipu:views` style budget checks per world (local). | planned |
+| 30 | Blocks that outlast a room for signed in pilots; docs/DEVICES.md, a row per real device flown (COMPLETENESS 60, 70). | `rooms:accounts` (CI). | planned |
+| 31 | War results signed by the rooms server and credited only from a signature, once an economy has a price (COMPLETENESS 62). | `rooms:accounts`, `test:tracks` (CI). | later |
+
+Phases 19 to 31 come from the owner's completeness checklist,
+answered item by item in COMPLETENESS.md. Each ships alone. The order to
+build them is COMPLETENESS.md section 20: 19, 22 and 20 before more
+content (and 20 before phase 7, 22 before phases 10, 11 and 14), then 21,
+23, 26, 24, 27, 25 and 29, interleaved with phases 6 to 17; 28, 30 and 31
+after. None changes a standing decision (PILLARS.md section 0).
 
 ## 6. Decided (the owner and the lead, 2 October)
 
