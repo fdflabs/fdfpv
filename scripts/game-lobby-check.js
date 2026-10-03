@@ -210,6 +210,8 @@ try {
     check('Track opens My tracks, A\'s own track on it', await a.evaluate(`window.__ui.screen === 'courses' && Boolean(${cardOf})`), await a.evaluate('window.__ui.screen'));
     await a.evaluate(`(() => { window.__ui.actOnCard('card-fly', ${cardOf}); return true; })()`);
     await a.until(`${IN_LOBBY} && window.__roomRace().track && window.__roomRace().track.id === ${JSON.stringify(TRACK_ID)}`, 120000).catch(() => {});
+    /* The panel is redrawn a frame or more after the room's word. */
+    await a.until("/Lobby ring/.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
     const lt = await a.evaluate(LOBBY);
     check('Play on it: back in the lobby, the room\'s track A\'s', lt.shown && /Lobby ring/.test(lt.line)
       && (await a.evaluate('(window.__roomRace().track || {}).id')) === TRACK_ID, JSON.stringify({ line: lt.line, screen: lt.screen }));

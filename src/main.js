@@ -5074,6 +5074,9 @@ export async function boot({
     ui.show('friends');
     ui.settings.map = 'track';
     ui.persistSettings();
+    titleWorld = null;
+    buildWorld = null;
+    syncWorld();
     /* The seat, not seatedMapTrack: the title's world is still up. */
     const seated = seatShare();
     if (seated) {
