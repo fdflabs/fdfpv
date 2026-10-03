@@ -69,6 +69,7 @@ import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
+import EN from '../src/strings/en.js';
 import { timing, linesOf } from '../src/share/war/film.js';
 import { filmFor } from '../src/share/war/films/index.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
@@ -295,7 +296,7 @@ try {
     && shot('fan').cast.includes('f16'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
   row('wave: Strikers, FPVs and Loiterers, and six defenders rising', shot('wave').drawn.strike >= 10 && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
     && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
-  row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes('Defend the intakes'), shot('wave').titles.join(' | '));
+  row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes(EN['war.mission.itaipu_1']), shot('wave').titles.join(' | '));
   row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
 
   /* The voice: decoded here, as long as the manifest says. */

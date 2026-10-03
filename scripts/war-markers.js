@@ -48,7 +48,9 @@ import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
-import itaipu1 from '../src/share/war/missions/itaipu-1.js';
+import itaipu1 from '../src/share/war/missions/itaipu-drill.js';
+/* The drill: mission 1 as this check was written against, before First
+ * Light made it a story (src/share/war/missions/itaipu-drill.js). */
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'war-markers');
@@ -240,7 +242,7 @@ try {
   check('before the war nothing is drawn', !before.m.on && before.canvas === 'none', `on ${before.m.on}, canvas ${before.canvas}`);
   await shot(page, '0-before-the-war');
 
-  await page.evaluate("window.__warDo('start', 'itaipu-1')");
+  await page.evaluate("window.__warDo('start', 'itaipu-drill')");
   await page.until("window.__war().view.state === 'live'", 30000);
   const goAt = (await warOf()).view.goAt;
   const seat = (await warOf()).seat;

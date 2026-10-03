@@ -91,7 +91,9 @@ const MAIN = process.argv.includes('--main');
  * shares its waves (itaipu-4, the night raid, which this then checks is
  * night on both pages, the attackers wearing nav lights). */
 const missionArg = process.argv.find((a) => a.startsWith('--mission='));
-const itaipu1 = MISSIONS[missionArg ? missionArg.slice('--mission='.length) : 'itaipu-1'];
+/* The drill: mission 1 as this check was written against, before First
+ * Light made it a story (src/share/war/missions/itaipu-drill.js). */
+const itaipu1 = MISSIONS[missionArg ? missionArg.slice('--mission='.length) : 'itaipu-drill'];
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--') && !a.startsWith('--mission=')) || join(root, 'build', MAIN ? 'war-twopage-main' : 'war-twopage');
 
 let failed = 0;
