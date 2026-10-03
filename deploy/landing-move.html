@@ -1,0 +1,44 @@
+<!doctype html>
+<!--
+  The sender of the move to the game's own domain (src/share/move.js).
+
+  NOT served from this repository. Copy it, as it is, to fdflabs/fdfpv-landing
+  as move/index.html, so GitHub Pages serves it at
+  https://fdflabs.github.io/fdfpv-landing/move/. It has to be a page on
+  https://fdflabs.github.io, the game's old origin, because only a page there
+  can read a guest's old storage; and not under /fdfpv/, because that path
+  only redirects once the game has its custom domain. The code is the game's
+  own, imported from the domain, so this file never needs to change.
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" href="data:," />
+    <title>Moving to paraguayandronecombatsimulator.com</title>
+  </head>
+  <body>
+    <p>Bringing your pilot to <a href="https://paraguayandronecombatsimulator.com/">paraguayandronecombatsimulator.com</a>.</p>
+    <script type="module">
+      import { moveOut } from 'https://paraguayandronecombatsimulator.com/src/share/move.js';
+
+      moveOut(window).catch(() => window.location.replace('https://paraguayandronecombatsimulator.com/'));
+    </script>
+  </body>
+</html>

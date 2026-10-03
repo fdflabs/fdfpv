@@ -498,6 +498,12 @@ async function buildItaipu(shell, progress, q, time) {
     setWaterClock(ms) {
       waterClockMs = ms;
     },
+    /* A crash cam replay's water ({ openings, gates } from its clip, or
+     * null), the live flood stepped on the room's clock meanwhile, and how
+     * the replay's water stands (water/index.js). */
+    replayFlood: (given) => parts.water.replayFlood(given),
+    advanceLiveWater: (roomMs) => parts.water.advanceLive(roomMs),
+    replayWater: () => parts.water.replayWater(),
     /* The water through each opening this frame, m3/s, for the world's
      * sound (src/render/world-audio.js flow). */
     waterFlows: () => parts.water.flows(),
