@@ -68,6 +68,19 @@ import { FOREST_GRADE, noiseTexture } from '../look/ground.js';
 import { thermalKind } from '../../../render/thermal.js';
 
 /*
+ * THE SHADOW DISTANCE of the reduced models: only those this near the
+ * eye are drawn into the shadow maps. Each kind's reduced models are an
+ * instanced mesh, which the shadow passes draw whole (not frustum
+ * culled), every instance into both maps, though the near map covers 72
+ * m round the craft and a reduced model past a hundred metres throws a
+ * shadow a few texels of the far map wide under its own crown. Measured
+ * at yard-west (section 13's worst view, 560 m off the yard and 60 m
+ * up): the reduced canopy's shadows were 176 k of its 2.63 M triangles,
+ * which took it over the 2.5 M (lead, 3 October: a 3 % margin).
+ */
+const MID_SHADOW_M = 100;
+
+/*
  * The bands per preset, m: the whole model to `near`, the reduced model
  * to `mid`, each dissolving over `fade`, and the impostors from there to
  * `far`, dissolving out over `farFade`; caps are instances per kind and
@@ -75,13 +88,13 @@ import { thermalKind } from '../../../render/thermal.js';
  */
 export const TIERS = {
   high: {
-    near: 70, mid: 220, far: 2500, fade: 14, farFade: 250, capNear: 1500, capMid: 6000, capFar: 30000, shell: 20,
+    near: 70, mid: 220, far: 2500, fade: 14, farFade: 250, capNear: 1500, capMid: 6000, capFar: 30000, shell: 20, midShadow: MID_SHADOW_M,
   },
   medium: {
-    near: 40, mid: 170, far: 1800, fade: 10, farFade: 200, capNear: 700, capMid: 3500, capFar: 20000, shell: 20,
+    near: 40, mid: 170, far: 1800, fade: 10, farFade: 200, capNear: 700, capMid: 3500, capFar: 20000, shell: 20, midShadow: MID_SHADOW_M,
   },
   low: {
-    near: 0, mid: 120, far: 1200, fade: 8, farFade: 150, capNear: 0, capMid: 2000, capFar: 12000, shell: 20,
+    near: 0, mid: 120, far: 1200, fade: 8, farFade: 150, capNear: 0, capMid: 2000, capFar: 12000, shell: 20, midShadow: MID_SHADOW_M,
   },
 };
 
@@ -492,8 +505,20 @@ export function treeLod({
     imp.uImpLight.value.copy(sunDir).normalize();
   }
 
-  const mk = (geo, mat, depth, cap, name) => {
+  const mk = (geo, mat, depth, cap, name, shadowed = false) => {
     const m = new THREE.InstancedMesh(geo, mat, cap);
+    if (shadowed) {
+      /* Only the first userData.shadowCount instances, those within the
+       * shadow distance (the refill puts them first), into a shadow map. */
+      m.userData.shadowCount = 0;
+      m.onBeforeShadow = () => {
+        m.userData.drawCount = m.count;
+        m.count = Math.min(m.count, m.userData.shadowCount);
+      };
+      m.onAfterShadow = () => {
+        m.count = m.userData.drawCount;
+      };
+    }
     m.count = 0;
     m.visible = false;
     m.frustumCulled = false;
@@ -512,7 +537,7 @@ export function treeLod({
       L.bark = mk(builds[k].near.bark, mats.nearBark, mats.barkDepth, tier.capNear, `${v.name}-bark`);
       L.bark.instanceMatrix = L.near.instanceMatrix;
     }
-    L.mid = mk(builds[k].mid.foliage, mats.mid, mats.foliageDepth, tier.capMid, `${v.name}-mid`);
+    L.mid = mk(builds[k].mid.foliage, mats.mid, mats.foliageDepth, tier.capMid, `${v.name}-mid`, true);
     return L;
   });
 
@@ -600,6 +625,29 @@ export function treeLod({
     arr[o + 15] = 1;
   };
 
+  /* The first n instance matrices of `arr` put in order of the shadow
+   * distance: those whose origin is within `reach` of pos first, the rest
+   * after, each group in the order it was (a stable partition). */
+  const keep = new Float32Array(16);
+  const shadowFirst = (arr, n, pos, reach) => {
+    let w = 0;
+    for (let i = 0; i < n; i += 1) {
+      const o = i * 16;
+      const dx = arr[o + 12] - pos.x;
+      const dy = arr[o + 13] - pos.y;
+      const dz = arr[o + 14] - pos.z;
+      if (dx * dx + dy * dy + dz * dz > reach * reach) {
+        continue;
+      }
+      if (i !== w) {
+        keep.set(arr.subarray(o, o + 16));
+        arr.copyWithin(w * 16 + 16, w * 16, o);
+        arr.set(keep, w * 16);
+      }
+      w += 1;
+    }
+    return w;
+  };
   const frustum = new THREE.Frustum();
   const viewProj = new THREE.Matrix4();
   const sphere = new THREE.Sphere();
@@ -627,6 +675,7 @@ export function treeLod({
   };
   const nNear = new Uint32Array(KINDS.length);
   const nMid = new Uint32Array(KINDS.length);
+
   const stats = {
     near: 0, mid: 0, far: 0, dropped: 0, refills: 0, farRefills: 0, farTrees: farGrid.count,
   };
@@ -764,6 +813,7 @@ export function treeLod({
     stats.near = 0;
     stats.mid = 0;
     levels.forEach((L, k) => {
+      L.mid.userData.shadowCount = shadowFirst(L.mid.instanceMatrix.array, nMid[k], pos, tier.midShadow);
       for (const [m, count] of [[L.near, nNear[k]], [L.bark, nNear[k]], [L.mid, nMid[k]]]) {
         if (!m) {
           continue;
