@@ -277,6 +277,7 @@
     "itaipu:check": "node scripts/itaipu-check.js",
     "itaipu:views": "node scripts/itaipu-views.js",
     "water:check": "node scripts/water-check.js",
+    "water:itaipu": "node scripts/water-itaipu.js",
     "sensor:check": "node scripts/sensor-check.js",
     "itaipu:yard": "node tools/itaipu/war-check.js",
     "check:dam": "node scripts/dam-check.js",
