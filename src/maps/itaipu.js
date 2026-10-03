@@ -504,6 +504,9 @@ async function buildItaipu(shell, progress, q, time) {
     replayFlood: (given) => parts.water.replayFlood(given),
     advanceLiveWater: (roomMs) => parts.water.advanceLive(roomMs),
     replayWater: () => parts.water.replayWater(),
+    /* A crash cam replay's gate state for the leaves ({ list } from its
+     * clip), or null: the live state again (dam/index.js). */
+    replayGates: (given) => parts.dam.setReplayGateState(given),
     /* The water through each opening this frame, m3/s, for the world's
      * sound (src/render/world-audio.js flow). */
     waterFlows: () => parts.water.flows(),
