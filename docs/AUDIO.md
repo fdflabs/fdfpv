@@ -963,6 +963,65 @@ night, load 0.07 and 0.09, never shed; `war:boom` over Itaipu 10 tracks,
 
 **Recordings: none.** All synthesised, 0 bytes.
 
+### The dam break: breaches and the water through them
+
+For the war's damage (`src/render/breakage.js`, which breaks the dam's,
+the gates' and the switchyard's chunks) and the water that comes through
+what it opens. Two calls on the shell's `WorldAudio`:
+
+- **`worldAudio.breach({ at, position, material, mass }, now)`**, once a
+  break event: `at` its room ms, `position` [x, y, z] scene metres,
+  `material` `'concrete'`, `'steel'` or `'transformer'`, `mass` kg, `now`
+  the room ms it is heard at. It starts `now - at` into its own sound; one
+  more than 3 s late is dropped, as breakage.js draws only what is
+  happening now. The pieces fall to the map's ground under the position;
+  it echoes off the map's walls as an explosion does. An unknown
+  material, a position that is not three numbers or a mass not over 0
+  throws. Returns false without a node. It replaces `worldAudio.boom` for
+  a break: a boom is a warhead's sound, and a break is what the warhead
+  did.
+- **`worldAudio.flow(id, x, y, z, discharge)`**, once a frame for each
+  opening that flows (the water's to call): `id` the opening's, stable
+  while it flows, at its middle, `discharge` m3/s. The kind
+  `breachflow`: the spillway's roar, its level with the discharge to the
+  0.3 (ten times the flow, 6 dB), its roar a little lower the more there
+  is, -27 LUFS at 40 m for 1000 m3/s. On the other aircraft and vehicles
+  bus with the war, not the ambience: the pilots made it, and it is not
+  masked under a swarm. A frame now carries a ninth number a source,
+  `drive`, for it (`SOURCE_STRIDE` 9); every other kind sends 0.
+
+What a break is made of (`Breach` in the worklet), by material:
+
+| Material | Made of |
+| --- | --- |
+| concrete | the fracture running through it (3 to 6 cracks in its first 0.4 s, 0.9 to 1.6 kHz), a low rumble as long as the mass takes to go (a cube root law, 1 t 0.8 s, 1000 t 8 s), and the pieces landing |
+| steel | plate tearing (noise in stick slip bursts every 12 to 35 ms, 0.4 to 1.2 s), three low modes groaning (70 to 160 Hz, gliding down 30 percent as it gives), a clang as it lets go, its pieces landing |
+| transformer | the arc (a buzz on twice the 50 Hz mains, a sizzle, flickering on and off every 10 to 40 ms, 0.5 to 1.5 s), the oil flashing over (the low end struck again), and the fire after it (a low roar and its crackle, 6 to 10 s) |
+
+Every break: its level from its mass on a log law (ten times the mass,
+4 dB), the explosions' distance law (4.5 dB a doubling past 60 m) and air;
+its pieces, 6 to 40 by size, landing from sqrt(2 h / g) after it, each a
+struck thud at its own pitch and a tick. Seeded per break: two alike
+correlate at most 0.21. ESTIMATED, every level and time: no recording of a
+dam breaking was measured.
+
+| Scene | NEW LUFS | NEW loudest 400 ms | NEW dBTP | NEW 2 to 5 kHz % | OLD loudest 400 ms |
+| --- | --- | --- | --- | --- | --- |
+| 10 t of concrete breaks off 60 m away, 20 m up | -27.0 | -21.8 | -10.0 | 23.8 | -11.1 |
+| 500 t of the dam goes 300 m off, its echo off the face | -34.7 | -29.3 | -19.0 | 6.4 | -18.3 |
+| a 40 t spillway gate tears away 80 m off | -25.2 | -19.2 | -8.7 | 8.4 | -11.2 |
+| a switchyard transformer arcs and burns 120 m off | -24.5 | -17.5 | -7.8 | 25.1 | -13.6 |
+| water through the breach, 0 to 5000 m3/s, 200 m off | -31.6 | -29.6 | -17.9 | 12.2 | silent |
+
+Browser figures; Node's within 0.2 LU. OLD is `MotorAudio.boom` at full
+level, what the damage branch rang for every break: louder than a near
+warhead, and more than half its power in 2 to 5 kHz. Bars, `--check`: a
+break as an explosion (momentary at most -12, 2 to 5 kHz at most 35
+percent) and, since it lasts seconds, short term at most -18 as the
+aircraft; for twelve seeds of each material (worst: concrete 26.7
+percent, transformer 31 percent; steel 19 percent, its loudest 3 s -24.5); the water
+in `BREACH_PASS`, -40 to -18 LUFS at its loudest 400 ms.
+
 ### Not yet
 
 - Occlusion (a hill between a source and the listener).
