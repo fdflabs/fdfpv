@@ -78,6 +78,12 @@ import { ROUND_MINUTES } from './combat.js';
 export const LOBBY_COUNTDOWN_MS = 5000;
 export const LOBBY_DEADLINE_MS = 45000;
 
+/* The lost match's stage the lobby's mission restarts from, or null. */
+function warCheckpoint(core) {
+  const id = warMission(core);
+  return id ? core.war.checkpointOf(MISSIONS[id]) : null;
+}
+
 /* The war's mission: the room's own, else the first on its map. */
 function warMission(core) {
   const id = core.meta.mission;
@@ -105,7 +111,12 @@ const GAMES = {
     show: (core) => ({ mission: warMission(core) }),
     can: (core) => warMission(core) !== null,
     on: (core) => core.war.on(),
-    start: (core, conn, s, now) => core.war.message(core, conn, s, { type: 'war', op: 'start', mission: warMission(core), intro: true }, now),
+    /* After a loss, the same mission again from the stage it was lost in
+     * (the owner, 2 Oct; war.js checkpointOf), with no briefing; else the
+     * mission from its start, with its film. */
+    start: (core, conn, s, now) => core.war.message(core, conn, s, warCheckpoint(core)
+      ? { type: 'war', op: 'start', mission: warMission(core), from: 'checkpoint' }
+      : { type: 'war', op: 'start', mission: warMission(core), intro: true }, now),
   },
   combat: {
     set: { key: 'minutes', valid: (core, v) => ROUND_MINUTES.includes(v) },

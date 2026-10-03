@@ -177,6 +177,33 @@ export function warLobbySection(check) {
     check('and the lobby starts mission 2', e.war().state === 'briefing' && e.war().mission === 'itaipu-2', JSON.stringify({ state: e.war().state, mission: e.war().mission }));
   }
   {
+    /* The owner, 2 Oct: a lost mission restarts from the stage it was
+     * lost in. The loss is put on the match by hand here; war:stages
+     * plays one through. */
+    const e = lobbyRoom();
+    e.at(100);
+    e.ready(0);
+    e.ready(1);
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    const go = e.war().goAt;
+    e.at(go + 200);
+    e.r.war.finish(go + 150, 'lost', 'output');
+    e.at(go + 400);
+    check('after a loss the war names the stage the mission restarts from', e.war().state === 'lost' && e.war().checkpoint && e.war().checkpoint.n === 0,
+      JSON.stringify(e.war().checkpoint));
+    e.ready(0);
+    e.ready(1);
+    e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
+    check('and starts it again from there, with no briefing', e.war().state === 'countdown' && e.war().restarted === 'round-1' && e.war().mission === 'itaipu-1',
+      JSON.stringify({ state: e.war().state, restarted: e.war().restarted }));
+    e.say(0, { type: 'war', op: 'end' });
+    e.at(e.clock + 100);
+    e.ready(0);
+    e.ready(1);
+    e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
+    check('a match ended, not lost, starts again from its film', e.war().state === 'briefing' && e.war().restarted == null, e.war().state);
+  }
+  {
     const e = lobbyRoom();
     e.at(100);
     e.ready(0);
