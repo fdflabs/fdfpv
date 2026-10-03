@@ -9361,6 +9361,15 @@ export class Ui {
         host.append(card);
         return { card };
       });
+      /* THE FIRST SIGHT OF HOME opens on Flight Club (the owner,
+       * 2026-10-03). The title's list was the menu's before the gate came
+       * up at boot, and the cursor kept that list's index (Fly's, the
+       * third row), which on home is the Hangar. Once: after that the
+       * cursor is where the pilot put it. */
+      if (this.onGate() && !this.hub && !this.homeSeen) {
+        this.homeSeen = true;
+        this.cursor = this.titleStop();
+      }
     }
     this.markCards();
   }
