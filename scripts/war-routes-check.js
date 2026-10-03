@@ -116,14 +116,27 @@ function variants(w, sizes) {
   return out;
 }
 
+/* A mission's waves with every choice a seed may make laid out: one row a
+ * kind (a list of kinds, or a mix's), each with every route it may fly (a
+ * family, or a sector's, src/share/war/stages.js). */
+function wavesOf(mission) {
+  return mission.waves.flatMap((w) => {
+    const kinds = w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat();
+    const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
+      ? [w.route.sector].flat().flatMap((sec) => mission.sectors[sec])
+      : [w.route].flat();
+    return kinds.map((kind) => ({ ...w, kind, route: routes }));
+  });
+}
+
 const routeName = (w) => [w.route].flat().join('|') + (Array.isArray(w.az) ? ' az' : '');
 
 const failures = [];
 let worstAll = Infinity;
 for (const mission of Object.values(MISSIONS)) {
-  console.log(`mission ${mission.id}: ${mission.waves.length} waves, 1 to 8 pilots, every attacker at err 0 and +-spread, every ${SAMPLE_MS} ms`);
+  console.log(`mission ${mission.id}: ${wavesOf(mission).length} waves, 1 to 8 pilots, every attacker at err 0 and +-spread, every ${SAMPLE_MS} ms`);
   console.log('  wave  at   kind    route             n(1..8)          before terminal   in terminal   terminal m under water');
-  for (const [i, w] of mission.waves.entries()) {
+  for (const [i, w] of wavesOf(mission).entries()) {
     let before = Infinity;
     let inside = Infinity;
     let boatDry = 0;
@@ -229,7 +242,7 @@ for (const mission of Object.values(MISSIONS)) {
     let crossings = 0;
     let strikes = 0;
     const waves = [];
-    for (const [i, w] of mission.waves.entries()) {
+    for (const [i, w] of wavesOf(mission).entries()) {
       const n = waveSize(w, pilots);
       let c = 0;
       for (let k = 0; k < n; k += 1) {

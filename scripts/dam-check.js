@@ -275,8 +275,21 @@ const TARGETS = `(() => {
     const [x, y, z] = t.at;
     const on = t.part === 'yard' ? Math.abs(window.__surface(x, z, -1e9) - y) : near(x, y, z);
     let far = 0, foreign = 0;
+    /* How far point p is from a capsule target's axis segment a b. */
+    const offAxis = (p) => {
+      const v = [t.b[0] - t.a[0], t.b[1] - t.a[1], t.b[2] - t.a[2]];
+      const g = Math.max(0, Math.min(1, ((p[0] - t.a[0]) * v[0] + (p[1] - t.a[1]) * v[1] + (p[2] - t.a[2]) * v[2]) / (v[0] * v[0] + v[1] * v[1] + v[2] * v[2])));
+      return Math.hypot(p[0] - t.a[0] - v[0] * g, p[1] - t.a[1] - v[1] * g, p[2] - t.a[2] - v[2] * g);
+    };
     for (const i of t.colliders) {
       if (!solids.has(i)) foreign += 1;
+      /* A capsule target (a penstock) holds its capsules, segment by
+       * segment along its axis: each within its reach of the axis, not of
+       * the one point at. */
+      if (t.shape === 'capsule' && !col.fbox[i]) {
+        far = Math.max(far, offAxis([col.fax[i], col.fay[i], col.faz[i]]) + col.fr[i], offAxis([col.fbx[i], col.fby[i], col.fbz[i]]) + col.fr[i]);
+        continue;
+      }
       if (col.fbox[i]) {
         far = Math.max(far, col.boxGap(i, x, y, z));
         continue;
@@ -287,18 +300,26 @@ const TARGETS = `(() => {
       const dz = Math.max(Math.min(col.faz[i], col.fbz[i]) - r - z, 0, z - Math.max(col.faz[i], col.fbz[i]) - r);
       far = Math.max(far, Math.hypot(dx, dy, dz));
     }
-    /* A capsule target's axis against its part's own capsule collider. */
+    /* A capsule target's axis against its part's own capsule colliders:
+     * a penstock is held by its segments' capsules end to end, each on the
+     * axis, together running from a to b. */
     let axisOff = 0;
     if (t.shape === 'capsule') {
-      const i = t.colliders[0];
-      const ax = [col.fax[i], col.fay[i], col.faz[i]];
-      const v = [col.fbx[i] - ax[0], col.fby[i] - ax[1], col.fbz[i] - ax[2]];
-      const l2 = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-      for (const p of [t.a, t.b]) {
-        const g = Math.max(0, Math.min(1, ((p[0] - ax[0]) * v[0] + (p[1] - ax[1]) * v[1] + (p[2] - ax[2]) * v[2]) / l2));
-        axisOff = Math.max(axisOff, Math.hypot(p[0] - ax[0] - v[0] * g, p[1] - ax[1] - v[1] * g, p[2] - ax[2] - v[2] * g));
+      let reach = 0;
+      for (const i of t.colliders) {
+        axisOff = Math.max(axisOff, offAxis([col.fax[i], col.fay[i], col.faz[i]]), offAxis([col.fbx[i], col.fby[i], col.fbz[i]]));
+        if (!(t.r >= col.fr[i])) {
+          axisOff = Infinity;
+        }
       }
-      axisOff = t.r >= col.fr[i] ? axisOff : Infinity;
+      /* Together they reach both ends. */
+      for (const p of [t.a, t.b]) {
+        reach = Math.max(reach, Math.min(...t.colliders.map((i) => Math.min(
+          Math.hypot(p[0] - col.fax[i], p[1] - col.fay[i], p[2] - col.faz[i]),
+          Math.hypot(p[0] - col.fbx[i], p[1] - col.fby[i], p[2] - col.fbz[i]),
+        ))));
+      }
+      axisOff = Math.max(axisOff, reach);
     }
     out[id] = {
       part: t.part, r: t.r, on, colliders: t.colliders.length, far, foreign, frozen: Object.isFrozen(t),
@@ -657,8 +678,8 @@ async function main() {
       const r2 = await fly(page, drop, 1800, [0, 0, 0, 0]);
       const l2 = r2.log[r2.log.length - 1];
       const met = r2.log.find((r) => r.hit !== 'none');
-      const metIt = (met && met.hitIndex === a.index) || l2.obstacle > 0;
-      console.log(`gap: ${metIt ? 'ok' : 'BAD'}; onto penstock ${k + 1} (collider ${a.index}): shell hit ${met ? `${met.hit} ${met.hitIndex}` : 'none'}, `
+      const metIt = (met && a.indices.includes(met.hitIndex)) || l2.obstacle > 0;
+      console.log(`gap: ${metIt ? 'ok' : 'BAD'}; onto penstock ${k + 1} (colliders ${a.indices.join(' ')}): shell hit ${met ? `${met.hit} ${met.hitIndex}` : 'none'}, `
         + `plant contacts ${l2.obstacle}, damage events ${l2.events - r2.before.c.events}`);
       if (!metIt) {
         fail('a Timber let down onto a penstock did not meet it');

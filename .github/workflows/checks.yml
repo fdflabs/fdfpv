@@ -64,6 +64,7 @@ jobs:
       - run: npm run films:time -- --check
       - run: npm run films:lint
       - run: npm run war:grid
+      - run: npm run damage:check
       - run: npm run marks:selftest
       - run: npm run combat:harness
       - run: npm run combat:restart

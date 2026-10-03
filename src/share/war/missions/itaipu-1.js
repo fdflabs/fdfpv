@@ -1,7 +1,9 @@
 /*
- * itaipu-1.js: Defend Itaipu, mission 1 (docs/WARFARE-PLAN.md sections 3,
- * 4.2 and 4.5). Data, shared by the room (edge/rooms/war.js) and every
- * client; src/share/war/routes.js flies it.
+ * itaipu-1.js: Defend the Paraná, act 1, mission 1, "First Light"
+ * (docs/campaign/MISSIONS.md M1): day one, dawn, the first contacts over
+ * the reservoir. Data, shared by the room (edge/rooms/war.js runs it as a
+ * stage graph, src/share/war/stages.js) and every client; routes.js flies
+ * it. Every other Act 1 mission imports its targets.
  *
  * THE TARGETS are where the map builds them (itaipu-targets.js, generated
  * from map.targets by scripts/war-targets.js); this file adds what each
@@ -12,50 +14,58 @@
  * it), and the right bank switchyard 2 800, a fifth of the plant's way to
  * the grid. The mission is lost under floorMw, 7 700 MW: eleven units.
  *
+ * THE STAGES, each a round of the owner's economy (every pilot's airframes
+ * back at its open), a beat of seeded seconds between them:
+ *   1  Eyes      a Scout high or over the open water, and a Striker on
+ *                the yard 25 to 40 s in (the act's first hit, if it comes,
+ *                is the biggest, so the squad learns what a hit costs);
+ *                over when the Scout is killed, gone home or 80 s have
+ *                passed, and nothing else is left
+ *   2  Probe     a Striker group on a drawn bearing, then 8 to 15 s after
+ *                the first is gone, a second on another bearing
+ *   3  Pressure  Loiterers high onto intakes; 10 to 20 s in, Strikers low
+ *                from the north or the east shore onto others, a decoy
+ *                among them now and then
+ *   4  The Turn  one of three twists, drawn: A, a swarm up the gorge
+ *                behind a Striker run from the north; B, boats down the
+ *                east shore under a Loiterer; C, Hunters out of the gorge
+ *                behind bait Strikers
+ *   5  First Light  three axes landing together: Loiterers onto the gates,
+ *                Strikers onto the intakes, a swarm onto the penstocks,
+ *                and smaller groups of the two twists that did not fire
+ * A stage lost (no pilot left flying) lets what is alive through and the
+ * next one comes; the mission is won when the fifth ends with the output
+ * at or over the floor, lost the instant it falls under. Stars: held,
+ * noLosses, output over starMw (war.js resultOf).
+ *
+ * THE DIALS (MISSIONS.md 1.4), drawn from the match's seed: each group's
+ * sector (`sectors` below, never the last sector drawn twice running) and
+ * its route in it, its time in a window, a decoy salted into a Striker
+ * group, the twist. `pace` stretches every time for a small squad
+ * (MISSIONS.md 1.6) and `adapt` weights the bearings away from where the
+ * squad killed most last stage (TECH-NEEDS T1.5).
+ *
  * THE ROUTES fly the geography, y up, scene metres (-z is north):
  *   reservoir-*   Strikers 30 m over the reservoir (219 m) from the north,
  *                 onto the intakes in the upstream face, or over the right
  *                 bank's shore to the switchyard at 60 m over the ground
+ *   east-shore-*  in over the east arm of the reservoir
  *   gorge         the FPV swarm up the river from the south, under the
  *                 rims, onto the penstocks on the downstream face
- *   high-*        Loiterers at 650 m, a circle, then the dive: onto the
- *                 intakes from the north east, the spillway gates from
- *                 the north west, down its approach channel
- *   surface-*     Sea drones on the reservoir's surface, 219.0 m, to the
+ *   high-*        Loiterers at 650 m, a circle, then the dive
+ *   surface-*, east-shore-water
+ *                 Sea drones on the reservoir's surface, 219.0 m, to the
  *                 upstream face
  *   *-orbit       Scouts circling 250 m over the water
  *   gorge-hunt    where the Hunters are born, in the gorge 1.5 km below
- *                 the dam, and their home over the gorge's head, where
- *                 one with no pilot in range goes back to (warhunt.js
- *                 steers them)
- * scripts/war-routes-check.js samples every attacker of every wave, at 1
- * to 8 pilots and at the extremes of its spread, against the hunters'
- * floor (itaipu-height.bin: ground, water and the dam) and fails unless
- * each clears it until its terminal run: the last leg onto its target, or
- * a Loiterer's dive. Boats hold the water.
+ *                 the dam, and their home over the gorge's head
+ * scripts/war-routes-check.js flies every route of every family, at 1 to
+ * 8 pilots and the extremes of its spread, against the hunters' floor
+ * (itaipu-height.bin: ground, water and the dam).
  *
- * THE ROUNDS (edge/rooms/war.js rounds, the owner's, 2026-09-29): five,
- * each a group of waves whose `at` counts from the round's start, and
- * each pilot has 4 airframes a round, one more for every kill. The
- * attackers fly 0.7 of section 3's speeds, and the routes start close
- * enough that a round runs about 1.5 to 3 minutes:
- *   1  a Scout; Strikers on the switchyard (the biggest single loss,
- *      first, so the squad learns what a hit costs); a swarm on two
- *      penstocks
- *   2  a Loiterer on an intake, Sea drones on another
- *   3  a second Scout; a swarm on four penstocks; Hunters
- *   4  Loiterers on the gates, Strikers on the west intakes
- *   5  everything: Loiterers, boats, Strikers on the east intakes,
- *      Hunters and a swarm, landing together
- * Each wave's n is for one pilot and `per` more come for every pilot
- * after the first (index.js waveSize). The mission is lost the instant
- * the output is under floorMw. scripts/war-balance.js flies bot squads
- * of 1, 2, 4 and 8 through it on the real room, from the crest road's
- * seats (--spawn=x,z for elsewhere); its table and the reasons for these
- * numbers are in the pull request that set them.
- *
- * No jammer: the war has no radio signal since 2026-09-29
- * (docs/WARFARE-PLAN.md 6.1).
+ * THE RADIO is the stages' cues (MISSIONS.md M1 Radio: CREST, MIRADOR,
+ * TALLER), the countdown's two lines and the debriefs (`radio`); the film
+ * is films/first-light.js.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -74,7 +84,7 @@
  */
 
 import AT from '../itaipu-targets.js';
-import { round, withWaves } from '../stages.js';
+import { withWaves } from '../stages.js';
 
 const MW = {
   intake: 700, penstock: 700, gate: 350, yard: 2800,
@@ -111,9 +121,30 @@ targets['yard-right'].hitR = YARD_HIT_M;
 
 export const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
 
+const INTAKES_WEST = ids('intake', [0, 1, 2, 3, 4, 5, 6]);
+const INTAKES_MID = ids('intake', [7, 8, 9, 10, 11, 12]);
+const INTAKES_EAST = ids('intake', [13, 14, 15, 16, 17, 18, 19]);
+const GATES = ids('gate', [1, 3, 5, 7, 9, 11, 13]);
+
+/* A stage's way out as the old rounds had it, with a seeded beat: over
+ * when `when` fires (with nothing left but Scouts, cleared), or lost when
+ * no pilot can fly on and what is alive gets through. */
+const BEAT = (lo, hi) => [lo * 1000, hi * 1000];
+function exits(when, to, after, why) {
+  return [
+    {
+      when, to, after, result: 'auto', clear: 'leave', why,
+    },
+    {
+      when: { allOut: true }, to, after, result: 'lost', clear: 'through', why,
+    },
+  ];
+}
+const STAGE_LOST = { when: { allOut: true }, radio: 'stage-lost' };
+
 export default withWaves({
   id: 'itaipu-1',
-  /* A string key (src/strings): Defend the intakes. */
+  /* A string key (src/strings): First Light. */
   title: 'war.mission.itaipu_1',
   map: 'itaipu',
   targets,
@@ -121,47 +152,207 @@ export default withWaves({
   floorMw: 7700,
   /* The output a third star needs (war.js resultOf). */
   starMw: 11200,
-  /* Each pilot's airframes a round (war.js rounds). */
+  /* Each pilot's airframes a stage (war.js). */
   airframes: 4,
-  /* Rounds of waves (stages.js round): a wave's `at` is seconds after
-   * its round starts. */
+  radio: { brief: ['itaipu-1-s0-brief', 'itaipu-1-s0-rules'], win: 'debrief-itaipu-1-win', lose: 'debrief-itaipu-1-lose' },
+  film: 'first-light',
+  pace: { 1: 1.6, 2: 1.3, 3: 1.3 },
+  adapt: true,
+  sectors: {
+    N: ['reservoir-mid', 'reservoir-east', 'reservoir-nne'],
+    NW: ['reservoir-west', 'reservoir-west-far'],
+    NE: ['east-shore-low', 'east-shore-high'],
+    HIGH: ['high-east', 'high-west', 'high-north'],
+    GORGE: ['gorge'],
+  },
+  /* Twist B fires when the boats cross the east arm's middle. */
+  lines: { 'east-shore-mid': [[1650, -2950], [2050, -2350]] },
   stages: [
-    round('round-1', [
-      { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
-      { at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-      { at: 4, kind: 'fpv', n: 2, per: 1, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
-    ]),
-    round('round-2', [
-      { at: 2, kind: 'loiter', n: 1, per: 0.75, route: 'high-east', target: 'intake-12', spread: 25 },
-      { at: 20, kind: 'boat', n: 2, per: 1, route: 'surface-east', target: 'intake-17', spread: 20 },
-    ]),
-    round('round-3', [
-      { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
-      { at: 2, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
-      { at: 20, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    ]),
-    round('round-4', [
-      { at: 2, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
-      { at: 40, kind: 'strike', n: 3, per: 1.5, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
-    ]),
-    round('round-5', [
-      { at: 2, kind: 'loiter', n: 1, per: 1, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
-      { at: 20, kind: 'boat', n: 1, per: 0.75, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
-      { at: 30, kind: 'strike', n: 2, per: 1.5, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
-      { at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-      { at: 45, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
-    ], { last: true }),
+    {
+      id: 'eyes',
+      round: true,
+      title: 'war.stage.itaipu_1.eyes',
+      spawns: [
+        {
+          at: 2, kind: 'scout', n: 1, per: 0.25, route: ['reservoir-orbit', 'west-orbit'], group: 'eyes',
+        },
+        {
+          at: [25, 40], kind: 'strike', n: 1, per: 0.5, route: 'reservoir-west', target: 'yard-right', spread: 60, group: 'yard',
+        },
+      ],
+      objectives: [{
+        id: 'scout', text: 'war.obj.itaipu_1.scout', kind: 'kill', done: { down: { group: 'eyes' } }, fail: { left: 1, group: 'eyes' },
+      }],
+      cues: [
+        { when: { born: { group: 'eyes' } }, at: 3, radio: 'itaipu-1-s1-eyes' },
+        { when: { born: { group: 'eyes' } }, at: 8, radio: 'itaipu-1-s1-why' },
+        { when: { down: { group: 'eyes' } }, radio: 'itaipu-1-s1-down' },
+        { when: { left: 1, group: 'eyes' }, radio: 'itaipu-1-s1-gone' },
+        STAGE_LOST,
+      ],
+      exits: exits({
+        all: [{ any: [{ down: { group: 'eyes' } }, { left: 1, group: 'eyes' }, { time: 80 }] }, { cleared: true }],
+      }, 'probe', BEAT(10, 15)),
+    },
+    {
+      id: 'probe',
+      round: true,
+      title: 'war.stage.itaipu_1.probe',
+      spawns: [
+        {
+          at: [4, 10], kind: 'strike', n: 1, per: 0.5, route: { sector: ['N', 'NW', 'NE'] }, target: INTAKES_MID, spread: 30, group: 'a',
+        },
+        {
+          when: { gone: { group: 'a' } }, at: [8, 15], kind: 'strike', n: 1, per: 0.5, route: { sector: ['N', 'NW', 'NE'] }, target: INTAKES_WEST, spread: 30, group: 'b',
+        },
+      ],
+      objectives: [{ id: 'intakes', text: 'war.obj.protect_intakes', kind: 'protect' }],
+      cues: [
+        { when: { born: { group: 'a' } }, at: 4, radio: 'itaipu-1-s2-probe' },
+        { when: { born: { group: 'b' } }, radio: 'itaipu-1-s2-again' },
+        { when: { all: [{ gone: { group: 'b' } }, { cleared: true }] }, radio: 'itaipu-1-s2-clear' },
+        STAGE_LOST,
+      ],
+      exits: exits({ cleared: true }, 'pressure', BEAT(12, 20)),
+    },
+    {
+      id: 'pressure',
+      round: true,
+      title: 'war.stage.itaipu_1.pressure',
+      spawns: [
+        {
+          at: 2, kind: 'loiter', n: 1, per: 0.75, route: { sector: 'HIGH' }, target: INTAKES_MID, spread: 25, group: 'high',
+        },
+        {
+          at: [10, 20], mix: [['strike', 4], ['decoy', 1]], n: 2, per: 1, route: { sector: ['N', 'NE'] }, target: INTAKES_EAST, spread: 30, group: 'low',
+        },
+      ],
+      objectives: [{ id: 'face', text: 'war.obj.protect_intakes_gates', kind: 'protect' }],
+      cues: [
+        { when: { born: { group: 'high' } }, at: 2, radio: 'itaipu-1-s3-split' },
+        { when: { killed: 1 }, radio: 'itaipu-1-s3-hold' },
+        { when: { cleared: true }, radio: 'itaipu-1-s3-clear' },
+        STAGE_LOST,
+      ],
+      exits: exits({ cleared: true }, { pick: ['back-door', 'low-water', 'come-for-you'] }, BEAT(15, 15)),
+    },
+    {
+      id: 'back-door',
+      round: true,
+      title: 'war.stage.itaipu_1.turn',
+      spawns: [
+        {
+          at: 4, kind: 'strike', n: 2, per: 0.75, route: { sector: 'N' }, target: INTAKES_MID, spread: 30, group: 'cover',
+        },
+        {
+          at: [14, 20], kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [4, 5, 6, 7, 8, 9]), spread: 10, group: 'swarm',
+        },
+      ],
+      objectives: [{
+        id: 'swarm', text: 'war.obj.itaipu_1.back_door', kind: 'kill', done: { down: { group: 'swarm' } }, fail: { leaked: 1, group: 'swarm' },
+      }],
+      cues: [
+        { when: { born: { group: 'swarm' } }, radio: 'itaipu-1-ta-turn' },
+        { when: { born: { group: 'swarm' } }, at: 4, radio: 'itaipu-1-ta-why' },
+        STAGE_LOST,
+      ],
+      exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
+    },
+    {
+      id: 'low-water',
+      round: true,
+      title: 'war.stage.itaipu_1.turn',
+      spawns: [
+        {
+          at: 4, kind: 'loiter', n: 1, per: 0.5, route: 'high-east', target: INTAKES_EAST, spread: 25, group: 'cover',
+        },
+        {
+          at: [6, 12], kind: 'boat', n: 2, per: 1, route: 'east-shore-water', target: INTAKES_EAST, spread: 15, group: 'boats',
+        },
+      ],
+      objectives: [{
+        id: 'boats', text: 'war.obj.itaipu_1.low_water', kind: 'kill', done: { down: { group: 'boats' } }, fail: { leaked: 1, group: 'boats' },
+      }],
+      cues: [
+        { when: { crossed: 'east-shore-mid', group: 'boats' }, radio: 'itaipu-1-tb-turn' },
+        { when: { crossed: 'east-shore-mid', group: 'boats' }, at: 4, radio: 'itaipu-1-tb-why' },
+        STAGE_LOST,
+      ],
+      exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
+    },
+    {
+      id: 'come-for-you',
+      round: true,
+      title: 'war.stage.itaipu_1.turn',
+      spawns: [
+        {
+          at: 4, kind: 'strike', n: 2, per: 0.75, route: { sector: ['N', 'NE'] }, target: INTAKES_MID, spread: 30, group: 'bait',
+        },
+        {
+          at: [12, 18], kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt', group: 'hunters',
+        },
+      ],
+      objectives: [{
+        id: 'hunters', text: 'war.obj.itaipu_1.come_for_you', kind: 'kill', done: { down: { group: 'hunters' } },
+      }],
+      cues: [
+        { when: { born: { group: 'hunters' } }, radio: 'itaipu-1-tc-turn' },
+        { when: { born: { group: 'hunters' } }, at: 4, radio: 'itaipu-1-tc-why' },
+        STAGE_LOST,
+      ],
+      exits: exits({ cleared: true }, 'first-light', BEAT(20, 25)),
+    },
+    {
+      id: 'first-light',
+      round: true,
+      title: 'war.stage.itaipu_1.first_light',
+      spawns: [
+        {
+          at: 2, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: GATES, spread: 25, group: 'gates',
+        },
+        {
+          at: [24, 30], kind: 'strike', n: 2, per: 1.5, route: { sector: ['N', 'NE'] }, target: [...INTAKES_MID, ...INTAKES_EAST], spread: 30, group: 'face',
+        },
+        {
+          at: [30, 36], kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10, group: 'swarm',
+        },
+        /* The kinds of the two twists that did not fire, smaller. */
+        {
+          at: [40, 46], kind: 'fpv', n: 2, per: 0.75, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10, skip: { visited: 'back-door' },
+        },
+        {
+          at: [36, 44], kind: 'boat', n: 1, per: 0.5, route: 'east-shore-water', target: INTAKES_EAST, spread: 15, skip: { visited: 'low-water' },
+        },
+        {
+          at: [40, 48], kind: 'hunter', n: 1, per: 0.25, route: 'gorge-hunt', skip: { visited: 'come-for-you' },
+        },
+      ],
+      objectives: [{ id: 'all', text: 'war.obj.protect_all', kind: 'protect' }],
+      cues: [
+        { when: { born: {} }, radio: 'itaipu-1-s5-all' },
+        { when: { born: {} }, at: 4, radio: 'itaipu-1-s5-order' },
+      ],
+      /* The last: lost or held, the mission is won if the output is still
+       * over the floor when it ends (as the old fifth round). */
+      exits: exits({ cleared: true }, 'won', 0, 'waves'),
+    },
   ],
   routes: {
     'reservoir-orbit': [[300, 470, -5000], [300, 470, -3200]],
     'west-orbit': [[-2400, 470, -3700], [-1700, 470, -2800]],
     'reservoir-west': [[-1600, 249, -3200], [-1600, 249, -1700], [-1800, 300, -1000]],
+    'reservoir-west-far': [[-1600, 249, -4800], [-1600, 249, -1700], [-1800, 300, -1000]],
     'reservoir-mid': [[400, 249, -5000], [0, 249, -2800], [-50, 249, -2200]],
     'reservoir-east': [[1500, 249, -5000], [500, 249, -2200]],
+    'reservoir-nne': [[900, 249, -5200], [400, 249, -3000], [150, 249, -2300]],
+    'east-shore-low': [[2600, 249, -3600], [1400, 249, -2500], [700, 249, -2050]],
+    'east-shore-high': [[2800, 320, -4200], [1600, 300, -3000], [800, 280, -2200]],
     gorge: [[-1100, 180, 400], [-760, 180, 0], [-640, 180, -450], [-400, 180, -800], [-150, 180, -1100], [0, 185, -1350]],
     'high-east': [[1200, 700, -3400], [800, 650, -2700]],
     'high-west': [[-1700, 700, -3100], [-1300, 650, -2400]],
+    'high-north': [[200, 700, -4500], [150, 650, -3000]],
     'surface-east': [[1000, 219, -2800], [700, 219, -2300], [450, 219, -1880]],
+    'east-shore-water': [[2400, 219, -3000], [1300, 219, -2300], [650, 219, -1850]],
     'gorge-hunt': [[-760, 200, 0], [-100, 260, -1300]],
   },
 });

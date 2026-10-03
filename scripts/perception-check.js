@@ -64,7 +64,9 @@ import { COAST_S, GHOST_S, STALE_S, createTrackManager } from '../src/avionics/t
 
 const floor = loadHeight(readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url)));
 const heightAt = floor.floorAt;
-const MISSION = MISSIONS['itaipu-1'];
+/* The drill: mission 1 as this check was written against, before First
+ * Light made it a story (src/share/war/missions/itaipu-drill.js). */
+const MISSION = MISSIONS['itaipu-drill'];
 /* The FPV camera's default field of view (src/render/lens.js
  * CAMERA_FOV_DEFAULT, 85 degrees vertical) and the picture's shape. */
 const BASE_FOV = (85 * Math.PI) / 180;
