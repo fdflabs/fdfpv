@@ -867,6 +867,79 @@ async function main() {
         }
       }
     }
+    if (!ONLY_EDGES) {
+      /* A RESPAWN FAR FROM THE CAMERA, onto land: the camera parked over
+       * the spawn, the craft thrown 3 km off it, a metre up, still. The
+       * ground the plant gets there is the tiles' finest, whatever leaf
+       * is drawn (a coarse one until finer meshes are built), and in its
+       * first second it neither crashes nor sinks under that ground. */
+      const lakes = water.map((b) => ({ kind: 'lake', surfaceY: b.y, outline: b.outline.map(([x, z]) => ({ x, z })) }));
+      const cam = [m.spawn.x, m.spawn.y + 1.7, m.spawn.z, 59, 200, -1672];
+      await page.evaluate(`window.__setCam(${cam.join(',')})`);
+      await settle(page);
+      const hero = manifest.frame.hero;
+      /* The roughest such point of 400 (the most ground between a coarse
+       * leaf's triangles and the hero's), land, 3 km off. */
+      let far = null;
+      let rough = -1;
+      for (let k = 0; k < 400; k += 1) {
+        /* Off every level's sample grid (3.7 m and 6.3 m in), where a
+         * coarser leaf's triangles and the hero's differ. */
+        const x = hero[0] + 203.7 + ((k * 7919) % 997) / 997 * (hero[1] - hero[0] - 400);
+        const z = hero[0] + 206.3 + ((k * 104729) % 991) / 991 * (hero[1] - hero[0] - 400);
+        const g = heroGround(get, x, z);
+        if (Math.hypot(x - m.spawn.x, z - m.spawn.z) <= 3000 || lakes.some((l) => l.surfaceY > g - 30 && insideWater(l, x, z))) {
+          continue;
+        }
+        const r = Math.abs(heroGround(get, x + 15, z) + heroGround(get, x - 15, z) - 2 * g)
+          + Math.abs(heroGround(get, x, z + 15) + heroGround(get, x, z - 15) - 2 * g);
+        if (r > rough) {
+          rough = r;
+          far = { x, z, g };
+        }
+      }
+      if (!far) {
+        fail('respawn: no land point 3 km from the spawn on the hero');
+      } else {
+        const drawn = await page.evaluate(`(() => { const l = window.__mapScene().userData.itaipu.terrain.leafAt(${far.x}, ${far.z}); return l ? l.level : null; })()`);
+        /* From the throw on, the first read in the same task as the throw,
+         * before any frame has refined the selection round it. */
+        const seen = JSON.parse(await page.evaluate(`new Promise((resolve) => {
+          window.__crashThrow({ x: ${far.x}, y: ${far.g + 1}, z: ${far.z}, yaw: 0, fresh: true });
+          const t0 = performance.now();
+          const out = { frames: 0, crashed: false, lowest: Infinity, groundOff: Math.abs(window.__surface(${far.x}, ${far.z}, -1e9) - ${far.g}), level: null };
+          const step = () => {
+            const c = window.__craftState();
+            out.frames += 1;
+            out.crashed = out.crashed || Boolean(c.crashed);
+            if (c.groundClearance !== null) {
+              out.lowest = Math.min(out.lowest, c.groundClearance);
+            }
+            out.groundOff = Math.max(out.groundOff, Math.abs(window.__surface(${far.x}, ${far.z}, -1e9) - ${far.g}));
+            const l = window.__mapScene().userData.itaipu.terrain.leafAt(c.worldX, c.worldZ);
+            out.level = l ? l.level : null;
+            if (performance.now() - t0 < 1000) {
+              requestAnimationFrame(step);
+            } else {
+              resolve(JSON.stringify(out));
+            }
+          };
+          requestAnimationFrame(step);
+        })`));
+        console.log(`respawn 3 km from the camera at (${far.x.toFixed(0)}, ${far.z.toFixed(0)}), drawn there at level ${drawn}: `
+          + `${seen.frames} frames, crashed ${seen.crashed}, lowest clearance ${seen.lowest.toFixed(3)} m, `
+          + `worst |plant's ground - tiles| ${seen.groundOff.toFixed(4)} m`);
+        if (seen.crashed) {
+          fail('respawn far from the camera: the craft crashed in its first second');
+        }
+        if (!(seen.groundOff <= GROUND_TOL)) {
+          fail(`respawn far from the camera: the plant's ground is off the tiles by ${seen.groundOff} m (drawn at level ${drawn})`);
+        }
+        if (!(seen.lowest > -GROUND_TOL)) {
+          fail(`respawn far from the camera: the craft went ${-seen.lowest} m under the ground`);
+        }
+      }
+    }
     const heap = await page.evaluate('performance.memory ? performance.memory.usedJSHeapSize : 0');
     const gpu = JSON.parse(await page.evaluate('JSON.stringify(window.__gpuMemory())'));
     console.log(`memory: JS heap ${(heap / 1e6).toFixed(1)} MB, ${((heap - heap0) / 1e6).toFixed(1)} MB over the Alps before the switch; renderer ${gpu.geometries} geometries, ${gpu.textures} textures, ${gpu.programs} programs`);

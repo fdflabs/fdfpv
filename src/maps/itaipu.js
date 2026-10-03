@@ -399,8 +399,16 @@ async function buildItaipu(shell, progress, q, time) {
    * spot from a coarse node, and in the river's canyon that node stands
    * 1.3 m over the surface, so the drawn height alone handed the plant a
    * ground over the water that threw the aircraft up and broke its boom. */
+  /*
+   * THE PLANT'S GROUND is the finest data loaded at (x, z), not the leaf
+   * drawn there. Round the camera they are the same; but after a respawn
+   * far from it the drawn leaf there is a coarse node for the frames its
+   * finer meshes take to build, and the craft met that phantom ground
+   * (~/Desktop/fdfpv-loop/KNOWN-BROKEN.md). The river's bed was the same
+   * case (#344). The mesh drawn is unchanged.
+   */
   const wet = (x, z) => {
-    const h = terrain.height(x, z);
+    const h = terrain.finestAt(x, z);
     for (const l of lakes) {
       if ((l.surfaceY > h || l.surfaceY > l.bed(x, z)) && insideWater(l, x, z)) {
         return l.surfaceY;
