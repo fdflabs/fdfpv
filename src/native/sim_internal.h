@@ -1060,6 +1060,7 @@ void water_clear(void);
 int water_count(void);
 /* Each returns the body's index, or 0, or -1 for a bad index or a full table. */
 int water_add(double z0, double ox, double oy);
+int water_level(int body, double z0);
 int water_vertex(int i, double x, double y);
 int water_wind(int i, double speed, double dx, double dy, double fetch);
 int water_swell(int i, double height, double period, double dx, double dy);

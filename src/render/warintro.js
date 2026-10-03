@@ -730,8 +730,10 @@ export function play(scene, camera, opts = {}) {
   /* The preload: black, and the mission's title over it. */
   function preload(tFilm) {
     put(black, 'opacity', '1');
+    /* From the start of the black, which a room's film starts after when
+     * the world is rebuilt for it (edge/rooms/war.js WORLD_LEAD_MS). */
     titleShown(opts.title ? {
-      main: str(opts.title.key), sub: str('war.intro.mission', { n: opts.title.n }), from: 0, to: PRELOAD_MS, kind: 'mission',
+      main: str(opts.title.key), sub: str('war.intro.mission', { n: opts.title.n }), from: Math.min(0, startT), to: PRELOAD_MS, kind: 'mission',
     } : null, tFilm);
     /* The first shot's camera, so the world draws its first frame there
      * under the black. */

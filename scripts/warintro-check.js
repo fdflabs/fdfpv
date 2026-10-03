@@ -70,11 +70,12 @@ import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 import EN from '../src/strings/en.js';
-import { timing, linesOf } from '../src/share/war/film.js';
+import { PRELOAD_MS, timing, linesOf } from '../src/share/war/film.js';
 import { FILMS, filmFor } from '../src/share/war/films/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { startRooms } from '../edge/rooms/node.js';
+import { WORLD_LEAD_MS } from '../edge/rooms/war.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -422,14 +423,29 @@ try {
   const film = (p) => p.evaluate('window.__warIntro()');
   const view = (p) => p.evaluate('window.__war().view');
 
-  /* 1: the guest joins 9 s into the briefing. */
+  /* 1: the guest joins 9 s into the briefing. The host's world is
+   * rebuilt for the mission's time first (WORLD_LEAD_MS in
+   * edge/rooms/war.js): its film must still start in the black. */
   await page.evaluate("window.__warDo('brief')");
-  await page.until('window.__warIntro() && window.__warIntro().t > 9000', 30000);
+  await page.until('window.__warIntro()', 30000);
+  const firstT = (await film(page)).t;
+  row('the host\'s world rebuilt for the mission\'s time inside the briefing\'s lead: its film starts in the black, so from its start', firstT <= PRELOAD_MS,
+    `first frame at film ${Math.round(firstT)} ms`);
+  await page.until('window.__warIntro() && window.__warIntro().t > 9000', 40000);
   await guest.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
   await guest.until('window.__warIntro() && window.__warIntro().t > 0', 30000);
   const j = await Promise.all([film(page), film(guest)]);
   row('a guest joining mid briefing starts the film where the room is, not from its start', j[1].t > 9000 && Math.abs(j[0].t - j[1].t) < 1000,
     `host ${Math.round(j[0].t)}, guest ${Math.round(j[1].t)}`);
+  /* The film plays in the world the mission is flown in (its `time`,
+   * warTimeFrame in src/main.js), rebuilt at the briefing's start. */
+  const lookTime = (p) => p.evaluate("(() => { const it = window.__mapScene && window.__mapScene().userData.itaipu; return it && it.look ? it.look.time : null; })()");
+  const looks = [await lookTime(page), await lookTime(guest)];
+  for (const [who, p] of [['host', page], ['guest', guest]]) {
+    const builds = await p.evaluate('window.__war().night');
+    console.log(`  info  ${who}'s world builds for the war's time: ${builds.map((b) => `${b.time ?? 'map'} at ${b.at}, up ${b.done == null ? 'not yet' : `${b.done - b.at} ms later`}`).join('; ')}`);
+  }
+  row(`both worlds are built at the mission's time of day (${MISSIONS['itaipu-1'].time})`, looks.every((t) => t === MISSIONS['itaipu-1'].time), looks.join(', '));
   /* Both films at the same wall time: each page sampled with Date.now(),
    * which the two pages share, the film's t interpolated between. */
   const samples = async (p) => p.evaluate(`new Promise((done) => { const out = []; const step = () => {
@@ -459,7 +475,7 @@ try {
   row('the host\'s hold leaves only the host\'s view, for the orbit, while the guest has not seen it: the room keeps its briefing',
     r1[0] && r1[0].orbit && r1[1] && !r1[1].orbit && !r1[1].skipped && r1[2].state === 'briefing',
     `${r1[2].state}, host orbit ${r1[0] && r1[0].orbit}, guest skipped ${r1[1] && r1[1].skipped}`);
-  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + 20000);
+  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + WORLD_LEAD_MS + 20000);
   const filmsOf = (p) => p.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).campaign.films || {}`);
   row('a viewing joined late does not make it seen', ((await filmsOf(guest))[GAME_FILM.id] ?? 0) < GAME_FILM.version, JSON.stringify(await filmsOf(guest)));
   await page.evaluate("window.__warDo('end')");
@@ -468,7 +484,7 @@ try {
   /* 2: the whole film on both, from the start. */
   await page.evaluate("window.__warDo('brief')");
   await guest.until('window.__warIntro() && window.__warIntro().t > 0', 30000);
-  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + 20000);
+  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + WORLD_LEAD_MS + 20000);
   row('the guest, having watched it from its start to its end, has seen it', ((await filmsOf(guest))[GAME_FILM.id] ?? 0) >= GAME_FILM.version, JSON.stringify(await filmsOf(guest)));
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000);

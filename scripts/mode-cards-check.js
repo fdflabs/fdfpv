@@ -1,24 +1,28 @@
 /*
- * mode-cards-check.js: the title's five cards, and the two room game
- * cards driven through the real shell the way a pilot drives them, against
- * a running rooms server (never the live one):
+ * mode-cards-check.js: the home's three hubs and Flight Club's four
+ * cards, and the two room game cards driven through the real shell the way
+ * a pilot drives them, against a running rooms server (never the live
+ * one):
  *
  *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
  *   SIM_GPU=1 node scripts/mode-cards-check.js http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: five cards inside the window at 1280x720,
- * 1920x1080, 390x844, 360x640 and 844x390, tags clear of the command bar,
- * no sideways scroll, a picture of each; Fly with friends is not one of
- * them (the owner, 2026-10-02: "delete the fly with friends...every click
- * will take you to the lobby for it"). The arrows walk the row. Enter on
- * Toilet paper combat is the one press into a combat lobby, a public room
- * made for combat: Ready under the cursor, no Fly, no other games. Page B
- * clicks the same card, one click, and is in A's lobby. Both ready: the
+ * Page A, 1280 by 720: home is three hubs, Operations, Flight Club and
+ * the Hangar (docs/redesign/PLAN.md 2.2), each with a picture, a plan and
+ * its activities as links, inside the window at 1280x720, 1920x1080,
+ * 2560x1080, 390x844, 360x640 and 844x390. Enter on Flight Club opens
+ * its four cards, laid out the same way with the rooms panel, the
+ * breadcrumb naming the hub; Fly with friends is not one of them (the
+ * owner, 2026-10-02). The arrows walk the row. Enter on Streamer Combat
+ * is the one press into a combat lobby, a public room made for combat:
+ * Ready under the cursor, no Fly, no other games. Page B clicks Streamer
+ * Combat's link on home, one click, and is in A's lobby. Both ready: the
  * round counts down on both pages and A is in the air.
  *
- * Page C clicks Catch the Ace, one click, into its lobby; page D, a phone
- * held upright, walks the stacked cards with ArrowDown and taps Catch the
- * Ace into C's. Both ready, and both pages count down to the go.
+ * Page C clicks Catch the Ace's link on home, one click, into its lobby;
+ * page D, a phone held upright, opens Flight Club, walks the stacked cards
+ * with ArrowDown and taps Catch the Ace into C's. Both ready, and both
+ * pages count down to the go.
  *
  * THE ROOMS PANEL (the owner, 2026-09-30: "prominent place to choose rooms
  * right at the main page") is laid out with the cards at every size: in
@@ -88,12 +92,16 @@ async function shot(page, name) {
   console.log(`  shot ${path}`);
 }
 
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Defend the Paraná';
+const HUBS = 'Operations,Flight Club,Hangar';
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
+/* Each hub's links, in order, as home draws them. */
+const LINKS = 'Defend the Paraná|Track Day,Free Flight,Streamer Combat,Catch the Ace!|Aircraft,Customise,Calibrate sticks,How to fly';
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
   w: window.innerWidth, h: window.innerHeight, sw: document.documentElement.scrollWidth,
   bar: document.querySelector('.frame-bot').getBoundingClientRect().top,
+  crumb: (document.querySelector('.crumb') || {}).textContent || '',
   cards: [...document.querySelectorAll('.screen-title .gate-card')].map((c) => {
     const r = c.getBoundingClientRect();
     const img = c.querySelector('.gate-card-shot');
@@ -102,8 +110,9 @@ const LAYOUT = `(() => ({
       on: c.classList.contains('on'),
       loaded: Boolean(img && img.complete && img.naturalWidth > 0),
       mark: Boolean(c.querySelector('.gate-card-mark svg')),
+      links: [...c.querySelectorAll('.gate-link')].map((l) => l.textContent),
       box: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)],
-      facts: Math.round(c.querySelector('.gate-card-facts').getBoundingClientRect().bottom),
+      facts: Math.round(Math.max(...[...c.querySelectorAll('.gate-card-facts, .gate-link')].map((n) => n.getBoundingClientRect().bottom))),
     };
   }),
   panel: (() => {
@@ -130,12 +139,12 @@ function panelLaidOut(v) {
     && v.cards.every((c) => p[3] <= c.box[1] && apartBox(p, c.box)) && v.chips.every((c) => apartBox(p, c));
 }
 
-function laidOut(v) {
+function laidOut(v, n = 4) {
   const c = v.cards;
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  return c.length === 5 && inside && apart && v.sw <= v.w;
+  return c.length === n && inside && apart && v.sw <= v.w;
 }
 
 async function resize(page, width, height) {
@@ -160,6 +169,15 @@ async function click(page, selector) {
     await page.cdp.send('Input.dispatchMouseEvent', {
       type, x: at[0], y: at[1], button: 'left', clickCount: 1,
     }, page.sessionId);
+  }
+}
+
+/* Flight Club, by a click on its card on home: the rooms panel is there. */
+async function toClub(page) {
+  await page.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000).catch(() => {});
+  if (await page.evaluate("window.__ui.hub !== 'club'")) {
+    await click(page, '.gate-card-hub-club .gate-card-name');
+    await page.until("window.__ui.hub === 'club'", 10000).catch(() => {});
   }
 }
 
@@ -191,23 +209,46 @@ const pages = [a, b, c, d];
 try {
   for (const p of pages) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 5", 60000);
+    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000);
     await p.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000);
   }
 
-  /* THE FIVE CARDS AT EVERY SIZE. */
-  const first = await a.evaluate(LAYOUT);
-  check('five cards, in order, no Fly with friends (the owner, 2026-10-02)', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
-  check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
-  for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
-    await resize(a, w, h);
-    const v = await a.evaluate(LAYOUT);
+  /* HOME: THE THREE HUBS AT EVERY SIZE. */
+  const SIZES = [[1280, 720, true], [1920, 1080, true], [2560, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]];
+  const shapeOf = (v, row) => {
     const tops = v.cards.map((x) => x.box[1]);
-    const shape = row
+    return row
       ? Math.max(...tops) - Math.min(...tops) <= 4
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
-    check(`${w} by ${h}: five cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
-      laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+  };
+  const home = await a.evaluate(LAYOUT);
+  check('home is three hubs, Operations, Flight Club, Hangar', home.cards.map((x) => x.name).join() === HUBS, home.cards.map((x) => x.name).join());
+  check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
+  check('each hub lists its activities as links: the war; Track Day, Free Flight, Streamer Combat, Catch the Ace; the Hangar\'s four',
+    home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
+  check('no rooms panel on home: it is Flight Club\'s', home.panel === null, JSON.stringify(home.panel));
+  for (const [w, h, row] of SIZES) {
+    await resize(a, w, h);
+    const v = await a.evaluate(LAYOUT);
+    check(`${w} by ${h}: home's three hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, no sideways scroll`,
+      laidOut(v, 3) && shapeOf(v, row), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+    await shot(a, `home-${w}x${h}`);
+  }
+  await resize(a, 1280, 720);
+
+  /* INTO FLIGHT CLUB, by the keyboard: its four cards at every size. */
+  await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.hub === 'club')); return true; })()");
+  await a.tap('Enter');
+  await a.until(`window.__ui.hub === 'club' && ${LAYOUT}.cards.length === 4 && ${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
+  const first = await a.evaluate(LAYOUT);
+  check('Enter on Flight Club opens its four cards, in order, no Fly with friends (the owner, 2026-10-02)', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
+  check('and the breadcrumb names the hub', /Flight Club$/.test(first.crumb), first.crumb);
+  for (const [w, h, row] of SIZES) {
+    await resize(a, w, h);
+    const v = await a.evaluate(LAYOUT);
+    check(`${w} by ${h}: four cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+      laidOut(v) && shapeOf(v, row), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     check(`${w} by ${h}: the rooms panel in the window without scrolling, above the cards, clear of them and of the corner chips`,
       panelLaidOut(v), `panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)} first card ${JSON.stringify(v.cards[0].box)}`);
     await shot(a, `gate-${w}x${h}`);
@@ -217,7 +258,7 @@ try {
   /* THE KEYBOARD ALONG THE ROW. */
   await a.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const walk = [await onCard(a)];
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 3; i += 1) {
     await a.tap('ArrowRight');
     await a.sleep(150);
     walk.push(await onCard(a));
@@ -227,9 +268,11 @@ try {
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  check('Right walks all five cards and Left steps back to combat', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Streamer Combat`, walk.join(' > '));
+  check('Right walks all four cards and Left steps back to Free Flight', walk.join('>') === `${NAMES.split(',').join('>')}>Streamer Combat>Free Flight`, walk.join(' > '));
+  await a.tap('ArrowRight');
+  await a.sleep(150);
 
-  /* TOILET PAPER COMBAT: A's one press, the keyboard's. */
+  /* STREAMER COMBAT: A's one press, the keyboard's. */
   await a.tap('Enter');
   await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
   await a.sleep(800);
@@ -241,11 +284,11 @@ try {
     !la.rows.some((r) => r === 'fly' || /^friends-(tag|race|war|combat)-/.test(r || '')), la.rows.join());
   await shot(a, 'combat-lobby');
 
-  /* B: the same card, one click, into A's lobby. */
+  /* B: Streamer Combat's link on home, one click, into A's lobby. */
   const bClicks = b.clicks;
   await b.click('.gate-card-combat');
   await b.until(`window.__rooms().code === ${JSON.stringify(code)} && ${IN_LOBBY}`, 60000).catch(() => {});
-  check(`B clicks the same card (${b.clicks - bClicks} click) and is in A's lobby`, b.clicks - bClicks === 1 && (await b.evaluate('window.__rooms().code')) === code,
+  check(`B clicks its link on home (${b.clicks - bClicks} click) and is in A's lobby`, b.clicks - bClicks === 1 && (await b.evaluate('window.__rooms().code')) === code,
     String(await b.evaluate('window.__rooms().code')));
   await shot(b, 'combat-lobby-b');
 
@@ -266,10 +309,19 @@ try {
   await c.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
   await c.sleep(800);
   const lc = await c.evaluate(LOBBY_OF);
-  check('C clicks Catch the Ace, one click, into the LOBBY of a public room made for it', lc.title === 'LOBBY' && lc.public && lc.mode === 'tag'
+  check('C clicks Catch the Ace\'s link on home, one click, into the LOBBY of a public room made for it', lc.title === 'LOBBY' && lc.public && lc.mode === 'tag'
     && /Catch the Ace/.test(lc.line) && lc.here === 'friends-lobby-ready', JSON.stringify(lc));
   await shot(c, 'ace-lobby');
 
+  /* D, upright: down the stacked hubs to Flight Club, Enter, then down
+   * its stacked cards. */
+  await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
+  for (let i = 0; i < 3 && (await onCard(d)) !== 'Flight Club'; i += 1) {
+    await d.tap('ArrowDown');
+    await d.sleep(150);
+  }
+  await d.tap('Enter');
+  await d.until("window.__ui.hub === 'club'", 10000).catch(() => {});
   await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const phone = [await onCard(d)];
   for (let i = 0; i < 3; i += 1) {
@@ -330,6 +382,7 @@ const roomAction = `lobby:friends-room-${made.code}`;
 try {
   for (const p of [e, f]) {
     await p.until('window.__shellReady === true', 300000);
+    await toClub(p);
     await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)}) && window.__ui.items().some((it) => it.label === ${JSON.stringify(LONG)})`, 60000).catch(() => {});
   }
   const panel = await e.evaluate(PANEL);
@@ -353,7 +406,7 @@ try {
   await resize(e, 1280, 720);
 
   /* E, the keyboard: Right off the last card lands on the panel's first room. */
-  const lastCard = await e.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
+  const lastCard = await e.evaluate("window.__ui.items().findIndex((it) => it.card === 'ace')");
   await e.evaluate(`(() => { window.__ui.setCursor(${lastCard}); return true; })()`);
   const walked = [];
   for (let i = 0; i < 6 && (await e.evaluate(HERE))[0] !== roomAction; i += 1) {
@@ -372,7 +425,7 @@ try {
   await shot(f, 'panel-390x844');
   const fCut = await f.evaluate(CUT(PANEL_TEXT));
   check('390 by 844: no room name, load or count in the panel is cut', fCut.length === 0, fCut.join(' | '));
-  const fLast = await f.evaluate("window.__ui.items().findIndex((it) => it.card === 'campaign')");
+  const fLast = await f.evaluate("window.__ui.items().findIndex((it) => it.card === 'ace')");
   await f.evaluate(`(() => { window.__ui.setCursor(${fLast}); return true; })()`);
   const pad = (nav) => f.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
   for (let i = 0; i < 8 && (await f.evaluate(HERE))[0] !== 'lobby:rooms'; i += 1) {
@@ -395,7 +448,7 @@ try {
   await f.tap('Escape');
   await f.tap('Escape');
   await f.tap('Escape');
-  await f.until('window.__ui.onGate()', 10000).catch(() => {});
+  await f.until("window.__ui.onGate() && window.__ui.hub === 'club'", 10000).catch(() => {});
   await click(f, '.gate-room-make');
   await f.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
   check('a click on Make a room opens Make a room', await f.evaluate("window.__ui.screen === 'roomnew'"), await f.evaluate('window.__ui.screen'));
@@ -430,6 +483,7 @@ try {
     await f.sleep(300);
   }
   await f.until('window.__ui.onGate()', 10000).catch(() => {});
+  await toClub(f);
   const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
   /* How many rooms the panel lists (src/ui/roombrowser.js): one on a
    * short upright phone, two on an upright one, three otherwise. */
@@ -472,6 +526,7 @@ const updateUp = '(() => { window.__ui.updateReady = true; window.__ui.syncChips
 const gPad = (nav) => g.evaluate(`(() => { window.__ui.pollPad(${JSON.stringify(nav)}); window.__ui.pollPad({}); return true; })()`);
 try {
   await g.until('window.__shellReady === true', 300000);
+  await toClub(g);
   await g.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.lobby === 'room')`, 60000).catch(() => {});
   await g.evaluate(updateUp);
   for (const [w, h] of [[1280, 720], [1920, 1080], [390, 844], [360, 640], [844, 390]]) {
@@ -505,6 +560,7 @@ try {
 
   /* The pad: up onto Reload, select reloads. */
   await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
+  await toClub(g);
   await g.evaluate(updateUp);
   await g.evaluate('(() => { window.__ui.setCursor(0); return true; })()');
   await gPad({});
@@ -519,6 +575,8 @@ try {
   /* In a room the room bar asks for the reload instead (src/main.js
    * roomBarView), and its button is a stop the same way. */
   await g.until(`window.__ui.onGate()`, 60000).catch(() => {});
+  await toClub(g);
+  await g.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)})`, 30000).catch(() => {});
   await g.evaluate(`(() => { window.__ui.act(${JSON.stringify(roomAction)}); return true; })()`);
   await g.until(`window.__rooms().phase === 'open' && window.__ui.screen === 'friends'`, 30000).catch(() => {});
   await g.evaluate(updateUp);

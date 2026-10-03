@@ -157,6 +157,13 @@ const actions = (page) => page.evaluate('window.__ui.items().filter((it) => !it.
 
 /* Choose the row whose action is `action`, the way Enter on it does. */
 async function choose(page, action) {
+  /* Track Day and Free Flight are Flight Club's cards (src/ui/ui.js HUBS):
+   * from home, Flight Club first, the way Enter on its card does. */
+  const home = await page.evaluate("window.__ui.items().some((it) => it.action === 'hub-club')");
+  if (action.startsWith('way-') && home) {
+    await choose(page, 'hub-club');
+    await page.until("window.__ui.hub === 'club'", 5000);
+  }
   const at = await page.evaluate(`window.__ui.items().findIndex((it) => it.action === ${JSON.stringify(action)})`);
   if (at < 0) {
     throw new Error(`no row ${action} on ${await screen(page)}: ${JSON.stringify(await actions(page))}`);

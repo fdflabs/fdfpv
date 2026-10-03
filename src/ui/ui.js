@@ -42,7 +42,7 @@
  */
 
 import { MAPS, mapById } from '../maps/registry.js';
-import { modeById, wireMode } from '../share/modes.js';
+import { MODES, modeById, wireMode } from '../share/modes.js';
 import { retiredMap } from '../maps/retired.js';
 import { duplicateTrack, isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
 import { raceGatesOf } from '../builder/course.js';
@@ -3294,6 +3294,42 @@ export const WAYS = [
 /* The cards the title draws, in its order. */
 const GATE_WAYS = WAYS.filter((w) => w.gate !== false);
 
+/*
+ * THE HUBS (docs/redesign/PLAN.md 2.2, the owner's direction of
+ * 2026-10-02): home is three places, not a row of activities. Operations
+ * holds the war, Flight Club the rest, read from each activity's category
+ * in the mode registry (src/share/modes.js), so an activity added there
+ * lands in its hub with no edit here. The Hangar holds the aircraft and
+ * the radio.
+ *
+ * A hub card carries its activities as links, and a link is the card's
+ * one press into its lobby, so the hubs cost no click (PLAN.md 2.3). The
+ * card itself opens the hub, where each activity is a card as before.
+ * Each hub has its own accent (--hub-ops, --hub-club, --hub-hangar).
+ */
+const HUBS = [
+  { id: 'ops', label: 'hub.ops', blurb: 'hub.ops_blurb', art: 'assets/posters/itaipu.jpg', category: 'operations' },
+  { id: 'club', label: 'hub.club', blurb: 'hub.club_blurb', art: 'assets/posters/swiss2.jpg', category: 'flightclub' },
+  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg', category: null },
+];
+
+/* The title's activity cards in a hub, in WAYS' order. */
+function hubWays(hubId) {
+  const hub = HUBS.find((h) => h.id === hubId);
+  return GATE_WAYS.filter((w) => {
+    const m = MODES.find((x) => x.card.way === w.id);
+    return Boolean(hub && m && m.category === hub.category);
+  });
+}
+
+/* The hub an activity card's action belongs to, or null. */
+function hubOfAction(action) {
+  const way = WAYS.find((w) => w.action === action);
+  const m = way ? MODES.find((x) => x.card.way === way.id) : null;
+  const hub = m ? HUBS.find((h) => h.category === m.category) : null;
+  return hub ? hub.id : null;
+}
+
 /* The way that is seated right now, which is what the gate's cursor opens
  * on and what a menu that has been backed out of returns to. The mode is
  * only set once the gate has been answered, so before that the standing
@@ -3436,6 +3472,8 @@ export class Ui {
      * the seated aircraft is a real answer rather than a default.
      */
     this.craftGate = !linkedAf;
+    /* The hub the gate shows, or null for home (the three hub cards). */
+    this.hub = null;
     /* A link that names the whoop has answered the mode question too, so
      * that pair of link parameters is still one press from the air. */
     if (this.syncMode()) {
@@ -6266,8 +6304,17 @@ export class Ui {
        */
       if (this.onGate()) {
         const rooms = this.friendsItems().length > 0;
+        const tail = trouble ? [trouble] : [];
+        if (!this.hub) {
+          return [...this.hubCards(rooms), ...tail];
+        }
+        if (this.hub === 'hangar') {
+          return [...this.hangarCards(), ...tail];
+        }
+        /* The rooms panel is Flight Club's: joining a stranger's game is a
+         * Flight Club thing, and home stays three cards. */
         return [
-          ...GATE_WAYS.filter((w) => rooms || !w.room).map((w) => ({
+          ...hubWays(this.hub).filter((w) => rooms || !w.room).map((w) => ({
             label: w.label,
             card: w.id,
             art: w.art,
@@ -6276,8 +6323,8 @@ export class Ui {
             facts: w.facts,
             action: w.action,
           })),
-          ...(rooms && this.titleRooms ? this.titleRooms() : []),
-          ...(trouble ? [trouble] : []),
+          ...(rooms && this.hub === 'club' && this.titleRooms ? this.titleRooms() : []),
+          ...tail,
         ];
       }
       const m = MAPS.find((x) => x.id === s.map) ?? MAPS[0];
@@ -9219,7 +9266,11 @@ export class Ui {
       return;
     }
     const items = this.items().filter((it) => it.card);
-    const key = items.map((it) => it.card).join('|');
+    const key = items.map((it) => `${it.card}:${(it.links || []).map((l) => l.key).join(',')}`).join('|');
+    /* The screen's accent is its hub's (index.html, THE HUBS). */
+    if (this.screens.title) {
+      this.screens.title.dataset.hub = this.hub || '';
+    }
     if (!this.titleCards || this.titleCardKey !== key) {
       this.titleCardKey = key;
       host.textContent = '';
@@ -9269,6 +9320,31 @@ export class Ui {
           facts.append(el('span', 'gate-card-fact', f));
         }
         body.append(name, blurb, facts);
+        /* A hub card's activities, each its one press into its lobby
+         * (pickForWay, as the activity's own card), or the Hangar's
+         * action. The link wears its activity card's class, so a check or
+         * a pilot finds the same thing at home and in the hub. */
+        if (it.links) {
+          card.dataset.hub = it.hub;
+          const links = el('div', 'gate-links');
+          for (const l of it.links) {
+            const b = btn(`gate-link gate-card-${l.key}`, l.label);
+            b.tabIndex = -1;
+            b.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (this.onUiSound) {
+                this.onUiSound('select');
+              }
+              if (WAYS.some((w) => w.action === l.action)) {
+                this.pickForWay(l.action);
+              } else {
+                this.act(l.action);
+              }
+            });
+            links.append(b);
+          }
+          body.append(links);
+        }
         card.append(art, body);
         card.addEventListener('mousemove', (e) => this.hoverCursor(e, i));
         card.addEventListener('focus', () => {
@@ -10911,9 +10987,11 @@ export class Ui {
   titleStop() {
     const items = this.items();
     if (this.onGate()) {
-      const at = items.findIndex(
-        (it) => it.action === seatedWay(this.settings, this.mode).action,
-      );
+      /* At home, the hub of the seated aircraft's card; in a hub, that
+       * card. */
+      const seated = seatedWay(this.settings, this.mode).action;
+      const want = this.hub ? seated : `hub-${hubOfAction(seated)}`;
+      const at = items.findIndex((it) => it.action === want);
       if (at >= 0) {
         return at;
       }
@@ -12470,7 +12548,8 @@ export class Ui {
     this.root.style.setProperty('--bar-bot', '52px');
 
     this.crumb.textContent = '';
-    const trail = CRUMBS[this.screen] || [SCREEN_TITLES[this.screen] || this.screen];
+    const hubHere = this.screen === 'title' && this.onGate() && this.hub ? HUBS.find((h) => h.id === this.hub) : null;
+    const trail = hubHere ? [str('ui.product_name'), str(hubHere.label)] : CRUMBS[this.screen] || [SCREEN_TITLES[this.screen] || this.screen];
     trail.forEach((part, i) => {
       if (i) {
         this.crumb.append(el('span', 'crumb-sep', '/'));
@@ -12547,7 +12626,7 @@ export class Ui {
     if (touch) {
       const out = [];
       out.push({ keys: [], text: this.cardScreen() ? str('ui.tap_a_card') : str('ui.tap_a_row') });
-      if (this.screen !== 'title') {
+      if (this.screen !== 'title' || (this.onGate() && this.hub)) {
         out.push({ keys: [], text: str('ui.back'), action: 'back' });
       }
       /* The title's own way out is the last row of its menu now, where a
@@ -12571,6 +12650,9 @@ export class Ui {
     out.push({ keys: [pad ? 'A' : 'Enter'], text: str('ui.choose') });
     if (this.screen !== 'title') {
       out.push({ keys: [pad ? 'B' : 'Esc'], text: str('ui.back') });
+    } else if (this.onGate() && this.hub) {
+      /* A hub's way home, a button as well as a key, for the mouse. */
+      out.push({ keys: [pad ? 'B' : 'Esc'], text: str('ui.back'), action: 'back' });
     } else if (!this.onGate()) {
       /* NOT ON THE GATE. The gate is the root and Escape does nothing
        * there, so offering the key is a joke. onGate() is the one
@@ -12851,13 +12933,70 @@ export class Ui {
     if (this.onUiSound) {
       this.onUiSound('select');
     }
-    /* A card on the gate is half the answer: the other half, which
-     * aircraft, is chosen in front of the aircraft. */
-    if (it.card && this.onGate()) {
+    /* A hub card opens its hub. */
+    if (it.hub && this.onGate()) {
+      this.openHub(it.hub);
+      return;
+    }
+    /* An activity card on the gate is half the answer: the other half,
+     * which aircraft, is chosen in front of the aircraft. The Hangar's
+     * cards are plain actions. */
+    if (it.card && this.onGate() && WAYS.some((w) => w.action === it.action)) {
       this.pickForWay(it.action);
       return;
     }
     this.act(it.action);
+  }
+
+  /* The three hub cards, each with its activities as links. A hub with
+   * nothing to offer here (Operations with no rooms server: the war is a
+   * room) is left out rather than shown empty; the Hangar always has the
+   * aircraft. */
+  hubCards(rooms) {
+    return HUBS.map((h) => {
+      const links = h.id === 'hangar'
+        ? this.hangarCards().map((c) => ({ label: c.label, action: c.action, key: c.card }))
+        : hubWays(h.id).filter((w) => rooms || !w.room).map((w) => ({ label: w.label, action: w.action, key: w.id }));
+      return {
+        label: str(h.label),
+        card: `hub-${h.id}`,
+        hub: h.id,
+        art: h.art,
+        svg: h.id === 'ops' ? reticleSvg() : craftSvg(airframeById(this.settings.airframe)),
+        blurb: str(h.blurb),
+        facts: [],
+        links,
+        action: `hub-${h.id}`,
+      };
+    }).filter((it) => it.links.length > 0);
+  }
+
+  /* The Hangar's cards: the aircraft, its power, paint and parts, the
+   * radio, and how the sticks fly. */
+  hangarCards() {
+    const s = this.settings;
+    const plan = craftSvg(airframeById(s.airframe));
+    return [
+      {
+        label: str('ui.aircraft'), card: 'hangar-aircraft', svg: plan, blurb: str('hub.aircraft_blurb'), facts: [], action: 'hangar-aircraft',
+      },
+      ...(customisable(s.airframe) ? [{
+        label: str('hangar.customise'), card: 'hangar-customise', svg: plan, blurb: str('hangar.row_note'), facts: [], action: 'customise',
+      }] : []),
+      {
+        label: str('ui.calibrate_sticks'), card: 'hangar-sticks', svg: null, blurb: str('hub.sticks_blurb'), facts: [], action: 'calibrate',
+      },
+      {
+        label: str('ui.how_to_fly'), card: 'hangar-howto', svg: null, blurb: str('ui.the_sticks_live_and_what_the'), facts: [], action: 'howto',
+      },
+    ];
+  }
+
+  /* Into a hub from home, the cursor on its first card. */
+  openHub(id) {
+    this.hub = id;
+    this.setCursor(this.firstStop(this.items()));
+    this.renderMenu();
   }
 
   /*
@@ -12945,6 +13084,18 @@ export class Ui {
        * gate is open: see the comment there.
        */
       if (this.onGate()) {
+        /* A hub backs out to home, the hub's card under the cursor; home
+         * is the root. */
+        if (this.hub) {
+          const was = `hub-${this.hub}`;
+          this.hub = null;
+          if (this.onUiSound) {
+            this.onUiSound('back');
+          }
+          const at = this.items().findIndex((x) => x.card === was);
+          this.setCursor(at >= 0 ? at : this.firstStop(this.items()));
+          this.renderMenu();
+        }
         return;
       }
       this.craftGate = true;
@@ -12966,7 +13117,10 @@ export class Ui {
       /* A game's lobby is a card's one press (the owner, 2026-10-02), so
        * Back from it is back to the cards, out of the room, the card it
        * came from under the cursor (src/main.js onLobbyBack). */
-      if (this.warLobbyOn && this.onLobbyBack) {
+      /* Asked of the room (src/main.js inLobby), not of the panel: the
+       * panel is drawn on a later tick, and an Escape before it did
+       * nothing. */
+      if (this.inLobby && this.inLobby() && this.onLobbyBack) {
         this.onLobbyBack();
       }
       return;
@@ -13101,6 +13255,10 @@ export class Ui {
     /* The swap in place, from the pause menu's row. */
     if (action === 'hotswap') {
       this.openSwap('paused');
+      return;
+    }
+    if (action === 'hangar-aircraft') {
+      this.openCraftRow(false);
       return;
     }
     if (action === 'customise') {
@@ -13756,6 +13914,10 @@ export class Ui {
        * under it. Both halves, because the one gate asks both. */
       this.mode = null;
       this.craftGate = true;
+      /* The cards a lobby's card came from are its hub's. */
+      if (this.lobbyCard && hubOfAction(this.lobbyCard)) {
+        this.hub = hubOfAction(this.lobbyCard);
+      }
       this.show('title');
       this.setCursor(this.titleStop());
       this.renderMenu();

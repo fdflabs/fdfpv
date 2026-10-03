@@ -96,6 +96,45 @@ const TAIL = {
  * behind shows (spill-plume). */
 const CLUMPS = 7;
 
+/*
+ * THE SPILLWAY'S STATE (docs/FLOOD.md), what the flood says each frame,
+ * shared by the chute, the plume and the plunge pool: per gate its lip
+ * over its sill as a share of the 5 m the look was drawn for, per bay its
+ * discharge as a share of what Free Flight's 5 m spill passes, how
+ * far down the chute its water has reached, m, and whether that is past
+ * its lip (1) or not (0). Free Flight's spill is
+ * every share 1 and every front past the lip: the look as it was drawn.
+ */
+export const GATES = 14;
+export const BAYS = 3;
+export function spillState(THREE) {
+  return {
+    uGate: { value: new Float32Array(GATES).fill(1) },
+    uBay: { value: new THREE.Vector3(1, 1, 1) },
+    uFront: { value: new THREE.Vector3(1e4, 1e4, 1e4) },
+    uReach: { value: new THREE.Vector3(1, 1, 1) },
+    /* Per gate its own discharge's share and its own water's front, m
+     * down the chute: a gate's lane runs on these where its bay as a
+     * whole carries little (a hole torn in one gate). */
+    uGateQ: { value: new Float32Array(GATES).fill(1) },
+    uGateFront: { value: new Float32Array(GATES).fill(1e4) },
+  };
+}
+/* A gate's bay, as the dividers stand (dam/index.js SPILL.dividers). */
+export function bayOf(g) {
+  return g < 4 ? 0 : g < 8 ? 1 : 2;
+}
+const STATE_GLSL = /* glsl */ `
+  uniform float uGate[${GATES}];
+  uniform vec3 uBay;
+  uniform vec3 uFront;
+  uniform vec3 uReach;
+  uniform float uGateQ[${GATES}];
+  uniform float uGateFront[${GATES}];
+  float bayPick(vec3 v, int b) {
+    return b == 0 ? v.x : b == 1 ? v.y : v.z;
+  }`;
+
 /* A seeded generator, so the plume is the same every load. */
 function rng(seed) {
   let s = seed >>> 0;
@@ -123,7 +162,7 @@ export function bays(floors, axis, riverY) {
       by.set(rec.chute, { d: at, c, e: d });
     }
   }
-  return [...by.keys()].sort((a, b) => a - b).map((k) => {
+  return [...by.keys()].sort((a, b) => a - b).map((k, bay) => {
     const { c, e } = by.get(k);
     const lip = { x: (c[0] + e[0]) / 2, y: (c[1] + e[1]) / 2, z: (c[2] + e[2]) / 2 };
     const half = Math.hypot(c[0] - e[0], c[2] - e[2]) / 2;
@@ -134,6 +173,9 @@ export function bays(floors, axis, riverY) {
     const t = (vy + Math.sqrt(vy * vy + 2 * G * drop)) / G;
     const reach = vx * t;
     return {
+      bay,
+      /* Metres down the chute's axis to the lip. */
+      end: by.get(k).d,
       lip,
       half,
       fall: t,
@@ -229,7 +271,7 @@ export function gateJets(lane, floorAt, at, down) {
  * is the streaks'.
  */
 export function chuteMaterial(THREE, {
-  waves, time, envMap, lane,
+  waves, time, envMap, lane, state,
 }) {
   const mat = new THREE.MeshStandardMaterial({
     color: 0xffffff, roughness: 0.6, metalness: 0, envMap, transparent: true,
@@ -237,7 +279,7 @@ export function chuteMaterial(THREE, {
   mat.name = 'itaipu-water-chute';
   const uLanes = new THREE.Vector3(lane.W - lane.pierW / 2, lane.pitch, lane.pierW);
   mat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, { uWaves: { value: waves }, uTime: time, uLanes: { value: uLanes } });
+    Object.assign(shader.uniforms, { uWaves: { value: waves }, uTime: time, uLanes: { value: uLanes } }, state);
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>
         attribute vec4 aChute;
@@ -250,6 +292,7 @@ export function chuteMaterial(THREE, {
         uniform float uTime;
         uniform vec3 uLanes;
         varying vec4 vChute;
+        ${STATE_GLSL}
         float chuteFoam;
         vec2 chuteSlope;`)
       .replace('#include <map_fragment>', `
@@ -307,6 +350,19 @@ export function chuteMaterial(THREE, {
           diffuseColor.a = 1.0 - (1.0 - chuteFoam) * thin * 0.5;
           diffuseColor.a *= 1.0 - jet * max(smoothstep(${(PIER_END + 2).toFixed(1)}, ${JET_TOP[JET_TOP.length - 1][0].toFixed(1)}, d),
             smoothstep(0.6, 1.0, e) * smoothstep(${(PIER_END - 6).toFixed(1)}, ${(PIER_END + 4).toFixed(1)}, d));
+          /* The flood's state: a gate's jet as its lip stands, the bay's
+           * sheet as its water runs and only as far down as it has got. */
+          {
+            int g = int(clamp(floor((u + uLanes.x) / uLanes.y), 0.0, ${GATES - 1}.0));
+            int b = g < 4 ? 0 : g < 8 ? 1 : 2;
+            float runs = smoothstep(0.0, 0.25, bayPick(uBay, b)) * (1.0 - smoothstep(bayPick(uFront, b) - 15.0, bayPick(uFront, b), d));
+            /* A gate whose own water runs while its bay's is little: its
+             * lane, as far as its water has got. */
+            runs = max(runs, smoothstep(0.0, 0.05, uGateQ[g]) * (1.0 - smoothstep(uGateFront[g] - 15.0, uGateFront[g], d)));
+            float lip = smoothstep(0.0, 0.15, uGate[g]);
+            diffuseColor.a *= mix(runs, lip * runs, jet);
+            if (diffuseColor.a < 0.004) discard;
+          }
           vec3 n1 = texture2D(uWaves, vec2(u / 45.0 + 0.31, (d - t * 1.05) / 15.0)).xyz * 2.0 - 1.0;
           vec3 n2 = texture2D(uWaves, vec2(u, d - t * 1.1) / 1.9 + vec2(0.57, 0.0)).xyz * 2.0 - 1.0;
           chuteSlope = (n1.xy / max(n1.z, 0.3)) * 0.3 + (n2.xy / max(n2.z, 0.3)) * 0.3 * (1.0 - far);
@@ -336,7 +392,7 @@ export function chuteMaterial(THREE, {
  * line.
  */
 export function sprayMesh(THREE, {
-  sets, waves, time, sun, riverY,
+  sets, waves, time, sun, riverY, state,
 }) {
   const count = sets.reduce((n, set) => n + set.count, 0);
   const geo = new THREE.InstancedBufferGeometry();
@@ -347,6 +403,7 @@ export function sprayMesh(THREE, {
   const move = new Float32Array(count * 4);
   const carry = new Float32Array(count * 3);
   const thrown = new Float32Array(count * 4);
+  const bayOfSprite = new Float32Array(count);
   const box = new THREE.Box3();
   const at = new THREE.Vector3();
   let k = 0;
@@ -361,6 +418,7 @@ export function sprayMesh(THREE, {
       const x = b.x + b.cx * c * b.half + b.ax * a * b.half * 0.25;
       const z = b.z + b.cz * c * b.half + b.az * a * b.half * 0.25;
       base.set([x, b.y, z, b.half], k * 4);
+      bayOfSprite[k] = b.bay ?? -1;
       seeds.set([next(), next(), next(), next()], k * 4);
       move.set([set.rise, set.life, set.opacity, set.s0], k * 4);
       carry.set([set.drift.x, set.drift.y, set.s1], k * 3);
@@ -381,6 +439,7 @@ export function sprayMesh(THREE, {
   geo.setAttribute('aMove', new THREE.InstancedBufferAttribute(move, 4));
   geo.setAttribute('aCarry', new THREE.InstancedBufferAttribute(carry, 3));
   geo.setAttribute('aThrown', new THREE.InstancedBufferAttribute(thrown, 4));
+  geo.setAttribute('aBay', new THREE.InstancedBufferAttribute(bayOfSprite, 1));
   geo.instanceCount = count;
   geo.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
   const mat = new THREE.ShaderMaterial({
@@ -391,6 +450,7 @@ export function sprayMesh(THREE, {
       uSunDir: { value: sun.direction.clone().normalize() },
       uSun: { value: sun.color.clone().multiplyScalar(sun.irradiance) },
       uSky: { value: new THREE.Color(...sun.sky) },
+      ...state,
     },
     vertexShader: /* glsl */ `
       attribute vec4 aBase;
@@ -398,6 +458,8 @@ export function sprayMesh(THREE, {
       attribute vec4 aMove;
       attribute vec3 aCarry;
       attribute vec4 aThrown;
+      attribute float aBay;
+      ${STATE_GLSL}
       uniform float uTime;
       uniform float uRiver;
       uniform vec3 uSunDir;
@@ -439,6 +501,12 @@ export function sprayMesh(THREE, {
         /* A sprite the camera is in or near is a white screen, not
          * spray: faded out from three times its size to most of it. */
         vFade *= smoothstep(size * 0.8, size * 3.0, -mv.z);
+        /* A bay's spray as its water runs, and only once its water has
+         * reached its lip. */
+        if (aBay >= 0.0) {
+          int b = int(aBay);
+          vFade *= smoothstep(0.0, 0.3, bayPick(uBay, b)) * bayPick(uReach, b);
+        }
         vSeed = aSeed.zw;
         /* The corner's height over the river, for a camera not rolled. */
         vLift = p.y + position.y * size - uRiver;
@@ -515,13 +583,13 @@ export function plume(THREE, list, axis, down, wind, opts) {
       const back = 10 + reach * 0.45 * next();
       const c = (next() * 2 - 1) * 0.85 * b.half;
       return {
-        x: b.land.x - ax * back + az * c, y: b.land.y, z: b.land.z - az * back - ax * c, half: b.half / 3, ax, az, cx: az, cz: -ax,
+        x: b.land.x - ax * back + az * c, y: b.land.y, z: b.land.z - az * back - ax * c, half: b.half / 3, ax, az, cx: az, cz: -ax, bay: b.bay,
       };
     });
   });
   /* The tails where the jets come down, a third of each bay across. */
   const tails = list.map((b) => ({
-    x: b.land.x - ax * 15, y: b.land.y, z: b.land.z - az * 15, half: b.half / 3, ax, az, cx: az, cz: -ax,
+    x: b.land.x - ax * 15, y: b.land.y, z: b.land.z - az * 15, half: b.half / 3, ax, az, cx: az, cz: -ax, bay: b.bay,
   }));
   /* The mist rises off the plume's downstream half. */
   const off = bases.map((b) => ({
@@ -533,7 +601,7 @@ export function plume(THREE, list, axis, down, wind, opts) {
     ...JET,
     life: b.fall,
     bases: [{
-      x: b.lip.x, y: b.lip.y + 1.5, z: b.lip.z, half: b.half, ax: 0, az: 0, cx: az, cz: -ax,
+      x: b.lip.x, y: b.lip.y + 1.5, z: b.lip.z, half: b.half, ax: 0, az: 0, cx: az, cz: -ax, bay: b.bay,
     }],
     seed: 83 + k,
     drift: { x: 0, y: 0 },
@@ -563,8 +631,9 @@ export const PLUNGE_GLSL = /* glsl */ `
   uniform vec4 uItPlunge[3];
   uniform vec2 uItDown;
   float itPlunge(vec2 p) {
-    /* The reservoir's sheet has no landings. */
-    if (uItPlunge[0].w <= 0.0) {
+    /* The reservoir's sheet has no landings; a landing's w is its bay's
+     * share of the spill (water/index.js). */
+    if (max(uItPlunge[0].w, max(uItPlunge[1].w, uItPlunge[2].w)) <= 0.0) {
       return 0.0;
     }
     float churn = 0.0;
@@ -581,7 +650,7 @@ export const PLUNGE_GLSL = /* glsl */ `
        * metres, as the photographs' one sheet of broken water. */
       float tongue = smoothstep(-b.z, 0.0, al) * (1.0 - smoothstep(60.0, 480.0, al))
         * (1.0 - smoothstep(b.z * 0.6 + al * 0.5, b.z * 1.7 + al * 0.95, abs(ac)));
-      churn = max(churn, max(boil, tongue * (0.85 - 0.65 * smoothstep(0.0, 520.0, al))));
+      churn = max(churn, max(boil, tongue * (0.85 - 0.65 * smoothstep(0.0, 520.0, al))) * smoothstep(0.0, 0.3, b.w));
     }
     return churn;
   }`;

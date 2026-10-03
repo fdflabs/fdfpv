@@ -165,6 +165,10 @@ export class Terrain {
     /* The chunk build in hand, carried across frames: { nd, job, ms }. */
     this.job = null;
     this.focus = [new THREE.Vector3(), new THREE.Vector3()];
+    /* Where the focus points were at the last selection, and whether one
+     * has jumped since (keep). */
+    this.lastFocus = [new THREE.Vector3(), new THREE.Vector3()];
+    this.keep = 1.15;
     this.frame = 0;
     this.meshCount = 0;
     this.gpuBytes = 0;
@@ -374,7 +378,7 @@ export class Terrain {
     /* SPLIT counts in the children's sides, two of them to one of the
      * parent's, so the step to hero, whose children are a third of the
      * parent, hands over at the same angle per cell as every other step. */
-    const reach = (this.q.split * nd.size * 2 / fanOf(nd.level)) * (nd.split ? 1.15 : 1);
+    const reach = (this.q.split * nd.size * 2 / fanOf(nd.level)) * (nd.split ? this.keep : 1);
     const kids = d < reach ? this.childrenOf(nd) : null;
     if (kids && kids.length && this.childTilesListed(nd)) {
       let ready = true;
@@ -573,6 +577,23 @@ export class Terrain {
     this.frame += 1;
     this.focus[0].copy(craft);
     this.focus[1].copy(eye);
+    /*
+     * A SPLIT KEPT A LITTLE PAST ITS REACH (keep) stops a node flickering
+     * between levels as a focus moves smoothly across the line. A focus
+     * that JUMPED (a camera parked somewhere else, a respawn, a view set)
+     * has no line to flicker on, and the margin only kept detail the old
+     * place had asked for: Itaipu's yard-west view drew nine hero leaves
+     * 1.4 to 2.8 km off, 16 calls and 140 k triangles, when it was the
+     * first view after the title, split for an earlier focus and kept by
+     * the margin, and none when the craft's view came first. So the
+     * selection after a jump is the one the new place asks for.
+     */
+    let jump = 0;
+    for (let k = 0; k < this.focus.length; k += 1) {
+      jump = Math.max(jump, this.focus[k].distanceTo(this.lastFocus[k]));
+      this.lastFocus[k].copy(this.focus[k]);
+    }
+    this.keep = jump > FOCUS_JUMP_M ? 1 : 1.15;
     this.store.commit();
     const t1 = performance.now();
     this.select();
@@ -693,6 +714,12 @@ export class Terrain {
     const fu = gx - base - ci;
     const fv = gz - basez - cj;
     const data = this.store.get(level, nd.ti, nd.tj);
+    /* A drawn leaf whose tile is no longer held (evicted, or the terrain
+     * disposed in a world swap while something still asks it): the
+     * finest data there is, else the apron, never a throw in a frame. */
+    if (!data) {
+      return this.finestAt(x, z);
+    }
     return tri(data, ci, cj, fu, fv);
   }
 
@@ -813,6 +840,11 @@ export class Terrain {
     disposeChunkIndices();
   }
 }
+
+/* A focus point that moves further than this between two selections has
+ * jumped rather than flown: a craft at 300 km/h covers under 2 m in a
+ * frame, a camera on a chase boom a little more. */
+const FOCUS_JUMP_M = 50;
 
 /* Two triangles of cell (ci, cj) of a tile, split on the diagonal from
  * (ci, cj + 1) to (ci + 1, cj), the same the chunk index draws. */
