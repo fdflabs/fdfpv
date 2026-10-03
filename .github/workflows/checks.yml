@@ -110,6 +110,9 @@ jobs:
       # The world's sound (docs/AUDIO.md section 12) rendered in Node and
       # held to its bars; its browser half, --browser, stays local.
       - run: npm run audio:world -- --check
+      # No bad quantum silences the game: both worklets survive a NaN and a
+      # throw, and the world refuses what is not finite.
+      - run: npm run audio:guard
       # The war audio against its script, credits and manifest: python3's
       # standard library only, no GPU and no model download.
       - run: npm run voice:check

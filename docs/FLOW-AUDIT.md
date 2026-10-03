@@ -207,6 +207,18 @@ Ten rules. Each one replaces a set of special cases rather than adding one.
 9. **The war's consent is asked once, at the one place a room is set up for the war.** Every start after that is inside a war room, so it is already answered.
 10. **A link is used once.** `?room=` is joined, then removed from the address, so Leave then reload stays left.
 
+### The owner's decisions of 2 October: every card is a lobby
+
+The owner, 2026-10-02: "since this is now going to be multiplayer native, but playable solo - i want you to delete the fly with friends...every click will take you to the lobby for it, ready to go either single or multi", and of the games: "it should take me to the lobby of the room ... one two clicks max". These rules sit over the ten above, and replace rule 7 and the card rows of the table below where they disagree.
+
+11. **Every card on the title is one click into its game's lobby.** Track mode, Free Flight, Toilet paper combat, Catch the Ace and Defend the Paraná: five cards. The card joins the busiest public room made for its game on its world with a seat, into its lobby, or straight into its round when one is on; with none, it makes one, public, named for the pilot and the game. Fly with friends is no longer a card.
+12. **Every room has a lobby, and every lobby is played alone too.** Ready with nobody else starts the five seconds; the host's Start now starts at once; 45 seconds after the first ready the round starts with whoever is ready. After every round the room goes back to its lobby, nobody ready.
+13. **What a round is, by game.** Combat: a round of the room's minutes. Catch the Ace: a match to the room's goal. Defend Itaipu: the room's mission, chosen from the lobby's Campaign row (the campaign's screen, its stars and shop) or the host's Mission row. Race: the track the host chooses from the lobby's Track row (My tracks, where tracks are still built and edited), off the grid with everybody on it. Free flight: just flying, from its first start until the room is empty.
+14. **A round on is joined in one click** from the title's rooms panel, or by the card: the pilot is flown straight into it. A race is the exception: it went off a grid, so a pilot who comes during it waits in the lobby for the next.
+15. **The rooms panel and Rooms say what is true of each room:** its game, then "1 in lobby", "2 ready of 3", or "3 flying · wave 2/5" (a combat round's number, a war's wave). An empty room is never listed; it is held five minutes for whoever comes back by its code, its game paused, and a room whose game is over closes the moment it empties.
+16. **Make a room stays, on the title's rooms panel, for a private room with an invite code.** An invite link lands in its lobby.
+17. **The war's consent is still asked once,** before the first war lobby.
+
 ### What changes for each existing path
 
 | Path today | Under the model |

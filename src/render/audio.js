@@ -101,6 +101,10 @@ export function engineModelForCraft(airframeId, propulsionId) {
  * saturating, a render's true peak in dBTP came out equal to the master gain
  * in dB, so 1.0 measured 0.01 dBTP; 0.85 keeps the worst case under -1.4.
  */
+/* A running context's clock standing still this long, s of the page's own
+ * time, is a stalled renderer (MotorAudio.watchClock): ten frames' worth
+ * of nothing is not a slow frame. */
+const CLOCK_STALL_S = 1.5;
 const MASTER_CEILING = 0.85;
 /*
  * The binaural focus tone: a 6 Hz beat, in the theta band. Off by default,
@@ -216,6 +220,14 @@ function duckParam(g, t, depth, seconds, attack) {
 export class MotorAudio {
   constructor() {
     this.ctx = null;
+    /* What the worklets said went wrong (watchNode), and the context's
+     * state changes, newest last: for the checks and a bug report. */
+    this.faults = [];
+    this.states = [];
+    /* The clock watch (watchClock): the context's time and the page's
+     * when it last moved, and how many stalls it has seen. */
+    this.clock = { ctx: 0, wall: 0, kicked: false };
+    this.stalls = 0;
     this.enabled = false;
     this.master = null;
     this.level = 0.5; /* mix level, driven by the volume setting */
@@ -470,8 +482,12 @@ export class MotorAudio {
   /* Browsers require a user gesture before audio starts. */
   start() {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') {
-        this.ctx.resume();
+      /* 'suspended' (the browser's, after a device change or a sleep) or
+       * 'interrupted' (another app took the audio device): a gesture is
+       * the one thing that may start it again. Every key and press comes
+       * here (src/main.js wakeAudio). */
+      if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') {
+        this.ctx.resume().catch((e) => console.error('audio: the context would not resume', e));
       }
       this.enabled = true;
       return;
@@ -493,6 +509,20 @@ export class MotorAudio {
   attach(ctx, destination) {
     this.ctx = ctx;
     const out = destination || ctx.destination;
+    /* Every time the context stops or starts, said and kept: a context
+     * that left 'running' is the first thing to look at when the sound
+     * stops (window.__audio.states). */
+    if (typeof ctx.addEventListener === 'function' && !(typeof OfflineAudioContext !== 'undefined' && ctx instanceof OfflineAudioContext)) {
+      ctx.addEventListener('statechange', () => {
+        this.states.push({ at: Math.round(performance.now()), state: ctx.state });
+        if (this.states.length > 50) {
+          this.states.shift();
+        }
+        if (ctx.state !== 'running') {
+          console.warn(`audio: the context is ${ctx.state}; the next key or press resumes it`);
+        }
+      });
+    }
     /* One place where nodes come into existence, so the P12 count cannot
      * drift from the graph. */
     const keep = (n) => {
@@ -802,6 +832,7 @@ export class MotorAudio {
         outputChannelCount: [2, 2, 2],
         processorOptions: this.engineMessage(),
       }));
+      this.watchNode(node, 'engine');
       node.connect(this.motorBus, 0);
       node.connect(this.windBus, 1);
       node.connect(this.effectsBus, 2);
@@ -862,6 +893,7 @@ export class MotorAudio {
           processorOptions: { model: 'quad' },
         });
         this.nodes.push(node);
+        this.watchNode(node, `peer ${k}`);
         node.parameters.get('level').setValueAtTime(0, t);
         node.connect(this.otherBus, 0);
         this.peerSlots.push({ node, id: null, score: 0, freeAt: 0, linked: false, model: '' });
@@ -965,6 +997,61 @@ export class MotorAudio {
     set('dist2', d2);
     set('pan', pan);
     slot.linked = true;
+  }
+
+  /*
+   * THE CLOCK WATCH. A context the browser has stopped rendering (its
+   * output device went away, a Bluetooth headset switched profile when a
+   * microphone opened) can still say 'running' while its clock stands
+   * still, and then nothing on the page makes a sound until a reload. Once
+   * a frame, live only: a clock that has not moved in CLOCK_STALL_S of the
+   * page's own time while it says running is a stall, logged loudly, kept
+   * in this.states, and kicked with a suspend and a resume, which is what
+   * starts a stalled renderer on a new device. A hidden tab draws no
+   * frames, so it never trips this.
+   */
+  watchClock() {
+    const ctx = this.ctx;
+    const wall = performance.now() / 1000;
+    const c = this.clock;
+    if (ctx.state !== 'running' || ctx.currentTime !== c.ctx || !(c.wall > 0)) {
+      c.ctx = ctx.currentTime;
+      c.wall = wall;
+      c.kicked = false;
+      return;
+    }
+    if (wall - c.wall < CLOCK_STALL_S || c.kicked) {
+      return;
+    }
+    c.kicked = true;
+    this.stalls += 1;
+    this.states.push({ at: Math.round(wall * 1000), state: 'stalled' });
+    console.error(`audio: the context says running but its clock has stood at ${ctx.currentTime.toFixed(3)} s for ${(wall - c.wall).toFixed(1)} s; suspending and resuming it`);
+    ctx.suspend().then(() => ctx.resume()).catch((e) => console.error('audio: the stalled context would not restart', e));
+  }
+
+  /*
+   * PUBLIC API: hear what a worklet node says when it goes wrong. Its
+   * processor guards itself (worklet-guard.js) and posts { fault } on its
+   * port; a processor that died anyway fires processorerror. Both are
+   * logged loudly and kept in this.faults (window.__audio.faults, the
+   * checks', at most 50), never dropped.
+   */
+  watchNode(node, name) {
+    const note = (f) => {
+      this.faults.push({ at: Math.round(performance.now()), node: name, ...f });
+      if (this.faults.length > 50) {
+        this.faults.shift();
+      }
+      console.error(`audio: the ${name} worklet ${f.kind}`, f.message || '', f.context || '', `fault ${f.faults || 1}, ${f.scrubbed || 0} values scrubbed`);
+    };
+    node.addEventListener('processorerror', (e) => note({ kind: 'died', message: String((e && e.message) || 'processorerror') }));
+    node.port.addEventListener('message', (e) => {
+      if (e.data && e.data.fault) {
+        note(e.data.fault);
+      }
+    });
+    node.port.start();
   }
 
   /*
@@ -1533,6 +1620,9 @@ export class MotorAudio {
   update(rpm, speed, atTime, air) {
     if (!this.ctx || !this.master) {
       return;
+    }
+    if (atTime == null) {
+      this.watchClock();
     }
     const t = atTime == null ? this.ctx.currentTime : atTime;
     const target = this.enabled ? this.level * MASTER_CEILING : 0.0;

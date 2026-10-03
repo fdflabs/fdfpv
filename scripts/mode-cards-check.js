@@ -1,25 +1,24 @@
 /*
- * mode-cards-check.js: the title's six cards, and the two room game
+ * mode-cards-check.js: the title's five cards, and the two room game
  * cards driven through the real shell the way a pilot drives them, against
  * a running rooms server (never the live one):
  *
  *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
  *   SIM_GPU=1 node scripts/mode-cards-check.js http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: six cards inside the window at 1280x720,
+ * Page A, 1280 by 720: five cards inside the window at 1280x720,
  * 1920x1080, 390x844, 360x640 and 844x390, tags clear of the command bar,
- * no sideways scroll, a picture of each. The arrows walk the row. Enter on
- * Toilet paper combat opens the room screen with the cursor on Make a
- * room; Enter opens it set up for combat, Enter makes one; the room screen leads with
- * the Game heading, all three games' rows on the first page, the combat
- * start row under the cursor. Page B joins by the Fly with friends card
- * and a typed code and reads what the room is set up for. Enter on A's
- * start row: the round counts down on both pages and A is in the air.
+ * no sideways scroll, a picture of each; Fly with friends is not one of
+ * them (the owner, 2026-10-02: "delete the fly with friends...every click
+ * will take you to the lobby for it"). The arrows walk the row. Enter on
+ * Toilet paper combat is the one press into a combat lobby, a public room
+ * made for combat: Ready under the cursor, no Fly, no other games. Page B
+ * clicks the same card, one click, and is in A's lobby. Both ready: the
+ * round counts down on both pages and A is in the air.
  *
- * Page C clicks Catch the Ace and makes a room; page D, a phone held
- * upright, walks the stacked cards with ArrowDown, taps Catch the Ace and
- * joins C's room by code. C's cursor is on Start Catch the Ace!, Enter,
- * and both pages count down to the go.
+ * Page C clicks Catch the Ace, one click, into its lobby; page D, a phone
+ * held upright, walks the stacked cards with ArrowDown and taps Catch the
+ * Ace into C's. Both ready, and both pages count down to the go.
  *
  * THE ROOMS PANEL (the owner, 2026-09-30: "prominent place to choose rooms
  * right at the main page") is laid out with the cards at every size: in
@@ -89,7 +88,7 @@ async function shot(page, name) {
   console.log(`  shot ${path}`);
 }
 
-const NAMES = 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend the Paraná';
+const NAMES = 'Track mode,Free Flight,Toilet paper combat,Catch the Ace!,Defend the Paraná';
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -136,7 +135,7 @@ function laidOut(v) {
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  return c.length === 6 && inside && apart && v.sw <= v.w;
+  return c.length === 5 && inside && apart && v.sw <= v.w;
 }
 
 async function resize(page, width, height) {
@@ -166,59 +165,21 @@ async function click(page, selector) {
 
 const HERE = '(() => { const it = window.__ui.items()[window.__ui.cursor]; return it ? [it.action, it.label] : []; })()';
 
-/* The cursor onto the row with this action or label the way the arrows
- * move it, so a row the arrows cannot reach fails here. */
-async function arrowTo(page, want) {
-  for (let i = 0; i < 24; i += 1) {
-    if ((await page.evaluate(HERE)).includes(want)) {
-      return true;
-    }
-    await page.tap('ArrowDown');
-    await page.sleep(120);
-  }
-  return false;
-}
-
-/* Whether the rows with these actions or labels are all drawn inside the
- * room screen's menu box, as it opened, without scrolling it. */
-const ON_FIRST_PAGE = (wants) => `(() => {
+/* A game room's lobby as drawn: its panel, the rows under it, the room. */
+const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+const LOBBY_OF = `(() => {
+  const box = document.querySelector('.war-lobby');
   const ui = window.__ui;
-  const box = ui.menuScrollNode().getBoundingClientRect();
-  const items = ui.items();
-  return ${JSON.stringify(wants)}.map((w) => {
-    const i = items.findIndex((it) => it.action === w || it.label === w);
-    const row = i >= 0 ? ui.menuRows[i - ui.rowOffset] : null;
-    const r = row ? row.getBoundingClientRect() : null;
-    return { w, seen: Boolean(r && r.top >= box.top - 1 && r.bottom <= box.bottom + 1) };
-  });
+  const here = ui.items()[ui.cursor] || {};
+  const r = window.__rooms();
+  return {
+    title: box ? (box.querySelector('.war-lobby-title') || {}).textContent || '' : '',
+    line: box ? (box.querySelector('.war-lobby-mission') || {}).textContent || '' : '',
+    rows: ui.items().map((it) => it.action || it.label),
+    here: here.action || here.label || null,
+    code: r.code, public: r.public, mode: r.mode,
+  };
 })()`;
-
-/* The cards, the room screen, the code: the part A and C share. */
-async function makeRoom(page, name) {
-  await page.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
-  const pre = await page.evaluate("({ screen: window.__ui.screen, game: window.__ui.roomGame, rows: window.__ui.items().map((it) => it.action || it.label), here: window.__ui.items()[window.__ui.cursor].action })");
-  check(`${name}: the room screen, set up for its game, the cursor on Make a room`,
-    pre.screen === 'friends' && pre.game && pre.here === 'roomnew', JSON.stringify(pre));
-  await page.tap('Enter');
-  /* Make a room (src/ui/roombrowser.js), its game already the card's,
-   * the cursor on Make the room. */
-  await page.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
-  const draft = await page.evaluate("({ here: window.__ui.items()[window.__ui.cursor].action, game: (window.__ui.items().find((it) => it.label === 'Game') || {}).value })");
-  check(`${name}: Make a room, set up for the card's game, the cursor on Make the room`,
-    draft.here === 'friends-make' && draft.game === (pre.game === 'tag' ? 'Catch the Ace' : 'Combat'), JSON.stringify(draft));
-  await page.tap('Enter');
-  await page.until("window.__rooms().phase === 'open' && window.__ui.items()[window.__ui.cursor].primary", 30000).catch(() => {});
-  return (await page.evaluate('window.__rooms()')).code;
-}
-
-async function joinByCode(page, code) {
-  check('the cursor reaches Join with a code', await arrowTo(page, 'friends-join'));
-  await page.tap('Enter');
-  await page.until("document.querySelector('.name-dialog-input') && !document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
-  await page.cdp.send('Input.insertText', { text: code.toLowerCase() }, page.sessionId);
-  await page.tap('Enter');
-  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(code)} && window.__rooms().peers.length >= 1`, 30000).catch(() => {});
-}
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`the room game cards, rooms at ${rooms}`);
@@ -230,13 +191,13 @@ const pages = [a, b, c, d];
 try {
   for (const p of pages) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000);
+    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 5", 60000);
     await p.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000);
   }
 
   /* THE FIVE CARDS AT EVERY SIZE. */
   const first = await a.evaluate(LAYOUT);
-  check('six cards, in order', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check('five cards, in order, no Fly with friends (the owner, 2026-10-02)', first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
     await resize(a, w, h);
@@ -245,7 +206,7 @@ try {
     const shape = row
       ? Math.max(...tops) - Math.min(...tops) <= 4
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
-    check(`${w} by ${h}: six cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+    check(`${w} by ${h}: five cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
       laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     check(`${w} by ${h}: the rooms panel in the window without scrolling, above the cards, clear of them and of the corner chips`,
       panelLaidOut(v), `panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)} first card ${JSON.stringify(v.cards[0].box)}`);
@@ -256,7 +217,7 @@ try {
   /* THE KEYBOARD ALONG THE ROW. */
   await a.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const walk = [await onCard(a)];
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 4; i += 1) {
     await a.tap('ArrowRight');
     await a.sleep(150);
     walk.push(await onCard(a));
@@ -266,79 +227,70 @@ try {
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  check('Right walks all six cards and Left steps back to combat', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Toilet paper combat`, walk.join(' > '));
+  check('Right walks all five cards and Left steps back to combat', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Toilet paper combat`, walk.join(' > '));
 
-  /* TOILET PAPER COMBAT: A hosts by the keyboard. */
+  /* TOILET PAPER COMBAT: A's one press, the keyboard's. */
   await a.tap('Enter');
-  const code = await makeRoom(a, 'Combat, by Enter');
-  check('A makes a room', /^[A-Z0-9]{6}$/.test(code || ''), code);
-  const hostRows = await a.evaluate(`window.__ui.items().map((it) => ({ a: it.action || null, l: it.label, s: Boolean(it.section), p: Boolean(it.primary) }))`);
-  check('the room screen leads: Fly, then the Game heading set up for combat, combat first',
-    hostRows[0].a === 'fly' && hostRows[1].s && /Toilet paper combat/.test(hostRows[1].l) && hostRows[2].l === 'Toilet paper combat',
-    hostRows.slice(0, 4).map((r) => r.l).join(' | '));
-  check('the combat start row is the primary, under the cursor',
-    (await a.evaluate(HERE))[0] === 'friends-combat-5', (await a.evaluate(HERE)).join());
-  const firstPage = await a.evaluate(ON_FIRST_PAGE(['friends-combat-5', 'Start Catch the Ace!', 'Race track']));
-  check('all three games on the first page at 1280 by 720, no scrolling: combat start, Start Catch the Ace!, the race track',
-    firstPage.every((x) => x.seen), JSON.stringify(firstPage));
-  await shot(a, 'combat-host-room');
+  await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
+  await a.sleep(800);
+  const la = await a.evaluate(LOBBY_OF);
+  const code = la.code;
+  check('Enter on it, one press: A is in the LOBBY of a public room made for combat, Ready under the cursor',
+    la.title === 'LOBBY' && la.public && la.mode === 'combat' && /Toilet paper combat/.test(la.line) && la.here === 'friends-lobby-ready', JSON.stringify(la));
+  check('and no free flight, no other game: no Fly, no world, no race, tag or war rows',
+    !la.rows.some((r) => r === 'fly' || /^friends-(tag|race|war|combat)-/.test(r || '')), la.rows.join());
+  await shot(a, 'combat-lobby');
 
-  /* B by the general card, and the code. */
-  await click(b, '.gate-card-friends');
-  await b.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
-  await joinByCode(b, code);
-  await b.until(`window.__ui.items().some((it) => it.section && /Toilet paper combat/.test(it.label))`, 15000).catch(() => {});
-  const joiner = await b.evaluate(`window.__ui.items().map((it) => ({ a: it.action || null, l: it.label, v: it.value || '', s: Boolean(it.section) }))`);
-  check('B, joining, reads what the room is set up for, and combat waiting for the host',
-    joiner.some((it) => it.s && /set up for Toilet paper combat/.test(it.l)) && joiner.some((it) => it.l === 'Combat' && /Not playing/.test(it.v)),
-    joiner.slice(0, 5).map((r) => `${r.l}${r.v ? `=${r.v}` : ''}`).join(' | '));
-  check('B\'s cursor is on Fly', (await b.evaluate(HERE))[0] === 'fly');
-  await shot(b, 'combat-joiner-room');
+  /* B: the same card, one click, into A's lobby. */
+  const bClicks = b.clicks;
+  await b.click('.gate-card-combat');
+  await b.until(`window.__rooms().code === ${JSON.stringify(code)} && ${IN_LOBBY}`, 60000).catch(() => {});
+  check(`B clicks the same card (${b.clicks - bClicks} click) and is in A's lobby`, b.clicks - bClicks === 1 && (await b.evaluate('window.__rooms().code')) === code,
+    String(await b.evaluate('window.__rooms().code')));
+  await shot(b, 'combat-lobby-b');
 
-  await a.tap('Enter');
+  await a.tap('KeyR');
+  await b.tap('KeyR');
   for (const p of [a, b]) {
     await p.until("['countdown', 'on'].includes(window.__combat().round.state)", 20000).catch(() => {});
   }
   const rounds = await Promise.all([a, b].map((p) => p.evaluate('window.__combat().round.state')));
-  check('Enter on it starts the round: counting down on both pages', rounds.every((s) => s === 'countdown' || s === 'on'), rounds.join(' '));
+  check('both ready: the round counts down on both pages', rounds.every((st) => st === 'countdown' || st === 'on'), rounds.join(' '));
   await a.until("window.__craftState().mode === 'flight'", 400000).catch(() => {});
-  check('and A goes up with the countdown, one press from the room screen', await a.evaluate("window.__craftState().mode === 'flight'"));
+  check('and A goes up with it', await a.evaluate("window.__craftState().mode === 'flight'"));
   await a.sleep(1500);
   await shot(a, 'combat-countdown');
 
-  /* CATCH THE ACE: C hosts by a click; D, a phone, joins. */
-  await click(c, '.gate-card-ace');
-  const aceCode = await makeRoom(c, 'Catch the Ace, by a click');
-  check('C makes a room', /^[A-Z0-9]{6}$/.test(aceCode || ''), aceCode);
-  check('Start Catch the Ace! is the primary, under the cursor', (await c.evaluate(HERE))[1] === 'Start Catch the Ace!', (await c.evaluate(HERE)).join());
-  const acePage = await c.evaluate(ON_FIRST_PAGE(['Start Catch the Ace!', 'friends-combat-5', 'Race track']));
-  check('and all three games on its first page too', acePage.every((x) => x.seen), JSON.stringify(acePage));
-  await shot(c, 'ace-host-room');
+  /* CATCH THE ACE: C's click; D, a phone, the same card. */
+  await c.click('.gate-card-ace');
+  await c.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
+  await c.sleep(800);
+  const lc = await c.evaluate(LOBBY_OF);
+  check('C clicks Catch the Ace, one click, into the LOBBY of a public room made for it', lc.title === 'LOBBY' && lc.public && lc.mode === 'tag'
+    && /Catch the Ace/.test(lc.line) && lc.here === 'friends-lobby-ready', JSON.stringify(lc));
+  await shot(c, 'ace-lobby');
 
   await d.evaluate("(() => { window.__ui.setCursor(0); return true; })()");
   const phone = [await onCard(d)];
-  for (let i = 0; i < 4; i += 1) {
+  for (let i = 0; i < 3; i += 1) {
     await d.tap('ArrowDown');
     await d.sleep(150);
     phone.push(await onCard(d));
   }
   check('on the upright phone ArrowDown walks down the stack to Catch the Ace!', phone[phone.length - 1] === 'Catch the Ace!', phone.join(' > '));
-  await click(d, '.gate-card-ace');
-  await d.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
-  await joinByCode(d, aceCode);
+  await d.click('.gate-card-ace');
+  await d.until(`window.__rooms().code === ${JSON.stringify(lc.code)} && ${IN_LOBBY}`, 60000).catch(() => {});
   const dRoom = await d.evaluate('window.__rooms()');
-  check('D joins C\'s room from the Catch the Ace card', dRoom.phase === 'open' && dRoom.code === aceCode && dRoom.seat === 2, `${dRoom.phase} ${dRoom.code} ${dRoom.seat}`);
-  await d.until(`window.__ui.items().some((it) => it.section && /set up for Catch the Ace/.test(it.label))`, 15000).catch(() => {});
-  check('and reads that it is set up for Catch the Ace!', await d.evaluate("window.__ui.items().some((it) => it.section && /set up for Catch the Ace/.test(it.label))"));
-  await shot(d, 'ace-joiner-phone');
+  check('D taps the card into C\'s lobby', dRoom.phase === 'open' && dRoom.code === lc.code && dRoom.seat === 2, `${dRoom.phase} ${dRoom.code} ${dRoom.seat}`);
+  await shot(d, 'ace-lobby-phone');
 
-  await c.until("window.__ui.items()[window.__ui.cursor].label === 'Start Catch the Ace!'", 5000).catch(() => {});
-  await c.tap('Enter');
+  await c.tap('KeyR');
+  await d.tap('KeyR');
   for (const p of [c, d]) {
     await p.until("['countdown', 'ace', 'hunter'].includes(window.__roomTag().role)", 60000).catch(() => {});
   }
   const roles = await Promise.all([c, d].map((p) => p.evaluate('window.__roomTag().role')));
-  check('Enter on it starts the match: both pages count down to the go', roles.every((r) => ['countdown', 'ace', 'hunter'].includes(r)), roles.join(' '));
+  check('both ready: both pages count down to the go', roles.every((r) => ['countdown', 'ace', 'hunter'].includes(r)), roles.join(' '));
   await c.sleep(1500);
   await shot(c, 'ace-countdown');
 
@@ -381,7 +333,11 @@ try {
     await p.until(`window.__ui.onGate() && window.__ui.items().some((it) => it.action === ${JSON.stringify(roomAction)}) && window.__ui.items().some((it) => it.label === ${JSON.stringify(LONG)})`, 60000).catch(() => {});
   }
   const panel = await e.evaluate(PANEL);
-  check('the panel says how many rooms and pilots are flying', /\d+ rooms?, (\d+ pilots? flying|nobody flying yet)|open, nobody/.test(panel.count), panel.count);
+  /* The owner, 2026-10-02: the panel called a lobby's idle pilot
+   * flying. These rooms' pilots sit in their lobbies. */
+  check('the panel says what is true: 2 rooms, 2 pilots in a lobby, none flying', panel.count === '2 rooms, 2 pilots in a lobby', panel.count);
+  const openChip = await e.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(roomAction)}) || {}).value || ''`);
+  check('and the room\'s chip: free flight, 1 in lobby', openChip === 'Free flight · 1 in lobby', openChip);
   check('and lists the room, with All rooms and Make a room', panel.items.some((it) => it.action === roomAction && it.label === OPEN)
     && panel.items.some((it) => it.action === 'lobby:rooms') && panel.items.some((it) => it.action === 'lobby:roomnew'), JSON.stringify(panel.items));
   await shot(e, 'panel-1280x720');
@@ -475,14 +431,16 @@ try {
   }
   await f.until('window.__ui.onGate()', 10000).catch(() => {});
   const LISTED_NAMES = "[...document.querySelectorAll('.gate-rooms-list .gate-room-name')].map((n) => n.textContent)";
-  for (const [w, h, upright] of [[390, 844, true], [360, 640, true], [844, 390, false], [1280, 720, false]]) {
+  /* How many rooms the panel lists (src/ui/roombrowser.js): one on a
+   * short upright phone, two on an upright one, three otherwise. */
+  for (const [w, h, n] of [[390, 844, 2], [360, 640, 1], [844, 390, 3], [1280, 720, 3]]) {
     await resize(f, w, h);
-    await f.until(`${LISTED_NAMES}.length === ${upright ? 2 : 3}`, 15000).catch(() => {});
+    await f.until(`${LISTED_NAMES}.length === ${n}`, 15000).catch(() => {});
     const listed = await f.evaluate(LISTED_NAMES);
     const cut = await f.evaluate(CUT(PANEL_TEXT));
     const v = await f.evaluate(LAYOUT);
-    check(`${w} by ${h}, three 32 letter names: the panel lists ${upright ? 'two' : 'three'}, every name whole`,
-      listed.length === (upright ? 2 : 3) && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
+    check(`${w} by ${h}, three 32 letter names: the panel lists ${['none', 'one', 'two', 'three'][n]}, every name whole`,
+      listed.length === n && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
     check(`${w} by ${h}, three 32 letter names: the panel and the cards still fit`, panelLaidOut(v) && laidOut(v),
       `panel ${JSON.stringify(v.panel)} cards ${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar}`);
     await shot(f, `panel-long-${w}x${h}`);
