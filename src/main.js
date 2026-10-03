@@ -3479,6 +3479,15 @@ export async function boot({
     }
     const id = isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
     seatAirframe(s, id);
+    /* Carrying the warhead the pilot's loadout equips (a combat
+     * aircraft's payload is its warhead, campaign.js craftWarhead), so
+     * the switch does not trade it for the stock one. */
+    const af = airframeById(id);
+    const equipped = roomWar.view().loadouts?.[roomWar.seat()]?.warhead;
+    if (equipped) {
+      const had = combatChoice(af, s.combat ? s.combat[id] : null);
+      s.combat = { ...(s.combat ?? {}), [id]: { ...had, payload: payloadForWarhead(af, equipped) } };
+    }
     s.airframeAsked = true;
     /* As a swap seats it: the mode that goes with the aircraft waits for
      * the title, and the war's world stays. */

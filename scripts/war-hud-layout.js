@@ -89,7 +89,7 @@ const meets = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h &&
 const box = (r) => `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.w)}x${Math.round(r.h)}`;
 
 function seed(hudStyle) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '7inch');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
   s.graphics = 'low';
