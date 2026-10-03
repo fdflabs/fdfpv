@@ -10888,7 +10888,11 @@ export async function boot({
       ui.setShare(view.share || null);
       paintBest();
       mode = stayMode === 'flight' ? 'paused' : stayMode;
-      if (stayScreen) {
+      /* Only if the pilot is still on it: a war lobby builds its mission's
+       * world while the pilot waits (warTimeFrame), about 5 s, and one who
+       * left the room and opened Make a room meanwhile was thrown back to
+       * the room screen, with no room. */
+      if (stayScreen && ui.screen === stayScreen) {
         ui.show(stayScreen);
       }
     }

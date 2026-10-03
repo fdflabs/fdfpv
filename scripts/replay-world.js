@@ -37,6 +37,9 @@
  *     catches up it is not drawn or heard and the replay says so; and the
  *     live flood steps on with the room meanwhile, never rewound, so it
  *     stands at the room's clock when the replay closes
+ *   - a strike that lands while the pilot is down (the pause menu: no
+ *     row recorded) is in the replay, its explosion burning at its age at
+ *     the first row after the pilot is back (warrec.js THE EXPLOSIONS)
  *   - closed, the map is the live war's again, the newest live frame's
  *   - no page error
  *
@@ -221,7 +224,19 @@ try {
     type: 'war', op: 'damage', seq: 900, at: 0, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 0, cut: [],
   });
   /* Long enough for the water to pass several snapshot steps (host.js). */
-  await a.sleep(9000);
+  await a.sleep(6000);
+  /* The pilot down (the pause menu: the recorder keeps no row) while a
+   * strike lands on a penstock, then back in the air. */
+  await a.evaluate("window.__ui.onAction('pause'); true");
+  await a.until("window.__craftState().mode === 'paused'", 5000);
+  await a.sleep(400);
+  const downAt = await hear({
+    type: 'war', op: 'dead', ids: [], at: 0, by: 0, why: 'arrive', p: AT['penstock-5'].at, target: 'penstock-5', hit: true,
+  });
+  await a.sleep(1200);
+  await a.evaluate("window.__ui.onAction('resume'); true");
+  await a.until("window.__craftState().mode === 'flight'", 10000);
+  await a.sleep(3000);
 
   const live = await a.evaluate('window.__warMapLogged()');
   const liveNow = await a.evaluate('window.__warMap()');
@@ -244,6 +259,22 @@ try {
   check('the clip kept the map and the explosions', kept.world && kept.world.length >= 1 && kept.world[kept.world.length - 1].hits.length >= 2
     && kept.world[kept.world.length - 1].cuts.length >= 1 && kept.world[kept.world.length - 1].damage.length >= 1 && kept.booms >= 2,
   JSON.stringify({ matches: kept.world && kept.world.length, booms: kept.booms }));
+
+  /* The strike that landed while the pilot was down: in the clip, and
+   * burning at the first row after the pilot was back. */
+  const downRow = await a.evaluate(`(() => {
+    const c = window.__crashCam.h().clip();
+    const k = c.war.clock.findIndex((x) => x > ${downAt});
+    return { k, gap: k > 0 ? c.war.clock[k] - c.war.clock[k - 1] : null, booms: window.__crashCam.h().booms() };
+  })()`);
+  if (downRow.k > 0) {
+    await a.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${downRow.k})); true`);
+    await a.sleep(300);
+  }
+  const fx = await a.evaluate('window.__crashCam.h().boomFx()');
+  check('a strike that landed while the pilot was down is in the replay, burning at the first row after', downRow.k > 0 && downRow.gap > 1000
+    && fx && (fx.hotLive > 0 || fx.smokeLive > 0) && downRow.booms.length >= 4,
+  `row ${downRow.k} after a gap of ${downRow.gap} ms with no row; ${JSON.stringify(fx)}; ${downRow.booms.length} explosions kept`);
 
   /* The live frames the clip has a row for: before the first hit, and
    * spread through the rest. */

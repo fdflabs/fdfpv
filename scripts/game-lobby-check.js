@@ -222,12 +222,12 @@ try {
    * is drawn on a later tick, and an Escape before it did nothing). */
   await a.click(`.gate-card${cardSel}`);
   await a.until("window.__rooms().phase === 'open' && window.__ui.inLobby && window.__ui.inLobby()", 60000).catch(() => {});
-  const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn) })");
+  const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn), phase: window.__rooms().phase, screen: window.__ui.screen, dialog: !document.querySelector('.name-dialog').hidden })");
   await a.tap('Escape');
   await a.until("window.__ui.onGate() && window.__rooms().phase === 'idle'", 15000).catch(() => {});
   check(`Escape the moment a card's lobby is up (panel drawn: ${quick.panel}): out of the room, its hub's cards again`,
     quick.lobby && await a.evaluate("window.__ui.onGate() && window.__rooms().phase === 'idle'"),
-    await a.evaluate("JSON.stringify({ gate: window.__ui.onGate(), phase: window.__rooms().phase, screen: window.__ui.screen })"));
+    `before ${JSON.stringify(quick)} after ${await a.evaluate("JSON.stringify({ gate: window.__ui.onGate(), phase: window.__rooms().phase, screen: window.__ui.screen })")}`);
 
   /* THROUGH THE HUB: Escape again is home; its hub's card, then the
    * activity's card, is a lobby again in two clicks (the owner: "one two

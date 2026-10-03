@@ -10,8 +10,9 @@
  * And for the same reason the power lines an attacker can fly into
  * (src/share/war/wires.js): the town part's wire chords as drawn, those
  * of every span within CORRIDOR_M in plan of where some attacker of some
- * mission flies (every wave at one to eight pilots, every attacker of it
- * at no error and both ends of its spread), into
+ * mission flies (every wave at one to eight pilots, on every route and as
+ * every kind its stage may draw, every attacker of it at no error and
+ * both ends of its spread), into
  * src/share/war/itaipu-wires.js.
  *
  *   node scripts/war-targets.js           write the modules
@@ -140,7 +141,14 @@ function corridor() {
     if (m.map !== 'itaipu') {
       continue;
     }
-    for (const w of m.waves) {
+    /* A spawn's every way in, as the stage engine may draw it
+     * (src/share/war/stages.js): each route of a list or of a sector's
+     * family, each kind of a list or a mix. */
+    const routesOf = (w) => (w.route && typeof w.route === 'object' && !Array.isArray(w.route)
+      ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat());
+    const kindsOf = (w) => (w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat());
+    const each = m.waves.flatMap((w) => kindsOf(w).flatMap((kind) => routesOf(w).map((route) => ({ ...w, kind, route }))));
+    for (const w of each) {
       if (w.kind === 'hunter') {
         continue;
       }
