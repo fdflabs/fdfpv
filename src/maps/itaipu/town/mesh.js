@@ -477,5 +477,7 @@ export function makeBreakable(THREE) {
     attr.addUpdateRange(a, b - a);
     attr.needsUpdate = true;
   }
-  return { bar, build, gone };
+  return {
+    bar, build, gone, triangles: () => p.length / 9,
+  };
 }

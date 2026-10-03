@@ -140,7 +140,13 @@ function corridor() {
     if (m.map !== 'itaipu') {
       continue;
     }
-    for (const w of m.waves) {
+    /* A spawn's every way in (src/share/war/stages.js draws one): a
+     * route's id, one of a list, or every route of its sectors; and each
+     * kind of a mix. */
+    const waysOf = (w) => (typeof w.route === 'string' ? [w.route] : Array.isArray(w.route) ? w.route
+      : [w.route.sector].flat().flatMap((sec) => m.sectors[sec]));
+    const kindsOf = (w) => (w.mix ? w.mix.map(([kind]) => kind) : [w.kind]);
+    for (const w of m.waves.flatMap((x) => kindsOf(x).flatMap((kind) => waysOf(x).map((route) => ({ ...x, kind, route }))))) {
       if (w.kind === 'hunter') {
         continue;
       }
@@ -237,12 +243,15 @@ function renderChunks(structures) {
     const f = s.frame;
     rows.push(`  '${id}': {`);
     const bore = f.bore == null ? '' : `, bore: ${mm(f.bore)}`;
-    rows.push(`    part: '${s.part}', water: ${s.water == null ? 'null' : mm(s.water)}, frame: { o: ${list(f.o)}, u: ${list(f.u, um)}, n: ${list(f.n, um)}${bore} },`);
+    const h = f.hinge;
+    const hinge = h ? `,\n      hinge: { p: ${list(h.p)}, a: ${list(h.a, um)}, n: ${list(h.n, um)}, r: ${mm(h.r)}, sill: ${mm(h.sill)}, rest: ${mm(h.rest)}, max: ${mm(h.max)} },\n   ` : '';
+    rows.push(`    part: '${s.part}', water: ${s.water == null ? 'null' : mm(s.water)}, frame: { o: ${list(f.o)}, u: ${list(f.u, um)}, n: ${list(f.n, um)}${bore}${hinge} },`);
     rows.push('    chunks: [');
     for (const ch of s.chunks) {
       const r = ch.r ? `, r: ${list(ch.r)}` : '';
       const w = ch.w ? `, w: [${ch.w.join(', ')}]` : '';
-      rows.push(`      { k: '${ch.k}', c: ${list(ch.c)}, e: ${list(ch.e, um)}, h: ${list(ch.h)}, a: ${ch.a}, l: [${ch.l.join(', ')}]${r}${w} },`);
+      const mv = ch.m ? ', m: 1' : '';
+      rows.push(`      { k: '${ch.k}', c: ${list(ch.c)}, e: ${list(ch.e, um)}, h: ${list(ch.h)}, a: ${ch.a}, l: [${ch.l.join(', ')}]${r}${w}${mv} },`);
     }
     rows.push('    ],');
     rows.push('  },');

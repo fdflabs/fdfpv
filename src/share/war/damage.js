@@ -34,11 +34,16 @@
  *   w   for a gantry's beam, the power line spans whose wires end on it
  *       (src/share/war/itaipu-wires.js's span ids): it gone, they are
  *       down
+ *   m   1 for a part of a spillway gate's leaf, which turns with it
+ *       (frame.hinge): written where it stands with the leaf at rest
  *
  *   water  the surface the structure stands in (the reservoir), or null
  *   frame  where an opening is measured: o a point, u the horizontal
  *          along the face, n the way water flows out through it, and for
- *          a pipe its bore, m2, the most an opening of it passes
+ *          a pipe its bore, m2, the most an opening of it passes; for a
+ *          spillway gate its hinge (src/share/war/leaf.js): blast() takes
+ *          the leaf where it stands (turnOf), and its opening is measured
+ *          on the leaf
  *
  * THE ONE TABLE. A warhead's damage to a chunk at distance d (from the
  * blast's centre to the nearest point of the chunk's box, 0 inside it) is
@@ -62,7 +67,7 @@
  *
  *   attacker   charge  r m   hits to open its own targets, at no error
  *   strike      80     6     an intake 2, a gate 2
- *   loiter      40     3     a gate 3, an intake 4
+ *   loiter      40     3     a gate 4, an intake 4
  *   fpv         45     3     a penstock 3
  *   boat        70     9     an intake 3, a gate 2
  *   decoy, scout, jammer, hunter: no warhead that hits a structure
@@ -72,7 +77,7 @@
  *   emp 0; r 2.5
  *
  *   chunk      hp     chunk       hp     chunk       hp
- *   skin       90     leaf        45     shell      100
+ *   skin      100     leaf        45     shell      100
  *   girder     90     column      50     tank        40
  *   arm        80     cover       40     bushing     20
  *   brace      50                        post        70
@@ -121,6 +126,10 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {
+  REST, turnHeight, turnPoint, unturn,
+} from './leaf.js';
+
 /* Each attacker kind's warhead where it arrives (routes.js KINDS): a
  * kind not here has none that strikes a structure. */
 export const CHARGE = Object.freeze({
@@ -149,7 +158,7 @@ export const CUT_R = 5;
 
 /* What a chunk of each kind takes before it breaks. */
 export const HP = Object.freeze({
-  skin: 90,
+  skin: 100,
   girder: 90,
   arm: 80,
   brace: 50,
@@ -199,9 +208,11 @@ export function chunkDistance(ch, p) {
   return Math.sqrt(o0 * o0 + o1 * o1 + o2 * o2);
 }
 
-/* What a warhead { charge, r } does to chunk ch of structure s, at p. */
-export function hitOn(s, ch, p, w) {
-  const wet = s.water != null && ch.c[1] <= s.water - WET_DEPTH && p[1] <= s.water + WET_ABOVE_M;
+/* What a warhead { charge, r } does to chunk ch of structure s, at p
+ * (in the chunk's own frame: a gate leaf's at rest, leaf.js); cy is the
+ * chunk's height as it stands, for the water. */
+export function hitOn(s, ch, p, w, cy = ch.c[1]) {
+  const wet = s.water != null && cy <= s.water - WET_DEPTH && p[1] <= s.water + WET_ABOVE_M;
   const r = wet && w.r < WATER_M ? WATER_M : w.r;
   const d = chunkDistance(ch, p);
   if (d > CUT_R * r) {
@@ -237,7 +248,8 @@ function sphereOf(s) {
     const reach = dist3(ch.c, c) + Math.sqrt(ch.h[0] * ch.h[0] + ch.h[1] * ch.h[1] + ch.h[2] * ch.h[2]);
     r = Math.max(r, reach);
   }
-  sp = { c, r };
+  /* A gate's leaf turns: as far as its skin's radius, at the most. */
+  sp = { c, r: r + (s.frame.hinge ? s.frame.hinge.r : 0) };
   SPHERES.set(s, sp);
   return sp;
 }
@@ -278,8 +290,10 @@ export function unsupported(s, gone) {
   return out;
 }
 
-/* The opening a target's gone barrier chunks make, or null. */
-export function openingOf(id, s, gone, at) {
+/* The opening a target's gone barrier chunks make, or null; a gate's at
+ * its leaf's turn t (leaf.js), the holes in the leaf where it stands. */
+export function openingOf(id, s, gone, at, t = REST) {
+  const h = s.frame.hinge;
   let area = 0;
   let sill = Infinity;
   let top = -Infinity;
@@ -288,7 +302,11 @@ export function openingOf(id, s, gone, at) {
     if (!gone[i] || !ch.r) {
       return;
     }
-    const [u0, u1, y0, y1] = ch.r;
+    const [u0, u1] = ch.r;
+    const ya = h && ch.m ? turnHeight(h, t, ch.r[2]) : ch.r[2];
+    const yb = h && ch.m ? turnHeight(h, t, ch.r[3]) : ch.r[3];
+    const y0 = Math.min(ya, yb);
+    const y1 = Math.max(ya, yb);
     const a = (u1 - u0) * (y1 - y0);
     area += a;
     mid += a * (u0 + u1) / 2;
@@ -316,6 +334,32 @@ export function openingOf(id, s, gone, at) {
     normal: f.n.slice(),
     upstream_cell: null,
     downstream_cell: null,
+  };
+}
+
+/* Whether two openings are the same hole: the same place and size. */
+function sameOpening(a, b) {
+  return Boolean(a) && Boolean(b) && a.width_m === b.width_m && a.height_m === b.height_m
+    && a.sill.every((v, k) => v === b.sill[k]);
+}
+
+/*
+ * A gate's leaf moved (hoist.js) to turn t at room ms `at`: its holes
+ * moved with it, so its opening is told again, the same id, stamped `at`
+ * (the room ms of the move, never the break's). Returns the record
+ * blast's shape (no chunks) when the opening is somewhere new, else null.
+ */
+export function leafMoved(id, s, st, at, t) {
+  if (!st || !st.open || !s.frame.hinge) {
+    return null;
+  }
+  const open = openingOf(id, s, st.gone, at, t);
+  if (!open || sameOpening(open, st.open)) {
+    return null;
+  }
+  st.open = open;
+  return {
+    target: id, at, chunks: [], fell: [], openings: [open], down: false, health: healthOf(s, st), cut: [],
   };
 }
 
@@ -365,12 +409,17 @@ export function healthOf(s, st) {
  * down true when this cost the target (lostBy) and it had not before,
  * cut the power line spans newly down (the gone chunks' `w`).
  */
-export function blast(structures, wreck, p, w, at) {
+export function blast(structures, wreck, p, w, at, turnOf = null) {
   const out = [];
   if (!w || !(w.charge > 0)) {
     return out;
   }
   for (const [id, s] of Object.entries(structures)) {
+    /* A gate's leaf where it stands at `at`: the blast taken into the
+     * leaf's rest frame, where its chunks are written. */
+    const h = s.frame.hinge;
+    const t = h && turnOf ? turnOf(id) : REST;
+    const pr = h ? turnPoint(h, unturn(t), p) : p;
     const sp = sphereOf(s);
     const wetR = s.water != null && p[1] <= s.water + WET_ABOVE_M && w.r < WATER_M ? WATER_M : w.r;
     const dc = dist3(p, sp.c);
@@ -383,7 +432,7 @@ export function blast(structures, wreck, p, w, at) {
       if (st.gone[i]) {
         return;
       }
-      const d = hitOn(s, ch, p, w);
+      const d = h && ch.m ? hitOn(s, ch, pr, w, turnPoint(h, t, ch.c)[1]) : hitOn(s, ch, p, w);
       if (!(d > 0)) {
         return;
       }
@@ -403,9 +452,8 @@ export function blast(structures, wreck, p, w, at) {
     for (const i of fell) {
       st.gone[i] = 1;
     }
-    const open = openingOf(id, s, st.gone, at);
-    const grew = open && (!st.open || open.width_m * open.height_m > st.open.width_m * st.open.height_m
-      || open.sill[1] < st.open.sill[1]);
+    const open = openingOf(id, s, st.gone, at, t);
+    const grew = open && !sameOpening(open, st.open);
     if (grew) {
       st.open = open;
     }
