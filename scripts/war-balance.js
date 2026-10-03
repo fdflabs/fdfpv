@@ -34,7 +34,7 @@
  * it chases what it cannot catch and what is going for a burning target).
  *
  *   node scripts/war-balance.js [--runs=12] [--pilots=1,2,4,8] [--skill=good,average,careless] [--jobs=N] [--spawn=x,z] [--mission=id]
- *                               [--airframe=5inch] [--warhead=id]
+ *                               [--airframe=7inch] [--warhead=id]
  *                                        the bots' airframe (its hull for
  *                                        the referee) and the warhead they
  *                                        load, for the fuze radii
@@ -107,7 +107,11 @@ const SCOUT_AFTER_M = 2000;
 const STUCK_MS = 10000;
 const BREAK_MS = 3000;
 const FLOOR_CLEAR_M = 8;
-const AIRFRAME = arg('airframe', '5inch');
+/* The bots fly the seven inch by default: a war's aircraft (configs/
+ * airframes.js WAR_AIRFRAMES; the owner, 3 October), and the one whose
+ * warhead goes off where the five inch's did (src/share/war/fuze.js FPV
+ * row), which they flew before. */
+const AIRFRAME = arg('airframe', '7inch');
 /* No loadout is sent without --warhead: one would also set the rack
  * (parseLoadout), and the mission's own airframes are what is tuned. */
 const WARHEAD = arg('warhead', null);

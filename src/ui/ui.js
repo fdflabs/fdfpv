@@ -594,6 +594,12 @@ const DEFAULTS = {
    */
   warConsent: false,
   /*
+   * The war aircraft (configs/airframes.js WAR_AIRFRAMES) this pilot flew
+   * last in a war, which a war puts them back in when they come to it in
+   * another (main.js warSeatCraft); '' for none yet: the Striker.
+   */
+  warAirframe: '',
+  /*
    * The tune each aircraft was last flown on, by airframe id, so that
    * changing aircraft and changing back, which a swap in flight makes a
    * matter of seconds, lands on the tune the pilot had rather than the
@@ -13976,6 +13982,13 @@ export class Ui {
    * opener's onChoose is handed the airframe to seat and whether its slots
    * moved, which on the plane already seated is a refit (refitted).
    */
+  /* The aircraft the pickers and the cycle may offer: the shell's
+   * `craftLimit` (a war room's, configs/airframes.js WAR_AIRFRAMES), or
+   * null for every one. */
+  craftOnly() {
+    return typeof this.craftLimit === 'function' ? this.craftLimit() : null;
+  }
+
   openPicker(opts) {
     const s = this.settings;
     /*
@@ -13991,6 +14004,7 @@ export class Ui {
       && JSON.stringify(flip.after) !== JSON.stringify(flip.before);
     this.carousel.open({
       ...opts,
+      only: this.craftOnly(),
       floats: {
         on: (id) => Boolean(s.floats && s.floats[id]),
         set: (id, on) => {
@@ -14552,7 +14566,7 @@ export class Ui {
   /* [ and ], and the pad's shoulders: the next aircraft without the picker. */
   cycleSwap(dir) {
     if (this.onHotSwap && this.screen === 'flight') {
-      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir)));
+      this.swapTo(withFloats(this.settings, cycleCraft(this.settings.airframe, dir, this.craftOnly())));
     }
   }
 
