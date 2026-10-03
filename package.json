@@ -118,6 +118,7 @@
     "war:routes": "node scripts/war-routes-check.js",
     "check:perception": "node scripts/perception-check.js",
     "war:grid": "node scripts/war-grid-check.js",
+    "hoist:check": "node scripts/hoist-check.js",
     "war:balance": "node scripts/war-balance.js",
     "war:legacy": "node scripts/war-legacy-games.js",
     "war:stages": "node scripts/war-stages-selftest.js",
