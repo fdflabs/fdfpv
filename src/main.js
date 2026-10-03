@@ -3234,6 +3234,9 @@ export async function boot({
    * try on offer, and Back leaves the pilot on the title. Resolves the code
    * of the room, or null.
    */
+  /* The code of the room a title card's press made or joined, or null
+   * (ui.onLobbyBack). */
+  let lobbyCardCode = null;
   ui.onGameCard = async (card, game, world) => {
     if (modeOfRoom(game).consent && !(await warConsented())) {
       return null;
@@ -3248,6 +3251,7 @@ export async function boot({
         }
         ui.act(card);
         ui.lobbyCard = card;
+        lobbyCardCode = code;
         /* The lobby, whatever the card's own screen was (Track mode's is
          * My tracks): its track, its aircraft, its world are chosen
          * there. */
@@ -5320,6 +5324,7 @@ export async function boot({
    * cards, the one the lobby came from under the cursor.
    */
   function leaveToCards() {
+    lobbyCardCode = null;
     roomLeave();
     /* The title first, which ends a run left from the pause, then its
      * cards. */
@@ -5331,7 +5336,19 @@ export async function boot({
       ui.renderMenu();
     }
   }
+  /*
+   * Escape in a lobby a CARD opened is back to the cards, out of the room
+   * (the owner, 2026-10-02: a card is one press, so its Back undoes it).
+   * A room joined any other way (the rooms panel, a link, a code) is not
+   * a card's, and Escape stays in it (docs/FLOW-AUDIT.md rule 4); Leave
+   * is its way out. Which it is was read from whether the lobby's panel
+   * had been drawn yet, a race scripts/war-card-check.js lost on main and
+   * on the hub branch alike.
+   */
   ui.onLobbyBack = () => {
+    if (roomLinkState.state().code !== lobbyCardCode) {
+      return;
+    }
     leaveToCards();
     delete ui.cursorMemory.friends;
   };
