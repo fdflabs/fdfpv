@@ -47,6 +47,11 @@ jobs:
       - run: npm run streamer:selftest
       - run: npm run rooms:server
       - run: npm run rooms:accounts
+      # The checks' stand in for Google signs nobody in on the deployed
+      # game: no production config names it, and the tracks server run as
+      # production runs it refuses its tokens. The sign in itself, in the
+      # shell, is npm run signin:gate, local.
+      - run: npm run signin:bypass
       # 32 pilots in one room through free flight, a race and a combat
       # round, 5 s each, about a minute: the plan's rooms:load at 32 a
       # room. Its checks are about function; the speed numbers it prints

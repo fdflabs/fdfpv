@@ -1,8 +1,9 @@
 /*
- * accounts.js: optional Google sign-in, on the tracks server.
+ * accounts.js: Google sign-in, on the tracks server.
  *
- * The owner's decisions: sign-in is optional and a guest plays as before;
- * a signed in pilot holds ONE callsign, the same in rooms, on the board and
+ * The owner's decisions: nobody plays without an account (2026-10-03,
+ * which the page asks for and the rooms server holds every seat to, with
+ * GET /api/account below); a signed in pilot holds ONE callsign, the same in rooms, on the board and
  * on lap times, through the word filter and nobody else's; and progress
  * follows the account between computers. Google is asked who the pilot is
  * and nothing else.
@@ -161,10 +162,33 @@ function accountsOn(env) {
   return parseClientIds(env.GOOGLE_CLIENT_ID).length > 0 && Boolean(env.ACCOUNTS_SECRET);
 }
 
+/*
+ * THE CHECKS' STAND IN FOR GOOGLE. GOOGLE_JWKS_URL names another key set
+ * to verify ID tokens against, which is how the selftests and the browser
+ * checks sign pilots in with no Google (a key made on this machine,
+ * served on loopback, tests/lib/page.js). It is honoured only at a
+ * loopback http address: anywhere else Google's own keys are used, so a
+ * value set by mistake on a deployed server cannot make it trust a key
+ * set somebody else serves. tracks-api/node.js never reads it from the
+ * environment, and scripts/signin-bypass-check.js holds both to that.
+ */
+export function jwksUrlFor(env) {
+  const asked = env.GOOGLE_JWKS_URL;
+  if (!asked) {
+    return GOOGLE_JWKS_URL;
+  }
+  try {
+    const url = new URL(asked);
+    return url.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) ? asked : GOOGLE_JWKS_URL;
+  } catch (e) {
+    return GOOGLE_JWKS_URL;
+  }
+}
+
 /* Google's keys, one fetcher per keys URL for the life of the process. */
 const KEY_SOURCES = new Map();
 function keySource(env) {
-  const url = env.GOOGLE_JWKS_URL || GOOGLE_JWKS_URL;
+  const url = jwksUrlFor(env);
   if (!KEY_SOURCES.has(url)) {
     KEY_SOURCES.set(url, googleKeys({ url }));
   }

@@ -1,20 +1,39 @@
 /*
- * account.js: the optional Google sign-in, the page's half.
+ * account.js: the Google sign-in, the page's half.
  *
- * The owner's decisions: signing in is optional, and a guest plays as
- * before; a signed in pilot holds one callsign, shown in rooms, on the
- * board and on lap times; and progress follows the account between
- * computers. The server's half, and what it keeps, is
- * tracks-api/accounts.js.
+ * The owner's decisions: a signed in pilot holds one callsign, shown in
+ * rooms, on the board and on lap times; progress follows the account
+ * between computers; and since 2026-10-03 nobody plays without one: "you
+ * shouldn't be able to play this without a registered google account".
+ * The server's half, and what it keeps, is tracks-api/accounts.js.
  *
  * GOOGLE_CLIENT_ID is the client id this page signs in with. The server
  * reads its own GOOGLE_CLIENT_ID, a comma separated list, and accepts a
  * token from any id on it, so an old id can keep working for a page
  * loaded before a deploy while this one moves to a new id. Empty, the
  * whole feature is hidden: no row in Pilot, no script from Google,
- * nothing sent anywhere. It is hidden too wherever this page talks to no
- * tracks server (a page off a loopback address without ?tracks=), since
- * that is where accounts live.
+ * nothing sent anywhere, and no sign in asked of anybody. It is hidden
+ * too wherever this page talks to no tracks server (a page off a loopback
+ * address without ?tracks=), since that is where accounts live: a fork
+ * or a local build with no server plays as the game did before accounts.
+ * The deployed site always has one (src/share/cloud.js tracksOrigin), so
+ * there the sign in is always asked.
+ *
+ * THE GATE (mayPlay, needSignIn). Every way into a flight or a room asks
+ * needSignIn first: a title or hub card (src/ui/ui.js pickForWay), Fly,
+ * Play and Restart (src/main.js ui.onAction), the track builder
+ * (ui.onBuild), and making or joining a room, which is where room links,
+ * invite codes and a reload's rejoin all go (src/share/rooms.js). It
+ * hands the pilot to the sign in panel (src/ui/accountui.js) and, once
+ * they are signed in with a callsign, runs what they asked for. This is
+ * the page's half and anybody with the developer tools can step round
+ * it; what cannot be stepped round is the servers': progress is only
+ * kept for a session, and a room seats only a session the accounts
+ * server vouches for (edge/rooms/node.js helloAccount).
+ *
+ * A session already on this computer goes on working with the accounts
+ * server or Google unreachable: it was checked when it was made, so
+ * mayPlay reads only what is stored. Only a new sign in needs them both.
  *
  * WHAT SIGNING IN DOES, in order:
  *
@@ -78,6 +97,13 @@ const TIMEOUT_MS = 10000;
 const AUTH_SCHEME = 'Bearer';
 
 let identity = null;
+/* Told when this browser lets go of its account, with whether its
+ * settings had been merged into the account (src/ui/accountui.js). */
+let onForget = () => {};
+/* The sign in panel's door (onSignInNeeded), and an ask made before the
+ * panel was there to take it: a ?room= link joins during boot. */
+let gateHandler = null;
+let parked = null;
 
 export function accountsAvailable() {
   return Boolean(GOOGLE_CLIENT_ID) && tracksConfigured();
@@ -85,6 +111,45 @@ export function accountsAvailable() {
 
 export function signedIn() {
   return Boolean(readAccount());
+}
+
+/* Whether this page may fly or join: signed in with a callsign, or a
+ * page where there are no accounts to sign in to. A session with no
+ * callsign yet is not enough, because a room shows the callsign and a
+ * rooms server seats nobody without one. */
+export function mayPlay() {
+  if (!accountsAvailable()) {
+    return true;
+  }
+  const account = readAccount();
+  return Boolean(account && account.session && account.callsign);
+}
+
+export function onSignInNeeded(fn) {
+  gateHandler = fn;
+  if (parked) {
+    const resume = parked;
+    parked = null;
+    fn(resume);
+  }
+}
+
+/*
+ * False when the pilot may go on. Otherwise true, and the sign in panel is
+ * asked for; `resume`, when given, runs once the pilot has signed in and
+ * has a callsign, so a link or a card pressed before signing in still goes
+ * where it was going. Only the latest ask is kept.
+ */
+export function needSignIn(resume = null) {
+  if (mayPlay()) {
+    return false;
+  }
+  if (gateHandler) {
+    gateHandler(resume);
+  } else {
+    parked = resume || (() => {});
+  }
+  return true;
 }
 
 function storage() {
@@ -175,8 +240,24 @@ async function boardPost(path, body) {
   return got;
 }
 
-export function startAccounts(id) {
+export function startAccounts(id, { forgotten = () => {} } = {}) {
   identity = id;
+  onForget = forgotten;
+}
+
+/* Asks the accounts server whether this browser's session still stands,
+ * for a room that refused it (CLOSE_SIGNIN): an ended one is let go here
+ * by api() on the 401, and resolves false. Unreachable resolves null. */
+export async function checkSession() {
+  if (!readAccount()) {
+    return false;
+  }
+  try {
+    await api('GET', '/api/account');
+    return true;
+  } catch (e) {
+    return e.status === 401 ? false : null;
+  }
 }
 
 /*
@@ -265,17 +346,18 @@ export async function chooseCallsign(raw) {
 function forgetAccount() {
   const record = readAccount();
   const guest = readJson(GUEST_KEY);
+  const merged = readJson(SYNCED_KEY) !== null;
   writeJson(ACCOUNT_KEY, null);
   writeJson(SYNCED_KEY, null);
   writeJson(GUEST_KEY, null);
-  if (!identity) {
-    return;
+  if (identity) {
+    if (guest) {
+      identity.importText(guest).catch(() => identity.forget());
+    } else if (record && record.keyIsAccounts) {
+      identity.forget();
+    }
   }
-  if (guest) {
-    identity.importText(guest).catch(() => identity.forget());
-  } else if (record && record.keyIsAccounts) {
-    identity.forget();
-  }
+  onForget(merged);
 }
 
 export async function signOut() {

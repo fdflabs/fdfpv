@@ -1,17 +1,43 @@
 /*
- * accountui.js: the optional Google sign-in's dialogs, and the sync
+ * accountui.js: the Google sign-in's panel and dialogs, and the sync
  * between this computer's settings and the account.
  *
- * The rows live in the Pilot screen (ui.js), and their actions come here
- * through main.js: sign in, pick the callsign, sign out, delete the
+ * THE PANEL (ui.signinPanel, placed and shown by ui.js syncChips). Nobody
+ * plays without an account (the owner, 2026-10-03), but the home and the
+ * hubs are not walled off: until the pilot is signed in with a callsign,
+ * the corner where their callsign will go holds one line on why and
+ * Google's own "Sign in with Google" button, on every screen but a flight.
+ * Every way into a flight or a room asks src/share/account.js needSignIn
+ * first, which lands here (nudge): the panel says what is wanted, and what
+ * the pilot pressed runs once they have signed in and picked a callsign,
+ * which follows the first sign in as it always has.
+ *
+ * The Pilot screen's rows (ui.js) come here through main.js: sign in
+ * (which points at the panel), pick the callsign, sign out, delete the
  * account, and the privacy and terms pages. The network and the rules are
  * src/share/account.js; this file is what the pilot sees of them.
  *
- * THE BUTTON IS GOOGLE'S. Google Identity Services draws its own "Sign in
- * with Google" button (its branding rules ask for it) into the same
- * overlay every typed field here uses (ui.nameDialog), and loads only when
- * a pilot opens that dialog, so a guest's page never fetches anything
- * from Google.
+ * THE BUTTON IS GOOGLE'S. Google Identity Services draws its own button
+ * (its branding rules ask for it) into the panel, and its script loads
+ * when the panel is first shown: on a page with accounts and nobody
+ * signed in, that is at boot. A signed in page never fetches it.
+ *
+ * WHEN THINGS ARE DOWN. A pilot signed in on this computer keeps playing:
+ * the session was checked when it was made, and nothing here asks again
+ * before a flight. With Google's script or the accounts server
+ * unreachable, a new sign in cannot happen, and the panel says which of
+ * the two it is, in words, rather than showing nothing. Rooms need the
+ * servers anyway, and a room refused for want of the accounts server says
+ * so (friends.failed_accounts).
+ *
+ * SIGNING OUT, or the session ending, lets this computer's progress go
+ * with the account: once a sync has merged it (src/share/account.js
+ * SYNCED_KEY), the synced sections and My Hangar's builds are cleared
+ * here, so the next account to sign in on this computer starts from
+ * nothing of the last one's. A guest's progress, and what move.js carried
+ * from the old address, is merged into the first account to sign in and
+ * sync, by the rules of src/share/progressmerge.js, and then it is that
+ * account's. The page then starts again, signed out.
  *
  * SYNC. After signing in, at boot while signed in, when the tab comes back
  * into view, and once a minute while something synced has changed. What
@@ -40,9 +66,11 @@
 import { currentLocale, str } from '../strings/index.js';
 import { nameRules, normaliseName, readAccount, readPilotName } from '../share/pilot.js';
 import {
-  GOOGLE_CLIENT_ID, accountsAvailable, chooseCallsign, deleteAccount, progressChanged, pullProgress, settled, signIn,
-  signOut, signedIn, startAccounts, syncProgress,
+  GOOGLE_CLIENT_ID, accountsAvailable, chooseCallsign, deleteAccount, mayPlay, onSignInNeeded, progressChanged, pullProgress,
+  settled, signIn, signOut, signedIn, startAccounts, syncProgress,
 } from '../share/account.js';
+import { SYNCED_SECTIONS } from '../share/progressmerge.js';
+import { tracksOrigin } from '../share/cloud.js';
 import { SETTINGS_KEY, loadSettings } from './ui.js';
 import { mergeFlightTime } from '../share/flighttime.js';
 import {
@@ -52,6 +80,8 @@ import {
 const GIS_SRC = 'https://accounts.google.com/gsi/client';
 const SYNC_EVERY_MS = 60 * 1000;
 const SYNC_GAP_MS = 30 * 1000;
+const HEALTH_WAIT_MS = 5000;
+const NUDGE_MS = 1400;
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -129,43 +159,6 @@ function dialog(ui, { title, detail }, build) {
   });
 }
 
-function pageLink(file, label) {
-  const a = el('a', null, label);
-  a.href = file;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  return a;
-}
-
-/* Resolves to Google's ID token, or null if the pilot closed the dialog. */
-function askGoogle(ui) {
-  return dialog(ui, { title: str('account.dialog_title'), detail: str('account.dialog_detail') }, (box, finish) => {
-    const slot = el('div', 'account-gis');
-    const status = el('p', 'name-dialog-err', str('account.dialog_loading'));
-    const links = el('p', 'lede');
-    links.append(pageLink('privacy.html', str('account.privacy')), ' · ', pageLink('terms.html', str('account.terms')));
-    const row = el('div', 'name-dialog-row');
-    const cancel = btn('name-dialog-btn', str('ui.cancel'));
-    cancel.addEventListener('click', () => finish(null));
-    row.append(cancel);
-    box.append(slot, status, links, row);
-    loadGis().then((gis) => {
-      gis.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: (res) => finish(res && res.credential ? res.credential : null),
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      });
-      gis.renderButton(slot, {
-        type: 'standard', theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'pill', locale: currentLocale(),
-      });
-      status.textContent = '';
-    }).catch(() => {
-      status.textContent = str('account.dialog_failed');
-    });
-  });
-}
-
 /* Two buttons; resolves true for the first. Closing it is the second. */
 function askChoice(ui, { title, detail, yes, no }) {
   return dialog(ui, { title, detail }, (box, finish) => {
@@ -200,10 +193,189 @@ function whyText(e) {
   return str('account.server_said', { status: e.status });
 }
 
+/* What a sync carries leaves this computer: the synced settings
+ * sections, and My Hangar's builds with which plane wears which. What is
+ * left is this computer's own: graphics, controls, the world. */
+function clearProgress() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    for (const k of Object.keys(SYNCED_SECTIONS)) {
+      delete s[k];
+    }
+    delete s.buildFits;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch (e) {
+    /* Private mode: it goes with the page. */
+  }
+  saveBuilds([]);
+}
+
 export function createAccountUi({ ui, identity, say }) {
-  startAccounts(identity);
   let lastSync = 0;
   let syncing = null;
+  /* What the pilot pressed before signing in, run once they have. */
+  let pending = null;
+
+  /* The page starts again, signed out, off the sticks: a session ended
+   * by the server mid flight waits for the flight to end. */
+  function restart() {
+    if (ui.screen !== 'flight') {
+      window.location.reload();
+      return;
+    }
+    const wait = setInterval(() => {
+      if (ui.screen !== 'flight') {
+        clearInterval(wait);
+        window.location.reload();
+      }
+    }, 1000);
+  }
+
+  startAccounts(identity, {
+    forgotten: (merged) => {
+      if (merged) {
+        clearProgress();
+      }
+      restart();
+    },
+  });
+
+  const panel = ui.signinPanel;
+  const why = el('p', 'signin-panel-why');
+  const gisSlot = el('div', 'signin-panel-gis');
+  const pick = btn('bug-chip signin-panel-pick', str('account.pick_button'));
+  const status = el('p', 'signin-panel-status');
+  status.setAttribute('role', 'status');
+  status.hidden = true;
+  panel.append(why, gisSlot, pick, status);
+
+  function setStatus(text) {
+    status.textContent = text || '';
+    status.hidden = !text;
+  }
+
+  /* Signed in, with no callsign yet (the form closed): the callsign is
+   * all that is missing, and the panel asks for that instead. */
+  function halfway() {
+    return signedIn() && !readAccount()?.callsign;
+  }
+
+  function renderPanel() {
+    const half = halfway();
+    why.textContent = str(half ? 'account.panel_pick' : 'account.panel_why');
+    gisSlot.hidden = half;
+    pick.hidden = !half;
+  }
+
+  let gisMounted = false;
+  function mountGis() {
+    if (gisMounted || !accountsAvailable() || mayPlay()) {
+      return;
+    }
+    gisMounted = true;
+    loadGis().then((gis) => {
+      gis.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (res) => {
+          if (res && res.credential) {
+            withCredential(res.credential);
+          }
+        },
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      });
+      gis.renderButton(gisSlot, {
+        type: 'standard', theme: 'filled_black', size: 'medium', text: 'signin_with', shape: 'rectangular', locale: currentLocale(),
+      });
+    }).catch(() => {
+      gisMounted = false;
+      setStatus(str('account.google_unreachable'));
+    });
+  }
+
+  /* Whether the accounts server answers, said in the panel when it does
+   * not: a sign in would only fail. */
+  function probeAccounts() {
+    fetch(`${tracksOrigin()}/api/health`, { signal: AbortSignal.timeout(HEALTH_WAIT_MS) })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        if (status.textContent === str('account.server_unreachable')) {
+          setStatus('');
+        }
+      })
+      .catch(() => {
+        if (!mayPlay()) {
+          setStatus(str('account.server_unreachable'));
+        }
+      });
+  }
+
+  /* Signed in with a callsign at last: the pilot goes where they were
+   * going. */
+  async function finishSignIn() {
+    const callsign = readAccount()?.callsign || await pickCallsign();
+    renderPanel();
+    ui.renderMenu();
+    ui.syncChips();
+    if (!callsign) {
+      return;
+    }
+    say(str('account.signed_in_as', { callsign }));
+    const resume = pending;
+    pending = null;
+    if (resume) {
+      resume();
+    }
+  }
+
+  async function withCredential(credential) {
+    setStatus(str('account.signing_in'));
+    try {
+      await signIn(credential, (kind) => askChoice(ui, {
+        title: str(`account.${kind}_title`),
+        detail: str(`account.${kind}_detail`),
+        yes: str('account.bring_it'),
+        no: str('account.not_mine'),
+      }));
+    } catch (e) {
+      setStatus(str('account.error', { why: whyText(e) }));
+      ui.syncChips();
+      return;
+    }
+    setStatus('');
+    sync();
+    await finishSignIn();
+  }
+
+  /*
+   * A way into a flight or a room was asked for without an account
+   * (src/share/account.js needSignIn). The panel is always up on a menu;
+   * this says what it is for, and keeps what was asked for. A pilot only
+   * missing the callsign is asked for it there and then.
+   */
+  function nudge(resume) {
+    if (resume) {
+      pending = resume;
+    }
+    renderPanel();
+    if (halfway()) {
+      finishSignIn();
+      return;
+    }
+    mountGis();
+    if (status.hidden) {
+      setStatus(str('account.panel_nudge'));
+    }
+    panel.classList.remove('is-nudged');
+    /* Read back so the class's animation starts again on a second ask. */
+    void panel.offsetWidth;
+    panel.classList.add('is-nudged');
+    setTimeout(() => panel.classList.remove('is-nudged'), NUDGE_MS);
+    ui.syncChips();
+  }
+  pick.addEventListener('click', () => finishSignIn());
 
   /* What a sync carries: the settings as they are with every build taken
    * off, and the builds themselves. */
@@ -350,30 +522,6 @@ export function createAccountUi({ ui, identity, say }) {
     }
   }
 
-  async function doSignIn() {
-    const credential = await askGoogle(ui);
-    if (!credential) {
-      return;
-    }
-    let record;
-    try {
-      record = await signIn(credential, (kind) => askChoice(ui, {
-        title: str(`account.${kind}_title`),
-        detail: str(`account.${kind}_detail`),
-        yes: str('account.bring_it'),
-        no: str('account.not_mine'),
-      }));
-    } catch (e) {
-      say(str('account.error', { why: whyText(e) }));
-      ui.renderMenu();
-      return;
-    }
-    const callsign = record.callsign || await pickCallsign();
-    ui.renderMenu();
-    say(callsign ? str('account.signed_in_as', { callsign }) : str('account.signed_in'));
-    sync();
-  }
-
   async function doDelete() {
     const word = str('account.delete_word');
     const got = await ui.askForm({
@@ -386,28 +534,31 @@ export function createAccountUi({ ui, identity, say }) {
       return;
     }
     try {
+      /* Lets the account go here too, and the page starts again. */
       await deleteAccount();
-      say(str('account.deleted'));
     } catch (e) {
       say(str('account.error', { why: whyText(e) }));
+      ui.renderMenu();
     }
-    ui.renderMenu();
   }
 
   const actions = {
-    accountsignin: doSignIn,
+    accountsignin: () => nudge(null),
     accountcallsign: pickCallsign,
-    accountsignout: async () => {
-      await signOut();
-      say(str('account.signed_out'));
-      ui.renderMenu();
-    },
+    /* Lets the account go here, and the page starts again signed out. */
+    accountsignout: () => signOut(),
     accountdelete: doDelete,
     accountprivacy: () => window.open('privacy.html', '_blank', 'noopener'),
     accountterms: () => window.open('terms.html', '_blank', 'noopener'),
   };
 
+  onSignInNeeded(nudge);
   if (accountsAvailable()) {
+    renderPanel();
+    if (!mayPlay()) {
+      mountGis();
+      probeAccounts();
+    }
     if (signedIn()) {
       setTimeout(() => sync(), 1500);
     }

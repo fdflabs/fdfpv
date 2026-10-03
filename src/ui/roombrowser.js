@@ -378,7 +378,8 @@ export function createRoomBrowser({
         ui.show('friends');
       }
     } catch (e) {
-      error = str(e.message === 'name' ? 'roombrowser.bad_name' : e.message === 'busy' ? 'roombrowser.busy' : 'roombrowser.make_failed');
+      const why = { name: 'roombrowser.bad_name', busy: 'roombrowser.busy', signin: 'friends.failed_signin' }[e.message];
+      error = str(why || 'roombrowser.make_failed');
     }
     busy = false;
     ui.refreshFriends();

@@ -79,6 +79,17 @@ export const ROOM_LEVEL = 2;
  */
 export const WAR_JOIN = 1;
 
+/*
+ * A hello's `account`: this build plays only signed in (the owner,
+ * 2026-10-03: no play without a registered Google account), sends its
+ * session with every hello, and shows CLOSE.signin and CLOSE.accounts as
+ * their own words. A rooms server that checks accounts (edge/rooms/node.js
+ * with ACCOUNTS_ORIGIN) closes a hello without it with CLOSE.update, which
+ * every build shows as a reload, so a tab from before it is sent to the
+ * build that asks for the sign in rather than told a code it cannot read.
+ */
+export const ACCOUNT_JOIN = 1;
+
 export const TYPE_POSE = 0x10;
 export const TYPE_BATCH = 0x20;
 export const POSE_BYTES = 46;
@@ -604,6 +615,13 @@ export function normaliseRoomName(text) {
 /* A seat removed by reports or by the pose rules. Its own code so the
  * client can say why, which a host's kick (CLOSE.kicked) does not. */
 export const CLOSE_REMOVED = 4010;
+
+/* A hello with no session that checks out (none, ended, or an account
+ * with no callsign yet), and one whose session could not be checked
+ * because the accounts server did not answer: refused alike, and told
+ * apart so the pilot knows whether to sign in or to try again. */
+export const CLOSE_SIGNIN = 4011;
+export const CLOSE_ACCOUNTS = 4012;
 
 /* The id of a well formed chat or emote event, or -1. Anything but
  * exactly { type, kind, id } is refused, so no field can carry text. */
