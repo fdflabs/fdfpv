@@ -364,9 +364,6 @@ export class MotorAudio {
       if (this.warRadio) {
         this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
       }
-      if (this.replayRadio) {
-        this.replayRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
-      }
     }
     this.applyBuses();
   }
@@ -377,40 +374,35 @@ export class MotorAudio {
     if (this.warRadio) {
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
     }
-    if (this.replayRadio) {
-      this.replayRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
-    }
   }
 
   /*
    * The crash cam's replay is playing (on) or has closed: the flight's
-   * own music and the war's radio are held silent under it, and the
-   * replay plays the ones the clip kept through replayBeds(); closed, they
-   * are back where they were.
+   * own music is held silent under it and the war's radio is the
+   * replay's (replayBeds, src/render/replaybeds.js), playing the lines and
+   * the bed the clip kept; closed, both are back where they were.
    */
   setReplaying(on) {
     this.replaying = Boolean(on);
     this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
-    if (this.warRadio) {
-      this.warRadio.setOutput(this.replaying ? 0 : 1);
-    }
-    if (this.replayRadio && !this.replaying) {
-      this.replayRadio.stop();
+    if (this.replaying && this.warRadio) {
+      this.replayBeds().begin();
+    } else if (!this.replaying && this.replayRadio) {
+      this.replayRadio.end();
     }
   }
 
-  /* The replay's own radio and beds (src/render/replaybeds.js), made the
-   * first time a replay asks once the context is up. */
+  /* The replay's radio and bed: the war's radio, the replay's while one
+   * plays. Null before the context is up. */
   replayBeds() {
-    if (!this.replayRadio) {
-      this.replayRadio = new ReplayBeds();
+    if (!this.ctx) {
+      return null;
     }
-    if (this.ctx && !this.replayRadio.music) {
-      this.replayRadio.route(this.ctx, this.voiceBus, this.music.duck, (n) => {
-        this.nodes.push(n);
-        return n;
-      });
-      this.replayRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+    if (!this.replayRadio) {
+      this.replayRadio = new ReplayBeds(this.war(), this.music.ext);
+    }
+    if (this.replaying) {
+      this.replayRadio.begin();
     }
     return this.replayRadio;
   }
@@ -436,13 +428,20 @@ export class MotorAudio {
         return n;
       });
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
-      this.warRadio.setOutput(this.replaying ? 0 : 1);
+      this.warRadio.setOutput(1);
     }
     return this.warRadio;
   }
 
   /* The war's music on, or off and the crate's back. */
   setWarBed(track) {
+    /* Under a replay the radio is the replay's: the live war's music is
+     * what it goes back to when the replay closes. */
+    if (this.replayRadio && this.replayRadio.open) {
+      this.warBed = Boolean(track);
+      this.replayRadio.liveTrack = track;
+      return;
+    }
     const radio = this.war();
     this.warBed = Boolean(track);
     this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);

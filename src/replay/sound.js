@@ -62,6 +62,9 @@ export const EVENTS_MAX = 2000;
 /* A bed further than this from where it should have got to was moved
  * (a seek, a resume after a pause): a new call. Seconds. */
 export const BED_SLIP_S = 1;
+/* A replayed pilot's id in the mix (updatePeers): clear of every live
+ * seat, so a replay's pilot never takes a live one's voice and engine. */
+export const PEER_ID_BASE = 1000;
 /* What a wire rotor speed (rad/s) is in the mix's rpm. */
 export const RPM_PER_RAD_S = 60 / (2 * Math.PI);
 
@@ -350,7 +353,7 @@ export function peerVoicesAt(peers, s, speed, out) {
     const quad = (flags & FLAG_QUAD) !== 0;
     const k = RPM_PER_RAD_S * speed;
     out.push({
-      id,
+      id: PEER_ID_BASE + id,
       airframe: who ? who.profile.airframe : null,
       rpm: [
         (quad ? r[w + PEER.ctl] : r[w + PEER.motor]) * k,

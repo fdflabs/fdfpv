@@ -3090,7 +3090,8 @@ export async function boot({
 
   /* Crest Control's lines, in the UI's language, while the sound is on. */
   function warSay(ids) {
-    if (!ids.length || !audio.enabled) {
+    /* Under a replay the radio says the clip's lines, not the live war's. */
+    if (!ids.length || !audio.enabled || mode === 'replay') {
       return;
     }
     const radio = audio.war();

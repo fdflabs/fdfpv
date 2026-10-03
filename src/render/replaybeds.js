@@ -1,20 +1,22 @@
 /*
- * replaybeds.js: the crash cam's replay's own radio and music.
+ * replaybeds.js: the crash cam's replay's radio and music.
  *
  * A replay plays the flight's sound as it was (src/replay/sound.js): Crest
- * Control's lines when the playhead passes them, the war's music and the
- * flight's own record where they had got to at the frame on screen. The
- * live ones are the flight's and are held silent while a replay plays
- * (src/render/audio.js setReplaying), so these are elements of their
- * own: a WarRadio for the lines and the war's music (the same files, the
- * same levels), and one element for the flight's record. They play into
- * the same buses as the live ones, so the volume, the music setting and
- * the sound switch hold for them too.
+ * Control's lines when the playhead passes them, and the war's music or
+ * the flight's own record where it had got to at the frame on screen. It
+ * plays them on the war radio the live game already has (src/render/
+ * warradio.js): its voice element for the lines, its music element for
+ * whichever bed the clip says was playing (live, the war's music and the
+ * flight's record never play together: a war's bed silences the crate).
+ * So a replay adds no node to the audio graph past the two a war's radio
+ * holds anyway (tests/thresholds.json max_nodes). The live radio is
+ * stopped when the replay opens, so none of the live war's calls play over
+ * it, and its music is put back when it closes.
  *
- * A bed follows the playhead: a record or a war track that is not the one
- * on the element is loaded; one more than SEEK_S from where the clip says
- * it was is moved there (a scrub, a jump, a slow display); its rate is the
- * replay's speed, so slow motion is slow music; paused, it stops.
+ * A bed follows the playhead: a record that is not the one on the element
+ * is loaded; one more than SEEK_S from where the clip says it was is moved
+ * there (a scrub, a jump, a slow display); its rate is the replay's speed,
+ * so slow motion is slow music; paused, it stops.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -32,7 +34,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { WarRadio } from './warradio.js';
+import { COMBAT_BUS, INTRO_BUS, warMusicUrl } from './warradio.js';
 import { TRACKS, trackGain, trackUrl } from './tracks.js';
 
 /* A bed this far from where the clip says it was is moved, seconds. */
@@ -41,36 +43,37 @@ export const SEEK_S = 0.3;
 const RATE_MIN = 0.0625;
 
 export class ReplayBeds {
-  constructor() {
-    this.radio = new WarRadio();
-    this.music = null;
-    this.musicId = '';
-    this.level = 0;
+  /* radio: the live WarRadio, attached and routed; musicExt: the
+   * flight crate's file kind (src/render/music.js ext). */
+  constructor(radio, musicExt) {
+    this.radio = radio;
+    this.musicExt = musicExt;
+    this.liveTrack = '';
+    this.url = '';
+    this.open = false;
   }
 
-  /* Into the graph, once: the lines to `voiceDest`, both beds to
-   * `musicDest`. */
-  route(ctx, voiceDest, musicDest, keep) {
-    if (this.music || typeof Audio === 'undefined') {
+  /* The replay opens: the live radio is stopped, its music remembered. */
+  begin() {
+    if (this.open) {
       return;
     }
-    this.radio.attach();
-    this.radio.route(ctx, voiceDest, musicDest, keep);
-    this.radio.setOutput(1);
-    const el = new Audio();
-    el.preload = 'auto';
-    el.playsInline = true;
-    el.loop = true;
-    keep(ctx.createMediaElementSource(el)).connect(musicDest);
-    this.music = el;
+    this.open = true;
+    this.liveTrack = this.radio.track;
+    this.radio.stop();
+    this.url = '';
   }
 
-  /* The music setting's level, 0 with music off. */
-  setMusicLevel(v) {
-    this.level = Math.max(0, Math.min(1, v));
-    this.radio.setMusicLevel(this.level);
-    if (this.music && this.musicId) {
-      this.music.volume = trackGain(TRACKS.find((t) => t.id === this.musicId) || TRACKS[0]) * this.level;
+  /* The replay closes: the radio's own music back as it was. */
+  end() {
+    if (!this.open) {
+      return;
+    }
+    this.open = false;
+    this.radio.stop();
+    this.url = '';
+    if (this.liveTrack) {
+      this.radio.music(this.liveTrack);
     }
   }
 
@@ -80,59 +83,57 @@ export class ReplayBeds {
   }
 
   /*
-   * The two beds at the frame on screen: `war` and `music` each { id, at }
-   * or null (sound.js bedAt), `rate` the replay's speed, `playing` whether
-   * the playhead is moving.
+   * The bed at the frame on screen: `war` and `music` each { id, at } or
+   * null (sound.js bedAt), `rate` the replay's speed, `playing` whether the
+   * playhead is moving.
    */
   frame(war, music, rate, playing) {
-    this.radio.music(war ? war.id : '');
-    follow(this.radio.bed && this.radio.bed.el, war, rate, playing);
-    const el = this.music;
+    const el = this.radio.bed && this.radio.bed.el;
     if (!el) {
       return;
     }
-    const id = music ? music.id : '';
-    if (id !== this.musicId) {
-      this.musicId = id;
-      if (!id) {
+    const bed = war || music;
+    let url = '';
+    let level = 0;
+    if (war) {
+      url = warMusicUrl(war.id, this.radio.ext);
+      level = war.id === 'intro' ? INTRO_BUS : COMBAT_BUS;
+    } else if (music) {
+      url = trackUrl(music.id, this.musicExt);
+      level = trackGain(TRACKS.find((t) => t.id === music.id) || TRACKS[0]);
+    }
+    if (url !== this.url) {
+      this.url = url;
+      if (!url) {
         el.pause();
         el.removeAttribute('src');
         el.load();
-      } else {
-        el.src = trackUrl(id, this.radio.ext);
-        this.setMusicLevel(this.level);
+        return;
+      }
+      el.src = url;
+      el.loop = !(war && war.id === 'intro');
+    }
+    if (!url) {
+      return;
+    }
+    el.volume = Math.min(1, this.radio.output * this.radio.musicLevel * level);
+    const dur = el.duration;
+    const at = Number.isFinite(dur) && dur > 0 ? bed.at % dur : bed.at;
+    if (Math.abs(el.currentTime - at) > SEEK_S) {
+      try {
+        el.currentTime = at;
+      } catch (e) {
+        /* Not seekable before its metadata: the next frame tries again. */
       }
     }
-    follow(id ? el : null, music, rate, playing);
-  }
-
-  stop() {
-    this.radio.stop();
-    this.frame(null, null, 1, false);
-  }
-}
-
-/* An element on the bed `bed` ({ id, at }) at `rate`, playing or not. */
-function follow(el, bed, rate, playing) {
-  if (!el || !bed) {
-    return;
-  }
-  const dur = el.duration;
-  const at = Number.isFinite(dur) && dur > 0 ? bed.at % dur : bed.at;
-  if (Math.abs(el.currentTime - at) > SEEK_S) {
-    try {
-      el.currentTime = at;
-    } catch (e) {
-      /* Not seekable before its metadata: the next frame tries again. */
+    el.playbackRate = Math.max(RATE_MIN, rate);
+    if (playing && el.paused) {
+      const p = el.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => {});
+      }
+    } else if (!playing && !el.paused) {
+      el.pause();
     }
-  }
-  el.playbackRate = Math.max(RATE_MIN, rate);
-  if (playing && el.paused) {
-    const p = el.play();
-    if (p && typeof p.catch === 'function') {
-      p.catch(() => {});
-    }
-  } else if (!playing && !el.paused) {
-    el.pause();
   }
 }
