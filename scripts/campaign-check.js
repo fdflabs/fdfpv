@@ -211,8 +211,8 @@ try {
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, Operations first with Defend the Paraná its link`,
-      laidOut(v, 3) && v.cards[0].name === 'Operations' && v.cards[0].links.join() === 'Defend the Paraná',
+    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, Operations second with Defend the Paraná its link`,
+      laidOut(v, 3) && v.cards[1].name === 'Operations' && v.cards[1].links.join() === 'Defend the Paraná',
       `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts} ${x.links}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }

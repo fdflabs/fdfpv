@@ -121,7 +121,7 @@ async function roomsServer() {
   throw new Error(`rooms server did not come up on ${url}`);
 }
 
-const HUBS = 'Operations,Flight Club,Hangar';
+const HUBS = 'Flight Club,Operations,Hangar';
 const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
 
 const LAYOUT = `(() => ({
@@ -257,7 +257,7 @@ try {
    * link Defend the Paraná. */
   const first = await page.evaluate(LAYOUT);
   check('home is three hubs; Operations\' one link is Defend the Paraná: no Defend Itaipu card (the owner took it off, 2026-09-30), no Fly with friends (2026-10-02)',
-    first.cards.map((x) => x.name).join() === HUBS && first.cards[0].links.join() === 'Defend the Paraná'
+    first.cards.map((x) => x.name).join() === HUBS && first.cards[1].links.join() === 'Defend the Paraná'
     && !first.cards.some((x) => x.links.includes('Defend Itaipu') || x.links.includes('Fly with friends')), JSON.stringify(first.cards.map((x) => [x.name, x.links])));
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
