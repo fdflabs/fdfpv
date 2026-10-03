@@ -52,7 +52,12 @@
  *             12 ms. A view over budget is still shot and written, and
  *             the run fails naming it;
  *   console   no page error but refused network fetches (no board runs
- *             here, see scripts/posters.js).
+ *             here, see scripts/posters.js);
+ *   history   the first view's terrain is the same shot first as it is
+ *             shot again after another view: its leaves and triangles
+ *             (src/maps/terrain/engine.js keeps a split past its reach
+ *             only while a focus moves, never across a jump; yard-west
+ *             first drew 16 calls and 140 k triangles more).
  *
  * THE GPU TIME. The whole frame the shell draws, timed with WebGL's timer
  * queries (EXT_disjoint_timer_query_webgl2) round every animation frame
@@ -339,6 +344,9 @@ async function settle(page) {
 }
 
 const failures = [];
+/* The terrain's selection as drawn: its leaves and their triangles. */
+const TERRAIN = '(() => { const s = window.__mapScene().userData.itaipu.terrain.stats(); return { leaves: s.leaves, triangles: s.leafTriangles }; })()';
+let firstTerrain = null;
 const fail = (m) => {
   failures.push(m);
   console.log(`  FAIL ${m}`);
@@ -413,6 +421,9 @@ try {
     const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
     await writeFile(join(outDir, `${v.id}${suffix}.png`), Buffer.from(data, 'base64'));
     const stats = await page.evaluate('window.__renderStats()');
+    if (!firstTerrain) {
+      firstTerrain = { view: v, ...(await page.evaluate(TERRAIN)) };
+    }
     const gpu = await page.evaluate(`window.__itaipuGpu(${FRAMES})`);
     const row = {
       ...v,
@@ -444,6 +455,25 @@ try {
     }
     if (over.length) {
       fail(`${v.id}: over section 13's budget: ${over.join(', ')}`);
+    }
+  }
+  /* The first view again, after another one (craft-chase's, by the craft
+   * across the map, when the first was the only one shot). */
+  if (firstTerrain) {
+    const via = report.length > 1 ? report[report.length - 1] : ALL.find((w) => w.id === 'craft-chase' && w.id !== firstTerrain.view.id);
+    if (via && report.length < 2) {
+      await page.evaluate(`(window.__setCam(${via.cam.join(',')}, ${via.fov || FOV}), "")`);
+      await settle(page);
+    }
+    const v = firstTerrain.view;
+    await page.evaluate(`(window.__setCam(${v.cam.join(',')}, ${v.fov || FOV}), "")`);
+    await settle(page);
+    const again = await page.evaluate(TERRAIN);
+    const same = again.leaves === firstTerrain.leaves && again.triangles === firstTerrain.triangles;
+    console.log(`history ${v.id}: first ${firstTerrain.leaves} leaves ${firstTerrain.triangles} triangles, again after ${via ? via.id : 'nothing'} `
+      + `${again.leaves} leaves ${again.triangles} triangles`);
+    if (!same) {
+      fail(`${v.id}: its terrain shot first (${firstTerrain.leaves} leaves, ${firstTerrain.triangles} triangles) is not its terrain after another view (${again.leaves}, ${again.triangles})`);
     }
   }
   const real = page.errors.filter((e) => !/net::ERR_|Failed to load resource/.test(e));
