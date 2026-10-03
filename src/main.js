@@ -4950,6 +4950,7 @@ export async function boot({
    * host's Watch intro, for the checks. Harness only. */
   window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
   window.__warCutaway = () => warCutaway.state();
+  window.__warCutawayTest = (cue, pip) => warCutaway.request(cue, performance.now(), null, pip);
   window.__warIntroWatch = () => warIntroPlay('watch');
   window.__warDo = (op, arg) => {
     if (op === 'start') {
