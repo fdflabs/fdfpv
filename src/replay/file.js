@@ -119,6 +119,13 @@
  * piece's Opus bytes in turn. A clip without a voice is written as the
  * version before, byte for byte.
  *
+ * Version 14 moved a war's explosions onto its map's clock (src/replay/
+ * warrec.js): the header's war gains `booms`, [{ at (room ms), p, size }],
+ * every one drawn whatever the pilot was doing, where version 9 kept in
+ * the paper's events only those drawn while the pilot flew. A clip
+ * without them is written as before, byte for byte, and a version 9 to
+ * 13 file plays its explosions from its paper as it always did.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -159,7 +166,9 @@ import { HUNTER_N, checkWar } from './warrec.js';
 import { AIR_N, checkSound } from './sound.js';
 import { SEGMENT_BYTES_MAX, SEGMENTS_MAX, checkVoice } from './voicerec.js';
 
-export const FILE_VERSION = 13;
+export const FILE_VERSION = 14;
+/* A clip with voices and no explosions on the map's clock. */
+const VOICE_VERSION = 13;
 /* A clip with its sound and no voice: the version before voices. */
 const SOUND_VERSION = 12;
 /* A clip with a war's map and no sound: the version before the sound. */
@@ -186,14 +195,20 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
+  if (clip.war && clip.war.booms) {
+    if (!clip.anim) {
+      throw new Error('a clip with a war\'s explosions and no animation clock');
+    }
+    return FILE_VERSION;
+  }
   if (clip.voice) {
     if (!clip.anim) {
       throw new Error('a clip with voices and no animation clock');
     }
-    return FILE_VERSION;
+    return VOICE_VERSION;
   }
   if (clip.sound) {
     if (!clip.anim) {
@@ -296,7 +311,7 @@ const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'k
 const SOUND_KEYS = ['events'];
 const VOICE_KEYS = ['pieces'];
 const PIECE_KEYS = ['seat', 'from', 'to', 'mime', 'bytes'];
-const WAR_KEYS = ['agents', 'slots', 'world'];
+const WAR_KEYS = ['agents', 'slots', 'world', 'booms'];
 const PAPER_KEYS = ['bytes', 'events'];
 const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
 const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
@@ -361,7 +376,9 @@ export function encodeReplay(clip) {
   }
   const war = clip.war || null;
   if (war) {
-    header.war = { agents: war.agents, slots: war.slots, ...(war.world ? { world: war.world } : {}) };
+    header.war = {
+      agents: war.agents, slots: war.slots, ...(war.world ? { world: war.world } : {}), ...(war.booms ? { booms: war.booms } : {}),
+    };
   }
   if (clip.sound) {
     header.sound = { events: clip.sound.events };
@@ -735,6 +752,13 @@ export function decodeReplay(buf, known = null) {
   if (header.sound !== undefined) {
     onlyKeys(header.sound, SOUND_KEYS, 'sound');
   }
+  const boomed14 = header.war !== undefined && header.war !== null && typeof header.war === 'object' && header.war.booms !== undefined;
+  if (version < 14 && boomed14) {
+    throw new ReplayFileError('a war\'s explosions on its map\'s clock in a file older than version 14');
+  }
+  if (version === 14 && !boomed14) {
+    throw new ReplayFileError('a version 14 file without its war\'s explosions');
+  }
   if (version < 13 && header.voice !== undefined) {
     throw new ReplayFileError('voices in a file older than version 13');
   }
@@ -878,6 +902,9 @@ export function decodeReplay(buf, known = null) {
     if (mapped) {
       war.world = header.war.world;
       war.clock = new Float64Array(buf.slice(o + n * 8 + hunterBytes, o + warBytes));
+    }
+    if (boomed14) {
+      war.booms = header.war.booms;
     }
     try {
       checkWar(war, n);

@@ -104,7 +104,9 @@ import {
   createPose, defaults, easeInOut, evaluate, evaluateEdit, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
 import { slerp as slerpQ, trimClip as trimWhole } from '../src/replay/recorder.js';
-import { createWarRing, warAt, worldAt, HUNTER_N } from '../src/replay/warrec.js';
+import {
+  BOOM_LIFE_MS, boomsAt, createWarRing, warAt, worldAt, HUNTER_N,
+} from '../src/replay/warrec.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { createGrid } from '../src/share/war/grid.js';
 import { FIRE_MS, burnAt } from '../src/share/war/world.js';
@@ -2044,6 +2046,7 @@ function animRecord() {
 
   warFile(withClock, bBuf, refused);
   warWorld(withClock, refused);
+  boomFile(withClock, refused);
   soundFile(withClock, refused);
   voiceFile(withClock, refused);
 }
@@ -2606,6 +2609,75 @@ function voiceFile(withClock, refused) {
     && !plan.voices.some((v) => v.m > movieTime(edit, clip.time[12]) + 1e-9 && v.m < movieTime(edit, clip.time[13]) - 1e-9),
   'each voice on the movie\'s clock at the room\'s pace times the shot\'s speed, and nothing over the pause',
   plan.voices.map((v) => `${v.piece}@${v.m.toFixed(2)}+${v.dur.toFixed(2)}x${v.rate.toFixed(2)} from ${v.at.toFixed(2)}`).join(' '));
+}
+
+/*
+ * 21. A war's explosions on its map's clock (src/replay/warrec.js THE
+ * EXPLOSIONS; the damage agent, 3 October: a strike that landed while the
+ * pilot was down was missing from the replay). The ring is fed as
+ * crashcam.js tapBooms feeds it, on the room clock: a kill while the
+ * pilot flies, a strike while the pilot is down (no row open: a wreck,
+ * between lives, a menu), and one long before the clip. The clip keeps
+ * the two it can see; a replay at any row, forwards, backwards and in
+ * jumps, sees each alive one at its age, the strike included; a trim
+ * keeps the ones its rows see. Saved as version 14; a war without them is
+ * written as before.
+ */
+function boomFile(withClock, refused) {
+  console.log('21. a war\'s explosions on its map\'s clock, the pilot down or not, saved (version 14)');
+  const n = withClock.n;
+  const ring = createWarRing(n);
+  const dt = 1000;
+  const room = (k) => 800000 + k * dt;
+  const kill = { at: room(3) - 40, p: [10, 200, -700], size: 1.4 };
+  const strike = { at: room(9) + 120, p: [-2176, 220, -459], size: 2.6 };
+  const before = { at: room(0) - 30000, p: [0, 0, 0], size: 1.6 };
+  ring.world('TEST:1', 'itaipu-1', [], true, room(0) - 60000);
+  ring.boom(before.at, before.p, before.size);
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    ring.world('TEST:1', 'itaipu-1', [], true, room(k));
+    if (k === 3) {
+      ring.boom(kill.at, kill.p, kill.size);
+    }
+    if (k === 9) {
+      /* The pilot goes down: no row is open while the strike lands. */
+      ring.begin(-1);
+      ring.boom(strike.at, strike.p, strike.size);
+    }
+  }
+  const war = ring.clip(0, n);
+  check(war && war.booms && war.booms.length === 2 && war.booms[1].at === strike.at,
+    'the clip keeps the kill and the strike that landed while the pilot was down, and not one gone out long before it',
+    war && war.booms ? war.booms.map((b) => `${b.size}@${b.at - room(0)}`).join(', ') : 'none');
+  let wrong = '';
+  const order = [...Array.from({ length: n }, (_, k) => k), ...Array.from({ length: n }, (_, k) => n - 1 - k), 10, 2, n - 1, 9];
+  let sawStrike = 0;
+  for (const k of order) {
+    const got = boomsAt(war, n, k, 0);
+    const want = [kill, strike].filter((b) => b.at <= room(k) && room(k) - b.at < BOOM_LIFE_MS);
+    const ok = got.list.length === want.length && got.list.every((x, i) => x.b.at === want[i].at && Math.abs(x.age - (room(k) - want[i].at) / 1000) < 1e-9);
+    if (!ok) {
+      wrong = wrong || `row ${k}: ${got.list.map((x) => `${x.b.size}@${x.age.toFixed(2)}`).join(',')} want ${want.map((b) => b.size).join(',')}`;
+    }
+    sawStrike += got.list.some((x) => x.b === war.booms[1]) ? 1 : 0;
+  }
+  check(!wrong && sawStrike > 0, 'at every row forwards, backwards and in jumps, each explosion alive then, at its age, the strike included', wrong || `${order.length} rows, the strike at ${sawStrike}`);
+  const clip = { ...withClock, war };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 14 && JSON.stringify(back.war.booms) === JSON.stringify(war.booms),
+    'a war with its explosions is saved as version 14 and comes back as it was', `${JSON.stringify(war.booms).length} bytes of JSON`);
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  const bare = { ...clip, war: { ...war } };
+  delete bare.war.booms;
+  check(new DataView(encodeReplay(bare)).getUint32(4, true) === 11, 'the same war without them is version 11, as before');
+  /* From row 14 the kill (row 3) is long gone and the strike still burns. */
+  const t = trimWhole(clip, clip.time[14], clip.time[n - 1]);
+  check(t.war.booms.length === 1 && t.war.booms[0].at === strike.at, 'a trim keeps the explosions its rows can see', t.war.booms.map((b) => b.size).join(','));
+  refused(() => reheader(buf, 11), 'explosions on the map\'s clock in a file that says version 11');
+  refused(() => reheader(encodeReplay(bare), 14), 'a version 14 file without them');
+  refused(() => encodeReplay({ ...clip, war: { ...war, booms: [{ ...war.booms[0], size: 99 }] } }), 'an explosion bigger than any');
 }
 
 ring();
