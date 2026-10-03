@@ -56,6 +56,7 @@
 
 import { Music } from './music.js';
 import { WarRadio, VOICE_DUCK } from './warradio.js';
+import { ReplayBeds } from './replaybeds.js';
 
 /*
  * THE VOICES the shell names a machine by (configs/airframes.js `voice`,
@@ -252,6 +253,9 @@ export class MotorAudio {
      * while the war's music plays, the crate's is held off. */
     this.warRadio = null;
     this.warBed = false;
+    /* The crash cam's replay (setReplaying, replayBeds). */
+    this.replaying = false;
+    this.replayRadio = null;
     this.musicWanted = false;
     /* Every AudioNode this instance owns, for P12. A node created and
      * dropped without being counted is exactly the leak P12 forbids, so
@@ -360,16 +364,55 @@ export class MotorAudio {
       if (this.warRadio) {
         this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
       }
+      if (this.replayRadio) {
+        this.replayRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+      }
     }
     this.applyBuses();
   }
 
   setMusicEnabled(on) {
     this.musicWanted = Boolean(on);
-    this.music.setEnabled(this.musicWanted && !this.warBed);
+    this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
     if (this.warRadio) {
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
     }
+    if (this.replayRadio) {
+      this.replayRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+    }
+  }
+
+  /*
+   * The crash cam's replay is playing (on) or has closed: the flight's
+   * own music and the war's radio are held silent under it, and the
+   * replay plays the ones the clip kept through replayBeds(); closed, they
+   * are back where they were.
+   */
+  setReplaying(on) {
+    this.replaying = Boolean(on);
+    this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
+    if (this.warRadio) {
+      this.warRadio.setOutput(this.replaying ? 0 : 1);
+    }
+    if (this.replayRadio && !this.replaying) {
+      this.replayRadio.stop();
+    }
+  }
+
+  /* The replay's own radio and beds (src/render/replaybeds.js), made the
+   * first time a replay asks once the context is up. */
+  replayBeds() {
+    if (!this.replayRadio) {
+      this.replayRadio = new ReplayBeds();
+    }
+    if (this.ctx && !this.replayRadio.music) {
+      this.replayRadio.route(this.ctx, this.voiceBus, this.music.duck, (n) => {
+        this.nodes.push(n);
+        return n;
+      });
+      this.replayRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
+    }
+    return this.replayRadio;
   }
 
   /*
@@ -393,7 +436,7 @@ export class MotorAudio {
         return n;
       });
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
-      this.warRadio.setOutput(1);
+      this.warRadio.setOutput(this.replaying ? 0 : 1);
     }
     return this.warRadio;
   }
@@ -402,7 +445,7 @@ export class MotorAudio {
   setWarBed(track) {
     const radio = this.war();
     this.warBed = Boolean(track);
-    this.music.setEnabled(this.musicWanted && !this.warBed);
+    this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
     radio.music(track);
   }
 

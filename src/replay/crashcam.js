@@ -66,6 +66,9 @@ import { SIZE_MAX } from '../render/explosion.js';
 import { createWarRing } from './warrec.js';
 import { createWarScene } from './warscene.js';
 import {
+  airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt,
+} from './sound.js';
+import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
 } from './cameras.js';
 import * as ed from './edit.js';
@@ -119,6 +122,8 @@ export function createCrashCam(host) {
   /* A war's attackers (src/replay/warrec.js). */
   const warRing = createWarRing(rec.capacity);
   const paperRing = createPaperRing(rec.capacity);
+  /* The flight's sound no row holds (src/replay/sound.js). */
+  const soundRing = createSoundRing(rec.capacity);
   /* Harness only: the paper as recorded, by ring row, while switched on. */
   let paperLog = null;
   /* Harness only: the peers as recorded, by ring row, while switched on. */
@@ -163,6 +168,7 @@ export function createCrashCam(host) {
     peerRing.begin(-1);
     paperRing.begin(-1);
     warRing.begin(-1);
+    soundRing.begin(-1);
     if (S) {
       return;
     }
@@ -189,6 +195,7 @@ export function createCrashCam(host) {
       peerRing.clear();
       paperRing.clear();
       warRing.clear();
+      soundRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -200,7 +207,15 @@ export function createCrashCam(host) {
     peerRing.begin(i);
     paperRing.begin(i);
     warRing.begin(i);
+    soundRing.begin(i);
     paperRing.prune(rec.now(), WINDOW_S);
+    soundRing.prune(rec.now(), WINDOW_S);
+    /* The two beds, kept when they change (src/replay/sound.js). */
+    const beds = host.beds ? host.beds() : null;
+    if (beds) {
+      soundRing.call(rec.now(), 'music', beds.music);
+      soundRing.call(rec.now(), 'bed', beds.bed);
+    }
     const quad = shell.quad;
     rec.anim(i, host.animMs());
     rec.pose(i, quad.position, quad.quaternion);
@@ -327,6 +342,51 @@ export function createCrashCam(host) {
         }
         return wreck(kind, level, atTime);
       };
+    }
+    /* The rest of the craft's one shot sounds (src/replay/sound.js
+     * CALLS), each with the arguments the replay makes it again with. */
+    const keep = (name, args) => {
+      if (!S && recording && host.mode() === 'flight') {
+        soundRing.call(rec.now(), name, args);
+      }
+    };
+    const wrap = (name, argsOf) => {
+      if (typeof audio[name] !== 'function') {
+        return;
+      }
+      const f = audio[name].bind(audio);
+      audio[name] = (...a) => {
+        keep(name, argsOf(...a));
+        return f(...a);
+      };
+    };
+    wrap('impact', (impulse, hardness, speed) => [impulse, hardness, speed]);
+    wrap('propStrike', (level, hardness) => [level, hardness]);
+    wrap('mechanical', (kind) => [kind]);
+    wrap('event', (kind, atTime, level) => [kind, level ?? null]);
+    /* Crest Control's lines, in the language they were said in. */
+    if (typeof audio.war === 'function') {
+      const war = audio.war.bind(audio);
+      const said = new WeakSet();
+      audio.war = () => {
+        const radio = war();
+        if (!said.has(radio)) {
+          said.add(radio);
+          const say = radio.say.bind(radio);
+          radio.say = (id, ...rest) => {
+            keep('radio', [id, radio.lang]);
+            return say(id, ...rest);
+          };
+        }
+        return radio;
+      };
+    }
+  }
+
+  /* This frame's engine air (src/render/audio.js update's), into the row. */
+  function recordAir(air) {
+    if (!S) {
+      soundRing.air(air);
     }
   }
 
@@ -551,6 +611,10 @@ export function createCrashCam(host) {
       if (war) {
         clip.war = war;
       }
+      const sound = soundRing.clip(first, n, t0, t1);
+      if (sound) {
+        clip.sound = sound;
+      }
     }
     /* A saved clip of one frame is a still, and plays as one. */
     if (clip.n < (saved ? 1 : 2)) {
@@ -675,7 +739,7 @@ export function createCrashCam(host) {
     /* The others in the room, when the clip has them. */
     const peers = clip.peers ? createPeerScene(clip.peers, clip.time, clip.n, parent, host.craftLook || null) : null;
     /* Combat's paper, when the clip has it. */
-    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor) : null;
+    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor, host.worldBoom || null) : null;
     /* A war's attackers, when the clip has them. */
     const war = clip.war ? createWarScene(clip.war, clip.n, parent) : null;
     return {
@@ -1022,6 +1086,7 @@ export function createCrashCam(host) {
     const s = sampleAt(S.clip, t, S.sample);
     S.animMs = s.anim;
     events(from, t, speed);
+    bedsFrame(t, speed, running);
     smokeTo(from, t);
     if (moving) {
       S.scene.debris.update(step);
@@ -1115,6 +1180,41 @@ export function createCrashCam(host) {
         audio.wreck(e.kind, e.level * Math.min(1, speed));
       }
     }
+    if (S.clip.sound && !S.exporting) {
+      for (const e of callsBetween(S.clip.sound.events, from, to)) {
+        replayCall(e, speed);
+      }
+    }
+  }
+
+  /* One of the flight's sounds again (src/replay/sound.js CALLS), quieter
+   * in slow motion as the crash cues are. */
+  function replayCall(e, speed) {
+    const q = Math.min(1, speed);
+    const [a0, a1, a2] = e.args;
+    if (e.call === 'radio') {
+      if (typeof audio.replayBeds === 'function') {
+        audio.replayBeds().say(a0, a1);
+      }
+    } else if (e.call === 'impact' && typeof audio.impact === 'function') {
+      audio.impact(a0 * q, a1, a2 * q);
+    } else if (e.call === 'propStrike' && typeof audio.propStrike === 'function') {
+      audio.propStrike(a0 * q, a1);
+    } else if (e.call === 'mechanical' && typeof audio.mechanical === 'function') {
+      audio.mechanical(a0);
+    } else if (e.call === 'event' && typeof audio.event === 'function') {
+      audio.event(a0, null, a1 === null ? q : a1 * q);
+    }
+  }
+
+  /* The replay's beds at the frame on screen: the war's music and the
+   * flight's record where they had got to, at the replay's speed. */
+  function bedsFrame(t, speed, playing) {
+    if (!S.clip.sound || typeof audio.replayBeds !== 'function') {
+      return;
+    }
+    const ev = S.clip.sound.events;
+    audio.replayBeds().frame(bedAt(ev, 'bed', t), bedAt(ev, 'music', t), speed, playing && !S.exporting);
   }
   const vA = new THREE.Vector3();
   const vB = new THREE.Vector3();
@@ -1130,6 +1230,54 @@ export function createCrashCam(host) {
       outRpm[m] = S.sample.pose[POSE.rpm + m] * k;
     }
     return S.sample.head[HEAD.speed] * k;
+  }
+
+  /* The engine's air at the frame on screen (src/render/audio.js update's
+   * `air`), the airflow slowed with the picture, or null for a clip that
+   * kept none (the mix then hears the wind from the speed, as before). */
+  function air() {
+    if (!S || !S.clip.sound) {
+      return null;
+    }
+    const k = S.playing || S.exporting ? speedAt(S.t) : 0;
+    const [i, a] = locate(S.clip, S.t);
+    airAt(S.clip.sound, S.clip.n, i, a, airNow);
+    airNow.u *= k;
+    airNow.v *= k;
+    airNow.w *= k;
+    airNow.amps *= k > 0 ? 1 : 0;
+    airNow.flapsMoving = airNow.flapsMoving && k > 0;
+    airNow.gearMoving = airNow.gearMoving && k > 0;
+    return airNow;
+  }
+  const airNow = {
+    u: 0, v: 0, w: 0, amps: 0, flapsMoving: false, gearMoving: false,
+  };
+
+  /* The other pilots as the mix hears them at the frame on screen, their
+   * motors slowed with the picture (src/replay/sound.js peerVoicesAt), or
+   * null with no replay open. */
+  function peersHeard() {
+    if (!S) {
+      return null;
+    }
+    if (!S.scene.peers) {
+      heardNow.length = 0;
+      return heardNow;
+    }
+    const k = S.playing || S.exporting ? speedAt(S.t) : 0;
+    return peerVoicesAt(S.clip.peers, S.scene.peers.sample(), k, heardNow);
+  }
+  const heardNow = [];
+
+  /* The attackers as the world's sound hears them at the frame on screen:
+   * { list, room } (warrec.js warAt's, at the room ms drawn), or null. */
+  function warHeard() {
+    if (!S || !S.scene.war) {
+      return null;
+    }
+    const d = S.scene.war.heard();
+    return d && Number.isFinite(d.room) ? d : null;
   }
 
   /* After the world is drawn: the letterbox, and a picture if one is due.
@@ -1878,6 +2026,7 @@ export function createCrashCam(host) {
     if (res && res.ok) {
       rec.dropNewest(drop);
       paperRing.dropAfter(rec.now());
+      soundRing.dropAfter(rec.now());
       prevStatus.fill(0);
     }
     window.__crashCamLast = { ...(window.__crashCamLast || {}), takeOver: { ...res, frame: k, clipT: clip.time[k] } };
@@ -2048,6 +2197,7 @@ export function createCrashCam(host) {
     tapCrown,
     tapBooms,
     tapWar,
+    recordAir,
     noteCrash,
     promptKey: () => promptKey,
     tap,
@@ -2055,6 +2205,9 @@ export function createCrashCam(host) {
     frame,
     afterRender,
     sound,
+    air,
+    peersHeard,
+    warHeard,
     stats,
     open: () => open(),
     /* Back to the flight, as the replay's own way out does: a room that
