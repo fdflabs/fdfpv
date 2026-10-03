@@ -391,55 +391,6 @@
    "cost": 0.054
   }
  },
- "whoop65-punch": {
-  "title": "Whoop: hover and punch-out",
-  "old": {
-   "lufs": -28.52,
-   "lufsShortMax": -26.92,
-   "lufsMomentaryMax": -24.98,
-   "lra": 2.13,
-   "truePeakDbtp": -18.04,
-   "harshShareA": 1,
-   "bandShareA": {
-    "sub": 0,
-    "low": 2,
-    "lowmid": 71.5,
-    "mid": 25.5,
-    "harsh": 1,
-    "air": 0
-   },
-   "centroidHz": 566,
-   "repetition": 0.746,
-   "repetitionLagS": 0.44,
-   "nonFinite": 0,
-   "subnormal": 0,
-   "nodes": 63,
-   "cost": 0.024
-  },
-  "new": {
-   "lufs": -25.62,
-   "lufsShortMax": -22.63,
-   "lufsMomentaryMax": -21.09,
-   "lra": 8.92,
-   "truePeakDbtp": -14.94,
-   "harshShareA": 30.3,
-   "bandShareA": {
-    "sub": 0,
-    "low": 0,
-    "lowmid": 8.4,
-    "mid": 25.2,
-    "harsh": 30.3,
-    "air": 36
-   },
-   "centroidHz": 3479,
-   "repetition": 0.204,
-   "repetitionLagS": 2.99,
-   "nonFinite": 0,
-   "subnormal": 0,
-   "nodes": 49,
-   "cost": 0.072
-  }
- },
  "7inch-punch": {
   "title": "7 inch: hover and punch-out",
   "old": {
