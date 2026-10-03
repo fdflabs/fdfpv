@@ -299,7 +299,8 @@
     "progress:selftest": "node scripts/progress-selftest.js",
     "retired:selftest": "node scripts/retired-maps-selftest.js",
     "campaign:selftest": "node scripts/campaign-selftest.js",
-    "progress:check": "node scripts/progress-check.js"
+    "progress:check": "node scripts/progress-check.js",
+    "ui:playground": "node scripts/playground-check.js"
   },
   "dependencies": {
     "ws": "8.21.3"
