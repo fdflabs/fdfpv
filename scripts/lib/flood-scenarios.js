@@ -31,6 +31,7 @@
 import {
   BOUND, G, LINK, SIDE, loadFlood,
 } from '../../src/sim/water/flood.js';
+import { createFloodHost } from '../../src/sim/water/host.js';
 
 /* A cell's pseudo random bump in [0, 1), 1/1024 steps, from its indices
  * alone (a 32 bit integer hash). */
@@ -371,6 +372,102 @@ export async function opening(wasm, regime) {
   }, f);
 }
 
+/*
+ * THE CLOCK: one flood, five clients. A basin held at 10 m behind a wall
+ * with an opening link through it that each opening widens (2 m, then
+ * 6, then 12, the last torn 40 ms after the second). Every client steps
+ * it on the room's clock through src/sim/water/host.js: one hears each
+ * opening as it happens, one hears each 3 s late (past the delay, so it
+ * rewinds), one joins after the last and hears them all at once, one
+ * hears them in reverse order, and one is slow, a few steps a call. At
+ * the same room time all five must hold the same water to the bit.
+ */
+export async function hostClock(wasm) {
+  const nx = 60; const nz = 16; const dx = 2; const dtMs = 20; const WALL = 20;
+  const OPENINGS = [
+    { id: 'w', at: 4000, width: 2 },
+    { id: 'w', at: 9000, width: 6 },
+    { id: 'v', at: 9040, width: 12 },
+  ];
+  const END = 16000;
+  const client = async () => {
+    const f = await solver(wasm, nx, nz, dx, dtMs / 1000);
+    const b = f.bed(); const h = f.h();
+    for (let j = 0; j < nz; j += 1) {
+      for (let i = 0; i < nx; i += 1) {
+        const k = j * nx + i;
+        const wall = i === WALL || i === WALL + 1;
+        b[k] = wall ? 30 : 0;
+        h[k] = wall ? 0 : i < WALL ? 10 : 1;
+      }
+    }
+    f.setManning(0, 0.03);
+    const up = []; const down = [];
+    for (let j = 2; j < nz - 2; j += 1) {
+      up.push(j * nx + WALL - 1);
+      down.push(j * nx + WALL + 2);
+    }
+    const link = f.link(LINK.opening, up, down);
+    f.linkDir(link, 1, 0);
+    let width = 0;
+    const flood = {
+      f,
+      apply(o) {
+        width = Math.max(width, o.width);
+        f.linkBands(link, [[2, 9, width, 0.61]]);
+      },
+      reset() {
+        width = 0;
+        f.linkBands(link, []);
+      },
+    };
+    flood.reset();
+    return { f, host: createFloodHost(flood, { dtMs }) };
+  };
+  const tick = 100;
+  const live = await client();
+  const late = await client();
+  const joiner = await client();
+  const reverse = await client();
+  const slow = await client();
+  for (let now = 0; now <= END; now += tick) {
+    for (const o of OPENINGS) {
+      if (o.at <= now && o.at > now - tick) live.host.open(o);
+      if (o.at + 3000 <= now && o.at + 3000 > now - tick) late.host.open(o);
+      if (o.at <= now && o.at > now - tick) slow.host.open(o);
+    }
+    live.host.advance(now);
+    late.host.advance(now);
+    slow.host.advance(now, { maxSteps: 3 });
+  }
+  for (const o of OPENINGS) joiner.host.open(o);
+  joiner.host.advance(END);
+  for (const o of OPENINGS.slice().reverse()) reverse.host.open(o);
+  reverse.host.advance(END);
+  while (slow.host.behind(END) > 0) slow.host.advance(END, { maxSteps: 3 });
+  /* The control: the later openings applied where a client heard them,
+   * 3 s after the first, must not be the same water. (All of them 3 s
+   * late is the same water 3 s later: the origin moves with them.) */
+  const wrong = await client();
+  OPENINGS.forEach((o, k) => wrong.host.open(k ? { ...o, at: o.at + 3000 } : o));
+  wrong.host.advance(END);
+  const clients = {
+    live, late, joiner, reverse, slow,
+  };
+  const hash = Object.fromEntries(Object.entries(clients).map(([k, v]) => [k, v.f.hash()]));
+  const steps = Object.fromEntries(Object.entries(clients).map(([k, v]) => [k, v.host.step()]));
+  const same = Object.values(hash).every((x) => x === hash.live) && Object.values(steps).every((x) => x === steps.live);
+  const through = live.f.linkVol(0);
+  return result('the room clock', [
+    c('five clients that heard the same openings at different times hold the same water at the same room time, to the bit', same,
+      Object.entries(hash).map(([k, v]) => `${k} ${v} @${steps[k]}`).join(', ')),
+    c('the late client rewound and the reverse client started again, and still agree', late.host.stats.rewinds > 0 && reverse.host.stats.restarts > 0,
+      `late ${late.host.stats.rewinds} rewinds, reverse ${reverse.host.stats.restarts} restarts`),
+    c('water went through the openings', through > 100, `${through.toFixed(0)} m3`),
+    c('and the control, the openings applied 3 s late, is other water', wrong.f.hash() !== hash.live, wrong.f.hash()),
+  ], { hash, steps }, live.f);
+}
+
 /* The cost: a 256 by 256 grid all wet and all moving (a dam break in a
  * box), ns per cell per step, after a warm up. */
 export async function cost(wasm, now) {
@@ -404,4 +501,5 @@ export const SCENARIOS = [
   ['opening, weir', (w) => opening(w, 'weir')],
   ['opening, orifice', (w) => opening(w, 'orifice')],
   ['opening, drowned', (w) => opening(w, 'drowned')],
+  ['the room clock', hostClock],
 ];
