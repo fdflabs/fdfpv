@@ -12,7 +12,15 @@
  * the page used before, and it stays only while the name's DNS spreads and
  * Caddy fetches the name's certificate: until then a lookup or a handshake
  * for the name fails, and probeApi() moves this page to the address. Once
- * the name answers everywhere, delete the fallback and the probe.
+ * the name answers everywhere, delete the fallback and the probe. The
+ * Cloudflare Workers the VM replaced, fdfpv-rooms and fdfpv-tracks on
+ * fdfretes.workers.dev, are still deployed, and naming them here is the
+ * way back to them.
+ *
+ * Requests made before the probe answers go to the name. While the name
+ * does not resolve, such a request fails as a server that is down does,
+ * and each caller already lives with that: rooms retry, uploads retry,
+ * the board has deadlines.
  *
  * The probe's answer lives in this module only, never in localStorage: a
  * stored address would pin a pilot to it after the name works.
