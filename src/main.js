@@ -7940,8 +7940,9 @@ export async function boot({
         console.info(`[war damage] opening ${JSON.stringify(o)}`);
       }
     },
-    onSound: (p, level) => {
-      worldAudio.boom(p, level);
+    /* Until the world's sound has a breach (PR #362), a boom by its mass. */
+    onSound: (b) => {
+      worldAudio.boom(b.position, Math.min(1.4, 0.4 + b.mass / 50000));
     },
     /* A target that lost something smokes, unless it already burns
      * from a hit (roomWarFrame). */

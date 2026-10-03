@@ -50,7 +50,9 @@ import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import {
   DEFENDER, attackerCharge, blast, unsupported,
 } from '../src/share/war/damage.js';
-import { LIFE_MS, advance, piecesOf } from '../src/share/war/debris.js';
+import {
+  LIFE_MS, advance, breachOf, massOf, piecesOf,
+} from '../src/share/war/debris.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import STRUCTURES from '../src/share/war/itaipu-chunks.js';
 
@@ -305,6 +307,15 @@ function debris(events) {
   }
   check(all, 'one piece a removed chunk, each asleep on the floor by LIFE_MS', `${n} pieces`);
   check(same, 'a piece stepped a frame at a time is where one stepped in one go is');
+  /* The world's sound takes a breach only with a known material and a
+   * mass over 0 (world-audio.js breach throws otherwise). */
+  const kinds = new Set(Object.values(STRUCTURES).flatMap((s) => s.chunks.map((ch) => ch.k)));
+  const masses = [...kinds].map((k) => [k, massOf(Object.values(STRUCTURES).flatMap((s) => s.chunks).find((ch) => ch.k === k))]);
+  check(masses.every(([, m]) => ['concrete', 'steel', 'transformer'].includes(m.material) && m.mass > 0), 'every chunk kind has a material and a mass',
+    masses.map(([k, m]) => `${k} ${m.material} ${Math.round(m.mass)} kg`).join(', '));
+  const heard = events.map((e) => breachOf(e, STRUCTURES[e.target]));
+  check(heard.every((b) => b && Number.isFinite(b.at) && b.position.length === 3 && b.position.every(Number.isFinite)),
+    'every event is one breach heard', heard.map((b) => `${b.material} ${Math.round(b.mass)} kg`).join(', '));
 }
 
 table();

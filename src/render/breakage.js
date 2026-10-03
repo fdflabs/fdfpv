@@ -17,7 +17,8 @@
  *   the dust     concrete dust and steel's sparks thrown at each break
  *                and fall, through the shell's own debris (debris.emit),
  *                and the target on fire (onBurn)
- *   the sound    onSound(p, level) a break, for the world's sound
+ *   the sound    onSound(breach, now) once an event: debris.js breachOf's
+ *                { at, position, material, mass }, for the world's sound
  *   the water    each opening (the dam break contract's) to onOpening
  *
  * Three draws however much breaks: the pieces, the edges, and the
@@ -45,7 +46,7 @@
 
 import * as THREE from 'three';
 import { SURFACE } from '../../configs/parts.js';
-import { advance, piecesOf } from '../share/war/debris.js';
+import { advance, breachOf, piecesOf } from '../share/war/debris.js';
 
 export const PIECES = 192;
 export const EDGES = 512;
@@ -75,7 +76,7 @@ function hash(a, b) {
 /*
  * opts: debris (the shell's, for dust and sparks), floorAt(x, z, y) the
  * map's floor for the pieces, and the hooks onOpening(opening, event),
- * onSound(p, level), onBurn(target).
+ * onSound(breach, now), onBurn(target).
  */
 export function createBreakage(opts = {}) {
   const group = new THREE.Group();
@@ -247,8 +248,11 @@ export function createBreakage(opts = {}) {
           opts.debris.emit(at, new THREE.Vector3(0, 1, 0), steel ? 25 : 30, steel ? SURFACE.metal : SURFACE.concrete, null, floorAt(ch.c[0], ch.c[2], ch.c[1]), 'hit');
         }
       }
-      if (recent && opts.onSound && e.p) {
-        opts.onSound(e.p, Math.min(1.4, 0.4 + 0.05 * e.chunks.length));
+      if (recent && opts.onSound) {
+        const b = breachOf(e, st);
+        if (b) {
+          opts.onSound(b, now);
+        }
       }
       if (opts.onBurn) {
         opts.onBurn(e.target, e);

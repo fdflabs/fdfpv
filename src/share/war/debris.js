@@ -198,3 +198,68 @@ export function advance(pc, t, floorAt) {
   }
   return pc;
 }
+
+/*
+ * What a break is made of, for its sound (src/render/world-audio.js
+ * breach): each chunk kind's material, and the share of its box that is
+ * that material, sized from what is drawn: a gate's skin panel is 20 mm
+ * plate and its ribs, a penstock's segment a 30 mm shell round its bore,
+ * a beam or a post a box section, the intake's column a hollow shaft, a
+ * transformer's tank its core and oil in a shell. Times the material's
+ * density, kg.
+ */
+const KIND = Object.freeze({
+  skin: ['steel', 0.03],
+  girder: ['steel', 0.1],
+  arm: ['steel', 0.1],
+  brace: ['steel', 0.1],
+  trunnion: ['steel', 0.3],
+  hoist: ['steel', 0.2],
+  leaf: ['steel', 0.08],
+  shell: ['steel', 0.012],
+  cover: ['steel', 0.1],
+  post: ['steel', 0.1],
+  beam: ['steel', 0.1],
+  column: ['concrete', 0.15],
+  tank: ['transformer', 0.25],
+  bushing: ['transformer', 0.5],
+});
+const DENSITY = Object.freeze({ steel: 7850, concrete: 2400, transformer: 7850 });
+
+/* A chunk's material and mass, kg. */
+export function massOf(ch) {
+  const kind = KIND[ch.k];
+  if (!kind) {
+    throw new Error(`debris: no material for a ${ch.k}`);
+  }
+  const [material, fill] = kind;
+  return { material, mass: 8 * ch.h[0] * ch.h[1] * ch.h[2] * DENSITY[material] * fill };
+}
+
+/*
+ * One damage event of structure s as one break heard: at the event's
+ * room ms, at the mass weighted middle of what broke, of the material
+ * most of its mass is, and all of its mass. Null for an event that took
+ * nothing out.
+ */
+export function breachOf(e, s) {
+  const by = {};
+  let mass = 0;
+  const p = [0, 0, 0];
+  for (const i of e.chunks) {
+    const ch = s.chunks[i];
+    const m = massOf(ch);
+    by[m.material] = (by[m.material] ?? 0) + m.mass;
+    mass += m.mass;
+    for (let k = 0; k < 3; k += 1) {
+      p[k] += ch.c[k] * m.mass;
+    }
+  }
+  if (!(mass > 0)) {
+    return null;
+  }
+  const material = Object.keys(by).sort((a, b) => by[b] - by[a] || (a < b ? -1 : 1))[0];
+  return {
+    at: e.at, position: p.map((v) => v / mass), material, mass,
+  };
+}
