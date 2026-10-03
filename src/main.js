@@ -378,6 +378,8 @@ const TAKEOFF_WINDOW_MS = 250;
  * own structure and the underside slab collider crashes it.
  */
 const SURFACE_BIAS = 0.40;
+/* The plant reports motor speed in rpm; the rooms' wire carries rad/s. */
+const RPM_PER_RAD_S = 60 / (2 * Math.PI);
 /*
  * How far the CAMERA is lifted while the craft is sitting on the ground, in
  * world metres. Render only: nothing about the physics, the collision test
@@ -3778,6 +3780,7 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
+    roomHearPeers();
     tagMarkPeers();
     tagBubble(now, wallMs, scene);
     tagCrownFrame(scene, dt);
@@ -4206,7 +4209,10 @@ export async function boot({
     roomQLast.copy(quat);
     roomLastSendT = now;
     const surf = !quad && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null;
-    const rotors = [st[14], st[15], st[16], st[17]];
+    /* rad/s, the wire's unit (src/share/roomwire.js): the plant reports
+     * rpm, and sending rpm in a field of 40 rad/s counts clamped every
+     * quad above 5,080 rpm, so hover and every punch went out the same. */
+    const rotors = [st[14] / RPM_PER_RAD_S, st[15] / RPM_PER_RAD_S, st[16] / RPM_PER_RAD_S, st[17] / RPM_PER_RAD_S];
     const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
     const chute = typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0;
     const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
@@ -4277,6 +4283,59 @@ export async function boot({
     }
     const world = MAPS.find((m) => m.id === peer.profile.map);
     return world ? str('rooms.away_world', { name, world: world.name }) : str('rooms.away_elsewhere', { name });
+  }
+
+  /*
+   * THE OTHER PILOTS, HEARD (src/render/audio.js updatePeers): each drawn
+   * peer's engine from its aircraft (its profile's, on stock power: the
+   * wire does not carry the power option) and the rotor speeds it sends,
+   * where it is drawn, from where the camera is. The audio picks the few it
+   * has voices for. A crashed or hidden peer is not in the list, so its
+   * voice fades.
+   */
+  const peerHeard = [];
+  const camRight = new THREE.Vector3();
+  function roomHearPeers() {
+    peerHeard.length = 0;
+    if (mode !== 'replay') {
+      for (const peer of roomPeers.values()) {
+        /* Where it is drawn, and what its newest sample says it is doing
+         * (the drawn pose carries position and attitude only). */
+        const at = peer.drawnPose;
+        const p = peer.last;
+        if (!at || !p || (p.flags & FLAG_CRASHED) || !peer.rig || !peer.rig.group.visible) {
+          continue;
+        }
+        if (!peer.audio || peer.audio.key !== peer.profile.airframe) {
+          peer.audio = {
+            key: peer.profile.airframe,
+            id: peer.seat,
+            spec: airframeById(peer.profile.airframe) ? engineSpecFor(peer.profile.airframe, {}, {}) : null,
+            rpm: [0, 0, 0, 0],
+            x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
+          };
+        }
+        const a = peer.audio;
+        /* The wire's rotor speeds are rad/s (src/share/roomwire.js). */
+        const quad = (p.flags & FLAG_QUAD) !== 0;
+        a.rpm[0] = (quad ? p.c0 : p.motor) * RPM_PER_RAD_S;
+        a.rpm[1] = quad ? p.c1 * RPM_PER_RAD_S : 0;
+        a.rpm[2] = quad ? p.c2 * RPM_PER_RAD_S : 0;
+        a.rpm[3] = quad ? p.c3 * RPM_PER_RAD_S : 0;
+        a.x = at.px;
+        a.y = at.py;
+        a.z = at.pz;
+        a.vx = p.vx;
+        a.vy = p.vy;
+        a.vz = p.vz;
+        peerHeard.push(a);
+      }
+    }
+    const cam = shell.camera;
+    camRight.setFromMatrixColumn(cam.matrixWorld, 0);
+    audio.setListener(cam.position.x, cam.position.y, cam.position.z, camRight.x, camRight.y, camRight.z,
+      groundAt(cam.position.x, cam.position.z));
+    audio.updatePeers(peerHeard);
   }
 
   function roomDrawPeer(peer, now, scene, dt, simT) {

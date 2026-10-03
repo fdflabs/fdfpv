@@ -43,6 +43,38 @@ const IMPACT_FULL = 12;
 /* The listener's ear, metres over the ground, for the ground reflection. */
 const EAR_M = 1.7;
 
+/*
+ * ROOMS: other pilots heard from this one (MotorAudio.updatePeers). The
+ * listener flies `own`; each peer replays one of the plant's flights,
+ * moved by `at` (plant frame metres, z up) and started `lag` seconds into
+ * it, so a room is real traces, not invented ones. 'room-4' is four pilots
+ * near; 'room-32' a full room on a ring from 15 to 320 m, which is what
+ * the voice budget is for.
+ */
+const PEER_FLIGHTS = ['quad-punch', 'quad-dive', '7inch-punch', 'interceptor-punch', '10inch-punch', 'quad-propwash', 'cub1400-flight', 'f16878-flight'];
+const PEER_AIRFRAME = { 'quad-punch': '5inch', 'quad-dive': '5inch', '7inch-punch': '7inch', 'interceptor-punch': 'interceptor', '10inch-punch': '10inch', 'quad-propwash': '5inch', 'cub1400-flight': 'cub1400', 'f16878-flight': 'f16878' };
+export const SCENES = {
+  'room-4': {
+    title: 'Room: four pilots near a hovering five inch',
+    own: 'quad-hover',
+    peers: [
+      { flight: 'quad-punch', at: [12, 4, 0], lag: 0 },
+      { flight: 'quad-dive', at: [-60, 30, -80], lag: 1 },
+      { flight: '7inch-punch', at: [-20, -15, 0], lag: 0.5 },
+      { flight: 'interceptor-punch', at: [30, -25, 0], lag: 2 },
+    ],
+  },
+  'room-32': {
+    title: 'Room: 32 pilots, the voice budget at work',
+    own: 'quad-hover',
+    peers: Array.from({ length: 31 }, (_, k) => {
+      const r = 15 + 10 * k;
+      const a = k * 2.4;
+      return { flight: PEER_FLIGHTS[k % PEER_FLIGHTS.length], at: [r * Math.cos(a), r * Math.sin(a), 0], lag: (k * 0.37) % 3 };
+    }),
+  },
+};
+
 let flightsPromise = null;
 export function loadFlights() {
   flightsPromise ??= fetch(new URL('./flights.json', import.meta.url)).then((r) => {
@@ -76,7 +108,8 @@ function listenerView(row, at) {
  */
 export async function renderFlight(id, mode, stem = '') {
   const data = await loadFlights();
-  const f = data.flights[id];
+  const scene = SCENES[id] || null;
+  const f = scene ? { ...data.flights[scene.own], listener: null } : data.flights[id];
   if (!f) {
     throw new Error(`no flight ${id}`);
   }
@@ -106,6 +139,10 @@ export async function renderFlight(id, mode, stem = '') {
   const rpm = [0, 0, 0, 0];
   const air = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0, flapsMoving: false, gearMoving: false };
   const events = f.events.slice();
+  const heard = [];
+  const peerState = scene ? scene.peers.map((sp, k) => ({
+    id: k + 1, spec: engineSpecFor(PEER_AIRFRAME[sp.flight], {}, {}), rpm: [0, 0, 0, 0], x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
+  })) : null;
   /* The flaps and the gear, read as src/main.js reads them off the plant. */
   let flapWas = rows.length ? rows[0][11] : 0;
   let gearWas = rows.length ? rows[0][12] : 0;
@@ -134,6 +171,31 @@ export async function renderFlight(id, mode, stem = '') {
       Object.assign(air, listenerView(r, f.listener));
     }
     a.update(rpm, Math.hypot(r[4], r[5], r[6]), t, air);
+    if (scene && lab) {
+      heard.length = 0;
+      for (let k = 0; k < scene.peers.length; k += 1) {
+        const sp = scene.peers[k];
+        const pf = data.flights[sp.flight];
+        const pr = pf.rows[Math.min(pf.rows.length - 1, i + Math.round(sp.lag * data.rate))];
+        const pe = peerState[k];
+        pe.rpm[0] = pr[0];
+        pe.rpm[1] = pr[1];
+        pe.rpm[2] = pr[2];
+        pe.rpm[3] = pr[3];
+        /* Plant (x, y, z up) into the listener's y up frame: (x, z, -y). */
+        pe.x = pr[7] + sp.at[0];
+        pe.y = pr[9] + sp.at[2];
+        pe.z = -(pr[8] + sp.at[1]);
+        pe.vx = Math.hypot(pr[4], pr[5], pr[6]);
+        pe.vy = 0;
+        pe.vz = 0;
+        heard.push(pe);
+      }
+      /* The camera is on the hovering craft, facing +x of the plant, so
+       * its right hand is the plant's -y: (0, 0, 1) in the y up frame. */
+      a.setListener(r[7], r[9], -r[8], 0, 0, 1, 0);
+      a.updatePeers(heard, t);
+    }
     while (events.length && events[0].t <= t + 1e-9) {
       const e = events.shift();
       if (e.kind === 'mech') {
