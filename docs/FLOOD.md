@@ -162,7 +162,7 @@ The page steps on the map's animation clock, which in a room is the room's
 | normal depth between INFLOW and RATING | Manning, 1 % | 0.005 % |
 | opening as weir, orifice, drowned | the strips formula at the link's levels, 1e-12; steady flows 2 % | exact; under 1 % |
 | the room clock | five clients, one hash | one hash |
-| Node and Chrome | every case's hash identical | identical, all nine (2 October) |
+| Node and Chrome | every case's hash identical | identical, all nine, at b574fcb0 (2 October); not run since the link's tail cells, the face fluxes and the room clock case, Chrome runs being held |
 
 `npm run water:itaipu` (local, needs the data; the 2 October full run):
 
