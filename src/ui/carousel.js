@@ -65,9 +65,10 @@ export function pickList(filter) {
 
 /* The next aircraft for the direct cycle, [ and ]: every aircraft, round
  * and round, so two keys reach all of them without an overlay. It answers
- * with the card's id, the land plane; the caller seats its floats. */
-export function cycleCraft(id, dir) {
-  const ids = pickList('all');
+ * with the card's id, the land plane; the caller seats its floats. With
+ * `only` (a war room's aircraft), round those. */
+export function cycleCraft(id, dir, only = null) {
+  const ids = pickList('all').filter((x) => !only || only.includes(x));
   const i = Math.max(0, ids.indexOf(landPlaneOf(id)));
   return ids[(i + dir + ids.length) % ids.length];
 }
@@ -403,9 +404,12 @@ export class Carousel {
    * build), rename(id, name), remove(id) } (src/ui/ui.js pickerBuilds);
    * without it there is no tab.
    */
-  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, engine = null, builds = null, onChoose, onCancel, onCustomise } = {}) {
-    this.opts = { onChoose, onCancel, onCustomise, floats, engine, builds };
-    this.openArgs = { filter, compact, title, warn, floats, engine, builds, onChoose, onCancel, onCustomise };
+  /* `only`: the airframes the picker may offer (a war room's, configs/
+   * airframes.js WAR_AIRFRAMES), every one without it; a build is offered
+   * when its airframe is. */
+  open({ current, filter = 'all', compact = false, title = str('carousel.choose_your_aircraft'), warn = '', hint = 'key', floats = null, engine = null, builds = null, only = null, onChoose, onCancel, onCustomise } = {}) {
+    this.opts = { onChoose, onCancel, onCustomise, floats, engine, builds, only };
+    this.openArgs = { filter, compact, title, warn, floats, engine, builds, only, onChoose, onCancel, onCustomise };
     this.isOpen = true;
     this.hintKind = hint;
     this.root.classList.toggle('compact', Boolean(compact));
@@ -456,7 +460,10 @@ export class Carousel {
   relist() {
     const builds = this.opts && this.opts.builds;
     const engine = this.opts && this.opts.engine;
-    this.ids = this.filter === MINE ? builds.list().map((b) => `${BUILD_PREFIX}${b.id}`) : pickList(this.filter);
+    const only = this.opts && this.opts.only;
+    this.ids = this.filter === MINE
+      ? builds.list().filter((b) => !only || only.includes(b.airframe)).map((b) => `${BUILD_PREFIX}${b.id}`)
+      : pickList(this.filter).filter((id) => !only || only.includes(id));
     this.drawn = new Map();
     for (const key of this.ids) {
       const build = this.buildOf(key);

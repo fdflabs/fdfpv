@@ -50,6 +50,11 @@ jobs:
           du -sh /tmp/site
           test -f /tmp/site/dist/sim.wasm
           test -f /tmp/site/tests/lib/simmod.js
+          # The custom domain. A Pages site deployed by a workflow takes
+          # its domain from Settings > Pages only and ignores this file; it
+          # is published so the served tree says where it lives, and so a
+          # move back to branch publishing would keep the domain.
+          grep -qx paraguayandronecombatsimulator.com /tmp/site/CNAME
       - uses: actions/setup-node@v4
         with:
           node-version: 22

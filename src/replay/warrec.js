@@ -53,11 +53,20 @@
  * some tens of kilobytes at most; one past any is counted
  * (stats.hitsDropped, cutsDropped, damageDropped).
  *
+ * THE EXPLOSIONS (a warhead's, a kill's, a target hit's: src/main.js
+ * warBoomEvent), each where it was drawn and how big, on the room clock,
+ * whatever the pilot was doing: flying, a wreck, between lives or on a
+ * menu (the damage agent, 3 October: a strike that landed while the
+ * pilot was down was missing from the replay, which kept them on the
+ * recorder's clock and only in flight). At most BOOMS_MAX are held; a
+ * clip keeps those its rows' room ms can still see (BOOM_LIFE_MS).
+ *
  * A clip's `war` is { agents: [{ mission, a, last }], room (f64[n]),
  * slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
  * world: [{ mission, from, off, hits, cuts, damage }], clock (f64[n]) }, or
- * absent when no war was drawn in it. src/replay/file.js saves it
- * (version 10, 11 with the map); src/replay/warscene.js draws it.
+ * and since version 14 booms: [{ at, p, size }] }, or absent when no war
+ * was drawn in it. src/replay/file.js saves it (version 10, 11 with the
+ * map, 14 with the explosions); src/replay/warscene.js draws it.
  *
  * Render only. Nothing here reaches a plant or the room.
  *
@@ -102,6 +111,13 @@ export const CUTS_MAX = 256;
 export const DAMAGE_MAX = 512;
 export const DAMAGE_BYTES = 16384;
 const MATCH_KEYS = ['mission', 'from', 'off', 'hits', 'cuts', 'damage'];
+/* Explosions held, and how long one is seen after it goes off: past
+ * src/render/explosion.js EXPLOSION_S (6.2 s), which three.js keeps out of
+ * Node, with room. */
+export const BOOMS_MAX = 512;
+export const BOOM_LIFE_MS = 7000;
+const BOOM_KEYS = ['at', 'p', 'size'];
+export const BOOM_SIZE_MAX = 8;
 const DAMAGE_KEYS = ['seq', 'at', 'target', 'chunks', 'fell', 'openings', 'down', 'health', 'p', 'by', 'cut'];
 
 export function createWarRing(capacity) {
@@ -120,6 +136,8 @@ export function createWarRing(capacity) {
   const matches = [];
   /* Per row, the room ms the map was drawn at. */
   let clock = null;
+  /* The explosions drawn, on the room clock, oldest first. */
+  const booms = [];
   const stats = {
     dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0,
   };
@@ -196,6 +214,17 @@ export function createWarRing(capacity) {
   function born(mission, list) {
     for (const a of list) {
       agents.set(a.id, { mission, a: { ...a }, last: Infinity });
+    }
+  }
+
+  /* An explosion drawn at room ms `at`: where and how big. */
+  function boom(at, p, size) {
+    if (!Number.isFinite(at) || !Array.isArray(p) || p.length !== 3 || !p.every(Number.isFinite) || !(size > 0)) {
+      return;
+    }
+    booms.push({ at, p: [p[0], p[1], p[2]], size: Math.min(size, BOOM_SIZE_MAX) });
+    if (booms.length > BOOMS_MAX) {
+      booms.shift();
     }
   }
 
@@ -330,7 +359,8 @@ export function createWarRing(capacity) {
       cuts: m.cuts.filter((x) => x.at <= hi).map((x) => ({ ...x })),
       damage: m.damage.filter((d) => d.at <= hi).map((d) => JSON.parse(JSON.stringify(d))),
     }));
-    return { world: list, clock: c };
+    const seen = booms.filter((b) => b.at <= hi && b.at > lo - BOOM_LIFE_MS).map((b) => ({ at: b.at, p: b.p.slice(), size: b.size }));
+    return { world: list, clock: c, ...(seen.length ? { booms: seen } : {}) };
   }
 
   /* The rows the recorder cut for a clip, `n` from ring index `first`, as
@@ -381,6 +411,7 @@ export function createWarRing(capacity) {
     born,
     dead,
     damage,
+    boom,
     world,
     draw,
     clear,
@@ -405,7 +436,21 @@ export function trimWar(war, a, b) {
       })),
       clock: war.clock.slice(a, b + 1),
     } : {}),
+    ...(war.booms ? { booms: boomsOver(war.booms, war.clock ? war.clock.slice(a, b + 1) : null) } : {}),
   };
+}
+
+/* The explosions rows with room ms `clock` can still see. */
+function boomsOver(booms, clock) {
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const x of clock || []) {
+    if (Number.isFinite(x)) {
+      lo = Math.min(lo, x);
+      hi = Math.max(hi, x);
+    }
+  }
+  return booms.filter((b) => b.at <= hi && b.at > lo - BOOM_LIFE_MS).map((b) => ({ at: b.at, p: b.p.slice(), size: b.size }));
 }
 
 /* A clip's war checked, as the file's reader needs it. Throws an Error
@@ -453,6 +498,43 @@ export function checkWar(war, n) {
   if (war.world !== undefined) {
     checkWorld(war.world, war.clock, n);
   }
+  if (war.booms !== undefined) {
+    if (war.world === undefined || !Array.isArray(war.booms) || war.booms.length > BOOMS_MAX) {
+      throw new Error('the war\'s explosions are not a list on its map\'s clock');
+    }
+    for (const b of war.booms) {
+      const keys = b && typeof b === 'object' ? Object.keys(b) : [];
+      if (keys.length !== BOOM_KEYS.length || !BOOM_KEYS.every((k) => keys.includes(k)) || !Number.isFinite(b.at)
+        || !Array.isArray(b.p) || b.p.length !== 3 || !b.p.every(Number.isFinite) || !(b.size > 0 && b.size <= BOOM_SIZE_MAX)) {
+        throw new Error('a war explosion is not one');
+      }
+    }
+  }
+}
+
+/*
+ * The explosions a replay sees between rows k and k + 1, `a` of the way:
+ * those gone off by the room ms then and still alive, each with its age,
+ * s: [{ b, age }], and that room ms. Empty for a clip that kept none.
+ */
+export function boomsAt(war, n, k, a) {
+  const out = { t: NaN, list: [] };
+  if (!war.booms || !war.clock) {
+    return out;
+  }
+  const t0 = war.clock[k];
+  const t1 = war.clock[Math.min(n - 1, k + 1)];
+  const t = Number.isFinite(t0) && Number.isFinite(t1) ? t0 + (t1 - t0) * a : t0;
+  out.t = t;
+  if (!Number.isFinite(t)) {
+    return out;
+  }
+  for (const b of war.booms) {
+    if (b.at <= t && t - b.at < BOOM_LIFE_MS) {
+      out.list.push({ b, age: (t - b.at) / 1000 });
+    }
+  }
+  return out;
 }
 
 const isClock = (x) => x === null || Number.isFinite(x);

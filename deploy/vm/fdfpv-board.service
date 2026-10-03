@@ -40,7 +40,7 @@ WorkingDirectory=/opt/fdfpv-board
 # password anywhere. BOARD_PUBLIC_ORIGIN because a forwarded host cannot
 # carry the /board mount's path.
 Environment=BOARD_HOST=127.0.0.1 PORT=3180 BOARD_TRUST_PROXY=1
-Environment=SIM_ORIGIN=https://fdflabs.github.io/fdfpv BOARD_PUBLIC_ORIGIN=https://129.151.39.48/board
+Environment=SIM_ORIGIN=https://paraguayandronecombatsimulator.com BOARD_PUBLIC_ORIGIN=https://api.paraguayandronecombatsimulator.com/board
 Environment=DATABASE_URL=postgresql:///fdfpvboard?host=/run/postgresql&user=fdfpv-board
 EnvironmentFile=/etc/fdfpv/board.env
 ExecStart=/usr/bin/node --max-old-space-size=192 src/server.js
