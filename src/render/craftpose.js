@@ -163,9 +163,13 @@ export function createCraftPose() {
       state.spin[m] += rate * dt;
       hero.blades[m].rotation.y = state.spin[m];
       hero.discs[m].material.opacity = 0.08 + state.rpm[m] * 0.40;
-      const led = hero.leds[m];
-      const gain = 0.28 + state.rpm[m] * 0.95;
-      led.mat.color.setHex(hexRgb(led.base, gain));
+      /* The combat quads carry no arm lights (src/render/combatcraft.js), and
+       * one is the default racer since the five inch went, so the studio
+       * meets a model without them on every first visit. */
+      const led = hero.leds && hero.leds[m];
+      if (led) {
+        led.mat.color.setHex(hexRgb(led.base, 0.28 + state.rpm[m] * 0.95));
+      }
     }
 
     const hot = 0.12 + thr * 0.62;
