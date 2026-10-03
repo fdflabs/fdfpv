@@ -68,11 +68,11 @@ export const END_LINES = new Set(['win', 'lose-output', 'lose-rack',
   ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
 /* The music's level on the music setting, before the master: the intro
  * is a trailer and carries the countdown, the loop sits under the voice. */
-const INTRO_BUS = 0.5;
+export const INTRO_BUS = 0.5;
 /* 0.335, not 0.22: the combat file was turned down 3.67 dB to bring its
  * true peak under -1 dBTP (tools/voice/music.py), and this gives the same
  * dB back so the war's mix does not move. */
-const COMBAT_BUS = 0.335;
+export const COMBAT_BUS = 0.335;
 /* How far the motors and wind duck under a call, and the voice's level. */
 const VOICE_LEVEL = 1.0;
 export const VOICE_DUCK = 0.55;

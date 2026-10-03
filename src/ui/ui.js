@@ -600,6 +600,12 @@ const DEFAULTS = {
    */
   warAirframe: '',
   /*
+   * Whether this profile has been told, and said it understands, that its
+   * voice may be kept in other pilots' replays (src/ui/voiceui.js): until
+   * then voice chat listens only.
+   */
+  voiceReplayAck: false,
+  /*
    * The tune each aircraft was last flown on, by airframe id, so that
    * changing aircraft and changing back, which a swap in flight makes a
    * matter of seconds, lands on the tune the pilot had rather than the
