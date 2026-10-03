@@ -65,10 +65,12 @@ import {
 } from '../../src/share/roomwire.js';
 import { LATE_MS, Track, hullFor } from '../../src/game/midair.js';
 import { PASS_MS, StreamerTrack, judgeCut } from '../../src/game/cut.js';
+import { ROUND_MINUTES, madeFor } from '../../src/share/modes.js';
 
 /* The owner's fifty metres, in one metre links. */
 export const FULL_LINKS = 50;
-export const ROUND_MINUTES = [3, 5];
+/* The round lengths are the mode registry's (combat's setting). */
+export { ROUND_MINUTES };
 export const COUNTDOWN_MS = 20000;
 /* Continuous play (the lead's decision, 2026-09-28): a round's results
  * stand this long, then the next round of the same length counts down,
@@ -282,7 +284,7 @@ export class RoomCombat {
       /* A room made for combat goes back to its lobby instead
        * (edge/rooms/gamelobby.js), where its pilots say when they are
        * ready for the next. */
-      r.nextAt = this.meta.mode === 'combat' ? 0 : t + RESULTS_MS;
+      r.nextAt = madeFor(this.meta.mode, 'combat')?.straightToLobby ? 0 : t + RESULTS_MS;
       for (const s of this.seats.values()) {
         /* All the paper towed, captured colours included. */
         s.points += Math.floor(POINTS_PER_METRE * Math.min(s.owed, s.links));

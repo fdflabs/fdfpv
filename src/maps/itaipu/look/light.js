@@ -69,6 +69,18 @@ export const SUN_IRRADIANCE = 3.51;
  * the ground's median lightness 0.51 over eight of the loop's views, the
  * photographs' 0.41 over all of them. At 1.15 it is 0.40 over all 22. */
 export const EXPOSURE = 1.15;
+/* The meter's target by day (swiss2/post.js air.meterKey; the valley's
+ * KEY is 0.09). With the sun counted once on High (THE CASCADES ARE ONE
+ * SUN, below) the eight views matched to photographs in round 4 fell from
+ * mean lightness 0.47 to 0.43 against the photographs' 0.50. Raising the
+ * base exposure instead also raised the floor of the meter's range, where
+ * a frame full of sky sits, and war:boom's striker looking up at the
+ * cumulus came out at middle third lightness 236 (main's 178), too bright
+ * for its fireball to show. The key moves only the frames the meter
+ * reaches (a frame of sky is at the floor whatever the key: war:boom's
+ * striker read 208 at a key of 0.128 and of 0.1). 0.125 is about the
+ * base's 1.5 / 1.15 through the meter's 0.75 adaptation. */
+export const METER_KEY = 0.125;
 
 /* The moon, standing where the sun does (sunDirection is shared: a
  * single shadow map serves either), cool and faint: 1.5% of the sun's
@@ -95,28 +107,75 @@ export const NIGHT_AMBIENT_SKY = new THREE.Color(0.05, 0.08, 0.14);
 export const NIGHT_AMBIENT_GROUND = new THREE.Color(0.02, 0.02, 0.03);
 export const NIGHT_AMBIENT_INTENSITY = 0.5;
 
-/* Toward the sun (day) or the moon (night): the same direction either
- * way, azimuth clockwise from north, north -z. */
-export function sunDirection() {
-  const e = THREE.MathUtils.degToRad(SUN_ELEVATION_DEG);
-  const a = THREE.MathUtils.degToRad(SUN_AZIMUTH_DEG);
-  return new THREE.Vector3(Math.cos(e) * Math.sin(a), Math.sin(e), -Math.cos(e) * Math.cos(a)).normalize();
+/*
+ * THE TIMES OF DAY (round 4): 'day', the default and the satellite's sun
+ * above, and three more a map can be built at, each the sun of a late
+ * December day at the dam (25.4 S, 54.6 W, the season of the imagery):
+ *
+ *   morning   about 08:00, the sun 28 degrees up in the east south east,
+ *             a little warm; the humid morning's air is thicker (sky.js)
+ *   noon      solar noon, the sun 87 degrees up, just south of the
+ *             zenith, its whitest and strongest
+ *   golden    an hour before sunset, 8 degrees up in the west south west,
+ *             orange through the long air and weaker; its colour and
+ *             strength are scripts/loading-art.js's sunset's, a little
+ *             higher and less red
+ *   night     mission 4's moon, standing where the day's sun does
+ *
+ * Only 'day' agrees with the shadows the satellite's colour has baked in
+ * (THE SUN IS THE PHOTOGRAPH'S, above): at the others the ground's own
+ * baked shade still falls west, faint at its 10 m. They are for a pilot
+ * who asks for them (?time= in the address, src/main.js), never the
+ * default.
+ */
+export const TIMES = {
+  day: {
+    azimuth: SUN_AZIMUTH_DEG, elevation: SUN_ELEVATION_DEG, color: SUN_COLOR, irradiance: SUN_IRRADIANCE,
+  },
+  morning: {
+    azimuth: 106, elevation: 28, color: new THREE.Color(1.0, 0.86, 0.7), irradiance: 2.9,
+  },
+  noon: {
+    azimuth: 180, elevation: 87, color: new THREE.Color(1.0, 0.95, 0.87), irradiance: 3.65,
+  },
+  golden: {
+    azimuth: 248, elevation: 8, color: new THREE.Color(1.0, 0.58, 0.28), irradiance: 3.2,
+  },
+  night: {
+    azimuth: SUN_AZIMUTH_DEG, elevation: SUN_ELEVATION_DEG, color: NIGHT_SUN_COLOR, irradiance: NIGHT_SUN_IRRADIANCE,
+  },
+};
+
+/* The look's chosen time, one of TIMES's names; null or undefined is
+ * 'day'. Anything else is a caller's mistake. */
+export function timeOf(time) {
+  if (time == null) {
+    return 'day';
+  }
+  if (!Object.hasOwn(TIMES, time)) {
+    throw new Error(`itaipu light: time is one of ${Object.keys(TIMES).join(', ')}, got ${JSON.stringify(time)}`);
+  }
+  return time;
 }
 
-/* The look's chosen time: 'day' (default, unchanged from before this
- * existed) or 'night' (mission 4). Anything else is a caller's mistake. */
 export function isNight(time) {
-  if (time != null && time !== 'day' && time !== 'night') {
-    throw new Error(`itaipu light: time is 'day' or 'night', got ${JSON.stringify(time)}`);
-  }
-  return time === 'night';
+  return timeOf(time) === 'night';
+}
+
+/* Toward the sun (or the moon, at night) at the time picked, azimuth
+ * clockwise from north, north -z. With no time, the day's: the water's
+ * spray and the trees' impostors read it so. */
+export function sunDirection(time) {
+  const { azimuth, elevation } = TIMES[timeOf(time)];
+  const e = THREE.MathUtils.degToRad(elevation);
+  const a = THREE.MathUtils.degToRad(azimuth);
+  return new THREE.Vector3(Math.cos(e) * Math.sin(a), Math.sin(e), -Math.cos(e) * Math.cos(a)).normalize();
 }
 
 /* The directional light's colour and irradiance for the time picked. */
 export function sunFor(time) {
-  return isNight(time)
-    ? { color: NIGHT_SUN_COLOR, irradiance: NIGHT_SUN_IRRADIANCE }
-    : { color: SUN_COLOR, irradiance: SUN_IRRADIANCE };
+  const { color, irradiance } = TIMES[timeOf(time)];
+  return { color, irradiance };
 }
 
 /* The sky's low fill at night, or null: added to the scene only then,

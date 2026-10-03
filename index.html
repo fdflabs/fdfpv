@@ -93,6 +93,11 @@
          preload without it is fetched twice. -->
     <link rel="preload" href="assets/fonts/saira-lockup-800.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="assets/fonts/saira-lockup-300.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- The bootloader's face, IBM Plex Mono, asked for first thing: it is
+         font-display swap, so the boot screen never waits on it. -->
+    <link rel="preload" href="assets/fonts/IBMPlexMono-Regular-Latin1.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- And the names' face (--type-name), for the cards the title opens on. -->
+    <link rel="preload" href="assets/fonts/saira-names-600.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="theme-color" content="#141c16" />
     <style>
       :root {
@@ -186,6 +191,47 @@
           linear-gradient(0deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / 50px 50px;
         --pdcs-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
         --pdcs-read: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        /*
+         * THE DESIGN SYSTEM'S TOKENS (docs/redesign/PLAN.md section 4.1),
+         * over the PDCS palette above. New rules take these; the sheet's
+         * hand typed gaps and radii fold into them as each screen is
+         * touched, never in a sweep of their own.
+         *
+         * Spacing on a 4 px step.
+         */
+        --sp-1: 4px;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 24px;
+        --sp-6: 32px;
+        --sp-7: 48px;
+        /* Frames and cards are square, as the title's cards are; a control
+           a hand presses gets the one softened corner. */
+        --radius-frame: 0;
+        --radius-control: 2px;
+        /* Type by role. The name (the lockup's Saira) is the title's only;
+           names of hubs, activities, worlds and missions are Saira
+           Condensed; sentences the readable face; labels and telemetry the
+           monospace. */
+        --type-display: "Saira Lockup", var(--pdcs-read);
+        --type-name: "Saira Names", var(--pdcs-read);
+        --type-read: var(--pdcs-read);
+        --type-mono: var(--pdcs-mono);
+        /*
+         * ONE ACCENT PER HUB over the same ground (decided 2026-10-02): a
+         * screen sets --hub-accent from one of these and every accented
+         * rule reads --hub-accent. Measured on --pdcs-bg and on the
+         * ground's lighter centre (#101416):
+         *   --hub-ops     #6aa3c8   7.3 and 6.8 : 1 (the blue accent)
+         *   --hub-club    #e09a5f   8.5 and 7.9 : 1, apart from --pdcs-warn
+         *   --hub-hangar  #a9b4bb   9.4 and 8.8 : 1
+         * Dark text on each is the same ratio.
+         */
+        --hub-ops: var(--pdcs-blue);
+        --hub-club: #e09a5f;
+        --hub-hangar: #a9b4bb;
+        --hub-accent: var(--hub-ops);
       }
       /* overscroll-behavior is for phones: a drag that starts on the world
          must not become a pull-to-refresh mid-flight. */
@@ -1406,6 +1452,22 @@
         font-family: "Saira Lockup"; font-weight: 300; font-style: normal; font-display: block;
         src: url("assets/fonts/saira-lockup-300.woff2") format("woff2");
       }
+      /*
+       * THE NAMES' FACE (--type-name): Saira at width 75 (Saira
+       * Condensed), SemiBold, from the same upstream variable font and the
+       * same licence, subset to Latin and Latin 1 (every Spanish letter)
+       * and four punctuation marks, 9772 bytes:
+       *   python3 -m fontTools.varLib.instancer 'Saira[wdth,wght].ttf' wght=600 wdth=75 -o c.ttf
+       *   python3 -m fontTools.subset c.ttf --unicodes=U+0020-007E,U+00A0-00FF,U+2019,U+201C,U+201D,U+2026
+       *     --layout-features=kern,liga --flavor=woff2 --desubroutinize
+       *     --name-IDs=0,1,2,3,4,5,6,13,14 --output-file=assets/fonts/saira-names-600.woff2
+       * One weight: a name at 500 or 700 draws this one (font-synthesis
+       * none), so a name never fakes a bold.
+       */
+      @font-face {
+        font-family: "Saira Names"; font-weight: 100 900; font-style: normal; font-display: block;
+        src: url("assets/fonts/saira-names-600.woff2") format("woff2");
+      }
       .lockup-box .lockup {
         padding-left: 0; color: var(--pdcs-bright);
         font-family: "Saira Lockup", var(--pdcs-read); font-synthesis: none;
@@ -1768,6 +1830,7 @@
         padding: 12px 16px 15px;
       }
       .gate-card-name {
+        font-family: var(--type-name); font-synthesis: none;
         color: var(--cream);
         font-size: clamp(15px, 1.3vw, 20px);
         font-weight: 500;
@@ -3710,7 +3773,7 @@
         display: flex; align-items: baseline; gap: 10px;
         padding: 10px 14px 12px;
       }
-      .map-card-name { color: var(--cream); font-size: 17px; font-weight: 600; }
+      .map-card-name { font-family: var(--type-name); font-synthesis: none; color: var(--cream); font-size: 17px; font-weight: 600; }
       .map-card.on .map-card-name { color: var(--sakura); }
       .map-card-tag {
         margin-left: auto; color: var(--mint); font-size: 11px;
@@ -4430,174 +4493,285 @@
         .screen-results .menu-scroll { max-height: min(36vh, 9em); }
       }
 
-      /* Loading. This markup is STATIC, and that is the point: it paints on
-         the first layout, before the import map has resolved a single module,
-         so the three.js fetch is a stage the player can see rather than a
-         blank page. src/ui/loading.js only ever writes into it.
+      /* THE BOOTLOADER, the owner's PDCS spec of 3 October, its markup,
+         ids, class names and values as given. This markup is STATIC, and
+         that is the point: it paints on the first layout, before the
+         import map has resolved a single module, so the three.js fetch is
+         a stage the player can see rather than a blank page.
+         src/ui/loading.js only ever writes into it.
 
-         THE BOOTLOADER, as the owner drew it on 2 October: a simulation
-         system initializing, not a title screen. It comes back on every
-         map swap, so it shows the game's machinery rather than any one
-         world's picture: four screens (initial boot, system check, map
-         loading, finalizing), one per stage of the real load, each row a
-         real step. Branding is subdued to PDCS and a thin flag marker,
-         always red over white over blue. A load planned to be short shows
-         the first screen only (.is-minimal; MINIMAL_MS in loading.js).
-
-         Still no webfont: IBM Plex Mono where it is installed, and the
-         system's monospace everywhere else. */
-      #loading {
-        --pdcs-gutter: 34px;
-        position: fixed; inset: 0; z-index: 10;
-        background: var(--pdcs-ground);
+         Where this differs from the spec's CSS, and why:
+         - The spec's tokens are the page's own PDCS tokens of the same
+           values (--bg is --pdcs-bg, --line --pdcs-line, and so on, on
+           :root above), and the box sizing is scoped to #pdcs-loader
+           rather than set on *, so the overlay changes nothing else.
+         - .progress-fill moves by transform, not width. A world build
+           blocks the main thread for seconds, and only a composited
+           property keeps its transition running through that; the look
+           is the same. A sweep inside the track says the page is alive
+           while a phase is blocking it, and says nothing about progress.
+         - .system-row span.ready and .loading, not .system-row .ready:
+           the spec's span:last-child rule outranks .ready, so OK would
+           never have been green.
+         - The face is IBM's own Latin 1 cut of Plex Mono, self hosted
+           (NOTICE), under its own family name so the menus keep theirs.
+         - Additions the spec does not draw: the map's name and poster on
+           the map screen, the drone's real wireframe, a status line that
+           appears only when a stage stalls or a link is being retried, the
+           failure panel, the minimal variant, and the phone layout. */
+      @font-face {
+        font-family: "PDCS Plex Mono"; font-weight: 400; font-style: normal; font-display: swap;
+        src: url("assets/fonts/IBMPlexMono-Regular-Latin1.woff2") format("woff2");
+      }
+      #pdcs-loader { --pdcs-gutter: 34px; }
+      #pdcs-loader, #pdcs-loader * { box-sizing: border-box; }
+      .pdcs-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: radial-gradient(circle at 50% 40%, #101416 0%, #080a0b 48%, #050607 100%);
         background-color: var(--pdcs-bg);
-        font-family: var(--pdcs-mono);
         color: var(--pdcs-text);
-        font-variant-numeric: tabular-nums;
+        font-family: "PDCS Plex Mono", "IBM Plex Mono", "Courier New", monospace;
         text-transform: uppercase;
+        font-variant-numeric: tabular-nums;
         overflow: hidden;
-        transition: opacity 0.3s ease;
+        opacity: 1;
+        transition: opacity 0.4s ease;
       }
-      #loading[hidden] { display: none; }
-      .pdcs-grid {
-        position: absolute; inset: 0; pointer-events: none;
-        background: var(--pdcs-grid);
-      }
-      .pdcs-head {
-        position: absolute; top: max(26px, env(safe-area-inset-top));
-        left: var(--pdcs-gutter); right: var(--pdcs-gutter);
-        display: flex; justify-content: space-between; align-items: center; gap: 16px;
-        font-size: 11px; letter-spacing: 0.16em; line-height: 1.3;
-      }
-      .pdcs-step { color: var(--pdcs-blue); }
-      .pdcs-head-core { display: flex; align-items: center; gap: 12px; color: var(--pdcs-dim); white-space: nowrap; }
-      /* Paraguay's flag as a marker: three horizontal bands, red over white
-         over blue, never turned on its side. */
+      .pdcs-loader.hidden { opacity: 0; pointer-events: none; }
+      .pdcs-loader[hidden] { display: none; }
+
+      /* PARAGUAY FLAG MARK: three horizontal bands, red over white over
+         blue, never turned on its side. Page wide, because the title's
+         lockup (.lockup-box .lockup .py-flag) is the same mark. */
       .py-flag {
-        display: inline-flex; flex-direction: column; flex: none;
-        width: 30px; height: 8px; box-sizing: border-box;
+        width: 30px;
+        height: 8px;
+        display: flex;
+        flex-direction: column;
+        flex: none;
+        box-sizing: border-box;
         border: 1px solid rgba(255, 255, 255, 0.18);
       }
-      .py-flag > span { flex: 1; }
-      .py-flag > span:nth-child(1) { background: var(--py-red); }
-      .py-flag > span:nth-child(2) { background: var(--py-white); }
-      .py-flag > span:nth-child(3) { background: var(--py-blue); }
-      .py-flag-wide { width: 54px; height: 7px; }
-      .loading-col {
+      .py-flag span { flex: 1; width: 100%; }
+      .py-flag span:nth-child(1) { background: var(--py-red); }
+      .py-flag span:nth-child(2) { background: var(--py-white); }
+      .py-flag span:nth-child(3) { background: var(--py-blue); }
+      .py-flag-center { width: 54px; height: 7px; margin: 14px auto 0; }
+
+      /* HEADER */
+      .loader-header {
         position: absolute;
-        top: 90px; bottom: 70px; left: var(--pdcs-gutter); right: var(--pdcs-gutter);
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        top: max(26px, env(safe-area-inset-top));
+        left: var(--pdcs-gutter);
+        right: var(--pdcs-gutter);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        font-size: 11px;
+        letter-spacing: 0.16em;
       }
-      .pdcs-screen { display: none; width: min(1100px, 100%); }
-      #loading[data-screen="1"] .pdcs-screen[data-n="1"],
-      #loading[data-screen="2"] .pdcs-screen[data-n="2"],
-      #loading[data-screen="3"] .pdcs-screen[data-n="3"],
-      #loading[data-screen="4"] .pdcs-screen[data-n="4"],
-      #loading.is-minimal .pdcs-screen[data-n="1"] { display: flex; }
-      #loading.is-minimal .pdcs-screen:not([data-n="1"]) { display: none; }
-      .pdcs-boot { flex-direction: column; align-items: center; gap: 16px; text-align: center; }
-      .pdcs-mark { font-size: 34px; line-height: 1; color: var(--pdcs-text); }
-      .pdcs-core { font-size: 13px; letter-spacing: 0.3em; }
-      .pdcs-init { font-size: 11px; letter-spacing: 0.24em; color: var(--pdcs-dim); }
-      /* The minimal screen is the boot mark and a bar, nothing else. */
-      #loading.is-minimal .pdcs-core, #loading.is-minimal .py-flag-wide { display: none; }
-      .pdcs-split {
-        display: none;
-        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-        gap: 7vw; align-items: center;
+      .loader-stage { display: flex; gap: 16px; white-space: nowrap; }
+      .loader-brand { display: flex; align-items: center; gap: 11px; color: var(--pdcs-dim); white-space: nowrap; }
+
+      /* MAIN */
+      .loader-content {
+        position: absolute;
+        top: 90px;
+        bottom: 70px;
+        left: var(--pdcs-gutter);
+        right: var(--pdcs-gutter);
       }
-      #loading[data-screen="2"] .pdcs-split[data-n="2"],
-      #loading[data-screen="3"] .pdcs-split[data-n="3"],
-      #loading[data-screen="4"] .pdcs-split[data-n="4"] { display: grid; }
-      #loading.is-minimal[data-screen] .pdcs-split[data-n] { display: none; }
-      .pdcs-title { font-size: 13px; letter-spacing: 0.2em; margin-bottom: 18px; }
-      .pdcs-map-name { margin: -8px 0 16px; font-size: 11px; letter-spacing: 0.16em; color: var(--pdcs-dim); }
-      .pdcs-map-name:empty { display: none; }
-      .pdcs-rows { list-style: none; margin: 0; padding: 0; }
-      .pdcs-rows li {
-        display: flex; justify-content: space-between; gap: 16px;
-        padding: 10px 0; font-size: 12px; letter-spacing: 0.12em;
+      .loader-screen { display: none; height: 100%; }
+      .loader-screen.active { display: block; }
+
+      /* INITIAL */
+      .initial-center {
+        position: absolute;
+        left: 50%;
+        top: 47%;
+        transform: translate(-50%, -50%);
+        width: min(420px, 100%);
+        text-align: center;
+      }
+      .pdcs-mark { font-family: Arial, sans-serif; font-size: 64px; line-height: 1; margin-bottom: 20px; color: #d8dddf; }
+      .core-name { font-size: 15px; letter-spacing: 0.2em; }
+      .boot-action { margin-top: 48px; font-size: 12px; letter-spacing: 0.28em; color: var(--pdcs-dim); }
+
+      /* PROGRESS */
+      .progress-row { margin-top: 18px; display: flex; align-items: center; gap: 16px; }
+      .progress-row.large { margin-top: 18px; max-width: 600px; }
+      .progress-row > span { min-width: 3.2em; text-align: right; font-size: 11px; letter-spacing: 0.08em; }
+      .progress-track {
+        position: relative;
+        flex: 1;
+        height: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        background: rgba(255, 255, 255, 0.025);
+        overflow: hidden;
+      }
+      .progress-fill {
+        position: absolute;
+        inset: 0;
+        background: #d6dddd;
+        transform: scaleX(0);
+        transform-origin: left center;
+        transition: transform 0.25s ease;
+        will-change: transform;
+      }
+      .progress-sweep {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(214, 221, 221, 0.22), transparent);
+        transform: translateX(-100%);
+        animation: pdcs-sweep 1.6s linear infinite;
+        will-change: transform;
+      }
+      @keyframes pdcs-sweep { to { transform: translateX(100%); } }
+
+      /* SYSTEM CHECK */
+      .systems-layout, .map-layout, .final-layout {
+        height: 100%;
+        display: grid;
+        grid-template-columns: minmax(350px, 0.9fr) minmax(400px, 1.1fr);
+        align-items: center;
+        gap: 7vw;
+      }
+      .systems-list { max-width: 450px; }
+      .systems-list.compact { margin-top: 26px; }
+      .system-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 10px 0;
+        font-size: 12px;
+        letter-spacing: 0.08em;
         border-bottom: 1px solid var(--pdcs-line-soft);
       }
-      .pdcs-row-name { min-width: 0; }
-      .pdcs-row-state { flex: none; color: var(--pdcs-dim); }
-      .pdcs-rows li[data-state="ready"] .pdcs-row-state { color: var(--pdcs-green); }
-      .pdcs-rows li[data-state="loading"] .pdcs-row-state {
-        color: var(--pdcs-text);
-        animation: pdcs-blink 0.9s ease-in-out infinite alternate;
-      }
-      .pdcs-rows li[data-state="fail"] .pdcs-row-state { color: var(--pdcs-fail); }
-      .pdcs-rows li[data-state="wait"] .pdcs-row-name,
-      .pdcs-rows li[data-state="na"] .pdcs-row-name { color: var(--pdcs-dim); }
+      .system-row span:last-child { color: var(--pdcs-dim); flex: none; }
+      .system-row span.ready { color: var(--pdcs-green); }
+      .system-row span.loading { color: var(--pdcs-text); animation: pdcs-blink 0.9s alternate infinite; }
+      .system-row span.fail { color: var(--pdcs-fail); }
+      .system-row[data-state="wait"] span:first-child,
+      .system-row[data-state="na"] span:first-child { color: var(--pdcs-dim); }
       @keyframes pdcs-blink { from { opacity: 0.35; } to { opacity: 1; } }
-      .pdcs-visual {
-        position: relative; min-height: 300px; overflow: hidden;
-        display: flex; align-items: center; justify-content: center;
+      .loader-screen h2 { margin: 0; font-size: 13px; font-weight: 400; letter-spacing: 0.2em; }
+      .map-name { margin-top: 10px; font-size: 11px; letter-spacing: 0.16em; color: var(--pdcs-dim); }
+      .map-name:empty { display: none; }
+
+      /* VISUAL AREAS */
+      .drone-wireframe, .map-preview, .final-reticle {
+        position: relative;
+        width: 100%;
+        height: 60%;
+        min-height: 300px;
+        overflow: hidden;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: var(--pdcs-fine-grid), linear-gradient(var(--pdcs-blue-wash), var(--pdcs-blue-wash));
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size: 50px 50px;
       }
-      .pdcs-drone { width: min(86%, 420px); height: auto; opacity: 0.9; }
+      .drone-wireframe { display: grid; place-items: center; }
+      .drone-wireframe img { width: min(86%, 420px); height: auto; opacity: 0.9; }
       /* The world being loaded, as a survey plate: its own card's poster,
          without colour, under the grid. */
-      .pdcs-map {
+      .map-preview img {
         position: absolute; inset: 0; width: 100%; height: 100%;
         object-fit: cover; filter: grayscale(1) contrast(1.1) brightness(0.7);
         opacity: 0.55; mix-blend-mode: luminosity;
       }
-      .pdcs-map[hidden] { display: none; }
-      .pdcs-reticle {
-        position: relative; width: 80px; height: 80px; border-radius: 50%;
-        border: 1px solid var(--pdcs-line);
+      .map-preview img[hidden] { display: none; }
+
+      /* RETICLE */
+      .final-reticle { display: grid; place-items: center; }
+      .final-reticle div {
+        width: 80px;
+        height: 80px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        position: relative;
       }
-      .pdcs-reticle::before, .pdcs-reticle::after {
-        content: ""; position: absolute; left: 50%; top: 50%; background: var(--pdcs-line);
+      .final-reticle div::before, .final-reticle div::after {
+        content: "";
+        position: absolute;
+        background: rgba(255, 255, 255, 0.3);
       }
-      .pdcs-reticle::before { width: 140px; height: 1px; transform: translate(-50%, -50%); }
-      .pdcs-reticle::after { width: 1px; height: 140px; transform: translate(-50%, -50%); }
-      .loading-status { width: min(1100px, 100%); margin-top: 40px; }
-      #loading[data-screen="1"] .loading-status,
-      #loading.is-minimal .loading-status { width: min(420px, 100%); margin-top: 28px; }
-      .loading-row {
-        display: flex; align-items: baseline; justify-content: space-between;
-        gap: 14px;
-      }
-      .loading-stage {
-        min-width: 0;
-        font-size: 11px; line-height: 1.35; letter-spacing: 0.16em;
+      .final-reticle div::before { width: 140px; height: 1px; left: -30px; top: 39px; }
+      .final-reticle div::after { height: 140px; width: 1px; top: -30px; left: 39px; }
+
+      /* FOOTER */
+      .loader-footer {
+        position: absolute;
+        left: var(--pdcs-gutter);
+        right: var(--pdcs-gutter);
+        bottom: max(24px, env(safe-area-inset-bottom));
+        padding-top: 14px;
+        border-top: 1px solid var(--pdcs-line);
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
         color: var(--pdcs-dim);
+        font-size: 9px;
+        letter-spacing: 0.16em;
       }
-      /* The minimal screen says INITIALIZING and no more, until a stage
-         stalls: then the line that names it is what a waiting pilot needs. */
-      #loading.is-minimal:not(.is-stalled) .loading-stage { visibility: hidden; }
-      /*
-       * How long the load has taken and how far through it is. The seconds
-       * stop counting while the thread is blocked and catch up when it
-       * returns, which is honest and is why the bar and the sweep are the
-       * ones carrying that window.
-       */
-      .loading-meta {
-        display: flex; gap: 12px; align-items: baseline; flex: none;
-        font-size: 11px; letter-spacing: 0.08em; color: var(--pdcs-dim);
+
+      /* BACKGROUND GRID, and the noise layer the spec names and leaves
+         empty: nothing is painted into it. */
+      .loader-noise { position: absolute; inset: 0; pointer-events: none; }
+      .loader-grid {
+        position: absolute;
+        inset: 0;
+        opacity: 0.22;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+        background-size: 100px 100px;
       }
-      .loading-pct { color: var(--pdcs-text); min-width: 3.2em; text-align: right; }
-      .loading-error {
-        margin-top: 12px; font-size: 13px; line-height: 1.45; color: var(--pdcs-fail);
-        text-transform: none; word-break: break-word;
-      }
-      .pdcs-foot {
+
+      /* WHAT IS HAPPENING, when it is news: a stage that has outstayed
+         STALL_MS (src/ui/loading.js) names itself and its detail, and a
+         room link being retried says which attempt it is on. Otherwise
+         empty, and the screens speak for themselves. */
+      .loader-status {
         position: absolute; left: 0; right: 0; bottom: 0;
-        display: flex; justify-content: space-between; align-items: center; gap: 12px;
-        padding: 14px var(--pdcs-gutter) max(14px, env(safe-area-inset-bottom));
-        border-top: 1px solid var(--pdcs-line-soft);
-        font-size: 9px; letter-spacing: 0.2em; color: var(--pdcs-dim);
+        min-height: 1.35em;
+        font-size: 11px; line-height: 1.35; letter-spacing: 0.16em;
+        color: var(--pdcs-dim); text-align: center;
+        visibility: hidden;
       }
+      .pdcs-loader.is-stalled .loader-status,
+      .pdcs-loader.is-held .loader-status,
+      .pdcs-loader.is-failed .loader-status { visibility: visible; }
+
+      /* THE MINIMAL LOADER, for a load planned short and for a held link:
+         the mark, the line and the bar, and nothing of the diagnostic
+         screens around them. */
+      .pdcs-loader.is-minimal .loader-header,
+      .pdcs-loader.is-minimal .loader-footer,
+      .pdcs-loader.is-minimal .core-name,
+      .pdcs-loader.is-minimal .py-flag-center { display: none; }
+      .pdcs-loader.is-minimal .loader-screen { display: none; }
+      .pdcs-loader.is-minimal #screen-boot { display: block; }
+      /* A held link has no amount to show: the bar sweeps and says no
+         number. */
+      .pdcs-loader.is-held #boot-progress-text { visibility: hidden; }
+      .pdcs-loader:not(.is-held):not(.is-stalled) .progress-sweep { opacity: 0; }
+
       /* The failure panel. Only ever painted by fail(), which is why it
          carries its own type sizes rather than inheriting the calm ones
          above: this is the one moment the screen has to be read rather
          than glanced at. */
+      .loading-error {
+        margin-top: 12px; font-size: 13px; line-height: 1.45; color: var(--pdcs-fail);
+        text-transform: none; word-break: break-word; text-align: center;
+      }
       .loading-help {
-        width: min(560px, 100%); box-sizing: border-box;
-        margin-top: 20px; text-align: left; text-transform: none;
+        width: min(560px, 100%);
+        margin: 20px auto 0; text-align: left; text-transform: none;
         padding: 16px 18px; border-radius: 2px;
         background: rgba(255, 255, 255, 0.03);
         box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.1);
@@ -4612,9 +4786,7 @@
       .loading-help li { margin-bottom: 9px; }
       .loading-help li:last-child { margin-bottom: 0; }
       .loading-help b { color: var(--cream); font-weight: 700; }
-      .loading-help .loading-why {
-        margin: 0 0 14px; color: var(--slate);
-      }
+      .loading-help .loading-why { margin: 0 0 14px; color: var(--slate); }
       .loading-help .loading-detail {
         margin-top: 16px; padding-top: 12px;
         border-top: 1px solid rgba(244, 236, 214, 0.16);
@@ -4631,90 +4803,50 @@
         background: transparent; color: var(--cream); font-weight: 600;
         box-shadow: inset 0 0 0 1px rgba(244, 236, 214, 0.3);
       }
-      .loading-actions button:focus-visible {
-        outline: 2px solid var(--cream); outline-offset: 2px;
+      .loading-actions button:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+      .loader-fail { display: none; }
+      /* A failure is read, not glanced at: the screens step back to make
+         the room the steps need, and every number beside a dead bar goes. */
+      .pdcs-loader.is-failed .loader-screen { display: none; }
+      .pdcs-loader.is-failed .loader-fail {
+        display: block; position: absolute; inset: 0 0 1.6em;
+        overflow-y: auto; scrollbar-width: none;
       }
-      .loading-track {
-        position: relative;
-        width: 100%; height: 5px; box-sizing: border-box;
-        margin-top: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.28);
-        overflow: hidden;
-      }
-      /*
-       * TRANSFORM, NOT WIDTH, AND IT IS THE WHOLE FIX.
-       *
-       * Building a world is seconds of synchronous work on the main thread:
-       * about nineteen thousand meshes for the town, every sign and fascia
-       * painted with Canvas2D as it goes. While that runs, nothing driven
-       * from JavaScript moves and neither does a width transition, because
-       * width is layout and layout is the main thread's. So the bar sat at
-       * the end of the last cheap stage, and then jumped to full when the
-       * thread came back. Reported, in those words: fifteen percent for a
-       * while and then straight to a hundred.
-       *
-       * A transform transition is composited. It keeps running through a
-       * blocked main thread, which is exactly the window where a loading
-       * screen has to prove it is alive. See aim() in src/ui/loading.js for
-       * what it is aimed at and why it never reaches the end of a stage it
-       * cannot measure.
-       */
-      .loading-fill {
-        position: absolute; inset: 0;
-        transform: scaleX(0);
-        transform-origin: left center;
-        background: var(--pdcs-blue);
-        transition: transform 0.18s linear;
-        will-change: transform;
-      }
-      /*
-       * The sweep. It says nothing about progress and is not pretending to:
-       * it says the page is still alive, which during a blocked second is
-       * the only true thing there is to say. Same argument, same mechanism
-       * and same reason as the landing page's boot sweep.
-       */
-      .loading-sweep {
-        position: absolute; inset: 0;
-        background: linear-gradient(90deg,
-          transparent, rgba(140, 188, 216, 0.35), transparent);
-        transform: translateX(-100%);
-        animation: loading-sweep 1.6s linear infinite;
-        will-change: transform;
-      }
-      @keyframes loading-sweep { to { transform: translateX(100%); } }
+      .pdcs-loader.is-failed .loader-fail .progress-fill { background: #e8503a; transform: scaleX(1); transition: none; }
+      .loader-fail-inner { min-height: 100%; display: flex; flex-direction: column; justify-content: center; }
+      .loader-fail .progress-row { width: min(420px, 100%); margin: 0 auto; }
+
       @media (prefers-reduced-motion: reduce) {
         /* The sweep and the blink are decoration and go. The fill is not:
-           it is the one thing on this screen carrying how far through the
-           load we are, so it keeps its transition. The fade out goes. */
-        .loading-sweep { animation: none; opacity: 0; }
-        .pdcs-rows li[data-state="loading"] .pdcs-row-state { animation: none; }
-        #loading { transition: none; }
+           it is the one thing carrying how far through the load we are,
+           so it keeps its transition. The fade out goes. */
+        .progress-sweep { animation: none; opacity: 0; }
+        .system-row span.loading { animation: none; }
+        .pdcs-loader { transition: none; }
       }
-      /* A failure is read, not glanced at: the screens step back to make
-         the room the steps need, and the number beside a dead bar goes. */
-      #loading.is-failed .loading-col { justify-content: safe center; overflow-y: auto; scrollbar-width: none; }
-      #loading.is-failed .pdcs-screen { display: none; }
-      #loading.is-failed .loading-meta { display: none; }
       /* A phone: the gutter is 16 px, the two column screens stack with
          the picture under the rows and shorter, and the header keeps the
          flag and drops the words beside it. */
       @media (max-width: 760px) {
-        #loading { --pdcs-gutter: max(16px, env(safe-area-inset-left)); }
-        .loading-col { top: 64px; bottom: 54px; justify-content: safe center; overflow-y: auto; scrollbar-width: none; }
-        .pdcs-split { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-        .pdcs-visual { min-height: 0; height: clamp(120px, 26vh, 220px); }
-        .loading-status { margin-top: 24px; }
+        #pdcs-loader { --pdcs-gutter: max(16px, env(safe-area-inset-left)); }
+        .loader-content { top: 64px; bottom: 64px; overflow-y: auto; scrollbar-width: none; }
+        .systems-layout, .map-layout, .final-layout {
+          grid-template-columns: minmax(0, 1fr); gap: 20px; height: auto; min-height: 100%;
+          align-content: center; padding-bottom: 1.6em;
+        }
+        .drone-wireframe, .map-preview, .final-reticle { min-height: 0; height: clamp(120px, 26vh, 220px); }
+        .loader-status { position: fixed; left: var(--pdcs-gutter); right: var(--pdcs-gutter); bottom: 46px; }
       }
       @media (max-width: 480px) {
-        .pdcs-head-core > span:last-child { display: none; }
+        .loader-brand > span:last-child { display: none; }
       }
       /* A landscape phone: the picture is the first thing to give way. */
       @media (max-height: 520px) {
-        .loading-col { top: 52px; bottom: 46px; justify-content: safe center; overflow-y: auto; scrollbar-width: none; }
-        .pdcs-visual { display: none; }
-        .pdcs-split { grid-template-columns: minmax(0, 1fr); }
-        .pdcs-rows li { padding: 6px 0; }
-        .loading-status { margin-top: 16px; }
+        .loader-content { top: 52px; bottom: 50px; overflow-y: auto; scrollbar-width: none; }
+        .drone-wireframe, .map-preview, .final-reticle { display: none; }
+        .systems-layout, .map-layout, .final-layout { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100%; align-content: center; }
+        .system-row { padding: 6px 0; }
+        .boot-action { margin-top: 20px; }
       }
 
       .name-dialog {
@@ -4788,13 +4920,13 @@
       /* Discard, on the unsaved guard. The only button in this product
          that throws work away, so it is the only one wearing a warning
          colour: quiet until the pointer is on it, and never the default. */
-      .name-dialog-btn.danger { color: #ff8f8f; border-color: rgba(255, 143, 143, 0.35); }
-      .name-dialog-btn.danger:hover { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
+      .name-dialog-btn.danger { color: var(--pdcs-fail); border-color: rgba(255, 143, 143, 0.35); }
+      .name-dialog-btn.danger:hover { color: var(--deep); background: var(--pdcs-fail); border-color: var(--pdcs-fail); }
       /* The button Enter presses. On a delete confirm focus starts on the
          keep button, and moving onto the delete lights it as a hover does,
          so the one press that deletes is never the unmarked one. */
       .name-dialog-btn:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
-      .name-dialog-btn.danger:focus { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
+      .name-dialog-btn.danger:focus { color: var(--deep); background: var(--pdcs-fail); border-color: var(--pdcs-fail); }
       /* Defend the Paraná's missions and shop (src/ui/campaign.js), on the
          same overlay: wider, and scrolling inside itself, since four
          missions or seven upgrades do not fit an upright phone. */
@@ -4832,7 +4964,7 @@
       .campaign-tag.free { color: var(--mint); box-shadow: inset 0 0 0 1px rgba(111, 207, 162, 0.45); }
       .campaign-stars { margin-left: auto; font-size: 18px; letter-spacing: 2px; color: rgba(215, 221, 221, 0.62); }
       .campaign-star.on { color: var(--pdcs-bright); }
-      .campaign-name { color: var(--cream); font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+      .campaign-name { font-family: var(--type-name); font-synthesis: none; color: var(--cream); font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
       .campaign-line, .campaign-best { color: var(--slate); font-size: 13px; }
       .campaign-line, .campaign-last, .name-dialog-box .lede { font-family: var(--pdcs-read); }
       .campaign-item { display: flex; align-items: center; gap: 12px; }
@@ -5817,70 +5949,113 @@
   <body>
     <canvas id="view"></canvas>
     <div id="ui"></div>
-    <div id="loading" data-screen="1">
-      <div class="pdcs-grid" aria-hidden="true"></div>
-      <div class="pdcs-head">
-        <div class="pdcs-head-stage"><span class="pdcs-step">[ 01 ]</span> <span class="pdcs-stage-name">Initial boot</span></div>
-        <div class="pdcs-head-core"><span class="py-flag" aria-hidden="true"><span></span><span></span><span></span></span><span>PDCS // Simulation core</span></div>
-      </div>
-      <div class="loading-col">
-        <!-- One screen per boot stage, shown by data-screen on #loading. The
-             rows are the load's real steps: src/ui/loading.js sets each one
-             when the step it names starts and ends, and a row with no step
-             behind it on this load says N/A rather than OK. -->
-        <div class="pdcs-screen pdcs-boot" data-n="1">
-          <div class="pdcs-mark" aria-hidden="true">&#9651;</div>
-          <div class="pdcs-core">PDCS // Simulation core</div>
-          <span class="py-flag py-flag-wide" aria-hidden="true"><span></span><span></span><span></span></span>
-          <div class="pdcs-init">Initializing...</div>
+    <!-- The PDCS bootloader, the owner's markup of 3 October. Every row is
+         a real step of the load: src/ui/loading.js sets each one when the
+         step it names starts and ends, and a row with no such step behind
+         it on this load says N/A rather than OK. -->
+    <div id="pdcs-loader" class="pdcs-loader">
+      <div class="loader-noise"></div>
+      <div class="loader-grid"></div>
+
+      <header class="loader-header">
+        <div class="loader-stage">
+          <span id="loader-stage-number">[ 01 ]</span>
+          <span id="loader-stage-name">INITIAL BOOT</span>
         </div>
-        <div class="pdcs-screen pdcs-split" data-n="2">
-          <div class="pdcs-side">
-            <div class="pdcs-title">System check</div>
-            <ul class="pdcs-rows" data-group="system">
-              <li data-row="fc" data-state="wait"><span class="pdcs-row-name">Flight controller</span><span class="pdcs-row-state">Wait</span></li>
-              <li data-row="physics" data-state="wait"><span class="pdcs-row-name">Physics engine</span><span class="pdcs-row-state">Wait</span></li>
-              <li data-row="input" data-state="wait"><span class="pdcs-row-name">Input devices</span><span class="pdcs-row-state">Wait</span></li>
-              <li data-row="audio" data-state="wait"><span class="pdcs-row-name">Audio system</span><span class="pdcs-row-state">Wait</span></li>
-              <li data-row="online" data-state="wait"><span class="pdcs-row-name">Online services</span><span class="pdcs-row-state">Wait</span></li>
-            </ul>
+        <div class="loader-brand">
+          <div class="py-flag" aria-hidden="true"><span></span><span></span><span></span></div>
+          <span>PDCS // SIMULATION CORE</span>
+        </div>
+      </header>
+
+      <main class="loader-content">
+        <section id="screen-boot" class="loader-screen active">
+          <div class="initial-center">
+            <div class="pdcs-mark" aria-hidden="true">&#9651;</div>
+            <div class="core-name">PDCS // SIMULATION CORE</div>
+            <div class="py-flag py-flag-center" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="boot-action">INITIALIZING...</div>
+            <div class="progress-row">
+              <div class="progress-track" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="boot-progress" class="progress-fill"></div><div class="progress-sweep"></div></div>
+              <span id="boot-progress-text">0%</span>
+            </div>
           </div>
-          <div class="pdcs-visual" aria-hidden="true"><img class="pdcs-drone" src="assets/boot/drone.svg" alt="" width="360" height="240" decoding="async" /></div>
-        </div>
-        <div class="pdcs-screen pdcs-split" data-n="3">
-          <div class="pdcs-side">
-            <div class="pdcs-title">Loading environment</div>
-            <div class="pdcs-map-name"></div>
-            <ul class="pdcs-rows" data-group="map"></ul>
+        </section>
+
+        <section id="screen-check" class="loader-screen">
+          <div class="systems-layout">
+            <div class="systems-list" data-group="system">
+              <div class="system-row" data-row="flight" data-state="wait"><span data-label="row_flight">FLIGHT CONTROLLER</span><span id="sys-flight">WAIT</span></div>
+              <div class="system-row" data-row="physics" data-state="wait"><span data-label="row_physics">PHYSICS ENGINE</span><span id="sys-physics">WAIT</span></div>
+              <div class="system-row" data-row="input" data-state="wait"><span data-label="row_input">INPUT DEVICES</span><span id="sys-input">WAIT</span></div>
+              <div class="system-row" data-row="audio" data-state="wait"><span data-label="row_audio">AUDIO SYSTEM</span><span id="sys-audio">WAIT</span></div>
+              <div class="system-row" data-row="telemetry" data-state="wait"><span data-label="row_telemetry">TELEMETRY</span><span id="sys-telemetry">WAIT</span></div>
+              <div class="system-row" data-row="online" data-state="wait"><span data-label="row_online">ONLINE SERVICES</span><span id="sys-online">WAIT</span></div>
+            </div>
+            <div class="drone-wireframe" aria-hidden="true"><img src="assets/boot/drone.svg" alt="" width="360" height="240" decoding="async" /></div>
           </div>
-          <div class="pdcs-visual pdcs-map-visual" aria-hidden="true"><img class="pdcs-map" alt="" hidden decoding="async" /></div>
-        </div>
-        <div class="pdcs-screen pdcs-split" data-n="4">
-          <div class="pdcs-side">
-            <div class="pdcs-title">Finalizing simulation environment</div>
-            <ul class="pdcs-rows" data-group="final">
-              <li data-row="shaders" data-state="wait"><span class="pdcs-row-name">Scene integration</span><span class="pdcs-row-state">Wait</span></li>
-              <li data-row="world" data-state="wait"><span class="pdcs-row-name">World data</span><span class="pdcs-row-state">Wait</span></li>
-              <li data-row="frame" data-state="wait"><span class="pdcs-row-name">First frame</span><span class="pdcs-row-state">Wait</span></li>
-            </ul>
+        </section>
+
+        <section id="screen-map" class="loader-screen">
+          <div class="map-layout">
+            <div>
+              <h2 id="map-title">LOADING ENVIRONMENT</h2>
+              <div class="map-name"></div>
+              <div class="progress-row large">
+                <div class="progress-track" role="progressbar" aria-label="Map loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="map-progress" class="progress-fill"></div><div class="progress-sweep"></div></div>
+                <span id="map-progress-text">0%</span>
+              </div>
+              <div class="systems-list compact" data-group="map">
+                <div class="system-row" data-row="terrain" data-state="wait"><span data-label="row_terrain">TERRAIN DATA</span><span id="map-terrain">WAIT</span></div>
+                <div class="system-row" data-row="satellite" data-state="wait"><span data-label="row_satellite">SATELLITE IMAGERY</span><span id="map-satellite">WAIT</span></div>
+                <div class="system-row" data-row="height" data-state="wait"><span data-label="row_height">HEIGHTMAPS</span><span id="map-height">WAIT</span></div>
+                <div class="system-row" data-row="buildings" data-state="wait"><span data-label="row_buildings">BUILDINGS</span><span id="map-buildings">WAIT</span></div>
+                <div class="system-row" data-row="vegetation" data-state="wait"><span data-label="row_vegetation">VEGETATION</span><span id="map-vegetation">WAIT</span></div>
+                <div class="system-row" data-row="roads" data-state="wait"><span data-label="row_roads">ROADS &amp; INFRA</span><span id="map-roads">WAIT</span></div>
+              </div>
+            </div>
+            <div id="map-preview" class="map-preview" aria-hidden="true"><img alt="" hidden decoding="async" /></div>
           </div>
-          <div class="pdcs-visual" aria-hidden="true"><div class="pdcs-reticle"></div></div>
-        </div>
-        <div class="loading-status">
-          <div class="loading-row">
-            <div class="loading-stage">loading</div>
-            <div class="loading-meta"><span class="loading-elapsed"></span><span class="loading-pct">0%</span></div>
+        </section>
+
+        <section id="screen-final" class="loader-screen">
+          <div class="final-layout">
+            <div>
+              <h2 id="final-title">FINALIZING SIMULATION ENVIRONMENT</h2>
+              <div class="progress-row large">
+                <div class="progress-track" role="progressbar" aria-label="Finalizing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="final-progress" class="progress-fill"></div></div>
+                <span id="final-progress-text">0%</span>
+              </div>
+              <div class="systems-list compact" data-group="final">
+                <div class="system-row" data-row="world" data-state="wait"><span data-label="row_world">WORLD DATA</span><span id="final-world">WAIT</span></div>
+                <div class="system-row" data-row="core" data-state="wait"><span data-label="row_core">SIMULATION CORE</span><span id="final-core">WAIT</span></div>
+                <div class="system-row" data-row="environment" data-state="wait"><span data-label="row_environment">ENVIRONMENT</span><span id="final-env">WAIT</span></div>
+                <div class="system-row" data-row="scene" data-state="wait"><span data-label="row_scene">SCENE INTEGRATION</span><span id="final-scene">WAIT</span></div>
+              </div>
+            </div>
+            <div class="final-reticle" aria-hidden="true"><div></div></div>
           </div>
-          <div class="loading-track" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="loading-fill"></div><div class="loading-sweep"></div></div>
-          <div class="loading-error" hidden></div>
-        </div>
-        <!-- Empty until something fails. See fail() in src/ui/loading.js: a
-             boot that dies used to leave a red bar, a sentence and no way
-             out, which is a dead end on the one screen a stranded visitor is
-             looking at. aria-live so a screen reader hears the failure. -->
-        <div class="loading-help" hidden role="alert" aria-live="assertive"></div>
-      </div>
-      <div class="pdcs-foot"><span>Sys init</span><span class="loading-build"></span><span>Bootloader</span></div>
+        </section>
+
+        <!-- Empty until something fails. See fail() in src/ui/loading.js:
+             a boot that dies used to leave a red bar, a sentence and no way
+             out. aria-live so a screen reader hears the failure. -->
+        <section class="loader-fail">
+          <div class="loader-fail-inner">
+            <div class="progress-row"><div class="progress-track"><div class="progress-fill"></div></div></div>
+            <div class="loading-error" hidden></div>
+            <div class="loading-help" hidden role="alert" aria-live="assertive"></div>
+          </div>
+        </section>
+
+        <div class="loader-status" aria-live="polite"></div>
+      </main>
+
+      <footer class="loader-footer">
+        <span id="loader-footer-left">SYS INIT</span>
+        <span id="loader-footer-center"></span>
+        <span id="loader-footer-right">BOOTLOADER</span>
+      </footer>
     </div>
     <!-- boot.js, not main.js. It imports nothing at module scope except the
          loading screen, so the screen is alive and reporting BEFORE the

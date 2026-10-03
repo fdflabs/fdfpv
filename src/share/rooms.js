@@ -62,6 +62,10 @@ const TOKEN_KEY = 'fdfpv.roomToken';
 const PICK_KEY = 'fdfpv.pilotPick';
 const FIGURE_KEY = 'fdfpv.pilotFigure';
 const RETRY_MS = [1000, 2000, 4000, 8000, 16000];
+/* The close the rooms server sends every socket on SIGTERM, a systemctl
+ * restart (edge/rooms/node.js): WebSocket's own Service Restart. Retried
+ * like any drop, and said as what it is. */
+const CLOSE_SERVICE_RESTART = 1012;
 const KEEPALIVE_MS = 20000;
 
 /* Closes that retrying cannot fix. */
@@ -268,12 +272,17 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
    * once the room answers, its code is this tab's and a reconnect uses it. */
   let publicMap = null;
   let fullRetried = false;
+  /* The server said it was restarting, and the link has not been back
+   * since: every retry until the next welcome is waiting on that restart. */
+  let restarting = false;
 
   function setPhase(next, why = null) {
     phase = next;
     reason = why;
     if (handlers.onState) {
-      handlers.onState({ phase, reason, code, publicMap });
+      handlers.onState({
+        phase, reason, code, publicMap, attempt, attempts: RETRY_MS.length,
+      });
     }
   }
 
@@ -357,6 +366,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         }
         welcome = m;
         attempt = 0;
+        restarting = false;
         write('session', TOKEN_KEY, m.token);
         if (publicMap) {
           code = normaliseCode(m.code);
@@ -456,15 +466,19 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         return;
       }
       if (attempt >= RETRY_MS.length) {
+        restarting = false;
         setPhase('failed', 'lost');
         return;
       }
-      setPhase('connecting', 'retrying');
+      restarting = restarting || ev.code === CLOSE_SERVICE_RESTART;
+      /* Counted before it is said, so the state names the retry under way:
+       * 1 of RETRY_MS.length for the first. */
+      attempt += 1;
+      setPhase('connecting', restarting ? 'restart' : 'retrying');
       retry = setTimeout(() => {
         retry = null;
         open();
-      }, RETRY_MS[attempt]);
-      attempt += 1;
+      }, RETRY_MS[attempt - 1]);
     };
     socket.onerror = () => {};
   }
@@ -480,6 +494,7 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     publicMap = null;
     fullRetried = false;
     welcome = null;
+    restarting = false;
     clock.reset();
     clearTimeout(retry);
     retry = null;
@@ -552,7 +567,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     },
     leave,
     state() {
-      return { phase, reason, code, publicMap, welcome };
+      return {
+        phase, reason, code, publicMap, welcome, attempt, attempts: RETRY_MS.length,
+      };
     },
     available() {
       return Boolean(roomsOrigin());
