@@ -113,6 +113,11 @@ export function spillState(THREE) {
     uBay: { value: new THREE.Vector3(1, 1, 1) },
     uFront: { value: new THREE.Vector3(1e4, 1e4, 1e4) },
     uReach: { value: new THREE.Vector3(1, 1, 1) },
+    /* Per gate its own discharge's share and its own water's front, m
+     * down the chute: a gate's lane runs on these where its bay as a
+     * whole carries little (a hole torn in one gate). */
+    uGateQ: { value: new Float32Array(GATES).fill(1) },
+    uGateFront: { value: new Float32Array(GATES).fill(1e4) },
   };
 }
 /* A gate's bay, as the dividers stand (dam/index.js SPILL.dividers). */
@@ -124,6 +129,8 @@ const STATE_GLSL = /* glsl */ `
   uniform vec3 uBay;
   uniform vec3 uFront;
   uniform vec3 uReach;
+  uniform float uGateQ[${GATES}];
+  uniform float uGateFront[${GATES}];
   float bayPick(vec3 v, int b) {
     return b == 0 ? v.x : b == 1 ? v.y : v.z;
   }`;
@@ -349,6 +356,9 @@ export function chuteMaterial(THREE, {
             int g = int(clamp(floor((u + uLanes.x) / uLanes.y), 0.0, ${GATES - 1}.0));
             int b = g < 4 ? 0 : g < 8 ? 1 : 2;
             float runs = smoothstep(0.0, 0.25, bayPick(uBay, b)) * (1.0 - smoothstep(bayPick(uFront, b) - 15.0, bayPick(uFront, b), d));
+            /* A gate whose own water runs while its bay's is little: its
+             * lane, as far as its water has got. */
+            runs = max(runs, smoothstep(0.0, 0.05, uGateQ[g]) * (1.0 - smoothstep(uGateFront[g] - 15.0, uGateFront[g], d)));
             float lip = smoothstep(0.0, 0.15, uGate[g]);
             diffuseColor.a *= mix(runs, lip * runs, jet);
             if (diffuseColor.a < 0.004) discard;

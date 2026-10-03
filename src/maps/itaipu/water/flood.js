@@ -295,6 +295,9 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
     },
     /* Each gate's lip over its sill now, m. */
     lips: () => lip.slice(),
+    /* The holes torn in the gates' leaves: [{ g, sill, width, height,
+     * across, sky }]. */
+    holes: () => holes.map((o, g) => (o ? { g, ...o } : null)).filter(Boolean),
     /*
      * A contract opening (docs/DAMBREAK-CONTRACT): a gate's, by its
      * target's id, its sill [x, y, z] the hole's foot (y a height, x and

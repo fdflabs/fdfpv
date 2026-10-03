@@ -72,6 +72,8 @@ import {
   BAYS, bayOf, bays, chuteMaterial, gateJets, lanes, plume, PLUNGE_GLSL, spillState,
 } from './spill.js';
 import { liveFlood } from './live.js';
+import { breachWater } from './breach.js';
+import { SPILL, chuteFloor } from '../dam/index.js';
 import {
   FLOOD_CUT, FLOOD_GLSL, floodDetail, floodGeometry, floodLevelAt, floodMaterial, floodRead, floodUniforms, placeholderFlood,
 } from './surface.js';
@@ -992,6 +994,7 @@ export async function buildPart(ctx) {
    */
   let readFrom = null;
   let readAge = 0;
+  let breaches = null;
   /* The flood's sheet (surface.js), made the first time the flood is
    * ready and refreshed from it after. */
   const riverMade = made.find((m) => m.body.name === 'river');
@@ -1006,6 +1009,23 @@ export async function buildPart(ctx) {
       mesh.receiveShadow = true;
       group.add(mesh);
       riverMade.flood = { mesh, env, planar: null };
+      /* The water through holes torn in the gates (breach.js), in the
+       * flood's frame. */
+      const sp = dam.find((p) => p.part === 'spillway');
+      const chute = chuteFloor(sp);
+      breaches = breachWater(THREE, {
+        group,
+        waves,
+        time,
+        envMap,
+        sun,
+        state: spillUniforms,
+        d0: SPILL.gate[1],
+        floor: (d) => (d <= SPILL.ogee ? sp.figures.sillY : chute.y(d)),
+        head: fl.bed.level[fl.bed.names.indexOf('reservoir')],
+        at: fl.bed.frame.at,
+        wrap: water,
+      });
       floodMirror(riverMade);
       stats.floodTriangles = mesh.geometry.index.count / 3;
     }
@@ -1027,30 +1047,52 @@ export async function buildPart(ctx) {
     const { dx } = fl.bed.grid;
     const bayQ = [0, 0, 0];
     const bayN = [0, 0, 0];
-    /* Each bay's front is walked down the middle of its middle gate's
-     * lane: the bay's own middle is a pier's line to the piers' end. */
-    const bayGates = [[], [], []];
-    fl.bed.gates.forEach((g, k) => {
+    const bayFront = [0, 0, 0];
+    /* Each gate's discharge 20 m below it, and how far down its lane's
+     * middle its water has run. */
+    const gateQ = fl.bed.gates.map((g, k) => {
       spillUniforms.uGate.value[k] = lips[k] / GATE_LOOK_OPEN;
       let q = 0;
       for (const c of g.bay) {
         if (Math.abs(c.d - 20) < dx / 2) q += hv[c.k] * dx;
       }
       const b = bayOf(k);
-      bayQ[b] += q;
-      bayN[b] += 1;
-      bayGates[b].push(g.middle);
-    });
-    for (let b = 0; b < BAYS; b += 1) {
-      spillShare[b] = Math.max(0, bayQ[b] / (bayN[b] * GATE_LOOK_Q));
-      const u = bayGates[b][Math.floor((bayGates[b].length - 1) / 2)];
       let front = 0;
       for (let d = 0; d <= spill[b].end + FRONT_STEP; d += FRONT_STEP) {
-        const [x, z] = fl.bed.frame.at(u, d);
-        const k = fl.cellAt(x, z);
-        if (k < 0 || !(h[k] > 0.05)) break;
+        const [x, z] = fl.bed.frame.at(g.middle, d);
+        const c = fl.cellAt(x, z);
+        if (c < 0 || !(h[c] > 0.05)) break;
         front = d;
       }
+      spillUniforms.uGateQ.value[k] = Math.max(0, q / GATE_LOOK_Q);
+      spillUniforms.uGateFront.value[k] = front;
+      bayQ[b] += q;
+      bayN[b] += 1;
+      bayFront[b] = Math.max(bayFront[b], front);
+      return q;
+    });
+    /* The breaches' falls, on the water through each hole: a notch open
+     * to the sky passes what the gate's gauge reads past its link (the
+     * lip's flow), a hole under the water the link's own. */
+    if (breaches) {
+      const reservoir = fl.bed.level[fl.bed.names.indexOf('reservoir')];
+      stats.breaches = breaches.update(fl.holes().map((o) => {
+        const gate = fl.bed.gates[o.g];
+        const link = fl.f.linkQ(fl.links[o.g]);
+        return {
+          key: o.g,
+          u: gate.middle + o.across,
+          width: Math.min(o.width, gate.width),
+          crest: Math.max(o.sill, gate.sill),
+          top: Math.min(o.sill + o.height, gate.sill + gate.height, reservoir),
+          q: o.sky ? Math.max(0, gateQ[o.g] - link) : link,
+          sky: o.sky,
+        };
+      }));
+    }
+    for (let b = 0; b < BAYS; b += 1) {
+      spillShare[b] = Math.max(0, bayQ[b] / (bayN[b] * GATE_LOOK_Q));
+      const front = bayFront[b];
       spillUniforms.uFront.value.setComponent(b, front);
       spillUniforms.uReach.value.setComponent(b, front >= spill[b].end - FRONT_STEP ? 1 : 0);
       spillUniforms.uBay.value.setComponent(b, spillShare[b]);
@@ -1118,6 +1160,7 @@ export async function buildPart(ctx) {
         m.env.dispose();
       }
       chuteMat.dispose();
+      if (breaches) breaches.dispose();
       spray.geometry.dispose();
       spray.material.dispose();
       fieldTex.dispose();

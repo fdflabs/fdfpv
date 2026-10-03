@@ -44,6 +44,7 @@ import { airframeById } from '../configs/airframes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { attackerCharge } from '../src/share/war/damage.js';
+import STRUCTURES from '../src/share/war/itaipu-chunks.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'water-war');
@@ -84,8 +85,12 @@ function seedFor(colour) {
 }
 
 const frames = (p, n) => p.evaluate(`new Promise((r) => { let k = 0; const f = () => (++k >= ${n} ? r(true) : requestAnimationFrame(f)); requestAnimationFrame(f); })`);
-/* itaipu-views.js's aerial-spill and edge-plunge. */
+/* itaipu-views.js's aerial-spill and edge-plunge, and gate 3 from
+ * downstream, as scripts/damage-shots.js frames it. */
+const gateSkin = STRUCTURES[GATE].chunks.filter((c) => c.k === 'skin').reduce((a, c, _, l) => a.map((v, i) => v + c.c[i] / l.length), [0, 0, 0]);
+const gateN = STRUCTURES[GATE].frame.n;
 const VIEWS = {
+  'gate-down': [gateSkin[0] + gateN[0] * 45 + 12, gateSkin[1] + 14, gateSkin[2] + gateN[2] * 45 - 4, gateSkin[0], gateSkin[1] - 4, gateSkin[2]],
   'aerial-spill': [-1300, 704, 900, -982, 210, -1028],
   'edge-plunge': [-700, 175, -380, -900, 110, -510],
 };
@@ -124,6 +129,7 @@ try {
   const free = await flood(a);
   check('before the breach the map\'s water is Free Flight\'s spill', free.mode === 'free' && free.state === 'ready', `${free.mode} ${free.state}`);
   await shot(a, 'aerial-spill', '1-before-aerial');
+  await shot(a, 'gate-down', '1-before-gate');
 
   /* Three Loiterers' warheads at gate 3, by the room, as damage-shots. */
   const room = roomOf();
@@ -145,6 +151,10 @@ try {
   const flows = await a.evaluate('JSON.stringify(window.__mapFlows())').then(JSON.parse);
   check('the gate\'s water is gauged and handed to the sound', flows.some((w) => w.id === GATE && w.q > 0),
     flows.map((w) => `${w.id} ${w.q.toFixed(0)} m3/s`).join('; '));
+  const falls = (await a.evaluate('JSON.stringify(window.__map().parts.water.breaches || [])').then(JSON.parse));
+  check('the water through the hole is drawn falling, whole', falls.some((f) => f.q > 10 && f.flow > 0.5),
+    falls.map((f) => `gate-${f.key} ${f.q.toFixed(1)} m3/s, drawn ${f.flow.toFixed(2)}`).join('; ') || 'none');
+  await shot(a, 'gate-down', '2-after-gate');
   await shot(a, 'edge-plunge', '2-after-plunge');
   await shot(a, 'aerial-spill', '3-after-aerial');
 
