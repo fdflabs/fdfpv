@@ -3850,6 +3850,11 @@ export async function buildPart(ctx) {
     });
   }
   let gateState = null;
+  /* A crash cam replay's gate state ({ list }, its clip's), drawn in place
+   * of the live one while the replay plays (setReplayGateState); null
+   * with none. The live state is kept as it was. */
+  let replayGates = null;
+  const gatesNow = () => (replayGates ? replayGates.list : gateState);
   /* Gates whose steel must be written again (a chunk put back). */
   const rigDirty = new Set();
   const poseRig = (rig, o, built = false) => {
@@ -3897,7 +3902,7 @@ export async function buildPart(ctx) {
   /* Every gate at room ms ms, from the gate state (hoist.js openAt). */
   const poseGates = (ms) => {
     for (const rig of rigs) {
-      const o = Math.min(rig.hinge.max, Math.max(0, openAt(gateState, rig.id, ms)));
+      const o = Math.min(rig.hinge.max, Math.max(0, openAt(gatesNow(), rig.id, ms)));
       if (o !== rig.open || rigDirty.has(rig)) {
         rigDirty.delete(rig);
         poseRig(rig, o);
@@ -4006,7 +4011,13 @@ export async function buildPart(ctx) {
      * off it then; null for a target that is not a gate. */
     leafTurnAt(id, t) {
       const rig = rigs.find((r) => r.id === id);
-      return rig ? leafTurn(rig.hinge, Math.min(rig.hinge.max, Math.max(0, openAt(gateState, id, t)))) : null;
+      return rig ? leafTurn(rig.hinge, Math.min(rig.hinge.max, Math.max(0, openAt(gatesNow(), id, t)))) : null;
+    },
+    /* A replay's gate state, { list } (its clip's, null for none), or
+     * null when the replay closes: the leaves turn to it on the replay's
+     * clock, and to the live state again after. */
+    setReplayGateState(given) {
+      replayGates = given ? { list: given.list && given.list.length ? given.list.map((e) => ({ gate: e.gate, at: e.at, open_m: e.open_m })) : null } : null;
     },
     dispose() {},
     stats: counts,

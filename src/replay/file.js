@@ -126,6 +126,11 @@
  * without them is written as before, byte for byte, and a version 9 to
  * 13 file plays its explosions from its paper as it always did.
  *
+ * Version 15 keeps the spillway's gate state with the war's map (src/
+ * replay/warrec.js THE GATES): a match of the war header's `world` may
+ * hold `gates`, [{ gate, at, open_m }]. A clip whose matches hold none
+ * is written as before, byte for byte.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -166,7 +171,9 @@ import { HUNTER_N, checkWar } from './warrec.js';
 import { AIR_N, checkSound } from './sound.js';
 import { SEGMENT_BYTES_MAX, SEGMENTS_MAX, checkVoice } from './voicerec.js';
 
-export const FILE_VERSION = 14;
+export const FILE_VERSION = 15;
+/* A clip with explosions on the map's clock and no gate state. */
+const BOOMS_VERSION = 14;
 /* A clip with voices and no explosions on the map's clock. */
 const VOICE_VERSION = 13;
 /* A clip with its sound and no voice: the version before voices. */
@@ -195,14 +202,20 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
+  if (clip.war && clip.war.world && clip.war.world.some((m) => m.gates)) {
+    if (!clip.anim) {
+      throw new Error('a clip with a war\'s gate state and no animation clock');
+    }
+    return FILE_VERSION;
+  }
   if (clip.war && clip.war.booms) {
     if (!clip.anim) {
       throw new Error('a clip with a war\'s explosions and no animation clock');
     }
-    return FILE_VERSION;
+    return BOOMS_VERSION;
   }
   if (clip.voice) {
     if (!clip.anim) {
@@ -758,6 +771,13 @@ export function decodeReplay(buf, known = null) {
   }
   if (version === 14 && !boomed14) {
     throw new ReplayFileError('a version 14 file without its war\'s explosions');
+  }
+  const gated = mapped && Array.isArray(header.war.world) && header.war.world.some((m) => m && typeof m === 'object' && m.gates !== undefined);
+  if (version < 15 && gated) {
+    throw new ReplayFileError('a war\'s gate state in a file older than version 15');
+  }
+  if (version === 15 && !gated) {
+    throw new ReplayFileError('a version 15 file without its war\'s gate state');
   }
   if (version < 13 && header.voice !== undefined) {
     throw new ReplayFileError('voices in a file older than version 13');

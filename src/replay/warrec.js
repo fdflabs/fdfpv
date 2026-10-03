@@ -53,6 +53,13 @@
  * some tens of kilobytes at most; one past any is counted
  * (stats.hitsDropped, cutsDropped, damageDropped).
  *
+ * THE GATES. The spillway's gate state the map was handed (the match's
+ * `gates`, src/main.js warGatesTo: [{ gate, at, open_m }], each a hoist
+ * driving a leaf toward open_m from room ms `at`, src/share/war/hoist.js)
+ * is kept with its match, every entry once, so a replay turns the leaves
+ * and steps its water to the same state on its own clock. A match given
+ * none keeps none (Free Flight's spillway).
+ *
  * THE EXPLOSIONS (a warhead's, a kill's, a target hit's: src/main.js
  * warBoomEvent), each where it was drawn and how big, on the room clock,
  * whatever the pilot was doing: flying, a wreck, between lives or on a
@@ -111,6 +118,12 @@ export const CUTS_MAX = 256;
 export const DAMAGE_MAX = 512;
 export const DAMAGE_BYTES = 16384;
 const MATCH_KEYS = ['mission', 'from', 'off', 'hits', 'cuts', 'damage'];
+/* A match's gate entries, at most; a mission hoists each gate a handful
+ * of times. */
+export const GATES_MAX = 256;
+const GATE_RE = /^gate-\d{1,2}$/;
+const gateOk = (e) => e && typeof e === 'object' && Object.keys(e).length === 3 && typeof e.gate === 'string' && GATE_RE.test(e.gate)
+  && Number.isFinite(e.at) && Number.isFinite(e.open_m) && e.open_m >= 0 && e.open_m <= 30;
 /* Explosions held, and how long one is seen after it goes off: past
  * src/render/explosion.js EXPLOSION_S (6.2 s), which three.js keeps out of
  * Node, with room. */
@@ -139,7 +152,7 @@ export function createWarRing(capacity) {
   /* The explosions drawn, on the room clock, oldest first. */
   const booms = [];
   const stats = {
-    dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0,
+    dropped: 0, hitsDropped: 0, cutsDropped: 0, damageDropped: 0, gatesDropped: 0,
   };
 
   function alloc() {
@@ -214,6 +227,27 @@ export function createWarRing(capacity) {
   function born(mission, list) {
     for (const a of list) {
       agents.set(a.id, { mission, a: { ...a }, last: Infinity });
+    }
+  }
+
+  /* The gate state handed to the map now (null for none), into the
+   * match now: each entry not already kept. */
+  function gates(list) {
+    const m = matches[matches.length - 1];
+    if (!m || !Array.isArray(list)) {
+      return;
+    }
+    m.gates ??= [];
+    for (const e of list) {
+      const g = { gate: e.gate, at: e.at, open_m: e.open_m };
+      if (!gateOk(g) || m.gates.some((x) => x.gate === g.gate && x.at === g.at && x.open_m === g.open_m)) {
+        continue;
+      }
+      if (m.gates.length >= GATES_MAX) {
+        stats.gatesDropped += 1;
+        continue;
+      }
+      m.gates.push(g);
     }
   }
 
@@ -358,6 +392,7 @@ export function createWarRing(capacity) {
       hits: m.hits.filter((h) => h.at === null || h.at <= hi).map((h) => ({ ...h })),
       cuts: m.cuts.filter((x) => x.at <= hi).map((x) => ({ ...x })),
       damage: m.damage.filter((d) => d.at <= hi).map((d) => JSON.parse(JSON.stringify(d))),
+      ...(m.gates && m.gates.length ? { gates: m.gates.map((g) => ({ ...g })) } : {}),
     }));
     const seen = booms.filter((b) => b.at <= hi && b.at > lo - BOOM_LIFE_MS).map((b) => ({ at: b.at, p: b.p.slice(), size: b.size }));
     return { world: list, clock: c, ...(seen.length ? { booms: seen } : {}) };
@@ -411,6 +446,7 @@ export function createWarRing(capacity) {
     born,
     dead,
     damage,
+    gates,
     boom,
     world,
     draw,
@@ -433,6 +469,7 @@ export function trimWar(war, a, b) {
     ...(war.world ? {
       world: war.world.map((m) => ({
         ...m, hits: m.hits.map((h) => ({ ...h })), cuts: m.cuts.map((x) => ({ ...x })), damage: JSON.parse(JSON.stringify(m.damage)),
+        ...(m.gates ? { gates: m.gates.map((g) => ({ ...g })) } : {}),
       })),
       clock: war.clock.slice(a, b + 1),
     } : {}),
@@ -561,7 +598,8 @@ function checkWorld(world, clock, n) {
   let from = -Infinity;
   for (const m of world) {
     const keys = m && typeof m === 'object' ? Object.keys(m) : [];
-    if (keys.length !== MATCH_KEYS.length || !MATCH_KEYS.every((k) => keys.includes(k))) {
+    const want = m && m.gates !== undefined ? [...MATCH_KEYS, 'gates'] : MATCH_KEYS;
+    if (keys.length !== want.length || !want.every((k) => keys.includes(k))) {
       throw new Error('a match of the war\'s map is not one');
     }
     if (!(m.mission in MISSIONS) || !Number.isFinite(m.from) || !(m.from > from) || !(m.off === null || Number.isFinite(m.off))) {
@@ -580,6 +618,9 @@ function checkWorld(world, clock, n) {
       if (!x || Object.keys(x).length !== 3 || ![x.at, x.x, x.z].every(Number.isFinite)) {
         throw new Error('a struck line on the war\'s map is not one');
       }
+    }
+    if (m.gates !== undefined && (!Array.isArray(m.gates) || m.gates.length < 1 || m.gates.length > GATES_MAX || !m.gates.every(gateOk))) {
+      throw new Error('a gate entry on the war\'s map is not one');
     }
     if (!Array.isArray(m.damage) || m.damage.length > DAMAGE_MAX || !m.damage.every(damageOk)
       || new Set(m.damage.map((d) => d.seq)).size !== m.damage.length) {

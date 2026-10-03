@@ -37,6 +37,10 @@
  *     catches up it is not drawn or heard and the replay says so; and the
  *     live flood steps on with the room meanwhile, never rewound, so it
  *     stands at the room's clock when the replay closes
+ *   - a spillway gate moving (the match's gate state, as src/main.js
+ *     hands the map it): at every water row the replay's leaf stands as
+ *     the live leaf stood at that row's clock, and the replay's water
+ *     (forked with the gate state) is the live water to the bit
  *   - a strike that lands while the pilot is down (the pause menu: no
  *     row recorded) is in the replay, its explosion burning at its age at
  *     the first row after the pilot is back (warrec.js THE EXPLOSIONS)
@@ -175,6 +179,9 @@ try {
   const born = (id, t) => hear({
     type: 'war', op: 'born', agents: [{ id, kind: 'strike', route: strike.route, t0: t, k: 0, n: 1, err: 0, target: strike.target }],
   });
+  /* A gate hoisted toward 14 m open from now (hoist.js: half a metre a
+   * minute), as the match's gate state would. */
+  const gateAt = await a.evaluate("(() => { const t = window.__rooms().roomNow; window.__mapGates([{ gate: 'gate-2', at: t, open_m: 14 }]); return t; })()");
   /* The first breach, long before the clip: the live flood's water runs
    * from it and checkpoints (host.js, every 10 s) before the clip. */
   const gate6 = STRUCTURES['gate-6'];
@@ -247,7 +254,9 @@ try {
     && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === torn.length + torn6.length && liveNow.broken.pieces.length > 0, describe(liveNow));
   const WATER = "(() => { const w = window.__map().parts.water; return { live: w.flood, replay: w.replayFlood, flows: window.__mapFlows(), water: window.__mapReplayWater(), room: window.__rooms().roomNow, toast: (() => { const v = window.__crashCam.live() ? window.__crashCam.h().view() : null; return v ? v.toast || null : null; })() }; })()";
   const waterLive = (await a.evaluate(WATER)).live;
-  check('the live flood took both openings and stepped on', waterLive.state === 'ready' && waterLive.origin === originAt && waterLive.step > 2500,
+  /* The flood's clock starts at its first event: the gate's hoist. */
+  const floodFrom = Math.min(gateAt, originAt);
+  check('the live flood took both openings and the gate state and stepped on', waterLive.state === 'ready' && waterLive.origin === floodFrom && waterLive.step > 2500,
     `${waterLive.state}, origin ${waterLive.origin}, step ${waterLive.step}`);
 
   await a.evaluate('window.__crashCam.open(); true');
@@ -347,18 +356,20 @@ try {
   let dry = 0;
   let poured = 0;
   let lastLive = atOpen.step;
+  const leaves = [];
   const wet = [];
   const waterMisses = [];
   for (const { k } of waterOrder) {
     await a.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${k})); true`);
     const anim = await a.evaluate(`window.__crashCam.h().clipAnim(${k})`);
-    const want = Math.max(0, Math.floor((anim - DELAY_MS - originAt) / DT_MS));
+    const want = Math.max(0, Math.floor((anim - DELAY_MS - floodFrom) / DT_MS));
     await a.until(`(() => { const r = window.__map().parts.water.replayFlood; const d = window.__mapReplayWater(); return r && r.state === 'ready' && r.step === ${want} && d && d.drawn; })()`, 20000).catch(() => {});
     const w = await a.evaluate(WATER);
+    leaves.push({ anim, replay: await a.evaluate(`window.__mapLeaf('gate-2', ${anim})`) });
     const r = w.replay;
     const common = Object.keys(r ? r.hashes : {}).filter((s) => s in atOpen.hashes);
     const same = common.every((s) => r.hashes[s] === atOpen.hashes[s]);
-    if (!r || r.step !== want || !same || r.origin !== originAt) {
+    if (!r || r.step !== want || !same || r.origin !== floodFrom) {
       waterMisses.push(`row ${k}: replay ${r ? `${r.state} step ${r.step} origin ${r.origin}` : 'none'}, want step ${want}; ${common.filter((s) => r.hashes[s] !== atOpen.hashes[s]).length} of ${common.length} hashes differ`);
     }
     if (anim < breachAt + DELAY_MS) {
@@ -366,7 +377,7 @@ try {
     }
     /* A row whose own step is past a snapshot step that held the water
      * moving, and compared there. */
-    const after = Math.floor((breachAt + DELAY_MS - originAt) / DT_MS);
+    const after = Math.floor((breachAt + DELAY_MS - floodFrom) / DT_MS);
     if (want > after && common.some((s) => Number(s) >= after && Number(s) <= want)) {
       poured += 1;
     }
@@ -375,7 +386,7 @@ try {
     }
     /* The live flood, meanwhile, on with the room's clock: never back,
      * never rewound, and its water where it was. */
-    const liveWant = Math.floor((w.room - 100 - DELAY_MS - originAt) / DT_MS);
+    const liveWant = Math.floor((w.room - 100 - DELAY_MS - floodFrom) / DT_MS);
     if (w.live.step < lastLive || w.live.rewinds !== atOpen.rewinds || w.live.restarts !== atOpen.restarts || w.live.step < liveWant - 10
       || Object.keys(atOpen.hashes).some((s) => s in w.live.hashes && w.live.hashes[s] !== atOpen.hashes[s])) {
       waterMisses.push(`row ${k}: the live flood at step ${w.live.step} (from ${lastLive}, the room's ${liveWant}), rewinds ${w.live.rewinds} from ${atOpen.rewinds}`);
@@ -390,6 +401,17 @@ try {
   await a.until("window.__craftState().mode === 'flight'", 10000);
   await a.sleep(500);
   const waterBack = await a.evaluate(WATER);
+  /* The live leaf at each row's clock, the replay closed: the same turn. */
+  let leafWrong = 0;
+  for (const l of leaves) {
+    const liveLeaf = await a.evaluate(`window.__mapLeaf('gate-2', ${l.anim})`);
+    if (!l.replay || !liveLeaf || l.replay.c !== liveLeaf.c || l.replay.s !== liveLeaf.s) {
+      leafWrong += 1;
+    }
+  }
+  const moved = leaves.length > 1 && leaves.some((l) => l.replay && leaves[0].replay && l.replay.s !== leaves[0].replay.s);
+  check('a gate moving: at every water row the replay\'s leaf stands as the live one stood then, and it moved', leaves.length >= 6 && leafWrong === 0 && moved,
+    `${leaves.length} rows, ${leafWrong} wrong; the gate hoisted from ${gateAt}`);
   check('closed, the replay\'s flood is gone and the live one stands at the room\'s clock, nothing left to catch up', waterBack.replay === null
     && waterBack.live.behind <= 10 && waterBack.live.rewinds === atOpen.rewinds,
   `live step ${waterBack.live.step}, ${waterBack.live.behind} behind, rewinds ${waterBack.live.rewinds}`);
