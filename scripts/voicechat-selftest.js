@@ -11,8 +11,10 @@
  * against a vector computed by openssl, not by this code, and the real
  * server (edge/rooms/node.js) over real sockets, with and without a TURN
  * secret. Then the client's pure parts (src/share/voice.js): the Opus line,
- * distance voice, and its pace against the room's allowance. And that no
- * voice ever reaches the game's audio graph, which the movie export taps.
+ * distance voice, and its pace against the room's allowance. And what is
+ * kept for replays (the owner, 2026-10-02): only the voices heard, through
+ * the crash cam's recorder, never this pilot's own microphone, and live
+ * voice never in the game's audio graph.
  *
  * The audio itself, two browsers talking, is scripts/voicechat-two-page.js.
  *
@@ -44,6 +46,8 @@ import {
   CLOCK_PER_S, PRIVATE_CAP, RoomCore, TEXT_CLOSE_PER_S, TEXT_PER_S,
 } from '../edge/rooms/core.js';
 import { TTL_S, turnCredential, turnMinter } from '../edge/rooms/turn.js';
+import STR_EN from '../src/strings/en.js';
+import STR_ES from '../src/strings/es.js';
 import {
   DISTANCE, OPUS_BPS, PTT_KEY, SEND_PER_S, distanceGain, tuneOpus,
 } from '../src/share/voice.js';
@@ -341,10 +345,10 @@ check('quieter further out, never under the floor', distanceGain(100) < 1 && dis
 const REPLAY_KEY = /export const REPLAY_KEY = '([A-Za-z]+)'/.exec(readFileSync(join(root, 'src/replay/crashcam.js'), 'utf8'))[1];
 check(`push to talk is not the replay's key (${REPLAY_KEY})`, PTT_KEY !== REPLAY_KEY);
 
-console.log('nothing recorded');
-/* The movie export taps the game's own audio (src/replay/export.js,
- * audio.master), so voice must never be in that graph: its own context,
- * and no import of the game's audio from either voice module. */
+console.log('what is kept');
+/* Live voice plays in a context of its own, never the game's graph; what
+ * a replay keeps goes through the crash cam's recorder alone (setRecorder,
+ * src/replay/voicerec.js), and the replay plays it from the clip. */
 const voiceSrc = readFileSync(join(root, 'src/share/voice.js'), 'utf8');
 const uiSrc = readFileSync(join(root, 'src/ui/voiceui.js'), 'utf8');
 const imports = (src) => [...src.matchAll(/^import [^;]* from '([^']+)';/gm)].map((m) => m[1]);
@@ -364,6 +368,21 @@ function walk(dir) {
 }
 walk(join(root, 'src'));
 check('only main.js and the voice screen use the voice module', importers.sort().join(',') === 'src/main.js,src/ui/voiceui.js', importers.join(','));
+/* The one MediaRecorder records a link's received stream, in record(),
+ * which only the link's ontrack calls; a piece is kept only when that
+ * pilot spoke and is not muted here. */
+const recorders = [...voiceSrc.matchAll(/new MediaRecorder\(([a-zA-Z]+)/g)].map((m) => m[1]);
+check('only a received stream is recorded, never the microphone', recorders.length === 1 && recorders[0] === 'stream'
+  && [...voiceSrc.matchAll(/\brecord\(/g)].length === 2 && /record\(l, stream\);\n    \};/.test(voiceSrc), recorders.join(','));
+check('a piece is kept only when its pilot spoke and is not muted here', /if \(l\.rec && volumeOf\(seat\) > 0\) \{\n\s*l\.rec\.spoke = true;/.test(voiceSrc)
+  && /if \(!rec\.spoke \|\|/.test(voiceSrc));
+/* Listening only until the notice: the links need no microphone. */
+check('a pilot without a microphone still links, to listen', !/!on \|\| !mic/.test(voiceSrc) && /direction: 'recvonly'/.test(voiceSrc));
+check('the voice row and the privacy page say voices are kept, in English and Spanish',
+  /kept|keep/.test(STR_EN['voicechat.voice_note']) && /guardan/.test(STR_ES['voicechat.voice_note'])
+  && !/nothing is recorded/.test(STR_EN['voicechat.voice_note'])
+  && /Voices are kept in replays/.test(readFileSync(join(root, 'privacy.html'), 'utf8'))
+  && !/never include voice/.test(readFileSync(join(root, 'privacy.html'), 'utf8')));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -1213,6 +1213,8 @@ export async function boot({
   /* The flaps' angle and the gear's position last frame, for the sound of
    * them moving, and whether the gear was moving. */
   let flapAngleWas = 0;
+  /* Whether the mix was last told a replay plays (audio.setReplaying). */
+  let audioReplaying = false;
   let gearWas = 0;
   let gearMovingWas = false;
   /* Everything in the world that sounds and is not this aircraft: the
@@ -2401,7 +2403,14 @@ export async function boot({
   /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
    * turns it on in the room screen, never to a pilot muted or reported. */
   const voice = createVoice({ send: (m) => roomLinkState.send(m), isMuted: (seat) => roomSafety.isMuted(seat) });
-  const voiceUi = createVoiceUi(voice, input, () => ui.refreshFriends());
+  const voiceUi = createVoiceUi(voice, input, () => ui.refreshFriends(), {
+    acknowledged: () => ui.settings.voiceReplayAck === true,
+    acknowledge: () => {
+      ui.settings.voiceReplayAck = true;
+      ui.persistSettings();
+    },
+    confirm: (o) => ui.askConfirm(o),
+  });
   /* Harness only, for scripts/voicechat-two-page.js. */
   window.__voice = voice;
   window.__voiceUi = voiceUi;
@@ -3328,9 +3337,10 @@ export async function boot({
 
   /* Crest Control's lines, in the UI's language, while the sound is on. */
   /* Each item a line id, or a list said as one (warradio.js PRIORITY);
-   * prio 'story' for a stage's own radio cue. */
+   * prio 'story' for a stage's own radio cue. Under a replay the radio
+   * says the clip's lines, not the live war's. */
   function warSay(items, prio = 'call') {
-    if (!items.length || !audio.enabled) {
+    if (!items.length || !audio.enabled || mode === 'replay') {
       return;
     }
     const radio = audio.war();
@@ -3401,6 +3411,12 @@ export async function boot({
     if (w.damage) {
       warBreakageAt(w.damage, w.t ?? 0);
     }
+    /* And its water: a flood of the replay's own from the openings, on
+     * the clip's clock (map.replayFlood). The mission's gate state is
+     * not journalled yet (no war feeds map.setGateState), so none. */
+    if (w.openings && typeof view.replayFlood === 'function') {
+      view.replayFlood({ openings: w.openings, gates: null, fromMs: w.from ?? w.t ?? 0 });
+    }
   }
 
   /*
@@ -3430,6 +3446,9 @@ export async function boot({
     warBreakageShown = { seqs: list.map((d) => d.seq), t };
   }
   function warBreakageLive(now) {
+    if (view && typeof view.replayFlood === 'function') {
+      view.replayFlood(null);
+    }
     if (!warBreakageShown) {
       return;
     }
@@ -4276,7 +4295,10 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
-    roomHearPeers();
+    /* In a replay the pilots are heard from the clip (the frame's sound). */
+    if (mode !== 'replay') {
+      roomHearPeers();
+    }
     tagMarkPeers();
     tagBubble(now, wallMs, scene);
     tagCrownFrame(scene, dt);
@@ -4801,6 +4823,8 @@ export async function boot({
    * voice fades.
    */
   const peerHeard = [];
+  /* An airframe's engine, for the replay's pilots, made once each. */
+  const replaySpecs = new Map();
   const camRight = new THREE.Vector3();
   function roomHearPeers() {
     peerHeard.length = 0;
@@ -4836,6 +4860,15 @@ export async function boot({
         a.vy = p.vy;
         a.vz = p.vz;
         peerHeard.push(a);
+      }
+    } else if (crashCam) {
+      /* The replay's pilots, where and how they flew then. */
+      for (const h of crashCam.peersHeard() || []) {
+        if (!replaySpecs.has(h.airframe)) {
+          replaySpecs.set(h.airframe, h.airframe && airframeById(h.airframe) ? engineSpecFor(h.airframe, {}, {}) : null);
+        }
+        h.spec = replaySpecs.get(h.airframe);
+        peerHeard.push(h);
       }
     }
     const cam = shell.camera;
@@ -15940,6 +15973,12 @@ export async function boot({
          * craft is where it was then; a clip saved before it had one is
          * drawn at the live clock. */
         animMs = crashCam.animMs() ?? trafficMs(simTimeMs);
+        /* The live water steps on with the room meanwhile, never past
+         * the traffic's clock it is stepped on after (TRAFFIC_SLACK_MS):
+         * the map's replay flood is the one on the clip's. */
+        if (view.advanceLiveWater && roomLinkState.state().phase === 'open' && roomLinkState.roomNow() != null) {
+          view.advanceLiveWater(roomLinkState.roomNow() - TRAFFIC_SLACK_MS);
+        }
       } else if (mode === 'results') {
         animMs = trafficMs(simTimeMs + Math.max(0, finishCamMs));
       } else if (mode !== 'title') {
@@ -16082,6 +16121,21 @@ export async function boot({
      * the camera is now, over the ground under it. */
     worldAudio.attach(audio);
     worldAudio.setWalls(view && view.audioWalls);
+    /* A replay's attackers heard where it drew them, and its pilots, in
+     * or out of a room; the live music, radio and voices held silent
+     * under it (src/replay/sound.js). */
+    if ((mode === 'replay') !== audioReplaying) {
+      audioReplaying = mode === 'replay';
+      audio.setReplaying(audioReplaying);
+      voice.setHeld(audioReplaying);
+    }
+    if (mode === 'replay' && crashCam) {
+      const heard = crashCam.warHeard();
+      if (heard) {
+        worldAudio.war(heard.list, heard.room);
+      }
+      roomHearPeers();
+    }
     /* The water through the dam's openings (the map's flood,
      * docs/FLOOD.md), its roar with its discharge. */
     if (view && view.waterFlows) {
@@ -16198,6 +16252,12 @@ export async function boot({
       gearWas = gear;
       audioAir.gearMoving = gearMoving;
       air = audioAir;
+      if (crashCam && mode === 'flight') {
+        crashCam.recordAir(air);
+      }
+    } else {
+      /* The clip's air when it kept it, else the wind from its speed. */
+      air = crashCam.air();
     }
     audio.update(audioRpm, replayWind >= 0 ? replayWind : (motorsTurning ? speed : 0), undefined, air);
     const audioMs = performance.now() - audioStart;
@@ -18194,6 +18254,9 @@ export async function boot({
     return true;
   };
   window.__mapFlows = () => (view && view.waterFlows ? view.waterFlows() : null);
+  /* How a crash cam replay's water stands (map.replayWater), for
+   * scripts/replay-world.js. Harness only. */
+  window.__mapReplayWater = () => (view && view.replayWater ? view.replayWater() : null);
   /* A mission's gate state handed to the map (map.setGateState), for
    * scripts/itaipu-views.js --gates. Harness only. */
   window.__mapGates = (list) => {
@@ -18516,6 +18579,25 @@ export async function boot({
       ui.show('flight');
     },
     drawWar: warMapDraw,
+    /* The two beds as they play now, [id, seconds in] ('' for none): the
+     * flight's record and the war's music (src/replay/sound.js). */
+    beds: () => {
+      const m = audio.music;
+      const r = audio.warRadio;
+      const on = (el) => Boolean(el && !el.paused && !el.ended);
+      return {
+        music: m && m.enabled && on(m.el) && m.track ? [m.track.id, m.el.currentTime] : ['', 0],
+        bed: r && r.track && r.bed && on(r.bed.el) ? [r.track, r.bed.el.currentTime] : ['', 0],
+      };
+    },
+    /* A replayed explosion in the world's voice, from where it went off;
+     * false without one. */
+    worldBoom: (p, level) => worldAudio.boom(p, level),
+    /* How the map's replay water stands (map.replayWater), or null. */
+    replayWater: () => (view && typeof view.replayWater === 'function' ? view.replayWater() : null),
+    /* The room clock now, or null out of a room: what each row and each
+     * voice heard is stamped on (src/replay/voicerec.js). */
+    roomNow: () => (roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null),
     notice: (text) => {
       notice = { text, untilMs: performance.now() + 2400 };
     },
@@ -18603,6 +18685,8 @@ export async function boot({
   crashCam.tapBooms(warBooms);
   /* And its attackers, so a replay flies them where they were. */
   crashCam.tapWar(roomWar, warAttackers, () => warFrameNow);
+  /* And the voices this page hears, for its replays (src/share/voice.js). */
+  voice.setRecorder(crashCam.voiceSink);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

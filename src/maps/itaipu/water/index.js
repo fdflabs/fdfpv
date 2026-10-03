@@ -981,7 +981,35 @@ export async function buildPart(ctx) {
   ctx.progress(1);
   /* The flood (live.js): Free Flight's typical spill until a war says
    * otherwise. */
-  const flood = liveFlood();
+  const live = liveFlood();
+  /*
+   * THE REPLAY'S WATER (src/replay/warrec.js, the crash cam). A replay
+   * hands its clip's openings and gate state and the room ms it starts
+   * at (replayFlood): the live flood forks a flood of the replay's own
+   * from them (live.js fork: from its checkpoint before the clip when it
+   * heard the same, else from the origin), stepped on the clip's clock
+   * (update's step is the playhead's room ms then) and rewinding when the
+   * playhead goes back (host.js). The live flood steps on alongside on the room's
+   * clock (advanceLive), so the plant's level (levelAt, live) never has a
+   * replay's worth of steps to make at once when the replay closes, and
+   * nothing of the replay reaches it. The replay's water is drawn and
+   * heard only once it stands within HOLD_STEPS of the playhead; until
+   * then the water drawn is held as it was, and replayWater() says so.
+   */
+  const HOLD_STEPS = 5;
+  let replay = null;
+  let replayKey = '';
+  let replayClockMs = null;
+  /* The replay's flood, ready and near enough the playhead to draw. */
+  const replayDrawn = () => {
+    if (!replay || replayClockMs === null) return false;
+    const st = replay.stats(replayClockMs);
+    /* A clip with nothing in it and a live flood with nothing either is
+     * the live water itself (fork 'still'), drawn while that holds. */
+    if (st.fork === 'still') return !st.held;
+    return st.state === 'ready' && st.behind <= HOLD_STEPS;
+  };
+  const active = () => replay || live;
   let clockMs = null;
   /*
    * The spillway's state from the flood, for the chute, the plume and the
@@ -1035,7 +1063,8 @@ export async function buildPart(ctx) {
   const FRONT_STEP = 10;
   const spillShare = new Float32Array(BAYS);
   const readSpill = (stepped) => {
-    const fl = flood.flood();
+    if (replay && !replayDrawn()) return;
+    const fl = active().flood();
     readAge += 1;
     if (!fl || (fl === readFrom && !(stepped > 0 && readAge >= READ_EVERY))) return;
     readFrom = fl;
@@ -1105,18 +1134,53 @@ export async function buildPart(ctx) {
     /* An opening in the dam (docs/DAMBREAK-CONTRACT), from the war's
      * damage: into the flood. */
     onOpening(o) {
-      flood.open(o);
+      live.open(o);
+    },
+    /* A replay's water: { openings (the contract's, in the order the
+     * clip heard them), gates (setGates's list, or null), fromMs (the
+     * room ms the clip starts at) }, or null when the replay closes. The
+     * same again keeps the flood it made. */
+    replayFlood(given) {
+      if (given === null) {
+        replay = null;
+        replayKey = '';
+        replayClockMs = null;
+        readFrom = null;
+        return;
+      }
+      const key = JSON.stringify(given);
+      if (replay && key === replayKey) return;
+      replayKey = key;
+      replay = live.fork(given.openings, given.fromMs, given.gates);
+      replayClockMs = null;
+      readFrom = null;
+    },
+    /* The live flood stepped on the room's clock `roomMs` while a replay
+     * draws its own (update steps the replay's then). */
+    advanceLive(roomMs) {
+      if (replay) live.advance(roomMs);
+    },
+    /* The replay's water: null with none, else { state (live.js's),
+     * behind (steps short of the playhead), drawn (near enough to be the
+     * water drawn) }. */
+    replayWater() {
+      if (!replay) return null;
+      const st = replay.stats(replayClockMs);
+      return {
+        state: st.state, behind: st.behind, drawn: replayDrawn(), fork: st.fork,
+      };
     },
     /* A mission's gate state ({ gate, at, open_m } each), or null for
      * no war (live.js). */
     setGates(list) {
-      flood.setGates(list);
+      live.setGates(list);
     },
-    /* Each opening's discharge, m3/s, and where (world, y up). */
-    flows: () => flood.flows(),
+    /* Each opening's discharge, m3/s, and where (world, y up): the
+     * replay's water's while one plays. */
+    flows: () => (replay ? (replayDrawn() ? replay.flows() : []) : live.flows()),
     /* The river's level under (x, z) at room time `ms` for the plant, or
      * null where the flood has none (live.js levelAt). */
-    levelAt: (x, z, ms) => flood.levelAt(x, z, ms),
+    levelAt: (x, z, ms) => live.levelAt(x, z, ms),
     /* Where the spillway's jets come down, for its roar
      * (src/render/world-audio.js audioBeds). */
     plunges: spill.map((b) => b.land),
@@ -1128,7 +1192,8 @@ export async function buildPart(ctx) {
       /* In a room the animation clock is the room's (src/main.js
        * trafficMs), the clock the flood steps on. */
       clockMs = step;
-      const stepped = flood.advance(step);
+      if (replay) replayClockMs = step;
+      const stepped = active().advance(step);
       readSpill(stepped);
     },
     /* The shell's waves, in the map's frame, in view.water's order
@@ -1169,7 +1234,8 @@ export async function buildPart(ctx) {
     stats: () => ({
       ...stats,
       bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })),
-      flood: flood.stats(clockMs),
+      flood: live.stats(clockMs),
+      replayFlood: replay ? replay.stats(clockMs) : null,
     }),
   };
 }

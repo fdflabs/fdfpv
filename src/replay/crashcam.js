@@ -66,6 +66,12 @@ import { SIZE_MAX } from '../render/explosion.js';
 import { createWarRing } from './warrec.js';
 import { createWarScene } from './warscene.js';
 import {
+  airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt,
+} from './sound.js';
+import {
+  MIMES, SEGMENT_MS, createVoiceRing, voiceClockAt, voicesAt,
+} from './voicerec.js';
+import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
 } from './cameras.js';
 import * as ed from './edit.js';
@@ -97,6 +103,9 @@ const { SPEEDS } = ed;
 /* A gap between two times drawn that is still one step forward, s; a
  * bigger one, or any step back, is a jump and the air is rebuilt. */
 const FORWARD_S = 0.25;
+/* A replayed voice this far from where the clip says it is, seconds, is
+ * started again there. */
+const VOICE_SLIP_S = 0.15;
 /* How many movie frames behind the playhead may be stepped through in one
  * display frame before it is a jump instead. */
 const CATCH_UP = 6;
@@ -119,6 +128,10 @@ export function createCrashCam(host) {
   /* A war's attackers (src/replay/warrec.js). */
   const warRing = createWarRing(rec.capacity);
   const paperRing = createPaperRing(rec.capacity);
+  /* The flight's sound no row holds (src/replay/sound.js). */
+  const soundRing = createSoundRing(rec.capacity);
+  /* The room's voices as heard here (src/replay/voicerec.js). */
+  const voiceRing = createVoiceRing(rec.capacity);
   /* Harness only: the paper as recorded, by ring row, while switched on. */
   let paperLog = null;
   /* Harness only: the peers as recorded, by ring row, while switched on. */
@@ -163,6 +176,8 @@ export function createCrashCam(host) {
     peerRing.begin(-1);
     paperRing.begin(-1);
     warRing.begin(-1);
+    soundRing.begin(-1);
+    voiceRing.begin(-1);
     if (S) {
       return;
     }
@@ -189,6 +204,8 @@ export function createCrashCam(host) {
       peerRing.clear();
       paperRing.clear();
       warRing.clear();
+      soundRing.clear();
+      voiceRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -200,7 +217,21 @@ export function createCrashCam(host) {
     peerRing.begin(i);
     paperRing.begin(i);
     warRing.begin(i);
+    soundRing.begin(i);
+    voiceRing.begin(i);
+    const roomMs = host.roomNow ? host.roomNow() : null;
+    voiceRing.at(roomMs);
+    if (roomMs != null) {
+      voiceRing.prune(roomMs, WINDOW_S * 1000);
+    }
     paperRing.prune(rec.now(), WINDOW_S);
+    soundRing.prune(rec.now(), WINDOW_S);
+    /* The two beds, kept when they change (src/replay/sound.js). */
+    const beds = host.beds ? host.beds() : null;
+    if (beds) {
+      soundRing.call(rec.now(), 'music', beds.music);
+      soundRing.call(rec.now(), 'bed', beds.bed);
+    }
     const quad = shell.quad;
     rec.anim(i, host.animMs());
     rec.pose(i, quad.position, quad.quaternion);
@@ -327,6 +358,130 @@ export function createCrashCam(host) {
         }
         return wreck(kind, level, atTime);
       };
+    }
+    /* The rest of the craft's one shot sounds (src/replay/sound.js
+     * CALLS), each with the arguments the replay makes it again with. */
+    const keep = (name, args) => {
+      if (!S && recording && host.mode() === 'flight') {
+        soundRing.call(rec.now(), name, args);
+      }
+    };
+    const wrap = (name, argsOf) => {
+      if (typeof audio[name] !== 'function') {
+        return;
+      }
+      const f = audio[name].bind(audio);
+      audio[name] = (...a) => {
+        keep(name, argsOf(...a));
+        return f(...a);
+      };
+    };
+    wrap('impact', (impulse, hardness, speed) => [impulse, hardness, speed]);
+    wrap('propStrike', (level, hardness) => [level, hardness]);
+    wrap('mechanical', (kind) => [kind]);
+    wrap('event', (kind, atTime, level) => [kind, level ?? null]);
+    /* Crest Control's lines, in the language they were said in. */
+    if (typeof audio.war === 'function') {
+      const war = audio.war.bind(audio);
+      const said = new WeakSet();
+      audio.war = () => {
+        const radio = war();
+        if (!said.has(radio)) {
+          said.add(radio);
+          const say = radio.say.bind(radio);
+          /* A line, or a list said back to back: each kept on its own,
+           * and said again in turn. */
+          radio.say = (ids, ...rest) => {
+            for (const id of Array.isArray(ids) ? ids : [ids]) {
+              keep('radio', [id, radio.lang]);
+            }
+            return say(ids, ...rest);
+          };
+        }
+        return radio;
+      };
+    }
+  }
+
+  /* Where src/share/voice.js sends the voices it hears (setRecorder). */
+  const voiceSink = {
+    now: () => (host.roomNow ? host.roomNow() : null),
+    piece: (p) => voiceRing.add(p),
+    mimes: MIMES,
+    segmentMs: SEGMENT_MS,
+  };
+
+  /*
+   * The room's voices at the frame on screen: each piece speaking at the
+   * room ms the row was drawn at, decoded once, played from where it had
+   * got to into the mix's voice bus at the replay's speed; a scrub, a
+   * pause or a piece now silent stops it. A source more than VOICE_SLIP_S
+   * from where it should be is started again there.
+   */
+  function voicesFrame(k, a, speed, playing) {
+    const v = S.clip.voice;
+    const ctx = audio.ctx;
+    if (!v || !ctx || !audio.voiceBus) {
+      return;
+    }
+    const ms = voiceClockAt(v, S.clip.n, k, a);
+    const want = playing && !S.exporting ? voicesAt(v, ms) : [];
+    const now = ctx.currentTime;
+    for (const [piece, src] of S.voices) {
+      const w = want.find((x) => x.piece === piece);
+      const at = src.at + (now - src.t) * src.rate;
+      if (!w || Math.abs(at - w.at) > VOICE_SLIP_S || src.rate !== speed) {
+        try {
+          src.node.stop();
+        } catch (e) {
+          /* Already ended. */
+        }
+        S.voices.delete(piece);
+      }
+    }
+    for (const w of want) {
+      if (S.voices.has(w.piece)) {
+        continue;
+      }
+      if (!S.decoded.has(w.piece)) {
+        S.decoded.set(w.piece, null);
+        ctx.decodeAudioData(w.piece.bytes.slice().buffer).then((b) => {
+          if (S) {
+            S.decoded.set(w.piece, b);
+          }
+        }, () => {});
+        continue;
+      }
+      const buf = S.decoded.get(w.piece);
+      if (!buf || w.at >= buf.duration) {
+        continue;
+      }
+      const node = ctx.createBufferSource();
+      node.buffer = buf;
+      node.playbackRate.value = speed;
+      node.connect(audio.voiceBus);
+      node.start(now, w.at);
+      S.voices.set(w.piece, {
+        node, at: w.at, t: now, rate: speed,
+      });
+    }
+  }
+
+  function voicesStop() {
+    for (const src of S.voices.values()) {
+      try {
+        src.node.stop();
+      } catch (e) {
+        /* Already ended. */
+      }
+    }
+    S.voices.clear();
+  }
+
+  /* This frame's engine air (src/render/audio.js update's), into the row. */
+  function recordAir(air) {
+    if (!S) {
+      soundRing.air(air);
     }
   }
 
@@ -553,6 +708,14 @@ export function createCrashCam(host) {
       if (war) {
         clip.war = war;
       }
+      const sound = soundRing.clip(first, n, t0, t1);
+      if (sound) {
+        clip.sound = sound;
+      }
+      const voice = voiceRing.clip(first, n);
+      if (voice) {
+        clip.voice = voice;
+      }
     }
     /* A saved clip of one frame is a still, and plays as one. */
     if (clip.n < (saved ? 1 : 2)) {
@@ -607,6 +770,9 @@ export function createCrashCam(host) {
       toast: null,
       /* Harness only: every movie frame stepped, while switched on. */
       stepLog: null,
+      /* The room's voices playing (piece -> source) and decoded. */
+      voices: new Map(),
+      decoded: new Map(),
     };
     clockFps = lastExportFps();
     startClock();
@@ -643,6 +809,7 @@ export function createCrashCam(host) {
     if (S.exporting) {
       cancelExport();
     }
+    voicesStop();
     disposeScene(S.scene);
     for (const g of host.liveGroups) {
       g.visible = true;
@@ -677,7 +844,7 @@ export function createCrashCam(host) {
     /* The others in the room, when the clip has them. */
     const peers = clip.peers ? createPeerScene(clip.peers, clip.time, clip.n, parent, host.craftLook || null) : null;
     /* Combat's paper, when the clip has it. */
-    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor) : null;
+    const paper = clip.paper ? createPaperScene(clip.paper, clip.n, parent, audio, host.paperFloor, host.worldBoom || null) : null;
     /* A war's attackers, when the clip has them. */
     const war = clip.war ? createWarScene(clip.war, clip.n, parent) : null;
     return {
@@ -1024,6 +1191,8 @@ export function createCrashCam(host) {
     const s = sampleAt(S.clip, t, S.sample);
     S.animMs = s.anim;
     events(from, t, speed);
+    bedsFrame(t, speed, running);
+    voicesFrame(s.k, s.a, speed, running);
     smokeTo(from, t);
     if (moving) {
       S.scene.debris.update(step);
@@ -1044,6 +1213,12 @@ export function createCrashCam(host) {
       const w = S.scene.war.world();
       if (w && host.drawWar) {
         host.drawWar(w);
+      }
+      /* Its water is drawn once it stands at the playhead; until then the
+       * water is held, and the replay says so. */
+      const water = host.replayWater ? host.replayWater() : null;
+      if (water && !water.drawn) {
+        S.toast = { text: str('replay.water_catching_up'), until: performance.now() + 400 };
       }
     }
     if (S.scene.paper) {
@@ -1117,6 +1292,48 @@ export function createCrashCam(host) {
         audio.wreck(e.kind, e.level * Math.min(1, speed));
       }
     }
+    if (S.clip.sound && !S.exporting) {
+      for (const e of callsBetween(S.clip.sound.events, from, to)) {
+        replayCall(e, speed);
+      }
+    }
+  }
+
+  /* One of the flight's sounds again (src/replay/sound.js CALLS), quieter
+   * in slow motion as the crash cues are. */
+  function replayCall(e, speed) {
+    const q = Math.min(1, speed);
+    const [a0, a1, a2] = e.args;
+    if (e.call === 'radio') {
+      const beds = typeof audio.replayBeds === 'function' ? audio.replayBeds() : null;
+      if (beds) {
+        beds.say(a0, a1);
+      }
+    } else if (e.call === 'impact' && typeof audio.impact === 'function') {
+      audio.impact(a0 * q, a1, a2 * q);
+    } else if (e.call === 'propStrike' && typeof audio.propStrike === 'function') {
+      audio.propStrike(a0 * q, a1);
+    } else if (e.call === 'mechanical' && typeof audio.mechanical === 'function') {
+      audio.mechanical(a0);
+    } else if (e.call === 'event' && typeof audio.event === 'function') {
+      audio.event(a0, null, a1 === null ? q : a1 * q);
+    }
+  }
+
+  /* The replay's beds at the frame on screen: the war's music and the
+   * flight's record where they had got to, at the replay's speed. */
+  function bedsFrame(t, speed, playing) {
+    if (!S.clip.sound || typeof audio.replayBeds !== 'function') {
+      return;
+    }
+    const ev = S.clip.sound.events;
+    const war = bedAt(ev, 'bed', t);
+    const music = bedAt(ev, 'music', t);
+    /* The radio is only made for a clip that has a bed to play. */
+    const beds = war || music || audio.replayRadio ? audio.replayBeds() : null;
+    if (beds) {
+      beds.frame(war, music, speed, playing && !S.exporting);
+    }
   }
   const vA = new THREE.Vector3();
   const vB = new THREE.Vector3();
@@ -1132,6 +1349,54 @@ export function createCrashCam(host) {
       outRpm[m] = S.sample.pose[POSE.rpm + m] * k;
     }
     return S.sample.head[HEAD.speed] * k;
+  }
+
+  /* The engine's air at the frame on screen (src/render/audio.js update's
+   * `air`), the airflow slowed with the picture, or null for a clip that
+   * kept none (the mix then hears the wind from the speed, as before). */
+  function air() {
+    if (!S || !S.clip.sound) {
+      return null;
+    }
+    const k = S.playing || S.exporting ? speedAt(S.t) : 0;
+    const [i, a] = locate(S.clip, S.t);
+    airAt(S.clip.sound, S.clip.n, i, a, airNow);
+    airNow.u *= k;
+    airNow.v *= k;
+    airNow.w *= k;
+    airNow.amps *= k > 0 ? 1 : 0;
+    airNow.flapsMoving = airNow.flapsMoving && k > 0;
+    airNow.gearMoving = airNow.gearMoving && k > 0;
+    return airNow;
+  }
+  const airNow = {
+    u: 0, v: 0, w: 0, amps: 0, flapsMoving: false, gearMoving: false,
+  };
+
+  /* The other pilots as the mix hears them at the frame on screen, their
+   * motors slowed with the picture (src/replay/sound.js peerVoicesAt), or
+   * null with no replay open. */
+  function peersHeard() {
+    if (!S) {
+      return null;
+    }
+    if (!S.scene.peers) {
+      heardNow.length = 0;
+      return heardNow;
+    }
+    const k = S.playing || S.exporting ? speedAt(S.t) : 0;
+    return peerVoicesAt(S.clip.peers, S.scene.peers.sample(), k, heardNow);
+  }
+  const heardNow = [];
+
+  /* The attackers as the world's sound hears them at the frame on screen:
+   * { list, room } (warrec.js warAt's, at the room ms drawn), or null. */
+  function warHeard() {
+    if (!S || !S.scene.war) {
+      return null;
+    }
+    const d = S.scene.war.heard();
+    return d && Number.isFinite(d.room) ? d : null;
   }
 
   /* After the world is drawn: the letterbox, and a picture if one is due.
@@ -1870,6 +2135,7 @@ export function createCrashCam(host) {
     if (S.exporting) {
       cancelExport();
     }
+    voicesStop();
     disposeScene(session.scene);
     for (const g of host.liveGroups) {
       g.visible = true;
@@ -1880,6 +2146,7 @@ export function createCrashCam(host) {
     if (res && res.ok) {
       rec.dropNewest(drop);
       paperRing.dropAfter(rec.now());
+      soundRing.dropAfter(rec.now());
       prevStatus.fill(0);
     }
     window.__crashCamLast = { ...(window.__crashCamLast || {}), takeOver: { ...res, frame: k, clipT: clip.time[k] } };
@@ -2050,6 +2317,8 @@ export function createCrashCam(host) {
     tapCrown,
     tapBooms,
     tapWar,
+    recordAir,
+    voiceSink,
     noteCrash,
     promptKey: () => promptKey,
     tap,
@@ -2057,6 +2326,9 @@ export function createCrashCam(host) {
     frame,
     afterRender,
     sound,
+    air,
+    peersHeard,
+    warHeard,
     stats,
     open: () => open(),
     /* Back to the flight, as the replay's own way out does: a room that
@@ -2176,6 +2448,10 @@ export function createCrashCam(host) {
         const w = S && S.scene.war ? S.scene.war.world() : null;
         return w ? { t: w.t ?? null, targets: { ...w.targets }, levels: Array.from(w.levels) } : null;
       },
+      /* The seats whose voices the replay plays this frame, and the
+       * ring's bytes. */
+      voicesPlaying: () => (S ? [...S.voices.keys()].map((p) => p.seat) : []),
+      voiceBytes: () => voiceRing.bytes(),
       /* The clip row whose map was drawn at room ms `ms`, or -1. */
       warWorldRow: (ms) => (S && S.clip.war && S.clip.war.clock ? S.clip.war.clock.indexOf(ms) : -1),
     }),

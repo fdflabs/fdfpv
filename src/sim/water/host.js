@@ -31,6 +31,13 @@
  *   Wall clock decides only how soon a client sees the water, never what
  *   the water is.
  *
+ *   CHECKPOINTS. Every CHECK_STEPS (10 s) a copy of the water is kept as
+ *   well, CHECKS of them, so the last 40 s or more are always held: the
+ *   crash cam's 30 s window and the flood's second behind the room. A
+ *   rewind goes to the latest snapshot or checkpoint before its step; a
+ *   replay's flood (water/live.js fork) starts from one of another host's
+ *   (checkpoint, resume) instead of from the origin.
+ *
  * onSave(step), if given, is called at every snapshot step with the
  * water as it stands there, and onDrop(step) when the steps after `step`
  * are to be stepped again (a rewind, a start again): a host that keeps
@@ -68,11 +75,19 @@ export const DELAY_MS = 1000;
 /* A snapshot every so many steps, and how many are kept. */
 export const SNAP_STEPS = 100;
 export const SNAPS = 4;
+/* A checkpoint every so many steps (a multiple of SNAP_STEPS), and how
+ * many are kept: 5 x 10 s. Each is 3 doubles a cell, 1.44 MB on Itaipu's
+ * 59 904 cells, 7.2 MB for the five. */
+export const CHECK_STEPS = 500;
+export const CHECKS = 5;
 
 /* What an opening says beyond its id and time: the same id heard again
  * with another shape (a hole moved with its leaf, grown) is another
  * event, the same shape again is the same one. */
 const shape = (o) => JSON.stringify([o.sill, o.width_m, o.height_m, o.open_m]);
+
+/* An opening as one event: two hosts that heard the same are the same. */
+const key = (o) => `${o.id}|${o.at}|${shape(o)}`;
 
 /* The order openings on one step are applied in: by time, then id, then
  * shape, so two shapes of one id at one time fall the same on every
@@ -86,10 +101,13 @@ function before(a, b) {
 }
 
 export function createFloodHost(flood, {
-  dtMs, delayMs = DELAY_MS, snapSteps = SNAP_STEPS, snaps = SNAPS, onSave = null, onDrop = null,
+  dtMs, delayMs = DELAY_MS, snapSteps = SNAP_STEPS, snaps = SNAPS, checkSteps = CHECK_STEPS, checks = CHECKS, onSave = null, onDrop = null,
 } = {}) {
   if (!(dtMs > 0)) {
     throw new Error('flood host: dtMs must be positive');
+  }
+  if (!(checkSteps > 0 && checkSteps % snapSteps === 0)) {
+    throw new Error('flood host: checkSteps must be a multiple of snapSteps');
   }
   const { f } = flood;
   const start = [f.h().slice(), f.hu().slice(), f.hv().slice()];
@@ -100,6 +118,10 @@ export function createFloodHost(flood, {
   /* How many of `heard` the water has had applied. */
   let applied = 0;
   let ring = [];
+  /* The checkpoints, as the ring's entries: { step, applied, state }.
+   * Their arrays are never written once kept, so another host may hold
+   * the same ones (resume). */
+  let kept = [];
   const stats = {
     rewinds: 0, restarts: 0, steps: 0,
   };
@@ -114,8 +136,14 @@ export function createFloodHost(flood, {
     if (onSave) onSave(step);
     if (hashes.size > HASHES) hashes.delete(hashes.keys().next().value);
     ring = ring.filter((r) => r.step !== step);
-    ring.push({ step, applied, state: [f.h().slice(), f.hu().slice(), f.hv().slice()] });
+    const snap = { step, applied, state: [f.h().slice(), f.hu().slice(), f.hv().slice()] };
+    ring.push(snap);
     if (ring.length > snaps) ring.shift();
+    if (step % checkSteps === 0) {
+      kept = kept.filter((r) => r.step !== step);
+      kept.push(snap);
+      if (kept.length > checks) kept.shift();
+    }
   };
   const load = (state) => {
     f.h().set(state[0]);
@@ -129,16 +157,18 @@ export function createFloodHost(flood, {
     step = 0;
     applied = 0;
     ring = [];
+    kept = [];
     /* Steps from a new origin are other times: their hashes too. */
     hashes.clear();
     if (onDrop) onDrop(-1);
     stats.restarts += 1;
   };
-  /* Back to the last snapshot at or before step s (taken before that
-   * step's openings, so the first snap.applied heard are its). */
+  /* Back to the last snapshot or checkpoint at or before step s (taken
+   * before that step's openings, so the first snap.applied heard are
+   * its). */
   const rewind = (s) => {
     let snap = null;
-    for (const r of ring) {
+    for (const r of [...ring, ...kept]) {
       if (r.step <= s && (!snap || r.step > snap.step)) snap = r;
     }
     if (!snap) {
@@ -154,6 +184,7 @@ export function createFloodHost(flood, {
     applied = snap.applied;
     if (onDrop) onDrop(snap.step);
     ring = ring.filter((r) => r.step <= snap.step);
+    kept = kept.filter((r) => r.step <= snap.step);
     stats.rewinds += 1;
   };
 
@@ -229,6 +260,42 @@ export function createFloodHost(flood, {
     stepTo(target) {
       if (origin === null || target <= step) return 0;
       return this.advance(origin + delayMs + (target + 1) * dtMs - 1e-6);
+    },
+    /* The latest checkpoint at or before room time `ms` less the delay
+     * (the water drawn then), or null: { origin, step, applied, keys,
+     * state }, keys the openings applied by then. */
+    checkpoint(ms) {
+      if (origin === null) return null;
+      const s = Math.floor((ms - delayMs - origin) / dtMs);
+      let best = null;
+      for (const r of kept) {
+        if (r.step <= s && r.step <= step && (!best || r.step > best.step)) best = r;
+      }
+      if (!best) return null;
+      return {
+        origin, step: best.step, applied: best.applied, keys: heard.slice(0, best.applied).map((h) => key(h.o)), state: best.state,
+      };
+    },
+    /*
+     * Start from another host's checkpoint `cp` (checkpoint) instead of
+     * the origin: the same water there, to the bit, when this host has
+     * heard the same openings before it, which it checks. True when it
+     * did, false (nothing changed) when this host's openings or origin
+     * differ there. Call it after opening every event, before advancing.
+     */
+    resume(cp) {
+      if (!cp || cp.origin !== origin || step !== 0 || applied !== 0) return false;
+      const before = heard.filter((h) => h.step < cp.step);
+      if (before.length !== cp.applied || before.some((h, k) => key(h.o) !== cp.keys[k])) return false;
+      load(cp.state);
+      flood.reset();
+      for (let k = 0; k < cp.applied; k += 1) flood.apply(heard[k].o);
+      step = cp.step;
+      applied = cp.applied;
+      const snap = { step: cp.step, applied: cp.applied, state: cp.state };
+      ring = [snap];
+      kept = [snap];
+      return true;
     },
     /* How far behind the room's clock less the delay the water is. */
     behind(nowMs) {

@@ -60,7 +60,44 @@ const search = new URL(import.meta.url).search;
 const url = (name) => new URL(`${name}${search}`, import.meta.url).href;
 const WASM_URL = new URL(`../../../../dist/flood.wasm${search}`, import.meta.url).href;
 
-export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.now() } = {}) {
+/*
+ * THE FILES, ONCE. Every flood a page makes (the live one, a replay's
+ * forks) shares the compiled module, the unpacked bed and the warmed
+ * state's bytes, fetched and made once per `fetchBytes`; none of them
+ * is written. A load that failed is forgotten, so a later one tries
+ * again.
+ */
+const sharedBy = new WeakMap();
+function shared(fetchBytes) {
+  if (!sharedBy.has(fetchBytes)) {
+    const made = (async () => {
+      const [wasm, json, bin, { createFloodHost, DELAY_MS }, { unpackBed }, F] = await Promise.all([
+        fetchBytes(WASM_URL), fetchBytes(url('itaipu-flood.json')), fetchBytes(url('itaipu-flood.bin')),
+        import('../../../sim/water/host.js'), import('./bed.js'), import('./flood.js'),
+      ]);
+      const [module, warm] = await Promise.all([WebAssembly.compile(wasm), fetchBytes(url(F.START.file))]);
+      return {
+        module, bed: unpackBed(JSON.parse(new TextDecoder().decode(json)), bin), warm, createFloodHost, delay: DELAY_MS, F,
+      };
+    })();
+    made.catch(() => sharedBy.delete(fetchBytes));
+    sharedBy.set(fetchBytes, made);
+  }
+  return sharedBy.get(fetchBytes);
+}
+
+/* A mission's gate state entry as the flood's event. */
+const hoistEvent = (s) => ({
+  id: `hoist:${s.gate}:${s.at}`, at: s.at, kind: 'hoist', gate: s.gate, open_m: s.open_m,
+});
+
+/*
+ * The flood. `seed`, for a fork only: { events, from }, the events it
+ * holds from the start and the checkpoint (host.js checkpoint) of the
+ * flood it was forked from to start at, or null. A fork keeps no
+ * levels for the plant: the plant does not step under a replay.
+ */
+export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.now(), seed = null } = {}) {
   let state = 'idle';
   let flood = null;
   let host = null;
@@ -68,7 +105,9 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
   let lastMs = null;
   /* The war's events heard, in order: openings and hoists. None is no
    * war, the starting water. */
-  let events = [];
+  let events = seed ? seed.events.slice() : [];
+  /* Whether a fork started at its parent's checkpoint, not the origin. */
+  let resumed = false;
   let loading = null;
   let mods = null;
   /* The water's level, Float32 a cell, at each snapshot step kept. */
@@ -89,24 +128,19 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
     mods.F.loadState(flood.f, mods.warm);
     flood.reset();
     levels.clear();
-    host = mods.createFloodHost(flood, { dtMs: mods.F.DT_MS, onSave: keepLevel, onDrop: dropLevels });
+    host = mods.createFloodHost(flood, seed
+      ? { dtMs: mods.F.DT_MS }
+      : { dtMs: mods.F.DT_MS, onSave: keepLevel, onDrop: dropLevels });
   };
 
   const load = async () => {
     state = 'loading';
     try {
-      const [wasm, json, bin, { createFloodHost, DELAY_MS }, { unpackBed }, F] = await Promise.all([
-        fetchBytes(WASM_URL), fetchBytes(url('itaipu-flood.json')), fetchBytes(url('itaipu-flood.bin')),
-        import('../../../sim/water/host.js'), import('./bed.js'), import('./flood.js'),
-      ]);
-      const bed = unpackBed(JSON.parse(new TextDecoder().decode(json)), bin);
-      const warm = await fetchBytes(url(F.START.file));
-      mods = {
-        createFloodHost, delay: DELAY_MS, F, warm,
-      };
-      flood = await F.makeFlood(wasm, bed, { spill: F.START.spill });
+      mods = await shared(fetchBytes);
+      flood = await mods.F.makeFlood(mods.module, mods.bed, { spill: mods.F.START.spill });
       fresh();
       for (const e of events) host.open(e);
+      if (seed && seed.from) resumed = host.resume(seed.from);
       state = 'ready';
     } catch (e) {
       /* Loud: the map goes on without its water, and says why. */
@@ -137,11 +171,38 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
         return;
       }
       for (const s of list) {
-        const e = {
-          id: `hoist:${s.gate}:${s.at}`, at: s.at, kind: 'hoist', gate: s.gate, open_m: s.open_m,
-        };
+        const e = hoistEvent(s);
         if (!events.some((x) => x.id === e.id && x.open_m === e.open_m)) hear(e);
       }
+    },
+    /*
+     * A flood of a replay's own (src/replay/, the crash cam): the clip's
+     * `openings` (the contract's) and its `gates` (setGates' entries, or
+     * null), drawn while the replay plays and advanced on the clip's
+     * clock, `fromMs` the room ms the clip starts at. It starts from
+     * this flood's latest checkpoint before `fromMs` when this flood
+     * heard the same events before it (host.js resume), the same water
+     * to the bit at once; else from the origin, catching up a budget at
+     * a time. With no events while this flood has none either, it is
+     * this flood's own water and nothing is built (held, flood() null,
+     * if this flood hears one meanwhile). Same interface as
+     * this one's: advance, flood, flows, stats, loaded.
+     */
+    fork(openings, fromMs, gates = null) {
+      const list = [...openings, ...(gates || []).map(hoistEvent)];
+      if (list.length === 0 && events.length === 0) {
+        const self = this;
+        const still = () => events.length === 0;
+        return {
+          advance: () => 0,
+          flood: () => (still() ? self.flood() : null),
+          flows: () => [],
+          stats: (roomMs) => ({ ...self.stats(roomMs), fork: 'still', held: !still() }),
+          loaded: () => loading,
+        };
+      }
+      const from = host && events.length ? host.checkpoint(fromMs) : null;
+      return liveFlood({ fetchBytes, now, seed: { events: list, from } });
     },
     /* Every frame, with the room's clock (the map's animation clock is
      * the room's in a room). */
@@ -200,6 +261,7 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
         unplaced: flood ? flood.unplaced() : [],
         lips: flood ? flood.lips() : null,
         hashes: host ? host.hashes() : {},
+        ...(seed ? { fork: resumed ? 'checkpoint' : 'origin' } : {}),
         ...(host ? host.stats : {}),
       };
     },

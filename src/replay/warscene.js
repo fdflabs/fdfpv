@@ -41,6 +41,7 @@ export function createWarScene(war, n, parent) {
   const caches = new Map();
   let room = NaN;
   let map = null;
+  let list = [];
 
   return {
     /* The frame between rows k and k + 1, `a` of the way. */
@@ -48,9 +49,13 @@ export function createWarScene(war, n, parent) {
       const r0 = war.room[k];
       const r1 = war.room[Math.min(n - 1, k + 1)];
       room = Number.isFinite(r0) && Number.isFinite(r1) ? r0 + (r1 - r0) * a : r0;
-      layer.update(warAt(war, n, k, a, plans));
+      list = warAt(war, n, k, a, plans);
+      layer.update(list);
       map = worldAt(war, n, k, a, caches);
     },
+    /* The attackers drawn this frame and the room ms, for the world's
+     * sound (src/render/world-audio.js war). */
+    heard: () => ({ list, room }),
     /* The map at the frame drawn, or null for a clip that kept none. */
     world: () => map,
     /* For the checks: the room ms of this frame and what was drawn. */

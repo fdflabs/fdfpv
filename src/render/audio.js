@@ -56,6 +56,7 @@
 
 import { Music } from './music.js';
 import { WarRadio, VOICE_DUCK } from './warradio.js';
+import { ReplayBeds } from './replaybeds.js';
 
 /*
  * THE VOICES the shell names a machine by (configs/airframes.js `voice`,
@@ -252,6 +253,9 @@ export class MotorAudio {
      * while the war's music plays, the crate's is held off. */
     this.warRadio = null;
     this.warBed = false;
+    /* The crash cam's replay (setReplaying, replayBeds). */
+    this.replaying = false;
+    this.replayRadio = null;
     this.musicWanted = false;
     /* Every AudioNode this instance owns, for P12. A node created and
      * dropped without being counted is exactly the leak P12 forbids, so
@@ -366,10 +370,41 @@ export class MotorAudio {
 
   setMusicEnabled(on) {
     this.musicWanted = Boolean(on);
-    this.music.setEnabled(this.musicWanted && !this.warBed);
+    this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
     if (this.warRadio) {
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
     }
+  }
+
+  /*
+   * The crash cam's replay is playing (on) or has closed: the flight's
+   * own music is held silent under it and the war's radio is the
+   * replay's (replayBeds, src/render/replaybeds.js), playing the lines and
+   * the bed the clip kept; closed, both are back where they were.
+   */
+  setReplaying(on) {
+    this.replaying = Boolean(on);
+    this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
+    if (this.replaying && this.warRadio) {
+      this.replayBeds().begin();
+    } else if (!this.replaying && this.replayRadio) {
+      this.replayRadio.end();
+    }
+  }
+
+  /* The replay's radio and bed: the war's radio, the replay's while one
+   * plays. Null before the context is up. */
+  replayBeds() {
+    if (!this.ctx) {
+      return null;
+    }
+    if (!this.replayRadio) {
+      this.replayRadio = new ReplayBeds(this.war(), this.music.ext);
+    }
+    if (this.replaying) {
+      this.replayRadio.begin();
+    }
+    return this.replayRadio;
   }
 
   /*
@@ -401,9 +436,16 @@ export class MotorAudio {
   /* The war's music on, or off and the crate's back; `at` seconds into
    * the track (the intro film's late start). */
   setWarBed(track, at = 0) {
+    /* Under a replay the radio is the replay's: the live war's music is
+     * what it goes back to when the replay closes. */
+    if (this.replayRadio && this.replayRadio.open) {
+      this.warBed = Boolean(track);
+      this.replayRadio.liveTrack = track;
+      return;
+    }
     const radio = this.war();
     this.warBed = Boolean(track);
-    this.music.setEnabled(this.musicWanted && !this.warBed);
+    this.music.setEnabled(this.musicWanted && !this.warBed && !this.replaying);
     radio.music(track, at);
   }
 
