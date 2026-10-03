@@ -1,6 +1,17 @@
 import { str } from '../strings/index.js';
 /*
- * loading.js: a loading screen that reports work, not time.
+ * loading.js: the PDCS bootloader, a loading screen that reports work, not
+ * time.
+ *
+ * THE SCREEN is the owner's bootloader of 3 October (index.html
+ * #pdcs-loader): four screens, initial boot, system check, map loading and
+ * finalizing, each with the rows the spec names, and its controller API,
+ * show, hide, stage, setProgress, progress, mapProgress, finalProgress,
+ * status, system, mapSystem, finalSystem and complete, all on the one
+ * object, which is window.loader as the spec has it and window.__loading as
+ * the harness has always read it. The same overlay is the cold boot, every
+ * world swap, and a room link being retried (hold); a load planned short
+ * and a held link show the minimal loader, the mark, a line and a bar.
  *
  * WHY THIS IS NOT A SPINNER. The page fetches a 1.2 MB renderer from a CDN,
  * a WebAssembly module, a map module graph of up to sixty one files, and then
@@ -8,32 +19,39 @@ import { str } from '../strings/index.js';
  * thread. On a slow link the first of those dominates; on a slow machine the
  * last does. A bar on a timer is wrong in both cases and, worse, it is wrong
  * in a way that hides which one is the problem. So every stage here is named
- * and every stage's progress comes from something that actually happened. The
- * player sees the stage by name, a bar and a percentage, and the bar tracks
- * real work, so a stall is a bar that stopped rather than a spinner that lied.
+ * and every stage's progress comes from something that actually happened,
+ * and nothing on the screen moves on a timer: a stall is a bar that stopped,
+ * with a sweep inside its track saying the page is still alive, and once the
+ * stage has outstayed STALL_MS a line that names it.
  *
  * WHERE THE PROGRESS COMES FROM, per stage:
  *
- *   Renderer   name and elapsed time only. Streaming the three.js module for
- *              byte progress was built and then withdrawn: measured, the
- *              browser made TWO resource requests for three.module.js, so the
+ *   Renderer   start and end only. Streaming the three.js module for byte
+ *              progress was built and then withdrawn: measured, the browser
+ *              made TWO resource requests for three.module.js, so the
  *              prefetch is not reliably free. See the note in src/boot.js.
- *              This stage does not pretend to know how far through it is.
+ *   Board      start and end, the published track's round trip.
  *   Simulator  bytes, from the same streamed fetch of dist/sim.wasm, which
  *              the shell needs anyway.
  *   Map        module count, from a PerformanceObserver on resource timing.
  *              The browser walks the import graph itself, so counting the
  *              entries under the map's path is a free and honest measure of
  *              how much of the graph has arrived.
- *   World      the map builder's own onProgress, which reports after each
- *              phase of construction.
+ *   World      the map builder's own onProgress, which names each phase as
+ *              it starts it and yields to paint between them.
  *   First frame  binary, and it is the last thing that happens.
  *
- * WEIGHTS ARE MEASURED, NOT GUESSED. A stage's share of the bar is its
+ * WHICH BAR SHOWS WHAT. The spec draws a bar on the boot, map and final
+ * screens. Each shows the stages that belong to its screen (SCREEN_OF),
+ * weighted by their measured durations: the boot bar the renderer, the map
+ * bar the module graph and the build; the final bar is the finalizing rows
+ * done, one quarter each, as the spec's integration steps it. The minimal
+ * loader's one bar is the whole load.
+ *
+ * WEIGHTS ARE MEASURED, NOT GUESSED. A stage's share of a bar is its
  * measured duration over the total. The defaults below were measured in this
  * container; `planStages` scales the world stage by the map's own recorded
- * build time, so the city's world does not sit inside a slot sized for the
- * field's.
+ * build time.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -62,22 +80,14 @@ import { str } from '../strings/index.js';
  * same boot measured three 90.3, sim 362.3, module 895.3, world 2965.9, frame
  * 391.5: the two fetch stages grow by an order of magnitude and the two main
  * thread stages do not move, which is the whole reason the stages are named
- * separately.
- *
- * ONE CAVEAT, and it is the reason the elapsed readout exists. The capture
- * harness serves the three.js CDN from a local cache, so 56.6 ms is a warm
- * fetch and a cold one over a real link is hundreds of milliseconds for
- * 1.2 MB. The weight below is the measured one; on a slow first visit the bar
- * will sit in that stage longer than its share, and the stage name and the
- * seconds beside it are what make that legible rather than mysterious.
- * Replace these with a re-measurement, never with a guess.
+ * separately. Replace these with a re-measurement, never with a guess.
  */
 export const MEASURED_MS = {
   three: 73,
   /* The board's own round trip on a warm local service. A sleeping Render
    * instance takes about a minute, which is exactly why this stage has a
-   * name: the weight is what a healthy load costs, and the elapsed readout
-   * beside the name is what carries an unhealthy one. */
+   * name: the weight is what a healthy load costs, and the stall line is
+   * what carries an unhealthy one. */
   board: 60,
   sim: 22,
   module: 29,
@@ -95,25 +105,10 @@ const STAGE_NAMES = {
 };
 
 /*
- * WHAT IS HAPPENING, IN WORDS, AND IT IS ON SCREEN THE WHOLE TIME NOW.
- *
- * This screen used to say "loading" and nothing else until a stage had
- * outstayed STALL_MS, on the argument that a parade of stage names is noise
- * on a load where every stage is over in under a second. That argument was
- * right about a healthy load and wrong about the one the owner reported: the
- * world stage is most of the bar and most of the wall clock, and through all
- * of it the screen said one unchanging word.
- *
- * A line that CHANGES five times is the cheapest proof a page can offer that
- * it is getting somewhere, and the change lands at the moment the previous
- * thing finished, which is precisely the information a waiting visitor
- * wants. The stall behaviour is unchanged and sits on top: once a stage
- * outstays its welcome the line says so, and adds the detail the caller
- * passed, which is what separates a slow network from a slow machine.
- *
- * Present participles, because they name work in progress rather than a
- * component: "Building the world" is a thing happening to you, "World" is a
- * label on a box.
+ * What each stage is doing, in words, for the status line once a stage has
+ * stalled: "still loading the map, 31 of 72 modules" is a diagnosis, and a
+ * bar cannot make one. Present participles, because they name work in
+ * progress rather than a component.
  */
 const STAGE_DOING = {
   three: str('loading.loading_the_renderer'),
@@ -125,91 +120,39 @@ const STAGE_DOING = {
 };
 
 /*
- * How much of a stage's slot the bar may cover before the stage actually
- * reports anything.
- *
- * The bar is aimed at this fraction of the slot over the stage's MEASURED
- * duration, with an easing that covers most of the distance early and then
- * creeps. Two properties matter and both are deliberate. It never reaches
- * the end of a slot on the estimate alone, so a stage that overruns leaves a
- * bar still moving inside its own territory rather than a bar sitting on the
- * next stage's doorstep. And a real event always wins: progress() and done()
- * re-aim it forward the moment they arrive.
- *
- * 0.86 rather than something nearer 1 because the last tenth of a slot is
- * where a long stage lives, and a bar with nowhere left to go is the thing
- * this whole file exists to avoid.
- */
-const CREEP_TO = 0.86;
-
-/*
- * And how long the creep takes, as a multiple of the measured duration.
- *
- * MUCH longer than the measurement, and the asymmetry is the point. A creep
- * that is too slow costs a jump at the end, at the moment the screen is
- * about to fade out anyway. A creep that is too fast costs a bar parked
- * against the top of its slot with the load still running, which is the
- * exact complaint this file is answering, moved higher up the track.
- *
- * At 3.5 the bar is about three fifths of the way through a stage's slot
- * when that stage was expected to finish, and still moving at three times
- * its estimate. Measured against the town on this container's software
- * rasteriser, which takes about twice its recorded build time: the bar
- * moves for the whole of it.
- */
-const CREEP_FACTOR = 3.5;
-
-/*
- * The easing. Fast out of the gate, then progressively slower, so the bar
- * spends its time where the stage does. A linear creep to the same place
- * looks confident for a second and then wrong for five.
- */
-const CREEP_EASE = str('loading.cubic_bezier_0_2_0_4');
-
-/*
  * THE FLOOR UNDER A STAGE'S SHARE OF THE BAR.
  *
- * The weights are measured durations and the town's build is nine seconds of
- * the ten, so on that map the world stage owns 94 percent of the bar and the
- * four stages before it share the first six. Honest, and useless: four
- * things really did happen in the first second and the bar could not show
- * any of them, so the load began with a bar that appeared not to move.
- *
- * Every stage gets at least this much of the track, and the rest is shared
- * out by measurement as before. It is a floor on the DRAWING, not a guess
- * about the timing: the bar stops being linear in seconds and starts being
- * legible in stages, which is the trade this screen wants. Six stages at
- * five percent is thirty, so the world still owns most of what is left.
+ * The weights are measured durations, and a world's build is most of a
+ * load, so without a floor the cheap stages would share a sliver nobody
+ * could see move. Every stage gets at least this much, and the rest is
+ * shared out by measurement. It is a floor on the DRAWING, not a guess about
+ * the timing.
  */
 const MIN_SHARE = 0.05;
 
 /*
- * How long a single stage may run before the line says it is stalled.
- *
- * A stall in the CDN fetch and a stall in the world build have completely
- * different answers, so once a stage has outstayed its welcome the line says
- * "still loading" and adds the detail the caller passed, which is exactly
- * when a player has started to wonder.
- *
- * Six seconds because the slowest stage on this container, the city's world
- * build, measures about three, so a healthy load never reaches this.
+ * How long a single stage may run before the status line says it is
+ * stalled. A stall in the CDN fetch and a stall in the world build have
+ * completely different answers, so the line names the stage and adds the
+ * detail the caller passed. Six seconds because the slowest stage on this
+ * container, a world build, measures about three, so a healthy load never
+ * reaches this.
  */
 export const STALL_MS = 6000;
 
 /*
- * WHICH SCREEN EACH STAGE IS ON. The bootloader has four screens, one per
- * part of the real load: the renderer's fetch is the initial boot; the
- * board and the simulator are the system check; the map's module graph and
- * its build are the map loading; the first frame is the finalizing, which
- * the map's own last phase (its shader compile, 'shaders') opens early. A
- * load only ever moves forward through them.
+ * WHICH SCREEN EACH STAGE IS ON. The renderer's fetch is the initial boot;
+ * the board and the simulator are the system check; the map's module graph
+ * and its build are the map loading; the first frame is the finalizing,
+ * which the map's own last phase (its shader compile, 'shaders') opens
+ * early. A load only ever moves forward through them.
  */
 const SCREEN_OF = { three: 1, board: 2, sim: 2, module: 3, world: 3, frame: 4 };
 
 /*
- * A LOAD PLANNED UNDER THIS SHOWS THE FIRST SCREEN ONLY: the boot mark, the
- * line and the bar, because four screens flashing past in a second are
- * noise. Planned, from the measured stage durations above and the map's
+ * A LOAD PLANNED UNDER THIS SHOWS THE MINIMAL LOADER: the mark, the line
+ * and the bar, because four screens flashing past in a second are noise.
+ * Planned, from the measured stage durations above and the map's
  * MAP_BUILD_MS, never from a timer: a swap to the Alps plans about 1.4 s
  * (module 29, world 917, frame 431) and stays minimal; a swap to the Swiss
  * valley (2.5 s of world) or Itaipu shows its screens. A cold boot (a plan
@@ -221,6 +164,74 @@ const MINIMAL_MS = 1500;
 /* What a row says in each state. A row says OK only once the step it names
  * has happened on this load, and N/A when this load has no such step. */
 const ROW_STATES = ['wait', 'loading', 'ready', 'standby', 'na', 'fail'];
+
+/*
+ * THE SPEC'S MAP AND FINAL ROWS, FROM THE PHASES A BUILDER REALLY RUNS.
+ *
+ * Every world declares the phases its builder runs, in order (PHASES in
+ * its module), and names each to its progress callback as it starts it.
+ * Each phase is the work behind one or more of the spec's rows:
+ *
+ *   the valleys (src/maps/alps.js valleyPhases; swiss2 adds finish)
+ *     look      sky, light and materials          ENVIRONMENT
+ *     terrain   the heightfield and its ground    TERRAIN DATA, HEIGHTMAPS
+ *     nature    forests, meadows and water        VEGETATION
+ *     village   houses and the road               BUILDINGS, ROADS & INFRA
+ *     life      traffic and people                ROADS & INFRA
+ *     finish    huts, lake town, forests, the     BUILDINGS, VEGETATION,
+ *               mountains' shadow and light       ENVIRONMENT
+ *   Itaipu (src/maps/itaipu.js)
+ *     imagery   the satellite photographs         SATELLITE IMAGERY
+ *     data      the map's vector data             TERRAIN DATA
+ *     heightmaps  the elevation tiles             HEIGHTMAPS
+ *     dam       the dam                           ROADS & INFRA
+ *     water     the reservoir                     ENVIRONMENT
+ *     town      buildings and roads               BUILDINGS, ROADS & INFRA
+ *     vegetation                                  VEGETATION
+ *     war       the switchyard                    ROADS & INFRA
+ *   both
+ *     shaders   the scene's programs compiled     SCENE INTEGRATION
+ *
+ * A row is LOADING from the first of its phases starting until the last of
+ * them has ended, OK once all have, and N/A when the world being built has
+ * none of them: the valleys have no satellite imagery, and say so. WORLD
+ * DATA (the world's water and ground handed to the simulator) and
+ * SIMULATION CORE (the run seated on the world, until its first frame) are
+ * not builder phases; src/main.js sets them as they happen.
+ */
+export const PHASE_ROWS = {
+  look: ['final:environment'],
+  terrain: ['map:terrain', 'map:height'],
+  nature: ['map:vegetation'],
+  village: ['map:buildings', 'map:roads'],
+  life: ['map:roads'],
+  finish: ['map:buildings', 'map:vegetation', 'final:environment'],
+  imagery: ['map:satellite'],
+  data: ['map:terrain'],
+  heightmaps: ['map:height'],
+  dam: ['map:roads'],
+  water: ['final:environment'],
+  town: ['map:buildings', 'map:roads'],
+  vegetation: ['map:vegetation'],
+  war: ['map:roads'],
+  shaders: ['final:scene'],
+};
+
+/* The spec's element ids, by group and row name (its system, mapSystem and
+ * finalSystem tables). */
+const ROW_IDS = {
+  system: {
+    flight: 'sys-flight', physics: 'sys-physics', input: 'sys-input',
+    audio: 'sys-audio', telemetry: 'sys-telemetry', online: 'sys-online',
+  },
+  map: {
+    terrain: 'map-terrain', satellite: 'map-satellite', height: 'map-height',
+    buildings: 'map-buildings', vegetation: 'map-vegetation', roads: 'map-roads',
+  },
+  final: {
+    world: 'final-world', core: 'final-core', environment: 'final-env', scene: 'final-scene',
+  },
+};
 
 /*
  * Stage plan for one load. `worldMs` is the map's own measured build time, so
@@ -472,98 +483,229 @@ function buildLine() {
   return version ? str('loading.build', { version }) : str('loading.local_build');
 }
 
+/* The three bars the spec draws, by the screen each is on. */
+const BARS = {
+  boot: ['boot-progress', 'boot-progress-text'],
+  map: ['map-progress', 'map-progress-text'],
+  final: ['final-progress', 'final-progress-text'],
+};
+
 export class Loading {
   constructor(root) {
     this.root = root;
-    this.bar = root.querySelector('.loading-fill');
-    this.sweepEl = root.querySelector('.loading-sweep');
-    this.track = root.querySelector('.loading-track');
-    this.stageEl = root.querySelector('.loading-stage');
-    this.pctEl = root.querySelector('.loading-pct');
+    this.screens = {
+      1: root.querySelector('#screen-boot'),
+      2: root.querySelector('#screen-check'),
+      3: root.querySelector('#screen-map'),
+      4: root.querySelector('#screen-final'),
+    };
+    this.stageNumber = root.querySelector('#loader-stage-number');
+    this.stageName = root.querySelector('#loader-stage-name');
+    this.actionEl = root.querySelector('.boot-action');
+    this.statusEl = root.querySelector('.loader-status');
+    this.footLeft = root.querySelector('#loader-footer-left');
     this.errorEl = root.querySelector('.loading-error');
-    this.elapsedEl = root.querySelector('.loading-elapsed');
-    this.stepEl = root.querySelector('.pdcs-step');
-    this.stageNameEl = root.querySelector('.pdcs-stage-name');
-    this.mapRowsEl = root.querySelector('.pdcs-rows[data-group="map"]');
-    this.mapNameEl = root.querySelector('.pdcs-map-name');
-    this.mapImg = root.querySelector('.pdcs-map');
-    this.screen = 1;
-    /* The phases the map being built declared, in the order it builds
-     * them (its module's PHASES). */
-    this.phases = [];
-    /* The percentage last written. The text and aria-valuenow only ever
-     * rise within a load, the same rule as the bar they describe. */
-    this.shownPct = 0;
-    const build = root.querySelector('.loading-build');
+    this.mapNameEl = root.querySelector('.map-name');
+    this.mapImg = root.querySelector('#map-preview img');
+    const build = root.querySelector('#loader-footer-center');
     if (build) {
       build.textContent = buildLine();
     }
-    /* Where the bar has been TOLD to go, which is not where it is: the
-     * transition between the two is the whole point, and it runs on the
-     * compositor. Kept so the bar can never be aimed backwards, which is
-     * the one thing a progress bar must never do. */
-    this.aimed = 0;
+    this.screen = 1;
+    this.minimal = false;
+    /* Where each bar has been told to go on this load. A bar only ever
+     * moves forward within a load, the one thing a progress bar must never
+     * get wrong; run() puts them back to nothing. */
+    this.barAt = { boot: 0, map: 0, final: 0 };
+    /* The phases the world being built declared (its module's PHASES),
+     * each 'wait', 'run' or 'done', in the order it runs them. */
+    this.phases = new Map();
     this.stages = [];
     this.index = -1;
     this.frac = 0;
+    this.doneIds = new Set();
     this.failed = false;
     this.startedAt = 0;
     this.stageStartedAt = 0;
+    this.detail = '';
     /* Every stage's real duration, for the harness and for re-measuring the
      * weights above. Read through window.__loading. */
     this.timings = {};
     this.ticker = null;
-    this.visible = !root.hidden;
+    /* A load is running: from run() until finish() or fail(). A held link
+     * never takes the screen from one. */
+    this.loading = false;
+    /* 'reconnect' or 'restart' while the screen is held for a room link
+     * being retried, null otherwise. */
+    this.held = null;
     /*
-     * The pending hide from the last finish().
+     * The pending hide from the last complete().
      *
-     * Without this the screen races itself. finish() fades out and then hides
-     * the element 320 ms later to match the CSS transition. Choosing a map
-     * from the title screen starts a new load well inside that window, so
-     * run() would make the screen visible and the stale timeout would then
-     * hide it again, leaving an eight second city build behind a frozen
-     * picture of the map that was just disposed. Measured exactly that way:
-     * the capture at two seconds into a swap showed the race field with the
-     * title menu over it and no loading screen at all.
+     * Without this the screen races itself. complete() hides the screen a
+     * moment after the last frame, and choosing a map from the title starts
+     * a new load well inside that window, so run() would show the screen
+     * and the stale timeout would then hide it again, leaving a world build
+     * behind a frozen picture of the map that was just disposed. Measured
+     * exactly that way once.
      */
     this.hideTimer = null;
   }
 
-  run(stages) {
+  /* THE SPEC'S CONTROLLER. */
+
+  show() {
     if (this.hideTimer !== null) {
       clearTimeout(this.hideTimer);
       this.hideTimer = null;
     }
+    this.root.hidden = false;
+    this.root.classList.remove('hidden');
+  }
+
+  /* Faded by the class, as the spec has it, and then hidden outright once
+   * the fade is over: a transparent overlay at this z-index would still sit
+   * over every menu for anything that reads what is on top. */
+  hide() {
+    this.root.classList.add('hidden');
+    if (this.hideTimer !== null) {
+      clearTimeout(this.hideTimer);
+    }
+    this.hideTimer = setTimeout(() => {
+      this.hideTimer = null;
+      this.root.hidden = true;
+    }, 400);
+  }
+
+  stage(number) {
+    for (const [n, el] of Object.entries(this.screens)) {
+      el.classList.toggle('active', Number(n) === number);
+    }
+    this.stageNumber.textContent = `[ 0${number} ]`;
+    this.stageName.textContent = str(`loading.pdcs_stage_${number}`);
+  }
+
+  /* Forward only within a load. The fill is a scale rather than a width:
+   * see .progress-fill in index.html. */
+  setProgress(barId, textId, amount) {
+    const fill = this.root.querySelector(`#${barId}`);
+    const key = Object.keys(BARS).find((k) => BARS[k][0] === barId);
+    if (!fill) {
+      return;
+    }
+    let percent = Math.max(0, Math.min(100, Number(amount) || 0));
+    if (key) {
+      percent = Math.max(this.barAt[key], percent);
+      this.barAt[key] = percent;
+    }
+    fill.style.transform = `scaleX(${(percent / 100).toFixed(4)})`;
+    const text = this.root.querySelector(`#${textId}`);
+    if (text) {
+      text.textContent = `${Math.round(percent)}%`;
+    }
+    const track = fill.parentElement;
+    if (track && track.getAttribute('role') === 'progressbar') {
+      track.setAttribute('aria-valuenow', String(Math.round(percent)));
+    }
+  }
+
+  progress(amount) {
+    this.setProgress(...BARS.boot, amount);
+  }
+
+  mapProgress(amount) {
+    this.setProgress(...BARS.map, amount);
+  }
+
+  finalProgress(amount) {
+    this.setProgress(...BARS.final, amount);
+  }
+
+  /* The spec's states, OK, LOADING and WAIT, and this game's three more:
+   * STANDBY (built, waiting on something outside the load), N/A (this load
+   * has no such step) and FAILED. The row carries the state too, for the
+   * label's colour and for the harness. */
+  status(elementId, state) {
+    const el = this.root.querySelector(`#${elementId}`);
+    if (!el || !ROW_STATES.includes(state)) {
+      return;
+    }
+    el.classList.remove('ready', 'loading', 'fail');
+    if (state === 'ready' || state === 'loading' || state === 'fail') {
+      el.classList.add(state);
+    }
+    el.textContent = str(`loading.state_${state}`);
+    if (el.parentElement && el.parentElement.dataset.state !== state) {
+      el.parentElement.dataset.state = state;
+    }
+  }
+
+  system(name, state) {
+    this.status(ROW_IDS.system[name], state);
+  }
+
+  mapSystem(name, state) {
+    this.status(ROW_IDS.map[name], state);
+  }
+
+  /* Each finalizing row is a quarter of the final bar, as the spec's
+   * integration steps it: the bar is the rows that are over. */
+  finalSystem(name, state) {
+    this.status(ROW_IDS.final[name], state);
+    const rows = [...this.root.querySelectorAll('[data-group="final"] .system-row')];
+    const over = rows.filter((r) => r.dataset.state === 'ready' || r.dataset.state === 'na').length;
+    this.finalProgress((over / rows.length) * 100);
+  }
+
+  complete() {
+    this.finalProgress(100);
+    if (this.hideTimer !== null) {
+      clearTimeout(this.hideTimer);
+    }
+    this.hideTimer = setTimeout(() => {
+      this.hideTimer = null;
+      this.hide();
+    }, 400);
+  }
+
+  /* THE LOAD. Everything below only writes what a caller reports: a stage
+   * starting, reporting and ending, a row's step starting and ending. */
+
+  run(stages) {
+    this.show();
     this.stages = stages;
     this.index = -1;
     this.frac = 0;
+    this.doneIds = new Set();
     this.failed = false;
+    this.loading = true;
+    this.held = null;
+    this.detail = '';
     this.startedAt = performance.now();
+    this.stageStartedAt = 0;
     this.timings = {};
-    this.root.hidden = false;
-    this.root.style.opacity = '1';
-    this.bar.style.background = '';
-    this.root.classList.remove('is-failed');
+    this.root.classList.remove('is-failed', 'is-stalled', 'is-held');
     if (this.errorEl) {
       this.errorEl.hidden = true;
       this.errorEl.textContent = '';
     }
-    this.visible = true;
-    this.stageEl.textContent = 'loading';
-    this.shownPct = 0;
-    this.writePct(0);
+    const help = this.root.querySelector('.loading-help');
+    if (help) {
+      help.hidden = true;
+    }
     const planned = stages.reduce((a, s) => a + (s.ms || 0), 0);
     const cold = stages.some((s) => s.id === 'three');
-    this.root.classList.toggle('is-minimal', !cold && planned < MINIMAL_MS);
-    this.root.classList.remove('is-stalled');
+    this.minimal = !cold && planned < MINIMAL_MS;
+    this.root.classList.toggle('is-minimal', this.minimal);
+    if (this.footLeft) {
+      this.footLeft.textContent = str(cold ? 'loading.foot_boot' : 'loading.foot_map');
+    }
     this.labelScreens();
-    for (const li of this.root.querySelectorAll('.pdcs-rows li[data-row]')) {
-      this.setRow(li, 'wait');
+    for (const group of Object.keys(ROW_IDS)) {
+      for (const name of Object.keys(ROW_IDS[group])) {
+        this.status(ROW_IDS[group][name], 'wait');
+      }
     }
-    this.phases = [];
-    if (this.mapRowsEl) {
-      this.mapRowsEl.textContent = '';
-    }
+    this.phases = new Map();
     if (this.mapNameEl) {
       this.mapNameEl.textContent = '';
     }
@@ -571,36 +713,31 @@ export class Loading {
       this.mapImg.hidden = true;
       this.mapImg.removeAttribute('src');
     }
+    for (const key of Object.keys(BARS)) {
+      this.resetBar(key);
+    }
+    this.statusLine('');
     this.screen = 0;
     this.showScreen(stages.length ? SCREEN_OF[stages[0].id] || 1 : 1);
-    /* The markup carries the English for the first paint, before any
-     * locale has loaded; a later load, a map swap, says it in the pilot's. */
-    if (this.track) {
-      this.track.setAttribute('aria-label', str('loading.progress_label'));
-    }
-    /* Back to nothing, with no transition, or the new load's first aim is a
-     * five second slide back from wherever the last one finished. */
-    this.aimed = 0;
-    this.bar.style.transition = 'none';
-    this.bar.style.transform = 'scaleX(0)';
-    /* Read it back, which forces the style to be applied before the next
-     * line makes it transitionable again. Without this the browser coalesces
-     * the two and the reset never happens. */
-    void this.bar.offsetWidth;
-    if (this.sweepEl) {
-      this.sweepEl.style.display = '';
-    }
-    this.paint();
     if (!this.ticker) {
-      this.ticker = setInterval(() => {
-        /* All of them, because a stalled stage is by definition one that has
-         * stopped calling progress(), so the tick is the only thing still
-         * running. */
-        this.paintStage();
-        this.paintMeta();
-        this.creepOn();
-      }, 250);
+      /* The stall line, and nothing else: a stalled stage is by definition
+       * one that has stopped reporting, so the tick is the only thing that
+       * can notice. It moves no bar and no row. */
+      this.ticker = setInterval(() => this.paintStall(), 250);
     }
+  }
+
+  /* A bar back to nothing, with no transition, or the next aim is a slide
+   * back from wherever the last load finished. Read back, which forces the
+   * style to apply before the transition is restored. */
+  resetBar(key) {
+    const [barId, textId] = BARS[key];
+    const fill = this.root.querySelector(`#${barId}`);
+    fill.style.transition = 'none';
+    this.barAt[key] = 0;
+    this.setProgress(barId, textId, 0);
+    void fill.offsetWidth;
+    fill.style.transition = '';
   }
 
   start(id) {
@@ -613,35 +750,19 @@ export class Loading {
     this.stageStartedAt = performance.now();
     this.showScreen(SCREEN_OF[id] || this.screen);
     if (id === 'frame') {
-      this.final('frame', 'loading');
+      this.finalSystem('core', 'loading');
     }
     this.paint();
-    /*
-     * And set the bar creeping across the slot this stage has just been
-     * given, over the time the stage is expected to take.
-     *
-     * This is the half of the bar the main thread cannot draw. Every stage
-     * that reports from inside itself, the two fetches and the module count,
-     * will overtake this within a frame or two and the creep is invisible.
-     * The world stage does not: it is one call into a synchronous builder
-     * and it reports once, at the end. That is the stage a visitor sits
-     * through, and it is the stage this is for.
-     */
-    const stage = this.stages[i];
-    this.aim(this.base(i) + stage.weight * CREEP_TO, stage.ms * CREEP_FACTOR, CREEP_EASE);
   }
 
-  progress(id, frac, detail) {
+  /* A stage's own measure of how far through it is, 0 to 1, and the detail
+   * the stall line adds if the stage outstays its welcome. */
+  report(id, frac, detail) {
     if (this.index < 0 || this.stages[this.index].id !== id) {
       this.start(id);
     }
     this.frac = Math.max(0, Math.min(1, frac));
     if (detail !== undefined) {
-      /* Shown only once the stage has stalled, by paintStage. Five callers
-       * were already setting this and getting nothing; on a healthy load
-       * they still get nothing, which is correct, and on a slow one the
-       * value they were passing all along is what tells a player which
-       * part is slow. */
       this.detail = detail;
     }
     this.paint();
@@ -655,22 +776,18 @@ export class Loading {
     this.timings[id] = performance.now() - this.stageStartedAt;
     this.index = i;
     this.frac = 1;
+    this.doneIds.add(id);
     if (id === 'world') {
-      this.closePhases(this.phases);
+      this.closePhases();
     }
     if (id === 'frame') {
-      this.final('frame', 'ready');
+      this.finalSystem('core', 'ready');
     }
     this.paint();
   }
 
-  /*
-   * THE BOOTLOADER'S SCREENS AND ROWS. Everything below only writes what a
-   * caller reports: a screen when its stage starts, a row when the step it
-   * names starts or ends. Nothing here moves on a timer.
-   */
-
-  /* Forward only, like the bar: a load never goes back a screen. */
+  /* Forward only, like the bars: a load never goes back a screen. A
+   * minimal load stays on the first. */
   showScreen(n) {
     if (!n || n <= this.screen) {
       return;
@@ -680,16 +797,11 @@ export class Loading {
     /* Again on every screen: a cold boot's first screen is up before the
      * pilot's locale has loaded, and the next one is not. */
     this.labelScreens();
-    if (this.stepEl) {
-      this.stepEl.textContent = `[ 0${n} ]`;
-    }
-    if (this.stageNameEl) {
-      this.stageNameEl.textContent = str(`loading.pdcs_stage_${n}`);
-    }
+    this.stage(this.minimal ? 1 : n);
   }
 
-  /* The static markup is English for the first paint; a later load says
-   * the screens' words in the pilot's language. */
+  /* The static markup is English for the first paint; a later screen, and
+   * any later load, says the words in the pilot's language. */
   labelScreens() {
     const set = (sel, key) => {
       const n = this.root.querySelector(sel);
@@ -697,50 +809,28 @@ export class Loading {
         n.textContent = str(key);
       }
     };
-    set('.pdcs-init', 'loading.pdcs_initializing');
-    for (const n of [2, 3, 4]) {
-      set(`.pdcs-screen[data-n="${n}"] .pdcs-title`, `loading.pdcs_title_${n}`);
+    if (!this.held) {
+      set('.boot-action', 'loading.pdcs_initializing');
     }
-    for (const li of this.root.querySelectorAll('.pdcs-rows[data-group="system"] li, .pdcs-rows[data-group="final"] li')) {
-      li.querySelector('.pdcs-row-name').textContent = str(`loading.row_${li.dataset.row}`);
+    set('#map-title', 'loading.pdcs_title_3');
+    set('#final-title', 'loading.pdcs_title_4');
+    for (const label of this.root.querySelectorAll('[data-label]')) {
+      label.textContent = str(`loading.${label.dataset.label}`);
     }
-    for (const li of this.root.querySelectorAll('.pdcs-rows li[data-state]')) {
-      li.querySelector('.pdcs-row-state').textContent = str(`loading.state_${li.dataset.state}`);
+    for (const row of this.root.querySelectorAll('.system-row[data-state]')) {
+      row.lastElementChild.textContent = str(`loading.state_${row.dataset.state}`);
     }
-  }
-
-  setRow(li, state) {
-    if (!li || !ROW_STATES.includes(state)) {
-      return;
+    const labels = { boot: 'loading.progress_label', map: 'loading.pdcs_stage_3', final: 'loading.pdcs_stage_4' };
+    for (const [key, [barId]] of Object.entries(BARS)) {
+      const track = this.root.querySelector(`#${barId}`).parentElement;
+      track.setAttribute('aria-label', str(labels[key]));
     }
-    li.dataset.state = state;
-    const label = li.querySelector('.pdcs-row-state');
-    if (label) {
-      label.textContent = str(`loading.state_${state}`);
-    }
-  }
-
-  /* A system check row: fc, physics, input, audio, online. */
-  system(id, state) {
-    this.setRow(this.root.querySelector(`.pdcs-rows[data-group="system"] li[data-row="${id}"]`), state);
-  }
-
-  /* A finalizing row: shaders, world, frame. */
-  final(id, state) {
-    this.setRow(this.root.querySelector(`.pdcs-rows[data-group="final"] li[data-row="${id}"]`), state);
-  }
-
-  mapRow(id, state) {
-    if (!this.mapRowsEl) {
-      return;
-    }
-    this.setRow(this.mapRowsEl.querySelector(`li[data-row="${id}"]`), state);
   }
 
   /*
    * The map about to be loaded: its name, and its card's poster for the
-   * preview when it has one. Asked before the module graph, so the picture
-   * has arrived by the time the build blocks the thread.
+   * preview. Asked before the module graph, so the picture has arrived by
+   * the time the build blocks the thread.
    */
   mapInfo({ name, poster }) {
     if (this.mapNameEl) {
@@ -753,298 +843,165 @@ export class Loading {
   }
 
   /*
-   * Once the map's module has arrived: one row per phase its builder
-   * declares (PHASES in the map's module), each waiting.
+   * Once the map's module has arrived: the phases its builder declares
+   * (PHASES in the map's module). A spec row none of them stands behind
+   * says N/A from here on.
    */
   mapPhases(phases) {
-    this.phases = (phases || []).filter((ph) => ph !== 'shaders');
-    if (!this.mapRowsEl) {
-      return;
-    }
-    this.mapRowsEl.textContent = '';
-    for (const ph of this.phases) {
-      const li = document.createElement('li');
-      li.dataset.row = ph;
-      const label = document.createElement('span');
-      label.className = 'pdcs-row-name';
-      label.textContent = str(`loading.phase_${ph}`);
-      const state = document.createElement('span');
-      state.className = 'pdcs-row-state';
-      li.append(label, state);
-      this.mapRowsEl.append(li);
-      this.setRow(li, 'wait');
-    }
+    this.phases = new Map((phases || []).filter((ph) => PHASE_ROWS[ph]).map((ph) => [ph, 'wait']));
+    this.paintPhaseRows();
   }
 
   /*
    * The builder has started a phase, or several at once. Every phase it
    * declared before them is over, because a builder runs its phases in the
    * order it declared them. 'shaders' is the last: the world is built and
-   * its programs are compiling, which is the finalizing screen's first row.
+   * its programs are compiling, which opens the finalizing screen.
    */
   phase(ids) {
-    const started = [].concat(ids).filter(Boolean);
+    const started = [].concat(ids).filter((ph) => this.phases.has(ph));
     if (!started.length) {
       return;
     }
-    if (started.includes('shaders')) {
-      this.closePhases(this.phases);
-      this.showScreen(4);
-      this.final('shaders', 'loading');
-      return;
+    const order = [...this.phases.keys()];
+    const first = Math.min(...started.map((ph) => order.indexOf(ph)));
+    for (const ph of order.slice(0, first)) {
+      this.phases.set(ph, this.phases.get(ph) === 'run' ? 'done' : this.phases.get(ph) === 'wait' ? 'skip' : this.phases.get(ph));
     }
-    const known = started.map((ph) => this.phases.indexOf(ph)).filter((k) => k >= 0);
-    if (!known.length) {
-      return;
-    }
-    const first = Math.min(...known);
-    this.closePhases(this.phases.filter((ph, k) => k < first && !started.includes(ph)));
     for (const ph of started) {
-      this.mapRow(ph, 'loading');
+      this.phases.set(ph, 'run');
     }
+    if (started.includes('shaders')) {
+      this.showScreen(4);
+    }
+    this.paintPhaseRows();
   }
 
-  /*
-   * Phases the builder has moved past. One it started is done; one it
-   * declared and never started did not happen on this load, so it says
-   * N/A rather than OK.
-   */
-  closePhases(ids) {
-    for (const ph of ids) {
-      const li = this.mapRowsEl && this.mapRowsEl.querySelector(`li[data-row="${ph}"]`);
-      if (li && li.dataset.state === 'loading') {
-        this.setRow(li, 'ready');
-      } else if (li && li.dataset.state === 'wait') {
-        this.setRow(li, 'na');
+  /* The builder has returned: every phase it ran is over, and one it
+   * declared and never started did not happen on this load. */
+  closePhases() {
+    for (const [ph, st] of this.phases) {
+      this.phases.set(ph, st === 'run' || st === 'done' ? 'done' : 'skip');
+    }
+    this.paintPhaseRows();
+  }
+
+  /* Each spec row from the phases behind it. See PHASE_ROWS. */
+  paintPhaseRows() {
+    const rows = { map: Object.keys(ROW_IDS.map), final: ['environment', 'scene'] };
+    for (const [group, names] of Object.entries(rows)) {
+      for (const name of names) {
+        const behind = [...this.phases.entries()].filter(([ph]) => PHASE_ROWS[ph].includes(`${group}:${name}`)).map(([, st]) => st);
+        let state = 'na';
+        if (behind.some((st) => st === 'run') || (behind.includes('done') && behind.includes('wait'))) {
+          state = 'loading';
+        } else if (behind.includes('done') && behind.every((st) => st === 'done' || st === 'skip')) {
+          state = 'ready';
+        } else if (behind.includes('wait')) {
+          state = 'wait';
+        }
+        if (group === 'final') {
+          this.finalSystem(name, state);
+        } else {
+          this.mapSystem(name, state);
+        }
       }
     }
   }
 
-  /*
-   * KEEP GOING WHEN THE ESTIMATE RUNS OUT.
-   *
-   * A transition arrives. That is the one thing a transition does that an
-   * asymptote does not, and a stage that outlives its estimate would
-   * otherwise leave the bar parked at the top of its own slot with the load
-   * still running, which is the failure this whole file is about, just later
-   * and higher up the track.
-   *
-   * So once the aim has had its time, aim again at HALF the distance left to
-   * the end of the slot, over three seconds. Each chain halves the remainder,
-   * so the bar always moves and never reaches the next stage's territory.
-   *
-   * This runs on the ticker, so it only fires when the main thread is free.
-   * Inside one long synchronous block nothing here runs and the transition
-   * already in flight is what is moving: that is why its duration is a
-   * multiple of the measurement rather than the measurement itself.
-   */
-  creepOn() {
-    if (this.failed || this.index < 0 || !this.stages.length) {
-      return;
-    }
-    const stage = this.stages[this.index];
-    const running = this.stageStartedAt ? performance.now() - this.stageStartedAt : 0;
-    const creepEnd = this.base(this.index) + stage.weight * CREEP_TO;
-    /*
-     * RE-ARM. A real report that overtook the creep also ended it, because a
-     * transition has one target and that report is now it. Without this the
-     * bar stops dead after the last thing a stage had to say, which on a
-     * world build is four fifths of the way through the longest wait on the
-     * screen.
-     */
-    if (this.aimed < creepEnd - 0.001) {
-      const left = Math.max(600, stage.ms * CREEP_FACTOR - running);
-      this.aim(creepEnd, left, CREEP_EASE);
-      return;
-    }
-    if (running < stage.ms * CREEP_FACTOR) {
-      return;
-    }
-    /* Past the estimate altogether: halve what is left of the slot, every
-     * time, so the bar always moves and never reaches the next stage. */
-    const end = this.base(this.index) + stage.weight;
-    const left = end - this.aimed;
-    /* Under a thousandth of the track is a pixel on a 420 px bar, and
-     * re-aiming at it every quarter second is a transition that restarts
-     * more often than it moves. */
-    if (left < 0.001) {
-      return;
-    }
-    this.aim(this.aimed + left * 0.5, 3000, str('loading.cubic_bezier_0_2_0_6'));
-  }
-
-  /* Where this stage's slot starts: every earlier stage's weight. */
-  base(i) {
-    let v = 0;
-    for (let k = 0; k < i && k < this.stages.length; k += 1) {
-      v += this.stages[k].weight;
-    }
-    return v;
-  }
-
-  /* Fraction of the whole bar: every completed stage's weight, plus this
-   * stage's weight times how far into it we are. */
-  value() {
-    if (this.index < 0) {
-      return 0;
-    }
-    const stage = this.stages[this.index];
-    return this.base(this.index) + (stage ? stage.weight * this.frac : 0);
-  }
-
-  /*
-   * What the bar is SHOWING right now, which is not what it was last aimed
-   * at: the whole point of this screen is the distance between the two.
-   *
-   * Stale while the main thread is blocked, because this is the main
-   * thread's copy of a composited animation, and that is fine: nothing calls
-   * it during a block, because nothing runs during a block.
-   */
-  current() {
-    try {
-      const m = new DOMMatrix(getComputedStyle(this.bar).transform);
-      return Math.max(0, Math.min(1, m.a));
-    } catch (e) {
-      /* No DOMMatrix, or a transform this cannot parse. The last aim is the
-       * best answer available and it is never behind the truth by much. */
-      return this.aimed;
-    }
-  }
-
-  /*
-   * Point the bar at a value and give it a time to get there. Returns
-   * whether it took.
-   *
-   * FORWARD ONLY, AND AGAINST WHAT IS DRAWN rather than against the last
-   * aim. That distinction is the bug this comment is here to stop coming
-   * back: the creep is aimed at the far end of a stage's slot, so comparing
-   * against the aim meant every real report for the rest of that stage was
-   * dropped as "behind", and a screen that had measured four honest phases
-   * of a world build drew none of them. Compared against the position, a
-   * report that is ahead of the creep overtakes it and a report that is
-   * behind is correctly ignored.
-   *
-   * The value is a scale, not a width. See the stylesheet: the transition
-   * has to be composited or it stops with the main thread, and the main
-   * thread is what this screen is waiting for.
-   */
-  aim(to, ms, ease = 'linear') {
-    const want = Math.max(0, Math.min(1, to));
-    if (want <= this.current()) {
-      return false;
-    }
-    this.aimed = want;
-    this.bar.style.transition = `transform ${Math.max(0, Math.round(ms))}ms ${ease}`;
-    this.bar.style.transform = `scaleX(${want.toFixed(4)})`;
-    /*
-     * AND START IT NOW, IN THIS TASK.
-     *
-     * A transition does not begin when the style is set, it begins at the
-     * next style recalc, and the next style recalc is a rendering step the
-     * main thread has to run. Set an aim and then block for four seconds
-     * building a world and the transition has still not started when the
-     * block begins, so there is nothing for the compositor to carry through
-     * it: measured, and it is exactly the window this screen exists for.
-     *
-     * Reading a computed style forces the recalc here instead, so the
-     * animation is handed to the compositor before the caller gets the
-     * thread back. One forced recalc per aim, a handful per load.
-     */
-    void getComputedStyle(this.bar).transform;
-    return true;
+  /* How far through its own screen's stages the load is, 0 to 1: every
+   * stage of that screen weighted, each done, under way or not begun. A
+   * minimal load's one screen is all of them. */
+  screenValue(n) {
+    let have = 0;
+    let all = 0;
+    this.stages.forEach((s, i) => {
+      if (!this.minimal && (SCREEN_OF[s.id] || 1) !== n) {
+        return;
+      }
+      all += s.weight;
+      if (this.doneIds.has(s.id)) {
+        have += s.weight;
+      } else if (i === this.index) {
+        have += s.weight * this.frac;
+      }
+    });
+    return all > 0 ? have / all : 0;
   }
 
   paint() {
-    if (!this.visible) {
-      return;
-    }
-    /*
-     * A REAL EVENT ALWAYS WINS, and it wins by being ahead.
-     *
-     * Everything the loader actually knows arrives here: bytes read, modules
-     * counted, a stage finished. If that is further along than the estimate
-     * has crept to, the bar is re-aimed at it over a fifth of a second, and
-     * a fast stage simply overtakes its own creep. If it is behind, aim()
-     * drops it and the creep carries on, because a stage reporting 0.3 while
-     * the estimate has reached 0.5 has not told us anything new.
-     */
-    this.aim(this.value(), 200, 'linear');
-    this.paintStage();
-    this.paintMeta();
-  }
-
-  /*
-   * How far through the load, as a number, and how long it has taken.
-   *
-   * The percentage is read off the bar as DRAWN, not as aimed: the aim is
-   * the far end of a creep that may take seconds to get there, and a number
-   * that ran ahead of the bar beside it would be the lie this file exists to
-   * avoid. Both the number and the seconds are main thread text, so they
-   * stop while the world build blocks the thread and catch up when it
-   * returns; the composited bar and the sweep carry that window, and a
-   * frozen number next to a moving bar is the honest picture of a thread
-   * that is busy rather than gone.
-   */
-  paintMeta() {
-    if (!this.failed) {
-      this.writePct(Math.floor(this.current() * 100));
-    }
-    if (!this.elapsedEl) {
-      return;
-    }
-    const secs = this.startedAt ? Math.floor((performance.now() - this.startedAt) / 1000) : 0;
-    /* Nothing at all for the first couple of seconds. A healthy load is over
-     * in about three, and a stopwatch on a screen that is about to vanish
-     * reads as a warning about a wait that never happened. */
-    const text = secs >= 2 ? `${secs}s` : '';
-    if (this.elapsedEl.textContent !== text) {
-      this.elapsedEl.textContent = text;
-    }
-  }
-
-  /*
-   * What is being done, named, for the whole of the load. See STAGE_DOING.
-   *
-   * Once a stage outstays STALL_MS the line says so and adds the detail the
-   * caller passed, which is the one thing that separates a slow network from
-   * a slow machine: "still loading the map, 31 of 72 modules" is a
-   * diagnosis, and a bar cannot make one.
-   */
-  paintStage() {
     if (this.failed) {
       return;
     }
-    const stage = this.index >= 0 ? this.stages[this.index] : null;
-    const running = this.stageStartedAt ? performance.now() - this.stageStartedAt : 0;
-    let text = 'loading';
-    this.root.classList.toggle('is-stalled', Boolean(stage && running > STALL_MS));
-    if (stage && running > STALL_MS) {
-      const name = (STAGE_NAMES[stage.id] || stage.id).toLowerCase();
-      text = str('loading.still_loading_the', { name });
-      if (this.detail) {
-        text += `, ${this.detail}`;
-      }
-    } else if (stage) {
-      text = STAGE_DOING[stage.id] || str('loading.loading_the', { v1: (STAGE_NAMES[stage.id] || stage.id).toLowerCase() });
+    this.progress(this.screenValue(1) * 100);
+    if (!this.minimal) {
+      this.mapProgress(this.screenValue(3) * 100);
     }
-    if (this.stageEl.textContent !== text) {
-      this.stageEl.textContent = text;
+    this.paintStall();
+  }
+
+  statusLine(text) {
+    if (this.statusEl && this.statusEl.textContent !== text) {
+      this.statusEl.textContent = text;
     }
   }
 
   /*
-   * The number beside the bar and the progressbar's aria-valuenow, always
-   * the same value. Never backwards within a load: run() resets shownPct.
+   * Once a stage outstays STALL_MS the status line says so and adds the
+   * detail the caller passed, which is the one thing that separates a slow
+   * network from a slow machine.
    */
-  writePct(pct) {
-    const v = Math.max(this.shownPct, Math.min(100, Math.max(0, Math.round(pct))));
-    this.shownPct = v;
-    if (this.pctEl && this.pctEl.textContent !== `${v}%`) {
-      this.pctEl.textContent = `${v}%`;
+  paintStall() {
+    if (this.failed || this.held || !this.loading) {
+      return;
     }
-    if (this.track && this.track.getAttribute('aria-valuenow') !== String(v)) {
-      this.track.setAttribute('aria-valuenow', String(v));
+    const stage = this.index >= 0 ? this.stages[this.index] : null;
+    const stalled = Boolean(stage && this.stageStartedAt && performance.now() - this.stageStartedAt > STALL_MS);
+    this.root.classList.toggle('is-stalled', stalled);
+    if (!stalled) {
+      this.statusLine('');
+      return;
     }
+    const name = (STAGE_NAMES[stage.id] || stage.id).toLowerCase();
+    this.statusLine(str('loading.still_loading_the', { name }) + (this.detail ? `, ${this.detail}` : ''));
+  }
+
+  /*
+   * THE SAME SCREEN FOR A ROOM LINK BEING RETRIED: 'reconnect' after a drop,
+   * 'restart' when the rooms server said it was restarting (close 1012,
+   * edge/rooms/node.js). The minimal loader with the line saying which, a
+   * bar that sweeps and claims no amount, because a retry has none, and the
+   * status line naming the attempt. Never over a load: a world being built
+   * owns the screen, and the next retry asks again once it is done.
+   */
+  hold(kind, detail = '') {
+    if (this.loading || this.failed) {
+      return false;
+    }
+    this.held = kind;
+    this.show();
+    this.root.classList.add('is-minimal', 'is-held');
+    this.root.classList.remove('is-stalled');
+    this.stage(1);
+    this.resetBar('boot');
+    if (this.actionEl) {
+      this.actionEl.textContent = str(`loading.held_${kind}`);
+    }
+    this.statusLine(detail);
+    return true;
+  }
+
+  /* The link is back, or given up on: the screen goes if it was held. */
+  release() {
+    if (!this.held) {
+      return;
+    }
+    this.held = null;
+    if (this.loading || this.failed) {
+      return;
+    }
+    this.root.classList.remove('is-held');
+    this.hide();
   }
 
   /*
@@ -1058,34 +1015,25 @@ export class Loading {
    */
   fail(message) {
     this.failed = true;
-    this.stageEl.textContent = str('loading.could_not_start');
+    this.loading = false;
+    this.held = null;
     if (this.errorEl) {
       this.errorEl.textContent = message;
       this.errorEl.hidden = false;
     }
+    this.root.classList.remove('is-minimal', 'is-held', 'is-stalled');
     this.root.classList.add('is-failed');
-    for (const li of this.root.querySelectorAll('.pdcs-rows li[data-state="loading"]')) {
-      this.setRow(li, 'fail');
-    }
-    /* Full, red, and STILL: a sweep under a dead end is a page pretending to
-     * work on something. transition none as well as the aim, because the
-     * creep it interrupts would otherwise take five seconds to arrive. */
-    this.aimed = 0;
-    this.bar.style.transition = 'none';
-    this.bar.style.transform = 'scaleX(1)';
-    this.bar.style.background = '#e8503a';
-    if (this.sweepEl) {
-      this.sweepEl.style.display = 'none';
+    this.statusLine(str('loading.could_not_start'));
+    for (const row of this.root.querySelectorAll('.system-row[data-state="loading"]')) {
+      this.status(row.lastElementChild.id, 'fail');
     }
     if (this.ticker) {
       clearInterval(this.ticker);
       this.ticker = null;
     }
-    /* The screen may have been faded out by a previous finish(). A failure
-     * has to be visible whatever the last load did. */
-    this.root.hidden = false;
-    this.root.style.opacity = '1';
-    this.visible = true;
+    /* The screen may have been faded out by a previous complete(). A
+     * failure has to be visible whatever the last load did. */
+    this.show();
     this.paintHelp(message);
   }
 
@@ -1203,31 +1151,23 @@ export class Loading {
     } catch (e) { /* Not focusable yet. The button is still clickable. */ }
   }
 
+  /* The first frame is on screen: every bar to its end, and the screen
+   * goes the spec's way, complete(). */
   finish() {
-    this.frac = 1;
+    for (const s of this.stages) {
+      this.doneIds.add(s.id);
+    }
     this.index = this.stages.length - 1;
+    this.frac = 1;
     this.paint();
-    /* All the way, quickly. paint() aims at value(), which is 1 here, but
-     * only if the last stage was planned; a load that finished early leaves
-     * the creep somewhere short and the screen fades out over a bar that
-     * never arrived. */
-    this.aim(1, 180, 'linear');
-    /* Written here rather than left to a tick: the screen is about to go,
-     * and the last thing it says is that the load is complete. */
-    this.writePct(100);
+    this.loading = false;
     if (this.ticker) {
       clearInterval(this.ticker);
       this.ticker = null;
     }
-    this.visible = false;
-    this.root.style.opacity = '0';
-    /* Matches the CSS transition. Hidden as well as transparent, because a
-     * transparent overlay still eats pointer events on some browsers even at
-     * pointer-events none if a child sets it back. */
-    this.hideTimer = setTimeout(() => {
-      this.hideTimer = null;
-      this.root.hidden = true;
-    }, 320);
+    this.root.classList.remove('is-stalled');
+    this.statusLine('');
     this.timings.total = performance.now() - this.startedAt;
+    this.complete();
   }
 }
