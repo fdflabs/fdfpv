@@ -350,11 +350,17 @@ export function createGrid() {
     /* When each district goes out (darkFrom) for this view. */
     from(view) {
       forMatch(view ? view.id : null);
+      /* A hit counts from its death heard as well as from the view's
+       * down, whichever came first: the room sends the death before the
+       * view, and the target burns from the death (src/main.js), so the
+       * lights go with it, and a replay that keeps the hits
+       * (src/replay/warrec.js) puts them out at the same frame. */
       const down = view && Array.isArray(view.down) ? view.down : [];
-      const k = `${down.join(',')}|${heard.size}|${cuts.length}`;
+      const ids = [...down, ...[...heard.keys()].filter((t) => !down.includes(t))];
+      const k = `${ids.join(',')}|${heard.size}|${cuts.length}`;
       if (k !== key) {
         key = k;
-        const hits = down.map((target) => ({ target, at: heard.has(target) ? heard.get(target) : -Infinity }));
+        const hits = ids.map((target) => ({ target, at: heard.has(target) ? heard.get(target) : -Infinity }));
         from = darkFrom(hits, cuts);
       }
       return from;

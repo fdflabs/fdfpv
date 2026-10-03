@@ -141,6 +141,7 @@ import {
   ACT1, createCampaignStore, markSeen, seenFilm,
 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
+import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { filmFor } from './share/war/films/index.js';
 import { createWarCutaway } from './render/warcutaway.js';
@@ -2612,8 +2613,6 @@ export async function boot({
   /* The one map the war runs on (section 9). */
   const WAR_MAP = 'itaipu';
   const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
-  /* A hit target burns, then smokes, for the rest of the war. */
-  const WAR_FIRE_MS = 20000;
   /* How long the end banner stands before everybody is back in the lobby. */
   const LOBBY_BACK_MS = 8000;
   /*
@@ -2694,8 +2693,24 @@ export async function boot({
   let warBegunId = null;
   let warHudAt = 0;
   let warDrawnAt = null;
-  /* Target id -> wall ms it caught fire, or -1 once it smokes. */
+  /* Target id -> the room ms it was last hit, -Infinity for one hit before
+   * this screen heard (src/share/war/world.js burnAt says fire or smoke). */
   const warBurning = new Map();
+  /* Target id -> the room ms the room's damage first broke something off
+   * it (src/render/breakage.js onBurn). */
+  const warDamage = new Map();
+  /* What the replay has the structures showing ({ seqs, t }), and
+   * whether breakage's hooks belong to it (warBreakageAt), else null and
+   * false: the live war's. */
+  let warBreakageShown = null;
+  let warBreakageReplay = false;
+  /* The room ms this frame's war is drawn at (roomWarFrame's `now`), for
+   * the crash cam's tap: sampling the room clock again would put the
+   * map's row a fraction of a ms off the attackers' and the live map's. */
+  let warFrameNow = null;
+  /* Harness only (window.__warMapLog): each live frame's map, while on. */
+  let warMapLog = null;
+  const WAR_MAP_LOG_MAX = 20000;
   /* A defender's warhead, and a target hit, as explosion sizes. */
   const WAR_BOOM_SIZE = 1.6;
   const WAR_IMPACT_SIZE = 2.6;
@@ -3325,30 +3340,106 @@ export async function boot({
     }
   }
 
-  /* A target reached: on fire now, smoke later (warTargetsFrame), on the
-   * map's own damage (map.setTargetState). A map without the id draws
-   * nothing for it. */
-  function warBurn(id, state, wallMs) {
-    if (!view || typeof view.setTargetState !== 'function' || !view.targets || !(id in view.targets)) {
-      return;
+  /* A target reached at room ms `at`: on fire, smoke later, on the map's
+   * own damage (warMapDraw). Another arrival on it lights it again: its
+   * fire runs from the latest hit. */
+  function warBurn(id, at) {
+    if (!(warBurning.get(id) >= at)) {
+      warBurning.set(id, at);
     }
-    view.setTargetState(id, state);
-    warBurning.set(id, state === 'fire' ? wallMs : -1);
   }
-  function warTargetsFrame(wallMs) {
-    for (const [id, at] of warBurning) {
-      if (at >= 0 && wallMs - at > WAR_FIRE_MS) {
-        warBurn(id, 'smoke', wallMs);
-      }
+  /* A target that lost something to the room's damage at room ms `at`:
+   * it smokes from then unless a hit has it burning (world.js). */
+  function warDamaged(id, at) {
+    if (!(warDamage.get(id) <= at)) {
+      warDamage.set(id, at);
     }
   }
   function warTargetsClear() {
-    for (const id of warBurning.keys()) {
-      if (view && view.targets && id in view.targets) {
-        view.setTargetState(id, 'ok');
+    warBurning.clear();
+    warDamage.clear();
+  }
+  /*
+   * WHAT THE MAP SHOWS OF A WAR: which targets burn (map.setTargetState)
+   * and how bright each district of the night raid's lights is
+   * (map.setPower), from `w` { targets: { id: state not ok }, levels },
+   * and in a replay what the structures had lost (`damage`, the room's
+   * events by then, at room ms `t`: warBreakageAt).
+   * Every frame it is the live war's at the room clock (warLiveWorld),
+   * or, in the crash cam's replay of a clip that kept the map, the clip's
+   * at its playhead (src/replay/warrec.js worldAt), so a replay shows the
+   * map as it was then and leaving it shows the map as it is now. A map
+   * without targets or lights draws nothing for them.
+   */
+  function warMapDraw(w) {
+    if (!view) {
+      return;
+    }
+    if (typeof view.setTargetState === 'function' && view.targets) {
+      for (const id of Object.keys(view.targets)) {
+        view.setTargetState(id, w.targets[id] ?? 'ok');
       }
     }
-    warBurning.clear();
+    if (typeof view.setPower === 'function') {
+      view.setPower(w.levels);
+    }
+    if (w.damage) {
+      warBreakageAt(w.damage, w.t ?? 0);
+    }
+  }
+
+  /*
+   * THE STRUCTURES IN A REPLAY (src/render/breakage.js): the clip's damage
+   * events by the playhead's room ms t applied to the map, the pieces
+   * flown to t. Played forward, the events the playhead passes are
+   * applied as they come, with their dust and their sound; any other step
+   * (back, a jump, another set) puts everything back and applies the set
+   * again quietly, which is exact: the pieces are a function of the event
+   * and the room clock (src/share/war/debris.js). While the replay draws
+   * them nothing reaches the live war: no opening to the water, no smoke
+   * recorded (warBreakageReplay). Leaving the replay, warBreakageLive
+   * applies the live match's list again at the live clock.
+   */
+  function warBreakageAt(list, t) {
+    warBreakageReplay = true;
+    const was = warBreakageShown;
+    const grows = was && t >= was.t && list.length >= was.seqs.length && was.seqs.every((s, i) => list[i].seq === s);
+    if (!grows) {
+      warBreakage.reset();
+    }
+    const from = grows ? was.seqs.length : 0;
+    for (let i = from; i < list.length; i += 1) {
+      warBreakage.apply({ type: 'damage', ...list[i] }, t, !grows);
+    }
+    warBreakage.update(t);
+    warBreakageShown = { seqs: list.map((d) => d.seq), t };
+  }
+  function warBreakageLive(now) {
+    if (!warBreakageShown) {
+      return;
+    }
+    warBreakageShown = null;
+    warBreakageReplay = false;
+    warBreakage.reset();
+    for (const e of roomWar.damage()) {
+      warBreakage.apply(e, now ?? 0, true);
+    }
+  }
+  function warLiveWorld(v, now) {
+    const t = now ?? -Infinity;
+    const targets = {};
+    for (const [id, at] of warBurning) {
+      const s = warBurnAt(at, t);
+      if (s !== 'ok') {
+        targets[id] = s;
+      }
+    }
+    for (const [id, at] of warDamage) {
+      if (at <= t && !(id in targets)) {
+        targets[id] = 'smoke';
+      }
+    }
+    return { targets, levels: warGrid.levels(v, t) };
   }
 
   /* A war this shell has not begun for: at its countdown, or a pilot
@@ -3362,7 +3453,7 @@ export async function boot({
     warBreakage.reset();
     warOpenings.length = 0;
     for (const id of v.down || []) {
-      warBurn(id, 'smoke', wallMs);
+      warBurn(id, -Infinity);
     }
     warCrashDue = true;
     /* The intro's music is already on when a briefing came first
@@ -3713,6 +3804,7 @@ export async function boot({
   }
 
   function roomWarFrame(now, wallMs, dt) {
+    warFrameNow = now;
     const scene = shell.quad.parent;
     if (scene && warAttackers.group.parent !== scene) {
       scene.add(warAttackers.group);
@@ -3765,13 +3857,12 @@ export async function boot({
     }
     const events = roomWar.takeEvents();
     warGrid.hear(events, v);
-    if (view && typeof view.setPower === 'function') {
-      view.setPower(warGrid.levels(v, now));
-    }
+    /* The replay draws the map from its clip (crashCam drawWar). */
+    const owned = replay && Boolean(crashCam && crashCam.world());
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
-        warBurn(ev.target, 'fire', wallMs);
+        warBurn(ev.target, ev.at);
       }
       if (ev.type === 'state' && ev.to === 'live' && audio.warRadio && audio.warRadio.track !== 'intro') {
         audio.setWarBed('combat');
@@ -3780,8 +3871,9 @@ export async function boot({
       if (ev.type === 'state' && ev.to === 'live') {
         warHud.hint(str('war.hint_go', { n: v.fuze && v.fuze[roomWar.seat()] != null ? v.fuze[roomWar.seat()] : v.blast }));
       }
-      /* The map is what the room broke, in a replay too. */
-      if (ev.type === 'damage') {
+      /* The map is what the room broke; a replay that draws its own
+       * (warBreakageAt) has it applied when it closes. */
+      if (ev.type === 'damage' && !owned) {
         warBreakage.apply(ev, now);
       }
       if (replay) {
@@ -3816,11 +3908,22 @@ export async function boot({
     }
     warAudioPeak = Math.max(warAudioPeak, typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0);
     warBooms.update(dt);
-    warBreakage.update(now);
+    if (!owned) {
+      warBreakage.update(now);
+    }
     if (warLog.length > WAR_LOG_MAX) {
       warLog.splice(0, warLog.length - WAR_LOG_MAX);
     }
-    warTargetsFrame(wallMs);
+    /* The replay draws the map as its clip kept it (crashCam drawWar). */
+    if (!owned) {
+      const w = warLiveWorld(v, now);
+      warMapDraw(w);
+      if (warMapLog && warMapLog.length < WAR_MAP_LOG_MAX) {
+        warMapLog.push({
+          t: now, targets: w.targets, levels: Array.from(w.levels), broken: warBroken(),
+        });
+      }
+    }
     if (replay) {
       warHud.update(null);
       warMarkers.update(null, now, events);
@@ -4976,6 +5079,39 @@ export async function boot({
     })),
   });
   window.__warAt = (t) => roomWar.attackersAt(t);
+  /* For scripts/replay-world.js: a room message handed to the war as the
+   * room's socket hands it (the check scripts a war's hits and struck
+   * lines on a real room's match), what the map shows now (each target
+   * not whole, each district's level), and each live frame's map, logged
+   * while switched on. */
+  window.__warHear = (m) => roomWar.onMessage(m);
+  /* What the structures show now, for the checks: the chunks out, and
+   * each piece of rubble where it lies, rounded to the millimetre. */
+  function warBroken() {
+    const b = warBreakage.stats();
+    return {
+      gone: b.gone, pieces: b.poses.map((pc) => `${pc.target}/${pc.chunk}:${pc.p.map((x) => Math.round(x * 1000)).join(',')}`).join(' '),
+    };
+  }
+  window.__warMap = () => {
+    const it = view && view.scene && view.scene.userData.itaipu;
+    if (!it) {
+      return null;
+    }
+    const targets = {};
+    for (const id of Object.keys(view.targets || {})) {
+      const s = it.parts.dam.targetState(id);
+      if (s !== 'ok') {
+        targets[id] = s;
+      }
+    }
+    return { targets, levels: it.look.night() ? it.look.night().levels() : null, broken: warBroken() };
+  };
+  window.__warMapLog = (on) => {
+    warMapLog = on ? [] : null;
+    return true;
+  };
+  window.__warMapLogged = () => warMapLog || [];
   /* A swarm's worth of explosions at once, 150 m ahead of the camera, for
    * scripts/war-boom.js: the frame's draw calls and time over 40 frames
    * before and during, and whether the pools held. */
@@ -8449,6 +8585,9 @@ export async function boot({
     /* Kept once each (a rebuilt map is handed them all again), and
      * always handed to the map now drawn. */
     onOpening: (o) => {
+      if (warBreakageReplay) {
+        return;
+      }
       if (!warOpenings.some((x) => x.id === o.id && x.at === o.at)) {
         warOpenings.push(o);
       }
@@ -8463,11 +8602,12 @@ export async function boot({
     onSound: (b, now) => {
       worldAudio.breach(b, now);
     },
-    /* A target that lost something smokes, unless it already burns
-     * from a hit (roomWarFrame). */
-    onBurn: (target) => {
-      if (!warBurning.has(target)) {
-        warBurn(target, 'smoke', performance.now());
+    /* A target that lost something smokes from the damage's room ms,
+     * unless a hit has it burning (warLiveWorld); a replay's damage is
+     * the replay's (warBreakageAt) and changes nothing live. */
+    onBurn: (target, e) => {
+      if (!warBreakageReplay) {
+        warDamaged(target, e.at);
       }
     },
   });
@@ -18228,8 +18368,12 @@ export async function boot({
     exit: () => {
       mode = 'flight';
       acc = 0;
+      /* The map as the war has it now, whatever the replay drew. */
+      warMapDraw(warLiveWorld(roomWar.view(), roomLinkState.roomNow()));
+      warBreakageLive(roomLinkState.roomNow());
       ui.show('flight');
     },
+    drawWar: warMapDraw,
     notice: (text) => {
       notice = { text, untilMs: performance.now() + 2400 };
     },
@@ -18316,7 +18460,7 @@ export async function boot({
   /* A war's explosions, the same way. */
   crashCam.tapBooms(warBooms);
   /* And its attackers, so a replay flies them where they were. */
-  crashCam.tapWar(roomWar, warAttackers);
+  crashCam.tapWar(roomWar, warAttackers, () => warFrameNow);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

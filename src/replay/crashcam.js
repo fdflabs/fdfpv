@@ -429,21 +429,26 @@ export function createCrashCam(host) {
 
   /*
    * A war (src/share/roomwar.js and src/render/attackers.js): each birth
-   * and death it hears, and each frame's drawing at the room clock, kept
-   * for the replay (src/replay/warrec.js). Births and deaths are kept
-   * whatever the screen, so an attacker born while the pilot was on a
-   * menu is still drawn once recording picks up; a row is only written
-   * while the recorder has one open.
+   * and death it hears, what they did to the map, and each frame's
+   * drawing at the room clock (`clock`, the room ms now or null), kept for
+   * the replay (src/replay/warrec.js). Births, deaths and the map's
+   * journal are kept whatever the screen, so an attacker born while the
+   * pilot was on a menu is still drawn once recording picks up; a row is
+   * only written while the recorder has one open.
    */
-  function tapWar(war, layer) {
+  function tapWar(war, layer, clock) {
     const take = war.takeEvents;
     war.takeEvents = () => {
       const evs = take();
+      const v = war.view();
+      warRing.world(war.match(), v.mission, v.down, war.on(), clock());
       for (const ev of evs) {
         if (ev.type === 'born') {
-          warRing.born(war.view().mission, ev.agents);
+          warRing.born(v.mission, ev.agents);
         } else if (ev.type === 'dead') {
-          warRing.dead(ev.ids);
+          warRing.dead(ev);
+        } else if (ev.type === 'damage') {
+          warRing.damage(ev);
         }
       }
       return evs;
@@ -1035,6 +1040,11 @@ export function createCrashCam(host) {
      * pixels, so they are drawn from where it is this frame. */
     if (S.scene.war) {
       S.scene.war.frame(s.k, s.a);
+      /* The map as the war had it then, when the clip kept it. */
+      const w = S.scene.war.world();
+      if (w && host.drawWar) {
+        host.drawWar(w);
+      }
     }
     if (S.scene.paper) {
       const ace = S.scene.peers ? S.scene.peers.aceAt() : null;
@@ -2055,6 +2065,10 @@ export function createCrashCam(host) {
     get live() {
       return S !== null;
     },
+    /* The map as the replay's clip had it at the frame drawn (src/replay/
+     * warrec.js worldAt), or null: no replay open, or a clip that kept
+     * no map, which the shell draws as the live war has it. */
+    world: () => (S && S.scene.war ? S.scene.war.world() : null),
     /* The map's animation clock at the frame on screen, which the shell
      * draws the world at (src/main.js), or null: no replay open, or a
      * clip saved before rows kept it. */
@@ -2156,6 +2170,14 @@ export function createCrashCam(host) {
       warDrawn: () => (S && S.scene.war ? S.scene.war.summary() : null),
       warRow: (ms) => (S && S.scene.war ? S.scene.war.rowAt(ms) : -1),
       warBytes: () => warRing.bytes(),
+      /* The map the replay drew this frame: the room ms, each target not
+       * whole, each district's level. */
+      warWorld: () => {
+        const w = S && S.scene.war ? S.scene.war.world() : null;
+        return w ? { t: w.t ?? null, targets: { ...w.targets }, levels: Array.from(w.levels) } : null;
+      },
+      /* The clip row whose map was drawn at room ms `ms`, or -1. */
+      warWorldRow: (ms) => (S && S.clip.war && S.clip.war.clock ? S.clip.war.clock.indexOf(ms) : -1),
     }),
   };
 }
