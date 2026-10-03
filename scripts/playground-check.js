@@ -142,7 +142,7 @@ async function walk(dir) {
 }
 const linking = [];
 for (const p of [...served, ...await walk('src')]) {
-  if (await exists(p) && /playground/i.test(await read(p))) {
+  if (await exists(p) && /tests\/browser\/playground/.test(await read(p))) {
     linking.push(p);
   }
 }
