@@ -240,6 +240,8 @@ try {
   /* HOT JOIN: B out, the room to battle, B in from Rooms straight into it. */
   await b.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('mode-gate'); return true; })()");
   await b.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
+  /* The rooms panel is Flight Club's (src/ui/ui.js HUBS, #382). */
+  await b.evaluate("(() => { window.__ui.openHub('club'); return true; })()");
   await a.evaluate("(() => { window.__warDo('start', 'itaipu-1'); return true; })()");
   await a.until("window.__war().view.state === 'live'", 60000).catch(() => {});
   await b.until(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(`lobby:${rowAction}`)}) || {}).join === 'Join battle'`, 30000).catch(() => {});
