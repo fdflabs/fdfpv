@@ -9,7 +9,7 @@
  * live here and a round that wants another angle adds one rather than
  * moving one.
  *
- *     SIM_GPU=1 node scripts/itaipu-views.js OUT_DIR [--views=aerial-dam,chute] [--time=night] [--down=yard-right,intake-3]
+ *     SIM_GPU=1 node scripts/itaipu-views.js OUT_DIR [--views=aerial-dam,chute] [--time=night] [--down=yard-right,intake-3] [--gates=shut|gate-5:6,...]
  *
  * --time (default day; morning, noon, golden or night) is the map's own
  * option (src/maps/itaipu.js options.time, look/light.js TIMES): any
@@ -17,6 +17,14 @@
  * so the runs can share one round folder. A night run also
  * shoots the NIGHT views, which judge the lit towns (look/night.js) and
  * have no photograph; a day run never does.
+ *
+ * --gates shoots a war's spillway (docs/FLOOD.md): `shut` every gate
+ * driven shut, or each `gate-N:metres` driven that far over its sill,
+ * the map's flood (map.setGateState) stepped on until the leaves have
+ * got there at the hoist's rate (src/share/war/hoist.js) and GATES_S
+ * seconds more so the chutes have settled: the gate state is dated that
+ * far back, and the flood catches up at its budget. Its files take
+ * `-gates`.
  *
  * --down (night only) shoots the night after those war targets were hit,
  * long enough ago that every outage they cause is over: the districts
@@ -44,7 +52,12 @@
  *             12 ms. A view over budget is still shot and written, and
  *             the run fails naming it;
  *   console   no page error but refused network fetches (no board runs
- *             here, see scripts/posters.js).
+ *             here, see scripts/posters.js);
+ *   history   the first view's terrain is the same shot first as it is
+ *             shot again after another view: its leaves and triangles
+ *             (src/maps/terrain/engine.js keeps a split past its reach
+ *             only while a focus moves, never across a jump; yard-west
+ *             first drew 16 calls and 140 k triangles more).
  *
  * THE GPU TIME. The whole frame the shell draws, timed with WebGL's timer
  * queries (EXT_disjoint_timer_query_webgl2) round every animation frame
@@ -82,6 +95,8 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { darkFrom, levelAt } from '../src/share/war/grid.js';
+import { FREE_OPEN_M, HOIST_M_S } from '../src/share/war/hoist.js';
+import { SPILL } from '../src/maps/itaipu/dam/index.js';
 import TARGETS from '../src/share/war/itaipu-targets.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -199,7 +214,12 @@ const BUDGET = { calls: 300, triangles: 2.5e6, gpuMs: 12 };
 const NEAR_SOLID = 0.5;
 const FRAMES = 60;
 
-const opts = { views: '', time: 'day', down: '' };
+const opts = {
+  views: '', time: 'day', down: '', gates: '',
+};
+/* How long a war's spillway runs before it is shot, s of the map's
+ * clock: the chute fills in some 30 s and the river takes a minute more. */
+const GATES_S = 90;
 const positional = [];
 for (const a of process.argv.slice(2)) {
   const m = a.match(/^--([a-z]+)=(.*)$/);
@@ -245,7 +265,14 @@ const power = (() => {
 /* Day's own files keep their bare names (every earlier round's tooling
  * reads them); night's take a suffix so a day and a night run can share
  * one round folder without one overwriting the other. */
-const suffix = `${opts.time === 'day' ? '' : `-${opts.time}`}${down.length ? '-out' : ''}`;
+const gates = opts.gates === 'shut' ? Array.from({ length: SPILL.gates }, (_, g) => ({ gate: `gate-${g}`, open_m: 0 })) : opts.gates ? opts.gates.split(',').map((g) => {
+  const [gate, open] = g.split(':');
+  if (!/^gate-\d+$/.test(gate) || !(Number(open) >= 0)) {
+    throw new Error(`itaipu-views: --gates is shut or gate-N:metres,..., got ${g}`);
+  }
+  return { gate, open_m: Number(open) };
+}) : null;
+const suffix = `${opts.time === 'day' ? '' : `-${opts.time}`}${down.length ? '-out' : ''}${gates ? '-gates' : ''}`;
 await mkdir(outDir, { recursive: true });
 
 /*
@@ -317,6 +344,9 @@ async function settle(page) {
 }
 
 const failures = [];
+/* The terrain's selection as drawn: its leaves and their triangles. */
+const TERRAIN = '(() => { const s = window.__mapScene().userData.itaipu.terrain.stats(); return { leaves: s.leaves, triangles: s.leafTriangles }; })()';
+let firstTerrain = null;
 const fail = (m) => {
   failures.push(m);
   console.log(`  FAIL ${m}`);
@@ -365,6 +395,16 @@ try {
     await page.evaluate(`(window.__mapScene().userData.itaipu.look.setPower(${JSON.stringify(power)}), "")`);
     console.log(`down: ${down.join(', ')}; dark: ${power.map((l, i) => (l === 0 ? i : -1)).filter((i) => i >= 0).length} districts`);
   }
+  if (gates) {
+    const travel = Math.max(...gates.map((g) => Math.abs(g.open_m - FREE_OPEN_M))) / HOIST_M_S;
+    const back = Math.ceil(travel + GATES_S) * 1000;
+    const at = (await page.evaluate('window.__animMs()')) - back;
+    await page.evaluate(`window.__mapGates(${JSON.stringify(gates.map((g) => ({ ...g, at })))})`);
+    await page.until(`(() => { const f = window.__map().parts.water.flood;
+      return f.mode === 'war' && f.state === 'ready' && f.step * 20 >= ${back} && f.behind <= 5; })()`, (back / 1000 + 120) * 1000);
+    const f = await page.evaluate('JSON.stringify(window.__map().parts.water.flood)').then(JSON.parse);
+    console.log(`gates: ${opts.gates}; the flood at step ${f.step}, lips ${f.lips.join(',')}`);
+  }
 
   for (const v of ALL.filter((w) => wanted.includes(w.id))) {
     const [x, y, z] = v.cam;
@@ -381,6 +421,9 @@ try {
     const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
     await writeFile(join(outDir, `${v.id}${suffix}.png`), Buffer.from(data, 'base64'));
     const stats = await page.evaluate('window.__renderStats()');
+    if (!firstTerrain) {
+      firstTerrain = { view: v, ...(await page.evaluate(TERRAIN)) };
+    }
     const gpu = await page.evaluate(`window.__itaipuGpu(${FRAMES})`);
     const row = {
       ...v,
@@ -412,6 +455,25 @@ try {
     }
     if (over.length) {
       fail(`${v.id}: over section 13's budget: ${over.join(', ')}`);
+    }
+  }
+  /* The first view again, after another one (craft-chase's, by the craft
+   * across the map, when the first was the only one shot). */
+  if (firstTerrain) {
+    const via = report.length > 1 ? report[report.length - 1] : ALL.find((w) => w.id === 'craft-chase' && w.id !== firstTerrain.view.id);
+    if (via && report.length < 2) {
+      await page.evaluate(`(window.__setCam(${via.cam.join(',')}, ${via.fov || FOV}), "")`);
+      await settle(page);
+    }
+    const v = firstTerrain.view;
+    await page.evaluate(`(window.__setCam(${v.cam.join(',')}, ${v.fov || FOV}), "")`);
+    await settle(page);
+    const again = await page.evaluate(TERRAIN);
+    const same = again.leaves === firstTerrain.leaves && again.triangles === firstTerrain.triangles;
+    console.log(`history ${v.id}: first ${firstTerrain.leaves} leaves ${firstTerrain.triangles} triangles, again after ${via ? via.id : 'nothing'} `
+      + `${again.leaves} leaves ${again.triangles} triangles`);
+    if (!same) {
+      fail(`${v.id}: its terrain shot first (${firstTerrain.leaves} leaves, ${firstTerrain.triangles} triangles) is not its terrain after another view (${again.leaves}, ${again.triangles})`);
     }
   }
   const real = page.errors.filter((e) => !/net::ERR_|Failed to load resource/.test(e));

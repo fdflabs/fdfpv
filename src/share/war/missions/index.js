@@ -39,6 +39,13 @@ import drill from './itaipu-drill.js';
  * drill (itaipu-drill.js), which no campaign offers. */
 export const MISSIONS = Object.freeze(Object.fromEntries([itaipu1, itaipu2, itaipu3, itaipu4, drill].map((m) => [m.id, m])));
 
+/* The time of day a mission is flown at (TECH-NEEDS T1.11): its `time`,
+ * 'night' for the night raid's older `night` flag, or null for the map's
+ * own. */
+export function missionTime(mission) {
+  return mission?.time ?? (mission?.night ? 'night' : null);
+}
+
 /* How many attackers a wave sends against `pilots` pilots (at least 1). */
 export function waveSize(wave, pilots) {
   return Math.max(1, Math.round(wave.n + (wave.per || 0) * (Math.max(1, pilots) - 1)));

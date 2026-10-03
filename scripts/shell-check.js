@@ -1313,7 +1313,16 @@ const BEHAVIOUR = `(() => {
     /* The root, with neither half answered. */
     ui.craftGate = true;
     ui.mode = null;
+    ui.hub = null;
     ui.show('title');
+    ui.renderMenu();
+    /* Home: the hubs (src/ui/ui.js HUBS). With no rooms server the war's
+     * Operations has nothing to open and is left out. */
+    const homeItems = ui.items().filter((it) => ui.isStop(it));
+    const home = homeItems.map((it) => it.label);
+    const homeCards = cardsOf();
+    /* Flight Club holds the two ways in a pilot has with no rooms server. */
+    ui.openHub('club');
     const gateItems = ui.items().filter((it) => ui.isStop(it));
     const gate = gateItems.map((it) => it.label);
     const cards = cardsOf();
@@ -1418,6 +1427,10 @@ const BEHAVIOUR = `(() => {
        * that it is not a menu. Every racing quad is behind the first and
        * every fixed wing behind the second; the owner retired the five
        * inch's Freestyle card on 2026-09-25. */
+      home,
+      homeCards,
+      asksHubs: home.join() === 'Flight Club,Hangar' && homeItems.every((it) => it.card)
+        && homeCards.length === 2 && homeCards.every((c) => c.shot && c.drawn),
       asksWays: gate.length === 2 && gate.join() === 'Track Day,Free Flight'
         && gateItems.filter((it) => !it.card).length === 0,
       asCards: cards.length === 2 && cards.every((c) => c.shot && c.drawn),
@@ -1777,8 +1790,11 @@ async function main() {
       failures.push(`the gate: ${b.modeGate ? b.modeGate.error : 'no result'}`);
     } else {
       const g = b.modeGate;
+      if (!g.asksHubs) {
+        failures.push(`home opens on ${g.home.join(', ') || 'nothing'} drawn as ${JSON.stringify(g.homeCards)}, not on Flight Club and the Hangar, each with a picture and a plan`);
+      }
       if (!g.asksWays) {
-        failures.push(`the gate opens on ${g.gate.join(', ') || 'nothing'}, not on the two ways in`);
+        failures.push(`Flight Club opens on ${g.gate.join(', ') || 'nothing'}, not on the two ways in`);
       }
       if (!g.asCards) {
         failures.push(

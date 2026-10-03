@@ -1785,10 +1785,30 @@
       .gate-card { position: relative; }
       /* Over the plate, which would cover an inset shadow: the frame is an
          outline and the rule a layer of its own. */
-      .gate-card.on { outline: 1px solid var(--pdcs-blue-strong); outline-offset: -1px; }
+      .gate-card.on { outline: 1px solid var(--card-accent, var(--pdcs-blue-strong)); outline-offset: -1px; }
       .gate-card.on::after {
         content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 2;
-        background: var(--pdcs-blue-strong); pointer-events: none;
+        background: var(--card-accent, var(--pdcs-blue-strong)); pointer-events: none;
+      }
+      /*
+       * THE HUBS (src/ui/ui.js HUBS). Each hub card wears its hub's accent,
+       * and inside a hub every card does (decided 2026-10-02: one accent per
+       * hub over the same ground). Operations keeps the blue the cards
+       * always had.
+       */
+      .gate-card[data-hub="club"], .screen-title[data-hub="club"] .gate-card { --card-accent: var(--hub-club); }
+      .gate-card[data-hub="hangar"], .screen-title[data-hub="hangar"] .gate-card { --card-accent: var(--hub-hangar); }
+      /* A hub card's activities: each a press straight into its lobby. */
+      .gate-links { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; }
+      .gate-link {
+        font: 600 12px/1.2 var(--type-mono); letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--pdcs-text); background: transparent; cursor: pointer;
+        padding: 5px 8px; border: 1px solid var(--pdcs-line-soft); border-radius: var(--radius-control);
+        pointer-events: auto;
+      }
+      .gate-link:hover, .gate-link:focus-visible {
+        color: var(--pdcs-bg); background: var(--card-accent, var(--pdcs-blue-strong));
+        border-color: var(--card-accent, var(--pdcs-blue-strong)); outline: none;
       }
       .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
       .gate-card-art {
@@ -3481,22 +3501,22 @@
            sentence: the name, the picture and the tags carry the choice,
            the same trade the landscape rule below already makes, and the
            whole sentence is on any wider screen. 360 by 640 is the floor. */
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) { gap: 7px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb { display: none; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 15px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 7px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-blurb { display: none; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { flex-basis: 34%; width: 34%; min-height: 70px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 4px; padding: 8px 12px 9px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 15px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-facts { gap: 2px 10px; font-size: 10.5px; letter-spacing: 0.1em; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-mark { width: 34px; height: 34px; left: 5px; bottom: 5px; }
         /* The plate is too small for an index beside the drawing. */
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before { display: none; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art::before { display: none; }
         /* FIVE TO SEVEN: tighter type again, because six at the old five
            card size ran 4 px under the command bar at 360 by 640, and the
            five of 2026-10-02 (no Fly with friends) under the rooms panel
            ran 62 px under it there, the combat card's tags on two lines. */
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) { gap: 5px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 5px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 3px; padding: 6px 12px 7px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 14px; }
         /* FIVE TO SEVEN (five since Fly with friends left the title on
            2026-10-02), with Defend the Paraná: one tag line and a shorter
            picture, because seven at the six card size ran 81 px under the
@@ -3504,10 +3524,10 @@
            (scripts/campaign-check.js). The first tag is the card's own.
            The picture is laid over its box rather than sizing it, or its
            own aspect holds every card at 70 px whatever the rule says. */
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 56px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) { gap: 4px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 56px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-shot { position: absolute; inset: 0; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-fact:nth-child(n+2) { display: none; }
         .screen-maps .menu-stage {
           display: block;
           position: relative;
@@ -3542,11 +3562,11 @@
          sits tighter and the name, four lines since the rename, comes down
          a size too (scripts/mode-cards-check.js). */
       @media (max-width: 860px) and (min-height: 521px) and (max-height: 700px) {
-        .screen-title.is-gate .gate-cards:is([data-count="6"], [data-count="7"]) { gap: 4px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-art { min-height: 38px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-body { gap: 1px; padding: 4px 12px 5px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-name { font-size: 13px; }
-        .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-mark { width: 28px; height: 28px; bottom: 3px; }
+        .screen-title.is-gate .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) { gap: 4px; }
+        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-art { min-height: 38px; }
+        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-body { gap: 1px; padding: 4px 12px 5px; }
+        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: 13px; }
+        .gate-cards:is([data-count="4"], [data-count="6"], [data-count="7"]) .gate-card-mark { width: 28px; height: 28px; bottom: 3px; }
         .screen-title.is-gate .title-top { gap: 6px; }
         .screen-title .lockup-box { width: clamp(207px, 65.5vw, 331px); }
         .screen-title.is-gate .gate-rooms:not([hidden]) { padding: 6px 8px 7px; gap: 5px; }
@@ -3646,12 +3666,12 @@
            card rules above are more specific than this block's, so the
            picture is put back across the card here, and the names come
            down a size so two words fit a fifth of the width. */
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art {
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-art {
           flex: 0 0 auto; width: 100%;
           height: clamp(60px, 20vh, 110px); min-height: 0;
         }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { padding: 7px 10px 8px; }
-        .gate-cards:is([data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: clamp(12px, 3.3vh, 16px); }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-body { padding: 7px 10px 8px; }
+        .gate-cards:is([data-count="3"], [data-count="4"], [data-count="5"], [data-count="6"], [data-count="7"]) .gate-card-name { font-size: clamp(12px, 3.3vh, 16px); }
       }
 
       /* The map screen. One card per world, each playing a short flight

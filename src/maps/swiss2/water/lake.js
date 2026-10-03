@@ -104,9 +104,11 @@ export function lakeGeometry(heightAt, shore) {
 /*
  * A planar mirror at height y. `scale` is its resolution against the
  * renderer's drawing buffer. render(renderer, scene, camera, hide)
- * draws it for this frame, with `hide` (objects) invisible.
+ * draws it for this frame, with `hide` (objects) invisible. setLevel(y)
+ * moves it, for water whose level is not one height (Itaipu's flood).
  */
-export function planarMirror(y, scale = 0.5) {
+export function planarMirror(level, scale = 0.5) {
+  let y = level;
   const target = new THREE.WebGLRenderTarget(16, 16, { type: THREE.HalfFloatType, samples: 0 });
   target.texture.generateMipmaps = false;
   const matrix = new THREE.Matrix4();
@@ -185,5 +187,11 @@ export function planarMirror(y, scale = 0.5) {
     hide.forEach((o, k) => { o.visible = was[k]; });
     return true;
   };
-  return { texture: target.texture, matrix, render, dispose: () => target.dispose() };
+  return {
+    texture: target.texture,
+    matrix,
+    render,
+    setLevel: (v) => { y = v; },
+    dispose: () => target.dispose(),
+  };
 }

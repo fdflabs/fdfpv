@@ -162,12 +162,16 @@ function fills(v) {
   return Math.abs(name - box) <= 0.03 * box;
 }
 
-/* The gate, at every size, with the rooms panel up beside the name. */
+/* Flight Club, at every size, with the rooms panel up beside the name. */
 async function gate(rooms) {
   const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(rooms)}`, width: 1280, height: 720 });
   try {
     await page.until('window.__shellReady === true', 300000);
     await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length > 0", 60000);
+    /* The rooms panel is Flight Club's (src/ui/ui.js HUBS): its hub, where
+     * the panel stands beside the name, is the tight case. */
+    await page.evaluate("(() => { window.__ui.openHub('club'); return true; })()");
+    await page.until("window.__ui.hub === 'club' && document.querySelector('.screen-title .gate-rooms') && !document.querySelector('.screen-title .gate-rooms').hidden", 30000);
     await page.until('document.fonts.status === "loaded"', 30000);
 
     const first = await page.evaluate(LAYOUT);
