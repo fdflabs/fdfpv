@@ -265,13 +265,14 @@ export class RoomGameLobby {
     return [this.countdownAt, this.deadlineAt].join() === was ? [] : this.changed(core);
   }
 
-  /* A pilot joined: not ready, and the five seconds go on. */
+  /* A pilot joined: not ready, and the five seconds go on. Nothing of
+   * the lobby changed, so nothing is said: the joiner has it in the
+   * welcome, and the others hear of the joiner by its join. */
   join(core, now) {
-    if (!this.open(core)) {
-      return [];
+    if (this.open(core)) {
+      this.settle(core, now, false);
     }
-    this.settle(core, now, false);
-    return this.changed(core);
+    return [];
   }
 
   leave(core, seat, now) {
