@@ -2498,7 +2498,7 @@ export async function boot({
   /* The title too, for its rooms panel (ui.js renderTitleRooms). */
   const roomBrowsing = () => ui.screen === 'rooms' || ui.screen === 'title' || (ui.screen === 'friends' && roomLinkState.state().phase !== 'open');
   ui.roomRows = (screen) => roomBrowser.rows(screen);
-  ui.titleRooms = () => roomBrowser.titleItems();
+  ui.titleRooms = (home) => roomBrowser.titleItems(home);
   /* The page opens on the title, with no screen change to start the poll. */
   roomBrowser.watch(roomBrowsing());
   const screenChanged = ui.onScreenChange;
