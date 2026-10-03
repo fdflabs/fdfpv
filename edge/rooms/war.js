@@ -273,6 +273,17 @@ export function resultOf(mission, m) {
 }
 /* The most stars a mission restarted from its lost stage can earn. */
 export const RESTART_STARS = 2;
+
+/* A mission flown at a time of day the map is not built at by default
+ * (its `time`, or the night raid's `night`) has every screen rebuild its
+ * world as the briefing begins (src/main.js warTimeFrame), and a screen
+ * starts the film only once its world is up: the film's own clock starts
+ * this long after the briefing, so the rebuild ends in the black before
+ * it and the film is watched from its start, which a viewing must be to
+ * count as seen. Measured: a morning Itaipu built in 5.0 s on an RTX 3060
+ * Ti (warintro:check's info rows, 3 October). */
+export const WORLD_LEAD_MS = 8000;
+const leadOf = (mission) => ((mission.time ?? (mission.night ? 'night' : 'day')) === 'day' ? 0 : WORLD_LEAD_MS);
 /* A pilot on its last airframe is taken as not flying once it has sent no
  * pose for STALE_MS, or has been on the ground (not airborne) for
  * GROUND_MS, so a round never waits on a flight that will not end. */
@@ -442,9 +453,10 @@ export class RoomWar {
     this.meta = meta;
     /*
      * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
-     *   'won'|'lost'|'ended', briefAt (the room ms a briefing began, or
-     *   null), why, f, wave (the next to be born), output, down (target
-     *   ids hit), players: { seat: { kills, assists, mw, token } },
+     *   'won'|'lost'|'ended', briefAt (the room ms a briefing's film
+     *   starts, WORLD_LEAD_MS after the briefing for a mission with a time
+     *   of its own; or null), why, f, wave (the next to be born), output,
+     *   down (target ids hit), players: { seat: { kills, assists, mw, token } },
      *   away: { token: { player, spent, earned, loadout, round } } (a
      *   pilot whose seat another took, enlist()),
      *   agents: [birth records alive], nextAgent, scouts: { n, killed }
@@ -941,11 +953,11 @@ export class RoomWar {
     }
     /* A briefing is the intro's span before the countdown's; a restart
      * from a stage has none. */
-    const briefAt = msg.intro === true && !cp ? Math.ceil(core.roomMs(now)) : null;
+    const briefAt = msg.intro === true && !cp ? Math.ceil(core.roomMs(now)) + leadOf(mission) : null;
     /* A mission's prepMs lengthens its countdown: the night raid's, so
      * every screen has built its night world and seated its pilot well
      * before the go, never after it (itaipu-4.js). */
-    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : briefingMs(mission)) + COUNTDOWN_MS + (mission.prepMs ?? 0);
+    const goAt = (briefAt ?? Math.ceil(core.roomMs(now))) + (briefAt == null ? 0 : briefingMs(mission)) + COUNTDOWN_MS + (mission.prepMs ?? 0);
     this.match = {
       id: this.nextId,
       mission: mission.id,

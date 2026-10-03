@@ -129,6 +129,13 @@ export function createRoomWar(send) {
     return war.mission ? MISSIONS[war.mission] ?? null : null;
   }
 
+  /* The mission's time of day (TECH-NEEDS T1.11): its `time`, 'night' for
+   * the night raid's older `night` flag, or null for the map's own. */
+  function timeOf() {
+    const m = mission();
+    return m?.time ?? (m?.night ? 'night' : null);
+  }
+
   /* A new match, or none: nothing of the old one is drawn. */
   function reset() {
     agents = new Map();
@@ -368,9 +375,13 @@ export function createRoomWar(send) {
     match() {
       return war.id == null ? null : `${room}:${war.id}`;
     },
-    /* The mission's night flag (itaipu-4): the lighting hook reads it. */
+    /* The time of day the mission is flown at: the world build reads it. */
+    time() {
+      return timeOf();
+    },
+    /* Whether it is flown at night: the nav lights and the avionics. */
     night() {
-      return Boolean(mission()?.night);
+      return timeOf() === 'night';
     },
     /* This pilot's row of the scores, or null. */
     mine() {
