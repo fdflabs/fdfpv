@@ -246,6 +246,9 @@ export class WorldAudio {
           this.stats = e.data.stats;
         }
       };
+      if (typeof audio.watchNode === 'function') {
+        audio.watchNode(node, 'world');
+      }
       this.node = node;
     });
     this.ready.catch((e) => console.error('audio: the world\'s worklet failed to load', e));

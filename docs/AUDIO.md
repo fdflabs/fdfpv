@@ -1022,6 +1022,47 @@ aircraft; for twelve seeds of each material (worst: concrete 26.7
 percent, transformer 31 percent; steel 19 percent, its loudest 3 s -24.5); the water
 in `BREACH_PASS`, -40 to -18 LUFS at its loudest 400 ms.
 
+### When a worklet goes wrong (2 October, "the sound keeps stopping")
+
+One non-finite number into a worklet used to silence the whole page until
+a reload. The worklets' filters and delay lines feed back, so a NaN stays
+in them and every quantum after is NaN; their outputs meet in the master
+limiter (a DynamicsCompressorNode), whose envelope then latches the NaN,
+and the music, the radio and every engine go with it. Reproduced on the
+live build in Chromium (`npm run audio:latch`, one NaN listener posted to
+the world's worklet): the master NaN at every sample for as long as it was
+watched. Both worklets were also left NaN for good by one NaN quantum in
+Node (`npm run audio:guard`, on main's worklets: 27 failures).
+
+- **`src/render/worklet-guard.js`**: each processor's work runs through
+  `guard()`. A throw, or a quantum with a non-finite sample, zeroes that
+  quantum before it leaves the node, scrubs every NaN out of the
+  processor's state (the engine puts its phasors back on the unit
+  circle), and posts `{ fault }` with what the processor was given at that
+  quantum (the engine's parameters, the world's listener and voices), at
+  most once a second. The sound drops for 3 ms, not until a reload.
+- **The world refuses what is not finite** at its boundary: a frame whose
+  time or listener is not finite, a source with a number that is not, each
+  counted (`stats.rejected`).
+- **`MotorAudio.watchNode`** logs every fault and every processorerror
+  loudly and keeps them in `window.__audio.faults`, with the context's
+  state changes in `window.__audio.states`.
+- **A suspended or interrupted context** is resumed by the next key or
+  press (`wakeAudio` started only a context that did not exist), and a
+  context that says running while its clock stands still for 1.5 s (a
+  renderer stopped by a device change) is suspended and resumed, and said.
+
+What produced it was found by the guard's own report (the lobby check's
+combat run, #373): a stream's nearest point, a still source that jumps
+when the camera moves fast or teleports. The retarded time's fixed point
+iterates landed either side of the jump and the source's direction was
+divided by the wrong distance, so its cosine with the listener's forward
+reached 3, the far ear's corner went below 0 Hz and its one pole ran to
+infinity (the voice's filter at -2.7e54, then -Infinity). `retard()` now
+returns the distance to the state it returns and the cosine is clamped;
+`audio:guard` holds a stream's nearest point under a fast, teleporting
+listener to no fault in 40,000 quanta.
+
 ### Not yet
 
 - Occlusion (a hill between a source and the listener).

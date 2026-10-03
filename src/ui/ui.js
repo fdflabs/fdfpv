@@ -1842,15 +1842,22 @@ function hintWithKeys(keys, text) {
   return n;
 }
 
-/* The name as the owner's key art sets it (index.html .lockup), which the
- * share card clones too (scripts/og.js). English in every locale, because
- * it is the mark and not a sentence. The spaces keep the heading's text
- * the name. */
+/* The name as the owner's lockup sets it (index.html .lockup-box), which
+ * the share card clones too (scripts/og.js, the heading alone). English in
+ * every locale, because it is the mark and not a sentence. The spaces keep
+ * the heading's text the name.
+ *
+ * Self contained: the box is a size container and the lockup fills its
+ * width, so a screen places it by giving the box a width and nothing else
+ * (the title's is .screen-title .lockup-box). */
 function wordmark() {
+  const box = el('div', 'lockup-box');
   const h = el('h1', 'wordmark lockup');
   const slash = el('span', 'lockup-slash');
   slash.setAttribute('aria-hidden', 'true');
   const name = el('span', 'lockup-name');
+  /* The bevel draws the name twice more behind itself, from this. */
+  name.dataset.text = 'Drone Combat';
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
   /* The flag as the boot screen draws it, horizontal bands; the title
    * shows it and hides the slash, the share card the other way round. */
@@ -1860,7 +1867,8 @@ function wordmark() {
   const over = el('span', 'lockup-over');
   over.append(flag, 'Paraguayan');
   h.append(slash, over, ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
-  return h;
+  box.append(h);
+  return box;
 }
 
 /*
@@ -3140,6 +3148,9 @@ const WAYS = [
     id: 'race-5inch',
     airframes: AIRFRAME_IDS,
     mode: 'race',
+    /* The game of the lobby its one press lands in (onGameCard): null is
+     * free flight. */
+    lobby: 'race',
     label: str('ui.track_mode'),
     art: 'assets/gate/race.jpg',
     blurb: str('ui.card_line_race'),
@@ -3153,6 +3164,7 @@ const WAYS = [
      * wing's place, is what the card seats when none is; a pilot already on
      * another keeps it. The id is the card's and outlived the wing. */
     id: 'freestyle-wing1000',
+    lobby: null,
     airframes: ['bramor2300', 'sky1800', 'cub1400', 'radian2000', 'slowstick1180', 'timber1500', 'timber1500f', 'cub1400f', 'bombshell1118', 'kadet1981', 'uglystik1567', 'tigermoth1803', 'p51d1450', 'f16878', 'zagi1219', 'nrj1490', 'striker2500'],
     mode: 'freestyle',
     /* The card's own world. A card with a home skips the picker. The
@@ -3180,6 +3192,11 @@ const WAYS = [
      * to land on a room card. On the gate only where there is a
      * rooms server (friendsItems), the same rule as the menu row. */
     id: 'friends',
+    /* OFF THE TITLE since the owner's word on 2026-10-02 ("delete the fly
+     * with friends...every click will take you to the lobby for it"):
+     * every card is a room now. The title's rooms panel still goes in by
+     * this card's way ('lobby:' actions, act), so the entry stays. */
+    gate: false,
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'swiss2',
@@ -3201,6 +3218,7 @@ const WAYS = [
    */
   {
     id: 'combat',
+    lobby: 'combat',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'swiss2',
@@ -3214,6 +3232,7 @@ const WAYS = [
   },
   {
     id: 'ace',
+    lobby: 'tag',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'swiss2',
@@ -3262,6 +3281,7 @@ const WAYS = [
      * reads of this table (seatedWay) still land on it for the war.
      */
     id: 'campaign',
+    lobby: 'war',
     airframes: AIRFRAME_IDS.filter(freestyleOffered),
     mode: 'freestyle',
     home: 'itaipu',
@@ -3785,7 +3805,7 @@ export class Ui {
     this.brandSub = el('div', 'brand-sub', '');
     brand.append(wordmark(), this.brandSub);
     /* Beta notice. The only line on this screen that is about the
-     * software rather than about flying, so it wears the amber an
+     * software rather than about flying, so it wears the blue an
      * instrument wears rather than the mint a record does, and it sits
      * directly under the wordmark: a pilot who is about to meet a bug
      * should have been told before the lap, not after it. It is not
@@ -3794,7 +3814,7 @@ export class Ui {
     const beta = el('p', 'beta-note');
     beta.append(
       el('span', 'beta-tag', str('ui.beta')),
-      el('span', null, str('ui.expect_bugs_and_rough_edges_it')),
+      el('span', null, str('ui.realistic_drone_combat_inspired_by_paraguay')),
     );
     brand.append(beta);
     this.titleBest = el('div', 'brand-best', '');
@@ -10536,10 +10556,13 @@ export class Ui {
     }
     if (action === 'card-fly') {
       this.cardSubject = null;
+      /* In a race lobby, the host's choice is the room's track: back to
+       * the lobby with it seated (src/main.js onTrackChosen), not up. */
+      const go = () => (this.onTrackChosen && this.onTrackChosen() ? null : this.play());
       if (board) {
-        this.openBoardCourse(t.id, () => this.play());
+        this.openBoardCourse(t.id, go);
       } else if (this.seatLocal(t.id)) {
-        this.play();
+        go();
       }
       return;
     }
@@ -12945,6 +12968,12 @@ export class Ui {
      * is the way out (rule 4 and 5 of docs/FLOW-AUDIT.md). Reached from a
      * paused run, Back is still that run. */
     if (this.screen === 'friends' && this.returnTo !== 'paused' && this.inRoom && this.inRoom()) {
+      /* A game's lobby is a card's one press (the owner, 2026-10-02), so
+       * Back from it is back to the cards, out of the room, the card it
+       * came from under the cursor (src/main.js onLobbyBack). */
+      if (this.warLobbyOn && this.onLobbyBack) {
+        this.onLobbyBack();
+      }
       return;
     }
     if (this.onUiSound) {
@@ -14029,6 +14058,17 @@ export class Ui {
     }
     /* A room's aircraft is chosen in the room, once it is known who is
      * flying what: the card goes straight to the room screen. */
+    /*
+     * EVERY CARD, ONE PRESS, into its game's lobby (the owner, 2026-10-02:
+     * "every click will take you to the lobby for it, ready to go either
+     * single or multi"; src/main.js onGameCard), its aircraft chosen
+     * there. Defend the Paraná's lobby is the war's, its campaign a row
+     * of it. With no rooms server the cards fly alone as they always did.
+     */
+    if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
+      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
+      return;
+    }
     if (way.campaign && this.onCampaignCard) {
       this.onCampaignCard();
       return;

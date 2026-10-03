@@ -4,7 +4,7 @@
  * three.js, no clock, so the room (edge/rooms/war.js) and every client
  * call the same function on the same numbers and draw the same path. That
  * is why a scripted attacker's pose is never sent: the room sends its
- * birth ({ id, kind, route, t0, k, n, err, target }) and its death, and
+ * birth ({ id, kind, route, t0, k, n, err, target, az? }) and its death, and
  * everything between is this file.
  *
  * Positions are scene world metres, y up, the POSE frame
@@ -219,7 +219,7 @@ function planRoute(mission, agent) {
   }
   const n = agent.n || 1;
   const form = ((agent.k || 0) - (n - 1) / 2) * kind.gap;
-  const pts = route.map((p) => [p[0], p[1], p[2]]);
+  const pts = turned(route, agent.az);
   let aim = null;
   if (target) {
     const last = pts[pts.length - 1];
@@ -283,6 +283,24 @@ function planRoute(mission, agent) {
   const m = len(dive);
   push({ k: 'line', a: out.p, d: dive.map((x) => x / m), speed: kind.dive }, (m / kind.dive) * 1000);
   return { t0: agent.t0, tEnd: t, end: aim ? 'arrive' : 'leave', phases };
+}
+
+/* A route's points turned about the vertical through its last point by
+ * az radians, left (counterclockwise seen from above) for a positive az:
+ * the room's seeded azimuth (src/share/war/stages.js), so an approach
+ * comes in from another bearing onto the same end. */
+function turned(route, az) {
+  if (!az) {
+    return route.map((p) => [p[0], p[1], p[2]]);
+  }
+  const c = cosDet(az);
+  const s = sinDet(az);
+  const o = route[route.length - 1];
+  return route.map((p) => {
+    const x = p[0] - o[0];
+    const z = p[2] - o[2];
+    return [o[0] + x * c + z * s, p[1], o[2] - x * s + z * c];
+  });
 }
 
 /* Where an orbit phase has got to at t: { p, d }. */

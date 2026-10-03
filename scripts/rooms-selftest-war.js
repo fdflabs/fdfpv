@@ -35,6 +35,7 @@ import {
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
+import { filmFor } from '../src/share/war/films/index.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import { waveStatus } from '../src/ui/warhud.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
@@ -336,6 +337,20 @@ export function warSection(check) {
       type: 'war', op: 'start', mission: 'test-1', intro: true,
     });
     s.fly(5000);
+    /* The host's skip cuts a briefing only once every pilot here has seen
+     * the film (docs/campaign/INTROS.md section 3, the owner's: a first
+     * viewing is never cut). */
+    const seen = { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version } };
+    s.say(0, seen);
+    s.say(0, { type: 'war', op: 'skipIntro' });
+    check('the host\'s skip with a pilot here who has not seen the film is refused "unwatched", and the briefing holds',
+      s.errors(0).at(-1) === 'unwatched' && s.view(1).state === 'briefing' && JSON.stringify(s.view(1).seen) === JSON.stringify([1]), JSON.stringify(s.view(1).seen));
+    s.say(1, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version - 1 } });
+    s.say(0, { type: 'war', op: 'skipIntro' });
+    check('and so is it when that pilot saw only an older cut of it', s.errors(0).at(-1) === 'unwatched' && s.view(1).state === 'briefing');
+    s.say(1, { type: 'war', op: 'seen', films: 'all' });
+    check('a seen that is not { film: version } is refused "seen"', s.errors(1).at(-1) === 'seen');
+    s.say(1, seen);
     s.say(0, { type: 'war', op: 'skipIntro' });
     const k = s.view(1);
     check('the host skips it: the countdown starts now, for everybody', k.state === 'countdown' && k.goAt === 5000 + COUNTDOWN_MS
@@ -989,6 +1004,7 @@ export function warSection(check) {
         && c.match() === 'M1SS20:1', `${first} then ${c.match()}`);
       if (skip) {
         two.fly(4000);
+        two.say(0, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version } });
         two.say(0, { type: 'war', op: 'skipIntro' });
       }
       const blank = [];

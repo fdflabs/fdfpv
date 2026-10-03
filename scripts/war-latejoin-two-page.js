@@ -82,8 +82,13 @@ const TAP_SEED = `(() => {
       super(url, protocols);
       if (/\\/v2\\//.test(String(url))) {
         this.addEventListener('message', (ev) => {
+          /* A birth message, not any text with the word in it: the view's
+           * stage draws say whether each is born. */
           if (typeof ev.data === 'string' && ev.data.includes('"born"')) {
-            heard.push(JSON.parse(ev.data));
+            const m = JSON.parse(ev.data);
+            if (m.type === 'war' && m.op === 'born') {
+              heard.push(m);
+            }
           }
         });
       }

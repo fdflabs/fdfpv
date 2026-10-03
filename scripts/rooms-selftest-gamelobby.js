@@ -8,15 +8,18 @@
  * who joins; the 45 seconds from the first ready, with whoever is ready
  * then or nobody; the host's start now; the host's mission; a leaver; a
  * host who leaves, the others starting without them; the match clearing
- * every flag, and its end finding the lobby again; no lobby in a room not
- * made for the war, nor during a match.
+ * every flag, and its end finding the lobby again; no lobby during a
+ * match, and a free flight room's lobby starting no war.
  *
  * Then combat's and tag's: the lobby in the welcome with the round's
- * setting, the host's alone to change; one pilot ready of two gives no
- * times, since these games need two; both give the five seconds and the
- * game's own countdown, with the room's clock running for it; a round's
- * end back in the lobby with nobody ready;
- * a ready taken away below two drops the times; a race room has none.
+ * setting, the host's alone to change; one pilot ready of two gives the
+ * 45 s; both give the five seconds and the game's own countdown, with the
+ * room's clock running for it; a round's end back in the lobby with
+ * nobody ready, and combat's no next round on its own; one pilot alone
+ * plays either (the owner, 2026-10-02: "ready to go either single or
+ * multi"), a round that lasts past ABANDON_MS. A race room's lobby waits
+ * for its track, then its race goes off the grid; free flight's round is
+ * on from its start until the room is empty.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -37,6 +40,7 @@
 import { ABANDON_MS, PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { ROUND_MINUTES } from '../edge/rooms/combat.js';
 import { GOALS } from '../src/share/roomtag.js';
+import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { LOBBY_COUNTDOWN_MS, LOBBY_DEADLINE_MS } from '../edge/rooms/gamelobby.js';
 import { PROTO } from '../src/share/roomwire.js';
 
@@ -173,6 +177,33 @@ export function warLobbySection(check) {
     check('and the lobby starts mission 2', e.war().state === 'briefing' && e.war().mission === 'itaipu-2', JSON.stringify({ state: e.war().state, mission: e.war().mission }));
   }
   {
+    /* The owner, 2 Oct: a lost mission restarts from the stage it was
+     * lost in. The loss is put on the match by hand here; war:stages
+     * plays one through. */
+    const e = lobbyRoom();
+    e.at(100);
+    e.ready(0);
+    e.ready(1);
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    const go = e.war().goAt;
+    e.at(go + 200);
+    e.r.war.finish(go + 150, 'lost', 'output');
+    e.at(go + 400);
+    check('after a loss the war names the stage the mission restarts from', e.war().state === 'lost' && e.war().checkpoint && e.war().checkpoint.n === 0,
+      JSON.stringify(e.war().checkpoint));
+    e.ready(0);
+    e.ready(1);
+    e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
+    check('and starts it again from there, with no briefing', e.war().state === 'countdown' && e.war().restarted === 'round-1' && e.war().mission === 'itaipu-1',
+      JSON.stringify({ state: e.war().state, restarted: e.war().restarted }));
+    e.say(0, { type: 'war', op: 'end' });
+    e.at(e.clock + 100);
+    e.ready(0);
+    e.ready(1);
+    e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
+    check('a match ended, not lost, starts again from its film', e.war().state === 'briefing' && e.war().restarted == null, e.war().state);
+  }
+  {
     const e = lobbyRoom();
     e.at(100);
     e.ready(0);
@@ -203,12 +234,10 @@ export function warLobbySection(check) {
   }
   {
     const e = lobbyRoom({ mode: null });
-    const w = e.socks[0].got.find((m) => m.type === 'welcome');
     e.ready(0);
     e.ready(1);
     e.at(LOBBY_COUNTDOWN_MS + 200);
-    check('a room not made for the war has no lobby: none in the welcome, ready passed over', !('lobby' in w)
-      && !e.socks[0].got.some((m) => m.type === 'lobby') && e.war().state === 'lobby');
+    check('a free flight room\'s lobby starts no war', e.war().state === 'lobby' && e.r.gameLobby.live === true);
   }
 }
 
@@ -227,12 +256,12 @@ export function gameLobbySection(check) {
     check('the host sets 5: everybody told, the room keeps it', e.lobby(1).minutes === 5 && e.r.meta.minutes === 5, JSON.stringify(e.lobby(1)));
     e.at(1000);
     e.ready(0);
-    check('one ready of two: no times, combat needs two', e.lobby(1).ready['1'] === true && e.lobby(1).deadlineAt === null && e.lobby(1).countdownAt === null,
-      JSON.stringify(e.lobby(1)));
+    check('one ready of two: the 45 s, no five seconds', e.lobby(1).ready['1'] === true && e.lobby(1).deadlineAt === 1000 + LOBBY_DEADLINE_MS
+      && e.lobby(1).countdownAt === null, JSON.stringify(e.lobby(1)));
     check('the browser lists it waiting, one ready', e.r.activity(0).state === 'waiting' && e.r.activity(0).ready === 1, JSON.stringify(e.r.activity(0)));
     e.at(2000);
     e.ready(1);
-    check('both ready: the five seconds and the 45 s', e.lobby(0).countdownAt === 2000 + LOBBY_COUNTDOWN_MS && e.lobby(0).deadlineAt === 2000 + LOBBY_DEADLINE_MS,
+    check('both ready: the five seconds', e.lobby(0).countdownAt === 2000 + LOBBY_COUNTDOWN_MS && e.lobby(0).deadlineAt === 1000 + LOBBY_DEADLINE_MS,
       JSON.stringify(e.lobby(0)));
     e.at(2000 + LOBBY_COUNTDOWN_MS + 100);
     const round = e.r.combat.round;
@@ -243,15 +272,21 @@ export function gameLobbySection(check) {
     e.ready(0);
     check('a ready during the round is passed over', JSON.stringify(e.lobby(0).ready) === '{}');
     e.at(round.endsAt + 200);
-    check('the round over: back in the lobby, nobody ready',
-      e.r.combat.round.state === 'over' && e.r.gameLobby.open(e.r) && JSON.stringify(e.lobby(0).ready) === '{}',
+    check('the round over: back in the lobby, nobody ready, and no next round on its own',
+      e.r.combat.round.state === 'over' && e.r.combat.round.nextAt === 0 && e.r.gameLobby.open(e.r) && JSON.stringify(e.lobby(0).ready) === '{}',
       JSON.stringify({ state: e.r.combat.round.state, nextAt: e.r.combat.round.nextAt }));
+    e.at(e.clock + 30000);
+    check('and none 30 s on either', e.r.combat.round.state === 'over' && e.r.combat.round.n === 1);
+  }
+  {
+    const e = lobbyRoom({ mode: 'combat', mission: null, n: 1 });
+    e.at(100);
     e.ready(0);
-    e.ready(1);
-    e.ready(1, false);
-    check('both ready, then one not: the five seconds stop, the 45 s go on while two were ready', e.lobby(0).countdownAt === null,
-      JSON.stringify(e.lobby(0)));
-    check('and with one ready, below combat\'s two, they fall', e.lobby(0).deadlineAt === null, JSON.stringify(e.lobby(0)));
+    check('one pilot alone, ready: the five seconds', e.lobby(0).countdownAt === 100 + LOBBY_COUNTDOWN_MS, JSON.stringify(e.lobby(0)));
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('and a combat round of one counts down', e.r.combat.on(), JSON.stringify(e.r.combat.round));
+    e.at(e.clock + 20000 + 15000);
+    check('and is still on past ABANDON_MS, played alone', e.r.combat.round.state === 'on', e.r.combat.round.state);
   }
   {
     const e = lobbyRoom({ mode: 'combat', mission: null });
@@ -270,6 +305,8 @@ export function gameLobbySection(check) {
       JSON.stringify(w.lobby) === `{"goal":${GOALS[0].goal},"ready":{},"countdownAt":null,"deadlineAt":null}`, JSON.stringify(w.lobby));
     e.say(0, { type: 'lobby', op: 'goal', goal: 3 });
     check('a goal under tag\'s least is passed over', e.lobby(0).goal === GOALS[0].goal);
+    e.ready(0);
+    e.ready(0, false);
     e.say(0, { type: 'lobby', op: 'goal', goal: 30 });
     check('the host sets 30', e.lobby(1).goal === 30 && e.r.meta.goal === 30);
     e.at(500);
@@ -294,11 +331,55 @@ export function gameLobbySection(check) {
     check('at 45 s the match starts with whoever is ready', e.r.tag.on(), JSON.stringify(e.r.tag.view(e.r)));
   }
   {
+    const e = lobbyRoom({ mode: 'tag', mission: null, n: 1 });
+    e.at(100);
+    e.ready(0);
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    check('Catch the Ace alone, ready: its match counts down', e.r.tag.on(), JSON.stringify(e.r.tag.view(e.r)));
+  }
+  {
     const e = lobbyRoom({ mode: 'race', mission: null });
     const w = e.socks[0].got.find((m) => m.type === 'welcome');
+    check('a race room welcomes with its lobby, no track yet', JSON.stringify(w.lobby) === '{"track":null,"ready":{},"countdownAt":null,"deadlineAt":null}',
+      JSON.stringify(w.lobby));
+    e.at(100);
     e.ready(0);
     e.ready(1);
-    check('a race room has no lobby: none in the welcome, ready passed over', !('lobby' in w) && !e.socks[0].got.some((m) => m.type === 'lobby'));
+    check('both ready with no track: kept, and no time runs', e.lobby(0).ready['1'] && e.lobby(0).ready['2'] && e.lobby(0).countdownAt === null
+      && e.lobby(0).deadlineAt === null, JSON.stringify(e.lobby(0)));
+    e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-lobby001' }) });
+    check('the host\'s track, nobody on its grid yet: still no time', e.lobby(1).countdownAt === null, JSON.stringify(e.lobby(1)));
+    e.say(0, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
+    e.say(1, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
+    check('pilots on its grid: the lobby says the track, and the five seconds run', e.lobby(1).track === 'trk-lobby001'
+      && e.lobby(1).countdownAt === 100 + LOBBY_COUNTDOWN_MS, JSON.stringify(e.lobby(1)));
+    e.at(100 + LOBBY_COUNTDOWN_MS + 100);
+    const race = e.r.race.race;
+    check('at their end the race goes off the grid with both on it', race && race.state === 'on' && race.racers.join() === '1,2', JSON.stringify(race));
+    e.join(2);
+    check('a pilot who comes during it has no lobby and is no racer', !e.r.gameLobby.open(e.r) && !race.racers.includes(3));
+  }
+  {
+    const e = lobbyRoom({ mode: null });
+    const w = e.socks[0].got.find((m) => m.type === 'welcome');
+    check('a free flight room welcomes with its lobby, not flying yet', JSON.stringify(w.lobby) === '{"live":false,"ready":{},"countdownAt":null,"deadlineAt":null}',
+      JSON.stringify(w.lobby));
+    e.at(100);
+    e.ready(0);
+    e.at(100 + LOBBY_COUNTDOWN_MS - 100);
+    check('one of two ready: nothing yet', !e.r.gameLobby.live);
+    e.ready(1);
+    e.at(e.clock + LOBBY_COUNTDOWN_MS + 100);
+    check('both ready: the room flies, everybody told', e.r.gameLobby.live && e.lobby(1).live === true && JSON.stringify(e.lobby(1).ready) === '{}',
+      JSON.stringify(e.lobby(1)));
+    e.join(2);
+    const w3 = e.socks[2].got.find((m) => m.type === 'welcome');
+    check('a pilot who comes then is told it flies, and has no lobby to wait in', w3.lobby.live === true && !e.r.gameLobby.open(e.r));
+    check('and the browser lists it flying', e.r.activity(e.clock).state === 'on' && e.r.activity(e.clock).game === null, JSON.stringify(e.r.activity(e.clock)));
+    e.leave(0);
+    e.leave(1);
+    e.leave(2);
+    check('the room empty: its round is over', e.r.gameLobby.live === false);
   }
 }
 
