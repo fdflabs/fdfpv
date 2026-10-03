@@ -464,7 +464,18 @@ export function buildLift(ctx) {
     cabins.instanceMatrix.needsUpdate = true;
   }
   update(0);
+  /* The cabins and the drive in the bottom station, for the world's sound
+   * (alps/life.js audioSources): ids from idBase, the drive first. */
+  const cabinAt = new THREE.Vector3();
+  function audioSources(add, idBase) {
+    add(idBase, 'liftdrive', baseSite.x, baseY + 3, baseSite.z);
+    for (let i = 0; i < count; i += 1) {
+      cabins.getMatrixAt(i, M);
+      cabinAt.setFromMatrixPosition(M);
+      add(idBase + 1 + i, 'cabin', cabinAt.x, cabinAt.y - CABIN.drop, cabinAt.z);
+    }
+  }
   return {
-    update, base: { x: base.x, z: base.z, yaw }, topAt: { x: top.x, y: topY, z: top.z }, towers: towers.length, cabins: count, top: Math.round(topY), length: Math.round(run),
+    audioSources, update, base: { x: base.x, z: base.z, yaw }, topAt: { x: top.x, y: topY, z: top.z }, towers: towers.length, cabins: count, top: Math.round(topY), length: Math.round(run),
   };
 }

@@ -16,7 +16,7 @@
  * airspeed zero (main.js `motorsTurning`).
  *
  * Rows are at 62.5 Hz, 768 samples at 48 kHz, an exact multiple of the
- * 128 sample render quantum (scripts/audio-probe.js chose the same rate
+ * 128 sample render quantum (the retired scripts/audio-probe.js chose the same rate
  * for the same reason). Columns, `COLS` below:
  *
  *   r0..r3    motor RPM, Betaflight order (a fixed wing's engine is r0)
@@ -24,6 +24,8 @@
  *             plant's right handed Z up body frame)
  *   x y z     position, metres, world frame (for a listener off board)
  *   amps      pack current, A
+ *   flap      the flaps' angle, rad (0 on an aircraft without them)
+ *   gear      the retracts, 0 down and locked to 1 up
  *
  * Events are what the shell learns from the plant or its contact code and
  * hands the audio as a call rather than a stream: an impact with the
@@ -50,7 +52,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSim, SIM_OK } from '../../tests/lib/simmod.js';
-import { airframeById, STRIKER_RAIL } from '../../configs/airframes.js';
+import { airframeById, BRAMOR_CATAPULT, STRIKER_RAIL } from '../../configs/airframes.js';
 import { seatStriker, attitude } from '../../scripts/lib/strikerpilot.js';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -58,8 +60,8 @@ const OUT = join(root, 'tools/audio/flights.json');
 export const TRACE_HZ = 62.5;
 const ROW_MS = 1000 / TRACE_HZ;
 const RC_MS = 4;
-export const COLS = ['r0', 'r1', 'r2', 'r3', 'u', 'v', 'w', 'x', 'y', 'z', 'amps'];
-const SURF = { grass: 1, concrete: 4 };
+export const COLS = ['r0', 'r1', 'r2', 'r3', 'u', 'v', 'w', 'x', 'y', 'z', 'amps', 'flap', 'gear'];
+const SURF = { grass: 1, concrete: 4, rock: 5, wood: 7 };
 
 function must(code, where) {
   if (code !== SIM_OK) {
@@ -113,6 +115,8 @@ class Recorder {
         live ? +u.toFixed(2) : 0, live ? +v.toFixed(2) : 0, live ? +w.toFixed(2) : 0,
         +s[1].toFixed(2), +s[2].toFixed(2), +s[3].toFixed(2),
         +s[19].toFixed(1),
+        +this.sim.e.sim_wing_flaps().toFixed(4),
+        +this.sim.e.sim_wing_gear().toFixed(3),
       ]);
       this.nextRow += ROW_MS;
     }
@@ -121,9 +125,9 @@ class Recorder {
 
 /* ---------- the five inch ---------- */
 
-async function quad(wasm, tune) {
+async function quad(wasm, tune, simId = 0) {
   const sim = await loadSim(wasm);
-  must(sim.e.sim_set_airframe(0), 'sim_set_airframe');
+  must(sim.e.sim_set_airframe(simId), 'sim_set_airframe');
   must(sim.init(tune), 'sim_init');
   must(sim.setAngleMode(true), 'angle mode');
   must(sim.reset(), 'sim_reset');
@@ -136,7 +140,7 @@ async function quad(wasm, tune) {
  * { thr: 'hold', z } for the altitude hold, every 4 ms. The hold is a
  * plain PD on throttle about the hover throttle the bisection found.
  */
-function flyQuad(sim, { seconds, z0 = 5, v0 = [0, 0, 0], hover, plan, ground = null, seed = 1 }) {
+function flyQuad(sim, { seconds, z0 = 5, v0 = [0, 0, 0], hover, plan, ground = null, seed = 1, strike = null }) {
   must(sim.e.sim_set_pose(0, 0, z0, 1, 0, 0, 0), 'sim_set_pose');
   must(sim.e.sim_set_velocity(v0[0], v0[1], v0[2], 0, 0, 0), 'sim_set_velocity');
   if (ground) {
@@ -178,6 +182,13 @@ function flyQuad(sim, { seconds, z0 = 5, v0 = [0, 0, 0], hover, plan, ground = n
       prevV = v;
       rec.sample(ms + k + 1);
     }
+    /* A prop strike on a post, the shell's sim_prop_strike and its sound
+     * (src/main.js feelImpact): the plant takes it, the trace records the
+     * motors spinning back up. */
+    if (strike && ms === strike.ms) {
+      must(sim.e.sim_prop_strike(strike.sev), 'sim_prop_strike');
+      rec.events.push({ t: +(ms / 1000).toFixed(3), kind: 'strike', surface: strike.surface, hardness: strike.hardness, level: strike.level });
+    }
   }
   return rec;
 }
@@ -207,11 +218,15 @@ function impactEvent(sim, ms, surface, mass, before, dv) {
 }
 
 async function hoverThrottle(wasm, tune) {
+  return hoverThrottleFor(wasm, tune, 0);
+}
+
+async function hoverThrottleFor(wasm, tune, simId) {
   let lo = 0.1;
   let hi = 0.7;
   for (let i = 0; i < 20; i += 1) {
     const mid = 0.5 * (lo + hi);
-    const sim = await quad(wasm, tune);
+    const sim = await quad(wasm, tune, simId);
     must(sim.e.sim_set_pose(0, 0, 20, 1, 0, 0, 0), 'sim_set_pose');
     let vz = 0;
     for (let ms = 0; ms < 2500; ms += RC_MS) {
@@ -235,6 +250,10 @@ function strikerHold(s, { v, z, pitchT = null }) {
   const speed = Math.hypot(s[4], s[5], s[6]);
   const k = (20 / Math.max(speed, 10)) ** 2;
   let pt = pitchT;
+  if (pt == null && v != null) {
+    /* An airspeed hold: nose up when fast, down when slow. */
+    pt = Math.max(-0.35, Math.min(0.4, 0.03 * (speed - v)));
+  }
   if (pt == null) {
     const vzT = Math.max(-4, Math.min(4, 0.25 * (z - s[3])));
     pt = Math.max(-0.35, Math.min(0.6, 0.04 + 0.03 * (vzT - s[6])));
@@ -253,8 +272,7 @@ function strikerHold(s, { v, z, pitchT = null }) {
  * the engine is already at the speed the throttle holds (the plant starts
  * the turbine cold, and a cold spool under a cruise is not a cruise).
  */
-function flyStrikerScript(sim, { seconds, railMs = 0, warmMs = 0, start, thr, hold, listener }) {
-  const rail = STRIKER_RAIL;
+function flyStrikerScript(sim, { seconds, railMs = 0, warmMs = 0, start, thr, hold, listener, actions = [], rail = STRIKER_RAIL, launch = false }) {
   const h = (rail.pitchDeg * Math.PI) / 360;
   const railPose = [0, 0, rail.height, Math.cos(h), 0, -Math.sin(h), 0];
   if (railMs > 0) {
@@ -262,8 +280,13 @@ function flyStrikerScript(sim, { seconds, railMs = 0, warmMs = 0, start, thr, ho
     must(sim.rest(), 'sim_rest');
   } else {
     must(sim.e.sim_set_pose(...start.pose), 'sim_set_pose');
-    must(sim.e.sim_set_velocity(start.v, 0, 0, 0, 0, 0), 'sim_set_velocity');
+    if (launch) {
+      must(sim.e.sim_wing_launch(start.v), 'sim_wing_launch');
+    } else {
+      must(sim.e.sim_set_velocity(start.v, 0, 0, 0, 0, 0), 'sim_set_velocity');
+    }
   }
+  const todo = actions.slice();
   const rec = new Recorder(sim);
   let launched = railMs === 0;
   for (let ms = -warmMs; ms < seconds * 1000; ms += RC_MS) {
@@ -271,6 +294,14 @@ function flyStrikerScript(sim, { seconds, railMs = 0, warmMs = 0, start, thr, ho
       must(sim.e.sim_set_pose(...railPose), 'sim_set_pose');
       must(sim.e.sim_wing_launch(rail.speed), 'sim_wing_launch');
       launched = true;
+      rec.events.push({ t: +(ms / 1000).toFixed(3), kind: 'mech', what: 'catapult' });
+    }
+    while (todo.length && ms >= todo[0].ms) {
+      const a = todo.shift();
+      a.act(sim);
+      if (a.event) {
+        rec.events.push({ t: +(ms / 1000).toFixed(3), ...a.event });
+      }
     }
     const s = sim.readState().state;
     const sticks = launched ? strikerHold(s, hold(ms)) : { roll: 0, pitch: 0 };
@@ -302,7 +333,7 @@ export async function flyAll() {
   const flights = {};
   const q = async (id, title, opts) => {
     const rec = flyQuad(await quad(wasm, quadTune), { hover, ...opts });
-    flights[id] = { craft: '5inch', voice: 'quad', title, rows: rec.rows, events: rec.events };
+    flights[id] = { craft: '5inch', airframe: '5inch', voice: 'quad', title, rows: rec.rows, events: rec.events };
   };
   await q('quad-hover', '5 inch: hover', {
     seconds: 10, plan: () => ({ thr: 'hold', z: 5 }),
@@ -351,6 +382,86 @@ export async function flyAll() {
     });
   }
 
+  /* A prop strike over a hover: the blades meet a wooden post. */
+  await q('quad-strike', '5 inch: prop strike on a post', {
+    seconds: 6, seed: 6,
+    plan: () => ({ thr: 'hold', z: 5 }),
+    strike: { ms: 2500, sev: 0.2, surface: 'wood', hardness: 0.6, level: 0.7 },
+  });
+  await q('quad-crash-rock', '5 inch: crash on rock', {
+    seconds: 6, z0: 6, v0: [14, 0, -1], ground: 'rock', seed: 5,
+    plan: (ms) => (ms < 1200 ? { thr: 'hold', z: 6, pitch: 0.4 } : { pitch: 0.8, thr: 0.25 }),
+  });
+
+  /* The other quads, each in its own plant: a hover and a punch. */
+  for (const [id, name] of [['whoop65', 'Whoop'], ['7inch', '7 inch'], ['10inch', '10 inch'], ['interceptor', 'Interceptor']]) {
+    const af = airframeById(id);
+    const tune = await readFile(join(root, `configs/${af.defaultTune}.diff`), 'utf8');
+    const simId = af.simId;
+    const hov = id === 'whoop65' ? hover : await hoverThrottleFor(wasm, tune, simId);
+    const rec = flyQuad(await quad(wasm, tune, simId), {
+      hover: hov, seconds: 9, seed: 7,
+      plan: (ms) => (ms < 3000 ? { thr: 'hold', z: 5 } : ms < 5000 ? { thr: 1 } : { thr: 'hold', z: 40 }),
+    });
+    flights[`${id}-punch`] = { craft: id, airframe: id, voice: 'quad', title: `${name}: hover and punch-out`, rows: rec.rows, events: rec.events };
+  }
+
+  /* The fixed wings, each on its stock power: an air start, a climb on
+   * full, a cruise, the throttle chopped into a glide. */
+  const wingFlight = async (id, title, opts = {}) => {
+    const af = airframeById(id);
+    const tune = await readFile(join(root, `configs/${af.defaultTune}.diff`), 'utf8');
+    const sim = await loadSim(wasm);
+    must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
+    must(sim.init(tune), 'sim_init');
+    if (typeof sim.e.sim_wing_set_stab === 'function') {
+      must(sim.e.sim_wing_set_stab(0), 'sim_wing_set_stab');
+    }
+    must(sim.reset(), 'sim_reset');
+    must(sim.setCellVoltage(4.0), 'cell voltage');
+    const v0 = opts.v0 ?? 1.4 * af.stall;
+    const out = flyStrikerScript(sim, {
+      seconds: opts.seconds ?? 10, warmMs: opts.warmMs ?? 3000, launch: true,
+      start: { pose: [0, 0, opts.z0 ?? 60, 1, 0, 0, 0], v: v0 },
+      thr: opts.thr ?? ((ms) => (ms < 3000 ? 1 : ms < 6500 ? 0.6 : 0)),
+      hold: opts.hold ?? (() => ({ v: 1.5 * af.stall })),
+      actions: opts.actions ?? [],
+      rail: opts.rail, railMs: opts.railMs ?? 0,
+    });
+    flights[`${id}-${opts.tag ?? 'flight'}`] = { craft: id, airframe: id, voice: af.voice ?? 'wing', title, ...out };
+  };
+  await wingFlight('cub1400', 'Cub (electric): climb, cruise, glide');
+  await wingFlight('kadet1981', 'Kadet Senior (four stroke glow): climb, cruise, idle');
+  await wingFlight('bombshell1118', 'Bombshell (two stroke glow): climb, cruise, idle');
+  await wingFlight('tigermoth1803', 'Tiger Moth (two stroke glow): climb, cruise, idle');
+  await wingFlight('p51d1450', 'P-51 (electric, four blades): gear up, flaps, cruise', {
+    thr: (ms) => (ms < 6000 ? 0.8 : 0.5),
+    actions: [
+      { ms: 1000, act: (sim) => must(sim.e.sim_wing_set_gear(1), 'gear up') },
+      { ms: 7500, act: (sim) => must(sim.e.sim_wing_set_flaps(1), 'flaps') },
+    ],
+  });
+  await wingFlight('f16878', 'F-16 (ducted fan): spool, full, cruise', {
+    thr: (ms) => (ms < 1500 ? 0.3 : ms < 6000 ? 1 : 0.55),
+    hold: () => ({ z: 60 }),
+  });
+  await wingFlight('nrj1490', 'NRJ glider: the air alone', {
+    thr: () => 0, hold: () => ({ v: 9 }), v0: 9,
+  });
+  flights['nrj1490-flight'].glider = true;
+  {
+    /* The Bramor: off its catapult, then its parachute. */
+    const id = 'bramor2300';
+    await wingFlight(id, 'Bramor: catapult launch, climb, parachute', {
+      tag: 'catapult', railMs: 1500, warmMs: 0, rail: BRAMOR_CATAPULT, seconds: 14,
+      thr: (ms) => (ms < 1000 ? 0 : 1),
+      hold: (ms) => ({ pitchT: ms < 2500 ? (BRAMOR_CATAPULT.pitchDeg * Math.PI) / 180 : 0.15 }),
+      actions: [
+        { ms: 9000, act: (sim) => must(sim.e.sim_wing_chute(1), 'chute'), event: { kind: 'mech', what: 'parachute' } },
+      ],
+    });
+  }
+
   const af = airframeById('striker2500');
   const tuneText = await readFile(join(root, `configs/${af.defaultTune}.diff`), 'utf8');
   for (const prop of ['prop', 'jet']) {
@@ -362,7 +473,7 @@ export async function flyAll() {
     /* The jet takes seconds to spool, so it sits on the rail longer. */
     const railMs = prop === 'prop' ? 3500 : 6000;
     flights[`${craft}-takeoff`] = {
-      craft, voice, title: `${name}: takeoff from the rail`,
+      craft, voice, airframe: af.id, combat: { [af.id]: choice }, title: `${name}: takeoff from the rail`,
       ...flyStrikerScript(await seat(), {
         seconds: (railMs + 7000) / 1000, railMs,
         thr: (ms) => (ms < 1500 ? 0 : 1),
@@ -371,7 +482,7 @@ export async function flyAll() {
     };
     const vCruise = prop === 'prop' ? 22 : 40;
     flights[`${craft}-cruise`] = {
-      craft, voice, title: `${name}: cruise`,
+      craft, voice, airframe: af.id, combat: { [af.id]: choice }, title: `${name}: cruise`,
       ...flyStrikerScript(await seat(), {
         seconds: 10, warmMs: 6000, start: { pose: [0, 0, 120, 1, 0, 0, 0], v: vCruise },
         thr: (ms) => (ms < 6000 ? 0.65 : 0.85),
@@ -386,7 +497,7 @@ export async function flyAll() {
     const vPass = prop === 'prop' ? 26 : 60;
     const seconds = 10;
     flights[`${craft}-flyby`] = {
-      craft, voice, title: `${name}: fly-by at 20 m`,
+      craft, voice, airframe: af.id, combat: { [af.id]: choice }, title: `${name}: fly-by at 20 m`,
       ...flyStrikerScript(await seat(), {
         seconds, warmMs: 6000, start: { pose: [0, 0, 20, 1, 0, 0, 0], v: vPass },
         thr: () => 1,
@@ -405,7 +516,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const data = await flyAll();
   const text = `${JSON.stringify(data)}\n`;
   for (const [id, f] of Object.entries(data.flights)) {
-    const ev = f.events.map((e) => `${e.kind} ${e.surface} ${e.speed} m/s ${e.impulse} N s`).join('; ');
+    const ev = f.events.map((e) => (e.kind === 'impact' ? `impact ${e.surface} ${e.speed} m/s ${e.impulse} N s` : `${e.kind} ${e.what ?? e.surface}`)).join('; ');
     const peak = Math.max(...f.rows.map((r) => Math.max(r[0], r[1], r[2], r[3])));
     const vmax = Math.max(...f.rows.map((r) => Math.hypot(r[4], r[5], r[6])));
     console.log(`${id.padEnd(26)} ${(f.rows.length / TRACE_HZ).toFixed(1)} s  peak ${peak} rpm  top ${vmax.toFixed(1)} m/s  ${ev}`);

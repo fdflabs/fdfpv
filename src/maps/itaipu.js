@@ -59,6 +59,7 @@ import { buildPart as buildTown } from './itaipu/town/index.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
 import { attractPath } from './itaipu/attract.js';
+import { damWalls } from '../render/world-audio.js';
 
 /* The one place the public data's address is written. */
 export const DATA_BASE = 'https://fdflabs.github.io/fdfpv-itaipu-data/';
@@ -230,6 +231,20 @@ async function readData(base, manifest) {
   const names = Object.keys(manifest.files).filter((n) => n.endsWith('.json'));
   const parsed = await Promise.all(names.map((n) => fetchJson(`${base}${n}`)));
   return Object.fromEntries(names.map((n, k) => [n, parsed[k]]));
+}
+
+/* The middle of the town's buildings, for its murmur: their mean, on the
+ * ground there. */
+function townMiddle(buildings, terrain) {
+  let x = 0;
+  let z = 0;
+  for (const b of buildings) {
+    x += b.x;
+    z += b.z;
+  }
+  x /= Math.max(1, buildings.length);
+  z /= Math.max(1, buildings.length);
+  return { kind: 'townhum', x, y: terrain.height(x, z) + 10, z };
 }
 
 /* The water bodies in src/game/water.js's lake form, for the plant, over
@@ -432,6 +447,17 @@ async function buildItaipu(shell, progress, q, time) {
      * (src/render/lakewaves.js). */
     setWaves: (bodies) => parts.water.setWaves(bodies),
     updateWaves: (t) => parts.water.updateWaves(t),
+    /* The concrete faces an explosion's sound echoes off
+     * (src/render/world-audio.js damWalls). */
+    audioWalls: damWalls(data['dam.json']),
+    /* The world's sound's ambience (src/render/world-audio.js): the
+     * spillway's roar where its jets come down, the town's murmur from its
+     * middle; and the power lines, whose nearest point hums. */
+    audioBeds: [
+      ...parts.water.plunges.map((p) => ({ kind: 'spillway', x: p.x, y: p.y + 4, z: p.z })),
+      townMiddle(parts.town.town.buildings, terrain),
+    ],
+    audioLines: parts.town.town.wires,
     /* The war mode's targets and their damage, the dam part's
      * (docs/WARFARE-PLAN.md section 8). */
     targets: parts.dam.targets,

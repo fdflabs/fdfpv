@@ -73,7 +73,11 @@ export async function renderSoundtrack({
   const a = new MotorAudio();
   a.setVoice(voiceName(audio.voice));
   a.setBladeScale(audio.bladeScale);
+  a.setEngineSpec({ model: audio.engineModel, params: audio.engineParams });
   a.attach(ctx);
+  /* The engine is an AudioWorklet module, loaded asynchronously: nothing
+   * may be scheduled on it before it is there. */
+  await a.ready;
   a.setLevel(audio.level);
   a.setMix({ motors: audio.mix.motors, wind: audio.mix.wind });
   a.setMusicEnabled(false);

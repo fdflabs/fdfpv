@@ -1,73 +1,42 @@
 /*
- * audio.js: motor noise as a flight instrument, and a mix around it.
+ * audio.js: the game's sound, the mix around it, and the public API the
+ * rest of the shell plays it through (docs/AUDIO.md, section 11).
  *
- * Pilots fly quads by ear as much as by eye: the blade pass tone tells you
- * what the throttle is doing before the picture does, and the beat between
- * four slightly different motor speeds is what makes a quad sound like a
- * quad instead of a drone. So this is per motor, driven by that motor's own
- * RPM, not a single throttle-scaled loop.
+ * THE AIRCRAFT. The pilot's own machine is one AudioWorkletNode,
+ * src/render/engine-worklet.js, driven every frame from the plant's state
+ * block: per motor RPM, the body frame velocity, the pack current. It is
+ * the physics of the thing (blade pass and its harmonics, the motor's
+ * whine, the engine's firing, the turbine's spool, the air over the
+ * airframe, an impact's surface), not a loop or a filtered oscillator, so
+ * nothing in it repeats and everything in it follows the stick. It
+ * replaced the four oscillator chains and the wind loop the owner heard
+ * as screaming, then as a hum (#349; the old sound is frozen in
+ * tools/audio/old-audio.js for the listening page and nothing else).
  *
- * THE MOTOR REGISTER, and why it is low. An earlier round's graph put the
- * oscillators in the kilohertz range with square partials to 8 kHz, and the
- * owner called it loud screaming. The fundamental IS the blade pass
- * frequency now, motor RPM over 60 times the blade count, which on this
- * plant is 130 to 430 Hz in flight: a hum with body rather than a saw in
- * the presence band. A chosen periodic wave through a lowpass whose corner
- * tracks the fundamental but is CAPPED gives the harmonics that make it
- * read as a motor and nothing above them. An earlier round lowered the cap
- * from 1150 to 1000 Hz and the default motor stem from 0.6 to 0.5, in the
- * owner's words "low softened quiet, not obtrusive", which is also how the
- * shipping simulators mix it: motors just audible under the wind, never
- * the loudest thing in the render.
+ * THE MIX. Every source lands on a bus a Settings slider moves:
  *
- * IT WAS STILL THE LOUDEST THING IN THE RENDER. On a flight trace the
- * motor stem measured -18.45 dBFS against the music's -28.34 and the
- * wind's -32.99, so every one of those claims was aspiration rather than
- * measurement, and the owner came back with a number: the motors need to be
- * about 70 percent quieter than the music. 70 percent quieter in amplitude
- * is a factor of 0.3, so 10.5 dB of RATIO, and it is split rather than
- * taken all from one side: 4.0 dB off the motor voice gains here, 6.5 dB on
- * to the bed in music.js. The split is forced. The motors were carrying
- * the mix's loudness, and taking the whole 10.5 dB off them alone measured
- * a flight render at -24.7 dBFS, outside the -20 to -14 dBFS band the
- * loudness bar asks for. Every figure is in PROGRESS.md either side of
- * the change. The flight instrument survives because the information is
- * in the PITCH, which is untouched.
+ *   motors   the pilot's engine            Motors and engines  motorLevel
+ *   wind     the air over the airframe     Wind                windLevel
+ *   other    other aircraft and vehicles   Other aircraft      otherLevel
+ *   effects  impacts, wrecks, explosions,  Effects             effectsLevel
+ *            the combat cut, the coin
+ *   ambience the world's beds              Ambience            ambientLevel
+ *   voice    the war radio                 Voice               voiceLevel
+ *   music    the crates and the war's beds Music               musicLevel
  *
- * THE AMBIENCE IS GONE. It was a looped lowpassed-noise buffer with a
- * handful of sine birds, and the owner heard it as a hum. The stem, the
- * bake, the settings row and the airspeed fade are all removed. A saved
- * ambienceLevel is ignored.
+ * then through one limiter (a fast compressor holding the sum under
+ * -6 dBFS), a tanh soft clip as the last safety net, and the master
+ * (Volume). Action ducks what would mask it: a cue ducks the flight
+ * stems, an impact or an explosion the music and the ambience as well.
+ * The race cues (gate, graze, land, takeoff) and the menu taps are on no
+ * bus at all: a cue the player has turned down is a cue that costs them a
+ * race.
  *
- * MOTORS AND WIND, 70 PERCENT DOWN. Applied on the stem buses as
- * FLIGHT_STEM 0.3, so a Motors or Wind setting of 5 is the same ratio
- * it always was, just 10.5 dB quieter against the music. The blade pass
- * pitch and the 6 dB throttle span are the voice law, not the bus, and
- * they do not move.
- *
- * THE CUES. A gate pass is a satisfying CLICK now, a knuckle of filtered
- * noise over a falling tick, not a synth blip; a frame graze is the same
- * family an octave and a half down, so the reward and the penalty cannot
- * be confused. The menu makes small clicks of the same family through
- * ui(). All of it runs on the two pooled cue voices that already existed:
- * no event creates a node.
- *
- * Music is the recorded crates in assets/music, Opus in a WebM with an mp3
- * fallback, played by src/render/music.js through one MediaElementSource
- * on this same mix. Cues still duck it. The generated drum and bass crate
- * is gone. There are two crates and setMusicContext says which one is
- * wanted: the flight records while the pilot is flying, a quieter two
- * record bed everywhere else. Cues only ever fire in flight, so the duck
- * is a flight thing and the menu bed never sees it.
- *
- * The graph is built by attach(ctx), which takes any BaseAudioContext, and
- * update() takes the time to schedule at. Both exist so that
- * scripts/audio-probe.js can build this exact graph on an
- * OfflineAudioContext, drive it from a scripted RPM trace, and render it to a
- * buffer an FFT can read. A claim about the mix with no rendered buffer
- * behind it is a claim about nothing, and there is no way to hear this
- * container. The live path passes no time and reads ctx.currentTime, which is
- * what it did before.
+ * The graph is built by attach(ctx), which takes any BaseAudioContext,
+ * and update() takes the time to schedule at, so tools/audio/render.js
+ * and src/replay/soundtrack.js can build this exact graph offline. The
+ * engine arrives on `ready` (an AudioWorklet module loads asynchronously);
+ * an offline render awaits it before scheduling anything.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -89,92 +58,38 @@ import { Music } from './music.js';
 import { WarRadio, VOICE_DUCK } from './warradio.js';
 
 /*
- * THE VOICE, which is the machine's shape as the ear hears it. The blade
- * pass frequency is what a motor's fundamental IS: each blade passing a
- * fixed point pushes one pressure pulse, so a prop with B blades at N
- * revolutions per minute radiates at BN/60 Hz. Everything else here that
- * depends on the aircraft rather than on the mix is beside it.
- *
- *   quad  Three blades, because the prop the plant is built around is a
- *         5 x 4.3 x 3. Four motors spread across the stereo field so the
- *         beat between them is audible. The loudness law tops out at 9000
- *         RPM and the wind at 32 m/s, the numbers every figure in
- *         PROGRESS.md was measured at, and the wind's lowpass stays where
- *         it was measured too.
- *   wing  One motor, a 6 x 4 two blade, in the centre of the field because
- *         a pusher sits on the centre line behind the camera. Slots 1 to 3
- *         arrive at zero RPM from the plant and fall under MOTOR_MUTE_RPM,
- *         so they are silent by the same rule that silences a parked quad;
- *         nothing here special cases them. The loudness law tops out at the
- *         plant's 17,600 RPM, which is 0.85 of the no load figure at full
- *         duty, and the wind at the wing's 24 m/s top speed. The wind is
- *         the instrument on a wing, since a glide has no motor at all, so
- *         its lowpass opens with airspeed: a hiss that brightens as the
- *         wing speeds up, under 2 kHz still so the cues keep their band.
- *   glow4 A four stroke glow engine, the Kadet Senior's O.S. FS-52 Surpass
- *         (docs/KADET-STAGE1.md). What the ear hears of a single cylinder
- *         four stroke is not its prop but its exhaust: one blowdown pulse
- *         per power stroke, and a four stroke fires once every OTHER
- *         revolution, so its note is rpm / 120, a thump rather than a
- *         tone, an octave under a two stroke glow engine at the same rpm,
- *         which fires every revolution. The prop's two blades are in the
- *         wave as the firing rate's fourth harmonic. `perRev` is an
- *         eighth: one period of the wave is four firing cycles, eight
- *         revolutions, each a little different, so the lope a pilot hears
- *         at idle is in the wave (fourStrokeWave). The loudness law tops
- *         out at the plant's full throttle rpm on the ground.
- *   glow2 A two stroke glow engine, the Buzzard Bombshell's Cox .049 or a
- *         two stroke on the Kadet Senior (docs/POWER-STAGE1.md). A two
- *         stroke fires every revolution, so its note is rpm / 60, the
- *         octave over a four stroke at the same rpm: the exhaust port's
- *         blowdown once a turn, the prop's two blades twice a turn under
- *         it, and a smaller cycle to cycle spread than the four stroke's
- *         lope, because a two stroke at speed fires every turn and its
- *         misses are an idle's (Heywood, 1988, 9.4, as above). `perRev` is
- *         a quarter: one period of the wave is four firing cycles.
- *   edf   A ducted fan, the F-16's 70 mm twelve blade rotor
- *         (docs/F16-STAGE1.md). What makes a fan a whine and not a prop's
- *         buzz is its blade pass: twelve blades at 41,700 rpm pass 8.3 kHz,
- *         a tone high in the ear's most sensitive band, over a little of
- *         the shaft's own rate, which an unbalanced rotor and the motor's
- *         poles put there. The wave is one revolution long (`perRev` 1, so
- *         its fundamental is the shaft rate the plant reports), its twelfth
- *         harmonic the blade pass and its twenty fourth the pass's octave
- *         (fanWave). The lowpass cap that keeps the props' 2 to 8 kHz band
- *         quiet would take the whine away, so this voice carries its own,
- *         `lpCap`, over the blade pass at full throttle, and a `gain` that
- *         takes the stem 9.5 dB under a prop's so a tone that high is not
- *         a hurt. The fan spools behind the stick in the plant, so the
- *         whine rises and falls a beat after the throttle, as a real one
- *         does.
- *
- * `perRev` is how many periods of the voice's wave one revolution makes,
- * which for a prop's own tone is its blade count; `lpTrack` is where the
- * motor lowpass sits as a multiple of that frequency; `lpCap`, where given,
- * replaces MOTOR_LP_CAP for that voice, and `gain` scales its stem.
+ * THE VOICES the shell names a machine by (configs/airframes.js `voice`,
+ * configs/power.js), and the one number the shell reads back from them:
+ * `rpmFull`, the top of the hangar's rev (src/ui/hangar-polish.js revRpm).
+ * What each one SOUNDS like is the engine model of the same name in
+ * src/render/engine-worklet.js MODELS.
  */
 export const VOICES = {
-  quad: { perRev: 3, wave: 'blade', lpTrack: 3.4, rpmFull: 9000, speedFull: 32, pan: [0.45, 0.32, -0.45, -0.32], windCorner: 900, windOpen: 0 },
-  wing: { perRev: 2, wave: 'blade', lpTrack: 3.4, rpmFull: 17600, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
-  glow4: { perRev: 1 / 8, wave: 'fourStroke', lpTrack: 48, rpmFull: 9500, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
-  glow2: { perRev: 1 / 4, wave: 'twoStroke', lpTrack: 24, rpmFull: 9350, speedFull: 24, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
-  edf: { perRev: 1, wave: 'fan', lpTrack: 14, lpCap: 10000, gain: 0.335, rpmFull: 41700, speedFull: 46, pan: [0, 0, 0, 0], windCorner: 600, windOpen: 1100 },
+  quad: { rpmFull: 9000 },
+  wing: { rpmFull: 17600 },
+  glow4: { rpmFull: 9500 },
+  glow2: { rpmFull: 9350 },
+  edf: { rpmFull: 41700 },
 };
 
 /*
- * The prototype's models (src/render/engine-worklet.js MODELS). A shipped
- * voice names one by default; an aircraft whose voice is wrong for what it
- * is says which model it is through setLabModel: the Striker's boxer twin
- * is on 'glow2' and its turbojet on 'edf', the ducted fan's, in VOICES,
- * and the prototype voices them as what they are.
+ * The engine's models (src/render/engine-worklet.js MODELS). A voice names
+ * one by default; an aircraft whose voice is wrong for what it is says
+ * which model it is through setEngineModel: the Striker's boxer twin is on
+ * 'glow2' and its turbojet on 'edf', the ducted fan's, in VOICES, and the
+ * engine voices them as what they are.
  */
-export const LAB_MODELS = new Set(['quad', 'wing', 'edf', 'glow2', 'glow4', 'boxer2', 'turbojet']);
-export function labModelFor(voice) {
+/* The one shot mechanisms MotorAudio.mechanical knows, by the worklet's
+ * codes. The flaps and the gear while they move are update()'s `air`. */
+const MECH_KINDS = { gear: 2, catapult: 3, parachute: 4 };
+
+export const ENGINE_MODELS = new Set(['quad', 'wing', 'edf', 'glow2', 'glow4', 'boxer2', 'turbojet']);
+export function engineModelFor(voice) {
   const name = Object.keys(VOICES).find((k) => VOICES[k] === voice);
-  return LAB_MODELS.has(name) ? name : 'quad';
+  return ENGINE_MODELS.has(name) ? name : 'quad';
 }
-/* The Striker's two propulsions as the prototype hears them. */
-export function labModelForCraft(airframeId, propulsionId) {
+/* The Striker's two propulsions as the engine hears them. */
+export function engineModelForCraft(airframeId, propulsionId) {
   if (airframeId === 'striker2500') {
     return propulsionId === 'jet' ? 'turbojet' : 'boxer2';
   }
@@ -182,151 +97,20 @@ export function labModelForCraft(airframeId, propulsionId) {
 }
 
 /*
- * The motor lowpass tracks the fundamental so the timbre holds across the
- * throttle range, but it is capped, and the cap is the single number that
- * decides whether this mix hurts. 1000 Hz keeps at most the first six
- * harmonics of a 165 Hz hover tone and nothing at all in the 2 to 8 kHz band
- * the ear complains about first. It was 1150; the owner asked for softer
- * still, and dropping the cap is the honest way to do it because it takes
- * edge off the timbre without touching the pitch the pilot flies on.
+ * The master's ceiling: the Volume setting times this. With the soft clip
+ * saturating, a render's true peak in dBTP came out equal to the master gain
+ * in dB, so 1.0 measured 0.01 dBTP; 0.85 keeps the worst case under -1.4.
  */
-const MOTOR_LP_CAP = 1000;
-const MOTOR_LP_FLOOR = 220;
-/*
- * Below this the motor stem is silent. A stationary quad was not quiet: with
- * the oscillator floored at 20 Hz and a 0.119 idle gain, the title screen
- * measured -21.5 dBFS of 20 to 46 Hz drone, which is louder than the entire
- * music bed at maximum and sits directly on top of the bass line. No headphone
- * reproduces it as pitch, so it was pure wasted headroom.
- */
-const MOTOR_MUTE_RPM = 600;
-/*
- * The motor voice as a chosen spectrum rather than a filtered sawtooth.
- *
- * A sawtooth through two lowpasses gave harmonics at exact integer multiples
- * with the first three within 7.5 dB of each other and nothing modulating
- * them, which a reviewer correctly called a nasal synth buzz rather than air
- * being moved. These are the amplitudes a blade pass tone actually wants, with
- * the phases scrambled across real and imaginary so the waveform is not a
- * sawtooth's sharp ramp. Magnitudes come out at 1.0, 0.50, 0.28, 0.10, 0.04.
- */
-const MOTOR_WAVE_REAL = [0, 0.0, 0.35, -0.10, 0.06, -0.02];
-const MOTOR_WAVE_IMAG = [0, 1.0, -0.36, 0.26, -0.08, 0.03];
-
-/*
- * A single cylinder four stroke's exhaust, four firing cycles long, as a
- * spectrum for createPeriodicWave.
- *
- * Each cycle, 720 degrees of crank, is the exhaust valve's blowdown: a
- * pressure pulse as it opens that rings down in the header and muffler (a
- * damped sine ringing at five times the firing rate and gone within a
- * quarter of the cycle), a weaker suck back half a cycle later as the
- * valves overlap, and the prop's two blades, four passes a cycle, under
- * it. Combustion does not repeat: the cycle to cycle variation of a spark
- * or glow engine's peak pressure is several percent and is largest at
- * idle (Heywood, Internal Combustion Engine Fundamentals, 1988, 9.4), so
- * the four cycles differ by that much in strength and a little in timing,
- * and the pattern they repeat in is the lope. Shaped from that physics,
- * not fitted to a recording: there is none in this repository.
- */
-const FOUR_STROKE_CYCLES = [
-  { amp: 1.00, lag: 0.000 },
-  { amp: 0.84, lag: 0.014 },
-  { amp: 1.09, lag: -0.009 },
-  { amp: 0.91, lag: 0.006 },
-];
-const FOUR_STROKE_HARMONICS = 48;
-function blowdown(x) {
-  return x >= 0 ? Math.exp(-x / 0.08) * Math.sin((2 * Math.PI * x) / 0.2) : 0;
-}
-/* A two stroke's four cycles: the same kind of spread, smaller, and no
- * suck back, since the port scavenges rather than overlapping valves. */
-const TWO_STROKE_CYCLES = [
-  { amp: 1.00, lag: 0.000 },
-  { amp: 0.95, lag: 0.006 },
-  { amp: 1.04, lag: -0.004 },
-  { amp: 0.97, lag: 0.003 },
-];
-function fourStrokeWave() {
-  return exhaustWave(FOUR_STROKE_CYCLES, 0.25, 4);
-}
-function twoStrokeWave() {
-  return exhaustWave(TWO_STROKE_CYCLES, 0, 2);
-}
-/* One firing cycle per quarter of the wave: the blowdown pulse, a suck
- * back half a cycle later at `suckBack` of it, and `bladePasses` blade
- * passes a cycle under them, as a spectrum for createPeriodicWave. */
-function exhaustWave(cyclesTable, suckBack, bladePasses) {
-  const n = 4096;
-  const cycles = cyclesTable.length;
-  const wave = new Float64Array(n);
-  for (let i = 0; i < n; i += 1) {
-    const u = (i / n) * cycles;
-    const k = Math.floor(u);
-    const phi = u - k;
-    const { amp, lag } = cyclesTable[k];
-    const pulse = amp * (blowdown(phi - lag) + blowdown(phi - lag + 1));
-    const suck = -suckBack * amp * (blowdown(phi - lag - 0.5) + blowdown(phi - lag + 0.5));
-    const blades = 0.14 * Math.sin(2 * Math.PI * bladePasses * phi);
-    wave[i] = pulse + suck + blades;
-  }
-  const real = new Float32Array(FOUR_STROKE_HARMONICS + 1);
-  const imag = new Float32Array(FOUR_STROKE_HARMONICS + 1);
-  for (let h = 1; h <= FOUR_STROKE_HARMONICS; h += 1) {
-    let a = 0;
-    let b = 0;
-    for (let i = 0; i < n; i += 1) {
-      const w = (2 * Math.PI * h * i) / n;
-      a += wave[i] * Math.cos(w);
-      b += wave[i] * Math.sin(w);
-    }
-    real[h] = (2 * a) / n;
-    imag[h] = (2 * b) / n;
-  }
-  return { real, imag };
-}
-/* A twelve blade fan, one revolution long: the shaft's rate and its
- * first harmonics faint, the blade pass (the twelfth) the tone, its
- * octave and twelfth under it, and a sideband either side of the pass
- * where the rotor's small imbalance modulates it. Magnitudes from the
- * shape of a ducted rotor's published spectra, tonal at the blade pass
- * over a broadband floor (Weinstein et al.'s EDF, and the aeroacoustics of
- * electric ducted fans surveyed in Aerospace Science and Technology,
- * 2024); no recording was used. */
-function fanWave() {
-  const real = new Float32Array(37);
-  const imag = new Float32Array(37);
-  const tone = { 1: 0.10, 2: 0.06, 3: 0.03, 11: 0.10, 12: 1.0, 13: 0.10, 24: 0.28, 36: 0.08 };
-  let k = 0;
-  for (const [h, a] of Object.entries(tone)) {
-    const phase = 0.7 * k;
-    real[Number(h)] = a * Math.cos(phase);
-    imag[Number(h)] = a * Math.sin(phase);
-    k += 1;
-  }
-  return { real, imag };
-}
-const WAVES = {
-  blade: () => ({ real: new Float32Array(MOTOR_WAVE_REAL), imag: new Float32Array(MOTOR_WAVE_IMAG) }),
-  fan: fanWave,
-  fourStroke: fourStrokeWave,
-  twoStroke: twoStrokeWave,
-};
-/*
- * How far the blade pass tone wanders, in cents, driven by slow noise. Real
- * blades do not pass at mathematically constant intervals, and this is the
- * difference between a synthesiser and a motor.
- */
-const MOTOR_DETUNE_CENTS = 5.2;
-
-/*
- * The binaural focus tone. 6 Hz is in the theta band, 4 to 8 Hz, and 220 Hz
- * is the carrier, chosen high enough to sit above the motor fundamental's
- * hover range and low enough that a binaural difference is a difference of
- * carriers rather than of overtones. It is off by default, it is a setting,
- * and the interface says it needs headphones and claims nothing else.
- */
+/* A running context's clock standing still this long, s of the page's own
+ * time, is a stalled renderer (MotorAudio.watchClock): ten frames' worth
+ * of nothing is not a slow frame. */
+const CLOCK_STALL_S = 1.5;
 const MASTER_CEILING = 0.85;
+/*
+ * The binaural focus tone: a 6 Hz beat, in the theta band. Off by default,
+ * a setting, and the interface says it needs headphones and claims nothing
+ * else.
+ */
 /*
  * 1000 Hz, not 220 Hz, and the move is forced by a measurement.
  *
@@ -348,13 +132,42 @@ const FOCUS_CARRIER_HZ = 1000;
 const FOCUS_BEAT_HZ = 6;
 
 /*
- * Keep 30 percent of the motor and wind stems. The owner asked to drop
- * both by 70 percent, relative to the rest of the mix. Applied on the
- * stem buses so the RPM-to-gain law, the 6 dB throttle span, and the
- * pitch the pilot flies on are untouched. Music and cues do not ride
- * these buses.
+ * Keep 30 percent of the motor and wind stems: the owner asked to drop both
+ * by 70 percent. The engine's model trims (engine-worklet.js MODELS `gain`)
+ * were set by measurement THROUGH this, so it is part of the loudness
+ * targets in docs/AUDIO.md and moves only with them.
  */
 const FLIGHT_STEM = 0.3;
+/*
+ * The buses that arrived with the engine: a setting of 5 of 10 is unity,
+ * so a returning player hears nothing move, and 10 is +6 dB.
+ */
+const BUS_UNITY_AT = 0.5;
+
+/*
+ * THE VOICE BUDGET for other pilots: how many are heard at once. Each is
+ * one more engine node (an AudioWorkletNode, the pilot's own engine run
+ * off board), so this is nodes and audio thread time, both measured in
+ * docs/AUDIO.md section 13: a room of 32 costs what a room of 4 does. The
+ * rest are culled smoothly: a voice that loses its place fades over
+ * PEER_FADE_S, and a pilot takes a place only when clearly louder than the
+ * one holding it (PEER_SWAP), so two pilots at the same distance do not
+ * trade the voice back and forth.
+ */
+export const PEER_VOICES = 4;
+const PEER_FADE_S = 0.3;
+const PEER_SWAP = 1.5;
+/* A pilot's voice level on the Other aircraft bus (unity at its default):
+ * the Motors bus's default stem, 0.5 of FLIGHT_STEM, so that the engine's
+ * REF_M holds, a pilot 16 m away as loud as this one's own engine. */
+const PEER_LEVEL = 0.5 * FLIGHT_STEM;
+/* Past this, a pilot is not heard at all, metres: an FPV quad at 400 m is
+ * under the air and the wind of a real field. */
+const PEER_RANGE_M = 400;
+/* The nearest a pilot is heard from, metres: closer is inside the
+ * engine's on board threshold (engine-worklet.js ONBOARD_M), which would
+ * play another pilot as if it were this one. */
+const ONBOARD_OFF_M = 1;
 
 /*
  * The coin (coin()): the approved render's notes and timing, B5 988 Hz
@@ -407,23 +220,32 @@ function duckParam(g, t, depth, seconds, attack) {
 export class MotorAudio {
   constructor() {
     this.ctx = null;
-    this.motors = [];
+    /* What the worklets said went wrong (watchNode), and the context's
+     * state changes, newest last: for the checks and a bug report. */
+    this.faults = [];
+    this.states = [];
+    /* The clock watch (watchClock): the context's time and the page's
+     * when it last moved, and how many stalls it has seen. */
+    this.clock = { ctx: 0, wall: 0, kicked: false };
+    this.stalls = 0;
     this.enabled = false;
     this.master = null;
-    this.noiseGain = null;
     this.level = 0.5; /* mix level, driven by the volume setting */
-    /* Per stem, each 0 to 1, driven by their own settings rows. These
-     * mirror the DEFAULTS in src/ui/ui.js divided by ten, and the probe
-     * measures at exactly these values when no mix argument is given. */
-    this.mix = { motors: 0.5, wind: 0.5, music: 0.5, focus: 1, ambience: 0 };
+    /* Per bus, each 0 to 1, driven by their own settings rows: the DEFAULTS
+     * in src/ui/ui.js divided by ten. */
+    this.mix = { motors: 0.5, wind: 0.5, music: 0.5, focus: 1, effects: 0.5, voice: 0.5, ambience: 0.5, other: 0.5 };
     this.focusOn = false;
     this.voice = VOICES.quad;
-    /* A prop with another blade count than the voice's own: its blade
-     * pass is this many times the voice's (setBladeScale). 1 always for
-     * an engine, whose note is its firing, not its blades. */
+    /* The engine model the shell asked for, or null for the voice's own
+     * (setEngineModel), and the hangar prop's blade count over the stock
+     * prop's (setBladeScale). */
+    this.engineModel = null;
+    this.engineParams = null;
     this.bladeScale = 1;
-    /* The periodic waves the voices use, built for a context on first use. */
-    this.waves = null;
+    /* A seeded generator for the cues' variation, Math.imul so it does not
+     * repeat in a few thousand draws; seeded so an offline render is the
+     * same render twice. */
+    this.vary = 0x6a09e667;
     this.music = new Music();
     /* The war mode's radio and music (src/render/warradio.js), made on
      * the first war, and whether the music setting wants a bed at all:
@@ -436,42 +258,65 @@ export class MotorAudio {
      * the count is kept where the nodes are made rather than derived by
      * reading the file later. */
     this.nodes = [];
-    /* The physically driven prototype (src/render/engine-worklet.js,
-     * docs/AUDIO.md), off unless the page asked for it before attach. */
-    this.lab = false;
-    this.labModel = null;
+    /* The pilot's engine (src/render/engine-worklet.js), there once
+     * `ready` resolves. */
     this.engine = null;
     this.ready = Promise.resolve();
+    /* A world node handed to attachWorld before the graph existed. */
+    this.worldNode = null;
+    /* Other pilots: the listener (setListener) and the voice pool
+     * (updatePeers), made on the first frame with a pilot to hear. */
+    this.listener = { x: 0, y: 0, z: 0, rx: 1, ry: 0, rz: 0, ground: null };
+    this.peerSlots = null;
+    this.peerRank = [];
+  }
+
+  /* Which machine the engine voices, ENGINE_MODELS; null is the voice's
+   * own. Safe either side of attach. */
+  setEngineModel(name) {
+    if (name != null && !ENGINE_MODELS.has(name)) {
+      throw new Error(`audio: no engine model ${name}`);
+    }
+    this.engineModel = name;
+    this.postEngineModel();
   }
 
   /*
-   * THE AUDIOLAB PROTOTYPE, behind a flag that is off for every player.
-   * Read once, by attach(): the graph is built one way or the other. With
-   * it on, the four motor chains and the wind chain are not built and one
-   * AudioWorkletNode replaces them, with a limiter in front of the soft
-   * clip. With it off, attach() builds exactly what it always has.
+   * PUBLIC API: the flown aircraft's own numbers on its model, from
+   * src/render/enginespec.js engineSpecFor: { motors, blades, poles,
+   * rpmRef, washV, rpmScale, idleRpm, gain }, any subset, or null for the
+   * model's own. The engine refuses any other key. Safe either side of
+   * attach.
    */
-  setLab(on) {
-    if (this.ctx) {
-      throw new Error('audio: setLab after attach');
-    }
-    this.lab = Boolean(on);
+  setEngineParams(params) {
+    this.engineParams = params ? { ...params } : null;
+    this.postEngineModel();
   }
 
-  /* Which machine the prototype voices, LAB_MODELS below; null is the
-   * voice's own. Safe either side of attach. */
-  setLabModel(name) {
-    if (name != null && !LAB_MODELS.has(name)) {
-      throw new Error(`audio: no lab model ${name}`);
+  /* The whole engine choice at once: { model, params } as engineSpecFor
+   * returns it. */
+  setEngineSpec(spec) {
+    this.engineModel = spec && spec.model ? spec.model : null;
+    if (this.engineModel != null && !ENGINE_MODELS.has(this.engineModel)) {
+      throw new Error(`audio: no engine model ${this.engineModel}`);
     }
-    this.labModel = name;
-    this.postLabModel();
+    this.setEngineParams(spec ? spec.params : null);
   }
 
-  postLabModel() {
+  postEngineModel() {
     if (this.engine) {
-      this.engine.port.postMessage({ model: this.labModel ?? labModelFor(this.voice) });
+      this.engine.port.postMessage(this.engineMessage());
     }
+  }
+
+  engineMessage() {
+    return { model: this.engineModel ?? engineModelFor(this.voice), params: this.engineParams, bladeScale: this.bladeScale };
+  }
+
+  /* 0 to 1, for a cue's variation. */
+  jitter() {
+    this.vary = (Math.imul(this.vary, 1664525) + 1013904223) >>> 0;
+    return this.vary / 4294967296;
   }
 
   /* P12: steady state AudioNode count. */
@@ -494,33 +339,27 @@ export class MotorAudio {
   }
 
   /*
-   * Per stem levels. Any subset; a missing key is left alone. Each one has
-   * to make a MEASURABLE difference in the probe output, so each lands on a
-   * real bus gain rather than on a label.
+   * Per bus levels, 0 to 1: motors, wind, music, focus, effects, voice,
+   * ambience, other. Any subset; a missing key is left alone, an unknown
+   * one refused. Each lands on a real bus gain rather than on a label.
    */
   setMix(m) {
     if (!m) {
       return;
     }
-    if (typeof m.motors === 'number') {
-      this.mix.motors = Math.max(0, Math.min(1, m.motors));
-    }
-    if (typeof m.wind === 'number') {
-      this.mix.wind = Math.max(0, Math.min(1, m.wind));
+    for (const [k, v] of Object.entries(m)) {
+      if (!(k in this.mix)) {
+        throw new Error(`audio: no bus named ${k}`);
+      }
+      if (typeof v === 'number') {
+        this.mix[k] = Math.max(0, Math.min(1, v));
+      }
     }
     if (typeof m.music === 'number') {
-      this.mix.music = Math.max(0, Math.min(1, m.music));
       this.music.setLevel(this.mix.music);
       if (this.warRadio) {
         this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
       }
-    }
-    if (typeof m.focus === 'number') {
-      this.mix.focus = Math.max(0, Math.min(1, m.focus));
-    }
-    if (typeof m.ambience === 'number') {
-      /* Kept so the probe can still name the stem. Always silent. */
-      this.mix.ambience = 0;
     }
     this.applyBuses();
   }
@@ -535,11 +374,12 @@ export class MotorAudio {
 
   /*
    * The war mode's radio (src/render/warradio.js), made the first time a
-   * war asks for it once the context is up. Its two elements play beside
-   * the graph, not in it (the node budget is spent), at the volume
-   * setting and silent with the sound off, which update() hands it every
-   * frame as the master's own target. A call ducks the motors and the
-   * wind as a cue does.
+   * war asks for it once the context is up. Its two media elements play
+   * THROUGH the graph: the calls onto the Voice bus, the war's music into
+   * the crate's own duck, so the limiter, the Volume, the sound switch and
+   * the action ducks hold for them as for everything else. The radio's
+   * own share of the level is then 1. A call ducks the motors and the wind
+   * as a cue does.
    */
   war() {
     if (!this.warRadio) {
@@ -548,8 +388,12 @@ export class MotorAudio {
     }
     if (this.ctx && !this.warRadio.ready) {
       this.warRadio.attach();
+      this.warRadio.route(this.ctx, this.voiceBus, this.music.duck, (n) => {
+        this.nodes.push(n);
+        return n;
+      });
       this.warRadio.setMusicLevel(this.musicWanted ? this.mix.music : 0);
-      this.warRadio.setOutput(this.enabled ? this.level * MASTER_CEILING : 0);
+      this.warRadio.setOutput(1);
     }
     return this.warRadio;
   }
@@ -563,54 +407,29 @@ export class MotorAudio {
   }
 
   /*
-   * Which machine the mix is the sound of: 'quad' or 'wing', see VOICES.
-   * Safe before attach, since the voice is data until update() reads it;
-   * after attach it re-seats the motor pans, which are the one part of the
-   * voice that lives in the graph rather than in the law. An unknown name
-   * is refused rather than defaulted, because a silent fallback to the
-   * quad's voice on a wing is exactly the kind of wrong nobody hears.
+   * Which machine the mix is the sound of, see VOICES. Safe before attach.
+   * An unknown name is refused rather than defaulted, because a silent
+   * fallback to the quad's voice on a wing is exactly the kind of wrong
+   * nobody hears.
    */
   setVoice(name) {
     const voice = VOICES[name];
     if (!voice) {
       throw new Error(`audio: no voice named ${name}`);
     }
-    const waveChanged = voice.wave !== this.voice.wave;
     this.voice = voice;
-    this.postLabModel();
-    const wave = waveChanged && this.ctx ? this.waveFor(voice) : null;
-    for (let m = 0; m < this.motors.length; m += 1) {
-      const { pan, osc } = this.motors[m];
-      if (pan) {
-        pan.pan.value = voice.pan[m];
-      }
-      if (wave) {
-        osc.setPeriodicWave(wave);
-      }
-    }
+    this.postEngineModel();
   }
 
   /* The hangar's prop (configs/hangar-parts.js): its blade count over
-   * the one the aircraft's own prop has. Only a prop's own tone, the
-   * 'blade' wave, follows it. */
+   * the one the aircraft's own prop has. The engine scales the blade
+   * count of a prop's model by it; an engine's firing does not move. */
   setBladeScale(k) {
     if (!(k > 0) || !Number.isFinite(k)) {
       throw new Error(`audio: blade scale ${k}`);
     }
     this.bladeScale = k;
-  }
-
-  /* The voice's wave on this context, built once per context and kind: a
-   * PeriodicWave is not an AudioNode, so it costs P12 nothing. */
-  waveFor(voice) {
-    if (!this.waves || this.waves.ctx !== this.ctx) {
-      this.waves = { ctx: this.ctx };
-    }
-    if (!this.waves[voice.wave]) {
-      const { real, imag } = WAVES[voice.wave]();
-      this.waves[voice.wave] = this.ctx.createPeriodicWave(real, imag);
-    }
-    return this.waves[voice.wave];
+    this.postEngineModel();
   }
 
   /* Which music track, or 'rotation' for a random start then the crate
@@ -649,6 +468,10 @@ export class MotorAudio {
     }
     this.motorBus.gain.value = this.mix.motors * FLIGHT_STEM;
     this.windBus.gain.value = this.mix.wind * FLIGHT_STEM;
+    this.otherBus.gain.value = this.mix.other / BUS_UNITY_AT;
+    this.effectsBus.gain.value = this.mix.effects / BUS_UNITY_AT;
+    this.voiceBus.gain.value = this.mix.voice / BUS_UNITY_AT;
+    this.ambienceBus.gain.value = this.mix.ambience / BUS_UNITY_AT;
     /* The focus tone is quiet on purpose. It is a tone under a mix, not a
      * test signal, and two steady carriers at any real level would mask the
      * flight instrument. */
@@ -658,8 +481,12 @@ export class MotorAudio {
   /* Browsers require a user gesture before audio starts. */
   start() {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') {
-        this.ctx.resume();
+      /* 'suspended' (the browser's, after a device change or a sleep) or
+       * 'interrupted' (another app took the audio device): a gesture is
+       * the one thing that may start it again. Every key and press comes
+       * here (src/main.js wakeAudio). */
+      if (this.ctx.state !== 'running' && this.ctx.state !== 'closed') {
+        this.ctx.resume().catch((e) => console.error('audio: the context would not resume', e));
       }
       this.enabled = true;
       return;
@@ -674,13 +501,27 @@ export class MotorAudio {
 
   /*
    * Build the graph on any BaseAudioContext. Called by start() with a live
-   * AudioContext and by the probe with an OfflineAudioContext. Does not
-   * set enabled: the caller decides, because the probe wants the mix up
-   * from sample zero and the shell wants it to follow a setting.
+   * AudioContext and by the offline renderers with an OfflineAudioContext.
+   * Does not set enabled: the caller decides, because a render wants the
+   * mix up from sample zero and the shell wants it to follow a setting.
    */
   attach(ctx, destination) {
     this.ctx = ctx;
     const out = destination || ctx.destination;
+    /* Every time the context stops or starts, said and kept: a context
+     * that left 'running' is the first thing to look at when the sound
+     * stops (window.__audio.states). */
+    if (typeof ctx.addEventListener === 'function' && !(typeof OfflineAudioContext !== 'undefined' && ctx instanceof OfflineAudioContext)) {
+      ctx.addEventListener('statechange', () => {
+        this.states.push({ at: Math.round(performance.now()), state: ctx.state });
+        if (this.states.length > 50) {
+          this.states.shift();
+        }
+        if (ctx.state !== 'running') {
+          console.warn(`audio: the context is ${ctx.state}; the next key or press resumes it`);
+        }
+      });
+    }
     /* One place where nodes come into existence, so the P12 count cannot
      * drift from the graph. */
     const keep = (n) => {
@@ -689,21 +530,19 @@ export class MotorAudio {
     };
 
     /*
-     * Master, and a soft clip in front of it.
+     * The master: a limiter, a soft clip, the Volume.
      *
-     * A3 wants a normal flight render between -20 and -14 dBFS with a true
-     * peak below -1 and not one sample at or over full scale, and the mix now
-     * has four stems and two one shot cues that can all peak together. A soft
-     * knee at the end is what makes that hold at every stem setting instead
-     * of only at the ones that were measured.
+     * The limiter is a fast, high ratio compressor holding the sum under
+     * -6 dBFS, so the tanh after it is a safety net rather than a sound;
+     * every render's true peak is held to -1 dBTP (tools/audio/render.js).
+     * The tanh is normalised so the curve still passes through plus and
+     * minus one: linear to about half scale, then bending.
      */
     const shaper = keep(ctx.createWaveShaper());
     const CURVE = 1024;
     const curve = new Float32Array(CURVE);
     for (let i = 0; i < CURVE; i += 1) {
       const x = (i / (CURVE - 1)) * 2 - 1;
-      /* tanh, normalised so the curve still passes through plus and minus
-       * one: linear to about half scale, then bending. */
       curve[i] = Math.tanh(x * 1.6) / Math.tanh(1.6);
     }
     shaper.curve = curve;
@@ -714,76 +553,70 @@ export class MotorAudio {
     master.connect(out);
     this.master = master;
     this.preMaster = shaper;
-    /*
-     * The prototype's master limiter, ahead of the soft clip: a fast, high
-     * ratio compressor that holds the sum under -6 dBFS so the tanh is a
-     * safety net rather than a sound (docs/AUDIO.md, the mix). Everything
-     * that went to the shaper goes here instead.
-     */
-    let inlet = shaper;
-    if (this.lab) {
-      inlet = keep(ctx.createDynamicsCompressor());
-      inlet.threshold.value = -6;
-      inlet.knee.value = 3;
-      inlet.ratio.value = 20;
-      inlet.attack.value = 0.002;
-      inlet.release.value = 0.2;
-      inlet.connect(shaper);
-    }
+    const inlet = keep(ctx.createDynamicsCompressor());
+    inlet.threshold.value = -6;
+    inlet.knee.value = 3;
+    inlet.ratio.value = 20;
+    inlet.attack.value = 0.002;
+    inlet.release.value = 0.2;
+    inlet.connect(shaper);
+    this.inlet = inlet;
 
-    /* Stem buses. Everything a setting can move lands on one of these. */
     /*
-     * The flight duck. A cue used to duck the MUSIC, and the music was the one
-     * stem that never masked anything: enabling the bed changes a full throttle
-     * render's total RMS by 0.014 dB, because it sits 26 dB below the motors.
-     * What masks a cue is the motors and the wind, so those are what a cue
-     * ducks now. Measured before the change: a gate cue had -0.13 dB of
-     * advantage over its own masking and a crash had -17.29 dB, so on a full
-     * throttle crash the player was told nothing at all.
+     * The flight duck: what masks a cue is the motors, the wind and the
+     * other aircraft, so those are what a cue ducks. Measured before it
+     * existed: a gate cue had -0.13 dB of advantage over its own masking and
+     * a crash -17.29 dB, so on a full throttle crash the player was told
+     * nothing at all.
      */
     const flightDuck = keep(ctx.createGain());
     flightDuck.gain.value = 1;
     flightDuck.connect(inlet);
     this.flightDuck = flightDuck;
-
-    const motorBus = keep(ctx.createGain());
-    motorBus.gain.value = this.mix.motors * FLIGHT_STEM;
-    /* Nothing below 60 Hz from the motors. The blade pass fundamental is
-     * 130 Hz at the bottom of the flight range, so everything this removes is
-     * either the idle drone or rumble no headphone renders as pitch, and it is
-     * exactly the band the bass line needs. */
+    /* The ambience's duck, under impacts and explosions. */
+    const ambienceDuck = keep(ctx.createGain());
+    ambienceDuck.gain.value = 1;
+    ambienceDuck.connect(inlet);
+    this.ambienceDuck = ambienceDuck;
+    const bus = (to, value) => {
+      const g = keep(ctx.createGain());
+      g.gain.value = value;
+      g.connect(to);
+      return g;
+    };
+    /* Nothing below 60 Hz from the motors: everything it removes is rumble
+     * no headphone renders as pitch, and it is exactly the band the bass
+     * line needs. The engine's loudness targets were measured through it. */
     const motorHp = keep(ctx.createBiquadFilter());
     motorHp.type = 'highpass';
     motorHp.frequency.value = 60;
     motorHp.Q.value = 0.7;
-    motorBus.connect(motorHp);
     motorHp.connect(flightDuck);
-    this.motorBus = motorBus;
-    const windBus = keep(ctx.createGain());
-    windBus.gain.value = this.mix.wind * FLIGHT_STEM;
-    windBus.connect(flightDuck);
-    this.windBus = windBus;
-    const focusBus = keep(ctx.createGain());
-    focusBus.gain.value = 0;
-    focusBus.connect(inlet);
+    this.motorBus = bus(motorHp, this.mix.motors * FLIGHT_STEM);
+    this.windBus = bus(flightDuck, this.mix.wind * FLIGHT_STEM);
+    this.otherBus = bus(flightDuck, this.mix.other / BUS_UNITY_AT);
+    this.effectsBus = bus(inlet, this.mix.effects / BUS_UNITY_AT);
+    this.voiceBus = bus(inlet, this.mix.voice / BUS_UNITY_AT);
+    this.ambienceBus = bus(ambienceDuck, this.mix.ambience / BUS_UNITY_AT);
+    const focusBus = bus(inlet, 0);
     this.focusBus = focusBus;
 
-    /* One second of deterministic noise: the wind's loop and every cue's
-     * noise voice below. */
+    /*
+     * One second of noise for the cue voices. Math.imul, not a float
+     * multiply: s * 1103515245 passes 2^53 and loses its low bits, and the
+     * float version of this generator repeats every 10466 samples, which
+     * the ear hears as a 4.6 Hz buzz (docs/AUDIO.md, the audit).
+     */
     const len = Math.floor(ctx.sampleRate);
     const buf = ctx.createBuffer(1, len, ctx.sampleRate);
     const ch = buf.getChannelData(0);
     let s = 12345;
     for (let i = 0; i < len; i += 1) {
-      s = (s * 1103515245 + 12345) & 0x7fffffff;
-      ch[i] = (s / 0x3fffffff) - 1.0;
+      s = (Math.imul(s, 1103515245) + 12345) >>> 0;
+      ch[i] = s / 2147483648 - 1.0;
     }
 
-    if (this.lab) {
-      this.attachEngine(ctx, keep, motorBus, windBus, inlet);
-    } else {
-      this.attachVoices(ctx, keep, motorBus, windBus, buf);
-    }
+    this.attachEngine(ctx, keep);
 
     /*
      * The binaural focus tone: one carrier per ear, differing by the beat
@@ -870,7 +703,7 @@ export class MotorAudio {
     wreckGain.gain.value = 0;
     wreckSrc.connect(wreckBp);
     wreckBp.connect(wreckGain);
-    wreckGain.connect(inlet);
+    wreckGain.connect(this.effectsBus);
     wreckSrc.start();
     this.wreckGain = wreckGain;
     this.wreckBp = wreckBp;
@@ -918,20 +751,20 @@ export class MotorAudio {
     wreckSrc.connect(scrapeBp);
     scrapeBp.connect(scrapeGate);
     scrapeGate.connect(scrapeEnv);
-    scrapeEnv.connect(inlet);
+    scrapeEnv.connect(this.effectsBus);
     const whooshBp = bandOf('bandpass', 1.6);
     const whooshEnv = envOf();
     wreckSrc.connect(whooshBp);
     whooshBp.connect(whooshEnv);
-    whooshEnv.connect(inlet);
+    whooshEnv.connect(this.effectsBus);
     const shingBp = bandOf('bandpass', 3);
     shingBp.frequency.value = 6500;
     const shingEnv = envOf();
     wreckSrc.connect(shingBp);
     shingBp.connect(shingEnv);
-    shingEnv.connect(inlet);
+    shingEnv.connect(this.effectsBus);
     const ringEnv = envOf();
-    ringEnv.connect(inlet);
+    ringEnv.connect(this.effectsBus);
     const partials = [];
     for (const [k, ratio] of [1, 2.76, 5.4, 8.93].entries()) {
       const g = envOf();
@@ -969,7 +802,7 @@ export class MotorAudio {
      */
     const coinEnv = envOf();
     gateOsc.connect(coinEnv);
-    coinEnv.connect(inlet);
+    coinEnv.connect(this.effectsBus);
     this.coinVoice = { osc: gateOsc, env: coinEnv };
     this.coins = 0;
     this.booms = 0;
@@ -981,114 +814,272 @@ export class MotorAudio {
   }
 
   /*
-   * The shipped voices: four motor chains and the wind chain, 21 nodes.
-   * Built where attach() always built them, so with the lab off the graph
-   * and its node order are what they were.
+   * The pilot's engine: one AudioWorkletNode (src/render/engine-worklet.js)
+   * for the motors or the engine, the air over the airframe and the
+   * impacts. addModule is async and attach() is not, so the node arrives
+   * on `ready`, which the offline renderers await before they schedule
+   * anything; update() and impact() do nothing until it is there. A load
+   * failure rejects `ready` and is logged, loudly, rather than leaving a
+   * silent aircraft.
    */
-  attachVoices(ctx, keep, motorBus, windBus, buf) {
-    /*
-     * One slow noise source feeding every motor's detune, so the blade pass
-     * tone wanders instead of sitting on an exact frequency. One buffer and one
-     * gain rather than one per motor, which costs two nodes instead of five;
-     * the wobble is therefore common in CENTS across the four, and since each
-     * motor runs at its own RPM the resulting frequency deviation still
-     * differs. Correlated wobble is the honest cost of the node budget.
-     */
-    const dLen = Math.floor(ctx.sampleRate * 4);
-    const dBuf = ctx.createBuffer(1, dLen, ctx.sampleRate);
-    const dCh = dBuf.getChannelData(0);
-    let ds = 24680;
-    let dSmooth = 0;
-    for (let i = 0; i < dLen; i += 1) {
-      ds = (ds * 1103515245 + 12345) & 0x7fffffff;
-      /* One pole smoothing so the detune wanders over tenths of a second
-       * rather than buzzing: a fast random detune is just noise. */
-      dSmooth += 0.0009 * (((ds / 0x3fffffff) - 1.0) - dSmooth);
-      dCh[i] = dSmooth * 12;
-    }
-    const detuneSrc = keep(ctx.createBufferSource());
-    detuneSrc.buffer = dBuf;
-    detuneSrc.loop = true;
-    const detuneGain = keep(ctx.createGain());
-    detuneGain.gain.value = MOTOR_DETUNE_CENTS;
-    detuneSrc.connect(detuneGain);
-    detuneSrc.start();
-
-    const motorWave = this.waveFor(this.voice);
-    for (let m = 0; m < 4; m += 1) {
-      const osc = keep(ctx.createOscillator());
-      osc.setPeriodicWave(motorWave);
-      osc.frequency.value = 120;
-      detuneGain.connect(osc.detune);
-      /* One lowpass now, not two. The spectrum is chosen rather than carved
-       * out of a sawtooth, so there is almost nothing above the fifth harmonic
-       * to remove and a single pole is enough of a safety net. */
-      const lp1 = keep(ctx.createBiquadFilter());
-      lp1.type = 'lowpass';
-      lp1.frequency.value = 600;
-      lp1.Q.value = 0.7;
-      const gain = keep(ctx.createGain());
-      gain.gain.value = 0.0;
-      /* Spread the four motors across the stereo field so the beating
-       * between them is audible, the way it is behind real goggles. */
-      const pan = ctx.createStereoPanner ? keep(ctx.createStereoPanner()) : null;
-      if (pan) {
-        pan.pan.value = this.voice.pan[m];
-      }
-      osc.connect(lp1);
-      lp1.connect(gain);
-      if (pan) {
-        gain.connect(pan);
-        pan.connect(motorBus);
-      } else {
-        gain.connect(motorBus);
-      }
-      osc.start();
-      this.motors.push({ osc, lp1, gain, pan });
-    }
-
-    /* Air rush: the shared noise, looped. Lowpassed, not bandpassed: a
-     * bandpass on noise is a whistle, and what a pilot hears at speed is
-     * broadband air. */
-    const noise = keep(ctx.createBufferSource());
-    noise.buffer = buf;
-    noise.loop = true;
-    const nf = keep(ctx.createBiquadFilter());
-    nf.type = 'lowpass';
-    nf.frequency.value = this.voice.windCorner;
-    nf.Q.value = 0.6;
-    const ng = keep(ctx.createGain());
-    ng.gain.value = 0.0;
-    noise.connect(nf);
-    nf.connect(ng);
-    ng.connect(windBus);
-    noise.start();
-    this.noiseGain = ng;
-    this.noiseFilter = nf;
-  }
-  /*
-   * The prototype's voice: one AudioWorkletNode (src/render/engine-worklet.js)
-   * for the motors, the engine, the air and the impacts. addModule is
-   * async and attach() is not, so the node arrives on `ready`, which the
-   * offline renderers await before they schedule anything; update() and
-   * impact() do nothing until it is there. A load failure rejects `ready`
-   * and is logged, loudly, rather than leaving a silent aircraft.
-   */
-  attachEngine(ctx, keep, motorBus, windBus, inlet) {
+  attachEngine(ctx, keep) {
     const url = new URL('./engine-worklet.js', import.meta.url);
     this.ready = ctx.audioWorklet.addModule(url).then(() => {
       const node = keep(new AudioWorkletNode(ctx, 'fdfpv-engine', {
         numberOfInputs: 0,
         numberOfOutputs: 3,
         outputChannelCount: [2, 2, 2],
-        processorOptions: { model: this.labModel ?? labModelFor(this.voice) },
+        processorOptions: this.engineMessage(),
       }));
-      node.connect(motorBus, 0);
-      node.connect(windBus, 1);
-      node.connect(inlet, 2);
+      this.watchNode(node, 'engine');
+      node.connect(this.motorBus, 0);
+      node.connect(this.windBus, 1);
+      node.connect(this.effectsBus, 2);
       this.engine = node;
+      if (this.worldNode) {
+        this.connectWorld(this.worldNode);
+      }
     });
-    this.ready.catch((e) => console.error('audio: the audiolab engine failed to load', e));
+    this.ready.catch((e) => console.error('audio: the engine failed to load', e));
+  }
+
+  /*
+   * PUBLIC API: where the player hears from, once a frame before
+   * updatePeers: the camera's position and its right hand unit vector, in
+   * any one right handed frame the peers' positions are in too (the shell
+   * uses the scene's, metres, y up), and `ground`, the height of the ground
+   * under the listener on the frame's up axis (y), for the reflection, or
+   * null for none.
+   */
+  setListener(x, y, z, rx, ry, rz, ground = null) {
+    const l = this.listener;
+    l.x = x;
+    l.y = y;
+    l.z = z;
+    l.rx = rx;
+    l.ry = ry;
+    l.rz = rz;
+    l.ground = ground;
+  }
+
+  /*
+   * PUBLIC API: the other pilots this frame, `peers` an array of
+   * { id, spec, rpm: [4], x, y, z, vx, vy, vz }: an id that stays the
+   * same for a pilot, the engine spec of their aircraft (enginespec.js
+   * engineSpecFor), their four motor RPMs (a plane's engine in slot 0),
+   * and their position and velocity, metres and m/s, in the listener's
+   * frame. The PEER_VOICES nearest and loudest are heard, through the
+   * propagation (distance, the air, the delay, the Doppler, the ground's
+   * reflection), on the Other aircraft bus; the rest are culled smoothly.
+   * A pilot not in the list is gone. The pool's nodes are made once, on
+   * the first frame with a pilot in it.
+   */
+  updatePeers(peers, atTime) {
+    if (!this.ctx || !this.engine) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    if (!this.peerSlots) {
+      if (!peers.length) {
+        return;
+      }
+      this.peerSlots = [];
+      for (let k = 0; k < PEER_VOICES; k += 1) {
+        const node = new AudioWorkletNode(this.ctx, 'fdfpv-engine', {
+          numberOfInputs: 0,
+          numberOfOutputs: 3,
+          outputChannelCount: [2, 2, 2],
+          processorOptions: { model: 'quad' },
+        });
+        this.nodes.push(node);
+        this.watchNode(node, `peer ${k}`);
+        node.parameters.get('level').setValueAtTime(0, t);
+        node.connect(this.otherBus, 0);
+        this.peerSlots.push({ node, id: null, score: 0, freeAt: 0, linked: false, model: '' });
+      }
+    }
+    /* Each pilot's place: nearer and turning is louder; out of range is
+     * not heard. `rank` holds the pilots in range, loudest first. */
+    const l = this.listener;
+    const rank = this.peerRank;
+    rank.length = 0;
+    for (const pr of peers) {
+      const d = Math.hypot(pr.x - l.x, pr.y - l.y, pr.z - l.z);
+      /* A pilot with no finite position is not anywhere to be heard from;
+       * NaN fails the range test and is dropped with the far ones. */
+      if (!(d <= PEER_RANGE_M)) {
+        continue;
+      }
+      const turning = pr.rpm[0] > 300 || pr.rpm[1] > 300 || pr.rpm[2] > 300 || pr.rpm[3] > 300;
+      rank.push({ pr, d, score: (turning ? 1 : 0.3) / Math.max(1, d) });
+    }
+    rank.sort((a, b) => b.score - a.score);
+    const heldBy = (id) => this.peerSlots.find((x) => x.id === id) || null;
+    const entryOf = (id) => rank.find((e) => e.pr.id === id) || null;
+    /* The loudest pilot in range with no voice: the one a holder that has
+     * fallen out of the top PEER_VOICES must beat to keep its place. */
+    let challenger = null;
+    for (let k = 0; k < rank.length && k < PEER_VOICES; k += 1) {
+      if (!heldBy(rank[k].pr.id)) {
+        challenger = rank[k];
+        break;
+      }
+    }
+    for (const slot of this.peerSlots) {
+      if (!slot.id) {
+        continue;
+      }
+      const e = entryOf(slot.id);
+      const top = e && rank.indexOf(e) < PEER_VOICES;
+      if (e && (top || !challenger || challenger.score < e.score * PEER_SWAP)) {
+        continue;
+      }
+      slot.node.parameters.get('level').setTargetAtTime(0, t, PEER_FADE_S / 3);
+      slot.id = null;
+      slot.freeAt = t + PEER_FADE_S;
+      slot.linked = false;
+    }
+    for (let k = 0; k < rank.length && k < PEER_VOICES; k += 1) {
+      const pr = rank[k].pr;
+      if (heldBy(pr.id)) {
+        continue;
+      }
+      const slot = this.peerSlots.find((x) => !x.id && x.freeAt <= t);
+      if (!slot) {
+        break;
+      }
+      slot.id = pr.id;
+      slot.linked = false;
+      const model = pr.spec && pr.spec.model ? pr.spec.model : 'quad';
+      slot.node.port.postMessage({ model, params: pr.spec ? pr.spec.params : null, bladeScale: 1 });
+      slot.node.parameters.get('level').setTargetAtTime(PEER_LEVEL, t, PEER_FADE_S / 3);
+    }
+    for (const slot of this.peerSlots) {
+      const e = slot.id ? entryOf(slot.id) : null;
+      if (e) {
+        this.voicePeer(slot, e.pr, e.d, t);
+      }
+    }
+  }
+
+  /* One held voice's state: its motors, its airspeed, and where it is to
+   * the listener. */
+  voicePeer(slot, pr, dist, t) {
+    const p = slot.node.parameters;
+    const l = this.listener;
+    /* The same rule as updateEngine: a value that is not a number is 0. */
+    const num = (v) => (Number.isFinite(v) ? v : 0);
+    for (let m = 0; m < 4; m += 1) {
+      p.get(`rpm${m}`).setTargetAtTime(Math.max(0, num(pr.rpm[m])), t, 0.03);
+    }
+    p.get('u').setTargetAtTime(num(Math.hypot(pr.vx, pr.vy, pr.vz)), t, 0.05);
+    const dx = pr.x - l.x;
+    const dy = pr.y - l.y;
+    const dz = pr.z - l.z;
+    const d = Math.max(ONBOARD_OFF_M, dist);
+    let d2 = 0;
+    if (l.ground != null) {
+      /* The image under the ground plane y = ground. */
+      const hs = pr.y - l.ground;
+      const hl = l.y - l.ground;
+      d2 = Math.hypot(dx, hs + hl, dz);
+    }
+    const pan = Math.max(-1, Math.min(1, (dx * l.rx + dy * l.ry + dz * l.rz) / d));
+    const set = (k, v) => {
+      if (slot.linked) {
+        p.get(k).linearRampToValueAtTime(v, t);
+      } else {
+        p.get(k).setValueAtTime(v, t);
+      }
+    };
+    set('dist', d);
+    set('dist2', d2);
+    set('pan', pan);
+    slot.linked = true;
+  }
+
+  /*
+   * THE CLOCK WATCH. A context the browser has stopped rendering (its
+   * output device went away, a Bluetooth headset switched profile when a
+   * microphone opened) can still say 'running' while its clock stands
+   * still, and then nothing on the page makes a sound until a reload. Once
+   * a frame, live only: a clock that has not moved in CLOCK_STALL_S of the
+   * page's own time while it says running is a stall, logged loudly, kept
+   * in this.states, and kicked with a suspend and a resume, which is what
+   * starts a stalled renderer on a new device. A hidden tab draws no
+   * frames, so it never trips this.
+   */
+  watchClock() {
+    const ctx = this.ctx;
+    const wall = performance.now() / 1000;
+    const c = this.clock;
+    if (ctx.state !== 'running' || ctx.currentTime !== c.ctx || !(c.wall > 0)) {
+      c.ctx = ctx.currentTime;
+      c.wall = wall;
+      c.kicked = false;
+      return;
+    }
+    if (wall - c.wall < CLOCK_STALL_S || c.kicked) {
+      return;
+    }
+    c.kicked = true;
+    this.stalls += 1;
+    this.states.push({ at: Math.round(wall * 1000), state: 'stalled' });
+    console.error(`audio: the context says running but its clock has stood at ${ctx.currentTime.toFixed(3)} s for ${(wall - c.wall).toFixed(1)} s; suspending and resuming it`);
+    ctx.suspend().then(() => ctx.resume()).catch((e) => console.error('audio: the stalled context would not restart', e));
+  }
+
+  /*
+   * PUBLIC API: hear what a worklet node says when it goes wrong. Its
+   * processor guards itself (worklet-guard.js) and posts { fault } on its
+   * port; a processor that died anyway fires processorerror. Both are
+   * logged loudly and kept in this.faults (window.__audio.faults, the
+   * checks', at most 50), never dropped.
+   */
+  watchNode(node, name) {
+    const note = (f) => {
+      this.faults.push({ at: Math.round(performance.now()), node: name, ...f });
+      if (this.faults.length > 50) {
+        this.faults.shift();
+      }
+      console.error(`audio: the ${name} worklet ${f.kind}`, f.message || '', f.context || '', `fault ${f.faults || 1}, ${f.scrubbed || 0} values scrubbed`);
+    };
+    node.addEventListener('processorerror', (e) => note({ kind: 'died', message: String((e && e.message) || 'processorerror') }));
+    node.port.addEventListener('message', (e) => {
+      if (e.data && e.data.fault) {
+        note(e.data.fault);
+      }
+    });
+    node.port.start();
+  }
+
+  /*
+   * PUBLIC API: the world's sound (src/render/world-worklet.js, the other
+   * aircraft, the vehicles, the ambience and the explosions). `node` is any
+   * AudioNode with three stereo outputs: 0 other aircraft and vehicles,
+   * 1 ambience, 2 effects. Each lands on its own Settings bus, through the
+   * limiter and the ducks. Safe before attach: the node is held and
+   * connected when the graph exists. One world node; a second call
+   * replaces the first. The caller owns the node and counts it (P12) in
+   * its own budget; nodeCount() counts it too once it is connected.
+   */
+  attachWorld(node) {
+    if (this.worldNode && this.worldNode !== node && this.otherBus) {
+      this.worldNode.disconnect();
+    }
+    this.worldNode = node;
+    if (this.otherBus) {
+      this.connectWorld(node);
+    }
+  }
+
+  connectWorld(node) {
+    node.connect(this.otherBus, 0);
+    node.connect(this.ambienceBus, 1);
+    node.connect(this.effectsBus, 2);
+    if (!this.nodes.includes(node)) {
+      this.nodes.push(node);
+    }
   }
 
   toggle() {
@@ -1131,42 +1122,11 @@ export class MotorAudio {
       lv = level < 0 ? 0 : level > 1 ? 1 : level;
       lv = 0.42 + 0.58 * lv;
     }
-    /* The prototype strikes its own impact. The shell's crash call knows
-     * how hard but not on what, so the surface is a middling one until
-     * the contact path hands its material over (docs/AUDIO.md, roll out). */
-    if (kind === 'crash' && this.engine) {
-      this.impact(4 * lv, 0.5, 12 * lv, t);
-      return;
-    }
+    /* A crash is the engine's impact. The shell's crash call knows how hard
+     * but not on what, so the surface is a middling one until the contact
+     * path hands its material over (docs/AUDIO.md, roll out). */
     if (kind === 'crash') {
-      const g = this.crashGain.gain;
-      g.cancelScheduledValues(t);
-      g.setValueAtTime(0.0001, t);
-      /*
-       * A crash is broadband and low, so it lands in the same 200 to 1800 Hz
-       * region the motors own, which means ducking the motors also removes the
-       * band the crash lives in. Measured at 0.85 the crash raised its own band
-       * by 0.03 dB at maximum stems, and with the duck in place it read 0.81 dB
-       * DOWN: the mix got quieter and nothing arrived. The cue has to carry the
-       * level itself. The soft clip and MASTER_CEILING bound what this can do
-       * to the true peak.
-       */
-      g.exponentialRampToValueAtTime(2.6 * lv, t + 0.006);
-      g.exponentialRampToValueAtTime(0.0001, t + 0.42);
-      const f = this.crashLp.frequency;
-      f.cancelScheduledValues(t);
-      /* A harder hit is brighter as well as louder, and it rings longer.
-       * Level alone reads as a volume knob rather than as a bigger event. */
-      f.setValueAtTime(900 + 900 * lv, t);
-      f.exponentialRampToValueAtTime(220, t + 0.4);
-      /* The click cues lean on this filter's Q, so a crash states its own
-       * rather than inheriting whatever the last click left. */
-      this.crashLp.Q.cancelScheduledValues(t);
-      this.crashLp.Q.setValueAtTime(1.1, t);
-      /* Duck the MOTORS and the WIND, which are what mask a crash, and duck
-       * them hard: a crash is the one moment the player must not miss. */
-      this.duckFlight(t, 0.28, 0.5);
-      this.music.duckNow(t, 0.25, 0.55);
+      this.impact(4 * lv, 0.5, 12 * lv, t);
       return;
     }
     if (kind === 'gate' || kind === 'clip') {
@@ -1179,10 +1139,9 @@ export class MotorAudio {
        * a half down with a duller filter: unmistakably the same family,
        * unmistakably not the reward.
        *
-       * The click's energy sits between 2 and 5 kHz where the motors (capped
-       * at 1 kHz) and the wind (lowpassed at 900 Hz) have nothing, which is
-       * why it reads through a full throttle mix with a LIGHTER duck than
-       * the old blip needed.
+       * The click's energy sits between 2 and 5 kHz, the band the engine
+       * keeps its own tones out of (engine-worklet.js, the harshness guard),
+       * which is why it reads through a full throttle mix with a light duck.
        */
       const gate = kind === 'gate';
       const nf = this.crashLp.frequency;
@@ -1243,6 +1202,10 @@ export class MotorAudio {
     }
     const t = atTime == null ? this.ctx.currentTime : atTime;
     const lv = level == null || level !== level ? 1 : 0.35 + 0.65 * Math.min(1, Math.max(0, level));
+    /* No two the same: every break is a few percent off the last in its
+     * pitch and its length. */
+    const fv = 0.9 + 0.2 * this.jitter();
+    const dv = 0.85 + 0.3 * this.jitter();
     const g = this.wreckGain.gain;
     const f = this.wreckBp.frequency;
     const q = this.wreckBp.Q;
@@ -1253,20 +1216,20 @@ export class MotorAudio {
     if (kind === 'snap') {
       /* Carbon and nylon fail in a crack well above the motors' band,
        * falling fast as the pieces separate. */
-      f.setValueAtTime(3800, t);
-      f.exponentialRampToValueAtTime(1500, t + 0.05);
+      f.setValueAtTime(3800 * fv, t);
+      f.exponentialRampToValueAtTime(1500 * fv, t + 0.05 * dv);
       q.setValueAtTime(2.2, t);
       g.exponentialRampToValueAtTime(3.2 * lv, t + 0.0015);
-      g.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      g.exponentialRampToValueAtTime(0.0001, t + 0.09 * dv);
       this.duckFlight(t, 0.5, 0.25);
       return;
     }
     if (kind === 'crunch') {
       /* Foam gives in grains: three quick bumps in the mids. */
-      f.setValueAtTime(900, t);
+      f.setValueAtTime(900 * fv, t);
       q.setValueAtTime(0.9, t);
       for (let k = 0; k < 3; k += 1) {
-        const tk = t + k * 0.028;
+        const tk = t + k * 0.028 * dv;
         g.setValueAtTime(0.0001, tk);
         g.exponentialRampToValueAtTime((2.0 - 0.45 * k) * lv, tk + 0.004);
         g.exponentialRampToValueAtTime(0.0001, tk + 0.026);
@@ -1274,18 +1237,18 @@ export class MotorAudio {
       return;
     }
     if (kind === 'chip') {
-      f.setValueAtTime(3000, t);
+      f.setValueAtTime(3000 * fv, t);
       q.setValueAtTime(3.0, t);
       g.exponentialRampToValueAtTime(1.4 * lv, t + 0.001);
-      g.exponentialRampToValueAtTime(0.0001, t + 0.025);
+      g.exponentialRampToValueAtTime(0.0001, t + 0.025 * dv);
       return;
     }
     /* A splash: a wide burst that darkens as the water falls back. */
-    f.setValueAtTime(2200, t);
-    f.exponentialRampToValueAtTime(420, t + 0.55);
+    f.setValueAtTime(2200 * fv, t);
+    f.exponentialRampToValueAtTime(420 * fv, t + 0.55 * dv);
     q.setValueAtTime(0.6, t);
     g.exponentialRampToValueAtTime(2.2 * lv, t + 0.012);
-    g.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    g.exponentialRampToValueAtTime(0.0001, t + 0.6 * dv);
     this.duckFlight(t, 0.6, 0.4);
   }
 
@@ -1449,12 +1412,13 @@ export class MotorAudio {
     v.scrapeEnv.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
     let s = 0x9e3779b9;
     for (let k = 0; k < 24; k += 1) {
-      s = (s * 1103515245 + 12345) >>> 0;
+      s = (Math.imul(s, 1103515245) + 12345) >>> 0;
       gate.setValueAtTime(11 + 38 * ((s >>> 8) / 16777216), t + k * 0.11);
     }
     gate.setValueAtTime(SCRAPE_GATE_HZ, t + 2.9);
     this.booms += 1;
     this.duckFlight(t, 0.35 + 0.35 * (1 - lv), 1.2);
+    this.duckAction(t, 0.4 + 0.4 * (1 - lv), 1.6);
   }
 
   /*
@@ -1534,12 +1498,13 @@ export class MotorAudio {
   }
 
   /*
-   * The prototype's per frame state, as AudioParams on the engine node so
-   * an offline render schedules it sample accurately. `air`, when given, is
-   * { u, v, w, amps, dist, dist2, pan }: body frame velocity, m/s, the pack
-   * current, A, and an off board listener's distance, ground reflection
-   * path and pan. Without it the airspeed is taken as straight ahead and
-   * the listener as on board.
+   * The engine's per frame state, as AudioParams on the engine node so an
+   * offline render schedules it sample accurately. `air`, when given, is
+   * { u, v, w, amps, dist, dist2, pan, flapsMoving, gearMoving }: body frame
+   * velocity, m/s, the pack current, A, an off board listener's distance,
+   * ground reflection path and pan, and whether the flaps and the gear are
+   * travelling this frame. Without it the airspeed is taken as straight
+   * ahead and the listener as on board.
    */
   updateEngine(rpm, speed, t, air) {
     const node = this.engine;
@@ -1558,6 +1523,8 @@ export class MotorAudio {
     set('v', a ? a.v : 0, 0.03);
     set('w', a ? a.w : 0, 0.03);
     set('amps', a ? a.amps : 0, 0.05);
+    set('servo', a && a.flapsMoving ? 1 : 0, 0.02);
+    set('retract', a && a.gearMoving ? 1 : 0, 0.02);
     /* Distance moves as a straight line between frames, not as a lag:
      * a lagged distance is a lagged delay, and its Doppler would be wrong. */
     for (const k of ['dist', 'dist2', 'pan']) {
@@ -1572,9 +1539,10 @@ export class MotorAudio {
   }
 
   /*
-   * An impact for the prototype: `impulse` N s, the surface's `hardness`
-   * 0..1 (sim_material_info), the closing `speed` m/s. A rising edge on the
-   * engine's impact param; the duck is the crash cue's.
+   * PUBLIC API: an impact on the pilot's own aircraft. `impulse` N s, the
+   * surface's `hardness` 0..1 (sim_material_info), the closing `speed` m/s.
+   * A rising edge on the engine's impact param; it ducks the flight, the
+   * music and the ambience.
    */
   impact(impulse, hardness, speed, atTime) {
     if (!this.engine) {
@@ -1587,135 +1555,84 @@ export class MotorAudio {
     p.get('impact').setValueAtTime(Math.max(1e-3, impulse), t);
     p.get('impact').setValueAtTime(0, t + 0.03);
     this.duckFlight(t, 0.35, 0.5);
-    this.music.duckNow(t, 0.3, 0.55);
+    this.duckAction(t, 0.3, 0.55);
   }
 
-  /* rpm is the four motor RPM values, speed is airspeed in m/s. atTime is
-   * the context time to schedule at, for offline rendering; the live path
-   * omits it and gets ctx.currentTime. `air` is the prototype's extra
-   * state, updateEngine; the shipped voices ignore it. */
+  /*
+   * PUBLIC API: a one shot mechanism of the pilot's aircraft, on the
+   * Effects bus: 'gear' (a leg locking), 'catapult' (the shuttle's
+   * release), 'parachute' (the hatch and the canopy filling). The flaps'
+   * servos and the retracts' motor while they move are update()'s `air`
+   * (flapsMoving, gearMoving). Unknown kinds throw.
+   */
+  mechanical(kind, atTime) {
+    const code = MECH_KINDS[kind];
+    if (!code) {
+      throw new Error(`audio: no mechanism named ${kind}`);
+    }
+    if (!this.engine) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const p = this.engine.parameters;
+    p.get('mech').setValueAtTime(code, t);
+    p.get('mech').setValueAtTime(0, t + 0.03);
+  }
+
+  /*
+   * PUBLIC API: a prop strike on the pilot's aircraft: `level` 0 to 1, the
+   * surface's `hardness` 0 to 1. The blades tick at the rate the motors
+   * were turning, slowing.
+   */
+  propStrike(level, hardness, atTime) {
+    if (!this.engine) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    const p = this.engine.parameters;
+    p.get('hardness').setValueAtTime(hardness, t);
+    p.get('strike').setValueAtTime(Math.max(0.01, Math.min(1, level)), t);
+    p.get('strike').setValueAtTime(0, t + 0.03);
+  }
+
+  /*
+   * PUBLIC API: duck the music and the ambience under action, depth 0..1
+   * (the gain at the bottom), recovering over `seconds`. Deeper wins over
+   * a duck already running (duckParam). For the world's explosions as well
+   * as for this file's.
+   */
+  duckAction(atTime, depth, seconds) {
+    if (!this.ambienceDuck) {
+      return;
+    }
+    const t = atTime == null ? this.ctx.currentTime : atTime;
+    this.music.duckNow(t, depth, seconds);
+    duckParam(this.ambienceDuck.gain, t, depth, seconds, 0.010);
+  }
+
+  /*
+   * PUBLIC API, once a frame: rpm is the four motor RPM values (a fixed
+   * wing's engine in slot 0), speed the airspeed in m/s, atTime the context
+   * time to schedule at (omitted live: ctx.currentTime), air the body frame
+   * state updateEngine reads.
+   */
   update(rpm, speed, atTime, air) {
     if (!this.ctx || !this.master) {
       return;
     }
+    if (atTime == null) {
+      this.watchClock();
+    }
     const t = atTime == null ? this.ctx.currentTime : atTime;
-    /*
-     * MASTER_CEILING is headroom, and it is the number that makes A3's true
-     * peak bar hold at every volume setting rather than only at the default.
-     * Measured: with the soft clip saturating, the render's true peak in dBTP
-     * comes out equal to the master gain in dB, so a master of 1.0 measures
-     * 0.01 dBTP and a player on volume 10 clips a converter. 0.85 puts the
-     * worst case at -1.41 dBTP, and the stem gains carry 1.5 dB more to keep
-     * a normal flight render inside the -20 to -14 dBFS band.
-     */
     const target = this.enabled ? this.level * MASTER_CEILING : 0.0;
     this.master.gain.setTargetAtTime(target, t, 0.05);
-    if (this.warRadio) {
-      this.warRadio.setOutput(target);
-    }
     if (!this.enabled) {
       this.music.pause();
       return;
     }
-    if (this.lab) {
-      this.updateEngine(rpm, speed, t, air);
-      this.music.tick(t);
-      return;
-    }
-    const voice = this.voice;
-    let loudest = 0;
-    for (let m = 0; m < 4; m += 1) {
-      const r = Math.max(0, rpm[m]);
-      const node = this.motors[m];
-      /*
-       * A stopped motor is silent. Below MOTOR_MUTE_RPM the stem is faded out
-       * rather than floored at 20 Hz, which is what put a -21.5 dBFS subsonic
-       * drone under the title screen and on top of the bass line during every
-       * spool down.
-       */
-      if (r < MOTOR_MUTE_RPM) {
-        node.gain.gain.setTargetAtTime(0, t, 0.06);
-        continue;
-      }
-      /* THE fundamental. No register correction, no scale factor: this is
-       * the blade pass frequency, or a four stroke's firing pattern, and A2
-       * asserts it against the RPM the module reports to within one
-       * percent. */
-      const hz = (r / 60) * voice.perRev * (voice.wave === 'blade' ? this.bladeScale : 1);
-      /* setTargetAtTime, not linearRamp: the ear hears a step in
-       * frequency as a click, and the motors change fast. */
-      node.osc.frequency.setTargetAtTime(hz, t, 0.012);
-      const corner = Math.min(voice.lpCap ?? MOTOR_LP_CAP, Math.max(MOTOR_LP_FLOOR, hz * voice.lpTrack));
-      node.lp1.frequency.setTargetAtTime(corner, t, 0.03);
-      /*
-       * Loudness, LINEAR in throttle rather than squared.
-       *
-       * The squared law swung the stem 11.6 dB across the throttle range, which
-       * meant the thing the pilot flies on was being delivered mostly as volume
-       * while the pitch cue, which is the informative one, rode underneath it.
-       * A linear law with a high floor keeps the stem inside 6.0 dB, twenty log
-       * of 0.44 over 0.22, and lets 1.79 octaves of pitch carry the
-       * information instead. It also takes the peak drive well off the soft
-       * clip's clamp, which was manufacturing distortion in the 2 to 2.5 kHz
-       * bands at shipped defaults.
-       *
-       * SCALED BY 0.63 in this round, which is 4.0 dB off the stem and
-       * nothing off the law: both terms move together, so the span stays
-       * exactly 6.0 dB and the pitch, which is the information, is
-       * untouched. See the header for where the other 6.5 dB of the owner's
-       * 70 percent went and why it could not all come off here.
-       */
-      const loud = Math.min(1, r / voice.rpmFull);
-      node.gain.gain.setTargetAtTime((0.139 + 0.139 * loud) * (voice.gain ?? 1), t, 0.03);
-      if (loud > loudest) {
-        loudest = loud;
-      }
-    }
-    /*
-     * The wind, scaled by 1.41, which is 3.0 dB up.
-     *
-     * This file has said since round 11 that the shipping sims put the
-     * motors just audible UNDER the wind. It has never been true here: on a
-     * flight render the motor stem measured -18.45 dBFS against the wind's
-     * -32.99, so the motors were fourteen and a half dB over the thing they
-     * were supposed to be under. Four dB off the motors and three on to the
-     * wind closes half of that. The rest is left for a round that can listen
-     * to it, because the wind is broadband and raising it further is how a
-     * mix gets hissy.
-     */
-    const rush = Math.min(1, speed / voice.speedFull);
-    /* The wing's wind brightens with speed; the quad's corner is a
-     * constant the graph was built with and is left alone, so its
-     * measured render does not move. */
-    if (voice.windOpen > 0) {
-      this.noiseFilter.frequency.setTargetAtTime(voice.windCorner + voice.windOpen * rush, t, 0.08);
-    }
-    /*
-     * THE 0.085 IS THE AIR A FLYING QUAD SITS IN, NOT A HUM THE PAGE MAKES.
-     *
-     * It was an unconditional term, so the wind bed never went below it, and
-     * with the motors muted it was the ONLY thing left in the graph. Measured
-     * offline through this very class with the motors stopped and the
-     * airspeed zero: -57.77 dBFS RMS at the default volume, and zeroing the
-     * wind stem alone took the render to exact digital silence while zeroing
-     * the motor stem changed nothing at all. So after the round that stopped
-     * the motors droning on the results screen the owner still heard
-     * something, "lower in pitch and quieter", and that is what it was: a
-     * dead flat band of noise under a 900 Hz lowpass, running under the
-     * title screen, under the results table and through every crash lockout,
-     * never changing, which is exactly the kind of sound an ear locks on to.
-     *
-     * Stopped air is silent, for the same reason a stopped motor is. The
-     * floor stays whenever anything is actually moving, which includes a
-     * hover, where `loudest` is what carries the prop wash; it is gone only
-     * when every motor is below MOTOR_MUTE_RPM and the craft is not moving
-     * either. The 0.06 tau takes it down over about 200 ms rather than
-     * cutting, the same way the motor stem goes.
-     */
-    const bed = loudest > 0 || rush > 0 ? 0.085 : 0;
-    this.noiseGain.gain.setTargetAtTime(bed + 0.71 * rush * rush + 0.17 * loudest, t, 0.06);
+    this.updateEngine(rpm, speed, t, air);
     /* The bed. Ticked from here so a paused element is restarted while
-     * the mix is live, and so the probe still exercises the same update. */
+     * the mix is live. */
     this.music.tick(t);
   }
 }

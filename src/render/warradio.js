@@ -52,7 +52,10 @@ export const END_LINES = new Set(['win', 'lose-output', 'lose-rack',
 /* The music's level on the music setting, before the master: the intro
  * is a trailer and carries the countdown, the loop sits under the voice. */
 const INTRO_BUS = 0.5;
-const COMBAT_BUS = 0.22;
+/* 0.335, not 0.22: the combat file was turned down 3.67 dB to bring its
+ * true peak under -1 dBTP (tools/voice/music.py), and this gives the same
+ * dB back so the war's mix does not move. */
+const COMBAT_BUS = 0.335;
 /* How far the motors and wind duck under a call, and the voice's level. */
 const VOICE_LEVEL = 1.0;
 export const VOICE_DUCK = 0.55;
@@ -181,16 +184,18 @@ export function createWarCalls() {
 
 /*
  * The two media elements, made by attach() the first time a war wants
- * them. They play outside the Web Audio graph, at the element's own
- * volume: the graph's budget is 64 nodes (tests/thresholds.json
- * max_nodes) and a flight already stands at it, so a MediaElementSource
- * and a gain each, four more, would break it. setOutput() is the master's
- * part instead, the volume setting times the sound on or off, handed in
- * by the owner every frame (MotorAudio.update).
+ * them, and routed (route()) into the mix's graph: the calls onto its
+ * Voice bus, the music into the crate's duck, so the limiter, the Volume
+ * and the action ducks hold for them (src/render/audio.js war()). The
+ * element volumes still carry the radio's own share: the bed's level
+ * against the calls, the music setting, and the duck under a teammate's
+ * voice. setOutput() is 1 once routed, because the graph's master is the
+ * Volume; it stays for a radio that was never given a graph.
  */
 export class WarRadio {
   constructor() {
     this.ready = false;
+    this.routed = false;
     this.output = 0;
     this.voice = null;
     this.bed = null;
@@ -256,6 +261,18 @@ export class WarRadio {
       this.track = '';
       this.music(t);
     }
+  }
+
+  /* Into a graph: the calls to `voiceDest`, the music to `musicDest`, one
+   * MediaElementSource each, counted through `keep`. Once: an element can
+   * have one source node for its life. */
+  route(ctx, voiceDest, musicDest, keep) {
+    if (this.routed || !this.voice) {
+      return;
+    }
+    keep(ctx.createMediaElementSource(this.voice.el)).connect(voiceDest);
+    keep(ctx.createMediaElementSource(this.bed.el)).connect(musicDest);
+    this.routed = true;
   }
 
   /* An Opus file this browser said it could play and then could not: the

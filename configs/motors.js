@@ -228,10 +228,10 @@ export const MOTORS = {
      * and this prop's.
      */
     props: [
-      { id: 'stock', name: 'props.5inch.t5147', detail: 'T-Motor T5147, 5.1 x 4.7 tri blade', grams: 4.4, diaIn: 5.1, pitchIn: 4.7,
+      { id: 'stock', name: 'props.5inch.t5147', detail: 'T-Motor T5147, 5.1 x 4.7 tri blade', blades: 3, grams: 4.4, diaIn: 5.1, pitchIn: 4.7,
         source: ['https://www.getfpv.com/t-motor-t5147-propeller-set-of-10.html'] },
       {
-        id: 'gf51466', name: 'props.5inch.gf51466', detail: 'Gemfan Hurricane 51466 V2, 5.1 x 3.6 tri blade', grams: 4.2, diaIn: 5.1, pitchIn: 3.6,
+        id: 'gf51466', name: 'props.5inch.gf51466', detail: 'Gemfan Hurricane 51466 V2, 5.1 x 3.6 tri blade', blades: 3, grams: 4.2, diaIn: 5.1, pitchIn: 3.6,
         /* On the stock motor itself, T-Motor's F60 Pro V 1950 kV. The F40
          * Pro V 2150 kV's pair (35369.5 rpm, 2026.4 g, 1530.0 W against
          * 33384.2, 2108.3, 1591.0) gives a kt 3 percent lower. */
@@ -240,7 +240,7 @@ export const MOTORS = {
         source: [F60, GEMFAN_CATALOGUE],
       },
       {
-        id: 't5143s', name: 'props.5inch.t5143s', detail: 'T-Motor T5143S, 5.1 x 4.3 tri blade', grams: 4.1, diaIn: 5.1, pitchIn: 4.3,
+        id: 't5143s', name: 'props.5inch.t5143s', detail: 'T-Motor T5143S, 5.1 x 4.3 tri blade', blades: 3, grams: 4.1, diaIn: 5.1, pitchIn: 4.3,
         /* T-Motor ran it only on the F40 Pro V 2150 kV. */
         stand: { option: 'f40pro-2150', stock: propRow(24.2, 33384.2, 2108.3, 1591.0), prop: propRow(24.3, 36418.5, 1966.5, 1470.4) },
         axial: AXIAL_T5143S, torque: TORQUE_T5143S,
@@ -275,7 +275,7 @@ export const MOTORS = {
       },
       { ...V2808_1500, name: 'motors.7inch.v2808_1500' },
     ],
-    props: [{ id: 'stock', name: 'props.7inch.stock', detail: 'HQ 7 x 3.5 tri blade' }],
+    props: [{ id: 'stock', name: 'props.7inch.stock', detail: 'HQ 7 x 3.5 tri blade', blades: 3 }],
     /* Six Molicel P42A in series, as combat-derive weighs it, and the one
      * P45B pack a maker sells with its cell named: Molicel's datasheets
      * give both cells' DC resistance, 16 and 15 mOhm. */
@@ -311,7 +311,7 @@ export const MOTORS = {
         maxA: 83.6, bench: row('HQ 10 x 4.5 tri blade', 23, 83.46, 4804), source: [V3115],
       },
     ],
-    props: [{ id: 'stock', name: 'props.10inch.stock', detail: '10 x 5 tri blade' }],
+    props: [{ id: 'stock', name: 'props.10inch.stock', detail: '10 x 5 tri blade', blades: 3 }],
     packs: [
       { id: 'stock', name: 'packs.p42a_6s2p', ...liion(8400, 2, 0.016, 858), source: [MOLICEL] },
       { id: 'gnb-p45b-6s1p', name: 'packs.gnb_p45b_6s1p', ...liion(4500, 1, 0.015, 460), source: [`${GNB}gaoneng-gnb-6s-22.2v-4500mah-10c-xt60-li-ion-battery-made-with-molicel-21700-p45b`, P45B] },
@@ -352,7 +352,7 @@ export const MOTORS = {
      * rows put their figures of merit at 0.588 and 0.375, outside the
      * 0.38 to 0.52 the class is gated to (scripts/combat-gates.js), so
      * neither is offered (docs/MOTORS-STAGE1.md). */
-    props: [{ id: 'stock', name: 'props.interceptor.stock', detail: 'APC 7 x 9E two blade' }],
+    props: [{ id: 'stock', name: 'props.interceptor.stock', detail: 'APC 7 x 9E two blade', blades: 2 }],
     /* Tattu's R-Line 5.0 family at 150C, the stock 1800 among them. */
     packs: [
       { id: 'stock', name: 'packs.tattu_1800_150', ...lipo(1800, 150, 287), source: [`${TATTU}tattu-r-line-version-5-0-1800mah-6s-150c-22-2v-lipo-battery-pack-with-xt60-plug/`] },
