@@ -1214,6 +1214,12 @@ export function createCrashCam(host) {
       if (w && host.drawWar) {
         host.drawWar(w);
       }
+      /* Its water is drawn once it stands at the playhead; until then the
+       * water is held, and the replay says so. */
+      const water = host.replayWater ? host.replayWater() : null;
+      if (water && !water.drawn) {
+        S.toast = { text: str('replay.water_catching_up'), until: performance.now() + 400 };
+      }
     }
     if (S.scene.paper) {
       const ace = S.scene.peers ? S.scene.peers.aceAt() : null;

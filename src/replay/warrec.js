@@ -545,7 +545,11 @@ export function worldAt(war, n, k, a, caches) {
   if (!caches.has(m)) {
     caches.set(m, {});
   }
-  return { t, ...matchAt(m, t, caches.get(m)) };
+  /* The room ms the clip starts at: its first row drawn in a war. */
+  if (!caches.has('from')) {
+    caches.set('from', war.clock.find(Number.isFinite) ?? null);
+  }
+  return { t, from: caches.get('from'), ...matchAt(m, t, caches.get(m)) };
 }
 
 /*
