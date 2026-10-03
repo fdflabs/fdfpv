@@ -447,6 +447,8 @@ export function createCrashCam(host) {
           warRing.born(v.mission, ev.agents);
         } else if (ev.type === 'dead') {
           warRing.dead(ev);
+        } else if (ev.type === 'damage') {
+          warRing.damage(ev);
         }
       }
       return evs;

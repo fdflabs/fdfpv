@@ -2154,6 +2154,14 @@ function warWorld(withClock, refused) {
     [9, () => war.onMessage({
       type: 'war', op: 'dead', ids: [5], at: at(9), by: 0, why: 'wire', p: [-4880, 40, 610],
     })],
+    /* A warhead breaks two chunks off a spillway gate (no hit: it smokes),
+     * and then more off the yard, which a hit has burning. */
+    [11, () => war.onMessage({
+      type: 'war', op: 'damage', seq: 0, at: at(11), target: 'gate-4', chunks: [3, 4], fell: [4], openings: [{ id: 'gate-4', at: at(11) }], p: [-900, 150, -1000], by: 2,
+    })],
+    [half + 1, () => war.onMessage({
+      type: 'war', op: 'damage', seq: 1, at: at(half + 1), target: 'yard-right', chunks: [7], p: [-2176, 220, -459], by: 0,
+    })],
     [half, () => war.onMessage({
       type: 'war', op: 'dead', ids: [6], at: at(half), by: 0, why: 'arrive', p: [-2176, 220, -459], target: 'yard-right', hit: true,
     })],
@@ -2167,6 +2175,8 @@ function warWorld(withClock, refused) {
   ]);
   /* src/main.js's live map, the same way: target -> room ms of its hit. */
   let burning = new Map();
+  /* And target -> room ms of the first damage to it (main.js warDamaged). */
+  let damaged = new Map();
   let begun = null;
   const live = [];
   for (let k = 0; k < n; k += 1) {
@@ -2179,9 +2189,11 @@ function warWorld(withClock, refused) {
     if (war.on() && war.match() !== begun) {
       begun = war.match();
       burning = new Map((v.down || []).map((id) => [id, -Infinity]));
+      damaged = new Map();
     } else if (!war.on() && begun !== null) {
       begun = null;
       burning = new Map();
+      damaged = new Map();
     }
     /* crashcam.js tapWar. */
     const evs = war.takeEvents();
@@ -2189,12 +2201,17 @@ function warWorld(withClock, refused) {
     for (const ev of evs) {
       if (ev.type === 'dead') {
         ring.dead(ev);
+      } else if (ev.type === 'damage') {
+        ring.damage(ev);
       }
     }
     grid.hear(evs, v);
     for (const ev of evs) {
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target && !(burning.get(ev.target) >= ev.at)) {
         burning.set(ev.target, ev.at);
+      }
+      if (ev.type === 'damage' && !(damaged.get(ev.target) <= ev.at)) {
+        damaged.set(ev.target, ev.at);
       }
     }
     const targets = {};
@@ -2203,13 +2220,23 @@ function warWorld(withClock, refused) {
         targets[id] = burnAt(a, now);
       }
     }
-    live.push({ targets, levels: Array.from(grid.levels(v, now)), states: grid.state(v, now) });
+    for (const [id, a] of damaged) {
+      if (a <= now && !(id in targets)) {
+        targets[id] = 'smoke';
+      }
+    }
+    live.push({
+      targets, levels: Array.from(grid.levels(v, now)), states: grid.state(v, now), damage: war.damage().filter((d) => d.at <= now).map((d) => d.seq),
+    });
   }
   const seen = (f) => live.some(f);
   check(seen((w) => w.targets['intake-3'] === 'fire') && seen((w) => w.targets['intake-3'] === 'smoke') && seen((w) => w.targets['gate-2'] === 'smoke')
     && seen((w) => w.targets['yard-right'] === 'fire') && seen((w) => w.states.yard === 'dark') && seen((w) => w.states['dam-0'] === 'flicker')
     && seen((w) => w.states['hernandarias-w'] === 'dark') && seen((w) => w.states.spillway === 'dark'),
   'the live map had a gate down before the join, an intake on fire then smoking, the switchyard on fire, a quarter of the dam flickering, and the yard, the spillway and a town struck through its line dark');
+  check(live[10].targets['gate-4'] === undefined && live[11].targets['gate-4'] === 'smoke' && live[half + 1].targets['yard-right'] === 'fire'
+    && live[half + 1].damage.join() === '0,1',
+  'a gate a warhead broke smokes from its damage, a yard both hit and broken burns, and the breaks are there by their room ms');
   const relit = live.findIndex((w, k) => k > 5 && w.targets['intake-3'] === 'smoke');
   check(relit > 0 && relit < half + 4 && live[half + 4].targets['intake-3'] === 'fire',
     'the intake smokes after its fire, and burns again when another attacker arrives on it', `smoke from row ${relit}, alight again at row ${half + 4}`);
@@ -2218,6 +2245,7 @@ function warWorld(withClock, refused) {
 
   const clip = ring.clip(0, n);
   check(clip && clip.world && clip.world.length === 2 && clip.world[0].hits.length === 4 && clip.world[0].hits[0].at === null && clip.world[0].cuts.length === 1
+    && clip.world[0].damage.map((d) => d.seq).join() === '0,1'
     && clip.world[0].off === room(n - 8) && Number.isNaN(clip.clock[n - 4]),
   'the clip keeps two matches, the gate as a snapshot (null), the intake and the yard at their room ms, the struck line, the end, and no clock in the lobby',
   clip && clip.world ? JSON.stringify(clip.world.map((m) => ({
@@ -2236,13 +2264,14 @@ function warWorld(withClock, refused) {
   for (const k of order) {
     const w = worldAt(clip, n, k, 0, caches);
     const want = live[k];
-    const ok = JSON.stringify(w.targets) === JSON.stringify(want.targets) && Array.from(w.levels).every((x, i) => x === want.levels[i]);
+    const ok = JSON.stringify(w.targets) === JSON.stringify(want.targets) && Array.from(w.levels).every((x, i) => x === want.levels[i])
+      && w.damage.map((d) => d.seq).join() === want.damage.join();
     if (!ok) {
       wrong += 1;
       firstWrong = firstWrong || `row ${k}: ${JSON.stringify(w.targets)} ${Array.from(w.levels).join(',')} want ${JSON.stringify(want.targets)} ${want.levels.join(',')}`;
     }
   }
-  check(wrong === 0, 'every row asked forwards, backwards and in jumps is the live map at that row, exactly', firstWrong || `${order.length} asks`);
+  check(wrong === 0, 'every row asked forwards, backwards and in jumps is the live map at that row, exactly, the breaks by then included', firstWrong || `${order.length} asks`);
   check(JSON.stringify(clip.world) === before && JSON.stringify(grid.state(war.view(), room(n))) === gridBefore,
     'asking changes neither the clip nor the live map\'s trackers');
   const mid = worldAt(clip, n, 5, 0.5, caches);
@@ -2278,6 +2307,14 @@ function warWorld(withClock, refused) {
     return w;
   }), 'a struck line that is not a place');
   refused(badWorld((w) => w.reverse()), 'matches out of order');
+  refused(badWorld((w) => {
+    w[0].damage[0].chunks = [-1];
+    return w;
+  }), 'a damage event that breaks a chunk that is not one');
+  refused(badWorld((w) => {
+    w[0].damage.push({ ...w[0].damage[0] });
+    return w;
+  }), 'a damage event kept twice');
   refused(() => buf.slice(0, buf.byteLength - 8), 'a version 11 file cut short of its map clock');
   refused(() => encodeReplay({ ...withMap, war: { ...clip, clock: clip.clock.map((x, k) => (k === 3 ? Infinity : x)) } }), 'a map clock that is not a number');
 }

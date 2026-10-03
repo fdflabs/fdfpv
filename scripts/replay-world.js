@@ -11,7 +11,9 @@
  * (itaipu-4, whose lights the grid puts out). On the room's real match the
  * check hands the page's war (window.__warHear, the room socket's own way
  * in) what a room says when it happens: an intake hit, a kill with its
- * warhead's boom, an attacker into a power line, the switchyard hit. The
+ * warhead's boom, an attacker into a power line, the switchyard hit, and
+ * a warhead breaking two chunks off a spillway gate (src/render/
+ * breakage.js: holes, rubble flying on the room clock). The
  * page logs the map it drew each live frame (window.__warMapLog). Then
  * its crash cam is opened and the playhead put on rows of the clip
  * forwards, backwards and in jumps.
@@ -20,7 +22,8 @@
  *   - the clip kept the map (version 11) and its explosions
  *   - at every row looked at, the replay's map (crashCam warWorld) is the
  *     live frame's at that row's room ms exactly, and the map as drawn
- *     (its targets' states, its lights' levels) is that too: before the
+ *     (its targets' states, its lights' levels, the chunks out and every
+ *     piece of rubble where it lay, to the millimetre) is that too: before the
  *     first hit nothing burns, after it the intake burns, the yard's
  *     districts and a town past the struck line go dark in their turn
  *   - closed, the map is the live war's again, the newest live frame's
@@ -53,6 +56,7 @@ import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import AT from '../src/share/war/itaipu-targets.js';
 import { DISTRICTS, districtIndex } from '../src/share/war/grid.js';
+import STRUCTURES from '../src/share/war/itaipu-chunks.js';
 
 const MISSION = 'itaipu-4';
 const mission = MISSIONS[MISSION];
@@ -96,9 +100,10 @@ function sameMap(got, want) {
   if (!got || !want || JSON.stringify(got.targets) !== JSON.stringify(want.targets)) {
     return false;
   }
-  return got.levels.length === want.levels.length && got.levels.every((x, i) => x === Math.fround(want.levels[i]));
+  return got.levels.length === want.levels.length && got.levels.every((x, i) => x === Math.fround(want.levels[i]))
+    && JSON.stringify(got.broken) === JSON.stringify(want.broken);
 }
-const describe = (w) => (w ? `${JSON.stringify(w.targets)} dark ${w.levels.map((x, i) => (x < 1 ? `${DISTRICTS[i].id}=${x.toFixed(2)}` : null)).filter(Boolean).join(',')}` : 'none');
+const describe = (w) => (w ? `${JSON.stringify(w.targets)} dark ${w.levels.map((x, i) => (x < 1 ? `${DISTRICTS[i].id}=${x.toFixed(2)}` : null)).filter(Boolean).join(',')}${w.broken ? ` broken ${w.broken.gone}` : ''}` : 'none');
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-replay-world-'));
 const { startRooms } = await import('../edge/rooms/node.js');
@@ -166,6 +171,12 @@ try {
   await hear({
     type: 'war', op: 'dead', ids: [], at: t, by: 0, why: 'arrive', p: AT['yard-right'].at, target: 'yard-right', hit: true,
   });
+  await a.sleep(1500);
+  t = await now();
+  const gate = STRUCTURES['gate-4'];
+  await hear({
+    type: 'war', op: 'damage', seq: 900, at: t, target: 'gate-4', chunks: [0, 1], fell: [], openings: [], down: false, health: 0.9, p: gate.chunks[0].c, by: 0, cut: [],
+  });
   await a.sleep(4000);
 
   const live = await a.evaluate('window.__warMapLogged()');
@@ -173,7 +184,8 @@ try {
   console.log(`  info  ${live.length} live frames logged; the map now ${describe(liveNow)}`);
   check('the live map burned the intake and the switchyard and put districts out',
     liveNow && liveNow.targets['intake-3'] === 'fire' && liveNow.targets['yard-right'] === 'fire'
-    && liveNow.levels[districtIndex('yard')] === 0 && liveNow.levels[districtIndex('hernandarias-w')] === 0, describe(liveNow));
+    && liveNow.levels[districtIndex('yard')] === 0 && liveNow.levels[districtIndex('hernandarias-w')] === 0
+    && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === 2 && liveNow.broken.pieces.length > 0, describe(liveNow));
 
   await a.evaluate('window.__crashCam.open(); true');
   await a.until("window.__craftState().mode === 'replay'", 10000);
@@ -182,7 +194,8 @@ try {
     return { world: c.war && c.war.world ? c.war.world : null, booms: window.__crashCam.h().booms().length };
   })()`);
   check('the clip kept the map and the explosions', kept.world && kept.world.length >= 1 && kept.world[kept.world.length - 1].hits.length >= 2
-    && kept.world[kept.world.length - 1].cuts.length >= 1 && kept.booms >= 2, JSON.stringify({ matches: kept.world && kept.world.length, booms: kept.booms }));
+    && kept.world[kept.world.length - 1].cuts.length >= 1 && kept.world[kept.world.length - 1].damage.length >= 1 && kept.booms >= 2,
+  JSON.stringify({ matches: kept.world && kept.world.length, booms: kept.booms }));
 
   /* The live frames the clip has a row for: before the first hit, and
    * spread through the rest. */
@@ -214,7 +227,8 @@ try {
   console.log(`  info  ${order.length} rows looked at, ${rows.length} distinct; the targets seen: ${[...shown].join(' | ')}`);
   check('at every row looked at, forwards, backwards and in jumps, the replay and the map drawn are the live frame\'s', order.length >= 20 && wrong === 0,
     misses.slice(0, 3).join(' || ') || `${order.length} rows`);
-  check('the rows looked at include the map before the first hit and with both fires', shown.has('none') && [...shown].some((s) => s.includes('intake-3') && s.includes('yard-right')),
+  check('the rows looked at include the map before the first hit, with both fires, and with the gate broken', shown.has('none') && [...shown].some((s) => s.includes('intake-3') && s.includes('yard-right'))
+    && [...shown].some((s) => s.includes('gate-4')),
     [...shown].join(' | '));
 
   await a.evaluate('window.__crashCam.h().api.close(); true');
