@@ -314,9 +314,25 @@ export function withWaves(mission) {
   return { ...mission, waves: wavesOf(stagesOf(mission)) };
 }
 
-/* How many of the mission's stages are rounds: the view's `rounds`. */
-export function roundsOf(mission) {
-  return stagesOf(mission).filter((st) => st.round).length;
+/* How many rounds a match of the mission plays: the view's `rounds`. The
+ * round stages on the way from stage `from` to the end along each stage's
+ * first exit, a twist's first branch for a twist (every branch of a twist
+ * is as many rounds as the others: war:stages holds the data to it). Not
+ * every round stage: a twist's other branches are never played. */
+export function roundsOf(mission, from = 0) {
+  const stages = stagesOf(mission);
+  const seen = new Set();
+  let n = 0;
+  let i = from;
+  while (i >= 0 && i < stages.length && !seen.has(i)) {
+    seen.add(i);
+    const st = stages[i];
+    n += st.round ? 1 : 0;
+    let to = st.exits?.[0]?.to ?? 'next';
+    to = to && typeof to === 'object' ? to.pick[0] : to;
+    i = to === 'won' || to === 'lost' ? -1 : to === 'next' ? i + 1 : stages.findIndex((x) => x.id === to);
+  }
+  return n;
 }
 
 /* An angle as the birth carries it, to the milliradian. */

@@ -54,7 +54,7 @@ import {
 } from '../edge/rooms/war.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
-  beatOf, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, slotKind, spilling, stagesOf, worthOf,
+  beatOf, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
 } from '../src/share/war/stages.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
@@ -188,6 +188,13 @@ function lint(mission) {
       out.push(`${where}: no exit`);
     }
     for (const x of st.exits ?? []) {
+      /* A twist's branches play as many rounds each (roundsOf). */
+      if (x.to && typeof x.to === 'object') {
+        const counts = x.to.pick.map((to) => roundsOf(mission, stages.findIndex((y) => y.id === to)));
+        if (new Set(counts).size > 1) {
+          out.push(`${where}: its twist's branches play ${counts.join(', ')} rounds`);
+        }
+      }
       trig(x.when, where);
       for (const to of x.to && typeof x.to === 'object' ? x.to.pick : [x.to ?? 'next']) {
         if (to === 'next' ? i + 1 >= stages.length : !(to === 'won' || to === 'lost' || ids.has(to))) {
@@ -214,6 +221,10 @@ console.log('data');
       [...problems, ...radio, ...music].join('; '));
   }
 }
+
+check('a match counts the rounds it plays, not every round stage: First Light 5 of its 7, the Spillway 4 of its 6',
+  roundsOf(MISSIONS['itaipu-1']) === 5 && roundsOf(MISSIONS['itaipu-2']) === 4 && stagesOf(MISSIONS['itaipu-1']).filter((x) => x.round).length === 7,
+  `${roundsOf(MISSIONS['itaipu-1'])} ${roundsOf(MISSIONS['itaipu-2'])}`);
 
 /* ------------------------------------------------------------ triggers */
 
