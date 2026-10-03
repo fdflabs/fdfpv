@@ -66,7 +66,7 @@ out of date.
    checks that prose lives in src/strings; the only dash test is
    `scripts/editor-ui-check.js` 77, on replay strings. The playground's
    check tests its own files and these docs; a repo wide copy lint is
-   phase 2.
+   phase 4.
 10. **Solo combat and solo Catch the Ace are practice against nobody.**
    The lobby branch lets every game start alone; there are no AI pilots
    anywhere in edge/rooms. The war's attackers are the only AI.
@@ -87,7 +87,7 @@ dropped). **Rule** marks an element the project's rules forbid.
 | Paraguay outline, coordinates, top right | invented | Decoration that reads as data. Dropped from home. |
 | Hero photograph: a soldier in goggles over a river | invented | AI art, and a person: the campaign bible puts no person on screen. Replaced by the live title world (the menu already stands over it) or an in-engine render. |
 | Three numbered hub cards | rename | New hub cards built from today's mode card (`gate-card`), section 4. |
-| OPERATIONS art: drone over smoke | rename | `assets/posters/itaipu.jpg` today; a war render from the replay scene (src/replay/warscene.js) in phase 3. |
+| OPERATIONS art: drone over smoke | rename | `assets/posters/itaipu.jpg` today; a war render from the replay scene (src/replay/warscene.js) in phase 5. |
 | CAMPAIGN | exists | It IS Defend the Paraná (the `campaign` way). One entry, not two. |
 | QUICK MISSION, INTERCEPT, RECON, STRIKE | invented | No such modes. Dropped. |
 | DEFEND THE PARANÁ | exists | The campaign: Act 1 at Itaipu, missions `itaipu-1` to `itaipu-4`. |
@@ -100,7 +100,7 @@ dropped). **Rule** marks an element the project's rules forbid.
 | HANGAR art: drone on a bench | rename | An in-engine render from the hangar's 3D garage (src/ui/hangar.js) via the craft preview path. |
 | AIRCRAFT | exists | The aircraft picker (src/ui/carousel.js), 20 aircraft. |
 | LOADOUTS | exists | Hangar Loadout tab (combat craft) and the campaign loadout (rack, warhead, speed). |
-| CAMERAS | rename | Camera angle and field of view, today global settings; per aircraft in phase 6. |
+| CAMERAS | rename | Camera angle and field of view, today global settings; per aircraft in phase 12. |
 | UPGRADES | rename | The campaign shop (src/game/campaign.js `UPGRADES`), moved under Hangar. |
 | CONTROLLER | exists | Choose joystick, Calibrate sticks, Check sticks, Stick mode (Settings today). |
 | SETTINGS | exists | The Pilot screen; secondary navigation, not a hub. |
@@ -116,7 +116,7 @@ dropped). **Rule** marks an element the project's rules forbid.
 | 1. v0.1.0 BETA | exists | `ui.beta` note; version in version.json. |
 | 2. Operations, six operation cards | invented, but one | One operation exists (Defend the Paraná). Operations opens on its missions (section 2.2). |
 | 3. Briefing text | exists | `campaign.m.<key>_blurb` today; per mission briefings in docs/campaign/MISSIONS.md once #363 lands. |
-| 3. Map with threat markers | defer | The Itaipu map exists; a briefing render of it does not. Phase 4 uses the poster; a marked map is later. |
+| 3. Map with threat markers | defer | The Itaipu map exists; a briefing render of it does not. Phase 9 uses the poster; a marked map is later. |
 | 3. EST. TIME 15 to 30 minutes | rename | Real: 9 to 20 min by mission (MISSIONS.md section 2), after #363. |
 | 3. PLAYERS 1 to 4 (co-op) | rename | Real: 1 to 8, the war scales by pilot count (MISSIONS.md 1.6). |
 | 3. CONTINUE | rename | Ready, in the session. |
@@ -124,7 +124,7 @@ dropped). **Rule** marks an element the project's rules forbid.
 | 5. STREAMER COMBAT, VALLEY AIRFIELD | rename | The world is the room's: Swiss valley by default. "Valley Airfield" is invented. |
 | 5. 3 to 8 MINUTES, 1 to 8 PILOTS | rename | Real: 3 or 5 minute rounds (the host's setting); 8 pilots private, 16 public. |
 | 5. Pilot list with READY | exists | The lobby's pilot slots (`war-lobby-pilot`, generalised on the lobby branch). |
-| 5. Open slots | rename | Today's list shows pilots only; empty seats up to the cap are new display, phase 5. |
+| 5. Open slots | rename | Today's list shows pilots only; empty seats up to the cap are new display, phase 6. |
 | 5. Visibility: Friends Only | rename | Rooms are public or private. "Friends" means private with an invite code; there is no friends list. |
 | 5. Allow join during game | exists | A behaviour of each game (drop in), not a setting. Shown as a fact, not a switch. |
 | 5. AI opponents (if empty) | invented | No AI pilots exist. Hidden until a mode has them. |
@@ -133,7 +133,7 @@ dropped). **Rule** marks an element the project's rules forbid.
 | 6. HUD: speed, altitude, battery, mode | exists | OSD, game and avionics HUD styles. Out of this redesign's scope. |
 | 6. Target label SHAHED, RKT x 2 | invented, rule | A real weapon's name; the enemy is never named. Warheads and rack exist without it. |
 | 7. Categories ALL, FIXED WING, MULTIROTOR, CUSTOM | rename | Picker tabs today: all, quad, plane, mine (`kindOf`). |
-| 7. FAVORITES | defer | Not in the game. Cheap; phase 6. |
+| 7. FAVORITES | defer | Not in the game. Cheap; phase 12. |
 | 7. A1 Trainer, A2 Racer, A3 Combat Wing, Q1, Q2 | invented | The real 20 aircraft (configs/airframes.js). |
 | 7. Speed, agility, endurance, payload bars | rename | Real bars: weight, speed, flight time (`hangar-stat-bar`). Agility and payload invented. |
 | 7. CUSTOMIZE | exists | The picker's Customise opens the hangar. |
@@ -200,7 +200,7 @@ dropped). **Rule** marks an element the project's rules forbid.
 | Nav tabs LOADOUTS, CAMERAS, UPGRADES, CONTROLLER | rename | Hangar sections (section 2.5). |
 | Aircraft list CONDOR-06, TACUARA, YVYRA, ÑANDU | invented | The real 20 aircraft. |
 | CUSTOM BUILD, experimental | exists | My Hangar saved builds. |
-| Favourite star | defer | Phase 6. |
+| Favourite star | defer | Phase 12. |
 | Role line, tags RECON, STRIKE, LONG ENDURANCE, MODULAR | invented | Real facts only: kind, span, weight, power. |
 | MALE-class UAV description | invented | Each aircraft's own note in the picker. |
 | Hero aircraft render in a hangar | rename | The 3D garage exists; its background is the game's own, never AI art. |
@@ -317,7 +317,7 @@ is not a field (section 1.3).
 ### 2.5 Hangar as an aircraft ecosystem
 
 Data first: `configs/airframes.js` has no category field, and the
-picker infers one (`kindOf`: quad or plane). Phase 6 adds `class`
+picker infers one (`kindOf`: quad or plane). Phase 12 adds `class`
 (multirotor, plane, wing, glider) and `roles` (race, combat, interceptor)
 to each row, derived from the flags already there (`fixedWing`,
 `trackClass`, `combat`, `noMotor`), so the hangar filters by data and a
@@ -408,12 +408,12 @@ Existing, kept as they are (the playground draws every one, grouped):
 - **Flag**: `--py-red`, `--py-white`, `--py-blue`, horizontal bands only.
 - **Type**: `--pdcs-mono` (telemetry, labels), `--pdcs-read` (sentences).
 
-Proposed, phase 2:
+Proposed, phase 4:
 
 - **Spacing**: `--sp-1` to `--sp-7` = 4, 8, 12, 16, 24, 32, 48 px. Today every gap is typed by hand.
 - **Radius**: 0 for frames and cards (today's gate cards), 2 px for buttons and chips. The sheet has 82 hand typed `border-radius` values to fold into these.
 - **Type roles**: `--type-display` (the lockup's Saira, #368), `--type-name` (a condensed sans for hub and mode names, a decision in section 6), `--type-read` = `--pdcs-read`, `--type-mono` = `--pdcs-mono`.
-- **Hub tone**: ONE token, `--hub-accent` (with `-dim` and `-wash`), set by `data-hub` on the screen, over the same PDCS ground. Operations `--pdcs-blue` #6aa3c8 (7.3:1 on `--pdcs-bg`, today's accent, tactical); Flight Club a warm copper #e09a5f (8.5:1, 7.9:1 on the ground's light centre; distinct from `--pdcs-warn` #d9b46c so a warning never reads as a hub); Hangar steel #a9b4bb (9.4:1). Ratios computed for this plan; phase 2 writes them beside the tokens as #354 did. Three palettes would triple every state rule; one token changes the accent and nothing else.
+- **Hub tone**: ONE token, `--hub-accent` (with `-dim` and `-wash`), set by `data-hub` on the screen, over the same PDCS ground. Operations `--pdcs-blue` #6aa3c8 (7.3:1 on `--pdcs-bg`, today's accent, tactical); Flight Club a warm copper #e09a5f (8.5:1, 7.9:1 on the ground's light centre; distinct from `--pdcs-warn` #d9b46c so a warning never reads as a hub); Hangar steel #a9b4bb (9.4:1). Ratios computed for this plan; phase 4 writes them beside the tokens as #354 did. Three palettes would triple every state rule; one token changes the accent and nothing else.
 
 ### 4.2 States, one vocabulary for every component
 
@@ -426,7 +426,7 @@ Proposed, phase 2:
 | ready | green flag | `.war-lobby-pilot.ready` |
 | live | green-live inset bar | `.gate-room.is-live` |
 | warning | warn | `.row-warn` |
-| danger | fail | `.name-dialog-btn.danger`, which types #ff8f8f instead of `var(--pdcs-fail)`: a phase 2 fix |
+| danger | fail | `.name-dialog-btn.danger`, which types #ff8f8f instead of `var(--pdcs-fail)`: a phase 4 fix |
 
 ### 4.3 Typography
 
@@ -481,37 +481,51 @@ not there, or a class the sheet no longer styles, fails it.
 | `status-beta` | Beta notice | status | the title brand | exists |
 | `modal-confirm` | Confirm dialog | modal | `askConfirm` | exists |
 | `tooltip` | Tooltip | tooltip | none | gap: the help column does this job |
-| `hub-card` | Hub card | card | none | proposed, phase 3 |
-| `session-visibility` | Session visibility, three values | control | none | proposed, phase 5 |
-| `briefing-panel` | Mission briefing facts | card | none | proposed, phase 4 |
+| `hub-card` | Hub card | card | none | proposed, phase 5 |
+| `session-visibility` | Session visibility, three values | control | none | proposed, phase 6 |
+| `briefing-panel` | Mission briefing facts | card | none | proposed, phase 9 |
 <!-- /components -->
 
 ### 4.6 Clutter to take off player screens
 
-Read from the code; to be confirmed on screen in phase 3 with `shots`:
+Read from the code; to be confirmed on screen in phase 5 with `shots`:
 the best lap line and the two keep notes on the title (they belong to
 Track Day and to a first flight), the rooms panel's counts on home (to
 Flight Club), "(in development)" in Itaipu's name where the campaign
 shows it, and every "[ ]" bracket that frames a non interactive label.
 
-## 5. Phases
+## 5. The roadmap
 
-Each phase ships alone, behind its checks, and changes nothing a later
-phase needs undone. Browser checks run locally (they are not in CI);
-each PR states their output. Nothing starts until `one-click-lobbies`
-and #359 are merged, because phases 1 to 5 touch their files.
+One list for the redesign and for docs/PILLARS.md, PROGRESSION.md,
+SESSIONS.md and TRAINING.md. Each phase ships alone, behind its checks,
+and changes nothing a later phase needs undone. Browser checks run
+locally (they are not in CI); each PR states their output. The order is
+PILLARS section 42's: what is in flight lands first, then the first five
+minutes (the controller and training), then the end of every flight (the
+debrief), then reasons to come back (progression), then the world (wind,
+AI). Status as of 2026-10-03.
 
-| # | What ships | Checks it rewrites or adds |
-| --- | --- | --- |
-| 0 | This plan, OVERVIEW.md, the UI playground and its check. No player visible change. | Adds `ui:playground` (Node, CI). |
-| 1 | `src/share/modes.js`; `WAYS`, `LOBBY_GAMES`, server `GAMES`, `ROOM_MODES` derived from it; the inline branches of section 0.2 become fields. Server half first. No visible change. | Adds `modes:selftest` (Node, CI): every table entry has a registry entry and back, every field valid. `rooms:selftest`, `rooms:server`, `rooms:load` unchanged and green; `game:lobby` for all five games, `modes:card` unchanged and green (the proof nothing moved). |
-| 1b | The two renames (section 6): `combat.card` "Streamer Combat", Spanish "Combate de serpentinas", the toilet paper kept in the line and the card art; `ui.track_mode` "Track Day", Spanish "Día de pista". | `strings:selftest`, `lint:copy`; the label is read by `modes:card`, `war:card`, `friends:card`, which are updated to the new name. |
-| 2 | Tokens of section 4.1 into the sheet, the sheet moved out of index.html into a file of its own, the danger button on `--pdcs-fail`, a repo wide no dash lint for strings and docs. Pixel identical. | `ui:playground` grows to the new tokens; adds `lint:dashes` (Node, CI); `boot:loader`, `lint:responsive` green; `shots` before and after compared. |
-| 3 | Home becomes three hub cards with activity links; hubs as screens; rooms panel to Flight Club; breadcrumb from state. | Rewrites `lint:shell` (2 offline cards becomes 3 hubs, offline Operations disabled with its reason), `modes:card` (hubs and activity cards fit at 1280x720, 1920x1080, 2560x1080, 390x844, 360x640, 844x390), `friends:card` (becomes the Join a session strip), `war:card`, `campaign:check` (card count and positions), `boot:loader` (the hub's ground), `flow:check` (no hub is in a room). |
-| 4 | Operations: the mission list and the briefing as the war session's head; the `war` entry's facts from the registry. | Rewrites `campaign:check` (Operations, mission 2, briefing facts, Deploy); `war:lobby`, `game:lobby --game=war` green. |
-| 5 | Session staging: visibility Solo, Friends, Public, public by default and each pilot's last choice remembered per activity; empty slots; facts from the registry; the in place visibility change (server message first). | `game:lobby` for all five rewritten to the new screen and adds the visibility rows; `rooms-server-check` adds the visibility op; `flow:check`. |
-| 6 | Hangar ecosystem: `class` and `roles` on airframes, favourites, per aircraft cameras, Upgrades and Controller under the Hangar. | `hangar:check`, `hangar:mine`, `campaign:selftest` (shop moved, prices unchanged), `progress:check`; adds `airframes:check` (Node, CI): every airframe has a class and roles. |
-| 7 | Controller screen: dead zone, gamepad expo, manual channel editor, presets per device, per class profiles. | `input:selftest` (Node, CI) extended; `lint:input`, `lint:devices` green. |
+| # | What ships | Checks it rewrites or adds | Status |
+| --- | --- | --- | --- |
+| 0 | This plan, OVERVIEW.md, PILLARS.md, the three docs beside this one, the UI playground and its check. | Adds `ui:playground` (Node, CI). | #371 |
+| 1 | `src/share/modes.js`: the four mode tables read one registry, the inline branches become fields. No visible change. | Adds `modes:selftest` (Node, CI); `rooms:*`, `game:lobby` x5, `modes:card` green. | #374 |
+| 2 | The renames: `combat.card` "Streamer Combat" (Spanish "Combate de serpentinas"), `ui.track_mode` "Track Day" ("Día de pista"); the registry's card keys. | `strings:selftest`, `lint:copy`, `modes:selftest`; `modes:card`, `war:card`, `friends:card` read the new names. | next |
+| 3 | The campaign engine and films (#363, #365), and the replay work (#367, #369, #370): not the redesign's, but every later phase assumes them. | Their own. | in flight |
+| 4 | Tokens of section 4.1 into the sheet, the sheet moved into its own file, Saira Condensed, the danger button on `--pdcs-fail`, a repo wide no dash lint. Pixel identical except the name face. | `ui:playground` grows to the new tokens; adds `lint:dashes` (Node, CI); `boot:loader`, `lint:responsive`; `shots` before and after. | planned |
+| 5 | Home becomes three hubs with activity links; hubs as screens; the rooms panel to Flight Club's Join a session; breadcrumb from state. | Rewrites `lint:shell`, `modes:card` (adds 2560x1080), `friends:card`, `war:card`, `campaign:check`, `boot:loader`, `flow:check`. | planned |
+| 6 | Session visibility: Solo, Friends, Public; public by default, each pilot's last choice remembered per activity; empty slots; the in place change (server first) (SESSIONS.md 2). | `game:lobby` x5 adds the visibility rows; `rooms:server` adds the op; `flow:check`. | planned |
+| 7 | The controller question for a new pilot, routed by device (TRAINING.md 2), and the controller screen: dead zone, gamepad expo, a channel editor, presets per device, profiles per aircraft class. | `input:selftest` (Node, CI) extended; `lint:input`, `lint:devices`; `flow:check` adds the first run question. | planned |
+| 8 | Training tracks 1 and 4 (TRAINING.md 3), a `training` activity in the registry; certifications stored. | `progress:selftest` runs each lesson's judge on recorded inputs; `modes:selftest` adds the activity. | planned |
+| 9 | Operations: the mission list and the briefing as the war session's head, facts from the registry and MISSIONS.md. | Rewrites `campaign:check`; `war:lobby`, `game:lobby --game=war`. | planned, after 3 |
+| 10 | One debrief frame for every activity's end: result, how it went, improved or not, the replay one press away, the next action under the cursor; damage in three words (PILLARS 14). | Each game's results checks (`modes:card`, `war:card`, `game:lobby` x5) read the shared frame. | planned |
+| 11 | Progression phases 1 and 2 (PROGRESSION.md 10): XP from firsts and bests in every activity; flight time and landings per aircraft. | `progress:selftest` (the rules of PROGRESSION.md 2), `campaign:selftest` (no conversion), progressmerge cases. | planned |
+| 12 | Hangar ecosystem: `class` and `roles` on airframes, favourites, per aircraft cameras, mastery milestones, Upgrades and Controller under the Hangar. | `hangar:check`, `hangar:mine`, `campaign:selftest`, `progress:check`; adds `airframes:check` (Node, CI). | planned |
+| 13 | Training tracks 2, 3 and Glider, with the landing aid and the racing line. | as 8. | planned |
+| 14 | Progression phases 3 to 6: medals, discovery, per aircraft challenges, the pilot record. | as 11; `edit:selftest` for the builder's medal times. | planned |
+| 15 | Room wind: calm, breeze, gusty as the host's setting in Flight Club, every plant the same `sim_set_wind`, kept in replays (PILLARS 17). | A two page check that both plants report the same `sim_wind` at the same room ms; replay round trip. | planned |
+| 16 | Training track 5 (Defence), on the stage engine. | as 8, plus `war:harness`. | planned, after 3 |
+| 17 | A watch seat in any room (SESSIONS.md 5). | `rooms:server` (a seat that does not fly or count against the cap); `game:lobby`. | planned |
+| 18 | A race opponent driven along a ghost's line, the first AI pilot (PILLARS 12). | Its own harness, against the plant. | later |
 
 ## 6. Decided (the owner and the lead, 2 October)
 
@@ -520,16 +534,53 @@ and #359 are merged, because phases 1 to 5 touch their files.
    (section 2.3).
 2. **An activity opens a public lobby by default** (FLOW-AUDIT rule 11)
    and remembers each pilot's last visibility choice, per activity, in
-   settings. Phase 5 builds the memory.
+   settings. Phase 6 builds the memory.
 3. **"Friends" stays as the word**, meaning a private room with its
    invite code shown. No friends list is planned.
 4. **Saira Condensed for hub and mode names**: OFL, subset, self hosted
    like the lockup in #368. Its size goes in the PR that adds it
-   (phase 2).
+   (phase 4).
 5. **One accent token per hub** over the same dark PDCS ground:
    Operations #6aa3c8, Flight Club #e09a5f, Hangar #a9b4bb (section 4.1).
-6. **Track mode becomes Track Day** (phase 1b, with Streamer Combat).
+6. **Track mode becomes Track Day** (phase 2, with Streamer Combat).
 7. **Streamer Combat is confirmed** as the name of Toilet paper combat;
    the toilet paper stays in its line and its art.
 8. **AI pilots stay out until a later phase.** `allowAI` is false in
    every entry and the session hides the row.
+
+### Decided since (2026-10-03), cheap and reversible, by the design agent
+
+These follow from the code or from standing rules; each is a line to
+change if the owner disagrees.
+
+9. **Damage reads Operational, Impaired, Destroyed** on the HUD and the
+   debrief, over the physical damage the plant already models (PILLARS 14).
+10. **No difficulty selector** in Operations; pilot count, seeds and
+    assists are the difficulty (PILLARS 3).
+11. **No pilot ranks** and **no avatar**; level, certifications, medals,
+    a livery (PILLARS 7, 8).
+12. **No Exit item.**
+13. **No expiring events and no daily rewards** (PROGRESSION.md 2).
+14. **Training gates nothing** (TRAINING.md 4).
+
+### For the owner
+
+Short, each with a recommendation.
+
+1. **Does the war pay XP?** Recommend yes, for firsts only (a mission's
+   first win, each star the first time), so a pilot who only defends
+   still opens planes, and the war's credits stay its own.
+2. **The war's speed upgrade** (1.15 times, src/game/campaign.js) is the
+   one item anywhere that makes an aircraft better than its kit.
+   Recommend keeping it, inside the war only, as the campaign's economy
+   already decided; it never leaves a war room.
+3. **Room wind in Flight Club**, the host's choice of calm, breeze or
+   gusty, calm by default. Recommend yes (phase 15).
+4. **A watch seat** for a family member who does not fly. Recommend yes
+   (phase 17).
+5. **The first screen asks "What will you fly with?"** before any card,
+   once. Recommend yes (phase 7): it is where a radio pilot is lost or
+   kept.
+6. **Training and controllers before the debrief and progression**, as
+   the roadmap orders them. Recommend yes; the thread had them sixth.
+

@@ -335,19 +335,19 @@ export const COMPONENTS = [
     id: 'hub-card',
     name: 'Hub card (Operations, Flight Club, Hangar)',
     kinds: ['card'],
-    gap: 'Proposed, PLAN.md phase 3. Built from the mode card with a hub tone.',
+    gap: 'Proposed, PLAN.md phase 5. Built from the mode card with a hub tone.',
   },
   {
     id: 'session-visibility',
     name: 'Session visibility control',
     kinds: ['control'],
-    gap: 'Proposed, PLAN.md phase 5. The segments control with three values.',
+    gap: 'Proposed, PLAN.md phase 6. The segments control with three values.',
   },
   {
     id: 'briefing-panel',
     name: 'Mission briefing panel',
     kinds: ['card'],
-    gap: 'Proposed, PLAN.md phase 4. Facts from the mode registry, in the monospace face.',
+    gap: 'Proposed, PLAN.md phase 9. Facts from the mode registry, in the monospace face.',
   },
 ];
 

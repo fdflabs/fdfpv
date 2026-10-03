@@ -53,11 +53,39 @@ with the game's own styles, so every screen is built from the same parts.
 
 ## The order
 
-Small steps, each one finished and checked before the next, starting after
-the lobbies merge: the shared list of modes (nothing visible), the two
-new names (Track Day, Streamer Combat), the styles tidied (nothing visible), then the three hub
-home, then Operations and the briefing, then the session's Solo, Friends,
-Public, then the Hangar, then the controller screen.
+Small steps, each one finished and checked before the next (PLAN.md
+section 5 has all eighteen): the shared list of modes (done, in review),
+the two new names, the campaign's engine and films, the styles tidied,
+the three hub home, Solo, Friends and Public, then the controller question
+and training, Operations and the briefing, one debrief after every
+flight, then progression, the Hangar, wind, a watch seat, and last an AI
+race opponent.
+
+## The pillars (new, 3 October)
+
+Your ChatGPT thread's "Game Pillars" is now docs/PILLARS.md, rewritten so
+every line is true for this game: each feature says whether it exists,
+is being built, or is planned. Three more pages follow it:
+PROGRESSION.md (reasons to come back, no grind), SESSIONS.md (choose what,
+then who, then Ready) and TRAINING.md (from the first stick to the first
+defence). Where we chose differently from the thread, the page says why;
+the biggest ones:
+
+- **Damage stays physical.** The plant already breaks props and wings;
+  the screen just says Operational, Impaired or Destroyed.
+- **No Strike operation and no ranks**: the war is defend only, and a
+  rank is an insignia by another name.
+- **No difficulty slider and no fake AI**: pilot count, the mission's
+  seed and the assists are the difficulty; the AI row stays hidden until
+  a real AI pilot flies the same physics.
+- **Two economies, kept apart**: flying opens planes, the war's credits
+  buy the war's loadout; nothing expires and nothing grinds.
+- **Training and controllers moved up**: the first five minutes decide
+  whether a radio pilot stays.
+
+What we need from you on these is at the end of PLAN.md: whether the war
+pays XP, the war's speed upgrade, wind in Flight Club, a watch seat, the
+first screen asking what you fly with, and training before the debrief.
 
 ## What you decided
 
