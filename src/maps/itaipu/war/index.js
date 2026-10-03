@@ -18,11 +18,14 @@
  *
  * DESTRUCTIBLE (the war's damage, src/share/war/damage.js): the yard is
  * also `structures['yard-right']`, its chunks: each transformer's tank,
- * conservator and bushings, drawn in a mesh of their own (equipment) so
- * one is taken out alone, and the town's gantries inside the fence, two
- * posts and a beam each, which the town draws and collides (town/model.js
- * power) and this part takes out through it: a beam gone, the spans whose
- * wires end on it are down, lying on the ground and no longer solid.
+ * conservator and bushings, and the town's gantries inside the fence, two
+ * posts and a beam each, which the town collides (town/model.js power)
+ * and this part takes out through it: a beam gone, the spans whose wires
+ * end on it are down, lying on the ground and no longer solid. All of it,
+ * with the plinths and the fence's bars, is in the map's one breakable
+ * mesh (ctx.breakable, town/mesh.js makeBreakable), each piece its own
+ * range of it, so one is taken out alone; the chain link is a mesh of its
+ * own, half seen.
  *
  * Its own solids are in the static set: the yard is one of Itaipu's structures
  * (docs/ITAIPU-PLAN.md section 7). What a craft meets is what is drawn,
@@ -50,17 +53,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { makeBreakable, makeSink } from '../town/mesh.js';
+
 import { layOut, piecesOf } from '../town/power.js';
 import {
   planYard, inside, TANK, KIT, FENCE,
 } from './plan.js';
 
 /* Linear tints: galvanised steel, the tanks' grey paint, concrete, and
- * the bushings' brown porcelain. The plinths and the fence are in the
- * kit's plain group (the finish keys below), which the town's sink bakes
- * into one mesh; what breaks is in the equipment mesh: the yard is three
- * draw calls and their shadows, not one per finish or per piece. */
+ * the bushings' brown porcelain. Everything is in the map's breakable
+ * mesh: the yard is two draws (it and the chain link) and their shadows,
+ * not one per finish or per piece. */
 const STEEL = [0.46, 0.47, 0.48];
 const PAINT = [0.3, 0.33, 0.32];
 const CONCRETE = [0.32, 0.31, 0.29];
@@ -95,14 +97,12 @@ export async function buildPart(ctx) {
   const yard = planYard(ctx.data['osm/power.json'], ctx.data['osm/buildings.json'].features, ctx.ground);
   const group = new THREE.Group();
   group.name = 'itaipu-yard';
-  const sink = makeSink(THREE, ctx.mats.look);
   const solids = [];
   const capsule = (kind, a, b, r) => {
     const i = ctx.colliders.ax.length;
     ctx.colliders.add(kind, a[0], a[1], a[2], b[0], b[1], b[2], r);
     solids.push(i);
   };
-  const cast = { cast: true };
 
   /* The yard cut into the chunks a warhead breaks
    * (src/share/war/damage.js): each transformer's tank, fixed to its
@@ -112,7 +112,10 @@ export async function buildPart(ctx) {
   const st = {
     part: 'yard', water: null, frame: { o: [yard.site.at[0], 0, yard.site.at[2]], u: [1, 0, 0], n: [0, 0, 1] }, chunks: [],
   };
-  const kit = makeBreakable(THREE);
+  /* The map's breakable mesh, which the town's yard gantries are in
+   * too: plinths and fence bars are in it as well, never broken, so the
+   * yard is one draw. */
+  const kit = ctx.breakable;
   const box = (P, Q, r, h, tint) => kit.bar(P, Q, r, h, tint);
   const piece = (k, anchor, draw) => {
     const b = draw();
@@ -131,7 +134,7 @@ export async function buildPart(ctx) {
     const w = TANK.width / 2;
     const base = t.y + TANK.plinth;
     /* The plinth, from under the ground, a little wider than the tank. */
-    sink.bar('joint', CONCRETE, along(-half - PLINTH, t.y - 0.3), along(half + PLINTH, t.y - 0.3), w + PLINTH, cast, TANK.plinth + 0.3);
+    kit.bar(along(-half - PLINTH, t.y - 0.3), along(half + PLINTH, t.y - 0.3), w + PLINTH, TANK.plinth + 0.3, CONCRETE);
     const mid = base + TANK.height / 2;
     const tank = piece('tank', true, () => box(along(-half, mid), along(half, mid), w, TANK.height / 2, PAINT));
     for (const y of HOLD.tank.y) {
@@ -210,9 +213,9 @@ export async function buildPart(ctx) {
   const fr = FENCE.height / 4;
   const link = [];
   for (const [a, b] of yard.fence) {
-    sink.bar('metal', STEEL, [a[0], a[1] - 0.3, a[2]], [a[0], a[1] + FENCE.height, a[2]], 0.05, cast);
+    kit.bar([a[0], a[1] - 0.3, a[2]], [a[0], a[1] + FENCE.height, a[2]], 0.05, 0.05, STEEL);
     for (const h of [0.1, FENCE.height / 2, FENCE.height]) {
-      sink.bar('metal', STEEL, [a[0], a[1] + h, a[2]], [b[0], b[1] + h, b[2]], 0.025, { cast: true, caps: false });
+      kit.bar([a[0], a[1] + h, a[2]], [b[0], b[1] + h, b[2]], 0.025, 0.025, STEEL);
     }
     const a1 = [a[0], a[1] + FENCE.height, a[2]];
     const b1 = [b[0], b[1] + FENCE.height, b[2]];
@@ -221,8 +224,6 @@ export async function buildPart(ctx) {
       capsule('pole', [a[0], a[1] + fr * k, a[2]], [b[0], b[1] + fr * k, b[2]], fr);
     }
   }
-  const drawn = sink.build(group, []);
-  group.add(kit.build('itaipu-yard-equipment', { metalness: 0.2 }));
   /* The chunks out now: a chunk goes out (its triangles folded onto a
    * point, its colliders retired) or back as the dam's setChunkGone. */
   const folded = new Map();
@@ -286,6 +287,10 @@ export async function buildPart(ctx) {
     opacity: 0.3,
     depthWrite: false,
     side: THREE.DoubleSide,
+    /* A transparent double sided material is drawn twice, back faces then
+     * front, for sorting a closed shape; a fence a few centimetres thick
+     * at 0.3 has nothing to sort, and the second draw was a call a view. */
+    forceSinglePass: true,
   }));
   linkMesh.name = 'itaipu-yard-fence';
   group.add(linkMesh);
@@ -308,7 +313,8 @@ export async function buildPart(ctx) {
       transformers: yard.transformers.length,
       fence: yard.fence.length,
       solids: solids.length,
-      drawn,
+      /* One mesh, the map's breakable one, with the town's yard gantries. */
+      drawn: { meshes: 1, triangles: kit.triangles() },
       buildMs: Math.round(buildMs),
     }),
   };

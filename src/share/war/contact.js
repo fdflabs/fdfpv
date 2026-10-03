@@ -18,6 +18,13 @@
  * gets there still stops it. The room decides at birth, and a birth
  * record carries one number, not the match's damage as it will be.
  *
+ * A spillway gate's leaf is met where it stands when the attacker gets
+ * there: its chunks (`m`, frame.hinge) turned on their trunnions to the
+ * opening the match's gate state (`gates`, src/share/war/hoist.js
+ * openAt) gives at that room ms, as the room's warhead takes them
+ * (damage.js blast). The state is the one known at birth: a gate the
+ * stage moves later than that is met where the earlier state had it.
+ *
  * THE TEST. The plan is sampled every SAMPLE_MS and each segment between
  * two samples is cut against every chunk's box grown by CONTACT_M on
  * every side (slabs in the box's frame), the earliest entry winning; the
@@ -42,6 +49,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { openAt } from './hoist.js';
+import { leafTurn, turnPoint, unturn } from './leaf.js';
 import { poseAt } from './routes.js';
 import ITAIPU from './itaipu-chunks.js';
 
@@ -54,19 +63,36 @@ const MAPS = { itaipu: ITAIPU };
  * script. A smaller one goes off up to a metre short of the box. */
 export const CONTACT_M = 1.25;
 export const SAMPLE_MS = 50;
+/* The plan cells the structures are filed in, metres: a segment looks
+ * only at the structures in the cells its bounds touch. */
+const CELL = 64;
+/* A leaf's swing, for its structure's bounds: every LEAF_STEP_M of its
+ * lip's travel from shut to its hinge's max. */
+const LEAF_STEP_M = 0.5;
 
-/* Each chunk's box in a form the test reads, and each structure's
- * axis-aligned bounds, grown by CONTACT_M: built once per map. */
+/* Each chunk's box in a form the test reads, each structure's
+ * axis-aligned bounds (a leaf's whole swing in them) grown by CONTACT_M,
+ * and the cells each structure's bounds touch: built once per map. The
+ * bounds and cells only skip what cannot be met, so they change no
+ * answer. */
 const BOXES = new Map();
 function boxesOf(map) {
   let out = BOXES.get(map);
   if (out) {
     return out;
   }
-  out = [];
+  const list = [];
   for (const [id, s] of Object.entries(MAPS[map] ?? {})) {
     const lo = [Infinity, Infinity, Infinity];
     const hi = [-Infinity, -Infinity, -Infinity];
+    const hinge = s.frame.hinge ?? null;
+    const turns = [];
+    if (hinge) {
+      for (let o = 0; o < hinge.max; o += LEAF_STEP_M) {
+        turns.push(leafTurn(hinge, o));
+      }
+      turns.push(leafTurn(hinge, hinge.max));
+    }
     const boxes = s.chunks.map((ch, i) => {
       const e = ch.e;
       const ax = [
@@ -75,20 +101,76 @@ function boxesOf(map) {
         [e[1] * e[5] - e[2] * e[4], e[2] * e[3] - e[0] * e[5], e[0] * e[4] - e[1] * e[3]],
       ];
       const h = ch.h.map((v) => v + CONTACT_M);
-      for (let j = 0; j < 3; j += 1) {
-        /* The box's half reach along world axis j. */
-        const r = (ax[0][j] < 0 ? -ax[0][j] : ax[0][j]) * h[0]
-          + (ax[1][j] < 0 ? -ax[1][j] : ax[1][j]) * h[1]
-          + (ax[2][j] < 0 ? -ax[2][j] : ax[2][j]) * h[2];
-        lo[j] = Math.min(lo[j], ch.c[j] - r);
-        hi[j] = Math.max(hi[j], ch.c[j] + r);
+      const moves = Boolean(hinge && ch.m);
+      if (moves) {
+        /* Every place the leaf takes the box, as spheres about its
+         * centre turned. A point at the leaf's radius moves at most 1.3
+         * times its lip's travel (where the lip is nearest the top of
+         * its arc), so between two steps it is within 0.35 m of one:
+         * the slack, 2 LEAF_STEP_M, covers that with room to spare. */
+        const r = Math.sqrt(h[0] * h[0] + h[1] * h[1] + h[2] * h[2]) + 2 * LEAF_STEP_M;
+        for (const t of turns) {
+          const c = turnPoint(hinge, t, ch.c);
+          for (let j = 0; j < 3; j += 1) {
+            lo[j] = Math.min(lo[j], c[j] - r);
+            hi[j] = Math.max(hi[j], c[j] + r);
+          }
+        }
+      } else {
+        for (let j = 0; j < 3; j += 1) {
+          /* The box's half reach along world axis j. */
+          const r = (ax[0][j] < 0 ? -ax[0][j] : ax[0][j]) * h[0]
+            + (ax[1][j] < 0 ? -ax[1][j] : ax[1][j]) * h[1]
+            + (ax[2][j] < 0 ? -ax[2][j] : ax[2][j]) * h[2];
+          lo[j] = Math.min(lo[j], ch.c[j] - r);
+          hi[j] = Math.max(hi[j], ch.c[j] + r);
+        }
       }
-      return { i, c: ch.c, ax, h };
+      return {
+        i, c: ch.c, ax, h, moves,
+      };
     });
-    out.push({ id, lo, hi, boxes });
+    list.push({
+      id, k: list.length, hinge, lo, hi, boxes,
+    });
   }
+  const cells = new Map();
+  for (const st of list) {
+    for (let i = Math.floor(st.lo[0] / CELL); i <= Math.floor(st.hi[0] / CELL); i += 1) {
+      for (let j = Math.floor(st.lo[2] / CELL); j <= Math.floor(st.hi[2] / CELL); j += 1) {
+        const key = `${i},${j}`;
+        if (!cells.has(key)) {
+          cells.set(key, []);
+        }
+        cells.get(key).push(st);
+      }
+    }
+  }
+  out = { list, cells };
   BOXES.set(map, out);
   return out;
+}
+
+/* The structures whose cells the bounds of a and b touch, each once, in
+ * the order the map lists them. */
+function near(cells, a, b) {
+  const out = [];
+  for (let i = Math.floor(Math.min(a[0], b[0]) / CELL); i <= Math.floor(Math.max(a[0], b[0]) / CELL); i += 1) {
+    for (let j = Math.floor(Math.min(a[2], b[2]) / CELL); j <= Math.floor(Math.max(a[2], b[2]) / CELL); j += 1) {
+      for (const st of cells.get(`${i},${j}`) ?? []) {
+        if (!out.includes(st)) {
+          out.push(st);
+        }
+      }
+    }
+  }
+  return out.sort((x, y) => x.k - y.k);
+}
+
+/* Point p taken into a leaf's rest frame, where its chunks are written,
+ * the leaf standing as `gates` has it at room ms t. */
+function atRest(st, gates, p, t) {
+  return turnPoint(st.hinge, unturn(leafTurn(st.hinge, openAt(gates, st.id, t))), p);
 }
 
 /* Where along the segment a to b (0 at a, 1 at b) it first enters box
@@ -125,16 +207,17 @@ function entry(a, b, bx) {
 
 /*
  * The first contact of a planned attacker (routes.js planAgent) with a
- * structure of `map`: { t (room ms, whole), target, chunk }, or null when
- * its flight meets none before it ends. A plan that never ends (a
- * jammer's park, a hunter's steer) has none.
+ * structure of `map`, its gates' leaves standing as `gates` (the match's,
+ * null for Free Flight's) has them: { t (room ms, whole), target, chunk },
+ * or null when its flight meets none before it ends. A plan that never
+ * ends (a jammer's park, a hunter's steer) has none.
  */
-export function contactAt(map, plan) {
+export function contactAt(map, plan, gates = null) {
   if (!Number.isFinite(plan.tEnd)) {
     return null;
   }
-  const structures = boxesOf(map);
-  if (!structures.length) {
+  const { list, cells } = boxesOf(map);
+  if (!list.length) {
     return null;
   }
   const end = plan.tEnd;
@@ -143,14 +226,18 @@ export function contactAt(map, plan) {
     const t1 = t0 + SAMPLE_MS < end ? t0 + SAMPLE_MS : end;
     const b = poseAt(plan, t1).p.slice();
     let best = null;
-    for (const s of structures) {
+    for (const s of near(cells, a, b)) {
       if (Math.max(a[0], b[0]) < s.lo[0] || Math.min(a[0], b[0]) > s.hi[0]
         || Math.max(a[1], b[1]) < s.lo[1] || Math.min(a[1], b[1]) > s.hi[1]
         || Math.max(a[2], b[2]) < s.lo[2] || Math.min(a[2], b[2]) > s.hi[2]) {
         continue;
       }
+      /* The segment in the leaf's rest frame, each end where the leaf
+       * stands then. */
+      const ar = s.hinge ? atRest(s, gates, a, t0) : null;
+      const br = s.hinge ? atRest(s, gates, b, t1) : null;
       for (const bx of s.boxes) {
-        const e = entry(a, b, bx);
+        const e = bx.moves ? entry(ar, br, bx) : entry(a, b, bx);
         if (e !== null && (!best || e < best.e)) {
           best = { e, target: s.id, chunk: bx.i };
         }

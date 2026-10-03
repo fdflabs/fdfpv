@@ -10,8 +10,9 @@
  * And for the same reason the power lines an attacker can fly into
  * (src/share/war/wires.js): the town part's wire chords as drawn, those
  * of every span within CORRIDOR_M in plan of where some attacker of some
- * mission flies (every wave at one to eight pilots, every attacker of it
- * at no error and both ends of its spread), into
+ * mission flies (every wave at one to eight pilots, on every route and as
+ * every kind its stage may draw, every attacker of it at no error and
+ * both ends of its spread), into
  * src/share/war/itaipu-wires.js.
  *
  *   node scripts/war-targets.js           write the modules
@@ -140,16 +141,27 @@ function corridor() {
     if (m.map !== 'itaipu') {
       continue;
     }
-    for (const w of m.waves) {
+    /* A spawn's every way in, as the stage engine may draw it
+     * (src/share/war/stages.js): each route of a list or of a sector's
+     * family, each kind of a list or a mix. */
+    const routesOf = (w) => (w.route && typeof w.route === 'object' && !Array.isArray(w.route)
+      ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat());
+    const kindsOf = (w) => (w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat());
+    /* A working set's spawn may go for any target the set is drawn from. */
+    const sets = Object.fromEntries(Object.entries(m.sets ?? {}).map(([name, d]) => [name, d.from]));
+    const each = m.waves.flatMap((w) => kindsOf(w).flatMap((kind) => routesOf(w).map((route) => ({ ...w, kind, route }))));
+    for (const w of each) {
       if (w.kind === 'hunter') {
         continue;
       }
       for (let pilots = 1; pilots <= 8; pilots += 1) {
         const n = waveSize(w, pilots);
-        for (let k = 0; k < n; k += 1) {
+        /* Every target of a set, whatever n is. */
+        const ks = w.target && w.target.set ? Math.max(n, sets[w.target.set].length) : n;
+        for (let k = 0; k < ks; k += 1) {
           for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
             const plan = planAgent(m, {
-              id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k),
+              id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k, sets),
             });
             const end = Number.isFinite(plan.tEnd) ? plan.tEnd : plan.phases[plan.phases.length - 1].t1;
             for (let t = 0; t <= end; t += 250) {
@@ -237,12 +249,15 @@ function renderChunks(structures) {
     const f = s.frame;
     rows.push(`  '${id}': {`);
     const bore = f.bore == null ? '' : `, bore: ${mm(f.bore)}`;
-    rows.push(`    part: '${s.part}', water: ${s.water == null ? 'null' : mm(s.water)}, frame: { o: ${list(f.o)}, u: ${list(f.u, um)}, n: ${list(f.n, um)}${bore} },`);
+    const h = f.hinge;
+    const hinge = h ? `,\n      hinge: { p: ${list(h.p)}, a: ${list(h.a, um)}, n: ${list(h.n, um)}, r: ${mm(h.r)}, sill: ${mm(h.sill)}, rest: ${mm(h.rest)}, max: ${mm(h.max)} },\n   ` : '';
+    rows.push(`    part: '${s.part}', water: ${s.water == null ? 'null' : mm(s.water)}, frame: { o: ${list(f.o)}, u: ${list(f.u, um)}, n: ${list(f.n, um)}${bore}${hinge} },`);
     rows.push('    chunks: [');
     for (const ch of s.chunks) {
       const r = ch.r ? `, r: ${list(ch.r)}` : '';
       const w = ch.w ? `, w: [${ch.w.join(', ')}]` : '';
-      rows.push(`      { k: '${ch.k}', c: ${list(ch.c)}, e: ${list(ch.e, um)}, h: ${list(ch.h)}, a: ${ch.a}, l: [${ch.l.join(', ')}]${r}${w} },`);
+      const mv = ch.m ? ', m: 1' : '';
+      rows.push(`      { k: '${ch.k}', c: ${list(ch.c)}, e: ${list(ch.e, um)}, h: ${list(ch.h)}, a: ${ch.a}, l: [${ch.l.join(', ')}]${r}${w}${mv} },`);
     }
     rows.push('    ],');
     rows.push('  },');

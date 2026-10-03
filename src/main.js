@@ -148,6 +148,7 @@ import { createGrid as createWarGrid } from './share/war/grid.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { filmFor } from './share/war/films/index.js';
+import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -3743,10 +3744,13 @@ export async function boot({
     if (briefing && warIntroShown !== roomWar.match() && worldUp) {
       warIntroShown = roomWar.match();
       const briefAt = v.briefAt;
+      /* The match's working sets, for a shot that outlines them. */
+      const targets = WAR_MISSIONS[v.mission]?.targets ?? {};
       warIntroPlay(v.id, {
         mission: v.mission,
         clock: () => roomLinkState.roomNow() - briefAt,
         hold: true,
+        named: Object.values(v.sets ?? {}).flat().filter((id) => targets[id]).map((id) => targets[id].at),
         onSkip: () => {
           const w = roomLinkState.state().welcome;
           if (w && w.host === w.seat) {
@@ -3976,6 +3980,28 @@ export async function boot({
     ui.setWarLobby(ui.screen === 'friends' ? gameLobbyView() : null);
   }
 
+  /*
+   * The match's spillway gates (the war view's `gates`, the stage
+   * engine's stored and replayed state: [{ gate, at, open_m }]) to the
+   * map, which turns its leaves and its water to them on the room clock;
+   * none, Free Flight's. Handed again when it changes or the map is new.
+   */
+  let warGatesKey = null;
+  let warGatesView = null;
+  function warGatesFrame(v) {
+    if (!view || typeof view.setGateState !== 'function') {
+      return;
+    }
+    const gates = Array.isArray(v.gates) && v.gates.length ? v.gates : null;
+    const key = gates ? JSON.stringify(gates) : '';
+    if (key === warGatesKey && view === warGatesView) {
+      return;
+    }
+    warGatesKey = key;
+    warGatesView = view;
+    view.setGateState(gates);
+  }
+
   function roomWarFrame(now, wallMs, dt) {
     warFrameNow = now;
     const scene = shell.quad.parent;
@@ -3996,6 +4022,7 @@ export async function boot({
     warBooms.group.visible = !replay;
     warFeedFrame(wallMs);
     const v = roomWar.view();
+    warGatesFrame(v);
     warTimeFrame();
     warIntroFrame(v);
     warCraftFrame(v);
@@ -4115,8 +4142,9 @@ export async function boot({
     /* A spectator's markers are the watched teammate's: its distances,
      * and a Hunter on it framed, but not said as on this pilot. */
     const watched = warWatch();
+    warMarkers.setNamed(v.sets);
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
-    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched)) && !watched) {
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched), spilling(v.gates, now)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
         warSay(['wave-hunter']);
@@ -8900,6 +8928,7 @@ export async function boot({
   let crashTrees = [];
   let crashTreesFrom = null;
   let crashTreesGen = 0;
+  let crashStaticGen = 0;
   const treePick = [];
   const wirePick = [];
   const solidPick = [];
@@ -9346,6 +9375,14 @@ export async function boot({
   function refreshCrashWorld(st) {
     poseFromState(st, crashProbe);
     crashWorldStale(view.colliders);
+    /* A static solid broke or moved (collide.js staticGen: the war's
+     * damage, a spillway gate's leaf): what was declared from it is
+     * declared again, wherever the craft is. */
+    const gen = view.colliders ? view.colliders.staticGen : 0;
+    if (gen !== crashStaticGen) {
+      crashStaticGen = gen;
+      crashWorldX = NaN;
+    }
     if (crashWorldX === crashWorldX) {
       const dx = crashProbe.x - crashWorldX;
       const dz = crashProbe.z - crashWorldZ;

@@ -568,102 +568,6 @@
     }
    }
   },
-  "brief-itaipu-2-1.en": {
-   "text": "Mission two. They want the spillway gates on the right bank.",
-   "seconds": 3.755,
-   "takes": [
-    {
-     "attempt": 0,
-     "seed": 1798830222,
-     "heard": "Mission 2. They want the spillway gates on the right bank.",
-     "wer": 0.0,
-     "extra": 0,
-     "missing": []
-    }
-   ],
-   "files": {
-    "webm": {
-     "bytes": 17219,
-     "sha256": "1e8782a6865c01b5934fd6a68bba5e9bcb1ed3e37992865372eb76bb397025ca"
-    },
-    "mp3": {
-     "bytes": 17060,
-     "sha256": "5f60574b929505e1250ef7abaf478e9d6a034d84e3d86842d1df0da019b11cca"
-    }
-   }
-  },
-  "brief-itaipu-2-1.es": {
-   "text": "Misión dos. Quieren las compuertas del vertedero, en la margen derecha.",
-   "seconds": 4.645,
-   "takes": [
-    {
-     "attempt": 0,
-     "seed": 2682359813,
-     "heard": "Misión 2. Quieren las compuertas del vertedero en la margen derecha.",
-     "wer": 0.0,
-     "extra": 0,
-     "missing": []
-    }
-   ],
-   "files": {
-    "webm": {
-     "bytes": 21263,
-     "sha256": "ee780e62d6ee7d541ee25ec6ac5db577214829b83bd8132fedd4d188752c6ba4"
-    },
-    "mp3": {
-     "bytes": 19892,
-     "sha256": "e5b7a4e2e2db02278992192390f6c92e3f90c200e6324d40eeeacf5ba16cd85c"
-    }
-   }
-  },
-  "brief-itaipu-2-2.en": {
-   "text": "Loiterers from above, boats down the channel. Keep them off the gates.",
-   "seconds": 4.265,
-   "takes": [
-    {
-     "attempt": 0,
-     "seed": 3566941040,
-     "heard": "Loiterers from above, boats down the channel, keep them off the gates.",
-     "wer": 0.0,
-     "extra": 0,
-     "missing": []
-    }
-   ],
-   "files": {
-    "webm": {
-     "bytes": 19447,
-     "sha256": "dfc139c2428dd5243217846ba2f4ffd5e4a62ec01c2c4fce3c01b1b3b47fb0ea"
-    },
-    "mp3": {
-     "bytes": 17684,
-     "sha256": "bb721b018b6222d3aacfe548011756b1d27633655cc84b06b0e7a6f2ef7bffcb"
-    }
-   }
-  },
-  "brief-itaipu-2-2.es": {
-   "text": "Merodeadores desde arriba, lanchas por el canal. Que no lleguen a las compuertas.",
-   "seconds": 4.865,
-   "takes": [
-    {
-     "attempt": 0,
-     "seed": 1858423713,
-     "heard": "Merodeadores desde arriba, lanchas por el canal, que no lleguen a las compuertas.",
-     "wer": 0.0,
-     "extra": 0,
-     "missing": []
-    }
-   ],
-   "files": {
-    "webm": {
-     "bytes": 22290,
-     "sha256": "693f88333267d1e619bd8b904144fa46713e73c5177f5863ad21eb6e07669198"
-    },
-    "mp3": {
-     "bytes": 20660,
-     "sha256": "c50472e9ccd800ff6b7263806b8c259ee415f30cbdaffe7efd1181c36475fc3a"
-    }
-   }
-  },
   "brief-itaipu-3-1.en": {
    "text": "Mission three. They're after the switchyard. Kill it and both banks go dark.",
    "seconds": 4.905,
@@ -961,116 +865,106 @@
    }
   },
   "debrief-itaipu-2-lose.en": {
-   "text": "Too many gates down. We can't control the river like this. Pull back.",
-   "seconds": 4.965,
+   "text": "Too many gates down. We can't steer the river like this. Pull back.",
+   "speaker": "crest",
+   "seconds": 4.255,
    "takes": [
     {
      "attempt": 0,
-     "seed": 1331007368,
-     "heard": "Too many gates down. We can't control the river like this. Pull back.",
+     "seed": 570082488,
+     "heard": "Too many gates down. We can't steer the river like this. Pull back.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 22512,
-     "sha256": "1dd70a8c0721e4e4a860812bc4f47bd8eb8f53b64a7042006e397af26e463f33"
+     "bytes": 19475,
+     "sha256": "164c9c8becbf73ce2b46df045ad284108dd7ffa86b102c6e23c12a1fef409983"
     },
     "mp3": {
-     "bytes": 21044,
-     "sha256": "4767f679d17baeec7f71a1d3d279d98f1e173f74f5006c9f695e55d7bed25d3e"
+     "bytes": 18404,
+     "sha256": "c49d50274b6aedae0651115d45ba146920bb9ed82142db96e169a24b5b71e7d8"
     }
    }
   },
   "debrief-itaipu-2-lose.es": {
-   "text": "Cayeron demasiadas compuertas. Así no controlamos el río. Repliéguense.",
-   "seconds": 4.945,
+   "text": "Cayeron demasiadas compuertas. Así no manejamos el río. Repliéguense.",
+   "speaker": "crest",
+   "seconds": 4.985,
    "takes": [
     {
      "attempt": 0,
-     "seed": 523993196,
-     "heard": "Cayeron demasiadas compuertas. Así no controlamos el río. Tunepliéguense.",
-     "wer": 0.111,
-     "extra": 0,
-     "missing": [
-      "replieguense"
-     ]
-    },
-    {
-     "attempt": 1,
      "seed": 1981006474,
-     "heard": "Cayeron demasiadas compuertas, así no controlamos el río. Repliéguense.",
+     "heard": "Cayeron demasiadas compuertas. Así no manejamos el río. Repliéguense.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 22596,
-     "sha256": "6faafc98ee4e28ba6d06528c71f33f053ebecf5823224ab6e4fec2b590e40c44"
+     "bytes": 22739,
+     "sha256": "0826631ed66b71f9da1f0b6b47712881abadf0dc67a7c725d2f974714523a0e9"
     },
     "mp3": {
-     "bytes": 20804,
-     "sha256": "852b126e66819fa8f80cfe8121168a9d1acc55a9f19091072335e678241e2972"
+     "bytes": 21548,
+     "sha256": "01ffd23a34f348cf3c7a53899076f41edd86e745d93490ef98bce95453af3c69"
     }
    }
   },
   "debrief-itaipu-2-win.en": {
-   "text": "The gates are still standing. Nice work on the water.",
-   "seconds": 3.345,
+   "text": "The spill held and the river did what we told it. Nice work on the water.",
+   "speaker": "crest",
+   "seconds": 4.495,
    "takes": [
     {
      "attempt": 0,
-     "seed": 586859639,
-     "heard": "The gates are still standing, nice work on the water. What's striding, and the paytarks and metal, which cried up to the spies have seen.",
-     "wer": 1.5,
-     "extra": 15,
-     "missing": []
-    },
-    {
-     "attempt": 1,
      "seed": 3803016662,
-     "heard": "The gates are still standing. Nice work on the water.",
+     "heard": "The spill held, and the river did what we told it. Nice work on the water.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 15363,
-     "sha256": "e67c6b85cb35e135516b5f281bc9a71b7bceb2aa658c9377c3071f4e78f044b9"
+     "bytes": 20483,
+     "sha256": "e105c3ad04389be8c3564d737d9a46aa4c2f6e4cef9c32fb014722dc7b702f95"
     },
     "mp3": {
-     "bytes": 14780,
-     "sha256": "4542ef090d5ba465e34ac29696309b9569e3d0e0c0e204a169b4cb7cc93b7a84"
+     "bytes": 19172,
+     "sha256": "6a3d2c5881fa62e66480a4720dc0e31235e202854c42d7d5ecc47d32e62035ea"
     }
    }
   },
   "debrief-itaipu-2-win.es": {
-   "text": "Las compuertas siguen en pie. Buen trabajo sobre el agua.",
-   "seconds": 3.795,
+   "text": "El vertido aguantó y el río hizo lo que le dijimos. Buen trabajo sobre el agua.",
+   "speaker": "crest",
+   "seconds": 4.995,
    "takes": [
     {
      "attempt": 0,
-     "seed": 3799605694,
-     "heard": "Las compuertas siguen en pie. Buen trabajo sobre el agua.",
+     "seed": 1709694401,
+     "heard": "El vertido aguantó y el río hizo lo que le dijimos. Buen trabajo sobre el agua.",
      "wer": 0.0,
      "extra": 0,
-     "missing": []
+     "missing": [],
+     "tail_ms": 0
     }
    ],
    "files": {
     "webm": {
-     "bytes": 17516,
-     "sha256": "6771c5eea0f14087755858b858a8b1af4e81cfaffe89a240a753e759db15d8e3"
+     "bytes": 22921,
+     "sha256": "89adf5640632bf64d0b96da68707ea4a8e9f049d56521f4e22adad9ee6cf1f38"
     },
     "mp3": {
-     "bytes": 15884,
-     "sha256": "7b3da39378fd934a1a6d8b6d9d6c45c467614a8ccb0408d6705321d39c71b137"
+     "bytes": 20156,
+     "sha256": "6e4ac2923d39d52f03f053530d6c6f0eaecf2191c0f795e7b58eb023af40705d"
     }
    }
   },
@@ -1688,6 +1582,214 @@
     "mp3": {
      "bytes": 19076,
      "sha256": "81bb7869f1ae88368732f9ebfb7d584114c823130a71e29da7c9cfe46a3c1e9f"
+    }
+   }
+  },
+  "film-itaipu-2-1.en": {
+   "text": "It rained upstream all night. The reservoir's at the top of the gates.",
+   "speaker": "crest",
+   "seconds": 4.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3410703590,
+     "heard": "It rained upstream all night, the reservoirs at the top of the gates.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19005,
+     "sha256": "544a6b9c2d4c9d093418a84d2c3c28f2656f6becc05e7c6d77f6f1587f6e94f9"
+    },
+    "mp3": {
+     "bytes": 17348,
+     "sha256": "403fec96b7ddc3ac41c5e42cbc40684c2a95690e6302a25c8b6e4eebf61b1076"
+    }
+   }
+  },
+  "film-itaipu-2-1.es": {
+   "text": "Llovió toda la noche aguas arriba. El embalse está al tope de las compuertas.",
+   "speaker": "crest",
+   "seconds": 4.695,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2489305772,
+     "heard": "Llovió toda la noche aguas arriba. El embalse está al tope de las compuertas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21389,
+     "sha256": "f55e7dc73b38bed25f47742bba3c161c10625b8fff231728b37e08ecb0663447"
+    },
+    "mp3": {
+     "bytes": 19292,
+     "sha256": "76dc8e61763b845425dcf02c4a0b6865f80e05672ab35b60466e68c931b4e440"
+    }
+   }
+  },
+  "film-itaipu-2-2.en": {
+   "text": "They've been gathering in the west arm since noon. They know we have to spill.",
+   "speaker": "mirador",
+   "seconds": 4.475,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3790408191,
+     "heard": "They've been gathering in the West Arm since noon. They know we have to spill.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20264,
+     "sha256": "6d00a00a519b718476d5e8281a6a6066c45f237b938cf0aaaa6ea82f34ffddc2"
+    },
+    "mp3": {
+     "bytes": 20300,
+     "sha256": "7065b3797e6636ebfd1dfa94b1e260ff1d481b435c9c7ce401f194b20824c605"
+    }
+   }
+  },
+  "film-itaipu-2-2.es": {
+   "text": "Se están juntando en el brazo oeste desde el mediodía. Saben que tenemos que verter.",
+   "speaker": "mirador",
+   "seconds": 4.435,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 716938386,
+     "heard": "Se están juntando en el brazo oeste desde el mediodía. Saben que tenemos que verter.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20097,
+     "sha256": "a3aa8c95a7d4963ddf40f5f6312a71553b7c57f166ea99d0da5aaec4320ba6aa"
+    },
+    "mp3": {
+     "bytes": 19028,
+     "sha256": "1def059e9632a8d6e441ad7183809715c7b19be7ec6229d68d9bc23a1e2da80f"
+    }
+   }
+  },
+  "film-itaipu-2-3.en": {
+   "text": "If they take the working gates, we lose control of the river.",
+   "speaker": "crest",
+   "seconds": 3.545,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2136488883,
+     "heard": "If they take the working gates, we lose control of the river.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16358,
+     "sha256": "a86316dd9682c3405a5ecac0ca93f7a5ab02eb5cda18add26265914381fd6398"
+    },
+    "mp3": {
+     "bytes": 14900,
+     "sha256": "6875a1c73b8c5ff1a21fda8f6f09dd767772012d48feda05fb067d91a4ed6298"
+    }
+   }
+  },
+  "film-itaipu-2-3.es": {
+   "text": "Si nos sacan las compuertas que funcionan, perdemos el control del río.",
+   "speaker": "crest",
+   "seconds": 4.015,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1460090842,
+     "heard": "Si nos sacan las compuertas que funcionan, perdemos el control del río.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18540,
+     "sha256": "e3b0808e97bb99084fb20975712d6fa36bf58c412f1bfccdbb24e785f9e0db6b"
+    },
+    "mp3": {
+     "bytes": 17324,
+     "sha256": "3ae362d6472f2751b74423ab26013d406a8d940067c61c7f0a814a2f9b228691"
+    }
+   }
+  },
+  "film-itaipu-2-4.en": {
+   "text": "Opening them now. Keep them alive.",
+   "speaker": "crest",
+   "seconds": 2.755,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3216667740,
+     "heard": "Opening them now. Keep them alive.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12794,
+     "sha256": "c34a3e45146090dfa2119bd02eea2207a106b83ba4d423b44feb568ada26770d"
+    },
+    "mp3": {
+     "bytes": 11924,
+     "sha256": "c5bbbf06799b561dfcd142cd2498ff627f4fc1beff2c93c03b3d139d0e40bb7c"
+    }
+   }
+  },
+  "film-itaipu-2-4.es": {
+   "text": "Abriendo ahora. Manténganlas vivas.",
+   "speaker": "crest",
+   "seconds": 3.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1522890902,
+     "heard": "Abriendo ahora. Mantenganlas vivas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14456,
+     "sha256": "9a94be07375ea2cca9c0e8dc016b7e670f1a55c570560c61863807ff45cf9daa"
+    },
+    "mp3": {
+     "bytes": 13628,
+     "sha256": "309b2993fc274e026fa94a08a2ae145b8b3e67f273eff9a508888283bf1c80bb"
     }
    }
   },
@@ -3278,6 +3380,734 @@
     "mp3": {
      "bytes": 18692,
      "sha256": "1e0375b0331094c8f420e28a5b09dbda5768dff1d7cc0cab21a8bd81fccba35f"
+    }
+   }
+  },
+  "itaipu-2-s0-brief.en": {
+   "text": "Reservoir's high and still rising. We spill this afternoon, whatever they think about it.",
+   "speaker": "crest",
+   "seconds": 5.065,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2656401897,
+     "heard": "Reservoirs high and still rising. We spill this afternoon, whatever they think about it.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 23177,
+     "sha256": "a376ddf44ec4fcd534decea7584d301888df8b918b1d8125702158fa420a3eb6"
+    },
+    "mp3": {
+     "bytes": 21380,
+     "sha256": "c711b1b4b41c9e060a5e594a601664a9b29549fa6d944d0d913dd41b2542a936"
+    }
+   }
+  },
+  "itaipu-2-s0-brief.es": {
+   "text": "El embalse está alto y sigue subiendo. Esta tarde vertemos, piensen lo que piensen ellos.",
+   "speaker": "crest",
+   "seconds": 5.625,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 535530161,
+     "heard": "El embalse está alto y sigue subiendo. Esta tarde vertemos, piensen lo que piensen ellos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 25641,
+     "sha256": "6a1c6f4763710c24fcff9f5f1c79e703d7f4d81add8c2e478a18c675988d089f"
+    },
+    "mp3": {
+     "bytes": 23204,
+     "sha256": "e62a400de0673056f04359be5ce97a7d9a928b3a21bb41793c25ef3427212ecc"
+    }
+   }
+  },
+  "itaipu-2-s0-rules.en": {
+   "text": "They've been watching the right bank all morning. They know which gates move.",
+   "speaker": "mirador",
+   "seconds": 4.285,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1525429848,
+     "heard": "They've been watching the right bank all morning. They know which gates move.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19398,
+     "sha256": "94102499ffae4bba3db21580db70a0873b410707b5338e2be6d9c9c79a96bf23"
+    },
+    "mp3": {
+     "bytes": 20108,
+     "sha256": "5942eab99657c7c14798a2fcdca0548247aa3c8c09cb74866c67802401ff9efa"
+    }
+   }
+  },
+  "itaipu-2-s0-rules.es": {
+   "text": "Estuvieron mirando la margen derecha toda la mañana. Saben qué compuertas se mueven.",
+   "speaker": "mirador",
+   "seconds": 4.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 850385131,
+     "heard": "Estuvieron mirando la margen derecha toda la mañana. Saben qué compuertas se mueven.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19132,
+     "sha256": "c81313743647a09942630ba93aa440eb5f5f794e58f2be1385cb8a8386b5954a"
+    },
+    "mp3": {
+     "bytes": 19676,
+     "sha256": "59a6228d02383ed31ac6d420a47ca31e80d3a3f615bd44bd609ed8936717296f"
+    }
+   }
+  },
+  "itaipu-2-s1-clear.en": {
+   "text": "Good. The gates don't know how close that was.",
+   "speaker": "taller",
+   "seconds": 3.135,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3520879435,
+     "heard": "Good. The gates don't know how close that was.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14413,
+     "sha256": "76d14cf5aa196bdd508119566fa236ee98d8cb3cb1e5836cb5841f95d8bbb1ab"
+    },
+    "mp3": {
+     "bytes": 15116,
+     "sha256": "f625cc3fc0a20b631327bf0ecc2766176c05e7581cbdf80d251cf371f9821d44"
+    }
+   }
+  },
+  "itaipu-2-s1-clear.es": {
+   "text": "Bien. Las compuertas no saben lo cerca que estuvo.",
+   "speaker": "taller",
+   "seconds": 2.925,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4099358141,
+     "heard": "Bien. Las compuertas no saben lo cerca que estuvo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13352,
+     "sha256": "cb2f97665a836974a39583451fbbabbec73038b11b538ab853413427616214f3"
+    },
+    "mp3": {
+     "bytes": 14132,
+     "sha256": "02c92ba4487d629515e88c1057003601245fbcbecd915a0f47d4c0f79c5b2898"
+    }
+   }
+  },
+  "itaipu-2-s1-high.en": {
+   "text": "Loiterers. They'll circle, then drop on the gates. Get above them.",
+   "speaker": "crest",
+   "seconds": 4.525,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 923703800,
+     "heard": "Loiterers. They'll circle, then drop on the gates. Get above them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 20578,
+     "sha256": "00631166c08b13d2825a41db6c98ff3270b0364c3c61e9a0bcfdc12552fa23c4"
+    },
+    "mp3": {
+     "bytes": 17780,
+     "sha256": "69fd2bb679dcc55eee53277bdd389dbba4fefb69a81eb40c524a3d575a7c051d"
+    }
+   }
+  },
+  "itaipu-2-s1-high.es": {
+   "text": "Merodeadores. Van a orbitar y después caer sobre las compuertas. Pónganse encima.",
+   "speaker": "crest",
+   "seconds": 5.815,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1174970730,
+     "heard": "Merodeadores. Van a orbitar y después caer sobre las compuertas. Pónganse encima.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26498,
+     "sha256": "5b07a1d61d72e624e97bd6508d5c22ce8265c0d58b6936af5829766b5c4a20f7"
+    },
+    "mp3": {
+     "bytes": 23588,
+     "sha256": "8802feb0c8e42a8cc8c884574cf7ebc28c5fbbc38fcf1440f6876a75d4727a80"
+    }
+   }
+  },
+  "itaipu-2-s2-fast.en": {
+   "text": "And fast movers right behind them, low up the channel.",
+   "speaker": "crest",
+   "seconds": 3.465,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3267585453,
+     "heard": "and fast movers right behind them, low up the channel.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15931,
+     "sha256": "7c6cd276c02f236dcd392aee1c584c8eda46216bee9d254f1d405101aa247eda"
+    },
+    "mp3": {
+     "bytes": 14828,
+     "sha256": "29c57151a1b14ab489138fd6d8fc693c27aed4b43c1d299295364e0793ab074e"
+    }
+   }
+  },
+  "itaipu-2-s2-fast.es": {
+   "text": "Y atrás vienen rápidos, bajos por el canal.",
+   "speaker": "crest",
+   "seconds": 3.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3230081294,
+     "heard": "Y atrás vienen rápidos, bajos por el canal.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14632,
+     "sha256": "fe9a69a5bc9893f0afb5145341cb2fef2d17f51163de6128f890d0826c55b942"
+    },
+    "mp3": {
+     "bytes": 13580,
+     "sha256": "4d22dd73040d47023140cb222992595854fcd659671adcd905ddd3088cc44fe1"
+    }
+   }
+  },
+  "itaipu-2-s2-wakes.en": {
+   "text": "Wakes in the approach channel. They're using the current.",
+   "speaker": "mirador",
+   "seconds": 3.275,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 941694080,
+     "heard": "wakes in the approach channel. They're using the current.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14950,
+     "sha256": "9829c86eb7a171f7721bfa4e702fc6c33d984e2fcab130ac8aca4a964defcbc9"
+    },
+    "mp3": {
+     "bytes": 15188,
+     "sha256": "2eb401f4e7e7b88febf887088010d625b84105f8d22e358d3fbeca1f39bf641e"
+    }
+   }
+  },
+  "itaipu-2-s2-wakes.es": {
+   "text": "Estelas en el canal de aproximación. Están usando la corriente.",
+   "speaker": "mirador",
+   "seconds": 3.935,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2886941775,
+     "heard": "Estelas en el canal de aproximación. Están usando la corriente.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 17877,
+     "sha256": "7a7d68d4f882c2c13e271d264a6df3b9044de932a7e00038b195d47be6ff2c3a"
+    },
+    "mp3": {
+     "bytes": 18020,
+     "sha256": "2d956dd8ae2ef6fd0a49e5b06ae57ed79b27891d78e345dafd91b363c91a3625"
+    }
+   }
+  },
+  "itaipu-2-s3-failed.en": {
+   "text": "We lost a working gate. Spill on the rest. Protect what's left.",
+   "speaker": "crest",
+   "seconds": 4.305,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2405743388,
+     "heard": "We lost a working gate. Spill on the rest. Protect what's left.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19658,
+     "sha256": "065be308c80f78e69d2867b0b8c4671e16e0fe64b5dd60b48995e18885c1e390"
+    },
+    "mp3": {
+     "bytes": 17756,
+     "sha256": "065465f73a5096b7e882d2366456a980b74c9ea95c7b6b9cb4aae226bc4b39cf"
+    }
+   }
+  },
+  "itaipu-2-s3-failed.es": {
+   "text": "Perdimos una compuerta en servicio. Vertemos con las demás. Protejan lo que queda.",
+   "speaker": "crest",
+   "seconds": 5.905,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4058487608,
+     "heard": "Perdimos una compuerta en servicio. Vertemos con las demás. Protejan lo que queda.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 26937,
+     "sha256": "820e79908387102de92a5d9e6a39b9c88a53d599fa4cb5d4759182c13fa0319d"
+    },
+    "mp3": {
+     "bytes": 24788,
+     "sha256": "9bf7e3538a2949b33c90f24e95a6fbad0303f3f6f91f92c7d9fecfc3b94fc9dc"
+    }
+   }
+  },
+  "itaipu-2-s3-half.en": {
+   "text": "Water's over the sills. Halfway.",
+   "speaker": "mirador",
+   "seconds": 2.865,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 381132711,
+     "heard": "Water's over the sills. Halfway.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13010,
+     "sha256": "0c39162157b220bdcda2dc4259cbb50d7d01a1da933a9612557a855d65417f11"
+    },
+    "mp3": {
+     "bytes": 12668,
+     "sha256": "608012133669b96639da9f306741599f53a12a67eba9a73011fce7ab92d8d061"
+    }
+   }
+  },
+  "itaipu-2-s3-half.es": {
+   "text": "El agua pasa por los umbrales. Vamos por la mitad.",
+   "speaker": "mirador",
+   "seconds": 2.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 136927988,
+     "heard": "El agua pasa por los umbrales. ¡Vamos por la mitad!",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12807,
+     "sha256": "afe7af5d6619eb926e046e166be3cceec9b8fdae449792d7dd33f75b1a2f742d"
+    },
+    "mp3": {
+     "bytes": 12620,
+     "sha256": "c565b00f065539d7afce9d3ec3445ee0425a09f2fd7135a356c01baa037798b9"
+    }
+   }
+  },
+  "itaipu-2-s3-held.en": {
+   "text": "Spill's running. The river is ours to steer.",
+   "speaker": "crest",
+   "seconds": 3.115,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 392413450,
+     "heard": "Spill's running. The river is ours to steer.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14320,
+     "sha256": "06fedefd8678de15e8813b1212b07b76996d5760129e76c10d319f5a84d717b4"
+    },
+    "mp3": {
+     "bytes": 13532,
+     "sha256": "bd1018db993aec04eec55ce86d323b03cffd34141c1a5b43d6990e653a90bcc2"
+    }
+   }
+  },
+  "itaipu-2-s3-held.es": {
+   "text": "El vertido corre. El río lo manejamos nosotros.",
+   "speaker": "crest",
+   "seconds": 3.355,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 16611048,
+     "heard": "El vertido corre. El río lo manejamos nosotros.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15541,
+     "sha256": "7a86392e38194d1a4235aaf5d94dbb1b3bfb9548831dc7aaf3f9ea2554dbc5be"
+    },
+    "mp3": {
+     "bytes": 14276,
+     "sha256": "5019ad7d027d40d6ceb8624f9b4df7c227975aeadb87f691fbf0602eba2ab5fc"
+    }
+   }
+  },
+  "itaipu-2-s3-open.en": {
+   "text": "Opening the working gates now. Keep them alive until the spill is running.",
+   "speaker": "crest",
+   "seconds": 4.315,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3679521759,
+     "heard": "Opening the working gates now. Keep them alive until the spill is running.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 19813,
+     "sha256": "ff954731cb6c84f66e3b99b75b1ed50f56fad7f6cb77fcb3cd23920fa6a772a7"
+    },
+    "mp3": {
+     "bytes": 18140,
+     "sha256": "6f4193fd214b98978be8dcff789e73c27d2486d8c6e55cd366a67180d52f5f01"
+    }
+   }
+  },
+  "itaipu-2-s3-open.es": {
+   "text": "Abrimos las compuertas en servicio. No las dejen caer hasta que corra el vertido.",
+   "speaker": "crest",
+   "seconds": 4.745,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1547889741,
+     "heard": "Abrimos las compuertas en servicio. No las dejen caer hasta que corra el vertido.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 21758,
+     "sha256": "73824f99de6e9828b85261b12dea78203eaf78c47fe603be02076003ae692573"
+    },
+    "mp3": {
+     "bytes": 21236,
+     "sha256": "72baa48c7fafc23ecdf1306346fc59d39d2eeb7018bc62e843571b714041a701"
+    }
+   }
+  },
+  "itaipu-2-s4-all.en": {
+   "text": "Everything's turning for the working gates.",
+   "speaker": "mirador",
+   "seconds": 2.485,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3739135868,
+     "heard": "Everything's turning for the working gates.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11428,
+     "sha256": "76a49aec66e42f6248dcfa9867a6797c3ec695a25d7a1416c01fccf4362d27b5"
+    },
+    "mp3": {
+     "bytes": 12116,
+     "sha256": "2fc831ec940440ca4544eb06242c244a58b673139ac9dc0f73b4a116269b758e"
+    }
+   }
+  },
+  "itaipu-2-s4-all.es": {
+   "text": "Todo está girando hacia las compuertas en servicio.",
+   "speaker": "mirador",
+   "seconds": 2.885,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1426058274,
+     "heard": "Todo está girando hacia las compuertas en servicio.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13246,
+     "sha256": "761cad333318439ddb2ae4ea02c292f7579d68c4a9f75671d07edc1db8ccf070"
+    },
+    "mp3": {
+     "bytes": 12764,
+     "sha256": "c3cc45ee0dd4678a25abf2e3c43f348ac6e21f096c301bedbdffc4e3c7f819b0"
+    }
+   }
+  },
+  "itaipu-2-ta-turn.en": {
+   "text": "Something in the spray. I can't hold it on the scope.",
+   "speaker": "mirador",
+   "seconds": 3.725,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3003543193,
+     "heard": "Something in the spray. I can't hold it on the scope.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16835,
+     "sha256": "2534da3f4213ee3e83c4c2c00fc9462bfc48ea87cdd046c6d79e4bc754570c01"
+    },
+    "mp3": {
+     "bytes": 17372,
+     "sha256": "cf19003dbc117d8100e9abda0ccec5161c035a9f3f38b9d37f66cb7af427b560"
+    }
+   }
+  },
+  "itaipu-2-ta-turn.es": {
+   "text": "Hay algo en la bruma. No lo puedo mantener en pantalla.",
+   "speaker": "mirador",
+   "seconds": 3.295,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 4289037742,
+     "heard": "Hay algo en la bruma. No lo puedo mantener en pantalla.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 14995,
+     "sha256": "774d904de4a1772fc23d02cbea9f1b3560473e8750f849073ee69b0896ebbbc4"
+    },
+    "mp3": {
+     "bytes": 15044,
+     "sha256": "83aedb9011e82ad4fba2c7a82158878df66d492236b692ebb767dba16005d29b"
+    }
+   }
+  },
+  "itaipu-2-tb-turn.en": {
+   "text": "More wakes, out of the west arm. Everyone's too high.",
+   "speaker": "mirador",
+   "seconds": 3.715,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2981643286,
+     "heard": "More wakes, out of the west arm. Everyone's too high.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 16920,
+     "sha256": "21cd60c39b93614e864412cb85e31482d65feb1a1a74c1d3cbb1ac813d117f1b"
+    },
+    "mp3": {
+     "bytes": 16844,
+     "sha256": "1f7dc9eb92c613bd2679f993b1cb7d9a26c241a2d08e094207f7e8f023db2bf7"
+    }
+   }
+  },
+  "itaipu-2-tb-turn.es": {
+   "text": "Más estelas, desde el brazo oeste. Están todos muy altos.",
+   "speaker": "mirador",
+   "seconds": 4.015,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3002533685,
+     "heard": "Más estelas desde el brazo oeste. Están todos muy altos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18162,
+     "sha256": "cd8ae4df4b12a589d8850c60f22f2d021349e5c63b815936616ef72583d31703"
+    },
+    "mp3": {
+     "bytes": 17180,
+     "sha256": "fd7c2ca698b4a611025085003219471c62078ba4883b43c8713d599843391151"
+    }
+   }
+  },
+  "itaipu-2-tc-turn.en": {
+   "text": "Hunters over the chute. Anyone low on the channel, you've got company.",
+   "speaker": "crest",
+   "seconds": 4.145,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 1392660207,
+     "heard": "Hunter's over the chute. Anyone low on the channel you've got company.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 18911,
+     "sha256": "121d615ae123c0ed397560978ac5648720649fa54be7d488ff4c8f5a4ad6f6e7"
+    },
+    "mp3": {
+     "bytes": 17924,
+     "sha256": "bbe8bbb565e3b3fd779f70effe1c510e6841c1e3446603b35bf5c57a5401b8ec"
+    }
+   }
+  },
+  "itaipu-2-tc-turn.es": {
+   "text": "Cazadores sobre el canal de descarga. Los que estén bajos en el canal, tienen compañía.",
+   "speaker": "crest",
+   "seconds": 5.345,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2828774037,
+     "heard": "Cazadores sobre el canal de descarga. Los que estén bajos en el canal tienen compañía.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 24503,
+     "sha256": "5596975cfed7a6d90c27b0ff0f537725156de256acc12746d8d100408ee5d218"
+    },
+    "mp3": {
+     "bytes": 22892,
+     "sha256": "0bdefaf4a59d9ebfad40e2934d2236c3e255ebab142e2ffa74f03efaeaddec14"
     }
    }
   },

@@ -158,7 +158,11 @@
  *                                             where it went off, by the
  *                                             attacker kind or 'defender',
  *                                             cut the power line spans
- *                                             whose gantry fell
+ *                                             whose gantry fell; by
+ *                                             'hoist' and no chunks: a
+ *                                             gate's leaf moved, its
+ *                                             holes told again where they
+ *                                             now are (leafWatch)
  *   { type: 'war', op: 'cue', cues }          a stage's cues as they fall
  *                                             due, each { at, stage,
  *                                             radio | music | cutaway |
@@ -218,7 +222,7 @@ import {
   MISSIONS, missionTime, waveSize, waveTarget,
 } from '../../src/share/war/missions/index.js';
 import {
-  RESULT_MS, allBorn, arm, beatOf, crossings, draw, dueCues, dueSpawns, enter, exitDue, failedAny, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind,
+  RESULT_MS, allBorn, arm, beatOf, crossings, draw, drawSets, dueCues, dueSpawns, enter, exitDue, failedAny, gatesOf, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind, worthOf,
   stagesOf, target as exitTarget, wavesOf,
 } from '../../src/share/war/stages.js';
 import { madeFor, modeById } from '../../src/share/modes.js';
@@ -226,7 +230,11 @@ import { wireStrike } from '../../src/share/war/wires.js';
 import { contactAt } from '../../src/share/war/contact.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
-import { attackerCharge, blast, defenderCharge } from '../../src/share/war/damage.js';
+import {
+  attackerCharge, blast, defenderCharge, leafMoved,
+} from '../../src/share/war/damage.js';
+import { openAt } from '../../src/share/war/hoist.js';
+import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
@@ -345,6 +353,10 @@ const AGENT_MAX_MPS = 80;
 const POINT = { id: 'point' };
 
 const KIND_ID = new Map(KINDS.map((k, i) => [k, i]));
+
+/* A gate's leaf with holes in it is told again (its openings, leafMoved)
+ * at every LEAF_RESEND_M of its lip's travel, and where its hoist stops. */
+export const LEAF_RESEND_M = 0.25;
 
 /* Each map's structures (src/share/war/damage.js); a map with none has
  * nothing a warhead breaks. */
@@ -728,6 +740,12 @@ export class RoomWar {
         })),
         ready: Object.keys(m.stage.ready).map(Number),
       } : null,
+      /* The working sets drawn (stages.js drawSets), and the spillway's
+       * gate state: [{ gate, at, open_m }], each a gate's hoist starting
+       * at room ms `at` toward open_m metres (src/share/war/hoist.js
+       * openAt; the damage, the map and the flood read it, T1.9). */
+      sets: m.sets ?? null,
+      gates: this.gates(),
       airframes: this.airframes(),
       spent: { ...(m.spent ?? {}) },
       earned: { ...(m.earned ?? {}) },
@@ -1081,6 +1099,11 @@ export class RoomWar {
     for (const t of core.seats.values()) {
       this.enlist(t);
     }
+    /* The working sets (stages.js drawSets), drawn as the match starts
+     * so its film shows the same as its stages, for the pilots enlisted;
+     * a restart keeps the ones it had. */
+    this.match.sets = cp ? cp.sets : drawSets(mission, this.match.seed, Math.max(1, this.players(core).length));
+    this.match.gates = cp ? cp.gates.map((g) => ({ ...g })) : [];
     this.nextId += 1;
     /* The room's mission from now on, in a later welcome too: a reload
      * between wars still names it (docs/FLOW-AUDIT.md D7). */
@@ -1270,7 +1293,7 @@ export class RoomWar {
         m.nextAgent += 1;
         const err = blind && w.spread ? mm(w.spread * (2 * draw(m.seed, id) - 1)) : 0;
         const a = {
-          id, kind: slotKind(w, d, k, m.seed, st.entry), route: d.route, t0, k, n, err, target: waveTarget(w, k), wave: w.si,
+          id, kind: slotKind(w, d, k, m.seed, st.entry), route: d.route, t0, k, n, err, target: waveTarget(w, k, m.sets), wave: w.si,
         };
         /* The route turned by the seed's azimuth, and the sector it was
          * drawn from (stages.js enter). */
@@ -1286,8 +1309,9 @@ export class RoomWar {
           a.wire = wire;
         }
         /* Whether it meets a structure short of its aim point, and when:
-         * its warhead goes off there. */
-        const meet = a.target != null ? contactAt(mission.map, planAgent(mission, a)) : null;
+         * its warhead goes off there, a gate's leaf met where the match's
+         * gate state has it then. */
+        const meet = a.target != null ? contactAt(mission.map, planAgent(mission, a), this.gates()) : null;
         if (meet) {
           a.meet = meet.t;
         }
@@ -1412,6 +1436,9 @@ export class RoomWar {
       const stage = this.stageStep(core, roomNow);
       dirty ||= stage.dirty;
       out.push(...stage.out);
+      const moved = this.leafWatch(core);
+      dirty ||= moved.length > 0;
+      out.push(...moved);
     }
     return dirty ? [...this.changed(core), ...out] : out;
   }
@@ -1608,7 +1635,7 @@ export class RoomWar {
     };
     player.kills += killed.length;
     for (const a of killed) {
-      player.mw += a.target != null && a.kind !== 'decoy' ? mission.targets[a.target].mw : 0;
+      player.mw += a.target != null && a.kind !== 'decoy' ? worthOf(mission, m.stage, m, a.target) : 0;
     }
     for (const o of fly) {
       if (o.seat === d.seat || !m.players[o.seat]) {
@@ -1779,9 +1806,18 @@ export class RoomWar {
       if (m.stage) {
         note(m.stage, { t, e: 'down', target: id });
       }
-      m.output = Math.max(0, m.output - target.mw);
-      m.roundMw = (m.roundMw ?? 0) + target.mw;
+      /* A working gate while the spill runs costs more (stages.js worthOf). */
+      const mw = worthOf(this.mission(), m.stage, m, id);
+      m.output = Math.max(0, m.output - mw);
+      m.roundMw = (m.roundMw ?? 0) + mw;
     }
+  }
+
+  /* Every hoist move of the match (stages.js gatesOf): the stages' before
+   * this one, then this one's. */
+  gates() {
+    const m = this.match;
+    return [...(m.gates ?? []), ...(m.stage ? gatesOf(this.mission(), m.stage, m) : [])];
   }
 
   /*
@@ -1800,7 +1836,12 @@ export class RoomWar {
     m.damage ??= [];
     const at = p.map(mm);
     const out = [];
-    for (const r of blast(structures, m.wreck, at, w, mm(t))) {
+    const turnOf = (id) => this.leafTurnAt(structures[id], id, t);
+    for (const r of blast(structures, m.wreck, at, w, mm(t), turnOf)) {
+      /* Where its leaf stood when its holes were last told. */
+      if (r.openings.length && structures[r.target].frame.hinge) {
+        m.wreck[r.target].leafOpen = this.gateOpen(structures[r.target], r.target, t);
+      }
       const e = {
         seq: m.damage.length, ...r, p: at, by,
       };
@@ -1819,6 +1860,59 @@ export class RoomWar {
       this.log.push({
         what: 'damage', t, target: r.target, chunks: r.chunks.length, open: r.openings.length > 0, down: r.down,
       });
+      out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
+    }
+    return out;
+  }
+
+  /*
+   * THE GATES' STATE: the match's hoist moves (gates(), [{ gate, at,
+   * open_m }], the stage engine's, stored with the match and in its
+   * view), each gate's leaf on its hoist (src/share/war/hoist.js), what
+   * a warhead meets and where its holes are (src/share/war/leaf.js). Gate `id`'s opening at
+   * room ms t, within its hinge's travel, and its leaf's turn then.
+   */
+  gateOpen(s, id, t) {
+    const h = s.frame.hinge;
+    const o = openAt(this.gates(), id, t);
+    return o < 0 ? 0 : o > h.max ? h.max : o;
+  }
+
+  leafTurnAt(s, id, t) {
+    return s && s.frame.hinge ? leafTurn(s.frame.hinge, this.gateOpen(s, id, t)) : REST;
+  }
+
+  /*
+   * A gate's leaf with holes in it, moving: its opening told again (an
+   * op 'damage' with no chunks, the same opening id, stamped with the
+   * room ms of the move, never the break's) every LEAF_RESEND_M of its
+   * lip's travel and where its hoist stops, on the judgement's clock (f).
+   */
+  leafWatch(core) {
+    const m = this.match;
+    const structures = STRUCTURES[this.mission().map];
+    if (!structures || !m.wreck) {
+      return [];
+    }
+    const out = [];
+    const t = m.f;
+    for (const [id, st] of Object.entries(m.wreck)) {
+      const s = structures[id];
+      if (!s || !s.frame.hinge || !st.open || st.leafOpen == null) {
+        continue;
+      }
+      const o = this.gateOpen(s, id, t);
+      const stopped = o !== st.leafOpen && o === this.gateOpen(s, id, t + 1000);
+      if (!(Math.abs(o - st.leafOpen) >= LEAF_RESEND_M || stopped)) {
+        continue;
+      }
+      st.leafOpen = o;
+      const r = leafMoved(id, s, st, mm(t), leafTurn(s.frame.hinge, o));
+      if (!r) {
+        continue;
+      }
+      const e = { seq: m.damage.length, ...r, p: null, by: 'hoist' };
+      m.damage.push(e);
       out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
     }
     return out;
@@ -1849,6 +1943,8 @@ export class RoomWar {
       damage: (m.damage ?? []).map((e) => ({ ...e })),
       cut: (m.cut ?? []).slice(),
       path: (m.path ?? []).map((x) => ({ ...x })),
+      sets: m.sets ?? null,
+      gates: this.gates().map((g) => ({ ...g })),
       was: m.was ?? null,
       round: m.round ?? 0,
       roundsIn: m.roundsIn ?? null,
@@ -1858,6 +1954,8 @@ export class RoomWar {
       wave: m.wave,
       nextAgent: m.nextAgent,
     };
+    /* The hoists the stage leaving moved stay where it left them. */
+    m.gates = this.gates();
     m.stage = enter(mission, idx, at, m.seed, m.entries, { was: m.was ?? null, pilots: Math.max(1, this.players(core).length) });
     (m.path ??= []).push({ id: def.id, at });
     m.roundState = 'live';

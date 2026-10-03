@@ -47,6 +47,18 @@
  *              counter  { from, to }: the output counting up
  *              fade     [[t, black 0..1]]
  *              grade    the player's colour grade by name
+ *              scope    the SCOPE insert (INTROS 1.5, TECH-NEEDS T2.8):
+ *                       MIRADOR's radar over the whole frame instead of
+ *                       the world, { at: [x, z], r, groups, appear: [a,
+ *                       b], lines?, marks? }: centred on at, r metres to
+ *                       its rim, north up; the film's agent groups listed
+ *                       as contacts (scopeAt), each appearing in turn
+ *                       between the anchors a and b; lines [[x, z]...]
+ *                       the landmarks drawn, marks [{ key, at: [x, z] }]
+ *                       their names (string keys)
+ *              outline  { from?, to? }: the targets the room names (the
+ *                       match's working set, the player's opts.named)
+ *                       bracketed on the picture between the anchors
  *              hero     { agent, minPx, from?, to? }: the group the shot
  *                       is about, every one of it inside the frame and
  *                       the nearest at least minPx of wingspan on a 1920
@@ -482,4 +494,40 @@ export function lineAt(timed, t, lang) {
 /* Every line of the film in order: [{ line, start, ms: { en, es } }]. */
 export function linesOf(timed) {
   return timed.shots.flatMap((s) => s.lines.map((l) => ({ line: l.line, start: l.start, ms: l.ms })));
+}
+
+/* How long a scope contact's trail is, ms, and its dots' spacing. */
+export const SCOPE_TRAIL_MS = 6000;
+export const SCOPE_TRAIL_STEP_MS = 500;
+
+/*
+ * The SCOPE insert's contacts at shot ms t (film ms tFilm) of a timed
+ * shot with a `scope`: [{ group, id, u, v, trail: [[u, v]...], shown }],
+ * u east and v south of the scope's centre in rims (1 on the rim), from
+ * the same plans the film's attackers fly (placed: placeAgents). A
+ * group's contacts are shown from its turn in the appear window on.
+ */
+export function scopeAt(shot, t, placed, tFilm) {
+  const sc = shot.scope;
+  const [a, b] = (sc.appear ?? [0, 0]).map((x) => anchor(x, shot));
+  const n = sc.groups.length;
+  const out = [];
+  for (const [gi, group] of sc.groups.entries()) {
+    const from = n > 1 ? a + ((b - a) * gi) / (n - 1) : a;
+    for (const x of placed.filter((y) => y.group === group)) {
+      const at = (ms) => {
+        const p = poseAt(x.plan, Math.max(x.plan.t0, Math.min(x.plan.tEnd, ms))).p;
+        return [(p[0] - sc.at[0]) / sc.r, (p[2] - sc.at[1]) / sc.r];
+      };
+      const trail = [];
+      for (let ms = Math.max(x.plan.t0, tFilm - SCOPE_TRAIL_MS); ms < tFilm; ms += SCOPE_TRAIL_STEP_MS) {
+        trail.push(at(ms));
+      }
+      const [u, v] = at(tFilm);
+      out.push({
+        group, id: x.a.id, u, v, trail, shown: t >= from && tFilm >= x.plan.t0,
+      });
+    }
+  }
+  return out;
 }

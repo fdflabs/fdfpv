@@ -1950,8 +1950,9 @@ async function damFlights(page) {
   const at = (u, d, y) => [S.o[0] + S.a[0] * u + n[0] * d, y, S.o[1] + S.a[1] * u + n[1] * d];
   /* Gate 6's bay is u -25.5 to -5.5 (dam/index.js pierU), pier 6 from
    * u -5.5 to 0; the piers' slopes fall from 225 at d 7 to 213 at d 29,
-   * so at d 18 their tops are at 219, and the bridge deck is d -7 to 7,
-   * 222.8 to 225. */
+   * so at d 18 their tops are at 219, and the bridge deck is d -10.5 to
+   * -3.5 (dam/index.js SPILL.deck, upstream of the leaves' swing), 222.8
+   * to 225. */
   const across = [S.a[0], 0, S.a[1]];
   const down = [n[0], 0, n[1]];
   const flights = [
@@ -1960,7 +1961,7 @@ async function damFlights(page) {
     { name: 'across the bays at 222 m, 18 m down from the gates', at: at(-15.5, 18, 222), dir: across, expect: 'passed' },
     { name: 'down gate 6\'s bay at 223.5 m from the bridge\'s downstream edge', at: at(-15.5, 23, 223.5), dir: down, expect: 'passed' },
     { name: 'into pier 6\'s side at 215 m, 18 m down from the gates', at: at(-5.5, 18, 215), dir: across, expect: 'stopped' },
-    { name: 'into the bridge deck\'s downstream edge at 224 m', at: at(-15.5, 7, 224), dir: down.map((q) => -q), expect: 'stopped' },
+    { name: 'into the bridge deck\'s downstream edge at 224 m', at: at(-15.5, -3.5, 224), dir: down.map((q) => -q), expect: 'stopped' },
   ];
   const out = {};
   const mid = at(-15.5, 18, 0);

@@ -1,23 +1,33 @@
 /*
  * og.js: the share card, drawn by the thing it advertises.
  *
- * Every link to fdfpv.example posted anywhere renders a 1200 by 630 image, and
- * a made-up one would drift out of date the first time the world changed.
- * This one cannot: it is a frame of the real shell, rendered by the real
- * renderer, through scripts/shots.js, which is the same harness every
- * rendering bug in this project was found with.
+ * Every link to paraguayandronecombatsimulator.com posted anywhere renders
+ * a 1200 by 630 image, and a made-up one would drift out of date the first
+ * time the world changed. This one cannot: it is a frame of the real shell,
+ * rendered by the real renderer, through scripts/shots.js, which is the
+ * same harness every rendering bug in this project was found with.
  *
  * WHAT THE FRAME IS. The Itaipu key art (assets/keyart/wide.webp, from
  * scripts/loading-art.js and tools/loading-art/grade.py), with the name's
- * lockup over it in a column on the right: PARAGUAYAN over DRONE COMBAT
- * over SIMULATOR with the red, white and blue slash. The lockup is the
- * title's own heading, cloned out of the title, so the base .lockup rules
- * draw it: the title restyles it only under .screen-title, in the
- * bootloader's aesthetic, and the card keeps the look it was shared in.
- * The column and the grade below are the card's own layout, because no
- * screen in the game puts the name over the picture: the boot screen and
- * the menus stand on the bootloader's ground. The run waits for the shell to boot and
- * the boot screen to go, so nothing is captured mid fade.
+ * lockup over it in a column on the right: the flag as a bar ahead of
+ * PARAGUAYAN, DRONE COMBAT in the metal, SIMULATOR between two rules.
+ * The lockup is the title's own .lockup-box, cloned out of the title
+ * (wordmark() in src/ui/ui.js), so the card draws exactly what the game
+ * draws and follows it whenever the mark changes. Cloning the heading
+ * alone would lose the box's rules and draw the base .lockup, the retired
+ * slash. The column and the grade below are the card's own layout,
+ * because no screen in the game puts the name over the picture. The run
+ * waits for the shell to boot, the boot screen to go and
+ * both faces of the name to load, so nothing is captured mid fade or in
+ * the fallback face.
+ *
+ * THE CACHE. WhatsApp, Telegram and the rest keep a link's card for days
+ * against its image URL, so index.html asks for og.png?h= the first 8 hex
+ * of its SHA 256, and this script writes that into index.html whenever it
+ * writes the card here. scripts/og-check.js holds the two together. Not
+ * ?v=, which is the deploy's version stamp (scripts/stamp-version.js), and
+ * scripts/version-check.js reads any ?v= in the checkout as a page that
+ * was stamped and committed.
  *
  * WHY ONLY THE NAME. A share card is read at about 500 px wide in a feed,
  * next to a headline. The name survives the shrink, and it is the one thing
@@ -54,7 +64,8 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, copyFile, mkdir } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdtemp, rm, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -66,29 +77,39 @@ const W = 1200;
 const H = 630;
 
 /*
- * The card, over everything else on the page. The picture's position and
- * the grade are the ones the loading screen gave it when it carried the
- * art, so the card is the one already shared: the right hand third and the
- * foot darkened under the name, the Striker on the left left as rendered.
+ * The card, over everything else on the page. The picture is pushed a
+ * little past cover and to the right, so the Striker sits in the left
+ * third with its prop disc whole and the spillway's plume beside it, and
+ * the dam and the sky on the right are left for the name. A thumbnail is
+ * a small, dim thing, so the picture is lifted a little; the grade then
+ * darkens the right hand side and the foot, so the metal reads against a
+ * dark ground at a feed's 500 px and the flag stays the brightest colour
+ * near it.
  */
 const ART = 'assets/keyart/wide.webp';
-const CARD = 'position:fixed;inset:0;z-index:50;'
-  + `background:#0c0e0d url("${ART}") 30% 50% / cover no-repeat;`;
+const CARD = 'position:fixed;inset:0;z-index:50;background:#0c0e0d;';
+const PICTURE = 'position:absolute;inset:0;'
+  + `background:url("${ART}") 100% 46% / 106% auto no-repeat;`
+  + 'filter:brightness(1.14) contrast(1.06) saturate(1.08);';
 const GRADE = 'position:absolute;inset:0;background:'
-  + 'linear-gradient(90deg, rgba(8, 10, 9, 0) 34%, rgba(8, 10, 9, 0.52) 64%, rgba(8, 10, 9, 0.74) 100%),'
-  + 'linear-gradient(0deg, rgba(8, 10, 9, 0.62) 0%, rgba(8, 10, 9, 0) 34%);';
-const COLUMN = 'position:absolute;top:0;bottom:0;right:6vw;width:min(40vw, 700px);'
+  + 'linear-gradient(90deg, rgba(8, 10, 9, 0) 32%, rgba(8, 10, 9, 0.5) 50%, rgba(8, 10, 9, 0.78) 100%),'
+  + 'linear-gradient(0deg, rgba(8, 10, 9, 0.55) 0%, rgba(8, 10, 9, 0) 30%);';
+const COLUMN = 'position:absolute;top:0;bottom:0;right:4%;width:54%;'
   + 'display:flex;flex-direction:column;justify-content:center;';
 
 const show = `const card = document.createElement('div');`
   + `card.id = 'og-card'; card.style.cssText = ${JSON.stringify(CARD)};`
+  + `const pic = document.createElement('div'); pic.id = 'og-picture'; pic.style.cssText = ${JSON.stringify(PICTURE)};`
   + `const grade = document.createElement('div'); grade.style.cssText = ${JSON.stringify(GRADE)};`
   + `const col = document.createElement('div'); col.style.cssText = ${JSON.stringify(COLUMN)};`
-  + `const name = document.querySelector('.screen-title .lockup').cloneNode(true);`
-  + `name.style.fontSize = 'clamp(56px, 8.5vw, 170px)'; name.style.alignSelf = 'flex-start';`
-  + `col.append(name); card.append(grade, col); document.body.append(card);`
+  + `const name = document.querySelector('.screen-title .lockup-box').cloneNode(true);`
+  + `name.style.width = '100%'; name.style.margin = '0';`
+  + `col.append(name); card.append(pic, grade, col); document.body.append(card);`
   + `window.__ogArt = new Image(); window.__ogArt.src = ${JSON.stringify(ART)};`
   + `'shown'`;
+
+/* Both faces of the name, or the card is shot in the fallback. */
+const FONTS = `[...document.fonts].filter((f) => f.family.includes('Saira Lockup') && f.status === 'loaded').length === 2`;
 
 /* LIBIMAGEQUANT by name, so a Pillow built without it fails here instead
  * of quietly handing back a quantiser that bands the sky. */
@@ -99,6 +120,21 @@ img = Image.open(sys.argv[1]).convert('RGB')
 img.quantize(colors=256, method=Image.Quantize.LIBIMAGEQUANT,
              dither=Image.Dither.FLOYDSTEINBERG).save(sys.argv[2], optimize=True)
 `;
+
+/* og:image and twitter:image, and nothing else, carry the card's URL;
+ * stamped only when the card written is this repository's own. */
+async function stampPage(card) {
+  const v = createHash('sha256').update(await readFile(card)).digest('hex').slice(0, 8);
+  const page = join(root, 'index.html');
+  const html = await readFile(page, 'utf8');
+  const urls = /\/og\.png(\?h=[0-9a-f]+)?"/g;
+  const n = html.match(urls)?.length ?? 0;
+  if (n !== 2) {
+    throw new Error(`index.html names og.png ${n} times, expected og:image and twitter:image`);
+  }
+  await writeFile(page, html.replace(urls, `/og.png?h=${v}"`));
+  console.log(`index.html -> og.png?h=${v}`);
+}
 
 const targets = (process.argv.slice(2).length ? process.argv.slice(2) : ['.'])
   .map((d) => resolve(root, d));
@@ -125,8 +161,9 @@ try {
     /* The art is this card's own background, so this waits for the file
      * to have arrived and decoded as well as for layout. */
     'until:window.__ogArt.complete && window.__ogArt.naturalWidth > 0',
+    `until:${FONTS}`,
     'wait:600',
-    `expect:getComputedStyle(document.getElementById("og-card")).backgroundImage.includes(${JSON.stringify(ART)})`,
+    `expect:getComputedStyle(document.getElementById("og-picture")).backgroundImage.includes(${JSON.stringify(ART)})`,
     'shot:og',
   ], { cwd: root, stdio: 'inherit' });
 
@@ -145,6 +182,10 @@ try {
     await mkdir(dir, { recursive: true });
     await copyFile(card, join(dir, 'og.png'));
     console.log(`og.png -> ${join(dir, 'og.png')}`);
+  }
+
+  if (targets.includes(root)) {
+    await stampPage(card);
   }
 } finally {
   await rm(out, { recursive: true, force: true });

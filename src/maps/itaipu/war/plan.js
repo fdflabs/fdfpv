@@ -112,12 +112,18 @@ function nearest(segs, x, z) {
  * of osm/buildings.json, `ground(x, z)` the terrain. Throws when the data
  * has no yard: the war mission names it.
  */
-export function planYard(power, buildings, ground) {
+/* The yard's outline, [x, z] scene metres (OSM's), from osm/power.json;
+ * null when the data has none. */
+export function yardOutline(power) {
   const sub = power.substations.find((s) => s.id === YARD_ID);
-  if (!sub) {
+  return sub ? sub.outer : null;
+}
+
+export function planYard(power, buildings, ground) {
+  const outline = yardOutline(power);
+  if (!outline) {
     throw new Error(`itaipu yard: osm/power.json has no substation ${YARD_ID}`);
   }
-  const outline = sub.outer;
   const edges = outline.map((p, i) => [p, outline[(i + 1) % outline.length]]);
   const toEdge = (x, z) => nearest(edges, x, z);
   /* The wires over the yard: every span with an end in it or near it. */

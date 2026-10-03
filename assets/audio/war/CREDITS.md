@@ -89,8 +89,6 @@ the text they are spoken from.
 | lose-rack | `voice/en/lose-rack.webm`, `voice/en/lose-rack.mp3`, `voice/es/lose-rack.webm`, `voice/es/lose-rack.mp3` |
 | debrief-itaipu-1-win | `voice/en/debrief-itaipu-1-win.webm`, `voice/en/debrief-itaipu-1-win.mp3`, `voice/es/debrief-itaipu-1-win.webm`, `voice/es/debrief-itaipu-1-win.mp3` |
 | debrief-itaipu-1-lose | `voice/en/debrief-itaipu-1-lose.webm`, `voice/en/debrief-itaipu-1-lose.mp3`, `voice/es/debrief-itaipu-1-lose.webm`, `voice/es/debrief-itaipu-1-lose.mp3` |
-| brief-itaipu-2-1 | `voice/en/brief-itaipu-2-1.webm`, `voice/en/brief-itaipu-2-1.mp3`, `voice/es/brief-itaipu-2-1.webm`, `voice/es/brief-itaipu-2-1.mp3` |
-| brief-itaipu-2-2 | `voice/en/brief-itaipu-2-2.webm`, `voice/en/brief-itaipu-2-2.mp3`, `voice/es/brief-itaipu-2-2.webm`, `voice/es/brief-itaipu-2-2.mp3` |
 | debrief-itaipu-2-win | `voice/en/debrief-itaipu-2-win.webm`, `voice/en/debrief-itaipu-2-win.mp3`, `voice/es/debrief-itaipu-2-win.webm`, `voice/es/debrief-itaipu-2-win.mp3` |
 | debrief-itaipu-2-lose | `voice/en/debrief-itaipu-2-lose.webm`, `voice/en/debrief-itaipu-2-lose.mp3`, `voice/es/debrief-itaipu-2-lose.webm`, `voice/es/debrief-itaipu-2-lose.mp3` |
 | brief-itaipu-3-1 | `voice/en/brief-itaipu-3-1.webm`, `voice/en/brief-itaipu-3-1.mp3`, `voice/es/brief-itaipu-3-1.webm`, `voice/es/brief-itaipu-3-1.mp3` |
@@ -138,5 +136,23 @@ the text they are spoken from.
 | itaipu-1-tc-turn | `voice/en/itaipu-1-tc-turn.webm`, `voice/en/itaipu-1-tc-turn.mp3`, `voice/es/itaipu-1-tc-turn.webm`, `voice/es/itaipu-1-tc-turn.mp3` |
 | itaipu-1-tc-why | `voice/en/itaipu-1-tc-why.webm`, `voice/en/itaipu-1-tc-why.mp3`, `voice/es/itaipu-1-tc-why.webm`, `voice/es/itaipu-1-tc-why.mp3` |
 | itaipu-1-s5-all | `voice/en/itaipu-1-s5-all.webm`, `voice/en/itaipu-1-s5-all.mp3`, `voice/es/itaipu-1-s5-all.webm`, `voice/es/itaipu-1-s5-all.mp3` |
+| film-itaipu-2-1 | `voice/en/film-itaipu-2-1.webm`, `voice/en/film-itaipu-2-1.mp3`, `voice/es/film-itaipu-2-1.webm`, `voice/es/film-itaipu-2-1.mp3` |
+| film-itaipu-2-2 | `voice/en/film-itaipu-2-2.webm`, `voice/en/film-itaipu-2-2.mp3`, `voice/es/film-itaipu-2-2.webm`, `voice/es/film-itaipu-2-2.mp3` |
+| film-itaipu-2-3 | `voice/en/film-itaipu-2-3.webm`, `voice/en/film-itaipu-2-3.mp3`, `voice/es/film-itaipu-2-3.webm`, `voice/es/film-itaipu-2-3.mp3` |
+| film-itaipu-2-4 | `voice/en/film-itaipu-2-4.webm`, `voice/en/film-itaipu-2-4.mp3`, `voice/es/film-itaipu-2-4.webm`, `voice/es/film-itaipu-2-4.mp3` |
+| itaipu-2-s0-brief | `voice/en/itaipu-2-s0-brief.webm`, `voice/en/itaipu-2-s0-brief.mp3`, `voice/es/itaipu-2-s0-brief.webm`, `voice/es/itaipu-2-s0-brief.mp3` |
+| itaipu-2-s0-rules | `voice/en/itaipu-2-s0-rules.webm`, `voice/en/itaipu-2-s0-rules.mp3`, `voice/es/itaipu-2-s0-rules.webm`, `voice/es/itaipu-2-s0-rules.mp3` |
+| itaipu-2-s1-high | `voice/en/itaipu-2-s1-high.webm`, `voice/en/itaipu-2-s1-high.mp3`, `voice/es/itaipu-2-s1-high.webm`, `voice/es/itaipu-2-s1-high.mp3` |
+| itaipu-2-s1-clear | `voice/en/itaipu-2-s1-clear.webm`, `voice/en/itaipu-2-s1-clear.mp3`, `voice/es/itaipu-2-s1-clear.webm`, `voice/es/itaipu-2-s1-clear.mp3` |
+| itaipu-2-s2-wakes | `voice/en/itaipu-2-s2-wakes.webm`, `voice/en/itaipu-2-s2-wakes.mp3`, `voice/es/itaipu-2-s2-wakes.webm`, `voice/es/itaipu-2-s2-wakes.mp3` |
+| itaipu-2-s2-fast | `voice/en/itaipu-2-s2-fast.webm`, `voice/en/itaipu-2-s2-fast.mp3`, `voice/es/itaipu-2-s2-fast.webm`, `voice/es/itaipu-2-s2-fast.mp3` |
+| itaipu-2-s3-open | `voice/en/itaipu-2-s3-open.webm`, `voice/en/itaipu-2-s3-open.mp3`, `voice/es/itaipu-2-s3-open.webm`, `voice/es/itaipu-2-s3-open.mp3` |
+| itaipu-2-s3-half | `voice/en/itaipu-2-s3-half.webm`, `voice/en/itaipu-2-s3-half.mp3`, `voice/es/itaipu-2-s3-half.webm`, `voice/es/itaipu-2-s3-half.mp3` |
+| itaipu-2-s3-held | `voice/en/itaipu-2-s3-held.webm`, `voice/en/itaipu-2-s3-held.mp3`, `voice/es/itaipu-2-s3-held.webm`, `voice/es/itaipu-2-s3-held.mp3` |
+| itaipu-2-s3-failed | `voice/en/itaipu-2-s3-failed.webm`, `voice/en/itaipu-2-s3-failed.mp3`, `voice/es/itaipu-2-s3-failed.webm`, `voice/es/itaipu-2-s3-failed.mp3` |
+| itaipu-2-ta-turn | `voice/en/itaipu-2-ta-turn.webm`, `voice/en/itaipu-2-ta-turn.mp3`, `voice/es/itaipu-2-ta-turn.webm`, `voice/es/itaipu-2-ta-turn.mp3` |
+| itaipu-2-tb-turn | `voice/en/itaipu-2-tb-turn.webm`, `voice/en/itaipu-2-tb-turn.mp3`, `voice/es/itaipu-2-tb-turn.webm`, `voice/es/itaipu-2-tb-turn.mp3` |
+| itaipu-2-tc-turn | `voice/en/itaipu-2-tc-turn.webm`, `voice/en/itaipu-2-tc-turn.mp3`, `voice/es/itaipu-2-tc-turn.webm`, `voice/es/itaipu-2-tc-turn.mp3` |
+| itaipu-2-s4-all | `voice/en/itaipu-2-s4-all.webm`, `voice/en/itaipu-2-s4-all.mp3`, `voice/es/itaipu-2-s4-all.webm`, `voice/es/itaipu-2-s4-all.mp3` |
 | itaipu-1-s5-order | `voice/en/itaipu-1-s5-order.webm`, `voice/en/itaipu-1-s5-order.mp3`, `voice/es/itaipu-1-s5-order.webm`, `voice/es/itaipu-1-s5-order.mp3` |
 <!-- end voice table -->

@@ -22,6 +22,13 @@
  *             last stage), and its first spawn comes ADAPT_LATE later when
  *             the squad ended the last stage with ADAPT_HIGH of its
  *             airframes spent, ADAPT_EARLY sooner under ADAPT_LOW
+ *   sets      { name: { from: [target ids], n: { pilots: k } } }: working
+ *             sets of targets (TECH-NEEDS T1.3, M2's working gates), each
+ *             k of `from` drawn at the go, k the value under the largest
+ *             key not over the pilots then ({ 1: 3, 4: 4 }: 3, and 4
+ *             from 4 pilots). The match keeps them (m.sets, the view's
+ *             `sets`) to the end and over a restart. A spawn's target, a
+ *             hit or a hold's targets name one as { set: name }
  *
  * Its stages are an array; the first is entered at the go. A STAGE:
  *
@@ -51,6 +58,13 @@
  *                          short look at a place (src/render/warcutaway.js)
  *                 text     a string key for the HUD's stage line
  *   exits       [{ when, to, after?, result?, clear?, why? }], below
+ *   worth       { set: factor }: the set's targets cost the output their
+ *               mw times factor when hit in this stage (T1.9: the working
+ *               gates are worth double while the spill runs)
+ *
+ * A hold may open gates: { ..., ms, targets: { set }, open: metres } has
+ * its targets' hoists start toward `open` at the hold's start (gatesOf
+ * below); a target hit on the way stops where it was.
  *
  * A SPAWN is a wave of the old kind, { at, kind, n, per, route, target,
  * spread }, with the dials a seed may turn (MISSIONS.md 1.4), each drawn
@@ -112,7 +126,10 @@
  *                                  (war.js breach(), the dam break)
  *   { ready: true }                every pilot here said ready in the
  *                                  stage ({ type: 'war', op: 'ready' })
- *   { objective: id, is: 'done' | 'failed' }
+ *   { objective: id, is: 'done' | 'failed' | 'active' }
+ *                                  settled so; 'active' when a hold began
+ *   { held: id, f }                a hold `f` of its way through (0 to 1),
+ *                                  unless it failed before then
  *   { visited: stage id }          the match has been in that stage
  *   { all: [triggers] }            the last of them
  *   { any: [triggers] }            the first of them
@@ -160,6 +177,7 @@
  */
 
 import { poseAt } from './routes.js';
+import { FREE_OPEN_M, openAt } from './hoist.js';
 
 /* A round's result shows this long before the next round starts. */
 export const RESULT_MS = 6000;
@@ -180,7 +198,7 @@ export function draw(seed, id) {
 }
 
 const SALT = {
-  at: 0x53544154, route: 0x53545254, az: 0x5354415a, pick: 0x5354504b, sector: 0x53545343, kind: 0x53544b44, mix: 0x53544d58, after: 0x53544146, cue: 0x53544355,
+  at: 0x53544154, route: 0x53545254, az: 0x5354415a, pick: 0x5354504b, sector: 0x53545343, kind: 0x53544b44, mix: 0x53544d58, after: 0x53544146, cue: 0x53544355, set: 0x53545354,
 };
 function drawFor(seed, salt, entry, i) {
   return draw((seed ^ salt) >>> 0, Math.imul(entry, 4099) + i);
@@ -197,6 +215,43 @@ function pickBy(list, u, weights = null) {
     i += 1;
   }
   return list[i];
+}
+
+/* The mission's working sets, drawn at the go for `pilots` pilots (the
+ * mission's `sets`): { name: [ids] }, each in `from`'s order, or null
+ * for a mission with none. A partial shuffle by the seed: every k-subset
+ * as likely as another. */
+export function drawSets(mission, seed, pilots) {
+  if (!mission.sets) {
+    return null;
+  }
+  const out = {};
+  for (const [j, [name, def]] of Object.entries(mission.sets).entries()) {
+    const keys = Object.keys(def.n).map(Number).sort((a, b) => a - b);
+    const key = keys.filter((x) => x <= pilots).at(-1) ?? keys[0];
+    const k = Math.min(def.n[key], def.from.length);
+    const pool = def.from.slice();
+    for (let i = 0; i < k; i += 1) {
+      const r = i + Math.floor(drawFor(seed, SALT.set, j, i) * (pool.length - i));
+      [pool[i], pool[r]] = [pool[r], pool[i]];
+    }
+    const chosen = new Set(pool.slice(0, k));
+    out[name] = def.from.filter((id) => chosen.has(id));
+  }
+  return out;
+}
+
+/* A target spec's ids: an id, a list of them, or { set: name } (the
+ * match's draw, m.sets). */
+export function idsOf(spec, sets) {
+  if (spec && typeof spec === 'object' && !Array.isArray(spec)) {
+    const ids = sets?.[spec.set];
+    if (!ids) {
+      throw new Error(`war: no set ${spec.set} drawn`);
+    }
+    return ids;
+  }
+  return [spec].flat();
 }
 
 /* A round of the old kind, as a stage: it ends when its last attacker but
@@ -259,9 +314,25 @@ export function withWaves(mission) {
   return { ...mission, waves: wavesOf(stagesOf(mission)) };
 }
 
-/* How many of the mission's stages are rounds: the view's `rounds`. */
-export function roundsOf(mission) {
-  return stagesOf(mission).filter((st) => st.round).length;
+/* How many rounds a match of the mission plays: the view's `rounds`. The
+ * round stages on the way from stage `from` to the end along each stage's
+ * first exit, a twist's first branch for a twist (every branch of a twist
+ * is as many rounds as the others: war:stages holds the data to it). Not
+ * every round stage: a twist's other branches are never played. */
+export function roundsOf(mission, from = 0) {
+  const stages = stagesOf(mission);
+  const seen = new Set();
+  let n = 0;
+  let i = from;
+  while (i >= 0 && i < stages.length && !seen.has(i)) {
+    seen.add(i);
+    const st = stages[i];
+    n += st.round ? 1 : 0;
+    let to = st.exits?.[0]?.to ?? 'next';
+    to = to && typeof to === 'object' ? to.pick[0] : to;
+    i = to === 'won' || to === 'lost' ? -1 : to === 'next' ? i + 1 : stages.findIndex((x) => x.id === to);
+  }
+  return n;
 }
 
 /* An angle as the birth carries it, to the milliradian. */
@@ -417,7 +488,7 @@ export function fired(trig, ctx) {
     return ts.length >= n ? Math.max(st.at, ts[n - 1]) : null;
   }
   if (trig.hit != null) {
-    const want = [trig.hit].flat();
+    const want = idsOf(trig.hit, ctx.m.sets);
     const ts = st.ev.filter((x) => x.e === 'down' && want.some((w) => isPart(x.target, w))).map((x) => x.t);
     const n = trig.n ?? 1;
     return ts.length >= n ? ts[n - 1] : null;
@@ -473,7 +544,19 @@ export function fired(trig, ctx) {
   }
   if (trig.objective != null) {
     const o = st.obj[trig.objective];
+    if (trig.is === 'active') {
+      return o?.from ?? null;
+    }
     return o && o.state === (trig.is ?? 'done') ? o.t : null;
+  }
+  if (trig.held != null) {
+    const o = st.obj[trig.held];
+    const def = (stagesOf(mission)[st.idx].objectives ?? []).find((x) => x.id === trig.held);
+    if (o?.from == null) {
+      return null;
+    }
+    const t = o.from + Math.round(def.ms * trig.f);
+    return t <= f && !(o.state === 'failed' && o.t <= t) ? t : null;
   }
   if (trig.visited != null) {
     const v = (ctx.m.path ?? []).find((x) => x.id === trig.visited);
@@ -572,7 +655,7 @@ export function objectivesView(ctx) {
       const ids = [d.destroyed].flat();
       out.progress = [ids.filter((id) => ctx.m.downAt?.[id] != null).length, d.n ?? ids.length];
     } else if (d && d.hit != null) {
-      const want = [d.hit].flat();
+      const want = idsOf(d.hit, ctx.m.sets);
       out.progress = [Math.min(d.n ?? 1, st.ev.filter((x) => x.e === 'down' && want.some((w) => isPart(x.target, w))).length), d.n ?? 1];
     }
     if (o.ms != null) {
@@ -590,6 +673,53 @@ export function objectivesView(ctx) {
     }
     return out;
   });
+}
+
+/* The hoists a stage's opening holds drive, as the view publishes them
+ * for the room's damage, the map and the flood (TECH-NEEDS T1.9): [{ gate,
+ * at, open_m }], each the hoist starting at room ms `at` toward open_m
+ * metres at hoist.js's one rate (openAt reads them). A hold's gates start
+ * at its start; one hit before then never moves, one hit on the way stops
+ * where it was (m.downAt: a target's first hit). m.gates are the moves of
+ * the stages before, which a stop starts from. */
+export function gatesOf(mission, st, m) {
+  const out = [];
+  for (const o of stagesOf(mission)[st.idx].objectives ?? []) {
+    const from = st.obj[o.id]?.from;
+    if (o.open == null || from == null) {
+      continue;
+    }
+    for (const gate of idsOf(o.targets, m.sets)) {
+      const down = m.downAt?.[gate];
+      if (down != null && down <= from) {
+        continue;
+      }
+      out.push({ gate, at: from, open_m: o.open });
+      if (down != null) {
+        out.push({ gate, at: down, open_m: openAt([...(m.gates ?? []), ...out], gate, down) });
+      }
+    }
+  }
+  return out;
+}
+
+/* Whether a mission's spill runs at room ms t: a gate its gates have
+ * raised over Free Flight's opening. */
+export function spilling(gates, t) {
+  return [...new Set((gates ?? []).map((g) => g.gate))].some((gate) => openAt(gates, gate, t) > FREE_OPEN_M);
+}
+
+/* What a hit on `id` costs the output in the stage: its mw, times the
+ * stage's worth for a set holding it. */
+export function worthOf(mission, st, m, id) {
+  const worth = st ? stagesOf(mission)[st.idx].worth : null;
+  let x = 1;
+  for (const [set, f] of Object.entries(worth ?? {})) {
+    if (m.sets?.[set]?.includes(id)) {
+      x *= f;
+    }
+  }
+  return mission.targets[id].mw * x;
 }
 
 /* The triggered spawns whose trigger has now fired get their time; those

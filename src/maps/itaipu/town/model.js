@@ -43,6 +43,7 @@ import {
 } from './plan.js';
 import { layRoads, deckOf } from './roads.js';
 import { layOut, piecesOf, bracesOf, stringsOf } from './power.js';
+import { inside, yardOutline } from '../war/plan.js';
 import { buildBridge } from './bridge.js';
 
 /*
@@ -239,14 +240,17 @@ export async function planTown({
   /* Power. */
   const { structures, wires } = layOut(powerData, ground);
   const pieces = [];
-  /* A gantry's pieces can break (the war's damage): drawn apart from the
-   * sink, in `breakable`, by structure id, each { range, cap }: its range
-   * of that mesh and its index among the streamed caps. */
+  /* A gantry of the right bank yard can break (the war's damage): drawn
+   * apart from the sink, in `breakable`, by structure id, each { range,
+   * cap }: its range of that mesh and its index among the streamed caps.
+   * Every other gantry is the sink's, as ever. */
   const portals = new Map();
+  const yard = breakable ? yardOutline(powerData) : null;
   for (const s of structures) {
     inHero([[s.x, s.z]], `power ${s.id}`);
+    const breaks = s.kind === 'portal' && yard && inside(yard, s.x, s.z);
     for (const p of piecesOf(s)) {
-      if (s.kind === 'portal' && breakable) {
+      if (breaks) {
         const b = breakable.bar(p.slice(0, 3), p.slice(3, 6), p[6], p[6], STEEL);
         portals.set(s.id, [...(portals.get(s.id) ?? []), { range: b.range, cap: pieces.length }]);
       } else {
