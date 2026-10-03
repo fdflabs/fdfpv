@@ -63,6 +63,15 @@ function gateCard(cls, art, name, blurb, facts) {
       h('div', 'gate-card-facts', ...facts.map((f) => h('span', 'gate-card-fact', f)))));
 }
 
+/* The poster is a custom property on the card, as markPoster sets it in
+ * ui.js, which the reel paints; the still and the tag are empty until a
+ * clip is recorded or the world is the one flying. */
+function worldCard(cls, poster, name, tag = '') {
+  return `<div class="map-card has-poster${cls ? ` ${cls}` : ''}" style="--poster: url('${esc(poster)}')">`
+    + h('div', 'map-reel') + h('div', 'map-card-still')
+    + h('div', 'map-card-body', h('div', 'map-card-name', name), h('div', 'map-card-tag', tag)) + '</div>';
+}
+
 function pilot(name, craft, { ready = false, me = false, host = false } = {}) {
   const who = h('div', 'war-lobby-who', h('span', 'war-lobby-name', name),
     ...(host ? [h('span', 'war-lobby-host', str('lobby.host'))] : []), h('span', 'war-lobby-craft', craft));
@@ -216,12 +225,9 @@ export const COMPONENTS = [
     source: 'src/ui/ui.js the maps screen',
     context: ['screen screen-maps', 'map-cards'],
     states: [
-      ['rest', h('div', 'map-card has-poster', h('div', 'map-card-still', `<img src="assets/posters/alps.jpg" alt="">`),
-        h('div', 'map-card-body', h('div', 'map-card-name', str('registry.the_alps'))))],
-      ['cursor', h('div', 'map-card has-poster on', h('div', 'map-card-still', `<img src="assets/posters/swiss2.jpg" alt="">`),
-        h('div', 'map-card-body', h('div', 'map-card-name', str('registry.swiss2'))))],
-      ['chosen', h('div', 'map-card has-poster chosen', h('div', 'map-card-still', `<img src="assets/posters/itaipu.jpg" alt="">`),
-        h('div', 'map-card-body', h('div', 'map-card-name', str('registry.itaipu'))))],
+      ['rest', worldCard('', 'assets/posters/alps.jpg', str('registry.the_alps'))],
+      ['cursor', worldCard('on', 'assets/posters/swiss2.jpg', str('registry.swiss2'), str('ui.flying_now'))],
+      ['chosen', worldCard('chosen', 'assets/posters/itaipu.jpg', str('registry.itaipu'))],
     ],
   },
   {

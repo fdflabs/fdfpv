@@ -36,7 +36,9 @@
     <!-- The playground's own layout only. Every component's look comes
          from index.html's sheet, which playground.js loads at run time. -->
     <style>
-      html, body { margin: 0; overflow: auto; }
+      /* The game's sheet pins html and body to the window and hides their
+         overflow, for a canvas that fills it; this page is a document. */
+      html, body { margin: 0; width: auto; height: auto; overflow: auto; }
       body {
         background: var(--pdcs-bg, #07090a); color: var(--pdcs-text, #d7dddd);
         font-family: var(--pdcs-read, system-ui, sans-serif);
@@ -78,7 +80,7 @@
          many share one page, so each demo's context is put back in the
          page's flow. These rules are the only ones that touch a game class,
          and they change where it sits, never how it looks. */
-      .pg-frame { position: relative; overflow: hidden; }
+      .pg-frame { position: relative; overflow: auto; }
       .pg-frame .screen {
         position: relative; inset: auto; display: block; height: auto; width: auto;
         min-height: 0; padding: 14px 16px; pointer-events: auto;

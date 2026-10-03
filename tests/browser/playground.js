@@ -69,7 +69,9 @@ function framed(context, html) {
     at.append(box);
     at = box;
   }
-  at.insertAdjacentHTML('beforeend', html);
+  /* The pictures are named from the site's root, as the game names them;
+   * this page is two folders down. */
+  at.insertAdjacentHTML('beforeend', html.replace(/(src="|url\(')assets\//g, '$1/assets/'));
   return frame;
 }
 
@@ -131,7 +133,8 @@ async function draw() {
   const page = await (await fetch('/index.html')).text();
   const css = styleOf(page);
   const sheet = node('style');
-  sheet.textContent = css;
+  /* The sheet names its pictures relative to index.html, at the root. */
+  sheet.textContent = css.replace(/url\((['"]?)assets\//g, 'url($1/assets/');
   /* Before the playground's own block, so its frame rules win a tie. */
   document.head.prepend(sheet);
   const groups = drawTokens(css);

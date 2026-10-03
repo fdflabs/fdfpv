@@ -97,7 +97,7 @@ for (const c of drawn) {
   const missing = [...used].filter((cls) => !PLAYGROUND_CLASSES.has(cls) && !sheet.has(cls));
   check(`${c.id}: every class is one the sheet styles`, missing.length === 0, missing.join(', '));
 }
-const pictures = [...new Set(drawn.flatMap((c) => c.states.flatMap(([, html]) => [...html.matchAll(/src="([^"]+)"/g)].map((m) => m[1]))))];
+const pictures = [...new Set(drawn.flatMap((c) => c.states.flatMap(([, html]) => [...html.matchAll(/(?:src="|url\(')([^"']+)/g)].map((m) => m[1]))))];
 const lost = [];
 for (const p of pictures) {
   if (!(await exists(p))) {
