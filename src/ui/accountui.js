@@ -82,6 +82,7 @@ const SYNC_EVERY_MS = 60 * 1000;
 const SYNC_GAP_MS = 30 * 1000;
 const HEALTH_WAIT_MS = 5000;
 const NUDGE_MS = 1400;
+const NUDGE_SAID_MS = 8000;
 
 function el(tag, cls, text) {
   const n = document.createElement(tag);
@@ -366,7 +367,15 @@ export function createAccountUi({ ui, identity, say }) {
     }
     mountGis();
     if (status.hidden) {
-      setStatus(str('account.panel_nudge'));
+      /* Said for a while, then the corner is the panel alone again; a
+       * reason the sign in cannot work stays until it can. */
+      const said = str('account.panel_nudge');
+      setStatus(said);
+      setTimeout(() => {
+        if (status.textContent === said) {
+          setStatus('');
+        }
+      }, NUDGE_SAID_MS);
     }
     panel.classList.remove('is-nudged');
     /* Read back so the class's animation starts again on a second ask. */

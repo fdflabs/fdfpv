@@ -14,8 +14,10 @@
  *
  *   A signs in, brings its pilot in, picks a callsign, and its progress
  *     goes up; the board refuses the callsign to any other key.
- *   B, a guest, joins A's room and sees A's callsign; A sees B's picker
- *     name; B's Pilot screen still offers sign in and B flies as before.
+ *   B, not signed in, is asked into A's room: it is not seated, and the
+ *     sign in panel says to sign in (nobody plays without an account,
+ *     the owner, 2026-10-03). B signs in through the panel's button, and
+ *     the room it was asked into follows: each sees the other's callsign.
  *   A, before C exists, makes two My Hangar builds (a Timber in the
  *     Timber X scheme, a 7 inch carrying the wide payload and the second
  *     pack), wears the 7 inch one, and puts the Striker on its turbojet;
@@ -163,6 +165,10 @@ const pilotRows = "(() => { window.__ui.show('pilot'); return window.__ui.items(
  * so a stale selector fails the check rather than throwing. */
 const chipText = "(document.querySelector('.signin-chip') || {}).textContent || ''";
 const chipVisible = "Boolean(document.querySelector('.signin-chip')) && !document.querySelector('.signin-chip').hidden";
+/* The sign in panel in the chip's place until there is a pilot
+ * (src/ui/accountui.js), and what it says under itself. */
+const panelVisible = "Boolean(document.querySelector('.signin-panel')) && !document.querySelector('.signin-panel').hidden";
+const panelStatus = "(() => { const n = document.querySelector('.signin-panel-status'); return n && !n.hidden ? n.textContent : ''; })()";
 const account = (p) => p.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)}) || 'null')`);
 const pilotKey = (p) => p.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(KEY_STORAGE)}) || 'null') || {}).publicRaw || null`);
 
@@ -206,9 +212,9 @@ async function fly(p) {
 
 async function signInThrough(p, sub, carry) {
   await p.evaluate(`window.__credential = ${JSON.stringify(await idToken(sub))}; window.__ui.onAction('accountsignin'); true`);
-  await p.until("Boolean(document.querySelector('#gis-mock'))", 15000);
-  await p.evaluate("document.querySelector('#gis-mock').click(); true");
-  await p.until(`${dialogTitle}.length > 0 && !document.querySelector('#gis-mock')`, 15000);
+  await p.until("Boolean(document.querySelector('.signin-panel #gis-mock'))", 15000);
+  await p.evaluate("document.querySelector('.signin-panel #gis-mock').click(); true");
+  await p.until(`${dialogTitle}.length > 0`, 15000);
   const asked = await p.evaluate(dialogTitle);
   await p.evaluate(`(() => { const bs = [...document.querySelectorAll('.name-dialog .name-dialog-btn')]; bs[${carry ? 0 : 1}].click(); return true; })()`);
   return asked;
@@ -273,26 +279,23 @@ try {
   check('which build A wears stays A\'s, and the stock 7 inch synced is the pilot\'s own',
     !('buildFits' in held.data) && !(held.data.combat && held.data.combat['7inch']), JSON.stringify(held.data.combat));
 
-  console.log('a guest in A\'s room');
+  console.log('a pilot not signed in, asked into A\'s room');
   const code = await a.evaluate('window.__roomCreate()');
   await a.until("window.__rooms().phase === 'open'", 30000);
   await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
-  for (const p of [a, b]) {
-    await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1", 30000);
-  }
-  const rb = await b.evaluate('window.__rooms()');
-  const ra = await a.evaluate('window.__rooms()');
-  check('the guest sees the signed in pilot by callsign', rb.peers[0].name === 'Maverick', rb.peers[0].name);
-  check('the signed in pilot sees the guest by picker name', /^\S+ \S+ \d\d$/.test(ra.peers[0].name) && ra.peers[0].name !== 'Maverick', ra.peers[0].name);
-  check('the guest is not signed in and still offered it', !(await account(b)) && /Sign in with Google/.test(await b.evaluate(pilotRows)));
-
-  console.log('the title screen offers it too, and signs in through the chip');
+  await b.sleep(1500);
+  check('is not seated, and the sign in panel says to sign in',
+    (await b.evaluate("window.__rooms().phase")) === 'idle' && (await b.evaluate(panelStatus)) === 'Sign in with Google to fly.',
+    JSON.stringify({ phase: await b.evaluate("window.__rooms().phase"), status: await b.evaluate(panelStatus) }));
+  check('and is offered the sign in in Pilot too', !(await account(b)) && /Sign in with Google/.test(await b.evaluate(pilotRows)));
   await b.evaluate("window.__ui.show('title'); true");
-  check('the title shows a Sign in with Google chip', /Sign in with Google/.test(await b.evaluate(chipText)) && (await b.evaluate(chipVisible)));
-  await b.evaluate(`window.__credential = ${JSON.stringify(await idToken('google-sub-chip'))}; document.querySelector('.signin-chip').click(); true`);
-  await b.until("Boolean(document.querySelector('#gis-mock'))", 15000);
-  await b.evaluate("document.querySelector('#gis-mock').click(); true");
-  await b.until(`${dialogTitle}.length > 0 && !document.querySelector('#gis-mock')`, 15000);
+
+  console.log('it signs in through the panel, and the room it was asked into follows');
+  check('the title shows the panel and no pilot chip', (await b.evaluate(panelVisible)) && !(await b.evaluate(chipVisible)));
+  await b.evaluate(`window.__credential = ${JSON.stringify(await idToken('google-sub-chip'))}; true`);
+  await b.until("Boolean(document.querySelector('.signin-panel #gis-mock'))", 15000);
+  await b.evaluate("document.querySelector('.signin-panel #gis-mock').click(); true");
+  await b.until(`${dialogTitle}.length > 0`, 15000);
   /* A brand new Google sub has no account identity yet, so the first sign
    * in dialog (the same one A saw) comes first; a returning one would skip
    * straight to the callsign prompt. */
@@ -302,10 +305,17 @@ try {
   }
   await b.evaluate("(() => { const f = document.querySelector('.name-dialog-input'); f.value = 'Chiprunner'; document.querySelector('.name-dialog .name-dialog-btn.on').click(); return true; })()");
   await b.until(`(${chipText}) === 'Chiprunner'`, 15000);
-  check('clicking the title chip through sign in leaves the callsign on the chip', (await b.evaluate(chipText)) === 'Chiprunner');
+  check('signing in leaves the callsign on the chip, in place of the panel', (await b.evaluate(chipText)) === 'Chiprunner' && !(await b.evaluate(panelVisible)));
+  for (const p of [a, b]) {
+    await p.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1", 30000);
+  }
+  const rb = await b.evaluate('window.__rooms()');
+  const ra = await a.evaluate('window.__rooms()');
+  check('then it is in the room, and sees the other pilot by callsign', rb.code === code && rb.peers[0].name === 'Maverick', rb.peers[0].name);
+  check('and the other pilot sees it by its callsign', ra.peers[0].name === 'Chiprunner', ra.peers[0].name);
 
   const bErrors = b.errors.filter((e) => !e.startsWith('network:'));
-  check('and nothing on the guest\'s page broke', bErrors.length === 0, bErrors.slice(0, 3).join(' | '));
+  check('and nothing on its page broke', bErrors.length === 0, bErrors.slice(0, 3).join(' | '));
   await b.close();
 
   console.log('page C, a second computer');
@@ -366,9 +376,9 @@ try {
   await a.evaluate('window.__accountSync()');
   await c.evaluate('window.__accountSync()');
   check('nor does a sync from either computer bring it back', !(await builds(c)).some((x) => x.id === made.range) && !(await builds(a)).some((x) => x.id === made.range));
-  await c.evaluate("window.__ui.show('pilot'); window.__ui.onAction('accountsignout'); true");
-  await c.until(`!localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)})`, 15000);
-  await c.sleep(300);
+  /* Signing out starts the page again (src/ui/accountui.js). */
+  await c.evaluate("window.__beforeSignOut = true; window.__ui.show('pilot'); window.__ui.onAction('accountsignout'); true");
+  await c.until(`!window.__beforeSignOut && window.__shellReady === true && !localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)})`, 300000);
   const cAfter = await pilotKey(c);
   check('signing out gives the computer its own pilot key back', Boolean(cGuest) && cAfter === cGuest, `${cGuest} ${cAfter}`);
   res = await fetch(`${T}/api/account`, { headers: { authorization: `Bearer ${acc.session}` } });

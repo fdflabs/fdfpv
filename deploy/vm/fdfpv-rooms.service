@@ -28,8 +28,9 @@ User=fdfpv-rooms
 Group=fdfpv-rooms
 WorkingDirectory=/opt/fdfpv
 Environment=HOST=127.0.0.1 PORT=8797 PUBLIC_ROOMS=on ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db
-# A signed in pilot's callsign is asked of the tracks server beside this
-# one, over loopback (edge/rooms/node.js sessionCallsign).
+# Every seat's session is checked with the tracks server beside this one,
+# over loopback, and a seat without one is refused (edge/rooms/node.js
+# helloAccount).
 Environment=ACCOUNTS_ORIGIN=http://127.0.0.1:8787
 EnvironmentFile=/etc/fdfpv/tracks.env
 # Voice chat's TURN relay: TURN_SECRET and TURN_URLS, made by
