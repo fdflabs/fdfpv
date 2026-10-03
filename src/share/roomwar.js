@@ -379,10 +379,11 @@ export function createRoomWar(send) {
 
     /* Host only, the room checks. With intro, the room holds a briefing
      * of INTRO_MS (src/share/war/intro.js) before the countdown, for
-     * every screen to play the intro over; skipIntro cuts it short. */
-    start(missionId, { intro = false } = {}) {
+     * every screen to play the intro over; skipIntro cuts it short. With
+     * from 'checkpoint', a lost mission again from its lost stage. */
+    start(missionId, { intro = false, from = null } = {}) {
       send({
-        type: 'war', op: 'start', mission: missionId, ...(intro ? { intro: true } : {}),
+        type: 'war', op: 'start', mission: missionId, ...(intro ? { intro: true } : {}), ...(from ? { from } : {}),
       });
     },
     skipIntro() {

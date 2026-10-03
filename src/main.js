@@ -2624,7 +2624,8 @@ export async function boot({
     host: () => roomHost(roomLinkState.state().welcome),
     go: async (v) => {
       if (await warConsented()) {
-        roomWar.start(v.mission);
+        /* A lost mission again from the stage it was lost in. */
+        roomWar.start(v.mission, { from: v.state === 'lost' && v.checkpoint ? 'checkpoint' : null });
       }
     },
     back: () => (warBackAt != null && warLobby() ? Math.max(0, Math.ceil((warBackAt - performance.now()) / 1000)) : null),

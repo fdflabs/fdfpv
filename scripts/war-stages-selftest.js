@@ -49,7 +49,9 @@ import {
 } from '../src/share/roomwire.js';
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
-import { BIRTH_LEAD_MS, MISSIONS } from '../edge/rooms/war.js';
+import {
+  BIRTH_LEAD_MS, MISSIONS, RESTART_STARS, resultOf,
+} from '../edge/rooms/war.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
   beatOf, enter, failedAny, fired, note, objectives, objectivesView, slotKind, stagesOf,
@@ -750,6 +752,59 @@ console.log('the room: a line crossed, a sector and a mix in the births');
     `${v.state} ${v.endAt} vs ${first}`);
   check('the births carry the sector and each slot\'s kind from the mix', born.length === 6 && born.every((a) => a.sector === 'FAR' && a.route === 'far')
     && new Set(born.map((a) => a.kind)).size === 2, born.map((a) => a.kind).join(','));
+}
+
+console.log('the room: a restart from the lost stage');
+{
+  const LOSE = {
+    ...STORY,
+    id: 'lose-test',
+    floorMw: 2500,
+    sectors: { W: ['w', 'w2'] },
+    stages: [
+      { id: 'quiet', spawns: [], exits: [{ when: { time: 3 }, to: 'next', after: 0 }] },
+      {
+        id: 'strike',
+        title: 'war.stage.test',
+        spawns: [{
+          at: [2, 6], kind: ['strike', 'fpv'], n: 1, route: { sector: 'W' }, target: 'a', az: [-0.2, 0.2],
+        }],
+        exits: [{ when: { time: 200 }, to: 'won' }],
+      },
+    ],
+  };
+  const e = warRoom(LOSE, { seed: 0.3 });
+  e.fly(GO + 80000);
+  const lost = e.view();
+  const first = e.of(0, 'born').flatMap((m) => m.agents);
+  const stageAt = e.of(0).map((m) => m.war).find((w) => w.stage && w.stage.id === 'strike').stage.at;
+  check('the match is lost in its second stage, and the view offers that stage', lost.state === 'lost' && lost.checkpoint && lost.checkpoint.stage === 'strike' && lost.checkpoint.n === 1,
+    JSON.stringify(lost.checkpoint));
+  const told = e.of(0).length;
+  e.say(1, { type: 'war', op: 'start', mission: LOSE.id, from: 'checkpoint' });
+  const byGuest = e.of(0).length - told;
+  e.say(0, { type: 'war', op: 'start', mission: LOSE.id, from: 'checkpoint', intro: true });
+  const again = e.of(0).slice(told).map((m) => m.war);
+  check('only the host restarts it, and with no briefing even when asked for one', byGuest === 0 && again.length > 0 && again[0].state === 'countdown' && again[0].restarted === 'strike',
+    `${byGuest} ${JSON.stringify(again[0] && again[0].state)}`);
+  const bornAt = e.of(0, 'born').length;
+  e.fly(e.clock + COUNTDOWN_MS + 12000);
+  const v = e.view();
+  const second = e.of(0, 'born').slice(bornAt).flatMap((m) => m.agents);
+  const rel = (list, at) => list.map((a) => ({
+    kind: a.kind, route: a.route, sector: a.sector, az: a.az, err: a.err, id: a.id, dt: a.t0 - at,
+  }));
+  check('it opens on that stage at the go, with the output the stage opened with', v.stage && v.stage.id === 'strike' && v.stage.at === v.goAt && v.output === 3000,
+    JSON.stringify(v.stage && v.stage.id));
+  check('and the seed draws the stage as it drew it: kind, sector, route, bearing, time, id and error', JSON.stringify(rel(first, stageAt)) === JSON.stringify(rel(second, v.stage.at)),
+    `${JSON.stringify(rel(first, stageAt))} vs ${JSON.stringify(rel(second, v.stage.at))}`);
+  const capped = resultOf({ starMw: 0, floorMw: 0 }, {
+    state: 'won', results: ['win'], lossy: false, output: 1, players: {}, restarted: 'strike',
+  });
+  const full = resultOf({ starMw: 0, floorMw: 0 }, {
+    state: 'won', results: ['win'], lossy: false, output: 1, players: {},
+  });
+  check(`a won restart earns ${RESTART_STARS} stars at most`, full.stars === 3 && capped.stars === RESTART_STARS);
 }
 
 console.log('the client: what a screen makes of it');

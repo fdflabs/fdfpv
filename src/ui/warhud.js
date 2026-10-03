@@ -577,7 +577,9 @@ export function createWarHud(nameOf, restart = null) {
     banner.style.display = over ? 'block' : 'none';
     if (over) {
       banner.firstChild.nodeValue = endText(v);
-      again.textContent = back != null ? str('war.back_lobby', { n: back }) : str(host ? 'war.restart' : 'war.restart_wait');
+      const fromStage = v.state === 'lost' && v.checkpoint;
+      again.textContent = back != null ? str('war.back_lobby', { n: back })
+        : !host ? str('war.restart_wait') : fromStage ? str('war.restart_stage', { n: v.checkpoint.n + 1 }) : str('war.restart');
       again.style.cursor = host ? 'pointer' : 'default';
       again.style.background = host ? GREEN : 'transparent';
       again.style.color = host ? '#04100a' : DIM;

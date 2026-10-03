@@ -2965,6 +2965,7 @@ export default {
   "war.next_round": "PRÓXIMA RONDA EN {t}",
   "war.next_unknown": "PRÓXIMA OLEADA: SIN DATOS AÚN",
   "war.restart": "REINICIAR MISIÓN",
+  "war.restart_stage": "REINICIAR DESDE LA FASE {n}",
   "war.restart_wait": "ESPERANDO QUE EL ANFITRIÓN REINICIE",
   "war.back_lobby": "DE VUELTA A LA SALA DE ESPERA EN {n}",
   "lobby.title": "SALA DE ESPERA",
