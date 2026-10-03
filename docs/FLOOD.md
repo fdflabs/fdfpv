@@ -19,10 +19,12 @@ scripted path.
 | `src/sim/water/host.js` | stepping on the room's clock from the openings, rewinds, late joiners |
 | `src/maps/itaipu/water/bed.js` | the bed, its classes and the gates' cells; packing it |
 | `src/maps/itaipu/water/itaipu-flood.json`, `.bin` | the shipped bed, built in Node |
+| `src/maps/itaipu/water/itaipu-flood-warm.bin` | the shipped warmed state, the turbines' river |
 | `src/maps/itaipu/water/flood.js` | the Itaipu flood: boundaries, turbines, gates, openings, gauges |
 | `src/maps/itaipu/water/live.js` | the flood in the page: `map.onOpening`, a slice a frame |
 | `scripts/water-check.js` | `npm run water:check`, the known answers (CI, Node; Chrome locally) |
-| `scripts/water-itaipu.js` | `npm run water:itaipu`, the prototype on the real map (local: needs the data) |
+| `scripts/water-itaipu.js` | `npm run water:itaipu`, the prototype on the real map (local: needs the data); `--write` writes the shipped files |
+| `scripts/water-bench.js` | `npm run water:bench`, the cost in Node and in Chrome |
 
 ## The frame
 
@@ -110,8 +112,13 @@ bit on every engine, and because building it took over a second.
   the piers' pitch, 5.093 m, so every pier is a column, every bay four columns
   (20.37 m for the gates' 20) and the gates a row. On a grid along the map's
   axes the bays were 19.6 degrees off it, a staircase of 4 m cells that passed
-  about 60 % of what the same opening passes on this grid. 287 by 287 cells,
-  82 369, from 150 m in front of the gates to some 850 m below the lips.
+  about 60 % of what the same opening passes on this grid.
+- **Two blocks** (the lead's budget decision, 2 October): 288 by 160 cells of
+  5.093 m from 150 m in front of the gates to some 650 m down the chute, below
+  the plunge pool, then 144 by 96 of 10.187 m for the river on to some 1630 m.
+  59 904 cells. The coarse cells are the mean of the fine raster's two by two,
+  which keeps the volume under any level. The join is exact for mass and still
+  water (water:check's join cases).
 - **The ground** is the drawn ground, the hero tiles cut to the concrete
   (`terrain/conform.js`, the #336 cut), read as the terrain draws it.
 - **Under the water** the data has no bed: the pipeline lowered the ground in
@@ -128,8 +135,29 @@ bit on every engine, and because building it took over a second.
 - **Still water** stands wherever it reaches under its level (a fill from each
   body), not only inside the outlines.
 
-The spillway's layout restates `dam/index.js`'s `SPILL`, which is the DAMAGE
-agent's file and does not export it.
+The spillway's layout restates `dam/index.js`'s `SPILL`. The DAMAGE agent has
+exported it on its branch (9d6f2360); `bed.js` imports it once that is on main.
+
+## The baseline: the turbines, the gates shut
+
+The lead's decision (2 October): the river the turbines run, the spillway's
+gates shut unless a mission opens them (`makeFlood`'s `gates`). The turbines are
+20 Francis units of 715 MW at their rated 690 m3/s each, 13 800 m3/s (Itaipu
+Binacional, *Hidreletrica de Itaipu: Aspectos de Engenharia*, 2009, ISBN
+978-85-61885-02-1, as the Portuguese Wikipedia's article on the plant cites it).
+The flood warms up for 2400 s from still water; from 2100 s the river lets out
+what the turbines give to 0.04 % and every station's level is still to the
+millimetre. That warmed state is shipped (`itaipu-flood-warm.bin`), checked
+against a rerun to the byte, and loaded with the solver on the first opening.
+
+**The tailwater it stands at** is the solver's answer, and it differs from the
+drawn 103.5 m: 104.08 m where the tailrace meets the plunge pool, 104.45 m at
+the pool's deep water, falling to 104.17, 103.84, 103.87 and 103.52 m down the
+river to the grid's south edge, where the level is held at 103.5 m. Itaipu
+publishes 104.00 m as its normal tailwater (docs/ITAIPU-PLAN.md section 5). The
+drawn water is 0.6 to 0.95 m under the solver's for the first 600 m below the
+dam; changing it is the lead's to route.
+
 
 ## The clock
 
@@ -164,57 +192,63 @@ The page steps on the map's animation clock, which in a room is the room's
 | the room clock | five clients, one hash | one hash |
 | Node and Chrome | every case's hash identical | identical, all nine, at b574fcb0 (2 October); not run since the link's tail cells, the face fluxes and the room clock case, Chrome runs being held |
 
-`npm run water:itaipu` (local, needs the data; the 2 October full run):
+The join, `water:check`: still water across it for 10 min under 1e-9 m/s
+(4.7e-15); a dam break through it conserves the volume to 1e-12; a channel down
+through it runs at Manning's normal depth on both sides (2.2270 and 2.2286 m
+against 2.2259). The room clock: also a replay's clock taken back 5 s and 12 s,
+and forward again, holds the water of then and of now.
 
-- the shipped bed is the one built now, byte for byte;
-- the lake at rest on the real terrain, 10 min: fastest current 2.8e-14 m/s,
-  levels exact, volume 1.2e-14;
-- the warm up, 600 s from still water with the 14 gates 5 m open and the
-  turbines (20 x 645 m3/s): the gates pass 15 528 m3/s (gate 3 1110, by hand at
-  219 m 1125), the reservoir supplies it to 0.01 %, the river lets out 29 011
-  against 28 428 coming in, still settling; volume to 2.9e-14; Courant 0.20;
-- gate 3 notched (the DAMAGE agent's opening): 1320 m3/s gauged below the gate,
-  the notch's share some 210 against 309 by hand (Cd 0.61);
-- gate 3 gone: 2376 m3/s gauged, against the handbook's ogee 3862 (0.62) and the
-  shallow water equations' own critical flow over the crest 3013 (0.79). The
-  energy profile down the bay shows where: 1.9 m of head is lost in the one cell
-  where the flow converges between the square pier fronts into the bay, the
-  first order scheme's dissipation at a strong contraction (2.55 m cells gave
-  the same: it is the scheme, not the grid);
-- the river: a 0.14 to 0.24 m rise along the thalweg; the 5 cm front between
-  stations past the plunge's near field at 22.1 and 19.0 m/s against sqrt(g h) +
-  u of 21.4 and 21.6;
-- volume through every opening run to 1e-14;
-- cost: 2.5 to 3.0 ms a step at 34 000 wet cells of 82 369 (Node, this
-  machine), 76 to 92 ns per cell per step all wet.
+`npm run water:itaipu` (local, needs the data; the 2 October full run on the
+baseline):
+
+- the shipped bed and the shipped warmed state are the ones built now, byte for
+  byte;
+- the lake at rest on the real terrain, 10 min: fastest current 1.9e-14 m/s,
+  levels exact, volume 2.8e-15;
+- the warm up, 2400 s: the river lets out 13 799 m3/s for the turbines' 13 800;
+  volume to 4.4e-14; Courant 0.15;
+- gate 3 notched (the DAMAGE agent's opening, 10 m from 212.33 m): 197 m3/s
+  gauged below the gate, against 310 by hand (sharp edged notch, Cd 0.61) and the
+  shallow water equations' critical flow over its crest 294: 0.63 and 0.67;
+- gate 3 gone: 2224 m3/s against the handbook's ogee 3862 (0.58) and critical
+  flow over the crest 3013 (0.74). **A known limit of v1** (the lead, 2
+  October: first order stays): the energy profile down the bay shows 1.9 m of
+  head lost in the one cell where the flow converges between the square pier
+  fronts into the bay, the first order scheme's dissipation at a strong
+  contraction; 2.55 m cells gave the same, so it is the scheme, not the grid. A
+  second order reconstruction is the follow up, once the budget has room;
+- the river under gate 3 gone: 0.73 m of rise where the water lands, 0.13 m at
+  the grid's south edge after 5 min; the 5 cm front past the plunge's near field
+  at 15.6, 16.1 and 13.1 m/s between stations against sqrt(g h) + u of 17.3,
+  17.2 and 17.1 (6 to 23 % slow: the front smears as it spreads and weakens,
+  and a 5 cm threshold lags it);
+- volume through every opening run to 2e-14;
+- cost (Node, this machine, `npm run water:bench -- --no-chrome`): 1.47 ms a
+  step (worst slice 1.96) at 18 200 wet cells of 59 904, with gate 3 gone.
 
 ## Budgets
 
-- Solver: 2.5 to 3 ms a step at 50 steps a second is 125 to 150 ms of every
-  second, over the contract's "well under 2 ms a step". A 3 ms frame slice
-  keeps up at 60 frames a second only while the flood is cheap.
-- Memory: the solver's arrays 12 doubles a cell (7.9 MB), the host's snapshots
-  4 x 3 doubles a cell (7.9 MB), the bed in JS 0.7 MB: some 17 MB.
-- Data: the shipped bed 330 kB and 66 kB, fetched on the first opening.
+- Solver: Node 1.47 ms a step. The room needs 50 steps a second, 74 ms of every
+  second; live.js's 3 ms slice in each of 60 frames takes some 122. **Chrome is
+  the measure** (the lead): `npm run water:bench` times the same flood in Chrome
+  and holds its hash to Node's; it is not yet run, browser runs being held.
+- Memory: the solver's arrays 12 doubles a cell (5.8 MB), the host's snapshots
+  4 x 3 doubles a cell (5.8 MB), the bed in JS 0.5 MB: some 12 MB, only once the
+  dam opens.
+- Data, fetched on the first opening only: the bed 240 kB and 66 kB, the warmed
+  state 490 kB, the wasm 19 kB: 815 kB (the lead's ceiling: 2 MB).
 - Rendering: none yet.
 
-## Open: the lead's decisions
+## The lead's decisions (2 October)
 
-1. **Openings open to the sky**: the shallow water equations through the cut
-   cells (real geometry, and the flow mutates as the hole does, but some 60 %
-   of the handbook for a whole gate gone), or a second order reconstruction
-   (MUSCL with the hydrostatic reconstruction, Audusse et al. 2004 section 3),
-   which is the known cure for this loss at about twice the cost.
-2. **The budget**: a Web Worker for the flood (CLAUDE.md keeps Stage 1 on the
-   main thread), coarser cells on the river below the plunge pool (a second
-   block at 10 m: a quarter of the cells and half the steps there), or both.
-3. **The baseline**: the flood starts still at the origin and the spillway
-   fills from it. A warmed, running state shipped like the bed (some 0.8 MB)
-   would start every client on the running river; or the room could step it.
-4. **The baseline flows**: 14 gates at 5 m and the turbines are 28 400 m3/s,
-   which stands the river near the plunge some 5 m over its drawn 103.5 m at 6
-   to 9 m/s; the turbines' 645 m3/s a unit is to be confirmed.
-5. **Generated binaries in the repository**: the shipped bed (330 kB), and a
-   warmed state if (3) is taken; or they go to the data repository.
-6. **The spillway's layout**: an export of `dam/index.js`'s `SPILL` from the
-   DAMAGE agent, so it is not restated here.
+1. Open to the sky: the shallow water equations through the cut cells, first
+   order, the whole gate shortfall a documented limit (above). Second order
+   later, when the budget has room.
+2. The budget: coarser cells below the plunge pool (done: two blocks), no
+   worker; measured in Chrome; a worker is the lead's call if it is still over.
+3. The warmed state: shipped, loaded with the solver on the first opening.
+4. The baseline: the turbines only, the gates shut; the solver's tailwater is
+   the truth (above).
+5. The binaries stay in the repository, lazily loaded, under 2 MB in all.
+6. `SPILL` exported by the DAMAGE agent; the clock (`at` is always room ms) and
+   the replay of openings into a reloaded map are theirs and done.

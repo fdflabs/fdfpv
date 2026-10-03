@@ -108,15 +108,19 @@ const SPILL = {
   gate: [-6.5, -5],
 };
 
-/* The prototype's grid in the chute's frame (docs/FLOOD.md): cells of a
- * fifth of the piers' pitch; WEST cells west of the westmost pier's
- * column and NORTH rows upstream of the gates' row, NX by NZ: the
- * reservoir 150 m in front of the spillway, the spillway, the chute,
- * and the river from the tailrace's bend to some 850 m below the lips. */
+/* The grid in the chute's frame (docs/FLOOD.md): cells of a fifth of
+ * the piers' pitch; WEST cells west of the westmost pier's column and
+ * NORTH rows upstream of the gates' row, NX across. FINE rows of them, to
+ * some 650 m down the chute, below the plunge pool: the reservoir 150 m
+ * in front of the spillway, the spillway, the chute, the plunge pool and
+ * the tailrace's bend. Then COARSE rows of cells twice as big (the
+ * lead's budget decision, 2 October), the river to some 1630 m down. */
 const PER_PITCH = 5;
 const WEST = 118;
 const NORTH = 30;
-export const FLOOD_GRID = { nx: 287, nz: 287 };
+const FINE = 160;
+const COARSE = 96;
+export const FLOOD_GRID = { nx: 288, nz: FINE + 2 * COARSE };
 
 /* The gates' links, in metres down the chute: the cells in front of a
  * gate whose level drives it, those behind that take its water, and the
@@ -195,15 +199,28 @@ export function floodFrame(dam) {
   const floor = chuteFloor(sp).y;
   const dx = pitch / PER_PITCH;
   const gateD = (SPILL.gate[0] + SPILL.gate[1]) / 2;
+  const x0 = pierU[0] - (WEST + 0.5) * dx;
+  const z0 = gateD - (NORTH + 0.5) * dx;
+  const nx = FLOOD_GRID.nx;
   const grid = {
+    /* The fine raster the bed is built on, the whole grid at dx. */
     ...FLOOD_GRID,
     dx,
     /* The grid's own x and z are u and d: its corner. */
-    x0: pierU[0] - (WEST + 0.5) * dx,
-    z0: gateD - (NORTH + 0.5) * dx,
+    x0,
+    z0,
     origin: c0,
     a,
     n,
+    /* The solver's blocks: the fine rows, and the coarse below. */
+    blocks: [
+      {
+        nx, nz: FINE, dx, x0, z0, off: 0,
+      },
+      {
+        nx: nx / 2, nz: COARSE, dx: 2 * dx, x0, z0: z0 + FINE * dx, off: nx * FINE,
+      },
+    ],
   };
   return {
     sp,
@@ -444,13 +461,58 @@ export function floodBed({ ground, water, dam }) {
       open: SPILL.gateOpen,
     });
   }
+  const level = bodies.map((w) => w.y);
+  const blocks = coarsen(grid, b, cls, wet, level);
   /* To the centimetre, as the shipped bed holds it (packBed). */
-  for (let k = 0; k < n; k += 1) {
-    b[k] = Math.round(b[k] * 100) / 100;
+  for (let k = 0; k < blocks.b.length; k += 1) {
+    blocks.b[k] = Math.round(blocks.b[k] * 100) / 100;
   }
   return {
-    frame: S, grid, b, cls, wet, level: bodies.map((w) => w.y), names: bodies.map((w) => w.name), gates,
+    frame: S, grid, ...blocks, level, names: bodies.map((w) => w.name), gates,
   };
+}
+
+/*
+ * The fine raster into the solver's blocks: its first FINE rows as they
+ * are (so a fine cell's index is the raster's), and each two by two of
+ * the rest as one coarse cell: the mean of their beds, which keeps the
+ * volume under any level; the still water of the body most of them are
+ * under, if the mean bed is under its level; the class most of them
+ * have. Ties go to the lower index.
+ */
+function coarsen(grid, b, cls, wet, level) {
+  const [F, C] = grid.blocks;
+  const nF = F.nx * F.nz;
+  const n = nF + C.nx * C.nz;
+  const out = {
+    b: new Float64Array(n), cls: new Uint8Array(n), wet: new Int8Array(n),
+  };
+  out.b.set(b.subarray(0, nF));
+  out.cls.set(cls.subarray(0, nF));
+  out.wet.set(wet.subarray(0, nF));
+  for (let jc = 0; jc < C.nz; jc += 1) {
+    for (let ic = 0; ic < C.nx; ic += 1) {
+      const j = F.nz + 2 * jc;
+      const i = 2 * ic;
+      const four = [j * F.nx + i, j * F.nx + i + 1, (j + 1) * F.nx + i, (j + 1) * F.nx + i + 1];
+      const k = nF + jc * C.nx + ic;
+      out.b[k] = (b[four[0]] + b[four[1]] + b[four[2]] + b[four[3]]) / 4;
+      const most = (values) => {
+        const count = new Map();
+        for (const v of values) count.set(v, (count.get(v) || 0) + 1);
+        let best = null;
+        for (const [v, c] of count) {
+          if (best === null || c > count.get(best) || (c === count.get(best) && v < best)) best = v;
+        }
+        return best;
+      };
+      const bodies = four.map((m) => wet[m]).filter((q) => q >= 0);
+      const q = bodies.length ? most(bodies) : -1;
+      out.wet[k] = q >= 0 && out.b[k] < level[q] ? q : -1;
+      out.cls[k] = most(four.map((m) => cls[m]));
+    }
+  }
+  return out;
 }
 
 /* The world frame of a grid ({ origin, a, n }): world (x, z) to the
@@ -487,10 +549,10 @@ export function packBed(bed) {
   bin.set(bed.cls, 2 * n);
   bin.set(new Uint8Array(bed.wet.buffer, bed.wet.byteOffset, n), 3 * n);
   const grid = {
-    nx: bed.grid.nx, nz: bed.grid.nz, dx: bed.grid.dx, x0: bed.grid.x0, z0: bed.grid.z0, origin: bed.grid.origin, a: bed.grid.a, n: bed.grid.n,
+    nx: bed.grid.nx, nz: bed.grid.nz, dx: bed.grid.dx, x0: bed.grid.x0, z0: bed.grid.z0, origin: bed.grid.origin, a: bed.grid.a, n: bed.grid.n, blocks: bed.grid.blocks,
   };
   const json = {
-    format: 1,
+    format: 2,
     grid,
     level: bed.level,
     names: bed.names,
@@ -500,11 +562,11 @@ export function packBed(bed) {
 }
 
 export function unpackBed(json, bytes) {
-  if (json.format !== 1) {
-    throw new Error(`flood bed: format ${json.format}, this reads 1`);
+  if (json.format !== 2) {
+    throw new Error(`flood bed: format ${json.format}, this reads 2`);
   }
   const { grid } = json;
-  const n = grid.nx * grid.nz;
+  const n = grid.blocks.reduce((s, k) => s + k.nx * k.nz, 0);
   const bin = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   if (bin.length !== n * 4) {
     throw new Error(`flood bed: ${bin.length} bytes for ${n} cells, not ${n * 4}`);

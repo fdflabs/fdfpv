@@ -44,9 +44,12 @@ import { MANNING, floodBed } from './bed.js';
 /* The step, ms: a Courant number under 0.3 on the chute's fastest water
  * (some 40 m/s) on the grid's 5.1 m cells (docs/FLOOD.md). */
 export const DT_MS = 20;
-/* Warm up from still water to the running spillway and river: the chute
- * fills in some 30 s and the river settles in a few minutes. */
-export const WARM_STEPS = 30000;
+/* Warm up from still water to the river the turbines run: the wave
+ * off the tailrace reaches the grid's south edge in some two minutes,
+ * and the river lets out what the turbines give, to 0.04 %, with every
+ * station's level still to the millimetre, from 2100 s (measured 2
+ * October); 2400 s. */
+export const WARM_STEPS = 120000;
 
 /* A radial gate's underflow, the strips formula's Cd: the contraction
  * under a gate lip, Cc 0.61 (Henderson, Open Channel Flow, 1966, 6.2). */
@@ -59,41 +62,97 @@ export const OPENING_CD = 0.74;
  * Rehbock's Cd 0.611 + 0.075 H / P with the notch's crest high over its
  * approach (Henderson 1966, 6.3); 0.61. */
 export const HOLE_CD = 0.61;
-/* The turbines' discharge, m3/s: 20 units at about 645 m3/s each, their
- * rated flow (Itaipu Binacional's unit data; to be confirmed against its
- * published table). It enters across the tailrace where it crosses the
- * grid's east edge. */
-export const TURBINE_Q = 20 * 645;
+/* The turbines' discharge, m3/s: 20 Francis units of 715 MW at their
+ * rated flow, 690 m3/s each (Itaipu Binacional, Hidreletrica de Itaipu:
+ * Aspectos de Engenharia, 2009, ISBN 978-85-61885-02-1, as cited by the
+ * Portuguese Wikipedia's Usina Hidreletrica de Itaipu; 715 MW at 690
+ * m3/s and 93 % is a head of 113 m, against the published 118 m design
+ * head). It enters across the tailrace where it crosses the grid. */
+export const TURBINE_Q = 20 * 690;
 
-/* The edges' runs of still water, by body: [{ side, k0, k1, body }]. */
-function edgeRuns(bed, grid) {
-  const { nx, nz } = grid;
-  const cell = (side, k) => (side === SIDE.west ? k * nx : side === SIDE.east ? k * nx + nx - 1 : side === SIDE.north ? k : (nz - 1) * nx + k);
-  const runs = [];
-  for (const side of [SIDE.west, SIDE.east, SIDE.north, SIDE.south]) {
-    const len = side === SIDE.west || side === SIDE.east ? nz : nx;
-    let k = 0;
-    while (k < len) {
-      const body = bed.wet[cell(side, k)];
-      let e = k;
-      while (e + 1 < len && bed.wet[cell(side, e + 1)] === body) e += 1;
-      if (body >= 0) runs.push({ side, k0: k, k1: e, body });
-      k = e + 1;
-    }
+/*
+ * THE WARMED STATE (the lead, 2 October): the turbines running for
+ * WARM_STEPS from still water, written once in Node (scripts/water-
+ * itaipu.js --write, checked against a rerun) and loaded with the solver
+ * on the first opening, so every client starts on the same running
+ * river. Its wet cells only: a Uint32 count, then per cell its index
+ * (Uint32) and h, hu, hv (Float64), little endian.
+ */
+export function packState(f) {
+  const h = f.h(); const hu = f.hu(); const hv = f.hv();
+  const wet = [];
+  for (let k = 0; k < h.length; k += 1) if (h[k] > 0 || hu[k] !== 0 || hv[k] !== 0) wet.push(k);
+  const bin = new Uint8Array(4 + wet.length * 28);
+  const view = new DataView(bin.buffer);
+  view.setUint32(0, wet.length, true);
+  wet.forEach((k, m) => {
+    const o = 4 + m * 28;
+    view.setUint32(o, k, true);
+    view.setFloat64(o + 4, h[k], true);
+    view.setFloat64(o + 12, hu[k], true);
+    view.setFloat64(o + 20, hv[k], true);
+  });
+  return bin;
+}
+
+export function loadState(f, bytes) {
+  const bin = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const count = view.getUint32(0, true);
+  if (bin.length !== 4 + count * 28) {
+    throw new Error(`flood state: ${bin.length} bytes for ${count} cells`);
   }
+  const h = f.h(); const hu = f.hu(); const hv = f.hv();
+  h.fill(0); hu.fill(0); hv.fill(0);
+  for (let m = 0; m < count; m += 1) {
+    const o = 4 + m * 28;
+    const k = view.getUint32(o, true);
+    if (k >= h.length) throw new Error(`flood state: cell ${k} past the grid's ${h.length}`);
+    h[k] = view.getFloat64(o + 4, true);
+    hu[k] = view.getFloat64(o + 12, true);
+    hv[k] = view.getFloat64(o + 20, true);
+  }
+}
+
+/* The blocks' outer edges' runs of still water, by body: [{ blk,
+ * side, k0, k1, body }]. The join (the fine block's south, the coarse
+ * block's north) is no edge. */
+function edgeRuns(bed, grid) {
+  const runs = [];
+  grid.blocks.forEach(({ nx, nz, off }, blk) => {
+    const cell = (side, k) => off + (side === SIDE.west ? k * nx : side === SIDE.east ? k * nx + nx - 1 : side === SIDE.north ? k : (nz - 1) * nx + k);
+    for (const side of [SIDE.west, SIDE.east, SIDE.north, SIDE.south]) {
+      if ((blk === 0 && side === SIDE.south) || (blk === 1 && side === SIDE.north)) continue;
+      const len = side === SIDE.west || side === SIDE.east ? nz : nx;
+      let k = 0;
+      while (k < len) {
+        const body = bed.wet[cell(side, k)];
+        let e = k;
+        while (e + 1 < len && bed.wet[cell(side, e + 1)] === body) e += 1;
+        if (body >= 0) runs.push({
+          blk, side, k0: k, k1: e, body,
+        });
+        k = e + 1;
+      }
+    }
+  });
   return runs;
 }
 
 /*
  * The flood on `bed` (bed.js floodBed's, from the map's ground), from
  * still water. { f, bed, gates: [link index], bounds: [{ run, index,
- * kind }], openGate(i, opening), ... }. `turbines` false and `gates`
- * false leave the river and the spillway still, the lake at rest.
+ * kind }], openGate(i, opening), ... }. The baseline (the lead, 2
+ * October) is the turbines running and the spillway's gates shut;
+ * `gates` true stands them at their 5 m, for a mission that opens them.
+ * `turbines` false with the gates shut is the lake at rest.
  */
-export async function makeFlood(wasm, bed, { turbines = true, gates = true } = {}) {
+export async function makeFlood(wasm, bed, { turbines = true, gates = false } = {}) {
   const { grid } = bed;
   const f = await loadFlood(wasm);
-  f.init(grid.nx, grid.nz, grid.x0, grid.z0, grid.dx, DT_MS / 1000);
+  const [B0, B1] = grid.blocks;
+  f.init(B0.nx, B0.nz, B0.x0, B0.z0, B0.dx, DT_MS / 1000);
+  f.join(0, f.addBlock(B1.nx, B1.nz, B1.x0, B1.z0, B1.dx));
   f.bed().set(bed.b);
   f.cls().set(bed.cls);
   MANNING.forEach((n, k) => f.setManning(k, n));
@@ -104,20 +163,22 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = true } = {
   }
   const runs = edgeRuns(bed, grid);
   const river = bed.names.indexOf('river');
-  const riverIn = runs.filter((r) => r.body === river && r.side === SIDE.east);
+  /* The tailrace crosses the fine block's east edge. */
+  const turbine = (r) => r.body === river && r.blk === 0 && r.side === SIDE.east;
+  const riverIn = runs.filter(turbine);
   const inLength = riverIn.reduce((s, r) => s + r.k1 - r.k0 + 1, 0);
   const bounds = [];
   for (const r of runs) {
-    if (r.body === river && r.side === SIDE.north) {
+    if (r.body === river && r.blk === 0 && r.side === SIDE.north) {
       /* Up the tailrace, toward the powerhouse's face: a wall. */
       continue;
     }
-    if (r.body === river && r.side === SIDE.east) {
+    if (turbine(r)) {
       const q = turbines ? (TURBINE_Q * (r.k1 - r.k0 + 1)) / inLength : 0;
-      bounds.push({ run: r, kind: 'turbines', index: f.bound(r.side, r.k0, r.k1, BOUND.inflow, q) });
+      bounds.push({ run: r, kind: 'turbines', index: f.boundIn(r.blk, r.side, r.k0, r.k1, BOUND.inflow, q) });
       continue;
     }
-    bounds.push({ run: r, kind: bed.names[r.body], index: f.bound(r.side, r.k0, r.k1, BOUND.stage, bed.level[r.body]) });
+    bounds.push({ run: r, kind: bed.names[r.body], index: f.boundIn(r.blk, r.side, r.k0, r.k1, BOUND.stage, bed.level[r.body]) });
   }
   /* Each gate's link: the flow under its lip while it runs, and through
    * a hole torn in its leaf under the water. A hole open to the sky is
@@ -277,9 +338,10 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = true } = {
     /* The cell under world (x, z), or -1 off the grid. */
     cellAt(x, z) {
       const [u, d] = bed.frame.local(x, z);
-      const i = Math.floor((u - grid.x0) / grid.dx);
-      const j = Math.floor((d - grid.z0) / grid.dx);
-      return i < 0 || j < 0 || i >= grid.nx || j >= grid.nz ? -1 : j * grid.nx + i;
+      const K = d < grid.blocks[1].z0 ? grid.blocks[0] : grid.blocks[1];
+      const i = Math.floor((u - K.x0) / K.dx);
+      const j = Math.floor((d - K.z0) / K.dx);
+      return i < 0 || j < 0 || i >= K.nx || j >= K.nz ? -1 : K.off + j * K.nx + i;
     },
     /* The level, the depth and the current (world x and z) at the cell
      * under world (x, z). */

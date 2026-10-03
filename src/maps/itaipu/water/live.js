@@ -3,17 +3,13 @@
  * sends (map.onOpening, docs/DAMBREAK-CONTRACT) into the solver, stepped
  * on the room's clock (src/sim/water/host.js) a slice of each frame.
  *
- * Nothing is loaded until the first opening: then dist/flood.wasm and
- * the shipped bed (itaipu-flood.json and .bin, which scripts/water-
- * itaipu.js writes and checks), and the water starts still on it with
- * the spillway's gates at their 5 m and the turbines running from the
- * origin. A client that joins late is handed every opening the room
+ * Nothing is loaded until the first opening: then dist/flood.wasm, the
+ * shipped bed (itaipu-flood.json and .bin) and the warmed state on it
+ * (itaipu-flood-warm.bin: the turbines running, the gates shut), which
+ * scripts/water-itaipu.js writes and checks. A client that joins late is handed every opening the room
  * kept, as a live one is, and catches up a budget at a time.
  *
- * PROTOTYPE (docs/FLOOD.md): the water is not drawn yet and the spillway
- * fills from still water at the origin rather than from a running
- * river; both are the lead's to decide (a shipped warmed state, the
- * rendering, a worker for the budget).
+ * PROTOTYPE (docs/FLOOD.md): the water is not drawn yet.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -40,6 +36,7 @@ const search = new URL(import.meta.url).search;
 const WASM_URL = new URL(`../../../../dist/flood.wasm${search}`, import.meta.url).href;
 const BED_URL = new URL(`itaipu-flood.json${search}`, import.meta.url).href;
 const BIN_URL = new URL(`itaipu-flood.bin${search}`, import.meta.url).href;
+const WARM_URL = new URL(`itaipu-flood-warm.bin${search}`, import.meta.url).href;
 
 export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.now() } = {}) {
   let state = 'idle';
@@ -53,12 +50,14 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
     state = 'loading';
     try {
       /* The modules too, so a map that never floods fetches none of it. */
-      const [wasm, json, bin, { createFloodHost }, { unpackBed }, { DT_MS, makeFlood }] = await Promise.all([
-        fetchBytes(WASM_URL), fetchBytes(BED_URL), fetchBytes(BIN_URL),
+      const [wasm, json, bin, warm, { createFloodHost }, { unpackBed }, { DT_MS, loadState, makeFlood }] = await Promise.all([
+        fetchBytes(WASM_URL), fetchBytes(BED_URL), fetchBytes(BIN_URL), fetchBytes(WARM_URL),
         import('../../../sim/water/host.js'), import('./bed.js'), import('./flood.js'),
       ]);
       const bed = unpackBed(JSON.parse(new TextDecoder().decode(json)), bin);
       flood = await makeFlood(wasm, bed, {});
+      /* The running river every client starts from. */
+      loadState(flood.f, warm);
       host = createFloodHost(flood, { dtMs: DT_MS });
       for (const o of pending.splice(0)) host.open(o);
       state = 'ready';
