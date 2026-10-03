@@ -424,10 +424,48 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
     `${fl.holes().length} holes, sill ${hole.sill}, ${under.length} cells under it`);
   check('the notch is applied to gate 3 and its flow is there for the sound', flows.length === 1 && flows[0].id === 'gate-3' && flows[0].q > 0);
   check('the intake, which has no place yet, is counted and not dropped', st.unplaced.includes('intake-4'));
+
+  /* A replay's flood (live.fork): the war's openings and gates as a clip
+   * of the last 30 s hands them, against a flood stepped from the origin
+   * to the clip's start. */
+  const opening = (at, y) => ({
+    id: 'gate-3', target: 'gate-3', kind: 'gate', at, sill: [ox, y, oz], width_m: 10, height_m: 8.17, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+  });
+  const openings = [opening(AT + 2000, 212.33), {
+    id: 'intake-4', target: 'intake-4', kind: 'intake', at: AT + 3000, sill: [0, 180, 0], width_m: 5, height_m: 5, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+  }, opening(AT + 40000, 212.83)];
+  const clip = end - 30000;
+  const catchUp = (fl, t) => {
+    while (fl.stats(t).behind > 0) fl.advance(t);
+  };
+  const tf = performance.now();
+  const fork = live.fork(openings, clip, entries);
+  await settle(fork);
+  catchUp(fork, clip);
+  const forkMs = performance.now() - tf;
+  const fs = fork.stats(clip);
+  const fromOrigin = live.fork(openings, -Infinity, entries);
+  await settle(fromOrigin);
+  catchUp(fromOrigin, clip);
+  const os = fromOrigin.stats(clip);
+  check('a replay\'s flood starts at the live flood\'s checkpoint before its clip and is the same water at the clip\'s start, to the bit',
+    fs.fork === 'checkpoint' && os.fork === 'origin' && fs.step === os.step && fork.flood().f.hash() === fromOrigin.flood().f.hash(),
+    `from the checkpoint ${fs.steps} steps in ${forkMs.toFixed(0)} ms to step ${fs.step}, from the origin ${os.steps} steps; ${fork.flood().f.hash()} / ${fromOrigin.flood().f.hash()}`);
+  catchUp(fork, end);
+  catchUp(live, end);
+  check('and at the live clock\'s end it is the live water', fork.stats(end).step === live.stats(end).step && fork.flood().f.hash() === fl.f.hash(),
+    `step ${fork.stats(end).step} / ${live.stats(end).step}, ${fork.flood().f.hash()} / ${fl.f.hash()}`);
+  check('the forks share the live flood\'s bed (the files made once)', fork.flood().bed === fl.bed && fromOrigin.flood().bed === fl.bed);
+  const empty = live.fork([], clip);
+  await settle(empty);
+  check('an empty clip in a war gets the starting water of its own', empty.stats(clip).fork === 'origin' && empty.stats(clip).origin === null && empty.flood() !== fl);
+
   live.setGates(null);
   await settle(live);
   st = live.stats();
   check('no war again: Free Flight\'s spill', st.mode === 'free' && st.lips.every((v) => v === START.spill) && st.step === 0, `${st.mode} step ${st.step}`);
+  const still = live.fork([], 0);
+  check('and an empty clip then builds nothing: it is the live flood\'s own water', still.flood() === live.flood() && still.stats(0).fork === 'still');
   report.live = { frames, ...st };
 }
 
