@@ -201,7 +201,9 @@ gate's lip at `openAt(entries, gate, t)` for that step's room time, so the lip
 is `hoist.js`'s number to the bit (`water:itaipu`: 2.9996666666666667 m after
 two entries and 120 s, and never more than the rate a step) and the same on
 every client. The water's lip runs the flood's second behind the room's clock
-(THE CLOCK), as all its water does.
+(THE CLOCK), as all its water does, so the water under a moving gate, and the
+chute's look drawn from it, trail the leaf drawn by 1 s (accepted by the lead, 3
+October: the delay is what lets an opening heard late land on its own step).
 
 A hole torn in a leaf moves with it: the DAMAGE agent sends it again, the same
 id with its new sill. The host takes an opening heard again with a new shape
