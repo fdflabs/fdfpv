@@ -28,12 +28,14 @@ header pasted onto it.
 
     Upstream    https://github.com/Omnibus-Type/Saira, taken from
                 https://github.com/google/fonts (ofl/saira, Saira[wdth,wght].ttf)
-    Files       assets/fonts/saira-lockup-800.woff2, saira-lockup-300.woff2
+    Files       assets/fonts/saira-lockup-800.woff2, saira-lockup-300.woff2,
+                saira-names-600.woff2
     Licence     SIL Open Font License 1.1, Copyright 2020 The Saira Project
                 Authors; the licence travels with the files as
                 assets/fonts/OFL-Saira.txt
     Instanced at wght 800 and 300, wdth 100, and subset to the capitals of
-    the title's name. The OFL lets the font be bundled with software under
+    the title's name; and at wght 600, wdth 75 (Saira Condensed), subset
+    to Latin and Latin 1, for the names of activities, worlds and missions. The OFL lets the font be bundled with software under
     any licence; the font files themselves stay under the OFL, not the GPL.
 
 ## IBM Plex Mono, the bootloader's typeface

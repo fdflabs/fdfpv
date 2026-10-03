@@ -21,6 +21,16 @@
  */
 
 export default Object.freeze({
+  'bearing-gorge': { en: 2.145, es: 2.735 },
+  'bearing-high': { en: 2.345, es: 2.265 },
+  'bearing-lines': { en: 2.175, es: 2.205 },
+  'bearing-n': { en: 2.785, es: 2.485 },
+  'bearing-ne': { en: 1.475, es: 1.545 },
+  'bearing-nw': { en: 1.495, es: 2.005 },
+  'bearing-river': { en: 2.275, es: 2.205 },
+  'bearing-water': { en: 2.415, es: 2.295 },
+  'beat-rack': { en: 2.915, es: 3.465 },
+  'beat-rack-2': { en: 2.635, es: 2.535 },
   'bird-lost': { en: 3.015, es: 2.895 },
   'brief-itaipu-1-1': { en: 4.205, es: 4.255 },
   'brief-itaipu-1-2': { en: 4.685, es: 6.565 },
@@ -64,6 +74,7 @@ export default Object.freeze({
   'signal-back': { en: 2.145, es: 3.185 },
   'signal-lost': { en: 2.495, es: 3.135 },
   'signal-weak': { en: 2.745, es: 2.315 },
+  'stage-lost': { en: 2.855, es: 2.905 },
   'start': { en: 5.455, es: 5.755 },
   'wave-boat': { en: 4.735, es: 4.395 },
   'wave-clear': { en: 3.675, es: 4.665 },

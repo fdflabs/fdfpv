@@ -600,19 +600,24 @@ const FLOOR_WORLD = 'alps';
 
 /*
  * `?time=night` (Itaipu's mission 4, "Night raid"; src/maps/itaipu.js
- * options.time): read once, here, rather than at every loadMap call
- * site, and left out of `options` entirely unless it says 'night', so a
- * map with no notion of time sees nothing new. Not stored: a link with
- * it in stays a link into the night, never a standing setting. */
+ * options.time), or one of Itaipu's other times of day (`morning`,
+ * `noon`, `golden`: src/maps/itaipu/look/light.js TIMES, named here and
+ * not imported, so the shell does not load a map's module before the map
+ * is picked): read once, here, rather than at every loadMap call site,
+ * and left out of `options` entirely unless it names one, so a map with
+ * no notion of time sees nothing new. Not stored: a link with it in
+ * stays a link into the night, never a standing setting. A caller's own
+ * time (the night raid's) wins over the address's. */
+const ADDRESS_TIMES = new Set(['night', 'morning', 'noon', 'golden']);
 function withTimeOption(options) {
   const time = new URLSearchParams(window.location.search).get('time');
-  return time === 'night' ? { ...options, time } : options;
+  return ADDRESS_TIMES.has(time) && !(options && options.time) ? { ...options, time } : options;
 }
 
-/* The time a world is built at: night for the address's ?time=night or
- * when a caller asks for it (the night raid), day otherwise. */
+/* The time a world is built at: the night raid's night when a caller
+ * asks for it, else the address's ?time=, else day. */
 function timeOf(options) {
-  return withTimeOption(options).time === 'night' ? 'night' : 'day';
+  return withTimeOption(options).time || 'day';
 }
 
 async function loadMap(shell, id, loading, mapOptions) {
@@ -3287,14 +3292,16 @@ export async function boot({
   };
 
   /* Crest Control's lines, in the UI's language, while the sound is on. */
-  function warSay(ids) {
-    if (!ids.length || !audio.enabled) {
+  /* Each item a line id, or a list said as one (warradio.js PRIORITY);
+   * prio 'story' for a stage's own radio cue. */
+  function warSay(items, prio = 'call') {
+    if (!items.length || !audio.enabled) {
       return;
     }
     const radio = audio.war();
     radio.setLang(currentLocale());
-    for (const id of ids) {
-      radio.say(id);
+    for (const item of items) {
+      radio.say(item, performance.now(), prio);
     }
   }
 
@@ -3303,7 +3310,7 @@ export async function boot({
    * and the HUD's. */
   function warCue(ev, wallMs) {
     if (ev.radio) {
-      warSay([ev.radio]);
+      warSay([ev.radio], 'story');
     }
     if (ev.music !== undefined && audio.enabled) {
       audio.setWarBed(ev.music);
