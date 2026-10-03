@@ -7,11 +7,15 @@
  * Starts the tracks server with sign-in on (tracks-api/node.js, Google
  * stood in for by a key made here and served as a JWKS), and the rooms
  * server (edge/rooms/node.js) with ACCOUNTS_ORIGIN pointing at it, as the
- * VM runs them. Then: a guest joins as before and is shown by picker name
- * alone; a signed in pilot's hello carries its session and every other
- * pilot is told its callsign; a hello that names a callsign of its own, a
- * made up session and an ended one all join as guests; and with the
- * accounts server gone a signed in pilot still flies, as a guest.
+ * VM runs them. Then: a signed in pilot's hello carries its session and
+ * every other pilot is told its callsign; nobody plays without an account
+ * (the owner, 2026-10-03), so a build from before the sign in is sent to
+ * reload, and a hello with no session, one that names a callsign of its
+ * own, a made up session, an ended one and an account with no callsign yet
+ * are all refused with CLOSE_SIGNIN, in a free room and in a war, combat
+ * and tag room alike; a socket that speaks before its hello is closed;
+ * and with the accounts server gone a signed in pilot is refused with
+ * CLOSE_ACCOUNTS, quickly, rather than seated unchecked.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -34,7 +38,9 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
-import { PROTO } from '../src/share/roomwire.js';
+import {
+  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN, PROTO, WAR_JOIN,
+} from '../src/share/roomwire.js';
 import { startTracks } from '../tracks-api/node.js';
 import { startRooms } from '../edge/rooms/node.js';
 
@@ -132,66 +138,97 @@ async function seat(code, extra = {}) {
   return p;
 }
 
-async function makeRoom() {
-  const res = await fetch(`${roomsOrigin}/v2/create`, { method: 'POST', headers: { origin: PAGE }, body: JSON.stringify({ map: 'swiss2' }) });
+async function makeRoom(room = { map: 'swiss2' }) {
+  const res = await fetch(`${roomsOrigin}/v2/create`, { method: 'POST', headers: { origin: PAGE }, body: JSON.stringify(room) });
   return (await res.json()).code;
 }
 
-console.log('a signed in pilot');
+const SIGNIN = CLOSE_SIGNIN;
+const NEW = { account: ACCOUNT_JOIN };
+const closedWith = (p, code) => Boolean(p.welcome && p.welcome.closed === code);
+
+console.log('signed in pilots');
 let r = await api('POST', '/api/account/google', { credential: await idToken('pilot-1') });
 const session = r.body.session;
 r = await api('PUT', '/api/account/callsign', { callsign: 'Maverick' }, session);
 check('has claimed a callsign on the accounts server', r.status === 200 && r.body.callsign === 'Maverick');
+r = await api('POST', '/api/account/google', { credential: await idToken('pilot-2') });
+const other = r.body.session;
+await api('PUT', '/api/account/callsign', { callsign: 'Iceman' }, other);
 
 const code = await makeRoom();
-const guest = await seat(code);
-check('a guest joins as today', guest.welcome.seat === 1 && !guest.welcome.closed);
-const signed = await seat(code, { name: [3, 4, 77], session });
-check('the signed in pilot is seated', signed.welcome.seat === 2, JSON.stringify(signed.welcome));
-const told = await guest.until((x) => x.got.find((m) => m.type === 'join' && m.seat === 2));
+const first = await seat(code, { ...NEW, session: other });
+check('a signed in pilot is seated', first.welcome.seat === 1 && !first.welcome.closed, JSON.stringify(first.welcome));
+const signed = await seat(code, { ...NEW, name: [3, 4, 77], session });
+check('and a second', signed.welcome.seat === 2, JSON.stringify(signed.welcome));
+const told = await first.until((x) => x.got.find((m) => m.type === 'join' && m.seat === 2));
 check('the others are told its callsign', told && told.callsign === 'Maverick', JSON.stringify(told));
 check('beside the picker name a build from before shows', told && JSON.stringify(told.name) === '[3,4,77]');
-check('the guest is listed with no callsign', signed.welcome.peers.length === 1 && !('callsign' in signed.welcome.peers[0]));
+check('the pilot already there is listed with its callsign', signed.welcome.peers.length === 1 && signed.welcome.peers[0].callsign === 'Iceman',
+  JSON.stringify(signed.welcome.peers));
 check('the clock ping sent behind the hello is answered after the welcome',
   Boolean(await signed.until((x) => x.got.findIndex((m) => m.type === 't') > x.got.findIndex((m) => m.type === 'welcome'))));
-const late = await seat(code, { name: [5, 6, 12] });
-check('a pilot who joins later sees the callsign in the welcome', late.welcome.peers.some((p) => p.seat === 2 && p.callsign === 'Maverick'));
 
-console.log('nobody else can be it');
-const forged = await seat(code, { name: [7, 8, 15], callsign: 'Maverick' });
-const forgedJoin = await guest.until((x) => x.got.find((m) => m.type === 'join' && m.seat === forged.welcome.seat));
-check('a hello that names a callsign itself joins as a guest', forgedJoin && !('callsign' in forgedJoin), JSON.stringify(forgedJoin));
-const madeUp = await seat(code, { name: [9, 10, 16], session: 'a'.repeat(64) });
-const madeUpJoin = await guest.until((x) => x.got.find((m) => m.type === 'join' && m.seat === madeUp.welcome.seat));
-check('so does a made up session', madeUpJoin && !('callsign' in madeUpJoin));
+console.log('nobody plays without an account');
+const old = await seat(code);
+check('a build from before the sign in (no account in its hello) is sent to reload', closedWith(old, CLOSE.update), JSON.stringify(old.welcome));
+const guest = await seat(code, { ...NEW, name: [1, 2, 42] });
+check('a hello with no session is refused, to sign in', closedWith(guest, SIGNIN), JSON.stringify(guest.welcome));
+const forged = await seat(code, { ...NEW, name: [7, 8, 15], callsign: 'Maverick' });
+check('so is a hello that names a callsign itself', closedWith(forged, SIGNIN), JSON.stringify(forged.welcome));
+const madeUp = await seat(code, { ...NEW, name: [9, 10, 16], session: 'a'.repeat(64) });
+check('and a made up session', closedWith(madeUp, SIGNIN), JSON.stringify(madeUp.welcome));
 r = await api('POST', '/api/account/google', { credential: await idToken('pilot-1') });
 const second = r.body.session;
 await api('DELETE', '/api/account/session', undefined, second);
-const ended = await seat(code, { name: [11, 12, 17], session: second });
-const endedJoin = await guest.until((x) => x.got.find((m) => m.type === 'join' && m.seat === ended.welcome.seat));
-check('and a session that was signed out', endedJoin && !('callsign' in endedJoin));
+const ended = await seat(code, { ...NEW, name: [11, 12, 17], session: second });
+check('and a session that was signed out', closedWith(ended, SIGNIN), JSON.stringify(ended.welcome));
+r = await api('POST', '/api/account/google', { credential: await idToken('pilot-3') });
+const nameless = await seat(code, { ...NEW, name: [12, 13, 18], session: r.body.session });
+check('and an account with no callsign yet', closedWith(nameless, SIGNIN), JSON.stringify(nameless.welcome));
+const binary = pilot(code);
+await binary.open;
+binary.ws.send(new Uint8Array([0x10, 0, 0]));
+binary.ws.send(JSON.stringify({ type: 'hello', proto: PROTO, build: 'check', name: [2, 3, 19], profile, ...NEW, session }));
+const binaryEnd = await binary.until((x) => x.got.find((m) => m.type === 'welcome') || (x.closed && { closed: x.closed }));
+check('a socket whose first word is not its hello is closed, so no hello rides past the check', binaryEnd && binaryEnd.closed === CLOSE.bad,
+  JSON.stringify(binaryEnd));
+const roster = await first.until((x) => x.got.filter((m) => m.type === 'join').length >= 1 && x);
+check('none of them was ever seated beside the pilots', roster && roster.got.filter((m) => m.type === 'join').length === 1,
+  JSON.stringify(roster && roster.got.filter((m) => m.type === 'join')));
+
+console.log('a war, combat and tag room the same');
+for (const room of [{ map: 'itaipu', mode: 'war' }, { map: 'swiss2', mode: 'combat' }, { map: 'swiss2', mode: 'tag' }]) {
+  const at = await makeRoom(room);
+  const war = room.mode === 'war' ? { war: WAR_JOIN } : {};
+  const oldOne = await seat(at, war);
+  const unsigned = await seat(at, { ...war, ...NEW, name: [4, 5, 21] });
+  const pilotOne = await seat(at, { ...war, ...NEW, name: [5, 6, 22], session });
+  check(`${room.mode}: a build from before is sent to reload`, closedWith(oldOne, CLOSE.update), JSON.stringify(oldOne.welcome));
+  check(`${room.mode}: an unsigned seat is refused, to sign in`, closedWith(unsigned, SIGNIN), JSON.stringify(unsigned.welcome));
+  check(`${room.mode}: a signed in pilot is seated, as the room's game`, pilotOne.welcome.seat === 1 && pilotOne.welcome.mode === room.mode,
+    JSON.stringify(pilotOne.welcome && { seat: pilotOne.welcome.seat, mode: pilotOne.welcome.mode, closed: pilotOne.welcome.closed }));
+  pilotOne.ws.close(1000);
+}
+
 r = await api('PUT', '/api/account/callsign', { callsign: 'Goose' }, session);
-const renamed = await seat(await makeRoom(), { session });
+const renamed = await seat(await makeRoom(), { ...NEW, session });
 const room2 = renamed.welcome.code;
-const watcher = await seat(room2, { name: [2, 2, 22] });
+const watcher = await seat(room2, { ...NEW, name: [2, 2, 22], session: other });
 check('a changed callsign is the one the next join shows', watcher.welcome.peers.some((p) => p.callsign === 'Goose'));
 
-for (const p of [guest, signed, late, forged, madeUp, ended, renamed, watcher]) {
+for (const p of [first, signed, renamed, watcher]) {
   p.ws.close(1000);
 }
 
 console.log('the accounts server down');
 await tracks.stop();
 const code3 = await makeRoom();
-const first = await seat(code3);
 const t0 = Date.now();
-const alone = await seat(code3, { name: [4, 4, 44], session });
+const down = await seat(code3, { ...NEW, name: [4, 4, 44], session });
 const waited = Date.now() - t0;
-const aloneJoin = await first.until((x) => x.got.find((m) => m.type === 'join' && m.seat === alone.welcome.seat));
-check('a signed in pilot still flies, as a guest', alone.welcome.seat === 2 && aloneJoin && !('callsign' in aloneJoin), JSON.stringify(alone.welcome));
+check('a signed in pilot is refused with its own reason, to try again', closedWith(down, CLOSE_ACCOUNTS), JSON.stringify(down.welcome));
 check('without waiting on it for long', waited < 3000, `${waited} ms`);
-first.ws.close(1000);
-alone.ws.close(1000);
 
 await sleep(100);
 await rooms.stop();

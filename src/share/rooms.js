@@ -45,7 +45,8 @@
  */
 
 import {
-  CLOSE, CLOSE_REMOVED, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, FIGURE_COUNT, PROTO, ROOM_LEVEL, WAR_JOIN,
+  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_REMOVED, CLOSE_SIGNIN, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN,
+  FIGURE_COUNT, PROTO, ROOM_LEVEL, WAR_JOIN,
   decodeBatch, normaliseCode, validNamePick,
 } from './roomwire.js';
 import { readAccount } from './pilot.js';
@@ -75,6 +76,8 @@ const FINAL = new Map([
   [CLOSE.bad, 'bad'],
   [CLOSE.rate, 'rate'],
   [CLOSE_REMOVED, 'removed'],
+  [CLOSE_SIGNIN, 'signin'],
+  [CLOSE_ACCOUNTS, 'accounts'],
 ]);
 
 function store(kind) {
@@ -254,6 +257,9 @@ export function ownName() {
  * message (a race's, Phase 4).
  * hello() is asked for { name, profile } each time a socket opens, so a
  * reconnect carries what is true then.
+ * gate(resume) is asked before a room is made or joined, and true stops
+ * it: the pilot has to sign in first (src/share/account.js needSignIn),
+ * and resume, when given, is the same join made again once they have.
  */
 export function createRoomLink(handlers = {}, hello = () => ({})) {
   let ws = null;
@@ -329,9 +335,19 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
        * forgot the token can put the pilot back in the same slot. */
       const seat = welcome && welcome.code === code ? { seat: welcome.seat } : {};
       const account = readAccount();
-      const session = account && account.callsign ? { session: account.session } : {};
+      const session = account && account.session ? { session: account.session } : {};
       sendText({
-        type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, war: WAR_JOIN, name: h.name, profile: h.profile, ...(token ? { token } : {}), ...seat, ...session,
+        type: 'hello',
+        proto: PROTO,
+        build: 'fdfpv',
+        level: ROOM_LEVEL,
+        war: WAR_JOIN,
+        account: ACCOUNT_JOIN,
+        name: h.name,
+        profile: h.profile,
+        ...(token ? { token } : {}),
+        ...seat,
+        ...session,
       });
     };
     socket.onmessage = (ev) => {
@@ -510,13 +526,19 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     setPhase('idle');
   }
 
-  return {
+  const gated = (resume) => Boolean(handlers.gate && handlers.gate(resume));
+
+  const link = {
     /* Make a room in `map`, private unless room.public; room.name is the
      * typed name or null, room.mode the game it is set up for or null,
      * room.mission the war's mission for a room made for the war.
      * Resolves to its code; throws Error('name') for a name the server
-     * refused. */
+     * refused, Error('signin') before anything is made for a pilot who
+     * has not signed in. */
     async create(map, friendly = false, room = {}) {
+      if (gated(null)) {
+        throw new Error('signin');
+      }
       const origin = roomsOrigin();
       if (!origin) {
         throw new Error('noserver');
@@ -540,6 +562,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
         setPhase('failed', 'nosuch');
         return;
       }
+      if (gated(() => link.join(wanted))) {
+        return;
+      }
       if (next !== code) {
         leave();
         /* A token belongs to one room. */
@@ -557,6 +582,9 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
     },
     /* A public room on `map`, wherever the lobby has a seat. */
     joinPublic(map) {
+      if (gated(() => link.joinPublic(map))) {
+        return;
+      }
       leave();
       write('session', TOKEN_KEY, null);
       publicMap = map;
@@ -611,4 +639,5 @@ export function createRoomLink(handlers = {}, hello = () => ({})) {
       sendText(obj);
     },
   };
+  return link;
 }

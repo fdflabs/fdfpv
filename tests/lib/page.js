@@ -164,6 +164,13 @@ export function describe(obj) {
  *
  * `args` are Chromium flags added after the defaults, for a check that
  * needs one of its own (scripts/voicechat-two-page.js: a fake microphone).
+ *
+ * `account`, a callsign, boots the page as a pilot signed in with it: an
+ * accounts server of the page's own with Google stood in for
+ * (tests/lib/account.js), an account made there, and its session in the
+ * page's storage before the app runs. SIM_ACCOUNT=1 turns it on, as
+ * 'Tester', for every page a check opens. Off, the page is the loopback
+ * build with no accounts server, where nothing asks anybody to sign in.
  */
 export async function openPage({
   root,
@@ -173,10 +180,21 @@ export async function openPage({
   touch = false,
   seed = [],
   args = [],
+  account = process.env.SIM_ACCOUNT === '1' ? 'Tester' : null,
 } = {}) {
   const chrome = findChrome();
   if (!chrome) {
     throw new Error('no Chromium found');
+  }
+  let accounts = null;
+  let signedIn = null;
+  let signedInSeed = [];
+  if (account) {
+    /* Loaded only here: it brings the tracks server, and SQLite, along. */
+    const { seedSignedIn, startAccounts } = await import('./account.js');
+    accounts = await startAccounts();
+    signedIn = await accounts.signUp(`sim-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, account);
+    signedInSeed = [seedSignedIn(accounts.origin, signedIn)];
   }
   const server = await startServer(root);
   const userDataDir = await mkdtemp(join(tmpdir(), 'sim-page-'));
@@ -308,7 +326,7 @@ export async function openPage({
    * their parking spots at three quarter throttle mid check. No run sees a
    * pad unless its own seed, evaluated after this one, stubs one. */
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: 'navigator.getGamepads = () => [];' }, sessionId);
-  for (const source of seed) {
+  for (const source of [...signedInSeed, ...seed]) {
     await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source }, sessionId);
   }
   await cdp.send('Page.navigate', { url: `${server.origin}${url}` }, sessionId);
@@ -399,6 +417,9 @@ export async function openPage({
     proc.kill();
     await exited;
     await server.close();
+    if (accounts) {
+      await accounts.stop();
+    }
     process.removeListener('exit', dropProfile);
     /* Chrome's helpers outlive the main process by a moment and are still
      * writing the profile, which fails the delete with ENOTEMPTY; rm
@@ -407,7 +428,7 @@ export async function openPage({
   }
 
   return {
-    cdp, sessionId, errors, warnings, origin: server.origin, proc,
+    cdp, sessionId, errors, warnings, origin: server.origin, proc, accounts, account: signedIn,
     evaluate, until, loaded, click, tap, sleep, close,
     get clicks() {
       return counted.clicks;

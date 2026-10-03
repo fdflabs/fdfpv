@@ -1049,7 +1049,7 @@
        * reads through (ledes, help notes, card lines) take --pdcs-read.
        */
       .screen, .frame-top, .frame-bot, .name-dialog, .carousel, .hangar,
-      .bug-chip, .signin-chip, .music-dock, .pause-chip, .swap-chip, .room-bar, .update-bar {
+      .bug-chip, .signin-chip, .signin-panel, .music-dock, .pause-chip, .swap-chip, .room-bar, .update-bar {
         --cream: var(--pdcs-text);
         --sakura: var(--pdcs-bright);
         --mint: var(--pdcs-green);
@@ -5203,6 +5203,65 @@
       .signin-chip { top: 88px; }
       .signin-chip.first-slot { top: 16px; }
       .signin-chip[hidden] { display: none; }
+      /* The signed in pilot: the callsign's initial in a disc where the
+         opening bracket would be, so the chip reads as a person. */
+      .signin-chip[data-initial]:not([data-initial=""])::before {
+        content: attr(data-initial);
+        display: inline-grid; place-items: center;
+        width: 16px; height: 16px; margin: -3px 7px -3px -2px;
+        border-radius: 50%;
+        background: var(--pdcs-blue); color: var(--pdcs-bg);
+        font-weight: 700; letter-spacing: 0; vertical-align: middle;
+      }
+      .signin-chip::after { content: none; }
+
+      /*
+       * THE SIGN IN PANEL (src/ui/accountui.js), in the signed in chip's
+       * own slot until there is a pilot to show there: one line on why and
+       * Google's own button, no taller than the button, so the corner's
+       * stack (the music dock under it on the title) stays as it is. A
+       * play pressed before signing in flashes it and says so underneath
+       * (is-nudged, the status line). A phone keeps the button alone: the
+       * line would push into the name.
+       */
+      .signin-panel {
+        position: absolute; top: 88px; right: 16px; z-index: 8;
+        display: flex; align-items: center; gap: 10px;
+        max-width: calc(100vw - 32px);
+        padding: 0 0 0 10px;
+        pointer-events: auto;
+        background: rgba(10, 13, 14, 0.72);
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+      }
+      .signin-panel.first-slot { top: 16px; }
+      .bar-shown .signin-panel { top: calc(var(--bar-top) + 80px); }
+      .signin-panel[hidden], .signin-panel [hidden] { display: none; }
+      .signin-panel-why {
+        margin: 0; max-width: 17em;
+        font: 400 11.5px/1.25 var(--pdcs-read); color: var(--pdcs-text);
+      }
+      .signin-panel-gis { display: flex; align-items: center; min-height: 32px; }
+      .signin-panel .signin-panel-pick { position: static; }
+      .signin-panel-status {
+        position: absolute; top: calc(100% + 6px); right: 0;
+        margin: 0; width: max-content; max-width: min(24em, calc(100vw - 32px));
+        padding: 7px 10px;
+        background: var(--pdcs-panel);
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
+        font: 400 12px/1.35 var(--pdcs-read); color: var(--pdcs-warn);
+      }
+      .signin-panel.is-nudged { animation: signin-nudge 1.4s ease-out; }
+      @keyframes signin-nudge {
+        0%, 40% { box-shadow: inset 0 0 0 2px var(--pdcs-warn), 0 0 0 4px rgba(217, 180, 108, 0.25); }
+        100% { box-shadow: inset 0 0 0 1px var(--pdcs-line-soft); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .signin-panel.is-nudged { animation: none; box-shadow: inset 0 0 0 2px var(--pdcs-warn); }
+      }
+      @media (max-width: 600px) {
+        .signin-panel { padding: 0; }
+        .signin-panel-why { display: none; }
+      }
 
       /* A newer deploy is out: src/ui/update.js. IN the command bar, beside
          the primary, in the same chip family: every screen is padded to
