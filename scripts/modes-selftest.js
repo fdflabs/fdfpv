@@ -6,9 +6,11 @@
  * card's strings are in the string table and its picture is a file, the
  * wire mapping is a round trip, and ROOM_MODES and ROOM_SETUPS are the
  * registry's in the wire's order with their values of before
- * (docs/FLOW-AUDIT.md: the wire is a published contract). The page's
- * lobby table (src/main.js LOBBY_GAMES) lives in a closure Node cannot
- * reach; the browser checks game:lobby and modes:card are its proof.
+ * (docs/FLOW-AUDIT.md: the wire is a published contract), and the title's
+ * cards (src/ui/ui.js WAYS) wear the registry's faces and open its
+ * lobbies. The page's lobby table (src/main.js LOBBY_GAMES) lives in a
+ * closure Node cannot reach; the browser checks game:lobby and modes:card
+ * are its proof.
  *
  * Run with npm run modes:selftest.
  *
@@ -39,6 +41,8 @@ import {
 import { ROOM_MODES, ROOM_SETUPS } from '../src/share/roomwire.js';
 import { GOALS } from '../src/share/roomtag.js';
 import { MAPS } from '../src/maps/registry.js';
+import { WAYS } from '../src/ui/ui.js';
+import { str } from '../src/strings/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 let failed = 0;
@@ -95,6 +99,17 @@ check('only combat goes straight back to its lobby', MODES.filter((m) => m.strai
 check('combat and tag need two in passing, one in their own room', minPlayersFor('combat', 'combat') === 1 && minPlayersFor('combat', null) === 2
   && minPlayersFor('tag', 'tag') === 1 && minPlayersFor('tag', 'race') === 2 && minPlayersFor('race', null) === 1 && minPlayersFor('war', 'war') === 1);
 check('the war is Operations, the rest Flight Club', MODES.filter((m) => m.category === 'operations').map((m) => m.id).join() === 'war');
+
+console.log('modes: the title\'s cards (src/ui/ui.js WAYS)');
+for (const m of MODES) {
+  const way = WAYS.find((w) => w.id === m.card.way);
+  check(`${m.id}: its card is the way ${m.card.way}, on the title`, Boolean(way) && way.gate !== false);
+  check(`${m.id}: the card's lobby is the room's mode`, Boolean(way) && way.lobby === wireMode(m.id), way && String(way.lobby));
+  check(`${m.id}: the card wears the registry's face`, Boolean(way) && way.label === str(m.card.label) && way.blurb === str(m.card.blurb)
+    && way.art === m.card.art && JSON.stringify(way.facts) === JSON.stringify(m.card.facts.map((k) => str(k))) && (way.home ?? null) === m.card.home);
+}
+const cards = WAYS.filter((w) => w.gate !== false);
+check('every card on the title is an activity of the registry', cards.every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
 
 console.log('modes: the wire');
 check('free flight is null on the wire', wireMode('free') === null && modeOfWire(null) === 'free' && modeOfWire(undefined) === 'free');
