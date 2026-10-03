@@ -888,7 +888,8 @@ export class RoomCore {
     /* Started by the room's host (Phase 4), in a public room as in a
      * private one since the room browser gave public rooms a host. */
     if (msg.type === 'track' || msg.type === 'race') {
-      return [...first, ...this.race.message(this, conn, s, msg, now)];
+      /* A race lobby's times wait for its track and its grid. */
+      return [...first, ...this.race.message(this, conn, s, msg, now), ...this.gameLobby.rearm(this, now), ...this.wake()];
     }
     return [];
   }

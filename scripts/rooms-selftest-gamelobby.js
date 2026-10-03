@@ -321,12 +321,11 @@ export function gameLobbySection(check) {
     check('both ready with no track: kept, and no time runs', e.lobby(0).ready['1'] && e.lobby(0).ready['2'] && e.lobby(0).countdownAt === null
       && e.lobby(0).deadlineAt === null, JSON.stringify(e.lobby(0)));
     e.say(0, { type: 'track', doc: mapTrackDocument({ id: 'trk-lobby001' }) });
+    check('the host\'s track, nobody on its grid yet: still no time', e.lobby(1).countdownAt === null, JSON.stringify(e.lobby(1)));
     e.say(0, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
     e.say(1, { type: 'race', op: 'ready', track: 'trk-lobby001', ready: true });
-    e.ready(1, false);
-    e.ready(1);
-    check('the host\'s track: the lobby says it, and the five seconds run', e.lobby(1).track === 'trk-lobby001' && e.lobby(1).countdownAt === 100 + LOBBY_COUNTDOWN_MS,
-      JSON.stringify(e.lobby(1)));
+    check('pilots on its grid: the lobby says the track, and the five seconds run', e.lobby(1).track === 'trk-lobby001'
+      && e.lobby(1).countdownAt === 100 + LOBBY_COUNTDOWN_MS, JSON.stringify(e.lobby(1)));
     e.at(100 + LOBBY_COUNTDOWN_MS + 100);
     const race = e.r.race.race;
     check('at their end the race goes off the grid with both on it', race && race.state === 'on' && race.racers.join() === '1,2', JSON.stringify(race));

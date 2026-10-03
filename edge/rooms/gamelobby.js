@@ -23,8 +23,10 @@
  *                  its own.
  *   start now      the host's own start of the game, at once, as ever.
  *
- * A race needs its track first (the host's, race.js load): with none, the
- * flags are kept and no time runs.
+ * A race needs its track first (the host's, race.js load), and a pilot on
+ * its grid (race.js ready: the track's world built under the lobby
+ * screen): until then the flags are kept and no time runs, and the times
+ * are settled again when a pilot comes onto the grid (core.js).
  *
  * A round on has no lobby: a pilot who joins then is in it (war.js late
  * join; combat.js seat() gives a newcomer paper; tag.js pose() makes a
@@ -125,7 +127,7 @@ const GAMES = {
   race: {
     set: null,
     show: (core) => ({ track: core.race.track ? core.race.track.id : null }),
-    can: (core) => Boolean(core.race.track),
+    can: (core) => Boolean(core.race.track) && core.race.readySeats().length > 0,
     on: (core) => Boolean(core.race.race && core.race.race.state === 'on'),
     start: (core, conn, s, now) => core.race.message(core, conn, s, { type: 'race', op: 'start', laps: 3 }, now),
   },
@@ -250,6 +252,17 @@ export class RoomGameLobby {
       return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
     }
     return [];
+  }
+
+  /* Something the round needs changed (a race's grid): the times again,
+   * the flags as they are. */
+  rearm(core, now) {
+    if (!this.open(core)) {
+      return [];
+    }
+    const was = [this.countdownAt, this.deadlineAt].join();
+    this.settle(core, now, true);
+    return [this.countdownAt, this.deadlineAt].join() === was ? [] : this.changed(core);
   }
 
   /* A pilot joined: not ready, and the five seconds go on. */
