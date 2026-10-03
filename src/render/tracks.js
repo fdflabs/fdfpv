@@ -67,25 +67,45 @@
  */
 export const MUSIC_REV = 1;
 
-function rec(id, name) {
-  return { id, name };
+/*
+ * Every record's integrated loudness, LUFS (ITU-R BS.1770-4), of its WebM,
+ * measured with ffmpeg's ebur128 on 2026-10-02. They spread 4.2 LU, from
+ * -13.0 to -17.2, and nothing levelled them, so a skip could jump 4 dB.
+ * src/render/music.js plays each at trackGain(): ATTENUATION only, down to
+ * the quietest record, MUSIC_REF_LUFS, on the media element's own volume
+ * (no node, and no record is ever pushed past its master's peak). The bus
+ * after it sets where the levelled bed sits in the mix (docs/AUDIO.md).
+ * A new record needs its figure here; the module refuses to load without.
+ */
+export const MUSIC_REF_LUFS = -17.2;
+
+function rec(id, name, lufs) {
+  if (!Number.isFinite(lufs) || lufs > 0) {
+    throw new Error(`tracks: ${id} has no measured loudness`);
+  }
+  return { id, name, lufs };
+}
+
+/* The element volume that levels a record to MUSIC_REF_LUFS: at most 1. */
+export function trackGain(t) {
+  return Math.min(1, 10 ** ((MUSIC_REF_LUFS - t.lufs) / 20));
 }
 
 export const TRACKS = [
-  rec('tarmac-pulse', 'Tarmac Pulse'),
-  rec('neon-horizon', 'Neon Horizon'),
-  rec('pace-shift-skyline', 'Pace Shift Skyline'),
-  rec('fractal-current', 'Fractal Current'),
-  rec('subway-rattle', 'Subway Rattle'),
-  rec('shroom-spiral', 'Shroom Spiral'),
-  rec('barnstorm-break', 'Barnstorm Break'),
-  rec('bluegrass-circuit', 'Bluegrass Circuit'),
-  rec('celtic-riser', 'Celtic Riser'),
-  rec('driving-tension', 'Driving Tension'),
-  rec('gritty-breakbeats', 'Gritty Breakbeats'),
-  rec('hypnotic-acid-loop', 'Hypnotic Acid Loop'),
-  rec('prop-wash', 'Prop Wash'),
-  rec('ground-effect', 'Ground Effect'),
+  rec('tarmac-pulse', 'Tarmac Pulse', -13.0),
+  rec('neon-horizon', 'Neon Horizon', -17.2),
+  rec('pace-shift-skyline', 'Pace Shift Skyline', -13.5),
+  rec('fractal-current', 'Fractal Current', -16.5),
+  rec('subway-rattle', 'Subway Rattle', -14.4),
+  rec('shroom-spiral', 'Shroom Spiral', -14.0),
+  rec('barnstorm-break', 'Barnstorm Break', -15.6),
+  rec('bluegrass-circuit', 'Bluegrass Circuit', -14.0),
+  rec('celtic-riser', 'Celtic Riser', -13.3),
+  rec('driving-tension', 'Driving Tension', -14.3),
+  rec('gritty-breakbeats', 'Gritty Breakbeats', -13.5),
+  rec('hypnotic-acid-loop', 'Hypnotic Acid Loop', -13.4),
+  rec('prop-wash', 'Prop Wash', -13.8),
+  rec('ground-effect', 'Ground Effect', -13.7),
 ];
 
 /*
@@ -101,8 +121,8 @@ export const TRACKS = [
  * is a loudness nobody can find later.
  */
 export const MENU_TRACKS = [
-  rec('neon-gate', 'Neon Gate'),
-  rec('neon-gate-take-2', 'Neon Gate Take 2'),
+  rec('neon-gate', 'Neon Gate', -14.2),
+  rec('neon-gate-take-2', 'Neon Gate Take 2', -13.6),
 ];
 
 export function trackById(id) {

@@ -58,7 +58,9 @@ import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
 import { simPosToThree, simQuatToThree, simLenToWorld, threePosToSim, threeDirToSim, WORLD_SCALE } from './render/frame.js';
 import { CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP, cameraTiltRad, clampCameraAngle, makeLensShake, fpvLensClear } from './render/lens.js';
-import { MotorAudio, VOICES, labModelForCraft } from './render/audio.js';
+import { MotorAudio, VOICES } from './render/audio.js';
+import { engineSpecFor } from './render/enginespec.js';
+import { WorldAudio } from './render/world-audio.js';
 import { courseKind } from './game/progress.js';
 import { revRpm } from './ui/hangar-polish.js';
 import { InputManager, NAV_DEFLECT } from './input/input.js';
@@ -235,7 +237,7 @@ import { declareBodies, floatSpawn, insideWater, surfaceAt, waterFor, wetHeight 
 import { KINDS, TURNED } from './game/collide.js';
 import { createDamageLink, isPowered, isWreck, PART_STATE_DOUBLES, STATE } from './game/damage.js';
 import { JELLY_MASK, REACH_OF_SPAN, jellyNear, whack } from './game/jelly.js';
-import { collectTrees, groundSurface, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt, turnedBoxPose } from './game/crashworld.js';
+import { collectTrees, groundSurface, kindMaterial, nearestSolids, nearestTrees, nearestWires, obstacleSurfaces, postGive, solidSurfaceAt, turnedBoxPose } from './game/crashworld.js';
 import {
   DAMAGE_FLAGS, EVENT, EVENT_TYPES, MATERIALS, OBSTACLES_MAX, PART_KINDS, SURFACE, SURFACES, TREES_MAX, WIRES_MAX, partLabel,
 } from '../configs/parts.js';
@@ -376,6 +378,8 @@ const TAKEOFF_WINDOW_MS = 250;
  * own structure and the underside slab collider crashes it.
  */
 const SURFACE_BIAS = 0.40;
+/* The plant reports motor speed in rpm; the rooms' wire carries rad/s. */
+const RPM_PER_RAD_S = 60 / (2 * Math.PI);
 /*
  * How far the CAMERA is lifted while the craft is sitting on the ground, in
  * world metres. Render only: nothing about the physics, the collision test
@@ -1179,19 +1183,18 @@ export async function boot({
     };
   }
   const audio = new MotorAudio();
-  /*
-   * The audiolab prototype (docs/AUDIO.md): ?audiolab=1 on the URL, or
-   * localStorage 'fdfpv.audiolab' = '1', before the first press builds the
-   * graph. Off for every player; nothing in the Settings screen reaches it
-   * until the owner has heard it (the roll out, docs/AUDIO.md section 7).
-   */
-  {
-    let lab = new URLSearchParams(window.location.search).get('audiolab') === '1';
-    try {
-      lab = lab || localStorage.getItem('fdfpv.audiolab') === '1';
-    } catch (e) { /* storage refused: the URL is the only switch */ }
-    audio.setLab(lab);
-  }
+  /* The ground's material where the craft is, as the plant was last told
+   * (declareGroundMaterial), for what a hit on it sounds like. */
+  let groundMaterialNow = SURFACE.grass;
+  /* The flaps' angle and the gear's position last frame, for the sound of
+   * them moving, and whether the gear was moving. */
+  let flapAngleWas = 0;
+  let gearWas = 0;
+  let gearMovingWas = false;
+  /* Everything in the world that sounds and is not this aircraft: the
+   * war's attackers and its explosions (src/render/world-audio.js). Fed
+   * a frame at a time; silent until the mix gives it a bus. */
+  const worldAudio = new WorldAudio();
   /* Built, and silent until the pilot's first press: a browser starts an
    * AudioContext only on a gesture (MotorAudio.start), so the boot screen
    * says standby, not OK. */
@@ -2687,7 +2690,7 @@ export async function boot({
   };
   /* The loudest explosion heard this frame, rung once: its level over
    * distance, level and metres. */
-  const warBoomHeard = { score: 0, level: 0, dist: 0 };
+  const warBoomHeard = { score: 0, level: 0, dist: 0, world: false };
   let warAudioPeak = 0;
   /* The damage mode is due again at the next reset: a war began or
    * ended. See applyCrashMode. */
@@ -3479,6 +3482,12 @@ export async function boot({
     }
     const d = mine ? 0 : Math.hypot(c.x - p[0], c.y - p[1], c.z - p[2]);
     const level = mine ? 1 : Math.min(1, 0.35 + 0.2 * size);
+    /* Every explosion is its own sound in the world's voice, from where
+     * it went off; without one, the loudest of the frame rings
+     * MotorAudio.boom below. */
+    if (worldAudio.boom(mine ? null : p, level)) {
+      warBoomHeard.world = true;
+    }
     const score = level / (1 + d / 250);
     if (score > warBoomHeard.score) {
       warBoomHeard.score = score;
@@ -3650,10 +3659,21 @@ export async function boot({
       }
     }
     if (warBoomHeard.score > 0) {
-      if (audio.enabled && typeof audio.boom === 'function') {
+      if (warBoomHeard.world) {
+        /* The world rang it; the flight, the music and the ambience
+         * still duck under the loudest when it arrives, as boom() ducks
+         * them. */
+        const lv = warBoomHeard.level / (1 + warBoomHeard.dist / 250);
+        if (audio.ctx) {
+          const t = audio.ctx.currentTime + Math.min(2.5, warBoomHeard.dist / 343);
+          audio.duckFlight(t, 0.35 + 0.35 * (1 - lv), 1.2);
+          audio.duckAction(t, 0.4 + 0.4 * (1 - lv), 1.6);
+        }
+      } else if (audio.enabled && typeof audio.boom === 'function') {
         audio.boom(warBoomHeard.level, warBoomHeard.dist);
       }
       warBoomHeard.score = 0;
+      warBoomHeard.world = false;
     }
     warAudioPeak = Math.max(warAudioPeak, typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0);
     warBooms.update(dt);
@@ -3669,6 +3689,7 @@ export async function boot({
     warHud.events(events);
     warSay(warCalls.events(events, v));
     const live = roomWar.attackersAt(now);
+    worldAudio.war(live, now);
     avxTruth = roomWar.live() ? live : AVX_NO_TRUTH;
     warAttackers.update(live, roomWar.live() ? now : null, shell.camera.position);
     warDrawnAt = now;
@@ -3929,6 +3950,7 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
+    roomHearPeers();
     tagMarkPeers();
     tagBubble(now, wallMs, scene);
     tagCrownFrame(scene, dt);
@@ -4368,7 +4390,10 @@ export async function boot({
     roomQLast.copy(quat);
     roomLastSendT = now;
     const surf = !quad && wingSurfPtr ? new Float64Array(sim.e.memory.buffer, wingSurfPtr, 4) : null;
-    const rotors = [st[14], st[15], st[16], st[17]];
+    /* rad/s, the wire's unit (src/share/roomwire.js): the plant reports
+     * rpm, and sending rpm in a field of 40 rad/s counts clamped every
+     * quad above 5,080 rpm, so hover and every punch went out the same. */
+    const rotors = [st[14] / RPM_PER_RAD_S, st[15] / RPM_PER_RAD_S, st[16] / RPM_PER_RAD_S, st[17] / RPM_PER_RAD_S];
     const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
     const chute = typeof sim.e.sim_wing_chute_open === 'function' ? sim.e.sim_wing_chute_open() : 0;
     const fitted = PROPS[runAirframe] ? partsEntry(ui.settings.parts, runAirframe).addons : [];
@@ -4439,6 +4464,59 @@ export async function boot({
     }
     const world = MAPS.find((m) => m.id === peer.profile.map);
     return world ? str('rooms.away_world', { name, world: world.name }) : str('rooms.away_elsewhere', { name });
+  }
+
+  /*
+   * THE OTHER PILOTS, HEARD (src/render/audio.js updatePeers): each drawn
+   * peer's engine from its aircraft (its profile's, on stock power: the
+   * wire does not carry the power option) and the rotor speeds it sends,
+   * where it is drawn, from where the camera is. The audio picks the few it
+   * has voices for. A crashed or hidden peer is not in the list, so its
+   * voice fades.
+   */
+  const peerHeard = [];
+  const camRight = new THREE.Vector3();
+  function roomHearPeers() {
+    peerHeard.length = 0;
+    if (mode !== 'replay') {
+      for (const peer of roomPeers.values()) {
+        /* Where it is drawn, and what its newest sample says it is doing
+         * (the drawn pose carries position and attitude only). */
+        const at = peer.drawnPose;
+        const p = peer.last;
+        if (!at || !p || (p.flags & FLAG_CRASHED) || !peer.rig || !peer.rig.group.visible) {
+          continue;
+        }
+        if (!peer.audio || peer.audio.key !== peer.profile.airframe) {
+          peer.audio = {
+            key: peer.profile.airframe,
+            id: peer.seat,
+            spec: airframeById(peer.profile.airframe) ? engineSpecFor(peer.profile.airframe, {}, {}) : null,
+            rpm: [0, 0, 0, 0],
+            x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
+          };
+        }
+        const a = peer.audio;
+        /* The wire's rotor speeds are rad/s (src/share/roomwire.js). */
+        const quad = (p.flags & FLAG_QUAD) !== 0;
+        a.rpm[0] = (quad ? p.c0 : p.motor) * RPM_PER_RAD_S;
+        a.rpm[1] = quad ? p.c1 * RPM_PER_RAD_S : 0;
+        a.rpm[2] = quad ? p.c2 * RPM_PER_RAD_S : 0;
+        a.rpm[3] = quad ? p.c3 * RPM_PER_RAD_S : 0;
+        a.x = at.px;
+        a.y = at.py;
+        a.z = at.pz;
+        a.vx = p.vx;
+        a.vy = p.vy;
+        a.vz = p.vz;
+        peerHeard.push(a);
+      }
+    }
+    const cam = shell.camera;
+    camRight.setFromMatrixColumn(cam.matrixWorld, 0);
+    audio.setListener(cam.position.x, cam.position.y, cam.position.z, camRight.x, camRight.y, camRight.z,
+      groundAt(cam.position.x, cam.position.z));
+    audio.updatePeers(peerHeard);
   }
 
   function roomDrawPeer(peer, now, scene, dt, simT) {
@@ -4719,7 +4797,7 @@ export async function boot({
     fx: warBooms.stats(),
     shake: warShakePeak,
     feedHeldMs: warFeedHeldMs,
-    boomSound: { rung: audio.booms || 0, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
+    boomSound: { rung: (audio.booms || 0) + worldAudio.booms, world: worldAudio.booms, heard: worldAudio.stats, nodes: typeof audio.nodeCount === 'function' ? audio.nodeCount() : 0, peakNodes: warAudioPeak },
     seat: roomWar.seat(),
     view: roomWar.view(),
     error: roomWar.error(),
@@ -6446,6 +6524,7 @@ export async function boot({
     stateCurr = readState();
     statePrev = stateCurr;
     notice = { text: str('main.catapulted_keep_it_flying'), untilMs: performance.now() + 2200 };
+    audio.mechanical('catapult');
     return true;
   }
 
@@ -6548,6 +6627,7 @@ export async function boot({
       return false;
     }
     notice = { text: str('main.parachute_out_motor_cut'), untilMs: performance.now() + 2600 };
+    audio.mechanical('parachute');
     return true;
   }
 
@@ -7542,11 +7622,21 @@ export async function boot({
     if (u > 1) {
       u = 1;
     }
-    if (typeof audio.event === 'function') {
-      /* Still two cues, because there are two samples, but the level and
-       * the choice now come off the impulse rather than off a speed the
-       * contact may never have had. */
-      audio.event(u > 0.45 ? 'crash' : 'clip', null, u);
+    /*
+     * THE SOUND OF THE HIT: what it hit and how hard. A light touch is the
+     * graze cue, a race's penalty; a real hit is the engine's impact, at
+     * the surface's own hardness (sim_material_info: concrete 1, grass
+     * 0.05) and the momentum the hit took, the craft's mass times the
+     * closing speed. The ground's material is the one the plant was handed
+     * for this spot; an obstacle's is its kind's (crashworld.js
+     * kindMaterial).
+     */
+    const material = kind === 'ground' ? groundMaterialNow : kindMaterial(kind);
+    const hardness = materialHardness[material] ?? 0.5;
+    if (u > 0.45) {
+      audio.impact((airframeById(runAirframe).grams / 1000) * scale, hardness, scale);
+    } else {
+      audio.event('clip', null, u);
     }
     /* A kick about all three camera axes. The sign walks so two hits in a
      * row do not throw the picture the same way; it is a render effect and
@@ -7562,6 +7652,7 @@ export async function boot({
      * belly landing does not spin the props down. */
     if (kind !== 'ground' && typeof sim.e.sim_prop_strike === 'function') {
       sim.e.sim_prop_strike(IMPACT_PROP_MAX * u);
+      audio.propStrike(u, hardness);
       stateCurr = readState();
     }
     if (u > 0.25) {
@@ -7912,6 +8003,9 @@ export async function boot({
    */
   function applyPower(s) {
     const af = airframeById(runAirframe);
+    /* What the engine is heard as: the same choice the plant is built
+     * from (src/render/enginespec.js). */
+    setFlownSpec(engineSpecFor(af.id, s.power, s.combat));
     if (hasMotors(af.id) && typeof sim.e.sim_set_motors === 'function') {
       const choice = powerChoice(af.id, s.power);
       const cleared = sim.clearPower();
@@ -7944,7 +8038,6 @@ export async function boot({
       /* An aircraft pushed more than one way speaks with the engine it has. */
       const pushed = propulsionOf(af, combatSeated(af.id));
       setFlownVoice((pushed && pushed.voice) ?? af.voice ?? 'wing');
-      audio.setLabModel(labModelForCraft(af.id, pushed && pushed.id));
       return;
     }
     const { option, pack } = powerChoice(af.id, s.power);
@@ -8081,6 +8174,15 @@ export async function boot({
       audio.setVoice(v);
     }
   }
+  /* The flown craft's engine spec, put back after the stand has played its
+   * own (the stand plays a voice's model with the model's own numbers). */
+  let flownSpec = null;
+  function setFlownSpec(spec) {
+    flownSpec = spec;
+    if (!standVoiceOn) {
+      audio.setEngineSpec(spec);
+    }
+  }
 
   /* The plant's pack and tank, for the OSD. Null on a quad and on a build
    * that predates the export. */
@@ -8164,6 +8266,23 @@ export async function boot({
     smoke.update(stateCurr ? stateCurr[0] : 0, on ? smokeAt : null, smokeVel, shell.canvas.clientHeight || 720, shell.camera.fov);
   }
   const fpvFail = createFpvFail(shell.canvas);
+  /* Every material's hardness, 0 to 1, as the module has it
+   * (sim_material_info [3]): what a hit on it sounds like. A module
+   * without the call hears every surface as middling. */
+  const materialHardness = (() => {
+    const out = new Float64Array(SURFACES.length).fill(0.5);
+    if (typeof sim.e.sim_material_info !== 'function') {
+      return out;
+    }
+    const p = sim.e.malloc(4 * 8);
+    for (let m = 0; m < SURFACES.length; m += 1) {
+      if (sim.e.sim_material_info(m, p) === SIM_OK) {
+        out[m] = new Float64Array(sim.e.memory.buffer, p, 4)[3];
+      }
+    }
+    sim.e.free(p);
+    return out;
+  })();
   /* Collider kind to the module's surface, where the numbers agree. */
   const kindSurface = (() => {
     if (!damage.available || typeof sim.e.sim_material_info !== 'function') {
@@ -8502,7 +8621,8 @@ export async function boot({
   function declareGroundMaterial(wx, wz, hy) {
     const w = view.water && view.water.length ? waterAt(wx, wz) : null;
     const wet = w != null && hy >= surfaceAt(w, wx, wz) - 0.05;
-    sim.e.sim_set_ground_material(groundSurface(view, wx, wz, groundNWorld.y, wet, hy));
+    groundMaterialNow = groundSurface(view, wx, wz, groundNWorld.y, wet, hy);
+    sim.e.sim_set_ground_material(groundMaterialNow);
   }
 
   /* The obstacle contact's material, or -1 for the shell's own numbers. */
@@ -10719,7 +10839,6 @@ export async function boot({
     /* An airframe with an engine of its own names its voice; a motor is
      * the fixed wings' or the quads'. */
     setFlownVoice(airframeById(runAirframe).voice ?? (isWing ? 'wing' : 'quad'));
-    audio.setLabModel(null);
     [camMountFwd, camMountUp] = WING_MOUNTS[runAirframe] ?? [CAMERA_MOUNT_FORWARD, CAMERA_MOUNT_UP];
     /*
      * The ground PLANE needs no raising here: raiseGroundFromState asserts
@@ -12187,7 +12306,10 @@ export async function boot({
       mixArg.wind = s.windLevel / 10;
       mixArg.music = s.musicLevel / 10;
       mixArg.focus = 1;
-      mixArg.ambience = 0;
+      mixArg.effects = s.effectsLevel / 10;
+      mixArg.voice = s.voiceLevel / 10;
+      mixArg.ambience = s.ambientLevel / 10;
+      mixArg.other = s.otherLevel / 10;
       audio.setMix(mixArg);
     }
     if (typeof audio.setMusicEnabled === 'function') {
@@ -12577,7 +12699,7 @@ export async function boot({
 
   /* Reused, not rebuilt: applySettings runs off a menu keypress, but the
    * same object also keeps the shape of the call obvious in one place. */
-  const mixArg = { motors: 1, wind: 1, music: 1, focus: 1, ambience: 1 };
+  const mixArg = { motors: 1, wind: 1, music: 1, focus: 1, effects: 1, voice: 1, ambience: 1, other: 1 };
   const pPrev = new THREE.Vector3();
   const pCurr = new THREE.Vector3();
   const qPrev = new THREE.Quaternion();
@@ -15315,6 +15437,11 @@ export async function boot({
       }
       view.updateAnim(animMs);
       animDrawnMs = animMs;
+      /* Its traffic, heard (src/render/world-audio.js), where it was just
+       * placed. */
+      if (view.audioSources) {
+        view.audioSources(worldAudio.traffic(animMs));
+      }
 
       const focus = camOverride || warIntro || (build && build.cameraLive) || mode === 'replay'
         ? shell.camera.position
@@ -15437,6 +15564,15 @@ export async function boot({
       showcase = null;
     }
 
+    /* The world's sound: the sources added this frame, heard from where
+     * the camera is now, over the ground under it. */
+    worldAudio.attach(audio);
+    worldAudio.setWalls(view && view.audioWalls);
+    {
+      const c = shell.camera.position;
+      worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, worldTime);
+    }
+
     /* Overlay. */
     const st = stateCurr;
     /* speedNow, not a second square root of the same three numbers: it is
@@ -15501,6 +15637,7 @@ export async function boot({
     if (over) {
       if (standVoiceOn !== over.voice) {
         audio.setVoice(over.voice);
+        audio.setEngineSpec(null);
         standVoiceOn = over.voice;
       }
       if (hangarRev) {
@@ -15510,14 +15647,15 @@ export async function boot({
       }
     } else if (standVoiceOn) {
       audio.setVoice(flownVoice);
+      audio.setEngineSpec(flownSpec);
       standVoiceOn = null;
     }
     /* The replay plays its own motors, slowed with its picture. */
     const replayWind = mode === 'replay' ? crashCam.sound(audioRpm) : -1;
     let air = null;
-    if (audio.lab && replayWind < 0) {
+    if (replayWind < 0) {
       /* Body frame velocity, the world's turned back by the attitude
-       * (body to world, w x y z): what the prototype's wind, sideslip and
+       * (body to world, w x y z): what the engine's wind, sideslip and
        * prop wash read. Zero when the motors are not turning, as speed is. */
       const qw = st[7], qx = st[8], qy = st[9], qz = st[10];
       const vx = motorsTurning ? st[4] : 0, vy = motorsTurning ? st[5] : 0, vz = motorsTurning ? st[6] : 0;
@@ -15525,6 +15663,19 @@ export async function boot({
       audioAir.v = 2 * (qx * qy - qw * qz) * vx + (1 - 2 * (qx * qx + qz * qz)) * vy + 2 * (qy * qz + qw * qx) * vz;
       audioAir.w = 2 * (qx * qz + qw * qy) * vx + 2 * (qy * qz - qw * qx) * vy + (1 - 2 * (qx * qx + qy * qy)) * vz;
       audioAir.amps = motorsTurning ? st[19] : 0;
+      /* The flaps and the gear while they travel, read off the plant, and
+       * the gear's clunk when it arrives. */
+      const flap = typeof sim.e.sim_wing_flaps === 'function' ? sim.e.sim_wing_flaps() : 0;
+      audioAir.flapsMoving = Math.abs(flap - flapAngleWas) > 1e-5;
+      flapAngleWas = flap;
+      const gear = typeof sim.e.sim_wing_gear === 'function' ? sim.e.sim_wing_gear() : 0;
+      const gearMoving = Math.abs(gear - gearWas) > 1e-6;
+      if (gearMovingWas && !gearMoving && (gear === 0 || gear === 1)) {
+        audio.mechanical('gear');
+      }
+      gearMovingWas = gearMoving;
+      gearWas = gear;
+      audioAir.gearMoving = gearMoving;
       air = audioAir;
     }
     audio.update(audioRpm, replayWind >= 0 ? replayWind : (motorsTurning ? speed : 0), undefined, air);
@@ -16019,8 +16170,8 @@ export async function boot({
   /* Hoisted: P8 forbids a new array per frame, and this one used to be a
    * literal in the audio.update call. */
   const audioRpm = [0, 0, 0, 0];
-  /* The prototype's extra state, the same way: written in place. */
-  const audioAir = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0 };
+  /* The engine's extra state, the same way: written in place. */
+  const audioAir = { u: 0, v: 0, w: 0, amps: 0, dist: 0, dist2: 0, pan: 0, flapsMoving: false, gearMoving: false };
   /*
    * The other way the mix can be left holding a tone, and it is the same
    * defect from the other end: the whole mix is driven from inside frame(),
@@ -17538,6 +17689,9 @@ export async function boot({
     lap: simTimeMs,
     offset: trafficOffsetMs,
     room: roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null,
+    /* The world's sound of it: what the worklet last said it voiced
+     * (src/render/world-audio.js stats), null before the mix is up. */
+    sound: worldAudio.stats,
   });
   /* The active map's scene graph, for measurement. tests/lib/checks.js walks
    * it to assert that reference objects measure what this project claims they

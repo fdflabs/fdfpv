@@ -135,7 +135,29 @@
         --pdcs-muted: #9aa3a7;
         --pdcs-dim: #71797d;
         --pdcs-green: #6fcfa2;
-        --pdcs-fill: #d6dddd;
+        /*
+         * THE ACCENTS (the owner, after #348: "id like to add accent
+         * colors, where applicable, blues and greens mainly, but keep it
+         * tactical"). Blue is the instrument's own colour: the cursor, focus,
+         * selection, the active tab, links, the plates' tint, progress.
+         * Green is state: --pdcs-green READY and the one thing to press,
+         * --pdcs-green-live a room or a pilot that is live (flying, online).
+         * Red stays the flag's, and errors'. Measured on --pdcs-bg and on
+         * the gradient's lighter centre (#101416):
+         *   --pdcs-blue         7.3 and 6.8 : 1, text
+         *   --pdcs-blue-strong  9.8 and 9.1 : 1, text on hover
+         *   --pdcs-blue-dim     3.7 and 3.4 : 1, rules and marks only
+         *   --pdcs-green-live   6.2 and 5.8 : 1, text
+         *   --pdcs-green-dim    4.9 and 4.6 : 1, rules and marks
+         * Dark text on --pdcs-blue is 7.3 : 1, on --pdcs-green 10.6 : 1.
+         */
+        --pdcs-blue: #6aa3c8;
+        --pdcs-blue-strong: #8cbcd8;
+        --pdcs-blue-dim: #3f6f8f;
+        --pdcs-blue-wash: rgba(106, 163, 200, 0.1);
+        --pdcs-plate: #132532;
+        --pdcs-green-live: #5f9c80;
+        --pdcs-green-dim: #4e8a6c;
         --pdcs-fail: #ff8f8f;
         --pdcs-warn: #d9b46c;
         --pdcs-panel: rgba(10, 13, 14, 0.86);
@@ -1436,8 +1458,8 @@
         font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
         text-transform: uppercase; color: var(--amber);
       }
-      .beta-tag::before { content: "[ "; }
-      .beta-tag::after { content: " ]"; }
+      .beta-tag::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .beta-tag::after { content: " ]"; color: var(--pdcs-blue-dim); }
       .screen-title .beta-note { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65); }
       .keep-note {
         max-width: 34em; margin: 14px 0 0; color: rgba(215, 221, 221, 0.72);
@@ -1547,8 +1569,8 @@
         flex: 0 0 auto;
         font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--slate);
       }
-      .gate-rooms-title::before { content: "[ "; }
-      .gate-rooms-title::after { content: " ]"; }
+      .gate-rooms-title::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .gate-rooms-title::after { content: " ]"; color: var(--pdcs-blue-dim); }
       .gate-rooms-count {
         min-width: 0;
         font-size: 12.5px; letter-spacing: 0.04em; color: var(--cream);
@@ -1569,9 +1591,13 @@
       .gate-room-all, .gate-room-make { align-items: center; }
       .gate-room-all .gate-room-name, .gate-room-make .gate-room-name { text-transform: uppercase; letter-spacing: 0.12em; }
       .gate-room-make .gate-room-name { color: var(--mint); }
-      .gate-room.on { background: rgba(215, 221, 221, 0.08); box-shadow: inset 0 0 0 1px var(--pdcs-text); }
+      .gate-room-join { color: var(--pdcs-blue); text-transform: uppercase; letter-spacing: 0.1em; }
+      .gate-room.is-live { box-shadow: inset 2px 0 0 var(--pdcs-green-live), inset 0 0 0 1px var(--pdcs-line-soft); }
+      .gate-room.is-live .gate-room-value { color: var(--pdcs-green-live); }
+      .gate-room.is-live .gate-room-join { color: var(--pdcs-green); }
+      .gate-room.on { background: var(--pdcs-blue-wash); box-shadow: inset 0 0 0 1px var(--pdcs-blue); }
       .gate-room.on .gate-room-name { color: var(--pdcs-bright); }
-      .gate-room:focus-visible { outline: 1px solid var(--mint); outline-offset: 2px; }
+      .gate-room:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 2px; }
       /*
        * A CARD IS A PANEL ON THE GROUND, the boot screen's visual area over
        * its label: a hairline frame, an index, the mode's picture as a
@@ -1594,15 +1620,24 @@
         box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
         transition: box-shadow 0.14s ease;
       }
-      .gate-card.on { box-shadow: inset 0 0 0 1px var(--pdcs-text); }
-      .gate-card:focus-visible { outline: 1px solid var(--mint); outline-offset: 3px; }
+      /* The cursor's card: a full blue frame and a heavier rule along its top,
+         the others left calm. */
+      .gate-card { position: relative; }
+      /* Over the plate, which would cover an inset shadow: the frame is an
+         outline and the rule a layer of its own. */
+      .gate-card.on { outline: 1px solid var(--pdcs-blue-strong); outline-offset: -1px; }
+      .gate-card.on::after {
+        content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 2;
+        background: var(--pdcs-blue-strong); pointer-events: none;
+      }
+      .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
       .gate-card-art {
         position: relative;
         width: 100%;
         /* Taller as the window is: the plates take the height a tall
            window has to spare, and give it back below 720. */
         height: clamp(120px, calc(62vh - 300px), 400px);
-        background: var(--pdcs-bg);
+        background: var(--pdcs-plate);
         border-bottom: 1px solid var(--pdcs-line-soft);
         overflow: hidden;
       }
@@ -1610,6 +1645,8 @@
         width: 100%; height: 100%;
         display: block; object-fit: cover;
         filter: grayscale(1) contrast(1.1) brightness(0.7);
+        /* Its light over the plate's blue: a duotone, still mostly grey. */
+        mix-blend-mode: luminosity;
         opacity: 0.5;
         transition: opacity 0.14s ease;
       }
@@ -1626,7 +1663,7 @@
         position: absolute; left: 10px; top: 8px; z-index: 1;
         font-size: 10.5px; letter-spacing: 0.16em; color: var(--slate);
       }
-      .gate-card.on .gate-card-art::before { color: var(--mint); }
+      .gate-card.on .gate-card-art::before { color: var(--pdcs-blue-strong); }
       .gate-card-mark { z-index: 1; }
       .gate-card-body {
         display: flex; flex-direction: column; gap: 7px;
@@ -1661,8 +1698,8 @@
         font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
         color: var(--slate);
       }
-      .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-dim); }
-      .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-dim); }
+      .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-blue-dim); }
+      .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-blue-dim); }
       /*
        * The plan drawing over the corner of each picture.
        *
@@ -1791,12 +1828,12 @@
       .war-lobby[hidden] { display: none; }
       .war-lobby-head {
         display: flex; align-items: baseline; gap: 6px 16px; flex-wrap: wrap;
-        padding-bottom: 10px; border-bottom: 1px solid var(--pdcs-line);
+        padding-bottom: 10px; border-bottom: 1px solid var(--pdcs-blue-dim);
         font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
       }
-      .war-lobby-title { color: var(--slate); }
-      .war-lobby-title::before { content: "[ "; }
-      .war-lobby-title::after { content: " ]"; }
+      .war-lobby-title { color: var(--pdcs-blue); }
+      .war-lobby-title::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .war-lobby-title::after { content: " ]"; color: var(--pdcs-blue-dim); }
       .war-lobby-mission { color: var(--cream); }
       .war-lobby-status {
         font-size: clamp(13px, 1.4vw, 15px); letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream);
@@ -1812,8 +1849,8 @@
       .war-lobby-name { font-size: 13px; letter-spacing: 0.08em; color: var(--cream); overflow-wrap: anywhere; }
       .war-lobby-pilot.me .war-lobby-name { color: var(--pdcs-bright); }
       .war-lobby-host { font-size: 10.5px; letter-spacing: 0.14em; color: var(--slate); }
-      .war-lobby-host::before { content: "[ "; }
-      .war-lobby-host::after { content: " ]"; }
+      .war-lobby-host::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .war-lobby-host::after { content: " ]"; color: var(--pdcs-blue-dim); }
       .war-lobby-craft { font-size: 11.5px; letter-spacing: 0.06em; color: var(--slate); }
       .war-lobby-flag { flex: 0 0 auto; font-size: 12px; letter-spacing: 0.14em; color: var(--slate); }
       .war-lobby-pilot.ready .war-lobby-flag { color: var(--mint); }
@@ -2143,9 +2180,9 @@
         border: 0; padding: 0; margin: 0; font-family: inherit;
         letter-spacing: inherit; cursor: pointer;
       }
-      .frame-legend .legend-act:hover { color: var(--sakura); }
+      .frame-legend .legend-act:hover { color: var(--pdcs-blue-strong); }
       .frame-legend .legend-act:focus-visible {
-        outline: 2px solid var(--cream); outline-offset: 3px;
+        outline: 2px solid var(--pdcs-blue); outline-offset: 3px;
       }
       .frame-primary {
         pointer-events: auto; font: inherit; font-size: 13px; font-weight: 600;
@@ -2154,7 +2191,7 @@
         background: var(--mint); color: var(--deep); cursor: pointer;
       }
       .frame-primary[hidden] { display: none; }
-      .frame-primary:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+      .frame-primary:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
 
       /* ---- ROW GRAMMAR --------------------------------------------------
          The kind of a row is visible before Enter is pressed. A value row
@@ -2189,8 +2226,8 @@
          green, which on every PDCS surface means the live thing, as a 2 px
          edge, and the row a step brighter. */
       .row.on {
-        color: var(--pdcs-bright); border-left-color: var(--pdcs-green);
-        background: linear-gradient(90deg, rgba(215, 221, 221, 0.1), rgba(215, 221, 221, 0.02) 60%);
+        color: var(--pdcs-bright); border-left-color: var(--pdcs-blue);
+        background: linear-gradient(90deg, rgba(106, 163, 200, 0.14), rgba(106, 163, 200, 0.02) 60%);
       }
       /*
        * THE STANDINGS TABLE. Drawn above the actions, not as menu rows: a
@@ -2245,7 +2282,7 @@
        */
       .row:focus { outline: none; }
       .row:focus-visible {
-        outline: 2px solid var(--sakura); outline-offset: -2px;
+        outline: 2px solid var(--pdcs-blue); outline-offset: -2px;
       }
       .screen-fc .row:focus-visible { outline-color: var(--bf-accent); }
       /*
@@ -2340,6 +2377,8 @@
         border-bottom: 1px solid var(--pdcs-line-soft);
         pointer-events: none;
       }
+      .menu-section::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .menu-section::after { content: " ]"; color: var(--pdcs-blue-dim); }
       .menu-scroll > .menu-section:first-child { margin-top: 4px; }
 
       /*
@@ -2611,7 +2650,7 @@
       }
       .step {
         width: 1.35em; height: 1.05em; padding: 0; border: 0; border-radius: 0;
-        background: rgba(215, 221, 221, 0.16); color: var(--sakura); cursor: pointer;
+        background: var(--pdcs-blue-wash); color: var(--pdcs-blue); cursor: pointer;
         font-size: 9px; line-height: 1; display: grid; place-items: center;
       }
       .step:hover { background: rgba(215, 221, 221, 0.32); }
@@ -2637,7 +2676,7 @@
       }
       .sw-seg:hover { color: var(--cream); background: rgba(215, 221, 221, 0.12); }
       .sw-seg.on {
-        background: rgba(215, 221, 221, 0.9); color: #07090a;
+        background: var(--pdcs-blue); color: var(--pdcs-bg);
       }
       /* On the bench the switch wears Betaflight's yellow, like every other
          control there, or it reads as the game's chrome floating on top of
@@ -2666,7 +2705,7 @@
       }
       .row-num:focus {
         outline: none; background: rgba(215, 221, 221, 0.18);
-        box-shadow: inset 0 0 0 1px var(--sakura);
+        box-shadow: inset 0 0 0 1px var(--pdcs-blue);
         color: var(--cream);
       }
       .row-num-unit {
@@ -2701,15 +2740,15 @@
         -webkit-appearance: none; appearance: none;
         width: 14px; height: 14px; border-radius: 50%;
         margin-top: -5px;
-        background: var(--mint); border: 0;
+        background: var(--pdcs-blue); border: 0;
         box-shadow: 0 0 0 1px rgba(10, 13, 14, 0.6), 0 1px 4px rgba(0, 0, 0, 0.5);
       }
       .row-range::-moz-range-thumb {
         width: 14px; height: 14px; border-radius: 50%;
-        background: var(--mint); border: 0;
+        background: var(--pdcs-blue); border: 0;
         box-shadow: 0 0 0 1px rgba(10, 13, 14, 0.6), 0 1px 4px rgba(0, 0, 0, 0.5);
       }
-      .row-range:focus-visible { outline: 1px solid var(--mint); outline-offset: 2px; }
+      .row-range:focus-visible { outline: 1px solid var(--pdcs-blue); outline-offset: 2px; }
       .row-range-num { width: 4ch; }
       .screen-fc .row-range::-webkit-slider-runnable-track { background: #2a2a2a; }
       .screen-fc .row-range::-moz-range-track { background: #2a2a2a; }
@@ -3485,14 +3524,14 @@
         transition: box-shadow 0.14s ease;
       }
       /* The gate card's cursor: a full strength hairline, no lift. */
-      .map-card.on { box-shadow: inset 0 0 0 1px var(--pdcs-text); }
+      .map-card.on { box-shadow: inset 0 0 0 1px var(--pdcs-blue); }
       /* The card whose actions are showing below the strip. It has to read as
          chosen even when the cursor has moved off it onto its own list, which
          is the whole reason the list is not floating free any more. Green
          rather than the cursor's white: two whites a card apart would be one
          state drawn twice. */
       .map-card.chosen { box-shadow: inset 0 0 0 1px var(--mint); }
-      .map-card.chosen.on { box-shadow: inset 0 0 0 1px var(--pdcs-text), 0 0 0 2px var(--mint); }
+      .map-card.chosen.on { box-shadow: inset 0 0 0 1px var(--pdcs-blue), 0 0 0 2px var(--mint); }
       .map-card.chosen .map-card-name { color: var(--mint); }
       /* 16 by 9, so the thumbnail is the shape of the thing it is a
          thumbnail of. A looping clip of the title shot fills this box. */
@@ -3654,9 +3693,9 @@
       }
       .howto-tab:hover { color: var(--cream); }
       .howto-tab.on {
-        background: rgba(215, 221, 221, 0.16);
-        box-shadow: inset 0 0 0 1px var(--sakura);
-        color: var(--cream);
+        background: var(--pdcs-blue-wash);
+        box-shadow: inset 0 0 0 1px var(--pdcs-blue);
+        color: var(--pdcs-bright);
       }
       .howto-body {
         display: flex; align-items: center; justify-content: center;
@@ -4034,7 +4073,7 @@
         gap: 8px;
         margin-top: 12px;
         font: 600 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-        color: var(--slate);
+        color: var(--pdcs-blue);
         transition: color 0.16s ease;
       }
       .credit-handle::before {
@@ -4046,9 +4085,9 @@
         border-bottom: 5px solid transparent;
       }
       .credit.is-link:hover .credit-handle,
-      .credit.is-link:focus-within .credit-handle { color: var(--sakura); }
+      .credit.is-link:focus-within .credit-handle { color: var(--pdcs-blue-strong); }
       .credit-copy a, .credits-legal a, .credits-lede a, .credit-room a {
-        color: var(--sakura);
+        color: var(--pdcs-blue);
         text-decoration: none;
       }
       .credit-copy a:hover, .credits-legal a:hover, .credits-lede a:hover, .credit-room a:hover { color: var(--cream); }
@@ -4332,7 +4371,7 @@
         display: flex; justify-content: space-between; align-items: center; gap: 16px;
         font-size: 11px; letter-spacing: 0.16em; line-height: 1.3;
       }
-      .pdcs-step { color: var(--pdcs-dim); }
+      .pdcs-step { color: var(--pdcs-blue); }
       .pdcs-head-core { display: flex; align-items: center; gap: 12px; color: var(--pdcs-dim); white-space: nowrap; }
       /* Paraguay's flag as a marker: three horizontal bands, red over white
          over blue, never turned on its side. */
@@ -4397,7 +4436,7 @@
         position: relative; min-height: 300px; overflow: hidden;
         display: flex; align-items: center; justify-content: center;
         border: 1px solid rgba(255, 255, 255, 0.08);
-        background: var(--pdcs-fine-grid);
+        background: var(--pdcs-fine-grid), linear-gradient(var(--pdcs-blue-wash), var(--pdcs-blue-wash));
       }
       .pdcs-drone { width: min(86%, 420px); height: auto; opacity: 0.9; }
       /* The world being loaded, as a survey plate: its own card's poster,
@@ -4526,7 +4565,7 @@
         position: absolute; inset: 0;
         transform: scaleX(0);
         transform-origin: left center;
-        background: var(--pdcs-fill);
+        background: var(--pdcs-blue);
         transition: transform 0.18s linear;
         will-change: transform;
       }
@@ -4539,7 +4578,7 @@
       .loading-sweep {
         position: absolute; inset: 0;
         background: linear-gradient(90deg,
-          transparent, rgba(214, 221, 221, 0.3), transparent);
+          transparent, rgba(140, 188, 216, 0.35), transparent);
         transform: translateX(-100%);
         animation: loading-sweep 1.6s linear infinite;
         will-change: transform;
@@ -4656,7 +4695,7 @@
       /* The button Enter presses. On a delete confirm focus starts on the
          keep button, and moving onto the delete lights it as a hover does,
          so the one press that deletes is never the unmarked one. */
-      .name-dialog-btn:focus-visible { outline: 2px solid var(--cream); outline-offset: 2px; }
+      .name-dialog-btn:focus-visible { outline: 2px solid var(--pdcs-blue); outline-offset: 2px; }
       .name-dialog-btn.danger:focus { color: var(--deep); background: #ff8f8f; border-color: #ff8f8f; }
       /* Defend the Paraná's missions and shop (src/ui/campaign.js), on the
          same overlay: wider, and scrolling inside itself, since four
@@ -4670,7 +4709,7 @@
          colour (the grey layer's hue and saturation over it), darkened,
          under the grid. */
       .name-dialog:has(.campaign-box) {
-        background: var(--pdcs-grid), var(--pdcs-scrim), linear-gradient(#777, #777),
+        background: var(--pdcs-grid), var(--pdcs-scrim), linear-gradient(#5f7a8c, #5f7a8c),
           url('assets/posters/itaipu.jpg') center / cover no-repeat;
         background-blend-mode: normal, normal, normal, color, normal;
       }
@@ -4807,8 +4846,8 @@
         padding: 8px 10px; cursor: pointer;
         box-shadow: inset 0 0 0 1px var(--pdcs-line-soft);
       }
-      .bug-chip::before { content: "[ "; color: var(--pdcs-dim); }
-      .bug-chip::after { content: " ]"; color: var(--pdcs-dim); }
+      .bug-chip::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .bug-chip::after { content: " ]"; color: var(--pdcs-blue-dim); }
       /* A phone's corner holds the chip level with the name's first line,
          and Spanish's sign in label is the longest: the brackets and the
          wide tracking go so it stays clear of PARAGUAYAN at 360 px. */
@@ -4989,7 +5028,7 @@
         padding: 8px 16px; cursor: pointer;
       }
       .carousel-tab:hover { color: var(--cream); }
-      .carousel-tab.on { background: var(--cream); color: var(--deep); }
+      .carousel-tab.on { background: var(--pdcs-blue); color: var(--pdcs-bg); }
       .carousel-tab[hidden] { display: none; }
       /* MY HANGAR (src/ui/builds.js): one more tab, set apart from the
          stock lists by a rule, and on a build's card its plane's name, its
@@ -5009,9 +5048,9 @@
         padding: 8px 14px; text-shadow: none;
         background: rgba(10, 13, 14, 0.55); color: var(--cream); border: 1px solid rgba(215, 221, 221, 0.3);
       }
-      .carousel-mine-tool:hover, .carousel-mine-tool:focus-visible { border-color: var(--mint); color: var(--mint); outline: none; }
+      .carousel-mine-tool:hover, .carousel-mine-tool:focus-visible { border-color: var(--pdcs-blue); color: var(--pdcs-blue-strong); outline: none; }
       .carousel-mine-tool.on { background: var(--cream); color: var(--deep); border-color: var(--cream); }
-      .carousel-mine-tool.on:focus-visible { box-shadow: 0 0 0 2px var(--mint); color: var(--deep); }
+      .carousel-mine-tool.on:focus-visible { box-shadow: 0 0 0 2px var(--pdcs-blue); color: var(--deep); }
       .carousel-mine-danger { color: #ff9a8a; border-color: rgba(255, 154, 138, 0.5); }
       .carousel-mine-danger:focus-visible, .carousel-mine-danger:hover { background: #ff9a8a; color: var(--deep); border-color: #ff9a8a; }
       .carousel-mine-ask { margin: 0; font-size: 18px; font-weight: 700; }
@@ -5033,7 +5072,7 @@
         color: var(--cream); font: 400 30px/1 var(--ui-font); cursor: pointer;
         display: flex; align-items: center; justify-content: center; padding: 0 0 4px;
       }
-      .carousel-arrow:hover:not(:disabled) { border-color: var(--mint); color: var(--mint); }
+      .carousel-arrow:hover:not(:disabled) { border-color: var(--pdcs-blue); color: var(--pdcs-blue-strong); }
       .carousel-arrow:disabled { opacity: 0.2; cursor: default; }
       .carousel-prev { left: 0; }
       .carousel-next { right: 0; }
@@ -5052,7 +5091,7 @@
         appearance: none; width: 7px; height: 7px; padding: 0; border: 0;
         background: rgba(215, 221, 221, 0.28); cursor: pointer;
       }
-      .carousel-dot.on { background: var(--mint); }
+      .carousel-dot.on { background: var(--pdcs-blue); }
       .carousel-foot { display: flex; flex-direction: column; align-items: center; gap: 8px; }
       .carousel-warn { margin: 0; font-size: 13px; color: var(--amber); }
       .carousel-warn[hidden] { display: none; }

@@ -74,6 +74,13 @@ import {
 } from '../node-http.js';
 import { normaliseName } from '../../src/share/pilot.js';
 import { turnMinter } from './turn.js';
+import en from '../../src/strings/en.js';
+
+/* A picker name's three indices as the English shell shows them
+ * (src/main.js roomName), for the admin's who is on. */
+function pickName(pick) {
+  return Array.isArray(pick) ? `${en[`rooms.adj.${pick[0]}`]} ${en[`rooms.animal.${pick[1]}`]} ${pick[2]}` : null;
+}
 
 /* The largest message the simulator sends is a host's race track, logos
  * stripped (src/share/roomrace.js), which the room caps at 64 kB (race.js
@@ -487,6 +494,24 @@ export function startRooms({
   };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
+  /* Who is on, for GET /v2/admin/rooms: every room with anybody in it,
+   * its seats named as the English shell names them. A private room is
+   * listed without its code, which is a key to it (health.js report). */
+  env.WHO = () => {
+    const now = Date.now();
+    const rooms = [...env.ROOMS.objects.values()].map((room) => room.host.core).filter((core) => core && core.seats.size);
+    return {
+      at: new Date(now).toISOString(),
+      rooms: rooms.map((core) => ({
+        room: core.meta.public ? core.meta.code : 'private',
+        name: core.meta.public ? core.meta.name ?? null : null,
+        map: core.meta.map,
+        mode: core.meta.mode ?? null,
+        ...core.activity(now),
+        seats: core.who(now).map((s) => ({ ...s, name: s.callsign || pickName(s.pick) })),
+      })),
+    };
+  };
   env.HEALTH = new Health(() => [...env.ROOMS.objects.values()].map((room) => {
     const core = room.host.core;
     return { counters: room.counters, pilots: core ? core.seats.size : 0, meta: core ? core.meta : null, activity: core ? core.activity(Date.now()) : null };

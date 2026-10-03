@@ -88,6 +88,8 @@
     </main>
     <script type="module">
       import { loadFlights, renderFlight } from './drive.js';
+      import { renderWorld } from './world-drive.js';
+      import { SCENES } from './world-scenes.js';
       import { measure } from './metrics.js';
 
       const TARGET_LUFS = -23;
@@ -112,12 +114,21 @@
         }
       }
 
+      /* A flight (drive.js) or a world scene (world-drive.js, its id
+       * prefixed world:). */
       async function rendered(id, mode) {
         const key = `${id}:${mode}`;
         if (!cache.has(key)) {
-          cache.set(key, renderFlight(id, mode).then((r) => ({ ...r, m: measure(r.channels, r.rate) })));
+          const r = id.startsWith('world:') ? renderWorld(id.slice(6), mode) : renderFlight(id, mode);
+          cache.set(key, r.then((x) => ({ ...x, m: measure(x.channels, x.rate) })));
         }
         return cache.get(key);
+      }
+
+      /* Matched on the pass, the loudest 400 ms: a fly-by and every world
+       * scene, which is a thing going by or going off. */
+      function onPass(id) {
+        return id.startsWith('world:') || Boolean(data.flights[id].listener);
       }
 
       async function play(id, mode, button, meta) {
@@ -147,9 +158,9 @@
            * how long it is far, not how loud it is: it is matched on the
            * pass, its loudest 400 ms (tools/audio/render.js judges it the
            * same way). */
-          const level = data.flights[id].listener ? r.m.lufsMomentaryMax : r.m.lufs;
+          const level = onPass(id) ? r.m.lufsMomentaryMax : r.m.lufs;
           let gainDb = 0;
-          if (match.checked && Number.isFinite(level)) {
+          if (match.checked && Number.isFinite(level) && level > -90) {
             gainDb = Math.min(TARGET_LUFS - level, -1 - r.m.truePeakDbtp);
           }
           playingDb = gainDb;
@@ -161,7 +172,7 @@
           playing = { src, button };
           button.classList.add('playing');
           src.onended = () => stop();
-          const line = (k, x) => `${k} ${x.m.lufs} LUFS, peak ${x.m.truePeakDbtp} dBTP, 2 to 5 kHz ${x.m.harshShareA}%`;
+          const line = (k, x) => (x.m.lufs == null || x.m.lufs <= -90 ? `${k} silent` : `${k} ${x.m.lufs} LUFS, peak ${x.m.truePeakDbtp} dBTP, 2 to 5 kHz ${x.m.harshShareA}%`);
           const otherLine = other ? await other.then((o) => ` | ${line(o.mode.toUpperCase(), o)}`).catch(() => '') : '';
           meta.textContent = `${line(mode.toUpperCase(), r)}${otherLine} | played ${gainDb >= 0 ? '+' : ''}${gainDb.toFixed(1)} dB`;
           status.textContent = '';
@@ -186,7 +197,14 @@
 
       const data = await loadFlights();
       let group = '';
-      for (const [id, f] of Object.entries(data.flights)) {
+      /* The flights, then the world's scenes (docs/AUDIO.md section 12);
+       * OLD in a world scene is the frozen baseline, where only the
+       * explosions sounded. The cost scene is not for listening. */
+      const rows = [
+        ...Object.entries(data.flights),
+        ...Object.entries(SCENES).filter(([, sc]) => sc.note !== 'cost').map(([k, sc]) => [`world:${k}`, sc]),
+      ];
+      for (const [id, f] of rows) {
         const g = f.title.split(':')[0];
         if (g !== group) {
           group = g;

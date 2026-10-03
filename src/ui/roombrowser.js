@@ -425,6 +425,9 @@ export function createRoomBrowser({
            * lobby", "Combat · 2 flying · round 3". */
           value: str('roombrowser.chip', { game: str(`roombrowser.chip_${r.mode || r.game || 'free'}`, { n: missionNumber(r.mission) }), doing: doingNow(r) }),
           join: str(r.state === 'waiting' || r.game === 'race' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
+          /* Somebody is in the air in it (flyingNow): the panel paints it
+           * green, a room in its lobby blue (index.html, THE ROOMS PANEL). */
+          live: flyingNow(r),
           action: `lobby:${ROOM_ACTION}${r.code}`,
         })),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },
