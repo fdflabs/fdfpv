@@ -60,7 +60,9 @@ import { SPAWN_MS } from '../edge/rooms/safety.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS, waveSize } from '../src/share/war/missions/index.js';
 
-const itaipu1 = MISSIONS['itaipu-1'];
+/* The drill: mission 1 as this check was written against, before First
+ * Light made it a story (src/share/war/missions/itaipu-drill.js). */
+const itaipu1 = MISSIONS['itaipu-drill'];
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'war-boom');
@@ -188,7 +190,7 @@ try {
   for (const p of pages) {
     await p.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
   }
-  await a.evaluate("window.__warDo('start', 'itaipu-1')");
+  await a.evaluate("window.__warDo('start', 'itaipu-drill')");
   for (const p of pages) {
     await p.until("window.__war().view.state === 'live'", 30000 + (itaipu1.prepMs ?? 0));
   }

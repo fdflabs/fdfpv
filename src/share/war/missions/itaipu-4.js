@@ -1,9 +1,9 @@
 /*
- * itaipu-4.js: Defend the Paraná, act 1, mission 4, "Night raid":
- * mission 1's targets, waves and routes, at night. `night: true` is the
- * flag the client's lighting reads (src/share/roomwar.js night(); the
- * Itaipu map's hook is to come, and until then the flag changes
- * nothing). The room plays it exactly as mission 1.
+ * itaipu-4.js: Defend the Paraná, act 1, mission 4, "Night raid": the
+ * drill's rounds, routes and targets (itaipu-drill.js, mission 1 as it
+ * was before First Light), at night, until its own design
+ * (docs/campaign/MISSIONS.md M4). `night: true` is the flag the client's
+ * lighting reads (src/share/roomwar.js night()).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -21,14 +21,15 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import itaipu1 from './itaipu-1.js';
+import drill from './itaipu-drill.js';
 
 export default {
-  ...itaipu1,
+  ...drill,
   id: 'itaipu-4',
   /* A string key (src/strings): Night raid. */
   title: 'war.mission.itaipu_4',
   night: true,
+  radio: { brief: ['brief-itaipu-4-1', 'brief-itaipu-4-2'], win: 'debrief-itaipu-4-win', lose: 'debrief-itaipu-4-lose' },
   /* The countdown's extra length (war.js start). The client rebuilds its
    * world at night when the countdown begins (src/main.js warNightFrame)
    * and seats its pilot only once that is done, so a rebuild that ends

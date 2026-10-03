@@ -48,7 +48,10 @@ watchPageErrors(window);
  * even while the shell is still loading. See share/windows.js. */
 claimWindowName(SIM_WINDOW);
 
-const loading = new Loading(document.getElementById('loading'));
+const loading = new Loading(document.getElementById('pdcs-loader'));
+/* window.loader is the spec's name for the controller; __loading is the
+ * harness's, and both are the one object. */
+window.loader = loading;
 window.__loading = loading;
 
 /* Read out of the page's own import map so the version lives in one place. */
@@ -137,8 +140,8 @@ async function start() {
    *
    * Paying up to 1.2 MB of a player's connection to animate a progress bar is
    * the wrong trade, and a bar that is honest about the network is the whole
-   * point of this screen. So the stage keeps its NAME and its elapsed time
-   * readout, which is what makes a stall legible, and it does not pretend to
+   * point of this screen. So the stage keeps its NAME and its stall line,
+   * which is what makes a stall legible, and it does not pretend to
    * know how far through it is. The stages that can measure their progress
    * honestly still do: dist/sim.wasm streams its bytes because the shell
    * needs them anyway, and the map graph counts modules off the browser's own

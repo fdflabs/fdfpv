@@ -24,6 +24,34 @@ header pasted onto it.
     Vendored as a git submodule at vendor/betaflight, unmodified; every
     change is a patch file in patches/ applied at build time.
 
+## Saira, the title's typeface
+
+    Upstream    https://github.com/Omnibus-Type/Saira, taken from
+                https://github.com/google/fonts (ofl/saira, Saira[wdth,wght].ttf)
+    Files       assets/fonts/saira-lockup-800.woff2, saira-lockup-300.woff2,
+                saira-names-600.woff2
+    Licence     SIL Open Font License 1.1, Copyright 2020 The Saira Project
+                Authors; the licence travels with the files as
+                assets/fonts/OFL-Saira.txt
+    Instanced at wght 800 and 300, wdth 100, and subset to the capitals of
+    the title's name; and at wght 600, wdth 75 (Saira Condensed), subset
+    to Latin and Latin 1, for the names of activities, worlds and missions. The OFL lets the font be bundled with software under
+    any licence; the font files themselves stay under the OFL, not the GPL.
+
+## IBM Plex Mono, the bootloader's typeface
+
+    Upstream    https://github.com/IBM/plex, taken unmodified from the npm
+                package @ibm/plex-mono 2.5.0
+                (fonts/split/woff2/IBMPlexMono-Regular-Latin1.woff2)
+    Files       assets/fonts/IBMPlexMono-Regular-Latin1.woff2
+    Licence     SIL Open Font License 1.1, Copyright 2017 IBM Corp. with
+                Reserved Font Name "Plex"; the licence travels with the
+                file as assets/fonts/OFL-IBMPlexMono.txt
+    IBM's own Latin 1 subset, byte for byte. It is not cut again here,
+    because a modified version may not carry the reserved name. The OFL
+    lets the font be bundled with software under any licence; the font file
+    itself stays under the OFL, not the GPL.
+
 ## Music, and an open question
 
     Files       assets/music/, fourteen titles as mp3 and webm

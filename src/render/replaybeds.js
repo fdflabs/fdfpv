@@ -64,16 +64,28 @@ export class ReplayBeds {
     this.url = '';
   }
 
-  /* The replay closes: the radio's own music back as it was. */
+  /* The replay closes: the replay's bed off (it is on the element, not
+   * the radio's track, so the radio's stop does not reach it), and the
+   * radio's own music back as it was. */
   end() {
     if (!this.open) {
       return;
     }
     this.open = false;
     this.radio.stop();
-    this.url = '';
+    this.silence();
     if (this.liveTrack) {
       this.radio.music(this.liveTrack);
+    }
+  }
+
+  silence() {
+    const el = this.radio.bed && this.radio.bed.el;
+    this.url = '';
+    if (el) {
+      el.pause();
+      el.removeAttribute('src');
+      el.load();
     }
   }
 
@@ -103,13 +115,11 @@ export class ReplayBeds {
       level = trackGain(TRACKS.find((t) => t.id === music.id) || TRACKS[0]);
     }
     if (url !== this.url) {
-      this.url = url;
       if (!url) {
-        el.pause();
-        el.removeAttribute('src');
-        el.load();
+        this.silence();
         return;
       }
+      this.url = url;
       el.src = url;
       el.loop = !(war && war.id === 'intro');
     }

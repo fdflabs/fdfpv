@@ -19,10 +19,11 @@
  *   - B's screen draws the attackers alive, the same ids at the same
  *     room ms as A's, to the micrometre (routes.js, the same numbers)
  *   - B launches: the room takes its poses and its takeoff, and B,
- *     held on the Striker's path, takes it, and both pages hear it
- *   - the next wave the room announces (round 2's Loiterers, n 1 and
- *     per 0.75) is sized for 2 on both screens, as the births each page
- *     heard on its own socket say
+ *     held on an attacker's path (a Striker's, or mission 1's Scout's),
+ *     takes it, and both pages hear it
+ *   - the next wave the room announces (the second stage's first) is
+ *     sized for 2 on both screens, as the births each page heard on its
+ *     own socket say
  *
  * Pictures go in outdir (build/war-latejoin by default, not committed).
  *
@@ -82,8 +83,13 @@ const TAP_SEED = `(() => {
       super(url, protocols);
       if (/\\/v2\\//.test(String(url))) {
         this.addEventListener('message', (ev) => {
+          /* A birth message, not any text with the word in it: the view's
+           * stage draws say whether each is born. */
           if (typeof ev.data === 'string' && ev.data.includes('"born"')) {
-            heard.push(JSON.parse(ev.data));
+            const m = JSON.parse(ev.data);
+            if (m.type === 'war' && m.op === 'born') {
+              heard.push(m);
+            }
           }
         });
       }
@@ -231,9 +237,10 @@ try {
   await a.until("window.__war().view.state === 'live'", INTRO_MS + 30000 + (itaipu1.prepMs ?? 0));
   const goAt = (await warOf(a)).view.goAt;
   const seatA = await a.evaluate('window.__rooms().seat');
-  /* Round 1's waves are all told by +2 s (2 s ahead of their births at
-   * +2 and +4 s); B comes once they are all in the air. */
-  await a.until(`window.__war().view.wave >= 3 && window.__rooms().roomNow > ${goAt + 5000}`, 30000);
+  /* The first stage's waves due in its first seconds are told by then
+   * (2 s ahead of their births); B comes once they are in the air. */
+  const early = itaipu1.waves.filter((x) => (x.round ?? 0) === 0 && !x.when && (Array.isArray(x.at) ? x.at[1] : x.at) <= 3).length;
+  await a.until(`window.__war().view.wave >= ${early} && window.__rooms().roomNow > ${goAt + 5000}`, 30000);
   const alone = (await warOf(a)).view;
   check('A flies mission 1 alone: the rack is its 4 airframes', alone.rack === itaipu1.airframes && alone.rackMax === itaipu1.airframes,
     `rack ${alone.rack}/${alone.rackMax}, wave ${alone.wave}`);
@@ -276,8 +283,11 @@ try {
 
   /* B flies: the war's begin puts it in the air. */
   await b.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
-  const strike = (await b.evaluate(`window.__warAt(${Math.floor(await nowOf(b)) + 15000})`)).find((x) => x.kind === 'strike');
-  check('B\'s screen has the Striker flying on for 15 s more', Boolean(strike), strike ? `id ${strike.id}` : 'none');
+  /* An attacker flying on for 15 s more: a Striker if there is one, else
+   * whatever the room flies on a route (mission 1's first is its Scout). */
+  const ahead = (await b.evaluate(`window.__warAt(${Math.floor(await nowOf(b)) + 15000})`)).filter((x) => x.kind !== 'hunter');
+  const strike = ahead.find((x) => x.kind === 'strike') ?? ahead[0];
+  check('B\'s screen has an attacker flying on for 15 s more', Boolean(strike), strike ? `id ${strike.id}, ${strike.kind}` : 'none');
   const tHit = Math.floor(await nowOf(b)) + 15000;
   const P = (await b.evaluate(`window.__warAt(${tHit})`)).find((x) => x.id === strike.id).p;
   await hold(a, [P[0] + 300, P[1] + 60, P[2]]);
@@ -299,13 +309,14 @@ try {
   const [ka, kb] = await Promise.all(pages.map(warOf));
   const deadA = ka.log.find((e) => e.type === 'dead' && e.by === seatB);
   const deadB = kb.log.find((e) => e.type === 'dead' && e.by === seatB);
-  check('B takes the Striker, and both pages hear it the same', deadA && deadB && deadB.mine && deadA.ids.join() === deadB.ids.join() && deadA.ids.includes(strike.id)
+  check(`B takes the ${strike.kind}, and both pages hear it the same`, deadA && deadB && deadB.mine && deadA.ids.join() === deadB.ids.join() && deadA.ids.includes(strike.id)
     && deadA.at === deadB.at, deadA ? `ids ${deadA.ids} at ${deadA.at}` : 'none');
   await a.until(`window.__war().view.scores.some((r) => r.seat === ${seatB} && r.kills >= 1)`, 10000).catch(() => {});
   const ks = (await warOf(a)).view.scores.find((r) => r.seat === seatB);
   check('B\'s kill is on A\'s screen', ks && ks.kills >= 1, JSON.stringify(ks));
 
-  /* The next wave the room tells: round 2's first, sized for two. */
+  /* The next wave the room tells: the second stage's first, sized for
+   * two. */
   const next = itaipu1.waves.findIndex((x) => (x.round ?? 0) === 1);
   const want = waveSize(itaipu1.waves[next], 2);
   console.log(`  info  waiting for round 1 to end and wave ${next + 1} (${itaipu1.waves[next].kind}, n ${itaipu1.waves[next].n} per ${itaipu1.waves[next].per}) to be told`);

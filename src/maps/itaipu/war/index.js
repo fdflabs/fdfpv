@@ -16,7 +16,15 @@
  * does not burn), the points a hit yard burns at (`fires`) and the OSM
  * outline. takeYard puts it on the map as map.targets['yard-right'].
  *
- * Everything is in the static set: the yard is one of Itaipu's structures
+ * DESTRUCTIBLE (the war's damage, src/share/war/damage.js): the yard is
+ * also `structures['yard-right']`, its chunks: each transformer's tank,
+ * conservator and bushings, drawn in a mesh of their own (equipment) so
+ * one is taken out alone, and the town's gantries inside the fence, two
+ * posts and a beam each, which the town draws and collides (town/model.js
+ * power) and this part takes out through it: a beam gone, the spans whose
+ * wires end on it are down, lying on the ground and no longer solid.
+ *
+ * Its own solids are in the static set: the yard is one of Itaipu's structures
  * (docs/ITAIPU-PLAN.md section 7). What a craft meets is what is drawn,
  * in the one turned shape the shell has, the capsule: a transformer is
  * three (HOLD), two along the tank stacked so its corners, top and plinth
@@ -42,15 +50,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { makeSink } from '../town/mesh.js';
+import { makeBreakable, makeSink } from '../town/mesh.js';
+import { layOut, piecesOf } from '../town/power.js';
 import {
-  planYard, TANK, KIT, FENCE,
+  planYard, inside, TANK, KIT, FENCE,
 } from './plan.js';
 
 /* Linear tints: galvanised steel, the tanks' grey paint, concrete, and
- * the bushings' brown porcelain. Every piece is in the kit's plain group
- * (the finish keys below), which the town's sink bakes into one mesh: the
- * yard is two draw calls and their shadows, not one per finish. */
+ * the bushings' brown porcelain. The plinths and the fence are in the
+ * kit's plain group (the finish keys below), which the town's sink bakes
+ * into one mesh; what breaks is in the equipment mesh: the yard is three
+ * draw calls and their shadows, not one per finish or per piece. */
 const STEEL = [0.46, 0.47, 0.48];
 const PAINT = [0.3, 0.33, 0.32];
 const CONCRETE = [0.32, 0.31, 0.29];
@@ -94,6 +104,27 @@ export async function buildPart(ctx) {
   };
   const cast = { cast: true };
 
+  /* The yard cut into the chunks a warhead breaks
+   * (src/share/war/damage.js): each transformer's tank, fixed to its
+   * plinth, and on it its conservator and bushings, which fall when the
+   * tank goes. Drawn in a mesh of their own (equipment), each chunk a
+   * range of it, so one is taken out alone (setChunkGone). */
+  const st = {
+    part: 'yard', water: null, frame: { o: [yard.site.at[0], 0, yard.site.at[2]], u: [1, 0, 0], n: [0, 0, 1] }, chunks: [],
+  };
+  const kit = makeBreakable(THREE);
+  const box = (P, Q, r, h, tint) => kit.bar(P, Q, r, h, tint);
+  const piece = (k, anchor, draw) => {
+    const b = draw();
+    st.chunks.push({
+      k, c: b.c, e: b.e, h: b.h, a: anchor ? 1 : 0, l: [], r: null, draw: [{ mesh: 'equipment', range: b.range }], colliders: [],
+    });
+    return st.chunks.length - 1;
+  };
+  const join = (i, j) => {
+    st.chunks[i].l.push(j);
+    st.chunks[j].l.push(i);
+  };
   for (const t of yard.transformers) {
     const along = (u, y) => [t.x + t.ax * u, y, t.z + t.az * u];
     const half = TANK.length / 2;
@@ -102,20 +133,76 @@ export async function buildPart(ctx) {
     /* The plinth, from under the ground, a little wider than the tank. */
     sink.bar('joint', CONCRETE, along(-half - PLINTH, t.y - 0.3), along(half + PLINTH, t.y - 0.3), w + PLINTH, cast, TANK.plinth + 0.3);
     const mid = base + TANK.height / 2;
-    sink.bar('flashing', PAINT, along(-half, mid), along(half, mid), w, cast, TANK.height / 2);
+    const tank = piece('tank', true, () => box(along(-half, mid), along(half, mid), w, TANK.height / 2, PAINT));
+    for (const y of HOLD.tank.y) {
+      capsule('wall', along(-HOLD.tank.u, t.y + y), along(HOLD.tank.u, t.y + y), HOLD.tank.r);
+      st.chunks[tank].colliders.push(solids.at(-1));
+    }
     /* The conservator on top and three bushings. */
     const top = base + TANK.height;
     const c = KIT.conservator;
-    sink.bar('flashing', PAINT, along(c.u0, top + c.y), along(c.u1, top + c.y), c.r, cast);
-    for (const u of KIT.bushings.u) {
-      sink.bar('joint', PORCELAIN, along(u, top), along(u, top + KIT.bushings.height), KIT.bushings.r, cast);
-    }
-    for (const y of HOLD.tank.y) {
-      capsule('wall', along(-HOLD.tank.u, t.y + y), along(HOLD.tank.u, t.y + y), HOLD.tank.r);
-    }
+    const con = piece('beam', false, () => box(along(c.u0, top + c.y), along(c.u1, top + c.y), c.r, c.r, PAINT));
+    join(con, tank);
     capsule('wall', along(-HOLD.top.u, top + c.y), along(HOLD.top.u, top + c.y), HOLD.top.r);
+    st.chunks[con].colliders.push(solids.at(-1));
+    for (const u of KIT.bushings.u) {
+      const bu = piece('bushing', false, () => box(along(u, top), along(u, top + KIT.bushings.height), KIT.bushings.r, KIT.bushings.r, PORCELAIN));
+      join(bu, tank);
+    }
   }
   const equipment = solids.slice();
+
+  /*
+   * The yard's gantries, the town's (town/power.js, drawn and collided
+   * by the town part): laid out again here from the same data, so the
+   * same, each portal inside the fence its two posts, fixed in the
+   * ground, and its beam between them, which falls when both posts have
+   * gone and holds the spans whose wires end on it (`w`, layOut's span
+   * ids): a beam gone, those spans' wires are down. Taken out through
+   * the town (takeYard gives it townPower).
+   */
+  const power = layOut(ctx.data['osm/power.json'], ctx.ground);
+  const ends = new Map();
+  for (const w of power.wires) {
+    const e = ends.get(w[10]) ?? { a: w, b: w };
+    e.b = w;
+    ends.set(w[10], e);
+  }
+  for (const g of power.structures) {
+    if (g.kind !== 'portal' || !inside(yard.outline, g.x, g.z)) {
+      continue;
+    }
+    const reach = g.size.phase + 2;
+    const held = [...ends.entries()].filter(([, e]) => Math.hypot(e.a[0] - g.x, e.a[2] - g.z) <= reach || Math.hypot(e.b[3] - g.x, e.b[5] - g.z) <= reach)
+      .map(([span]) => span).sort((x, y) => x - y);
+    const ids = piecesOf(g).map((pc, k) => {
+      const P = pc.slice(0, 3);
+      const Q = pc.slice(3, 6);
+      const d = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]];
+      const l = Math.hypot(d[0], d[1], d[2]);
+      const w = d.map((v) => v / l);
+      let side = [w[2], 0, -w[0]];
+      const sl = Math.hypot(side[0], side[2]);
+      side = sl < 1e-6 ? [1, 0, 0] : [side[0] / sl, 0, side[2] / sl];
+      const u = [w[1] * side[2] - w[2] * side[1], w[2] * side[0] - w[0] * side[2], w[0] * side[1] - w[1] * side[0]];
+      const beam = k === 2;
+      st.chunks.push({
+        k: beam ? 'beam' : 'post',
+        c: [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2, (P[2] + Q[2]) / 2],
+        e: [...w, ...u],
+        h: [l / 2, pc[6], pc[6]],
+        a: beam ? 0 : 1,
+        l: [],
+        r: null,
+        ...(beam ? { w: held } : {}),
+        draw: [{ town: [g.id, k] }],
+        colliders: [],
+      });
+      return st.chunks.length - 1;
+    });
+    join(ids[2], ids[0]);
+    join(ids[2], ids[1]);
+  }
 
   /* The fence: a post at each piece's start, three rails, and the chain
    * link between, half seen, in one mesh of its own (the kit's materials
@@ -135,6 +222,58 @@ export async function buildPart(ctx) {
     }
   }
   const drawn = sink.build(group, []);
+  group.add(kit.build('itaipu-yard-equipment', { metalness: 0.2 }));
+  /* The chunks out now: a chunk goes out (its triangles folded onto a
+   * point, its colliders retired) or back as the dam's setChunkGone. */
+  const folded = new Map();
+  /* The town's power (model.js power), from takeYard; and how many gone
+   * beams hold each span down. */
+  let townPower = null;
+  const holding = new Map();
+  const townPiece = (ch, i, gone) => {
+    if (!townPower) {
+      throw new Error('itaipu yard: a gantry broke before takeYard gave the town');
+    }
+    const [id, k] = ch.draw[0].town;
+    townPower.setPieceGone(id, k, gone);
+    if (gone) {
+      folded.set(i, null);
+    } else {
+      folded.delete(i);
+    }
+    for (const span of ch.w ?? []) {
+      holding.set(span, (holding.get(span) ?? 0) + (gone ? 1 : -1));
+    }
+    if (ch.w && ch.w.length) {
+      townPower.setSpansDown([...holding.entries()].filter(([, n]) => n > 0).map(([span]) => span));
+    }
+  };
+  const setChunkGone = (i, gone) => {
+    const ch = st.chunks[i];
+    if (!ch) {
+      throw new Error(`itaipu yard: no chunk ${i}`);
+    }
+    if (folded.has(i) === gone) {
+      return;
+    }
+    if (ch.draw[0].town) {
+      townPiece(ch, i, gone);
+      return;
+    }
+    kit.gone(ch.draw[0].range, gone);
+    if (gone) {
+      folded.set(i, null);
+    } else {
+      folded.delete(i);
+    }
+    for (const k of ch.colliders) {
+      if (gone) {
+        ctx.colliders.retire(k);
+      } else {
+        ctx.colliders.restore(k);
+      }
+    }
+  };
   const linkGeo = new THREE.BufferGeometry();
   linkGeo.setAttribute('position', new THREE.Float32BufferAttribute(link, 3));
   linkGeo.computeVertexNormals();
@@ -158,6 +297,13 @@ export async function buildPart(ctx) {
     update() {},
     dispose() {},
     yard: { ...yard.site, solids: equipment, outline: yard.outline },
+    /* The yard as damage.js's structure, and taking a chunk out or back. */
+    structures: { 'yard-right': st },
+    setChunkGone,
+    /* The town's power, which draws and collides the gantries and wires. */
+    setTownPower: (p) => {
+      townPower = p;
+    },
     stats: () => ({
       transformers: yard.transformers.length,
       fence: yard.fence.length,
@@ -198,6 +344,14 @@ export function takeYard(map) {
     outline: Object.freeze(yard.outline.map((p) => Object.freeze(p.slice()))),
   });
   map.targets = Object.freeze({ ...(map.targets ?? {}), 'yard-right': entry });
+  /* Its chunks with the dam's, each taken out by the part that drew it. */
+  const war = it.parts.war;
+  if (it.parts.town && it.parts.town.town.power) {
+    war.setTownPower(it.parts.town.town.power);
+  }
+  const dam = map.setChunkGone;
+  map.structures = { ...(map.structures ?? {}), ...war.structures };
+  map.setChunkGone = (id, i, gone) => (id === 'yard-right' ? war.setChunkGone(i, gone) : dam(id, i, gone));
   if (!map.setTargetState) {
     const states = { 'yard-right': 'ok' };
     map.setTargetState = (id, state) => {

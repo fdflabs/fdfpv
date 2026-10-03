@@ -12,8 +12,10 @@
 # credited file exists; and every take in the manifest was spoken from the
 # text lines.json has now, so a line edited without a rebuild fails; and
 # what Whisper heard of every take, kept in the manifest, still passes
-# build.py's gate (script.judge), so a loosened or bypassed gate fails. No
-# Spanish line addresses one pilot as tú. CI runs it: no GPU, no model, no
+# build.py's gate (script.judge), so a loosened or bypassed gate fails;
+# every take is its line's speaker's, the take lines.json pins when it pins
+# one, and has no more than script.MAX_TAIL_MS of sound after its last
+# word. No Spanish line addresses one pilot as tú. CI runs it: no GPU, no model, no
 # download.
 #
 # This file is part of WebFPVSimulator.
@@ -108,6 +110,16 @@ def main():
         else:
             line = next(l for l in doc['lines'] if l['id'] == line_id)
             heard = v['takes'][-1]['heard']
+            pinned = (line.get('take') or {}).get(lang)
+            if v['takes'][-1].get('tail_ms', 0) > script.MAX_TAIL_MS:
+                faults.append(f'voice/{lang}/{line_id}: {v["takes"][-1]["tail_ms"]} ms of sound after its last '
+                              f'word, over {script.MAX_TAIL_MS}; rebuild it with build.py --only {line_id}')
+            if pinned is not None and v['takes'][-1]['seed'] != pinned:
+                faults.append(f'voice/{lang}/{line_id}: lines.json pins take {pinned}, but the file is take '
+                              f'{v["takes"][-1]["seed"]}; rebuild it with build.py --only {line_id}')
+            if v.get('speaker', 'crest') != line['speaker']:
+                faults.append(f'voice/{lang}/{line_id}: spoken by {v.get("speaker", "crest")}, but lines.json '
+                              f'gives it to {line["speaker"]}; rebuild it with build.py --only {line_id}')
             verdict = script.judge([line[lang], *line.get('heard', {}).get(lang, [])], heard, lang)
             if not verdict['ok']:
                 faults.append(f'voice/{lang}/{line_id}: Whisper heard {heard!r}, which fails the gate '

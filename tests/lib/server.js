@@ -52,6 +52,7 @@ const MIME = new Map([
   /* An SVG is never sniffed: served as octet-stream an <img> shows the
      broken picture, where every host the site deploys to says svg+xml. */
   ['.svg', 'image/svg+xml'],
+  ['.woff2', 'font/woff2'],
   /* video/webm and not audio/webm. Every .webm in this tree is an
      audio-only Opus track, but Render serves the deploy off its own
      extension table and that table says video/webm, so the harness has to

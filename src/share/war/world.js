@@ -15,6 +15,11 @@
  * it (at -Infinity: it joined later) smokes at once. The room never
  * restores a target within a match (edge/rooms/war.js take).
  *
+ * A TARGET DAMAGED (the room's 'damage' events, src/render/breakage.js:
+ * chunks of a structure broken off) smokes from the room ms of the damage
+ * when no hit has it burning; what broke is the events themselves, which
+ * the breakage layer applies in order (matchAt's `damage`).
+ *
  * Pure: no clock, no DOM, + - * / and comparisons only.
  *
  * This file is part of WebFPVSimulator.
@@ -56,9 +61,11 @@ export function burnAt(at, t) {
  * null for one from before this screen heard of it, off the room ms the
  * war stopped being fought (the targets are whole again on screen from
  * then, src/main.js warFinish) or null.
- * At room ms t: { targets: { id: state } of every target not 'ok',
- * levels: a Float32Array a district } (levels refilled on every call
- * with the same cache). `cache` is an object the caller keeps per match.
+ * `damage` the match's damage events in the order heard. At room ms t:
+ * { targets: { id: state } of every target not 'ok', levels: a
+ * Float32Array a district, damage: the events by t } (levels refilled on
+ * every call with the same cache). `cache` is an object the caller keeps
+ * per match.
  */
 export function matchAt(m, t, cache) {
   if (!cache.from) {
@@ -81,14 +88,20 @@ export function matchAt(m, t, cache) {
     for (const [target, at] of last) {
       targets[target] = burnAt(at, t);
     }
+    for (const d of m.damage) {
+      if (d.at <= t && !(d.target in targets)) {
+        targets[d.target] = 'smoke';
+      }
+    }
   }
+  const damage = m.damage.filter((d) => d.at <= t);
   for (let i = 0; i < DISTRICTS.length; i += 1) {
     cache.levels[i] = levelAt(cache.from[i], i, t);
   }
-  return { targets, levels: cache.levels };
+  return { targets, levels: cache.levels, damage };
 }
 
 /* The map as no war has touched it: every target whole, every light on. */
 export function untouched() {
-  return { targets: {}, levels: new Float32Array(DISTRICTS.length).fill(1) };
+  return { targets: {}, levels: new Float32Array(DISTRICTS.length).fill(1), damage: [] };
 }

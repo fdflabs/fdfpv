@@ -1,26 +1,24 @@
 /*
- * friends-card-check.js: the title's third card, Fly with friends, driven
+ * friends-card-check.js: flying with friends now the title has no Fly
+ * with friends card (the owner, 2026-10-02: "delete the fly with
+ * friends...every click will take you to the lobby for it"): a private
+ * room, made from the title's rooms panel and joined by its code, driven
  * through the real shell the way a pilot drives it, against a running
- * rooms Worker:
+ * rooms server:
  *
- *   npx wrangler dev --config edge/rooms/wrangler.toml --port 8797
+ *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
  *   node scripts/friends-card-check.js http://127.0.0.1:8797 [outdir]
  *
- * Page A, 1280 by 720: the gate draws its six cards side by side, inside the
- * window, the third wearing its picture and its mark. The arrows walk the
- * cursor onto it and back; Enter opens the room screen in free flight with
- * the Swiss valley seated; Escape twice is the gate again; a click on the
- * card opens the room screen too, on Rooms (the room browser). Make a
- * room, private this time, and Fly is on top of the room's rows with the
- * aircraft and the world under them; Enter on it is flight, in the room,
- * in the valley.
+ * Page A, 1280 by 720: five cards, no Fly with friends among them. The
+ * panel's Make a room, one click, then private (Friends with the code) and
+ * Make the room: A is in the room's lobby, free flight, its invite code
+ * there to read out, Ready under the cursor. R: A flies, in the room.
  *
- * Page B, 390 by 844, a phone held upright: the six cards stack inside
- * the window with no sideways scroll; a click on the third, Join with a
- * code, the code typed into the form, and B is in A's room on seat 2.
- * Escape on the room screen stays in the room, its Leave is the title
- * and out of it; the gate, Track mode, its menu's Fly with friends row
- * and the code again: Fly on top of the room.
+ * Page B, 390 by 844, a phone held upright: five cards stacked inside the
+ * window, and at 360 by 640 and 844 by 390 too. The panel's All rooms, one
+ * click, then Join with a code, a second, the code typed: B is in A's room
+ * on seat 2, and in the air with A, the room's flight being on. Escape
+ * keeps B in the room; its Leave is the title, out of it.
  *
  * No page error on either. Pictures in outdir, which is not in the
  * repository: a picture is evidence for one round.
@@ -103,23 +101,6 @@ function apart(cards) {
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
 }
 
-async function onCard(page) {
-  return (await page.evaluate(CARDS)).filter((c) => c.on).map((c) => c.name)[0] ?? null;
-}
-
-async function click(page, selector) {
-  await page.loaded();
-  const at = await page.evaluate(`(() => {
-    const r = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect();
-    return [r.left + r.width / 2, r.top + r.height / 2];
-  })()`);
-  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
-    await page.cdp.send('Input.dispatchMouseEvent', {
-      type, x: at[0], y: at[1], button: 'left', clickCount: 1,
-    }, page.sessionId);
-  }
-}
-
 async function resize(page, width, height) {
   await page.cdp.send('Emulation.setDeviceMetricsOverride', {
     width, height, deviceScaleFactor: 1, mobile: false,
@@ -144,209 +125,104 @@ async function arrowTo(page, want) {
 }
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
-console.log(`the Fly with friends card, rooms at ${rooms}`);
+console.log(`a private room by its code, rooms at ${rooms}`);
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Defend the Paraná';
+const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+const FLYING = "window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'";
 const a = await openPage({ root, url, width: 1280, height: 720 });
 const b = await openPage({ root, url, width: 390, height: 844 });
 try {
   for (const p of [a, b]) {
     await p.until('window.__shellReady === true', 300000);
-    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000);
+    await p.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 5", 60000);
     await p.until(`${CARDS}.every((c) => c.loaded)`, 30000);
   }
 
-  /* THE GATE AT 1280 BY 720. */
+  /* THE GATE AT 1280 BY 720: five cards, no Fly with friends. */
   const cards = await a.evaluate(CARDS);
   const view = await a.evaluate(VIEW);
-  check('six cards on the gate, the third Fly with friends',
-    cards.map((c) => c.name).join() === 'Track mode,Free Flight,Fly with friends,Toilet paper combat,Catch the Ace!,Defend the Paraná', cards.map((c) => c.name).join());
-  check('each with its picture loaded and its mark drawn', cards.every((c) => c.loaded && c.mark),
-    cards.map((c) => `${c.shot}:${c.loaded}:${c.mark}`).join(' '));
-  /* One row: the tops agree but for the 4 px the chosen card is lifted. */
+  check('five cards on the gate, no Fly with friends (the owner, 2026-10-02)', cards.map((c) => c.name).join() === NAMES, cards.map((c) => c.name).join());
   const tops = cards.map((c) => c.box[1]);
-  check('side by side in one row, inside the window, tags clear of the bar, none overlapping',
-    inside(cards, view) && apart(cards) && Math.max(...tops) - Math.min(...tops) <= 4,
+  check('side by side in one row, inside the window, tags clear of the bar, none overlapping, no sideways scroll',
+    inside(cards, view) && apart(cards) && Math.max(...tops) - Math.min(...tops) <= 4 && view.sw <= view.w,
     `${JSON.stringify(cards.map((c) => [...c.box, c.factsBottom]))} bar at ${view.bar}`);
-  const widths = cards.map((c) => c.box[2] - c.box[0]);
-  check('at one width', Math.max(...widths) - Math.min(...widths) <= 1, widths.join());
-  check('and no sideways scroll', view.sw <= view.w, `${view.sw} > ${view.w}`);
-  await shot(a, 'a-1-gate-three-cards');
+  await shot(a, 'a-1-gate');
 
-  /* THE KEYBOARD: the arrows walk onto the card and back, Enter opens it. */
-  const walk = [await onCard(a)];
-  for (let i = 0; i < 3 && walk[walk.length - 1] !== 'Fly with friends'; i += 1) {
-    await a.tap('ArrowRight');
-    await a.sleep(150);
-    walk.push(await onCard(a));
-  }
-  await a.tap('ArrowLeft');
-  await a.sleep(150);
-  walk.push(await onCard(a));
-  await a.tap('ArrowRight');
-  await a.sleep(150);
-  walk.push(await onCard(a));
-  check('Right reaches the third card, Left leaves it, Right comes back',
-    walk[walk.length - 3] === 'Fly with friends' && walk[walk.length - 2] === 'Free Flight' && walk[walk.length - 1] === 'Fly with friends',
-    walk.join(' > '));
-  await shot(a, 'a-2-cursor-on-friends');
-  await a.tap('Enter');
-  await a.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
-  const opened = await a.evaluate(`({
-    screen: window.__ui.screen, mode: window.__ui.mode, gate: window.__ui.onGate(),
-    map: window.__ui.settings.map, carousel: window.__ui.carousel.isOpen,
-    rows: window.__ui.items().map((it) => it.action || it.label),
-  })`);
-  check('Enter opens the room screen, not the aircraft picker', opened.screen === 'friends' && !opened.carousel, JSON.stringify(opened));
-  check('in free flight, off the gate, the Swiss valley seated', opened.mode === 'freestyle' && !opened.gate && opened.map === 'swiss2');
-  check('on Make a room and Join with a code', opened.rows.includes('roomnew') && opened.rows.includes('friends-join'), opened.rows.join());
-  check('and Rooms first, under the cursor', opened.rows[0] === 'rooms'
-    && await a.evaluate("window.__ui.items()[window.__ui.cursor].action === 'rooms'"), opened.rows.join());
-
-  await a.tap('Escape');
-  await a.until("window.__ui.screen === 'title' && !window.__ui.onGate()", 10000).catch(() => {});
-  const back1 = await a.evaluate('({ screen: window.__ui.screen, gate: window.__ui.onGate(), rows: window.__ui.items().map((it) => it.action) })');
-  check('Escape is the Free Flight menu, which still has the Fly with friends row', back1.screen === 'title' && !back1.gate && back1.rows.includes('friends'), JSON.stringify(back1));
-  await a.tap('Escape');
-  await a.until('window.__ui.onGate()', 10000).catch(() => {});
-  check('Escape again is the gate', await a.evaluate('window.__ui.onGate()'));
-
-  /* THE MOUSE: a click on the card opens the same screen. */
-  await click(a, '.gate-card-friends');
-  await a.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
-  check('a click on the card opens the room screen', await a.evaluate("window.__ui.screen === 'friends' && !window.__ui.carousel.isOpen"));
-
-  /* MAKE A ROOM, PRIVATE, THEN FLY. */
-  check('the cursor is on Make a room', await arrowTo(a, 'roomnew'));
-  await a.tap('Enter');
+  /* A: MAKE A ROOM, PRIVATE, FROM THE PANEL. */
+  const aClicks = a.clicks;
+  await a.click('.gate-room-make');
   await a.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
-  check('Enter opens Make a room', await arrowTo(a, 'Who can join'));
+  check(`one click on the panel's Make a room (${a.clicks - aClicks}) opens Make a room`, a.clicks - aClicks === 1 && await a.evaluate("window.__ui.screen === 'roomnew'"));
+  check('the cursor reaches Who can join', await arrowTo(a, 'Who can join'));
   await a.tap('ArrowRight');
   await a.sleep(150);
-  check('Right on Who can join makes it private', await a.evaluate("window.__ui.items()[window.__ui.cursor].value === 'Friends with the code'"));
+  check('Right on it makes the room private', await a.evaluate("window.__ui.items()[window.__ui.cursor].value === 'Friends with the code'"));
   check('the cursor reaches Make the room', await arrowTo(a, 'friends-make'));
   await a.tap('Enter');
-  await a.until("window.__rooms().phase === 'open'", 30000).catch(() => {});
+  await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 30000).catch(() => {});
+  await a.sleep(800);
   const room = await a.evaluate('window.__rooms()');
-  check('Enter makes a room', room.phase === 'open' && /^[A-Z0-9]{6}$/.test(room.code || ''), `${room.phase} ${room.code}`);
-  await a.until("window.__ui.items()[0].action === 'fly'", 10000).catch(() => {});
-  const inRoom = await a.evaluate(`window.__ui.items().map((it) => ({
-    action: it.action || null, label: it.label, value: it.value || '', info: Boolean(it.info), primary: Boolean(it.primary),
-  }))`);
-  check('Fly is on top of the room, the primary', inRoom[0].action === 'fly' && inRoom[0].primary, JSON.stringify(inRoom[0]));
-  check('the aircraft and the world are on the screen, the world as the room\'s fact',
-    inRoom.some((it) => it.label === 'Aircraft') && inRoom.some((it) => it.label === 'The world' && it.info && it.value),
-    inRoom.map((it) => `${it.label}${it.value ? `=${it.value}` : ''}`).join(', '));
-  await shot(a, 'a-3-in-the-room');
-  check('the room opened with the cursor on Fly, no arrow pressed',
-    await a.evaluate("window.__ui.items()[window.__ui.cursor].action === 'fly'"));
-  await a.tap('Enter');
-  await a.until("window.__craftState && window.__craftState().mode === 'flight'", 400000).catch(() => {});
-  const flying = await a.evaluate("({ mode: window.__craftState().mode, map: window.__map().id, phase: window.__rooms().phase, screen: window.__ui.screen })");
-  check('Enter is flight, in the Swiss valley, still in the room',
-    flying.mode === 'flight' && flying.map === 'swiss2' && flying.phase === 'open', JSON.stringify(flying));
+  const rows = await a.evaluate("window.__ui.items().map((it) => ({ action: it.action || null, label: it.label }))");
+  check('A is in the private room\'s lobby, free flight', room.phase === 'open' && room.public === false && room.mode === null
+    && /Free flight/.test(await a.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || ''")), JSON.stringify({ code: room.code, public: room.public, mode: room.mode }));
+  check('its invite code there to read out, Ready under the cursor', rows.some((r) => r.action === 'friends-copy' && r.label === `Invite code: ${room.code}`)
+    && await a.evaluate("window.__ui.items()[window.__ui.cursor].action === 'friends-lobby-ready'"), JSON.stringify(rows));
+  await shot(a, 'a-2-private-lobby');
+  await a.tap('KeyR');
+  await a.until(FLYING, 400000).catch(() => {});
+  const flying = await a.evaluate("({ mode: window.__craftState().mode, map: window.__map().id, phase: window.__rooms().phase })");
+  check('R: five seconds, and A flies, in the Swiss valley, in the room', flying.mode === 'flight' && flying.map === 'swiss2' && flying.phase === 'open', JSON.stringify(flying));
 
-  /* THE PHONE, AND THE OTHER WAY INTO A ROOM. */
-  const pc = await b.evaluate(CARDS);
-  const pv = await b.evaluate(VIEW);
-  check('upright phone: six cards stacked inside the window, tags clear of the bar',
-    pc.length === 6 && inside(pc, pv) && apart(pc) && pc.every((c, i) => i === 0 || c.box[1] >= pc[i - 1].box[3]),
-    `${JSON.stringify(pc.map((c) => [...c.box, c.factsBottom]))} bar at ${pv.bar}`);
-  check('and no sideways scroll', pv.sw <= pv.w, `${pv.sw} > ${pv.w}`);
-  await shot(b, 'b-1-phone-gate');
-  /* A smaller upright phone, and one on its side, where the cards go back
-   * to a row (the max-height 520 rule). Then back to the first size. */
-  for (const [w, h, row] of [[360, 640, false], [844, 390, true]]) {
+  /* THE PHONE: five cards stacked, at three sizes. */
+  for (const [w, h, row] of [[390, 844, false], [360, 640, false], [844, 390, true]]) {
     await resize(b, w, h);
     const c = await b.evaluate(CARDS);
     const v = await b.evaluate(VIEW);
     const laid = row
       ? Math.max(...c.map((x) => x.box[1])) - Math.min(...c.map((x) => x.box[1])) <= 4
       : c.every((x, i) => i === 0 || x.box[1] >= c[i - 1].box[3]);
-    check(`${w} by ${h}: six cards ${row ? 'in a row' : 'stacked'} inside the window, tags clear of the bar, no sideways scroll`,
-      c.length === 6 && laid && inside(c, v) && apart(c) && v.sw <= v.w,
+    check(`${w} by ${h}: five cards ${row ? 'in a row' : 'stacked'} inside the window, tags clear of the bar, no sideways scroll`,
+      c.length === 5 && laid && inside(c, v) && apart(c) && v.sw <= v.w,
       `${JSON.stringify(c.map((x) => [...x.box, x.factsBottom]))} bar at ${v.bar}, scroll ${v.sw}`);
     await shot(b, `b-0-gate-${w}x${h}`);
   }
   await resize(b, 390, 844);
-  await click(b, '.gate-card-friends');
-  await b.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
-  check('a tap on the card opens the room screen on the phone', await b.evaluate("window.__ui.screen === 'friends'"));
-  /*
-   * B picks another world before joining, on the room screen's World row,
-   * so the room's welcome has to seat A's world back: on the screen B is
-   * on, not by throwing B out to the title, which a welcome did before.
-   */
-  check('the cursor reaches The world', await arrowTo(b, 'The world'));
-  await b.tap('ArrowRight');
-  await b.until("window.__ui.settings.map !== 'swiss2'", 5000).catch(() => {});
-  const other = await b.evaluate('window.__ui.settings.map');
-  check('Right on it seats another world, on this screen', other !== 'swiss2' && await b.evaluate("window.__ui.screen === 'friends'"), other);
-  await b.until(`window.__map().id === ${JSON.stringify(other)} && window.__map().ready`, 400000).catch(() => {});
-  check('the cursor reaches Join with a code', await arrowTo(b, 'friends-join'));
-  await b.tap('Enter');
+
+  /* B: ALL ROOMS, JOIN WITH A CODE: two clicks, then the code. */
+  const bClicks = b.clicks;
+  await b.click('.gate-room-all');
+  await b.until("window.__ui.screen === 'rooms'", 10000).catch(() => {});
+  await b.evaluate(`(() => {
+    const ui = window.__ui;
+    const i = ui.items().findIndex((it) => it.action === 'friends-join');
+    ui.menuRows[i - ui.rowOffset].dataset.check = 'join';
+    return true;
+  })()`);
+  await b.click('[data-check="join"]');
   await b.until("document.querySelector('.name-dialog-input') && !document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
+  check(`All rooms, then Join with a code: ${b.clicks - bClicks} clicks to the code's form`, b.clicks - bClicks === 2
+    && await b.evaluate("!document.querySelector('.name-dialog').hidden"));
   await b.cdp.send('Input.insertText', { text: room.code.toLowerCase() }, b.sessionId);
   await b.tap('Enter');
   await b.until("window.__rooms().phase === 'open' && window.__rooms().peers.length === 1", 30000).catch(() => {});
   const joined = await b.evaluate('window.__rooms()');
   check('the code typed on the phone joins A\'s room on seat 2', joined.phase === 'open' && joined.code === room.code && joined.seat === 2,
     `${joined.phase} ${joined.code} seat ${joined.seat}`);
-  check('and B stays on the room screen, the cursor on Fly', await b.evaluate("window.__ui.screen === 'friends' && window.__ui.items()[window.__ui.cursor].action === 'fly'"));
-  /* The welcome owes the seat a summon, carried out on a later frame once
-   * the world in hand is ready (main.js roomSummonStep): read straight
-   * after the join, the seat was still the world B picked, and was the
-   * Swiss valley three seconds later. */
-  await b.until("window.__ui.settings.map === 'swiss2'", 15000).catch(() => {});
-  const seated = await b.evaluate(`({
-    map: window.__ui.settings.map,
-    world: (window.__ui.items().find((it) => it.label === 'The world') || {}).value,
-  })`);
-  check('seated back in the room\'s world, which the World row now states', seated.map === 'swiss2' && /Swiss/.test(seated.world || ''), JSON.stringify(seated));
+  await b.until(FLYING, 400000).catch(() => {});
+  check('and B flies, the room\'s flight being on', await b.evaluate(FLYING), await b.evaluate('window.__ui.screen'));
+  await shot(b, 'b-1-phone-flying');
 
-  /*
-   * THE OWNER'S REPORT: in a room reached from Track mode's menu row
-   * there was no way to start flying. B leaves the room for the title
-   * (the owner, 2026-10-01: the title is never in a room, Escape stops at
-   * the room screen and Leave is the way out, docs/FLOW-AUDIT.md rules 3
-   * to 5), goes to the gate, answers Track mode, and joins the room again
-   * by the menu's Fly with friends row: Fly is on top, under the cursor.
-   */
+  /* ESCAPE KEEPS THE ROOM, LEAVE IS THE TITLE. */
+  await b.tap('Escape');
+  await b.sleep(600);
   await b.tap('Escape');
   await b.sleep(600);
   const kept = await b.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
-  check('Escape on the room screen stays in the room, on its screen', kept.screen === 'friends' && kept.phase === 'open', JSON.stringify(kept));
-  check('the cursor reaches Leave the room', await arrowTo(b, 'friends-leave'));
-  await b.tap('Enter');
-  await b.until("window.__ui.screen === 'title'", 10000).catch(() => {});
-  await b.until("window.__rooms().phase === 'idle'", 5000).catch(() => {});
+  check('Escape keeps B in the room', kept.phase === 'open', JSON.stringify(kept));
+  await b.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await b.until("window.__ui.screen === 'title' && window.__rooms().phase === 'idle'", 10000).catch(() => {});
   const titled = await b.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
   check('Leave is the title, out of the room', titled.screen === 'title' && titled.phase === 'idle', JSON.stringify(titled));
-  await b.tap('Escape');
-  await b.until('window.__ui.onGate()', 10000).catch(() => {});
-  await b.evaluate("(() => { const i = window.__ui.items().findIndex((it) => it.action === 'way-race-5inch'); window.__ui.setCursor(i); return true; })()");
-  await b.tap('Enter');
-  await b.until('window.__ui.carousel.isOpen', 10000).catch(() => {});
-  await b.tap('Enter');
-  await b.until("window.__ui.mode === 'race' && window.__ui.screen === 'courses'", 30000).catch(() => {});
-  await b.tap('Escape');
-  await b.until("window.__ui.screen === 'title' && !window.__ui.onGate()", 10000).catch(() => {});
-  check('Track mode\'s menu has the Fly with friends row', await arrowTo(b, 'friends'));
-  await b.tap('Enter');
-  await b.until("window.__ui.screen === 'friends'", 10000).catch(() => {});
-  check('the cursor reaches Join with a code in Track mode', await arrowTo(b, 'friends-join'));
-  await b.tap('Enter');
-  await b.until("document.querySelector('.name-dialog-input') && !document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
-  await b.cdp.send('Input.insertText', { text: room.code }, b.sessionId);
-  await b.tap('Enter');
-  await b.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(room.code)}`, 30000).catch(() => {});
-  await b.until("window.__ui.items()[0].action === 'fly'", 10000).catch(() => {});
-  const race = await b.evaluate(`({
-    mode: window.__ui.mode, phase: window.__rooms().phase,
-    top: window.__ui.items()[0].action, on: window.__ui.items()[window.__ui.cursor].action,
-  })`);
-  check('in Track mode, in the room: Fly on top and under the cursor', race.mode === 'race' && race.phase === 'open'
-    && race.top === 'fly' && race.on === 'fly', JSON.stringify(race));
-  await shot(b, 'b-3-phone-track-mode-room');
-  await shot(b, 'b-2-phone-in-the-room');
 
   const errs = [...a.errors, ...b.errors];
   check('no page error on either page', errs.length === 0, errs.slice(0, 3).join(' | '));
