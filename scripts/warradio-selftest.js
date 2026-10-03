@@ -29,7 +29,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB,
+  createWarCalls, WarRadio, QUEUE_MAX, STALE_MS, STORY_STALE_MS, warVoiceUrl, warMusicUrl, DUCK_DB,
 } from '../src/render/warradio.js';
 import { KINDS } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -56,7 +56,7 @@ const v0 = {
 };
 const say = (list, v) => {
   const out = calls.events(list, v);
-  out.forEach((id) => said.add(id));
+  out.flat().forEach((id) => said.add(id));
   return out;
 };
 
@@ -106,6 +106,12 @@ check('a wave cleared with more to come', same(say([], { ...v0, wave: 3, rack: 1
 check('a scout wave\'s last dying says scouts down, after the kill', same(say([{
   type: 'dead', why: 'boom', mine: false, ids: [2], agents: [{ kind: 'scout' }],
 }, { type: 'scouts', at: 1, by: 2 }], { ...v0, wave: 2, rack: 6, alive: 1 }), ['scouts-down']));
+check('a group drawn from a sector: MIRADOR\'s bearing then the kind, one item', same(say([{
+  type: 'born', agents: [{ kind: 'strike', sector: 'NW' }],
+}], { ...v0, wave: 3, rack: 6, alive: 2 }), [['bearing-nw', 'wave-strike']]));
+for (const sector of ['N', 'NW', 'NE', 'HIGH', 'WATER', 'GORGE', 'RIVER', 'LINES']) {
+  said.add(`bearing-${sector.toLowerCase()}`);
+}
 check('won', same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won' }), ['win']));
 check('lost on output, the one way a mission is lost in rounds', same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output' }), ['lose-output']));
 check('a round held, damaged and lost each say their line', same(calls.round('win'), ['wave-clear']) && same(calls.round('damaged'), ['output-low'])
@@ -159,6 +165,42 @@ radio.say('kill-1', 0);
 radio.say('wave-fpv', 0);
 radio.say('win', 0);
 check('the end cuts in over the queue, in the UI\'s language', radio.status().speaking === 'win' && radio.status().queue.length === 0 && played.at(-1) === 'es/win', played.slice(-2).join(' '));
+
+console.log('story over calls');
+{
+  const heard = [];
+  const r = new WarRadio();
+  r.voice = { el: { play: () => null, set src(url) { heard.push(url.split('/').slice(-1)[0].replace(/\..*$/, '')); } } };
+  r.bed = null;
+  r.say('start', 0);
+  r.say('kill-1', 0);
+  r.say('kill-2', 0);
+  r.say('hit-yard', 0);
+  r.say('beat-rack', 10, 'story');
+  check('a story line pushes the oldest call out of a full queue', same(r.status().queue, ['kill-2', 'hit-yard', 'beat-rack']), JSON.stringify(r.status().queue));
+  r.say('kill-1', 20);
+  check('a call never pushes a story line out', same(r.status().queue, ['kill-2', 'hit-yard', 'beat-rack']));
+  r.next(100);
+  check('the story line is said before the calls waiting', r.status().speaking === 'beat-rack', r.status().speaking);
+  r.next(200);
+  r.next(200);
+  r.next(200);
+  r.say(['bearing-nw', 'wave-strike'], 300);
+  r.next(400);
+  check('a bearing and its kind are one item: nothing said between them', heard.slice(-2).join(' ') === 'bearing-nw wave-strike' && r.status().speaking === 'wave-strike',
+    heard.join(' '));
+  const s2 = new WarRadio();
+  s2.voice = { el: { play: () => null, set src(url) {} } };
+  s2.say('start', 0);
+  s2.say('kill-1', 0);
+  s2.say('beat-rack', 0, 'story');
+  s2.next(STALE_MS + 500);
+  check(`a story line waits up to ${STORY_STALE_MS} ms, a call ${STALE_MS}`, s2.status().speaking === 'beat-rack' && s2.status().queue.length === 0, JSON.stringify(s2.status()));
+  s2.say('kill-2', STALE_MS + 600);
+  s2.say('hit-yard', STALE_MS + 600, 'story');
+  s2.next(STALE_MS + 600 + STORY_STALE_MS + 1);
+  check('and past that it goes too', s2.status().speaking === null);
+}
 
 console.log('under voice chat');
 {

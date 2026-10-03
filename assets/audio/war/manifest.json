@@ -1,5 +1,971 @@
 {
  "voice": {
+  "bearing-gorge.en": {
+   "text": "Up the gorge, under the rims.",
+   "speaker": "mirador",
+   "seconds": 2.145,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 2142788656,
+     "heard": "up the gorge, under the rims,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 4226604011,
+     "heard": "just the gorge, under the rims.",
+     "wer": 0.167,
+     "extra": 0,
+     "missing": [
+      "up"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 3078248487,
+     "heard": "up the gorge, under the rims.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 1397433607,
+     "heard": "up the gorge under the rims.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9987,
+     "sha256": "72172bf5da4c19ff37fa40de6d213152f8e6566293e1114ecdc65e3d58d47f94"
+    },
+    "mp3": {
+     "bytes": 10172,
+     "sha256": "745310b59dc483250591eaa5e8b9a6a226f2297ae89d4bd844586cba5a93329b"
+    }
+   }
+  },
+  "bearing-gorge.es": {
+   "text": "Subiendo por el cañón, bajo los bordes.",
+   "speaker": "mirador",
+   "seconds": 2.735,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 1852103577,
+     "heard": "Subiendo por el cañón, bajo los bordes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 4128814305,
+     "heard": "Subiendo por el cañón, bajo los bordes,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 93589548,
+     "heard": "Subiendo por el cañón, bajo los bordes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12610,
+     "sha256": "8f4f26a71e2c73180edb77438bc0fc9a40846438c618dd6c55d3a36c4981f5ed"
+    },
+    "mp3": {
+     "bytes": 12308,
+     "sha256": "a80f6fde03e71984357f88ec7fb968854857068898350e761f8556dc99f67edc"
+    }
+   }
+  },
+  "bearing-high.en": {
+   "text": "High, over the islands.",
+   "speaker": "mirador",
+   "seconds": 2.345,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 183194937,
+     "heard": "high over the islands.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 210
+    },
+    {
+     "attempt": 2,
+     "seed": 1217239048,
+     "heard": "high over the islands.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 60
+    },
+    {
+     "attempt": 3,
+     "seed": 224406987,
+     "heard": "High over the islands.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 3426447388,
+     "heard": "High, over the islands.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10621,
+     "sha256": "6a716dbcde71b7110b42b2fff0a06d213b9e57e3090cd6588d964ca9860f11e2"
+    },
+    "mp3": {
+     "bytes": 10940,
+     "sha256": "d2de5dfb7083949b1c6fb27b40589401202ace5c2636dde34a16f2317b5441bd"
+    }
+   }
+  },
+  "bearing-high.es": {
+   "text": "En altura, sobre las islas.",
+   "speaker": "mirador",
+   "seconds": 2.265,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 2998056192,
+     "heard": "en altura sobre las islas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 869831047,
+     "heard": "en altura sobre las islas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 3209581718,
+     "heard": "en altura sobre las islas.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10460,
+     "sha256": "5ccb631a09c61498f12993ff3de235d4b1cfa97a2861c4927003d76f56779fd8"
+    },
+    "mp3": {
+     "bytes": 10892,
+     "sha256": "f8659cde47406aba611373f1a228f8d52abba62376d9cd6a293a46a1cd4a08fd"
+    }
+   }
+  },
+  "bearing-lines.en": {
+   "text": "Along the lines, low.",
+   "speaker": "mirador",
+   "seconds": 2.175,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 4088217352,
+     "heard": "along the lines, low,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 987853183,
+     "heard": "along the lines low",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 1680779129,
+     "heard": "Along the lines, low.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10027,
+     "sha256": "2682547f683f2be435285e54e2cf2c7c8c725a7071b4c4ad83683ddf1fe240ae"
+    },
+    "mp3": {
+     "bytes": 10556,
+     "sha256": "baf33e2ecb7071611c77aaf0c36c148ceaa26f14addbc957dc74fafbd99f9077"
+    }
+   }
+  },
+  "bearing-lines.es": {
+   "text": "Siguiendo las líneas, bajo.",
+   "speaker": "mirador",
+   "seconds": 2.205,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 3234164902,
+     "heard": "siguiendo las líneas bajo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 4286265217,
+     "heard": "siguiendo las líneas bajo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 3662226401,
+     "heard": "siguiendo las líneas bajo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10183,
+     "sha256": "b184247831290b1aa5995764c00c9ab41bcc28de6702a7bfe49b106b5587435b"
+    },
+    "mp3": {
+     "bytes": 9884,
+     "sha256": "ea990d3f44cf88c2655c0fda1ca9077e552f9012a64152603360b2279d44f970"
+    }
+   }
+  },
+  "bearing-n.en": {
+   "text": "From the north, over open water.",
+   "speaker": "mirador",
+   "seconds": 2.785,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3655841095,
+     "heard": "from the north over open water.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 1300
+    },
+    {
+     "attempt": 2,
+     "seed": 325370538,
+     "heard": "from the north over open water,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2031862512,
+     "heard": "from the north over open water.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 20
+    },
+    {
+     "attempt": 1,
+     "seed": 2065102606,
+     "heard": "from the north over open water.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 70
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12714,
+     "sha256": "997769abdff235137f71d927e7a456857f0869ac1c37f5706ccc872a5171a948"
+    },
+    "mp3": {
+     "bytes": 12932,
+     "sha256": "7f9c5758613bb05a643bd568015bdc202ee9a91c0833f865e79aa28eac4ce407"
+    }
+   }
+  },
+  "bearing-n.es": {
+   "text": "Desde el norte, sobre agua abierta.",
+   "speaker": "mirador",
+   "seconds": 2.485,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 1034834827,
+     "heard": "Desde el norte, sobre agua abierta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3052935250,
+     "heard": "Desde el norte, sobre agua abierta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 1780542581,
+     "heard": "desde el norte sobre agua abierta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11444,
+     "sha256": "1746dce97ce4d012d67ea10fba8d4475b685d07a503f03873d93097ddb56159b"
+    },
+    "mp3": {
+     "bytes": 11348,
+     "sha256": "17af68dc6950227eaad754b550bd28487dabe1bdf3040b539bc0f9b58dc965f7"
+    }
+   }
+  },
+  "bearing-ne.en": {
+   "text": "Off the east shore.",
+   "speaker": "mirador",
+   "seconds": 1.475,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 3043100887,
+     "heard": "Off the east shore.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3566879311,
+     "heard": "off the East Shore.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    },
+    {
+     "attempt": 0,
+     "seed": 2159207634,
+     "heard": "off the east shore,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 6997,
+     "sha256": "43cc244f7836d84b9864293b3cb2fd5ac8396b648187af8cdc9611ffb619dc59"
+    },
+    "mp3": {
+     "bytes": 7652,
+     "sha256": "5a77288fbb0c563464b3c6ef91491fb75325329e9dda6cf1fba7315d67f90ecf"
+    }
+   }
+  },
+  "bearing-ne.es": {
+   "text": "Desde la costa este.",
+   "speaker": "mirador",
+   "seconds": 1.545,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 2079878165,
+     "heard": "desde la costa este.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3552135325,
+     "heard": "desde la costa este.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 3755977737,
+     "heard": "desde la costa este.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 140
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7256,
+     "sha256": "80dce4ebb63291af134a5a5b6d58b894d86cfadb2da4c99e2067e6bba7d88dbb"
+    },
+    "mp3": {
+     "bytes": 7940,
+     "sha256": "30ff0c946c740efa748ff08c1011314681c612ec1ac006ffdfe52c7e6db0cc4e"
+    }
+   }
+  },
+  "bearing-nw.en": {
+   "text": "Out of the west arm.",
+   "speaker": "mirador",
+   "seconds": 1.495,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 3101241043,
+     "heard": "Out of the West Arm. Out of the West Arm.",
+     "wer": 1.0,
+     "extra": 5,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 1987106967,
+     "heard": "out of the West Arm. Out of the",
+     "wer": 0.6,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3664730355,
+     "heard": "out of the west arm, out of the",
+     "wer": 0.6,
+     "extra": 3,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 3834279720,
+     "heard": "out of the West Arm, out of the way",
+     "wer": 0.8,
+     "extra": 4,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 5,
+     "seed": 1969580941,
+     "heard": "Out of the West Arm.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 6,
+     "seed": 360864259,
+     "heard": "Out of the West Arm.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 4,
+     "seed": 2821673630,
+     "heard": "out of the West Arm.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 7087,
+     "sha256": "f132ee36bfe0c2f6225d4836286ff94da308819fe1aac6eb84b00008b7a8254c"
+    },
+    "mp3": {
+     "bytes": 7556,
+     "sha256": "93e6bd5487c2593b9e912c12702f6becd426fcf1a03d6e3df31ff5141fc96cce"
+    }
+   }
+  },
+  "bearing-nw.es": {
+   "text": "Desde el brazo oeste.",
+   "speaker": "mirador",
+   "seconds": 2.005,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 329322755,
+     "heard": "desde el brazo oeste.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 826634054,
+     "heard": "desde el brazo oeste.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 2662567943,
+     "heard": "desde el brazo oeste.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 9224,
+     "sha256": "541b0b5070a521240cccb84b33090423bf4f2b5eba620ab7d652fae83979b341"
+    },
+    "mp3": {
+     "bytes": 9452,
+     "sha256": "7114b071a572261c3dc5cda827277080f28a69bbe242594a8b6ed0eb25dcc67d"
+    }
+   }
+  },
+  "bearing-river.en": {
+   "text": "On the river, below the dam.",
+   "speaker": "mirador",
+   "seconds": 2.275,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 1801574456,
+     "heard": "on the river below the dam.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 1605188442,
+     "heard": "on the river, below the dam.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 3746756977,
+     "heard": "on the river, below the dam,",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10491,
+     "sha256": "88b311582fa01aaa637458fdcdec7040613d0ed9856069e4aebcf9e337986852"
+    },
+    "mp3": {
+     "bytes": 10820,
+     "sha256": "d705a1ae11b6ba5593711fa70eb4578a5ceb2d14191ad9edf1e43b7a144c3563"
+    }
+   }
+  },
+  "bearing-river.es": {
+   "text": "Sobre el río, aguas abajo.",
+   "speaker": "mirador",
+   "seconds": 2.205,
+   "takes": [
+    {
+     "attempt": 0,
+     "seed": 2041013472,
+     "heard": "sobre el río Aguasabajo.",
+     "wer": 0.4,
+     "extra": 0,
+     "missing": [
+      "aguas",
+      "abajo"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2458597478,
+     "heard": "sobre el río Aguas Abajo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 2314847716,
+     "heard": "Sobre el río, aguas abajo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 1,
+     "seed": 3898517345,
+     "heard": "Sobre el río, aguas abajo.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10237,
+     "sha256": "a471a6218b8980a81c38b023988c1a5a2a08f53c34fc93aa45be03a8ca8dfe84"
+    },
+    "mp3": {
+     "bytes": 10652,
+     "sha256": "b9862c2aef003e6c139fa6d0f9f00b869239b588ec4d2f152a31fef21351fe82"
+    }
+   }
+  },
+  "bearing-water.en": {
+   "text": "On the water, coming for the face.",
+   "speaker": "mirador",
+   "seconds": 2.415,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 3607976088,
+     "heard": "on the water, coming for the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 145251209,
+     "heard": "on the water, coming for the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 434890672,
+     "heard": "on the water, coming for the face.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11140,
+     "sha256": "56b5c8560529d8bb52d4c0414786a895eb7cf5f469f57ee0b0ad8dc3b0fdbafd"
+    },
+    "mp3": {
+     "bytes": 12332,
+     "sha256": "f5277a83fdd67e59bb4ed8b171eba1ea353720cbb2958318f822c02a90d48f6a"
+    }
+   }
+  },
+  "bearing-water.es": {
+   "text": "Sobre el agua, rumbo a la cara.",
+   "speaker": "mirador",
+   "seconds": 2.295,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 509411183,
+     "heard": "sobre el agua rumbo a la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 10
+    },
+    {
+     "attempt": 2,
+     "seed": 1608360360,
+     "heard": "Sobre el agua, rumbo a la cara. Y...",
+     "wer": 0.143,
+     "extra": 1,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 3673886178,
+     "heard": "Sobre el agua, rumbo a la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 40
+    },
+    {
+     "attempt": 0,
+     "seed": 1830528517,
+     "heard": "sobre el agua, rumbo a la cara.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 10665,
+     "sha256": "a60f7b9129cb537c05f828f2f99ce7640739905da7eba7ca240da3ccef616fec"
+    },
+    "mp3": {
+     "bytes": 10604,
+     "sha256": "05c6bb0b700b101021bfa46497e85a67812c348afbc6a8eaae0b4e5453a55641"
+    }
+   }
+  },
+  "beat-rack-2.en": {
+   "text": "Warheads on. Same as before.",
+   "speaker": "taller",
+   "seconds": 2.635,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 4136869554,
+     "heard": "Warheads on, same as before.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2838115763,
+     "heard": "Warheads on, same as before.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 1127001367,
+     "heard": "Warheads on, same as before.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 12078,
+     "sha256": "5a00e13c918a6d691aa03d37d11476766a1865e0f64221cb7da8550eee8eca8d"
+    },
+    "mp3": {
+     "bytes": 12284,
+     "sha256": "c55fdbe734955a6195531da5a5695b0021be95cdf42ffe52d437af315e994262"
+    }
+   }
+  },
+  "beat-rack-2.es": {
+   "text": "Ojivas puestas. Igual que antes.",
+   "speaker": "taller",
+   "seconds": 2.535,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 783651619,
+     "heard": "Ojivas puestas, igual que antes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 4004582565,
+     "heard": "Ojivas puestas. Igual que antes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 1265457042,
+     "heard": "Ojivas puestas, igual que antes.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 11724,
+     "sha256": "56f5e1e612ca5c7c10289f21041cf0471df4ddaf2d34095888c47273f1157f49"
+    },
+    "mp3": {
+     "bytes": 12044,
+     "sha256": "bb0ade1a9c190577a0689477269dfac34139d3448251ef0710549dfb76d67939"
+    }
+   }
+  },
+  "beat-rack.en": {
+   "text": "Birds are on the bench. Come get them.",
+   "speaker": "taller",
+   "seconds": 2.915,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 3420773002,
+     "heard": "Birds are on the bench. Come get them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 564056313,
+     "heard": "Birds are on the bench. Come get them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 768937703,
+     "heard": "Birds are on the bench. Come get them.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13309,
+     "sha256": "a5a0f603052ef39917b841f251aaa6770a0f7f20b067be2807a5d44cce42b198"
+    },
+    "mp3": {
+     "bytes": 14108,
+     "sha256": "9581f3556d1f8e0fbc47853de3a360aa72c7a7fe2756fc87a5b8413482ca568e"
+    }
+   }
+  },
+  "beat-rack.es": {
+   "text": "Los aparatos están en el banco. Vengan a buscarlos.",
+   "speaker": "taller",
+   "seconds": 3.465,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 2673275836,
+     "heard": "Los aparatos están en el banco. Vengan a buscarlos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 3311855330,
+     "heard": "Los aparatos están en el banco. Vengan a buscarlos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 214341548,
+     "heard": "Los aparatos están en el banco. Vengan a buscarlos.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 15822,
+     "sha256": "94fcd63277882172d9361828cad8764530cbbdc969592797d662a14d1287f96c"
+    },
+    "mp3": {
+     "bytes": 16412,
+     "sha256": "625a8df405b1e6e7b87162f27786d6f4b0cc43acede241ce11a4aa9399e7149e"
+    }
+   }
+  },
   "bird-lost.en": {
    "text": "We lost a bird. Next one up.",
    "seconds": 3.015,
@@ -2300,6 +3266,105 @@
     "mp3": {
      "bytes": 10772,
      "sha256": "29150aac3150dd32ba491eb8f225fa1c3ae2dae9fbd07d4bc12ecc06d7f50fa0"
+    }
+   }
+  },
+  "stage-lost.en": {
+   "text": "They got through. Regroup on the crest.",
+   "speaker": "crest",
+   "seconds": 2.855,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 3665711707,
+     "heard": "They got through. Regroup on the crest.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 933690374,
+     "heard": "They got through. Regroup on the crest.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 3217870964,
+     "heard": "They got through, regroup on the crest.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13211,
+     "sha256": "5df87729d6b8ebf6448d2124788311b5440169f9bb8fe62cdd986e4035ea64ac"
+    },
+    "mp3": {
+     "bytes": 12404,
+     "sha256": "7de02a84b17777cefd98c2ffe06e815426e3c8a3b86c3c596fff9fb0393c2d89"
+    }
+   }
+  },
+  "stage-lost.es": {
+   "text": "Pasaron. Reagrúpense en la cresta.",
+   "speaker": "crest",
+   "seconds": 2.905,
+   "takes": [
+    {
+     "attempt": 1,
+     "seed": 3244893669,
+     "heard": "Pasaron. Reagrúpense en la cresta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 2,
+     "seed": 2275582919,
+     "heard": "Pasaron. Plagrúpense en la cresta.",
+     "wer": 0.2,
+     "extra": 0,
+     "missing": [
+      "reagrupense"
+     ],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 3,
+     "seed": 1556694106,
+     "heard": "Pasaron. Reagrúpense en la cresta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    },
+    {
+     "attempt": 0,
+     "seed": 3286387851,
+     "heard": "Pasaron. Reagrúpense en la cresta.",
+     "wer": 0.0,
+     "extra": 0,
+     "missing": [],
+     "tail_ms": 0
+    }
+   ],
+   "files": {
+    "webm": {
+     "bytes": 13421,
+     "sha256": "547c953cb37faf849bd040242fa5c06689dd406aabaffd430387380bc4b21adb"
+    },
+    "mp3": {
+     "bytes": 12908,
+     "sha256": "e378eab2b0ede28319730e431840aab45b41f4cd4718dfe5573d330e231fdfb2"
     }
    }
   },
