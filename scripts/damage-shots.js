@@ -8,7 +8,7 @@
  *
  * Page A makes a room on Itaipu and starts mission 2 (the gates'); once it
  * is live, the room is made to take a Loiterer's warhead at gate-3's aim
- * point, three times, through war.js strike as an arrival does (the waves'
+ * point, four times, through war.js strike as an arrival does (the waves'
  * own Loiterers take minutes to come). Then:
  *
  *   A hears the damage events, takes the gate's chunks out of the drawn
@@ -52,12 +52,17 @@ import { MISSIONS } from '../src/share/war/missions/index.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { attackerCharge } from '../src/share/war/damage.js';
 import STRUCTURES from '../src/share/war/itaipu-chunks.js';
+import { HOIST_M_S } from '../src/share/war/hoist.js';
+import { leafTurn, turnPoint } from '../src/share/war/leaf.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'damage-shots');
 const MISSION = MISSIONS['itaipu-2'];
 const GATE = 'gate-3';
 const STATIC_MAX = 15000;
+/* Where the holed gate's hoist takes its leaf: two minutes of travel,
+ * which takes its panels about a metre. */
+const MOVE_TO = 3;
 
 let failed = 0;
 let passed = 0;
@@ -107,6 +112,8 @@ const frames = (p, n) => p.evaluate(`new Promise((r) => { let k = 0; const f = (
 const s = STRUCTURES[GATE];
 const mid = s.chunks.filter((c) => c.k === 'skin').reduce((a, c, _, l) => a.map((v, i) => v + c.c[i] / l.length), [0, 0, 0]);
 const n = s.frame.n;
+/* A point of the gate's leaf at rest, where Free Flight's 2 m has it. */
+const free = (P) => turnPoint(s.frame.hinge, leafTurn(s.frame.hinge, 2), P);
 const VIEWS = {
   down: [mid[0] + n[0] * 45 + 12, mid[1] + 14, mid[2] + n[2] * 45 - 4, mid[0], mid[1] - 2, mid[2]],
   up: [mid[0] - n[0] * 40 - 8, mid[1] + 10, mid[2] - n[2] * 40 + 3, mid[0], mid[1], mid[2]],
@@ -140,7 +147,7 @@ try {
   const before = await a.evaluate('window.__war().breakage');
   /* Every skin panel's solid, before. */
   const skins = s.chunks.map((c, i) => [c, i]).filter(([c]) => c.k === 'skin');
-  const gapsBefore = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${c.c.join(',')}, 2)`).join(',')}]`);
+  const gapsBefore = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${free(c.c).join(',')}, 2)`).join(',')}]`);
   await look(a, 'down');
   const callsBefore = (await a.evaluate('window.__renderStats()')).calls;
   await shot(a, '1-before-downstream');
@@ -148,12 +155,13 @@ try {
   await shot(a, '2-before-upstream');
   await look(a, 'down');
 
-  /* Three Loiterers' warheads at the gate's aim point, by the room
-   * (damage-check's table: a Loiterer opens a gate in 3). */
+  /* Four Loiterers' warheads at the gate's aim point, by the room
+   * (damage-check's table: a Loiterer opens a gate in 4, its leaf at
+   * Free Flight's 2 m). */
   const room = roomOf();
   const core = room.host.core;
   const aim = MISSION.targets[GATE].at;
-  for (let k = 0; k < 3; k += 1) {
+  for (let k = 0; k < 4; k += 1) {
     const t = Math.floor(core.roomMs(Date.now()));
     room.host.run(core.war.strike(core, aim, attackerCharge('loiter'), t, 'loiter'));
     room.host.run(core.war.changed(core));
@@ -182,7 +190,7 @@ try {
   /* Where a broken skin panel stood, nothing solid; where one stands,
    * as solid as before. */
   const broken = new Set(told.flatMap((e) => e.chunks));
-  const gapsAfter = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${c.c.join(',')}, 2)`).join(',')}]`);
+  const gapsAfter = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${free(c.c).join(',')}, 2)`).join(',')}]`);
   /* Nothing within the 2 m asked comes back as Infinity, which the page
    * hands over as null. */
   const far = (g) => (g == null ? Infinity : g);
@@ -192,6 +200,51 @@ try {
   holes.filter(([b]) => b).map(([, g0, g1]) => `${g0.toFixed(2)} to ${g1 === Infinity ? 'over 2' : g1.toFixed(2)} m`).join(', '));
   const callsAfter = (await a.evaluate('window.__renderStats()')).calls;
   check('the view stays inside the plan\'s 300 draws', callsAfter <= 300, `${callsBefore} before, ${callsAfter} after (smoke, dust, pieces, edges and their shadows)`);
+
+  /* The holed gate's hoist: its leaf to MOVE_TO from Free Flight's 2 m
+   * (the stage engine's gate state, set on the room's match here). Every
+   * screen turns the leaf, its colliders and its holes; the room tells
+   * the holes again as they rise, stamped with the move's room ms. */
+  const h = s.frame.hinge;
+  const turned = (o) => (P) => turnPoint(h, leafTurn(h, o), P);
+  const solidAt = async (pts) => a.evaluate(`[${pts.map((P) => `window.__nearSolid(${P.join(',')}, 2)`).join(',')}]`);
+  /* Probes on the skin's lowest row of capsules (0.5 m up the arc from
+   * the lip, on the capsules' axis 0.15 m inside the skin), under each
+   * standing panel of the lowest row: the leaf turns along its own arc,
+   * so only its edge leaves a place it filled. */
+  const brokeIds = new Set(told.flatMap((e) => e.chunks));
+  const lowest = Math.min(...s.chunks.filter((c) => c.k === 'skin').map((c) => c.c[1]));
+  const lowRow = s.chunks.map((c, i) => [c, i]).filter(([c, i]) => c.k === 'skin' && c.c[1] < lowest + 1 && !brokeIds.has(i)).map(([c]) => c.c);
+  const lipRest = (() => {
+    const y = h.sill + h.rest - h.p[1];
+    const d = -Math.sqrt(h.r * h.r - y * y);
+    const up = turnPoint(h, leafTurn(h, h.rest + 0.5), [h.p[0] + h.n[0] * d, h.p[1] + y, h.p[2] + h.n[2] * d]);
+    const k = (h.r - 0.15) / h.r;
+    return [h.p[0] + (up[0] - h.p[0]) * k, h.p[1] + (up[1] - h.p[1]) * k, h.p[2] + (up[2] - h.p[2]) * k];
+  })();
+  const standing = lowRow.map((c) => {
+    const along = (c[0] - lipRest[0]) * h.a[0] + (c[2] - lipRest[2]) * h.a[2];
+    return [lipRest[0] + h.a[0] * along, lipRest[1], lipRest[2] + h.a[2] * along];
+  });
+  const near2 = await solidAt(standing.map(turned(2)));
+  const moveAt = Math.floor(core.roomMs(Date.now())) + 500;
+  core.war.match.gates = [{ gate: GATE, at: moveAt, open_m: MOVE_TO }];
+  room.host.run(core.war.changed(core));
+  const doneAt = moveAt + Math.ceil((1000 * (MOVE_TO - 2)) / HOIST_M_S);
+  await a.until(`window.__rooms().roomNow > ${doneAt + 2000}`, Math.ceil(doneAt - core.roomMs(Date.now())) + 60000);
+  await frames(a, 10);
+  await shot(a, '3b-gate-moved-downstream');
+  const atNew = await solidAt(standing.map(turned(MOVE_TO)));
+  const atOld = await solidAt(standing.map(turned(2)));
+  check('the holed gate\'s leaf turns: solid where its standing panels\' lips now are, not where they were',
+    near2.every((g) => far(g) < 0.1) && atNew.every((g) => far(g) < 0.1) && atOld.every((g) => far(g) > 0.25),
+    `${standing.length} lowest panels' lips, now ${Math.max(...atNew.map(far)).toFixed(2)} m at most, where they were ${Math.min(...atOld.map(far)).toFixed(2)} m at least`);
+  const resent = core.war.match.damage.filter((e) => e.by === 'hoist');
+  const seen = (await a.evaluate('window.__war().openings')).filter((o) => o.target === GATE);
+  check('its holes are told again as it rises, stamped with the move\'s room ms, and reach the water\'s hook',
+    resent.length > 0 && resent.every((e, k) => e.at >= moveAt && (k === 0 || e.at > resent[k - 1].at))
+      && seen.length === 1 + resent.length && seen.at(-1).sill[1] > seen[0].sill[1],
+    `${resent.length} times, sill ${seen[0].sill[1]} to ${seen.at(-1).sill[1]}`);
 
   /* The other parts, each from the room as the gate was: an intake by
    * three Boats at its aim, a penstock by three FPVs at its aim, and the

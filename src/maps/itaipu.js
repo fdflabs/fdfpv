@@ -493,6 +493,18 @@ async function buildItaipu(shell, progress, q, time) {
      * (src/maps/itaipu/damage.js applies the room's events). */
     structures: parts.dam.structures,
     setChunkGone: (id, i, gone) => parts.dam.setChunkGone(id, i, gone),
+    /* A mission's spillway gates over the room's clock, [{ gate: 'gate-N',
+     * at: room ms, open_m }], or null for none (Free Flight's): the dam's
+     * leaves turn to them (src/share/war/hoist.js), and the water's flow
+     * follows them where the water takes them. */
+    setGateState(list) {
+      parts.dam.setGateState(list);
+      if (parts.water && typeof parts.water.setGates === 'function') {
+        parts.water.setGates(list);
+      }
+    },
+    /* Gate `id`'s leaf turn at room ms t (src/share/war/leaf.js), or null. */
+    leafTurnAt: (id, t) => parts.dam.leafTurnAt(id, t),
     /* The night raid's lights, district by district (src/share/war/grid.js
      * levels, from the room's war state): nothing by day. */
     setPower: (levels) => look.setPower(levels),

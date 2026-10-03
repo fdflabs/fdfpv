@@ -154,7 +154,11 @@
  *                                             where it went off, by the
  *                                             attacker kind or 'defender',
  *                                             cut the power line spans
- *                                             whose gantry fell
+ *                                             whose gantry fell; by
+ *                                             'hoist' and no chunks: a
+ *                                             gate's leaf moved, its
+ *                                             holes told again where they
+ *                                             now are (leafWatch)
  *   { type: 'war', op: 'cue', cues }          a stage's cues as they fall
  *                                             due, each { at, stage,
  *                                             radio | music | cutaway |
@@ -219,7 +223,11 @@ import { madeFor, modeById } from '../../src/share/modes.js';
 import { wireStrike } from '../../src/share/war/wires.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
-import { attackerCharge, blast, defenderCharge } from '../../src/share/war/damage.js';
+import {
+  attackerCharge, blast, defenderCharge, leafMoved,
+} from '../../src/share/war/damage.js';
+import { openAt } from '../../src/share/war/hoist.js';
+import { REST, leafTurn } from '../../src/share/war/leaf.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
@@ -327,6 +335,10 @@ const AGENT_MAX_MPS = 80;
 const POINT = { id: 'point' };
 
 const KIND_ID = new Map(KINDS.map((k, i) => [k, i]));
+
+/* A gate's leaf with holes in it is told again (its openings, leafMoved)
+ * at every LEAF_RESEND_M of its lip's travel, and where its hoist stops. */
+export const LEAF_RESEND_M = 0.25;
 
 /* Each map's structures (src/share/war/damage.js); a map with none has
  * nothing a warhead breaks. */
@@ -722,6 +734,10 @@ export class RoomWar {
       fuze: Object.fromEntries(seats.filter((seat) => airframeOf.has(Number(seat)))
         .map((seat) => [seat, this.blastOf(Number(seat), airframeOf.get(Number(seat)))])),
       disabled: { ...(m.disabled ?? {}) },
+      /* The spillway gates' state, [{ gate, at, open_m }] or null: the
+       * stage engine's (it sets match.gates), which every screen's map
+       * turns its leaves and its water to (src/share/war/hoist.js). */
+      gates: m.gates ?? null,
     };
   }
 
@@ -1365,6 +1381,9 @@ export class RoomWar {
       const stage = this.stageStep(core, roomNow);
       dirty ||= stage.dirty;
       out.push(...stage.out);
+      const moved = this.leafWatch(core);
+      dirty ||= moved.length > 0;
+      out.push(...moved);
     }
     return dirty ? [...this.changed(core), ...out] : out;
   }
@@ -1753,7 +1772,12 @@ export class RoomWar {
     m.damage ??= [];
     const at = p.map(mm);
     const out = [];
-    for (const r of blast(structures, m.wreck, at, w, mm(t))) {
+    const turnOf = (id) => this.leafTurnAt(structures[id], id, t);
+    for (const r of blast(structures, m.wreck, at, w, mm(t), turnOf)) {
+      /* Where its leaf stood when its holes were last told. */
+      if (r.openings.length && structures[r.target].frame.hinge) {
+        m.wreck[r.target].leafOpen = this.gateOpen(structures[r.target], r.target, t);
+      }
       const e = {
         seq: m.damage.length, ...r, p: at, by,
       };
@@ -1772,6 +1796,59 @@ export class RoomWar {
       this.log.push({
         what: 'damage', t, target: r.target, chunks: r.chunks.length, open: r.openings.length > 0, down: r.down,
       });
+      out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
+    }
+    return out;
+  }
+
+  /*
+   * THE GATES' STATE: the match's `gates` ([{ gate, at, open_m }], the
+   * stage engine's, stored with the match and in its view), each gate's
+   * leaf on its hoist (src/share/war/hoist.js), what a warhead meets and
+   * where its holes are (src/share/war/leaf.js). Gate `id`'s opening at
+   * room ms t, within its hinge's travel, and its leaf's turn then.
+   */
+  gateOpen(s, id, t) {
+    const h = s.frame.hinge;
+    const o = openAt(this.match.gates ?? null, id, t);
+    return o < 0 ? 0 : o > h.max ? h.max : o;
+  }
+
+  leafTurnAt(s, id, t) {
+    return s && s.frame.hinge ? leafTurn(s.frame.hinge, this.gateOpen(s, id, t)) : REST;
+  }
+
+  /*
+   * A gate's leaf with holes in it, moving: its opening told again (an
+   * op 'damage' with no chunks, the same opening id, stamped with the
+   * room ms of the move, never the break's) every LEAF_RESEND_M of its
+   * lip's travel and where its hoist stops, on the judgement's clock (f).
+   */
+  leafWatch(core) {
+    const m = this.match;
+    const structures = STRUCTURES[this.mission().map];
+    if (!structures || !m.wreck) {
+      return [];
+    }
+    const out = [];
+    const t = m.f;
+    for (const [id, st] of Object.entries(m.wreck)) {
+      const s = structures[id];
+      if (!s || !s.frame.hinge || !st.open || st.leafOpen == null) {
+        continue;
+      }
+      const o = this.gateOpen(s, id, t);
+      const stopped = o !== st.leafOpen && o === this.gateOpen(s, id, t + 1000);
+      if (!(Math.abs(o - st.leafOpen) >= LEAF_RESEND_M || stopped)) {
+        continue;
+      }
+      st.leafOpen = o;
+      const r = leafMoved(id, s, st, mm(t), leafTurn(s.frame.hinge, o));
+      if (!r) {
+        continue;
+      }
+      const e = { seq: m.damage.length, ...r, p: null, by: 'hoist' };
+      m.damage.push(e);
       out.push(...this.broadcast(core, { type: 'war', op: 'damage', ...e }));
     }
     return out;

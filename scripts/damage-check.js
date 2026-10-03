@@ -48,18 +48,26 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS, waveTarget } from '../src/share/war/missions/index.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import {
-  DEFENDER, attackerCharge, blast, unsupported,
+  DEFENDER, attackerCharge, blast, openingOf, unsupported,
 } from '../src/share/war/damage.js';
 import {
   LIFE_MS, advance, breachOf, massOf, piecesOf,
 } from '../src/share/war/debris.js';
 import { createRoomWar } from '../src/share/roomwar.js';
 import STRUCTURES from '../src/share/war/itaipu-chunks.js';
+import { FREE_OPEN_M, HOIST_M_S } from '../src/share/war/hoist.js';
+import { LEAF_RESEND_M } from '../edge/rooms/war.js';
+import {
+  REST, leafTurn, turnPoint, unturn,
+} from '../src/share/war/leaf.js';
 
 /* "A few well placed hits open a breach" (the owner, 2 October): at
  * least HITS_MIN, so one attacker alone, hit or near miss, never opens a
  * target (a hit already takes its megawatts, war.js take), and at most
  * HITS, for every kind at its own targets. */
+/* Every gate's leaf where Free Flight has it, as the room's is with no
+ * mission gate state (war.js leafTurnAt). */
+const FREE = (id) => (STRUCTURES[id].frame.hinge ? leafTurn(STRUCTURES[id].frame.hinge, FREE_OPEN_M) : REST);
 const HITS_MIN = 2;
 const NEIGHBOUR_HITS = 3;
 const HITS = 4;
@@ -121,7 +129,7 @@ function table() {
         let open = null;
         while (hits < 20 && !open) {
           hits += 1;
-          open = blast({ [target]: s }, wreck, p, charge, hits).find((r) => r.down) ?? null;
+          open = blast({ [target]: s }, wreck, p, charge, hits, FREE).find((r) => r.down) ?? null;
         }
         rows.set(key, { hits: open ? hits : Infinity, part: s.part, kind: w.kind });
       }
@@ -134,7 +142,7 @@ function table() {
     const p = s.chunks[0].c;
     const wreck = {};
     let n = 0;
-    while (n < 50 && !blast({ [id]: s }, wreck, p, DEFENDER.standard, n).some((r) => r.down)) {
+    while (n < 50 && !blast({ [id]: s }, wreck, p, DEFENDER.standard, n, FREE).some((r) => r.down)) {
       n += 1;
     }
     check(n > HITS, `a defender's standard warhead on ${id}'s face opens it only after more than ${HITS}`, n >= 50 ? 'not in 50' : `${n + 1}`);
@@ -152,7 +160,7 @@ function table() {
     let broke = null;
     while (hits < 20 && !broke) {
       hits += 1;
-      broke = blast({ [y.target]: STRUCTURES[y.target] }, wreck, p, attackerCharge(y.kind), hits)[0] ?? null;
+      broke = blast({ [y.target]: STRUCTURES[y.target] }, wreck, p, attackerCharge(y.kind), hits, FREE)[0] ?? null;
     }
     const n = broke ? hits : Infinity;
     if (y.kind === 'strike') {
@@ -173,7 +181,7 @@ function table() {
       const opened = new Set();
       for (let h = 0; h < NEIGHBOUR_HITS; h += 1) {
         const sub = Object.fromEntries([id, ...near].map((x) => [x, STRUCTURES[x]]));
-        for (const r of blast(sub, wreck, p, attackerCharge(kind), h)) {
+        for (const r of blast(sub, wreck, p, attackerCharge(kind), h, FREE)) {
           if (r.down) {
             opened.add(r.target);
           }
@@ -196,6 +204,32 @@ function table() {
   for (const [k, list] of by) {
     check(list.every((h) => h >= HITS_MIN && h <= HITS), `${k}: ${Math.min(...list)} to ${Math.max(...list)} hits`, `${list.length} targets`);
   }
+}
+
+function leaf() {
+  console.log('\nthe leaves (src/share/war/leaf.js)');
+  const h = STRUCTURES[GATE].frame.hinge;
+  const at = leafTurn(h, h.rest);
+  check(Math.abs(at.c - 1) < 1e-12 && Math.abs(at.s) < 1e-12, 'at its rest opening a leaf is not turned', `${at.c} ${at.s}`);
+  const lip = turnPoint(h, REST, [h.p[0] - h.n[0] * Math.sqrt(h.r * h.r - (h.sill + h.rest - h.p[1]) ** 2), h.sill + h.rest, h.p[2] - h.n[2] * Math.sqrt(h.r * h.r - (h.sill + h.rest - h.p[1]) ** 2)]);
+  const off = [0, FREE_OPEN_M, 4, h.max].map((o) => turnPoint(h, leafTurn(h, o), lip)[1] - (h.sill + o));
+  /* To a hundredth of a millimetre: the hinge's axes are written to the
+   * micrometre, so not quite unit. */
+  check(off.every((d) => Math.abs(d) < 1e-5), 'turned to an opening, the lip stands that high over the sill', off.map((d) => d.toExponential(1)).join(' '));
+  const t = leafTurn(h, 6);
+  const back = turnPoint(h, unturn(t), turnPoint(h, t, [-1040, 205, -970]));
+  const miss = Math.hypot(back[0] + 1040, back[1] - 205, back[2] + 970);
+  check(miss < 1e-5, 'a turn and its unturn come back', `${miss.toExponential(1)} m`);
+  /* A blast by the leaf turned to 6 m breaks what the same blast, turned
+   * back with it, breaks of the leaf at rest. */
+  const s = STRUCTURES[GATE];
+  const p0 = turnPoint(h, REST, s.chunks[5].c).map((v, k) => v + [0, 0.5, 0.3][k]);
+  const p6 = turnPoint(h, t, p0);
+  const w = { charge: 300, r: 2 };
+  const a = blast({ [GATE]: s }, {}, p0, w, 1, () => REST)[0];
+  const b = blast({ [GATE]: s }, {}, p6, w, 1, () => t)[0];
+  check(Boolean(a) && Boolean(b) && JSON.stringify(a.chunks.filter((i) => s.chunks[i].m)) === JSON.stringify(b.chunks.filter((i) => s.chunks[i].m)),
+    'a blast on a turned leaf breaks the leaf\'s chunks it breaks at rest, turned', a ? a.chunks.join(' ') : 'none');
 }
 
 function support() {
@@ -243,6 +277,10 @@ function mission() {
       round: 0, at: 2 + 20 * i, kind: 'loiter', n: 1, per: 1, route: 'high-west', target: GATE,
     });
   }
+  /* One more, late, so the war is still on while the gate moves. */
+  waves.push({
+    round: 0, at: 1500, kind: 'scout', n: 1, per: 1, route: 'high-west',
+  });
   return {
     ...itaipu1, id: 'damage-1', stages: undefined, waves, floorMw: 0, starMw: 0, airframes: 4,
   };
@@ -331,6 +369,22 @@ function warScenario() {
   const view = socks[0].got.filter((x) => x && x.type === 'war' && x.war).at(-1).war;
   check(view.down.includes(GATE) && view.output === itaipu1.output - itaipu1.targets[GATE].mw, 'the gate is lost: its MW off the output, in down', `output ${view.output}`);
 
+  console.log('\nthe holed gate moves');
+  /* The stage engine's gate state (war.js leafWatch reads match.gates):
+   * the gate's hoist to 6 m. */
+  const moveAt = Math.ceil(clock + 100);
+  r.war.match.gates = [{ gate: GATE, at: moveAt, open_m: 6 }];
+  fly(clock + 1000 + Math.ceil((1000 * (6 - FREE_OPEN_M)) / HOIST_M_S));
+  const moved = damageOf(socks[0]).filter((e) => e.by === 'hoist');
+  const sills = moved.map((e) => e.openings[0].sill[1]);
+  check(moved.length >= (6 - FREE_OPEN_M) / LEAF_RESEND_M && moved.every((e) => e.chunks.length === 0 && e.openings.length === 1 && e.openings[0].id === GATE && e.openings[0].at === e.at),
+    'its opening is told again as its leaf rises, the same id, no chunks', `${moved.length} times`);
+  check(moved.every((e, k) => e.at > opened.at && e.at >= moveAt && (k === 0 || e.at > moved[k - 1].at)), 'each stamped with the room ms of its move, in order, after the break',
+    `${moved[0] && moved[0].at} to ${moved.length && moved.at(-1).at}`);
+  const want = openingOf(GATE, s, r.war.match.wreck[GATE].gone, 0, leafTurn(s.frame.hinge, 6));
+  check(sills.every((y, k) => k === 0 || y > sills[k - 1]) && Math.abs(sills.at(-1) - want.sill[1]) < 1e-6,
+    'the holes rise with the leaf, the last where the leaf stops at 6 m', `sill ${opened.openings[0].sill[1]} to ${sills.at(-1)}`);
+
   console.log('\nthe replay');
   const late = join(1, clock);
   fly(clock + 100);
@@ -366,7 +420,7 @@ function debris(events) {
   let n = 0;
   let all = true;
   let same = true;
-  for (const e of events) {
+  for (const e of events.filter((x) => x.chunks.length)) {
     const s = STRUCTURES[e.target];
     const a = piecesOf(e, s);
     const b = piecesOf(e, s);
@@ -390,12 +444,13 @@ function debris(events) {
   const masses = [...kinds].map((k) => [k, massOf(Object.values(STRUCTURES).flatMap((s) => s.chunks).find((ch) => ch.k === k))]);
   check(masses.every(([, m]) => ['concrete', 'steel', 'transformer'].includes(m.material) && m.mass > 0), 'every chunk kind has a material and a mass',
     masses.map(([k, m]) => `${k} ${m.material} ${Math.round(m.mass)} kg`).join(', '));
-  const heard = events.map((e) => breachOf(e, STRUCTURES[e.target]));
+  const heard = events.filter((e) => e.chunks.length).map((e) => breachOf(e, STRUCTURES[e.target]));
   check(heard.every((b) => b && Number.isFinite(b.at) && b.position.length === 3 && b.position.every(Number.isFinite)),
     'every event is one breach heard', heard.map((b) => `${b.material} ${Math.round(b.mass)} kg`).join(', '));
 }
 
 table();
+leaf();
 support();
 warScenario();
 console.log(`\n${passed} passed, ${failed} failed`);

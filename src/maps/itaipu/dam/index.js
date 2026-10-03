@@ -87,6 +87,8 @@
  */
 
 import { insideSlabs, recordAt } from '../../alps/roofs.js';
+import { FREE_OPEN_M, openAt } from '../../../share/war/hoist.js';
+import { leafTurn, turnDir, turnPoint } from '../../../share/war/leaf.js';
 
 /* Section 6: the crest of every concrete part and its gantry rails. */
 const CREST_Y = 225;
@@ -161,8 +163,13 @@ export const SPILL = {
   gateWidth: 20,
   gateHeight: 21.34,
   sill: 199.16,
-  /* The gates stand part open, the spillway running (section 5). */
-  gateOpen: 5,
+  /* The gates stand part open, the spillway running (section 5): Free
+   * Flight's, the leaf turned on its trunnions to FREE_OPEN_M
+   * (src/share/war/hoist.js); a mission moves them (setGateState). */
+  gateOpen: FREE_OPEN_M,
+  /* The opening the leaves are built at, which places their trunnions:
+   * the axis stays where it is whatever the opening. */
+  gateRest: 5,
   upstream: -8,
   deck: [-7, 7],
   deckUnder: 222.8,
@@ -1245,13 +1252,14 @@ export async function buildPart(ctx) {
     structures[id] = {
       part, water, frame, chunks: [],
     };
+    Object.defineProperty(structures[id], 'id', { value: id });
     return structures[id];
   };
   /* A chunk of s, a box at c along e0 and e1 (unit), h its half
    * extents; returns its index. */
   const chunk = (s, k, c, e0, e1, h, opts = {}) => {
     s.chunks.push({
-      k, c, e: [...e0, ...e1], h, a: opts.anchor ? 1 : 0, l: [], r: opts.rect ?? null, draw: [], colliders: [],
+      k, c, e: [...e0, ...e1], h, a: opts.anchor ? 1 : 0, l: [], r: opts.rect ?? null, draw: [], colliders: [], ...(opts.moves ? { m: 1 } : {}),
     });
     return s.chunks.length - 1;
   };
@@ -1261,6 +1269,115 @@ export async function buildPart(ctx) {
       s.chunks[j].l.push(i);
     }
   };
+  /*
+   * THE GATES' RIGS: what turns when a spillway gate opens (a mission's
+   * gate state, src/share/war/hoist.js; the turn, src/share/war/leaf.js).
+   * Each { id, hinge, leaf, caps, hoists, open }: `leaf` its parts that
+   * turn with the leaf about its trunnions, each { range of the steel,
+   * faces [from, to), key (its chunk's) }; `caps` the leaf's capsules
+   * { i, a, b, r } as built; `hoists` each side's { pivot, end, cyl, rod,
+   * cap }: the cylinder swings about the pivot on the pier's deck to
+   * follow the rod's end on the leaf, and the rod runs out of it. Built
+   * at SPILL.gateRest, the leaf's chunks written there; drawn at `open`.
+   */
+  const rigs = [];
+  /* A hoist's swing and stretch to follow the leaf turned by t. */
+  const hoistAt = (h, hr, t) => {
+    const e1 = turnPoint(h, t, hr.end);
+    const d0 = (hr.end[0] - hr.pivot[0]) * h.n[0] + (hr.end[2] - hr.pivot[2]) * h.n[2];
+    const y0 = hr.end[1] - hr.pivot[1];
+    const d1 = (e1[0] - hr.pivot[0]) * h.n[0] + (e1[2] - hr.pivot[2]) * h.n[2];
+    const y1 = e1[1] - hr.pivot[1];
+    const l0 = Math.hypot(d0, y0);
+    const l1 = Math.hypot(d1, y1);
+    return {
+      h: { p: hr.pivot, a: h.a, n: h.n },
+      t: { c: (d0 * d1 + y0 * y1) / (l0 * l1), s: (y0 * d1 - d0 * y1) / (l0 * l1) },
+      out: [0, 1, 2].map((q) => ((e1[q] - hr.pivot[q]) / l1) * (l1 - l0)),
+      end: e1,
+    };
+  };
+  /* Each part of a rig at opening o, as a point and a direction map. */
+  const rigMaps = (rig, o) => {
+    const t = leafTurn(rig.hinge, o);
+    const leaf = { point: (P) => turnPoint(rig.hinge, t, P), dir: (v) => turnDir(rig.hinge, t, v) };
+    const hoists = rig.hoists.map((hr) => {
+      const w = hoistAt(rig.hinge, hr, t);
+      const dir = (v) => turnDir(w.h, w.t, v);
+      const cyl = { point: (P) => turnPoint(w.h, w.t, P), dir };
+      const rod = { point: (P) => turnPoint(w.h, w.t, P).map((v, q) => v + w.out[q]), dir };
+      return { cyl, rod, end: w.end };
+    });
+    return { t, leaf, hoists };
+  };
+  /* A rig's capsules registered over every place they reach from shut to
+   * its hinge's max (Colliders.sweep), sampled a centimetre of lip at a
+   * time near the ends and every 5 cm between, and padded by 5 cm. */
+  const sweepRig = (rig) => {
+    const h = rig.hinge;
+    const opens = [];
+    for (let o = 0; o < h.max; o += 0.05) {
+      opens.push(o);
+    }
+    opens.push(h.max);
+    const box = new Map();
+    const grow = (i, P, r) => {
+      const b = box.get(i) ?? [Infinity, Infinity, -Infinity, -Infinity];
+      b[0] = Math.min(b[0], P[0] - r - 0.05);
+      b[1] = Math.min(b[1], P[2] - r - 0.05);
+      b[2] = Math.max(b[2], P[0] + r + 0.05);
+      b[3] = Math.max(b[3], P[2] + r + 0.05);
+      box.set(i, b);
+    };
+    for (const o of opens) {
+      const m = rigMaps(rig, o);
+      for (const c of rig.caps) {
+        grow(c.i, m.leaf.point(c.a), c.r);
+        grow(c.i, m.leaf.point(c.b), c.r);
+      }
+      rig.hoists.forEach((hr, k) => {
+        const r = RADIAL.cylinder + 0.05;
+        grow(hr.cap, hr.pivot, r);
+        grow(hr.cap, m.hoists[k].end, r);
+      });
+    }
+    for (const [i, b] of box) {
+      ctx.colliders.sweep(i, b[0], b[1], b[2], b[3]);
+    }
+  };
+  /* A built rig's checked faces and capsules (still being added, before
+   * the colliders are built) put at opening o; its steel is posed once
+   * the meshes are made (poseRig). */
+  const poseBuilt = (rig, o) => {
+    const m = rigMaps(rig, o);
+    const posePart = (list, map) => {
+      for (const part of list) {
+        for (let f = part.faces[0]; f < part.faces[1]; f += 1) {
+          faces[f].pts = faces[f].pts.map(map.point);
+        }
+      }
+    };
+    posePart(rig.leaf, m.leaf);
+    rig.hoists.forEach((hr, k) => {
+      posePart(hr.cyl, m.hoists[k].cyl);
+      posePart(hr.rod, m.hoists[k].rod);
+    });
+    const list = ctx.colliders;
+    const put = (i, a, b) => {
+      list.ax[i] = a[0];
+      list.ay[i] = a[1];
+      list.az[i] = a[2];
+      list.bx[i] = b[0];
+      list.by[i] = b[1];
+      list.bz[i] = b[2];
+    };
+    for (const c of rig.caps) {
+      put(c.i, m.leaf.point(c.a), m.leaf.point(c.b));
+    }
+    rig.hoists.forEach((hr, k) => put(hr.cap, hr.pivot, m.hoists[k].end));
+    rig.open = o;
+  };
+
   /* The box round a beam from P to Q, `half` across, turned to `side`. */
   const beamBox = (P, Q, half, side) => {
     const d = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]];
@@ -3000,7 +3117,7 @@ export async function buildPart(ctx) {
      * and its steel are drawn per gate, in chunks a warhead takes out one
      * by one (structures), so a destroyed one chars alone.
      */
-    const gateBottom = sp.figures.sillY + SPILL.gateOpen;
+    const gateBottom = sp.figures.sillY + SPILL.gateRest;
     const gateTop = sp.figures.sillY + sp.figures.gateHeight;
     const R = RADIAL.r;
     const tY = (gateBottom + gateTop) / 2;
@@ -3040,11 +3157,18 @@ export async function buildPart(ctx) {
       metal.poly([0, 1, 2, 3].map((i) => corner(P, i)), col, w.map((v) => -v));
       metal.poly([0, 1, 2, 3].map((i) => corner(Q, i)), col, w);
     };
-    /* What `draw` adds to the steel, as chunk i's range of it. */
-    const steelOf = (s, i, draw) => {
+    /* What `draw` adds to the steel, as chunk i's range of it; and, with
+     * a rig `part` (the leaf, a hoist's cylinder or rod), the steel and
+     * the checked faces it drew, which turn when the gate opens (rigs). */
+    const steelOf = (s, i, draw, part = null) => {
       const mark = metal.c.length;
+      const faceMark = faces.length;
       draw();
-      s.chunks[i].draw.push({ mesh: 'steel', range: [mark, metal.c.length] });
+      const range = [mark, metal.c.length];
+      s.chunks[i].draw.push({ mesh: 'steel', range });
+      if (part) {
+        part.push({ range, faces: [faceMark, faces.length], key: `${s.id}#${i}` });
+      }
     };
     const aArm = aMax * 0.6;
     const armIn = R - 1.5;
@@ -3066,12 +3190,44 @@ export async function buildPart(ctx) {
     /* Neighbours 4 % closer than touching, so no seam between them. */
     const capRows = Math.ceil((rr * (ca1 - ca0)) / (1.92 * SKIN_R)) + 1;
     const panelOf = (al) => Math.min(PANELS - 1, Math.max(0, Math.floor(((al + aMax) * PANELS) / (2 * aMax))));
+    /* A gate's hinge (src/share/war/leaf.js), its axis through the middle
+     * of its bay; `max` the opening at which the leaf's top comes within
+     * 0.3 m of the bridge's deck over it, the most it opens. */
+    const hingeOf = (u) => ({
+      p: at3(u, tD, tY), a: across, n: [C.n[0], 0, C.n[1]], r: R, sill: sp.figures.sillY, rest: SPILL.gateRest, max: sp.figures.gateHeight,
+    });
+    const topAt = (h, o) => turnPoint(h, leafTurn(h, o), arc(0, R, aMax))[1];
     for (let g = 0; g < SPILL.gates; g += 1) {
       const u0 = pierU[g] + pierW / 2;
       const u1 = pierU[g + 1] - pierW / 2;
       const id = `gate-${g}`;
+      const hinge = hingeOf((u0 + u1) / 2);
+      let lo = SPILL.gateRest;
+      let hi = sp.figures.gateHeight;
+      for (let k = 0; k < 40; k += 1) {
+        const m = (lo + hi) / 2;
+        if (topAt(hinge, m) < SPILL.deckUnder - 0.3) {
+          lo = m;
+        } else {
+          hi = m;
+        }
+      }
+      hinge.max = Math.round(lo * 1000) / 1000;
       /* Water leaves through the bay downstream, down the chute. */
-      const s = structure(id, 'gate', reservoirY, { o: [fx, 0, fz], u: across, n: [C.n[0], 0, C.n[1]] });
+      const s = structure(id, 'gate', reservoirY, {
+        o: [fx, 0, fz], u: across, n: [C.n[0], 0, C.n[1]], hinge,
+      });
+      /* What turns when the gate opens (rigs): the leaf's steel, faces and
+       * capsules, and each side's hoist. */
+      const rig = {
+        id, hinge, leaf: [], caps: [], hoists: [], open: SPILL.gateRest,
+      };
+      rigs.push(rig);
+      const leafCap = (a, b, r) => {
+        const k = addCapsule('wall', a, b, r);
+        rig.caps.push({ i: k, a, b, r });
+        return k;
+      };
       const colU = (c) => u0 + ((u1 - u0) * c) / GATE_COLS;
       const colOf = (u) => Math.min(GATE_COLS - 1, Math.max(0, Math.floor(((u - u0) * GATE_COLS) / (u1 - u0))));
       const from = metal.c.length;
@@ -3087,7 +3243,7 @@ export async function buildPart(ctx) {
           const sag = R * (1 - Math.cos(half));
           /* From the skin's face to the ribs' backs, 1.2 m behind it. */
           const i = chunk(s, 'skin', arc((ua + ub) / 2, R - 0.6 - sag / 2, (a0 + a1) / 2), across, tangent((a0 + a1) / 2),
-            [(ub - ua) / 2, R * Math.sin(half), 0.6 + sag / 2], { rect: [ua, ub, tY + R * Math.sin(a0), tY + R * Math.sin(a1)] });
+            [(ub - ua) / 2, R * Math.sin(half), 0.6 + sag / 2], { rect: [ua, ub, tY + R * Math.sin(a0), tY + R * Math.sin(a1)], moves: true });
           panel[c].push(i);
           steelOf(s, i, () => {
             for (let r = 2 * p; r < 2 * p + 2; r += 1) {
@@ -3121,7 +3277,7 @@ export async function buildPart(ctx) {
                 metal.quad(arc(ur - 0.12, R - 1.2, b0), arc(ur + 0.12, R - 1.2, b0), arc(ur + 0.12, R - 1.2, b1), arc(ur - 0.12, R - 1.2, b1), TONE.gate, radialOut((b0 + b1) / 2).map((v) => -v));
               }
             }
-          });
+          }, rig.leaf);
         }
       }
       for (let c = 0; c < GATE_COLS; c += 1) {
@@ -3138,27 +3294,24 @@ export async function buildPart(ctx) {
       for (let i = 0; i < capRows; i += 1) {
         const al = ca0 + ((ca1 - ca0) * i) / (capRows - 1);
         for (let c = 0; c < GATE_COLS; c += 1) {
-          const k = addCapsule('wall', arc(colU(c), rr, al), arc(colU(c + 1), rr, al), SKIN_R);
+          const k = leafCap(arc(colU(c), rr, al), arc(colU(c + 1), rr, al), SKIN_R);
           ids.push(k);
           s.chunks[panel[c][panelOf(al)]].colliders.push(k);
         }
       }
       /* The two girders behind the skin, 1.2 m square and level across the
-       * bay: each is a box turned to the chute, the girder exactly. The
+       * bay: each a capsule as wide along it, which holds the girder's
+       * faces whatever the leaf's turn (a turned box cannot tilt). The
        * skin's rows they cross hang off them. */
       const girder = {};
       for (const al of [aArm, -aArm]) {
         const P = arc(u0 + 0.2, R - 0.9, al);
         const Q = arc(u1 - 0.2, R - 0.9, al);
         const bx = beamBox(P, Q, 0.6, up);
-        const i = chunk(s, 'girder', bx.c, bx.e0, bx.e1, bx.h);
+        const i = chunk(s, 'girder', bx.c, bx.e0, bx.e1, bx.h, { moves: true });
         girder[al] = i;
-        steelOf(s, i, () => beam(P, Q, 0.6, up, TONE.gate, null));
-        const [ux, uz] = C.a;
-        const ua = P[0] * ux + P[2] * uz;
-        const ub = Q[0] * ux + Q[2] * uz;
-        const w = P[2] * ux - P[0] * uz;
-        s.chunks[i].colliders.push(addTurned(ux, uz, Math.min(ua, ub), Math.max(ua, ub), P[1] - 0.6, P[1] + 0.6, w - 0.6, w + 0.6));
+        steelOf(s, i, () => beam(P, Q, 0.6, up, TONE.gate, null), rig.leaf);
+        s.chunks[i].colliders.push(leafCap(arc(u0 + 0.8, R - 0.9, al), arc(u1 - 0.8, R - 0.9, al), 0.6));
         for (let c = 0; c < GATE_COLS; c += 1) {
           link(s, i, panel[c][panelOf(al)]);
         }
@@ -3175,7 +3328,7 @@ export async function buildPart(ctx) {
         for (let i = 0; i < PANELS; i += 1) {
           const a0 = -aMax + (2 * aMax * i) / PANELS + (i === 0 ? ribEnd : 0);
           const a1 = -aMax + (2 * aMax * (i + 1)) / PANELS - (i === PANELS - 1 ? ribEnd : 0);
-          s.chunks[panel[colOf(ur)][i]].colliders.push(addCapsule('wall', arc(ur, ribR, a0), arc(ur, ribR, a1), 0.3));
+          s.chunks[panel[colOf(ur)][i]].colliders.push(leafCap(arc(ur, ribR, a0), arc(ur, ribR, a1), 0.3));
         }
       }
       /* gate-0 is the westernmost: u runs east. */
@@ -3203,30 +3356,41 @@ export async function buildPart(ctx) {
         const arms = [aArm, -aArm].map((al, k) => {
           const E = ends[k];
           const ab = beamBox(T, E, RADIAL.beam / 2, across);
-          const i = chunk(s, 'arm', ab.c, ab.e0, ab.e1, ab.h);
-          steelOf(s, i, () => beam(T, E, RADIAL.beam / 2, across, TONE.arm, 'spillway gate arm'));
-          s.chunks[i].colliders.push(addCapsule('wall', T, E, 0.55));
+          const i = chunk(s, 'arm', ab.c, ab.e0, ab.e1, ab.h, { moves: true });
+          steelOf(s, i, () => beam(T, E, RADIAL.beam / 2, across, TONE.arm, 'spillway gate arm'), rig.leaf);
+          s.chunks[i].colliders.push(leafCap(T, E, 0.55));
           link(s, i, trunnion);
           link(s, i, girder[al]);
           return i;
         });
         const bb = beamBox(brace[0], brace[1], 0.3, across);
-        const br = chunk(s, 'brace', bb.c, bb.e0, bb.e1, bb.h);
-        steelOf(s, br, () => beam(brace[0], brace[1], 0.3, across, TONE.arm, 'spillway gate arm'));
-        s.chunks[br].colliders.push(addCapsule('wall', brace[0], brace[1], 0.4));
+        const br = chunk(s, 'brace', bb.c, bb.e0, bb.e1, bb.h, { moves: true });
+        steelOf(s, br, () => beam(brace[0], brace[1], 0.3, across, TONE.arm, 'spillway gate arm'), rig.leaf);
+        s.chunks[br].colliders.push(leafCap(brace[0], brace[1], 0.4));
         link(s, br, arms[0]);
         link(s, br, arms[1]);
         const mid = [0, 1, 2].map((q) => pivot[q] + (rodEnd[q] - pivot[q]) * 0.6);
         const hb = beamBox(pivot, rodEnd, RADIAL.cylinder, across);
+        /* Fixed on the pier's deck: its cylinder swings about the pivot to
+         * follow the leaf, its rod runs in and out of it (rigs). Its chunk
+         * is written where it stands at rest. */
         const hoist = chunk(s, 'hoist', hb.c, hb.e0, hb.e1, hb.h, { anchor: true });
-        steelOf(s, hoist, () => {
-          beam(pivot, mid, RADIAL.cylinder * 0.9, across, TONE.arm, 'spillway hoist cylinder');
-          beam(mid, rodEnd, 0.14, across, TONE.steel, null);
-        });
-        s.chunks[hoist].colliders.push(addCapsule('wall', pivot, rodEnd, RADIAL.cylinder + 0.05));
+        const hr = {
+          pivot, end: rodEnd, cyl: [], rod: [],
+        };
+        steelOf(s, hoist, () => beam(pivot, mid, RADIAL.cylinder * 0.9, across, TONE.arm, 'spillway hoist cylinder'), hr.cyl);
+        steelOf(s, hoist, () => beam(mid, rodEnd, 0.14, across, TONE.steel, null), hr.rod);
+        hr.cap = addCapsule('wall', pivot, rodEnd, RADIAL.cylinder + 0.05);
+        s.chunks[hoist].colliders.push(hr.cap);
+        rig.hoists.push(hr);
         link(s, hoist, panel[colOf(us)][PANELS - 1]);
       }
       darken[id] = [{ mesh: 'steel', range: [from, metal.c.length] }];
+      /* Its capsules registered over all the leaf can reach, and the
+       * leaf's faces and capsules put where Free Flight has it (its steel
+       * once the meshes are made). */
+      sweepRig(rig);
+      poseBuilt(rig, FREE_OPEN_M);
     }
     figures.spillwayGates = SPILL.gates;
     figures.spillwayGateWidth = pierU[1] - pierU[0] - pierW;
@@ -3638,13 +3802,89 @@ export async function buildPart(ctx) {
   };
   damage.points.visible = false;
   /*
+   * THE GATES MOVING. Each rig's steel as built (at SPILL.gateRest),
+   * kept, and drawn at its opening: written again from what was kept,
+   * turned, whenever its opening changes (update, from the gate state
+   * setGateState was given, on the room's clock), and its capsules moved
+   * with it (Colliders.moveCapsule, within the sweep they were registered
+   * over). A chunk taken out stays folded: its range is skipped.
+   */
+  /* Chunk key -> the positions it had when it was folded (setChunkGone). */
+  const folded = new Map();
+  const steelGeo = drawn.steel.geometry;
+  const rigRest = new Map();
+  for (const rig of rigs) {
+    const keep = (part) => ({
+      p: steelGeo.getAttribute('position').array.slice(part.range[0], part.range[1]),
+      n: steelGeo.getAttribute('normal').array.slice(part.range[0], part.range[1]),
+    });
+    rigRest.set(rig, {
+      leaf: rig.leaf.map(keep), hoists: rig.hoists.map((hr) => ({ cyl: hr.cyl.map(keep), rod: hr.rod.map(keep) })),
+    });
+  }
+  let gateState = null;
+  /* Gates whose steel must be written again (a chunk put back). */
+  const rigDirty = new Set();
+  const poseRig = (rig, o, built = false) => {
+    const m = rigMaps(rig, o);
+    const pos = steelGeo.getAttribute('position');
+    const nrm = steelGeo.getAttribute('normal');
+    const write = (part, rest, map) => {
+      if (folded.has(part.key)) {
+        return;
+      }
+      const [a, b] = part.range;
+      for (let j = 0; j < b - a; j += 3) {
+        const P = map.point([rest.p[j], rest.p[j + 1], rest.p[j + 2]]);
+        const N = map.dir([rest.n[j], rest.n[j + 1], rest.n[j + 2]]);
+        pos.array[a + j] = P[0];
+        pos.array[a + j + 1] = P[1];
+        pos.array[a + j + 2] = P[2];
+        nrm.array[a + j] = N[0];
+        nrm.array[a + j + 1] = N[1];
+        nrm.array[a + j + 2] = N[2];
+      }
+      pos.addUpdateRange(a, b - a);
+      nrm.addUpdateRange(a, b - a);
+    };
+    const rest = rigRest.get(rig);
+    rig.leaf.forEach((part, k) => write(part, rest.leaf[k], m.leaf));
+    rig.hoists.forEach((hr, k) => {
+      hr.cyl.forEach((part, j) => write(part, rest.hoists[k].cyl[j], m.hoists[k].cyl));
+      hr.rod.forEach((part, j) => write(part, rest.hoists[k].rod[j], m.hoists[k].rod));
+    });
+    pos.needsUpdate = true;
+    nrm.needsUpdate = true;
+    if (!built) {
+      for (const c of rig.caps) {
+        ctx.colliders.moveCapsule(c.i, m.leaf.point(c.a), m.leaf.point(c.b));
+      }
+      rig.hoists.forEach((hr, k) => ctx.colliders.moveCapsule(hr.cap, hr.pivot, m.hoists[k].end));
+    }
+    rig.open = o;
+  };
+  /* The steel where the faces and capsules already are, Free Flight's. */
+  for (const rig of rigs) {
+    poseRig(rig, rig.open, true);
+  }
+  /* Every gate at room ms ms, from the gate state (hoist.js openAt). */
+  const poseGates = (ms) => {
+    for (const rig of rigs) {
+      const o = Math.min(rig.hinge.max, Math.max(0, openAt(gateState, rig.id, ms)));
+      if (o !== rig.open || rigDirty.has(rig)) {
+        rigDirty.delete(rig);
+        poseRig(rig, o);
+      }
+    }
+  };
+
+  /*
    * A chunk gone (src/maps/itaipu/damage.js applies the room's damage
    * events) or back for the next match: its triangles folded onto one
    * point, so they draw nothing and cost no call, and its colliders
    * retired (collide.js retire). The positions it had are kept to put
    * back. Before build() nothing can go, and nothing does.
    */
-  const folded = new Map();
   const setChunkGone = (id, i, gone) => {
     const s = structures[id];
     const ch = s && s.chunks[i];
@@ -3690,6 +3930,11 @@ export async function buildPart(ctx) {
       folded.set(key, kept);
     } else {
       folded.delete(key);
+      /* Put back where it was taken out: its gate turns it to now. */
+      const rig = rigs.find((r) => r.id === id);
+      if (rig) {
+        rigDirty.add(rig);
+      }
     }
     for (const k of ch.colliders) {
       if (gone) {
@@ -3716,8 +3961,25 @@ export async function buildPart(ctx) {
   });
   return {
     group,
+    /* `step` is the map's animation clock, the room's in a room
+     * (src/main.js trafficMs): the gates' hoists run on it. */
     update(step) {
       damage.update(step);
+      poseGates(step);
+    },
+    /*
+     * A mission's gate state, [{ gate: 'gate-N', at: room ms, open_m }],
+     * or null for none (Free Flight's): each gate's leaf turns to it on
+     * its hoist (src/share/war/hoist.js), drawn and solid.
+     */
+    setGateState(list) {
+      gateState = list && list.length ? list.map((e) => ({ gate: e.gate, at: e.at, open_m: e.open_m })) : null;
+    },
+    /* Gate `id`'s leaf turn at room ms t (leaf.js), for what is thrown
+     * off it then; null for a target that is not a gate. */
+    leafTurnAt(id, t) {
+      const rig = rigs.find((r) => r.id === id);
+      return rig ? leafTurn(rig.hinge, Math.min(rig.hinge.max, Math.max(0, openAt(gateState, id, t)))) : null;
     },
     dispose() {},
     stats: counts,
