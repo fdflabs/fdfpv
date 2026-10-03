@@ -258,7 +258,11 @@ async function main() {
     await page.evaluate(click(`pack-${packs[0].id}`));
     await page.evaluate(click('save'));
     await page.until('!window.__ui.hangar.isOpen', 10000);
-    await page.until(`window.__craft().motors && window.__craft().motors.kt === ${table.motors.kt}`, 60000).catch(() => {});
+    /* Both halves of the block: on a quad with one prop the kt never moves,
+     * so a wait on it alone is met before the refit lands and reads the old
+     * pack (2 runs in 3 on the interceptor). The cell's resistance is the
+     * pack's half. */
+    await page.until(`window.__craft().motors && window.__craft().motors.kt === ${table.motors.kt} && window.__craft().motors.rCell === ${table.motors.rCell}`, 60000).catch(() => {});
     const half = await page.evaluate('window.__craft()');
     say(flies(half, motorOnly) && half.motors.kt === table.motors.kt && half.motors.rCell === table.motors.rCell,
       `the stock prop and pack take their block off and leave the motor: kt ${half.motors.kt}, ${half.motors.rCell} ohm a cell, ke ${half.motors.ke}`);
