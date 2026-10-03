@@ -1,0 +1,103 @@
+<!doctype html>
+<!--
+  playground.html: the UI playground. Every menu component in each of its
+  states, every design token and type style, on one page, drawn with the
+  game's own stylesheet. For whoever builds or reviews a screen; the
+  checklist of what it holds is tests/browser/playground-components.js,
+  held to the sheet by scripts/playground-check.js.
+
+  DEVELOPMENT ONLY. It lives under tests/browser, which the Pages
+  workflow leaves out of the site (.github/workflows/pages.yml), so a
+  player can never reach it. Open it from the dev server:
+  npm run serve, then /tests/browser/playground.html (add ?lang=es for
+  the Spanish copy).
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FDFPV UI playground</title>
+    <link rel="icon" href="data:," />
+    <!-- The playground's own layout only. Every component's look comes
+         from index.html's sheet, which playground.js loads at run time. -->
+    <style>
+      html, body { margin: 0; overflow: auto; }
+      body {
+        background: var(--pdcs-bg, #07090a); color: var(--pdcs-text, #d7dddd);
+        font-family: var(--pdcs-read, system-ui, sans-serif);
+        padding: 24px clamp(16px, 4vw, 48px) 64px;
+      }
+      .pg-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 24px; margin-bottom: 24px; }
+      .pg-head h1 { font: 600 20px/1.2 var(--pdcs-mono, monospace); letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
+      .pg-head p { margin: 0; color: var(--pdcs-muted, #9aa3a7); font-size: 14px; }
+      .pg-nav { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 32px; font: 12px var(--pdcs-mono, monospace); }
+      .pg-nav a { color: var(--pdcs-blue, #6aa3c8); text-decoration: none; text-transform: uppercase; letter-spacing: 0.1em; }
+      .pg-section { margin: 0 0 48px; }
+      .pg-section > h2 {
+        font: 600 13px/1 var(--pdcs-mono, monospace); letter-spacing: 0.16em; text-transform: uppercase;
+        color: var(--pdcs-blue, #6aa3c8); border-bottom: 1px solid var(--pdcs-line-soft, #222); padding-bottom: 8px; margin: 0 0 16px;
+      }
+      .pg-comp { margin: 0 0 28px; }
+      .pg-comp-head { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; margin-bottom: 10px; }
+      .pg-comp-name { font: 600 15px var(--pdcs-read, sans-serif); color: var(--pdcs-bright, #f1f4f4); }
+      .pg-comp-meta { font: 11px var(--pdcs-mono, monospace); color: var(--pdcs-dim, #71797d); letter-spacing: 0.04em; }
+      .pg-states { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+      .pg-state { flex: 1 1 280px; max-width: 560px; min-width: 0; }
+      .pg-state-label { font: 11px var(--pdcs-mono, monospace); color: var(--pdcs-muted, #9aa3a7); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+      .pg-gap {
+        border: 1px dashed var(--pdcs-line, #555); padding: 12px 14px; max-width: 640px;
+        color: var(--pdcs-muted, #9aa3a7); font-size: 14px; line-height: 1.45;
+      }
+      .pg-gap b { color: var(--pdcs-warn, #d9b46c); font: 600 11px var(--pdcs-mono, monospace); letter-spacing: 0.12em; text-transform: uppercase; margin-right: 8px; }
+      .pg-tokens { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 16px; }
+      .pg-token { display: flex; gap: 10px; align-items: center; min-width: 0; }
+      .pg-swatch { flex: 0 0 auto; width: 36px; height: 36px; box-shadow: inset 0 0 0 1px var(--pdcs-line-soft, #333); }
+      .pg-token-text { min-width: 0; font: 11px/1.4 var(--pdcs-mono, monospace); overflow-wrap: anywhere; }
+      .pg-token-text span { display: block; color: var(--pdcs-dim, #71797d); }
+      .pg-group { margin: 0 0 20px; }
+      .pg-group h3 { font: 11px var(--pdcs-mono, monospace); color: var(--pdcs-muted, #9aa3a7); text-transform: uppercase; letter-spacing: 0.14em; margin: 0 0 8px; }
+      .pg-error { color: var(--pdcs-fail, #ff8f8f); font: 13px var(--pdcs-mono, monospace); white-space: pre-wrap; }
+
+      /* THE FRAMES. The game's screens and overlays are positioned against
+         the window (absolute, fixed, inset 0) because each fills it; here
+         many share one page, so each demo's context is put back in the
+         page's flow. These rules are the only ones that touch a game class,
+         and they change where it sits, never how it looks. */
+      .pg-frame { position: relative; overflow: hidden; }
+      .pg-frame .screen {
+        position: relative; inset: auto; display: block; height: auto; width: auto;
+        min-height: 0; padding: 14px 16px; pointer-events: auto;
+      }
+      .pg-frame .screen-title .gate-cards, .pg-frame .screen-title .gate-rooms { display: flex; }
+      .pg-frame .pg-static { position: relative !important; inset: auto !important; transform: none !important; }
+      .pg-frame .name-dialog.pg-static { display: block; padding: 16px; }
+      .pg-frame .frame-top.pg-static { display: flex; align-items: center; padding: 0 12px; }
+      .pg-frame .menu { min-width: 0; margin-top: 0; }
+      .pg-frame .hint { display: flex; }
+    </style>
+    <script type="module" src="/tests/browser/playground.js"></script>
+  </head>
+  <body>
+    <header class="pg-head">
+      <h1>UI playground</h1>
+      <p>Development only. Every menu component, from the game's own stylesheet.</p>
+    </header>
+    <nav class="pg-nav" id="pg-nav"></nav>
+    <main id="pg-main"></main>
+  </body>
+</html>
