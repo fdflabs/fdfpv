@@ -266,7 +266,12 @@ export const AIRFRAMES = [
        * payload's belly, and up is the GPS puck's top. */
       vHalfDown: 0.075,
       vHalfUp: 0.057,
-      bodyLength: 0.22,
+      /* The plates as drawn, src/render/combatcraft.js COMBAT_FRAMES
+       * interceptor.plates, from the reference photograph: dims is the
+       * airframe as the renderer draws it. It read 0.22 with no source,
+       * which verify's check 15 found once the interceptor was the aircraft
+       * it seats (2026-10-03). */
+      bodyLength: 0.16,
       bodyWidth: 0.06,
       bodyHeight: 0.045,
     },
