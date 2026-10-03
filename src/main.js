@@ -3396,6 +3396,11 @@ export async function boot({
     if (w.damage) {
       warBreakageAt(w.damage, w.t ?? 0);
     }
+    /* And its water: a flood of the replay's own from the openings, on
+     * the clip's clock (map.replayFlood). */
+    if (w.openings && typeof view.replayFlood === 'function') {
+      view.replayFlood(w.openings);
+    }
   }
 
   /*
@@ -3425,6 +3430,9 @@ export async function boot({
     warBreakageShown = { seqs: list.map((d) => d.seq), t };
   }
   function warBreakageLive(now) {
+    if (view && typeof view.replayFlood === 'function') {
+      view.replayFlood(null);
+    }
     if (!warBreakageShown) {
       return;
     }

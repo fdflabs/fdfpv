@@ -12,8 +12,9 @@
  * check hands the page's war (window.__warHear, the room socket's own way
  * in) what a room says when it happens: an intake hit, a kill with its
  * warhead's boom, an attacker into a power line, the switchyard hit, and
- * a warhead breaking two chunks off a spillway gate (src/render/
- * breakage.js: holes, rubble flying on the room clock). The
+ * a warhead breaking four chunks off a spillway gate (src/render/
+ * breakage.js: holes, rubble flying on the room clock) and tearing an
+ * opening the reservoir pours through (the flood, docs/FLOOD.md). The
  * page logs the map it drew each live frame (window.__warMapLog). Then
  * its crash cam is opened and the playhead put on rows of the clip
  * forwards, backwards and in jumps.
@@ -26,6 +27,12 @@
  *     piece of rubble where it lay, to the millimetre) is that too: before the
  *     first hit nothing burns, after it the intake burns, the yard's
  *     districts and a town past the struck line go dark in their turn
+ *   - the water: the replay's own flood, made from the clip's opening and
+ *     stepped on the clip's clock, stands at the step the live one stood
+ *     at for each row looked at, forwards and back, with the same water
+ *     to the bit at every snapshot step both kept (host.js hashes), the
+ *     breach pouring through the gate (its flow, for the roar); and the
+ *     live flood is not stepped or rewound while the replay plays
  *   - closed, the map is the live war's again, the newest live frame's
  *   - no page error
  *
@@ -57,6 +64,9 @@ import { MISSIONS } from '../src/share/war/missions/index.js';
 import AT from '../src/share/war/itaipu-targets.js';
 import { DISTRICTS, districtIndex } from '../src/share/war/grid.js';
 import STRUCTURES from '../src/share/war/itaipu-chunks.js';
+import { openingOf } from '../src/share/war/damage.js';
+import { DELAY_MS } from '../src/sim/water/host.js';
+import { DT_MS } from '../src/maps/itaipu/water/flood.js';
 
 const MISSION = 'itaipu-4';
 const mission = MISSIONS[MISSION];
@@ -176,10 +186,15 @@ try {
   await a.sleep(1500);
   t = await now();
   const gate = STRUCTURES['gate-4'];
+  /* Four of the gate's skin plates: the hole the room would send. */
+  const torn = gate.chunks.map((c, i) => i).filter((i) => gate.chunks[i].r).slice(0, 4);
+  const opening = openingOf('gate-4', gate, gate.chunks.map((c, i) => torn.includes(i)), t);
   await hear({
-    type: 'war', op: 'damage', seq: 900, at: t, target: 'gate-4', chunks: [0, 1], fell: [], openings: [], down: false, health: 0.9, p: gate.chunks[0].c, by: 0, cut: [],
+    type: 'war', op: 'damage', seq: 900, at: t, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 0, cut: [],
   });
-  await a.sleep(4000);
+  const breachAt = t;
+  /* Long enough for the water to pass several snapshot steps (host.js). */
+  await a.sleep(9000);
 
   const live = await a.evaluate('window.__warMapLogged()');
   const liveNow = await a.evaluate('window.__warMap()');
@@ -187,7 +202,11 @@ try {
   check('the live map burned the intake and the switchyard and put districts out',
     liveNow && liveNow.targets['intake-3'] === 'fire' && liveNow.targets['yard-right'] === 'fire'
     && liveNow.levels[districtIndex('yard')] === 0 && liveNow.levels[districtIndex('hernandarias-w')] === 0
-    && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === 2 && liveNow.broken.pieces.length > 0, describe(liveNow));
+    && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === torn.length && liveNow.broken.pieces.length > 0, describe(liveNow));
+  const WATER = "(() => { const w = window.__map().parts.water; return { live: w.flood, replay: w.replayFlood, flows: window.__mapFlows() }; })()";
+  const waterLive = (await a.evaluate(WATER)).live;
+  check('the live flood took the opening and stepped on', waterLive.state === 'ready' && waterLive.origin === breachAt && waterLive.step > 200,
+    `${waterLive.state}, origin ${waterLive.origin}, step ${waterLive.step}`);
 
   await a.evaluate('window.__crashCam.open(); true');
   await a.until("window.__craftState().mode === 'replay'", 10000);
@@ -233,9 +252,58 @@ try {
     && [...shown].some((s) => s.includes('gate-4')),
     [...shown].join(' | '));
 
+  /* The water: rows from just before the breach to the end, forwards
+   * then back, each waited on until the replay's flood stands at it. */
+  const atOpen = (await a.evaluate(WATER)).live;
+  const waterRows = [];
+  for (const { k, f } of rows) {
+    if (f.t > breachAt - 2000 && !waterRows.some((r) => Math.abs(r.f.t - f.t) < 1200)) {
+      waterRows.push({ k, f });
+    }
+  }
+  const waterOrder = [...waterRows, ...waterRows.slice().reverse()];
+  let dry = 0;
+  let poured = 0;
+  const wet = [];
+  const waterMisses = [];
+  for (const { k } of waterOrder) {
+    await a.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${k})); true`);
+    const anim = await a.evaluate(`window.__crashCam.h().clipAnim(${k})`);
+    const want = Math.max(0, Math.floor((anim - DELAY_MS - breachAt) / DT_MS));
+    await a.until(`(() => { const r = window.__map().parts.water.replayFlood; return r && r.state === 'ready' && r.step === ${want}; })()`, 20000).catch(() => {});
+    const w = await a.evaluate(WATER);
+    const r = w.replay;
+    const common = Object.keys(r ? r.hashes : {}).filter((s) => s in atOpen.hashes);
+    const same = common.every((s) => r.hashes[s] === atOpen.hashes[s]);
+    if (!r || r.step !== want || !same || r.origin !== breachAt) {
+      waterMisses.push(`row ${k}: replay ${r ? `${r.state} step ${r.step} origin ${r.origin}` : 'none'}, want step ${want}; ${common.filter((s) => r.hashes[s] !== atOpen.hashes[s]).length} of ${common.length} hashes differ`);
+    }
+    if (want === 0) {
+      dry += 1;
+    }
+    /* A row whose own step is past a snapshot step that held the water
+     * moving, and compared there. */
+    if (want > 100 && common.some((s) => Number(s) >= 100 && Number(s) <= want)) {
+      poured += 1;
+    }
+    if ((w.flows || []).some((x) => x.q > 0)) {
+      wet.push(k);
+    }
+    /* The live flood, meanwhile, as it stood when the replay opened. */
+    if (w.live.step !== atOpen.step || Object.keys(atOpen.hashes).some((s) => w.live.hashes[s] !== atOpen.hashes[s])) {
+      waterMisses.push(`row ${k}: the live flood moved, step ${w.live.step} from ${atOpen.step}`);
+    }
+  }
+  console.log(`  info  water: ${waterOrder.length} rows, ${dry} before the water moved, ${poured} past a snapshot step, the breach flowing at ${wet.length}`);
+  check('the replay\'s water stands where the live water stood at each row, to the bit at every snapshot both kept, forwards and back, the breach pouring',
+    waterOrder.length >= 6 && waterMisses.length === 0 && dry >= 2 && poured >= 2 && wet.length >= 2, waterMisses.slice(0, 3).join(' || ') || `${waterOrder.length} rows`);
+
   await a.evaluate('window.__crashCam.h().api.close(); true');
   await a.until("window.__craftState().mode === 'flight'", 10000);
   await a.sleep(500);
+  const waterBack = await a.evaluate(WATER);
+  check('closed, the live flood is drawn and steps on, and the replay\'s is gone', waterBack.replay === null && waterBack.live.step >= atOpen.step,
+    `live step ${waterBack.live.step} from ${atOpen.step}`);
   const after = await a.evaluate('(() => { const l = window.__warMapLogged(); return { map: window.__warMap(), last: l[l.length - 1] }; })()');
   check('closed, the map is the live war\'s again', sameMap(after.map, after.last), `map ${describe(after.map)} live ${describe(after.last)}`);
   const errs = a.errors.filter((e) => !e.startsWith('network:'));
