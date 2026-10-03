@@ -140,14 +140,26 @@ function edgeRuns(bed, grid) {
 }
 
 /*
+ * THE TWO STARTS (the lead, 2 October and 3 October). A war's water is
+ * the turbines' river with the spillway's gates shut, until a mission
+ * hoists them (setGate, a hoist event). Free Flight's is a typical
+ * spill, the look the map has always drawn: all fourteen gates 5 m open
+ * (dam/index.js SPILL.gateOpen), 15 527 m3/s over the turbines' 13 800.
+ * `spill` is the metres every gate stands open at the start.
+ */
+export const STARTS = {
+  war: { spill: 0, file: 'itaipu-flood-warm-war.bin' },
+  free: { spill: 5, file: 'itaipu-flood-warm-free.bin' },
+};
+
+/*
  * The flood on `bed` (bed.js floodBed's, from the map's ground), from
  * still water. { f, bed, gates: [link index], bounds: [{ run, index,
- * kind }], openGate(i, opening), ... }. The baseline (the lead, 2
- * October) is the turbines running and the spillway's gates shut;
- * `gates` true stands them at their 5 m, for a mission that opens them.
+ * kind }], openGate(i, opening), setGate(g, open), ... }. `spill` the
+ * metres every gate's lip stands over its sill at the start (STARTS);
  * `turbines` false with the gates shut is the lake at rest.
  */
-export async function makeFlood(wasm, bed, { turbines = true, gates = false } = {}) {
+export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) {
   const { grid } = bed;
   const f = await loadFlood(wasm);
   const [B0, B1] = grid.blocks;
@@ -183,7 +195,7 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = false } = 
   /* Each gate's link: the flow under its lip while it runs, and through
    * a hole torn in its leaf under the water. A hole open to the sky is
    * not the link's (openGate). */
-  const lip = bed.gates.map((g) => (gates ? g.open : 0));
+  const lip = bed.gates.map(() => spill);
   const holes = bed.gates.map(() => null);
   /* The openings applied, id to gate, the gauges read for them, and
    * the ids of openings with no place here yet. */
@@ -266,9 +278,19 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = false } = 
       opened.clear();
       for (let g = 0; g < holes.length; g += 1) {
         holes[g] = null;
+        lip[g] = spill;
         f.linkBands(links[g], bandsOf(g));
       }
     },
+    /* Gate g hoisted to stand `open` metres over its sill (0 shut, at most
+     * its height), the flow under it from the next step. */
+    setGate(g, open) {
+      const gate = bed.gates[g];
+      lip[g] = open < 0 ? 0 : open > gate.height ? gate.height : open;
+      f.linkBands(links[g], bandsOf(g));
+    },
+    /* Each gate's lip over its sill now, m. */
+    lips: () => lip.slice(),
     /*
      * A contract opening (docs/DAMBREAK-CONTRACT): a gate's, by its
      * target's id, its sill [x, y, z] the hole's foot (y a height, x and
@@ -277,6 +299,18 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = false } = 
      * extend phase, and are counted, not dropped.
      */
     apply(o) {
+      if (o && o.kind === 'hoist') {
+        /* A mission's gate state ({ gate, at, open_m }): its hoist at
+         * open_m from `at`. */
+        const h = /^gate-(\d+)$/.exec(o.gate || '');
+        const g = h ? Number(h[1]) : -1;
+        if (!(g >= 0 && g < bed.gates.length) || !(o.open_m >= 0)) {
+          unplaced.add(o.id);
+          return false;
+        }
+        this.setGate(g, o.open_m);
+        return true;
+      }
       const m = /^gate-(\d+)$/.exec(o && o.target ? o.target : '');
       const g = m ? Number(m[1]) : -1;
       const sill = o && Array.isArray(o.sill) ? o.sill : null;

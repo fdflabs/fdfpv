@@ -929,7 +929,8 @@ export async function buildPart(ctx) {
     renderMirror(renderer, s, camera);
   };
   ctx.progress(1);
-  /* The flood the war's openings start (live.js): nothing until one. */
+  /* The flood (live.js): Free Flight's typical spill until a war says
+   * otherwise. */
   const flood = liveFlood();
   let clockMs = null;
 
@@ -939,6 +940,11 @@ export async function buildPart(ctx) {
      * damage: into the flood. */
     onOpening(o) {
       flood.open(o);
+    },
+    /* A mission's gate state ({ gate, at, open_m } each), or null for
+     * no war (live.js). */
+    setGates(list) {
+      flood.setGates(list);
     },
     /* Each opening's discharge, m3/s, and where (world, y up). */
     flows: () => flood.flows(),

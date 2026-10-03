@@ -467,6 +467,10 @@ async function buildItaipu(shell, progress, q, time) {
     /* An opening the war's damage tore in the dam (the dam break
      * contract's): the water part's flood takes it. */
     onOpening: (o) => parts.water.onOpening(o),
+    /* A mission's spillway gates over the room's clock, [{ gate: 'gate-N',
+     * at: room ms, open_m }], or null for no war: the water follows them
+     * (water/live.js). */
+    setGateState: (list) => parts.water.setGates(list),
     /* The water through each opening this frame, m3/s, for the world's
      * sound (src/render/world-audio.js flow). */
     waterFlows: () => parts.water.flows(),

@@ -38,7 +38,7 @@ const FILES = {
   'flood.wasm': 'dist/flood.wasm',
   'itaipu-flood.json': 'src/maps/itaipu/water/itaipu-flood.json',
   'itaipu-flood.bin': 'src/maps/itaipu/water/itaipu-flood.bin',
-  'itaipu-flood-warm.bin': 'src/maps/itaipu/water/itaipu-flood-warm.bin',
+  'itaipu-flood-warm-war.bin': 'src/maps/itaipu/water/itaipu-flood-warm-war.bin',
 };
 const read = async (name) => new Uint8Array(await readFile(join(root, FILES[name])));
 

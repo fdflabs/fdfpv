@@ -1,8 +1,8 @@
 /*
  * water-page.js: the Itaipu flood in the real page (docs/FLOOD.md), fed an
  * opening as the war's damage feeds one (map.onOpening, through the
- * harness's __mapOpening): the solver and its shipped files load, it
- * steps on the map's clock, gate 3's water is gauged, and its discharge
+ * harness's __mapOpening): Free Flight's spill is loaded with the map,
+ * the opening turns it to a war's water, which steps on the map's clock, gate 3's water is gauged, and its discharge
  * reaches the world's sound (src/render/world-audio.js flow) every frame
  * without a page error.
  *
@@ -62,8 +62,10 @@ const page = await openPage({
 try {
   await page.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
   const flood = () => page.evaluate('JSON.stringify(window.__map().parts.water.flood)').then(JSON.parse);
+  await page.until('window.__map().parts.water.flood.state === "ready"', 60000);
   const before = await flood();
-  check('the map loads no flood until an opening comes', before.state === 'idle', JSON.stringify(before));
+  check('Free Flight\'s spill loads with the map, every gate 5 m open, not stepped', before.mode === 'free' && before.lips.every((v) => v === 5) && before.step === 0,
+    `${before.state} ${before.mode} step ${before.step}`);
   const at = await page.evaluate('window.__animMs()');
   /* The DAMAGE agent's first opening, gate 3's notch, at the map's
    * clock now. */
@@ -72,7 +74,7 @@ try {
       sill: [-1051.9, 212.33, -984.6], width_m: 10, height_m: 8.17, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null });
   })()`);
   check('the map takes the opening', ok === true);
-  await page.until('window.__map().parts.water.flood.state !== "loading"', 60000);
+  await page.until('window.__map().parts.water.flood.mode === "war" && window.__map().parts.water.flood.state === "ready"', 60000);
   await page.until(`window.__map().parts.water.flood.step > ${20000 / 20}`, 120000);
   const after = await flood();
   check('the flood loads its files and steps on the map\'s clock', after.state === 'ready' && after.step > 0, `step ${after.step}, ${after.behind} behind, origin ${after.origin}, clock ${after.clockMs}`);

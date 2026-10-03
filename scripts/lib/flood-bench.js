@@ -6,7 +6,7 @@
  * the main thread could take at the frame budget live.js gives it.
  *
  * `read(name)` gives a shipped file's bytes by its name
- * (flood.wasm, itaipu-flood.json, itaipu-flood.bin, itaipu-flood-warm.bin);
+ * (flood.wasm, itaipu-flood.json, itaipu-flood.bin, itaipu-flood-warm-war.bin);
  * `now()` the clock.
  *
  * This file is part of WebFPVSimulator.
@@ -32,7 +32,7 @@ import {
 import { FRAME_BUDGET_MS } from '../../src/maps/itaipu/water/live.js';
 
 export async function benchFlood(read, now, { warmSteps = 200, slices = 20, perSlice = 50 } = {}) {
-  const [wasm, json, bin, warm] = await Promise.all(['flood.wasm', 'itaipu-flood.json', 'itaipu-flood.bin', 'itaipu-flood-warm.bin'].map(read));
+  const [wasm, json, bin, warm] = await Promise.all(['flood.wasm', 'itaipu-flood.json', 'itaipu-flood.bin', 'itaipu-flood-warm-war.bin'].map(read));
   const bed = unpackBed(JSON.parse(new TextDecoder().decode(json)), bin);
   const flood = await makeFlood(wasm, bed, {});
   loadState(flood.f, warm);
