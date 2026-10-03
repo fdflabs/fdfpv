@@ -33,9 +33,7 @@ file it needs.
 The owner's decision of 3 October 2026: the game lives at
 https://paraguayandronecombatsimulator.com, served by GitHub Pages from this
 repository, with www sent to the apex by Pages. The servers answer at
-https://api.paraguayandronecombatsimulator.com, the VM by name, and the
-second name, paraguayanfightdronesimulator.com and its www, points at the VM
-too, where Caddy answers it with a 301 to the game, path and query kept.
+https://api.paraguayandronecombatsimulator.com, the VM by name.
 
 DNS, at Hostinger:
 
@@ -44,7 +42,6 @@ DNS, at Hostinger:
 | paraguayandronecombatsimulator.com | A | GitHub Pages: 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153 (AAAA 2606:50c0:8000::153 to 8003::153 if wanted) |
 | www.paraguayandronecombatsimulator.com | CNAME | fdflabs.github.io |
 | api.paraguayandronecombatsimulator.com | A | 129.151.39.48 |
-| paraguayanfightdronesimulator.com and www | A | 129.151.39.48 |
 
 What each piece does:
 
@@ -55,8 +52,8 @@ What each piece does:
   address it used before. The answer is never stored. Delete the fallback
   once the name answers everywhere.
 - `deploy/vm/Caddyfile` serves the same routes at the name and at the bare
-  address, and the 301 for the second name. Caddy fetches the two names'
-  certificates by itself once their DNS points at the VM: rerun
+  address. Caddy fetches the name's certificate by itself once its DNS
+  points at the VM: rerun
   `deploy/vm/deploy.sh` after the DNS is in.
 - The rooms server allows the apex, its www and fdflabs.github.io
   (`edge/rooms/front.js`). The tracks server answers every origin and the
