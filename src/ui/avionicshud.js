@@ -1123,10 +1123,41 @@ export class AvionicsHud {
     const kind = this.kindOf.get(t.id);
     const cls = str('avionics.track.cls.' + t.cls);
     const pct = Math.round(t.confidence * 100);
+    const text = kind ? str('avionics.hud.tag_kind', { kind, cls, pct }) : str('avionics.hud.tag', { cls, pct });
     g.fillStyle = RED;
     g.font = '700 ' + L.font + 'px ' + FONT;
-    this.say(kind ? str('avionics.hud.tag_kind', { kind, cls, pct }) : str('avionics.hud.tag', { cls, pct }), x, y);
+    this.say(text, this.clearOfTapes(L, text, x, y), y);
     g.font = L.font + 'px ' + FONT;
+  }
+
+  /*
+   * Where a tag centred over x at y may stand, so its words keep off the
+   * tapes' numbers: the speed tape's are written inside its line, the
+   * AGL tape's inside its own, and on a phone on its side the room between
+   * them is barely wider than the primary's tag (844x390: 173 px for 147),
+   * so a target a few pixels right of the middle put "STRIKER AIR OBJECT"
+   * over the AGL tape's "40" (check:avionics-layout's owner scene, a
+   * failure that came and went with where the Striker stood). A target
+   * between the tapes keeps its tag between them, slid toward the middle
+   * no further than it must; one out past a tape, or a tag above or below
+   * the tapes, keeps its place. Measured in the font the tag is in; the
+   * numbers are at most three digits in the regular one.
+   */
+  clearOfTapes(L, text, x, y) {
+    const g = this.g;
+    const tape = this.tapeRects().speed;
+    if (x <= L.spdX || x >= L.aglX || y < tape.y || y > tape.y + tape.h) {
+      return x;
+    }
+    const half = this.textRect(text, 0, 0).w / 2;
+    const tagFont = g.font;
+    g.font = L.font + 'px ' + FONT;
+    const label = this.textRect('000', 0, 0).w;
+    g.font = tagFont;
+    const gap = L.font * 0.5;
+    const lo = L.spdX + L.font * 1.3 + label + gap + half;
+    const hi = L.aglX - L.font * 1.3 - label - gap - half;
+    return lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, x));
   }
 
   /* Another track's: its kind, and in FULL its number too. */
@@ -1136,7 +1167,7 @@ export class AvionicsHud {
     const said = this.level === 'full' ? (kind ? str('avionics.hud.id_kind', { id, kind }) : id) : kind;
     if (said) {
       this.g.fillStyle = AMBER;
-      this.say(said, x, y);
+      this.say(said, this.clearOfTapes(L, said, x, y), y);
     }
   }
 
