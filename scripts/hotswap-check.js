@@ -316,11 +316,15 @@ async function pickerOnTheGate(page) {
   await page.evaluate(`window.__ui.setCursor(${row}); true`);
   await press(page, 'Enter');
   await page.until('window.__ui.carousel.isOpen', 10000).catch(() => {});
+  /* One place left of where it opened, which is the interceptor when the
+   * card's Enter above seated the aircraft right of it. */
+  const opened = await page.evaluate('({ ids: window.__ui.carousel.ids, current: window.__ui.carousel.current() })');
+  const left = opened.ids[Math.max(0, opened.ids.indexOf(opened.current) - 1)];
   await press(page, 'ArrowLeft');
   await press(page, 'Enter');
   await page.sleep(300);
   const back = await page.evaluate('({ airframe: window.__ui.settings.airframe, open: window.__ui.carousel.isOpen })');
-  say(row >= 0 && back.airframe === 'interceptor' && !back.open, `the Aircraft row opens the same picker, and seats the ${back.airframe} from it`);
+  say(row >= 0 && back.airframe === left && !back.open, `the Aircraft row opens the same picker, and seats the ${back.airframe} from it`);
   await page.evaluate("window.__ui.show('title'); true");
 }
 

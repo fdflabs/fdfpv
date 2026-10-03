@@ -75,6 +75,9 @@ const block = motorsBlock(Q, CHOICE);
 const propPack = propPackBlock(Q, CHOICE);
 const MOTOR_ONLY = { option: UP.id, prop: props[0].id, pack: packs[0].id };
 const motorOnly = motorsBlock(Q, MOTOR_ONLY);
+/* A row with one card is not drawn (src/ui/hangar.js): the interceptor's
+ * one prop is its stock one, so its Props row is absent and never clicked. */
+const PROP_ROW = props.length > 1;
 const same = (c) => Boolean(c) && c.option === CHOICE.option && c.prop === CHOICE.prop && c.pack === CHOICE.pack;
 const s = seatAirframe({ airframe: Q, rates: airframeById(Q).rates }, Q);
 s.map = 'alps';
@@ -175,7 +178,7 @@ async function main() {
     const cards = (prefix) => `[...document.querySelectorAll('.hangar [data-key^="${prefix}-"]')].map((b) => b.dataset.key.slice(${prefix.length + 1}))`;
     const shown = await page.evaluate(`({ tab: window.__ui.hangar.tab, motors: ${cards('option')}, props: ${cards('prop')}, packs: ${cards('pack')} })`);
     const ids = (list) => JSON.stringify(list.map((o) => o.id));
-    say(shown.tab === 'power' && JSON.stringify(shown.motors) === ids(options) && JSON.stringify(shown.props) === ids(props) && JSON.stringify(shown.packs) === ids(packs),
+    say(shown.tab === 'power' && JSON.stringify(shown.motors) === ids(options) && JSON.stringify(shown.props) === (PROP_ROW ? ids(props) : '[]') && JSON.stringify(shown.packs) === ids(packs),
       `on the Power tab, every motor, prop and pack offered: ${shown.motors.join(', ')}; ${shown.props.join(', ')}; ${shown.packs.join(', ')}`);
 
     /* Every other tab must open on it too. */
@@ -191,7 +194,9 @@ async function main() {
     const stats = () => page.evaluate("Object.fromEntries([...document.querySelectorAll('.hangar-side .hangar-stat')].map((b) => [b.querySelector('.hangar-stat-label').textContent, b.querySelector('.hangar-stat-value').textContent]))");
     const before = await stats();
     await page.evaluate(click(`option-${CHOICE.option}`));
-    await page.evaluate(click(`prop-${CHOICE.prop}`));
+    if (PROP_ROW) {
+      await page.evaluate(click(`prop-${CHOICE.prop}`));
+    }
     await page.evaluate(click(`pack-${CHOICE.pack}`));
     await page.sleep(800);
     const chosen = await page.evaluate('({ ...window.__ui.hangar.choice })');
@@ -247,7 +252,9 @@ async function main() {
     await page.evaluate("window.__ui.act('customise'); true");
     await page.until('window.__ui.hangar.isOpen', 10000);
     await toPower(page);
-    await page.evaluate(click(`prop-${props[0].id}`));
+    if (PROP_ROW) {
+      await page.evaluate(click(`prop-${props[0].id}`));
+    }
     await page.evaluate(click(`pack-${packs[0].id}`));
     await page.evaluate(click('save'));
     await page.until('!window.__ui.hangar.isOpen', 10000);

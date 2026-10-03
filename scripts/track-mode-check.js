@@ -81,7 +81,7 @@ import {
 } from '../tests/lib/buildkeys.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
-import { airframeById } from '../configs/airframes.js';
+import { AIRFRAMES, airframeById, isFloatVersion } from '../configs/airframes.js';
 import { DEFAULT_WING_HOTBAR } from '../src/builder/course.js';
 import { str } from '../src/strings/index.js';
 
@@ -442,8 +442,9 @@ async function quad() {
     await shellUp(page);
     /* 1. The card, the picker, My tracks. */
     const picker = await trackModeCard(page);
-    /* 12 until the five inch and the whoop were removed (2026-10-03). */
-    say(picker.filter === 'all' && picker.ids.length === 10 && picker.current === 'interceptor',
+    /* Every card: an aircraft but a float version, which is its land
+     * plane's toggle. It was typed, 12, and went stale as aircraft came. */
+    say(picker.filter === 'all' && picker.ids.length === AIRFRAMES.filter((a) => !isFloatVersion(a.id)).length && picker.current === 'interceptor',
       `the Track mode card opens the picker on every aircraft (${picker.ids.length}), centred on the ${picker.current}`);
     const empty = await actions(page);
     say(empty.join() === 'newtrack,leaderboard,back' && (await mine(page)).length === 0, `My tracks opens, empty: ${empty.join(', ')}`);
