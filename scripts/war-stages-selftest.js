@@ -42,7 +42,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 import {
   FLAG_AIRBORNE, PROTO, encodePose,
@@ -52,9 +52,11 @@ import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { BIRTH_LEAD_MS, MISSIONS } from '../edge/rooms/war.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
-  RESULT_MS, enter, fired, lint, note, stagesOf,
+  beatOf, enter, failedAny, fired, note, objectives, objectivesView, slotKind, stagesOf,
 } from '../src/share/war/stages.js';
 import { firstDifference, playGame } from './war-legacy-games.js';
+import { createRoomWar } from '../src/share/roomwar.js';
+import { waveStatus } from '../src/ui/warhud.js';
 
 let passed = 0;
 let failed = 0;
@@ -71,15 +73,111 @@ function check(name, ok, detail = '') {
 const Y = 300;
 const GO = COUNTDOWN_MS;
 
+/*
+ * A mission's stages, checked as data, so a wrong one fails loudly where
+ * it is written: every exit's stage, route, sector, line, target and
+ * trigger is one the mission has. Returns a list of problems, empty when
+ * it is sound.
+ */
+function lint(mission) {
+  const out = [];
+  const stages = stagesOf(mission);
+  const ids = new Set(stages.map((s) => s.id));
+  if (ids.size !== stages.length) {
+    out.push('two stages share an id');
+  }
+  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'visited', 'all', 'any'];
+  const trig = (x, where) => {
+    if (!x || typeof x !== 'object' || !KEYS.some((k) => x[k] != null)) {
+      out.push(`${where}: not a trigger ${JSON.stringify(x)}`);
+      return;
+    }
+    for (const id of x.destroyed == null ? [] : [x.destroyed].flat()) {
+      if (!mission.targets[id]) {
+        out.push(`${where}: no target ${id}`);
+      }
+    }
+    if (x.crossed != null && !mission.lines?.[x.crossed]) {
+      out.push(`${where}: no line ${x.crossed}`);
+    }
+    if (x.visited != null && !ids.has(x.visited)) {
+      out.push(`${where}: no stage ${x.visited}`);
+    }
+    for (const y of [...(x.all ?? []), ...(x.any ?? [])]) {
+      trig(y, where);
+    }
+  };
+  for (const [i, st] of stages.entries()) {
+    const where = `${mission.id} ${st.id}`;
+    for (const w of st.spawns) {
+      const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
+        ? [w.route.sector].flat().flatMap((s) => {
+          if (!mission.sectors?.[s]?.length) {
+            out.push(`${where}: no sector ${s}`);
+            return [];
+          }
+          return mission.sectors[s];
+        })
+        : [w.route].flat();
+      for (const r of routes) {
+        if (!mission.routes[r]) {
+          out.push(`${where}: no route ${r}`);
+        }
+      }
+      for (const t of w.target == null ? [] : [w.target].flat()) {
+        if (!mission.targets[t]) {
+          out.push(`${where}: no target ${t}`);
+        }
+      }
+      if (!w.kind && !w.mix) {
+        out.push(`${where}: a spawn of no kind`);
+      }
+      for (const key of ['when', 'skip']) {
+        if (w[key]) {
+          trig(w[key], where);
+        }
+      }
+    }
+    for (const o of st.objectives ?? []) {
+      for (const key of ['done', 'fail', 'from']) {
+        if (o[key]) {
+          trig(o[key], `${where} ${o.id}`);
+        }
+      }
+    }
+    for (const c of st.cues ?? []) {
+      if (c.when) {
+        trig(c.when, where);
+      }
+    }
+    if (!(st.exits ?? []).length) {
+      out.push(`${where}: no exit`);
+    }
+    for (const x of st.exits ?? []) {
+      trig(x.when, where);
+      for (const to of x.to && typeof x.to === 'object' ? x.to.pick : [x.to ?? 'next']) {
+        if (to === 'next' ? i + 1 >= stages.length : !(to === 'won' || to === 'lost' || ids.has(to))) {
+          out.push(`${where}: exit to ${to}`);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 /* ------------------------------------------------------------ data */
 
 console.log('data');
 {
+  const tracks = new Set(readdirSync(new URL('../assets/audio/war/music/', import.meta.url)).map((f) => f.replace(/\.[a-z0-9]+$/, '')));
   const lines = new Set(JSON.parse(readFileSync(new URL('../assets/audio/war/lines.json', import.meta.url), 'utf8')).lines.map((l) => l.id));
   for (const m of Object.values(MISSIONS)) {
     const problems = lint(m);
-    const radio = stagesOf(m).flatMap((st) => (st.cues ?? []).filter((c) => c.radio != null).map((c) => c.radio)).filter((id) => !lines.has(id));
-    check(`${m.id}: its stages lint clean and every radio cue is a voice line`, problems.length === 0 && radio.length === 0, [...problems, ...radio].join('; '));
+    const cues = stagesOf(m).flatMap((st) => st.cues ?? []);
+    const radio = cues.filter((c) => c.radio != null && !lines.has(c.radio)).map((c) => c.radio);
+    const music = cues.filter((c) => c.music != null && c.music !== '' && !tracks.has(c.music)).map((c) => c.music);
+    check(`${m.id}: its stages lint clean, every radio cue is a voice line and every music cue a track`, problems.length === 0 && radio.length === 0 && music.length === 0,
+      [...problems, ...radio, ...music].join('; '));
   }
 }
 
@@ -89,18 +187,27 @@ console.log('triggers');
 {
   const mission = {
     id: 't',
-    targets: { a: { mw: 1000, at: [0, Y, 0], r: 10 }, b: { mw: 1000, at: [0, Y, 600], r: 10 } },
+    targets: {
+      a: { mw: 1000, at: [0, Y, 0], r: 10 }, b: { mw: 1000, at: [0, Y, 600], r: 10 }, 'intake-1': { mw: 700, at: [0, Y, 900], r: 10 }, 'intake-2': { mw: 700, at: [20, Y, 900], r: 10 },
+    },
     routes: { r: [[-600, Y, 0], [-300, Y, 0]] },
+    lines: { mid: [[-450, -100], [-450, 100]] },
     stages: [{
       id: 's',
-      spawns: [{ at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' }],
-      objectives: [{ id: 'o', text: 'x', done: { killed: 2 } }],
+      spawns: [{
+        at: 1, kind: 'strike', n: 1, route: 'r', target: 'a', group: 'g1',
+      }, {
+        at: 1, kind: 'scout', n: 1, route: 'r', group: 'eyes',
+      }],
+      objectives: [{ id: 'o', text: 'x', done: { killed: 2 } }, {
+        id: 'h', text: 'y', kind: 'hold', ms: 3000, from: { time: 1 }, fail: { hit: 'b' },
+      }],
       exits: [{ when: { time: 99 }, to: 'won' }],
-    }],
+    }, { id: 'other', spawns: [], exits: [{ when: { time: 1 }, to: 'won' }] }],
   };
   const st = enter(mission, 0, 10000, 1, 1);
   const ctx = (extra = {}) => ({
-    m: { output: 3000, downAt: {}, breaches: [] }, st, f: 10000, here: [1, 2], pilots: [], allBorn: false, cleared: false, lastGone: null, allOut: false, ...extra,
+    mission, m: { output: 3000, downAt: {}, breaches: [], path: [{ id: 's', at: 10000 }] }, st, f: 10000, here: [1, 2], pilots: [], allBorn: false, cleared: false, lastGone: null, allOut: false, spent: 0, ...extra,
   });
   check('time: not before the frontier passes it, then at entry plus s', fired({ time: 2 }, ctx({ f: 11999 })) === null && fired({ time: 2 }, ctx({ f: 12500 })) === 12000);
   check('cleared: only with every spawn born and none but Scouts alive, at the last going or the entry',
@@ -112,18 +219,53 @@ console.log('triggers');
     && fired({ destroyed: ['a', 'b'], n: 1 }, ctx({ m: { downAt: { a: 10200 } } })) === 10200
     && fired({ destroyed: ['a', 'b'] }, ctx({ m: { downAt: { a: 10200, b: 10300 } } })) === 10300
     && fired({ destroyed: 'a' }, ctx({ m: { downAt: { a: 3000 } } })) === 10000);
-  note(st, 10100, 'kill', 'strike', 'g1');
-  note(st, 10150, 'kill', 'fpv', null);
-  note(st, 10160, 'leak', 'boat', 'g2', false);
-  note(st, 10170, 'leak', 'boat', 'g2', true);
+  /* The spawns born, then what became of them. */
+  st.due[0].born = true;
+  note(st, {
+    t: 11000, e: 'born', id: 1, kind: 'strike', group: 'g1', sector: null, cross: { mid: 16000 },
+  });
+  const downYet = fired({ down: { group: 'eyes' } }, ctx({ f: 30000 }));
+  st.due[1].born = true;
+  note(st, {
+    t: 11000, e: 'born', id: 2, kind: 'scout', group: 'eyes', sector: null, cross: { mid: 25000 },
+  });
+  check('crossed: the first of a selection alive to cross the line, not before the frontier reaches it',
+    fired({ crossed: 'mid' }, ctx({ f: 15999 })) === null && fired({ crossed: 'mid' }, ctx({ f: 16000 })) === 16000 && fired({ crossed: 'mid', group: 'eyes' }, ctx({ f: 30000 })) === 25000);
+  note(st, {
+    t: 12000, e: 'gone', id: 1, kind: 'strike', group: 'g1', sector: null, how: 'kill', hit: false,
+  });
+  check('crossed: one killed before its crossing never crosses', fired({ crossed: 'mid', group: 'g1' }, ctx({ f: 30000 })) === null);
+  check('down: none until every spawn of the selection is born', downYet === null && fired({ down: { group: 'eyes' } }, ctx({ f: 30000 })) === null);
+  note(st, {
+    t: 13000, e: 'gone', id: 2, kind: 'scout', group: 'eyes', sector: null, how: 'leave', hit: false,
+  });
+  check('left: a Scout gone on its own (scoutGone)', fired({ left: 1, kind: 'scout' }, ctx()) === 13000 && fired({ killed: 1, kind: 'scout' }, ctx()) === null);
+  check('down: every one killed (scoutsDown), so not a Scout that left; gone: however (after(G))',
+    fired({ down: { group: 'g1' } }, ctx()) === 12000 && fired({ down: { kind: 'scout' } }, ctx()) === null
+    && fired({ gone: { group: 'eyes' } }, ctx()) === 13000 && fired({ gone: {} }, ctx()) === 13000);
+  note(st, {
+    t: 13100, e: 'gone', id: 7, kind: 'fpv', group: null, sector: null, how: 'kill', hit: false,
+  });
+  note(st, {
+    t: 13160, e: 'gone', id: 8, kind: 'boat', group: 'g2', sector: null, how: 'arrive', hit: false,
+  });
+  note(st, {
+    t: 13170, e: 'gone', id: 9, kind: 'boat', group: 'g2', sector: null, how: 'arrive', hit: true,
+  });
   check('killed: counted in the stage, by kind and by group, at the n-th',
-    fired({ killed: 2 }, ctx()) === 10150 && fired({ killed: 1, kind: 'fpv' }, ctx()) === 10150 && fired({ killed: 1, group: 'g1' }, ctx()) === 10100
+    fired({ killed: 2 }, ctx()) === 13100 && fired({ killed: 1, kind: 'fpv' }, ctx()) === 13100 && fired({ killed: 1, group: 'g1' }, ctx()) === 12000
     && fired({ killed: 3 }, ctx()) === null && fired({ killed: 1, group: 'g2' }, ctx()) === null);
-  check('leaked: every arrival with a target, or with hit only the ones that hit', fired({ leaked: 2 }, ctx()) === 10170 && fired({ leaked: 1, hit: true }, ctx()) === 10170
-    && fired({ leaked: 2, hit: true }, ctx()) === null);
-  note(st, 10180, 'down', 'a');
-  check('output: under or at most, at the stage\'s last fall', fired({ output: { below: 2500 } }, ctx({ m: { output: 2000 } })) === 10180
-    && fired({ output: { below: 2000 } }, ctx({ m: { output: 2000 } })) === null && fired({ output: { atMost: 2000 } }, ctx({ m: { output: 2000 } })) === 10180);
+  check('leaked: every arrival with a target, or with onTarget only the ones that hit', fired({ leaked: 2 }, ctx()) === 13170 && fired({ leaked: 1, onTarget: true }, ctx()) === 13170
+    && fired({ leaked: 2, onTarget: true }, ctx()) === null);
+  note(st, { t: 13180, e: 'down', target: 'intake-2' });
+  check('hit: a target by id or by part, at the n-th in the stage', fired({ hit: 'intake' }, ctx()) === 13180 && fired({ hit: 'intake-2' }, ctx()) === 13180
+    && fired({ hit: 'intake-1' }, ctx()) === null && fired({ hit: 'intake', n: 2 }, ctx()) === null && fired({ hit: ['b', 'intake'] }, ctx()) === 13180);
+  check('output: under or at most, at the stage\'s last fall', fired({ output: { below: 2500 } }, ctx({ m: { output: 2000 } })) === 13180
+    && fired({ output: { below: 2000 } }, ctx({ m: { output: 2000 } })) === null && fired({ output: { atMost: 2000 } }, ctx({ m: { output: 2000 } })) === 13180);
+  note(st, { t: 13200, e: 'spend', seat: 1 });
+  note(st, { t: 13300, e: 'spend', seat: 2 });
+  check('spent: at the last spend once the share is reached', fired({ spent: 0.5 }, ctx({ spent: 0.25 })) === null && fired({ spent: 0.5 }, ctx({ spent: 0.5 })) === 13300);
+  check('visited: a stage the match has been in, at its entry or this one\'s', fired({ visited: 's' }, ctx()) === 10000 && fired({ visited: 'other' }, ctx()) === null);
   {
     const s2 = enter(mission, 0, 0, 1, 2);
     const at = (f, ps, here = [1, 2]) => fired({ region: { at: [100, 100], r: 20 }, pilots: 'all', ms: 1000 }, {
@@ -131,16 +273,9 @@ console.log('triggers');
     });
     const inP = [100, Y, 110];
     const outP = [100, Y, 200];
-    const r1 = at(100, [inP, outP]);
-    const r2 = at(200, [inP, inP]);
-    const r3 = at(900, [inP, inP]);
-    const r4 = at(1000, [inP, outP]);
-    const r5 = at(1100, [inP, inP]);
-    const r6 = at(2099, [inP, inP]);
-    const r7 = at(2100, [inP, inP]);
-    const r8 = at(5000, [outP, outP]);
+    const r = [at(100, [inP, outP]), at(200, [inP, inP]), at(900, [inP, inP]), at(1000, [inP, outP]), at(1100, [inP, inP]), at(2099, [inP, inP]), at(2100, [inP, inP]), at(5000, [outP, outP])];
     check('region, all pilots, a stay of 1 s: not with one out, a step out starts it again, then at its start plus 1 s, and it stays fired',
-      r1 === null && r2 === null && r3 === null && r4 === null && r5 === null && r6 === null && r7 === 2100 && r8 === 2100, JSON.stringify([r1, r2, r3, r4, r5, r6, r7, r8]));
+      JSON.stringify(r) === JSON.stringify([null, null, null, null, null, null, 2100, 2100]), JSON.stringify(r));
     const any = fired({ region: { at: [100, 100], r: 20, y: [Y - 5, Y + 5] } }, { ...ctx(), st: s2, f: 50, pilots: [{ seat: 1, p: inP }] });
     const high = fired({ region: { at: [0, 0], r: 20, y: [0, 10] } }, { ...ctx(), st: s2, f: 50, pilots: [{ seat: 1, p: [0, Y, 0] }] });
     check('region, any pilot, at once; and its height band is kept', any === 50 && high === null);
@@ -154,8 +289,32 @@ console.log('triggers');
   check('ready: every pilot here, at the last', r1 === null && fired({ ready: true }, ctx()) === 10650 && fired({ ready: true }, ctx({ here: [] })) === null);
   st.obj.o = { state: 'done', t: 10700 };
   check('objective: its state, at when it settled', fired({ objective: 'o' }, ctx()) === 10700 && fired({ objective: 'o', is: 'failed' }, ctx()) === null);
-  check('all: the last; any: the first', fired({ all: [{ time: 0.1 }, { killed: 2 }] }, ctx({ f: 20000 })) === 10150
+  check('all: the last; any: the first', fired({ all: [{ time: 0.1 }, { killed: 2 }] }, ctx({ f: 20000 })) === 13100
     && fired({ any: [{ time: 0.1 }, { killed: 1 }] }, ctx({ f: 20000 })) === 10100 && fired({ all: [{ killed: 9 }, { time: 0 }] }, ctx()) === null);
+  {
+    /* A hold: from its own trigger, held until its ms, failed by a hit
+     * of what it guards; and its count shown as it grows. */
+    const s3 = enter(mission, 0, 0, 1, 3);
+    const c3 = (f) => ({ ...ctx(), st: s3, f });
+    const held = (f) => objectivesView(c3(f)).find((o) => o.id === 'h');
+    const before = held(500);
+    const mid = held(2500);
+    objectives(c3(3999));
+    const notYet = s3.obj.h;
+    objectives(c3(4000));
+    check('a hold counts from its own trigger, is held ms later, and the view shows how long',
+      before.heldMs === 0 && mid.heldMs === 1500 && notYet === undefined && s3.obj.h.state === 'done' && s3.obj.h.t === 4000 && held(9000).heldMs === 3000,
+      JSON.stringify([before, mid, s3.obj.h]));
+    const s4 = enter(mission, 0, 0, 1, 4);
+    note(s4, { t: 2000, e: 'down', target: 'b' });
+    objectives({ ...ctx(), st: s4, f: 5000 });
+    check('and fails when what it guards is hit first', s4.obj.h.state === 'failed' && s4.obj.h.t === 2000 && failedAny(s4));
+    note(s4, {
+      t: 2100, e: 'gone', id: 3, kind: 'fpv', group: null, sector: null, how: 'kill', hit: false,
+    });
+    const o = objectivesView({ ...ctx(), st: s4, f: 5000 }).find((x) => x.id === 'o');
+    check('a count objective shows how far it has got', JSON.stringify(o.progress) === '[1,2]', JSON.stringify(o));
+  }
   let threw = false;
   try {
     fired({ nonsense: 1 }, ctx());
@@ -163,6 +322,97 @@ console.log('triggers');
     threw = true;
   }
   check('a trigger of no kind throws, and lint names it', threw && lint({ ...mission, stages: [{ id: 'x', spawns: [], exits: [{ when: { nonsense: 1 }, to: 'won' }] }] }).length === 1);
+  check('lint names a missing route, sector, line, stage and target', lint({
+    ...mission,
+    sectors: { N: ['r'] },
+    stages: [{
+      id: 'x',
+      spawns: [{ at: 0, kind: 'strike', route: { sector: 'S' } }, { at: 0, kind: 'strike', route: 'nowhere', target: 'zz' }],
+      exits: [{ when: { any: [{ crossed: 'nope' }, { visited: 'nada' }] }, to: 'won' }],
+    }],
+  }).length === 5);
+}
+
+console.log('dials');
+{
+  const routes = {
+    n1: [[0, Y, -3000], [0, Y, -1000]], n2: [[100, Y, -3000], [100, Y, -1000]], w1: [[-3000, Y, 0], [-1000, Y, 0]], e1: [[3000, Y, 0], [1000, Y, 0]],
+  };
+  const mission = {
+    id: 'dials',
+    targets: { a: { mw: 1000, at: [0, Y, 0], r: 10 } },
+    routes,
+    sectors: { N: ['n1', 'n2'], W: ['w1'], E: ['e1'] },
+    pace: { 1: 1.6, 2: 1.3 },
+    adapt: true,
+    stages: [{
+      id: 's',
+      spawns: [
+        {
+          at: [10, 20], kind: ['fpv', 'loiter'], n: 1, route: { sector: ['N', 'W', 'E'] }, target: 'a',
+        },
+        {
+          at: 30, mix: [['strike', 1], ['decoy', 3]], n: 8, route: { sector: ['N', 'W', 'E'] }, target: 'a',
+        },
+      ],
+      exits: [{ when: { time: 99 }, to: 'won', after: [8000, 15000] }],
+    }],
+  };
+  let repeats = 0;
+  let kinds = new Set();
+  let decoys = 0;
+  let slots = 0;
+  let paced = true;
+  const sectorsSeen = new Set();
+  for (let seed = 1; seed <= 200; seed += 1) {
+    const st = enter(mission, 0, 0, seed, 1, { pilots: 4 });
+    if (st.due[0].sector === st.due[1].sector) {
+      repeats += 1;
+    }
+    sectorsSeen.add(st.due[0].sector);
+    kinds.add(st.due[0].kind);
+    for (let k = 0; k < 8; k += 1) {
+      decoys += slotKind(mission.stages[0].spawns[1], st.due[1], k, seed, 1) === 'decoy' ? 1 : 0;
+      slots += 1;
+    }
+    const one = enter(mission, 0, 0, seed, 1, { pilots: 1 });
+    if (one.due[1].t !== Math.round(30000 * 1.6) || one.due[0].t !== Math.round(st.due[0].t * 1.6)) {
+      paced = false;
+    }
+    if (!mission.sectors[st.due[0].sector].includes(st.due[0].route)) {
+      repeats += 1000;
+    }
+  }
+  check('a sector is never drawn twice in a row, and the route is of its family', repeats === 0, `${repeats}`);
+  check('every sector of a list is met, and every kind of a choice', sectorsSeen.size === 3 && kinds.size === 2);
+  check('a mix deals its slots by weight (decoys 3 in 4)', Math.abs(decoys / slots - 0.75) < 0.03, `${(decoys / slots).toFixed(3)}`);
+  check('pace stretches a stage\'s times for a solo pilot by its factor', paced);
+  /* The aggressor's mind: a sector where the squad killed is drawn less,
+   * and a stage that cost most of the airframes gives a longer breath. */
+  const was = (kills, spent) => ({ kills, spent, sector: null });
+  let wFirst = 0;
+  let calm = 0;
+  let rushed = 0;
+  let base = 0;
+  for (let seed = 1; seed <= 400; seed += 1) {
+    const st = enter(mission, 0, 0, seed, 2, { pilots: 4, was: was({ W: 9, E: 9 }, 0.5) });
+    wFirst += st.due[0].sector === 'N' ? 1 : 0;
+    calm += enter(mission, 0, 0, seed, 2, { pilots: 4, was: was({}, 0.9) }).due[0].t;
+    rushed += enter(mission, 0, 0, seed, 2, { pilots: 4, was: was({}, 0.1) }).due[0].t;
+    base += enter(mission, 0, 0, seed, 2, { pilots: 4, was: was({}, 0.5) }).due[0].t;
+  }
+  check('adapt: the sector the squad killed nothing in is drawn most (1 / (1 + kills))', wFirst / 400 > 0.75, `${(wFirst / 400).toFixed(2)}`);
+  check('adapt: the first spawn comes 1.3 times later after a costly stage, 0.7 after an easy one',
+    Math.abs(calm / base - 1.3) < 1e-4 && Math.abs(rushed / base - 0.7) < 1e-4, `${calm / base} ${rushed / base}`);
+  const beats = new Set();
+  for (let seed = 1; seed <= 50; seed += 1) {
+    const b = beatOf(mission.stages[0].exits[0], seed, enter(mission, 0, 0, seed, 1), 0);
+    if (b < 8000 || b > 15000) {
+      beats.add('out');
+    }
+    beats.add(Math.round(b / 1000));
+  }
+  check('a beat is drawn inside its window', !beats.has('out') && beats.size > 4);
 }
 
 /* ------------------------------------------------------------ the room */
@@ -464,6 +714,76 @@ console.log('the room: the birth lead');
   const a = e.of(0, 'born')[0].agents[0];
   check('a spawn drawn in a window is announced BIRTH_LEAD_MS before its birth, as a timed one is', when != null && a.t0 - when <= BIRTH_LEAD_MS && a.t0 - when > BIRTH_LEAD_MS - 40,
     `${a.t0 - when}`);
+}
+
+console.log('the room: a line crossed, a sector and a mix in the births');
+{
+  const CROSS = {
+    ...STORY,
+    id: 'cross-test',
+    sectors: { FAR: ['far'] },
+    lines: { gate: [[-2000, -500], [-2000, 500]] },
+    stages: [{
+      id: 'one',
+      spawns: [{
+        at: 2, mix: [['strike', 1], ['decoy', 1]], n: 6, route: { sector: 'FAR' }, target: 'a', group: 'g',
+      }],
+      exits: [{ when: { crossed: 'gate', group: 'g' }, to: 'won', why: 'crossed' }],
+    }],
+  };
+  const e = warRoom(CROSS, { n: 1 });
+  e.fly(GO + 140000);
+  const born = e.of(0, 'born').flatMap((m) => m.agents);
+  /* When the first of them is at x = -2000, by brute force on its plan. */
+  let first = Infinity;
+  for (const a of born) {
+    const plan = planAgent(CROSS, a);
+    for (let t = a.t0; t <= plan.tEnd; t += 1) {
+      if (poseAt(plan, t).p[0] >= -2000) {
+        first = Math.min(first, t);
+        break;
+      }
+    }
+  }
+  const v = e.view();
+  check('the first of the group across the line ends the stage there, to the millisecond', v.state === 'won' && v.why === 'crossed' && Math.abs(v.endAt - first) <= 1,
+    `${v.state} ${v.endAt} vs ${first}`);
+  check('the births carry the sector and each slot\'s kind from the mix', born.length === 6 && born.every((a) => a.sector === 'FAR' && a.route === 'far')
+    && new Set(born.map((a) => a.kind)).size === 2, born.map((a) => a.kind).join(','));
+}
+
+console.log('the client: what a screen makes of it');
+{
+  const e = warRoom(STORY, { seed: 0.4 });
+  const client = createRoomWar(() => {});
+  let read = 0;
+  const events = [];
+  const feed = () => {
+    for (; read < e.socks[0].got.length; read += 1) {
+      const m = e.socks[0].got[read];
+      if (m && m.type === 'welcome') {
+        client.onWelcome(m);
+      } else if (m && m.type === 'war') {
+        client.onMessage(m);
+      }
+    }
+    events.push(...client.takeEvents());
+  };
+  let status = null;
+  for (let t = 0; t <= GO + 60000; t += 500) {
+    e.fly(t);
+    feed();
+    if (t === GO + 1500) {
+      status = waveStatus(client.view(), client.mission(), t);
+    }
+  }
+  const stages = events.filter((x) => x.type === 'stage').map((x) => x.id);
+  const cues = events.filter((x) => x.type === 'cue');
+  const first = e.of(0, 'born')[0].agents[0];
+  check('it tells each stage entered once, in order', stages.length === 2 && stages[0] === 'calm' && ['twist-x', 'twist-y'].includes(stages[1]), stages.join(','));
+  check('and every cue, as the room sent them', cues.length === e.of(0, 'cue').flatMap((m) => m.cues).length && cues.some((c) => c.radio === 'wave-strike'));
+  check('the next wave\'s clock is the room\'s drawn time, not the mission\'s typed one', status && status.s === Math.ceil((first.t0 - (GO + 1500)) / 1000), JSON.stringify(status));
+  check('stage() is the view\'s stage', client.stage() && client.stage().id === stages[1]);
 }
 
 console.log('legacy: the four missions against their record');

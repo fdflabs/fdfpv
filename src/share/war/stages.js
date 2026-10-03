@@ -2,116 +2,145 @@
  * stages.js: a war mission as a stage graph (the owner, 2026-10-02: "story
  * driven ... in stages ... buildup", and of the old missions, "things
  * coming in at the same predictable places ... wave after wave of the
- * same"). The room (edge/rooms/war.js) runs it and is its only authority;
- * every screen hears what it decided (births, cues, the view's `stage`)
- * and draws that. Pure: plain data in and out, no clock but the room ms
- * handed in, so the room's match (which is JSON, stored and restored over
- * a restart) holds the whole of a stage's state.
+ * same"; docs/campaign/TECH-NEEDS.md T1). The room (edge/rooms/war.js)
+ * runs it and is its only authority; every screen hears what it decided
+ * (births, cues, the view's `stage`) and draws that. Pure: plain data in
+ * and out, no clock but the room ms handed in, so the room's match (JSON,
+ * stored and restored over a restart) holds the whole of a stage's state.
  *
  * A MISSION is { id, title, map, targets, routes, output, floorMw, starMw,
- * airframes, stages, intro? } (itaipu-1.js is the model). Its stages are
- * an array; the first is entered at the go. A STAGE:
+ * airframes, stages } (itaipu-1.js is the model), and may add:
+ *
+ *   sectors   { name: [route ids] }: the route families a spawn's bearing
+ *             is drawn from (MISSIONS.md 1.4: N, NW, NE, HIGH, WATER, ...)
+ *   lines     { name: [[x, z], [x, z]] }: gates in space for { crossed }
+ *   pace      { pilots: factor }: every spawn's and cue's time from its
+ *             stage's entry multiplied by the factor for the pilots here at
+ *             the entry (MISSIONS.md 1.6: { 1: 1.6, 2: 1.3, 3: 1.3 })
+ *   adapt     true: the aggressor's mind (TECH-NEEDS T1.5). A stage's
+ *             sector draws are weighted 1 / (1 + the kills in that sector
+ *             last stage), and its first spawn comes ADAPT_LATE later when
+ *             the squad ended the last stage with ADAPT_HIGH of its
+ *             airframes spent, ADAPT_EARLY sooner under ADAPT_LOW
+ *
+ * Its stages are an array; the first is entered at the go. A STAGE:
  *
  *   id          a name, unique in the mission
- *   round       true: a round of the old kind. Entering it gives every
- *               pilot the mission's airframes again (war.js rounds), it
+ *   title       a string key: the HUD's lower third as the stage opens
+ *   round       true: a round of the old kind, and of the owner's economy
+ *               (MISSIONS.md 1.1: "a stage is a round"). Entering it gives
+ *               every pilot the mission's airframes again (war.js), it
  *               counts in the view's round/rounds, and its exit's result
  *               counts for the stars. A stage that is not a round keeps
- *               the rack as it is: a story's stages run on into each other
+ *               the rack as it is, for stages that run on into each other
  *   spawns      groups of attackers, below
- *   objectives  [{ id, text, done?, fail? }]: text a string key the HUD
- *               shows; done and fail are triggers, and the first of them
- *               to fire settles it ('done' or 'failed'), for the HUD and
- *               for an exit's { objective } trigger. An objective whose
- *               done is a { killed } or { leaked } trigger shows its count
- *   cues        [{ at | when, radio | music | cutaway | text }]: things
- *               every screen is told when they fall due, at `at` seconds
- *               after the stage's entry or when the trigger `when` fires
- *               (plus `at` seconds, when both are given):
+ *   objectives  [{ id, text, kind?, done?, fail?, from?, ms? }]: text a
+ *               string key the HUD shows, kind a word for it ('protect',
+ *               'kill', 'hold', 'spot'); done and fail are triggers, and the
+ *               first to fire settles it ('done' or 'failed'). With ms it
+ *               is a hold: done ms after `from` fires (the entry without
+ *               one), unless it failed first; the view shows how long it
+ *               has been held. A count ({ killed }, { leaked }, { hit },
+ *               { destroyed }) shows how far it has got
+ *   cues        [{ at | when, radio | music | cutaway | text }]: told to
+ *               every screen when due, `at` seconds (or a window [lo, hi])
+ *               after the entry, or after the trigger `when` fires:
  *                 radio    a voice line's id (assets/audio/war/lines.json)
- *                 music    the war bed's track ('intro', 'combat', '' for
- *                          none)
- *                 cutaway  { target | at: [x, y, z], from?: [x, y, z],
- *                          fov?, ms? }: a short look at a place
- *                          (src/render/warcutaway.js decides how)
+ *                 music    the war bed's track ('' for none)
+ *                 cutaway  { target | at: [x, y, z], from?, fov?, ms? }: a
+ *                          short look at a place (src/render/warcutaway.js)
  *                 text     a string key for the HUD's stage line
  *   exits       [{ when, to, after?, result?, clear?, why? }], below
  *
  * A SPAWN is a wave of the old kind, { at, kind, n, per, route, target,
- * spread, group? }, with three things a seed may choose, all drawn when
- * the stage is entered, so every pilot meets the same and a replay of the
- * seed meets it again:
+ * spread }, with the dials a seed may turn (MISSIONS.md 1.4), each drawn
+ * once, when the stage is entered (a slot's kind when it is announced),
+ * so every pilot meets the same and a replay of the seed meets it again:
  *
- *   at      seconds after the stage's entry, or [lo, hi]: a time in that
- *           window
- *   route   a route's id, or a list of them: one of the family
+ *   at      seconds after the entry, or [lo, hi]: a time in that window
+ *   route   a route's id; a list of them, one drawn; or { sector: S or
+ *           [S...] }: a sector drawn (never the one the mission's last
+ *           sector spawn took, when there is another), then a route of
+ *           its family
  *   az      [lo, hi] radians: the route turned about the vertical through
- *           its own last point by an angle in that window, positive to
- *           the left (routes.js planAgent), so the same approach comes in
- *           from another bearing on each seed
- *   when    a trigger: born `at` seconds after it fires, not after the
- *           entry
- *   group   a name for the triggers to count it by ({ killed, group })
+ *           its own last point, positive to the left (routes.js planAgent)
+ *   kind    a kind, or a list of them: one drawn for the group
+ *   mix     [[kind, weight], ...] in place of kind: each attacker's kind
+ *           drawn by the weights (a Striker group salted with decoys)
+ *   when    a trigger: born `at` seconds after it fires, not the entry
+ *   skip    a trigger: a spawn not yet born when it has fired is dropped
+ *           (stage 5's "the twists that did not fire": { visited })
+ *   group   a name the triggers count it by
  *
  * n and per size it by the pilots here when it is announced (index.js
  * waveSize), as ever.
  *
- * A TRIGGER is one of these objects; each fires at a room ms, which is
- * when it happened on the judgement's timeline (war.js), never when the
- * room noticed, so lag decides nothing:
+ * A TRIGGER is one of these objects; each fires at a room ms, when it
+ * happened on the judgement's timeline (war.js), never when the room
+ * noticed, so lag decides nothing. A selection { group?, kind? } is the
+ * stage's own attackers of that group and kind:
  *
- *   { time: s }                    s seconds after the stage's entry
- *   { cleared: true }              every spawn of the stage born, and no
- *                                  attacker but Scouts alive
+ *   { time: s }                    s seconds after the entry
+ *   { cleared: true }              every spawn of the stage born and no
+ *                                  attacker but Scouts alive (a round end)
  *   { allOut: true }               no pilot here can still fly
- *                                  (war.js stillFlying)
- *   { destroyed: id | [ids], n? }  n of those targets hit (all of them
- *                                  when n is not given), ever in the
- *                                  match; fires no earlier than the entry
- *   { killed: n, kind?, group? }   n attackers (of that kind, of that
- *                                  group) killed by warheads in the stage
- *   { leaked: n, kind?, group?, hit? }
- *                                  n attackers of the stage got to the
- *                                  end of their route with a target (hit:
- *                                  true, only those that hit it)
+ *   { destroyed: id | [ids], n? }  n of those targets hit (all without n),
+ *                                  ever in the match; not before the entry
+ *   { hit: id | part | [...], n? } n targets hit in the stage, by id or
+ *                                  by part ('intake' is every intake-k)
+ *   { killed: n, group?, kind? }   n of them killed by warheads
+ *   { leaked: n, group?, kind?, onTarget? }
+ *                                  n of them at the end of their route
+ *                                  with a target (onTarget: only those
+ *                                  that hit it)
+ *   { left: n, group?, kind? }     n of them gone on their own (a Scout
+ *                                  done with its orbit)
+ *   { down: { group?, kind? } }    every one born and every one killed
+ *                                  (warhead or power line): scoutsDown
+ *   { gone: { group?, kind? } }    every one born and every one gone,
+ *                                  however: after(G)
+ *   { crossed: line, group?, kind? }
+ *                                  the first of them alive to cross the
+ *                                  mission's line (computed at its birth)
+ *   { spent: f }                   the pilots here have spent f of their
+ *                                  airframes this round
  *   { output: { below } } or { output: { atMost } }
- *                                  the output under / at most that, MW
  *   { region: { at: [x, z], r, y?: [lo, hi] }, pilots?: 'any' | 'all',
- *     ms? }                        pilots inside the cylinder (any of them,
- *                                  or every one here), for ms in a row
+ *     ms? }                        pilots inside the cylinder, for ms
  *   { breach: id | true }          an opening at that target, or any
- *                                  (the dam break, DAMBREAK-CONTRACT.md:
- *                                  war.js breach())
+ *                                  (war.js breach(), the dam break)
  *   { ready: true }                every pilot here said ready in the
  *                                  stage ({ type: 'war', op: 'ready' })
  *   { objective: id, is: 'done' | 'failed' }
+ *   { visited: stage id }          the match has been in that stage
  *   { all: [triggers] }            the last of them
  *   { any: [triggers] }            the first of them
  *
- * AN EXIT leaves the stage the moment its trigger fires: the earliest
- * of them, the first listed on a tie.
+ * AN EXIT leaves the stage the moment its trigger fires: the earliest of
+ * them, the first listed on a tie.
  *
- *   to      a stage's id, 'next' (the one after in the list), 'won',
- *           'lost', or { pick: [ids], w?: [weights] }: one of them drawn
- *           from the seed (the twist)
- *   after   ms between this stage and the next, the round's result card
- *           (war.js roundState 'result'); 0 enters the next at once
- *   result  'auto' ('win', or 'damaged' when the stage cost output),
- *           'win', 'damaged' or 'lost': a round's result, for the stars
- *   clear   what happens to the attackers still alive: 'through' (each
- *           with a target gets through, as an arrival would), 'leave'
- *           (they go, harmlessly) or nothing: they fly on into the next
- *           stage
+ *   to      a stage's id, 'next', 'won', 'lost', or { pick: [ids], w? }:
+ *           one drawn from the seed, by weight (the twist)
+ *   after   ms between this stage and the next, or a window [lo, hi] of
+ *           ms drawn from the seed: the beat (war.js roundState
+ *           'result'); 0 enters the next at once. Milliseconds, where a
+ *           spawn's `at` is seconds: a round's is RESULT_MS
+ *   result  'auto' ('damaged' when the stage cost output or failed an
+ *           objective, else 'win'), 'win', 'damaged' or 'lost'
+ *   clear   'through' (each attacker alive with a target gets through,
+ *           as an arrival would), 'leave' (they all go, harmlessly), or
+ *           nothing: they fly on into the next stage
  *   why     the end's reason, with to 'won' or 'lost'
  *
  * The match is lost the instant the output is under floorMw, whatever
  * the stage (war.js settle).
  *
  * DETERMINISM. Every choice is draw(seed, n) below, an integer hash on
- * the match's seed, the same on every engine. A stage's draws mix in how
- * many stages the match has entered, so a stage entered twice draws
- * afresh, and each kind of draw has its own salt, so adding one never
- * moves another.
+ * the match's seed, the same on every engine; what it chose is kept in
+ * the stage's state and shown in the view (`draws`), so a late joiner and
+ * a restore agree without drawing again. A stage's draws mix in how many
+ * stages the match has entered, so a stage entered twice draws afresh,
+ * and each dial has its own salt, so adding one never moves another.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -129,8 +158,18 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { poseAt } from './routes.js';
+
 /* A round's result shows this long before the next round starts. */
 export const RESULT_MS = 6000;
+
+/* The adaptive timing (TECH-NEEDS T1.5): the share of the airframes spent
+ * last stage over which the next stage's first spawn comes later, under
+ * which it comes sooner, and by how much. */
+export const ADAPT_HIGH = 0.75;
+export const ADAPT_LOW = 0.25;
+export const ADAPT_LATE = 1.3;
+export const ADAPT_EARLY = 0.7;
 
 /* A seeded draw in [0, 1) from two integers, the same on every engine. */
 export function draw(seed, id) {
@@ -140,10 +179,23 @@ export function draw(seed, id) {
 }
 
 const SALT = {
-  at: 0x53544154, route: 0x53545254, az: 0x5354415a, pick: 0x5354504b,
+  at: 0x53544154, route: 0x53545254, az: 0x5354415a, pick: 0x5354504b, sector: 0x53545343, kind: 0x53544b44, mix: 0x53544d58, after: 0x53544146, cue: 0x53544355,
 };
 function drawFor(seed, salt, entry, i) {
   return draw((seed ^ salt) >>> 0, Math.imul(entry, 4099) + i);
+}
+
+/* One of `list` by `weights` (all 1 without them), from a draw u. */
+function pickBy(list, u, weights = null) {
+  const w = weights ?? list.map(() => 1);
+  const sum = w.reduce((a, b) => a + b, 0);
+  let x = u * sum;
+  let i = 0;
+  while (i < list.length - 1 && x >= w[i]) {
+    x -= w[i];
+    i += 1;
+  }
+  return list[i];
 }
 
 /* A round of the old kind, as a stage: it ends when its last attacker but
@@ -200,8 +252,8 @@ export function wavesOf(stages) {
 }
 
 /* A mission file's mission with its flat list of waves beside its
- * stages, for what reads a mission's waves (the HUD's next wave, the
- * routes check, the room browser's wave count). */
+ * stages, for what reads a mission's waves (the HUD's next wave on a room
+ * from before stages, the routes check, the room browser's count). */
 export function withWaves(mission) {
   return { ...mission, waves: wavesOf(stagesOf(mission)) };
 }
@@ -211,56 +263,134 @@ export function roundsOf(mission) {
   return stagesOf(mission).filter((st) => st.round).length;
 }
 
-/*
- * Enter stage `idx` at room ms `at`: its state, plain data for the
- * match. The windows and families are drawn here, once.
- */
-export function enter(mission, idx, at, seed, entry) {
-  const st = stagesOf(mission)[idx];
-  const due = st.spawns.map((w, i) => {
-    const route = Array.isArray(w.route) ? w.route[Math.floor(drawFor(seed, SALT.route, entry, i) * w.route.length)] : w.route;
-    const az = Array.isArray(w.az) ? milli(w.az[0] + (w.az[1] - w.az[0]) * drawFor(seed, SALT.az, entry, i)) : null;
-    const s = Array.isArray(w.at) ? w.at[0] + (w.at[1] - w.at[0]) * drawFor(seed, SALT.at, entry, i) : (w.at ?? 0);
-    return {
-      i, t: w.when ? null : at + Math.round(s * 1000), ms: Math.round(s * 1000), route, az, born: false,
-    };
-  });
-  return {
-    idx, id: st.id, at, entry, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null,
-  };
-}
-
 /* An angle as the birth carries it, to the milliradian. */
 const milli = (v) => Math.round(v * 1000) / 1000;
 
-/*
- * Something that happened in the stage, for the triggers: [t, type, a,
- * b, hit] on its log, where type is
- *   'kill'   a = kind, b = group (a warhead's)
- *   'leak'   a = kind, b = group, hit whether it hit its target
- *   'down'   a = target
- * A target's fall and an opening are the match's, not the stage's
- * (m.downAt, m.breaches): a stage asks whether one has happened at all.
- */
-export function note(st, t, type, a = null, b = null, hit = false) {
-  st.ev.push([t, type, a, b, hit]);
+/* A time in seconds, or a window [lo, hi] drawn by u, as ms. */
+function msOf(at, u) {
+  const s = Array.isArray(at) ? at[0] + (at[1] - at[0]) * u : (at ?? 0);
+  return Math.round(s * 1000);
 }
 
 /*
+ * Enter stage `idx` at room ms `at`: its state, plain data for the match.
+ * The dials are drawn here, once. was: what the last stage left
+ * ({ kills: { sector: n }, spent: share, sector: the last sector drawn }),
+ * or null; pilots: how many are here.
+ */
+export function enter(mission, idx, at, seed, entry, { was = null, pilots = 1 } = {}) {
+  const st = stagesOf(mission)[idx];
+  const pace = mission.pace?.[pilots] ?? 1;
+  let lastSector = was?.sector ?? null;
+  /* The first spawn by its window's start: the one the adaptive timing
+   * moves. */
+  const lo = (w) => (Array.isArray(w.at) ? w.at[0] : w.at ?? 0);
+  let first = -1;
+  st.spawns.forEach((w, i) => {
+    if (!w.when && (first < 0 || lo(w) < lo(st.spawns[first]))) {
+      first = i;
+    }
+  });
+  const shift = mission.adapt && was ? (was.spent >= ADAPT_HIGH ? ADAPT_LATE : was.spent < ADAPT_LOW ? ADAPT_EARLY : 1) : 1;
+  const due = st.spawns.map((w, i) => {
+    let route = w.route;
+    let sector = null;
+    if (Array.isArray(w.route)) {
+      route = w.route[Math.floor(drawFor(seed, SALT.route, entry, i) * w.route.length)];
+    } else if (w.route && typeof w.route === 'object') {
+      const all = [w.route.sector].flat();
+      const open = all.length > 1 && lastSector != null ? all.filter((s) => s !== lastSector) : all;
+      const weights = mission.adapt && was ? open.map((s) => 1 / (1 + (was.kills?.[s] ?? 0))) : null;
+      sector = pickBy(open, drawFor(seed, SALT.sector, entry, i), weights);
+      const fam = mission.sectors[sector];
+      route = fam[Math.floor(drawFor(seed, SALT.route, entry, i) * fam.length)];
+      lastSector = sector;
+    }
+    const az = Array.isArray(w.az) ? milli(w.az[0] + (w.az[1] - w.az[0]) * drawFor(seed, SALT.az, entry, i)) : null;
+    const kind = Array.isArray(w.kind) ? w.kind[Math.floor(drawFor(seed, SALT.kind, entry, i) * w.kind.length)] : (w.kind ?? null);
+    const ms = Math.round(msOf(w.at, drawFor(seed, SALT.at, entry, i)) * pace * (i === first ? shift : 1));
+    return {
+      i, t: w.when ? null : at + ms, ms, route, sector, az, kind, born: false,
+    };
+  });
+  return {
+    idx, id: st.id, at, entry, pace, due, ev: [], cued: [], obj: {}, ready: {}, hold: {}, text: null, music: null, sector: lastSector,
+  };
+}
+
+/* The kind of a spawn's k-th attacker: its mix's draw, or the group's. */
+export function slotKind(w, d, k, seed, entry) {
+  if (!w.mix) {
+    return d.kind;
+  }
+  return pickBy(w.mix.map((x) => x[0]), drawFor(seed, SALT.mix, entry, d.i * 64 + k), w.mix.map((x) => x[1]));
+}
+
+/*
+ * Something that happened, for the triggers, on the stage's log:
+ *   { t, e: 'born', id, kind, group, sector, cross? }
+ *   { t, e: 'gone', id, kind, group, sector, how, hit? }  how: 'kill'
+ *                  (a warhead), 'wire', 'arrive' (at its target, or
+ *                  through at a lost round's end) or 'leave'
+ *   { t, e: 'down', target }   a target hit for the first time
+ *   { t, e: 'spend', seat }
+ * A target's fall and an opening are also the match's (m.downAt,
+ * m.breaches), for the triggers that ask whether one ever happened.
+ */
+export function note(st, ev) {
+  st.ev.push(ev);
+}
+
+/* The stage's own attackers of a selection { group, kind }. */
+function chosen(st, sel, e) {
+  return st.ev.filter((x) => x.e === e && (sel.group == null || x.group === sel.group) && (sel.kind == null || x.kind === sel.kind));
+}
+
+/* Every one of a selection born and every one gone `how` (a set, or any):
+ * at the last going, or null. */
+function allGone(mission, ctx, sel, hows) {
+  const st = ctx.st;
+  const spawns = stagesOf(mission)[st.idx].spawns;
+  const mine = st.due.filter((d) => (sel.group == null || spawns[d.i].group === sel.group));
+  if (!mine.length || !mine.every((d) => d.born)) {
+    return null;
+  }
+  const born = chosen(st, sel, 'born');
+  if (!born.length) {
+    return null;
+  }
+  const gone = new Map(chosen(st, sel, 'gone').map((x) => [x.id, x]));
+  let t = -Infinity;
+  for (const b of born) {
+    const g = gone.get(b.id);
+    if (!g || (hows && !hows.includes(g.how))) {
+      return null;
+    }
+    t = Math.max(t, g.t);
+  }
+  return t;
+}
+
+/* A target id is `want`: itself, or a part of that name ('intake'). */
+const isPart = (id, want) => id === want || id.startsWith(`${want}-`);
+
+/*
  * When `trig` fired, room ms, or null if it has not (yet). ctx:
- *   m          the match (down, downAt, output)
- *   st         the stage's state
  *   mission
+ *   m          the match (output, downAt, breaches, path)
+ *   st         the stage's state
  *   f          the judgement's frontier: nothing before it is unknown
  *   allBorn    every spawn of the stage born
  *   cleared    no attacker alive but Scouts
  *   lastGone   when the last attacker went
  *   allOut     no pilot here can fly on
+ *   spent      the share of the airframes the pilots here have spent
  *   here       the seats here
  *   pilots     [{ seat, p: [x, y, z] }] at f, the seats here with a pose
  */
 export function fired(trig, ctx) {
   const { st, f } = ctx;
+  const mission = ctx.mission;
   if (trig.time != null) {
     const t = st.at + Math.round(trig.time * 1000);
     return t <= f ? t : null;
@@ -272,17 +402,41 @@ export function fired(trig, ctx) {
     return ctx.allOut ? f : null;
   }
   if (trig.destroyed != null) {
-    const ids = Array.isArray(trig.destroyed) ? trig.destroyed : [trig.destroyed];
+    const ids = [trig.destroyed].flat();
     const n = trig.n ?? ids.length;
     const ts = ids.map((id) => ctx.m.downAt?.[id]).filter((t) => t != null).sort((a, b) => a - b);
     return ts.length >= n ? Math.max(st.at, ts[n - 1]) : null;
   }
-  if (trig.killed != null || trig.leaked != null) {
-    const type = trig.killed != null ? 'kill' : 'leak';
-    const n = trig.killed ?? trig.leaked;
-    const ts = st.ev.filter((e) => e[1] === type && (trig.kind == null || e[2] === trig.kind) && (trig.group == null || e[3] === trig.group)
-      && (!trig.hit || e[4])).map((e) => e[0]);
+  if (trig.hit != null) {
+    const want = [trig.hit].flat();
+    const ts = st.ev.filter((x) => x.e === 'down' && want.some((w) => isPart(x.target, w))).map((x) => x.t);
+    const n = trig.n ?? 1;
     return ts.length >= n ? ts[n - 1] : null;
+  }
+  if (trig.killed != null || trig.leaked != null || trig.left != null) {
+    const n = trig.killed ?? trig.leaked ?? trig.left;
+    const how = trig.killed != null ? 'kill' : trig.leaked != null ? 'arrive' : 'leave';
+    const ts = chosen(st, trig, 'gone').filter((x) => x.how === how && (!trig.onTarget || x.hit)).map((x) => x.t);
+    return ts.length >= n ? ts[n - 1] : null;
+  }
+  if (trig.down) {
+    return allGone(mission, ctx, trig.down, ['kill', 'wire']);
+  }
+  if (trig.gone) {
+    return allGone(mission, ctx, trig.gone, null);
+  }
+  if (trig.crossed != null) {
+    const gone = new Map(chosen(st, trig, 'gone').map((x) => [x.id, x.t]));
+    const at = (b) => b.cross?.[trig.crossed];
+    const ts = chosen(st, trig, 'born').filter((b) => at(b) != null && at(b) <= f && !(gone.get(b.id) < at(b))).map(at);
+    return ts.length ? Math.min(...ts) : null;
+  }
+  if (trig.spent != null) {
+    if (!(ctx.spent >= trig.spent)) {
+      return null;
+    }
+    const spends = st.ev.filter((x) => x.e === 'spend');
+    return spends.length ? spends[spends.length - 1].t : st.at;
   }
   if (trig.output) {
     const { below, atMost } = trig.output;
@@ -290,8 +444,8 @@ export function fired(trig, ctx) {
     if (!ok) {
       return null;
     }
-    const downs = st.ev.filter((e) => e[1] === 'down');
-    return downs.length ? downs[downs.length - 1][0] : st.at;
+    const downs = st.ev.filter((x) => x.e === 'down');
+    return downs.length ? downs[downs.length - 1].t : st.at;
   }
   if (trig.region) {
     return regionFired(trig, ctx);
@@ -307,6 +461,10 @@ export function fired(trig, ctx) {
   if (trig.objective != null) {
     const o = st.obj[trig.objective];
     return o && o.state === (trig.is ?? 'done') ? o.t : null;
+  }
+  if (trig.visited != null) {
+    const v = (ctx.m.path ?? []).find((x) => x.id === trig.visited);
+    return v ? Math.max(st.at, v.at) : null;
   }
   if (trig.all) {
     const ts = trig.all.map((x) => fired(x, ctx));
@@ -346,14 +504,24 @@ function regionFired(trig, ctx) {
   return null;
 }
 
+/* When a hold objective started holding, or null. */
+function holdFrom(o, ctx) {
+  return o.from ? fired(o.from, ctx) : ctx.st.at;
+}
+
 /* Settle the stage's objectives that have now done or failed. */
-export function objectives(mission, ctx) {
+export function objectives(ctx) {
   const st = ctx.st;
-  for (const o of stagesOf(mission)[st.idx].objectives ?? []) {
+  for (const o of stagesOf(ctx.mission)[st.idx].objectives ?? []) {
     if (st.obj[o.id]) {
       continue;
     }
-    const done = o.done ? fired(o.done, ctx) : null;
+    let done = o.done ? fired(o.done, ctx) : null;
+    if (o.ms != null) {
+      const from = holdFrom(o, ctx);
+      const t = from == null ? null : from + o.ms;
+      done = t != null && t <= ctx.f ? t : null;
+    }
     const fail = o.fail ? fired(o.fail, ctx) : null;
     if (done != null && (fail == null || done <= fail)) {
       st.obj[o.id] = { state: 'done', t: done };
@@ -363,31 +531,62 @@ export function objectives(mission, ctx) {
   }
 }
 
-/* The stage's objectives as the view shows them: text, state and, for a
- * count, how far it has got. */
-export function objectivesView(mission, st, ctx) {
-  return (stagesOf(mission)[st.idx].objectives ?? []).map((o) => {
-    const out = { id: o.id, text: o.text, state: st.obj[o.id]?.state ?? 'active' };
+/* Whether any objective of the stage failed. */
+export function failedAny(st) {
+  return Object.values(st.obj).some((o) => o.state === 'failed');
+}
+
+/* The stage's objectives as the view shows them: text, state, and for a
+ * count how far it has got, for a hold how long it has been held (ms, to
+ * the frontier). */
+export function objectivesView(ctx) {
+  const st = ctx.st;
+  return (stagesOf(ctx.mission)[st.idx].objectives ?? []).map((o) => {
+    const state = st.obj[o.id]?.state ?? 'active';
+    const out = { id: o.id, text: o.text, kind: o.kind ?? null, state };
     const d = o.done;
     if (d && (d.killed != null || d.leaked != null)) {
-      const type = d.killed != null ? 'kill' : 'leak';
       const n = d.killed ?? d.leaked;
-      const k = st.ev.filter((e) => e[1] === type && (d.kind == null || e[2] === d.kind) && (d.group == null || e[3] === d.group) && (!d.hit || e[4])).length;
+      const k = chosen(st, d, 'gone').filter((x) => x.how === (d.killed != null ? 'kill' : 'arrive') && (!d.onTarget || x.hit)).length;
       out.progress = [Math.min(n, k), n];
-    }
-    if (d && d.destroyed != null && ctx) {
-      const ids = Array.isArray(d.destroyed) ? d.destroyed : [d.destroyed];
+    } else if (d && d.destroyed != null) {
+      const ids = [d.destroyed].flat();
       out.progress = [ids.filter((id) => ctx.m.downAt?.[id] != null).length, d.n ?? ids.length];
+    } else if (d && d.hit != null) {
+      const want = [d.hit].flat();
+      out.progress = [Math.min(d.n ?? 1, st.ev.filter((x) => x.e === 'down' && want.some((w) => isPart(x.target, w))).length), d.n ?? 1];
+    }
+    if (o.ms != null) {
+      /* A hold running is told by when it began (heldFrom, room ms), so
+       * a screen counts it on its own clock between the room's views; a
+       * settled one by how long it was held. */
+      const from = holdFrom(o, ctx);
+      out.ms = o.ms;
+      if (state === 'active') {
+        out.heldFrom = from;
+        out.heldMs = from == null ? 0 : Math.max(0, Math.min(o.ms, ctx.f - from));
+      } else {
+        out.heldMs = state === 'done' ? o.ms : from == null ? 0 : Math.max(0, Math.min(o.ms, st.obj[o.id].t - from));
+      }
     }
     return out;
   });
 }
 
-/* The triggered spawns whose trigger has now fired get their time. */
-export function arm(mission, ctx) {
+/* The triggered spawns whose trigger has now fired get their time; those
+ * whose skip has fired are dropped. */
+export function arm(ctx) {
   const st = ctx.st;
-  const spawns = stagesOf(mission)[st.idx].spawns;
+  const spawns = stagesOf(ctx.mission)[st.idx].spawns;
   for (const d of st.due) {
+    if (d.born) {
+      continue;
+    }
+    if (spawns[d.i].skip && fired(spawns[d.i].skip, ctx) != null) {
+      d.born = true;
+      d.skipped = true;
+      continue;
+    }
     if (d.t == null) {
       const t = fired(spawns[d.i].when, ctx);
       if (t != null) {
@@ -419,10 +618,10 @@ export function allBorn(st) {
 }
 
 /* The cues now due, in time then list order, marked: [{ t, i, cue }]. */
-export function dueCues(mission, ctx) {
+export function dueCues(ctx) {
   const st = ctx.st;
   const out = [];
-  for (const [i, c] of (stagesOf(mission)[st.idx].cues ?? []).entries()) {
+  for (const [i, c] of (stagesOf(ctx.mission)[st.idx].cues ?? []).entries()) {
     if (st.cued.includes(i)) {
       continue;
     }
@@ -430,7 +629,7 @@ export function dueCues(mission, ctx) {
     if (base == null) {
       continue;
     }
-    const t = base + Math.round((c.at ?? 0) * 1000);
+    const t = base + Math.round(msOf(c.at, drawFor(ctx.m.seed, SALT.cue, st.entry, i)) * (c.when ? 1 : st.pace ?? 1));
     if (t > ctx.f) {
       continue;
     }
@@ -447,9 +646,9 @@ export function dueCues(mission, ctx) {
 }
 
 /* The exit that fires first, with when: { exit, t, k } or null. */
-export function exitDue(mission, ctx) {
+export function exitDue(ctx) {
   let best = null;
-  for (const [k, x] of (stagesOf(mission)[ctx.st.idx].exits ?? []).entries()) {
+  for (const [k, x] of (stagesOf(ctx.mission)[ctx.st.idx].exits ?? []).entries()) {
     const t = fired(x.when, ctx);
     if (t != null && (!best || t < best.t)) {
       best = { exit: x, t, k };
@@ -458,20 +657,29 @@ export function exitDue(mission, ctx) {
   return best;
 }
 
+/* An exit's beat, ms: its after, or its window drawn. */
+export function beatOf(x, seed, st, k) {
+  return msOf(Array.isArray(x.after) ? x.after.map((v) => v / 1000) : (x.after ?? 0) / 1000, drawFor(seed, SALT.after, st.entry, k));
+}
+
+/* What a stage left for the next to adapt to (enter's `was`): its kills
+ * by sector, the share of airframes spent, and the last sector drawn. */
+export function leftBy(st, spent) {
+  const kills = {};
+  for (const x of st.ev) {
+    if (x.e === 'gone' && x.how === 'kill' && x.sector) {
+      kills[x.sector] = (kills[x.sector] ?? 0) + 1;
+    }
+  }
+  return { kills, spent, sector: st.sector };
+}
+
 /* Where an exit goes: a stage's index, or 'won' / 'lost'. */
 export function target(mission, st, x, seed, k) {
   const stages = stagesOf(mission);
   let to = x.to ?? 'next';
   if (to && typeof to === 'object') {
-    const w = to.w ?? to.pick.map(() => 1);
-    const sum = w.reduce((a, b) => a + b, 0);
-    let u = drawFor(seed, SALT.pick, st.entry, k) * sum;
-    let i = 0;
-    while (i < w.length - 1 && u >= w[i]) {
-      u -= w[i];
-      i += 1;
-    }
-    to = to.pick[i];
+    to = pickBy(to.pick, drawFor(seed, SALT.pick, st.entry, k), to.w);
   }
   if (to === 'won' || to === 'lost') {
     return to;
@@ -490,73 +698,48 @@ export function target(mission, st, x, seed, k) {
 }
 
 /*
- * A mission's stages, checked as data, so a wrong one fails loudly where
- * it is written: every exit's stage, route, target and trigger is one the
- * mission has. Returns a list of problems, empty when it is sound.
+ * The first time each of the mission's lines is crossed by a planned
+ * flight, room ms, sampled every CROSS_MS on poseAt and the crossing
+ * found to the millisecond between: { line: t }, or null with none. The
+ * room computes it once, at the birth, from the plan every screen flies.
  */
-export function lint(mission) {
-  const out = [];
-  const stages = stagesOf(mission);
-  const ids = new Set(stages.map((s) => s.id));
-  if (ids.size !== stages.length) {
-    out.push('two stages share an id');
+export const CROSS_MS = 100;
+export function crossings(mission, plan) {
+  const lines = mission.lines;
+  if (!lines || !Number.isFinite(plan.tEnd)) {
+    return null;
   }
-  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'killed', 'leaked', 'output', 'region', 'breach', 'ready', 'objective', 'all', 'any'];
-  const trig = (x, where) => {
-    if (!x || typeof x !== 'object' || !KEYS.some((k) => x[k] != null)) {
-      out.push(`${where}: not a trigger`);
-      return;
-    }
-    for (const id of x.destroyed == null ? [] : [x.destroyed].flat()) {
-      if (!mission.targets[id]) {
-        out.push(`${where}: no target ${id}`);
-      }
-    }
-    for (const y of [...(x.all ?? []), ...(x.any ?? [])]) {
-      trig(y, where);
-    }
-  };
-  for (const [i, st] of stages.entries()) {
-    const where = `${mission.id} ${st.id}`;
-    for (const w of st.spawns) {
-      for (const r of [w.route].flat()) {
-        if (!mission.routes[r]) {
-          out.push(`${where}: no route ${r}`);
+  const out = {};
+  for (const [name, [[ax, az], [bx, bz]]] of Object.entries(lines)) {
+    /* Which side of the line the flight is on at t, and whether it is
+     * over the segment there. */
+    const side = (t) => {
+      const p = poseAt(plan, t).p;
+      const u = ((p[0] - ax) * (bx - ax) + (p[2] - az) * (bz - az)) / ((bx - ax) ** 2 + (bz - az) ** 2);
+      return { left: (bx - ax) * (p[2] - az) - (bz - az) * (p[0] - ax) < 0, on: u >= 0 && u <= 1 };
+    };
+    let lo = plan.t0;
+    let a = side(lo);
+    while (lo < plan.tEnd) {
+      const hi = Math.min(plan.tEnd, lo + CROSS_MS);
+      const b = side(hi);
+      if (a.left !== b.left && (a.on || b.on)) {
+        let l = lo;
+        let h = hi;
+        while (h - l > 1) {
+          const mid = Math.floor((l + h) / 2);
+          if (side(mid).left === a.left) {
+            l = mid;
+          } else {
+            h = mid;
+          }
         }
+        out[name] = h;
+        break;
       }
-      for (const t of w.target == null ? [] : [w.target].flat()) {
-        if (!mission.targets[t]) {
-          out.push(`${where}: no target ${t}`);
-        }
-      }
-      if (w.when) {
-        trig(w.when, where);
-      }
-    }
-    for (const o of st.objectives ?? []) {
-      if (o.done) {
-        trig(o.done, `${where} ${o.id}`);
-      }
-      if (o.fail) {
-        trig(o.fail, `${where} ${o.id}`);
-      }
-    }
-    for (const c of st.cues ?? []) {
-      if (c.when) {
-        trig(c.when, where);
-      }
-    }
-    if (!(st.exits ?? []).length) {
-      out.push(`${where}: no exit`);
-    }
-    for (const x of st.exits ?? []) {
-      trig(x.when, where);
-      for (const to of x.to && typeof x.to === 'object' ? x.to.pick : [x.to ?? 'next']) {
-        if (to === 'next' ? i + 1 >= stages.length : !(to === 'won' || to === 'lost' || ids.has(to))) {
-          out.push(`${where}: exit to ${to}`);
-        }
-      }
+      lo = hi;
+      a = b;
     }
   }
-  return out;
+  return Object.keys(out).length ? out : null;
 }
