@@ -46,7 +46,10 @@
 
 import * as THREE from 'three';
 import { SURFACE } from '../../configs/parts.js';
-import { advance, breachOf, piecesOf } from '../share/war/debris.js';
+import {
+  advance, breachOf, piecesOf, standing,
+} from '../share/war/debris.js';
+import { turnDir, turnPoint } from '../share/war/leaf.js';
 
 export const PIECES = 192;
 export const EDGES = 512;
@@ -130,7 +133,38 @@ export function createBreakage(opts = {}) {
 
   /* The torn ends where chunk i (gone) met chunk j (standing), on j's
    * side of the face between them. */
-  function edgeAt(st, i, j, seq) {
+  /* A gate's leaf as it stands at room ms now: the matrix taking its
+   * rest frame to where it is (src/share/war/leaf.js), or null. */
+  const leafM = new Map();
+  function leafMatrix(target, now) {
+    const st = map && map.structures[target];
+    const h = st && st.frame.hinge;
+    const t = h && map.leafTurnAt ? map.leafTurnAt(target, now) : null;
+    if (!t) {
+      return null;
+    }
+    const was = leafM.get(target);
+    if (was && was.c === t.c && was.s === t.s) {
+      return was.m;
+    }
+    const m = new THREE.Matrix4().makeBasis(
+      new THREE.Vector3(...turnDir(h, t, [1, 0, 0])),
+      new THREE.Vector3(...turnDir(h, t, [0, 1, 0])),
+      new THREE.Vector3(...turnDir(h, t, [0, 0, 1])),
+    ).setPosition(...turnPoint(h, t, [0, 0, 0]));
+    leafM.set(target, { c: t.c, s: t.s, m, changed: true });
+    return m;
+  }
+  /* Edge k's matrix: its rest one, turned with its gate's leaf. */
+  const edgeRec = [];
+  let edgeNow = 0;
+  function placeEdge(k) {
+    const r = edgeRec[k];
+    const lm = r.moving ? leafMatrix(r.target, edgeNow) : null;
+    edgeMesh.setMatrixAt(k, lm ? m4.multiplyMatrices(lm, r.rest) : r.rest);
+  }
+
+  function edgeAt(st, i, j, seq, target) {
     const a = st.chunks[i];
     const b = st.chunks[j];
     const mid = [(a.c[0] + b.c[0]) / 2, (a.c[1] + b.c[1]) / 2, (a.c[2] + b.c[2]) / 2];
@@ -151,7 +185,10 @@ export function createBreakage(opts = {}) {
       q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d);
       s.set(steel ? 0.5 : 0.032, len, steel ? 0.06 : 0.032);
       m4.compose(at, q, s);
-      edgeMesh.setMatrixAt(edges, m4);
+      /* Written in the structure's own frame; one on a gate's leaf turns
+       * with it (placeEdge). */
+      edgeRec[edges] = { target, rest: m4.clone(), moving: Boolean(st.frame.hinge && b.m) };
+      placeEdge(edges);
       edgeMesh.setColorAt(edges, steel ? colourOf(b.k, SCORCH) : col.setRGB(0.16, 0.09, 0.06, THREE.LinearSRGBColorSpace));
       edges += 1;
     }
@@ -204,6 +241,8 @@ export function createBreakage(opts = {}) {
       applied = [];
       pieces = [];
       edges = 0;
+      edgeRec.length = 0;
+      leafM.clear();
       pieceMesh.count = 0;
       edgeMesh.count = 0;
     },
@@ -212,6 +251,7 @@ export function createBreakage(opts = {}) {
      * sound. Its openings go to onOpening either way: a rebuilt map's
      * water starts from nothing and needs every one of them again. */
     apply(e, now, quiet = false) {
+      edgeNow = now;
       applied.push(e);
       const st = map && map.structures[e.target];
       if (!st) {
@@ -229,11 +269,13 @@ export function createBreakage(opts = {}) {
       for (const i of e.chunks) {
         for (const j of st.chunks[i].l) {
           if (!set.has(j)) {
-            edgeAt(st, i, j, e.seq);
+            edgeAt(st, i, j, e.seq, e.target);
           }
         }
       }
-      const fresh = piecesOf(e, st);
+      /* A gate's leaf where it stood when it broke. */
+      const tAt = st.frame.hinge && map.leafTurnAt ? map.leafTurnAt(e.target, e.at) : null;
+      const fresh = piecesOf(e, st, tAt);
       for (const pc of fresh) {
         advance(pc, now, floorAt);
       }
@@ -249,7 +291,7 @@ export function createBreakage(opts = {}) {
       const recent = !quiet && now - e.at < 3000;
       if (recent && opts.debris) {
         for (const i of e.chunks) {
-          const ch = st.chunks[i];
+          const ch = standing(st, st.chunks[i], tAt);
           const steel = STEEL.has(ch.k);
           const at = new THREE.Vector3(...ch.c);
           opts.debris.emit(at, new THREE.Vector3(0, 1, 0), steel ? 25 : 30, steel ? SURFACE.metal : SURFACE.concrete, null, floorAt(ch.c[0], ch.c[2], ch.c[1]), 'hit');
@@ -276,6 +318,27 @@ export function createBreakage(opts = {}) {
     update(now) {
       if (now == null) {
         return;
+      }
+      /* The edges on a gate's leaf, where the leaf now is. */
+      edgeNow = now;
+      const turned = new Set();
+      for (let k = 0; k < edges; k += 1) {
+        const target = edgeRec[k].moving ? edgeRec[k].target : null;
+        if (target && !turned.has(target)) {
+          const was = leafM.get(target);
+          leafMatrix(target, now);
+          if (leafM.get(target) !== was) {
+            turned.add(target);
+          }
+        }
+      }
+      if (turned.size) {
+        for (let k = 0; k < edges; k += 1) {
+          if (edgeRec[k].moving && turned.has(edgeRec[k].target)) {
+            placeEdge(k);
+          }
+        }
+        edgeMesh.instanceMatrix.needsUpdate = true;
       }
       let moved = false;
       pieces.forEach((pc, k) => {

@@ -42,6 +42,7 @@
  */
 
 import { CHARGE, DEFENDER, chunkDistance } from './damage.js';
+import { turnDir, turnPoint } from './leaf.js';
 
 export const STEP_MS = 1000 / 60;
 const DT = 1 / 60;
@@ -110,16 +111,30 @@ function quatOf(e) {
   return [x, y, z, w];
 }
 
+/* Chunk ch of structure s as it stood with a gate's leaf turned by t
+ * (src/share/war/leaf.js): moved if it is the leaf's, else itself. */
+export function standing(s, ch, t) {
+  const h = s.frame.hinge;
+  if (!h || !t || !ch.m) {
+    return ch;
+  }
+  return {
+    ...ch, c: turnPoint(h, t, ch.c), e: [...turnDir(h, t, ch.e.slice(0, 3)), ...turnDir(h, t, ch.e.slice(3, 6))],
+  };
+}
+
 /*
  * The pieces of one damage event (war.js strike's, as roomwar.js passes
  * it on) of structure s: one a removed chunk, its box's size, in the
- * event's chunks order. `kind` is the chunk's, for its look.
+ * event's chunks order. `kind` is the chunk's, for its look. A gate's
+ * leaf turned by t (leaf.js) at the event: each piece starts where its
+ * chunk stood then.
  */
-export function piecesOf(e, s) {
+export function piecesOf(e, s, t = null) {
   const fell = new Set(e.fell);
   const w = warheadOf(e.by);
   return e.chunks.map((i) => {
-    const ch = s.chunks[i];
+    const ch = standing(s, s.chunks[i], t);
     const r1 = draw(e.seq, i, 1);
     const r2 = draw(e.seq, i, 2);
     const r3 = draw(e.seq, i, 3);

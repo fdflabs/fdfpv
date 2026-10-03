@@ -793,8 +793,11 @@ function freeze(list) {
  * its cells are no cells at all and it would be registered nowhere.
  */
 class CellIndex {
-  constructor(set) {
+  constructor(set, sweeps = null) {
     this.set = set;
+    /* index -> [x0, z0, x1, z1]: a collider registered over this instead
+     * of its own footprint (ColliderList.sweep), for one that moves. */
+    this.sweeps = sweeps;
     /* The next collider to count, then the next to file. */
     this.i = 0;
     this.filing = false;
@@ -822,10 +825,11 @@ class CellIndex {
     let i = this.i;
     for (; i < s.n && written < budget; i += 1) {
       const rr = s.fr[i];
-      const x0 = gridCell(Math.min(s.fax[i], s.fbx[i]) - rr);
-      const x1 = gridCell(Math.max(s.fax[i], s.fbx[i]) + rr);
-      const z0 = gridCell(Math.min(s.faz[i], s.fbz[i]) - rr);
-      const z1 = gridCell(Math.max(s.faz[i], s.fbz[i]) + rr);
+      const sw = this.sweeps && this.sweeps.get(i);
+      const x0 = gridCell(sw ? sw[0] : Math.min(s.fax[i], s.fbx[i]) - rr);
+      const x1 = gridCell(sw ? sw[2] : Math.max(s.fax[i], s.fbx[i]) + rr);
+      const z0 = gridCell(sw ? sw[1] : Math.min(s.faz[i], s.fbz[i]) - rr);
+      const z1 = gridCell(sw ? sw[3] : Math.max(s.faz[i], s.fbz[i]) + rr);
       if (!(x0 >= -GRID_HALF && x1 < GRID_HALF && z0 >= -GRID_HALF && z1 < GRID_HALF)) {
         throw new Error(`collide: a ${KINDS[s.fkind[i]]} from (${s.fax[i]}, ${s.faz[i]}) to (${s.fbx[i]}, ${s.fbz[i]}) is outside the grid, which reaches ${GRID_HALF * CELL} m from the origin`);
       }
@@ -853,10 +857,11 @@ class CellIndex {
     let i = this.i;
     for (; i < s.n && written < budget; i += 1) {
       const rr = s.fr[i];
-      const x0 = gridCell(Math.min(s.fax[i], s.fbx[i]) - rr);
-      const x1 = gridCell(Math.max(s.fax[i], s.fbx[i]) + rr);
-      const z0 = gridCell(Math.min(s.faz[i], s.fbz[i]) - rr);
-      const z1 = gridCell(Math.max(s.faz[i], s.fbz[i]) + rr);
+      const sw = this.sweeps && this.sweeps.get(i);
+      const x0 = gridCell(sw ? sw[0] : Math.min(s.fax[i], s.fbx[i]) - rr);
+      const x1 = gridCell(sw ? sw[2] : Math.max(s.fax[i], s.fbx[i]) + rr);
+      const z0 = gridCell(sw ? sw[1] : Math.min(s.faz[i], s.fbz[i]) - rr);
+      const z1 = gridCell(sw ? sw[3] : Math.max(s.faz[i], s.fbz[i]) + rr);
       for (let cx = x0; cx <= x1; cx += 1) {
         for (let cz = z0; cz <= z1; cz += 1) {
           const k = gridKey(cx, cz);
@@ -939,6 +944,25 @@ class ColliderList {
     if (r > this.maxR) {
       this.maxR = r;
     }
+    return this;
+  }
+
+  /*
+   * The capsule just added (index i) moves after build (Colliders
+   * moveCapsule): it is registered in the grid over [x0, z0, x1, z1],
+   * everywhere it can go, its radius included, rather than where it
+   * stands now. Static set only.
+   */
+  sweep(i, x0, z0, x1, z1) {
+    if (this.box[i] !== 0) {
+      throw new Error(`collide: only a capsule sweeps, not collider ${i}`);
+    }
+    if (!(x0 <= Math.min(this.ax[i], this.bx[i]) - this.r[i] && x1 >= Math.max(this.ax[i], this.bx[i]) + this.r[i]
+      && z0 <= Math.min(this.az[i], this.bz[i]) - this.r[i] && z1 >= Math.max(this.az[i], this.bz[i]) + this.r[i])) {
+      throw new Error(`collide: collider ${i}'s sweep does not hold where it stands`);
+    }
+    this.sweeps ??= new Map();
+    this.sweeps.set(i, [x0, z0, x1, z1]);
     return this;
   }
 
@@ -1166,6 +1190,12 @@ export class Colliders extends ColliderList {
      * another collider. */
     this.fill = null;
     this.streamGen = 0;
+    /* Counts every change to a static collider after build (retire,
+     * restore, moveCapsule): what holds a copy of the static set (the
+     * crash world's declared solids) takes it again when this moves. */
+    this.staticGen = 0;
+    /* Static capsules that move: index -> where they may go (sweep). */
+    this.sweeps = null;
     this.stamp = null;
     /* The broadphase's candidates for the query in hand, scratch. */
     this.cand = null;
@@ -1384,6 +1414,7 @@ export class Colliders extends ColliderList {
     this.sunk.set(index, [this.fay[index], this.fby[index]]);
     this.fay[index] = SUNK_Y;
     this.fby[index] = SUNK_Y;
+    this.staticGen += 1;
     return this;
   }
 
@@ -1395,6 +1426,38 @@ export class Colliders extends ColliderList {
     this.fay[index] = was[0];
     this.fby[index] = was[1];
     this.sunk.delete(index);
+    this.staticGen += 1;
+    return this;
+  }
+
+  /*
+   * Move static capsule `index` to run from a to b after build(), within
+   * the sweep it was registered over (ColliderList.sweep): the grid holds
+   * it in every cell it can reach, so moving it rebuilds nothing. Throws
+   * when it would leave that, where the craft's sweep would no longer
+   * find it. A retired capsule moves where it would stand, still sunk.
+   */
+  moveCapsule(index, a, b) {
+    const sw = this.sweeps && this.sweeps.get(index);
+    if (!this.built || !sw) {
+      throw new Error(`collide: collider ${index} was not registered to move`);
+    }
+    const r = this.fr[index];
+    if (!(Math.min(a[0], b[0]) - r >= sw[0] - 1e-3 && Math.max(a[0], b[0]) + r <= sw[2] + 1e-3
+      && Math.min(a[2], b[2]) - r >= sw[1] - 1e-3 && Math.max(a[2], b[2]) + r <= sw[3] + 1e-3)) {
+      throw new Error(`collide: collider ${index} moved out of its sweep`);
+    }
+    this.fax[index] = a[0];
+    this.faz[index] = a[2];
+    this.fbx[index] = b[0];
+    this.fbz[index] = b[2];
+    if (this.sunk && this.sunk.has(index)) {
+      this.sunk.set(index, [a[1], b[1]]);
+    } else {
+      this.fay[index] = a[1];
+      this.fby[index] = b[1];
+    }
+    this.staticGen += 1;
     return this;
   }
 
@@ -1409,7 +1472,7 @@ export class Colliders extends ColliderList {
    */
   build() {
     const set = freeze(this);
-    const cells = new CellIndex(set);
+    const cells = new CellIndex(set, this.sweeps ?? null);
     cells.step(Infinity);
     /* Breakpoint scratch for the exact segment to box distance. Six axis
      * crossings plus the two segment ends, allocated once because hit() runs

@@ -57,6 +57,7 @@ import {
 import { buildPart as buildWater } from './itaipu/water/index.js';
 import { meetBanks, meetDam } from './itaipu/water/meet.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
+import { makeBreakable } from './itaipu/town/mesh.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
 import { attractPath } from './itaipu/attract.js';
@@ -326,6 +327,11 @@ async function buildItaipu(shell, progress, q, time) {
 
   const colliders = new Colliders();
   const roofRecords = [];
+  /* What a warhead can break that is not the dam's (the yard's equipment
+   * and gantries, its plinths and fence, town/mesh.js makeBreakable): one
+   * mesh, which the town and the war part both add to, so the yard costs
+   * one draw and its shadows. */
+  const breakable = makeBreakable(THREE);
   const parts = {};
   let done = 0;
   for (const [name, build, share] of PARTS) {
@@ -344,6 +350,7 @@ async function buildItaipu(shell, progress, q, time) {
        * (its embankments' wet edges and toes). */
       groundMaterial: look.ground,
       colliders,
+      breakable,
       roofs: roofRecords,
       mats: look.mats,
       /* The look's sun, which is the time of day's: what a part lights or
@@ -357,6 +364,9 @@ async function buildItaipu(shell, progress, q, time) {
     await yieldToPaint();
   }
   colliders.build();
+  /* In the yard's group, which is most of it: the yard check's view
+   * without the yard (tools/itaipu/war-check.js) is without it too. */
+  (parts.war ? parts.war.group : scene).add(breakable.build('itaipu-breakable', { metalness: 0.3 }));
   /* Mission 4's fixtures (look/night.js), a no-op by day: from the
    * town's model (its buildings, towers and dressed road's lamps), its
    * roads and substations, the dam's powerhouse, and what the parts drew
@@ -488,10 +498,6 @@ async function buildItaipu(shell, progress, q, time) {
     setWaterClock(ms) {
       waterClockMs = ms;
     },
-    /* A mission's spillway gates over the room's clock, [{ gate: 'gate-N',
-     * at: room ms, open_m }], or null for no war: the water follows them
-     * (water/live.js). */
-    setGateState: (list) => parts.water.setGates(list),
     /* A crash cam replay's water ({ openings, gates } from its clip, or
      * null), the live flood stepped on the room's clock meanwhile, and how
      * the replay's water stands (water/index.js). */
@@ -514,6 +520,16 @@ async function buildItaipu(shell, progress, q, time) {
      * (src/maps/itaipu/damage.js applies the room's events). */
     structures: parts.dam.structures,
     setChunkGone: (id, i, gone) => parts.dam.setChunkGone(id, i, gone),
+    /* A mission's spillway gates over the room's clock, [{ gate: 'gate-N',
+     * at: room ms, open_m }], or null for none (Free Flight's): the dam's
+     * leaves turn to them (src/share/war/hoist.js), and the water's flow
+     * follows them (water/live.js). */
+    setGateState(list) {
+      parts.dam.setGateState(list);
+      parts.water.setGates(list);
+    },
+    /* Gate `id`'s leaf turn at room ms t (src/share/war/leaf.js), or null. */
+    leafTurnAt: (id, t) => parts.dam.leafTurnAt(id, t),
     /* The night raid's lights, district by district (src/share/war/grid.js
      * levels, from the room's war state): nothing by day. */
     setPower: (levels) => look.setPower(levels),

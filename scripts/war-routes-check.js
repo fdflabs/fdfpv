@@ -36,8 +36,9 @@
  * And the structures (src/share/war/damage.js's chunks: the dam's targets
  * and the switchyard's equipment): every attacker with a target, cut where
  * contact.js says it first meets one (as the room cuts it, its birth
- * record's `meet`), is outside every chunk's box grown by CONTACT_M,
- * sampled every CONTACT_SAMPLE_MS, until it goes off. Measured with
+ * record's `meet`), is outside every chunk's box grown by CONTACT_M (a
+ * spillway leaf's where Free Flight's gates stand it), sampled every
+ * CONTACT_SAMPLE_MS near a structure, until it goes off. Measured with
  * damage.js's chunkDistance, not contact.js's own slabs. Before contact.js
  * a Striker's last leg into the switchyard ran through tanks and bushings
  * for up to 27 m short of its aim point (the owner: "shahed should have
@@ -81,6 +82,8 @@ import ITAIPU_WIRES from '../src/share/war/itaipu-wires.js';
 import { CONTACT_M, contactAt } from '../src/share/war/contact.js';
 import { chunkDistance } from '../src/share/war/damage.js';
 import ITAIPU_CHUNKS from '../src/share/war/itaipu-chunks.js';
+import { openAt } from '../src/share/war/hoist.js';
+import { leafTurn, turnPoint, unturn } from '../src/share/war/leaf.js';
 
 const MIN_CLEAR_M = 15;
 const WATER_Y = 219;
@@ -93,6 +96,14 @@ const PILOTS = [1, 2, 3, 4, 5, 6, 7, 8];
  * floored, at most a millisecond's flight short. */
 const CONTACT_SAMPLE_MS = 10;
 const CONTACT_TOL_M = 0.05;
+/* The sampler looks at every CONTACT_COARSE_MS first and samples a span
+ * finely only where its first point is within CONTACT_REACH_M of some
+ * structure's bounds: twice the fastest kind's speed over the span, so a
+ * weave or a formation's closing cannot carry it further. */
+const CONTACT_COARSE_MS = 250;
+/* The plan cells, metres, the structures' chunks are filed in for it. */
+const CHUNK_CELL = 16;
+const CONTACT_REACH_M = 2 * Math.max(...Object.values(KIND).map((k) => Math.max(k.speed, k.dive ?? 0))) * CONTACT_COARSE_MS / 1000;
 const STRUCTURES = { itaipu: ITAIPU_CHUNKS };
 
 const floor = loadHeight(readFileSync(new URL('../src/share/war/itaipu-height.bin', import.meta.url)));
@@ -159,9 +170,10 @@ function wavesOf(mission) {
 
 const routeName = (w) => [w.route].flat().join('|') + (Array.isArray(w.az) ? ' az' : '');
 
-/* Each map's structures as { lo, hi, list: [{ id, lo, hi, chunks }] },
- * axis-aligned bounds (each chunk's bounding sphere) grown by CONTACT_M,
- * all of them and each, for the structures' check. */
+/* Each map's structures as { list: [{ id, hinge, lo, hi, chunks }] },
+ * each one's axis-aligned bounds (its chunks' bounding spheres, as
+ * written: a leaf's at rest) grown by CONTACT_M, for the structures'
+ * check. */
 const BOUNDS = {};
 for (const [map, all] of Object.entries(STRUCTURES)) {
   const list = Object.entries(all).map(([id, st]) => {
@@ -169,32 +181,107 @@ for (const [map, all] of Object.entries(STRUCTURES)) {
     const lo = [0, 1, 2].map((j) => Math.min(...st.chunks.map((ch, i) => ch.c[j] - r[i])));
     const hi = [0, 1, 2].map((j) => Math.max(...st.chunks.map((ch, i) => ch.c[j] + r[i])));
     return {
-      id, lo, hi, chunks: st.chunks,
+      id, hinge: st.frame.hinge ?? null, lo, hi, chunks: st.chunks,
     };
   });
-  BOUNDS[map] = {
-    lo: [0, 1, 2].map((j) => Math.min(...list.map((b) => b.lo[j]))),
-    hi: [0, 1, 2].map((j) => Math.max(...list.map((b) => b.hi[j]))),
-    list,
-  };
+  /* Every chunk filed in the CHUNK_CELL cells its bounding sphere grown
+   * by CONTACT_M touches, as written (a leaf's at rest). */
+  const cells = new Map();
+  for (const s of list) {
+    for (const [i, ch] of s.chunks.entries()) {
+      const r = Math.hypot(...ch.h) + CONTACT_M;
+      for (let a = Math.floor((ch.c[0] - r) / CHUNK_CELL); a <= Math.floor((ch.c[0] + r) / CHUNK_CELL); a += 1) {
+        for (let b = Math.floor((ch.c[2] - r) / CHUNK_CELL); b <= Math.floor((ch.c[2] + r) / CHUNK_CELL); b += 1) {
+          const key = `${a},${b}`;
+          if (!cells.has(key)) {
+            cells.set(key, []);
+          }
+          cells.get(key).push({ s, i, ch });
+        }
+      }
+    }
+  }
+  BOUNDS[map] = { list, cells };
 }
-const within = (b, p) => p[0] >= b.lo[0] && p[0] <= b.hi[0] && p[1] >= b.lo[1] && p[1] <= b.hi[1] && p[2] >= b.lo[2] && p[2] <= b.hi[2];
+const cellOf = (p) => `${Math.floor(p[0] / CHUNK_CELL)},${Math.floor(p[2] / CHUNK_CELL)}`;
+/* How far p is outside bounds b, 0 inside. */
+function outside(b, p) {
+  let s = 0;
+  for (let j = 0; j < 3; j += 1) {
+    const d = p[j] < b.lo[j] ? b.lo[j] - p[j] : p[j] > b.hi[j] ? p[j] - b.hi[j] : 0;
+    s += d * d;
+  }
+  return Math.sqrt(s);
+}
+
+/* Point p as a structure's chunks are written: a leaf's moving chunks
+ * (ch.m) at rest, so p taken back by the leaf's turn as Free Flight's
+ * gates stand (the plans here carry no gate state); the rest as is. The
+ * turn is the same at every room ms, so distances to the leaf keep. */
+const FREE_TURN = new Map();
+function restPoint(s, p) {
+  if (!FREE_TURN.has(s.id)) {
+    FREE_TURN.set(s.id, unturn(leafTurn(s.hinge, openAt(null, s.id, 0))));
+  }
+  return turnPoint(s.hinge, FREE_TURN.get(s.id), p);
+}
+
+/* How far p is from the nearest structure's bounds, its leaves where
+ * they stand. */
+function nearestBounds(map, p) {
+  let d = Infinity;
+  for (const s of BOUNDS[map]?.list ?? []) {
+    d = Math.min(d, outside(s, p));
+    if (s.hinge) {
+      d = Math.min(d, outside(s, restPoint(s, p)));
+    }
+  }
+  return d;
+}
 
 /* The chunk point p is inside (its box grown by CONTACT_M less
- * CONTACT_TOL_M), as `target#i kind`, or null: measured with damage.js's
- * chunkDistance, not contact.js's slabs. */
+ * CONTACT_TOL_M, a leaf's where it stands), as `target#i kind`, or null:
+ * measured with damage.js's chunkDistance, not contact.js's slabs. */
 function insideStructure(map, p) {
   const all = BOUNDS[map];
-  if (!all || !within(all, p)) {
+  if (!all) {
     return null;
   }
+  /* The chunks filed where p is, and for each leaf where p is in its
+   * rest frame. */
+  const seen = all.cells.get(cellOf(p)) ?? [];
+  const moved = [];
   for (const s of all.list) {
-    if (!within(s, p)) {
+    if (s.hinge) {
+      const pr = restPoint(s, p);
+      for (const c of all.cells.get(cellOf(pr)) ?? []) {
+        if (c.s === s && c.ch.m) {
+          moved.push({ ...c, q: pr });
+        }
+      }
+    }
+  }
+  for (const c of [...seen.filter((x) => !(x.s.hinge && x.ch.m)).map((x) => ({ ...x, q: p })), ...moved]) {
+    if (chunkDistance(c.ch, c.q) < CONTACT_M - CONTACT_TOL_M) {
+      return `${c.s.id}#${c.i} ${c.ch.k}`;
+    }
+  }
+  return null;
+}
+
+/* The first room ms before the plan ends at which it is inside a
+ * structure, with where and what, or null. */
+function firstInside(map, plan) {
+  for (let c = plan.t0; c < plan.tEnd; c += CONTACT_COARSE_MS) {
+    if (nearestBounds(map, poseAt(plan, c).p) > CONTACT_REACH_M) {
       continue;
     }
-    for (const [i, ch] of s.chunks.entries()) {
-      if (chunkDistance(ch, p) < CONTACT_M - CONTACT_TOL_M) {
-        return `${s.id}#${i} ${ch.k}`;
+    const to = Math.min(c + CONTACT_COARSE_MS, plan.tEnd);
+    for (let t = c; t < to; t += CONTACT_SAMPLE_MS) {
+      const p = poseAt(plan, t).p;
+      const inside = insideStructure(map, p);
+      if (inside) {
+        return { t, p: p.slice(), inside };
       }
     }
   }
@@ -251,13 +338,9 @@ for (const mission of Object.values(MISSIONS)) {
                 failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${route}): given its contact at ${met.t} ms it ends ${cut.end} at ${cut.tEnd}`);
               }
             }
-            for (let t = cut.t0; t < cut.tEnd; t += CONTACT_SAMPLE_MS) {
-              const p = poseAt(cut, t).p;
-              const inside = insideStructure(mission.map, p);
-              if (inside) {
-                failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${route}, k ${k} of ${n}, err ${err}): inside ${inside} at ${t} ms, ${((cut.tEnd - t) / 1000).toFixed(2)} s before it goes off, at (${p.map((v) => v.toFixed(1)).join(', ')})`);
-                break;
-              }
+            const bad = firstInside(mission.map, cut);
+            if (bad) {
+              failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${route}, k ${k} of ${n}, err ${err}): inside ${bad.inside} at ${bad.t} ms, ${((cut.tEnd - bad.t) / 1000).toFixed(2)} s before it goes off, at (${bad.p.map((v) => v.toFixed(1)).join(', ')})`);
             }
           }
           const tt = terminalFrom(plan, w.kind);
@@ -386,6 +469,59 @@ for (const mission of Object.values(MISSIONS)) {
 
 console.log('');
 console.log(`structures: ${contact.n} attackers with a target, ${contact.met} meet a structure short of their aim point and go off there (contact.js, within ${CONTACT_M} m of a chunk); the furthest short, ${contact.short.toFixed(1)} m: ${contact.where ?? 'none'}`);
+
+/* How far q is outside chunk ch's box along the furthest of its axes:
+ * contact.js grows each box by CONTACT_M along its axes. */
+function beyondBox(ch, q) {
+  const e = ch.e;
+  const ax = [[e[0], e[1], e[2]], [e[3], e[4], e[5]], [e[1] * e[5] - e[2] * e[4], e[2] * e[3] - e[0] * e[5], e[0] * e[4] - e[1] * e[3]]];
+  return Math.max(...ax.map((u, j) => Math.abs((q[0] - ch.c[0]) * u[0] + (q[1] - ch.c[1]) * u[1] + (q[2] - ch.c[2]) * u[2]) - ch.h[j]));
+}
+
+/* A leaf is met where it stands: mission 2's boat onto gate-13, k 0 of 9
+ * at an error of -10 m, which runs into the leaf. With the gate's state
+ * holding it shut, half open and right up, it meets a different chunk of
+ * the gate each time (the skin low down, the skin higher up, and with
+ * the leaf right up out of its way the hoist, which stands still), its
+ * contact on that chunk's box grown by CONTACT_M with the leaf turned so
+ * (a moving chunk's in the leaf's rest frame), and before it inside no
+ * chunk of the gate so turned (chunkDistance). */
+{
+  const mission = MISSIONS['itaipu-2'];
+  const s = STRUCTURES[mission.map]['gate-13'];
+  const h = s.frame.hinge;
+  const plan = planAgent(mission, {
+    id: 1, kind: 'boat', route: 'surface-gates', t0: 0, k: 0, n: 9, err: -10, target: 'gate-13',
+  });
+  const met = [];
+  for (const o of [0, h.max / 2, h.max]) {
+    /* Set long before, so its hoist has got there (hoist.js). */
+    const gates = [{ gate: 'gate-13', at: plan.t0 - 1e7, open_m: o }];
+    const c = contactAt(mission.map, plan, gates);
+    const back = unturn(leafTurn(h, o));
+    const d = (t) => {
+      const p = poseAt(plan, t).p;
+      const q = turnPoint(h, back, p);
+      return Math.min(...s.chunks.map((ch) => chunkDistance(ch, ch.m ? q : p)));
+    };
+    const at = c ? beyondBox(s.chunks[c.chunk], s.chunks[c.chunk].m ? turnPoint(h, back, poseAt(plan, c.t + 1).p) : poseAt(plan, c.t + 1).p) : Infinity;
+    let early = null;
+    for (let t = plan.t0; c && t < c.t; t += CONTACT_SAMPLE_MS) {
+      if (d(t) < CONTACT_M - CONTACT_TOL_M) {
+        early = t;
+        break;
+      }
+    }
+    met.push(c ? c.chunk : null);
+    console.log(`  gate-13 at ${o.toFixed(2)} m: ${c ? `meets #${c.chunk} ${s.chunks[c.chunk].k}, ${((plan.tEnd - c.t) / 1000).toFixed(2)} s short, ${at.toFixed(3)} m from it a ms on` : 'meets nothing'}`);
+    if (!c || c.target !== 'gate-13' || !(at <= CONTACT_M + CONTACT_TOL_M) || early !== null) {
+      failures.push(`gate-13 at ${o} m open: the boat ${c ? `meets ${c.target}#${c.chunk}, ${at.toFixed(3)} m from it${early !== null ? `, inside the leaf at ${early} ms before` : ''}` : 'meets nothing'}; wanted the leaf where it stands`);
+    }
+  }
+  if (new Set(met).size !== met.length) {
+    failures.push(`gate-13's leaf shut, half open and up met the boat at chunks ${met.join(', ')}: not where it stands`);
+  }
+}
 console.log('');
 if (failures.length) {
   for (const f of failures) {
