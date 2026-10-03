@@ -65,7 +65,7 @@
   <body>
     <nav><a href="./">Paraguayan Drone Combat Simulator</a><a href="terms.html">Terms</a><a href="#es">Español</a></nav>
     <h1>FD<span>FPV</span> privacy</h1>
-    <p class="updated">Last changed 2 October 2026.</p>
+    <p class="updated">Last changed 3 October 2026.</p>
     <p class="lede">The Paraguayan Drone Combat Simulator is free, open source and runs in your browser. You can play without an account. This page says what is kept when you do the things that send anything anywhere, where it is kept, and how to have it removed.</p>
 
     <div class="panel">
@@ -78,6 +78,7 @@
       <li><strong>Google's account id</strong> for you (the <code>sub</code> in Google's token): a number that tells us it is you again next time. Not your name, email or picture.</li>
       <li><strong>Your callsign</strong>, the name you choose. It is public: rooms, the board and lap times show it.</li>
       <li><strong>Your progress</strong>, so it follows you to other computers: unlocks and experience, the tracks and challenges you have flown, your aircraft paint and saved liveries, your tunes (rates, PIDs, bench setups, power and parts choices), your combat loadouts and the builds you save in My Hangar.</li>
+      <li><strong>Your flight time</strong>: how long you have been in the air in all, by aircraft and by activity, and the day of your first flight, so every computer you fly on adds to one total. Each browser keeps its own count under a random id it makes for itself, and that id goes nowhere but into your account with the count. It is yours: nobody else is shown it.</li>
       <li><strong>Your pilot key</strong>, the key that signs your lap times and owns your tracks, so every computer you sign in on is the same pilot. It is stored encrypted.</li>
       <li><strong>Session records</strong>: a one way hash of each signed in browser's session, which ends after 30 days or when you sign out.</li>
     </ul>
@@ -103,20 +104,22 @@
 
     <h2>Site statistics</h2>
     <p>The board counts pilots, sessions, laps, flight time and crashes as totals per day, with the country as two letters and the aircraft, input and map as one of a fixed list. No row describes one visitor, and no address, browser, name or track is kept with them. Your browser decides whether you are new or returning from a date it keeps itself. A browser that sends Global Privacy Control is not counted, and the board has a switch to stop counting yours.</p>
+    <p>The "All pilots" flight time in the game's Pilot screen is those daily flight time totals added up: a sum, with no row for any one pilot. It is not made from anybody's account.</p>
 
     <h2>Addresses and logs</h2>
     <p>Our servers use your IP address to answer you and to limit how often one address can save, sign in or join. The tracks server keeps a one way hash of the address for the ten minute window that limit counts, and drops it with the window; the rooms server holds addresses in memory only, while a room is open. The server front keeps no access log.</p>
 
     <h2>In your browser</h2>
-    <p>Your settings, pilot name, pilot key, tracks and replays are kept in your own browser's storage. No cookies are set. Clearing the site's data removes them from that browser.</p>
+    <p>Your settings, pilot name, pilot key, tracks and replays are kept in your own browser's storage, and so is your flight time: without an account it stays there and goes nowhere. No cookies are set. Clearing the site's data removes them from that browser.</p>
 
     <h2>Where it is kept</h2>
     <p>The page itself is served by GitHub Pages. The tracks server, the rooms server and the board run on one server we operate on Oracle Cloud in São Paulo, Brazil. Nothing is sold or shared with anyone for advertising, and there is no advertising.</p>
 
     <h2>How long, and how to delete it</h2>
     <ul>
-      <li><strong>Your account</strong>: until you delete it. In the game, open Pilot and choose <em>Delete my account</em>. Your account id, callsign, progress, pilot key and sessions are removed from the server at once, and your callsign is free for others.</li>
+      <li><strong>Your account</strong>: until you delete it. In the game, open Pilot and choose <em>Delete my account</em>. Your account id, callsign, progress, flight time, pilot key and sessions are removed from the server at once, and your callsign is free for others. Until then your flight time is kept for as long as the account is.</li>
       <li><strong>Sessions</strong>: 30 days, or until you sign out.</li>
+      <li><strong>Site statistics</strong>: the daily totals are kept indefinitely. They describe no one, so there is nothing in them to delete for you.</li>
       <li><strong>Tracks, lap times, board tracks and bug reports</strong>: until they are removed. Deleting your account does not remove them, because they are public records other pilots race against. To have yours removed, send a report with F8 in the game saying which ones (only the people who run the Paraguayan Drone Combat Simulator read it), or open an issue at <a href="https://github.com/fdflabs/fdfpv/issues">github.com/fdflabs/fdfpv/issues</a> (issues there are public).</li>
     </ul>
     <p>The same two ways reach us with any question about this page.</p>
@@ -124,7 +127,7 @@
     <hr />
 
     <h1 id="es">Privacidad de FD<span>FPV</span></h1>
-    <p class="updated">Último cambio: 2 de octubre de 2026.</p>
+    <p class="updated">Último cambio: 3 de octubre de 2026.</p>
     <p class="lede">El Simulador de Combate de Drones Paraguayo es libre, de código abierto y corre en tu navegador. Puedes jugar sin cuenta. Esta página dice qué se guarda cuando haces algo que envía datos, dónde se guarda y cómo pedir que se borre.</p>
 
     <div class="panel">
@@ -137,6 +140,7 @@
       <li><strong>El id de tu cuenta de Google</strong> (el <code>sub</code> del token): un número para reconocerte la próxima vez. No tu nombre, correo ni foto.</li>
       <li><strong>Tu indicativo</strong>, el nombre que eliges. Es público: lo muestran las salas, el tablero y los tiempos de vuelta.</li>
       <li><strong>Tu progreso</strong>, para que te siga a otras computadoras: desbloqueos y experiencia, las pistas y desafíos que volaste, la pintura y libreas guardadas, tus ajustes (rates, PIDs, banco, motor y piezas), tus cargas de combate y los modelos que guardas en Mi hangar.</li>
+      <li><strong>Tu tiempo de vuelo</strong>: cuánto estuviste en el aire en total, por aeronave y por actividad, y el día de tu primer vuelo, para que cada computadora donde vuelas sume a un solo total. Cada navegador lleva su propia cuenta bajo un id al azar que crea él mismo, y ese id no va a ningún lado más que a tu cuenta junto con esa cuenta. Es tuyo: no se le muestra a nadie más.</li>
       <li><strong>Tu clave de piloto</strong>, la que firma tus tiempos y es dueña de tus pistas, para que cada computadora donde inicies sesión sea el mismo piloto. Se guarda cifrada.</li>
       <li><strong>Registros de sesión</strong>: un hash de una vía de la sesión de cada navegador, que termina a los 30 días o al cerrar sesión.</li>
     </ul>
@@ -162,20 +166,22 @@
 
     <h2>Estadísticas del sitio</h2>
     <p>El tablero cuenta pilotos, sesiones, vueltas, tiempo de vuelo y choques como totales por día, con el país en dos letras y la aeronave, el control y el mapa de una lista fija. Ninguna fila describe a un visitante, y no se guarda con ellas ninguna dirección, navegador, nombre ni pista. Un navegador que envía Global Privacy Control no se cuenta, y el tablero tiene un interruptor para no contar el tuyo.</p>
+    <p>El tiempo de vuelo de "Todos los pilotos" en la pantalla Piloto del juego es la suma de esos totales diarios de tiempo de vuelo: una suma, sin una fila para ningún piloto. No sale de la cuenta de nadie.</p>
 
     <h2>Direcciones y registros</h2>
     <p>Nuestros servidores usan tu dirección IP para responderte y para limitar cuántas veces una dirección guarda, inicia sesión o entra a una sala. El servidor de pistas guarda un hash de la dirección durante la ventana de diez minutos que cuenta ese límite, y lo borra con ella; el de salas la tiene solo en memoria, mientras la sala está abierta. La entrada del servidor no guarda registro de accesos.</p>
 
     <h2>En tu navegador</h2>
-    <p>Tus ajustes, nombre, clave de piloto, pistas y repeticiones se guardan en el almacenamiento de tu propio navegador. No se usan cookies.</p>
+    <p>Tus ajustes, nombre, clave de piloto, pistas y repeticiones se guardan en el almacenamiento de tu propio navegador, y también tu tiempo de vuelo: sin cuenta se queda ahí y no va a ningún lado. No se usan cookies.</p>
 
     <h2>Dónde se guarda</h2>
     <p>La página la sirve GitHub Pages. Los servidores de pistas, de salas y el tablero corren en un servidor que operamos en Oracle Cloud, en São Paulo, Brasil. Nada se vende ni se comparte para publicidad, y no hay publicidad.</p>
 
     <h2>Cuánto tiempo, y cómo borrarlo</h2>
     <ul>
-      <li><strong>Tu cuenta</strong>: hasta que la borres. En el juego, abre Piloto y elige <em>Borrar mi cuenta</em>. El id, el indicativo, el progreso, la clave y las sesiones se quitan del servidor en el acto, y tu indicativo queda libre.</li>
+      <li><strong>Tu cuenta</strong>: hasta que la borres. En el juego, abre Piloto y elige <em>Borrar mi cuenta</em>. El id, el indicativo, el progreso, el tiempo de vuelo, la clave y las sesiones se quitan del servidor en el acto, y tu indicativo queda libre. Hasta entonces tu tiempo de vuelo se guarda mientras exista la cuenta.</li>
       <li><strong>Sesiones</strong>: 30 días, o hasta cerrar sesión.</li>
+      <li><strong>Estadísticas del sitio</strong>: los totales diarios se guardan sin plazo. No describen a nadie, así que no hay nada tuyo en ellos que borrar.</li>
       <li><strong>Pistas, tiempos, pistas del tablero y reportes</strong>: hasta que se quiten. Borrar la cuenta no los quita, porque son registros públicos contra los que corren otros pilotos. Para quitar los tuyos, envía un reporte con F8 diciendo cuáles (solo lo leen quienes llevan el Simulador de Combate de Drones Paraguayo), o abre un issue en <a href="https://github.com/fdflabs/fdfpv/issues">github.com/fdflabs/fdfpv/issues</a> (allí son públicos).</li>
     </ul>
     <p>Por esas mismas dos vías puedes preguntarnos cualquier cosa sobre esta página.</p>
