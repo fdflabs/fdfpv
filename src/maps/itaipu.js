@@ -50,6 +50,7 @@ import { HERO_HALF } from './itaipu/terrain/frame.js';
 import { buildTerrain, TERRAIN_Q } from './itaipu/terrain/index.js';
 import { conformBound, fillUnder, offCut } from './itaipu/terrain/conform.js';
 import { makeLook } from './itaipu/look/index.js';
+import { TIMES } from './itaipu/look/light.js';
 import {
   buildPart as buildDam, embankmentCrests, embankmentSection, junctionRims,
 } from './itaipu/dam/index.js';
@@ -392,11 +393,16 @@ async function buildItaipu(shell, progress, q, time) {
   /* The drawn ground, and over the water its still surface, so a craft
    * rests on the water it sees whether or not
    * the shell has declared the bodies to the plant; then the roofs, the
-   * highest within a step of fromY (alps/roofs.js). */
+   * highest within a step of fromY (alps/roofs.js). Water is water where
+   * either the drawn ground or the data's (the lake's bed) is under the
+   * surface: for a few frames after a respawn the engine draws the new
+   * spot from a coarse node, and in the river's canyon that node stands
+   * 1.3 m over the surface, so the drawn height alone handed the plant a
+   * ground over the water that threw the aircraft up and broke its boom. */
   const wet = (x, z) => {
     const h = terrain.height(x, z);
     for (const l of lakes) {
-      if (l.surfaceY > h && insideWater(l, x, z)) {
+      if ((l.surfaceY > h || l.surfaceY > l.bed(x, z)) && insideWater(l, x, z)) {
         return l.surfaceY;
       }
     }
@@ -434,6 +440,12 @@ async function buildItaipu(shell, progress, q, time) {
       aimDrop: 40,
     },
     height: (x, z, fromY) => roofs.height(x, z, fromY, wet(x, z)),
+    /* The ground or a roof at or under fromY, never the water: where a
+     * broken chunk's piece comes to rest (src/share/war/debris.js). The
+     * ground's finest level, as the parts place on, not the drawn one,
+     * whose level is where this screen's camera has been: every screen
+     * must rest a piece at the same height. */
+    floorAt: (x, z, fromY) => roofs.height(x, z, fromY, ground(x, z)),
     cover: (x, z, fromY) => roofs.cover(colliders, x, z, fromY),
     roofs: roofs.records,
     roofTop: (i, x, z) => roofs.top(i, x, z),
@@ -466,6 +478,11 @@ async function buildItaipu(shell, progress, q, time) {
     setTargetState(id, state) {
       return parts.dam.setTargetState(id, state, this.targets);
     },
+    /* The targets cut into the chunks a warhead breaks
+     * (src/share/war/damage.js), and taking one out or back
+     * (src/maps/itaipu/damage.js applies the room's events). */
+    structures: parts.dam.structures,
+    setChunkGone: (id, i, gone) => parts.dam.setChunkGone(id, i, gone),
     /* The night raid's lights, district by district (src/share/war/grid.js
      * levels, from the room's war state): nothing by day. */
     setPower: (levels) => look.setPower(levels),
@@ -524,14 +541,16 @@ async function buildItaipu(shell, progress, q, time) {
 }
 
 /*
- * The look's time of day: `options.time` ('day', the default, or
- * 'night', for mission 4, "Night raid"), or `?time=night` in the
- * address, which src/main.js's loadMap folds into options before this is
- * called. Anything else is day: a stray query param must never turn the
- * lights off on a pilot who typed the wrong thing.
+ * The look's time of day: `options.time` (one of look/light.js TIMES:
+ * 'day', the default, 'morning', 'noon', 'golden', or 'night', for
+ * mission 4, "Night raid"), or `?time=` in the address, which
+ * src/main.js's loadMap folds into options before this is called.
+ * Anything else is day: a stray query param must never turn the lights
+ * off on a pilot who typed the wrong thing.
  */
 function timeFor(options) {
-  return options && options.time === 'night' ? 'night' : 'day';
+  const time = options && options.time;
+  return typeof time === 'string' && Object.hasOwn(TIMES, time) ? time : 'day';
 }
 
 export async function buildMap(shell, onProgress, options) {

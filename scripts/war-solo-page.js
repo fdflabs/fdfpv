@@ -91,7 +91,7 @@ try {
   /* Started from the room screen, where the host's row is. */
   await page.evaluate("window.__ui.act('friends'); true");
   await page.sleep(500);
-  await page.evaluate("window.__warDo('start', 'itaipu-1')");
+  await page.evaluate("window.__warDo('start', 'itaipu-drill')");
   await page.until("['countdown', 'live'].includes(window.__war().view.state)", 15000).catch(() => {});
   const c = await look();
   check('the war counts down', ['countdown', 'live'].includes(c.state), JSON.stringify(c));

@@ -233,6 +233,63 @@ function worldFrame(t, poison) {
   check('the fault is reported with the listener and the voices', Boolean(fault && fault.fault.context && fault.fault.context.voices), fault ? `${fault.fault.kind}, ${fault.fault.context.voices.length} voices` : 'none');
 }
 
+{
+  /*
+   * The owner's silence, found 2 October by the lobby check's combat run:
+   * a source that is not moving but jumps (a stream's nearest point, as a
+   * fast or teleporting camera changes which stretch is nearest). The
+   * retarded time's iterates landed either side of the jump and the
+   * direction was divided by the wrong distance: its cosine with the
+   * listener's forward reached 3, the far ear's corner went below 0 Hz,
+   * and its one pole ran away to infinity. No fault may come of it.
+   */
+  let s0 = 99;
+  const rnd = () => {
+    s0 = (Math.imul(s0, 1103515245) + 12345) >>> 0;
+    return s0 / 4294967296;
+  };
+  const line = Array.from({ length: 40 }, (_, k) => ({ x: -400 + 20 * k + 30 * Math.sin(k), z: 60 * Math.sin(k * 0.7) }));
+  const nearest = (x, z) => {
+    let best = [0, 0, Infinity];
+    for (let k = 0; k + 1 < line.length; k += 1) {
+      const a = line[k];
+      const b = line[k + 1];
+      const ux = b.x - a.x;
+      const uz = b.z - a.z;
+      const u = Math.max(0, Math.min(1, ((x - a.x) * ux + (z - a.z) * uz) / (ux * ux + uz * uz)));
+      const d = Math.hypot(x - (a.x + ux * u), z - (a.z + uz * u));
+      if (d < best[2]) {
+        best = [a.x + ux * u, a.z + uz * u, d];
+      }
+    }
+    return best;
+  };
+  const p = new W({ processorOptions: { guard: false } });
+  let L = [0, 2, 300];
+  let vel = [0, 0, -60];
+  let yaw = 0;
+  const r = run(p, 40000, (q) => {
+    if (q % 6 !== 0) {
+      return;
+    }
+    const dt = (6 * N) / RATE;
+    if (rnd() < 0.01) {
+      L = [800 * (rnd() - 0.5), 2 + 50 * rnd(), 600 * (rnd() - 0.5)];
+    }
+    if (rnd() < 0.05) {
+      vel = [200 * (rnd() - 0.5), 20 * (rnd() - 0.5), 200 * (rnd() - 0.5)];
+      yaw = 6.28 * rnd();
+    }
+    L = [L[0] + vel[0] * dt, Math.max(0.5, L[1] + vel[1] * dt), L[2] + vel[2] * dt];
+    yaw += 15 * (rnd() - 0.5) * dt;
+    const [nx, nz] = nearest(L[0], L[2]);
+    const src = new Float64Array(SOURCE_STRIDE);
+    src.set([2000104, KINDS.indexOf('river'), nx, 0.16, nz, 0, 0, 0, 0].slice(0, SOURCE_STRIDE));
+    p.message({ frame: { t: (q * N) / RATE, lis: [...L, -0.9 * Math.sin(yaw), -0.4, -0.9 * Math.cos(yaw), Math.cos(yaw), 0, -Math.sin(yaw), 0.02], src } });
+  });
+  check('a stream\'s nearest point jumping under a fast, teleporting listener: no fault, ever', r.firstBad < 0 && !p.faults, `${p.faults || 0} faults, first non-finite ${r.firstBad}`);
+}
+
 if (failed) {
   console.log(`audio:guard: ${failed} FAILED`);
   process.exit(1);

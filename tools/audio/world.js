@@ -51,6 +51,12 @@
  *                                       under what the aircraft's 35 percent
  *                                       of -27 allows, rather than its share
  *                                       (a bird sings there by nature)
+ *   a breach (WorldAudio.breach)        as an explosion, and short term at
+ *                                       most -18, as the aircraft: a gate's
+ *                                       groan and a fire last seconds;
+ *                                       quieter the farther; two alike
+ *                                       correlate at most 0.5
+ *   the water through a breach          its pass in BREACH_PASS
  *   an explosion                        momentary at most -12 (the biggest
  *                                       thing in the game, by 2 dB);
  *                                       quieter the farther, 100 m over
@@ -89,7 +95,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { measure } from './metrics.js';
 import { SCENES, calibrationOf, calibrationScene } from './world-scenes.js';
-import { KINDS, WORLD_KINDS } from '../../src/render/world-kinds.js';
+import { KINDS, SOURCE_STRIDE, WORLD_KINDS } from '../../src/render/world-kinds.js';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 export const RATE = 48000;
@@ -403,6 +409,12 @@ async function main() {
       }
       if (sc.role === 'fx') {
         check(`${id} loudest 400 ms at most ${BARS.boomMomentaryMax} LUFS`, m.lufsMomentaryMax <= BARS.boomMomentaryMax, `${m.lufsMomentaryMax} LUFS`);
+        if (sc.booms.some((b) => b.material)) {
+          /* A breach lasts seconds (a gate groans, a transformer burns):
+           * held to the aircraft's short term bar as well, so it never
+           * sits loud. */
+          check(`${id} loudest 3 s at most ${BARS.shortMax} LUFS`, m.lufsShortMax <= BARS.shortMax, `${m.lufsShortMax} LUFS`);
+        }
       } else {
         /* The aircraft alone: a scene's explosion is judged as one. */
         const o = m.other;
@@ -432,6 +444,44 @@ async function main() {
         worst = Math.max(worst, measure(r.channels, r.rate).harshShareA);
       }
       check(`a near explosion, twelve seeds, 2 to 5 kHz at most ${BARS.harshShareAMax} percent`, worst <= BARS.harshShareAMax, `worst ${worst}%`);
+      /* The dam break's calls (src/render/world-audio.js), their contract:
+       * what is sent, what is dropped, what throws. */
+      const { WorldAudio } = await import('../../src/render/world-audio.js');
+      const wa = new WorldAudio();
+      const sent = [];
+      wa.node = { port: { postMessage: (msg) => sent.push(msg) } };
+      wa.ctx = { currentTime: 5 };
+      wa.lis.set([0, 1.7, 0, 0, 0, -1, 1, 0, 0, 0]);
+      wa.view = { height: () => 100 };
+      const ok = wa.breach({ at: 1000, position: [10, 130, -50], material: 'steel', mass: 4e4 }, 1500);
+      const b0 = sent[0] && sent[0].breach;
+      check('a breach is sent with its lateness and its fall to the ground', ok && b0 && b0.late === 0.5 && b0.fall === 30 && b0.material === 'steel', JSON.stringify(b0));
+      check('a breach more than 3 s late is dropped', wa.breach({ at: 0, position: [0, 0, 0], material: 'concrete', mass: 1 }, 4001) === false && sent.length === 1, `${sent.length} sent`);
+      const throws = (f) => { try { f(); return false; } catch (e) { return true; } };
+      check('a breach of no known material, no position or no mass throws',
+        throws(() => wa.breach({ at: 0, position: [0, 0, 0], material: 'glass', mass: 1 }, 0))
+        && throws(() => wa.breach({ at: 0, position: [0, 0], material: 'concrete', mass: 1 }, 0))
+        && throws(() => wa.breach({ at: 0, position: [0, 0, 0], material: 'concrete', mass: 0 }, 0)), 'all three');
+      wa.flow(3, 1, 2, 3, 2500);
+      check('a flow is a breachflow source with its discharge as its drive', wa.src[1] === KINDS.indexOf('breachflow') && wa.src[SOURCE_STRIDE - 1] === 2500, Array.from(wa.src.slice(0, SOURCE_STRIDE)).join(','));
+      check('a negative discharge throws', throws(() => wa.flow(3, 0, 0, 0, -1)), '');
+      /* And every breach: twelve seeds each, its share, its loudest 3 s,
+       * and two alike not the same samples. */
+      for (const id of ['breach-concrete', 'breach-steel', 'breach-transformer']) {
+        const sc = SCENES[id];
+        const runs = [];
+        for (let seed = 1; seed <= 12; seed += 1) {
+          runs.push(await renderScene({ ...sc, booms: [{ ...sc.booms[0], seed }] }));
+        }
+        const ms = runs.map((r) => measure(r.channels, r.rate));
+        const harsh = Math.max(...ms.map((m) => m.harshShareA));
+        const st = Math.max(...ms.map((m) => m.lufsShortMax));
+        const mm = Math.max(...ms.map((m) => m.lufsMomentaryMax));
+        check(`${id}, twelve seeds, 2 to 5 kHz at most ${BARS.harshShareAMax} percent`, harsh <= BARS.harshShareAMax, `worst ${harsh}%`);
+        check(`${id}, twelve seeds, loudest 3 s at most ${BARS.shortMax} and 400 ms at most ${BARS.boomMomentaryMax} LUFS`, st <= BARS.shortMax && mm <= BARS.boomMomentaryMax, `worst ${st}, ${mm} LUFS`);
+        const cb = bestCorrelation(mono(runs[0]), mono(runs[1]));
+        check(`${id}: two alike correlate at most ${BARS.repeatCorrMax}`, cb <= BARS.repeatCorrMax, cb.toFixed(3));
+      }
       /* The load guard's hot path, forced: a budget no machine meets, so
        * it sheds every step; the war must still sound, clean, and cost
        * less than at full detail. */
@@ -446,7 +496,7 @@ async function main() {
       /* And two engines: the same kind on the same circle, two ids. */
       for (const kind of ['strike', 'fpv', 'boat', 'car', 'bus']) {
         const sc = calibrationScene(kind);
-        const other = { ...sc, frames: sc.frames.map((f) => ({ ...f, src: f.src.map((v, i) => (i % 8 === 0 ? v + 1 : v)) })) };
+        const other = { ...sc, frames: sc.frames.map((f) => ({ ...f, src: f.src.map((v, i) => (i % SOURCE_STRIDE === 0 ? v + 1 : v)) })) };
         const [e, f] = await Promise.all([renderScene(sc), renderScene(other)]);
         const ce = bestCorrelation(mono(e), mono(f), 960);
         check(`two ${kind} engines correlate at most ${BARS.repeatCorrMax}`, ce <= BARS.repeatCorrMax, `${ce.toFixed(3)}`);

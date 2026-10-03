@@ -5,7 +5,7 @@
  * takes into the war (docs/WARFARE-PLAN.md; the war itself is the room's,
  * edge/rooms/war.js).
  *
- * THE STATE is { v: 1, missions, earned, owned, equipped }:
+ * THE STATE is { v: 1, missions, earned, owned, equipped, films }:
  *
  *   missions  { missionId: { stars 0..3, won, credits } }, the best of
  *             every result the room gave for that mission: most stars, won
@@ -15,6 +15,9 @@
  *   equipped  { warhead, speed }: the warhead carried and whether the
  *             faster airframe is on. Every rack upgrade owned is always
  *             carried, so the rack is not a choice.
+ *   films     { filmId: version }: the newest cut of each intro film this
+ *             pilot has watched to its end (src/share/war/film.js), which
+ *             makes it skippable (docs/campaign/INTROS.md section 3)
  *
  * CREDITS TO SPEND are earned less what owned cost: spending is not a
  * number of its own but the prices paid, so two computers that bought
@@ -24,7 +27,7 @@
  *
  * THE MERGE (mergeCampaign) is what a signed in pilot's two computers do
  * with two copies: the most stars per mission, the higher earned total,
- * the union of owned upgrades. Two computers that each spent the same
+ * the union of owned upgrades, the newer seen cut of each film. Two computers that each spent the same
  * credits on different things keep both: the balance goes below zero and
  * nothing more can be bought until it is earned back, which is the one
  * outcome that loses neither purchase. An earned total is the higher of
@@ -130,7 +133,7 @@ const ID = /^[a-z0-9-]{1,40}$/;
 
 export function emptyCampaign() {
   return {
-    v: 1, missions: {}, earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false },
+    v: 1, missions: {}, earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {},
   };
 }
 
@@ -157,6 +160,25 @@ export function cleanCampaign(raw) {
     }
   }
   out.equipped = equippable(out.owned, isRecord(raw.equipped) ? raw.equipped : {});
+  if (isRecord(raw.films)) {
+    for (const [id, version] of Object.entries(raw.films)) {
+      if (ID.test(id)) {
+        out.films[id] = whole(version);
+      }
+    }
+  }
+  return out;
+}
+
+/* Whether this pilot has watched cut `version` of film `id` to its end. */
+export function seenFilm(state, id, version) {
+  return (state.films[id] ?? -1) >= version;
+}
+
+/* The state with film `id`'s cut `version` watched. */
+export function markSeen(state, id, version) {
+  const out = cleanCampaign(state);
+  out.films[id] = Math.max(out.films[id] ?? 0, whole(version));
   return out;
 }
 
@@ -294,6 +316,9 @@ export function mergeCampaign(incoming, held) {
   /* Always allowed: the incoming side owned what it equipped, and the
    * union owns at least that. */
   out.equipped = equippable(out.owned, a.equipped);
+  for (const id of [...new Set([...Object.keys(a.films), ...Object.keys(b.films)])].sort()) {
+    out.films[id] = Math.max(a.films[id] ?? 0, b.films[id] ?? 0);
+  }
   return out;
 }
 

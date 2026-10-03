@@ -11,9 +11,10 @@
  *
  *     SIM_GPU=1 node scripts/itaipu-views.js OUT_DIR [--views=aerial-dam,chute] [--time=night] [--down=yard-right,intake-3]
  *
- * --time (default day) is the map's own option (src/maps/itaipu.js
- * options.time, look/index.js): night's files take a `-night` suffix so
- * a day and a night run can share one round folder. A night run also
+ * --time (default day; morning, noon, golden or night) is the map's own
+ * option (src/maps/itaipu.js options.time, look/light.js TIMES): any
+ * time but day's files take its name as a suffix (`-night`, `-golden`)
+ * so the runs can share one round folder. A night run also
  * shoots the NIGHT views, which judge the lit towns (look/night.js) and
  * have no photograph; a day run never does.
  *
@@ -218,14 +219,15 @@ const outDir = resolve(positional[0]);
 if (outDir === root || outDir.startsWith(`${root}/`)) {
   throw new Error(`itaipu-views: ${outDir} is inside the repository; renders go outside it`);
 }
-if (opts.time !== 'day' && opts.time !== 'night') {
-  throw new Error(`itaipu-views: --time is 'day' or 'night', got ${opts.time}`);
+const TIMES = ['day', 'morning', 'noon', 'golden', 'night'];
+if (!TIMES.includes(opts.time)) {
+  throw new Error(`itaipu-views: --time is one of ${TIMES.join(', ')}, got ${opts.time}`);
 }
 const ALL = opts.time === 'night' ? [...VIEWS, ...NIGHT_VIEWS] : VIEWS;
 const wanted = opts.views ? opts.views.split(',') : ALL.map((v) => v.id);
 const unknown = wanted.filter((id) => !ALL.some((v) => v.id === id));
 if (unknown.length) {
-  throw new Error(`itaipu-views: no view ${unknown.join(', ')}${opts.time === 'day' ? ' (the night views are --time=night only)' : ''}`);
+  throw new Error(`itaipu-views: no view ${unknown.join(', ')}${opts.time !== 'night' ? ' (the night views are --time=night only)' : ''}`);
 }
 const down = opts.down ? opts.down.split(',') : [];
 if (down.length && opts.time !== 'night') {
@@ -243,7 +245,7 @@ const power = (() => {
 /* Day's own files keep their bare names (every earlier round's tooling
  * reads them); night's take a suffix so a day and a night run can share
  * one round folder without one overwriting the other. */
-const suffix = `${opts.time === 'night' ? '-night' : ''}${down.length ? '-out' : ''}`;
+const suffix = `${opts.time === 'day' ? '' : `-${opts.time}`}${down.length ? '-out' : ''}`;
 await mkdir(outDir, { recursive: true });
 
 /*
@@ -335,7 +337,7 @@ const seed = [`try {
   } catch (e) { /* Storage refused; the run would shoot the wrong preset, and the check below says so. */ }`];
 
 const page = await openPage({
-  root, width: 1600, height: 900, url: `/index.html?map=itaipu${opts.time === 'night' ? '&time=night' : ''}`, seed,
+  root, width: 1600, height: 900, url: `/index.html?map=itaipu${opts.time === 'day' ? '' : `&time=${opts.time}`}`, seed,
 });
 const stop = () => page.close().finally(() => process.exit(1));
 process.once('SIGTERM', stop);

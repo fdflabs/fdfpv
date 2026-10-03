@@ -63,7 +63,9 @@ import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 
 const AIRFRAME = 'striker2500';
-const itaipu1 = MISSIONS['itaipu-1'];
+/* The drill: mission 1 as this check was written against, before First
+ * Light made it a story (src/share/war/missions/itaipu-drill.js). */
+const itaipu1 = MISSIONS['itaipu-drill'];
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'war-fuze');
 
@@ -176,7 +178,7 @@ try {
   await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
   await page.until("window.__craftState && window.__craftState().mode === 'flight'", 400000);
   console.log(`  info  room ${code}, flying`);
-  await page.evaluate("window.__warDo('start', 'itaipu-1')");
+  await page.evaluate("window.__warDo('start', 'itaipu-drill')");
   await page.until("window.__war().view.state === 'live'", 30000 + (itaipu1.prepMs ?? 0));
   await page.evaluate('window.__avionics.ai(true); true');
   const { view, seat } = await page.evaluate('window.__war()');

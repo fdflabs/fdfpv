@@ -74,7 +74,7 @@ export const FENCE = { height: 2.4, piece: 25 };
  * middle. */
 const FIRES = 5;
 
-function inside(poly, x, z) {
+export function inside(poly, x, z) {
   let c = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i, i += 1) {
     const [ax, az] = poly[i];

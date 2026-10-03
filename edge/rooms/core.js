@@ -52,6 +52,7 @@ import { RoomRace } from './race.js';
 import { RoomTag } from './tag.js';
 import { RoomSafety } from './safety.js';
 import { TYPE_PARTS, TYPE_STREAMER, WAR_JOIN } from '../../src/share/roomwire.js';
+import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/modes.js';
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
@@ -392,14 +393,17 @@ export class RoomCore {
   }
 
   /* The games a room can run: whether each is on, its players' seats, and
-   * the fewest of them here that keep it going. */
+   * the fewest of them here that keep it going (the mode registry's: a
+   * room made for a game plays it alone too, the owner 2026-10-02: "ready
+   * to go either single or multi"; combat and tag started in passing in
+   * another room still need two). */
   games(now) {
     const r = this.race.race;
     return [
-      { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: 1, end: () => this.race.end(this) },
-      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: 2, end: () => this.tag.abandon(this, now) },
-      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: 2, end: () => this.combat.stop(this) },
-      { id: 'war', on: this.war.on(), players: this.war.players(this), min: 1, end: () => this.war.abandon(this, now) },
+      { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: minPlayersFor('race', this.meta.mode), end: () => this.race.end(this) },
+      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: minPlayersFor('tag', this.meta.mode), end: () => this.tag.abandon(this, now) },
+      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: minPlayersFor('combat', this.meta.mode), end: () => this.combat.stop(this) },
+      { id: 'war', on: this.war.on(), players: this.war.players(this), min: minPlayersFor('war', this.meta.mode), end: () => this.war.abandon(this, now) },
     ];
   }
 
@@ -493,7 +497,7 @@ export class RoomCore {
      * listed as the war's and a quick join never lands in one (lobby.js),
      * so nobody is in one without having chosen it and passed the consent
      * (docs/WARFARE-PLAN.md section 9, as the owner opened it 2026-10-01). */
-    if (this.meta.public && start === 'war' && this.meta.mode !== 'war') {
+    if (this.meta.public && start && modeById(start).publicOnlyWhenMadeFor && !madeFor(this.meta.mode, start)) {
       return refuse('private');
     }
     if (s.seat !== this.host()) {
@@ -536,6 +540,10 @@ export class RoomCore {
         game: 'war', state: this.war.match.state === 'live' ? 'on' : 'countdown',
         wave: Math.min(this.war.match.wave + 1, mission.waves.length), waves: mission.waves.length,
       };
+    }
+    /* A free flight room flying since its lobby's start. */
+    if (modeOfRoom(this.meta.mode)?.openEnded && this.gameLobby.live) {
+      return { game: null, state: 'on' };
     }
     return {
       game: this.meta.mode ?? null, state: 'waiting', ...(this.gameLobby.open(this) ? { ready: this.gameLobby.ready.size } : {}),
@@ -673,7 +681,7 @@ export class RoomCore {
     }
     /* A room made for the war seats only a build that asks the war's
      * consent first (src/share/roomwire.js WAR_JOIN). */
-    if (this.meta.mode === 'war' && !(Number.isInteger(msg.war) && msg.war >= WAR_JOIN)) {
+    if (modeOfRoom(this.meta.mode)?.consent && !(Number.isInteger(msg.war) && msg.war >= WAR_JOIN)) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
     const token = typeof msg.token === 'string' && /^[0-9a-f]{32}$/.test(msg.token) ? msg.token : null;
@@ -909,7 +917,8 @@ export class RoomCore {
     /* Started by the room's host (Phase 4), in a public room as in a
      * private one since the room browser gave public rooms a host. */
     if (msg.type === 'track' || msg.type === 'race') {
-      return [...first, ...this.race.message(this, conn, s, msg, now)];
+      /* A race lobby's times wait for its track and its grid. */
+      return [...first, ...this.race.message(this, conn, s, msg, now), ...this.gameLobby.rearm(this, now), ...this.wake()];
     }
     return [];
   }

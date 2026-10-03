@@ -85,13 +85,13 @@ const loadingSrc = await readFile(join(root, 'src/ui/loading.js'), 'utf8');
  * 2. THE SIM STAGE IS NOT ANNOUNCED WHILE THE BOARD IS THE THING BEING
  *    WAITED FOR.
  *
- * loading.progress(id) starts a stage if it is not the current one, so an
+ * loading.report(id) starts a stage if it is not the current one, so an
  * ungated progress callback on a fetch that overlaps the board would put
  * "Flight controller" on screen while the board was the holdup. That is the
  * same dishonesty the fix exists to remove.
  */
 {
-  const gated = /if \(simStageLive\) \{\s*\n\s*loading\.progress\('sim'/.test(mainSrc);
+  const gated = /if \(simStageLive\) \{\s*\n\s*loading\.report\('sim'/.test(mainSrc);
   check(
     'the sim stage is not announced early',
     gated && mainSrc.includes('simStageLive = true;'),

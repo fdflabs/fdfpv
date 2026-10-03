@@ -22,7 +22,7 @@
 
 import {
   ACT1, UPGRADES, applyResult, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
-  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, mergeCampaign, spent, starsOf, unlocked,
+  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, seenFilm, spent, starsOf, unlocked,
 } from '../src/game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../src/share/campaignwar.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -126,6 +126,15 @@ check('credits are earned less spent', credits(m) === m.earned - 900, `${credits
 check('credits can go below zero after a merge, and nothing is then for sale', credits(m) < 0 && cannotBuy(m, 'speed') === 'credits');
 check('the incoming side\'s equipped wins', m.equipped.warhead === 'wide');
 check('merge is idempotent', same(mergeCampaign(m, m), m));
+{
+  /* The intro films seen (docs/campaign/INTROS.md section 3). */
+  const one = markSeen(fresh, '2030', 2);
+  check('a film is unseen until marked, then seen at that cut and not at a newer one', !seenFilm(fresh, '2030', 1) && seenFilm(one, '2030', 2)
+    && seenFilm(one, '2030', 1) && !seenFilm(one, '2030', 3));
+  check('a later build\'s film survives a clean, junk does not', same(cleanCampaign({ films: { 'film-9': 4, 'BAD ID': 1, x: 'y' } }).films, { 'film-9': 4, x: 0 }));
+  const merged = mergeCampaign(markSeen(fresh, 'a', 3), markSeen(markSeen(fresh, 'a', 1), 'b', 2));
+  check('merge keeps the newer cut of each film seen on either computer', same(merged.films, { a: 3, b: 2 }));
+}
 check('merge commutes on everything but equipped', same({ ...mergeCampaign(phone, pc), equipped: null }, { ...m, equipped: null }));
 check('merging with nothing keeps everything', same(mergeCampaign(pc, null), cleanCampaign(pc)) && same(mergeCampaign(null, pc).missions, pc.missions));
 
