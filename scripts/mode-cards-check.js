@@ -88,7 +88,7 @@ async function shot(page, name) {
   console.log(`  shot ${path}`);
 }
 
-const NAMES = 'Track mode,Free Flight,Toilet paper combat,Catch the Ace!,Defend the Paraná';
+const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Defend the Paraná';
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -227,7 +227,7 @@ try {
     await a.sleep(150);
     walk.push(await onCard(a));
   }
-  check('Right walks all five cards and Left steps back to combat', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Toilet paper combat`, walk.join(' > '));
+  check('Right walks all five cards and Left steps back to combat', walk.join('>') === `${NAMES.split(',').join('>')}>Catch the Ace!>Streamer Combat`, walk.join(' > '));
 
   /* TOILET PAPER COMBAT: A's one press, the keyboard's. */
   await a.tap('Enter');
@@ -236,7 +236,7 @@ try {
   const la = await a.evaluate(LOBBY_OF);
   const code = la.code;
   check('Enter on it, one press: A is in the LOBBY of a public room made for combat, Ready under the cursor',
-    la.title === 'LOBBY' && la.public && la.mode === 'combat' && /Toilet paper combat/.test(la.line) && la.here === 'friends-lobby-ready', JSON.stringify(la));
+    la.title === 'LOBBY' && la.public && la.mode === 'combat' && /Streamer Combat/.test(la.line) && la.here === 'friends-lobby-ready', JSON.stringify(la));
   check('and no free flight, no other game: no Fly, no world, no race, tag or war rows',
     !la.rows.some((r) => r === 'fly' || /^friends-(tag|race|war|combat)-/.test(r || '')), la.rows.join());
   await shot(a, 'combat-lobby');
@@ -495,7 +495,7 @@ try {
     (await g.evaluate(HERE))[0] === 'update-reload' && (await g.evaluate(BAR)).lit, (await g.evaluate(HERE)).join());
   await g.tap('ArrowDown');
   await g.sleep(150);
-  check('and Down goes back to the first card, unlit', (await onCard(g)) === 'Track mode' && !(await g.evaluate(BAR)).lit);
+  check('and Down goes back to the first card, unlit', (await onCard(g)) === 'Track Day' && !(await g.evaluate(BAR)).lit);
   await g.tap('ArrowUp');
   await g.sleep(150);
   await g.evaluate('(() => { window.__beforeReload = true; return true; })()');

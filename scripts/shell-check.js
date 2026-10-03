@@ -1418,7 +1418,7 @@ const BEHAVIOUR = `(() => {
        * that it is not a menu. Every racing quad is behind the first and
        * every fixed wing behind the second; the owner retired the five
        * inch's Freestyle card on 2026-09-25. */
-      asksWays: gate.length === 2 && gate.join() === 'Track mode,Free Flight'
+      asksWays: gate.length === 2 && gate.join() === 'Track Day,Free Flight'
         && gateItems.filter((it) => !it.card).length === 0,
       asCards: cards.length === 2 && cards.every((c) => c.shot && c.drawn),
       modeSetGate,
