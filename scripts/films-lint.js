@@ -20,6 +20,10 @@
  *             screen, every HERO_STEP_MS of its window (the whole shot by
  *             default): a group that is dots until its last frame fails
  *   anchors   every anchor of every shot inside the shot
+ *   scope     a SCOPE shot's groups the film's, each contact on the scope
+ *             (inside its rim) at its pass, which is checked there and
+ *             not in the camera's frame the scope covers, and its marks'
+ *             keys in both string tables
  *   aircraft  every aircraft a film shows one of the war's (configs/
  *             airframes.js WAR_AIRFRAMES: the owner, 3 October, "only the
  *             war ones should be shown")
@@ -194,6 +198,8 @@ for (const film of Object.values(FILMS)) {
       ...(def.fade ?? []).map((x) => x[0]),
       ...(def.camera?.from != null ? [def.camera.from] : []),
       ...(def.camera?.to != null ? [def.camera.to] : []),
+      ...(def.scope?.appear ?? []),
+      ...(def.outline ? [def.outline.from ?? 0, def.outline.to ?? { at: 'end' }] : []),
     ];
     for (const a of anchors) {
       const ms = anchor(a, s);
@@ -204,6 +210,16 @@ for (const film of Object.values(FILMS)) {
     for (const [name, c] of Object.entries(def.cast ?? {})) {
       if (!film.cast[c.as ?? name]) {
         fail(`${film.id} ${s.id}: no cast member ${c.as ?? name}`);
+      }
+    }
+    for (const g of def.scope?.groups ?? []) {
+      if (!(film.agents ?? []).some((x) => x.id === g)) {
+        fail(`${film.id} ${s.id}: the scope shows no agents ${g}`);
+      }
+    }
+    for (const key of [...(def.scope?.marks ?? []).map((m) => m.key), ...(def.scope ? ['war.scope.title'] : [])]) {
+      if (!(key in en) || !(key in es)) {
+        fail(`${film.id} ${s.id}: the scope's key ${key} is not in both string tables`);
       }
     }
     for (const x of def.titles ?? []) {
@@ -245,8 +261,17 @@ for (const film of Object.values(FILMS)) {
     }
     /* And on screen: the pass point inside the shot's 2.39 frame then
      * (INTROS section 0, fault 2: the old closing wave sat outside its
-     * telephoto's frame). */
+     * telephoto's frame); on a SCOPE shot, inside the scope's rim. */
     const at = g.pass.seen != null ? anchor(g.pass.seen, shot) : a.pass.at - shot.start;
+    const sc = film.shots[t.shots.indexOf(shot)].scope;
+    if (sc) {
+      const p = poseAt(a.plan, shot.start + at).p;
+      const r = Math.hypot(p[0] - sc.at[0], p[2] - sc.at[1]) / sc.r;
+      if (r > 1) {
+        fail(`${film.id} agents ${a.group}: at ${(at / 1000).toFixed(2)} s into ${shot.id} it is ${r.toFixed(2)} rims from the scope's centre, off the scope`);
+      }
+      continue;
+    }
     const cam = cameraAt(shot, at, resolver(film, t, placed, shot), t.shots.indexOf(shot));
     const off = offAxis(cam, poseAt(a.plan, shot.start + at).p);
     if (off.h > off.hHalf || off.v > off.vHalf) {

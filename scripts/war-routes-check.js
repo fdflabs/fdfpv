@@ -132,9 +132,12 @@ const AZ_STEPS = 9;
  * azimuth window: [n, k, err, route, az]. */
 function variants(w, sizes) {
   const out = [];
+  /* A working set's targets are any of its `from`, whatever n is: every
+   * one of them is flown to (wavesOf). */
+  const many = (n) => (w.anyOf ? Math.max(n, w.target.length) : n);
   const azs = Array.isArray(w.az) ? Array.from({ length: AZ_STEPS }, (_, i) => w.az[0] + ((w.az[1] - w.az[0]) * i) / (AZ_STEPS - 1)) : [undefined];
   for (const n of new Set(sizes)) {
-    for (let k = 0; k < n; k += 1) {
+    for (let k = 0; k < many(n); k += 1) {
       for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
         for (const route of [w.route].flat()) {
           for (const az of azs) {
@@ -149,14 +152,19 @@ function variants(w, sizes) {
 
 /* A mission's waves with every choice a seed may make laid out: one row a
  * kind (a list of kinds, or a mix's), each with every route it may fly (a
- * family, or a sector's, src/share/war/stages.js). */
+ * family, or a sector's, src/share/war/stages.js), and a working set's
+ * target every target the set may be drawn from. */
 function wavesOf(mission) {
   return mission.waves.flatMap((w) => {
     const kinds = w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat();
     const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
       ? [w.route.sector].flat().flatMap((sec) => mission.sectors[sec])
       : [w.route].flat();
-    return kinds.map((kind) => ({ ...w, kind, route: routes }));
+    const set = w.target && w.target.set;
+    const target = set ? mission.sets[set].from : w.target;
+    return kinds.map((kind) => ({
+      ...w, kind, route: routes, target, anyOf: Boolean(set),
+    }));
   });
 }
 

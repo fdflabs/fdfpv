@@ -147,6 +147,7 @@ import { createGrid as createWarGrid } from './share/war/grid.js';
 import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro } from './render/warintro.js';
 import { filmFor } from './share/war/films/index.js';
+import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -3732,10 +3733,13 @@ export async function boot({
     if (briefing && warIntroShown !== roomWar.match() && worldUp) {
       warIntroShown = roomWar.match();
       const briefAt = v.briefAt;
+      /* The match's working sets, for a shot that outlines them. */
+      const targets = WAR_MISSIONS[v.mission]?.targets ?? {};
       warIntroPlay(v.id, {
         mission: v.mission,
         clock: () => roomLinkState.roomNow() - briefAt,
         hold: true,
+        named: Object.values(v.sets ?? {}).flat().filter((id) => targets[id]).map((id) => targets[id].at),
         onSkip: () => {
           const w = roomLinkState.state().welcome;
           if (w && w.host === w.seat) {
@@ -4127,8 +4131,9 @@ export async function boot({
     /* A spectator's markers are the watched teammate's: its distances,
      * and a Hunter on it framed, but not said as on this pilot. */
     const watched = warWatch();
+    warMarkers.setNamed(v.sets);
     const eye = watched ? { x: watched.drawnPose.px, y: watched.drawnPose.py, z: watched.drawnPose.pz } : pCurr;
-    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched)) && !watched) {
+    if (warMarkers.update(roomWar.live() && mode === 'flight' && ui.screen === 'flight' ? live : null, now, events, roomWar.mission(), eye.x, eye.y, eye.z, watched ? watched.seat : roomWar.seat(), warFuzeOf(v, watched), spilling(v.gates, now)) && !watched) {
       const radio = audio.warRadio ? audio.warRadio.status() : null;
       if (!radio || (radio.speaking !== 'wave-hunter' && !radio.queue.includes('wave-hunter'))) {
         warSay(['wave-hunter']);
