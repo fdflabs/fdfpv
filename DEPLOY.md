@@ -10,14 +10,15 @@ working way to host the board somewhere else.
 
 | Resource | Where | How |
 | --- | --- | --- |
-| Simulator | GitHub Pages, https://fdflabs.github.io/fdfpv/ | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
-| Tracks server | The owner's VM, https://129.151.39.48/api | `deploy/vm/deploy.sh`, see `deploy/vm/README.md`. The Cloudflare Worker plus D1 below is still deployed, as the way back. |
-| Rooms server | The owner's VM, https://129.151.39.48/v2 | The same deploy. `edge/rooms/README.md` is the code; the Worker `fdfpv-rooms` is still deployed. |
-| Board | The owner's VM, https://129.151.39.48/board/ | `deploy/vm/deploy-board.sh` with a checkout of fdflabs/fdfpv-leaderboard beside this one, see `deploy/vm/README.md`. Postgres 16 on the same VM. Tracks and lap times, bug tickets, site statistics, live ghost rooms. |
+| Simulator | GitHub Pages, https://paraguayandronecombatsimulator.com (CNAME; https://fdflabs.github.io/fdfpv/ redirects there) | `.github/workflows/pages.yml` on every push to `main`. Nothing to build. |
+| Tracks server | The owner's VM, https://api.paraguayandronecombatsimulator.com/api (and https://129.151.39.48/api) | `deploy/vm/deploy.sh`, see `deploy/vm/README.md`. The Cloudflare Worker plus D1 below is still deployed, as the way back. |
+| Rooms server | The owner's VM, https://api.paraguayandronecombatsimulator.com/v2 (and the address) | The same deploy. `edge/rooms/README.md` is the code; the Worker `fdfpv-rooms` is still deployed. |
+| Board | The owner's VM, https://api.paraguayandronecombatsimulator.com/board/ (and the address) | `deploy/vm/deploy-board.sh` with a checkout of fdflabs/fdfpv-leaderboard beside this one, see `deploy/vm/README.md`. Postgres 16 on the same VM. Tracks and lap times, bug tickets, site statistics, live ghost rooms. |
 
 The simulator finds the board through `PRODUCTION_BOARD_ORIGIN` in
-`src/share/board.js` (https://129.151.39.48/board), and the board finds the
-simulator through `SIM_ORIGIN` in its unit (https://fdflabs.github.io/fdfpv).
+`src/share/board.js` (the API name's /board, `src/share/api.js`), and the
+board finds the simulator through `SIM_ORIGIN` in its unit
+(https://paraguayandronecombatsimulator.com).
 The Cloudflare Worker under `edge/` is not deployed: it joined three
 deploys under one domain, fdfpv.example, which never existed.
 
@@ -93,7 +94,8 @@ The order:
 3. With the DNS above in place, set the custom domain in the repository's
    Pages settings to paraguayandronecombatsimulator.com and tick Enforce
    HTTPS once the certificate is issued, and merge the CNAME pull request
-   in the same sitting (so a later deploy keeps the domain). From this
+   in the same sitting (Settings is the switch; the file records it, and
+   the canonical and og URLs and the board's links change with it). From this
    moment /fdfpv/ redirects to the domain, path and query kept.
 4. Copy `deploy/landing-move.html` to fdflabs/fdfpv-landing as
    `move/index.html` and let its Pages deploy. Do it right after step 3:
