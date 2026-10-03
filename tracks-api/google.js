@@ -7,8 +7,13 @@
  * file checks that token the way Google's own documentation lists
  * (developers.google.com/identity/gsi/web/guides/verify-google-id-token):
  * the signature against Google's published keys, `iss` is Google, `aud` is
- * this site's client id, and `exp` has not passed. There is no client
- * secret and no redirect: the token is the whole of the exchange.
+ * one of this site's client ids, and `exp` has not passed. There is no
+ * client secret and no redirect: the token is the whole of the exchange.
+ *
+ * MORE THAN ONE CLIENT ID is accepted so a client id can move: accounts.js
+ * parses GOOGLE_CLIENT_ID as a comma separated list and passes it here as
+ * clientIds, so a page loaded before a deploy, still holding an old id,
+ * keeps signing in until it is reloaded.
  *
  * WebCrypto, not node:crypto, because worker.js is written to run on
  * Cloudflare as well as on Node (tracks-api/node.js), and both have
@@ -116,8 +121,8 @@ export function googleKeys({ url = GOOGLE_JWKS_URL, fetchFn = (...a) => fetch(..
  * { sub } for a good token, or { error } saying what was wrong with it.
  * Only a failure to reach Google's keys throws.
  */
-export async function verifyGoogleIdToken(token, { clientId, key, nowS = Math.floor(Date.now() / 1000) }) {
-  if (!clientId) {
+export async function verifyGoogleIdToken(token, { clientIds, key, nowS = Math.floor(Date.now() / 1000) }) {
+  if (!Array.isArray(clientIds) || clientIds.length === 0) {
     return { error: 'no client id' };
   }
   if (typeof token !== 'string' || token.length > TOKEN_MAX_CHARS) {
@@ -156,7 +161,7 @@ export async function verifyGoogleIdToken(token, { clientId, key, nowS = Math.fl
     return { error: 'wrong issuer' };
   }
   /* A token for several audiences is not one this site asked for. */
-  if (claims.aud !== clientId) {
+  if (typeof claims.aud !== 'string' || !clientIds.includes(claims.aud)) {
     return { error: 'wrong audience' };
   }
   if (!Number.isFinite(claims.exp) || claims.exp + SKEW_S <= nowS) {

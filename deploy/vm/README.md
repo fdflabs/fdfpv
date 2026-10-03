@@ -218,8 +218,13 @@ tables in tracks-api/migrations/0002_accounts.sql, applied by itself on
 the first start after the deploy). It needs two things, both set by the
 files here:
 
-- `GOOGLE_CLIENT_ID`, public, in `fdfpv-tracks.service`; the same string
-  as `GOOGLE_CLIENT_ID` in `src/share/account.js`.
+- `GOOGLE_CLIENT_ID`, public, in `fdfpv-tracks.service`: a comma separated
+  list of client ids (`tracks-api/accounts.js` `parseClientIds`), so the
+  id can move. `src/share/account.js` signs in with one id, the first
+  (newest) on this list; a page loaded before a deploy, still holding an
+  older id, keeps signing in as long as that id stays on the list too.
+  Drop an old id from the list once no page in the wild can still be
+  holding it.
 - `ACCOUNTS_SECRET`, which seals the pilot keys the accounts carry,
   generated on the VM by `deploy.sh` step 4b into
   `/etc/fdfpv/accounts.env` (root, mode 600), read by the tracks unit
@@ -227,8 +232,9 @@ files here:
   cannot open the keys sealed with the old one. Back it up with
   `tracks.db`, together.
 
-Without either, every `/api/account` route answers 503 and the rest of
-the tracks server is as it was. The server fetches Google's keys from
+Without a client id, or without `ACCOUNTS_SECRET`, every `/api/account`
+route answers 503 and the rest of the tracks server is as it was. The
+server fetches Google's keys from
 www.googleapis.com, so the VM needs outbound HTTPS (it has it; dnf uses
 it). The rooms unit asks the tracks server about a signed in pilot's
 session over loopback (`ACCOUNTS_ORIGIN` in `fdfpv-rooms.service`); if

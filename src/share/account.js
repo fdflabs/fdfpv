@@ -7,12 +7,14 @@
  * computers. The server's half, and what it keeps, is
  * tracks-api/accounts.js.
  *
- * GOOGLE_CLIENT_ID is the one place the client id lives (the server reads
- * the same value from its GOOGLE_CLIENT_ID). Empty, the whole feature is
- * hidden: no row in Pilot, no script from Google, nothing sent anywhere.
- * It is hidden too wherever this page talks to no tracks server (a page
- * off a loopback address without ?tracks=), since that is where accounts
- * live.
+ * GOOGLE_CLIENT_ID is the client id this page signs in with. The server
+ * reads its own GOOGLE_CLIENT_ID, a comma separated list, and accepts a
+ * token from any id on it, so an old id can keep working for a page
+ * loaded before a deploy while this one moves to a new id. Empty, the
+ * whole feature is hidden: no row in Pilot, no script from Google,
+ * nothing sent anywhere. It is hidden too wherever this page talks to no
+ * tracks server (a page off a loopback address without ?tracks=), since
+ * that is where accounts live.
  *
  * WHAT SIGNING IN DOES, in order:
  *
@@ -58,15 +60,16 @@ import { boardConfigured, boardOrigin } from './board.js';
 import { mergeBlobs, pickSynced, stampChanges } from './progressmerge.js';
 
 /*
- * THE CLIENT ID, Google Cloud project fdfpv-510202, a Web client whose
- * authorised JavaScript origins are https://paraguayandronecombatsimulator.com,
+ * THE CLIENT ID, Google Cloud project paraguayan-drone-combat-sim, a Web
+ * client whose authorised JavaScript origins are
+ * https://paraguayandronecombatsimulator.com,
  * https://www.paraguayandronecombatsimulator.com, https://fdflabs.github.io
  * and http://127.0.0.1:8080. The button's callback takes the ID token in
  * the page, so no redirect URI is involved. It is public by design: it
  * names this site to Google and grants nothing. Set it to '' to switch
  * sign-in off.
  */
-export const GOOGLE_CLIENT_ID = '533228474420-ij6t37upmahvcg96tava16ild8mdno4t.apps.googleusercontent.com';
+export const GOOGLE_CLIENT_ID = '684567545976-dqpf7tqf764rs0dp7l08it7usb33fo9m.apps.googleusercontent.com';
 
 const GUEST_KEY = 'webfpv.pilot.key.guest.v1';
 const SYNCED_KEY = 'webfpv.account.synced.v1';
