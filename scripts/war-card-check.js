@@ -232,7 +232,13 @@ async function toGate(page) {
 
 /* Flight Club, by a click on its card on home: the rooms panel is there. */
 async function toClub(p) {
-  await p.until("window.__ui.onGate() && document.querySelector('.gate-card-hub-club')", 60000).catch(() => {});
+  await p.until('window.__ui.onGate()', 60000).catch(() => {});
+  /* From another hub (a war room's Leave lands in Operations), home first. */
+  for (let i = 0; i < 2 && await p.evaluate("window.__ui.hub !== null && window.__ui.hub !== 'club'"); i += 1) {
+    await p.tap('Escape');
+    await p.sleep(400);
+  }
+  await p.until("window.__ui.hub === 'club' || document.querySelector('.gate-card-hub-club')", 10000).catch(() => {});
   if (await p.evaluate("window.__ui.hub !== 'club'")) {
     await click(p, '.gate-card-hub-club .gate-card-name');
     await p.until("window.__ui.hub === 'club'", 10000).catch(() => {});
