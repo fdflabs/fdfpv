@@ -13117,7 +13117,10 @@ export class Ui {
       /* A game's lobby is a card's one press (the owner, 2026-10-02), so
        * Back from it is back to the cards, out of the room, the card it
        * came from under the cursor (src/main.js onLobbyBack). */
-      if (this.warLobbyOn && this.onLobbyBack) {
+      /* Asked of the room (src/main.js inLobby), not of the panel: the
+       * panel is drawn on a later tick, and an Escape before it did
+       * nothing. */
+      if (this.inLobby && this.inLobby() && this.onLobbyBack) {
         this.onLobbyBack();
       }
       return;

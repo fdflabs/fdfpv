@@ -5316,6 +5316,8 @@ export async function boot({
     const phase = roomLinkState.state().phase;
     return phase === 'open' || phase === 'connecting';
   };
+  /* In a game's lobby, between its rounds, as the room says it now. */
+  ui.inLobby = () => Boolean(gameLobby());
 
   /*
    * OUT OF A ROOM, TO THE TITLE'S CARDS (the owner, 2026-10-02: Escape from
