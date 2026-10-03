@@ -57,8 +57,9 @@ const CHUTE_SPEED = 22;
  * the air it drags in turn white within a few tens of metres. */
 const AERATED_BY = 70;
 
-/* The jet under each radial gate. The gates stand GATE_OPEN off the sill
- * (dam/index.js SPILL.gateOpen) and their lips are JET_FROM down the
+/* The jet under each radial gate, drawn for a lip GATE_OPEN off the sill
+ * (the look's; the leaves stand at SPILL.gateOpen and the flood's lips
+ * set how much of it shows, uGate) and their lips JET_FROM down the
  * chute from the gate line (SPILL.gate's -6.5 plus the radial skin's sag
  * to its bottom edge, 1.7 m for RADIAL.r 21). The water leaves a gate
  * as deep as its opening, contracts to about 0.6 of it within a few
