@@ -31,8 +31,10 @@
  *     stepped on the clip's clock, stands at the step the live one stood
  *     at for each row looked at, forwards and back, with the same water
  *     to the bit at every snapshot step both kept (host.js hashes), the
- *     breach pouring through the gate (its flow, for the roar); and the
- *     live flood is not stepped or rewound while the replay plays
+ *     breach pouring through the gate (its flow, for the roar); while it
+ *     catches up it is not drawn or heard and the replay says so; and the
+ *     live flood steps on with the room meanwhile, never rewound, so it
+ *     stands at the room's clock when the replay closes
  *   - closed, the map is the live war's again, the newest live frame's
  *   - no page error
  *
@@ -65,10 +67,12 @@ import AT from '../src/share/war/itaipu-targets.js';
 import { DISTRICTS, districtIndex } from '../src/share/war/grid.js';
 import STRUCTURES from '../src/share/war/itaipu-chunks.js';
 import { openingOf } from '../src/share/war/damage.js';
+import { str } from '../src/strings/index.js';
 import { DELAY_MS } from '../src/sim/water/host.js';
 import { DT_MS } from '../src/maps/itaipu/water/flood.js';
 
 const MISSION = 'itaipu-4';
+const WATER_TEXT = str('replay.water_catching_up');
 const mission = MISSIONS[MISSION];
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -145,18 +149,31 @@ try {
   await a.evaluate('window.__warMapLog(true)');
   await a.sleep(1000);
 
-  /* What a room says, at the room ms it is said. */
+  /* What a room says, at the room ms it is said: `at` (and an opening's)
+   * stamped in the page as it is handed over, so no frame the page draws
+   * stands past it before hearing it, as the room's own messages are.
+   * Resolves the room ms stamped. */
   const now = () => a.evaluate('window.__rooms().roomNow');
-  const hear = (m) => a.evaluate(`window.__warHear(${JSON.stringify(m)})`);
+  const hear = (m) => a.evaluate(`(() => {
+    const m = ${JSON.stringify(m)};
+    const t = window.__rooms().roomNow;
+    if ('at' in m) {
+      m.at = t;
+    }
+    for (const o of m.openings || []) {
+      o.at = t;
+    }
+    window.__warHear(m);
+    return t;
+  })()`);
   const strike = mission.waves.find((w) => w.kind === 'strike');
   const born = (id, t) => hear({
     type: 'war', op: 'born', agents: [{ id, kind: 'strike', route: strike.route, t0: t, k: 0, n: 1, err: 0, target: strike.target }],
   });
   let t = await now();
-  await hear({
-    type: 'war', op: 'dead', ids: [], at: t, by: 0, why: 'arrive', p: AT['intake-3'].at, target: 'intake-3', hit: true,
+  const firstHit = await hear({
+    type: 'war', op: 'dead', ids: [], at: 0, by: 0, why: 'arrive', p: AT['intake-3'].at, target: 'intake-3', hit: true,
   });
-  const firstHit = t;
   await a.sleep(2000);
   t = await now();
   await born(9001, t - 4000);
@@ -189,10 +206,9 @@ try {
   /* Four of the gate's skin plates: the hole the room would send. */
   const torn = gate.chunks.map((c, i) => i).filter((i) => gate.chunks[i].r).slice(0, 4);
   const opening = openingOf('gate-4', gate, gate.chunks.map((c, i) => torn.includes(i)), t);
-  await hear({
-    type: 'war', op: 'damage', seq: 900, at: t, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 0, cut: [],
+  const breachAt = await hear({
+    type: 'war', op: 'damage', seq: 900, at: 0, target: 'gate-4', chunks: torn, fell: [], openings: [opening], down: false, health: 0.8, p: gate.chunks[torn[0]].c, by: 0, cut: [],
   });
-  const breachAt = t;
   /* Long enough for the water to pass several snapshot steps (host.js). */
   await a.sleep(9000);
 
@@ -203,7 +219,7 @@ try {
     liveNow && liveNow.targets['intake-3'] === 'fire' && liveNow.targets['yard-right'] === 'fire'
     && liveNow.levels[districtIndex('yard')] === 0 && liveNow.levels[districtIndex('hernandarias-w')] === 0
     && liveNow.targets['gate-4'] === 'smoke' && liveNow.broken.gone === torn.length && liveNow.broken.pieces.length > 0, describe(liveNow));
-  const WATER = "(() => { const w = window.__map().parts.water; return { live: w.flood, replay: w.replayFlood, flows: window.__mapFlows() }; })()";
+  const WATER = "(() => { const w = window.__map().parts.water; return { live: w.flood, replay: w.replayFlood, flows: window.__mapFlows(), water: window.__mapReplayWater(), room: window.__rooms().roomNow, toast: (() => { const v = window.__crashCam.live() ? window.__crashCam.h().view() : null; return v ? v.toast || null : null; })() }; })()";
   const waterLive = (await a.evaluate(WATER)).live;
   check('the live flood took the opening and stepped on', waterLive.state === 'ready' && waterLive.origin === breachAt && waterLive.step > 200,
     `${waterLive.state}, origin ${waterLive.origin}, step ${waterLive.step}`);
@@ -241,7 +257,7 @@ try {
     const ok = w && w.t === f.t && canon(w.targets) === canon(f.targets) && w.levels.every((x, i) => x === f.levels[i]) && sameMap(map, f);
     if (!ok) {
       wrong += 1;
-      misses.push(`row ${k} at ${f.t}: replay ${describe(w)} map ${describe(map)} live ${describe(f)}${map && map.broken.pieces !== f.broken.pieces ? ` pieces ${map.broken.pieces.slice(0, 120)} live ${f.broken.pieces.slice(0, 120)}` : ''}`);
+      misses.push(`row ${k} at ${f.t} (replay at ${w && w.t}, clip ${await a.evaluate(`window.__crashCam.h().clipTime(${k})`)} prev ${await a.evaluate(`window.__crashCam.h().clipTime(${k - 1})`)}): replay ${describe(w)} map ${describe(map)} live ${describe(f)}${map && map.broken.pieces !== f.broken.pieces ? ` pieces ${map.broken.pieces.slice(0, 120)} live ${f.broken.pieces.slice(0, 120)}` : ''}`);
     }
     shown.add(Object.keys(f.targets).join('+') || 'none');
   }
@@ -252,9 +268,24 @@ try {
     && [...shown].some((s) => s.includes('gate-4')),
     [...shown].join(' | '));
 
+  /* While the replay's flood catches up from the breach to the first
+   * row looked at, it is not drawn or heard, and the replay says so. */
+  const atOpen = (await a.evaluate(WATER)).live;
+  const holding = [];
+  const until = Date.now() + 3000;
+  while (Date.now() < until) {
+    const w = await a.evaluate(WATER);
+    holding.push({ drawn: w.water ? w.water.drawn : null, flows: (w.flows || []).length, toast: w.toast ? w.toast.text : '' });
+    if (w.water && w.water.drawn) {
+      break;
+    }
+  }
+  const held = holding.filter((x) => x.drawn === false);
+  check('while the replay\'s water catches up it is held, unheard, and the replay says so', held.length > 0
+    && held.every((x) => x.flows === 0 && x.toast === WATER_TEXT) && holding[holding.length - 1].drawn === true,
+  `${held.length} frames held, then ${holding[holding.length - 1].drawn ? 'drawn' : 'still held'}; ${JSON.stringify(held[0] || null)}`);
   /* The water: rows from just before the breach to the end, forwards
    * then back, each waited on until the replay's flood stands at it. */
-  const atOpen = (await a.evaluate(WATER)).live;
   const waterRows = [];
   for (const { k, f } of rows) {
     if (f.t > breachAt - 2000 && !waterRows.some((r) => Math.abs(r.f.t - f.t) < 1200)) {
@@ -264,13 +295,14 @@ try {
   const waterOrder = [...waterRows, ...waterRows.slice().reverse()];
   let dry = 0;
   let poured = 0;
+  let lastLive = atOpen.step;
   const wet = [];
   const waterMisses = [];
   for (const { k } of waterOrder) {
     await a.evaluate(`window.__crashCam.h().api.seek(window.__crashCam.h().clipTime(${k})); true`);
     const anim = await a.evaluate(`window.__crashCam.h().clipAnim(${k})`);
     const want = Math.max(0, Math.floor((anim - DELAY_MS - breachAt) / DT_MS));
-    await a.until(`(() => { const r = window.__map().parts.water.replayFlood; return r && r.state === 'ready' && r.step === ${want}; })()`, 20000).catch(() => {});
+    await a.until(`(() => { const r = window.__map().parts.water.replayFlood; const d = window.__mapReplayWater(); return r && r.state === 'ready' && r.step === ${want} && d && d.drawn; })()`, 20000).catch(() => {});
     const w = await a.evaluate(WATER);
     const r = w.replay;
     const common = Object.keys(r ? r.hashes : {}).filter((s) => s in atOpen.hashes);
@@ -289,10 +321,14 @@ try {
     if ((w.flows || []).some((x) => x.q > 0)) {
       wet.push(k);
     }
-    /* The live flood, meanwhile, as it stood when the replay opened. */
-    if (w.live.step !== atOpen.step || Object.keys(atOpen.hashes).some((s) => w.live.hashes[s] !== atOpen.hashes[s])) {
-      waterMisses.push(`row ${k}: the live flood moved, step ${w.live.step} from ${atOpen.step}`);
+    /* The live flood, meanwhile, on with the room's clock: never back,
+     * never rewound, and its water where it was. */
+    const liveWant = Math.floor((w.room - 100 - DELAY_MS - breachAt) / DT_MS);
+    if (w.live.step < lastLive || w.live.rewinds !== atOpen.rewinds || w.live.restarts !== atOpen.restarts || w.live.step < liveWant - 10
+      || Object.keys(atOpen.hashes).some((s) => s in w.live.hashes && w.live.hashes[s] !== atOpen.hashes[s])) {
+      waterMisses.push(`row ${k}: the live flood at step ${w.live.step} (from ${lastLive}, the room's ${liveWant}), rewinds ${w.live.rewinds} from ${atOpen.rewinds}`);
     }
+    lastLive = w.live.step;
   }
   console.log(`  info  water: ${waterOrder.length} rows, ${dry} before the water moved, ${poured} past a snapshot step, the breach flowing at ${wet.length}`);
   check('the replay\'s water stands where the live water stood at each row, to the bit at every snapshot both kept, forwards and back, the breach pouring',
@@ -302,8 +338,9 @@ try {
   await a.until("window.__craftState().mode === 'flight'", 10000);
   await a.sleep(500);
   const waterBack = await a.evaluate(WATER);
-  check('closed, the live flood is drawn and steps on, and the replay\'s is gone', waterBack.replay === null && waterBack.live.step >= atOpen.step,
-    `live step ${waterBack.live.step} from ${atOpen.step}`);
+  check('closed, the replay\'s flood is gone and the live one stands at the room\'s clock, nothing left to catch up', waterBack.replay === null
+    && waterBack.live.behind <= 10 && waterBack.live.rewinds === atOpen.rewinds,
+  `live step ${waterBack.live.step}, ${waterBack.live.behind} behind, rewinds ${waterBack.live.rewinds}`);
   const after = await a.evaluate('(() => { const l = window.__warMapLogged(); return { map: window.__warMap(), last: l[l.length - 1] }; })()');
   check('closed, the map is the live war\'s again', sameMap(after.map, after.last), `map ${describe(after.map)} live ${describe(after.last)}`);
   const errs = a.errors.filter((e) => !e.startsWith('network:'));
