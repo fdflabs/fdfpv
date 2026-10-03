@@ -41,6 +41,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { SPILL } from '../dam/index.js';
 import { CLASS } from './bed.js';
 
 /* Ground over this never carries the river, m: the river below the dam
@@ -53,6 +54,20 @@ const RIVER_MAX = 118;
  * of section 13's 2.5 M left (5 k on main, 2 October), sees the sheet at
  * some 1.9 km. */
 export const FAR_M = 1500;
+/*
+ * UNDER THE JETS. Off each bay's lip the flip bucket throws its water
+ * through the air into the plunge pool (spill.js draws the jets and the
+ * plume), and the rock under them is dry. The shallow water equations
+ * cannot throw water through the air: they carry it down that rock as a
+ * sheet a metre or so deep at 10 to 17 m/s, which drawn was a band of
+ * white water standing on the rock below the lips. So within each bay's
+ * width and JET_REACH m past its lip, ground over the pool's level
+ * (OVER_POOL m over the river's outline level) carries no drawn water;
+ * the solver still carries the flow there, so the river is the same.
+ */
+const JET_REACH = 120;
+const JET_SIDE = 5;
+const OVER_POOL = 0.5;
 const FAR_STRIDE = 4;
 /* A cell's water is counted over this depth, m, and drawn over DRAWN:
  * thinner, it is a film running over rock, which the jets off the
@@ -157,11 +172,21 @@ export function floodGeometry(THREE, bed) {
   const ground = [];
   const edge = [];
   const index = new Map();
+  /* Each bay's u range and lip (UNDER THE JETS), from its gates. */
+  const pool = bed.level[bed.names.indexOf('river')] + OVER_POOL;
+  const walls = [0, ...SPILL.dividers, SPILL.gates];
+  const bays = SPILL.bayEnds.map((end, b) => {
+    const mids = bed.gates.slice(walls[b], walls[b + 1]).map((g) => g.middle);
+    return {
+      u0: Math.min(...mids) - SPILL.gateWidth / 2 - JET_SIDE, u1: Math.max(...mids) + SPILL.gateWidth / 2 + JET_SIDE, end,
+    };
+  });
+  const underJets = (u, d, k) => bed.b[k] > pool && bays.some((b) => u >= b.u0 && u <= b.u1 && d >= b.end && d <= b.end + JET_REACH);
   /* A cell's vertex, made once; -1 for a cell the river never reaches. */
   const vertex = (k, u, d, ti, tj) => {
     if (index.has(k)) return index.get(k);
     const cls = bed.cls[k];
-    const skip = cls === CLASS.concrete || cls === CLASS.reservoir || bed.b[k] > RIVER_MAX || d < 0;
+    const skip = cls === CLASS.concrete || cls === CLASS.reservoir || bed.b[k] > RIVER_MAX || d < 0 || underJets(u, d, k);
     if (skip) {
       index.set(k, -1);
       return -1;
