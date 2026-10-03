@@ -385,6 +385,10 @@ export const TOKEN_GROUPS = [
   ['flight display', /^--(cream|sakura|amber|mint|slate|deep|panel|ink|ui-font)$/],
   ['firmware bench', /^--bf-[a-z-]+$/],
   ['hangar motion', /^--hg-(spring|ease)$/],
+  ['space', /^--sp-[1-7]$/],
+  ['radius', /^--radius-(frame|control)$/],
+  ['type role', /^--type-(display|name|read|mono)$/],
+  ['hub', /^--hub-(ops|club|hangar|accent)$/],
 ];
 
 export function tokensIn(css) {

@@ -145,3 +145,6 @@ jobs:
       # The mode registry (src/share/modes.js) whole, and the wire's lists
       # read off it with their values of before (docs/redesign/PLAN.md 3).
       - run: npm run modes:selftest
+      # No em or en dash in any text the repository holds (CLAUDE.md),
+      # outside vendor/.
+      - run: npm run lint:dashes
