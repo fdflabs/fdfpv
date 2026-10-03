@@ -567,7 +567,7 @@ try {
   const warCode = await page.evaluate('window.__rooms().code');
   check('the war is on, the pilot flying it, a callout up', await page.evaluate(
     "window.__war().view.state === 'live' && window.__ui.screen === 'flight' && window.__war().hud.calls.length > 0",
-  ), JSON.stringify(await page.evaluate('window.__war().hud.calls')));
+  ), JSON.stringify(await page.evaluate("({ state: window.__war().view.state, screen: window.__ui.screen, error: window.__war().error, calls: window.__war().hud.calls, airframe: window.__ui.settings.airframe })")));
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'paused'", 5000).catch(() => {});
   /* The war's elements and the room's notice as drawn, sampled. */
