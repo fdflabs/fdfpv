@@ -92,6 +92,8 @@ export async function loadFlood(wasmBytes) {
     hu: () => f64(e.flood_hu()),
     hv: () => f64(e.flood_hv()),
     cls: () => new Uint8Array(e.memory.buffer, e.flood_cls(), n),
+    fx: () => f64(e.flood_fx()),
+    fz: () => f64(e.flood_fz()),
     setManning: (k, nValue) => must(e.flood_set_manning(k, nValue), `manning ${k}`),
     bound: (side, k0, k1, type, a) => must(e.flood_bound(side, k0, k1, type, a), 'bound'),
     boundSet: (i, a) => must(e.flood_bound_set(i, a), 'bound set'),
@@ -99,6 +101,9 @@ export async function loadFlood(wasmBytes) {
     boundRate: (i) => e.flood_bound_rate(i),
     link(type, up, down) {
       return withInts(up, (pu) => withInts(down, (pd) => must(e.flood_link(type, pu, up.length, pd, down.length), 'link')));
+    },
+    linkTail(i, tail) {
+      return withInts(tail, (p) => must(e.flood_link_tail(i, p, tail.length), 'link tail'));
     },
     /* bands: [[lo, hi, width, cd]...], elevations in metres. */
     linkBands: (i, bands) => withDoubles(bands.flat(), (p) => must(e.flood_link_bands(i, p, bands.length), 'bands')),

@@ -34,7 +34,11 @@
  * downstream cells, takes that volume out of the first set (in
  * proportion to each cell's depth, so none goes dry before the rest) and
  * puts it into the second, moving at the velocity it leaves the opening
- * with, along the link's direction. An OPENING link's discharge is the
+ * with, along the link's direction. The level downstream that drowns an
+ * opening is the TAIL's, a third set (by default the second): the pool
+ * the opening empties into, not the jet in front of it. Water over a
+ * crest runs some two thirds of the head deep whatever is below, and a
+ * link reading that as tailwater drowned itself (docs/FLOOD.md). An OPENING link's discharge is the
  * strips formula: each horizontal strip dz of an opening passes
  * Cd w sqrt(2 g (eta1 - max(z, eta2))) dz, integrated in closed form over
  * bands of constant width, which is the weir formula while the water is
@@ -124,7 +128,7 @@ typedef struct {
 } Band;
 
 typedef struct {
-  int type, up0, nup, down0, ndown, nbands;
+  int type, up0, nup, down0, ndown, tail0, ntail, nbands;
   Band band[BANDS_MAX];
   /* The plan direction the water leaves along, a vector whose length is
    * the share of the jet's speed that is horizontal. */
@@ -141,7 +145,7 @@ typedef struct {
 static struct {
   int nx, nz, n, tx, tz;
   double x0, z0, dx, dt, area;
-  double *b, *h, *hu, *hv, *u, *v, *c, *rh, *ru, *rv;
+  double *b, *h, *hu, *hv, *u, *v, *c, *rh, *ru, *rv, *fx, *fz;
   unsigned char *cls, *tileWet;
   double n2[CLASSES];
   Bound bound[BOUNDS_MAX];
@@ -185,7 +189,7 @@ static inline double cbrt_rough(double x) {
 
 static void freeAll(void) {
   free(F.b); free(F.h); free(F.hu); free(F.hv); free(F.u); free(F.v); free(F.c);
-  free(F.rh); free(F.ru); free(F.rv); free(F.cls); free(F.tileWet);
+  free(F.rh); free(F.ru); free(F.rv); free(F.fx); free(F.fz); free(F.cls); free(F.tileWet);
   memset(&F, 0, sizeof F);
 }
 
@@ -214,9 +218,11 @@ FLOOD_EXPORT int flood_init(int nx, int nz, double x0, double z0, double dx, dou
   F.rh = calloc(n, sizeof(double));
   F.ru = calloc(n, sizeof(double));
   F.rv = calloc(n, sizeof(double));
+  F.fx = calloc(n, sizeof(double));
+  F.fz = calloc(n, sizeof(double));
   F.cls = calloc(n, 1);
   F.tileWet = calloc((size_t)(F.tx * F.tz), 1);
-  if (!F.b || !F.h || !F.hu || !F.hv || !F.u || !F.v || !F.c || !F.rh || !F.ru || !F.rv || !F.cls || !F.tileWet) {
+  if (!F.b || !F.h || !F.hu || !F.hv || !F.u || !F.v || !F.c || !F.rh || !F.ru || !F.rv || !F.fx || !F.fz || !F.cls || !F.tileWet) {
     freeAll();
     return -3;
   }
@@ -228,6 +234,11 @@ FLOOD_EXPORT double *flood_h(void) { return F.h; }
 FLOOD_EXPORT double *flood_hu(void) { return F.hu; }
 FLOOD_EXPORT double *flood_hv(void) { return F.hv; }
 FLOOD_EXPORT unsigned char *flood_cls(void) { return F.cls; }
+/* The last step's water through each cell's face toward +x (fx) and
+ * toward +z (fz), m2/s: a gauge across any line is their sum along it,
+ * times dx, exactly what the update moved. */
+FLOOD_EXPORT double *flood_fx(void) { return F.fx; }
+FLOOD_EXPORT double *flood_fz(void) { return F.fz; }
 
 /* Manning's n, s/m^(1/3), for cells of class k. */
 FLOOD_EXPORT int flood_set_manning(int k, double n) {
@@ -335,7 +346,19 @@ FLOOD_EXPORT int flood_link(int type, const int *up, int nup, const int *down, i
   L->down0 = F.npool; L->ndown = ndown;
   memcpy(&F.pool[F.npool], down, (size_t)ndown * sizeof(int));
   F.npool += ndown;
+  L->tail0 = L->down0; L->ntail = ndown;
   return F.nlink++;
+}
+
+/* The cells whose level drowns link i, in place of its downstream set. */
+FLOOD_EXPORT int flood_link_tail(int i, const int *tail, int n) {
+  if (i < 0 || i >= F.nlink || n < 1 || F.npool + n > POOL_MAX) return -2;
+  for (int k = 0; k < n; k += 1) if (tail[k] < 0 || tail[k] >= F.n) return -2;
+  Link *L = &F.link[i];
+  L->tail0 = F.npool; L->ntail = n;
+  memcpy(&F.pool[F.npool], tail, (size_t)n * sizeof(int));
+  F.npool += n;
+  return 0;
 }
 
 /* An opening link's bands, n of them, as [lo, hi, width, cd] each. */
@@ -434,9 +457,10 @@ static void stepLinks(void) {
   double dt = F.dt;
   for (int i = 0; i < F.nlink; i += 1) {
     Link *L = &F.link[i];
-    double up, down;
+    double up, down, tail;
     double eta1 = levelOf(L->up0, L->nup, &up);
-    double eta2 = levelOf(L->down0, L->ndown, &down);
+    levelOf(L->down0, L->ndown, &down);
+    double eta2 = levelOf(L->tail0, L->ntail, &tail);
     double q = 0.0, speed = 0.0;
     int flip = 0;
     L->eta1 = eta1;
@@ -635,7 +659,7 @@ static int tileLive(int ti, int tj) {
 static void interiorFluxes(void) {
   int nx = F.nx, nz = F.nz;
   const double *b = F.b, *h = F.h, *u = F.u, *v = F.v, *cc = F.c;
-  double *rh = F.rh, *ru = F.ru, *rv = F.rv;
+  double *rh = F.rh, *ru = F.ru, *rv = F.rv, *fx = F.fx, *fz = F.fz;
   for (int tj = 0; tj < F.tz; tj += 1) {
     for (int ti = 0; ti < F.tx; ti += 1) {
       if (!tileLive(ti, tj)) continue;
@@ -649,6 +673,7 @@ static void interiorFluxes(void) {
             int r = c + 1;
             if (h[c] > DRY || h[r] > DRY) {
               faceFlux(h[c], u[c], v[c], b[c], cc[c], h[r], u[r], v[r], b[r], cc[r], &fh, &fn, &ft, &pL, &pR);
+              fx[c] = fh;
               rh[c] -= fh; ru[c] -= fn + pL; rv[c] -= ft;
               rh[r] += fh; ru[r] += fn + pR; rv[r] += ft;
             } else {
@@ -660,6 +685,7 @@ static void interiorFluxes(void) {
             int r = c + nx;
             if (h[c] > DRY || h[r] > DRY) {
               faceFlux(h[c], v[c], u[c], b[c], cc[c], h[r], v[r], u[r], b[r], cc[r], &fh, &fn, &ft, &pL, &pR);
+              fz[c] = fh;
               rh[c] -= fh; rv[c] -= fn + pL; ru[c] -= ft;
               rh[r] += fh; rv[r] += fn + pR; ru[r] += ft;
             } else {
@@ -773,6 +799,8 @@ static void step(void) {
   memset(F.rh, 0, (size_t)F.n * sizeof(double));
   memset(F.ru, 0, (size_t)F.n * sizeof(double));
   memset(F.rv, 0, (size_t)F.n * sizeof(double));
+  memset(F.fx, 0, (size_t)F.n * sizeof(double));
+  memset(F.fz, 0, (size_t)F.n * sizeof(double));
   for (int i = 0; i < F.nbound; i += 1) F.bound[i].rate = 0.0;
   prepare();
   interiorFluxes();

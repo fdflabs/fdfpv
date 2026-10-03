@@ -1,0 +1,286 @@
+/*
+ * water-itaipu.js: the flood on Itaipu, the one gate prototype
+ * (docs/FLOOD.md): the bed built on the map's ground, still water left
+ * still on it, the spillway and the turbines running, and then gate 3
+ * torn open.
+ *
+ *   1. the bed (src/maps/itaipu/water/bed.js): built, every gate with
+ *      cells either side, no still water on the spillway's concrete (the
+ *      reservoir's fill reaches nothing behind a gate)
+ *   2. the lake at rest on the real terrain for ten minutes, the gates
+ *      shut and the turbines stopped: no current, no level moving
+ *   3. the warm up: the spillway's 14 gates at 5 m and the turbines, from
+ *      still water, WARM_STEPS steps; the flows in and out at its end
+ *   4. gate 3 opened (the contract's opening: its whole 20 x 21.34 m)
+ *      from the warmed state, against the same state left alone: the
+ *      gate's discharge against the strips formula by hand, the chute,
+ *      the plunge pool and the river's rise at stations down the river,
+ *      the time a 10 cm rise reaches each and its speed between them
+ *      against the shallow water celerity sqrt(g h) + u, mass, the
+ *      state's hash, and the cost
+ *
+ * Plain Node, but it needs the Itaipu data folder (FDFPV_ITAIPU_DATA), so
+ * it is a local check; without the folder it says it skipped. It runs
+ * some minutes: --quick runs a shorter warm up and opening (its numbers
+ * are not the prototype's).
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY, without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { performance } from 'node:perf_hooks';
+
+import { readGround } from './lib/itaipu-ground.js';
+import { openingQ } from './lib/flood-scenarios.js';
+import { G } from '../src/sim/water/flood.js';
+import { CLASS } from '../src/maps/itaipu/water/bed.js';
+import {
+  DT_MS, OPENING_CD, WARM_STEPS, floodBed, makeFlood,
+} from '../src/maps/itaipu/water/flood.js';
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+const wasm = new Uint8Array(await readFile(join(root, 'dist/flood.wasm')));
+const QUICK = process.argv.includes('--quick');
+const OUT = (process.argv.find((a) => a.startsWith('--out=')) || '').slice(6);
+
+let failed = 0;
+let passed = 0;
+function check(name, ok, detail = '') {
+  if (ok) {
+    passed += 1;
+    console.log(`  pass  ${name}${detail ? `  (${detail})` : ''}`);
+  } else {
+    failed += 1;
+    console.log(`  FAIL  ${name}${detail ? `  (${detail})` : ''}`);
+  }
+}
+
+const data = await readGround();
+if (!data) {
+  console.log('  SKIP  no Itaipu data folder (FDFPV_ITAIPU_DATA); a skip is not a pass');
+  process.exit(0);
+}
+const report = {};
+
+console.log('1. the bed');
+const t0 = performance.now();
+const bed = floodBed(data);
+const { nx, nz, dx } = bed.grid;
+{
+  const ms = performance.now() - t0;
+  const count = (q) => bed.wet.reduce((s, w) => s + (w === q ? 1 : 0), 0);
+  const res = bed.names.indexOf('reservoir');
+  const riv = bed.names.indexOf('river');
+  let wetConcrete = 0;
+  for (let k = 0; k < bed.wet.length; k += 1) {
+    if (bed.cls[k] === CLASS.concrete && bed.wet[k] >= 0) wetConcrete += 1;
+  }
+  report.bed = {
+    ms, cells: nx * nz, reservoir: count(res), river: count(riv),
+  };
+  console.log(`  ${nx} x ${nz} cells of ${dx} m, built in ${ms.toFixed(0)} ms: ${count(res)} under the reservoir, ${count(riv)} under the river`);
+  check('every gate has cells in front of it and behind it', bed.gates.every((g) => g.up.length >= 4 && g.down.length >= 4),
+    bed.gates.map((g) => `${g.up.length}/${g.down.length}`).join(' '));
+  check('no still water stands on the spillway\'s concrete: the reservoir reaches nothing behind a gate', wetConcrete === 0, `${wetConcrete} cells`);
+}
+
+const cellsWet = (f) => {
+  let n = 0;
+  const h = f.h();
+  for (let k = 0; k < h.length; k += 1) if (h[k] > 1e-4) n += 1;
+  return n;
+};
+
+console.log('2. the lake at rest on Itaipu');
+{
+  const rest = await makeFlood(wasm, bed, { turbines: false, gates: false });
+  const { f } = rest;
+  const v0 = f.volume();
+  const steps = QUICK ? 3000 : (10 * 60 * 1000) / DT_MS;
+  f.step(steps);
+  let speed = 0; let level = 0;
+  const h = f.h(); const hu = f.hu(); const hv = f.hv();
+  for (let k = 0; k < h.length; k += 1) {
+    if (!(h[k] > 1e-4)) continue;
+    speed = Math.max(speed, Math.hypot(hu[k], hv[k]) / h[k]);
+    const q = bed.wet[k];
+    level = Math.max(level, q >= 0 ? Math.abs(h[k] + bed.b[k] - bed.level[q]) : Infinity);
+  }
+  const dv = Math.abs(f.volume() - v0 - rest.boundaryVolume()) / v0;
+  check(`${(steps * DT_MS) / 60000} min of still water on the real terrain: fastest current under 1e-6 m/s`, speed < 1e-6, `${speed.toExponential(2)} m/s`);
+  check('every wet cell is still water at its body\'s level, to a micrometre', level < 1e-6, `${level.toExponential(2)} m`);
+  check('the volume to 1e-12', dv < 1e-12, dv.toExponential(2));
+}
+
+console.log('3. the warm up: 14 gates at 5 m and the turbines');
+const A = await makeFlood(wasm, bed, {});
+const warm = QUICK ? 6000 : WARM_STEPS;
+{
+  const { f } = A;
+  const v0 = f.volume();
+  const tw = performance.now();
+  f.step(warm - 3000);
+  const r0 = { res: 0, riv: 0 };
+  const flows = () => ({
+    res: A.bounds.filter((b) => b.kind === 'reservoir').reduce((s, b) => s + f.boundVol(b.index), 0),
+    riv: A.bounds.filter((b) => b.kind === 'river').reduce((s, b) => s - f.boundVol(b.index), 0),
+    tur: A.bounds.filter((b) => b.kind === 'turbines').reduce((s, b) => s + f.boundVol(b.index), 0),
+  });
+  Object.assign(r0, flows());
+  f.step(3000);
+  const r1 = flows();
+  const span = (3000 * DT_MS) / 1000;
+  const ms = performance.now() - tw;
+  const res = (r1.res - r0.res) / span; const riv = (r1.riv - r0.riv) / span; const tur = (r1.tur - r0.tur) / span;
+  const gates = A.links.reduce((s, i) => s + f.linkQ(i), 0);
+  const dv = Math.abs(f.volume() - v0 - A.boundaryVolume()) / v0;
+  report.warm = {
+    seconds: (warm * DT_MS) / 1000, ms, msPerStep: ms / warm, res, riv, tur, gates, gate3: f.linkQ(A.links[3]), wet: cellsWet(f),
+  };
+  console.log(`  ${(warm * DT_MS) / 1000} s of sim in ${(ms / 1000).toFixed(1)} s (${(ms / warm).toFixed(2)} ms a step, ${cellsWet(f)} wet cells)`);
+  console.log(`  over its last ${span} s: the reservoir gave ${res.toFixed(0)} m3/s, the gates pass ${gates.toFixed(0)} (gate 3 ${f.linkQ(A.links[3]).toFixed(0)}), the turbines ${tur.toFixed(0)}, the river lets out ${riv.toFixed(0)}`);
+  check('the warm up conserves the volume to 1e-9 of it', dv < 1e-9, dv.toExponential(2));
+  check('the Courant number stayed under 0.5', f.stat(1) < 0.5, f.stat(1).toFixed(3));
+}
+
+/* The warmed water, kept: each opening starts from it, against a copy
+ * of it left alone. */
+const warmState = [A.f.h().slice(), A.f.hu().slice(), A.f.hv().slice()];
+const fromWarm = async () => {
+  const fl = await makeFlood(wasm, bed, {});
+  fl.f.h().set(warmState[0]);
+  fl.f.hu().set(warmState[1]);
+  fl.f.hv().set(warmState[2]);
+  return fl;
+};
+/* Stations down the river, on its thalweg: on each world row the
+ * river's deepest cell, read every 2 m across, from just under the
+ * chute's lips to some 250 m above the grid's southern edge. A small
+ * wave runs down the deep water first, so this is the line its front
+ * is timed along. */
+const river = bed.names.indexOf('river');
+const stations = [-500, -350, -200, -50, 100, 250].map((z) => {
+  let best = null;
+  for (let x = -1500; x <= 0; x += 2) {
+    const k = A.cellAt(x, z);
+    if (k >= 0 && bed.wet[k] === river && (!best || bed.dist[k] > best.dist)) {
+      best = { x, z, dist: bed.dist[k] };
+    }
+  }
+  return { x: best.x, z, width: 2 * best.dist * dx };
+});
+const reservoirY = bed.level[bed.names.indexOf('reservoir')];
+const RISE = 0.05;
+report.open = [];
+
+async function opened(title, opening) {
+  console.log(`4. ${title}, against the same water left alone`);
+  const L = await fromWarm();
+  const B = await fromWarm();
+  const g = 3;
+  const gate = bed.gates[g];
+  const at = B.openGate(g, opening);
+  const vB = B.f.volume();
+  const below = B.bayGauge(g, 20);
+  const stepsAfter = QUICK ? 3000 : 15000;
+  const every = 25;
+  const arrive = stations.map(() => null);
+  const series = [];
+  let qSum = 0; let qN = 0; let upSum = 0;
+  const tb = performance.now();
+  for (let s = every; s <= stepsAfter; s += every) {
+    L.f.step(every);
+    B.f.step(every);
+    const t = (s * DT_MS) / 1000;
+    const rise = stations.map((p) => B.at(p.x, p.z).eta - L.at(p.x, p.z).eta);
+    rise.forEach((r, k) => {
+      if (arrive[k] === null && r > RISE) arrive[k] = t;
+    });
+    /* Over the last minute: the gauged discharge below the gate and
+     * the level in front of it. */
+    if (s > stepsAfter - 3000) {
+      qSum += B.gaugeQ(below);
+      upSum += B.f.linkLevels(B.links[g])[0];
+      qN += 1;
+    }
+    if (s % 500 === 0) series.push({ t, rise });
+  }
+  const msB = (performance.now() - tb) / (2 * stepsAfter);
+  const q = qSum / qN;
+  const up = upSum / qN;
+  const lip = openingQ(0.61, gate.width, gate.sill, gate.sill + gate.open, reservoirY, -Infinity);
+  /* By hand, from the reservoir's still level: the handbook's ogee (Cd
+   * 0.74) or sharp edged notch (0.61) through the hole, plus what still
+   * runs under the gate's lip beside it, and the shallow water
+   * equations' own critical flow over the hole's crest, sqrt(g)
+   * (2E/3)^1.5 per metre. */
+  const crestTop = Math.max(opening.sill, gate.sill);
+  const handbookCd = opening.sill <= gate.sill + 1e-6 ? OPENING_CD : 0.61;
+  const keepLip = opening.sill <= gate.sill + gate.open ? (gate.width - Math.min(opening.width, gate.width)) / gate.width : 1;
+  const handbook = openingQ(handbookCd, Math.min(opening.width, gate.width), crestTop, opening.sill + opening.height, reservoirY, -Infinity) + keepLip * lip;
+  const E = reservoirY - crestTop;
+  const critical = Math.sqrt(G) * ((2 * E) / 3) ** 1.5 * Math.min(opening.width, gate.width) + keepLip * lip;
+  console.log(`        the hole: ${opening.width} m wide from ${opening.sill} m up ${opening.height} m, ${at.sky ? `open to the sky: ${at.cut} of the gate's ${gate.wall.length} cells cut` : 'under the water: the link\'s'}`);
+  console.log(`        gauged below the gate over the last minute: ${q.toFixed(0)} m3/s (it passed ${report.warm.gate3.toFixed(0)} under its lip before), the level in front ${up.toFixed(2)} m`);
+  console.log(`        by hand from ${reservoirY} m: the handbook ${handbook.toFixed(0)} m3/s (Cd ${handbookCd}), critical flow over the crest ${critical.toFixed(0)} m3/s; gauged / handbook ${(q / handbook).toFixed(2)}, / critical ${(q / critical).toFixed(2)}`);
+  const dv = Math.abs(B.f.volume() - vB - B.boundaryVolume()) / vB;
+  check(`${title}: the volume conserved to 1e-9 of it`, dv < 1e-9, dv.toExponential(2));
+  check(`${title}: more water passes the gate than its lip did`, q > report.warm.gate3, `${q.toFixed(0)} against ${report.warm.gate3.toFixed(0)} m3/s`);
+  const before = stations.map((p) => L.at(p.x, p.z));
+  console.log(`        station          ~width  depth  current  rise at ${(stepsAfter * DT_MS) / 1000} s  ${RISE * 100} cm arrives`);
+  stations.forEach((p, k) => {
+    const a = before[k];
+    const last = series[series.length - 1].rise[k];
+    console.log(`        (${p.x.toFixed(0)}, ${p.z})`.padEnd(24) + `${p.width.toFixed(0).padStart(5)} m ${a.h.toFixed(1).padStart(5)} m ${Math.sqrt(a.u * a.u + a.v * a.v).toFixed(2).padStart(6)} m/s ${last.toFixed(3).padStart(8)} m   ${arrive[k] === null ? 'not yet' : `${arrive[k].toFixed(1)} s`}`);
+  });
+  /* Timed from the station the rise reaches first: the water lands
+   * where its bay's lip throws it, and the stations above that are
+   * reached by its spreading back, not by its front. */
+  const legs = [];
+  const first = arrive.reduce((m, t, k) => (t !== null && (m < 0 || t < arrive[m]) ? k : m), -1);
+  for (let k = Math.max(0, first); k + 1 < stations.length; k += 1) {
+    if (arrive[k] === null || arrive[k + 1] === null) continue;
+    const p = stations[k]; const r = stations[k + 1];
+    const ex = r.x - p.x; const ez = r.z - p.z;
+    const dist = Math.sqrt(ex * ex + ez * ez);
+    const speed = dist / (arrive[k + 1] - arrive[k]);
+    const a = before[k]; const b = before[k + 1];
+    const along = ((a.u + b.u) * ex + (a.v + b.v) * ez) / (2 * dist);
+    const c = (Math.sqrt(G * a.h) + Math.sqrt(G * b.h)) / 2;
+    legs.push({
+      from: k, dist, speed, c, along,
+    });
+    console.log(`        leg ${k}-${k + 1}: ${dist.toFixed(0)} m in ${(arrive[k + 1] - arrive[k]).toFixed(1)} s, ${speed.toFixed(1)} m/s; sqrt(g h) ${c.toFixed(1)} + u ${along.toFixed(1)} = ${(c + along).toFixed(1)} m/s`);
+  }
+  report.open.push({
+    title, opening, sky: at.sky, cut: at.cut, q, up, handbook, critical, stations, arrive, legs, series, msPerStep: msB, hash: B.f.hash(), wet: cellsWet(B.f),
+  });
+  console.log(`        hash ${B.f.hash()}, ${msB.toFixed(2)} ms a step at ${cellsWet(B.f)} wet cells of ${nx * nz}`);
+}
+
+/* The DAMAGE agent's first opening (the lead, 2 October): a notch 10 m
+ * wide through gate 3's leaf from 212.33 m, 8.17 m high; and the whole
+ * gate gone. */
+await opened('gate 3 notched', { sill: 212.33, width: 10, height: 8.17 });
+await opened('gate 3 gone', { sill: bed.gates[3].sill, width: bed.gates[3].width, height: bed.gates[3].height });
+
+if (OUT) {
+  await writeFile(OUT, JSON.stringify(report, null, 1));
+}
+console.log(`\nwater-itaipu: ${passed} passed, ${failed} failed`);
+process.exit(failed ? 1 : 0);
