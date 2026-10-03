@@ -108,6 +108,11 @@ import { createWarRing, warAt, worldAt, HUNTER_N } from '../src/replay/warrec.js
 import { createRoomWar } from '../src/share/roomwar.js';
 import { createGrid } from '../src/share/war/grid.js';
 import { FIRE_MS, burnAt } from '../src/share/war/world.js';
+import {
+  AIR_N, EVENTS_MAX, PEER_ID_BASE, RPM_PER_RAD_S, airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt, trimSound,
+} from '../src/replay/sound.js';
+import { soundPlan } from '../src/replay/soundtrack.js';
+import { FLAG_CRASHED, FLAG_QUAD } from '../src/share/roomwire.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
@@ -2035,6 +2040,7 @@ function animRecord() {
 
   warFile(withClock, bBuf, refused);
   warWorld(withClock, refused);
+  soundFile(withClock, refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -2317,6 +2323,181 @@ function warWorld(withClock, refused) {
   }), 'a damage event kept twice');
   refused(() => buf.slice(0, buf.byteLength - 8), 'a version 11 file cut short of its map clock');
   refused(() => encodeReplay({ ...withMap, war: { ...clip, clock: clip.clock.map((x, k) => (k === 3 ? Infinity : x)) } }), 'a map clock that is not a number');
+}
+
+/*
+ * 19. The flight's sound (src/replay/sound.js; the owner: "all sounds all
+ * audio all things need to come through"). A ring is fed as the shell
+ * feeds it: the engine's air each row, the flight's record and the war's
+ * music each frame as they play (a record begun long before the window,
+ * a seek, a change of record, the music stopped), Crest Control's lines,
+ * an impact, a cue. The clip keeps the air, the moments, and each bed
+ * only when it changed, its state at the clip's first row carried on;
+ * a replay asked anywhere, forwards or back, hears each bed where it had
+ * got to; the other pilots are heard from their rows; the movie's plan
+ * puts each sound on the movie's clock at its shot's speed. Saved as
+ * version 12; the version before still reads, without it.
+ */
+function soundFile(withClock, refused) {
+  console.log('19. the flight\'s sound: the air, the moments, the beds, the pilots, saved (version 12)');
+  const n = withClock.n;
+  const ring = createSoundRing(n);
+  const dt = 0.05;
+  /* What played, as the shell's beds() would say it at recorder time t:
+   * record A from 200 s before the window, sought to 10 s in at row 8,
+   * record B from row 14, nothing from row 20; the war's intro from row
+   * 5, its combat loop from row 11. */
+  const t0 = 1000;
+  const T = (k) => t0 + k * dt;
+  const musicAt = (k) => {
+    if (k < 8) {
+      return ['flight-a', 200 + (T(k) - t0)];
+    }
+    if (k < 14) {
+      return ['flight-a', 10 + (T(k) - T(8))];
+    }
+    if (k < 20) {
+      return ['flight-b', T(k) - T(14)];
+    }
+    return ['', 0];
+  };
+  const bedOf = (k) => {
+    if (k < 5) {
+      return ['', 0];
+    }
+    if (k < 11) {
+      return ['intro', T(k) - T(5)];
+    }
+    return ['combat', T(k) - T(11)];
+  };
+  /* The record began long before: its first call, then a window's prune. */
+  ring.call(t0 - 200, 'music', ['flight-a', 0]);
+  ring.call(t0 - 150, 'impact', [1, 0.5, 3]);
+  ring.prune(t0, 30);
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    ring.air({
+      u: k, v: -k, w: 0.5 * k, amps: 10 + k, flapsMoving: k % 2 === 1, gearMoving: k === 3,
+    });
+    ring.call(T(k), 'music', musicAt(k));
+    ring.call(T(k), 'bed', bedOf(k));
+    if (k === 6) {
+      ring.call(T(k), 'radio', ['wave-strike', 'es']);
+      ring.call(T(k), 'impact', [0.4, 0.8, 7]);
+      ring.call(T(k), 'event', ['land', null]);
+      ring.call(T(k), 'mechanical', ['gear', 3]);
+    }
+  }
+  check(ring.stats.refused === 1, 'a call that is not one is counted and not kept', `${ring.stats.refused} refused`);
+  const sound = ring.clip(0, n, T(0), T(n - 1));
+  const beds = sound.events.filter((e) => e.call === 'music' || e.call === 'bed');
+  check(beds.length === 7 && sound.events.length === 10,
+    'each bed is kept only when it changes, a seek being a change: 4 calls for the record, 3 for the war\'s music, and the 3 moments',
+    beds.map((e) => `${e.call} ${e.args[0] || 'none'}@${e.t.toFixed(2)}`).join(', '));
+  check(sound.events[0].t === 0 && sound.events[0].call === 'music' && Math.abs(sound.events[0].args[1] - 200) < 1e-9,
+    'the record begun 200 s before the window is at the clip\'s first row, where it had got to', JSON.stringify(sound.events[0]));
+  let worst = 0;
+  const order = [...Array.from({ length: n }, (_, k) => k), ...Array.from({ length: n }, (_, k) => n - 1 - k), 3, 17, 9, 0, 21];
+  let wrongBed = '';
+  for (const k of order) {
+    const t = T(k) - t0;
+    for (const [name, want] of [['music', musicAt(k)], ['bed', bedOf(k)]]) {
+      const got = bedAt(sound.events, name, t);
+      if (want[0] === '') {
+        if (got !== null) {
+          wrongBed = wrongBed || `${name} at row ${k}: ${JSON.stringify(got)}`;
+        }
+        continue;
+      }
+      if (!got || got.id !== want[0]) {
+        wrongBed = wrongBed || `${name} at row ${k}: ${JSON.stringify(got)} want ${want}`;
+        continue;
+      }
+      worst = Math.max(worst, Math.abs(got.at - want[1]));
+    }
+  }
+  check(!wrongBed && worst < 1e-9, 'asked at every row forwards, backwards and in jumps, each bed is the record that played, where it had got to',
+    wrongBed || `${order.length} rows, worst ${worst.toExponential(1)} s`);
+  const moments = callsBetween(sound.events, T(5) - t0, T(7) - t0);
+  check(moments.map((e) => e.call).join() === 'radio,impact,event' && moments[0].args[1] === 'es',
+    'played forward over the row: the line in the language it was said in, the impact and the cue, and no bed', moments.map((e) => e.call).join());
+  const air = {};
+  airAt(sound, n, 3, 0.25, air);
+  check(air.u === 3.25 && air.amps === 13.25 && air.flapsMoving === true && air.gearMoving === true,
+    'the air between rows is between them, the servos and the retracts as the earlier row has them', JSON.stringify(air));
+  check(ring.bytes() === n * AIR_N * 4, `the ring holds ${AIR_N} floats a row, ${AIR_N * 4} bytes`,
+    `${((CAPACITY * AIR_N * 4) / 1024).toFixed(0)} KB at the recorder's capacity; at most ${EVENTS_MAX} calls`);
+
+  const t = trimSound(sound, 9, n - 1, T(9) - t0, T(n - 1) - t0);
+  const tm = bedAt(t.events, 'music', 0);
+  const tb = bedAt(t.events, 'bed', T(12) - T(9));
+  check(t.air.length === (n - 9) * AIR_N && tm && tm.id === 'flight-a' && Math.abs(tm.at - musicAt(9)[1]) < 1e-9
+    && tb && tb.id === 'combat' && Math.abs(tb.at - bedOf(12)[1]) < 1e-9,
+  'a trim keeps the beds where they had got to at its first row');
+
+  /* The other pilots, heard from their rows: a quad and a wing, a
+   * crashed one not heard, slowed with the picture. */
+  const slots = 3;
+  const cols = new Float32Array(n * slots * PEER_N);
+  for (let k = 0; k < n; k += 1) {
+    for (let sl = 0; sl < slots; sl += 1) {
+      const o = (k * slots + sl) * PEER_N;
+      cols[o + PEER.id] = sl + 1;
+      cols[o + PEER.pos] = 10 * sl + k;
+      cols[o + PEER.ctl] = 1000;
+      cols[o + PEER.ctl + 1] = 1100;
+      cols[o + PEER.ctl + 2] = 1200;
+      cols[o + PEER.ctl + 3] = 1300;
+      cols[o + PEER.motor] = 900;
+      cols[o + PEER.vel] = 20;
+      cols[o + PEER.flags] = sl === 0 ? FLAG_QUAD : sl === 2 ? FLAG_CRASHED : 0;
+      cols[o + PEER.table] = -1;
+    }
+  }
+  const peers = {
+    slots, cols, pieces: new Float32Array(0), pieceAt: new Uint32Array(n + 1),
+    who: [0, 1, 2].map((i) => ({
+      seat: i + 2, label: `P${i}`, profile: { airframe: i === 0 ? '5inch' : 'cub' }, figure: null,
+    })),
+  };
+  const ps = createPeerSample(slots);
+  samplePeers(peers, n, 4, 0.5, ps);
+  const heard = peerVoicesAt(peers, ps, 0.5, []);
+  check(heard.length === 2 && heard[0].id === PEER_ID_BASE + 1 && heard[0].airframe === '5inch' && Math.abs(heard[0].rpm[3] - 1300 * RPM_PER_RAD_S * 0.5) < 1e-6
+    && Math.abs(heard[1].rpm[0] - 900 * RPM_PER_RAD_S * 0.5) < 1e-6 && heard[1].rpm[1] === 0 && heard[0].x === 4.5 && heard[0].vx === 10,
+  'the pilots are heard where they were drawn, under ids no live seat has, a quad\'s four motors and a wing\'s one, at half speed in half speed slow motion, the crashed one not at all',
+  heard.map((h) => `${h.airframe} ${h.rpm.map((x) => x.toFixed(0)).join('/')}`).join(', '));
+
+  /* The movie's plan: a cut at row 10 into a quarter speed shot. */
+  const clip = { ...withClock, sound };
+  const dur = clip.time[n - 1];
+  let edit = defaultEdit(dur, { rig: 'chase', target: -1, watch: 0, p: defaults('chase', 1) });
+  edit = setSpeed(cut(edit, clip.time[10]), 1, 0.25);
+  const plan = soundPlan(clip, edit);
+  const r = plan.radio[0];
+  const imp = plan.calls.find((c) => c.call === 'impact');
+  const pieces = plan.beds.filter((b) => b.name === 'music');
+  /* Said at clip time 0.3, in the quarter speed shot from clip.time[10]. */
+  const lineAt = 0.3 < clip.time[10] ? 0.3 : clip.time[10] + (0.3 - clip.time[10]) / 0.25;
+  check(r && Math.abs(r.m - lineAt) < 1e-9 && r.lang === 'es' && r.rate === (0.3 < clip.time[10] ? 1 : 0.25) && imp && imp.args[0] === 0.4 * Math.min(1, r.rate),
+    'the line and the impact at their movie times, the impact quieter in slow motion', `line at ${r && r.m.toFixed(3)} s, want ${lineAt.toFixed(3)}`);
+  const slow = pieces.filter((b) => b.rate === 0.25);
+  check(pieces.length >= 3 && slow.length >= 1 && pieces.every((b) => b.dur > 0),
+    'the record in pieces cut at the shot and at each change, the slow shot\'s at a quarter speed',
+    pieces.map((b) => `${b.id}@${b.m.toFixed(2)}+${b.dur.toFixed(2)}x${b.rate}`).join(' '));
+
+  const old = { ...withClock };
+  const buf = encodeReplay(clip);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 12 && JSON.stringify(back.sound.events) === JSON.stringify(sound.events)
+    && Buffer.from(back.sound.air.buffer).equals(Buffer.from(sound.air.buffer)),
+  'a clip with its sound is saved as version 12 and comes back as it was', `${buf.byteLength - encodeReplay(old).byteLength} bytes for the sound of ${dur.toFixed(2)} s`);
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  check(new DataView(encodeReplay(old)).getUint32(4, true) === 8, 'the same clip without its sound is the version before, as before');
+  refused(() => reheader(buf, 8), 'a sound in a file that says version 8');
+  refused(() => reheader(encodeReplay(old), 12), 'a version 12 file without its sound');
+  refused(() => encodeReplay({ ...clip, sound: { ...sound, events: [{ t: 0, call: 'launch', args: [] }] } }), 'a call that is not one');
+  refused(() => encodeReplay({ ...clip, sound: { ...sound, air: sound.air.map((x, i) => (i === 7 ? NaN : x)) } }), 'air that is not a number');
 }
 
 ring();

@@ -172,6 +172,9 @@ export function createVoice({ send, isMuted }) {
   let on = false;
   let mode = 'ptt'; /* 'ptt' or 'open' */
   let distanceOn = false;
+  /* The crash cam's replay is playing: the room's voices are held silent
+   * under it (the links stay up), and come back when it closes. */
+  let held = false;
   let problem = null; /* null, 'denied', 'nomic', 'unsupported' */
   let mySeat = null;
   let mic = null; /* the MediaStream */
@@ -578,6 +581,10 @@ export function createVoice({ send, isMuted }) {
     setDistance(v) {
       distanceOn = Boolean(v);
     },
+    /* Held silent (a replay plays) or not; applied at the next frame. */
+    setHeld(v) {
+      held = Boolean(v);
+    },
     volume: volumeOf,
     setVolume(seat, v) {
       volumes.set(seat, Math.max(0, Math.min(VOLUME_MAX, v)));
@@ -657,7 +664,7 @@ export function createVoice({ send, isMuted }) {
         if (l.level > SPEAKING_RMS) {
           l.speakingUntil = now + SPEAKING_HOLD_MS;
         }
-        const g = volumeOf(seat) * (distanceOn ? distanceGain(dist.get(seat)) : 1);
+        const g = held ? 0 : volumeOf(seat) * (distanceOn ? distanceGain(dist.get(seat)) : 1);
         l.gain.gain.setTargetAtTime(g, ctx.currentTime, 0.05);
       }
     },

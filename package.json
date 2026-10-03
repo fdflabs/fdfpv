@@ -129,6 +129,7 @@
     "films:lint": "node scripts/films-lint.js",
     "war:boom": "node scripts/war-boom.js",
     "replay:world": "node scripts/replay-world.js",
+    "replay:sound": "node scripts/replay-sound.js",
     "war:fuze": "node scripts/war-fuze-cue.js",
     "damage:check": "node scripts/damage-check.js",
     "damage:shots": "node scripts/damage-shots.js",
