@@ -9,6 +9,11 @@
  * (src/replay/paperscene.js); the war's markers and HUD are the flight
  * screen's and are not drawn over a replay, as no other game's HUD is.
  *
+ * The map as the war had it at that room ms (the targets burning, the
+ * lights out: warrec.js worldAt) is worked out here each frame and handed
+ * to the shell to draw (src/replay/crashcam.js drawWar), which draws the
+ * live war's again when the replay closes.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -26,14 +31,16 @@
  */
 
 import { createAttackers } from '../render/attackers.js';
-import { warAt } from './warrec.js';
+import { warAt, worldAt } from './warrec.js';
 
 /* `war` is a clip's, `n` its rows; `parent` the scene. */
 export function createWarScene(war, n, parent) {
   const layer = createAttackers();
   parent.add(layer.group);
   const plans = new Map();
+  const caches = new Map();
   let room = NaN;
+  let map = null;
 
   return {
     /* The frame between rows k and k + 1, `a` of the way. */
@@ -42,7 +49,10 @@ export function createWarScene(war, n, parent) {
       const r1 = war.room[Math.min(n - 1, k + 1)];
       room = Number.isFinite(r0) && Number.isFinite(r1) ? r0 + (r1 - r0) * a : r0;
       layer.update(warAt(war, n, k, a, plans));
+      map = worldAt(war, n, k, a, caches);
     },
+    /* The map at the frame drawn, or null for a clip that kept none. */
+    world: () => map,
     /* For the checks: the room ms of this frame and what was drawn. */
     summary: () => ({ room, ...layer.drawn() }),
     /* The clip row drawn at room ms `ms`, or -1. */

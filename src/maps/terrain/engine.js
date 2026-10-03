@@ -693,6 +693,12 @@ export class Terrain {
     const fu = gx - base - ci;
     const fv = gz - basez - cj;
     const data = this.store.get(level, nd.ti, nd.tj);
+    /* A drawn leaf whose tile is no longer held (evicted, or the terrain
+     * disposed in a world swap while something still asks it): the
+     * finest data there is, else the apron, never a throw in a frame. */
+    if (!data) {
+      return this.finestAt(x, z);
+    }
     return tri(data, ci, cj, fu, fv);
   }
 

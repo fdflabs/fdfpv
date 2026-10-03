@@ -121,7 +121,8 @@ async function roomsServer() {
   throw new Error(`rooms server did not come up on ${url}`);
 }
 
-const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!,Defend the Paraná';
+const HUBS = 'Operations,Flight Club,Hangar';
+const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
 
 const LAYOUT = `(() => ({
   w: window.innerWidth, h: window.innerHeight, sw: document.documentElement.scrollWidth,
@@ -133,18 +134,19 @@ const LAYOUT = `(() => ({
       name: c.querySelector('.gate-card-name').textContent,
       loaded: Boolean(img && img.complete && img.naturalWidth > 0),
       mark: Boolean(c.querySelector('.gate-card-mark svg')),
+      links: [...c.querySelectorAll('.gate-link')].map((l) => l.textContent),
       box: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)],
-      facts: Math.round(c.querySelector('.gate-card-facts').getBoundingClientRect().bottom),
+      facts: Math.round(Math.max(...[...c.querySelectorAll('.gate-card-facts, .gate-link')].map((n) => n.getBoundingClientRect().bottom))),
     };
   }),
 }))()`;
 
-function laidOut(v) {
+function laidOut(v, n) {
   const c = v.cards;
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  return c.length === 5 && inside && apart && v.sw <= v.w;
+  return c.length === n && inside && apart && v.sw <= v.w;
 }
 
 async function resize(page, width, height) {
@@ -225,7 +227,22 @@ async function toGate(page) {
   await page.evaluate("(() => { location.reload(); return true; })()");
   await page.sleep(500);
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 5", 60000);
+  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000);
+}
+
+/* Flight Club, by a click on its card on home: the rooms panel is there. */
+async function toClub(p) {
+  await p.until('window.__ui.onGate()', 60000).catch(() => {});
+  /* From another hub (a war room's Leave lands in Operations), home first. */
+  for (let i = 0; i < 2 && await p.evaluate("window.__ui.hub !== null && window.__ui.hub !== 'club'"); i += 1) {
+    await p.tap('Escape');
+    await p.sleep(400);
+  }
+  await p.until("window.__ui.hub === 'club' || document.querySelector('.gate-card-hub-club')", 10000).catch(() => {});
+  if (await p.evaluate("window.__ui.hub !== 'club'")) {
+    await click(p, '.gate-card-hub-club .gate-card-name');
+    await p.until("window.__ui.hub === 'club'", 10000).catch(() => {});
+  }
 }
 
 const server = await roomsServer();
@@ -233,13 +250,15 @@ console.log(`the Defend Itaipu card, rooms at ${server.url}`);
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720 });
 try {
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 5", 60000).catch(() => {});
+  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
   await page.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
 
-  /* SIX CARDS AT EVERY SIZE. */
+  /* HOME, THE THREE HUBS AT EVERY SIZE: the war is Operations', its one
+   * link Defend the Paraná. */
   const first = await page.evaluate(LAYOUT);
-  check('five cards, no Defend Itaipu card (the owner took it off, 2026-09-30) and no Fly with friends (2026-10-02), Defend the Paraná last',
-    first.cards.map((x) => x.name).join() === NAMES, first.cards.map((x) => x.name).join());
+  check('home is three hubs; Operations\' one link is Defend the Paraná: no Defend Itaipu card (the owner took it off, 2026-09-30), no Fly with friends (2026-10-02)',
+    first.cards.map((x) => x.name).join() === HUBS && first.cards[0].links.join() === 'Defend the Paraná'
+    && !first.cards.some((x) => x.links.includes('Defend Itaipu') || x.links.includes('Fly with friends')), JSON.stringify(first.cards.map((x) => [x.name, x.links])));
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
     await resize(page, w, h);
@@ -248,8 +267,8 @@ try {
     const shape = row
       ? Math.max(...tops) - Math.min(...tops) <= 4
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
-    check(`${w} by ${h}: five cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
-      laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+    check(`${w} by ${h}: three hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, no sideways scroll`,
+      laidOut(v, 3) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     await shot(page, `gate-${w}x${h}`);
   }
 
@@ -266,6 +285,10 @@ try {
     });
     longPilots.push(await seatPilot(server.url, (await longMade.json()).code, [i, i + 1, 60 + i]));
   }
+  /* The panel is Flight Club's. */
+  await resize(page, 1280, 720);
+  await toClub(page);
+  check('Flight Club\'s four cards', (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join() === CLUB, (await page.evaluate(LAYOUT)).cards.map((x) => x.name).join());
   await page.until("document.querySelectorAll('.gate-rooms-list .gate-room').length === 3", 30000).catch(() => {});
   const PANEL_CUT = `[...document.querySelectorAll('.gate-rooms-count, .gate-room-name, .gate-room-value')]
     .filter((n) => n.getClientRects().length && n.scrollWidth > n.clientWidth + 1).map((n) => n.textContent.trim())`;
@@ -285,8 +308,8 @@ try {
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
     const listed = await page.evaluate(LONG_LISTED);
     const cut = await page.evaluate(PANEL_CUT);
-    check(`${w} by ${h}, three 32 letter names listed: five cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
-      laidOut(v) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+    check(`${w} by ${h}, three 32 letter names listed: Flight Club's four cards ${row ? 'in a row' : 'stacked'}, inside the window, tags clear of the bar, no sideways scroll`,
+      laidOut(v, 4) && shape, `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
     check(`${w} by ${h}: the panel lists ${['none', 'one', 'two', 'three'][n]} of them, no name cut`, listed.length === n
       && listed.every((n) => longNames.includes(n)) && cut.length === 0, `${listed.join(' | ')} cut: ${cut.join(' | ')}`);
     await shot(page, `gate-listed-${w}x${h}`);
@@ -485,6 +508,12 @@ try {
    * the title into its lobby. */
   await page.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('mode-gate'); return true; })()");
   await page.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
+  /* Home, where Defend the Paraná is Operations' link: Escape walks out
+   * of a hub. */
+  for (let i = 0; i < 2 && await page.evaluate('window.__ui.hub !== null'); i += 1) {
+    await page.tap('Escape');
+    await page.sleep(400);
+  }
   await click(page, '.gate-card-campaign');
   await page.until("window.__rooms().phase === 'open' && window.__rooms().mode === 'war' && window.__ui.screen === 'friends'", 60000).catch(() => {});
   await page.sleep(500);
@@ -573,11 +602,12 @@ try {
     await page.tap('Escape');
     await page.sleep(600);
   }
+  await toClub(page);
   const LISTED = `(window.__ui.titleRoomEls || []).some((e) => e.node.isConnected
     && (window.__ui.items()[e.i].action || '').endsWith(${JSON.stringify(listedCode)}))`;
   await page.until(LISTED, 30000).catch(() => {});
   const panel = await page.evaluate("[...document.querySelectorAll('.gate-rooms .gate-room')].map((n) => n.className.replace('gate-room ', ''))");
-  check('the title\'s rooms panel lists that room, All rooms and Make a room',
+  check('Flight Club\'s rooms panel lists that room, All rooms and Make a room',
     (await page.evaluate(LISTED)) && panel.includes('gate-room-all') && panel.includes('gate-room-make'), panel.join());
   await page.evaluate(`(() => {
     const ui = window.__ui;
@@ -613,9 +643,41 @@ try {
     await page.tap('Escape');
     await page.sleep(600);
   }
+  /* Home, wherever the Leave landed: Streamer Combat's link there is its
+   * one click. */
+  for (let i = 0; i < 2 && await page.evaluate('window.__ui.hub !== null'); i += 1) {
+    await page.tap('Escape');
+    await page.sleep(400);
+  }
   await click(page, '.gate-card-combat');
+  /* Through the world swap the card starts (Itaipu to the Swiss valley),
+   * the craft's state is read as a capture reads it: the world being
+   * left is disposed, and reading its ground threw (a TypeError in
+   * Terrain.readNode, a tile no longer held). */
+  const swapReads = await page.evaluate(`new Promise((resolve) => {
+    const t0 = performance.now();
+    const seen = { reads: 0, nulls: 0, thrown: null };
+    const step = () => {
+      try {
+        const c = window.__craftState();
+        seen.reads += 1;
+        if (c.groundClearance === null) {
+          seen.nulls += 1;
+        }
+      } catch (e) {
+        seen.thrown = String(e && e.message || e);
+      }
+      if (performance.now() - t0 < 8000 && !seen.thrown) {
+        setTimeout(step, 20);
+      } else {
+        resolve(seen);
+      }
+    };
+    step();
+  })`);
+  check('the craft\'s state is read through the world swap without a throw, its ground null while the world is gone',
+    !swapReads.thrown && swapReads.reads > 0, JSON.stringify(swapReads));
   await page.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends'", 30000).catch(() => {});
-  await page.sleep(8000);
   const combat = await page.evaluate(LANDED);
   const combatRoom = await page.evaluate("({ mode: window.__rooms().mode, world: window.__rooms().world, flying: window.__craftState().mode })");
   check('the combat card after the war room: one click into a combat lobby in the Swiss valley, Ready under the cursor, never the war',
