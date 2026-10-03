@@ -9,9 +9,11 @@
   for chrome (menus). Amber for instruments that have to read over live
   footage. Mint for a record. Recessed type stays a
   cool mist so it still recedes on grass and sky. The title and the
-  finish screen do not paint a second landscape and do not load a
-  webfont: the world behind the menu is the picture, and the overlay
-  is CSS. Mint on the finish hero is a record.
+  finish screen do not paint a second landscape: the world behind the
+  menu is the picture, and the overlay is CSS. The one webfont is the
+  name's (assets/fonts, two subsets of Saira, about 3 KB, letters of
+  the name only); every other line of text is the system's. Mint on
+  the finish hero is a record.
 
   This file is part of WebFPVSimulator.
 
@@ -85,6 +87,12 @@
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="icon" href="favicon.ico" sizes="32x32" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <!-- The name's two faces (.screen-title .lockup), fetched while the boot
+         screen runs so the title never draws the name in a fallback first.
+         crossorigin because a font is always fetched in CORS mode, and a
+         preload without it is fetched twice. -->
+    <link rel="preload" href="assets/fonts/saira-lockup-800.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/saira-lockup-300.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="theme-color" content="#141c16" />
     <style>
       :root {
@@ -123,8 +131,9 @@
          * and the boot screen's large labels. Small text a pilot has to
          * read takes --pdcs-muted, over 7:1 on the same ground.
          *
-         * Still no webfont: IBM Plex Mono and Plex Sans where installed,
-         * the system's monospace and sans everywhere else.
+         * No webfont for any of it: IBM Plex Mono and Plex Sans where
+         * installed, the system's monospace and sans everywhere else. The
+         * name on the title is the one exception (.screen-title .lockup).
          */
         --pdcs-bg: #07090a;
         --pdcs-ground: radial-gradient(circle at 50% 40%, #101416 0%, #080a0b 48%, #050607 100%);
@@ -1314,10 +1323,10 @@
        * every part is in its em, so a page sets one number per window and
        * nothing else.
        *
-       * Still no webfont (the page's rule, see the top of this file): every
-       * desktop has a narrow sans under one of these names, Android answers
-       * to sans-serif-condensed, and font-stretch asks Apple's system face
-       * for its condensed width.
+       * No webfont in these base rules, which only the share card draws
+       * (the title's face is Saira, below): every desktop has a narrow sans
+       * under one of these names, Android answers to sans-serif-condensed,
+       * and font-stretch asks Apple's system face for its condensed width.
        */
       .lockup {
         position: relative; display: inline-flex; flex-direction: column;
@@ -1358,37 +1367,107 @@
       .lockup-name > span { display: block; }
       .lockup .py-flag { display: none; }
       /*
-       * THE NAME ON THE TITLE, in the bootloader's voice: the monospace at
-       * a book weight, the rules hairlines, and Paraguay's flag as the
-       * boot screen draws it, three horizontal bands, red over white over
-       * blue, ahead of PARAGUAYAN. The slash above is the flag on its side
-       * and is not drawn here. Every rule is under .screen-title because
-       * the share card clones the lockup out of the title (scripts/og.js)
-       * and keeps the base rules above, which is the card already shared.
+       * THE NAME ON THE TITLE, as the owner's lockup sets it (2 October):
+       * Paraguay's flag as a bar, red over white over blue as the boot
+       * screen draws it, ahead of PARAGUAYAN in spaced light capitals and
+       * a short rule; DRONE COMBAT on one line in a heavy square sans with
+       * a polished metal face; SIMULATOR spaced between two rules under it.
+       * The slash above is the flag on its side and is not drawn here.
+       * Every rule is under .screen-title because the share card clones
+       * the lockup out of the title (scripts/og.js) and keeps the base
+       * rules above, which is the card already shared.
+       *
+       * THE FACE is Saira (SIL Open Font License, assets/fonts/OFL-Saira.txt),
+       * the page's one webfont, cut down to the name's own capitals:
+       * ExtraBold for DRONE COMBAT, Light for PARAGUAYAN and SIMULATOR,
+       * 3 KB the pair. A letter outside them draws in the fallback, so a
+       * new word in the lockup means cutting the subsets again, from the
+       * upstream variable font (github.com/google/fonts, ofl/saira):
+       *   python3 -m fontTools.varLib.instancer 'Saira[wdth,wght].ttf' wght=800 wdth=100 -o eb.ttf
+       *   python3 -m fontTools.subset eb.ttf --text="DRONE COMBAT" --layout-features=kern
+       *     --flavor=woff2 --desubroutinize --name-IDs=0,1,2,3,4,5,6,13,14
+       *     --output-file=assets/fonts/saira-lockup-800.woff2
+       * and the same at wght=300 with --text="PARAGUAYAN SIMULATOR" for -300.
+       *
+       * Everything is in the name's em, so a window sets one number, the
+       * heading's font-size, and the lockup scales whole and stays vector
+       * at any resolution. A line height of 0.69 makes each line box
+       * Saira's cap height exactly (ascent 1.135 and descent 0.439 of the
+       * em, centred, caps 0.688), so each margin below is the visible gap
+       * between two rows of capitals.
        */
-      .screen-title .lockup { padding-left: 0; color: var(--pdcs-bright); }
-      .screen-title .lockup-slash { display: none; }
-      .screen-title .lockup .py-flag { display: inline-flex; margin-right: -0.35em; }
-      .screen-title .lockup-name {
-        font-family: var(--pdcs-mono); font-stretch: normal; font-weight: 500;
-        line-height: 0.96; letter-spacing: 0.04em; text-shadow: none;
+      @font-face {
+        font-family: "Saira Lockup"; font-weight: 800; font-style: normal; font-display: block;
+        src: url("assets/fonts/saira-lockup-800.woff2") format("woff2");
       }
-      .screen-title .lockup-over, .screen-title .lockup-under { color: var(--slate); text-shadow: none; }
+      @font-face {
+        font-family: "Saira Lockup"; font-weight: 300; font-style: normal; font-display: block;
+        src: url("assets/fonts/saira-lockup-300.woff2") format("woff2");
+      }
+      .screen-title .lockup {
+        padding-left: 0; color: var(--pdcs-bright);
+        font-family: "Saira Lockup", var(--pdcs-read); font-synthesis: none;
+      }
+      .screen-title .lockup-slash { display: none; }
+      .screen-title .lockup-over, .screen-title .lockup-under {
+        font-weight: 300; line-height: 0.69;
+        color: var(--pdcs-text); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+      }
+      .screen-title .lockup-over { font-size: max(0.22em, 9px); letter-spacing: 0.5em; gap: 0.9em; }
+      /* The flag a bar as long as three capitals of PARAGUAYAN, its height
+         a little over theirs. */
+      .screen-title .lockup .py-flag {
+        display: inline-flex; width: 3.3em; height: 0.9em; margin: 0;
+        border-color: rgba(255, 255, 255, 0.22);
+      }
+      /* The letter spacing trails the N, so the rule takes it back and
+         stands as far from the word as the flag does. */
+      .screen-title .lockup-over::after { flex: 0 0 2.4em; min-width: 0; margin-left: -0.5em; }
+      .screen-title .lockup-under {
+        justify-content: center; gap: 1.4em;
+        font-size: max(0.265em, 10px); letter-spacing: 0.6em;
+      }
+      .screen-title .lockup-under::before, .screen-title .lockup-under::after { flex: 0 0 1.9em; min-width: 0; }
+      .screen-title .lockup-under::before { margin-right: 0.6em; }
       .screen-title .lockup-over::after, .screen-title .lockup-under::before,
       .screen-title .lockup-under::after { background: var(--pdcs-line); }
-      .screen-title .wordmark { font-size: clamp(38px, 3.9vw, 82px); }
-      /* In a short window the gate's Beta line stands beside the name
-         rather than under it, where it would take the height the cards and
-         the rooms panel need: at 1280 by 720 it put the cards against it.
-         A tall window has that height and keeps the line under the name,
-         and an upright phone stacks them again (the 860 px rule). */
-      @media (max-height: 820px) {
-        .screen-title.is-gate .brand {
-          display: grid; grid-template-columns: auto minmax(0, 16rem);
-          justify-content: start; column-gap: clamp(18px, 2vw, 32px); align-items: end;
-        }
-        .screen-title.is-gate .brand .beta-note { margin: 0 0 0.2em; }
+      /*
+       * THE METAL. A silver ramp with a darker horizon across the middle,
+       * the way a polished face reflects a dark ground under a light sky; a
+       * brushed grain of long horizontal streaks over it (fractal noise,
+       * stretched sideways, as an SVG tile in the em so it scales with the
+       * name); and a soft sheen across, all clipped to the letters. The
+       * bevel is two copies of the name behind it: a light one a hair up,
+       * which leaves a bright rim on every top edge, and a dark one a
+       * little down, which reads as the edge's thickness. The drop shadow
+       * is a filter, not a text-shadow, because a text-shadow paints
+       * through a transparent fill and would grey the metal from inside.
+       */
+      .screen-title .lockup-name {
+        position: relative; z-index: 0;
+        margin: 0.24em 0 0.22em;
+        font-family: "Saira Lockup", "Arial Black", var(--pdcs-read);
+        font-stretch: normal; font-weight: 800;
+        line-height: 0.69; letter-spacing: -0.07em; white-space: nowrap;
+        color: transparent; -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 0.008em rgba(24, 28, 31, 0.45);
+        text-shadow: none;
+        background:
+          linear-gradient(103deg, transparent 0 30%, rgba(255, 255, 255, 0.42) 40%, transparent 52%) 0 0 / 100% 100%,
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.003 0.45' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.9 0 0 0 -0.38'/%3E%3C/filter%3E%3Crect width='600' height='120' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 5em 1em repeat,
+          linear-gradient(180deg, #fbfcfc 0%, #e2e6e9 28%, #b2b9be 47%, #858d93 52%, #c6ccd0 70%, #eff2f3 100%) 0 0 / 100% 100%;
+        -webkit-background-clip: text; background-clip: text;
+        filter: drop-shadow(0 0.03em 0 rgba(4, 5, 6, 0.85)) drop-shadow(0 0.07em 0.1em rgba(0, 0, 0, 0.6));
       }
+      .screen-title .lockup-name > span { display: inline; }
+      .screen-title .lockup-name::before, .screen-title .lockup-name::after {
+        content: attr(data-text) / "";
+        position: absolute; left: 0; top: 0; z-index: -1;
+        -webkit-text-stroke: 0;
+      }
+      .screen-title .lockup-name::before { transform: translateY(-0.014em); -webkit-text-fill-color: rgba(255, 255, 255, 0.85); }
+      .screen-title .lockup-name::after { transform: translateY(0.026em); -webkit-text-fill-color: #262b2f; }
+      .screen-title .wordmark { font-size: clamp(34px, min(5vw, 10.5vh), 200px); }
       /* On a phone the rule after PARAGUAYAN runs under the sign in chip,
          which sits level with it in the top right corner and is wider in
          Spanish (Iniciar sesión con Google reaches x 181 of 390). The word
@@ -1442,10 +1521,10 @@
         box-shadow: inset 0 0 0 1px rgba(215, 221, 221, 0.45);
       }
       .brand-best-time { color: var(--mint); font-weight: 650; }
-      /* The beta notice. Amber, because it is an instrument reading on
-         the software rather than a record or a piece of chrome, and it
-         keeps the same left edge as everything else in the brand block so
-         it reads as part of the title rather than as a bolted on toast. */
+      /* The beta notice. Blue, the instrument's own colour, as the owner's
+         lockup sets the tag (2 October), and it keeps the same left edge as
+         everything else in the brand block so it reads as part of the title
+         rather than as a bolted on toast. */
       .beta-note {
         display: flex; align-items: baseline; gap: 10px;
         max-width: 34em; margin: 14px 0 0;
@@ -1456,7 +1535,7 @@
         flex: 0 0 auto;
         font-family: var(--pdcs-mono);
         font-size: 11px; font-weight: 500; letter-spacing: 0.18em;
-        text-transform: uppercase; color: var(--amber);
+        text-transform: uppercase; color: var(--pdcs-blue);
       }
       .beta-tag::before { content: "[ "; color: var(--pdcs-blue-dim); }
       .beta-tag::after { content: " ]"; color: var(--pdcs-blue-dim); }

@@ -142,6 +142,7 @@
     "combat:respawn": "node scripts/combat-respawn-pages.js",
     "friends:card": "node scripts/friends-card-check.js",
     "modes:card": "node scripts/mode-cards-check.js",
+    "lockup:check": "node scripts/lockup-check.js",
     "strings:selftest": "node scripts/strings-selftest.js",
     "version:check": "node scripts/version-check.js",
     "version:reload": "node scripts/version-reload-check.js",

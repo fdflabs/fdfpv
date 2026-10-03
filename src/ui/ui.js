@@ -1851,6 +1851,8 @@ function wordmark() {
   const slash = el('span', 'lockup-slash');
   slash.setAttribute('aria-hidden', 'true');
   const name = el('span', 'lockup-name');
+  /* The title's bevel draws the name twice more behind itself, from this. */
+  name.dataset.text = 'Drone Combat';
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
   /* The flag as the boot screen draws it, horizontal bands; the title
    * shows it and hides the slash, the share card the other way round. */
@@ -3797,7 +3799,7 @@ export class Ui {
     this.brandSub = el('div', 'brand-sub', '');
     brand.append(wordmark(), this.brandSub);
     /* Beta notice. The only line on this screen that is about the
-     * software rather than about flying, so it wears the amber an
+     * software rather than about flying, so it wears the blue an
      * instrument wears rather than the mint a record does, and it sits
      * directly under the wordmark: a pilot who is about to meet a bug
      * should have been told before the lap, not after it. It is not
@@ -3806,7 +3808,7 @@ export class Ui {
     const beta = el('p', 'beta-note');
     beta.append(
       el('span', 'beta-tag', str('ui.beta')),
-      el('span', null, str('ui.expect_bugs_and_rough_edges_it')),
+      el('span', null, str('ui.realistic_drone_combat_inspired_by_paraguay')),
     );
     brand.append(beta);
     this.titleBest = el('div', 'brand-best', '');
