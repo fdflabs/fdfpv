@@ -90,16 +90,23 @@
  *   { type: 'war', op: 'start', mission }   count down and fight it
  *   { type: 'war', op: 'start', mission, intro: true }
  *                                           the same after a 'briefing'
- *                                           of INTRO_MS, which every
- *                                           screen fills with the intro
- *                                           film (src/render/warintro.js)
+ *                                           as long as the mission's film
+ *                                           (src/share/war/films,
+ *                                           briefingMs), which every
+ *                                           screen plays
+ *                                           (src/render/warintro.js)
  *   { type: 'war', op: 'start', mission, from: 'checkpoint' }
  *                                           after a loss, that mission
  *                                           again from the stage it was
  *                                           lost in (a countdown, no
  *                                           briefing; RESTART_STARS)
  *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
- *                                           countdown starts now
+ *                                           countdown starts now; refused
+ *                                           'unwatched' unless every pilot
+ *                                           here has seen this film's
+ *                                           version (docs/campaign/
+ *                                           INTROS.md section 3: a first
+ *                                           viewing is never cut)
  *   { type: 'war', op: 'end' }              stop now
  *
  * and any pilot, about its own seat, while a war is on and it is neither
@@ -108,6 +115,10 @@
  *   { type: 'war', op: 'lost' }             my airframe is lost
  *   { type: 'war', op: 'ready' }            ready for what comes next
  *                                           (a stage's { ready })
+ *
+ * and any pilot, any time: { type: 'war', op: 'seen', films: { id:
+ * version } }, the films this pilot has watched to the end (kept by
+ * token, in memory, as the loadouts are; the view's `seen`).
  *
  * What the room sends, to everybody:
  *
@@ -176,7 +187,7 @@ import {
   stagesOf, target as exitTarget, wavesOf,
 } from '../../src/share/war/stages.js';
 import { wireStrike } from '../../src/share/war/wires.js';
-import { INTRO_MS } from '../../src/share/war/intro.js';
+import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
 import { COUNTDOWN_MS } from './race.js';
 import { AHEAD_MS } from './referee.js';
@@ -457,6 +468,9 @@ export class RoomWar {
     /* For the checks: every detonation, arrival and crash, with when it
      * was decided. Memory only. */
     this.log = [];
+    /* token -> { film id: version } watched to the end: memory, as the
+     * loadouts (seenFilms). */
+    this.seen = new Map();
     /* token -> loadout sent before a game: memory, copied into the match
      * as its pilot joins it (enlist). By token, never by seat, so a seat's
      * next pilot never flies its last one's. */
@@ -603,6 +617,10 @@ export class RoomWar {
       mission: m.mission,
       goAt: m.goAt,
       briefAt: m.briefAt ?? null,
+      /* The match's film, and the seats here that have seen it (the
+       * host's skip waits on all of them). */
+      film: { id: filmFor(mission).id, version: filmFor(mission).version },
+      seen: this.seenHere(core),
       f: m.f,
       wave: m.wave,
       waves: wavesOf(this.stages()).length,
@@ -801,6 +819,9 @@ export class RoomWar {
     if (msg.op === 'ready') {
       return this.ready(core, conn, s, now);
     }
+    if (msg.op === 'seen') {
+      return this.seenFilms(core, conn, s, msg.films);
+    }
     if (s.seat !== core.host()) {
       return [];
     }
@@ -808,7 +829,7 @@ export class RoomWar {
       return this.start(core, conn, msg, now);
     }
     if (msg.op === 'skipIntro') {
-      return this.skipIntro(core, now);
+      return this.skipIntro(core, conn, now);
     }
     if (msg.op === 'end' && this.on()) {
       const out = this.advance(core, now);
@@ -923,7 +944,7 @@ export class RoomWar {
     /* A mission's prepMs lengthens its countdown: the night raid's, so
      * every screen has built its night world and seated its pilot well
      * before the go, never after it (itaipu-4.js). */
-    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : INTRO_MS) + COUNTDOWN_MS + (mission.prepMs ?? 0);
+    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : briefingMs(mission)) + COUNTDOWN_MS + (mission.prepMs ?? 0);
     this.match = {
       id: this.nextId,
       mission: mission.id,
@@ -1002,13 +1023,38 @@ export class RoomWar {
     return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
   }
 
+  /* A pilot's watched films, { id: version }: what the host's skip asks
+   * of everybody here. Anything else is refused 'seen'. */
+  seenFilms(core, conn, s, films) {
+    if (!films || typeof films !== 'object' || Array.isArray(films)
+      || !Object.values(films).every((v) => Number.isInteger(v) && v >= 0)) {
+      return this.error(conn, 'seen');
+    }
+    this.seen.set(s.token, { ...films });
+    return this.match ? this.changed(core) : [];
+  }
+
+  /* The seats here that have seen this match's film, its version. */
+  seenHere(core) {
+    const f = filmFor(this.mission());
+    return this.players(core).filter((seat) => {
+      const t = [...core.seats.values()].find((x) => x.seat === seat);
+      return t && (this.seen.get(t.token)?.[f.id] ?? -1) >= f.version;
+    });
+  }
+
   /* The host cuts the briefing short: the countdown runs from now, for
-   * everybody. Nothing outside a briefing, so a late or repeated skip
-   * cannot move a countdown already under way. */
-  skipIntro(core, now) {
+   * everybody, once every pilot here has seen the film (a first viewing
+   * is never cut, INTROS.md section 3; the host's own skip then leaves
+   * only its own view). Nothing outside a briefing, so a late or repeated
+   * skip cannot move a countdown already under way. */
+  skipIntro(core, conn, now) {
     const m = this.match;
     if (!m || m.state !== 'briefing') {
       return [];
+    }
+    if (this.seenHere(core).length < this.players(core).length) {
+      return this.error(conn, 'unwatched');
     }
     m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     m.f = m.goAt;
@@ -1716,7 +1762,9 @@ export class RoomWar {
         return { out, dirty: false };
       }
       this.enterStage(core, m.stage.next, m.nextRoundAt);
-      return { out, dirty: true };
+      /* Its first spawns told now, not a tick later: in between, a
+       * screen counted to a wave that was already being announced. */
+      return { out: this.births(core, roomNow), dirty: true };
     }
     const ctx = this.stageCtx(core, roomNow);
     const st = m.stage;
@@ -1777,6 +1825,7 @@ export class RoomWar {
       m.nextRoundAt = t + beat;
     } else {
       this.enterStage(core, to, t);
+      out.push(...this.births(core, roomNow));
     }
     return { out, dirty: true };
   }

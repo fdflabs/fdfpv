@@ -95,8 +95,9 @@ export function createWarCutaway({
     document.body.append(frame, bars);
   }
 
-  /* A cue's cutaway, heard at performance.now() nowWall, room ms at. */
-  function request(cue, nowWall, at = null) {
+  /* A cue's cutaway, heard at performance.now() nowWall, room ms at;
+   * `pip` says how to show it in place of inControl() (the checks). */
+  function request(cue, nowWall, at = null, pip = null) {
     const p = place(cue);
     if (!p) {
       return false;
@@ -111,12 +112,12 @@ export function createWarCutaway({
       from.set(p[0] + (dx / h) * STAND_M, p[1] + STAND_UP_M, p[2] + (dz / h) * STAND_M);
     }
     to.copy(from).lerp(look, PUSH);
-    const pip = Boolean(inControl());
+    const inset = pip ?? Boolean(inControl());
     shot = {
-      from: from.clone(), to: to.clone(), look: look.clone(), fov: cue.fov ?? FOV, ms: cue.ms ?? CUT_MS, t0: nowWall, pip,
+      from: from.clone(), to: to.clone(), look: look.clone(), fov: cue.fov ?? FOV, ms: cue.ms ?? CUT_MS, t0: nowWall, pip: inset,
     };
     log.push({
-      at, pip, ms: shot.ms, place: p.slice(),
+      at, pip: inset, ms: shot.ms, place: p.slice(),
     });
     overlay();
     return true;

@@ -61,6 +61,8 @@ jobs:
       - run: npm run war:harness -- --seeds=3 --runs=6
       - run: npm run war:routes
       - run: npm run war:stages
+      - run: npm run films:time -- --check
+      - run: npm run films:lint
       - run: npm run war:grid
       - run: npm run marks:selftest
       - run: npm run combat:harness

@@ -1,17 +1,9 @@
 /*
- * intro.js: how long the war mode's "2030" intro runs (docs/WARFARE-PLAN.md
- * section 7.1), the one number the room and the client must agree on. The
- * room holds a war started with { intro: true } in its 'briefing' state for
- * INTRO_MS (edge/rooms/war.js); every screen plays src/render/warintro.js
- * over the same span, so the countdown starts as the last title fades.
- *
- * The shots' lengths live here rather than in warintro.js so the room's
- * number is their sum and cannot drift from the film. There are six: the
- * plan's seven less the gorge's static, cut with the signal system (the
- * owner's decision). Each is long enough for the longer of its two voice
- * lines (assets/audio/war/manifest.json) with its lead in and a beat
- * after; the spin up cuts and the closing wide took the cut shot's nine
- * seconds, so the whole is still the intro music's 70 s.
+ * intro.js: how long the war mode's default intro film runs, the room's
+ * briefing for a mission with no film of its own (src/share/war/films,
+ * film.js). Each mission's own is films/index.js briefingMs(mission);
+ * this is the default's, which the room's checks use for their test
+ * missions.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -29,8 +21,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* Shot 1 to 6, milliseconds. */
-export const SHOT_MS = Object.freeze([7000, 11000, 10000, 10000, 12000, 20000]);
+import { briefingMs } from './films/index.js';
 
-/* The whole intro, and the room's briefing. */
-export const INTRO_MS = SHOT_MS.reduce((a, b) => a + b, 0);
+/* The default film's whole length: the briefing of a mission without a
+ * film of its own. */
+export const INTRO_MS = briefingMs(null);

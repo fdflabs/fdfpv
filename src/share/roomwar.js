@@ -389,6 +389,11 @@ export function createRoomWar(send) {
     skipIntro() {
       send({ type: 'war', op: 'skipIntro' });
     },
+    /* Any pilot: the films it has watched to the end, { id: version }
+     * (the host's skip waits on everybody's, edge/rooms/war.js). */
+    seen(films) {
+      send({ type: 'war', op: 'seen', films });
+    },
     /* Any pilot: ready for what comes next (a stage's { ready }). */
     ready() {
       send({ type: 'war', op: 'ready' });
