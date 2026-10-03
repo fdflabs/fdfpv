@@ -58,7 +58,9 @@ import { leafTurn, turnPoint } from '../src/share/war/leaf.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv.slice(2).find((a) => !a.startsWith('--')) || join(root, 'build', 'damage-shots');
 const MISSION = MISSIONS['itaipu-2'];
-const GATE = 'gate-3';
+/* The easternmost, which mission 2's own waves come to last: none of
+ * them reaches it while this runs. */
+const GATE = 'gate-13';
 const STATIC_MAX = 15000;
 /* Where the holed gate's hoist takes its leaf: two minutes of travel,
  * which takes its panels about a metre. */
@@ -112,6 +114,18 @@ const frames = (p, n) => p.evaluate(`new Promise((r) => { let k = 0; const f = (
 const s = STRUCTURES[GATE];
 const mid = s.chunks.filter((c) => c.k === 'skin').reduce((a, c, _, l) => a.map((v, i) => v + c.c[i] / l.length), [0, 0, 0]);
 const n = s.frame.n;
+/* A chunk's centre brought out to the skin's capsules' axis, 0.15 m
+ * inside the skin (dam/index.js SKIN_R's row), along its radius. */
+const onSkin = (P) => {
+  const h = s.frame.hinge;
+  const rx = P[0] - h.p[0];
+  const ry = P[1] - h.p[1];
+  const rz = P[2] - h.p[2];
+  const along = rx * h.a[0] + rz * h.a[2];
+  const d = rx * h.n[0] + rz * h.n[2];
+  const k = (h.r - 0.15) / Math.hypot(d, ry);
+  return [h.p[0] + h.a[0] * along + h.n[0] * d * k, h.p[1] + ry * k, h.p[2] + h.a[2] * along + h.n[2] * d * k];
+};
 /* A point of the gate's leaf at rest, where Free Flight's 2 m has it. */
 const free = (P) => turnPoint(s.frame.hinge, leafTurn(s.frame.hinge, 2), P);
 const VIEWS = {
@@ -147,7 +161,7 @@ try {
   const before = await a.evaluate('window.__war().breakage');
   /* Every skin panel's solid, before. */
   const skins = s.chunks.map((c, i) => [c, i]).filter(([c]) => c.k === 'skin');
-  const gapsBefore = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${free(c.c).join(',')}, 2)`).join(',')}]`);
+  const gapsBefore = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${free(onSkin(c.c)).join(',')}, 2)`).join(',')}]`);
   await look(a, 'down');
   const callsBefore = (await a.evaluate('window.__renderStats()')).calls;
   await shot(a, '1-before-downstream');
@@ -190,7 +204,7 @@ try {
   /* Where a broken skin panel stood, nothing solid; where one stands,
    * as solid as before. */
   const broken = new Set(told.flatMap((e) => e.chunks));
-  const gapsAfter = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${free(c.c).join(',')}, 2)`).join(',')}]`);
+  const gapsAfter = await a.evaluate(`[${skins.map(([c]) => `window.__nearSolid(${free(onSkin(c.c)).join(',')}, 2)`).join(',')}]`);
   /* Nothing within the 2 m asked comes back as Infinity, which the page
    * hands over as null. */
   const far = (g) => (g == null ? Infinity : g);
