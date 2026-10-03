@@ -4627,7 +4627,7 @@ export class Ui {
       : v.deadline != null
         ? str('lobby.deadline', { t: `${Math.floor(v.deadline / 60)}:${String(v.deadline % 60).padStart(2, '0')}` })
         : str('lobby.waiting');
-    const key = JSON.stringify([v.mission, status, v.pilots, v.last]);
+    const key = JSON.stringify([v.mission, status, v.pilots, v.last, v.brief]);
     if (key === this.warLobbyKey) {
       return;
     }
@@ -4635,8 +4635,30 @@ export class Ui {
     const box = this.warLobbyEl;
     box.textContent = '';
     const head = el('div', 'war-lobby-head');
-    head.append(el('div', 'war-lobby-title', str('lobby.title')), el('div', 'war-lobby-mission', v.mission));
+    head.append(el('div', 'war-lobby-title', str(v.brief ? 'brief.title' : 'lobby.title')), el('div', 'war-lobby-mission', v.mission));
     box.append(head);
+    /* Operations' briefing (src/ui/briefing.js): its line, what to do
+     * first, and the facts, each a label and a value. */
+    if (v.brief) {
+      const brief = el('div', 'war-brief');
+      if (v.brief.line) {
+        brief.append(el('p', 'war-brief-line', v.brief.line));
+      }
+      if (v.brief.objectives.length) {
+        const first = el('div', 'war-brief-first');
+        first.append(el('span', 'war-brief-label', str('brief.first')));
+        for (const o of v.brief.objectives) {
+          first.append(el('span', 'war-brief-objective', o));
+        }
+        brief.append(first);
+      }
+      const facts = el('dl', 'war-brief-facts');
+      for (const f of v.brief.facts) {
+        facts.append(el('dt', 'war-brief-label', f.label), el('dd', 'war-brief-value', f.value));
+      }
+      brief.append(facts);
+      box.append(brief);
+    }
     box.append(el('div', `war-lobby-status${v.countdown != null ? ' go' : ''}`, status));
     if (v.last) {
       box.append(el('div', 'war-lobby-last', str(`lobby.last_${v.last.state}`, {
@@ -14054,15 +14076,17 @@ export class Ui {
      * EVERY CARD, ONE PRESS, into its game's lobby (the owner, 2026-10-02:
      * "every click will take you to the lobby for it, ready to go either
      * single or multi"; src/main.js onGameCard), its aircraft chosen
-     * there. Defend the Paraná's lobby is the war's, its campaign a row
-     * of it. With no rooms server the cards fly alone as they always did.
+     * there. With no rooms server the cards fly alone as they always did.
+     * Defend the Paraná is the exception: its front door is the campaign's
+     * page, the missions with their stars (the owner, 2026-10-03), and a
+     * mission's Play makes the room for it, onto its briefing.
      */
-    if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
-      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
-      return;
-    }
     if (way.campaign && this.onCampaignCard) {
       this.onCampaignCard();
+      return;
+    }
+    if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
+      this.onGameCard(action, way.lobby, way.home || seatedFreestyleMap(this.settings)?.id || 'swiss2');
       return;
     }
     if (way.game === 'war' && this.onWarCard) {

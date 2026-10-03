@@ -2026,6 +2026,16 @@
       .war-lobby-status.go { color: var(--mint); animation: pdcs-blink 0.9s ease-in-out infinite alternate; }
       .war-lobby-last { font-family: var(--pdcs-read); font-size: 13.5px; color: var(--slate); }
       .war-lobby-pilots { display: flex; flex-direction: column; }
+      /* OPERATIONS' BRIEFING (src/ui/briefing.js) over the war room's
+         pilots: the line in the readable face, the facts in the mono, a
+         label column and a value column. */
+      .war-brief { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3) 0; border-top: 1px solid var(--pdcs-line-soft); border-bottom: 1px solid var(--pdcs-line-soft); }
+      .war-brief-line { margin: 0; font-family: var(--type-read); font-size: 14px; line-height: 1.45; color: var(--pdcs-text); }
+      .war-brief-first { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-3); align-items: baseline; }
+      .war-brief-objective { font-family: var(--type-name); font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pdcs-bright); }
+      .war-brief-facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4); margin: 0; }
+      .war-brief-label { font-family: var(--type-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pdcs-muted); }
+      .war-brief-value { margin: 0; font-family: var(--type-mono); font-size: 12.5px; color: var(--pdcs-text); overflow-wrap: anywhere; }
       .war-lobby-pilot {
         display: flex; align-items: center; justify-content: space-between; gap: 16px;
         padding: 10px 0; border-bottom: 1px solid var(--pdcs-line-soft);

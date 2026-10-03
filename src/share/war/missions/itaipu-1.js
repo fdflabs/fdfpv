@@ -147,6 +147,9 @@ export default withWaves({
   /* A string key (src/strings): First Light. */
   title: 'war.mission.itaipu_1',
   map: 'itaipu',
+  /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
+   * Operations' briefing shows it (src/ui/briefing.js). */
+  estimatedMinutes: [9, 13],
   targets,
   output: 14000,
   floorMw: 7700,

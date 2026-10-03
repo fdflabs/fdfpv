@@ -24,7 +24,9 @@
  *                              the title.
  *   every card is a lobby      each of the five cards, from the title, is
  *   (rules 11, 12)             one press into the lobby of a room made for
- *                              its game; Leave is out of it again.
+ *                              its game (Defend the Paraná's press is its
+ *                              campaign page, and mission 1's Play the
+ *                              room); Leave is out of it again.
  *   the card's world wins      Itaipu seated (as a war leaves it): the
  *   (rule 2, D4)               Free Flight card's lobby is in the Swiss
  *                              valley. With no rooms server (?rooms=off)
@@ -210,14 +212,23 @@ try {
   const cards = [];
   for (const [way, game] of [['race-5inch', 'race'], ['freestyle-wing1000', null], ['combat', 'combat'], ['ace', 'tag'], ['campaign', 'war']]) {
     await page.evaluate(`(() => { window.__ui.act('mode-gate'); window.__ui.pickForWay('way-${way}'); return true; })()`);
+    /* The campaign's page, its missions, before any room. */
+    let page1 = null;
+    if (way === 'campaign') {
+      const PLAY = "document.querySelector('.campaign-box [data-mission=\"itaipu-1\"] .campaign-play')";
+      await page.until(`${PLAY} !== null && window.__rooms().phase === 'idle'`, 10000).catch(() => {});
+      page1 = await page.evaluate(`({ missions: document.querySelectorAll('.campaign-box .campaign-mission').length, phase: window.__rooms().phase })`);
+      await page.evaluate(`(() => { ${PLAY}.click(); return true; })()`);
+    }
     await page.until(LOBBY_UP, 60000).catch(() => {});
     await page.sleep(400);
     const r = await page.evaluate(`({ ...${ROOM}, mode: window.__rooms().mode, world: window.__rooms().world })`);
-    cards.push({ way, game, ok: r.phase === 'open' && r.screen === 'friends' && r.mode === game, world: r.world });
+    const paged = way !== 'campaign' || (page1 && page1.missions === 4 && page1.phase === 'idle');
+    cards.push({ way, game, ok: paged && r.phase === 'open' && r.screen === 'friends' && r.mode === game, world: r.world, page: page1 });
     await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
     await page.until("window.__rooms().phase === 'idle' && window.__ui.screen === 'title'", 10000).catch(() => {});
   }
-  check('each of the five cards is one press into the lobby of a room made for its game, and Leave is out again', cards.every((c) => c.ok),
+  check('each of the five cards is one press into the lobby of a room made for its game (Defend the Paraná: its page, then Play), and Leave is out again', cards.every((c) => c.ok),
     JSON.stringify(cards));
 
   /* THE CARD'S WORLD WINS. */

@@ -28,6 +28,9 @@ export default {
   id: 'itaipu-4',
   /* A string key (src/strings): Night raid. */
   title: 'war.mission.itaipu_4',
+  /* Minutes, low and high, a squad takes (docs/campaign/MISSIONS.md 2);
+   * Operations' briefing shows it (src/ui/briefing.js). */
+  estimatedMinutes: [12, 16],
   night: true,
   radio: { brief: ['brief-itaipu-4-1', 'brief-itaipu-4-2'], win: 'debrief-itaipu-4-win', lose: 'debrief-itaipu-4-lose' },
   /* The countdown's extra length (war.js start). The client rebuilds its

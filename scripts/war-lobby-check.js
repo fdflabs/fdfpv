@@ -8,7 +8,7 @@
  * then start a mission, its on every single game". Page A has the consent
  * and mission 1 won; page B is a fresh profile.
  *
- *   A makes the room: Make a room, Everybody, Itaipu, Defend Itaipu,
+ *   A makes the room: Make a room, Everybody, Itaipu, Defend the Paraná,
  *     Mission 1. A is on its LOBBY: the mission, the status, A in the
  *     pilots, the cursor on Ready, no Fly and no world row.
  *   B finds it in Rooms, joins, says Continue to the consent: in the same
@@ -154,15 +154,15 @@ try {
   })()`);
   await a.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); window.__ui.act('roomnew'); return true; })()");
   await a.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
-  const picked = [await pick('Who can join', 'Everybody'), await pick('The world', 'Itaipu'), await pick('Game', 'Defend Itaipu'), await pick('Mission', 'Mission 1')];
-  check('Make a room: Everybody, Itaipu, Defend Itaipu, Mission 1', picked.every(Boolean), JSON.stringify(picked));
+  const picked = [await pick('Who can join', 'Everybody'), await pick('The world', 'Itaipu'), await pick('Game', 'Defend the Paraná'), await pick('Mission', 'Mission 1')];
+  check('Make a room: Everybody, Itaipu, Defend the Paraná, Mission 1', picked.every(Boolean), JSON.stringify(picked));
   await a.evaluate("(() => { window.__ui.setCursor(window.__ui.items().findIndex((it) => it.action === 'friends-make')); return true; })()");
   await a.tap('Enter');
   await a.until("window.__rooms().phase === 'open' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden", 60000).catch(() => {});
   await a.sleep(1500);
   const code = await a.evaluate('window.__rooms().code');
   const la = await a.evaluate(LOBBY);
-  check('A is on the room\'s LOBBY: mission 1, waiting, A its host, the cursor on Ready', la.screen === 'friends' && la.shown && la.title === 'LOBBY'
+  check('A is on the room\'s lobby, headed BRIEFING: mission 1, waiting, A its host, the cursor on Ready', la.screen === 'friends' && la.shown && la.title === 'BRIEFING'
     && /Mission 1: /.test(la.mission) && /^Press Ready, or R, to go/.test(la.status) && la.pilots.length === 1 && la.pilots[0].host && !la.pilots[0].ready
     && la.here === 'friends-lobby-ready', JSON.stringify(la));
   check('and nothing of free flight: no Fly, no world row, no other games, never in the air', !la.rows.includes('fly') && !la.rows.includes('The world')
@@ -275,7 +275,7 @@ try {
   /* Rooms reads its own listing, which can be a poll behind the panel's. */
   await b.until(`/wave \\d+ of/.test((window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || {}).note || '')`, 15000).catch(() => {});
   const battleRow = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || null)`);
-  check('and Rooms says in battle, Defend Itaipu, mission 1, wave x of y, 1 flying', battleRow && /in battle, Defend Itaipu, mission 1, wave \d+ of \d+, 1 flying\. Enter to join the battle\./.test(battleRow.note),
+  check('and Rooms says in battle, Defend the Paraná, mission 1, wave x of y, 1 flying', battleRow && /in battle, Defend the Paraná, mission 1, wave \d+ of \d+, 1 flying\. Enter to join the battle\./.test(battleRow.note),
     JSON.stringify(battleRow && battleRow.note));
   await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(rowAction)}); return true; })()`);
   await b.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 400000).catch(() => {});
@@ -303,7 +303,7 @@ try {
   await a.until("window.__rooms().phase === 'open' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden", 60000).catch(() => {});
   await a.sleep(1000);
   const lc = await a.evaluate(LOBBY);
-  check('campaign Play lands on a lobby too, the cursor on Ready', lc.shown && lc.title === 'LOBBY' && lc.here === 'friends-lobby-ready' && lc.flying !== 'flight',
+  check('campaign Play lands on a lobby too, the cursor on Ready', lc.shown && lc.title === 'BRIEFING' && lc.here === 'friends-lobby-ready' && lc.flying !== 'flight',
     JSON.stringify({ shown: lc.shown, here: lc.here, flying: lc.flying }));
 
   const errs = [a, b].flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));

@@ -1,6 +1,6 @@
 /*
  * war-solo-page.js: one pilot, alone in a private room on Itaipu, starts
- * Defend Itaipu (mission 1) from the room screen, against a local
+ * Defend the Paraná (mission 1) from the room screen, against a local
  * edge/rooms/node.js this check starts and stops itself (never the VM).
  *
  *   SIM_GPU=1 node scripts/war-solo-page.js [port]
@@ -71,7 +71,7 @@ const seed = [`try {
 const dir = await mkdtemp(join(tmpdir(), 'war-solo-'));
 const server = given ? null : await startRooms({ db: join(dir, 'rooms.db'), port: PORT });
 const rooms = given ? given.slice('--rooms='.length) : `http://127.0.0.1:${PORT}`;
-console.log(`Defend Itaipu alone, rooms at ${rooms}`);
+console.log(`Defend the Paraná alone, rooms at ${rooms}`);
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(rooms)}`, width: 1280, height: 720, seed });
 const look = () => page.evaluate(`(() => {
   const w = window.__war();

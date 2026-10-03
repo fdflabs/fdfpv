@@ -229,7 +229,7 @@ function roomSeats() {
   }).join('; ');
 }
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
-console.log(`Defend Itaipu in two pages, rooms at ${rooms}, wired by ${MAIN ? 'src/main.js' : 'scripts/war-twopage-wire.js'}`);
+console.log(`Defend the Paraná in two pages, rooms at ${rooms}, wired by ${MAIN ? 'src/main.js' : 'scripts/war-twopage-wire.js'}`);
 
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('#d8432f') });
 /* With main.js's wiring, B's own setting has crash damage off: the room

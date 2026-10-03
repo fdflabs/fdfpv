@@ -458,8 +458,8 @@ try {
   await f.until("window.__ui.screen === 'roomnew'", 10000).catch(() => {});
   check('a click on Make a room opens Make a room', await f.evaluate("window.__ui.screen === 'roomnew'"), await f.evaluate('window.__ui.screen'));
 
-  /* THREE 32 LETTER NAMES at the top of the panel, as campaign Play names
-   * its public war rooms ("<picker name>, Defend Itaipu"): two more such
+  /* THREE 32 LETTER NAMES at the top of the panel, the most a room's name
+   * may be (src/share/roomwire.js ROOM_NAME_MAX): two more such
    * rooms, newest, beside the one above. Every name whole at every size,
    * the panel and the cards still fit; an upright phone's panel lists two
    * of them (src/ui/roombrowser.js TITLE_ROOMS_UPRIGHT). A minute first:
