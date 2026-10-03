@@ -131,6 +131,7 @@ jobs:
       # pack, the merge rule, the parts. In Chromium: npm run move:check.
       - run: npm run move:selftest
       - run: npm run crash:rules
+      - run: npm run crash:tree-nan
       - run: npm run river:check
       - run: npm run builder:selftest
       # Itaipu's two shipped courses are what scripts/itaipu-courses.js
