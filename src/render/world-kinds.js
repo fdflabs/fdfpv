@@ -44,6 +44,8 @@
  *                calibrated (else at the ear)
  *   roar, flow, bubbles, lap, hum, mainsHz, corona, bell, song, chirp,
  *   croak, buzz  the ambience's parts and their levels
+ *   flowRef      a source driven by a discharge (the drive slot, m3/s):
+ *                the discharge its level is given at
  *   farHz, farGain  the far bed's note and its level against a voice
  *
  * This file is part of WebFPVSimulator.
@@ -62,8 +64,10 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* Numbers a frame carries per source: id, kind, x, y, z, vx, vy, vz. */
-export const SOURCE_STRIDE = 8;
+/* Numbers a frame carries per source: id, kind, x, y, z, vx, vy, vz, and
+ * a drive, what its level follows when not its speed (a breach's
+ * discharge, m3/s; 0 for every other kind). */
+export const SOURCE_STRIDE = 9;
 
 const TWO_STROKE = { pulseDecay: 0.86, jitter: 0.08, exhaust: 1 };
 
@@ -108,11 +112,11 @@ export const WORLD_KINDS = {
   /* fpv and hunter: 0.25 m quads (attackers.js), the pilot's own class:
    * four three blade props near 20,000 rpm in fast forward flight. */
   fpv: {
-    lufs16: -29, amp: 0.0476, cruise: 21, cruiseRpm: 20000, rotors: 1, rotorBlades: 3,
+    lufs16: -29, amp: 0.0475, cruise: 21, cruiseRpm: 20000, rotors: 1, rotorBlades: 3,
     whine: 0.02, poles: 14, ground: 0.5, farHz: 1000, farGain: 1,
   },
   hunter: {
-    lufs16: -29, amp: 0.0509, cruise: 25.2, cruiseRpm: 21000, rotors: 1, rotorBlades: 3,
+    lufs16: -29, amp: 0.0510, cruise: 25.2, cruiseRpm: 21000, rotors: 1, rotorBlades: 3,
     whine: 0.02, poles: 14, ground: 0.5, farHz: 1050, farGain: 1,
   },
   /* boat: a 5 m speedboat on an outboard (attackers.js): a three cylinder
@@ -180,13 +184,13 @@ Object.assign(WORLD_KINDS, {
   /* The farm tractor at its work, 2.4 m/s round its field with the
    * trailer: a four cylinder diesel held at 1800 rpm. */
   tractor: {
-    ...ROAD, lufs16: -31, amp: 0.498, cruise: 2.4, cruiseRpm: 1800, fixed: true, fires: 2,
+    ...ROAD, lufs16: -31, amp: 0.497, cruise: 2.4, cruiseRpm: 1800, fixed: true, fires: 2,
     muffler: [75, 250, 900], mufflerDecay: [0.04, 0.014, 0.004], jitter: 0.05, knock: 1600, knockLevel: 0.35,
     farHz: 60, farGain: 1,
   },
   /* A gondola cabin on its rope at 5 m/s: no engine, the rope's rumble
    * through the grip, quiet. */
-  cabin: { lufs16: -50, amp: 0.0459, cruise: 5, rope: 1, ground: 0.5, farHz: 70, farGain: 1 },
+  cabin: { lufs16: -50, amp: 0.0458, cruise: 5, rope: 1, ground: 0.5, farHz: 70, farGain: 1 },
   /* The lift's drive in its station: an electric motor held at 1500 rpm
    * (a four pole machine on 50 Hz), its magnetostriction hum at 100 Hz
    * (8 poles' worth of whine), and its gearbox's mesh, 17 teeth on the
@@ -231,7 +235,7 @@ Object.assign(WORLD_KINDS, {
   townhum: { ...BED, height: 10, line: true, near: 300, lufsNear: -44, amp: 0.232, hum: 1, mainsHz: 50 },
   /* A 500 kV line from its nearest point: hum at twice the mains and
    * corona's crackle. */
-  powerline: { ...BED, height: 25, line: true, lufs16: -45, amp: 0.0154, corona: 1, mainsHz: 50 },
+  powerline: { ...BED, height: 25, line: true, lufs16: -45, amp: 0.0155, corona: 1, mainsHz: 50 },
   /* A cow's bell, struck as it grazes, often as it walks. */
   cowbell: { ...BED, height: 1, lufs16: -40, amp: 0.0332, bell: 1, cruise: 0.4 },
   /* A songbird in a tree. */
@@ -240,8 +244,14 @@ Object.assign(WORLD_KINDS, {
   crickets: { ...BED, height: 0.3, lufs16: -48, amp: 0.0120, chirp: 1 },
   /* A frog by the water, at night. */
   frogs: { ...BED, height: 0.3, lufs16: -40, amp: 0.0234, croak: 1, ground: 0.9 },
+  /* Water through a breach in the dam, from the opening: the spillway's
+   * roar, driven by the discharge the water hands over (WorldAudio.flow,
+   * m3/s in the drive slot), its level at flowRef given at 40 m. Not a
+   * bed: an event the pilot made, on the other aircraft's bus with the
+   * war, never masked under a swarm. */
+  breachflow: { height: 4, line: true, near: 40, lufsNear: -27, amp: 0.668, roar: 1, flowRef: 1000, ground: 0.6, farHz: 60, farGain: 1 },
   /* A cicada in a subtropical tree, by day. */
-  cicada: { ...BED, height: 5, lufs16: -42, amp: 0.0133, buzz: 1 },
+  cicada: { ...BED, height: 5, lufs16: -42, amp: 0.0125, buzz: 1 },
 });
 
 /* Every kind with every field, in one order, absent ones zero (a height
@@ -254,7 +264,7 @@ const FIELDS = [
   'fires', 'muffler', 'mufflerDecay', 'pulseDecay', 'jitter', 'miss', 'exhaust', 'knock', 'knockLevel',
   'blades', 'prop', 'whine', 'poles', 'mesh', 'teeth', 'rotors', 'rotorBlades', 'tyres', 'rope', 'water',
   'bed', 'line', 'near', 'height', 'ground', 'farHz', 'farGain',
-  'roar', 'flow', 'bubbles', 'lap', 'hum', 'mainsHz', 'corona', 'bell', 'song', 'chirp', 'croak', 'buzz',
+  'roar', 'flowRef', 'flow', 'bubbles', 'lap', 'hum', 'mainsHz', 'corona', 'bell', 'song', 'chirp', 'croak', 'buzz',
 ];
 for (const [name, spec] of Object.entries(WORLD_KINDS)) {
   const unknown = Object.keys(spec).filter((k) => !FIELDS.includes(k));

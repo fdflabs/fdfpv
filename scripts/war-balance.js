@@ -69,6 +69,7 @@
 import { readFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 
 import {
@@ -117,10 +118,10 @@ const MISSION = MISSIONS[arg('mission', 'itaipu-1')];
 if (!MISSION) {
   throw new Error(`war-balance: no mission ${arg('mission', '')}`);
 }
-const DAM = (() => {
-  const at = MISSION.waves.flatMap((w) => [0, 1, 2, 3, 4, 5].map((k) => waveTarget(w, k))).filter(Boolean).map((id) => MISSION.targets[id].at);
+function damOf(mission) {
+  const at = mission.waves.flatMap((w) => [0, 1, 2, 3, 4, 5].map((k) => waveTarget(w, k))).filter(Boolean).map((id) => mission.targets[id].at);
   return [0, 1, 2].map((i) => at.reduce((sum, p) => sum + p[i], 0) / at.length);
-})();
+}
 const SKILLS = {
   good: {
     lead: true, aim: 3, crashPerMin: 0.1, downMs: 4000, reach: true,
@@ -167,9 +168,15 @@ function noseQ(v) {
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const len = (v) => Math.hypot(v[0], v[1], v[2]);
 
-function runOne({
-  pilots, skill, seed, floorBuf, spawn,
+/*
+ * One game. `mission` is the CLI's by default; `record(msg, roomMs)`, when
+ * given, hears every text message the room sends the first bot, which is
+ * how scripts/war-stages-check.js keeps a game's births and deaths.
+ */
+export function runOne({
+  pilots, skill, seed, floorBuf, spawn, mission = MISSION, record = null,
 }) {
+  const DAM = damOf(mission);
   const floor = loadHeight(floorBuf);
   const S = SKILLS[skill];
   const rand = rng(seed * 7919 + pilots * 31 + Object.keys(SKILLS).indexOf(skill));
@@ -197,6 +204,9 @@ function runOne({
       }
       const b = byConn.get(a.send);
       const m = JSON.parse(a.data);
+      if (record && b === bots[0]) {
+        record(m, now);
+      }
       if (m.type === 'welcome') {
         b.seat = m.seat;
       } else if (m.type === 'war' && m.op === 'boom' && m.seat === b.seat) {
@@ -214,10 +224,10 @@ function runOne({
       },
     }), 0, `10.9.2.${b.i + 1}`, newToken));
     if (WARHEAD) {
-      handle(room.message(b.conn, JSON.stringify({ type: 'war', op: 'loadout', loadout: { warhead: WARHEAD, rack: MISSION.airframes } }), 0, `10.9.2.${b.i + 1}`));
+      handle(room.message(b.conn, JSON.stringify({ type: 'war', op: 'loadout', loadout: { warhead: WARHEAD, rack: mission.airframes } }), 0, `10.9.2.${b.i + 1}`));
     }
   }
-  handle(room.message(bots[0].conn, JSON.stringify({ type: 'war', op: 'start', mission: MISSION.id }), 0, '10.9.2.1'));
+  handle(room.message(bots[0].conn, JSON.stringify({ type: 'war', op: 'start', mission: mission.id }), 0, '10.9.2.1'));
   const w = room.war;
   const crashP = (S.crashPerMin / 60) * (TICK_MS / 1000);
 
@@ -260,7 +270,7 @@ function runOne({
       const hunterNear = x.a.kind === 'hunter' && dMe < HUNTED_M;
       /* Nearest to what it is going for (its target; the dam's middle
        * for one with none): the threat about to land first. */
-      const goal = x.a.target != null ? MISSION.targets[x.a.target].at : DAM;
+      const goal = x.a.target != null ? mission.targets[x.a.target].at : DAM;
       /* A Scout threatens nothing itself: after anything that does. */
       const later = x.a.target == null && x.a.kind === 'scout' ? SCOUT_AFTER_M : 0;
       scored.push({ x, key: hunterNear ? -1e9 + dMe : len(sub(q, goal)) + later });
@@ -454,7 +464,7 @@ if (process.env.BAL_DEBUG) {
   }));
 } else if (!isMainThread) {
   parentPort.postMessage(runOne(workerData));
-} else {
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const RUNS = Number(arg('runs', 12));
   const PILOTS = arg('pilots', '1,2,4,8').split(',').map(Number);
   const SKILL = arg('skill', 'good,average,careless').split(',');

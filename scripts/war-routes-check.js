@@ -6,7 +6,9 @@
  * For every wave, at 1 to 8 pilots (so every size the room can send), for
  * every attacker k of it and at no error and both ends of its spread, it
  * plans the attacker as the room does (routes.js planAgent, index.js
- * waveSize and waveTarget) and samples its pose every SAMPLE_MS against
+ * waveSize and waveTarget), on each route of a spawn's family and at
+ * AZ_STEPS bearings across its azimuth window (src/share/war/stages.js),
+ * and samples its pose every SAMPLE_MS against
  * the hunters' floor (src/share/war/itaipu-height.bin, warhunt.js
  * loadHeight: the higher of ground and water, with the dam in it):
  *
@@ -89,6 +91,33 @@ function terminalFrom(plan, kind) {
   return path.t0 + (last.s / path.speed) * 1000;
 }
 
+/* AZ_STEPS bearings across a spawn's azimuth window (stages.js az),
+ * its ends included: the ground under a turned route is no simpler than
+ * the route. */
+const AZ_STEPS = 9;
+
+/* Every attacker of a spawn to fly: each size, each place in the group,
+ * the error's ends and none, each route of a family, each bearing of an
+ * azimuth window: [n, k, err, route, az]. */
+function variants(w, sizes) {
+  const out = [];
+  const azs = Array.isArray(w.az) ? Array.from({ length: AZ_STEPS }, (_, i) => w.az[0] + ((w.az[1] - w.az[0]) * i) / (AZ_STEPS - 1)) : [undefined];
+  for (const n of new Set(sizes)) {
+    for (let k = 0; k < n; k += 1) {
+      for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
+        for (const route of [w.route].flat()) {
+          for (const az of azs) {
+            out.push([n, k, err, route, az]);
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+
+const routeName = (w) => [w.route].flat().join('|') + (Array.isArray(w.az) ? ' az' : '');
+
 const failures = [];
 let worstAll = Infinity;
 for (const mission of Object.values(MISSIONS)) {
@@ -103,11 +132,11 @@ for (const mission of Object.values(MISSIONS)) {
     let wet = 0;
     let wetAt = null;
     const sizes = PILOTS.map((p) => waveSize(w, p));
-    for (const n of new Set(sizes)) {
-      for (let k = 0; k < n; k += 1) {
-        for (const err of w.spread ? [-w.spread, 0, w.spread] : [0]) {
+    for (const [n, k, err, route, az] of variants(w, sizes)) {
+      {
+        {
           const agent = {
-            id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err, target: waveTarget(w, k),
+            id: 1, kind: w.kind, route, t0: 0, k, n, err, target: waveTarget(w, k), az,
           };
           const plan = planAgent(mission, agent);
           if (w.kind === 'hunter') {
@@ -156,7 +185,7 @@ for (const mission of Object.values(MISSIONS)) {
     }
     const fmt = (v) => (Number.isFinite(v) ? `${v.toFixed(1)} m` : '-');
     const beforeText = w.kind === 'boat' ? `on water, ${boatDry.toFixed(2)} m dry` : fmt(before);
-    console.log(`  ${String(i + 1).padStart(4)} ${String(w.at).padStart(4)}  ${w.kind.padEnd(7)} ${w.route.padEnd(17)} ${sizes.join(',').padEnd(16)} ${beforeText.padEnd(17)} ${fmt(inside).padEnd(13)} ${(termM ? termM.toFixed(0) : '-').padEnd(10)} ${wet ? `${wet.toFixed(1)} m` : '-'}`);
+    console.log(`  ${String(i + 1).padStart(4)} ${String(w.at).padStart(4)}  ${w.kind.padEnd(7)} ${routeName(w).padEnd(17)} ${sizes.join(',').padEnd(16)} ${beforeText.padEnd(17)} ${fmt(inside).padEnd(13)} ${(termM ? termM.toFixed(0) : '-').padEnd(10)} ${wet ? `${wet.toFixed(1)} m` : '-'}`);
     if (wet) {
       failures.push(`${mission.id} wave ${i + 1} (${w.kind}, ${w.route}): ${wet.toFixed(1)} m under the reservoir's surface near (${wetAt.map((v) => v.toFixed(0)).join(', ')})`);
     }
@@ -208,8 +237,9 @@ for (const mission of Object.values(MISSIONS)) {
         if (w.kind === 'hunter') {
           continue;
         }
+        /* A family's first route: the strikes a game are a rate. */
         const agent = {
-          id: 1, kind: w.kind, route: w.route, t0: 0, k, n, err: 0, target: waveTarget(w, k),
+          id: 1, kind: w.kind, route: [w.route].flat()[0], t0: 0, k, n, err: 0, target: waveTarget(w, k),
         };
         const plan = planAgent(mission, agent);
         const xs = wireCrossings(mission.map, plan);

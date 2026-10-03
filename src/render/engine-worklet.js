@@ -40,6 +40,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { guard } from './worklet-guard.js';
+
 const TAU = 2 * Math.PI;
 /* Speed of sound, m/s, at 20 C. */
 const C_AIR = 343;
@@ -444,7 +446,40 @@ class EngineProcessor extends AudioWorkletProcessor {
     mo.wps *= kw;
   }
 
+  /* Through worklet-guard.js: a throw or a non-finite quantum is a 3 ms
+   * gap and a { fault } on the port, never a dead node or a NaN latched
+   * into the master limiter. */
   process(inputs, outputs, params) {
+    return guard(this, inputs, outputs, params);
+  }
+
+  /* After a fault (worklet-guard.js), once its scrub has zeroed every NaN:
+   * the phasors back on the unit circle, since a phasor scrubbed to (0, 0)
+   * turns as (0, 0) for good and motorQuantum's renormalising divides by
+   * its length. */
+  reset() {
+    for (const mo of this.motor) {
+      if (!(Math.hypot(mo.pc, mo.ps) > 0.5)) {
+        mo.pc = 1;
+        mo.ps = 0;
+      }
+      if (!(Math.hypot(mo.wpc, mo.wps) > 0.5)) {
+        mo.wpc = 1;
+        mo.wps = 0;
+      }
+    }
+  }
+
+  /* For worklet-guard.js: this quantum's parameters and the model. */
+  faultContext(params) {
+    const p = {};
+    for (const [k, v] of Object.entries(params || {})) {
+      p[k] = v[0];
+    }
+    return { model: this.modelName, params: p, rpm: this.motor.map((m) => m.rpm), distPrev: this.distPrev };
+  }
+
+  work(inputs, outputs, params) {
     const out = outputs;
     const eng = out[0];
     const air = out[1];

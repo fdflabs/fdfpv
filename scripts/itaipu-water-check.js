@@ -33,7 +33,8 @@
  *               shell's);
  *   afloat      the flight starts afloat on the reservoir (body 0), and
  *               respawned on the river's spawn it floats on body 1; 40 %
- *               throttle taxis it on each;
+ *               throttle taxis it on each, and nothing on it cracks or
+ *               breaks;
  *   chute       the chutes are D's floor records, their material water
  *               (the map's surfaceAt), each the map's ground, and the
  *               drawn sheet lies 0.4 m over each;
@@ -376,6 +377,14 @@ async function browser() {
       check(`and taxis on it`,
         d.floats[9] === k && moved > 3 && Math.abs(d.y - water[k].y) < 1,
         `${moved.toFixed(1)} m at ${TAXI * 100}% throttle, now on body ${d.floats[9]} at y ${d.y.toFixed(2)}`);
+      /* The crash log is cleared at every reset, so this is the start or
+       * the respawn and the taxi. A ground over the water under a respawn
+       * throws the aircraft up and breaks it (src/maps/itaipu.js wet), and
+       * the rows above see that only when the wreck comes down badly. */
+      const broke = (await page.evaluate('window.__crashLog()')).filter((e) => e.type === 'break' || e.type === 'crack');
+      check(`and nothing on it cracked or broke`,
+        broke.length === 0,
+        broke.length ? broke.slice(0, 3).map((e) => `${e.part} ${e.type} at ${e.t.toFixed(3)} s on ${e.surface}`).join(', ') : 'none');
       return c;
     };
     const res = await onWater(0, 'reservoir');
