@@ -1922,7 +1922,7 @@ function hintWithKeys(keys, text) {
 }
 
 /* The name as the owner's lockup sets it (index.html .lockup-box), which
- * the share card clones too (scripts/og.js, the heading alone). English in
+ * the share card clones too (scripts/og.js, the whole box). English in
  * every locale, because it is the mark and not a sentence. The spaces keep
  * the heading's text the name.
  *
@@ -1938,8 +1938,8 @@ function wordmark() {
   /* The bevel draws the name twice more behind itself, from this. */
   name.dataset.text = 'Drone Combat';
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
-  /* The flag as the boot screen draws it, horizontal bands; the title
-   * shows it and hides the slash, the share card the other way round. */
+  /* The flag as the boot screen draws it, horizontal bands; the box
+   * shows it and hides the slash, on the title and the share card alike. */
   const flag = el('span', 'py-flag');
   flag.setAttribute('aria-hidden', 'true');
   flag.append(el('span'), el('span'), el('span'));
