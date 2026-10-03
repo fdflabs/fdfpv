@@ -15,7 +15,8 @@
  * and the phone sizes the cards check uses: both of the name's faces
  * loaded and drawn in Saira, DRONE COMBAT on one line and not cut, the
  * lockup and the Beta line inside the window, above the cards and clear
- * of every card, the rooms panel and the corner chips, no sideways
+ * of every card, every row clear of the rooms panel and the corner
+ * chips (on a phone PARAGUAYAN stands level with them), no sideways
  * scroll, and the name as wide as the box the title gives it. Then the
  * title past the gate (the free flight menu over the valley, by a link
  * that names the map and the aircraft), where the same
@@ -126,6 +127,17 @@ const LAYOUT = `(() => {
     boxBox: box(document.querySelector('.screen-title .lockup-box')),
     nameCut: name.scrollWidth > name.clientWidth + 1,
     lockup: box(document.querySelector('.screen-title .lockup')),
+    /* What is drawn, row by row: the flag and PARAGUAYAN (the range leaves
+       out the rule after it, a pseudo element), the name, SIMULATOR and its
+       rules. The heading's own box is wider than its first row. */
+    drawn: (() => {
+      const over = document.createRange();
+      over.selectNodeContents(document.querySelector('.screen-title .lockup-over'));
+      const r = over.getBoundingClientRect();
+      return [[Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)],
+        box(name), box(document.querySelector('.screen-title .lockup-under')),
+        box(document.querySelector('.screen-title .beta-note'))].filter(Boolean);
+    })(),
     beta: box(document.querySelector('.screen-title .beta-note')),
     panel: box(document.querySelector('.screen-title .gate-rooms')),
     cards: [...document.querySelectorAll('.screen-title .gate-card')].map(box).filter(Boolean),
@@ -162,7 +174,7 @@ async function gate(rooms) {
     check('both of the name\'s faces loaded', first.faces.sort().join() === '300:loaded,800:loaded', first.faces.join());
     check('the name is set in Saira', /^"?Saira Lockup"?,/.test(first.family), first.family);
 
-    for (const [w, h] of [[1280, 720], [1920, 1080], [2560, 1440], [3840, 2160], [1024, 768], [390, 844], [360, 640], [844, 390]]) {
+    for (const [w, h] of [[1280, 720], [1920, 1080], [2560, 1440], [3840, 2160], [1024, 768], [768, 1024], [600, 960], [390, 844], [360, 640], [844, 390]]) {
       await resize(page, w, h);
       const v = await page.evaluate(LAYOUT);
       const brand = union(v.lockup, v.beta);
@@ -174,9 +186,9 @@ async function gate(rooms) {
       check(`${w} by ${h}: clear of every card and above them`,
         v.cards.length > 0 && v.cards.every((c) => apart(brand, c) && brand[3] <= c[1]),
         `brand ${JSON.stringify(brand)} first card ${JSON.stringify(v.cards[0])}`);
-      check(`${w} by ${h}: clear of the rooms panel and the corner chips`,
-        Boolean(v.panel) && apart(brand, v.panel) && v.chips.every((c) => apart(brand, c)),
-        `brand ${JSON.stringify(brand)} panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)}`);
+      check(`${w} by ${h}: every row of it clear of the rooms panel and the corner chips`,
+        Boolean(v.panel) && v.drawn.every((d) => apart(d, v.panel) && v.chips.every((c) => apart(d, c))),
+        `rows ${JSON.stringify(v.drawn)} panel ${JSON.stringify(v.panel)} chips ${JSON.stringify(v.chips)}`);
       console.log(`    name ${v.size}px, ${v.nameBox[2] - v.nameBox[0]} px wide, ${Math.round(100 * (v.nameBox[2] - v.nameBox[0]) / w)} percent of the window`);
       await shot(page, `gate-${w}x${h}`);
     }

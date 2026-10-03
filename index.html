@@ -1438,37 +1438,44 @@
        * the way a polished face reflects a dark ground under a light sky; a
        * brushed grain of long horizontal streaks over it (fractal noise,
        * stretched sideways, as an SVG tile in the em so it scales with the
-       * name); and a soft sheen across, all clipped to the letters. The
-       * bevel is two copies of the name behind it: a light one a hair up,
-       * which leaves a bright rim on every top edge, and a dark one a
-       * little down, which reads as the edge's thickness. The drop shadow
-       * is a filter, not a text-shadow, because a text-shadow paints
-       * through a transparent fill and would grey the metal from inside.
+       * name); and a soft sheen across, all clipped to the letters.
+       *
+       * Three copies of the name, painted in this order: the heading's own
+       * text in a dark steel, which shows a little under the metal as the
+       * edge's thickness; a light copy (::before) that shows a hair over it
+       * as a bright rim on every top edge; and the metal (::after) on top.
+       * The metal is a copy rather than the heading's own text because an
+       * element paints its background, where background-clip: text puts
+       * the metal, before its pseudo elements, so a copy behind the text
+       * would cover the metal it was meant to frame. The drop shadow is a
+       * filter, not a text-shadow, which would paint through the copies'
+       * transparent fill and grey the metal from inside.
        */
       .lockup-box .lockup-name {
-        position: relative; z-index: 0;
+        position: relative;
         margin: 0.24em 0 0.22em;
         font-family: "Saira Lockup", "Arial Black", var(--pdcs-read);
         font-stretch: normal; font-weight: 800;
         line-height: 0.69; letter-spacing: -0.07em; white-space: nowrap;
-        color: transparent; -webkit-text-fill-color: transparent;
-        -webkit-text-stroke: 0.008em rgba(24, 28, 31, 0.45);
-        text-shadow: none;
-        background:
-          linear-gradient(103deg, transparent 0 30%, rgba(255, 255, 255, 0.42) 40%, transparent 52%) 0 0 / 100% 100%,
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.003 0.45' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.9 0 0 0 -0.38'/%3E%3C/filter%3E%3Crect width='600' height='120' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 5em 1em repeat,
-          linear-gradient(180deg, #fbfcfc 0%, #e2e6e9 28%, #b2b9be 47%, #858d93 52%, #c6ccd0 70%, #eff2f3 100%) 0 0 / 100% 100%;
-        -webkit-background-clip: text; background-clip: text;
+        color: #262b2f; text-shadow: none;
         filter: drop-shadow(0 0.03em 0 rgba(4, 5, 6, 0.85)) drop-shadow(0 0.07em 0.1em rgba(0, 0, 0, 0.6));
       }
       .lockup-box .lockup-name > span { display: inline; }
       .lockup-box .lockup-name::before, .lockup-box .lockup-name::after {
         content: attr(data-text) / "";
-        position: absolute; left: 0; top: 0; z-index: -1;
-        -webkit-text-stroke: 0;
+        position: absolute; left: 0; top: 0;
       }
-      .lockup-box .lockup-name::before { transform: translateY(-0.014em); -webkit-text-fill-color: rgba(255, 255, 255, 0.85); }
-      .lockup-box .lockup-name::after { transform: translateY(0.026em); -webkit-text-fill-color: #262b2f; }
+      .lockup-box .lockup-name::before { transform: translateY(-0.04em); color: rgba(255, 255, 255, 0.85); }
+      .lockup-box .lockup-name::after {
+        transform: translateY(-0.026em);
+        color: transparent; -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 0.008em rgba(24, 28, 31, 0.45);
+        background:
+          linear-gradient(103deg, transparent 0 30%, rgba(255, 255, 255, 0.42) 40%, transparent 52%) 0 0 / 100% 100%,
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='120'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.003 0.45' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.9 0 0 0 -0.38'/%3E%3C/filter%3E%3Crect width='600' height='120' filter='url(%23g)'/%3E%3C/svg%3E") 0 0 / 5em 1em repeat,
+          linear-gradient(180deg, #fbfcfc 0%, #e2e6e9 28%, #b2b9be 47%, #858d93 52%, #c6ccd0 70%, #eff2f3 100%) 0 0 / 100% 100%;
+        -webkit-background-clip: text; background-clip: text;
+      }
       .lockup-box { container-type: inline-size; }
       /* DRONE COMBAT is 6.9 em wide (Saira ExtraBold's advances, 7.735 em,
          less the tracking), so the name fills the box. */
@@ -1479,9 +1486,13 @@
       /* On a phone the rule after PARAGUAYAN runs under the sign in chip,
          which sits level with it in the top right corner and is wider in
          Spanish (Iniciar sesión con Google reaches x 181 of 390). The word
-         keeps its place; the rule goes. */
+         keeps its place; the rule goes. The name is wider than the space
+         left of the chip and the music dock under it, which reach down to
+         y 82, so it starts under them: 48 px down puts its capitals at
+         y 87 at 360 by 640 and y 95 at 390 by 844 (scripts/lockup-check.js). */
       @media (max-width: 600px) {
         .screen-title .lockup-over::after { display: none; }
+        .screen-title .lockup-box { margin-top: 48px; }
       }
       /* A page names itself the way the boot screen names a stage: spaced
          capitals in the monospace, not a display face. */
