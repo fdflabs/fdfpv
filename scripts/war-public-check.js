@@ -14,7 +14,7 @@
  *
  * Page B is a fresh profile with no consent. It sees A's room on the
  * title's rooms panel marked War 2, and in Rooms as set up for
- * Defend Itaipu, mission 2. It joins and is asked the consent on arrival:
+ * Defend the Paraná, mission 2. It joins and is asked the consent on arrival:
  * No leaves it out of the room, on the title, and A's room goes on
  * without B. It joins again and says Continue: in A's room. A starts the
  * mission, and both are in mission 2's briefing.
@@ -139,7 +139,7 @@ try {
   await a.until("/Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
   const startRow = await a.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || null");
   check('A plays mission 2: a public room named for A, its lobby on mission 2', room.phase === 'open' && room.public === true
-    && /, Defend Itaipu$/.test(room.name || '') && /Mission 2: /.test(startRow || ''), JSON.stringify({ room, startRow }));
+    && /, Paraná$/.test(room.name || '') && /Mission 2: /.test(startRow || ''), JSON.stringify({ room, startRow }));
   const line = (await (await fetch(`${server.url}/v2/rooms`)).json()).rooms.find((r) => r.code === code);
   check('the room server lists it as the war\'s, mission 2', line && line.game === 'war' && line.mission === 'itaipu-2' && line.name === room.name,
     JSON.stringify(line));
@@ -157,14 +157,14 @@ try {
   };
   await openRooms();
   const row = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || null)`);
-  check('and in Rooms, set up for Defend Itaipu, mission 2', row && row.label === room.name && /Defend Itaipu, mission 2/.test(row.note || ''),
+  check('and in Rooms, set up for Defend the Paraná, mission 2', row && row.label === room.name && /Defend the Paraná, mission 2/.test(row.note || ''),
     JSON.stringify(row && { label: row.label, note: row.note }));
 
   /* B SAYS NO. */
   await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(rowAction)}); return true; })()`);
   await b.until(`${DIALOG} !== null`, 30000).catch(() => {});
   const asked = await b.evaluate(DIALOG);
-  check('B joins and is asked the consent on arrival', asked === 'Defend Itaipu', String(asked));
+  check('B joins and is asked the consent on arrival', asked === 'Defend the Paraná', String(asked));
   await answer(b, false);
   await b.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
   await b.sleep(1500);

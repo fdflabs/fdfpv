@@ -8,7 +8,7 @@
  * The gate draws five cards, the campaign's last, inside the window at
  * 1280x720, 390x844 and 360x640, with the rooms panel above them and
  * clear of them. Its card is one click into the war's lobby (the owner,
- * 2026-10-02): the Defend Itaipu consent first, asked once (Back: no
+ * 2026-10-02): the Defend the Paraná consent first, asked once (Back: no
  * room, the title), then a public Itaipu room made for the war, named for
  * this pilot. The lobby's Campaign row opens the campaign screen: mission
  * 1 playable and free, missions 2 to 4 marked Campaign. The shop, with
@@ -225,10 +225,10 @@ try {
   await page.until('window.__ui.hub === null', 10000).catch(() => {});
 
   /* One click into the war's lobby, its consent asked first, once. */
-  const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()";
+  const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend the Paraná/.test(d.textContent); })()";
   await click(page, '.gate-card-campaign');
   await page.until(CONSENT, 10000).catch(() => {});
-  check('the card asks the Defend Itaipu consent first', await page.evaluate(CONSENT));
+  check('the card asks the Defend the Paraná consent first', await page.evaluate(CONSENT));
   await page.sleep(700);
   await page.tap('Escape');
   await page.until("document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
@@ -248,7 +248,7 @@ try {
       rows: window.__ui.items().map((it) => it.action) };
   })()`);
   check('Continue: the lobby of a public Itaipu room made for the war, named for this pilot, its host, a Campaign row',
-    room.public && room.host && room.mode === 'war' && room.map === 'itaipu' && /, Defend Itaipu$/.test(room.name || '')
+    room.public && room.host && room.mode === 'war' && room.map === 'itaipu' && /, Paraná$/.test(room.name || '')
     && room.rows.includes('friends-lobby-campaign'), JSON.stringify(room));
   await page.evaluate("(() => { window.__ui.act('friends-lobby-campaign'); return true; })()");
   await page.until(`${SCREEN} !== null`, 10000).catch(() => {});

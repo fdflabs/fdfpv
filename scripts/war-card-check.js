@@ -1,6 +1,6 @@
 /*
- * war-card-check.js: the title's Defend Itaipu card and Make a room's
- * Defend Itaipu game, driven through the real shell the way a pilot drives
+ * war-card-check.js: the title's Defend the Paraná card and Make a room's
+ * Defend the Paraná game, driven through the real shell the way a pilot drives
  * them, in one page, against a local rooms server (never the live one):
  *
  *   npm run war:card                       starts its own on port 8819
@@ -22,14 +22,14 @@
  * the way in goes to a new Itaipu room with no consent screen at all.
  *
  * Make a room, opened while the lobby still builds the mission's world,
- * stays up when that build ends. Its Game row offers Defend Itaipu on
+ * stays up when that build ends. Its Game row offers Defend the Paraná on
  * Itaipu, public or private, with a Mission row, and only there; making it asks consent
  * first when it is not stored, then lands the same way. A pilot without
  * the consent who joins a room made for the war by its code is asked on
  * arrival: Back leaves it, Continue stays.
  *
  * A public room on Itaipu, joined by a pilot who came in by the card:
- * the heading never says Defend Itaipu; a joiner reads why not and to ask
+ * the heading never says Defend the Paraná; a joiner reads why not and to ask
  * the host; the host has Make a private war room, which asks consent and
  * lands in a new private Itaipu room, war ready, its invite code on top.
  *
@@ -247,7 +247,7 @@ async function toClub(p) {
 }
 
 const server = await roomsServer();
-console.log(`the Defend Itaipu card, rooms at ${server.url}`);
+console.log(`the Defend the Paraná card, rooms at ${server.url}`);
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(server.url)}`, width: 1280, height: 720 });
 try {
   await page.until('window.__shellReady === true', 300000);
@@ -327,7 +327,7 @@ try {
   check('a fresh profile has not consented', await page.evaluate('window.__ui.settings.warConsent !== true'));
   await page.evaluate("(() => { window.__ui.onWarCard('way-war'); return true; })()");
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
-  check('the Defend Itaipu way in (the campaign\'s Play) opens the consent screen first', (await page.evaluate(DIALOG)) === 'Defend Itaipu', String(await page.evaluate(DIALOG)));
+  check('the Defend the Paraná way in (the campaign\'s Play) opens the consent screen first', (await page.evaluate(DIALOG)) === 'Defend the Paraná', String(await page.evaluate(DIALOG)));
   await shot(page, 'consent');
   await answer(page, 'Back');
   await page.until(`${DIALOG} === null`, 5000).catch(() => {});
@@ -343,7 +343,7 @@ try {
   check('Continue: a public Itaipu room, this pilot its host, the war start row under the cursor', landedWell(one, true), JSON.stringify(one));
   const named = await page.evaluate('window.__rooms().name');
   const oneLine = (await (await fetch(`${server.url}/v2/rooms`)).json()).rooms.find((r) => r.code === one.code);
-  check('named for its host, and listed as the war\'s, mission 1', /, Defend Itaipu$/.test(named || '') && oneLine && oneLine.game === 'war' && oneLine.mission === 'itaipu-1',
+  check('named for its host, and listed as the war\'s, mission 1', /, Paraná$/.test(named || '') && oneLine && oneLine.game === 'war' && oneLine.mission === 'itaipu-1',
     JSON.stringify({ named, oneLine }));
   await shot(page, 'war-room-host');
 
@@ -386,24 +386,24 @@ try {
   const pub = kinds.find((k) => !/code/i.test(k));
   const priv = kinds.find((k) => /code/i.test(k));
   await pick('Who can join', pub);
-  check('public on Itaipu: Defend Itaipu offered', (await games()).includes('Defend Itaipu'), (await games()).join());
-  await pick('Game', 'Defend Itaipu');
+  check('public on Itaipu: Defend the Paraná offered', (await games()).includes('Defend the Paraná'), (await games()).join());
+  await pick('Game', 'Defend the Paraná');
   check('and with it a Mission row, mission 1', (await page.evaluate(`(${row('Mission')} || {}).value || null`)) === 'Mission 1',
     String(await page.evaluate(`(${row('Mission')} || {}).value || null`)));
   await pick('Game', 'Just fly');
   await pick('Who can join', priv);
   await pick('The world', worlds.find((x) => x !== itaipu));
-  check('private on another world: none', !(await games()).includes('Defend Itaipu'), (await games()).join());
+  check('private on another world: none', !(await games()).includes('Defend the Paraná'), (await games()).join());
   await pick('The world', itaipu);
-  check('private on Itaipu: Defend Itaipu offered', (await games()).includes('Defend Itaipu'), (await games()).join());
-  await pick('Game', 'Defend Itaipu');
+  check('private on Itaipu: Defend the Paraná offered', (await games()).includes('Defend the Paraná'), (await games()).join());
+  await pick('Game', 'Defend the Paraná');
   await shot(page, 'roomnew-war');
 
   /* Consent cleared, so making it asks first. */
   await page.evaluate("(() => { window.__ui.settings.warConsent = false; window.__ui.persistSettings(); return true; })()");
   await page.evaluate("(() => { window.__ui.act('friends-make'); return true; })()");
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
-  check('Make the room with no consent stored: the consent screen first', (await page.evaluate(DIALOG)) === 'Defend Itaipu', String(await page.evaluate(DIALOG)));
+  check('Make the room with no consent stored: the consent screen first', (await page.evaluate(DIALOG)) === 'Defend the Paraná', String(await page.evaluate(DIALOG)));
   await answer(page, 'Continue');
   const three = await landed(page);
   check('Continue: a private Itaipu room, the start row under the cursor', landedWell(three) && three.code !== two.code, JSON.stringify(three));
@@ -444,7 +444,7 @@ try {
     return true;
   })()`);
   await page.until(`${DIALOG} !== null`, 15000).catch(() => {});
-  check('joining a room made for the war with no consent stored: asked on arrival', (await page.evaluate(DIALOG)) === 'Defend Itaipu', String(await page.evaluate(DIALOG)));
+  check('joining a room made for the war with no consent stored: asked on arrival', (await page.evaluate(DIALOG)) === 'Defend the Paraná', String(await page.evaluate(DIALOG)));
   await answer(page, 'Back');
   await page.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
   await page.sleep(500);

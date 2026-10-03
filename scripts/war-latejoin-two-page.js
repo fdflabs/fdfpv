@@ -194,7 +194,7 @@ async function joinFromRooms(code) {
   await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");
   await b.until(`window.__ui.screen === 'rooms' && window.__ui.items().some((it) => it.action === ${JSON.stringify(row)})`, 30000);
   const listed = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(row)}) || {}).note || ''`);
-  check('B finds A\'s room in Rooms, set up for Defend Itaipu, mission 1, while the war is on', /Defend Itaipu, mission 1/.test(listed), listed);
+  check('B finds A\'s room in Rooms, set up for Defend the Paraná, mission 1, while the war is on', /Defend the Paraná, mission 1/.test(listed), listed);
   await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(row)}); return true; })()`);
   await b.until(`${DIALOG} !== null`, 30000);
   const asked = await b.evaluate(DIALOG);
@@ -202,7 +202,7 @@ async function joinFromRooms(code) {
   await b.sleep(700);
   await b.tap('Enter');
   await b.until(`window.__ui.settings.warConsent === true && window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(code)}`, 30000);
-  check('B is asked the consent on arrival, says Continue, and is in A\'s room', asked === 'Defend Itaipu', String(asked));
+  check('B is asked the consent on arrival, says Continue, and is in A\'s room', asked === 'Defend the Paraná', String(asked));
 }
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-war-late-'));
