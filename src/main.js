@@ -12115,6 +12115,10 @@ export async function boot({
     if (ui.settings.sound && !audio.ctx) {
       audio.start();
       audio.setLevel(ui.settings.volume / 10);
+    } else if (ui.settings.sound && audio.ctx.state !== 'running') {
+      /* A context the browser suspended or another app interrupted: this
+       * gesture is what lets it start again (MotorAudio.start). */
+      audio.start();
     }
     audio.setEnabled(ui.settings.sound);
     applyMix(ui.settings);

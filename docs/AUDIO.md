@@ -963,6 +963,42 @@ night, load 0.07 and 0.09, never shed; `war:boom` over Itaipu 10 tracks,
 
 **Recordings: none.** All synthesised, 0 bytes.
 
+### When a worklet goes wrong (2 October, "the sound keeps stopping")
+
+One non-finite number into a worklet used to silence the whole page until
+a reload. The worklets' filters and delay lines feed back, so a NaN stays
+in them and every quantum after is NaN; their outputs meet in the master
+limiter (a DynamicsCompressorNode), whose envelope then latches the NaN,
+and the music, the radio and every engine go with it. Reproduced on the
+live build in Chromium (`npm run audio:latch`, one NaN listener posted to
+the world's worklet): the master NaN at every sample for as long as it was
+watched. Both worklets were also left NaN for good by one NaN quantum in
+Node (`npm run audio:guard`, on main's worklets: 27 failures).
+
+- **`src/render/worklet-guard.js`**: each processor's work runs through
+  `guard()`. A throw, or a quantum with a non-finite sample, zeroes that
+  quantum before it leaves the node, scrubs every NaN out of the
+  processor's state (the engine puts its phasors back on the unit
+  circle), and posts `{ fault }` with what the processor was given at that
+  quantum (the engine's parameters, the world's listener and voices), at
+  most once a second. The sound drops for 3 ms, not until a reload.
+- **The world refuses what is not finite** at its boundary: a frame whose
+  time or listener is not finite, a source with a number that is not, each
+  counted (`stats.rejected`).
+- **`MotorAudio.watchNode`** logs every fault and every processorerror
+  loudly and keeps them in `window.__audio.faults`, with the context's
+  state changes in `window.__audio.states`.
+- **A suspended or interrupted context** is resumed by the next key or
+  press (`wakeAudio` started only a context that did not exist), and a
+  context that says running while its clock stands still for 1.5 s (a
+  renderer stopped by a device change) is suspended and resumed, and said.
+
+What produced the NaN in the owner's war is not yet known: a 7 minute
+war on one page, the pilot's warhead and the crash cam, the title's flight
+over every map and a sweep of Itaipu's heights produced none, and both
+worklets made none from any finite input in Node. The next one is in the
+console, with its quantum's inputs.
+
 ### Not yet
 
 - Occlusion (a hill between a source and the listener).

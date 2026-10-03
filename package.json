@@ -248,6 +248,8 @@
     "audio:flights": "node tools/audio/flights.js --check",
     "audio:lab": "node tools/audio/render.js",
     "audio:world": "node tools/audio/world.js",
+    "audio:guard": "node tools/audio/worklet-guard-check.js",
+    "audio:latch": "node scripts/audio-nan-latch.js",
     "world:live": "node scripts/world-audio-live.js",
     "voice:check": "python3 tools/voice/check.py",
     "test:edge": "node edge/selftest.js",
