@@ -2174,6 +2174,8 @@ export function createCrashCam(host) {
         const w = S && S.scene.war ? S.scene.war.world() : null;
         return w ? { t: w.t ?? null, targets: { ...w.targets }, levels: Array.from(w.levels) } : null;
       },
+      /* The clip row whose map was drawn at room ms `ms`, or -1. */
+      warWorldRow: (ms) => (S && S.clip.war && S.clip.war.clock ? S.clip.war.clock.indexOf(ms) : -1),
     }),
   };
 }

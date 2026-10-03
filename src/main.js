@@ -2655,6 +2655,9 @@ export async function boot({
   /* Target id -> the room ms it was hit, -Infinity for one hit before
    * this screen heard (src/share/war/world.js burnAt says fire or smoke). */
   const warBurning = new Map();
+  /* Harness only (window.__warMapLog): each live frame's map, while on. */
+  let warMapLog = null;
+  const WAR_MAP_LOG_MAX = 20000;
   /* A defender's warhead, and a target hit, as explosion sizes. */
   const WAR_BOOM_SIZE = 1.6;
   const WAR_IMPACT_SIZE = 2.6;
@@ -3528,7 +3531,11 @@ export async function boot({
     }
     /* The replay draws the map as its clip kept it (crashCam drawWar). */
     if (!(replay && crashCam && crashCam.world())) {
-      warMapDraw(warLiveWorld(v, now));
+      const w = warLiveWorld(v, now);
+      warMapDraw(w);
+      if (warMapLog && warMapLog.length < WAR_MAP_LOG_MAX) {
+        warMapLog.push({ t: now, targets: w.targets, levels: Array.from(w.levels) });
+      }
     }
     if (replay) {
       warHud.update(null);
@@ -4664,6 +4671,31 @@ export async function boot({
     })),
   });
   window.__warAt = (t) => roomWar.attackersAt(t);
+  /* For scripts/replay-world.js: a room message handed to the war as the
+   * room's socket hands it (the check scripts a war's hits and struck
+   * lines on a real room's match), what the map shows now (each target
+   * not whole, each district's level), and each live frame's map, logged
+   * while switched on. */
+  window.__warHear = (m) => roomWar.onMessage(m);
+  window.__warMap = () => {
+    const it = view && view.scene && view.scene.userData.itaipu;
+    if (!it) {
+      return null;
+    }
+    const targets = {};
+    for (const id of Object.keys(view.targets || {})) {
+      const s = it.parts.dam.targetState(id);
+      if (s !== 'ok') {
+        targets[id] = s;
+      }
+    }
+    return { targets, levels: it.look.night() ? it.look.night().levels() : null };
+  };
+  window.__warMapLog = (on) => {
+    warMapLog = on ? [] : null;
+    return true;
+  };
+  window.__warMapLogged = () => warMapLog || [];
   /* A swarm's worth of explosions at once, 150 m ahead of the camera, for
    * scripts/war-boom.js: the frame's draw calls and time over 40 frames
    * before and during, and whether the pools held. */
