@@ -242,6 +242,29 @@ console.log('triggers');
     t: 13000, e: 'gone', id: 2, kind: 'scout', group: 'eyes', sector: null, how: 'leave', hit: false,
   });
   check('left: a Scout gone on its own (scoutGone)', fired({ left: 1, kind: 'scout' }, ctx()) === 13000 && fired({ killed: 1, kind: 'scout' }, ctx()) === null);
+  {
+    /* scoutsDown in a stage whose Striker is still to come: the Scouts
+     * alone decide it. */
+    const m2 = {
+      ...mission,
+      stages: [{
+        id: 'eyes',
+        spawns: [{ at: 0, kind: 'scout', n: 1, route: 'r' }, { at: 30, kind: 'strike', n: 1, route: 'r', target: 'a' }],
+        exits: [{ when: { down: { kind: 'scout' } }, to: 'won' }],
+      }],
+    };
+    const s5 = enter(m2, 0, 0, 1, 1);
+    s5.due[0].born = true;
+    note(s5, {
+      t: 0, e: 'born', id: 1, kind: 'scout', group: null, sector: null, cross: null,
+    });
+    note(s5, {
+      t: 10, e: 'gone', id: 1, kind: 'scout', group: null, sector: null, how: 'kill', hit: false,
+    });
+    check('down by kind waits only on that kind\'s spawns, not a Striker still to come', fired({ down: { kind: 'scout' } }, {
+      ...ctx(), mission: m2, st: s5, f: 15,
+    }) === 10);
+  }
   check('down: every one killed (scoutsDown), so not a Scout that left; gone: however (after(G))',
     fired({ down: { group: 'g1' } }, ctx()) === 12000 && fired({ down: { kind: 'scout' } }, ctx()) === null
     && fired({ gone: { group: 'eyes' } }, ctx()) === 13000 && fired({ gone: {} }, ctx()) === 13000);

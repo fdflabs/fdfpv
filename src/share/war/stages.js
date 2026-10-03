@@ -351,7 +351,15 @@ function chosen(st, sel, e) {
 function allGone(mission, ctx, sel, hows) {
   const st = ctx.st;
   const spawns = stagesOf(mission)[st.idx].spawns;
-  const mine = st.due.filter((d) => (sel.group == null || spawns[d.i].group === sel.group));
+  /* The selection's spawns: of its group, and of its kind (a mix's slots
+   * may be any of its kinds). */
+  const mine = st.due.filter((d) => {
+    const w = spawns[d.i];
+    if (sel.group != null && w.group !== sel.group) {
+      return false;
+    }
+    return sel.kind == null || d.kind === sel.kind || (w.mix ?? []).some((x) => x[0] === sel.kind);
+  });
   if (!mine.length || !mine.every((d) => d.born)) {
     return null;
   }
