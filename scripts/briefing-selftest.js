@@ -60,7 +60,7 @@ for (const locale of LOCALES) {
     check(`${m.id}: the room told as public, or private with its code`, pub.facts[4].value !== priv.facts[4].value && priv.facts[4].value.includes('ABC123'),
       `${pub.facts[4].value} / ${priv.facts[4].value}`);
     const text = JSON.stringify(pub);
-    check(`${m.id}: no difficulty, no em or en dash`, !/difficult|dificultad/i.test(text) && !/[–—]/.test(text));
+    check(`${m.id}: no difficulty, no em or en dash`, !/difficult|dificultad/i.test(text) && !/[\u2013\u2014]/.test(text));
   }
   const withStages = ACT1.filter((m) => (MISSIONS[m.id].stages || []).some((s) => Array.isArray(s.objectives) && s.objectives.length));
   check('a mission whose opening stage has objectives shows them', withStages.length > 0 && withStages.every((m) => briefingOf(m.id).objectives.length > 0),
