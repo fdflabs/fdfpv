@@ -69,8 +69,22 @@
 import { insideWater } from '../../../game/water.js';
 import { sunFor } from '../look/light.js';
 import {
-  bays, chuteMaterial, gateJets, lanes, plume, PLUNGE_GLSL,
+  BAYS, bayOf, bays, chuteMaterial, gateJets, lanes, plume, PLUNGE_GLSL, spillState,
 } from './spill.js';
+import { liveFlood } from './live.js';
+import { breachWater } from './breach.js';
+import { SPILL, chuteFloor } from '../dam/index.js';
+import {
+  FLOOD_CUT, FLOOD_GLSL, floodDetail, floodGeometry, floodLevelAt, floodMaterial, floodRead, floodUniforms, placeholderFlood,
+} from './surface.js';
+
+/* The spillway the look was drawn for: each gate's lip 5 m over its
+ * sill, passing 1110 m3/s (docs/FLOOD.md, measured; the starting water,
+ * flood.js START, stands them 2 m open). The chute, the plume and the plunge pool are
+ * drawn at these as at the drawing's own, and at a share of them as the
+ * flood's state is a share of them. */
+const GATE_LOOK_OPEN = 5;
+const GATE_LOOK_Q = 1110;
 
 /* The drawn sheet of water running down the chute over D's floor, m: a
  * spillway's flow at speed is a few decimetres to a metre deep. */
@@ -430,6 +444,7 @@ const FIELD_GLSL = /* glsl */ `
     return mix(1.0 - 0.28 * uItCalm.x, 1.0 + 0.22 * uItCalm.x, smoothstep(0.3, 0.7, mott));
   }
   ${PLUNGE_GLSL}
+  ${FLOOD_GLSL}
   vec4 itWater(vec2 p) {
     vec2 g = (p - uItGrid.xy) / uItGrid.z;
     if (g.x < 0.0 || g.y < 0.0 || g.x > 1.0 || g.y > 1.0) {
@@ -543,7 +558,7 @@ function withField(THREE, mat, uniforms) {
       .replace(DECL, '@DECL@')
       .replace(/\bvWater\b/g, 'iWater')
       .replace('@DECL@', `${DECL}\n${FIELD_GLSL}`)
-      .replace(MAIN, (m) => `${m}\n  vec4 iWater = itWater(vWaterWorld.xz);`)
+      .replace(MAIN, (m) => `${m}\n  ${FLOOD_CUT}\n  vec4 iWater = itWater(vWaterWorld.xz);`)
       .replace(MOTT, 'itMottle(mott)')
       .replace(WINDY, 'float windy = mix(0.4, max(0.4 * (1.0 - slick), gust), uItCalm.y);')
       .replace(FOAM, `{
@@ -750,9 +765,15 @@ export async function buildPart(ctx) {
     throw new Error(`itaipu water: ${spill.length} spillway bays; the plunge pool (spill.js PLUNGE_GLSL) is drawn for three`);
   }
   const plunge = spill.map((b) => new THREE.Vector4(b.land.x, b.land.z, b.half, 1));
+  /* The spillway's state, the flood's each frame (spill.js spillState). */
+  const spillUniforms = spillState(THREE);
 
   const tier = MIRROR_SCALE[ctx.quality] != null ? ctx.quality : 'high';
   const scale = MIRROR_SCALE[tier];
+  /* The flood's uniforms (surface.js), the river's to share with the
+   * flood's sheet: empty, and the river's own sheet whole, until the
+   * flood is drawn. */
+  const floodU = placeholderFlood(THREE);
   const made = bodies.map((body) => {
     const look = LOOK[body.name] || LOOK.reservoir;
     const colour = new THREE.Color(...look.body);
@@ -783,6 +804,7 @@ export async function buildPart(ctx) {
       uItCalm: { value: new THREE.Vector2(look.mottle, look.gust) },
       uItPlunge: { value: body.name === 'river' ? plunge : plunge.map(() => new THREE.Vector4()) },
       uItDown: { value: new THREE.Vector2(...PLUNGE_DOWN) },
+      ...(body.name === 'river' ? floodU : placeholderFlood(THREE)),
     };
     const env = water(withField(THREE, waterMaterial(opts), uniforms));
     env.name = `itaipu-water-${body.name}`;
@@ -807,7 +829,7 @@ export async function buildPart(ctx) {
    * the jets off their flip buckets, and the plume where they land. */
   const lane = lanes(dam.find((p) => p.part === 'spillway').figures);
   const chuteMat = water(chuteMaterial(THREE, {
-    waves, time, envMap, lane,
+    waves, time, envMap, lane, state: spillUniforms,
   }));
   const chute = new THREE.Mesh(chuteGeometry(THREE, floors, axis, lane), chuteMat);
   chute.name = 'itaipu-chute';
@@ -820,7 +842,7 @@ export async function buildPart(ctx) {
     direction: ctx.sunDir, ...sunFor(ctx.scene.userData.timeOfDay), sky: SPRAY_SKY,
   };
   const spray = plume(THREE, spill, axis, PLUNGE_DOWN, WIND_TO, {
-    waves, time, sun, riverY: river.y,
+    waves, time, sun, riverY: river.y, state: spillUniforms,
   });
   if (thermal) {
     /* Spray a little under the water's own temperature, and thin: a
@@ -860,8 +882,24 @@ export async function buildPart(ctx) {
       for (const mesh of m.meshes) {
         mesh.material = want ? m.planar : m.env;
       }
+      floodMirror(m);
     });
     stats.mirrorsLive = made.filter((m) => m.mirror).length;
+  };
+  /* The flood's sheet in its body's mirror while it has one. */
+  const floodMirror = (m) => {
+    const fm = m.flood;
+    if (!fm) return;
+    if (m.mirror && !fm.planar) {
+      fm.planar = water(floodMaterial(withField(THREE, waterMaterial({ ...m.opts, planar: m.mirror }), m.uniforms)));
+      fm.planar.name = `${m.env.name}-flood`;
+      if (ctx.mats.lit) ctx.mats.lit(fm.planar);
+    }
+    if (!m.mirror && fm.planar) {
+      fm.planar.dispose();
+      fm.planar = null;
+    }
+    fm.mesh.material = m.mirror ? fm.planar : fm.env;
   };
   /* The sky dome is not drawn into the mirror: the water's shader puts
    * the sky's blurred image where the mirror holds nothing (SMEAR). */
@@ -885,6 +923,13 @@ export async function buildPart(ctx) {
     const shown = inView(made[k], camera);
     for (const mesh of made[k].meshes) {
       mesh.material = shown ? made[k].planar : made[k].env;
+    }
+    if (made[k].flood) {
+      made[k].flood.mesh.material = shown && made[k].flood.planar ? made[k].flood.planar : made[k].flood.env;
+      /* The mirror at the flood's water under the camera, where it has
+       * some, else the body's still level. */
+      const lvl = floodLevelAt(floodU, eye.x, eye.z);
+      made[k].mirror.setLevel(lvl ?? made[k].y);
     }
     if (!shown) {
       stats.mirrorCalls = 0;
@@ -918,6 +963,12 @@ export async function buildPart(ctx) {
   const before = scene.onBeforeRender;
   scene.onBeforeRender = function onBeforeRender(renderer, s, camera, target) {
     before.call(this, renderer, s, camera, target);
+    /* The flood's sheet at the detail this camera needs (surface.js). */
+    if (camera.isPerspectiveCamera && riverMade && riverMade.flood) {
+      camera.updateMatrixWorld();
+      eye.setFromMatrixPosition(camera.matrixWorld);
+      stats.floodFar = floodDetail(riverMade.flood.mesh.geometry, eye);
+    }
     if (!due || !camera.isPerspectiveCamera) {
       return;
     }
@@ -928,9 +979,144 @@ export async function buildPart(ctx) {
     renderMirror(renderer, s, camera);
   };
   ctx.progress(1);
+  /* The flood (live.js): Free Flight's typical spill until a war says
+   * otherwise. */
+  const flood = liveFlood();
+  let clockMs = null;
+  /*
+   * The spillway's state from the flood, for the chute, the plume and the
+   * plunge pool (spill.js spillState): read when the flood is new or has
+   * stepped, at most every READ_EVERY frames. A gate's discharge is read
+   * from its bay's water 20 m below it, the discharge per metre across
+   * its four cells (the solver's own state, so a flood that is never
+   * stepped reads as well as one that is); a bay's front, walking down
+   * its middle every FRONT_STEP metres to the first dry cell.
+   */
+  let readFrom = null;
+  let readAge = 0;
+  let breaches = null;
+  /* The flood's sheet (surface.js), made the first time the flood is
+   * ready and refreshed from it after. */
+  const riverMade = made.find((m) => m.body.name === 'river');
+  const drawFlood = (fl) => {
+    if (!riverMade.flood) {
+      const real = floodUniforms(THREE, fl.bed);
+      for (const key of Object.keys(real)) floodU[key].value = real[key].value;
+      const env = water(floodMaterial(withField(THREE, waterMaterial(riverMade.opts), riverMade.uniforms)));
+      env.name = `${riverMade.env.name}-flood`;
+      const mesh = new THREE.Mesh(floodGeometry(THREE, fl.bed), env);
+      mesh.name = 'itaipu-water-flood';
+      mesh.receiveShadow = true;
+      group.add(mesh);
+      riverMade.flood = { mesh, env, planar: null };
+      /* The water through holes torn in the gates (breach.js), in the
+       * flood's frame. */
+      const sp = dam.find((p) => p.part === 'spillway');
+      const chute = chuteFloor(sp);
+      breaches = breachWater(THREE, {
+        group,
+        waves,
+        time,
+        envMap,
+        sun,
+        state: spillUniforms,
+        d0: SPILL.gate[1],
+        floor: (d) => (d <= SPILL.ogee ? sp.figures.sillY : chute.y(d)),
+        head: fl.bed.level[fl.bed.names.indexOf('reservoir')],
+        at: fl.bed.frame.at,
+        wrap: water,
+      });
+      floodMirror(riverMade);
+      stats.floodTriangles = mesh.geometry.index.count / 3;
+    }
+    floodRead(fl, floodU);
+  };
+  const READ_EVERY = 6;
+  const FRONT_STEP = 10;
+  const spillShare = new Float32Array(BAYS);
+  const readSpill = (stepped) => {
+    const fl = flood.flood();
+    readAge += 1;
+    if (!fl || (fl === readFrom && !(stepped > 0 && readAge >= READ_EVERY))) return;
+    readFrom = fl;
+    readAge = 0;
+    drawFlood(fl);
+    const lips = fl.lips();
+    const h = fl.f.h();
+    const hv = fl.f.hv();
+    const { dx } = fl.bed.grid;
+    const bayQ = [0, 0, 0];
+    const bayN = [0, 0, 0];
+    const bayFront = [0, 0, 0];
+    /* Each gate's discharge 20 m below it, and how far down its lane's
+     * middle its water has run. */
+    const gateQ = fl.bed.gates.map((g, k) => {
+      spillUniforms.uGate.value[k] = lips[k] / GATE_LOOK_OPEN;
+      let q = 0;
+      for (const c of g.bay) {
+        if (Math.abs(c.d - 20) < dx / 2) q += hv[c.k] * dx;
+      }
+      const b = bayOf(k);
+      let front = 0;
+      for (let d = 0; d <= spill[b].end + FRONT_STEP; d += FRONT_STEP) {
+        const [x, z] = fl.bed.frame.at(g.middle, d);
+        const c = fl.cellAt(x, z);
+        if (c < 0 || !(h[c] > 0.05)) break;
+        front = d;
+      }
+      spillUniforms.uGateQ.value[k] = Math.max(0, q / GATE_LOOK_Q);
+      spillUniforms.uGateFront.value[k] = front;
+      bayQ[b] += q;
+      bayN[b] += 1;
+      bayFront[b] = Math.max(bayFront[b], front);
+      return q;
+    });
+    /* The breaches' falls, on the water through each hole: a notch open
+     * to the sky passes what the gate's gauge reads past its link (the
+     * lip's flow), a hole under the water the link's own. */
+    if (breaches) {
+      const reservoir = fl.bed.level[fl.bed.names.indexOf('reservoir')];
+      stats.breaches = breaches.update(fl.holes().map((o) => {
+        const gate = fl.bed.gates[o.g];
+        const link = fl.f.linkQ(fl.links[o.g]);
+        return {
+          key: o.g,
+          u: gate.middle + o.across,
+          width: Math.min(o.width, gate.width),
+          crest: Math.max(o.sill, gate.sill),
+          top: Math.min(o.sill + o.height, gate.sill + gate.height, reservoir),
+          q: o.sky ? Math.max(0, gateQ[o.g] - link) : link,
+          sky: o.sky,
+        };
+      }));
+    }
+    for (let b = 0; b < BAYS; b += 1) {
+      spillShare[b] = Math.max(0, bayQ[b] / (bayN[b] * GATE_LOOK_Q));
+      const front = bayFront[b];
+      spillUniforms.uFront.value.setComponent(b, front);
+      spillUniforms.uReach.value.setComponent(b, front >= spill[b].end - FRONT_STEP ? 1 : 0);
+      spillUniforms.uBay.value.setComponent(b, spillShare[b]);
+      plunge[b].w = spillShare[b] * spillUniforms.uReach.value.getComponent(b);
+    }
+  };
 
   return {
     group,
+    /* An opening in the dam (docs/DAMBREAK-CONTRACT), from the war's
+     * damage: into the flood. */
+    onOpening(o) {
+      flood.open(o);
+    },
+    /* A mission's gate state ({ gate, at, open_m } each), or null for
+     * no war (live.js). */
+    setGates(list) {
+      flood.setGates(list);
+    },
+    /* Each opening's discharge, m3/s, and where (world, y up). */
+    flows: () => flood.flows(),
+    /* The river's level under (x, z) at room time `ms` for the plant, or
+     * null where the flood has none (live.js levelAt). */
+    levelAt: (x, z, ms) => flood.levelAt(x, z, ms),
     /* Where the spillway's jets come down, for its roar
      * (src/render/world-audio.js audioBeds). */
     plunges: spill.map((b) => b.land),
@@ -939,6 +1125,11 @@ export async function buildPart(ctx) {
     update(step) {
       time.value = step / 1000;
       due = true;
+      /* In a room the animation clock is the room's (src/main.js
+       * trafficMs), the clock the flood steps on. */
+      clockMs = step;
+      const stepped = flood.advance(step);
+      readSpill(stepped);
     },
     /* The shell's waves, in the map's frame, in view.water's order
      * (src/main.js handWaves): each drawn body takes the one whose still
@@ -969,6 +1160,7 @@ export async function buildPart(ctx) {
         m.env.dispose();
       }
       chuteMat.dispose();
+      if (breaches) breaches.dispose();
       spray.geometry.dispose();
       spray.material.dispose();
       fieldTex.dispose();
@@ -977,6 +1169,7 @@ export async function buildPart(ctx) {
     stats: () => ({
       ...stats,
       bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })),
+      flood: flood.stats(clockMs),
     }),
   };
 }

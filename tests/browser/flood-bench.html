@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+  flood-bench.html: the browser side of scripts/water-bench.js. Times the
+  Itaipu flood in Chrome from the shipped files and resolves
+  window.__simHarnessResult with ms per step and the steps a second the
+  frame budget allows.
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>FDFPV flood bench</title>
+    <link rel="icon" href="data:," />
+    <script>
+      window.__simHarnessResult = new Promise((resolve) => {
+        window.__simHarnessResolve = resolve;
+      });
+    </script>
+    <script type="module" src="/tests/browser/flood-bench.js"></script>
+  </head>
+  <body>
+    <p>FDFPV headless flood bench.</p>
+  </body>
+</html>

@@ -586,15 +586,18 @@ const AXIS_X = new THREE.Vector3(1, 0, 0);
  * https://fdfpv.example/sim/ still produces names containing
  * /src/maps/swiss2.
  *
- * itaipu: itaipu.js and src/maps/itaipu/, 29 (the town is 9 of them,
+ * itaipu: itaipu.js and src/maps/itaipu/, 34 (the town is 9 of them,
  * the vegetation 3, the spawns and the title's flight 2, the war's
  * switchyard 2, look/night.js, mission 4's fixtures, loaded whether
  * the map is built for day or night, water/meet.js, where the water
- * meets the dam, and terrain/conform.js, where the ground does). The
+ * meets the dam, terrain/conform.js, where the ground does, and the
+ * flood's water/live.js, surface.js, bed.js and flood.js, whose water
+ * Free Flight draws from the map's build on, and breach.js, the water
+ * through a hole torn in a gate, drawn with it, docs/FLOOD.md). The
  * terrain engine (src/maps/terrain/) and the swiss2 look it is built
  * with are under their own prefixes, as the Alps' modules are for
  * swiss2. */
-const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 29 };
+const MAP_MODULE_COUNT = { swiss2: 49, itaipu: 34 };
 
 /* The world a boot that could not build its own falls back to: the Alps,
  * the lightest world left and the one the Swiss valley builds through. */
@@ -13324,8 +13327,41 @@ export async function boot({
     return !(dx * dx + dz * dz < 1);
   }
 
+  /*
+   * WATER WHOSE LEVEL IS NOT ONE HEIGHT (a body with levelAt, Itaipu's
+   * flood, docs/FLOOD.md): the plant is told its level at the aircraft
+   * with the ground, at the same steps, the map's water clock set to the
+   * room's time of this step first, so the floats sit on the water drawn
+   * and the level depends on where and when, never on how frames fell.
+   */
+  const waterLevelSim = { x: 0, y: 0, z: 0 };
+  function feedWaterLevels(x, z) {
+    const bodies = (view && view.water) || [];
+    if (typeof sim.e.sim_water_level !== 'function') {
+      return;
+    }
+    bodies.forEach((w, k) => {
+      if (!w.levelAt) {
+        return;
+      }
+      const y = w.levelAt(x, z);
+      if (y == null || !insideWater(w, x, z)) {
+        return;
+      }
+      worldPosToSim(x, y, z, waterLevelSim);
+      sim.e.sim_water_level(k, waterLevelSim.z);
+      if (stepTrace.on) {
+        stepTrace.water = traceHash(0x811c9dc5 | 0, waterLevelSim.z);
+      }
+    });
+  }
+
   function raiseGroundFromState(st) {
     poseFromState(st, pProbe);
+    if (view.setWaterClock) {
+      view.setWaterClock(trafficMs(simTimeMs));
+    }
+    feedWaterLevels(pProbe.x, pProbe.z);
     const hy = floorHeight(pProbe.x, pProbe.z, pProbe.y - SURFACE_BIAS);
     worldPosToSim(pProbe.x, hy, pProbe.z, pSim);
     /*
@@ -15964,6 +16000,13 @@ export async function boot({
      * the camera is now, over the ground under it. */
     worldAudio.attach(audio);
     worldAudio.setWalls(view && view.audioWalls);
+    /* The water through the dam's openings (the map's flood,
+     * docs/FLOOD.md), its roar with its discharge. */
+    if (view && view.waterFlows) {
+      for (const w of view.waterFlows()) {
+        worldAudio.flow(w.key, w.x, w.y, w.z, w.q);
+      }
+    }
     {
       const c = shell.camera.position;
       worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, worldTime);
@@ -18060,6 +18103,23 @@ export async function boot({
     ...(view.stats ? view.stats() : {}),
   });
   window.__maps = () => MAPS.map((m) => ({ id: m.id, name: m.name, mode: m.mode }));
+  /* An opening in the dam as the war's damage hands one to the map
+   * (map.onOpening, docs/FLOOD.md), and the water through every opening
+   * this frame (map.waterFlows), for scripts/water-page.js. Harness only. */
+  window.__mapOpening = (o) => {
+    if (!view || typeof view.onOpening !== 'function') return false;
+    view.onOpening(o);
+    return true;
+  };
+  window.__mapFlows = () => (view && view.waterFlows ? view.waterFlows() : null);
+  /* A mission's gate state handed to the map (map.setGateState), for
+   * scripts/itaipu-views.js --gates. Harness only. */
+  window.__mapGates = (list) => {
+    if (!view || typeof view.setGateState !== 'function') return false;
+    view.setGateState(list);
+    return true;
+  };
+  window.__animMs = () => animDrawnMs;
   /* The declared departure from MultiGP's published obstacle dimensions, so
    * check 15 can assert the threshold file and the course agree about how big
    * a gate is rather than each believing its own copy. Harness only. */
