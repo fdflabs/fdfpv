@@ -136,7 +136,7 @@ import {
 } from './ui/warround.js';
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
-import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
 import {
   ACT1, createCampaignStore, markSeen, seenFilm,
 } from './game/campaign.js';
@@ -2626,20 +2626,23 @@ export async function boot({
    */
   /*
    * THE MISSION'S TIME OF DAY (its `time`, TECH-NEEDS T1.11: First Light's
-   * morning, the night raid's night): from its briefing the world is
-   * built at that time (src/maps/itaipu.js options.time, through
-   * syncWorld), at night the attackers wear nav lights, and it stays so
-   * over the mission's end and its result, so the banner is not hidden
-   * behind a rebuild; the map's own time comes back with the next mission
-   * that has none, or when the room is left (its view is the lobby's).
-   * Every pilot's screen does this from the room's view, so all of them
-   * fly the same light.
+   * morning, the night raid's night): the world is built at that time
+   * (src/maps/itaipu.js options.time, through syncWorld) while a pilot
+   * waits on the room's lobby with that mission named, so the briefing
+   * seldom has to rebuild it (the frame loop stops while a world is
+   * built), and from the briefing whatever the lobby; at night the
+   * attackers wear nav lights. It stays so over the mission's end and its
+   * result, so the banner is not hidden behind a rebuild; the map's own
+   * time comes back with a mission that has none, or when the room is
+   * left (its view is the lobby's, and there is no lobby). Every pilot's
+   * screen does this from the room, so all of them fly the same light.
    */
   let warTime = null;
   /* Each switch, its room ms and when the rebuild was done, for checks. */
   const warTimeLog = [];
   function warTimeFrame() {
-    const time = roomWar.view().state !== 'lobby' ? roomWar.time() : null;
+    const lobby = ui.screen === 'friends' && lobbyGame() === 'war' ? gameLobby() : null;
+    const time = lobby ? missionTime(WAR_MISSIONS[lobby.mission]) : roomWar.view().state !== 'lobby' ? roomWar.time() : null;
     if (time === warTime) {
       return;
     }

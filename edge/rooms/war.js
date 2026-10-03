@@ -210,7 +210,9 @@ import {
 import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
-import { MISSIONS, waveSize, waveTarget } from '../../src/share/war/missions/index.js';
+import {
+  MISSIONS, missionTime, waveSize, waveTarget,
+} from '../../src/share/war/missions/index.js';
 import {
   RESULT_MS, allBorn, arm, beatOf, crossings, draw, dueCues, dueSpawns, enter, exitDue, failedAny, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind,
   stagesOf, target as exitTarget, wavesOf,
@@ -314,7 +316,7 @@ export const RESTART_STARS = 2;
  * count as seen. Measured: a morning Itaipu built in 5.0 s on an RTX 3060
  * Ti (warintro:check's info rows, 3 October). */
 export const WORLD_LEAD_MS = 8000;
-const leadOf = (mission) => ((mission.time ?? (mission.night ? 'night' : 'day')) === 'day' ? 0 : WORLD_LEAD_MS);
+const leadOf = (mission) => ((missionTime(mission) ?? 'day') === 'day' ? 0 : WORLD_LEAD_MS);
 /* A pilot on its last airframe is taken as not flying once it has sent no
  * pose for STALE_MS, or has been on the ground (not airborne) for
  * GROUND_MS, so a round never waits on a flight that will not end. */

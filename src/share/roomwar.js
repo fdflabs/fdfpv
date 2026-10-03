@@ -51,7 +51,7 @@
 import { decodeAgents, decodeHunts } from './roomwire.js';
 import { KINDS, planAgent, poseAt } from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
-import { MISSIONS } from './war/missions/index.js';
+import { MISSIONS, missionTime } from './war/missions/index.js';
 
 /* A hunter's samples older than this behind its newest are dropped: the
  * far interest band sends one a second, and the shell draws near now. */
@@ -133,12 +133,7 @@ export function createRoomWar(send) {
     return war.mission ? MISSIONS[war.mission] ?? null : null;
   }
 
-  /* The mission's time of day (TECH-NEEDS T1.11): its `time`, 'night' for
-   * the night raid's older `night` flag, or null for the map's own. */
-  function timeOf() {
-    const m = mission();
-    return m?.time ?? (m?.night ? 'night' : null);
-  }
+  const timeOf = () => missionTime(mission());
 
   /* A new match, or none: nothing of the old one is drawn. */
   function reset() {
