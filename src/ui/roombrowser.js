@@ -59,6 +59,22 @@ const TITLE_ROOMS_UPRIGHT = 2;
 const TITLE_ROOMS_SHORT = 1;
 const UPRIGHT_PHONE = '(max-width: 860px) and (min-height: 521px)';
 const SHORT_PHONE = '(max-width: 860px) and (min-height: 521px) and (max-height: 700px)';
+/*
+ * HOME'S PANEL IS THE PAGE'S MIDDLE (the owner, 2026-10-03: "it needs to
+ * be wide out in the open"): the whole width under the wordmark, the hub
+ * cards shrunk under it, so it lists more than Flight Club's corner does.
+ * Two rows of four on a window at least 900 tall, one row of four below
+ * that, a line each on an upright phone, one row on a phone on its side.
+ * Each count is the most that leaves the cards' links clear of the
+ * command bar, measured with names of 32 letters (npm run home:rooms).
+ */
+const HOME_ROOMS = 4;
+const HOME_ROOMS_TALL = 8;
+const HOME_ROOMS_UPRIGHT = 5;
+const HOME_ROOMS_SHORT = 2;
+const HOME_ROOMS_FLAT = 3;
+const TALL_SCREEN = '(min-width: 861px) and (min-height: 900px)';
+const FLAT_PHONE = '(max-height: 520px)';
 
 /*
  * ui: the menu (show, askForm, refreshFriends); link: the room socket
@@ -97,12 +113,27 @@ export function createRoomBrowser({
   const worlds = () => MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id);
   const upright = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(UPRIGHT_PHONE) : null;
   const short = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(SHORT_PHONE) : null;
-  for (const q of [upright, short]) {
+  const tall = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(TALL_SCREEN) : null;
+  const flat = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(FLAT_PHONE) : null;
+  for (const q of [upright, short, tall, flat]) {
     if (q) {
       q.addEventListener('change', () => ui.refreshFriends());
     }
   }
-  const titleRooms = () => (short && short.matches ? TITLE_ROOMS_SHORT : upright && upright.matches ? TITLE_ROOMS_UPRIGHT : TITLE_ROOMS);
+  const is = (q) => Boolean(q && q.matches);
+  /* How many rooms the panel lists, on home or in Flight Club. */
+  const titleRooms = (home) => {
+    if (!home) {
+      return is(short) ? TITLE_ROOMS_SHORT : is(upright) ? TITLE_ROOMS_UPRIGHT : TITLE_ROOMS;
+    }
+    if (is(short)) {
+      return HOME_ROOMS_SHORT;
+    }
+    if (is(upright)) {
+      return HOME_ROOMS_UPRIGHT;
+    }
+    return is(flat) ? HOME_ROOMS_FLAT : is(tall) ? HOME_ROOMS_TALL : HOME_ROOMS;
+  };
   let draft = null;
   let busy = false;
   let error = null;
@@ -413,9 +444,10 @@ export function createRoomBrowser({
   return {
     /* The title's rooms panel (src/ui/ui.js renderTitleRooms): its line,
      * then the rooms, All rooms and Make a room. `lobby:` actions go the
-     * Fly with friends card's way in first (ui.js act). */
-    titleItems() {
-      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, titleRooms());
+     * Fly with friends card's way in first (ui.js act). `home`: the panel
+     * is home's, which lists more. */
+    titleItems(home = false) {
+      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, titleRooms(home));
       return [
         { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
         ...open.map((r) => ({

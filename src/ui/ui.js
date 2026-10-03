@@ -6385,14 +6385,17 @@ export class Ui {
       if (this.onGate()) {
         const rooms = this.friendsItems().length > 0;
         const tail = trouble ? [trouble] : [];
+        /* The rooms panel is home's and Flight Club's: every public room
+         * open, one press from the first screen (the owner, 2026-10-03, on
+         * home without it: "that was a big feature that i liked"), and
+         * where the activities that make rooms are. */
+        const panel = rooms && this.titleRooms ? this.titleRooms(!this.hub) : [];
         if (!this.hub) {
-          return [...this.hubCards(rooms), ...tail];
+          return [...this.hubCards(rooms), ...panel, ...tail];
         }
         if (this.hub === 'hangar') {
           return [...this.hangarCards(), ...tail];
         }
-        /* The rooms panel is Flight Club's: joining a stranger's game is a
-         * Flight Club thing, and home stays three cards. */
         return [
           ...hubWays(this.hub).filter((w) => rooms || !w.room).map((w) => ({
             label: w.label,
@@ -6403,7 +6406,7 @@ export class Ui {
             facts: w.facts,
             action: w.action,
           })),
-          ...(rooms && this.hub === 'club' && this.titleRooms ? this.titleRooms() : []),
+          ...(this.hub === 'club' ? panel : []),
           ...tail,
         ];
       }

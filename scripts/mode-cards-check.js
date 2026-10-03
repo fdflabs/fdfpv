@@ -231,12 +231,13 @@ try {
   check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
   check('each hub lists its activities as links: Track Day, Free Flight, Streamer Combat, Catch the Ace; the war; the Hangar\'s four',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
-  check('no rooms panel on home: it is Flight Club\'s', home.panel === null, JSON.stringify(home.panel));
+  check('home shows the rooms panel (the owner, 2026-10-03), above the cards and clear of them and of the corner chips', panelLaidOut(home),
+    `panel ${JSON.stringify(home.panel)} chips ${JSON.stringify(home.chips)} first card ${JSON.stringify(home.cards[0].box)}`);
   for (const [w, h, row] of SIZES) {
     await resize(a, w, h);
     const v = await a.evaluate(LAYOUT);
-    check(`${w} by ${h}: home's three hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, no sideways scroll`,
-      laidOut(v, 3) && shapeOf(v, row), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw}`);
+    check(`${w} by ${h}: home's three hubs ${row ? 'in a row' : 'stacked'}, inside the window, links clear of the bar, no sideways scroll, the rooms panel above them`,
+      laidOut(v, 3) && shapeOf(v, row) && panelLaidOut(v), `${JSON.stringify(v.cards.map((x) => [...x.box, x.facts]))} bar ${v.bar} scroll ${v.sw} panel ${JSON.stringify(v.panel)}`);
     await shot(a, `home-${w}x${h}`);
   }
   await resize(a, 1280, 720);

@@ -119,13 +119,15 @@ const LAYOUT = `(() => ({
   })(),
 }))()`;
 
-function laidOut(v, n) {
+function laidOut(v, n, home = false) {
   const c = v.cards;
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  /* No rooms panel on home or in Operations: it is Flight Club's. */
-  return c.length === n && inside && apart && v.panel === null && v.sw <= v.w;
+  /* The rooms panel is home's, above the cards and clear of them (the
+   * owner, 2026-10-03), and Flight Club's; Operations has none. */
+  const panel = home ? Boolean(v.panel) && c.every((x) => v.panel[3] <= x.box[1]) : v.panel === null;
+  return c.length === n && inside && apart && panel && v.sw <= v.w;
 }
 
 /* What the campaign screen shows, read off the DOM. */
@@ -183,8 +185,8 @@ try {
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, Operations second with Defend the Paraná its link`,
-      laidOut(v, 3) && v.cards[1].name === 'Operations' && v.cards[1].links.join() === 'Defend the Paraná',
+    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, the rooms panel above them, Operations second with Defend the Paraná its link`,
+      laidOut(v, 3, true) && v.cards[1].name === 'Operations' && v.cards[1].links.join() === 'Defend the Paraná',
       `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts} ${x.links}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }

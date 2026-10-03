@@ -1769,6 +1769,43 @@
       .gate-room.on .gate-room-name { color: var(--pdcs-bright); }
       .gate-room:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 2px; }
       /*
+       * HOME'S ROOMS, OUT IN THE OPEN (the owner, 2026-10-03: "it needs to
+       * be wide out in the open"). On home the panel leaves the corner for
+       * a band the page's whole width between the wordmark and the hub
+       * cards, its rooms four to a row and larger, and the cards' pictures
+       * give it the height (src/ui/roombrowser.js HOME_ROOMS). It wraps
+       * onto a line of its own in .title-top, so no element moves and the
+       * arrows still walk the cards first, then the rooms. Scoped to a
+       * window wider than a phone: the phone blocks below lay it out.
+       */
+      @media (min-width: 861px) and (min-height: 521px) {
+        .screen-title.is-gate[data-hub=""] .title-top { flex-wrap: wrap; row-gap: clamp(10px, 2vh, 24px); }
+        .screen-title.is-gate[data-hub=""] .gate-rooms:not([hidden]) {
+          order: 2; flex: 1 1 100%; margin: 0;
+          gap: 10px; padding: 14px 16px 16px;
+        }
+        .screen-title.is-gate[data-hub=""] .gate-rooms-title { font-size: 12.5px; }
+        .screen-title.is-gate[data-hub=""] .gate-rooms-count { font-size: 15px; }
+        .screen-title.is-gate[data-hub=""] .gate-rooms-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+        .screen-title.is-gate[data-hub=""] .gate-rooms-list .gate-room { padding: 10px 14px 11px; gap: 4px; justify-content: flex-start; }
+        .screen-title.is-gate[data-hub=""] .gate-rooms-list .gate-room-name { font-size: 15.5px; }
+        .screen-title.is-gate[data-hub=""] .gate-rooms-list .gate-room-value { font-size: 12.5px; }
+        .screen-title.is-gate[data-hub=""] .gate-rooms-buttons .gate-room { padding: 9px 12px; }
+        /* The pictures give the panel its height: as tall as the window
+           has to spare under two rows of rooms at 1080, a strip at 720. */
+        .screen-title.is-gate[data-hub=""] .gate-card-art { height: clamp(64px, calc(62vh - 380px), 200px); }
+      }
+      @media (min-width: 861px) and (min-height: 900px) {
+        .screen-title.is-gate[data-hub=""] .gate-card-art { height: clamp(120px, calc(62vh - 330px), 360px); }
+      }
+      /* On a phone, upright or on its side, the hub cards on home are their
+         names and links without the picture: with it, the panel's rooms put
+         the links under the command bar (59 px at 844 by 390, 83 px at 360
+         by 640, measured with five rooms open). */
+      @media (max-width: 860px), (max-height: 520px) {
+        .screen-title.is-gate[data-hub=""] .gate-card-art { display: none; }
+      }
+      /*
        * A CARD IS A PANEL ON THE GROUND, the boot screen's visual area over
        * its label: a hairline frame, an index, the mode's picture as a
        * survey plate (the boot screen's map treatment: no colour, darkened,
