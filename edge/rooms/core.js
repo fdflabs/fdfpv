@@ -392,13 +392,15 @@ export class RoomCore {
   }
 
   /* The games a room can run: whether each is on, its players' seats, and
-   * the fewest of them here that keep it going. */
+   * the fewest of them here that keep it going. A room made for combat or
+   * tag plays it alone too (the owner, 2026-10-02: "ready to go either
+   * single or multi"); anywhere else they still need two. */
   games(now) {
     const r = this.race.race;
     return [
       { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: 1, end: () => this.race.end(this) },
-      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: 2, end: () => this.tag.abandon(this, now) },
-      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: 2, end: () => this.combat.stop(this) },
+      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: this.meta.mode === 'tag' ? 1 : 2, end: () => this.tag.abandon(this, now) },
+      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: this.meta.mode === 'combat' ? 1 : 2, end: () => this.combat.stop(this) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: 1, end: () => this.war.abandon(this, now) },
     ];
   }
@@ -536,6 +538,10 @@ export class RoomCore {
         game: 'war', state: this.war.match.state === 'live' ? 'on' : 'countdown',
         wave: Math.min(this.war.match.wave + 1, mission.waves.length), waves: mission.waves.length,
       };
+    }
+    /* A free flight room flying since its lobby's start. */
+    if (this.meta.mode == null && this.gameLobby.live) {
+      return { game: null, state: 'on' };
     }
     return {
       game: this.meta.mode ?? null, state: 'waiting', ...(this.gameLobby.open(this) ? { ready: this.gameLobby.ready.size } : {}),
@@ -909,7 +915,8 @@ export class RoomCore {
     /* Started by the room's host (Phase 4), in a public room as in a
      * private one since the room browser gave public rooms a host. */
     if (msg.type === 'track' || msg.type === 'race') {
-      return [...first, ...this.race.message(this, conn, s, msg, now)];
+      /* A race lobby's times wait for its track and its grid. */
+      return [...first, ...this.race.message(this, conn, s, msg, now), ...this.gameLobby.rearm(this, now), ...this.wake()];
     }
     return [];
   }

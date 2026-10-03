@@ -279,7 +279,10 @@ export class RoomCombat {
     }
     if (r.state === 'on' && t >= r.endsAt) {
       r.state = 'over';
-      r.nextAt = t + RESULTS_MS;
+      /* A room made for combat goes back to its lobby instead
+       * (edge/rooms/gamelobby.js), where its pilots say when they are
+       * ready for the next. */
+      r.nextAt = this.meta.mode === 'combat' ? 0 : t + RESULTS_MS;
       for (const s of this.seats.values()) {
         /* All the paper towed, captured colours included. */
         s.points += Math.floor(POINTS_PER_METRE * Math.min(s.owed, s.links));

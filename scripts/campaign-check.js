@@ -5,25 +5,23 @@
  *   npm run campaign:check                  starts its own on port 8823
  *   npm run campaign:check -- http://127.0.0.1:8797 [outdir]
  *
- * The gate draws six cards, the campaign's last, inside the window at
+ * The gate draws five cards, the campaign's last, inside the window at
  * 1280x720, 390x844 and 360x640, with the rooms panel above them and
- * clear of them. Its card opens the campaign screen:
- * mission 1 playable and free, missions 2 to 4 marked Campaign. The shop,
- * with credits seeded in the stored settings' campaign section (the
- * guest's store, which the account syncs for a signed in pilot):
- * buy the wide blast warhead and Rack +1, equip and unequip, the loadout
- * line following. Play on mission 1: the Defend Itaipu card's consent and
- * public Itaipu room, and its start row starts mission 1 with the
- * loadout in the start message (the room on main ignores the field and
- * starts the war anyway, and no loadout op goes to a room that does not
- * echo loadouts). A mission end with no result, as main gives: nothing
- * paid, a quiet note. A mocked room result, since the room gives
- * none yet: stars and credits on the screen follow it. Play mission 2
- * on a profile that has not consented, Back on the consent: the mission
- * is dropped, a private Itaipu room made by hand after it starts mission
- * 1, and its start row asks the consent first (docs/FLOW-AUDIT.md D6).
- * Play mission 2 whose room is held before its welcome, then a room made
- * by hand: that room is not the mission's either.
+ * clear of them. Its card is one click into the war's lobby (the owner,
+ * 2026-10-02): the Defend Itaipu consent first, asked once (Back: no
+ * room, the title), then a public Itaipu room made for the war, named for
+ * this pilot. The lobby's Campaign row opens the campaign screen: mission
+ * 1 playable and free, missions 2 to 4 marked Campaign. The shop, with
+ * credits seeded in the stored settings' campaign section (the guest's
+ * store, which the account syncs for a signed in pilot): buy the wide
+ * blast warhead and Rack +1, equip and unequip, the loadout line
+ * following. Play on mission 1: back in the lobby, the room's mission
+ * mission 1, and Start now starts it with the loadout in the start
+ * message. A mission end with no result, as main gives: nothing paid, a
+ * quiet note. A mocked room result, since the room gives none yet: stars
+ * and credits on the screen follow it. Play mission 2 from the lobby's
+ * Campaign row: the lobby says mission 2 and Start now starts it, its
+ * intro played.
  *
  * No page error. Pictures in outdir, not in the repository.
  *
@@ -156,7 +154,7 @@ function laidOut(v) {
   /* The rooms panel (src/ui/ui.js renderTitleRooms): in the window, above the cards. */
   const p = v.panel;
   const panel = Boolean(p) && p[0] >= 0 && p[1] >= 0 && p[2] <= v.w && c.every((x) => p[3] <= x.box[1]);
-  return c.length === 6 && inside && apart && panel && v.sw <= v.w;
+  return c.length === 5 && inside && apart && panel && v.sw <= v.w;
 }
 
 /* What the campaign screen shows, read off the DOM. */
@@ -182,15 +180,12 @@ const SCREEN = `(() => {
   };
 })()`;
 
-/* Every text message the page puts on a socket, from before the app runs.
- * While window.__holdHello is set, a hello is kept back, so the room it
- * was for never opens. */
+/* Every text message the page puts on a socket, from before the app runs. */
 const SOCKET_TAP = `(() => {
   window.__sent = [];
   const send = WebSocket.prototype.send;
   WebSocket.prototype.send = function (data) {
     if (typeof data === 'string') { try { window.__sent.push(JSON.parse(data)); } catch (e) { window.__sent.push(data); } }
-    if (window.__holdHello && typeof data === 'string' && data.includes('"type":"hello"')) { return undefined; }
     return send.call(this, data);
   };
 })();`;
@@ -210,21 +205,47 @@ const page = await openPage({
 });
 try {
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 6", 60000).catch(() => {});
+  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 5", 60000).catch(() => {});
 
   /* THE CARD. */
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: six cards, the campaign last, inside the window, clear of the bar, the rooms panel above them`,
-      laidOut(v) && v.cards[5].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
+    check(`${w} by ${h}: five cards, the campaign last, inside the window, clear of the bar, the rooms panel above them`,
+      laidOut(v) && v.cards[4].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }
 
+  /* One click into the war's lobby, its consent asked first, once. */
+  const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()";
   await click(page, '.gate-card-campaign');
+  await page.until(CONSENT, 10000).catch(() => {});
+  check('the card asks the Defend Itaipu consent first', await page.evaluate(CONSENT));
+  await page.sleep(700);
+  await page.tap('Escape');
+  await page.until("document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
+  await page.sleep(500);
+  const declined = await page.evaluate("({ phase: window.__rooms().phase, gate: window.__ui.onGate(), consent: window.__ui.settings.warConsent === true })");
+  check('Back on it: no room, the title, nothing stored', declined.phase === 'idle' && declined.gate && !declined.consent, JSON.stringify(declined));
+  await click(page, '.gate-card-campaign');
+  await page.until(CONSENT, 10000).catch(() => {});
+  await page.sleep(700);
+  await page.tap('Enter');
+  const IN_LOBBY = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+  await page.until(IN_LOBBY, 60000).catch(() => {});
+  await page.sleep(600);
+  const room = await page.evaluate(`(() => {
+    const r = window.__rooms();
+    return { code: r.code, public: r.public, host: r.host === r.seat, mode: r.mode, name: r.name, map: window.__ui.settings.map,
+      rows: window.__ui.items().map((it) => it.action) };
+  })()`);
+  check('Continue: the lobby of a public Itaipu room made for the war, named for this pilot, its host, a Campaign row',
+    room.public && room.host && room.mode === 'war' && room.map === 'itaipu' && /, Defend Itaipu$/.test(room.name || '')
+    && room.rows.includes('friends-lobby-campaign'), JSON.stringify(room));
+  await page.evaluate("(() => { window.__ui.act('friends-lobby-campaign'); return true; })()");
   await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
   const first = await page.evaluate(SCREEN);
-  check('the card opens the campaign on its missions', first && first.page === 'missions' && first.missions.length === 4, JSON.stringify(first));
+  check('its Campaign row opens the campaign on its missions', first && first.page === 'missions' && first.missions.length === 4, JSON.stringify(first));
   check('mission 1: free, playable, not flown; 2 to 4 marked Campaign',
     first.missions[0].tag === 'Free' && first.missions[0].playable && first.missions[0].best === 'Not flown yet'
     && first.missions.slice(1).every((m) => m.tag === 'Campaign' && !m.playable), JSON.stringify(first.missions));
@@ -256,26 +277,22 @@ try {
   })()`));
   await shot(page, 'shop');
 
-  /* PLAY MISSION 1. */
+  /* PLAY MISSION 1, from the lobby: back in it, the room's mission that. */
   await click(page, '.campaign-box .name-dialog-row button');
   await click(page, '[data-mission="itaipu-1"] .campaign-play');
-  await page.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()", 10000).catch(() => {});
-  check('Play asks the Defend Itaipu consent first', await page.evaluate("/Defend Itaipu/.test(document.querySelector('.name-dialog h2').textContent)"));
-  await page.sleep(700);
-  await page.tap('Enter');
-  await page.until("window.__rooms().phase === 'open' && window.__ui.items().some((it) => it.action === 'friends-war-start')", 60000).catch(() => {});
+  await page.until(`${IN_LOBBY} && /Mission 1: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 15000).catch(() => {});
   await page.sleep(600);
-  const room = await page.evaluate(`(() => {
+  const played = await page.evaluate(`(() => {
     const r = window.__rooms();
-    return { code: r.code, public: r.public, host: r.host === r.seat, map: window.__ui.settings.map, pending: window.__campaign.pending() };
+    return { code: r.code, line: (document.querySelector('.war-lobby-mission') || {}).textContent || '', pending: window.__campaign.pending() };
   })()`);
-  check('a public Itaipu room (the owner, 2026-10-01: public so a friend finds it), this pilot its host, the mission remembered for it',
-    room.public && room.host && room.map === 'itaipu' && room.pending && room.pending.mission === 'itaipu-1' && room.pending.code === room.code,
-    JSON.stringify(room));
+  check('Play mission 1: back in the same lobby, no second consent, the room on mission 1, the mission remembered for it',
+    played.code === room.code && /Mission 1: /.test(played.line) && played.pending && played.pending.mission === 'itaipu-1' && played.pending.code === room.code,
+    JSON.stringify(played));
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.state === 'briefing'", 15000).catch(() => {});
   const start = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
-  check('the start row starts mission 1 with the loadout',
+  check('Start now starts mission 1 with the loadout',
     start && start.mission === 'itaipu-1' && start.intro === true
     && JSON.stringify(start.loadout) === JSON.stringify({ rack: 5, warhead: 'wide', speedMul: 1 }), JSON.stringify(start));
   const war = await page.evaluate("(() => { const w = window.__war().view; return { state: w.state, mission: w.mission }; })()");
@@ -361,109 +378,22 @@ try {
   check('mission 2 unlocked and playable', after.missions[1].play === 'Play' && after.missions[1].playable, after.missions[1].play);
   await shot(page, 'after-result');
 
-  /* PLAY MISSION 2: its own room, whose start row names it and starts it
-   * (the owner saw "Start mission 1" there, 2026-09-30). */
-  const firstCode = await page.evaluate('window.__rooms().code');
+  /* PLAY MISSION 2, from the lobby's Campaign row: the lobby says mission
+   * 2 (the owner saw "Start mission 1" there, 2026-09-30) and Start now
+   * starts it. */
   await click(page, '[data-mission="itaipu-2"] .campaign-play');
-  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code !== ${JSON.stringify(firstCode)}
-    && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
+  await page.until(`${IN_LOBBY} && /Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')`, 15000).catch(() => {});
   await page.sleep(600);
   const row2 = await page.evaluate("(window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null");
-  await page.until("/Mission 2: /.test((document.querySelector('.war-lobby-mission') || {}).textContent || '')", 10000).catch(() => {});
   const lobby2 = await page.evaluate("(document.querySelector('.war-lobby-mission') || {}).textContent || null");
-  check('the mission 2 room\'s lobby says mission 2, and its host has Start now', /Mission 2: /.test(lobby2 || '') && row2 === 'Start now', `${lobby2} / ${row2}`);
+  check('the lobby says mission 2, and its host has Start now', /Mission 2: /.test(lobby2 || '') && row2 === 'Start now', `${lobby2} / ${row2}`);
   await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
   await page.until("window.__war && window.__war().view.mission === 'itaipu-2'", 15000).catch(() => {});
   const start2 = await page.evaluate("window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null");
   check('and it starts mission 2', start2 && start2.mission === 'itaipu-2', JSON.stringify(start2));
-  /* Mission 2's room is a new room, so its war is that room's war 1, as
-   * mission 1's was in its own: the shell took it for the war whose
-   * intro it had played, played none, and left the pilot in the briefing
-   * with no word of what came next (the owner, 2026-10-01). */
   await page.until("window.__war().view.state === 'briefing' && window.__warIntro() !== null", 15000).catch(() => {});
   const brief2 = await page.evaluate("(() => { const v = window.__war().view; return { id: v.id, state: v.state, intro: window.__warIntro() !== null }; })()");
-  check('mission 2\'s briefing plays the intro, though its war id is mission 1\'s', brief2.state === 'briefing' && brief2.intro, JSON.stringify(brief2));
-
-  /* A PLAY DECLINED AT THE CONSENT, on a profile that has not given it
-   * (docs/FLOW-AUDIT.md D6): the mission is dropped with the room it never
-   * got, and a private Itaipu room made by hand after it starts mission 1,
-   * and only once the consent is given. */
-  await page.evaluate(`(() => {
-    window.__ui.act('friends-leave');
-    window.__ui.settings.warConsent = false;
-    window.__ui.persistSettings();
-    window.__campaign.open();
-    return true;
-  })()`);
-  await page.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
-  await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
-  await click(page, '[data-mission="itaipu-2"] .campaign-play');
-  await page.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()", 10000).catch(() => {});
-  await page.sleep(700);
-  await page.tap('Escape');
-  await page.until("document.querySelector('.name-dialog').hidden", 10000).catch(() => {});
-  await page.sleep(300);
-  const declined = await page.evaluate("({ pending: window.__campaign.pending(), phase: window.__rooms().phase, consent: window.__ui.settings.warConsent })");
-  check('Back on the consent of Play mission 2: no room, the mission dropped',
-    declined.pending === null && declined.phase === 'idle' && declined.consent === false, JSON.stringify(declined));
-  const handCode = await page.evaluate("(async () => { const c = await window.__roomCreate({ map: 'itaipu' }); window.__ui.show('friends'); return c; })()");
-  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(handCode)}
-    && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
-  await page.sleep(600);
-  const hand = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, pending: window.__campaign.pending() })");
-  check('a private Itaipu room made by hand after it: Start mission 1, no mission adopted',
-    hand.row === 'Start mission 1' && hand.pending === null, JSON.stringify(hand));
-  await page.evaluate("(() => { window.__sent.length = 0; window.__ui.act('friends-war-start'); return true; })()");
-  await page.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()", 10000).catch(() => {});
-  await page.sleep(700);
-  const asked = await page.evaluate(`(() => {
-    const d = document.querySelector('.name-dialog');
-    return { consent: Boolean(d && !d.hidden && /Defend Itaipu/.test(d.textContent)), sent: window.__sent.filter((m) => m && m.type === 'war' && m.op === 'start').length };
-  })()`);
-  check('its start row asks the consent before anything starts', asked.consent && asked.sent === 0, JSON.stringify(asked));
-  await page.tap('Escape');
-  await page.sleep(1000);
-  const refused = await page.evaluate("({ sent: window.__sent.filter((m) => m && m.type === 'war' && m.op === 'start').length, state: window.__war().view.state, consent: window.__ui.settings.warConsent })");
-  check('Back on it starts nothing', refused.sent === 0 && refused.state === 'lobby' && refused.consent === false, JSON.stringify(refused));
-  await page.evaluate("(() => { window.__ui.act('friends-war-start'); return true; })()");
-  await page.until("(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()", 10000).catch(() => {});
-  await page.sleep(700);
-  await page.tap('Enter');
-  await page.until("window.__war && window.__war().view.state === 'briefing'", 15000).catch(() => {});
-  const given = await page.evaluate(`(() => {
-    const s = window.__sent.find((m) => m && m.type === 'war' && m.op === 'start') || null;
-    return { mission: s && s.mission, state: window.__war().view.state, consent: window.__ui.settings.warConsent };
-  })()`);
-  check('Continue on it starts mission 1', given.mission === 'itaipu-1' && given.state === 'briefing' && given.consent === true, JSON.stringify(given));
-
-  /* A PLAY WHOSE ROOM NEVER OPENS: the room made for mission 2 is held
-   * before its welcome, and the pilot makes another by hand. That one is
-   * not the mission's. The rooms server makes six rooms a minute for an
-   * address (edge/rooms/front.js CREATES_PER_MIN), and the steps above
-   * used this minute's. */
-  await page.sleep(61000);
-  /* Out of the briefing the last step started, and out of its room, so
-   * the campaign screen is not opened over a mission's intro. */
-  await page.evaluate("window.__warDo('end')");
-  await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
-  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
-  await page.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
-  const heldFrom = await page.evaluate('window.__rooms().code');
-  await page.evaluate("(() => { window.__holdHello = true; window.__campaign.open(); return true; })()");
-  await page.until(`${SCREEN} !== null`, 10000).catch(() => {});
-  const reopened = await page.evaluate(`({ screen: ${SCREEN} !== null, dialog: document.querySelector('.name-dialog').hidden ? null : document.querySelector('.name-dialog').textContent.slice(0, 80) })`);
-  check('the campaign screen opens again, out of the room', reopened.screen, JSON.stringify(reopened));
-  await click(page, '[data-mission="itaipu-2"] .campaign-play');
-  await page.until(`window.__rooms().code && window.__rooms().code !== ${JSON.stringify(heldFrom)} && window.__rooms().phase === 'connecting'`, 30000).catch(() => {});
-  await page.sleep(1000);
-  const held = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, pending: window.__campaign.pending() })");
-  check('Play mission 2: its room made, held before the welcome', held.phase === 'connecting' && held.code !== heldFrom, JSON.stringify(held));
-  const byHand = await page.evaluate("(async () => { window.__holdHello = false; const c = await window.__roomCreate({ map: 'itaipu' }); window.__ui.show('friends'); return c; })()");
-  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(byHand)}
-    && window.__ui.items().some((it) => it.action === 'friends-war-start')`, 60000).catch(() => {});
-  await page.sleep(600);
-  const other = await page.evaluate("({ row: (window.__ui.items().find((it) => it.action === 'friends-war-start') || {}).label || null, pending: window.__campaign.pending() })");
-  check('a room made by hand after it: Start mission 1, the mission not adopted', other.row === 'Start mission 1' && other.pending === null, JSON.stringify(other));
+  check('mission 2\'s briefing plays the intro', brief2.state === 'briefing' && brief2.intro, JSON.stringify(brief2));
 
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));

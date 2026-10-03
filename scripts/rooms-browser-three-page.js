@@ -313,10 +313,10 @@ try {
   check('the cursor reaches Leave', await arrowTo(b, 'friends-leave'));
   await b.tap('Enter');
   await b.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
-  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(`lobby:${action}`)} && it.value === '2 of 16')`, 20000).catch(() => {});
+  await b.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(`lobby:${action}`)} && it.value === 'Free flight · 2 in lobby')`, 20000).catch(() => {});
   const gate = await b.evaluate(ROWS);
-  check('Enter on it leaves for the title (Leave goes to the title, FLOW-AUDIT rule 5), whose rooms panel lists the room again, with two',
-    await b.evaluate("window.__rooms().phase === 'idle' && window.__ui.onGate()") && gate.some((r) => r.action === `lobby:${action}` && r.value === '2 of 16'),
+  check('Enter on it leaves for the title (Leave goes to the title, FLOW-AUDIT rule 5), whose rooms panel lists the room again, its two pilots in its lobby',
+    await b.evaluate("window.__rooms().phase === 'idle' && window.__ui.onGate()") && gate.some((r) => r.action === `lobby:${action}` && r.value === 'Free flight · 2 in lobby'),
     gate.map((r) => `${r.label}=${r.value}`).join(' | '));
   await shot(b, '5-title-after-leave');
   await b.evaluate("(() => { window.__ui.act('way-friends'); window.__ui.act('rooms'); return true; })()");

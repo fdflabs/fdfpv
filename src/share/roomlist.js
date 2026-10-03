@@ -76,6 +76,12 @@ export function checkRoomLine(r, skew = 0) {
     /* A war on: the wave a pilot joining now meets, of how many. */
     wave: Number.isInteger(r.wave) && r.wave > 0 ? r.wave : null,
     waves: Number.isInteger(r.waves) && r.waves > 0 ? r.waves : null,
+    /* What the room was made for (null free flight), a combat round's
+     * number, and how many of a lobby's pilots said ready; null from a
+     * server from before 2026-10-02. */
+    mode: ROOM_SETUPS.includes(r.mode) ? r.mode : null,
+    round: Number.isInteger(r.round) && r.round > 0 ? r.round : null,
+    ready: Number.isInteger(r.ready) && r.ready >= 0 ? r.ready : null,
     state: STATES.includes(r.state) ? r.state : 'waiting',
     closesAt: empty ? r.emptySince + EMPTY_CLOSE_MS + skew : null,
   };
