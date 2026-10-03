@@ -124,6 +124,11 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = true } = {
    * not the link's (openGate). */
   const lip = bed.gates.map((g) => (gates ? g.open : 0));
   const holes = bed.gates.map(() => null);
+  /* The openings applied, id to gate, the gauges read for them, and
+   * the ids of openings with no place here yet. */
+  const opened = new Map();
+  const gauges = new Map();
+  const unplaced = new Set();
   const bandsOf = (k) => {
     const g = bed.gates[k];
     const out = [];
@@ -193,6 +198,54 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = true } = {
       return { gate, sky, cut };
     },
     bands: bandsOf,
+    /* Back to the bed and the gates as they were built, no opening
+     * applied (src/sim/water/host.js rewinds through it). */
+    reset() {
+      f.bed().set(bed.b);
+      opened.clear();
+      for (let g = 0; g < holes.length; g += 1) {
+        holes[g] = null;
+        f.linkBands(links[g], bandsOf(g));
+      }
+    },
+    /*
+     * A contract opening (docs/DAMBREAK-CONTRACT): a gate's, by its
+     * target's id, its sill [x, y, z] the hole's foot (y a height, x and
+     * z where along the gate's face its middle is). False for an opening
+     * this flood has no place for yet: intakes and penstocks come in the
+     * extend phase, and are counted, not dropped.
+     */
+    apply(o) {
+      const m = /^gate-(\d+)$/.exec(o && o.target ? o.target : '');
+      const g = m ? Number(m[1]) : -1;
+      const sill = o && Array.isArray(o.sill) ? o.sill : null;
+      if (o.kind !== 'gate' || !(g >= 0 && g < bed.gates.length) || !sill || !(o.width_m > 0) || !(o.height_m > 0)) {
+        unplaced.add(o.id);
+        return false;
+      }
+      const gate = bed.gates[g];
+      const [u] = bed.frame.local(sill[0], sill[2]);
+      this.openGate(g, {
+        sill: sill[1], width: o.width_m, height: o.height_m, across: u - gate.middle,
+      });
+      opened.set(o.id, g);
+      return true;
+    },
+    /* Each applied opening's discharge, m3/s, gauged 20 m down its bay
+     * on the last step, and where it is (world, y up): the world's sound
+     * of it (src/render/world-audio.js flow). */
+    flows() {
+      const out = [];
+      for (const [id, g] of opened) {
+        if (!gauges.has(g)) gauges.set(g, this.bayGauge(g, 20));
+        const gate = bed.gates[g];
+        out.push({
+          id, x: gate.at[0], y: gate.sill + gate.height / 2, z: gate.at[1], q: this.gaugeQ(gauges.get(g)),
+        });
+      }
+      return out;
+    },
+    unplaced: () => [...unplaced],
     /* A gauge: the faces between the cells `side(k)` calls 0 (upstream)
      * and those it calls 1, each with the sign water crossing it toward
      * 1 has. gaugeQ reads the last step's discharge across it, m3/s. */

@@ -458,6 +458,9 @@ async function buildItaipu(shell, progress, q, time) {
       townMiddle(parts.town.town.buildings, terrain),
     ],
     audioLines: parts.town.town.wires,
+    /* An opening the war's damage tore in the dam (the dam break
+     * contract's): the water part's flood takes it. */
+    onOpening: (o) => parts.water.onOpening(o),
     /* The war mode's targets and their damage, the dam part's
      * (docs/WARFARE-PLAN.md section 8). */
     targets: parts.dam.targets,

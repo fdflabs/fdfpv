@@ -4,9 +4,12 @@
  * still on it, the spillway and the turbines running, and then gate 3
  * torn open.
  *
- *   1. the bed (src/maps/itaipu/water/bed.js): built, every gate with
- *      cells either side, no still water on the spillway's concrete (the
- *      reservoir's fill reaches nothing behind a gate)
+ *   1. the bed (src/maps/itaipu/water/bed.js): built from the data
+ *      folder, every gate with cells either side, no still water on the
+ *      spillway's concrete (the reservoir's fill reaches nothing behind a
+ *      gate), and the shipped bed (itaipu-flood.json and .bin, which
+ *      every client loads) byte for byte the one built now; --write
+ *      writes them instead. Everything after runs on the shipped bed.
  *   2. the lake at rest on the real terrain for ten minutes, the gates
  *      shut and the turbines stopped: no current, no level moving
  *   3. the warm up: the spillway's 14 gates at 5 m and the turbines, from
@@ -40,6 +43,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -48,7 +52,8 @@ import { performance } from 'node:perf_hooks';
 import { readGround } from './lib/itaipu-ground.js';
 import { openingQ } from './lib/flood-scenarios.js';
 import { G } from '../src/sim/water/flood.js';
-import { CLASS } from '../src/maps/itaipu/water/bed.js';
+import { CLASS, packBed, unpackBed } from '../src/maps/itaipu/water/bed.js';
+import { liveFlood } from '../src/maps/itaipu/water/live.js';
 import {
   DT_MS, OPENING_CD, WARM_STEPS, floodBed, makeFlood,
 } from '../src/maps/itaipu/water/flood.js';
@@ -57,6 +62,8 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasm = new Uint8Array(await readFile(join(root, 'dist/flood.wasm')));
 const QUICK = process.argv.includes('--quick');
 const OUT = (process.argv.find((a) => a.startsWith('--out=')) || '').slice(6);
+const WRITE = process.argv.includes('--write');
+const SHIPPED = join(root, 'src/maps/itaipu/water/itaipu-flood');
 
 let failed = 0;
 let passed = 0;
@@ -79,7 +86,25 @@ const report = {};
 
 console.log('1. the bed');
 const t0 = performance.now();
-const bed = floodBed(data);
+const built = floodBed(data);
+let bed;
+{
+  const { json, bin } = packBed(built);
+  const text = `${JSON.stringify(json)}\n`;
+  if (WRITE) {
+    await writeFile(`${SHIPPED}.json`, text);
+    await writeFile(`${SHIPPED}.bin`, bin);
+    console.log(`  wrote ${SHIPPED}.json (${text.length} bytes) and .bin (${bin.length} bytes)`);
+  } else if (!existsSync(`${SHIPPED}.bin`)) {
+    check('the shipped bed exists (run with --write)', false);
+  } else {
+    const shipText = await readFile(`${SHIPPED}.json`, 'utf8');
+    const shipBin = new Uint8Array(await readFile(`${SHIPPED}.bin`));
+    const same = shipText === text && shipBin.length === bin.length && shipBin.every((v, i) => v === bin[i]);
+    check('the shipped bed is the bed built now, byte for byte (else run with --write and commit it)', same, `${bin.length} + ${text.length} bytes`);
+  }
+  bed = unpackBed(JSON.parse(WRITE ? text : await readFile(`${SHIPPED}.json`, 'utf8')), WRITE ? bin : new Uint8Array(await readFile(`${SHIPPED}.bin`)));
+}
 const { nx, nz, dx } = bed.grid;
 {
   const ms = performance.now() - t0;
@@ -169,7 +194,7 @@ const fromWarm = async () => {
   return fl;
 };
 /* Stations down the river, on its thalweg: on each world row the
- * river's deepest cell, read every 2 m across, from just under the
+ * river's lowest bed, read every 2 m across, from just under the
  * chute's lips to some 250 m above the grid's southern edge. A small
  * wave runs down the deep water first, so this is the line its front
  * is timed along. */
@@ -178,11 +203,11 @@ const stations = [-500, -350, -200, -50, 100, 250].map((z) => {
   let best = null;
   for (let x = -1500; x <= 0; x += 2) {
     const k = A.cellAt(x, z);
-    if (k >= 0 && bed.wet[k] === river && (!best || bed.dist[k] > best.dist)) {
-      best = { x, z, dist: bed.dist[k] };
+    if (k >= 0 && bed.wet[k] === river && (!best || bed.b[k] < best.b)) {
+      best = { x, z, b: bed.b[k] };
     }
   }
-  return { x: best.x, z, width: 2 * best.dist * dx };
+  return { x: best.x, z, depth: bed.level[river] - best.b };
 });
 const reservoirY = bed.level[bed.names.indexOf('reservoir')];
 const RISE = 0.05;
@@ -242,11 +267,11 @@ async function opened(title, opening) {
   check(`${title}: the volume conserved to 1e-9 of it`, dv < 1e-9, dv.toExponential(2));
   check(`${title}: more water passes the gate than its lip did`, q > report.warm.gate3, `${q.toFixed(0)} against ${report.warm.gate3.toFixed(0)} m3/s`);
   const before = stations.map((p) => L.at(p.x, p.z));
-  console.log(`        station          ~width  depth  current  rise at ${(stepsAfter * DT_MS) / 1000} s  ${RISE * 100} cm arrives`);
+  console.log(`        station          still depth  depth  current  rise at ${(stepsAfter * DT_MS) / 1000} s  ${RISE * 100} cm arrives`);
   stations.forEach((p, k) => {
     const a = before[k];
     const last = series[series.length - 1].rise[k];
-    console.log(`        (${p.x.toFixed(0)}, ${p.z})`.padEnd(24) + `${p.width.toFixed(0).padStart(5)} m ${a.h.toFixed(1).padStart(5)} m ${Math.sqrt(a.u * a.u + a.v * a.v).toFixed(2).padStart(6)} m/s ${last.toFixed(3).padStart(8)} m   ${arrive[k] === null ? 'not yet' : `${arrive[k].toFixed(1)} s`}`);
+    console.log(`        (${p.x.toFixed(0)}, ${p.z})`.padEnd(24) + `${p.depth.toFixed(1).padStart(5)} m ${a.h.toFixed(1).padStart(5)} m ${Math.sqrt(a.u * a.u + a.v * a.v).toFixed(2).padStart(6)} m/s ${last.toFixed(3).padStart(8)} m   ${arrive[k] === null ? 'not yet' : `${arrive[k].toFixed(1)} s`}`);
   });
   /* Timed from the station the rise reaches first: the water lands
    * where its bay's lip throws it, and the stations above that are
@@ -278,6 +303,47 @@ async function opened(title, opening) {
  * gate gone. */
 await opened('gate 3 notched', { sill: 212.33, width: 10, height: 8.17 });
 await opened('gate 3 gone', { sill: bed.gates[3].sill, width: bed.gates[3].width, height: bed.gates[3].height });
+
+console.log('5. the page\'s flood (water/live.js), fed the contract\'s opening');
+{
+  const files = new Map([
+    ['flood.wasm', join(root, 'dist/flood.wasm')],
+    ['itaipu-flood.json', `${SHIPPED}.json`],
+    ['itaipu-flood.bin', `${SHIPPED}.bin`],
+  ]);
+  const fetchBytes = async (url) => {
+    const name = new URL(url).pathname.split('/').pop();
+    return new Uint8Array(await readFile(files.get(name)));
+  };
+  const live = liveFlood({ fetchBytes, now: () => performance.now() });
+  const gate = bed.gates[3];
+  /* The DAMAGE agent's first opening as the room sends it: its sill's
+   * plan position at the gate's middle, 2 m across toward the east. */
+  const [ox, oz] = bed.frame.at(gate.middle + 2, -5.75);
+  const AT = 600000;
+  const opening = {
+    id: 'gate-3', target: 'gate-3', kind: 'gate', at: AT, sill: [ox, 212.33, oz], width_m: 10, height_m: 8.17, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+  };
+  live.open(opening);
+  live.open({ ...opening, id: 'intake-4', target: 'intake-4', kind: 'intake' });
+  for (let k = 0; k < 100 && live.stats().state === 'loading'; k += 1) {
+    await new Promise((r) => { setTimeout(r, 20); });
+  }
+  check('it loads the wasm and the shipped bed when the first opening comes', live.stats().state === 'ready', JSON.stringify(live.stats().error || live.stats().state));
+  let frames = 0;
+  const end = AT + 1000 + 20000;
+  for (let t = AT; t <= end; t += 1000 / 60) {
+    live.advance(t);
+    frames += 1;
+  }
+  const st = live.stats(end);
+  const flows = live.flows();
+  console.log(`        ${frames} frames of 3 ms: step ${st.step}, ${st.behind} steps behind the room, the openings it has no place for yet: ${st.unplaced.join(', ') || 'none'}`);
+  console.log(`        flows: ${flows.map((fl) => `${fl.id} ${fl.q.toFixed(0)} m3/s at (${fl.x.toFixed(0)}, ${fl.y.toFixed(1)}, ${fl.z.toFixed(0)})`).join('; ')}`);
+  check('the notch is applied to gate 3 and its flow is there for the sound', flows.length === 1 && flows[0].id === 'gate-3' && flows[0].q > 0);
+  check('the intake, which has no place yet, is counted and not dropped', st.unplaced.includes('intake-4'));
+  report.live = { frames, ...st, flows };
+}
 
 if (OUT) {
   await writeFile(OUT, JSON.stringify(report, null, 1));

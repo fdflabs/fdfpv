@@ -6,7 +6,8 @@
  * checks that need the ground without a browser: scripts/water-itaipu.js
  * builds the flood's bed on it.
  *
- * The data folder is FDFPV_ITAIPU_DATA, by default
+ * And the water.json the parts are given, met to the banks. The data
+ * folder is FDFPV_ITAIPU_DATA, by default
  * ~/Desktop/fdfpv-itaipu-data; readGround resolves to null when it is
  * not there, so a check can say it skipped.
  *
@@ -34,9 +35,10 @@ import { join, resolve } from 'node:path';
 import {
   HERO, TILE_CELLS, TILE_SAMPLES, cellOf, decode,
 } from '../../src/maps/terrain/frame.js';
-import { ITAIPU_FRAME } from '../../src/maps/itaipu/terrain/frame.js';
+import { HERO_HALF, ITAIPU_FRAME } from '../../src/maps/itaipu/terrain/frame.js';
 import { conformBound, conformTile, fillUnder } from '../../src/maps/itaipu/terrain/conform.js';
 import { embankmentCrests, embankmentSection, junctionRims } from '../../src/maps/itaipu/dam/index.js';
+import { meetBanks } from '../../src/maps/itaipu/water/meet.js';
 
 export const DATA = resolve(process.env.FDFPV_ITAIPU_DATA || join(homedir(), 'Desktop', 'fdfpv-itaipu-data'));
 
@@ -90,7 +92,9 @@ export async function readGround() {
     const lz = Math.min(TILE_CELLS - 1, cj - tj * TILE_CELLS);
     return tri(data, lx, lz, Math.min(1, gx - ti * TILE_CELLS - lx), Math.min(1, gz - tj * TILE_CELLS - lz));
   };
+  /* The outlines as the map's parts are handed them, brought to the
+   * banks on the ground as cut (itaipu.js, water/meet.js meetBanks). */
   return {
-    ground, water, dam, manifest,
+    ground, water: meetBanks(water, dam, ground, HERO_HALF), dam, manifest,
   };
 }

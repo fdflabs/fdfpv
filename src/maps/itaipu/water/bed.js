@@ -444,7 +444,84 @@ export function floodBed({ ground, water, dam }) {
       open: SPILL.gateOpen,
     });
   }
+  /* To the centimetre, as the shipped bed holds it (packBed). */
+  for (let k = 0; k < n; k += 1) {
+    b[k] = Math.round(b[k] * 100) / 100;
+  }
   return {
-    frame: S, grid, b, cls, wet, level: bodies.map((w) => w.y), names: bodies.map((w) => w.name), gates, dist,
+    frame: S, grid, b, cls, wet, level: bodies.map((w) => w.y), names: bodies.map((w) => w.name), gates,
+  };
+}
+
+/* The world frame of a grid ({ origin, a, n }): world (x, z) to the
+ * grid's (u, d) and back. */
+export function gridFrame(grid) {
+  const { origin: o, a, n } = grid;
+  return {
+    local: (x, z) => {
+      const px = x - o[0];
+      const pz = z - o[1];
+      return [px * a[0] + pz * a[1], px * n[0] + pz * n[1]];
+    },
+    at: (u, d) => [o[0] + a[0] * u + n[0] * d, o[1] + a[1] * u + n[1] * d],
+  };
+}
+
+/*
+ * THE SHIPPED BED. Every client loads the same bytes, so the flood
+ * starts from the same bed whatever its engine's Math does: the bed is
+ * built once, in Node, from the data folder (scripts/water-itaipu.js
+ * --write) and checked against a rebuild (--check). JSON carries the
+ * grid, the levels and the gates' cells (a double round trips through
+ * JSON exactly); the binary the bed in centimetres (Uint16, little
+ * endian), each cell's class (Uint8) and its still water (Int8), in
+ * that order, cell by cell.
+ */
+export function packBed(bed) {
+  const n = bed.b.length;
+  const bin = new Uint8Array(n * 4);
+  const view = new DataView(bin.buffer);
+  for (let k = 0; k < n; k += 1) {
+    view.setUint16(2 * k, Math.round(bed.b[k] * 100), true);
+  }
+  bin.set(bed.cls, 2 * n);
+  bin.set(new Uint8Array(bed.wet.buffer, bed.wet.byteOffset, n), 3 * n);
+  const grid = {
+    nx: bed.grid.nx, nz: bed.grid.nz, dx: bed.grid.dx, x0: bed.grid.x0, z0: bed.grid.z0, origin: bed.grid.origin, a: bed.grid.a, n: bed.grid.n,
+  };
+  const json = {
+    format: 1,
+    grid,
+    level: bed.level,
+    names: bed.names,
+    gates: bed.gates,
+  };
+  return { json, bin };
+}
+
+export function unpackBed(json, bytes) {
+  if (json.format !== 1) {
+    throw new Error(`flood bed: format ${json.format}, this reads 1`);
+  }
+  const { grid } = json;
+  const n = grid.nx * grid.nz;
+  const bin = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (bin.length !== n * 4) {
+    throw new Error(`flood bed: ${bin.length} bytes for ${n} cells, not ${n * 4}`);
+  }
+  const view = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const b = new Float64Array(n);
+  for (let k = 0; k < n; k += 1) {
+    b[k] = view.getUint16(2 * k, true) / 100;
+  }
+  return {
+    frame: gridFrame(grid),
+    grid,
+    b,
+    cls: bin.slice(2 * n, 3 * n),
+    wet: new Int8Array(bin.buffer.slice(bin.byteOffset + 3 * n, bin.byteOffset + 4 * n)),
+    level: json.level,
+    names: json.names,
+    gates: json.gates,
   };
 }

@@ -71,6 +71,7 @@ import { sunFor } from '../look/light.js';
 import {
   bays, chuteMaterial, gateJets, lanes, plume, PLUNGE_GLSL,
 } from './spill.js';
+import { liveFlood } from './live.js';
 
 /* The drawn sheet of water running down the chute over D's floor, m: a
  * spillway's flow at speed is a few decimetres to a metre deep. */
@@ -928,9 +929,19 @@ export async function buildPart(ctx) {
     renderMirror(renderer, s, camera);
   };
   ctx.progress(1);
+  /* The flood the war's openings start (live.js): nothing until one. */
+  const flood = liveFlood();
+  let clockMs = null;
 
   return {
     group,
+    /* An opening in the dam (docs/DAMBREAK-CONTRACT), from the war's
+     * damage: into the flood. */
+    onOpening(o) {
+      flood.open(o);
+    },
+    /* Each opening's discharge, m3/s, and where (world, y up). */
+    flows: () => flood.flows(),
     /* Where the spillway's jets come down, for its roar
      * (src/render/world-audio.js audioBeds). */
     plunges: spill.map((b) => b.land),
@@ -939,6 +950,10 @@ export async function buildPart(ctx) {
     update(step) {
       time.value = step / 1000;
       due = true;
+      /* In a room the animation clock is the room's (src/main.js
+       * trafficMs), the clock the flood steps on. */
+      clockMs = step;
+      flood.advance(step);
     },
     /* The shell's waves, in the map's frame, in view.water's order
      * (src/main.js handWaves): each drawn body takes the one whose still
@@ -977,6 +992,7 @@ export async function buildPart(ctx) {
     stats: () => ({
       ...stats,
       bodies: bodies.map((b) => ({ name: b.name, y: b.y, vertices: b.outline.length })),
+      flood: flood.stats(clockMs),
     }),
   };
 }
