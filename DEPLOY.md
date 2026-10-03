@@ -61,6 +61,50 @@ What each piece does:
 - Every URL the page asks its own site for is relative, so the same build
   works at the domain's root and at /fdfpv/ (`npm run base:check`).
 
+A guest's storage, carried once (`src/share/move.js`). localStorage is
+per origin, so a guest's settings, builds, progress, stars, tracks and
+pilot key stay on https://fdflabs.github.io. A push from the old page
+cannot work with GitHub Pages: until the custom domain is set nothing
+serves the domain, and once it is set Pages answers every request under
+/fdfpv/ with a 301, so the old page never runs again. But localStorage
+belongs to the origin, not the path, so a page anywhere else under
+https://fdflabs.github.io/ can still read it, after the switch, for as long
+as it is wanted. That page is `deploy/landing-move.html`, copied as it is
+to fdflabs/fdfpv-landing as `move/index.html`
+(https://fdflabs.github.io/fdfpv-landing/move/). On a visitor's first load
+of the domain with no game state there, the game asks whether that page
+exists, goes to it, and it comes back with the old storage in the URL
+fragment (never sent to a server; a long one in parts, one bounce each).
+The domain takes it only because it asked, writes it, and strips the
+fragment. Everyone after that, and everyone who already has state on the
+domain, costs nothing. Server overrides and the account session stay
+behind; a signed in pilot signs in again. Saved replays (IndexedDB, files
+of megabytes) do not go: a pilot who wants one downloads it from My clips
+on the old address before the switch.
+
+The order:
+
+1. Merge and deploy the domain change (Pages, then `deploy/vm/deploy.sh`
+   for the rooms allowlist and the Caddyfile). The game still runs at
+   https://fdflabs.github.io/fdfpv/ and now speaks to the API name, falling
+   back to the address while DNS spreads.
+2. Merge the carry. On the old address it does nothing; it waits for the
+   domain.
+3. With the DNS above in place, set the custom domain in the repository's
+   Pages settings to paraguayandronecombatsimulator.com and tick Enforce
+   HTTPS once the certificate is issued, and merge the CNAME pull request
+   in the same sitting (so a later deploy keeps the domain). From this
+   moment /fdfpv/ redirects to the domain, path and query kept.
+4. Copy `deploy/landing-move.html` to fdflabs/fdfpv-landing as
+   `move/index.html` and let its Pages deploy. Do it right after step 3:
+   a guest who opens the domain before the page exists is not stranded
+   (the game checks the page first) but has state on the domain from then
+   on, so is not asked again. Check with `npm run move:check` (local) and
+   by hand: open the old address once in a fresh profile, play a little,
+   then open the domain.
+5. Rerun `deploy/vm/deploy-board.sh` so the board's Fly links point at the
+   domain (`SIM_ORIGIN`, changed in the CNAME pull request).
+
 Google sign in (Google Cloud project fdfpv-510202, the Web client in
 `src/share/account.js`). The page uses the Sign in with Google button with
 a callback that takes the ID token in the page, so only Authorised

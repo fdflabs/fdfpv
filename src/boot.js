@@ -34,6 +34,7 @@ import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
 import { watchPageErrors } from './share/crashrecord.js';
 import { SITE_HOSTS, probeApi } from './share/api.js';
+import { moveIn } from './share/move.js';
 
 /* P6: navigation to the first interactive frame. Stamped in the first module
  * the page runs so it covers every fetch and every module evaluation, and
@@ -87,6 +88,18 @@ function threeVersion() {
 const TITLE_MAP = 'swiss2';
 
 async function start() {
+  /* A guest's first visit to the game's own domain brings their storage
+   * over from the old address (src/share/move.js), before anything below
+   * reads or writes it. When it leaves for the old address this never
+   * settles, and the boot does not run on a page that is going away. */
+  const moved = await moveIn().catch((e) => {
+    /* The game runs without the carry rather than not at all. */
+    console.warn('moving the guest\'s storage from the old address threw', e);
+    return 'failed';
+  });
+  if (moved === 'failed') {
+    console.warn('moving the guest\'s storage from the old address failed; see localStorage pdcs.move.v1');
+  }
   /*
    * A map named in the URL replaces the title's world, and a board link is
    * the one that matters: it names the track as ?share=, so the pilot lands
