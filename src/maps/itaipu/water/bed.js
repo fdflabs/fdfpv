@@ -50,9 +50,6 @@
  *   link's. A hole open to the sky cuts the gate's own cells (flood.js
  *   openGate).
  *
- * The spillway's layout (SPILL) restates dam/index.js's, which does not
- * export it.
- *
  * Cell classes, each with its Manning's n (Chow, Open-Channel Hydraulics,
  * 1959, table 5-6): CHANNEL, a large river's bed of rock and gravel,
  * 0.035; CONCRETE, the spillway's finished concrete, 0.015; BANK, the
@@ -74,7 +71,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { chuteFloor } from '../dam/index.js';
+import { SPILL, chuteFloor } from '../dam/index.js';
 
 export const CLASS = {
   channel: 0, concrete: 1, bank: 2, reservoir: 3,
@@ -91,22 +88,6 @@ const CREST_Y = 225;
  * are 10 to 20 m wide. */
 const CREST_HALF = 6;
 
-/* dam/index.js's SPILL, restated. */
-const SPILL = {
-  width: 362,
-  gates: 14,
-  gateWidth: 20,
-  gateHeight: 21.34,
-  gateOpen: 5,
-  upstream: -8,
-  ogee: 12,
-  pierEnd: 42,
-  dividers: [4, 8],
-  bayEnds: [483, 456, 423],
-  wallHeight: 8,
-  dividerWidth: 3,
-  gate: [-6.5, -5],
-};
 
 /* The grid in the chute's frame (docs/FLOOD.md): cells of a fifth of
  * the piers' pitch; WEST cells west of the westmost pier's column and

@@ -83,8 +83,15 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
   const stats = {
     rewinds: 0, restarts: 0, steps: 0,
   };
+  /* The state's hash at every snapshot step, the last HASHES of them:
+   * two clients that stepped to the same step can be held to the same
+   * water there (scripts/water-war.js). */
+  const hashes = new Map();
+  const HASHES = 64;
 
   const save = () => {
+    hashes.set(step, f.hash());
+    if (hashes.size > HASHES) hashes.delete(hashes.keys().next().value);
     ring = ring.filter((r) => r.step !== step);
     ring.push({ step, applied, state: [f.h().slice(), f.hu().slice(), f.hv().slice()] });
     if (ring.length > snaps) ring.shift();
@@ -101,6 +108,8 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
     step = 0;
     applied = 0;
     ring = [];
+    /* Steps from a new origin are other times: their hashes too. */
+    hashes.clear();
     stats.restarts += 1;
   };
   /* Back to the last snapshot at or before step s (taken before that
@@ -129,6 +138,8 @@ export function createFloodHost(flood, { dtMs, delayMs = DELAY_MS, snapSteps = S
     stats,
     /* The step the water is at, and the room time it stands for. */
     step: () => step,
+    /* { step: hash } at the snapshot steps kept. */
+    hashes: () => Object.fromEntries(hashes),
     origin: () => origin,
     roomMs: () => (origin === null ? null : origin + step * dtMs),
     /* A contract opening, heard. The same id heard again is its new size,

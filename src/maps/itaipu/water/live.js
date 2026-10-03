@@ -166,6 +166,7 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
         events: events.length,
         unplaced: flood ? flood.unplaced() : [],
         lips: flood ? flood.lips() : null,
+        hashes: host ? host.hashes() : {},
         ...(host ? host.stats : {}),
       };
     },
