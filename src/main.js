@@ -3708,6 +3708,28 @@ export async function boot({
     ui.setWarLobby(ui.screen === 'friends' ? gameLobbyView() : null);
   }
 
+  /*
+   * The match's spillway gates (the war view's `gates`, the stage
+   * engine's stored and replayed state: [{ gate, at, open_m }]) to the
+   * map, which turns its leaves and its water to them on the room clock;
+   * none, Free Flight's. Handed again when it changes or the map is new.
+   */
+  let warGatesKey = null;
+  let warGatesView = null;
+  function warGatesFrame(v) {
+    if (!view || typeof view.setGateState !== 'function') {
+      return;
+    }
+    const gates = Array.isArray(v.gates) && v.gates.length ? v.gates : null;
+    const key = gates ? JSON.stringify(gates) : '';
+    if (key === warGatesKey && view === warGatesView) {
+      return;
+    }
+    warGatesKey = key;
+    warGatesView = view;
+    view.setGateState(gates);
+  }
+
   function roomWarFrame(now, wallMs, dt) {
     const scene = shell.quad.parent;
     if (scene && warAttackers.group.parent !== scene) {
@@ -3727,6 +3749,7 @@ export async function boot({
     warBooms.group.visible = !replay;
     warFeedFrame(wallMs);
     const v = roomWar.view();
+    warGatesFrame(v);
     warNightFrame();
     warIntroFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {
@@ -8536,6 +8559,7 @@ export async function boot({
   let crashTrees = [];
   let crashTreesFrom = null;
   let crashTreesGen = 0;
+  let crashStaticGen = 0;
   const treePick = [];
   const wirePick = [];
   const solidPick = [];
@@ -8982,6 +9006,14 @@ export async function boot({
   function refreshCrashWorld(st) {
     poseFromState(st, crashProbe);
     crashWorldStale(view.colliders);
+    /* A static solid broke or moved (collide.js staticGen: the war's
+     * damage, a spillway gate's leaf): what was declared from it is
+     * declared again, wherever the craft is. */
+    const gen = view.colliders ? view.colliders.staticGen : 0;
+    if (gen !== crashStaticGen) {
+      crashStaticGen = gen;
+      crashWorldX = NaN;
+    }
     if (crashWorldX === crashWorldX) {
       const dx = crashProbe.x - crashWorldX;
       const dz = crashProbe.z - crashWorldZ;
