@@ -95,6 +95,7 @@
  *                                  that hit it)
  *   { left: n, group?, kind? }     n of them gone on their own (a Scout
  *                                  done with its orbit)
+ *   { born: { group?, kind? } }    the first of them born (its t0)
  *   { down: { group?, kind? } }    every one born and every one killed
  *                                  (warhead or power line): scoutsDown
  *   { gone: { group?, kind? } }    every one born and every one gone,
@@ -426,6 +427,10 @@ export function fired(trig, ctx) {
     const how = trig.killed != null ? 'kill' : trig.leaked != null ? 'arrive' : 'leave';
     const ts = chosen(st, trig, 'gone').filter((x) => x.how === how && (!trig.onTarget || x.hit)).map((x) => x.t);
     return ts.length >= n ? ts[n - 1] : null;
+  }
+  if (trig.born) {
+    const ts = chosen(st, trig.born, 'born').map((x) => x.t).filter((t) => t <= f);
+    return ts.length ? Math.min(...ts) : null;
   }
   if (trig.down) {
     return allGone(mission, ctx, trig.down, ['kill', 'wire']);

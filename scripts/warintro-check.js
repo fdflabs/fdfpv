@@ -3,7 +3,7 @@
  * src/share/war/films, docs/campaign/INTROS.md), played in the real game
  * on the Itaipu map. npm run warintro:check.
  *
- *     SIM_GPU=1 node scripts/warintro-check.js [OUT_DIR]
+ *     SIM_GPU=1 node scripts/warintro-check.js [--film=ID] [OUT_DIR]
  *
  * It loads the shell headless on the machine's GPU (tests/lib/page.js,
  * which mutes the page), imports the player into the page and drives it
@@ -69,14 +69,25 @@ import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
+import EN from '../src/strings/en.js';
 import { timing, linesOf } from '../src/share/war/film.js';
-import { filmFor } from '../src/share/war/films/index.js';
+import { FILMS, filmFor } from '../src/share/war/films/index.js';
+import { MISSIONS } from '../src/share/war/missions/index.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { startRooms } from '../edge/rooms/node.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-const FILM = filmFor(null);
+/* The film to hold, --film=<id>, the default's without (the in game part
+ * plays mission 1's own, whatever this says). */
+const filmArg = process.argv.find((a) => a.startsWith('--film='));
+const FILM = filmArg ? FILMS[filmArg.slice('--film='.length)] : filmFor(null);
+if (!FILM) {
+  throw new Error(`warintro-check: no film ${filmArg}`);
+}
+/* What the room plays for the in game part: mission 1's own film. */
+const GAME_FILM = filmFor(MISSIONS['itaipu-1']);
+const GAME_MS = timing(GAME_FILM).ms;
 const TIMED = timing(FILM);
 const SHOTS = TIMED.shots;
 const LINES = linesOf(TIMED);
@@ -104,7 +115,7 @@ const HOLD_MS = 2300;
 if (process.env.SIM_GPU !== '1') {
   throw new Error('warintro-check: run with SIM_GPU=1; a software rasteriser cannot time the frames');
 }
-const outDir = resolve(process.argv[2] || join(tmpdir(), 'warintro-frames'));
+const outDir = resolve(process.argv.slice(2).find((a) => !a.startsWith('--')) || join(tmpdir(), 'warintro-frames'));
 if (outDir === root || outDir.startsWith(`${root}/`)) {
   throw new Error(`warintro-check: ${outDir} is inside the repository; frames go outside it`);
 }
@@ -128,7 +139,7 @@ const seedFor = (seen) => [`try {
     s.graphics = 'high';
     s.graphicsAuto = false;
     s.airframeAsked = true;
-    s.campaign = { films: ${seen ? JSON.stringify({ [FILM.id]: FILM.version }) : '{}'} };
+    s.campaign = { films: ${seen ? JSON.stringify({ [GAME_FILM.id]: GAME_FILM.version }) : '{}'} };
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
     localStorage.setItem('webfpv.lang', 'en');
@@ -162,6 +173,7 @@ const DRIVE = /* js */ `(async (opts) => {
     audio: bare ? null : window.__audio,
     ground: (x, z) => window.__heightAt(x, z),
     title: { key: 'war.mission.itaipu_1', n: 1 },
+    film: (await import('/src/share/war/films/index.js')).FILMS[${JSON.stringify(FILM.id)}],
     clock: () => performance.now() - t0,
     seen: Boolean(opts.seen),
     hold: Boolean(opts.hold),
@@ -295,7 +307,7 @@ try {
     && shot('fan').cast.includes('f16'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
   row('wave: Strikers, FPVs and Loiterers, and six defenders rising', shot('wave').drawn.strike >= 10 && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
     && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
-  row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes('Defend the intakes'), shot('wave').titles.join(' | '));
+  row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes(EN['war.mission.itaipu_1']), shot('wave').titles.join(' | '));
   row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
 
   /* The voice: decoded here, as long as the manifest says. */
@@ -447,17 +459,17 @@ try {
   row('the host\'s hold leaves only the host\'s view, for the orbit, while the guest has not seen it: the room keeps its briefing',
     r1[0] && r1[0].orbit && r1[1] && !r1[1].orbit && !r1[1].skipped && r1[2].state === 'briefing',
     `${r1[2].state}, host orbit ${r1[0] && r1[0].orbit}, guest skipped ${r1[1] && r1[1].skipped}`);
-  await guest.until('window.__war().view.state !== "briefing"', TIMED.ms + 20000);
+  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + 20000);
   const filmsOf = (p) => p.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).campaign.films || {}`);
-  row('a viewing joined late does not make it seen', ((await filmsOf(guest))[FILM.id] ?? 0) < FILM.version, JSON.stringify(await filmsOf(guest)));
+  row('a viewing joined late does not make it seen', ((await filmsOf(guest))[GAME_FILM.id] ?? 0) < GAME_FILM.version, JSON.stringify(await filmsOf(guest)));
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000);
 
   /* 2: the whole film on both, from the start. */
   await page.evaluate("window.__warDo('brief')");
   await guest.until('window.__warIntro() && window.__warIntro().t > 0', 30000);
-  await guest.until('window.__war().view.state !== "briefing"', TIMED.ms + 20000);
-  row('the guest, having watched it from its start to its end, has seen it', ((await filmsOf(guest))[FILM.id] ?? 0) >= FILM.version, JSON.stringify(await filmsOf(guest)));
+  await guest.until('window.__war().view.state !== "briefing"', GAME_MS + 20000);
+  row('the guest, having watched it from its start to its end, has seen it', ((await filmsOf(guest))[GAME_FILM.id] ?? 0) >= GAME_FILM.version, JSON.stringify(await filmsOf(guest)));
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000);
   await page.until('(window.__war().view.seen || []).length === 2', 10000).catch(() => {});

@@ -88,7 +88,7 @@ function lint(mission) {
   if (ids.size !== stages.length) {
     out.push('two stages share an id');
   }
-  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'visited', 'all', 'any'];
+  const KEYS = ['time', 'cleared', 'allOut', 'destroyed', 'hit', 'killed', 'leaked', 'left', 'born', 'down', 'gone', 'crossed', 'spent', 'output', 'region', 'breach', 'ready', 'objective', 'visited', 'all', 'any'];
   const trig = (x, where) => {
     if (!x || typeof x !== 'object' || !KEYS.some((k) => x[k] != null)) {
       out.push(`${where}: not a trigger ${JSON.stringify(x)}`);
@@ -236,6 +236,8 @@ console.log('triggers');
   note(st, {
     t: 12000, e: 'gone', id: 1, kind: 'strike', group: 'g1', sector: null, how: 'kill', hit: false,
   });
+  check('born: the first of a selection, at its birth, not before the frontier reaches it', fired({ born: { group: 'g1' } }, ctx({ f: 10999 })) === null
+    && fired({ born: { group: 'g1' } }, ctx({ f: 20000 })) === 11000 && fired({ born: { kind: 'boat' } }, ctx({ f: 20000 })) === null);
   check('crossed: one killed before its crossing never crosses', fired({ crossed: 'mid', group: 'g1' }, ctx({ f: 30000 })) === null);
   check('down: none until every spawn of the selection is born', downYet === null && fired({ down: { group: 'eyes' } }, ctx({ f: 30000 })) === null);
   note(st, {

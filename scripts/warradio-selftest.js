@@ -62,12 +62,18 @@ const say = (list, v) => {
 
 console.log('what Crest Control says');
 check('the go', same(say([{ type: 'state', to: 'live' }], v0), ['start']));
-for (const id of ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4']) {
-  check(`${id}: its briefing over the countdown, its debrief at the end`,
-    same(say([{ type: 'state', to: 'countdown' }], { ...v0, state: 'countdown', mission: id }), [`brief-${id}-1`, `brief-${id}-2`])
-    && same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won', mission: id }), [`debrief-${id}-win`])
-    && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output', mission: id }), [`debrief-${id}-lose`]));
+/* A mission's own radio (its `radio`), or by its id for one from before. */
+const radioOf = (m) => ({
+  brief: m.radio?.brief ?? [`brief-${m.id}-1`, `brief-${m.id}-2`], win: m.radio?.win ?? `debrief-${m.id}-win`, lose: m.radio?.lose ?? `debrief-${m.id}-lose`,
+});
+for (const m of Object.values(MISSIONS)) {
+  const r = radioOf(m);
+  check(`${m.id}: its briefing over the countdown, its debrief at the end`,
+    same(say([{ type: 'state', to: 'countdown' }], { ...v0, state: 'countdown', mission: m.id }), r.brief)
+    && same(say([{ type: 'state', to: 'won' }], { ...v0, state: 'won', mission: m.id }), [r.win])
+    && same(say([{ type: 'state', to: 'lost' }], { ...v0, state: 'lost', why: 'output', mission: m.id }), [r.lose]));
 }
+check('First Light\'s briefing is CREST\'s then TALLER\'s, its own', same(radioOf(MISSIONS['itaipu-1']).brief, ['itaipu-1-s0-brief', 'itaipu-1-s0-rules']));
 for (const kind of KINDS.filter((k) => k !== 'jammer')) {
   /* A decoy is called as the Striker it looks like. */
   const line = `wave-${kind === 'decoy' ? 'strike' : kind}`;

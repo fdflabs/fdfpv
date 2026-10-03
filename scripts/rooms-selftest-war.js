@@ -233,20 +233,31 @@ export function warSection(check) {
       threw = true;
     }
     check('a route the mission lacks fails loudly', threw);
-    /* The mission file: every wave's route and target exist. */
+    /* The mission files: every wave plans, on every route its family or
+     * sector may draw, as every kind it may be. */
     let ok = true;
-    for (const w of itaipu1.waves) {
-      try {
-        planAgent(itaipu1, {
-          id: 1, kind: w.kind, route: w.route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
-        });
-      } catch (x) {
-        ok = false;
+    const unplanned = [];
+    for (const m of Object.values(MISSIONS)) {
+      for (const w of m.waves) {
+        const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
+          ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat();
+        for (const kind of w.mix ? w.mix.map((x) => x[0]) : [w.kind].flat()) {
+          for (const route of routes) {
+            try {
+              planAgent(m, {
+                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
+              });
+            } catch (x) {
+              ok = false;
+              unplanned.push(`${m.id} ${kind} ${route}: ${x.message}`);
+            }
+          }
+        }
       }
     }
     const intakes = Object.keys(itaipu1.targets).filter((k) => k.startsWith('intake-'));
-    check('itaipu-1: every wave plans, twenty intakes of 700 MW make its 14 000', ok && intakes.length === 20
-      && intakes.reduce((s, k) => s + itaipu1.targets[k].mw, 0) === itaipu1.output && itaipu1.output === 14000);
+    check('every mission\'s every wave plans; twenty intakes of 700 MW make the plant\'s 14 000', ok && intakes.length === 20
+      && intakes.reduce((s, k) => s + itaipu1.targets[k].mw, 0) === itaipu1.output && itaipu1.output === 14000, unplanned.slice(0, 3).join(' | '));
   }
 
   console.log('war: starting a game');
@@ -686,8 +697,8 @@ export function warSection(check) {
       && k.e.view().result.won && k.e.view().result.stars === 3 && k.e.view().result.credits === 320
       && k.e.view().result.criteria.map((c) => `${c.id}:${c.met}`).join() === 'held:true,noLosses:true,output:true', JSON.stringify(k.e.view().result));
     check('no result while the mission is on', e.view().result && headOn('standard', { until: -1500 }).e.view().result === null);
-    check('itaipu-4 is mission 1 at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
-      && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-1'].waves);
+    check('itaipu-4 is the drill (mission 1 as it was) at night; the others are not', MISSIONS['itaipu-4'].night === true && !MISSIONS['itaipu-1'].night
+      && !MISSIONS['itaipu-drill'].night && MISSIONS['itaipu-4'].waves === MISSIONS['itaipu-drill'].waves);
     const n = warRoom({ mission: MISSIONS['itaipu-4'] });
     check('the night raid counts down prepMs longer, so every screen has built its night before the go',
       MISSIONS['itaipu-4'].prepMs >= 10000 && n.view().state === 'countdown' && n.view().goAt === COUNTDOWN_MS + MISSIONS['itaipu-4'].prepMs,
