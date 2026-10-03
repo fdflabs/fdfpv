@@ -499,7 +499,8 @@ export function play(scene, camera, opts = {}) {
     },
     agent: (id, t) => {
       const a = agents.find((x) => x.group === id && x.pass) ?? agents.find((x) => x.group === id);
-      return poseAt(a.plan, s.start + t).p;
+      /* Before its birth, where it will be born. */
+      return poseAt(a.plan, Math.max(a.plan.t0, s.start + t)).p;
     },
   });
 

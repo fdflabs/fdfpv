@@ -75,7 +75,7 @@ function resolver(film, t, placed, shot) {
     },
     agent(id, ms) {
       const a = placed.find((x) => x.group === id && x.pass) ?? placed.find((x) => x.group === id);
-      return poseAt(a.plan, shot.start + ms).p;
+      return poseAt(a.plan, Math.max(a.plan.t0, shot.start + ms)).p;
     },
   };
 }
