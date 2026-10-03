@@ -214,9 +214,19 @@ export function createRoomWar(send) {
           reset();
         }
         const was = war.state;
+        const stageWas = war.stage ? `${war.stage.id}@${war.stage.at}` : null;
         war = m.war;
         if (was !== war.state) {
           events.push({ type: 'state', from: was, to: war.state, why: war.why ?? null });
+        }
+        /* A stage entered (src/share/war/stages.js): the HUD's lower
+         * third. Keyed by its entry too, so a stage entered again is
+         * told again. */
+        const stageNow = war.stage ? `${war.stage.id}@${war.stage.at}` : null;
+        if (stageNow && stageNow !== stageWas) {
+          events.push({
+            type: 'stage', id: war.stage.id, n: war.stage.n, at: war.stage.at, title: war.stage.title ?? null,
+          });
         }
         return true;
       }
@@ -242,6 +252,12 @@ export function createRoomWar(send) {
         events.push({
           type: 'boom', seat: m.seat, at: m.at, p: m.p, mine: m.seat === seat,
         });
+      } else if (m.op === 'cue') {
+        /* The stage's cues (src/share/war/stages.js), told when due: the
+         * shell plays the radio and the music, and the cutaways. */
+        for (const c of m.cues || []) {
+          events.push({ type: 'cue', ...c });
+        }
       }
       return true;
     },
@@ -317,7 +333,11 @@ export function createRoomWar(send) {
      *   { type: 'scouts', at, by }             that dead was a scout
      *                                          wave's last: later waves
      *                                          fly with their error
-     *   { type: 'state', from, to, why } */
+     *   { type: 'state', from, to, why }
+     *   { type: 'stage', id, n, at, title } a stage entered, at its room ms
+     *   { type: 'cue', at, stage, radio | music | cutaway | text }
+     *                                          a stage's cue, at its room
+     *                                          ms (stages.js) */
     takeEvents() {
       const out = events;
       events = [];
@@ -359,14 +379,23 @@ export function createRoomWar(send) {
 
     /* Host only, the room checks. With intro, the room holds a briefing
      * of INTRO_MS (src/share/war/intro.js) before the countdown, for
-     * every screen to play the intro over; skipIntro cuts it short. */
-    start(missionId, { intro = false } = {}) {
+     * every screen to play the intro over; skipIntro cuts it short. With
+     * from 'checkpoint', a lost mission again from its lost stage. */
+    start(missionId, { intro = false, from = null } = {}) {
       send({
-        type: 'war', op: 'start', mission: missionId, ...(intro ? { intro: true } : {}),
+        type: 'war', op: 'start', mission: missionId, ...(intro ? { intro: true } : {}), ...(from ? { from } : {}),
       });
     },
     skipIntro() {
       send({ type: 'war', op: 'skipIntro' });
+    },
+    /* Any pilot: ready for what comes next (a stage's { ready }). */
+    ready() {
+      send({ type: 'war', op: 'ready' });
+    },
+    /* The stage the room is in (war.js view stage), or null. */
+    stage() {
+      return war.stage ?? null;
     },
     end() {
       send({ type: 'war', op: 'end' });

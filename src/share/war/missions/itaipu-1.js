@@ -74,6 +74,7 @@
  */
 
 import AT from '../itaipu-targets.js';
+import { round, withWaves } from '../stages.js';
 
 const MW = {
   intake: 700, penstock: 700, gate: 350, yard: 2800,
@@ -110,7 +111,7 @@ targets['yard-right'].hitR = YARD_HIT_M;
 
 export const ids = (part, ks) => ks.map((k) => `${part}-${k}`);
 
-export default {
+export default withWaves({
   id: 'itaipu-1',
   /* A string key (src/strings): Defend the intakes. */
   title: 'war.mission.itaipu_1',
@@ -122,23 +123,34 @@ export default {
   starMw: 11200,
   /* Each pilot's airframes a round (war.js rounds). */
   airframes: 4,
-  /* Rounds of waves; a wave's `at` is seconds after its round starts. */
-  waves: [
-    { round: 0, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
-    { round: 0, at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-    { round: 0, at: 4, kind: 'fpv', n: 2, per: 1, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
-    { round: 1, at: 2, kind: 'loiter', n: 1, per: 0.75, route: 'high-east', target: 'intake-12', spread: 25 },
-    { round: 1, at: 20, kind: 'boat', n: 2, per: 1, route: 'surface-east', target: 'intake-17', spread: 20 },
-    { round: 2, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
-    { round: 2, at: 2, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
-    { round: 2, at: 20, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { round: 3, at: 2, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
-    { round: 3, at: 40, kind: 'strike', n: 3, per: 1.5, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
-    { round: 4, at: 2, kind: 'loiter', n: 1, per: 1, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
-    { round: 4, at: 20, kind: 'boat', n: 1, per: 0.75, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
-    { round: 4, at: 30, kind: 'strike', n: 2, per: 1.5, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
-    { round: 4, at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { round: 4, at: 45, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
+  /* Rounds of waves (stages.js round): a wave's `at` is seconds after
+   * its round starts. */
+  stages: [
+    round('round-1', [
+      { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
+      { at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west', target: 'yard-right', spread: 60 },
+      { at: 4, kind: 'fpv', n: 2, per: 1, route: 'gorge', target: ids('penstock', [5, 6]), spread: 10 },
+    ]),
+    round('round-2', [
+      { at: 2, kind: 'loiter', n: 1, per: 0.75, route: 'high-east', target: 'intake-12', spread: 25 },
+      { at: 20, kind: 'boat', n: 2, per: 1, route: 'surface-east', target: 'intake-17', spread: 20 },
+    ]),
+    round('round-3', [
+      { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
+      { at: 2, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [10, 11, 12, 13]), spread: 10 },
+      { at: 20, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    ]),
+    round('round-4', [
+      { at: 2, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 6, 10]), spread: 25 },
+      { at: 40, kind: 'strike', n: 3, per: 1.5, route: 'reservoir-mid', target: ids('intake', [2, 4, 6, 8]), spread: 30 },
+    ]),
+    round('round-5', [
+      { at: 2, kind: 'loiter', n: 1, per: 1, route: 'high-east', target: ids('intake', [9, 11]), spread: 25 },
+      { at: 20, kind: 'boat', n: 1, per: 0.75, route: 'surface-east', target: ids('intake', [13, 19]), spread: 20 },
+      { at: 30, kind: 'strike', n: 2, per: 1.5, route: 'reservoir-east', target: ids('intake', [14, 15, 16, 18, 19]), spread: 30 },
+      { at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+      { at: 45, kind: 'fpv', n: 4, per: 1.5, route: 'gorge', target: ids('penstock', [0, 1, 2, 3, 15, 16]), spread: 10 },
+    ], { last: true }),
   ],
   routes: {
     'reservoir-orbit': [[300, 470, -5000], [300, 470, -3200]],
@@ -152,4 +164,4 @@ export default {
     'surface-east': [[1000, 219, -2800], [700, 219, -2300], [450, 219, -1880]],
     'gorge-hunt': [[-760, 200, 0], [-100, 260, -1300]],
   },
-};
+});

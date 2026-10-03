@@ -2972,6 +2972,7 @@ export default {
   "war.next_round": "NEXT ROUND IN {t}",
   "war.next_unknown": "NEXT WAVE: NOT KNOWN YET",
   "war.restart": "RESTART MISSION",
+  "war.restart_stage": "RESTART FROM STAGE {n}",
   "war.restart_wait": "WAITING FOR THE HOST TO RESTART",
   "war.back_lobby": "BACK TO THE LOBBY IN {n}",
   "lobby.title": "LOBBY",

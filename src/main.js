@@ -139,6 +139,7 @@ import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
 import { ACT1 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
+import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
 
@@ -2628,7 +2629,8 @@ export async function boot({
     host: () => roomHost(roomLinkState.state().welcome),
     go: async (v) => {
       if (await warConsented()) {
-        roomWar.start(v.mission);
+        /* A lost mission again from the stage it was lost in. */
+        roomWar.start(v.mission, { from: v.state === 'lost' && v.checkpoint ? 'checkpoint' : null });
       }
     },
     back: () => (lobbyBackAt != null && gameLobby() ? Math.max(0, Math.ceil((lobbyBackAt - performance.now()) / 1000)) : null),
@@ -3248,6 +3250,21 @@ export async function boot({
     }
   }
 
+  /* A stage's cue (src/share/war/stages.js), as the room told it: the
+   * radio's line, the war bed's track, a cutaway. Its text is the view's
+   * and the HUD's. */
+  function warCue(ev, wallMs) {
+    if (ev.radio) {
+      warSay([ev.radio]);
+    }
+    if (ev.music !== undefined && audio.enabled) {
+      audio.setWarBed(ev.music);
+    }
+    if (ev.cutaway) {
+      warCutaway.request(ev.cutaway, wallMs, ev.at);
+    }
+  }
+
   /* A target reached: on fire now, smoke later (warTargetsFrame), on the
    * map's own damage (map.setTargetState). A map without the id draws
    * nothing for it. */
@@ -3289,7 +3306,9 @@ export async function boot({
     /* The intro's music is already on when a briefing came first
      * (warIntroFrame), and runs out into the loop by itself. */
     if (!audio.warRadio || !audio.warRadio.track) {
-      audio.setWarBed(v.state === 'countdown' ? 'intro' : 'combat');
+      /* A pilot seated mid stage hears the stage's own music. */
+      const staged = v.stage && v.stage.music != null ? v.stage.music : 'combat';
+      audio.setWarBed(v.state === 'countdown' ? 'intro' : staged);
     }
     const w = roomLinkState.state().welcome;
     if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
@@ -3383,6 +3402,7 @@ export async function boot({
     }
     warAttackers.clear();
     warBooms.clear();
+    warCutaway.dispose();
     warFeedCut = null;
     warHud.update(null);
     warHud.drawn(false);
@@ -3653,6 +3673,9 @@ export async function boot({
         continue;
       }
       warBoomEvent(ev);
+      if (ev.type === 'cue') {
+        warCue(ev, wallMs);
+      }
       if (ev.type === 'dead') {
         warAttackers.dead(ev);
       } else if (ev.type === 'boom' && ev.mine) {
@@ -4878,6 +4901,7 @@ export async function boot({
   /* The intro while it plays (warintro.js state()), or null; and the
    * host's Watch intro, for the checks. Harness only. */
   window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
+  window.__warCutaway = () => warCutaway.state();
   window.__warIntroWatch = () => warIntroPlay('watch');
   window.__warDo = (op, arg) => {
     if (op === 'start') {
@@ -8258,6 +8282,23 @@ export async function boot({
   shell.keepAcrossMaps(warAttackers.group);
   const warBooms = createExplosions();
   shell.keepAcrossMaps(warBooms.group);
+  /* A stage's cutaways (src/render/warcutaway.js): a picture in picture
+   * for a pilot in control, a cut for one who is not. */
+  const warCutaway = createWarCutaway({
+    renderer: shell.renderer,
+    scene: () => shell.quad.parent,
+    camera: shell.camera,
+    place: (cue) => {
+      if (Array.isArray(cue.at)) {
+        return cue.at;
+      }
+      const t = roomWar.mission()?.targets?.[cue.target];
+      return t ? t.at : null;
+    },
+    inControl: () => mode === 'flight' && !warSpectating() && Boolean(roomSentPose) && (roomSentPose.flags & FLAG_AIRBORNE) !== 0
+      && (roomSentPose.flags & FLAG_CRASHED) === 0 && (roomWar.view().roundState ?? 'live') === 'live',
+  });
+  let warCutFov = null;
   /*
    * THE SMOKE SYSTEM (the Parts tab's 'smoke' add-on): O in flight turns
    * it on and off, and the trail leaves the tail's nozzle on the sim clock
@@ -15424,6 +15465,16 @@ export async function boot({
         warIntro.frame(nowWall);
       }
     }
+    /* A stage's cutaway over the chain (never over the intro or the crash
+     * cam's replay): a cut poses the camera, and its lens goes back after. */
+    const cutting = !warIntro && mode !== 'replay' && warCutaway.frame(nowWall);
+    if (cutting && warCutFov == null) {
+      warCutFov = shell.camera.fov;
+    } else if (!cutting && warCutFov != null) {
+      shell.camera.fov = warCutFov;
+      shell.camera.updateProjectionMatrix();
+      warCutFov = null;
+    }
     /* Harness camera. The cost ledger has to be published for three views,
      * and two of them are not views the shell puts the camera in: the
      * ledger's mid course view is a point on the racing line, and flying
@@ -15522,6 +15573,8 @@ export async function boot({
       }
       if (mode === 'replay') {
         crashCam.afterRender();
+      } else if (!warIntro) {
+        warCutaway.drawPip(nowWall);
       }
     }
     if (ui.screen === 'courses') {
