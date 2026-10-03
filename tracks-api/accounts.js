@@ -53,8 +53,11 @@
  *            or the wrong shape (progressmerge.js blobRefusal)
  *
  * Every route but the first takes `authorization: Bearer <session>`. All
- * of them answer 503 while GOOGLE_CLIENT_ID or ACCOUNTS_SECRET is unset,
- * which is the feature switched off.
+ * of them answer 503 while GOOGLE_CLIENT_ID names no client id, or while
+ * ACCOUNTS_SECRET is unset, which is the feature switched off.
+ * GOOGLE_CLIENT_ID is a comma separated list (parseClientIds), so a client
+ * id can move: during a transition both the new id the page signs in with
+ * and the old one a page loaded before the deploy still holds verify.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -147,8 +150,15 @@ export function inspectCallsign(raw) {
   return { callsign };
 }
 
+/* GOOGLE_CLIENT_ID split on commas, trimmed, blanks dropped: an empty
+ * entry (a trailing comma, say) is ignored rather than becoming an id
+ * nothing's `aud` can ever equal. */
+export function parseClientIds(raw) {
+  return String(raw || '').split(',').map((id) => id.trim()).filter(Boolean);
+}
+
 function accountsOn(env) {
-  return Boolean(env.GOOGLE_CLIENT_ID && env.ACCOUNTS_SECRET);
+  return parseClientIds(env.GOOGLE_CLIENT_ID).length > 0 && Boolean(env.ACCOUNTS_SECRET);
 }
 
 /* Google's keys, one fetcher per keys URL for the life of the process. */
@@ -267,7 +277,7 @@ async function signIn(env, request) {
   const credential = read.body && read.body.credential;
   let verdict;
   try {
-    verdict = await verifyGoogleIdToken(credential, { clientId: env.GOOGLE_CLIENT_ID, key: keySource(env) });
+    verdict = await verifyGoogleIdToken(credential, { clientIds: parseClientIds(env.GOOGLE_CLIENT_ID), key: keySource(env) });
   } catch (e) {
     console.error('google keys:', e && e.message ? e.message : e);
     return refuse(503, 'Google could not be reached to check the sign in. Try again shortly.');
