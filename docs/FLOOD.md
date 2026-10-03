@@ -190,7 +190,7 @@ The page steps on the map's animation clock, which in a room is the room's
 | normal depth between INFLOW and RATING | Manning, 1 % | 0.005 % |
 | opening as weir, orifice, drowned | the strips formula at the link's levels, 1e-12; steady flows 2 % | exact; under 1 % |
 | the room clock | five clients, one hash | one hash |
-| Node and Chrome | every case's hash identical | identical, all nine, at b574fcb0 (2 October); not run since the link's tail cells, the face fluxes and the room clock case, Chrome runs being held |
+| Node and Chrome | every case's hash identical | identical, all thirteen (3 October, SIM_GPU=1) |
 
 The join, `water:check`: still water across it for 10 min under 1e-9 m/s
 (4.7e-15); a dam break through it conserves the volume to 1e-12; a channel down
@@ -228,10 +228,12 @@ baseline):
 
 ## Budgets
 
-- Solver: Node 1.47 ms a step. The room needs 50 steps a second, 74 ms of every
-  second; live.js's 3 ms slice in each of 60 frames takes some 122. **Chrome is
-  the measure** (the lead): `npm run water:bench` times the same flood in Chrome
-  and holds its hash to Node's; it is not yet run, browser runs being held.
+- Solver, measured in Chrome (3 October, SIM_GPU=1, `npm run water:bench`), the
+  shipped warmed river with gate 3 gone: 1.17 ms a step (worst slice of 50
+  steps 1.24) at 18 206 wet cells of 59 904; Node 1.16 ms. The room needs 50
+  steps a second, 59 ms of every second; live.js's 3 ms slice in each of 60
+  frames takes 154. The hash after the bench is the same in Chrome and Node
+  (611bfc9fa42ae0ec). Under the contract's 2 ms a step, with no worker.
 - Memory: the solver's arrays 12 doubles a cell (5.8 MB), the host's snapshots
   4 x 3 doubles a cell (5.8 MB), the bed in JS 0.5 MB: some 12 MB, only once the
   dam opens.
