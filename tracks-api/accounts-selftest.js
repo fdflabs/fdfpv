@@ -37,7 +37,7 @@ import {
 } from '../src/share/identity.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import {
-  blobRefusal, cleanBlob, mergeBlobs, stampChanges,
+  blobRefusal, cleanBlob, mergeBlobs, pickSynced, stampChanges,
 } from '../src/share/progressmerge.js';
 import { BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS } from './limits.js';
 import { buildsBlob, buildsFromBlob, normaliseFit } from '../src/ui/builds.js';
@@ -187,6 +187,21 @@ console.log('the progress merge');
   check('and keeps its own where the account has none', firstSync.data.tuning.zagi1219.cg === 5);
   const stamps = stampChanges({ tuning: { a: 1, b: 2 }, rates: { x: 1 } }, { tuning: { a: 1 }, rates: { x: 0 } }, 77);
   check('a computer stamps exactly the parts it changed', stamps['tuning/b'] === 77 && stamps.rates === 77 && !('tuning/a' in stamps));
+}
+
+console.log('the voice notice follows the account');
+{
+  /* src/ui/voiceui.js: a pilot told that voice is kept in replays, who
+   * said yes on one computer, is not asked again on another, and a
+   * computer that never answered does not take it back. */
+  const said = { v: 1, data: { voiceReplayAck: true }, stamps: {} };
+  const never = { v: 1, data: { voiceReplayAck: false }, stamps: { voiceReplayAck: 9e12 } };
+  check('the answer is a synced section, read from the settings', pickSynced({ voiceReplayAck: true, graphics: 'low' }).voiceReplayAck === true);
+  check('yes on either side is yes, whichever was sent and however stamped', mergeBlobs(said, never).data.voiceReplayAck === true && mergeBlobs(never, said).data.voiceReplayAck === true);
+  check('no on both stays no, and an account that never had it gets none', mergeBlobs(never, never).data.voiceReplayAck === false
+    && !('voiceReplayAck' in mergeBlobs({ v: 1, data: {}, stamps: {} }, null).data));
+  check('anything but true or false is dropped', !('voiceReplayAck' in cleanBlob({ v: 1, data: { voiceReplayAck: 'yes' } }).data)
+    && mergeBlobs({ v: 1, data: { voiceReplayAck: 1 } }, null).data.voiceReplayAck === undefined);
 }
 
 console.log('My Hangar and the loadouts in the merge');
