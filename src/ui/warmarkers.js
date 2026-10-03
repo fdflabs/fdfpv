@@ -100,6 +100,16 @@ const THREAT = {
 };
 /* A decoy is marked as a Striker until it is this close (mission 3). */
 const DECOY_M = 300;
+/* In a mission's spray (its `spray`, while the spill runs: mission 2's
+ * twist A) an attacker is marked only this close (TECH-NEEDS T1.9). */
+export const SPRAY_HIDE_M = 150;
+
+/* Whether an attacker at p is lost in the spray to an eye at e. */
+export function inSpray(spray, p, e) {
+  const [cx, cz] = spray.at;
+  const inside = (p[0] - cx) ** 2 + (p[2] - cz) ** 2 <= spray.r * spray.r && p[1] >= spray.y[0] && p[1] <= spray.y[1];
+  return inside && (p[0] - e[0]) ** 2 + (p[1] - e[1]) ** 2 + (p[2] - e[2]) ** 2 > SPRAY_HIDE_M * SPRAY_HIDE_M;
+}
 const KINDS = Object.keys(THREAT);
 /* kindOf's value for a kind not in THREAT: its tag is empty. */
 const UNKNOWN = KINDS.length;
@@ -169,6 +179,10 @@ export function createWarMarkers(camera, view) {
 
   /* The Avionics HUD's boxes this paint, { x, y, r, tag } (setClaims). */
   let claims = null;
+  /* The targets the mission names (its working sets: the view's `sets`),
+   * ringed on the radar (setNamed). */
+  let named = [];
+  let hid = 0;
   /* Per attacker, in list order. */
   const claimed = new Uint8Array(MAX);
   const kindOf = new Uint8Array(MAX);
@@ -333,10 +347,11 @@ export function createWarMarkers(camera, view) {
    * { hull (midair.js hullFor), pose (the room's pose of it: px..qw,
    * motor), radius (the room view's fuze for the seat) }, or null when
    * there is none to judge by: the distances are then from x, y, z.
-   * Returns true when a Hunter has newly picked this pilot, for the
-   * radio's line.
+   * spill: the spill running now (stages.js spilling), which hides what
+   * is deep in the mission's spray. Returns true when a Hunter has newly
+   * picked this pilot, for the radio's line.
    */
-  function update(live, now, evs, m, x, y, z, seat = null, fuze = null) {
+  function update(live, now, evs, m, x, y, z, seat = null, fuze = null, spill = false) {
     const t0 = performance.now();
     if (evs && evs.length) {
       events(evs);
@@ -352,20 +367,21 @@ export function createWarMarkers(camera, view) {
     }
     labels();
     on = true;
-    list = live;
+    list = spill && m && m.spray ? live.filter((a) => !inSpray(m.spray, a.p, [x, y, z])) : live;
+    hid = live.length - list.length;
     at = now;
     mission = m;
     me[0] = x;
     me[1] = y;
     me[2] = z;
-    n = Math.min(live.length, MAX);
+    n = Math.min(list.length, MAX);
     fuzeR = fuze ? fuze.radius : null;
     const near = fuze ? FINE_M + fuze.hull.hull.reach : 0;
     const was = hunted;
     hunted = -1;
     huntedD = Infinity;
     for (let i = 0; i < n; i += 1) {
-      const a = live[i];
+      const a = list[i];
       const dx = x - a.p[0];
       const dy = y - a.p[1];
       const dz = z - a.p[2];
@@ -803,6 +819,17 @@ export function createWarMarkers(camera, view) {
       ctx.fillStyle = GREEN;
       ctx.fillRect(spotX - 3, spotY - 3, 6, 6);
     }
+    for (const id of named) {
+      if (!t[id]) {
+        continue;
+      }
+      put(t[id].at[0], t[id].at[2], false);
+      ctx.beginPath();
+      ctx.arc(spotX, spotY, 7, 0, 2 * Math.PI);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = YELLOW;
+      ctx.stroke();
+    }
     if (Math.floor(nowMs / 300) % 2) {
       return;
     }
@@ -908,6 +935,10 @@ export function createWarMarkers(camera, view) {
       inRange: list.slice(0, n).filter((_, i) => inRange[i]).map((a) => a.id),
       /* Every attacker under FINE_M, marked or arrowed, with its distance. */
       near: list.slice(0, n).map((a, i) => ({ id: a.id, dist: dist[i], inRange: inRange[i] === 1 })).filter((x) => x.dist < FINE_M),
+      /* The targets ringed on the radar, and how many attackers the
+       * spray hid this frame. */
+      named: named.slice(),
+      sprayHid: hid,
       cost: costOf(),
     };
   }
@@ -937,7 +968,12 @@ export function createWarMarkers(camera, view) {
     claims = list;
   }
 
+  /* The view's working sets ({ name: [ids] }, or null for none). */
+  function setNamed(sets) {
+    named = sets ? Object.values(sets).flat() : [];
+  }
+
   return {
-    update, clear, shown, inRangeAt, setClaims,
+    update, clear, shown, inRangeAt, setClaims, setNamed,
   };
 }
