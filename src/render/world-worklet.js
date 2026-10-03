@@ -60,6 +60,7 @@
  */
 
 import { KINDS as KIND_NAMES, WORLD_KINDS, SOURCE_STRIDE } from './world-kinds.js';
+import { guard } from './worklet-guard.js';
 
 const TAU = 2 * Math.PI;
 /* Speed of sound, m/s, at 20 C. */
@@ -93,6 +94,9 @@ const KEEP = 2;
 /* Voice fade in and out, s. */
 const FADE_S = 0.06;
 const FLUSH = 1e-20;
+/* The mains a transformer's arc buzzes on twice of: Itaipu's switchyard
+ * is on the Paraguayan side, 50 Hz. */
+const MAINS_HZ = 50;
 /* The far bed runs at this fraction of the rate (renderFar). */
 const FAR_DECIMATE = 4;
 /* The load guard (WorldProcessor.meter): the share of the audio's own
@@ -120,6 +124,10 @@ const SHED = [
  * at the default volume: under the near explosion's -12, and its 2 to
  * 5 kHz share under the bar for every seed. */
 const BLAST_GAIN = 1.8;
+/* A breach's trim, by the same measurement (tools/audio/world.js): 10 t of
+ * concrete breaking 60 m off reads momentary -16 LUFS or so, under a near
+ * explosion, since a warhead is what broke it. */
+const BREACH_GAIN = 1;
 
 /* One cycle of a sine, tabled: the voices run hundreds of partials a
  * sample at a full war, and a lookup with linear interpolation is a few
@@ -173,6 +181,16 @@ const SONGS = [
 ];
 /* A prop's own table, built per voice at bind: one revolution. */
 const PROP_N = 1024;
+
+/* Whether a[at .. at + n) are all finite numbers. */
+function finiteRow(a, at, n) {
+  for (let i = at; i < at + n; i += 1) {
+    if (!Number.isFinite(a[i])) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /* xorshift32, uniform in [-1, 1). */
 function rng(seed) {
@@ -390,7 +408,9 @@ class History {
 }
 
 /*
- * One source's track: its kind, and a history of (t, position, velocity).
+ * One source's track: its kind, and a history of (t, position, velocity,
+ * drive): `drive` is what a source's level and character follow when not
+ * its speed (a breach's discharge, m3/s), 0 for the rest.
  * Positions are scene world metres, y up (src/render/frame.js), the frame
  * every caller already has; nothing here converts.
  */
@@ -399,8 +419,8 @@ class Track {
     this.id = id;
     this.kind = kind;
     this.seed = hash(id * 31 + kind);
-    this.hist = new History(6);
-    this.row = new Float64Array(6);
+    this.hist = new History(7);
+    this.row = new Float64Array(7);
     this.seen = -Infinity;
     this.first = Infinity;
     this.voice = null;
@@ -408,8 +428,9 @@ class Track {
     this.dNow = 0;
   }
 
-  push(t, x, y, z, vx, vy, vz) {
+  push(t, x, y, z, vx, vy, vz, drive) {
     const r = this.row;
+    r[6] = drive;
     r[0] = x;
     r[1] = y;
     r[2] = z;
@@ -421,7 +442,7 @@ class Track {
     this.first = Math.min(this.first, t);
   }
 
-  /* The state at time t into out [x, y, z, vx, vy, vz]: cubic Hermite
+  /* The state at time t into out [x, y, z, vx, vy, vz, drive]: cubic Hermite
    * between the two rows either side (positions and velocities, so a
    * 20 Hz history still turns smoothly), on from the newest along its
    * velocity for at most 0.25 s, or the oldest before it. */
@@ -437,6 +458,7 @@ class Track {
         out[k] = h[a + 1 + k] + h[a + 4 + k] * ahead;
         out[k + 3] = h[a + 4 + k];
       }
+      out[6] = h[a + 7];
       return out;
     }
     const b = a + s;
@@ -452,6 +474,7 @@ class Track {
       out[k] = h00 * h[a + 1 + k] + h10 * dt * h[a + 4 + k] + h01 * h[b + 1 + k] + h11 * dt * h[b + 4 + k];
       out[k + 3] = h[a + 4 + k] + (h[b + 4 + k] - h[a + 4 + k]) * u;
     }
+    out[6] = h[a + 7] + (h[b + 7] - h[a + 7]) * u;
     return out;
   }
 }
@@ -556,6 +579,7 @@ class Voice {
       }
     }
     this.slap = 0;
+    this.roarScale = 1;
     this.meshPh = 0;
     this.swing = Math.abs(r());
     /* The ambience's parts: their states, and what of each is this
@@ -669,6 +693,15 @@ class Voice {
      * 75 to 80, say up to 10, which this leaves the owner to call). A source with no engine is its parts' own level. */
     if (s.gears) {
       this.level = (0.4 + 0.6 * this.rpm / s.shiftRpm) * (0.45 + 0.55 * this.load);
+    } else if (s.flowRef) {
+      /* Water through a breach: its level with the discharge to the 0.3
+       * (the falling water's power goes as the flow; compressed, as every
+       * law here is, so a breach ten times the flow is 6 dB and not 10),
+       * nothing when nothing flows; and its roar a little lower the more
+       * there is, a bigger jet's eddies being bigger. */
+      const q = Math.max(0, state[6]) / s.flowRef;
+      this.level = Math.min(2.5, q ** 0.3);
+      this.roarScale = Math.max(0.6, Math.min(1.4, q ** -0.12));
     } else {
       this.level = s.cruiseRpm ? Math.min(1.6, this.rpm / s.cruiseRpm) : 1;
     }
@@ -689,9 +722,10 @@ class Voice {
     this.gTyre = s.tyres ? s.tyres * Math.min(1.5, (this.speed / 14) ** 1.5) : 0;
     this.fRope = svfF(140 * dop, rate);
     this.gRope = s.rope ? s.rope * Math.min(1.5, this.speed / 5) : 0;
-    this.fRoarLo = svfF(170 * dop, rate);
-    this.fRoarMid = svfF(650 * dop, rate);
-    this.fRoarHi = svfF(2400 * dop, rate);
+    const rs = dop * this.roarScale;
+    this.fRoarLo = svfF(170 * rs, rate);
+    this.fRoarMid = svfF(650 * rs, rate);
+    this.fRoarHi = svfF(2400 * rs, rate);
     this.kSurge = onePole(0.4, rate);
     this.kSwell = onePole(0.05, rate);
     this.fFlow = svfF(900 * dop, rate);
@@ -1123,6 +1157,275 @@ class Blast {
   }
 }
 
+/*
+ * One structure breaking, as heard (WorldAudio.breach): what the war's
+ * damage breaks off the dam, its gates and its switchyard. By material:
+ *
+ *   concrete     the fracture running through it (a few sharp cracks in
+ *                its first 0.4 s), the mass letting go (a low rumble that
+ *                lasts as long as a bigger piece takes to come down), and
+ *                the pieces landing, each a thud and a tick, from when the
+ *                first reaches the ground to when the last does
+ *   steel        plate tearing (a band of noise in stick slip bursts), the
+ *                structure groaning (three of its low modes driven by the
+ *                friction, gliding down as it gives) and a clang when it
+ *                lets go, its pieces landing after
+ *   transformer  the arc (a buzz on twice the mains, a sizzle, flickering
+ *                as the arc strikes and goes out), the oil flashing over
+ *                (a thump and a roar) and the fire after (a low roar and
+ *                its crackle, for seconds)
+ *
+ * The mass sets the level (a log law: ten times the mass about 4 dB) and
+ * how long it takes: a bigger piece rumbles longer and falls with more
+ * pieces. The fall height (metres down to the ground under it) sets when
+ * the pieces land: sqrt(2 h / g). Every number draws on the seed, so no
+ * two breaks are the same samples. ESTIMATED, every level and time: no
+ * recording of a dam breaking was measured.
+ */
+class Breach {
+  constructor(rate, seed, at, b, gain, dist, pan, image) {
+    const r = rng(seed);
+    this.nz = rng(seed ^ 0x2c1b3c6d);
+    this.rate = rate;
+    this.at = at;
+    this.done = false;
+    this.started = false;
+    /* Late: how far into its own sound it already is. */
+    this.t = Math.max(0, b.late || 0);
+    this.material = b.material;
+    const d = Math.max(1, dist);
+    const mass = Math.max(1, b.mass || 1000);
+    const lv = Math.max(0.15, Math.min(1.3, 0.55 + 0.2 * Math.log10(mass / 10000)));
+    const spread = Math.min(1, (60 / d) ** 0.75);
+    this.amp = BREACH_GAIN * lv * spread * gain * (image ? 0.5 : 1);
+    /* What the air leaves at this distance, and an image darker again for
+     * the wall it came off. */
+    this.kTop = onePole(Math.min(absorbHz(d), 9000) * (image ? 0.5 : 1), rate);
+    this.lp = 0;
+    this.gl = Math.sqrt(0.5 * (1 - pan));
+    this.gr = Math.sqrt(0.5 * (1 + pan));
+    /* How long the mass takes to go, s: a cube root law, 1 t about 0.8 s,
+     * 1000 t about 8. */
+    const size = Math.cbrt(mass / 1000);
+    this.rumbleS = Math.min(10, 0.8 * size * (0.8 + 0.4 * Math.abs(r())));
+    /* The pieces: when they land, sqrt(2 h / g) for the first, the rest
+     * strung out after it (they come off over time), and how many. */
+    const fall = Math.sqrt((2 * Math.max(1, b.fall || 10)) / 9.81);
+    const pieces = Math.min(40, Math.round(6 + 10 * size));
+    this.hits = [];
+    for (let k = 0; k < pieces; k += 1) {
+      const u = Math.abs(r());
+      this.hits.push({
+        at: fall * (0.7 + 0.9 * u) + 0.15 * Math.abs(r()),
+        amp: (0.25 + 0.75 * Math.abs(r())) * (1 - 0.5 * u),
+        hz: 70 + 260 * Math.abs(r()) ** 2,
+      });
+    }
+    this.hits.sort((a, c) => a.at - c.at);
+    this.nextHit = 0;
+    this.thud = [new Mode(), new Mode(), new Mode(), new Mode()];
+    this.thudAt = 0;
+    this.tick = new Svf();
+    this.fTick = svfF(2200, rate);
+    this.tickEnv = 0;
+    this.kTick = Math.exp(-1 / (0.006 * rate));
+    this.life = Math.max(fall * 1.5 + 1.5, this.rumbleS * 1.6 + 0.5);
+    /* The low end, every material: a rumble whose envelope rises in
+     * 60 ms and decays over rumbleS. */
+    this.low = new Svf();
+    this.kLow = Math.exp(-1 / (this.rumbleS * 0.45 * rate));
+    this.eLow = 1;
+    this.eLowAtk = 1;
+    this.kLowAtk = Math.exp(-1 / (0.06 * rate));
+    this.fLow = svfF(85 + 40 * Math.abs(r()), rate);
+    if (b.material === 'concrete') {
+      this.cracks = [];
+      const n = 3 + Math.floor(4 * Math.abs(r()));
+      for (let k = 0; k < n; k += 1) {
+        this.cracks.push({ at: k === 0 ? 0 : 0.4 * Math.abs(r()), amp: k === 0 ? 1 : 0.3 + 0.5 * Math.abs(r()) });
+      }
+      this.cracks.sort((a, c) => a.at - c.at);
+      this.nextCrack = 0;
+      this.crack = new Svf();
+      this.crackEnv = 0;
+      this.kCrack = Math.exp(-1 / (0.012 * rate));
+      this.fCrack = svfF(900 + 700 * Math.abs(r()), rate);
+      this.lowLevel = 1.0;
+    } else if (b.material === 'steel') {
+      this.tearS = 0.4 + 0.8 * Math.abs(r());
+      this.tear = new Svf();
+      this.fTear = svfF(900 + 900 * Math.abs(r()), rate);
+      this.slipIn = 0;
+      this.slipEnv = 0;
+      this.kSlip = Math.exp(-1 / (0.008 * rate));
+      this.groanHz = 70 + 90 * Math.abs(r());
+      this.groan = [new Mode(), new Mode(), new Mode()];
+      this.groanRatio = [1, 2.31, 3.87];
+      this.groanS = this.tearS + 1.2 + 1.2 * Math.abs(r());
+      this.clang = [new Mode(), new Mode(), new Mode(), new Mode()];
+      const base = 280 + 420 * Math.abs(r());
+      [1, 1.47, 2.09, 2.83].forEach((q, k) => this.clang[k].tune(base * q, 1.4 / (1 + k * 0.6), rate));
+      this.clanged = false;
+      this.lowLevel = 0.5;
+      this.life = Math.max(this.life, this.groanS + 2);
+    } else {
+      this.arcS = 0.5 + 1.0 * Math.abs(r());
+      this.arcPh = 0;
+      this.arcOn = 1;
+      this.flickIn = 0;
+      this.sizzle = new Svf();
+      this.fSizzle = svfF(3800, rate);
+      this.flash = false;
+      this.fire = new Svf();
+      this.fFire = svfF(260, rate);
+      this.fireS = 6 + 4 * Math.abs(r());
+      this.crackle = new Svf();
+      this.fCrackle = svfF(1800, rate);
+      this.crackleEnv = 0;
+      this.lowLevel = 0.6;
+      this.life = Math.max(this.life, this.arcS + this.fireS);
+    }
+  }
+
+  /* Adds this breach's quantum, starting at context time t0, to L and R
+   * (renderBlasts runs it with the explosions; it has no share of their
+   * rumble). */
+  render(t0, n, L, R) {
+    const rate = this.rate;
+    const dt = 1 / rate;
+    let i = 0;
+    if (!this.started) {
+      i = Math.ceil((this.at - t0) * rate);
+      if (i >= n) {
+        return;
+      }
+      i = Math.max(0, i);
+      this.started = true;
+    }
+    const nz = this.nz;
+    for (; i < n; i += 1) {
+      const t = this.t;
+      this.t += dt;
+      let y = 0;
+      /* The low end. */
+      this.low.run(nz(), this.fLow, 1.0);
+      y += 1.8 * this.lowLevel * (1 - this.eLowAtk) * this.eLow * this.low.lo;
+      this.eLowAtk *= this.kLowAtk;
+      this.eLow *= this.kLow;
+      if (this.material === 'concrete') {
+        while (this.nextCrack < this.cracks.length && this.cracks[this.nextCrack].at <= t) {
+          this.crackEnv = Math.max(this.crackEnv, this.cracks[this.nextCrack].amp);
+          this.nextCrack += 1;
+        }
+        if (this.crackEnv > 1e-4) {
+          this.crack.run(nz(), this.fCrack, 0.7);
+          y += 0.9 * this.crackEnv * (this.crack.bp + 0.4 * this.crack.lo);
+          this.crackEnv *= this.kCrack;
+        } else {
+          this.crackEnv = 0;
+        }
+      } else if (this.material === 'steel') {
+        if (t < this.tearS) {
+          /* Stick slip: a burst every 12 to 35 ms, each its own size. */
+          if ((this.slipIn -= 1) <= 0) {
+            this.slipIn = (0.012 + 0.023 * Math.abs(nz())) * rate;
+            this.slipEnv = 0.4 + 0.6 * Math.abs(nz());
+          }
+          this.tear.run(nz(), this.fTear, 1.2);
+          y += 0.7 * this.slipEnv * this.tear.bp;
+          this.slipEnv *= this.kSlip;
+        }
+        if (t < this.groanS) {
+          if ((i & 63) === 0) {
+            const glide = 1 - 0.3 * Math.min(1, t / this.groanS);
+            for (let q = 0; q < 3; q += 1) {
+              this.groan[q].tune(this.groanHz * this.groanRatio[q] * glide, 0.08, rate);
+            }
+          }
+          const env = Math.min(1, t / 0.15) * Math.min(1, (this.groanS - t) / 0.4);
+          const ex = nz() * env;
+          y += 0.3 * (this.groan[0].run(ex) + 0.6 * this.groan[1].run(ex) + 0.35 * this.groan[2].run(ex));
+        } else if (!this.clanged) {
+          this.clanged = true;
+          for (let q = 0; q < 4; q += 1) {
+            this.clang[q].strike(0.12 / (1 + q));
+          }
+        }
+        if (this.clanged) {
+          for (let q = 0; q < 4; q += 1) {
+            y += this.clang[q].run(0);
+          }
+        }
+      } else {
+        if (t < this.arcS) {
+          /* The arc: on and off in 10 to 40 ms flickers, a buzz on twice
+           * the mains (a rectified sine's harmonics, 1 / k^1.3) and its
+           * sizzle. */
+          if ((this.flickIn -= 1) <= 0) {
+            this.flickIn = (0.01 + 0.03 * Math.abs(nz())) * rate;
+            this.arcOn = nz() > -0.6 ? 1 : 0.15;
+          }
+          this.arcPh += (2 * MAINS_HZ) / rate;
+          let buzz = 0;
+          for (let k = 1; k <= 8; k += 1) {
+            buzz += sinC(k * this.arcPh) / k ** 1.3;
+          }
+          this.sizzle.run(nz(), this.fSizzle, 1.0);
+          y += this.arcOn * (0.18 * buzz + 0.22 * this.sizzle.bp);
+        } else {
+          if (!this.flash) {
+            this.flash = true;
+            this.eLow = 1;
+            this.eLowAtk = 1;
+            this.lowLevel = 1.3;
+          }
+          /* The fire: a low roar and its crackle, dying over fireS. */
+          const ft = t - this.arcS;
+          const fe = Math.min(1, ft / 0.3) * Math.exp(-ft / (0.45 * this.fireS));
+          this.fire.run(nz(), this.fFire, 0.9);
+          if (nz() > 1 - 0.003 * fe) {
+            this.crackleEnv = 0.4 + 0.6 * Math.abs(nz());
+          }
+          this.crackleEnv *= 0.992;
+          this.crackle.run(nz(), this.fCrackle, 1.4);
+          y += fe * (0.4 * this.fire.lo + 0.25 * this.crackleEnv * this.crackle.bp);
+        }
+      }
+      /* The pieces landing: a thud, the piece's own pitch, and a tick. */
+      while (this.nextHit < this.hits.length && this.hits[this.nextHit].at <= t) {
+        const h = this.hits[this.nextHit];
+        const m = this.thud[this.thudAt];
+        this.thudAt = (this.thudAt + 1) % this.thud.length;
+        m.tune(h.hz, 0.05 + 0.04 * Math.abs(nz()), rate);
+        m.strike(0.35 * h.amp);
+        this.tickEnv = Math.max(this.tickEnv, 0.5 * h.amp);
+        this.nextHit += 1;
+      }
+      for (const m of this.thud) {
+        y += m.run(0);
+      }
+      if (this.tickEnv > 1e-4) {
+        this.tick.run(nz(), this.fTick, 0.8);
+        y += this.tickEnv * this.tick.bp;
+        this.tickEnv *= this.kTick;
+      } else {
+        this.tickEnv = 0;
+      }
+      y *= this.amp;
+      /* What the air leaves of it at this distance. */
+      this.lp += this.kTop * (y - this.lp);
+      if (this.lp < FLUSH && this.lp > -FLUSH) {
+        this.lp = 0;
+      }
+      L[i] += this.lp * this.gl;
+      R[i] += this.lp * this.gr;
+    }
+    if (this.t > this.life) {
+      this.done = true;
+    }
+  }
+}
+
 class WorldProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();
@@ -1149,10 +1452,10 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.rumbleL = new Svf();
     this.rumbleR = new Svf();
     this.rumbleNz = [rng(0x27d4eb2f), rng(0x165667b1)];
-    this.stateA = new Float64Array(6);
-    this.stateB = new Float64Array(6);
+    this.stateA = new Float64Array(7);
+    this.stateB = new Float64Array(7);
     this.far = new Map();
-    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, beds: 0, bedsMax: 0, tracks: 0, load: 0, step: 0, stepMax: 0 };
+    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, beds: 0, bedsMax: 0, tracks: 0, load: 0, step: 0, stepMax: 0, rejected: 0 };
     /* The load guard (meter): on unless the options say otherwise, with a
      * budget of the audio's own time. */
     this.guard = o.guard !== false;
@@ -1177,6 +1480,9 @@ class WorldProcessor extends AudioWorkletProcessor {
    * { boom: { t, p: [x, y, z], level, seed, dist?, images: [[x, y, z,
    *           gain], ...] } }, or { booms: [...] }; `dist` 0 is the
    *   pilot's own warhead, on board
+   * { breach: { t, p, material, mass, fall, late, seed, images } }, or
+   *   { breaches: [...] }: a structure breaking (the Breach class), at t
+   *   context seconds, `late` seconds into its own sound already
    * { stats: true }, answered with { stats: this.stats }
    * t is context seconds: when the frame was true, when the boom went off.
    */
@@ -1195,12 +1501,26 @@ class WorldProcessor extends AudioWorkletProcessor {
     if (m.booms) {
       this.pending.push(...m.booms);
     }
+    if (m.breach) {
+      this.pending.push(m.breach);
+    }
+    if (m.breaches) {
+      this.pending.push(...m.breaches);
+    }
     if (m.stats) {
       this.port.postMessage({ stats: { ...this.stats } });
     }
   }
 
+  /* The boundary: a frame whose listener or time is not finite is not
+   * taken, nor a source with a number that is not, and both are counted
+   * (stats.rejected). One NaN position would otherwise be a NaN distance,
+   * gain and filter state, for good (worklet-guard.js). */
   frame(f) {
+    if (!Number.isFinite(f.t) || !f.lis || !finiteRow(f.lis, 0, f.lis.length)) {
+      this.stats.rejected += 1;
+      return;
+    }
     this.lis.push(f.t, f.lis);
     this.heard = true;
     const s = f.src;
@@ -1208,6 +1528,10 @@ class WorldProcessor extends AudioWorkletProcessor {
       return;
     }
     for (let i = 0; i + SOURCE_STRIDE <= s.length; i += SOURCE_STRIDE) {
+      if (!finiteRow(s, i, SOURCE_STRIDE)) {
+        this.stats.rejected += 1;
+        continue;
+      }
       const id = s[i];
       const kind = s[i + 1];
       let tr = this.tracks.get(id);
@@ -1215,7 +1539,7 @@ class WorldProcessor extends AudioWorkletProcessor {
         tr = new Track(id, kind);
         this.tracks.set(id, tr);
       }
-      tr.push(f.t, s[i + 2], s[i + 3], s[i + 4], s[i + 5], s[i + 6], s[i + 7]);
+      tr.push(f.t, s[i + 2], s[i + 3], s[i + 4], s[i + 5], s[i + 6], s[i + 7], s[i + 8]);
     }
   }
 
@@ -1237,16 +1561,50 @@ class WorldProcessor extends AudioWorkletProcessor {
     }
     tr.at(te, this.stateA);
     this.te = te;
-    return d;
+    /* The distance to the state returned, not to the last iterate's: when
+     * a source jumps (a stream's nearest point as the camera teleports),
+     * the iterates land either side of the jump, and a direction over the
+     * wrong distance is longer than 1, which made the far ear's filter
+     * unstable (renderSource). */
+    return Math.hypot(this.stateA[0] - L[0], this.stateA[1] - L[1], this.stateA[2] - L[2]);
   }
 
+  /* Through worklet-guard.js: a throw or a non-finite quantum is a 3 ms
+   * gap and a { fault } on the port, never a dead node or a NaN latched
+   * into the master limiter. */
   process(inputs, outputs) {
     const started = this.guard ? Date.now() : 0;
-    this.work(outputs);
+    guard(this, inputs, outputs);
     if (this.guard) {
       this.meter(Date.now() - started, outputs[0][0].length);
     }
     return true;
+  }
+
+  /* For worklet-guard.js: the listener, and every voiced source's state
+   * at the time it is heard from, the first non-finite one marked. */
+  faultContext() {
+    const L = this.lisNow ? Array.from(this.lisNow) : null;
+    const voices = [];
+    for (const v of [...this.voices, ...this.beds]) {
+      if (!v.track) {
+        continue;
+      }
+      const st = Array.from(v.track.at(currentTime, new Float64Array(7)));
+      voices.push({ id: v.track.id, kind: KIND_NAMES[v.track.kind], state: st, level: v.level, rpm: v.rpm, dist: v.distPrev, fade: v.fade });
+    }
+    return { listener: L, voices, blasts: this.blasts.length, tracks: this.tracks.size };
+  }
+
+  /* After a fault (worklet-guard.js): every source and voice starts over
+   * from the next frame, the explosions under way are dropped. */
+  reset() {
+    for (const v of [...this.voices, ...this.beds]) {
+      v.track = null;
+    }
+    this.tracks.clear();
+    this.far.clear();
+    this.blasts = [];
   }
 
   /*
@@ -1289,7 +1647,7 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.quanta = 0;
   }
 
-  work(outputs) {
+  work(inputs, outputs) {
     const out0 = outputs[0];
     const out2 = outputs[2];
     const n = out0[0].length;
@@ -1418,7 +1776,10 @@ class WorldProcessor extends AudioWorkletProcessor {
     const dz = st[2] - L[2];
     const inv = 1 / Math.max(1e-6, d);
     const pan = Math.max(-1, Math.min(1, (dx * L[6] + dy * L[7] + dz * L[8]) * inv));
-    const front = (dx * L[3] + dy * L[4] + dz * L[5]) * inv;
+    /* Clamped as the pan is: a cosine past 1 (a listener forward that is
+     * not a unit vector) would put the far ear's corner below 0 Hz, where
+     * its one pole feeds back over 1 and runs away to infinity. */
+    const front = Math.max(-1, Math.min(1, (dx * L[3] + dy * L[4] + dz * L[5]) * inv));
     const back = front < 0 ? -front : 0;
     /* The ground's image under the listener's ground: its path's extra
      * length is the reflection's delay. */
@@ -1623,7 +1984,10 @@ class WorldProcessor extends AudioWorkletProcessor {
         const dz = z - L[2];
         const d = b.dist != null && !image ? b.dist : Math.hypot(dx, dy, dz);
         const pan = d > 0.5 ? Math.max(-1, Math.min(1, (dx * L[6] + dy * L[7] + dz * L[8]) / d)) : 0;
-        this.blasts.push(new Blast(this.rate, hash((b.seed >>> 0) + 977 * k), b.t + d / C_AIR, (b.level ?? 1) * g, d, pan, image));
+        const seed = hash((b.seed >>> 0) + 977 * k);
+        this.blasts.push(b.material
+          ? new Breach(this.rate, seed, b.t + d / C_AIR, b, g, d, pan, image)
+          : new Blast(this.rate, seed, b.t + d / C_AIR, (b.level ?? 1) * g, d, pan, image));
         k += 1;
       }
     }

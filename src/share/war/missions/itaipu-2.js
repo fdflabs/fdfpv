@@ -29,8 +29,9 @@
  */
 
 import { ids, targets } from './itaipu-1.js';
+import { round, withWaves } from '../stages.js';
 
-export default {
+export default withWaves({
   id: 'itaipu-2',
   /* A string key (src/strings): Save the spillway gates. */
   title: 'war.mission.itaipu_2',
@@ -40,20 +41,32 @@ export default {
   floorMw: 11200,
   starMw: 11900,
   airframes: 4,
-  waves: [
-    { round: 0, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
-    { round: 0, at: 2, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: ids('gate', [3, 7]), spread: 20 },
-    { round: 1, at: 2, kind: 'boat', n: 2, per: 1, route: 'surface-gates', target: ids('gate', [1, 4, 9]), spread: 10 },
-    { round: 1, at: 30, kind: 'strike', n: 1, per: 0.75, route: 'channel-low', target: ids('gate', [6]), spread: 15 },
-    { round: 2, at: 2, kind: 'strike', n: 3, per: 1.25, route: 'channel-low', target: ids('gate', [0, 5, 10, 12]), spread: 15 },
-    { round: 2, at: 20, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { round: 3, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
-    { round: 3, at: 2, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 8, 11]), spread: 20 },
-    { round: 3, at: 25, kind: 'boat', n: 2, per: 1, route: 'surface-gates', target: ids('gate', [13, 6]), spread: 10 },
-    { round: 4, at: 2, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: ids('gate', [4, 9]), spread: 20 },
-    { round: 4, at: 20, kind: 'boat', n: 2, per: 1, route: 'surface-gates', target: ids('gate', [0, 13]), spread: 10 },
-    { round: 4, at: 35, kind: 'strike', n: 3, per: 1.5, route: 'channel-low', target: ids('gate', [1, 3, 7, 11]), spread: 15 },
-    { round: 4, at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+  /* Rounds of waves (stages.js round): a wave's `at` is seconds after
+   * its round starts. */
+  stages: [
+    round('round-1', [
+      { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'reservoir-orbit' },
+      { at: 2, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: ids('gate', [3, 7]), spread: 20 },
+    ]),
+    round('round-2', [
+      { at: 2, kind: 'boat', n: 2, per: 1, route: 'surface-gates', target: ids('gate', [1, 4, 9]), spread: 10 },
+      { at: 30, kind: 'strike', n: 1, per: 0.75, route: 'channel-low', target: ids('gate', [6]), spread: 15 },
+    ]),
+    round('round-3', [
+      { at: 2, kind: 'strike', n: 3, per: 1.25, route: 'channel-low', target: ids('gate', [0, 5, 10, 12]), spread: 15 },
+      { at: 20, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    ]),
+    round('round-4', [
+      { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
+      { at: 2, kind: 'loiter', n: 2, per: 1.25, route: 'high-west', target: ids('gate', [2, 8, 11]), spread: 20 },
+      { at: 25, kind: 'boat', n: 2, per: 1, route: 'surface-gates', target: ids('gate', [13, 6]), spread: 10 },
+    ]),
+    round('round-5', [
+      { at: 2, kind: 'loiter', n: 2, per: 1, route: 'high-west', target: ids('gate', [4, 9]), spread: 20 },
+      { at: 20, kind: 'boat', n: 2, per: 1, route: 'surface-gates', target: ids('gate', [0, 13]), spread: 10 },
+      { at: 35, kind: 'strike', n: 3, per: 1.5, route: 'channel-low', target: ids('gate', [1, 3, 7, 11]), spread: 15 },
+      { at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    ], { last: true }),
   ],
   routes: {
     'reservoir-orbit': [[300, 470, -5000], [300, 470, -3200]],
@@ -63,4 +76,4 @@ export default {
     'channel-low': [[-1150, 249, -4200], [-1100, 249, -1700]],
     'gorge-hunt': [[-760, 200, 0], [-100, 260, -1300]],
   },
-};
+});

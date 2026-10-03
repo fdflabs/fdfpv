@@ -45,12 +45,16 @@ music crates, the war radio's voice lines and the war's two music tracks.
 | Voice chat | `src/share/voice.js` | push to talk | WebRTC, its own AudioContext | distance law 30 to 400 m, floor 0.3 | its own graph |
 | Replay and movie sound | `src/replay/crashcam.js` `sound()`, `src/replay/soundtrack.js` | replay and export | a second `MotorAudio` | as live | its own |
 
-What is NOT voiced at all: another pilot's aircraft (peers are silent),
-the war's attackers in flight (only their explosion is heard), the
-environment (the ambience stem was removed), the surface a crash hit
-(grass and concrete sound identical: the OLD crash renders below are the
-same to the hundredth of a LU), and the jet: the Striker's turbojet plays
-the F-16's ducted fan voice (`edf`, `configs/airframes.js` l.1630).
+What was NOT voiced at all when #349 audited it: another pilot's aircraft
+(peers were silent), the war's attackers in flight (only their explosion
+was heard), the environment (the ambience stem had been removed), the
+surface a crash hit (grass and concrete sounded identical: the OLD crash
+renders below are the same to the hundredth of a LU), and the jet: the
+Striker's turbojet played the F-16's ducted fan voice (`edf`,
+`configs/airframes.js` l.1630). Since then the world track voices the
+attackers and the environment (#353, #358, #360; section 12), and this
+file's track the other pilots (section 13), every crash's surface and the
+Striker's own turbojet (section 4).
 
 ### Findings the audit turned up
 
@@ -373,8 +377,10 @@ loads; 50 MB as mp3), the war's music and voice 4.6 MB (webm). Phase 2
 adds: the worklet, about 30 KB of JavaScript, loaded only with the flag
 on. Phase 4's recordings: a budget of **1.5 MB** in total, Opus at 64 to
 96 kb/s mono, loaded lazily with the world that needs them. The
-listening page's traces (`tools/audio/flights.json`, 366 KB) are a
-developer file; the page fetches them only when opened.
+listening page's traces (`tools/audio/flights.json`, 849 KB since phase
+4's 26 flights; 366 KB with #349's 12) are a developer file the site
+serves with the rest of the tree; only the listening page fetches them,
+when opened, and the game never does.
 
 ## 8. The engine, and how to hear it
 
@@ -453,6 +459,11 @@ music; `tools/audio/measured.json` has every field):
 
 Render cost: OLD 0.02 s a second, NEW 0.04 (Striker) to 0.11 (four
 motors) s a second, all under the 0.25 bar.
+
+The tables in this section are the figures as each pull request measured
+them; the third's phasors moved every NEW figure by a few hundredths of a
+LU (hover -26.72 to -26.68), and `tools/audio/measured.json` is always the
+current render.
 
 Phase 4's classes, the same command (NEW from the engine with each
 aircraft's own spec; OLD the frozen baseline playing each one's old
@@ -616,6 +627,17 @@ power system (src/main.js applyPower):
 - `audio.mechanical(kind, atTime)`: 'gear' (a leg locking), 'catapult',
   'parachute'.
 - `audio.propStrike(level, hardness, atTime)`.
+
+**Other pilots** (src/main.js roomHearPeers, once a frame):
+
+- `audio.setListener(x, y, z, rx, ry, rz, ground)`: where the player hears
+  from, the camera's position and right hand unit vector, in the frame the
+  pilots' positions are in (the shell's scene frame, metres, y up), and
+  the ground's height under the listener on y for the reflection, or null.
+- `audio.updatePeers(peers, atTime)`: every pilot heard this frame,
+  `{ id, spec, rpm: [4], x, y, z, vx, vy, vz }`. The `PEER_VOICES` nearest
+  and loudest are heard (section 13); a pilot missing from the list is
+  gone and its voice fades.
 
 **Frames and units.** Everything is SI. A position the world hands its
 own worklet is its own business; the propagation in the engine takes
@@ -941,6 +963,106 @@ night, load 0.07 and 0.09, never shed; `war:boom` over Itaipu 10 tracks,
 
 **Recordings: none.** All synthesised, 0 bytes.
 
+### The dam break: breaches and the water through them
+
+For the war's damage (`src/render/breakage.js`, which breaks the dam's,
+the gates' and the switchyard's chunks) and the water that comes through
+what it opens. Two calls on the shell's `WorldAudio`:
+
+- **`worldAudio.breach({ at, position, material, mass }, now)`**, once a
+  break event: `at` its room ms, `position` [x, y, z] scene metres,
+  `material` `'concrete'`, `'steel'` or `'transformer'`, `mass` kg, `now`
+  the room ms it is heard at. It starts `now - at` into its own sound; one
+  more than 3 s late is dropped, as breakage.js draws only what is
+  happening now. The pieces fall to the map's ground under the position;
+  it echoes off the map's walls as an explosion does. An unknown
+  material, a position that is not three numbers or a mass not over 0
+  throws. Returns false without a node. It replaces `worldAudio.boom` for
+  a break: a boom is a warhead's sound, and a break is what the warhead
+  did.
+- **`worldAudio.flow(id, x, y, z, discharge)`**, once a frame for each
+  opening that flows (the water's to call): `id` the opening's, stable
+  while it flows, at its middle, `discharge` m3/s. The kind
+  `breachflow`: the spillway's roar, its level with the discharge to the
+  0.3 (ten times the flow, 6 dB), its roar a little lower the more there
+  is, -27 LUFS at 40 m for 1000 m3/s. On the other aircraft and vehicles
+  bus with the war, not the ambience: the pilots made it, and it is not
+  masked under a swarm. A frame now carries a ninth number a source,
+  `drive`, for it (`SOURCE_STRIDE` 9); every other kind sends 0.
+
+What a break is made of (`Breach` in the worklet), by material:
+
+| Material | Made of |
+| --- | --- |
+| concrete | the fracture running through it (3 to 6 cracks in its first 0.4 s, 0.9 to 1.6 kHz), a low rumble as long as the mass takes to go (a cube root law, 1 t 0.8 s, 1000 t 8 s), and the pieces landing |
+| steel | plate tearing (noise in stick slip bursts every 12 to 35 ms, 0.4 to 1.2 s), three low modes groaning (70 to 160 Hz, gliding down 30 percent as it gives), a clang as it lets go, its pieces landing |
+| transformer | the arc (a buzz on twice the 50 Hz mains, a sizzle, flickering on and off every 10 to 40 ms, 0.5 to 1.5 s), the oil flashing over (the low end struck again), and the fire after it (a low roar and its crackle, 6 to 10 s) |
+
+Every break: its level from its mass on a log law (ten times the mass,
+4 dB), the explosions' distance law (4.5 dB a doubling past 60 m) and air;
+its pieces, 6 to 40 by size, landing from sqrt(2 h / g) after it, each a
+struck thud at its own pitch and a tick. Seeded per break: two alike
+correlate at most 0.21. ESTIMATED, every level and time: no recording of a
+dam breaking was measured.
+
+| Scene | NEW LUFS | NEW loudest 400 ms | NEW dBTP | NEW 2 to 5 kHz % | OLD loudest 400 ms |
+| --- | --- | --- | --- | --- | --- |
+| 10 t of concrete breaks off 60 m away, 20 m up | -27.0 | -21.8 | -10.0 | 23.8 | -11.1 |
+| 500 t of the dam goes 300 m off, its echo off the face | -34.7 | -29.3 | -19.0 | 6.4 | -18.3 |
+| a 40 t spillway gate tears away 80 m off | -25.2 | -19.2 | -8.7 | 8.4 | -11.2 |
+| a switchyard transformer arcs and burns 120 m off | -24.5 | -17.5 | -7.8 | 25.1 | -13.6 |
+| water through the breach, 0 to 5000 m3/s, 200 m off | -31.6 | -29.6 | -17.9 | 12.2 | silent |
+
+Browser figures; Node's within 0.2 LU. OLD is `MotorAudio.boom` at full
+level, what the damage branch rang for every break: louder than a near
+warhead, and more than half its power in 2 to 5 kHz. Bars, `--check`: a
+break as an explosion (momentary at most -12, 2 to 5 kHz at most 35
+percent) and, since it lasts seconds, short term at most -18 as the
+aircraft; for twelve seeds of each material (worst: concrete 26.7
+percent, transformer 31 percent; steel 19 percent, its loudest 3 s -24.5); the water
+in `BREACH_PASS`, -40 to -18 LUFS at its loudest 400 ms.
+
+### When a worklet goes wrong (2 October, "the sound keeps stopping")
+
+One non-finite number into a worklet used to silence the whole page until
+a reload. The worklets' filters and delay lines feed back, so a NaN stays
+in them and every quantum after is NaN; their outputs meet in the master
+limiter (a DynamicsCompressorNode), whose envelope then latches the NaN,
+and the music, the radio and every engine go with it. Reproduced on the
+live build in Chromium (`npm run audio:latch`, one NaN listener posted to
+the world's worklet): the master NaN at every sample for as long as it was
+watched. Both worklets were also left NaN for good by one NaN quantum in
+Node (`npm run audio:guard`, on main's worklets: 27 failures).
+
+- **`src/render/worklet-guard.js`**: each processor's work runs through
+  `guard()`. A throw, or a quantum with a non-finite sample, zeroes that
+  quantum before it leaves the node, scrubs every NaN out of the
+  processor's state (the engine puts its phasors back on the unit
+  circle), and posts `{ fault }` with what the processor was given at that
+  quantum (the engine's parameters, the world's listener and voices), at
+  most once a second. The sound drops for 3 ms, not until a reload.
+- **The world refuses what is not finite** at its boundary: a frame whose
+  time or listener is not finite, a source with a number that is not, each
+  counted (`stats.rejected`).
+- **`MotorAudio.watchNode`** logs every fault and every processorerror
+  loudly and keeps them in `window.__audio.faults`, with the context's
+  state changes in `window.__audio.states`.
+- **A suspended or interrupted context** is resumed by the next key or
+  press (`wakeAudio` started only a context that did not exist), and a
+  context that says running while its clock stands still for 1.5 s (a
+  renderer stopped by a device change) is suspended and resumed, and said.
+
+What produced it was found by the guard's own report (the lobby check's
+combat run, #373): a stream's nearest point, a still source that jumps
+when the camera moves fast or teleports. The retarded time's fixed point
+iterates landed either side of the jump and the source's direction was
+divided by the wrong distance, so its cosine with the listener's forward
+reached 3, the far ear's corner went below 0 Hz and its one pole ran to
+infinity (the voice's filter at -2.7e54, then -Infinity). `retard()` now
+returns the distance to the state it returns and the cosine is clamped;
+`audio:guard` holds a stream's nearest point under a fast, teleporting
+listener to no fault in 40,000 quanta.
+
 ### Not yet
 
 - Occlusion (a hill between a source and the listener).
@@ -952,3 +1074,68 @@ night, load 0.07 and 0.09, never shed; `war:boom` over Itaipu 10 tracks,
   against the terrain per voice per frame is the cheap form.
 - Interceptions are the pilots' own aircraft (section 10, the player
   track); a hunter's sound is its quad's.
+## 13. Other pilots, and the voice budget
+
+Each pilot in a room is heard with their own aircraft's engine (their
+profile's airframe through `engineSpecFor`, on its stock power: the wire
+carries no power option), driven by the rotor speeds they send, where
+their aircraft is drawn, through the propagation of section 5: distance,
+the air, the delay, the Doppler, the ground's reflection under the
+listener. A crashed or hidden pilot is not heard.
+
+**The wire's rotor speeds were rpm in a rad/s field.** `src/share/roomwire.js`
+carries a quad's rotors as rad/s at 40 a count in one signed byte, but the
+sender put the plant's rpm in it, so every quad above 5,080 rpm (all of
+hover and every punch) went out as the same clamped value, and nothing a
+receiver could hear or draw told a hover from a punch. The sender now
+sends rad/s, as the wire always said; `src/render/peers.js` turns them
+back to the rpm its prop spin was tuned on, so the drawn props of a peer
+on this build turn as they did. `ROOM_LEVEL` goes to 2 with it, so a room
+holding this build closes an older tab with CLOSE.update (a reload) rather
+than letting its rpm be read as rad/s, nine and a half times too fast.
+A plane's prop, a byte at 80 rad/s a count, now reads zero below 40 rad/s
+(380 rpm), which the mid air test takes as a stopped prop.
+
+**The budget.** Every pilot heard is one more engine node, so a room of 32
+could be 32 nodes and 32 engines' worth of audio thread. `PEER_VOICES`
+(4) voices are made once, on the first frame with a pilot in range
+(400 m), and given to the loudest: nearest and turning. A pilot takes a
+voice from a holder only when 1.5 times louder, so two pilots at the same
+distance do not trade it back and forth, and a voice that changes hands
+fades out over 0.3 s first. Each voice plays its pilot at the Motors
+bus's default stem (`PEER_LEVEL`), so the engine's `REF_M` holds: a pilot
+16 m away is as loud as the player's own aircraft.
+
+A voice heard off board is cheaper than the player's own: at most 16
+shaft orders (five blade passes of a three blade prop, what tells one
+aircraft from another at a distance), mono broadband, no air of its own,
+and no tone above the air's corner at its distance. The engine's motors
+turn on phasors stepped once a render quantum rather than a sine and a
+cosine a sample.
+
+Measured, `npm run audio:lab -- --only=room-4,room-32,quad-hover` on this
+host under a load average near 30 (wall time over audio time, offline):
+
+| Render | Engine nodes | Nodes | LUFS | dBTP | Cost, s a second |
+| --- | --- | --- | --- | --- | --- |
+| The player's five inch alone (quad-hover) | 1 | 49 | -26.68 | -18.75 | 0.07 to 0.08 |
+| With four pilots near (room-4) | 5 | 53 | -22.91 | -10.54 | 0.201 |
+| With 31 pilots on a ring from 15 to 320 m (room-32) | 5 | 53 | -23.60 | -10.23 | 0.199 |
+
+A room of 32 costs what a room of 4 does, and both stay under the 0.25 s a
+second bar. One caveat on the offline rooms: when a voice changes hands its
+new model goes by port message, which an OfflineAudioContext does not
+deliver at a sample (the levels and distances are AudioParams and are);
+the cost and loudness figures do not depend on it.
+
+The wire's units, round tripped through `encodePose` and `decodePose`
+(Node): a quad at 9,407 rpm goes out as 985.1 rad/s and is heard at 9,549
+rpm (the wire's 40 rad/s step is 382 rpm), at 29,325 rpm as 29,412; the
+old build sent both as a clamped 5,080. Saved replays recorded before the
+change hold the old rpm valued numbers, so a peer's props in an old replay
+turn nine and a half times faster on screen; nothing in a replay plays a
+peer's sound. Before the phasors and the off board trims the same room
+measured 0.534 s a second. Live, the pool adds 4 nodes: with the world's
+node (section 12) in, 51 on the title (check 14) and 53 in a war room
+without the pool, 57 with it (war:boom), 7 under the 64.
+

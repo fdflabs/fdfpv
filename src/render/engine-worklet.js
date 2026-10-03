@@ -40,6 +40,8 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { guard } from './worklet-guard.js';
+
 const TAU = 2 * Math.PI;
 /* Speed of sound, m/s, at 20 C. */
 const C_AIR = 343;
@@ -58,6 +60,8 @@ const REF_M = 16;
 /* Subnormal guard: a state variable decaying toward zero below this is
  * zeroed, so no filter tail ever reaches the slow denormal path. */
 const FLUSH = 1e-20;
+/* The most shaft orders a voice heard off board is made with. */
+const OFFBOARD_ORDERS = 16;
 
 /* xorshift32, uniform in [-1, 1). */
 function rng(seed) {
@@ -210,7 +214,12 @@ const PARAMS = [
 
 class EngineProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
-    return PARAMS.map((name) => ({ name, defaultValue: 0, automationRate: 'k-rate' }));
+    return [
+      ...PARAMS.map((name) => ({ name, defaultValue: 0, automationRate: 'k-rate' })),
+      /* The whole voice's level, 0 to 1: a pooled voice fades in and out
+       * on it as a source takes or loses it (MotorAudio's voice budget). */
+      { name: 'level', defaultValue: 1, minValue: 0, maxValue: 1, automationRate: 'k-rate' },
+    ];
   }
 
   constructor(options) {
@@ -246,12 +255,20 @@ class EngineProcessor extends AudioWorkletProcessor {
         imb[n] = 0.5 + 0.5 * Math.abs(r());
       }
       return {
-        theta: Math.abs(r()), phase, imb, rpm: 0, rpmPrev: 0, load: 0,
-        wander: 0, wanderRng: rng(0xabcdef + 31 * m), whine: 0, whinePhase: 0,
+        theta: Math.abs(r()), phase, imb, rpm: 0, rpmPrev: 0, load: 0, topOrder: orders,
+        /* The shaft's and the whine's phasors (cos, sin) and their steps
+         * a sample (motorQuantum). */
+        pc: 1, ps: 0, rc: 1, rs: 0, wpc: 1, wps: 0, wrc: 1, wrs: 0,
+        wander: 0, wanderRng: rng(0xabcdef + 31 * m), whine: 0,
         cos: new Float64Array(orders + 1), sin: new Float64Array(orders + 1),
         amp: new Float64Array(orders + 1), level: 0,
       };
     });
+    /* Each motor starts at its own angle, so four props are not in step. */
+    for (const mo of this.motor) {
+      mo.pc = Math.cos(TAU * mo.theta);
+      mo.ps = Math.sin(TAU * mo.theta);
+    }
     this.orders = 48;
     this.bb = [new Svf(), new Svf()];
     this.washLp = 0;
@@ -359,7 +376,7 @@ class EngineProcessor extends AudioWorkletProcessor {
    * physics and also exactly the fatigue the owner reported. The pitch and
    * the brightening carry the throttle; the level only follows it.
    */
-  motorAmps(mo, blades, rpmRef) {
+  motorAmps(mo, blades, rpmRef, topHz) {
     const x = mo.rpm / rpmRef;
     const load = Math.max(0, Math.min(2, mo.load));
     /* -12 dB an octave of blade pass harmonics at rest, -9 when the prop
@@ -368,13 +385,22 @@ class EngineProcessor extends AudioWorkletProcessor {
     const level = x ** 0.6;
     const fRot = Math.max(1, mo.rpm / 60);
     const nyq = this.rate / 2.4;
+    /* Tones fade out between two thirds of the top and the top rather than
+     * stopping at an order, which would be an edge the ear finds, and
+     * never reach Nyquist. Above them the broadband is the prop. Heard
+     * from afar the top is also where the air has taken the rest
+     * (topHz), so those orders are not made at all: the loop below stops
+     * at the last order with any level, which is most of a far voice's
+     * cost saved. */
+    const top = Math.min(this.model.toneTop || 9000, topHz);
+    const knee = top * (2 / 3);
+    /* Off board, at most OFFBOARD_ORDERS: five blade passes of a three
+     * blade prop, what the ear tells one aircraft from another by at a
+     * distance, and a third of the cost of the on board 48. */
+    const most = topHz < 20000 ? OFFBOARD_ORDERS : this.orders;
+    mo.topOrder = Math.min(most, Math.max(1, Math.floor(Math.min(top, nyq) / fRot)));
     for (let n = 1; n <= this.orders; n += 1) {
       const f = n * fRot;
-      /* Tones fade out between 6 and 9 kHz rather than stopping at an
-       * order, which would be an edge the ear finds, and never reach
-       * Nyquist. Above them the broadband is the prop. */
-      const top = this.model.toneTop || 9000;
-      const knee = top * (2 / 3);
       const fade = f >= nyq ? 0 : f < knee ? 1 : f < top ? (top - f) / (top - knee) : 0;
       let a = 0;
       if (n % blades === 0) {
@@ -395,7 +421,65 @@ class EngineProcessor extends AudioWorkletProcessor {
     mo.level = level;
   }
 
+  /*
+   * A multirotor motor's steps for this quantum: the slow random wander of
+   * its speed (real blades do not pass at constant intervals), the shaft's
+   * phasor step and the whine's, and the phasors put back on the unit
+   * circle, which a few thousand multiplies would otherwise drift off.
+   */
+  motorQuantum(mo, n) {
+    for (let i = 0; i < n; i += 8) {
+      mo.wander += 0.00016 * (mo.wanderRng() - 400 * mo.wander);
+    }
+    const fRot = (mo.rpm / 60) * (1 + mo.wander);
+    const d = (TAU * fRot) / this.rate;
+    mo.rc = Math.cos(d);
+    mo.rs = Math.sin(d);
+    const dw = (d * this.model.poles) / 2;
+    mo.wrc = Math.cos(dw);
+    mo.wrs = Math.sin(dw);
+    const k = 1 / Math.hypot(mo.pc, mo.ps);
+    mo.pc *= k;
+    mo.ps *= k;
+    const kw = 1 / Math.hypot(mo.wpc, mo.wps);
+    mo.wpc *= kw;
+    mo.wps *= kw;
+  }
+
+  /* Through worklet-guard.js: a throw or a non-finite quantum is a 3 ms
+   * gap and a { fault } on the port, never a dead node or a NaN latched
+   * into the master limiter. */
   process(inputs, outputs, params) {
+    return guard(this, inputs, outputs, params);
+  }
+
+  /* After a fault (worklet-guard.js), once its scrub has zeroed every NaN:
+   * the phasors back on the unit circle, since a phasor scrubbed to (0, 0)
+   * turns as (0, 0) for good and motorQuantum's renormalising divides by
+   * its length. */
+  reset() {
+    for (const mo of this.motor) {
+      if (!(Math.hypot(mo.pc, mo.ps) > 0.5)) {
+        mo.pc = 1;
+        mo.ps = 0;
+      }
+      if (!(Math.hypot(mo.wpc, mo.wps) > 0.5)) {
+        mo.wpc = 1;
+        mo.wps = 0;
+      }
+    }
+  }
+
+  /* For worklet-guard.js: this quantum's parameters and the model. */
+  faultContext(params) {
+    const p = {};
+    for (const [k, v] of Object.entries(params || {})) {
+      p[k] = v[0];
+    }
+    return { model: this.modelName, params: p, rpm: this.motor.map((m) => m.rpm), distPrev: this.distPrev };
+  }
+
+  work(inputs, outputs, params) {
     const out = outputs;
     const eng = out[0];
     const air = out[1];
@@ -416,6 +500,10 @@ class EngineProcessor extends AudioWorkletProcessor {
     const dist2 = p('dist2');
     const pan = Math.max(-1, Math.min(1, p('pan')));
     const dtq = n / rate;
+    const voiceLevel = Math.max(0, Math.min(1, p('level')));
+    /* The air's corner at this distance (the propagation below): no tone
+     * is made above it for a voice heard off board. */
+    const topHz = dist > ONBOARD_M ? Math.max(1500, Math.min(19999, 24000 * (10 / Math.max(10, dist)) ** 0.7)) : 20000;
 
     /* ---- the impact trigger: a rising edge on the impulse param ---- */
     const imp = p('impact');
@@ -455,7 +543,10 @@ class EngineProcessor extends AudioWorkletProcessor {
         motorsLive += 1;
       }
       if (m.kind !== 'turbojet') {
-        this.motorAmps(mo, this.blades, m.rpmRef);
+        this.motorAmps(mo, this.blades, m.rpmRef, topHz);
+      }
+      if (m.kind === 'multirotor') {
+        this.motorQuantum(mo, n);
       }
       if (m.kind === 'multirotor') {
         /* The motor's whine follows its current: the pack's, shared out in
@@ -532,37 +623,41 @@ class EngineProcessor extends AudioWorkletProcessor {
           if (mo.rpm < 300) {
             continue;
           }
-          mo.wander += 0.00002 * (mo.wanderRng() - 400 * mo.wander);
-          const fRot = (mo.rpm / 60) * (1 + mo.wander);
-          mo.theta += fRot / rate;
-          if (mo.theta >= 1) {
-            mo.theta -= Math.floor(mo.theta);
-          }
-          /* e^(i n theta) by recurrence: one sin and cos a motor a sample. */
-          const c1 = Math.cos(TAU * mo.theta);
-          const s1 = Math.sin(TAU * mo.theta);
+          /* The shaft's phasor, turned by this quantum's step: no sin or
+           * cos a sample (motorQuantum sets the step). */
+          const c1 = mo.pc * mo.rc - mo.ps * mo.rs;
+          const s1 = mo.ps * mo.rc + mo.pc * mo.rs;
+          mo.pc = c1;
+          mo.ps = s1;
+          /* e^(i n theta) by recurrence, order by order. */
           let c = c1;
           let s = s1;
           let y = 0;
-          const top = this.orders;
+          let cb = 0;
+          const top = mo.topOrder;
           const ws = mo.sin;
           const wc = mo.cos;
+          const bl = this.blades;
           for (let o = 1; o <= top; o += 1) {
             y += ws[o] * s + wc[o] * c;
+            if (o === bl) {
+              cb = c;
+            }
             const c2 = c * c1 - s * s1;
             s = s * c1 + c * s1;
             c = c2;
           }
           y *= am;
-          /* The blade pass phase, for chopping the broadband. */
-          chop += Math.cos(TAU * mo.theta * this.blades);
-          /* The whine: the electrical frequency and its second harmonic. */
+          /* The blade pass phase, for chopping the broadband: the
+           * recurrence's own order B. */
+          chop += cb;
+          /* The whine: the electrical frequency and its second harmonic,
+           * its own phasor, sin 2 phi as 2 sin phi cos phi. */
           if (mo.whine > 0.001) {
-            mo.whinePhase += (fRot * m.poles / 2) / rate;
-            if (mo.whinePhase >= 1) {
-              mo.whinePhase -= Math.floor(mo.whinePhase);
-            }
-            y += mo.level * mo.whine * (0.05 * Math.sin(TAU * mo.whinePhase) + 0.025 * Math.sin(2 * TAU * mo.whinePhase));
+            const wc1 = mo.wpc * mo.wrc - mo.wps * mo.wrs;
+            mo.wps = mo.wps * mo.wrc + mo.wpc * mo.wrs;
+            mo.wpc = wc1;
+            y += mo.level * mo.whine * (0.05 * mo.wps + 0.05 * mo.wps * mo.wpc);
           }
           const pk = m.pan[k];
           eL += y * (1 - pk) * 0.5;
@@ -574,10 +669,15 @@ class EngineProcessor extends AudioWorkletProcessor {
           const g = 0.16 * bbLevel * (1 + 0.45 * ch) * am;
           const b0 = this.bb[0];
           b0.run(nz[0](), bbF, 0.9);
-          const b1 = this.bb[1];
-          b1.run(nz[1](), bbF, 0.9);
           eL += g * b0.bp;
-          eR += g * b1.bp;
+          /* The right ear's own noise on board; off board it is mono. */
+          if (onboard) {
+            const b1 = this.bb[1];
+            b1.run(nz[1](), bbF, 0.9);
+            eR += g * b1.bp;
+          } else {
+            eR += g * b0.bp;
+          }
         }
         /* A duct's inlet roar: low, broad, with the fan's speed squared. */
         if (m.duct && rpmMean > 300) {
@@ -702,7 +802,10 @@ class EngineProcessor extends AudioWorkletProcessor {
       this.windLevel += lpWind * (windWant - this.windLevel);
       let aL = 0;
       let aR = 0;
-      if (this.windLevel > 1e-4) {
+      /* Off board the air over another airframe is under its engine and
+       * under the distance: not made, which is a third of a far voice's
+       * cost. */
+      if (onboard && this.windLevel > 1e-4) {
         this.gust += lpGust * (nz[2]() - this.gust);
         const g = 0.3 * (m.windGain || 1) * this.windLevel * (1 + gustDepth * 2.5 * this.gust);
         winL.run(nz[4](), windF, windQ);
@@ -725,19 +828,23 @@ class EngineProcessor extends AudioWorkletProcessor {
       }
 
       /* ---- the harshness guard on the engine ---- */
-      const mono = 0.5 * (eL + eR);
-      this.harsh.run(mono, harshF, 1.4);
-      const band = this.harsh.bp;
-      this.envBand += envK * (Math.abs(band) - this.envBand);
-      this.envAll += envK * (Math.abs(mono) - this.envAll);
-      /* More than 30 percent of the engine's envelope in the band pulls the
-       * band down, by at most 9 dB. */
-      const ratio = this.envAll > 1e-9 ? this.envBand / this.envAll : 0;
-      const want = ratio > 0.3 ? Math.max(0.35, 0.3 / ratio) : 1;
-      this.harshGain += 0.001 * (want - this.harshGain);
-      const cut = (1 - this.harshGain) * band;
-      eL -= cut;
-      eR -= cut;
+      /* Off board too: a jet's roar at 20 m is still most of its 2 to
+       * 5 kHz, which the air at that distance barely touches. */
+      {
+        const mono = 0.5 * (eL + eR);
+        this.harsh.run(mono, harshF, 1.4);
+        const band = this.harsh.bp;
+        this.envBand += envK * (Math.abs(band) - this.envBand);
+        this.envAll += envK * (Math.abs(mono) - this.envAll);
+        /* More than 30 percent of the engine's envelope in the band pulls
+         * the band down, by at most 9 dB. */
+        const ratio = this.envAll > 1e-9 ? this.envBand / this.envAll : 0;
+        const want = ratio > 0.3 ? Math.max(0.35, 0.3 / ratio) : 1;
+        this.harshGain += 0.001 * (want - this.harshGain);
+        const cut = (1 - this.harshGain) * band;
+        eL -= cut;
+        eR -= cut;
+      }
 
       /* ---- propagation, for a source off board ---- */
       if (!onboard) {
@@ -779,10 +886,10 @@ class EngineProcessor extends AudioWorkletProcessor {
         this.lineAt = (this.lineAt + 1) % this.lineLen;
       }
 
-      eng[0][i] = eL;
-      eng[1][i] = eR;
-      air[0][i] = aL;
-      air[1][i] = aR;
+      eng[0][i] = eL * voiceLevel;
+      eng[1][i] = eR * voiceLevel;
+      air[0][i] = aL * voiceLevel;
+      air[1][i] = aR * voiceLevel;
 
       /* ---- the impact ---- */
       let h = 0;

@@ -273,7 +273,8 @@ export class RoomTag {
     if (!Number.isInteger(msg.goal) || msg.goal < GOAL_MIN || msg.goal > GOAL_MAX) {
       return this.error(conn, 'goal');
     }
-    if (core.seats.size < 2) {
+    /* Alone only in a room made for it (core.js games()). */
+    if (core.seats.size < 2 && core.meta.mode !== 'tag') {
       return this.error(conn, 'alone');
     }
     /* A whole room millisecond: the judgement steps on them. */

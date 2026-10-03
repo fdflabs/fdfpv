@@ -48,6 +48,13 @@
  *             would). What is left of it then (Scouts, which leave on
  *             their own, and on a loss Hunters) is cleared as gone. Then
  *             RESULT_MS of result, and the next round
+ *   stages    the waves and rounds above are what a mission of rounds
+ *             is; a mission is a stage graph (src/share/war/stages.js),
+ *             whose stages may be rounds or not, born on time windows,
+ *             families and triggers the seed and the judgement decide, and
+ *             left by exits to the next stage, a seeded twist, or the end
+ *             (enterStage, stageStep). A stage's entry is kept as the
+ *             match's checkpoint, which a lost match restarts from
  *   the end   won when the last round ends with the output at or over
  *             floorMw; lost the instant the output is under it. The view's
  *             rack and rackMax are the airframes the match's pilots have
@@ -83,17 +90,35 @@
  *   { type: 'war', op: 'start', mission }   count down and fight it
  *   { type: 'war', op: 'start', mission, intro: true }
  *                                           the same after a 'briefing'
- *                                           of INTRO_MS, which every
- *                                           screen fills with the intro
- *                                           film (src/render/warintro.js)
+ *                                           as long as the mission's film
+ *                                           (src/share/war/films,
+ *                                           briefingMs), which every
+ *                                           screen plays
+ *                                           (src/render/warintro.js)
+ *   { type: 'war', op: 'start', mission, from: 'checkpoint' }
+ *                                           after a loss, that mission
+ *                                           again from the stage it was
+ *                                           lost in (a countdown, no
+ *                                           briefing; RESTART_STARS)
  *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
- *                                           countdown starts now
+ *                                           countdown starts now; refused
+ *                                           'unwatched' unless every pilot
+ *                                           here has seen this film's
+ *                                           version (docs/campaign/
+ *                                           INTROS.md section 3: a first
+ *                                           viewing is never cut)
  *   { type: 'war', op: 'end' }              stop now
  *
  * and any pilot, about its own seat, while a war is on and it is neither
  * spawning nor already a wreck:
  *
  *   { type: 'war', op: 'lost' }             my airframe is lost
+ *   { type: 'war', op: 'ready' }            ready for what comes next
+ *                                           (a stage's { ready })
+ *
+ * and any pilot, any time: { type: 'war', op: 'seen', films: { id:
+ * version } }, the films this pilot has watched to the end (kept by
+ * token, in memory, as the loadouts are; the view's `seen`).
  *
  * What the room sends, to everybody:
  *
@@ -130,6 +155,10 @@
  *                                             attacker kind or 'defender',
  *                                             cut the power line spans
  *                                             whose gantry fell
+ *   { type: 'war', op: 'cue', cues }          a stage's cues as they fall
+ *                                             due, each { at, stage,
+ *                                             radio | music | cutaway |
+ *                                             text } (stages.js)
  *   { type: 'war', error }                    to a refused sender
  *
  * and AGENTS (0xA0) to each seat on the room tick, thinned by distance on
@@ -182,8 +211,12 @@ import {
   BLAST_M, KIND, KINDS, planAgent, poseAt,
 } from '../../src/share/war/routes.js';
 import { MISSIONS, waveSize, waveTarget } from '../../src/share/war/missions/index.js';
+import {
+  RESULT_MS, allBorn, arm, beatOf, crossings, draw, dueCues, dueSpawns, enter, exitDue, failedAny, leftBy, nextDue, note, objectives, objectivesView, roundsOf, slotKind,
+  stagesOf, target as exitTarget, wavesOf,
+} from '../../src/share/war/stages.js';
 import { wireStrike } from '../../src/share/war/wires.js';
-import { INTRO_MS } from '../../src/share/war/intro.js';
+import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
 import { attackerCharge, blast, defenderCharge } from '../../src/share/war/damage.js';
 import ITAIPU_CHUNKS from '../../src/share/war/itaipu-chunks.js';
@@ -194,7 +227,7 @@ import { POSE_MAX_SPEED } from './safety.js';
 import { Hunters, loadHeight } from './warhunt.js';
 import { HERE_MS, interestEvery } from './core.js';
 
-export { MISSIONS };
+export { MISSIONS, RESULT_MS };
 
 /* A scripted attacker's samples: this far apart on the room clock, on
  * multiples of it, whatever the ticks do. The route's curvature between
@@ -206,8 +239,6 @@ export const BIRTH_LEAD_MS = 2000;
 /* An assist: within this of a kill's point, in the ASSIST_MS before it. */
 export const ASSIST_M = 50;
 export const ASSIST_MS = 3000;
-/* A round's result shows this long before the next round starts. */
-export const RESULT_MS = 6000;
 
 /*
  * A pilot's loadout ({ type: 'war', op: 'loadout', loadout }), before the
@@ -250,6 +281,8 @@ export function parseLoadout(x) {
  *   noLosses  in every round no pilot spent more airframes than it
  *             earned (it ended the round with its whole base)
  *   output    the output at the end at or over the mission's starMw
+ * A match restarted from its lost stage (start's checkpoint) earns
+ * RESTART_STARS at most.
  */
 export function resultOf(mission, m) {
   const won = m.state === 'won';
@@ -259,13 +292,17 @@ export function resultOf(mission, m) {
     { id: 'noLosses', met: !m.lossy },
     { id: 'output', met: m.output >= need, need },
   ];
-  const stars = won ? criteria.filter((c) => c.met).length : 0;
+  /* A mission won from a restart at its lost stage earns two at most. */
+  const met = criteria.filter((c) => c.met).length;
+  const stars = won ? (m.restarted != null ? Math.min(RESTART_STARS, met) : met) : 0;
   /* The team's: a pilot whose seat another took is still on it. */
   const kills = [...Object.values(m.players), ...Object.values(m.away ?? {}).map((a) => a.player)].reduce((sum, p) => sum + p.kills, 0);
   return {
     won, stars, credits: 100 * stars + 10 * kills, criteria,
   };
 }
+/* The most stars a mission restarted from its lost stage can earn. */
+export const RESTART_STARS = 2;
 /* A pilot on its last airframe is taken as not flying once it has sent no
  * pose for STALE_MS, or has been on the ground (not airborne) for
  * GROUND_MS, so a round never waits on a flight that will not end. */
@@ -412,12 +449,6 @@ export function wireDraw(seed, id, j) {
   return draw((seed ^ WIRE_SALT ^ Math.imul(j + 1, 0x632be5ab)) >>> 0, id);
 }
 
-/* A seeded draw in [0, 1) from two integers, the same on every engine. */
-function draw(seed, id) {
-  let h = Math.imul((seed ^ Math.imul(id, 0x9e3779b1)) >>> 0, 0x85ebca6b) >>> 0;
-  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
 
 /*
  * The floor each map's hunters hold over (edge/rooms/warhunt.js), read once
@@ -474,6 +505,9 @@ export class RoomWar {
     /* For the checks: every detonation, arrival and crash, with when it
      * was decided. Memory only. */
     this.log = [];
+    /* token -> { film id: version } watched to the end: memory, as the
+     * loadouts (seenFilms). */
+    this.seen = new Map();
     /* token -> loadout sent before a game: memory, copied into the match
      * as its pilot joins it (enlist). By token, never by seat, so a seat's
      * next pilot never flies its last one's. */
@@ -491,7 +525,12 @@ export class RoomWar {
   }
 
   rounds() {
-    return Math.max(...this.mission().waves.map((w) => (w.round ?? 0))) + 1;
+    return roundsOf(this.mission());
+  }
+
+  /* The mission's stages, and its spawns as one list (a birth's wave). */
+  stages() {
+    return stagesOf(this.mission());
   }
 
   /* A seat's airframe is spent: one of its round's, at room ms t. */
@@ -500,6 +539,9 @@ export class RoomWar {
     const rec = this.seats.get(seat);
     if (rec) {
       rec.spentAt = t;
+    }
+    if (m.stage) {
+      note(m.stage, { t, e: 'spend', seat });
     }
     m.spent ??= {};
     /* Up to everything it has this round, earned airframes included:
@@ -612,9 +654,13 @@ export class RoomWar {
       mission: m.mission,
       goAt: m.goAt,
       briefAt: m.briefAt ?? null,
+      /* The match's film, and the seats here that have seen it (the
+       * host's skip waits on all of them). */
+      film: { id: filmFor(mission).id, version: filmFor(mission).version },
+      seen: this.seenHere(core),
       f: m.f,
       wave: m.wave,
-      waves: mission.waves.length,
+      waves: wavesOf(this.stages()).length,
       output: m.output,
       floor: mission.floorMw,
       down: m.down.slice(),
@@ -631,6 +677,28 @@ export class RoomWar {
       /* The round's clock origin, so the HUD can count down to its next
        * wave (a wave is born at roundAt + its `at`). */
       roundAt: m.roundAt ?? m.goAt,
+      /* The next wave's birth, room ms, as the room drew it (a window,
+       * a trigger), or null with none told yet. */
+      nextAt: m.stage ? nextDue(m.stage) : null,
+      /* The stage (src/share/war/stages.js) a pilot joining now walks
+       * into: what it is, when it began, its objectives, and the last
+       * line of text and music it cued. */
+      stage: m.stage ? {
+        id: m.stage.id,
+        n: m.stage.idx,
+        at: m.stage.at,
+        title: this.stages()[m.stage.idx].title ?? null,
+        text: m.stage.text,
+        music: m.stage.music,
+        objectives: objectivesView({
+          mission, m, st: m.stage, f: m.f,
+        }),
+        /* What the seed chose for each spawn (stages.js enter). */
+        draws: m.stage.due.map((d) => ({
+          t: d.t, route: d.route, sector: d.sector, az: d.az, kind: d.kind, born: d.born, skipped: d.skipped ?? false,
+        })),
+        ready: Object.keys(m.stage.ready).map(Number),
+      } : null,
       airframes: this.airframes(),
       spent: { ...(m.spent ?? {}) },
       earned: { ...(m.earned ?? {}) },
@@ -643,6 +711,10 @@ export class RoomWar {
       why: m.why,
       endAt: m.endAt,
       result: m.state === 'won' || m.state === 'lost' || m.state === 'ended' ? resultOf(mission, m) : null,
+      /* A lost match's stage to play again from, and a match that is such
+       * a restart (its stars capped, resultOf). */
+      checkpoint: m.state === 'lost' && m.checkpoint ? { stage: m.checkpoint.id, n: m.checkpoint.idx, title: this.stages()[m.checkpoint.idx].title ?? null } : null,
+      restarted: m.restarted ?? null,
       loadouts: Object.fromEntries(seats.map((seat) => [seat, this.loadoutOf(Number(seat))])),
       /* Each seat here's fuze radius, metres, on the airframe it flies
        * now: what its IN RANGE cue is drawn against. */
@@ -785,6 +857,12 @@ export class RoomWar {
     if (msg.op === 'loadout') {
       return this.loadout(core, conn, s, msg.loadout);
     }
+    if (msg.op === 'ready') {
+      return this.ready(core, conn, s, now);
+    }
+    if (msg.op === 'seen') {
+      return this.seenFilms(core, conn, s, msg.films);
+    }
     if (s.seat !== core.host()) {
       return [];
     }
@@ -792,7 +870,7 @@ export class RoomWar {
       return this.start(core, conn, msg, now);
     }
     if (msg.op === 'skipIntro') {
-      return this.skipIntro(core, now);
+      return this.skipIntro(core, conn, now);
     }
     if (msg.op === 'end' && this.on()) {
       const out = this.advance(core, now);
@@ -865,6 +943,13 @@ export class RoomWar {
     return this.changed(core);
   }
 
+  /* The stage a lost match of `mission` can be played again from, or
+   * null. */
+  checkpointOf(mission) {
+    const m = this.match;
+    return m && m.state === 'lost' && m.mission === mission.id && m.checkpoint ? m.checkpoint : null;
+  }
+
   start(core, conn, msg, now) {
     /* core.js hostCheck refuses it first; this holds without it. */
     if (this.meta.public && this.meta.mode !== 'war') {
@@ -880,6 +965,13 @@ export class RoomWar {
     if (mission.map !== core.meta.map) {
       return this.error(conn, 'map');
     }
+    /* Again from the stage this mission was lost in (the owner, 2 Oct:
+     * restart from the lost stage, two stars at most): only straight
+     * after that loss, and only the mission lost. */
+    const cp = msg.from === 'checkpoint' ? this.checkpointOf(mission) : null;
+    if (msg.from === 'checkpoint' && !cp) {
+      return this.error(conn, 'checkpoint');
+    }
     if (msg.loadout != null) {
       const l = parseLoadout(msg.loadout);
       if (!l) {
@@ -887,12 +979,13 @@ export class RoomWar {
       }
       this.loadouts.set(core.seats.get(conn).token, l);
     }
-    /* A briefing is the intro's span before the countdown's. */
-    const briefAt = msg.intro === true ? Math.ceil(core.roomMs(now)) : null;
+    /* A briefing is the intro's span before the countdown's; a restart
+     * from a stage has none. */
+    const briefAt = msg.intro === true && !cp ? Math.ceil(core.roomMs(now)) : null;
     /* A mission's prepMs lengthens its countdown: the night raid's, so
      * every screen has built its night world and seated its pilot well
      * before the go, never after it (itaipu-4.js). */
-    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : INTRO_MS) + COUNTDOWN_MS + (mission.prepMs ?? 0);
+    const goAt = Math.ceil(core.roomMs(now)) + (briefAt == null ? 0 : briefingMs(mission)) + COUNTDOWN_MS + (mission.prepMs ?? 0);
     this.match = {
       id: this.nextId,
       mission: mission.id,
@@ -928,6 +1021,34 @@ export class RoomWar {
       damage: [],
       endAt: null,
     };
+    if (cp) {
+      /* The match as it was when the stage opened: its seed, so every
+       * draw is the one it had, the output and the targets down, the
+       * path, the rounds before it; the stage entered again at the go. */
+      Object.assign(this.match, {
+        seed: cp.seed,
+        output: cp.output,
+        down: cp.down.slice(),
+        downAt: { ...cp.downAt },
+        breaches: cp.breaches.map((b) => ({ ...b })),
+        /* What was broken when the stage opened stays broken. */
+        wreck: JSON.parse(JSON.stringify(cp.wreck ?? {})),
+        damage: (cp.damage ?? []).map((e) => ({ ...e })),
+        cut: (cp.cut ?? []).slice(),
+        path: cp.path.map((x) => ({ ...x })),
+        was: cp.was,
+        round: cp.round,
+        roundsIn: cp.roundsIn,
+        results: cp.results.slice(),
+        lossy: cp.lossy,
+        scouts: cp.scouts,
+        wave: cp.wave,
+        nextAgent: cp.nextAgent,
+        entries: cp.entry - 1,
+        from: cp.idx,
+        restarted: cp.id,
+      });
+    }
     for (const t of core.seats.values()) {
       this.enlist(t);
     }
@@ -946,16 +1067,44 @@ export class RoomWar {
       r.armFrom = -Infinity;
       r.crashT = -Infinity;
     }
-    return [{ store: 'meta', value: core.meta }, ...this.changed(core)];
+    /* A restart from a stage: everybody is told again what was broken
+     * then, as a pilot who joins is. */
+    const broken = this.match.damage.flatMap((e) => this.broadcast(core, { type: 'war', op: 'damage', ...e }));
+    return [{ store: 'meta', value: core.meta }, ...this.changed(core), ...broken];
+  }
+
+  /* A pilot's watched films, { id: version }: what the host's skip asks
+   * of everybody here. Anything else is refused 'seen'. */
+  seenFilms(core, conn, s, films) {
+    if (!films || typeof films !== 'object' || Array.isArray(films)
+      || !Object.values(films).every((v) => Number.isInteger(v) && v >= 0)) {
+      return this.error(conn, 'seen');
+    }
+    this.seen.set(s.token, { ...films });
+    return this.match ? this.changed(core) : [];
+  }
+
+  /* The seats here that have seen this match's film, its version. */
+  seenHere(core) {
+    const f = filmFor(this.mission());
+    return this.players(core).filter((seat) => {
+      const t = [...core.seats.values()].find((x) => x.seat === seat);
+      return t && (this.seen.get(t.token)?.[f.id] ?? -1) >= f.version;
+    });
   }
 
   /* The host cuts the briefing short: the countdown runs from now, for
-   * everybody. Nothing outside a briefing, so a late or repeated skip
-   * cannot move a countdown already under way. */
-  skipIntro(core, now) {
+   * everybody, once every pilot here has seen the film (a first viewing
+   * is never cut, INTROS.md section 3; the host's own skip then leaves
+   * only its own view). Nothing outside a briefing, so a late or repeated
+   * skip cannot move a countdown already under way. */
+  skipIntro(core, conn, now) {
     const m = this.match;
     if (!m || m.state !== 'briefing') {
       return [];
+    }
+    if (this.seenHere(core).length < this.players(core).length) {
+      return this.error(conn, 'unwatched');
     }
     m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     m.f = m.goAt;
@@ -1052,16 +1201,20 @@ export class RoomWar {
     return x;
   }
 
-  /* The waves due, announced BIRTH_LEAD_MS ahead of their birth. */
+  /* The stage's spawns due, announced BIRTH_LEAD_MS ahead of their
+   * birth (src/share/war/stages.js), only while the stage is live: in a
+   * round's result nothing new comes. */
   births(core, roomNow) {
     const m = this.match;
     const mission = this.mission();
+    const st = m.stage;
+    if (!st || (m.roundState ?? 'live') !== 'live') {
+      return [];
+    }
     const born = [];
-    const roundAt = m.roundAt ?? m.goAt;
-    while (m.wave < mission.waves.length && (m.roundState ?? 'live') === 'live' && (mission.waves[m.wave].round ?? 0) === (m.round ?? 0)
-      && roomNow >= roundAt + mission.waves[m.wave].at * 1000 - BIRTH_LEAD_MS) {
-      const w = mission.waves[m.wave];
-      const t0 = roundAt + w.at * 1000;
+    for (const d of dueSpawns(mission, st, roomNow + BIRTH_LEAD_MS)) {
+      const w = d.w;
+      const t0 = d.t;
       /* While a scout of the last scout wave lives (or got away), the
        * waves fly their routes exactly; once all of them are dead, each
        * attacker draws its error (section 4.2). */
@@ -1075,19 +1228,30 @@ export class RoomWar {
         m.nextAgent += 1;
         const err = blind && w.spread ? mm(w.spread * (2 * draw(m.seed, id) - 1)) : 0;
         const a = {
-          id, kind: w.kind, route: w.route, t0, k, n, err, target: waveTarget(w, k), wave: m.wave,
+          id, kind: slotKind(w, d, k, m.seed, st.entry), route: d.route, t0, k, n, err, target: waveTarget(w, k), wave: w.si,
         };
+        /* The route turned by the seed's azimuth, and the sector it was
+         * drawn from (stages.js enter). */
+        if (d.az != null) {
+          a.az = d.az;
+        }
+        if (d.sector != null) {
+          a.sector = d.sector;
+        }
         /* Whether it flies into a power line on its way, and when. */
         const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, id, j), m.cut && m.cut.length ? new Set(m.cut) : null);
         if (wire != null) {
           a.wire = wire;
         }
         m.agents.push(a);
-        this.adopt(a);
+        const x = this.adopt(a);
+        note(st, {
+          t: t0, e: 'born', id, kind: a.kind, group: w.group ?? null, sector: a.sector ?? null, cross: crossings(mission, x.plan),
+        });
         born.push(a);
       }
-      if (w.kind === 'scout') {
-        m.scouts = { wave: m.wave, n, killed: 0 };
+      if (slotKind(w, d, 0, m.seed, st.entry) === 'scout') {
+        m.scouts = { wave: w.si, n, killed: 0 };
       }
       m.wave += 1;
     }
@@ -1184,6 +1348,9 @@ export class RoomWar {
     }
     if (m.state === 'countdown' && roomNow >= m.goAt) {
       m.state = 'live';
+      /* The first stage from the go, which a skipped briefing moves; or
+       * the one a restart came back to. */
+      this.enterStage(core, m.from ?? 0, m.goAt);
     }
     let dirty = m.state !== state;
     if (m.state === 'live') {
@@ -1194,9 +1361,9 @@ export class RoomWar {
       const judged = this.judge(core, roomNow);
       dirty ||= judged.dirty;
       out.push(...judged.out);
-      const round = this.roundStep(core, roomNow);
-      dirty ||= round.dirty;
-      out.push(...round.out);
+      const stage = this.stageStep(core, roomNow);
+      dirty ||= stage.dirty;
+      out.push(...stage.out);
     }
     return dirty ? [...this.changed(core), ...out] : out;
   }
@@ -1385,6 +1552,9 @@ export class RoomWar {
       }
     }
     killed.sort((a, b) => a.id - b.id);
+    for (const a of killed) {
+      this.noteGone(a, tc, 'kill');
+    }
     const player = m.players[d.seat] ??= {
       kills: 0, assists: 0, mw: 0, token: d.token,
     };
@@ -1448,6 +1618,11 @@ export class RoomWar {
       }
       y.a.stalls = [...(y.a.stalls ?? []), [tc, EMP_MS]];
       y.plan = planAgent(mission, y.a);
+      /* Its lines are crossed later now (stages.js { crossed }). */
+      const b = m.stage && m.stage.ev.find((e) => e.e === 'born' && e.id === y.a.id);
+      if (b) {
+        b.cross = crossings(mission, y.plan);
+      }
       y.track = new Track(AGENT_KEEP_MS);
       y.next = null;
       y.restored = true;
@@ -1482,7 +1657,8 @@ export class RoomWar {
     }
     const target = a.target != null ? this.mission().targets[a.target] : null;
     const hit = Boolean(target) && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
-    this.take(a, hit);
+    this.take(a, hit, t);
+    this.noteGone(a, t, x.plan.end === 'arrive' ? 'arrive' : 'leave', hit);
     m.lastGone = t;
     this.remove([a.id]);
     this.log.push({
@@ -1514,6 +1690,7 @@ export class RoomWar {
     const scoutsWere = m.scouts ? m.scouts.killed : 0;
     m.lastGone = t;
     this.remove([a.id], true);
+    this.noteGone(a, t, 'wire');
     const scoutsDown = Boolean(m.scouts) && scoutsWere < m.scouts.n && m.scouts.killed >= m.scouts.n;
     this.log.push({
       what: 'wire', t, id: a.id, kind: a.kind, decided: roomNow,
@@ -1536,20 +1713,24 @@ export class RoomWar {
     }
   }
 
-  /* An attacker at its target: the target's mw off the output, once. */
-  take(a, hit) {
+  /* An attacker at its target at t: the target's mw off the output, once. */
+  take(a, hit, t) {
     if (hit) {
-      this.lose(a.target);
+      this.lose(a.target, t);
     }
   }
 
-  /* A target lost, by a hit or by what broke: its mw off the output,
+  /* A target lost at t, by a hit or by what broke: its mw off the output,
    * once. A target the mission does not name costs nothing. */
-  lose(id) {
+  lose(id, t) {
     const m = this.match;
     const target = this.mission().targets[id];
     if (target && !m.down.includes(id)) {
       m.down.push(id);
+      (m.downAt ??= {})[id] = t;
+      if (m.stage) {
+        note(m.stage, { t, e: 'down', target: id });
+      }
       m.output = Math.max(0, m.output - target.mw);
       m.roundMw = (m.roundMw ?? 0) + target.mw;
     }
@@ -1581,7 +1762,11 @@ export class RoomWar {
         m.cut = [...(m.cut ?? []), ...r.cut];
       }
       if (r.down) {
-        this.lose(r.target);
+        this.lose(r.target, mm(t));
+      }
+      /* A first opening is a breach, for the stages' triggers. */
+      if (r.openings.length && !m.breaches?.some((b) => b.target === r.target)) {
+        this.breach(r.target, mm(t));
       }
       this.log.push({
         what: 'damage', t, target: r.target, chunks: r.chunks.length, open: r.openings.length > 0, down: r.down,
@@ -1592,96 +1777,247 @@ export class RoomWar {
   }
 
   /*
-   * The round, after the judgement: ended when its waves are all born and
-   * none of its attackers but Scouts is left, or when every pilot here
-   * has spent all their airframes; after its result, the next. Decided
-   * at the frontier f, the judgement's clock.
+   * Enter stage idx at room ms `at` (src/share/war/stages.js): its spawns'
+   * times drawn, its clock the round's (roundAt, what the HUD counts the
+   * next wave from), and, a round, every pilot's airframes back.
    */
-  roundStep(core, roomNow) {
+  enterStage(core, idx, at) {
+    const m = this.match;
+    const mission = this.mission();
+    const def = this.stages()[idx];
+    m.entries = (m.entries ?? 0) + 1;
+    /* What a restart from this stage starts from (start's checkpoint):
+     * the match as the stage opens, before entering it changes it. */
+    m.checkpoint = {
+      idx,
+      id: def.id,
+      entry: m.entries,
+      seed: m.seed,
+      output: m.output,
+      down: m.down.slice(),
+      downAt: { ...(m.downAt ?? {}) },
+      breaches: (m.breaches ?? []).map((b) => ({ ...b })),
+      wreck: JSON.parse(JSON.stringify(m.wreck ?? {})),
+      damage: (m.damage ?? []).map((e) => ({ ...e })),
+      cut: (m.cut ?? []).slice(),
+      path: (m.path ?? []).map((x) => ({ ...x })),
+      was: m.was ?? null,
+      round: m.round ?? 0,
+      roundsIn: m.roundsIn ?? null,
+      results: (m.results ?? []).slice(),
+      lossy: Boolean(m.lossy),
+      scouts: m.scouts ? { ...m.scouts } : null,
+      wave: m.wave,
+      nextAgent: m.nextAgent,
+    };
+    m.stage = enter(mission, idx, at, m.seed, m.entries, { was: m.was ?? null, pilots: Math.max(1, this.players(core).length) });
+    (m.path ??= []).push({ id: def.id, at });
+    m.roundState = 'live';
+    m.roundResult = null;
+    m.roundMw = 0;
+    m.roundAt = at;
+    m.nextRoundAt = null;
+    if (def.round) {
+      m.round = m.roundsIn == null ? 0 : (m.round ?? 0) + 1;
+      m.roundsIn = (m.roundsIn ?? 0) + 1;
+      m.spent = {};
+      m.earned = {};
+    }
+  }
+
+  /* What the stage's triggers read (stages.js fired), at the frontier. */
+  stageCtx(core, roomNow) {
+    const m = this.match;
+    const st = m.stage;
+    const here = this.players(core);
+    const f = m.f;
+    const pilots = [];
+    for (const d of this.flying(core)) {
+      const p = here.includes(d.seat) ? trackPose(d.track, f, {}) : null;
+      if (p) {
+        pilots.push({ seat: d.seat, p: [p.px, p.py, p.pz] });
+      }
+    }
+    const allowed = here.reduce((sum, seat) => sum + this.allowance(seat), 0);
+    const spent = here.reduce((sum, seat) => sum + (m.spent?.[seat] ?? 0), 0);
+    return {
+      mission: this.mission(),
+      m,
+      st,
+      f,
+      here,
+      pilots,
+      spent: allowed > 0 ? spent / allowed : 0,
+      allBorn: allBorn(st),
+      cleared: !m.agents.some((a) => a.kind !== 'scout'),
+      lastGone: m.lastGone,
+      allOut: here.length > 0 && !here.some((seat) => this.stillFlying(seat, roomNow)),
+    };
+  }
+
+  /*
+   * The stage, after the judgement: its triggered spawns timed, its
+   * objectives settled, its cues told, and its exit taken when one fires
+   * (stages.js exitDue): the attackers left cleared as it says, a round's
+   * result counted, and then the end, the next stage at once, or the
+   * next after `after` ms of result (roundState 'result', the round's
+   * card). Every time here is the judgement's.
+   */
+  stageStep(core, roomNow) {
     const m = this.match;
     const mission = this.mission();
     const out = [];
-    if (m.state !== 'live') {
+    if (m.state !== 'live' || !m.stage) {
       return { out, dirty: false };
     }
     if ((m.roundState ?? 'live') === 'result') {
       if (roomNow < m.nextRoundAt) {
         return { out, dirty: false };
       }
-      m.round = (m.round ?? 0) + 1;
-      m.roundState = 'live';
-      m.roundResult = null;
-      m.roundMw = 0;
-      m.roundAt = m.nextRoundAt;
-      m.nextRoundAt = null;
-      m.spent = {};
-      m.earned = {};
-      return { out, dirty: true };
+      this.enterStage(core, m.stage.next, m.nextRoundAt);
+      /* Its first spawns told now, not a tick later: in between, a
+       * screen counted to a wave that was already being announced. */
+      return { out: this.births(core, roomNow), dirty: true };
     }
-    const round = m.round ?? 0;
-    const born = m.wave >= mission.waves.length || (mission.waves[m.wave].round ?? 0) !== round;
-    const here = this.players(core);
-    let result = null;
-    if (born && !m.agents.some((a) => a.kind !== 'scout')) {
-      result = (m.roundMw ?? 0) > 0 ? 'damaged' : 'win';
-    } else if (here.length && !here.some((seat) => this.stillFlying(seat, roomNow))) {
-      result = 'lost';
+    const ctx = this.stageCtx(core, roomNow);
+    const st = m.stage;
+    arm(ctx);
+    const objWas = JSON.stringify(st.obj);
+    objectives(ctx);
+    let dirty = JSON.stringify(st.obj) !== objWas;
+    const cues = dueCues(ctx);
+    if (cues.length) {
+      dirty = true;
+      out.push(...this.broadcast(core, {
+        type: 'war', op: 'cue', cues: cues.map(({ t, cue: { when: _w, at: _a, ...cue } }) => ({ ...cue, at: t, stage: st.id })),
+      }));
     }
-    if (!result) {
-      return { out, dirty: false };
+    const due = exitDue(ctx);
+    if (!due) {
+      return { out, dirty };
     }
-    /* A round won or damaged ends when its last attacker went, on the
-     * judgement's timeline, whatever the lag; a lost one at the frontier,
-     * where the room found every pilot out. */
-    const t = result === 'lost' ? m.f : Math.max(m.lastGone ?? m.f, m.roundAt ?? m.goAt);
-    for (const a of [...m.agents]) {
-      const x = this.live.get(a.id);
-      /* One bound for a power line on its way never gets through. */
-      const through = result === 'lost' && a.target != null && !(x && x.plan.end === 'wire');
-      const target = through ? mission.targets[a.target] : null;
-      const hit = through && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
-      if (through) {
-        this.take(a, hit);
-      }
-      const o = x && a.kind !== 'hunter' ? poseAt(x.plan, Math.min(Math.max(t, x.plan.t0), x.plan.tEnd)) : null;
-      const h = a.kind === 'hunter' ? this.lastPoses.find((q) => q.id === a.id) : null;
-      const p = (o ? o.p : h ? h.p : [0, 0, 0]).map(mm);
-      this.remove([a.id]);
+    const { exit, t, k } = due;
+    const def = this.stages()[st.idx];
+    const result = exit.result === 'auto' ? ((m.roundMw ?? 0) > 0 || failedAny(st) ? 'damaged' : 'win') : (exit.result ?? null);
+    /* What the next stage adapts to (stages.js enter), read before the
+     * clear moves anything. */
+    m.was = leftBy(st, ctx.spent);
+    if (exit.clear) {
+      out.push(...this.clearAll(core, exit.clear === 'through', t, roomNow));
+    }
+    if (def.round) {
       this.log.push({
-        what: through ? 'through' : 'cleared', t, id: a.id, target: a.target, hit, decided: roomNow,
+        what: 'round', t, round: m.round ?? 0, result, mw: m.roundMw ?? 0, earned: Object.values(m.earned ?? {}).reduce((sum, n) => sum + n, 0),
       });
-      const msg = {
-        type: 'war', op: 'dead', ids: [a.id], at: t, by: 0, why: through ? 'arrive' : 'leave', p,
-      };
-      if (through) {
-        msg.target = a.target;
-        msg.hit = hit;
-      }
-      out.push(...this.broadcast(core, msg));
-      /* Through is an arrival: its warhead goes off at its aim point. */
-      if (through && o) {
-        out.push(...this.strike(core, poseAt(x.plan, x.plan.tEnd).p, attackerCharge(a.kind), t, a.kind));
-      }
     }
     this.log.push({
-      what: 'round', t, round, result, mw: m.roundMw ?? 0, earned: Object.values(m.earned ?? {}).reduce((sum, k) => sum + k, 0),
+      what: 'stage', t, stage: st.id, exit: k, decided: roomNow,
     });
-    m.roundState = 'result';
-    m.roundResult = result;
-    (m.results ??= []).push(result);
-    if (here.some((seat) => (m.spent?.[seat] ?? 0) > (m.earned?.[seat] ?? 0))) {
-      m.lossy = true;
+    const beat = beatOf(exit, m.seed, st, k);
+    if (def.round || beat > 0) {
+      m.roundState = 'result';
+      m.roundResult = result;
+    }
+    if (def.round) {
+      (m.results ??= []).push(result);
+      if (ctx.here.some((seat) => (m.spent?.[seat] ?? 0) > (m.earned?.[seat] ?? 0))) {
+        m.lossy = true;
+      }
     }
     this.settle(t);
     if (m.state !== 'live') {
       return { out, dirty: true };
     }
-    if (round + 1 >= this.rounds()) {
-      this.finish(t, 'won', 'waves');
+    const to = exitTarget(mission, st, exit, m.seed, k);
+    if (to === 'won' || to === 'lost') {
+      this.finish(t, to, exit.why ?? 'stages');
       return { out, dirty: true };
     }
-    m.nextRoundAt = t + RESULT_MS;
+    if (beat > 0) {
+      st.next = to;
+      m.nextRoundAt = t + beat;
+    } else {
+      this.enterStage(core, to, t);
+      out.push(...this.births(core, roomNow));
+    }
     return { out, dirty: true };
+  }
+
+  /* Every attacker alive at the end of a stage, at t: with `through`, each
+   * with a target gets through, taking it as an arrival would; the rest
+   * go. */
+  clearAll(core, through, t, roomNow) {
+    const m = this.match;
+    const mission = this.mission();
+    const out = [];
+    for (const a of [...m.agents]) {
+      const x = this.live.get(a.id);
+      /* One bound for a power line on its way never gets through. */
+      const goes = through && a.target != null && !(x && x.plan.end === 'wire');
+      const target = goes ? mission.targets[a.target] : null;
+      const hit = goes && a.kind !== 'decoy' && Math.abs(a.err) <= (target.hitR ?? target.r);
+      if (goes) {
+        this.take(a, hit, t);
+      }
+      this.noteGone(a, t, goes ? 'arrive' : 'leave', hit);
+      const o = x && a.kind !== 'hunter' ? poseAt(x.plan, Math.min(Math.max(t, x.plan.t0), x.plan.tEnd)) : null;
+      const h = a.kind === 'hunter' ? this.lastPoses.find((q) => q.id === a.id) : null;
+      const p = (o ? o.p : h ? h.p : [0, 0, 0]).map(mm);
+      this.remove([a.id]);
+      this.log.push({
+        what: goes ? 'through' : 'cleared', t, id: a.id, target: a.target, hit, decided: roomNow,
+      });
+      const msg = {
+        type: 'war', op: 'dead', ids: [a.id], at: t, by: 0, why: goes ? 'arrive' : 'leave', p,
+      };
+      if (goes) {
+        msg.target = a.target;
+        msg.hit = hit;
+      }
+      out.push(...this.broadcast(core, msg));
+      /* Through is an arrival: its warhead goes off at its aim point. */
+      if (goes && x && a.kind !== 'hunter') {
+        out.push(...this.strike(core, poseAt(x.plan, x.plan.tEnd).p, attackerCharge(a.kind), t, a.kind));
+      }
+    }
+    return out;
+  }
+
+  /* The group an attacker's spawn named, for the stage's counts. */
+  groupOf(a) {
+    return wavesOf(this.stages())[a.wave]?.group ?? null;
+  }
+
+  /* An attacker gone at t, `how` (stages.js note), for the triggers. */
+  noteGone(a, t, how, hit = false) {
+    if (this.match.stage) {
+      note(this.match.stage, {
+        t, e: 'gone', id: a.id, kind: a.kind, group: this.groupOf(a), sector: a.sector ?? null, how, hit,
+      });
+    }
+  }
+
+  /*
+   * An opening in the dam at room ms t (the dam break's contract: the
+   * room's 'damage' event), what a stage's { breach } trigger waits for.
+   * The damage code calls it as it judges one.
+   */
+  breach(target, t) {
+    const m = this.match;
+    if (!m || m.state !== 'live') {
+      return;
+    }
+    (m.breaches ??= []).push({ target, at: t });
+  }
+
+  /* A pilot says it is ready for what comes next: a stage's { ready }. */
+  ready(core, conn, s, now) {
+    const m = this.match;
+    if (!m || m.state !== 'live' || !m.stage) {
+      return this.error(conn, 'off');
+    }
+    m.stage.ready[s.seat] ??= Math.ceil(core.roomMs(now));
+    return this.changed(core);
   }
 
   finish(t, state, why) {

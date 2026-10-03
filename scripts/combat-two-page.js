@@ -1,8 +1,9 @@
 /*
  * combat-two-page.js: combat's proof on the real shell
  * (docs/COMBAT-PLAN.md section 7). Two headless pages in one private room
- * on the Swiss valley: A flies the five inch in red, B the Cub in blue.
- * A starts a round; both tow their toilet paper. B hangs still sixty
+ * made for combat on the Swiss valley: A flies the five inch in red, B the
+ * Cub in blue. A, the host, starts a three minute round from the room's
+ * lobby (its Round row, Start now); both tow their toilet paper. B hangs still sixty
  * metres up with its paper straight down; A flies past it 3.4 m off (no
  * cut), then 2.7 m off, and the owner's three metres cut it.
  * Both screens must show the same cut from the room, the piece falling,
@@ -110,7 +111,7 @@ try {
     /* A key, the gesture a browser wants before it makes a sound. */
     await p.tap('KeyZ');
   }
-  const code = await a.evaluate('window.__roomCreate()');
+  const code = await a.evaluate("window.__roomCreate({ mode: 'combat' })");
   await a.until("window.__rooms().phase === 'open'", 30000);
   await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
   for (const p of [a, b]) {
@@ -135,10 +136,15 @@ try {
     window.__crashThrow({ x, y, z, yaw: 0, pitch: 0, roll: 0, vx: 0, vy: 0, vz: 0, hold: true, fresh: true });
     return { x, y, z };
   })()`);
-  /* The host presses the Combat row, as a pilot does. */
-  const row = await a.evaluate("window.__ui.friendsRows().some((r) => r.action === 'friends-combat-3')");
-  check('the host has a Combat row for 3 minutes', row === true);
-  await a.evaluate("window.__ui.act('friends-combat-3'); true");
+  /* The host's lobby: its Round row at 3 minutes, and Start now, pressed
+   * as a pilot does. */
+  const row = await a.evaluate(`(() => {
+    const rows = window.__ui.friendsRows();
+    const round = rows.find((r) => r.label === 'Round');
+    return { minutes: round ? round.value : null, start: rows.some((r) => r.action === 'friends-lobby-start') };
+  })()`);
+  check('the host\'s lobby has its Round row at 3 minutes, and Start now', row.minutes === '3 min' && row.start, JSON.stringify(row));
+  await a.evaluate("window.__ui.act('friends-lobby-start'); true");
   for (const p of [a, b]) {
     await p.until("window.__combat().round.state === 'countdown'", 15000);
   }
@@ -146,6 +152,8 @@ try {
   for (const p of [a, b]) {
     await p.until("window.__combat().round.state === 'on'", 40000);
   }
+  const stopRow = await a.evaluate("window.__ui.friendsRows().some((r) => r.action === 'friends-combat-stop')");
+  check('in the round, the host\'s room screen has a Stop row', stopRow === true);
   await b.sleep(1500);
   const sa = await a.evaluate('window.__combat()');
   const sb = await b.evaluate('window.__combat()');
@@ -330,13 +338,14 @@ try {
   await b.evaluate('window.__setCam(null); true');
 
   /*
-   * THE END OF A ROUND AND THE NEXT (continuous play, the lead's decision
-   * after the owner flew dead paper for minutes in a round that had
-   * ended). The round's clock is on screen; its last ten seconds are
-   * counted big; at the end every pilot's paper comes off and falls on
-   * both screens and the results stand big in the middle; fifteen seconds
-   * later the next round counts down with fresh paper, and a cut works in
-   * it. The three minute round started above runs out here.
+   * THE END OF A ROUND AND THE NEXT. The round's clock is on screen; its
+   * last ten seconds are counted big; at the end every pilot's paper comes
+   * off and falls on both screens and the results stand big in the
+   * middle; then both are back in the room's lobby (the owner,
+   * 2026-10-02: back to the lobby after every round), and the host's
+   * Start now counts the next round down with fresh paper, the same
+   * length, and a cut works in it. The three minute round started above
+   * runs out here.
    */
   const during = await a.evaluate('window.__combat()');
   check('the round\'s clock is on screen, big', /^\d:\d\d$/.test(during.hud.clock), during.hud.clock);
@@ -353,13 +362,18 @@ try {
   check('every pilot\'s paper came off: nobody tows any, on either screen', ended.every((c) => (!c.paper || !c.paper.chains.some((x) => x.id === 0))
     && c.peers.every((p) => !p.chains.some((x) => x.id === 0 && x.n > 1))), ended.map((c) => JSON.stringify(c.paper && c.paper.chains.map((x) => x.id))).join(' '));
   check('and it falls: each screen draws the pieces coming down', ended.every((c) => c.paper && c.paper.chains.some((x) => x.id !== 0)));
-  check('the results stand big in the middle of both screens, with the next round\'s clock', ended.every((c) => c.hud.card && /Results|Resultados/.test(c.hud.board) && /Next round|próxima/.test(c.hud.head)), ended.map((c) => c.hud.head).join(' | '));
-  const hostRows = await a.evaluate("window.__ui.friendsRows().filter((r) => r.action === 'friends-combat-stop' || /Next round/.test(String(r.value))).map((r) => r.action || r.value)");
-  check('the host\'s room screen says when the next round starts, with a Stop row', hostRows.includes('friends-combat-stop'), JSON.stringify(hostRows));
+  check('the results stand big in the middle of both screens', ended.every((c) => c.hud.card && /Results|Resultados/.test(c.hud.board)), ended.map((c) => c.hud.head).join(' | '));
   await a.evaluate(`window.__setCam(${high.x + 25}, ${high.y - 30}, ${high.z + 35}, ${high.x}, ${high.y - 50}, ${high.z}, 70); true`);
   await a.sleep(400);
   await shot(a, 'a-round-over');
   await a.evaluate('window.__setCam(null); true');
+  const IN_LOBBY = "window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
+  for (const p of [a, b]) {
+    await p.until(IN_LOBBY, 30000).catch(() => {});
+  }
+  const lobbies = await Promise.all([a, b].map((p) => p.evaluate(`({ lobby: ${IN_LOBBY}, start: window.__ui.friendsRows().some((r) => r.action === 'friends-lobby-start') })`)));
+  check('then both are back in the room\'s lobby, the host with Start now', lobbies.every((v) => v.lobby) && lobbies[0].start, JSON.stringify(lobbies));
+  await a.evaluate("window.__ui.act('friends-lobby-start'); true");
   for (const p of [a, b]) {
     await p.until(`window.__combat().round.state === 'countdown' && window.__combat().round.round === ${roundOne + 1}`, 30000).catch(() => {});
   }
@@ -373,7 +387,7 @@ try {
   })()`);
   await b.sleep(2500);
   const nextRound = [await a.evaluate('window.__combat()'), await b.evaluate('window.__combat()')];
-  check('fifteen seconds on, the next round counts down on both screens, the same length', nextRound.every((c) => c.round.state === 'countdown' && c.round.round === roundOne + 1 && c.round.minutes === 3),
+  check('Start now: the next round counts down on both screens, the same length', nextRound.every((c) => c.round.state === 'countdown' && c.round.round === roundOne + 1 && c.round.minutes === 3),
     nextRound.map((c) => `${c.round.state} ${c.round.round}`).join(' | '));
   check('with fresh paper for both, fifty metres each, and the results put away', nextRound.every((c) => c.paper && c.paper.links === 50 && !c.hud.card),
     nextRound.map((c) => c.paper && c.paper.links).join(' '));
