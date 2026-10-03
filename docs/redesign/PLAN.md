@@ -1,6 +1,6 @@
 # The redesign: three hubs, one session system, one design system
 
-**Status: PROPOSAL, awaiting the owner's approval.** Nothing in this file
+**Status: APPROVED 2026-10-02, with the decisions in section 6.** Nothing in this file
 is built yet except the UI playground (section 4.5). Written 2026-10-02
 against `main` at 6ba32c70, with the unmerged lobby work read from branch
 `one-click-lobbies` (c4dd2abe) and PR #359. OVERVIEW.md is the one page
@@ -375,8 +375,8 @@ string keys) sits in the same entry; the server ignores it.
 | id | category | title (key) | min, max | solo | AI | drop in | visibility | aircraft | worlds | duration | setting |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `free` | flightclub | Free Flight | 1, 16/8 | yes | no | yes | solo, friends, public | planes solo; room in a room | swiss2 (home), alps, itaipu | open | none |
-| `race` | flightclub | Track Day (now Track mode) | 1, 16/8 | yes | no | **no**: waits for the next race | solo, friends, public | all (a plane must fit the gates) | the track's world | laps 1 to 10 | track |
-| `combat` | flightclub | Streamer Combat (now Toilet paper combat) | 1, 16/8 | yes, practice | no | yes | solo, friends, public | room | swiss2 (home), alps, itaipu | 3 or 5 | minutes 3, 5 |
+| `race` | flightclub | Track Day (renamed from Track mode) | 1, 16/8 | yes | no | **no**: waits for the next race | solo, friends, public | all (a plane must fit the gates) | the track's world | laps 1 to 10 | track |
+| `combat` | flightclub | Streamer Combat (renamed from Toilet paper combat) | 1, 16/8 | yes, practice | no | yes | solo, friends, public | room | swiss2 (home), alps, itaipu | 3 or 5 | minutes 3, 5 |
 | `tag` | flightclub | Catch the Ace | 1, 16/8 | yes, practice | no | yes | solo, friends, public | room | swiss2 (home), alps, itaipu | to a goal | goal |
 | `war` | operations | Defend the Paraná | 1, 16/8 (missions tuned for 1 to 8) | yes | no (attackers are the game) | yes | solo, friends, public | room | itaipu only | per mission | mission |
 
@@ -505,34 +505,31 @@ and #359 are merged, because phases 1 to 5 touch their files.
 | --- | --- | --- |
 | 0 | This plan, OVERVIEW.md, the UI playground and its check. No player visible change. | Adds `ui:playground` (Node, CI). |
 | 1 | `src/share/modes.js`; `WAYS`, `LOBBY_GAMES`, server `GAMES`, `ROOM_MODES` derived from it; the inline branches of section 0.2 become fields. Server half first. No visible change. | Adds `modes:selftest` (Node, CI): every table entry has a registry entry and back, every field valid. `rooms:selftest`, `rooms:server`, `rooms:load` unchanged and green; `game:lobby` for all five games, `modes:card` unchanged and green (the proof nothing moved). |
-| 1b | Streamer Combat: `combat.card` "Streamer combat", Spanish "Combate de serpentinas"; the toilet paper stays in the line and the card art. | `strings:selftest`, `lint:copy`; the label is read by `modes:card`, `war:card`, `friends:card`, which are updated to the new name. |
+| 1b | The two renames (section 6): `combat.card` "Streamer Combat", Spanish "Combate de serpentinas", the toilet paper kept in the line and the card art; `ui.track_mode` "Track Day", Spanish "Día de pista". | `strings:selftest`, `lint:copy`; the label is read by `modes:card`, `war:card`, `friends:card`, which are updated to the new name. |
 | 2 | Tokens of section 4.1 into the sheet, the sheet moved out of index.html into a file of its own, the danger button on `--pdcs-fail`, a repo wide no dash lint for strings and docs. Pixel identical. | `ui:playground` grows to the new tokens; adds `lint:dashes` (Node, CI); `boot:loader`, `lint:responsive` green; `shots` before and after compared. |
 | 3 | Home becomes three hub cards with activity links; hubs as screens; rooms panel to Flight Club; breadcrumb from state. | Rewrites `lint:shell` (2 offline cards becomes 3 hubs, offline Operations disabled with its reason), `modes:card` (hubs and activity cards fit at 1280x720, 1920x1080, 2560x1080, 390x844, 360x640, 844x390), `friends:card` (becomes the Join a session strip), `war:card`, `campaign:check` (card count and positions), `boot:loader` (the hub's ground), `flow:check` (no hub is in a room). |
 | 4 | Operations: the mission list and the briefing as the war session's head; the `war` entry's facts from the registry. | Rewrites `campaign:check` (Operations, mission 2, briefing facts, Deploy); `war:lobby`, `game:lobby --game=war` green. |
-| 5 | Session staging: visibility Solo, Friends, Public; empty slots; facts from the registry; the in place visibility change (server message first). | `game:lobby` for all five rewritten to the new screen and adds the visibility rows; `rooms-server-check` adds the visibility op; `flow:check`. |
+| 5 | Session staging: visibility Solo, Friends, Public, public by default and each pilot's last choice remembered per activity; empty slots; facts from the registry; the in place visibility change (server message first). | `game:lobby` for all five rewritten to the new screen and adds the visibility rows; `rooms-server-check` adds the visibility op; `flow:check`. |
 | 6 | Hangar ecosystem: `class` and `roles` on airframes, favourites, per aircraft cameras, Upgrades and Controller under the Hangar. | `hangar:check`, `hangar:mine`, `campaign:selftest` (shop moved, prices unchanged), `progress:check`; adds `airframes:check` (Node, CI): every airframe has a class and roles. |
 | 7 | Controller screen: dead zone, gamepad expo, manual channel editor, presets per device, per class profiles. | `input:selftest` (Node, CI) extended; `lint:input`, `lint:devices` green. |
 
-## 6. Owner decisions
+## 6. Decided (the owner and the lead, 2 October)
 
-Short, each with a recommendation. Everything else in this plan is
-decided by the code or by earlier decisions.
-
-1. **Approve the three hubs over the one click lobbies?** The hubs add a
-   layer; the activity links on each hub card keep the 2 October one
-   click. *Recommend: yes, with the links.*
-2. **What visibility does a card press open on?** Today's rule (11) joins
-   the busiest public room. The mocks default to Solo. *Recommend: keep
-   Public as decided on 2 October, and remember each pilot's last choice
-   per activity.*
-3. **Is "Friends" the right word** for "private, by invite code" when
-   there is no friends list? *Recommend: yes, with "invite code" under
-   it; a friends list is not planned.*
-4. **A condensed face for names:** extend #368's Saira (OFL) with Saira
-   Condensed, Latin with Spanish accents, one weight, subset and self
-   hosted like the lockup, or stay on the system's faces? *Recommend:
-   Saira Condensed, one weight; its size goes in the PR that adds it.*
-5. **Hub tones as one accent token** (blue, copper, steel) over the same
-   dark PDCS ground, rather than three palettes. *Recommend: one token.*
-6. **Track mode becomes Track Day?** *Recommend: yes, it says what the
-   mock means: a day at the track, alone or with friends.*
+1. **Three hubs on top of the one click lobbies.** Each hub card lists
+   its activities as links, so one click still lands in a lobby
+   (section 2.3).
+2. **An activity opens a public lobby by default** (FLOW-AUDIT rule 11)
+   and remembers each pilot's last visibility choice, per activity, in
+   settings. Phase 5 builds the memory.
+3. **"Friends" stays as the word**, meaning a private room with its
+   invite code shown. No friends list is planned.
+4. **Saira Condensed for hub and mode names**: OFL, subset, self hosted
+   like the lockup in #368. Its size goes in the PR that adds it
+   (phase 2).
+5. **One accent token per hub** over the same dark PDCS ground:
+   Operations #6aa3c8, Flight Club #e09a5f, Hangar #a9b4bb (section 4.1).
+6. **Track mode becomes Track Day** (phase 1b, with Streamer Combat).
+7. **Streamer Combat is confirmed** as the name of Toilet paper combat;
+   the toilet paper stays in its line and its art.
+8. **AI pilots stay out until a later phase.** `allowAI` is false in
+   every entry and the session hides the row.

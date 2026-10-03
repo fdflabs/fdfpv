@@ -1,7 +1,7 @@
 # The redesign, on one page
 
-**A proposal, awaiting your approval.** Nothing on the player's screen has
-changed. The detail is in PLAN.md beside this file.
+**Approved on 2 October.** Nothing on the player's screen has changed
+yet. The detail is in PLAN.md beside this file.
 
 ## What you asked for
 
@@ -54,24 +54,22 @@ with the game's own styles, so every screen is built from the same parts.
 ## The order
 
 Small steps, each one finished and checked before the next, starting after
-the lobbies merge: the shared list of modes (nothing visible), Streamer
-Combat's new name, the styles tidied (nothing visible), then the three hub
+the lobbies merge: the shared list of modes (nothing visible), the two
+new names (Track Day, Streamer Combat), the styles tidied (nothing visible), then the three hub
 home, then Operations and the briefing, then the session's Solo, Friends,
 Public, then the Hangar, then the controller screen.
 
-## What we need from you
+## What you decided
 
-1. **The three hubs, keeping one click into a game?** Each hub card lists
-   its games as links, so one click still lands in a lobby. *We recommend
-   yes.*
-2. **When you click a game, do you land in a public lobby (as you decided
-   on 2 October) or alone?** *We recommend public, remembering each
-   pilot's last choice.*
-3. **"Friends" means "private, by invite code"**, since there is no friends
-   list. *We recommend keeping the word, with "invite code" under it.*
-4. **A condensed font for the names** (Saira Condensed, the same family as
-   the new title lockup), or stay with the system's fonts? *We recommend
-   Saira Condensed.*
-5. **One accent colour per hub** over the same dark ground, rather than
-   three colour schemes. *We recommend one accent.*
-6. **Track mode becomes Track Day?** *We recommend yes.*
+1. **Three hubs**, each listing its games as links, so one click still
+   lands in a lobby.
+2. **A game opens a public lobby**, and remembers each pilot's last
+   choice of Solo, Friends or Public.
+3. **"Friends" means private, by invite code.**
+4. **Saira Condensed** for hub and game names, the same family as the
+   title lockup.
+5. **One accent per hub**: blue Operations, copper Flight Club, steel
+   Hangar, over the same dark ground.
+6. **Track mode becomes Track Day**, and **Toilet paper combat becomes
+   Streamer Combat**, the toilet paper kept in its description and art.
+7. **No AI pilots for now.** They come in a later phase.
