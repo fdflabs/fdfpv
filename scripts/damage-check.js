@@ -58,7 +58,7 @@ import STRUCTURES from '../src/share/war/itaipu-chunks.js';
 import { FREE_OPEN_M, HOIST_M_S } from '../src/share/war/hoist.js';
 import { LEAF_RESEND_M } from '../edge/rooms/war.js';
 import {
-  REST, leafTurn, turnPoint, unturn,
+  REST, leafTurn, turnHeight, turnPoint, unturn,
 } from '../src/share/war/leaf.js';
 
 /* "A few well placed hits open a breach" (the owner, 2 October): at
@@ -222,7 +222,9 @@ function leaf() {
   check(miss < 1e-5, 'a turn and its unturn come back', `${miss.toExponential(1)} m`);
   /* A blast by the leaf turned to 6 m breaks what the same blast, turned
    * back with it, breaks of the leaf at rest. */
-  const s = STRUCTURES[GATE];
+  /* The leaf alone, out of the water, which reaches a blast by where the
+   * chunk stands, not by the leaf's frame. */
+  const s = { ...STRUCTURES[GATE], water: null };
   const p0 = turnPoint(h, REST, s.chunks[5].c).map((v, k) => v + [0, 0.5, 0.3][k]);
   const p6 = turnPoint(h, t, p0);
   const w = { charge: 300, r: 2 };
@@ -359,8 +361,10 @@ function warScenario() {
   const bay = s.chunks.filter((ch) => ch.r);
   const u0 = Math.min(...bay.map((ch) => ch.r[0]));
   const u1 = Math.max(...bay.map((ch) => ch.r[1]));
-  const y0 = Math.min(...bay.map((ch) => ch.r[2]));
-  const y1 = Math.max(...bay.map((ch) => ch.r[3]));
+  /* The bay's leaf where it stood then, at Free Flight's opening. */
+  const tFree = leafTurn(s.frame.hinge, FREE_OPEN_M);
+  const y0 = Math.min(...bay.map((ch) => turnHeight(s.frame.hinge, tFree, ch.r[2])));
+  const y1 = Math.max(...bay.map((ch) => turnHeight(s.frame.hinge, tFree, ch.r[3])));
   check(o.width_m > 0 && o.width_m <= u1 - u0 + 1e-6 && o.height_m > 0 && o.sill[1] >= y0 - 1e-6 && o.sill[1] + o.height_m <= y1 + 1e-6,
     'the opening lies in the gate\'s bay', `bay ${(u1 - u0).toFixed(2)} x ${(y1 - y0).toFixed(2)} m from ${y0.toFixed(2)}`);
   const gone = new Set(events.filter((e) => e.target === GATE).flatMap((e) => e.chunks));
@@ -382,8 +386,12 @@ function warScenario() {
   check(moved.every((e, k) => e.at > opened.at && e.at >= moveAt && (k === 0 || e.at > moved[k - 1].at)), 'each stamped with the room ms of its move, in order, after the break',
     `${moved[0] && moved[0].at} to ${moved.length && moved.at(-1).at}`);
   const want = openingOf(GATE, s, r.war.match.wreck[GATE].gone, 0, leafTurn(s.frame.hinge, 6));
-  check(sills.every((y, k) => k === 0 || y > sills[k - 1]) && Math.abs(sills.at(-1) - want.sill[1]) < 1e-6,
-    'the holes rise with the leaf, the last where the leaf stops at 6 m', `sill ${opened.openings[0].sill[1]} to ${sills.at(-1)}`);
+  /* Between two breaks (a later Loiterer's), each telling higher. */
+  const gateEvents = damageOf(socks[0]).filter((e) => e.target === GATE);
+  const rising = gateEvents.every((e, k) => k === 0 || e.by !== 'hoist' || gateEvents[k - 1].by !== 'hoist'
+    || e.openings[0].sill[1] > gateEvents[k - 1].openings[0].sill[1]);
+  check(rising && Math.abs(sills.at(-1) - want.sill[1]) < 1e-6,
+    'the holes rise with the leaf, the last where the leaf stops at 6 m', `sill ${sills[0]} to ${sills.at(-1)}`);
 
   console.log('\nthe replay');
   const late = join(1, clock);

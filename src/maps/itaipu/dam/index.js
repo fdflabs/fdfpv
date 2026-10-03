@@ -167,11 +167,24 @@ export const SPILL = {
    * Flight's, the leaf turned on its trunnions to FREE_OPEN_M
    * (src/share/war/hoist.js); a mission moves them (setGateState). */
   gateOpen: FREE_OPEN_M,
-  /* The opening the leaves are built at, which places their trunnions:
-   * the axis stays where it is whatever the opening. */
-  gateRest: 5,
+  /* The leaves are built shut, the published 21.34 m from the sill
+   * (vertedouro: 20 x 21.34 m), and that places their trunnions, half the
+   * leaf's height over the sill: the axis stays where it is whatever the
+   * opening. */
+  gateRest: 0,
+  /* The most a gate opens: its lip over the reservoir's highest flood
+   * level, 223.10 m (Itaipu's reservatorio page, "Maximo de cheias"), so
+   * the design flood runs free under every leaf. */
+  floodY: 223.1,
   upstream: -8,
-  deck: [-7, 7],
+  /* The bridge's deck, upstream of the leaves' swing: a leaf opening to
+   * the flood's level sweeps up and downstream through the 7 m either
+   * side of the gate line the deck spanned (it capped the leaves at 2.3 m
+   * of travel). Where Itaipu's bridge stands is AN ESTIMATE from the
+   * spill-gates photograph (the road over the piers' upstream heads, the
+   * leaves under a lintel behind it), 7 m wide, its edge 1.5 m upstream
+   * of where a leaf's arc first rises past the deck's underside. */
+  deck: [-10.5, -3.5],
   deckUnder: 222.8,
   /* The gates' skin plates, on the upstream face between the piers'
    * noses (the war session's reading of spill-gates: the frames are on the
@@ -1311,22 +1324,22 @@ export async function buildPart(ctx) {
     return { t, leaf, hoists };
   };
   /* A rig's capsules registered over every place they reach from shut to
-   * its hinge's max (Colliders.sweep), sampled a centimetre of lip at a
-   * time near the ends and every 5 cm between, and padded by 5 cm. */
+   * its hinge's max (Colliders.sweep), sampled every 25 cm of lip travel
+   * (a point of the leaf moves under 30 cm between two) and padded so. */
   const sweepRig = (rig) => {
     const h = rig.hinge;
     const opens = [];
-    for (let o = 0; o < h.max; o += 0.05) {
+    for (let o = 0; o < h.max; o += 0.25) {
       opens.push(o);
     }
     opens.push(h.max);
     const box = new Map();
     const grow = (i, P, r) => {
       const b = box.get(i) ?? [Infinity, Infinity, -Infinity, -Infinity];
-      b[0] = Math.min(b[0], P[0] - r - 0.05);
-      b[1] = Math.min(b[1], P[2] - r - 0.05);
-      b[2] = Math.max(b[2], P[0] + r + 0.05);
-      b[3] = Math.max(b[3], P[2] + r + 0.05);
+      b[0] = Math.min(b[0], P[0] - r - 0.3);
+      b[1] = Math.min(b[1], P[2] - r - 0.3);
+      b[2] = Math.max(b[2], P[0] + r + 0.3);
+      b[3] = Math.max(b[3], P[2] + r + 0.3);
       box.set(i, b);
     };
     for (const o of opens) {
@@ -3191,28 +3204,27 @@ export async function buildPart(ctx) {
     const capRows = Math.ceil((rr * (ca1 - ca0)) / (1.92 * SKIN_R)) + 1;
     const panelOf = (al) => Math.min(PANELS - 1, Math.max(0, Math.floor(((al + aMax) * PANELS) / (2 * aMax))));
     /* A gate's hinge (src/share/war/leaf.js), its axis through the middle
-     * of its bay; `max` the opening at which the leaf's top comes within
-     * 0.3 m of the bridge's deck over it, the most it opens. */
+     * of its bay; `max` its lip at the reservoir's highest flood. */
     const hingeOf = (u) => ({
-      p: at3(u, tD, tY), a: across, n: [C.n[0], 0, C.n[1]], r: R, sill: sp.figures.sillY, rest: SPILL.gateRest, max: sp.figures.gateHeight,
+      p: at3(u, tD, tY), a: across, n: [C.n[0], 0, C.n[1]], r: R, sill: sp.figures.sillY, rest: SPILL.gateRest, max: SPILL.floodY - sp.figures.sillY,
     });
-    const topAt = (h, o) => turnPoint(h, leafTurn(h, o), arc(0, R, aMax))[1];
     for (let g = 0; g < SPILL.gates; g += 1) {
       const u0 = pierU[g] + pierW / 2;
       const u1 = pierU[g + 1] - pierW / 2;
       const id = `gate-${g}`;
       const hinge = hingeOf((u0 + u1) / 2);
-      let lo = SPILL.gateRest;
-      let hi = sp.figures.gateHeight;
-      for (let k = 0; k < 40; k += 1) {
-        const m = (lo + hi) / 2;
-        if (topAt(hinge, m) < SPILL.deckUnder - 0.3) {
-          lo = m;
-        } else {
-          hi = m;
+      /* Nothing it sweeps may meet the deck (SPILL.deck): its arc rises
+       * past the deck's underside only downstream of it. */
+      for (let o = 0; o <= hinge.max; o += 0.25) {
+        const t = leafTurn(hinge, o);
+        for (let al = -aMax; al <= aMax; al += aMax / 8) {
+          const P = turnPoint(hinge, t, arc((u0 + u1) / 2, R, al));
+          const d = C.local(P[0], P[2])[1];
+          if (P[1] > SPILL.deckUnder - 0.3 && d < SPILL.deck[1] + 1) {
+            throw new Error(`itaipu dam: gate ${g}'s leaf at ${o} m open meets the bridge's deck`);
+          }
         }
       }
-      hinge.max = Math.round(lo * 1000) / 1000;
       /* Water leaves through the bay downstream, down the chute. */
       const s = structure(id, 'gate', reservoirY, {
         o: [fx, 0, fz], u: across, n: [C.n[0], 0, C.n[1]], hinge,

@@ -72,7 +72,7 @@
  *   emp 0; r 2.5
  *
  *   chunk      hp     chunk       hp     chunk       hp
- *   skin       90     leaf        45     shell      100
+ *   skin      100     leaf        45     shell      100
  *   girder     90     column      50     tank        40
  *   arm        80     cover       40     bushing     20
  *   brace      50                        post        70
@@ -153,7 +153,7 @@ export const CUT_R = 5;
 
 /* What a chunk of each kind takes before it breaks. */
 export const HP = Object.freeze({
-  skin: 90,
+  skin: 100,
   girder: 90,
   arm: 80,
   brace: 50,
