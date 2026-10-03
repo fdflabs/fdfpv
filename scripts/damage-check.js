@@ -168,7 +168,7 @@ function mission() {
     });
   }
   return {
-    ...itaipu1, id: 'damage-1', waves, floorMw: 0, starMw: 0, airframes: 4,
+    ...itaipu1, id: 'damage-1', stages: undefined, waves, floorMw: 0, starMw: 0, airframes: 4,
   };
 }
 
@@ -237,6 +237,7 @@ function warScenario() {
     return;
   }
   check(events.every((e, k) => e.seq === k), 'the events are in seq order from 0');
+  check((r.war.match.breaches ?? []).some((b) => b.target === GATE && b.at === opened.at), 'the opening is a breach for the stages\' triggers', JSON.stringify(r.war.match.breaches));
   const o = opened.openings[0];
   const s = STRUCTURES[GATE];
   const fields = ['id', 'target', 'kind', 'at', 'sill', 'width_m', 'height_m', 'normal', 'upstream_cell', 'downstream_cell'];
