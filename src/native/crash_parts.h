@@ -111,13 +111,6 @@ typedef struct {
 /* 2207 motor on four M3 in an aluminium base: two screws' pull out, 1.5 kN
  * each, on the 16 mm pattern. */
 #define M5_MOTOR_M 48.0
-/* Whoop 0702 on its moulded mount, two M1.4 screws in PP. */
-#define WH_MOTOR_M 0.25
-/* A press fit 1 mm shaft prop: a few newtons pull it off, and its PC
- * blades flex rather than snap. Set so the 300 g a wall at a brisk walk
- * gives (R-WHOOP) leaves it on, which is what whoops do. */
-#define WH_PROP_F 6.0
-#define WH_PROP_M 0.10
 /* EPO and EPP at 30 to 35 g/L: the compressive plateau at 25 percent. EPO
  * is a polystyrene and polyethylene bead copolymer, NOVA's ARCEL class:
  * ARCEL 730 (70/30) crushes at 26 to 31 psi at 25 percent over 30 to 35
@@ -306,60 +299,6 @@ static const PartDef PARTS_5IN[] = {
   { .kind = SIM_PART_ANTENNA, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
     .mass = 0.004, .joint = { -0.036, 0.012, 0.024 }, .m_max = FPV_ANT_M, .f_max = FPV_ANT_F, .k = 1.0e3,
     .npts = 2, .pts = { { -0.036, 0.012, 0.024 }, { -0.031, 0.016, 0.066 } } },
-};
-
-/* ------------------------------------------------------------------------
- * WHOOP, SIM_AIRFRAME_WHOOP65, whoopcraft.js at true scale (the shell draws
- * it 3.43 times larger on the five inch's plant; see the doc). 23.4 g. The
- * ducts are moulded with the frame, so they are the root.
- * --------------------------------------------------------------------- */
-#define QW 0.0229809704566899
-static const PartDef PARTS_WHOOP65[] = {
-  { .kind = SIM_PART_FRAME, .parent = -1, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
-    .k = 1.0e5, BOX(-0.041, 0.041, -0.041, 0.041, -0.0017, 0.0055) },
-  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 0, .wheel = -1,
-    .mass = 0.0019, .joint = { -QW, -QW, 0.0 }, .m_max = WH_MOTOR_M, .f_max = 30.0, .k = 5.0e5,
-    BOX(-QW - 0.004, -QW + 0.004, -QW - 0.004, -QW + 0.004, 0.0, 0.006) },
-  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 1, .wheel = -1,
-    .mass = 0.0019, .joint = { QW, -QW, 0.0 }, .m_max = WH_MOTOR_M, .f_max = 30.0, .k = 5.0e5,
-    BOX(QW - 0.004, QW + 0.004, -QW - 0.004, -QW + 0.004, 0.0, 0.006) },
-  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 2, .wheel = -1,
-    .mass = 0.0019, .joint = { -QW, QW, 0.0 }, .m_max = WH_MOTOR_M, .f_max = 30.0, .k = 5.0e5,
-    BOX(-QW - 0.004, -QW + 0.004, QW - 0.004, QW + 0.004, 0.0, 0.006) },
-  { .kind = SIM_PART_MOTOR, .parent = 0, .mat = SIM_MAT_ALU, .motor = 3, .wheel = -1,
-    .mass = 0.0019, .joint = { QW, QW, 0.0 }, .m_max = WH_MOTOR_M, .f_max = 30.0, .k = 5.0e5,
-    BOX(QW - 0.004, QW + 0.004, QW - 0.004, QW + 0.004, 0.0, 0.006) },
-  /* 5..8 31 mm PC tri blades on 1 mm shafts, inside the ducts. */
-  { .kind = SIM_PART_PROP, .parent = 1, .mat = SIM_MAT_PC, .motor = 0, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
-    .mass = 0.0005, .joint = { -QW, -QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
-    .npts = 8, .pts = { { -QW, -QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 2, .mat = SIM_MAT_PC, .motor = 1, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
-    .mass = 0.0005, .joint = { QW, -QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
-    .npts = 8, .pts = { { QW, -QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 3, .mat = SIM_MAT_PC, .motor = 2, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
-    .mass = 0.0005, .joint = { -QW, QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
-    .npts = 8, .pts = { { -QW, QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  { .kind = SIM_PART_PROP, .parent = 4, .mat = SIM_MAT_PC, .motor = 3, .wheel = -1, .shape = SH_DISCZ, .blades = 3,
-    .mass = 0.0005, .joint = { QW, QW, 0.0035 }, .m_max = WH_PROP_M, .f_max = WH_PROP_F, .k = 800.0,
-    .npts = 8, .pts = { { QW, QW, 0.0035 }, { 0.0155, 0.0, 0.0 } } },
-  /* 9 the 1S 300 mAh in its holder, which slides at a few newtons and is
-   * free once it has slid its own drawn 33 mm length out of the holder. */
-  { .kind = SIM_PART_BATTERY, .parent = 0, .mat = SIM_MAT_LIPO, .motor = -1, .wheel = -1,
-    .mass = 0.0068, .joint = { 0.0, 0.0, -0.0036 }, .m_max = 0.10, .f_max = 5.0, .k = 5.0e5,
-    .slip_d = 0.033,
-    BOX(-0.0195, 0.0135, -0.0079, 0.0079, -0.010, -0.0036) },
-  /* 10 canopy, two M1.4 screws in PP 10 mm apart, 20 N each. */
-  { .kind = SIM_PART_CANOPY, .parent = 0, .mat = SIM_MAT_PC, .motor = -1, .wheel = -1,
-    .mass = 0.0015, .joint = { 0.0, 0.0, 0.006 }, .m_max = 0.30, .f_max = 20.0, .k = 5.0e4,
-    BOX(-0.012, 0.030, -0.012, 0.012, 0.0055, 0.018) },
-  /* 11 nano camera in the canopy. */
-  { .kind = SIM_PART_CAMERA, .parent = 10, .mat = SIM_MAT_ELECTRONICS, .motor = -1, .wheel = -1,
-    .mass = 0.0015, .joint = { 0.020, 0.0, 0.012 }, .m_max = 0.02, .f_max = 8.0, .k = 1.0e4,
-    BOX(0.017, 0.026, -0.0045, 0.0045, 0.007, 0.016) },
-  /* 12 the whip antenna. */
-  { .kind = SIM_PART_ANTENNA, .parent = 0, .mat = SIM_MAT_WIRE, .motor = -1, .wheel = -1,
-    .mass = 0.0003, .joint = { -0.009, 0.0018, 0.006 }, .m_max = 0.02, .f_max = 3.0, .k = 200.0,
-    .npts = 2, .pts = { { -0.009, 0.0018, 0.006 }, { -0.009, 0.0018, 0.0285 } } },
 };
 
 /* ------------------------------------------------------------------------

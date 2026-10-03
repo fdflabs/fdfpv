@@ -726,7 +726,7 @@ static void ground_settle(double upz, double vn_plant) {
    * contacts' friction, where the stop took a Timber sliding inverted at
    * 4.4 m/s, and a five inch at 10, to rest in one millisecond (454 and
    * 1,096 g in the crash suite). */
-  const int sliding = SIM_DAMAGE && crash_life_size()
+  const int sliding = SIM_DAMAGE
       && (S.vel[0] * S.vel[0] + S.vel[1] * S.vel[1] + S.vel[2] * S.vel[2]
             > CONTACT_SLIDE_STOP * CONTACT_SLIDE_STOP
           || S.omega[0] * S.omega[0] + S.omega[1] * S.omega[1] + S.omega[2] * S.omega[2]

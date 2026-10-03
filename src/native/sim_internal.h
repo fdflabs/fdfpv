@@ -263,10 +263,11 @@ typedef struct {
 /*
  * The airframes, in the order sim_set_airframe indexes them. 0 is the five
  * inch this project was built around and is the default, so a host that
- * never calls sim_set_airframe gets exactly the machine it always had.
+ * never calls sim_set_airframe gets exactly the machine it always had: no
+ * pilot flies it since 2026-10-03, and it stays as the plant stage 1
+ * verification flies. 1, the whoop, is reserved (sim_abi.h).
  */
 #define SIM_AIRFRAME_5IN 0
-#define SIM_AIRFRAME_WHOOP65 1
 #define SIM_AIRFRAME_WING1000 2
 #define SIM_AIRFRAME_SKY1800 3
 #define SIM_AIRFRAME_CUB1400 4
@@ -1191,9 +1192,6 @@ void crash_host_part(int i);
 /* The part a body frame point belongs to, for a contact there: the
  * attached part with the hull point nearest it. */
 int crash_part_at(const double b[3]);
-/* 0 for the whoop the shell flies, whose room is scaled and whose ground
- * stops stay the rigid contact's; 1 for every craft at life size. */
-int crash_life_size(void);
 /* Whether a host's obstacle contact at hw (world), along n, is on a solid
  * the plant knows and meets itself (crash_touches): then the host's call
  * is dropped, its pose with it. Damage mode only. */

@@ -109,15 +109,6 @@ export class Rig {
     return this.sim.readState().state;
   }
 
-  /* Another part table (sim_set_part_table), and the readback sized to it. */
-  partTable(which) {
-    this.sim.e.sim_set_part_table(which);
-    this.parts = readPartTable(this.sim);
-    this.n = this.parts.length;
-    this.sim.e.free(this.partsPtr);
-    this.partsPtr = this.sim.e.malloc(this.n * PART_STATE_DOUBLES * 8);
-  }
-
   pose(p, q) {
     this.sim.e.sim_set_pose(p[0], p[1], p[2], q[0], q[1], q[2], q[3]);
     this.prev = this.state();
@@ -288,7 +279,7 @@ async function cubStickRates(mk, kind) {
  *   off, it reads 21.1 m/s still climbing 0.9 m/s, where the Skyhunter by
  *   the same method reads 23.1 against its gated 23.5, so 22 is taken. A
  *   quad's is its thrust to weight
- *   in a full throttle punch, 8.43 on the five inch and 4.7 on the whoop
+ *   in a full throttle punch, 8.43 on the five inch
  *   (plant.c), with 3 g of vibration on top in any direction (CHOSEN: the
  *   order of a race quad's unfiltered accelerometer; not measured here).
  * - A wing part: the lift on its own span and on every wing part it carries,
@@ -332,10 +323,10 @@ const FLIGHT = {
   10: [16.9, 8.1, 0, 13.5, 0.047, 0.020],      /* FLOATS-STAGE1's top, the wheeled Cub's */
   11: [10.11, 6.49, 0, 2.824, 0.0481, 0.0155], /* BOMBSHELL-STAGE1 S4, S2 */
 };
-const FLIGHT_NAMES = ['5in', 'whoop65', 'wing1000', 'sky1800', 'cub1400', 'slowstick1180', 'radian2000',
+/* By plant id; 1, the whoop's, is reserved since 2026-10-03. */
+const FLIGHT_NAMES = ['5in', null, 'wing1000', 'sky1800', 'cub1400', 'slowstick1180', 'radian2000',
   'timber1500', 'bramor2300', 'timber1500f', 'cub1400f', 'bombshell1118'];
-/* The whoop the shell flies is the five inch's plant: its thrust to weight. */
-const QUAD_TW = { 0: 8.43, 1: 4.70 };
+const QUAD_TW = { 0: 8.43 };
 
 const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
 const add3 = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -343,8 +334,8 @@ const crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0
 const len3 = (a) => Math.hypot(a[0], a[1], a[2]);
 
 /* What each joint of a table carries in flight, [{ part, F, M, n }], N and
- * N m; scaledWhoop for the whoop table the shell flies on the five inch. */
-export function flightLoads(parts, id, scaledWhoop = false) {
+ * N m. */
+export function flightLoads(parts, id) {
   const W = parts.reduce((s, p) => s + p.mass, 0) * G0;
   const quad = parts[0].kindName === 'frame';
   const under = (k, i) => {
@@ -358,7 +349,7 @@ export function flightLoads(parts, id, scaledWhoop = false) {
   const forces = [];
   let n;
   if (quad) {
-    n = QUAD_TW[scaledWhoop ? 0 : id];
+    n = QUAD_TW[id];
     for (const p of parts) {
       if (p.kindName === 'prop') forces.push({ at: p.cg, f: [0, 0, W * n / 4], part: p.index });
     }
@@ -445,12 +436,10 @@ export const CRASH_SCENARIOS = [
     name: 'every joint carries the loads of normal flight',
     async run(mk) {
       const checks = [];
-      const tables = [[0, 0], [1, 0], [0, 1], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0]];
-      for (const [id, table] of tables) {
+      for (const id of [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
         const r = await mk({ id, ground: null });
-        if (table) r.sim.e.sim_set_part_table(table);
         const parts = readPartTable(r.sim);
-        const loads = flightLoads(parts, id, table === 1);
+        const loads = flightLoads(parts, id);
         const over = [];
         let worst = { ratio: 0, label: '' };
         for (const l of loads) {
@@ -460,7 +449,7 @@ export const CRASH_SCENARIOS = [
           if (ratio > 1) over.push(`${p.label} ${l.F.toFixed(1)} N of ${p.forceLimit}, ${l.M.toFixed(2)} N m of ${p.momentLimit.toFixed(2)}`);
         }
         checks.push({
-          name: `${FLIGHT_NAMES[id]}${table ? ' as the shell\'s whoop' : ''} at ${loads[0].n.toFixed(2)} g, times ${FLIGHT_ULTIMATE}`,
+          name: `${FLIGHT_NAMES[id]} at ${loads[0].n.toFixed(2)} g, times ${FLIGHT_ULTIMATE}`,
           ok: over.length === 0,
           detail: over.length ? over.join('; ') : `worst ${worst.label} at ${worst.ratio.toFixed(2)} of its limit`,
         });
@@ -1157,7 +1146,7 @@ export const CRASH_SCENARIOS = [
      */
     name: 'into a crown to its trunk and into a lake, no craft gains energy',
     async run(mk) {
-      const IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23];
+      const IDS = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23];
       /* The throw's energy may be exceeded by this share: numerical noise
        * and a quad's idle thrust. The runaway was a factor of 18. */
       const SLACK = 0.01;
@@ -1575,44 +1564,7 @@ export const CRASH_SCENARIOS = [
     },
   },
   {
-    name: 'the shell\'s whoop, the five inch drawn 3.43 times life size',
-    async run(mk) {
-      const L = 0.1735 / 0.0506;
-      const whoop = async (ground) => {
-        const r = await mk({ id: 0, ground });
-        r.sim.e.sim_set_part_table(1);
-        r.parts = (await import('./crash.js')).readPartTable(r.sim);
-        return r;
-      };
-      /* A brisk walk into a wall, head height onto the floor, and full
-       * speed into a gate's side, a real whoop's speeds times its drawn
-       * scale as the suite flies them. */
-      const w = await whoop('concrete');
-      w.pose([0, 0, 1.0], [1, 0, 0, 0]);
-      w.velocity([1.5 * L, 0, 0]);
-      let s = w.state();
-      w.sim.e.sim_contact_at_mat(-1, 0, 0, SURFACE.concrete, s[1], s[2], s[3], 0, 0, 0, 0.14, 0, 0);
-      w.run(1000, [0, 0, 0, HOVER]);
-      const f = await whoop('concrete');
-      f.pose([0, 0, 1.7 * L], [1, 0, 0, 0]);
-      f.run(3000);
-      const g = await whoop('grass');
-      g.pose([0, 0, 1.0], [1, 0, 0, 0]);
-      g.velocity([8 * L, 0, 0]);
-      s = g.state();
-      g.sim.e.sim_contact_at_mat(-1, 0, 0, SURFACE.pvc, s[1], s[2], s[3], 0, 0, 0, 0.12, 0.08, 0);
-      g.run(2000);
-      const whole = (r, kinds) => kinds.every((k) => !r.broke(k));
-      return [
-        { name: 'it is the whoop\'s own parts', ok: w.parts.some((p) => p.kindName === 'canopy') && !w.parts.some((p) => p.kindName === 'arm'), detail: `${w.parts.length} parts, mass ${w.parts.reduce((a, p) => a + p.mass, 0).toFixed(3)} kg` },
-        { name: 'a wall at a brisk walk breaks nothing', ok: w.events.filter((e) => e.typeName === 'break').length === 0, detail: w.summary() },
-        { name: 'head height onto a hard floor breaks nothing', ok: f.events.filter((e) => e.typeName === 'break').length === 0, detail: f.summary() },
-        { name: 'full speed into a gate side: frame and motors whole', ok: whole(g, ['motor']), detail: g.summary() },
-      ];
-    },
-  },
-  {
-    /* Crash round 5's finding: the shell's whoop lost its pack at a gate
+    /* Crash round 5's finding: the shell's whoop (removed since) lost its pack at a gate
      * and its tumble grew from 150 to 100,000 rad/s in 1.5 s, until the
      * page hung. With the pack gone nothing powered damps a tumble, and
      * the plant's explicit gyroscopic step pumped it. Here in still air,
@@ -1627,9 +1579,8 @@ export const CRASH_SCENARIOS = [
       const w0 = [150, 20, 60];
       const start = Math.hypot(...w0);
       const out = [];
-      for (const [label, table] of [['a five inch', 0], ['the shell\'s whoop', 1]]) {
+      for (const label of ['a five inch']) {
         const r = await mk({ id: 0, ground: null });
-        r.sim.e.sim_set_part_table(table);
         r.parts = readPartTable(r.sim);
         r.pose([0, 0, 500], [1, 0, 0, 0]);
         r.velocity([0, 0, 0], w0);
@@ -1695,8 +1646,8 @@ export const CRASH_SCENARIOS = [
      * inch, reset after a violent flight, flew the same throw 1e-13 m off a
      * fresh module's from the first step: Betaflight's loop state (the D
      * term's last gyro, the last setpoint, the TPA factor, the mixer's range,
-     * the dynamic lowpass's clock) outlived the reset. Every airframe, and
-     * the shell's whoop, with crash physics on: 2 s of full sticks and the
+     * the dynamic lowpass's clock) outlived the reset. Every airframe, with
+     * crash physics on: 2 s of full sticks and the
      * throttle banged between stops, thrown into the grass at 14 m/s, which breaks parts and launches free
      * bodies, then a reset and a throw, against the same throw in a module
      * that never flew. Byte identical, every step, the parts included.
@@ -1706,19 +1657,14 @@ export const CRASH_SCENARIOS = [
     name: 'a reset after a violent flight is a fresh module',
     async run(mk) {
       const out = [];
-      const tables = [[0, 0], [1, 0], [0, 1], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0], [11, 0]];
       const violent = (i) => [((i >> 7) & 1) ? 1 : -1, ((i >> 8) & 1) ? 1 : -1, ((i >> 6) & 1) ? 1 : -1, (i >> 9) & 1];
       const toss = (r) => {
         r.pose([0, 0, 3], [1, 0, 0, 0]);
         r.velocity([8, 0, -2]);
         r.run(1500, [0.1, -0.2, 0.1, 0.4]);
       };
-      for (const [id, table] of tables) {
-        const seat = async () => {
-          const r = await mk({ id, volts: 4.1 });
-          if (table) r.partTable(table);
-          return r;
-        };
+      for (const id of [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+        const seat = async () => mk({ id, volts: 4.1 });
         const fresh = await seat();
         toss(fresh);
         const flown = await seat();
@@ -1736,7 +1682,7 @@ export const CRASH_SCENARIOS = [
         const again = new Rig(sim);
         toss(again);
         out.push({
-          name: `${FLIGHT_NAMES[id]}${table ? ' as the shell\'s whoop' : ''}: the throw after a reset is the fresh one`,
+          name: `${FLIGHT_NAMES[id]}: the throw after a reset is the fresh one`,
           ok: again.digest.hex() === fresh.digest.hex() && again.summary() === fresh.summary(),
           detail: `fresh ${fresh.digest.hex()}, after ${wrecked} breaks and a reset ${again.digest.hex()}`,
         });
@@ -1908,7 +1854,7 @@ export const CRASH_SCENARIOS = [
      */
     name: 'a part that breaks off adds no energy',
     async run(mk) {
-      const IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23];
+      const IDS = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 19, 21, 23];
       const SPINS = [[30, 0, 0], [0, 30, 0], [0, 0, 30], [20, -15, 25]];
       /* Rounding in a sum of a few dozen terms. */
       const ROUND = 1e-9;

@@ -422,48 +422,9 @@ static void table_floats(Table *t, const PartDef *base, int nbase, int airframe,
 #define COUNT(a) ((int)(sizeof(a) / sizeof((a)[0])))
 
 /*
- * THE WHOOP THE SHELL FLIES. The shell's whoop is the five inch's plant, its
- * mass and its hull, in a room built MICRO_SCALE times life size
- * (configs/airframes.js: 0.1735 m over 0.0506 m, the two airframes' prop
- * tip sweeps). So it gets the real whoop's parts scaled to that world as a
- * dynamically similar model: lengths by L = 3.4289, masses by M = 0.71 /
- * 0.0234, and every limit by what those do to the loads of the same crash,
- * forces by M L, moments by M L^2, stiffness by M, stresses by M / L. A
- * wall or floor bounce the real 23 g whoop survives maps onto one this
- * survives, which is the lead's decision after the suite's baseline.
- */
-#define WHOOP_L (0.1735 / 0.0506)
-#define WHOOP_M (0.71 / 0.0234)
-static Table T_WHOOP_SCALED;
-
-static void whoop_scaled_build(void) {
-  Table *t = &T_WHOOP_SCALED;
-  t->n = 0;
-  for (int i = 0; i < COUNT(PARTS_WHOOP65); i += 1) {
-    PartDef d = PARTS_WHOOP65[i];
-    part_expand(&d, SIM_AIRFRAME_WHOOP65);
-    for (int k = 0; k < d.npts; k += 1) {
-      for (int a = 0; a < 3; a += 1) d.pts[k][a] *= WHOOP_L;
-    }
-    for (int a = 0; a < 3; a += 1) d.joint[a] *= WHOOP_L;
-    d.mass *= WHOOP_M;
-    d.m_max *= WHOOP_M * WHOOP_L * WHOOP_L;
-    d.f_max *= WHOOP_M * WHOOP_L;
-    d.k *= WHOOP_M;
-    d.crush_s *= WHOOP_M / WHOOP_L;
-    d.crush_a *= WHOOP_L * WHOOP_L;
-    d.crush_d *= WHOOP_L;
-    d.slip_d *= WHOOP_L;
-    table_add(t, &d, SIM_AIRFRAME_5IN);
-  }
-  table_finish(t, SIM_AIRFRAME_5IN);
-}
-
-/*
  * THE COMBAT QUADS' PARTS, SIM_AIRFRAME_7IN, SIM_AIRFRAME_10IN and
  * SIM_AIRFRAME_INTERCEPTOR (docs/COMBAT-DRONES.md): the five inch's table
- * as a dynamically similar model of each, the whoop's argument the other
- * way up. In plan every length goes by Lx fore and aft and Ly across, the
+ * as a dynamically similar model of each. In plan every length goes by Lx fore and aft and Ly across, the
  * motor positions' ratios, which lands every motor, arm and disc centre
  * on the plant's own (equal on a square X, apart on the interceptor's
  * stretched one); L is the motor diagonals' ratio, for the loads; heights
@@ -564,7 +525,6 @@ static void quad_scaled_build(const QuadScale *qs) {
 static void tables_build(void) {
   struct { int id; const PartDef *p; int n; } src[] = {
     { SIM_AIRFRAME_5IN, PARTS_5IN, COUNT(PARTS_5IN) },
-    { SIM_AIRFRAME_WHOOP65, PARTS_WHOOP65, COUNT(PARTS_WHOOP65) },
     { SIM_AIRFRAME_WING1000, PARTS_WING1000, COUNT(PARTS_WING1000) },
     { SIM_AIRFRAME_SKY1800, PARTS_SKY1800, COUNT(PARTS_SKY1800) },
     { SIM_AIRFRAME_CUB1400, PARTS_CUB1400, COUNT(PARTS_CUB1400) },
@@ -601,7 +561,6 @@ static void tables_build(void) {
   table_floats(&T[SIM_AIRFRAME_CUB1400F], PARTS_CUB1400, COUNT(PARTS_CUB1400),
                SIM_AIRFRAME_CUB1400F, 0.0264, 0.07, -0.02, -0.056, 0.106);
   table_finish(&T[SIM_AIRFRAME_CUB1400F], SIM_AIRFRAME_CUB1400F);
-  whoop_scaled_build();
   /* The packs' boxes are scripts/combat-derive.js's about the CG: the 7
    * inch's one 6S1P brick, the 10 inch's two side by side, the
    * interceptor's one 6S LiPo. The five inch's motors are 0.0778 out on
@@ -625,31 +584,28 @@ static void tables_build(void) {
   g_ready = 1;
 }
 
-/* The part table in force: the airframe's own, or the whoop drawn on the
- * five inch's plant (sim_set_part_table). */
-static int g_table_sel = SIM_PARTS_OWN;
-
+/* The part table in force: the airframe's own, the only one there is
+ * since the whoop's scaled table went with the whoop (2026-10-03). */
 static const Table *tab(void) {
   if (!g_ready) {
     tables_build();
   }
-  if (g_table_sel == SIM_PARTS_WHOOP_SCALED && plant_airframe() == SIM_AIRFRAME_5IN) {
-    return &T_WHOOP_SCALED;
-  }
   return &T[plant_airframe()];
 }
 
+/* Kept, and taking only SIM_PARTS_OWN, so that a host or a replay journal
+ * written when there were two tables still runs: it asked for the own
+ * table, which is what it gets. The whoop's (1) is refused. */
 SIM_EXPORT int sim_set_part_table(int which) {
-  if (which != SIM_PARTS_OWN && which != SIM_PARTS_WHOOP_SCALED) {
+  if (which != SIM_PARTS_OWN) {
     return SIM_ERR_BAD_ARG;
   }
-  g_table_sel = which;
   crash_reset();
   return SIM_OK;
 }
 
 SIM_EXPORT int sim_part_table(void) {
-  return g_table_sel;
+  return SIM_PARTS_OWN;
 }
 
 /* ---------------------------------------------------------------------
@@ -2658,14 +2614,6 @@ static void own_spring_pre(int i, double vin, double kn, double *e_used, double 
 static int solid_near(const SimState *s);
 static double craft_reach(void);
 
-/* Whether the craft is at life size in its world. Not the whoop the shell
- * flies: its room is scaled 3.43 times and the floor's surface is not, so
- * its ground stops are the rigid contact's. It meets the solids the plant
- * knows with its own parts like every other craft, their springs scaled
- * with it (whoop_scaled_build). */
-int crash_life_size(void) {
-  return tab() != &T_WHOOP_SCALED;
-}
 static int host_on_solid(const double w[3], const double n[3], double margin);
 
 /*
@@ -2837,14 +2785,12 @@ void crash_contact_pre(const SimState *s, const double r[3], const double n[3],
    * which is not a spring, and what it then carries is not in the tables
    * (round 3 sprung it too, and the taildraggers' wire gear broke the wing
    * off on a nose over and the five inch's whip broke on its back, both
-   * against their references). The whoop the shell flies
-   * lives in a room scaled 3.43 times, whose floor the surfaces table does
-   * not scale; it keeps the rigid contact. */
+   * against their references). */
   if (own) {
     own_spring_pre(i, vin, kn, e_used, jn_cap);
     return;
   }
-  if (!g_surf_ground || tab() == &T_WHOOP_SCALED) {
+  if (!g_surf_ground) {
     return;
   }
   if (wire_leg(d)) {
@@ -3239,11 +3185,6 @@ void crash_batch_begin(const SimState *s, int from_step) {
 #define BLADE_Z 3.194e6       /* sqrt(E rho), Pa s/m */
 #define CONCRETE_Z 9.0e6
 #define BLADE_STRENGTH 120.0e6
-/* A whoop's blades are polycarbonate, Makrolon 2407 (R-PROPS): 2400 MPa,
- * 1200 kg/m^3, yield 66 MPa. PC yields rather than cracks, and the yield is
- * where a blade starts to bend and nick. */
-#define PC_BLADE_Z 1.697e6
-#define PC_BLADE_STRENGTH 66.0e6
 #define BEARING_SHARE 0.02    /* a seating push, against the joint's limit */
 #define SEAT_GRIP 1.00        /* friction of a seated face on a rubber pad */
 
@@ -3974,15 +3915,9 @@ static void judge(SimState *s) {
       const double w = s->motor_omega[d->motor];
       double span = t->hi[i][1] - t->lo[i][1];
       if (t->hi[i][0] - t->lo[i][0] > span) span = t->hi[i][0] - t->lo[i][0];
-      /* The whoop the shell flies is a model L times life size with time
-       * unscaled, so its speeds are L times a real whoop's; stresses scale
-       * by M / L and impedances by M / L^2, which puts the blade's limit at
-       * L times the real tip speed. So the tip is taken back to life size
-       * and met with the real blade and the real surface. */
-      const double life = tab() == &T_WHOOP_SCALED ? WHOOP_L : 1.0;
-      const double tip = sim_fabs(w) * 0.5 * span / life;
-      const double zb = d->mat == SIM_MAT_PC ? PC_BLADE_Z : BLADE_Z;
-      const double strength = d->mat == SIM_MAT_PC ? PC_BLADE_STRENGTH : BLADE_STRENGTH;
+      const double tip = sim_fabs(w) * 0.5 * span;
+      const double zb = BLADE_Z;
+      const double strength = BLADE_STRENGTH;
       const double zs = SURF[x->surf].hard * CONCRETE_Z;
       const double sigma = tip * zb * zs / (zb + zs);
       /* Past the limit the chip grows at the old rate, faded in from
@@ -3992,14 +3927,13 @@ static void judge(SimState *s) {
        * and the blade is stopped by its own spring: the tip's blow is
        * v sqrt(k m), its effective mass a third of a blade's (a rod turned
        * about the hub, struck at its end) and k the blade's tip stiffness
-       * and the surface's in series, at the tip's own speed (the model's,
-       * for the whoop the shell flies, whose limits are scaled with it).
+       * and the surface's in series, at the tip's own speed.
        * It bends the blade at its root, the lever its radius. */
       if (over > 0.0) {
         const int nb = d->blades > 0 ? d->blades : 2;
         const double m_tip = d->mass / (3.0 * (double)nb);
         const double k_tip = series_k(d->k, SURF[x->surf].k);
-        const double blow = tip * life * sim_sqrt(k_tip * m_tip) * 0.5 * span;
+        const double blow = tip * sim_sqrt(k_tip * m_tip) * 0.5 * span;
         if (blow > g_blow[i]) {
           g_blow[i] = blow;
         }

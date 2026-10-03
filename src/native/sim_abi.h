@@ -365,7 +365,9 @@ int sim_set_flight_style(int arcade);
 
 /*
  * Choose the airframe: 0 is the five inch this project was built around and
- * is the default, 1 is a 65 mm 1S brushless whoop, 2 the 1000 mm flying
+ * is the default (no pilot is seated on it since 2026-10-03; it is the stage
+ * 1 verification reference), 1 was a 65 mm 1S brushless whoop, removed on
+ * 2026-10-03 and reserved like the ids below, 2 the 1000 mm flying
  * wing, 3 the Skyhunter 1800, a twin boom pusher with ailerons, an
  * elevator and a rudder, 4 the Piper J-3 Cub 1400, a tractor
  * taildragger with the same surfaces that stands on its own wheels, 5
@@ -415,7 +417,7 @@ int sim_set_flight_style(int arcade);
  * plant, and the sim_wing_* and sim_plane_surfaces entry points below
  * apply. 0, 1 and 24 to 26 are quads.
  *
- * RESERVED: 13 (the Edge 540T), 14 (the Extra 300 3D), 18 (the Pitts
+ * RESERVED: 1 (the 65 mm whoop, removed 2026-10-03), 13 (the Edge 540T), 14 (the Extra 300 3D), 18 (the Pitts
  * S-1S), 20 (the Wot 4) and 22 (the Quickie 500) were removed on
  * 2026-09-29 at the owner's request. Their ids are never reused, so a
  * recording, a ghost, a clip or a room peer that names one still names
@@ -437,7 +439,6 @@ int sim_set_flight_style(int arcade);
  * step, so a host should do it between runs and then sim_reset.
  */
 #define SIM_AIRFRAME_5IN_ID 0
-#define SIM_AIRFRAME_WHOOP65_ID 1
 #define SIM_AIRFRAME_WING1000_ID 2
 #define SIM_AIRFRAME_SKY1800_ID 3
 #define SIM_AIRFRAME_CUB1400_ID 4
@@ -1218,17 +1219,14 @@ int sim_set_velocity(double vx, double vy, double vz, double p, double q, double
 #define SIM_MATERIALS 12
 
 /*
- * sim_set_part_table(which): SIM_PARTS_OWN (0, the default) is the
- * airframe's own table. SIM_PARTS_WHOOP_SCALED (1) is for the shell's whoop,
- * which is the five inch's plant flown in a room MICRO_SCALE times life
- * size: the real whoop's parts scaled to that world with limits scaled so a
- * crash the real whoop survives this survives (docs/CRASH-STAGE1.md). It
- * applies only while the five inch's plant is selected; on any other
- * airframe the airframe's own table is used. A mode, kept across resets;
- * setting it clears the damage state. sim_part_table() reads it back.
+ * sim_set_part_table(which): SIM_PARTS_OWN (0) is the airframe's own table,
+ * and since 2026-10-03 the only one. 1 was the 65 mm whoop's parts scaled
+ * to the room the shell flew it in, removed with the whoop; it is refused
+ * with SIM_ERR_BAD_ARG. The call stays, taking 0, so a host or a replay
+ * journal that asked for the own table still runs; it clears the damage
+ * state as it always did. sim_part_table() reads back SIM_PARTS_OWN.
  */
 #define SIM_PARTS_OWN 0
-#define SIM_PARTS_WHOOP_SCALED 1
 int sim_set_part_table(int which);
 int sim_part_table(void);
 

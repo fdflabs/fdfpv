@@ -5,8 +5,7 @@
  *   node scripts/crash-suite.js [--out DIR] [--only ID[,ID...]] [--no-chrome] [--sheets]
  *
  * For each scenario in tests/crash/scenarios.js: a fresh module, the
- * airframe, crash damage ON (sim_set_damage(1), and the whoop's own part
- * table, sim_set_part_table(1), as the shell flies it), the setup, and the
+ * airframe, crash damage ON (sim_set_damage(1)), the setup, and the
  * pilot flying it into the contact, 4 ms at a time, with the obstacle pass
  * the shell runs on the same clock. The world is named to the plant as the
  * shell names it (src/main.js, THE CRASH SHELL): the ground's material,
@@ -547,10 +546,6 @@ async function fly(sc) {
   must(rec.call('sim_set_airframe', c.sim), 'sim_set_airframe');
   must(rec.call('sim_reset'), 'sim_reset');
   must(rec.call('sim_set_cell_voltage', c.volts ?? 4.1), 'sim_set_cell_voltage');
-  /* The part table first: setting it clears the damage state. The shell's
-   * whoop is the five inch's plant in a scaled room, made of the real
-   * whoop's parts scaled to it (src/main.js syncPartTable). */
-  must(rec.call('sim_set_part_table', c.partTable ?? 0), 'sim_set_part_table');
   must(rec.call('sim_set_damage', 1), 'sim_set_damage');
   const massKg = sim.e.sim_bf_debug ? sim.e.sim_bf_debug(51) : null;
   const matInfo = sim.e.malloc(4 * 8);
