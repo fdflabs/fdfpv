@@ -289,6 +289,29 @@ applies the later openings 3 s late and is other water.
 The page steps on the map's animation clock, which in a room is the room's
 (`src/main.js` `trafficMs`), 3 ms a frame.
 
+## A replay's water
+
+A crash cam replay draws a flood of its own, `live.fork(openings, fromMs,
+gates)`, stepped on the clip's clock, so the live flood is never rewound into
+the past. Every 500 steps (10 s) the host keeps a checkpoint of the water as
+well as its 2 s snapshots, five of them, so the last 40 s or more are always
+held: the crash cam's 30 s window and the flood's second behind the room. A
+fork that heard the same events as the live flood before its clip starts at the
+live flood's checkpoint (`host.js checkpoint` and `resume`), which is the same
+water to the bit at once; one that heard other events (a clip from another
+match) starts at the origin and catches up a budget at a time. A rewind, live
+or in a fork, goes to the latest snapshot or checkpoint before its step.
+`water:check`'s room clock holds a fork from a checkpoint to a client stepped
+from the origin, at the clip's start and at the end, and refuses the checkpoint
+to a client that heard another opening before it. `water:itaipu` does the same
+on Itaipu: a fork of the last 30 s of a war is ready in some 20 ms at step 4500,
+where stepping from the origin takes 4500 steps, and is the live water at the
+end.
+
+Every flood a page makes shares the compiled module, the unpacked bed and the
+warmed state's bytes, made once. A fork with no events while the live flood has
+none is the live flood's own water: nothing is built.
+
 ## The checks and what they measured
 
 `npm run water:check` (CI without Chrome; with Chrome locally):
@@ -302,7 +325,7 @@ The page steps on the map's animation clock, which in a room is the room's
 | critical flow over a broad crest | sqrt(g) (2E/3)^1.5, 2 % | 1.7 % |
 | normal depth between INFLOW and RATING | Manning, 1 % | 0.005 % |
 | opening as weir, orifice, drowned | the strips formula at the link's levels, 1e-12; steady flows 2 % | exact; under 1 % |
-| the room clock | five clients, one hash | one hash |
+| the room clock | five clients, one hash; a fork from a checkpoint, the same | one hash; the same |
 | Node and Chrome | every case's hash identical | identical, all thirteen (3 October, SIM_GPU=1) |
 
 The join, `water:check`: still water across it for 10 min under 1e-9 m/s
@@ -349,9 +372,15 @@ baseline):
   start, it was 1.17 ms at 18 206 wet cells.)
   The hash after the bench is the same in Chrome and Node. A war page keeps up
   with the room: 0 steps behind (`water:war`).
-- Memory: the solver's arrays 12 doubles a cell (5.8 MB), the host's snapshots
-  4 x 3 doubles a cell (5.8 MB), the bed in JS 0.5 MB, the drawn sheet's texture
-  1.6 MB: some 14 MB.
+- Memory, one flood, measured in Node: the module's memory 17.7 MB (the
+  solver's arrays, 12 doubles a cell, 5.8 MB, and the rest of its heap), the
+  host's snapshots 4 x 3 doubles a cell (5.8 MB), its checkpoints 5 x 3 doubles
+  a cell (7.2 MB, every fifth snapshot kept longer, one at times also among
+  the four), its
+  start 1.4 MB, the plant's levels 8 floats a cell (1.9 MB); shared once: the bed
+  in JS 0.6 MB, the files 1.0 MB; the drawn sheet's texture 1.6 MB. A replay's
+  fork adds its own module memory, snapshots and start (some 25 MB, its
+  checkpoint shared with the live flood's, no levels) while it plays.
 - Data: 1.01 MB shipped (the bed 306 kB, the start 682 kB, the wasm 21 kB), all
   fetched with the map; a war fetches nothing more.
 - Drawing, `itaipu-views.js` (3 October, every day view): every view within

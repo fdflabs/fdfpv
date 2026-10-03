@@ -92,10 +92,10 @@ async function shot(page, name) {
   console.log(`  shot ${path}`);
 }
 
-const HUBS = 'Operations,Flight Club,Hangar';
+const HUBS = 'Flight Club,Operations,Hangar';
 const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
 /* Each hub's links, in order, as home draws them. */
-const LINKS = 'Defend the Paraná|Track Day,Free Flight,Streamer Combat,Catch the Ace!|Aircraft,Customise,Calibrate sticks,How to fly';
+const LINKS = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!|Defend the Paraná|Aircraft,Customise,Calibrate sticks,How to fly';
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -222,9 +222,14 @@ try {
       : v.cards.every((x, i) => i === 0 || x.box[1] >= v.cards[i - 1].box[3]);
   };
   const home = await a.evaluate(LAYOUT);
-  check('home is three hubs, Operations, Flight Club, Hangar', home.cards.map((x) => x.name).join() === HUBS, home.cards.map((x) => x.name).join());
+  check('home is three hubs, Flight Club, Operations, Hangar, in that order (the owner, 2026-10-03)', home.cards.map((x) => x.name).join() === HUBS, home.cards.map((x) => x.name).join());
+  /* The cards' numbers are a CSS counter in their order (index.html,
+   * .gate-card-art::before), so the first card is [ 01 ]. */
+  check('and opens on Flight Club, the cursor\'s card, first in the row, so numbered 01', home.cards.filter((x) => x.on).map((x) => x.name).join() === 'Flight Club'
+    && await a.evaluate("document.querySelector('.screen-title .gate-cards').firstElementChild.classList.contains('gate-card-hub-club')"),
+  home.cards.filter((x) => x.on).map((x) => x.name).join());
   check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
-  check('each hub lists its activities as links: the war; Track Day, Free Flight, Streamer Combat, Catch the Ace; the Hangar\'s four',
+  check('each hub lists its activities as links: Track Day, Free Flight, Streamer Combat, Catch the Ace; the war; the Hangar\'s four',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
   check('no rooms panel on home: it is Flight Club\'s', home.panel === null, JSON.stringify(home.panel));
   for (const [w, h, row] of SIZES) {

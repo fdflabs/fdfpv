@@ -44,6 +44,7 @@ import {
   signOut, signedIn, startAccounts, syncProgress,
 } from '../share/account.js';
 import { SETTINGS_KEY, loadSettings } from './ui.js';
+import { mergeFlightTime } from '../share/flighttime.js';
 import {
   buildsBlob, buildsFromBlob, fitBuild, saveBuilds, stockView, unfitFamily,
 } from './builds.js';
@@ -233,6 +234,13 @@ export function createAccountUi({ ui, identity, say }) {
       unfitFamily(s, land);
     }
     const { builds, ...data } = merged.data;
+    /* Flight time grows on this computer while the sync is out, so the
+     * merge is merged again with what is here now rather than put over
+     * it: put over it, the seconds flown during the round trip would be
+     * lost (src/share/flighttime.js). */
+    if (data.flightTime !== undefined) {
+      data.flightTime = mergeFlightTime(s.flightTime, data.flightTime);
+    }
     let changed = false;
     if (builds !== undefined) {
       const list = buildsFromBlob(builds);
@@ -274,7 +282,11 @@ export function createAccountUi({ ui, identity, say }) {
       }
       ui.renderMenu();
     }
-    settled(syncedView(), merged);
+    /* Settled as the account holds it, not as this computer does, so
+     * time flown during the round trip still reads as unsent and goes up
+     * with the next sync rather than waiting for the next flight. */
+    const view = syncedView();
+    settled(merged.data.flightTime === undefined ? view : { ...view, flightTime: merged.data.flightTime }, merged);
     return changed;
   }
 

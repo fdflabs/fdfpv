@@ -514,7 +514,9 @@ export async function hostClock(wasm) {
       },
     };
     flood.reset();
-    return { f, host: createFloodHost(flood, { dtMs }) };
+    /* A checkpoint every 6 s, so one falls between the openings and a
+     * clip in this 12 s war. */
+    return { f, host: createFloodHost(flood, { dtMs, checkSteps: 300 }) };
   };
   const tick = 100;
   const live = await client();
@@ -554,6 +556,27 @@ export async function hostClock(wasm) {
     });
   }
   replay.host.advance(END);
+  /* A replay's own flood (water/live.js fork): started from the live
+   * client's checkpoint before a clip that starts at CLIP ms, against a
+   * client stepped from the origin to the clip's start; then on to the
+   * end. One that heard other openings before the checkpoint is
+   * refused it. */
+  const CLIP = 12000;
+  const cp = live.host.checkpoint(CLIP);
+  const fork = await client();
+  for (const o of OPENINGS) fork.host.open(o);
+  const resumed = fork.host.resume(cp);
+  fork.host.advance(CLIP);
+  const atClip = await client();
+  for (const o of OPENINGS) atClip.host.open(o);
+  atClip.host.advance(CLIP);
+  const forkAtClip = { hash: fork.f.hash(), step: fork.host.step() };
+  fork.host.advance(END);
+  const other = await client();
+  other.host.open(OPENINGS[0]);
+  other.host.open({ ...OPENINGS[1], id: 'x' });
+  other.host.open(OPENINGS[2]);
+  const refused = !other.host.resume(cp);
   /* The control: the later openings applied where a client heard them,
    * 3 s after the first, must not be the same water. (All of them 3 s
    * late is the same water 3 s later: the origin moves with them.) */
@@ -576,6 +599,10 @@ export async function hostClock(wasm) {
     c('a replay\'s clock back 5 s and 12 s holds the water of then, and forward again the water of now', back.every((x) => x.same) && replay.f.hash() === hash.live && replay.host.step() === steps.live,
       `${back.map((x) => `${x.ago / 1000} s back: step ${x.step} ${x.same ? 'same' : 'DIFFERENT'}`).join(', ')}; ${replay.host.stats.rewinds} rewinds, ${replay.host.stats.restarts} restarts`),
     c('and the control, the openings applied 3 s late, is other water', wrong.f.hash() !== hash.live, wrong.f.hash()),
+    c('a replay\'s flood started at the live checkpoint before its clip is the live water at the clip\'s start and at the end, to the bit', resumed && cp && cp.step > 0
+      && forkAtClip.hash === atClip.f.hash() && forkAtClip.step === atClip.host.step() && fork.f.hash() === hash.live && fork.host.step() === steps.live,
+    `checkpoint step ${cp ? cp.step : 'none'}, ${fork.host.step() - (cp ? cp.step : 0)} steps from it; at the clip ${forkAtClip.hash} / ${atClip.f.hash()} @${forkAtClip.step}; at the end ${fork.f.hash()}`),
+    c('and one that heard other openings before the checkpoint is refused it', refused),
   ], { hash, steps }, live.f);
 }
 

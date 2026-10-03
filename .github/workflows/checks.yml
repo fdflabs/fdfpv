@@ -121,6 +121,12 @@ jobs:
       - run: npm run test:edge
       - run: npm run test:tracks
       - run: npm run cloud:selftest
+      # The game's own domain: which servers the page picks, the probe's
+      # fallback to the VM's address, the rooms allowlist and the Caddyfile.
+      - run: npm run domain:selftest
+      # A guest's storage carried from fdflabs.github.io to the domain: the
+      # pack, the merge rule, the parts. In Chromium: npm run move:check.
+      - run: npm run move:selftest
       - run: npm run crash:rules
       - run: npm run river:check
       - run: npm run builder:selftest
@@ -134,6 +140,9 @@ jobs:
       - run: npm run stab:chop
       - run: npm run power:check
       - run: npm run progress:selftest
+      # The pilot's own flight time: only flight counts, and the words
+      # (src/share/flighttime.js); its merge is in test:tracks.
+      - run: npm run flighttime:selftest
       - run: npm run retired:selftest
       - run: npm run campaign:selftest
       - run: npm run parts:check

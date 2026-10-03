@@ -44,10 +44,21 @@
  * always. Opus is asked for mono at OPUS_BPS with DTX, so a pilot not
  * talking sends almost nothing.
  *
- * NOTHING IS RECORDED. The voices play through an AudioContext of this
- * module's own, never the game's audio graph, so the movie export (which
- * taps the game's master bus, src/replay/export.js) cannot hear them, and
- * the crash cam's replay keeps flight states, never sound.
+ * THE VOICES ARE KEPT IN REPLAYS (the owner, 2026-10-02; privacy.html
+ * says so, and so does the voice row's note). Live, they play through an
+ * AudioContext of this module's own, never the game's audio graph. What
+ * this page hears from each other pilot is also recorded for the crash
+ * cam (setRecorder, src/replay/voicerec.js): the received stream as Opus
+ * at OPUS_BPS, in pieces each a file of its own, stamped on
+ * the clock the recorder hands in (the room's), and only a piece in which
+ * that pilot spoke and was not muted here. This pilot's own microphone is
+ * never recorded here; it is kept by the other pilots' pages.
+ *
+ * TALKING NEEDS THE NOTICE. A pilot who has not said they understand that
+ * their voice may be kept in other pilots' replays (src/ui/voiceui.js)
+ * has voice on to listen only: links are made with nothing to send
+ * (recvonly), and the microphone is not asked for until they do
+ * (enableTalk).
  *
  * This file is part of WebFPVSimulator.
  *
@@ -170,8 +181,18 @@ function rms(analyser, buf) {
  */
 export function createVoice({ send, isMuted }) {
   let on = false;
+  /* Whether the pilot asked to talk, not only to listen. */
+  let wantTalk = true;
   let mode = 'ptt'; /* 'ptt' or 'open' */
   let distanceOn = false;
+  /* The crash cam's replay is playing: the room's voices are held silent
+   * under it (the links stay up), and come back when it closes. */
+  let held = false;
+  /* Where heard voices go for the replay: { now() (the clock pieces are
+   * stamped on, or null), piece({ seat, from, to, mime, bytes }), mimes
+   * (the containers it takes, best first), segmentMs (a piece's length) },
+   * or null for none. */
+  let recorder = null;
   let problem = null; /* null, 'denied', 'nomic', 'unsupported' */
   let mySeat = null;
   let mic = null; /* the MediaStream */
@@ -239,6 +260,11 @@ export function createVoice({ send, isMuted }) {
     } catch (e) {
       /* Already closed. */
     }
+    if (l.rec) {
+      clearTimeout(l.rec.timer);
+      l.rec.stop();
+      l.rec = null;
+    }
     if (l.audio) {
       l.audio.srcObject = null;
     }
@@ -283,6 +309,9 @@ export function createVoice({ send, isMuted }) {
     const track = micTrack();
     if (track) {
       pc.addTrack(track, mic);
+    } else if (offerer) {
+      /* Listening only: an audio line to hear on, nothing to send. */
+      pc.addTransceiver('audio', { direction: 'recvonly' });
     }
     pc.onicecandidate = (ev) => {
       if (ev.candidate && l.sent && links.get(seat) === l) {
@@ -310,6 +339,7 @@ export function createVoice({ send, isMuted }) {
       l.src.connect(l.analyser);
       l.src.connect(l.gain);
       l.gain.connect(ctx.destination);
+      record(l, stream);
     };
     pc.onconnectionstatechange = () => {
       if (links.get(seat) !== l) {
@@ -329,6 +359,66 @@ export function createVoice({ send, isMuted }) {
       }
     };
     return l;
+  }
+
+  /*
+   * The received stream into pieces for the replay: one MediaRecorder a
+   * piece, stopped and replaced every segmentMs so each piece is a file
+   * of its own; a piece reaches the recorder only if the pilot spoke in
+   * it and was not muted here (frame() marks it).
+   */
+  function record(l, stream) {
+    if (!recorder || typeof MediaRecorder === 'undefined') {
+      return;
+    }
+    const mime = recorder.mimes.find((m) => MediaRecorder.isTypeSupported(m));
+    if (!mime) {
+      return;
+    }
+    const piece = () => {
+      if (links.get(l.seat) !== l || !recorder) {
+        return;
+      }
+      let r;
+      try {
+        r = new MediaRecorder(stream, { mimeType: mime, audioBitsPerSecond: OPUS_BPS });
+      } catch (e) {
+        return;
+      }
+      const from = recorder.now();
+      const chunks = [];
+      const rec = {
+        spoke: false,
+        timer: null,
+        stop() {
+          if (r.state !== 'inactive') {
+            r.stop();
+          }
+        },
+      };
+      r.ondataavailable = (ev) => {
+        if (ev.data && ev.data.size) {
+          chunks.push(ev.data);
+        }
+      };
+      r.onstop = async () => {
+        const to = recorder ? recorder.now() : null;
+        if (!rec.spoke || !chunks.length || from == null || to == null || !recorder) {
+          return;
+        }
+        const bytes = new Uint8Array(await new Blob(chunks).arrayBuffer());
+        recorder.piece({
+          seat: l.seat, from, to, mime, bytes,
+        });
+      };
+      r.start();
+      l.rec = rec;
+      rec.timer = setTimeout(() => {
+        rec.stop();
+        piece();
+      }, recorder.segmentMs);
+    };
+    piece();
   }
 
   /* The local description once every candidate is in, or GATHER_MS on. */
@@ -353,7 +443,7 @@ export function createVoice({ send, isMuted }) {
   }
 
   async function offer(seat, tries = 1) {
-    if (!on || !mic || isMuted(seat)) {
+    if (!on || isMuted(seat)) {
       return;
     }
     const relay = !turnIce.length || tries < 2 ? RELAY_NONE : (tries === 2 ? RELAY_UDP : RELAY_TCP);
@@ -446,7 +536,7 @@ export function createVoice({ send, isMuted }) {
       return;
     }
     voiced.add(from);
-    if (!on || !mic || isMuted(from)) {
+    if (!on || isMuted(from)) {
       /* Said to this pilot alone: tell them not to wait. */
       if (m.to !== undefined || m.op === 'offer') {
         queue({ op: 'off', to: from });
@@ -492,6 +582,13 @@ export function createVoice({ send, isMuted }) {
     queue({ op: 'on' });
   }
 
+  /* The context the voices play in, made when voice goes on, to listen
+   * as much as to talk. */
+  function listen() {
+    ctx ??= new AudioContext();
+    ctx.resume().catch(() => {});
+  }
+
   async function openMic() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof RTCPeerConnection === 'undefined') {
       problem = 'unsupported';
@@ -509,8 +606,7 @@ export function createVoice({ send, isMuted }) {
       return false;
     }
     problem = null;
-    ctx ??= new AudioContext();
-    ctx.resume().catch(() => {});
+    listen();
     micAnalyser = ctx.createAnalyser();
     micAnalyser.fftSize = buf.length * 2;
     ctx.createMediaStreamSource(mic).connect(micAnalyser);
@@ -534,17 +630,25 @@ export function createVoice({ send, isMuted }) {
 
   return {
     PTT_KEY,
-    /* Turn voice on: the microphone first (the browser asks the pilot),
-     * then the room is told. Resolves to true, or false with problem(). */
-    async enable() {
+    /* Turn voice on: with talk, the microphone first (the browser asks
+     * the pilot); without, to listen only. Then the room is told.
+     * Resolves to true, or false with problem(). */
+    async enable({ talk = true } = {}) {
       if (on) {
         return true;
       }
       on = true;
+      wantTalk = talk;
+      if (typeof AudioContext === 'undefined' || typeof RTCPeerConnection === 'undefined') {
+        problem = 'unsupported';
+        on = false;
+        return false;
+      }
+      listen();
       if (mySeat == null) {
         return true;
       }
-      if (!(await openMic())) {
+      if (talk && !(await openMic())) {
         on = false;
         return false;
       }
@@ -552,6 +656,26 @@ export function createVoice({ send, isMuted }) {
         join();
       }
       return on;
+    },
+    /* A listener who has now read the notice: the microphone, and every
+     * link made again with it. Resolves to true, or false with problem(). */
+    async enableTalk() {
+      wantTalk = true;
+      if (!on || mic || mySeat == null) {
+        return on;
+      }
+      if (!(await openMic())) {
+        return false;
+      }
+      join();
+      return true;
+    },
+    /* Whether this pilot can be heard: voice on with a microphone. */
+    canTalk: () => on && Boolean(mic),
+    /* Where heard voices go for the replay (src/replay/voicerec.js), or
+     * null. */
+    setRecorder(r) {
+      recorder = r;
     },
     disable() {
       if (!on) {
@@ -578,6 +702,10 @@ export function createVoice({ send, isMuted }) {
     setDistance(v) {
       distanceOn = Boolean(v);
     },
+    /* Held silent (a replay plays) or not; applied at the next frame. */
+    setHeld(v) {
+      held = Boolean(v);
+    },
     volume: volumeOf,
     setVolume(seat, v) {
       volumes.set(seat, Math.max(0, Math.min(VOLUME_MAX, v)));
@@ -589,7 +717,7 @@ export function createVoice({ send, isMuted }) {
       if (!on) {
         return;
       }
-      if (!mic && !(await openMic())) {
+      if (wantTalk && !mic && !(await openMic())) {
         on = false;
         return;
       }
@@ -656,8 +784,11 @@ export function createVoice({ send, isMuted }) {
         l.level = rms(l.analyser, buf);
         if (l.level > SPEAKING_RMS) {
           l.speakingUntil = now + SPEAKING_HOLD_MS;
+          if (l.rec && volumeOf(seat) > 0) {
+            l.rec.spoke = true;
+          }
         }
-        const g = volumeOf(seat) * (distanceOn ? distanceGain(dist.get(seat)) : 1);
+        const g = held ? 0 : volumeOf(seat) * (distanceOn ? distanceGain(dist.get(seat)) : 1);
         l.gain.gain.setTargetAtTime(g, ctx.currentTime, 0.05);
       }
     },

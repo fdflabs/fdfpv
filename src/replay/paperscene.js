@@ -25,8 +25,10 @@
  * A WAR'S EXPLOSIONS the same way (src/render/explosion.js): thrown again
  * when the playhead passes them, thrown at their age after a jump, so a
  * frame a second after a kill shows the fireball a second old and its
- * smoke; each sounds on playback as the SCHWING does, from as far off as
- * the replay's camera is.
+ * smoke; each sounds on playback as the SCHWING does, in the world's
+ * voice from where it went off (the shell's worldBoom, its echoes and
+ * delay from the replay's camera, as live), or without one the mix's own
+ * boom from as far off as the camera is.
  *
  * THE SCHWING sounds when playback passes a cut going forward, at the
  * level it rang at, scaled down in slow motion the way the replay's crash
@@ -63,7 +65,7 @@ const REBUILD_STEP_S = 1 / 60;
  * shell's (its schwing() and coin(), when it has them); floorAt what the
  * paper lies on, as the live layer has it (src/render/streamers.js).
  */
-export function createPaperScene(paper, n, parent, audio, floorAt) {
+export function createPaperScene(paper, n, parent, audio, floorAt, worldBoom = null) {
   const layer = createStreamerLayer(floorAt);
   parent.add(layer.group);
   /* The crown's burst, only for a clip that has one. */
@@ -154,7 +156,12 @@ export function createPaperScene(paper, n, parent, audio, floorAt) {
           fx.play(e.p, e.from, e.level, to - e.t);
         } else if (e.type === 'boom') {
           booms.play(e.p, e.level * SIZE_MAX, to - e.t);
-          if (playing && audio && typeof audio.boom === 'function') {
+          /* From where it went off, as live (src/render/world-audio.js
+           * boom, main.js warBoomAt's level); without the world's voice,
+           * the mix's own boom at its distance. */
+          if (playing && worldBoom && worldBoom(e.p, Math.min(1, 0.35 + 0.2 * e.level * SIZE_MAX) * Math.min(1, speed))) {
+            boomsRung += 1;
+          } else if (playing && audio && typeof audio.boom === 'function') {
             camAt[0] = camera.position.x - e.p[0];
             camAt[1] = camera.position.y - e.p[1];
             camAt[2] = camera.position.z - e.p[2];

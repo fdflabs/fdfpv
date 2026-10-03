@@ -39,6 +39,7 @@ import { AIRFRAMES, airframeById, floatVersionOf, isFloatVersion, landPlaneOf } 
 import { currentLocale, str } from '../strings/index.js';
 import { propulsionOf } from '../../configs/combat.js';
 import { BUILD_PREFIX, customisable } from './builds.js';
+import { splitDuration } from '../share/flighttime.js';
 
 /* Which lists the tabs offer. A card or a row opens on one kind and the
  * pilot can widen it to every aircraft. */
@@ -87,6 +88,16 @@ export function weightText(id, combat = null) {
   }
   const kg = (g / 1000).toLocaleString(currentLocale(), { maximumFractionDigits: 2 });
   return str('carousel.kilograms', { n: kg });
+}
+
+/* A time in the air as the pilot reads it, "12 h 40 min", from whole
+ * seconds (src/share/flighttime.js). */
+export function flightTimeText(seconds) {
+  const { h, m } = splitDuration(seconds);
+  if (h > 0) {
+    return str('flight.h_min', { h: h.toLocaleString(currentLocale()), m });
+  }
+  return m > 0 ? str('flight.min', { m }) : str('flight.under_a_minute');
 }
 
 /*

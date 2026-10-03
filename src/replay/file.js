@@ -105,6 +105,27 @@
  * read without a map: its replay draws the map as the live war has it,
  * as before.
  *
+ * Version 12 added the flight's sound (src/replay/sound.js): the header's
+ * `sound` ({ events }: each call on the shell's sound no row holds, an
+ * impact, a mechanism, a cue, Crest Control's lines and the two beds), and
+ * after everything else the engine's air, f32[n x AIR_N]. A clip without
+ * it is written as the version before, byte for byte, and versions 1 to
+ * 11 are read without it: their replay plays the sounds it always did.
+ *
+ * Version 13 added the room's voices as this page heard them (src/replay/
+ * voicerec.js; the owner, 2026-10-02): the header's `voice` ({ pieces:
+ * [{ seat, from, to, mime, bytes }], bytes each piece's length), and after
+ * everything else the room ms each row was drawn at, f64[n], then each
+ * piece's Opus bytes in turn. A clip without a voice is written as the
+ * version before, byte for byte.
+ *
+ * Version 14 moved a war's explosions onto its map's clock (src/replay/
+ * warrec.js): the header's war gains `booms`, [{ at (room ms), p, size }],
+ * every one drawn whatever the pilot was doing, where version 9 kept in
+ * the paper's events only those drawn while the pilot flew. A clip
+ * without them is written as before, byte for byte, and a version 9 to
+ * 13 file plays its explosions from its paper as it always did.
+ *
  * Little endian, as typed arrays are on every machine this runs on; the
  * reader checks with a known value in the header.
  *
@@ -142,8 +163,16 @@ import {
   BOOM_EVENTS, CROWN_EVENTS, checkPaper, rowsOf,
 } from './paper.js';
 import { HUNTER_N, checkWar } from './warrec.js';
+import { AIR_N, checkSound } from './sound.js';
+import { SEGMENT_BYTES_MAX, SEGMENTS_MAX, checkVoice } from './voicerec.js';
 
-export const FILE_VERSION = 11;
+export const FILE_VERSION = 14;
+/* A clip with voices and no explosions on the map's clock. */
+const VOICE_VERSION = 13;
+/* A clip with its sound and no voice: the version before voices. */
+const SOUND_VERSION = 12;
+/* A clip with a war's map and no sound: the version before the sound. */
+const MAP_VERSION = 11;
 /* A clip with a war's attackers and no map: the version before the map. */
 const WAR_VERSION = 10;
 /* A clip with explosions and no war's attackers: the version before
@@ -166,14 +195,32 @@ const PEERS_VERSION = 4;
 /* A clip with nobody else in it: the version before peers, unchanged. */
 const SOLO_VERSION = 3;
 /* Every version this build reads, the current one last. */
-const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const READS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 /* The version a clip is written as: the lowest that holds what it has. */
 function versionFor(clip) {
+  if (clip.war && clip.war.booms) {
+    if (!clip.anim) {
+      throw new Error('a clip with a war\'s explosions and no animation clock');
+    }
+    return FILE_VERSION;
+  }
+  if (clip.voice) {
+    if (!clip.anim) {
+      throw new Error('a clip with voices and no animation clock');
+    }
+    return VOICE_VERSION;
+  }
+  if (clip.sound) {
+    if (!clip.anim) {
+      throw new Error('a clip with its sound and no animation clock');
+    }
+    return SOUND_VERSION;
+  }
   if (clip.war) {
     if (!clip.anim) {
       throw new Error('a clip with a war and no animation clock');
     }
-    return clip.war.world ? FILE_VERSION : WAR_VERSION;
+    return clip.war.world ? MAP_VERSION : WAR_VERSION;
   }
   if (clip.paper && boomed(clip.paper.events)) {
     if (!clip.anim) {
@@ -260,8 +307,11 @@ const MAGIC = [0x46, 0x44, 0x46, 0x52];
 const ENDIAN_PROBE = 1.5;
 export const NAME_MAX = 60;
 
-const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war'];
-const WAR_KEYS = ['agents', 'slots', 'world'];
+const HEADER_KEYS = ['v', 'n', 'layout', 'probe', 'meta', 'events', 'spawns', 'keys', 'peers', 'paper', 'edit', 'anim', 'war', 'sound', 'voice'];
+const SOUND_KEYS = ['events'];
+const VOICE_KEYS = ['pieces'];
+const PIECE_KEYS = ['seat', 'from', 'to', 'mime', 'bytes'];
+const WAR_KEYS = ['agents', 'slots', 'world', 'booms'];
 const PAPER_KEYS = ['bytes', 'events'];
 const PEERS_KEYS = ['slots', 'layout', 'pieces', 'who', 'tables'];
 const WHO_KEYS = ['seat', 'label', 'profile', 'figure'];
@@ -326,7 +376,19 @@ export function encodeReplay(clip) {
   }
   const war = clip.war || null;
   if (war) {
-    header.war = { agents: war.agents, slots: war.slots, ...(war.world ? { world: war.world } : {}) };
+    header.war = {
+      agents: war.agents, slots: war.slots, ...(war.world ? { world: war.world } : {}), ...(war.booms ? { booms: war.booms } : {}),
+    };
+  }
+  if (clip.sound) {
+    header.sound = { events: clip.sound.events };
+  }
+  if (clip.voice) {
+    header.voice = {
+      pieces: clip.voice.pieces.map((s) => ({
+        seat: s.seat, from: s.from, to: s.to, mime: s.mime, bytes: s.bytes.length,
+      })),
+    };
   }
   const json = new TextEncoder().encode(JSON.stringify(header));
   const pre = 12 + json.length;
@@ -335,7 +397,9 @@ export function encodeReplay(clip) {
     + partRows * PART_N * 4 + (peers ? (n * peers.slots * PEER_N + pieceCount * PIECE_N) * 4 : 0)
     + (bubbleOf(clip) ? n * BUBBLE_N * 4 : 0)
     + (paper ? paper.bytes.byteLength : 0)
-    + (war ? n * 8 + n * war.slots * HUNTER_N * 4 + (war.world ? n * 8 : 0) : 0);
+    + (war ? n * 8 + n * war.slots * HUNTER_N * 4 + (war.world ? n * 8 : 0) : 0)
+    + (clip.sound ? n * AIR_N * 4 : 0)
+    + (clip.voice ? n * 8 + clip.voice.pieces.reduce((x, s) => x + s.bytes.length, 0) : 0);
   const buf = new ArrayBuffer(bytes);
   const u8 = new Uint8Array(buf);
   const dv = new DataView(buf);
@@ -388,6 +452,19 @@ export function encodeReplay(clip) {
     o += n * war.slots * HUNTER_N * 4;
     if (war.world) {
       u8.set(new Uint8Array(war.clock.buffer, war.clock.byteOffset, n * 8), o);
+      o += n * 8;
+    }
+  }
+  if (clip.sound) {
+    u8.set(new Uint8Array(clip.sound.air.buffer, clip.sound.air.byteOffset, n * AIR_N * 4), o);
+    o += n * AIR_N * 4;
+  }
+  if (clip.voice) {
+    u8.set(new Uint8Array(clip.voice.clock.buffer, clip.voice.clock.byteOffset, n * 8), o);
+    o += n * 8;
+    for (const s of clip.voice.pieces) {
+      u8.set(s.bytes, o);
+      o += s.bytes.length;
     }
   }
   return buf;
@@ -656,7 +733,7 @@ export function decodeReplay(buf, known = null) {
   if (version < 10 && header.war !== undefined) {
     throw new ReplayFileError('a war in a file older than version 10');
   }
-  if (version >= 10 && header.war === undefined) {
+  if ((version === 10 || version === 11) && header.war === undefined) {
     throw new ReplayFileError(`a version ${version} file without its war`);
   }
   const mapped = header.war !== undefined && header.war !== null && typeof header.war === 'object' && header.war.world !== undefined;
@@ -665,6 +742,43 @@ export function decodeReplay(buf, known = null) {
   }
   if (version === 11 && !mapped) {
     throw new ReplayFileError('a version 11 file without its war\'s map');
+  }
+  if (version < 12 && header.sound !== undefined) {
+    throw new ReplayFileError('a sound in a file older than version 12');
+  }
+  if (version === 12 && header.sound === undefined) {
+    throw new ReplayFileError('a version 12 file without its sound');
+  }
+  if (header.sound !== undefined) {
+    onlyKeys(header.sound, SOUND_KEYS, 'sound');
+  }
+  const boomed14 = header.war !== undefined && header.war !== null && typeof header.war === 'object' && header.war.booms !== undefined;
+  if (version < 14 && boomed14) {
+    throw new ReplayFileError('a war\'s explosions on its map\'s clock in a file older than version 14');
+  }
+  if (version === 14 && !boomed14) {
+    throw new ReplayFileError('a version 14 file without its war\'s explosions');
+  }
+  if (version < 13 && header.voice !== undefined) {
+    throw new ReplayFileError('voices in a file older than version 13');
+  }
+  if (version === 13 && header.voice === undefined) {
+    throw new ReplayFileError('a version 13 file without its voices');
+  }
+  let voiceBytes = 0;
+  if (header.voice !== undefined) {
+    onlyKeys(header.voice, VOICE_KEYS, 'voice');
+    if (!Array.isArray(header.voice.pieces) || header.voice.pieces.length > SEGMENTS_MAX) {
+      throw new ReplayFileError('voice.pieces is not a list');
+    }
+    for (const s of header.voice.pieces) {
+      onlyKeys(s, PIECE_KEYS, 'voice.pieces');
+      if (!Number.isInteger(s.bytes) || s.bytes < 1 || s.bytes > SEGMENT_BYTES_MAX) {
+        throw new ReplayFileError('a voice\'s length is out of range');
+      }
+      voiceBytes += s.bytes;
+    }
+    voiceBytes += n * 8;
   }
   if (header.war !== undefined) {
     onlyKeys(header.war, WAR_KEYS, 'war');
@@ -724,7 +838,8 @@ export function decodeReplay(buf, known = null) {
   const paperBytes = header.paper ? header.paper.bytes : 0;
   const hunterBytes = header.war ? n * header.war.slots * HUNTER_N * 4 : 0;
   const warBytes = header.war ? n * 8 + hunterBytes + (mapped ? n * 8 : 0) : 0;
-  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes !== buf.byteLength) {
+  const soundBytes = header.sound !== undefined ? n * AIR_N * 4 : 0;
+  if (o + rows * PART_N * 4 + peerBytes + paperBytes + warBytes + soundBytes + voiceBytes !== buf.byteLength) {
     throw new ReplayFileError('the file is not the length its header says');
   }
   for (const col of [time, head, pose, plant, smoke, ...(anim ? [anim] : [])]) {
@@ -788,12 +903,43 @@ export function decodeReplay(buf, known = null) {
       war.world = header.war.world;
       war.clock = new Float64Array(buf.slice(o + n * 8 + hunterBytes, o + warBytes));
     }
+    if (boomed14) {
+      war.booms = header.war.booms;
+    }
     try {
       checkWar(war, n);
     } catch (err) {
       throw new ReplayFileError(err.message);
     }
     clip.war = war;
+    o += warBytes;
+  }
+  if (header.sound) {
+    const sound = { air: new Float32Array(buf.slice(o, o + soundBytes)), events: header.sound.events };
+    try {
+      checkSound(sound, n);
+    } catch (err) {
+      throw new ReplayFileError(err.message);
+    }
+    clip.sound = sound;
+    o += soundBytes;
+  }
+  if (header.voice) {
+    const clock = new Float64Array(buf.slice(o, o + n * 8));
+    o += n * 8;
+    const pieces = header.voice.pieces.map((s) => {
+      const bytes = new Uint8Array(buf.slice(o, o + s.bytes));
+      o += s.bytes;
+      return {
+        seat: s.seat, from: s.from, to: s.to, mime: s.mime, bytes,
+      };
+    });
+    try {
+      checkVoice({ clock, pieces }, n);
+    } catch (err) {
+      throw new ReplayFileError(err.message);
+    }
+    clip.voice = { clock, pieces };
   }
   return clip;
 }

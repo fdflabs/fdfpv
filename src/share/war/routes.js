@@ -32,7 +32,9 @@
  *
  * and any of them but a hunter whose birth record carries `wire` (room
  * ms, edge/rooms/war.js from wires.js wireStrike) flies into a power
- * line there and ends ('wire').
+ * line there and ends ('wire'); one whose record carries `meet` (room ms,
+ * contact.js contactAt) meets a structure there first and arrives there,
+ * short of its aim point ('arrive').
  *
  * The aim point is the target's `at` moved sideways by `err` metres (the
  * seeded error the room draws once the scouts are dead): an attacker
@@ -178,7 +180,7 @@ function legsOf(pts) {
  * is data the room trusts, and a wrong one must fail loudly.
  */
 export function planAgent(mission, agent) {
-  const plan = cutAtWire(planRoute(mission, agent), agent.wire);
+  const plan = cutAtMeet(cutAtWire(planRoute(mission, agent), agent.wire), agent.meet);
   const stalls = agent.stalls;
   if (!stalls || !stalls.length || !Number.isFinite(plan.tEnd)) {
     return plan;
@@ -200,6 +202,20 @@ function cutAtWire(plan, t) {
   phases[phases.length - 1].t1 = t;
   return {
     t0: plan.t0, tEnd: t, end: 'wire', phases,
+  };
+}
+
+/* The plan ended at room ms t, where it met a structure (contact.js):
+ * it arrives there, its warhead going off against what it met. A t
+ * outside the flight leaves it whole, so a line met first keeps 'wire'. */
+function cutAtMeet(plan, t) {
+  if (!Number.isFinite(t) || !(t > plan.t0) || !(t < plan.tEnd) || plan.end === 'steer' || plan.end === 'park') {
+    return plan;
+  }
+  const phases = plan.phases.filter((ph) => ph.t0 < t);
+  phases[phases.length - 1].t1 = t;
+  return {
+    t0: plan.t0, tEnd: t, end: 'arrive', phases,
   };
 }
 

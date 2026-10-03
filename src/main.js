@@ -78,7 +78,7 @@ import { buildGhostCraft } from './render/ghostcraft.js';
 import { decodeGhost, encodeGhost, encodeLiveFrame, ghostFromBase64, ghostToBase64 } from './share/ghostdata.js';
 import { setCraftAirframe, CRAFT_R, CRAFT_WORLD_R, CRAFT_V_UP, CRAFT_V_DOWN, craftVerticalHalf, craftVerticalOffset, contactMaterial, canPerch, PERCH_SPEED, PERCH_RATE, shouldScorePass, shouldEnterTurtle, uprightPlantQuat, turtleFlipEase, turtleFlipLift, turtleSlerpQuat, TURTLE_STICK_MIN, TURTLE_SPEED, TURTLE_RATE, TURTLE_FLIP_MS, TURTLE_INVERT_UPZ, turtleClearance, PROP_PLANE_MAX_UP_DOT, GRAZE_SPEED_MAX, BOUNCE_SPEED_MAX, BOUNCE_COOLDOWN_MS, BOUNCE_SEPARATION, SURFACE_SPEED_MAX, LAND_DESCENT_MAX, LAND_HORIZONTAL_MAX, LAND_TILT_MAX_DEG, LAND_TILT_HARD_DEG, LAND_TIP_SPEED_MAX, GROUND_MU, GROUND_E, PRESS_CONFIRM_MS, PRESS_RELEASE_MS, PRESS_BLEED, thrustIntoFace, makeClipWatch, resetClipWatch, clipWatchTick, CLIP_CENTER_EPS, CLIP_DEEP, CLIP_CRASH_HOLD_MS, CLIP_SPAWN_GRACE_MS, contactPatch, setCraftParts } from './game/collide.js';
 import { airframeHull, hullFromPartsState, hullIntact, THREE_BODY } from './game/airframehull.js';
-import { Ui, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
+import { Ui, SETTINGS_KEY, AVX_INSETS, AVX_LEVELS, formatTime, WEIGHT_STOCK, clampWeight, gravityScaleFor, hudStyleFor, lapCraftOf, seatAirframe } from './ui/ui.js';
 import { AvionicsHud } from './ui/avionicshud.js';
 import { createFlightTelemetry } from './avionics/telemetry.js';
 import { createSensorManager } from './avionics/sensors.js';
@@ -91,6 +91,9 @@ import {
 } from './share/board.js';
 import { findBoardTwin, inspectCourse, publishCurrentCourse, pushOwnedListing, seatedCourseKey, syncOwnedIdentity } from './share/listing.js';
 import { createFlightStats, pingVisit } from './share/stats.js';
+import {
+  addFlight, createFlightClock, deviceId, mergeFlightTime, stepsAreFlight,
+} from './share/flighttime.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from './share/pilot.js';
 import { createIdentity } from './share/identity.js';
 import { createLiveLink } from './share/live.js';
@@ -840,10 +843,13 @@ export async function boot({
    * both halves of the answer live: a radio and a game controller both
    * arrive through the Gamepad API and are the same answer to "did they use
    * sticks", and the board has no business knowing which radio.
+   *
+   * The craft is the real airframe id; stats.js folds it onto the board's
+   * own list at the wire (wireCraft), because the board refuses others.
    */
   const flightStats = createFlightStats({
     describe: () => ({
-      craft: ui.settings.airframe === 'whoop65' ? 'whoop65' : '5inch',
+      craft: ui.settings.airframe,
       /* The board's stats still spell Track mode 'custom', the seat's old
        * name (STATS_MAPS in fdfpv-leaderboard's validate.js). */
       map: ui.settings.map === 'track' ? 'custom' : ui.settings.map,
@@ -869,12 +875,72 @@ export async function boot({
    * finds the counters already cleared and sends a flush of noughts, which
    * costs the board one row it already had.
    */
-  window.addEventListener('pagehide', () => flightStats.leaving());
+  window.addEventListener('pagehide', () => {
+    flightStats.leaving();
+    commitFlightTime();
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       flightStats.leaving();
+      commitFlightTime();
     }
   });
+
+  /*
+   * THE PILOT'S OWN FLIGHT TIME (src/share/flighttime.js), the record that
+   * is theirs rather than the board's counter above. The clock is fed the
+   * milliseconds the plant stepped in flight (see the step block in
+   * frameBody), so a pause, a menu, a replay, the crash hold, a turtle
+   * wait and the launch stand add nothing; it is written into the settings
+   * every FLIGHT_COMMIT_MS of flying, when the flying stops, and when the
+   * page goes away, never once a frame.
+   *
+   * The write merges what local storage holds first: a second tab in this
+   * browser shares the device slot, and its writes are in storage, not in
+   * this page's settings. Larger wins counter by counter, so the two tabs
+   * add to the slot rather than overwrite each other.
+   */
+  const FLIGHT_COMMIT_MS = 10000;
+  const flightClock = createFlightClock();
+  const flightDevice = deviceId((() => {
+    try {
+      return window.localStorage;
+    } catch (e) {
+      return null;
+    }
+  })());
+  let flightClockFlew = false;
+  function commitFlightTime() {
+    const got = flightClock.take();
+    if (!got.length) {
+      return;
+    }
+    let stored = null;
+    try {
+      stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').flightTime;
+    } catch (e) {
+      stored = null;
+    }
+    const day = new Date().toISOString().slice(0, 10);
+    let record = mergeFlightTime(ui.settings.flightTime, stored);
+    for (const g of got) {
+      record = addFlight(record, flightDevice, g.airframe, g.activity, g.seconds, day);
+    }
+    ui.settings.flightTime = record;
+    ui.persistSettings();
+  }
+  /* The activity flown, as the mode registry's id (src/share/modes.js):
+   * the room's game in a room, else Track Day on a race map and Free
+   * Flight anywhere else. Every game but those two is played in a room,
+   * alone or not (LOBBY_GAMES). */
+  function flightActivity() {
+    const st = roomLinkState.state();
+    if (st.phase === 'open' && st.welcome) {
+      const id = modeOfWire(st.welcome.mode);
+      return modeById(id) ? id : 'free';
+    }
+    return view && view.mode === 'race' ? 'race' : 'free';
+  }
 
   const gpuInfo = readGpuInfo(shell.renderer);
   ui.setGpuInfo(gpuInfo);
@@ -1211,6 +1277,8 @@ export async function boot({
   /* The flaps' angle and the gear's position last frame, for the sound of
    * them moving, and whether the gear was moving. */
   let flapAngleWas = 0;
+  /* Whether the mix was last told a replay plays (audio.setReplaying). */
+  let audioReplaying = false;
   let gearWas = 0;
   let gearMovingWas = false;
   /* Everything in the world that sounds and is not this aircraft: the
@@ -2397,7 +2465,14 @@ export async function boot({
   /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
    * turns it on in the room screen, never to a pilot muted or reported. */
   const voice = createVoice({ send: (m) => roomLinkState.send(m), isMuted: (seat) => roomSafety.isMuted(seat) });
-  const voiceUi = createVoiceUi(voice, input, () => ui.refreshFriends());
+  const voiceUi = createVoiceUi(voice, input, () => ui.refreshFriends(), {
+    acknowledged: () => ui.settings.voiceReplayAck === true,
+    acknowledge: () => {
+      ui.settings.voiceReplayAck = true;
+      ui.persistSettings();
+    },
+    confirm: (o) => ui.askConfirm(o),
+  });
   /* Harness only, for scripts/voicechat-two-page.js. */
   window.__voice = voice;
   window.__voiceUi = voiceUi;
@@ -3330,9 +3405,10 @@ export async function boot({
 
   /* Crest Control's lines, in the UI's language, while the sound is on. */
   /* Each item a line id, or a list said as one (warradio.js PRIORITY);
-   * prio 'story' for a stage's own radio cue. */
+   * prio 'story' for a stage's own radio cue. Under a replay the radio
+   * says the clip's lines, not the live war's. */
   function warSay(items, prio = 'call') {
-    if (!items.length || !audio.enabled) {
+    if (!items.length || !audio.enabled || mode === 'replay') {
       return;
     }
     const radio = audio.war();
@@ -3403,6 +3479,12 @@ export async function boot({
     if (w.damage) {
       warBreakageAt(w.damage, w.t ?? 0);
     }
+    /* And its water: a flood of the replay's own from the openings, on
+     * the clip's clock (map.replayFlood). The mission's gate state is
+     * not journalled yet (no war feeds map.setGateState), so none. */
+    if (w.openings && typeof view.replayFlood === 'function') {
+      view.replayFlood({ openings: w.openings, gates: null, fromMs: w.from ?? w.t ?? 0 });
+    }
   }
 
   /*
@@ -3432,6 +3514,9 @@ export async function boot({
     warBreakageShown = { seqs: list.map((d) => d.seq), t };
   }
   function warBreakageLive(now) {
+    if (view && typeof view.replayFlood === 'function') {
+      view.replayFlood(null);
+    }
     if (!warBreakageShown) {
       return;
     }
@@ -4217,7 +4302,10 @@ export async function boot({
     for (const peer of roomPeers.values()) {
       roomDrawPeer(peer, now, scene, dt, simT);
     }
-    roomHearPeers();
+    /* In a replay the pilots are heard from the clip (the frame's sound). */
+    if (mode !== 'replay') {
+      roomHearPeers();
+    }
     tagMarkPeers();
     tagBubble(now, wallMs, scene);
     tagCrownFrame(scene, dt);
@@ -4742,6 +4830,8 @@ export async function boot({
    * voice fades.
    */
   const peerHeard = [];
+  /* An airframe's engine, for the replay's pilots, made once each. */
+  const replaySpecs = new Map();
   const camRight = new THREE.Vector3();
   function roomHearPeers() {
     peerHeard.length = 0;
@@ -4777,6 +4867,15 @@ export async function boot({
         a.vy = p.vy;
         a.vz = p.vz;
         peerHeard.push(a);
+      }
+    } else if (crashCam) {
+      /* The replay's pilots, where and how they flew then. */
+      for (const h of crashCam.peersHeard() || []) {
+        if (!replaySpecs.has(h.airframe)) {
+          replaySpecs.set(h.airframe, h.airframe && airframeById(h.airframe) ? engineSpecFor(h.airframe, {}, {}) : null);
+        }
+        h.spec = replaySpecs.get(h.airframe);
+        peerHeard.push(h);
       }
     }
     const cam = shell.camera;
@@ -10729,7 +10828,11 @@ export async function boot({
       ui.setShare(view.share || null);
       paintBest();
       mode = stayMode === 'flight' ? 'paused' : stayMode;
-      if (stayScreen) {
+      /* Only if the pilot is still on it: a war lobby builds its mission's
+       * world while the pilot waits (warTimeFrame), about 5 s, and one who
+       * left the room and opened Make a room meanwhile was thrown back to
+       * the room screen, with no room. */
+      if (stayScreen && ui.screen === stayScreen) {
         ui.show(stayScreen);
       }
     }
@@ -14381,6 +14484,13 @@ export async function boot({
       flying: flownThisRun && !landed && !crashed && !wrecked && !turtleWait && !turtleRecover,
       laps: race.laps.length,
     });
+    /* The pilot's own flight time, written when enough is held or when
+     * the last frame's steps were not flight (THE PILOT'S OWN FLIGHT TIME,
+     * above); flightClockFlew is set again by this frame's step block. */
+    if (flightClock.held() >= FLIGHT_COMMIT_MS || (!flightClockFlew && flightClock.held() >= 1000)) {
+      commitFlightTime();
+    }
+    flightClockFlew = false;
 
     /* The seated world's note, released on the first frame of a flight and
      * not one frame earlier. See showCourseNotes. */
@@ -14780,6 +14890,14 @@ export async function boot({
           simStepIdx += steps;
         }
         frameSteps = steps;
+        /* The pilot's flight time: the steps the plant just took, if they
+         * were flight (src/share/flighttime.js stepsAreFlight). */
+        flightClockFlew = stepsAreFlight({
+          mode, screen: ui.screen, landed, launchStaging, faulted, crashed, wrecked, turtleWait, turtleRecover,
+        });
+        flightClock.note(steps * MS_PER_STEP, {
+          airborne: flightClockFlew, airframe: runAirframe, activity: flightActivity(),
+        });
         /* Launch stand constraint runs inside sim_step. Ground contact
          * runs after plant_step at 1 kHz when the plane is raised. */
         flightLog.push(stateCurr, rcHeld, FULL_THROTTLE_RPM);
@@ -15880,6 +15998,12 @@ export async function boot({
          * craft is where it was then; a clip saved before it had one is
          * drawn at the live clock. */
         animMs = crashCam.animMs() ?? trafficMs(simTimeMs);
+        /* The live water steps on with the room meanwhile, never past
+         * the traffic's clock it is stepped on after (TRAFFIC_SLACK_MS):
+         * the map's replay flood is the one on the clip's. */
+        if (view.advanceLiveWater && roomLinkState.state().phase === 'open' && roomLinkState.roomNow() != null) {
+          view.advanceLiveWater(roomLinkState.roomNow() - TRAFFIC_SLACK_MS);
+        }
       } else if (mode === 'results') {
         animMs = trafficMs(simTimeMs + Math.max(0, finishCamMs));
       } else if (mode !== 'title') {
@@ -16022,6 +16146,21 @@ export async function boot({
      * the camera is now, over the ground under it. */
     worldAudio.attach(audio);
     worldAudio.setWalls(view && view.audioWalls);
+    /* A replay's attackers heard where it drew them, and its pilots, in
+     * or out of a room; the live music, radio and voices held silent
+     * under it (src/replay/sound.js). */
+    if ((mode === 'replay') !== audioReplaying) {
+      audioReplaying = mode === 'replay';
+      audio.setReplaying(audioReplaying);
+      voice.setHeld(audioReplaying);
+    }
+    if (mode === 'replay' && crashCam) {
+      const heard = crashCam.warHeard();
+      if (heard) {
+        worldAudio.war(heard.list, heard.room);
+      }
+      roomHearPeers();
+    }
     /* The water through the dam's openings (the map's flood,
      * docs/FLOOD.md), its roar with its discharge. */
     if (view && view.waterFlows) {
@@ -16138,6 +16277,12 @@ export async function boot({
       gearWas = gear;
       audioAir.gearMoving = gearMoving;
       air = audioAir;
+      if (crashCam && mode === 'flight') {
+        crashCam.recordAir(air);
+      }
+    } else {
+      /* The clip's air when it kept it, else the wind from its speed. */
+      air = crashCam.air();
     }
     audio.update(audioRpm, replayWind >= 0 ? replayWind : (motorsTurning ? speed : 0), undefined, air);
     const audioMs = performance.now() - audioStart;
@@ -18134,6 +18279,9 @@ export async function boot({
     return true;
   };
   window.__mapFlows = () => (view && view.waterFlows ? view.waterFlows() : null);
+  /* How a crash cam replay's water stands (map.replayWater), for
+   * scripts/replay-world.js. Harness only. */
+  window.__mapReplayWater = () => (view && view.replayWater ? view.replayWater() : null);
   /* A mission's gate state handed to the map (map.setGateState), for
    * scripts/itaipu-views.js --gates. Harness only. */
   window.__mapGates = (list) => {
@@ -18456,6 +18604,25 @@ export async function boot({
       ui.show('flight');
     },
     drawWar: warMapDraw,
+    /* The two beds as they play now, [id, seconds in] ('' for none): the
+     * flight's record and the war's music (src/replay/sound.js). */
+    beds: () => {
+      const m = audio.music;
+      const r = audio.warRadio;
+      const on = (el) => Boolean(el && !el.paused && !el.ended);
+      return {
+        music: m && m.enabled && on(m.el) && m.track ? [m.track.id, m.el.currentTime] : ['', 0],
+        bed: r && r.track && r.bed && on(r.bed.el) ? [r.track, r.bed.el.currentTime] : ['', 0],
+      };
+    },
+    /* A replayed explosion in the world's voice, from where it went off;
+     * false without one. */
+    worldBoom: (p, level) => worldAudio.boom(p, level),
+    /* How the map's replay water stands (map.replayWater), or null. */
+    replayWater: () => (view && typeof view.replayWater === 'function' ? view.replayWater() : null),
+    /* The room clock now, or null out of a room: what each row and each
+     * voice heard is stamped on (src/replay/voicerec.js). */
+    roomNow: () => (roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null),
     notice: (text) => {
       notice = { text, untilMs: performance.now() + 2400 };
     },
@@ -18543,6 +18710,8 @@ export async function boot({
   crashCam.tapBooms(warBooms);
   /* And its attackers, so a replay flies them where they were. */
   crashCam.tapWar(roomWar, warAttackers, () => warFrameNow);
+  /* And the voices this page hears, for its replays (src/share/voice.js). */
+  voice.setRecorder(crashCam.voiceSink);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

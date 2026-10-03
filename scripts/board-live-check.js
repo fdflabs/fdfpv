@@ -3,7 +3,7 @@
  * against a real board, through the real page.
  *
  *     BOARD_ADMIN_FILE=/home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt \
- *       npm run board:live [-- --board=https://129.151.39.48/board] [--page=https://fdflabs.github.io/fdfpv/]
+ *       npm run board:live [-- --board=https://api.paraguayandronecombatsimulator.com/board] [--page=https://paraguayandronecombatsimulator.com/]
  *       [--only=paste]
  *
  * The board is PRODUCTION_BOARD_ORIGIN from src/share/board.js unless
@@ -83,6 +83,7 @@ import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { syntheticLapBytes } from '../tests/lib/synthlap.js';
 import { PRODUCTION_BOARD_ORIGIN } from '../src/share/board.js';
 import { PRODUCTION_TRACKS_ORIGIN } from '../src/share/cloud.js';
+import { API_ORIGIN, SITE_ORIGIN } from '../src/share/api.js';
 import { createIdentity, memoryStorage } from '../src/share/identity.js';
 import { ghostToBase64 } from '../src/share/ghostdata.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
@@ -301,7 +302,7 @@ async function pasteInbox(shell, id) {
 async function main() {
   console.log(`board ${BOARD}, page ${PAGE || 'this checkout on loopback'}`);
   if (!opts.board) {
-    say(BOARD === 'https://129.151.39.48/board', `PRODUCTION_BOARD_ORIGIN is the VM's board: ${PRODUCTION_BOARD_ORIGIN}`);
+    say(BOARD === `${API_ORIGIN}/board`, `PRODUCTION_BOARD_ORIGIN is the VM's board: ${PRODUCTION_BOARD_ORIGIN}`);
   }
 
   /* 1. The board itself. */
@@ -532,7 +533,7 @@ async function main() {
       await shell.until(`document.body && document.body.innerText.includes(${JSON.stringify(PILOT)})`, 60000).catch(() => {});
       say(await shell.evaluate(`document.body.innerText.includes(${JSON.stringify(PILOT)})`), `and the track's sheet shows ${JSON.stringify(PILOT)}'s time`);
       const fly = await shell.evaluate("[...document.querySelectorAll('a')].map((x) => x.href).find((h) => h.includes('share=')) || ''");
-      say(fly.startsWith('https://fdflabs.github.io/fdfpv/') || Boolean(opts.board), `its Fly link goes to the simulator on GitHub Pages: ${fly.slice(0, 110)}`);
+      say(fly.startsWith(`${SITE_ORIGIN}/`) || Boolean(opts.board), `its Fly link goes to the simulator on its domain: ${fly.slice(0, 110)}`);
     }
     await shell.evaluate(`sessionStorage.setItem('webfpv.board.admin.v1', ${JSON.stringify(token)}), true`);
     await navigate(shell, `${BOARD}/bugs`);
