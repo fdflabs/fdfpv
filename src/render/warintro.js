@@ -68,7 +68,7 @@ import { craftBuilderFor } from './craft.js';
 import { warVoiceUrl } from './warradio.js';
 import { poseAt } from '../share/war/routes.js';
 import {
-  HANDOFF_MS, OUT_S, PRELOAD_MS, blackAt, anchor, cameraAt, castAt, lensFov, lineAt, linesOf, placeAgents, shotIndex, spinAt, timing,
+  HANDOFF_MS, OUT_S, PRELOAD_MS, blackAt, anchor, cameraAt, castAt, lensFov, lineAt, linesOf, placeAgents, scopeAt, shotIndex, spinAt, timing,
 } from '../share/war/film.js';
 import { filmFor } from '../share/war/films/index.js';
 import { INTRO_MS } from '../share/war/intro.js';
@@ -212,6 +212,8 @@ const GRADES = {
 };
 
 const smooth = (u) => u * u * (3 - 2 * u);
+/* One turn of the scope's sweep, ms. */
+const SCOPE_SWEEP_MS = 4000;
 
 /* A style written only when it changes: the overlay is set every frame,
  * and a write of the same value still costs the page a style pass. */
@@ -257,6 +259,8 @@ const TITLE_FONT = 'Impact, "Oswald", "Bebas Neue", "Arial Narrow", "Helvetica N
  *   canvas       the world's canvas (the grade goes on it), default #view
  *   audio        the shell's MotorAudio, or null
  *   ground(x, z) the ground's height, for cast standing on it
+ *   named        [[x, y, z]...]: the targets a shot's `outline` brackets
+ *                (the room's working set), none without it
  */
 export function play(scene, camera, opts = {}) {
   const film = opts.film ?? filmFor(null);
@@ -326,6 +330,10 @@ export function play(scene, camera, opts = {}) {
   const tint = el('div', 'position:absolute;inset:0;', overlay);
   /* The outgoing shot's last frame, fading over the next: a dissolve. */
   const dissolve = el('canvas', 'position:absolute;inset:0;width:100%;height:100%;opacity:0;', overlay);
+  /* The 2D inserts: the SCOPE over the whole frame, a shot's outlines. */
+  const insert = el('canvas', 'position:absolute;inset:0;width:100%;height:100%;', overlay);
+  const ink = insert.getContext('2d');
+  let inked = false;
   el('div', 'position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);', overlay);
   /* The 2.39 letterbox, opened by the hand-off: a scale on each bar. */
   const BAR = 'max(0px, calc((100vh - 100vw / 2.39) / 2))';
@@ -414,6 +422,7 @@ export function play(scene, camera, opts = {}) {
   const shellQuat = new THREE.Quaternion();
   const filmQuat = new THREE.Quaternion();
   const look = new THREE.Vector3();
+  const projected = new THREE.Vector3();
   const tmp = new THREE.Vector3();
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -546,7 +555,149 @@ export function play(scene, camera, opts = {}) {
     } else {
       put(counter, 'opacity', '0');
     }
+    drawInsert(s, t, tFilm);
     subtitle(tFilm);
+  }
+
+  /* The insert canvas: the scope, the outlines, or nothing (cleared once). */
+  function drawInsert(s, t, tFilm) {
+    const outlining = s.outline && opts.named && opts.named.length
+      && t >= anchor(s.outline.from ?? 0, s) && t < anchor(s.outline.to ?? { at: 'end' }, s);
+    if (!s.scope && !outlining) {
+      if (inked) {
+        ink.clearRect(0, 0, insert.width, insert.height);
+        inked = false;
+      }
+      state.scope = null;
+      state.outlined = 0;
+      return;
+    }
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.round(insert.clientWidth * dpr);
+    const h = Math.round(insert.clientHeight * dpr);
+    if (insert.width !== w || insert.height !== h) {
+      insert.width = w;
+      insert.height = h;
+    }
+    ink.clearRect(0, 0, w, h);
+    inked = true;
+    if (s.scope) {
+      drawScope(s, t, tFilm, w, h, dpr);
+    } else {
+      drawOutlines(w, h, dpr, t);
+    }
+  }
+
+  function drawScope(s, t, tFilm, w, h, dpr) {
+    const sc = s.scope;
+    const R = Math.min(w, h) * 0.4;
+    const cx = w / 2;
+    const cy = h / 2;
+    const px = (u, v) => [cx + u * R, cy + v * R];
+    ink.fillStyle = '#020a07';
+    ink.fillRect(0, 0, w, h);
+    ink.save();
+    ink.beginPath();
+    ink.arc(cx, cy, R, 0, 2 * Math.PI);
+    ink.fillStyle = '#04170f';
+    ink.fill();
+    ink.clip();
+    ink.lineWidth = 1 * dpr;
+    ink.strokeStyle = 'rgba(80, 200, 140, 0.25)';
+    for (const k of [1 / 3, 2 / 3]) {
+      ink.beginPath();
+      ink.arc(cx, cy, R * k, 0, 2 * Math.PI);
+      ink.stroke();
+    }
+    ink.beginPath();
+    ink.moveTo(cx - R, cy);
+    ink.lineTo(cx + R, cy);
+    ink.moveTo(cx, cy - R);
+    ink.lineTo(cx, cy + R);
+    ink.stroke();
+    /* The landmarks, then the sweep, then the contacts over both. */
+    ink.lineWidth = 2.5 * dpr;
+    ink.strokeStyle = 'rgba(90, 210, 150, 0.7)';
+    for (const line of sc.lines ?? []) {
+      ink.beginPath();
+      line.forEach(([x, z], k) => {
+        const [qx, qy] = px((x - sc.at[0]) / sc.r, (z - sc.at[1]) / sc.r);
+        if (k === 0) {
+          ink.moveTo(qx, qy);
+        } else {
+          ink.lineTo(qx, qy);
+        }
+      });
+      ink.stroke();
+    }
+    ink.font = `600 ${Math.round(11 * dpr)}px ui-monospace, Menlo, Consolas, monospace`;
+    ink.fillStyle = 'rgba(110, 230, 170, 0.75)';
+    ink.textAlign = 'center';
+    for (const m of sc.marks ?? []) {
+      const [qx, qy] = px((m.at[0] - sc.at[0]) / sc.r, (m.at[1] - sc.at[1]) / sc.r);
+      ink.fillText(str(m.key).toUpperCase(), qx, qy);
+    }
+    const sweep = ((tFilm / SCOPE_SWEEP_MS) % 1) * 2 * Math.PI - Math.PI / 2;
+    ink.beginPath();
+    ink.moveTo(cx, cy);
+    ink.arc(cx, cy, R, sweep - 0.5, sweep);
+    ink.closePath();
+    ink.fillStyle = 'rgba(80, 220, 150, 0.12)';
+    ink.fill();
+    const contacts = scopeAt(s, t, agents, tFilm).filter((c) => c.shown);
+    for (const c of contacts) {
+      ink.fillStyle = 'rgba(255, 211, 77, 0.35)';
+      for (const [u, v] of c.trail) {
+        const [qx, qy] = px(u, v);
+        ink.fillRect(qx - 1.5 * dpr, qy - 1.5 * dpr, 3 * dpr, 3 * dpr);
+      }
+      const [qx, qy] = px(c.u, c.v);
+      ink.fillStyle = '#ffd34d';
+      ink.beginPath();
+      ink.moveTo(qx, qy - 5 * dpr);
+      ink.lineTo(qx + 5 * dpr, qy);
+      ink.lineTo(qx, qy + 5 * dpr);
+      ink.lineTo(qx - 5 * dpr, qy);
+      ink.closePath();
+      ink.fill();
+    }
+    ink.restore();
+    ink.lineWidth = 2 * dpr;
+    ink.strokeStyle = 'rgba(90, 210, 150, 0.8)';
+    ink.beginPath();
+    ink.arc(cx, cy, R, 0, 2 * Math.PI);
+    ink.stroke();
+    ink.textAlign = 'left';
+    ink.fillStyle = 'rgba(110, 230, 170, 0.9)';
+    ink.fillText(str('war.scope.title'), cx - R, cy - R - 10 * dpr);
+    state.scope = { contacts: contacts.length, onScope: contacts.filter((c) => Math.hypot(c.u, c.v) <= 1).length };
+  }
+
+  /* Corner brackets round each named target in front of the camera. */
+  function drawOutlines(w, h, dpr, t) {
+    camera.updateMatrixWorld();
+    const a = 14 * dpr;
+    const leg = 7 * dpr;
+    ink.lineWidth = 2 * dpr;
+    ink.strokeStyle = `rgba(255, 224, 64, ${(0.75 + 0.25 * Math.sin(t / 160)).toFixed(3)})`;
+    let drawn = 0;
+    for (const p of opts.named) {
+      const v = projected.set(p[0], p[1], p[2]).project(camera);
+      if (v.z > 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05) {
+        continue;
+      }
+      const x = ((v.x + 1) / 2) * w;
+      const y = ((1 - v.y) / 2) * h;
+      for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        ink.beginPath();
+        ink.moveTo(x + sx * a, y + sy * (a - leg));
+        ink.lineTo(x + sx * a, y + sy * a);
+        ink.lineTo(x + sx * (a - leg), y + sy * a);
+        ink.stroke();
+      }
+      drawn += 1;
+    }
+    state.outlined = drawn;
   }
 
   /* A title's words: its text, its key, or the mission's own card. */
@@ -707,6 +858,8 @@ export function play(scene, camera, opts = {}) {
     credit.style.opacity = '0';
     black.style.opacity = '0';
     dissolve.style.opacity = '0';
+    ink.clearRect(0, 0, insert.width, insert.height);
+    inked = false;
     tint.style.background = 'none';
     skipBox.style.display = 'none';
     if (opts.hold && tFilm < timed.ms) {

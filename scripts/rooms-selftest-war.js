@@ -238,6 +238,8 @@ export function warSection(check) {
     let ok = true;
     const unplanned = [];
     for (const m of Object.values(MISSIONS)) {
+      /* A working set's spawn may go for any target the set is drawn from. */
+      const sets = Object.fromEntries(Object.entries(m.sets ?? {}).map(([name, d]) => [name, d.from]));
       for (const w of m.waves) {
         const routes = w.route && typeof w.route === 'object' && !Array.isArray(w.route)
           ? [w.route.sector].flat().flatMap((sec) => m.sectors[sec]) : [w.route].flat();
@@ -245,7 +247,7 @@ export function warSection(check) {
           for (const route of routes) {
             try {
               planAgent(m, {
-                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0),
+                id: 1, kind, route, t0: 0, k: 0, n: w.n, err: 0, target: waveTarget(w, 0, sets),
               });
             } catch (x) {
               ok = false;

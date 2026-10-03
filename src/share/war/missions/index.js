@@ -34,6 +34,7 @@ import itaipu2 from './itaipu-2.js';
 import itaipu3 from './itaipu-3.js';
 import itaipu4 from './itaipu-4.js';
 import drill from './itaipu-drill.js';
+import { idsOf } from '../stages.js';
 
 /* Act 1 of the campaign, Defend the Paraná, in order, and after it the
  * drill (itaipu-drill.js), which no campaign offers. */
@@ -51,8 +52,12 @@ export function waveSize(wave, pilots) {
   return Math.max(1, Math.round(wave.n + (wave.per || 0) * (Math.max(1, pilots) - 1)));
 }
 
-/* The target of a wave's k-th attacker, or null for a wave with none. */
-export function waveTarget(wave, k) {
-  const t = wave.target;
-  return Array.isArray(t) ? t[k % t.length] : t ?? null;
+/* The target of a wave's k-th attacker, or null for a wave with none.
+ * A target of { set } is the match's draw of that set (sets, m.sets). */
+export function waveTarget(wave, k, sets = null) {
+  if (wave.target == null) {
+    return null;
+  }
+  const t = idsOf(wave.target, sets);
+  return t[k % t.length];
 }
