@@ -13,10 +13,7 @@
 # an address a name (sslip.io, nip.io) are on DNS blocklists, and the
 # owner's own ISP resolver answers NXDOMAIN for them.
 #
-# paraguayanfightdronesimulator.com is the game's second name. Its DNS
-# points here only to be sent on, path and query kept, to the game, which
-# GitHub Pages serves (CNAME in the repository root). The game's own www is
-# not here: Pages sends it to the apex.
+# The game's own apex and www are not here: GitHub Pages serves them.
 #
 # One origin serves all three servers, because their paths never meet: the
 # tracks server answers /api/* and the rooms server /v2/* and /, so the
@@ -92,8 +89,4 @@
 
 api.paraguayandronecombatsimulator.com {
 	import servers
-}
-
-paraguayanfightdronesimulator.com, www.paraguayanfightdronesimulator.com {
-	redir https://paraguayandronecombatsimulator.com{uri} 301
 }
