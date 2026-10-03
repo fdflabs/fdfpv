@@ -1963,8 +1963,10 @@ export async function buildPart(ctx) {
   }
   /* Each penstock's capsules, along it: the one inside its hood, its
    * segments (PEN_SEG_M or so each, the chunks a warhead breaks), and the
-   * one into the roof. Made with the drawing, once the hoods are placed. */
+   * one into the roof; and the segments alone, the target's. Made with
+   * the drawing, once the hoods are placed. */
   const penIndex = [];
+  const penSegs = [];
   /* Drawn at the capsule's radius, with the stiffener rings and the
    * flange at the roof RING.proud and RING.flange over it, once the hoods
    * have said where each leaves the face (drawPenstocks): segment by
@@ -1988,6 +1990,7 @@ export async function buildPart(ctx) {
       o: [ox, 0, oz], u: [F.a[0], 0, F.a[1]], n: [F.n[0], 0, F.n[1]], bore: Math.PI * penR * penR,
     });
     const ids = [addCapsule('wall', A, at(out), penR)];
+    const segIds = [];
     tube(A, at(out), penR, 32, TONE.penstock, penstockTris);
     const side = [F.a[0], 0, F.a[1]];
     for (let i = 0; i < segs; i += 1) {
@@ -2011,6 +2014,7 @@ export async function buildPart(ctx) {
       const ci = addCapsule('wall', P, Q, penR);
       st.chunks[c].colliders.push(ci);
       ids.push(ci);
+      segIds.push(ci);
       if (i > 0) {
         link(st, c - 1, c);
       }
@@ -2019,6 +2023,7 @@ export async function buildPart(ctx) {
     collar(A, B, roof - RING.flangeLength, roof + 0.5, penR, penR + RING.flange, 32, TONE.penstock, penstockTris);
     ids.push(addCapsule('wall', at(roof), B, penR));
     penIndex[k] = ids;
+    penSegs[k] = segIds;
     penRanges.push([from, penstockTris.c.length]);
   });
   /* Each penstock's target: a capsule round its drawn length, from where
@@ -2044,7 +2049,7 @@ export async function buildPart(ctx) {
       at: [P[0] + (u[0] / ul) * penR, P[1] + (u[1] / ul) * penR, P[2] + (u[2] / ul) * penR],
       r: 8,
       part: 'penstock',
-      colliders: penIndex[k].slice(),
+      colliders: penSegs[k].slice(),
     };
     darken[`penstock-${k}`] = { mesh: 'penstocks', range: penRanges[k] };
   });
