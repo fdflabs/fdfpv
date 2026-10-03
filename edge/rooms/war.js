@@ -102,7 +102,7 @@
  *                                           briefing; RESTART_STARS)
  *   { type: 'war', op: 'skipIntro' }        cut the briefing short: the
  *                                           countdown starts now; refused
- *                                           'unseen' unless every pilot
+ *                                           'unwatched' unless every pilot
  *                                           here has seen this film's
  *                                           version (docs/campaign/
  *                                           INTROS.md section 3: a first
@@ -1054,7 +1054,7 @@ export class RoomWar {
       return [];
     }
     if (this.seenHere(core).length < this.players(core).length) {
-      return this.error(conn, 'unseen');
+      return this.error(conn, 'unwatched');
     }
     m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
     m.f = m.goAt;

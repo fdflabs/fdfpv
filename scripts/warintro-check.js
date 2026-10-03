@@ -217,8 +217,10 @@ const DRIVE = /* js */ `(async (opts) => {
 const scratch = await mkdtemp(join(tmpdir(), 'fdfpv-warintro-'));
 const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
 const url = `/index.html?map=itaipu&rooms=${encodeURIComponent(`http://127.0.0.1:${server.port}`)}`;
+/* The host has seen this cut (the driver below says so for itself, per
+ * run); the guest page has not. */
 const page = await openPage({
-  root, width: 1600, height: 900, url, seed: seedFor(false),
+  root, width: 1600, height: 900, url, seed: seedFor(true),
 });
 let guest = null;
 const stop = () => page.close().finally(() => process.exit(1));
@@ -398,11 +400,6 @@ try {
 
   console.log('\nin the game, two pages on one room');
   await page.until('window.__shellReady === true', 60000);
-  /* The host has seen this cut; the guest has not. */
-  await page.evaluate(`(() => { const s = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}));
-    s.campaign = { films: ${JSON.stringify({ [FILM.id]: FILM.version })} }; localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s)); location.reload(); })()`).catch(() => {});
-  await page.until('window.__shellReady === true && window.__map && window.__map().ready', 300000);
-  await soundOn(page);
   guest = await openPage({
     root, width: 1280, height: 720, url, seed: seedFor(false),
   });

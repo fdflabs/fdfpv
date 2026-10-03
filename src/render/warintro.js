@@ -605,9 +605,13 @@ export function play(scene, camera, opts = {}) {
     if (anchorS == null || Math.abs(want - anchorS) * 1000 > ANCHOR_SLIP_MS) {
       anchorS = want;
       for (const [id, x] of scheduled) {
-        if (x.when > ctx.currentTime) {
+        if (x.src && x.when > ctx.currentTime) {
           x.src.stop();
           scheduled.delete(id);
+          const k = cued.findIndex((c) => c.at === id);
+          if (k >= 0) {
+            cued.splice(k, 1);
+          }
         }
       }
     }

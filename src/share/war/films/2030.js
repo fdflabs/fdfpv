@@ -284,7 +284,7 @@ export default {
       /* The first wave on the horizon on a long lens, pulling wide as the
        * defenders climb past it from both banks; then the hand-off. */
       camera: {
-        type: 'telephoto', lens: [200, 24], ease: 'out', at: crest(8.5, 20, 231), look: [[90, 262, -2500], [100, 280, -2150]],
+        type: 'telephoto', lens: [200, 24], ease: 'io', at: crest(8.5, 20, 231), look: [[90, 262, -2500], [100, 280, -2150]],
       },
       cast: {
         p51: rise(crest(8.5, 8, 233, 10), 22, 40, 0.2, 7.4),

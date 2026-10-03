@@ -343,11 +343,11 @@ export function warSection(check) {
     const seen = { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version } };
     s.say(0, seen);
     s.say(0, { type: 'war', op: 'skipIntro' });
-    check('the host\'s skip with a pilot here who has not seen the film is refused "unseen", and the briefing holds',
-      s.errors(0).at(-1) === 'unseen' && s.view(1).state === 'briefing' && JSON.stringify(s.view(1).seen) === JSON.stringify([1]), JSON.stringify(s.view(1).seen));
+    check('the host\'s skip with a pilot here who has not seen the film is refused "unwatched", and the briefing holds',
+      s.errors(0).at(-1) === 'unwatched' && s.view(1).state === 'briefing' && JSON.stringify(s.view(1).seen) === JSON.stringify([1]), JSON.stringify(s.view(1).seen));
     s.say(1, { type: 'war', op: 'seen', films: { [filmFor(null).id]: filmFor(null).version - 1 } });
     s.say(0, { type: 'war', op: 'skipIntro' });
-    check('and so is it when that pilot saw only an older cut of it', s.errors(0).at(-1) === 'unseen' && s.view(1).state === 'briefing');
+    check('and so is it when that pilot saw only an older cut of it', s.errors(0).at(-1) === 'unwatched' && s.view(1).state === 'briefing');
     s.say(1, { type: 'war', op: 'seen', films: 'all' });
     check('a seen that is not { film: version } is refused "seen"', s.errors(1).at(-1) === 'seen');
     s.say(1, seen);
