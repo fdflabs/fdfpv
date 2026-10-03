@@ -60,6 +60,7 @@
  */
 
 import { KINDS as KIND_NAMES, WORLD_KINDS, SOURCE_STRIDE } from './world-kinds.js';
+import { guard } from './worklet-guard.js';
 
 const TAU = 2 * Math.PI;
 /* Speed of sound, m/s, at 20 C. */
@@ -173,6 +174,16 @@ const SONGS = [
 ];
 /* A prop's own table, built per voice at bind: one revolution. */
 const PROP_N = 1024;
+
+/* Whether a[at .. at + n) are all finite numbers. */
+function finiteRow(a, at, n) {
+  for (let i = at; i < at + n; i += 1) {
+    if (!Number.isFinite(a[i])) {
+      return false;
+    }
+  }
+  return true;
+}
 
 /* xorshift32, uniform in [-1, 1). */
 function rng(seed) {
@@ -1152,7 +1163,7 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.stateA = new Float64Array(6);
     this.stateB = new Float64Array(6);
     this.far = new Map();
-    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, beds: 0, bedsMax: 0, tracks: 0, load: 0, step: 0, stepMax: 0 };
+    this.stats = { voiced: 0, voicedMax: 0, bedded: 0, beds: 0, bedsMax: 0, tracks: 0, load: 0, step: 0, stepMax: 0, rejected: 0 };
     /* The load guard (meter): on unless the options say otherwise, with a
      * budget of the audio's own time. */
     this.guard = o.guard !== false;
@@ -1200,7 +1211,15 @@ class WorldProcessor extends AudioWorkletProcessor {
     }
   }
 
+  /* The boundary: a frame whose listener or time is not finite is not
+   * taken, nor a source with a number that is not, and both are counted
+   * (stats.rejected). One NaN position would otherwise be a NaN distance,
+   * gain and filter state, for good (worklet-guard.js). */
   frame(f) {
+    if (!Number.isFinite(f.t) || !f.lis || !finiteRow(f.lis, 0, f.lis.length)) {
+      this.stats.rejected += 1;
+      return;
+    }
     this.lis.push(f.t, f.lis);
     this.heard = true;
     const s = f.src;
@@ -1208,6 +1227,10 @@ class WorldProcessor extends AudioWorkletProcessor {
       return;
     }
     for (let i = 0; i + SOURCE_STRIDE <= s.length; i += SOURCE_STRIDE) {
+      if (!finiteRow(s, i, SOURCE_STRIDE)) {
+        this.stats.rejected += 1;
+        continue;
+      }
       const id = s[i];
       const kind = s[i + 1];
       let tr = this.tracks.get(id);
@@ -1240,13 +1263,42 @@ class WorldProcessor extends AudioWorkletProcessor {
     return d;
   }
 
+  /* Through worklet-guard.js: a throw or a non-finite quantum is a 3 ms
+   * gap and a { fault } on the port, never a dead node or a NaN latched
+   * into the master limiter. */
   process(inputs, outputs) {
     const started = this.guard ? Date.now() : 0;
-    this.work(outputs);
+    guard(this, inputs, outputs);
     if (this.guard) {
       this.meter(Date.now() - started, outputs[0][0].length);
     }
     return true;
+  }
+
+  /* For worklet-guard.js: the listener, and every voiced source's state
+   * at the time it is heard from, the first non-finite one marked. */
+  faultContext() {
+    const L = this.lisNow ? Array.from(this.lisNow) : null;
+    const voices = [];
+    for (const v of [...this.voices, ...this.beds]) {
+      if (!v.track) {
+        continue;
+      }
+      const st = Array.from(v.track.at(currentTime, new Float64Array(6)));
+      voices.push({ id: v.track.id, kind: KIND_NAMES[v.track.kind], state: st, level: v.level, rpm: v.rpm, dist: v.distPrev, fade: v.fade });
+    }
+    return { listener: L, voices, blasts: this.blasts.length, tracks: this.tracks.size };
+  }
+
+  /* After a fault (worklet-guard.js): every source and voice starts over
+   * from the next frame, the explosions under way are dropped. */
+  reset() {
+    for (const v of [...this.voices, ...this.beds]) {
+      v.track = null;
+    }
+    this.tracks.clear();
+    this.far.clear();
+    this.blasts = [];
   }
 
   /*
@@ -1289,7 +1341,7 @@ class WorldProcessor extends AudioWorkletProcessor {
     this.quanta = 0;
   }
 
-  work(outputs) {
+  work(inputs, outputs) {
     const out0 = outputs[0];
     const out2 = outputs[2];
     const n = out0[0].length;
