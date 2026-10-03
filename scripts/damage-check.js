@@ -61,6 +61,7 @@ import STRUCTURES from '../src/share/war/itaipu-chunks.js';
  * target (a hit already takes its megawatts, war.js take), and at most
  * HITS, for every kind at its own targets. */
 const HITS_MIN = 2;
+const NEIGHBOUR_HITS = 3;
 const HITS = 4;
 const GATE = 'gate-3';
 
@@ -151,6 +152,27 @@ function table() {
       check(n <= HITS, `strike at the yard (${y.mission}): its first break in ${HITS} hits or fewer`, `${n}, ${broke ? broke.chunks.map((i) => STRUCTURES[y.target].chunks[i].k).join(' ') : 'none'}`);
     } else {
       console.log(`  info  ${y.kind} at the yard (${y.mission}): first break ${n === Infinity ? 'never in 20' : `in ${n}`}`);
+    }
+  }
+  /* A wave on one target leaves its neighbours closed: NEIGHBOUR_HITS of
+   * each kind at an intake's or a gate's aim open neither of the next
+   * ones (war:boom's mission 1 sends three Boats at intake-17). */
+  for (const kind of ['strike', 'loiter', 'boat']) {
+    for (const [part, k] of [['intake', 10], ['gate', 6]]) {
+      const id = `${part}-${k}`;
+      const near = [`${part}-${k - 1}`, `${part}-${k + 1}`];
+      const p = MISSIONS['itaipu-1'].targets[id].at;
+      const wreck = {};
+      const opened = new Set();
+      for (let h = 0; h < NEIGHBOUR_HITS; h += 1) {
+        const sub = Object.fromEntries([id, ...near].map((x) => [x, STRUCTURES[x]]));
+        for (const r of blast(sub, wreck, p, attackerCharge(kind), h)) {
+          if (r.down) {
+            opened.add(r.target);
+          }
+        }
+      }
+      check(near.every((x) => !opened.has(x)), `${NEIGHBOUR_HITS} ${kind} hits at ${id} leave ${near.join(' and ')} closed`, [...opened].join(' ') || 'none opened');
     }
   }
   const by = new Map();

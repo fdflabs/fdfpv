@@ -46,11 +46,14 @@
  *   charge / (1 + (d / r)^2),  nothing past CUT_R r
  *
  * added to what the chunk has taken; it breaks when the sum reaches its
- * kind's hp. Under water the blast reaches further: a chunk under the
- * structure's water, struck by a warhead at or under its surface (within
- * WET_ABOVE_M over it), takes charge / (1 + d / (WATER_R r)), falling as
- * 1/d where air's falls as 1/d^2, since water carries a shock's peak
- * pressure where air spends it (the reason a dam is attacked at depth). The charges
+ * kind's hp. Under water the blast reaches further: a chunk WET_DEPTH
+ * or more under the structure's water, struck by a warhead at or under
+ * its surface (within WET_ABOVE_M over it), sees r as at least WATER_M,
+ * since water carries a shock's peak pressure where air spends it (the
+ * reason a dam is attacked at depth). The two are picked so that a few
+ * hits at an intake's surface reach its gate 22 m down, and three at one
+ * intake or spillway gate open neither of its neighbours, 33 and 25 m
+ * along the dam (scripts/damage-check.js holds both). The charges
  * are gameplay numbers, not explosive physics: they stand in the order of
  * the real payloads (a Shahed class strike 50 kg, a Lancet class loiterer
  * 3 kg, an FPV's 1.5 kg, an explosive boat a few hundred) squeezed so each
@@ -58,10 +61,10 @@
  * measures hits to open per kind and target, and holds them to HITS).
  *
  *   attacker   charge  r m   hits to open its own targets, at no error
- *   strike     120     6     an intake 1, a gate 1
- *   loiter      40     3     a gate 2, an intake 4
+ *   strike      80     6     an intake 2, a gate 2
+ *   loiter      40     3     a gate 3, an intake 4
  *   fpv         45     3     a penstock 3
- *   boat       260     9     an intake 1, a gate 1
+ *   boat        70     9     an intake 3, a gate 2
  *   decoy, scout, jammer, hunter: no warhead that hits a structure
  *
  *   defender's warhead (war.js WARHEADS) where it goes off: standard 12,
@@ -135,9 +138,11 @@ export const DEFENDER = Object.freeze({
   emp: Object.freeze({ charge: 0, r: 2.5 }),
 });
 
-/* Under water: r times this, for a blast within WET_ABOVE_M over the
- * surface on a chunk under it. */
-export const WATER_R = 3;
+/* Under water: a chunk WET_DEPTH or more under the structure's water,
+ * struck by a blast at or under its surface (within WET_ABOVE_M over
+ * it), sees the blast's r as at least WATER_M. */
+export const WATER_M = 14;
+export const WET_DEPTH = 9;
 export const WET_ABOVE_M = 2;
 /* Nothing past this many r. */
 export const CUT_R = 5;
@@ -196,14 +201,14 @@ export function chunkDistance(ch, p) {
 
 /* What a warhead { charge, r } does to chunk ch of structure s, at p. */
 export function hitOn(s, ch, p, w) {
-  const wet = s.water != null && ch.c[1] < s.water && p[1] <= s.water + WET_ABOVE_M;
-  const r = wet ? w.r * WATER_R : w.r;
+  const wet = s.water != null && ch.c[1] <= s.water - WET_DEPTH && p[1] <= s.water + WET_ABOVE_M;
+  const r = wet && w.r < WATER_M ? WATER_M : w.r;
   const d = chunkDistance(ch, p);
   if (d > CUT_R * r) {
     return 0;
   }
   const q = d / r;
-  return w.charge / (1 + (wet ? q : q * q));
+  return w.charge / (1 + q * q);
 }
 
 function dist3(a, b) {
@@ -367,7 +372,7 @@ export function blast(structures, wreck, p, w, at) {
   }
   for (const [id, s] of Object.entries(structures)) {
     const sp = sphereOf(s);
-    const wetR = s.water != null && p[1] <= s.water + WET_ABOVE_M ? w.r * WATER_R : w.r;
+    const wetR = s.water != null && p[1] <= s.water + WET_ABOVE_M && w.r < WATER_M ? WATER_M : w.r;
     const dc = dist3(p, sp.c);
     if (dc - sp.r > CUT_R * wetR) {
       continue;

@@ -3,7 +3,7 @@
  * and the real room (src/share/war/damage.js, edge/rooms/war.js strike,
  * src/render/breakage.js), two pages, pictures before and after.
  *
- * Then an intake, a penstock and the yard (a gantry and three
+ * Then an intake (three Boats), a penstock and the yard (a gantry and three
  * transformers) the same way, each pictured before and after.
  *
  * Page A makes a room on Itaipu and starts mission 2 (the gates'); once it
@@ -194,14 +194,14 @@ try {
   check('the view stays inside the plan\'s 300 draws', callsAfter <= 300, `${callsBefore} before, ${callsAfter} after (smoke, dust, pieces, edges and their shadows)`);
 
   /* The other parts, each from the room as the gate was: an intake by
-   * two Boats at its aim, a penstock by three FPVs at its aim, and the
+   * three Boats at its aim, a penstock by three FPVs at its aim, and the
    * yard by Strikers at one gantry's two posts (its beam falls, its
    * wires come down) and at three transformers (the yard is lost). */
   const yard = STRUCTURES['yard-right'];
   const beam = yard.chunks.findIndex((ch) => ch.k === 'beam' && ch.w && ch.w.length >= 2);
   const tanks = yard.chunks.map((ch, i) => [ch, i]).filter(([ch]) => ch.k === 'tank').slice(0, 3);
   const others = [
-    { id: 'intake-7', kind: 'boat', at: [MISSION.targets['intake-7'].at], n: 2 },
+    { id: 'intake-7', kind: 'boat', at: [MISSION.targets['intake-7'].at], n: 3 },
     { id: 'penstock-7', kind: 'fpv', at: [MISSION.targets['penstock-7'].at], n: 3 },
     { id: 'yard-right', kind: 'strike', at: [...yard.chunks[beam].l.map((i) => yard.chunks[i].c), ...tanks.map(([ch]) => ch.c)], n: 1 },
   ];
