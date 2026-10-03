@@ -69,7 +69,7 @@ import {
   GOOGLE_CLIENT_ID, accountsAvailable, chooseCallsign, deleteAccount, mayPlay, onSignInNeeded, progressChanged, pullProgress,
   settled, signIn, signOut, signedIn, startAccounts, syncProgress,
 } from '../share/account.js';
-import { SYNCED_SECTIONS } from '../share/progressmerge.js';
+import { SYNCED_SECTIONS, pickSynced } from '../share/progressmerge.js';
 import { tracksOrigin } from '../share/cloud.js';
 import { SETTINGS_KEY, loadSettings } from './ui.js';
 import { mergeFlightTime } from '../share/flighttime.js';
@@ -216,6 +216,8 @@ export function createAccountUi({ ui, identity, say }) {
   let syncing = null;
   /* What the pilot pressed before signing in, run once they have. */
   let pending = null;
+  /* The latest nudge, whose timer alone clears what it said. */
+  let nudgeSaid = null;
 
   /* The page starts again, signed out, off the sticks: a session ended
    * by the server mid flight waits for the flight to end. */
@@ -232,9 +234,18 @@ export function createAccountUi({ ui, identity, say }) {
     }, 1000);
   }
 
+  /*
+   * The account let go here. Its progress goes from this computer once a
+   * sync has merged it (kept), with one exception: a session the server
+   * ended (its thirty days are counted from the sign in) while this
+   * computer held progress no sync had carried yet. That is kept for the
+   * next sign in to merge, which is nearly always the same pilot's, rather
+   * than a flight's worth lost.
+   */
   startAccounts(identity, {
-    forgotten: (merged) => {
-      if (merged) {
+    forgotten: ({ kept, ended }) => {
+      const unsent = ended && kept && JSON.stringify(pickSynced(syncedView())) !== JSON.stringify(kept.data);
+      if (kept && !unsent) {
         clearProgress();
       }
       restart();
@@ -368,11 +379,13 @@ export function createAccountUi({ ui, identity, say }) {
     mountGis();
     if (status.hidden) {
       /* Said for a while, then the corner is the panel alone again; a
-       * reason the sign in cannot work stays until it can. */
-      const said = str('account.panel_nudge');
-      setStatus(said);
+       * reason the sign in cannot work stays until it can. Only the
+       * latest nudge's timer clears it. */
+      setStatus(str('account.panel_nudge'));
+      const mine = {};
+      nudgeSaid = mine;
       setTimeout(() => {
-        if (status.textContent === said) {
+        if (nudgeSaid === mine && status.textContent === str('account.panel_nudge')) {
           setStatus('');
         }
       }, NUDGE_SAID_MS);
@@ -554,8 +567,12 @@ export function createAccountUi({ ui, identity, say }) {
   const actions = {
     accountsignin: () => nudge(null),
     accountcallsign: pickCallsign,
-    /* Lets the account go here, and the page starts again signed out. */
-    accountsignout: () => signOut(),
+    /* What this computer has not sent goes first, then the account goes
+     * here, and the page starts again signed out. */
+    accountsignout: async () => {
+      await sync();
+      await signOut();
+    },
     accountdelete: doDelete,
     accountprivacy: () => window.open('privacy.html', '_blank', 'noopener'),
     accountterms: () => window.open('terms.html', '_blank', 'noopener'),

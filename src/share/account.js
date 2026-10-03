@@ -97,8 +97,9 @@ const TIMEOUT_MS = 10000;
 const AUTH_SCHEME = 'Bearer';
 
 let identity = null;
-/* Told when this browser lets go of its account, with whether its
- * settings had been merged into the account (src/ui/accountui.js). */
+/* Told when this browser lets go of its account (src/ui/accountui.js):
+ * `kept`, the last sync's record (null when nothing was ever merged), and
+ * `ended`, true when the server ended the session rather than the pilot. */
 let onForget = () => {};
 /* The sign in panel's door (onSignInNeeded), and an ask made before the
  * panel was there to take it: a ?room= link joins during boot. */
@@ -211,7 +212,7 @@ async function api(method, path, body, session = readAccount()?.session) {
     if (res.status === 401 && got && got.signedOut) {
       /* The session ended elsewhere (signed out, deleted, expired): this
        * browser is signed out too, keeping the pilot key it has. */
-      forgetAccount();
+      forgetAccount({ ended: true });
     }
     throw err;
   }
@@ -343,10 +344,10 @@ export async function chooseCallsign(raw) {
  * had before signing in comes back; one that became the account's own is
  * dropped, and a fresh one is made on next use; one never swapped (a sign
  * in that failed half way) is left as it is. */
-function forgetAccount() {
+function forgetAccount({ ended = false } = {}) {
   const record = readAccount();
   const guest = readJson(GUEST_KEY);
-  const merged = readJson(SYNCED_KEY) !== null;
+  const kept = readJson(SYNCED_KEY);
   writeJson(ACCOUNT_KEY, null);
   writeJson(SYNCED_KEY, null);
   writeJson(GUEST_KEY, null);
@@ -357,7 +358,7 @@ function forgetAccount() {
       identity.forget();
     }
   }
-  onForget(merged);
+  onForget({ kept, ended });
 }
 
 export async function signOut() {

@@ -181,14 +181,18 @@ async function refused(p, name, act) {
 
 /* Google's button pressed as `sub`, the questions answered yes, and the
  * callsign typed when asked. Resolves to the dialog titles seen. */
-async function signIn(p, sub, callsign) {
-  await p.evaluate(`window.__credential = ${JSON.stringify(await accounts.idToken(sub))}; true`);
+async function signIn(p, sub, callsign, at = accounts) {
+  await p.evaluate(`window.__credential = ${JSON.stringify(await at.idToken(sub))}; true`);
   await p.until("Boolean(document.querySelector('.signin-panel #gis-mock'))", 15000);
   await p.click('.signin-panel #gis-mock');
   const seen = [];
   for (let i = 0; i < 4; i += 1) {
     /* eslint-disable-next-line no-await-in-loop */
-    await p.until(`${dialogTitle}.length > 0 || Boolean((JSON.parse(localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)}) || '{}') || {}).callsign)`, 15000);
+    await p.until(`${dialogTitle}.length > 0 || Boolean((JSON.parse(localStorage.getItem(${JSON.stringify(ACCOUNT_KEY)}) || '{}') || {}).callsign)`, 15000)
+      .catch(async (e) => {
+        console.log('    sign in stuck:', JSON.stringify({ seen, panel: await p.evaluate(PANEL), errors: p.errors.slice(-5) }));
+        throw e;
+      });
     /* eslint-disable-next-line no-await-in-loop */
     const title = await p.evaluate(dialogTitle);
     if (!title) {
@@ -366,6 +370,33 @@ try {
   check('and still holds the progress, which comes back to this browser',
     xpOf(held) === GUEST_XP && (await readJson(p, SETTINGS_KEY))?.progress?.xp === GUEST_XP, JSON.stringify(held && held.data && held.data.progress));
   errors.push(...p.errors);
+} finally {
+  await p.close();
+}
+
+console.log('a session the server ended keeps what no sync had carried');
+p = await openPage({
+  root, width: 1280, height: 720, url: `/index.html?board=${B}`, account: 'Delta', seed: [MOCK_GIS],
+});
+try {
+  await p.until('window.__shellReady === true', 300000);
+  await p.loaded(60000);
+  await p.until(`Boolean(localStorage.getItem(${JSON.stringify(SYNCED_KEY)}))`, 20000);
+  await p.evaluate('window.__ui.settings.progress.xp = 777777; window.__ui.persistSettings(); true');
+  await p.accounts.api('DELETE', '/api/account/session', undefined, p.account.session);
+  await p.evaluate('window.__beforeEnd = true; window.__accountSync(); true');
+  await p.until('!window.__beforeEnd && window.__shellReady === true', 120000);
+  await p.loaded(60000);
+  const panel = await p.evaluate(PANEL);
+  check('the page starts again signed out, the panel up', panel.shown && panel.chip === null, JSON.stringify(panel));
+  check('and still holds the flight\'s progress', (await readJson(p, SETTINGS_KEY))?.progress?.xp === 777777);
+  const again = await signIn(p, p.account.sub, 'Delta', p.accounts);
+  check('signing in again asks no callsign', !again.includes(en['account.pick_title']), JSON.stringify(again));
+  await p.until(`Boolean(localStorage.getItem(${JSON.stringify(SYNCED_KEY)}))`, 20000).catch(() => {});
+  const session = (await readJson(p, ACCOUNT_KEY)).session;
+  const held = await p.accounts.api('GET', '/api/account/progress', undefined, session);
+  check('and the account has it', xpOf(held.progress) === 777777, JSON.stringify(held.progress && held.progress.data && held.progress.data.progress));
+  errors.push(...p.errors.filter((e) => !/401/.test(e)));
 } finally {
   await p.close();
 }

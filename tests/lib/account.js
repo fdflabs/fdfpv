@@ -128,7 +128,7 @@ export async function startAccounts() {
     const identity = (await api('PUT', '/api/account/identity', { identity: offered }, session)).identity;
     const named = await api('PUT', '/api/account/callsign', { callsign }, session);
     return {
-      session, callsign: named.callsign, identity, publicKey: JSON.parse(identity).publicRaw,
+      sub, session, callsign: named.callsign, identity, publicKey: JSON.parse(identity).publicRaw,
     };
   }
 
