@@ -157,6 +157,8 @@ export default withWaves({
   starMw: 11200,
   /* Each pilot's airframes a stage (war.js). */
   airframes: 4,
+  /* Day one's first light (MISSIONS.md M1): the world is built at it. */
+  time: 'morning',
   radio: { brief: ['itaipu-1-s0-brief', 'itaipu-1-s0-rules'], win: 'debrief-itaipu-1-win', lose: 'debrief-itaipu-1-lose' },
   film: 'first-light',
   pace: { 1: 1.6, 2: 1.3, 3: 1.3 },

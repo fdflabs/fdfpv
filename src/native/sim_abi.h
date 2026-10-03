@@ -1044,6 +1044,10 @@ int sim_wing_tune(double *out);
  * sim_water_add(z0, ox, oy): a body of still water at world z0, its wave
  * phases measured from (ox, oy). Returns its index, 0 to 7, or
  * SIM_ERR_BAD_STATE when eight are declared already.
+ * sim_water_level(body, z0): a still body's level moved to world z0, its
+ * outline and waves as they were, for water whose level the host knows
+ * at the aircraft (Itaipu's flood, docs/FLOOD.md); SIM_ERR_BAD_ARG for a
+ * channel or no such body.
  * sim_water_vertex(body, x, y): the next corner of its outline, world x y,
  * up to 256; a body with fewer than three corners is water everywhere.
  * sim_water_wind(body, speed, dx, dy, fetch): the wind over it, m/s along
@@ -1078,6 +1082,7 @@ int sim_wing_tune(double *out);
  */
 int sim_water_clear(void);
 int sim_water_add(double z0, double ox, double oy);
+int sim_water_level(int body, double z0);
 int sim_water_channel(double half_width);
 int sim_water_channel_point(int body, double x, double y, double z);
 int sim_water_vertex(int body, double x, double y);
