@@ -75,19 +75,27 @@ export function wireMesh(THREE, chords) {
     const key = `${Math.floor((w[0] + w[3]) / 2 / TILE_M)},${Math.floor((w[2] + w[5]) / 2 / TILE_M)}`;
     let t = tiles.get(key);
     if (!t) {
-      t = { near: [], far: [], lo: [Infinity, Infinity, Infinity], hi: [-Infinity, -Infinity, -Infinity] };
+      t = {
+        near: [], far: [], nearSpan: [], farSpan: [], lo: [Infinity, Infinity, Infinity], hi: [-Infinity, -Infinity, -Infinity],
+      };
       tiles.set(key, t);
     }
     const c = new Array(w[7] * FLOATS);
     conductorsOf(w, c, 0);
     t.near.push(...c);
     t.far.push(w[0], w[1], w[2], w[3], w[4], w[5], bundleHalf(w));
+    for (let k = 0; k < w[7]; k += 1) {
+      t.nearSpan.push(w[10]);
+    }
+    t.farSpan.push(w[10]);
     for (let a = 0; a < 3; a += 1) {
       t.lo[a] = Math.min(t.lo[a], w[a], w[a + 3]);
       t.hi[a] = Math.max(t.hi[a], w[a], w[a + 3]);
     }
   }
-  const list = [...tiles.values()].map((t) => ({ ...t, near: Float32Array.from(t.near), far: Float32Array.from(t.far) }));
+  const list = [...tiles.values()].map((t) => ({
+    ...t, near: Float32Array.from(t.near), far: Float32Array.from(t.far), nearBase: Float32Array.from(t.near), farBase: Float32Array.from(t.far),
+  }));
   const conductors = list.reduce((n, t) => n + t.near.length / FLOATS, 0);
   const capacity = list.reduce((n, t) => n + Math.max(t.near.length, t.far.length) / FLOATS, 0);
 
@@ -214,7 +222,29 @@ export function wireMesh(THREE, chords) {
     g.instanceCount = count;
     inst.needsUpdate = true;
   }
+  /*
+   * The spans whose wires are down (a support gone, the war's damage):
+   * each of their conductors lies on the ground under where it hung,
+   * ground(x, z) a few centimetres under it; every other span hangs as
+   * built. Takes effect on the next view().
+   */
+  function setDown(spans, ground) {
+    const down = spans instanceof Set ? spans : new Set(spans);
+    for (const t of list) {
+      for (const [arr, base, ids] of [[t.near, t.nearBase, t.nearSpan], [t.far, t.farBase, t.farSpan]]) {
+        for (let e = 0; e < ids.length; e += 1) {
+          const o = e * FLOATS;
+          arr.set(base.subarray(o, o + FLOATS), o);
+          if (down.has(ids[e])) {
+            arr[o + 1] = ground(arr[o], arr[o + 2]) + 0.05;
+            arr[o + 4] = ground(arr[o + 3], arr[o + 5]) + 0.05;
+          }
+        }
+      }
+    }
+    cell = null;
+  }
   return {
-    mesh, view, conductors, tiles: list.length, shown: () => ({ ...shown, triangles: 2 * (shown.near + shown.far) }),
+    mesh, view, setDown, conductors, tiles: list.length, shown: () => ({ ...shown, triangles: 2 * (shown.near + shown.far) }),
   };
 }
