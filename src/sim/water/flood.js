@@ -2,7 +2,8 @@
  * flood.js: dist/flood.wasm (src/sim/water/flood.c) wrapped for a host.
  *
  * Runs unchanged in Node and the browser: the caller hands over the
- * module's bytes. Every number that decides where the water goes is
+ * module's bytes, or the module compiled from them once
+ * (WebAssembly.compile) when it makes more than one flood. Every number that decides where the water goes is
  * computed inside the module; this file only moves the host's figures in
  * and the state's views out, so nothing here can make two machines'
  * floods differ. The views are made fresh on every call, since the
@@ -54,8 +55,10 @@ function must(code, what) {
   return code;
 }
 
-export async function loadFlood(wasmBytes) {
-  const { instance } = await WebAssembly.instantiate(wasmBytes, stubImports());
+export async function loadFlood(wasm) {
+  const made = await WebAssembly.instantiate(wasm, stubImports());
+  /* A compiled module instantiates to its instance, bytes to both. */
+  const instance = made instanceof WebAssembly.Instance ? made : made.instance;
   const e = instance.exports;
   if (typeof e._initialize === 'function') {
     e._initialize();
