@@ -54,17 +54,17 @@ import {
 import { sha256Base64, trackDeleteMessage, trackMessage } from './identity.js';
 import { readPilotName } from './pilot.js';
 import { str } from '../strings/index.js';
+import { API_ORIGIN, apiOrigin } from './api.js';
 
 /*
  * The deployed server: tracks-api/node.js on the owner's VM, behind Caddy
- * (deploy/vm/README.md). The Worker it replaced,
- * https://fdfpv-tracks.fdfretes.workers.dev, is still deployed, and
- * putting that address back here is the way back to it. A fork without a
- * server sets this to PLACEHOLDER_ORIGIN, which counts as no server at
- * all: the page then behaves exactly like the build before this file.
+ * (deploy/vm/README.md), at the origin src/share/api.js names. A fork
+ * without a server sets PRODUCTION_TRACKS_ORIGIN to PLACEHOLDER_ORIGIN,
+ * which counts as no server at all: the page then behaves exactly like
+ * the build before this file.
  */
 const PLACEHOLDER_ORIGIN = 'https://fdfpv-tracks.example.workers.dev';
-export const PRODUCTION_TRACKS_ORIGIN = 'https://129.151.39.48';
+export const PRODUCTION_TRACKS_ORIGIN = API_ORIGIN;
 const ORIGIN_KEY = 'webfpv.tracks.origin';
 
 /* The event every upload outcome goes out on: detail { id, name, state,
@@ -106,7 +106,7 @@ export function tracksOrigin() {
   } catch (e) {
     return '';
   }
-  return PRODUCTION_TRACKS_ORIGIN === PLACEHOLDER_ORIGIN ? '' : PRODUCTION_TRACKS_ORIGIN;
+  return PRODUCTION_TRACKS_ORIGIN === PLACEHOLDER_ORIGIN ? '' : apiOrigin();
 }
 
 export function tracksConfigured() {

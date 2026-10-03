@@ -50,6 +50,7 @@
 
 import { noAircraftFlies, trackClassOf } from '../trackbuilder/elements.js';
 import { isMapTrack } from '../trackbuilder/model.js';
+import { API_ORIGIN, apiOrigin } from './api.js';
 import { writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
 
@@ -60,10 +61,9 @@ import { str, currentLocale } from '../strings/index.js';
  * Development serves the shell off a loopback address with the board on
  * 3180 beside it. Anything else is a deploy, and a deploy has to name its
  * board out loud: the shell is a static site, so there is no environment to
- * read at run time and no server to ask. The name lives here instead.
- *
- * PRODUCTION_BOARD_ORIGIN is the one line to change when the board lands on
- * a different URL than the one below. Both escape hatches still outrank it,
+ * read at run time and no server to ask. The name lives in
+ * src/share/api.js, shared with the rooms and tracks servers, and the
+ * board is its /board mount. Both escape hatches still outrank it,
  * so a fork can point somewhere else without editing this file: a ?board=
  * query wins over everything, and the Publish dialog's stored override wins
  * over the default.
@@ -77,7 +77,8 @@ import { str, currentLocale } from '../strings/index.js';
  * done anywhere here.
  */
 export const DEFAULT_BOARD_ORIGIN = 'http://127.0.0.1:3180';
-export const PRODUCTION_BOARD_ORIGIN = 'https://129.151.39.48/board';
+const BOARD_MOUNT = '/board';
+export const PRODUCTION_BOARD_ORIGIN = `${API_ORIGIN}${BOARD_MOUNT}`;
 const ORIGIN_KEY = 'webfpv.board.origin';
 
 /* An empty hostname is a file:// open, which is a developer, not a deploy. */
@@ -100,7 +101,7 @@ export function defaultBoardOrigin() {
   try {
     return LOOPBACK_HOSTS.has(window.location.hostname)
       ? DEFAULT_BOARD_ORIGIN
-      : PRODUCTION_BOARD_ORIGIN;
+      : `${apiOrigin()}${BOARD_MOUNT}`;
   } catch (e) {
     /* No window, as in Node, where the board is the local one or nothing. */
     return DEFAULT_BOARD_ORIGIN;

@@ -34,6 +34,7 @@ import {
 } from '../src/share/war/routes.js';
 import itaipu1 from '../src/share/war/missions/itaipu-1.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
+import { contactAt } from '../src/share/war/contact.js';
 import { INTRO_MS } from '../src/share/war/intro.js';
 import { filmFor } from '../src/share/war/films/index.js';
 import { createRoomWar } from '../src/share/roomwar.js';
@@ -863,13 +864,15 @@ export function warSection(check) {
     /* Mission 1's yard and its Strikers' route: the yard's r (537 m) is
      * its extent for the smoke and markers, never where an attacker
      * arrives. One 300 m from the yard's middle has not arrived; it does
-     * at its route's end, and hits within the yard's hitR. */
+     * where it first meets the yard's equipment (contact.js), short of
+     * its route's end, goes off there and hits within the yard's hitR. */
     const yard = itaipu1.targets['yard-right'];
     const m = testMission([{ at: 1, kind: 'strike', n: 1, route: 'w', target: 'yard' }], { w: itaipu1.routes['reservoir-west'] },
       { targets: { yard }, output: 14000, floorMw: 7000 });
-    const plan = planAgent(m, {
+    const agent = {
       id: 1, kind: 'strike', route: 'w', t0: COUNTDOWN_MS + 1000, k: 0, n: 1, err: 0, target: 'yard',
-    });
+    };
+    const plan = planAgent(m, agent);
     let t300 = plan.t0;
     while (Math.hypot(...poseAt(plan, t300).p.map((v, i) => v - yard.at[i])) > 300) {
       t300 += 10;
@@ -884,8 +887,13 @@ export function warSection(check) {
       `${early.length} dead, output ${e.view().output}, ${((plan.tEnd - t300) / 1000).toFixed(1)} s of its run still to fly`);
     e.fly(Math.ceil(plan.tEnd) + 1000);
     const at = e.of(1, 'dead').filter((d) => d.why === 'arrive');
-    check('it arrives at its route\'s end, on the yard, and takes its megawatts', at.length === 1 && at[0].hit && Math.abs(at[0].at - plan.tEnd) < 1
-      && e.view().output === 14000 - yard.mw, JSON.stringify(at));
+    const met = contactAt(m.map, plan);
+    const cut = met ? planAgent(m, { ...agent, meet: met.t }) : null;
+    const there = cut ? poseAt(cut, cut.tEnd).p : null;
+    check('it arrives where it first meets the yard\'s equipment, short of its route\'s end, and takes its megawatts',
+      Boolean(met) && met.target === 'yard-right' && met.t < plan.tEnd - 100 && at.length === 1 && at[0].hit && at[0].at === met.t
+      && at[0].p.every((v, i) => Math.abs(v - there[i]) < 2e-3) && e.view().output === 14000 - yard.mw,
+      `${JSON.stringify(at)}, met ${JSON.stringify(met)}, ${met ? ((plan.tEnd - met.t) / 1000).toFixed(2) : '-'} s short`);
   }
 
   console.log('war: scouts');

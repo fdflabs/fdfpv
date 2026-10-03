@@ -98,14 +98,17 @@ const LISTS_PER_MIN = Math.ceil(1.5 * PUBLIC_CAP * (60000 / LIST_EVERY_MS));
  * WebSocket upgrade and on a cross origin POST, so a page on another site
  * cannot put its visitors in our rooms. A request with no Origin is not a
  * browser, and a script can write any Origin it likes, so this is not a
- * lock against scripts; the rate limits are.
+ * lock against scripts; the rate limits are. The game's own domain, and
+ * fdflabs.github.io, its address before the move, for as long as a tab
+ * opened there is still flying.
  */
 const ORIGINS = [
+  /^https:\/\/(www\.)?paraguayandronecombatsimulator\.com$/,
   /^https:\/\/fdflabs\.github\.io$/,
   /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/,
 ];
 
-function originAllowed(origin) {
+export function originAllowed(origin) {
   return !origin || ORIGINS.some((re) => re.test(origin));
 }
 

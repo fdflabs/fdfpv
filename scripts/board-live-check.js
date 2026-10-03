@@ -3,7 +3,7 @@
  * against a real board, through the real page.
  *
  *     BOARD_ADMIN_FILE=/home/brains/Desktop/fdfpv-loop/online-tracks/BOARD-ADMIN.txt \
- *       npm run board:live [-- --board=https://129.151.39.48/board] [--page=https://fdflabs.github.io/fdfpv/]
+ *       npm run board:live [-- --board=https://api.paraguayandronecombatsimulator.com/board] [--page=https://fdflabs.github.io/fdfpv/]
  *       [--only=paste]
  *
  * The board is PRODUCTION_BOARD_ORIGIN from src/share/board.js unless
@@ -83,6 +83,7 @@ import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { syntheticLapBytes } from '../tests/lib/synthlap.js';
 import { PRODUCTION_BOARD_ORIGIN } from '../src/share/board.js';
 import { PRODUCTION_TRACKS_ORIGIN } from '../src/share/cloud.js';
+import { API_ORIGIN } from '../src/share/api.js';
 import { createIdentity, memoryStorage } from '../src/share/identity.js';
 import { ghostToBase64 } from '../src/share/ghostdata.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
@@ -301,7 +302,7 @@ async function pasteInbox(shell, id) {
 async function main() {
   console.log(`board ${BOARD}, page ${PAGE || 'this checkout on loopback'}`);
   if (!opts.board) {
-    say(BOARD === 'https://129.151.39.48/board', `PRODUCTION_BOARD_ORIGIN is the VM's board: ${PRODUCTION_BOARD_ORIGIN}`);
+    say(BOARD === `${API_ORIGIN}/board`, `PRODUCTION_BOARD_ORIGIN is the VM's board: ${PRODUCTION_BOARD_ORIGIN}`);
   }
 
   /* 1. The board itself. */
