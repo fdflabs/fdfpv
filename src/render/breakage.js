@@ -60,8 +60,12 @@ const LOOK = {
   skin: [0.13, 0.042, 0.03],
   leaf: [0.2, 0.2, 0.2],
   shell: [0.28, 0.28, 0.275],
-  bushing: [0.22, 0.1, 0.05],
-  tank: [0.3, 0.33, 0.32],
+  /* The yard's, as its pieces are drawn standing (town/mesh.js
+   * makeBreakable's albedo on war/index.js's tints). */
+  bushing: [0.1, 0.045, 0.023],
+  tank: [0.135, 0.15, 0.145],
+  post: [0.21, 0.21, 0.22],
+  beam: [0.21, 0.21, 0.22],
 };
 const STEEL_COL = [0.4, 0.13, 0.05];
 const CONCRETE_COL = [0.42, 0.41, 0.38];

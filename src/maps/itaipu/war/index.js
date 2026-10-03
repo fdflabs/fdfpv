@@ -50,7 +50,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { makeSink } from '../town/mesh.js';
+import { makeBreakable, makeSink } from '../town/mesh.js';
 import { layOut, piecesOf } from '../town/power.js';
 import {
   planYard, inside, TANK, KIT, FENCE,
@@ -112,39 +112,12 @@ export async function buildPart(ctx) {
   const st = {
     part: 'yard', water: null, frame: { o: [yard.site.at[0], 0, yard.site.at[2]], u: [1, 0, 0], n: [0, 0, 1] }, chunks: [],
   };
-  const kit = { p: [], c: [] };
-  const box = (P, Q, r, h, tint) => {
-    const d = [Q[0] - P[0], Q[1] - P[1], Q[2] - P[2]];
-    const l = Math.hypot(d[0], d[1], d[2]);
-    const w = d.map((v) => v / l);
-    let side = [w[2], 0, -w[0]];
-    const sl = Math.hypot(side[0], side[2]);
-    side = sl < 1e-6 ? [1, 0, 0] : [side[0] / sl, 0, side[2] / sl];
-    const u = [w[1] * side[2] - w[2] * side[1], w[2] * side[0] - w[0] * side[2], w[0] * side[1] - w[1] * side[0]];
-    const at = (c, a, b) => [0, 1, 2].map((k) => c[k] + side[k] * a + u[k] * b);
-    const ring = [[r, h], [-r, h], [-r, -h], [r, -h]];
-    const quad = (A, B, C, D) => {
-      for (const v of [A, B, C, A, C, D]) {
-        kit.p.push(...v);
-        kit.c.push(...tint);
-      }
-    };
-    for (let k = 0; k < 4; k += 1) {
-      const [a0, b0] = ring[k];
-      const [a1, b1] = ring[(k + 1) % 4];
-      quad(at(P, a0, b0), at(P, a1, b1), at(Q, a1, b1), at(Q, a0, b0));
-    }
-    quad(...ring.map(([a, b]) => at(Q, a, b)));
-    quad(...ring.slice().reverse().map(([a, b]) => at(P, a, b)));
-    return {
-      c: [(P[0] + Q[0]) / 2, (P[1] + Q[1]) / 2, (P[2] + Q[2]) / 2], e: [...w, ...u], h: [l / 2, h, r],
-    };
-  };
+  const kit = makeBreakable(THREE);
+  const box = (P, Q, r, h, tint) => kit.bar(P, Q, r, h, tint);
   const piece = (k, anchor, draw) => {
-    const from = kit.p.length;
     const b = draw();
     st.chunks.push({
-      k, c: b.c, e: b.e, h: b.h, a: anchor ? 1 : 0, l: [], r: null, draw: [{ mesh: 'equipment', range: [from, kit.p.length] }], colliders: [],
+      k, c: b.c, e: b.e, h: b.h, a: anchor ? 1 : 0, l: [], r: null, draw: [{ mesh: 'equipment', range: b.range }], colliders: [],
     });
     return st.chunks.length - 1;
   };
@@ -249,20 +222,9 @@ export async function buildPart(ctx) {
     }
   }
   const drawn = sink.build(group, []);
-  const kitGeo = new THREE.BufferGeometry();
-  kitGeo.setAttribute('position', new THREE.Float32BufferAttribute(kit.p, 3));
-  kitGeo.setAttribute('color', new THREE.Float32BufferAttribute(kit.c, 3));
-  kitGeo.computeVertexNormals();
-  kitGeo.computeBoundingSphere();
-  const kitMesh = new THREE.Mesh(kitGeo, new THREE.MeshStandardMaterial({
-    color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.2, flatShading: true,
-  }));
-  kitMesh.name = 'itaipu-yard-equipment';
-  kitMesh.castShadow = true;
-  kitMesh.receiveShadow = true;
-  group.add(kitMesh);
-  /* A chunk out (its triangles folded onto a point, its colliders
-   * retired) or back, as the dam's setChunkGone. */
+  group.add(kit.build('itaipu-yard-equipment', { metalness: 0.2 }));
+  /* The chunks out now: a chunk goes out (its triangles folded onto a
+   * point, its colliders retired) or back as the dam's setChunkGone. */
   const folded = new Map();
   /* The town's power (model.js power), from takeYard; and how many gone
    * beams hold each span down. */
@@ -298,19 +260,12 @@ export async function buildPart(ctx) {
       townPiece(ch, i, gone);
       return;
     }
-    const attr = kitGeo.getAttribute('position');
-    const [a, b] = ch.draw[0].range;
+    kit.gone(ch.draw[0].range, gone);
     if (gone) {
-      folded.set(i, attr.array.slice(a, b));
-      for (let j = a; j < b; j += 3) {
-        attr.array.set(attr.array.subarray(a, a + 3), j);
-      }
+      folded.set(i, null);
     } else {
-      attr.array.set(folded.get(i), a);
       folded.delete(i);
     }
-    attr.addUpdateRange(a, b - a);
-    attr.needsUpdate = true;
     for (const k of ch.colliders) {
       if (gone) {
         ctx.colliders.retire(k);

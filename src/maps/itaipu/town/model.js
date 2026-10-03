@@ -397,6 +397,8 @@ export async function planTown({
    */
   const power = {
     portals,
+    /* How many streamed caps are out now, for the checks. */
+    dropped: () => dropped.size,
     setPieceGone(id, k, gone) {
       const piece = (portals.get(id) ?? [])[k];
       if (!piece) {

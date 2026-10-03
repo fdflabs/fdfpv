@@ -405,6 +405,12 @@ export function makeSink(THREE, look) {
  * its box as damage.js reads a chunk's, and its range. build(name) makes
  * the mesh, after the last bar.
  */
+/* The kit's photographed surfaces darken a tint by about this much (the
+ * yard's tanks and gantries drawn through the sink, review-344's
+ * yard-west); a breakable piece's plain material has no photograph, so
+ * its tint is taken down by it to match. */
+const ALBEDO = 0.45;
+
 export function makeBreakable(THREE) {
   const p = [];
   const c = [];
@@ -441,7 +447,7 @@ export function makeBreakable(THREE) {
   function build(name, opts = {}) {
     geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(c, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(c.map((v) => v * ALBEDO), 3));
     geo.computeVertexNormals();
     geo.computeBoundingSphere();
     const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
