@@ -138,6 +138,7 @@ import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
 import { ACT1 } from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
+import { burnAt as warBurnAt } from './share/war/world.js';
 import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -2572,8 +2573,6 @@ export async function boot({
   /* The one map the war runs on (section 9). */
   const WAR_MAP = 'itaipu';
   const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
-  /* A hit target burns, then smokes, for the rest of the war. */
-  const WAR_FIRE_MS = 20000;
   /* How long the end banner stands before everybody is back in the lobby. */
   const WAR_BACK_MS = 8000;
   /*
@@ -2653,7 +2652,8 @@ export async function boot({
   let warBegunId = null;
   let warHudAt = 0;
   let warDrawnAt = null;
-  /* Target id -> wall ms it caught fire, or -1 once it smokes. */
+  /* Target id -> the room ms it was hit, -Infinity for one hit before
+   * this screen heard (src/share/war/world.js burnAt says fire or smoke). */
   const warBurning = new Map();
   /* A defender's warhead, and a target hit, as explosion sizes. */
   const WAR_BOOM_SIZE = 1.6;
@@ -3084,30 +3084,49 @@ export async function boot({
     }
   }
 
-  /* A target reached: on fire now, smoke later (warTargetsFrame), on the
-   * map's own damage (map.setTargetState). A map without the id draws
-   * nothing for it. */
-  function warBurn(id, state, wallMs) {
-    if (!view || typeof view.setTargetState !== 'function' || !view.targets || !(id in view.targets)) {
-      return;
-    }
-    view.setTargetState(id, state);
-    warBurning.set(id, state === 'fire' ? wallMs : -1);
-  }
-  function warTargetsFrame(wallMs) {
-    for (const [id, at] of warBurning) {
-      if (at >= 0 && wallMs - at > WAR_FIRE_MS) {
-        warBurn(id, 'smoke', wallMs);
-      }
+  /* A target reached at room ms `at`: on fire, smoke later, on the map's
+   * own damage (warMapDraw). */
+  function warBurn(id, at) {
+    if (!warBurning.has(id)) {
+      warBurning.set(id, at);
     }
   }
   function warTargetsClear() {
-    for (const id of warBurning.keys()) {
-      if (view && view.targets && id in view.targets) {
-        view.setTargetState(id, 'ok');
+    warBurning.clear();
+  }
+  /*
+   * WHAT THE MAP SHOWS OF A WAR: which targets burn (map.setTargetState)
+   * and how bright each district of the night raid's lights is
+   * (map.setPower), from `w` { targets: { id: state not ok }, levels }.
+   * Every frame it is the live war's at the room clock (warLiveWorld),
+   * or, in the crash cam's replay of a clip that kept the map, the clip's
+   * at its playhead (src/replay/warrec.js worldAt), so a replay shows the
+   * map as it was then and leaving it shows the map as it is now. A map
+   * without targets or lights draws nothing for them.
+   */
+  function warMapDraw(w) {
+    if (!view) {
+      return;
+    }
+    if (typeof view.setTargetState === 'function' && view.targets) {
+      for (const id of Object.keys(view.targets)) {
+        view.setTargetState(id, w.targets[id] ?? 'ok');
       }
     }
-    warBurning.clear();
+    if (typeof view.setPower === 'function') {
+      view.setPower(w.levels);
+    }
+  }
+  function warLiveWorld(v, now) {
+    const t = now ?? -Infinity;
+    const targets = {};
+    for (const [id, at] of warBurning) {
+      const s = warBurnAt(at, t);
+      if (s !== 'ok') {
+        targets[id] = s;
+      }
+    }
+    return { targets, levels: warGrid.levels(v, t) };
   }
 
   /* A war this shell has not begun for: at its countdown, or a pilot
@@ -3119,7 +3138,7 @@ export async function boot({
     warCalls.reset();
     warTargetsClear();
     for (const id of v.down || []) {
-      warBurn(id, 'smoke', wallMs);
+      warBurn(id, -Infinity);
     }
     warCrashDue = true;
     /* The intro's music is already on when a briefing came first
@@ -3463,13 +3482,10 @@ export async function boot({
     }
     const events = roomWar.takeEvents();
     warGrid.hear(events, v);
-    if (view && typeof view.setPower === 'function') {
-      view.setPower(warGrid.levels(v, now));
-    }
     for (const ev of events) {
       warLog.push({ ...ev, heardAt: now });
       if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target) {
-        warBurn(ev.target, 'fire', wallMs);
+        warBurn(ev.target, ev.at);
       }
       if (ev.type === 'state' && ev.to === 'live' && audio.warRadio && audio.warRadio.track !== 'intro') {
         audio.setWarBed('combat');
@@ -3510,7 +3526,10 @@ export async function boot({
     if (warLog.length > WAR_LOG_MAX) {
       warLog.splice(0, warLog.length - WAR_LOG_MAX);
     }
-    warTargetsFrame(wallMs);
+    /* The replay draws the map as its clip kept it (crashCam drawWar). */
+    if (!(replay && crashCam && crashCam.world())) {
+      warMapDraw(warLiveWorld(v, now));
+    }
     if (replay) {
       warHud.update(null);
       warMarkers.update(null, now, events);
@@ -17697,8 +17716,11 @@ export async function boot({
     exit: () => {
       mode = 'flight';
       acc = 0;
+      /* The map as the war has it now, whatever the replay drew. */
+      warMapDraw(warLiveWorld(roomWar.view(), roomLinkState.roomNow()));
       ui.show('flight');
     },
+    drawWar: warMapDraw,
     notice: (text) => {
       notice = { text, untilMs: performance.now() + 2400 };
     },
@@ -17785,7 +17807,7 @@ export async function boot({
   /* A war's explosions, the same way. */
   crashCam.tapBooms(warBooms);
   /* And its attackers, so a replay flies them where they were. */
-  crashCam.tapWar(roomWar, warAttackers);
+  crashCam.tapWar(roomWar, warAttackers, () => roomLinkState.roomNow());
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {

@@ -26,10 +26,34 @@
  * the recorder's CAPACITY rows, HUNTERS_MAX slots wide; more hunters than
  * that in one row are counted (stats.dropped), never silently lost.
  *
+ * THE MAP AS THE WAR LEFT IT (the owner: "i want the replays to show
+ * things as they happened"): which targets burn and which lights are out
+ * is a function of the hits and the struck power lines the room sent and
+ * the room clock (src/share/war/world.js), so that is what is kept, not
+ * the map: per match this screen saw, the room ms it first saw it
+ * (`from`), the room ms the war stopped being fought (`off`, the targets
+ * whole on screen again), every hit target with the room ms of its hit
+ * (null for one already down when this screen joined: the snapshot), and
+ * every struck line with its room ms and place. Nothing comes back within
+ * a match, so the snapshot and the journal after it are one list. PER
+ * ROW, the room ms the frame drew the map at (NaN where no match was
+ * known: the map untouched). A replay at row k draws matchAt of the match
+ * the row's clock falls in, forwards or backwards alike, and never
+ * touches the live map's own state (src/main.js draws whichever is due).
+ *
+ * MEMORY. Nothing is allocated until a war is drawn. Then two columns for
+ * the recorder's CAPACITY rows, HUNTERS_MAX slots wide, and the map's
+ * clock, one f64 a row; more hunters than that in one row are counted
+ * (stats.dropped), never silently lost. The map's journal is at most
+ * MATCHES_MAX matches of at most HITS_MAX hits and CUTS_MAX lines each,
+ * a few kilobytes of JSON at most; a line past CUTS_MAX is counted
+ * (stats.cutsDropped).
+ *
  * A clip's `war` is { agents: [{ mission, a, last }], room (f64[n]),
- * slots, hunters (f32[n x slots x HUNTER_N]) }, or absent when no war was
- * drawn in it. src/replay/file.js saves it (version 10);
- * src/replay/warscene.js draws it.
+ * slots, hunters (f32[n x slots x HUNTER_N]), and since version 11
+ * world: [{ mission, from, off, hits, cuts }], clock (f64[n]) }, or
+ * absent when no war was drawn in it. src/replay/file.js saves it
+ * (version 10, 11 with the map); src/replay/warscene.js draws it.
  *
  * Render only. Nothing here reaches a plant or the room.
  *
@@ -51,6 +75,7 @@
 
 import { KINDS, planAgent, poseAt } from '../share/war/routes.js';
 import { MISSIONS } from '../share/war/missions/index.js';
+import { matchAt, untouched } from '../share/war/world.js';
 
 /* Hunters drawn in one row, at most (a mission has a handful). */
 export const HUNTERS_MAX = 8;
@@ -61,6 +86,14 @@ export const HUNTER_N = 8;
 /* A clip keeps at most this many birth records (a mission has tens). */
 export const AGENTS_MAX = 512;
 const AGENT_KEYS = ['id', 'kind', 'route', 't0', 'k', 'n', 'err', 'target'];
+/* The map's journal: the matches a clip can span (a war ends and the
+ * host starts the next inside the window), the targets a mission has
+ * (Itaipu's 55, with room), and the struck lines of one match (a
+ * mission flies 23 to 128 attackers, and only some strike). */
+export const MATCHES_MAX = 4;
+export const HITS_MAX = 64;
+export const CUTS_MAX = 256;
+const MATCH_KEYS = ['mission', 'from', 'off', 'hits', 'cuts'];
 
 export function createWarRing(capacity) {
   let room = null;
@@ -72,11 +105,18 @@ export function createWarRing(capacity) {
   /* id -> slot of the hunters drawn in the row before. */
   let slotOf = new Map();
   let lastRoom = NaN;
-  const stats = { dropped: 0 };
+  /* The map's journal, oldest match first: { key (which war, never
+   * saved: it names the room), mission, from, off, on (fought yet),
+   * hits, cuts }. */
+  const matches = [];
+  /* Per row, the room ms the map was drawn at. */
+  let clock = null;
+  const stats = { dropped: 0, cutsDropped: 0 };
 
   function alloc() {
     room = new Float64Array(capacity).fill(NaN);
     cols = new Float32Array(capacity * HUNTERS_MAX * HUNTER_N);
+    clock = new Float64Array(capacity).fill(NaN);
   }
 
   /* The row the recorder began this frame, or -1 for none. */
@@ -84,8 +124,57 @@ export function createWarRing(capacity) {
     row = i;
     if (i >= 0 && room) {
       room[i] = NaN;
+      clock[i] = NaN;
       cols.fill(0, i * HUNTERS_MAX * HUNTER_N, (i + 1) * HUNTERS_MAX * HUNTER_N);
     }
+  }
+
+  /*
+   * Once a frame, before that frame's events: the war the view names
+   * (`key`, null for none), its mission, its `down` (the targets hit, as
+   * the room says them), whether it is being fought (roomwar.js on()),
+   * and the room ms now. A match first seen starts a new entry whose
+   * snapshot is `down`, each hit at null (this screen did not hear it).
+   */
+  function world(key, mission, down, on, roomMs) {
+    if (key == null || roomMs == null || !(mission in MISSIONS)) {
+      return;
+    }
+    let m = matches[matches.length - 1];
+    if (!m || m.key !== key) {
+      m = {
+        key, mission, from: roomMs, off: null, on: false, hits: [], cuts: [],
+      };
+      for (const target of down || []) {
+        hit(m, target, null);
+      }
+      matches.push(m);
+      if (matches.length > MATCHES_MAX) {
+        matches.shift();
+      }
+    }
+    if (on) {
+      m.on = true;
+    } else if (m.on && m.off === null) {
+      m.off = roomMs;
+    }
+    if (row < 0) {
+      return;
+    }
+    if (!room) {
+      alloc();
+    }
+    clock[row] = roomMs;
+  }
+
+  /* A target hit at `at`, once a match. A target the mission does not
+   * name changes nothing on any map (grid.js unitOf, the dam's states),
+   * so it is not kept. */
+  function hit(m, target, at) {
+    if (!(target in MISSIONS[m.mission].targets) || m.hits.some((h) => h.target === target) || m.hits.length >= HITS_MAX) {
+      return;
+    }
+    m.hits.push({ target, at });
   }
 
   /* Births the room sent, of mission `mission` (its id). */
@@ -95,13 +184,28 @@ export function createWarRing(capacity) {
     }
   }
 
-  /* Deaths heard: last drawn in the frame before. */
-  function dead(ids) {
-    for (const id of ids) {
+  /* A death heard (roomwar.js's 'dead' event): the attackers in it last
+   * drawn in the frame before; a target it hit, or the power line it
+   * struck, into the map's journal of the match now. */
+  function dead(ev) {
+    for (const id of ev.ids) {
       const x = agents.get(id);
       if (x && x.last === Infinity) {
         x.last = lastRoom;
       }
+    }
+    const m = matches[matches.length - 1];
+    if (!m || !Number.isFinite(ev.at)) {
+      return;
+    }
+    if (ev.why === 'wire' && Array.isArray(ev.p)) {
+      if (m.cuts.length >= CUTS_MAX) {
+        stats.cutsDropped += 1;
+        return;
+      }
+      m.cuts.push({ at: ev.at, x: ev.p[0], z: ev.p[2] });
+    } else if (ev.hit === true && ev.target) {
+      hit(m, ev.target, ev.at);
     }
   }
 
@@ -156,8 +260,43 @@ export function createWarRing(capacity) {
     if (room) {
       room.fill(NaN);
       cols.fill(0);
+      clock.fill(NaN);
     }
     slotOf = new Map();
+  }
+
+  /* The matches the map's clock in rows `first`, n, falls in, as a
+   * clip's world, or null when no row knew a war. */
+  function worldOf(first, n) {
+    const c = new Float64Array(n);
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let k = 0; k < n; k += 1) {
+      c[k] = clock[(first + k) % capacity];
+      if (Number.isFinite(c[k])) {
+        lo = Math.min(lo, c[k]);
+        hi = Math.max(hi, c[k]);
+      }
+    }
+    if (lo > hi) {
+      return null;
+    }
+    /* From the last match begun by the first row on, to the last begun
+     * by the last. */
+    let a = 0;
+    for (let i = 0; i < matches.length; i += 1) {
+      if (matches[i].from <= lo) {
+        a = i;
+      }
+    }
+    const list = matches.slice(a).filter((m) => m.from <= hi).map((m) => ({
+      mission: m.mission,
+      from: m.from,
+      off: m.off !== null && m.off <= hi ? m.off : null,
+      hits: m.hits.filter((h) => h.at === null || h.at <= hi).map((h) => ({ ...h })),
+      cuts: m.cuts.filter((x) => x.at <= hi).map((x) => ({ ...x })),
+    }));
+    return { world: list, clock: c };
   }
 
   /* The rows the recorder cut for a clip, `n` from ring index `first`, as
@@ -166,6 +305,7 @@ export function createWarRing(capacity) {
     if (!room) {
       return null;
     }
+    const map = worldOf(first, n);
     const r = new Float64Array(n);
     let lo = Infinity;
     let hi = -Infinity;
@@ -183,7 +323,7 @@ export function createWarRing(capacity) {
         }
       }
     }
-    if (lo > hi) {
+    if (lo > hi && !map) {
       return null;
     }
     const hunters = new Float32Array(n * slots * HUNTER_N);
@@ -198,7 +338,7 @@ export function createWarRing(capacity) {
       .slice(-AGENTS_MAX)
       .map((x) => ({ mission: x.mission, a: { ...x.a }, last: Number.isFinite(x.last) ? x.last : null }));
     return {
-      agents: list, room: r, slots, hunters,
+      agents: list, room: r, slots, hunters, ...(map || {}),
     };
   }
 
@@ -206,12 +346,13 @@ export function createWarRing(capacity) {
     begin,
     born,
     dead,
+    world,
     draw,
     clear,
     clip,
     stats,
     /* Bytes held now: nothing until a war is drawn while recording. */
-    bytes: () => (room ? room.byteLength + cols.byteLength : 0),
+    bytes: () => (room ? room.byteLength + cols.byteLength + clock.byteLength : 0),
   };
 }
 
@@ -223,6 +364,12 @@ export function trimWar(war, a, b) {
     room: war.room.slice(a, b + 1),
     slots: war.slots,
     hunters: war.hunters.slice(a * war.slots * HUNTER_N, (a + n) * war.slots * HUNTER_N),
+    ...(war.world ? {
+      world: war.world.map((m) => ({
+        ...m, hits: m.hits.map((h) => ({ ...h })), cuts: m.cuts.map((x) => ({ ...x })),
+      })),
+      clock: war.clock.slice(a, b + 1),
+    } : {}),
   };
 }
 
@@ -265,6 +412,90 @@ export function checkWar(war, n) {
       throw new Error('a hunter column holds a value that is not a number');
     }
   }
+  if ((war.world === undefined) !== (war.clock === undefined)) {
+    throw new Error('the war\'s map has its journal or its clock, not both');
+  }
+  if (war.world !== undefined) {
+    checkWorld(war.world, war.clock, n);
+  }
+}
+
+const isClock = (x) => x === null || Number.isFinite(x);
+
+/* The map's journal and clock (version 11), as checkWar needs them. */
+function checkWorld(world, clock, n) {
+  if (!Array.isArray(world) || world.length < 1 || world.length > MATCHES_MAX) {
+    throw new Error('the war\'s map journal is not a list of matches');
+  }
+  let from = -Infinity;
+  for (const m of world) {
+    const keys = m && typeof m === 'object' ? Object.keys(m) : [];
+    if (keys.length !== MATCH_KEYS.length || !MATCH_KEYS.every((k) => keys.includes(k))) {
+      throw new Error('a match of the war\'s map is not one');
+    }
+    if (!(m.mission in MISSIONS) || !Number.isFinite(m.from) || !(m.from > from) || !(m.off === null || Number.isFinite(m.off))) {
+      throw new Error('a match of the war\'s map has no mission or clock');
+    }
+    from = m.from;
+    if (!Array.isArray(m.hits) || m.hits.length > HITS_MAX || !Array.isArray(m.cuts) || m.cuts.length > CUTS_MAX) {
+      throw new Error('a match of the war\'s map holds too much');
+    }
+    const seen = new Set();
+    for (const h of m.hits) {
+      if (!h || Object.keys(h).length !== 2 || typeof h.target !== 'string' || !(h.target in MISSIONS[m.mission].targets)
+        || seen.has(h.target) || !isClock(h.at)) {
+        throw new Error('a hit on the war\'s map is not one');
+      }
+      seen.add(h.target);
+    }
+    for (const x of m.cuts) {
+      if (!x || Object.keys(x).length !== 3 || ![x.at, x.x, x.z].every(Number.isFinite)) {
+        throw new Error('a struck line on the war\'s map is not one');
+      }
+    }
+  }
+  if (!(clock instanceof Float64Array) || clock.length !== n) {
+    throw new Error('the war\'s map clock is not the clip\'s length');
+  }
+  for (let k = 0; k < n; k += 1) {
+    if (!(Number.isNaN(clock[k]) || Number.isFinite(clock[k]))) {
+      throw new Error('a war map clock is not a number');
+    }
+  }
+}
+
+/*
+ * The map a replay draws between rows k and k + 1, `a` of the way: what
+ * src/share/war/world.js matchAt says of the match the row's clock falls
+ * in, the map untouched where the row knew no war, or null for a clip
+ * that kept no map (one saved before version 11), which a replay leaves
+ * as the live map has it. `caches` is a Map the caller keeps.
+ */
+export function worldAt(war, n, k, a, caches) {
+  if (!war.world) {
+    return null;
+  }
+  const t0 = war.clock[k];
+  const t1 = war.clock[Math.min(n - 1, k + 1)];
+  const t = Number.isFinite(t0) && Number.isFinite(t1) ? t0 + (t1 - t0) * a : t0;
+  let m = null;
+  if (Number.isFinite(t)) {
+    for (const x of war.world) {
+      if (x.from <= t) {
+        m = x;
+      }
+    }
+  }
+  if (!m) {
+    if (!caches.has(null)) {
+      caches.set(null, untouched());
+    }
+    return caches.get(null);
+  }
+  if (!caches.has(m)) {
+    caches.set(m, {});
+  }
+  return { t, ...matchAt(m, t, caches.get(m)) };
 }
 
 /*

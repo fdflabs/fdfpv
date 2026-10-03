@@ -405,11 +405,12 @@ try {
     })()`);
     const perMin = (x) => Math.round(x / size.seconds * 60);
     const rowsMin = size.n / size.seconds * 60;
-    /* Forty attackers, four of them Hunters: the room column, four slots
-     * a row and forty birth records, at this clip's rows a minute. */
-    const forty = Math.round(rowsMin * (8 + 4 * 32) + 40 * (size.agentsJson / Math.max(1, size.agents)));
+    /* Forty attackers, four of them Hunters: the room column, the map's
+     * clock, four slots a row and forty birth records, at this clip's
+     * rows a minute. */
+    const forty = Math.round(rowsMin * (8 + 8 + 4 * 32) + 40 * (size.agentsJson / Math.max(1, size.agents)));
     console.log(`  info  replay size: ${size.withWar - size.without} bytes of war in a ${size.seconds.toFixed(1)} s clip (${size.agents} scripted, ${size.slots} hunter slots, ${Math.round(rowsMin)} rows a minute): ${perMin(size.withWar - size.without)} bytes a minute of the whole ${perMin(size.withWar)}; forty attackers with four Hunters about ${forty} bytes a minute`);
-    check('a saved replay of a war flight is version 10', size.version === 10, `version ${size.version}`);
+    check('a saved replay of a war flight is version 11, the map with it', size.version === 11, `version ${size.version}`);
     await b.evaluate('window.__crashCam.h().api.close(); true');
   }
   const errs = pages.flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));

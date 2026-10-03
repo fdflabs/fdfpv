@@ -104,7 +104,10 @@ import {
   createPose, defaults, easeInOut, evaluate, evaluateEdit, evaluateKeys, lookAtQuat, rotate,
 } from '../src/replay/cameras.js';
 import { slerp as slerpQ, trimClip as trimWhole } from '../src/replay/recorder.js';
-import { createWarRing, warAt, HUNTER_N } from '../src/replay/warrec.js';
+import { createWarRing, warAt, worldAt, HUNTER_N } from '../src/replay/warrec.js';
+import { createRoomWar } from '../src/share/roomwar.js';
+import { createGrid } from '../src/share/war/grid.js';
+import { FIRE_MS, burnAt } from '../src/share/war/world.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { decodeReplay, encodeReplay, FILE_MAX_BYTES, ReplayFileError } from '../src/replay/file.js';
@@ -2031,6 +2034,7 @@ function animRecord() {
   check(noClock instanceof Error, 'a clip with explosions and no clock is refused when written, not saved as a file no build reads', noClock ? noClock.message : 'written');
 
   warFile(withClock, bBuf, refused);
+  warWorld(withClock, refused);
 }
 
 /* A war's attackers (src/replay/warrec.js): recorded, drawn back where
@@ -2051,7 +2055,7 @@ function warFile(withClock, boomBuf, refused) {
   for (let k = 0; k < n; k += 1) {
     ring.begin(k);
     if (k === deadRow) {
-      ring.dead([3]);
+      ring.dead({ ids: [3] });
     }
     const list = [{ id: 1, kind: 'scout' }, ...(k < deadRow ? [{ id: 3, kind: 'strike' }] : []), hunterAt(k)];
     ring.draw(k === 5 ? null : room(k), list);
@@ -2101,6 +2105,178 @@ function warFile(withClock, boomBuf, refused) {
   refused(() => reheader(buf, 8), 'a war in a file that says version 8');
   const bad = { ...clip, war: { ...war, agents: [{ ...war.agents[0], a: { ...war.agents[0].a, route: 'nowhere' } }] } };
   refused(() => encodeReplay(bad), 'a birth record that does not fly');
+}
+
+/*
+ * 18. The map as the war left it (src/replay/warrec.js world, src/share/
+ * war/world.js; the owner: "i want the replays to show things as they
+ * happened"). A night raid is played into the real client (src/share/
+ * roomwar.js) as the room would send it: a pilot who joins with a gate
+ * already down, the go, a unit's intake hit, a kill, a power line struck,
+ * the switchyard hit, the end, the lobby and the next war's countdown.
+ * Each frame the live screen's map is worked out as src/main.js does
+ * (grid.js createGrid for the lights, world.js burnAt over the hits it
+ * burns) and the crash cam's ring is fed as crashcam.js tapWar feeds it.
+ * The clip's map is then asked for at every row in order, backwards and
+ * in jumps, and must be the live map at that row exactly; asking leaves
+ * the clip and the live trackers as they were. Saved as version 11 and
+ * read back the same; version 10's war still reads, without a map.
+ */
+function warWorld(withClock, refused) {
+  console.log('18. the map as the war left it: targets, lights, struck lines, saved (version 11)');
+  const n = withClock.n;
+  const ring = createWarRing(n);
+  const war = createRoomWar(() => {});
+  const grid = createGrid();
+  /* Room ms a row: far enough apart that the clip spans a fire's whole
+   * FIRE_MS and the cascades' flicker. */
+  const dt = Math.max(500, Math.ceil((FIRE_MS * 2) / n));
+  const room = (k) => 500000 + k * dt;
+  const at = (k) => room(k) - 37;
+  const view = (id, state, down) => ({
+    id, mission: 'itaipu-4', state, down, output: 14000,
+  });
+  const half = Math.floor(n / 2);
+  /* What the room says, by row. */
+  const script = new Map([
+    [0, () => war.onWelcome({ seat: 2, code: 'TEST', war: view(1, 'countdown', ['gate-2']) })],
+    [2, () => war.onMessage({ type: 'war', war: view(1, 'live', ['gate-2']) })],
+    [3, () => war.onMessage({
+      type: 'war', op: 'born', agents: [{ id: 3, kind: 'strike', route: 'reservoir-west', t0: room(3), k: 0, n: 1, err: 0, target: 'intake-3' }],
+    })],
+    [5, () => war.onMessage({
+      type: 'war', op: 'dead', ids: [3], at: at(5), by: 0, why: 'arrive', p: [10, 200, -900], target: 'intake-3', hit: true,
+    })],
+    [6, () => war.onMessage({ type: 'war', war: view(1, 'live', ['gate-2', 'intake-3']) })],
+    [7, () => war.onMessage({
+      type: 'war', op: 'dead', ids: [4], at: at(7), by: 2, why: 'boom', p: [0, 250, -700],
+    })],
+    [9, () => war.onMessage({
+      type: 'war', op: 'dead', ids: [5], at: at(9), by: 0, why: 'wire', p: [-4880, 40, 610],
+    })],
+    [half, () => war.onMessage({
+      type: 'war', op: 'dead', ids: [6], at: at(half), by: 0, why: 'arrive', p: [-2176, 220, -459], target: 'yard-right', hit: true,
+    })],
+    [n - 8, () => war.onMessage({ type: 'war', war: view(1, 'won', ['gate-2', 'intake-3', 'yard-right']) })],
+    [n - 5, () => war.onMessage({ type: 'war', war: { state: 'lobby' } })],
+    [n - 3, () => war.onMessage({ type: 'war', war: view(2, 'countdown', []) })],
+  ]);
+  /* src/main.js's live map, the same way: target -> room ms of its hit. */
+  let burning = new Map();
+  let begun = null;
+  const live = [];
+  for (let k = 0; k < n; k += 1) {
+    ring.begin(k);
+    if (script.has(k)) {
+      script.get(k)();
+    }
+    const now = room(k);
+    const v = war.view();
+    if (war.on() && war.match() !== begun) {
+      begun = war.match();
+      burning = new Map((v.down || []).map((id) => [id, -Infinity]));
+    } else if (!war.on() && begun !== null) {
+      begun = null;
+      burning = new Map();
+    }
+    /* crashcam.js tapWar. */
+    const evs = war.takeEvents();
+    ring.world(war.match(), v.mission, v.down, war.on(), now);
+    for (const ev of evs) {
+      if (ev.type === 'dead') {
+        ring.dead(ev);
+      }
+    }
+    grid.hear(evs, v);
+    for (const ev of evs) {
+      if (ev.type === 'dead' && ev.why === 'arrive' && ev.hit && ev.target && !burning.has(ev.target)) {
+        burning.set(ev.target, ev.at);
+      }
+    }
+    const targets = {};
+    for (const [id, a] of burning) {
+      if (burnAt(a, now) !== 'ok') {
+        targets[id] = burnAt(a, now);
+      }
+    }
+    live.push({ targets, levels: Array.from(grid.levels(v, now)), states: grid.state(v, now) });
+  }
+  const seen = (f) => live.some(f);
+  check(seen((w) => w.targets['intake-3'] === 'fire') && seen((w) => w.targets['intake-3'] === 'smoke') && seen((w) => w.targets['gate-2'] === 'smoke')
+    && seen((w) => w.targets['yard-right'] === 'fire') && seen((w) => w.states.yard === 'dark') && seen((w) => w.states['dam-0'] === 'flicker')
+    && seen((w) => w.states['hernandarias-w'] === 'dark') && seen((w) => w.states.spillway === 'dark'),
+  'the live map had a gate down before the join, an intake on fire then smoking, the switchyard on fire, a quarter of the dam flickering, and the yard, the spillway and a town struck through its line dark');
+  check(live[n - 6].levels.some((x) => x === 0) && Object.keys(live[n - 6].targets).length === 0 && live[n - 4].levels.every((x) => x === 1),
+    'after the war the targets are whole and the lights stay out until the lobby, as src/main.js draws it');
+
+  const clip = ring.clip(0, n);
+  check(clip && clip.world && clip.world.length === 2 && clip.world[0].hits.length === 3 && clip.world[0].hits[0].at === null && clip.world[0].cuts.length === 1
+    && clip.world[0].off === room(n - 8) && Number.isNaN(clip.clock[n - 4]),
+  'the clip keeps two matches, the gate as a snapshot (null), the intake and the yard at their room ms, the struck line, the end, and no clock in the lobby',
+  clip && clip.world ? JSON.stringify(clip.world.map((m) => ({
+    from: m.from, off: m.off, hits: m.hits.length, cuts: m.cuts.length,
+  }))) : 'none');
+  const before = JSON.stringify(clip.world);
+  const gridBefore = JSON.stringify(grid.state(war.view(), room(n)));
+  const caches = new Map();
+  const order = [
+    ...Array.from({ length: n }, (_, k) => k),
+    ...Array.from({ length: n }, (_, k) => n - 1 - k),
+    5, n - 1, 6, 0, half + 2, 9, n - 6, 2, n - 2, 7,
+  ];
+  let wrong = 0;
+  let firstWrong = '';
+  for (const k of order) {
+    const w = worldAt(clip, n, k, 0, caches);
+    const want = live[k];
+    const ok = JSON.stringify(w.targets) === JSON.stringify(want.targets) && Array.from(w.levels).every((x, i) => x === want.levels[i]);
+    if (!ok) {
+      wrong += 1;
+      firstWrong = firstWrong || `row ${k}: ${JSON.stringify(w.targets)} ${Array.from(w.levels).join(',')} want ${JSON.stringify(want.targets)} ${want.levels.join(',')}`;
+    }
+  }
+  check(wrong === 0, 'every row asked forwards, backwards and in jumps is the live map at that row, exactly', firstWrong || `${order.length} asks`);
+  check(JSON.stringify(clip.world) === before && JSON.stringify(grid.state(war.view(), room(n))) === gridBefore,
+    'asking changes neither the clip nor the live map\'s trackers');
+  const mid = worldAt(clip, n, 5, 0.5, caches);
+  check(mid.t === room(5) + 0.5 * dt, 'between rows the map is at the room ms between them');
+
+  const old = { ...withClock, war: { ...clip } };
+  delete old.war.world;
+  delete old.war.clock;
+  const oldBuf = encodeReplay(old);
+  check(new DataView(oldBuf).getUint32(4, true) === 10 && decodeReplay(oldBuf).war.world === undefined && worldAt(decodeReplay(oldBuf).war, n, 5, 0, new Map()) === null,
+    'a war with no map is still version 10, reads back without one, and leaves the map to the live war');
+  const withMap = { ...withClock, war: clip };
+  const buf = encodeReplay(withMap);
+  const back = decodeReplay(buf);
+  check(new DataView(buf).getUint32(4, true) === 11 && JSON.stringify(back.war.world) === before && back.war.clock.every((x, k) => Object.is(x, clip.clock[k])),
+    'a war with its map is saved as version 11 and comes back as it was', `${buf.byteLength - oldBuf.byteLength} bytes for the map`);
+  check(Buffer.from(new Uint8Array(encodeReplay(back))).equals(Buffer.from(new Uint8Array(buf))), 'written again, the same bytes');
+  const again = new Map();
+  check(Array.from({ length: n }, (_, k) => k).every((k) => JSON.stringify(worldAt(back.war, n, k, 0, again).targets) === JSON.stringify(live[k].targets)),
+    'read back, it replays the same targets');
+  const t = trimWhole(withMap, withMap.time[4], withMap.time[n - 1]);
+  check(t.war.clock.length === t.n && t.war.clock[0] === clip.clock[4] && JSON.stringify(t.war.world) === before,
+    'a trim keeps the map of the rows it keeps');
+  refused(() => reheader(buf, 10), 'a war\'s map in a file that says version 10');
+  refused(() => reheader(oldBuf, 11), 'a version 11 file without its war\'s map');
+  const badWorld = (f) => () => encodeReplay({ ...withMap, war: { ...clip, world: f(JSON.parse(before)) } });
+  refused(badWorld((w) => {
+    w[0].hits[1].target = 'the-moon';
+    return w;
+  }), 'a hit on a target the mission does not have');
+  refused(badWorld((w) => {
+    w[0].hits.push({ ...w[0].hits[1] });
+    return w;
+  }), 'a target hit twice in one match');
+  refused(badWorld((w) => {
+    w[0].cuts[0].x = 'west';
+    return w;
+  }), 'a struck line that is not a place');
+  refused(badWorld((w) => w.reverse()), 'matches out of order');
+  refused(() => buf.slice(0, buf.byteLength - 8), 'a version 11 file cut short of its map clock');
+  refused(() => encodeReplay({ ...withMap, war: { ...clip, clock: clip.clock.map((x, k) => (k === 3 ? Infinity : x)) } }), 'a map clock that is not a number');
 }
 
 ring();
