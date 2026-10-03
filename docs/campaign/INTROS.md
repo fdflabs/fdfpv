@@ -325,7 +325,7 @@ hard morning light, high contrast in the gorge. **Music:** drums.
 
 | # | s | camera | lens | from | to | subject and motion | ease | VO | sound | out |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 6 | telephoto | 400 | the river far below the dam, the morning haze | the same | a smudge of smoke far downriver on the Brazilian bank (a burning structure, nothing more) | hold | film-itaipu-5-1 | far, broken radio static | cut |
+| 1 | 6 | telephoto | 400 | the river far below the dam, the morning haze | the same | a smudge of smoke far downriver on the Brazilian bank (a burning structure, nothing more) | hold | film-itaipu-5-1 | a far radio hiss | cut |
 | 2 | 9 | drone POV | 14 | at the river's surface below the gorge, 10 m up, upriver | the gorge's walls closing in | rides the `gorge` route at swarm speed, weaving, the rims rushing past | lin | film-itaipu-5-2 | wind roar, a motor | match |
 | 3 | 6 | drone POV | 14 | the gorge narrowing | the downstream face and the penstocks filling the frame | continues, pulls up hard at the face | out | | the motor screams, then cuts | smash |
 | 4 | 7 | SCOPE insert | | the river below the dam | a cluster of tracks rising from one point on the river | the tracks come from one place, again and again | lin | film-itaipu-5-3 | the scope's tick, faster | cut |
@@ -407,7 +407,7 @@ whoever pins the take (T3.2):
   the pitch.
 - **TALLER** is rough and close; a little breath is right for him.
 - **DESPACHO** is calm the way a phone call at 3 a.m. is calm.
-- **CARANCHO** is far away and tired, with the radio breaking.
+- **CARANCHO** is far away and tired, more static under him, never cut.
 - A take with a babbled tail, a wrong stress on a place name (Paraná,
   Hernandarias) or a misread Guaraní word is rejected however well
   Whisper scored it.

@@ -31,39 +31,37 @@ never named, and no line speaks a number.
 | 4 | The Long Night (`itaipu-4`, reworked) | A minute of silence, then dark boats and Hunters until sunrise. |
 | 5 | The River Below (new) | A new axis up the gorge from the river, and a carrier boat launching swarms until it dies. |
 | 6 | The Corridor (new) | Towers along the 500 kV lines; spread out, spotters mark for everyone, hold the last corridor. |
-| 7 | Breach (new) | Kill the breachers far out; if one reaches the face, protect the gantry while the stoplogs close it. |
+| 7 | Breach (new) | Kill the breachers far out; if one reaches the face, the act ends on holding the gantry while the stoplogs close it. |
 
 Every mission is 4 to 6 stages opened by events, with a lull and a story
 beat between them, and four dials drawn from the match's seed (bearing,
 composition, timing, which of two or three twists fires), so no two
 plays land the same. Every mission has its own 45 to 70 s film, timed by
-its voice lines, unskippable the first time and hold to skip after.
+its voice lines, unskippable the first time and hold to skip after. In
+any mission, a hit that gets through can open the dam to the water, and
+the squad must then hold the gantry while the face is closed.
 
 Found on the way: today's intro is mistimed because its Strikers are
 timed from 38 m/s while they now fly at 26.6. Its swarm shot's pass
 happens after the shot ends (measured: 11.2 s in an 11 s shot, the ten
 at 23 s), and every mission's title card says "Mission 1".
 
-## Five decisions I need from you
+## Decided, 2 October
 
-1. **Seven missions.** Four reworked (ids kept, so saved progress holds),
-   three new. Or six: drop The Corridor, the biggest new engine work
-   (towers, spotting). Seven or six?
-2. **Where the dam can open.** The damage work on its branch lets a
-   single Striker hit open an intake to the water. I propose openings
-   only in Breach, the act's finale, and only smoke and broken steel in
-   missions 1 to 6. Or openings anywhere, with a "contain it" stage any
-   mission can fall into. Finale only, or anywhere?
-3. **The voice cast.** Crest Control stays. I propose four new voices:
-   Mirador (intel), Taller (the hangar chief, with a little Guaraní),
-   Despacho (the grid dispatcher) and Carancho (the other flight,
-   downriver). That is 152 new lines, about 300 generated files, each
-   take chosen by ear. All four, or only Mirador and Taller?
-4. **Interference as sound only.** You took jamming out of the war on
-   29 September. Can the radio voices break up in two moments (The
-   Corridor, Breach) as a sound effect, with no effect on any aircraft's
-   flight or video? Yes or no?
-5. **Losing a long mission.** Missions now run 10 to 20 minutes. Today a
-   loss restarts from the start. I propose: a lost mission can restart
-   from the stage where it was lost, with the output it had then, and at
-   most two stars. Restart from the stage, or from the start?
+1. **Seven missions.** The Corridor stays (the owner).
+2. **The dam can open in any mission** (the owner). A hit that gets
+   through can open an intake, a penstock or a gate; every mission then
+   runs the same Contain hold on the emergency gantry while the stoplogs
+   close it, the enemy turns for the gantry, and each mission has its own
+   line for it. Held: the mission goes on, at most two stars. Gantry hit
+   while open: the plant shuts down and the mission is lost. Breach is the
+   mission built around it (MISSIONS.md 1.9).
+3. **All four new voices**: Mirador, Taller, Despacho, Carancho, beside
+   Crest (the owner). 164 lines, 328 generated files, each take chosen by
+   ear.
+4. **A lost mission restarts from the stage it was lost in**, with the
+   state it had when that stage opened, and at most two stars (the
+   owner).
+5. **No radio breakup effect in any mission** (the lead, under the
+   owner's no jamming rule of 29 September; reversible if the owner
+   asks). The Corridor's third twist is now a scout over the lines.

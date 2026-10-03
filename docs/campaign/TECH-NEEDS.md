@@ -146,7 +146,7 @@ New targets (`map.targets` and the mission's MW table):
 | Target | Ids | MW | Source |
 | --- | --- | --- | --- |
 | 500 kV towers | `tower-w-0..`, `tower-e-0..` along the two corridors | the line's share (agree with grid.js: a west corridor tower cuts its district as a wire strike does today) | the spans in `src/share/war/itaipu-wires.js` / OSM; `scripts/war-targets.js` writes them |
-| Bulkhead gantry | `gantry` | 0 (a hold target, not output) | a crest structure near the intakes; needs a model and a collider (map package) |
+| Emergency gantries | `gantry-intakes` (serves every intake and penstock), `gantry-spillway` (every gate) | 0 (hold targets, not output) | crest structures on their rails by the intakes and over the spillway's piers; each needs a model, a collider and the stoplogs' descent animation (map package) |
 
 `src/render/attackers.js` needs a model for each new kind (the carrier
 and breacher are unmarked grey hulls, bigger than a sea drone);
@@ -220,20 +220,31 @@ both deterministic and stored:
 - `prepMs` for any mission that builds night lights at the go, as
   itaipu-4 does.
 
-### T1.12 Openings and Contain (M7)
+### T1.12 Openings and Contain, in every mission
+
+Decided 2 October: the dam can open in any mission (MISSIONS.md 1.9).
+No per mission flag; the damage model's openings are live everywhere.
 
 - Consume the damage branch's `op: 'damage'` openings as the `opening(T)`
-  trigger.
-- **Decision 2** (OVERVIEW.md): this design opens the dam only in M7. The
-  damage branch today opens an intake with one Striker hit
-  (`damage.js`'s table). So missions 1 to 6 need a flag, `openings:
-  false`, that keeps the chunk damage (smoke, broken skins) but never
-  publishes an opening; M7 sets `openings: true`. Agree it with the
-  damage agent before either builds it.
-- The `gantry` target and a `hold` objective on it; the stoplogs' descent
-  as a map animation driven by the hold's progress; when the hold
-  completes, the room sends the opening closed (the contract's opening
-  event with zero size) and the flood solver drains.
+  trigger, with the attacker kind that made it (M7 branches on a
+  breacher's).
+- On an opening the room adds a Contain objective to the stage under way:
+  hold on the gantry serving the structure (`gantry-intakes` for an
+  intake or penstock, `gantry-spillway` for a gate), 120 s or 150 s;
+  holds the stage's exit and beat until it ends; retargets the next group
+  born at that gantry (its `target` replaced, recorded in `m.draws`).
+- Held: the room sends the opening closed (the contract's opening event
+  with zero size), the flood solver drains, the mission's stars are
+  capped at two. Gantry hit while an opening is open: the mission is
+  lost (`why: 'shutdown'`), a new end reason for the result and the
+  debrief (`contain-lost`).
+- One closure per gantry at a time; a second opening on it queues.
+- The stoplogs' descent is a map animation driven by the hold's progress.
+- Until the damage and flood branches merge, `opening(T)` never fires
+  and every mission plays without Contain, so missions 1 to 6 do not wait
+  on them.
+- The checkpoint (T1.14) must snapshot the damage state (chunks broken,
+  openings) at each stage's open, so a restart restores the structures.
 
 ### T1.13 Per mission radio as data
 
@@ -248,12 +259,15 @@ both deterministic and stored:
 - The shared bearing calls (MISSIONS.md 1.8) chain before the kind call
   on a group's birth.
 
-### T1.14 Checkpoints (only if decision 5 says yes)
+### T1.14 Restart from the lost stage (decided 2 October)
 
-On a lost stage, the host may restart from that stage's open with the
-output it had at that open (`m.checkpoint = { stage, output, down,
-draws }`), the same seed and draws. Stars are capped at two for a
-restarted mission.
+At every stage's open the room stores `m.checkpoint = { stage, output,
+down, draws, damage }` (damage: the chunks broken and the openings, from
+the damage branch, once merged). On a lost mission the host may restart
+from the checkpoint: the same seed and draws, the output and targets down
+as they were, the structures restored to that state, the stage's beat
+then its groups. A mission won after any restart has its stars capped at
+two. The result and the campaign record carry `restarted: true`.
 
 ### T1.15 Campaign
 
@@ -417,8 +431,10 @@ film ends and the shell's camera returns with no blend.
 
 `radio.py` today applies one filter. A preset per speaker: CREST the
 current console band; MIRADOR wider with a data hiss; TALLER handheld
-with room noise; DESPACHO telephone band and hum; CARANCHO farthest, with
-dropouts. Deterministic, as the current filter is.
+with room noise; DESPACHO telephone band and hum; CARANCHO farthest, more
+static. No preset drops or cuts words: there is no radio breakup effect
+in any mission (the lead's decision of 2 October, under the owner's no
+jamming rule). Deterministic, as the current filter is.
 
 ### T3.4 Music in layers
 
@@ -453,7 +469,8 @@ dropouts. Deterministic, as the current filter is.
 2. M2 to M4 on the same engine plus T1.9, T1.10, T1.11, DESPACHO.
 3. M5 and M6: T1.4's new sectors, T1.6 (carrier, towers), T1.7, T1.8,
    CARANCHO.
-4. M7 once the damage and flood branches have merged: T1.6 (breacher,
-   gantry), T1.12.
+4. Contain in every mission and M7, once the damage and flood branches
+   have merged: T1.6 (breacher, gantries), T1.12, the damage snapshot of
+   T1.14.
 
-Decisions 1 to 5 in OVERVIEW.md change items 2 to 4, not item 1.
+The decisions of 2 October (OVERVIEW.md) are built into the rows above.

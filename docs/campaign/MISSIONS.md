@@ -38,8 +38,10 @@ music releases, and the pilots land, relaunch and breathe.
 stage is a round. Every pilot starts each stage with the mission's
 airframes (4, or the loadout's rack), earns one a kill, and spends one a
 loss. A stage is lost when no pilot is still flying, and its attackers get
-through, exactly as a round is today. Whether a lost mission can be
-restarted from its last stage is decision 5 in OVERVIEW.md.
+through, exactly as a round is today. **A lost mission restarts from
+the stage it was lost in** (decided 2 October), with the output, the
+targets down and the seeded draws it had when that stage opened, and its
+stars capped at two (T1.14).
 
 ### 1.2 Triggers
 
@@ -145,9 +147,8 @@ The rules every mission shares; each mission adds its own line.
 - The **cue** column is the trigger and the offset the line plays at.
   Lines wait their turn in the radio's queue (built); a story line
   outranks a shared call, an end line outranks everything (T3.1).
-- Speakers: CREST, MIRADOR, TALLER, DESPACHO, CARANCHO (BIBLE 5.2). A
-  mission that runs without the optional voices (decision 3) gives their
-  lines to CREST, rewritten in his voice.
+- Speakers: CREST, MIRADOR, TALLER, DESPACHO, CARANCHO (BIBLE 5.2), all
+  five in (decided 2 October).
 - Deliveries are the voice tool's table: calm, firm, urgent, shout.
 
 ### 1.8 Shared calls (new), used by every mission
@@ -170,6 +171,56 @@ over the reservoir. Fast movers. Cut them off."
 | beat-rack | a beat opens | TALLER | calm | Birds are on the bench. Come get them. | Los aparatos están en el banco. Vengan a buscarlos. |
 | beat-rack-2 | alternate of beat-rack | TALLER | calm | Warheads on. Same as before. | Ojivas puestas. Igual que antes. |
 | stage-lost | a stage is lost | CREST | calm | They got through. Regroup on the crest. | Pasaron. Reagrúpense en la cresta. |
+
+### 1.9 When the face opens: Contain, in every mission
+
+Decided 2 October: the dam can open to the water in any mission, not only
+in Breach. The damage work (branch `war-damage-structures`) opens an
+intake or a gate with a single Striker or boat that gets through, so an
+opening is the price of any lapse, and every mission has to answer it.
+Breach is the mission built around it; in the others it is the worst
+thing that can happen in a stage.
+
+**What happens, the same in every mission:**
+
+1. `opening(T)` fires. `STING`. CREST calls it (`contain-breach`).
+2. A **Contain** objective is added to the stage under way, alongside
+   whatever it was doing: hold(closure) on the emergency gantry that
+   serves the opened structure (`gantry-intakes` for an intake or a
+   penstock, whose intake gate closes it from upstream; `gantry-spillway`
+   for a spillway gate; T1.6) while it lowers the stoplogs. Closure time:
+   120 s for an intake or penstock, 150 s for a gate.
+3. The Aggressor sees it. The next group born after the opening is
+   retargeted at the gantry, and MIRADOR says so (`contain-retarget`).
+4. The stage cannot clear while a closure runs; its beat waits for it.
+5. **Held**: the opening closes (the contract's opening event at zero
+   size), the water settles (the flood solver), the lost output stays
+   lost. The mission's stars are capped at two (*held* is false).
+6. **Gantry hit while open**: the plant cannot be made safe and is shut
+   down: the mission is **lost** at once, as on the output floor.
+7. Two openings at once: one closure per gantry at a time; a second
+   opening on the same gantry queues behind the first and the hold
+   restarts for it.
+8. With the stage restart (1.1), a lost mission restarts with the
+   structures as they were when that stage opened, so an opening made in
+   the lost stage is undone, and one made before it is open again with
+   its closure to run.
+
+No person is ever in the water's way: DESPACHO says the riverbank was
+cleared the first night (`contain-river`), and the camera never shows
+anyone below the dam.
+
+Each mission below adds one line of its own for an opening, so the same
+event lands differently in each.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| contain-breach | `opening` | CREST | urgent | Water through the face. Lowering the stoplogs. Protect the gantry. | Entra agua por la cara. Bajando las ataguías. Protejan la grúa. |
+| contain-retarget | the first group born after an opening | MIRADOR | urgent | They've seen it. They're turning for the crane. | Lo vieron. Están girando hacia la grúa. |
+| contain-river | after contain-breach | DESPACHO | calm | The riverbank below was cleared the first night. Nobody is down there. Just close it. | La ribera de abajo se despejó la primera noche. No hay nadie. Solo ciérrenla. |
+| contain-half | the closure at half | TALLER | firm | Stoplogs halfway down. Keep them off my crane. | Las ataguías van por la mitad. Que no lleguen a mi grúa. |
+| contain-held | closure `held` | CREST | calm | Closed. The face is closed. Back to it. | Cerrada. La cara está cerrada. A lo nuestro. |
+| contain-lost | gantry hit while open | CREST | calm | We can't close it. Shutting the plant down. All pilots, pull back to high ground. | No la podemos cerrar. Paramos la central. Todos los pilotos, repliéguense a lo alto. |
 
 ## 2. Act 1 at a glance
 
@@ -277,6 +328,17 @@ end; lost the instant it falls under. Stars: held, noLosses, output over
 Stage 1 `AMB` until the scout is called, `PULSE` under it; stage 2 `FULL`
 on the first Striker inside 1 km; twist `STING`; stage 5 `FULL` from its
 first birth; `WIN` or `LOSE`.
+
+### If the face opens
+
+The act's first opening, if the squad lets one through: the dawn light on
+water coming out of the downstream face for the first time in the dam's
+life. It turns the tutorial's last stage into a hold on the intakes'
+gantry, which is the lesson the act ends on, met early.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-1-op | after contain-breach | CREST | calm | This face has never let water through where it shouldn't. Close it. | Esta cara nunca dejó pasar agua por donde no debía. Ciérrenla. |
 
 ### Radio
 
@@ -397,6 +459,17 @@ spill's spray drifting across the crest road.
 `AMB` with rain texture; `PULSE` on the channel; `STING` as the gates
 open; `FULL` for the hold; `RELEASE` when the timer completes.
 
+### If the face opens
+
+An opened gate with the reservoir at its highest is the worst case of the
+act before Breach: an uncontrolled spill beside the planned one. The
+spill's hold (stage 3) pauses while the spillway gantry closes the
+opened gate, and resumes after; the working gates must still be held.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-2-op | after contain-breach | CREST | urgent | With the reservoir this high, that won't stop on its own. Stoplogs first, then the spill. | Con el embalse así de alto, eso no para solo. Primero las ataguías, después el vertido. |
+
 ### Radio
 
 | id | cue | who | del | EN | ES |
@@ -506,6 +579,18 @@ is hit (built); the lights coming back after the reroute.
 `AMB` low and warm; `PULSE` with a ticking layer during the hold;
 `STING` on the twist; `RELEASE` when the lights come back.
 
+### If the face opens
+
+The yard is structural and holds no water, so an opening here comes from
+the secondary Strikers on the west intakes or the swarm on the
+penstocks. Despacho is mid reroute with the grid on one leg; the units
+tripped by the opening take more districts dark, and the reroute's hold
+and the closure run at the same time.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-3-op | after contain-breach | DESPACHO | urgent | Crest, you've got water through the face and I've got a grid on one leg. Close it, then give me the yard. | Cresta, ustedes tienen agua por la cara y yo una red con una sola pata. Ciérrenla, y después denme la subestación. |
+
 ### Radio
 
 | id | cue | who | del | EN | ES |
@@ -606,6 +691,16 @@ the crest's floodlights going out by order (twist A); sunrise.
 `AMB` almost nothing for stage 1; `PULSE` with a heartbeat low end under
 the Hunters; `WIN` at sunrise.
 
+### If the face opens
+
+At night the opening is heard before it is seen: the water's roar below
+the dark face, the downstream lights going out unit by unit. The squad
+holds the gantry in the dark, by markers, with Hunters about.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-4-op | after contain-breach | MIRADOR | calm | I can hear it before I can see it. Water, below the face. | Lo escucho antes de verlo. Agua, debajo de la cara. |
+
 ### Radio
 
 | id | cue | who | del | EN | ES |
@@ -705,6 +800,17 @@ carrier's launch (a swarm lifting off its deck); its two hit burn.
 `PULSE` with a low drum under stage 1; `STING` on the carrier; `RELEASE`
 on its kill.
 
+### If the face opens
+
+A penstock opened on the downstream face throws its jet into the gorge,
+straight down Carancho's stretch of river; the carrier's swarms come up
+through the spray. The intake gantry closes it from the crest, far from
+where the fight is, so the squad must split.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-5-op | after contain-breach | CARANCHO | urgent | Crest, Carancho. Water coming down the gorge. We're clear of the bank. Close it. | Cresta, Carancho. Baja agua por el cañón. Estamos lejos de la orilla. Ciérrenla. |
+
 ### Radio
 
 | id | cue | who | del | EN | ES |
@@ -771,9 +877,11 @@ spotter mechanic (T1.8) are the mission's core.
 - **B. Under the wires.** Strikers fly inside the corridor at wire height;
   the wire hazard takes more of them (T1.6 raises the crossing chance for
   that group), the rest are hard to reach without hitting the lines.
-- **C. Interference.** If decision 4 allows it: the net breaks up (radio
-  texture only; MIRADOR's calls drop words), and the squad is left to the
-  markers for the stage. If not: a second scout over the corridor.
+- **C. Eyes on the lines.** A scout circling high over the corridor;
+  kill it in stage 3 or stage 4's convergence flies exact. (Radio
+  breakup was considered here and is out: no breakup effect in any
+  mission, the lead's decision of 2 October under the owner's no jamming
+  rule.)
 
 ### Climax
 
@@ -806,6 +914,17 @@ going dark and its district flickering out down the line.
 `AMB` with a long drone; `PULSE` as more corridors light up on the
 radar; `FULL` in the islanding hold; `WIN` with the towns still lit.
 
+### If the face opens
+
+The squad is strung out along kilometres of corridor when the face opens
+behind it. Despacho cannot carry spans down and units tripped at once,
+so the closure outranks the corridor until it is held: the hardest
+choice of the act before Breach.
+
+| id | cue | who | del | EN | ES |
+| --- | --- | --- | --- | --- | --- |
+| itaipu-6-op | after contain-breach | DESPACHO | urgent | Water through the face and spans down. I can't carry both. Close the face first. | Agua por la cara y tramos caídos. No puedo con todo. Primero cierren la cara. |
+
 ### Radio
 
 | id | cue | who | del | EN | ES |
@@ -818,7 +937,7 @@ radar; `FULL` in the islanding hold; `WIN` with the towns still lit.
 | itaipu-6-s2-tower | a tower hit | DESPACHO | calm | Lost a span. That town is dark. Rerouting what I can. | Perdimos un tramo. Ese pueblo está a oscuras. Redirijo lo que pueda. |
 | itaipu-6-ta-turn | twist A | MIRADOR | urgent | Wakes on the east shore. While we're all out on the lines. | Estelas en la costa este. Mientras estamos todos en las líneas. |
 | itaipu-6-tb-turn | twist B | MIRADOR | urgent | They're inside the corridor, at wire height. Careful with the lines. | Están dentro del corredor, a la altura de los cables. Cuidado con las líneas. |
-| itaipu-6-tc-turn | twist C | MIRADOR | urgent | I'm losing the net. Fly your markers. | Se me corta la red. Vuelen por los marcadores. |
+| itaipu-6-tc-turn | twist C | MIRADOR | urgent | Something circling high over the corridor. That's a scout. Take it down before the last run. | Algo da vueltas en altura sobre el corredor. Es un explorador. Derríbenlo antes del último ataque. |
 | itaipu-6-s4-island | stage 4 opens | DESPACHO | urgent | Crest, I'm islanding the grid on the last corridor. Hold it until I call it. | Cresta, voy a aislar la red en el último corredor. Aguanten hasta que avise. |
 | itaipu-6-s4-done | `held` | DESPACHO | calm | Islanded. The towns on that line stay lit, whatever happens to the rest. | Aislado. Los pueblos de esa línea siguen con luz, pase lo que pase con el resto. |
 | debrief-itaipu-6-win | won | CREST | calm | The lines held. Somebody tell the towns they owe the spotters. | Las líneas aguantaron. Que alguien les diga a los pueblos que se lo deben a los observadores. |
@@ -851,10 +970,11 @@ sacarlos de encima de ellos."
 **New:** the **breacher** kind (T1.6): a slow heavy sea drone, two
 detonations to kill (one penetrator), aimed at a gate or intake below the
 waterline, its approach several minutes long from the far north of the
-reservoir and visible on the radar the whole way. The **contain** branch
-(T1.12): if a breacher reaches the face, the dam break model's opening
-fires (`opening(T)`), real water moves through it (the flood solver in
-progress), and the mission branches to stage 5b.
+reservoir and visible on the radar the whole way. An opening made by
+anything else runs the shared Contain of 1.9 and the mission goes on; an
+opening made by a **breacher** (the biggest charge, the widest opening)
+ends the mission's normal course and branches to stage 5b, the act's
+finale (T1.12).
 
 ### Stages
 
@@ -865,7 +985,7 @@ progress), and the mission branches to stage 5b.
 | 3 | Pull | starts with stage 2 at `enter+[45,70]`, runs alongside it | protect(intakes, penstocks) | Strikers N and NE, swarm GORGE, Hunters: built to pull pilots off the breachers | ends with stage 2 |
 | 4 | The Turn (twist) | beat 10 s | the twist's | A, B or C | `cleared` |
 | 5a | First Light | `cleared` with no opening | protect(all) | the last convergence, at sunrise | `cleared`: won |
-| 5b | Contain | `opening(T)` at any time after stage 2 opens | hold(the emergency closure, 180 s): protect the bulkhead gantry on the crest (new target, T1.12) while it lowers the stoplogs | everything the Aggressor has left onto the gantry and the remaining gates | `held`: won, at most two stars; gantry hit: lost |
+| 5b | Contain | `opening(T)` made by a breacher, at any time | hold(the emergency closure, 180 s): protect the gantry that serves the opened structure (T1.6) while it lowers the stoplogs | everything the Aggressor has left onto the gantry and the remaining gates | `held`: won, at most two stars; gantry hit: lost |
 
 ### The twist (stage 4)
 
@@ -887,8 +1007,10 @@ left coming for it. The act ends on the closure, not on the flood.
 
 Floor 7 700. Won on 5a's clear (stars as today) or 5b's hold (stars
 capped at two: *held* is false). Lost on the floor, or the gantry hit in
-5b. Whether a breach may happen in missions 1 to 6 at all is decision 2;
-this design assumes not (openings only in mission 7).
+5b. Openings by anything but a breacher follow 1.9 as in every
+mission. In 5b the mission's own lines (`itaipu-7-s5b-*`) are said in
+place of the shared `contain-breach`, `contain-river`, `contain-half` and
+`contain-held`.
 
 ### Pilots
 
@@ -946,19 +1068,19 @@ hold the one thing that fixes it.
 
 ## 3. Line count
 
-| Mission | Stage, twist and debrief lines | Film lines (INTROS.md) |
+| Mission | Stage, twist, opening and debrief lines | Film lines (INTROS.md) |
 | --- | --- | --- |
-| 1 | 22 | 7 |
-| 2 | 16 | 4 |
-| 3 | 14 | 4 |
-| 4 | 13 | 4 |
-| 5 | 13 | 4 |
-| 6 | 13 | 4 |
+| 1 | 23 | 7 |
+| 2 | 17 | 4 |
+| 3 | 15 | 4 |
+| 4 | 14 | 4 |
+| 5 | 14 | 4 |
+| 6 | 14 | 4 |
 | 7 | 18 | 5 |
-| Shared calls (1.8) | 11 | |
-| Total | 120 | 32 |
+| Shared calls (1.8) and Contain (1.9) | 17 | |
+| Total | 132 | 32 |
 
-152 lines, 304 voice files with Spanish, against 54 lines (108 files) in
+164 lines, 328 voice files with Spanish, against 54 lines (108 files) in
 `lines.json` today; the existing intro, mission and debrief lines they
 replace are about 20 of those 54. Every line in MISSIONS.md and INTROS.md
 was extracted into a lines.json shaped scratch file and passed

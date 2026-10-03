@@ -49,8 +49,9 @@ not have to go looking.
 9. **No signal, no jamming in the flight model** (owner, 2026-09-29). The
    Aggressor's doctrine below includes electronic warfare because a
    credible 2030 adversary would use it, but no Act 1 mission depends on
-   a defender losing a link. Whether interference may be heard on the
-   radio voices as a story texture only is decision 4 in OVERVIEW.md.
+   a defender losing a link, and no mission breaks up the radio voices
+   either (the lead's decision of 2 October, under the owner's rule; it
+   can be revisited if the owner asks). Electronic warfare is backstory.
 
 ## 1. Premise
 
@@ -87,7 +88,7 @@ The stakes are never bodies. They are, in rising order:
 | Output | The HUD's megawatts, the twenty unit bars | "We're losing output", "we just lost a unit" |
 | The lights | Towns going dark district by district at night (src/share/war/grid.js and look/night.js already do this: a hit sheds districts in order, with a flicker) | Despacho names the towns: "Hernandarias is on backup", "the Foz side just dropped" |
 | Control of the river | Gates that cannot open; the spillway that must spill and cannot | "If they take the gates, we lose the river" |
-| The dam itself | An opening in the upstream face; real water moving through it (the dam break solver in progress) | Spoken once in the whole act, by Crest, and it lands because it was held back |
+| The dam itself | An opening in the face; real water moving through it (the dam break solver in progress); the gantry lowering the stoplogs | Possible in any mission where a hit gets through (decided 2 October), always answered by a Contain hold (MISSIONS.md 1.9); in Breach it is the enemy's whole aim |
 
 The output number is the score. The lights are the emotion. The water is
 the fear.
@@ -149,7 +150,7 @@ already knows; it is a game's adversary.
 | New axis | Up the river from the south, under the gorge rims | M5 | Patrol the gorge; kill the launcher |
 | Carriers | A larger boat that launches swarms while it lives | M5 | Kill the source |
 | Grid strikes | Towers on the 500 kV corridor, the yard, line crossings | M3, M6 | Spread out; spotters call the corridor |
-| Electronic warfare | Interference on the radio net (story only, decision 4) | M6, M7 if approved | None needed: it is texture, never a flight effect |
+| Electronic warfare | Nothing: heard of on the news, never heard on the net or felt in flight (no jamming, no breakup) | none in Act 1 | none |
 | The dam | Breachers: heavy slow sea drones built to open a gate or an intake | M7 | Kill them far out; if one gets through, contain |
 
 ### 4.3 How it adapts inside a mission
@@ -274,11 +275,9 @@ reference, so no real person's voice is used (tools/voice/build.py).
   talks.
 - **Candidates:** `am_puck` or `am_eric` (en), `pm_alex` reading Spanish
   (es), auditioned as Despacho's.
-- **Radio colour:** the farthest: more static, the occasional break.
+- **Radio colour:** the farthest: more static under him, never a dropout.
 
-A cast of five is a lot of new audio. The minimum is CREST and MIRADOR;
-TALLER, DESPACHO and CARANCHO each add a layer the story can live
-without. That is decision 3 in OVERVIEW.md.
+All five are in (the owner, 2 October).
 
 ### 5.3 The pilots, on air
 
@@ -382,4 +381,4 @@ A short glossary so every line uses the same words in both languages
 | splash | uno menos | a kill |
 | reroute | redirigir | Despacho |
 | backup | respaldo | |
-| breach | brecha | spoken first in mission 7 |
+| breach | brecha | said whenever the face opens |
