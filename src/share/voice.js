@@ -582,6 +582,13 @@ export function createVoice({ send, isMuted }) {
     queue({ op: 'on' });
   }
 
+  /* The context the voices play in, made when voice goes on, to listen
+   * as much as to talk. */
+  function listen() {
+    ctx ??= new AudioContext();
+    ctx.resume().catch(() => {});
+  }
+
   async function openMic() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof RTCPeerConnection === 'undefined') {
       problem = 'unsupported';
@@ -599,8 +606,7 @@ export function createVoice({ send, isMuted }) {
       return false;
     }
     problem = null;
-    ctx ??= new AudioContext();
-    ctx.resume().catch(() => {});
+    listen();
     micAnalyser = ctx.createAnalyser();
     micAnalyser.fftSize = buf.length * 2;
     ctx.createMediaStreamSource(mic).connect(micAnalyser);
@@ -633,6 +639,12 @@ export function createVoice({ send, isMuted }) {
       }
       on = true;
       wantTalk = talk;
+      if (typeof AudioContext === 'undefined' || typeof RTCPeerConnection === 'undefined') {
+        problem = 'unsupported';
+        on = false;
+        return false;
+      }
+      listen();
       if (mySeat == null) {
         return true;
       }
