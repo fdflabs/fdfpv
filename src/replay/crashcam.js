@@ -1193,8 +1193,9 @@ export function createCrashCam(host) {
     const q = Math.min(1, speed);
     const [a0, a1, a2] = e.args;
     if (e.call === 'radio') {
-      if (typeof audio.replayBeds === 'function') {
-        audio.replayBeds().say(a0, a1);
+      const beds = typeof audio.replayBeds === 'function' ? audio.replayBeds() : null;
+      if (beds) {
+        beds.say(a0, a1);
       }
     } else if (e.call === 'impact' && typeof audio.impact === 'function') {
       audio.impact(a0 * q, a1, a2 * q);
@@ -1214,7 +1215,13 @@ export function createCrashCam(host) {
       return;
     }
     const ev = S.clip.sound.events;
-    audio.replayBeds().frame(bedAt(ev, 'bed', t), bedAt(ev, 'music', t), speed, playing && !S.exporting);
+    const war = bedAt(ev, 'bed', t);
+    const music = bedAt(ev, 'music', t);
+    /* The radio is only made for a clip that has a bed to play. */
+    const beds = war || music || audio.replayRadio ? audio.replayBeds() : null;
+    if (beds) {
+      beds.frame(war, music, speed, playing && !S.exporting);
+    }
   }
   const vA = new THREE.Vector3();
   const vB = new THREE.Vector3();

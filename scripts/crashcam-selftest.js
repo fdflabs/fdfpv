@@ -109,7 +109,7 @@ import { createRoomWar } from '../src/share/roomwar.js';
 import { createGrid } from '../src/share/war/grid.js';
 import { FIRE_MS, burnAt } from '../src/share/war/world.js';
 import {
-  AIR_N, EVENTS_MAX, RPM_PER_RAD_S, airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt, trimSound,
+  AIR_N, EVENTS_MAX, PEER_ID_BASE, RPM_PER_RAD_S, airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt, trimSound,
 } from '../src/replay/sound.js';
 import { soundPlan } from '../src/replay/soundtrack.js';
 import { FLAG_CRASHED, FLAG_QUAD } from '../src/share/roomwire.js';
@@ -2426,9 +2426,9 @@ function soundFile(withClock, refused) {
   const ps = createPeerSample(slots);
   samplePeers(peers, n, 4, 0.5, ps);
   const heard = peerVoicesAt(peers, ps, 0.5, []);
-  check(heard.length === 2 && heard[0].airframe === '5inch' && Math.abs(heard[0].rpm[3] - 1300 * RPM_PER_RAD_S * 0.5) < 1e-6
+  check(heard.length === 2 && heard[0].id === PEER_ID_BASE + 1 && heard[0].airframe === '5inch' && Math.abs(heard[0].rpm[3] - 1300 * RPM_PER_RAD_S * 0.5) < 1e-6
     && Math.abs(heard[1].rpm[0] - 900 * RPM_PER_RAD_S * 0.5) < 1e-6 && heard[1].rpm[1] === 0 && heard[0].x === 4.5 && heard[0].vx === 10,
-  'the pilots are heard where they were drawn, a quad\'s four motors and a wing\'s one, at half speed in half speed slow motion, the crashed one not at all',
+  'the pilots are heard where they were drawn, under ids no live seat has, a quad\'s four motors and a wing\'s one, at half speed in half speed slow motion, the crashed one not at all',
   heard.map((h) => `${h.airframe} ${h.rpm.map((x) => x.toFixed(0)).join('/')}`).join(', '));
 
   /* The movie's plan: a cut at row 10 into a quarter speed shot. */
