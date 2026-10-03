@@ -43,9 +43,17 @@
 
 import { CLASS } from './bed.js';
 
-/* Ground over this never carries the river, m: the reservoir stands at
- * 219 and the river below the dam at most some 10 m over its 103.5. */
-const RIVER_MAX = 135;
+/* Ground over this never carries the river, m: the river below the dam
+ * stands at most some 6 m over its 103.5 (docs/FLOOD.md, a typical spill
+ * and a war's breaches). */
+const RIVER_MAX = 118;
+/* Past this from the camera to the sheet's middle, m, the sheet is drawn
+ * at every FAR_STRIDE fine cell (and every FAR_STRIDE / 2 coarse one),
+ * 20 m: a sixteenth of the triangles. yard-west, the view with the least
+ * of section 13's 2.5 M left (5 k on main, 2 October), sees the sheet at
+ * some 1.9 km. */
+export const FAR_M = 1500;
+const FAR_STRIDE = 4;
 /* A cell's water is counted over this depth, m, and drawn over DRAWN:
  * thinner, it is a film running over rock, which the jets off the
  * chute's lips throw their water clear of. */
@@ -60,7 +68,7 @@ const WHITE_FROUDE = [0.9, 1.6];
 
 /* The line the river's own sheet is cut with where the flood's stands
  * (index.js withField); the flood's own sheet strips it. */
-export const FLOOD_CUT = 'if (itInFlood(vWaterWorld.xz)) discard;';
+export const FLOOD_CUT = 'if(itInFlood(vWaterWorld.xz))discard;';
 
 /* Uniforms that draw no flood: a body's until the flood is ready. */
 export function placeholderFlood(THREE) {
@@ -169,39 +177,54 @@ export function floodGeometry(THREE, bed) {
     index.set(k, n);
     return n;
   };
-  const tris = [];
-  const quad = (a, b2, c, d) => {
+  const quadInto = (tris, a, b2, c, d) => {
     if (a >= 0 && b2 >= 0 && c >= 0) tris.push(a, c, b2);
     if (b2 >= 0 && c >= 0 && d >= 0) tris.push(b2, c, d);
   };
   /* Each block's cells, and the texel each reads. */
   const fineAt = (i, j) => vertex(j * F.nx + i, F.x0 + (i + 0.5) * F.dx, F.z0 + (j + 0.5) * F.dx, i, j);
   const coarseAt = (i, j) => vertex(C.off + j * C.nx + i, C.x0 + (i + 0.5) * C.dx, C.z0 + (j + 0.5) * C.dx, 2 * i, F.nz + 2 * j);
-  for (let j = 0; j + 1 < F.nz; j += 1) {
-    for (let i = 0; i + 1 < F.nx; i += 1) {
-      quad(fineAt(i, j), fineAt(i + 1, j), fineAt(i, j + 1), fineAt(i + 1, j + 1));
+  /* The triangles at a fine stride sf and a coarse stride sc: every cell
+   * (1, 1), or every sf-th fine and sc-th coarse with sf = 2 sc, the two
+   * blocks' vertices then as far apart and joined quad to quad. */
+  const triangles = (sf, sc) => {
+    const tris = [];
+    for (let j = 0; j + sf < F.nz; j += sf) {
+      for (let i = 0; i + sf < F.nx; i += sf) {
+        quadInto(tris, fineAt(i, j), fineAt(i + sf, j), fineAt(i, j + sf), fineAt(i + sf, j + sf));
+      }
     }
-  }
-  for (let j = 0; j + 1 < C.nz; j += 1) {
-    for (let i = 0; i + 1 < C.nx; i += 1) {
-      quad(coarseAt(i, j), coarseAt(i + 1, j), coarseAt(i, j + 1), coarseAt(i + 1, j + 1));
+    for (let j = 0; j + sc < C.nz; j += sc) {
+      for (let i = 0; i + sc < C.nx; i += sc) {
+        quadInto(tris, coarseAt(i, j), coarseAt(i + sc, j), coarseAt(i, j + sc), coarseAt(i + sc, j + sc));
+      }
     }
-  }
-  /* The join: each coarse cell of the coarse block's first row to the
-   * two fine cells over it, and to the next coarse cell's first. */
-  const last = F.nz - 1;
-  for (let i = 0; i < C.nx; i += 1) {
-    const c0 = coarseAt(i, 0);
-    const f0 = fineAt(2 * i, last);
-    const f1 = fineAt(2 * i + 1, last);
-    if (f0 >= 0 && f1 >= 0 && c0 >= 0) tris.push(f0, c0, f1);
-    if (i + 1 < C.nx) {
-      const c1 = coarseAt(i + 1, 0);
-      const f2 = fineAt(2 * i + 2, last);
-      if (f1 >= 0 && c0 >= 0 && c1 >= 0) tris.push(f1, c0, c1);
-      if (f1 >= 0 && c1 >= 0 && f2 >= 0) tris.push(f1, c1, f2);
+    const last = Math.floor((F.nz - 1) / sf) * sf;
+    if (sf === 1) {
+      /* The join at every cell: each coarse cell of the coarse block's
+       * first row to the two fine cells over it, and to the next coarse
+       * cell's first. */
+      for (let i = 0; i < C.nx; i += 1) {
+        const c0 = coarseAt(i, 0);
+        const f0 = fineAt(2 * i, last);
+        const f1 = fineAt(2 * i + 1, last);
+        if (f0 >= 0 && f1 >= 0 && c0 >= 0) tris.push(f0, c0, f1);
+        if (i + 1 < C.nx) {
+          const c1 = coarseAt(i + 1, 0);
+          const f2 = fineAt(2 * i + 2, last);
+          if (f1 >= 0 && c0 >= 0 && c1 >= 0) tris.push(f1, c0, c1);
+          if (f1 >= 0 && c1 >= 0 && f2 >= 0) tris.push(f1, c1, f2);
+        }
+      }
+    } else {
+      for (let i = 0; i + sf < F.nx; i += sf) {
+        quadInto(tris, fineAt(i, last), fineAt(i + sf, last), coarseAt(i / 2, 0), coarseAt((i + sf) / 2, 0));
+      }
     }
-  }
+    return tris;
+  };
+  const near = triangles(1, 1);
+  const far = triangles(FAR_STRIDE, FAR_STRIDE / 2);
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(pos.length).map((_, k) => (k % 3 === 1 ? 1 : 0)), 3));
@@ -209,12 +232,23 @@ export function floodGeometry(THREE, bed) {
   g.setAttribute('aCell', new THREE.Float32BufferAttribute(cell, 2));
   g.setAttribute('aGround', new THREE.Float32BufferAttribute(ground, 1));
   g.setAttribute('aEdge', new THREE.Float32BufferAttribute(edge, 1));
-  g.setIndex(tris);
+  g.setIndex(near);
+  /* The two levels as index attributes, swapped by floodDetail. */
+  g.userData.levels = { near: g.index, far: new THREE.Uint32BufferAttribute(far, 1) };
   g.computeBoundingBox();
   g.boundingBox.min.y = 60;
   g.boundingBox.max.y = 240;
   g.boundingSphere = g.boundingBox.getBoundingSphere(new THREE.Sphere());
   return g;
+}
+
+/* The sheet's level of detail for a camera at `eye` (a THREE.Vector3):
+ * whole within FAR_M of its middle, every FAR_STRIDE-th cell past it. */
+export function floodDetail(geometry, eye) {
+  const far = geometry.boundingSphere.center.distanceTo(eye) > FAR_M;
+  const want = far ? geometry.userData.levels.far : geometry.userData.levels.near;
+  if (geometry.index !== want) geometry.setIndex(want);
+  return far;
 }
 
 /* The uniforms' declarations, and whether a world point is under the

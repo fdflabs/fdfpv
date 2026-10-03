@@ -73,7 +73,7 @@ import {
 } from './spill.js';
 import { liveFlood } from './live.js';
 import {
-  FLOOD_CUT, FLOOD_GLSL, floodGeometry, floodLevelAt, floodMaterial, floodRead, floodUniforms, placeholderFlood,
+  FLOOD_CUT, FLOOD_GLSL, floodDetail, floodGeometry, floodLevelAt, floodMaterial, floodRead, floodUniforms, placeholderFlood,
 } from './surface.js';
 
 /* The spillway the look was drawn for, Free Flight's spill (water/flood.js
@@ -961,6 +961,12 @@ export async function buildPart(ctx) {
   const before = scene.onBeforeRender;
   scene.onBeforeRender = function onBeforeRender(renderer, s, camera, target) {
     before.call(this, renderer, s, camera, target);
+    /* The flood's sheet at the detail this camera needs (surface.js). */
+    if (camera.isPerspectiveCamera && riverMade && riverMade.flood) {
+      camera.updateMatrixWorld();
+      eye.setFromMatrixPosition(camera.matrixWorld);
+      stats.floodFar = floodDetail(riverMade.flood.mesh.geometry, eye);
+    }
     if (!due || !camera.isPerspectiveCamera) {
       return;
     }
