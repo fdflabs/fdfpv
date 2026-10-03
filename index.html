@@ -1782,10 +1782,30 @@
       .gate-card { position: relative; }
       /* Over the plate, which would cover an inset shadow: the frame is an
          outline and the rule a layer of its own. */
-      .gate-card.on { outline: 1px solid var(--pdcs-blue-strong); outline-offset: -1px; }
+      .gate-card.on { outline: 1px solid var(--card-accent, var(--pdcs-blue-strong)); outline-offset: -1px; }
       .gate-card.on::after {
         content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 2;
-        background: var(--pdcs-blue-strong); pointer-events: none;
+        background: var(--card-accent, var(--pdcs-blue-strong)); pointer-events: none;
+      }
+      /*
+       * THE HUBS (src/ui/ui.js HUBS). Each hub card wears its hub's accent,
+       * and inside a hub every card does (decided 2026-10-02: one accent per
+       * hub over the same ground). Operations keeps the blue the cards
+       * always had.
+       */
+      .gate-card[data-hub="club"], .screen-title[data-hub="club"] .gate-card { --card-accent: var(--hub-club); }
+      .gate-card[data-hub="hangar"], .screen-title[data-hub="hangar"] .gate-card { --card-accent: var(--hub-hangar); }
+      /* A hub card's activities: each a press straight into its lobby. */
+      .gate-links { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 4px; }
+      .gate-link {
+        font: 600 12px/1.2 var(--type-mono); letter-spacing: 0.1em; text-transform: uppercase;
+        color: var(--pdcs-text); background: transparent; cursor: pointer;
+        padding: 5px 8px; border: 1px solid var(--pdcs-line-soft); border-radius: var(--radius-control);
+        pointer-events: auto;
+      }
+      .gate-link:hover, .gate-link:focus-visible {
+        color: var(--pdcs-bg); background: var(--card-accent, var(--pdcs-blue-strong));
+        border-color: var(--card-accent, var(--pdcs-blue-strong)); outline: none;
       }
       .gate-card:focus-visible { outline: 1px solid var(--pdcs-blue-strong); outline-offset: 3px; }
       .gate-card-art {
