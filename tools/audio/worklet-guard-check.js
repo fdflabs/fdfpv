@@ -129,6 +129,58 @@ for (const model of ['quad', 'wing', 'edf', 'glow2', 'glow4', 'boxer2', 'turboje
   check('the throw is reported', Boolean(fault && fault.fault.kind === 'threw' && /planted/.test(fault.fault.message)), fault ? fault.fault.kind : 'none');
 }
 
+{
+  /* A state field latched at infinity, which the first scrub (NaN only:
+   * an infinite plain field may be a "never" time) leaves: the second
+   * fault in a row scrubs every non-finite number, and the sound comes
+   * back rather than faulting once a quantum for good. */
+  const p = new E({ processorOptions: { model: 'quad' } });
+  const params = Object.fromEntries(names.map((n) => [n, new Float32Array([n === 'level' ? 1 : 0])]));
+  for (let k = 0; k < 4; k += 1) {
+    params[`rpm${k}`][0] = 9000;
+  }
+  params.u[0] = 20;
+  let latched = 0;
+  const r = run(p, 600, (q) => {
+    if (q === 100) {
+      p.harshGain = Infinity;
+      p.windLevel = Infinity;
+      for (const mo of p.motor) {
+        mo.level = Infinity;
+      }
+    }
+    if (q > 100 && q < 110 && p.faultStreak > 0) {
+      latched += 1;
+    }
+  }, params);
+  check('a state field latched at infinity: the fault does not repeat for good, the sound comes back', r.firstBad < 0 && r.tail > 0 && p.faultStreak === 0, `${p.faults} faults, last streak ${p.faultStreak}, energy ${r.tail.toExponential(2)}`);
+}
+
+{
+  /* The same, where it is plain: a gain held as a plain number at
+   * infinity, which only the escalated scrub reaches. */
+  const { guard } = await import('../../src/render/worklet-guard.js');
+  const proc = {
+    gain: 1,
+    port: { posted: [], postMessage(m) { this.posted.push(m); } },
+    work(inputs, outputs) {
+      this.gain += 0;
+      outputs[0][0].fill(0.1 * this.gain);
+    },
+  };
+  let bad = 0;
+  for (let q = 0; q < 50; q += 1) {
+    globalThis.currentTime = (q * N) / RATE;
+    if (q === 10) {
+      proc.gain = Infinity;
+    }
+    const o = [[new Float32Array(N)]];
+    guard(proc, [], o);
+    bad += finite(o) ? 0 : 1;
+  }
+  check('a plain field at infinity: the second fault in a row scrubs it, and the faults stop', bad === 0 && proc.faults === 2 && proc.faultStreak === 0, `${proc.faults} faults, streak ${proc.faultStreak}`);
+}
+
 console.log('the world worklet:');
 const W = P['fdfpv-world'];
 function worldFrame(t, poison) {

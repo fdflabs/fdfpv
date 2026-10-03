@@ -44,10 +44,12 @@ const SCRUB_DEPTH = 5;
 const REPORT_S = 1;
 
 /* Every non-finite number in `o` and what it holds, set to 0: plain NaN
- * fields (an infinite plain field may be meant, a "never" time, and is
- * left), and every non-finite element of a typed array (filter state,
- * delay lines). Returns how many it set. */
-export function scrub(o, depth = 0, seen = new Set()) {
+ * fields, and every non-finite element of a typed array (filter state,
+ * delay lines). An infinite plain field may be meant, a "never" time, and
+ * is left unless `all`: guard() scrubs with `all` when the quantum after
+ * a scrub faults again, which is what a state field latched at infinity
+ * does. Returns how many it set. */
+export function scrub(o, all = false, depth = 0, seen = new Set()) {
   if (o == null || typeof o !== 'object' || seen.has(o) || depth > SCRUB_DEPTH) {
     return 0;
   }
@@ -65,19 +67,19 @@ export function scrub(o, depth = 0, seen = new Set()) {
   const values = o instanceof Map ? [...o.values()] : null;
   if (values) {
     for (const v of values) {
-      n += scrub(v, depth + 1, seen);
+      n += scrub(v, all, depth + 1, seen);
     }
     return n;
   }
   for (const k of Object.keys(o)) {
     const v = o[k];
     if (typeof v === 'number') {
-      if (Number.isNaN(v)) {
+      if (Number.isNaN(v) || (all && !Number.isFinite(v))) {
         o[k] = 0;
         n += 1;
       }
     } else if (v && typeof v === 'object') {
-      n += scrub(v, depth + 1, seen);
+      n += scrub(v, all, depth + 1, seen);
     }
   }
   return n;
@@ -112,8 +114,10 @@ export function guard(proc, inputs, outputs, params) {
     error = e;
   }
   if (!error && finite(outputs)) {
+    proc.faultStreak = 0;
     return true;
   }
+  proc.faultStreak = (proc.faultStreak || 0) + 1;
   for (const out of outputs) {
     for (const ch of out) {
       ch.fill(0);
@@ -127,7 +131,10 @@ export function guard(proc, inputs, outputs, params) {
   } catch (e) {
     context = { unreadable: String(e) };
   }
-  const scrubbed = scrub(proc);
+  /* A second fault in a row: the NaN scrub did not reach it, so an
+   * infinite field is what holds it; this time every non-finite number
+   * goes, and reset() puts back what the processor needs. */
+  const scrubbed = scrub(proc, proc.faultStreak > 1);
   if (typeof proc.reset === 'function') {
     proc.reset();
   }
@@ -140,6 +147,7 @@ export function guard(proc, inputs, outputs, params) {
         kind: error ? 'threw' : 'non-finite',
         message: error ? String(error && error.stack ? error.stack : error) : null,
         scrubbed,
+        streak: proc.faultStreak,
         context,
         faults: proc.faults,
         at: now,
