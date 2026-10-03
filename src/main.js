@@ -136,7 +136,7 @@ import {
 } from './ui/warround.js';
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
-import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
 import {
   ACT1, createCampaignStore, markSeen, seenFilm,
 } from './game/campaign.js';
@@ -2627,27 +2627,34 @@ export async function boot({
    * so the crash cam's journal keeps it like the chase boost.
    */
   /*
-   * THE NIGHT RAID (itaipu-4, the mission's `night`): from its countdown
-   * the world is built at night (src/maps/itaipu.js options.time, through
-   * syncWorld) and the attackers wear nav lights, and it stays night over
-   * the mission's end and its result, so the banner is not hidden behind
-   * a rebuild; day comes back with the next mission that is not a night
-   * one, or when the room is left (its view is the lobby's). Every
-   * pilot's screen does this from the room's view, so all of them fly the
-   * same night.
+   * THE MISSION'S TIME OF DAY (its `time`, TECH-NEEDS T1.11: First Light's
+   * morning, the night raid's night): the world is built at that time
+   * (src/maps/itaipu.js options.time, through syncWorld) while a pilot
+   * waits on the room's lobby with that mission named, so the briefing
+   * seldom has to rebuild it (the frame loop stops while a world is
+   * built), and from the briefing whatever the lobby; at night the
+   * attackers wear nav lights. It stays so over the mission's end and its
+   * result, so the banner is not hidden behind a rebuild; the map's own
+   * time comes back with a mission that has none, or when the room is
+   * left (its view is the lobby's, and there is no lobby). Every pilot's
+   * screen does this from the room, so all of them fly the same light.
    */
-  let warNight = false;
+  let warTime = null;
   /* Each switch, its room ms and when the rebuild was done, for checks. */
-  const warNightLog = [];
-  function warNightFrame() {
-    const night = roomWar.night() && roomWar.view().state !== 'lobby';
-    if (night === warNight) {
+  const warTimeLog = [];
+  function warTimeFrame() {
+    const lobby = ui.screen === 'friends' && lobbyGame() === 'war' ? gameLobby() : null;
+    const time = lobby ? missionTime(WAR_MISSIONS[lobby.mission]) : roomWar.view().state !== 'lobby' ? roomWar.time() : null;
+    if (time === warTime) {
       return;
     }
-    warNight = night;
+    warTime = time;
+    const night = time === 'night';
     warAttackers.setNavLights(night);
-    const entry = { night, at: roomLinkState.roomNow(), state: roomWar.view().state, done: null };
-    warNightLog.push(entry);
+    const entry = {
+      time, night, at: roomLinkState.roomNow(), state: roomWar.view().state, done: null,
+    };
+    warTimeLog.push(entry);
     syncWorld().then(() => {
       entry.done = roomLinkState.roomNow();
     });
@@ -3572,8 +3579,8 @@ export async function boot({
   function warIntroFrame(v) {
     warSeenTell();
     const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
-    /* Not while the world is being built for the mission (the night
-     * raid's, warNightFrame, at the briefing's start): the film's scenery
+    /* Not while the world is being built for the mission (at its time of
+     * day, warTimeFrame, at the briefing's start): the film's scenery
      * would go with the old map. It starts once the world is up, where the
      * room is by then, the film's preload span having covered most of it. */
     const worldUp = mapReady && !worldSync && !swapInFlight;
@@ -3799,6 +3806,13 @@ export async function boot({
         ui.show('friends');
       }
     }
+    lobbyPanelFrame(wallMs);
+  }
+  /* The lobby's panel, five times a second; also mid world build (a
+   * mission's time of day rebuilds it as its briefing begins, frameBody),
+   * so a war ended then is not shown still counting down until the world
+   * is up. */
+  function lobbyPanelFrame(wallMs) {
     if (wallMs < lobbyPanelAt) {
       return;
     }
@@ -3826,7 +3840,7 @@ export async function boot({
     warBooms.group.visible = !replay;
     warFeedFrame(wallMs);
     const v = roomWar.view();
-    warNightFrame();
+    warTimeFrame();
     warIntroFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {
       warBegin(v, wallMs);
@@ -5048,7 +5062,7 @@ export async function boot({
     view: roomWar.view(),
     error: roomWar.error(),
     drawn: { ...warAttackers.drawn(), at: warDrawnAt },
-    night: warNightLog.slice(),
+    night: warTimeLog.slice(),
     /* Each power district 'lit', 'flicker' or 'dark' now, and what the
      * map was handed (src/share/war/grid.js). */
     grid: {
@@ -10822,10 +10836,10 @@ export async function boot({
    */
   let worldSync = null;
   /* The time the standing world was built at, and what a build asks for
-   * now: night while a night raid is on (warNight). */
+   * now: the mission's while a war with one is on (warTime). */
   let worldTime = timeOf({});
   function worldTimeOptions() {
-    return warNight ? { time: 'night' } : {};
+    return warTime ? { time: warTime } : {};
   }
   function syncWorld() {
     if (!worldSync) {
@@ -14330,6 +14344,7 @@ export async function boot({
        * accumulator on the far side, or the first frame of the new map steps
        * the physics by however long the world took to build. */
       prevWall = nowWall;
+      lobbyPanelFrame(nowWall);
       return;
     }
     dressCraft();
