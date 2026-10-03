@@ -59,7 +59,7 @@ function check(name, ok, detail = '') {
 }
 
 function seed() {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';

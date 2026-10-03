@@ -69,7 +69,7 @@ function painted(paint, id, colour) {
   return Boolean(paint) && own.length > 0 && own.every((r) => paint[r] === colour);
 }
 function seedFor(id, colour, addons) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';

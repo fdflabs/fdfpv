@@ -555,7 +555,7 @@ function warRoom(mission, { n = 2, seed = 0.25 } = {}) {
     env.apply(r.open(so, env.clock));
     env.apply(r.message(so, JSON.stringify({
       type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: {
-        airframe: '5inch', map: 'itaipu', figure: 1, livery: null, parts: null,
+        airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null,
       },
     }), env.clock, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     env.paths[i] = env.paths[i] ?? (() => [4000 + 50 * i, Y, 4000]);

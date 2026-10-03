@@ -79,7 +79,7 @@ const WIDE = ['wideGate5', 'pylonPair', 'wideGate5'];
  * and progress stored fresh on the curve. Once, marked under a key of its
  * own because the settings store keeps only the keys it knows: a reload
  * keeps what the page wrote. */
-const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'timber1500');
+const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'timber1500');
 const seed = [`try {
   const k = ${JSON.stringify(SETTINGS_KEY)};
   const s = JSON.parse(localStorage.getItem(k) || '{}');

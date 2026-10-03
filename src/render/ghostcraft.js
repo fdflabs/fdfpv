@@ -40,6 +40,7 @@
 
 import * as THREE from 'three';
 import { craftBuilderFor } from './craft.js';
+import { DEFAULT_AIRFRAME } from '../../configs/airframes.js';
 
 const GHOST_MINT = 0x7dffb4;
 /* Body opacity at full presence. The discs sit far lower, as they do on
@@ -48,7 +49,7 @@ const BODY_OPACITY = 0.40;
 const DISC_OPACITY = 0.10;
 const LABEL_OPACITY = 0.88;
 
-export function buildGhostCraft(airframeId = '5inch') {
+export function buildGhostCraft(airframeId = DEFAULT_AIRFRAME) {
   const craft = craftBuilderFor(airframeId)({
     name: 'ghost-craft',
     lite: true,

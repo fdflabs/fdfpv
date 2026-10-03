@@ -58,7 +58,6 @@ import { sizeText, weightText } from './carousel.js';
 import { MAX_BUILDS, checkBuildName } from './builds.js';
 import { WEAR_MAX, WEAR_STEP, cleanWear } from '../../configs/paint.js';
 import { PaintShop } from './hangar-paint.js';
-import { STOCK_ONLY } from '../../configs/motors.js';
 
 export const HANGAR_TABS = ['power', 'colours'];
 
@@ -185,8 +184,6 @@ export function stockPower(airframeId) {
     options: [{ id: 'stock', name: str('hangar.stock_setup'), kind: af.voice === 'glow' ? 'glow' : 'electric', packs: [] }],
     stock: { option: 'stock', pack: null },
     estimate: () => ({ grams: af.grams, topSpeed: af.topSpeed ?? null, minutes: null, thrustToWeight: null }),
-    /* Why there is nothing else to fit (configs/motors.js STOCK_ONLY). */
-    note: STOCK_ONLY[airframeId] ? str(STOCK_ONLY[airframeId]) : null,
   };
 }
 
@@ -973,9 +970,6 @@ export class Hangar {
     box.append(this.statsBlock());
     if (none) {
       box.append(el('p', 'hangar-note', str('hangar.no_motor_note')));
-    }
-    if (this.power.note) {
-      box.append(el('p', 'hangar-note', this.power.note));
     }
     box.append(el('p', 'hangar-note', str(`carousel.note.${this.id}`)));
     if (option.source) {

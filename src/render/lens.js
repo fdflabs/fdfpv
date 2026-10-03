@@ -121,8 +121,8 @@ export function cameraTiltRad(degrees) {
  * WHERE THE CAMERA IS BOLTED, in metres in the body frame.
  *
  * The FPV view was placed 7.75 cm in front of the centre of gravity and at
- * exactly its height, while the airframe model in herocraft.js mounts the
- * camera 8.0 cm forward and 1.8 cm UP. The forward offset is the one that
+ * exactly its height, while the five inch's model mounted the camera 8.0 cm
+ * forward and 1.8 cm UP. The forward offset is the one that
  * matters most and it was there; the vertical one was missing, and it is not
  * nothing. A roll is about the body x axis through the CG, so a camera above
  * that axis swings sideways as the craft rolls, and at a 670 deg/s roll rate
@@ -130,15 +130,15 @@ export function cameraTiltRad(degrees) {
  * that tells a pilot the lens is on a machine rather than floating at its
  * centre of mass.
  *
- * These live here rather than being typed again in main.js or herocraft.js
- * so the view and the model cannot drift apart, which is how the 7.75
- * against 8.0 happened. herocraft.js places the mount at
- * (0, CAMERA_MOUNT_UP, -CAMERA_MOUNT_FORWARD) in the Three.js craft frame.
+ * These live here rather than being typed again in main.js so the view and
+ * the model cannot drift apart, which is how the 7.75 against 8.0 happened.
+ * They are the five inch's, and every quad's view still sits there: the
+ * quads left after it went (2026-10-03) have no mount of their own yet.
  */
 export const CAMERA_MOUNT_FORWARD = 0.080;
 export const CAMERA_MOUNT_UP = 0.018;
-/* Lens glass past the mount, plant/body metres. herocraft.js puts the
- * glass 0.0242 past the mount along the look axis. The plant samples
+/* Lens glass past the mount, plant/body metres: 0.0242 past the mount
+ * along the look axis, on the five inch's model. The plant samples
  * this so a nose-down crash cannot put the picture under the plane. */
 export const CAMERA_LENS_FORWARD = 0.104;
 export const CAMERA_LENS_UP = 0.018;

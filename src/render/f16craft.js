@@ -1010,7 +1010,7 @@ export function buildF16Craft(opts = {}) {
   const stator = cel({ color: 0x3a3d40, rim: 0.24, spec: 0.45, specWidth: 0.02 });
   const antenna = cel({ color: 0x1a241c, rim: 0.22 });
 
-  /* The measurement box, hidden, on herocraft.js's contract with check 15. */
+  /* The measurement box, hidden, on the contract with verify's check 15 (tests/lib/checks.js). */
   if (opts.measure) {
     const d = F16_DIMS;
     const body = new THREE.Mesh(new THREE.BoxGeometry(d.span, d.vHalfUp + d.vHalfDown, d.length), light);

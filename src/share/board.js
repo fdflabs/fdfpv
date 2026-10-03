@@ -48,7 +48,7 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { trackClassOf } from '../trackbuilder/elements.js';
+import { noAircraftFlies, trackClassOf } from '../trackbuilder/elements.js';
 import { isMapTrack } from '../trackbuilder/model.js';
 import { writeShareImport } from './session.js';
 import { str, currentLocale } from '../strings/index.js';
@@ -285,12 +285,14 @@ export async function fetchTrackList(origin = boardOrigin()) {
      * usableTags, because the Race room prints these and a tag from a newer
      * board should show under its own id rather than disappear. */
     tags: Array.isArray(t.tags) ? t.tags.map((x) => String(x)) : [],
-    /* Which aircraft flies it: 'micro' is a RaceGOW room, 'wing' is an
-     * airfield, and anything else is the sixty metre field, which is what
-     * every track published before there were classes is. The board derives
-     * it from the stored document, so an older board that does not send it
-     * leaves every listing reading as the field, correctly. */
-    trackClass: trackClassOf(t),
+    /* Which aircraft flies it: 'wing' is an airfield, and anything else is
+     * the sixty metre field, which is what every track published before
+     * there were classes is. The board derives it from the stored document,
+     * so an older board that does not send it leaves every listing reading
+     * as the field, correctly. A class no aircraft flies ('micro', the
+     * RaceGOW room) is passed through as it is, so nothing reads it as the
+     * field. */
+    trackClass: noAircraftFlies(t) ? t.trackClass : trackClassOf(t),
     /* The world a track built inside one stands in, or '' for a field
      * track. The board derives it from the stored document; an older board
      * that does not send it cannot hold a map track at all. */
@@ -517,7 +519,11 @@ export async function adoptShareFromLocation() {
   const payload = await fetchTrackDocument(id, origin);
   const document = payload.document || payload;
   /* A track drawn for the race field or a RaceGOW room, which this
-   * simulator no longer flies: said, rather than seated as nothing. */
+   * simulator no longer flies: said, rather than seated as nothing. A
+   * RaceGOW room is said by its own sentence, since its aircraft went. */
+  if (noAircraftFlies(document)) {
+    throw new Error(str('track.no_aircraft'));
+  }
   if (!isMapTrack(document)) {
     throw new Error(str('board.that_track_was_drawn_for_the'));
   }

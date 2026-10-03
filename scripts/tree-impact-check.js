@@ -3,7 +3,7 @@
  * of it is a wreck and no faster than it came.
  *
  *   SIM_GPU=1 node scripts/tree-impact-check.js [--maps=swiss2,alps]
- *        [--air=5inch,f16878] [--speeds=20,40,60]
+ *        [--air=interceptor,f16878] [--speeds=20,40,60]
  *
  * The swiss2 collision audit (scripts/collide-audit-swiss2.js, PR #254)
  * threw an F-16 at 60 m/s into a spruce: at t = 0.300 s its speed went
@@ -87,7 +87,7 @@ const THROW_MS = 30000;
 
 function seeds(map, airframe) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true,
     map,
     graphics: process.env.SIM_GPU === '1' ? 'high' : 'low',

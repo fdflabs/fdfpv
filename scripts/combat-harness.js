@@ -113,7 +113,7 @@ function place(p, q, body, out) {
 }
 
 const B_AIRFRAME = 'cub1400';
-const CUTTERS = ['5inch', 'cub1400', 'p51d1450', 'slowstick1180'];
+const CUTTERS = ['interceptor', 'cub1400', 'p51d1450', 'slowstick1180'];
 const RUN_MS = 9000;
 
 /*

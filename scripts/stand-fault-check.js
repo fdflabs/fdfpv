@@ -47,7 +47,7 @@ import { airframeById } from '../configs/airframes.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const settings = {
-  ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch'),
+  ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor'),
   airframeAsked: true,
   graphics: 'low',
   graphicsAuto: false,

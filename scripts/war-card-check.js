@@ -418,7 +418,7 @@ try {
   });
   keeper.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, war: WAR_JOIN, name: [3, 3, 33],
-    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+    profile: { airframe: 'interceptor', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
   }));
   for (let i = 0; i < 100 && !keeperGot.some((m) => m.type === 'welcome'); i += 1) {
     await page.sleep(50);
@@ -470,7 +470,7 @@ try {
   });
   other.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [1, 1, 11],
-    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: 'war' },
+    profile: { airframe: 'interceptor', map: 'itaipu', figure: 0, livery: null, parts: null, game: 'war' },
   }));
   for (let i = 0; i < 100 && !otherGot.some((m) => m.type === 'welcome'); i += 1) {
     await page.sleep(50);
@@ -596,7 +596,7 @@ try {
   });
   holder.send(JSON.stringify({
     type: 'hello', proto: PROTO, build: 'check', level: ROOM_LEVEL, name: [2, 2, 12],
-    profile: { airframe: '5inch', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
+    profile: { airframe: 'interceptor', map: 'itaipu', figure: 0, livery: null, parts: null, game: null },
   }));
   for (let i = 0; i < 4 && !(await page.evaluate('window.__ui.onGate()')); i += 1) {
     await page.tap('Escape');

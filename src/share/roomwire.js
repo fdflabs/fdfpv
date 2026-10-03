@@ -49,6 +49,7 @@
  */
 
 import { MAKEABLE, SETUPS } from './modes.js';
+import { currentAirframeId, retiredAirframe } from '../../configs/airframes.js';
 
 export const PROTO = 2;
 
@@ -189,6 +190,14 @@ export const ROOM_GAMES = ['combat', 'tag', 'war'];
  * runs its own normaliseEntry and normalisePlane on livery and parts, so
  * an id its build does not know is dropped there rather than here.
  * Returns the profile to relay, or null.
+ *
+ * A RETIRED AIRFRAME is the one exception to "shape only": a tab still open
+ * from before the five inch and the whoop were removed (2026-10-03) says
+ * '5inch' or 'whoop65', and the room seats it as the successor
+ * configs/airframes.js names, for the referee's hull and for every peer,
+ * so nobody in the room is asked to draw or collide with an aircraft this
+ * build does not have. Its livery and parts were the old aircraft's and
+ * are dropped with it.
  */
 export function checkProfile(p) {
   if (!p || typeof p !== 'object' || Array.isArray(p)) {
@@ -204,12 +213,13 @@ export function checkProfile(p) {
   if (!obj(p.livery) || !obj(p.parts)) {
     return null;
   }
+  const gone = retiredAirframe(p.airframe);
   const out = {
-    airframe: p.airframe,
+    airframe: currentAirframeId(p.airframe),
     map: p.map,
     figure: p.figure,
-    livery: p.livery ?? null,
-    parts: p.parts ?? null,
+    livery: gone ? null : p.livery ?? null,
+    parts: gone ? null : p.parts ?? null,
   };
   /* The room game the pilot came in for (a title card: 'combat', 'tag'),
    * so a joiner sees what the host set the room up for. Optional: absent

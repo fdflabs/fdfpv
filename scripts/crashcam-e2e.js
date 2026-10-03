@@ -73,7 +73,7 @@ function check(name, ok, detail = '') {
 const AIRFRAME = 'sky1800';
 function seed() {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIRFRAME),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME),
     airframeAsked: true,
     map: 'swiss2',
     graphics: 'low',

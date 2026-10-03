@@ -475,7 +475,7 @@ async function ownerScene(width, height, rooms, touch = false) {
 
 async function defaults() {
   console.log('1280x720, the default and the override');
-  let page = await openPage({ root, width: 1280, height: 720, seed: seed('5inch') });
+  let page = await openPage({ root, width: 1280, height: 720, seed: seed('interceptor') });
   try {
     await fly(page);
     await page.until('window.__fpvOsd().on || window.__avionicsHud().on', 120000).catch(() => {});

@@ -72,7 +72,7 @@ function say(ok, what) {
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const T = 'timber1500';
-const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, T);
+const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, T);
 s.map = 'alps';
 s.graphics = 'low';
 s.flightMode = 'angle';

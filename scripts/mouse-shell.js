@@ -139,8 +139,8 @@ const state = (page) => page.evaluate('(() => { const p = window.__stickPath(); 
 async function quad(page) {
   console.log('five inch, Track mode, Acro:');
   await page.evaluate(`(() => { const ui = window.__ui; ui.firstRun = false; ui.craftGate = false; ui.mode = 'race';
-    ui.settings.airframe = '5inch'; ui.settings.flightMode = 'acro'; ui.onAction('fly', ui.settings); return true; })()`);
-  await page.until("window.__craftState().mode === 'flight' && window.__craft().run === '5inch'", 300000);
+    ui.settings.airframe = 'interceptor'; ui.settings.flightMode = 'acro'; ui.onAction('fly', ui.settings); return true; })()`);
+  await page.until("window.__craftState().mode === 'flight' && window.__craft().run === 'interceptor'", 300000);
   const mouse = makeMouse(page);
   say(await capture(page, mouse), 'one click captures the pointer and the mouse is live');
   let { c, m, simMs, held, fps } = await state(page);

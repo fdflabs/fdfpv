@@ -64,7 +64,7 @@ const check = (name, ok, detail) => {
 
 function seeds(airframe) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true,
     map: 'swiss2',
     graphics: process.env.SIM_GPU === '1' ? 'high' : 'low',

@@ -3,8 +3,10 @@
  * (src/ui/hangar.js Power tab, configs/motors.js), in the real shell,
  * headless.
  *
- *   1. The five inch's Customise opens the hangar on its motors, props and
- *      packs: the stock one and every other of each.
+ *   1. The interceptor's Customise opens the hangar, and its Power tab
+ *      shows its motors, props and packs: the stock one and every other of
+ *      each. The five inch's did, until it was removed (2026-10-03); the
+ *      interceptor is the racer now, and a combat quad opens on its Loadout.
  *   2. Choosing a motor, a prop and a pack previews them: the thrust to
  *      weight, the weight, the top speed and the two flight times read the
  *      choice's own, motorStats and configs/motor-estimates.js, and the
@@ -18,7 +20,6 @@
  *   6. From the pause menu, refitted in the air: the prop and pack back to
  *      stock leave the motor and take their block off, and the motor back
  *      to stock leaves the table.
- *   7. The whoop's Customise opens on its one stock motor and says why.
  * And no console error or uncaught exception anywhere.
  *
  *   node scripts/garage-motors-check.js [outdir]
@@ -66,7 +67,7 @@ function say(ok, what) {
   }
 }
 
-const Q = '5inch';
+const Q = 'interceptor';
 const { options, props, packs } = MOTORS[Q];
 const UP = options[options.length - 1];
 const CHOICE = { option: UP.id, prop: props[props.length - 1].id, pack: packs[2].id };
@@ -75,7 +76,7 @@ const propPack = propPackBlock(Q, CHOICE);
 const MOTOR_ONLY = { option: UP.id, prop: props[0].id, pack: packs[0].id };
 const motorOnly = motorsBlock(Q, MOTOR_ONLY);
 const same = (c) => Boolean(c) && c.option === CHOICE.option && c.prop === CHOICE.prop && c.pack === CHOICE.pack;
-const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, Q);
+const s = seatAirframe({ airframe: Q, rates: airframeById(Q).rates }, Q);
 s.map = 'alps';
 s.graphics = 'low';
 s.fpsCap = 0;
@@ -121,6 +122,14 @@ async function openOn(page, id) {
   await page.evaluate(`window.__ui.carousel.goTo(${at}); true`);
   await page.tap('KeyC');
   await page.until('window.__ui.hangar.isOpen', 10000);
+  await toPower(page);
+}
+
+/* A combat quad's hangar opens on what it carries (src/ui/ui.js
+ * openHangar); its motors are the Power tab. */
+async function toPower(page) {
+  await page.evaluate(click('tab-power'));
+  await page.until("window.__ui.hangar.tab === 'power'", 10000);
 }
 
 async function fly(page) {
@@ -161,7 +170,7 @@ async function main() {
     await ready(page);
     const table = await page.evaluate('window.__craft()');
 
-    console.log('1. the five inch opens on its motors');
+    console.log('1. the interceptor\'s motors');
     await openOn(page, Q);
     const cards = (prefix) => `[...document.querySelectorAll('.hangar [data-key^="${prefix}-"]')].map((b) => b.dataset.key.slice(${prefix.length + 1}))`;
     const shown = await page.evaluate(`({ tab: window.__ui.hangar.tab, motors: ${cards('option')}, props: ${cards('prop')}, packs: ${cards('pack')} })`);
@@ -169,8 +178,7 @@ async function main() {
     say(shown.tab === 'power' && JSON.stringify(shown.motors) === ids(options) && JSON.stringify(shown.props) === ids(props) && JSON.stringify(shown.packs) === ids(packs),
       `on the Power tab, every motor, prop and pack offered: ${shown.motors.join(', ')}; ${shown.props.join(', ')}; ${shown.packs.join(', ')}`);
 
-    /* The five inch is the first quad without a loadout in the hangar:
-     * every other tab must open on it and say it has nothing there. */
+    /* Every other tab must open on it too. */
     const tabs = await page.evaluate('[...document.querySelectorAll(\'.hangar [data-key^="tab-"]\')].map((b) => b.dataset.key)');
     for (const key of tabs) {
       await page.evaluate(click(key));
@@ -219,10 +227,10 @@ async function main() {
     await toTitle(page);
     await openOn(page, Q);
     await page.evaluate(click('mine-new'));
-    await page.evaluate("(() => { const f = document.querySelector('.hangar [data-key=\"mine-name\"]'); f.value = 'Hot Five'; return true; })()");
+    await page.evaluate("(() => { const f = document.querySelector('.hangar [data-key=\"mine-name\"]'); f.value = 'Hot Interceptor'; return true; })()");
     await page.evaluate(click('mine-name-save'));
     await page.until('!window.__ui.hangar.isOpen', 10000);
-    const built = await page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(BUILDS_KEY)}) || '{}').builds || []).find((b) => b.name === 'Hot Five')`);
+    const built = await page.evaluate(`(JSON.parse(localStorage.getItem(${JSON.stringify(BUILDS_KEY)}) || '{}').builds || []).find((b) => b.name === 'Hot Interceptor')`);
     say(Boolean(built) && built.airframe === Q && same(built.fit.power), `the build keeps all three: ${JSON.stringify(built && built.fit.power)}`);
     await page.tap('Escape');
 
@@ -237,7 +245,8 @@ async function main() {
     console.log('6. back to stock, from the pause menu, refitted in the air');
     await pause(page);
     await page.evaluate("window.__ui.act('customise'); true");
-    await page.until("window.__ui.hangar.isOpen && window.__ui.hangar.tab === 'power'", 10000);
+    await page.until('window.__ui.hangar.isOpen', 10000);
+    await toPower(page);
     await page.evaluate(click(`prop-${props[0].id}`));
     await page.evaluate(click(`pack-${packs[0].id}`));
     await page.evaluate(click('save'));
@@ -250,7 +259,8 @@ async function main() {
       await pause(page);
     }
     await page.evaluate("window.__ui.act('customise'); true");
-    await page.until("window.__ui.hangar.isOpen && window.__ui.hangar.tab === 'power'", 10000);
+    await page.until('window.__ui.hangar.isOpen', 10000);
+    await toPower(page);
     await page.evaluate(click(`option-${options[0].id}`));
     await page.evaluate(click('save'));
     await page.until('!window.__ui.hangar.isOpen', 10000);
@@ -259,13 +269,6 @@ async function main() {
     say(stock.motors.ke === table.motors.ke && stock.motors.r === table.motors.r && stock.massKg === table.massKg && stock.motors.kt === table.motors.kt,
       `the stock motor is the table again, at once: ke ${stock.motors.ke}`);
 
-    console.log('7. the whoop flies stock');
-    await toTitle(page);
-    await openOn(page, 'whoop65');
-    const whoop = await page.evaluate("({ tab: window.__ui.hangar.tab, cards: document.querySelectorAll('.hangar [data-key^=\"option-\"]').length, notes: [...document.querySelectorAll('.hangar-side .hangar-note')].map((n) => n.textContent) })");
-    say(whoop.tab === 'power' && whoop.cards === 1 && whoop.notes.some((n) => n.startsWith('Whoops fly stock')),
-      `one stock motor and why: ${whoop.notes.find((n) => n.startsWith('Whoops')) ?? JSON.stringify(whoop)}`);
-    await page.tap('Escape');
 
     const f = faults(page);
     say(f.length === 0, `no console error or uncaught exception${f.length ? `: ${f.slice(0, 3).join(' | ')}` : ''}`);

@@ -251,7 +251,7 @@ class Queue {
  */
 function furball(seed) {
   const rand = rng(seed * 31 + 7);
-  const air = ['cub1400', '5inch', 'p51d1450', 'bombshell1118'];
+  const air = ['cub1400', 'interceptor', 'p51d1450', 'bombshell1118'];
   const paths = air.map(() => wander(rand));
   const crashSeat = Math.floor(rand() * 4);
   const crashAt = GO + 8000 + Math.floor(rand() * 20000);

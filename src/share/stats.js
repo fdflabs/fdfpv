@@ -324,6 +324,8 @@ function bounded(value, max) {
  * a tab that lives for an hour sends sixty small numbers rather than one
  * growing one.
  */
+const STATS_CRAFT = '5inch';
+
 export function createFlightStats({ describe, url = eventsUrl() } = {}) {
   const tab = newTab();
   let started = false;
@@ -335,16 +337,23 @@ export function createFlightStats({ describe, url = eventsUrl() } = {}) {
   let nextFlush = 0;
   let stopped = false;
 
+  /*
+   * `craft` is a WIRE WORD, not an aircraft: the board accepts '5inch' and
+   * 'whoop65' only (fdfpv-leaderboard src/validate.js STATS_CRAFT), and
+   * every aircraft but the whoop always reported '5inch'. Both machines
+   * were removed on 2026-10-03, so every flight is the board's '5inch'
+   * bucket now; sending an aircraft id would be refused.
+   */
   const facts = () => {
     try {
       const d = (typeof describe === 'function' ? describe() : null) || {};
       return {
-        craft: d.craft === 'whoop65' ? 'whoop65' : '5inch',
+        craft: STATS_CRAFT,
         map: String(d.map || 'custom'),
         input: String(d.input || 'keyboard'),
       };
     } catch (e) {
-      return { craft: '5inch', map: 'custom', input: 'keyboard' };
+      return { craft: STATS_CRAFT, map: 'custom', input: 'keyboard' };
     }
   };
 

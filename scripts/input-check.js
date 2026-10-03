@@ -684,46 +684,6 @@ async function mousePage(page) {
    * headroom rather than discovering it when reports start bouncing. */
   check(`a faulted report is ${faulted.keys.length} keys and ${faulted.chars} chars, inside the board's 32 and 8000`,
     faulted.keys.length + 5 <= 32 && faulted.chars < 8000, `${faulted.keys.length} keys, ${faulted.chars} chars`);
-
-  /* --------------------------------------------------------------------
-   * 6. The camera angle that changed the track. bug-4d5b2c51: on a whoop,
-   *    in the town, nudging the camera angle threw the pilot onto the
-   *    track seat, because syncMode ran on every settings write and
-   *    forces race and the track seat on an aircraft that is not offered
-   *    freestyle. It is gated on the aircraft moving now. Both halves:
-   *    the camera leaves the seat alone, and swapping to the whoop still
-   *    moves it, which is the case the sync was written for.
-   * ------------------------------------------------------------------ */
-  section('settings: only an aircraft change reseats the mode and the map');
-  const sync = await ev(`
-    ${PAST_GATE}
-    ui.show('quad');
-    const out = {};
-    ui.settings.airframe = 'whoop65';
-    ui.modeSyncedFor = 'whoop65';
-    ui.mode = 'freestyle';
-    ui.settings.map = 'alps';
-    const angle = ui.settings.cameraAngle;
-    ui.settings.cameraAngle = angle === 15 ? 25 : 15;
-    ui.writeSettings();
-    out.afterCamera = { mode: ui.mode, map: ui.settings.map, angle: ui.settings.cameraAngle };
-    ui.settings.airframe = '5inch';
-    ui.modeSyncedFor = '5inch';
-    ui.mode = 'freestyle';
-    ui.settings.map = 'alps';
-    ui.settings.airframe = 'whoop65';
-    ui.writeSettings();
-    out.afterSwap = { mode: ui.mode, map: ui.settings.map };
-    ui.settings.airframe = '5inch';
-    ui.settings.cameraAngle = angle;
-    ui.writeSettings();
-    ui.show('title');
-    return JSON.stringify(out);
-  `).then(JSON.parse);
-  check('camera angle on a seated whoop leaves freestyle and the Alps alone',
-    sync.afterCamera.mode === 'freestyle' && sync.afterCamera.map === 'alps', JSON.stringify(sync.afterCamera));
-  check('swapping to the whoop still seats race on the track seat',
-    sync.afterSwap.mode === 'race' && sync.afterSwap.map === 'track', JSON.stringify(sync.afterSwap));
 }
 
 async function touchPage(page) {

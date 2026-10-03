@@ -100,7 +100,7 @@ const DAM_POINTS = [[59, 225, -1672], [58, 148, -1600], [-982, 215, -1028]];
 const LAP_LIMIT_S = 600;
 
 const PLANE = FIRST_AIRFRAME;
-const QUAD = '5inch';
+const QUAD = 'interceptor';
 const FLOAT = 'timber1500f';
 
 const checks = [];
@@ -125,7 +125,7 @@ const LIBRARY = Object.fromEntries(COURSES.map((c) => [c.id, courseDocument(c)])
 
 async function open(airframe, query = '') {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true,
     map: 'itaipu',
     graphics: 'high',

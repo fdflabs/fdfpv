@@ -250,15 +250,8 @@ export function figureCueOf(el, seq, seqs) {
  * step between neighbouring levels loops out to the left of that travel,
  * which is the helix.
  *
- * THE CLASS MATTERS AND USED TO BE IGNORED. The reach came straight off
- * TUNING.stackWrap, which is the FULL FIELD figure of 2.6 m, sized from a
- * 5 ft opening plus its sleeves plus a body length. TUNING.micro.stackWrap
- * has been 0.84 m all along and nothing read it, so every whoop stack wrapped
- * with a five inch field's reach: measured on a three level ladder in a
- * RaceGOW room, the line stepped 2.6 m off a structure whose openings are
- * 1.07 m apart, which is the wide loop pilots complained about. A whoop hugs
- * the frame. Passing the class through is the whole fix, because tuningFor
- * already knew the right number.
+ * The reach is the class's (tuningFor), so a class with its own stackWrap
+ * wraps by it.
  */
 export function wrapBetween(el, seqA, seqB, cls = TRACK_CLASS_DEFAULT) {
   const a = apertureCenter(el, seqA.apertureIndex ?? 0);

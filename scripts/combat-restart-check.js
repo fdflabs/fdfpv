@@ -95,7 +95,7 @@ const res = await fetch(`${origin()}/v2/create`, {
   method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify({ map: 'swiss2' }),
 });
 const { code } = await res.json();
-const a = await seat(code, 1, '5inch');
+const a = await seat(code, 1, 'interceptor');
 const b = await seat(code, 2, 'cub1400');
 check('two pilots in a private room', a.welcome && b.welcome && a.welcome.seat === 1 && b.welcome.seat === 2, code);
 a.say({ type: 'combat', op: 'start', minutes: 5 });
@@ -108,7 +108,7 @@ await a.until((x) => x.closed != null);
 await b.until((x) => x.closed != null);
 server = await startRooms({ db: join(scratch, 'rooms.db'), port });
 const b2 = await seat(code, 2, 'cub1400', { token: tokens.b, seat: 2 });
-const a2 = await seat(code, 1, '5inch', { token: tokens.a, seat: 1 });
+const a2 = await seat(code, 1, 'interceptor', { token: tokens.a, seat: 1 });
 const after = await b2.until((x) => x.last('combat'));
 check('after a restart the round is still there, from the room\'s storage', after && after.round === before.round && after.state === before.state
   && after.startsAt === before.startsAt && after.endsAt === before.endsAt, JSON.stringify(after && { round: after.round, state: after.state }));

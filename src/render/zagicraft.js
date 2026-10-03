@@ -375,7 +375,7 @@ export function buildZagiCraft(opts = {}) {
   const glass = cel({ color: 0x241c2c, rim: 0.40, spec: 0.95, specWidth: 0.03, specColor: 0xe8c8ff });
   const stator = cel({ color: 0x2a2e31, rim: 0.24, spec: 0.20 });
 
-  /* The measurement box, herocraft.js's contract with check 15. */
+  /* The measurement box, on the contract with verify's check 15 (tests/lib/checks.js). */
   if (opts.measure) {
     const body = new THREE.Mesh(
       new THREE.BoxGeometry(ZAGI_DIMS.span, ZAGI_DIMS.vHalfUp + ZAGI_DIMS.vHalfDown, ZAGI_DIMS.tailZ - ZAGI_DIMS.noseZ),

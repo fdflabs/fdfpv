@@ -45,7 +45,7 @@
 
 import { keyNote, hasKeyNote } from '../fc/keynotes.js';
 import { normaliseRates, RATE_DEFAULTS } from '../../configs/rates.js';
-import { OFFERED_TUNES, tunePath } from '../../configs/registry.js';
+import { TUNES, tunePath } from '../../configs/registry.js';
 import { str } from '../strings/index.js';
 import {
   FEATURES,
@@ -685,7 +685,7 @@ export class FcSession {
     }
 
     if (this.tab === 'presets') {
-      for (const t of OFFERED_TUNES) {
+      for (const t of TUNES) {
         rows.push({
           label: t.name,
           action: `fc-preset:${t.id}`,

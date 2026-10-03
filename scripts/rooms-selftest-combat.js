@@ -200,7 +200,7 @@ const thereAndBack = (tc, tc2) => (t) => {
     : { p: [-20 * (t - tc2) / 1000, y, 0], v: [-20, 0, 0] };
 };
 function started(meta = {}) {
-  const r = makeRoom(meta, [['A', '5inch'], ['B', 'cub1400']]);
+  const r = makeRoom(meta, [['A', 'interceptor'], ['B', 'cub1400']]);
   r.send('A', { type: 'combat', op: 'start', minutes: 3 }, 0);
   Object.assign(r.room.combat.round, { state: 'on', startsAt: 1000, endsAt: 181000 });
   return r;
@@ -209,7 +209,7 @@ function started(meta = {}) {
 function roundSection(check) {
   console.log('combat: the round');
   {
-    const r = makeRoom({}, [['A', '5inch'], ['B', 'cub1400']]);
+    const r = makeRoom({}, [['A', 'interceptor'], ['B', 'cub1400']]);
     r.send('B', { type: 'combat', op: 'start', minutes: 5 }, 100);
     check('only the host starts a round', texts(r.socks.A, 'combat').length === 0);
     r.send('A', { type: 'combat', op: 'start', minutes: 4 }, 100);
@@ -218,9 +218,9 @@ function roundSection(check) {
     const st = texts(r.socks.B, 'combat').pop();
     check('the host starts one: everyone is told, with a countdown', st && st.state === 'countdown' && st.startsAt === 100 + COUNTDOWN_MS && st.endsAt === st.startsAt + 5 * 60000);
     check('it carries numbers only, nothing anybody typed', st && st.scores.every((x) => Object.values(x).every((v) => typeof v !== 'string')));
-    const late = r.join('C', '5inch', 200);
+    const late = r.join('C', 'interceptor', 200);
     check('a pilot joining mid round is told the round', texts(late, 'combat').some((m) => m.state === 'countdown'));
-    const pub = makeRoom({ public: true }, [['A', '5inch'], ['B', 'cub1400']]);
+    const pub = makeRoom({ public: true }, [['A', 'interceptor'], ['B', 'cub1400']]);
     pub.send('B', { type: 'combat', op: 'start', minutes: 5 }, 100);
     check('in a public room too, only the host starts a round', texts(pub.socks.A, 'combat').length === 0);
     pub.send('A', { type: 'combat', op: 'start', minutes: 5 }, 100);
@@ -267,7 +267,7 @@ function roundSection(check) {
     /* How far the quad's part boxes reach across its path, flying +x with
      * the pose's attitude: the pass is set by the distance from its
      * nearest box to the paper's line, not from its centre. */
-    const h = hullFor('5inch').hull;
+    const h = hullFor('interceptor').hull;
     const ax = bodyAxes(0, 0.7071068, 0, 0.7071068, new Float64Array(9));
     let side = 0;
     for (let i = 0; i < h.n; i += 1) {
@@ -331,13 +331,13 @@ function roundSection(check) {
 
   console.log('combat: the room\'s host checks and stale rounds (#145)');
   {
-    const r = makeRoom({}, [['A', '5inch'], ['B', 'cub1400']]);
+    const r = makeRoom({}, [['A', 'interceptor'], ['B', 'cub1400']]);
     r.send('B', { type: 'combat', op: 'start', minutes: 3 }, 100);
     const said = texts(r.socks.B, 'refused').pop();
     check('a pilot who is not the host is told why a start is refused', said && said.why === 'host', JSON.stringify(said));
     /* A public room has a host since the room browser (#146): the same
      * reply there to a pilot who is not it. */
-    const pub = makeRoom({ public: true }, [['A', '5inch'], ['B', 'cub1400']]);
+    const pub = makeRoom({ public: true }, [['A', 'interceptor'], ['B', 'cub1400']]);
     pub.send('B', { type: 'combat', op: 'start', minutes: 3 }, 100);
     const pubSaid = texts(pub.socks.B, 'refused').pop();
     check('and in a public room too', pubSaid && pubSaid.why === 'host', JSON.stringify(pubSaid));
@@ -509,7 +509,7 @@ function roundSection(check) {
 
   console.log('combat: the clock and the bonuses');
   {
-    const r = makeRoom({}, [['A', '5inch'], ['B', 'cub1400']]);
+    const r = makeRoom({}, [['A', 'interceptor'], ['B', 'cub1400']]);
     r.send('A', { type: 'combat', op: 'start', minutes: 3 }, 0);
     const go = COUNTDOWN_MS;
     fly(r, 1, go + 200, away);

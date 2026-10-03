@@ -46,6 +46,7 @@ import { courseFromDocument } from './trackdoc.js';
 import { PLANE_REACH, Race } from './race.js';
 import { decodeGhost } from '../share/ghostdata.js';
 import { isMapTrack, normalize } from '../trackbuilder/model.js';
+import { noAircraftFlies } from '../trackbuilder/elements.js';
 import { raceGatesOf } from '../builder/course.js';
 import { craftLimits, misfitGate } from '../builder/line.js';
 import { AIRFRAMES } from '../../configs/airframes.js';
@@ -160,6 +161,12 @@ function refuse(reason, extra) {
  * does not is refused, because the simulator would not have seated it.
  */
 export function checkLap(document, ghostBytes, lapMs, craft = null) {
+  /* A RaceGOW room: its class went with the 65 mm whoop, so no lap on it
+   * was flown by this simulator, and read at the default class it would be
+   * a living room's gates on a sixty metre field. */
+  if (noAircraftFlies(document)) {
+    return refuse('no aircraft flies this track: it was drawn for a RaceGOW room and the 65 mm whoop, which were removed');
+  }
   let course;
   try {
     course = raceFromDocument(document);

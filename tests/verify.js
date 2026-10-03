@@ -253,7 +253,7 @@ async function main() {
        * sets its 44 degrees (src/render/attract.js ATTRACT_FOV) every
        * frame, but it is skipped while a harness camera is parked
        * (src/main.js, the title branch's !camOverride), and a world load
-       * leaves the pilot's FPV lens on the camera (85 on the five inch).
+       * leaves the pilot's FPV lens on the camera (85 on the five inch, 95 on the interceptor).
        * After the Swiss valley round trip the park sometimes landed before
        * any title frame had put 44 back, so the Alps were measured through
        * an 85 degree lens: 292 draw calls and 1611530 triangles against
@@ -278,9 +278,11 @@ async function main() {
          * answer differently depending on who ran it. */
         '--graphics=high',
         /* The world, named in the address so the title shows it rather than
-         * its own valley, and the aircraft the craft bands are for. */
+         * its own valley, and the aircraft the craft bands are for: the
+         * racer, since the five inch they were written for was removed
+         * (2026-10-03). */
         '--url=/index.html?map=alps',
-        '--airframe=5inch',
+        '--airframe=interceptor',
         'until:!!window.__boot && window.__boot().frames > 2',
         `eval:${collect}`,
         /* The Alps' cost, at a parked camera over their spawn so the

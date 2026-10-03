@@ -19,9 +19,9 @@
  *                  them; its first is the default
  *   A pilot who never chose has no entry and flies the default: the
  *   payload carrying the standard warhead, which every combat airframe has
- *   (its id is 'standard' on the 7 and 10 inch and the Striker,
- *   'proximity' on the interceptor), no accessories, and the first
- *   propulsion where there is one.
+ *   (its id is 'standard' on the 7 and 10 inch and the Striker), no
+ *   accessories, and the first propulsion where there is one, except where
+ *   UNCHOSEN below says otherwise.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -46,6 +46,17 @@ export const NO_PAYLOAD = 'none';
 /* The war's warheads, edge/rooms/war.js WARHEADS, in its order. */
 const WARHEADS = ['standard', 'wide', 'penetrator', 'emp'];
 
+/*
+ * THE PAYLOAD AN AIRCRAFT FLIES WHEN ITS PILOT NEVER CHOSE ONE, where it is
+ * not the standard warhead's. The interceptor is the racer since the five
+ * inch went (the owner, 2026-10-03: payload 'none' outside wars), so it
+ * flies bare. A war seats a warhead on 'none' anyway (warPayload below), so
+ * the bare default reaches only Track Day and free flight. Here and not in
+ * the airframe's combat block, which is scripts/combat-derive.js's parts
+ * list; this is a choice about the game.
+ */
+const UNCHOSEN = { interceptor: NO_PAYLOAD };
+
 /* The payload a combat quad flies when nothing else says which: the one
  * with the standard warhead, the warhead every pilot owns. */
 function standardPayload(c) {
@@ -63,7 +74,7 @@ export function combatChoice(af, stored) {
   const s = stored && typeof stored === 'object' ? stored : {};
   const payload = s.payload === NO_PAYLOAD || c.payloads.some((p) => p.id === s.payload)
     ? s.payload
-    : standardPayload(c).id;
+    : UNCHOSEN[af.id] ?? standardPayload(c).id;
   const want = Array.isArray(s.accessories) ? s.accessories : [];
   const accessories = c.accessories.filter((a) => want.includes(a.id)).map((a) => a.id);
   if (!c.propulsion) {

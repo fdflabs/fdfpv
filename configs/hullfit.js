@@ -46,18 +46,6 @@
  */
 
 export const HULL_FIT = {
-  /* The plant's pack is 39 mm deep under the frame, the drawn one 25 mm;
-   * its antenna stands 7 mm over the drawn one. Hull 23 percent taller
-   * than the drawing. */
-  '5inch': [
-    { part: 13, kind: 'battery', min: [-0.0502, -0.0191, -0.0307], max: [0.0262, 0.0191, -0.0053] },
-    { part: 15, kind: 'antenna', min: [-0.0418, 0.0070, 0.0175], max: [-0.0288, 0.0178, 0.0592] },
-  ],
-  /* The drawn antenna leans back and stands 20 mm over the plant's
-   * straight one: hull 13 percent shorter than the drawing. */
-  whoop65: [
-    { part: 12, kind: 'antenna', min: [-0.0501, -0.0021, 0.0364], max: [-0.0117, 0.0144, 0.1179] },
-  ],
   /* The prop folds back along the nose when the motor stops, and the
    * drawing draws its disc only while it turns; the plant's disc is
    * always open, 8 cm under the nose. */

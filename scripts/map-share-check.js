@@ -94,7 +94,7 @@ const f1 = (x) => Number(x).toFixed(1);
  * the page can fly a line; no gamepads, so a radio left plugged into the
  * host does not drive the free camera. */
 function seed() {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');

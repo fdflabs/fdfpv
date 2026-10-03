@@ -21,8 +21,14 @@
  */
 
 import * as THREE from 'three';
-import { PROP_SPIN } from './herocraft.js';
 import { CAMERA_ANGLE_DEFAULT, cameraTiltRad } from './lens.js';
+
+/*
+ * Props-in as seen from above: RR and FL clockwise, FR and RL counter
+ * clockwise. Right-hand rotation about +Y is counter clockwise, so clockwise
+ * is a negative spin.
+ */
+export const PROP_SPIN = [-1, 1, 1, -1];
 
 const RATE_ROLL = 2.8;
 const RATE_PITCH = 2.8;

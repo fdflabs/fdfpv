@@ -172,7 +172,7 @@ const KINDS = {
 
 function seed(airframe) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true, map: MAP, graphics: 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
@@ -808,7 +808,7 @@ const SWEEP = `(() => {
 })()`;
 
 async function sweep() {
-  const page = await open('5inch');
+  const page = await open('interceptor');
   try {
     const rows = await page.evaluate(`JSON.stringify(${SWEEP})`).then(JSON.parse);
     const byKind = {};
@@ -893,7 +893,7 @@ const AUDIT = `(() => {
 })()`;
 
 async function audit() {
-  const page = await open('5inch');
+  const page = await open('interceptor');
   try {
     const rows = await page.evaluate(`JSON.stringify(${AUDIT})`).then(JSON.parse);
     const byKind = {};
@@ -936,7 +936,7 @@ if (SHOTS) {
   await mkdir(SHOTS, { recursive: true });
 }
 /* The kinds this map draws, unless named. */
-const probe = await open('5inch');
+const probe = await open('interceptor');
 const present = await probe.evaluate('JSON.stringify([...new Set(window.__roofs().map((r) => r.kind || "house"))])').then(JSON.parse);
 await probe.close();
 const kinds = WANT_KINDS ? WANT_KINDS.split(',') : present;
@@ -960,7 +960,7 @@ if (planes.length) {
   runs.push(await session(AIRFRAME, planes));
 }
 if (quads.length) {
-  runs.push(await session('5inch', quads));
+  runs.push(await session('interceptor', quads));
 }
 let failed = 0;
 for (const { out, errs } of runs) {

@@ -43,7 +43,7 @@ const airframe = process.argv[2] ?? 'timber1500f';
 const af = airframeById(airframe);
 const LAKE_Y = -1.5;
 
-const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
 seated.map = process.argv[3] ?? 'alps';
 seated.graphics = 'low';
 

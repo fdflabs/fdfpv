@@ -926,7 +926,7 @@ export function warSection(check) {
   console.log('war: hunters');
   {
     const m = testMission([{ at: 1, kind: 'hunter', n: 1, route: 'h' }], { h: [[400, Y, 0]] });
-    const e = warRoom({ mission: m, air: '5inch' });
+    const e = warRoom({ mission: m, air: 'interceptor' });
     e.paths[0] = hover([0, Y, 0]);
     e.paths[1] = hover([0, Y, 3000]);
     e.fly(COUNTDOWN_MS + 3000);

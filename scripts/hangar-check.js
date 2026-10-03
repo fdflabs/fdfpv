@@ -130,7 +130,7 @@ const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === 'objec
 const alike = (a, b) => same(canon(a), canon(b));
 const sorted = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
 
-const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'timber1500');
+const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'timber1500');
 s.map = map;
 s.graphics = 'low';
 s.flightMode = 'angle';

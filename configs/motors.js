@@ -89,9 +89,6 @@ function corners(ax, ay, z) {
  * motor, the grams of thrust. */
 const row = (prop, volts, amps, grams) => ({ prop, volts, amps, grams });
 
-/* A maker's full throttle row for a prop on one motor: the volts, its
- * rpm, its grams of thrust and the electrical watts it drew. */
-const propRow = (volts, rpm, grams, watts) => ({ volts, rpm, grams, watts });
 
 /*
  * A pack, and how well it conducts against the quad's stock one. No maker
@@ -110,11 +107,7 @@ const liion = (mAh, parallel, cellOhms, grams) => ({ mAh, parallel, grams, g: pa
 const TM = 'https://www.t-hobby.com/products/';
 const IF = 'https://shop.iflight.com/';
 const BH = 'https://www.brotherhobbystore.com/';
-const PLANT_C = 'https://github.com/fdflabs/fdfpv/blob/main/src/native/plant.c';
 const DERIVE = 'https://github.com/fdflabs/fdfpv/blob/main/scripts/combat-derive.js';
-const F60 = `${TM}brushless-motor-for-fpv-drones-60pro-v-2207-5`;
-const F40 = `${TM}t-motor-f40-pro-v-1950kv-fpv-brushless-drone-motor`;
-const F50 = `${TM}tmotor-f50-2207-racing-motor`;
 const V2808 = `${TM}fpv-brushless-motor-v2808`;
 const V3115 = `${TM}tmotor-velox-v3115-brushless-cinematic-motor`;
 const SE2808 = `${BH}products/brotherhobby-se-2808-1350kv-motorcw`;
@@ -122,18 +115,13 @@ const XING2_2809 = `${IF}XING2-2809-FPV-Motor-Unibell-Pro1673`;
 const MOLICEL = 'https://www.molicel.com/wp-content/uploads/INR21700P42A-V4-80092.pdf';
 const P45B = 'https://www.molicel.com/wp-content/uploads/INR21700P45B_1.2_Product-Data-Sheet-of-INR-21700-P45B-80109.pdf';
 const GNB = 'https://gaoneng.shop/products/';
-const CNHL = 'https://chinahobbyline.com/products/';
 const TATTU = 'https://genstattu.com/';
-const GEMFAN_CATALOGUE = 'https://img03.71360.com/w3/5p3560/20251117/50ffa18f7578335345b42f12d991fd78.pdf';
 
-/* T-Motor publishes no phase resistance for the F60 Pro V, the F40 Pro V
- * or the Velox V2808. Each is taken from the nearest motor of its class
- * that has one, by the winding law: on one stator, turns go as 1 / kV and
- * a turn's copper section as kV, so R goes as 1 / kV^2. The 2207s and the
- * 2306.8 from T-Motor's F50 2207 2150 kV, 50 mOhm; the 2808 from
- * BrotherHobby's SE 2808 1350 kV, 52 mOhm. ESTIMATES, and the doc says
- * so. */
-const r2207 = (kv) => 0.050 * (2150 / kv) * (2150 / kv);
+/* T-Motor publishes no phase resistance for the Velox V2808. It is taken
+ * from the nearest motor of its class that has one, by the winding law: on
+ * one stator, turns go as 1 / kV and a turn's copper section as kV, so R
+ * goes as 1 / kV^2. From BrotherHobby's SE 2808 1350 kV, 52 mOhm. An
+ * ESTIMATE, and the doc says so. */
 const r2808 = (kv) => 0.052 * (1350 / kv) * (1350 / kv);
 
 /*
@@ -145,37 +133,12 @@ const r2808 = (kv) => 0.052 * (1350 / kv) * (1350 / kv);
  * that prop's own full throttle speed on the stock motor, as
  * node scripts/prop-curves.js prints them.
  */
-const AXIAL_5IN = [1.0000, 1.0065, 0.9753, 0.9348, 0.8819, 0.8125, 0.7244, 0.6177, 0.4981, 0.3702, 0.2371, 0.1021, 0.0000, 0.0000, 0.0000];
-const TORQUE_5IN = [1.0000, 0.9916, 1.0303, 1.0544, 1.0673, 1.0525, 1.0003, 0.9148, 0.7948, 0.6472, 0.4760, 0.2843, 0.0000, 0.0000, 0.0000];
 const AXIAL_7IN = [1.0000, 0.9617, 0.9164, 0.8633, 0.8018, 0.7317, 0.6534, 0.5664, 0.4725, 0.3736, 0.2710, 0.1662, 0.0615, 0.0000, 0.0000];
 const TORQUE_7IN = [1.0000, 1.0186, 1.0281, 1.0281, 1.0145, 0.9858, 0.9368, 0.8725, 0.7870, 0.6868, 0.5662, 0.4350, 0.2892, 0.0000, 0.0000];
 const AXIAL_10IN = [1.0000, 0.9587, 0.9112, 0.8567, 0.7950, 0.7256, 0.6485, 0.5643, 0.4742, 0.3794, 0.2813, 0.1813, 0.0816, 0.0000, 0.0000];
 const TORQUE_10IN = [1.0000, 1.0169, 1.0259, 1.0252, 1.0125, 0.9892, 0.9461, 0.8859, 0.8082, 0.7143, 0.6042, 0.4767, 0.3393, 0.0000, 0.0000];
 const AXIAL_INTERCEPTOR = [1.0000, 0.9959, 0.9916, 0.9833, 0.9625, 0.9178, 0.8342, 0.7007, 0.5321, 0.3454, 0.1521, 0.0000, 0.0000, 0.0000, 0.0000];
 const TORQUE_INTERCEPTOR = [1.0000, 1.0510, 1.1236, 1.2145, 1.3073, 1.3742, 1.3771, 1.2645, 1.0558, 0.7718, 0.4374, 0.0000, 0.0000, 0.0000, 0.0000];
-/* APC 5 x 4E three blade at 31,000 rpm, for the Gemfan 51466 V2 (pitch
- * over diameter 0.71; APC's nearest is 0.80, its 5 x 3E 0.60). */
-const AXIAL_GF51466 = [1.0000, 0.9680, 0.9266, 0.8736, 0.8075, 0.7300, 0.6427, 0.5473, 0.4450, 0.3369, 0.2249, 0.1118, 0.0000, 0.0000, 0.0000];
-const TORQUE_GF51466 = [1.0000, 1.0219, 1.0349, 1.0315, 1.0075, 0.9639, 0.8992, 0.8158, 0.7120, 0.5959, 0.4600, 0.3153, 0.0000, 0.0000, 0.0000];
-/* APC 5 x 4.3E at 31,000 rpm, for the T5143S (0.84 against 0.86). */
-const AXIAL_T5143S = [1.0000, 0.9793, 0.9527, 0.9178, 0.8714, 0.8113, 0.7351, 0.6411, 0.5335, 0.4165, 0.2935, 0.1674, 0.0418, 0.0000, 0.0000];
-const TORQUE_T5143S = [1.0000, 1.0371, 1.0795, 1.1058, 1.1232, 1.1171, 1.0815, 1.0072, 0.8946, 0.7579, 0.5944, 0.4069, 0.2079, 0.0000, 0.0000];
-
-/*
- * A maker's pair on one stand: an upgrade and the stock class motor the
- * same maker ran on the same prop, so their thrust ratio is a measured
- * fact about the two motors and not about two stands. scripts/
- * motors-check.js M4 runs both through the derivation on a stiff supply,
- * as a stand is, and holds the ratio to the maker's. Only the five inch
- * has one on a prop of its own class: T-Motor's T5147 is a five inch tri
- * blade like the plant's 5 x 4.3 x 3. The 7 inch makers' pairs are on
- * heavier 7 x 4 props than the plant's, which the doc shows is lighter
- * than its real 7 x 3.5, so their ratios are not the plant's to meet.
- */
-const F60_1950 = {
-  detail: 'T-Motor F60 Pro V 2207.5 1950 kV', kv: 1950, grams: 33.9, rPhase: r2207(1950), statorMm: 22,
-  bench: row('T-Motor T5147 tri blade', 24.7, 49.3, 1990.4),
-};
 
 const V2808_1500 = {
   id: 'v2808-1500', detail: 'T-Motor Velox V2808, 1500 kV', kv: 1500, grams: 60.5, rPhase: r2808(1500), statorMm: 28, maxA: 74.3,
@@ -184,77 +147,11 @@ const V2808_1500 = {
 
 /*
  * Every quad's own. THE STOCK MOTOR is the one its table was solved for:
- * the five inch's T-Motor F60 Pro V 1950 kV on its T5147, the measured row
- * plant.c is solved against (docs/STOCK-5INCH.md); the combat quads' scripts/combat-derive.js's 2806.5
- * 1300 kV (50 g, 75 mOhm), 3115 900 kV (95 g, 70 mOhm) and 2807 1500 kV
- * (56 g, 50 mOhm). `tau` is the band the stock motor is held to: check 8's
- * on the five inch (tests/thresholds.json), combat-gates' motor-tau on
- * the combat quads.
+ * scripts/combat-derive.js's 2806.5 1300 kV (50 g, 75 mOhm), 3115 900 kV
+ * (95 g, 70 mOhm) and 2807 1500 kV (56 g, 50 mOhm). `tau` is the band the
+ * stock motor is held to, combat-gates' motor-tau.
  */
 export const MOTORS = {
-  '5inch': {
-    table: {
-      massKg: 0.71, inertia: [0.0035, 0.0038, 0.0068], kt: 1.805e-6, kq: 2.648e-8, ke: 0.005807, rMotor: 0.1137, jRotor: 8.0e-6,
-      cells: 6, rCell: 0.0025,
-      kInflow: 0.019, fm: 0.52, axial: AXIAL_5IN, torque: TORQUE_5IN,
-      /* The stators sit about 12 mm under the prop discs, plant.c's
-       * pos_z 0.020: 8 mm over the CG. */
-      motorAt: corners(0.0777817459305202, 0.0777817459305202, 0.008),
-      /* The pack under the frame, its top on the strap (crash_parts.h). */
-      packBox: { lo: [-0.048, -0.018, -0.045], hi: [0.024, 0.018, -0.006], strapZ: -0.006 },
-    },
-    /* plant.c's 2.5 mOhm a cell is the whole race pack's, leads and all. */
-    rLeads: 0,
-    /* A five inch's 4 in 1 ESC, 55 to 60 A a motor; 60. */
-    esc: { amps: 60 },
-    benchBand: 0.05,
-    tau: { band: [0.010, 0.030], measure: 'check8' },
-    options: [
-      { id: 'stock', name: 'motors.5inch.stock', detail: 'T-Motor F60 Pro V 2207.5, 1950 kV', kv: 1950, grams: 33.9, rPhase: r2207(1950), statorMm: 22, source: [F60, PLANT_C, F50] },
-      {
-        id: 'f60pro-2020', name: 'motors.5inch.f60pro_2020', detail: 'T-Motor F60 Pro V 2207.5, 2020 kV', kv: 2020, grams: 33.8,
-        rPhase: r2207(2020), statorMm: 22, maxA: 52.7, bench: row('T-Motor T5147 tri blade', 24.6, 52.7, 2025.5), pair: F60_1950, source: [F60, F50],
-      },
-      {
-        id: 'f40pro-2150', name: 'motors.5inch.f40pro_2150', detail: 'T-Motor F40 Pro V 2306.8, 2150 kV', kv: 2150, grams: 33.7,
-        rPhase: r2207(2150), statorMm: 23, maxA: 65.6, bench: row('T-Motor T5147 tri blade', 24.2, 65.6, 2108.3), pair: F60_1950, source: [F40, F50],
-      },
-    ],
-    /*
-     * Props of the frame's 5.1 inch that a maker ran beside the stock T5147
-     * on one motor and one stand, so their thrust and torque against it
-     * are measured facts about the props (propRatios). `stand` is that
-     * motor (an option here) and its two full throttle rows, the T5147's
-     * and this prop's.
-     */
-    props: [
-      { id: 'stock', name: 'props.5inch.t5147', detail: 'T-Motor T5147, 5.1 x 4.7 tri blade', blades: 3, grams: 4.4, diaIn: 5.1, pitchIn: 4.7,
-        source: ['https://www.getfpv.com/t-motor-t5147-propeller-set-of-10.html'] },
-      {
-        id: 'gf51466', name: 'props.5inch.gf51466', detail: 'Gemfan Hurricane 51466 V2, 5.1 x 3.6 tri blade', blades: 3, grams: 4.2, diaIn: 5.1, pitchIn: 3.6,
-        /* On the stock motor itself, T-Motor's F60 Pro V 1950 kV. The F40
-         * Pro V 2150 kV's pair (35369.5 rpm, 2026.4 g, 1530.0 W against
-         * 33384.2, 2108.3, 1591.0) gives a kt 3 percent lower. */
-        stand: { option: 'stock', stock: propRow(24.7, 31401, 1990.4, 1215.8), prop: propRow(24.7, 33163, 1958.3, 1158.9) },
-        axial: AXIAL_GF51466, torque: TORQUE_GF51466,
-        source: [F60, GEMFAN_CATALOGUE],
-      },
-      {
-        id: 't5143s', name: 'props.5inch.t5143s', detail: 'T-Motor T5143S, 5.1 x 4.3 tri blade', blades: 3, grams: 4.1, diaIn: 5.1, pitchIn: 4.3,
-        /* T-Motor ran it only on the F40 Pro V 2150 kV. */
-        stand: { option: 'f40pro-2150', stock: propRow(24.2, 33384.2, 2108.3, 1591.0), prop: propRow(24.3, 36418.5, 1966.5, 1470.4) },
-        axial: AXIAL_T5143S, torque: TORQUE_T5143S,
-        source: [F40, `${TM}fpv-drone-propellers-t5143s`],
-      },
-    ],
-    packs: [
-      { id: 'stock', name: 'packs.cnhl_1300_130', ...lipo(1300, 130, 215), source: [`${CNHL}2-packs-cnhl-black-series-v2-0-1300mah-22-2v-6s-130c-lipo-battery-with-xt60-plug`] },
-      { id: 'cnhl-1100-130', name: 'packs.cnhl_1100_130', ...lipo(1100, 130, 197.5), source: [`${CNHL}cnhl-black-series-1100mah-22-2v-6s-130c-lipo-battery-with-xt60-plug`] },
-      { id: 'cnhl-1500-130', name: 'packs.cnhl_1500_130', ...lipo(1500, 130, 238), source: [`${CNHL}2-packs-cnhl-black-series-v2-0-1500mah-22-2v-6s-130c-lipo-battery-with-xt60-plug`] },
-      { id: 'ministar-1800-120', name: 'packs.ministar_1800_120', ...lipo(1800, 120, 302), source: [`${CNHL}cnhl-ministar-series-1800mah-22-2v-6s-120c-lipo-battery-with-xt60-plug`] },
-      { id: 'cnhl-2200-40', name: 'packs.cnhl_2200_40', ...lipo(2200, 40, 372), source: [`${CNHL}cnhl-black-series-2200mah-6s-22-2v-40c-lipo-battery-with-xt60-plug`] },
-    ],
-  },
   '7inch': {
     table: {
       massKg: 0.979, inertia: [0.004105, 0.004443, 0.007519], kt: 0.0000029498, kq: 3.7348e-8, ke: 0.00808017, rMotor: 0.09, jRotor: 0.000026,
@@ -362,16 +259,6 @@ export const MOTORS = {
     ],
   },
 };
-
-/*
- * A quad that opens the hangar on its stock motor and nothing else, and
- * the string that says why. The whoop flies the five inch's plant in a
- * room built to its scale (configs/airframes.js MICRO_SCALE): a real
- * whoop motor's numbers have no plant to reach, and the five inch's
- * motors on it would be a whoop wearing a five inch's upgrade. The
- * owner's decision of 2026-10-01: whoops fly stock.
- */
-export const STOCK_ONLY = { whoop65: 'motors.whoop_stock' };
 
 /* ------------------------------------------------------------------ */
 

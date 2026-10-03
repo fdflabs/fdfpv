@@ -86,7 +86,7 @@ if (!rooms) {
 }
 
 function seedFor(id) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';
@@ -274,7 +274,7 @@ const PILOT = `(() => {
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`toilet paper on the water, two pages, rooms at ${rooms}`);
 const a = await openPage({ root, url, width: 960, height: 540, seed: seedFor('timber1500f') });
-const b = await openPage({ root, url, width: 640, height: 360, seed: seedFor('5inch') });
+const b = await openPage({ root, url, width: 640, height: 360, seed: seedFor('interceptor') });
 try {
   for (const p of [a, b]) {
     await p.until('window.__shellReady === true', 300000);

@@ -317,7 +317,7 @@ function pass(reach, lead = 0, airframe = 'cub1400', { speed = 20, warhead = nul
 /* Waves of six FPVs through the ball from four sides, every 2.5 s. */
 function swarm(seed) {
   const rand = rng(seed * 31 + 7);
-  const air = ['cub1400', '5inch', 'p51d1450', 'bombshell1118'];
+  const air = ['cub1400', 'interceptor', 'p51d1450', 'bombshell1118'];
   const L = 700;
   const routes = {
     e: [[-L, Y, 0], [L, Y, 0]], w: [[L, Y + 2, 0], [-L, Y + 2, 0]], n: [[0, Y - 2, L], [0, Y - 2, -L]], s: [[3, Y, -L], [3, Y, L]],
@@ -982,7 +982,7 @@ function latejoin() {
     /* Long enough after a change for every view it caused to be heard. */
     const settled = (t) => t + 2 * (links[0].base + links[0].jitter + links[1].base + links[1].jitter) + 200;
     const sc = {
-      name: 'latejoin', kind: 'latejoin', air: ['cub1400', '5inch'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
+      name: 'latejoin', kind: 'latejoin', air: ['cub1400', 'interceptor'], mission: m, paths: [away, hold], end, at: [{}, { join: JOIN, leave: LEAVE, back: BACK }],
     };
     const res = runOne({
       sc, seed: 1, clock: 0, links,
@@ -1023,7 +1023,7 @@ function latejoin() {
     /* C, new to the match, takes B's seat while B is away. */
     const sc2 = {
       ...sc,
-      air: ['cub1400', '5inch', 'cub1400'],
+      air: ['cub1400', 'interceptor', 'cub1400'],
       paths: [away, hold, away],
       at: [{}, { join: JOIN, leave: LEAVE, back: BACK }, { join: GO + 13000, token: 'c'.repeat(32), seat: bWelcome.seat }],
     };

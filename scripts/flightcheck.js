@@ -34,26 +34,31 @@ import { fileURLToPath } from 'node:url';
 
 import { loadSim, SIM_OK } from '../tests/lib/simmod.js';
 import { THROTTLE_CAP_CHOICES } from '../configs/rates.js';
+import { AIRFRAMES } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const G = 9.80665;
 
 /*
- * WHICH AIRCRAFT. `--airframe=whoop65` measures the whoop's plant with the
- * whoop's own tune; anything else is the five inch, which is what this
- * script measured when there was only one of them.
+ * WHICH AIRCRAFT. With no flag, plant 0, the five inch STAGE1.md declares
+ * and every band below was written against: no pilot flies it since the
+ * five inch was removed (2026-10-03), but it is still the reference the
+ * verify suite flies. `--airframe=<id>` measures a quad in
+ * configs/airframes.js instead, on its own plant and its own default tune,
+ * with nothing declared beside it.
  *
  * It matters most for the throttle cap table at the bottom. That table is
  * read straight into the menu by configs/rates.js, and hover lands in a
- * different place on the stick on a 23 g aircraft with eight to one than it
- * does on a 710 g one with eight and a half: same ratio, different sag,
- * different motor loading, and the cap's effect is measured rather than
- * derived for exactly that reason.
+ * different place on the stick on every machine: different sag, different
+ * motor loading, and the cap's effect is measured rather than derived for
+ * exactly that reason.
  */
-const AIRFRAME = process.argv.slice(2)
-  .find((a) => a.startsWith('--airframe='))?.slice('--airframe='.length) ?? '5inch';
-const WHOOP = AIRFRAME === 'whoop65';
-const SIM_AIRFRAME_WHOOP65 = 1;
+const AIRFRAME_ID = process.argv.slice(2)
+  .find((a) => a.startsWith('--airframe='))?.slice('--airframe='.length) ?? null;
+const SEATED = AIRFRAME_ID ? AIRFRAMES.find((a) => a.id === AIRFRAME_ID && !a.fixedWing) : null;
+if (AIRFRAME_ID && !SEATED) {
+  throw new Error(`--airframe=${AIRFRAME_ID} is not a quad in configs/airframes.js`);
+}
 /*
  * --gravity=SCALE, default 1.0, which is the module's own default and the
  * machine every band below was written against. The shell asserts a
@@ -77,34 +82,37 @@ function setGravity(sim) {
     throw new Error(`sim_set_gravity returned ${rc}`);
   }
 }
-const MASS = WHOOP ? 0.0234 : 0.71;
+const MASS = SEATED ? SEATED.grams / 1000 : 0.71;
 
 /* State indices, sim_abi.h. */
 const ST = { T: 0, Z: 3, VX: 4, VZ: 6, P: 11, RPM0: 14, V: 18, I: 19 };
 
 const wasm = await readFile(join(root, 'dist/sim.wasm'));
-/* The five inch's baseline is the fixture the whole verify suite is built
- * on; the whoop's is the stock whoop tune, which is what the shell
- * seats with that airframe. Measuring a whoop through a 6S freestyle tune
- * would be measuring nothing anyone flies. */
+/* Plant 0's baseline is the fixture the whole verify suite is built on; a
+ * seated quad's is its default tune, which is what the shell seats with
+ * it. */
 const config = await readFile(
-  join(root, WHOOP ? 'configs/whoop-champion.diff' : 'tests/fixtures/config-baseline.diff'),
+  join(root, SEATED ? `configs/${SEATED.defaultTune}.diff` : 'tests/fixtures/config-baseline.diff'),
   'utf8',
 );
-/* A 1S pack, fresh, against a 6S one. */
+/* A fresh cell. */
 const CELL_V = 4.2;
+
+/* The airframe is a mode that survives init, so it goes on before it, the
+ * order the shell uses. */
+function seat(sim) {
+  if (!SEATED) {
+    return;
+  }
+  const rc = sim.e.sim_set_airframe(SEATED.simId);
+  if (rc !== SIM_OK) {
+    throw new Error(`sim_set_airframe returned ${rc}`);
+  }
+}
 
 async function fresh(cellV = CELL_V) {
   const sim = await loadSim(wasm);
-  /* Airframe BEFORE init, the order the shell uses: it is a mode that
-   * survives init, and setting it first means the hull corners and the
-   * parked ground height are the new airframe's from the first step. */
-  if (WHOOP) {
-    const rc = sim.e.sim_set_airframe(SIM_AIRFRAME_WHOOP65);
-    if (rc !== SIM_OK) {
-      throw new Error(`sim_set_airframe returned ${rc}`);
-    }
-  }
+  seat(sim);
   setGravity(sim);
   if (sim.init(config) !== SIM_OK) {
     throw new Error('sim_init failed');
@@ -166,37 +174,17 @@ hold(bench, 3000, { throttle: 0 });
 const benchState = bench.readState().state;
 const rpmFull = (benchState[ST.RPM0] + benchState[ST.RPM0 + 1]
   + benchState[ST.RPM0 + 2] + benchState[ST.RPM0 + 3]) / 4;
-/*
- * kt from plant.c. Thrust is kt * omega^2 per motor, and IT IS PER
- * AIRFRAME. This was the five inch's constant, hardcoded, and --airframe
- * did not reach it: the whoop's static thrust to weight came out at
- * 2110 : 1, which is 4.69 times the 450 that separates the two constants.
- * The plant was right the whole time and its own measurement tool was
- * reporting nonsense about it, with 'MORE THAN DOUBLE THE SPEC' next to it,
- * which is exactly the kind of false alarm that hides a real one.
- */
-/* READ, NOT TYPED, since the whoop's kt moved and this line did not: it
- * printed 5.25 : 1 for a plant making 4.78. Slot 10 is PLANT.kt. */
-const KT = typeof bench.e.sim_bf_debug === 'function' ? bench.e.sim_bf_debug(10) : (WHOOP ? 4.000e-9 : 1.98e-6);
-/*
- * AND THE DUCT. plant.c multiplies every rotor's thrust by the airframe's
- * static duct augmentation, k_duct, which is 1.0 on the open five inch and
- * 1.10 on the shrouded whoop, so kt times omega squared is the whoop's
- * thrust to within ten percent and not the whoop's thrust. Read off the
- * compiled constants rather than typed, the same way whoop-gates reads it.
- */
+/* kt from plant.c, read off the compiled constants rather than typed:
+ * thrust is kt * omega^2 per motor, and it is per airframe. Slot 10 is
+ * PLANT.kt, slot 58 the static duct augmentation, 1.0 on an open prop. */
+const KT = bench.e.sim_bf_debug(10);
 const DUCT = typeof bench.e.sim_bf_debug === 'function' ? (bench.e.sim_bf_debug(58) || 1) : 1;
 const wFull = rpmFull * Math.PI / 30;
 const thrustFull = 4 * KT * wFull * wFull * DUCT;
 const twr = thrustFull / (MASS * G);
-/*
- * And the DECLARED figure is per airframe too. STAGE1.md's 4.5 : 1 is the
- * five inch's reference; plant.c derives the whoop's as 4.7 : 1 fresh from
- * a 16.6 g dry mass plus a 6.8 g pack, and says so at length. Comparing a
- * whoop against the five inch's spec is a check that cannot pass.
- */
-const TWR_DECLARED = WHOOP ? '4.7 : 1' : '4.5 : 1';
-const TWR_ALARM = WHOOP ? 6.0 : 5.5;
+/* STAGE1.md's 4.5 : 1 is plant 0's reference and nobody else's. */
+const TWR_DECLARED = SEATED ? '' : '4.5 : 1';
+const TWR_ALARM = SEATED ? Infinity : 5.5;
 /* Not static, and the label says so: the override holds full duty on a
  * craft that is free to climb, and a climbing rotor unloads, so the rpm
  * here sits a percent or two over the derivation's and the figure with it.
@@ -208,17 +196,9 @@ row('pack under full load', `${benchState[ST.V].toFixed(1)} V, ${benchState[ST.I
 
 /* ---- hover ---- */
 const hover = await hoverThrottle();
-/*
- * The hover band is the five inch's too. A whoop hovers HIGHER on the stick
- * because it has less thrust to weight, and plant.c's electrical solve
- * targeted 0.30 of duty deliberately, in the middle of the 27 to 36 percent
- * a real 1S brushless whoop shows. So the band it is judged against is that
- * one, not check 5's.
- */
-const HOVER_BAND = WHOOP ? [0.27, 0.36] : [0.20, 0.30];
-const HOVER_LABEL = WHOOP
-  ? '0.27 to 0.36 (a 1S whoop)'
-  : '0.20 to 0.30 (check 5)';
+/* The hover band is check 5's, plant 0's; a seated quad is printed bare. */
+const HOVER_BAND = SEATED ? [0, 1] : [0.20, 0.30];
+const HOVER_LABEL = SEATED ? '' : '0.20 to 0.30 (check 5)';
 row('hover throttle', hover.toFixed(3), HOVER_LABEL,
   hover < HOVER_BAND[0] ? 'below the band' : (hover > HOVER_BAND[1] ? 'above the band' : ''));
 row('stick above hover', `${((1 - hover) * 100).toFixed(0)} percent of travel`, '', '');
@@ -277,15 +257,7 @@ for (const cap of THROTTLE_CAP_CHOICES) {
   const lines = `\nrateprofile 0\nset throttle_limit_type = ${cap < 100 ? 'SCALE' : 'OFF'}\nset throttle_limit_percent = ${cap}\n`;
   const capped = async () => {
     const sim = await loadSim(wasm);
-    /* Same order as fresh(): the airframe is a mode and it goes on before
-     * init. Without it the cap table below was the five inch's whatever
-     * --airframe said. */
-    if (WHOOP) {
-      const rc = sim.e.sim_set_airframe(SIM_AIRFRAME_WHOOP65);
-      if (rc !== SIM_OK) {
-        throw new Error(`sim_set_airframe returned ${rc}`);
-      }
-    }
+    seat(sim);
     setGravity(sim);
     if (sim.init(config + lines) !== SIM_OK) {
       throw new Error('sim_init failed with the cap lines');

@@ -56,18 +56,7 @@ import { combatChoice, propulsionOf } from '../../configs/combat.js';
 
 /* Hover rpm in the plant, stock build, 4.0 V a cell: measured by
  * tools/audio/specs-selftest.js, which fails if the plant moves them. */
-export const HOVER_RPM = { '5inch': 9407, '7inch': 8666, '10inch': 5049, interceptor: 6534 };
-
-/*
- * THE WHOOP flies the five inch's plant in a hall built larger
- * (configs/airframes.js MICRO), so the RPM it reports is a five inch's.
- * What a pilot hears from a 65 mm whoop is its own motors: 0702 class
- * on 31 mm four blade props hover near 30,000 rpm, so the plant's rpm is
- * heard this many times faster (ESTIMATED from the class's published
- * hover figures; no bench of this whoop exists).
- */
-export const WHOOP_RPM_SCALE = 3.2;
-const WHOOP_BLADES = 4;
+export const HOVER_RPM = { '7inch': 8666, '10inch': 5049, interceptor: 6534 };
 
 const RHO = 1.225;
 const G = 9.80665;
@@ -87,17 +76,6 @@ export function engineSpecFor(airframeId, power, combat) {
     return { model: pushed && pushed.id === 'jet' ? 'turbojet' : 'boxer2', params: null };
   }
   if (!af.fixedWing) {
-    if (af.id === 'whoop65') {
-      const base = airframeById('5inch');
-      return {
-        model: 'quad',
-        params: {
-          motors: 4, blades: WHOOP_BLADES, poles: 12, rpmScale: WHOOP_RPM_SCALE,
-          rpmRef: HOVER_RPM['5inch'] * WHOOP_RPM_SCALE,
-          washV: washV(base.grams, base.dims.propR),
-        },
-      };
-    }
     if (!hasMotors(af.id) || !HOVER_RPM[af.id]) {
       throw new Error(`enginespec: no motors or hover rpm for the quad ${af.id}`);
     }

@@ -55,7 +55,7 @@ function check(name, ok, detail = '') {
   }
 }
 
-const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
 Object.assign(s, {
   map: 'itaipu', freestyleMap: 'itaipu', graphics: 'low', flightMode: 'angle', fpsCap: 0, airframeAsked: true, warConsent: true,
 });

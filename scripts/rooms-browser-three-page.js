@@ -79,7 +79,7 @@ function check(name, ok, detail = '') {
 }
 
 function seedFor(id) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';
@@ -173,7 +173,7 @@ const HERE = '(() => { const it = window.__ui.items()[window.__ui.cursor]; retur
 console.log(`the room browser, three pages, rooms at ${rooms}${local ? ' (edge/rooms/node.js, started here)' : ''}`);
 const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400') });
 const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('p51d1450') });
-const c = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('5inch') });
+const c = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('interceptor') });
 try {
   for (const p of [a, b, c]) {
     await p.until('window.__shellReady === true', 300000);

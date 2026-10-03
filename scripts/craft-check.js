@@ -55,18 +55,13 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
-import { AIRFRAMES, airframeById, MICRO_SCALE, WHOOP_TRUE_DIMS } from '../configs/airframes.js';
+import { AIRFRAMES, airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 /*
  * The published size of each machine, from outside this repository, and the
  * tolerance each one is held to.
- *
- *   5inch     a 220 mm class quad: 110 mm arms, 5 inch blades, so the disc
- *             the aircraft sweeps is 173.5 mm and the body is 155 mm long.
- *   whoop65   a 65 mm whoop: 65 mm motor to motor across the
- *             diagonal, 82.6 mm square over the ducts, 23.4 g.
  *
  *   sky1800   an 1800 mm twin boom pusher: the span is the manufacturer's,
  *             and the reach is the wingtip, because the tail, 0.77 m aft,
@@ -179,8 +174,6 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
  * is named for; a wing has none.
  */
 const REAL = {
-  '5inch': { spanMm: 282.6, sweepMm: 347.0, tolMm: 6, wheelbaseMm: 220 },
-  whoop65: { spanMm: 82.6, sweepMm: 101.2, tolMm: 3, wheelbaseMm: 65 },
   sky1800: { spanMm: 1800.0, sweepMm: 1800.0, tolMm: 6 },
   cub1400: { spanMm: 1400.0, sweepMm: 1400.0, tolMm: 6 },
   radian2000: { spanMm: 2000.0, sweepMm: 2018.7, tolMm: 6 },
@@ -440,7 +433,7 @@ function reportLauncher(tag, cat, c, s) {
 
 async function measure(airframeId, propulsion = null) {
   const seated = seatAirframe(
-    { airframe: '5inch', rates: airframeById('5inch').rates },
+    { airframe: 'interceptor', rates: airframeById('interceptor').rates },
     airframeId,
   );
   const af = airframeById(airframeId);
@@ -511,17 +504,7 @@ async function main() {
      * 2. The collider against the drawn machine. This is the one that
      * matters in flight: the hull that meets a gate has to be the machine
      * the pilot can see, on every axis.
-     *
-     * THROUGH THE WORLD'S FACTOR, on an aircraft that has one. A micro track
-     * is built MICRO_SCALE times life size because the whoop flies the five
-     * inch's plant, and src/render/whoopcraft.js scales the drawn machine by
-     * the same number. So the invariant is not that the drawn millimetres
-     * equal the swept ones, it is that they equal them ONCE THE ROOM'S
-     * FACTOR IS PAID, which is what actually has to hold when a duct meets a
-     * 2.4 m gate. This is the only place the two halves of that
-     * multiplication are ever seen together.
      */
-    const k = af.trackClass === 'micro' ? MICRO_SCALE : 1;
     if (af.id === 'bramor2300') {
       /*
        * A SWEPT WING'S COLLIDER IS ITS HALF SPAN DISC, AND ITS TIPS REACH
@@ -537,8 +520,8 @@ async function main() {
         'the collider is the half span disc; the swept tips reach past it');
       near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp, real.tolMm);
     } else {
-      near(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach * k, real.tolMm * k);
-      near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp * k, real.tolMm * k);
+      near(`${af.id}: swept radius vs drawn`, r.craftRadiusTrue * 1000, drawnReach, real.tolMm);
+      near(`${af.id}: hull up vs drawn`, r.craftUpTrue * 1000, drawnUp, real.tolMm);
     }
     if (af.id === 'striker2500') {
       /* The Striker parks on its belly skid, 251 mm under the CG, which is
@@ -561,21 +544,8 @@ async function main() {
        * parks it on with or without a payload (docs/COMBAT-DRONES.md
        * section 2.3). */
       near(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, real.tolMm);
-    } else if (af.id === '5inch') {
-      pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown, 15.0,
-        'the plant parks it 15 mm under the model, see the note above');
     } else {
-      /*
-       * The whoop's ducts hang 9.6 mm under a real CG, which through the
-       * room's factor is 32.9 mm, and the five inch plant it now flies parks
-       * it at 45.0. The 12 mm between them is the five inch's own ground
-       * clearance showing through a whoop's body, and it is 3.5 mm once
-       * divided back down to what the picture is of. Pinned rather than
-       * chased, because closing it means either a plant that is not the five
-       * inch's or a model that is not a whoop.
-       */
-      pinned(`${af.id}: hull down vs drawn`, r.craftDownTrue * 1000, drawnDown * k, 12.2,
-        'the five inch plant parks a whoop body 12 mm low, 3.5 mm to the eye');
+      throw new Error(`craft-check: ${af.id} is a quad with no rule for its hull down`);
     }
 
     /* 3. And the collider against the plant, through the table both read.
@@ -604,19 +574,9 @@ async function main() {
       }
     }
 
-    /*
-     * And the wheelbase a manufacturer prints, which is the arm doubled.
-     *
-     * OFF THE DRAWN MACHINE ON THE WHOOP, not off the airframe table, because
-     * that table is the five inch's now and 65 mm is a fact about a product
-     * rather than about the thing this simulator flies. WHOOP_TRUE_DIMS is
-     * where that fact lives and whoopcraft.js builds from it, so this asserts
-     * the two agree and that the aircraft on screen is still a whoop.
-     */
+    /* And the wheelbase a manufacturer prints, which is the arm doubled. */
     if (real.wheelbaseMm) {
-      near(`${af.id}: wheelbase`,
-        (af.id === 'whoop65' ? WHOOP_TRUE_DIMS.arm : dims.arm) * 2000,
-        real.wheelbaseMm, 0.5);
+      near(`${af.id}: wheelbase`, dims.arm * 2000, real.wheelbaseMm, 0.5);
     }
   }
 

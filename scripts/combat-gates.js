@@ -10,8 +10,8 @@
  * top speed, climb, the turbine's spool, the rail and the strip, and what
  * each warhead in its nose costs it.
  *
- * Like scripts/whoop-gates.js and not in tests/, because every band in
- * tests/ was fitted to the five inch and tests/ is the harness's. A band
+ * In scripts/ and not in tests/, because every band in tests/ was fitted
+ * to the five inch and tests/ is the harness's. A band
  * here names where it came from; a gate that fails is the plant being
  * wrong, not the band.
  *
@@ -88,13 +88,13 @@ const BANDS = {
 /*
  * THE INTERCEPTOR AGAINST THE OTHER QUADS (docs/COMBAT-DRONES.md section 5a).
  * Each flies bare, on a fresh pack, at the weight the shell flies it at with
- * the Weight slider at 100 (`gravityBase`: 1.62 g on the five inch, 1 g on
- * the combat quads), so the comparison is the one a pilot feels. The order
- * is the request's (the owner, 2026-10-01: "ultra fast interceptor drones"):
- * the interceptor first on both, then the five inch, the 7 inch and the 10
- * inch.
+ * the Weight slider at 100 (`gravityBase`, 1 g on every quad), so the
+ * comparison is the one a pilot feels. The order is the request's (the
+ * owner, 2026-10-01: "ultra fast interceptor drones"): the interceptor first
+ * on both, then the 7 inch and the 10 inch. The five inch stood second until
+ * it was removed (2026-10-03).
  */
-const RACE = ['interceptor', '5inch', '7inch', '10inch'];
+const RACE = ['interceptor', '7inch', '10inch'];
 /* The combat quads built to carry: every warhead, a second pack. */
 const LOAD_CARRIERS = ['7inch', '10inch'];
 
@@ -355,7 +355,7 @@ for (const af of quads) {
      * time to 63 percent of the new speed. From a standstill to full is
      * reported beside it and not gated: a Li-ion pack's resistance is
      * larger than the motor's, so a cold start is the pack's sag and not
-     * the motor (scripts/whoop-gates.js W7 times that one on a LiPo). */
+     * the motor. */
     const step = async (from, to) => {
       const sim = await fresh(af, null);
       sim.motorOverride(-1, from);
@@ -392,7 +392,7 @@ for (const af of quads) {
   /* ---- the payloads: heavier, measurably, and nothing when none ---- */
   const byMass = [...af.combat.payloads].sort((a, b) => a.massKg - b.massKg);
   const heaviest = byMass[byMass.length - 1].id;
-  const standard = combatChoice(af, null).payload;
+  const standard = af.combat.payloads.find((p) => p.warhead === 'standard').id;
   const rows = [{ id: 'none', m: 0, hover, climb: await climb(af, null, hover) }];
   for (const p of byMass) {
     const choice = { payload: p.id, accessories: [] };
@@ -503,7 +503,9 @@ for (const af of quads) {
   report('war: a stored choice is made valid', isDeepStrictEqual(combatChoice(af, { payload: 'bogus', accessories: ['gps', 'nope', 'pack2'] }), { payload: 'standard', accessories: ['pack2', 'gps'] }));
   const fast = airframeById('interceptor');
   const fastCases = [
-    ['the interceptor flies its proximity payload by default', combatChoice(fast, null), { payload: 'proximity', accessories: [] }],
+    /* Bare outside a war since it became the racer (the owner, 2026-10-03:
+     * payload 'none' outside wars); the next row is what a war seats on it. */
+    ['the interceptor flies bare by default', combatChoice(fast, null), { payload: 'none', accessories: [] }],
     ['the interceptor\'s proximity payload is the standard warhead', warPayload(fast, { payload: 'proximity', accessories: [] }, all), { payload: 'proximity', warhead: 'standard' }],
     ['the interceptor with none and the wide equipped flies the standard', warPayload(fast, { payload: 'none', accessories: [] }, all, 'wide'), { payload: 'proximity', warhead: 'standard' }],
     ['a peer\'s interceptor with a wide loadout draws its proximity payload', payloadForWarhead(fast, 'wide'), 'proximity'],
@@ -529,21 +531,20 @@ for (const af of quads) {
     report(`${id} level flight is level`, level.vz < 0.1, `|vz| ${level.vz.toFixed(3)} m/s`, 'the harness pilot held the height within 0.1 m/s over the last 3 s');
   }
   const ordered = (key) => race.every((r, k) => k === 0 || r[key] < race[k - 1][key]);
-  report('top speed: interceptor > 5 inch > 7 inch > 10 inch', ordered('top'), race.map((r) => `${r.id} ${r.top.toFixed(1)} m/s`).join(', '));
-  report('punch-out: interceptor > 5 inch > 7 inch > 10 inch', ordered('punch'), race.map((r) => `${r.id} ${r.punch.toFixed(1)} m`).join(', '));
-  const [fast, five, seven] = race;
+  report('top speed: interceptor > 7 inch > 10 inch', ordered('top'), race.map((r) => `${r.id} ${r.top.toFixed(1)} m/s`).join(', '));
+  report('punch-out: interceptor > 7 inch > 10 inch', ordered('punch'), race.map((r) => `${r.id} ${r.punch.toFixed(1)} m`).join(', '));
+  const [fast, seven] = race;
   /*
    * At least as quick as the 7 inch, its own frame class. It was "quicker
    * than the 5 and the 7 inch", which the interceptor met on a 2807 1500 kV
    * and an 8 g 7 x 6 of no published table. On the sourced build (T-Motor's
    * V2808 1300 kV rows and APC's 7 x 9E file, docs/COMBAT-DRONES.md 1a) a
    * 9 inch pitch two blade on a 0.131 ohm motor spools at 44 ms, and the
-   * heavier motors and props add 9 percent to Ixx: it rolls with the five
-   * inch, not ahead of it. The owner's decision of 2026-10-01. The five
-   * inch is reported beside it, not gated.
+   * heavier motors and props add 9 percent to Ixx: it rolled with the five
+   * inch, not ahead of it. The owner's decision of 2026-10-01.
    */
   report('the interceptor rolls at least as quickly as the 7 inch', fast.rise <= seven.rise,
-    race.map((r) => `${r.id} ${(r.rise * 1000).toFixed(0)} ms`).join(', '), `the same Betaflight gains and rates on each; the 5 inch ${(five.rise * 1000).toFixed(0)} ms, not gated`);
+    race.map((r) => `${r.id} ${(r.rise * 1000).toFixed(0)} ms`).join(', '), 'the same Betaflight gains and rates on each');
   for (const r of race.filter((x) => x.af.combat)) {
     report(`${r.id} topSpeed is the flown level speed`, Math.abs(r.af.topSpeed - r.top) < 0.5, `${r.af.topSpeed} against ${r.top.toFixed(2)} m/s`, 'configs/airframes.js against the module, within 0.5 m/s');
   }
@@ -766,16 +767,18 @@ for (const af of strikers) {
   report('war: the Striker carries every warhead', WARHEADS.every((w) => af.combat.payloads.some((p) => p.warhead === w)), WARHEADS.join(', '));
 }
 
-/* ---- the five inch did not move ---- */
+/* ---- plant 0 did not move ----
+ * The five inch's plant, which no aircraft seats since 2026-10-03 and which
+ * stays in the module as the reference stage 1 verification flies: the
+ * module's own default airframe, on the stock 4.5.1 tune it was flown on. */
 {
-  const five = airframeById('5inch');
-  const cfg = await tune(five.defaultTune);
+  const cfg = await tune('betaflight-default');
   const sim = await loadSim(wasm);
   sim.init(cfg);
   sim.reset();
   sim.setCellVoltage(4.0);
-  /* scripts/whoop-gates.js W14's hover, measured on the module before any
-   * airframe table existed. */
+  /* The hover the whoop's gates (W14, removed with the whoop) took on the
+   * module before any airframe table existed. */
   let lo = 0;
   let hi = 1;
   let h5 = 0.5;
@@ -797,7 +800,7 @@ for (const af of strikers) {
       break;
     }
   }
-  report('five inch unmoved', Math.abs(h5 - 0.2579999566078186) < 1e-6, `hover ${h5.toFixed(6)}`, 'whoop-gates W14\'s fingerprint');
+  report('plant 0 unmoved', Math.abs(h5 - 0.2579999566078186) < 1e-6, `hover ${h5.toFixed(6)}`, 'the fingerprint taken before any airframe table existed');
   void sim;
 }
 

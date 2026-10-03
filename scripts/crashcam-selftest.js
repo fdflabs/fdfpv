@@ -132,6 +132,7 @@ import {
 import { newDecal } from '../configs/paint.js';
 import { LIVERIES, lookFor } from '../configs/liveries.js';
 import { GROUND_MU, GROUND_E } from '../src/game/collide.js';
+import { AIRFRAME_IDS, retiredAirframe } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const wasmBytes = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
@@ -973,7 +974,7 @@ function file() {
   refused(withHeader((h) => { h.meta.paint = { decals: [{ k: 'num', url: 'x' }] }; }), 'a decal that is not one');
   refused(withHeader((h) => { h.meta.paint = { decals: [], script: 1 }; }), 'an unknown paint field');
   try {
-    decodeReplay(buf, { airframe: (id) => id === '5inch', map: () => true });
+    decodeReplay(buf, { airframe: (id) => id === 'interceptor', map: () => true });
     check(false, 'refused: an aircraft this build does not fly', 'accepted');
   } catch (err) {
     check(err instanceof ReplayFileError, 'refused: an aircraft this build does not fly', err.message);
@@ -995,6 +996,21 @@ function file() {
   } catch (err) {
     check(err instanceof ReplayFileError && err.airframe === 'sky1800' && err.map === null,
       'refused: an aircraft this build does not fly, by name', `${err.message}, airframe ${err.airframe}`);
+  }
+  /* The five inch and the 65 mm whoop, removed on 2026-10-03: a clip flown
+   * on one is refused by its id against this build's own table, and that id
+   * is one retiredAirframe names, which is what the crash cam's screen says
+   * (replay.aircraft_retired) instead of "not a replay". */
+  for (const gone of ['5inch', 'whoop65']) {
+    const old = encodeReplay({ ...c, meta: { ...c.meta, airframe: gone, livery: null } });
+    try {
+      decodeReplay(old, { airframe: (id) => AIRFRAME_IDS.includes(id), map: () => true });
+      check(false, `a clip flown on the ${gone} is refused by its name`, 'accepted');
+    } catch (err) {
+      const named = retiredAirframe(err.airframe);
+      check(err instanceof ReplayFileError && err.airframe === gone && Boolean(named) && named.to === 'interceptor',
+        `a clip flown on the ${gone} is refused by its name, ${named ? named.name : 'none'}`, `${err.message}, airframe ${err.airframe}`);
+    }
   }
 }
 const PARTS_MAX_R = PARTS_MAX;
@@ -1212,7 +1228,7 @@ function roomFlight(cap, frames) {
   const ring = createPeerRing(cap);
   const A = fakePeer(2, 'cub1400');
   const B = fakePeer(3, 'p51d1450');
-  const C = fakePeer(4, '5inch');
+  const C = fakePeer(4, 'interceptor');
   A.smoke = true;
   const pp = { x: 0, y: 0, z: 0 };
   const qq = { x: 0, y: 0, z: 0, w: 1 };
@@ -1362,7 +1378,7 @@ function peersRecord() {
   const crowd = createPeerRing(4);
   crowd.begin(0);
   for (let seat = 1; seat <= PEERS_MAX + 3; seat += 1) {
-    crowd.add(fakePeer(seat, '5inch'));
+    crowd.add(fakePeer(seat, 'interceptor'));
   }
   check(crowd.stats.dropped === 3 && crowd.stats.peers === PEERS_MAX, 'past PEERS_MAX drawn at once, the rest are counted as dropped',
     `${crowd.stats.peers} kept, ${crowd.stats.dropped} dropped`);
@@ -1431,6 +1447,15 @@ function peersRecord() {
   'a clip with pilots in it is saved as version 4 and every peer column comes back bit for bit', `${buf.byteLength} bytes`);
   check(JSON.stringify(bp.who.map((w) => [w.seat, w.label, w.profile.airframe])) === JSON.stringify(P.who.map((w) => [w.seat, w.label, w.profile.airframe])),
     'who they were comes back: seat, name and airframe');
+  /* A pilot in the clip on an aircraft removed since (the five inch, the
+   * whoop) opens on its successor, the way a room seats one, so the clip
+   * still plays and every peer is a machine this build can draw. */
+  {
+    const oldWho = P.who.map((w, k) => (k === 0 ? { ...w, profile: { ...w.profile, airframe: '5inch' } } : w));
+    const reread = decodeReplay(encodeReplay({ ...clip, peers: { ...P, who: oldWho } }));
+    check(reread.peers.who[0].profile.airframe === 'interceptor',
+      'a pilot in the clip on the retired five inch comes back on the interceptor', reread.peers.who[0].profile.airframe);
+  }
   check(same(back.pose, clip.pose) && same(back.time, clip.time), 'and the local craft is unchanged beside them');
   const trimmedBack = decodeReplay(encodeReplay(cut));
   check(same(trimmedBack.peers.cols, cut.peers.cols), 'a trimmed range with a join in it round trips');
@@ -1777,7 +1802,7 @@ function bubbleFlight(cap, frames) {
   const r = createRecorder(cap);
   const ring = createPeerRing(cap);
   const A = fakePeer(2, 'cub1400');
-  const C = fakePeer(4, '5inch');
+  const C = fakePeer(4, 'interceptor');
   const pp = { x: 0, y: 0, z: 0 };
   const qq = { x: 0, y: 0, z: 0, w: 1 };
   const st = new Float64Array(20);
@@ -2462,13 +2487,13 @@ function soundFile(withClock, refused) {
   const peers = {
     slots, cols, pieces: new Float32Array(0), pieceAt: new Uint32Array(n + 1),
     who: [0, 1, 2].map((i) => ({
-      seat: i + 2, label: `P${i}`, profile: { airframe: i === 0 ? '5inch' : 'cub' }, figure: null,
+      seat: i + 2, label: `P${i}`, profile: { airframe: i === 0 ? 'interceptor' : 'cub' }, figure: null,
     })),
   };
   const ps = createPeerSample(slots);
   samplePeers(peers, n, 4, 0.5, ps);
   const heard = peerVoicesAt(peers, ps, 0.5, []);
-  check(heard.length === 2 && heard[0].id === PEER_ID_BASE + 1 && heard[0].airframe === '5inch' && Math.abs(heard[0].rpm[3] - 1300 * RPM_PER_RAD_S * 0.5) < 1e-6
+  check(heard.length === 2 && heard[0].id === PEER_ID_BASE + 1 && heard[0].airframe === 'interceptor' && Math.abs(heard[0].rpm[3] - 1300 * RPM_PER_RAD_S * 0.5) < 1e-6
     && Math.abs(heard[1].rpm[0] - 900 * RPM_PER_RAD_S * 0.5) < 1e-6 && heard[1].rpm[1] === 0 && heard[0].x === 4.5 && heard[0].vx === 10,
   'the pilots are heard where they were drawn, under ids no live seat has, a quad\'s four motors and a wing\'s one, at half speed in half speed slow motion, the crashed one not at all',
   heard.map((h) => `${h.airframe} ${h.rpm.map((x) => x.toFixed(0)).join('/')}`).join(', '));

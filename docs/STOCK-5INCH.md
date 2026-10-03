@@ -1,5 +1,7 @@
 # The stock five inch on a published stand row
 
+The five inch was removed from the game on 2026-10-03 at the owner's request. Its plant, plant 0, stays in the module as the stage 1 verification reference, so this document still derives what that reference flies; its motor and prop upgrades in the hangar went with it.
+
 The owner's decision of 2026-10-01: correct the stock five inch's motor
 and prop to the published data, and argue check 6's band again from that
 source. This file holds the cause, the derivation, the numbers before and

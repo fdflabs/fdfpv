@@ -364,8 +364,17 @@ room = new RoomCore(meta);
 const only = sock('only');
 hello(only);
 empties = 0;
-run(room.message(only, JSON.stringify({ type: 'profile', profile: { ...profile, airframe: '5inch' } }), now));
-check('a profile change is attached', only.attachment.profile.airframe === '5inch');
+run(room.message(only, JSON.stringify({ type: 'profile', profile: { ...profile, airframe: '7inch' } }), now));
+check('a profile change is attached', only.attachment.profile.airframe === '7inch');
+/* A tab open from before the five inch and the whoop were removed
+ * (2026-10-03) still says them: the room seats the successor, and the old
+ * aircraft's paint and parts do not ride along onto it. */
+for (const gone of ['5inch', 'whoop65']) {
+  run(room.message(only, JSON.stringify({ type: 'profile', profile: { ...profile, airframe: gone, livery: { body: '#ff0000' }, parts: { prop: 'x' } } }), now));
+  const seated = only.attachment.profile;
+  check(`a profile on the retired ${gone} is seated as the interceptor, its paint and parts dropped`,
+    seated.airframe === 'interceptor' && seated.livery === null && seated.parts === null, JSON.stringify(seated));
+}
 run(room.close(only, now));
 check('the last one out empties the room', empties === 1 && room.seats.size === 0);
 

@@ -38,42 +38,44 @@
  * a leaf module rather than being typed out twice. */
 import { FT, IN, FRAME_TUBE_OD } from '../units.js';
 import { str } from '../strings/index.js';
-import {
-  GATE_OPENING_DEFAULT, GATE_SPACING_NOMINAL,
-  ELEVATED_SILL_MIN, PIPE_OD, POLE_FROM_GATE_MIN, ROOM_WIDTH, ROOM_DEPTH, GRID as MICRO_GRID,
-} from './racegow.js';
 
 /* Re-exported because this module's consumers already read it from here. */
 export { FRAME_TUBE_OD };
 
 /*
- * THE THREE TRACK CLASSES.
+ * THE TWO TRACK CLASSES.
  *
  * 'full' is the sixty metre field this builder has always drawn, flown on a
- * 5 inch quad through MultiGP sized gates. 'micro' is a RaceGOW room: a
- * course inside 1.42 by 2.13 m, built out of 3/4 inch PVC, flown on a 65 mm
- * whoop, in somebody's living room. 'wing' is an airfield: five metre gates
+ * quad through MultiGP sized gates. 'wing' is an airfield: five metre gates
  * and pylons over four hundred by three hundred metres, flown on a 1000 mm
  * flying wing that cruises at 15 to 25 m/s and turns in about twenty
  * metres (docs/WING-STAGE1.md).
  *
  * IT IS A PROPERTY OF THE TRACK, not of the pilot and not of the session.
- * Each class is a different object from the others: different element
- * sizes, a different field, a different grid, different warnings, and a lap
- * that is three seconds, thirty, or a minute. So it is stored in the
- * document, defaulted to 'full' on read so that every track ever written
- * stays exactly what it was, and the builder picks the class for a NEW
- * track from the aircraft the pilot has seated.
+ * Each class is a different object from the other: different element
+ * sizes, a different field, a different grid, different warnings. So it is
+ * stored in the document, defaulted to 'full' on read so that every track
+ * ever written stays exactly what it was.
  *
  * The class chooses which dims block each element definition below hands to
  * a newly placed instance, and nothing else in this file branches on it.
- * That is deliberate: a micro gate is a gate, and so is a wing gate.
  */
-export const TRACK_CLASSES = ['full', 'micro', 'wing'];
+export const TRACK_CLASSES = ['full', 'wing'];
 export const TRACK_CLASS_DEFAULT = 'full';
 
 export function trackClassOf(doc) {
   return TRACK_CLASSES.includes(doc?.trackClass) ? doc.trackClass : TRACK_CLASS_DEFAULT;
+}
+
+/*
+ * WHETHER NO AIRCRAFT FLIES THIS TRACK. 'micro' was a RaceGOW room, flown
+ * on the 65 mm whoop alone, and went with it on 2026-10-03. A document that
+ * still names it is not a field track to be read at the default class, which
+ * would be a living room's gates on a sixty metre field: every place a track
+ * is taken in refuses it by this test, with the string track.no_aircraft.
+ */
+export function noAircraftFlies(doc) {
+  return doc?.trackClass === 'micro';
 }
 
 /*
@@ -85,7 +87,7 @@ export function trackClassOf(doc) {
  * genuinely have none: a label is text and a ground logo is paint, and
  * neither has a size that depends on how big the aircraft is.
  */
-const CLASS_DIMS = { micro: 'microDims', wing: 'wingDims' };
+const CLASS_DIMS = { wing: 'wingDims' };
 
 export function defaultDims(type, cls) {
   const def = ELEMENTS[type];
@@ -105,9 +107,6 @@ export function defaultZ(type, cls) {
   if (!def) {
     return 0;
   }
-  if (cls === 'micro' && def.microDefaultZ !== undefined) {
-    return def.microDefaultZ;
-  }
   return def.defaultZ ?? 0;
 }
 
@@ -116,9 +115,6 @@ export function defaultPitch(type, cls) {
   const def = ELEMENTS[type];
   if (!def) {
     return 0;
-  }
-  if (cls === 'micro' && def.microPitch !== undefined) {
-    return def.microPitch;
   }
   return def.pitch ?? 0;
 }
@@ -276,31 +272,10 @@ export const MARKER_GATE_PAD = 1.5;
 export const MARKER_GATE_MIN_W = 3.0;
 
 /*
- * The same two on a micro track, and this is the single largest scale error
- * a RaceGOW course would have had: a 3 m minimum scoring square, in a room
- * that is 5 m across, around a pole 27 mm thick.
- *
- * Sized against RaceGOW's own pole rule rather than by dividing the full
- * sized numbers by something. The diagrams dimension a pole at 14 in from
- * the centre of a gate, which is the distance the course is designed around,
- * so the pad is that 14 in and the floor is twice it. That is the same
- * relationship the full sized pair has to a flag's 1.5 m clearance, arrived
- * at from the other end.
- *
- * They are separate constants rather than a ratio applied to whatever
- * clearance an element declares, deliberately: deriving them would change
- * the square on every full sized track whose author edited a clearance, and
- * some of those tracks are published with times on them.
- */
-export const MICRO_MARKER_GATE_PAD = POLE_FROM_GATE_MIN;
-export const MICRO_MARKER_GATE_MIN_W = POLE_FROM_GATE_MIN * 2;
-
-/*
  * And on a wing track, where the marker is a pylon the wing rounds at
  * cruise. The pylon's clearance is 5 m, the same relationship to the
  * aircraft the flag's 1.5 m has to a five inch (about three spans off the
- * pole), so the pad is that clearance and the floor is twice it, the way
- * the micro pair is built from RaceGOW's 14 inch rule. A 15 m square
+ * pole), so the pad is that clearance and the floor is twice it. A 15 m square
  * beside a pylon is what a 1000 mm wing at 20 m/s can be asked to hit.
  */
 export const WING_MARKER_GATE_PAD = 5.0;
@@ -308,7 +283,6 @@ export const WING_MARKER_GATE_MIN_W = 10.0;
 
 const MARKER_GATE = {
   full: { pad: MARKER_GATE_PAD, minW: MARKER_GATE_MIN_W },
-  micro: { pad: MICRO_MARKER_GATE_PAD, minW: MICRO_MARKER_GATE_MIN_W },
   wing: { pad: WING_MARKER_GATE_PAD, minW: WING_MARKER_GATE_MIN_W },
 };
 
@@ -376,15 +350,6 @@ export const ELEMENTS = {
      * VERIFY: the 5 ft by 5 ft clear opening on multigp.com. */
     pitch: 0,
     dims: { levels: 1, sillH: 0, clearW: 5 * FT, clearH: 5 * FT, levelPitch: 5 * FT + FRAME_TUBE_OD },
-    /* RaceGOW Single Gate, or the Start/Finish Gate, which is the same
-     * object drawn green. The bar is ON THE FLOOR because rule 2 says a gate
-     * must be fully enclosed and the floor cannot act as a side of it, which
-     * puts the centre at 356 mm, well under the 508 mm rule 4 allows. */
-    microDims: {
-      levels: 1, sillH: 0,
-      clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
-      levelPitch: GATE_SPACING_NOMINAL,
-    },
     /* A wing gate is the tool's own size: no series publishes one. Five
      * metres is five spans of the 1000 mm wing, which is the same margin a
      * 5 ft gate gives a five inch's 0.35 m sweep, and it is a hole a wing
@@ -413,14 +378,6 @@ export const ELEMENTS = {
       levels: 1, sillH: 0, clearW: 5 * FT, clearH: 5 * FT, levelPitch: 5 * FT + FRAME_TUBE_OD,
       flagH: GATE_FLAG_H,
     },
-    /* A pennant on a whoop gate is a real thing people build, and the mast
-     * is a third of the full sized one because everything else is. */
-    microDims: {
-      levels: 1, sillH: 0,
-      clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
-      levelPitch: GATE_SPACING_NOMINAL,
-      flagH: 0.42,
-    },
     /* Same five metre hole as `gate`; the mast is three metres so the
      * pennant reads over a gate that size. */
     wingDims: {
@@ -440,16 +397,6 @@ export const ELEMENTS = {
      * VERIFY: whether the published double gate tower sits on the ground. */
     pitch: 0,
     dims: { levels: 2, sillH: 0, clearW: 5 * FT, clearH: 5 * FT, levelPitch: 5 * FT + FRAME_TUBE_OD },
-    /* RaceGOW Double Stacked Gates. At the nominal 762 mm pitch the second
-     * opening's centre lands at 1118 mm, which clears rule 5's 1067 mm
-     * floor, and the 762 itself is inside rule 3's 686 to 838 band. Both
-     * rules are satisfied by one number, which is why 30 inches is the
-     * number every diagram uses. */
-    microDims: {
-      levels: 2, sillH: 0,
-      clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
-      levelPitch: GATE_SPACING_NOMINAL,
-    },
   },
   flaggedDoubleStack: {
     id: 'flaggedDoubleStack',
@@ -466,12 +413,6 @@ export const ELEMENTS = {
       levels: 2, sillH: 0, clearW: 5 * FT, clearH: 5 * FT, levelPitch: 5 * FT + FRAME_TUBE_OD,
       flagH: GATE_FLAG_H,
     },
-    microDims: {
-      levels: 2, sillH: 0,
-      clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
-      levelPitch: GATE_SPACING_NOMINAL,
-      flagH: 0.42,
-    },
   },
   ladder: {
     id: 'ladder',
@@ -487,15 +428,6 @@ export const ELEMENTS = {
      * vertical spacing or whether MultiGP dimensions the overall height. */
     pitch: 0,
     dims: { levels: 3, sillH: 0, clearW: 5 * FT, clearH: 5 * FT, levelPitch: 5 * FT + FRAME_TUBE_OD },
-    /* RaceGOW Triple Gate Stack. Third opening's centre at 1880 mm, over
-     * rule 5's 1753 mm floor, and the top of the frame at 2235 mm, which is
-     * under a 2.4 m domestic ceiling with 165 mm to spare. That margin is
-     * why a triple is the tallest thing on a RaceGOW track. */
-    microDims: {
-      levels: 3, sillH: 0,
-      clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
-      levelPitch: GATE_SPACING_NOMINAL,
-    },
   },
   tower: {
     id: 'tower',
@@ -512,16 +444,6 @@ export const ELEMENTS = {
      * itself elevated or sits on the ground. */
     pitch: 0,
     dims: { levels: 2, sillH: 5 * FT, clearW: 5 * FT, clearH: 5 * FT, levelPitch: 5 * FT + FRAME_TUBE_OD },
-    /* RaceGOW Elevated Gate: ONE opening, carried above the ground gates,
-     * "bottom of gate must be a minimum 56 inches above the ground". One
-     * rather than two because that is what the Track8 diagram draws and
-     * because a second opening at 56 plus 30 inches would put its top at
-     * 2.53 m, through the ceiling. */
-    microDims: {
-      levels: 1, sillH: ELEVATED_SILL_MIN,
-      clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
-      levelPitch: GATE_SPACING_NOMINAL,
-    },
   },
   diveGate: {
     id: 'diveGate',
@@ -539,16 +461,6 @@ export const ELEMENTS = {
      * MultiGP anywhere states the entry angle. */
     pitch: Math.PI / 2,
     dims: { levels: 1, sillH: 15 * FT, clearW: 7 * FT, clearH: 6 * FT, levelPitch: 6 * FT + FRAME_TUBE_OD },
-    /* RaceGOW Horizontal Gate, also called a Cube Gate: the same square
-     * opening laid flat. 15 ft of elevation is a five inch's dive gate; a
-     * whoop's is at 900 mm, which is chest height and is where the official
-     * builds put one, because the ceiling is 2.4 m and you have to get above
-     * it to drop through it. */
-    microDims: {
-      levels: 1, sillH: 0.900,
-      clearW: GATE_OPENING_DEFAULT, clearH: GATE_OPENING_DEFAULT,
-      levelPitch: GATE_SPACING_NOMINAL,
-    },
   },
   barrier: {
     id: 'barrier',
@@ -562,9 +474,6 @@ export const ELEMENTS = {
      * The default is a 4 m by 1 m panel 2 m tall, which is a plausible crowd
      * barrier and is only a starting size. */
     dims: { width: 4, depth: 1, height: 2 },
-    /* A living room's furniture. A sofa is about this, and a sofa is the
-     * commonest obstacle on a RaceGOW track by a wide margin. */
-    microDims: { width: 1.8, depth: 0.85, height: 0.75 },
   },
   flag: {
     id: 'flag',
@@ -580,11 +489,6 @@ export const ELEMENTS = {
      * tool's own number: how far off the pole the racing line is drawn.
      * VERIFY: whether MultiGP dimensions a standalone turn flag at all. */
     dims: { height: 2.5, poleRadius: 0.025, clearance: 1.5 },
-    /* A pennant on a whoop track is dress, and the mast is a length of the
-     * same 3/4 inch pipe everything else is built from. The clearance is
-     * RaceGOW's own 14 inch pole rule, which is the distance the diagrams
-     * dimension from a gate centre to a pole. */
-    microDims: { height: 0.90, poleRadius: PIPE_OD / 2, clearance: POLE_FROM_GATE_MIN },
     /* A pylon on an airfield: a six metre pole a wing can see from the far
      * end of a 400 m field, rounded five metres off, which is about three
      * spans, the same relationship the flag's 1.5 m has to a five inch.
@@ -613,10 +517,6 @@ export const ELEMENTS = {
      * virtualApertureDims floors the height at the square's own width, so
      * a 0.71 m cone is not scored by a knee-high slot. */
     dims: { height: 28 * IN, baseRadius: 7 * IN, clearance: 1.5 },
-    /* A whoop sized marker cone, the kind sold for indoor courses: 100 mm
-     * tall on a 60 mm base. Same clearance as the flag, for the same reason
-     * the full sized pair share one. */
-    microDims: { height: 0.100, baseRadius: 0.030, clearance: POLE_FROM_GATE_MIN },
   },
   waypoint: {
     id: 'waypoint',
@@ -648,32 +548,7 @@ export const ELEMENTS = {
      * and grab it. Nothing is built for it on the race field.
      */
     dims: { height: 1.6, poleRadius: 0.02, clearance: 0 },
-    /* Clearance stays ZERO. It is zero because a waypoint pins the line to a
-     * point, and a point does not get smaller. */
-    microDims: { height: 0.35, poleRadius: 0.008, clearance: 0 },
   },
-  /*
-   * SIDE BY SIDE GATES ARE NOT AN ELEMENT HERE, and it is worth writing down
-   * why, because RaceGOW's diagrams draw them as one.
-   *
-   * They would need a lateral offset inside an aperture structure, and every
-   * opening this builder has ever had is offset VERTICALLY: apertureLevels,
-   * apertureCenter, entryAnchor, the 2D plan, the 3D frames and the sequence
-   * editor all read a level's sill and centre height and nothing else. A
-   * horizontal sibling means a new axis through all six.
-   *
-   * What a side by side actually IS, physically, is two gates 30 inches
-   * apart that happen to share a vertical pipe. So it is two gates, and the
-   * thing that makes it a RaceGOW side by side rather than two gates near
-   * each other is rule 3, the 27 to 33 inch centre to centre band. That rule
-   * is checked, on every pair of gates on a micro track, by
-   * src/trackbuilder/warnings.js. The tool holds the rule; the author places
-   * the second gate.
-   *
-   * If a compound placement is wanted later, app.js's place path is where it
-   * goes, beside the auto sequencing it already does for a stack.
-   */
-
   /*
    * VERTICAL POLE. RaceGOW's own element, a bare length of pipe stood on
    * end and flown around, drawn as a red dot in plan on every diagram.
@@ -697,7 +572,6 @@ export const ELEMENTS = {
     kind: KIND.MARKER,
     note: str('elements.a_bare_upright_pipe_flown_around'),
     dims: { height: 2.5, poleRadius: 0.025, clearance: 1.5 },
-    microDims: { height: 1.500, poleRadius: PIPE_OD / 2, clearance: POLE_FROM_GATE_MIN },
   },
   /*
    * HORIZONTAL POLE. The other RaceGOW element with no existing equivalent:
@@ -719,13 +593,6 @@ export const ELEMENTS = {
     note: str('elements.a_single_bar_across_the_track'),
     dims: { width: 3.0, depth: 0.08, height: 0.08 },
     defaultZ: 1.60,
-    /* One pipe section wide and one pipe thick, raised to where a RaceGOW
-     * build puts one: a shade under the second gate of a stack, so the two
-     * together make a slot. defaultZ is how high a NEWLY PLACED one starts;
-     * an obstacle is drawn from its own position.z upward, so this is a bar
-     * in the air rather than a wall, which is what a horizontal pole is. */
-    microDims: { width: GATE_SPACING_NOMINAL, depth: PIPE_OD, height: PIPE_OD },
-    microDefaultZ: 0.950,
   },
   /*
    * PLANE SIZED ELEMENTS, placed only by the in-sim builder (src/builder/),
@@ -888,15 +755,6 @@ export const ELEMENTS = {
      * not a floor tile. See src/art/startblock.js.
      * VERIFY: MultiGP's published starting grid spacing, if any. */
     dims: { pads: 4, spacing: 1.5, padSize: 0.6 },
-    /*
-     * ONE PAD, and that is not a scaled down grid, it is the format.
-     *
-     * MultiGP runs heats of four and the full sized default is that starting
-     * grid. RaceGOW has no heats at all: "every pilot flies alone at home",
-     * and the whole competition is an asynchronous time trial. Four stands
-     * on a RaceGOW start line would be four stands nobody is standing on.
-     */
-    microDims: { pads: 1, spacing: 0.30, padSize: 0.10 },
   },
   label: {
     id: 'label',
@@ -979,51 +837,6 @@ export const TUNING = {
   fieldWidth: 60,
   fieldDepth: 40,
   gridSize: 1,
-  /*
-   * THE MICRO SET. Every number below that is a length has a micro twin
-   * here, because every one of them was chosen against a machine that
-   * sweeps 0.35 m to a blade tip and flies at 20 m/s, and a whoop sweeps
-   * 0.096 and flies at 4.
-   *
-   * They are in one block rather than scattered through the entries above
-   * so that a reader can see the whole of what changes with the class, and
-   * so `tuningFor` below is one lookup rather than eleven.
-   */
-  micro: {
-    /*
-     * The room, not the field. RaceGOW's own envelope is 1.22 by 1.83 m at
-     * the minimum gate size, and its rules say "you will need some
-     * additional space around the outside of that to fly the tracks
-     * optimally". 5 by 6 m is a two car garage or a large living room, which
-     * is where these are actually flown. See src/trackbuilder/racegow.js.
-     */
-    fieldWidth: ROOM_WIDTH,
-    fieldDepth: ROOM_DEPTH,
-    /* One inch. Every dimension RaceGOW publishes is a whole number of
-     * inches and a metric grid would put none of them on a line. */
-    gridSize: MICRO_GRID,
-    /*
-     * The curvature warning. A 5 inch at racing speed does 20 m/s and 2.5 m
-     * of radius is 16 g, which no quad does. A whoop's fastest published lap
-     * is 2.26 s over roughly 24 m, so about 10 m/s at the quickest and 4 to
-     * 6 m/s round the technical parts. Holding 6 m/s round 0.45 m is 8 g,
-     * which is at the edge of a 4.7:1 machine's envelope once the cosine of
-     * the bank is paid for. Same reasoning, a fifth of the speed and a
-     * twentieth of the radius.
-     */
-    minCurveRadius: 0.45,
-    /* A metre of slop on a 60 m field is a gate sitting on the boundary. On
-     * a 5 m room it is a fifth of the room. */
-    boundarySlack: 0.25,
-    /* Clearance a barrier gets when the line is tested against it. The line
-     * is a centreline and a whoop is 96 mm across its ducts, so this is the
-     * same fraction of the aircraft the full sized 0.35 is of a 5 inch. */
-    barrierClearance: 0.10,
-    /* How far the line steps off a stacked gate between two passes. Sized
-     * the same way the full sized one is: the opening plus its frame plus a
-     * body length, which on a 711 mm gate out of 27 mm pipe is 0.84 m. */
-    stackWrap: 0.84,
-  },
   /*
    * THE WING SET, built the same way against docs/WING-STAGE1.md: a 1000 mm
    * wing sweeping 0.5 m to a tip, cruising 15 to 25 m/s, turning in about

@@ -298,7 +298,7 @@ async function browser() {
   const { openPage } = await import('../tests/lib/page.js');
   const { SETTINGS_KEY, seatAirframe } = await import('../src/ui/ui.js');
   const { airframeById } = await import('../configs/airframes.js');
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'timber1500f');
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'timber1500f');
   seated.map = 'itaipu';
   seated.graphics = 'high';
   seated.graphicsAuto = false;

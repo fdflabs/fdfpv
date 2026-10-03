@@ -112,7 +112,7 @@ const check = (name, ok, detail) => {
 };
 
 const settings = {
-  ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'timber1500'),
+  ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'timber1500'),
   airframeAsked: true,
   map: 'itaipu',
   graphics: process.env.SIM_GPU === '1' ? 'high' : 'low',

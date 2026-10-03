@@ -54,7 +54,7 @@ const EDGE_DEG = 28;
 const EXTRACT = `(async () => {
   const THREE = await import('three');
   const { buildCraft } = await import('/src/render/craft.js');
-  const craft = buildCraft('5inch');
+  const craft = buildCraft('interceptor');
   const group = craft.group;
   group.position.set(0, 0, 0);
   group.quaternion.identity();

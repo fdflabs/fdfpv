@@ -6,11 +6,10 @@
  * accessories that frame offers (docs/COMBAT-DRONES.md, the interface),
  * it builds the machine twice and asserts:
  *
- *   the BUDGET: no more draw calls than the five inch it flies beside
- *     (src/render/herocraft.js, the quad the shell was budgeted around),
- *     full and lite, and no more triangles than the heaviest aircraft
- *     already shipped, both measured live on the same page rather than
- *     typed here;
+ *   the BUDGET: no more draw calls than the five inch's model, the quad the
+ *     shell was budgeted around (FIVE_INCH_DRAWS below), full and lite, and
+ *     no more triangles than the heaviest aircraft already shipped,
+ *     measured live on the same page;
  *   the PAYLOAD is the doc's: its body exactly d across and len long, its
  *     top on the belly plate's underside, its centre under the body, clear
  *     between the legs, and nothing of it or its straps above the belly;
@@ -112,6 +111,15 @@ function check(id, pass, detail) {
   }
 }
 
+/*
+ * THE FIVE INCH'S DRAW CALLS, typed because its model went with it
+ * (src/render/herocraft.js, removed 2026-10-03) and the budget did not: the
+ * shell was sized around a quad that drew this many. Measured live on this
+ * page at 1c64b964, the last main that drew it, by this script's own
+ * reference pass: 81 full, 65 lite.
+ */
+const FIVE_INCH_DRAWS = { full: 81, lite: 65 };
+
 const page = await openPage({ root, width: 1280, height: 800, url: '/tests/browser/combat-preview.html' });
 try {
   await page.until('window.__combatReady === true', 60000).catch((e) => {
@@ -119,9 +127,8 @@ try {
     throw new Error(`${e.message}\n${page.errors.join('\n')}`);
   });
   const ref = await page.evaluate('window.__combat.reference()');
-  const hero = ref['5inch'];
   const heaviest = Object.entries(ref).reduce((m, [id, c]) => (c.full.tris > m.tris ? { id, tris: c.full.tris } : m), { id: '', tris: 0 });
-  const budget = { draws: hero.full.draws, liteDraws: hero.lite.draws, tris: heaviest.tris };
+  const budget = { draws: FIVE_INCH_DRAWS.full, liteDraws: FIVE_INCH_DRAWS.lite, tris: heaviest.tris };
   console.log(`budget: ${budget.draws} draws full and ${budget.liteDraws} lite (the five inch), ${budget.tris} triangles (${heaviest.id})`);
 
   const { frames, payloads, offered } = await page.evaluate('({ frames: window.__combat.frames, payloads: window.__combat.payloads, offered: window.__combat.accessories })');

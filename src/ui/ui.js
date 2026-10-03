@@ -70,7 +70,7 @@ const CAL_LABELS = {
 };
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
-import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe, WHOOP_TRUE_DIMS } from '../../configs/airframes.js';
+import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME, floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe } from '../../configs/airframes.js';
 import { POWER, normalizePower, powerChoice } from '../../configs/power.js';
 import { normalizeTuning, setupFor } from '../../configs/tuning.js';
 import { PROPS, normaliseParts, normalisePlane } from '../../configs/hangar-parts.js';
@@ -325,16 +325,14 @@ function hasFcDump(airframe = AIRFRAME_IDS[0]) {
 
 /* The tune ids the row can offer right now. */
 /*
- * The tunes on offer. Airframe aware since the whoop landed: a 6S 5 inch
- * race tune loaded onto a 1S whoop is not a different feel, it is an
- * oscillation, because the whoop's PIDs are a third of the five inch's for
- * the same reason its angular acceleration is three times higher.
+ * The tunes on offer, airframe aware: a tune written for one plant loaded
+ * onto another is not a different feel, it is the wrong tune.
  *
- * The argument is optional and defaults to the five inch, because this is
- * called from module scope in the settings allow list where there is no
+ * The argument is optional and defaults to DEFAULT_AIRFRAME, because this
+ * is called from module scope in the settings allow list where there is no
  * `this` to read a setting off. loadSettings passes the stored airframe.
  */
-function tuneChoices(airframe = AIRFRAME_IDS[0]) {
+function tuneChoices(airframe = DEFAULT_AIRFRAME) {
   return [...tunesFor(airframe).map((t) => t.id), ...(hasFcDump(airframe) ? [CUSTOM_TUNE.id] : [])];
 }
 
@@ -562,20 +560,19 @@ const DEFAULTS = {
    * same reason map is: loadSettings only accepts a stored key whose typeof
    * matches the default, and an unknown id falls back to the first tune in
    * configs/registry.js rather than throwing. */
-  tune: 'betaflight-default',
+  tune: 'betaflight-interceptor',
   /*
    * WHICH AIRCRAFT. A plant, not a tune: mass, inertia, motors, rotors,
    * pack, drag and ducts, selected in the compiled module by
    * sim_set_airframe. configs/airframes.js is the list.
    *
-   * '5inch' is the blank profile's, the aircraft every other default here
-   * (the tune, the rates, the camera) is written for, and an unknown id
-   * falls back to it rather than throwing, same rule as map and tune,
-   * because a stale localStorage entry must not stop the page booting. A
-   * profile whose aircraft was never chosen is seated on FIRST_AIRFRAME
-   * when it loads.
+   * DEFAULT_AIRFRAME, the interceptor, is the blob's, the aircraft the tune
+   * above is written for, and an unknown id falls back to it rather than
+   * throwing, same rule as map and tune, because a stale localStorage entry
+   * must not stop the page booting. A profile whose aircraft was never
+   * chosen is seated on FIRST_AIRFRAME when it loads.
    */
-  airframe: '5inch',
+  airframe: DEFAULT_AIRFRAME,
   /*
    * Whether the aircraft question has ever been ANSWERED, which is not the
    * same as whether it is asked. The gate offers all three ways in on every
@@ -659,17 +656,6 @@ const DEFAULTS = {
    * it away.
    */
   pidsSeeded: {},
-  /*
-   * Which generation of the whoop's SHIPPED DEFAULTS this profile has been
-   * moved to. See SUPERSEDED_WHOOP: when a whoop default changes, a stored
-   * copy of the old default has to move with it, and this marker is what
-   * makes that move happen ONCE. Without it the move ran on every load, so
-   * a pilot who put the superseded value back from the menu had it taken
-   * away again at the next boot, which is the opposite of the "one row
-   * away" the comment promised. 0 is a profile from before the marker; the
-   * migration itself says what each generation moved.
-   */
-  whoopDefaults: 0,
   /* The same marker for the wing: 0 is a profile from before the wing had
    * a stabiliser, when Manual was its only tune and never a choice. */
   wingDefaults: 0,
@@ -826,7 +812,8 @@ const DEFAULTS = {
   parts: {},
   /* Each combat quad's payload and accessories, by airframe id:
    * { payload, accessories }, configs/combat.js. A quad with no entry
-   * carries the standard payload and nothing bolted on. */
+   * carries its default payload (configs/combat.js combatChoice: the
+   * interceptor's is none) and nothing bolted on. */
   combat: {},
   /* Each plane's bench setup, by airframe id: the CG (battery and lead),
    * the rates, the expo, the trim and the flaps, configs/tuning.js, only
@@ -979,51 +966,6 @@ function detectFirstRun() {
   }
 }
 
-/* The whoop's id. See the migration in loadSettings. */
-const WHOOP_ID = 'whoop65';
-/*
- * THE WHOOP'S SHIPPED DEFAULTS THAT HAVE BEEN SUPERSEDED, and the value
- * each one used to hold.
- *
- * reseatIfForeign will not move any of these and should not: its rule is
- * "is this still the OTHER aircraft's stock value", which is what protects a
- * number the pilot actually chose, and none of these is the five inch's. So
- * that rule reads a superseded default as the pilot's own and keeps it, and
- * every pilot who flew the whoop before the change would sit on the old
- * value with no sign that a new one exists.
- *
- * Each entry moves ONCE, only from the exact figure that shipped, and only
- * on the whoop. Once is enforced by the whoopDefaults marker in DEFAULTS:
- * GENERATION is the number a profile carries after this table has been
- * applied to it, and the table is applied only to a profile carrying a
- * smaller one. A pilot who genuinely wants the old value has it on the menu
- * one row away, and it stays after they choose it.
- *
- * The history, because the same value has now shipped twice: the whoop
- * shipped on the stock whoop tune, a 65 percent cap and a 115 degree lens.
- * Generation 1 moved those to the Freestyle at a 150 master, 75 and 95.
- * Generation 2 moves the tune and the cap back, the lens stays at 95, and
- * the Freestyle's seeded master goes with the default it was seeded for.
- * A profile still on the generation 0 values is on today's tune and cap
- * already and only its lens moves.
- */
-const SUPERSEDED_WHOOP = {
-  GENERATION: 2,
-  /* 75 percent, the generation 1 cap. Back to 65 with the stock tune. */
-  throttleCap: 75,
-  /* The Freestyle preset, the generation 1 tune. Back to the stock tune. */
-  tune: 'whoop-freestyle',
-  /* 115 degrees, chosen for a 5 by 6 m room. The room is 10 by 12 now. */
-  cameraFov: 115,
-  /*
-   * The PID seed generation 1 laid on the Freestyle: master 150. Taken back
-   * out only from a profile that RECEIVED it (pidsSeeded says so) and still
-   * holds exactly it, so a pilot who moved that slider, or set the tune by
-   * hand, keeps their own numbers.
-   */
-  pidsSeed: { tune: 'whoop-freestyle', sliders: { master: 150 } },
-};
-
 export function loadSettings() {
   let stored = {};
   try {
@@ -1081,9 +1023,9 @@ export function loadSettings() {
   }
   /*
    * The airframe is validated FIRST and on its own, because the tune list
-   * below depends on it. A stored airframe the build no longer offers has to
-   * become the five inch before the tune is checked, or a pilot on a removed
-   * airframe would keep a tune no airframe can load.
+   * below depends on it. A stored airframe the build does not know has to
+   * become DEFAULT_AIRFRAME before the tune is checked, or the pilot would
+   * keep a tune no airframe can load.
    */
   if (!AIRFRAME_IDS.includes(s.airframe)) {
     s.airframe = DEFAULTS.airframe;
@@ -1172,49 +1114,10 @@ export function loadSettings() {
   } else {
     s.rates = normaliseRates(legacy || s.rates);
   }
-  /*
-   * THE WHOOP'S SHIPPED DEFAULTS MOVED, and a stored copy of the old ones
-   * has to move with them. See SUPERSEDED_WHOOP for what and why, and the
-   * whoopDefaults marker in DEFAULTS for why this runs once per profile
-   * rather than on every load.
-   */
-  const migrate = !(s.whoopDefaults >= SUPERSEDED_WHOOP.GENERATION);
-  if (migrate && s.airframe === WHOOP_ID) {
-    const af = airframeById(WHOOP_ID);
-    if (s.rates && s.rates.throttleCap === SUPERSEDED_WHOOP.throttleCap) {
-      s.rates = { ...s.rates, throttleCap: af.rates.throttleCap };
-    }
-    if (s.tune === SUPERSEDED_WHOOP.tune) {
-      s.tune = af.defaultTune;
-    }
-    if (s.cameraFov === SUPERSEDED_WHOOP.cameraFov) {
-      s.cameraFov = af.cameraFov;
-    }
-  }
   /* The PID adjustment, clamped onto what the firmware and the menu will
    * take. An unknown tune id, an out-of-range slider or a half-complete
    * expert table cannot survive a localStorage edit into the emitter. */
   s.pids = normalisePids(s.pids);
-  /*
-   * The seeded slider goes with the default it was seeded for, whatever
-   * aircraft is seated, because it is keyed by tune and not by seat: a
-   * five inch pilot who once flew the whoop carries it too. Only an entry
-   * this shell laid down itself and that has not been touched since.
-   */
-  if (migrate) {
-    const seed = SUPERSEDED_WHOOP.pidsSeed;
-    const e = s.pids[seed.tune];
-    const seeded = s.pidsSeeded && typeof s.pidsSeeded === 'object' && s.pidsSeeded[seed.tune];
-    const untouched = e && e.mode === 'sliders' && !e.pids
-      && Object.keys(e.sliders).length === Object.keys(seed.sliders).length
-      && Object.keys(seed.sliders).every((k) => e.sliders[k] === seed.sliders[k]);
-    if (seeded && untouched) {
-      const rest = { ...s.pids };
-      delete rest[seed.tune];
-      s.pids = rest;
-    }
-  }
-  s.whoopDefaults = SUPERSEDED_WHOOP.GENERATION;
   /*
    * THE WING GREW A STABILISER and became Stabilised by default. A profile
    * that seated the wing before then holds Manual, which was the only row
@@ -1541,11 +1444,9 @@ export function seatAirframe(s, id) {
 /*
  * Lay down an airframe's starting PID adjustment for its default tune, once.
  *
- * No airframe ships one today. The whoop did, for a while: the maker's
- * Freestyle preset with the master slider at 150 percent, the owner's
- * setting flown, until the owner flew the machine hard and asked for the
- * the stock tune instead; SUPERSEDED_WHOOP takes that seed back out. The
- * mechanism stays for the next airframe that wants one. It is a SEED and
+ * No airframe ships one today. The 65 mm whoop did, for a while, until the
+ * owner asked for the stock tune instead, and the whoop itself was removed
+ * on 2026-10-03. The mechanism stays for the next airframe that wants one. It is a SEED and
  * not a setting, so it lands on a profile that has never had an adjustment
  * for that tune and never lands twice; see pidsSeeded above for why once
  * matters.
@@ -2890,25 +2791,6 @@ function locationHashScreen() {
 }
 
 /*
- * WHETHER FREESTYLE IS OFFERED AT ALL, and on a whoop it is not.
- *
- * Freestyle is one place, a town: roofs, alleys, a level crossing and a works
- * road, laid out for a five inch at forty metres a second and about five
- * hundred metres across. A 65 mm whoop doing five is as wrong in it as a five
- * inch is in a living room, and that is the mismatch this whole class split
- * exists to remove. Offering the card anyway would be offering a pilot a
- * place they will turn round and leave.
- *
- * So on a whoop the mode question has one answer and is not asked: the title
- * goes aircraft, then straight to the menu, and Escape from the menu goes
- * straight back to the aircraft. When there is an indoor freestyle space to
- * fly, this is the one function that has to change.
- */
-function freestyleOffered(airframeId) {
-  return airframeById(airframeId).trackClass !== 'micro';
-}
-
-/*
  * RACE OR FREESTYLE, WHEN THE LINK ALREADY SAID.
  *
  * The gate is a question, and a question that has been answered must not be
@@ -3015,93 +2897,36 @@ function reticleSvg() {
 }
 
 /*
- * The two aircraft in plan, drawn TO ONE SCALE.
- *
- * The viewBox is 300 mm across for both, so the five inch fills it and the
- * whoop sits in the middle of it at a bit over a fifth of the width, which
- * is exactly the relationship the two machines have on a bench. That is the
- * single most useful thing a card can tell somebody who has flown one and
- * not the other, and it is the one thing two cropped photographs cannot say.
- *
- * The five inch is an X: four arms out to four open discs, which is what you
- * see when you look at one. The whoop is a tub: four rings joined by webs,
- * with no arm visible anywhere, because there are none. The silhouettes are
- * the difference between the two designs and they are drawn rather than
- * described.
- *
- * Numbers are millimetres and come from configs/airframes.js, so a change to
- * an airframe's dimensions redraws its card.
+ * A quad in plan: an X, four arms out to four open discs, which is what you
+ * see when you look at one. Numbers are millimetres and come from
+ * configs/airframes.js, so a change to an airframe's dimensions redraws its
+ * card.
  */
 function craftSvg(a) {
   if (a.fixedWing) {
     return planeSvg();
   }
-  const VB = 300;           /* viewBox side, millimetres */
-  const c = VB / 2;
-  /*
-   * THE REAL PRODUCT, WHICH ON THE WHOOP IS NOT THE AIRFRAME'S `dims`.
-   *
-   * The whoop flies the five inch's plant, so its `dims` are the five
-   * inch's: that is what the collider sweeps and what the world draws,
-   * because the world is built MICRO_SCALE times life size to suit. Drawn
-   * from those, the whoop's plan would fill this viewBox edge to edge like
-   * the five inch's, and the one thing this card exists to say, that the
-   * two machines sit on a bench at a fifth of each other's width, would be
-   * gone. WHOOP_TRUE_DIMS is the 65 mm machine as the maker publishes it, and
-   * it is what a pilot holding one would measure.
-   */
-  const dims = a.id === 'whoop65' ? WHOOP_TRUE_DIMS : a.dims;
+  const dims = a.dims;
   const arm = dims.arm * 1000;
   const prop = dims.propR * 1000;
-  /* The outside of a duct is the hull, not the blade plus a guess at a wall. */
-  const hull = (dims.hullR ?? dims.propR) * 1000;
   const off = arm / Math.SQRT2;
   const motors = [[off, off], [off, -off], [-off, off], [-off, -off]];
-  const ducted = a.trackClass === 'micro';
+  /* viewBox side, millimetres: 300 held the five inch this was drawn for,
+   * and a 7 inch class quad's discs reach past it, so the box grows to the
+   * aircraft with the same 9 mm margin rather than cropping its props. */
+  const VB = Math.max(300, Math.ceil(2 * (off + prop) + 18));
+  const c = VB / 2;
   const parts = [];
-  if (ducted) {
-    /* The tub: the webs first so the rings sit on top of them. */
-    parts.push(`<rect x="${c - off}" y="${c - off}" width="${off * 2}" height="${off * 2}"`
-      + ` rx="${prop * 0.35}" fill="none" stroke="currentColor" stroke-width="${prop * 0.42}"`
-      + ' stroke-opacity="0.30"/>');
-    parts.push(`<line x1="${c - off}" y1="${c - off}" x2="${c + off}" y2="${c + off}"`
-      + ` stroke="currentColor" stroke-width="${prop * 0.34}" stroke-opacity="0.24"/>`);
-    parts.push(`<line x1="${c - off}" y1="${c + off}" x2="${c + off}" y2="${c - off}"`
-      + ` stroke="currentColor" stroke-width="${prop * 0.34}" stroke-opacity="0.24"/>`);
-  } else {
-    for (const [mx, mz] of motors) {
-      parts.push(`<line x1="${c}" y1="${c}" x2="${c + mx}" y2="${c + mz}"`
-        + ` stroke="currentColor" stroke-width="${prop * 0.20}" stroke-opacity="0.55"/>`);
-    }
-    parts.push(`<rect x="${c - 22}" y="${c - 38}" width="44" height="76" rx="10"`
-      + ' fill="currentColor" fill-opacity="0.30"/>');
-  }
   for (const [mx, mz] of motors) {
-    if (ducted) {
-      /* The duct wall, then the bore, so a ring reads as a ring. */
-      parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${hull}"`
-        + ' fill="currentColor" fill-opacity="0.34"/>');
-      parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${prop}"`
-        + ' fill="none" stroke="currentColor" stroke-width="1.1" stroke-opacity="0.85"/>');
-    } else {
-      parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${prop}"`
-        + ' fill="currentColor" fill-opacity="0.16"'
-        + ' stroke="currentColor" stroke-width="1.4" stroke-opacity="0.8"/>');
-    }
+    parts.push(`<line x1="${c}" y1="${c}" x2="${c + mx}" y2="${c + mz}"`
+      + ` stroke="currentColor" stroke-width="${prop * 0.20}" stroke-opacity="0.55"/>`);
   }
-  if (ducted) {
-    /*
-     * The stack and the camera, which are the only things that say which way
-     * it is pointing. There is no canopy: a whoop is sold bare, the board
-     * IS the top of the aircraft, and the camera standing at the front of it
-     * is the tallest thing on the machine. See src/render/whoopcraft.js,
-     * which draws the same two parts in the same order. -z is the nose in
-     * the craft frame and on this drawing.
-     */
-    parts.push(`<rect x="${c - 9}" y="${c - 9}" width="18" height="18" rx="2"`
-      + ' fill="currentColor" fill-opacity="0.42"/>');
-    parts.push(`<rect x="${c - 7}" y="${c - 17}" width="14" height="11" rx="2"`
-      + ' fill="currentColor" fill-opacity="0.72"/>');
+  parts.push(`<rect x="${c - 22}" y="${c - 38}" width="44" height="76" rx="10"`
+    + ' fill="currentColor" fill-opacity="0.30"/>');
+  for (const [mx, mz] of motors) {
+    parts.push(`<circle cx="${c + mx}" cy="${c + mz}" r="${prop}"`
+      + ' fill="currentColor" fill-opacity="0.16"'
+      + ' stroke="currentColor" stroke-width="1.4" stroke-opacity="0.8"/>');
   }
   return `<svg viewBox="0 0 ${VB} ${VB}" role="img" aria-hidden="true"`
     + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
@@ -3114,22 +2939,6 @@ function craftSvg(a) {
  * (2026-09-25): the town and the Freestyle menu are still there, but the
  * front door is racing or free flight.
  *
- * This used to be two questions in a row. Which aircraft, five inch or
- * whoop, and then race or freestyle, and the second one was skipped on the
- * whoop because a 65 mm machine has nowhere to freestyle. So a pilot who
- * came to fly pressed twice, and what the second press asked depended on
- * what the first one answered: choosing the five inch produced a question
- * the whoop had not been asked. The owner reported exactly that, and it is
- * the report this table answers.
- *
- * Between the two questions there are three legal answers and no more. The
- * whoop has no freestyle, so the pairs are five inch racing, whoop racing,
- * and freestyle, which is the five inch. One screen, three cards, one press.
- * The objection the old aircraft gate wrote down was that a third card
- * beside Race and Freestyle would pretend racing on a whoop was not a real
- * answer; it is answered by racing on a whoop being one of the three cards
- * rather than by asking twice.
- *
  * A card carries both halves of the answer, so act() seats the aircraft and
  * sets the mode in one go. The AIRCRAFT is remembered in settings and the
  * MODE deliberately is not, which is unchanged: what the cursor opens on is
@@ -3138,11 +2947,7 @@ function craftSvg(a) {
  * The pictures are frames of the real renderer, shipped as files by
  * scripts/gatecards.js, because the screen a first visit opens on has to
  * paint before anything has been flown and with no network. The plan
- * drawing over each one is craftSvg, and the two machines are drawn to ONE
- * scale in one viewBox, so the whoop is a fifth of the width of the five
- * inch on its card because it is a fifth of the width of it on a bench. A
- * photograph of a room and a photograph of a field cannot say that: they
- * are both a picture that fills a card.
+ * drawing over a quad's is craftSvg.
  */
 /* A card's face and its lobby from the mode registry (src/share/modes.js):
  * its name, line, tags and picture, the world it seats, and the game its
@@ -3166,11 +2971,13 @@ export const WAYS = [
     /* EVERY AIRCRAFT, ONE CARD: a track built in a world is raced by every
      * quad and by every fixed wing that fits its gates (src/game/verify.js
      * planesFor, #93), so the picker this card opens offers them all and
-     * My tracks says which tracks a plane fits. The five inch is what the
-     * card seats when nothing is; a pilot on any other aircraft keeps it.
-     * The id is the card's and outlived the five inch having it alone. */
+     * My tracks says which tracks a plane fits. DEFAULT_AIRFRAME, the
+     * interceptor, is first, so it is what the card seats when nothing is
+     * and what its plan drawing shows; a pilot on any other aircraft keeps
+     * it. The id is the card's and outlived the five inch, which had it
+     * alone and was removed on 2026-10-03. */
     id: 'race-5inch',
-    airframes: AIRFRAME_IDS,
+    airframes: [DEFAULT_AIRFRAME, ...AIRFRAME_IDS.filter((id) => id !== DEFAULT_AIRFRAME)],
     mode: 'race',
     /* The game of the lobby its one press lands in (onGameCard): null is
      * free flight. */
@@ -3213,7 +3020,7 @@ export const WAYS = [
      * every card is a room now. The title's rooms panel still goes in by
      * this card's way ('lobby:' actions, act), so the entry stays. */
     gate: false,
-    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     home: 'swiss2',
     room: true,
@@ -3234,7 +3041,7 @@ export const WAYS = [
    */
   {
     id: 'combat',
-    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     room: true,
     game: 'combat',
@@ -3243,7 +3050,7 @@ export const WAYS = [
   },
   {
     id: 'ace',
-    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     room: true,
     game: 'tag',
@@ -3267,7 +3074,7 @@ export const WAYS = [
      */
     id: 'war',
     gate: false,
-    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     home: 'itaipu',
     room: true,
@@ -3287,7 +3094,7 @@ export const WAYS = [
      * reads of this table (seatedWay) still land on it for the war.
      */
     id: 'campaign',
-    airframes: AIRFRAME_IDS.filter(freestyleOffered),
+    airframes: AIRFRAME_IDS,
     mode: 'freestyle',
     room: true,
     game: 'war',
@@ -3480,14 +3287,6 @@ export class Ui {
     this.craftGate = !linkedAf;
     /* The hub the gate shows, or null for home (the three hub cards). */
     this.hub = null;
-    /* A link that names the whoop has answered the mode question too, so
-     * that pair of link parameters is still one press from the air. */
-    if (this.syncMode()) {
-      saveSettings(this.settings);
-    }
-    /* Which aircraft the mode was last made legal for. See writeSettings:
-     * the answer only changes when the AIRCRAFT changes. */
-    this.modeSyncedFor = this.settings.airframe;
     /* Set while a guided first flight is in the air. main.js reads it. */
     this.guided = false;
     /* The room game a title card preselected; see act()'s ways. */
@@ -7917,8 +7716,7 @@ export class Ui {
        *
        * Both routes to it are ordinary. The track builder's Fly this track
        * link is `?map=custom`, which linkedMode reads as race, so every
-       * pilot arriving from the builder hit it. And on a whoop syncMode
-       * answers the mode itself, so every whoop pilot hit it from any link.
+       * pilot arriving from the builder hit it.
        *
        * onGate() is the one definition, `this.screen === 'title' &&
        * (this.craftGate || !this.mode)`, and it is what cardScreen and the
@@ -9034,34 +8832,6 @@ export class Ui {
   /* Store, redraw, tell the shell. The three things every row that changes
    * a setting does, in one place. */
   writeSettings() {
-    /*
-     * ONLY WHEN THE AIRCRAFT MOVED, and the comment this replaces explains
-     * why it has to be conditional: "The Aircraft row comes through here,
-     * so this is where a pilot who swaps to the whoop from inside the town
-     * stops being in freestyle." That is the one row it was written for,
-     * and EVERY row that changes a setting comes through here.
-     *
-     * syncMode does not ask what changed. On a whoop, where freestyle is
-     * not offered because there is nowhere to fly it, it forces mode to
-     * race and the map to custom. So a pilot on the whoop, in the town,
-     * who nudged the camera angle was thrown onto the custom track:
-     *
-     *   bug-4d5b2c51: "when i tried to change the camera angle (on the
-     *   65mm) it brought me to a different page. I want to freestyle but
-     *   always go to the raceGOW track page as soon as i try to adjust cam
-     *   angle." And, in the same ticket, "changing the quad in freestyle
-     *   doesn't seem to make a difference", which is the other end of it.
-     *
-     * Measured before the change: camera angle 25 to 15 on a seated whoop
-     * moved mode freestyle to race and map city to custom, touching
-     * nothing else. Gating on the aircraft keeps the case it was written
-     * for, because swapping aircraft is exactly when the airframe moves,
-     * and boot still runs it once for a stale saved pair.
-     */
-    if (this.settings.airframe !== this.modeSyncedFor) {
-      this.modeSyncedFor = this.settings.airframe;
-      this.syncMode();
-    }
     saveSettings(this.settings);
     this.renderMenu();
     /* The title's freestyle line and the score overlay both read a setting
@@ -9304,15 +9074,9 @@ export class Ui {
            * The photograph answers "what is this place like", and a picture
            * of a town, a field or a room is the only honest answer to that.
            * It cannot answer "how big is the thing I am flying", because
-           * whatever is in front of the lens fills the frame: the five inch
-           * and the whoop are 220 mm and 65 mm across and both would be a
-           * quad on a card.
+           * whatever is in front of the lens fills the frame.
            *
-           * So the plan is drawn over the corner of each, and BOTH ARE DRAWN
-           * TO ONE SCALE in one viewBox, which is why the whoop's mark is a
-           * fifth of the width of the five inch's. That relationship is the
-           * single most useful thing these cards can tell somebody who has
-           * flown one and not the other. See craftSvg.
+           * So the plan is drawn over the corner of each. See craftSvg.
            */
           const mark = el('div', 'gate-card-mark');
           mark.innerHTML = it.svg;
@@ -9634,7 +9398,7 @@ export class Ui {
     }
     /* Before the seat is written, because each aircraft class has a seat
      * of its own: a plane that does not fit the track would file it in the
-     * plane's seat and then fly the five inch's (seatCraftForDoc). */
+     * plane's seat and then fly DEFAULT_AIRFRAME's (seatCraftForDoc). */
     this.seatCraftForDoc(doc);
     const plain = toPlain(doc);
     const bind = readEditKey(doc.id) ? readBind(doc.id) : null;
@@ -10893,7 +10657,7 @@ export class Ui {
    * Seat an aircraft that may race a track, if the one seated may not, and
    * return it, or null when nothing moved. Every quad may, and every fixed
    * wing that fits every gate (src/game/verify.js planesFor); a plane that
-   * does not fit gives way to the five inch.
+   * does not fit gives way to DEFAULT_AIRFRAME, the racer.
    *
    * The boot path calls this with a track that arrived by link, before
    * anything reads a seat, because the link filed it in the seat of the
@@ -10905,55 +10669,11 @@ export class Ui {
     if (!doc || !have.fixedWing || planesFor(doc).includes(have.id)) {
       return null;
     }
-    const want = airframeById('5inch');
+    const want = airframeById(DEFAULT_AIRFRAME);
     seatAirframe(this.settings, want.id);
     this.settings.airframeAsked = true;
     this.writeSettings();
     return want;
-  }
-
-  /*
-   * Keep the mode legal for the seated aircraft.
-   *
-   * A whoop has nowhere to freestyle, so on one the mode is not a question:
-   * see freestyleOffered. It races, and with no track seated its world is
-   * the Track seat's home, the Swiss valley. That covers a leftover
-   * 'freestyle' from the five inch and a mode that was never set, and it is
-   * what makes a ?craft=whoop65 link one press from the air rather than a
-   * card away from it.
-   *
-   * The gate is the one place this must not run, and craftGate is the half
-   * of it that says so. There the mode is deliberately blank and the pilot
-   * is one press from seating the OTHER aircraft, so answering the mode on
-   * a whoop's behalf while the cards are up would close the gate under a
-   * pilot who was about to choose the five inch.
-   *
-   * The SEAT moves with the mode, because a mode on its own is a word: a
-   * pilot who swaps to the whoop from inside the town would otherwise be in
-   * race with the town still seated, which is the whoop in the five inch's
-   * five hundred metre world, drawn behind the title, and is the exact thing
-   * this is here to stop. It is also the state every pilot who flew the town
-   * on a whoop before this already has in storage, so the boot call has to
-   * repair it and not only the swap. freestyleMap is left alone, so swapping
-   * back to the five inch puts them in the town they left.
-   *
-   * Returns whether it changed anything, because two of the three callers
-   * store the settings themselves and one of them stores them once.
-   */
-  syncMode() {
-    if (this.craftGate || freestyleOffered(this.settings.airframe)) {
-      return false;
-    }
-    let moved = false;
-    if (this.mode !== 'race') {
-      this.mode = 'race';
-      moved = true;
-    }
-    if (this.settings.map !== 'track') {
-      this.settings.map = 'track';
-      moved = true;
-    }
-    return moved;
   }
 
   /* What the title's one Escape hint is named for: the screen it lands on.
@@ -13085,9 +12805,7 @@ export class Ui {
        * and a whoop skipped the second one, so how far Escape went depended
        * on what was seated. One screen, one step, whatever is flying.
        *
-       * BOTH halves are cleared, because both are what the gate asks. The
-       * mode going null is also what lets syncMode leave it alone while the
-       * gate is open: see the comment there.
+       * BOTH halves are cleared, because both are what the gate asks.
        */
       if (this.onGate()) {
         /* A hub backs out to home, the hub's card under the cursor; home
@@ -13640,8 +13358,8 @@ export class Ui {
     /*
      * THE TRACK DECIDES WHETHER THE AIRCRAFT MAY RACE IT, and it decides
      * here, on the way to the pre-flight card rather than after the world is
-     * built: a plane too wide for a track's gates gives way to the five inch
-     * (seatCraftForDoc). The swap is silent and reversible, and the
+     * built: a plane too wide for a track's gates gives way to
+     * DEFAULT_AIRFRAME, the racer (seatCraftForDoc). The swap is silent and reversible, and the
      * pre-flight card's own note says which machine the run is filed under.
      */
     if (action === 'fly') {

@@ -83,10 +83,10 @@ const CROWN = `
 const SCENARIOS = [
   {
     id: 'quad-gate',
-    what: 'a five inch clipping a gate post at 22 m/s: props off',
+    what: 'the interceptor clipping a gate post at 22 m/s: props off',
     /* One gate of a built track on the Swiss valley's grass (standGate);
      * the race field's gates until the field went. */
-    airframe: '5inch',
+    airframe: 'interceptor',
     map: 'swiss2',
     standGate: true,
     throw: `
@@ -111,8 +111,8 @@ const SCENARIOS = [
   },
   {
     id: 'quad-wall',
-    what: 'a five inch into the face of a wall at 25 m/s: an arm breaks',
-    airframe: '5inch',
+    what: 'the interceptor into the face of a wall at 25 m/s: an arm breaks',
+    airframe: 'interceptor',
     map: 'alps',
     throw: `
       const s = window.__craftState();
@@ -217,7 +217,7 @@ const SCENARIOS = [
   {
     id: 'fpv-camera-knocked',
     what: 'the FPV picture when the camera is knocked askew, then the antenna torn off, then the pack ejected',
-    airframe: '5inch',
+    airframe: 'interceptor',
     map: 'swiss2',
     standGate: true,
     throw: `
@@ -249,7 +249,7 @@ const H = Number(argValue('h', 720));
 function seeds(sc) {
   const out = [];
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, sc.airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, sc.airframe),
     airframeAsked: true,
     map: sc.map,
     graphics: process.env.SIM_GPU === '1' ? 'high' : 'low',

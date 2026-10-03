@@ -37,7 +37,7 @@
  *           --three=DIR (an unpacked three@0.160.0 npm package), the
  *           built meshes' own bounding box (src/render/craft.js).
  *   midair  the referee (edge/rooms/referee.js, fed encoded POSEs) over
- *           nine airframe pairs from two whoops to a quad against a 1.8 m
+ *           nine airframe pairs from two quads to a quad against a 1.8 m
  *           wing, head on, crossing at 90 and converging at 45 degrees,
  *           10 to 150 m/s closing (either aircraft at most MAX_MPS),
  *           offsets across both hulls. A miss is a
@@ -382,12 +382,12 @@ function compareHull(id, parts, ref, label) {
 /* ---------------------------------------------------------------- midair */
 
 const PAIRS = [
-  ['5inch', '5inch'],
-  ['whoop65', 'whoop65'],
-  ['5inch', 'whoop65'],
-  ['5inch', 'f16878'],
-  ['5inch', 'sky1800'],
-  ['whoop65', 'p51d1450'],
+  ['interceptor', 'interceptor'],
+  ['7inch', '7inch'],
+  ['interceptor', '7inch'],
+  ['interceptor', 'f16878'],
+  ['interceptor', 'sky1800'],
+  ['7inch', 'p51d1450'],
   ['f16878', 'p51d1450'],
   ['p51d1450', 'p51d1450'],
   ['zagi1219', 'kadet1981'],
@@ -572,7 +572,7 @@ function truthMin(h, f, point, t0 = T0 - WINDOW_MS, t1 = T0 + WINDOW_MS) {
 
 function auditBubbles() {
   console.log(`\nbubble: within() at ${BUBBLE_M} m (tag) and ${BLAST_M} m (warhead), miss = truth ${BUBBLE_BAND_M * 100} cm inside unjudged, false = judged with truth ${BUBBLE_BAND_M * 100} cm outside`);
-  const ids = ['5inch', 'whoop65', 'f16878', 'sky1800'];
+  const ids = ['interceptor', '7inch', 'f16878', 'sky1800'];
   const speeds = [10, 40, 80];
   const rows = new Map();
   for (const id of ids) {
@@ -607,7 +607,7 @@ function auditBubbles() {
             for (const t of ctimes) {
               ct.push(war ? { ...cpose(t), t, flags: FLAG_AIRBORNE } : decodePose(encodePose({ ...cpose(t), t, flags: FLAG_AIRBORNE | FLAG_QUAD, seq: 0, wx: 0, wy: 0, wz: 0 })));
             }
-            const c = within(war ? { id: 'point' } : hullFor('5inch'), h, ct, hunter, T0 - WINDOW_MS, T0 + WINDOW_MS, war ? BLAST_M : BUBBLE_M);
+            const c = within(war ? { id: 'point' } : hullFor('interceptor'), h, ct, hunter, T0 - WINDOW_MS, T0 + WINDOW_MS, war ? BLAST_M : BUBBLE_M);
             const key = `${war ? 'warhead' : 'tag'}|${v}|${fps}`;
             const row = rows.get(key) ?? { n: 0, inside: 0, outside: 0, miss: 0, fals: 0 };
             row.n += 1;
@@ -634,7 +634,7 @@ function auditBubbles() {
 
 function auditOrb() {
   console.log(`\norb: catchOrb at ${BUBBLE_M} m round a still orb, the same bands`);
-  const ids = ['5inch', 'f16878'];
+  const ids = ['interceptor', 'f16878'];
   const speeds = [10, 40, 80];
   for (const id of ids) {
     const h = hullFor(id);
@@ -671,7 +671,7 @@ function auditOrb() {
 
 function auditCut() {
   console.log(`\ncut: judgeCut at ${REACH_M} m from a still streamer on 10 Hz frames, the same bands`);
-  const ids = ['5inch', 'f16878'];
+  const ids = ['interceptor', 'f16878'];
   const speeds = [10, 40, 80];
   /* 40 links of 0.5 m along x at y 100, towed by a still owner. */
   const LINKS = 40;
@@ -772,8 +772,8 @@ async function auditDamage() {
    * is off flies it with damage on. */
   for (const friendly of [false, true]) {
     const ref = new Referee(friendly);
-    ref.seat(1, '5inch');
-    ref.seat(2, '5inch');
+    ref.seat(1, 'interceptor');
+    ref.seat(2, 'interceptor');
     let judged = false;
     for (let k = 0; k < 6; k += 1) {
       const t = T0 + k * 33;

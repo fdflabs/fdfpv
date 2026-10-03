@@ -85,7 +85,7 @@ function say(ok, what) {
 const f2 = (v) => Number(v).toFixed(2);
 
 function seed(airframe, map, extra = '') {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   s.map = map;
   s.graphics = 'low';
   s.flightMode = 'angle';
@@ -307,9 +307,10 @@ async function pickerOnTheGate(page) {
   await press(page, 'Enter');
   await page.sleep(300);
   const after = await page.evaluate('({ open: window.__ui.carousel.isOpen, airframe: window.__ui.settings.airframe, mode: window.__ui.mode, gate: window.__ui.onGate() })');
-  say(right === 'whoop65' && !after.open && after.airframe === 'whoop65' && after.mode === 'race' && !after.gate,
+  const next = open.ids[(open.ids.indexOf(open.current) + 1) % open.ids.length];
+  say(open.current === 'interceptor' && right === next && !after.open && after.airframe === next && after.mode === 'race' && !after.gate,
     `the arrow moves to the ${right} and Enter seats it and answers the gate: ${JSON.stringify(after)}`);
-  /* Back to the five inch for the flight, through the Aircraft row's picker. */
+  /* Back to the interceptor for the flight, through the Aircraft row's picker. */
   await page.evaluate("window.__ui.show('quad'); true");
   const row = await page.evaluate("window.__ui.items().findIndex((it) => it.open)");
   await page.evaluate(`window.__ui.setCursor(${row}); true`);
@@ -319,7 +320,7 @@ async function pickerOnTheGate(page) {
   await press(page, 'Enter');
   await page.sleep(300);
   const back = await page.evaluate('({ airframe: window.__ui.settings.airframe, open: window.__ui.carousel.isOpen })');
-  say(row >= 0 && back.airframe === '5inch' && !back.open, `the Aircraft row opens the same picker, and seats the ${back.airframe} from it`);
+  say(row >= 0 && back.airframe === 'interceptor' && !back.open, `the Aircraft row opens the same picker, and seats the ${back.airframe} from it`);
   await page.evaluate("window.__ui.show('title'); true");
 }
 
@@ -399,7 +400,7 @@ async function lake(page) {
   console.log('the Alps\' lake: a float plane afloat, and what cannot float on it');
   const st = await page.evaluate('({ c: window.__craftState(), craft: window.__craft().run })');
   say(st.craft === 'timber1500f' && st.c.floats && st.c.floats.onWater, `the ${st.craft} starts afloat`);
-  const steps = [['cub1400f', 'ground'], ['5inch', 'air-forced']];
+  const steps = [['cub1400f', 'ground'], ['interceptor', 'air-forced']];
   for (const [id, rule] of steps) {
     const was = await page.evaluate('window.__craftState()');
     const r = await page.evaluate(`window.__swapNow(${JSON.stringify(id)}).then(() => window.__lastSwap())`);
@@ -510,22 +511,22 @@ async function mapTrack(page) {
   await page.until("/does not fit/.test(window.__craftState().banner)", 20000).catch(() => {});
   off.banner = await page.evaluate('window.__craftState().banner');
   await page.evaluate('window.__drawOff(true); true');
-  say(off.gates === 0 && /does not fit/.test(off.banner), `the Skyhunter does not fit the five inch gate: the world without the track, and told so ("${off.banner}")`);
+  say(off.gates === 0 && /does not fit/.test(off.banner), `the Skyhunter does not fit the quad gate: the world without the track, and told so ("${off.banner}")`);
   judgeSwap('track', off.s, 'sky1800', w2);
   const w4 = await page.evaluate('window.__craftState()');
-  const whoop = await page.evaluate("window.__swapNow('whoop65').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
-  say(whoop.gates === 3, `the whoop is a quad, and every quad races every track: ${whoop.gates} gates`);
-  judgeSwap('track', whoop.s, 'whoop65', w4);
+  const seven = await page.evaluate("window.__swapNow('7inch').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
+  say(seven.gates === 3, `the 7 inch is a quad, and every quad races every track: ${seven.gates} gates`);
+  judgeSwap('track', seven.s, '7inch', w4);
   const w3 = await page.evaluate('window.__craftState()');
-  const back = await page.evaluate("window.__swapNow('5inch').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
-  say(back.gates === 3, `back on the five inch the track is back: ${back.gates} gates`);
-  judgeSwap('track', back.s, '5inch', w3);
+  const back = await page.evaluate("window.__swapNow('interceptor').then(() => ({ s: window.__lastSwap(), gates: window.__race().gates.length }))");
+  say(back.gates === 3, `back on the interceptor the track is back: ${back.gates} gates`);
+  judgeSwap('track', back.s, 'interceptor', w3);
   await page.evaluate('window.__drawOff(false); true');
 }
 
 async function runMap(map) {
   console.log(`\n${map}`);
-  const craft = map === 'alps' ? 'timber1500f' : '5inch';
+  const craft = map === 'alps' ? 'timber1500f' : 'interceptor';
   const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: seed(craft, map) });
   try {
     await page.until('!!window.__shellReady', 300000);
@@ -535,12 +536,12 @@ async function runMap(map) {
     if (map === 'alps') {
       await lake(page);
       /* Then the land: the lake's run restarted on the five inch. */
-      await page.evaluate("window.__swapNow('5inch'); true");
+      await page.evaluate("window.__swapNow('interceptor'); true");
       await page.sleep(500);
       await page.evaluate("window.__ui.onAction('title', window.__ui.settings); true");
       await page.sleep(500);
       await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
-      await page.until("window.__craftState().mode === 'flight' && window.__map().ready && window.__craft().run === '5inch'", 400000).catch(() => {});
+      await page.until("window.__craftState().mode === 'flight' && window.__map().ready && window.__craft().run === 'interceptor'", 400000).catch(() => {});
       await page.sleep(500);
     }
     console.log('  parked, every aircraft by ]');
@@ -583,7 +584,7 @@ async function runMap(map) {
  */
 async function runPicker(map) {
   console.log(`\nthe picker, on ${map}`);
-  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: seed('5inch', map) });
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html', seed: seed('interceptor', map) });
   try {
     await page.until('!!window.__shellReady', 300000);
     await pickerOnTheGate(page);

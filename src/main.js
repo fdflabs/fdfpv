@@ -180,7 +180,7 @@ import { MOTOR_ESTIMATES } from '../configs/motor-estimates.js';
 import { fullEntry, normalizeEntry, setupFor, tuneBlock, tuningFor } from '../configs/tuning.js';
 import { TestStand } from './game/teststand.js';
 import { setTuningShell, standSound } from './ui/hangar-tuning.js';
-import { AIRFRAMES, STRIKER_CAMERA, airStartSpeed, airframeById } from '../configs/airframes.js';
+import { AIRFRAMES, DEFAULT_AIRFRAME, STRIKER_CAMERA, airStartSpeed, airframeById } from '../configs/airframes.js';
 import { craftBuilderFor } from './render/craft.js';
 import { liveryFor, setLiverySource } from './render/livery.js';
 import { partsFor, setPartsSource } from './render/partsfit.js';
@@ -306,8 +306,10 @@ const WASM_URL = new URL(`../dist/sim.wasm${new URL(import.meta.url).search}`, i
  * flew.
  *
  * configs/airframes.js carries the figure per airframe as `vHalfDown`,
- * snapshotted from plant.c, and `npm run whoop:gates` rests the real
- * module on a plane to prove the two agree. Seated by syncCraftScale, between runs only, with
+ * snapshotted from plant.c (the whoop's gates rested the real module on a
+ * plane against it until the whoop was removed; scripts/crash-rules-selftest.js
+ * still walks the collider onto a slab to prove it reaches exactly that).
+ * Seated by syncCraftScale, between runs only, with
  * the collision dimensions and the drawn model: these two are a FRAME, and
  * moving one mid lap would move the floor under a craft that is flying.
  */
@@ -842,7 +844,6 @@ export async function boot({
    */
   const flightStats = createFlightStats({
     describe: () => ({
-      craft: ui.settings.airframe === 'whoop65' ? 'whoop65' : '5inch',
       /* The board's stats still spell Track mode 'custom', the seat's old
        * name (STATS_MAPS in fdfpv-leaderboard's validate.js). */
       map: ui.settings.map === 'track' ? 'custom' : ui.settings.map,
@@ -1928,9 +1929,10 @@ export async function boot({
    */
   shell.keepAcrossMaps(ghostRig.group);
   /* The ghost is the seated aircraft again, so it is rebuilt when that
-   * changes: a wing chasing a wing's lap, not a five inch. Between runs
-   * only, from syncCraftScale, the same moment the hero craft swaps. */
-  let ghostRigAirframe = '5inch';
+   * changes: a wing chasing a wing's lap, not a quad. Between runs only,
+   * from syncCraftScale, the same moment the hero craft swaps. buildShell
+   * draws DEFAULT_AIRFRAME's. */
+  let ghostRigAirframe = DEFAULT_AIRFRAME;
   function swapGhostRig() {
     if (ghostRigAirframe === runAirframe) {
       return;
@@ -2213,7 +2215,9 @@ export async function boot({
     return af.combat ? combatSimId(af, combatSeated(af.id)) : af.simId;
   }
   /* The plant seated now, which a propulsion changes without the airframe
-   * changing. The module starts on the five inch's. */
+   * changing. The module starts on plant 0, the stage 1 verification
+   * reference, which no aircraft in configs/airframes.js seats, so the
+   * first applySettings always selects the pilot's plant. */
   let runSimId = 0;
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
@@ -6679,15 +6683,15 @@ export async function boot({
     }
     const style = runStyle === 'arcade' ? '.arcade' : '';
     /*
-     * The AIRFRAME is in the key, and it has to be: a whoop lap and a five
-     * inch lap on the same track are not the same record, they are not
-     * within a factor of three of each other, and the config hash above
-     * cannot tell them apart because the tune is a different FILE, not a
-     * different plant. The five inch's suffix is EMPTY so every record ever
-     * set stays exactly where it is, which is the same trick the flight
-     * style uses one line up and for the same reason.
+     * The AIRFRAME is in the key, and it has to be: two aircraft's laps on
+     * the same track are not the same record, and the config hash above
+     * cannot tell two plants on one tune file apart. The EMPTY suffix was
+     * the five inch's, so every record set before the airframe joined the
+     * key stayed where it was; the five inch was removed on 2026-10-03 and
+     * its records stay under that key, untouched and unread, as the
+     * orphaned keys below do.
      */
-    const craft = runAirframe === '5inch' ? '' : `.${runAirframe}`;
+    const craft = `.${runAirframe}`;
     /*
      * AND THE WEIGHT, on exactly the rule above it, keyed on the multiple of
      * g the plant is holding rather than on the slider, so the key names the
@@ -7614,14 +7618,14 @@ export async function boot({
    * NOT as the stored setting. That is deliberate: applySettings below is
    * called once at boot, sees the two disagree, and does the swap through
    * the one code path that swaps an aircraft, instead of boot having a
-   * second path of its own that would drift from it. A five inch pilot's
-   * boot is unchanged; a whoop pilot's boot builds one craft it throws away,
-   * which is a few hundred triangles once.
+   * second path of its own that would drift from it. buildShell draws
+   * DEFAULT_AIRFRAME; the module starts on plant 0, which no aircraft
+   * seats (runSimId), so every boot takes the swap and sim_set_airframe.
    */
-  let runAirframe = '5inch';
+  let runAirframe = DEFAULT_AIRFRAME;
   /* The model the scene draws: TITLE_CRAFT on the title, the seated
-   * aircraft everywhere else. buildShell draws the five inch. */
-  let drawnCraft = '5inch';
+   * aircraft everywhere else. */
+  let drawnCraft = DEFAULT_AIRFRAME;
   let drawnCombat = null;
   /* Where the seated aircraft bolts its camera, in its own frame. The quad's
    * numbers are lens.js's; the wing's are in the nose of its pod. */
@@ -7631,7 +7635,7 @@ export async function boot({
   let runCells = airframeById(runAirframe).cells;
   /* Which aircraft the Settings studio last built, so it is rebuilt when
    * the aircraft changes rather than posing the old one. */
-  let showcaseCraft = '5inch';
+  let showcaseCraft = DEFAULT_AIRFRAME;
   /* Ten doubles for sim_float_state, for the harness's reading, taken once. */
   let floatStatePtr = 0;
   /* Four doubles in the module's heap for sim_plane_surfaces, taken once. */
@@ -8853,7 +8857,6 @@ export async function boot({
 
   /* Between runs, from applySettings: the mode this run flies. */
   function applyCrashMode(s) {
-    syncPartTable();
     const want = damage.available && crashDamageWanted(s);
     if (want === runDamage) {
       return;
@@ -8864,25 +8867,6 @@ export async function boot({
       clearCrashWorld();
     }
     crashReset();
-  }
-
-  /*
-   * THE WHOOP'S PARTS. The shell flies the whoop on the five inch's plant
-   * in a room MICRO_SCALE times life size, so the plant's own table for
-   * that plant would break it like a five inch. The module keeps a table
-   * of the real whoop's parts scaled to that world (sim_set_part_table),
-   * which is what this machine is made of here. Setting it clears the
-   * damage state, so it is only set when it changes, between runs.
-   */
-  function syncPartTable() {
-    if (typeof sim.e.sim_set_part_table !== 'function') {
-      return;
-    }
-    const want = airframeById(runAirframe).id === 'whoop65' ? 1 : 0;
-    if (sim.e.sim_part_table() !== want) {
-      sim.e.sim_set_part_table(want);
-      wreckCraft = null;
-    }
   }
 
   /*
@@ -10506,9 +10490,6 @@ export async function boot({
      * the reseat below writes afresh. */
     Object.assign(s, next);
     s.airframeAsked = true;
-    /* The mode that goes with the aircraft (syncMode) waits for the title,
-     * with the world. */
-    ui.modeSyncedFor = to.id;
     ui.persistSettings();
     runAirframe = to.id;
     runSimId = seatedSimId(to.id);
@@ -10683,14 +10664,9 @@ export async function boot({
     ghostCourseChanged();
   }
 
-  /* The run is over: the world follows the seat again, and the mode the
-   * seated aircraft may fly. */
+  /* The run is over: the world follows the seat again. */
   function releaseWorldHold() {
     worldHold = null;
-    if (ui.syncMode()) {
-      ui.persistSettings();
-    }
-    ui.modeSyncedFor = ui.settings.airframe;
     if (!worldMatchesSettings()) {
       syncWorld();
     }
@@ -15403,7 +15379,7 @@ export async function boot({
       crashCam.recordPeers(roomPeers, roomTagBubble.drawn());
     }
 
-    /* The lens sits where herocraft.js bolts it, forward AND up, not at the
+    /* The lens sits where a quad model bolts it, forward AND up, not at the
      * centre of gravity's height. src/render/lens.js carries both numbers and
      * the reason. camUp is the craft's own up, so the offset rolls with it. */
     camFwd.set(0, 0, -1).applyQuaternion(qPrev);

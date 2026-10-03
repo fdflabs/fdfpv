@@ -87,7 +87,7 @@ const load = () => execFileSync('uptime').toString().trim().replace(/^.*load/, '
 const AIRFRAME = 'sky1800';
 function seed() {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIRFRAME),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME),
     airframeAsked: true,
     map: 'swiss2',
     /* The GPU draws the owner's movie as a pilot sees it; the software

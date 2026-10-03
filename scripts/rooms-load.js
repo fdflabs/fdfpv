@@ -336,7 +336,7 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
       c.ws = ws;
       ws.on('open', () => {
         c.sendText({ type: 'hello', proto: PROTO, build: 'load', name: [c.i % 24, (c.i * 7) % 24, 10 + (c.i % 90)], profile: {
-          airframe: c.quad ? '5inch' : 'cub1400', map: c.room.map, figure: c.i % 12, livery: null, parts: null,
+          airframe: c.quad ? 'interceptor' : 'cub1400', map: c.room.map, figure: c.i % 12, livery: null, parts: null,
         } });
       });
       ws.on('message', (data, binary) => {

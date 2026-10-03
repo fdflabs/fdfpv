@@ -24,7 +24,6 @@
  */
 
 import * as THREE from 'three';
-import { buildHeroCraft } from './herocraft.js';
 import { createCraftPose, damp } from './craftpose.js';
 import { disposeSceneGraph } from './shell.js';
 import { SESSION_TEXTURES } from './session-textures.js';
@@ -117,7 +116,7 @@ export function createShowcase(canvas, opts = {}) {
   wash.position.y = -0.052 * k;
   scene.add(wash);
 
-  const hero = (opts.build || buildHeroCraft)({ fog: false, lite: true });
+  const hero = opts.build({ fog: false, lite: true });
   const pose = new THREE.Group();
   pose.add(hero.group);
   scene.add(pose);
