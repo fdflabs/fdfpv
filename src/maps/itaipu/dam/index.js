@@ -155,7 +155,7 @@ const WET_PROBE = 20;
  * gates from the west (the aerial-spill-2 photograph; the footprint
  * steps in where the second divider stands), ending where the footprint
  * ends each (west 483, the published length). */
-const SPILL = {
+export const SPILL = {
   width: 362,
   gates: 14,
   gateWidth: 20,

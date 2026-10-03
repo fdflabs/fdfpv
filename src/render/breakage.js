@@ -172,7 +172,9 @@ export function createBreakage(opts = {}) {
   const api = {
     group,
     /* The map now drawn, or null. A new one (the same map built again)
-     * has this match's events applied to it, the pieces where they are. */
+     * has this match's events applied to it, in order, the pieces where
+     * they are and every opening handed to its water, as a pilot who
+     * joins late has them. */
     setMap(next, now) {
       if (next === map) {
         return;
@@ -203,7 +205,8 @@ export function createBreakage(opts = {}) {
     },
     /* One roomwar 'damage' event, at room ms now; `quiet` for one
      * applied again to a rebuilt map, which throws no dust and makes no
-     * sound and tells the water nothing new. */
+     * sound. Its openings go to onOpening either way: a rebuilt map's
+     * water starts from nothing and needs every one of them again. */
     apply(e, now, quiet = false) {
       applied.push(e);
       const st = map && map.structures[e.target];
@@ -259,7 +262,7 @@ export function createBreakage(opts = {}) {
       }
       for (const o of e.openings) {
         openings.set(o.id, o);
-        if (opts.onOpening && !quiet) {
+        if (opts.onOpening) {
           opts.onOpening(o, e);
         }
       }

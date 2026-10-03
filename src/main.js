@@ -7932,8 +7932,12 @@ export async function boot({
   const warBreakage = createBreakage({
     debris,
     floorAt: (x, z, y) => (view && typeof view.floorAt === 'function' ? view.floorAt(x, z, y) : groundAt(x, z)),
+    /* Kept once each (a rebuilt map is handed them all again), and
+     * always handed to the map now drawn. */
     onOpening: (o) => {
-      warOpenings.push(o);
+      if (!warOpenings.some((x) => x.id === o.id && x.at === o.at)) {
+        warOpenings.push(o);
+      }
       if (view && typeof view.onOpening === 'function') {
         view.onOpening(o);
       } else {
