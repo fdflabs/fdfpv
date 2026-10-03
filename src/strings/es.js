@@ -2350,6 +2350,7 @@ export default {
   "main.smoke_off": "Humo apagado",
   "replay.title": "Cámara de choques",
   "replay.prompt": "Repetición",
+  "replay.water_catching_up": "El agua se está poniendo al día con la repetición",
   "replay.default_name": "{aircraft} a las {time}",
   "replay.nothing_recorded_yet": "Todavía no hay nada que repetir: primero vuela",
   "replay.my_clips": "Mis clips",

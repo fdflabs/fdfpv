@@ -3406,6 +3406,12 @@ export async function boot({
     if (w.damage) {
       warBreakageAt(w.damage, w.t ?? 0);
     }
+    /* And its water: a flood of the replay's own from the openings, on
+     * the clip's clock (map.replayFlood). The mission's gate state is
+     * not journalled yet (no war feeds map.setGateState), so none. */
+    if (w.openings && typeof view.replayFlood === 'function') {
+      view.replayFlood({ openings: w.openings, gates: null, fromMs: w.from ?? w.t ?? 0 });
+    }
   }
 
   /*
@@ -3435,6 +3441,9 @@ export async function boot({
     warBreakageShown = { seqs: list.map((d) => d.seq), t };
   }
   function warBreakageLive(now) {
+    if (view && typeof view.replayFlood === 'function') {
+      view.replayFlood(null);
+    }
     if (!warBreakageShown) {
       return;
     }
@@ -15897,6 +15906,12 @@ export async function boot({
          * craft is where it was then; a clip saved before it had one is
          * drawn at the live clock. */
         animMs = crashCam.animMs() ?? trafficMs(simTimeMs);
+        /* The live water steps on with the room meanwhile, never past
+         * the traffic's clock it is stepped on after (TRAFFIC_SLACK_MS):
+         * the map's replay flood is the one on the clip's. */
+        if (view.advanceLiveWater && roomLinkState.state().phase === 'open' && roomLinkState.roomNow() != null) {
+          view.advanceLiveWater(roomLinkState.roomNow() - TRAFFIC_SLACK_MS);
+        }
       } else if (mode === 'results') {
         animMs = trafficMs(simTimeMs + Math.max(0, finishCamMs));
       } else if (mode !== 'title') {
@@ -18172,6 +18187,9 @@ export async function boot({
     return true;
   };
   window.__mapFlows = () => (view && view.waterFlows ? view.waterFlows() : null);
+  /* How a crash cam replay's water stands (map.replayWater), for
+   * scripts/replay-world.js. Harness only. */
+  window.__mapReplayWater = () => (view && view.replayWater ? view.replayWater() : null);
   /* A mission's gate state handed to the map (map.setGateState), for
    * scripts/itaipu-views.js --gates. Harness only. */
   window.__mapGates = (list) => {
@@ -18508,6 +18526,8 @@ export async function boot({
     /* A replayed explosion in the world's voice, from where it went off;
      * false without one. */
     worldBoom: (p, level) => worldAudio.boom(p, level),
+    /* How the map's replay water stands (map.replayWater), or null. */
+    replayWater: () => (view && typeof view.replayWater === 'function' ? view.replayWater() : null),
     /* The room clock now, or null out of a room: what each row and each
      * voice heard is stamped on (src/replay/voicerec.js). */
     roomNow: () => (roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null),

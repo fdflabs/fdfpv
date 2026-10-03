@@ -2346,6 +2346,7 @@ export default {
   "main.smoke_off": "Smoke off",
   "replay.title": "Crash cam",
   "replay.prompt": "Replay",
+  "replay.water_catching_up": "The water is catching up with the replay",
   "replay.default_name": "{aircraft} at {time}",
   "replay.nothing_recorded_yet": "Nothing to replay yet: fly first",
   "replay.my_clips": "My clips",
