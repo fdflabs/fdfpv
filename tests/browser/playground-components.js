@@ -388,7 +388,7 @@ export const TOKEN_GROUPS = [
   ['space', /^--sp-[1-7]$/],
   ['radius', /^--radius-(frame|control)$/],
   ['type role', /^--type-(display|name|read|mono)$/],
-  ['hub', /^--hub-(ops|club|hangar|accent)$/],
+  ['hub', /^--(hub-(ops|club|hangar|accent)|card-accent)$/],
 ];
 
 export function tokensIn(css) {

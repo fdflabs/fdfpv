@@ -132,8 +132,9 @@ const LAYOUT = `(() => ({
     const r = c.getBoundingClientRect();
     return {
       name: c.querySelector('.gate-card-name').textContent,
+      links: [...c.querySelectorAll('.gate-link')].map((l) => l.textContent),
       box: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)],
-      facts: Math.round(c.querySelector('.gate-card-facts').getBoundingClientRect().bottom),
+      facts: Math.round(Math.max(...[...c.querySelectorAll('.gate-card-facts, .gate-link')].map((n) => n.getBoundingClientRect().bottom))),
     };
   }),
   panel: (() => {
@@ -146,15 +147,13 @@ const LAYOUT = `(() => ({
   })(),
 }))()`;
 
-function laidOut(v) {
+function laidOut(v, n) {
   const c = v.cards;
   const inside = c.every((x) => x.box[0] >= 0 && x.box[1] >= 0 && x.box[2] <= v.w && x.box[3] <= v.h && x.facts <= v.bar);
   const apart = c.every((a, i) => c.slice(i + 1).every((b) => a.box[2] <= b.box[0] || b.box[2] <= a.box[0]
     || a.box[3] <= b.box[1] || b.box[3] <= a.box[1]));
-  /* The rooms panel (src/ui/ui.js renderTitleRooms): in the window, above the cards. */
-  const p = v.panel;
-  const panel = Boolean(p) && p[0] >= 0 && p[1] >= 0 && p[2] <= v.w && c.every((x) => p[3] <= x.box[1]);
-  return c.length === 5 && inside && apart && panel && v.sw <= v.w;
+  /* No rooms panel on home or in Operations: it is Flight Club's. */
+  return c.length === n && inside && apart && v.panel === null && v.sw <= v.w;
 }
 
 /* What the campaign screen shows, read off the DOM. */
@@ -205,16 +204,25 @@ const page = await openPage({
 });
 try {
   await page.until('window.__shellReady === true', 300000);
-  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 5", 60000).catch(() => {});
+  await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
 
-  /* THE CARD. */
+  /* THE CARD: Operations is home's first hub, Defend the Paraná its link,
+   * and inside Operations its one card. */
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: five cards, the campaign last, inside the window, clear of the bar, the rooms panel above them`,
-      laidOut(v) && v.cards[4].name === 'Defend the Paraná', `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
+    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, Operations first with Defend the Paraná its link`,
+      laidOut(v, 3) && v.cards[0].name === 'Operations' && v.cards[0].links.join() === 'Defend the Paraná',
+      `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts} ${x.links}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }
+  await click(page, '.gate-card-hub-ops .gate-card-name');
+  await page.until("window.__ui.hub === 'ops'", 10000).catch(() => {});
+  const ops = await page.evaluate(LAYOUT);
+  check('Operations holds Defend the Paraná, one card, inside the window', laidOut(ops, 1) && ops.cards[0].name === 'Defend the Paraná',
+    ops.cards.map((x) => `${x.name} ${x.box}`).join(' | '));
+  await page.tap('Escape');
+  await page.until('window.__ui.hub === null', 10000).catch(() => {});
 
   /* One click into the war's lobby, its consent asked first, once. */
   const CONSENT = "(() => { const d = document.querySelector('.name-dialog'); return d && !d.hidden && /Defend Itaipu/.test(d.textContent); })()";

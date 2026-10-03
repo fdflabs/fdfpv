@@ -194,13 +194,14 @@ try {
   }
   const cardSel = `.gate-card-${G.card}`;
 
-  /* A: ONE CLICK, A LOBBY OF ITS OWN. */
+  /* A: ONE CLICK, A LOBBY OF ITS OWN: the activity's link on its hub's
+   * card on home (src/ui/ui.js HUBS), which wears the card's class. */
   const aBefore = a.clicks;
   await a.click(cardSel);
   await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
   await a.sleep(800);
   const la = await a.evaluate(LOBBY);
-  check(`A: one click on the card (${a.clicks - aBefore}) and A is in the LOBBY of a public room made for ${GAME}, named for A, Ready under the cursor`,
+  check(`A: one click on its link on home (${a.clicks - aBefore}) and A is in the LOBBY of a public room made for ${GAME}, named for A, Ready under the cursor`,
     a.clicks - aBefore === 1 && la.shown && la.title === 'LOBBY' && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   await shot(a, '1-a-lobby');
@@ -214,13 +215,36 @@ try {
     here: (window.__ui.items()[window.__ui.cursor] || {}).action || null,
     on: [...document.querySelectorAll('.screen-title .gate-card.on')].map((n) => n.className),
   })`);
-  check(`Escape from the lobby: the title's cards, out of the room, ${G.card}'s card under the cursor`, esc.gate && esc.phase === 'idle'
+  check(`Escape from the lobby: its hub's cards, out of the room, ${G.card}'s card under the cursor`, esc.gate && esc.phase === 'idle'
     && esc.screen === 'title' && esc.here === `way-${G.card}` && esc.on.length === 1 && esc.on[0].includes(`gate-card-${G.card}`), JSON.stringify(esc));
-  await a.click(cardSel);
+  /* ESCAPE AT ONCE: the lobby a card opened is left by an Escape the
+   * moment the room says it is a lobby, its panel drawn or not (the panel
+   * is drawn on a later tick, and an Escape before it did nothing). */
+  await a.click(`.gate-card${cardSel}`);
+  await a.until("window.__rooms().phase === 'open' && window.__ui.inLobby && window.__ui.inLobby()", 60000).catch(() => {});
+  const quick = await a.evaluate("({ lobby: Boolean(window.__ui.inLobby && window.__ui.inLobby()), panel: Boolean(window.__ui.warLobbyOn) })");
+  await a.tap('Escape');
+  await a.until("window.__ui.onGate() && window.__rooms().phase === 'idle'", 15000).catch(() => {});
+  check(`Escape the moment a card's lobby is up (panel drawn: ${quick.panel}): out of the room, its hub's cards again`,
+    quick.lobby && await a.evaluate("window.__ui.onGate() && window.__rooms().phase === 'idle'"),
+    await a.evaluate("JSON.stringify({ gate: window.__ui.onGate(), phase: window.__rooms().phase, screen: window.__ui.screen })"));
+
+  /* THROUGH THE HUB: Escape again is home; its hub's card, then the
+   * activity's card, is a lobby again in two clicks (the owner: "one two
+   * clicks max"). */
+  await a.tap('Escape');
+  await a.until('window.__ui.onGate() && window.__ui.hub === null', 10000).catch(() => {});
+  const hubOf = await a.evaluate(`(() => { const c = document.querySelector('.gate-card ${cardSel}'); return c ? c.closest('.gate-card').dataset.hub : null; })()`);
+  check(`and Escape again is home, ${G.card}'s link on its hub's card`, await a.evaluate('window.__ui.onGate() && window.__ui.hub === null') && Boolean(hubOf), String(hubOf));
+  const aHub = a.clicks;
+  await a.click(`.gate-card-hub-${hubOf} .gate-card-name`);
+  await a.until(`window.__ui.hub === ${JSON.stringify(hubOf)} && document.querySelector('.gate-card${cardSel}')`, 10000).catch(() => {});
+  await a.click(`.gate-card${cardSel}`);
   await a.until(`window.__rooms().phase === 'open' && ${IN_LOBBY}`, 60000).catch(() => {});
   await a.sleep(800);
   const la2 = await a.evaluate(LOBBY);
-  check('a click on it again: a lobby again', la2.shown && la2.phase === 'open' && la2.here === 'friends-lobby-ready', JSON.stringify(la2));
+  check(`through the hub: its card, then ${G.card}'s card, ${a.clicks - aHub} clicks, a lobby again`, a.clicks - aHub === 2
+    && la2.shown && la2.phase === 'open' && la2.here === 'friends-lobby-ready', JSON.stringify(la2));
   const code = la2.code;
 
   /* The war lobby's Campaign row: its screen, and Escape is the lobby again. */
@@ -319,9 +343,14 @@ try {
   }
   check('the round is on', await a.evaluate(G.on));
 
-  /* C: ONE CLICK FROM THE TITLE'S PANEL, INTO THE ROUND (a race: into the
-   * lobby, its race being one off a grid). */
+  /* C: ONE CLICK FROM THE ROOMS PANEL, INTO THE ROUND (a race: into the
+   * lobby, its race being one off a grid). The panel is Flight Club's
+   * (src/ui/ui.js HUBS): C opens it from home first. */
   const chip = `lobby:friends-room-${code}`;
+  await c.until("window.__ui.onGate() && window.__ui.hub === null", 10000).catch(() => {});
+  const cBefore = c.clicks;
+  await c.click('.gate-card-hub-club .gate-card-name');
+  await c.until("window.__ui.hub === 'club'", 10000).catch(() => {});
   await c.until(`window.__ui.items().some((it) => it.action === ${JSON.stringify(chip)} && /flying/.test(it.value || ''))`, 30000).catch(() => {});
   const listed = await c.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(chip)}) || null)`);
   check(`C's title panel lists the room as ${G.chip}, its pilots flying (racing), not in a lobby`, listed && listed.value.startsWith(G.chip) && /\d+ flying/.test(listed.value)
@@ -332,17 +361,16 @@ try {
     row.node.dataset.check = 'here';
     return true;
   })()`);
-  const cBefore = c.clicks;
   await c.click('[data-check="here"]');
   if (GAME === 'race') {
     await c.until(`window.__rooms().code === ${JSON.stringify(code)} && window.__ui.screen === 'friends'`, 60000).catch(() => {});
     await c.sleep(2000);
     const cr = await c.evaluate("({ code: window.__rooms().code, screen: window.__ui.screen, role: window.__roomRace().role })");
-    check(`C: one click on the panel (${c.clicks - cBefore}) and C is in the room, waiting out the race on its screen, no racer`, c.clicks - cBefore === 1
+    check(`C: Flight Club, then the room on its panel (${c.clicks - cBefore} clicks), and C is in the room, waiting out the race on its screen, no racer`, c.clicks - cBefore === 2
       && cr.code === code && cr.screen === 'friends' && cr.role !== 'racing', JSON.stringify(cr));
   } else {
     await c.until(FLYING, 400000).catch(() => {});
-    check(`C: one click on the panel (${c.clicks - cBefore}) and C is in the room's round, flying`, c.clicks - cBefore === 1
+    check(`C: Flight Club, then the room on its panel (${c.clicks - cBefore} clicks), and C is in the room's round, flying`, c.clicks - cBefore === 2
       && (await c.evaluate('window.__rooms().code')) === code && await c.evaluate(FLYING) && await c.evaluate(G.on),
     JSON.stringify({ code: await c.evaluate('window.__rooms().code'), screen: await c.evaluate('window.__ui.screen'), on: await c.evaluate(G.on) }));
   }

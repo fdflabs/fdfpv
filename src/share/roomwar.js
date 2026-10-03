@@ -51,7 +51,7 @@
 import { decodeAgents, decodeHunts } from './roomwire.js';
 import { KINDS, planAgent, poseAt } from './war/routes.js';
 import { EXTRAP_MAX_MS } from '../game/peer.js';
-import { MISSIONS } from './war/missions/index.js';
+import { MISSIONS, missionTime } from './war/missions/index.js';
 
 /* A hunter's samples older than this behind its newest are dropped: the
  * far interest band sends one a second, and the shell draws near now. */
@@ -132,6 +132,8 @@ export function createRoomWar(send) {
   function mission() {
     return war.mission ? MISSIONS[war.mission] ?? null : null;
   }
+
+  const timeOf = () => missionTime(mission());
 
   /* A new match, or none: nothing of the old one is drawn. */
   function reset() {
@@ -390,9 +392,13 @@ export function createRoomWar(send) {
     match() {
       return war.id == null ? null : `${room}:${war.id}`;
     },
-    /* The mission's night flag (itaipu-4): the lighting hook reads it. */
+    /* The time of day the mission is flown at: the world build reads it. */
+    time() {
+      return timeOf();
+    },
+    /* Whether it is flown at night: the nav lights and the avionics. */
     night() {
-      return Boolean(mission()?.night);
+      return timeOf() === 'night';
     },
     /* This pilot's row of the scores, or null. */
     mine() {

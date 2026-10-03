@@ -27,7 +27,7 @@ import {
 import { PRIVATE_CAP, RoomCore } from '../edge/rooms/core.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import {
-  EMP_MS, GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS, WARHEADS, parseLoadout,
+  EMP_MS, GROUND_MS, MISSIONS, RESPAWN_MS, RESULT_MS, STALE_MS, WARHEADS, WORLD_LEAD_MS, parseLoadout,
 } from '../edge/rooms/war.js';
 import {
   BLAST_M, KIND, KINDS, LEAVE_M, cosDet, planAgent, poseAt, sinDet,
@@ -325,6 +325,25 @@ export function warSection(check) {
     const go = 500 + INTRO_MS + COUNTDOWN_MS;
     check(`a start with the intro is a briefing of INTRO_MS (${INTRO_MS / 1000} s) before the countdown, told to everybody`,
       e.r.war.on() && v.state === 'briefing' && v.briefAt === 500 && v.goAt === go && e.view(0).goAt === go, JSON.stringify(v));
+    {
+      /* A mission at a time of day of its own: every screen rebuilds its
+       * world as the briefing begins, so the film starts after a lead. */
+      const morning = { ...plain, time: 'morning' };
+      const t = warRoom({ mission: morning, start: false });
+      t.fly(500);
+      t.say(0, {
+        type: 'war', op: 'start', mission: 'test-1', intro: true,
+      });
+      const tv = t.view(1);
+      check(`a mission with a time of its own: a briefing at once, its film from WORLD_LEAD_MS (${WORLD_LEAD_MS / 1000} s) later, the go as much later`,
+        tv.state === 'briefing' && tv.briefAt === 500 + WORLD_LEAD_MS && tv.goAt === go + WORLD_LEAD_MS, JSON.stringify(tv));
+      const d = warRoom({ mission: { ...plain, time: 'day' }, start: false });
+      d.fly(500);
+      d.say(0, {
+        type: 'war', op: 'start', mission: 'test-1', intro: true,
+      });
+      check('and a mission at the map\'s own day has none', d.view(1).briefAt === 500 && d.view(1).goAt === go);
+    }
     check('a briefing is a war game: the clock runs, and a tag match is refused "war"', e.r.waiting()
       && (e.say(0, { type: 'tag', op: 'start', goal: 10 }), !e.r.tag.on() && e.refusals(0).at(-1) === 'war'));
     check('the room browser shows a briefing as a war counting down', warActivity(e.r.activity(e.clock), 'countdown'), JSON.stringify(e.r.activity(e.clock)));
