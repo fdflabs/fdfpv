@@ -41,7 +41,7 @@
  */
 
 import { planTown } from './model.js';
-import { makeBreakable, makeSink } from './mesh.js';
+import { makeSink } from './mesh.js';
 import { yieldToPaint } from '../../../ui/loading.js';
 
 export async function buildPart(ctx) {
@@ -50,14 +50,13 @@ export async function buildPart(ctx) {
   group.name = 'itaipu-town';
   const t0 = performance.now();
   const sink = makeSink(THREE, ctx.mats.look);
-  /* The substations' gantries, which a warhead can bring down: one mesh
-   * of their own (mesh.js makeBreakable). */
-  const breakable = makeBreakable(THREE);
+  /* The yard's gantries, which a warhead can bring down, go in the map's
+   * breakable mesh (ctx.breakable, mesh.js makeBreakable). */
   const town = await planTown({
     data: ctx.data,
     ground: ctx.ground,
     sink,
-    breakable,
+    breakable: ctx.breakable ?? null,
     progress: (f) => ctx.progress(0.9 * f),
     yieldEvery: yieldToPaint,
   });
@@ -71,7 +70,6 @@ export async function buildPart(ctx) {
     ctx.colliders.add('wall', ...c);
   }
   const drawn = sink.build(group, town.wires);
-  group.add(breakable.build('itaipu-town-gantries', { roughness: 0.6, metalness: 0.5 }));
   const buildMs = performance.now() - t0;
   ctx.progress(1);
   const osm = ctx.data['osm/buildings.json'];

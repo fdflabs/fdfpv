@@ -57,6 +57,7 @@ import {
 import { buildPart as buildWater } from './itaipu/water/index.js';
 import { meetBanks, meetDam } from './itaipu/water/meet.js';
 import { buildPart as buildTown } from './itaipu/town/index.js';
+import { makeBreakable } from './itaipu/town/mesh.js';
 import { buildPart as buildVegetation } from './itaipu/vegetation/index.js';
 import { CREST_SPAWN, makeSpawnFor } from './itaipu/spawns.js';
 import { attractPath } from './itaipu/attract.js';
@@ -326,6 +327,11 @@ async function buildItaipu(shell, progress, q, time) {
 
   const colliders = new Colliders();
   const roofRecords = [];
+  /* What a warhead can break that is not the dam's (the yard's equipment
+   * and gantries, its plinths and fence, town/mesh.js makeBreakable): one
+   * mesh, which the town and the war part both add to, so the yard costs
+   * one draw and its shadows. */
+  const breakable = makeBreakable(THREE);
   const parts = {};
   let done = 0;
   for (const [name, build, share] of PARTS) {
@@ -344,6 +350,7 @@ async function buildItaipu(shell, progress, q, time) {
        * (its embankments' wet edges and toes). */
       groundMaterial: look.ground,
       colliders,
+      breakable,
       roofs: roofRecords,
       mats: look.mats,
       /* The look's sun, which is the time of day's: what a part lights or
@@ -357,6 +364,9 @@ async function buildItaipu(shell, progress, q, time) {
     await yieldToPaint();
   }
   colliders.build();
+  /* In the yard's group, which is most of it: the yard check's view
+   * without the yard (tools/itaipu/war-check.js) is without it too. */
+  (parts.war ? parts.war.group : scene).add(breakable.build('itaipu-breakable', { metalness: 0.3 }));
   /* Mission 4's fixtures (look/night.js), a no-op by day: from the
    * town's model (its buildings, towers and dressed road's lamps), its
    * roads and substations, the dam's powerhouse, and what the parts drew
