@@ -20,11 +20,13 @@ scripted path.
 | `src/sim/water/host.js` | stepping on the room's clock from the openings, rewinds, late joiners |
 | `src/maps/itaipu/water/bed.js` | the bed, its classes and the gates' cells; packing it |
 | `src/maps/itaipu/water/itaipu-flood.json`, `.bin` | the shipped bed, built in Node |
-| `src/maps/itaipu/water/itaipu-flood-warm-free.bin`, `-war.bin` | the two shipped warmed states (THE TWO STARTS) |
+| `src/maps/itaipu/water/itaipu-flood-warm.bin` | the shipped warmed state (THE START) |
 | `src/maps/itaipu/water/flood.js` | the Itaipu flood: boundaries, turbines, gates, hoists, openings, gauges |
-| `src/maps/itaipu/water/live.js` | the flood in the page: Free Flight's or a war's, `map.onOpening`, `map.setGateState`, a slice a frame |
+| `src/maps/itaipu/water/live.js` | the flood in the page: `map.onOpening`, `map.setGateState`, a slice a frame, the level the plant feels |
 | `src/maps/itaipu/water/surface.js` | the flood drawn: the river's sheet at the solver's surface |
 | `src/maps/itaipu/water/spill.js` | the chute, the jets, the plume, the plunge pool, at the flood's state |
+| `src/maps/itaipu/water/breach.js` | the water falling through a hole torn in a gate |
+| `src/share/war/hoist.js` | the DAMAGE agent's: how far a gate stands open at a room time, the one law for the room, the leaf and the water |
 | `scripts/water-check.js` | `npm run water:check`, the known answers (CI, Node; Chrome locally) |
 | `scripts/water-itaipu.js` | `npm run water:itaipu`, the prototype on the real map (local: needs the data); `--write` writes the shipped files |
 | `scripts/water-bench.js` | `npm run water:bench`, the cost in Node and in Chrome |
@@ -144,25 +146,30 @@ bit on every engine, and because building it took over a second.
 The spillway's layout restates `dam/index.js`'s `SPILL`. The DAMAGE agent has
 exported it on its branch (9d6f2360); `bed.js` imports it once that is on main.
 
-## The two starts
+## The start
 
-**A war's** (the lead, 2 October): the turbines' river, the spillway's gates
-shut until a mission hoists them. The turbines are 20 Francis units of 715 MW
-at their rated 690 m3/s each, 13 800 m3/s (Itaipu Binacional, *Hidreletrica de
-Itaipu: Aspectos de Engenharia*, 2009, ISBN 978-85-61885-02-1, as the
-Portuguese Wikipedia's article on the plant cites it). On it the river stands at
-104.08 to 104.45 m in its first 600 m below the dam, falling to 103.52 m at the
-grid's south edge, where it is held at 103.5 m. Itaipu publishes 104.00 m as
-its normal tailwater (docs/ITAIPU-PLAN.md section 5).
+**One water for Free Flight and a war** (the lead, 3 October, superseding the
+2 October turbines only war baseline): a typical spill, all fourteen gates 2 m
+open, 6534 m3/s over the turbines' 13 800. A gate no mission names stands at
+`hoist.js`'s `FREE_OPEN_M`, 2 m, in the room, in the leaf drawn and in the
+water alike, so a war starts from the same water as Free Flight and its leaves
+and its water agree before anything moves. Free Flight's look needs the spill
+too (the lead: the running spillway and its plume are #345's owner approved
+look, and a dry chute would read as a regression).
 
-**Free Flight's** (the lead, 3 October: the running spillway and its plume are
-#345's owner approved look, and a dry chute would read as a regression): a
-typical spill, all fourteen gates 2 m open, 6534 m3/s over the turbines' 13 800.
-It runs all three chutes white and throws all three plumes as the look has
-always drawn them (the chute and the plume are drawn whole from a quarter of the
-5 m spill's water). The river then stands at 105.78 to 105.89 m by the dam,
-falling to 103.75 m at the south edge: 2.3 m over its drawn 103.5 m. The
-alternatives, measured:
+The turbines are 20 Francis units of 715 MW at their rated 690 m3/s each,
+13 800 m3/s (Itaipu Binacional, *Hidreletrica de Itaipu: Aspectos de
+Engenharia*, 2009, ISBN 978-85-61885-02-1, as the Portuguese Wikipedia's article
+on the plant cites it). On them alone, the gates shut, the river would stand at
+104.08 to 104.45 m in its first 600 m below the dam (Itaipu publishes 104.00 m
+as its normal tailwater, docs/ITAIPU-PLAN.md section 5); `water:itaipu` still
+warms that up, unshipped, as the still river each opening is measured against.
+
+The spill runs all three chutes white and throws all three plumes as the look
+has always drawn them (the chute and the plume are drawn whole from a quarter of
+the 5 m spill's water). The river then stands at 105.78 to 105.89 m by the dam,
+falling to 103.75 m at the south edge, held at 103.5 m: 2.3 m over its drawn
+outline. The alternatives, measured:
 
 | All 14 gates at | The gates pass | The river by the dam |
 | --- | --- | --- |
@@ -170,15 +177,12 @@ alternatives, measured:
 | 2 m (chosen) | 6 534 m3/s | 105.8 to 105.9 m |
 | 5 m, as the gates are drawn | 15 527 m3/s | 108.1 to 108.2 m |
 
-2 m keeps the river nearest the drawn shores, the plant's float water (still
-the flat 103.5 m) and the river level views while every chute still runs. Its
-cost: the gates are still drawn at 5 m (below).
-
-Each start warms up 2400 s from still water; from 2100 s the river lets out what
-comes in to 0.04 % and every station's level is still to the millimetre. Both
-are shipped (`itaipu-flood-warm-free.bin`, `-war.bin`), checked against a rerun
-to the byte. Free Flight's loads with the map and is never stepped while nothing
-happens; a war's loads on the war's first word.
+It warms up 2400 s from still water; from 2100 s the river lets out what comes
+in to 0.04 % and every station's level is still to the millimetre. It is
+shipped (`itaipu-flood-warm.bin`), checked against a rerun to the byte, loaded
+with the map and never stepped while nothing happens. A war's first event
+starts the clock on it (THE CLOCK); a war's end (`setGateState(null)`) puts the
+starting water back without fetching anything.
 
 **The solver is the truth for the tailwater** (the lead): the drawn water's
 level is the lead's to route.
@@ -186,12 +190,27 @@ level is the lead's to route.
 ## A mission's gates
 
 `map.setGateState(list)`, agreed with the mission engine through the lead (3
-October): `[{ gate: 'gate-N', at: room ms, open_m }]`, each the hoist standing
-gate N's lip `open_m` over its sill from `at`; `null` is no war, Free Flight's
-spill again. Each entry is an event on the room's clock like an opening
-(`hoist:<gate>:<at>`), applied by `flood.js setGate`, so the gates' water is the
-same on every client. The map turns to a war's water on a mission's gate state
-or the damage's first opening.
+October): `[{ gate: 'gate-N', at: room ms, open_m }]`, each the hoist driving
+gate N's lip toward `open_m` over its sill from `at`; `null` is no war, the
+starting water again. **Gates do not jump** (the lead, 3 October): the lip moves
+at `hoist.js`'s `HOIST_M_S`, half a metre a minute (an estimate, not a published
+Itaipu figure), from wherever the last ramp had got to at the new entry's `at`.
+Each entry is an event on the room's clock like an opening
+(`hoist:<gate>:<at>`); before every step `flood.js tick` stands each hoisted
+gate's lip at `openAt(entries, gate, t)` for that step's room time, so the lip
+is `hoist.js`'s number to the bit (`water:itaipu`: 2.9996666666666667 m after
+two entries and 120 s, and never more than the rate a step) and the same on
+every client. The water's lip runs the flood's second behind the room's clock
+(THE CLOCK), as all its water does.
+
+A hole torn in a leaf moves with it: the DAMAGE agent sends it again, the same
+id with its new sill. The host takes an opening heard again with a new shape
+(sill, width, height) as a new event after the old, the flood's `openGate`
+replaces the gate's hole with it, and the cells the old notch cut stand again
+before the new one cuts (`water:itaipu`: gate 3's notch moved up 0.5 m, one
+hole, nothing cut under it). Two shapes of one id at one `at` fall in the order
+of their shapes on every client; a moved hole should carry the room time it
+moved at.
 
 ## Drawn
 
@@ -207,16 +226,43 @@ or the damage's first opening.
   sheet's middle it is drawn at every fourth fine cell, 20 m, a sixteenth of the
   triangles, by an index swap and no extra call.
 - **The spillway** (`spill.js spillState`): each gate's jet as its lip stands,
-  each bay's chute sheet as its water runs and only as far down as it has got,
-  and its plume and plunge churn at its discharge, all read from the solver's
-  own state (a gate's discharge across its bay 20 m below it; a bay's front
-  walked down its middle gate's lane).
-- **Not yet**: the gates' leaves still stand drawn at the 5 m they were built
-  at (`dam/index.js`, the DAMAGE agent's, with its chunks and colliders): hoists
-  rising need the gates to turn about their trunnions there. And the water
-  through a hole torn in a gate's leaf has no nappe of its own: DAMAGE's first
-  real breach, a 10 m notch from 216.50 m, passes 43 m3/s, a film across an
-  80 m bay that the chute's sheet does not show.
+  each gate's lane of the chute sheet as its own water runs and only as far down
+  as it has got, each bay's as the most of its gates', and its plume and plunge
+  churn at its discharge, all read from the solver's own state (a gate's
+  discharge across its bay 20 m below it; its front walked down its lane).
+- **Under the jets** (`surface.js`): the flip buckets throw each bay's water
+  through the air into the plunge pool, and the rock under the jets is dry. The
+  shallow water equations cannot throw water: they carry it down that rock as a
+  sheet a metre or so deep at 10 to 17 m/s, which drawn was a blocky white band
+  at the chute's toe seen from the river. Within each bay's width (5 m more each
+  side) and 120 m past its lip, ground over the pool's level carries no drawn
+  water; the solver still carries the flow there, so the river is the same.
+- **A breach** (`breach.js`): the water through a hole torn in a gate falls as
+  a nappe as wide as the hole, from its crest at critical depth for a notch open
+  to the sky (yc = (q^2/g)^(1/3), leaving at q/yc) or as an orifice's jet at
+  sqrt(2 g H) under the water, ballistically to the sill or the chute, white as
+  it takes air, with spray at its foot. Its discharge is the flood's own: the
+  gate's gauged water less its lip's for a notch, the link's for an orifice.
+  DAMAGE's first real breach, a 10 m notch from 216.50 m, passes 43 m3/s and is
+  drawn whole (`water:war`: 41.5 m3/s, opacity 1).
+- **The gates' leaves** are the DAMAGE agent's (`dam/index.js`), turning on
+  their trunnions to `hoist.js`'s opening, the same law as the water's lip.
+
+## The water the plant feels
+
+The aircraft floats on and crashes into the water the map draws, not the
+outline's flat 103.5 m under it. Each physics frame `main.js feedWaterLevels`
+tells the plant the level of each water body at the craft (`sim_water_level`,
+an additive ABI); the river's is `live.js levelAt`. The plant's inputs must be
+the same for the same flight, so that level is a function of the place and the
+room's time alone, never of how the frames fell: with nothing happening the
+water does not change and its level is the place's; in a war it is read from
+the levels the host keeps at every snapshot step (every 2 s), 100 steps behind
+the flood's clock and interpolated between the two snapshot steps either side,
+which every client has by then, at most some 3 s behind the water drawn.
+`itaipu:water` holds a Timber on floats respawned 200 m below the chutes to the
+drawn water: CG 105.335 m on drawn water at 105.131 m plus its 0.207 m rest, the
+plant's water 105.136 m.
 
 ## The world's sound
 
@@ -294,17 +340,18 @@ baseline):
 ## Budgets
 
 - Solver, measured in Chrome (3 October, SIM_GPU=1, `npm run water:bench`), the
-  war's river with gate 3 gone: 1.17 ms a step (worst slice of 50 steps 1.24)
-  at 18 206 wet cells of 59 904; Node 1.16 ms. The room needs 50 steps a second,
-  59 ms of every second; live.js's 3 ms slice in each of 60 frames takes 154.
+  starting water (the 2 m spill) with gate 3 gone: 1.49 ms a step (worst slice
+  of 50 steps 1.60) at 23 679 wet cells of 59 904; Node 1.22 ms. The room needs
+  50 steps a second, 75 ms of every second; live.js's 3 ms slice in each of 60
+  frames takes 120. (On the turbines' river with the gates shut, before the one
+  start, it was 1.17 ms at 18 206 wet cells.)
   The hash after the bench is the same in Chrome and Node. A war page keeps up
   with the room: 0 steps behind (`water:war`).
 - Memory: the solver's arrays 12 doubles a cell (5.8 MB), the host's snapshots
   4 x 3 doubles a cell (5.8 MB), the bed in JS 0.5 MB, the drawn sheet's texture
   1.6 MB: some 14 MB.
-- Data: 1.50 MB shipped (the bed 306 kB, Free Flight's start 682 kB, the war's
-  490 kB, the wasm 21 kB); a map load fetches 1.0 MB of it, the war's start comes
-  with a war.
+- Data: 1.01 MB shipped (the bed 306 kB, the start 682 kB, the wasm 21 kB), all
+  fetched with the map; a war fetches nothing more.
 - Drawing, `itaipu-views.js` (3 October, every day view): every view within
   section 13 but yard-west, which is over on main itself since #380 (305 calls
   and 2.63 M triangles, measured on origin/main 5621f7f5); with the flood, 306
@@ -319,13 +366,17 @@ baseline):
    later, when the budget has room.
 2. The budget: coarser cells below the plunge pool (done: two blocks), no
    worker; measured in Chrome; a worker is the lead's call if it is still over.
-3. The warmed state: shipped, loaded with the solver on the first opening.
-4. The baseline: the turbines only, the gates shut; the solver's tailwater is
-   the truth (above).
+3. The warmed state: shipped, loaded with the map.
+4. The baseline: the solver's tailwater is the truth (above). The turbines
+   only, gates shut, war start is superseded by 9.
 5. The binaries stay in the repository, lazily loaded, under 2 MB in all.
 6. `SPILL` exported by the DAMAGE agent (#380) and imported by `bed.js`; the
    clock (`at` is always room ms) and the replay of openings into a reloaded map
    are theirs and done.
-7. Free Flight keeps its running spillway and plume (the typical spill above);
-   the turbines alone are a war's start.
-8. A mission's gates: `{ gate, at, open_m }` (above).
+7. Free Flight keeps its running spillway and plume (the typical spill above).
+8. A mission's gates: `{ gate, at, open_m }` (above), ramped by `hoist.js`.
+9. One start (3 October): a war starts from Free Flight's 2 m spill; gates move
+   only by `hoist.js openAt`; the war's warmed state and the reload on a war's
+   first word are gone.
+10. The plant floats on the drawn water; the white band at the chute's toe
+   reads as water (under the jets); a breach pours visibly.

@@ -78,9 +78,9 @@ import {
   FLOOD_CUT, FLOOD_GLSL, floodDetail, floodGeometry, floodLevelAt, floodMaterial, floodRead, floodUniforms, placeholderFlood,
 } from './surface.js';
 
-/* The spillway the look was drawn for, Free Flight's spill (water/flood.js
- * STARTS): each gate's lip 5 m over its sill, passing 1110 m3/s
- * (docs/FLOOD.md, measured). The chute, the plume and the plunge pool are
+/* The spillway the look was drawn for: each gate's lip 5 m over its
+ * sill, passing 1110 m3/s (docs/FLOOD.md, measured; the starting water,
+ * flood.js START, stands them 2 m open). The chute, the plume and the plunge pool are
  * drawn at these as at the drawing's own, and at a share of them as the
  * flood's state is a share of them. */
 const GATE_LOOK_OPEN = 5;

@@ -55,8 +55,9 @@ import { openingQ } from './lib/flood-scenarios.js';
 import { G } from '../src/sim/water/flood.js';
 import { CLASS, packBed, unpackBed } from '../src/maps/itaipu/water/bed.js';
 import { liveFlood } from '../src/maps/itaipu/water/live.js';
+import { HOIST_M_S, openAt } from '../src/share/war/hoist.js';
 import {
-  DT_MS, OPENING_CD, STARTS, WARM_STEPS, floodBed, loadState, makeFlood, packState,
+  DT_MS, OPENING_CD, START, WARM_STEPS, floodBed, loadState, makeFlood, packState,
 } from '../src/maps/itaipu/water/flood.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -156,10 +157,10 @@ console.log('2. the lake at rest on Itaipu');
   check('the volume to 1e-12', dv < 1e-12, dv.toExponential(2));
 }
 
-/* Warm a start up from still water and write or check its shipped
- * state; the flood then holds that state as every client loads it. */
-async function warmUp(name) {
-  const start = STARTS[name];
+/* Warm a start up from still water ({ spill, file }) and write or
+ * check its shipped state when it has a file; the flood then holds that
+ * state as every client loads it. */
+async function warmUp(name, start) {
   const A = await makeFlood(wasm, bed, { spill: start.spill });
   const warm = QUICK ? 6000 : WARM_STEPS;
   const { f } = A;
@@ -191,6 +192,9 @@ async function warmUp(name) {
   check(`${name}: the Courant number stayed under 0.5`, f.stat(1) < 0.5, f.stat(1).toFixed(3));
   const state = packState(f);
   out.stateBytes = state.length;
+  if (!start.file) {
+    return { A, out };
+  }
   const file = join(dirname(SHIPPED), start.file);
   if (WRITE) {
     await writeFile(file, state);
@@ -207,12 +211,15 @@ async function warmUp(name) {
   return { A, out };
 }
 
-console.log('3. the warm ups: the war\'s (the turbines, the gates shut) and Free Flight\'s (a typical spill)');
-const war = await warmUp('war');
-const free = await warmUp('free');
-report.warm = war.out;
+/* The gates shut is not shipped (every client starts from the spill,
+ * START): it is the still river the openings below are measured
+ * against, each hole's own water alone. */
+console.log('3. the warm ups: the turbines\' river with the gates shut (the openings\' baseline) and the starting water (a typical spill, shipped)');
+const shut = await warmUp('shut', { spill: 0, file: null });
+const free = await warmUp('start', START);
+report.warm = shut.out;
 report.free = free.out;
-const A = war.A;
+const A = shut.A;
 
 /* The warmed water, kept: each opening starts from it, against a copy
  * of it left alone. */
@@ -343,8 +350,7 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
     ['flood.wasm', join(root, 'dist/flood.wasm')],
     ['itaipu-flood.json', `${SHIPPED}.json`],
     ['itaipu-flood.bin', `${SHIPPED}.bin`],
-    ['itaipu-flood-warm-war.bin', `${SHIPPED}-warm-war.bin`],
-    ['itaipu-flood-warm-free.bin', `${SHIPPED}-warm-free.bin`],
+    ['itaipu-flood-warm.bin', `${SHIPPED}-warm.bin`],
   ]);
   const fetchBytes = async (target) => {
     const name = new URL(target).pathname.split('/').pop();
@@ -358,15 +364,17 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
   const live = liveFlood({ fetchBytes, now: () => performance.now() });
   await settle(live);
   let st = live.stats();
-  check(`Free Flight: the spill loads with the map, every gate ${STARTS.free.spill} m open`, st.state === 'ready' && st.mode === 'free' && st.lips.every((v) => v === STARTS.free.spill), `${st.state} ${st.mode} lips ${st.lips.join(',')}`);
+  check(`Free Flight: the spill loads with the map, every gate ${START.spill} m open`, st.state === 'ready' && st.mode === 'free' && st.lips.every((v) => v === START.spill), `${st.state} ${st.mode} lips ${st.lips.join(',')}`);
   live.advance(60000);
   check('and with nothing happening it is never stepped', live.stats().step === 0, `step ${live.stats().step}`);
-  /* A war: M2's gate state (gate 5 hoisted 3 m at AT, then 6 m 10 s
-   * later) and the DAMAGE agent's first opening through gate 3. */
+  /* A war: a gate state (gate 5 driven to 3 m at AT, then to 6 m a
+   * minute later, from wherever its leaf has got) and the DAMAGE agent's
+   * first opening through gate 3, moved up 0.5 m with its leaf 40 s on. */
   const gate = bed.gates[3];
   const [ox, oz] = bed.frame.at(gate.middle + 2, -5.75);
   const AT = 600000;
-  live.setGates([{ gate: 'gate-5', at: AT, open_m: 3 }, { gate: 'gate-5', at: AT + 10000, open_m: 6 }]);
+  const entries = [{ gate: 'gate-5', at: AT, open_m: 3 }, { gate: 'gate-5', at: AT + 60000, open_m: 6 }];
+  live.setGates(entries);
   live.open({
     id: 'gate-3', target: 'gate-3', kind: 'gate', at: AT + 2000, sill: [ox, 212.33, oz], width_m: 10, height_m: 8.17, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
   });
@@ -375,11 +383,26 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
   });
   await settle(live);
   st = live.stats();
-  check('a war turns the water to the turbines\' river, the gates shut', st.state === 'ready' && st.mode === 'war' && st.lips.every((v) => v === 0), `${st.state} ${st.mode} lips ${st.lips.join(',')}`);
+  check(`a war starts from the same water, every gate ${START.spill} m open, not reloaded`, st.state === 'ready' && st.mode === 'war' && st.lips.every((v) => v === START.spill), `${st.state} ${st.mode} lips ${st.lips.join(',')}`);
   let frames = 0;
-  const end = AT + 1000 + 30000;
+  const end = AT + 1000 + 120000;
+  /* The most gate 5's lip moved in one step, m. */
+  let jump = 0;
+  let prev = null;
+  let moved = false;
   for (let t = AT; t <= end; t += 1000 / 60) {
+    if (!moved && t >= AT + 40000) {
+      live.open({
+        id: 'gate-3', target: 'gate-3', kind: 'gate', at: AT + 40000, sill: [ox, 212.83, oz], width_m: 10, height_m: 8.17, normal: [0, 0, 1], upstream_cell: null, downstream_cell: null,
+      });
+      moved = true;
+    }
+    const before = live.stats().step;
     live.advance(t);
+    const now = live.flood().lips()[5];
+    const steps = live.stats().step - before;
+    if (prev !== null && steps > 0) jump = Math.max(jump, Math.abs(now - prev) / steps);
+    prev = now;
     frames += 1;
   }
   st = live.stats(end);
@@ -387,13 +410,24 @@ console.log('5. the page\'s flood (water/live.js): Free Flight\'s spill, then a 
   const fl = live.flood();
   console.log(`        ${frames} frames of ${3} ms: step ${st.step}, ${st.behind} steps behind the room; lips ${st.lips.join(',')}; unplaced: ${st.unplaced.join(', ') || 'none'}`);
   console.log(`        flows: ${flows.map((x) => `${x.id} ${x.q.toFixed(0)} m3/s`).join('; ')}; gate 5 passes ${fl.f.linkQ(fl.links[5]).toFixed(0)} m3/s`);
-  check('the mission\'s hoist stands gate 5 at 6 m and water runs under it', st.lips[5] === 6 && fl.f.linkQ(fl.links[5]) > 500, `${fl.f.linkQ(fl.links[5]).toFixed(0)} m3/s`);
+  /* The last step stood for origin (AT) + (step - 1) DT_MS. */
+  const law = openAt(entries, 'gate-5', AT + (st.step - 1) * DT_MS);
+  check('gate 5\'s lip is hoist.js\'s law at the room time of the last step, to the bit', st.lips[5] === law && law > 2.5 && law < 6,
+    `lip ${st.lips[5]} m, openAt ${law} m`);
+  check('and it never jumped: at most the hoist\'s rate a step', jump <= (HOIST_M_S * DT_MS) / 1000 + 1e-12,
+    `${jump.toExponential(3)} m a step, the rate ${((HOIST_M_S * DT_MS) / 1000).toExponential(3)}`);
+  check('the water runs under gate 5 more than under a 2 m gate', fl.f.linkQ(fl.links[5]) > fl.f.linkQ(fl.links[6]), `${fl.f.linkQ(fl.links[5]).toFixed(0)} against gate 6's ${fl.f.linkQ(fl.links[6]).toFixed(0)} m3/s`);
+  const hole = fl.holes().find((o) => o.g === 3);
+  const b = fl.f.bed();
+  const under = gate.wall.filter((c) => Math.abs(c.u - hole.across) <= hole.width / 2 && b[c.k] < Math.max(hole.sill, c.floor) - 1e-9);
+  check('gate 3\'s hole moved with its leaf: one hole at the moved sill, nothing cut under it', fl.holes().length === 1 && hole.sill === 212.83 && under.length === 0,
+    `${fl.holes().length} holes, sill ${hole.sill}, ${under.length} cells under it`);
   check('the notch is applied to gate 3 and its flow is there for the sound', flows.length === 1 && flows[0].id === 'gate-3' && flows[0].q > 0);
   check('the intake, which has no place yet, is counted and not dropped', st.unplaced.includes('intake-4'));
   live.setGates(null);
   await settle(live);
   st = live.stats();
-  check('no war again: Free Flight\'s spill', st.mode === 'free' && st.lips.every((v) => v === STARTS.free.spill) && st.step === 0, `${st.mode} step ${st.step}`);
+  check('no war again: Free Flight\'s spill', st.mode === 'free' && st.lips.every((v) => v === START.spill) && st.step === 0, `${st.mode} step ${st.step}`);
   report.live = { frames, ...st };
 }
 

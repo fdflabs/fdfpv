@@ -39,6 +39,7 @@
 import {
   BOUND, LINK, SIDE, loadFlood,
 } from '../../../sim/water/flood.js';
+import { FREE_OPEN_M, openAt } from '../../../share/war/hoist.js';
 import { MANNING, floodBed } from './bed.js';
 
 /* The step, ms: a Courant number under 0.3 on the chute's fastest water
@@ -140,27 +141,26 @@ function edgeRuns(bed, grid) {
 }
 
 /*
- * THE TWO STARTS (the lead, 2 October and 3 October). A war's water is
- * the turbines' river with the spillway's gates shut, until a mission
- * hoists them (setGate, a hoist event). Free Flight's is a typical
- * spill: all fourteen gates 2 m open, 6534 m3/s over the turbines' 13 800,
+ * THE START (the lead, 3 October): one water for Free Flight and a war,
+ * so the leaves drawn and the water under them agree before any hoist
+ * moves (src/share/war/hoist.js: a gate no entry names stands at
+ * FREE_OPEN_M). A typical spill: all fourteen gates 2 m open, 6534 m3/s
+ * over the turbines' 13 800,
  * which runs all three chutes white and throws all three plumes as the
  * map has always drawn them (the chute and the plume are drawn whole
  * from a quarter of the 5 m spill's water, spill.js). The 5 m the gates
  * are drawn at would pass 15 527 m3/s and stand the river 4.6 m over its
  * drawn 103.5 m by the dam; 2 m stands it 2.3 m over (docs/FLOOD.md).
- * `spill` is the metres every gate stands open at the start.
+ * `spill` is the metres every gate stands open at the start, `file` the
+ * warmed state shipped.
  */
-export const STARTS = {
-  war: { spill: 0, file: 'itaipu-flood-warm-war.bin' },
-  free: { spill: 2, file: 'itaipu-flood-warm-free.bin' },
-};
+export const START = { spill: FREE_OPEN_M, file: 'itaipu-flood-warm.bin' };
 
 /*
  * The flood on `bed` (bed.js floodBed's, from the map's ground), from
  * still water. { f, bed, gates: [link index], bounds: [{ run, index,
  * kind }], openGate(i, opening), setGate(g, open), ... }. `spill` the
- * metres every gate's lip stands over its sill at the start (STARTS);
+ * metres every gate's lip stands over its sill at the start (START);
  * `turbines` false with the gates shut is the lake at rest.
  */
 export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) {
@@ -201,6 +201,10 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
    * not the link's (openGate). */
   const lip = bed.gates.map(() => spill);
   const holes = bed.gates.map(() => null);
+  /* The hoist events applied ({ gate, at, open_m }, hoist.js's
+   * entries), and the gates they move. */
+  let hoists = [];
+  const hoisted = new Set();
   /* The openings applied, id to gate, the gauges read for them, and
    * the ids of openings with no place here yet. */
   const opened = new Map();
@@ -246,8 +250,9 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
      * own cells across its width come down to its sill (never under the
      * concrete's) and the water finds its own way through, the shallow
      * water equations' critical flow over what is left. A hole under the
-     * water is an orifice in the leaf, the link's. A bigger opening of
-     * the same gate replaces the one before; the cells it cut stay cut.
+     * water is an orifice in the leaf, the link's. An opening of the
+     * same gate (a bigger one, or the same hole moved with its leaf)
+     * replaces the one before: the cells that one cut stand again first.
      */
     openGate(g, {
       sill, width, height, across = 0,
@@ -255,6 +260,13 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
       const gate = bed.gates[g];
       const reservoir = bed.level[bed.names.indexOf('reservoir')];
       const sky = sill + height >= reservoir;
+      const was = holes[g];
+      if (was && was.sky) {
+        const b = f.bed();
+        for (const c of gate.wall) {
+          if (Math.abs(c.u - was.across) <= was.width / 2) b[c.k] = bed.b[c.k];
+        }
+      }
       holes[g] = {
         sill, width, height, across, sky,
       };
@@ -280,6 +292,8 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
     reset() {
       f.bed().set(bed.b);
       opened.clear();
+      hoists = [];
+      hoisted.clear();
       for (let g = 0; g < holes.length; g += 1) {
         holes[g] = null;
         lip[g] = spill;
@@ -292,6 +306,16 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
       const gate = bed.gates[g];
       lip[g] = open < 0 ? 0 : open > gate.height ? gate.height : open;
       f.linkBands(links[g], bandsOf(g));
+    },
+    /* Before each step, its room time `ms`: every hoisted gate's lip
+     * where its hoist stands it then. A gate's leaf does not jump: it
+     * moves at the hoist's rate (src/share/war/hoist.js openAt, the one
+     * law the room and the leaf drawn use too). */
+    tick(ms) {
+      for (const g of hoisted) {
+        const v = Math.min(bed.gates[g].height, Math.max(0, openAt(hoists, `gate-${g}`, ms)));
+        if (v !== lip[g]) this.setGate(g, v);
+      }
     },
     /* Each gate's lip over its sill now, m. */
     lips: () => lip.slice(),
@@ -307,15 +331,16 @@ export async function makeFlood(wasm, bed, { turbines = true, spill = 0 } = {}) 
      */
     apply(o) {
       if (o && o.kind === 'hoist') {
-        /* A mission's gate state ({ gate, at, open_m }): its hoist at
-         * open_m from `at`. */
+        /* A mission's gate state ({ gate, at, open_m }): its leaf moving
+         * to open_m from `at`, a step at a time (tick). */
         const h = /^gate-(\d+)$/.exec(o.gate || '');
         const g = h ? Number(h[1]) : -1;
         if (!(g >= 0 && g < bed.gates.length) || !(o.open_m >= 0)) {
           unplaced.add(o.id);
           return false;
         }
-        this.setGate(g, o.open_m);
+        hoists.push({ gate: o.gate, at: o.at, open_m: o.open_m });
+        hoisted.add(g);
         return true;
       }
       const m = /^gate-(\d+)$/.exec(o && o.target ? o.target : '');

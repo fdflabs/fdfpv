@@ -18,10 +18,13 @@
  * shoots the NIGHT views, which judge the lit towns (look/night.js) and
  * have no photograph; a day run never does.
  *
- * --gates shoots a war's spillway (docs/FLOOD.md): `shut` every gate shut
- * on the turbines' river, or each `gate-N:metres` hoisted that far over
- * its sill, the map's flood (map.setGateState) stepped GATES_S seconds
- * on so the chutes have filled. Its files take `-gates`.
+ * --gates shoots a war's spillway (docs/FLOOD.md): `shut` every gate
+ * driven shut, or each `gate-N:metres` driven that far over its sill,
+ * the map's flood (map.setGateState) stepped on until the leaves have
+ * got there at the hoist's rate (src/share/war/hoist.js) and GATES_S
+ * seconds more so the chutes have settled: the gate state is dated that
+ * far back, and the flood catches up at its budget. Its files take
+ * `-gates`.
  *
  * --down (night only) shoots the night after those war targets were hit,
  * long enough ago that every outage they cause is over: the districts
@@ -87,6 +90,8 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { darkFrom, levelAt } from '../src/share/war/grid.js';
+import { FREE_OPEN_M, HOIST_M_S } from '../src/share/war/hoist.js';
+import { SPILL } from '../src/maps/itaipu/dam/index.js';
 import TARGETS from '../src/share/war/itaipu-targets.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -255,7 +260,7 @@ const power = (() => {
 /* Day's own files keep their bare names (every earlier round's tooling
  * reads them); night's take a suffix so a day and a night run can share
  * one round folder without one overwriting the other. */
-const gates = opts.gates === 'shut' ? [] : opts.gates ? opts.gates.split(',').map((g) => {
+const gates = opts.gates === 'shut' ? Array.from({ length: SPILL.gates }, (_, g) => ({ gate: `gate-${g}`, open_m: 0 })) : opts.gates ? opts.gates.split(',').map((g) => {
   const [gate, open] = g.split(':');
   if (!/^gate-\d+$/.test(gate) || !(Number(open) >= 0)) {
     throw new Error(`itaipu-views: --gates is shut or gate-N:metres,..., got ${g}`);
@@ -383,10 +388,12 @@ try {
     console.log(`down: ${down.join(', ')}; dark: ${power.map((l, i) => (l === 0 ? i : -1)).filter((i) => i >= 0).length} districts`);
   }
   if (gates) {
-    const at = await page.evaluate('window.__animMs()');
+    const travel = Math.max(...gates.map((g) => Math.abs(g.open_m - FREE_OPEN_M))) / HOIST_M_S;
+    const back = Math.ceil(travel + GATES_S) * 1000;
+    const at = (await page.evaluate('window.__animMs()')) - back;
     await page.evaluate(`window.__mapGates(${JSON.stringify(gates.map((g) => ({ ...g, at })))})`);
     await page.until(`(() => { const f = window.__map().parts.water.flood;
-      return f.mode === 'war' && f.state === 'ready' && f.step * 20 >= ${gates.length ? GATES_S * 1000 : 0}; })()`, (GATES_S + 120) * 1000);
+      return f.mode === 'war' && f.state === 'ready' && f.step * 20 >= ${back} && f.behind <= 5; })()`, (back / 1000 + 120) * 1000);
     const f = await page.evaluate('JSON.stringify(window.__map().parts.water.flood)').then(JSON.parse);
     console.log(`gates: ${opts.gates}; the flood at step ${f.step}, lips ${f.lips.join(',')}`);
   }

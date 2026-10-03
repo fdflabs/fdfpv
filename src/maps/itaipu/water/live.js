@@ -3,23 +3,22 @@
  * map draws, stepped on the room's clock (src/sim/water/host.js) a slice
  * of each frame.
  *
- * TWO STARTS (flood.js STARTS). Free Flight's water is a typical spill:
- * the fourteen gates 5 m open over the turbines' river, the look the map
- * has always drawn, loaded when the map is built (dist/flood.wasm, the
- * shipped bed itaipu-flood.json and .bin, and the warmed state
- * itaipu-flood-warm-free.bin) and, with nothing happening to it, never
- * stepped. A war's is the turbines' river with the gates shut
- * (itaipu-flood-warm-war.bin): the map turns to it on the war's first
- * word, a mission's gate state (setGates) or an opening the damage tears
- * (open), and from then every gate's hoist and every opening is an
- * event on the room's clock, the same water on every client however it
- * heard of them. A client that joins late is handed them all, and
+ * ONE START (flood.js START). The water is a typical spill, the fourteen
+ * gates 2 m open over the turbines' river, the look the map has always
+ * drawn, loaded when the map is built (dist/flood.wasm, the shipped bed
+ * itaipu-flood.json and .bin, and the warmed state itaipu-flood-warm.bin)
+ * and, with nothing happening to it, never stepped. Free Flight's water
+ * and a war's before its first event are that one water. In a war every
+ * gate's hoist (setGates) and every opening the damage tears (open) is
+ * an event on the room's clock, the same water on every client however
+ * it heard of them. A client that joins late is handed them all, and
  * catches up a budget at a time.
  *
  * A MISSION'S GATE STATE (agreed with the mission engine through the
  * lead, 3 October): a list of { gate: 'gate-N', at: room ms, open_m },
- * each the hoist standing gate N's lip open_m over its sill from `at`.
- * null is no war: Free Flight's water again.
+ * each the hoist driving gate N's lip toward open_m over its sill from
+ * `at` (src/share/war/hoist.js, its rate and its ramps; flood.js tick).
+ * null is no war: the starting water again.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -62,18 +61,15 @@ const url = (name) => new URL(`${name}${search}`, import.meta.url).href;
 const WASM_URL = new URL(`../../../../dist/flood.wasm${search}`, import.meta.url).href;
 
 export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.now() } = {}) {
-  /* The mode wanted, the one loaded or loading, and its flood. */
-  let want = 'free';
-  let mode = null;
   let state = 'idle';
   let flood = null;
   let host = null;
   let error = null;
   let lastMs = null;
-  /* The war's events heard, in order: openings and hoists. */
+  /* The war's events heard, in order: openings and hoists. None is no
+   * war, the starting water. */
   let events = [];
   let loading = null;
-  let generation = 0;
   let mods = null;
   /* The water's level, Float32 a cell, at each snapshot step kept. */
   const levels = new Map();
@@ -87,31 +83,29 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
   const dropLevels = (from) => {
     for (const s of [...levels.keys()]) if (s > from) levels.delete(s);
   };
+  /* The starting water and a host with no events: the host restarts
+   * from whatever the flood holds when it is made. */
+  const fresh = () => {
+    mods.F.loadState(flood.f, mods.warm);
+    flood.reset();
+    levels.clear();
+    host = mods.createFloodHost(flood, { dtMs: mods.F.DT_MS, onSave: keepLevel, onDrop: dropLevels });
+  };
 
   const load = async () => {
-    const gen = generation;
-    const m = want;
     state = 'loading';
     try {
-      if (!mods) {
-        const [wasm, json, bin, { createFloodHost, DELAY_MS }, { unpackBed }, F] = await Promise.all([
-          fetchBytes(WASM_URL), fetchBytes(url('itaipu-flood.json')), fetchBytes(url('itaipu-flood.bin')),
-          import('../../../sim/water/host.js'), import('./bed.js'), import('./flood.js'),
-        ]);
-        mods = {
-          wasm, bed: unpackBed(JSON.parse(new TextDecoder().decode(json)), bin), createFloodHost, delay: DELAY_MS, F, warm: new Map(),
-        };
-      }
-      const start = mods.F.STARTS[m];
-      if (!mods.warm.has(m)) mods.warm.set(m, await fetchBytes(url(start.file)));
-      if (gen !== generation) return;
-      const fl = await mods.F.makeFlood(mods.wasm, mods.bed, { spill: start.spill });
-      mods.F.loadState(fl.f, mods.warm.get(m));
-      if (gen !== generation) return;
-      flood = fl;
-      mode = m;
-      levels.clear();
-      host = mods.createFloodHost(flood, { dtMs: mods.F.DT_MS, onSave: keepLevel, onDrop: dropLevels });
+      const [wasm, json, bin, { createFloodHost, DELAY_MS }, { unpackBed }, F] = await Promise.all([
+        fetchBytes(WASM_URL), fetchBytes(url('itaipu-flood.json')), fetchBytes(url('itaipu-flood.bin')),
+        import('../../../sim/water/host.js'), import('./bed.js'), import('./flood.js'),
+      ]);
+      const bed = unpackBed(JSON.parse(new TextDecoder().decode(json)), bin);
+      const warm = await fetchBytes(url(F.START.file));
+      mods = {
+        createFloodHost, delay: DELAY_MS, F, warm,
+      };
+      flood = await F.makeFlood(wasm, bed, { spill: F.START.spill });
+      fresh();
       for (const e of events) host.open(e);
       state = 'ready';
     } catch (e) {
@@ -121,30 +115,15 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
       console.error(`[flood] could not start: ${error}`);
     }
   };
-  const ensure = () => {
-    if (mode === want && (state === 'ready' || state === 'loading')) return;
-    generation += 1;
-    flood = null;
-    host = null;
-    loading = load();
-  };
-  const toWar = () => {
-    if (want !== 'war') {
-      want = 'war';
-      events = [];
-    }
-  };
   const hear = (e) => {
     events.push(e);
-    if (host && mode === 'war') host.open(e);
-    ensure();
+    if (host) host.open(e);
   };
 
-  ensure();
+  loading = load();
   return {
     /* The war's damage's opening (the contract's), live or replayed. */
     open(o) {
-      toWar();
       hear(o);
     },
     /* A mission's gate state, the whole list as it stands (each entry
@@ -152,19 +131,17 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
      * war. */
     setGates(list) {
       if (list === null) {
-        want = 'free';
+        if (events.length === 0) return;
         events = [];
-        ensure();
+        if (host) fresh();
         return;
       }
-      toWar();
       for (const s of list) {
         const e = {
           id: `hoist:${s.gate}:${s.at}`, at: s.at, kind: 'hoist', gate: s.gate, open_m: s.open_m,
         };
-        if (!events.some((x) => x.id === e.id)) hear(e);
+        if (!events.some((x) => x.id === e.id && x.open_m === e.open_m)) hear(e);
       }
-      ensure();
     },
     /* Every frame, with the room's clock (the map's animation clock is
      * the room's in a room). */
@@ -209,8 +186,9 @@ export function liveFlood({ fetchBytes = defaultFetch, now = () => performance.n
     stats(roomMs) {
       return {
         state,
-        mode,
-        want,
+        /* 'war' once an event is heard, the starting water's 'free'
+         * before. */
+        mode: events.length ? 'war' : 'free',
         error,
         step: host ? host.step() : 0,
         /* The events' clock and the one it steps on: a flood that never

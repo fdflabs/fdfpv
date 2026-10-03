@@ -42,6 +42,9 @@
  * the solver's bed and links, and `reset()`, which puts them back as
  * they started. Applying the same openings in the same order after a
  * reset must make the same changes; the host relies on it to rewind.
+ * A flood with changes that run over time (a gate's leaf moving) has
+ * `tick(roomMs)` too, called before every step with the room time it
+ * stands for, after that step's openings.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -66,11 +69,20 @@ export const DELAY_MS = 1000;
 export const SNAP_STEPS = 100;
 export const SNAPS = 4;
 
-/* The order openings on one step are applied in. */
+/* What an opening says beyond its id and time: the same id heard again
+ * with another shape (a hole moved with its leaf, grown) is another
+ * event, the same shape again is the same one. */
+const shape = (o) => JSON.stringify([o.sill, o.width_m, o.height_m, o.open_m]);
+
+/* The order openings on one step are applied in: by time, then id, then
+ * shape, so two shapes of one id at one time fall the same on every
+ * client however they were heard. */
 function before(a, b) {
   if (a.step !== b.step) return a.step - b.step;
   if (a.o.at !== b.o.at) return a.o.at - b.o.at;
-  return a.o.id < b.o.id ? -1 : a.o.id > b.o.id ? 1 : 0;
+  if (a.o.id !== b.o.id) return a.o.id < b.o.id ? -1 : 1;
+  const sa = shape(a.o); const sb = shape(b.o);
+  return sa < sb ? -1 : sa > sb ? 1 : 0;
 }
 
 export function createFloodHost(flood, {
@@ -153,13 +165,14 @@ export function createFloodHost(flood, {
     hashes: () => Object.fromEntries(hashes),
     origin: () => origin,
     roomMs: () => (origin === null ? null : origin + step * dtMs),
-    /* A contract opening, heard. The same id heard again is its new size,
-     * applied after the old one. */
+    /* A contract opening, heard. The same id heard again with a new
+     * shape (a bigger hole, or the hole moved with its leaf) is applied
+     * after the old one and replaces it (the flood's apply does). */
     open(o) {
       if (!o || typeof o.at !== 'number' || !Number.isFinite(o.at) || typeof o.id !== 'string') {
         throw new Error('flood host: an opening needs a finite room time `at` and an `id`');
       }
-      if (heard.some((h) => h.o.id === o.id && h.o.at === o.at)) {
+      if (heard.some((h) => h.o.id === o.id && h.o.at === o.at && shape(h.o) === shape(o))) {
         return;
       }
       if (origin === null || o.at < origin) {
@@ -203,6 +216,7 @@ export function createFloodHost(flood, {
           flood.apply(heard[applied].o);
           applied += 1;
         }
+        if (flood.tick) flood.tick(origin + step * dtMs);
         f.step(1);
         step += 1;
         taken += 1;
