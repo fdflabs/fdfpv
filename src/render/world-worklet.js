@@ -1590,7 +1590,7 @@ class WorldProcessor extends AudioWorkletProcessor {
       if (!v.track) {
         continue;
       }
-      const st = Array.from(v.track.at(currentTime, new Float64Array(6)));
+      const st = Array.from(v.track.at(currentTime, new Float64Array(7)));
       voices.push({ id: v.track.id, kind: KIND_NAMES[v.track.kind], state: st, level: v.level, rpm: v.rpm, dist: v.distPrev, fade: v.fade });
     }
     return { listener: L, voices, blasts: this.blasts.length, tracks: this.tracks.size };
