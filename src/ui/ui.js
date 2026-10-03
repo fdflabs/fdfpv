@@ -3310,7 +3310,7 @@ const GATE_WAYS = WAYS.filter((w) => w.gate !== false);
 const HUBS = [
   { id: 'ops', label: 'hub.ops', blurb: 'hub.ops_blurb', art: 'assets/posters/itaipu.jpg', category: 'operations' },
   { id: 'club', label: 'hub.club', blurb: 'hub.club_blurb', art: 'assets/posters/swiss2.jpg', category: 'flightclub' },
-  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: null, category: null },
+  { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg', category: null },
 ];
 
 /* The title's activity cards in a hub, in WAYS' order. */

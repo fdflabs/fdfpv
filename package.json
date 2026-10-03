@@ -50,6 +50,7 @@
     "gen:gatecards": "node scripts/gatecards.js",
     "gen:friendscard": "node scripts/friendscard.js",
     "gen:modecards": "node scripts/modecards.js",
+    "gen:hangarcard": "node scripts/hangarcard.js",
     "ghost:selftest": "node scripts/ghost-selftest.js",
     "contact:selftest": "node scripts/contact-selftest.js",
     "collide:turned": "node scripts/turned-box-check.js",
