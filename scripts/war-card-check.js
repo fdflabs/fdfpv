@@ -483,7 +483,7 @@ try {
    * for eight seconds nothing of the war or the room is drawn over the
    * title. The war room is the Defend the Paraná card's, one click from
    * the title into its lobby. */
-  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); window.__ui.act('mode-gate'); return true; })()");
   await page.until("window.__rooms().phase === 'idle' && window.__ui.onGate()", 10000).catch(() => {});
   await click(page, '.gate-card-campaign');
   await page.until("window.__rooms().phase === 'open' && window.__rooms().mode === 'war' && window.__ui.screen === 'friends'", 60000).catch(() => {});

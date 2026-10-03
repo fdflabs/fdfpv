@@ -3239,9 +3239,14 @@
         .gate-rooms-list { flex-direction: column; gap: 4px; }
         .gate-rooms-list .gate-room {
           flex: 0 0 auto; flex-direction: row; align-items: baseline;
-          justify-content: space-between; gap: 10px;
+          justify-content: space-between; gap: 0 10px;
+          /* A long name and what its pilots are doing ("Join · Free flight
+             · 1 in lobby", 2026-10-02) do not share a line on a phone: the
+             value goes under the name, which keeps the width it needs. Side
+             by side, the name was squeezed to five lines. */
+          flex-wrap: wrap;
         }
-        .gate-rooms-list .gate-room-value { flex: 0 0 auto; text-align: right; }
+        .gate-rooms-list .gate-room-value { flex: 0 0 auto; text-align: right; margin-left: auto; }
         .screen-title.is-gate .gate-cards {
           flex-direction: column;
           gap: 10px;

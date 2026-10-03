@@ -3981,7 +3981,9 @@ export async function boot({
    * the room screen with its code and start rows, the title, the pause.
    * They go up at their own Fly, the room bar's, or a game's start. */
   function roomCall(why, { restart = false } = {}) {
-    const fly = why !== 'join';
+    /* 'track': a race lobby's new track, built under the lobby screen and
+     * not flown until its race goes. */
+    const fly = why !== 'join' && why !== 'track';
     roomSummon = { why, fly, restart: restart || Boolean(roomSummon && roomSummon.restart) };
   }
 
@@ -4099,7 +4101,7 @@ export async function boot({
       if (moved && !roomHost(w)) {
         roomSay(str('rooms.world_moved', { world: mapById(target.world).name }));
       }
-      roomCall('target');
+      roomCall(lobbyGame() === 'race' && gameLobby() ? 'track' : 'target');
     }
     roomDrift(w, wallMs);
     roomSummonStep(target);
@@ -4140,6 +4142,15 @@ export async function boot({
      * now, the swap would land the pilot on the title, off the room screen
      * and its start rows. */
     if (!s.fly) {
+      /* A race lobby's track is built now, on the lobby screen (the swap
+       * comes back to it), so its pilots are on the grid when it goes. */
+      if (s.why === 'track' && !worldMatchesSettings()) {
+        titleWorld = null;
+        buildWorld = null;
+        syncWorld();
+        roomTellProfile();
+        return;
+      }
       roomSummon = null;
       return;
     }
@@ -5053,7 +5064,22 @@ export async function boot({
     if (lobbyGame() !== 'race' || !roomHost(roomLinkState.state().welcome)) {
       return false;
     }
+    /* The track just seated (ui.js seatLocal) is built under the lobby,
+     * and the room is sent it, so everybody here has it on their grid. */
+    /* The seat is the track (ui.js seatLocal wrote it); ui.seatMap would
+     * put a public room's pilot back in the room's world. The room takes
+     * it, and everybody in the lobby has its world built under the lobby
+     * (roomSessionFrame's 'track' summon). */
+    ui.mode = 'race';
     ui.show('friends');
+    ui.settings.map = 'track';
+    ui.persistSettings();
+    /* The seat, not seatedMapTrack: the title's world is still up. */
+    const seated = seatShare();
+    if (seated) {
+      roomAsked = { map: seated.document.map, track: seated.document.id, at: performance.now() };
+      roomRace.loadTrack(seated.document);
+    }
     return true;
   };
   window.__campaign = campaign;
