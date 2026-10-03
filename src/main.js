@@ -3261,14 +3261,16 @@ export async function boot({
   };
 
   /* Crest Control's lines, in the UI's language, while the sound is on. */
-  function warSay(ids) {
-    if (!ids.length || !audio.enabled) {
+  /* Each item a line id, or a list said as one (warradio.js PRIORITY);
+   * prio 'story' for a stage's own radio cue. */
+  function warSay(items, prio = 'call') {
+    if (!items.length || !audio.enabled) {
       return;
     }
     const radio = audio.war();
     radio.setLang(currentLocale());
-    for (const id of ids) {
-      radio.say(id);
+    for (const item of items) {
+      radio.say(item, performance.now(), prio);
     }
   }
 
@@ -3277,7 +3279,7 @@ export async function boot({
    * and the HUD's. */
   function warCue(ev, wallMs) {
     if (ev.radio) {
-      warSay([ev.radio]);
+      warSay([ev.radio], 'story');
     }
     if (ev.music !== undefined && audio.enabled) {
       audio.setWarBed(ev.music);
