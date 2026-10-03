@@ -14,9 +14,10 @@
  *   a reload keeps the room,   in a room made by hand, reload: back in
  *   on its screen (D2)         the same room, on the room screen with
  *                              its code, the title not shown.
- *   the title is never in a    in that room, Back and Escape on the room
- *   room (rule 3 to 5, D5)     screen, the lobby and Make a room stay in
- *                              it; the pause menu offers Leave the room
+ *   the title is never in a    in that room, Back and Escape on its
+ *   room (rule 3 to 5, D5)     lobby are the title's cards, out of it
+ *                              (2026-10-02); on Rooms and Make a room
+ *                              they stay in it, one screen back each; the pause menu offers Leave the room
  *                              and no Back to title; Leave is out, on
  *                              the title.
  *   every card is a lobby      each of the five cards, from the title, is
@@ -173,10 +174,24 @@ try {
     stays.push(`${what}: ${r.screen} ${r.phase}`);
     return r;
   };
+  /* Every room has a lobby now, and Back or Escape from a lobby is the
+   * title's cards, out of the room (the owner, 2026-10-02); a reload then
+   * is back in it by the room kept for the session. Back is pressed, then
+   * Escape, each from the lobby. */
   await page.evaluate("(() => { window.__ui.act('back'); return true; })()");
-  const afterBack = await here('Back on the room screen');
+  const afterBack = await here('Back on the lobby');
+  const rejoin = async () => {
+    await page.evaluate(`(() => { window.__roomJoin(${JSON.stringify(made)}); window.__ui.show('friends'); return true; })()`);
+    await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(made)}`, 30000).catch(() => {});
+    await page.sleep(600);
+  };
+  await rejoin();
   await page.tap('Escape');
-  const afterEsc = await here('Escape on the room screen');
+  const afterEsc = await here('Escape on the lobby');
+  check('Back and Escape from a lobby: the title\'s cards, out of the room',
+    [afterBack, afterEsc].every((r) => r.phase === 'idle' && r.screen === 'title') && await page.evaluate('window.__ui.onGate()'), stays.join(' | '));
+  stays.length = 0;
+  await rejoin();
   await page.evaluate("(() => { window.__ui.act('rooms'); return true; })()");
   await page.until("window.__ui.screen === 'rooms'", 10000).catch(() => {});
   await page.tap('Escape');
@@ -187,8 +202,8 @@ try {
   const fromNew = await here('Escape on Make a room');
   await page.tap('Escape');
   const fromNew2 = await here('and again');
-  check('Back and Escape stay in the room, on its screen, from the room screen, Rooms and Make a room',
-    [afterBack, afterEsc, fromLobby, fromNew2].every((r) => r.phase === 'open' && r.code === made && r.screen === 'friends')
+  check('Escape from Rooms and Make a room stays in the room, one screen back each',
+    [fromLobby, fromNew2].every((r) => r.phase === 'open' && r.code === made && r.screen === 'friends')
     && fromNew.screen === 'rooms' && fromNew.phase === 'open', stays.join(' | '));
 
   await page.evaluate("(() => { window.__ui.act('fly'); return true; })()");

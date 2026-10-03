@@ -74,9 +74,12 @@ const GAMES = {
   combat: {
     card: 'combat', world: 'swiss2', chip: 'Combat', upMs: 60000,
     on: "['countdown', 'on'].includes(window.__combat ? window.__combat().round.state : '')",
+    /* Run out, from its countdown as well: on, then over. */
     end: (core, now) => {
-      core.combat.round.endsAt = Math.ceil(core.roomMs(now));
-      return core.combat.tick(core, now + 1);
+      const t = Math.ceil(core.roomMs(now));
+      core.combat.round.startsAt = Math.min(core.combat.round.startsAt, t);
+      core.combat.round.endsAt = t;
+      return [...core.combat.tick(core, now + 1), ...core.combat.tick(core, now + 2)];
     },
   },
   tag: {
