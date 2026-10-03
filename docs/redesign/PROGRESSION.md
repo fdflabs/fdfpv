@@ -53,8 +53,9 @@ Today only Track Day pays. Each activity gets a first and a best:
 | Training | each lesson passed, once (TRAINING.md) |
 
 The amounts sit on the existing scale (40 to 200), so a war pilot reaches
-the same hangar a racer does, at a racer's pace. Where the War pays XP is
-an owner decision (section 9).
+the same hangar a racer does, at a racer's pace. That the war pays XP,
+for firsts only, was decided by the lead on 2026-10-03, reversible
+(PLAN.md 6, item 15).
 
 ## 4. Medals on courses
 

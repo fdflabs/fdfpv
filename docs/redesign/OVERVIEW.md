@@ -83,9 +83,11 @@ the biggest ones:
 - **Training and controllers moved up**: the first five minutes decide
   whether a radio pilot stays.
 
-What we need from you on these is at the end of PLAN.md: whether the war
-pays XP, the war's speed upgrade, wind in Flight Club, a watch seat, the
-first screen asking what you fly with, and training before the debrief.
+The six open questions were decided by the lead on 3 October, while you
+asked for unattended work, all reversible: the war pays XP for firsts
+only; its speed upgrade stays in the war; wind in Flight Club is the
+host's choice, calm by default; a watch seat; the first visit asks what
+you fly with; training before the debrief. Say the word on any of them.
 
 ## What you decided
 

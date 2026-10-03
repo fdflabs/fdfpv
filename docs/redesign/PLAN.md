@@ -563,24 +563,23 @@ change if the owner disagrees.
 13. **No expiring events and no daily rewards** (PROGRESSION.md 2).
 14. **Training gates nothing** (TRAINING.md 4).
 
-### For the owner
+### Decided by the lead (2026-10-03), reversible, flagged for the owner
 
-Short, each with a recommendation.
+The owner asked the lead to run unattended; the lead took the six
+recommendations. Each is reversible and waits on the owner's word.
 
-1. **Does the war pay XP?** Recommend yes, for firsts only (a mission's
-   first win, each star the first time), so a pilot who only defends
-   still opens planes, and the war's credits stay its own.
-2. **The war's speed upgrade** (1.15 times, src/game/campaign.js) is the
-   one item anywhere that makes an aircraft better than its kit.
-   Recommend keeping it, inside the war only, as the campaign's economy
-   already decided; it never leaves a war room.
-3. **Room wind in Flight Club**, the host's choice of calm, breeze or
-   gusty, calm by default. Recommend yes (phase 15).
-4. **A watch seat** for a family member who does not fly. Recommend yes
-   (phase 17).
-5. **The first screen asks "What will you fly with?"** before any card,
-   once. Recommend yes (phase 7): it is where a radio pilot is lost or
-   kept.
-6. **Training and controllers before the debrief and progression**, as
-   the roadmap orders them. Recommend yes; the thread had them sixth.
-
+15. **The war pays XP for firsts only**: a mission's first win and each
+    star the first time it is earned. Its credits stay its own
+    (PROGRESSION.md 3; roadmap phase 11).
+16. **The war's speed upgrade stays** (1.15 times, src/game/campaign.js),
+    inside the war only; it never leaves a war room (PILLARS 7).
+17. **Flight Club wind is the host's choice**: calm, breeze or gusty, calm
+    by default, one `sim_set_wind` for every plant in the room
+    (PILLARS 17; phase 15).
+18. **A watch seat** in any room, for someone who does not fly
+    (SESSIONS.md 5; phase 17).
+19. **"What will you fly with?"** is asked once, on the first visit, before
+    any card; a radio goes straight to the calibration wizard
+    (TRAINING.md 2; phase 7).
+20. **Training and controllers come before the debrief and progression**,
+    as the roadmap orders them (PILLARS 42).

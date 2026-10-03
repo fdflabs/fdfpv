@@ -1,6 +1,7 @@
 # Game pillars
 
-**Status: PROPOSAL for the owner's approval** (2026-10-03). Once approved,
+**Status: PROPOSAL for the owner's approval** (2026-10-03); its open
+questions were decided by the lead the same day (section 0, item 13). Once approved,
 these are the product rules: a feature that breaks one needs the owner's
 word first, the way docs/WARFARE-PLAN.md section 0 already works for the
 war.
@@ -51,6 +52,14 @@ overrides them.
 12. **The flight physics is Betaflight compiled in, deterministic, SI,
     1000 Hz** (CLAUDE.md). No feature may make a flight's trajectory depend
     on frame time or on anything a room does not share.
+
+13. **Decided by the lead, 2026-10-03** (the owner asked for unattended
+    work; reversible, flagged for the owner; docs/redesign/PLAN.md 6, items
+    15 to 20): the war pays XP for firsts only; the war's 1.15 speed
+    upgrade stays, inside the war only; Flight Club wind is the host's
+    choice, calm by default; a watch seat in any room; "What will you fly
+    with?" asked once on the first visit, a radio straight to calibration;
+    training and controllers before the debrief and progression.
 
 ## 1. Product identity
 
