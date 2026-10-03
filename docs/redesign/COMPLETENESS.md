@@ -92,12 +92,15 @@ mapping is accepted (input.js 1158); builds on edit; best laps on a new
 best (src/game/race.js 755). There is no `beforeunload` save and none is
 needed. The gap is the war: a mission's stars and credits are recorded on
 the client only while it polls an open room and watched the war before
-its result appeared (campaign.js 326 to 376), so a pilot who reloads or
-leaves at the result card loses them. No check states the rules.
+its result appeared (campaign.js 320 to 352: the first sighting of a war
+that already shows a result is marked seen and never paid, the guard
+against paying one result twice), so a pilot who reloads or leaves at
+the result card loses them. No check states the rules.
 **Done:** a table of save points in `save.js`'s header, each with its
 trigger, and the war's result written the moment the room reports it,
-whoever was watching (the room already holds `resultOf`, edge/rooms/war.js
-290). Check: `save:selftest` asserts each trigger writes;
+whoever was watching, paid once per war by its room code and id kept in
+the save rather than in memory (the room already holds `resultOf`,
+edge/rooms/war.js 290). Check: `save:selftest` asserts each trigger writes;
 `campaign:check` (local) adds a reload during the result card. Size M.
 Phase 19.
 
@@ -825,7 +828,7 @@ docs/ARCHITECTURE.md beside item 46's budgets: minimum 30 (the pacer's
 floor), target 60, recommended the reference laptop named. Size S. Phase
 29.
 
-## 17. Progression and family (items 72 to 77)
+## 17. Progression and groups (items 72 to 77)
 
 **72. Progression never blocks Free Flight. EXISTS.** Quads are never
 locked (`planeLevel` returns 1 for a quad, progress.js 249); four
