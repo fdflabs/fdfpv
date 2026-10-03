@@ -136,9 +136,12 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
-import { ACT1 } from './game/campaign.js';
+import {
+  ACT1, createCampaignStore, markSeen, seenFilm,
+} from './game/campaign.js';
 import { createGrid as createWarGrid } from './share/war/grid.js';
-import { play as playWarIntro, INTRO_MS } from './render/warintro.js';
+import { play as playWarIntro } from './render/warintro.js';
+import { filmFor } from './share/war/films/index.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
@@ -3182,12 +3185,44 @@ export async function boot({
   let warIntroShown = null;
   let warIntroFov = 0;
 
+  /* The films this pilot has watched to their end (src/game/campaign.js
+   * films), in the synced campaign section; and the room told of them, so
+   * its host's skip knows who has (edge/rooms/war.js seen). */
+  const warFilmStore = createCampaignStore(ui.settings, () => ui.persistSettings());
+  let warSeenTold = null;
+  function warSeenTell() {
+    const w = roomLinkState.state().welcome;
+    const films = warFilmStore.load().films;
+    const key = w ? `${w.code}:${w.seat}:${JSON.stringify(films)}` : null;
+    if (key && key !== warSeenTold) {
+      warSeenTold = key;
+      roomWar.seen(films);
+    }
+  }
+
+  /* A mission's film, and its title card's words. */
+  function warFilmOf(missionId) {
+    const mission = WAR_MISSIONS[missionId] ?? WAR_MISSIONS[WAR_MISSION];
+    return { film: filmFor(mission), title: { key: mission.title, n: missionNumber(mission.id) } };
+  }
+
   function warIntroPlay(forWhat, opts = {}) {
     warIntroStop();
     warIntroFor = forWhat;
     warIntroFov = shell.camera.fov;
+    const { film, title } = warFilmOf(opts.mission ?? roomMission());
     const h = playWarIntro(shell.quad.parent || view.scene, shell.camera, {
-      canvas: shell.canvas, audio, ground: (x, z) => view.height(x, z, Infinity), ...opts,
+      canvas: shell.canvas,
+      audio,
+      ground: (x, z) => view.height(x, z, Infinity),
+      film,
+      title,
+      seen: seenFilm(warFilmStore.load(), film.id, film.version),
+      onSeen: () => {
+        warFilmStore.save(markSeen(warFilmStore.load(), film.id, film.version));
+        warSeenTell();
+      },
+      ...opts,
     });
     warIntro = h;
     h.done.then(() => {
@@ -3211,14 +3246,27 @@ export async function boot({
     }
   }
 
-  function warIntroFrame(v, roomNow) {
+  /* A room's briefing plays its mission's film on the room's clock, from
+   * where the room is in it (a pilot joining late starts there, and that
+   * viewing does not make it seen); its music and lines are the film's
+   * own. A pilot who holds to skip waits on the orbit; a host's skip asks
+   * the room to end the briefing, which it does once every pilot there
+   * has seen this cut. */
+  function warIntroFrame(v) {
+    warSeenTell();
     const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
-    if (briefing && warIntroShown !== roomWar.match()) {
+    /* Not while the world is being built for the mission (the night
+     * raid's, warNightFrame, at the briefing's start): the film's scenery
+     * would go with the old map. It starts once the world is up, where the
+     * room is by then, the film's preload span having covered most of it. */
+    const worldUp = mapReady && !worldSync && !swapInFlight;
+    if (briefing && warIntroShown !== roomWar.match() && worldUp) {
       warIntroShown = roomWar.match();
-      audio.setWarBed('intro');
+      const briefAt = v.briefAt;
       warIntroPlay(v.id, {
-        startMs: roomNow - v.briefAt,
-        holdUntilMs: performance.now() + (v.briefAt + INTRO_MS - roomNow),
+        mission: v.mission,
+        clock: () => roomLinkState.roomNow() - briefAt,
+        hold: true,
         onSkip: () => {
           const w = roomLinkState.state().welcome;
           if (w && w.host === w.seat) {
@@ -3450,7 +3498,7 @@ export async function boot({
     warFeedFrame(wallMs);
     const v = roomWar.view();
     warNightFrame();
-    warIntroFrame(v, now);
+    warIntroFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {
       warBegin(v, wallMs);
     } else if (!roomWar.on() && warBegunId != null) {
@@ -15272,7 +15320,9 @@ export async function boot({
       }
       if (mode === 'replay') {
         crashCam.afterRender();
-      } else if (!warIntro) {
+      } else if (warIntro) {
+        warIntro.afterDraw(shell.canvas);
+      } else {
         warCutaway.drawPip(nowWall);
       }
     }
