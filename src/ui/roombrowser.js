@@ -50,10 +50,15 @@ const ROOM_ACTION = 'friends-room-';
  * upright phone, where the rooms stack a line each and a room's whole
  * name (32 letters, never cut) takes two lines beside its load: three
  * such put the cards' tags under the command bar, 7 px at 390 by 844 and
- * 21 px at 360 by 640. All rooms lists the rest. */
+ * 21 px at 360 by 640. One on a short upright phone (360 by 640), where
+ * two rooms saying what their pilots are doing ("Free flight · 1 in
+ * lobby", 2026-10-02) put the tags 42 px under it. All rooms lists the
+ * rest. */
 const TITLE_ROOMS = 3;
 const TITLE_ROOMS_UPRIGHT = 2;
+const TITLE_ROOMS_SHORT = 1;
 const UPRIGHT_PHONE = '(max-width: 860px) and (min-height: 521px)';
+const SHORT_PHONE = '(max-width: 860px) and (min-height: 521px) and (max-height: 700px)';
 
 /*
  * ui: the menu (show, askForm, refreshFriends); link: the room socket
@@ -91,9 +96,13 @@ export function createRoomBrowser({
   });
   const worlds = () => MAPS.filter((m) => m.mode === 'freestyle').map((m) => m.id);
   const upright = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(UPRIGHT_PHONE) : null;
-  if (upright) {
-    upright.addEventListener('change', () => ui.refreshFriends());
+  const short = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(SHORT_PHONE) : null;
+  for (const q of [upright, short]) {
+    if (q) {
+      q.addEventListener('change', () => ui.refreshFriends());
+    }
   }
+  const titleRooms = () => (short && short.matches ? TITLE_ROOMS_SHORT : upright && upright.matches ? TITLE_ROOMS_UPRIGHT : TITLE_ROOMS);
   let draft = null;
   let busy = false;
   let error = null;
@@ -138,9 +147,41 @@ export function createRoomBrowser({
     return min == null ? str('roombrowser.empty_room') : min > 0 ? str(closes, { n: min }) : str('roombrowser.empty_closing');
   }
 
+  /*
+   * WHAT ITS PILOTS ARE DOING, as true as the list knows it (the owner,
+   * 2026-10-02, of a lobby's one idle pilot the panel called flying): in
+   * a lobby, how many are there and how many said ready; flying, how many
+   * and where the game is (a war's wave, a combat round). A room not in a
+   * game and not made for one (an older server's free flight) is flying.
+   */
+  function flyingNow(r) {
+    return r.state !== 'waiting' || (r.mode == null && r.ready == null);
+  }
+  /* Its pilots alone: "1 in lobby", "2 ready of 3", "3 flying". */
+  function who(r) {
+    if (!flyingNow(r)) {
+      return r.ready ? str('roombrowser.lobby_ready', { ready: r.ready, n: r.n }) : str('roombrowser.lobby_in', { n: r.n });
+    }
+    return str('roombrowser.flying_n', { n: r.n });
+  }
+  /* And where the game is, for the title's chips, which say no more. */
+  function doingNow(r) {
+    if (!flyingNow(r)) {
+      return who(r);
+    }
+    const flying = who(r);
+    if (r.game === 'war' && r.wave) {
+      return str('roombrowser.flying_wave', { flying, w: r.wave, of: r.waves });
+    }
+    if (r.game === 'combat' && r.round) {
+      return str('roombrowser.flying_round', { flying, n: r.round });
+    }
+    return flying;
+  }
+
   function roomRow(r) {
     const full = r.n >= r.cap;
-    const vars = { world: mapById(r.map).name, doing: doing(r) };
+    const vars = { world: mapById(r.map).name, doing: `${doing(r)}, ${who(r)}` };
     const battle = r.game === 'war' && r.state !== 'waiting';
     const note = str(full ? 'roombrowser.row_full_note' : battle ? 'roombrowser.row_battle_note' : r.n ? 'roombrowser.row_note' : 'roombrowser.row_empty_note', vars);
     return full
@@ -355,9 +396,17 @@ export function createRoomBrowser({
     if (!rooms.length) {
       return str('roombrowser.title_none');
     }
-    const pilots = rooms.reduce((n, r) => n + r.n, 0);
+    /* Pilots flying, and pilots in a lobby, counted apart. */
+    const flying = rooms.filter(flyingNow).reduce((n, r) => n + r.n, 0);
+    const waiting = rooms.filter((r) => !flyingNow(r)).reduce((n, r) => n + r.n, 0);
     const counted = plural('count.rooms', rooms.length);
-    return pilots ? str('roombrowser.title_count', { rooms: counted, pilots: plural('count.pilots', pilots) })
+    if (flying && waiting) {
+      return str('roombrowser.title_count_both', { rooms: counted, pilots: plural('count.pilots', flying), waiting });
+    }
+    if (waiting) {
+      return str('roombrowser.title_count_lobby', { rooms: counted, pilots: plural('count.pilots', waiting) });
+    }
+    return flying ? str('roombrowser.title_count', { rooms: counted, pilots: plural('count.pilots', flying) })
       : str('roombrowser.title_count_empty', { rooms: counted });
   }
 
@@ -366,23 +415,19 @@ export function createRoomBrowser({
      * then the rooms, All rooms and Make a room. `lobby:` actions go the
      * Fly with friends card's way in first (ui.js act). */
     titleItems() {
-      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, upright && upright.matches ? TITLE_ROOMS_UPRIGHT : TITLE_ROOMS);
+      const open = (openRooms() || []).filter((r) => r.n < r.cap).slice(0, titleRooms());
       return [
         { lobby: 'head', section: true, label: str('roombrowser.title'), value: summary() },
         ...open.map((r) => ({
           lobby: 'room',
           label: title(r),
-          /* A room made for the war says so, and which mission. */
-          value: r.game === 'war' && r.state !== 'waiting'
-            ? str('roombrowser.chip_battle', { n: missionNumber(r.mission), w: r.wave ?? 1, of: r.waves ?? 1 })
-            : r.game === 'war'
-              ? str('roombrowser.chip_war', { n: missionNumber(r.mission), load: load(r, 'roombrowser.chip_empty') })
-              : load(r, 'roombrowser.chip_empty'),
-          join: str(r.game === 'war' && r.state !== 'waiting' ? 'roombrowser.join_battle' : 'roombrowser.join'),
-          /* Somebody is in the air in it: a war past its lobby, or any
-           * other room with a pilot in it. The panel paints it green, a
-           * room still waiting blue (index.html, THE ROOMS PANEL). */
-          live: r.game === 'war' ? r.state !== 'waiting' : r.n > 0,
+          /* The game, then what its pilots are doing: "War 2 · 1 in
+           * lobby", "Combat · 2 flying · round 3". */
+          value: str('roombrowser.chip', { game: str(`roombrowser.chip_${r.mode || r.game || 'free'}`, { n: missionNumber(r.mission) }), doing: doingNow(r) }),
+          join: str(r.state === 'waiting' || r.game === 'race' || r.game === null ? 'roombrowser.join' : r.game === 'war' ? 'roombrowser.join_battle' : 'roombrowser.join_round'),
+          /* Somebody is in the air in it (flyingNow): the panel paints it
+           * green, a room in its lobby blue (index.html, THE ROOMS PANEL). */
+          live: flyingNow(r),
           action: `lobby:${ROOM_ACTION}${r.code}`,
         })),
         { lobby: 'all', label: str('roombrowser.all'), action: 'lobby:rooms' },
@@ -421,6 +466,18 @@ export function createRoomBrowser({
     /* Whether this code is a room joined from the list: a public room's,
      * which is never shown, even while its socket is still opening. */
     listed: (code) => code != null && code === joined,
+    /*
+     * THE ROOM A CARD'S ONE PRESS JOINS (the owner, 2026-10-02): the
+     * busiest public room made for `game` (null, free flight) on `world`
+     * with a seat, from a list asked for now; its code, or null when there
+     * is none and the card makes one. Every listed room has a pilot in it
+     * (an empty one is never listed, edge/rooms/lobby.js).
+     */
+    async bestRoom(game, world) {
+      await list.refresh();
+      const fits = (list.rooms() || []).filter((r) => r.mode === game && r.map === world && r.n < r.cap);
+      return fits.length ? fits[0].code : null;
+    },
     /* Poll the list while it is on screen. */
     watch(on) {
       list.watch(on);
