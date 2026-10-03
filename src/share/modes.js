@@ -201,6 +201,13 @@ export function modeOfRoom(mode) {
 export const MAKEABLE = MODES.filter((m) => m.makeable).map((m) => m.id);
 export const SETUPS = MODES.filter((m) => m.id !== 'free').map((m) => m.id);
 
+/* Game `id`'s entry when the room (its meta.mode `roomMode`) was made for
+ * it, else null: what separates a room's own game from one its host
+ * starts in passing. */
+export function madeFor(roomMode, id) {
+  return modeOfWire(roomMode) === id ? modeById(id) : null;
+}
+
 /* The pilots here that keep game `id` going in a room made for `roomMode`
  * (its meta.mode): its own minimum in a room made for it, else the one
  * for a start in passing. */
