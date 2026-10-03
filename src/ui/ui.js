@@ -1842,16 +1842,21 @@ function hintWithKeys(keys, text) {
   return n;
 }
 
-/* The name as the owner's key art sets it (index.html .lockup), which the
- * share card clones too (scripts/og.js). English in every locale, because
- * it is the mark and not a sentence. The spaces keep the heading's text
- * the name. */
+/* The name as the owner's lockup sets it (index.html .lockup-box), which
+ * the share card clones too (scripts/og.js, the heading alone). English in
+ * every locale, because it is the mark and not a sentence. The spaces keep
+ * the heading's text the name.
+ *
+ * Self contained: the box is a size container and the lockup fills its
+ * width, so a screen places it by giving the box a width and nothing else
+ * (the title's is .screen-title .lockup-box). */
 function wordmark() {
+  const box = el('div', 'lockup-box');
   const h = el('h1', 'wordmark lockup');
   const slash = el('span', 'lockup-slash');
   slash.setAttribute('aria-hidden', 'true');
   const name = el('span', 'lockup-name');
-  /* The title's bevel draws the name twice more behind itself, from this. */
+  /* The bevel draws the name twice more behind itself, from this. */
   name.dataset.text = 'Drone Combat';
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
   /* The flag as the boot screen draws it, horizontal bands; the title
@@ -1862,7 +1867,8 @@ function wordmark() {
   const over = el('span', 'lockup-over');
   over.append(flag, 'Paraguayan');
   h.append(slash, over, ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
-  return h;
+  box.append(h);
+  return box;
 }
 
 /*

@@ -87,7 +87,7 @@
     <link rel="icon" href="icon.svg" type="image/svg+xml" />
     <link rel="icon" href="favicon.ico" sizes="32x32" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
-    <!-- The name's two faces (.screen-title .lockup), fetched while the boot
+    <!-- The name's two faces (.lockup-box .lockup), fetched while the boot
          screen runs so the title never draws the name in a fallback first.
          crossorigin because a font is always fetched in CORS mode, and a
          preload without it is fetched twice. -->
@@ -133,7 +133,7 @@
          *
          * No webfont for any of it: IBM Plex Mono and Plex Sans where
          * installed, the system's monospace and sans everywhere else. The
-         * name on the title is the one exception (.screen-title .lockup).
+         * name on the title is the one exception (.lockup-box .lockup).
          */
         --pdcs-bg: #07090a;
         --pdcs-ground: radial-gradient(circle at 50% 40%, #101416 0%, #080a0b 48%, #050607 100%);
@@ -1373,9 +1373,9 @@
        * a short rule; DRONE COMBAT on one line in a heavy square sans with
        * a polished metal face; SIMULATOR spaced between two rules under it.
        * The slash above is the flag on its side and is not drawn here.
-       * Every rule is under .screen-title because the share card clones
-       * the lockup out of the title (scripts/og.js) and keeps the base
-       * rules above, which is the card already shared.
+       * Every rule is under .lockup-box because the share card clones
+       * the heading alone out of the title (scripts/og.js) and keeps the
+       * base rules above, which is the card already shared.
        *
        * THE FACE is Saira (SIL Open Font License, assets/fonts/OFL-Saira.txt),
        * the page's one webfont, cut down to the name's own capitals:
@@ -1389,9 +1389,11 @@
        *     --output-file=assets/fonts/saira-lockup-800.woff2
        * and the same at wght=300 with --text="PARAGUAYAN SIMULATOR" for -300.
        *
-       * Everything is in the name's em, so a window sets one number, the
-       * heading's font-size, and the lockup scales whole and stays vector
-       * at any resolution. A line height of 0.69 makes each line box
+       * A SELF CONTAINED COMPONENT (wordmark() in src/ui/ui.js): the box is
+       * a size container and the heading's em is a fraction of its width,
+       * so a screen places the lockup by giving .lockup-box a width and
+       * nothing else, and the lockup scales whole and stays vector at any
+       * resolution. Every part is in that em. A line height of 0.69 makes each line box
        * Saira's cap height exactly (ascent 1.135 and descent 0.439 of the
        * em, centred, caps 0.688), so each margin below is the visible gap
        * between two rows of capitals.
@@ -1404,33 +1406,33 @@
         font-family: "Saira Lockup"; font-weight: 300; font-style: normal; font-display: block;
         src: url("assets/fonts/saira-lockup-300.woff2") format("woff2");
       }
-      .screen-title .lockup {
+      .lockup-box .lockup {
         padding-left: 0; color: var(--pdcs-bright);
         font-family: "Saira Lockup", var(--pdcs-read); font-synthesis: none;
       }
-      .screen-title .lockup-slash { display: none; }
-      .screen-title .lockup-over, .screen-title .lockup-under {
+      .lockup-box .lockup-slash { display: none; }
+      .lockup-box .lockup-over, .lockup-box .lockup-under {
         font-weight: 300; line-height: 0.69;
         color: var(--pdcs-text); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
       }
-      .screen-title .lockup-over { font-size: max(0.22em, 9px); letter-spacing: 0.5em; gap: 0.9em; }
+      .lockup-box .lockup-over { font-size: max(0.22em, 9px); letter-spacing: 0.5em; gap: 0.9em; }
       /* The flag a bar as long as three capitals of PARAGUAYAN, its height
          a little over theirs. */
-      .screen-title .lockup .py-flag {
+      .lockup-box .lockup .py-flag {
         display: inline-flex; width: 3.3em; height: 0.9em; margin: 0;
         border-color: rgba(255, 255, 255, 0.22);
       }
       /* The letter spacing trails the N, so the rule takes it back and
          stands as far from the word as the flag does. */
-      .screen-title .lockup-over::after { flex: 0 0 2.4em; min-width: 0; margin-left: -0.5em; }
-      .screen-title .lockup-under {
+      .lockup-box .lockup-over::after { flex: 0 0 2.4em; min-width: 0; margin-left: -0.5em; }
+      .lockup-box .lockup-under {
         justify-content: center; gap: 1.4em;
         font-size: max(0.265em, 10px); letter-spacing: 0.6em;
       }
-      .screen-title .lockup-under::before, .screen-title .lockup-under::after { flex: 0 0 1.9em; min-width: 0; }
-      .screen-title .lockup-under::before { margin-right: 0.6em; }
-      .screen-title .lockup-over::after, .screen-title .lockup-under::before,
-      .screen-title .lockup-under::after { background: var(--pdcs-line); }
+      .lockup-box .lockup-under::before, .lockup-box .lockup-under::after { flex: 0 0 1.9em; min-width: 0; }
+      .lockup-box .lockup-under::before { margin-right: 0.6em; }
+      .lockup-box .lockup-over::after, .lockup-box .lockup-under::before,
+      .lockup-box .lockup-under::after { background: var(--pdcs-line); }
       /*
        * THE METAL. A silver ramp with a darker horizon across the middle,
        * the way a polished face reflects a dark ground under a light sky; a
@@ -1443,7 +1445,7 @@
        * is a filter, not a text-shadow, because a text-shadow paints
        * through a transparent fill and would grey the metal from inside.
        */
-      .screen-title .lockup-name {
+      .lockup-box .lockup-name {
         position: relative; z-index: 0;
         margin: 0.24em 0 0.22em;
         font-family: "Saira Lockup", "Arial Black", var(--pdcs-read);
@@ -1459,15 +1461,21 @@
         -webkit-background-clip: text; background-clip: text;
         filter: drop-shadow(0 0.03em 0 rgba(4, 5, 6, 0.85)) drop-shadow(0 0.07em 0.1em rgba(0, 0, 0, 0.6));
       }
-      .screen-title .lockup-name > span { display: inline; }
-      .screen-title .lockup-name::before, .screen-title .lockup-name::after {
+      .lockup-box .lockup-name > span { display: inline; }
+      .lockup-box .lockup-name::before, .lockup-box .lockup-name::after {
         content: attr(data-text) / "";
         position: absolute; left: 0; top: 0; z-index: -1;
         -webkit-text-stroke: 0;
       }
-      .screen-title .lockup-name::before { transform: translateY(-0.014em); -webkit-text-fill-color: rgba(255, 255, 255, 0.85); }
-      .screen-title .lockup-name::after { transform: translateY(0.026em); -webkit-text-fill-color: #262b2f; }
-      .screen-title .wordmark { font-size: clamp(34px, min(5vw, 10.5vh), 200px); }
+      .lockup-box .lockup-name::before { transform: translateY(-0.014em); -webkit-text-fill-color: rgba(255, 255, 255, 0.85); }
+      .lockup-box .lockup-name::after { transform: translateY(0.026em); -webkit-text-fill-color: #262b2f; }
+      .lockup-box { container-type: inline-size; }
+      /* DRONE COMBAT is 6.9 em wide (Saira ExtraBold's advances, 7.735 em,
+         less the tracking), so the name fills the box. */
+      .lockup-box .wordmark { font-size: calc(100cqi / 6.9); }
+      /* The title's placement: a third of a wide window, less in a short
+         one so the cards keep their height. */
+      .screen-title .lockup-box { width: clamp(235px, min(34.5vw, 72vh), 1380px); }
       /* On a phone the rule after PARAGUAYAN runs under the sign in chip,
          which sits level with it in the top right corner and is wider in
          Spanish (Iniciar sesión con Google reaches x 181 of 390). The word
@@ -3296,8 +3304,8 @@
         .title-copy {
           width: 100%;
         }
-        .screen-title .wordmark {
-          font-size: clamp(34px, 11vw, 56px);
+        .screen-title .lockup-box {
+          width: clamp(235px, 76vw, 386px);
         }
         .screen-title.is-gate .brand { display: block; }
         .screen-title.is-gate .brand .beta-note { margin: 10px 0 0; }
@@ -3466,7 +3474,7 @@
         .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-name { font-size: 13px; }
         .gate-cards:is([data-count="6"], [data-count="7"]) .gate-card-mark { width: 28px; height: 28px; bottom: 3px; }
         .screen-title.is-gate .title-top { gap: 6px; }
-        .screen-title .wordmark { font-size: clamp(30px, 9.5vw, 48px); }
+        .screen-title .lockup-box { width: clamp(207px, 65.5vw, 331px); }
         .screen-title.is-gate .gate-rooms:not([hidden]) { padding: 6px 8px 7px; gap: 5px; }
         .gate-room { padding: 3px 7px; }
         .gate-rooms-buttons .gate-room { padding: 4px 7px; }
@@ -3500,8 +3508,8 @@
            that is left of that line here, beside it: stacked, the lockup
            took the height the gate's cards and the menu's rows need at 844
            by 390. Whatever else the brand shows runs full width under both. */
-        .screen-title .wordmark {
-          font-size: clamp(28px, 9vh, 44px);
+        .screen-title .lockup-box {
+          width: clamp(193px, 62vh, 304px);
         }
         .screen-title .lockup-name > span { display: inline; }
         .screen-title .brand,
@@ -3511,7 +3519,7 @@
         }
         .screen-title .brand .beta-note,
         .screen-title.is-gate .brand .beta-note { margin: 0 0 0.2em; }
-        .screen-title .brand > :not(.wordmark, .beta-note) { grid-column: 1 / -1; }
+        .screen-title .brand > :not(.lockup-box, .beta-note) { grid-column: 1 / -1; }
         .screen-title .menu-scroll {
           max-height: min(calc(52vh - var(--bars)), 11em);
         }
