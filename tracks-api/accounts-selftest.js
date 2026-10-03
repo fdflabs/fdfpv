@@ -30,7 +30,7 @@ import http from 'node:http';
 import worker from './worker.js';
 import { openD1 } from './d1sqlite.js';
 import { googleKeys, verifyGoogleIdToken } from './google.js';
-import { inspectCallsign, looksLikePickerName } from './accounts.js';
+import { inspectCallsign, looksLikePickerName, parseClientIds } from './accounts.js';
 import { ACCOUNT_WRITE_LIMIT, SIGNIN_LIMIT } from './limits.js';
 import {
   createIdentity, keyLinkMessage, memoryStorage, trackMessage,
@@ -47,6 +47,7 @@ import {
 } from '../src/share/flighttime.js';
 
 const CLIENT_ID = 'selftest-client.apps.googleusercontent.com';
+const OLD_CLIENT_ID = 'selftest-client-old.apps.googleusercontent.com';
 const RS256 = { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' };
 
 let failed = 0;
@@ -95,9 +96,13 @@ console.log('the ID token');
     },
     now: () => clock,
   });
-  const opts = { clientId: CLIENT_ID, key, nowS };
+  const opts = { clientIds: [CLIENT_ID, OLD_CLIENT_ID], key, nowS };
   let v = await verifyGoogleIdToken(await idToken({ sub: '42' }), opts);
   check('a good token names its subject', v.sub === '42', JSON.stringify(v));
+  v = await verifyGoogleIdToken(await idToken({ sub: '42', aud: CLIENT_ID }), opts);
+  check('a token for the new client id verifies', v.sub === '42', JSON.stringify(v));
+  v = await verifyGoogleIdToken(await idToken({ sub: '42', aud: OLD_CLIENT_ID }), opts);
+  check('and so does one for the old client id, during the transition', v.sub === '42', JSON.stringify(v));
   v = await verifyGoogleIdToken(await idToken({ aud: 'someone-else.apps.googleusercontent.com' }), opts);
   check('a token for another client id is refused', v.error === 'wrong audience', JSON.stringify(v));
   v = await verifyGoogleIdToken(await idToken({ aud: [CLIENT_ID, 'x'] }), opts);
@@ -119,7 +124,7 @@ console.log('the ID token');
   check('a token that is not RS256 is refused', v.error === 'not an RS256 token', JSON.stringify(v));
   v = await verifyGoogleIdToken('junk', opts);
   check('junk is refused', v.error === 'not a token');
-  v = await verifyGoogleIdToken(good, { ...opts, clientId: '' });
+  v = await verifyGoogleIdToken(good, { ...opts, clientIds: [] });
   check('with no client id configured nothing is accepted', Boolean(v.error));
   check('Google\'s keys were fetched once for all of that', fetches === 1, `${fetches}`);
   v = await verifyGoogleIdToken(await idToken({ kid: 'rotated' }), opts);
@@ -132,6 +137,19 @@ console.log('the ID token');
   await verifyGoogleIdToken(good, opts);
   check('and the keys are fetched again when max-age runs out', fetches === 3, `${fetches}`);
 }
+
+console.log('GOOGLE_CLIENT_ID, a comma separated list');
+check('one id, no commas', JSON.stringify(parseClientIds(CLIENT_ID)) === JSON.stringify([CLIENT_ID]));
+check(
+  'the new id first, then the old one, during a transition',
+  JSON.stringify(parseClientIds(`${CLIENT_ID},${OLD_CLIENT_ID}`)) === JSON.stringify([CLIENT_ID, OLD_CLIENT_ID]),
+);
+check(
+  'blanks from stray commas and surrounding space are dropped',
+  JSON.stringify(parseClientIds(` ${CLIENT_ID} ,, ${OLD_CLIENT_ID},`)) === JSON.stringify([CLIENT_ID, OLD_CLIENT_ID]),
+);
+check('unset is an empty list, sign-in off', parseClientIds(undefined).length === 0);
+check('a list of nothing but commas is also an empty list, sign-in off', parseClientIds(' , , ').length === 0);
 
 console.log('callsigns');
 check('a plain callsign is taken', inspectCallsign('  Ace   Pilot ').callsign === 'Ace Pilot');
@@ -343,7 +361,7 @@ const JWKS_URL = `http://127.0.0.1:${jwksServer.address().port}/certs`;
 
 function freshEnv(extra = {}) {
   return {
-    DB: openD1(':memory:').DB, ADMIN_SECRET: 'x', GOOGLE_CLIENT_ID: CLIENT_ID, ACCOUNTS_SECRET: 'selftest-accounts-secret', GOOGLE_JWKS_URL: JWKS_URL, ...extra,
+    DB: openD1(':memory:').DB, ADMIN_SECRET: 'x', GOOGLE_CLIENT_ID: `${CLIENT_ID},${OLD_CLIENT_ID}`, ACCOUNTS_SECRET: 'selftest-accounts-secret', GOOGLE_JWKS_URL: JWKS_URL, ...extra,
   };
 }
 let env = freshEnv();
@@ -389,6 +407,13 @@ r = await call('PUT', '/api/account/callsign', { callsign: 'Ace' }, alice);
 check('a callsign is claimed', r.status === 200 && r.body.callsign === 'Ace');
 r = await call('GET', '/api/account', undefined, alice);
 check('and the account answers with it, for the rooms server', r.status === 200 && r.body.callsign === 'Ace');
+
+r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'alice', aud: OLD_CLIENT_ID }) });
+check('the same sub through the old client id signs in too', r.status === 200, JSON.stringify(r.body));
+const aliceAgain = r.body.session;
+check('and it is a session of its own, not alice\'s first one', aliceAgain !== alice);
+r = await call('GET', '/api/account', undefined, aliceAgain);
+check('reaching the very same account: her callsign, set under the new client id', r.status === 200 && r.body.callsign === 'Ace', JSON.stringify(r.body));
 
 r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'bob' }) });
 const bob = r.body.session;
@@ -568,6 +593,9 @@ console.log('switched off');
 env = freshEnv({ GOOGLE_CLIENT_ID: '' });
 r = await call('POST', '/api/account/google', { credential: await idToken() });
 check('with no client id every account route answers 503', r.status === 503);
+env = freshEnv({ GOOGLE_CLIENT_ID: ' , ,' });
+r = await call('POST', '/api/account/google', { credential: await idToken() });
+check('and so does a list that parses to no ids at all', r.status === 503);
 env = freshEnv({ ACCOUNTS_SECRET: '' });
 r = await call('POST', '/api/account/google', { credential: await idToken() });
 check('and with no accounts secret', r.status === 503);

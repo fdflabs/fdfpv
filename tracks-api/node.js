@@ -30,6 +30,7 @@
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
 import worker from './worker.js';
+import { parseClientIds } from './accounts.js';
 import { openD1 } from './d1sqlite.js';
 import { listener, readRevision } from '../edge/node-http.js';
 
@@ -71,7 +72,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     accountsSecret: process.env.ACCOUNTS_SECRET || '',
   });
-  const signIn = process.env.GOOGLE_CLIENT_ID && process.env.ACCOUNTS_SECRET;
+  const signIn = parseClientIds(process.env.GOOGLE_CLIENT_ID).length > 0 && process.env.ACCOUNTS_SECRET;
   console.log(`fdfpv tracks on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: admin routes refuse everyone'}${signIn ? ', sign-in on' : ', no GOOGLE_CLIENT_ID or ACCOUNTS_SECRET: sign-in off'}`);
   process.on('SIGTERM', async () => {
     await running.stop();

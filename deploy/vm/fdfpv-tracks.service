@@ -28,12 +28,16 @@ User=fdfpv-tracks
 Group=fdfpv-tracks
 WorkingDirectory=/opt/fdfpv
 Environment=HOST=127.0.0.1 PORT=8787 TRACKS_DB=/var/lib/fdfpv-tracks/tracks.db
-# The optional Google sign-in (tracks-api/accounts.js). The client id is
-# public, the same string as GOOGLE_CLIENT_ID in src/share/account.js.
-# ACCOUNTS_SECRET seals the pilot keys accounts carry; deploy.sh makes it
-# on the VM the first time, in accounts.env, which only this unit reads.
-# Without both, the account routes answer 503 and nothing else changes.
-Environment=GOOGLE_CLIENT_ID=533228474420-ij6t37upmahvcg96tava16ild8mdno4t.apps.googleusercontent.com
+# The optional Google sign-in (tracks-api/accounts.js). The client ids are
+# public, a comma separated list (tracks-api/accounts.js parseClientIds),
+# new id first: the one src/share/account.js signs in with, then the old
+# one a page loaded before this deploy may still hold, so it keeps signing
+# in until it is reloaded. Drop the old id once nothing points to it any
+# more. ACCOUNTS_SECRET seals the pilot keys accounts carry; deploy.sh
+# makes it on the VM the first time, in accounts.env, which only this unit
+# reads. Without both a client id and ACCOUNTS_SECRET, the account routes
+# answer 503 and nothing else changes.
+Environment=GOOGLE_CLIENT_ID=684567545976-dqpf7tqf764rs0dp7l08it7usb33fo9m.apps.googleusercontent.com,533228474420-ij6t37upmahvcg96tava16ild8mdno4t.apps.googleusercontent.com
 EnvironmentFile=/etc/fdfpv/tracks.env
 EnvironmentFile=-/etc/fdfpv/accounts.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
