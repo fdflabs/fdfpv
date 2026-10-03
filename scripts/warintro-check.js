@@ -1,55 +1,47 @@
 /*
- * warintro-check.js: the war mode's "2030" intro (src/render/warintro.js,
- * docs/WARFARE-PLAN.md section 7.1), played whole in the real game on the
- * Itaipu map. npm run warintro:check.
+ * warintro-check.js: the war's intro film (src/render/warintro.js playing
+ * src/share/war/films, docs/campaign/INTROS.md), played in the real game
+ * on the Itaipu map. npm run warintro:check.
  *
  *     SIM_GPU=1 node scripts/warintro-check.js [OUT_DIR]
  *
  * It loads the shell headless on the machine's GPU (tests/lib/page.js,
  * which mutes the page), imports the player into the page and drives it
  * the way a shell does: frame() once an animation frame, the film's
- * camera handed to the shell through its harness camera (__setCam, which
- * takes a position, a point to look at and a lens; everything else is
- * the shell's own draw). Then it holds the film to:
+ * camera handed to the shell through its harness camera (__setCam). Then
+ * it holds the film to:
  *
- *   shots     every shot drawn, and what each one is for there: the
- *             title "2030"; eleven Strikers over the water; the counter
- *             reaching 14 000 MW; the line of eight aircraft; the spin up
- *             cuts' cast; the wave (Strikers, FPVs, Loiterers), the six
- *             defenders and the mission card
- *   words     every played voice line's subtitle shown, in the page's
- *             language, as lines.json has it, and every voice file as
- *             long as the manifest measured it, so the subtitles' timing
- *             is the files'; intro-6, the signal line, never said (the
- *             signal system is out of the war mode for now, and its shot
- *             with it)
+ *   shots     every shot drawn, and what each is for there: the title
+ *             "2030"; the lone Striker in the long lens and then over the
+ *             lens; the ten; the counter reaching 14 000 MW; the line of
+ *             eight aircraft; a quad's props, the thrown Skyhunter, the
+ *             F-16; the wave (Strikers, FPVs, Loiterers), six defenders
+ *             and the mission's own card
+ *   the voice every line decoded in the browser as long as the manifest
+ *             measured it (so the film's shot lengths, which are built on
+ *             the manifest, are the files' real lengths, INTROS section
+ *             2), scheduled on the audio clock at its start from its
+ *             first word, and subtitled in its shot
  *   camera    never under the ground (__heightAt) at any frame
  *   budget    the film's own draw calls at most FILM_CALLS on the map's
- *             view, and no view over ITAIPU-PLAN section 13's 300 that the
- *             map alone keeps under it; and
- *             the frame time against the map's own: shot by shot, the
- *             shot's camera path is flown with nothing of the film in the
- *             scene or on the screen (the bare map), then the shot itself,
- *             back to back so the rest of the machine's load falls on both
- *             alike; the film's share of frames over 20 ms (a missed 60 Hz
- *             vsync) may not be more than DROP_SLACK over the bare map's.
- *             The 95th percentile of the time between animation frames is
- *             reported for both, and not judged: under vsync it is 16.7 or
- *             33.4 ms and nothing between, so it flips on one frame in
- *             twenty and says less than the share. Each run's first
- *             SETTLE_MS is left out: the camera has just jumped, for both
- *   console   no page error at all
- *   skip      a key skips it; with a room's briefing still running the
- *             camera circles the dam over "Briefing: N s" until it ends;
- *             dispose() leaves no overlay, no scenery and the canvas as it
- *             was
- *   the game  then through src/main.js's own hook, on a rooms server this
- *             check runs in its own process (edge/rooms/node.js): the
- *             host's Watch intro plays on the shell's camera with its
- *             screens hidden and a key gives them back; the host's start
- *             with the intro puts the room in its briefing, the film plays
- *             from where the room is in it, and the host's key ends the
- *             briefing for the room, which counts down at once
+ *             view, none over ITAIPU-PLAN section 13's 300 that the map
+ *             keeps under it, and its share of frames over 20 ms no more
+ *             than DROP_SLACK over the bare map's on the same camera path
+ *   skipping  a first viewing does not skip on any key, a tap or a held
+ *             one; a seen one skips on a 2 s hold and not on a tap; in a
+ *             briefing a skip waits on the dam's orbit; a late start
+ *             plays the line under way from its offset and is not seen
+ *   the hand-off  the letterbox open by the film's last frame
+ *   the game  then through src/main.js on a rooms server this check runs
+ *             itself (edge/rooms/node.js), two pages: the host's start
+ *             with the intro plays the film on both, from the room's
+ *             clock, within MAX_SKEW_MS of each other at the same wall
+ *             time; the host who has seen it holding to skip while the
+ *             guest has not leaves the host on the orbit and the room in
+ *             its briefing; the guest watches to the end, which makes it
+ *             seen; the next briefing, both seen, ends for the room on
+ *             the host's hold; a guest who joins mid briefing starts the
+ *             film where the room is
  *
  * OUT_DIR (default the system temp dir's warintro-frames) gets three frames
  * of each shot, for a person to look at. Never inside the repository.
@@ -77,15 +69,21 @@ import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
-import { SHOT_MS, INTRO_MS } from '../src/share/war/intro.js';
+import { timing, linesOf } from '../src/share/war/film.js';
+import { filmFor } from '../src/share/war/films/index.js';
 import { COUNTDOWN_MS } from '../edge/rooms/race.js';
 import { startRooms } from '../edge/rooms/node.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
+const FILM = filmFor(null);
+const TIMED = timing(FILM);
+const SHOTS = TIMED.shots;
+const LINES = linesOf(TIMED);
+const shotOf = (id) => SHOTS.findIndex((s) => s.id === id);
+
 /* How much more of the film's frames than the bare map's may miss a 60 Hz
- * vsync, on the same camera path: the film adds its scenery, the overlays
- * and the grade. */
+ * vsync, on the same camera path. */
 const DROP_SLACK = 0.03;
 const DROP_MS = 20;
 const SETTLE_MS = 600;
@@ -93,9 +91,15 @@ const SETTLE_MS = 600;
  * view: eight baked aircraft on the crest and four turning rotors. */
 const CALLS = 300;
 const FILM_CALLS = 16;
-/* The camera's least height over the ground: the spin up cuts sit a
+/* The camera's least height over the ground: the props shot sits a
  * quarter metre over the crest by an aircraft on it. */
 const CLEAR_M = 0.15;
+/* A decoded line against the manifest's measure: the encoder's padding. */
+const DECODE_TOL_S = 0.03;
+/* Two screens' films at the same wall time: one 60 Hz frame. */
+const MAX_SKEW_MS = 17;
+/* Holding past the 2 s skip. */
+const HOLD_MS = 2300;
 
 if (process.env.SIM_GPU !== '1') {
   throw new Error('warintro-check: run with SIM_GPU=1; a software rasteriser cannot time the frames');
@@ -105,15 +109,8 @@ if (outDir === root || outDir.startsWith(`${root}/`)) {
   throw new Error(`warintro-check: ${outDir} is inside the repository; frames go outside it`);
 }
 await mkdir(outDir, { recursive: true });
-
-/* The intro's lines the film plays, one a shot in order: intro-6 went
- * with the gorge's shot and the signal system. */
-const CUT = 'intro-6';
-const lines = JSON.parse(await readFile(join(root, 'assets/audio/war/lines.json'), 'utf8')).lines.filter((l) => l.group === 'intro' && l.id !== CUT);
-if (lines.length !== SHOT_MS.length) {
-  throw new Error(`warintro-check: ${lines.length} lines played for ${SHOT_MS.length} shots`);
-}
 const manifest = JSON.parse(await readFile(join(root, 'assets/audio/war/manifest.json'), 'utf8'));
+const linesJson = Object.fromEntries(JSON.parse(await readFile(join(root, 'assets/audio/war/lines.json'), 'utf8')).lines.map((l) => [l.id, l]));
 
 const failures = [];
 const row = (name, ok, detail = '') => {
@@ -123,60 +120,79 @@ const row = (name, ok, detail = '') => {
   }
 };
 
-const seed = [`try {
+/* A page's settings: high graphics, English, and whether this pilot has
+ * seen the film (the campaign section's films, src/game/campaign.js). */
+const seedFor = (seen) => [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
     s.graphics = 'high';
     s.graphicsAuto = false;
     s.airframeAsked = true;
+    s.campaign = { films: ${seen ? JSON.stringify({ [FILM.id]: FILM.version }) : '{}'} };
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.stats.v1', JSON.stringify({ optOut: true }));
     localStorage.setItem('webfpv.lang', 'en');
   } catch (e) { /* Storage refused: the run says which preset it got. */ }`];
 
+/* Space held for ms on a page, as a pilot holds a key. */
+async function holdKey(page, ms) {
+  const info = {
+    key: ' ', code: 'Space', windowsVirtualKeyCode: 32, nativeVirtualKeyCode: 32,
+  };
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...info }, page.sessionId);
+  await page.sleep(ms);
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...info }, page.sessionId);
+}
+
 /*
- * The in page driver: the player, a proxy camera, and one animation frame
- * callback that runs the film and hands the camera to the shell. Per frame
- * it keeps the time since the last, the camera's height over the ground,
- * and per shot the most of each thing the film is meant to show.
+ * The in page driver: the player on this screen's own clock from startMs,
+ * a proxy camera, and one animation frame callback that runs the film and
+ * hands the camera to the shell. Per frame it keeps the time since the
+ * last, the camera's height over the ground, and per shot the most of
+ * each thing the film is meant to show.
  */
 const DRIVE = /* js */ `(async (opts) => {
   const THREE = window.__three;
   const { play } = await import('/src/render/warintro.js');
   const cam = new THREE.PerspectiveCamera(44, innerWidth / innerHeight, 0.1, 60000);
-  /* bare: the film's camera path alone, its scenery in a scene nobody
-   * draws and its overlay hidden. */
   const bare = Boolean(opts.bare);
+  const t0 = performance.now() - (opts.startMs || 0);
+  const R = { frames: [], cpu: [], clear: [], shots: {}, seen: 0 };
   const h = play(bare ? new THREE.Scene() : window.__mapScene(), cam, {
-    audio: bare ? null : window.__audio, ground: (x, z) => window.__heightAt(x, z),
-    ...(bare ? { canvas: document.createElement('canvas') } : {}), ...opts,
+    audio: bare ? null : window.__audio,
+    ground: (x, z) => window.__heightAt(x, z),
+    title: { key: 'war.mission.itaipu_1', n: 1 },
+    clock: () => performance.now() - t0,
+    seen: Boolean(opts.seen),
+    hold: Boolean(opts.hold),
+    onSeen: () => { R.seen += 1; },
+    onSkip: () => { R.skip = true; },
+    ...(bare ? { canvas: document.createElement('canvas') } : {}),
   });
   if (bare) {
     for (const e of document.querySelectorAll('[data-war-intro]')) { e.style.display = 'none'; }
   }
-  const R = { frames: [], cpu: [], clear: [], shots: {} };
-  window.__intro2030 = { h, R, capturing: false };
+  window.__film = { h, R, capturing: false };
   const fwd = new THREE.Vector3();
   let last = null;
-  let k = 0;
   const tick = (now) => {
-    if (window.__intro2030.h !== h) { return; }
+    if (window.__film.h !== h) { return; }
     const c0 = performance.now();
     h.frame(now);
     R.cpu.push(performance.now() - c0);
     const s = h.state();
-    if (last != null) { R.frames.push([now - last, window.__intro2030.capturing ? 1 : 0, s.shot, s.t]); }
+    if (last != null) { R.frames.push([now - last, window.__film.capturing ? 1 : 0, s.shot, s.t]); }
     last = now;
     if (!s.done) {
       cam.getWorldDirection(fwd);
       window.__setCam(cam.position.x, cam.position.y, cam.position.z,
         cam.position.x + fwd.x * 100, cam.position.y + fwd.y * 100, cam.position.z + fwd.z * 100, cam.fov);
-      k += 1;
       if (!s.orbit && s.shot >= 0) {
         const g = window.__heightAt(cam.position.x, cam.position.z);
         R.clear.push([s.shot, cam.position.y - g, Math.round(cam.position.x), Math.round(cam.position.z)]);
-        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], titles: [], subs: [], counter: null, calls: 0 });
+        const x = (R.shots[s.shot] ||= { frames: 0, drawn: {}, cast: [], titles: [], subs: [], counter: null, calls: 0, opened: 0 });
         x.frames += 1;
+        x.opened = Math.max(x.opened, s.opened);
         for (const [kind, n] of Object.entries(s.drawn)) { x.drawn[kind] = Math.max(x.drawn[kind] || 0, n); }
         for (const c of s.cast) { if (!x.cast.includes(c)) { x.cast.push(c); } }
         if (s.title && !x.titles.includes(s.title)) { x.titles.push(s.title); }
@@ -188,7 +204,7 @@ const DRIVE = /* js */ `(async (opts) => {
         const calls = window.__renderStats().calls;
         if (x.frames > 3 && calls > x.calls) {
           x.calls = calls;
-          x.callsAt = [Math.round(s.t - ${JSON.stringify(SHOT_MS)}.slice(0, s.shot).reduce((a, b) => a + b, 0)), Math.round(cam.position.x), Math.round(cam.position.y), Math.round(cam.position.z)];
+          x.callsAt = [Math.round(s.t), Math.round(cam.position.x), Math.round(cam.position.y), Math.round(cam.position.z)];
         }
       }
     }
@@ -200,168 +216,181 @@ const DRIVE = /* js */ `(async (opts) => {
 
 const scratch = await mkdtemp(join(tmpdir(), 'fdfpv-warintro-'));
 const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+const url = `/index.html?map=itaipu&rooms=${encodeURIComponent(`http://127.0.0.1:${server.port}`)}`;
+/* The host has seen this cut (the driver below says so for itself, per
+ * run); the guest page has not. */
 const page = await openPage({
-  root, width: 1600, height: 900, url: `/index.html?map=itaipu&rooms=${encodeURIComponent(`http://127.0.0.1:${server.port}`)}`, seed,
+  root, width: 1600, height: 900, url, seed: seedFor(true),
 });
+let guest = null;
 const stop = () => page.close().finally(() => process.exit(1));
 process.once('SIGTERM', stop);
 process.once('SIGINT', stop);
-let report = null;
+
+/* A click is the gesture a browser wants before sound, as a pilot's own
+ * clicks into a room are; then the shell's audio is started. */
+async function soundOn(p) {
+  for (const type of ['mousePressed', 'mouseReleased']) {
+    await p.cdp.send('Input.dispatchMouseEvent', {
+      type, x: 5, y: 5, button: 'left', clickCount: 1,
+    }, p.sessionId);
+  }
+  await p.evaluate('(window.__audio.start(), window.__audio.setEnabled(true), "")');
+  await p.sleep(500);
+}
+
 try {
   await page.until('window.__map && window.__map().id === "itaipu" && window.__map().ready', 300000);
   console.log(`map ready at ${await page.evaluate('window.__map().graphics')}; renderer ${await page.evaluate(`(() => { const g = document.getElementById('view').getContext('webgl2');
     return g.getParameter(g.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_WEBGL); })()`)}`);
   await page.evaluate('(document.getElementById("ui").style.display = "none", "")');
-  /* A click is the gesture a browser wants before sound, as a pilot's
-   * own clicks into a room are; then the shell's audio is started. */
-  await page.cdp.send('Input.dispatchMouseEvent', {
-    type: 'mousePressed', x: 5, y: 5, button: 'left', clickCount: 1,
-  }, page.sessionId);
-  await page.cdp.send('Input.dispatchMouseEvent', {
-    type: 'mouseReleased', x: 5, y: 5, button: 'left', clickCount: 1,
-  }, page.sessionId);
-  await page.evaluate('(window.__audio.start(), window.__audio.setEnabled(true), "")');
-  await page.sleep(500);
+  await soundOn(page);
   console.log(`audio context: ${await page.evaluate('window.__audio.ctx ? window.__audio.ctx.state : "none"')}`);
 
-  /* Each voice file's own length, as the browser decodes it. */
-  const durations = await page.evaluate(`Promise.all(${JSON.stringify(lines.map((l) => l.id))}.map((id) => new Promise((done) => {
-    const a = new Audio(new URL('assets/audio/war/voice/en/' + id + '.webm', location.href).href);
-    a.preload = 'metadata';
-    a.onloadedmetadata = () => done([id, a.duration]);
-    a.onerror = () => done([id, NaN]);
-  }))).then(Object.fromEntries)`);
-
-  console.log(`\nthe whole film, ${INTRO_MS / 1000} s`);
+  console.log(`\nthe whole film, ${(TIMED.ms / 1000).toFixed(2)} s, a first viewing`);
   await page.evaluate(`${DRIVE}({})`);
-  const shotStarts = SHOT_MS.map((_, i) => SHOT_MS.slice(0, i).reduce((a, b) => a + b, 0));
   const grabs = [];
-  for (let i = 0; i < SHOT_MS.length; i += 1) {
+  for (const [i, s] of SHOTS.entries()) {
     for (const f of [0.2, 0.5, 0.8]) {
-      grabs.push({ shot: i, at: shotStarts[i] + SHOT_MS[i] * f, name: `shot${i + 1}-${Math.round(f * 100)}` });
+      grabs.push({ i, at: s.start + s.ms * f, name: `${String(i + 1).padStart(2, '0')}-${s.id}-${Math.round(f * 100)}` });
     }
   }
+  /* A held key and a tap in the first shot: a first viewing skips on
+   * neither. */
+  await page.until(`window.__film.h.state().t >= ${SHOTS[0].start + 500}`, 30000);
+  await page.tap('Space');
+  await holdKey(page, HOLD_MS);
+  const unskipped = await page.evaluate('window.__film.h.state()');
+  row('a first viewing: no hint, and neither a tap nor a held key skips it', !unskipped.skipped && !unskipped.skippable && !unskipped.done);
   for (const g of grabs) {
-    await page.until(`window.__intro2030.h.state().t >= ${g.at}`, 120000);
-    await page.evaluate('window.__intro2030.capturing = true');
+    await page.until(`window.__film.h.state().t >= ${g.at}`, 120000);
+    await page.evaluate('window.__film.capturing = true');
     const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 85 }, page.sessionId);
-    await page.evaluate('requestAnimationFrame(() => requestAnimationFrame(() => { window.__intro2030.capturing = false; }))');
+    await page.evaluate('requestAnimationFrame(() => requestAnimationFrame(() => { window.__film.capturing = false; }))');
     await writeFile(join(outDir, `${g.name}.jpg`), Buffer.from(data, 'base64'));
   }
-  await page.until('window.__intro2030.h.state().done', 120000);
-  report = await page.evaluate('({ R: window.__intro2030.R, s: window.__intro2030.h.state() })');
-  await page.evaluate('(window.__intro2030.h.dispose(), window.__intro2030.h = null, window.__setCam(null), "")');
+  await page.until('window.__film.h.state().done', 120000);
+  const { R, s } = await page.evaluate('({ R: window.__film.R, s: window.__film.h.state() })');
+  await page.evaluate('(window.__film.h.dispose(), window.__film.h = null, window.__setCam(null), "")');
   const bedAfter = await page.evaluate('window.__audio.warRadio ? window.__audio.warRadio.track : null');
 
-  const { R, s } = report;
-  const shot = (i) => R.shots[i] || {
-    frames: 0, drawn: {}, cast: [], titles: [], subs: [], calls: 0,
+  const shot = (id) => R.shots[shotOf(id)] || {
+    frames: 0, drawn: {}, cast: [], titles: [], subs: [], calls: 0, opened: 0,
   };
   console.log('\nper shot: frames, most attackers drawn, the cast, most draw calls');
-  for (let i = 0; i < SHOT_MS.length; i += 1) {
-    const x = shot(i);
-    console.log(`  shot ${i + 1}: ${x.frames} frames, ${JSON.stringify(x.drawn)}, [${x.cast.join(' ')}], ${x.calls} calls`);
+  for (const x of SHOTS) {
+    const y = shot(x.id);
+    console.log(`  ${x.id.padEnd(7)} ${String(y.frames).padStart(4)} frames, ${JSON.stringify(y.drawn)}, [${y.cast.join(' ')}], ${y.calls} calls`);
   }
   console.log('');
-  row('every shot is drawn', SHOT_MS.every((_, i) => shot(i).frames >= 30), SHOT_MS.map((_, i) => shot(i).frames).join(' '));
-  row('shot 1: the title "2030"', shot(0).titles.includes('2030'), shot(0).titles.join(' | '));
-  row('shot 2: one Striker, then ten, over the water', shot(1).drawn.strike >= 11, `${shot(1).drawn.strike} at most at once`);
-  row('shot 3: the counter reaches 14 000 MW', /14\s?000 MW/.test(shot(2).counter || ''), shot(2).counter || 'none');
+  row('every shot is drawn', SHOTS.every((x) => shot(x.id).frames >= 30), SHOTS.map((x) => shot(x.id).frames).join(' '));
+  row('dawn: the title "2030"', shot('dawn').titles.includes('2030'), shot('dawn').titles.join(' | '));
+  row('haze and pass: the lone Striker, and no other attacker', shot('haze').drawn.strike === 1 && shot('pass').drawn.strike === 1,
+    `${shot('haze').drawn.strike} ${shot('pass').drawn.strike}`);
+  row('ten: the ten Strikers', shot('ten').drawn.strike === 10, `${shot('ten').drawn.strike}`);
+  row('face: the counter reaches 14 000 MW', /14\s?000 MW/.test(shot('face').counter || ''), shot('face').counter || 'none');
   const LINE = ['p51', 'cub', 'q1', 'q2', 'q3', 'sky', 'f16', 'timber'];
-  row('shot 4: the line of eight aircraft on the crest', LINE.every((n) => shot(3).cast.includes(n)), shot(3).cast.join(' '));
-  row('shot 5: the spin up cuts: a quad, the Skyhunter thrown, the float plane, the F-16', ['q2s', 'skys', 'float', 'f16'].every((n) => shot(4).cast.includes(n)), shot(4).cast.join(' '));
-  row('shot 6: the wave (Strikers, FPVs, Loiterers) and six defenders rising', shot(5).drawn.strike >= 10 && shot(5).drawn.fpv >= 8 && shot(5).drawn.loiter >= 3
-    && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot(5).cast.includes(n)), `${JSON.stringify(shot(5).drawn)} [${shot(5).cast.join(' ')}]`);
-  row('shot 6: the card "DEFEND ITAIPU / Mission 1"', shot(5).titles.includes('DEFEND ITAIPU'), shot(5).titles.join(' | '));
-  row('no other shot draws an attacker', [0, 2, 3, 4].every((i) => Object.values(shot(i).drawn).every((n) => n === 0)));
+  row('line: the eight aircraft on the crest', LINE.every((n) => shot('line').cast.includes(n)), shot('line').cast.join(' '));
+  row('props, thrown, fan: the quad spinning up, the thrown Skyhunter, the F-16', shot('props').cast.includes('q2s') && shot('thrown').cast.includes('skys')
+    && shot('fan').cast.includes('f16'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
+  row('wave: Strikers, FPVs and Loiterers, and six defenders rising', shot('wave').drawn.strike >= 10 && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
+    && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
+  row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes('Defend the intakes'), shot('wave').titles.join(' | '));
+  row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
 
-  const subs = lines.map((l, i) => shot(i).subs.includes(l.en));
-  row('every voice line is subtitled in its shot, in English as lines.json has it', subs.every(Boolean), subs.map((x, i) => `${i + 1}:${x ? 'y' : 'n'}`).join(' '));
-  const lens = lines.map((l) => [l.id, durations[l.id], manifest.voice[`${l.id}.en`].seconds]);
-  row('every voice file is as long as the manifest measured it (the subtitles\' timing)', lens.every(([, d, m]) => Math.abs(d - m) < 0.15),
-    lens.map(([id, d, m]) => `${id} ${Number(d).toFixed(2)}/${m.toFixed(2)}`).join(', '));
-  const fits = lines.map((l, i) => {
-    const shotDef = SHOT_MS[i];
-    const longest = Math.max(manifest.voice[`${l.id}.en`].seconds, manifest.voice[`${l.id}.es`].seconds) * 1000;
-    return { id: l.id, ok: longest < shotDef, longest };
+  /* The voice: decoded here, as long as the manifest says. */
+  const decoded = s.sound ? s.sound.decoded : {};
+  const lens = LINES.map((l) => [l.line, decoded[l.line], manifest.voice[`${l.line}.en`].seconds * 1000]);
+  row('every line decoded in the browser is as long as the manifest measured it, so each shot is as long as its line',
+    lens.every(([, d, m]) => Number.isFinite(d) && Math.abs(d - m) <= DECODE_TOL_S * 1000), lens.map(([id, d, m]) => `${id} ${d}/${Math.round(m)}`).join(', '));
+  const cued = s.sound ? s.sound.cued : [];
+  row(`every line (${LINES.length}) scheduled on the audio clock at its start, from its first word`,
+    LINES.every((l) => cued.some((c) => c.line === l.line && c.at === l.start && c.offset === 0)),
+    cued.map((c) => `${c.line}@${(c.at / 1000).toFixed(2)}+${c.offset}`).join(' '));
+  const subs = LINES.map((l) => {
+    const i = SHOTS.findIndex((x) => x.lines.some((y) => y.line === l.line));
+    return (R.shots[i]?.subs ?? []).includes(linesJson[l.line].en);
   });
-  row('every line, in either language, is shorter than its shot', fits.every((f) => f.ok), fits.map((f) => `${f.id} ${(f.longest / 1000).toFixed(1)} s`).join(', '));
-  const heard = s.sound ? s.sound.cued : [];
-  row(`the voice: all ${lines.length} lines said on the war radio, each at its cue, in the page's language, and never ${CUT}`, heard.length === lines.length
-    && lines.every((l) => heard.some((x) => x.line === l.id) && s.sound.said.includes(l.id)) && !s.sound.said.includes(CUT) && s.sound.lang === 'en',
-    `${heard.map((x) => `${x.line}@${(x.at / 1000).toFixed(1)}`).join(' ')}; radio ${s.sound ? `${s.sound.lang} ${s.sound.ext}` : 'none'}`);
-  row('the music: the war bed\'s intro track under every shot, and the bed put back as it was after', SHOT_MS.every((_, i) => shot(i).music === 'intro')
-    && bedAfter === '', `${SHOT_MS.map((_, i) => shot(i).music || '-').join(' ')}; after, '${bedAfter}'`);
-
+  row('every line subtitled in its shot, in English as lines.json has it', subs.every(Boolean), subs.map((x, i) => `${LINES[i].line}:${x ? 'y' : 'n'}`).join(' '));
+  row('the music: the war bed\'s intro track from the first shot, and the bed put back after', SHOTS.every((x) => shot(x.id).music === 'intro') && bedAfter === '',
+    `${SHOTS.map((x) => shot(x.id).music || '-').join(' ')}; after, '${bedAfter}'`);
+  row('a viewing from its start is seen, once', R.seen === 1, `${R.seen}`);
   const low = R.clear.reduce((m, c) => (c[1] < m[1] ? c : m), [0, Infinity]);
-  row(`the camera never goes under the ground (least clearance over ${CLEAR_M} m)`, low[1] >= CLEAR_M, `least ${low[1].toFixed(2)} m in shot ${low[0] + 1} at ${low[2]}, ${low[3]}`);
+  row(`the camera never goes under the ground (least clearance over ${CLEAR_M} m)`, low[1] >= CLEAR_M, `least ${low[1].toFixed(2)} m in ${SHOTS[low[0]]?.id} at ${low[2]}, ${low[3]}`);
+
   /* The timing runs: each shot bare, then filmed, back to back. */
-  console.log(`\nthe timing: each shot over the bare map, then filmed, ${(2 * INTRO_MS) / 1000} s`);
+  console.log('\nthe timing: each shot over the bare map, then filmed');
   const base = { frames: [], shots: {} };
-  const timed = { frames: [], cpu: [] };
-  for (let i = 0; i < SHOT_MS.length; i += 1) {
+  const filmRun = { frames: [], cpu: [] };
+  for (const [i, x] of SHOTS.entries()) {
     for (const bare of [true, false]) {
-      await page.evaluate(`${DRIVE}({ bare: ${bare}, startMs: ${shotStarts[i]} })`);
-      await page.until(`window.__intro2030.h.state().t >= ${shotStarts[i] + SHOT_MS[i] - 40}`, SHOT_MS[i] + 60000);
-      const got = await page.evaluate('window.__intro2030.R');
-      await page.evaluate('(window.__intro2030.h.dispose(), window.__intro2030.h = null, "")');
-      const kept = got.frames.filter((f) => f[2] === i && f[3] >= shotStarts[i] + SETTLE_MS);
+      await page.evaluate(`${DRIVE}({ bare: ${bare}, startMs: ${x.start} })`);
+      await page.until(`window.__film.h.state().t >= ${x.start + x.ms - 40}`, x.ms + 60000);
+      const got = await page.evaluate('window.__film.R');
+      await page.evaluate('(window.__film.h.dispose(), window.__film.h = null, "")');
+      const kept = got.frames.filter((f) => f[2] === i && f[3] >= x.start + SETTLE_MS);
       if (bare) {
         base.frames.push(...kept);
         base.shots[i] = got.shots[i];
       } else {
-        timed.frames.push(...kept);
-        timed.cpu.push(...got.cpu);
+        filmRun.frames.push(...kept);
+        filmRun.cpu.push(...got.cpu);
       }
     }
   }
   await page.evaluate('(window.__setCam(null), "")');
-
   const bareCalls = (i) => (base.shots[i] ? base.shots[i].calls : 0);
-  const added = SHOT_MS.map((_, i) => shot(i).calls - bareCalls(i));
+  const added = SHOTS.map((x, i) => shot(x.id).calls - bareCalls(i));
   row(`the film adds at most ${FILM_CALLS} draw calls to the map's view`, Math.max(...added) <= FILM_CALLS,
-    `by shot ${added.join(' ')}; the film ${SHOT_MS.map((_, i) => shot(i).calls).join(' ')}, the bare map ${SHOT_MS.map((_, i) => bareCalls(i)).join(' ')}`);
-  const over = SHOT_MS.map((_, i) => i).filter((i) => shot(i).calls > CALLS);
+    `by shot ${added.join(' ')}; the film ${SHOTS.map((x) => shot(x.id).calls).join(' ')}, the bare map ${SHOTS.map((_, i) => bareCalls(i)).join(' ')}`);
+  const over = SHOTS.map((_, i) => i).filter((i) => shot(SHOTS[i].id).calls > CALLS);
   row(`and puts no view over ${CALLS} (ITAIPU-PLAN section 13) that the map keeps under it`, over.every((i) => bareCalls(i) > CALLS),
-    over.map((i) => `shot ${i + 1} ${shot(i).calls} at ${JSON.stringify(shot(i).callsAt)}, the bare map ${bareCalls(i)} at ${JSON.stringify(base.shots[i].callsAt)} (shot ms, camera x y z)`).join('; ') || 'none over');
-  for (const i of over.filter((j) => bareCalls(j) > CALLS)) {
-    console.log(`  NOTE  shot ${i + 1}: the map alone draws ${bareCalls(i)} calls at ${JSON.stringify(base.shots[i].callsAt)}, over its own budget; the map's to fix (scripts/itaipu-views.js judges it), not the film's`);
-  }
-  const times = (frames, shotNo = null) => frames.filter((f) => !f[1] && f[2] >= 0 && (shotNo == null || f[2] === shotNo)).map((f) => f[0]).sort((a, b) => a - b);
+    over.map((i) => `${SHOTS[i].id} ${shot(SHOTS[i].id).calls}, the bare map ${bareCalls(i)}`).join('; ') || 'none over');
+  const times = (frames, i = null) => frames.filter((f) => !f[1] && f[2] >= 0 && (i == null || f[2] === i)).map((f) => f[0]).sort((a, b) => a - b);
   const pct = (d, p) => (d.length ? d[Math.min(d.length - 1, Math.floor(p * d.length))] : NaN);
   const drops = (d) => d.filter((x) => x > DROP_MS).length / Math.max(1, d.length);
-  const film = times(timed.frames);
-  const bare = times(base.frames);
-  const byShot = (frames) => `${SHOT_MS.map((_, i) => pct(times(frames, i), 0.95).toFixed(1)).join(' ')}, missed by shot ${SHOT_MS.map((_, i) => (100 * drops(times(frames, i))).toFixed(0)).join(' ')} %`;
-  console.log(`  info  the bare map: ${bare.length} frames, median ${pct(bare, 0.5).toFixed(1)} ms, p95 ${pct(bare, 0.95).toFixed(1)} ms, `
-    + `${(100 * drops(bare)).toFixed(1)} % over ${DROP_MS} ms; p95 by shot ${byShot(base.frames)}`);
-  console.log(`  info  the film:     ${film.length} frames, median ${pct(film, 0.5).toFixed(1)} ms, p95 ${pct(film, 0.95).toFixed(1)} ms, `
-    + `${(100 * drops(film)).toFixed(1)} % over ${DROP_MS} ms, max ${pct(film, 1).toFixed(1)} ms; p95 by shot ${byShot(timed.frames)}`);
-  const cpu = [...timed.cpu].sort((a, b) => a - b);
+  const filmT = times(filmRun.frames);
+  const bareT = times(base.frames);
+  console.log(`  info  the bare map: ${bareT.length} frames, median ${pct(bareT, 0.5).toFixed(1)} ms, p95 ${pct(bareT, 0.95).toFixed(1)} ms, ${(100 * drops(bareT)).toFixed(1)} % over ${DROP_MS} ms`);
+  console.log(`  info  the film:     ${filmT.length} frames, median ${pct(filmT, 0.5).toFixed(1)} ms, p95 ${pct(filmT, 0.95).toFixed(1)} ms, ${(100 * drops(filmT)).toFixed(1)} % over ${DROP_MS} ms`);
+  const cpu = [...filmRun.cpu].sort((a, b) => a - b);
   console.log(`  info  the film's own frame(), main thread: median ${pct(cpu, 0.5).toFixed(2)} ms, p95 ${pct(cpu, 0.95).toFixed(2)} ms, max ${pct(cpu, 1).toFixed(1)} ms`);
-  row(`frame time holds: the film misses at most ${DROP_SLACK * 100} points more vsyncs than the bare map on the same path`, drops(film) <= drops(bare) + DROP_SLACK,
-    `${(100 * drops(film)).toFixed(1)} % against ${(100 * drops(bare)).toFixed(1)} %`);
+  row(`frame time holds: the film misses at most ${DROP_SLACK * 100} points more vsyncs than the bare map on the same path`, drops(filmT) <= drops(bareT) + DROP_SLACK,
+    `${(100 * drops(filmT)).toFixed(1)} % against ${(100 * drops(bareT)).toFixed(1)} %`);
 
-  console.log('\nskipping');
-  await page.evaluate(`${DRIVE}({ startMs: 12000 })`);
-  await page.until('window.__intro2030.h.state().shot === 1', 20000);
+  console.log('\nskipping, and a late start');
+  await page.evaluate(`${DRIVE}({ seen: true, startMs: ${SHOTS[1].start} })`);
+  await page.sleep(400);
   await page.tap('Space');
-  await page.until('window.__intro2030.h.state().done', 5000).catch(() => {});
-  const sk = await page.evaluate('window.__intro2030.h.state()');
-  row('a key skips it, and with no briefing to wait for it is over at once', sk.skipped && sk.done);
-  await page.evaluate('(window.__intro2030.h.dispose(), "")');
-  await page.evaluate(`${DRIVE}({ holdUntilMs: performance.now() + 4000 })`);
-  await page.sleep(600);
-  await page.tap('Space');
-  await page.until('window.__intro2030.h.state().orbit', 5000);
   await page.sleep(300);
-  const orb = await page.evaluate('window.__intro2030.h.state()');
+  const tapped = await page.evaluate('window.__film.h.state()');
+  await holdKey(page, HOLD_MS);
+  await page.until('window.__film.h.state().done', 5000).catch(() => {});
+  const sk = await page.evaluate('({ s: window.__film.h.state(), R: window.__film.R })');
+  row('a seen film: a tap does not skip it, a 2 s hold does, and with no briefing it is over at once', !tapped.skipped && sk.s.skipped && sk.s.done && sk.R.skip === true,
+    `tap ${tapped.skipped}, hold ${sk.s.skipped}, done ${sk.s.done}`);
+  await page.evaluate('(window.__film.h.dispose(), "")');
+  await page.evaluate(`${DRIVE}({ seen: true, hold: true, startMs: ${TIMED.ms - 6000} })`);
+  await page.sleep(400);
+  await holdKey(page, HOLD_MS);
+  await page.until('window.__film.h.state().orbit', 5000);
+  const orb = await page.evaluate('window.__film.h.state()');
   const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 85 }, page.sessionId);
   await writeFile(join(outDir, 'briefing-orbit.jpg'), Buffer.from(data, 'base64'));
   row('skipped in a room\'s briefing: the dam\'s orbit and the time left', orb.orbit && !orb.done && /^Briefing: [1-4] s$/.test(orb.hold || ''), orb.hold || 'none');
-  await page.until('window.__intro2030.h.state().done', 8000);
-  row('and over when the briefing is', true);
-  await page.evaluate('(window.__intro2030.h.dispose(), window.__intro2030.h = null, window.__setCam(null), "")');
+  await page.until('window.__film.h.state().done', 8000);
+  await page.evaluate('(window.__film.h.dispose(), window.__film.h = null, "")');
+  const mid = LINES[2];
+  const into = 1000;
+  await page.evaluate(`${DRIVE}({ startMs: ${mid.start + into} })`);
+  await page.until(`window.__film.h.state().sound && window.__film.h.state().sound.cued.length > 0`, 10000).catch(() => {});
+  const late = await page.evaluate('({ s: window.__film.h.state(), R: window.__film.R })');
+  const lc = late.s.sound ? late.s.sound.cued[0] : null;
+  row(`a late start plays the line under way from its offset (${mid.line}, ${into} ms in), never drops it`, lc && lc.line === mid.line && Math.abs(lc.offset - into) < 150,
+    JSON.stringify(lc));
+  await page.until(`window.__film.h.state().t >= ${SHOTS.at(-1).start + 200}`, 90000);
+  row('and a viewing that did not start at the first shot is not seen', late.R.seen === 0 && (await page.evaluate('window.__film.R.seen')) === 0);
+  await page.evaluate('(window.__film.h.dispose(), window.__film.h = null, window.__setCam(null), "")');
   const left = await page.evaluate(`({
     overlay: document.querySelectorAll('[data-war-intro]').length,
     scenery: Boolean(window.__mapScene().getObjectByName('war-intro')),
@@ -369,46 +398,89 @@ try {
   })`);
   row('dispose leaves no overlay, no scenery, and the canvas as it was', left.overlay === 0 && !left.scenery && left.filter === '', JSON.stringify(left));
 
-  console.log('\nin the game, through src/main.js');
+  console.log('\nin the game, two pages on one room');
   await page.until('window.__shellReady === true', 60000);
-  const moved = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) > 1;
-  const look = `({ i: window.__warIntro(), cam: window.__camGround(), hidden: document.body.classList.contains('war-intro'),
-    ui: getComputedStyle(document.getElementById('ui')).visibility, bed: window.__audio.warRadio ? window.__audio.warRadio.track : '' })`;
-  await page.evaluate('(window.__warIntroWatch(), "")');
-  await page.until('window.__warIntro() && window.__warIntro().shot >= 0', 10000);
-  const cam0 = await page.evaluate('window.__camGround()');
-  await page.sleep(1500);
-  const w1 = await page.evaluate(look);
-  row('Watch intro plays it on the shell\'s own camera, the shell\'s screens hidden, the war bed\'s intro under it', Boolean(w1.i) && w1.i.for === 'watch' && w1.i.t > 1000
-    && moved(cam0, w1.cam) && w1.hidden && w1.ui === 'hidden' && w1.bed === 'intro', JSON.stringify({ t: w1.i && Math.round(w1.i.t), hidden: w1.hidden, ui: w1.ui, bed: w1.bed }));
-  await page.tap('Space');
-  await page.until('window.__warIntro() === null', 5000).catch(() => {});
-  const w2 = await page.evaluate(look);
-  row('a key ends it: the screens back and the bed as it was', !w2.i && !w2.hidden && w2.ui !== 'hidden' && w2.bed === '', JSON.stringify({ i: Boolean(w2.i), hidden: w2.hidden, ui: w2.ui, bed: w2.bed }));
-
+  guest = await openPage({
+    root, width: 1280, height: 720, url, seed: seedFor(false),
+  });
+  await guest.until('window.__shellReady === true && window.__map && window.__map().ready', 300000);
+  await soundOn(guest);
   const code = await page.evaluate("window.__roomCreate({ map: 'itaipu' })");
   await page.until("window.__rooms().phase === 'open' && window.__rooms().roomNow != null", 30000);
+  const film = (p) => p.evaluate('window.__warIntro()');
+  const view = (p) => p.evaluate('window.__war().view');
+
+  /* 1: the guest joins 9 s into the briefing. */
   await page.evaluate("window.__warDo('brief')");
-  await page.until("window.__war().view.state === 'briefing'", 10000);
-  await page.until('window.__warIntro() && window.__warIntro().t > 2500', 15000);
-  const b1 = await page.evaluate(`({ w: window.__war().view, i: window.__warIntro(), room: window.__rooms().roomNow, bed: window.__audio.warRadio ? window.__audio.warRadio.track : '' })`);
-  row(`the host's start with the intro: room ${code} briefs for INTRO_MS before its countdown, and the film plays from where the room is in it`,
-    b1.w.goAt === b1.w.briefAt + INTRO_MS + COUNTDOWN_MS && b1.i.for === b1.w.id && Math.abs(b1.i.t - (b1.room - b1.w.briefAt)) < 500 && b1.bed === 'intro',
-    `briefAt ${b1.w.briefAt}, goAt ${b1.w.goAt}; film at ${Math.round(b1.i.t)} ms, room at ${Math.round(b1.room - b1.w.briefAt)} ms into it; bed ${b1.bed}`);
-  await page.tap('Space');
+  await page.until('window.__warIntro() && window.__warIntro().t > 9000', 30000);
+  await guest.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
+  await guest.until('window.__warIntro() && window.__warIntro().t > 0', 30000);
+  const j = await Promise.all([film(page), film(guest)]);
+  row('a guest joining mid briefing starts the film where the room is, not from its start', j[1].t > 9000 && Math.abs(j[0].t - j[1].t) < 1000,
+    `host ${Math.round(j[0].t)}, guest ${Math.round(j[1].t)}`);
+  /* Both films at the same wall time: each page sampled with Date.now(),
+   * which the two pages share, the film's t interpolated between. */
+  const samples = async (p) => p.evaluate(`new Promise((done) => { const out = []; const step = () => {
+    const i = window.__warIntro(); if (i) { out.push([performance.timeOrigin + performance.now(), i.t]); }
+    if (out.length < 120) { requestAnimationFrame(step); } else { done(out); } }; requestAnimationFrame(step); })`);
+  const [sa, sb] = await Promise.all([samples(page), samples(guest)]);
+  const at = (list, w) => {
+    for (let k = 1; k < list.length; k += 1) {
+      if (list[k][0] >= w) {
+        const [w0, t0] = list[k - 1];
+        const [w1, t1] = list[k];
+        return t0 + ((t1 - t0) * (w - w0)) / Math.max(1e-6, w1 - w0);
+      }
+    }
+    return NaN;
+  };
+  const skews = sa.slice(5, -5).map(([w, t]) => Math.abs(t - at(sb, w))).filter(Number.isFinite);
+  const worst = Math.max(...skews);
+  row(`both screens play the film from the room's clock, within ${MAX_SKEW_MS} ms of each other at the same wall time`, skews.length > 50 && worst <= MAX_SKEW_MS,
+    `${skews.length} samples, worst ${worst.toFixed(1)} ms`);
+  const hint = [(await film(page)).skippable, (await film(guest)).skippable];
+  row('the host, who has seen it, may hold to skip; the guest, on a first viewing, may not', hint[0] === true && hint[1] === false, JSON.stringify(hint));
+  await holdKey(guest, HOLD_MS);
+  await holdKey(page, HOLD_MS);
+  await page.sleep(500);
+  const r1 = [await film(page), await film(guest), await view(page)];
+  row('the host\'s hold leaves only the host\'s view, for the orbit, while the guest has not seen it: the room keeps its briefing',
+    r1[0] && r1[0].orbit && r1[1] && !r1[1].orbit && !r1[1].skipped && r1[2].state === 'briefing',
+    `${r1[2].state}, host orbit ${r1[0] && r1[0].orbit}, guest skipped ${r1[1] && r1[1].skipped}`);
+  await guest.until('window.__war().view.state !== "briefing"', TIMED.ms + 20000);
+  const filmsOf = (p) => p.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).campaign.films || {}`);
+  row('a viewing joined late does not make it seen', ((await filmsOf(guest))[FILM.id] ?? 0) < FILM.version, JSON.stringify(await filmsOf(guest)));
+  await page.evaluate("window.__warDo('end')");
+  await page.until("window.__war().view.state === 'ended'", 10000);
+
+  /* 2: the whole film on both, from the start. */
+  await page.evaluate("window.__warDo('brief')");
+  await guest.until('window.__warIntro() && window.__warIntro().t > 0', 30000);
+  await guest.until('window.__war().view.state !== "briefing"', TIMED.ms + 20000);
+  row('the guest, having watched it from its start to its end, has seen it', ((await filmsOf(guest))[FILM.id] ?? 0) >= FILM.version, JSON.stringify(await filmsOf(guest)));
+  await page.evaluate("window.__warDo('end')");
+  await page.until("window.__war().view.state === 'ended'", 10000);
+  await page.until('(window.__war().view.seen || []).length === 2', 10000).catch(() => {});
+
+  /* 3: both seen; the host's hold ends the briefing for the room. */
+  await page.evaluate("window.__warDo('brief')");
+  await page.until('window.__warIntro() && window.__warIntro().t > 3000', 30000);
+  await holdKey(page, HOLD_MS);
   await page.until("window.__war().view.state === 'countdown'", 10000).catch(() => {});
-  await page.until('window.__warIntro() === null', 5000).catch(() => {});
-  const b2 = await page.evaluate(`({ w: window.__war().view, i: window.__warIntro(), room: window.__rooms().roomNow, bed: window.__audio.warRadio ? window.__audio.warRadio.track : '' })`);
-  row('the host\'s key ends the briefing for the room: it counts down at once, the film is gone, the music plays on', b2.w.state === 'countdown'
-    && b2.w.goAt - b2.room <= COUNTDOWN_MS && b2.w.goAt - b2.room > COUNTDOWN_MS - 3000 && !b2.i && b2.bed === 'intro',
-    `${b2.w.state}, go in ${Math.round(b2.w.goAt - b2.room)} ms, bed ${b2.bed}`);
+  await guest.until('window.__warIntro() === null', 5000).catch(() => {});
+  const r2 = await Promise.all([page, guest].map((p) => p.evaluate('({ i: window.__warIntro(), v: window.__war().view, room: window.__rooms().roomNow })')));
+  row('both seen: the host\'s hold ends the briefing for the room, and the film is gone from both screens', r2.every((x) => x.v.state === 'countdown' && !x.i)
+    && r2[0].v.goAt - r2[0].room <= COUNTDOWN_MS, r2.map((x) => `${x.v.state} ${Boolean(x.i)}`).join(' / '));
   await page.evaluate("window.__warDo('end')");
 
-  row('no console errors', page.errors.length === 0, page.errors.slice(0, 5).join(' | ') || 'none');
+  row('no console errors', page.errors.length === 0 && guest.errors.length === 0, [...page.errors, ...guest.errors].slice(0, 5).join(' | ') || 'none');
 } finally {
   process.removeListener('SIGTERM', stop);
   process.removeListener('SIGINT', stop);
   await page.close();
+  if (guest) {
+    await guest.close();
+  }
   await server.stop();
   await rm(scratch, { recursive: true, force: true });
 }

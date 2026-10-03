@@ -36,7 +36,7 @@ import { KIND_INDEX, SOURCE_STRIDE } from './world-kinds.js';
 
 /* Ids on the wire: each family of sources in its own range, so a war's
  * attacker 7 and a valley's car 7 are two tracks. */
-export const ID_BASE = { war: 0, traffic: 1e6 };
+export const ID_BASE = { war: 0, traffic: 1e6, ambience: 2e6 };
 /* A concrete wall's reflection, pressure ratio (the dam's face; an earth
  * dam's slope scatters and is not declared). */
 const WALL_GAIN = 0.6;
@@ -108,6 +108,79 @@ export function echoImages(p, L, walls) {
   return found.slice(0, ECHOES_MAX).map((f) => f.slice(0, 4));
 }
 
+/*
+ * THE AMBIENCE'S PLACES. Emitters (birds, crickets, frogs, cicadas) sit
+ * on a grid of AMB_CELL metre cells round the listener, AMB_REACH cells
+ * each way, at most one a cell, where a seeded hash of the cell says, so a
+ * tree that sings sings every time the pilot comes back to it. Water and
+ * power lines are heard from their nearest point within AMB_FAR metres.
+ */
+const AMB_CELL = 60;
+const AMB_REACH = 2;
+const AMB_FAR = 1500;
+/* How many of a grid's cells sing, by the time of day, and with what. The
+ * times are src/main.js worldTime's: 'day' and 'night' today, and the
+ * presets #344 adds (morning, noon, golden) when they come; an unknown
+ * one is day. Birds sing most at dawn and least at noon (the dawn
+ * chorus); crickets and frogs at night; cicadas in the subtropical heat
+ * of the day only (Itaipu, `subtropical` below). */
+const SINGERS = {
+  morning: { birds: 0.6, cicada: 0.05 },
+  day: { birds: 0.3, cicada: 0.3 },
+  noon: { birds: 0.2, cicada: 0.45 },
+  golden: { birds: 0.45, cicada: 0.15 },
+  night: { crickets: 0.55, frogs: 0.6 },
+};
+/* Frogs only this near a shore, metres. */
+const FROG_SHORE_M = 90;
+
+/* A cell's seeded uniform in [0, 1), the k'th of its draws. */
+function cellRand(i, j, k) {
+  let h = Math.imul(i, 0x27d4eb2d) ^ Math.imul(j, 0x165667b1) ^ Math.imul(k + 1, 0x9e3779b9);
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+/* The nearest point to (x, z) on a polyline of {x, z} (and y), closed or
+ * not, into out [x, z, distance, y]. */
+function nearestOn(pts, closed, x, z, out) {
+  out[2] = Infinity;
+  const n = pts.length;
+  const last = closed ? n : n - 1;
+  for (let k = 0; k < last; k += 1) {
+    const a = pts[k];
+    const b = pts[(k + 1) % n];
+    const ux = b.x - a.x;
+    const uz = b.z - a.z;
+    const l2 = ux * ux + uz * uz;
+    const u = l2 > 0 ? Math.max(0, Math.min(1, ((x - a.x) * ux + (z - a.z) * uz) / l2)) : 0;
+    const px = a.x + ux * u;
+    const pz = a.z + uz * u;
+    const d = Math.hypot(x - px, z - pz);
+    if (d < out[2]) {
+      out[0] = px;
+      out[1] = pz;
+      out[2] = d;
+      out[3] = a.y === undefined ? 0 : a.y + (b.y - a.y) * u;
+    }
+  }
+  return out;
+}
+
+/* Whether (x, z) is inside a polygon of {x, z}. */
+function inside(pts, x, z) {
+  let c = false;
+  for (let k = 0, j = pts.length - 1; k < pts.length; j = k, k += 1) {
+    const a = pts[k];
+    const b = pts[j];
+    if ((a.z > z) !== (b.z > z) && x < ((b.x - a.x) * (z - a.z)) / (b.z - a.z) + a.x) {
+      c = !c;
+    }
+  }
+  return c;
+}
+
 export class WorldAudio {
   constructor() {
     this.node = null;
@@ -125,6 +198,10 @@ export class WorldAudio {
     this.seed = 1;
     this.frameNo = 0;
     this.trafficT = 0;
+    /* The ambience's scratch: a nearest point, and the singers' grid as
+     * last built (singers). */
+    this.near = new Float64Array(4);
+    this.cells = {};
     this.trafficSink = (id, kind, x, y, z) => this.add('traffic', id, kind, x, y, z, this.trafficT);
     /* The worklet's own count, asked for once a second, for the checks:
      * { voiced, bedded, tracks }. */
@@ -160,6 +237,9 @@ export class WorldAudio {
           this.stats = e.data.stats;
         }
       };
+      if (typeof audio.watchNode === 'function') {
+        audio.watchNode(node, 'world');
+      }
       this.node = node;
     });
     this.ready.catch((e) => console.error('audio: the world\'s worklet failed to load', e));
@@ -196,6 +276,11 @@ export class WorldAudio {
       v.t = t;
     }
     v.seen = this.frameNo;
+    this.write(key, k, x, y, z, v.vx, v.vy, v.vz);
+  }
+
+  /* One source into this frame's list. */
+  write(key, k, x, y, z, vx, vy, vz) {
     if ((this.count + 1) * SOURCE_STRIDE > this.src.length) {
       const grown = new Float64Array(this.src.length * 2);
       grown.set(this.src);
@@ -208,10 +293,138 @@ export class WorldAudio {
     s[o + 2] = x;
     s[o + 3] = y;
     s[o + 4] = z;
-    s[o + 5] = v.vx;
-    s[o + 6] = v.vy;
-    s[o + 7] = v.vz;
+    s[o + 5] = vx;
+    s[o + 6] = vy;
+    s[o + 7] = vz;
     this.count += 1;
+  }
+
+  /* A source that does not move this frame (the ambience's beds and
+   * singers, the nearest point of a shore): no velocity to draw, so no
+   * Doppler from a nearest point sliding along a shore. */
+  still(id, kind, x, y, z) {
+    const k = KIND_INDEX[kind];
+    if (k === undefined) {
+      throw new Error(`world audio: no kind ${kind}`);
+    }
+    this.write(ID_BASE.ambience + id, k, x, y, z, 0, 0, 0);
+  }
+
+  /*
+   * The ambience round the listener this frame (docs/AUDIO.md section 12):
+   * the map's own beds (view.audioBeds: a spillway's plunge pools, a
+   * town), its water from the nearest point (view.water: a lake's shore
+   * lapping, a river or a stream running, under the listener when it is
+   * over the river), its nearest power line (view.audioLines, chords
+   * [ax, ay, az, bx, by, bz, ...]), and the singers on the grid round the
+   * listener by `time`.
+   */
+  ambience(view, time) {
+    const L = this.lis;
+    let id = 0;
+    for (const b of view.audioBeds || []) {
+      this.still(id, b.kind, b.x, b.y, b.z);
+      id += 1;
+    }
+    const o = this.near;
+    (view.water || []).forEach((w, k) => {
+      if (w.kind === 'lake') {
+        nearestOn(w.outline, true, L[0], L[2], o);
+        if (o[2] > AMB_FAR) {
+          return;
+        }
+        const river = w.name === 'river';
+        if (river && inside(w.outline, L[0], L[2])) {
+          this.still(100 + k, 'river', L[0], w.surfaceY, L[2]);
+        } else {
+          this.still(100 + k, river ? 'river' : 'lapping', o[0], w.surfaceY, o[1]);
+        }
+      } else if (w.kind === 'channel') {
+        nearestOn(w.line, false, L[0], L[2], o);
+        if (o[2] <= AMB_FAR) {
+          this.still(100 + k, 'river', o[0], o[3], o[1]);
+        }
+      }
+    });
+    const lines = view.audioLines;
+    if (lines && lines.length) {
+      let best = Infinity;
+      let bx = 0;
+      let by = 0;
+      let bz = 0;
+      for (const c of lines) {
+        const ux = c[3] - c[0];
+        const uz = c[5] - c[2];
+        const l2 = ux * ux + uz * uz;
+        const u = l2 > 0 ? Math.max(0, Math.min(1, ((L[0] - c[0]) * ux + (L[2] - c[2]) * uz) / l2)) : 0;
+        const px = c[0] + ux * u;
+        const pz = c[2] + uz * u;
+        const d = (L[0] - px) ** 2 + (L[2] - pz) ** 2;
+        if (d < best) {
+          best = d;
+          bx = px;
+          by = c[1] + (c[4] - c[1]) * u;
+          bz = pz;
+        }
+      }
+      if (best < (AMB_FAR / 3) ** 2) {
+        this.still(200, 'powerline', bx, by, bz);
+      }
+    }
+    for (const s of this.singers(view, time)) {
+      this.still(s.id, s.kind, s.x, s.y, s.z);
+    }
+  }
+
+  /* The singers in the grid round the listener, rebuilt when the listener
+   * crosses into another cell, the time changes or the map does. */
+  singers(view, time) {
+    const L = this.lis;
+    const ci = Math.floor(L[0] / AMB_CELL);
+    const cj = Math.floor(L[2] / AMB_CELL);
+    const c = this.cells;
+    if (c.i === ci && c.j === cj && c.time === time && c.view === view) {
+      return c.list;
+    }
+    const odds = SINGERS[time] || SINGERS.day;
+    const lakes = (view.water || []).filter((w) => w.kind === 'lake');
+    const subtropical = view.id === 'itaipu';
+    const list = [];
+    for (let di = -AMB_REACH; di <= AMB_REACH; di += 1) {
+      for (let dj = -AMB_REACH; dj <= AMB_REACH; dj += 1) {
+        const i = ci + di;
+        const j = cj + dj;
+        const x = (i + cellRand(i, j, 1)) * AMB_CELL;
+        const z = (j + cellRand(i, j, 2)) * AMB_CELL;
+        if (lakes.some((w) => inside(w.outline, x, z))) {
+          continue;
+        }
+        let roll = cellRand(i, j, 0);
+        let kind = null;
+        for (const [k, p] of Object.entries(odds)) {
+          if (k === 'cicada' && !subtropical) {
+            continue;
+          }
+          if (k === 'frogs' && !lakes.some((w) => nearestOn(w.outline, true, x, z, this.near)[2] < FROG_SHORE_M)) {
+            continue;
+          }
+          if (roll < p) {
+            kind = k;
+            break;
+          }
+          roll -= p;
+        }
+        if (!kind) {
+          continue;
+        }
+        const ground = view.height ? view.height(x, z, Infinity) : 0;
+        const up = kind === 'birds' || kind === 'cicada' ? 4 : 0.3;
+        /* Unique for 512 cells each way, 30 km: a map is smaller. */
+        list.push({ id: 1000 + (((i % 512) + 512) % 512) * 512 + (((j % 512) + 512) % 512), kind, x, y: ground + up, z });
+      }
+    }
+    Object.assign(c, { i: ci, j: cj, time, view, list });
+    return list;
   }
 
   /* The war's attackers this frame, roomWar.attackersAt(now)'s list, at
@@ -256,9 +469,11 @@ export class WorldAudio {
   /*
    * Post this frame: the listener from `camera` (a THREE camera: its
    * position, forward -z and right +x through its quaternion), the ground
-   * under it from groundY, and every source added since the last post.
+   * under it from groundY, every source added since the last post, and
+   * the ambience of `view` (the map) at `time` (src/main.js worldTime)
+   * round it.
    */
-  post(camera, groundY) {
+  post(camera, groundY, view, time) {
     this.frameNo += 1;
     const L = this.lis;
     const p = camera.position;
@@ -278,6 +493,9 @@ export class WorldAudio {
     rot(0, 0, -1, L, 3);
     rot(1, 0, 0, L, 6);
     L[9] = Number.isFinite(groundY) ? groundY : p.y - 1.7;
+    if (view) {
+      this.ambience(view, time);
+    }
     if (this.node) {
       this.node.port.postMessage({
         frame: { t: this.ctx.currentTime, lis: Array.from(L), src: this.src.slice(0, this.count * SOURCE_STRIDE) },

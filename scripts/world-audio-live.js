@@ -5,12 +5,15 @@
  * worklet must say it is voicing the traffic src/maps/alps/life.js drives:
  *
  *   SIM_GPU=1 npm run world:live
+ *   SIM_GPU=1 npm run world:live -- --night      the same at ?time=night,
+ *                                                its crickets and frogs
  *
  * What must hold:
  *   - the world's node is on the mix and the graph is within its 64 nodes
  *   - the worklet has the valley's sources (the bus, the cars on both
- *     lanes, the tractor, the gondola's cabins and drive, the lake's boat)
- *     as tracks, and voices some of them
+ *     lanes, the tractor, the gondola's cabins and drive, the lake's boat,
+ *     the cows) as tracks, and voices some of them, and the ambience (the
+ *     stream, the bells, the birds round the listener)
  *   - its load guard has not had to shed (the valley is far under budget)
  *   - no page error
  *
@@ -51,7 +54,7 @@ function check(name, ok, detail = '') {
 }
 
 async function main() {
-  console.log('world audio, live: the Swiss valley\'s traffic heard on the shell');
+  console.log(`world audio, live: the Swiss valley's traffic heard on the shell${process.argv.includes('--night') ? ', at night' : ''}`);
   const seed = [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
@@ -59,7 +62,8 @@ async function main() {
     localStorage.setItem(k, JSON.stringify(s));
     localStorage.setItem('webfpv.airhint.v2', '1');
   } catch (e) { /* Storage refused; the run boots on its defaults. */ }`];
-  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=swiss2', seed });
+  const night = process.argv.includes('--night');
+  const page = await openPage({ root, width: 960, height: 540, url: `/index.html?map=swiss2${night ? '&time=night' : ''}`, seed });
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready && window.__boot', 180000);
     await page.tap('Space');
@@ -74,6 +78,7 @@ async function main() {
     check(`the graph within its ${AUDIO_NODES_MAX} nodes, the world's node in it`, nodes <= AUDIO_NODES_MAX && nodes > 0, `${nodes}`);
     check(`the valley's sources are tracked, at least ${TRACKS_MIN}`, s.tracks >= TRACKS_MIN, `${s.tracks}`);
     check('some of them voiced', s.voicedMax > 0, `${s.voicedMax} at most at once`);
+    check('the ambience voiced (the stream, the cows\' bells, the birds)', s.bedsMax > 0, `${s.bedsMax} at most at once`);
     check('the load guard never shed', s.stepMax === 0, `step ${s.stepMax}, load ${s.load}`);
   } finally {
     check('no page error', page.errors.length === 0, page.errors.join(' | '));

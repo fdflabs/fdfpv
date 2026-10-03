@@ -33,7 +33,8 @@
  *
  * THE BARS, per class:
  *   every kind at 16 m, cruising        its lufs16 within 1 LU (the trim
- *                                       is right)
+ *                                       is right); a source as big as a
+ *                                       spillway at its `near`, lufsNear
  *   aircraft passing (a wave, one)      the pass, the loudest 400 ms, -30
  *                                       to -20 LUFS (as tools/audio/render.js
  *                                       judges a fly by), a valley scene's
@@ -43,6 +44,13 @@
  *                                       most -18; momentary at most -14; 2
  *                                       to 5 kHz at most 35 percent A
  *                                       weighted
+ *   the ambience's scenes               the loudest 400 ms in AMBIENCE_PASS
+ *                                       (world-scenes.js: under the
+ *                                       aircraft); the 2 to 5 kHz band's own
+ *                                       loudness at most -42 LUFS, 10 dB
+ *                                       under what the aircraft's 35 percent
+ *                                       of -27 allows, rather than its share
+ *                                       (a bird sings there by nature)
  *   an explosion                        momentary at most -12 (the biggest
  *                                       thing in the game, by 2 dB);
  *                                       quieter the farther, 100 m over
@@ -80,7 +88,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { measure } from './metrics.js';
-import { SCENES, calibrationScene } from './world-scenes.js';
+import { SCENES, calibrationOf, calibrationScene } from './world-scenes.js';
 import { KINDS, WORLD_KINDS } from '../../src/render/world-kinds.js';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -105,6 +113,7 @@ export const BARS = {
   boomMomentaryMax: -12,
   truePeakMax: -1,
   harshShareAMax: 35,
+  bedHarshLufsMax: -42,
   repeatCorrMax: 0.5,
   costMax: 0.25,
 };
@@ -331,11 +340,16 @@ async function main() {
       const r = await renderScene(calibrationScene(kind));
       const m = measure(r.channels, r.rate);
       const spec = WORLD_KINDS[kind];
-      const trim = spec.amp * 10 ** ((spec.lufs16 - m.lufs) / 20);
-      console.log(`  ${kind.padEnd(8)} ${String(m.lufs).padStart(7)} LUFS, target ${spec.lufs16}, amp ${spec.amp} -> ${trim.toPrecision(3)}; dBTP ${m.truePeakDbtp}, 2-5 kHz ${m.harshShareA}%`);
+      const cal = calibrationOf(spec);
+      const trim = spec.amp * 10 ** ((cal.lufs - m.lufs) / 20);
+      console.log(`  ${kind.padEnd(8)} ${String(m.lufs).padStart(7)} LUFS at ${cal.m} m, target ${cal.lufs}, amp ${spec.amp} -> ${trim.toPrecision(3)}; dBTP ${m.truePeakDbtp}, 2-5 kHz ${m.harshShareA}%`);
       if (args.check) {
-        check(`${kind} at 16 m within ${BARS.calibrateLu} LU of ${spec.lufs16}`, Math.abs(m.lufs - spec.lufs16) <= BARS.calibrateLu, `${m.lufs} LUFS`);
-        check(`${kind} 2 to 5 kHz at most ${BARS.harshShareAMax} percent`, m.harshShareA <= BARS.harshShareAMax, `${m.harshShareA}%`);
+        check(`${kind} at ${cal.m} m within ${BARS.calibrateLu} LU of ${cal.lufs}`, Math.abs(m.lufs - cal.lufs) <= BARS.calibrateLu, `${m.lufs} LUFS`);
+        /* Not a bird's or a cricket's alone: they sing in that band by
+         * nature, and are judged in their scenes, in the mix. */
+        if (!spec.bed) {
+          check(`${kind} 2 to 5 kHz at most ${BARS.harshShareAMax} percent`, m.harshShareA <= BARS.harshShareAMax, `${m.harshShareA}%`);
+        }
         hygiene(kind, m);
       }
     }
@@ -377,7 +391,16 @@ async function main() {
         check(`${id} the pool is full and the rest bedded`, m.voicedMax > 0 && m.beddedMax > 0, `${m.voicedMax} voiced, ${m.beddedMax} bedded`);
         continue;
       }
-      check(`${id} 2 to 5 kHz at most ${BARS.harshShareAMax} percent A weighted`, m.harshShareA <= BARS.harshShareAMax, `${m.harshShareA}%`);
+      if (sc.role === 'bed') {
+        /* A bed is quiet and a bird sings in that band by nature, so its
+         * share says little; what tires is the band's own level. The
+         * aircraft's bar allows that band -27 LUFS + 10 log 0.35, -31.6;
+         * a bed's is 10 dB under it. */
+        const band = m.lufs + 10 * Math.log10(Math.max(1e-6, m.harshShareA / 100));
+        check(`${id} its 2 to 5 kHz band at most ${BARS.bedHarshLufsMax} LUFS`, band <= BARS.bedHarshLufsMax, `${band.toFixed(2)} LUFS (${m.harshShareA}% of ${m.lufs})`);
+      } else {
+        check(`${id} 2 to 5 kHz at most ${BARS.harshShareAMax} percent A weighted`, m.harshShareA <= BARS.harshShareAMax, `${m.harshShareA}%`);
+      }
       if (sc.role === 'fx') {
         check(`${id} loudest 400 ms at most ${BARS.boomMomentaryMax} LUFS`, m.lufsMomentaryMax <= BARS.boomMomentaryMax, `${m.lufsMomentaryMax} LUFS`);
       } else {

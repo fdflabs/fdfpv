@@ -392,13 +392,15 @@ export class RoomCore {
   }
 
   /* The games a room can run: whether each is on, its players' seats, and
-   * the fewest of them here that keep it going. */
+   * the fewest of them here that keep it going. A room made for combat or
+   * tag plays it alone too (the owner, 2026-10-02: "ready to go either
+   * single or multi"); anywhere else they still need two. */
   games(now) {
     const r = this.race.race;
     return [
       { id: 'race', on: Boolean(r && r.state === 'on'), players: r ? r.racers : [], min: 1, end: () => this.race.end(this) },
-      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: 2, end: () => this.tag.abandon(this, now) },
-      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: 2, end: () => this.combat.stop(this) },
+      { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: this.meta.mode === 'tag' ? 1 : 2, end: () => this.tag.abandon(this, now) },
+      { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: this.meta.mode === 'combat' ? 1 : 2, end: () => this.combat.stop(this) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: 1, end: () => this.war.abandon(this, now) },
     ];
   }
@@ -537,9 +539,33 @@ export class RoomCore {
         wave: Math.min(this.war.match.wave + 1, mission.waves.length), waves: mission.waves.length,
       };
     }
+    /* A free flight room flying since its lobby's start. */
+    if (this.meta.mode == null && this.gameLobby.live) {
+      return { game: null, state: 'on' };
+    }
     return {
       game: this.meta.mode ?? null, state: 'waiting', ...(this.gameLobby.open(this) ? { ready: this.gameLobby.ready.size } : {}),
     };
+  }
+
+  /*
+   * WHO IS ON, for the admin only (GET /v2/admin/rooms, front.js): every
+   * seat with its callsign or picker name, its aircraft, what it is doing
+   * (flying when a pose came in the last HERE_MS, else ready or in the
+   * lobby by the room's lobby), and how long ago its socket said hello
+   * and was last heard from, in whole seconds. Never sent to a pilot.
+   */
+  who(now) {
+    return [...this.seats.values()].sort((a, b) => a.seat - b.seat).map((s) => ({
+      seat: s.seat,
+      host: s.seat === this.host(),
+      callsign: s.callsign ?? null,
+      pick: s.name,
+      aircraft: s.profile ? s.profile.airframe : null,
+      state: s.pose && now - s.poseNow <= HERE_MS ? 'flying' : this.gameLobby.ready.has(s.seat) ? 'ready' : 'lobby',
+      connectedS: Math.round((now - s.connectedAt) / 1000),
+      heardS: Math.round((now - s.heardAt) / 1000),
+    }));
   }
 
   /* Reports took the room's typed name away (safety.js): it shows its
@@ -715,6 +741,10 @@ export class RoomCore {
       callsign,
       profile,
       joined,
+      /* Memory only, for the admin's who is on (who()): this socket's
+       * hello, and the last thing heard on it. */
+      connectedAt: now,
+      heardAt: now,
       address: address || '',
       pose: null,
       recent: [],
@@ -781,6 +811,9 @@ export class RoomCore {
 
   message(conn, data, now, address = '', newToken = null, callsign = null) {
     const s = this.seats.get(conn);
+    if (s) {
+      s.heardAt = now;
+    }
     if (typeof data !== 'string') {
       if (s && data[0] === TYPE_PARTS) {
         return wrecks.onParts(this, conn, s, data, now);
@@ -882,7 +915,8 @@ export class RoomCore {
     /* Started by the room's host (Phase 4), in a public room as in a
      * private one since the room browser gave public rooms a host. */
     if (msg.type === 'track' || msg.type === 'race') {
-      return [...first, ...this.race.message(this, conn, s, msg, now)];
+      /* A race lobby's times wait for its track and its grid. */
+      return [...first, ...this.race.message(this, conn, s, msg, now), ...this.gameLobby.rearm(this, now), ...this.wake()];
     }
     return [];
   }

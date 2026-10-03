@@ -45,12 +45,16 @@ music crates, the war radio's voice lines and the war's two music tracks.
 | Voice chat | `src/share/voice.js` | push to talk | WebRTC, its own AudioContext | distance law 30 to 400 m, floor 0.3 | its own graph |
 | Replay and movie sound | `src/replay/crashcam.js` `sound()`, `src/replay/soundtrack.js` | replay and export | a second `MotorAudio` | as live | its own |
 
-What is NOT voiced at all: another pilot's aircraft (peers are silent),
-the war's attackers in flight (only their explosion is heard), the
-environment (the ambience stem was removed), the surface a crash hit
-(grass and concrete sound identical: the OLD crash renders below are the
-same to the hundredth of a LU), and the jet: the Striker's turbojet plays
-the F-16's ducted fan voice (`edf`, `configs/airframes.js` l.1630).
+What was NOT voiced at all when #349 audited it: another pilot's aircraft
+(peers were silent), the war's attackers in flight (only their explosion
+was heard), the environment (the ambience stem had been removed), the
+surface a crash hit (grass and concrete sounded identical: the OLD crash
+renders below are the same to the hundredth of a LU), and the jet: the
+Striker's turbojet played the F-16's ducted fan voice (`edf`,
+`configs/airframes.js` l.1630). Since then the world track voices the
+attackers and the environment (#353, #358, #360; section 12), and this
+file's track the other pilots (section 13), every crash's surface and the
+Striker's own turbojet (section 4).
 
 ### Findings the audit turned up
 
@@ -228,6 +232,46 @@ impulse, because a hard surface stops the craft in a fraction of the time,
 which is a far higher peak force. Every strike draws its own mode tuning
 and decay: no two hits are the same samples.
 
+### Every aircraft the player flies (phase 4)
+
+`src/render/enginespec.js` engineSpecFor(airframe, power, combat) names the
+model and the aircraft's own numbers, from the configs, for every airframe
+on every power option and every quad motor and prop (`npm run audio:specs`
+holds all of them, and the quads' hover rpm to the plant within 1 percent):
+
+| Class | Airframes | Model | Its own numbers |
+| --- | --- | --- | --- |
+| Quads | 5 inch, 7 inch, 10 inch, interceptor | `quad` | blades from the prop (`configs/motors.js` props, the #334 options included: all tri blade, the interceptor's APC two blade), 14 poles (12N14P, every 22 to 31 mm stator here), rpmRef its hover rpm in the plant (9407, 8666, 5049, 6534), washV from its weight and prop disc. A #321 motor changes the rpm the plant reports, and the sound follows it |
+| Whoop | whoop65 | `quad` | it flies the five inch's plant in a hall built larger, so the plant's rpm is heard 3.2 times faster (a 65 mm whoop hovers near 30,000 rpm, ESTIMATED from the class), on four blade props and 12 pole motors: the whoop's own whine |
+| Electric planes | Sky, Cub, Radian, Bramor, Slow Stick, Timber, floats, P-51, Zagi, the electric options | `wing` | blades from the power option (the P-51's four), 14 poles, rpmRef three quarters of its full rpm |
+| Glow two strokes | Bombshell, Ugly Stik, Tiger Moth | `glow2` | blades, rpmRef, idle rpm from the option |
+| Glow four strokes | Kadet Senior, the Tiger Moth's FS-91 | `glow4` | the same |
+| Ducted fan | F-16 | `edf` | a fan, not the turbojet: 12 blades whose pass is the sound, tones up to 14 kHz, broadband under the pass, an inlet roar, a 4 pole inrunner's whine (ESTIMATED) |
+| Striker | prop and jet | `boxer2`, `turbojet` | the base models (section 4 above) |
+| Gliders | the NRJ DLG | `wing`, nothing turning | the air is the whole sound: unity at 15 m/s and 15.6 dB up (ESTIMATED), so a 7 m/s glide is quiet but there |
+
+### Contacts and mechanisms (phase 4)
+
+- **Every hit names its surface.** The shell's contact path
+  (`src/main.js` feelImpact) hands the engine the material the plant was
+  told for that spot (the ground's, `declareGroundMaterial`) or the
+  collider's (`src/game/crashworld.js` kindMaterial: a gate's PVC, a
+  tree's wood, a wall's concrete, a cliff's rock, a crown's foliage), its
+  hardness from the module (`sim_material_info`), and the momentum, the
+  craft's mass times the closing speed. A light touch stays the graze cue.
+- **Prop strikes**: a blade on an obstacle (the shell's sim_prop_strike)
+  ticks at the blade pass the motors were turning, a dozen ticks slowing
+  as the props are knocked down, bright on a hard surface and dull on a
+  soft one.
+- **Wreck parts** (snap, crunch, chip, splash) keep their voices, now on
+  real noise and each a few percent off the last in pitch and length.
+- **Mechanisms**, heard from the airframe's own camera: the flaps' servos
+  while the plant's flap angle moves, the retracts' motor while the gear
+  travels and a clunk as it locks, the catapult's release, and the
+  parachute's hatch and its canopy filling. The moving ones follow the
+  plant (sim_wing_flaps, sim_wing_gear) rather than a timer, so they last
+  exactly as long as the travel.
+
 ### Explosions (phase 4)
 
 The existing `boom()` already delays by d / 343 and darkens with distance.
@@ -333,8 +377,10 @@ loads; 50 MB as mp3), the war's music and voice 4.6 MB (webm). Phase 2
 adds: the worklet, about 30 KB of JavaScript, loaded only with the flag
 on. Phase 4's recordings: a budget of **1.5 MB** in total, Opus at 64 to
 96 kb/s mono, loaded lazily with the world that needs them. The
-listening page's traces (`tools/audio/flights.json`, 366 KB) are a
-developer file; the page fetches them only when opened.
+listening page's traces (`tools/audio/flights.json`, 849 KB since phase
+4's 26 flights; 366 KB with #349's 12) are a developer file the site
+serves with the rest of the tree; only the listening page fetches them,
+when opened, and the game never does.
 
 ## 8. The engine, and how to hear it
 
@@ -414,6 +460,46 @@ music; `tools/audio/measured.json` has every field):
 Render cost: OLD 0.02 s a second, NEW 0.04 (Striker) to 0.11 (four
 motors) s a second, all under the 0.25 bar.
 
+The tables in this section are the figures as each pull request measured
+them; the third's phasors moved every NEW figure by a few hundredths of a
+LU (hover -26.72 to -26.68), and `tools/audio/measured.json` is always the
+current render.
+
+Phase 4's classes, the same command (NEW from the engine with each
+aircraft's own spec; OLD the frozen baseline playing each one's old
+voice; `tools/audio/measured.json` has every field). The Striker's rows
+above moved by a few tenths where the rail's catapult release is now heard.
+
+| Flight | OLD LUFS | NEW LUFS | NEW short max | NEW dBTP | 2 to 5 kHz % A, OLD / NEW | repetition OLD / NEW |
+| --- | --- | --- | --- | --- | --- | --- |
+| 5 inch, prop strike on a post | -27.22 | -25.77 | -25.26 | -7.11 | 0.5 / 21.4 | 0.066 / 0.171 |
+| 5 inch, crash on rock | -25.08 | -25.91 | -25.23 | -6.54 | 7.8 / 7.4 | 0.195 / 0.413 |
+| Whoop, hover and punch | -28.52 | -25.63 | -22.65 | -15.24 | 1.0 / 30.2 | 0.746 / 0.192 |
+| 7 inch, hover and punch | -27.82 | -25.69 | -22.96 | -13.97 | 0.3 / 4.5 | 0.592 / 0.679 |
+| 10 inch, hover and punch | -28.90 | -26.09 | -24.03 | -14.87 | 0.3 / 5.1 | 0.622 / 0.634 |
+| Interceptor, hover and punch | -28.68 | -25.40 | -22.58 | -13.66 | 0.9 / 6.7 | 0.785 / 0.778 |
+| Cub (electric) | -35.70 | -26.67 | -25.20 | -19.34 | 7.3 / 5.0 | 0.650 / 0.802 |
+| Kadet Senior (four stroke) | -36.29 | -26.12 | -23.06 | -17.48 | 9.1 / 2.8 | 0.634 / 0.701 |
+| Bombshell (two stroke) | -35.66 | -25.83 | -23.34 | -17.74 | 2.0 / 3.2 | 0.562 / 0.413 |
+| Tiger Moth (two stroke) | -35.24 | -24.74 | -22.98 | -17.49 | 9.5 / 5.2 | 0.579 / 0.515 |
+| P-51 (four blade electric), gear and flaps | -33.89 | -22.31 | -21.09 | -15.59 | 10.0 / 3.0 | 0.645 / 0.077 |
+| F-16 (ducted fan) | -35.04 | -26.54 | -24.31 | -22.26 | 18.2 / 32.4 | 0.527 / 0.218 |
+| NRJ glider (air alone) | -49.13 | -37.42 | -37.31 | -26.15 | 4.6 / 1.4 | 0.873 / 0.115 |
+| Bramor, catapult and parachute | -31.03 | -25.20 | -24.25 | -6.12 | 14.0 / 9.9 | 0.861 / 0.447 |
+
+Every NEW row meets its bars; the glider's is its own, -40 to -30 LUFS,
+because its air is its only sound and a quiet one. That bar was written
+after the glider's first render came back at -63.2 LUFS against the
+powered flights' band, which it was never meant to be in. Two
+trims were set by these renders, in this order: the electric plane model
+went from 1 to 0.85 and then 0.8 when the P-51, the loudest electric
+flight (four blades at 0.8 throttle), measured -21.00 and then -21.89
+against the -22 ceiling; and the glider's air was raised from the
+planes' (-63.2 LUFS, inaudible) to unity at 15 m/s and 15.6 dB up. The
+whoop and the fan are the harshest NEW sounds (30.2 and 32.4 percent in
+2 to 5 kHz, under 35): a whoop's whine and a fan's blade pass are what
+those machines are.
+
 Reading it:
 
 - **Responsive**: OLD's loudness range on the punch-out is 2.1 LU, NEW's
@@ -463,7 +549,9 @@ pull requests:
    now asserts the engine node is attached where it asserted four motor
    chains; the 64 node bar is unchanged. `scripts/audio-probe.js`, built on
    the deleted chains, is retired; `tools/audio/render.js` replaces it.
-2. Every aircraft the player flies, each with its own engine: the quads
+2. **Done in the second** (section 4, "Every aircraft the player flies" and
+   "Contacts and mechanisms"; the figures below). Every aircraft the player
+   flies, each with its own engine: the quads
    (5 inch, whoop, 7 inch, 10 inch, interceptor) with their blade counts,
    poles and the hangar's motors and props; the fixed wings' electric
    outrunners, glow two and four strokes, the Tiger Moth and the P-51, the
@@ -526,6 +614,30 @@ other aircraft), for a sound that must cut through them.
 - `audio.setMix({ motors, wind, music, focus, effects, voice, ambience,
   other })`, each 0 to 1, any subset; an unknown key throws.
 - `audio.nodeCount()`.
+
+**The pilot's aircraft's identity**, set by the shell where it seats the
+power system (src/main.js applyPower):
+
+- `audio.setEngineSpec({ model, params })`: what `engineSpecFor` returns;
+  `audio.setEngineParams(params)` alone. Params are any of motors, blades,
+  poles, rpmRef, washV, rpmScale, idleRpm, gain, windRef, windGain; the
+  engine throws on any other.
+- `air.flapsMoving`, `air.gearMoving` (update()'s `air`): the flaps and
+  the retracts travelling this frame.
+- `audio.mechanical(kind, atTime)`: 'gear' (a leg locking), 'catapult',
+  'parachute'.
+- `audio.propStrike(level, hardness, atTime)`.
+
+**Other pilots** (src/main.js roomHearPeers, once a frame):
+
+- `audio.setListener(x, y, z, rx, ry, rz, ground)`: where the player hears
+  from, the camera's position and right hand unit vector, in the frame the
+  pilots' positions are in (the shell's scene frame, metres, y up), and
+  the ground's height under the listener on y for the reflection, or null.
+- `audio.updatePeers(peers, atTime)`: every pilot heard this frame,
+  `{ id, spec, rpm: [4], x, y, z, vx, vy, vz }`. The `PEER_VOICES` nearest
+  and loudest are heard (section 13); a pilot missing from the list is
+  gone and its voice fades.
 
 **Frames and units.** Everything is SI. A position the world hands its
 own worklet is its own business; the propagation in the engine takes
@@ -738,7 +850,7 @@ is where it is drawn, room synced as the traffic is.
 | bus | a six cylinder diesel through five gears, its knock; it idles at its stop and pulls away loud | -29 |
 | tractor | a four cylinder diesel held at 1800 rpm on its work, its knock | -31 |
 | cabin | the haul rope's rumble through the grip, the hanger's swing | -50 |
-| liftdrive | an electric motor at 1500 rpm, its 100 Hz hum, a 17 tooth gear mesh | -38 |
+| liftdrive | an electric motor at 1500 rpm, its 100 Hz hum, a 17 tooth gear mesh (425 Hz) | -38 |
 | sailboat | its hull through the water | -50 |
 
 A road vehicle's rpm climbs through each gear with its speed and drops at
@@ -773,15 +885,193 @@ graph 51 nodes, load 0.021, never shed.
 
 Not voiced, and why: people and dogs (footsteps at 1.25 m/s are not heard
 past a few metres, and nothing here is a few metres from a pilot for
-long); the paragliders (silent but for their wind); the cattle's bells,
-which are ambience (the next pull request); a tower's sheaves clacking as
+long); the paragliders (silent but for their wind); a tower's sheaves
+clacking as
 a cabin's grip passes (the cabins carry their rumble; the clack wants a
-per tower event, left for later).
+per tower event, left for later). The cattle's bells are the ambience's
+(below).
+
+### The ambience
+
+On its own bus (output 1, the Ambience row; the player track ducks it
+under explosions and impacts) and its own pool of 8 voices, so a dawn
+chorus never takes an attacker's voice. Under a swarm (more sources
+moving than voices for them) it keeps its loudest 3: the place is masked.
+
+- **What the maps say is there.** Itaipu: the spillway's roar from where
+  its three jets come down (the water part's plunges), the town's murmur
+  from the middle of its buildings, never nearer than 300 m, and the
+  power lines (the town's wire chords), heard from the nearest point
+  within 500 m. Every map's water (`view.water`, the plant's own list):
+  a lake's shore lapping from its nearest point, a river running from its
+  nearest point, or right under the listener when it is over the river.
+  The valley's cows each carry a bell (`fauna.js`), struck as they graze
+  and more often as they walk.
+- **What is scattered round the listener.** Birds, crickets, frogs and
+  cicadas on a grid of 60 m cells, two cells each way, at most one a
+  cell, where a seeded hash of the cell says, so a tree that sang sings
+  again when the pilot comes back. By the time of day (`worldTime`):
+  birds most at dawn and least at noon, crickets and frogs (within 90 m
+  of a shore) at night, cicadas by day and only at Itaipu. `main` has day
+  and night today; morning, noon and golden are #344's and are already
+  mapped. None over water.
+- **Spreading.** A river, a shore, a power line, a spillway and a town
+  spread at 3 dB a doubling (a line or an area); the spillway is never
+  nearer than 80 m and the town 300. A source below the listener's ground
+  (a lake under its bank) reflects off its own level.
+
+| Kind | Made of | Level |
+| --- | --- | --- |
+| spillway | three bands of one noise, the plunge's low heaviest, surging | -31 LUFS each at 80 m |
+| river | a band of noise and its bubbles, each a ring at its size's pitch (Minnaert) | -40 at 16 m |
+| lapping | a wave every second or two: a slap, a clop off the stones, its wash | -42 at 16 m |
+| townhum | traffic's low murmur, swelling, and the transformers' 100 Hz | -44 at 300 m |
+| powerline | 100 Hz hum and corona's crackle, the crackle kept above 5 kHz | -45 at 16 m |
+| cowbell | four inharmonic partials of a hammered bell, its pitch its own | -40 at 16 m |
+| birds | phrases of notes in one of three shapes (a falling whistle, a trill, rising chirps) | -38 at 16 m |
+| crickets | chirps of three pulses of its own tone, 4.2 to 5 kHz | -48 at 16 m |
+| frogs | a croak, pulses at 30 a second through its throat | -40 at 16 m |
+| cicada | a 5.2 to 6.1 kHz buzz modulated at 210 Hz, long calls | -42 at 16 m |
+
+ESTIMATED, every level, chosen under the aircraft. The ambience's scenes
+are judged in `AMBIENCE_PASS`, -60 to -28 LUFS at their loudest 400 ms,
+and on the 2 to 5 kHz band's own loudness, at most -42 LUFS (10 dB under
+what the aircraft's 35 percent of -27 allows) rather than its share: a
+bird sings in that band by nature, and a quiet bed's share says little.
+
+| Scene | NEW LUFS | loudest 400 ms | dBTP | 2 to 5 kHz % |
+| --- | --- | --- | --- | --- |
+| flying up the river to the spillway, 1.4 km to 200 m | -36.5 | -32.1 | -21.3 | 12.7 |
+| night by the reservoir | -37.9 | -31.6 | -18.0 | 22.6 |
+| morning at the forest edge (birds, the river below) | -46.4 | -39.4 | -29.2 | 58.7 |
+| walking under a 500 kV line | -42.3 | -39.4 | -32.8 | 62.7 |
+| an alpine meadow (cow bells, the stream) | -40.5 | -34.3 | -24.0 | 5.7 |
+| the town 1.2 km off | -48.3 | -43.6 | -35.1 | 83.9 |
+
+Browser figures; OLD silent in every one (the ambience stem was empty).
+
+**The budget, a war over Itaipu as it would sound**
+(`itaipu-war-full`): the full war with the spillway, the river, the
+shore, the town, a power line and 14 singers: 0.217 s a second on
+Chromium's worklet (bar 0.25), 50 nodes. One change made that fit: every
+kind now has one object shape (`world-kinds.js` FIELDS), which took the
+same render in Node from 0.19 s a second to 0.12, because the worklet's
+dozen reads of its kind a sample went monomorphic. Live: `world:live`
+reads 76 tracks and 8 ambience voices in the Swiss valley by day, 83 at
+night, load 0.07 and 0.09, never shed; `war:boom` over Itaipu 10 tracks,
+53 nodes, load 0.08.
+
+**Recordings: none.** All synthesised, 0 bytes.
+
+### When a worklet goes wrong (2 October, "the sound keeps stopping")
+
+One non-finite number into a worklet used to silence the whole page until
+a reload. The worklets' filters and delay lines feed back, so a NaN stays
+in them and every quantum after is NaN; their outputs meet in the master
+limiter (a DynamicsCompressorNode), whose envelope then latches the NaN,
+and the music, the radio and every engine go with it. Reproduced on the
+live build in Chromium (`npm run audio:latch`, one NaN listener posted to
+the world's worklet): the master NaN at every sample for as long as it was
+watched. Both worklets were also left NaN for good by one NaN quantum in
+Node (`npm run audio:guard`, on main's worklets: 27 failures).
+
+- **`src/render/worklet-guard.js`**: each processor's work runs through
+  `guard()`. A throw, or a quantum with a non-finite sample, zeroes that
+  quantum before it leaves the node, scrubs every NaN out of the
+  processor's state (the engine puts its phasors back on the unit
+  circle), and posts `{ fault }` with what the processor was given at that
+  quantum (the engine's parameters, the world's listener and voices), at
+  most once a second. The sound drops for 3 ms, not until a reload.
+- **The world refuses what is not finite** at its boundary: a frame whose
+  time or listener is not finite, a source with a number that is not, each
+  counted (`stats.rejected`).
+- **`MotorAudio.watchNode`** logs every fault and every processorerror
+  loudly and keeps them in `window.__audio.faults`, with the context's
+  state changes in `window.__audio.states`.
+- **A suspended or interrupted context** is resumed by the next key or
+  press (`wakeAudio` started only a context that did not exist), and a
+  context that says running while its clock stands still for 1.5 s (a
+  renderer stopped by a device change) is suspended and resumed, and said.
+
+What produced the NaN in the owner's war is not yet known: a 7 minute
+war on one page, the pilot's warhead and the crash cam, the title's flight
+over every map and a sweep of Itaipu's heights produced none, and both
+worklets made none from any finite input in Node. The next one is in the
+console, with its quantum's inputs.
 
 ### Not yet
 
-- Ambience (the next pull request).
+- Occlusion (a hill between a source and the listener).
+- The swiss2 waterfall (its layout is inside the map's stage, not
+  exposed), and per tower sheave clacks on the gondola.
+- Biome beyond Itaipu's subtropical and the valley's alpine: the
+  singers do not yet read a map's canopy.
 - Occlusion (a hill between a source and the listener): not done; one ray
   against the terrain per voice per frame is the cheap form.
 - Interceptions are the pilots' own aircraft (section 10, the player
   track); a hunter's sound is its quad's.
+## 13. Other pilots, and the voice budget
+
+Each pilot in a room is heard with their own aircraft's engine (their
+profile's airframe through `engineSpecFor`, on its stock power: the wire
+carries no power option), driven by the rotor speeds they send, where
+their aircraft is drawn, through the propagation of section 5: distance,
+the air, the delay, the Doppler, the ground's reflection under the
+listener. A crashed or hidden pilot is not heard.
+
+**The wire's rotor speeds were rpm in a rad/s field.** `src/share/roomwire.js`
+carries a quad's rotors as rad/s at 40 a count in one signed byte, but the
+sender put the plant's rpm in it, so every quad above 5,080 rpm (all of
+hover and every punch) went out as the same clamped value, and nothing a
+receiver could hear or draw told a hover from a punch. The sender now
+sends rad/s, as the wire always said; `src/render/peers.js` turns them
+back to the rpm its prop spin was tuned on, so the drawn props of a peer
+on this build turn as they did. `ROOM_LEVEL` goes to 2 with it, so a room
+holding this build closes an older tab with CLOSE.update (a reload) rather
+than letting its rpm be read as rad/s, nine and a half times too fast.
+A plane's prop, a byte at 80 rad/s a count, now reads zero below 40 rad/s
+(380 rpm), which the mid air test takes as a stopped prop.
+
+**The budget.** Every pilot heard is one more engine node, so a room of 32
+could be 32 nodes and 32 engines' worth of audio thread. `PEER_VOICES`
+(4) voices are made once, on the first frame with a pilot in range
+(400 m), and given to the loudest: nearest and turning. A pilot takes a
+voice from a holder only when 1.5 times louder, so two pilots at the same
+distance do not trade it back and forth, and a voice that changes hands
+fades out over 0.3 s first. Each voice plays its pilot at the Motors
+bus's default stem (`PEER_LEVEL`), so the engine's `REF_M` holds: a pilot
+16 m away is as loud as the player's own aircraft.
+
+A voice heard off board is cheaper than the player's own: at most 16
+shaft orders (five blade passes of a three blade prop, what tells one
+aircraft from another at a distance), mono broadband, no air of its own,
+and no tone above the air's corner at its distance. The engine's motors
+turn on phasors stepped once a render quantum rather than a sine and a
+cosine a sample.
+
+Measured, `npm run audio:lab -- --only=room-4,room-32,quad-hover` on this
+host under a load average near 30 (wall time over audio time, offline):
+
+| Render | Engine nodes | Nodes | LUFS | dBTP | Cost, s a second |
+| --- | --- | --- | --- | --- | --- |
+| The player's five inch alone (quad-hover) | 1 | 49 | -26.68 | -18.75 | 0.07 to 0.08 |
+| With four pilots near (room-4) | 5 | 53 | -22.91 | -10.54 | 0.201 |
+| With 31 pilots on a ring from 15 to 320 m (room-32) | 5 | 53 | -23.60 | -10.23 | 0.199 |
+
+A room of 32 costs what a room of 4 does, and both stay under the 0.25 s a
+second bar. One caveat on the offline rooms: when a voice changes hands its
+new model goes by port message, which an OfflineAudioContext does not
+deliver at a sample (the levels and distances are AudioParams and are);
+the cost and loudness figures do not depend on it.
+
+The wire's units, round tripped through `encodePose` and `decodePose`
+(Node): a quad at 9,407 rpm goes out as 985.1 rad/s and is heard at 9,549
+rpm (the wire's 40 rad/s step is 382 rpm), at 29,325 rpm as 29,412; the
+old build sent both as a clamped 5,080. Saved replays recorded before the
+change hold the old rpm valued numbers, so a peer's props in an old replay
+turn nine and a half times faster on screen; nothing in a replay plays a
+peer's sound. Before the phasors and the off board trims the same room
+measured 0.534 s a second. Live, the pool adds 4 nodes: with the world's
+node (section 12) in, 51 on the title (check 14) and 53 in a war room
+without the pool, 57 with it (war:boom), 7 under the 64.
+

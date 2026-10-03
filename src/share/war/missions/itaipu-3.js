@@ -31,8 +31,9 @@
  */
 
 import { ids, targets } from './itaipu-1.js';
+import { round, withWaves } from '../stages.js';
 
-export default {
+export default withWaves({
   id: 'itaipu-3',
   /* A string key (src/strings): Switchyard blackout. */
   title: 'war.mission.itaipu_3',
@@ -42,23 +43,35 @@ export default {
   floorMw: 9700,
   starMw: 12600,
   airframes: 4,
-  waves: [
-    { round: 0, at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
-    { round: 0, at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
-    { round: 0, at: 4, kind: 'decoy', n: 1, per: 0.5, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
-    { round: 1, at: 2, kind: 'fpv', n: 3, per: 1, route: 'gorge-yard', target: 'yard-right', spread: 30 },
-    { round: 1, at: 10, kind: 'loiter', n: 1, per: 0.75, route: 'high-yard', target: 'yard-right', spread: 60 },
-    { round: 2, at: 2, kind: 'decoy', n: 1, per: 1, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-    { round: 2, at: 6, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
-    { round: 2, at: 10, kind: 'decoy', n: 1, per: 0.5, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-    { round: 3, at: 2, kind: 'fpv', n: 4, per: 1.25, route: 'gorge', target: ids('penstock', [0, 1, 2]), spread: 10 },
-    { round: 3, at: 10, kind: 'strike', n: 2, per: 1, route: 'reservoir-mid', target: ids('intake', [0, 2, 4]), spread: 30 },
-    { round: 3, at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { round: 4, at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
-    { round: 4, at: 8, kind: 'decoy', n: 2, per: 1, route: 'reservoir-west', target: 'yard-right', spread: 60 },
-    { round: 4, at: 40, kind: 'fpv', n: 2, per: 0.75, route: 'gorge-yard', target: 'yard-right', spread: 30 },
-    { round: 4, at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
-    { round: 4, at: 50, kind: 'strike', n: 2, per: 1, route: 'reservoir-mid', target: ids('intake', [1, 3, 5]), spread: 30 },
+  /* Rounds of waves (stages.js round): a wave's `at` is seconds after
+   * its round starts. */
+  stages: [
+    round('round-1', [
+      { at: 2, kind: 'scout', n: 1, per: 0.25, route: 'west-orbit' },
+      { at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
+      { at: 4, kind: 'decoy', n: 1, per: 0.5, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
+    ]),
+    round('round-2', [
+      { at: 2, kind: 'fpv', n: 3, per: 1, route: 'gorge-yard', target: 'yard-right', spread: 30 },
+      { at: 10, kind: 'loiter', n: 1, per: 0.75, route: 'high-yard', target: 'yard-right', spread: 60 },
+    ]),
+    round('round-3', [
+      { at: 2, kind: 'decoy', n: 1, per: 1, route: 'reservoir-west', target: 'yard-right', spread: 60 },
+      { at: 6, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
+      { at: 10, kind: 'decoy', n: 1, per: 0.5, route: 'reservoir-west', target: 'yard-right', spread: 60 },
+    ]),
+    round('round-4', [
+      { at: 2, kind: 'fpv', n: 4, per: 1.25, route: 'gorge', target: ids('penstock', [0, 1, 2]), spread: 10 },
+      { at: 10, kind: 'strike', n: 2, per: 1, route: 'reservoir-mid', target: ids('intake', [0, 2, 4]), spread: 30 },
+      { at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+    ]),
+    round('round-5', [
+      { at: 2, kind: 'strike', n: 1, per: 0.75, route: 'reservoir-west-far', target: 'yard-right', spread: 60 },
+      { at: 8, kind: 'decoy', n: 2, per: 1, route: 'reservoir-west', target: 'yard-right', spread: 60 },
+      { at: 40, kind: 'fpv', n: 2, per: 0.75, route: 'gorge-yard', target: 'yard-right', spread: 30 },
+      { at: 40, kind: 'hunter', n: 1, per: 0.5, route: 'gorge-hunt' },
+      { at: 50, kind: 'strike', n: 2, per: 1, route: 'reservoir-mid', target: ids('intake', [1, 3, 5]), spread: 30 },
+    ], { last: true }),
   ],
   routes: {
     'west-orbit': [[-2400, 470, -3700], [-1700, 470, -2800]],
@@ -72,4 +85,4 @@ export default {
     gorge: [[-1100, 180, 400], [-760, 180, 0], [-640, 180, -450], [-400, 180, -800], [-150, 180, -1100], [0, 185, -1350]],
     'gorge-hunt': [[-760, 200, 0], [-100, 260, -1300]],
   },
-};
+});

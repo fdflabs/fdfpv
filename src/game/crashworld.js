@@ -110,6 +110,20 @@ const KIND_SURFACE = {
 };
 
 /*
+ * What a collider kind is MADE of, by name, for what it sounds like when
+ * hit (src/render/audio.js impact): KIND_SURFACE's material whatever the
+ * contact numbers are, the default surface for a kind it does not name.
+ * The contact path keeps obstacleSurfaces below; this only names a sound.
+ */
+export function kindMaterial(kind) {
+  if (kind === 'canopy') {
+    /* A tree's crown, which the shell meets as its own contact kind. */
+    return SURFACE.foliage;
+  }
+  return SURFACE[KIND_SURFACE[kind] ?? 'default'];
+}
+
+/*
  * The table checked against the module: kind index to surface id, or -1
  * for "use sim_contact_at with the shell's own numbers". `materialInfo`
  * is (mat) => [mu, e] from sim_material_info. Run once per module.

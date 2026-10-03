@@ -931,6 +931,9 @@ export async function buildPart(ctx) {
 
   return {
     group,
+    /* Where the spillway's jets come down, for its roar
+     * (src/render/world-audio.js audioBeds). */
+    plunges: spill.map((b) => b.land),
     /* The sim clock's milliseconds: the ripples and the chute's flow run
      * on it, and the mirror is due again. */
     update(step) {

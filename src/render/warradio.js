@@ -59,6 +59,9 @@ const COMBAT_BUS = 0.335;
 /* How far the motors and wind duck under a call, and the voice's level. */
 const VOICE_LEVEL = 1.0;
 export const VOICE_DUCK = 0.55;
+/* The music already playing is moved to a film's time only when it is
+ * this far off it, so the film's own clock never makes it stutter. */
+export const MUSIC_SEEK_S = 0.25;
 /* Under a teammate on voice chat the radio and the music step aside:
  * DUCK_DB down in DUCK_ATTACK_MS, back up over DUCK_RELEASE_MS once the
  * last one stops. Ramped in dB, so the attack and the release are even. */
@@ -272,7 +275,13 @@ export class WarRadio {
     }
     keep(ctx.createMediaElementSource(this.voice.el)).connect(voiceDest);
     keep(ctx.createMediaElementSource(this.bed.el)).connect(musicDest);
+    /* The intro film's lines, decoded and scheduled on the context's
+     * clock (src/render/warintro.js): into the calls' destination at the
+     * calls' level, so they duck and obey the settings as a call does. */
+    this.filmVoice = keep(ctx.createGain());
+    this.filmVoice.connect(voiceDest);
     this.routed = true;
+    this.applyLevel();
   }
 
   /* An Opus file this browser said it could play and then could not: the
@@ -355,9 +364,14 @@ export class WarRadio {
   }
 
   /* 'intro', 'combat', or '' for none. The level is the music setting's,
-   * 0 when music is off. */
-  music(track) {
+   * 0 when music is off. `at` seconds in: a screen that starts the intro
+   * film late hears its music where the film is (an element seeks once
+   * its length is known). */
+  music(track, at = 0) {
     if (track === this.track) {
+      if (track && at > 0 && this.bed && Math.abs(this.bed.el.currentTime - at) > MUSIC_SEEK_S) {
+        this.bed.el.currentTime = at;
+      }
       return;
     }
     this.track = track;
@@ -373,6 +387,12 @@ export class WarRadio {
     }
     el.loop = track === 'combat';
     el.src = warMusicUrl(track, this.ext);
+    if (at > 0) {
+      const seek = () => {
+        el.currentTime = at;
+      };
+      el.addEventListener('loadedmetadata', seek, { once: true });
+    }
     this.applyLevel();
     const p = el.play();
     if (p && typeof p.catch === 'function') {
@@ -398,6 +418,9 @@ export class WarRadio {
     const duck = 10 ** (this.duckDb / 20);
     if (this.voice) {
       this.voice.el.volume = Math.min(1, this.output * VOICE_LEVEL) * duck;
+    }
+    if (this.filmVoice) {
+      this.filmVoice.gain.value = Math.min(1, this.output * VOICE_LEVEL) * duck;
     }
     if (this.bed) {
       const bus = this.track === 'intro' ? INTRO_BUS : COMBAT_BUS;

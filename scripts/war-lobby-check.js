@@ -162,7 +162,7 @@ try {
   const code = await a.evaluate('window.__rooms().code');
   const la = await a.evaluate(LOBBY);
   check('A is on the room\'s LOBBY: mission 1, waiting, A its host, the cursor on Ready', la.screen === 'friends' && la.shown && la.title === 'LOBBY'
-    && /Mission 1: /.test(la.mission) && /Waiting for pilots/.test(la.status) && la.pilots.length === 1 && la.pilots[0].host && !la.pilots[0].ready
+    && /Mission 1: /.test(la.mission) && /^Press Ready, or R, to go/.test(la.status) && la.pilots.length === 1 && la.pilots[0].host && !la.pilots[0].ready
     && la.here === 'friends-lobby-ready', JSON.stringify(la));
   check('and nothing of free flight: no Fly, no world row, no other games, never in the air', !la.rows.includes('fly') && !la.rows.includes('The world')
     && !la.rows.some((r) => /^friends-(combat|tag|race)/.test(r)) && la.flying !== 'flight', la.rows.join());
@@ -244,13 +244,15 @@ try {
   await a.until("window.__war().view.state === 'live'", 60000).catch(() => {});
   await b.until(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(`lobby:${rowAction}`)}) || {}).join === 'Join battle'`, 30000).catch(() => {});
   const chip = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(`lobby:${rowAction}`)}) || null)`);
-  check('B\'s title panel shows the room in battle, its wave, Join battle', chip && /^In battle 1 · wave \d+\/\d+$/.test(chip.value) && chip.join === 'Join battle',
+  /* What its pilots are doing, as true as the list knows it (the owner,
+   * 2026-10-02): "1 flying · wave 2/5". */
+  check('B\'s title panel shows the room\'s war, its pilot flying, the wave, Join battle', chip && /^War 1 · 1 flying · wave \d+\/\d+$/.test(chip.value) && chip.join === 'Join battle',
     JSON.stringify(chip && { value: chip.value, join: chip.join }));
   await openRooms();
   /* Rooms reads its own listing, which can be a poll behind the panel's. */
   await b.until(`/wave \\d+ of/.test((window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || {}).note || '')`, 15000).catch(() => {});
   const battleRow = await b.evaluate(`(window.__ui.items().find((it) => it.action === ${JSON.stringify(rowAction)}) || null)`);
-  check('and Rooms says in battle, Defend Itaipu, mission 1, wave x of y', battleRow && /in battle, Defend Itaipu, mission 1, wave \d+ of \d+\. Enter to join the battle\./.test(battleRow.note),
+  check('and Rooms says in battle, Defend Itaipu, mission 1, wave x of y, 1 flying', battleRow && /in battle, Defend Itaipu, mission 1, wave \d+ of \d+, 1 flying\. Enter to join the battle\./.test(battleRow.note),
     JSON.stringify(battleRow && battleRow.note));
   await b.evaluate(`(() => { window.__ui.act(${JSON.stringify(rowAction)}); return true; })()`);
   await b.until("window.__craftState().mode === 'flight' && window.__ui.screen === 'flight'", 400000).catch(() => {});

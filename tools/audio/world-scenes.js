@@ -288,12 +288,135 @@ Object.assign(SCENES, {
   })(),
 });
 
-/* The calibration scene for one kind: circling the listener at 16 m and
- * the listener's height, at its cruise, for 6 s. */
+/*
+ * THE AMBIENCE'S SCENES: a spillway approached from the air, a night by
+ * the reservoir, a morning in the forest, under a power line, an alpine
+ * meadow, a town at a distance. A bed is the place, never an event: they
+ * are judged in AMBIENCE_PASS, under the pilot's own aircraft (-27) by at
+ * least 1 LU at their loudest moment, and over -60, where they would be
+ * nothing.
+ */
+export const AMBIENCE_PASS = [-60, -28];
+
+/* A still source at (x, y, z). */
+function still(id, kind, x, y, z) {
+  return { id, kind, at: () => [x, y, z] };
+}
+
+/* A listener flying straight at v from p0 along -z, its ground at gy. */
+function flying(p0, v, gy) {
+  return (t) => [p0[0], p0[1], p0[2] - v * t, 0, 0, -1, 1, 0, 0, gy];
+}
+
+Object.assign(SCENES, {
+  /* Flying at 30 m/s and 40 m up along the river below the dam toward
+   * the spillway's three plunge pools, from 1.4 km to 200 m: the roar
+   * rising out of the river's own running water. */
+  'spillway-approach': (() => {
+    const lis = flying([0, 40, 1400], 30, 0);
+    return scene({
+      title: 'Ambience: flying up the river to the spillway, 1.4 km to 200 m', group: 'Ambience', seconds: 40, lis, pass: AMBIENCE_PASS, role: 'bed',
+      paths: [
+        still(1, 'spillway', -40, 4, 0), still(2, 'spillway', 0, 4, 0), still(3, 'spillway', 40, 4, 0),
+        { id: 4, kind: 'river', at: (t) => { const l = lis(t); return [l[0], 0, l[2]]; } },
+      ],
+    });
+  })(),
+  /* A night on the reservoir's shore: the lapping at the listener's
+   * feet, crickets in the grass, frogs along the shore, the town 1.5 km
+   * off and the spillway 3 km. */
+  'night-reservoir': scene({
+    title: 'Ambience: night by the reservoir', group: 'Ambience', seconds: 40, lis: standing(0, 0, 0), pass: AMBIENCE_PASS, role: 'bed',
+    paths: [
+      { id: 1, kind: 'lapping', at: () => [0, -0.5, -4] },
+      still(2, 'crickets', 12, 0.3, 8), still(3, 'crickets', -25, 0.3, 14), still(4, 'crickets', 40, 0.3, 30), still(5, 'crickets', -55, 0.3, 45),
+      still(6, 'frogs', 22, 0.3, -3), still(7, 'frogs', -48, 0.3, -6), still(8, 'frogs', 75, 0.3, -2),
+      still(9, 'townhum', 900, 10, 1200),
+      still(10, 'spillway', -2000, 4, 2200),
+    ],
+  }),
+  /* A morning at the forest's edge by the river: birds in the trees
+   * round, a cicada far off, the river 150 m away. */
+  'morning-forest': scene({
+    title: 'Ambience: morning at the forest edge (birds, the river below)', group: 'Ambience', seconds: 40, lis: standing(0, 0, 0), pass: AMBIENCE_PASS, role: 'bed',
+    paths: [
+      still(1, 'birds', 25, 6, -20), still(2, 'birds', -40, 7, -35), still(3, 'birds', 60, 5, 10), still(4, 'birds', -70, 8, 40),
+      still(5, 'birds', 15, 6, 70), still(6, 'birds', -100, 6, -90), still(7, 'birds', 110, 7, -60), still(8, 'birds', 5, 5, -120),
+      still(9, 'cicada', 140, 6, 90),
+      { id: 10, kind: 'river', at: () => [0, -20, 150] },
+    ],
+  }),
+  /* Walking at 1.4 m/s under a 500 kV line 25 m up, its nearest point
+   * overhead. */
+  'power-line': scene({
+    title: 'Ambience: walking under a 500 kV line', group: 'Ambience', seconds: 30, lis: (t) => [1.4 * t, 1.7, 0, 0, 0, -1, 1, 0, 0, 0], pass: AMBIENCE_PASS, role: 'bed',
+    paths: [
+      { id: 1, kind: 'powerline', at: (t) => [1.4 * t, 25, 0] },
+      still(2, 'birds', 50, 6, -40), still(3, 'birds', -60, 6, 30),
+    ],
+  }),
+  /* An alpine meadow: cows grazing round, two walking the fence, the
+   * stream 30 m off, a few birds. */
+  'alpine-meadow': scene({
+    title: 'Ambience: an alpine meadow (cow bells, the stream)', group: 'Ambience', seconds: 40, lis: standing(0, 0, 0), pass: AMBIENCE_PASS, role: 'bed',
+    paths: [
+      ...[[18, -10], [-25, -30], [40, 25], [-60, 15], [70, -50], [-90, -70], [110, 40], [-130, 60]].map(([x, z], k) => still(1 + k, 'cowbell', x, 1, z)),
+      { id: 10, kind: 'cowbell', at: (t) => [-80 + 0.45 * t, 1, -20] },
+      { id: 11, kind: 'cowbell', at: (t) => [-60 + 0.42 * t, 1, -22] },
+      { id: 12, kind: 'river', at: () => [0, -1, 30] },
+      still(13, 'birds', 45, 6, -60), still(14, 'birds', -70, 6, 80),
+    ],
+  }),
+  /* A town 1.2 km off, by day: its murmur, a bird or two. */
+  'town-distant': scene({
+    title: 'Ambience: the town 1.2 km off', group: 'Ambience', seconds: 30, lis: standing(0, 0, 0), pass: AMBIENCE_PASS, role: 'bed',
+    paths: [still(1, 'townhum', 0, 10, -1200), still(2, 'birds', 40, 6, 30)],
+  }),
+  /*
+   * THE COST SCENE for a war over Itaipu as it would sound: the full war
+   * (war-full's 120 attackers and its booms) with everything the map
+   * gives the ambience at once (the spillway's three pools, the river,
+   * the reservoir's shore, the town, a power line and a grid of singers).
+   */
+  'itaipu-war-full': (() => {
+    const war = SCENES['war-full'];
+    const extra = [
+      [1, 'spillway', -40, 4, -800], [2, 'spillway', 0, 4, -800], [3, 'spillway', 40, 4, -800],
+      [4, 'river', 0, -40, 200], [5, 'lapping', 300, -1, -200], [6, 'townhum', 1500, 10, 900], [7, 'powerline', -120, 30, 60],
+      ...Array.from({ length: 14 }, (_, k) => [20 + k, k % 4 ? 'birds' : 'cicada', 120 * Math.cos(k * 1.7), 6, 120 * Math.sin(k * 1.7)]),
+    ];
+    const frames = war.frames.map((f) => {
+      const src = new Float64Array(f.src.length + extra.length * SOURCE_STRIDE);
+      src.set(f.src);
+      extra.forEach(([id, kind, x, y, z], k) => {
+        const o = f.src.length + k * SOURCE_STRIDE;
+        src[o] = 2e6 + id;
+        src[o + 1] = KIND_INDEX[kind];
+        src[o + 2] = x;
+        src[o + 3] = y;
+        src[o + 4] = z;
+      });
+      return { ...f, src };
+    });
+    return { ...war, frames, title: 'War over Itaipu: the full war and all its ambience (cost)' };
+  })(),
+});
+
+/* Where a kind's level is given: 16 m and its lufs16, or for a source as
+ * big as a spillway its own `near` and lufsNear. */
+export function calibrationOf(spec) {
+  return spec.near > 16 ? { m: spec.near, lufs: spec.lufsNear } : { m: 16, lufs: spec.lufs16 };
+}
+
+/* The calibration scene for one kind: circling the listener at its
+ * calibration distance and its own height (else the ear's), at its
+ * cruise, for 6 s,
+ * or 30 for the ambience, whose birds rest for seconds between phrases. */
 export function calibrationScene(kind) {
   const spec = WORLD_KINDS[kind];
+  const { m } = calibrationOf(spec);
   return scene({
-    title: `calibration: ${kind}`, group: 'calibration', seconds: 6, lis: standing(0, 0, 0),
-    paths: [{ id: 1, kind, at: circle([0, 0, 0], 16, EAR_M, Math.max(0.5, spec.cruise)) }],
+    title: `calibration: ${kind}`, group: 'calibration', seconds: spec.bed ? 30 : 6, lis: standing(0, 0, 0),
+    paths: [{ id: 1, kind, at: circle([0, 0, 0], m, spec.height ?? EAR_M, Math.max(0.5, spec.cruise)) }],
   });
 }
