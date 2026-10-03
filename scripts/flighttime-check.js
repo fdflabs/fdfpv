@@ -101,7 +101,7 @@ const before = await fetch(`${B}/api/stats`).then((r) => r.json());
 console.log(`board ${B} (${boardDir}), all time flight ${before.allTime.flightS} s`);
 
 function seed() {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, CRAFT);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, CRAFT);
   Object.assign(s, {
     map: MAP, graphics: 'low', flightMode: 'angle', fpsCap: 0, airframeAsked: true,
   });

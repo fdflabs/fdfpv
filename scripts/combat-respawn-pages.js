@@ -104,9 +104,9 @@ console.log(`combat respawn, three pages, rooms at ${rooms}`);
 await mkdir(outDir, { recursive: true });
 await writeFile(logPath, '');
 const pages = {
-  A: await openPage({ root, url, width: 960, height: 540, seed: seedFor('5inch', '#e8352e', false) }),
+  A: await openPage({ root, url, width: 960, height: 540, seed: seedFor('interceptor', '#e8352e', false) }),
   B: await openPage({ root, url, width: 960, height: 540, seed: seedFor('cub1400', '#2f6fe0', false) }),
-  C: await openPage({ root, url, width: 960, height: 540, seed: seedFor('5inch', '#2fc05a', true) }),
+  C: await openPage({ root, url, width: 960, height: 540, seed: seedFor('interceptor', '#2fc05a', true) }),
 };
 const { A: a, B: b, C: c } = pages;
 const all = [a, b, c];
@@ -168,7 +168,7 @@ async function restart(p) {
 
 /* A flies past `victim`'s hanging paper, 2.7 m off at `depth` metres
  * down, at 10 m/s, as combat-two-page.js does. */
-const h5 = hullFor('5inch').hull;
+const h5 = hullFor('interceptor').hull;
 let side = 0;
 for (let i = 0; i < h5.n; i += 1) {
   side = Math.max(side, Math.abs(h5.cx[i]) + h5.hx[i]);

@@ -290,14 +290,14 @@
     "world-scale": {
       "num": 15,
       "craft_body_m": {
-        "min": 0.15,
-        "max": 0.16,
-        "source": "The airframe's own published body length, 0.155 m front to back, measured off the drawn BoxGeometry. A 5 mm band because the number is authored, not sampled."
+        "min": 0.155,
+        "max": 0.165,
+        "source": "The interceptor's body length, 0.16 m front to back: its plates, drawn from the reference photograph (src/render/combatcraft.js COMBAT_FRAMES interceptor.plates) and the figure configs/airframes.js dims.bodyLength holds, measured off the drawn BoxGeometry. A 5 mm band because the number is authored, not sampled, as the five inch's 0.155 was. No body length is published for this build (docs/COMBAT-DRONES.md 1a gives the motor spacing and the diagonal), so this row holds the drawing to the table, and the scale anchor is the sweep row below, a published diagonal and prop. Moved 2026-10-03 from the five inch's [0.15, 0.16] when the five inch was removed and the interceptor became the aircraft this check seats. The table's 0.22 for it had no source and disagreed with the drawing; the 7 and 10 inch rows (0.20 and 0.24 against plates of 0.16 and 0.20) and the interceptor's bodyWidth (0.06 against 0.05) carry the same unsourced gap, not measured here."
       },
       "craft_sweep_m": {
-        "min": 0.15,
-        "max": 0.2,
-        "source": "Motor at 0.110 m from centre plus 0.0635 m of blade is 0.1735 m. The band spans a 200 to 250 mm class machine, which is what a 5 inch quad is."
+        "min": 0.22,
+        "max": 0.26,
+        "source": "Motor at 0.1562 m from centre (half the 312 mm diagonal) plus 0.0889 m of 7 inch blade is 0.2451 m. The band spans a 280 to 330 mm class machine on 7 inch props, half the diagonal plus 0.0889: 0.229 to 0.254, rounded out to the centimetre as the five inch's [0.15, 0.20] was for a 200 to 250 mm one. Moved 2026-10-03 when the five inch was removed and the interceptor became the aircraft this check seats."
       },
       "craft_radius_tolerance_m": {
         "value": 0.0005,

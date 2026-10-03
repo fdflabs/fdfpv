@@ -52,7 +52,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadSim, SIM_OK } from '../../tests/lib/simmod.js';
-import { airframeById, BRAMOR_CATAPULT, STRIKER_RAIL } from '../../configs/airframes.js';
+import { airframeById, BRAMOR_CATAPULT, DEFAULT_AIRFRAME, STRIKER_RAIL } from '../../configs/airframes.js';
 import { seatStriker, attitude } from '../../scripts/lib/strikerpilot.js';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -217,10 +217,6 @@ function impactEvent(sim, ms, surface, mass, before, dv) {
   };
 }
 
-async function hoverThrottle(wasm, tune) {
-  return hoverThrottleFor(wasm, tune, 0);
-}
-
 async function hoverThrottleFor(wasm, tune, simId) {
   let lo = 0.1;
   let hi = 0.7;
@@ -328,21 +324,24 @@ function flyStrikerScript(sim, { seconds, railMs = 0, warmMs = 0, start, thr, ho
 
 export async function flyAll() {
   const wasm = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
-  const quadTune = await readFile(join(root, 'configs/betaflight-default.diff'), 'utf8');
-  const hover = await hoverThrottle(wasm, quadTune);
+  /* The racer, DEFAULT_AIRFRAME, flies the quad set: the five inch did
+   * until it was removed (2026-10-03). */
+  const racer = airframeById(DEFAULT_AIRFRAME);
+  const quadTune = await readFile(join(root, `configs/${racer.defaultTune}.diff`), 'utf8');
+  const hover = await hoverThrottleFor(wasm, quadTune, racer.simId);
   const flights = {};
   const q = async (id, title, opts) => {
-    const rec = flyQuad(await quad(wasm, quadTune), { hover, ...opts });
-    flights[id] = { craft: '5inch', airframe: '5inch', voice: 'quad', title, rows: rec.rows, events: rec.events };
+    const rec = flyQuad(await quad(wasm, quadTune, racer.simId), { hover, ...opts });
+    flights[id] = { craft: racer.id, airframe: racer.id, voice: 'quad', title, rows: rec.rows, events: rec.events };
   };
-  await q('quad-hover', '5 inch: hover', {
+  await q('quad-hover', 'Interceptor: hover', {
     seconds: 10, plan: () => ({ thr: 'hold', z: 5 }),
   });
-  await q('quad-punch', '5 inch: punch-out', {
+  await q('quad-punch', 'Interceptor: punch-out', {
     seconds: 9, seed: 2,
     plan: (ms) => (ms < 2500 ? { thr: 'hold', z: 5 } : ms < 5000 ? { thr: 1 } : { thr: 'hold', z: 60 }),
   });
-  await q('quad-dive', '5 inch: dive', {
+  await q('quad-dive', 'Interceptor: dive', {
     seconds: 10, z0: 120, v0: [6, 0, 0], seed: 3,
     plan: (ms) => {
       if (ms < 1500) {
@@ -358,7 +357,7 @@ export async function flyAll() {
       return { thr: 'hold', z: 40 };
     },
   });
-  await q('quad-propwash', '5 inch: prop wash descent', {
+  await q('quad-propwash', 'Interceptor: prop wash descent', {
     seconds: 9, z0: 60, seed: 4,
     plan: (ms) => {
       if (ms < 1500) {
@@ -376,29 +375,29 @@ export async function flyAll() {
     },
   });
   for (const surface of ['grass', 'concrete']) {
-    await q(`quad-crash-${surface}`, `5 inch: crash on ${surface}`, {
+    await q(`quad-crash-${surface}`, `Interceptor: crash on ${surface}`, {
       seconds: 6, z0: 6, v0: [14, 0, -1], ground: surface, seed: 5,
       plan: (ms) => (ms < 1200 ? { thr: 'hold', z: 6, pitch: 0.4 } : { pitch: 0.8, thr: 0.25 }),
     });
   }
 
   /* A prop strike over a hover: the blades meet a wooden post. */
-  await q('quad-strike', '5 inch: prop strike on a post', {
+  await q('quad-strike', 'Interceptor: prop strike on a post', {
     seconds: 6, seed: 6,
     plan: () => ({ thr: 'hold', z: 5 }),
     strike: { ms: 2500, sev: 0.2, surface: 'wood', hardness: 0.6, level: 0.7 },
   });
-  await q('quad-crash-rock', '5 inch: crash on rock', {
+  await q('quad-crash-rock', 'Interceptor: crash on rock', {
     seconds: 6, z0: 6, v0: [14, 0, -1], ground: 'rock', seed: 5,
     plan: (ms) => (ms < 1200 ? { thr: 'hold', z: 6, pitch: 0.4 } : { pitch: 0.8, thr: 0.25 }),
   });
 
   /* The other quads, each in its own plant: a hover and a punch. */
-  for (const [id, name] of [['whoop65', 'Whoop'], ['7inch', '7 inch'], ['10inch', '10 inch'], ['interceptor', 'Interceptor']]) {
+  for (const [id, name] of [['7inch', '7 inch'], ['10inch', '10 inch'], ['interceptor', 'Interceptor']]) {
     const af = airframeById(id);
     const tune = await readFile(join(root, `configs/${af.defaultTune}.diff`), 'utf8');
     const simId = af.simId;
-    const hov = id === 'whoop65' ? hover : await hoverThrottleFor(wasm, tune, simId);
+    const hov = await hoverThrottleFor(wasm, tune, simId);
     const rec = flyQuad(await quad(wasm, tune, simId), {
       hover: hov, seconds: 9, seed: 7,
       plan: (ms) => (ms < 3000 ? { thr: 'hold', z: 5 } : ms < 5000 ? { thr: 1 } : { thr: 'hold', z: 40 }),

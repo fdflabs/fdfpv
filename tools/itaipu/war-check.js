@@ -88,7 +88,7 @@ const js = async (page, expr) => JSON.parse(await page.evaluate(`JSON.stringify(
 
 function seed(airframe = AIRFRAME) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true, map: 'itaipu', graphics: process.env.SIM_GPU === '1' ? 'high' : 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
@@ -432,7 +432,7 @@ async function main() {
   console.log('');
   console.log('headless Chromium, the Itaipu map, a five inch with crash damage on');
   const quad = await openPage({
-    root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed('5inch'),
+    root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed('interceptor'),
   });
   try {
     await quad.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);

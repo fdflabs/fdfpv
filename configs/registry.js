@@ -168,15 +168,14 @@ export const TUNES = [
     note: 'No flight controller. The sticks are the flaperons, the elevator and the rudder; the launch preset trims the elevator down for the climb and lets go at the top.',
   },
   {
-    id: 'betaflight-default',
-    airframe: '5inch',
-    name: 'Factory default',
-    note: 'Factory 4.5.1, untouched. What a freshly flashed quad flies.',
-  },
-  {
-    /* The combat quads' (docs/COMBAT-DRONES.md): stock 4.5.1 like the five
-     * inch's, on their own plants, with the build's motor kV, pack size and
-     * Li-ion cell limits written in. */
+    /* The quads' (docs/COMBAT-DRONES.md): stock 4.5.1, on their own
+     * plants, with the build's motor kV, pack size and Li-ion cell limits
+     * written in.
+     *
+     * betaflight-default.diff, untouched 4.5.1, has no row since the five
+     * inch it was offered on went (2026-10-03). It stays on disk because
+     * it is not only a tune: it is the configuration stage 1 verification
+     * and the module checks fly plant 0 on (tests/, scripts/fc-trace.js). */
     id: 'betaflight-7inch',
     airframe: '7inch',
     name: 'Factory default',
@@ -193,24 +192,6 @@ export const TUNES = [
     airframe: 'interceptor',
     name: 'Factory default',
     note: 'Factory 4.5.1 on the interceptor: 1500 kV, an 1800 mAh LiPo.',
-  },
-  {
-    id: 'whoop-champion',
-    airframe: null,
-    name: 'Whoop stock',
-    note: 'The factory tune for the 36000 kV racer. Low gains, a narrow D boost band, and the gains coming off a fifth of the way up the stick because 1S sags.',
-  },
-  {
-    id: 'whoop-racing',
-    airframe: null,
-    name: 'Whoop racing',
-    note: 'The 30000 kV variant’s factory tune. More damping and less integral than the stock tune, which is the shape of a tune for a motor with less authority.',
-  },
-  {
-    id: 'whoop-freestyle',
-    airframe: null,
-    name: 'Whoop freestyle',
-    note: 'The 25000 kV variant on the bigger GF1219S prop. The highest gains of the three, and the only one the maker ships on Classic rates rather than Actual.',
   },
   {
     /* The Slow Stick's three. It has no ailerons, so in every mode the
@@ -457,48 +438,9 @@ export const TUNES = [
 ];
 
 /*
- * THE THREE WHOOP PRESETS ARE RETIRED, and `airframe: null` above is how.
- *
- * They were the whoop's, and they were right for as long as the whoop was a
- * 23 g 1S machine on its own plant. It flies the five inch's plant now, and a
- * whoop preset on it is not a different feel, it is the wrong tune: P and D
- * sized against 6e-6 kg m^2 of inertia, filter cutoffs against a 23 g frame's
- * resonances, and gains that come off a fifth of the way up the stick because
- * a cell sags. That is an underdamped, sluggish machine, which is the exact
- * complaint the plant change exists to answer.
- *
- * They stay in the table and their .diff files stay on disk. They are real
- * published configurations, scripts/preset-lint.js still checks every .diff in
- * this directory against the compiled module, and if the whoop ever gets its
- * own plant back they are two characters from being offered again. What they
- * must not be is reachable for a plant they were never written for.
- *
- * That is NOT what happened to Karate race 6S and Precision. Those two were
- * right for the plant they were offered on and were removed anyway, as a
- * decision about what this simulator should ship rather than about what flies
- * on what, so their rows and their files both went. A retirement keeps the
- * file because the tune may be wanted again; a removal does not.
- */
-
-/*
- * Every tune that is offered to ANYBODY, which is the retirement above read
- * without an airframe in hand. The Presets tab on the flight controller
- * screen is the second room that lists tunes and it has no airframe to
- * filter by, so it listed the whole table and handed a five inch pilot the
- * three retired whoop presets. `airframe: null` means offered to nobody, and
- * that has to mean it in both rooms or it does not mean it anywhere.
- *
- * Not a replacement for tunesFor: this one only drops the retired rows, and
- * the Tune row still picks by plant.
- */
-export const OFFERED_TUNES = TUNES.filter((t) => t.airframe != null);
-
-/*
- * The tunes an airframe may load. A 6S 5 inch race tune on a 1S whoop is not
- * a thing a pilot should be able to reach by accident, and the rule survives
- * the whoop changing plants: an airframe is offered the tunes written for the
- * plant it selects. A tune with a null airframe is offered to nobody, which
- * is the retirement above.
+ * The tunes an airframe may load: the tunes written for the plant it
+ * selects. A 10 inch tune on a 7 inch is not a thing a pilot should be able
+ * to reach by accident.
  *
  * An aircraft on floats is its own plant, since the floats change its mass
  * and its air, but its stabiliser is the wheeled aircraft's to the gain, so
@@ -527,8 +469,8 @@ export function tunesFor(airframeId) {
 export const CUSTOM_TUNE = {
   id: 'custom',
   /* The pilot's own dump belongs to whichever airframe is seated. It is
-   * offered on both because it is THEIRS; a dump saved on a whoop and loaded
-   * on a five inch is a choice a pilot made on purpose, unlike picking a
+   * offered on every one because it is THEIRS; a dump saved on a 7 inch and
+   * loaded on a 10 inch is a choice a pilot made on purpose, unlike picking a
    * shipped tune off a list that should not have shown it. */
   airframe: null,
   name: 'Your edits',

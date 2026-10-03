@@ -10,6 +10,8 @@ A grey ground plane, a horizon reference, a quad, and a stick input. You can hov
 
 ## Reference airframe
 
+The five inch was removed from the game on 2026-10-03 at the owner's request, and no pilot flies it. Its plant, plant 0, stays in the module as the reference every check below flies, so this section still describes what `npm run verify` measures.
+
 One preset only in Stage 1. A 5 inch freestyle quad:
 
 - All-up mass 0.71 kg

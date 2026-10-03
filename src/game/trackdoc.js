@@ -62,7 +62,7 @@ import {
 } from '../trackbuilder/model.js';
 import { buildPath } from '../trackbuilder/path.js';
 import { wrapBetween, figureCueOf, upgradeStackedFigures } from '../trackbuilder/figures.js';
-import { gateScaleFor, MICRO_SCALE } from './track.js';
+import { gateScaleFor } from './track.js';
 import { startBlockLaneOffset, startBlockDims } from '../art/startblock.js';
 import { guideFromKnots } from './guide.js';
 import { str } from '../strings/index.js';
@@ -81,15 +81,12 @@ import { str } from '../strings/index.js';
  * pads, in metres.
  *
  * 7.5 is a five inch's: far enough back to be lined up and rolling by the
- * gate. On a RaceGOW course the whole track fits in 1.42 by 2.13 m and the
- * room is 5 by 6, so 7.5 m behind the first gate is outside the building.
- * 1.2 is the same idea at the same scale: about two gate widths, which on a
- * whoop at 4 m/s is a second of run up. A wing is thrown rather than
+ * gate. A wing is thrown rather than
  * parked, at 10 m/s, and needs a few seconds to be flying before it is
  * asked to hit a five metre hole: 40 is two seconds at cruise.
  */
 const SPAWN_BACK = 7.5;
-const SPAWN_BACK_BY_CLASS = { full: SPAWN_BACK, micro: 1.2, wing: 40 };
+const SPAWN_BACK_BY_CLASS = { full: SPAWN_BACK, wing: 40 };
 
 /*
  * The direction of travel through a gate is MINUS its plane normal, which is
@@ -123,55 +120,16 @@ function sceneYawFor(el, kind) {
 }
 
 /* Document point to scene point, horizontally. Height is the scene's job. */
-/*
- * HOW MANY SCENE METRES ONE DOCUMENT METRE IS, for the course being built.
- *
- * One on the sixty metre field, where a document metre IS a scene metre.
- * MICRO_SCALE in a RaceGOW room, because the whoop flies the five inch's
- * plant and a five inch needs the space: see configs/airframes.js for the
- * derivation and src/game/track.js for the argument.
- *
- * IT IS MODULE STATE AND THAT IS DELIBERATE, because the alternative is
- * threading a factor through ten call sites and the one that gets missed is
- * a scale bug, which is a defect this project has shipped before. toScene is
- * the ONLY place a document position becomes a scene position, so a single
- * multiply here reaches every structure, station, knot, pad, sample, decal
- * and figure without any of them knowing. Set and restored by
- * courseFromDocument around one synchronous call; nothing here is async and
- * nothing else in the module may assign it.
- *
- * What it does NOT reach is elevation, which never passes through toScene
- * because a document's up axis is its z and the scene's is y. Every one of
- * those is multiplied by hand and they are the five `elev` calls below.
- */
-let SCALE = 1;
-
 function toScene(field, p) {
   return {
-    x: (p.x - field.width / 2) * SCALE,
-    z: -(p.y - field.depth / 2) * SCALE,
+    x: p.x - field.width / 2,
+    z: -(p.y - field.depth / 2),
   };
 }
 
 /* A document elevation in scene metres. The vertical half of toScene. */
 function elev(z) {
-  return (z || 0) * SCALE;
-}
-
-/*
- * Every key in an element's dims that is a LENGTH, which is all of them bar
- * these two. A denylist rather than a list of lengths on purpose: an element
- * added later with a new length gets scaled by default, and the failure mode
- * of the other order is an obstacle that is the wrong size in a room.
- */
-const DIMS_NOT_LENGTHS = new Set(['levels', 'pads']);
-
-function scaledDims(dims, scale) {
-  const out = {};
-  for (const [k, v] of Object.entries(dims)) {
-    out[k] = (typeof v === 'number' && !DIMS_NOT_LENGTHS.has(k)) ? v * scale : v;
-  }
-  return out;
+  return z || 0;
 }
 
 /*
@@ -187,12 +145,6 @@ function scaledDims(dims, scale) {
  * relearn the world every time they changed track. Positions are NOT scaled:
  * the layout is the author's and moving their gates is not a scale, it is a
  * redesign.
- *
- * A MICRO TRACK IS BUILT AT ONE TO ONE. gateScaleFor is the whole rule and
- * src/game/track.js carries the argument: the 15 percent was asked for
- * against a five inch on a sixty metre field, a RaceGOW gate is already half
- * again as generous against a whoop, and growing one inside a room that did
- * not grow makes the room smaller and the builder's own warnings wrong.
  */
 function builtDims(dims, scale) {
   return {
@@ -252,17 +204,6 @@ function plantImportedHeights(doc) {
  * which the shell already treats as a map with nothing to score.
  */
 export function courseFromDocument(raw) {
-  /* SCALE is module state for the reason given where it is declared. It is
-   * set inside buildCourse, once the class is known, and put back here so a
-   * course that threw halfway cannot leave a room's factor on a field. */
-  try {
-    return buildCourse(raw);
-  } finally {
-    SCALE = 1;
-  }
-}
-
-function buildCourse(raw) {
   const { doc, repairs } = normalize(raw);
   upgradeStackedFigures(doc);
   plantImportedHeights(doc);
@@ -274,11 +215,8 @@ function buildCourse(raw) {
    * course object that did not carry it would make every one of those guess.
    */
   const cls = trackClassOf(doc);
-  /* Every position and every length from here down is scene metres. See the
-   * declaration of SCALE for why a room's are not its document's. */
-  SCALE = cls === 'micro' ? MICRO_SCALE : 1;
-  /* How much larger than the author's figures this track is built. One on a
-   * RaceGOW room, 15 percent on the field. See gateScaleFor. */
+  /* How much larger than the author's figures this track is built: 15
+   * percent on the field, one to one on a wing course. See gateScaleFor. */
   const gateScale = gateScaleFor(cls);
   const warnings = [...repairs];
 
@@ -318,7 +256,7 @@ function buildCourse(raw) {
       /* Tilt of the aperture plane, radians, straight from the document.
        * Zero for everything that is not an aperture. */
       pitch: kind === KIND.APERTURE ? el.pitch : 0,
-      dims: kind === KIND.APERTURE ? builtDims(el.dims, gateScale) : scaledDims(el.dims, SCALE),
+      dims: kind === KIND.APERTURE ? builtDims(el.dims, gateScale) : { ...el.dims },
     };
     /* The openings that are a gap in the lattice and not a gate: no pipe
      * is built for them anywhere. See isUnbuilt in elements.js. */
@@ -382,33 +320,7 @@ function buildCourse(raw) {
       if (clearance < 0.05) {
         continue;
       }
-      /*
-       * THROUGH THE ROOM'S FACTOR, LIKE EVERY OTHER LENGTH ON A STATION.
-       *
-       * virtualApertureDims answers in the DOCUMENT's metres, which is right
-       * for its other five callers: the two builder views, the card stage,
-       * the path solver and the selftest all work on a document. This is the
-       * only caller that builds a FLOWN course, and it dropped the factor.
-       *
-       * What that cost on a RaceGOW track, measured on Track 1: the square
-       * came out 1.067 by 1.476 m where it should be 3.658 by 5.060, its
-       * centre sat 0.43 m too close to the pole so the inner edge floated
-       * 0.864 m OFF the pole instead of resting on it, and its vertical
-       * centre was 1.79 m too low. The pole beside it was scaled, because a
-       * marker's dims go through scaledDims with every other structure, so a
-       * 5 m pipe stood next to a scoring window a third of its height. The
-       * line the solver derives comes off a stacked gate at 3.75 m and
-       * passes the pole above 2 m, over the top of a square that ended at
-       * 1.476, so the pass could not register and the lap could not be
-       * completed. Reported from the seat.
-       *
-       * Every key it returns is a length, which is why scaledDims is the
-       * whole fix: clearW, clearH, sillH, centerH and outward. The check
-       * that this is right is elements.js's own stated contract, that the
-       * INNER EDGE STAYS ON THE POLE, and it only holds when the width and
-       * the clearance it is measured against are in the same units.
-       */
-      const dims = scaledDims(virtualApertureDims(el, knot.seq, cls), SCALE);
+      const dims = virtualApertureDims(el, knot.seq, cls);
       const t = knot.tangent;
       const travel = { x: t.x, y: t.z, z: -t.y };
       const heading = headingForTravel(travel.x, travel.z);
@@ -542,7 +454,7 @@ function buildCourse(raw) {
      * mesh uses, so the craft sits on a block rather than in the grass
      * between two. Pitch matches the ramp so the front arms rest on the
      * foam. */
-    const off = startBlockLaneOffset(pads.dims) * SCALE;
+    const off = startBlockLaneOffset(pads.dims);
     spawn = {
       x: p.x + Math.cos(yaw) * off,
       z: p.z - Math.sin(yaw) * off,
@@ -551,7 +463,7 @@ function buildCourse(raw) {
     };
   } else if (stations.length) {
     const first = stations[0];
-    const back = (SPAWN_BACK_BY_CLASS[cls] ?? SPAWN_BACK) * SCALE;
+    const back = SPAWN_BACK_BY_CLASS[cls] ?? SPAWN_BACK;
     spawn = {
       x: first.x + Math.sin(first.yaw) * back,
       z: first.z + Math.cos(first.yaw) * back,
@@ -574,17 +486,8 @@ function buildCourse(raw) {
    * paint has to hug flags on the pass side the way a racer does, and the
    * cubic through gate-normal tangents does not. Scene XZ, so the renderer
    * never has to know a document existed.
-   *
-   * NOT IN A ROOM. The paint is athletics dressing for a 60 m field, where
-   * the next gate can be 30 m away and a dashed line and an arrow are how a
-   * pilot finds it. A RaceGOW track is three metres end to end and the whole
-   * course is in shot from anywhere on it, so the marks are clutter under
-   * the gates rather than help, and no real RaceGOW living room has paint on
-   * the carpet. The owner asked for them off on the whoop, and they are off
-   * here rather than in the renderer so that the plan, the share tile and
-   * anything else reading a course sees the same absence.
    */
-  const guide = cls === 'micro' ? null : guideFromKnots(sceneKnots(path.knots, field), cls);
+  const guide = guideFromKnots(sceneKnots(path.knots, field));
 
   if (!stations.length) {
     warnings.push(str('trackdoc.this_track_has_nothing_to_fly'));
@@ -604,12 +507,9 @@ function buildCourse(raw) {
     logos: logosOf(doc).map((l) => l.image),
     /* The marks painted on the grass, in scene metres. See groundDecals. */
     decals: groundDecals(doc, field),
-    field: { width: field.width * SCALE, depth: field.depth * SCALE },
-    /*
-     * 'full' is a sixty metre field flown on a 5 inch; 'micro' is a RaceGOW
-     * room flown on a 65 mm whoop. Everything the renderer, the race timer
-     * and the guide paint do with a length has to read this.
-     */
+    field: { width: field.width, depth: field.depth },
+    /* src/trackbuilder/elements.js TRACK_CLASSES. Everything the renderer,
+     * the race timer and the guide paint do with a length has to read this. */
     trackClass: cls,
     structures,
     stations,
@@ -653,10 +553,8 @@ function groundDecals(doc, field) {
     if (index < 0) {
       continue;
     }
-    /* Floored in the document's metres, then into the scene's: a decal is
-     * paint on the floor and it has to grow with the floor it is on. */
-    const w = Math.max(0.1, el.dims.width) * SCALE;
-    const d = Math.max(0.1, el.dims.depth) * SCALE;
+    const w = Math.max(0.1, el.dims.width);
+    const d = Math.max(0.1, el.dims.depth);
     const p = toScene(field, el.position);
     out.push({
       x: p.x, z: p.z, yaw: el.yaw, w, d, logo: index,
@@ -727,13 +625,7 @@ function sceneKnots(knots, field) {
       const pole = toScene(field, k.markerPos);
       out.poleX = pole.x;
       out.poleZ = pole.z;
-      /* A document clearance, so through the same factor as the position it
-       * is a radius about. Only the guide paint reads it and a room gets no
-       * paint, so this is unreachable on a micro course today: it is scaled
-       * because the next thing to turn the paint on indoors should not have
-       * to find out that one field in this object was left in the author's
-       * metres. */
-      out.radius = (k.seq && k.seq.clearance != null ? k.seq.clearance : 1.5) * SCALE;
+      out.radius = k.seq && k.seq.clearance != null ? k.seq.clearance : 1.5;
     }
     return out;
   });

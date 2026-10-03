@@ -33,18 +33,17 @@ const wasm = new Uint8Array(await readFile(join(root, 'dist/sim.wasm')));
 const configText = await readFile(join(root, 'tests/fixtures/config-baseline.diff'), 'utf8');
 
 const AIRFRAMES = [
-  ['5 inch', 0, 0], ['whoop, true scale', 1, 0], ['whoop as the shell flies it (SIM_PARTS_WHOOP_SCALED)', 0, 1],
-  ['flying wing 1000', 2, 0], ['Skyhunter 1800', 3, 0], ['Cub 1400', 4, 0], ['Slow Stick', 5, 0],
-  ['Radian 2000', 6, 0], ['Timber 1500', 7, 0], ['Bramor 2300', 8, 0], ['Timber on floats', 9, 0], ['Cub on floats', 10, 0],
-  ['Buzzard Bombshell', 11, 0], ['Kadet Senior', 12, 0], ['P-51D Mustang', 15, 0], ['Zagi HP', 17, 0], ['Ugly Stik', 19, 0], ['NRJ DLG', 21, 0],
-  ['Tiger Moth', 23, 0],
+  ['5 inch, plant 0', 0],
+  ['flying wing 1000', 2], ['Skyhunter 1800', 3], ['Cub 1400', 4], ['Slow Stick', 5],
+  ['Radian 2000', 6], ['Timber 1500', 7], ['Bramor 2300', 8], ['Timber on floats', 9], ['Cub on floats', 10],
+  ['Buzzard Bombshell', 11], ['Kadet Senior', 12], ['P-51D Mustang', 15], ['Zagi HP', 17], ['Ugly Stik', 19], ['NRJ DLG', 21],
+  ['Tiger Moth', 23],
 ];
 const f = (v, d = 3) => v.toFixed(d);
-for (const [name, id, table] of AIRFRAMES) {
+for (const [name, id] of AIRFRAMES) {
   const sim = await loadSim(wasm);
   sim.init(configText);
   sim.e.sim_set_airframe(id);
-  sim.e.sim_set_part_table(table);
   sim.reset();
   const parts = readPartTable(sim);
   console.log(`\n### ${name}\n`);

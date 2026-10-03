@@ -117,7 +117,7 @@ const SLOW_FRAMES = `(() => {
 })();`;
 
 function seedFor(colour, { damage = true, frames = null } = {}) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIRFRAME);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';

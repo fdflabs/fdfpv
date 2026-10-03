@@ -61,7 +61,7 @@ function check(name, ok, detail = '') {
 }
 
 function seedFor(id) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';
@@ -129,7 +129,7 @@ async function throwThrough(p) {
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`two pages race in one room, rooms at ${rooms}`);
-const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('5inch') });
+const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('interceptor') });
 const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400') });
 try {
   for (const p of [a, b]) {

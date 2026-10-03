@@ -1892,14 +1892,8 @@
       .gate-card-fact::before { content: "["; margin-right: 0.35em; color: var(--pdcs-blue-dim); }
       .gate-card-fact::after { content: "]"; margin-left: 0.35em; color: var(--pdcs-blue-dim); }
       /*
-       * The plan drawing over the corner of each picture.
-       *
-       * Both machines are drawn in one 300 mm viewBox, so the whoop's mark
-       * is a fifth of the width of the five inch's because it is a fifth of
-       * the width of it on a bench. The BOX is the same size on all three
-       * cards for exactly that reason: scale it to the drawing and the one
-       * fact it is here to carry is the fact it throws away. See craftSvg in
-       * src/ui/ui.js.
+       * The plan drawing over the corner of each picture, one box size on
+       * every card. See craftSvg in src/ui/ui.js.
        */
       .gate-card-mark {
         position: absolute;

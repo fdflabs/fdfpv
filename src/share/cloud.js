@@ -46,6 +46,7 @@
  */
 
 import { isMapTrack, normalize, toPlain } from '../trackbuilder/model.js';
+import { noAircraftFlies } from '../trackbuilder/elements.js';
 import {
   TRACK_SAVED_EVENT, forkTrack, loadMapTrack, markUnsyncedTracks, readOnlineStates,
   storeFromServer, writeOnlineState,
@@ -194,6 +195,9 @@ export async function fetchAllTracks({ before = '', owner = '', limit = 24 } = {
 /* One track's document, read through the simulator's own normalize. */
 export async function fetchTrack(id) {
   const body = await get(`/api/tracks/${encodeURIComponent(id)}`);
+  if (body && noAircraftFlies(body.document)) {
+    throw new Error(str('track.no_aircraft'));
+  }
   const doc = body && body.document ? normalize(body.document).doc : null;
   if (!doc || !isMapTrack(doc)) {
     throw new Error(str('cloud.not_a_track'));

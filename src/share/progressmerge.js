@@ -83,6 +83,7 @@
  */
 
 import { mergeCampaign } from '../game/campaign.js';
+import { retiredAirframe } from '../../configs/airframes.js';
 import { FLIGHT_DEVICES_MAX, cleanFlightTime, mergeFlightTime } from './flighttime.js';
 import {
   BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS,
@@ -133,6 +134,26 @@ const ENTRY_SHAPES = {
     && typeof b.name === 'string' && b.name.length >= 1 && b.name.length <= 40
     && typeof b.airframe === 'string' && ID_RE.test(b.airframe) && isRecord(b.fit) && when(b.created) && when(b.updated),
 };
+
+/*
+ * THE SECTIONS KEYED BY AIRFRAME ID. An entry under a retired aircraft
+ * (configs/airframes.js retiredAirframe: the five inch and the whoop since
+ * 2026-10-03) is dropped from a clean blob: its motors, props, packs,
+ * parts and tune were that aircraft's, and its successor has its own.
+ */
+const AIRFRAME_KEYED = ['livery', 'parts', 'power', 'tuning', 'tuneFor', 'floats', 'combat'];
+
+/*
+ * A build as this build of the game holds it: one made on a retired
+ * aircraft is moved onto its successor, its name, id and dates kept and its
+ * fit back to stock, since every motor, prop and pack in it was the old
+ * aircraft's (the owner's five inch builds, 2026-10-03). Here so the
+ * server's merge and src/ui/builds.js on load move it the same way.
+ */
+export function currentBuild(b) {
+  const gone = isRecord(b) ? retiredAirframe(b.airframe) : null;
+  return gone ? { ...b, airframe: gone.to, fit: {} } : b;
+}
 
 /*
  * Why a blob a computer sent is refused, or null: more builds than one
@@ -207,7 +228,13 @@ export function cleanBlob(raw) {
       continue;
     }
     const shape = ENTRY_SHAPES[section];
-    out.data[section] = shape ? Object.fromEntries(Object.entries(value).filter(([k, e]) => shape(k, e))) : value;
+    let kept = shape ? Object.fromEntries(Object.entries(value).filter(([k, e]) => shape(k, e))) : value;
+    if (section === 'builds') {
+      kept = Object.fromEntries(Object.entries(kept).map(([k, b]) => [k, currentBuild(b)]));
+    } else if (AIRFRAME_KEYED.includes(section)) {
+      kept = Object.fromEntries(Object.entries(kept).filter(([k]) => !retiredAirframe(k)));
+    }
+    out.data[section] = kept;
   }
   if (isRecord(raw.stamps)) {
     for (const [part, ms] of Object.entries(raw.stamps)) {

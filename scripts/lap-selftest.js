@@ -206,7 +206,7 @@ const skyOnRing = checkLap(ring, encodeGhost(ringLap), ringLap.lapMs, 'sky1800')
 check('a Skyhunter lap on five inch gates is refused: it does not fit', skyOnRing.ok === false && /does not fit gate 1/.test(skyOnRing.reason), skyOnRing.reason);
 const skyOnField = checkLap(wing, encodeGhost(wingLap), wingLap.lapMs, 'sky1800');
 check('a lap naming a plane on a field track is refused', skyOnField.ok === false && /field track/.test(skyOnField.reason), skyOnField.reason);
-const quadNamed = checkLap(wide, wideBytes, wideLap.lapMs, '5inch');
+const quadNamed = checkLap(wide, wideBytes, wideLap.lapMs, 'interceptor');
 check('a lap naming a quad is refused: a quad\'s lap names nothing', quadNamed.ok === false && /not a fixed wing/.test(quadNamed.reason), quadNamed.reason);
 const unknown = checkLap(wide, wideBytes, wideLap.lapMs, 'sopwith');
 check('and one naming no aircraft there is', unknown.ok === false && /not a fixed wing/.test(unknown.reason), unknown.reason);

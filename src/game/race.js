@@ -56,7 +56,7 @@
  * gate offered 1.40 m, and a clean line near the stile did not count.
  * Collision already owns a clip of the tube.
  */
-import { fastestLap, fastestThreeConsecutive, MICRO_SCALE } from './track.js';
+import { fastestLap, fastestThreeConsecutive } from './track.js';
 import { str, plural } from '../strings/index.js';
 
 /*
@@ -71,36 +71,11 @@ import { str, plural } from '../strings/index.js';
  * flying past the gate to one side can clip it.
  */
 const PASS_DEPTH = 0.5;
-/*
- * The same, on a micro track, and half a metre there is not a little, it is
- * most of a lap.
- *
- * A RaceGOW gate is 0.711 m square out of 26.7 mm pipe, and the adjacent
- * gate rule puts the next one 0.762 m away centre to centre. A 0.5 m depth
- * either side is a ONE METRE deep box round a 0.711 m hole, so the scoring
- * volumes of two gates in a legal side by side pair OVERLAP, and a pass
- * through one would credit the other.
- *
- * 0.045 is the frame's own thickness plus a little, on the same reasoning
- * the full sized figure gives: the pipe is 26.7 mm, so a path through the
- * visible opening intersects the box, and two gates 0.762 m apart keep
- * 0.672 m of clear air between their boxes.
- */
-const PASS_DEPTH_MICRO = 0.045;
 /* Keep the scoring hole a fingernail inside the PVC so a pass credited
  * here is a pass that did not have to tunnel the tube. Collision already
  * owns a real clip. This is not the craft radius: folding that in stole
  * 35 cm off a 1.75 m opening and made a clean edge line miss. */
 const PASS_MARGIN = 0.02;
-/*
- * 2 cm is a hundredth of a 1.75 m opening and it is a THIRTY FIFTH of a
- * 0.711 m one, which is a different rule about a different aircraft. The
- * fingernail this is meant to be is a fingernail of the PIPE, and the pipe
- * is 26.7 mm rather than 33, so 8 mm is the same proportion of the same
- * object. A whoop that shaves the tube by 8 mm has already hit it, and
- * collision owns that.
- */
-const PASS_MARGIN_MICRO = 0.008;
 /*
  * A wing track's five metre gate, flown at 15 to 25 m/s by an aircraft
  * that cannot slow down for it. Half a metre of depth is a fiftieth of a
@@ -113,15 +88,10 @@ const PASS_MARGIN_MICRO = 0.008;
  */
 const PASS_DEPTH_WING = 2.0;
 
-/*
- * The scoring box per class, in the class's own metres, and the factor
- * that turns those into scene metres. See the derivations above and the
- * note in the constructor on why the room's factor is paid here.
- */
+/* The scoring box per class, in metres. See the derivations above. */
 const PASS_BY_CLASS = {
-  full: { depth: PASS_DEPTH, margin: PASS_MARGIN, scale: 1 },
-  micro: { depth: PASS_DEPTH_MICRO, margin: PASS_MARGIN_MICRO, scale: MICRO_SCALE },
-  wing: { depth: PASS_DEPTH_WING, margin: PASS_MARGIN, scale: 1 },
+  full: { depth: PASS_DEPTH, margin: PASS_MARGIN },
+  wing: { depth: PASS_DEPTH_WING, margin: PASS_MARGIN },
 };
 
 const DEFAULT_KEY = 'webfpv.bestLapMs';
@@ -239,37 +209,12 @@ export class Race {
      * The track class, and it reaches here for one reason: the scoring
      * volume. Everything else about a race is class free, because a lap is a
      * lap and three consecutive is three consecutive whatever size the
-     * aircraft is. But the box a pass is measured against is a LENGTH, and
-     * the full sized one is wider than the gap RaceGOW leaves between two
-     * gates, and a wing's is deeper than both.
+     * aircraft is. But the box a pass is measured against is a LENGTH, and a
+     * wing's is deeper than the field's.
      */
-    this.micro = trackClass === 'micro';
     const pass = PASS_BY_CLASS[trackClass] ?? PASS_BY_CLASS.full;
-    /*
-     * THROUGH THE ROOM'S FACTOR, BECAUSE BOTH MICRO FIGURES ARE DERIVED FROM
-     * RACEGOW'S REAL PIPE AND THE PIPE IS NOT BUILT AT THAT SIZE.
-     *
-     * Read the two derivations above: the depth is "the frame's own thickness
-     * plus a little" against 26.7 mm pipe, and the margin is "a fingernail of
-     * the PIPE" at the same proportion. A micro course is built MICRO_SCALE
-     * times life size now, so that pipe is 91.5 mm as built and a 45 mm box
-     * is THINNER THAN THE FRAME IT IS MEANT TO ENCLOSE. The clip in
-     * openingHits is a proper swept segment test, so nothing can tunnel it
-     * whatever the depth, but a steeply angled line through the visible hole
-     * can cross outside a box that thin, which is the exact failure the
-     * constant exists to prevent.
-     *
-     * The reason not to overlap survives the scaling untouched, because the
-     * thing it is measured against scales too: rule 3 puts adjacent gates
-     * 0.762 m apart, which is 2.613 m as built, and two boxes 0.154 m deep
-     * either side leave 2.304 m of clear air between them. That is the same
-     * ratio the unscaled pair had, which is what a change of units means.
-     *
-     * The constants stay in RaceGOW's own metres where their derivations can
-     * be checked against the rulebook, and the factor is paid here, once.
-     */
-    this.passDepth = pass.depth * pass.scale;
-    this.passMargin = pass.margin * pass.scale;
+    this.passDepth = pass.depth;
+    this.passMargin = pass.margin;
     /*
      * Appended to every record key the shell hands in. That key names the
      * machine flying, not the course (main.js recordKey), and a course built

@@ -71,7 +71,7 @@ function check(name, ok, detail = '') {
 }
 
 function seedFor(id, map) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = map;
   s.freestyleMap = map;
   s.graphics = 'low';
@@ -98,8 +98,8 @@ console.log(`three pages in one room, rooms at ${rooms}`);
 const base = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 const pages = {
   A: await openPage({ root, url: base, width: 960, height: 540, seed: seedFor('radian2000', ROOM_MAP) }),
-  B: await openPage({ root, url: base, width: 960, height: 540, seed: seedFor('5inch', 'alps') }),
-  C: await openPage({ root, url: `${base}&map=alps`, width: 960, height: 540, seed: seedFor('5inch', 'alps') }),
+  B: await openPage({ root, url: base, width: 960, height: 540, seed: seedFor('interceptor', 'alps') }),
+  C: await openPage({ root, url: `${base}&map=alps`, width: 960, height: 540, seed: seedFor('interceptor', 'alps') }),
 };
 const names = Object.keys(pages);
 

@@ -79,8 +79,8 @@ function check(name, ok, detail = '') {
   }
 }
 
-function seedFor(map, airframe = '5inch') {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+function seedFor(map, airframe = 'interceptor') {
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   s.map = map;
   s.freestyleMap = map;
   s.graphics = 'low';

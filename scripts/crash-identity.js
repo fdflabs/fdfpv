@@ -71,7 +71,6 @@ const RUNS = [
   ['zagi:gates', 'scripts/zagi-gates.js'],
   ['tigermoth:gates', 'scripts/tigermoth-gates.js'],
   ['floats:gates', 'scripts/floats-gates.js'],
-  ['whoop:gates', 'scripts/whoop-gates.js'],
   ['wing:contact', 'scripts/wing-contact-selftest.js'],
   ['contact:selftest', 'scripts/contact-selftest.js'],
   ['wing:math', 'scripts/wing-math-selftest.js'],

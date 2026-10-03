@@ -50,7 +50,7 @@ function check(name, ok, detail = '') {
   }
 }
 
-const profile = (i) => ({ airframe: i % 2 ? 'cub1400' : '5inch', map: 'swiss2', figure: i % 12, livery: null, parts: null });
+const profile = (i) => ({ airframe: i % 2 ? 'cub1400' : 'interceptor', map: 'swiss2', figure: i % 12, livery: null, parts: null });
 
 /* One socket and what it saw. Resolves once it is open. */
 function connect(code, i, extra = {}) {

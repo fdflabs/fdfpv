@@ -71,7 +71,7 @@ const RUN = `(Streamer, streamerTrace) => {
 }`;
 
 function seedFor(id, colour) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';
@@ -102,7 +102,7 @@ async function shot(page, name) {
 
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 console.log(`toilet paper combat, two pages, rooms at ${rooms}`);
-const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('5inch', '#e8352e') });
+const a = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('interceptor', '#e8352e') });
 const b = await openPage({ root, url, width: 1280, height: 720, seed: seedFor('cub1400', '#2f6fe0') });
 try {
   for (const p of [a, b]) {
@@ -181,7 +181,7 @@ try {
    * Phase 5's five seconds, and at 10 m/s its own paper's snatch stays
    * under the tear (section 2.5).
    */
-  const h5 = hullFor('5inch').hull;
+  const h5 = hullFor('interceptor').hull;
   let side = 0;
   for (let i = 0; i < h5.n; i += 1) {
     side = Math.max(side, Math.abs(h5.cx[i]) + h5.hx[i]);

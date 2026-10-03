@@ -41,7 +41,7 @@
 import {
   ELEMENTS, KIND, TUNING, TRACK_CLASSES, TRACK_CLASS_DEFAULT, apertureLevels,
   defaultDims, defaultPitch, defaultZ, elementHeight, normalizeFlagSide,
-  trackClassOf, tuningFor,
+  noAircraftFlies, trackClassOf, tuningFor,
 } from './elements.js';
 import { apertureFrame, wrapAngle } from './geometry.js';
 import { str } from '../strings/index.js';
@@ -323,14 +323,8 @@ export function createTrack(name, cls = TRACK_CLASS_DEFAULT) {
     name,
     createdUtc: stamp,
     modifiedUtc: stamp,
-    /*
-     * WHAT KIND OF TRACK THIS IS, and it is a property of the track rather
-     * than of the pilot. 'full' is the sixty metre field flown on a 5 inch;
-     * 'micro' is a RaceGOW room flown on a 65 mm whoop. The two are
-     * different objects: different element sizes, a different field, a
-     * different grid, different warnings and a lap that is three seconds
-     * rather than thirty.
-     */
+    /* WHAT KIND OF TRACK THIS IS, a property of the track rather than of
+     * the pilot: src/trackbuilder/elements.js TRACK_CLASSES. */
     trackClass: TRACK_CLASSES.includes(cls) ? cls : TRACK_CLASS_DEFAULT,
     field: {
       width: T.fieldWidth,
@@ -629,15 +623,17 @@ export function normalize(raw) {
     createdUtc: asText(src.createdUtc, base.createdUtc),
     modifiedUtc: asText(src.modifiedUtc, base.modifiedUtc),
     /* Defaulted to 'full' rather than repaired, because a document without
-     * one is a document written before micro tracks existed and every one of
+     * one is a document written before the class existed and every one of
      * those IS full sized. A repair note here would cry wolf on every track
-     * in the repository. */
-    trackClass: TRACK_CLASSES.includes(src.trackClass) ? src.trackClass : TRACK_CLASS_DEFAULT,
+     * in the repository. A class no aircraft flies is KEPT, so the document
+     * stays one every reader refuses (elements.js noAircraftFlies) rather
+     * than becoming a field track by being read and written once. */
+    trackClass: noAircraftFlies(src) || TRACK_CLASSES.includes(src.trackClass) ? src.trackClass : TRACK_CLASS_DEFAULT,
     field: {
       width: Math.max(5, num(src.field?.width, base.field.width)),
       depth: Math.max(5, num(src.field?.depth, base.field.depth)),
-      /* 0.005 rather than 0.1: a RaceGOW grid is one inch, 0.0254, and a
-       * floor of a tenth of a metre is a MultiGP field's assumption. */
+      /* 0.005 rather than 0.1: a grid finer than a tenth of a metre is a
+       * thing older documents carry, and normalize keeps what they wrote. */
       gridSize: Math.max(0.005, num(src.field?.gridSize, base.field.gridSize)),
     },
     settings: {
@@ -862,41 +858,6 @@ export function normalize(raw) {
     });
   }
 
-  /*
-   * A MICRO DOCUMENT FOLLOWS THE ROOM, AND KEEPS ITS LAYOUT WHILE IT DOES.
-   *
-   * The room is one place, src/trackbuilder/racegow.js, and it changed size:
-   * 5 by 6 m became 10 by 12. Every micro document written before that
-   * carries the old field, and a document's field is not decoration. It is
-   * the frame the builder draws, the boundary its warnings test against, and
-   * the ORIGIN: trackdoc.js maps a stored position to the world as
-   * `x - field.width / 2`, so the field is what centres a track in the room.
-   *
-   * Leaving the old field alone would put a 5 by 6 boundary inside 10 by 12
-   * walls in the builder while the game centred the track anyway. Growing it
-   * without moving anything would shove the whole layout 2.5 m left and 3 m
-   * back, because every position is measured from a corner that just moved.
-   * So both happen together: the field becomes the room's and every element
-   * shifts by half the growth, which is exactly the offset that leaves the
-   * track where its author put it relative to the middle of the floor.
-   *
-   * Silent, with no repair note. The author did nothing wrong and their
-   * track has not been damaged; the room grew underneath it.
-   */
-  if (doc.trackClass === 'micro') {
-    const T = tuningFor('micro');
-    const dx = (T.fieldWidth - doc.field.width) * 0.5;
-    const dy = (T.fieldDepth - doc.field.depth) * 0.5;
-    if (dx !== 0 || dy !== 0) {
-      for (const el of doc.elements) {
-        el.position.x += dx;
-        el.position.y += dy;
-      }
-      doc.field.width = T.fieldWidth;
-      doc.field.depth = T.fieldDepth;
-    }
-  }
-
   return { doc, repairs };
 }
 
@@ -923,8 +884,9 @@ export function toPlain(doc) {
      * builder kept drawing a room because it held the live object, and the
      * GAME read the saved file, found no class, defaulted to full, and put a
      * RaceGOW course on a sixty metre paddock. A field that is not written
-     * is a field that does not exist. */
-    trackClass: trackClassOf(doc),
+     * is a field that does not exist. A class no aircraft flies is written
+     * back as it was read; see normalize. */
+    trackClass: noAircraftFlies(doc) ? doc.trackClass : trackClassOf(doc),
     /* Only on a map track, so a field track's bytes are what they were. */
     ...(onMap ? { map: doc.map } : {}),
     field: {

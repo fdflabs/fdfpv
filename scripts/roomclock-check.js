@@ -288,7 +288,7 @@ async function loopbackSection() {
           }
         });
         ws.send(JSON.stringify({
-          type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: [1, 2, 42], profile: { airframe: '5inch', map: 'swiss2', figure: 0, livery: null, parts: null },
+          type: 'hello', proto: PROTO, build: 'fdfpv', level: ROOM_LEVEL, name: [1, 2, 42], profile: { airframe: 'interceptor', map: 'swiss2', figure: 0, livery: null, parts: null },
         }));
       }
       const t0 = performance.now();

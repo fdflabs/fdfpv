@@ -50,7 +50,7 @@ const check = (name, ok, detail) => {
 };
 
 const settings = {
-  ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch'),
+  ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor'),
   airframeAsked: true,
   map: 'alps',
   graphics: 'low',

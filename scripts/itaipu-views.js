@@ -354,7 +354,7 @@ const fail = (m) => {
 
 /* The plane on the rockfill crest's spawn for craft-chase, as swiss2 seats
  * one on its strip. */
-const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'sky1800');
+const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'sky1800');
 const seed = [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');

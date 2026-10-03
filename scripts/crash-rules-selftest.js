@@ -40,8 +40,15 @@ import {
   STUCK_UNRESOLVED_MS, STUCK_TRAVEL_MAX, BURIED_DEPTH, BURIED_CONFIRM_MS,
   CLIP_CRASH_HOLD_MS, BOUNCE_SEPARATION, CLIP_SPAWN_GRACE_MS,
   setCraftAirframe, dirtClearance, craftVerticalOffset, craftVerticalHalf,
+  CRAFT_ARM, CRAFT_PROP_R, CRAFT_HULL_R, CRAFT_V_DOWN, CRAFT_V_UP,
 } from '../src/game/collide.js';
-import { AIRFRAMES, airframeById } from '../configs/airframes.js';
+import { AIRFRAMES } from '../configs/airframes.js';
+
+/* The collider as it loads, before any aircraft is seated: plant 0's, the
+ * five inch's, which no pilot seats since 2026-10-03 and which every check
+ * here that seats nothing is written against. Read off the module rather
+ * than typed, and put back after a check seats something else. */
+const PLANT0_DIMS = { arm: CRAFT_ARM, propR: CRAFT_PROP_R, hullR: CRAFT_HULL_R, vHalfDown: CRAFT_V_DOWN, vHalfUp: CRAFT_V_UP };
 import { FPV_FLOOR_CLEAR, FPV_NEAR_CLEAR, fpvLensClear } from '../src/render/lens.js';
 
 let passed = 0;
@@ -301,74 +308,10 @@ function suiteCrashRule() {
       upz: 1, clearance: 1.0, hits: 0, heightAt: () => 0,
     }) === true);
 
-  /*
-   * THE DIRT BAND ON A WHOOP, which is the aircraft the band was never
-   * measured for.
-   *
-   * Every check above runs with the five inch seated, and the first one here
-   * pins that the five inch did not move when the band stopped being a flat
-   * 0.22 m. The rest are the whoop's, which flies the five inch's plant.
-   *
-   * The airframe is seated and put back, because setCraftAirframe is module
-   * state and every check after this one expects the five inch.
-   */
-  check('the five inch band is still exactly the 0.22 m it always was',
-    Math.abs(dirtClearance() - 0.22) < 1e-12, dirtClearance());
-  const fiveDims = airframeById('5inch').dims;
-  setCraftAirframe(airframeById('whoop65').dims);
-  const whoopBand = dirtClearance();
-  /*
-   * IT IS THE FIVE INCH'S BAND. This asked for a band a quarter of the five
-   * inch's, because the whoop was a quarter of the aircraft. It is not any
-   * more: it flies the five inch's plant, its dims ARE the five inch's, and
-   * so is its band.
-   */
-  check('a whoop flies the five inch band, because it is a five inch',
-    Math.abs(whoopBand - 0.22) < 1e-12, whoopBand);
-  /* The low line through a ground gate, which is the line a whoop is for. */
-  check('a whoop flying the low line through a ground gate scores',
-    shouldScorePass({ x: 0, y: 0.10, z: 0.6 }, { x: 0, y: 0.10, z: -0.6 }, {
-      upz: 1, clearance: 0.10, hits: 0, heightAt: flat,
-    }) === true);
-  check('a whoop at the height a five inch band called dirt scores',
-    shouldScorePass({ x: 0, y: 0.15, z: 0.6 }, { x: 0, y: 0.15, z: -0.6 }, {
-      upz: 1, clearance: 0.15, hits: 0, heightAt: flat,
-    }) === true);
-  /* And the accidents the band exists to refuse are still refused. */
-  /* The owner's case, on the aircraft it was reported on: a whoop skipping off
-   * the floor and out through a ground gate is a pass. */
-  check('a whoop bouncing off the floor through a gate scores',
-    shouldScorePass({ x: 0, y: 0.03, z: 0.6 }, { x: 0, y: 0.018, z: -0.6 }, {
-      upz: 1, clearance: 0.018, hits: 1, heightAt: flat,
-    }) === true);
-  /* And the accidents the predicate exists for are still refused, on a band
-   * a whoop's own size rather than a five inch's. */
-  check('a whoop on its side on the floor still does not score',
-    shouldScorePass({ x: 0, y: 0.03, z: 0.6 }, { x: 0, y: 0.02, z: -0.6 }, {
-      upz: 0.1, clearance: 0.02, hits: 1, heightAt: flat,
-    }) === false);
-  check('a whoop inverted on the floor still does not score',
-    shouldScorePass({ x: 0, y: 0.05, z: 0.6 }, { x: 0, y: 0.04, z: -0.6 }, {
-      upz: -1, clearance: 0.04, hits: 1, heightAt: flat,
-    }) === false);
-  /* Just clear of the band, which is 0.22 m. */
-  check('a whoop on its side just clear of its own band still scores',
-    shouldScorePass({ x: 0, y: 0.25, z: 0.6 }, { x: 0, y: 0.25, z: -0.6 }, {
-      upz: 0.1, clearance: 0.25, hits: 0, heightAt: flat,
-    }) === true);
-  /* The turtle halo and the flip hop, on the same aircraft and for the same
-   * reason: both are the five inch's. */
-  const whoopHalo = turtleClearance();
-  check('a whoop flies the five inch halo, because it is a five inch',
-    Math.abs(whoopHalo - 0.15) < 1e-12, whoopHalo);
-  check('a whoop inverted on the floor still latches turtle',
-    shouldEnterTurtle(-0.9, 0.2, 0.2, false, 0.02, false) === true);
-  const whoopHop = turtleLift();
-  check('a whoop flies the five inch hop, because it is a five inch',
-    Math.abs(whoopHop - 0.18) < 1e-12, whoopHop);
-
-  setCraftAirframe(fiveDims);
-  check('the five inch is seated again for everything below',
+  /* Every check above runs with plant 0's collider, the module's own, and
+   * this pins that its band did not move when the band stopped being a
+   * flat 0.22 m. */
+  check('plant 0\'s band is still exactly the 0.22 m it always was',
     Math.abs(dirtClearance() - 0.22) < 1e-12, dirtClearance());
   check('and its turtle halo and hop are the flat numbers they always were',
     Math.abs(turtleClearance() - 0.15) < 1e-12 && Math.abs(turtleLift() - 0.18) < 1e-12,
@@ -512,10 +455,8 @@ function suiteClipCatch() {
    * The swept ellipsoid used to be centred on the CG with one semi-axis used
    * both ways, chosen to cover whichever extent was larger. On the five inch
    * that is nearly true, 45 mm of hull below and 38 mm of prop plane above.
-   * On the whoop it is not: 10 mm of duct below and 18 mm of canopy above, so
-   * mirroring the canopy hung 8 mm of collider under a machine with nothing
-   * there, which is what the pilot reported as a large hit box below the
-   * whoop.
+   * On the 65 mm whoop it was not, which is what the pilot reported as a
+   * large hit box below it.
    *
    * These walk a level craft onto a slab and read off where it first touches,
    * which is the reach itself, and they pin it against the SPAN THE AIRFRAME
@@ -546,7 +487,6 @@ function suiteClipCatch() {
     }
     return null;
   }
-  const fiveBefore = airframeById('5inch').dims;
   for (const frame of AIRFRAMES) {
     setCraftAirframe(frame.dims);
     const rig = reachRig();
@@ -567,29 +507,7 @@ function suiteClipCatch() {
       Math.abs(invDown - u) < 1e-3 && Math.abs(invUp - d) < 1e-3,
       `${invDown} below, ${invUp} above`);
   }
-  /*
-   * The whoop's is the one the report was about, named rather than left to
-   * the loop, because the defect was specifically that its floor reach was
-   * its CANOPY height.
-   *
-   * IT IS THE FIVE INCH'S REACH NOW, and the asymmetry the original defect
-   * was about is still the thing being asserted. The whoop flies the five
-   * inch's plant, so its down extent is that plant's 45 mm, the height it
-   * actually rests at; its UP extent is the drawn canopy through the room's
-   * factor, 61.7 mm, because nothing rests a craft on its canopy and what
-   * reads that number is a collider deciding whether the top of the aircraft
-   * met a bar. So the two are still different, still in the right order, and
-   * still each owned by the thing that has a claim on them.
-   */
-  setCraftAirframe(airframeById('whoop65').dims);
-  const whoopRig = reachRig();
-  const whoopDown = firstTouch(whoopRig, 0.30, 0.0, false);
-  const whoopUp = 1 - firstTouch(whoopRig, 0.70, 1.0, false);
-  check('a whoop rests on the plant\'s 45 mm, which is what it settles at',
-    Math.abs(whoopDown - 0.045) < 1e-3, whoopDown);
-  check('and it still does not carry its canopy height under it',
-    whoopUp > whoopDown, `${whoopUp} above, ${whoopDown} below`);
-  setCraftAirframe(fiveBefore);
+  setCraftAirframe(PLANT0_DIMS);
 
   const post = new Colliders();
   post.addPost('pole', 0, 0, 0, 2, 0.05);

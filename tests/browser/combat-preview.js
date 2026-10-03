@@ -37,8 +37,6 @@ import {
 } from '../../src/render/strikercraft.js';
 import { STRIKER_RAIL } from '../../configs/airframes.js';
 import { attackerGeometry, createAttackers } from '../../src/render/attackers.js';
-import { buildHeroCraft } from '../../src/render/herocraft.js';
-import { buildWhoopCraft } from '../../src/render/whoopcraft.js';
 import { buildSkyCraft } from '../../src/render/skycraft.js';
 import { buildCubCraft } from '../../src/render/cubcraft.js';
 import { buildGliderCraft } from '../../src/render/glidercraft.js';
@@ -56,8 +54,6 @@ import { buildDlgCraft } from '../../src/render/dlgcraft.js';
 
 /* The aircraft already shipped, by the id craft.js seats them under. */
 const SHIPPED = {
-  '5inch': buildHeroCraft,
-  whoop65: buildWhoopCraft,
   sky1800: buildSkyCraft,
   cub1400: buildCubCraft,
   radian2000: buildGliderCraft,

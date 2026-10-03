@@ -67,7 +67,7 @@ const UP = 60;
 const FREE_PASSES = 6;
 
 function seedFor(colour) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIR);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIR);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';

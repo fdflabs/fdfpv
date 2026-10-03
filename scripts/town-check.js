@@ -391,7 +391,7 @@ const NEAR = `${TOWN}.town.stream.near`;
 
 function seed(airframe) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true, map: 'itaipu', graphics: SHOTS ? 'high' : 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
@@ -480,7 +480,7 @@ const BUILDINGS = `${TOWN}.town.buildings.map((b, i) => ({
 
 async function quadChecks(nodeTown) {
   console.log('\nheadless Chromium, the Itaipu map, a five inch with crash damage on');
-  const { page, loadS } = await open('5inch');
+  const { page, loadS } = await open('interceptor');
   try {
     if (!SHOTS) {
       /* The software rasteriser, or a loaded GPU, draws a few frames a

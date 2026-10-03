@@ -53,7 +53,7 @@ function check(name, ok, detail = '') {
 
 function seed(airframe) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true,
     map: 'swiss2',
     graphics: 'low',
@@ -238,7 +238,7 @@ async function plane() {
 
 async function quad() {
   console.log('\na five inch loses its front left prop at 30 m, is set down on the grass, then loses its pack');
-  const page = await open('5inch');
+  const page = await open('interceptor');
   try {
     const thrown = await page.evaluate(`JSON.stringify((() => {
       const s = window.__craftState();

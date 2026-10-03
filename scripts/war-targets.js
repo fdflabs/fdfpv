@@ -270,7 +270,7 @@ const cm = (v) => Math.round(v * 100) / 100;
 
 async function readMap() {
   const settings = {
-    airframe: '5inch', airframeAsked: true, map: 'itaipu', graphics: 'low', graphicsAuto: false, sound: false,
+    airframe: 'interceptor', airframeAsked: true, map: 'itaipu', graphics: 'low', graphicsAuto: false, sound: false,
   };
   const seed = [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};

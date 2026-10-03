@@ -136,9 +136,9 @@ const CUB_TIP = 0.7;
 function scenarios() {
   const out = [
     { name: 'head on', a: 'cub1400', b: 'p51d1450', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 0], [-1, 0, 0], 25), deep: true },
-    { name: 'crossing 90', a: '5inch', b: 'sky1800', A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [0, 0, 1], 18), deep: true },
-    { name: 'overtaking', a: '5inch', b: '5inch', A: flight([0, Y, 0], [1, 0, 0], 35), B: flight([0, Y, 0], [1, 0, 0], 20), deep: true },
-    { name: 'turning crossing', a: '5inch', b: 'cub1400', A: turn([0, Y, 0], 30, 6), B: flight([0, Y, 0], [0, 0, 1], 20), deep: true },
+    { name: 'crossing 90', a: 'interceptor', b: 'sky1800', A: flight([0, Y, 0], [1, 0, 0], 25), B: flight([0, Y, 0], [0, 0, 1], 18), deep: true },
+    { name: 'overtaking', a: 'interceptor', b: 'interceptor', A: flight([0, Y, 0], [1, 0, 0], 35), B: flight([0, Y, 0], [1, 0, 0], 20), deep: true },
+    { name: 'turning crossing', a: 'interceptor', b: 'cub1400', A: turn([0, Y, 0], 30, 6), B: flight([0, Y, 0], [0, 0, 1], 20), deep: true },
     { name: 'formation 1 m', a: 'cub1400', b: 'cub1400', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 2 * CUB_TIP + 1], [1, 0, 0], 20), clear: true },
     { name: 'stalled mid pass', a: 'cub1400', b: 'p51d1450', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 0], [-1, 0, 0], 25), stallA: T0 - 60 },
     { name: 'reconnect mid pass', a: 'cub1400', b: 'p51d1450', A: flight([0, Y, 0], [1, 0, 0], 20), B: flight([0, Y, 0], [-1, 0, 0], 25), dropA: [T0 - 500, T0 + 900] },

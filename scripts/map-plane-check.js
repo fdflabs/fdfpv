@@ -99,7 +99,7 @@ const f1 = (x) => Number(x).toFixed(1);
  * default tune; no gamepads, so a radio left plugged into the host does
  * not drive the free camera. */
 function seed(airframe) {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
@@ -611,18 +611,18 @@ async function skyhunter() {
     say(lap2.laps.length >= 1, `the chase lap closes too: ${lap2.best != null ? (lap2.best / 1000).toFixed(2) : 'none'} s`);
     await shot(page, '5-plane-chased');
 
-    /* 6. The five inch on the same track. */
-    console.log('the five inch on the same track');
+    /* 6. The racer, the interceptor, on the same track. */
+    console.log('the interceptor on the same track');
     /* The page's seed seats the Skyhunter on every new document, so the
-     * five inch is seeded after it, and the quads' seat emptied as if the
+     * interceptor is seeded after it, and the quads' seat emptied as if the
      * pilot had flown something else since. */
-    await page.cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seed('5inch')[0] }, page.sessionId);
+    await page.cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: seed('interceptor')[0] }, page.sessionId);
     await page.evaluate("localStorage.removeItem('webfpv.share.import.v1'), true");
     await reloadOn(page, url('map=swiss2'));
     const quadListed = await seatFromMyTracks(page, id, 'swiss2', 3);
-    say(quadListed.some((t) => t.id === id) && quadListed.some((t) => t.id === narrowPub.id), 'My tracks, the five inch seated, lists it, and the five inch gate ring beside it');
+    say(quadListed.some((t) => t.id === id) && quadListed.some((t) => t.id === narrowPub.id), 'My tracks, the interceptor seated, lists it, and the quad gate ring beside it');
     const quadSeat = await page.evaluate('({ af: window.__ui.settings.airframe, key: window.__race().key, seat: (JSON.parse(localStorage.getItem("webfpv.share.import.v1") || "null") || {}).id, g: window.__ghost() })');
-    say(quadSeat.af === '5inch' && quadSeat.seat === id && quadSeat.key.endsWith(`.map.${id}`), 'seated in the five inch\'s seat');
+    say(quadSeat.af === 'interceptor' && quadSeat.seat === id && quadSeat.key.endsWith(`.map.${id}`), 'seated in the quads\' seat');
     await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
     await page.until("window.__craftState().mode === 'flight'", 60000);
     await page.until(`(() => { const c = window.__craftState(); const g = ${JSON.stringify(gates[0].centre)}; return Math.hypot(c.worldX - g[0], c.worldY - g[1], c.worldZ - g[2]) < 10; })()`, 60000).catch(() => {});

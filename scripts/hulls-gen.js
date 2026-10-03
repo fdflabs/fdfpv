@@ -62,8 +62,7 @@ const HEADER = `/*
  * PART_KINDS, MATERIALS) and its hull's bounding box, body frame, plant
  * metres (x forward, y left, z up, origin at the CG), the drawn one where
  * configs/hullfit.js fits it, and folds: true on a prop the referee
- * leaves out while its motor is stopped. The whoop's are the scaled table
- * the shell flies it with (sim_set_part_table 1).
+ * leaves out while its motor is stopped.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -82,10 +81,6 @@ const HEADER = `/*
  */
 `;
 
-/* The whoop is the five inch's plant with the real whoop's parts scaled
- * to the world it flies in (src/main.js syncPartTable). */
-const PART_TABLE_FOR = { whoop65: 1 };
-
 const must = (code, what) => {
   if (code !== SIM_OK) {
     throw new Error(`${what} returned ${code}`);
@@ -100,7 +95,6 @@ must(sim.init(config), 'sim_init');
 const lines = [HEADER, 'export const HULLS = {'];
 for (const af of AIRFRAMES) {
   must(sim.e.sim_set_airframe(af.simId), `sim_set_airframe(${af.simId})`);
-  must(sim.e.sim_set_part_table(PART_TABLE_FOR[af.id] ?? 0), 'sim_set_part_table');
   must(sim.reset(), 'sim_reset');
   const table = readPartTable(sim);
   if (!table.length) {

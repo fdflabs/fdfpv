@@ -742,7 +742,7 @@ export function buildGliderCraft(opts = {}) {
   const antenna = cel({ color: 0x1a241c, rim: 0.22 });
   const ink = 0x0c120e;
 
-  /* The measurement box, hidden, on herocraft.js's contract with check 15. */
+  /* The measurement box, hidden, on the contract with verify's check 15 (tests/lib/checks.js). */
   if (opts.measure) {
     const d = GLIDER_DIMS;
     const body = new THREE.Mesh(new THREE.BoxGeometry(d.span, d.vHalfUp + d.vHalfDown, d.length), white);

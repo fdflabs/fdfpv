@@ -183,7 +183,7 @@ async function main() {
      * the shell starts on, so the seed carries the tune, the pack, the rates
      * and the camera the answer would have carried. */
     const seated = seatAirframe(
-      { airframe: '5inch', rates: airframeById('5inch').rates },
+      { airframe: 'interceptor', rates: airframeById('interceptor').rates },
       String(opts.airframe),
     );
     seed.push(`try {

@@ -63,7 +63,7 @@ const PACINGS = [
 
 function seed() {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, AIRFRAME),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, AIRFRAME),
     airframeAsked: true,
     map: 'swiss2',
     graphics: 'low',

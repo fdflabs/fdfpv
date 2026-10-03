@@ -81,7 +81,7 @@ import {
 } from '../tests/lib/buildkeys.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
-import { airframeById } from '../configs/airframes.js';
+import { AIRFRAMES, airframeById, isFloatVersion } from '../configs/airframes.js';
 import { DEFAULT_WING_HOTBAR } from '../src/builder/course.js';
 import { str } from '../src/strings/index.js';
 
@@ -119,7 +119,7 @@ const f1 = (x) => Number(x).toFixed(1);
  * `extra` run after it; no gamepads, so a radio left plugged into the host
  * does not drive the builder's camera. */
 function seed(airframe, extra = '') {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
@@ -436,13 +436,15 @@ async function judgeLap(page, lap, what) {
 }
 
 async function quad() {
-  console.log('the five inch: My tracks on the Swiss valley');
-  const page = await openPage({ root, width: 1280, height: 720, seed: seed('5inch') });
+  console.log('the interceptor: My tracks on the Swiss valley');
+  const page = await openPage({ root, width: 1280, height: 720, seed: seed('interceptor') });
   try {
     await shellUp(page);
     /* 1. The card, the picker, My tracks. */
     const picker = await trackModeCard(page);
-    say(picker.filter === 'all' && picker.ids.length === 12 && picker.current === '5inch',
+    /* Every card: an aircraft but a float version, which is its land
+     * plane's toggle. It was typed, 12, and went stale as aircraft came. */
+    say(picker.filter === 'all' && picker.ids.length === AIRFRAMES.filter((a) => !isFloatVersion(a.id)).length && picker.current === 'interceptor',
       `the Track mode card opens the picker on every aircraft (${picker.ids.length}), centred on the ${picker.current}`);
     const empty = await actions(page);
     say(empty.join() === 'newtrack,leaderboard,back' && (await mine(page)).length === 0, `My tracks opens, empty: ${empty.join(', ')}`);
@@ -579,7 +581,8 @@ async function plane() {
  * What an older build left in a browser: the race field seated (map
  * 'custom'), a whoop in its room, a field track in the library and in the
  * autosave, a RaceGOW room in the whoop's share seat, and a track built in a
- * world before the creative builder.
+ * world before the creative builder. The whoop itself is gone since
+ * 2026-10-03, so the pilot it seated boots on the interceptor.
  */
 async function old() {
   console.log('a browser from before: the field, the room, and a track built in a world');
@@ -595,16 +598,17 @@ async function old() {
     localStorage.setItem('webfpv.share.import.micro.v1', ${JSON.stringify(JSON.stringify({ id: room.id, name: room.name, document: room }))});
     const s2 = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}));
     s2.map = window.__oldMap || 'custom';
+    s2.airframe = 'whoop65';
     localStorage.setItem(${JSON.stringify(SETTINGS_KEY)}, JSON.stringify(s2));`;
   for (const [was, url] of [['custom', '/index.html'], ['field', '/index.html'], ['custom', '/index.html?map=custom']]) {
     const page = await openPage({
-      root, width: 1280, height: 720, url, seed: [`window.__oldMap = ${JSON.stringify(was)};`, ...seed('whoop65', leftovers)],
+      root, width: 1280, height: 720, url, seed: [`window.__oldMap = ${JSON.stringify(was)};`, ...seed('interceptor', leftovers)],
     });
     try {
       await shellUp(page);
       const s = await page.evaluate('({ map: window.__ui.settings.map, world: window.__map().id, craft: window.__ui.settings.airframe })');
-      say(s.map === 'track' && s.world === 'swiss2' && s.craft === 'whoop65',
-        `settings on ${was} (${url}) boot into the Track seat, the whoop seated, the Swiss valley standing: ${JSON.stringify(s)}`);
+      say(s.map === 'track' && s.world === 'swiss2' && s.craft === 'interceptor',
+        `settings on ${was} (${url}) boot into the Track seat, the whoop's pilot on the interceptor, the Swiss valley standing: ${JSON.stringify(s)}`);
       if (url === '/index.html' && was === 'custom') {
         await trackModeCard(page);
         const listed = await mine(page);

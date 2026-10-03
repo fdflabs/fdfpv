@@ -322,7 +322,7 @@ try {
   const fast = await page.evaluate(LOADOUT_NOW);
   check('the interceptor goes to war with its proximity payload, the standard warhead, whatever is equipped',
     fast.mine && fast.mine.warhead === 'standard' && fast.mine.rack === 5 && fast.sent.includes('standard'), JSON.stringify(fast));
-  await page.evaluate("(() => { const s = window.__ui.settings; s.airframe = '5inch'; s.combat = {}; return true; })()");
+  await page.evaluate("(() => { const s = window.__ui.settings; s.airframe = 'interceptor'; s.combat = {}; return true; })()");
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
   const before = await page.evaluate("JSON.stringify(window.__campaign.state())");

@@ -36,7 +36,7 @@ import { airframeById } from '../configs/airframes.js';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const airframe = process.argv[2] ?? 'cub1400f';
 
-const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
 seated.map = 'alps';
 seated.graphics = 'low';
 seated.wingView = 'chase';

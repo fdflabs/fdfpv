@@ -53,13 +53,14 @@
 import { AIRFRAMES, airframeById, landPlaneOf } from '../../configs/airframes.js';
 import { liveryKey, normaliseEntry, paintable } from '../../configs/liveries.js';
 import { choosesPower, powerChoice } from '../../configs/power.js';
-import { STOCK_ONLY, hasMotors } from '../../configs/motors.js';
+import { hasMotors } from '../../configs/motors.js';
 import { normalizeEntry, setupFor, tuningFor } from '../../configs/tuning.js';
 import { normalisePlane } from '../../configs/hangar-parts.js';
 import { cleanName } from '../../configs/paint.js';
 import { combatChoice } from '../../configs/combat.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { MAX_BUILDS } from '../../tracks-api/limits.js';
+import { currentBuild } from '../share/progressmerge.js';
 
 export const BUILDS_KEY = 'webfpv.builds.v1';
 /* Enough for three of every plane with room over; a list this long is
@@ -73,7 +74,7 @@ const isRecord = (v) => Boolean(v) && typeof v === 'object' && !Array.isArray(v)
  * (configs/liveries.js paintable), and a quad for its motors
  * (configs/motors.js). */
 export function customisable(id) {
-  return paintable(id) || hasMotors(id) || Object.hasOwn(STOCK_ONLY, id);
+  return paintable(id) || hasMotors(id);
 }
 
 /* An airframe a build can be made on: one the hangar opens. */
@@ -246,7 +247,8 @@ export function checkBuildName(name) {
   return { name: clean };
 }
 
-function normaliseBuild(b) {
+function normaliseBuild(raw) {
+  const b = currentBuild(raw);
   if (!isRecord(b) || typeof b.id !== 'string' || !/^[a-z0-9]{1,40}$/.test(b.id) || !buildable(b.airframe)) {
     return null;
   }
@@ -260,8 +262,10 @@ function normaliseBuild(b) {
   };
 }
 
-/* The stored list, made safe: a build on an airframe this version does
- * not have, or a name the filter refuses, is dropped, one id once. */
+/* The stored list, made safe: a build on a retired airframe is moved to
+ * its successor at stock (progressmerge.js currentBuild), one on an
+ * airframe this version does not know, or a name the filter refuses, is
+ * dropped, one id once. */
 export function normaliseBuilds(raw) {
   const list = isRecord(raw) && Array.isArray(raw.builds) ? raw.builds : [];
   const out = [];

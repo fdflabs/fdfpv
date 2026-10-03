@@ -206,7 +206,7 @@ const f1 = (v) => (v == null ? 'n/a' : Number(v).toFixed(1));
 
 function seed(airframe) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true, map: 'itaipu', graphics: 'low', graphicsAuto: false, crashDamage: true, sound: false,
   };
   return [`try {
@@ -1451,7 +1451,7 @@ async function flyAt(page, t, v) {
 /* ------------------------------------------------------------ the run */
 
 async function pageSweeps(out) {
-  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed('5inch') });
+  const page = await openPage({ root, width: 960, height: 540, url: '/index.html?map=itaipu', seed: seed('interceptor') });
   try {
     await page.until('window.__shellReady && window.__map && window.__map().ready && window.__map().id === "itaipu"', 300000);
     await page.evaluate(HELPERS);

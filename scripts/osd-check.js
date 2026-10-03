@@ -83,7 +83,7 @@ function seed(settings, extra = []) {
 
 function seatFor(craft, map) {
   return {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, craft),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, craft),
     airframeAsked: true,
     map,
     graphics: 'low',
@@ -302,11 +302,11 @@ async function quad() {
   /* Sound on, so the music dock and its song title are on screen, top
    * left: the title is the type's yardstick and the dock a chip the
    * readouts must clear. The plane flies with it off. */
-  const settings = { ...seatFor('5inch', 'alps'), sound: true };
+  const settings = { ...seatFor('interceptor', 'alps'), sound: true };
   const page = await open(settings, 'alps');
   try {
     await flyAndWait(page, 'alps');
-    const cells = airframeById('5inch').cells;
+    const cells = airframeById('interceptor').cells;
     const rest = settings.packVoltage * cells;
     let o = await osd(page);
     await shot(page, 'quad-1-pad');
@@ -629,7 +629,7 @@ async function race() {
     width: 1280,
     height: 720,
     url: '/index.html',
-    seed: seed({ ...seatFor('5inch', 'track'), fpsCap: 0 },
+    seed: seed({ ...seatFor('interceptor', 'track'), fpsCap: 0 },
       [`try { localStorage.setItem(${JSON.stringify(LIBRARY_KEY)}, ${JSON.stringify(JSON.stringify({ [track.id]: track }))}); } catch (e) { /* refused */ }`]),
   });
   try {

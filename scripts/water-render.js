@@ -63,7 +63,7 @@ const LAKE_Y = -1.5;
 /* The band: the drawn surface within this of the plant's, metres. */
 const MATCH = 0.01;
 
-const seated = seatAirframe({ airframe: '5inch', rates: { type: 'ACTUAL' } }, 'timber1500f');
+const seated = seatAirframe({ airframe: 'interceptor', rates: { type: 'ACTUAL' } }, 'timber1500f');
 seated.map = map;
 seated.graphics = flag('graphics', 'high');
 seated.graphicsAuto = false;

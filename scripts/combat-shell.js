@@ -49,7 +49,7 @@ const seven = airframeById('7inch');
 const wide = seven.combat.payloads.find((p) => p.id === 'wide');
 const pack2 = seven.combat.accessories.find((a) => a.id === 'pack2');
 
-const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '7inch');
+const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, '7inch');
 seated.graphics = 'low';
 seated.combat = { '7inch': { payload: 'wide', accessories: ['pack2'] } };
 
@@ -160,7 +160,7 @@ try {
 
 /* 5. The Striker, on its turbojet, then on its piston engine. */
 {
-  const s5 = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'striker2500');
+  const s5 = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'striker2500');
   s5.graphics = 'low';
   s5.combat = { striker2500: { payload: 'standard', accessories: [], propulsion: 'jet' } };
   const jet = striker.combat.propulsion.find((x) => x.id === 'jet');

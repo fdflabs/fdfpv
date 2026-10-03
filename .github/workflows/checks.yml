@@ -148,6 +148,7 @@ jobs:
       # (src/share/flighttime.js); its merge is in test:tracks.
       - run: npm run flighttime:selftest
       - run: npm run retired:selftest
+      - run: npm run retired:aircraft
       - run: npm run campaign:selftest
       - run: npm run parts:check
       - run: npm run tuning:check

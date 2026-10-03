@@ -164,8 +164,8 @@ const LIBRARY = 'webfpv.trackbuilder.library.v1';
  * here. Angle mode, so the pilot in the page that flies an air start asks
  * for an attitude; `airframe` and `tune` seat another aircraft.
  */
-function seedFor(graphics, airframe = '5inch', tune = null) {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+function seedFor(graphics, airframe = 'interceptor', tune = null) {
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   if (tune) {
     seated.tune = tune;
   }
@@ -2040,7 +2040,7 @@ async function casualStage(craft) {
     say(Boolean(mine), `New track offers the ${af.short} a casual sky course: ${offered.filter((r) => /^casualtrack:/.test(r.action)).map((r) => r.label).join('; ')}`);
     const quadRows = await page.evaluate(`(() => {
       const was = window.__ui.settings.airframe;
-      window.__ui.settings.airframe = '5inch';
+      window.__ui.settings.airframe = 'interceptor';
       const got = window.__ui.items().filter((r) => /^casualtrack:/.test(r.action || '')).length;
       window.__ui.settings.airframe = was;
       return got;

@@ -33,7 +33,7 @@
  * Built in the model frame every builder uses: x right, y up, z aft, front
  * at -z, metres, the bare CG at the origin. Positions written in the
  * plant's body frame come through src/render/frame.js bodyPosToModel.
- * Motor order is Betaflight's RR FR RL FL, as in src/render/herocraft.js.
+ * Motor order is Betaflight's RR FR RL FL, as craftpose.js PROP_SPIN spins them.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -55,7 +55,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { celMaterial } from './celmat.js';
 import { WORLD_SCALE, bodyPosToModel } from './frame.js';
-import { PROP_SPIN } from './herocraft.js';
+import { PROP_SPIN } from './craftpose.js';
 import { paintRegions } from './livery.js';
 import { paintHook } from './combatpaint.js';
 import { thermalKind } from './thermal.js';

@@ -102,9 +102,8 @@ export function craftLimits(af) {
     span,
     topSpeed: af.topSpeed,
     aLat: Math.sqrt(Math.max(0, thrust * thrust - weight * weight)),
-    /* Every quad flies the five inch's plant, the whoop included
-     * (configs/airframes.js), so every quad's tightest turn is the five
-     * inch's. The whoop's own class figure was a RaceGOW room's. */
+    /* Every quad is held to the field's tightest radius, the figure the
+     * builder's own curvature warning uses (src/trackbuilder/elements.js). */
     rMin: tuningFor('full').minCurveRadius,
     closeMin: tuningFor('full').minCurveRadius,
     fixedWing: false,

@@ -319,7 +319,7 @@ function warScenario() {
     socks[i] = so;
     apply(r.open(so, at));
     apply(r.message(so, JSON.stringify({
-      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: { airframe: '5inch', map: 'itaipu', figure: 1, livery: null, parts: null },
+      type: 'hello', proto: PROTO, build: 't', name: [i, i, 20 + i], profile: { airframe: 'interceptor', map: 'itaipu', figure: 1, livery: null, parts: null },
     }), at, so.address, () => (tokens += 1).toString(16).padStart(32, '0')));
     return so;
   };

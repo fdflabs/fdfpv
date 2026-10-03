@@ -40,7 +40,7 @@ import { simPosToThree, simQuatToThree } from '../../src/render/frame.js';
 
 const params = new URLSearchParams(window.location.search);
 const mapId = params.get('map') ?? 'alps';
-const airframe = params.get('craft') ?? '5inch';
+const airframe = params.get('craft') ?? 'interceptor';
 const onWater = params.get('water') === '1';
 
 const canvas = document.getElementById('view');

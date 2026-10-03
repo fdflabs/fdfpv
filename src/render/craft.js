@@ -31,8 +31,6 @@
  */
 
 import { CRAFT_ARM, CRAFT_PROP_R, CRAFT_HULL_R } from '../game/collide.js';
-import { buildHeroCraft } from './herocraft.js';
-import { buildWhoopCraft } from './whoopcraft.js';
 import { buildSkyCraft } from './skycraft.js';
 import { buildCubCraft } from './cubcraft.js';
 import { buildGliderCraft } from './glidercraft.js';
@@ -50,24 +48,24 @@ import { buildZagiCraft } from './zagicraft.js';
 import { buildCombatDrone } from './combatcraft.js';
 import { buildStrikerCraft, buildStrikerLauncher } from './strikercraft.js';
 import { bodyPosToModel } from './frame.js';
-import { airframeById, currentAirframeId } from '../../configs/airframes.js';
+import { AIRFRAMES, DEFAULT_AIRFRAME, airframeById, currentAirframeId } from '../../configs/airframes.js';
 import { combatChoice, combatFor, propulsionOf } from '../../configs/combat.js';
 import { dressLivery } from './livery.js';
 import { dressParts } from './partsfit.js';
 
 /*
- * ONE BUILDER PER SILHOUETTE, NOT ONE WITH FLAGS. A five inch is four arms
- * and four open discs and what you see is the X; a whoop is a moulded tub
- * with four holes in it; a wing is one swept surface with a prop behind
- * it. They do not share a silhouette, so they do not share a builder. See
- * src/render/whoopcraft.js and src/render/bramorcraft.js.
+ * ONE BUILDER PER SILHOUETTE, NOT ONE WITH FLAGS. A quad is four arms and
+ * four open discs and what you see is the X; a wing is one swept surface
+ * with a prop behind it. They do not share a silhouette, so they do not
+ * share a builder. See src/render/combatcraft.js and src/render/bramorcraft.js.
+ * Every aircraft in configs/airframes.js has a row (asserted below), so
+ * there is no fallback model.
  *
  * Exported so the ghost and the settings studio build the same machine the
  * shell flies, from the one table, rather than each keeping its own idea of
  * which id draws what.
  */
 const BUILDERS = {
-  whoop65: buildWhoopCraft,
   sky1800: buildSkyCraft,
   cub1400: buildCubCraft,
   radian2000: buildGliderCraft,
@@ -124,8 +122,14 @@ function buildFlownStriker(opts) {
   return craft;
 }
 
+for (const af of AIRFRAMES) {
+  if (!BUILDERS[af.id]) {
+    throw new Error(`craft: ${af.id} has no builder`);
+  }
+}
+
 export function craftBuilderFor(airframeId) {
-  return BUILDERS[airframeById(currentAirframeId(airframeId)).id] ?? buildHeroCraft;
+  return BUILDERS[airframeById(currentAirframeId(airframeId)).id];
 }
 
 /*
@@ -161,31 +165,15 @@ export function craftDims() {
   };
 }
 
-/*
- * CRAFT_DIMS stays, as the five inch's numbers, because tests/lib/checks.js
- * imports it by that name and tests/ is not this side's to edit. It is
- * correct for the aircraft the checks fly, which is the default one.
- */
-export const CRAFT_DIMS = {
-  bodyLength: 0.155,
-  bodyWidth: 0.088,
-  bodyHeight: 0.034,
-  motorArm: 0.110 / Math.SQRT2,
-  propRadius: 0.0635,
-  hullRadius: 0.0635,
-  motorDiagonal: 0.220,
-  sweepRadius: 0.1735,
-};
-
 /* Which aircraft buildCraft last built. The shell asks for a rebuild by
  * name; this is what craftDims reports against in between. */
-let currentCraftId = '5inch';
+let currentCraftId = DEFAULT_AIRFRAME;
 
 /* `combat` is a combat quad's resolved { payload, accessories }, which every
  * other builder ignores. With none, the pilot's own seated choice
  * (configs/combat.js combatFor), because the shell's swap passes none and
  * the flown model must be the loadout the plant flies. */
-export function buildCraft(airframeId = '5inch', combat = undefined) {
+export function buildCraft(airframeId = DEFAULT_AIRFRAME, combat = undefined) {
   /*
    * The airframe is MODELLED at its true size and DRAWN at 1/WORLD_SCALE of
    * it, because the world it flies in is WORLD_SCALE times its own scale

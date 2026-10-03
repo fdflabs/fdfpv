@@ -90,7 +90,7 @@ const HEARD_RMS = 0.01;
 const ARGS = ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'];
 
 function seedFor(id) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';

@@ -281,9 +281,9 @@ const SCENARIOS = [
     id: side === 'inside' ? `quad-gate-${v}` : `quad-gate-sleeve-${v}`,
     item: 6,
     what: side === 'inside'
-      ? `a five inch clipping a gate post from inside the opening at ${v} m/s with an arm`
-      : `a five inch passing outside a gate post at ${v} m/s, into the sleeve panel's face`,
-    airframe: '5inch',
+      ? `the interceptor clipping a gate post from inside the opening at ${v} m/s with an arm`
+      : `the interceptor passing outside a gate post at ${v} m/s, into the sleeve panel's face`,
+    airframe: 'interceptor',
     map: 'swiss2',
     standGate: true,
     chase: 'script',
@@ -318,8 +318,8 @@ const SCENARIOS = [
   {
     id: 'quad-wall',
     item: 6,
-    what: 'a five inch into the face of a wall at 25 m/s',
-    airframe: '5inch',
+    what: 'the interceptor into the face of a wall at 25 m/s',
+    airframe: 'interceptor',
     map: 'alps',
     chase: 'script',
     plan: `
@@ -406,7 +406,7 @@ const H = 720;
 
 function seeds(airframe, map) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true,
     map,
     graphics: process.env.SIM_GPU === '1' ? 'high' : 'low',

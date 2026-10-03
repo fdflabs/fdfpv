@@ -576,7 +576,7 @@ console.log('an air start\'s speed');
 {
   const wings = AIRFRAMES.filter((af) => af.fixedWing);
   check('every fixed wing names its stall', wings.every((af) => af.stall > 0), wings.filter((af) => !(af.stall > 0)).map((af) => af.id).join());
-  check('a quad starts at rest', airStartSpeed(airframeById('5inch')) === 0 && airStartSpeed(airframeById('whoop65')) === 0);
+  check('a quad starts at rest', AIRFRAMES.filter((af) => !af.fixedWing).every((af) => airStartSpeed(af) === 0));
   const bramor = airframeById('bramor2300');
   check('the margin is the Bramor catapult\'s: its air start is its release speed',
     Math.abs(airStartSpeed(bramor) - BRAMOR_CATAPULT.speed) / BRAMOR_CATAPULT.speed < 0.01, `${airStartSpeed(bramor)} vs ${BRAMOR_CATAPULT.speed}`);
@@ -586,13 +586,13 @@ console.log('an air start\'s speed');
 /* ------------------------------------------------------------------ */
 console.log('the racing line');
 {
-  const quad = craftLimits(airframeById('5inch'));
+  const quad = craftLimits(airframeById('interceptor'));
   const sky = craftLimits(airframeById('sky1800'));
   check('every aircraft names a top speed, and every quad its thrust to weight',
     AIRFRAMES.every((af) => af.topSpeed > 0 && (af.fixedWing || af.thrustToWeight > 1)),
     AIRFRAMES.filter((af) => !(af.topSpeed > 0) || (!af.fixedWing && !(af.thrustToWeight > 1))).map((af) => af.id).join());
-  check('the five inch: span 0.347 m, sideways 9.7 g of thrust less its 1.62 g of weight',
-    near(quad.span, 0.347, 1e-3) && near(quad.aLat, Math.sqrt(9.7 ** 2 - 1.62 ** 2) * 9.80665, 1e-9), `${quad.span} ${quad.aLat}`);
+  check('the interceptor: span 0.490 m, sideways 8.33 g of thrust less its 1.0 g of weight',
+    near(quad.span, 0.490, 1e-3) && near(quad.aLat, Math.sqrt(8.33 ** 2 - 1.0 ** 2) * 9.80665, 1e-9), `${quad.span} ${quad.aLat}`);
   check('a Skyhunter at 60 degrees of bank stalls at sqrt 2 times 9.2 m/s: no tighter than 9.97 m',
     near(sky.rMin, (2 * 9.2 * 9.2) / (9.80665 * Math.tan(60 * DEG)), 1e-9) && near(sky.rMin, 9.97, 0.01), `${sky.rMin}`);
   for (const af of AIRFRAMES) {
@@ -635,13 +635,13 @@ console.log('the racing line');
   check('and the speed it implies is sqrt(aLat r)', ln.samples.every((p) => near(p.v, Math.min(quad.topSpeed, Math.sqrt(quad.aLat * p.r)), 1e-9)),
     `${ln.samples[0].v.toFixed(2)} m/s at ${ln.samples[0].r.toFixed(2)} m`);
   const vMean = ln.samples.reduce((a, p) => a + p.v, 0) / ln.samples.length;
-  check('about 31 m/s for the five inch, sqrt(93.8 x 10)', near(vMean, Math.sqrt(quad.aLat * 10), 2), vMean.toFixed(2));
+  check('about 28 m/s for the interceptor, sqrt(81.1 x 10)', near(vMean, Math.sqrt(quad.aLat * 10), 2), vMean.toFixed(2));
   check('capped at top speed on a wide circle', racingLine(ring(200), quad, flat).samples.every((p) => p.v === quad.topSpeed));
-  check('the five inch can fly a 10 m circle', ln.samples.every((p) => p.ok));
+  check('the interceptor can fly a 10 m circle', ln.samples.every((p) => p.ok));
   const tight = racingLine(ring(6), sky, flat);
   check('a Skyhunter cannot fly a 6 m circle: all of it is marked', tight.samples.every((p) => !p.ok));
   check('it can fly a 30 m one', racingLine(ring(30), sky, flat).samples.every((p) => p.ok));
-  check('speedAt caps and grows', speedAt(quad, 1e9) === 54.1 && near(speedAt(sky, 10), Math.sqrt(sky.aLat * 10), 1e-12));
+  check('speedAt caps and grows', speedAt(quad, 1e9) === 55.9 && near(speedAt(sky, 10), Math.sqrt(sky.aLat * 10), 1e-12));
 
   /* One gate: out of it and back into it. */
   const solo = newCourse('swiss2', 'Solo');
@@ -663,7 +663,7 @@ console.log('the racing line');
 /* ------------------------------------------------------------------ */
 console.log('geometry warnings');
 {
-  const quad = craftLimits(airframeById('5inch'));
+  const quad = craftLimits(airframeById('interceptor'));
   const sky = craftLimits(airframeById('sky1800'));
   /* Flat ground at 0 and one building, 10 by 20 by 10 m, at the origin. */
   const house = { x0: -5, x1: 5, y0: 0, y1: 20, z0: -5, z1: 5 };
@@ -681,7 +681,7 @@ console.log('geometry warnings');
   const codes = (gates, c) => lineWarnings(gates, racingLine(gates, c, world.heightAt), c, world);
   const has = (list, code, gate) => list.some((w) => w.code === code && (gate == null || w.gate === gate));
   /* A lap round a triangle, each gate flown along the lap. None of the
-   * rules fire on it for the five inch. */
+   * rules fire on it for the interceptor. */
   const clean = [[40, 10, 0, 0], [0, 10, -70, Math.PI / 2], [-40, 10, 0, Math.PI]];
   const ok = codes(course(clean), quad);
   check('a clean lap has no warnings', ok.length === 0, JSON.stringify(ok.map((w) => w.code)));
@@ -701,12 +701,12 @@ console.log('geometry warnings');
   check('and over its roof it does not', !has(over, 'clips'), JSON.stringify(over.map((w) => w.code)));
 
   const close = codes(course([[40, 10, 0, 0], [40, 10, -2, 0], [-40, 25, -30, Math.PI]]), quad);
-  check('close: two gates 2 m apart, under the five inch\'s 2.5 m', has(close, 'close', 0), JSON.stringify(close.map((w) => w.code)));
+  check('close: two gates 2 m apart, under a quad\'s 2.5 m', has(close, 'close', 0), JSON.stringify(close.map((w) => w.code)));
   check('and at 60 m they are not', !has(ok, 'close'));
 
   const wide = codes(course(clean), sky);
   check('small: a 1.75 m gate for a 1.8 m Skyhunter, all three', [0, 1, 2].every((i) => has(wide, 'small', i)));
-  check('and not for the five inch', !has(ok, 'small'));
+  check('and not for the interceptor', !has(ok, 'small'));
 
   const turned = codes(course([clean[0], [0, 10, -70, -Math.PI / 2], clean[2]]), quad);
   check('backwards: the middle gate turned round', has(turned, 'backwards', 1), JSON.stringify(turned.map((w) => w.code)));
@@ -1000,13 +1000,13 @@ console.log('sky hoops');
   const dq = newCourse('swiss2', 'Quad hoops');
   addGate(dq, 'hoop175', { x: 0, y: 100, z: 0 }, up);
   check('the 1.75 m hoop takes a quad and no plane',
-    misfitGate(raceGatesOf(dq), craftLimits(airframeById('5inch'))) < 0 && wings.every((af) => misfitGate(raceGatesOf(dq), craftLimits(af)) === 0));
+    misfitGate(raceGatesOf(dq), craftLimits(airframeById('interceptor'))) < 0 && wings.every((af) => misfitGate(raceGatesOf(dq), craftLimits(af)) === 0));
   check('and the board\'s rule agrees: no plane may race it', planesFor(toPlain(dq)).length === 0);
   const close = newCourse('swiss2', 'Close');
   addGate(close, 'hoop20', { x: 0, y: 100, z: 0 }, up);
   addGate(close, 'hoop20', { x: 0, y: 100, z: -100 }, up);
   check('two plane hoops 100 m apart are close for a plane: it wants 150 m', warn(raceGatesOf(close), 'cub1400').some((w) => w.code === 'close' && w.limit === 150));
-  check('and not for a quad', !warn(raceGatesOf(close), '5inch').some((w) => w.code === 'close'));
+  check('and not for a quad', !warn(raceGatesOf(close), 'interceptor').some((w) => w.code === 'close'));
   const far = newCourse('swiss2', 'Far');
   addGate(far, 'hoop20', { x: 0, y: 100, z: 0 }, up);
   addGate(far, 'hoop20', { x: 0, y: 100, z: -400 }, up);

@@ -74,7 +74,7 @@ async function server(path) {
 }
 
 function seed() {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');

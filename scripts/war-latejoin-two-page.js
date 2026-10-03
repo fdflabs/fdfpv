@@ -98,7 +98,7 @@ const TAP_SEED = `(() => {
 })();`;
 
 function seedFor(colour, consent = true) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '7inch');
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, '7inch');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
   s.graphics = 'low';

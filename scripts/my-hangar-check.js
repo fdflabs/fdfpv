@@ -82,7 +82,7 @@ const T = 'timber1500';
 /* The pilot's customisation from before My Hangar. */
 const OWN = { livery: { scheme: 'super' }, parts: { prop: 'stock', addons: ['lights'], damage: null } };
 
-const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, T);
+const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, T);
 s.map = 'alps';
 s.graphics = 'low';
 s.flightMode = 'angle';

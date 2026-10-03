@@ -55,7 +55,7 @@ function check(name, ok, detail = '') {
 }
 
 function seedFor(id, colour) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, id);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, id);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';

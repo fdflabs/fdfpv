@@ -62,7 +62,7 @@ function check(name, ok, detail = '') {
 }
 
 function seedFor(colour) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
   s.graphics = 'high';
@@ -72,7 +72,7 @@ function seedFor(colour) {
   s.airframeAsked = true;
   s.crashDamage = true;
   s.warConsent = true;
-  s.livery = { '5inch': { regions: { frame: colour } } };
+  s.livery = { 'interceptor': { regions: { frame: colour } } };
   s.parts = {};
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};

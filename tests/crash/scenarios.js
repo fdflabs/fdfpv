@@ -57,7 +57,7 @@
  */
 
 import { GROUND_MU, GROUND_E } from '../../src/game/collide.js';
-import { MICRO_SCALE, BRAMOR_CATAPULT } from '../../configs/airframes.js';
+import { BRAMOR_CATAPULT } from '../../configs/airframes.js';
 import { SURFACE } from '../../configs/parts.js';
 
 const DEG = Math.PI / 180;
@@ -71,11 +71,14 @@ const clamp = (x, lo = -1, hi = 1) => (x < lo ? lo : (x > hi ? hi : x));
  * testing the pilot: Vs the power off stall, Vc the cruise, Vt the top.
  */
 export const CRAFT = {
-  '5inch': { shell: '5inch', sim: 0, quad: true, volts: 4.2 },
-  /* The shell's whoop is the five inch's plant drawn MICRO_SCALE times
-   * life size (configs/airframes.js). Its scenarios are flown at a real
-   * whoop's speeds times that factor, and read back divided by it. */
-  whoop: { shell: 'whoop65', sim: 0, quad: true, volts: 4.2, scale: MICRO_SCALE, partTable: 1 },
+  /* Plant 0, the five inch's, which no pilot seats since 2026-10-03 and
+   * which stays in the module as the reference stage 1 verification flies.
+   * No airframe row names it any more, so its collider is written here:
+   * plant.c's arm and hull for it, the figures its airframe row held. */
+  plant0: {
+    shell: null, sim: 0, quad: true, volts: 4.2,
+    dims: { arm: 0.110, propR: 0.0635, hullR: 0.0635, vHalfDown: 0.045, vHalfUp: 0.038, bodyLength: 0.155, bodyWidth: 0.088, bodyHeight: 0.034 },
+  },
   sky: { shell: 'sky1800', sim: 3, Vs: 9.2, Vc: 14.9, Vt: 23.5, cruise: 0.65 },
   cub: { shell: 'cub1400', sim: 4, Vs: 8.1, Vc: 13.5, Vt: 18.4, cruise: 0.75, wheels: { z: 0.1463, pitchDeg: 11.0 } },
   radian: { shell: 'radian2000', sim: 6, Vs: 6.5, Vc: 14.2, Vt: 18.0, cruise: 0.65 },
@@ -265,7 +268,7 @@ function onWater(h, c) {
 
 function gateClip(v) {
   return {
-    craft: '5inch',
+    craft: 'plant0',
     family: 'gate clip',
     map: 'alps',
     seconds: 14,
@@ -298,7 +301,7 @@ export const SCENARIOS = [
   {
     id: 'q5-wall',
     title: 'Five inch into a masonry wall at full speed',
-    craft: '5inch',
+    craft: 'plant0',
     family: 'wall',
     map: 'alps',
     seconds: 16,
@@ -324,7 +327,7 @@ export const SCENARIOS = [
   {
     id: 'q5-prop-strike',
     title: 'Five inch lands hard, 5 m/s down and 25 deg of bank, props into the grass',
-    craft: '5inch',
+    craft: 'plant0',
     family: 'prop strike',
     map: 'alps',
     seconds: 5,
@@ -347,7 +350,7 @@ export const SCENARIOS = [
   {
     id: 'q5-slope',
     title: 'Five inch flies level at 12 m/s into a 30 deg grass slope and tumbles down it',
-    craft: '5inch',
+    craft: 'plant0',
     family: 'slope tumble',
     map: 'alps',
     seconds: 16,
@@ -375,7 +378,7 @@ export const SCENARIOS = [
   {
     id: 'q5-branch',
     title: 'Five inch clips a 3 cm branch with its left arms at 10 m/s',
-    craft: '5inch',
+    craft: 'plant0',
     family: 'branch',
     map: 'alps',
     seconds: 10,
@@ -403,7 +406,7 @@ export const SCENARIOS = [
   {
     id: 'q5-inverted',
     title: 'Five inch comes down upside down onto grass at 3 m/s, then turtle',
-    craft: '5inch',
+    craft: 'plant0',
     family: 'inverted landing',
     map: 'alps',
     seconds: 8,
@@ -438,7 +441,7 @@ export const SCENARIOS = [
   {
     id: 'q5-prop-loss',
     title: 'Five inch loses a prop at 15 m/s, 10 m up',
-    craft: '5inch',
+    craft: 'plant0',
     family: 'prop loss',
     map: 'alps',
     seconds: 16,
@@ -469,96 +472,6 @@ export const SCENARIOS = [
     },
   },
 ];
-
-/* ======================== the whoop ======================== */
-
-const K = MICRO_SCALE;
-/* A whoop that survives flies on: after the contact the hand goes back to
- * holding height and a gentle speed, and the band asks whether it can. The
- * whoop flew these in its RaceGOW room, on the room's floor, until the room
- * went; it flies the worlds now, so they are flown over the Swiss valley's
- * grass, the Track seat's home, with the same bands. */
-SCENARIOS.push(
-  {
-    id: 'whoop-wall',
-    title: 'Whoop into a wall at 3 m/s and flies on',
-    craft: 'whoop',
-    family: 'wall bounce',
-    map: 'swiss2',
-    seconds: 8,
-    setup(h) {
-      grass(h);
-      quadSetup(h, 1.0 * K);
-    },
-    pilot(h) {
-      const v = 3 * K;
-      if (!h.mem.placed && h.ms > 500 && atSpeed(h, v)) {
-        h.place({ kind: 'wall', shape: 'plane', p: [h.s[1] + 1.0 * K, 0, 0], n: [-1, 0, 0] });
-        h.mem.placed = true;
-        h.arm();
-      }
-      if (h.hit) {
-        return quadHold(h, { v: 0, z: 1.0 * K });
-      }
-      return quadHold(h, { v, z: 1.0 * K });
-    },
-  },
-  {
-    id: 'whoop-floor',
-    title: 'Whoop drops onto the grass at 2 m/s and flies on',
-    craft: 'whoop',
-    family: 'floor bounce',
-    map: 'swiss2',
-    seconds: 6,
-    setup(h) {
-      grass(h);
-      h.call('sim_set_angle_mode', 1);
-      /* The height that gives 2 m/s, in the whoop's drawn units. */
-      const z = (2 * K) * (2 * K) / (2 * 9.80665) + 0.05;
-      h.call('sim_set_pose', 0, 0, z, 1, 0, 0, 0);
-      h.call('sim_rest');
-      h.mem.x0 = 0;
-      h.arm();
-    },
-    pilot(h) {
-      if (h.hit && h.ms - h.hit.ms > 150) {
-        return quadHold(h, { v: 0, z: 0.5 * K });
-      }
-      return [0, 0, 0, 0];
-    },
-  },
-  {
-    id: 'whoop-gate',
-    title: 'Whoop clips a gate upright at full speed',
-    craft: 'whoop',
-    family: 'gate clip',
-    map: 'swiss2',
-    seconds: 10,
-    setup(h) {
-      grass(h);
-      quadSetup(h, 0.6 * K);
-    },
-    pilot(h) {
-      /* Full speed of a 65 mm 1S whoop, the reference's figure, in the
-       * whoop's drawn units; the plant is the five inch's, whose ceiling is
-       * about 35 m/s, so that scale caps what is flyable here. */
-      const v = Math.min(8 * K, 32);
-      if (!h.mem.placed && h.ms > 500 && atSpeed(h, v)) {
-        const s = h.s;
-        const reach = 0.110 + 0.0635;
-        /* A whoop gate's side, 20 mm tube in real units. */
-        const r = 0.010 * K;
-        h.place({ kind: 'gate', shape: 'capsule', a: [s[1] + 1.0 * K, s[2] - (reach + r - 0.08), 0], b: [s[1] + 1.0 * K, s[2] - (reach + r - 0.08), 1.5 * K], r });
-        h.mem.placed = true;
-        h.arm();
-      }
-      if (h.hit) {
-        return quadHold(h, { v: 0, z: 0.6 * K });
-      }
-      return quadHold(h, { v, z: 0.6 * K });
-    },
-  },
-);
 
 /* ======================== each plane ======================== */
 

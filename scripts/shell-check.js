@@ -1349,11 +1349,12 @@ const BEHAVIOUR = `(() => {
 
     /*
      * ONE PRESS, AND IT LANDS ON MY TRACKS. The Track mode card is pressed
-     * for real with the whoop seated, and it has to leave the gate, keep
-     * the whoop, set race, and open My tracks: Track mode is the list of
-     * tracks, whatever quad or plane is flying it.
+     * for real with a quad seated that is not the card's own default (the
+     * 7 inch; it was the whoop until the whoop was removed), and it has to
+     * leave the gate, keep that quad, set race, and open My tracks: Track
+     * mode is the list of tracks, whatever quad or plane is flying it.
      */
-    ui.settings.airframe = 'whoop65';
+    ui.settings.airframe = '7inch';
     ui.act('way-race-5inch');
     const whoop = {
       craft: ui.settings.airframe,
@@ -1439,9 +1440,9 @@ const BEHAVIOUR = `(() => {
        * screen, when the mode is answered and the aircraft is not. */
       gateWithMode: modeSetGate.isGate && modeSetGate.cards.length === 2
         && modeSetGate.cards.every((c) => c.wide) && modeSetGate.keepNote === 0,
-      /* One press: the whoop stays seated, the mode is race, the gate is
+      /* One press: the 7 inch stays seated, the mode is race, the gate is
        * gone, My tracks is up, and no Freestyle row turned up on it. */
-      onePress: whoop.craft === 'whoop65' && whoop.mode === 'race' && whoop.screen === 'courses'
+      onePress: whoop.craft === '7inch' && whoop.mode === 'race' && whoop.screen === 'courses'
         && !whoop.gate && whoop.cards === 0 && !whoop.menu.includes('Freestyle'),
       escapeToGate: backFromWhoop.join() === gate.join(),
       /* Answering it opens My tracks, with a plane seated as with a quad,

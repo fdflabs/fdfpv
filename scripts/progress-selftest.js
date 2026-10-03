@@ -71,7 +71,7 @@ for (const id of STARTER_PLANES) {
   check(`the ${id} is open from the start`, lockOf(p0, 'plane', id) === null);
 }
 check('float planes go with their land plane', lockOf(p0, 'plane', 'timber1500f') === null && lockOf(p0, 'plane', 'cub1400f') === null);
-check('quads are never locked', lockOf(p0, 'plane', '5inch') === null && lockOf(p0, 'plane', 'whoop65') === null);
+check('quads are never locked', AIRFRAMES.filter((a) => !a.fixedWing).every((a) => lockOf(p0, 'plane', a.id) === null));
 for (const [id, lv] of Object.entries(PLANE_LEVELS)) {
   check(`the ${id} is locked until level ${lv}`, same(lockOf(p0, 'plane', id), { level: lv }));
 }
@@ -127,7 +127,7 @@ const timber = { airframe: 'timber1500', fixedWing: true, power: 'electric', sma
 const kadetSmall = { airframe: 'kadet1981', fixedWing: true, power: 'glow', smallestPack: true };
 const bomb = { airframe: 'bombshell1118', fixedWing: true, power: 'glow', smallestPack: false };
 const slow = { airframe: 'slowstick1180', fixedWing: true, power: 'electric', smallestPack: true };
-const quad = { airframe: '5inch', fixedWing: false, power: null, smallestPack: false };
+const quad = { airframe: 'interceptor', fixedWing: false, power: null, smallestPack: false };
 
 /* A run of `steps`, each { t, ...tick } or an action name, gathering the
  * challenges it came true on. */

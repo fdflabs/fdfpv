@@ -65,7 +65,7 @@ function check(name, ok, detail = '') {
  * the first Ace can hold the crown for about 12 s of it. */
 const GOAL = 25;
 const UP = 60;
-const AIR = ['cub1400', 'cub1400', '5inch'];
+const AIR = ['cub1400', 'cub1400', 'interceptor'];
 
 /* How far an airframe reaches along the Three.js body's x, from its
  * centre: a Cub's wingtip, a quad's arm (configs/hulls.js). Held with
@@ -80,7 +80,7 @@ function halfSpan(airframe) {
 }
 
 function seedFor(airframe, colour) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe);
+  const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   s.map = 'swiss2';
   s.freestyleMap = 'swiss2';
   s.graphics = 'low';

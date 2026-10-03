@@ -65,6 +65,7 @@
  */
 
 import { angleRateDeg } from '../src/fc/ratescurve.js';
+import { DEFAULT_AIRFRAME } from './airframes.js';
 
 /* The lookup in the firmware's RATES_TYPE table, in its own order, because
  * that is the order Configurator lists and a pilot arriving from it is
@@ -550,7 +551,7 @@ export function ratesSummary(r) {
  * their stick, not what percentage is in the config, and it is measured per
  * airframe. See HOVER_STICK_PERCENT.
  */
-export function throttleSummary(r, airframe = '5inch') {
+export function throttleSummary(r, airframe = DEFAULT_AIRFRAME) {
   const p = normaliseRates(r);
   const hover = hoverStickPercent(p.throttleCap, airframe);
   const curve = p.thrExpo > 0 ? `, mid ${p.thrMid} expo ${p.thrExpo}` : ', no expo';
@@ -575,60 +576,35 @@ export function throttleSummary(r, airframe = '5inch') {
  */
 /*
  * ONE COLUMN PER AIRCRAFT, because hover does not land in the same place on
- * the stick on both. A 23 g whoop hovers at 32.3 percent of travel uncapped
- * where a 710 g five inch hovers at 26.5, and the gap widens under a cap:
- * the sag and the motor loading that make this a measurement rather than an
- * algebraic hover-over-cap are different on a 1S 280 mAh pack and a 6S one.
+ * the stick on every machine: the sag and the motor loading that make this
+ * a measurement rather than an algebraic hover-over-cap differ from pack to
+ * pack and motor to motor.
  *
- * Re-recorded in full on 2026-09-06 with `node scripts/flightcheck.js` and
- * `node scripts/flightcheck.js --airframe=whoop65`. The five inch column
- * moved by 0.2 to 0.6 of a point from the figures stored before that, which
- * is the plant drifting under it since the table was first taken; nothing
- * reads these but the menu, and a table half of one vintage and half of
- * another is worse than one taken in a single run.
+ * READ AT THE WEIGHT THE SHELL FLIES, the airframe's gravityBase
+ * (configs/airframes.js), which is the multiple of g the shell asserts
+ * through sim_set_gravity before a pilot touches the stick.
  *
- * The 75 row was taken in the same way when 75 joined the list. Both columns
- * were re-read on the build that added the descent rotor drag, and neither
- * moved: that term is exactly zero at and above a hover, and a hover is the
- * only thing this table measures.
+ * THE INTERCEPTOR'S, and only its, since the five inch and the whoop were
+ * removed (2026-10-03). Their shared column was plant 0's at 1.62 g; the
+ * interceptor is the racer now and its gravityBase is 1.0, so:
+ *
+ *     node scripts/flightcheck.js --airframe=interceptor
+ *
+ * read 2026-10-03 on its default tune, on a fresh 6S pack, bare. An
+ * aircraft with no column of its own is quoted the default racer's.
  */
-/*
- * READ AT THE WEIGHT THE SHELL FLIES, NOT THE HARNESS'S. The module's own
- * gravity is 1.0 and every check in tests/ runs there; the shell asserts
- * configs/airframes.js gravityBase, 1.62, through sim_set_gravity before a
- * pilot ever touches the stick, and a menu that quoted the 1.0 hover to a
- * pilot flying at 1.62 would be eight and a half points low at every cap.
- * So:
- *
- *     node scripts/flightcheck.js --gravity=1.62
- *
- * which is the same bisection with the same flag the shell uses. The 1.0
- * table it replaced read 26.5, 28.9, 31.8, 33.6, 35.6, 38.0, 40.8, 47.9,
- * 58.6, for anyone reading an old report against a new one.
- *
- * ONE TABLE FOR BOTH ENTRIES, because configs/airframes.js gives both a
- * simId of 0: the shell's whoop flies the five inch plant, so its hover is
- * the five inch's. The whoop column this replaced, 33.6 at cap 100, had been
- * read off SIM_AIRFRAME_WHOOP65 with --airframe=whoop65, which selects a
- * plant the shell does not, and had been quoting a machine nobody flew since
- * that entry moved to simId 0. If a whoop plant is ever selected again it
- * gets its own row read at its own gravityBase.
- */
-const HOVER_5IN_AT_BASE = new Map([
-  [100, 35.0], [90, 38.3], [80, 42.5], [75, 44.9], [70, 47.8],
-  [65, 51.1], [60, 54.9], [50, 64.9], [40, 79.8],
-]);
 const HOVER_STICK_PERCENT = {
-  '5inch': HOVER_5IN_AT_BASE,
-  whoop65: HOVER_5IN_AT_BASE,
+  interceptor: new Map([
+    [100, 24.1], [90, 26.2], [80, 28.9], [75, 30.5], [70, 32.3],
+    [65, 34.4], [60, 36.9], [50, 43.2], [40, 52.7],
+  ]),
 };
 
 /*
  * Where hover sits on the stick, as a percentage of travel, for this cap on
- * this aircraft. The airframe is optional and defaults to the five inch,
- * which is what every caller meant when there was one aircraft.
+ * this aircraft.
  */
-export function hoverStickPercent(cap, airframe = '5inch') {
-  const table = HOVER_STICK_PERCENT[airframe] ?? HOVER_STICK_PERCENT['5inch'];
+export function hoverStickPercent(cap, airframe = DEFAULT_AIRFRAME) {
+  const table = HOVER_STICK_PERCENT[airframe] ?? HOVER_STICK_PERCENT[DEFAULT_AIRFRAME];
   return table.get(nearest(THROTTLE_CAP_CHOICES, cap)) ?? table.get(100);
 }

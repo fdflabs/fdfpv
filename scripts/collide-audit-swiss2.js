@@ -123,7 +123,7 @@ const SKIP = String.raw`(^|/)(sky|far-range|craft|wreck|debris|smoke|villagers|h
 
 function seeds(map, airframe) {
   const settings = {
-    ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, airframe),
+    ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe),
     airframeAsked: true,
     map,
     graphics: process.env.SIM_GPU === '1' ? 'high' : 'low',
@@ -1033,7 +1033,7 @@ async function auditMap(map) {
     }
   }
   if (ONLY.includes('fly') || ONLY.includes('roofs')) {
-    const page = await openMap(map, '5inch');
+    const page = await openMap(map, 'interceptor');
     try {
       await call(page, pageSetup);
       /* The roofs before the throws: a throw that freezes the page ends it. */

@@ -5,8 +5,7 @@
  *   node scripts/crash-suite.js [--out DIR] [--only ID[,ID...]] [--no-chrome] [--sheets]
  *
  * For each scenario in tests/crash/scenarios.js: a fresh module, the
- * airframe, crash damage ON (sim_set_damage(1), and the whoop's own part
- * table, sim_set_part_table(1), as the shell flies it), the setup, and the
+ * airframe, crash damage ON (sim_set_damage(1)), the setup, and the
  * pilot flying it into the contact, 4 ms at a time, with the obstacle pass
  * the shell runs on the same clock. The world is named to the plant as the
  * shell names it (src/main.js, THE CRASH SHELL): the ground's material,
@@ -340,7 +339,7 @@ function arcFromX(d) {
   return [q[0] / qn, q[1] / qn, q[2] / qn, q[3] / qn];
 }
 
-function declareSolid(rec, solid, micro) {
+function declareSolid(rec, solid) {
   if (solid.kind === 'tree' || solid.kind === 'canopy') {
     return 0;
   }
@@ -357,9 +356,8 @@ function declareSolid(rec, solid, micro) {
     const { a, b, r } = solid;
     if (Math.abs(a[0] - b[0]) < 1e-3 && Math.abs(a[1] - b[1]) < 1e-3) {
       const idx = rec.call('sim_obstacle_cylinder', a[0], a[1], Math.min(a[2], b[2]) - r, Math.max(a[2], b[2]) + r, r, mat);
-      /* A gate's upright gives, as the shell declares it: life size here,
-       * and not in a whoop's room. */
-      const give = idx >= 0 && !micro ? postGive(solid.kind, r, 1) : null;
+      /* A gate's upright gives, as the shell declares it. */
+      const give = idx >= 0 ? postGive(solid.kind, r, 1) : null;
       if (give && rec.call('sim_obstacle_compliance', idx, give.ei, give.mLine, give.mFree) !== SIM_OK) {
         throw new Error('sim_obstacle_compliance refused a gate post');
       }
@@ -409,10 +407,9 @@ function restClass(s) {
 
 async function fly(sc) {
   const c = CRAFT[sc.craft];
-  const dims = airframeById(c.shell).dims;
+  const dims = c.dims ?? airframeById(c.shell).dims;
   setCraftAirframe(dims);
   const sim = await loadSim(wasm);
-  const scale = c.scale ?? 1;
 
   /* What the run measures, per millisecond, once armed. */
   const M = {
@@ -549,10 +546,6 @@ async function fly(sc) {
   must(rec.call('sim_set_airframe', c.sim), 'sim_set_airframe');
   must(rec.call('sim_reset'), 'sim_reset');
   must(rec.call('sim_set_cell_voltage', c.volts ?? 4.1), 'sim_set_cell_voltage');
-  /* The part table first: setting it clears the damage state. The shell's
-   * whoop is the five inch's plant in a scaled room, made of the real
-   * whoop's parts scaled to it (src/main.js syncPartTable). */
-  must(rec.call('sim_set_part_table', c.partTable ?? 0), 'sim_set_part_table');
   must(rec.call('sim_set_damage', 1), 'sim_set_damage');
   const massKg = sim.e.sim_bf_debug ? sim.e.sim_bf_debug(51) : null;
   const matInfo = sim.e.malloc(4 * 8);
@@ -565,7 +558,7 @@ async function fly(sc) {
   });
   const solids = [];
   /* A fixed wing meets the solids with its parts, as the shell's does. */
-  const hull = airframeById(c.shell).fixedWing ? airframeHull(reader.table(), PLANT_BODY, 1) : null;
+  const hull = c.quad ? null : airframeHull(reader.table(), PLANT_BODY, 1);
   M.left = reader.table().map(() => null);
   const h = {
     s: null,
@@ -579,7 +572,7 @@ async function fly(sc) {
     call: (name, ...args) => rec.call(name, ...args),
     place: (solid) => {
       solids.push(solid);
-      if (declareSolid(rec, solid, c.scale != null) < 0) {
+      if (declareSolid(rec, solid) < 0) {
         throw new Error('sim_obstacle_*: the plant holds no more solids');
       }
     },
@@ -639,13 +632,13 @@ async function fly(sc) {
   const hash = await rec.hash();
   const end = sim.readState().state;
   const damage = reader.read();
-  return { sc, c, dims, massKg, scale, M, has: h.has, end, endMs: rec.clock.ms, hash, ops: rec.ops, solids, t0, damage, table: reader.table(), extra: sc.outcome ? sc.outcome(h) : {} };
+  return { sc, c, dims, massKg, M, has: h.has, end, endMs: rec.clock.ms, hash, ops: rec.ops, solids, t0, damage, table: reader.table(), extra: sc.outcome ? sc.outcome(h) : {} };
 }
 
 /* ---- what happened, as numbers ---- */
 
 function outcomeOf(run) {
-  const { M, end, massKg, scale, c } = run;
+  const { M, end, massKg, c } = run;
   const d = run.damage;
   const o = {
     impacted: Boolean(M.impact),
@@ -676,26 +669,26 @@ function outcomeOf(run) {
   const v0 = Math.hypot(s0[4], s0[5], s0[6]);
   const rs = M.restState ?? end;
   const vEnd = Math.hypot(rs[4], rs[5], rs[6]);
-  o.impactSpeed = v0 / scale;
+  o.impactSpeed = v0;
   /* The descent at touchdown, what a parachute's rating means: in wind
    * the craft also drifts with the air, which adds to its speed over the
    * ground but not to the rate it comes down at. */
-  o.sinkRate = -s0[6] / scale;
+  o.sinkRate = -s0[6];
   o.impactMs = M.impact.ms;
   /* The plant resolves a contact as an impulse inside one step, so this is
    * the velocity change over a millisecond: an upper bound on the real
    * peak, whose contact lasts milliseconds (docs/CRASH-REFERENCES.md). */
-  o.peakG = M.peakG / scale;
+  o.peakG = M.peakG;
   o.peakForceN = massKg ? massKg * G * M.peakG : null;
   o.peakRateRadS = M.peakW;
   o.rotationAfterRad = M.rotAfter;
   o.minUpZ = M.minUpz;
   o.rested = M.restMs !== null;
   o.timeToRestS = M.restMs !== null ? (M.restMs - M.impact.ms) / 1000 : null;
-  o.restDistM = Math.hypot(rs[1] - s0[1], rs[2] - s0[2]) / scale;
+  o.restDistM = Math.hypot(rs[1] - s0[1], rs[2] - s0[2]);
   o.restAttitude = restClass(rs);
   o.restUpZ = attitude(rs).upz;
-  o.restHeightM = rs[3] / scale;
+  o.restHeightM = rs[3];
   const e0 = 0.5 * v0 * v0 + G * s0[3];
   const e1 = 0.5 * vEnd * vEnd + G * rs[3];
   o.impactEnergyJ = massKg ? massKg * 0.5 * v0 * v0 : null;
@@ -727,7 +720,7 @@ function outcomeOf(run) {
   const away = d.parts.filter((p) => p.detached);
   o.debrisCount = away.length;
   o.debrisMaxDistM = away.length
-    ? Math.max(...away.map((p) => Math.hypot(p.pos[0] - s0[1], p.pos[1] - s0[2]))) / scale
+    ? Math.max(...away.map((p) => Math.hypot(p.pos[0] - s0[1], p.pos[1] - s0[2])))
     : null;
   const lost = M.events.find((e) => e.what === 'prop lost');
   if (lost) {
@@ -968,7 +961,6 @@ for (const run of runs) {
     frames,
     solids: run.solids,
     sheetGround: run.sc.sheetGround ?? null,
-    scale: run.scale,
     samples: run.M.samples,
   });
 }

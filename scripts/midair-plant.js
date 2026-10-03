@@ -14,8 +14,9 @@
  * Then:
  *
  *   P1  both aircraft took permanent damage (a break, a crush, a bend, a
- *       chip or a knock) in every head on and crossing pass above 10 m/s
- *       closing, on links of 0 and 50 ms. Reported beside it: how many of
+ *       chip or a knock) in every head on and crossing pass that met at
+ *       10 m/s closing or more, measured at the hit as the room measures
+ *       it, on links of 0 and 50 ms. Reported beside it: how many of
  *       those the plant's limits broke alone, before the both break rule,
  *       and how many left both wrecks by the shell's rule
  *       (src/game/damage.js isWreck)
@@ -100,7 +101,6 @@ async function aircraft(id, pos, yaw, speed, place = true) {
   const sim = await loadSim(wasm);
   must(sim.init(config), 'sim_init');
   must(sim.e.sim_set_airframe(af.simId), 'sim_set_airframe');
-  must(sim.e.sim_set_part_table(id === 'whoop65' ? 1 : 0), 'sim_set_part_table');
   must(sim.reset(), 'sim_reset');
   must(sim.setCellVoltage(4.1), 'sim_set_cell_voltage');
   must(sim.e.sim_set_damage(1), 'sim_set_damage');
@@ -319,10 +319,9 @@ async function crossing(a, b, va, vb) {
 const PAIRS = [
   ['cub1400', 'cub1400'],
   ['cub1400', 'p51d1450'],
-  ['5inch', '5inch'],
-  ['5inch', 'cub1400'],
+  ['interceptor', 'interceptor'],
+  ['interceptor', 'cub1400'],
   ['slowstick1180', 'bombshell1118'],
-  ['whoop65', 'sky1800'],
 ];
 const CLOSINGS = [8, 12, 16, 24, 36, 50];
 
@@ -349,8 +348,15 @@ for (const [a, b] of PAIRS) {
         const ob = outcome(B);
         const tag = `${a} x ${b}, ${geometry}, ${closing} m/s closing, ${latency} ms links`;
         const hit = r.log[0];
-        lines.push(`    ${tag.padEnd(58)} ${hit ? `hit at ${hit.tc} ms` : 'NO HIT'}; A ${oa.kinds.join('+') || 'intact'}${oa.wreck ? ' (wreck)' : ''}; B ${ob.kinds.join('+') || 'intact'}${ob.wreck ? ' (wreck)' : ''}`);
-        if (closing > BREAK_MPS) {
+        /* The closing speed AT THE HIT, the room's own figure (its pose
+         * velocities, src/game/midair.js hitMessage), which is what the both
+         * break rule is judged on. The nominal `closing` is what the two
+         * were thrown at: an aircraft that sheds speed on the way in meets
+         * the other slower than that, and the rule rightly leaves a pass
+         * under BREAK_MPS to the physics. */
+        const met = hit ? Math.hypot(hit.va[0] - hit.vb[0], hit.va[1] - hit.vb[1], hit.va[2] - hit.vb[2]) : 0;
+        lines.push(`    ${tag.padEnd(58)} ${hit ? `hit at ${hit.tc} ms, met at ${met.toFixed(1)} m/s` : 'NO HIT'}; A ${oa.kinds.join('+') || 'intact'}${oa.wreck ? ' (wreck)' : ''}; B ${ob.kinds.join('+') || 'intact'}${ob.wreck ? ' (wreck)' : ''}`);
+        if (met >= BREAK_MPS) {
           rows += 1;
           const ok = gotA === 1 && gotB === 1 && A.applied && B.applied && A.applied.rc === SIM_OK && B.applied.rc === SIM_OK && oa.damaged && ob.damaged;
           if (ok) {
@@ -384,7 +390,7 @@ for (const [a, b] of PAIRS) {
 for (const l of lines) {
   console.log(l);
 }
-check(`P1 both aircraft damaged in every pass above ${BREAK_MPS} m/s closing`, bothDamaged === rows,
+check(`P1 both aircraft damaged in every pass that met at ${BREAK_MPS} m/s closing or more`, bothDamaged === rows && rows > 0,
   `${bothDamaged} of ${rows}; by the plant's limits alone, before the both break rule, ${bothPhysics}; both wrecks by the shell's rule in ${bothWreck}`);
 const sorted = [...drift].sort((x, y) => x - y);
 const med = sorted[Math.floor(sorted.length / 2)];

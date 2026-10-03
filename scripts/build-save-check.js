@@ -75,7 +75,7 @@ function say(ok, what) {
 }
 
 function seed() {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'interceptor');
   return [`try {
     const k = ${JSON.stringify(SETTINGS_KEY)};
     const s = JSON.parse(localStorage.getItem(k) || '{}');
@@ -313,14 +313,14 @@ async function planePilot(origin, server, firstId) {
       await page.evaluate("window.__ui.show('courses'), true");
       await page.until(`Boolean(${cardFor(cardId)})`, 60000).catch(() => {});
       await page.evaluate(`window.__ui.actOnCard('card-fly', ${cardFor(cardId)}), true`);
-      await page.until(`window.__map().ready && window.__map().mode === 'race' && window.__race().gates.length === ${gates} && window.__ui.settings.airframe === '5inch'`, 120000).catch(() => {});
+      await page.until(`window.__map().ready && window.__map().mode === 'race' && window.__race().gates.length === ${gates} && window.__ui.settings.airframe === 'interceptor'`, 120000).catch(() => {});
       /* Into the air, because the run is what names the aircraft its lap
        * is filed under (main.js recordKey). */
       await page.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
       await page.until("window.__craftState().mode === 'flight'", 120000).catch(() => {});
       return page.evaluate("({ airframe: window.__ui.settings.airframe, map: window.__map().id, mode: window.__map().mode, gates: window.__race().gates.length, key: window.__race().key })");
     };
-    const onPlay = (f, cardId, gates) => f.airframe === '5inch' && f.map === 'swiss2' && f.mode === 'race' && f.gates === gates
+    const onPlay = (f, cardId, gates) => f.airframe === 'interceptor' && f.map === 'swiss2' && f.mode === 'race' && f.gates === gates
       && String(f.key).endsWith(`.map.${cardId}`) && !String(f.key).includes(plane.id);
     if (theirs) {
       const f = await play(firstId, 2);

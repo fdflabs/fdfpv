@@ -227,8 +227,8 @@ export function createWreck() {
   }
 
   /* Only what is drawn is cut. Every model carries a hidden measurement box
-   * as wide as its span and as long as its fuselage (check 15's contract,
-   * herocraft.js), and a piece is always drawn: cut with the rest, that box's
+   * as wide as its span and as long as its fuselage (check 15's
+   * contract), and a piece is always drawn: cut with the rest, that box's
    * faces landed on whichever part held their centres and were drawn as
    * slabs across the whole aircraft. The blur discs are hidden and shown by
    * the prop's speed, so they are cut whatever they are now, to leave with

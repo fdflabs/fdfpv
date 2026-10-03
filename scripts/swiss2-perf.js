@@ -275,7 +275,7 @@ const INSTALL = /* js */ `(() => {
 const PARTS = ['shadow0', 'shadow1', 'mirror', 'scene', 'ao', 'clouds', 'meter', 'bloom', 'photo', 'fxaa', 'other'];
 
 async function runPreset(preset) {
-  const seated = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, 'sky1800');
+  const seated = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, 'sky1800');
   const seed = [`try {
       const k = ${JSON.stringify(SETTINGS_KEY)};
       const s = JSON.parse(localStorage.getItem(k) || '{}');

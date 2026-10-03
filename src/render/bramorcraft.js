@@ -554,7 +554,7 @@ export function buildBramorCraft(opts = {}) {
   const stator = cel({ color: 0x2a2e31, rim: 0.24, spec: 0.20 });
   const ink = 0x14181c;
 
-  /* The measurement box, on herocraft.js's contract with check 15: span
+  /* The measurement box, on the contract with verify's check 15 (tests/lib/checks.js): span
    * wide, nose to tail deep, the winglets' top to the belly high. */
   if (opts.measure) {
     const body = new THREE.Mesh(

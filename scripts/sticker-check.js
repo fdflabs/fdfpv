@@ -62,7 +62,7 @@ const check = (name, ok, detail) => {
 };
 
 const settings = {
-  ...seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, IDS[0]),
+  ...seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, IDS[0]),
   airframeAsked: true,
   map: 'swiss2',
   freestyleMap: 'swiss2',

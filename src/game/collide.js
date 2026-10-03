@@ -113,8 +113,7 @@ export let CRAFT_PROP_R = 0.0635;  /* half of five inches */
  * pilot threading a 0.711 m gate or passing a 26.7 mm pole saw the ducts
  * overlap and felt nothing.
  *
- * CRAFT_PROP_R stays the BLADE, because src/render/herocraft.js draws the
- * disc from it and it is an aerodynamic number, not a size.
+ * CRAFT_PROP_R stays the BLADE: it is an aerodynamic number, not a size.
  */
 export let CRAFT_HULL_R = 0.0635;
 export let CRAFT_R = CRAFT_ARM + CRAFT_HULL_R;
