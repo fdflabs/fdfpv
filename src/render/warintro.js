@@ -406,6 +406,8 @@ export function play(scene, camera, opts = {}) {
   const frames = timed.shots.map(() => 0);
   let held = null;
   let state = { t: startT, shot: -1, orbit: false, done: false };
+  /* How far the hand-off has opened the letterbox, 0 to 1. */
+  let opened = 0;
   /* The last frame of a shot ending on a dissolve, kept by afterDraw. */
   let dissolveFor = -1;
   const shellPos = new THREE.Vector3();
@@ -816,6 +818,7 @@ export function play(scene, camera, opts = {}) {
         camera.quaternion.slerpQuaternions(filmQuat, shellQuat, open);
         fov += (shellFov - fov) * open;
       }
+      opened = open;
       put(barTop, 'transform', `scaleY(${(1 - open).toFixed(3)})`);
       put(barBottom, 'transform', `scaleY(${(1 - open).toFixed(3)})`);
       if (Math.abs(camera.fov - fov) > 1e-6) {
@@ -859,6 +862,8 @@ export function play(scene, camera, opts = {}) {
         counter: counter.style.opacity !== '0' ? counterValue.textContent : null,
         hold: state.orbit ? hold.textContent : null,
         fov: camera.fov,
+        opened,
+        seenTold,
         sound: ctx ? {
           ...radio.status(), cued: cued.slice(), decoded: Object.fromEntries([...buffers].map(([id, b]) => [id, Math.round(b.duration * 1000)])), anchor: anchorS,
         } : null,
