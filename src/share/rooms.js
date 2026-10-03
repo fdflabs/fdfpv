@@ -50,12 +50,10 @@ import {
 } from './roomwire.js';
 import { readAccount } from './pilot.js';
 import { RoomClock } from './roomclock.js';
+import { SITE_HOSTS, apiOrigin } from './api.js';
 
-/* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md).
- * The Worker it replaced, https://fdfpv-rooms.fdfretes.workers.dev, is
- * still deployed, and putting that address back here is the way back. */
-export const PRODUCTION_ROOMS_ORIGIN = 'https://129.151.39.48';
-const DEPLOYED_HOSTS = ['fdflabs.github.io'];
+/* edge/rooms/node.js on the owner's VM, behind Caddy (deploy/vm/README.md),
+ * at the origin src/share/api.js names. */
 const ORIGIN_KEY = 'fdfpv.rooms';
 const ROOM_KEY = 'fdfpv.room';
 const TOKEN_KEY = 'fdfpv.roomToken';
@@ -128,7 +126,7 @@ export function roomsOrigin() {
     return kept;
   }
   try {
-    return DEPLOYED_HOSTS.includes(window.location.hostname) ? PRODUCTION_ROOMS_ORIGIN : null;
+    return SITE_HOSTS.includes(window.location.hostname) ? apiOrigin() : null;
   } catch (e) {
     return null;
   }

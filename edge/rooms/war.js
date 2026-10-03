@@ -125,11 +125,15 @@
  *   { type: 'war', war }                      the view (view()), on every
  *                                             change and in each welcome
  *   { type: 'war', op: 'born', agents }       [{ id, kind, route, t0, k,
- *                                             n, err, target, wire? }],
- *                                             routes.js planAgent's input;
- *                                             wire the room ms it flies
- *                                             into a power line
- *                                             (src/share/war/wires.js)
+ *                                             n, err, target, wire?,
+ *                                             meet? }], routes.js
+ *                                             planAgent's input; wire the
+ *                                             room ms it flies into a
+ *                                             power line
+ *                                             (src/share/war/wires.js),
+ *                                             meet the room ms it meets a
+ *                                             structure, where it arrives
+ *                                             (src/share/war/contact.js)
  *   { type: 'war', op: 'dead', ids, at, by, why, p }
  *                                             why 'boom' (by the seat),
  *                                             'arrive' (by 0, with target
@@ -219,6 +223,7 @@ import {
 } from '../../src/share/war/stages.js';
 import { madeFor, modeById } from '../../src/share/modes.js';
 import { wireStrike } from '../../src/share/war/wires.js';
+import { contactAt } from '../../src/share/war/contact.js';
 import { briefingMs, filmFor } from '../../src/share/war/films/index.js';
 import { fuzeM } from '../../src/share/war/fuze.js';
 import { attackerCharge, blast, defenderCharge } from '../../src/share/war/damage.js';
@@ -1279,6 +1284,12 @@ export class RoomWar {
         const wire = wireStrike(mission, a, (j) => wireDraw(m.seed, id, j), m.cut && m.cut.length ? new Set(m.cut) : null);
         if (wire != null) {
           a.wire = wire;
+        }
+        /* Whether it meets a structure short of its aim point, and when:
+         * its warhead goes off there. */
+        const meet = a.target != null ? contactAt(mission.map, planAgent(mission, a)) : null;
+        if (meet) {
+          a.meet = meet.t;
         }
         m.agents.push(a);
         const x = this.adopt(a);

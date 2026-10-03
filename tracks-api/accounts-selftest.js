@@ -42,6 +42,9 @@ import {
 import { BUILD_MAX_CHARS, COMBAT_MAX_ENTRIES, MAX_BUILDS } from './limits.js';
 import { buildsBlob, buildsFromBlob, normaliseFit } from '../src/ui/builds.js';
 import { newDecal, MAX_DECALS } from '../configs/paint.js';
+import {
+  FLIGHT_DEVICES_MAX, addFlight, flightTotals, mergeFlightTime,
+} from '../src/share/flighttime.js';
 
 const CLIENT_ID = 'selftest-client.apps.googleusercontent.com';
 const RS256 = { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' };
@@ -187,6 +190,63 @@ console.log('the progress merge');
   check('and keeps its own where the account has none', firstSync.data.tuning.zagi1219.cg === 5);
   const stamps = stampChanges({ tuning: { a: 1, b: 2 }, rates: { x: 1 } }, { tuning: { a: 1 }, rates: { x: 0 } }, 77);
   check('a computer stamps exactly the parts it changed', stamps['tuning/b'] === 77 && stamps.rates === 77 && !('tuning/a' in stamps));
+}
+
+console.log('flight time follows the account, and is never counted twice or lost');
+{
+  /*
+   * src/share/flighttime.js: one grow only slot per browser, merged
+   * counter by counter to the larger. The cases the rule exists for: two
+   * computers flying offline, a sync sent twice, merges in any order, an
+   * old copy of a slot meeting a newer one, and the seconds flown while a
+   * sync was out (src/ui/accountui.js apply).
+   */
+  const DESK = 'deskdevice01';
+  const LAPTOP = 'laptopdev002';
+  const flown = (rec, dev, af, act, n, day = '2026-10-01') => addFlight(rec, dev, af, act, n, day);
+  const blob = (flightTime) => ({ v: 1, data: { flightTime }, stamps: {} });
+  const total = (rec) => flightTotals(rec).seconds;
+
+  /* Both start from the account as it was: 100 s on the desk. */
+  const account = flown({}, DESK, 'cub1400', 'free', 100, '2026-09-20');
+  /* Offline, the desk flies 60 s more and the laptop 45 s, of its own. */
+  const desk = flown(account, DESK, 'cub1400', 'race', 60);
+  const laptop = flown(account, LAPTOP, 'striker2500', 'war', 45, '2026-10-02');
+  let m = mergeBlobs(blob(desk), blob(account));
+  m = mergeBlobs(blob(laptop), m);
+  check('two computers flying offline: both keep their time, summed', total(m.data.flightTime) === 205, `${total(m.data.flightTime)}`);
+  check('the same two merged the other way round give the same record',
+    JSON.stringify(mergeBlobs(blob(desk), mergeBlobs(blob(laptop), blob(account))).data.flightTime) === JSON.stringify(m.data.flightTime));
+  const twice = mergeBlobs(blob(laptop), mergeBlobs(blob(desk), m));
+  check('a slot sent again is not counted again', total(twice.data.flightTime) === 205 && JSON.stringify(twice.data.flightTime) === JSON.stringify(m.data.flightTime));
+  check('an old copy of a slot does not take time away', total(mergeBlobs(blob(account), m).data.flightTime) === 205);
+  const t = flightTotals(m.data.flightTime);
+  check('split by aircraft', t.byAirframe.cub1400 === 160 && t.byAirframe.striker2500 === 45);
+  check('split by activity', t.byActivity.free === 100 && t.byActivity.race === 60 && t.byActivity.war === 45);
+  check('the first flight is the earliest day on any computer', t.first === '2026-09-20');
+
+  /* The round trip: the desk sent 160 s, flew 7 s more while the answer
+   * was out, and merges the answer with what it holds now. */
+  const answer = mergeBlobs(blob(desk), m).data.flightTime;
+  const deskNow = flown(desk, DESK, 'cub1400', 'race', 7);
+  const applied = mergeFlightTime(deskNow, answer);
+  check('the seconds flown during a sync survive its answer', total(applied) === 212, `${total(applied)}`);
+  check('put over it, they would not (the trap the merge on apply closes)', total(answer) === 205);
+  check('the merge is idempotent', JSON.stringify(mergeFlightTime(applied, applied)) === JSON.stringify(applied));
+  check('one record has one spelling whatever order it was built in',
+    JSON.stringify(mergeFlightTime(laptop, desk)) === JSON.stringify(mergeFlightTime(desk, laptop)));
+
+  const junk = cleanBlob(blob({
+    'BAD ID': { by: { cub1400: { free: 5 } } },
+    okdevice01: { by: { cub1400: { free: -3, race: 1.5, war: 9 }, 'no way': { free: 1 } }, first: 'yesterday' },
+  }));
+  check('wrong shapes are dropped: a bad device, a negative, a fraction, a bad aircraft and a bad day',
+    JSON.stringify(junk.data.flightTime) === JSON.stringify({ okdevice01: { by: { cub1400: { war: 9 } } } }), JSON.stringify(junk.data.flightTime));
+  check('a section that is not a map is refused', blobRefusal(blob([1, 2]))?.why === 'map');
+  const many = Object.fromEntries(Array.from({ length: FLIGHT_DEVICES_MAX + 1 }, (_, i) => [`dev${String(i).padStart(6, '0')}`, { by: { cub1400: { free: 1 } } }]));
+  check(`more than ${FLIGHT_DEVICES_MAX} device slots is refused, not trimmed`, blobRefusal(blob(many))?.status === 413);
+  check('flight time is a synced section, read from the settings', pickSynced({ flightTime: account, graphics: 'low' }).flightTime[DESK].by.cub1400.free === 100);
+  check('an account that never flew gets no section', !('flightTime' in mergeBlobs({ v: 1, data: {}, stamps: {} }, null).data));
 }
 
 console.log('the voice notice follows the account');
@@ -443,6 +503,21 @@ r = await call('PUT', '/api/account/progress', {
   progress: { v: 1, data: { builds: Object.fromEntries(Array.from({ length: MAX_BUILDS + 1 }, (_, i) => [`x${i}`, build(`x${i}`, `X ${i}`)])) }, stamps: {} },
 }, alice);
 check('a sync with more builds than a computer holds is refused, and says why', r.status === 413 && /builds/.test(r.body.error), JSON.stringify(r.body));
+{
+  /* Two computers' flight time through the server, each sent while the
+   * other's was not yet seen, then each sent again. */
+  const deskFlight = addFlight({}, 'deskdevice01', 'cub1400', 'free', 300, '2026-10-01');
+  const laptopFlight = addFlight({}, 'laptopdev002', 'zagi1219', 'race', 120, '2026-10-02');
+  r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { flightTime: deskFlight }, stamps: {} } }, alice);
+  check('flight time goes up with the progress', r.status === 200 && flightTotals(r.body.progress.data.flightTime).seconds === 300, JSON.stringify(r.body));
+  r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { flightTime: laptopFlight }, stamps: {} } }, aliceLaptop);
+  check('a second computer\'s flight time is added to it, not written over it', r.status === 200 && flightTotals(r.body.progress.data.flightTime).seconds === 420);
+  r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { flightTime: deskFlight }, stamps: {} } }, alice);
+  check('and the first computer sending the same again counts nothing twice', r.status === 200 && flightTotals(r.body.progress.data.flightTime).seconds === 420);
+  r = await call('GET', '/api/account/progress', undefined, aliceLaptop);
+  check('both computers read the sum', r.status === 200 && flightTotals(r.body.progress.data.flightTime).seconds === 420
+    && flightTotals(r.body.progress.data.flightTime).first === '2026-10-01');
+}
 r = await call('PUT', '/api/account/progress', { progress: { v: 1, data: { builds: { b1: { name: 'no airframe' } } }, stamps: {} } }, alice);
 check('and one with a build of the wrong shape', r.status === 422);
 r = await call('GET', '/api/account/progress', undefined, alice);
