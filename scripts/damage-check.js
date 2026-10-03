@@ -85,7 +85,14 @@ function table() {
     if (m.map !== 'itaipu') {
       continue;
     }
-    for (const w of m.waves) {
+    /* A spawn's every way in (src/share/war/stages.js draws one): a
+     * route's id, one of a list, or every route of its sectors; and its
+     * every kind, a mix's too. */
+    const waysOf = (w) => (typeof w.route === 'string' ? [w.route] : Array.isArray(w.route) ? w.route
+      : [w.route.sector].flat().flatMap((sec) => m.sectors[sec]));
+    const kindsOf = (w) => (w.mix ? w.mix.map(([kind]) => kind) : [w.kind]);
+    const each = m.waves.flatMap((w) => kindsOf(w).flatMap((kind) => waysOf(w).map((route) => ({ ...w, kind, route }))));
+    for (const w of each) {
       const ids = !w.target ? [] : Array.isArray(w.target) ? w.target : [w.target];
       for (let k = 0; k < ids.length; k += 1) {
         const target = waveTarget(w, k);
@@ -94,7 +101,7 @@ function table() {
         if (!s || !charge) {
           continue;
         }
-        const key = `${w.kind} at ${target}`;
+        const key = `${w.kind} at ${target} by ${w.route}`;
         if (rows.has(key)) {
           continue;
         }
