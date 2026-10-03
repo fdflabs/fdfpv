@@ -269,6 +269,7 @@
     "test:edge": "node edge/selftest.js",
     "test:tracks": "node tracks-api/selftest.js && node tracks-api/accounts-selftest.js",
     "cloud:selftest": "node scripts/cloud-selftest.js",
+    "domain:selftest": "node scripts/domain-selftest.js",
     "tracks:e2e": "node scripts/tracks-online-check.js",
     "lint:nouns": "node scripts/noun-lint.js",
     "lint:copy": "node scripts/copy-lint.js",

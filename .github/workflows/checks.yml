@@ -121,6 +121,9 @@ jobs:
       - run: npm run test:edge
       - run: npm run test:tracks
       - run: npm run cloud:selftest
+      # The game's own domain: which servers the page picks, the probe's
+      # fallback to the VM's address, the rooms allowlist and the Caddyfile.
+      - run: npm run domain:selftest
       - run: npm run crash:rules
       - run: npm run river:check
       - run: npm run builder:selftest

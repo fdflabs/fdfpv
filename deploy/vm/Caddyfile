@@ -1,11 +1,22 @@
 # Caddyfile: the TLS front on the VM, installed as /etc/caddy/Caddyfile by
 # deploy/vm/deploy.sh. See deploy/vm/README.md.
 #
-# The site is the VM's bare address, not a name. Let's Encrypt issues
-# certificates for IP addresses on its six day "shortlived" profile, which
-# Caddy renews by itself, and an address needs no DNS: the wildcard DNS
-# services that give an address a name (sslip.io, nip.io) are on DNS
-# blocklists, and the owner's own ISP resolver answers NXDOMAIN for them.
+# The servers answer at two sites with the same routes, the (servers)
+# snippet below. api.paraguayandronecombatsimulator.com is the name the
+# simulator uses since the game moved to its own domain (src/share/api.js);
+# Caddy fetches its certificate once the name's DNS points here. The VM's
+# bare address is what the simulator used before, and stays: pages still
+# open from before the move, and the page itself while the name's DNS
+# spreads, reach it there. Let's Encrypt issues certificates for IP
+# addresses on its six day "shortlived" profile, which Caddy renews by
+# itself, and an address needs no DNS: the wildcard DNS services that give
+# an address a name (sslip.io, nip.io) are on DNS blocklists, and the
+# owner's own ISP resolver answers NXDOMAIN for them.
+#
+# paraguayanfightdronesimulator.com is the game's second name. Its DNS
+# points here only to be sent on, path and query kept, to the game, which
+# GitHub Pages serves (CNAME in the repository root). The game's own www is
+# not here: Pages sends it to the apex.
 #
 # One origin serves all three servers, because their paths never meet: the
 # tracks server answers /api/* and the rooms server /v2/* and /, so the
@@ -41,13 +52,7 @@
 	default_sni 129.151.39.48
 }
 
-129.151.39.48 {
-	tls {
-		issuer acme {
-			profile shortlived
-		}
-	}
-
+(servers) {
 	# The board believes X-Forwarded-For under BOARD_TRUST_PROXY, so it is
 	# set here to the connecting address rather than appended to whatever a
 	# client sent, and the two country headers it would believe are removed:
@@ -73,4 +78,22 @@
 			header_up CF-Connecting-IP {remote_host}
 		}
 	}
+}
+
+129.151.39.48 {
+	tls {
+		issuer acme {
+			profile shortlived
+		}
+	}
+
+	import servers
+}
+
+api.paraguayandronecombatsimulator.com {
+	import servers
+}
+
+paraguayanfightdronesimulator.com, www.paraguayanfightdronesimulator.com {
+	redir https://paraguayandronecombatsimulator.com{uri} 301
 }
