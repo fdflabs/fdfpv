@@ -590,9 +590,11 @@ export function play(scene, camera, opts = {}) {
 
   function drawScope(s, t, tFilm, w, h, dpr) {
     const sc = s.scope;
-    const R = Math.min(w, h) * 0.4;
+    /* Inside the 2.39 frame the letterbox leaves, clear of the subtitle. */
+    const frameH = Math.min(h, w / 2.39);
+    const R = frameH * 0.4;
     const cx = w / 2;
-    const cy = h / 2;
+    const cy = h / 2 - frameH * 0.06;
     const px = (u, v) => [cx + u * R, cy + v * R];
     ink.fillStyle = '#020a07';
     ink.fillRect(0, 0, w, h);
@@ -669,7 +671,7 @@ export function play(scene, camera, opts = {}) {
     ink.stroke();
     ink.textAlign = 'left';
     ink.fillStyle = 'rgba(110, 230, 170, 0.9)';
-    ink.fillText(str('war.scope.title'), cx - R, cy - R - 10 * dpr);
+    ink.fillText(str('war.scope.title'), cx - R * 1.9, cy - R * 0.85);
     state.scope = { contacts: contacts.length, onScope: contacts.filter((c) => Math.hypot(c.u, c.v) <= 1).length };
   }
 
