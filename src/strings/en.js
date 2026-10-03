@@ -1158,7 +1158,7 @@ export default {
   "ui.exit": "Exit",
   "ui.exit_without_saving": "Exit without saving",
   "ui.exits_without_saving": "exits without saving",
-  "ui.expect_bugs_and_rough_edges_it": "Expect bugs and rough edges. It is still being built, and it will improve.",
+  "ui.realistic_drone_combat_inspired_by_paraguay": "Realistic drone combat, inspired by Paraguay's landscapes. A work in progress.",
   "ui.expert": "Expert",
   "ui.expert_the_full_physics_propwash_gyro": "Expert: the full physics, propwash, gyro noise and build tolerance included. Arcade turns the imperfections off for a friendlier machine. Takes effect on the next flight.",
   "ui.expert_the_full_physics_propwash_gyro_2": "Expert: the full physics, propwash, gyro noise and build tolerance included, which is what every board time is flown on. Arcade turns the imperfections off for a friendlier machine.",

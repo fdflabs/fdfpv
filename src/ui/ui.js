@@ -1842,15 +1842,22 @@ function hintWithKeys(keys, text) {
   return n;
 }
 
-/* The name as the owner's key art sets it (index.html .lockup), which the
- * share card clones too (scripts/og.js). English in every locale, because
- * it is the mark and not a sentence. The spaces keep the heading's text
- * the name. */
+/* The name as the owner's lockup sets it (index.html .lockup-box), which
+ * the share card clones too (scripts/og.js, the heading alone). English in
+ * every locale, because it is the mark and not a sentence. The spaces keep
+ * the heading's text the name.
+ *
+ * Self contained: the box is a size container and the lockup fills its
+ * width, so a screen places it by giving the box a width and nothing else
+ * (the title's is .screen-title .lockup-box). */
 function wordmark() {
+  const box = el('div', 'lockup-box');
   const h = el('h1', 'wordmark lockup');
   const slash = el('span', 'lockup-slash');
   slash.setAttribute('aria-hidden', 'true');
   const name = el('span', 'lockup-name');
+  /* The bevel draws the name twice more behind itself, from this. */
+  name.dataset.text = 'Drone Combat';
   name.append(el('span', null, 'Drone'), ' ', el('span', null, 'Combat'));
   /* The flag as the boot screen draws it, horizontal bands; the title
    * shows it and hides the slash, the share card the other way round. */
@@ -1860,7 +1867,8 @@ function wordmark() {
   const over = el('span', 'lockup-over');
   over.append(flag, 'Paraguayan');
   h.append(slash, over, ' ', name, ' ', el('span', 'lockup-under', 'Simulator'));
-  return h;
+  box.append(h);
+  return box;
 }
 
 /*
@@ -3797,7 +3805,7 @@ export class Ui {
     this.brandSub = el('div', 'brand-sub', '');
     brand.append(wordmark(), this.brandSub);
     /* Beta notice. The only line on this screen that is about the
-     * software rather than about flying, so it wears the amber an
+     * software rather than about flying, so it wears the blue an
      * instrument wears rather than the mint a record does, and it sits
      * directly under the wordmark: a pilot who is about to meet a bug
      * should have been told before the lap, not after it. It is not
@@ -3806,7 +3814,7 @@ export class Ui {
     const beta = el('p', 'beta-note');
     beta.append(
       el('span', 'beta-tag', str('ui.beta')),
-      el('span', null, str('ui.expect_bugs_and_rough_edges_it')),
+      el('span', null, str('ui.realistic_drone_combat_inspired_by_paraguay')),
     );
     brand.append(beta);
     this.titleBest = el('div', 'brand-best', '');

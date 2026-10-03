@@ -1149,7 +1149,7 @@ export default {
   "ui.everything_below_belongs_to_this_one": "Todo lo de abajo pertenece a este, y cada tune guarda su propio ajuste.{door}{v2}",
   "ui.exit_without_saving": "Salir sin guardar",
   "ui.exits_without_saving": "sale sin guardar",
-  "ui.expect_bugs_and_rough_edges_it": "Espera bugs y bordes ásperos. Todavía se está construyendo, y va a mejorar.",
+  "ui.realistic_drone_combat_inspired_by_paraguay": "Combate de drones realista, inspirado en los paisajes del Paraguay. Todavía en desarrollo.",
   "ui.expert_the_full_physics_propwash_gyro": "Experto: la física completa, con propwash, ruido de gyro y tolerancia de armado incluidos. Arcade apaga las imperfecciones para una máquina más amigable. Se aplica en el siguiente vuelo.",
   "ui.expert_the_full_physics_propwash_gyro_2": "Experto: la física completa, con propwash, ruido de gyro y tolerancia de armado incluidos, que es con lo que se vuela cada tiempo del tablero. Arcade apaga las imperfecciones para una máquina más amigable.",
   "ui.f8_also_opens_this": "F8 también abre esto.",
