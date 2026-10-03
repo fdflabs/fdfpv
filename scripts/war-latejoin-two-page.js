@@ -98,7 +98,7 @@ const TAP_SEED = `(() => {
 })();`;
 
 function seedFor(colour, consent = true) {
-  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '5inch');
+  const s = seatAirframe({ airframe: '5inch', rates: airframeById('5inch').rates }, '7inch');
   s.map = 'itaipu';
   s.freestyleMap = 'itaipu';
   s.graphics = 'low';
@@ -107,7 +107,7 @@ function seedFor(colour, consent = true) {
   s.airframeAsked = true;
   s.crashDamage = true;
   s.warConsent = consent;
-  s.livery = { '5inch': { regions: { frame: colour } } };
+  s.livery = { '7inch': { regions: { frame: colour } } };
   s.parts = {};
   return [TAP_SEED, `try {
     const k = ${JSON.stringify(SETTINGS_KEY)};

@@ -14,9 +14,9 @@
  *   shots     every shot drawn, and what each is for there: the title
  *             "2030"; the lone Striker in the long lens and then over the
  *             lens; the ten; the counter reaching 14 000 MW; the line of
- *             eight aircraft; a quad's props, the thrown Skyhunter, the
- *             F-16; the wave (Strikers, FPVs, Loiterers), six defenders
- *             and the mission's own card
+ *             eight war aircraft; a quad's props, the Striker off its
+ *             rail, the interceptor; the wave (Strikers, FPVs,
+ *             Loiterers), six defenders and the mission's own card
  *   the voice every line decoded in the browser as long as the manifest
  *             measured it (so the film's shot lengths, which are built on
  *             the manifest, are the files' real lengths, INTROS section
@@ -302,12 +302,12 @@ try {
     `${shot('haze').drawn.strike} ${shot('pass').drawn.strike}`);
   row('ten: the ten Strikers', shot('ten').drawn.strike === 10, `${shot('ten').drawn.strike}`);
   row('face: the counter reaches 14 000 MW', /14\s?000 MW/.test(shot('face').counter || ''), shot('face').counter || 'none');
-  const LINE = ['p51', 'cub', 'q1', 'q2', 'q3', 'sky', 'f16', 'timber'];
+  const LINE = ['ten', 'q1', 'q2', 'q3', 'strk', 'int', 'ten2', 'int2'];
   row('line: the eight aircraft on the crest', LINE.every((n) => shot('line').cast.includes(n)), shot('line').cast.join(' '));
-  row('props, thrown, fan: the quad spinning up, the thrown Skyhunter, the F-16', shot('props').cast.includes('q2s') && shot('thrown').cast.includes('skys')
-    && shot('fan').cast.includes('f16'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
+  row('props, thrown, fan: the quad spinning up, the Striker off its rail, the interceptor', shot('props').cast.includes('q2s') && shot('thrown').cast.includes('strks')
+    && shot('fan').cast.includes('ints'), `${shot('props').cast.join(' ')} / ${shot('thrown').cast.join(' ')} / ${shot('fan').cast.join(' ')}`);
   row('wave: Strikers, FPVs and Loiterers, and six defenders rising', shot('wave').drawn.strike >= 10 && shot('wave').drawn.fpv >= 8 && shot('wave').drawn.loiter >= 3
-    && ['q4', 'q5', 'q6', 'q7', 'p51', 'zagi'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
+    && ['q4', 'q5', 'q6', 'q7', 'strks', 'int3'].every((n) => shot('wave').cast.includes(n)), `${JSON.stringify(shot('wave').drawn)} [${shot('wave').cast.join(' ')}]`);
   row('wave: the mission\'s own card, its title over "Mission 1"', shot('wave').titles.includes(EN['war.mission.itaipu_1']), shot('wave').titles.join(' | '));
   row('the hand-off: the letterbox open by the last frame', shot('wave').opened > 0.95, shot('wave').opened.toFixed(3));
 
