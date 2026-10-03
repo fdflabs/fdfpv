@@ -14,10 +14,12 @@
  *   a reload keeps the room,   in a room made by hand, reload: back in
  *   on its screen (D2)         the same room, on the room screen with
  *                              its code, the title not shown.
- *   the title is never in a    in that room, Back and Escape on its
- *   room (rule 3 to 5, D5)     lobby are the title's cards, out of it
- *                              (2026-10-02); on Rooms and Make a room
- *                              they stay in it, one screen back each; the pause menu offers Leave the room
+ *   the title is never in a    in that room, made by hand and not by a
+ *   room (rule 3 to 5, D5)     card, Back and Escape on its lobby stay
+ *                              in it (rule 4; only a card's lobby is
+ *                              left by Escape, scripts/game-lobby-check.js);
+ *                              on Rooms and Make a room they stay in it,
+ *                              one screen back each; the pause menu offers Leave the room
  *                              and no Back to title; Leave is out, on
  *                              the title.
  *   every card is a lobby      each of the five cards, from the title, is
@@ -174,24 +176,22 @@ try {
     stays.push(`${what}: ${r.screen} ${r.phase}`);
     return r;
   };
-  /* Every room has a lobby now, and Back or Escape from a lobby is the
-   * title's cards, out of the room (the owner, 2026-10-02); a reload then
-   * is back in it by the room kept for the session. Back is pressed, then
-   * Escape, each from the lobby. */
+  /* A room this pilot did not open from a card (made by hand here, as
+   * one joined by a code, a link or the rooms panel is): Back and Escape
+   * on its lobby keep the pilot in it, its room screen being home inside
+   * a room (docs/FLOW-AUDIT.md rule 4); Leave is the way out. A card's
+   * own lobby is left by Escape, back to its hub's cards (the owner,
+   * 2026-10-02), which scripts/game-lobby-check.js asserts for every
+   * card. Which one a lobby is is the room's code, not whether its panel
+   * has been drawn yet: that race once decided it. */
+  await page.until('window.__ui.inLobby && window.__ui.inLobby()', 10000).catch(() => {});
   await page.evaluate("(() => { window.__ui.act('back'); return true; })()");
   const afterBack = await here('Back on the lobby');
-  const rejoin = async () => {
-    await page.evaluate(`(() => { window.__roomJoin(${JSON.stringify(made)}); window.__ui.show('friends'); return true; })()`);
-    await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(made)}`, 30000).catch(() => {});
-    await page.sleep(600);
-  };
-  await rejoin();
   await page.tap('Escape');
   const afterEsc = await here('Escape on the lobby');
-  check('Back and Escape from a lobby: the title\'s cards, out of the room',
-    [afterBack, afterEsc].every((r) => r.phase === 'idle' && r.screen === 'title') && await page.evaluate('window.__ui.onGate()'), stays.join(' | '));
+  check('Back and Escape on the lobby of a room not opened by a card stay in it, on its screen',
+    [afterBack, afterEsc].every((r) => r.phase === 'open' && r.code === made && r.screen === 'friends'), stays.join(' | '));
   stays.length = 0;
-  await rejoin();
   await page.evaluate("(() => { window.__ui.act('rooms'); return true; })()");
   await page.until("window.__ui.screen === 'rooms'", 10000).catch(() => {});
   await page.tap('Escape');
