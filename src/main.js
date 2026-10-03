@@ -628,7 +628,7 @@ async function loadMap(shell, id, loading, mapOptions) {
   const counter = moduleCounter(
     `/src/maps/${id}`,
     MAP_MODULE_COUNT[id] ?? 4,
-    (f, got, total) => loading.progress('module', f, str('main.of_modules', { got, total })),
+    (f, got, total) => loading.report('module', f, str('main.of_modules', { got, total })),
   );
   let mod;
   try {
@@ -647,17 +647,19 @@ async function loadMap(shell, id, loading, mapOptions) {
   const map = await mod.buildMap(shell, (f, phase) => {
     loading.phase(phase);
     if (f !== undefined) {
-      loading.progress('world', f);
+      loading.report('world', f);
     }
   }, options);
-  loading.final('shaders', 'ready');
-  loading.final('world', 'loading');
+  /* The builder has returned, so every phase it ran is over (the scene's
+   * compile among them). */
+  loading.closePhases();
+  loading.finalSystem('world', 'loading');
   map.graphics = normalizeGraphics(options && options.quality);
   /* The map's water, as the plant is told it: src/game/water.js. */
   map.water = await waterFor(id, map);
   /* The ground over a river or a pool is its water, as over the lake. */
   map.height = wetHeight(map.height, map.water);
-  loading.final('world', 'ready');
+  loading.finalSystem('world', 'ready');
   loading.done('world');
   return map;
 }
@@ -697,6 +699,7 @@ export async function boot({
     desynchronized: true,
     powerPreference: gpuQuery === 'low' ? 'low-power' : 'high-performance',
   });
+  loading.system('input', 'loading');
   const input = new InputManager();
   /*
    * Sample the sticks on their own timer rather than once per rendered frame.
@@ -728,7 +731,10 @@ export async function boot({
    */
   const avionicsHud = new AvionicsHud(uiRoot);
   avionicsHud.setLevel(ui.settings.avxLevel);
+  /* The boot screen's TELEMETRY row is this model being built. */
+  loading.system('telemetry', 'loading');
   const telemetry = createFlightTelemetry();
+  loading.system('telemetry', 'ready');
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
   sensors.setInset(ui.settings.avxInset);
   /* The top of the map under a point, for what hides a target. */
@@ -1013,7 +1019,7 @@ export async function boot({
    * a minute to wake. Starting it here costs nothing and takes those round
    * trips off the critical path.
    *
-   * The progress callback is deliberately gated. loading.progress(id) starts
+   * The progress callback is deliberately gated. loading.report(id) starts
    * that stage if it is not the current one, so an ungated callback would
    * flip the screen to "Flight controller" while it is really waiting on the
    * board, which is the same lie in a new place. Instead the last reading is
@@ -1024,7 +1030,7 @@ export async function boot({
   const simBytes = fetchBytes(WASM_URL, (f, got, total) => {
     simProgress = [f, str('main.of_kb', { v1: (got / 1024).toFixed(0), v2: (total / 1024).toFixed(0) })];
     if (simStageLive) {
-      loading.progress('sim', simProgress[0], simProgress[1]);
+      loading.report('sim', simProgress[0], simProgress[1]);
     }
   });
   /* A rejection here is handled at the await below, in the stage that owns
@@ -1253,7 +1259,7 @@ export async function boot({
   simStageLive = true;
   if (simProgress) {
     /* Whatever arrived while the board was being asked. Usually all of it. */
-    loading.progress('sim', simProgress[0], simProgress[1]);
+    loading.report('sim', simProgress[0], simProgress[1]);
   }
   const sim = await loadSim(await simBytes);
   /* The crash cam's journal stands between the shell and the module from
@@ -1286,7 +1292,7 @@ export async function boot({
   /* The module is in and answers for every entry point the shell calls:
    * the plant is up. The controller is up once its tune is applied, below. */
   loading.system('physics', 'ready');
-  loading.system('fc', 'loading');
+  loading.system('flight', 'loading');
   /*
    * The flight controller comes entirely from a Betaflight diff, so which
    * diff is chosen IS the tune. The choice is a setting; the boot path and
@@ -1424,7 +1430,7 @@ export async function boot({
     });
   }
   publishPids();
-  loading.system('fc', 'ready');
+  loading.system('flight', 'ready');
   loading.done('sim');
   loading.detail = '';
 
@@ -2200,6 +2206,25 @@ export async function boot({
   /* Each room game's name, for the room screen's heading when a room is
    * set up for one (a title card or Make a room's Game row). */
   const GAME_CARDS = { race: 'roombrowser.mode_race', tag: 'roomtag.section', combat: 'combat.card', war: 'war.card', free: 'ui.free_flight_card' };
+  /*
+   * THE BOOTLOADER OVER A ROOM LINK BEING RETRIED (src/ui/loading.js hold):
+   * a room's socket that dropped, or a rooms server that said it was
+   * restarting, holds the minimal loader over the menus until the link is
+   * back or given up on. Only a link that had a room: a first join that
+   * retries is the room browser's to show. Never over flight: a room is
+   * peers, the run carries on through an outage on its own, and a pilot
+   * under the screen would be flying blind; each retry asks again, so one
+   * who takes off under it is let go at the next.
+   */
+  function roomLinkHold(st) {
+    const retrying = st.phase === 'connecting' && (st.reason === 'retrying' || st.reason === 'restart')
+      && Boolean(roomLinkState.state().welcome);
+    if (retrying && ui.screen !== 'flight') {
+      loading.hold(st.reason === 'restart' ? 'restart' : 'reconnect', str('loading.held_attempt', { n: st.attempt, of: st.attempts }));
+    } else {
+      loading.release();
+    }
+  }
   const roomLinkState = createRoomLink({
     onWelcome: (w) => {
       roomRace.onWelcome(w);
@@ -2318,6 +2343,7 @@ export async function boot({
       }
     },
     onState: (st) => {
+      roomLinkHold(st);
       if (st.phase !== 'open') {
         roomSlot = -1;
       }

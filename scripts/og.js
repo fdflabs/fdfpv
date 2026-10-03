@@ -120,7 +120,7 @@ try {
      * cold boot on a busy machine takes longer than that end to end. */
     'until:window.__loading.timings.sim',
     'until:window.__loading.timings.world',
-    "until:document.getElementById('loading').hidden",
+    "until:document.getElementById('pdcs-loader').hidden",
     `eval:(() => { ${show} })()`,
     /* The art is this card's own background, so this waits for the file
      * to have arrived and decoded as well as for layout. */
