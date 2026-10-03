@@ -33,6 +33,7 @@ import { MAP_BUILD_MS } from './maps/build-cost.js';
 import { retiredMap } from './maps/retired.js';
 import { SIM_WINDOW, claimWindowName } from './share/windows.js';
 import { watchPageErrors } from './share/crashrecord.js';
+import { SITE_HOSTS, probeApi } from './share/api.js';
 
 /* P6: navigation to the first interactive frame. Stamped in the first module
  * the page runs so it covers every fetch and every module evaluation, and
@@ -47,6 +48,13 @@ watchPageErrors(window);
  * the first module the page runs, so the board's Fly this track finds it
  * even while the shell is still loading. See share/windows.js. */
 claimWindowName(SIM_WINDOW);
+
+/* Started before three.js is fetched, so the servers' origin is settled
+ * long before the menus first ask a server anything (src/share/api.js).
+ * Only on the deployed site: a loopback page has no production servers. */
+if (SITE_HOSTS.includes(window.location.hostname)) {
+  probeApi();
+}
 
 const loading = new Loading(document.getElementById('pdcs-loader'));
 /* window.loader is the spec's name for the controller; __loading is the

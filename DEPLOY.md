@@ -28,6 +28,51 @@ pages, counts a visit, loads the board and its bugs page, and takes back
 what it made. See its header, and `deploy/vm/README.md` for the sign in
 file it needs.
 
+# The move to the game's own domain
+
+The owner's decision of 3 October 2026: the game lives at
+https://paraguayandronecombatsimulator.com, served by GitHub Pages from this
+repository, with www sent to the apex by Pages. The servers answer at
+https://api.paraguayandronecombatsimulator.com, the VM by name.
+
+DNS, at Hostinger:
+
+| Name | Record | Value |
+| --- | --- | --- |
+| paraguayandronecombatsimulator.com | A | GitHub Pages: 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153 (AAAA 2606:50c0:8000::153 to 8003::153 if wanted) |
+| www.paraguayandronecombatsimulator.com | CNAME | fdflabs.github.io |
+| api.paraguayandronecombatsimulator.com | A | 129.151.39.48 |
+
+What each piece does:
+
+- `src/share/api.js` names the servers once. The page asks
+  `https://api.paraguayandronecombatsimulator.com/api/health` as it boots,
+  and only when the name does not answer (its DNS still spreading, or Caddy
+  still waiting for its certificate) it uses https://129.151.39.48, the
+  address it used before. The answer is never stored. Delete the fallback
+  once the name answers everywhere.
+- `deploy/vm/Caddyfile` serves the same routes at the name and at the bare
+  address. Caddy fetches the name's certificate by itself once its DNS
+  points at the VM: rerun
+  `deploy/vm/deploy.sh` after the DNS is in.
+- The rooms server allows the apex, its www and fdflabs.github.io
+  (`edge/rooms/front.js`). The tracks server answers every origin and the
+  board reflects the asking origin, so neither has a list to extend.
+- Every URL the page asks its own site for is relative, so the same build
+  works at the domain's root and at /fdfpv/ (`npm run base:check`).
+
+Google sign in (Google Cloud project fdfpv-510202, the Web client in
+`src/share/account.js`). The page uses the Sign in with Google button with
+a callback that takes the ID token in the page, so only Authorised
+JavaScript origins matter. Add:
+
+- https://paraguayandronecombatsimulator.com
+- https://www.paraguayandronecombatsimulator.com
+
+and keep https://fdflabs.github.io and http://127.0.0.1:8080. No
+authorised redirect URI is needed. The tracks server checks the token's
+audience, the client id, not the page's origin, so it needs no change.
+
 # The tracks server
 
 Since 2026-09-28 production runs on the owner's VM (`deploy/vm/README.md`):
