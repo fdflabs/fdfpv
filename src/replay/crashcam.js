@@ -69,6 +69,9 @@ import {
   airAt, bedAt, callsBetween, createSoundRing, peerVoicesAt,
 } from './sound.js';
 import {
+  MIMES, SEGMENT_MS, createVoiceRing, voiceClockAt, voicesAt,
+} from './voicerec.js';
+import {
   RIGS, createPose, defaults, evaluate, evaluateEdit, rotate,
 } from './cameras.js';
 import * as ed from './edit.js';
@@ -100,6 +103,9 @@ const { SPEEDS } = ed;
 /* A gap between two times drawn that is still one step forward, s; a
  * bigger one, or any step back, is a jump and the air is rebuilt. */
 const FORWARD_S = 0.25;
+/* A replayed voice this far from where the clip says it is, seconds, is
+ * started again there. */
+const VOICE_SLIP_S = 0.15;
 /* How many movie frames behind the playhead may be stepped through in one
  * display frame before it is a jump instead. */
 const CATCH_UP = 6;
@@ -124,6 +130,8 @@ export function createCrashCam(host) {
   const paperRing = createPaperRing(rec.capacity);
   /* The flight's sound no row holds (src/replay/sound.js). */
   const soundRing = createSoundRing(rec.capacity);
+  /* The room's voices as heard here (src/replay/voicerec.js). */
+  const voiceRing = createVoiceRing(rec.capacity);
   /* Harness only: the paper as recorded, by ring row, while switched on. */
   let paperLog = null;
   /* Harness only: the peers as recorded, by ring row, while switched on. */
@@ -169,6 +177,7 @@ export function createCrashCam(host) {
     paperRing.begin(-1);
     warRing.begin(-1);
     soundRing.begin(-1);
+    voiceRing.begin(-1);
     if (S) {
       return;
     }
@@ -196,6 +205,7 @@ export function createCrashCam(host) {
       paperRing.clear();
       warRing.clear();
       soundRing.clear();
+      voiceRing.clear();
       prevStatus.fill(0);
       ringAirframe = host.airframe();
       ringMap = host.mapId();
@@ -208,6 +218,12 @@ export function createCrashCam(host) {
     paperRing.begin(i);
     warRing.begin(i);
     soundRing.begin(i);
+    voiceRing.begin(i);
+    const roomMs = host.roomNow ? host.roomNow() : null;
+    voiceRing.at(roomMs);
+    if (roomMs != null) {
+      voiceRing.prune(roomMs, WINDOW_S * 1000);
+    }
     paperRing.prune(rec.now(), WINDOW_S);
     soundRing.prune(rec.now(), WINDOW_S);
     /* The two beds, kept when they change (src/replay/sound.js). */
@@ -385,6 +401,81 @@ export function createCrashCam(host) {
         return radio;
       };
     }
+  }
+
+  /* Where src/share/voice.js sends the voices it hears (setRecorder). */
+  const voiceSink = {
+    now: () => (host.roomNow ? host.roomNow() : null),
+    piece: (p) => voiceRing.add(p),
+    mimes: MIMES,
+    segmentMs: SEGMENT_MS,
+  };
+
+  /*
+   * The room's voices at the frame on screen: each piece speaking at the
+   * room ms the row was drawn at, decoded once, played from where it had
+   * got to into the mix's voice bus at the replay's speed; a scrub, a
+   * pause or a piece now silent stops it. A source more than VOICE_SLIP_S
+   * from where it should be is started again there.
+   */
+  function voicesFrame(k, a, speed, playing) {
+    const v = S.clip.voice;
+    const ctx = audio.ctx;
+    if (!v || !ctx || !audio.voiceBus) {
+      return;
+    }
+    const ms = voiceClockAt(v, S.clip.n, k, a);
+    const want = playing && !S.exporting ? voicesAt(v, ms) : [];
+    const now = ctx.currentTime;
+    for (const [piece, src] of S.voices) {
+      const w = want.find((x) => x.piece === piece);
+      const at = src.at + (now - src.t) * src.rate;
+      if (!w || Math.abs(at - w.at) > VOICE_SLIP_S || src.rate !== speed) {
+        try {
+          src.node.stop();
+        } catch (e) {
+          /* Already ended. */
+        }
+        S.voices.delete(piece);
+      }
+    }
+    for (const w of want) {
+      if (S.voices.has(w.piece)) {
+        continue;
+      }
+      if (!S.decoded.has(w.piece)) {
+        S.decoded.set(w.piece, null);
+        ctx.decodeAudioData(w.piece.bytes.slice().buffer).then((b) => {
+          if (S) {
+            S.decoded.set(w.piece, b);
+          }
+        }, () => {});
+        continue;
+      }
+      const buf = S.decoded.get(w.piece);
+      if (!buf || w.at >= buf.duration) {
+        continue;
+      }
+      const node = ctx.createBufferSource();
+      node.buffer = buf;
+      node.playbackRate.value = speed;
+      node.connect(audio.voiceBus);
+      node.start(now, w.at);
+      S.voices.set(w.piece, {
+        node, at: w.at, t: now, rate: speed,
+      });
+    }
+  }
+
+  function voicesStop() {
+    for (const src of S.voices.values()) {
+      try {
+        src.node.stop();
+      } catch (e) {
+        /* Already ended. */
+      }
+    }
+    S.voices.clear();
   }
 
   /* This frame's engine air (src/render/audio.js update's), into the row. */
@@ -621,6 +712,10 @@ export function createCrashCam(host) {
       if (sound) {
         clip.sound = sound;
       }
+      const voice = voiceRing.clip(first, n);
+      if (voice) {
+        clip.voice = voice;
+      }
     }
     /* A saved clip of one frame is a still, and plays as one. */
     if (clip.n < (saved ? 1 : 2)) {
@@ -675,6 +770,9 @@ export function createCrashCam(host) {
       toast: null,
       /* Harness only: every movie frame stepped, while switched on. */
       stepLog: null,
+      /* The room's voices playing (piece -> source) and decoded. */
+      voices: new Map(),
+      decoded: new Map(),
     };
     clockFps = lastExportFps();
     startClock();
@@ -711,6 +809,7 @@ export function createCrashCam(host) {
     if (S.exporting) {
       cancelExport();
     }
+    voicesStop();
     disposeScene(S.scene);
     for (const g of host.liveGroups) {
       g.visible = true;
@@ -1093,6 +1192,7 @@ export function createCrashCam(host) {
     S.animMs = s.anim;
     events(from, t, speed);
     bedsFrame(t, speed, running);
+    voicesFrame(s.k, s.a, speed, running);
     smokeTo(from, t);
     if (moving) {
       S.scene.debris.update(step);
@@ -2029,6 +2129,7 @@ export function createCrashCam(host) {
     if (S.exporting) {
       cancelExport();
     }
+    voicesStop();
     disposeScene(session.scene);
     for (const g of host.liveGroups) {
       g.visible = true;
@@ -2211,6 +2312,7 @@ export function createCrashCam(host) {
     tapBooms,
     tapWar,
     recordAir,
+    voiceSink,
     noteCrash,
     promptKey: () => promptKey,
     tap,
@@ -2340,6 +2442,10 @@ export function createCrashCam(host) {
         const w = S && S.scene.war ? S.scene.war.world() : null;
         return w ? { t: w.t ?? null, targets: { ...w.targets }, levels: Array.from(w.levels) } : null;
       },
+      /* The seats whose voices the replay plays this frame, and the
+       * ring's bytes. */
+      voicesPlaying: () => (S ? [...S.voices.keys()].map((p) => p.seat) : []),
+      voiceBytes: () => voiceRing.bytes(),
       /* The clip row whose map was drawn at room ms `ms`, or -1. */
       warWorldRow: (ms) => (S && S.clip.war && S.clip.war.clock ? S.clip.war.clock.indexOf(ms) : -1),
     }),

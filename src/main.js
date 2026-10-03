@@ -2398,7 +2398,14 @@ export async function boot({
   /* VOICE CHAT (src/share/voice.js, src/ui/voiceui.js): off until the pilot
    * turns it on in the room screen, never to a pilot muted or reported. */
   const voice = createVoice({ send: (m) => roomLinkState.send(m), isMuted: (seat) => roomSafety.isMuted(seat) });
-  const voiceUi = createVoiceUi(voice, input, () => ui.refreshFriends());
+  const voiceUi = createVoiceUi(voice, input, () => ui.refreshFriends(), {
+    acknowledged: () => ui.settings.voiceReplayAck === true,
+    acknowledge: () => {
+      ui.settings.voiceReplayAck = true;
+      ui.persistSettings();
+    },
+    confirm: (o) => ui.askConfirm(o),
+  });
   /* Harness only, for scripts/voicechat-two-page.js. */
   window.__voice = voice;
   window.__voiceUi = voiceUi;
@@ -18501,6 +18508,9 @@ export async function boot({
     /* A replayed explosion in the world's voice, from where it went off;
      * false without one. */
     worldBoom: (p, level) => worldAudio.boom(p, level),
+    /* The room clock now, or null out of a room: what each row and each
+     * voice heard is stamped on (src/replay/voicerec.js). */
+    roomNow: () => (roomLinkState.state().phase === 'open' ? roomLinkState.roomNow() : null),
     notice: (text) => {
       notice = { text, untilMs: performance.now() + 2400 };
     },
@@ -18588,6 +18598,8 @@ export async function boot({
   crashCam.tapBooms(warBooms);
   /* And its attackers, so a replay flies them where they were. */
   crashCam.tapWar(roomWar, warAttackers, () => warFrameNow);
+  /* And the voices this page hears, for its replays (src/share/voice.js). */
+  voice.setRecorder(crashCam.voiceSink);
   /* Harness: the crash cam's controls, its costs, and a switch for the
    * proof that recording changes nothing. */
   window.__crashCam = {
