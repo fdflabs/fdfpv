@@ -161,7 +161,7 @@ try {
   await a.sleep(1500);
   const code = await a.evaluate('window.__rooms().code');
   const la = await a.evaluate(LOBBY);
-  check('A is on the room\'s LOBBY: mission 1, waiting, A its host, the cursor on Ready', la.screen === 'friends' && la.shown && la.title === 'LOBBY'
+  check('A is on the room\'s lobby, headed BRIEFING: mission 1, waiting, A its host, the cursor on Ready', la.screen === 'friends' && la.shown && la.title === 'BRIEFING'
     && /Mission 1: /.test(la.mission) && /^Press Ready, or R, to go/.test(la.status) && la.pilots.length === 1 && la.pilots[0].host && !la.pilots[0].ready
     && la.here === 'friends-lobby-ready', JSON.stringify(la));
   check('and nothing of free flight: no Fly, no world row, no other games, never in the air', !la.rows.includes('fly') && !la.rows.includes('The world')
@@ -280,7 +280,7 @@ try {
   await a.until("window.__rooms().phase === 'open' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden", 60000).catch(() => {});
   await a.sleep(1000);
   const lc = await a.evaluate(LOBBY);
-  check('campaign Play lands on a lobby too, the cursor on Ready', lc.shown && lc.title === 'LOBBY' && lc.here === 'friends-lobby-ready' && lc.flying !== 'flight',
+  check('campaign Play lands on a lobby too, the cursor on Ready', lc.shown && lc.title === 'BRIEFING' && lc.here === 'friends-lobby-ready' && lc.flying !== 'flight',
     JSON.stringify({ shown: lc.shown, here: lc.here, flying: lc.flying }));
 
   const errs = [a, b].flatMap((p) => p.errors).filter((e) => !e.startsWith('network:'));

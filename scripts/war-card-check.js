@@ -212,7 +212,7 @@ const LANDED = `(() => {
 function landedWell(v, pub = false) {
   return v.phase === 'open' && /^[A-Z0-9]{6}$/.test(v.code || '') && v.public === pub && v.host && v.screen === 'friends'
     && v.map === 'itaipu' && v.game === 'war' && v.consent && v.war && v.here === 'friends-lobby-ready' && v.primary
-    && v.lobby === 'LOBBY';
+    && v.lobby === 'BRIEFING';
 }
 
 async function landed(page) {

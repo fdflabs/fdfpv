@@ -137,6 +137,7 @@ import {
 import { createWarCalls } from './render/warradio.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS } from './share/war/missions/index.js';
+import { briefingOf } from './ui/briefing.js';
 import {
   ACT1, createCampaignStore, markSeen, seenFilm,
 } from './game/campaign.js';
@@ -3010,8 +3011,12 @@ export async function boot({
      * above it would slide under the cursor. The code, where a public
      * room's host made this private one for the war, comes next, above
      * the host's rows. */
+    /* Operations' word for Ready is Deploy (docs/redesign/PLAN.md 2.4). */
+    const war = lobbyGame() === 'war';
+    const readyLabel = ready ? (war ? 'brief.stand_down' : 'lobby.unready') : (war ? 'brief.deploy' : 'lobby.ready');
+    const readyNote = ready ? 'lobby.unready_note' : (war ? 'brief.deploy_note' : 'lobby.ready_note');
     const rows = [{
-      label: str(ready ? 'lobby.unready' : 'lobby.ready'), note: str(ready ? 'lobby.unready_note' : 'lobby.ready_note'), action: 'friends-lobby-ready', primary: true,
+      label: str(readyLabel), note: str(readyNote), action: 'friends-lobby-ready', primary: true,
     }, ...lobbyInviteRows()];
     rows.push(...game.rows(host));
     if (host && game.start) {
@@ -3064,6 +3069,8 @@ export async function boot({
       last: game === 'war' && v && (v.state === 'won' || v.state === 'lost' || v.state === 'ended') && v.mission === mission ? {
         state: v.state, stars: v.result ? v.result.stars : null, kills: mine ? mine.kills : 0,
       } : null,
+      /* Operations' briefing, the head of a war room's lobby. */
+      brief: game === 'war' ? briefingOf(mission, { public: Boolean(w.public), code: roomLinkState.state().code }) : null,
     };
   }
   function missionKey(id) {

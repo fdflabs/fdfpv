@@ -202,9 +202,31 @@ try {
   await a.sleep(800);
   const la = await a.evaluate(LOBBY);
   check(`A: one click on its link on home (${a.clicks - aBefore}) and A is in the LOBBY of a public room made for ${GAME}, named for A, Ready under the cursor`,
-    a.clicks - aBefore === 1 && la.shown && la.title === 'LOBBY' && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
+    a.clicks - aBefore === 1 && la.shown && la.title === (GAME === 'war' ? 'BRIEFING' : 'LOBBY') && la.public === true && la.mode === (GAME === 'free' ? null : GAME)
     && /, /.test(la.name || '') && la.here === 'friends-lobby-ready' && la.flying !== 'flight', JSON.stringify(la));
   await shot(a, '1-a-lobby');
+
+  /* THE WAR'S LOBBY IS OPERATIONS' BRIEFING (src/ui/briefing.js): the
+   * mission's line, what to do first where the mission has stages, the
+   * five facts, and Deploy for Ready. No difficulty. */
+  if (GAME === 'war') {
+    const brief = await a.evaluate(`(() => {
+      const box = document.querySelector('.war-lobby');
+      const ui = window.__ui;
+      return {
+        title: (box.querySelector('.war-lobby-title') || {}).textContent || '',
+        line: (box.querySelector('.war-brief-line') || {}).textContent || '',
+        first: [...box.querySelectorAll('.war-brief-objective')].map((n) => n.textContent),
+        facts: [...box.querySelectorAll('.war-brief-facts dt')].map((n) => n.textContent),
+        values: [...box.querySelectorAll('.war-brief-facts dd')].map((n) => n.textContent),
+        ready: (ui.items().find((it) => it.action === 'friends-lobby-ready') || {}).label || '',
+        difficulty: /difficult/i.test(box.textContent) || ui.items().some((it) => /difficult/i.test(it.label || '')),
+      };
+    })()`);
+    check('the war\'s lobby is the briefing: the line, the first objective, where, aircraft, length, pilots and room, Deploy, no difficulty',
+      brief.title === 'BRIEFING' && brief.line.length > 0 && brief.first.length > 0 && brief.facts.join() === 'Where,Aircraft,Length,Pilots,Room'
+      && brief.values.every((x) => x.length > 0) && /Public/.test(brief.values[4]) && brief.ready === 'Deploy' && !brief.difficulty, JSON.stringify(brief));
+  }
 
   /* ESCAPE: the cards, out of the room, this card under the cursor. */
   await a.tap('Escape');

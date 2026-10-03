@@ -4748,7 +4748,7 @@ export class Ui {
       : v.deadline != null
         ? str('lobby.deadline', { t: `${Math.floor(v.deadline / 60)}:${String(v.deadline % 60).padStart(2, '0')}` })
         : str('lobby.waiting');
-    const key = JSON.stringify([v.mission, status, v.pilots, v.last]);
+    const key = JSON.stringify([v.mission, status, v.pilots, v.last, v.brief]);
     if (key === this.warLobbyKey) {
       return;
     }
@@ -4756,8 +4756,30 @@ export class Ui {
     const box = this.warLobbyEl;
     box.textContent = '';
     const head = el('div', 'war-lobby-head');
-    head.append(el('div', 'war-lobby-title', str('lobby.title')), el('div', 'war-lobby-mission', v.mission));
+    head.append(el('div', 'war-lobby-title', str(v.brief ? 'brief.title' : 'lobby.title')), el('div', 'war-lobby-mission', v.mission));
     box.append(head);
+    /* Operations' briefing (src/ui/briefing.js): its line, what to do
+     * first, and the facts, each a label and a value. */
+    if (v.brief) {
+      const brief = el('div', 'war-brief');
+      if (v.brief.line) {
+        brief.append(el('p', 'war-brief-line', v.brief.line));
+      }
+      if (v.brief.objectives.length) {
+        const first = el('div', 'war-brief-first');
+        first.append(el('span', 'war-brief-label', str('brief.first')));
+        for (const o of v.brief.objectives) {
+          first.append(el('span', 'war-brief-objective', o));
+        }
+        brief.append(first);
+      }
+      const facts = el('dl', 'war-brief-facts');
+      for (const f of v.brief.facts) {
+        facts.append(el('dt', 'war-brief-label', f.label), el('dd', 'war-brief-value', f.value));
+      }
+      brief.append(facts);
+      box.append(brief);
+    }
     box.append(el('div', `war-lobby-status${v.countdown != null ? ' go' : ''}`, status));
     if (v.last) {
       box.append(el('div', 'war-lobby-last', str(`lobby.last_${v.last.state}`, {
