@@ -3008,7 +3008,7 @@ export default {
   "brief.where": "Dónde",
   "brief.map_itaipu": "La represa de Itaipú, sobre el Paraná",
   "brief.aircraft": "Aeronaves",
-  "brief.aircraft_value": "Cualquiera menos el whoop, {n} cada uno por etapa",
+  "brief.aircraft_value": "{names}. {n} cada uno por etapa",
   "brief.length": "Duración",
   "brief.minutes": "{low} a {high} minutos",
   "brief.length_open": "Mientras resistan",

@@ -33,6 +33,7 @@ import { ACT1 } from '../src/game/campaign.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { LOCALES, useLocale } from '../src/strings/index.js';
 import { briefingOf } from '../src/ui/briefing.js';
+import { WAR_AIRFRAMES, airframeById } from '../configs/airframes.js';
 
 let failed = 0;
 let passed = 0;
@@ -54,6 +55,11 @@ for (const locale of LOCALES) {
     const priv = briefingOf(m.id, { public: false, code: 'ABC123' });
     check(`${m.id}: a briefing with a title and the campaign's line`, Boolean(pub) && pub.title.length > 0 && pub.line.length > 0, JSON.stringify(pub && [pub.title, pub.line]));
     check(`${m.id}: five facts, each with a value`, pub.facts.length === 5 && pub.facts.every((f) => f.label && f.value), JSON.stringify(pub.facts));
+    const flown = MISSIONS[m.id].aircraft;
+    const names = WAR_AIRFRAMES.map((a) => airframeById(a).name);
+    check(`${m.id}: flown in the war's aircraft, and the Aircraft fact names every one of them, in order, and no other`,
+      Array.isArray(flown) && flown.join() === WAR_AIRFRAMES.join() && pub.facts[1].value.startsWith(`${names.join(', ')}.`)
+      && !/whoop/i.test(pub.facts[1].value), `${JSON.stringify(flown)} ${pub.facts[1].value}`);
     const est = MISSIONS[m.id].estimatedMinutes;
     check(`${m.id}: its definition carries estimatedMinutes, and the briefing shows it`, Array.isArray(est) && est.length === 2
       && est.every((x) => Number.isInteger(x) && x > 0) && est[0] < est[1] && pub.facts[2].value.includes(String(est[0])), `${JSON.stringify(est)} ${pub.facts[2].value}`);

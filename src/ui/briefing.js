@@ -33,6 +33,7 @@
  */
 
 import { MISSIONS } from '../share/war/missions/index.js';
+import { airframeById } from '../../configs/airframes.js';
 import { ACT1 } from '../game/campaign.js';
 import { str } from '../strings/index.js';
 
@@ -62,7 +63,10 @@ export function briefingOf(id, room = { public: true, code: null }) {
     objectives: openingObjectives(mission).map((k) => str(k)),
     facts: [
       { label: str('brief.where'), value: str(`brief.map_${mission.map}`) },
-      { label: str('brief.aircraft'), value: str('brief.aircraft_value', { n: mission.airframes }) },
+      /* The war's aircraft as the mission flies them (`aircraft`,
+       * configs/airframes.js WAR_AIRFRAMES): the briefing never names a set
+       * of its own. */
+      { label: str('brief.aircraft'), value: str('brief.aircraft_value', { names: mission.aircraft.map((a) => airframeById(a).name).join(', '), n: mission.airframes }) },
       { label: str('brief.length'), value: minutes ? str('brief.minutes', { low: minutes[0], high: minutes[1] }) : str('brief.length_open') },
       { label: str('brief.pilots'), value: str('brief.pilots_value', { low: PILOTS[0], high: PILOTS[1] }) },
       { label: str('brief.room'), value: room.public ? str('brief.room_public') : str('brief.room_private', { code: room.code || '' }) },

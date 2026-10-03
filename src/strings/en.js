@@ -3004,7 +3004,7 @@ export default {
   "brief.where": "Where",
   "brief.map_itaipu": "The Itaipu Dam, on the Paraná",
   "brief.aircraft": "Aircraft",
-  "brief.aircraft_value": "Any but the whoop, {n} each a stage",
+  "brief.aircraft_value": "{names}. {n} each a stage",
   "brief.length": "Length",
   "brief.minutes": "{low} to {high} minutes",
   "brief.length_open": "As long as you hold",
