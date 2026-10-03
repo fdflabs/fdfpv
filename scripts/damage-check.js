@@ -79,6 +79,7 @@ function check(ok, what, detail = '') {
 function table() {
   console.log('\nthe damage table: hits to open at the aim point, no error');
   const rows = new Map();
+  const yardRows = [];
   for (const m of Object.values(MISSIONS)) {
     if (m.map !== 'itaipu') {
       continue;
@@ -94,6 +95,13 @@ function table() {
         }
         const key = `${w.kind} at ${target}`;
         if (rows.has(key)) {
+          continue;
+        }
+        /* The yard holds no water and opens nothing: its aim is the
+         * middle of its sphere, 24 m over the yard, clear of the rows. */
+        if (s.part === 'yard') {
+          yardRows.push({ kind: w.kind, mission: m.id, w, target, m });
+          rows.set(key, null);
           continue;
         }
         const plan = planAgent(m, {
@@ -123,8 +131,33 @@ function table() {
     }
     check(n > HITS, `a defender's standard warhead on ${id}'s face opens it only after more than ${HITS}`, n >= 50 ? 'not in 50' : `${n + 1}`);
   }
+  /* The yard: a Striker at its aim breaks equipment within HITS hits;
+   * an FPV's or a Loiterer's warhead over the yard's middle reaches
+   * none of it (the nearest tank is 17.6 m off), and says so. */
+  for (const y of yardRows) {
+    const plan = planAgent(y.m, {
+      id: 1, kind: y.kind, route: y.w.route, t0: 0, k: 0, n: 1, err: 0, target: y.target,
+    });
+    const p = poseAt(plan, plan.tEnd).p;
+    const wreck = {};
+    let hits = 0;
+    let broke = null;
+    while (hits < 20 && !broke) {
+      hits += 1;
+      broke = blast({ [y.target]: STRUCTURES[y.target] }, wreck, p, attackerCharge(y.kind), hits)[0] ?? null;
+    }
+    const n = broke ? hits : Infinity;
+    if (y.kind === 'strike') {
+      check(n <= HITS, `strike at the yard (${y.mission}): its first break in ${HITS} hits or fewer`, `${n}, ${broke ? broke.chunks.map((i) => STRUCTURES[y.target].chunks[i].k).join(' ') : 'none'}`);
+    } else {
+      console.log(`  info  ${y.kind} at the yard (${y.mission}): first break ${n === Infinity ? 'never in 20' : `in ${n}`}`);
+    }
+  }
   const by = new Map();
   for (const [key, r] of rows) {
+    if (!r) {
+      continue;
+    }
     const k = `${r.kind} at a ${r.part}`;
     by.set(k, [...(by.get(k) ?? []), r.hits]);
     if (!(r.hits >= HITS_MIN && r.hits <= HITS)) {
@@ -153,6 +186,20 @@ function support() {
   const fell = new Set(unsupported(s, gone));
   const hanging = [...of('skin'), ...of('girder'), ...of('brace')];
   check(hanging.every((i) => fell.has(i)) && fell.size === hanging.length, 'arms and hoists gone: skin, girders and braces fall, nothing else', `${fell.size} fall`);
+  /* A yard gantry: its posts gone, its beam falls, and the spans whose
+   * wires end on it are down. */
+  const y = STRUCTURES['yard-right'];
+  const bi = y.chunks.findIndex((ch) => ch.k === 'beam' && ch.w && ch.w.length);
+  const posts = y.chunks[bi].l;
+  const wreck = {};
+  let cut = [];
+  for (const i of posts) {
+    for (const r of blast({ 'yard-right': y }, wreck, y.chunks[i].c, { charge: 200, r: 0.5 }, i)) {
+      cut = [...cut, ...r.cut];
+    }
+  }
+  check(wreck['yard-right'].gone[bi] === 1 && [...y.chunks[bi].w].sort().join() === [...cut].sort().join(),
+    'a gantry\'s posts gone: its beam falls and its spans are down', `spans ${cut.join(' ')}`);
   const one = s.chunks.map(() => 0);
   one[of('hoist')[0]] = 1;
   check(unsupported(s, one).length === 0, 'one hoist gone: nothing falls');
