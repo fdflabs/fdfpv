@@ -12970,8 +12970,10 @@ export class Ui {
     if (this.screen === 'friends' && this.returnTo !== 'paused' && this.inRoom && this.inRoom()) {
       /* A game's lobby is a card's one press (the owner, 2026-10-02), so
        * Back from it is back to the cards, out of the room, the card it
-       * came from under the cursor (src/main.js onLobbyBack). */
-      if (this.warLobbyOn && this.onLobbyBack) {
+       * came from under the cursor (src/main.js onLobbyBack). Asked of the
+       * room, not of the lobby's panel, which is drawn a frame or more
+       * after the room screen: an Escape in between stayed in the room. */
+      if (this.inLobby && this.inLobby() && this.onLobbyBack) {
         this.onLobbyBack();
       }
       return;

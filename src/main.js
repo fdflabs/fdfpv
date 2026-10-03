@@ -5210,6 +5210,7 @@ export async function boot({
     leaveToCards();
     delete ui.cursorMemory.friends;
   };
+  ui.inLobby = () => Boolean(gameLobby());
 
   /* R says ready or not in a game room's lobby, as the Ready row does. */
   window.addEventListener('keydown', (e) => {
@@ -16910,7 +16911,9 @@ export async function boot({
     /* Biased like the OSD's altitude and like every contact query. A
      * harness reading this against a flight is reading the same number the
      * pilot is. */
-    groundClearance: shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, shell.quad.position.y - SURFACE_BIAS),
+    /* Null while a world swap is under way: the world in `view` is the
+     * one being left, already disposed. */
+    groundClearance: mapReady ? shell.quad.position.y - view.height(shell.quad.position.x, shell.quad.position.z, shell.quad.position.y - SURFACE_BIAS) : null,
     fpvY: lastFpvY,
     camFloor: lastCamFloor,
     camClear: lastCamClear,

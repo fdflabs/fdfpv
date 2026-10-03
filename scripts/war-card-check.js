@@ -590,12 +590,18 @@ try {
   const joinedPanel = await page.evaluate("({ phase: window.__rooms().phase, code: window.__rooms().code, screen: window.__ui.screen })");
   check('and its row joins it, onto the room screen', joinedPanel.phase === 'open' && joinedPanel.code === listedCode && joinedPanel.screen === 'friends', JSON.stringify(joinedPanel));
 
-  /* Escape on the room screen stays in the room (docs/FLOW-AUDIT.md
-   * rule 4); its Leave is the title, out of it (rule 5). */
+  /* Every room has a lobby (docs/FLOW-AUDIT.md rule 12), and Escape
+   * from a lobby is the title's cards, out of the room (2026-10-02). At
+   * once, before its panel is drawn: Escape there stayed in the room, and
+   * this row passed or failed by the frame. */
   await page.tap('Escape');
-  await page.sleep(600);
-  const escaped = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase })");
-  check('Escape on the room screen stays in the room', escaped.screen === 'friends' && escaped.phase === 'open', JSON.stringify(escaped));
+  await page.until("window.__ui.screen === 'title' && window.__rooms().phase === 'idle'", 10000).catch(() => {});
+  await page.sleep(500);
+  const escaped = await page.evaluate("({ screen: window.__ui.screen, phase: window.__rooms().phase, gate: window.__ui.onGate() })");
+  check('Escape on its lobby at once, before the panel is drawn: the title\'s cards, out of the room',
+    escaped.screen === 'title' && escaped.phase === 'idle' && escaped.gate, JSON.stringify(escaped));
+  await click(page, '.gate-rooms [data-check="listed"]');
+  await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(listedCode)}`, 30000).catch(() => {});
   await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
   await page.until("window.__ui.screen === 'title'", 10000).catch(() => {});
   await page.sleep(500);
@@ -614,8 +620,34 @@ try {
     await page.sleep(600);
   }
   await click(page, '.gate-card-combat');
+  /* Through the world swap the card starts (Itaipu to the Swiss valley),
+   * the craft's state is read as a capture reads it: the world being
+   * left is disposed, and reading its ground threw (a TypeError in the
+   * terrain, a tile no longer held). */
+  const swapReads = await page.evaluate(`new Promise((resolve) => {
+    const t0 = performance.now();
+    const seen = { reads: 0, nulls: 0, thrown: null };
+    const step = () => {
+      try {
+        const c = window.__craftState();
+        seen.reads += 1;
+        if (c.groundClearance === null) {
+          seen.nulls += 1;
+        }
+      } catch (e) {
+        seen.thrown = String(e && e.message || e);
+      }
+      if (performance.now() - t0 < 8000 && !seen.thrown) {
+        setTimeout(step, 20);
+      } else {
+        resolve(seen);
+      }
+    };
+    step();
+  })`);
+  check('the craft\'s state is read through the world swap without a throw, its ground null while the world is gone',
+    !swapReads.thrown && swapReads.reads > 0, JSON.stringify(swapReads));
   await page.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends'", 30000).catch(() => {});
-  await page.sleep(8000);
   const combat = await page.evaluate(LANDED);
   const combatRoom = await page.evaluate("({ mode: window.__rooms().mode, world: window.__rooms().world, flying: window.__craftState().mode })");
   check('the combat card after the war room: one click into a combat lobby in the Swiss valley, Ready under the cursor, never the war',
