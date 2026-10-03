@@ -79,10 +79,13 @@ function pilot(name, craft, { ready = false, me = false, host = false } = {}) {
     h('span', 'war-lobby-flag', str(ready ? 'lobby.flag_ready' : 'lobby.flag_waiting')));
 }
 
+/* As ui.js wordmark() builds it: a size container round the heading, and
+ * the name's text in data-text, which the bevel draws behind it. */
 function wordmark() {
-  return h('h1', 'wordmark lockup', h('span', 'lockup-slash'),
+  return h('div', 'lockup-box', h('h1', 'wordmark lockup', h('span', 'lockup-slash'),
     h('span', 'lockup-over', h('span', 'py-flag', h('span', ''), h('span', ''), h('span', '')), 'Paraguayan'),
-    ' ', h('span', 'lockup-name', h('span', '', 'Drone'), ' ', h('span', '', 'Combat')), ' ', h('span', 'lockup-under', 'Simulator'));
+    ' ', `<span class="lockup-name" data-text="Drone Combat">${h('span', '', 'Drone')} ${h('span', '', 'Combat')}</span>`,
+    ' ', h('span', 'lockup-under', 'Simulator')));
 }
 
 /*
@@ -138,7 +141,7 @@ export const COMPONENTS = [
       ['primary, cursor', row(str('roombrowser.new'), 'row-primary on')],
       ['info', row(str('ui.the_world'), 'row-info', h('span', 'row-value', str('registry.swiss2')))],
       ['disabled', row(str('ui.quad'), 'row-grey', h('span', 'row-value', str('ui.cancel')))],
-      ['warning', row(str('ui.expect_bugs_and_rough_edges_it'), 'row-warn')],
+      ['warning', row(str('ui.realistic_drone_combat_inspired_by_paraguay'), 'row-warn')],
     ],
   },
   {
@@ -310,7 +313,7 @@ export const COMPONENTS = [
     kinds: ['status'],
     source: 'src/ui/ui.js the title brand',
     context: ['screen screen-title', 'brand'],
-    states: [['rest', h('p', 'beta-note', h('span', 'beta-tag', str('ui.beta')), h('span', '', str('ui.expect_bugs_and_rough_edges_it')))]],
+    states: [['rest', h('p', 'beta-note', h('span', 'beta-tag', str('ui.beta')), h('span', '', str('ui.realistic_drone_combat_inspired_by_paraguay')))]],
   },
   {
     id: 'modal-confirm',
