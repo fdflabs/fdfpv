@@ -643,6 +643,12 @@ try {
     await page.tap('Escape');
     await page.sleep(600);
   }
+  /* Home, wherever the Leave landed: Streamer Combat's link there is its
+   * one click. */
+  for (let i = 0; i < 2 && await page.evaluate('window.__ui.hub !== null'); i += 1) {
+    await page.tap('Escape');
+    await page.sleep(400);
+  }
   await click(page, '.gate-card-combat');
   await page.until("window.__rooms().phase === 'open' && window.__ui.screen === 'friends'", 30000).catch(() => {});
   await page.sleep(8000);
