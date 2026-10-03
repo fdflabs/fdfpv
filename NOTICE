@@ -38,6 +38,20 @@ header pasted onto it.
     to Latin and Latin 1, for the names of activities, worlds and missions. The OFL lets the font be bundled with software under
     any licence; the font files themselves stay under the OFL, not the GPL.
 
+## IBM Plex Mono, the bootloader's typeface
+
+    Upstream    https://github.com/IBM/plex, taken unmodified from the npm
+                package @ibm/plex-mono 2.5.0
+                (fonts/split/woff2/IBMPlexMono-Regular-Latin1.woff2)
+    Files       assets/fonts/IBMPlexMono-Regular-Latin1.woff2
+    Licence     SIL Open Font License 1.1, Copyright 2017 IBM Corp. with
+                Reserved Font Name "Plex"; the licence travels with the
+                file as assets/fonts/OFL-IBMPlexMono.txt
+    IBM's own Latin 1 subset, byte for byte. It is not cut again here,
+    because a modified version may not carry the reserved name. The OFL
+    lets the font be bundled with software under any licence; the font file
+    itself stays under the OFL, not the GPL.
+
 ## Music, and an open question
 
     Files       assets/music/, fourteen titles as mp3 and webm
