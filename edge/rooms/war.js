@@ -1280,8 +1280,9 @@ export class RoomWar {
           a.wire = wire;
         }
         /* Whether it meets a structure short of its aim point, and when:
-         * its warhead goes off there. */
-        const meet = a.target != null ? contactAt(mission.map, planAgent(mission, a)) : null;
+         * its warhead goes off there, a gate's leaf met where the match's
+         * gate state has it then. */
+        const meet = a.target != null ? contactAt(mission.map, planAgent(mission, a), m.gates ?? null) : null;
         if (meet) {
           a.meet = meet.t;
         }
