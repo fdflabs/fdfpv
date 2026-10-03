@@ -1260,7 +1260,12 @@ class WorldProcessor extends AudioWorkletProcessor {
     }
     tr.at(te, this.stateA);
     this.te = te;
-    return d;
+    /* The distance to the state returned, not to the last iterate's: when
+     * a source jumps (a stream's nearest point as the camera teleports),
+     * the iterates land either side of the jump, and a direction over the
+     * wrong distance is longer than 1, which made the far ear's filter
+     * unstable (renderSource). */
+    return Math.hypot(this.stateA[0] - L[0], this.stateA[1] - L[1], this.stateA[2] - L[2]);
   }
 
   /* Through worklet-guard.js: a throw or a non-finite quantum is a 3 ms
@@ -1470,7 +1475,10 @@ class WorldProcessor extends AudioWorkletProcessor {
     const dz = st[2] - L[2];
     const inv = 1 / Math.max(1e-6, d);
     const pan = Math.max(-1, Math.min(1, (dx * L[6] + dy * L[7] + dz * L[8]) * inv));
-    const front = (dx * L[3] + dy * L[4] + dz * L[5]) * inv;
+    /* Clamped as the pan is: a cosine past 1 (a listener forward that is
+     * not a unit vector) would put the far ear's corner below 0 Hz, where
+     * its one pole feeds back over 1 and runs away to infinity. */
+    const front = Math.max(-1, Math.min(1, (dx * L[3] + dy * L[4] + dz * L[5]) * inv));
     const back = front < 0 ? -front : 0;
     /* The ground's image under the listener's ground: its path's extra
      * length is the reflection's delay. */
