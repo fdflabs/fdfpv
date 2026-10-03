@@ -15749,6 +15749,13 @@ export async function boot({
      * the camera is now, over the ground under it. */
     worldAudio.attach(audio);
     worldAudio.setWalls(view && view.audioWalls);
+    /* The water through the dam's openings (the map's flood,
+     * docs/FLOOD.md), its roar with its discharge. */
+    if (view && view.waterFlows) {
+      for (const w of view.waterFlows()) {
+        worldAudio.flow(w.key, w.x, w.y, w.z, w.q);
+      }
+    }
     {
       const c = shell.camera.position;
       worldAudio.post(shell.camera, view && view.height ? view.height(c.x, c.z, c.y) : NaN, view, worldTime);
@@ -17843,6 +17850,16 @@ export async function boot({
     ...(view.stats ? view.stats() : {}),
   });
   window.__maps = () => MAPS.map((m) => ({ id: m.id, name: m.name, mode: m.mode }));
+  /* An opening in the dam as the war's damage hands one to the map
+   * (map.onOpening, docs/FLOOD.md), and the water through every opening
+   * this frame (map.waterFlows), for scripts/water-page.js. Harness only. */
+  window.__mapOpening = (o) => {
+    if (!view || typeof view.onOpening !== 'function') return false;
+    view.onOpening(o);
+    return true;
+  };
+  window.__mapFlows = () => (view && view.waterFlows ? view.waterFlows() : null);
+  window.__animMs = () => animDrawnMs;
   /* The declared departure from MultiGP's published obstacle dimensions, so
    * check 15 can assert the threshold file and the course agree about how big
    * a gate is rather than each believing its own copy. Harness only. */

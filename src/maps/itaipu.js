@@ -467,6 +467,9 @@ async function buildItaipu(shell, progress, q, time) {
     /* An opening the war's damage tore in the dam (the dam break
      * contract's): the water part's flood takes it. */
     onOpening: (o) => parts.water.onOpening(o),
+    /* The water through each opening this frame, m3/s, for the world's
+     * sound (src/render/world-audio.js flow). */
+    waterFlows: () => parts.water.flows(),
     /* The war mode's targets and their damage, the dam part's
      * (docs/WARFARE-PLAN.md section 8). */
     targets: parts.dam.targets,

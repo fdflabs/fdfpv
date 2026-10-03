@@ -288,6 +288,7 @@
     "water:check": "node scripts/water-check.js",
     "water:itaipu": "node scripts/water-itaipu.js",
     "water:bench": "node scripts/water-bench.js",
+    "water:page": "node scripts/water-page.js",
     "sensor:check": "node scripts/sensor-check.js",
     "itaipu:yard": "node tools/itaipu/war-check.js",
     "check:dam": "node scripts/dam-check.js",

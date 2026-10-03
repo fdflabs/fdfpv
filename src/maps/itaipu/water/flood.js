@@ -300,8 +300,12 @@ export async function makeFlood(wasm, bed, { turbines = true, gates = false } = 
       for (const [id, g] of opened) {
         if (!gauges.has(g)) gauges.set(g, this.bayGauge(g, 20));
         const gate = bed.gates[g];
+        /* key: the opening's number for the world's sound, stable while it
+         * flows; a gate's is its own (intakes and penstocks will take
+         * their own ranges). The gauge reads a little under 0 while the
+         * flow through a fresh hole sloshes; the sound is 0 there. */
         out.push({
-          id, x: gate.at[0], y: gate.sill + gate.height / 2, z: gate.at[1], q: this.gaugeQ(gauges.get(g)),
+          id, key: g, x: gate.at[0], y: gate.sill + gate.height / 2, z: gate.at[1], q: Math.max(0, this.gaugeQ(gauges.get(g))),
         });
       }
       return out;
