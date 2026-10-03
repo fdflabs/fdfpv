@@ -14,17 +14,21 @@
  *   a reload keeps the room,   in a room made by hand, reload: back in
  *   on its screen (D2)         the same room, on the room screen with
  *                              its code, the title not shown.
- *   the title is never in a    in that room, Back and Escape on the room
- *   room (rule 3 to 5, D5)     screen, the lobby and Make a room stay in
- *                              it; the pause menu offers Leave the room
+ *   the title is never in a    in that room, Back and Escape on its
+ *   room (rule 3 to 5, D5)     lobby are the title's cards, out of it
+ *                              (2026-10-02); on Rooms and Make a room
+ *                              they stay in it, one screen back each; the pause menu offers Leave the room
  *                              and no Back to title; Leave is out, on
- *                              the title; then every card from the title
- *                              starts out of a room.
+ *                              the title.
+ *   every card is a lobby      each of the five cards, from the title, is
+ *   (rules 11, 12)             one press into the lobby of a room made for
+ *                              its game; Leave is out of it again.
  *   the card's world wins      Itaipu seated (as a war leaves it): the
- *   (rule 2, D4)               Free Flight and Fly with friends cards
- *                              seat the Swiss valley. Free Flight's
- *                              picker, a quad chosen and then a plane:
- *                              each on Free Flight's menu, never My
+ *   (rule 2, D4)               Free Flight card's lobby is in the Swiss
+ *                              valley. With no rooms server (?rooms=off)
+ *                              the cards fly alone as before: Free
+ *                              Flight's picker, a quad chosen and then a
+ *                              plane, each on Free Flight's menu, never My
  *                              tracks, and Fly is the Swiss valley.
  *
  * No page error.
@@ -170,10 +174,24 @@ try {
     stays.push(`${what}: ${r.screen} ${r.phase}`);
     return r;
   };
+  /* Every room has a lobby now, and Back or Escape from a lobby is the
+   * title's cards, out of the room (the owner, 2026-10-02); a reload then
+   * is back in it by the room kept for the session. Back is pressed, then
+   * Escape, each from the lobby. */
   await page.evaluate("(() => { window.__ui.act('back'); return true; })()");
-  const afterBack = await here('Back on the room screen');
+  const afterBack = await here('Back on the lobby');
+  const rejoin = async () => {
+    await page.evaluate(`(() => { window.__roomJoin(${JSON.stringify(made)}); window.__ui.show('friends'); return true; })()`);
+    await page.until(`window.__rooms().phase === 'open' && window.__rooms().code === ${JSON.stringify(made)}`, 30000).catch(() => {});
+    await page.sleep(600);
+  };
+  await rejoin();
   await page.tap('Escape');
-  const afterEsc = await here('Escape on the room screen');
+  const afterEsc = await here('Escape on the lobby');
+  check('Back and Escape from a lobby: the title\'s cards, out of the room',
+    [afterBack, afterEsc].every((r) => r.phase === 'idle' && r.screen === 'title') && await page.evaluate('window.__ui.onGate()'), stays.join(' | '));
+  stays.length = 0;
+  await rejoin();
   await page.evaluate("(() => { window.__ui.act('rooms'); return true; })()");
   await page.until("window.__ui.screen === 'rooms'", 10000).catch(() => {});
   await page.tap('Escape');
@@ -184,8 +202,8 @@ try {
   const fromNew = await here('Escape on Make a room');
   await page.tap('Escape');
   const fromNew2 = await here('and again');
-  check('Back and Escape stay in the room, on its screen, from the room screen, Rooms and Make a room',
-    [afterBack, afterEsc, fromLobby, fromNew2].every((r) => r.phase === 'open' && r.code === made && r.screen === 'friends')
+  check('Escape from Rooms and Make a room stays in the room, one screen back each',
+    [fromLobby, fromNew2].every((r) => r.phase === 'open' && r.code === made && r.screen === 'friends')
     && fromNew.screen === 'rooms' && fromNew.phase === 'open', stays.join(' | '));
 
   await page.evaluate("(() => { window.__ui.act('fly'); return true; })()");
@@ -212,30 +230,49 @@ try {
   const out = await page.evaluate(ROOM);
   check('Leave from the pause: out of the room, on the title', out.phase === 'idle' && out.screen === 'title', JSON.stringify(out));
 
+  /* EVERY CARD IS ONE PRESS INTO ITS LOBBY (the owner, 2026-10-02). The
+   * rooms server makes six rooms a minute for an address. */
+  await page.sleep(61000);
+  /* The war's consent is the war card's own question (war-card-check). */
+  await page.evaluate("(() => { window.__ui.settings.warConsent = true; window.__ui.persistSettings(); return true; })()");
+  const LOBBY_UP = "window.__rooms().phase === 'open' && window.__ui.screen === 'friends' && document.querySelector('.war-lobby') && !document.querySelector('.war-lobby').hidden";
   const cards = [];
-  for (const way of ['race-5inch', 'freestyle-wing1000', 'friends', 'combat', 'ace']) {
-    await page.evaluate(`(() => { window.__ui.act('mode-gate'); window.__ui.act('way-${way}'); return true; })()`);
-    await page.sleep(600);
-    const r = await page.evaluate(ROOM);
-    cards.push(`${way}: ${r.screen} ${r.phase}`);
+  for (const [way, game] of [['race-5inch', 'race'], ['freestyle-wing1000', null], ['combat', 'combat'], ['ace', 'tag'], ['campaign', 'war']]) {
+    await page.evaluate(`(() => { window.__ui.act('mode-gate'); window.__ui.pickForWay('way-${way}'); return true; })()`);
+    await page.until(LOBBY_UP, 60000).catch(() => {});
+    await page.sleep(400);
+    const r = await page.evaluate(`({ ...${ROOM}, mode: window.__rooms().mode, world: window.__rooms().world })`);
+    cards.push({ way, game, ok: r.phase === 'open' && r.screen === 'friends' && r.mode === game, world: r.world });
+    await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+    await page.until("window.__rooms().phase === 'idle' && window.__ui.screen === 'title'", 10000).catch(() => {});
   }
-  check('every card from the title starts out of a room', cards.every((c) => c.endsWith(' idle')), cards.join(' | '));
+  check('each of the five cards is one press into the lobby of a room made for its game, and Leave is out again', cards.every((c) => c.ok),
+    JSON.stringify(cards));
 
   /* THE CARD'S WORLD WINS. */
-  const worldOf = async (way) => {
-    await page.evaluate(`(() => {
-      window.__ui.act('mode-gate');
-      window.__ui.seatMap('itaipu', { stay: true });
-      window.__ui.act('way-${way}');
-      return true;
-    })()`);
-    await page.sleep(600);
-    return page.evaluate('({ map: window.__ui.settings.map, screen: window.__ui.screen, phase: window.__rooms().phase })');
-  };
-  const free = await worldOf('freestyle-wing1000');
-  const friends = await worldOf('friends');
-  check('Itaipu seated, the Free Flight and Fly with friends cards seat the Swiss valley',
-    free.map === 'swiss2' && friends.map === 'swiss2' && friends.screen === 'friends', JSON.stringify({ free, friends }));
+  await page.evaluate("(() => { window.__ui.act('mode-gate'); window.__ui.seatMap('itaipu', { stay: true }); window.__ui.pickForWay('way-freestyle-wing1000'); return true; })()");
+  await page.until(LOBBY_UP, 60000).catch(() => {});
+  await page.sleep(600);
+  const free = await page.evaluate("({ map: window.__ui.settings.map, world: window.__rooms().world, screen: window.__ui.screen })");
+  check('Itaipu seated, the Free Flight card\'s lobby is in the Swiss valley', free.map === 'swiss2' && free.world === 'swiss2' && free.screen === 'friends',
+    JSON.stringify(free));
+  await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
+  await page.until("window.__rooms().phase === 'idle'", 10000).catch(() => {});
+  const errs = page.errors.filter((e) => !e.startsWith('network:'));
+  check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
+} catch (e) {
+  await server.stop();
+  throw e;
+} finally {
+  await page.close();
+}
+
+/* WITH NO ROOMS SERVER the cards fly alone, as they did. */
+const solo = await openPage({ root, url: '/index.html?rooms=off', width: 1280, height: 720 });
+try {
+  await solo.until('window.__shellReady === true', 300000);
+  await solo.until('window.__ui.onGate()', 60000).catch(() => {});
+  const page = solo;
 
   const picked = [];
   for (const [kind, id] of [['quad', '5inch'], ['plane', 'cub1400']]) {
@@ -267,10 +304,10 @@ try {
     picked.every((p) => p.menu.screen === 'title' && !p.menu.gate && p.menu.mode === 'freestyle' && p.menu.airframe === p.id
       && p.menu.map === 'swiss2' && p.flown.screen === 'flight' && p.flown.world === 'swiss2'), JSON.stringify(picked));
 
-  const errs = page.errors.filter((e) => !e.startsWith('network:'));
-  check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
+  const soloErrs = page.errors.filter((e) => !e.startsWith('network:'));
+  check('no page error with no rooms server', soloErrs.length === 0, soloErrs.slice(0, 3).join(' | '));
 } finally {
-  await page.close();
+  await solo.close();
   await server.stop();
 }
 console.log(`\n${passed} passed, ${failed} failed`);

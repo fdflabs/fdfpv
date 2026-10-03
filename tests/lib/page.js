@@ -356,6 +356,32 @@ export async function openPage({
     await until("document.getElementById('loading').hidden", timeoutMs);
   }
 
+  /*
+   * A pilot's mouse click on the element `selector` matches, scrolled into
+   * view, at its middle; false when there is none. Every one is counted in
+   * page.clicks, for the checks that hold a way in to a number of clicks
+   * (the owner, 2026-10-02: "one two clicks max").
+   */
+  const counted = { clicks: 0 };
+  async function click(selector) {
+    await loaded();
+    const at = await evaluate(`(() => {
+      const n = document.querySelector(${JSON.stringify(selector)});
+      if (!n) { return null; }
+      n.scrollIntoView({ block: 'center' });
+      const r = n.getBoundingClientRect();
+      return [r.left + r.width / 2, r.top + r.height / 2];
+    })()`);
+    if (!at) {
+      return false;
+    }
+    for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
+      await cdp.send('Input.dispatchMouseEvent', { type, x: at[0], y: at[1], button: 'left', clickCount: 1 }, sessionId);
+    }
+    counted.clicks += 1;
+    return true;
+  }
+
   async function tap(code) {
     const info = keyInfo(code);
     await cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', ...info }, sessionId);
@@ -382,6 +408,9 @@ export async function openPage({
 
   return {
     cdp, sessionId, errors, warnings, origin: server.origin, proc,
-    evaluate, until, loaded, tap, sleep, close,
+    evaluate, until, loaded, click, tap, sleep, close,
+    get clicks() {
+      return counted.clicks;
+    },
   };
 }
