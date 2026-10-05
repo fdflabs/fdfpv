@@ -17,15 +17,18 @@
  * kept, and, when public rooms are open, the room browser: a named public
  * room made and listed, a bad name refused, a private room never listed,
  * and a quick join. A room made for the war: one off the war's
- * map and a mission on another map refused; a private Itaipu one made for
- * mission 2 says so in its welcome, and once its host has started mission
- * 3 a later welcome says mission 3; a build that would not ask the war's
- * consent is closed for a reload instead of seated. A public one (the
- * owner opened the war to public rooms, 2026-10-01): listed as the war's
- * with its mission, a quick join on its world never handed it, and a
- * public room not made for the war still refuses the war. Its lobby: in
- * the welcome, two pilots ready, both told the five seconds, and the room
- * starting mission 2's briefing on its own.
+ * map and a mission on another map refused; one for mission 2, in
+ * development (src/game/campaign.js release), refused 'unreleased'; a
+ * private Itaipu one made for the drill (itaipu-drill.js: a mission other
+ * than the default that every server starts) says so in its welcome, its
+ * host's start of mission 3 is refused 'unreleased', and once its host has
+ * started mission 1 a later welcome says mission 1; a build that would not
+ * ask the war's consent is closed for a reload instead of seated. A public
+ * one (the owner opened the war to public rooms, 2026-10-01): listed as
+ * the war's with its mission, a quick join on its world never handed it,
+ * and a public room not made for the war still refuses the war. Its
+ * lobby: in the welcome, two pilots ready, both told the five seconds, and
+ * the room starting the drill's briefing on its own.
  *
  * With no origin it starts edge/rooms/node.js itself, on a scratch SQLite
  * file, and adds what only a process of its own can show: a restart with
@@ -360,23 +363,34 @@ res = await make({ map: 'itaipu', mode: 'war', mission: 'nowhere-1' });
 check('a mission nobody wrote is refused', res.status === 400 && (await res.json()).error === 'bad');
 res = await make({ map: 'swiss2', mission: 'itaipu-1' });
 check('a mission for a room not made for the war is refused', res.status === 400 && (await res.json()).error === 'bad');
+/* The release gate (the owner, 2026-10-04: only mission 1 until it is
+ * right): no room is made for a mission in development, so the rows below
+ * that used missions 2 and 3 as "a mission other than the default" use
+ * the drill and mission 1, which a live server starts. Six makes this
+ * minute, the front's limit for an address. */
 res = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-2' });
+const held = res.status === 403 ? (await res.json()).error : null;
+check('a war room for mission 2, in development, is refused \'unreleased\'', res.status === 403 && held === 'unreleased', `${res.status} ${held}`);
+res = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-drill' });
 const warCode = (await res.json()).code;
-check('a private Itaipu room made for mission 2', res.status === 200 && /^[A-Z0-9]{6}$/.test(warCode || ''), warCode);
+check('a private Itaipu room made for the drill', res.status === 200 && /^[A-Z0-9]{6}$/.test(warCode || ''), warCode);
 /* A room the server would not make has nothing to seat in. */
 if (warCode) {
   const unasked = await seat(`room/${warCode}`);
   check('a build that would not ask the consent is told to reload, not seated', Boolean(unasked.closed) && unasked.closed.code === CLOSE.update,
     JSON.stringify(unasked.closed));
   const w1 = await seat(`room/${warCode}`, { war: WAR_JOIN });
-  check('its welcome says war, mission 2', w1.welcome && w1.welcome.mode === 'war' && w1.welcome.mission === 'itaipu-2',
+  check('its welcome says war, the drill', w1.welcome && w1.welcome.mode === 'war' && w1.welcome.mission === 'itaipu-drill',
     JSON.stringify(w1.welcome && { mode: w1.welcome.mode, mission: w1.welcome.mission }));
   w1.say({ type: 'war', op: 'start', mission: 'itaipu-3' });
-  check('its host starts mission 3', Boolean(await w1.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-3'))));
+  check('its host\'s start of mission 3, in development, is refused \'unreleased\'', Boolean(await w1.until((x) => x.text('war').find((m) => m.error === 'unreleased'))),
+    JSON.stringify(w1.text('war').filter((m) => m.error)));
+  w1.say({ type: 'war', op: 'start', mission: 'itaipu-1' });
+  check('its host starts mission 1', Boolean(await w1.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-1'))));
   w1.say({ type: 'war', op: 'end' });
   await w1.until((x) => x.text('war').find((m) => m.war && m.war.state === 'ended'));
   const w2 = await seat(`room/${warCode}`, { name: [3, 4, 55], war: WAR_JOIN });
-  check('a later welcome says mission 3', w2.welcome && w2.welcome.mode === 'war' && w2.welcome.mission === 'itaipu-3',
+  check('a later welcome says mission 1', w2.welcome && w2.welcome.mode === 'war' && w2.welcome.mission === 'itaipu-1',
     JSON.stringify(w2.welcome && { mode: w2.welcome.mode, mission: w2.welcome.mission }));
   w1.ws.close(1000);
   w2.ws.close(1000);
@@ -386,12 +400,12 @@ if (pub.open) {
   console.log('a public room made for the war');
   /* Another minute: the five above. */
   await sleep(61000);
-  res = await make({ map: 'itaipu', public: true, mode: 'war', mission: 'itaipu-2', name: 'Server check war' });
+  res = await make({ map: 'itaipu', public: true, mode: 'war', mission: 'itaipu-drill', name: 'Server check war' });
   const pubWar = (await res.json()).code;
   check('a public Itaipu room made for the war is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(pubWar || ''), pubWar);
   const pw = await seat(`room/${pubWar}`, { war: WAR_JOIN });
   const warLine = (await listed()).rooms.find((r) => r.code === pubWar);
-  check('with its pilot in, the browser lists it as the war\'s, with its mission', warLine && warLine.mode === 'war' && warLine.game === 'war' && warLine.mission === 'itaipu-2',
+  check('with its pilot in, the browser lists it as the war\'s, with its mission', warLine && warLine.mode === 'war' && warLine.game === 'war' && warLine.mission === 'itaipu-drill',
     JSON.stringify(warLine));
   const quick = await seat('public/itaipu', { name: [2, 5, 31] });
   check('a quick join on Itaipu is never handed it', quick.welcome && quick.welcome.code && quick.welcome.code !== pubWar && quick.welcome.mode !== 'war',
@@ -402,20 +416,20 @@ if (pub.open) {
   /* Its lobby (edge/rooms/gamelobby.js): a second pilot, both ready, the
    * five seconds on the room's clock, then mission 2's briefing. */
   const pw2 = await seat(`room/${pubWar}`, { war: WAR_JOIN, name: [3, 6, 41] });
-  check('its lobby is in the welcome: mission 2, nobody ready', pw2.welcome && pw2.welcome.lobby && pw2.welcome.lobby.mission === 'itaipu-2'
+  check('its lobby is in the welcome: the drill, nobody ready', pw2.welcome && pw2.welcome.lobby && pw2.welcome.lobby.mission === 'itaipu-drill'
     && JSON.stringify(pw2.welcome.lobby.ready) === '{}', JSON.stringify(pw2.welcome && pw2.welcome.lobby));
   pw.say({ type: 'lobby', op: 'ready', ready: true });
   pw2.say({ type: 'lobby', op: 'ready', ready: true });
   const counting = await pw2.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt !== null && m.lobby.ready['1'] && m.lobby.ready['2']));
   check('both say ready: both are told the five seconds', Boolean(counting && await pw.until((x) => x.text('lobby').find((m) => m.lobby.countdownAt === counting.lobby.countdownAt))),
     JSON.stringify(counting && counting.lobby));
-  check('and the room starts mission 2\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-2' && m.war.state === 'briefing'), 9000)
+  check('and the room starts the drill\'s briefing for both on its own', Boolean(await pw2.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-drill' && m.war.state === 'briefing'), 9000)
     && await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'briefing'), 2000)));
   pw.say({ type: 'war', op: 'end' });
   await pw.until((x) => x.text('war').find((m) => m.war && m.war.state === 'ended'));
   pw2.ws.close(1000);
-  pw.say({ type: 'war', op: 'start', mission: 'itaipu-2' });
-  check('the public war room\'s host starts mission 2 there', Boolean(await pw.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-2' && m.war.state !== 'lobby'))));
+  pw.say({ type: 'war', op: 'start', mission: 'itaipu-1' });
+  check('the public war room\'s host starts mission 1 there', Boolean(await pw.until((x) => x.text('war').find((m) => m.war && m.war.mission === 'itaipu-1' && m.war.state !== 'lobby'))));
   pw.say({ type: 'war', op: 'end' });
   pw.ws.close(1000);
   quick.ws.close(1000);

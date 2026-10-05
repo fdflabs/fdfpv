@@ -84,13 +84,20 @@ function warCheckpoint(core) {
   return id ? core.war.checkpointOf(MISSIONS[id]) : null;
 }
 
-/* The war's mission: the room's own, else the first on its map. */
+/* Whether the room's war may start mission `id` on its map. */
+function warFits(core, id) {
+  return typeof id === 'string' && Object.hasOwn(MISSIONS, id) && MISSIONS[id].map === core.meta.map && core.war.startable(id);
+}
+
+/* The war's mission: the room's own, else the first on its map it may
+ * start. A room stored set to a mission since held back (src/game/
+ * campaign.js released) is the first again, not one stuck refusing. */
 function warMission(core) {
   const id = core.meta.mission;
-  if (typeof id === 'string' && Object.hasOwn(MISSIONS, id) && MISSIONS[id].map === core.meta.map) {
+  if (warFits(core, id)) {
     return id;
   }
-  const first = Object.values(MISSIONS).find((m) => m.map === core.meta.map);
+  const first = Object.values(MISSIONS).find((m) => warFits(core, m.id));
   return first ? first.id : null;
 }
 
@@ -111,7 +118,12 @@ const settingKey = (id) => modeById(id).setting.key;
  */
 const GAMES = {
   war: {
-    set: { key: settingKey('war'), valid: (core, v) => typeof v === 'string' && Object.hasOwn(MISSIONS, v) && MISSIONS[v].map === core.meta.map },
+    set: {
+      key: settingKey('war'),
+      valid: (core, v) => typeof v === 'string' && Object.hasOwn(MISSIONS, v) && MISSIONS[v].map === core.meta.map,
+      /* A mission it knows but may not start yet: said, as the start's. */
+      refused: (core, v) => (core.war.startable(v) ? null : 'war_unreleased'),
+    },
     show: (core) => ({ mission: warMission(core) }),
     can: (core) => warMission(core) !== null,
     on: (core) => core.war.on(),
@@ -273,6 +285,10 @@ export class RoomGameLobby {
       }
       if (!set.valid(core, msg[set.key])) {
         return [];
+      }
+      const why = set.refused ? set.refused(core, msg[set.key]) : null;
+      if (why) {
+        return [{ send: conn, data: JSON.stringify({ type: 'refused', why }) }];
       }
       core.meta[set.key] = msg[set.key];
       return [{ store: 'meta', value: core.meta }, ...this.changed(core)];

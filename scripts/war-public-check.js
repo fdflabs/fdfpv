@@ -58,14 +58,18 @@ function check(name, ok, detail = '') {
 
 /* A rooms server of this check's own, in this process on a port the
  * system picks (as war-twopage does): a fixed port on a shared host can be
- * another tree's server. Or the one given. */
+ * another tree's server. Or the one given, which must start missions in
+ * development (DEV_MISSIONS=on). Ours does (devMissions), and the pages
+ * offer them (?missions=dev): mission 2 is what this check plays, being
+ * a mission other than the default, and is in development (the owner,
+ * 2026-10-04: only mission 1 until it is right). */
 async function roomsServer() {
   if (process.argv[2]) {
     return { url: process.argv[2], stop: async () => {} };
   }
   const dir = await mkdtemp(join(tmpdir(), 'war-public-rooms-'));
   const { startRooms } = await import('../edge/rooms/node.js');
-  const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0 });
+  const server = await startRooms({ db: join(dir, 'rooms.db'), port: 0, devMissions: true });
   return {
     url: `http://127.0.0.1:${server.port}`,
     stop: async () => {
@@ -119,7 +123,7 @@ const ROOM = `(() => {
 
 const server = await roomsServer();
 console.log(`a public war room, rooms at ${server.url}`);
-const url = `/index.html?rooms=${encodeURIComponent(server.url)}`;
+const url = `/index.html?rooms=${encodeURIComponent(server.url)}&missions=dev`;
 const a = await openPage({ root, url, width: 1280, height: 720, seed: [SEED_A] });
 const b = await openPage({ root, url, width: 1280, height: 720 });
 try {

@@ -22,7 +22,7 @@
 
 import {
   ACT1, UPGRADES, applyResult, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
-  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, seenFilm, spent, starsOf, unlocked,
+  emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, totalStars, unlocked,
 } from '../src/game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../src/share/campaignwar.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
@@ -57,6 +57,21 @@ check('a fresh campaign: no credits, standard loadout', credits(fresh) === 0
 check('mission 1 is open and free, the rest wait in order', unlocked(fresh, 0) && !unlocked(fresh, 1) && ACT1[0].free
   && ACT1.slice(1).every((m) => !m.free));
 check('mission 1 is in this build', Object.hasOwn(MISSIONS, ACT1[0].id));
+
+console.log('release (the owner, 2026-10-04: only mission 1 until it is right)');
+check('Act 1 is the seven missions of docs/campaign/MISSIONS.md, in order',
+  ACT1.map((m) => m.id).join() === 'itaipu-1,itaipu-2,itaipu-3,itaipu-4,itaipu-5,itaipu-6,itaipu-7', ACT1.map((m) => m.id).join());
+check('every mission says available, development or soon', ACT1.every((m) => ['available', 'development', 'soon'].includes(m.release)));
+check('only First Light is available', ACT1.filter((m) => m.release === 'available').map((m) => m.id).join() === 'itaipu-1');
+check('a mission with a definition in the build is in development, one without is coming soon',
+  ACT1.filter((m) => m.release !== 'available').every((m) => (m.release === 'development') === Object.hasOwn(MISSIONS, m.id)));
+check('released: mission 1 yes, 2 to 7 no', released('itaipu-1') && ACT1.slice(1).every((m) => !released(m.id)));
+check('released with dev: 2 to 4 too, never 5 to 7', ['itaipu-1', 'itaipu-2', 'itaipu-3', 'itaipu-4'].every((id) => released(id, true))
+  && ['itaipu-5', 'itaipu-6', 'itaipu-7'].every((id) => !released(id, true)));
+check('a mission outside Act 1 (the drill) is not the campaign\'s to hold back', released('itaipu-drill') && Object.hasOwn(MISSIONS, 'itaipu-drill'));
+const saved = cleanCampaign({ missions: { 'itaipu-2': { stars: 3, won: true, credits: 300 }, 'itaipu-4': { stars: 1, won: false, credits: 50 } }, earned: 350 });
+check('stars saved on a mission held back are kept, and still counted', starsOf(saved, 'itaipu-2') === 3 && saved.missions['itaipu-4'].credits === 50
+  && totalStars(saved) === 4 && same(mergeCampaign(saved, emptyCampaign()).missions, saved.missions), JSON.stringify(saved.missions));
 check('the full game gate is open for now, missions and shop', campaignOwned() && ACT1.every((m, i) => gateOpen(i)) && gateOpen(null));
 
 let s = applyResult(fresh, 'itaipu-1', { stars: 2, credits: 225, won: true });
@@ -82,8 +97,10 @@ check('equip back to standard, speed off', same(loadoutOf(rich), { rack: 6, warh
 check('an unowned warhead cannot be equipped', throws(() => equip(rich, 'warhead', 'emp')));
 
 const shopTotal = UPGRADES.filter((u) => !u.later).reduce((n, u) => n + u.price, 0);
-const twoStars = ACT1.reduce((n) => n + expectedCredits(2, TWO_STAR_KILLS), 0);
-check('Act 1 at two stars buys about half the shop', twoStars / shopTotal > 0.45 && twoStars / shopTotal < 0.6, `${twoStars} of ${shopTotal}`);
+/* The act as built: the shop was priced against missions 1 to 4, and
+ * 5 to 7 (release 'soon') have no mission to pay for yet. */
+const twoStars = ACT1.filter((m) => Object.hasOwn(MISSIONS, m.id)).reduce((n) => n + expectedCredits(2, TWO_STAR_KILLS), 0);
+check('Act 1 as built, at two stars, buys about half the shop', twoStars / shopTotal > 0.45 && twoStars / shopTotal < 0.6, `${twoStars} of ${shopTotal}`);
 const loadouts = [];
 for (const u of UPGRADES.filter((x) => !x.later)) {
   loadouts.push(loadoutOf(buy(applyResult(fresh, 'x', { stars: 0, credits: 5000, won: false }), u.needs ? u.needs : u.id)));

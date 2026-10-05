@@ -3,8 +3,10 @@
  * war room. The state and its rules are src/game/campaign.js; what goes to
  * the room and comes back is src/share/campaignwar.js.
  *
- *   the screen   Act 1's four missions, their stars and best result, a
- *                Play each; and the shop. Drawn on the shell's one overlay
+ *   the screen   Act 1's seven missions, their stars and best result, a
+ *                Play each, or why not (one not released says Under
+ *                development or Coming soon, and keeps its stars); and
+ *                the shop. Drawn on the shell's one overlay
  *                (ui.nameDialog, the node askConfirm uses), so the menu's
  *                keys are already held while it is open and closing it is
  *                closeNameDialog, as for every other dialog.
@@ -39,7 +41,7 @@
 
 import {
   ACT1, MAX_STARS, UPGRADES, applyResult, buy, cannotBuy, createCampaignStore, credits, equip, gateOpen, loadoutOf,
-  starsOf, totalStars, unlocked,
+  released, starsOf, totalStars, unlocked,
 } from '../game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../share/campaignwar.js';
 import { str } from '../strings/index.js';
@@ -78,14 +80,16 @@ function starRow(n) {
 const skey = (id) => id.replace(/-/g, '_');
 
 /*
- * ui: the shell's UI (ui.js), whose settings keep the campaign. inBuild(id): whether
- * this build has that mission. enterWarRoom(mission): the Defend Itaipu
+ * ui: the shell's UI (ui.js), whose settings keep the campaign.
+ * devMissions: offer the missions in development too (campaign.js
+ * released), for the checks against a rooms server that starts them.
+ * enterWarRoom(mission): the Defend Itaipu
  * card's way in, for that mission, resolving the code of the room it made,
  * or null. send(obj): the room's socket. view(): the war view
  * (roomWar.view()). room(): { phase, code, seat }.
  */
 export function createCampaignScreen({
-  ui, inBuild, enterWarRoom, send, view, room, craftWarhead = null,
+  ui, devMissions = false, enterWarRoom, send, view, room, craftWarhead = null,
 }) {
   const store = createCampaignStore(ui.settings, () => ui.persistSettings());
   /* Read fresh each time: an account sync may replace the section. */
@@ -172,6 +176,7 @@ export function createCampaignScreen({
   function missionCard(m, i) {
     const card = el('div', 'campaign-mission');
     card.dataset.mission = m.id;
+    card.dataset.release = m.release;
     const top = el('div', 'campaign-mission-top');
     top.append(el('span', 'campaign-n', str('campaign.mission_n', { n: i + 1 })));
     top.append(el('span', m.free ? 'campaign-tag free' : 'campaign-tag', str(m.free ? 'campaign.free' : 'campaign.tag')));
@@ -184,8 +189,8 @@ export function createCampaignScreen({
       ? str(best.won ? 'campaign.best_won' : 'campaign.best_lost', { n: best.credits })
       : str('campaign.not_flown')));
     let why = null;
-    if (!inBuild(m.id)) {
-      why = str('campaign.not_built');
+    if (!released(m.id, devMissions)) {
+      why = str(`campaign.release_${m.release}`);
     } else if (!unlocked(cur(), i)) {
       why = str('campaign.locked', { n: i });
     } else if (!gateOpen(i)) {
@@ -391,10 +396,10 @@ export function createCampaignScreen({
     close,
     startSelected,
     selectedNumber,
-    /* The missions this pilot may start, in order: built, open (the one
-     * before won) and inside the full game's gate (Make a room's Mission
-     * row, src/ui/roombrowser.js). */
-    playable: () => ACT1.filter((m, i) => inBuild(m.id) && unlocked(cur(), i) && gateOpen(i)).map((m) => m.id),
+    /* The missions this pilot may start, in order: released, open (the
+     * one before won) and inside the full game's gate (Make a room's
+     * Mission row, src/ui/roombrowser.js, and the lobby's). */
+    playable: () => ACT1.filter((m, i) => released(m.id, devMissions) && unlocked(cur(), i) && gateOpen(i)).map((m) => m.id),
     /* For the checks. */
     observe,
     state: cur,

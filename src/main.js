@@ -5692,7 +5692,10 @@ export async function boot({
    * the room it made starts the chosen mission. */
   const campaign = createCampaignScreen({
     ui,
-    inBuild: (id) => Object.hasOwn(WAR_MISSIONS, id),
+    /* ?missions=dev offers the missions in development too, for the
+     * checks against their own rooms server (DEV_MISSIONS); the VM's room
+     * refuses them whatever this page offers (edge/rooms/war.js). */
+    devMissions: new URLSearchParams(window.location.search).get('missions') === 'dev',
     /* From a war lobby (its Campaign row), Play sets that room's mission,
      * the host's to set, and the pilot is back in the lobby to say ready;
      * from anywhere else, the war's way in. */

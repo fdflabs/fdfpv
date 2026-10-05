@@ -223,7 +223,7 @@ try {
     await page.until(LOBBY_UP, 60000).catch(() => {});
     await page.sleep(400);
     const r = await page.evaluate(`({ ...${ROOM}, mode: window.__rooms().mode, world: window.__rooms().world })`);
-    const paged = way !== 'campaign' || (page1 && page1.missions === 4 && page1.phase === 'idle');
+    const paged = way !== 'campaign' || (page1 && page1.missions === 7 && page1.phase === 'idle');
     cards.push({ way, game, ok: paged && r.phase === 'open' && r.screen === 'friends' && r.mode === game, world: r.world, page: page1 });
     await page.evaluate("(() => { window.__ui.act('friends-leave'); return true; })()");
     await page.until("window.__rooms().phase === 'idle' && window.__ui.screen === 'title'", 10000).catch(() => {});

@@ -108,7 +108,9 @@ const flood = (p) => p.evaluate('JSON.stringify(window.__map().parts.water.flood
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-water-war-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+/* devMissions: mission 2 is in development, which only a check's own server
+ * starts (src/game/campaign.js released). */
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 const roomOf = () => [...server.env.ROOMS.objects.values()].find((r) => r.host.core && r.host.core.war.match);
 const url = `/index.html?rooms=${encodeURIComponent(rooms)}`;
