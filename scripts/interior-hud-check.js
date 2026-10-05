@@ -192,6 +192,7 @@ try {
     const at = ${JSON.stringify(spots)};
     window.__hudWorld = {
       canopyBlocks: () => false,
+      groundAt: () => 0,
       poseOnRoute: (route) => (at[route] ? { x: at[route][0], y: at[route][1], z: at[route][2], heading: 0, action: 'stand' } : null),
     };
     window.__ops.useWorld(window.__hudWorld);

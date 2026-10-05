@@ -1,8 +1,8 @@
 /*
- * itaipu.js: the Itaipu Dam on the Parana, at real scale.
- * IN DEVELOPMENT: the terrain, the look and the water at its levels. The
- * dam, the town and the forests are parts still to come
- * (docs/ITAIPU-PLAN.md section 14: this is package B, the skeleton).
+ * itaipu.js: the Itaipu Dam on the Parana, at real scale: the terrain,
+ * the look, the water at its levels, and the dam, the town and the
+ * forests as parts (docs/ITAIPU-PLAN.md section 14; this file began as
+ * package B, the skeleton).
  *
  * This file is the order things are built in and the contract the shell
  * reads. What it builds from lives in src/maps/itaipu/:

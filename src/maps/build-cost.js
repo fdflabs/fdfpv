@@ -66,4 +66,9 @@ export const MAP_BUILD_MS = {
    * near 50. The quieter figure is the one here; from the public host it
    * is longer by the round trips. */
   itaipu: 2600,
+  /* The Interior's corridor (src/maps/interior.js): its shared ground's
+   * two files, the terrain's tiles cut from them in memory, the far
+   * forest's points, the corridor's buildings and water, and Itaipu's sky
+   * and swiss2's photographs. Itaipu's figure until one is measured. */
+  interior: 2600,
 };

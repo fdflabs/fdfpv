@@ -53,10 +53,17 @@ poseOnRoute(routeId, ms)      // -> { x, y, z, heading, action } or null once th
   (into the forest, out of the map): its record becomes `vanished`.
 - Both must be pure and deterministic (no `Math.sin`, `Math.cos`,
   `Math.pow` on the room's path), the same in Node and the browser.
-- Until WORLD lands: `src/share/ops/fixtures/world.js` exports the same
-  two names over a flat test map. The room takes them as an argument
-  (`new RoomOps(meta, { world })`), so the real ones plug in at one import
-  in `src/share/ops/missions.js` (`worldFor(map)`).
+- WORLD's are in: `src/share/ops/missions.js` `worldFor('interior')` is
+  `makeOpsWorld(readWorldBytes())` (src/share/interior/ops.js, node.js),
+  made on first use so a browser importing the registry never reads the
+  disk; it adds `canopyLos` and `groundAt`. Answered: `ms` is route local.
+  `src/share/ops/fixtures/world.js` stays a flat test world for the unit
+  checks (contacts:selftest, roles:deal), passed as `new RoomOps(meta, {
+  world })`.
+- A mission marked `ground: true` writes its heights over the ground;
+  `grounded(mission, world)` makes them absolute (items' places, points'
+  `z`, sites' `z0`, the mission's `z0` at its first point) and the room
+  flies the grounded copy.
 
 ## 3. Client to room
 

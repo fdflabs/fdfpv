@@ -92,7 +92,8 @@ export const MAPS = [
     build: true,
     load: () => import('./swiss2.js'),
   },
-  /* In development, and named so (docs/ITAIPU-PLAN.md).
+  /* Named "(in development)" while it was terrain and water only; it has
+   * its dam, towns and forests now and the released mission flies on it.
    * A builder world: its two courses are builder documents
    * (docs/itaipu-courses/). */
   {
@@ -104,6 +105,16 @@ export const MAPS = [
     buildMs: MAP_BUILD_MS.itaipu,
     build: true,
     load: () => import('./itaipu.js'),
+  },
+  /* In development, and named so: The Interior campaign's map
+   * (docs/campaign/interior/WORLD.md), Mission 1's corridor. */
+  {
+    id: 'interior',
+    name: str('registry.interior'),
+    mode: 'freestyle',
+    note: str('registry.interior_note'),
+    buildMs: MAP_BUILD_MS.interior,
+    load: () => import('./interior.js'),
   },
 ];
 

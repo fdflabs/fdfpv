@@ -38,7 +38,7 @@ import {
   BLUR_FULL_PX, HOLD_MS, blurOf, createCapture, createStillStore, gradeWithBlur,
 } from '../src/avionics/capture.js';
 import { EXPOSURE_S, BAND } from '../src/avionics/bands.js';
-import { MISSIONS, worldFor } from '../src/share/ops/missions.js';
+import { MISSIONS, grounded, worldFor } from '../src/share/ops/missions.js';
 import { SHELTERS } from '../src/share/interior/missions/interior-1.js';
 import { resolve } from '../src/share/ops/stages.js';
 import { createRoomOps, CAM_EVERY_MS } from '../src/share/roomops.js';
@@ -143,8 +143,10 @@ console.log('synthetic framings');
 
 console.log('the wire: a real room, the client module');
 {
-  const M = MISSIONS['interior-1'];
   const W = worldFor('interior');
+  /* The mission's heights over WORLD's ground made absolute, as the room
+   * flies it (missions.js grounded). */
+  const M = grounded(MISSIONS['interior-1'], W);
   const e = opsRoom(M, {
     n: 2, world: W, map: 'interior', devMissions: true,
   });
