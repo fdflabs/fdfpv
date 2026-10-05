@@ -131,11 +131,13 @@ try {
   await shot(a, 'aerial-spill', '1-before-aerial');
   await shot(a, 'gate-down', '1-before-gate');
 
-  /* Three Loiterers' warheads at gate 3, by the room, as damage-shots. */
+  /* Four Loiterers' warheads at gate 3, by the room, as damage-shots
+   * (damage-check's table: a Loiterer opens a gate in 4, its leaf at
+   * Free Flight's 2 m, since the 21.34 m leaves of #396). */
   const room = roomOf();
   const core = room.host.core;
   const aim = MISSION.targets[GATE].at;
-  for (let k = 0; k < 3; k += 1) {
+  for (let k = 0; k < 4; k += 1) {
     const t = Math.floor(core.roomMs(Date.now()));
     room.host.run(core.war.strike(core, aim, attackerCharge('loiter'), t, 'loiter'));
     room.host.run(core.war.changed(core));
@@ -163,11 +165,13 @@ try {
   await b.until('window.__map && window.__map().ready', 600000);
   await b.evaluate(`window.__roomJoin(${JSON.stringify(code)}); true`);
   await b.until(`(() => { const f = window.__map().parts.water.flood; return f.mode === 'war' && f.state === 'ready' && f.behind <= 5 && f.step * 20 >= ${RUN_S * 1000}; })()`, 600000);
-  const [ha, hb] = [(await flood(a)).hashes, (await flood(b)).hashes];
+  const [fa2, fb] = [await flood(a), await flood(b)];
+  const [ha, hb] = [fa2.hashes, fb.hashes];
   const common = Object.keys(ha).filter((k) => k in hb);
   const same = common.filter((k) => ha[k] === hb[k]);
   check('B, joining after, holds the same water as A at every step both recorded', common.length >= 3 && same.length === common.length,
-    `${same.length} of ${common.length} steps, ${common.slice(-3).map((k) => `${k} ${ha[k]}/${hb[k]}`).join(', ')}`);
+    `${same.length} of ${common.length} steps, ${common.slice(-3).map((k) => `${k} ${ha[k]}/${hb[k]}`).join(', ')}; `
+    + `A origin ${fa2.origin} step ${fa2.step} heard ${JSON.stringify(fa2.heard)}, B origin ${fb.origin} step ${fb.step} heard ${JSON.stringify(fb.heard)}`);
   const errs = [...a.errors, ...b.errors].filter((e) => !/net::ERR|Failed to load resource/.test(e));
   check('no page error', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

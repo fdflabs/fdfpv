@@ -192,7 +192,10 @@ level is the lead's to route.
 `map.setGateState(list)`, agreed with the mission engine through the lead (3
 October): `[{ gate: 'gate-N', at: room ms, open_m }]`, each the hoist driving
 gate N's lip toward `open_m` over its sill from `at`; `null` is no war, the
-starting water again. **Gates do not jump** (the lead, 3 October): the lip moves
+starting water again, its openings gone too, so the shell hands `[]` in a war
+with no gate state and `null` only out of a war and as a match begins (a joiner
+handed `null` after its openings lost them, and held other water than the
+pilots before it). **Gates do not jump** (the lead, 3 October): the lip moves
 at `hoist.js`'s `HOIST_M_S`, half a metre a minute (an estimate, not a published
 Itaipu figure), from wherever the last ramp had got to at the new entry's `at`.
 Each entry is an event on the room's clock like an opening
