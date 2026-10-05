@@ -752,12 +752,13 @@ export function buildCamp({
     const gb = ground(bx, bz) + 1.45;
     const len = Math.hypot(bx - ax, bz - az) || 1;
     const [ux, uz] = [(bx - ax) / len, (bz - az) / len];
-    const end = 0.55;
+    /* The bed is under three metres; the ropes take up the rest. */
+    const end = Math.max(0.4, (len - 2.7) / 2);
     const stripes = k % 2 ? [[0.07, 0.1, 0.05], [0.1, 0.11, 0.06]] : [[0.11, 0.05, 0.03], [0.13, 0.08, 0.05]];
     const at = (a, b) => {
       const along = end + a * (len - 2 * end);
-      const across = (b - 0.5) * 0.85 * Math.sin(Math.PI * (0.15 + 0.7 * a));
-      const y = ga + (gb - ga) * (along / len) - 0.55 * Math.sin(Math.PI * a) - 0.12 * Math.sin(Math.PI * b) * Math.sin(Math.PI * a);
+      const across = (b - 0.5) * 0.75 * Math.sin(Math.PI * (0.15 + 0.7 * a));
+      const y = ga + (gb - ga) * (along / len) - 0.3 - 0.3 * Math.sin(Math.PI * a) - 0.12 * Math.sin(Math.PI * b) * Math.sin(Math.PI * a);
       return [ax + ux * along - uz * across, y, az + uz * along + ux * across];
     };
     for (let q = 0; q < 6; q += 1) {
