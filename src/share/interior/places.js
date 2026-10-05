@@ -7,8 +7,9 @@
  * INVENTED, ALL OF IT. The land under it is real (world.js); the names
  * are BIBLE.md section 2's and nothing else, and the roads, buildings
  * and openings are where this file puts them, not where anything stands
- * on the source's ground. scripts/interior-names.js holds every name here
- * to the BIBLE's list.
+ * on the source's ground. A `name` is a string key (src/strings, en and
+ * es: interior.place.*); scripts/interior-names.js holds every English
+ * one to the BIBLE's list.
  *
  * POSITIONS are written in MISSIONS.md's design grid (km east, km north
  * of the played square's south west corner, frame.js gridToWorld) because
@@ -97,28 +98,28 @@ export function inPolygon(poly, x, z) {
  * built (TECH-NEEDS N1): this is Mission 1's corridor.
  */
 export const PLACES = {
-  pistaCero: { name: 'Pista Cero', at: g(3.0, 2.0), r: 250 },
-  rutaVieja: { name: 'Ruta Vieja' },
-  rioSereno: { name: 'Río Sereno' },
-  puenteDoble: { name: 'Puente Doble', at: g(5.6, 7.735), r: 60 },
-  sectorAlpha: { name: 'Sector Alpha', at: g(5.4, 4.8), r: 1600 },
-  sectorBravo: { name: 'Sector Bravo', at: g(9.25, 6.15), r: 900 },
-  sectorCharlie: { name: 'Sector Charlie', at: g(8.8, 9.0), r: 1000 },
-  coloniaArroyoManso: { name: 'Colonia Arroyo Manso', at: g(9.35, 6.18), r: 420 },
-  arroyoManso: { name: 'Arroyo Manso' },
-  teacherHouse: { name: 'the schoolteacher\'s house', at: g(9.43, 6.355), r: 25 },
-  monteCerrado: { name: 'Monte Cerrado', at: g(10.5, 10.5), r: 4000 },
-  canada: { name: 'the cañada', at: g(9.25, 9.2), r: 400 },
-  claroViejo: { name: 'Claro Viejo', at: g(8.58, 9.455), r: 32 },
+  pistaCero: { name: 'interior.place.pista_cero', at: g(3.0, 2.0), r: 250 },
+  rutaVieja: { name: 'interior.place.ruta_vieja' },
+  rioSereno: { name: 'interior.place.rio_sereno' },
+  puenteDoble: { name: 'interior.place.puente_doble', at: g(5.6, 7.735), r: 60 },
+  sectorAlpha: { name: 'interior.place.sector_alpha', at: g(5.4, 4.8), r: 1600 },
+  sectorBravo: { name: 'interior.place.sector_bravo', at: g(9.25, 6.15), r: 900 },
+  sectorCharlie: { name: 'interior.place.sector_charlie', at: g(8.8, 9.0), r: 1000 },
+  coloniaArroyoManso: { name: 'interior.place.colonia_arroyo_manso', at: g(9.35, 6.18), r: 420 },
+  arroyoManso: { name: 'interior.place.arroyo_manso' },
+  teacherHouse: { name: 'interior.place.teacher_house', at: g(9.43, 6.355), r: 25 },
+  monteCerrado: { name: 'interior.place.monte_cerrado', at: g(10.5, 10.5), r: 4000 },
+  canada: { name: 'interior.place.canada', at: g(9.25, 9.2), r: 400 },
+  claroViejo: { name: 'interior.place.claro_viejo', at: g(8.58, 9.455), r: 32 },
   /* Where Stage 3's pair is spawned once a pilot crosses the corridor
    * (MISSIONS M1 stage 3): the forest's edge on the cañada's west side. */
   anomalyCorridor: {
-    name: 'the anomaly corridor',
+    name: 'interior.place.anomaly_corridor',
     box: [g(8.7, 8.95), g(9.6, 7.95)],
   },
   /* The square a pilot may fly in before the boundary warns
    * (MISSIONS 1.7): the played square, less a margin. */
-  boundary: { name: 'the operational boundary', warn: 7600, final: 7900 },
+  boundary: { name: 'interior.place.boundary', warn: 7600, final: 7900 },
 };
 
 /*
@@ -130,7 +131,7 @@ export const PLACES = {
 export const ROADS = [
   {
     id: 'ruta-vieja',
-    name: 'Ruta Vieja',
+    name: 'interior.place.ruta_vieja',
     width: 7,
     surface: 'earth',
     points: path([
@@ -171,7 +172,7 @@ const BRIDGE_TO = g(5.612, 7.81);
 export const BRIDGES = [
   {
     id: 'puente-doble',
-    name: 'Puente Doble',
+    name: 'interior.place.puente_doble',
     from: BRIDGE_FROM,
     to: BRIDGE_TO,
     dir: dirOf(BRIDGE_FROM, BRIDGE_TO),
@@ -186,7 +187,7 @@ export const BRIDGES = [
 /* The colonia's road crossing Arroyo Manso: a low concrete causeway
  * (MISSIONS M1 stage 2's "river crossing at the colonia"). */
 export const CROSSINGS = [
-  { id: 'bravo-crossing', name: 'Arroyo Manso', at: g(8.86, 6.13), dir: dirOf(g(8.6, 6.1), g(9.1, 6.16)), width: 6, length: 16 },
+  { id: 'bravo-crossing', name: 'interior.place.arroyo_manso', at: g(8.86, 6.13), dir: dirOf(g(8.6, 6.1), g(9.1, 6.16)), width: 6, length: 16 },
 ];
 
 /*
@@ -435,7 +436,8 @@ export function landEdit(x, z, cls) {
   return out;
 }
 
-/* Every name this file gives a player to read, for the name lint. */
+/* The string key of every name this file gives a player to read, for
+ * the name lint. */
 export const NAMES = [
   ...Object.values(PLACES).map((p) => p.name),
   ...ROADS.filter((r) => r.name).map((r) => r.name),

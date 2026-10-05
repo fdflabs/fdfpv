@@ -89,8 +89,8 @@ for (const id of RETIRED) {
   check(`${id} is not a world, and mapById answers it with the Track seat`,
     !MAPS.some((m) => m.id === id) && mapById(id).id === 'track');
 }
-check('the worlds are the Alps, the Swiss valley and Itaipu',
-  MAPS.filter((m) => m.load).map((m) => m.id).join() === 'alps,swiss2,itaipu',
+check('the worlds are the Alps, the Swiss valley, Itaipu and the Interior',
+  MAPS.filter((m) => m.load).map((m) => m.id).join() === 'alps,swiss2,itaipu,interior',
   MAPS.filter((m) => m.load).map((m) => m.id).join());
 check('every retired id lands on a world this build has',
   RETIRED.every((id) => retiredMap(id) && MAPS.some((m) => m.id === retiredMap(id).to && m.load)));

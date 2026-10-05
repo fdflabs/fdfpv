@@ -137,7 +137,14 @@ const fail = (m) => {
 };
 
 const invented = bibleNames();
-for (const name of NAMES) {
+/* places.js names by string key; the English is what the BIBLE lists. */
+const en = (await import('../src/strings/en.js')).default;
+for (const key of NAMES) {
+  const name = en[key];
+  if (name == null) {
+    fail(`places.js names "${key}", which src/strings/en.js does not have`);
+    continue;
+  }
   if (!invented.has(name) && !DESCRIPTIONS.has(name)) {
     fail(`places.js names "${name}", which is neither on BIBLE.md 2.2's list nor a plain description`);
   }
