@@ -27,7 +27,8 @@
  *            exactly the bytes that were sent.
  *   DELETE /api/tracks/{id}          { key, sig, ts }  the owner only.
  *   POST   /api/admin/tracks/{id}    { hidden: true | false }
- *   DELETE /api/admin/tracks/{id}    both with authorization: Bearer ADMIN_SECRET
+ *   DELETE /api/admin/tracks/{id}    both with authorization: Bearer ADMIN_SECRET,
+ *            or the Google ID token of one of ADMIN_EMAILS (isAdmin)
  *
  *   summary = { id, name, author, owner, map, gates, planes, createdUtc,
  *               updatedUtc }
@@ -79,7 +80,7 @@ import {
 import {
   CORS, json, nowUtc, readBody, refuse, spend,
 } from './http.js';
-import { accountRoute, waitlistRoute } from './accounts.js';
+import { accountRoute, isAdminToken, waitlistRoute } from './accounts.js';
 import { waitlistAdmin } from './waitlist.js';
 import { adminAccounts, adminOverview } from './admin.js';
 
@@ -315,12 +316,19 @@ async function getTrack(env, id) {
   return json(200, { ...summaryOf(row), document: JSON.parse(row.document) });
 }
 
-/* Constant time over the digests, so the comparison says nothing about how
- * much of a guess was right. */
+/* The bearer is ADMIN_SECRET, sent by hand or by a script, or the Google
+ * ID token of one of ADMIN_EMAILS, which is what the admin page sends
+ * (accounts.js isAdminToken). The secret is compared in constant time over
+ * the digests, so the comparison says nothing about how much of a guess
+ * was right. */
 async function isAdmin(env, request) {
-  const secret = env.ADMIN_SECRET;
   const got = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!secret || !got) {
+  return Boolean(got) && ((await isSecret(env, got)) || isAdminToken(env, got));
+}
+
+async function isSecret(env, got) {
+  const secret = env.ADMIN_SECRET;
+  if (!secret) {
     return false;
   }
   const a = await sha256Base64(secret);

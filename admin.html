@@ -4,10 +4,12 @@
   waitlist with its approvals, read from the tracks server's admin routes
   (tracks-api/admin.js, tracks-api/waitlist.js).
 
-  The key is the tracks server's ADMIN_SECRET, typed here and kept for the
-  tab (sessionStorage), sent as a bearer header and nowhere else. The page
-  itself is public and holds nothing: without the key every route answers
-  401.
+  The owner signs in with Google, and the ID token Google hands the page
+  is the bearer on every request: the server lets in the addresses in its
+  ADMIN_EMAILS and nobody else (tracks-api/accounts.js isAdminToken). The
+  token is kept in this page's memory, never in storage, and lasts an hour;
+  after that the page asks again. The page itself is public and holds
+  nothing: without an admin's token every route answers 401.
 
   This file is part of WebFPVSimulator.
 
@@ -96,11 +98,8 @@
       </header>
 
       <section id="login" class="login">
-        <p>The tracks server's admin key. It is kept for this tab only and sent to the server and nowhere else.</p>
-        <form id="login-form">
-          <input id="key" type="password" autocomplete="off" aria-label="Admin key" placeholder="Admin key" required />
-          <button class="go" type="submit">Unlock</button>
-        </form>
+        <p>Sign in with the Google account that runs this server.</p>
+        <div id="gis"></div>
         <p id="login-say" class="say" role="status"></p>
       </section>
 
@@ -126,15 +125,11 @@
     </main>
     <script type="module">
       import { API_ORIGIN } from './src/share/api.js';
+      import { GOOGLE_CLIENT_ID } from './src/share/account.js';
 
-      const KEY = 'pdcs.admin.key';
       const $ = (id) => document.getElementById(id);
+      /* Google's ID token for whoever signed in here. */
       let key = '';
-      try {
-        key = sessionStorage.getItem(KEY) || '';
-      } catch (e) {
-        /* Storage refused: the key is asked for on every load. */
-      }
 
       function el(tag, cls, text) {
         const n = document.createElement(tag);
@@ -223,7 +218,9 @@
           say($('waitlist-say'), 'ok', done);
           await load();
         } catch (e) {
-          say($('waitlist-say'), 'fail', e.message);
+          if (!expired(e)) {
+            say($('waitlist-say'), 'fail', e.message);
+          }
         }
       }
 
@@ -301,11 +298,6 @@
 
       function lock(text = '') {
         key = '';
-        try {
-          sessionStorage.removeItem(KEY);
-        } catch (e) {
-          /* Nothing was stored. */
-        }
         $('desk').hidden = true;
         $('top').hidden = true;
         $('login').hidden = false;
@@ -313,40 +305,58 @@
       }
 
       async function open() {
-        say($('login-say'), '', 'Checking the key.');
+        say($('login-say'), '', 'Checking with the server.');
         try {
           await load();
         } catch (e) {
-          lock(e.status === 401 ? 'That is not the admin key.' : `The server could not be read: ${e.message}`);
+          lock(e.status === 401 ? 'That Google account does not run this server.' : `The server could not be read: ${e.message}`);
           return;
-        }
-        try {
-          sessionStorage.setItem(KEY, key);
-        } catch (e) {
-          /* Storage refused: the key lasts this page. */
         }
         $('login').hidden = true;
         $('desk').hidden = false;
         $('top').hidden = false;
       }
 
-      $('login-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        key = $('key').value.trim();
-        $('key').value = '';
-        open();
-      });
+      const gis = document.createElement('script');
+      gis.src = 'https://accounts.google.com/gsi/client';
+      gis.async = true;
+      gis.onload = () => {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (res) => {
+            if (res && res.credential) {
+              key = res.credential;
+              open();
+            }
+          },
+          auto_select: true,
+        });
+        window.google.accounts.id.renderButton($('gis'), {
+          type: 'standard', theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'rectangular',
+        });
+      };
+      gis.onerror = () => say($('login-say'), 'fail', 'Google\'s sign in could not load here. Check the connection or any blocker.');
+      document.head.append(gis);
       $('invite-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const email = $('invite-email').value.trim();
         $('invite-email').value = '';
         change('POST', { email, approved: true }, `${email} is invited.`);
       });
-      $('refresh').addEventListener('click', () => load().catch((e) => say($('waitlist-say'), 'fail', e.message)));
-      $('lock').addEventListener('click', () => lock());
-      if (key) {
-        open();
+      /* The token runs out after an hour: a refused read or change then
+       * goes back to the sign in rather than leaving a dead desk. */
+      function expired(e) {
+        if (e.status === 401) {
+          lock('The sign in ran out. Sign in again.');
+          return true;
+        }
+        return false;
       }
+      $('refresh').addEventListener('click', () => load().catch((e) => expired(e) || say($('waitlist-say'), 'fail', e.message)));
+      $('lock').addEventListener('click', () => {
+        window.google?.accounts?.id.disableAutoSelect();
+        lock();
+      });
     </script>
   </body>
 </html>
