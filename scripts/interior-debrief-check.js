@@ -184,7 +184,7 @@ try {
   await page.evaluate("(document.querySelector('.name-dialog .name-dialog-row button.on').click(), true)");
   await page.until(`${CARD} !== null && ${CARD}.note !== null`, 10000).catch(() => {});
   const after = await page.evaluate(CARD);
-  check('Continue: kept, and the page says the map is not in this build yet (no room made)', await page.evaluate('window.__ui.settings.interiorConsent === true') && after && /map is not in this build/.test(after.note || ''), JSON.stringify(after && after.note));
+  check('Continue: kept, and the page says where the start is (no room made from here yet)', await page.evaluate('window.__ui.settings.interiorConsent === true') && after && /comes with the Interior's map/.test(after.note || '') && (await page.evaluate("window.__rooms().phase")) === 'idle', JSON.stringify(after && after.note));
   await shot('interior-campaign-dev.png');
   await page.evaluate('(window.__opsCampaign.close(), true)');
 
