@@ -280,6 +280,8 @@
         position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
         text-align: center; text-shadow: 0 2px 6px rgba(0,0,0,0.85);
       }
+      /* A war has no lap and no run: its clock is the war HUD's. */
+      #ui.war-on .osd-top { display: none; }
       .osd-timer { font-size: 46px; font-weight: 600; letter-spacing: 0.02em; line-height: 1; }
       .osd-timer.waiting { color: #b9c9d8; }
       .osd-label {

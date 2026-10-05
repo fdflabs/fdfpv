@@ -68,7 +68,7 @@ const PASS_M = 2;
 const FILM_MIN_S = 30;
 const FILM_MAX_S = 75;
 const CAMERAS = new Set(['dolly', 'crane', 'orbit', 'handheld', 'drone', 'telephoto']);
-const GRADES = new Set(['dawn', 'steel', 'warm', 'night']);
+const GRADES = new Set(['dawn', 'steel', 'warm', 'warm-grad', 'night']);
 const OUTS = new Set(['cut', 'smash', 'match', 'dip', 'dissolve', 'handoff']);
 
 /* The ground for a cast member standing on it, in Node: the crest's deck

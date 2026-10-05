@@ -355,8 +355,8 @@ void main() {
   }
   a = clamp(a * vColor.a, 0.0, 1.0);
   if (a < 0.003) discard;
-  // Additive: colour times coverage, the alpha unused. Blended smoke:
-  // straight alpha.
+  // Additive: colour times coverage, blended One, One with the alpha
+  // left as it was (createPool). Blended smoke: straight alpha.
   gl_FragColor = additive > 0.5 ? vec4(rgb * a, 1.0) : vec4(rgb, a);
 }
 `;
@@ -428,7 +428,16 @@ function createPool(cap, additive, tex) {
     transparent: true,
     depthWrite: false,
     depthTest: true,
-    blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+    blending: additive ? THREE.CustomBlending : THREE.NormalBlending,
+    /* The additive pool's light added, its alpha not: Itaipu's water
+     * mirror (src/maps/itaipu/water/index.js SMEAR) is drawn without the
+     * sky and reads its alpha as how much of the shores it holds, so a
+     * glow that wrote alpha took the blurred sky out from under itself,
+     * a dark half disc in the water under a fresh low explosion. */
+    blendSrc: THREE.OneFactor,
+    blendDst: THREE.OneFactor,
+    blendSrcAlpha: THREE.ZeroFactor,
+    blendDstAlpha: THREE.OneFactor,
     side: THREE.DoubleSide,
     toneMapped: false,
   });

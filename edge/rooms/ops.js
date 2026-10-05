@@ -53,7 +53,7 @@ import {
   beatOf, enter, exitDue, fired, objectives, stagesOf, target as exitTarget,
 } from '../../src/share/war/stages.js';
 import { released } from '../../src/game/campaign.js';
-import { MISSIONS, worldFor } from '../../src/share/ops/missions.js';
+import { MISSIONS, grounded, worldFor } from '../../src/share/ops/missions.js';
 import {
   centreOf, contactsView, discover, membersOf, step as stepContacts,
 } from '../../src/share/ops/contacts.js';
@@ -88,6 +88,28 @@ export const RESTART_STARS = 2;
 
 const copy = (x) => JSON.parse(JSON.stringify(x));
 
+/* Every room ms a match's contacts, sites, flags and choices hold, moved
+ * by d (a checkpoint's restart). Captures keep theirs: they were taken
+ * before the stage, and a trigger reads them from its opening on. */
+function shiftTimes(m, d) {
+  const mv = (t) => (t == null ? t : t + d);
+  for (const c of m.contacts) {
+    for (const k of ['t0', 'seenAt', 'firstAt', 'lostSince', 'reacqAt', 'inSince', 'lastIn', 'clsAt', 'vanishedAt', 'movedFor']) {
+      c[k] = mv(c[k]);
+    }
+    c.reached = Object.fromEntries(Object.entries(c.reached).map(([k, t]) => [k, mv(t)]));
+    c.evidence = c.evidence.map((x) => ({ ...x, t: mv(x.t) }));
+    if (c.next) {
+      c.next = { ...c.next, t0: mv(c.next.t0) };
+    }
+  }
+  for (const st of Object.values(m.sites)) {
+    st.at = Object.fromEntries(Object.entries(st.at).map(([k, t]) => [k, mv(t)]));
+  }
+  m.flagAt = Object.fromEntries(Object.entries(m.flagAt).map(([k, t]) => [k, mv(t)]));
+  m.choices = Object.fromEntries(Object.entries(m.choices).map(([k, c]) => [k, { ...c, t: mv(c.t) }]));
+}
+
 export class RoomOps {
   /* options.devMissions also starts missions in development (campaign.js
    * released): the checks' rooms and a developer's server, never the VM.
@@ -108,12 +130,14 @@ export class RoomOps {
     this.log = [];
   }
 
+  /* The match's mission, its heights over the ground made absolute
+   * (missions.js grounded). */
   mission() {
-    return this.match ? this.missions[this.match.mission] : null;
+    return this.match ? grounded(this.missions[this.match.mission], this.worldOf()) : null;
   }
 
   worldOf() {
-    return this.world ?? worldFor(this.mission().map);
+    return this.world ?? worldFor(this.missions[this.match.mission].map);
   }
 
   restore(saved) {
@@ -394,6 +418,11 @@ export class RoomOps {
       Object.assign(m, copy({
         dials: cp.dials, contacts: cp.contacts, captures: cp.captures, flags: cp.flags, flagAt: cp.flagAt, sites: cp.sites, search: cp.search, choices: cp.choices, path: cp.path,
       }), { entries: cp.entry - 1, from: cp.idx, restarted: cp.id });
+      /* The stage opens again at the go: every time the match kept is
+       * moved with it, so a contact lost when the stage first opened has
+       * been lost as long as it had then, not since. (A checkpoint stored
+       * before it kept its `at` is restored as it was.) */
+      shiftTimes(m, cp.at == null ? 0 : goAt - cp.at);
     }
     this.match = m;
     this.nextId += 1;
@@ -784,7 +813,7 @@ export class RoomOps {
     /* The match as this stage opens: what a restart from it comes back
      * to (MISSIONS.md 1.1). */
     m.checkpoint = copy({
-      id: def.id, idx, seed: m.seed, entry: m.entries, dials: m.dials, contacts: m.contacts, captures: m.captures, flags: m.flags, flagAt: m.flagAt, sites: m.sites, search: m.search, choices: m.choices, path: m.path,
+      id: def.id, idx, at, seed: m.seed, entry: m.entries, dials: m.dials, contacts: m.contacts, captures: m.captures, flags: m.flags, flagAt: m.flagAt, sites: m.sites, search: m.search, choices: m.choices, path: m.path,
     });
     m.stage = enter(mission, idx, at, m.seed, m.entries, { pilots: Math.max(1, core.seats.size) });
     m.path.push({ id: def.id, at });
