@@ -213,23 +213,29 @@ Shared lines, every mission:
 
 One map (N1), ~16 by 16 km. Positions are a design grid in km east and
 north of the map's south west corner: scene positions for the builders,
-never shown, never real coordinates.
+never shown, never real coordinates. The grid's corner is 8000 m west and
+8000 m south of the map's origin (mission data's `ORIGIN`). Mission 1's
+places are where track WORLD put them on the real land (2026-10-05,
+docs/campaign/interior/WORLD.md section 5); the authority for their
+positions is `src/share/interior/places.js` and `routes.js`, and this
+table follows them.
 
 | Place | Grid (km) | Missions |
 | --- | --- | --- |
 | Pista Cero (base, catapult, recovery field) | 3.0, 2.0 | all |
-| Ruta Vieja (old dirt road), south west to north east | 1, 3 to 12, 12 | all |
-| Río Sereno, from the west edge to the east edge in wide bends | 0, 10 to 16, 5 | all |
+| Ruta Vieja (old dirt road), south west to north east | -0.6, 2.25 to 16.6, 13.5 (places.js ROADS) | all |
+| Río Sereno, the land's own river line (hydro.js) | crosses x 5.6 at 7.73 | all |
 | Sector Alpha: fields, the sheds (silo, two open sheds), the damaged road stretch, the burned field | 4 to 7, 3 to 6 | M1, M5 film |
-| Puente Doble (Ruta Vieja over Río Sereno) | 5.6, 7.0 | M1, M5 film |
-| Sector Bravo: Colonia Arroyo Manso, pasture | 7.5 to 9.5, 6.5 to 8.5 | M1, M3 echo, M5 film |
-| the schoolteacher's house on the Arroyo Manso | 8.9, 7.9 | M1 |
-| Sector Charlie: Monte Cerrado's south edge | 9.5 to 12, 8.5 to 9.5 | M1 |
-| ANOMALY_CORRIDOR (the transit between Bravo and Charlie) | 9.6 to 10.6, 8.2 to 9.0 | M1 |
-| the concealment routes (three variants, about 800 m each) | 10.8, 9.1 to 11.8, 10.4 | M1 |
-| the narrow opening (where the long objects show) | 11.3, 9.8 | M1 |
-| the cañada (drainage line east of the routes) | 11.9, 9.4 to 12.1, 10.2 | M1 |
-| Claro Viejo (the first camp) | 11.9, 10.5 | M1, M2, M5 |
+| Puente Doble (Ruta Vieja over Río Sereno) | 5.60, 7.74 | M1, M5 film |
+| Sector Bravo: Colonia Arroyo Manso on the creek Arroyo Manso, south of the river, along its road | 9.35, 6.18 (8.95 to 9.85) | M1, M3 echo, M5 film |
+| the river crossing at the colonia (a causeway over Arroyo Manso) | 8.86, 6.13 | M1 |
+| the schoolteacher's house on the Arroyo Manso | 9.43, 6.36 | M1 |
+| Sector Charlie: the forest from the cañada west | 8.0 to 9.4, 8.3 to 10 | M1 |
+| ANOMALY_CORRIDOR (the open grass strip north of the river where Bravo meets the forest) | 8.7 to 9.6, 7.95 to 8.95 | M1 |
+| the concealment routes (three variants: west 896 m, mid 833 m, east 914 m) | 9.00, 8.72 to 8.59, 9.43 | M1 |
+| the narrow opening (where the long objects show) | 8.655, 9.33 to 8.632, 9.385 | M1 |
+| the cañada (the open strip along the creek, east of the routes) | 9.0 to 9.4, 8.0 to 10.6 | M1 |
+| Claro Viejo (the first camp) | 8.58, 9.46 | M1, M2, M5 |
 | Senda del Vigía (the watchers' footpath) | 11.9, 10.5 to 6.0, 13.0 | M2, M3 |
 | Loma del Vigía (ridge over Ruta Vieja) | 9.8, 11.4 | M2 |
 | Cruce Tranquera (crossroads) | 8.2, 10.2 | M2 |
@@ -250,6 +256,10 @@ never shown, never real coordinates.
 | Rancho Sin Nombre (archive site) | 15.3, 11.0 | M5 |
 | Vado del Manso (ford, ending C) | 10.2, 6.1 | M5 |
 | exits: west, south east, north | 9, 13 / 15, 9 / 13, 16 | M5 |
+
+Missions 2 to 5's places below are 1.9's first layout; each is laid out
+again on the land when its mission is built (WORLD.md section 5: Senda
+del Vigía, Rincón Quemado and the rest from Claro Viejo's new place).
 
 Build order (N1): the M1 corridor first (Pista Cero, Alpha, Bravo,
 Charlie, Claro Viejo, the return), then each mission's places as it is

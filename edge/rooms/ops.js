@@ -53,7 +53,7 @@ import {
   beatOf, enter, exitDue, fired, objectives, stagesOf, target as exitTarget,
 } from '../../src/share/war/stages.js';
 import { released } from '../../src/game/campaign.js';
-import { MISSIONS, worldFor } from '../../src/share/ops/missions.js';
+import { MISSIONS, grounded, worldFor } from '../../src/share/ops/missions.js';
 import {
   centreOf, contactsView, discover, membersOf, step as stepContacts,
 } from '../../src/share/ops/contacts.js';
@@ -108,12 +108,14 @@ export class RoomOps {
     this.log = [];
   }
 
+  /* The match's mission, its heights over the ground made absolute
+   * (missions.js grounded). */
   mission() {
-    return this.match ? this.missions[this.match.mission] : null;
+    return this.match ? grounded(this.missions[this.match.mission], this.worldOf()) : null;
   }
 
   worldOf() {
-    return this.world ?? worldFor(this.mission().map);
+    return this.world ?? worldFor(this.missions[this.match.mission].map);
   }
 
   restore(saved) {

@@ -7,25 +7,25 @@
  * stars, flags, roles and radio. Text is string keys only; the voices are
  * a later track and the line ids are the contract with it.
  *
- * Positions are the ops frame (z up, metres), written on MISSIONS.md
- * 1.9's design grid in km east and north of the map's south west corner
- * through G() and ORIGIN, the one number to change if track WORLD puts
- * the map's origin somewhere else. z0 is the ground under Pista Cero.
+ * Positions are the ops frame (z up, metres). The places are WORLD's
+ * (src/share/interior/places.js, routes.js: docs/campaign/interior/
+ * WORLD.md section 5 lists where the land moved MISSIONS.md 1.9's
+ * layout), turned into the ops frame by P() through frame.js; a few
+ * points WORLD does not name are written on the design grid through G()
+ * and ORIGIN ([8000, 8000]). The mission is `ground`: every z here is
+ * metres over the ground, which the room adds (src/share/ops/missions.js).
  *
- * ROUTES this mission asks WORLD for (poseOnRoute ids; the fixture in
- * src/share/ops/fixtures/interior-1.js stands in until they land):
+ * ROUTES it names (WORLD's ids, routes.js ROUTES):
  *   conceal-{west,mid,east}-{a,b}      the pair, forest edge to camp edge,
- *                                      through the narrow opening; end at
- *                                      the camp edge and stay
+ *                                      through the narrow opening
  *   conceal-{west,mid,east}-alt-{a,b}  each route's alternate from its
- *                                      reacquisition point (the cañada for
- *                                      west and east, a path crossing for
- *                                      mid) to the camp edge
- *   camp-<id>-loop                     each camp person's loop in the
- *                                      clearing; camp-tarp-move the tarp
+ *                                      reacquisition point (ALT_POINTS)
+ *   <id>-loop (camp-look-loop ...)    each camp person's loop;
+ *                                      camp-tarp-move-s1/-s2/-s3 the tarp
+ *                                      at the marked shelter (the dial)
  *   out-{n,e,s,w}-{a,b}, pair-out-{a,b} the dispersal into the forest,
  *                                      over when its walker is gone
- *   bravo-moto                         the motorcycle on Ruta Vieja
+ *   bravo-moto                         the motorcycle on the colonia's road
  *
  * This file is part of WebFPVSimulator.
  *
@@ -43,11 +43,39 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/* The design grid's south west corner in the ops frame. */
-export const ORIGIN = [0, 0];
+import { threePosToDoc } from '../../../render/frame.js';
+import { ORIGIN } from '../ops.js';
+import {
+  BUILDINGS, CAMP_PROPS, CROSSINGS, PLACES,
+} from '../places.js';
+import { ALT_POINTS, CONCEAL_POINTS, ROUTES } from '../routes.js';
+import { M1_CLOCK, sunsetMs } from '../clock.js';
+
+/* The design grid's south west corner, metres west and south of the ops
+ * frame's origin (docs/campaign/interior/WORLD.md section 2). */
+export { ORIGIN };
 /* A grid point (km east, km north) in ops frame metres. */
 export const G = (e, n) => [Math.round(e * 1000 - ORIGIN[0]), Math.round(n * 1000 - ORIGIN[1])];
-const G3 = (e, n, z = 0) => [...G(e, n), z];
+/* A place WORLD authored (scene metres [x, z], places.js and routes.js)
+ * in the ops frame, h metres over the ground (the mission is `ground`:
+ * the room adds the ground's height, src/share/ops/missions.js). */
+const P = ([x, z], h = 0) => {
+  const d = threePosToDoc(x, 0, z, {});
+  return [Math.round(d.x * 100) / 100, Math.round(d.y * 100) / 100, h];
+};
+const P2 = (at) => P(at).slice(0, 2);
+/* A named point along the concealment routes (routes.js CONCEAL_POINTS). */
+const ALONG = (name) => P2(ROUTES['conceal-west-a'].pts[CONCEAL_POINTS[name]]);
+const ALT_AT = (k) => P2(ROUTES[`conceal-${k}-alt-a`].pts[ALT_POINTS.reacquire]);
+const CAMP_AT = CAMP_PROPS.middle;
+const SHELTER = Object.fromEntries(CAMP_PROPS.shelters.map((x) => [x.id, x]));
+/* The unit horizontal direction, ops frame, from the camp's middle out
+ * through a shelter: the side its roof's underside is seen from. */
+function outward(id) {
+  const [a, b] = [P2(CAMP_AT), P2(SHELTER[id].at)];
+  const n = Math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2);
+  return [Math.round(((b[0] - a[0]) / n) * 1000) / 1000, Math.round(((b[1] - a[1]) / n) * 1000) / 1000];
+}
 
 /* The campaign's classes (BIBLE.md 6), unknown first: what a contact is on
  * its discovery. */
@@ -57,9 +85,9 @@ export const CLASSES = ['unknown', 'civilian', 'friendly', 'poi', 'column-linked
  * roof's underside can be seen from (MISSIONS.md M1 stage 5: one bearing
  * band, at a depression under 35 degrees: tan 35 = 0.700). */
 export const SHELTERS = {
-  s1: { at: G3(11.88, 10.49, 2), dir: [-1, 0] },
-  s2: { at: G3(11.91, 10.52, 2), dir: [0, 1] },
-  s3: { at: G3(11.92, 10.48, 2), dir: [1, 0] },
+  s1: { at: P(SHELTER['shelter-1'].at, 1.5), dir: outward('shelter-1') },
+  s2: { at: P(SHELTER['shelter-2'].at, 1.5), dir: outward('shelter-2') },
+  s3: { at: P(SHELTER['shelter-3'].at, 1.5), dir: outward('shelter-3') },
 };
 
 const CAMP = ['camp-look', 'camp-tarp', 'camp-up', 'camp-mast', 'camp-moto-1', 'camp-moto-2', 'camp-1', 'camp-2'];
@@ -69,6 +97,8 @@ const OUT = {
 };
 /* The first direction to leave goes at once, the rest 20 s after (a dial). */
 const FIRST_OUT_S = 20;
+
+const BUILDING = (id) => BUILDINGS.find((b) => b.id === id);
 
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 const TRACKER = { role: ['tracker'] };
@@ -85,6 +115,8 @@ export default {
   campaign: 'interior',
   title: 'ops.interior.m1.title',
   map: 'interior',
+  /* Every height here is over the ground; z0 is Pista Cero's ground. */
+  ground: true,
   z0: 0,
   /* No film yet (the films are a later track): no briefing hold. */
   filmMs: 0,
@@ -113,43 +145,48 @@ export default {
   ],
   items: [
     {
-      id: 'bridge', set: 'alpha', at: G3(5.6, 7.0, 4), size: 60,
+      id: 'bridge', set: 'alpha', at: P(PLACES.puenteDoble.at, 4), size: 60,
     },
     {
-      id: 'road', set: 'alpha', at: { dial: 'road', map: { north: G3(4.6, 5.95), south: G3(4.2, 5.62) } }, size: 40,
+      /* One of two stretches of Ruta Vieja in Sector Alpha (a dial). */
+      id: 'road', set: 'alpha', at: { dial: 'road', map: { north: [...G(4.98, 5.1), 0], south: [...G(4.6, 4.45), 0] } }, size: 40,
     },
     {
-      id: 'sheds', set: 'alpha', at: G3(5.5, 4.0, 6), size: 35,
+      id: 'sheds', set: 'alpha', at: P(BUILDING('alpha-shed-1').at, 5), size: 35,
     },
     {
-      id: 'burned', set: 'alpha-optional', at: G3(6.3, 3.6), size: 90,
+      id: 'burned', set: 'alpha-optional', at: [...G(6.27, 5.27), 0], size: 300,
     },
     {
-      id: 'colonia', set: 'bravo', at: G3(8.5, 7.5), size: 300,
+      id: 'colonia', set: 'bravo', at: P(PLACES.coloniaArroyoManso.at), size: 300,
     },
     {
-      id: 'crossing', set: 'bravo', at: G3(8.6, 7.3, 2), size: 25,
+      id: 'crossing', set: 'bravo', at: P(CROSSINGS[0].at, 1), size: 20,
     },
     {
-      id: 'shelters', set: 'camp', at: G3(11.9, 10.5, 2), size: 25,
+      id: 'shelters', set: 'camp', at: P(CAMP_AT, 1.5), size: 30,
     },
     {
-      id: 'motorcycles', set: 'camp', at: G3(11.93, 10.47, 1), size: 6,
+      id: 'motorcycles', set: 'camp', at: P(CAMP_PROPS.motorcycles[0].at, 0.6), size: 6,
     },
     {
-      id: 'antenna', set: 'camp', at: G3(11.88, 10.53, 4), size: 8,
+      id: 'antenna', set: 'camp', at: P(CAMP_PROPS.mast.at, 5), size: 9,
     },
     {
       id: 'personnel', set: 'camp', contact: 'camp', size: 1.7,
     },
     {
-      id: 'access', set: 'camp', at: G3(11.88, 10.46), size: 15,
+      id: 'access', set: 'camp', at: [...G(8.565, 9.48), 0], size: 15,
     },
     {
-      id: 'lookout', set: 'camp-optional', at: G3(11.9, 10.56, 6), size: 5,
+      /* The lookout position by its foot and ladder, 2 m up: its deck
+       * (7.5 m) is inside its own tree's crown and canopyBlocks hides it
+       * from every side and from overhead; the foot shows through the
+       * gaps at the clearing's edge. */
+      id: 'lookout', set: 'camp-optional', at: P(CAMP_PROPS.lookout.at, 2), size: 5,
     },
     {
-      id: 'solar', set: 'camp-optional', at: G3(11.91, 10.51, 1), size: 2,
+      id: 'solar', set: 'camp-optional', at: P(CAMP_PROPS.solar.at, 1), size: 2,
     },
     {
       id: 'symbol',
@@ -162,15 +199,15 @@ export default {
     },
   ],
   points: {
-    'pista-cero': { at: G(3.0, 2.0), r: 150 },
-    corridor: { at: G(10.1, 8.6), r: 500 },
-    'teacher-house': { at: G(8.9, 7.9), r: 12, z: 3 },
-    'forest-edge': { at: G(10.8, 9.1), r: 60 },
-    opening: { at: G(11.3, 9.8), r: 30 },
-    'camp-edge': { at: G(11.85, 10.38), r: 40 },
+    'pista-cero': { at: P2(PLACES.pistaCero.at), r: 250 },
+    corridor: { at: G(9.15, 8.45), r: 450 },
+    'teacher-house': { at: P2(PLACES.teacherHouse.at), r: 12, z: 3 },
+    'forest-edge': { at: ALONG('forest-edge'), r: 40 },
+    opening: { at: ALONG('opening'), r: 25 },
+    'camp-edge': { at: ALONG('camp-edge'), r: 25 },
   },
   sites: [{
-    id: 'camp', at: G(11.9, 10.5), z0: 0, r: 400, below: 300, reach: 1500, rise: 0.05, fall: 0.01, levels: { wary: 0.5, high: 1 },
+    id: 'camp', at: P2(CAMP_AT), z0: 0, r: 400, below: 300, reach: 1500, rise: 0.05, fall: 0.01, levels: { wary: 0.5, high: 1 },
   }],
   dials: {
     conceal: ['west', 'mid', 'east'],
@@ -178,7 +215,8 @@ export default {
     road: ['north', 'south'],
     firstOut: ['n', 'e', 's', 'w'],
   },
-  boundary: { min: G(1.5, 1.0), max: G(13.5, 12.0) },
+  /* The played square less WORLD's warning margin (places.js boundary). */
+  boundary: { min: [-PLACES.boundary.warn, -PLACES.boundary.warn], max: [PLACES.boundary.warn, PLACES.boundary.warn] },
   lines: {
     boundary: { warning: 'int-boundary', final: 'int-boundary-final' },
     fail: 'int1-fail',
@@ -190,7 +228,7 @@ export default {
    * (two minutes past the latest the script can need: a broken run). */
   lost: [
     { when: { downed: ['isr'], alone: true }, why: 'isr-down', radio: 'int-fail-function' },
-    { when: { clock: 2700 }, why: 'light', radio: 'int-fail-function' },
+    { when: { clock: Math.round(sunsetMs(M1_CLOCK) / 1000) }, why: 'light', radio: 'int-fail-function' },
   ],
   stars: [
     { id: 'symbol', card: 'symbol', when: { captured: 'symbol', grade: 'usable' } },
@@ -205,7 +243,7 @@ export default {
        * see a mode switch or a map opened. */
       tutorial: ['ops.tut.launch', 'ops.tut.climb', 'ops.tut.eo_thermal', 'ops.tut.map'],
       /* The camp is there from the start, its people on their loops. */
-      cues: [{ at: 0, spawn: CAMP.map((id) => ({ id, route: `camp-${id}-loop` })) }],
+      cues: [{ at: 0, spawn: CAMP.map((id) => ({ id, route: `${id}-loop` })) }],
       objectives: [
         {
           id: 'launch', text: 'ops.interior.m1.obj.launch', tier: 'primary', done: { above: 500, roles: ['isr'] },
@@ -271,7 +309,7 @@ export default {
           at: 25,
           unless: { discovered: 'pair' },
           radio: ['int1-s3-hold', 'int1-s3-bearing'],
-          search: { id: 'pair-search', at: G(10.8, 9.1), r: 250 },
+          search: { id: 'pair-search', at: ALONG('forest-edge'), r: 250 },
           card: 'card.search_area',
         },
         {
@@ -302,7 +340,7 @@ export default {
           when: { lost: 'pair', s: 45 },
           repeat: true,
           radio: { dial: 'conceal', map: { west: 'int1-s4-hard', mid: 'int1-s4-hard-b', east: 'int1-s4-hard' } },
-          search: { id: 'pair-alt', at: { dial: 'conceal', map: { west: G(12.0, 9.8), mid: G(11.5, 10.2), east: G(12.05, 9.9) } }, r: 200 },
+          search: { id: 'pair-alt', at: { dial: 'conceal', map: { west: ALT_AT('west'), mid: ALT_AT('mid'), east: ALT_AT('east') } }, r: 200 },
           card: 'card.search_area',
         },
         {
@@ -346,7 +384,7 @@ export default {
         { at: 2, radio: ['int1-s5-nolow', 'int1-s5-record'] },
         { at: 4, radio: 'int1-tr-angle', heard: TRACKER },
         {
-          when: { captured: { set: 'camp' }, n: 3 }, at: 5, move: [{ contacts: 'camp-tarp', route: 'camp-tarp-move' }], choose: { name: 'tarp', value: 'moved' },
+          when: { captured: { set: 'camp' }, n: 3 }, at: 5, move: [{ contacts: 'camp-tarp', route: { dial: 'mark', map: { s1: 'camp-tarp-move-s1', s2: 'camp-tarp-move-s2', s3: 'camp-tarp-move-s3' } } }], choose: { name: 'tarp', value: 'moved' },
         },
         {
           when: { captured: 'symbol', grade: 'usable' },
