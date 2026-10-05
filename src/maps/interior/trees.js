@@ -402,15 +402,18 @@ const CROWN_FRAG_NORMAL = /* glsl */ `
     normal = crNrm;
   #endif
 `;
-/* After the lights: the low sun through the crown's outer leaves, most
- * when the camera looks toward it. */
+/* After the lights: less of the sky the lower on the crown, where its
+ * neighbours stand round it (no tier past the near one casts shadows);
+ * the low sun through the crown's outer leaves, most when the camera
+ * looks toward it; and a third of the specular (CROWN_SPEC). */
 const CROWN_FRAG_LIGHT = /* glsl */ `
+  reflectedLight.indirectDiffuse *= mix(0.35, 1.0, smoothstep(-0.6, 0.9, crUp));
   #if NUM_DIR_LIGHTS > 0
     {
       vec3 crV = normalize(vViewPosition);
       float crFwd = pow(saturate(dot(-crV, directionalLights[0].direction)), 3.0);
       float crRim = 1.0 - saturate(dot(normal, crV));
-      reflectedLight.indirectDiffuse += diffuseColor.rgb * directionalLights[0].color * (0.06 + 0.8 * crFwd) * pow(crRim, 1.5) * RECIPROCAL_PI;
+      reflectedLight.indirectDiffuse += diffuseColor.rgb * directionalLights[0].color * (0.05 + 0.5 * crFwd) * pow(crRim, 1.5) * RECIPROCAL_PI;
     }
   #endif
   reflectedLight.indirectSpecular *= CROWN_SPEC;
