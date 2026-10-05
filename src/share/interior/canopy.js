@@ -45,6 +45,7 @@
 import { HALF } from './frame.js';
 import { LAND } from './world.js';
 import { opened } from './places.js';
+import { RIVER, STREAMS } from './hydro.js';
 
 /* One tree a square this size at most, metres: a semi deciduous forest's
  * crowns are 5 to 11 m across. */
@@ -63,6 +64,18 @@ const GAP_NEAR = 6;
 
 /* Metres either way the land class is read off a trunk (treeAt). */
 const EDGE_JITTER = 16;
+
+/* The drawn river's water reaches (width + WATER_LAP) / 2 from its line
+ * and its bare bank BANK_M past that (ribbons.js LAP and BANK); a
+ * stream's water half its ribbon's width (ribbons.js buildWater). No
+ * trunk stands on either. */
+const WATER_LAP = 8;
+const BANK_M = 9;
+const STREAM_FOOT = 1;
+/* The water's segments are bucketed in squares this size, each holding
+ * every segment within WATER_REACH of its water's edge, metres. */
+const WATER_BUCKET = 64;
+const WATER_REACH = 48;
 
 /* The tree kinds, for the drawing. */
 export const KIND = { broadleaf: 0, palm: 1, lone: 2 };
@@ -106,6 +119,77 @@ export function noise(x, z, cell, salt) {
   return (a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz;
 }
 
+function streamHalf(km2) {
+  const w = 2.5 + km2 * 0.35;
+  return (w < 7 ? w : 7) / 2;
+}
+
+/* The river and the streams as a lookup: waterAt(x, z, out) sets
+ * out.river, the distance from (x, z) to the river's water's edge
+ * (negative in it), and out.stream and out.km2, the same to the nearest
+ * stream's and that stream's catchment, each Infinity past WATER_REACH. */
+function makeWater() {
+  const segs = [];
+  const add = (pts, halfOf, river, km2) => {
+    for (let k = 0; k + 1 < pts.length; k += 1) {
+      segs.push({
+        ax: pts[k][0], az: pts[k][1], bx: pts[k + 1][0], bz: pts[k + 1][1], half: halfOf(k), river, km2,
+      });
+    }
+  };
+  add(RIVER.points, (k) => ((RIVER.width[k] > RIVER.width[k + 1] ? RIVER.width[k] : RIVER.width[k + 1]) + WATER_LAP) / 2, true, 0);
+  for (const st of STREAMS) {
+    const h = streamHalf(st.km2);
+    add(st.points, () => h, false, st.km2);
+  }
+  const buckets = new Map();
+  const keyOf = (i, j) => (i + 1024) * 4096 + (j + 1024);
+  for (const sg of segs) {
+    const pad = sg.half + WATER_REACH;
+    const i0 = Math.floor(((sg.ax < sg.bx ? sg.ax : sg.bx) - pad) / WATER_BUCKET);
+    const i1 = Math.floor(((sg.ax > sg.bx ? sg.ax : sg.bx) + pad) / WATER_BUCKET);
+    const j0 = Math.floor(((sg.az < sg.bz ? sg.az : sg.bz) - pad) / WATER_BUCKET);
+    const j1 = Math.floor(((sg.az > sg.bz ? sg.az : sg.bz) + pad) / WATER_BUCKET);
+    for (let j = j0; j <= j1; j += 1) {
+      for (let i = i0; i <= i1; i += 1) {
+        const key = keyOf(i, j);
+        let b = buckets.get(key);
+        if (!b) {
+          b = [];
+          buckets.set(key, b);
+        }
+        b.push(sg);
+      }
+    }
+  }
+  return function waterAt(x, z, out) {
+    out.river = Infinity;
+    out.stream = Infinity;
+    out.km2 = 0;
+    const b = buckets.get(keyOf(Math.floor(x / WATER_BUCKET), Math.floor(z / WATER_BUCKET)));
+    if (!b) {
+      return out;
+    }
+    for (const sg of b) {
+      const ux = sg.bx - sg.ax;
+      const uz = sg.bz - sg.az;
+      const l2 = ux * ux + uz * uz;
+      let t = l2 > 0 ? ((x - sg.ax) * ux + (z - sg.az) * uz) / l2 : 0;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const ex = x - sg.ax - ux * t;
+      const ez = z - sg.az - uz * t;
+      const d = Math.sqrt(ex * ex + ez * ez) - sg.half;
+      if (sg.river) {
+        out.river = d < out.river ? d : out.river;
+      } else if (d < out.stream) {
+        out.stream = d;
+        out.km2 = sg.km2;
+      }
+    }
+    return out;
+  };
+}
+
 /*
  * The canopy over a world (world.js makeWorld, with places.js's landEdit
  * as its edits). Returns:
@@ -127,6 +211,8 @@ export function noise(x, z, cell, salt) {
 export function makeCanopy(world) {
   const { groundAt, landAt } = world;
   const cellOf = (v) => Math.floor((v + HALF) / TREE_CELL);
+  const waterAt = makeWater();
+  const wet = { river: 0, stream: 0, km2: 0 };
 
   function treeAt(ci, cj) {
     const u = hash01(ci, cj, 1);
@@ -165,6 +251,15 @@ export function makeCanopy(world) {
       ry = 0.34 * h;
     }
     if (opened(x, z, r)) {
+      return null;
+    }
+    /* Never on the water or the river's bare bank, whatever the land
+     * cover's 10 m squares say there. */
+    if (world.rawLand(x, z) === LAND.water) {
+      return null;
+    }
+    waterAt(x, z, wet);
+    if (wet.river < BANK_M || wet.stream < STREAM_FOOT) {
       return null;
     }
     const ground = groundAt(x, z);
