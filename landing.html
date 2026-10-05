@@ -164,7 +164,7 @@
         <div class="py-flag" aria-hidden="true"><span></span><span></span><span></span></div>
         <span>PDCS // Simulation Core</span>
       </div>
-      <span class="tag">Closed beta</span>
+      <span class="tag" data-s="landing.bar_tag">Closed beta</span>
     </header>
     <main>
       <h1 class="lockup" aria-label="Paraguayan Drone Combat Simulator">
@@ -172,31 +172,47 @@
         <span class="lockup-name">Drone Combat</span>
         <span class="lockup-under">Simulator</span>
       </h1>
-      <p class="pitch">The all-encompassing drone combat simulation, in your browser. Build, fly, hunt and strike with real flight controller firmware, physics at a thousand steps a second, and real pilots on the other side.</p>
+      <p class="pitch" data-s="landing.pitch">The all-encompassing drone combat simulation, in your browser. Build, fly, hunt and strike with real flight controller firmware, physics at a thousand steps a second, and real pilots on the other side.</p>
       <div class="doors">
         <section class="door door-join" aria-labelledby="join-title">
-          <span class="door-label">Request access</span>
-          <h2 id="join-title">Join the beta waitlist</h2>
-          <p>Seats open in waves. Ask with your Google account, and that address is your invite when your wave is called.</p>
+          <span class="door-label" data-s="landing.join_label">Request access</span>
+          <h2 id="join-title" data-s="landing.join_title">Join the beta waitlist</h2>
+          <p data-s="landing.join_detail">Seats open in waves. Ask with your Google account, and that address is your invite when your wave is called.</p>
           <div class="door-act">
             <div id="join-button"></div>
             <span id="join-status" class="status" role="status"></span>
           </div>
         </section>
         <section class="door door-enter" aria-labelledby="enter-title">
-          <span class="door-label">Cleared pilots</span>
-          <h2 id="enter-title">Already have your invite?</h2>
-          <p>Go straight in and sign in with the Google account you were invited on.</p>
+          <span class="door-label" data-s="landing.enter_label">Cleared pilots</span>
+          <h2 id="enter-title" data-s="landing.enter_title">Already have your invite?</h2>
+          <p data-s="landing.enter_detail">Go straight in and sign in with the Google account you were invited on.</p>
           <div class="door-act">
-            <a id="enter" class="enter" href="./">Enter the simulator</a>
+            <a id="enter" class="enter" href="./" data-s="landing.enter">Enter the simulator</a>
           </div>
         </section>
       </div>
-      <p class="fine">Joining the waitlist stores your email address and nothing else from Google. <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
+      <p class="fine"><span data-s="landing.fine">Joining the waitlist stores your email address and nothing else from Google.</span> <a href="privacy.html" data-s="account.privacy">Privacy</a> · <a href="terms.html" data-s="account.terms">Terms</a></p>
     </main>
     <script type="module">
       import { GOOGLE_CLIENT_ID } from './src/share/account.js';
       import { tracksOrigin } from './src/share/cloud.js';
+      import { currentLocale, preferredLocale, str, useLocale } from './src/strings/index.js';
+
+      /* The page is written in English above, for a crawler and for the
+       * moment before this runs; every sentence is then taken from the
+       * game's string table in the browser's language. The name is the
+       * game's name and is not translated. */
+      await useLocale(preferredLocale());
+      document.title = str('landing.title');
+      for (const n of document.querySelectorAll('[data-s]')) {
+        n.textContent = str(n.dataset.s);
+      }
+      if (currentLocale() === 'es') {
+        for (const a of document.querySelectorAll('.fine a')) {
+          a.hash = 'es';
+        }
+      }
 
       /* The way in: index.html sends a visitor with no account here unless
        * this tab has been through this door, and what the visitor first
@@ -218,7 +234,7 @@
       }
 
       async function join(credential) {
-        say('', 'Filing your request.');
+        say('', str('landing.filing'));
         let res;
         try {
           res = await fetch(`${tracksOrigin()}/api/waitlist`, {
@@ -228,15 +244,15 @@
             signal: AbortSignal.timeout(10000),
           });
         } catch (e) {
-          say('fail', 'The server could not be reached. Try again shortly.');
+          say('fail', str('account.unreachable'));
           return;
         }
         if (!res.ok) {
-          say('fail', res.status === 429 ? 'Too many tries from here. Wait a few minutes.' : `The server answered ${res.status}. Try again shortly.`);
+          say('fail', res.status === 429 ? str('account.too_many') : str('account.server_said', { status: res.status }));
           return;
         }
         const got = await res.json();
-        say('ok', got.approved ? 'You are already cleared. Enter the simulator.' : 'You are on the list. This address is your invite when your wave is called.');
+        say('ok', got.approved ? str('landing.already') : str('landing.listed'));
       }
 
       const gis = document.createElement('script');
@@ -249,10 +265,10 @@
           auto_select: false,
         });
         window.google.accounts.id.renderButton(document.getElementById('join-button'), {
-          type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'rectangular',
+          type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'rectangular', locale: currentLocale(),
         });
       };
-      gis.onerror = () => say('fail', 'Google\'s sign in could not load here. Check the connection or any blocker.');
+      gis.onerror = () => say('fail', str('landing.gis_failed'));
       document.head.append(gis);
     </script>
   </body>
