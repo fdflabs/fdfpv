@@ -73,6 +73,20 @@ export const INTRO_BUS = 0.5;
  * true peak under -1 dBTP (tools/voice/music.py), and this gives the same
  * dB back so the war's mix does not move. */
 export const COMBAT_BUS = 0.335;
+/* Every bed by name: its level on the music setting and whether it loops.
+ * The Interior's are generated at the level they sit at (tools/voice/
+ * beds.py: music about -21 LUFS, the sound beds under it), so they share
+ * one bus. */
+export const INTERIOR_BUS = 0.9;
+export const BEDS = Object.freeze({
+  intro: { bus: INTRO_BUS, loop: false },
+  combat: { bus: COMBAT_BUS, loop: true },
+  interior: { bus: INTERIOR_BUS, loop: true },
+  column: { bus: INTERIOR_BUS, loop: true },
+  static: { bus: INTERIOR_BUS, loop: true },
+  wind: { bus: INTERIOR_BUS, loop: true },
+  room: { bus: INTERIOR_BUS, loop: true },
+});
 /* How far the motors and wind duck under a call, and the voice's level. */
 const VOICE_LEVEL = 1.0;
 export const VOICE_DUCK = 0.55;
@@ -407,7 +421,8 @@ export class WarRadio {
     }
   }
 
-  /* 'intro', 'combat', or '' for none. The level is the music setting's,
+  /* A bed of BEDS by name ('intro', 'combat', The Interior's), or '' for
+   * none. The level is the music setting's,
    * 0 when music is off. `at` seconds in: a screen that starts the intro
    * film late hears its music where the film is (an element seeks once
    * its length is known). */
@@ -429,7 +444,7 @@ export class WarRadio {
       el.load();
       return;
     }
-    el.loop = track === 'combat';
+    el.loop = BEDS[track]?.loop ?? false;
     el.src = warMusicUrl(track, this.ext);
     if (at > 0) {
       const seek = () => {
@@ -467,7 +482,7 @@ export class WarRadio {
       this.filmVoice.gain.value = Math.min(1, this.output * VOICE_LEVEL) * duck;
     }
     if (this.bed) {
-      const bus = this.track === 'intro' ? INTRO_BUS : COMBAT_BUS;
+      const bus = BEDS[this.track]?.bus ?? COMBAT_BUS;
       this.bed.el.volume = Math.min(1, this.output * this.musicLevel * bus) * duck;
     }
   }

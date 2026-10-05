@@ -36,6 +36,15 @@ from scipy.signal import butter, sosfilt
 #   taller    a handheld in the shed: room noise and a fan's hum
 #   despacho  a telephone line: narrower, squeezed, the mains hum
 #   carancho  the farthest: more static under him
+# The Interior's (docs/campaign/interior/BIBLE.md 5, each voice's radio
+# colour):
+#   consola   Vega at the room's console: clean, close, barely driven
+#   analista  Ibarra's desk: clean with a faint data hiss
+#   campo     Rojas on a handheld or a vehicle set: an engine's drone and
+#             wind under him
+#   banco     Ferrer's systems bench: clean with a soft fan
+#   archivo   the opening film's old recordings, years earlier: a narrow
+#             band, driven hard, heavy hiss and crackle
 # No preset drops or cuts a word: there is no radio breakup in any mission
 # (the lead's decision of 2 October, under the owner's no jamming rule).
 PRESETS = {
@@ -46,6 +55,13 @@ PRESETS = {
     'despacho': {'band': (350.0, 3000.0), 'drive': 3.4, 'bed_db': -38.0, 'crackle': 3.0,
                  'hum_hz': 50.0, 'hum_db': -38.0},
     'carancho': {'band': (300.0, 3200.0), 'drive': 2.6, 'bed_db': -28.0, 'crackle': 14.0},
+    'consola': {'band': (180.0, 6000.0), 'drive': 1.3, 'bed_db': -46.0, 'crackle': 0.5},
+    'analista': {'band': (200.0, 5500.0), 'drive': 1.4, 'bed_db': -44.0, 'crackle': 1.0, 'data_db': -46.0},
+    'campo': {'band': (280.0, 3600.0), 'drive': 2.3, 'bed_db': -34.0, 'crackle': 5.0,
+              'room_db': -33.0, 'fan_hz': 96.0, 'fan_db': -40.0},
+    'banco': {'band': (200.0, 5200.0), 'drive': 1.5, 'bed_db': -44.0, 'crackle': 1.0,
+              'fan_hz': 141.0, 'fan_db': -46.0},
+    'archivo': {'band': (420.0, 2600.0), 'drive': 3.2, 'bed_db': -25.0, 'crackle': 18.0},
 }
 # Speech RMS before the drive, in dBFS. Sets how hard every line hits the
 # saturation, so a whisper and a shout come out of the radio at one level.
