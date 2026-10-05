@@ -25,7 +25,10 @@
  *                             clicked, a card chosen with the keys, Fly,
  *                             Play and Restart, the track builder, an
  *                             invite code, a quick join, Make a room, and
- *                             a room link opened in the address. None
+ *                             a room link opened in the address, and
+ *                             every card in the Hangar and row behind
+ *                             a menu (aircraft, customise, the sticks,
+ *                             how to fly, pilot, rates, tracks). None
  *                             reaches a flight, a picker or a room, and
  *                             each says to sign in.
  *   sign in                   Google's button, then the callsign, right
@@ -303,6 +306,19 @@ try {
   for (const action of ['fly', 'play', 'restart']) {
     await refused(p, `${action[0].toUpperCase()}${action.slice(1)}`, () => p.evaluate(`window.__ui.onAction(${JSON.stringify(action)}, window.__ui.settings); true`));
   }
+  /* The Hangar's cards and the rows behind the menus: looked at, not
+   * opened (the owner, 2026-10-04). */
+  for (const action of ['hangar-aircraft', 'customise', 'calibrate', 'howto', 'pilot', 'quad', 'rates', 'pids', 'fc', 'courses', 'mytracks', 'tricks']) {
+    await refused(p, `the ${action} row or card`, () => p.evaluate(`window.__ui.act(${JSON.stringify(action)}); true`));
+    const at = await p.evaluate("({ screen: window.__ui.screen, hangar: Boolean(document.querySelector('.hangar:not([hidden]), .screen-hangar:not([hidden])')) })");
+    check(`and ${action} left the pilot on home`, at.screen === 'title', JSON.stringify(at));
+  }
+  await refused(p, 'the Hangar\'s Customise card, clicked', async () => {
+    await p.evaluate("window.__ui.openHub('hangar'); true");
+    await p.sleep(400);
+    check('the Hangar shows its cards to a visitor', await p.evaluate("document.querySelectorAll('.screen-title .gate-card').length > 1"));
+    await p.evaluate(`(() => { const c = [...document.querySelectorAll('.screen-title .gate-card')].find((n) => /customi/i.test(n.textContent)); c && c.click(); return true; })()`);
+  });
   await refused(p, 'the track builder', () => p.evaluate("window.__ui.openBuilder({ map: 'swiss2' }); true"));
   const invite = await makeRoom();
   await refused(p, 'an invite code (Join with a code)', () => p.evaluate(`window.__roomJoin(${JSON.stringify(invite)}); true`));

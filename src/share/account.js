@@ -23,7 +23,9 @@
  * needSignIn first: a title or hub card (src/ui/ui.js pickForWay), Fly,
  * Play and Restart (src/main.js ui.onAction), the track builder
  * (ui.onBuild), and making or joining a room, which is where room links,
- * invite codes and a reload's rejoin all go (src/share/rooms.js). It
+ * invite codes and a reload's rejoin all go (src/share/rooms.js). So
+ * does every card and row that opens something (src/ui/ui.js act and its
+ * OPEN_ACTIONS): the menus are for looking at until then. It
  * hands the pilot to the sign in panel (src/ui/accountui.js) and, once
  * they are signed in with a callsign, runs what they asked for. This is
  * the page's half and anybody with the developer tools can step round
