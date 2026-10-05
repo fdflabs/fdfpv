@@ -31,7 +31,7 @@
  * main thread's side only (the compositor still runs at 60), and it is
  * how a 90 Hz number is taken here.
  *
- * --late=1 seeds the low latency input setting (latencyMode: 'low') before
+ * --late=1 seeds the low latency input setting (latencyMode: 'low'; without it 'standard', now that low is the default) before
  * boot, so the same script measures it.
  *
  * This file is part of WebFPVSimulator.
@@ -335,7 +335,7 @@ const settings = Object.assign(
   seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, '7inch'),
   {
     map: opts.map, freestyleMap: opts.map, graphics: opts.preset, graphicsAuto: false, flightMode: 'angle',
-    fpsCap: 0, airframeAsked: true, ...(opts.late ? { latencyMode: 'low' } : {}),
+    fpsCap: 0, airframeAsked: true, latencyMode: opts.late ? 'low' : 'standard',
   },
 );
 const page = await openPage({
