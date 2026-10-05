@@ -46,8 +46,9 @@ import {
 
 /* How much of the skin's temperature over the air shows through, per
  * part (src/render/thermal.js, the body kind): clothes most of it, the
- * head and hands, bare skin and hair, nearly all; boots, a hat and a pack
- * little; a carried pole none. */
+ * head and hands, bare skin and hair, nearly all; a hat, boots and a pack
+ * less, warmed through from the head, the feet and the back under them;
+ * a carried pole none. */
 const HEAT = 0.6;
 const HEAD_HEAT = 0.85;
 /* Linear colours of the parts. Slot 1 (the shirt) is the instance's
@@ -166,24 +167,24 @@ function bodyGeometry(THREE, p, kit) {
     const knee = hip.clone().multiply(T(0, -0.45, 0)).multiply(X(-bend));
     parts.push(part(THREE, cyl(0.062, 0.05, 0.44), WHITE, HEAT * 0.7, LOWER, knee.clone().multiply(T(0, -0.22, 0))));
     const ankle = knee.clone().multiply(T(0, -0.44, 0)).multiply(X(bend - swing));
-    parts.push(part(THREE, new THREE.BoxGeometry(0.1, 0.09, 0.25), BOOT, 0.25, 0, ankle.clone().multiply(T(0, -0.02, -0.05))));
+    parts.push(part(THREE, new THREE.BoxGeometry(0.1, 0.09, 0.25), BOOT, 0.4, 0, ankle.clone().multiply(T(0, -0.02, -0.05))));
   }
   /* The trunk, leaning about the hips: a pelvis, and a chest broader at
    * the shoulders, with the neck, the head and the arms on it. */
   const trunk = T(0, hips, 0).multiply(X(-lean));
   parts.push(part(THREE, cyl(0.165, 0.155, 0.2, 8).scale(1, 1, 0.68), WHITE, HEAT * 0.8, LOWER, trunk.clone().multiply(T(0, 0.02, 0))));
-  parts.push(part(THREE, cyl(0.2, 0.165, 0.5, 8).scale(1, 1, 0.58), WHITE, HEAT, SHIRT, trunk.clone().multiply(T(0, 0.35, 0))));
+  parts.push(part(THREE, cyl(0.21, 0.17, 0.5, 8).scale(1, 1, 0.6), WHITE, HEAT, SHIRT, trunk.clone().multiply(T(0, 0.35, 0))));
   parts.push(part(THREE, cyl(0.05, 0.055, 0.1, 6), SKIN, HEAD_HEAT, 0, trunk.clone().multiply(T(0, 0.63, 0))));
   const head = trunk.clone().multiply(T(0, 0.66, 0)).multiply(X(p.head ?? 0)).multiply(T(0, 0.11, 0));
   parts.push(part(THREE, new THREE.SphereGeometry(0.105, 8, 6).scale(0.9, 1.08, 1), SKIN, HEAD_HEAT, 0, head));
   if (kit === 'cap') {
-    parts.push(part(THREE, new THREE.SphereGeometry(0.11, 8, 3, 0, Math.PI * 2, 0, Math.PI / 2), WHITE, 0.4, HAT, head.clone().multiply(T(0, 0.015, 0.005))));
-    parts.push(part(THREE, new THREE.BoxGeometry(0.15, 0.014, 0.1), WHITE, 0.3, HAT, head.clone().multiply(T(0, 0.03, -0.12))));
+    parts.push(part(THREE, new THREE.SphereGeometry(0.11, 8, 3, 0, Math.PI * 2, 0, Math.PI / 2), WHITE, 0.65, HAT, head.clone().multiply(T(0, 0.015, 0.005))));
+    parts.push(part(THREE, new THREE.BoxGeometry(0.15, 0.014, 0.1), WHITE, 0.45, HAT, head.clone().multiply(T(0, 0.03, -0.12))));
   } else {
-    parts.push(part(THREE, cyl(0.095, 0.11, 0.1, 8), WHITE, 0.35, HAT, head.clone().multiply(T(0, 0.075, 0))));
-    parts.push(part(THREE, cyl(0.21, 0.21, 0.014, 10), WHITE, 0.3, HAT, head.clone().multiply(T(0, 0.03, 0))));
-    parts.push(part(THREE, new THREE.BoxGeometry(0.3, 0.4, 0.16), PACK, 0.15, 0, trunk.clone().multiply(T(0, 0.34, 0.19))));
-    parts.push(part(THREE, cyl(0.07, 0.07, 0.34, 6).rotateZ(Math.PI / 2), PACK, 0.1, 0, trunk.clone().multiply(T(0, 0.58, 0.2))));
+    parts.push(part(THREE, cyl(0.095, 0.11, 0.1, 8), WHITE, 0.55, HAT, head.clone().multiply(T(0, 0.075, 0))));
+    parts.push(part(THREE, cyl(0.21, 0.21, 0.014, 10), WHITE, 0.4, HAT, head.clone().multiply(T(0, 0.03, 0))));
+    parts.push(part(THREE, new THREE.BoxGeometry(0.3, 0.4, 0.16), PACK, 0.35, 0, trunk.clone().multiply(T(0, 0.34, 0.19))));
+    parts.push(part(THREE, cyl(0.07, 0.07, 0.34, 6).rotateZ(Math.PI / 2), PACK, 0.25, 0, trunk.clone().multiply(T(0, 0.58, 0.2))));
   }
   /* Arms: a sleeve to the elbow, a sleeve to the wrist and a hand. */
   for (const [side, arm] of [[-1, p.armA || [0, 0]], [1, p.armB || [0, 0]]]) {
