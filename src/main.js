@@ -2239,9 +2239,13 @@ export async function boot({
     return str('rooms.name', { adj: str(`rooms.adj.${pick[0]}`), animal: str(`rooms.animal.${pick[1]}`), n: pick[2] });
   }
   function roomProfile() {
-    const id = runAirframe;
-    const parts = PROPS[id] ? partsEntry(ui.settings.parts, id) : null;
     const status = roomStatus();
+    /* Off the air in a war room (its lobby, its briefing) the aircraft the
+     * war will seat this pilot in, so the others' lobby names it and not
+     * whatever was flown before; in the air, what flies, which the poses
+     * and the room's hull are of. */
+    const id = status && inWarRoom() ? warCraftOf(ui.settings) : runAirframe;
+    const parts = PROPS[id] ? partsEntry(ui.settings.parts, id) : null;
     return {
       airframe: id,
       map: view ? view.id : worldId(),
