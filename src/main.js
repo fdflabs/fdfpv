@@ -53,6 +53,7 @@ import * as THREE from 'three';
 import { buildShell } from './render/shell.js';
 import { applyPixelRatio, normalizeGraphics, pixelRatioFor } from './render/quality.js';
 import { createDynRes } from './render/dynres.js';
+import { PerfOverlay } from './ui/perfoverlay.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
@@ -1881,6 +1882,27 @@ export async function boot({
   const dynres = createDynRes();
   dynres.bind(shell.renderer.getContext(), gpuInfo.software);
   dynres.setMode(ui.settings.perfMode, Number(ui.settings.fpsCap) || 0, gpuInfo.software);
+  const perfOverlay = new PerfOverlay(uiRoot);
+  perfOverlay.setOn(ui.settings.perfOverlay);
+  dynres.setWatch(ui.settings.perfOverlay);
+  /* F3 is the readout's key, as it was before the readout went
+   * (src/ui/perfoverlay.js). Taken here and not in ui.handleKey because
+   * the browser's own F3 (find next) has to be refused on the event. */
+  window.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (e.code !== 'F3' || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable))) {
+      return;
+    }
+    e.preventDefault();
+    if (e.repeat) {
+      return;
+    }
+    ui.settings.perfOverlay = !ui.settings.perfOverlay;
+    ui.persistSettings();
+    perfOverlay.setOn(ui.settings.perfOverlay);
+    dynres.setWatch(ui.settings.perfOverlay);
+  });
+  window.__perfOverlay = () => ({ on: perfOverlay.on, ...perfOverlay.shown, text: perfOverlay.el.textContent });
   /*
    * A machine with no usable GPU hands WebGL to SwiftShader or llvmpipe and
    * keeps drawing, so nothing fails and nothing says why. It just runs at a
@@ -5541,8 +5563,15 @@ export async function boot({
     }
     const scene = shell.quad.parent;
     const simT = stateCurr ? stateCurr[0] : 0;
+    /* The others are drawn at the frame's own moment, wallMs on the room
+     * clock, as this pilot's craft is (its state is the block ending at
+     * wallMs) and as the poses this page sends are stamped (roomPoseFrame).
+     * `now` is read part way through the frame, as late as the frame's
+     * work before this line makes it, and that work changes frame to frame:
+     * a peer drawn at it moved on that jitter, not on the display's beat. */
+    const drawNow = roomLinkState.roomAt(wallMs) ?? now;
     for (const peer of roomPeers.values()) {
-      roomDrawPeer(peer, now, scene, dt, simT);
+      roomDrawPeer(peer, now, scene, dt, simT, drawNow);
     }
     /* In a replay the pilots are heard from the clip (the frame's sound). */
     if (mode !== 'replay') {
@@ -6127,7 +6156,7 @@ export async function boot({
     audio.updatePeers(peerHeard);
   }
 
-  function roomDrawPeer(peer, now, scene, dt, simT) {
+  function roomDrawPeer(peer, now, scene, dt, simT, drawNow) {
     /* The replay draws the room as it was (src/replay/peerscene.js), so
      * the room as it is now is put away until flight resumes. */
     if (mode === 'replay') {
@@ -6141,7 +6170,7 @@ export async function boot({
       return;
     }
     const here = Boolean(view) && peer.profile && peer.profile.map === view.id;
-    const drawn = Boolean(scene) && here && peer.last && peer.track.sample(now, nearWeight(Math.hypot(
+    const drawn = Boolean(scene) && here && peer.last && peer.track.sample(drawNow, nearWeight(Math.hypot(
       peer.last.px - pCurr.x, peer.last.py - pCurr.y, peer.last.pz - pCurr.z,
     )), roomDrawn);
     peer.drawnPose = drawn ? Object.assign(peer.drawnPose || {}, roomDrawn) : null;
@@ -12737,6 +12766,8 @@ export async function boot({
     if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
       resizeDirty = true;
     }
+    perfOverlay.setOn(s.perfOverlay);
+    dynres.setWatch(s.perfOverlay);
     const wantPr = pixelRatioFor(s.graphics, userScale, null, dynres.state.scale);
     const userChanged = !!(view && view.post && view.post.userScale != null
       && view.post.userScale !== userScale);
@@ -16053,7 +16084,22 @@ export async function boot({
        * the wall clock advance together while flying, and this mapping
        * self corrects across the freezes where they do not.
        */
-      const wallToSim = blockEndSim - nowWall;
+      /*
+       * LOW LATENCY (Settings, Stick latency: Low). The mapping above puts
+       * the frame's own poll at the block's very end, and the RC slots of
+       * a block all fall before its end, so the newest reading always
+       * waited for the next frame's block, and one taken up to an RC frame
+       * before the frame started did too (scripts/perf-latency.js: at 60 fps
+       * a stick move waited the extra frame about two times in five, and
+       * reached a submitted frame 20 ms after it was made, on average; 13
+       * with this). Low lines the newest reading up with the block's last
+       * slot instead: every reading the frame holds is in the block it is
+       * drawn from. It is the same stream re-timed by about one RC frame,
+       * stamped on the same grid: sim_input still never sees a wall time,
+       * and a recording holds what reached it, so a replay is unchanged.
+       */
+      const lead = ui.settings.latencyMode === 'low' ? (rcLink.isPerfect() ? 1000 / RC_HZ : rcLink.periodMs) : 0;
+      const wallToSim = lead > 0 ? blockEndSim - lead - input.lastWall : blockEndSim - nowWall;
       /* Take every sample whose moment has arrived; hold the last one. This
        * is the receiver holding its last frame, so a lost packet needs no
        * separate handling: it is simply a frame that is never emitted. */
@@ -18120,6 +18166,11 @@ export async function boot({
      * scripts/device-check.js read the same figures out of a real browser,
      * which is where a performance number belongs: in a check that can
      * fail, not in a corner nobody reads while flying.
+     *
+     * A readout came back on 2026-10-05, asked for by the owner for the
+     * 90 fps work, on the opposite terms: off unless the pilot turns it on
+     * (Settings or F3), low on the left, out of the first screen's way
+     * (src/ui/perfoverlay.js, fed after the frame below).
      */
     window.__shellReady = true;
     window.__mode = mode;
@@ -18143,6 +18194,11 @@ export async function boot({
           resizeDirty = true;
         }
       }
+    }
+    if (drawThis) {
+      const ds = dynres.state;
+      perfOverlay.frame(nowWall, blockMs, ds.gpu && ds.gpuSeen > 0 ? ds.gpuSeen : -1,
+        renderStats.calls, renderStats.triangles, ds.scale, capHz);
     }
     if (frames > 2) {
       if (blockMs > worstBlockMs) {

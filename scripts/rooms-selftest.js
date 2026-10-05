@@ -29,7 +29,7 @@ import {
   CLOSE, FLAG_AIRBORNE, FLAG_CRASHED, FLAG_QUAD, FLAG_SMOKE, POSE_BYTES, PROTO, PROFILE_MAX_BYTES, NAME_ADJECTIVES, NAME_ANIMALS,
   checkProfile, codeFromBytes, decodeBatch, decodePose, encodeBatch, encodePose, normaliseCode, validNamePick,
 } from '../src/share/roomwire.js';
-import { PeerTrack, DELAY_MS, EXTRAP_MAX_MS, STALE_MS, nearWeight } from '../src/game/peer.js';
+import { PeerTrack, DELAY_MS, EXTRAP_MAX_MS, STALE_MS, nearWeight, ACCEL_MAX, ACCEL_MS } from '../src/game/peer.js';
 import { SLOT_RIGHT_M, slotSpawn, stationFor } from '../src/game/slots.js';
 import en from '../src/strings/en.js';
 import es from '../src/strings/es.js';
@@ -398,6 +398,58 @@ check(`a far peer is drawn ${DELAY_MS} ms in the past`, Math.abs(out.px - 30 * (
 track.sample(nowT, 1, out);
 check('a near peer is drawn in the present', Math.abs(out.px - 30 * (nowT / 1000)) < 0.01, `${out.px.toFixed(3)} for ${(30 * nowT / 1000).toFixed(3)}`);
 check('turned by its body rate to the present', Math.abs(out.qy - Math.sin((nowT / 1000) * 0.5)) < 1e-3, `${out.qy.toFixed(4)}`);
+{
+  /* ACCEL (src/game/peer.js): a peer in a level 20 m/s turn of 15 m, a
+   * 2.7 g turn, sampled every 33 ms, drawn 80 ms past its newest sample.
+   * On its velocity alone it was drawn on the tangent; on the
+   * acceleration its last two velocities give it is drawn on the path. */
+  const R = 15;
+  const V = 20;
+  const turn = (t, flags = 0) => {
+    const a = (V / R) * (t / 1000);
+    return { flags, seq: 0, t, px: R * Math.cos(a), py: 50, pz: -R * Math.sin(a), qx: 0, qy: 0, qz: 0, qw: 1,
+      vx: -V * Math.sin(a), vy: 0, vz: -V * Math.cos(a), wx: 0, wy: 0, wz: 0 };
+  };
+  const tr = new PeerTrack();
+  for (let t = 0; t <= 990; t += 33) {
+    tr.push(turn(t), t + 40);
+  }
+  const lastT = tr.newest().t;
+  const at = lastT + 80;
+  const o = {};
+  tr.sample(at, 1, o);
+  const truth = turn(at);
+  const off = Math.hypot(o.px - truth.px, o.pz - truth.pz);
+  const n = turn(lastT);
+  const tangent = Math.hypot(n.px + n.vx * 0.08 - truth.px, n.pz + n.vz * 0.08 - truth.pz);
+  check('a turning near peer is drawn on its path, not its tangent', off < 0.01 && tangent > 0.05,
+    `${(off * 100).toFixed(2)} cm off, against ${(tangent * 100).toFixed(1)} cm on the tangent`);
+  /* A bounce: the velocity reverses between two samples. The present is
+   * carried at most ACCEL_MAX, never the hundreds of m/s^2 the step implies. */
+  const b = new PeerTrack();
+  const still = { flags: 0, seq: 0, t: 0, px: 0, py: 5, pz: 0, qx: 0, qy: 0, qz: 0, qw: 1, vx: 0, vy: -10, vz: 0, wx: 0, wy: 0, wz: 0 };
+  b.push(still, 0);
+  b.push({ ...still, t: 33, vy: 10 }, 33);
+  b.sample(33 + 50, 1, o);
+  const extra = o.py - (5 + 10 * 0.05);
+  check(`a bounce is carried at no more than ACCEL_MAX (${ACCEL_MAX} m/s^2)`, extra > 0 && extra <= 0.5 * ACCEL_MAX * 0.05 * 0.05 + 1e-9,
+    `${(extra * 100).toFixed(1)} cm past its velocity, against ${(0.5 * ACCEL_MAX * 0.0025 * 100).toFixed(1)} at the bound`);
+  const c = new PeerTrack();
+  c.push({ ...still, flags: FLAG_CRASHED }, 0);
+  c.push({ ...still, t: 33, vy: 10, flags: FLAG_CRASHED }, 33);
+  c.sample(33 + 50, 1, o);
+  check('a crashed peer is carried on its velocity alone', Math.abs(o.py - (5 + 10 * 0.05)) < 1e-9, `${o.py.toFixed(4)}`);
+  /* A stream that stalls: the acceleration runs for ACCEL_MS, then the
+   * velocity it left, so the peer is not flung away while it waits. */
+  const d = new PeerTrack();
+  d.push({ ...still, vy: 0 }, 0);
+  d.push({ ...still, t: 33, vy: 1 }, 33);
+  d.sample(33 + EXTRAP_MAX_MS, 1, o);
+  const acc = 1 / 0.033;
+  const ta = ACCEL_MS / 1000;
+  const want = 5 + 1 * (EXTRAP_MAX_MS / 1000) + acc * ta * (EXTRAP_MAX_MS / 1000 - ta / 2);
+  check(`a stalled stream is accelerated for ACCEL_MS (${ACCEL_MS}) only`, Math.abs(o.py - want) < 1e-9, `${o.py.toFixed(4)} for ${want.toFixed(4)}`);
+}
 track.sample(newestT + 2000 - 60, 1, out);
 check(`extrapolation stops at ${EXTRAP_MAX_MS} ms`, Math.abs(out.px - 30 * ((newestT + EXTRAP_MAX_MS) / 1000)) < 0.01, `${out.px.toFixed(3)}`);
 check(`nothing for ${STALE_MS} ms is not drawn`, track.sample(newestT + 50 + STALE_MS + 1, 1, out) === false);
