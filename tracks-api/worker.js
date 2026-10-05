@@ -36,6 +36,8 @@
  *   /api/account/*   optional Google sign-in, written down in accounts.js.
  *   /api/waitlist, /api/admin/waitlist   the beta waitlist, in waitlist.js.
  *   /api/admin/overview, /api/admin/accounts   the admin page's, in admin.js.
+ *   /api/admin/server, /api/admin/server/sample   the VM's health, history
+ *            and sizing, in admin.js; 404 on the Worker, which has no VM.
  *
  * EVERYTHING IS CHECKED HERE, because this is the boundary: the body size
  * before it is read into a string, the document through the simulator's own
@@ -82,7 +84,7 @@ import {
 } from './http.js';
 import { accountRoute, isAdminToken, waitlistRoute } from './accounts.js';
 import { waitlistAdmin } from './waitlist.js';
-import { adminAccounts, adminOverview } from './admin.js';
+import { adminAccounts, adminOverview, adminServer, adminServerSample } from './admin.js';
 
 const TRACK_ID_RE = /^trk-[0-9a-f]{8}$/;
 const MAP_RE = /^[a-z0-9]{1,24}$/;
@@ -389,6 +391,15 @@ async function route(request, env) {
       return refuse(401, 'Not an admin.');
     }
     return path === '/api/admin/overview' ? adminOverview(env) : adminAccounts(env);
+  }
+  if ((path === '/api/admin/server' || path === '/api/admin/server/sample') && method === 'GET') {
+    if (!env.SERVER) {
+      return refuse(404, 'Nothing here.');
+    }
+    if (!(await isAdmin(env, request))) {
+      return refuse(401, 'Not an admin.');
+    }
+    return path === '/api/admin/server' ? adminServer(env, url) : adminServerSample(env);
   }
   const one = path.match(/^\/api\/tracks\/([^/]+)$/);
   const adminOne = path.match(/^\/api\/admin\/tracks\/([^/]+)$/);

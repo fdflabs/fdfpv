@@ -10,7 +10,7 @@
 #   - dnf-automatic applying security updates on its timer,
 #   - firewalld: http and https open, ssh as it was, nothing else,
 #   - Postgres 16 from the appstream module, the board's store,
-#   - the three service users, /opt/fdfpv, where deploy.sh puts the code,
+#   - the three service users and the metrics collector's, /opt/fdfpv, where deploy.sh puts the code,
 #     and /opt/fdfpv-board, where deploy-board.sh puts the board's.
 #
 # The config files (units, journald cap, Caddyfile) are install.sh's and
@@ -95,7 +95,7 @@ if [[ ! -f /var/lib/pgsql/data/PG_VERSION ]]; then
 fi
 systemctl enable --now -q postgresql
 
-for user in fdfpv-tracks fdfpv-rooms fdfpv-board; do
+for user in fdfpv-tracks fdfpv-rooms fdfpv-board fdfpv-metrics; do
   if ! id "$user" >/dev/null 2>&1; then
     say "adding service user $user"
     useradd --system --no-create-home --home-dir /nonexistent --shell /sbin/nologin "$user"

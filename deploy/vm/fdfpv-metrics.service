@@ -1,0 +1,81 @@
+# fdfpv-metrics.service: one minute of the VM's history for the admin page
+# (tracks-api/collect.js, into /var/lib/fdfpv-metrics/metrics.db), run by
+# fdfpv-metrics.timer. Installed by deploy/vm/install.sh.
+#
+# Why a unit of its own and not the tracks server: the Server section
+# wants the journal's warnings, the sizes of Postgres's and the servers'
+# 0700 state directories, Caddy's certificate dates and systemctl's
+# restart counts. Giving those to the tracks server would widen the
+# sandbox of a process that faces the internet. This one listens on
+# nothing, talks only to loopback, and writes only its own directory.
+#
+# What it is given beyond the tracks unit's sandbox, each for one reason:
+#   - SupplementaryGroups=systemd-journal: reading the journal, which is
+#     what that group is for (journalctl -p warning; lines are masked
+#     before they are stored, tracks-api/metrics.js mask).
+#   - CAP_DAC_READ_SEARCH, ambient, for a user with no other capability:
+#     read and list past file permissions, never write, for the sizes of
+#     /var/lib/pgsql, /var/lib/fdfpv-* and /var/log/journal and for
+#     /var/lib/caddy's certificates. ProtectSystem=strict keeps every path
+#     but its StateDirectory read only regardless.
+# Group fdfpv-tracks, a 0750 directory and UMask 0027: the tracks server
+# reads the store (read only, metrics.js serverReport) and nobody else
+# does. ADMIN_SECRET from tracks.env asks the rooms and tracks servers for
+# their last minute over loopback.
+#
+# This file is part of WebFPVSimulator.
+#
+# WebFPVSimulator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or (at
+# your option) any later version.
+#
+# WebFPVSimulator is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY, without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+
+[Unit]
+Description=FDFPV metrics: one minute of the VM's history
+After=network.target
+
+[Service]
+Type=oneshot
+User=fdfpv-metrics
+Group=fdfpv-tracks
+SupplementaryGroups=systemd-journal
+AmbientCapabilities=CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+WorkingDirectory=/opt/fdfpv
+Environment=METRICS_DB=/var/lib/fdfpv-metrics/metrics.db
+EnvironmentFile=/etc/fdfpv/tracks.env
+ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning tracks-api/collect.js
+StateDirectory=fdfpv-metrics
+StateDirectoryMode=0750
+UMask=0027
+Nice=10
+TimeoutStartSec=30
+# Measured 2026-10-05 on the desktop (systemd-run, cgroup memory.peak):
+# 29 to 30 MB a run and 0.18 to 0.19 s of CPU, most of that du over a
+# 3 GB journal; the VM's journal is 107 MB and node starts there in
+# 0.03 s, so a run there should cost no more. Confirm after the first
+# deploy with systemctl show -p MemoryPeak,CPUUsageNSec fdfpv-metrics.
+# The ceiling is about three times the peak.
+MemoryMax=96M
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+IPAddressAllow=localhost
+IPAddressDeny=any
+RestrictRealtime=yes
+LockPersonality=yes

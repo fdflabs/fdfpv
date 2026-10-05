@@ -10,6 +10,14 @@
  *   GET /api/admin/accounts   { accounts: [{ callsign, createdUtc,
  *                             updatedUtc }] }  newest first
  *
+ *   GET /api/admin/server?range=1h|24h|7d|30d   the VM: live counters,
+ *            request latency, the rooms server's own report, each
+ *            server's revision, and from the collector's store the
+ *            history, the masked warning tail and the sizing numbers
+ *            (metrics.js serverReport). Only on the VM (env.SERVER).
+ *   GET /api/admin/server/sample   the last minute's latency, for the
+ *            collector (tracks-api/collect.js).
+ *
  * An account holds no email (accounts.js), so a member is a callsign and
  * two dates. The waitlist's addresses are waitlist.js's.
  *
@@ -59,4 +67,12 @@ export async function adminAccounts(env) {
   return json(200, {
     accounts: results.map((r) => ({ callsign: r.callsign ?? null, createdUtc: r.created_utc, updatedUtc: r.updated_utc })),
   });
+}
+
+export async function adminServer(env, url) {
+  return json(200, await env.SERVER.report(url.searchParams.get('range') || '24h'));
+}
+
+export function adminServerSample(env) {
+  return json(200, env.SERVER.sample());
 }
