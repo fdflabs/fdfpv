@@ -824,7 +824,10 @@ const DEFAULTS = {
    * F3. Not `readout`: that was the old corner's key, and a profile that
    * had it on would have the new one on without asking. */
   perfOverlay: false,
-  latencyMode: 'standard',
+  /* Low by default (lead, for the owner, 2026-10-05): a stick move reaches
+   * the picture ~7 ms sooner at 60 Hz (perf:latency, #457) and nothing
+   * recorded changes, since recordings hold what reached the FC. */
+  latencyMode: 'low',
   packVoltage: 4.2,
   /* Each plane's power system and pack or tank, by airframe id:
    * { option, pack }, configs/power.js. A plane with no entry flies its
