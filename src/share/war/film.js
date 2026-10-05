@@ -19,7 +19,14 @@
  * start, a number, or { at, s, line? }: at 'start', 'end', 'vo.start' or
  * 'vo.end' (of the shot's line `line`, its first by default, the end the
  * longer language's), plus s seconds (minus, for 'end' when s is
- * negative). If a line gets longer, what comes after it moves with it.
+ * negative); a 'vo.start' with u is that share of the line in (u 0.5:
+ * half way through it, so a word's mark lands near the word in either
+ * language). If a line gets longer, what comes after it moves with it.
+ *
+ * A FILM may also name `map`, the world its shots are metres of (a war
+ * film without one is Itaipu's), and `music`: absent, the war bed's
+ * 'intro' from the first shot, as every war film has it; null, only the
+ * shots' own `music` cues (musicAt).
  *
  * A FILM is { id, version, routes, shots, agents?, cast? }:
  *
@@ -38,7 +45,21 @@
  *   shots    [{ id, min, lines?, camera, cast?, titles?, counter?, fade?,
  *            grade?, out?, outS? }]:
  *              min      seconds, the shot's least length
- *              lines    [{ line, lead, tail, span? }], end to end
+ *              lines    [{ line, lead, tail, span?, overlap? }], end
+ *                       to end; an `overlap` line starts lead after the
+ *                       one before it starts, so voices talk over each
+ *                       other and the shot holds the last to end
+ *              music    a bed from this shot on: a track name ('' is
+ *                       silence) or { track, at }, at an anchor; only
+ *                       in a film whose `music` is null
+ *              board    the BOARD insert (TECH-NEEDS N18 of The
+ *                       Interior) over the whole frame on a `board`
+ *                       camera, or on the room set's screens on another
+ *                       (`set`): boardAt, below
+ *              set      a film's `sets` entry the shot stands in
+ *              ball     { on?, hud? }: the camera ball's picture over a
+ *                       world shot, noise until `on` and its marks
+ *                       drawing in from `hud`
  *              camera   one primitive (INTROS 1.2), below
  *              cast     { name: { keys: [{ t, p, yaw?, pitch?, roll? }],
  *                       spin?: [[t, rad/s]], bob?, as? } }: the hangar's
@@ -94,6 +115,12 @@
  *              where the rider was lag ms ago and look: a target, flying
  *              alongside it
  *   telephoto  at, look: a target or [from, to], panned by the ease
+ *   board      at, look: where the world's camera is parked while the
+ *              BOARD covers the frame (it is still drawn, unseen)
+ *
+ * A camera with `agl` has every point it is given as a point (not a
+ * cast member or an agent) at metres over the ground under it
+ * (resolve.ground), for a map whose ground is not one height.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -143,14 +170,19 @@ export function timing(film, lengths = VOICE) {
   /* Each shot's own lines, end to end, and the spans they need. */
   for (const [i, s] of film.shots.entries()) {
     let at = 0;
+    let prev = null;
     for (const l of s.lines ?? []) {
       const lead = Math.round((l.lead ?? 0) * 1000);
       const tail = Math.round((l.tail ?? 0) * 1000);
       const long = longest(l.line, lengths);
+      /* An overlapping line starts lead after the line before it starts,
+       * not after it ends: voices over each other, built in the mix. */
+      const rel = l.overlap && prev != null ? prev + lead : at + lead;
+      prev = rel;
       shots[i].lines.push({
-        line: l.line, rel: at + lead, ms: Object.fromEntries(LANGS.map((lang) => [lang, lineMs(l.line, lang, lengths)])), longest: long,
+        line: l.line, rel, ms: Object.fromEntries(LANGS.map((lang) => [lang, lineMs(l.line, lang, lengths)])), longest: long,
       });
-      at += lead + long + tail;
+      at = Math.max(at, rel + long + tail);
       const span = l.span ?? 1;
       const group = shots.slice(i, i + span);
       if (group.length !== span) {
@@ -199,7 +231,7 @@ export function anchor(a, shot) {
     throw new Error(`film: ${shot.id} has no line ${a.line ?? 0} for ${a.at}`);
   }
   if (a.at === 'vo.start') {
-    return l.rel + s;
+    return l.rel + Math.round((a.u ?? 0) * l.longest) + s;
   }
   if (a.at === 'vo.end') {
     return l.rel + l.longest + s;
@@ -380,11 +412,12 @@ export function spinAt(def, shot, t) {
   return area / 1000;
 }
 
-/* Where a target is at shot ms t: a point, a cast member's or an
- * agent's place (resolve), plus its `up`. */
-function aimAt(target, t, resolve) {
+/* Where a target is at shot ms t: a point (lifted over the ground on an
+ * `agl` camera), a cast member's or an agent's place (resolve), plus its
+ * `up`. */
+function aimAt(target, t, resolve, lift = (p) => p) {
   if (Array.isArray(target)) {
-    return target;
+    return lift(target);
   }
   const p = target.cast != null ? resolve.cast(target.cast, t) : resolve.agent(target.agent, t, target.k);
   const off = target.off ?? [0, 0, 0];
@@ -404,32 +437,36 @@ export function cameraAt(shot, t, resolve, seed = 0) {
   const u = (EASE[c.ease ?? 'io'] ?? EASE.io)(raw);
   const lens = Array.isArray(c.lens) ? c.lens[0] + (c.lens[1] - c.lens[0]) * u : c.lens;
   const lerp3 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
-  const lookOf = (look) => (Array.isArray(look) && Array.isArray(look[0]) ? curve(look, u) : aimAt(look, t, resolve));
+  const lift = c.agl ? (q) => [q[0], q[1] + resolve.ground(q[0], q[2]), q[2]] : (q) => q;
+  const lookOf = (look) => (Array.isArray(look) && Array.isArray(look[0]) ? lift(curve(look, u)) : aimAt(look, t, resolve, lift));
   if (c.type === 'dolly') {
-    return { p: curve(c.path, u), look: lookOf(c.look), lens };
+    return { p: lift(curve(c.path, u)), look: lookOf(c.look), lens };
   }
   if (c.type === 'crane') {
     const h = c.h[0] + (c.h[1] - c.h[0]) * u;
-    return { p: [c.base[0] + Math.sin(c.dir ?? 0) * (c.arm ?? 0), c.base[1] + h, c.base[2] + Math.cos(c.dir ?? 0) * (c.arm ?? 0)], look: lookOf(c.look), lens };
+    const base = lift(c.base);
+    return { p: [base[0] + Math.sin(c.dir ?? 0) * (c.arm ?? 0), base[1] + h, base[2] + Math.cos(c.dir ?? 0) * (c.arm ?? 0)], look: lookOf(c.look), lens };
   }
   if (c.type === 'orbit') {
     const a = c.a[0] + (c.a[1] - c.a[0]) * u;
-    return { p: [c.centre[0] + c.r * Math.sin(a), c.centre[1] + c.h, c.centre[2] + c.r * Math.cos(a)], look: c.look ? lookOf(c.look) : c.centre, lens };
+    const centre = lift(c.centre);
+    return { p: [centre[0] + c.r * Math.sin(a), centre[1] + c.h, centre[2] + c.r * Math.cos(a)], look: c.look ? lookOf(c.look) : centre, lens };
   }
   if (c.type === 'handheld') {
     const s = t / 1000 / (c.drift ?? 4);
     const amp = c.amp ?? 0.05;
-    const p = [0, 1, 2].map((k) => c.at[k] + amp * noise(seed * 31 + k, s));
-    const look = aimAt(c.look, t, resolve);
+    const at = lift(c.at);
+    const p = [0, 1, 2].map((k) => at[k] + amp * noise(seed * 31 + k, s));
+    const look = aimAt(c.look, t, resolve, lift);
     return { p, look: [0, 1, 2].map((k) => look[k] + amp * 0.5 * noise(seed * 31 + 3 + k, s * 1.7)), lens };
   }
   if (c.type === 'drone') {
-    const now = aimAt(c.ride, t, resolve);
-    const was = aimAt(c.ride, t - (c.lag ?? 300), resolve);
+    const now = aimAt(c.ride, t, resolve, lift);
+    const was = aimAt(c.ride, t - (c.lag ?? 300), resolve, lift);
     /* Flying alongside: at its lagged place plus a world offset, looking
      * at a target of its own. */
     if (c.off) {
-      return { p: [was[0] + c.off[0], was[1] + c.off[1], was[2] + c.off[2]], look: aimAt(c.look, t, resolve), lens };
+      return { p: [was[0] + c.off[0], was[1] + c.off[1], was[2] + c.off[2]], look: aimAt(c.look, t, resolve, lift), lens };
     }
     const d = [now[0] - was[0], now[1] - was[1], now[2] - was[2]];
     const m = Math.hypot(d[0], d[1], d[2]) || 1;
@@ -442,8 +479,11 @@ export function cameraAt(shot, t, resolve, seed = 0) {
     };
   }
   if (c.type === 'telephoto') {
-    const look = Array.isArray(c.look) && Array.isArray(c.look[0]) ? lerp3(c.look[0], c.look[c.look.length - 1], u) : aimAt(c.look, t, resolve);
-    return { p: c.at.slice(), look, lens };
+    const look = Array.isArray(c.look) && Array.isArray(c.look[0]) ? lift(lerp3(c.look[0], c.look[c.look.length - 1], u)) : aimAt(c.look, t, resolve, lift);
+    return { p: lift(c.at.slice()), look, lens };
+  }
+  if (c.type === 'board') {
+    return { p: lift(c.at.slice()), look: lift(c.look.slice()), lens: lens ?? 35 };
   }
   throw new Error(`film: a camera of no type ${c.type}`);
 }
@@ -530,4 +570,138 @@ export function scopeAt(shot, t, placed, tFilm) {
     }
   }
   return out;
+}
+
+/* A BOARD element's fade in and out, ms. */
+export const BOARD_FADE_MS = 600;
+/* The BOARD's parts a shot may name (TECH-NEEDS N18 of The Interior). */
+export const BOARD_PARTS = ['view', 'black', 'layers', 'marks', 'stills', 'match', 'split', 'alert', 'hand'];
+
+/* 0 to 1: shown from anchor `from` (faded in over BOARD_FADE_MS) to `to`
+ * (faded out over it, ending there), at shot ms t. */
+function shownAt(shot, t, from, to) {
+  const a = from != null ? anchor(from, shot) : 0;
+  const b = to != null ? anchor(to, shot) : Infinity;
+  const fin = Math.max(0, Math.min(1, (t - a) / BOARD_FADE_MS));
+  const fout = b === Infinity ? 1 : Math.max(0, Math.min(1, (b - t) / BOARD_FADE_MS));
+  return Math.min(fin, fout);
+}
+
+/*
+ * The BOARD of a timed shot at shot ms t: what the operations room's
+ * screen shows, as numbers the drawer (src/render/filmboard.js) paints
+ * and the checks read. The shot's `board`:
+ *
+ *   view    the map's window: { at: [x, z], span } (span metres across),
+ *           or { from: {...}, to: {...}, a?, b?, ease? }, eased between
+ *           the anchors a and b (the whole shot without them)
+ *   black   no map, the screen dark: stills on black (the archive)
+ *   layers  [{ id, from?, to? }]: the campaign map's layers (the film's
+ *           board map, by id), each fading in at from and out at to
+ *   marks   [{ layer, item, at }]: one item of a layer ticked at an anchor
+ *   stills  [{ id, from?, to?, slot?, push? }]: a still (an authored id, or
+ *           cap:<item> with rec:<item> behind it) in its slot, 'full' by
+ *           default, 'left', 'right' or [x, y, w] in shares of the frame;
+ *           push the share it grows by over its time (a slow push in)
+ *   match   { a, b, from?, to?, at? }: two stills side by side, a
+ *           SEARCHING line under them until `at`, MATCH after it
+ *   split   { a, b, from?, to? }: two stills side by side, no line
+ *   alert   { key, from?, to? }: a banner, a string key
+ *   hand    { from, to }: a hand's shadow passing over the screen, the
+ *           only person a room shot shows (INTROS of The Interior, 0.1)
+ *
+ * Returns { black, view: { at, span }, layers: [{ id, alpha }], marks:
+ * [{ layer, item, alpha }], stills: [{ id, alpha, slot, u, push }] (u the
+ * share of its time on screen gone by), match,
+ * split, alert, hand }, each element with its alpha (0 hidden).
+ */
+export function boardAt(shot, t) {
+  const b = shot.board;
+  if (!b) {
+    return null;
+  }
+  let view = null;
+  if (b.view && b.view.from) {
+    const a = b.view.a != null ? anchor(b.view.a, shot) : 0;
+    const z = b.view.b != null ? anchor(b.view.b, shot) : shot.ms;
+    const u = (EASE[b.view.ease ?? 'io'] ?? EASE.io)(z > a ? Math.max(0, Math.min(1, (t - a) / (z - a))) : 1);
+    /* The span eases in its logarithm, so a zoom out reads as even. */
+    const s0 = Math.log(b.view.from.span);
+    const s1 = Math.log(b.view.to.span);
+    view = {
+      at: [0, 1].map((k) => b.view.from.at[k] + (b.view.to.at[k] - b.view.from.at[k]) * u),
+      span: Math.exp(s0 + (s1 - s0) * u),
+    };
+  } else if (b.view) {
+    view = { at: b.view.at.slice(), span: b.view.span };
+  }
+  const pair = (x) => (x ? {
+    a: x.a, b: x.b, alpha: shownAt(shot, t, x.from, x.to), matched: x.at != null && t >= anchor(x.at, shot),
+  } : null);
+  const stills = (b.stills ?? []).map((s) => {
+    const a = s.from != null ? anchor(s.from, shot) : 0;
+    const z = s.to != null ? anchor(s.to, shot) : shot.ms;
+    const u = Math.max(0, Math.min(1, (t - a) / Math.max(1, z - a)));
+    return {
+      id: s.id, slot: s.slot ?? 'full', alpha: shownAt(shot, t, s.from, s.to), u, push: (s.push ?? 0) * u,
+    };
+  });
+  let hand = null;
+  if (b.hand) {
+    const a = anchor(b.hand.from, shot);
+    const z = anchor(b.hand.to, shot);
+    hand = { u: Math.max(0, Math.min(1, (t - a) / Math.max(1, z - a))) };
+  }
+  return {
+    black: Boolean(b.black),
+    view,
+    layers: (b.layers ?? []).map((l) => ({ id: l.id, alpha: shownAt(shot, t, l.from, l.to) })),
+    marks: (b.marks ?? []).map((m) => ({ layer: m.layer, item: m.item, alpha: shownAt(shot, t, m.at, null) })),
+    stills,
+    match: pair(b.match),
+    split: pair(b.split),
+    alert: b.alert ? { key: b.alert.key, alpha: shownAt(shot, t, b.alert.from, b.alert.to) } : null,
+    hand,
+  };
+}
+
+/* Every still a BOARD shot names, authored and captured. */
+export function boardStills(shot) {
+  const b = shot.board;
+  if (!b) {
+    return [];
+  }
+  return [...(b.stills ?? []).map((s) => s.id), ...[b.match, b.split].filter(Boolean).flatMap((x) => [x.a, x.b])];
+}
+
+/*
+ * The music cues of a timed film: [{ track, at }] in film ms. A film with
+ * no `music` field (every war film) has the one it always had, the war
+ * bed's 'intro' from the first shot; a film whose `music` is null, its
+ * shots' own `music`, each from its anchor in its shot ('' is silence).
+ */
+export function musicCues(film, timed) {
+  if (film.music === undefined) {
+    return [{ track: 'intro', at: PRELOAD_MS }];
+  }
+  const out = [];
+  for (const s of timed.shots) {
+    if (s.music == null) {
+      continue;
+    }
+    const m = typeof s.music === 'string' ? { track: s.music } : s.music;
+    out.push({ track: m.track, at: s.start + (m.at != null ? anchor(m.at, s) : 0) });
+  }
+  return out;
+}
+
+/* The cue under way at film ms t, by index, -1 before the first. */
+export function musicAt(cues, t) {
+  let k = -1;
+  for (let i = 0; i < cues.length; i += 1) {
+    if (t >= cues[i].at) {
+      k = i;
+    }
+  }
+  return k;
 }

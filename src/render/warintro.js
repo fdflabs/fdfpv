@@ -1,9 +1,16 @@
 /*
  * warintro.js: the player of the war's intro films (docs/campaign/
- * INTROS.md, TECH-NEEDS.md T2), in engine on the Itaipu map. A film is
- * data on the timeline of src/share/war/film.js (src/share/war/films);
+ * INTROS.md, TECH-NEEDS.md T2), in engine on the Itaipu map, and of The
+ * Interior's films on its own (docs/campaign/interior/FILMS.md,
+ * src/render/interiorfilms.js). A film is data on the timeline of
+ * src/share/war/film.js (src/share/war/films, src/share/interior/films);
  * this draws it: the cast, the attackers, the camera, the overlays, the
- * voice and the music, on one clock.
+ * BOARD and the room's set, the voice and the music, on one clock.
+ *
+ * A FILM PLAYS ONLY OVER ITS OWN MAP (the owner, 2026-10-04: mission 1's
+ * film flew over the Swiss valley, #412). Given opts.map, the world
+ * standing, play() refuses a film whose `map` is another (a war film
+ * without one is Itaipu's).
  *
  * ONE CLOCK. The picture runs on opts.clock(), film ms: in a room the
  * room's clock less the briefing's start, so every screen is on the same
@@ -16,15 +23,17 @@
  * from its offset, never dropped (INTROS section 0, faults 4 and 5). The
  * anchor is set again whenever the clocks part by ANCHOR_SLIP_MS, and the
  * lines not yet started go with it. The music is the war bed's 'intro',
- * from the first shot, sought to where the film is. Before a gesture has
+ * from the first shot, sought to where the film is, or a film's own cues
+ * (film.js musicCues), each from its anchor. Before a gesture has
  * started the audio there is no context: the film runs silent, its
  * subtitles still on the clock.
  *
  * SKIPPING (INTROS section 3). The first viewing of a film's cut is never
  * skippable. A pilot who has seen it (opts.seen) holds any key, button
  * or tap for SKIP_HOLD_MS to skip, a ring filling in the corner; letting
- * go cancels. The skip leaves the film for an orbit of the dam over the
- * briefing's seconds until the room's briefing ends (a host's skip also
+ * go cancels. The skip leaves the film for an orbit (opts.orbit, the
+ * dam's by default) over the briefing's seconds until the room's
+ * briefing ends (a host's skip also
  * asks the room to end it for everybody, which it does only when every
  * pilot there has seen it: edge/rooms/war.js). opts.onSeen() is called
  * once the film's last shot is reached on a viewing that began at its
@@ -67,8 +76,10 @@ import { celMaterial } from './celmat.js';
 import { craftBuilderFor } from './craft.js';
 import { warVoiceUrl } from './warradio.js';
 import { poseAt } from '../share/war/routes.js';
+import { createBoard } from './filmboard.js';
+import { buildRoom } from './filmroom.js';
 import {
-  HANDOFF_MS, OUT_S, PRELOAD_MS, blackAt, anchor, cameraAt, castAt, lensFov, lineAt, linesOf, placeAgents, scopeAt, shotIndex, spinAt, timing,
+  HANDOFF_MS, OUT_S, PRELOAD_MS, blackAt, anchor, boardAt, boardStills, cameraAt, castAt, lensFov, lineAt, linesOf, musicAt, musicCues, placeAgents, scopeAt, shotIndex, spinAt, timing,
 } from '../share/war/film.js';
 import { filmFor } from '../share/war/films/index.js';
 import { INTRO_MS } from '../share/war/intro.js';
@@ -209,6 +220,13 @@ const GRADES = {
    * the line of aircraft, burnt out to white. */
   'warm-grad': { filter: 'contrast(1.1) saturate(0.72) brightness(0.97)', tint: 'linear-gradient(180deg, rgba(255,170,90,0.12), rgba(255,170,90,0.04) 48%, rgba(24,30,36,0.42) 72%, rgba(14,18,22,0.55))' },
   night: { filter: 'contrast(1.18) saturate(0.55) brightness(0.9)', tint: 'linear-gradient(180deg, rgba(20,30,70,0.25), rgba(10,15,40,0.1) 50%, rgba(0,0,10,0.3))' },
+  /* The Interior's (INTROS of The Interior, 0.7): the archive's warm
+   * paper, the room's cool monitor glow, the camera ball's clean air, and
+   * the dusk of the landing. */
+  archive: { filter: 'grayscale(0.8) sepia(0.35) contrast(1.12) brightness(0.92)', tint: 'linear-gradient(180deg, rgba(120,90,50,0.12), rgba(60,40,20,0.18))' },
+  room: { filter: 'contrast(1.08) saturate(0.85) brightness(0.92)', tint: 'linear-gradient(180deg, rgba(20,40,60,0.18), rgba(10,20,30,0.24))' },
+  air: { filter: 'contrast(1.06) saturate(0.9)', tint: 'linear-gradient(180deg, rgba(255,240,220,0.04), rgba(0,0,0,0.08))' },
+  dusk: { filter: 'contrast(1.12) saturate(0.7) brightness(0.88)', tint: 'linear-gradient(180deg, rgba(255,140,80,0.16), rgba(60,40,70,0.14) 55%, rgba(10,10,30,0.3))' },
 };
 
 const smooth = (u) => u * u * (3 - 2 * u);
@@ -243,6 +261,8 @@ function el(tag, css, parent, text) {
 }
 
 const TITLE_FONT = 'Impact, "Oswald", "Bebas Neue", "Arial Narrow", "Helvetica Neue", var(--ui-font, sans-serif)';
+/* A 'card' title's type: the camera ball's HUD's, letter spaced. */
+const CARD_FONT = ['ui-monospace', '"SFMono-Regular"', 'Menlo', 'Consolas', 'monospace'].join(', ');
 
 /*
  * Play a film. `scene` and `camera` are the shell's; opts:
@@ -261,15 +281,26 @@ const TITLE_FONT = 'Impact, "Oswald", "Bebas Neue", "Arial Narrow", "Helvetica N
  *   ground(x, z) the ground's height, for cast standing on it
  *   named        [[x, y, z]...]: the targets a shot's `outline` brackets
  *                (the room's working set), none without it
+ *   map          the standing world's map id: a film of another map is
+ *                refused (the check is skipped without it)
+ *   orbit        { centre: [x, y, z], r, y }: the briefing's orbit after a
+ *                skip, the dam's without it
+ *   board        { map, stills, capture, raster }: what a BOARD shot
+ *                draws (src/render/filmboard.js createBoard); a film with
+ *                BOARD shots needs it
  */
 export function play(scene, camera, opts = {}) {
   const film = opts.film ?? filmFor(null);
+  if (opts.map != null && (film.map ?? 'itaipu') !== opts.map) {
+    throw new Error(`warintro: film ${film.id} is of the ${film.map ?? 'itaipu'} map, and the world standing is ${opts.map}`);
+  }
   const timed = timing(film);
   const agents = placeAgents(film, timed);
   const canvas = opts.canvas || document.getElementById('view');
   const ground = opts.ground || (() => CREST_Y);
   const lang = currentLocale() === 'es' ? 'es' : 'en';
   const audio = opts.audio || null;
+  const orbitAt = opts.orbit ?? { centre: DAM, r: ORBIT_R, y: ORBIT_Y };
   const t0Wall = performance.now();
   const clock = opts.clock ?? (() => performance.now() - t0Wall);
   const startT = clock();
@@ -279,8 +310,11 @@ export function play(scene, camera, opts = {}) {
   const root = new THREE.Group();
   root.name = 'war-intro';
   scene.add(root);
-  const attackers = createAttackers();
-  root.add(attackers.group);
+  /* The attackers only for a film that flies them. */
+  const attackers = film.agents?.length ? createAttackers() : null;
+  if (attackers) {
+    root.add(attackers.group);
+  }
 
   /* The cast, built once, hidden until a shot shows it. */
   const cast = new Map();
@@ -296,6 +330,14 @@ export function play(scene, camera, opts = {}) {
     });
     const holder = new THREE.Group();
     holder.add(built.group);
+    /* The Bramor on its catapult, or hanging under its open canopy: shown
+     * before the bake, which keeps only what is shown. */
+    if (def.launcher && built.launcher) {
+      built.launcher.visible = true;
+    }
+    if (def.chute && built.setChute) {
+      built.setChute(1, [0, 1, 0], [0, -1, 0]);
+    }
     /* Stand it on its lowest point: the builders' origin is the CG. */
     built.group.updateMatrixWorld(true);
     box.setFromObject(built.group);
@@ -308,6 +350,28 @@ export function play(scene, camera, opts = {}) {
     });
   }
   const who = (name, def) => cast.get(def && def.as ? def.as : name);
+
+  /* The sets the film's shots stand in (the operations room), built once,
+   * shown only in their own shots. */
+  const sets = new Map();
+  for (const [name, def] of Object.entries(film.sets ?? {})) {
+    const built = buildRoom();
+    const [x, y, z] = def.at;
+    built.group.position.set(x, def.agl ? y + ground(x, z) : y, z);
+    built.group.visible = false;
+    root.add(built.group);
+    sets.set(name, built);
+  }
+  /* The BOARD's drawer, for a film with BOARD shots or a set's screens. */
+  const needsBoard = film.shots.some((s) => s.board);
+  if (needsBoard && !opts.board) {
+    throw new Error(`warintro: film ${film.id} has BOARD shots and no opts.board`);
+  }
+  const board = needsBoard ? createBoard(opts.board) : null;
+  let boardShown = [];
+  /* Every still the film shows, painted one a frame in the preload's
+   * black: a still painted on its first frame on screen is a hitch. */
+  const warming = needsBoard ? [...new Set([...film.shots.flatMap((s) => boardStills(s)), ...Object.values(film.sets ?? {}).map((x) => x.feed).filter(Boolean)])] : [];
 
   /* ------------------------------------------------------- the overlay */
   const overlay = el('div', 'position:fixed;inset:0;z-index:9000;pointer-events:none;overflow:hidden;'
@@ -469,7 +533,7 @@ export function play(scene, camera, opts = {}) {
     }
     c.holder.visible = true;
     const [x, y, z] = at.p;
-    c.holder.position.set(x, y === WATER ? WATER_Y : y == null ? ground(x, z) : y, z);
+    c.holder.position.set(x, y === WATER ? WATER_Y : y == null ? ground(x, z) : def.agl ? y + ground(x, z) : y, z);
     if (def.bob) {
       c.holder.position.y += def.bob * Math.sin((t / 1000) * 5.2);
     }
@@ -494,9 +558,13 @@ export function play(scene, camera, opts = {}) {
         throw new Error(`warintro: ${s.id} follows no cast member ${name}`);
       }
       const at = castAt(def, s, Math.max(0, t));
-      const [x, y, z] = at.shown ? at.p : [c.holder.position.x, c.holder.position.y, c.holder.position.z];
-      return [x, y === WATER ? WATER_Y : y == null ? ground(x, z) : y, z];
+      if (!at.shown) {
+        return [c.holder.position.x, c.holder.position.y, c.holder.position.z];
+      }
+      const [x, y, z] = at.p;
+      return [x, y === WATER ? WATER_Y : y == null ? ground(x, z) : def.agl ? y + ground(x, z) : y, z];
     },
+    ground: (x, z) => ground(x, z),
     agent: (id, t, k) => {
       const a = (k != null ? agents.find((x) => x.group === id && x.a.k === k) : null)
         ?? agents.find((x) => x.group === id && x.pass) ?? agents.find((x) => x.group === id);
@@ -550,11 +618,13 @@ export function play(scene, camera, opts = {}) {
     subtitle(tFilm);
   }
 
-  /* The insert canvas: the scope, the outlines, or nothing (cleared once). */
+  /* The insert canvas: the scope, the BOARD, the outlines, the camera
+   * ball's picture, or nothing (cleared once). */
   function drawInsert(s, t, tFilm) {
     const outlining = s.outline && opts.named && opts.named.length
       && t >= anchor(s.outline.from ?? 0, s) && t < anchor(s.outline.to ?? { at: 'end' }, s);
-    if (!s.scope && !outlining) {
+    const boarding = Boolean(s.board) && s.camera.type === 'board';
+    if (!s.scope && !outlining && !boarding && !s.ball) {
       if (inked) {
         ink.clearRect(0, 0, insert.width, insert.height);
         inked = false;
@@ -574,9 +644,136 @@ export function play(scene, camera, opts = {}) {
     inked = true;
     if (s.scope) {
       drawScope(s, t, tFilm, w, h, dpr);
-    } else {
+    } else if (boarding) {
+      drawBoardFull(s, t, tFilm, w, h, dpr);
+    } else if (outlining) {
       drawOutlines(w, h, dpr, t);
     }
+    if (s.ball) {
+      drawBall(s, t, w, h, dpr);
+    }
+  }
+
+  /* The BOARD over the whole frame: the room's screen, 16:9, in its bezel
+   * inside the 2.39 frame the letterbox leaves. */
+  function drawBoardFull(s, t, tFilm, w, h, dpr) {
+    const frameH = Math.min(h, w / 2.39);
+    let rh = frameH * 0.94;
+    let rw = (rh * 16) / 9;
+    if (rw > w * 0.96) {
+      rw = w * 0.96;
+      rh = (rw * 9) / 16;
+    }
+    const x0 = Math.round((w - rw) / 2);
+    const y0 = Math.round((h - rh) / 2);
+    ink.fillStyle = '#000';
+    ink.fillRect(0, 0, w, h);
+    ink.fillStyle = '#0d0f11';
+    ink.fillRect(x0 - 6 * dpr, y0 - 6 * dpr, rw + 12 * dpr, rh + 12 * dpr);
+    ink.save();
+    ink.translate(x0, y0);
+    ink.beginPath();
+    ink.rect(0, 0, rw, rh);
+    ink.clip();
+    boardShown = board.draw(ink, Math.round(rw), Math.round(rh), boardAt(s, t), tFilm, dpr);
+    ink.restore();
+  }
+
+  /* The set's screens: the BOARD on the big one and the first monitor,
+   * the camera ball's feed and the telemetry on the other two. */
+  function drawSetScreens(built, def, s, t, tFilm) {
+    const state = s.board ? boardAt(s, t) : { black: false, view: null, layers: [], marks: [], stills: [] };
+    for (const sc of built.screens) {
+      const g = sc.canvas.getContext('2d');
+      const { width: cw, height: ch } = sc.canvas;
+      if (sc.role === 'board') {
+        boardShown = board.draw(g, cw, ch, state, tFilm, cw / 1024);
+      } else if (sc.role === 'feed') {
+        /* The set's feed still, panning slowly as a camera ball does. */
+        g.fillStyle = '#10140f';
+        g.fillRect(0, 0, cw, ch);
+        const src = def.feed ? board.source(def.feed) : null;
+        if (src && src.image) {
+          const pan = Math.sin(tFilm / 9000) * 0.06;
+          g.drawImage(src.image, (pan - 0.08) * cw, -0.08 * ch, cw * 1.16, ch * 1.16);
+        }
+      } else {
+        g.fillStyle = '#071012';
+        g.fillRect(0, 0, cw, ch);
+        g.fillStyle = 'rgba(127, 208, 168, 0.45)';
+        g.font = `600 ${Math.round(ch / 14)}px ${CARD_FONT}`;
+        for (let k = 0; k < 9; k += 1) {
+          const bar = 0.2 + 0.6 * (((k * 97 + Math.floor(tFilm / 700)) % 13) / 13);
+          g.fillRect(cw * 0.08, ch * (0.1 + k * 0.09), cw * 0.5 * bar, ch * 0.025);
+        }
+      }
+      sc.texture.needsUpdate = true;
+    }
+  }
+
+  /* The camera ball's picture over a world shot: noise until it is on,
+   * then its quiet marks drawing in (the Interior's quiet HUD, N7, in the
+   * film's own hand: no coordinates, no place name). */
+  function drawBall(s, t, w, h, dpr) {
+    const on = s.ball.on != null ? anchor(s.ball.on, s) : 0;
+    const hud = s.ball.hud != null ? anchor(s.ball.hud, s) : 0;
+    const frameH = Math.min(h, w / 2.39);
+    const top = (h - frameH) / 2;
+    const noiseA = t < on ? 1 : Math.max(0, 1 - (t - on) / 500);
+    if (noiseA > 0) {
+      ink.globalAlpha = noiseA;
+      ink.fillStyle = '#202322';
+      ink.fillRect(0, top, w, frameH);
+      for (let k = 0; k < 900; k += 1) {
+        const v = (Math.imul(k + Math.floor(t / 40) * 977, 2654435761) >>> 0) / 4294967296;
+        const g = Math.round(40 + v * 160);
+        ink.fillStyle = `rgb(${g},${g},${g})`;
+        ink.fillRect(((k * 7919) % 1000) / 1000 * w, top + (((k * 104729 + Math.floor(t / 40) * 31) % 1000) / 1000) * frameH, 3 * dpr, 2 * dpr);
+      }
+      ink.globalAlpha = 1;
+    }
+    const a = Math.max(0, Math.min(1, (t - hud) / 800));
+    if (a <= 0) {
+      return;
+    }
+    ink.globalAlpha = a * 0.85;
+    ink.strokeStyle = '#d8f0e2';
+    ink.fillStyle = '#d8f0e2';
+    ink.lineWidth = 1.5 * dpr;
+    const m = frameH * 0.08;
+    const leg = frameH * 0.06;
+    for (const [x, y, sx, sy] of [[m, top + m, 1, 1], [w - m, top + m, -1, 1], [w - m, top + frameH - m, -1, -1], [m, top + frameH - m, 1, -1]]) {
+      ink.beginPath();
+      ink.moveTo(x, y + sy * leg);
+      ink.lineTo(x, y);
+      ink.lineTo(x + sx * leg, y);
+      ink.stroke();
+    }
+    const cx = w / 2;
+    const cy = top + frameH / 2;
+    const r = frameH * 0.035;
+    ink.beginPath();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      ink.moveTo(cx + dx * r, cy + dy * r);
+      ink.lineTo(cx + dx * r * 2.4, cy + dy * r * 2.4);
+    }
+    ink.stroke();
+    camera.getWorldDirection(tmp);
+    const az = (((Math.atan2(tmp.x, -tmp.z) * 180) / Math.PI) + 360) % 360;
+    const el = (Math.asin(Math.max(-1, Math.min(1, tmp.y))) * 180) / Math.PI;
+    const size = Math.round(Math.max(10, frameH / 38));
+    ink.font = `600 ${size}px ${CARD_FONT}`;
+    ink.textBaseline = 'top';
+    ink.textAlign = 'left';
+    ink.fillText(str('interior.film.ball_eo'), m + leg * 0.4, top + m + leg * 0.4);
+    ink.textAlign = 'right';
+    if (Math.floor(t / 600) % 2 === 0) {
+      ink.fillText(str('interior.film.ball_rec'), w - m - leg * 0.4, top + m + leg * 0.4);
+    }
+    ink.textAlign = 'center';
+    ink.textBaseline = 'bottom';
+    ink.fillText(str('interior.film.ball_gimbal', { az: String(Math.round(az)).padStart(3, '0'), el: Math.round(el) }), cx, top + frameH - m - leg * 0.4);
+    ink.globalAlpha = 1;
   }
 
   function drawScope(s, t, tFilm, w, h, dpr) {
@@ -713,8 +910,11 @@ export function play(scene, camera, opts = {}) {
       titleMain.textContent = title.main;
     }
     const year = title.kind === 'year';
-    put(titleMain, 'fontSize', year ? 'clamp(64px, 13vw, 220px)' : 'clamp(40px, 7.5vw, 130px)');
-    put(titleMain, 'letterSpacing', `${year ? 0.08 : 0.04}em`);
+    const card = title.kind === 'card';
+    put(titleMain, 'fontFamily', card ? CARD_FONT : TITLE_FONT);
+    put(titleMain, 'fontWeight', card ? '500' : '900');
+    put(titleMain, 'fontSize', year ? 'clamp(64px, 13vw, 220px)' : card ? 'clamp(24px, 3.6vw, 60px)' : 'clamp(40px, 7.5vw, 130px)');
+    put(titleMain, 'letterSpacing', `${year ? 0.08 : card ? 0.6 : 0.04}em`);
     /* The title settles from wide to its tracking as it fades in: a
      * transform, so the text is laid out and painted once. */
     put(titleMain, 'transform', `scaleX(${(1 + (1 - smooth(Math.max(0, inU))) * 0.12).toFixed(3)})`);
@@ -789,13 +989,22 @@ export function play(scene, camera, opts = {}) {
     }
   }
 
-  /* The music from the first shot, where the film is. */
+  /* The music: the cue under way (film.js musicCues; a war film's is the
+   * intro from the first shot), from where the film is in it, set once a
+   * cue. */
+  const cues = musicCues(film, timed);
+  let cueOn = -1;
   function music(tFilm) {
-    if (!radio || bedSet || tFilm < PRELOAD_MS) {
+    if (!radio) {
       return;
     }
+    const k = musicAt(cues, tFilm);
+    if (k < 0 || k === cueOn) {
+      return;
+    }
+    cueOn = k;
     bedSet = true;
-    audio.setWarBed('intro', (tFilm - PRELOAD_MS) / 1000);
+    audio.setWarBed(cues[k].track, (tFilm - cues[k].at) / 1000);
   }
 
   /* The bed as the film found it, but in a room's briefing: there the
@@ -823,9 +1032,10 @@ export function play(scene, camera, opts = {}) {
 
   function orbit(nowWall, tFilm) {
     const a = ((nowWall % ORBIT_MS) / ORBIT_MS) * Math.PI * 2;
-    camera.position.set(DAM[0] + ORBIT_R * Math.sin(a), ORBIT_Y, DAM[2] + ORBIT_R * Math.cos(a));
+    const c = orbitAt.centre;
+    camera.position.set(c[0] + orbitAt.r * Math.sin(a), orbitAt.y, c[2] + orbitAt.r * Math.cos(a));
     camera.up.set(0, 1, 0);
-    camera.lookAt(tmp.set(DAM[0], DAM[1], DAM[2]));
+    camera.lookAt(tmp.set(c[0], c[1], c[2]));
     if (camera.fov !== 50) {
       camera.fov = 50;
       camera.updateProjectionMatrix();
@@ -840,9 +1050,14 @@ export function play(scene, camera, opts = {}) {
   /* Out of the film: into the briefing's orbit, or over. */
   function leaveFilm(tFilm) {
     stopVoice();
-    attackers.clear();
+    if (attackers) {
+      attackers.clear();
+    }
     for (const c of cast.values()) {
       c.holder.visible = false;
+    }
+    for (const x of sets.values()) {
+      x.group.visible = false;
     }
     canvas.style.filter = canvasFilter;
     titleBox.style.opacity = '0';
@@ -917,6 +1132,9 @@ export function play(scene, camera, opts = {}) {
       }
       sounds(tFilm);
       music(tFilm);
+      if (warming.length) {
+        board.source(warming.shift());
+      }
       const i = shotIndex(timed, tFilm);
       state = { ...state, t: tFilm, shot: i };
       if (i < 0) {
@@ -946,6 +1164,12 @@ export function play(scene, camera, opts = {}) {
           c.holder.visible = false;
         }
       }
+      for (const [name, x] of sets) {
+        x.group.visible = s.set === name;
+        if (x.group.visible) {
+          drawSetScreens(x, film.sets[name], s, t, tFilm);
+        }
+      }
       const list = [];
       for (const a of agents) {
         if ((a.shots && !a.shots.has(s.id)) || tFilm < a.plan.t0 || tFilm > a.plan.tEnd) {
@@ -956,7 +1180,9 @@ export function play(scene, camera, opts = {}) {
           id: a.a.id, kind: a.a.kind, p: pose.p.slice(), q: pose.q.slice(),
         });
       }
-      attackers.update(list, 1 / 60);
+      if (attackers) {
+        attackers.update(list, 1 / 60);
+      }
       const cam = cameraAt(s, t, resolveFor(s), i);
       camera.position.set(...cam.p);
       camera.up.set(0, 1, 0);
@@ -1009,7 +1235,11 @@ export function play(scene, camera, opts = {}) {
         skippable: Boolean(opts.seen),
         fromStart,
         frames: frames.slice(),
-        drawn: attackers.drawn().counts,
+        drawn: attackers ? attackers.drawn().counts : {},
+        map: film.map ?? 'itaipu',
+        set: state.shot >= 0 ? (timed.shots[state.shot].set ?? null) : null,
+        board: boardShown,
+        music: cueOn >= 0 ? cues[cueOn].track : null,
         cast: [...cast.entries()].filter(([, c]) => c.holder.visible).map(([n]) => n),
         subtitle: sub.style.opacity === '1' ? sub.textContent : null,
         title: titleBox.style.opacity !== '0' ? titleMain.textContent : null,
@@ -1034,7 +1264,12 @@ export function play(scene, camera, opts = {}) {
       window.removeEventListener('blur', onUp);
       stopVoice();
       bedBack();
-      attackers.dispose();
+      if (attackers) {
+        attackers.dispose();
+      }
+      for (const x of sets.values()) {
+        x.dispose();
+      }
       scene.remove(root);
       root.traverse((o) => {
         if (o.isMesh) {
