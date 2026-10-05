@@ -43,6 +43,7 @@ import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 import { ballFor } from '../src/avionics/camball.js';
+import { worldFor } from '../src/share/ops/missions.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outArg = process.argv[2];
@@ -166,6 +167,33 @@ try {
   await page.sleep(500);
   const s1 = await page.evaluate('({ view: window.__ui.settings.wingView, hud: window.__opsHud().on, sensor: window.__sensors.state.mainView, stab: window.__sensors.state.stab, on: window.__ops.ball().on })');
   check('C leaves the ball: its HUD down, the sensor its own again', s1.view === 'fpv' && !s1.hud && !s1.on && s1.sensor === 'eo' && s1.stab === true, JSON.stringify(s1));
+  /* The ops world a screen frames and captures against
+   * (src/share/opsworlds.js), built in the page from the bytes it fetches,
+   * agrees with the room's built from disk: ground, crowns, a route. */
+  const OW = worldFor('interior');
+  const probes = [[2000, 3000], [9000, 9000], [11900, 10500], [6000, 4000], [11300, 9800]];
+  const pairs = probes.map(([x, y]) => [[x, y, OW.groundAt(x, y) + 400], [x + 30, y + 20, OW.groundAt(x + 30, y + 20) + 1]]);
+  const room = {
+    ground: probes.map(([x, y]) => OW.groundAt(x, y)),
+    blocks: pairs.map(([a, b]) => OW.canopyBlocks(a, b)),
+    route: OW.poseOnRoute('conceal-mid-a', 60000),
+  };
+  const browser = await page.evaluate(`(async () => {
+    const { opsWorldOf } = await import('/src/share/opsworlds.js');
+    let w = null;
+    for (let i = 0; i < 200 && !w; i += 1) {
+      w = opsWorldOf('interior');
+      if (!w) { await new Promise((r) => setTimeout(r, 100)); }
+    }
+    if (!w) { return null; }
+    return {
+      ground: ${JSON.stringify(probes)}.map(([x, y]) => w.groundAt(x, y)),
+      blocks: ${JSON.stringify(pairs)}.map(([a, b]) => w.canopyBlocks(a, b)),
+      route: w.poseOnRoute('conceal-mid-a', 60000),
+    };
+  })()`);
+  check('the ops world builds in the page from the fetched bytes and agrees with the room\'s', browser && JSON.stringify(browser) === JSON.stringify(room),
+    JSON.stringify({ room, browser }).slice(0, 300));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {

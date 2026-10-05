@@ -131,7 +131,8 @@ import { createStreamerLayer } from './render/streamers.js';
 import { createCombatHud } from './ui/combathud.js';
 import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
-import { worldFor as opsWorldFor } from './share/ops/missions.js';
+import { grounded } from './share/ops/missions.js';
+import { opsWorldOf } from './share/opsworlds.js';
 import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics/camball.js';
 import { createCapture, createStillStore } from './avionics/capture.js';
 import { OpsHud } from './ui/opshud.js';
@@ -1052,12 +1053,17 @@ export async function boot({
     const t = roomLinkState.roomNow();
     roomOps.cam(t, opsCam.aim, opsCam.tanHalf, opsCam.aspect);
     const mission = roomOps.mission();
-    if (!roomOps.live() || !mission) {
+    /* The map's world, built in the background on first use: nothing is
+     * framed or captured until it is (src/share/opsworlds.js). */
+    const world = mission ? opsWorldOf(mission.map) : null;
+    if (!roomOps.live() || !mission || !world) {
       return;
     }
-    if (opsCaptureFor !== mission) {
-      opsCaptureFor = mission;
-      opsCapture = createCapture(mission, opsWorldFor(mission.map));
+    if (opsCaptureFor !== world) {
+      opsCaptureFor = world;
+      /* The mission's heights over the ground made absolute on it, as the
+       * room does (missions.js grounded). */
+      opsCapture = createCapture(grounded(mission, world), world);
     }
     opsCapture.sample(v, t, opsCam.p, opsCam);
     let best = null;
