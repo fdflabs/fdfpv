@@ -3138,7 +3138,7 @@ export default {
   "campaign.card_missions": "4 missions",
   "campaign.card_shop": "Upgrade shop",
   "campaign.act1": "Campaign, Act 1: the dam",
-  "campaign.act1_lede": "Attack drones are coming for Itaipu. Hold it mission by mission. Each mission is a private war room: bring your squad or fly it alone.",
+  "campaign.act1_lede": "Attack drones are coming for Itaipu. Hold it mission by mission. Each mission opens a war room of its own: bring your squad, let anyone join, or fly it alone.",
   "campaign.credits": "Credits: {n}",
   "campaign.stars_total": "Stars: {n} of {of}",
   "campaign.stars_of": "{n} of {of} stars",

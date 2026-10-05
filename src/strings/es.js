@@ -3142,7 +3142,7 @@ export default {
   "campaign.card_missions": "4 misiones",
   "campaign.card_shop": "Tienda de mejoras",
   "campaign.act1": "Campaña, Acto 1: la represa",
-  "campaign.act1_lede": "Drones de ataque vienen por Itaipú. Defiéndela misión por misión. Cada misión es una sala de guerra privada: trae a tu escuadrón o vuela solo.",
+  "campaign.act1_lede": "Drones de ataque vienen por Itaipú. Defiéndela misión por misión. Cada misión abre su propia sala de guerra: trae a tu escuadrón, deja que se sume cualquiera o vuela solo.",
   "campaign.credits": "Créditos: {n}",
   "campaign.stars_total": "Estrellas: {n} de {of}",
   "campaign.stars_of": "{n} de {of} estrellas",

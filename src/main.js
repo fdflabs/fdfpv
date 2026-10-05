@@ -3233,7 +3233,10 @@ export async function boot({
       deadline: secs(lobby.deadlineAt),
       pilots: seats.map((seat) => ({
         name: roomSeatName(seat),
-        aircraft: airframeById(seat === w.seat ? runAirframe : roomPeers.get(seat).profile.airframe).name,
+        /* This pilot's: in a war room the aircraft the war seats it in
+         * (warSeatCraft, from the lobby), which it flies from the go;
+         * the one still under it until then is whatever it flew before. */
+        aircraft: airframeById(seat === w.seat ? (game === 'war' ? ui.settings.airframe : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
         host: seat === w.host,
         me: seat === w.seat,
@@ -3707,8 +3710,10 @@ export async function boot({
   let warCraftSaid = null;
   /* Said, and the war aircraft flown kept for the next war. */
   function warCraftFrame(v) {
-    /* From the briefing, so the pilot is seated in it before the go. */
-    if (v.state === 'briefing' || roomWar.on()) {
+    /* From the war room's lobby, so the lobby's pilot list names the
+     * aircraft each will fly (it named a Turbo Timber the war would never
+     * fly, 5 October) and the pilot is seated in it well before the go. */
+    if (lobbyGame() === 'war' || v.state === 'briefing' || roomWar.on()) {
       warSeatCraft();
     }
     if (warCraftSaid && !warIntro && (v.state === 'countdown' || v.state === 'live')) {
