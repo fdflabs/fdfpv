@@ -822,6 +822,7 @@ export async function boot({
    * where the screen camera's axis meets the ground and its own field.
    */
   const opsHud = new OpsHud(uiRoot);
+  opsHud.onTouch = { lock: () => ballToggleLock(), capture: () => opsCaptureNow() };
   /* The role board (src/ui/rolesboard.js): ` opens it, and its button. */
   const rolesBoard = new RolesBoard(uiRoot, {
     take: (id) => roomOps.take(id),
@@ -888,6 +889,20 @@ export async function boot({
     map: () => opsHud.mapOpen,
   };
   const swapsTold = new Set();
+  /* The joiner's consent: being asked now, and the room last asked for. */
+  let opsJoinAsking = false;
+  let opsJoinAsked = null;
+  /* Each campaign that asks a consent: whether it is given, and asking. */
+  const OPS_CONSENT = {
+    [INTERIOR_CAMPAIGN.id]: { given: () => ui.settings.interiorConsent === true, ask: () => interiorConsented() },
+  };
+  /* The aircraft of the role this seat flies now, or null. */
+  function opsRoleCraft(v) {
+    const r = v.roles;
+    const key = r && r.active ? r.active[roomOps.seat()] : null;
+    const def = key && (r.defs || []).find((d) => d.id === String(key).split(':')[0]);
+    return def && def.platforms && def.platforms[0] ? def.platforms[0] : null;
+  }
   /* The start this page owes a room it made for a mission, until its
    * welcome; the match this page has put itself in the air for. */
   let opsPending = null;
@@ -896,6 +911,9 @@ export async function boot({
    * last told. */
   let opsDrawn = false;
   let opsCampMark = null;
+  /* What the map was last told, for the checks: the hour, the looks. */
+  let opsHourTold = null;
+  let opsLooksTold = [];
   let ball = null;
   let ballAirframe = null;
   /* Whether the ball is the screen's camera this frame, and was last. */
@@ -961,6 +979,10 @@ export async function boot({
       tilt: key('KeyY', 'KeyH'),
       zoom: key('Equal', 'Minus') + key('PageUp', 'PageDown'),
     };
+    /* The ball's touch pad and zoom buttons (src/ui/opshud.js). */
+    out.pan += opsHud.touchIn.pan;
+    out.tilt += opsHud.touchIn.tilt;
+    out.zoom += opsHud.touchIn.zoom;
     const pad = ballPad();
     if (pad) {
       out.pan += pad.pan;
@@ -1094,7 +1116,7 @@ export async function boot({
    * one side only (the angle is the discovery), not contacts the room has
    * not discovered (the quiet HUD's rule). */
   function opsNameable(item, v) {
-    if (item.view) {
+    if (item.view && !(v.opened || []).includes(item.id)) {
       return false;
     }
     if (item.contact) {
@@ -1140,7 +1162,9 @@ export async function boot({
         if (e.title) {
           opsHud.stageEntered(opsSay(e.title));
         }
-      } else if (e.type === 'state' && (e.to === 'won' || e.to === 'lost')) {
+      } else if (e.type === 'state' && ['won', 'lost', 'ended'].includes(e.to)) {
+        /* Ended by the host too: the squad's captures so far are its
+         * record. */
         opsDebrief();
       } else if (e.type === 'classified') {
         opsHud.cardEvent([str('card.classification_updated'), str('ops.hud.class_change', { from: opsClassWord(e.from), to: opsClassWord(e.to) })]);
@@ -1151,8 +1175,42 @@ export async function boot({
       roomOps.start(opsPending.mission, { intro: true });
       opsPending = null;
     }
+    /*
+     * A PILOT WHO JOINED BY CODE OR LINK: a campaign that shows armed
+     * conflict asks its consent of every pilot entering a room playing
+     * it, as the war's does (roomWarJoinGate; FLOW-AUDIT rule 9 as
+     * amended), before they are seated in its match. No sends them out of
+     * the room to the title, never half in it. The host who made the room
+     * from the card has answered already.
+     */
+    const ask = v.campaign ? OPS_CONSENT[v.campaign] : null;
+    const consentDue = Boolean(ask) && !ask.given();
+    if (consentDue && !opsJoinAsking && opsJoinAsked !== roomOps.room()) {
+      const room = roomOps.room();
+      opsJoinAsking = true;
+      opsJoinAsked = room;
+      ask.ask().then((ok) => {
+        if (!ok && roomOps.room() === room) {
+          roomLeave();
+          ui.act('title');
+        }
+      }).finally(() => {
+        opsJoinAsking = false;
+      });
+    }
+    /* The aircraft of the role this seat flies (dealt at the start, or
+     * taken or swapped since): seated before it is flown, and again when
+     * the role changes to another aircraft. */
+    const craft = consentDue ? null : opsRoleCraft(v);
+    if (craft && ui.settings.airframe !== craft) {
+      seatAirframe(ui.settings, craft);
+      ui.persistSettings();
+      if (opsBegunFor === match && mode === 'flight') {
+        opsBegunFor = null;
+      }
+    }
     /* A match begun: into the air, as a war's begins (warBegin). */
-    if (match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
+    if (!consentDue && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
       opsBegunFor = match;
       const w = roomLinkState.state().welcome;
       if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
@@ -1253,11 +1311,11 @@ export async function boot({
   /*
    * The room's contacts drawn by the map (CONTRACT-P0.md 4.3: every screen
    * draws every contact from its route, discovered or not; people are
-   * seen from the air before the room knows them), the mission's sun on
-   * the room's clock and the camp's mark where the room judges it. Each
-   * only as far as the mission's data says: a contact with no `look` the
-   * map can draw (a vehicle without one) is not drawn, a mission with no
-   * `clock` keeps the map's hour, one with no `camp` the map's own mark.
+   * seen from the air before the room knows them) by their `look` and
+   * `size`, the sun on the room's `clock` and the camp's mark on the
+   * shelter the room judges (`camp.mark`), each as the view says (#440),
+   * else from the mission's own data for a room from before it. A contact
+   * with no look is not drawn; no clock keeps the map's hour.
    */
   function opsDraw(v, mission, now) {
     if (!view || typeof view.setContacts !== 'function') {
@@ -1274,20 +1332,24 @@ export async function boot({
     const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
     const list = [];
     for (const c of v.contacts || []) {
-      const look = (defs.get(c.id) || {}).look ?? (c.kind === 'person' ? 'person' : null);
+      const look = 'look' in c ? c.look : ((defs.get(c.id) || {}).look ?? (c.kind === 'person' ? 'person' : null));
       if (look) {
         list.push({
-          id: c.id, kind: look, route: c.route, ms: now - c.t0,
+          id: c.id, kind: look, size: c.size ?? CONTACT_SIZE[c.kind] ?? 2, route: c.route, ms: now - c.t0,
         });
       }
     }
     view.setContacts(list, now);
     opsDrawn = true;
-    if (mission.clock && v.goAt != null && typeof view.setLocalTime === 'function') {
-      view.setLocalTime(localHour(mission.clock, v.goAt, now));
+    opsLooksTold = list.map((c) => `${c.id}:${c.kind}`);
+    const clock = v.clock ?? mission.clock;
+    if (clock && v.goAt != null && typeof view.setLocalTime === 'function') {
+      opsHourTold = localHour(clock, v.goAt, now);
+      view.setLocalTime(opsHourTold);
     }
-    if (mission.camp && mission.camp.mark != null && typeof view.setCamp === 'function') {
-      const mark = opsResolve(mission.camp.mark, v.dials || {});
+    const markOfView = v.camp ? v.camp.mark : (mission.camp && mission.camp.mark != null ? opsResolve(mission.camp.mark, v.dials || {}) : null);
+    if (markOfView != null && typeof view.setCamp === 'function') {
+      const mark = markOfView;
       if (mark !== opsCampMark) {
         opsCampMark = mark;
         view.setCamp({ mark });
@@ -1374,6 +1436,7 @@ export async function boot({
       aim: opsCam ? opsCam.aim : null,
       locked: Boolean(ballOn && ball.state.lock),
       inset: ballOn ? sensors.pip : null,
+      touch: Boolean(touch),
       insetMode: sensors.state.pipMode,
       tutorial: v ? opsTutorial(v, mission) : null,
     };
@@ -1398,6 +1461,19 @@ export async function boot({
       return { x: lockV.x, y: lockV.y };
     },
     toggleLock: () => ballToggleLock(),
+    /* The aircraft this page flies now. */
+    flown: () => runAirframe,
+    /* What the map was last told of the room: mark, hour, contacts. */
+    drawn: () => ({ mark: opsCampMark, hour: opsHourTold, looks: opsLooksTold.slice() }),
+    /* Checks only: the host's end of the match. */
+    end: () => roomOps.end(),
+    /* Checks only: lock the ball on a point (ops frame). */
+    lockOn: (p) => {
+      if (ball) {
+        ball.lockOn(p);
+      }
+      return Boolean(ball);
+    },
     capture: () => opsCaptureNow(),
     /* Checks only: room messages and a world stood in locally, so the
      * HUD can be shown a view over a map that is not the mission's. */

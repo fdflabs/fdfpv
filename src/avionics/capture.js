@@ -173,7 +173,9 @@ export function createCapture(mission, world) {
           off: s.off,
           grade: gradeOf(s.size, s.off),
           blocked: world.canopyBlocks(from, at),
-          band: view2 ? inBand(view2, at, from) : true,
+          /* One sided items are seen from any side once the room says
+           * their `open` fired (the view's `opened`). */
+          band: view2 && !(view.opened ?? []).includes(item.id) ? inBand(view2, at, from) : true,
         });
       }
     }
@@ -214,7 +216,10 @@ export function createCapture(mission, world) {
      * with { item, grade, framing }, or { why } when nothing in frame
      * makes one: 'frame' (nothing capturable in the picture or too
      * small), 'blocked' (crowns), 'blur' (smeared past use), 'done'
-     * (everything in frame already captured at this grade or better).
+     * (everything in frame already captured at this grade or better),
+     * 'angle' (a one sided item seen from outside its band, which the room
+     * would refuse; told only when the view carries `opened`, so a room
+     * that does not say is still asked).
      * opts: { mode (a sensor mode), night (bool), digital (the digital
      * zoom) }.
      */
@@ -229,8 +234,12 @@ export function createCapture(mission, world) {
         const blur = blurOf(speedOf(f.item.id), exposure, band.native, digital);
         return { ...f, blur, final: f.blocked ? null : gradeWithBlur(f.grade, blur) };
       });
-      const better = graded.filter((f) => f.final && rank(f.final) > bestOf(f.item, view));
+      const predicts = Array.isArray(view.opened);
+      const better = graded.filter((f) => f.final && rank(f.final) > bestOf(f.item, view) && (f.band || !predicts));
       if (!better.length) {
+        if (predicts && graded.some((f) => f.final && !f.band && rank(f.final) > bestOf(f.item, view))) {
+          return { why: 'angle' };
+        }
         if (graded.some((f) => f.final)) {
           return { why: 'done' };
         }

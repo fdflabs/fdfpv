@@ -134,6 +134,15 @@ const CSS = `
 .ops-inset canvas { width: 100%; display: block; }
 .ops-inset-tag { position: absolute; left: 0.4em; top: 0.2em; font-size: 0.8em; }
 #ui.ops-on .osd-top, #ui.ops-on .osd-corner { display: none; }
+.ops-touch { display: none; z-index: 5; pointer-events: auto; gap: 0.5em; align-items: center; touch-action: none; }
+.ops-touch.on { display: flex; }
+.ops-touch button { font: inherit; letter-spacing: 0.12em; color: ${INK}; background: rgba(6, 10, 12, 0.45);
+  border: 1px solid rgba(236, 244, 240, 0.45); min-width: 48px; min-height: 48px; padding: 0 0.7em; touch-action: none; }
+.ops-touch button.on { border-color: #fff; background: rgba(236, 244, 240, 0.18); }
+.ops-pad { width: 88px; height: 88px; border-radius: 50%; border: 1px solid rgba(236, 244, 240, 0.45);
+  background: rgba(6, 10, 12, 0.35); position: relative; touch-action: none; }
+.ops-pad::after { content: ''; position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px;
+  border-radius: 50%; background: rgba(236, 244, 240, 0.6); transform: translate(var(--px, 0), var(--py, 0)); }
 `;
 
 function el(tag, cls, parent, text) {
@@ -284,6 +293,65 @@ export class OpsHud {
     this.inset = el('div', 'ops-panel ops-inset', this.el);
     this.keepOut = [];
     this.keepOutAt = 0;
+    /* The camera ball by touch, on a device with thumbs (shown over the
+     * ball only, above the stick zones): a pad slews it, held buttons
+     * zoom, and lock and capture. touchIn is read every frame by the
+     * shell; onTouch { lock(), capture() } is the shell's. */
+    this.touchIn = { pan: 0, tilt: 0, zoom: 0 };
+    this.onTouch = null;
+    this.touchEl = el('div', 'ops-panel ops-touch', this.el);
+    const pad = el('div', 'ops-pad', this.touchEl);
+    pad.setAttribute('aria-label', str('ops.touch.slew'));
+    const padAt = (e) => {
+      const r = pad.getBoundingClientRect();
+      const k = r.width / 2;
+      const x = Math.max(-1, Math.min(1, (e.clientX - r.left - k) / k));
+      const y = Math.max(-1, Math.min(1, (e.clientY - r.top - k) / k));
+      this.touchIn.pan = x;
+      this.touchIn.tilt = -y;
+      pad.style.setProperty('--px', `${Math.round(x * (k - 11))}px`);
+      pad.style.setProperty('--py', `${Math.round(y * (k - 11))}px`);
+    };
+    const padEnd = () => {
+      this.touchIn.pan = 0;
+      this.touchIn.tilt = 0;
+      pad.style.setProperty('--px', '0px');
+      pad.style.setProperty('--py', '0px');
+    };
+    pad.addEventListener('pointerdown', (e) => {
+      pad.setPointerCapture(e.pointerId);
+      padAt(e);
+      e.preventDefault();
+    });
+    pad.addEventListener('pointermove', (e) => {
+      if (pad.hasPointerCapture(e.pointerId)) {
+        padAt(e);
+      }
+    });
+    pad.addEventListener('pointerup', padEnd);
+    pad.addEventListener('pointercancel', padEnd);
+    const button = (label, act) => {
+      const b = el('button', '', this.touchEl, label);
+      b.type = 'button';
+      b.dataset.act = act;
+      return b;
+    };
+    for (const [label, dir] of [[str('ops.touch.zoom_out'), -1], [str('ops.touch.zoom_in'), 1]]) {
+      const b = button(label, dir > 0 ? 'zoom-in' : 'zoom-out');
+      b.addEventListener('pointerdown', (e) => {
+        b.setPointerCapture(e.pointerId);
+        this.touchIn.zoom = dir;
+        e.preventDefault();
+      });
+      const stop = () => {
+        this.touchIn.zoom = 0;
+      };
+      b.addEventListener('pointerup', stop);
+      b.addEventListener('pointercancel', stop);
+    }
+    this.lockBtn = button(str('ops.touch.lock'), 'lock');
+    this.lockBtn.addEventListener('click', () => this.onTouch && this.onTouch.lock());
+    button(str('ops.touch.capture'), 'capture').addEventListener('click', () => this.onTouch && this.onTouch.capture());
     this.insetCanvas = null;
     this.insetTag = null;
     window.addEventListener('resize', () => { this.sizeDirty = true; });
@@ -326,6 +394,7 @@ export class OpsHud {
       row: r(this.row),
       map: r(this.mapBox),
       inset: r(this.inset),
+      touch: r(this.touchEl),
     };
   }
 
@@ -407,7 +476,7 @@ export class OpsHud {
     this.tapeTop = tape.y + 12;
     this.tapeRect = this.src && this.src.craft ? tape : null;
     const placed = this.src && this.src.craft ? [tape] : [];
-    const order = [[this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't']];
+    const order = [[this.mapBox, 'l', 'b'], [this.inset, 'r', 'b'], [this.row, 'c', 'b'], [this.obj, 'l', 't'], [this.readEl, 'r', 't'], [this.touchEl, 'c', 't']];
     for (const [p] of order) {
       p.classList.remove('ops-off');
     }
@@ -609,6 +678,18 @@ export class OpsHud {
     cells.lrf.set(range != null && range < 19000 ? str('ops.row.lrf_of', { m: Math.round(range) }) : str('ops.row.lrf'));
     cells.lrf.el.classList.toggle('on', range != null && range < 19000);
 
+    /* The ball's touch controls: over the ball, on a device with thumbs. */
+    const touchOn = Boolean(src.touch && b);
+    if (touchOn !== this.touchEl.classList.contains('on')) {
+      this.touchEl.classList.toggle('on', touchOn);
+      this.keepOutAt = 0;
+      if (!touchOn) {
+        this.touchIn.pan = 0;
+        this.touchIn.tilt = 0;
+        this.touchIn.zoom = 0;
+      }
+    }
+    this.lockBtn.classList.toggle('on', Boolean(b && b.lock));
     /* The IR inset: the sensor's own canvas. */
     if (src.inset !== this.insetCanvas || (src.inset && src.inset.parentElement !== this.inset)) {
       this.inset.textContent = '';

@@ -121,6 +121,13 @@ try {
   const life = await page.evaluate("(() => { const i = window.__mapScene().userData.interior; return i && i.life ? i.life.stats() : null; })()");
   const contacts = await page.evaluate('window.__ops.view().contacts.length');
   check('the map draws the room\'s contacts (the camp\'s loops)', life && life.people > 0 && contacts > 0, JSON.stringify({ life, contacts }));
+  /* The room's #440 fields, painted: the mark on the shelter the room
+   * judges, the sun on the room's clock, contacts by their look. */
+  const told = await page.evaluate('window.__ops.drawn()');
+  const roomSays = await page.evaluate('(() => { const v = window.__ops.view(); return { camp: v.camp, clock: v.clock, goAt: v.goAt, looks: v.contacts.map((c) => c.id + ":" + c.look) }; })()');
+  check('the mark is painted on the shelter the room judges (view camp.mark)', roomSays.camp && told.mark === roomSays.camp.mark, JSON.stringify({ told: told.mark, room: roomSays.camp }));
+  check('the sun is on the room\'s clock (16:40 at the go, moving)', roomSays.clock && Number.isFinite(told.hour) && told.hour >= roomSays.clock.startHour && told.hour < roomSays.clock.startHour + 0.2, JSON.stringify({ hour: told.hour, clock: roomSays.clock }));
+  check('contacts are drawn by the look the room gives', told.looks.length > 0 && told.looks.every((x) => roomSays.looks.includes(x)), JSON.stringify(told.looks.slice(0, 3)));
   await shot('interior-live-rail.png');
   /* The camera report goes two a second; give it one, then propose. */
   await page.sleep(1500);

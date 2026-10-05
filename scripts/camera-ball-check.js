@@ -199,5 +199,60 @@ try {
 } finally {
   await page.close();
 }
+
+/* THE BALL BY TOUCH: a phone held sideways, the stick overlay up. The
+ * ball's pad, zoom buttons, lock and capture are over the ball's
+ * picture, inside the window, and they work; a second page, after the
+ * first is closed (one browser at a time). */
+console.log('touch, 844x390');
+const phone = await openPage({
+  root, width: 844, height: 390, touch: true, url: '/index.html?rooms=off', seed,
+});
+const touchAt = async (x, y, type) => phone.cdp.send('Input.dispatchTouchEvent', {
+  type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }],
+}, phone.sessionId);
+const centreOf = (sel) => phone.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(sel)}).getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2, b.width]; })()`);
+try {
+  await phone.until('!!window.__shellReady', 300000);
+  await phone.until('window.__map && window.__map().ready', 400000);
+  await phone.evaluate("window.__ui.onAction('fly', window.__ui.settings); true");
+  await phone.until("window.__craftState && window.__craftState().mode === 'flight' && window.__map().ready", 400000);
+  await phone.evaluate("(window.__ui.settings.wingView = 'ball', true)");
+  await phone.until('window.__ops.ball() && window.__ops.ball().on', 60000).catch(() => {});
+  await phone.sleep(800);
+  const r = (await phone.evaluate('window.__opsHud()')).rects.touch;
+  check('the ball\'s touch controls are up over its picture, inside the window', Boolean(r) && r.x >= 0 && r.y >= 0 && r.x + r.w <= 844 && r.y + r.h <= 390, JSON.stringify(r));
+  const z0 = (await phone.evaluate('window.__ops.ball()')).zoom;
+  const [zx, zy] = await centreOf('.ops-touch button[data-act="zoom-in"]');
+  await touchAt(zx, zy, 'touchStart');
+  await phone.sleep(700);
+  await touchAt(zx, zy, 'touchEnd');
+  const z1 = (await phone.evaluate('window.__ops.ball()')).zoom;
+  check('holding ZOOM + zooms the lens in', z1 > z0 * 1.3, `${z0.toFixed(2)}x to ${z1.toFixed(2)}x`);
+  const p0 = (await phone.evaluate('window.__ops.ball()')).pan;
+  const [px, py, pw] = await centreOf('.ops-pad');
+  await touchAt(px, py, 'touchStart');
+  await touchAt(px + pw * 0.45, py, 'touchMove');
+  await phone.sleep(600);
+  await touchAt(px + pw * 0.45, py, 'touchEnd');
+  const p1 = (await phone.evaluate('window.__ops.ball()')).pan;
+  check('dragging the pad right pans the ball right', p1 > p0 + 0.02, `${p0.toFixed(3)} to ${p1.toFixed(3)}`);
+  const [lx, ly] = await centreOf('.ops-touch button[data-act="lock"]');
+  await touchAt(lx, ly, 'touchStart');
+  await touchAt(lx, ly, 'touchEnd');
+  await phone.sleep(300);
+  check('LOCK locks the ball', Boolean((await phone.evaluate('window.__ops.ball()')).lock));
+  const [cx, cy] = await centreOf('.ops-touch button[data-act="capture"]');
+  await touchAt(cx, cy, 'touchStart');
+  await touchAt(cx, cy, 'touchEnd');
+  await phone.sleep(300);
+  check('CAPTURE answers (no mission here: it says so)', /NO MISSION/.test((await phone.evaluate('window.__opsHud()')).say || ''));
+  const r2 = await phone.cdp.send('Page.captureScreenshot', { format: 'png' }, phone.sessionId);
+  await writeFile(join(outDir, 'ball-touch-844x390.png'), Buffer.from(r2.data, 'base64'));
+  const perr = phone.errors.filter((e) => !e.startsWith('network:'));
+  check('no page errors (touch)', perr.length === 0, perr.slice(0, 3).join(' | '));
+} finally {
+  await phone.close();
+}
 console.log(`\n${passed} passed, ${failed} failed (pictures in ${outDir})`);
 process.exit(failed ? 1 : 0);

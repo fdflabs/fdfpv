@@ -3591,4 +3591,10 @@ export default {
   "ops.why.track": "Se perdieron los contactos",
   "ops.why.end": "Terminada por el anfitrión",
   "ops.why.landed": "En casa",
+  "ops.debrief.ended": "MISIÓN TERMINADA POR EL ANFITRIÓN",
+  "ops.touch.slew": "Mover la torreta",
+  "ops.touch.zoom_in": "ZOOM +",
+  "ops.touch.zoom_out": "ZOOM -",
+  "ops.touch.lock": "FIJAR",
+  "ops.touch.capture": "CAPTURAR",
 };
