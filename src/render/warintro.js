@@ -1012,6 +1012,8 @@ export function play(scene, camera, opts = {}) {
         counter: counter.style.opacity !== '0' ? counterValue.textContent : null,
         hold: state.orbit ? hold.textContent : null,
         fov: camera.fov,
+        camera: camera.position.toArray(),
+        ground: ground(camera.position.x, camera.position.z),
         opened,
         seenTold,
         sound: ctx ? {
