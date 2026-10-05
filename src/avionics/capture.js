@@ -46,7 +46,7 @@ import { sight } from '../share/ops/sight.js';
 import {
   GRADES, gradeOf, inBand, lower, rank,
 } from '../share/ops/capture.js';
-import { centreOf, membersOf } from '../share/ops/contacts.js';
+import { SIZE, centreOf, membersOf } from '../share/ops/contacts.js';
 import { resolve } from '../share/ops/stages.js';
 import { BAND, EXPOSURE_S } from './bands.js';
 import { basisOf } from './camball.js';
@@ -115,7 +115,9 @@ export function createCapture(mission, world) {
    * contacts, each judged), from the room's view for dials and contacts. */
   function spotsOf(item, view, t) {
     if (item.contact) {
-      return membersOf(view.contacts ?? [], item.contact).map((c) => centreOf(c, world, t)).filter(Boolean);
+      /* The view's records carry no size (CONTRACT-P0.md 4.3): the
+       * kind's, as the room gives a contact whose data has none. */
+      return membersOf(view.contacts ?? [], item.contact).map((c) => centreOf({ ...c, size: c.size ?? SIZE[c.kind] ?? 2 }, world, t)).filter(Boolean);
     }
     try {
       const at = resolve(item.at, view.dials ?? {});

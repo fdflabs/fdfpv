@@ -126,6 +126,16 @@ console.log('synthetic framings');
   check('already captured clean: nothing sent (frame: no item left to capture)', done && !done.msg, JSON.stringify(done));
   const better = shoot(camAt(0.12, 0), { v: { ...view, captures: [{ item: 'thing', grade: 'usable' }] } });
   check('captured usable before: a clean still is still sent', better && better.grade === 'clean');
+  /* An item that is a group of contacts, as the view gives them (no
+   * size): each member judged where its route puts it. */
+  const people = { items: [{ id: 'crowd', set: 'b', contact: 'grp', size: 1.7 }] };
+  const walk = { canopyBlocks: () => false, poseOnRoute: () => ({ x: 0, y: 0, z: 0, heading: 0, action: 'walk' }) };
+  const cg = createCapture(people, walk);
+  const v2 = { dials: {}, captures: [], contacts: [{ id: 'p1', kind: 'person', group: 'grp', route: 'r', t0: 0, state: 'seen', cls: 'unknown' }] };
+  const camP = { dir: [0, 1, 0], tanHalf: 1.7 / (2 * 1000 * 0.12), aspect: 16 / 9 };
+  cg.sample(v2, 0, from, camP);
+  const crowd = cg.still(v2, 0, from, camP);
+  check('a group of contacts from the view (no size there) is capturable', crowd.item === 'crowd' && crowd.grade === 'clean', JSON.stringify(crowd.framing ?? crowd.why));
   const msg = steady.msg;
   check('the message is the contract\'s capture', msg.type === 'ops' && msg.op === 'capture' && msg.item === 'thing' && Number.isInteger(msg.t) && msg.grade === 'clean'
     && ['size', 'off', 'blur'].every((k) => Number.isFinite(msg.framing[k])));
