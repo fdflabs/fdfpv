@@ -95,6 +95,20 @@ permission for it. The file is an upscale of the Twitch profile image
 LANPY esports publish, cropped to the art and enlarged four times; the
 colours and the drawing are theirs, unchanged.
 
+## The war's explosions
+
+    File        assets/explosions/midair.webp
+    Drawn by    src/render/explosion.js
+    Source      "Midair Explosion 01", JangaFX's free EmberGen VDB
+                animations, https://jangafx.com/software/embergen/download/free-vdb-animations
+    Licence     CC0 1.0, public domain: "VDB SETS WERE CREATED WITH
+                EMBERGEN BY JANGAFX LLC (https://jangafx.com)"
+
+A flipbook rendered from the simulation in Blender by
+tools/explosions/render.py; tools/explosions/README.md names the exact
+files. CC0 places no condition on the simulation or on what is made from
+it; JangaFX ask users to spread the word, and the in-game credits do.
+
 ## Origin of this fork
 
     Upstream    https://github.com/Mathew-Harvey/WebFPVSimulator

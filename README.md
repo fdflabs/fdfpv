@@ -180,12 +180,14 @@ people's work, and each of them keeps their credit:
   WebFPVSimulator-LeaderBoard. Every upstream file keeps its GPLv3 header
   and copyright line.
 - [NOTICE](NOTICE): the third party material in the combined work
-  (Betaflight, three.js, the music, the LANPY mark), its licences, and the
-  origin of this fork.
+  (Betaflight, three.js, the music, the LANPY mark, the explosions), its
+  licences, and the origin of this fork.
 - The in-game credits, Credits on the title and pause menus or `#credits`,
   built by `src/ui/credits.js`: the upstream maker, the beta test pilots,
   Betaflight, Track Draw and the Dutch Drone Squad, and the data behind
   the Itaipu map with its licence notices.
+- [tools/explosions/README.md](tools/explosions/README.md): the war's
+  explosions, rendered from JangaFX's EmberGen simulation (CC0).
 - [assets/audio/war/CREDITS.md](assets/audio/war/CREDITS.md): every war
   mode music and voice file, its author, source and licence.
 - The map data repository carries its own source attributions:

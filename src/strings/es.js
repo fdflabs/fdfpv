@@ -1712,6 +1712,7 @@ export default {
   "credits.it_osm": "(c) OpenStreetMap contributors, ODbL, openstreetmap.org/copyright",
   "credits.it_music_intro": "Introducción de Defender el Paraná: \"Cinematic Suspense Trailer\" de Gregor Quendel (www.gregorquendel.com), CC BY 4.0, creativecommons.org/licenses/by/4.0",
   "credits.it_music_combat": "Bucle de combate de Defender el Paraná: \"Enemy spotted\" de Alexandr Zhelanov (soundcloud.com/alexandr-zhelanov), CC BY 3.0, creativecommons.org/licenses/by/3.0, editado para repetirse",
+  "credits.it_explosions": "Las explosiones de la guerra: \"Midair Explosion 01\", creada con EmberGen por JangaFX (jangafx.com), CC0, renderizada para el juego",
   "build.untitled": "Pista construida",
   "build.casual_name": "Pista casual en el cielo",
   "build.casual_none": "Aquí no cabe una pista casual en el cielo: una pista vacía en su lugar",

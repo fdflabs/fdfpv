@@ -1708,6 +1708,7 @@ export default {
   "credits.it_osm": "(c) OpenStreetMap contributors, ODbL, openstreetmap.org/copyright",
   "credits.it_music_intro": "Defend the Paraná's intro: \"Cinematic Suspense Trailer\" by Gregor Quendel (www.gregorquendel.com), CC BY 4.0, creativecommons.org/licenses/by/4.0",
   "credits.it_music_combat": "Defend the Paraná's combat loop: \"Enemy spotted\" by Alexandr Zhelanov (soundcloud.com/alexandr-zhelanov), CC BY 3.0, creativecommons.org/licenses/by/3.0, looped for the game",
+  "credits.it_explosions": "The war's explosions: \"Midair Explosion 01\", created with EmberGen by JangaFX (jangafx.com), CC0, rendered for the game",
   "build.untitled": "Built track",
   "build.casual_name": "Casual sky track",
   "build.casual_none": "No room for a casual sky track here: an empty track instead",

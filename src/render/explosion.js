@@ -18,10 +18,21 @@
  * two pools of camera facing quads, one InstancedBufferGeometry each: the
  * additive one (core, fireball, ring, embers, glow) and the blended one
  * (smoke), plus the screen flash while it shows. Each particle's shape
- * (a noisy puff, a soft glow, a ring) is picked in the fragment shader
- * from one small noise texture made here, so no sprite sheet is loaded.
- * The pools are fixed; a full one takes the oldest slot. Nothing is
- * allocated per frame.
+ * (a noisy puff, a soft glow, a ring, a frame of the flipbook) is picked
+ * in the fragment shader. The pools are fixed; a full one takes the
+ * oldest slot. Nothing is allocated per frame.
+ *
+ * THE FIREBALL AND ITS SMOKE ARE A SIMULATION, played as a flipbook:
+ * JangaFX's EmberGen mid air explosion (CC0), rendered offline in
+ * Blender into one sheet by tools/explosions/render.py, whose header says
+ * what the three channels hold. One quad in each pool plays it, the
+ * same frame in both: the fire's light in the additive pool, its smoke's
+ * shade and opacity in the blended one. Each explosion is mirrored or not
+ * and tilted a little at random, so two side by side are not twins; it is
+ * never turned far, because the plume rises. Until the sheet has loaded
+ * (it is fetched once, when the first layer is made), an explosion is
+ * made of the puffs below instead, cut from one small noise texture made
+ * here: never an empty sky.
  *
  * A REAL POINT LIGHT IS NOT USED ON PURPOSE: adding one to the scene
  * changes the light count of every lit material in the map, which
@@ -67,10 +78,81 @@ export const EXPLOSION_S = 6.2;
  * kept as a fraction of it (src/replay/paper.js boom). */
 export const SIZE_MAX = 4;
 
-/* Shapes, in the shader. */
+/* Shapes, in the shader: the last two are the flipbook, as rendered and
+ * mirrored. */
 const PUFF = 0;
 const GLOW = 1;
 const RING = 2;
+const SIM = 3;
+const SIM_MIRROR = 4;
+
+/* The sheet, as tools/explosions/render.py printed it: frames left to
+ * right and top to bottom, and the point of a cell that is put where the
+ * explosion went off (the fire's middle over its first second), from the
+ * cell's top left. */
+const SHEET = {
+  url: new URL('../../assets/explosions/midair.webp', import.meta.url).href,
+  cols: 8,
+  rows: 8,
+  frames: 64,
+  originU: 0.662,
+  originV: 0.656,
+};
+
+/* Fetched once for every layer made: until it has decoded, sheet.ready is
+ * false and play() throws the puffs. A sheet that cannot load is said so
+ * on the console and the puffs stay. */
+const sheet = { tex: null, ready: false, loading: null, renderers: new Set() };
+const sheetU = { value: null };
+function loadSheet(renderer) {
+  if (renderer) {
+    if (sheet.ready) {
+      renderer.initTexture(sheet.tex);
+    } else {
+      sheet.renderers.add(renderer);
+    }
+  }
+  if (sheet.loading) {
+    return;
+  }
+  const blank = new THREE.DataTexture(new Uint8Array(4), 1, 1, THREE.RGBAFormat);
+  blank.needsUpdate = true;
+  sheetU.value = blank;
+  sheet.loading = fetch(SHEET.url)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res.blob();
+    })
+    /* Data, not a picture: no colour management, and no premultiplying
+     * (the image has no alpha, but a decoder that is told nothing may
+     * still touch it). */
+    .then((blob) => createImageBitmap(blob, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' }))
+    .then((bitmap) => {
+      const tex = new THREE.Texture(bitmap);
+      tex.colorSpace = THREE.NoColorSpace;
+      tex.flipY = false;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.magFilter = THREE.LinearFilter;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.generateMipmaps = true;
+      tex.needsUpdate = true;
+      sheet.tex = tex;
+      sheetU.value = tex;
+      /* Up to the GPU now, in the menus, rather than at the first
+       * explosion: sixteen megabytes and its mipmaps are a hitch. */
+      for (const r of sheet.renderers) {
+        r.initTexture(tex);
+      }
+      sheet.renderers.clear();
+      sheet.ready = true;
+    })
+    .catch((e) => {
+      console.warn(`explosion: the flipbook ${SHEET.url} did not load, the explosions stay procedural: ${e.message || e}`);
+    });
+}
 
 /* What one explosion of size 1 is made of: the column hangs about four
  * seconds, so a pilot whose own warhead it was still sees it from the
@@ -85,6 +167,12 @@ const LOOK = {
   ember: { n: 26, speed: [14, 34], size: [0.7, 1.6], life: [1.4, 2.6], minAng: 0.004 },
   black: { n: 10, spread: 4, speed: [3, 8], size: [9, 30], life: [2.4, 3.6], delay: [0.12, 0.35], minAng: 0.02 },
   column: { n: 11, rise: [4, 8], size: [10, 44], life: [3.8, 5.2], delay: [0.3, 0.9], minAng: 0.02 },
+  /* The flipbook: a cell's side in metres, the seconds it plays over, the
+   * most it is tilted either way (radians), and its pace: the sheet is at
+   * (age / life) to this power, so the fireball plays faster than the
+   * simulation's own 4.1 s (1.3 times over the first second) and the smoke
+   * slower, hanging as the puffs' column did. */
+  sim: { size: 70, life: 5, tilt: 0.12, pace: 0.7, minAng: 0.09 },
 };
 
 /* The fireball's colour over its life: white hot, yellow, orange, a deep
@@ -165,7 +253,7 @@ function puffTexture() {
 const VERT = /* glsl */ `
 attribute vec4 iPos;    // xyz, size (m)
 attribute vec4 iColor;  // rgb (linear), alpha
-attribute vec4 iMisc;   // rotation, shape, minimum angle (rad), seed
+attribute vec4 iMisc;   // rotation, shape, minimum angle (rad), seed (the flipbook's: how far through it, 0 to 1)
 varying vec2 vUv;
 varying vec4 vColor;
 varying float vShape;
@@ -174,15 +262,34 @@ void main() {
   vec4 mv = modelViewMatrix * vec4(iPos.xyz, 1.0);
   float d = max(-mv.z, 0.0);
   float s = max(iPos.w, d * iMisc.z);
+  vec2 p = position.xy;
+  vUv = p + 0.5;
+  if (iMisc.y > 2.5) {
+    // The flipbook: the quad moved so its anchor (simU, simV) is on iPos,
+    // and turned about it; mirrored, the picture and the point both.
+    float m = iMisc.y > 3.5 ? 1.0 : 0.0;
+    vec2 o = vec2(simU - 0.5, 0.5 - simV);
+    o.x = mix(o.x, -o.x, m);
+    vUv.x = mix(vUv.x, 1.0 - vUv.x, m);
+    p -= o;
+    // Brought toward the camera by up to a third of its size and shrunk
+    // to look the same, so the flat picture does not cut a straight edge
+    // through the wall it went off against.
+    float pull = min(0.33 * s, 0.5 * d);
+    s *= (d - pull) / max(d, 0.001);
+    mv.z += pull;
+  }
   float c = cos(iMisc.x);
   float sn = sin(iMisc.x);
-  vec2 q = vec2(c * position.x - sn * position.y, sn * position.x + c * position.y);
+  vec2 q = vec2(c * p.x - sn * p.y, sn * p.x + c * p.y);
   mv.xy += q * s;
   // A particle the camera is inside is faded rather than cut by the near
   // plane: the pilot's own fireball fills the screen, it does not flicker.
-  float nearFade = smoothstep(0.15, 1.2, d / max(s, 0.001) + 0.35);
+  // The flipbook is one flat picture, never round the camera, so it fades
+  // only as it reaches the lens: the pilot's own, 6 m ahead, fills the
+  // goggles rather than vanishing.
+  float nearFade = iMisc.y > 2.5 ? smoothstep(0.5, 2.5, d) : smoothstep(0.15, 1.2, d / max(s, 0.001) + 0.35);
   vColor = vec4(iColor.rgb, iColor.a * nearFade);
-  vUv = position.xy + 0.5;
   vShape = iMisc.y;
   vSeed = iMisc.w;
   gl_Position = projectionMatrix * mv;
@@ -191,17 +298,50 @@ void main() {
 
 const FRAG = /* glsl */ `
 uniform sampler2D map;
+uniform sampler2D sheet;
 uniform float additive;
 varying vec2 vUv;
 varying vec4 vColor;
 varying float vShape;
 varying float vSeed;
+// One frame of the flipbook at uv in its cell (v up).
+vec3 cell(float f, vec2 uv) {
+  vec2 c = vec2(mod(f, simCols), floor(f / simCols));
+  return texture2D(sheet, (c + vec2(uv.x, 1.0 - uv.y)) / vec2(simCols, simRows)).rgb;
+}
 void main() {
   vec2 p = vUv * 2.0 - 1.0;
   float r = length(p);
-  if (r >= 1.0) discard;
+  vec3 rgb = vColor.rgb;
   float a;
-  if (vShape < 0.5) {
+  // The flipbook's fire, 0 to 1, for the thermal picture.
+  float fire = 0.0;
+  if (vShape > 2.5) {
+    // The two frames either side of this moment, blended, so it does not
+    // step at a frame's rate when it plays slowly.
+    float ft = vSeed * (simFrames - 1.0);
+    float f0 = floor(ft);
+    vec3 t = mix(cell(f0, vUv), cell(min(f0 + 1.0, simFrames - 1.0), vUv), ft - f0);
+    if (additive > 0.5) {
+      // The fire's light, stored as its square root, coloured by how
+      // bright it is: a deep red at the edges, orange, the hottest white
+      // and over 1 for the bloom. Over the first stretch of the sheet it
+      // is whiter and brighter, as the puffs' ramp starts white hot
+      // (FIRE_RAMP): a pilot 6 m from their own warhead is in the
+      // brightest of it, not in an orange haze.
+      float k = t.r * t.r;
+      fire = k;
+      a = k * sqrt(k);
+      float w = 1.0 - smoothstep(0.0, 0.4, vSeed);
+      rgb *= mix(vec3(3.0, 0.2 + 2.4 * k, 1.8 * k * k), vec3(3.2, 2.4, 1.1), w) * (1.0 + w);
+    } else {
+      // The smoke's opacity, and its shade under the sheet's sun.
+      a = t.b;
+      rgb *= 0.35 + 0.65 * t.g;
+    }
+  } else if (r >= 1.0) {
+    discard;
+  } else if (vShape < 0.5) {
     float n = texture2D(map, vUv * 0.7 + vec2(vSeed, vSeed * 1.7)).r;
     float body = 1.0 - smoothstep(0.35, 1.0, r + (n - 0.5) * 0.55);
     a = body * (0.8 + 0.6 * n);
@@ -215,12 +355,22 @@ void main() {
   if (a < 0.003) discard;
   // Additive: colour times coverage, the alpha unused. Blended smoke:
   // straight alpha.
-  gl_FragColor = additive > 0.5 ? vec4(vColor.rgb * a, 1.0) : vec4(vColor.rgb, a);
+  gl_FragColor = additive > 0.5 ? vec4(rgb * a, 1.0) : vec4(rgb, a);
 }
+`;
+
+/* The sheet's layout, into both shaders. */
+const SIM_DEFS = /* glsl */ `
+const float simCols = ${SHEET.cols.toFixed(1)};
+const float simRows = ${SHEET.rows.toFixed(1)};
+const float simFrames = ${SHEET.frames.toFixed(1)};
+const float simU = ${SHEET.originU.toFixed(4)};
+const float simV = ${SHEET.originV.toFixed(4)};
 `;
 
 /* One pool of camera facing quads: its geometry, the particles' state on
  * the CPU, and the attributes they are written into each frame. */
+
 function createPool(cap, additive, tex) {
   const quad = new THREE.PlaneGeometry(1, 1);
   const geo = new THREE.InstancedBufferGeometry();
@@ -237,9 +387,9 @@ function createPool(cap, additive, tex) {
   geo.setAttribute('iMisc', aMisc);
   geo.instanceCount = 0;
   const mat = new THREE.ShaderMaterial({
-    vertexShader: VERT,
-    fragmentShader: FRAG,
-    uniforms: { map: { value: tex }, additive: { value: additive ? 1 : 0 } },
+    vertexShader: `${SIM_DEFS}\n${VERT}`,
+    fragmentShader: `${SIM_DEFS}\n${FRAG}`,
+    uniforms: { map: { value: tex }, sheet: sheetU, additive: { value: additive ? 1 : 0 } },
     transparent: true,
     depthWrite: false,
     depthTest: true,
@@ -249,10 +399,15 @@ function createPool(cap, additive, tex) {
   });
   /* In a thermal picture the fire adds its heat, two hundred degrees for
    * each unit of its light up to eight hundred, and the smoke is a thin
-   * veil a little over the air's (src/render/thermal.js). */
+   * veil a little over the air's (src/render/thermal.js). The flipbook's
+   * fire is eight hundred where it is a third of the sheet's brightest
+   * and over, less at its edges: one quad has to carry what eighteen
+   * overlapping puffs added up. */
   thermalShader(
     mat,
-    additive ? 'float thT = a * min(thLum(vColor.rgb), 4.0) * 2.0;' : 'float thT = thEnv.y + 0.1; float thA = 0.3;',
+    additive
+      ? 'float thT = vShape > 2.5 ? min(1.0, 3.0 * fire) * 8.0 * clamp(vColor.a, 0.0, 1.0) : a * min(thLum(vColor.rgb), 4.0) * 2.0;'
+      : 'float thT = thEnv.y + 0.1; float thA = 0.3;',
     additive ? 'explosion-hot' : 'explosion-smoke',
   );
   const mesh = new THREE.Mesh(geo, mat);
@@ -295,6 +450,8 @@ const K_EMBER = 3;
 const K_LIGHT = 4;
 const K_BLACK = 5;
 const K_GREY = 6;
+const K_SIM_FIRE = 7;
+const K_SIM_SMOKE = 8;
 
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
@@ -304,8 +461,10 @@ const rand = (lo, hi) => lo + Math.random() * (hi - lo);
  * [x, y, z]) of `size` (1 an attacker's, 1.6 a warhead's, more for a
  * swarm), already ageS old (a replay's jump); update steps them on the
  * frame's seconds; flash(level) whites out this pilot's own screen.
+ * `renderer`, if given, has the flipbook uploaded as soon as it arrives.
  */
-export function createExplosions() {
+export function createExplosions({ renderer = null } = {}) {
+  loadSheet(renderer);
   const group = new THREE.Group();
   group.name = 'explosions';
   const tex = puffTexture();
@@ -372,6 +531,7 @@ export function createExplosions() {
     if (o.age > 0) {
       move(P, i, o.age);
     }
+    return i;
   }
 
   /* One reusable spawn record, so play allocates nothing. */
@@ -415,6 +575,52 @@ export function createExplosions() {
       life: LOOK.ring.life, s0: LOOK.ring.size[0] * s, s1: LOOK.ring.size[1] * s, kind: K_RING, alpha: LOOK.ring.alpha, shape: RING, minAng: LOOK.ring.minAng,
     });
     spawn(hot, o);
+    if (sheet.ready) {
+      flipbook(p, s, age0);
+    } else {
+      puffs(p, s, age0);
+    }
+    /* Burning debris: small hot glows on ballistic arcs. */
+    const e = LOOK.ember;
+    for (let k = 0; k < e.n; k += 1) {
+      at(p, 1.5 * s, rand(e.speed[0], e.speed[1]) * Math.sqrt(s), 0.45);
+      o.age = age0;
+      o.life = rand(e.life[0], e.life[1]);
+      o.s0 = e.size[1] * s;
+      o.s1 = e.size[0] * s;
+      o.kind = K_EMBER;
+      o.alpha = 1;
+      o.shape = GLOW;
+      o.minAng = e.minAng;
+      o.drag = 0.35;
+      o.grav = GRAVITY;
+      o.spin = 0;
+      spawn(hot, o);
+    }
+  }
+
+  /* The fireball and its smoke as the simulation: one quad in each pool,
+   * on the same frame, mirrored and tilted alike. */
+  function flipbook(p, s, age0) {
+    const L = LOOK.sim;
+    const mirror = Math.random() < 0.5;
+    const tilt = rand(-L.tilt, L.tilt);
+    /* Longer for a bigger one, but inside EXPLOSION_S, which the replays
+     * keep a boom for (src/replay/paperscene.js, warrec.js BOOM_LIFE_MS). */
+    const life = Math.min(EXPLOSION_S - 0.2, L.life * (0.8 + 0.2 * s));
+    Object.assign(o, {
+      x: p[0], y: p[1], z: p[2], vx: 0, vy: 0, vz: 0, age: age0, life, s0: L.size * s, s1: L.size * s,
+      kind: K_SIM_FIRE, alpha: 1, shape: mirror ? SIM_MIRROR : SIM, minAng: L.minAng, drag: 0, grav: 0, spin: 0,
+    });
+    hot.P.rot[spawn(hot, o)] = tilt;
+    o.kind = K_SIM_SMOKE;
+    smoke.P.rot[spawn(smoke, o)] = tilt;
+    stats.fire += 1;
+    stats.smoke += 1;
+  }
+
+  /* The fireball and its smoke as puffs, while the sheet loads. */
+  function puffs(p, s, age0) {
     /* The fireball: puffs thrown out and braked hard, swelling. */
     const f = LOOK.fire;
     const nFire = Math.round(f.n * Math.min(2, Math.sqrt(s)));
@@ -435,23 +641,6 @@ export function createExplosions() {
       spawn(hot, o);
     }
     stats.fire += nFire;
-    /* Burning debris: small hot glows on ballistic arcs. */
-    const e = LOOK.ember;
-    for (let k = 0; k < e.n; k += 1) {
-      at(p, 1.5 * s, rand(e.speed[0], e.speed[1]) * Math.sqrt(s), 0.45);
-      o.age = age0;
-      o.life = rand(e.life[0], e.life[1]);
-      o.s0 = e.size[1] * s;
-      o.s1 = e.size[0] * s;
-      o.kind = K_EMBER;
-      o.alpha = 1;
-      o.shape = GLOW;
-      o.minAng = e.minAng;
-      o.drag = 0.35;
-      o.grav = GRAVITY;
-      o.spin = 0;
-      spawn(hot, o);
-    }
     /* The fireball going black, then the column that hangs. */
     const b = LOOK.black;
     for (let k = 0; k < b.n; k += 1) {
@@ -510,6 +699,19 @@ export function createExplosions() {
       case K_FIRE:
         rampAt(u, out);
         return u < 0.08 ? u / 0.08 : 1 - (u - 0.08) / 0.92;
+      case K_SIM_FIRE:
+        /* The sheet's light, over 1 for the bloom; in quickly, and out
+         * over the last tenth, where the simulation has gone grey. */
+        out[0] = 1.4;
+        out[1] = 1.4;
+        out[2] = 1.4;
+        return Math.min(1, u / 0.01) * (u < 0.9 ? 1 : (1 - u) / 0.1);
+      case K_SIM_SMOKE:
+        /* The smoke lit and in shadow are this times the sheet's shade. */
+        out[0] = 0.09;
+        out[1] = 0.088;
+        out[2] = 0.085;
+        return u < 0.85 ? 1 : (1 - u) / 0.15;
       case K_EMBER:
         out[0] = 5;
         out[1] = 1.9 - u * 1.2;
@@ -590,7 +792,8 @@ export function createExplosions() {
       misc[o4] = P.rot[i];
       misc[o4 + 1] = P.shape[i];
       misc[o4 + 2] = P.minAng[i];
-      misc[o4 + 3] = P.seed[i];
+      /* A flipbook's seed is how far through the sheet it is. */
+      misc[o4 + 3] = P.shape[i] >= SIM ? u ** LOOK.sim.pace : P.seed[i];
       w += 1;
     }
     pool.geo.instanceCount = w;
@@ -664,9 +867,11 @@ export function createExplosions() {
     clear,
     dispose,
     /* For the checks: what was thrown and what lives now; draw calls this
-     * layer adds this frame; the pools' sizes, which never change. */
+     * layer adds this frame; the pools' sizes, which never change; and
+     * whether the flipbook has loaded. */
     stats: () => ({
       ...stats,
+      flipbook: sheet.ready,
       calls: (hot.mesh.visible ? 1 : 0) + (smoke.mesh.visible ? 1 : 0) + (flashMesh.visible ? 1 : 0),
       pool: HOT + SMOKE,
     }),
