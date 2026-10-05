@@ -227,7 +227,7 @@ hangar shot gets a real dolly; the title is the mission's.
 | --- | --- | --- | --- | --- | --- |
 | film-itaipu-1-1 | shot 1, lead 1.5 s, target 1.2 s | CREST | calm | Twenty thirty. | Dos mil treinta. |
 | film-itaipu-1-2 | shot 2, lead 1.0 s, target 3.0 s | CREST | firm | Wars aren't won with jets anymore. | Las guerras ya no se ganan con aviones de combate. |
-| film-itaipu-1-3 | shot 4, lead 0.5 s, target 3.4 s | CREST | firm | They're won with swarms. Cheap. Fast. Endless. | Se ganan con enjambres. Baratos. Rápidos. Interminables. |
+| film-itaipu-1-3 | shot 4, lead 0.5 s, target 3.4 s | CREST | firm | They're fought with swarms. Cheap. Fast. Endless. (recorded so: Whisper heard "won" as "one", lines.json) | Se ganan con enjambres. Baratos. Rápidos. Interminables. |
 | film-itaipu-1-4 | shot 5, lead 2.0 s, target 4.2 s | CREST | calm | Every country's lights hang on a few structures. Ours hang on this one. | La luz de cada país cuelga de un puñado de estructuras. La nuestra cuelga de esta. |
 | film-itaipu-1-5 | shot 6, lead 1.5 s, target 4.3 s | CREST | firm | The interceptors ran out in the first week. What we have left... is you. | Los interceptores se acabaron la primera semana. Lo que nos queda... son ustedes. |
 | film-itaipu-1-6 | shot 7, lead 0.8 s, target 5.5 s | TALLER | firm | Every bird in the hangar carries a warhead now. One flight. One kill. Make it count. | Cada aparato del hangar lleva una ojiva. Un vuelo. Un derribo. Que cuente. |

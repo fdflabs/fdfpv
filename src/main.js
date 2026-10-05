@@ -3762,6 +3762,29 @@ export async function boot({
     }
   }
 
+  /* The room told which world this screen has standing, in a war room,
+   * once it is built and again whenever it or the link changes: a
+   * briefing's film waits for a rebuild only when some pilot has not
+   * said it stands on the mission's world (edge/rooms/war.js worldsUp). */
+  let warWorldTold = null;
+  let warWorldWelcome = null;
+  function warWorldTell() {
+    const w = roomLinkState.state().welcome;
+    if (!w || (lobbyGame() !== 'war' && roomWar.view().state === 'lobby')) {
+      return;
+    }
+    const up = view && mapReady && !worldSync && !swapInFlight && worldMatchesSettings();
+    /* By the welcome too: a link that drops and comes back is a new seat
+     * to the room, which forgot what the old one said. A world taken down
+     * is said too, so the room never counts on one being rebuilt. */
+    const key = up ? `${view.id}:${worldTime}` : null;
+    if (key !== warWorldTold || (key && w !== warWorldWelcome)) {
+      warWorldTold = key;
+      warWorldWelcome = w;
+      roomWar.world(up ? view.id : null, up ? worldTime : null);
+    }
+  }
+
   /* A mission's film, and its title card's words. */
   function warFilmOf(missionId) {
     const mission = WAR_MISSIONS[missionId] ?? WAR_MISSIONS[WAR_MISSION];
@@ -4137,6 +4160,7 @@ export async function boot({
     const v = roomWar.view();
     warGatesFrame(v);
     warTimeFrame();
+    warWorldTell();
     warIntroFrame(v);
     warCraftFrame(v);
     if (roomWar.on() && roomWar.match() !== warBegunId) {

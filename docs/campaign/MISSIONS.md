@@ -260,8 +260,8 @@ rounds become five stages with triggers; bearings, composition and timing
 are seeded; one of three twists fires; its own intro; the radio tells a
 story.
 
-**When:** Day 1, dawn into morning. **Time of day:** `morning` from PR
-#344 (open), or `day` until it lands.
+**When:** Day 1, dawn into morning. **Time of day:** `morning` (PR
+#344, landed; `itaipu-1.js` `time`).
 
 **Premise.** A month into the war, the first contacts over the reservoir.
 Nobody knows yet whether the Aggressor means it or is looking. It is
