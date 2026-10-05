@@ -4541,6 +4541,7 @@ export async function boot({
     roomBarFrame(wallMs);
     gameLobbyFrame(wallMs);
     const link = roomLinkState.state();
+    ui.setWarState(link.phase === 'open' ? roomWar.view().state : 'lobby');
     if (link.phase !== 'open') {
       return;
     }
