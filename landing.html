@@ -3,7 +3,7 @@
   landing.html: the beta's front door. Left, ask for a place on the
   waitlist with a Google account (POST /api/waitlist, tracks-api/accounts.js).
   Right, a pilot who has an invite goes to the simulator, where the sign in
-  checks it.
+  checks it. index.html sends every visitor with no account here first.
 
   This file is part of WebFPVSimulator.
 
@@ -188,7 +188,7 @@
           <h2 id="enter-title">Already have your invite?</h2>
           <p>Go straight in and sign in with the Google account you were invited on.</p>
           <div class="door-act">
-            <a class="enter" href="./">Enter the simulator</a>
+            <a id="enter" class="enter" href="./">Enter the simulator</a>
           </div>
         </section>
       </div>
@@ -197,6 +197,19 @@
     <script type="module">
       import { GOOGLE_CLIENT_ID } from './src/share/account.js';
       import { tracksOrigin } from './src/share/cloud.js';
+
+      /* The way in: index.html sends a visitor with no account here unless
+       * this tab has been through this door, and what the visitor first
+       * asked for (a room link's query) goes back with them. */
+      const enter = document.getElementById('enter');
+      enter.href = `./${location.search}${location.hash}`;
+      enter.addEventListener('click', () => {
+        try {
+          sessionStorage.setItem('webfpv.entered', '1');
+        } catch (e) {
+          /* Storage refused: index.html lets such a browser in anyway. */
+        }
+      });
 
       const status = document.getElementById('join-status');
       function say(state, text) {

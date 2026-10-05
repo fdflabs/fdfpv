@@ -41,6 +41,7 @@ export default {
   "account.google_unreachable": "Google's sign in could not load. Check the connection or any blocker, then reload.",
   "account.merge_detail": "This computer has a pilot key of its own. Bring it in and its board names, lap times and tracks move to your account. On somebody else's computer, choose Not mine.",
   "account.merge_title": "Add this computer's pilot to your account?",
+  "account.not_invited": "This Google account has no beta invite yet. Join the waitlist on the front page, and sign in here once you are invited.",
   "account.not_mine": "Not mine",
   "account.panel_nudge": "Sign in with Google to fly.",
   "account.panel_pick": "Choose your callsign to fly.",

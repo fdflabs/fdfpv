@@ -41,6 +41,7 @@ export default {
   "account.google_unreachable": "El inicio de sesión de Google no pudo cargar. Revisa la conexión o cualquier bloqueador y recarga.",
   "account.merge_detail": "Esta computadora tiene su propia clave de piloto. Tráela y sus nombres, tiempos y pistas del tablero pasan a tu cuenta. En la computadora de otra persona, elige No es mía.",
   "account.merge_title": "¿Sumar el piloto de esta computadora a tu cuenta?",
+  "account.not_invited": "Esta cuenta de Google todavía no tiene invitación a la beta. Súmate a la lista de espera en la portada, e inicia sesión aquí cuando te inviten.",
   "account.not_mine": "No es mía",
   "account.panel_nudge": "Inicia sesión con Google para volar.",
   "account.panel_pick": "Elige tu indicativo para volar.",
