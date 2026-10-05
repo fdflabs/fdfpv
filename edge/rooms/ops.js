@@ -128,6 +128,10 @@ export class RoomOps {
     this.seats = new Map();
     /* For the checks: what was decided, when. Memory only. */
     this.log = [];
+    /* token -> { film id: version } watched to the end: memory, as the
+     * war keeps it (war.js seenFilms), by token so a seat's next pilot
+     * never inherits it. */
+    this.seen = new Map();
   }
 
   /* The match's mission, its heights over the ground made absolute
@@ -237,6 +241,10 @@ export class RoomOps {
       choices: Object.fromEntries(Object.entries(m.choices ?? {}).map(([k, c]) => [k, c.value])),
       opened: (mission.items ?? []).filter((it) => it.open && m.stage && fired(it.open, this.ctx(core, m.f)) != null).map((it) => it.id),
       result: m.result,
+      /* The briefing's film ({ id, version }, or null) and the seats here
+       * that have seen it: the host's skip waits on all of them. */
+      film: mission.film ? { id: mission.film.id, version: mission.film.version } : null,
+      seen: this.seenHere(core),
       checkpoint: m.state === 'lost' && m.checkpoint ? { stage: m.checkpoint.id, n: m.checkpoint.idx, title: stagesOf(mission)[m.checkpoint.idx].title ?? null } : null,
       restarted: m.restarted ?? null,
     };
@@ -331,6 +339,7 @@ export class RoomOps {
       case 'capture': return this.capture(core, conn, s, msg, roomNow);
       case 'take': case 'active': case 'swap': case 'swapAccept': case 'swapDecline':
         return this.role(core, conn, s, msg, roomNow);
+      case 'seen': return this.seenFilms(core, conn, s, msg.films);
       default: break;
     }
     if (s.seat !== core.host()) {
@@ -347,7 +356,53 @@ export class RoomOps {
       this.match.roles.locked = msg.on === true;
       return this.changed(core);
     }
+    if (msg.op === 'skipIntro') {
+      return this.skipIntro(core, conn, now);
+    }
     return [];
+  }
+
+  /* A pilot's watched films, { id: version }, what the host's skip asks
+   * of everybody here. Anything else is refused 'seen'. */
+  seenFilms(core, conn, s, films) {
+    if (!films || typeof films !== 'object' || Array.isArray(films)
+      || !Object.values(films).every((v) => Number.isInteger(v) && v >= 0)) {
+      return this.error(conn, 'seen');
+    }
+    this.seen.set(s.token, { ...films });
+    return this.match ? this.changed(core) : [];
+  }
+
+  /* The seats here that have seen the mission's briefing film, its
+   * version or a newer one. */
+  seenHere(core) {
+    const f = this.match ? this.missions[this.match.mission].film : null;
+    if (!f) {
+      return [];
+    }
+    return [...core.seats.values()].filter((t) => (this.seen.get(t.token)?.[f.id] ?? -1) >= f.version).map((t) => t.seat);
+  }
+
+  /*
+   * The host cuts the briefing short: the countdown runs from now, for
+   * everybody, once every pilot here has seen the film (a first viewing
+   * is never cut, docs/campaign/INTROS.md section 3, the war's rule:
+   * war.js skipIntro); refused 'unwatched' otherwise. Nothing outside a
+   * briefing, so a late or repeated skip cannot move a countdown.
+   */
+  skipIntro(core, conn, now) {
+    const m = this.match;
+    if (!m || m.state !== 'briefing') {
+      return [];
+    }
+    if (this.seenHere(core).length < core.seats.size) {
+      return this.error(conn, 'unwatched');
+    }
+    m.goAt = Math.ceil(core.roomMs(now)) + COUNTDOWN_MS;
+    m.f = Math.floor(m.goAt / GRID_MS) * GRID_MS;
+    m.state = 'countdown';
+    this.log.push({ what: 'skip', t: Math.ceil(core.roomMs(now)) });
+    return this.changed(core);
   }
 
   abandon(core, now) {

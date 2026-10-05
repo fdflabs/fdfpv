@@ -81,6 +81,8 @@ answered `{ type: 'ops', error }` to the sender alone.
 | `swap` | any seat | `seat` (the other), `give` (a key the sender holds, or null), `take` (a key the other holds, or null; not both null) | a request, in the view's `roles.swaps`, until `SWAP_MS` = 20 000 ms |
 | `swapAccept`, `swapDecline` | the asked seat | `id` (the request's) | accept exchanges the keys at once; decline drops it |
 | `lock` | host | `on` (bool) | host lock: no role changes until unlocked |
+| `seen` | any seat | `films` { film id: version } | the films this pilot has watched to the end (kept by token, in memory, as the war keeps them); refused `seen` if malformed |
+| `skipIntro` | host | | ends the briefing for everybody (the countdown runs from now), only once every pilot here has seen the mission's `film` at its version or newer; refused `unwatched` otherwise (a first viewing is never cut, INTROS.md section 3); nothing outside a briefing |
 
 ## 4. Room to client
 
@@ -118,6 +120,8 @@ binary **0xC0 to 0xCF held, none used**, JSON type **`ops`**.
   choices,      // { name: value }: the scripted choices made so far ({ tarp: 'moved', dispersal: 'started' })
   opened,       // [item ids]: one-sided items whose `open` has fired, now seen from any side (no 'angle' refusal)
   result,       // null, or at the end { won, stars, starIds, flags, restarted }
+  film,         // the briefing's film { id, version } (the mission's `film`), or null
+  seen,         // [seats]: the seats here that have seen that film's version
   checkpoint,   // a lost match's stage to play again from: { stage, n, title }, or null
   restarted,    // the checkpoint stage id this match restarted from, or null (stars capped at 2)
 }
@@ -357,6 +361,11 @@ with the room's judging: `MARKED`), each contact's `look` (`moto-road` is
 a `motorcycle`) and `debrief.required` (the items the debrief gives an
 analyst reconstruction when nobody captured them: the Alpha and Bravo
 survey, the five camp items and the mark).
+
+A mission with a briefing names its film beside `filmMs`: `film: { id,
+version }` (Mission 1's, once track FILMS lands its intro: `int1-intro`
+at that film's version), so the host's skip can ask whether everybody
+has seen that cut.
 
 The client is `src/share/roomops.js` (track VIEW), beside `roomwar.js`.
 
