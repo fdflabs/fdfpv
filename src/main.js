@@ -12024,7 +12024,12 @@ export async function boot({
     race.setRecordKey(recordKey());
     paintBest();
     publishPids();
-    notice = { text: str('main.flying', { name: entry.name }), untilMs: performance.now() + 2400 };
+    /* In a war the tune follows the aircraft the war seated, which it
+     * says itself (war.craft_switched): "Flying Acro" over its countdown
+     * named a choice nobody made. */
+    if (!inWarRoom()) {
+      notice = { text: str('main.flying', { name: entry.name }), untilMs: performance.now() + 2400 };
+    }
     reset();
   }
 
@@ -12872,8 +12877,11 @@ export async function boot({
          *
          * `fly` keeps the shot: that one IS the first meeting, and it is
          * where the pilot sees the aircraft they are about to be inside of.
+         * Except in a war: its film was the introduction, and the shot's
+         * radii are a quad's, so round a Striker it sat inside the
+         * fuselage for the first four seconds of the countdown.
          */
-        introMs = action === 'restart' ? -1 : 0;
+        introMs = action === 'restart' || roomWar.on() ? -1 : 0;
       });
       return;
     }
