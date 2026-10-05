@@ -822,6 +822,7 @@ export async function boot({
    * where the screen camera's axis meets the ground and its own field.
    */
   const opsHud = new OpsHud(uiRoot);
+  opsHud.onTouch = { lock: () => ballToggleLock(), capture: () => opsCaptureNow() };
   /* The role board (src/ui/rolesboard.js): ` opens it, and its button. */
   const rolesBoard = new RolesBoard(uiRoot, {
     take: (id) => roomOps.take(id),
@@ -978,6 +979,10 @@ export async function boot({
       tilt: key('KeyY', 'KeyH'),
       zoom: key('Equal', 'Minus') + key('PageUp', 'PageDown'),
     };
+    /* The ball's touch pad and zoom buttons (src/ui/opshud.js). */
+    out.pan += opsHud.touchIn.pan;
+    out.tilt += opsHud.touchIn.tilt;
+    out.zoom += opsHud.touchIn.zoom;
     const pad = ballPad();
     if (pad) {
       out.pan += pad.pan;
@@ -1431,6 +1436,7 @@ export async function boot({
       aim: opsCam ? opsCam.aim : null,
       locked: Boolean(ballOn && ball.state.lock),
       inset: ballOn ? sensors.pip : null,
+      touch: Boolean(touch),
       insetMode: sensors.state.pipMode,
       tutorial: v ? opsTutorial(v, mission) : null,
     };

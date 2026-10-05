@@ -3575,4 +3575,9 @@ export default {
   "ops.why.end": "Ended by the host",
   "ops.why.landed": "Home",
   "ops.debrief.ended": "MISSION ENDED BY THE HOST",
+  "ops.touch.slew": "Slew the camera ball",
+  "ops.touch.zoom_in": "ZOOM +",
+  "ops.touch.zoom_out": "ZOOM -",
+  "ops.touch.lock": "LOCK",
+  "ops.touch.capture": "CAPTURE",
 };
