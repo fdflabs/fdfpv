@@ -1,0 +1,307 @@
+/*
+ * canopy.js: the Interior's trees, and whether their crowns hide a point
+ * from a point (TECH-NEEDS N2): one generator that both the room's line
+ * of sight and every screen's drawing read, so what a pilot sees through
+ * the forest is what the room decides they saw.
+ *
+ * THE TREES. The world is cut into TREE_CELL squares; each may hold one
+ * tree, its place jittered inside the square, its crown and height drawn
+ * from an integer hash of the square's indices: no state, no order, the
+ * same tree whoever asks and whenever. Whether a square holds one is its
+ * land class's density (the forest nearly closed, a lone tree now and
+ * then in a pasture, palms in the marsh), less every opening places.js
+ * cuts (the camp's clearing, the concealment routes' gaps and clearings,
+ * the logging cut, the roads). The forest's height rolls over hundreds of
+ * metres on a value noise of the same hash.
+ *
+ * A crown is an ellipsoid: horizontal radius r, vertical semi axis ry,
+ * its top at the tree's height over the ground under its trunk. A line of
+ * sight is blocked when it passes through any crown. Trunks and branches
+ * under the crown are left out: from the air, the crowns are what hides.
+ *
+ * WORLD METRES, Y UP (frame.js): a point is [x, y, z], x east, z south,
+ * y height above the datum, the frame the room's pilot poses are in.
+ *
+ * Arithmetic only (+ - * /, Math.sqrt, Math.floor, Math.imul): the same
+ * answer to the bit in Node and every browser. Measured by
+ * scripts/canopy-los.js, which also holds the drawn trees to it.
+ *
+ * This file is part of WebFPVSimulator.
+ *
+ * WebFPVSimulator is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * WebFPVSimulator is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import { HALF } from './frame.js';
+import { LAND } from './world.js';
+import { opened } from './places.js';
+
+/* One tree a square this size at most, metres: a semi deciduous forest's
+ * crowns are 5 to 11 m across. */
+export const TREE_CELL = 8;
+/* No crown top stands higher over its ground than this, metres. */
+export const MAX_TREE_H = 25;
+/* A crown reaches at most this far from its square's middle: the jitter's
+ * reach plus the widest crown. */
+const CROWN_REACH = TREE_CELL * 0.38 + 6.2;
+/* Steps along a line's ground track, metres: under half a square, so no
+ * square a crown could stand in is stepped over. */
+const STEP = 3;
+/* A target within this of a crown's edge (horizontally) is in the trees,
+ * so a clear line to it is a gap rather than open ground, metres. */
+const GAP_NEAR = 6;
+
+/* Metres either way the land class is read off a trunk (treeAt). */
+const EDGE_JITTER = 16;
+
+/* The tree kinds, for the drawing. */
+export const KIND = { broadleaf: 0, palm: 1, lone: 2 };
+
+/* Chance a square holds a tree, by land class. */
+const DENSITY = [];
+DENSITY[LAND.water] = 0;
+DENSITY[LAND.forest] = 0.93;
+DENSITY[LAND.pasture] = 0.008;
+DENSITY[LAND.crop] = 0;
+DENSITY[LAND.shrub] = 0.25;
+DENSITY[LAND.wetland] = 0.05;
+DENSITY[LAND.bare] = 0.004;
+DENSITY[LAND.built] = 0.05;
+DENSITY[LAND.burned] = 0;
+
+/* An integer hash of a square and a salt, as a number in [0, 1). */
+export function hash01(i, j, salt) {
+  let h = Math.imul(i | 0, 0x27d4eb2d) ^ Math.imul(j | 0, 0x165667b1) ^ Math.imul(salt | 0, 0x9e3779b1);
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+/* Value noise in [0, 1) on a lattice `cell` metres apart, smoothstepped. */
+function noise(x, z, cell, salt) {
+  const fx = (x + HALF) / cell;
+  const fz = (z + HALF) / cell;
+  const i = Math.floor(fx);
+  const j = Math.floor(fz);
+  let tx = fx - i;
+  let tz = fz - j;
+  tx = tx * tx * (3 - 2 * tx);
+  tz = tz * tz * (3 - 2 * tz);
+  const a = hash01(i, j, salt);
+  const b = hash01(i + 1, j, salt);
+  const c = hash01(i, j + 1, salt);
+  const d = hash01(i + 1, j + 1, salt);
+  return (a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz;
+}
+
+/*
+ * The canopy over a world (world.js makeWorld, with places.js's landEdit
+ * as its edits). Returns:
+ *
+ *   treeAt(ci, cj)          the tree of square (ci, cj), or null:
+ *                           { x, z, ground, h, r, ry, cy, kind, tint }
+ *                           (x, z its trunk; h its top over ground; r the
+ *                           crown's radius, ry its vertical semi axis, cy
+ *                           its centre's world y; tint in [0, 1) for the
+ *                           drawing)
+ *   treesIn(x0, z0, x1, z1, out)   every tree whose trunk is in the box
+ *   canopyBlocks(from, to)  true when a crown stands between the two
+ *                           world points [x, y, z]
+ *   canopyLos(from, to)     'blocked', 'gap' (clear, but the target is in
+ *                           the trees) or 'open' (clear, open ground)
+ *   crownTopAt(x, z)        the highest crown over (x, z), world y, or
+ *                           -Infinity where no crown covers it
+ */
+export function makeCanopy(world) {
+  const { groundAt, landAt } = world;
+  const cellOf = (v) => Math.floor((v + HALF) / TREE_CELL);
+
+  function treeAt(ci, cj) {
+    const u = hash01(ci, cj, 1);
+    const x = -HALF + (ci + 0.12 + 0.76 * hash01(ci, cj, 2)) * TREE_CELL;
+    const z = -HALF + (cj + 0.12 + 0.76 * hash01(ci, cj, 3)) * TREE_CELL;
+    /* The class is read EDGE_JITTER off the trunk, so a forest's edge on
+     * the land cover's 10 m squares comes out ragged, not stepped. */
+    const cls = landAt(x + EDGE_JITTER * (hash01(ci, cj, 9) - 0.5), z + EDGE_JITTER * (hash01(ci, cj, 10) - 0.5));
+    if (!(u < DENSITY[cls])) {
+      return null;
+    }
+    const v = hash01(ci, cj, 4);
+    const w = hash01(ci, cj, 5);
+    let kind;
+    let h;
+    let r;
+    let ry;
+    if (cls === LAND.forest || cls === LAND.shrub) {
+      kind = KIND.broadleaf;
+      const tall = cls === LAND.forest ? 11 + 9 * noise(x, z, 160, 7) + 3 * noise(x, z, 40, 8) : 6;
+      h = tall + 3 * (v - 0.5);
+      /* Crowns wider than their squares and deep, overlapping into a
+       * closed roof from a few metres up: a semi deciduous forest's
+       * canopy and the layer under it, as one crown a square. */
+      r = 3.6 + 2.4 * w;
+      ry = 0.42 * h;
+    } else if (cls === LAND.wetland || v < 0.3) {
+      kind = KIND.palm;
+      h = 8 + 6 * v;
+      r = 2.5 + 0.9 * w;
+      ry = 1.5;
+    } else {
+      kind = KIND.lone;
+      h = 7 + 7 * v;
+      r = 3.4 + 2.6 * w;
+      ry = 0.34 * h;
+    }
+    if (opened(x, z, r)) {
+      return null;
+    }
+    const ground = groundAt(x, z);
+    return {
+      x, z, ground, h, r, ry, cy: ground + h - ry, kind, tint: hash01(ci, cj, 6),
+    };
+  }
+
+  function treesIn(x0, z0, x1, z1, out) {
+    for (let cj = cellOf(z0); cj <= cellOf(z1); cj += 1) {
+      for (let ci = cellOf(x0); ci <= cellOf(x1); ci += 1) {
+        const t = treeAt(ci, cj);
+        if (t && t.x >= x0 && t.x < x1 && t.z >= z0 && t.z < z1) {
+          out.push(t);
+        }
+      }
+    }
+    return out;
+  }
+
+  /* The segment from p to p + d (t in [0, 1]) against a tree's crown. */
+  function hits(t, px, py, pz, dx, dy, dz) {
+    const ox = (px - t.x) / t.r;
+    const oy = (py - t.cy) / t.ry;
+    const oz = (pz - t.z) / t.r;
+    const ex = dx / t.r;
+    const ey = dy / t.ry;
+    const ez = dz / t.r;
+    const a = ex * ex + ey * ey + ez * ez;
+    const b = 2 * (ox * ex + oy * ey + oz * ez);
+    const c = ox * ox + oy * oy + oz * oz - 1;
+    if (c <= 0) {
+      return true;
+    }
+    if (a === 0) {
+      return false;
+    }
+    const disc = b * b - 4 * a * c;
+    if (disc < 0) {
+      return false;
+    }
+    const s = Math.sqrt(disc);
+    const t1 = (-b - s) / (2 * a);
+    const t2 = (-b + s) / (2 * a);
+    return t2 >= 0 && t1 <= 1;
+  }
+
+  /* The squares whose trees could meet the segment: every square within
+   * a crown's reach of a point of its ground track where the line is low
+   * enough to be among the crowns. */
+  function squaresAlong(from, to) {
+    const dx = to[0] - from[0];
+    const dz = to[2] - from[2];
+    const len = Math.sqrt(dx * dx + dz * dz);
+    const n = Math.floor(len / STEP) + 1;
+    const seen = new Set();
+    const out = [];
+    for (let k = 0; k <= n; k += 1) {
+      const t = k / n;
+      const x = from[0] + dx * t;
+      const z = from[2] + dz * t;
+      const y = from[1] + (to[1] - from[1]) * t;
+      if (y - groundAt(x, z) > MAX_TREE_H + 0.5) {
+        continue;
+      }
+      for (let cj = cellOf(z - CROWN_REACH); cj <= cellOf(z + CROWN_REACH); cj += 1) {
+        for (let ci = cellOf(x - CROWN_REACH); ci <= cellOf(x + CROWN_REACH); ci += 1) {
+          const key = ci * 8192 + cj;
+          if (!seen.has(key)) {
+            seen.add(key);
+            out.push(ci, cj);
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  function canopyBlocks(from, to) {
+    const sq = squaresAlong(from, to);
+    const dx = to[0] - from[0];
+    const dy = to[1] - from[1];
+    const dz = to[2] - from[2];
+    for (let k = 0; k < sq.length; k += 2) {
+      const t = treeAt(sq[k], sq[k + 1]);
+      if (t && hits(t, from[0], from[1], from[2], dx, dy, dz)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function inTrees(x, z) {
+    const reach = 6 + GAP_NEAR + TREE_CELL;
+    for (let cj = cellOf(z - reach); cj <= cellOf(z + reach); cj += 1) {
+      for (let ci = cellOf(x - reach); ci <= cellOf(x + reach); ci += 1) {
+        const t = treeAt(ci, cj);
+        if (t && t.kind === KIND.broadleaf) {
+          const ex = x - t.x;
+          const ez = z - t.z;
+          const lim = t.r + GAP_NEAR;
+          if (ex * ex + ez * ez < lim * lim) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  function canopyLos(from, to) {
+    if (canopyBlocks(from, to)) {
+      return 'blocked';
+    }
+    return inTrees(to[0], to[2]) ? 'gap' : 'open';
+  }
+
+  function crownTopAt(x, z) {
+    let top = -Infinity;
+    for (let cj = cellOf(z - CROWN_REACH); cj <= cellOf(z + CROWN_REACH); cj += 1) {
+      for (let ci = cellOf(x - CROWN_REACH); ci <= cellOf(x + CROWN_REACH); ci += 1) {
+        const t = treeAt(ci, cj);
+        if (!t) {
+          continue;
+        }
+        const ex = (x - t.x) / t.r;
+        const ez = (z - t.z) / t.r;
+        const q = 1 - ex * ex - ez * ez;
+        if (q > 0) {
+          const y = t.cy + t.ry * Math.sqrt(q);
+          top = y > top ? y : top;
+        }
+      }
+    }
+    return top;
+  }
+
+  return {
+    treeAt, treesIn, canopyBlocks, canopyLos, crownTopAt, cellOf,
+  };
+}

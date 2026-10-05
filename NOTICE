@@ -109,6 +109,18 @@ tools/explosions/render.py; tools/explosions/README.md names the exact
 files. CC0 places no condition on the simulation or on what is made from
 it; JangaFX ask users to spread the word, and the in-game credits do.
 
+## The Interior's land
+
+The Interior map's ground (src/share/interior/height.bin) is derived from
+ANADEM v1, Laipelt et al. 2024, "ANADEM: A Digital Terrain Model for
+South America", Remote Sensing 16(13):2321, doi:10.3390/rs16132321,
+ANA / IPH-UFRGS, licensed CC BY 4.0, resampled, turned and edited (a
+river channel cut). Its land cover (src/share/interior/land.bin) is
+derived from ESA WorldCover 10 m 2021 v200, (c) ESA WorldCover project
+2021 / Contains modified Copernicus Sentinel data (2021) processed by
+ESA WorldCover consortium, licensed CC BY 4.0, resampled, turned,
+filtered and painted over. tools/interior/ builds both.
+
 ## Origin of this fork
 
     Upstream    https://github.com/Mathew-Harvey/WebFPVSimulator

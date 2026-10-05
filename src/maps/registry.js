@@ -105,6 +105,16 @@ export const MAPS = [
     build: true,
     load: () => import('./itaipu.js'),
   },
+  /* In development, and named so: The Interior campaign's map
+   * (docs/campaign/interior/WORLD.md), Mission 1's corridor. */
+  {
+    id: 'interior',
+    name: str('registry.interior'),
+    mode: 'freestyle',
+    note: str('registry.interior_note'),
+    buildMs: MAP_BUILD_MS.interior,
+    load: () => import('./interior.js'),
+  },
 ];
 
 export function mapById(id) {
