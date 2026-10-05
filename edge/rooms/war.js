@@ -121,7 +121,12 @@
  *
  * and any pilot, any time: { type: 'war', op: 'seen', films: { id:
  * version } }, the films this pilot has watched to the end (kept by
- * token, in memory, as the loadouts are; the view's `seen`).
+ * token, in memory, as the loadouts are; the view's `seen`); and
+ * { type: 'war', op: 'world', map, time }, the world its screen has
+ * built and standing, map null for none (by seat, in memory, gone when
+ * the seat leaves): a briefing waits WORLD_LEAD_MS only when a pilot
+ * here has not said it stands on the mission's (worldsUp). Anything
+ * else is refused 'world'.
  *
  * What the room sends, to everybody:
  *
@@ -325,15 +330,22 @@ export function resultOf(mission, m) {
 export const RESTART_STARS = 2;
 
 /* A mission flown at a time of day the map is not built at by default
- * (its `time`, or the night raid's `night`) has every screen rebuild its
- * world as the briefing begins (src/main.js warTimeFrame), and a screen
- * starts the film only once its world is up: the film's own clock starts
- * this long after the briefing, so the rebuild ends in the black before
- * it and the film is watched from its start, which a viewing must be to
+ * (its `time`, or the night raid's `night`) has a screen that is not yet
+ * on it rebuild its world (src/main.js warTimeFrame), and a screen starts
+ * the film only once its world is up: the film's own clock starts this
+ * long after the briefing, so the rebuild ends in the black before it
+ * and the film is watched from its start, which a viewing must be to
  * count as seen. Measured: a morning Itaipu built in 5.0 s on an RTX 3060
- * Ti (warintro:check's info rows, 3 October). */
+ * Ti (warintro:check's info rows, 3 October). Every screen builds the
+ * mission's world under the lobby (#412) and says so (op 'world'), so
+ * the lead is held only for a pilot that has not: a build of its own not
+ * done yet, or a client too old to say. Held for everybody it was eight
+ * seconds of black before every film (measured: the film clock at -7.9 s
+ * on its first frame, 5 October). */
 export const WORLD_LEAD_MS = 8000;
-const leadOf = (mission) => ((missionTime(mission) ?? 'day') === 'day' ? 0 : WORLD_LEAD_MS);
+const timeOfMission = (mission) => missionTime(mission) ?? 'day';
+/* The longest map id or time a pilot's 'world' may name. */
+const WORLD_WORD = 32;
 /* A pilot on its last airframe is taken as not flying once it has sent no
  * pose for STALE_MS, or has been on the ground (not airborne) for
  * GROUND_MS, so a round never waits on a flight that will not end. */
@@ -516,7 +528,8 @@ export class RoomWar {
      * { id, mission, seed, goAt, state: 'briefing'|'countdown'|'live'|
      *   'won'|'lost'|'ended', briefAt (the room ms a briefing's film
      *   starts, WORLD_LEAD_MS after the briefing for a mission with a time
-     *   of its own; or null), why, f, wave (the next to be born), output,
+     *   of its own unless every pilot's world already stands, worldsUp;
+     *   or null), why, f, wave (the next to be born), output,
      *   down (target ids hit), players: { seat: { kills, assists, mw, token } },
      *   away: { token: { player, spent, earned, loadout, round } } (a
      *   pilot whose seat another took, enlist()),
@@ -551,6 +564,9 @@ export class RoomWar {
      * as its pilot joins it (enlist). By token, never by seat, so a seat's
      * next pilot never flies its last one's. */
     this.loadouts = new Map();
+    /* seat -> { token, map, time }: the world each screen last said it
+     * has standing (op 'world'). Memory. */
+    this.worlds = new Map();
   }
 
   mission() {
@@ -901,6 +917,7 @@ export class RoomWar {
   leave(seat) {
     this.seats.delete(seat);
     this.sent.delete(seat);
+    this.worlds.delete(seat);
   }
 
   /* One text message of type 'war' from seat s. */
@@ -916,6 +933,9 @@ export class RoomWar {
     }
     if (msg.op === 'seen') {
       return this.seenFilms(core, conn, s, msg.films);
+    }
+    if (msg.op === 'world') {
+      return this.world(conn, s, msg);
     }
     if (s.seat !== core.host()) {
       return [];
@@ -1043,7 +1063,8 @@ export class RoomWar {
     }
     /* A briefing is the intro's span before the countdown's; a restart
      * from a stage has none. */
-    const briefAt = msg.intro === true && !cp ? Math.ceil(core.roomMs(now)) + leadOf(mission) : null;
+    const lead = timeOfMission(mission) === 'day' || this.worldsUp(core, mission) ? 0 : WORLD_LEAD_MS;
+    const briefAt = msg.intro === true && !cp ? Math.ceil(core.roomMs(now)) + lead : null;
     /* A mission's prepMs lengthens its countdown: the night raid's, so
      * every screen has built its night world and seated its pilot well
      * before the go, never after it (itaipu-4.js). */
@@ -1138,6 +1159,32 @@ export class RoomWar {
      * then, as a pilot who joins is. */
     const broken = this.match.damage.flatMap((e) => this.broadcast(core, { type: 'war', op: 'damage', ...e }));
     return [{ store: 'meta', value: core.meta }, ...this.changed(core), ...broken];
+  }
+
+  /* The world a pilot's screen has built and standing: { map, time },
+   * each a short string, or map null while it has none. Nothing is sent
+   * back: it only shortens the next briefing's lead. */
+  world(conn, s, msg) {
+    if (msg.map === null) {
+      this.worlds.delete(s.seat);
+      return [];
+    }
+    const word = (x) => typeof x === 'string' && x.length > 0 && x.length <= WORLD_WORD;
+    if (!word(msg.map) || !word(msg.time)) {
+      return this.error(conn, 'world');
+    }
+    this.worlds.set(s.seat, { token: s.token, map: msg.map, time: msg.time });
+    return [];
+  }
+
+  /* Whether every pilot here has said its screen stands on `mission`'s
+   * world at the mission's time, so its film can start with no lead. */
+  worldsUp(core, mission) {
+    const time = timeOfMission(mission);
+    return [...core.seats.values()].every((t) => {
+      const w = this.worlds.get(t.seat);
+      return w && w.token === t.token && w.map === mission.map && w.time === time;
+    });
   }
 
   /* A pilot's watched films, { id: version }: what the host's skip asks

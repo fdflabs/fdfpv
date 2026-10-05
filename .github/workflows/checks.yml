@@ -69,6 +69,14 @@ jobs:
       - run: npm run war:harness -- --seeds=3 --runs=6
       - run: npm run war:routes
       - run: npm run war:stages
+      # Ops missions (docs/campaign/interior/CONTRACT-P0.md): the room's
+      # contact registry, and roles dealt to 1, 2, 3, 6 and 8 pilots.
+      - run: npm run contacts:selftest
+      - run: npm run roles:deal
+      # The Interior's Mission 1 flown headless: solo to the end, a laggy
+      # run, a squad of five, the soft fail and its checkpoint, the
+      # boundary, the ISR down. On the fixture world until track WORLD's.
+      - run: npm run interior:stages
       - run: npm run films:time -- --check
       - run: npm run films:lint
       - run: npm run war:grid

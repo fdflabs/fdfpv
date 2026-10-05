@@ -29,6 +29,9 @@
  *   - for PLAY, the world is already itaipu in the lobby, before the
  *     start: built under the lobby, not after the briefing began; and
  *     the host's Watch intro, pressed as the lobby opens, waits for it
+ *   - for PLAY, the film starts at once: no rebuild after the lobby, and
+ *     no room lead (WORLD_LEAD_MS) held for one, since the screen said
+ *     its world stands
  *
  * No page error. No pictures.
  *
@@ -69,6 +72,10 @@ const NEAR_M = 4000;
  * shell.js), inside which the surface is cut open. The deck shots sit
  * lowest on purpose, the props' close up 0.26 m over the deck. */
 const CLEAR_M = 0.2;
+/* The film's first frame on a screen whose world stood under the lobby:
+ * the room's view reaching the page and a frame, never a rebuild's lead
+ * (edge/rooms/war.js WORLD_LEAD_MS, 8 s). */
+const LEAD_SLACK_MS = 1500;
 
 let failed = 0;
 let passed = 0;
@@ -106,7 +113,7 @@ const SAMPLE = `(() => {
   const i = window.__warIntro();
   const w = window.__war().view;
   return {
-    map: m.id, ready: m.ready, war: w.state, match: w.id, leaves: m.terrain ? m.terrain.leaves : null,
+    map: m.id, ready: m.ready, war: w.state, match: w.id, briefAt: w.briefAt, leaves: m.terrain ? m.terrain.leaves : null,
     intro: i && { for: i.for, shot: i.shot, t: Math.round(i.t), ms: i.ms, n: i.shots.length, ids: i.shots.map((s) => s.id), camera: i.camera, ground: i.ground, orbit: Boolean(i.orbit) },
   };
 })()`;
@@ -219,8 +226,20 @@ try {
   const lobby = await page.evaluate("({ map: window.__map().id, ready: window.__map().ready, screen: window.__ui.screen, war: window.__war().view.state })");
   check('the room\'s world is built under its lobby, before the start, and the pilot is still on the room screen',
     lobby.map === MAP && lobby.ready && lobby.screen === 'friends' && lobby.war === 'lobby', JSON.stringify(lobby));
+  const switches = await page.evaluate('window.__war().night.length');
   await page.evaluate("window.__ui.act('friends-war-start')");
-  judge('play', await watch(page, 240000), true);
+  const played = await watch(page, 240000);
+  judge('play', played, true);
+  /* No black for a rebuild nobody needs: the world stood under the lobby
+   * and the screen said so (op 'world'), so the room starts the film at
+   * once, its preload's title the only black before the first shot. The
+   * room's lead was eight seconds of black before every film (measured
+   * -7.9 s on the first frame, 5 October). */
+  const firstFilm = played.find((x) => x.intro && x.intro.for !== 'watch');
+  check(`play: the film starts at once, with no lead for a rebuild (first frame's film clock over -${LEAD_SLACK_MS} ms)`,
+    Boolean(firstFilm) && firstFilm.intro.t > -LEAD_SLACK_MS, firstFilm ? `t ${firstFilm.intro.t} ms, briefAt ${firstFilm.briefAt}` : 'no film');
+  const rebuilt = (await page.evaluate('window.__war().night')).slice(switches);
+  check('play: no world rebuilt between the lobby and the film', rebuilt.length === 0, JSON.stringify(rebuilt));
 
   /* 2. A RELOAD in the room, part way through the next briefing's film.
    * The war started above runs on; the host ends it, starts mission 1

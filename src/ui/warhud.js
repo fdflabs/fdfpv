@@ -54,6 +54,10 @@ const SCRIM = 'rgba(4, 10, 6, 0.55)';
 const CALL_MS = 4500;
 /* A stage's title stands this long (TECH-NEEDS T4: 3 s). */
 const LOWER_MS = 3000;
+/* A radio subtitle stays this long after its line, and at most this many
+ * wait behind the one shown. */
+const SUB_TAIL_MS = 600;
+const SUB_QUEUE = 3;
 const CALLS_SHOWN = 3;
 /* The display's top, under the room's lines at their longest (see the
  * header), and its left, inside the left edge arrows and their words
@@ -64,6 +68,9 @@ const LEFT = '132px';
 /* Its width, short of the OSD's left sidebar by 10 px (see the header),
  * never under what its lines need. */
 const WIDTH = 'clamp(220px, calc(50vw - 37vh - 142px), 380px)';
+/* The widest a centred line can be and stay clear of the column on the
+ * left (LEFT + WIDTH): the go's hint and the radio's subtitles. */
+const CLEAR_OF_COLUMN = `max(240px, min(86vw, calc(100vw - 2 * (${LEFT} + ${WIDTH} + 16px))))`;
 /* The rack is drawn as pips up to this many, a count past it. */
 const PIPS_MAX = 24;
 /* A round's own airframes drawn as pips up to this many. */
@@ -136,12 +143,17 @@ export function waveStatus(v, mission, roomNow) {
     return null;
   }
   if ((v.roundState ?? 'live') === 'result') {
-    return Number.isFinite(v.nextRoundAt) ? at('war.next_round', v.nextRoundAt) : unknown;
+    return Number.isFinite(v.nextRoundAt) ? at(v.stage ? 'war.next_stage' : 'war.next_round', v.nextRoundAt) : unknown;
   }
   if (v.stage !== undefined) {
     if (Number.isFinite(v.nextAt)) {
       const s = Math.ceil((v.nextAt - roomNow) / 1000);
       return s > 0 ? { text: str('war.next_wave', { t: clock(s) }), s } : { text: str('war.wave_inbound'), s: 0 };
+    }
+    /* A stage opens groups on events too (a kill, a crossing, after
+     * another group), so nothing due is not the last wave. */
+    if (v.stage) {
+      return { text: str(v.alive > 0 ? 'war.clear_contacts' : 'war.stage_clear'), s: null };
     }
     return { text: str(v.alive > 0 ? 'war.last_wave' : 'war.round_clear'), s: null };
   }
@@ -394,7 +406,9 @@ export function createWarHud(nameOf, restart = null) {
     if (!hintEl) {
       hintEl = root({
         position: 'fixed', top: '60%', left: '50%', transform: 'translateX(-50%)', zIndex: '41', pointerEvents: 'none',
-        fontWeight: '800', fontSize: '20px', letterSpacing: '0.1em', color: GREEN, textAlign: 'center', maxWidth: '86vw',
+        fontWeight: '800', fontSize: '20px', letterSpacing: '0.1em', color: GREEN, textAlign: 'center',
+        /* At 86vw it lay over the column's rows. */
+        maxWidth: CLEAR_OF_COLUMN, boxSizing: 'border-box',
         background: SCRIM, border: `1px solid ${DIM}`, padding: '6px 16px', textTransform: 'uppercase',
         textShadow: '0 0 6px rgba(0, 0, 0, 0.95)', display: 'none',
       });
@@ -439,16 +453,24 @@ export function createWarHud(nameOf, restart = null) {
     }
   }
 
-  /* A stage's title, low on the left for LOWER_MS as it opens. */
+  /* A stage's title for LOWER_MS as it opens, just over the HUD's column
+   * on the left. It stood at a fixed 22vh from the foot, which is inside
+   * the column on a 720 px screen and was drawn over the stage's
+   * objectives (First Light played through, 5 October); under the column
+   * it met the battery's panel there. */
   function lowerThird(text) {
+    if (!box) {
+      build();
+    }
     if (!lowerEl) {
-      lowerEl = root({
-        position: 'fixed', left: '6vw', bottom: '22vh', zIndex: '43', pointerEvents: 'none', opacity: '0',
+      lowerEl = el({
+        position: 'absolute', left: '0', bottom: '100%', marginBottom: '10px', whiteSpace: 'nowrap', pointerEvents: 'none', opacity: '0',
         fontWeight: '900', fontSize: 'clamp(18px, 2.4vw, 34px)', letterSpacing: '0.14em', color: AMBER, textTransform: 'uppercase',
         borderLeft: `4px solid ${AMBER}`, padding: '4px 14px', background: 'rgba(4, 10, 6, 0.55)',
         textShadow: '0 0 4px rgba(0, 0, 0, 0.95), 0 2px 3px rgba(0, 0, 0, 0.95)',
       });
       lowerEl.className = 'war-stage-title';
+      box.append(lowerEl);
     }
     said.push(text);
     if (said.length > 40) {
@@ -462,6 +484,53 @@ export function createWarHud(nameOf, restart = null) {
       { opacity: 1, transform: 'translateX(0)', offset: 0.85 },
       { opacity: 0, transform: 'translateX(0)' },
     ], { duration: LOWER_MS, easing: 'ease-out' });
+  }
+
+  /*
+   * The radio's story lines on the screen as well as in the ear, one at a
+   * time for its measured length and SUB_TAIL_MS more, low in the middle
+   * over the attitude arc: a pilot with the sound off, or who missed a
+   * word, still follows the mission (the film has had subtitles from the
+   * start; the mission's own lines had none). A line due while one shows
+   * waits its turn, as the voice does.
+   */
+  const subs = [];
+  let subEl = null;
+  let subUntil = 0;
+  let subTimer = 0;
+  function subtitle(text, ms) {
+    subs.push({ text, ms });
+    if (subs.length > SUB_QUEUE) {
+      subs.shift();
+    }
+    if (performance.now() >= subUntil) {
+      nextSub();
+    }
+  }
+  function nextSub() {
+    clearTimeout(subTimer);
+    const s = subs.shift();
+    if (!subEl) {
+      subEl = root({
+        position: 'fixed', left: '50%', bottom: '21vh', transform: 'translateX(-50%)', zIndex: '43', pointerEvents: 'none',
+        maxWidth: CLEAR_OF_COLUMN, boxSizing: 'border-box', textAlign: 'center', fontWeight: '700', fontSize: 'clamp(15px, 1.5vw, 22px)',
+        letterSpacing: '0.02em', textTransform: 'none', color: '#f2f5f0', background: 'rgba(4, 10, 6, 0.6)', padding: '4px 14px',
+        textShadow: '0 1px 2px rgba(0, 0, 0, 0.95)', display: 'none',
+      });
+      subEl.className = 'war-subtitle';
+      /* The page's face, as the film's subtitles have, not the display's monospace. */
+      subEl.style.fontFamily = 'var(--ui-font, sans-serif)';
+    }
+    if (!s) {
+      subEl.style.display = 'none';
+      subUntil = 0;
+      return;
+    }
+    subEl.textContent = s.text;
+    subEl.style.display = 'block';
+    const hold = s.ms + SUB_TAIL_MS;
+    subUntil = performance.now() + hold;
+    subTimer = setTimeout(nextSub, hold);
   }
 
   function endText(v) {
@@ -546,7 +615,7 @@ export function createWarHud(nameOf, restart = null) {
     if (countdown != null) {
       phase = str('war.countdown', { s: countdown });
     } else if (round) {
-      phase = str('war.round', { n: round.n, of: round.of ?? round.n });
+      phase = str(round.unit === 'stage' ? 'war.stage_of' : 'war.round', { n: round.n, of: round.of ?? round.n });
     }
     cell(phase, countdown != null ? AMBER : GREEN);
     cell(str('war.contacts', { n: v.alive ?? 0 }), v.alive > 0 ? AMBER : GREEN);
@@ -591,6 +660,7 @@ export function createWarHud(nameOf, restart = null) {
 
   return {
     say,
+    subtitle,
     splash,
     hint,
     events,
@@ -607,6 +677,7 @@ export function createWarHud(nameOf, restart = null) {
       objectives: goals && goals.style.display !== 'none' ? [...goals.children].map((c) => c.textContent) : [],
       restart: banner && banner.style.display !== 'none' ? again.textContent : '',
       hint: hintEl && hintEl.style.display !== 'none' ? hintEl.textContent : '',
+      subtitle: subEl && subEl.style.display !== 'none' ? subEl.textContent : '',
       splashSeen,
     }),
   };

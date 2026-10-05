@@ -32,4 +32,25 @@ Add a section per phase or mission (newest last) with:
 
 ## Phase 0
 
-(Nothing yet: written as Phase 0 lands.)
+### Track ROOM (2026-10-05)
+
+1. **What landed:** N13 (contacts), N16 (roles, deal, guides), N6 (ops
+   triggers, cards, checkpoints, boundary, loss rules), N17 (alert), N20
+   (the campaign entry, flags), Mission 1's data; the contract for VIEW
+   and WORLD is CONTRACT-P0.md. On a fixture world until WORLD's lands.
+2. **Measured:** the solo scripted run of Mission 1 takes 29 minutes of
+   room time on the fixture (the script asks 20 to 30); the whole
+   interior:stages check (five full or partial missions) runs in about
+   5 s of wall clock.
+3. **Campaign agnostic:** nothing in `src/share/ops/` or
+   `edge/rooms/ops.js` names The Interior; its classes, roles, lines,
+   points, sites and stars are data. The one place a campaign is named is
+   the registry, `src/share/ops/missions.js`.
+4. **Roles at scale:** dealt and checked at 1, 2, 3, 6, 8, 16 and 64
+   seats (roles:deal); not yet flown by people.
+5. **Guides:** routing proven headless (a tracker's line reaches
+   trackers only); the radio queue's collisions are the voice track's.
+6. **The owner's flight:** not yet.
+7. **For Itaipu:** the war's stage engine took the ops triggers through
+   one hook, so Defend the Paraná can adopt cards, roles and guides by
+   writing data and adding a hook kind, not by forking stages.js.

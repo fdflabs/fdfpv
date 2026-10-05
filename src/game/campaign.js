@@ -5,7 +5,7 @@
  * takes into the war (docs/WARFARE-PLAN.md; the war itself is the room's,
  * edge/rooms/war.js).
  *
- * THE STATE is { v: 1, missions, earned, owned, equipped, films }:
+ * THE STATE is { v: 1, missions, earned, owned, equipped, films, flags }:
  *
  *   missions  { missionId: { stars 0..3, won, credits } }, the best of
  *             every result the room gave for that mission: most stars, won
@@ -18,6 +18,10 @@
  *   films     { filmId: version }: the newest cut of each intro film this
  *             pilot has watched to its end (src/share/war/film.js), which
  *             makes it skippable (docs/campaign/INTROS.md section 3)
+ *   flags     { NAME: true | string }: the story flags an ops mission's
+ *             result set (The Interior's M1_SYMBOL_CAPTURED and the rest,
+ *             docs/campaign/interior/MISSIONS.md 1.10), which later
+ *             missions and the endings read
  *
  * CREDITS TO SPEND are earned less what owned cost: spending is not a
  * number of its own but the prices paid, so two computers that bought
@@ -27,7 +31,9 @@
  *
  * THE MERGE (mergeCampaign) is what a signed in pilot's two computers do
  * with two copies: the most stars per mission, the higher earned total,
- * the union of owned upgrades, the newer seen cut of each film. Two computers that each spent the same
+ * the union of owned upgrades, the newer seen cut of each film, every
+ * flag either has (true stays true; a word flag, the final choice, keeps
+ * the incoming copy's, as equipped does). Two computers that each spent the same
  * credits on different things keep both: the balance goes below zero and
  * nothing more can be bought until it is earned back, which is the one
  * outcome that loses neither purchase. An earned total is the higher of
@@ -84,8 +90,35 @@ export const ACT1 = [
  * developer's own rooms server (edge/rooms/node.js DEV_MISSIONS); what is
  * only planned has nothing to fly either way. */
 export function released(id, dev = false) {
-  const m = ACT1.find((x) => x.id === id);
+  const m = ACT1.find((x) => x.id === id) ?? INTERIOR.find((x) => x.id === id);
   return !m || m.release === 'available' || (dev && m.release === 'development');
+}
+
+/*
+ * The Interior, the second campaign (docs/campaign/interior/PLAN.md),
+ * flown in order, its missions the room's ops missions
+ * (src/share/ops/missions.js). The same gate as Act 1: Mission 1 is
+ * 'development' until it is 100 % and the owner has flown it, then
+ * 'available' here and nowhere else; 2 to 5 have no mission file yet, so
+ * 'soon' in the gate's meaning, and `label` is the word the card shows
+ * instead of the release's own: the owner asked for Under development
+ * on all four (PLAN.md section 3; TECH-NEEDS.md F6 records the choice).
+ * No credits and no shop: platforms unlock by mission. `consent`: the
+ * campaign shows armed conflict, so its card asks the war's consent
+ * first (PLAN.md section 9 A; the screen is VIEW's to build).
+ */
+export const INTERIOR_CAMPAIGN = Object.freeze({ id: 'interior', consent: true });
+export const INTERIOR = [
+  { id: 'interior-1', key: 'oldwar', release: 'development' },
+  { id: 'interior-2', key: 'forest', release: 'soon', label: 'development' },
+  { id: 'interior-3', key: 'nomansland', release: 'soon', label: 'development' },
+  { id: 'interior-4', key: 'otherwar', release: 'soon', label: 'development' },
+  { id: 'interior-5', key: 'lastcolumn', release: 'soon', label: 'development' },
+];
+
+/* The word a mission's card shows: its label, else its release. */
+export function cardLabel(m) {
+  return m.label ?? m.release;
 }
 
 export const MAX_STARS = 3;
@@ -155,9 +188,14 @@ const ID = /^[a-z0-9-]{1,40}$/;
 
 export function emptyCampaign() {
   return {
-    v: 1, missions: {}, earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {},
+    v: 1, missions: {}, earned: 0, owned: {}, equipped: { warhead: 'standard', speed: false }, films: {}, flags: {},
   };
 }
+
+/* A plausible flag: the script's names (M1_SYMBOL_CAPTURED), and a word
+ * value of the same shape (EXECUTE). */
+const FLAG = /^[A-Z0-9_]{1,40}$/;
+const flagValue = (v) => v === true || (typeof v === 'string' && FLAG.test(v));
 
 /* A state with the right shape and nothing else, from anything: storage,
  * the account, a hand edit. */
@@ -186,6 +224,13 @@ export function cleanCampaign(raw) {
     for (const [id, version] of Object.entries(raw.films)) {
       if (ID.test(id)) {
         out.films[id] = whole(version);
+      }
+    }
+  }
+  if (isRecord(raw.flags)) {
+    for (const [name, v] of Object.entries(raw.flags)) {
+      if (FLAG.test(name) && flagValue(v)) {
+        out.flags[name] = v;
       }
     }
   }
@@ -238,7 +283,9 @@ export function gateOpen(index) {
   return (index !== null && ACT1[index].free) || campaignOwned();
 }
 
-/* The state after one result the room gave, { stars, credits, won }. */
+/* The state after one result the room gave, { stars, credits, won,
+ * flags? }: an ops mission's result carries its flags (edge/rooms/ops.js),
+ * kept as the merge keeps them, a true flag never lost. */
 export function applyResult(state, missionId, result) {
   const next = cleanCampaign(state);
   const was = next.missions[missionId] ?? { stars: 0, won: false, credits: 0 };
@@ -249,6 +296,11 @@ export function applyResult(state, missionId, result) {
     credits: Math.max(was.credits, paid),
   };
   next.earned += paid;
+  for (const [name, v] of Object.entries(isRecord(result.flags) ? result.flags : {})) {
+    if (FLAG.test(name) && flagValue(v) && !(next.flags[name] === true && v !== true)) {
+      next.flags[name] = v;
+    }
+  }
   return next;
 }
 
@@ -340,6 +392,11 @@ export function mergeCampaign(incoming, held) {
   out.equipped = equippable(out.owned, a.equipped);
   for (const id of [...new Set([...Object.keys(a.films), ...Object.keys(b.films)])].sort()) {
     out.films[id] = Math.max(a.films[id] ?? 0, b.films[id] ?? 0);
+  }
+  for (const name of [...new Set([...Object.keys(a.flags), ...Object.keys(b.flags)])].sort()) {
+    const x = a.flags[name];
+    const y = b.flags[name];
+    out.flags[name] = x === true || y === true ? true : (x ?? y);
   }
   return out;
 }

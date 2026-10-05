@@ -40,6 +40,6 @@ const LINES = {
 export default {
   ...film2030,
   id: 'first-light',
-  version: 2,
+  version: 3,
   shots: film2030.shots.map((s) => ({ ...s, lines: LINES[s.id] ?? [] })),
 };
