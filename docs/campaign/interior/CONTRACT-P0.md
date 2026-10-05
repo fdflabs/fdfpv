@@ -67,7 +67,7 @@ answered `{ type: 'ops', error }` to the sender alone.
 | --- | --- | --- | --- |
 | `start` | host | `mission` (id), `intro` (bool), `from: 'checkpoint'` (optional) | starts it: a briefing of the mission's `filmMs` when `intro` and it has one, then the countdown (`COUNTDOWN_MS`), then the first stage; or again from the stage a lost match was lost in. Refused: `mission`, `unreleased` (campaign.js gate), `map`, `busy` (another game on), `private` (a public room: P0 runs only in private rooms), `checkpoint` |
 | `end` | host | | ends the match, `state: 'ended'` |
-| `cam` | any seat | `t` (room ms), `dir` [x,y,z] (unit, ops frame), `tanHalf` (> 0), `aspect` (width / height) | the seat's camera from `t` until its next report, at most `CAM_STALE_MS` = 1000 ms. At most one each `CAM_MIN_MS` = 100 ms is kept; send 5 to 10 a second while flying. **Before the camera ball (N14) lands, send the nose's direction and the screen's own `tanHalf`.** Nothing is seen by a seat that sends no `cam` |
+| `cam` | any seat | `t` (room ms), `aim` [x,y,z] (ops frame: the ground point the camera's axis is on, its lock point when locked), `tanHalf` (> 0), `aspect` (width / height) | the seat's camera from `t` until its next report, at most `CAM_STALE_MS` = 1500 ms. Its direction at each grid ms is from the seat's pose then toward `aim`, so a locked camera stays exact between reports while the aircraft orbits. **Two a second** (`CAM_MIN_MS` = 400 ms; text messages share the room's allowance of 5 a second per seat). **Before the camera ball (N14) lands, send where the nose's axis meets the ground and the screen's own `tanHalf`.** Nothing is seen by a seat that sends no `cam` |
 | `capture` | any seat | `item` (id), `t` (room ms of the still), `grade` (`clean`, `usable`, `poor`), `framing` { `size` (fraction of frame width), `off` (0 centre to 1 edge), `blur` (0 to 1) } | judged (section 7): recorded, or refused `capture` with `why` |
 | `take` | any seat | `role` (a role id) | takes a free role: an unheld core role, or a new copy of a scaling role (section 5). Refused `locked`, `role` |
 | `active` | any seat | `key` (a role key it holds) | which of its roles it is flying now |
@@ -215,8 +215,9 @@ A cue is told when due (`at` s after the stage's entry, or after its
 - `{ seat: n }`: one seat (a boundary warning goes to the pilot crossing).
 
 The room sends each seat only what it hears. Cue fields: `radio` (a line
-id, `int1-s4-lost`; the voices are a later track, the id is the
-contract), `text` (a string key for the stage line), `music`, `card` (a
+id, `int1-s4-lost`, or a list of them played in order through the radio's
+queue, a number in the list being a pause in seconds: the script's "after
+X" exchanges; the voices are a later track, the ids are the contract), `text` (a string key for the stage line), `music`, `card` (a
 card event key: `PRIMARY OBJECTIVE UPDATED`, `CONTACT CLASSIFICATION
 UPDATED`, `INTELLIGENCE ADDED`, `SEARCH AREA ADDED`, `LAST KNOWN POSITION`,
 `ARCHIVE MATCH SEARCHING`, as BIBLE.md 6 writes them, as string keys).

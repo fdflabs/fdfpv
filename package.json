@@ -126,6 +126,8 @@
     "war:balance": "node scripts/war-balance.js",
     "war:legacy": "node scripts/war-legacy-games.js",
     "war:stages": "node scripts/war-stages-selftest.js",
+    "contacts:selftest": "node scripts/contacts-selftest.js",
+    "roles:deal": "node scripts/roles-deal.js",
     "war:stagescreen": "node scripts/war-stage-screen-check.js",
     "films:time": "node scripts/films-time.js",
     "films:lint": "node scripts/films-lint.js",
