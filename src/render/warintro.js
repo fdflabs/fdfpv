@@ -204,6 +204,10 @@ const GRADES = {
   dawn: { filter: 'contrast(1.12) saturate(0.8) brightness(0.95)', tint: 'linear-gradient(180deg, rgba(255,150,70,0.22), rgba(255,120,60,0.06) 55%, rgba(20,40,70,0.18))' },
   steel: { filter: 'contrast(1.14) saturate(0.62) brightness(0.96)', tint: 'linear-gradient(180deg, rgba(40,70,90,0.18), rgba(30,50,60,0.06) 50%, rgba(10,20,30,0.22))' },
   warm: { filter: 'contrast(1.1) saturate(0.72) brightness(0.97)', tint: 'linear-gradient(180deg, rgba(255,170,90,0.12), rgba(40,60,70,0.12))' },
+  /* Warm with a graduated filter over the frame's lower half, as a camera
+   * crew would hang one: the crest's pale concrete, under the lens down
+   * the line of aircraft, burnt out to white. */
+  'warm-grad': { filter: 'contrast(1.1) saturate(0.72) brightness(0.97)', tint: 'linear-gradient(180deg, rgba(255,170,90,0.12), rgba(255,170,90,0.04) 48%, rgba(24,30,36,0.42) 72%, rgba(14,18,22,0.55))' },
   night: { filter: 'contrast(1.18) saturate(0.55) brightness(0.9)', tint: 'linear-gradient(180deg, rgba(20,30,70,0.25), rgba(10,15,40,0.1) 50%, rgba(0,0,10,0.3))' },
 };
 

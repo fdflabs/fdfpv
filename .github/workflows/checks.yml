@@ -73,15 +73,21 @@ jobs:
       # contact registry, and roles dealt to 1, 2, 3, 6 and 8 pilots.
       - run: npm run contacts:selftest
       - run: npm run roles:deal
-      # The Interior's Mission 1 flown headless: solo to the end, a laggy
-      # run, a squad of five, the soft fail and its checkpoint, the
-      # boundary, the ISR down. On the fixture world until track WORLD's.
+      # The Interior's Mission 1 flown headless on track WORLD's map: solo to
+      # the end, a laggy run, a squad of five, the soft fail and its
+      # checkpoint, the boundary, the ISR down.
       - run: npm run interior:stages
       # The camera ball holds a locked point through an orbit and its
       # picture is the room's geometry; the screen's capture scorer gives
       # the expected grades and its stills reach a real room.
       - run: npm run camera:lock
       - run: npm run capture:score
+      # The Interior's world in Node (track WORLD): every name invented and
+      # no real coordinate, the canopy's line of sight, every route walked.
+      # Their browser halves (--browser) stay local.
+      - run: npm run lint:interior-names
+      - run: npm run canopy:los
+      - run: npm run people:route
       - run: npm run films:time -- --check
       - run: npm run films:lint
       - run: npm run war:grid

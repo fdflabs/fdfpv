@@ -61,8 +61,10 @@ export const SEEN_MS = 500;
  * the zoom. */
 export const NOTICE = 0.003;
 /* A route that ends with its contact in a frame in this long before is
- * watched to the end (a distant visual held until it disappears). */
-export const WATCH_MS = 10000;
+ * watched to the end (a distant visual held until it disappears). The
+ * Interior's dispersal routes give their last glimpse from overhead up to
+ * 22 s before they end under the crowns (measured on canopyBlocks). */
+export const WATCH_MS = 30000;
 /* Metres across, by kind, for a contact whose data gives none. */
 export const SIZE = Object.freeze({
   person: 1.7, vehicle: 4.5, aircraft: 2, site: 10,
