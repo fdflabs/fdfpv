@@ -92,7 +92,8 @@ export const MAPS = [
     build: true,
     load: () => import('./swiss2.js'),
   },
-  /* In development, and named so (docs/ITAIPU-PLAN.md).
+  /* Named "(in development)" while it was terrain and water only; it has
+   * its dam, towns and forests now and the released mission flies on it.
    * A builder world: its two courses are builder documents
    * (docs/itaipu-courses/). */
   {
