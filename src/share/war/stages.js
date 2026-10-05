@@ -467,6 +467,8 @@ const isPart = (id, want) => id === want || id.startsWith(`${want}-`);
  *   spent      the share of the airframes the pilots here have spent
  *   here       the seats here
  *   pilots     [{ seat, p: [x, y, z] }] at f, the seats here with a pose
+ *   trigger    optional (trig, ctx) => room ms, null, or undefined for a
+ *              kind it does not know: more kinds of trigger (ops missions)
  */
 export function fired(trig, ctx) {
   const { st, f } = ctx;
@@ -569,6 +571,12 @@ export function fired(trig, ctx) {
   if (trig.any) {
     const ts = trig.any.map((x) => fired(x, ctx)).filter((t) => t != null);
     return ts.length ? Math.min(...ts) : null;
+  }
+  /* Another engine's triggers on this one (src/share/ops/stages.js, the
+   * Interior's): its hook answers a kind it knows, undefined for none. */
+  const more = ctx.trigger?.(trig, ctx);
+  if (more !== undefined) {
+    return more;
   }
   throw new Error(`war: a trigger of no kind: ${JSON.stringify(trig)}`);
 }
