@@ -97,14 +97,37 @@ const linePlace = (name) => crest(LINE_AT, LINE_OFF, null, along(name));
 const standing = (name) => ({ keys: [{ t: 0, p: linePlace(name), yaw: FACE_UP }] });
 const lineCast = (except = []) => Object.fromEntries(LINE.filter((n) => !except.includes(n)).map((n) => [n, standing(n)]));
 
-/* A defender climbing out north over the water from `from`: `speed` m/s,
- * `climb` metres over `secs`, nose pitched `pitch`, from `t0` s. */
-function rise(from, speed, climb, pitch, t0, secs = 15) {
+/*
+ * THE LAST SHOT'S AXIS: its lens on the crest and the wave it looks at.
+ * The defenders fly out along it, so its long lens keeps them: climbing
+ * out due north they crossed its narrow field 12 degrees off it and were
+ * above the frame until its last second (pass 2's measure).
+ */
+const WAVE_CAM = crest(8.5, 20, 231);
+const WAVE_AIM = [90, 246, -2300];
+const WAVE_FWD = (() => {
+  const d = WAVE_AIM.map((v, k) => v - WAVE_CAM[k]);
+  const m = Math.hypot(...d);
+  return d.map((v) => v / m);
+})();
+const WAVE_RIGHT = (() => {
+  const h = Math.hypot(WAVE_FWD[0], WAVE_FWD[2]);
+  return [-WAVE_FWD[2] / h, 0, WAVE_FWD[0] / h];
+})();
+
+/* A defender flying out along that axis from `z` metres ahead of the lens,
+ * `x` to its right and `y` over it: `speed` m/s for `secs`, rising `climb`
+ * metres more than the axis does, nose pitched `pitch`, from `t0` s. */
+function climbOut({
+  z, x, y, speed, climb, pitch, t0, secs = 6,
+}) {
+  const from = [0, 1, 2].map((k) => WAVE_CAM[k] + WAVE_FWD[k] * z + WAVE_RIGHT[k] * x + (k === 1 ? y : 0));
   const s = speed * secs;
+  const yaw = yawTo(WAVE_FWD[0], WAVE_FWD[2]);
   return {
     keys: [
-      { t: t0, p: from, yaw: FACE_UP, pitch },
-      { t: t0 + secs, p: [from[0] + UP[0] * s, from[1] + climb, from[2] + UP[1] * s], yaw: FACE_UP, pitch },
+      { t: t0, p: from, yaw, pitch },
+      { t: t0 + secs, p: [from[0] + WAVE_FWD[0] * s, from[1] + WAVE_FWD[1] * s + climb, from[2] + WAVE_FWD[2] * s], yaw, pitch },
     ],
     spin: [[0, 90]],
     from: t0,
@@ -115,7 +138,7 @@ const LONE_PASS = [150, 228, -2500];
 
 export default {
   id: '2030',
-  version: 4,
+  version: 5,
   cast: CAST,
   routes: {
     /* The lone Striker, low over the water straight at the lens. */
@@ -145,16 +168,16 @@ export default {
      * same bearing, and a group to the west that the lens finds as it
      * widens. */
     {
-      id: 'wave', kind: 'strike', route: 'wave-low', n: 3, stagger: 0.6, pass: { shot: 'wave', at: 3, point: [85, 236, -2300] }, shots: ['wave'],
+      id: 'wave', kind: 'strike', route: 'wave-low', n: 2, stagger: 0.6, pass: { shot: 'wave', at: 3, point: [85, 236, -2300] }, shots: ['wave'],
     },
     {
-      id: 'west', kind: 'strike', route: 'wave-west', n: 4, stagger: 0.5, pass: { shot: 'wave', at: 14.7, point: [-100.8, 250, -2250] }, shots: ['wave'],
+      id: 'west', kind: 'strike', route: 'wave-west', n: 4, stagger: 0.5, pass: { shot: 'wave', at: 14.9, point: [-100.8, 250, -2250] }, shots: ['wave'],
     },
     {
       id: 'swarm', kind: 'fpv', route: 'wave-far', n: 8, pass: { shot: 'wave', at: 8, point: [100, 240, -2600] }, shots: ['wave'],
     },
     {
-      id: 'high', kind: 'loiter', route: 'wave-high', n: 3, pass: { shot: 'wave', at: 10, point: [120, 263, -2400] }, shots: ['wave'],
+      id: 'high', kind: 'loiter', route: 'wave-high', n: 3, pass: { shot: 'wave', at: 13, point: [120, 263, -2400] }, shots: ['wave'],
     },
   ],
   shots: [
@@ -230,7 +253,7 @@ export default {
     {
       id: 'line',
       min: 9,
-      grade: 'warm',
+      grade: 'warm-grad',
       lines: [{ line: 'intro-4', lead: 1.5, tail: 1.2 }],
       /* Down the line of aircraft on the crest deck; nobody there. Low,
        * off the line's west end and in front of the noses, looking along
@@ -240,9 +263,9 @@ export default {
        * aircraft at a time and ran past the end onto an empty deck. */
       camera: {
         type: 'dolly',
-        lens: 50,
-        path: [crest(LINE_AT, LINE_OFF + 2.8, CREST_Y + 0.6, -15.5), crest(LINE_AT, LINE_OFF + 2.3, CREST_Y + 0.5, -12)],
-        look: [crest(LINE_AT, LINE_OFF - 0.2, CREST_Y + 0.3, 0), crest(LINE_AT, LINE_OFF - 0.2, CREST_Y + 0.3, 6)],
+        lens: 75,
+        path: [crest(LINE_AT, LINE_OFF + 2.6, CREST_Y + 0.32, -20), crest(LINE_AT, LINE_OFF + 2.2, CREST_Y + 0.3, -16.5)],
+        look: [crest(LINE_AT, LINE_OFF - 0.2, CREST_Y + 0.9, 0), crest(LINE_AT, LINE_OFF - 0.2, CREST_Y + 0.9, 6)],
       },
       /* The quads only: the Striker stands on the lowest point of its
        * build, a thin part under the fuselage, so down the row it read as
@@ -311,16 +334,16 @@ export default {
        * late as the defenders climb past it from both banks and the look
        * lifts over the contacts for the title; then the hand-off. */
       camera: {
-        type: 'telephoto', lens: [300, 24], ease: 'in', at: crest(8.5, 20, 231), look: [[85, 240, -2300], [95, 286, -2300]],
+        type: 'telephoto', lens: [540, 24], ease: 'in', at: WAVE_CAM, look: [[82.5, 236.5, -2300], [95, 262, -2300]],
       },
-      hero: { agent: 'wave', minPx: 60, to: 9 },
+      hero: { agent: 'wave', minPx: 110, to: 9 },
       cast: {
-        strk: { as: 'strks', ...rise(crest(8.5, 8, 233, 10), 22, 40, 0.2, 7.4) },
-        q4: rise(crest(8.5, 23, 227.5, 3), 9, 70, -0.25, 8.2),
-        q5: rise(crest(8.5, 22, 227.5, -4), 8, 64, -0.25, 9.5),
-        int3: rise(crest(8.5, 6, 233, -12), 20, 45, -0.25, 10.5),
-        q6: rise(crest(8.5, 24, 227, 6), 10, 60, -0.25, 12.0),
-        q7: rise(crest(8.5, 23, 227.5, -7), 9, 55, -0.25, 13.5),
+        strk: { as: 'strks', ...climbOut({ z: 14, x: 2.5, y: -2.5, speed: 22, climb: 3, pitch: 0.2, t0: 10.0 }) },
+        q4: climbOut({ z: 8, x: -1.8, y: -1.4, speed: 10, climb: 1.5, pitch: -0.25, t0: 10.6 }),
+        q5: climbOut({ z: 6, x: 1.4, y: -1.6, speed: 9, climb: 1.5, pitch: -0.25, t0: 11.3 }),
+        int3: climbOut({ z: 10, x: -3, y: -2, speed: 18, climb: 2.5, pitch: -0.25, t0: 11.9 }),
+        q6: climbOut({ z: 5, x: 0.8, y: -1.2, speed: 10, climb: 1.5, pitch: -0.25, t0: 12.5 }),
+        q7: climbOut({ z: 5, x: -1.1, y: -1.3, speed: 9, climb: 1.5, pitch: -0.25, t0: 13.2 }),
       },
       titles: [
         {
