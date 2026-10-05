@@ -28,6 +28,10 @@
  *            400 m and 9 m up, so its reflection is in the water below it
  *   wall     an intake sized one 25 m in front of the upstream face, from
  *            about 380 m out, the face behind the fireball's rim
+ *   face     an intake sized one 90 m from the lens with the upstream face
+ *            360 m behind it, so the depth pass's core (the fireball's
+ *            distance) and its soft rim (the face's) are veiled for very
+ *            different depths: where a step at the rim would show
  *
  * And the cost, in the air view: the frame's draw calls and triangles and
  * the GPU's time for it (as scripts/itaipu-views.js times a view) with no
@@ -94,6 +98,7 @@ const VIEWS = [
   { id: 'horizon', camera: [...at(0, 12, -300), ...at(0, 14, -1300)], boom: at(0, 14, -1300), size: 2.6 },
   { id: 'water', camera: [...at(-60, 9, -650), ...at(30, 3, -250)], boom: at(30, 3, -250), size: 2.6 },
   { id: 'wall', camera: [...at(-80, 30, -400), ...at(20, 25, -25)], boom: at(20, 25, -25), size: 2.6 },
+  { id: 'face', camera: [...at(0, 24, -450), ...at(0, 14, 0)], boom: at(0, 20, -360), size: 2.6 },
 ];
 
 const seed = [`try {
