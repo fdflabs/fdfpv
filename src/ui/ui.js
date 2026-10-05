@@ -542,6 +542,9 @@ function byLine(t) {
 export const AVX_INSETS = ['small', 'medium', 'large'];
 /* How much the Avionics HUD draws, in Y's order (src/ui/avionicshud.js). */
 export const AVX_LEVELS = ['full', 'standard', 'minimal'];
+/* White hot's palettes (src/render/sensorview.js THERMAL_PALETTES, which
+ * scripts/avionics-layout.js holds this list to). */
+export const AVX_PALETTES = ['whitehot', 'ironbow', 'rainbow'];
 
 const DEFAULTS = {
   /* Which world. 'track' is Track mode's seat, a track built in the Alps
@@ -814,6 +817,9 @@ const DEFAULTS = {
   avxInset: 'small',
   /* How much the Avionics HUD draws, cycled with Y: one of AVX_LEVELS. */
   avxLevel: 'standard',
+  /* The thermal camera's palette, cycled with . (period) in flight: one of
+   * AVX_PALETTES. */
+  avxPalette: 'whitehot',
   renderScale: 100,
   fpsCap: 0,
   /* Dynamic resolution's policy (src/render/dynres.js): 'quality' never
@@ -1078,6 +1084,7 @@ export function loadSettings() {
     ['peerMarks', MARK_STYLES],
     ['avxInset', AVX_INSETS],
     ['avxLevel', AVX_LEVELS],
+    ['avxPalette', AVX_PALETTES],
     ['flightStyle', FLIGHT_STYLES],
     ['laps', LAP_COUNTS],
     ['packVoltage', PACK_VOLTAGES],
@@ -7145,6 +7152,14 @@ export class Ui {
           s.peerMarks,
           (id) => str(`ui.peer_marks_${id}`),
           (id) => { s.peerMarks = id; },
+        ),
+        choice(
+          str('ui.thermal_palette'),
+          str('ui.thermal_palette_note'),
+          AVX_PALETTES,
+          s.avxPalette,
+          (id) => str(`avionics.hud.palette.${id}`),
+          (id) => { s.avxPalette = id; },
         ),
         { label: str('ui.sound'), section: true },
         toggle(str('ui.sound'), str('ui.all_sound_motors_wind_music_and'), s.sound, (v) => { s.sound = v; }),

@@ -775,6 +775,7 @@ export async function boot({
   loading.system('telemetry', 'ready');
   const sensors = createSensorManager({ renderer: shell.renderer, scene: () => shell.quad.parent, camera: shell.camera });
   sensors.setInset(ui.settings.avxInset);
+  sensors.setPalette(ui.settings.avxPalette);
   /* The top of the map under a point, for what hides a target. */
   const avxHeightAt = (x, z) => view.height(x, z, Infinity);
   const perception = createPerception({ seed: 0x51ED5EED, heightAt: avxHeightAt });
@@ -14387,8 +14388,11 @@ export async function boot({
   });
 
   /* The Avionics HUD's keys (docs/AVIONICS-HUD.md section 9). */
-  const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY']);
-  const BALL_KEYS = new Set(['KeyU', 'Space', 'KeyJ', 'KeyK']);
+  /* Every letter is taken in flight, so the thermal palette sits beside
+   * J and K on the punctuation row: the key that reads . (period). */
+  const PALETTE_KEY = 'Period';
+  const AVX_KEYS = new Set(['KeyH', 'KeyJ', 'KeyK', 'KeyI', 'KeyU', 'KeyY', PALETTE_KEY]);
+  const BALL_KEYS = new Set(['KeyU', 'Space', 'KeyJ', 'KeyK', PALETTE_KEY]);
   input.onKey = (code, repeat) => {
     wakeAudio();
     if (code === 'Escape' && performance.now() < mouseEscGuardUntil) {
@@ -14438,6 +14442,12 @@ export async function boot({
       finishClipCrash();
       return;
     }
+    function cycleThermalPalette() {
+      sensors.cyclePalette();
+      ui.settings.avxPalette = sensors.state.palette;
+      ui.persistSettings();
+      notice = { text: str('avionics.hud.notice_palette', { palette: str(`avionics.hud.palette.${sensors.state.palette}`) }), untilMs: performance.now() + 1600 };
+    }
     /* The Avionics HUD's own keys, while it is on screen
      * (docs/AVIONICS-HUD.md section 9): H the AI's tracking, J the camera
      * mode, K the zoom, I the sensor full screen or the pilot's picture, U
@@ -14452,6 +14462,8 @@ export async function boot({
       } else if (code === 'KeyJ') {
         sensors.cycleMode();
         notice = { text: str('avionics.hud.notice_cam', { mode: str(`avionics.hud.cam_mode.${sensors.state.mode}`) }), untilMs: performance.now() + 1600 };
+      } else if (code === PALETTE_KEY) {
+        cycleThermalPalette();
       } else {
         sensors.cycleZoom();
         notice = { text: str('avionics.hud.notice_zoom', { z: sensors.state.zoom }), untilMs: performance.now() + 1600 };
@@ -14492,6 +14504,8 @@ export async function boot({
       } else if (code === 'KeyJ') {
         sensors.cycleMode();
         notice = { text: str('avionics.hud.notice_cam', { mode: str(`avionics.hud.cam_mode.${sensors.state.mode}`) }), untilMs: performance.now() + 1600 };
+      } else if (code === PALETTE_KEY) {
+        cycleThermalPalette();
       } else {
         sensors.cycleZoom();
         notice = { text: str('avionics.hud.notice_zoom', { z: sensors.state.zoom }), untilMs: performance.now() + 1600 };
