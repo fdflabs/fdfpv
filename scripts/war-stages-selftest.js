@@ -1026,6 +1026,36 @@ console.log('the client: what a screen makes of it');
   check('and every cue, as the room sent them', cues.length === e.of(0, 'cue').flatMap((m) => m.cues).length && cues.some((c) => c.radio === 'wave-strike'));
   check('the next wave\'s clock is the room\'s drawn time, not the mission\'s typed one', status && status.s === Math.ceil((first.t0 - (GO + 1500)) / 1000), JSON.stringify(status));
   check('stage() is the view\'s stage', client.stage() && client.stage().id === stages[1]);
+  /* A stage's HUD says stage, never round or last wave: a stage opens
+   * groups on events too, and its lower third names it (First Light
+   * played through, 5 October: "LAST WAVE" for 100 s of its first stage,
+   * "ROUND 2/5" under "PROBE"). */
+  const sv = {
+    ...client.view(), state: 'live', stage: { id: 'probe' }, nextAt: null, roundState: 'live',
+  };
+  check('a stage with nothing due and contacts up says to clear them, not that it is the last wave',
+    waveStatus({ ...sv, alive: 2 }, client.mission(), 0)?.text === 'CLEAR THE CONTACTS');
+  check('and with none up, the stage is clear', waveStatus({ ...sv, alive: 0 }, client.mission(), 0)?.text === 'STAGE CLEAR');
+  check('between stages, the next stage\'s clock', waveStatus({ ...sv, roundState: 'result', nextRoundAt: 9000 }, client.mission(), 0)?.text === 'NEXT STAGE IN 0:09');
+}
+
+console.log('crossings: a birth drawn in a window, at a fractional room ms');
+{
+  /* First Light's stage 3 with two pilots drew its low group's birth at
+   * 529516.73 ms; the crossing's halving between fractional ends stopped
+   * moving and the room hung (5 October). Before the fix this section
+   * never returns. */
+  const mission = MISSIONS['itaipu-1'];
+  const a = {
+    id: 10, kind: 'decoy', route: 'east-shore-low', k: 0, n: 3, err: 0, target: 'intake-13', wave: 5, sector: 'NE',
+  };
+  const whole = crossings(mission, planAgent(mission, { ...a, t0: 529516 }));
+  const frac = crossings(mission, planAgent(mission, { ...a, t0: 529516.7305433344 }));
+  const lines = whole ? Object.keys(whole) : [];
+  check('a flight along the east shore crosses a mission line', lines.length > 0, JSON.stringify(whole));
+  check('the same flight born 0.73 ms later crosses the same lines, each within 2 ms later, on whole milliseconds',
+    Boolean(frac) && lines.every((l) => Number.isInteger(frac[l]) && frac[l] - whole[l] >= 0 && frac[l] - whole[l] <= 2),
+    `${JSON.stringify(whole)} then ${JSON.stringify(frac)}`);
 }
 
 console.log('crossings: a birth drawn in a window, at a fractional room ms');

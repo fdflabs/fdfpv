@@ -137,7 +137,8 @@ import { createWarMarkers } from './ui/warmarkers.js';
 import {
   allowanceOf, createWarRoundCard, roundOf, spentOf,
 } from './ui/warround.js';
-import { createWarCalls } from './render/warradio.js';
+import { BRIEF_LINES, DEBRIEF_LINES, createWarCalls } from './render/warradio.js';
+import VOICE_LENGTHS from './share/war/voicelen.js';
 import { createCampaignScreen } from './ui/campaign.js';
 import { MISSIONS as WAR_MISSIONS, missionTime } from './share/war/missions/index.js';
 import { briefingOf } from './ui/briefing.js';
@@ -3232,7 +3233,10 @@ export async function boot({
       deadline: secs(lobby.deadlineAt),
       pilots: seats.map((seat) => ({
         name: roomSeatName(seat),
-        aircraft: airframeById(seat === w.seat ? runAirframe : roomPeers.get(seat).profile.airframe).name,
+        /* This pilot's: in a war room the aircraft the war will seat it in
+         * at the briefing (warCraftOf), not whatever it flew before, which
+         * only the war's aircraft may be. */
+        aircraft: airframeById(seat === w.seat ? (game === 'war' ? warCraftOf(ui.settings) : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
         host: seat === w.host,
         me: seat === w.seat,
@@ -3483,7 +3487,11 @@ export async function boot({
    * prio 'story' for a stage's own radio cue. Under a replay the radio
    * says the clip's lines, not the live war's. */
   function warSay(items, prio = 'call') {
-    if (!items.length || !audio.enabled || mode === 'replay') {
+    if (!items.length || mode === 'replay') {
+      return;
+    }
+    warSubtitles(items, prio);
+    if (!audio.enabled) {
       return;
     }
     const radio = audio.war();
@@ -3491,6 +3499,37 @@ export async function boot({
     for (const item of items) {
       radio.say(item, performance.now(), prio);
     }
+  }
+
+  /* The story's lines as subtitles, sound or no sound: a stage's own
+   * radio cues, and each mission's briefing and debrief. The calls
+   * (bearings, kinds, hits) are the HUD's callouts already. Their words
+   * are lines.json's, in the page's language, fetched once. */
+  const WAR_SUBTITLED = new Set([...Object.values(BRIEF_LINES).flat(), ...Object.values(DEBRIEF_LINES).flatMap((d) => [d.win, d.lose])]);
+  let warLineWords = null;
+  function warSubtitles(items, prio) {
+    const ids = items.flat().filter((id) => prio === 'story' || WAR_SUBTITLED.has(id));
+    if (!ids.length) {
+      return;
+    }
+    warLineWords ??= fetch(new URL('../assets/audio/war/lines.json', import.meta.url).href)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`lines.json ${r.status}`))))
+      .then((j) => new Map(j.lines.map((l) => [l.id, l])));
+    warLineWords.then((words) => {
+      const lang = currentLocale();
+      for (const id of ids) {
+        const l = words.get(id);
+        const text = l && (l[lang] ?? l.en);
+        if (text) {
+          warHud.subtitle(text, Math.round((VOICE_LENGTHS[id]?.[lang] ?? VOICE_LENGTHS[id]?.en ?? 3) * 1000));
+        }
+      }
+    }).catch((e) => {
+      /* No words, no subtitles: the voice still plays. Loud in the
+       * console, and tried again with the next line. */
+      console.warn(`war: no subtitles: ${e.message}`);
+      warLineWords = null;
+    });
   }
 
   /* A stage's cue (src/share/war/stages.js), as the room told it: the
@@ -3641,12 +3680,20 @@ export async function boot({
     return roomWar.view().state !== 'lobby' || lobbyGame() === 'war';
   }
   ui.craftLimit = () => (inWarRoom() ? WAR_AIRFRAMES : null);
+  /* The aircraft a war seats this pilot in: its own when it is the war's,
+   * else the war aircraft flown last, else the Striker. */
+  function warCraftOf(s) {
+    if (isWarAirframe(s.airframe)) {
+      return s.airframe;
+    }
+    return isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
+  }
   function warSeatCraft() {
     const s = ui.settings;
     if (isWarAirframe(s.airframe)) {
       return;
     }
-    const id = isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
+    const id = warCraftOf(s);
     seatAirframe(s, id);
     /* Carrying the warhead the pilot's loadout equips (a combat
      * aircraft's payload is its warhead, campaign.js craftWarhead), so

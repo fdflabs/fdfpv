@@ -58,6 +58,9 @@ export function roundOf(v) {
   return {
     n: v.round,
     of: Number.isInteger(v.rounds) ? v.rounds : null,
+    /* A mission of stages (src/share/war/stages.js) scores each stage as
+     * a round, and says stage: the HUD's lower third names the stage. */
+    unit: v.stage ? 'stage' : 'round',
     state: v.roundState === 'result' ? 'result' : 'live',
     result: COLOUR[v.roundResult] ? v.roundResult : null,
     mw: Number.isFinite(v.roundMw) ? v.roundMw : 0,
@@ -116,9 +119,9 @@ export function createWarRoundCard(nameOf) {
 
   function titleOf(r) {
     if (r.result === 'win') {
-      return str('war.round_held', { n: r.n });
+      return str(`war.${r.unit}_held`, { n: r.n });
     }
-    return str(r.result === 'lost' ? 'war.round_lost' : 'war.round_damaged', { n: r.n, mw: mw(r.mw) });
+    return str(r.result === 'lost' ? `war.${r.unit}_lost` : `war.${r.unit}_damaged`, { n: r.n, mw: mw(r.mw) });
   }
 
   /* Once a frame or so: the view, or null to hide it; roomNow the room
@@ -153,7 +156,7 @@ export function createWarRoundCard(nameOf) {
       });
       return d;
     }));
-    next.textContent = s != null ? str('war.round_next', { s }) : '';
+    next.textContent = s != null ? str(`war.${r.unit}_next`, { s }) : '';
   }
 
   return {
