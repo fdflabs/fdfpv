@@ -435,8 +435,16 @@ export function buildGrass({
         float edge = uRadius * (0.67 + 0.33 * fract(aClump.x * 12.9898 + aClump.z * 78.233));
         float grow = (1.0 - smoothstep(edge * 0.75, edge, gDist)) * smoothstep(uInner.x, uInner.y, gDist);
         /* The field it stands in, as the ground paints it: its colour,
-         * and on the valley floor cut short where the field is mown. */
-        S2Meadow field = s2Meadow(aClump.xz, gDist);
+         * and on the valley floor cut short where the field is mown.
+         * Worked out only for a clump that is drawn: one grown to
+         * nothing, or a flat plant past where it shows, is folded to its
+         * root below whatever the field says, and the field is most of
+         * what this shader costs, once for every vertex. */
+        bool gDrawn = gFlat > 0.5 ? smoothstep(14.0, 20.0, gDist) < 1.0 : grow > 0.0;
+        S2Meadow field = S2Meadow(vec3(1.0), 0.0, 0.0, 0.0, 0.0, vec2(1.0, 0.0), 0.0, 0.0, vec2(0.0));
+        if (gDrawn) {
+          field = s2Meadow(aClump.xz, gDist);
+        }
         float farmed = 1.0 - smoothstep(50.0, 140.0, aClump.y);
         float cut = mix(1.0, 0.32, field.mown * farmed * (1.0 - gUnmown));
         /* Pressed down under a craft at rest, and in its shade. */
