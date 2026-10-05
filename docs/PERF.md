@@ -5,7 +5,13 @@ target, 2026-10-05: **90 fps, an 11.1 ms frame**. `scripts/perf-play.js`
 takes the numbers:
 
     SIM_GPU=1 npm run perf -- OUT_DIR [--scenarios=itaipu-war,swiss-low,wing-cruise]
-        [--seconds=30] [--repeat=2] [--preset=high] [--pace=free|raf]
+        [--seconds=30] [--repeat=2] [--preset=high] [--pace=free|raf] [--cap=90]
+        [--mode=quality|balanced|performance] [--objects]
+
+`--mode=quality` holds the resolution at the preset's, so dynamic
+resolution cannot hide a cost between a before and an after; P3's
+numbers below are taken with it. `--objects` splits every draw by mesh,
+a diagnostic whose own queries cost time.
 
 On this machine run it as the baseline below was run, one browser, under
 a memory ceiling, with the temp dir off the tmpfs:
@@ -59,9 +65,15 @@ every composer pass and the shadow map (GPU segments), and
 - **gpu wait**: free running, the wait for the frame two back;
 - **other**: the interval less all of the above (other tasks, GC);
 - **GPU**: WebGL timer queries as swiss2-perf.js takes them, one segment
-  per composer pass, `shadow`, and `other` for everything drawn outside
-  the composer (the lake's mirror, the avionics sensor view's own scene
-  draws);
+  per composer pass, `shadow`, one per renderer.render outside the
+  composer named `draw <src file>` after its caller
+  (`draw maps/swiss2/water/lake` is the lake's mirror,
+  `draw render/sensorview` the avionics sensor view's scene draws and
+  full screen passes, `draw maps/itaipu/look/sky` Itaipu's sky cube,
+  redrawn a band at a time). Itaipu's mirror is drawn from the scene's
+  onBeforeRender, inside the composer's scene pass, so it is counted in
+  `scene`. `other` is the rest (P3 split these; the baseline below
+  lumped them all into `other`);
 - **draw calls and triangles**: the renderer's own counts after the frame;
 - **long tasks**: PerformanceObserver `longtask`;
 - **GC**: the JS heap (`performance.memory`) falling between two frames.
@@ -147,6 +159,10 @@ lake's mirror.)
 Main thread items come from the sampled profile, ms per second converted
 to ms per frame at that run's frame rate.
 
+These are the baseline's, before #426: the sensor view's readback named
+first below is gone (#426 made it asynchronous). What a frame costs
+after #426 and P3 is in the P3 section at the end.
+
 ### itaipu-war (5.15 ms, 194 fps: inside 11.1 ms already)
 
 1. **Avionics sensor view readback, 2.3 ms a frame.** `getBufferSubData`
@@ -229,3 +245,131 @@ script with no stray browser on the card:
 - **GPU 1.** See above.
 - **Replays.** The crash cam replays poses, not stick input through the
   plant, so it cannot drive physics; the scripted pilot is used instead.
+
+## P3, throughput: what was measured, what was built, what was not
+
+2026-10-05, after #422, #419 and #426, main at 41978c28. Every number
+here is `--mode=quality` (the resolution held at the preset's, scale
+1.00, so dynamic resolution cannot hide a cost), High, 1600 by 900,
+uncapped, on GPU 0 shared with the owner's desktop and with other
+agents' headless pages, which held 20 to 85 % of it during some runs
+(nvidia-smi pmon, noted per run in the PRs). The whole frame moves by
+several milliseconds between runs on this card (swiss-low 29.5, 22.3
+and 20.8 ms in three runs of one tree), so a change is judged on its
+own GPU segment, interleaved with the tree before it (A, B, A, B, A, B),
+and the whole frame only as the direction it moved.
+
+### Where the GPU frame goes, swiss-low (8 m, avionics HUD on)
+
+GPU frame floor 8.9 to 9.5 ms, mean 11.6 to 15.5. By segment, mean /
+tenth percentile, ms, best run of the first baseline:
+
+| scene | sensor view's draws | lake mirror | clouds | shadow (both cascades) | post (ao, meter, bloom, photo, fxaa) | cloud shadow bake |
+| --- | --- | --- | --- | --- | --- | --- |
+| 6.74 / 5.56 | 4.04 / 2.43 | 1.39 / 0.00 | 0.92 / 0.72 | 0.54 / 0.37 | 1.11 / 0.45 | 0.13 / 0.10 |
+
+By mesh (`--objects`, one 20 s run), the scene pass is the ground's
+splat 2.75, the near grass 0.78, the meadow layer 0.59, the impostor
+forest 0.36; the sensor view's thermal scene draw is the grass 0.61,
+the meadow 0.50, the ground 0.45, the stream 0.39, the cliffs 0.37, the
+lake bed 0.27, the impostors 0.21 (2.9 ms of meshes; the rest of the
+segment is its full screen passes). The grass and meadow cost nearly as
+much in the thermal draw at 640 by 360 as in the scene at 1600 by 900
+(1.11 against 1.37 ms): that draw is bound by vertices, not pixels.
+
+Wing-cruise (no HUD, the lake rarely in view): GPU floor 6.45, scene
+6.1 to 7.1, clouds 1.0, shadow 0.7. Itaipu-war: frame 6.35 ms, GPU
+floor 1.68, inside 11.1 already.
+
+### The brief's five items
+
+1. **Lake mirror: built (#446).** Scissored to the texels the water reads
+   (src/maps/swiss2/water/lake.js). The mirror's segment on swiss-low,
+   three interleaved pairs: 1.10, 1.14, 1.04 ms a frame before; 0.75,
+   0.54, 0.51 after (1.6 ms to 0.72 on the frames it is drawn). What is
+   left is the draw's vertices and calls, which a scissor does not cut.
+   scripts/perf-mirror-check.js proves the picture bit identical in
+   eight views. Itaipu's mirrors are left as they were: its frame is
+   5.4 to 6.4 ms, its mirror about 0.4 ms (scripts/itaipu-water-check.js:
+   reservoir 0.42, river 0.40, median), and its water reads the
+   mirror's alpha (SMEAR), which needs its own proof before it is opted
+   in.
+2. **Shadow cascade caching: not built.** Both cascades together cost
+   0.46 to 0.72 ms a frame (0.36 floor) in every swiss2 scenario and
+   0.16 in Itaipu. Caching the far one entirely would buy under 0.3 ms,
+   inside this card's run to run noise, and makeSun is shared with
+   Itaipu, whose look must not move. docs/SWISS2-PERF.md found the same
+   in round 9.
+3. **Bloom at half resolution, merged post passes: not built.** three
+   r160's UnrealBloomPass already halves its resolution for the bright
+   target and every mip. The photographic pass is already the merged
+   look; FXAA reads the finished picture and the sharpen pass reads
+   FXAA's. The whole post chain is 1.1 ms with no piece over 0.35.
+4. **Instancing / BatchedMesh: not built.** 307 to 327 draw calls a
+   frame (max 391) and the frame waits on the GPU; render submit is
+   2.8 to 3.7 ms of CPU on a 6.5 ms main thread. A CPU saving moves the
+   frame only once the GPU is under 11.1 ms.
+5. **The sensor view's second draw: proposed, not built.** It is
+   src/render/sensorview.js, owned elsewhere. See below.
+
+### Proposal for src/render/sensorview.js (its owner's call)
+
+The default inset is IR white hot, so every frame with the HUD up draws
+the scene a second time with every material writing a temperature
+(thermal.js), at 640 wide: 2.4 ms floor, 2.9 to 4.0 mean on swiss-low,
+the second largest GPU item. It is bound by vertices, so a smaller
+target buys nothing. What would:
+
+- **Leave out what the thermal picture cannot see.** The lake bed
+  (0.27 ms) is under water that writes its own temperature over it.
+  The grass and meadow blades (1.1 ms) are a few pixels at 640 wide and
+  stand on ground whose land cover already says vegetation; leaving
+  them out changes the thermal texture, so it needs the owner's eye. A
+  map could tag such meshes (a layer the sensor's camera masks off).
+- **Draw it at the core's own rate.** An uncooled 640 core runs at 30
+  or 60 Hz; at 90 fps drawing the thermal source every other frame
+  halves the mean, but makes every second frame heavier, which a frame
+  budget counts against it. Only worth it with the cap at 60 or below.
+
+### Where the frame stands against 11.1 ms
+
+With #446 applied, the settings' default mode (balanced, so dynamic
+resolution was free to act; it held the scale at 1.00 in every run,
+since a step that buys nothing is reverted), two 30 s runs each, the
+better shown, 2026-10-05 13:08 to 13:17, GPU 0 at 38 to 70 % with this
+run on it (the desktop's gnome-shell at up to 70 % in one sample):
+
+| Scenario | Cap | Frames | Avg ms | p50 | p95 | p99 | 1% low fps | > 11.1 ms | > 16.7 ms | GPU avg / floor |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| itaipu-war | none | 5566 | 5.39 | 4.9 | 10.4 | 12.9 | 70.0 | 191 | 2 | 3.28 / 1.63 |
+| swiss-low | none | 2241 | 13.38 | 13.4 | 16.2 | 19.7 | 41.2 | 1968 | 77 | 11.01 / 8.91 |
+| wing-cruise | none | 3519 | 8.52 | 7.9 | 16.3 | 17.2 | 48.8 | 1037 | 73 | 7.48 / 6.17 |
+| itaipu-war | 90 | 2898 | 10.35 | 10.2 | 10.3 | 15.2 | 52.3 | 66 | 16 | 3.63 / 1.73 |
+| swiss-low | 90 | 2250 | 13.33 | 13.3 | 16.2 | 19.8 | 40.9 | 1910 | 84 | 11.00 / 8.90 |
+| wing-cruise | 90 | 2867 | 10.46 | 10.2 | 10.3 | 17.4 | 44.5 | 129 | 31 | 7.85 / 6.22 |
+
+Itaipu and wing-cruise hold 90 with the cap (p95 10.3 ms) and have their
+tails to fix (16 to 31 frames over 16.7 ms in 30 s). Swiss-low is still
+over: GPU 11.0 ms against 11.1 with a floor of 8.9, and the frame 13.3
+because the GPU is shared. What is left there, by size: the scene pass
+5.8 (the ground's splat 2.75 of it, ground.js, owned by the near views
+work), the sensor view 2.4 (the proposal above), the cloud march 0.9,
+the mirror's remaining 0.47, the cascades 0.45.
+
+### What is next
+
+- The ground's splat (src/maps/swiss2/ground.js), the biggest single
+  GPU cost in every swiss2 scenario.
+- The sensor view's thermal draw, with its owner (above).
+- The mirror's remaining 0.47 ms is its vertices: culling the mirror's
+  draw to the scissored part of its frustum (a cropped projection)
+  would cut its calls, at the price of a picture equal to float
+  rounding rather than to the bit.
+- The tails: wing-cruise alternates long and short frames (p95 16.3 ms
+  uncapped with a 7.9 ms median), worth a look at the frame list before
+  anything else.
+- A multi pilot room is still not flown by the profiler (see Not
+  measured).
+- perf-play now exits once its report is written: the war scenario's
+  rooms server leaves its room's purge alarm on the event loop after
+  stop() (edge/rooms/node.js), which held the process open.

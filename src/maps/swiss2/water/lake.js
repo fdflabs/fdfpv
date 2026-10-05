@@ -37,6 +37,14 @@ import { LAKE_Y } from '../../alps/terrain.js';
 
 const CELL = 5;
 
+/* How far from where `matrix` puts it a water fragment may read the
+ * mirror, in texture coordinates: surface.js moves the read by its
+ * ripples' slope times 0.06, and a slope of 1.5 is a 56 degree face,
+ * steeper than any wave the lake draws. */
+const SAMPLE_REACH = 0.09;
+/* A box corner's index has a bit per axis: x 1, y 2, z 4. */
+const AXIS_BITS = [1, 2, 4];
+
 /* The lake's water: a grid over the shore's box, cells kept where any
  * corner is under water or within half a metre of it. */
 export function lakeGeometry(heightAt, shore) {
@@ -103,9 +111,17 @@ export function lakeGeometry(heightAt, shore) {
 
 /*
  * A planar mirror at height y. `scale` is its resolution against the
- * renderer's drawing buffer. render(renderer, scene, camera, hide)
+ * renderer's drawing buffer. render(renderer, scene, camera, hide, bounds)
  * draws it for this frame, with `hide` (objects) invisible. setLevel(y)
  * moves it, for water whose level is not one height (Itaipu's flood).
+ *
+ * `bounds`, a world Box3 round every surface that reads the mirror, keeps
+ * the draw to the part of the target those surfaces can sample: a water
+ * fragment reads the mirror where `matrix` puts it, so the box's corners
+ * through `matrix` bound every texel any of them reads, and the rest of
+ * the target is never looked at. Low over the valley the lake is a strip
+ * along the horizon, and the mirror's draw is a strip with it. Without
+ * `bounds` the whole target is drawn, as it always was.
  */
 export function planarMirror(level, scale = 0.5) {
   let y = level;
@@ -123,7 +139,56 @@ export function planarMirror(level, scale = 0.5) {
   const tgt = new THREE.Vector3();
   const rot = new THREE.Matrix4();
   const size = new THREE.Vector2();
-  const render = (renderer, scene, camera, hide) => {
+  const corners = Array.from({ length: 8 }, () => new THREE.Vector4());
+  const rect = new THREE.Vector4();
+  /* The share of the target the last draw covered. */
+  let share = 0;
+  /* The texels of `target` the box's surfaces read, into rect as a
+   * scissor (x, y, w, h); false when they read none. */
+  const scissorFor = (box, near) => {
+    for (let k = 0; k < 8; k += 1) {
+      corners[k].set(k & 1 ? box.max.x : box.min.x, k & 2 ? box.max.y : box.min.y, k & 4 ? box.max.z : box.min.z, 1).applyMatrix4(matrix);
+    }
+    let u0 = Infinity;
+    let v0 = Infinity;
+    let u1 = -Infinity;
+    let v1 = -Infinity;
+    const take = (s, t, w) => {
+      u0 = Math.min(u0, s / w);
+      u1 = Math.max(u1, s / w);
+      v0 = Math.min(v0, t / w);
+      v1 = Math.max(v1, t / w);
+    };
+    /* The box clipped at the mirror camera's near plane (w is the depth
+     * in front of it): the corners in front, and where each of the twelve
+     * edges crosses the plane. */
+    for (let a = 0; a < 8; a += 1) {
+      const p = corners[a];
+      if (p.w >= near) {
+        take(p.x, p.y, p.w);
+      }
+      for (const bit of AXIS_BITS) {
+        const q = corners[a | bit];
+        if ((a & bit) || (p.w >= near) === (q.w >= near)) {
+          continue;
+        }
+        const f = (near - p.w) / (q.w - p.w);
+        take(p.x + (q.x - p.x) * f, p.y + (q.y - p.y) * f, near);
+      }
+    }
+    u0 = Math.max(0, u0 - SAMPLE_REACH);
+    v0 = Math.max(0, v0 - SAMPLE_REACH);
+    u1 = Math.min(1, u1 + SAMPLE_REACH);
+    v1 = Math.min(1, v1 + SAMPLE_REACH);
+    if (!(u1 > u0 && v1 > v0)) {
+      return false;
+    }
+    const x = Math.floor(u0 * target.width);
+    const y0 = Math.floor(v0 * target.height);
+    rect.set(x, y0, Math.ceil(u1 * target.width) - x, Math.ceil(v1 * target.height) - y0);
+    return true;
+  };
+  const render = (renderer, scene, camera, hide, bounds = null) => {
     renderer.getDrawingBufferSize(size);
     const w = Math.max(16, Math.round(size.x * scale));
     const h = Math.max(16, Math.round(size.y * scale));
@@ -167,6 +232,15 @@ export function planarMirror(level, scale = 0.5) {
     e[10] = clip.z + 1 - 0.003;
     e[14] = clip.w;
     cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
+    if (bounds) {
+      if (!scissorFor(bounds, cam.near)) {
+        share = 0;
+        return false;
+      }
+      target.scissor.copy(rect);
+    }
+    share = bounds ? (rect.z * rect.w) / (target.width * target.height) : 1;
+    target.scissorTest = Boolean(bounds);
 
     const was = hide.map((o) => o.visible);
     hide.forEach((o) => { o.visible = false; });
@@ -191,6 +265,7 @@ export function planarMirror(level, scale = 0.5) {
     texture: target.texture,
     matrix,
     render,
+    share: () => share,
     setLevel: (v) => { y = v; },
     dispose: () => target.dispose(),
   };
