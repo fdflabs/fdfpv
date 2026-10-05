@@ -42,10 +42,15 @@ landscape, invented places and people.
 
 Reading of the owner's message (reversible): Interior Phase 0 and Mission
 1 start **after First Light is 100%, ahead of The Spillway**. Defend the
-Paraná mission 2 waits behind Interior Mission 1. All five Interior
-missions appear in the campaign list as **Coming soon** from the day the
-campaign card exists; each opens through the same release gate as Act 1
-(`src/game/campaign.js`, the room refuses anything not `available`).
+Paraná mission 2 waits behind Interior Mission 1.
+
+**Scope now (owner, 2026-10-05): only Mission 1 is built, to completion,
+and made playable.** Missions 2 to 5 are planned in full now (their docs
+in this folder: story, stages, lines, assets, checks) and show **Under
+development** in the campaign list from the day the campaign card exists;
+they are executed later, one at a time. Every mission opens through the
+same release gate as Act 1 (`src/game/campaign.js`, the room refuses
+anything not `available`).
 
 ## 4. What already exists and gets reused
 
@@ -112,7 +117,8 @@ before the next starts.
 N1 map (first the M1 corridor: base, fields, settlement, forest edge,
 camp clearing), N2 canopy, N3 people (walk, stand, look up, carry), N4
 one motorcycle and one pickup, N5 capture, N6 objectives, N7 HUD, N8
-debrief, the campaign card with five Coming soon missions.
+debrief, the campaign card listing all five (Mission 1 held until 100%,
+2 to 5 Under development).
 
 **Mission 1, The Old War, to 100%:** the opening film (archive audio and
 stills, the title card), the M1 briefing, stages M1_01 to M1_10 with the
@@ -120,8 +126,9 @@ script's lines and recovery rules, the camp and its dispersal, the
 symbol, the return at sunset, the debrief and outro. Owner flies it. Only
 then does it become `available`.
 
-**Then Missions 2 to 5**, one at a time, each opening only when its story,
-films and stages are done: M2 adds the quad, the abandoned property and
+**Missions 2 to 5: planned now, built later** (owner, 2026-10-05). Their
+full plans are written now; their build waits, one at a time, each
+opening only when its story, films and stages are done: M2 adds the quad, the abandoned property and
 the second camp; M3 adds classification pressure, relay, the first enemy
 drone and whatever question A allows; M4 adds traffic, the decoy swap,
 three factions, counter-surveillance and the cache; M5 adds the
