@@ -428,7 +428,9 @@ export class AvionicsHud {
       return;
     }
     this.src = src;
-    if (src.sensors && src.sensors.pip !== this.pipCanvas) {
+    /* The inset's canvas is one node; the ops HUD borrows it over the
+     * camera ball, so it is taken back when it is somewhere else. */
+    if (src.sensors && (src.sensors.pip !== this.pipCanvas || (this.pipCanvas && this.pipCanvas.parentElement !== this.pip))) {
       if (this.pipCanvas) {
         this.pipCanvas.remove();
       }

@@ -68,7 +68,7 @@ export function createRoomOps(send) {
       const o = old.get(c.id);
       if (c.cls && (!o || !o.cls)) {
         events.push({ type: 'discovered', id: c.id, cls: c.cls });
-      } else if (o && o.cls && c.cls !== o.cls) {
+      } else if (o && o.cls && c.cls && c.cls !== o.cls) {
         events.push({
           type: 'classified', id: c.id, from: o.cls, to: c.cls, label: c.label ?? null,
         });
