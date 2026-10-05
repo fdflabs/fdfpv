@@ -218,7 +218,10 @@ try {
   const ids = await Promise.all([a, b].map((p) => p.evaluate("(() => { const v = window.__war().view; return v.state + ':' + v.mission + ':' + v.id; })()")));
   check('and both are in mission 1\'s briefing, the same war', ids[0] === ids[1] && ids[0].startsWith('briefing:itaipu-1'), ids.join(' / '));
   /* Each came to it in the default aircraft, no war one, so each is put
-   * in the Striker, the war's default, and told so once the film is over. */
+   * in the Striker, the war's default, and told so once the film is over.
+   * The seat is taken on the shell's next frame after the briefing comes
+   * in, so it is waited for: read at once, it failed one run in two. */
+  await Promise.all([a, b].map((p) => p.until(`window.__war().craft.length > 0`, 5000).catch(() => {})));
   const crafts = await Promise.all([a, b].map((p) => p.evaluate("({ seated: window.__ui.settings.airframe, craft: window.__war().craft })")));
   check('a pilot coming into a war in another aircraft is put in the Striker, its line ready to say', crafts.every((c) => c.seated === WAR_DEFAULT
     && c.craft.length === 1 && c.craft[0].id === WAR_DEFAULT && /Striker/.test(c.craft[0].said)), JSON.stringify(crafts));
