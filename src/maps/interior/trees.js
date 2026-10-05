@@ -69,7 +69,7 @@
  */
 
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { HALF, PLAY_HALF } from '../../share/interior/frame.js';
+import { HALF } from '../../share/interior/frame.js';
 import {
   KIND, TREE_CELL, hash01, noise,
 } from '../../share/interior/canopy.js';
@@ -97,8 +97,6 @@ const PTS_BAND = 320;
 const PTS_LO = MID_HAND - MID_BAND - CHUNK_SLOP;
 const PTS_HI = PTS_M + CHUNK_SLOP;
 const FAR_BLOCK = 16;
-/* How far past the played square the blocks reach, metres. */
-const FAR_MARGIN = 2500;
 /* Main thread time a frame may spend making chunks' instance lists. */
 const BUILD_MS = 3;
 /* The instance capacity of each tier: the most crowns its reach can
@@ -625,9 +623,10 @@ export function buildTrees({
 
   /* THE BLOCKS: a point a FAR_BLOCK square that is forest (or shrub)
    * and not opened, at the block's middle jittered, as wide as a block
-   * and a half so the forest closes, over the played square and its
-   * margin. */
-  const farHalf = Math.min(HALF, PLAY_HALF + FAR_MARGIN);
+   * and a half so the forest closes, over the whole of the ground's data
+   * (the ground is drawn to its edge, and a forest that stopped short
+   * left a bare band round the map). */
+  const farHalf = HALF;
   const farPos = [];
   const farCol = [];
   const farShape = [];
