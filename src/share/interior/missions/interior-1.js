@@ -50,6 +50,7 @@ import {
 } from '../places.js';
 import { ALT_POINTS, CONCEAL_POINTS, ROUTES } from '../routes.js';
 import { M1_CLOCK, sunsetMs } from '../clock.js';
+import { FILMS, briefingMs } from '../films/index.js';
 
 /* The design grid's south west corner, metres west and south of the ops
  * frame's origin (docs/campaign/interior/WORLD.md section 2). */
@@ -125,8 +126,12 @@ export default {
   /* Every height here is over the ground; z0 is Pista Cero's ground. */
   ground: true,
   z0: 0,
-  /* No film yet (the films are a later track): no briefing hold. */
-  filmMs: 0,
+  /* The briefing: Mission 1's intro film, held for its length, preload
+   * and all (src/share/interior/films, docs/campaign/interior/FILMS.md). */
+  filmMs: briefingMs('interior-1'),
+  /* Which cut the briefing plays, so the host's skip waits until every
+   * pilot here has seen it (CONTRACT-P0.md section 11). */
+  film: { id: FILMS['int1-intro'].id, version: FILMS['int1-intro'].version },
   /* The hours of the day on the room clock (WORLD's clock.js): a screen
    * moves the sun by it, the light rule below ends at its sunset. */
   clock: M1_CLOCK,

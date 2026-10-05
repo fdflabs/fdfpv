@@ -99,6 +99,24 @@ TAIL_DB = -35.0
 TAIL_GRACE_S = 0.3
 
 
+# Chatterbox's alignment analyzer (chatterbox/models/t3/inference/
+# alignment_stream_analyzer.py, step) slices off a text's last five tokens,
+# start and stop included; on a text of five or fewer ("No.", "There.") the
+# slice is empty and max() raises IndexError, killing the build.
+ANALYZER_TAIL = 5
+
+
+def chatterbox_text(text, lang, tokenizer):
+    """The text Chatterbox is handed for a line: the line's own, or, when
+    it is too short for the alignment analyzer (ANALYZER_TAIL), the same
+    with its stop spaced off ("No ."), one token longer and read the same.
+    The line's text, its subtitle and the gate's reading are unchanged, and
+    a line long enough is never touched, so no existing take moves."""
+    from chatterbox.mtl_tts import punc_norm
+    n = tokenizer.text_to_tokens(punc_norm(text), language_id=lang).shape[-1] + 2
+    return text if n > ANALYZER_TAIL else f'{text[:-1]} {text[-1]}'
+
+
 def seed_for(line_id, lang, attempt):
     h = hashlib.sha256(f'{line_id}:{lang}:{attempt}'.encode()).digest()
     return int.from_bytes(h[:4], 'little')
@@ -201,7 +219,7 @@ def speak(line, lang, tts, asr, words, doc, preset, out, work, review, want, man
     passing = []
     for attempt, seed in enumerate(seeds):
         torch.manual_seed(seed)
-        take = tts.generate(text, language_id=lang, exaggeration=d['exaggeration'],
+        take = tts.generate(chatterbox_text(text, lang, tts.tokenizer), language_id=lang, exaggeration=d['exaggeration'],
                             cfg_weight=d['cfg_weight']).squeeze(0).numpy()
         heard = asr({'raw': take.copy(), 'sampling_rate': SR},
                     generate_kwargs={'language': lang, 'task': 'transcribe'})['text'].strip()

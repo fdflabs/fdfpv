@@ -134,7 +134,8 @@ def main():
 
     manifest_path = out / 'manifest.json'
     manifest = json.loads(manifest_path.read_text(encoding='utf-8')) if manifest_path.exists() else {}
-    manifest['music'] = {}
+    # Only its own tracks: beds.py writes the generated beds beside them.
+    manifest.setdefault('music', {})
     for name, t in TRACKS.items():
         src = out / '_sources' / Path(t['url']).name.replace('%20', '_')
         fetch(t['url'], t['sha256'], src)

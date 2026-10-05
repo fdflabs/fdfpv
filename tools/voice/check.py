@@ -44,7 +44,9 @@ import script
 
 BEGIN = '<!-- voice table: written by tools/voice/check.py --fix from lines.json -->'
 END = '<!-- end voice table -->'
-MUSIC = ('intro', 'combat')
+# The war's two downloaded tracks (music.py) and The Interior's generated
+# beds (beds.py).
+MUSIC = ('intro', 'combat', 'interior', 'column', 'static', 'wind', 'room')
 AUDIO = re.compile(r'\.(webm|mp3|ogg|wav|flac|m4a)$')
 
 
