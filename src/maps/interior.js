@@ -17,9 +17,10 @@
  *                        the post chain (Itaipu's sky, swiss2's kit)
  *   interior/ground.js   the ground's material, from the land cover
  *   interior/trees.js    the canopy drawn from canopy.js's own trees
- *   interior/built.js    roads, the river, the bridge, the buildings,
- *                        Pista Cero and the camp's fixed parts, with
- *                        their colliders and roofs
+ *   interior/built.js    the bridge, the buildings, Pista Cero and the
+ *                        camp's fixed parts, with their colliders and
+ *                        roofs
+ *   interior/ribbons.js  the roads, the river and its streams
  *
  * TIME OF DAY: options.hour (a local solar hour, 16.6667 for Mission 1's
  * 16:40), or ?hour= in the address, else 16:40; map.setLocalTime(h)
