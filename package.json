@@ -141,6 +141,8 @@
     "streamer:selftest": "node scripts/streamer-selftest.js",
     "rooms:server": "node scripts/rooms-server-check.js",
     "rooms:accounts": "node scripts/rooms-account-check.js",
+    "signin:gate": "node scripts/signin-gate-check.js",
+    "signin:bypass": "node scripts/signin-bypass-check.js",
     "account:browser": "node scripts/account-browser-check.js",
     "account:builds": "node scripts/account-builds-check.js",
     "rooms:browser": "node scripts/rooms-browser-three-page.js",

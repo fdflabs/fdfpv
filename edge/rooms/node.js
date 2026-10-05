@@ -3,10 +3,10 @@
  *
  *   ROOMS_DB=/var/lib/fdfpv-rooms/rooms.db PORT=8797 ADMIN_SECRET=... node edge/rooms/node.js
  *
- * and ACCOUNTS_ORIGIN=http://127.0.0.1:8787 to show signed in pilots'
- * callsigns (sessionCallsign below), and TURN_SECRET with TURN_URLS for
- * voice chat's TURN relay (edge/rooms/turn.js; without them voice goes
- * peer to peer through STUN alone).
+ * and ACCOUNTS_ORIGIN=http://127.0.0.1:8787 to seat only signed in
+ * pilots, shown by their callsigns (helloAccount below), and TURN_SECRET
+ * with TURN_URLS for voice chat's TURN relay (edge/rooms/turn.js; without
+ * them voice goes peer to peer through STUN alone).
  *
  * The same rooms as do.js serves on Cloudflare: front.js answers every
  * request, each room is a RoomHost (host.js) around a RoomCore, and the
@@ -73,6 +73,9 @@ import {
   answer, listener, readRevision, refuseUpgrade, upgradeListener,
 } from '../node-http.js';
 import { normaliseName } from '../../src/share/pilot.js';
+import {
+  ACCOUNT_JOIN, CLOSE, CLOSE_ACCOUNTS, CLOSE_SIGNIN,
+} from '../../src/share/roomwire.js';
 import { turnMinter } from './turn.js';
 import en from '../../src/strings/en.js';
 
@@ -124,37 +127,67 @@ const PROBE_KEEP = 16;
 export const DEAD_MS = 15000;
 
 /*
- * A SIGNED IN PILOT'S HELLO carries its session token (src/share/rooms.js),
- * and the room shows the callsign that session holds instead of a picker
- * name. The token is checked by the accounts server (tracks-api/accounts.js,
- * GET /api/account) at ACCOUNTS_ORIGIN, the tracks server on this same
- * machine over loopback, rather than by a signature this server could check
- * alone: that way a signed out session, a changed callsign or a deleted
- * account is true in the next join, with no secret shared between the two
- * servers and nothing about accounts kept here. The token is used for that
- * one request and not kept. The pilot's address goes with it as the
- * accounts server's client address, as Caddy would send it.
+ * EVERY SEAT IS A SIGNED IN PILOT'S, where this server checks accounts
+ * (the owner, 2026-10-03: no play without a registered Google account).
  *
- * Anything short of a clean answer is a guest's join: no ACCOUNTS_ORIGIN
- * (do.js on Cloudflare, the selftests), no session, a session that has
- * ended, the accounts server down or slower than ACCOUNT_WAIT_MS. The
- * pilot flies either way, under their picker name.
+ * How a seat proves its account: the hello carries the pilot's session
+ * token (src/share/rooms.js), the same one the page sends the tracks
+ * server as `authorization: Bearer`. It is checked by the accounts server
+ * (tracks-api/accounts.js, GET /api/account) at ACCOUNTS_ORIGIN, the
+ * tracks server on this same machine over loopback, rather than by a
+ * signature this server could check alone: that way a signed out session,
+ * a changed callsign or a deleted account is true in the next join, with
+ * no secret shared between the two servers and nothing about accounts
+ * kept here. The token is used for that one request and not kept. The
+ * pilot's address goes with it as the accounts server's client address,
+ * as Caddy would send it. The callsign the answer names is the seat's;
+ * one the hello names itself is never read.
+ *
+ * What a hello is answered, where ACCOUNTS_ORIGIN is set:
+ *
+ *   no `account` (roomwire.js ACCOUNT_JOIN)   CLOSE.update: a build from
+ *                                             before the sign in, sent to
+ *                                             reload into the one with it
+ *   no session, a made up one, an ended one,
+ *   or an account with no callsign yet        CLOSE_SIGNIN
+ *   the accounts server down, failing, or
+ *   slower than ACCOUNT_WAIT_MS               CLOSE_ACCOUNTS: try again
+ *   a callsign                                seated, shown by it
+ *
+ * Without ACCOUNTS_ORIGIN (do.js on Cloudflare, the selftests and every
+ * browser check's own rooms server) nothing is checked and every hello is
+ * a guest's, as before: that server has no accounts to ask.
  */
 const SESSION_RE = /^[0-9a-f]{64}$/;
 const ACCOUNT_WAIT_MS = 2000;
 
-async function sessionCallsign(text, env, address) {
-  if (!env.ACCOUNTS_ORIGIN || !text.includes('"session"')) {
-    return null;
+const SIGNIN = { close: CLOSE_SIGNIN, reason: 'signin' };
+const UNREACHABLE = { close: CLOSE_ACCOUNTS, reason: 'accounts' };
+
+/* { callsign } to seat, callsign null for a guest where nothing is
+ * checked, or { close, reason } to refuse. text is the socket's first
+ * message, null when that was binary. */
+export async function helloAccount(text, env, address) {
+  if (!env.ACCOUNTS_ORIGIN) {
+    return { callsign: null };
   }
   let msg;
   try {
-    msg = JSON.parse(text);
+    msg = text === null ? null : JSON.parse(text);
   } catch (e) {
-    return null;
+    msg = null;
   }
-  if (!msg || msg.type !== 'hello' || typeof msg.session !== 'string' || !SESSION_RE.test(msg.session)) {
-    return null;
+  if (!msg || msg.type !== 'hello') {
+    /* The first thing a socket says is its hello, and the account is
+     * checked on that one alone: anything else first would carry a hello
+     * past the check behind it. */
+    return { close: CLOSE.bad, reason: 'bad' };
+  }
+  if (!(Number.isInteger(msg.account) && msg.account >= ACCOUNT_JOIN)) {
+    return { close: CLOSE.update, reason: 'update' };
+  }
+  if (typeof msg.session !== 'string' || !SESSION_RE.test(msg.session)) {
+    return SIGNIN;
   }
   try {
     const res = await fetch(`${env.ACCOUNTS_ORIGIN}/api/account`, {
@@ -162,17 +195,18 @@ async function sessionCallsign(text, env, address) {
       signal: AbortSignal.timeout(ACCOUNT_WAIT_MS),
     });
     if (res.status === 401) {
-      return null;
+      return SIGNIN;
     }
     if (!res.ok) {
-      console.error(`accounts answered ${res.status}; a signed in pilot joins as a guest`);
-      return null;
+      console.error(`accounts answered ${res.status}; a join is refused until it answers`);
+      return UNREACHABLE;
     }
     const body = await res.json();
-    return normaliseName(body && body.callsign);
+    const callsign = normaliseName(body && body.callsign);
+    return callsign ? { callsign } : SIGNIN;
   } catch (e) {
-    console.error('accounts unreachable; a signed in pilot joins as a guest:', e && e.message ? e.message : e);
-    return null;
+    console.error('accounts unreachable; a join is refused until it answers:', e && e.message ? e.message : e);
+    return UNREACHABLE;
   }
 }
 
@@ -402,11 +436,12 @@ class Room {
     this.sockets.add(conn);
     this.enqueue(() => this.host.accept(conn, request));
     /* The socket's first text is its hello, which waits for its callsign
-     * (sessionCallsign), and everything after it, the close included,
+     * (helloAccount), and everything after it, the close included,
      * waits behind it, so the room still sees this socket in order. The
      * wait is outside the room's queue: a slow answer holds up this pilot's
      * join and nobody else's flight. */
     let gate = null;
+    let refused = false;
     ws.on('pong', () => conn.pong());
     conn.probe();
     const probes = setInterval(() => conn.probe(), PROBE_MS);
@@ -419,9 +454,20 @@ class Room {
       }
       const value = binary ? data : data.toString();
       if (!gate) {
-        gate = binary ? Promise.resolve(null) : sessionCallsign(value, this.env, address);
+        gate = helloAccount(binary ? null : value, this.env, address);
       }
-      gate.then((callsign) => this.enqueue(() => this.host.message(conn, value, callsign)));
+      gate.then((account) => {
+        if (account.close) {
+          /* Refused before the room hears it: the socket's close, which
+           * follows, is all the room sees of it. */
+          if (!refused) {
+            refused = true;
+            conn.close(account.close, account.reason);
+          }
+          return;
+        }
+        this.enqueue(() => this.host.message(conn, value, account.callsign));
+      });
     });
     ws.on('close', (code) => {
       clearInterval(probes);
