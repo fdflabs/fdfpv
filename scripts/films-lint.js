@@ -32,6 +32,10 @@
  *             camera a primitive of film.js, every grade and transition
  *             one the player has
  *
+ *   interior  The Interior's films (src/share/interior/films) by the same
+ *             rules with its own aircraft and grades, and their map,
+ *             world, BOARD, music and moments (THE INTERIOR'S FILMS below)
+ *
  * It prints each film's shots, their lengths and lines, and the passes.
  *
  * This file is part of WebFPVSimulator.
@@ -53,16 +57,26 @@
 import { readFileSync } from 'node:fs';
 
 import {
-  LANGS, PRELOAD_MS, anchor, cameraAt, castAt, lineMs, placeAgents, timing,
+  BOARD_PARTS, LANGS, PRELOAD_MS, anchor, boardAt, boardStills, cameraAt, castAt, lineMs, musicCues, placeAgents, timing,
 } from '../src/share/war/film.js';
 import { poseAt } from '../src/share/war/routes.js';
 import { FILMS, briefingMs, filmFor } from '../src/share/war/films/index.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
 import { KIND } from '../src/share/war/routes.js';
-import VOICE from '../src/share/war/voicelen.js';
 import en from '../src/strings/en.js';
 import { WAR_AIRFRAMES } from '../configs/airframes.js';
 import es from '../src/strings/es.js';
+import { BOARD_MAP } from '../src/share/interior/films/board.js';
+import { ROOM_AGL, ROOM_AT } from '../src/share/interior/films/common.js';
+import {
+  FILMS as INTERIOR_FILMS, FILM_AIRFRAMES, MISSION_FILMS, briefingMs as interiorBriefingMs,
+} from '../src/share/interior/films/index.js';
+import { PEOPLE_MAX, STILLS } from '../src/share/interior/films/stills.js';
+import { PLAY_HALF } from '../src/share/interior/frame.js';
+import { MISSIONS as OPS_MISSIONS } from '../src/share/ops/missions.js';
+import { readWorldBytes } from '../src/share/interior/node.js';
+import { makeWorld } from '../src/share/interior/world.js';
+import { existsSync } from 'node:fs';
 
 const PASS_M = 2;
 const FILM_MIN_S = 30;
@@ -145,7 +159,9 @@ const lines = new Set(JSON.parse(readFileSync(new URL('../assets/audio/war/lines
 const failures = [];
 const fail = (msg) => failures.push(msg);
 
-for (const film of Object.values(FILMS)) {
+/* One film's timing, lines, names, anchors, aircraft and passes, by its
+ * campaign's rules: { cameras, grades, airframes, whose, anchors(def) }. */
+function lintFilm(film, rules) {
   const t = timing(film);
   const shotsMs = t.ms - PRELOAD_MS;
   console.log(`film ${film.id} v${film.version}: ${(t.ms / 1000).toFixed(2)} s with its ${PRELOAD_MS / 1000} s preload, ${film.shots.length} shots`);
@@ -159,10 +175,10 @@ for (const film of Object.values(FILMS)) {
     const def = film.shots[i];
     const said = s.lines.map((l) => `${l.line} at ${((l.start - s.start) / 1000).toFixed(2)} s (en ${(l.ms.en / 1000).toFixed(2)}, es ${(l.ms.es / 1000).toFixed(2)})`).join('; ');
     console.log(`  ${s.id.padEnd(8)} ${(s.start / 1000).toFixed(2).padStart(6)} s  ${(s.ms / 1000).toFixed(2).padStart(5)} s  ${(def.camera?.type ?? '?').padEnd(9)} ${String(def.camera?.lens ?? '').padEnd(9)} ${said}`);
-    if (!CAMERAS.has(def.camera?.type)) {
+    if (!rules.cameras.has(def.camera?.type)) {
       fail(`${film.id} ${s.id}: a camera of no type ${def.camera?.type}`);
     }
-    if (def.grade && !GRADES.has(def.grade)) {
+    if (def.grade && !rules.grades.has(def.grade)) {
       fail(`${film.id} ${s.id}: no grade ${def.grade}`);
     }
     if (def.out && !OUTS.has(def.out)) {
@@ -173,7 +189,7 @@ for (const film of Object.values(FILMS)) {
     }
     /* Each line and its pads inside its shot, or its span. */
     let need = 0;
-    for (const l of def.lines ?? []) {
+    for (const [j, l] of (def.lines ?? []).entries()) {
       if (!lines.has(l.line)) {
         fail(`${film.id} ${s.id}: no line ${l.line} in lines.json`);
       }
@@ -184,8 +200,9 @@ for (const film of Object.values(FILMS)) {
           fail(`${film.id} ${s.id}: ${e.message}`);
         }
       }
-      const long = Math.max(...LANGS.map((lang) => Math.round((VOICE[l.line]?.[lang] ?? 0) * 1000)));
-      need += Math.round((l.lead ?? 0) * 1000) + long + Math.round((l.tail ?? 0) * 1000);
+      /* Where the timeline put it, so an overlapping line is measured
+       * from its own start (film.js timing). */
+      need = Math.max(need, s.lines[j].rel + s.lines[j].longest + Math.round((l.tail ?? 0) * 1000));
       const span = t.shots.slice(i, i + (l.span ?? 1)).reduce((sum, x) => sum + x.ms, 0);
       if (need > span) {
         fail(`${film.id} ${s.id}: ${l.line} needs ${need} ms, its shots have ${span}`);
@@ -200,6 +217,7 @@ for (const film of Object.values(FILMS)) {
       ...(def.camera?.to != null ? [def.camera.to] : []),
       ...(def.scope?.appear ?? []),
       ...(def.outline ? [def.outline.from ?? 0, def.outline.to ?? { at: 'end' }] : []),
+      ...rules.anchors(def),
     ];
     for (const a of anchors) {
       const ms = anchor(a, s);
@@ -230,10 +248,10 @@ for (const film of Object.values(FILMS)) {
       }
     }
   }
-  const shown = Object.entries(film.cast ?? {}).filter(([, c]) => !WAR_AIRFRAMES.includes(c.airframe));
+  const shown = Object.entries(film.cast ?? {}).filter(([, c]) => !rules.airframes.includes(c.airframe));
   console.log(`  aircraft ${[...new Set(Object.values(film.cast ?? {}).map((c) => c.airframe))].join(', ') || 'none'}`);
   if (shown.length) {
-    fail(`${film.id}: shows aircraft that are not the war's: ${shown.map(([name, c]) => `${name} (${c.airframe})`).join(', ')}`);
+    fail(`${film.id}: shows aircraft that are not ${rules.whose}: ${shown.map(([name, c]) => `${name} (${c.airframe})`).join(', ')}`);
   }
   for (const g of film.agents ?? []) {
     for (const id of g.shots ?? []) {
@@ -278,6 +296,13 @@ for (const film of Object.values(FILMS)) {
       fail(`${film.id} agents ${a.group}: at ${(at / 1000).toFixed(2)} s into ${shot.id} it is ${off.h.toFixed(1)} deg across and ${off.v.toFixed(1)} deg up from the lens axis, outside the frame's ${off.hHalf.toFixed(1)} by ${off.vHalf.toFixed(1)}`);
     }
   }
+}
+
+const WAR_RULES = {
+  cameras: CAMERAS, grades: GRADES, airframes: WAR_AIRFRAMES, whose: "the war's", anchors: () => [],
+};
+for (const film of Object.values(FILMS)) {
+  lintFilm(film, WAR_RULES);
 }
 
 /* Each hero shot: its whole group in the frame, the nearest big enough to
@@ -346,6 +371,199 @@ for (const m of Object.values(MISSIONS)) {
   }
   console.log(`mission ${m.id}: film ${f.id}, briefing ${(briefingMs(m) / 1000).toFixed(2)} s`);
 }
+
+/*
+ * THE INTERIOR'S FILMS (src/share/interior/films, docs/campaign/interior/
+ * FILMS.md): the timing, lines, names, anchors and aircraft above by The
+ * Interior's rules (its aircraft FILM_AIRFRAMES, its grades, the BOARD
+ * camera), and its own:
+ *   map      every film is the Interior map's; every world camera, sampled
+ *            every WORLD_STEP_MS, and every cast member over the
+ *            Interior's ground by CLEAR_M and inside the played square; a
+ *            room shot's camera inside its set's walls (the film:world
+ *            lesson of #412, held as data)
+ *   board    every BOARD part known; every layer and mark the board map's;
+ *            every still authored, or a capture with its reconstruction
+ *            behind it; no still drawing a person taller than PEOPLE_MAX of
+ *            its height; every alert key in both string tables; every
+ *            BOARD, camera ball and music anchor inside its shot; a BOARD
+ *            on a world shot only on a set's screens
+ *   music    every cue a bed in assets/audio/war/music
+ *   ids      no Interior film shares a war film's id (one "seen" record)
+ *   moments  every film a mission names exists; interior-1's briefing (its
+ *            filmMs) is its intro's length
+ */
+const INTERIOR_CAMERAS = new Set([...CAMERAS, 'board']);
+const INTERIOR_GRADES = new Set([...GRADES, 'archive', 'room', 'air', 'dusk']);
+const WORLD_STEP_MS = 100;
+const CLEAR_M = 1;
+/* The room set's walls, local metres from its floor's centre, a little in
+ * from them (src/render/filmroom.js: 6 wide, 2.6 high, z -2 to 2.5). */
+const ROOM_BOX = { x: [-2.9, 2.9], y: [0.1, 2.5], z: [-1.95, 2.4] };
+
+function interiorAnchors(def) {
+  const b = def.board ?? {};
+  const fromTo = (x) => (x ? [x.from, x.to].filter((a) => a != null) : []);
+  return [
+    ...(b.view?.from ? [b.view.a, b.view.b].filter((a) => a != null) : []),
+    ...(b.layers ?? []).flatMap(fromTo),
+    ...(b.marks ?? []).map((m) => m.at),
+    ...(b.stills ?? []).flatMap(fromTo),
+    ...[b.match, b.split].flatMap(fromTo),
+    ...(b.match?.at != null ? [b.match.at] : []),
+    ...fromTo(b.alert),
+    ...(b.hand ? [b.hand.from, b.hand.to] : []),
+    ...(def.ball ? [def.ball.on, def.ball.hud].filter((a) => a != null) : []),
+    ...(def.music && typeof def.music === 'object' && def.music.at != null ? [def.music.at] : []),
+  ];
+}
+
+/* A still id the BOARD can show: authored, or cap:<item> over its rec. */
+function stillKnown(id) {
+  return id.startsWith('cap:') ? Boolean(STILLS[`rec:${id.slice(4)}`]) : Boolean(STILLS[id]);
+}
+
+function lintInterior() {
+  const world = makeWorld(readWorldBytes());
+  const ground = (x, z) => world.groundAt(x, z);
+  const roomFloor = ROOM_AGL + ground(ROOM_AT[0], ROOM_AT[2]);
+  for (const [id, s] of Object.entries(STILLS)) {
+    if (!['archive', 'recent', 'rec'].includes(s.kind)) {
+      fail(`still ${id}: a kind of no name ${s.kind}`);
+    }
+    if (!(s.people >= 0 && s.people <= PEOPLE_MAX)) {
+      fail(`still ${id}: draws a person ${s.people} of its height, over ${PEOPLE_MAX}: a figure that size could show a face`);
+    }
+  }
+  for (const film of Object.values(INTERIOR_FILMS)) {
+    if (FILMS[film.id]) {
+      fail(`${film.id}: an Interior film with a war film's id; "seen" keeps one record for both`);
+    }
+    lintFilm(film, {
+      cameras: INTERIOR_CAMERAS, grades: INTERIOR_GRADES, airframes: FILM_AIRFRAMES, whose: "The Interior's", anchors: interiorAnchors,
+    });
+    for (const [name, set] of Object.entries(film.sets ?? {})) {
+      if (set.feed && !stillKnown(set.feed)) {
+        fail(`${film.id}: the ${name} set's feed is a still ${set.feed} nobody drew`);
+      }
+    }
+    if (film.map !== 'interior') {
+      fail(`${film.id}: of the map ${film.map}, not interior`);
+    }
+    const t = timing(film);
+    for (const c of musicCues(film, t)) {
+      if (c.track && !existsSync(new URL(`../assets/audio/war/music/${c.track}.webm`, import.meta.url))) {
+        fail(`${film.id}: a music cue ${c.track} with no bed in assets/audio/war/music`);
+      }
+    }
+    let least = Infinity;
+    let stills = 0;
+    for (const [i, s] of t.shots.entries()) {
+      const def = film.shots[i];
+      const castPlace = (name, ms) => {
+        const d = def.cast[name];
+        const c = castAt(d, s, ms);
+        const y = c.p[1] == null ? ground(c.p[0], c.p[2]) : d.agl ? c.p[1] + ground(c.p[0], c.p[2]) : c.p[1];
+        return [c.p[0], y, c.p[2]];
+      };
+      const resolve = {
+        ground,
+        cast: castPlace,
+        agent() {
+          throw new Error(`${film.id} ${s.id}: an Interior film flies no agents`);
+        },
+      };
+      if (def.set && !film.sets?.[def.set]) {
+        fail(`${film.id} ${s.id}: stands in no set ${def.set}`);
+      }
+      if (def.board && def.camera.type !== 'board' && !def.set) {
+        fail(`${film.id} ${s.id}: a BOARD on a world shot with no set's screens to show it`);
+      }
+      let low = null;
+      let off = null;
+      let wall = null;
+      for (let ms = 0; ms <= s.ms; ms += WORLD_STEP_MS) {
+        const cam = cameraAt(s, ms, resolve, i);
+        const [x, y, z] = cam.p;
+        if (def.set) {
+          const local = [x - ROOM_AT[0], y - roomFloor, z - ROOM_AT[2]];
+          const inside = ['x', 'y', 'z'].every((k, n) => local[n] >= ROOM_BOX[k][0] && local[n] <= ROOM_BOX[k][1]);
+          if (!inside && wall == null) {
+            wall = { ms, local };
+          }
+          continue;
+        }
+        const clear = y - ground(x, z);
+        least = Math.min(least, clear);
+        if (clear < CLEAR_M && low == null) {
+          low = { ms, clear };
+        }
+        if ((Math.abs(x) > PLAY_HALF || Math.abs(z) > PLAY_HALF) && off == null) {
+          off = { ms, x, z };
+        }
+        for (const name of Object.keys(def.cast ?? {})) {
+          const p = castPlace(name, ms);
+          if (Math.abs(p[0]) > PLAY_HALF || Math.abs(p[2]) > PLAY_HALF || p[1] < ground(p[0], p[2]) - 0.5) {
+            fail(`${film.id} ${s.id}: its cast ${name} under the ground or off the played square at ${ms} ms`);
+            break;
+          }
+        }
+      }
+      if (low) {
+        fail(`${film.id} ${s.id}: its camera ${low.clear.toFixed(2)} m over the ground at ${low.ms} ms, under ${CLEAR_M}`);
+      }
+      if (off) {
+        fail(`${film.id} ${s.id}: its camera off the played square at ${off.ms} ms (${off.x.toFixed(0)}, ${off.z.toFixed(0)})`);
+      }
+      if (wall) {
+        fail(`${film.id} ${s.id}: its camera outside the ${def.set} set's walls at ${wall.ms} ms (${wall.local.map((v) => v.toFixed(2)).join(', ')})`);
+      }
+      if (!def.board) {
+        continue;
+      }
+      for (const k of Object.keys(def.board)) {
+        if (!BOARD_PARTS.includes(k)) {
+          fail(`${film.id} ${s.id}: a BOARD part of no name ${k}`);
+        }
+      }
+      for (const l of [...(def.board.layers ?? []).map((x) => x.id), ...(def.board.marks ?? []).map((x) => x.layer)]) {
+        if (!BOARD_MAP.layers[l]) {
+          fail(`${film.id} ${s.id}: the BOARD shows no layer ${l} of the board map`);
+        }
+      }
+      if ((def.board.layers ?? []).length && !def.board.view) {
+        fail(`${film.id} ${s.id}: BOARD layers with no view`);
+      }
+      for (const id of boardStills(def)) {
+        stills += 1;
+        if (!stillKnown(id)) {
+          fail(`${film.id} ${s.id}: the BOARD shows a still ${id} nobody drew${id.startsWith('cap:') ? ' (no reconstruction behind the capture)' : ''}`);
+        }
+      }
+      if (def.board.alert && (!(def.board.alert.key in en) || !(def.board.alert.key in es))) {
+        fail(`${film.id} ${s.id}: the alert key ${def.board.alert.key} is not in both string tables`);
+      }
+      for (const ms of [0, s.ms / 2, s.ms]) {
+        boardAt(s, ms);
+      }
+    }
+    console.log(`  world ${film.id}: map ${film.map}, the least camera clearance outside a set ${least === Infinity ? 'none' : `${least.toFixed(1)} m`}, ${stills} stills on the BOARD`);
+  }
+  for (const [mission, moments] of Object.entries(MISSION_FILMS)) {
+    for (const [moment, id] of Object.entries(moments)) {
+      if (!INTERIOR_FILMS[id]) {
+        fail(`${mission}: its ${moment} is no film ${id}`);
+      }
+    }
+    const m = OPS_MISSIONS[mission];
+    if (m && m.filmMs !== interiorBriefingMs(mission)) {
+      fail(`${mission}: its briefing (filmMs) ${m.filmMs} ms is not its intro's ${interiorBriefingMs(mission)} ms`);
+    }
+    console.log(`mission ${mission}: ${Object.entries(moments).map(([k, v]) => `${k} ${v}`).join(', ')}, briefing ${(interiorBriefingMs(mission) / 1000).toFixed(2)} s`);
+  }
+}
+
+lintInterior();
 
 if (failures.length) {
   console.log(`\nfilms:lint FAIL\n  ${failures.join('\n  ')}`);
