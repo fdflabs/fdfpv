@@ -761,7 +761,15 @@ export function dressNight({
     ...masts.map((l) => [...l.head, MAST_RADIANCE, MAST_M, false]),
     ...aviation.map((p) => [...p, AVIATION_M, true]),
     ...ring.map((p) => [...p, RING_M, false]),
-  ], thermalShader(glowMaterial(uniforms), 'float thT = thLum(vCol) * (a * a) * 0.15;', 'itaipu-night-glows'));
+  ], thermalShader(
+    glowMaterial(uniforms),
+    /* A glow is light scattered in the visible band: in the long wave
+     * band there is no halo, only the fixture's housing, some 50 K over
+     * the night air, at the glow's core (src/render/thermal.js). The
+     * glow is additive, so this is added to what lies behind it. */
+    'float thT = 0.5 * smoothstep(0.8, 0.95, a);',
+    'itaipu-night-glows',
+  ));
   group.add(glows);
 
   /* The powerhouse's two real lights, each in its district. */

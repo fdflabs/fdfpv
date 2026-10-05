@@ -248,7 +248,7 @@ const INSTALL = /* js */ `(async (thermalW) => {
     if (lab === L.sky) { return 'sky'; }
     for (const [k, v] of Object.entries(L.kinds)) {
       if (v === lab) {
-        return ({ built: 'built', glass: 'built', warm: 'built', vegetation: 'vegetation', water: 'water', ground: 'ground', rock: 'ground', hot: 'hot', motor: 'motor', body: 'body', fire: 'fire' })[k] || k;
+        return ({ built: 'built', glass: 'built', warm: 'built', vegetation: 'vegetation', water: 'water', ground: 'ground', rock: 'ground', hot: 'hot', motor: 'motor', body: 'body', fire: 'fire', spray: 'veil' })[k] || k;
       }
     }
     for (const [name, v] of Object.entries(L.shaders)) {

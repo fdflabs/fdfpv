@@ -51,13 +51,14 @@ function part(THREE, x, y, z, w, h, d, heat) {
   return g;
 }
 
-/* A zebu cow, 2.2 m long, facing -z: warm all over (about 38 C). */
+/* A zebu cow, 2.2 m long, facing -z: a body (src/render/thermal.js), its
+ * hide showing most of the skin's warmth, the head more, the legs less. */
 function cowGeometry(THREE) {
   return mergeGeometries([
-    part(THREE, 0, 1.0, 0, 0.62, 0.62, 1.7, 0.08),
-    part(THREE, 0, 1.38, -0.45, 0.4, 0.22, 0.35, 0.08),
-    part(THREE, 0, 1.05, -1.0, 0.3, 0.32, 0.5, 0.09),
-    ...[[-0.2, -0.6], [0.2, -0.6], [-0.2, 0.62], [0.2, 0.62]].map(([x, z]) => part(THREE, x, 0.36, z, 0.13, 0.72, 0.13, 0.06)),
+    part(THREE, 0, 1.0, 0, 0.62, 0.62, 1.7, 0.65),
+    part(THREE, 0, 1.38, -0.45, 0.4, 0.22, 0.35, 0.65),
+    part(THREE, 0, 1.05, -1.0, 0.3, 0.32, 0.5, 0.75),
+    ...[[-0.2, -0.6], [0.2, -0.6], [-0.2, 0.62], [0.2, 0.62]].map(([x, z]) => part(THREE, x, 0.36, z, 0.13, 0.72, 0.13, 0.5)),
   ]);
 }
 
@@ -105,7 +106,7 @@ export function buildAmbient({
       });
     }
   });
-  const cowMat = thermalKind(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 }), 'hot', { attr: true });
+  const cowMat = thermalKind(new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95 }), 'body', { attr: true });
   const herd = new THREE.InstancedMesh(cowGeometry(THREE), cowMat, cows.length);
   herd.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cows.length * 3), 3);
   herd.name = 'interior-cattle';

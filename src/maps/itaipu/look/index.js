@@ -180,6 +180,7 @@ export async function makeLook({
   /* For whatever draws by the time of day without being handed the look:
    * the sensor's thermal weather (src/avionics/sensors.js). */
   scene.userData.timeOfDay = night ? 'night' : 'day';
+  scene.userData.climate = 'itaipu';
   scene.background = AIR.haze.clone();
   const sky = skyBackdrop(sunDir, time);
   const envTarget = skyEnvironment(renderer, sky, when);

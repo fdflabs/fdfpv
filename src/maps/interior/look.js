@@ -186,6 +186,8 @@ export async function makeLook({
   const AIR = { ...base, beta: base.beta.clone().multiplyScalar(0.55) };
   const scene = new THREE.Scene();
   scene.userData.timeOfDay = 'day';
+  /* The thermal picture's air, water and sky (src/render/thermal.js CLIMATE). */
+  scene.userData.climate = 'interior';
   scene.background = AIR.haze.clone();
   const sky = skyBackdrop(sunDir, skyTime);
   const envTarget = skyEnvironment(renderer, sky, skyTime);
