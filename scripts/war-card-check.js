@@ -264,11 +264,11 @@ try {
   await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
   await page.until(`${LAYOUT}.cards.every((c) => c.loaded)`, 30000).catch(() => {});
 
-  /* HOME, THE THREE HUBS AT EVERY SIZE: the war is Operations', its one
-   * link Defend the Paraná. */
+  /* HOME, THE THREE HUBS AT EVERY SIZE: the war is Operations', its first
+   * link Defend the Paraná, The Interior beside it (N20). */
   const first = await page.evaluate(LAYOUT);
-  check('home is three hubs; Operations\' one link is Defend the Paraná: no Defend Itaipu card (the owner took it off, 2026-09-30), no Fly with friends (2026-10-02)',
-    first.cards.map((x) => x.name).join() === HUBS && first.cards[1].links.join() === 'Defend the Paraná'
+  check('home is three hubs; Operations\' links are Defend the Paraná and The Interior: no Defend Itaipu card (the owner took it off, 2026-09-30), no Fly with friends (2026-10-02)',
+    first.cards.map((x) => x.name).join() === HUBS && first.cards[1].links.join() === 'Defend the Paraná,The Interior'
     && !first.cards.some((x) => x.links.includes('Defend Itaipu') || x.links.includes('Fly with friends')), JSON.stringify(first.cards.map((x) => [x.name, x.links])));
   check('each with its picture loaded and its mark drawn', first.cards.every((x) => x.loaded && x.mark));
   for (const [w, h, row] of [[1280, 720, true], [1920, 1080, true], [390, 844, false], [360, 640, false], [844, 390, true]]) {
