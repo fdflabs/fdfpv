@@ -11,7 +11,7 @@
  * is the land cover's classes, each a measured colour, with the farm
  * laid over them invented: fields, paddocks, tracks and tree lines drawn
  * from hashes, so nothing in them is the source's. Roads, the river and
- * everything built are drawn on top (roads.js, water.js, built.js),
+ * everything built are drawn on top (ribbons.js, built.js),
  * where places.js puts them.
  *
  * THE FARM. The cropland and pasture are cut into fields the way the
