@@ -162,7 +162,13 @@ function nearestOn(pts, closed, x, z, out) {
     const u = l2 > 0 ? Math.max(0, Math.min(1, ((x - a.x) * ux + (z - a.z) * uz) / l2)) : 0;
     const px = a.x + ux * u;
     const pz = a.z + uz * u;
-    const d = Math.hypot(x - px, z - pz);
+    /* sqrt, not hypot: this runs over every lake outline's points every
+     * frame, and the hypot builtin boxed its result, about 1.7 MB/s of
+     * garbage in the Swiss valley (heap sampling). Map distances cannot
+     * overflow the squares. */
+    const dx = x - px;
+    const dz = z - pz;
+    const d = Math.sqrt(dx * dx + dz * dz);
     if (d < out[2]) {
       out[0] = px;
       out[1] = pz;

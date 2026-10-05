@@ -237,7 +237,7 @@ const WING_MOUNTS = {
 /* The aircraft the title flies, whatever is seated: the owner's choice, and
  * a wing, so the title never shows a seaplane parked on grass. */
 const TITLE_CRAFT = 'sky1800';
-import { disposeSceneGraph } from './render/shell.js';
+import { disposeSceneGraph, shareInstancedDepth } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
@@ -673,6 +673,7 @@ async function loadMap(shell, id, loading, mapOptions) {
   /* The builder has returned, so every phase it ran is over (the scene's
    * compile among them). */
   loading.closePhases();
+  shareInstancedDepth(map.scene);
   loading.finalSystem('world', 'loading');
   map.graphics = normalizeGraphics(options && options.quality);
   /* The map's water, as the plant is told it: src/game/water.js. */

@@ -45,6 +45,53 @@ import { dressParts } from './partsfit.js';
 import { CAMERA_FOV_DEFAULT } from './lens.js';
 
 /*
+ * One shadow depth material per kind of instanced caster.
+ *
+ * Three.js r160 draws every plain shadow caster with ONE shared
+ * MeshDepthMaterial, and its program carries whether the object is
+ * instanced, has instance colours or is batched. A shadow pass that walks a
+ * plain mesh, then an InstancedMesh, then a plain mesh rebuilds that
+ * material's program parameters and cache key string at every switch:
+ * 29 times a frame in the Swiss valley, measured, about 0.3 ms of main
+ * thread and 1.4 MB/s of garbage. Giving each kind of caster its own copy of
+ * the same material ends the switching. The pixels are the same: it is the
+ * material three would have used, and three still copies the source
+ * material's side, map and alpha onto it every draw.
+ *
+ * A material whose shadow needs three's per material variant (an alpha
+ * tested map, a displacement map, clip planes) is left to three, which
+ * already gives it its own copy. Kinds are keyed by what the program keys:
+ * index 1 instanced, 2 instance coloured, 4 batched.
+ */
+const SHARED_DEPTH = [];
+
+function needsDepthVariant(m) {
+  return (m.clipShadows === true && Array.isArray(m.clippingPlanes) && m.clippingPlanes.length !== 0)
+    || (m.displacementMap && m.displacementScale !== 0)
+    || ((m.alphaMap || m.map) && m.alphaTest > 0);
+}
+
+export function shareInstancedDepth(root) {
+  let shared = 0;
+  root.traverse((obj) => {
+    if (!(obj.isInstancedMesh || obj.isBatchedMesh) || !obj.castShadow || obj.customDepthMaterial) {
+      return;
+    }
+    const m = obj.material;
+    if (Array.isArray(m) || obj.isSkinnedMesh || obj.geometry.morphAttributes.position || needsDepthVariant(m)) {
+      return;
+    }
+    const kind = (obj.isInstancedMesh ? 1 : 0) + (obj.instanceColor ? 2 : 0) + (obj.isBatchedMesh ? 4 : 0);
+    if (!SHARED_DEPTH[kind]) {
+      SHARED_DEPTH[kind] = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+    }
+    obj.customDepthMaterial = SHARED_DEPTH[kind];
+    shared += 1;
+  });
+  return shared;
+}
+
+/*
  * Free every GPU resource a map's scene graph owns.
  *
  * This is what makes "only the active map exists" true rather than asserted.

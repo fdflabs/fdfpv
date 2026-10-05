@@ -63,6 +63,7 @@
 import * as THREE from 'three';
 import { buildValley, valleyPhases } from './alps.js';
 import { qualityFor } from '../render/quality.js';
+import { shareInstancedDepth } from '../render/shell.js';
 import { str } from '../strings/index.js';
 import { makeRng } from './alps/noise.js';
 import {
@@ -463,6 +464,8 @@ function photoStyle() {
              * one first drawn in a frame costs none. */
             if (!stage.cliffs.mesh.parent) {
               scene.add(stage.cliffs.mesh);
+              /* After the build's pass in src/main.js loadMap, so its own. */
+              shareInstancedDepth(stage.cliffs.mesh);
             }
             stage.cliffs.update(camera);
           }
