@@ -161,33 +161,35 @@ second reference.
 
 ### Round 0, the baseline
 
-Scores to be filled by the lead. Sheet:
+Scored by the lead 2026-10-05. Sheet:
 `~/Desktop/fdfpv-loop/interior/round-0-sheet.png`; renders in
 `~/Desktop/fdfpv-loop/interior/round-0/`.
 
 | View | Score | Calls | Tris (M) | GPU least / median (ms) | The tell |
 | --- | --- | --- | --- | --- | --- |
-| survey-alpha-600 | | | | | |
-| survey-bridge-800 | | | | | |
-| survey-bravo-1000 | | | | | |
-| survey-charlie-1200 | | | | | |
-| survey-wide-1800 | | | | | |
-| survey-nadir-1800 | | | | | |
-| camp-orbit-0 | | | | | |
-| camp-orbit-45 | | | | | |
-| camp-orbit-90 | | | | | |
-| camp-orbit-135 | | | | | |
-| camp-orbit-180 | | | | | |
-| camp-orbit-225 | | | | | |
-| camp-orbit-270 | | | | | |
-| camp-orbit-315 | | | | | |
-| low-bridge | | | | | |
-| low-colonia | | | | | |
-| low-pista | | | | | |
-| low-canada | | | | | |
-| low-camp | | | | | |
-| zoom-camp-600 | | | | | |
-| zoom-colonia-500 | | | | | |
-| zoom-motorcycle-400 | | | | | |
+| survey-alpha-600 | 2 | 108 | 0.35 | 1.2 / 1.6 | patchwork fields in flat colour, grey haze, no furrows or field edges |
+| survey-bridge-800 | 2 | 96 | 0.29 | 1.1 / 2.4 | river barely reads, no bridge visible at range, roads thin pink lines |
+| survey-bravo-1000 | 2 | 95 | 0.38 | 1.2 / 1.5 | settlement invisible at range, flat colour fields, washed haze |
+| survey-charlie-1200 | 2 | 104 | 0.27 | 1.1 / 2.0 | forest a flat dark sheet, river a red line, sand-coloured clearings with hard edges |
+| survey-wide-1800 | 2 | 109 | 0.28 | 1.2 / 1.2 | grey wash over everything, polygon field mosaic |
+| survey-nadir-1800 | 2 | 76 | 0.14 | 0.9 / 0.9 | flat greys, no texture at all from overhead |
+| camp-orbit-0 | 2 | 104 | 1.34 | 1.2 / 1.5 | uniform lollipop canopy, pink and yellow dots, forest block ends in a straight edge |
+| camp-orbit-45 | 2 | 103 | 1.25 | 1.2 / 2.5 | same; straight forest edges read as a map square |
+| camp-orbit-90 | 2 | 100 | 1.16 | 1.3 / 2.6 | same; flat dark canopy, holes look cut out |
+| camp-orbit-135 | 2 | 93 | 1.21 | 1.3 / 2.6 | same |
+| camp-orbit-180 | 2 | 97 | 1.10 | 1.3 / 2.6 | same |
+| camp-orbit-225 | 2 | 95 | 1.19 | 1.3 / 2.6 | same |
+| camp-orbit-270 | 2 | 94 | 1.27 | 1.2 / 2.5 | same |
+| camp-orbit-315 | 2 | 98 | 1.38 | 1.2 / 1.4 | same |
+| low-bridge | 1.5 | 83 | 1.28 | 1.4 / 2.7 | blob trees, flat ground, plain bridge |
+| low-colonia | 1.5 | 92 | 0.41 | 1.1 / 1.4 | white boxes, flat ground |
+| low-pista | 1.5 | 125 | 0.83 | 1.1 / 2.4 | flat green ground, no red earth strip |
+| low-canada | 2 | 106 | 1.92 | 1.7 / 2.9 | rows of identical lollipop trees, no undergrowth, creek invisible |
+| low-camp | 1.5 | 102 | 2.24 | 1.7 / 2.0 | low-poly crowns, camp props tiny and plain, tarps flat planes |
+| zoom-camp-600 | 1.5 | 79 | 1.05 | 1.0 / 2.4 | faceted crowns, figures specks, tarps flat |
+| zoom-colonia-500 | 1.5 | 69 | 0.22 | 0.9 / 1.0 | house boxes, road a flat pink stripe, ground a blurred smear |
+| zoom-motorcycle-400 | 1.5 | 78 | 0.20 | 1.0 / 1.1 | road a flat stripe, no motorcycle readable, ground smear |
 
-Mean of the 22 views: to be filled.
+Mean of the 22 views: 1.84.
+
+Round 1 targets (lead): (A) ground, water and atmosphere: field textures and red earth, roads with width, a brown reflective river, lighter haze; (B) the forest: varied crowns in size, shape and colour, irregular natural edges instead of the block's straight sides, quieter flowering trees, canopy:los parity kept.
