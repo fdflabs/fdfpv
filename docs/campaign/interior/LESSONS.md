@@ -72,9 +72,17 @@ Add a section per phase or mission (newest last) with:
    scorer and the stills), N7 (the quiet HUD), N16's screen (the role
    board), N8 (the debrief over the squad's stills), N20's screen (The
    Interior's card, its page and consent); the ops room client
-   (`src/share/roomops.js`). PRs #432, #434 and the debrief and card PR. Mission 1 cannot
-   start from the card until track WORLD's map is in the build.
-2. **Measured:** a locked ball holds its point to 1e-13 of the frame
+   (`src/share/roomops.js`); Mission 1 started from its card and flown
+   on WORLD's map (a private room on it, the start, the room's contacts
+   drawn by the map). PRs #432, #434, #438, #439. `interior:fly` proves
+   it against a real rooms server, single pilot, on the rail: the match
+   live at M1_CP_START, the camp's people drawn from the room's view, a
+   capture judged on the page's real pose and camera.
+2. **Measured:** a still stamped with the room clock is ahead of every
+   pose the room holds when it lands (the room needs a pose on both
+   sides of the still's ms), so every capture was refused `pose` on a
+   real server; stamped with the last pose sent, floored to whole ms, it
+   is judged. A locked ball holds its point to 1e-13 of the frame
    through a weaving orbit, and the room's `sight()` and the screen's
    three.js camera agree to 1.4e-13 over 8000 points (`camera:lock`):
    building the picture on the room's own basis made the two one
