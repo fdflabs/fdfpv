@@ -52,7 +52,7 @@ import { ROUTES } from './routes.js';
  * crowns are 5 to 11 m across. */
 export const TREE_CELL = 8;
 /* No crown top stands higher over its ground than this, metres. */
-export const MAX_TREE_H = 27;
+export const MAX_TREE_H = 32;
 /* No crown is wider than this, metres: places.js's CROWN_REACH, which its
  * openings are bucketed by, holds it. */
 const MAX_CROWN_R = 8;
@@ -89,7 +89,12 @@ const ROUTE_KEEP = 20;
 const ROUTE_FADE = 20;
 
 /* The tree kinds, for the drawing. */
-export const KIND = { broadleaf: 0, palm: 1, lone: 2 };
+export const KIND = {
+  broadleaf: 0, palm: 1, lone: 2, emergent: 3,
+};
+/* The share of forest squares whose tree stands over the roof, on
+ * average: more in some stretches of the forest than others. */
+const EMERGENT = 0.025;
 
 /* Chance a square holds a tree, by land class. */
 const DENSITY = [];
@@ -274,6 +279,15 @@ export function makeCanopy(world) {
       keep = keep < 0 ? 0 : keep > 1 ? 1 : keep;
       r = (3.6 + 2.4 * w) * (1 - keep * 0.2 * (1 - stand));
       ry = (0.36 + 0.12 * hash01(ci, cj, 12)) * h;
+      /* An emergent: a broad flat crown 6 to 12 m over the roof (the
+       * lapachos, the timbo), never beside the routes (ROUTE_KEEP). */
+      if (cls === LAND.forest && hash01(ci, cj, 13) < EMERGENT * 2 * noise(x, z, 300, 14) * keep) {
+        kind = KIND.emergent;
+        const top = tall + 6 + 6 * hash01(ci, cj, 14);
+        h = top < MAX_TREE_H ? top : MAX_TREE_H;
+        r = 6 + 2 * w;
+        ry = 0.3 * h;
+      }
     } else if (cls === LAND.wetland || v < 0.3) {
       kind = KIND.palm;
       h = 8 + 6 * v;
@@ -391,7 +405,7 @@ export function makeCanopy(world) {
     for (let cj = cellOf(z - reach); cj <= cellOf(z + reach); cj += 1) {
       for (let ci = cellOf(x - reach); ci <= cellOf(x + reach); ci += 1) {
         const t = treeAt(ci, cj);
-        if (t && t.kind === KIND.broadleaf) {
+        if (t && (t.kind === KIND.broadleaf || t.kind === KIND.emergent)) {
           const ex = x - t.x;
           const ez = z - t.z;
           const lim = t.r + GAP_NEAR;
