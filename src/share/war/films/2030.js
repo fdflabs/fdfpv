@@ -115,16 +115,16 @@ const LONE_PASS = [150, 228, -2500];
 
 export default {
   id: '2030',
-  version: 3,
+  version: 4,
   cast: CAST,
   routes: {
     /* The lone Striker, low over the water straight at the lens. */
     'lone-low': [[150, 228, -3700], [150, 228, -1900]],
     'ten-low': [[190, 250, -4300], [190, 250, -1900]],
-    'wave-low': [[80, 262, -3200], [80, 262, -1900]],
-    'wave-west': [[-300, 270, -3100], [-150, 270, -1900]],
-    'wave-high': [[600, 420, -3600], [250, 380, -2300]],
-    'wave-far': [[180, 250, -3400], [180, 250, -1900]],
+    'wave-low': [[85, 236, -3200], [85, 236, -1900]],
+    'wave-west': [[-200, 250, -3100], [-60, 250, -1900]],
+    'wave-high': [[150, 266, -3600], [110, 262, -2000]],
+    'wave-far': [[100, 240, -3400], [100, 240, -1900]],
   },
   agents: [
     /* Over the lens in the pass, 6.4 m up, 2.5 s in (so on screen 1.5 s
@@ -139,19 +139,22 @@ export default {
     {
       id: 'ten', kind: 'strike', route: 'ten-low', n: 10, stagger: 0.45, pass: { shot: 'ten', at: { at: 'end' }, point: [190, 250, -2600] }, shots: ['ten'],
     },
-    /* The first wave, each group crossing the frame of the last shot's
-     * long lens as it widens. */
+    /* The first wave: three Strikers low over the water, head on into
+     * the last shot's long lens, sky above them and the reservoir under
+     * the horizon; the swarm and the high Loiterers behind them on the
+     * same bearing, and a group to the west that the lens finds as it
+     * widens. */
     {
-      id: 'wave', kind: 'strike', route: 'wave-low', n: 6, stagger: 0.6, pass: { shot: 'wave', at: 3, point: [80, 262, -2500] }, shots: ['wave'],
+      id: 'wave', kind: 'strike', route: 'wave-low', n: 3, stagger: 0.6, pass: { shot: 'wave', at: 3, point: [85, 236, -2300] }, shots: ['wave'],
     },
     {
-      id: 'west', kind: 'strike', route: 'wave-west', n: 4, stagger: 0.5, pass: { shot: 'wave', at: 13, point: [-193.8, 270, -2250] }, shots: ['wave'],
+      id: 'west', kind: 'strike', route: 'wave-west', n: 4, stagger: 0.5, pass: { shot: 'wave', at: 14.7, point: [-100.8, 250, -2250] }, shots: ['wave'],
     },
     {
-      id: 'swarm', kind: 'fpv', route: 'wave-far', n: 8, pass: { shot: 'wave', at: 8, point: [180, 250, -2300] }, shots: ['wave'],
+      id: 'swarm', kind: 'fpv', route: 'wave-far', n: 8, pass: { shot: 'wave', at: 8, point: [100, 240, -2600] }, shots: ['wave'],
     },
     {
-      id: 'high', kind: 'loiter', route: 'wave-high', n: 3, pass: { shot: 'wave', at: 10, point: [290.4, 384.6, -2450] }, shots: ['wave'],
+      id: 'high', kind: 'loiter', route: 'wave-high', n: 3, pass: { shot: 'wave', at: 10, point: [120, 263, -2400] }, shots: ['wave'],
     },
   ],
   shots: [
@@ -175,19 +178,26 @@ export default {
       min: 9,
       grade: 'steel',
       lines: [{ line: 'intro-2', lead: 1.0, tail: 0.8 }],
-      /* One Striker, head on, growing out of the haze. */
+      /* One Striker, head on, growing out of the haze: the lens a metre
+       * over the water close under its line, so the sky is behind it from
+       * the first frame (the horizon is under the frame's foot, and with
+       * it the far bank's map edge) and it closes from 300 m to 60 m,
+       * looming as it comes. The pass is from just past here. */
       camera: {
-        type: 'telephoto', lens: 400, ease: 'lin', at: [150, 224, -1950], look: { agent: 'lone' },
+        type: 'telephoto', lens: 400, ease: 'lin', at: [153, 220.8, -2510], look: { agent: 'lone' },
       },
+      hero: { agent: 'lone', minPx: 150 },
       out: 'smash',
     },
     {
       id: 'pass',
       min: 5,
       grade: 'steel',
-      /* Low on the water looking north: it passes over the lens. */
+      /* Low on the water, the lens held on it: it comes on, passes over
+       * and to the right, and the lens whips round after it as it goes on
+       * for the dam. Off its line, so the lens never looks straight up. */
       camera: {
-        type: 'handheld', lens: 24, at: [150, 221.6, -2500], look: [150, 232, -2700], amp: 0.04, drift: 3,
+        type: 'handheld', lens: 24, at: [144, 221.6, -2500], look: { agent: 'lone' }, amp: 0.04, drift: 3,
       },
       out: 'cut',
     },
@@ -222,14 +232,22 @@ export default {
       min: 9,
       grade: 'warm',
       lines: [{ line: 'intro-4', lead: 1.5, tail: 1.2 }],
-      /* Along the line of aircraft on the crest deck; nobody there. */
+      /* Down the line of aircraft on the crest deck; nobody there. Low,
+       * off the line's west end and in front of the noses, looking along
+       * the row as the dolly creeps in: the whole line recedes in the
+       * frame, nearest first, and the ones near the lens slide out of it
+       * as it closes. Beside the row, not along it, it held one or two
+       * aircraft at a time and ran past the end onto an empty deck. */
       camera: {
         type: 'dolly',
-        lens: 35,
-        path: [crest(LINE_AT, LINE_OFF + 3.2, CREST_Y + 0.8, -13.5), crest(LINE_AT, LINE_OFF + 2.8, CREST_Y + 0.9, 12.5)],
-        look: [crest(LINE_AT, LINE_OFF - 1, CREST_Y + 0.2, -10.5), crest(LINE_AT, LINE_OFF - 1, CREST_Y + 0.25, 15.5)],
+        lens: 50,
+        path: [crest(LINE_AT, LINE_OFF + 2.8, CREST_Y + 0.6, -15.5), crest(LINE_AT, LINE_OFF + 2.3, CREST_Y + 0.5, -12)],
+        look: [crest(LINE_AT, LINE_OFF - 0.2, CREST_Y + 0.3, 0), crest(LINE_AT, LINE_OFF - 0.2, CREST_Y + 0.3, 6)],
       },
-      cast: lineCast(),
+      /* The quads only: the Striker stands on the lowest point of its
+       * build, a thin part under the fuselage, so down the row it read as
+       * a missile hung in the air over the quads. It has the thrown shot. */
+      cast: lineCast(['strk']),
       out: 'cut',
     },
     {
@@ -288,11 +306,14 @@ export default {
       min: 15,
       grade: 'steel',
       lines: [{ line: 'intro-7', lead: 2.0, tail: 1.0 }],
-      /* The first wave on the horizon on a long lens, pulling wide as the
-       * defenders climb past it from both banks; then the hand-off. */
+      /* The first wave on a long lens from the crest, head on, the
+       * horizon in the frame's lower third; held long, then pulling wide
+       * late as the defenders climb past it from both banks and the look
+       * lifts over the contacts for the title; then the hand-off. */
       camera: {
-        type: 'telephoto', lens: [200, 24], ease: 'io', at: crest(8.5, 20, 231), look: [[90, 262, -2500], [100, 280, -2150]],
+        type: 'telephoto', lens: [300, 24], ease: 'in', at: crest(8.5, 20, 231), look: [[85, 240, -2300], [95, 286, -2300]],
       },
+      hero: { agent: 'wave', minPx: 60, to: 9 },
       cast: {
         strk: { as: 'strks', ...rise(crest(8.5, 8, 233, 10), 22, 40, 0.2, 7.4) },
         q4: rise(crest(8.5, 23, 227.5, 3), 9, 70, -0.25, 8.2),
