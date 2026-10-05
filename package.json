@@ -129,6 +129,7 @@
     "contacts:selftest": "node scripts/contacts-selftest.js",
     "roles:deal": "node scripts/roles-deal.js",
     "interior:stages": "node scripts/interior-stages-selftest.js",
+    "dev:accounts": "node --disable-warning=ExperimentalWarning scripts/dev-accounts-selftest.js",
     "camera:lock": "node scripts/camera-lock-check.js",
     "capture:score": "node scripts/capture-score-check.js",
     "camera:ball": "node scripts/camera-ball-check.js",

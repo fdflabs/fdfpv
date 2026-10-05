@@ -37,6 +37,7 @@ EnvironmentFile=/etc/fdfpv/tracks.env
 # turn-install.sh (deploy-turn.sh). Optional: without it voice is peer to
 # peer through STUN alone (edge/rooms/turn.js).
 EnvironmentFile=-/etc/fdfpv/turn.env
+EnvironmentFile=-/etc/fdfpv/dev-accounts.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
 # start; the journal does not need to hear it.
 ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 edge/rooms/node.js

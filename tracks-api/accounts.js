@@ -521,7 +521,9 @@ export async function accountRoute(env, request, path) {
     return refuse(401, 'Not signed in, or the session has ended. Sign in again.', { signedOut: true });
   }
   if (path === '/api/account' && method === 'GET') {
-    return json(200, { callsign: account.callsign ?? null, publicKey: account.public_key ?? null });
+    /* id: the account's own number, for the rooms server's DEV_ACCOUNTS
+     * (edge/rooms/node.js helloAccount); only ever sent to the account. */
+    return json(200, { id: account.id, callsign: account.callsign ?? null, publicKey: account.public_key ?? null });
   }
   if (path === '/api/account/progress' && method === 'GET') {
     return json(200, { progress: cleanBlob(heldProgress(account)) });

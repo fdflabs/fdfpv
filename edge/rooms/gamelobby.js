@@ -86,7 +86,7 @@ function warCheckpoint(core) {
 
 /* Whether the room's war may start mission `id` on its map. */
 function warFits(core, id) {
-  return typeof id === 'string' && Object.hasOwn(MISSIONS, id) && MISSIONS[id].map === core.meta.map && core.war.startable(id);
+  return typeof id === 'string' && Object.hasOwn(MISSIONS, id) && MISSIONS[id].map === core.meta.map && core.war.startable(id, core);
 }
 
 /* The war's mission: the room's own, else the first on its map it may
@@ -122,7 +122,7 @@ const GAMES = {
       key: settingKey('war'),
       valid: (core, v) => typeof v === 'string' && Object.hasOwn(MISSIONS, v) && MISSIONS[v].map === core.meta.map,
       /* A mission it knows but may not start yet: said, as the start's. */
-      refused: (core, v) => (core.war.startable(v) ? null : 'war_unreleased'),
+      refused: (core, v) => (core.war.startable(v, core) ? null : 'war_unreleased'),
     },
     show: (core) => ({ mission: warMission(core) }),
     can: (core) => warMission(core) !== null,
