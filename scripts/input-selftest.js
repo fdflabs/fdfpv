@@ -1275,6 +1275,143 @@ section('throttle low first: a standard pad at rest is held until it has been do
     rig.im.throttleHeld === false && rig.im.channels.throttle === 0.5);
 }
 
+/* ------------------------------------------------------------------------
+ * 10. The same radio over Bluetooth. The owner, on a Radiomaster Pocket:
+ *     "when i connect via usb works great in my game, but when i want to
+ *     use the expresslrs bluetooth mode, its like the axis are all flipped".
+ *     They were. ExpressLRS's BLE joystick is not EdgeTX's USB one: the
+ *     browser puts throttle on axis 3 and yaw on axis 4, with an aux
+ *     switch on axis 2 where AETR looks for the throttle. The pad below is
+ *     the one that was measured, 2026-10-05, Chrome on macOS, and its aux
+ *     switch is left high so that AETR would read full throttle from it.
+ * ---------------------------------------------------------------------- */
+const ELRS_ID = 'ExpressLRS Joystick (Vendor: e502 Product: bbab)';
+function elrsPad() {
+  const pad = makePad([0, 0, 1, -1, 0, 0, 0, 0, 0, 0], 16, ELRS_ID);
+  return pad;
+}
+
+section('an ExpressLRS Bluetooth radio flies on its own layout, uncalibrated');
+{
+  const rig = new Rig(elrsPad());
+  rig.run(100);
+  check('throttle down is exactly 0, whatever the aux switch on axis 2 says',
+    rig.im.channels.throttle === 0, String(rig.im.channels.throttle));
+  rig.ax(3, 1); rig.step();
+  check('throttle up, axis 3, is exactly 1', rig.im.channels.throttle === 1,
+    String(rig.im.channels.throttle));
+  check('and the throttle stick is not yaw', rig.im.channels.yaw === 0, String(rig.im.channels.yaw));
+  rig.ax(3, -1); rig.ax(4, 1); rig.step();
+  check('yaw right, axis 4, is exactly 1', rig.im.channels.yaw === 1, String(rig.im.channels.yaw));
+  rig.ax(4, 0); rig.ax(0, 1); rig.step();
+  check('roll right, axis 0, is exactly 1', rig.im.channels.roll === 1, String(rig.im.channels.roll));
+  rig.ax(0, 0); rig.ax(1, 1); rig.step();
+  check('stick forward, axis 1, is nose down, exactly -1', rig.im.channels.pitch === -1,
+    String(rig.im.channels.pitch));
+  check('it is recognised, not guessed: nothing asks for calibration', rig.im.mapKnown() === true);
+}
+{
+  const pad = makePad([0, 0, -1, 0, 0, 0, 0, 0, 0, 0], 16, 'Radiomaster Pocket Joystick (Vendor: 1209 Product: 4f54)');
+  const rig = new Rig(pad);
+  rig.run(100);
+  rig.ax(2, 1); rig.step();
+  check('the same radio on its USB cable is still AETR, throttle on axis 2',
+    rig.im.channels.throttle === 1, String(rig.im.channels.throttle));
+  /* The cable comes out and the radio comes back as the other device, in
+   * the same session. The default has to follow it there and back. */
+  Object.assign(pad, elrsPad());
+  rig.run(100);
+  rig.ax(3, 1); rig.step();
+  check('cable out, Bluetooth in: throttle follows to axis 3',
+    rig.im.channels.throttle === 1, String(rig.im.channels.throttle));
+  pad.id = 'Radiomaster Pocket Joystick (Vendor: 1209 Product: 4f54)';
+  pad.axes = [0, 0, 1, -1, 0, 0, 0, 0];
+  rig.run(100);
+  check('and back on the cable it is AETR again', rig.im.channels.throttle === 1
+    && rig.im.channels.yaw === -1, JSON.stringify(rig.im.channels));
+}
+{
+  const store = memoryStorage();
+  store.setItem('webfpv_stick_map_v1', JSON.stringify({
+    roll: { axis: 4, center: 0, full: 1 },
+    pitch: { axis: 1, center: 0, full: -1 },
+    yaw: { axis: 0, center: 0, full: 1 },
+    throttle: { axis: 3, low: -1, high: 1 },
+  }));
+  const rig = new Rig(elrsPad(), store);
+  rig.run(100);
+  rig.ax(0, 1); rig.step();
+  check('a saved calibration still wins over the recognised layout',
+    rig.im.channels.yaw === 1 && rig.im.channels.roll === 0, JSON.stringify(rig.im.channels));
+}
+
+/* ------------------------------------------------------------------------
+ * 11. "Then put them back", on a stick with no spring. The same pilot, the
+ *     same evening, in the wizard: the throttle was most of the way up at
+ *     the centre step, the sweep counted four of four, and the wizard then
+ *     waited for the throttle to return to within 0.2 of a place nothing
+ *     marks. Recorded live: rest 0.735, left at 0.361, and "Back to rest to
+ *     continue." for as long as anyone cared to watch.
+ * ---------------------------------------------------------------------- */
+section('the sweep lets an unsprung throttle stop somewhere new, and only that');
+{
+  const rig = new Rig(makePad([0, 0, 0.735, 0, 0, 0], 4));
+  rig.im.startCalibration();
+  check('centre settles with the throttle up, as it always did', rig.waitStep('sweep'));
+  for (const i of [0, 1, 2, 3]) {
+    rig.ax(i, 1); rig.step();
+    rig.ax(i, -1); rig.step();
+    rig.ax(i, i === 2 ? 0.361 : 0); rig.step();
+  }
+  check('the throttle left somewhere else no longer strands the sweep', rig.waitStep('throttle'));
+  rig.run(1500);
+  check('and sitting there is not read as a throttle deflection',
+    rig.view().step === 'throttle' && rig.view().phase === 'hold', `${rig.view().step} ${rig.view().phase}`);
+  rig.ax(2, 1);
+  check('pushed up from there, it identifies', rig.waitPhase('release'));
+  rig.ax(2, -1);
+  check('and released to the bottom, moves on to roll', rig.waitStep('roll'));
+  const finish = [['roll', 0, 1], ['pitch', 1, -1], ['yaw', 3, 1]];
+  let finished = true;
+  for (const [name, axis, push] of finish) {
+    rig.ax(axis, push);
+    finished = finished && rig.waitPhase('release');
+    rig.ax(axis, 0);
+    finished = finished && rig.waitPhase('hold');
+    finished = finished && rig.view().step !== name;
+  }
+  check('the wizard reaches the check step', finished && rig.view().step === 'confirm',
+    rig.view().step);
+  rig.im.acceptCalibration();
+  rig.ax(2, -1); rig.step();
+  check('bottom reads exactly 0', rig.im.channels.throttle === 0, String(rig.im.channels.throttle));
+  rig.ax(2, 1); rig.step();
+  check('top reads exactly 1', rig.im.channels.throttle === 1, String(rig.im.channels.throttle));
+}
+{
+  /* The other direction: two axes off rest is a stick held in a corner,
+   * not a parked throttle, and holding it there must not move on. */
+  const rig = new Rig(makePad([0, 0, -1, 0, 0, 0], 4));
+  rig.im.startCalibration();
+  rig.waitStep('sweep');
+  for (const i of [0, 1, 2, 3]) {
+    rig.ax(i, 1); rig.step();
+    rig.ax(i, -1); rig.step();
+    rig.ax(i, i === 2 ? -1 : 0); rig.step();
+  }
+  rig.ax(0, 1); rig.ax(1, 1);
+  rig.run(3000);
+  check('a stick held in a corner still waits', rig.view().step === 'sweep', rig.view().step);
+  /* One axis off rest but still moving is a thumb on the stick. */
+  rig.ax(1, 0);
+  for (let i = 0; i < 180; i += 1) {
+    rig.ax(0, i % 2 ? 0.9 : 0.6); rig.step();
+  }
+  check('one axis off rest and still moving still waits', rig.view().step === 'sweep', rig.view().step);
+  rig.ax(0, 0);
+  check('and back at rest it goes on, as before', rig.waitStep('throttle'));
+}
+
 console.log(failed ? `\n${failed} failed, ${passed} passed` : `\nall ${passed} passed`);
 for (const f of fails) {
   console.log(`  FAIL ${f}`);
