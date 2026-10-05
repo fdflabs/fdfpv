@@ -193,3 +193,32 @@ Scored by the lead 2026-10-05. Sheet:
 Mean of the 22 views: 1.84.
 
 Round 1 targets (lead): (A) ground, water and atmosphere: field textures and red earth, roads with width, a brown reflective river, lighter haze; (B) the forest: varied crowns in size, shape and colour, irregular natural edges instead of the block's straight sides, quieter flowering trees, canopy:los parity kept.
+
+### Round 1, ground and forest (2026-10-05)
+
+Two targets, two agents, merged in turn and scored by the lead on each
+merge. Sheets: `~/Desktop/fdfpv-loop/interior/r1-ground-sheet.png` and
+`r1-forest-sheet.png`.
+
+- **1A, ground, water and air (#459):** fields as turned blocks of ploughed
+  red earth, crop rows and paddocks with fences and tree lines; red
+  laterite roads with ruts and verges; a brown, slightly reflective river
+  with sandbars; extinction cut to 0.2 of Itaipu's; the edge past the data
+  square blended. Survey views 2 to 3 (nadir 2 to 2.5), low views 1.5 to
+  2, zoom views 1.5 to 2.5; camp orbits unchanged at 2. Mean 1.84 to 2.32.
+- **1B, the forest (#461):** no tree moved (canopy digest unchanged,
+  8808ac481b1e9f47): every tree out to 2.6 km a lit point with a jittered
+  tier change, so the block's straight edges are gone; crowns trimmed to
+  the room's ellipsoid and lit by its normal, leaf clump bump, stands of
+  greens, rare muted lapachos; far forest out to 11.52 km. Camp orbits 2
+  to 3.5, low-camp 2 to 3, zoom-camp 2.5 to 3, low-canada 2 to 2.5,
+  low-bridge 2 to 2.5, survey-charlie 3 to 3.5. Mean 2.32 to 3.00.
+
+No view scored lower on either merge; every budget held (worst low-camp
+2.27 M triangles, 127 calls at low-pista).
+
+Round 2 targets (lead): (C) the camp and its people at the camera ball's
+zooms; (D) the colonia's houses, yards, school, the farm silo and sheds,
+and Puente Doble. Left for a later canopy data round: crown size and
+height variety, emergents, edge shrubs, pasture trees and creek gallery
+forest, which move canopyBlocks and so need interior:stages as a gate.
