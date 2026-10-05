@@ -17,9 +17,10 @@
  *                        the post chain (Itaipu's sky, swiss2's kit)
  *   interior/ground.js   the ground's material, from the land cover
  *   interior/trees.js    the canopy drawn from canopy.js's own trees
- *   interior/built.js    roads, the river, the bridge, the buildings,
- *                        Pista Cero and the camp's fixed parts, with
- *                        their colliders and roofs
+ *   interior/built.js    the bridge, the buildings, Pista Cero and the
+ *                        camp's fixed parts, with their colliders and
+ *                        roofs
+ *   interior/ribbons.js  the roads, the river and its streams
  *
  * TIME OF DAY: options.hour (a local solar hour, 16.6667 for Mission 1's
  * 16:40), or ?hour= in the address, else 16:40; map.setLocalTime(h)
@@ -57,6 +58,7 @@ import { makeCanopy } from '../share/interior/canopy.js';
 import { M1_CLOCK } from '../share/interior/clock.js';
 import { buildTerrain, TERRAIN_Q } from './interior/terrain.js';
 import { makeLook } from './interior/look.js';
+import { paintedLand } from './interior/ground.js';
 import { buildTrees } from './interior/trees.js';
 import { buildBuilt } from './interior/built.js';
 import { buildLife } from './interior/life.js';
@@ -110,7 +112,7 @@ async function buildInterior(shell, progress, q, hours) {
   const world = makeWorld({ ...bytes, edits: landEdit });
   const canopy = makeCanopy(world);
   const look = await makeLook({
-    renderer, camera, q, hours, land: world.land,
+    renderer, camera, q, hours, land: paintedLand(world),
   });
   const { scene } = look;
   progress(0.15, 'heightmaps');
