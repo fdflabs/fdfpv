@@ -259,7 +259,12 @@ async function main() {
         { t: 5, rig: 'orbit', target: -1, p: { ...defaults('orbit', clip.meta.size), az: 2.2, el: 0.5 } },
       ];
       const copy = { ...clip, keys };
-      delete copy.edit;
+      /* Without what came after edits too: a clip with the map clock
+       * (since version 8) or its sound (12) is written at that version,
+       * never as one before edits (src/replay/file.js versionFor). */
+      for (const later of ['edit', 'anim', 'war', 'sound', 'voice']) {
+        delete copy[later];
+      }
       const bytes = encodeReplay(copy);
       const version = new DataView(bytes.buffer || bytes).getUint32(4, true);
       const id = store.newId();

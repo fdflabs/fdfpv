@@ -39,6 +39,16 @@
  * A check against a live server makes one private room and leaves it to
  * be purged five minutes after, like any room nobody is in.
  *
+ * A LIVE SERVER THAT SEATS ONLY SIGNED IN PILOTS (the VM since #407,
+ * edge/rooms/node.js helloAccount) closes this check's hellos, which carry
+ * no account, for an update. Then it says so in one line, skips every row
+ * that needs a seat, and still checks what needs none: the front, the
+ * admin routes' refusals, the sign in's own refusals (no account, no
+ * session, a made up session, a first message that is no hello), and the
+ * creates, public rooms and the war's, made and refused. There is no way
+ * in for a check: a seat there needs a real Google sign in. A server this
+ * check starts itself checks no accounts, and every row runs.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -55,13 +65,14 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { Socket, connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import WebSocket from 'ws';
 import {
-  CHAT_PRESETS, CLOSE, PROTO, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
+  ACCOUNT_JOIN, CHAT_PRESETS, CLOSE, CLOSE_SIGNIN, PROTO, TYPE_PARTS_RELAY, WAR_JOIN, decodeBatch, encodeParts, encodePose,
 } from '../src/share/roomwire.js';
 import { ABANDON_MS, TEXT_CLOSE_PER_S } from '../edge/rooms/core.js';
 import { DEAD_MS, PROBE_MS } from '../edge/rooms/node.js';
@@ -171,6 +182,102 @@ const pose = (p, x = 10) => encodePose({
   vx: 1, vy: 0, vz: 0, wx: 0, wy: 0, wz: 0, c0: 0, c1: 0, c2: 0, c3: 0, motor: 0, flaps: 0,
 });
 
+const make = (body) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify(body) });
+const listed = async () => (await (await fetch(`${origin}/v2/rooms`)).json());
+
+/* The admin routes refuse without the secret, and with a wrong one. */
+async function adminRefused() {
+  let r = await fetch(`${origin}/v2/admin/health`);
+  check('the counters are refused without the admin secret', r.status === 401 || r.status === 404, `${r.status}`);
+  r = await fetch(`${origin}/v2/admin/rooms`);
+  check('who is on is refused without the admin secret', r.status === 401 || r.status === 404, `${r.status}`);
+  r = await fetch(`${origin}/v2/admin/rooms`, { headers: { authorization: 'Bearer not-the-secret' } });
+  check('and with a wrong one', r.status === 401 || r.status === 404, `${r.status}`);
+}
+
+/* A named public room made and not listed while empty, a private one
+ * never listed, a bad name refused. Its code. Two creates. */
+async function publicMade(privateCode) {
+  const r = await make({ map: 'swiss2', public: true, name: ' Server  check ' });
+  const made = (await r.json()).code;
+  check('a named public room is made', r.status === 200 && /^[A-Z0-9]{6}$/.test(made));
+  const rooms = await listed();
+  /* The owner, 2026-10-02: an empty room is never listed. */
+  check('the browser does not list it before anybody joins', rooms.open === true && !rooms.rooms.some((x) => x.code === made), JSON.stringify(rooms.rooms));
+  check('and never the private room', !rooms.rooms.some((x) => x.code === privateCode));
+  const bad = await make({ map: 'swiss2', public: true, name: 'fuck this' });
+  check('a name the word filter refuses is refused', bad.status === 400 && (await bad.json()).error === 'name');
+  return made;
+}
+
+/* The war's creates: off its map, a mission nobody wrote, a mission for a
+ * room not made for it, one in development, all refused, and a private
+ * room made for the drill. Its code. Six creates, the front's limit for
+ * an address in a minute. */
+async function warCreates() {
+  let r = await make({ map: 'yellowstone' });
+  check('a room on a retired world is refused (src/maps/retired.js)', r.status === 400 && (await r.json()).error === 'bad');
+  r = await make({ map: 'swiss2', mode: 'war' });
+  check('a war room off the war\'s map is refused', r.status === 400 && (await r.json()).error === 'bad');
+  r = await make({ map: 'itaipu', mode: 'war', mission: 'nowhere-1' });
+  check('a mission nobody wrote is refused', r.status === 400 && (await r.json()).error === 'bad');
+  r = await make({ map: 'swiss2', mission: 'itaipu-1' });
+  check('a mission for a room not made for the war is refused', r.status === 400 && (await r.json()).error === 'bad');
+  /* The release gate (the owner, 2026-10-04: only mission 1 until it is
+   * right): no room is made for a mission in development, so the rows
+   * that used missions 2 and 3 as "a mission other than the default" use
+   * the drill and mission 1, which a live server starts. */
+  r = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-2' });
+  const held = r.status === 403 ? (await r.json()).error : null;
+  check('a war room for mission 2, in development, is refused \'unreleased\'', r.status === 403 && held === 'unreleased', `${r.status} ${held}`);
+  r = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-drill' });
+  const made = (await r.json()).code;
+  check('a private Itaipu room made for the drill', r.status === 200 && /^[A-Z0-9]{6}$/.test(made || ''), made);
+  return made;
+}
+
+/* A public Itaipu room made for the war. Its code. One create. */
+async function publicWarMade() {
+  const r = await make({ map: 'itaipu', public: true, mode: 'war', mission: 'itaipu-drill', name: 'Server check war' });
+  const made = (await r.json()).code;
+  check('a public Itaipu room made for the war is made', r.status === 200 && /^[A-Z0-9]{6}$/.test(made || ''), made);
+  return made;
+}
+
+/*
+ * A live server whose hellos need an account: the rows that need no seat,
+ * and the sign in's refusals, then the count. `first` is the hello that
+ * was closed for an update; `frontAt` when the front's creates began.
+ */
+async function withoutSeats(privateCode, first, frontAt) {
+  console.log('  skipped: live VM requires a Google account (every row that needs a seat)');
+  console.log('the sign in (edge/rooms/node.js helloAccount)');
+  check('a hello with no account is told to reload into a build with the sign in', first.closed.code === CLOSE.update, JSON.stringify(first.closed));
+  const noSession = await seat(`room/${privateCode}`, { account: ACCOUNT_JOIN });
+  check('a hello with no session is told to sign in', Boolean(noSession.closed) && noSession.closed.code === CLOSE_SIGNIN, JSON.stringify(noSession.closed));
+  const madeUp = await seat(`room/${privateCode}`, { account: ACCOUNT_JOIN, session: randomBytes(32).toString('hex') });
+  check('a made up session is told to sign in', Boolean(madeUp.closed) && madeUp.closed.code === CLOSE_SIGNIN, JSON.stringify(madeUp.closed));
+  const noHello = pilot(`room/${privateCode}`);
+  await noHello.open;
+  noHello.say({ type: 'nothing' });
+  await noHello.until((x) => x.closed);
+  check('a first message that is no hello is closed bad', Boolean(noHello.closed) && noHello.closed.code === CLOSE.bad, JSON.stringify(noHello.closed));
+  console.log('the admin routes');
+  await adminRefused();
+  console.log('public rooms and the room browser');
+  if ((await (await fetch(`${origin}/v2/public`)).json()).open) {
+    await publicMade(privateCode);
+  }
+  console.log('a room made for the war');
+  await sleep(Math.max(0, 61000 - (Date.now() - frontAt)));
+  await warCreates();
+  console.log('a public room made for the war');
+  await sleep(61000);
+  await publicWarMade();
+  console.log(`\n${passed} passed, ${failed} failed`);
+  process.exit(failed ? 1 : 0);
+}
+
 console.log(`rooms server at ${origin}${given ? '' : ' (edge/rooms/node.js, started here)'}`);
 
 console.log('the front');
@@ -181,6 +288,8 @@ const version = res.status === 200 ? await res.json() : null;
 check(given ? 'GET /v2/version names the commit it runs, or none' : 'GET /v2/version: a checkout has no REVISION, so no commit',
   version && typeof version.dirty === 'boolean' && (given ? version.commit === null || /^[0-9a-f]{40}$/.test(version.commit) : version.commit === null),
   JSON.stringify(version));
+/* The front counts an address's creates over a minute from its first. */
+const frontAt = Date.now();
 res = await fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://evil.example' }, body: '{"map":"swiss2"}' });
 check('a page on another site is refused', res.status === 403);
 res = await fetch(`${origin}/v2/create`, { method: 'OPTIONS', headers: { origin: 'https://fdflabs.github.io' } });
@@ -197,6 +306,9 @@ check('a socket from another site is refused', evil.refused === 403, `${evil.ref
 
 console.log('two pilots');
 const a = await seat(`room/${code}`, {});
+if (given && a.closed && a.closed.code === CLOSE.update) {
+  await withoutSeats(code, a, frontAt);
+}
 check('the first pilot is seated as the host', a.welcome.seat === 1 && a.welcome.host === 1 && a.welcome.code === code, JSON.stringify(a.welcome));
 const b = await seat(`room/${code}`, { name: [3, 4, 77] });
 check('the second is seated beside them', b.welcome.seat === 2 && b.welcome.peers.length === 1 && b.welcome.peers[0].seat === 1);
@@ -209,8 +321,7 @@ const decoded = batch ? decodeBatch(batch) : null;
 check('a pose reaches the other pilot in a batch', decoded && decoded.poses.length === 1 && decoded.poses[0].seat === 1);
 
 console.log('the admin counters (Phase 6)');
-res = await fetch(`${origin}/v2/admin/health`);
-check('the counters are refused without the admin secret', res.status === 401 || res.status === 404, `${res.status}`);
+await adminRefused();
 if (adminSecret) {
   let health = null;
   for (let k = 0; k < 30 && !(health && health.pilots >= 2); k += 1) {
@@ -225,12 +336,8 @@ if (adminSecret) {
   check('and a private room is listed without its code', health && health.perRoom.length >= 1 && health.perRoom.every((r) => r.room !== code));
 }
 
-console.log('who is on, for the admin');
-res = await fetch(`${origin}/v2/admin/rooms`);
-check('who is on is refused without the admin secret', res.status === 401 || res.status === 404, `${res.status}`);
-res = await fetch(`${origin}/v2/admin/rooms`, { headers: { authorization: 'Bearer not-the-secret' } });
-check('and with a wrong one', res.status === 401 || res.status === 404, `${res.status}`);
 if (adminSecret) {
+  console.log('who is on, for the admin');
   a.ws.send(pose(a));
   await sleep(100);
   res = await fetch(`${origin}/v2/admin/rooms`, { headers: { authorization: `Bearer ${adminSecret}` } });
@@ -299,26 +406,16 @@ check('a text flood is closed for its rate', flood.closed && flood.closed.code =
 console.log('public rooms and the room browser');
 res = await fetch(`${origin}/v2/public`);
 const pub = await res.json();
-const make = (body) => fetch(`${origin}/v2/create`, { method: 'POST', headers: { origin: 'https://fdflabs.github.io' }, body: JSON.stringify(body) });
-const listed = async () => (await (await fetch(`${origin}/v2/rooms`)).json());
 let publicCode = null;
 if (pub.open) {
-  res = await make({ map: 'swiss2', public: true, name: ' Server  check ' });
-  publicCode = (await res.json()).code;
-  check('a named public room is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(publicCode));
-  let rooms = await listed();
-  /* The owner, 2026-10-02: an empty room is never listed. */
-  check('the browser does not list it before anybody joins', rooms.open === true && !rooms.rooms.some((r) => r.code === publicCode), JSON.stringify(rooms.rooms));
-  check('and not the private room, which has pilots in it', !rooms.rooms.some((r) => r.code === code));
-  res = await make({ map: 'swiss2', public: true, name: 'fuck this' });
-  check('a name the word filter refuses is refused', res.status === 400 && (await res.json()).error === 'name');
+  publicCode = await publicMade(code);
   const p = await seat(`room/${publicCode}`);
   check('a pilot joins it by its code', p.welcome && p.welcome.public === true && p.welcome.code === publicCode && p.welcome.name === 'Server check' && p.welcome.cap === 16, JSON.stringify(p.welcome));
   const line = (await listed()).rooms.find((r) => r.code === publicCode);
   check('and the browser lists it, with its name', line && line.name === 'Server check' && line.n === 1, JSON.stringify(line));
   const q = await seat('public/swiss2', { name: [2, 3, 44] });
   check('a quick join on its world lands in the busiest room there', q.welcome && q.welcome.code === publicCode, JSON.stringify(q.welcome && q.welcome.code));
-  rooms = await listed();
+  const rooms = await listed();
   check('and the list, read at once, counts both', rooms.rooms.find((r) => r.code === publicCode).n === 2);
   p.ws.close(1000);
   q.ws.close(1000);
@@ -355,25 +452,7 @@ console.log('a room made for the war');
 await sleep(Math.max(0, 61000 - (Date.now() - minuteFrom)));
 check('the private room made for nothing says no game and no mission', a.welcome.mode === null && a.welcome.mission === null,
   JSON.stringify({ mode: a.welcome.mode, mission: a.welcome.mission }));
-res = await make({ map: 'yellowstone' });
-check('a room on a retired world is refused (src/maps/retired.js)', res.status === 400 && (await res.json()).error === 'bad');
-res = await make({ map: 'swiss2', mode: 'war' });
-check('a war room off the war\'s map is refused', res.status === 400 && (await res.json()).error === 'bad');
-res = await make({ map: 'itaipu', mode: 'war', mission: 'nowhere-1' });
-check('a mission nobody wrote is refused', res.status === 400 && (await res.json()).error === 'bad');
-res = await make({ map: 'swiss2', mission: 'itaipu-1' });
-check('a mission for a room not made for the war is refused', res.status === 400 && (await res.json()).error === 'bad');
-/* The release gate (the owner, 2026-10-04: only mission 1 until it is
- * right): no room is made for a mission in development, so the rows below
- * that used missions 2 and 3 as "a mission other than the default" use
- * the drill and mission 1, which a live server starts. Six makes this
- * minute, the front's limit for an address. */
-res = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-2' });
-const held = res.status === 403 ? (await res.json()).error : null;
-check('a war room for mission 2, in development, is refused \'unreleased\'', res.status === 403 && held === 'unreleased', `${res.status} ${held}`);
-res = await make({ map: 'itaipu', mode: 'war', mission: 'itaipu-drill' });
-const warCode = (await res.json()).code;
-check('a private Itaipu room made for the drill', res.status === 200 && /^[A-Z0-9]{6}$/.test(warCode || ''), warCode);
+const warCode = await warCreates();
 /* A room the server would not make has nothing to seat in. */
 if (warCode) {
   const unasked = await seat(`room/${warCode}`);
@@ -400,9 +479,7 @@ if (pub.open) {
   console.log('a public room made for the war');
   /* Another minute: the five above. */
   await sleep(61000);
-  res = await make({ map: 'itaipu', public: true, mode: 'war', mission: 'itaipu-drill', name: 'Server check war' });
-  const pubWar = (await res.json()).code;
-  check('a public Itaipu room made for the war is made', res.status === 200 && /^[A-Z0-9]{6}$/.test(pubWar || ''), pubWar);
+  const pubWar = await publicWarMade();
   const pw = await seat(`room/${pubWar}`, { war: WAR_JOIN });
   const warLine = (await listed()).rooms.find((r) => r.code === pubWar);
   check('with its pilot in, the browser lists it as the war\'s, with its mission', warLine && warLine.mode === 'war' && warLine.game === 'war' && warLine.mission === 'itaipu-drill',

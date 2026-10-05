@@ -3,7 +3,7 @@
  * Defend the Paraná (mission 1) from the room screen, against a local
  * edge/rooms/node.js this check starts and stops itself (never the VM).
  *
- *   SIM_GPU=1 node scripts/war-solo-page.js [port]
+ *   SIM_GPU=1 node scripts/war-solo-page.js [port]   (a free one if none)
  *   SIM_GPU=1 node scripts/war-solo-page.js --rooms=http://127.0.0.1:PORT
  *
  * The second form runs against a rooms server already up, such as one
@@ -42,7 +42,9 @@ import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const given = process.argv.find((a) => a.startsWith('--rooms='));
-const PORT = Number(process.argv.slice(2).find((a) => !a.startsWith('--')) || 18799);
+/* A free port unless one is named: a fixed one collided across sessions
+ * running this check at once. */
+const PORT = Number(process.argv.slice(2).find((a) => !a.startsWith('--')) || 0);
 
 let failed = 0;
 let passed = 0;
@@ -70,7 +72,7 @@ const seed = [`try {
 
 const dir = await mkdtemp(join(tmpdir(), 'war-solo-'));
 const server = given ? null : await startRooms({ db: join(dir, 'rooms.db'), port: PORT });
-const rooms = given ? given.slice('--rooms='.length) : `http://127.0.0.1:${PORT}`;
+const rooms = given ? given.slice('--rooms='.length) : `http://127.0.0.1:${server.port}`;
 console.log(`Defend the Paraná alone, rooms at ${rooms}`);
 const page = await openPage({ root, url: `/index.html?rooms=${encodeURIComponent(rooms)}`, width: 1280, height: 720, seed });
 const look = () => page.evaluate(`(() => {

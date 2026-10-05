@@ -32,8 +32,10 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 
 /* Free the moment it is closed, so another process could take it before
- * the server binds; the server then fails to start, and that is loud. */
-function freePort() {
+ * the server binds; the server then fails to start, and that is loud.
+ * Also for a check's child server of another kind (the board), which
+ * cannot be asked for port 0 and say which it got. */
+export function freePort() {
   return new Promise((resolve, reject) => {
     const s = net.createServer();
     s.on('error', reject);

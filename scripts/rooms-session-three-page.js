@@ -3,7 +3,7 @@
  * drifts out of, through the real shell, three pages against a local
  * edge/rooms/node.js this check starts and stops itself (never the VM).
  *
- *   SIM_GPU=1 node scripts/rooms-session-three-page.js [port]
+ *   SIM_GPU=1 node scripts/rooms-session-three-page.js [port]   (a free one if none)
  *
  * The owner, 2026-09-29, in a room of four on the Swiss valley where one
  * pilot was drawn: "i cant see the 3 people in my room, force everyone in
@@ -63,8 +63,9 @@ import { mapTrackDocument } from '../tests/lib/maptrack.js';
 import en from '../src/strings/en.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-/* Not the default 8797, nor rooms:sight's 18797. */
-const PORT = Number(process.argv[2] || 18798);
+/* A free port unless one is named: a fixed one collided across sessions
+ * running this check at once. */
+const PORT = Number(process.argv[2] || 0);
 const HOME = 'alps';
 const MOVED = 'swiss2';
 
@@ -102,7 +103,7 @@ const say = (key, vars) => (en[key] || key).replace(/\{(\w+)\}/g, (_, k) => vars
 
 const dir = await mkdtemp(join(tmpdir(), 'rooms-session-'));
 const server = await startRooms({ db: join(dir, 'rooms.db'), port: PORT });
-const rooms = `http://127.0.0.1:${PORT}`;
+const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`three pages, one session, rooms at ${rooms}`);
 const base = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 const pages = {

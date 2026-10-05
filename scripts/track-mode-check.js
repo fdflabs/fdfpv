@@ -28,8 +28,10 @@
  * plane, the Skyhunter on the Alps, in a browser of its own:
  *
  *   6. The same card, the Skyhunter chosen from the picker's every aircraft,
- *      is Track mode, not Free Flight. My tracks leaves out a track of five
- *      inch gates the Skyhunter does not fit.
+ *      is Track mode, not Free Flight. My tracks lists a track of five inch
+ *      gates the Skyhunter does not fit, saying it flies on the interceptor
+ *      (34ffe221, bug-a0b44950: a pilot's own tracks are listed on any
+ *      aircraft).
  *   7. New track on the Alps, a ring of plane sized gates, saved, listed,
  *      played, and a lap flown on the sticks with the time recorded.
  *
@@ -84,6 +86,7 @@ import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { AIRFRAMES, airframeById, isFloatVersion } from '../configs/airframes.js';
 import { DEFAULT_WING_HOTBAR } from '../src/builder/course.js';
 import { str } from '../src/strings/index.js';
+import { MAPS } from '../src/maps/registry.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const opts = {};
@@ -201,6 +204,8 @@ async function rowInView(page, action) {
 }
 
 const mine = (page) => page.evaluate('(window.__ui.localCourses || []).map((t) => ({ id: t.id, name: t.name, map: t.map, gates: t.gates }))');
+/* What each of the pilot's track cards says, by track id. */
+const cardNotes = (page) => page.evaluate("Object.fromEntries(window.__ui.items().filter((it) => typeof it.action === 'string' && it.action.startsWith('local:')).map((it) => [it.action.slice(6), it.note || '']))");
 
 /* The title's Track mode card, through the aircraft picker it opens, to My
  * tracks. The picker opens on the seated aircraft, so Enter chooses it. */
@@ -452,8 +457,11 @@ async function quad() {
 
     /* 2. New track on swiss2. */
     const worlds = await newTrack(page, 'swiss2');
-    say(worlds.includes('newtrack:alps') && worlds.includes('newtrack:swiss2') && worlds.filter((a) => a.startsWith('newtrack:')).length === 2,
-      `New track asks which world: ${worlds.filter((a) => a.startsWith('newtrack:')).join(', ')}`);
+    /* Every world a track can be built in (src/maps/registry.js build). It
+     * was typed, two, and went stale when Itaipu came. */
+    const buildable = MAPS.filter((m) => m.build).map((m) => `newtrack:${m.id}`);
+    say(worlds.filter((a) => a.startsWith('newtrack:')).join() === buildable.join(),
+      `New track asks which world, every one a track is built in: ${worlds.filter((a) => a.startsWith('newtrack:')).join(', ')}`);
     const fresh = await page.evaluate(B('.doc'));
     say(fresh.map === 'swiss2' && fresh.elements.length === 0 && fresh.schemaVersion === 4, `the builder opens on the Swiss valley on an empty track (schemaVersion ${fresh.schemaVersion})`);
 
@@ -550,7 +558,10 @@ async function plane() {
     say(picker.filter === 'all' && picker.current === sky.id && (await page.evaluate('window.__ui.mode')) === 'race',
       `the Track mode card's picker, on every aircraft, chooses the ${sky.short} into Track mode, not Free Flight`);
     const listed0 = await mine(page);
-    say(listed0.length === 0, `My tracks leaves out ${narrow.id}, a track of five inch gates the ${sky.short} does not fit`);
+    const tight = str('ui.too_tight_flies_on_quad', { craft: sky.name });
+    const notes0 = await cardNotes(page);
+    say(listed0.length === 1 && listed0[0].id === narrow.id && (notes0[narrow.id] || '').includes(tight),
+      `My tracks lists ${narrow.id}, a track of five inch gates the ${sky.short} does not fit, saying so: ${JSON.stringify(notes0)}`);
 
     /* 7. New track on the Alps, plane sized gates, flown. */
     await newTrack(page, 'alps');
@@ -563,7 +574,10 @@ async function plane() {
     const id = await page.evaluate(B('.doc.id'));
     await backToTracks(page);
     const listed = await mine(page);
-    say(listed.length === 1 && listed[0].id === id && listed[0].map === 'alps', `My tracks lists it for the ${sky.short}: ${JSON.stringify(listed)}`);
+    const notes = await cardNotes(page);
+    const own = listed.find((t) => t.id === id);
+    say(listed.length === 2 && own && own.map === 'alps' && !(notes[id] || '').includes(tight) && (notes[narrow.id] || '').includes(tight),
+      `My tracks lists it for the ${sky.short}, not too tight, beside the five inch ring: ${JSON.stringify(listed)} ${JSON.stringify(notes)}`);
     const seat = await play(page, id, 'alps', 3);
     say(seat.screen === 'launch' && seat.map.mode === 'race' && seat.gates === 3 && seat.key.includes(`.${sky.id}`) && seat.key.endsWith(`.map.${id}`),
       `Play seats it on the Alps for the ${sky.short}, with its record of its own`);

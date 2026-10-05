@@ -73,6 +73,7 @@ import { openPage } from '../tests/lib/page.js';
 import { roomsServer } from '../tests/lib/roomsserver.js';
 import { seatPilot } from '../tests/lib/roompilot.js';
 import { PROTO, ROOM_LEVEL, WAR_JOIN } from '../src/share/roomwire.js';
+import MISSION1 from '../src/share/war/missions/itaipu-1.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const outDir = process.argv[3] || join(root, 'build', 'war-card');
@@ -95,6 +96,11 @@ async function shot(page, name) {
   await writeFile(path, Buffer.from(data, 'base64'));
   console.log(`  shot ${path}`);
 }
+
+/* Room ms from mission 1's go by which a lone pilot's stage 1 has born
+ * all its spawns (stages.js enter: each spawn's latest `at` by the pace
+ * for one pilot), plus 3 s for the event to reach the page's HUD. */
+const STAGE1_SPAWNED_MS = 3000 + Math.max(...MISSION1.stages[0].spawns.map((w) => [w.at].flat().at(-1) * 1000 * (MISSION1.pace?.[1] ?? 1)));
 
 const HUBS = 'Flight Club,Operations,Hangar';
 const CLUB = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
@@ -534,11 +540,22 @@ try {
   await page.sleep(500);
   await page.evaluate("window.__warDo('start')");
   await page.until("window.__war().view.state === 'live' && window.__ui.screen === 'flight'", 60000).catch(() => {});
-  await page.until('window.__war().hud.calls.length > 0', 30000).catch(() => {});
+  /* The Scout's callout can come and go before the pilot is in the air:
+   * it is born 3.2 s after the go, lives 4.5 s (warhud.js CALL_MS), and
+   * off the flight screen the HUD clears it. While the war's world was
+   * built at the go (before e70f8748 built it under the lobby) the pilot
+   * flew 3.3 to 3.5 s after the go, and the callout was said and wiped
+   * first about half the time. The next is the yard Striker's, up to
+   * 64 s after the go, which a 30 s wait missed. So the wait runs on the
+   * room's clock to the last of stage 1's spawns, read off the mission. */
+  const flying = await page.evaluate('({ said: window.__war().said, goAt: window.__war().view.goAt, now: window.__war().grid.at })');
+  const callsBy = flying.goAt + STAGE1_SPAWNED_MS;
+  await page.until(`window.__war().hud.calls.length > 0 || window.__war().grid.at > ${callsBy}`, Math.max(0, callsBy - flying.now) + 30000).catch(() => {});
   const warCode = await page.evaluate('window.__rooms().code');
   check('the war is on, the pilot flying it, a callout up', await page.evaluate(
     "window.__war().view.state === 'live' && window.__ui.screen === 'flight' && window.__war().hud.calls.length > 0",
-  ), JSON.stringify(await page.evaluate("({ state: window.__war().view.state, screen: window.__ui.screen, error: window.__war().error, calls: window.__war().hud.calls, airframe: window.__ui.settings.airframe })")));
+  ), `${JSON.stringify(await page.evaluate("({ state: window.__war().view.state, screen: window.__ui.screen, error: window.__war().error, calls: window.__war().hud.calls, airframe: window.__ui.settings.airframe })"))}`
+    + ` flying ${flying.now - flying.goAt} ms after the go, said by then ${JSON.stringify(flying.said)}`);
   await page.tap('Escape');
   await page.until("window.__ui.screen === 'paused'", 5000).catch(() => {});
   /* The war's elements and the room's notice as drawn, sampled. */
