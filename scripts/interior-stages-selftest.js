@@ -58,7 +58,9 @@ import { MISSIONS, grounded, worldFor } from '../src/share/ops/missions.js';
 import { stagesOf } from '../src/share/war/stages.js';
 import { resolve } from '../src/share/ops/stages.js';
 import { roleOf } from '../src/share/ops/roles.js';
-import { G } from '../src/share/interior/missions/interior-1.js';
+import { G, MARKED } from '../src/share/interior/missions/interior-1.js';
+import { CAMP_PROPS } from '../src/share/interior/places.js';
+import { threePosToDoc } from '../src/render/frame.js';
 import { RESTART_STARS } from '../edge/rooms/ops.js';
 import { M1_CLOCK, sunsetMs } from '../src/share/interior/clock.js';
 import {
@@ -121,6 +123,19 @@ console.log('data');
   check('every site it names exists', [...named(/"alert":"([^"]+)"/g)].every((x) => M.sites.some((s) => s.id === x)));
   check('three stars, the script\'s optionals', M.stars.map((s) => s.id).join() === 'symbol,camp,eyes');
   check('no faction reaches a view: the contacts carry it in data only', M.contacts.every((c) => typeof c.faction === 'string'));
+  check('the debrief\'s required items are the mission\'s', M.debrief.required.length > 0 && M.debrief.required.every((id) => M.items.some((x) => x.id === id))
+    && M.debrief.required.includes('symbol'));
+  check('the mission\'s clock is WORLD\'s M1_CLOCK', M.clock === M1_CLOCK);
+  check('every vehicle has a look the map draws', M.contacts.filter((c) => c.kind !== 'person').every((c) => ['motorcycle', 'pickup'].includes(c.look)));
+  /* The mark the screen paints is where the room judges it, every dial. */
+  const sym = M.items.find((x) => x.id === 'symbol');
+  const painted = M.dials.mark.every((d) => {
+    const sh = CAMP_PROPS.shelters.find((x) => x.id === resolve(M.camp.mark, { mark: d }));
+    const at = threePosToDoc(sh.at[0], 0, sh.at[1], {});
+    const judged = resolve(sym.at, { mark: d });
+    return sh.markable && MARKED[d] === sh.id && Math.abs(judged[0] - at.x) < 0.01 && Math.abs(judged[1] - at.y) < 0.01;
+  });
+  check('for every mark dial, the shelter the screen paints is the one the room judges', painted);
 }
 
 console.log('the gate');
@@ -423,7 +438,14 @@ const SOLO = {};
     && e.view(0).search.some((s) => s.id === 'pair-alt'), `${before.route} -> ${moved.route} ${hardLine}`);
   until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 900000, 'stage 5');
   check('the pair at the camp\'s edge: stage 5', e.view(0).stage?.id === 'M1_CP_CAMP_FOUND');
+  const pre = e.view(0);
+  check('the view: the clock, the marked shelter by the dial, nothing opened yet', JSON.stringify(pre.clock) === JSON.stringify(M1_CLOCK)
+    && pre.camp.mark === MARKED[pre.dials.mark] && pre.opened.length === 0 && !pre.choices.tarp, JSON.stringify({ camp: pre.camp, opened: pre.opened, choices: pre.choices }));
+  check('the view\'s contacts carry their look and size', pre.contacts.every((x) => Number.isFinite(x.size) && x.size > 0)
+    && pre.contacts.find((x) => x.id === 'moto-road').look === 'motorcycle' && pre.contacts.filter((x) => x.kind === 'person').every((x) => x.look === 'person'));
   const camp = documentCamp(e, c);
+  const post = e.view(0);
+  check('the tarp moved: the view says so, and the mark is opened to every side', post.choices.tarp === 'moved' && post.opened.includes('symbol'));
   SOLO.grades = { ...grades, ...camp.grades };
   check('the mark from the wrong side, before the tarp moves: refused', camp.grades.symbolEarly === 'angle', camp.grades.symbolEarly);
   check('the camp documented: five captures', ['shelters', 'motorcycles', 'antenna', 'personnel', 'access'].every((id) => ['clean', 'usable'].includes(camp.grades[id])), JSON.stringify(camp.grades));
