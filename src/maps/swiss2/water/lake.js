@@ -42,6 +42,8 @@ const CELL = 5;
  * ripples' slope times 0.06, and a slope of 1.5 is a 56 degree face,
  * steeper than any wave the lake draws. */
 const SAMPLE_REACH = 0.09;
+/* A box corner's index has a bit per axis: x 1, y 2, z 4. */
+const AXIS_BITS = [1, 2, 4];
 
 /* The lake's water: a grid over the shore's box, cells kept where any
  * corner is under water or within half a metre of it. */
@@ -165,7 +167,7 @@ export function planarMirror(level, scale = 0.5) {
       if (p.w >= near) {
         take(p.x, p.y, p.w);
       }
-      for (const bit of [1, 2, 4]) {
+      for (const bit of AXIS_BITS) {
         const q = corners[a | bit];
         if ((a & bit) || (p.w >= near) === (q.w >= near)) {
           continue;

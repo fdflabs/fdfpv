@@ -20,7 +20,11 @@
  * at any pixel than the repeat, and prints how much of the mirror the
  * scissor kept.
  *
- *     SIM_GPU=1 node scripts/perf-mirror-check.js [OUT_DIR]
+ *     SIM_GPU=1 node scripts/perf-mirror-check.js [OUT_DIR] [--waves]
+ *
+ * --waves hands the plant's waves to the lake first (window.__wavesOn),
+ * as swiss2-views.js does, so the sheet is displaced and the ripples'
+ * slope carries the waves' own: the case the scissor's margins are for.
  *
  * OUT_DIR gets each view's finished picture, scissored, for the eye; it
  * stays out of the repository.
@@ -54,6 +58,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 if (process.env.SIM_GPU !== '1') {
   throw new Error('perf-mirror-check: run with SIM_GPU=1; the mirror is High only and needs the GPU');
 }
+const waves = process.argv.includes('--waves');
 const outDir = resolve(process.argv.slice(2).find((a) => !a.startsWith('--')) || join(tmpdir(), 'fdfpv-mirror-check'));
 await mkdir(outDir, { recursive: true });
 
@@ -166,11 +171,14 @@ let failed = 0;
 try {
   await page.until('window.__map && window.__map().id === "swiss2" && window.__map().ready', 300000);
   await page.evaluate('(document.getElementById("ui").style.display = "none", "")');
+  if (waves && !(await page.evaluate('window.__wavesOn()'))) {
+    throw new Error('perf-mirror-check: --waves, and the map took no waves');
+  }
   const info = JSON.parse(await page.evaluate(INSTALL));
   if (info.quality !== 'high') {
     throw new Error(`perf-mirror-check: the map was built at ${info.quality}, the mirror is High's`);
   }
-  console.log(`swiss2 High, ${info.w}x${info.h}`);
+  console.log(`swiss2 High, ${info.w}x${info.h}${waves ? ', waves on' : ', still water'}`);
   await page.sleep(2500);
   for (const v of VIEWS) {
     if (!(await page.evaluate(`window.__heightAt(${v.cam[0]}, ${v.cam[2]}) < ${v.cam[1] - 1}`))) {
