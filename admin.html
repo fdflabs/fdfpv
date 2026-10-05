@@ -1,0 +1,352 @@
+<!doctype html>
+<!--
+  admin.html: the owner's desk. Server status, the members and the beta
+  waitlist with its approvals, read from the tracks server's admin routes
+  (tracks-api/admin.js, tracks-api/waitlist.js).
+
+  The key is the tracks server's ADMIN_SECRET, typed here and kept for the
+  tab (sessionStorage), sent as a bearer header and nowhere else. The page
+  itself is public and holds nothing: without the key every route answers
+  401.
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>PDCS admin</title>
+    <link rel="icon" href="favicon.ico" />
+    <style>
+      :root {
+        --bg: #07090a; --panel: rgba(220, 225, 225, 0.04); --line: rgba(220, 225, 225, 0.14);
+        --text: #d7dddd; --bright: #f1f4f4; --muted: #9aa3a7;
+        --green: #6fcfa2; --blue: #6aa3c8; --blue-strong: #8cbcd8; --blue-dim: #3f6f8f; --fail: #ff8f8f; --warn: #d9b46c;
+        --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+        --read: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--read); font-size: 15px; line-height: 1.45; }
+      main { max-width: 1080px; margin: 0 auto; padding: 20px clamp(16px, 4vw, 40px) 60px; }
+      header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+      h1 { margin: 0; font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--bright); }
+      h2 { margin: 34px 0 10px; font-family: var(--mono); font-size: 12px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+      h2 small { color: var(--muted); letter-spacing: 0.06em; text-transform: none; margin-left: 8px; }
+      button, input { font: inherit; color: inherit; }
+      button {
+        font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+        padding: 7px 12px; border: 1px solid var(--line); border-radius: 2px; background: transparent; cursor: pointer;
+      }
+      button:hover, button:focus-visible { border-color: var(--blue); color: var(--blue-strong); }
+      button.go { background: var(--blue); border-color: var(--blue); color: #07131b; }
+      button.go:hover, button.go:focus-visible { background: var(--blue-strong); color: #07131b; }
+      button.danger:hover, button.danger:focus-visible { border-color: var(--fail); color: var(--fail); }
+      button:disabled { opacity: 0.5; cursor: default; }
+      input { padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 2px; min-width: 0; }
+      input:focus-visible, button:focus-visible { outline: 1px solid var(--blue-strong); outline-offset: 2px; }
+      form { display: flex; gap: 8px; flex-wrap: wrap; }
+      form input { flex: 1 1 16em; }
+      .login { max-width: 30em; margin-top: 12vh; }
+      .login p { color: var(--muted); }
+      .say { min-height: 1.5em; margin: 10px 0 0; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+      .say[data-state="fail"] { color: var(--fail); }
+      .say[data-state="ok"] { color: var(--green); }
+      .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+      .tile { padding: 12px 14px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+      .tile b { display: block; font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--bright); overflow-wrap: anywhere; }
+      .tile span { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+      .tile[data-state="up"] b { color: var(--green); }
+      .tile[data-state="down"] b { color: var(--fail); }
+      .tile[data-state="warn"] b { color: var(--warn); }
+      .scroll { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+      th { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+      td.email { white-space: normal; overflow-wrap: anywhere; color: var(--bright); }
+      td.acts { text-align: right; }
+      td.acts button + button { margin-left: 6px; }
+      .waiting { color: var(--warn); }
+      .invited { color: var(--green); }
+      .none { color: var(--muted); padding: 10px 0; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>PDCS // Admin</h1>
+        <div id="top" hidden>
+          <button id="refresh" type="button">Refresh</button>
+          <button id="lock" type="button">Lock</button>
+        </div>
+      </header>
+
+      <section id="login" class="login">
+        <p>The tracks server's admin key. It is kept for this tab only and sent to the server and nowhere else.</p>
+        <form id="login-form">
+          <input id="key" type="password" autocomplete="off" aria-label="Admin key" placeholder="Admin key" required />
+          <button class="go" type="submit">Unlock</button>
+        </form>
+        <p id="login-say" class="say" role="status"></p>
+      </section>
+
+      <div id="desk" hidden>
+        <h2>Servers</h2>
+        <div id="servers" class="tiles"></div>
+
+        <h2>Numbers</h2>
+        <div id="numbers" class="tiles"></div>
+
+        <h2>Beta waitlist <small id="waitlist-count"></small></h2>
+        <form id="invite-form">
+          <input id="invite-email" type="email" aria-label="Email to invite" placeholder="Invite an address that has not asked" required />
+          <button class="go" type="submit">Invite</button>
+        </form>
+        <p id="waitlist-say" class="say" role="status"></p>
+        <div class="scroll"><table id="waitlist"></table></div>
+
+        <h2>Members <small id="members-count"></small></h2>
+        <p class="none">An account holds no email, so a member is a callsign and two dates.</p>
+        <div class="scroll"><table id="members"></table></div>
+      </div>
+    </main>
+    <script type="module">
+      import { API_ORIGIN } from './src/share/api.js';
+
+      const KEY = 'pdcs.admin.key';
+      const $ = (id) => document.getElementById(id);
+      let key = '';
+      try {
+        key = sessionStorage.getItem(KEY) || '';
+      } catch (e) {
+        /* Storage refused: the key is asked for on every load. */
+      }
+
+      function el(tag, cls, text) {
+        const n = document.createElement(tag);
+        if (cls) {
+          n.className = cls;
+        }
+        if (text != null) {
+          n.textContent = text;
+        }
+        return n;
+      }
+
+      function say(node, state, text) {
+        node.dataset.state = state;
+        node.textContent = text;
+      }
+
+      /* The body of an admin route, or an Error carrying its status. */
+      async function admin(method, path, body) {
+        const res = await fetch(`${API_ORIGIN}/api/admin/${path}`, {
+          method,
+          headers: { authorization: `Bearer ${key}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+          body: body ? JSON.stringify(body) : undefined,
+          signal: AbortSignal.timeout(10000),
+        });
+        const got = await res.json().catch(() => null);
+        if (!res.ok) {
+          const err = new Error((got && got.error) || `The server answered ${res.status}.`);
+          err.status = res.status;
+          throw err;
+        }
+        return got;
+      }
+
+      function when(utc) {
+        return utc ? new Date(utc).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+      }
+
+      function span(upS) {
+        const d = Math.floor(upS / 86400);
+        const h = Math.floor((upS % 86400) / 3600);
+        const m = Math.floor((upS % 3600) / 60);
+        return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+      }
+
+      function tile(label, value, state) {
+        const t = el('div', 'tile');
+        if (state) {
+          t.dataset.state = state;
+        }
+        t.append(el('b', null, String(value)), el('span', null, label));
+        return t;
+      }
+
+      /* Each public server through the same front, asked for the commit it
+       * runs: an answer is up, anything else is down. */
+      async function probe(label, path) {
+        try {
+          const res = await fetch(`${API_ORIGIN}${path}`, { signal: AbortSignal.timeout(6000) });
+          const got = res.ok ? await res.json().catch(() => ({})) : null;
+          return tile(label, got ? `UP${got.commit ? ` ${got.commit.slice(0, 7)}` : ''}` : `DOWN ${res.status}`, got ? 'up' : 'down');
+        } catch (e) {
+          return tile(label, 'DOWN', 'down');
+        }
+      }
+
+      function row(cells) {
+        const tr = el('tr');
+        for (const c of cells) {
+          tr.append(c instanceof Node ? c : el('td', null, c));
+        }
+        return tr;
+      }
+
+      function head(labels) {
+        const tr = el('tr');
+        for (const l of labels) {
+          tr.append(el('th', null, l));
+        }
+        return tr;
+      }
+
+      async function change(method, body, done) {
+        try {
+          await admin(method, 'waitlist', body);
+          say($('waitlist-say'), 'ok', done);
+          await load();
+        } catch (e) {
+          say($('waitlist-say'), 'fail', e.message);
+        }
+      }
+
+      function act(label, cls, fn) {
+        const b = el('button', cls, label);
+        b.type = 'button';
+        b.addEventListener('click', fn);
+        return b;
+      }
+
+      function drawWaitlist(list) {
+        const t = $('waitlist');
+        t.replaceChildren(head(['Address', 'State', 'Asked', 'Invited', '']));
+        for (const w of list) {
+          const acts = el('td', 'acts');
+          acts.append(
+            w.approvedUtc
+              ? act('Take back', null, () => change('POST', { email: w.email, approved: false }, `${w.email} is back to waiting.`))
+              : act('Approve', 'go', () => change('POST', { email: w.email, approved: true }, `${w.email} is invited.`)),
+            act('Remove', 'danger', () => {
+              /* Two presses: the first arms it. */
+              const b = acts.lastChild;
+              if (b.dataset.armed) {
+                change('DELETE', { email: w.email }, `${w.email} is off the list.`);
+              } else {
+                b.dataset.armed = '1';
+                b.textContent = 'Sure?';
+              }
+            }),
+          );
+          t.append(row([
+            el('td', 'email', w.email),
+            el('td', w.approvedUtc ? 'invited' : 'waiting', w.approvedUtc ? 'Invited' : 'Waiting'),
+            when(w.requestedUtc) || 'Never asked',
+            when(w.approvedUtc),
+            acts,
+          ]));
+        }
+        if (!list.length) {
+          t.replaceChildren();
+          t.append(row([el('td', 'none', 'Nobody has asked yet.')]));
+        }
+        $('waitlist-count').textContent = `${list.filter((w) => !w.approvedUtc).length} waiting, ${list.filter((w) => w.approvedUtc).length} invited`;
+      }
+
+      function drawMembers(list) {
+        const t = $('members');
+        t.replaceChildren(head(['Callsign', 'Joined', 'Last change']));
+        for (const a of list) {
+          t.append(row([a.callsign || '(none chosen yet)', when(a.createdUtc), when(a.updatedUtc)]));
+        }
+        $('members-count').textContent = `${list.length}`;
+      }
+
+      async function load() {
+        const [o, w, a] = await Promise.all([admin('GET', 'overview'), admin('GET', 'waitlist'), admin('GET', 'accounts')]);
+        $('numbers').replaceChildren(
+          tile('Members', o.accounts),
+          tile('With a callsign', o.callsigns),
+          tile('Live sessions', o.sessions),
+          tile('Waiting for an invite', o.waiting, o.waiting ? 'warn' : ''),
+          tile('Invited', o.invited),
+          tile('Tracks', o.tracks),
+          tile('Hidden tracks', o.hiddenTracks),
+          tile('Sign in', o.inviteOnly ? 'Invite only' : 'Open', o.inviteOnly ? '' : 'warn'),
+        );
+        drawWaitlist(w.waitlist);
+        drawMembers(a.accounts);
+        $('servers').replaceChildren(
+          tile('Tracks and accounts', `UP ${(o.revision.commit || '').slice(0, 7)}`, 'up'),
+          tile('Up for', span(o.upS)),
+          ...(await Promise.all([probe('Rooms', '/v2/version'), probe('Board', '/board/api/health')])),
+        );
+      }
+
+      function lock(text = '') {
+        key = '';
+        try {
+          sessionStorage.removeItem(KEY);
+        } catch (e) {
+          /* Nothing was stored. */
+        }
+        $('desk').hidden = true;
+        $('top').hidden = true;
+        $('login').hidden = false;
+        say($('login-say'), text ? 'fail' : '', text);
+      }
+
+      async function open() {
+        say($('login-say'), '', 'Checking the key.');
+        try {
+          await load();
+        } catch (e) {
+          lock(e.status === 401 ? 'That is not the admin key.' : `The server could not be read: ${e.message}`);
+          return;
+        }
+        try {
+          sessionStorage.setItem(KEY, key);
+        } catch (e) {
+          /* Storage refused: the key lasts this page. */
+        }
+        $('login').hidden = true;
+        $('desk').hidden = false;
+        $('top').hidden = false;
+      }
+
+      $('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        key = $('key').value.trim();
+        $('key').value = '';
+        open();
+      });
+      $('invite-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = $('invite-email').value.trim();
+        $('invite-email').value = '';
+        change('POST', { email, approved: true }, `${email} is invited.`);
+      });
+      $('refresh').addEventListener('click', () => load().catch((e) => say($('waitlist-say'), 'fail', e.message)));
+      $('lock').addEventListener('click', () => lock());
+      if (key) {
+        open();
+      }
+    </script>
+  </body>
+</html>

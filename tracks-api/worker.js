@@ -34,6 +34,7 @@
  *
  *   /api/account/*   optional Google sign-in, written down in accounts.js.
  *   /api/waitlist, /api/admin/waitlist   the beta waitlist, in waitlist.js.
+ *   /api/admin/overview, /api/admin/accounts   the admin page's, in admin.js.
  *
  * EVERYTHING IS CHECKED HERE, because this is the boundary: the body size
  * before it is read into a string, the document through the simulator's own
@@ -80,6 +81,7 @@ import {
 } from './http.js';
 import { accountRoute, waitlistRoute } from './accounts.js';
 import { waitlistAdmin } from './waitlist.js';
+import { adminAccounts, adminOverview } from './admin.js';
 
 const TRACK_ID_RE = /^trk-[0-9a-f]{8}$/;
 const MAP_RE = /^[a-z0-9]{1,24}$/;
@@ -373,6 +375,12 @@ async function route(request, env) {
   }
   if (path === '/api/admin/waitlist' && ['GET', 'POST', 'DELETE'].includes(method)) {
     return (await isAdmin(env, request)) ? waitlistAdmin(env, request) : refuse(401, 'Not an admin.');
+  }
+  if ((path === '/api/admin/overview' || path === '/api/admin/accounts') && method === 'GET') {
+    if (!(await isAdmin(env, request))) {
+      return refuse(401, 'Not an admin.');
+    }
+    return path === '/api/admin/overview' ? adminOverview(env) : adminAccounts(env);
   }
   const one = path.match(/^\/api\/tracks\/([^/]+)$/);
   const adminOne = path.match(/^\/api\/admin\/tracks\/([^/]+)$/);
