@@ -63,8 +63,8 @@
       body {
         min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
         background:
-          linear-gradient(180deg, rgba(7, 9, 10, 0.55) 0%, rgba(7, 9, 10, 0.05) 26%, rgba(7, 9, 10, 0.3) 52%, rgba(7, 9, 10, 0.94) 84%, var(--pdcs-bg) 100%),
-          url("assets/keyart/wide.webp") center 30% / cover no-repeat var(--pdcs-bg);
+          linear-gradient(180deg, rgba(7, 9, 10, 0.72) 0%, rgba(7, 9, 10, 0.3) 30%, rgba(7, 9, 10, 0) 46%, rgba(7, 9, 10, 0) 62%, rgba(7, 9, 10, 0.9) 86%, var(--pdcs-bg) 100%),
+          url("assets/keyart/boom-wide.webp") 55% 100% / auto 120% no-repeat var(--pdcs-bg);
       }
       .bar {
         display: flex; justify-content: space-between; align-items: center; gap: 16px;
@@ -83,13 +83,13 @@
       .py-flag span:nth-child(3) { background: var(--py-blue); }
 
       main {
-        flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
-        width: 100%; max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 44px) clamp(20px, 4vh, 44px);
+        flex: 1; display: flex; flex-direction: column;
+        width: 100%; max-width: 1180px; margin: 0 auto; padding: clamp(8px, 3vh, 34px) clamp(16px, 4vw, 44px) clamp(20px, 4vh, 44px);
       }
       .lockup {
         margin: 0; display: inline-flex; flex-direction: column; align-self: flex-start;
         font-family: "Saira Lockup", var(--read); font-synthesis: none; line-height: 1;
-        font-size: clamp(38px, 8.4vw, 104px); text-transform: uppercase;
+        font-size: clamp(38px, 6.6vw, 84px); text-transform: uppercase;
       }
       .lockup-over, .lockup-under {
         display: flex; align-items: center; font-weight: 300; font-size: max(0.22em, 10px);
@@ -109,12 +109,14 @@
         filter: drop-shadow(0 0.05em 0.14em rgba(0, 0, 0, 0.6));
       }
       .pitch {
-        max-width: 34em; margin: clamp(14px, 2.6vh, 26px) 0 clamp(18px, 3.6vh, 36px);
+        max-width: 34em; margin: clamp(12px, 2.2vh, 22px) 0 0;
         font-size: clamp(15.5px, 1.5vw, 19px); line-height: 1.5; color: var(--pdcs-bright);
         text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
       }
 
-      .doors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      /* The middle of the page is the picture's: the name above it, the
+         doors under it. */
+      .doors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: auto; padding-top: 30vh; }
       .door {
         display: flex; flex-direction: column; gap: 10px; min-width: 0;
         padding: clamp(16px, 2.4vw, 26px);
@@ -147,8 +149,7 @@
       @media (max-width: 720px) {
         .doors { grid-template-columns: 1fr; }
         .bar-note { display: none; }
-        body { background-position: 28% 0, 28% top; background-size: auto, auto 62vh; }
-        main { padding-top: 26vh; }
+        body { background-position: 0 0, 64% top; background-size: auto, auto 72vh; }
       }
     </style>
   </head>

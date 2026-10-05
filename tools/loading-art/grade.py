@@ -1,7 +1,7 @@
 # grade.py: the key art behind the title, from the raw frames to the
 # shipped files.
 #
-#   python3 tools/loading-art/grade.py RAW_DIR assets/keyart
+#   python3 tools/loading-art/grade.py RAW_DIR assets/keyart [SHOT,SHOT]
 #
 # RAW_DIR holds wide.png and tall.png from scripts/loading-art.js, which
 # renders them in the game; this only grades them. Every step is a
@@ -23,10 +23,10 @@ from PIL import Image
 
 # Output size per frame: 1920 wide for a desktop, and a phone's portrait at
 # twice the CSS pixels of a 390 by 844 screen.
-SIZES = {'wide': (1920, 1080), 'tall': (780, 1688)}
+SIZES = {'wide': (1920, 1080), 'tall': (780, 1688), 'boom-wide': (1920, 1080)}
 # WebP quality. The wide file has to stay under about 350 KB so it never
 # competes with the boot for the connection (index.html's preload says why).
-QUALITY = {'wide': 88, 'tall': 88}
+QUALITY = 88
 
 EXPOSURE = 0.9
 # Contrast about a mid grey: a smooth S, strength 0 is none.
@@ -75,10 +75,13 @@ def grade(img, size):
 def main():
     raw, out = sys.argv[1], sys.argv[2]
     os.makedirs(out, exist_ok=True)
-    for name, size in SIZES.items():
+    # A third argument names the shots to grade, comma separated.
+    only = sys.argv[3].split(',') if len(sys.argv) > 3 else list(SIZES)
+    for name in only:
+        size = SIZES[name]
         src = os.path.join(raw, f'{name}.png')
         dst = os.path.join(out, f'{name}.webp')
-        grade(Image.open(src), size).save(dst, 'WEBP', quality=QUALITY[name], method=6)
+        grade(Image.open(src), size).save(dst, 'WEBP', quality=QUALITY, method=6)
         print(f'{src} -> {dst} {os.path.getsize(dst) // 1024} KB')
 
 
