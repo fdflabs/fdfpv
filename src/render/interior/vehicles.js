@@ -162,7 +162,6 @@ export function makeVehicles(THREE, { cap = 32 } = {}) {
     addSlotTints(THREE, m, cap);
     m.count = 0;
     m.visible = false;
-    m.frustumCulled = false;
     m.castShadow = true;
     m.name = `interior-${k}`;
     group.add(m);
@@ -197,6 +196,10 @@ export function makeVehicles(THREE, { cap = 32 } = {}) {
       for (const m of Object.values(meshes)) {
         m.visible = m.count > 0;
         m.instanceMatrix.needsUpdate = true;
+        /* Culled by where its vehicles are (figures.js). */
+        if (m.visible) {
+          m.computeBoundingSphere();
+        }
         slotTintsChanged(m);
       }
     },

@@ -231,7 +231,6 @@ export function makeFigures(THREE, { cap = 256 } = {}) {
       addSlotTints(THREE, m, cap);
       m.count = 0;
       m.visible = false;
-      m.frustumCulled = false;
       m.castShadow = true;
       m.name = `interior-figure-${name}`;
       meshes[`${name}:${kit}`] = m;
@@ -242,7 +241,6 @@ export function makeFigures(THREE, { cap = 256 } = {}) {
   const poles = new THREE.InstancedMesh(poleGeometry(THREE), poleMat, cap);
   poles.count = 0;
   poles.visible = false;
-  poles.frustumCulled = false;
   poles.castShadow = true;
   poles.name = 'interior-figure-pole';
   group.add(poles);
@@ -285,13 +283,19 @@ export function makeFigures(THREE, { cap = 256 } = {}) {
           poles.count += 1;
         }
       });
-      for (const m of Object.values(meshes)) {
+      /* A mesh is culled by where its people are, so one whose people
+       * are all out of a camera's view (the frame's, or a shadow
+       * cascade's) costs that camera no draw. */
+      for (const m of [...Object.values(meshes), poles]) {
         m.visible = m.count > 0;
         m.instanceMatrix.needsUpdate = true;
+        if (m.visible) {
+          m.computeBoundingSphere();
+        }
+      }
+      for (const m of Object.values(meshes)) {
         slotTintsChanged(m);
       }
-      poles.visible = poles.count > 0;
-      poles.instanceMatrix.needsUpdate = true;
     },
     stats: () => ({ drawn }),
     dispose() {

@@ -883,7 +883,7 @@ export function buildCamp({
    * downwind. Lit, so it is dark by night; thin in the long wave band, so
    * the thermal picture sees through it (thermalHide). */
   const puffTex = texture(THREE, puffPixels(), PUFF_PX);
-  const PUFFS = 18;
+  const PUFFS = 12;
   const puffGeo = new THREE.PlaneGeometry(1, 1);
   /* A puff faces the camera but is lit as if it faced the sun and the
    * sky between: smoke scatters the light that falls on it, it is not a
