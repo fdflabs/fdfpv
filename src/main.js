@@ -1173,6 +1173,16 @@ export async function boot({
     opsCue = best;
   }
 
+  /* A still's room ms: the last pose this screen sent. The room judges a
+   * capture at a pose it holds on both sides of the still's ms, and a
+   * pose and a capture go down the one socket in order, so the newest
+   * pose sent is the newest ms it can judge; the frame is under one
+   * pose interval later. Whole ms, down: the wire carries a pose's ms
+   * whole, and a still a fraction past its pose is past every pose. */
+  function opsStillT() {
+    return Math.floor(roomSentPose && Number.isFinite(roomSentPose.t) ? roomSentPose.t : roomLinkState.roomNow());
+  }
+
   /* The capture button. */
   function opsCaptureNow() {
     if (!roomOps.live() || !opsCapture || !opsCam) {
@@ -1180,7 +1190,7 @@ export async function boot({
       return;
     }
     const v = roomOps.view();
-    const t = roomLinkState.roomNow();
+    const t = opsStillT();
     const r = opsCapture.still(v, t, opsCam.p, opsCam, {
       mode: sensors.state.mode, night: sensors.state.timeOfDay === 'night', digital: ballOn ? sensors.state.zoom : 1,
     });
