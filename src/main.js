@@ -2744,6 +2744,20 @@ export async function boot({
   /* Each switch, its room ms and when the rebuild was done, for checks. */
   const warTimeLog = [];
   function warTimeFrame() {
+    /*
+     * A WAR ROOM'S WORLD IS THE ROOM'S (docs/FLOW-AUDIT.md rules 2 and 3):
+     * the title's world and the builder's end on entering one, by any way
+     * in (Play, a link, Rooms, a reload), and the room's world is built
+     * under its lobby. The title's Swiss valley used to stay up through
+     * the lobby, so syncWorld rebuilt it at the mission's time and the
+     * briefing's film flew over Switzerland (the owner, 2026-10-04).
+     */
+    if ((lobbyGame() === 'war' || roomWar.view().state !== 'lobby') && (titleWorld || buildWorld)) {
+      titleWorld = null;
+      buildWorld = null;
+      paintBest();
+      syncWorld();
+    }
     const lobby = ui.screen === 'friends' && lobbyGame() === 'war' ? gameLobby() : null;
     const time = lobby ? missionTime(WAR_MISSIONS[lobby.mission]) : roomWar.view().state !== 'lobby' ? roomWar.time() : null;
     if (time === warTime) {
@@ -3697,6 +3711,9 @@ export async function boot({
    * however long the room stays in it after a skip. */
   let warIntroShown = null;
   let warIntroFov = 0;
+  /* The host's Watch intro, pressed while the room's world was still
+   * being built: played once it stands (warIntroFrame). */
+  let warIntroWatchAsked = false;
 
   /* The films this pilot has watched to their end (src/game/campaign.js
    * films), in the synced campaign section; and the room told of them, so
@@ -3768,12 +3785,16 @@ export async function boot({
   function warIntroFrame(v) {
     warSeenTell();
     const briefing = v.state === 'briefing' && v.briefAt != null && mode !== 'replay';
-    /* Not while the world is being built for the mission (at its time of
-     * day, warTimeFrame, at the briefing's start): the film's scenery
-     * would go with the old map. It starts once the world is up, where the
-     * room is by then, the film's preload span having covered most of it. */
-    const worldUp = mapReady && !worldSync && !swapInFlight;
-    if (briefing && warIntroShown !== roomWar.match() && worldUp) {
+    if (warIntroWatchAsked && warFilmWorldUp(roomMission())) {
+      warIntroWatchAsked = false;
+      warIntroPlay('watch');
+    }
+    /* Not until the mission's world stands (warFilmWorldUp): not while it
+     * is built at the mission's time of day (warTimeFrame, at the
+     * briefing's start), nor over another map. It starts once the world
+     * is up, where the room is by then, the film's preload span having
+     * covered most of it. */
+    if (briefing && warIntroShown !== roomWar.match() && warFilmWorldUp(v.mission)) {
       warIntroShown = roomWar.match();
       const briefAt = v.briefAt;
       /* The match's working sets, for a shot that outlines them. */
@@ -3795,8 +3816,24 @@ export async function boot({
     }
   }
 
+  /* A mission's film plays only in the mission's own world, built and
+   * standing: its shots are that map's metres, and over any other map
+   * they fly through whatever is there. */
+  function warFilmWorldUp(missionId) {
+    const map = (WAR_MISSIONS[missionId] ?? WAR_MISSIONS[WAR_MISSION]).map ?? WAR_MAP;
+    return view.id === map && mapReady && !worldSync && !swapInFlight && worldMatchesSettings();
+  }
+  function warIntroWatch() {
+    if (warFilmWorldUp(roomMission())) {
+      warIntroPlay('watch');
+    } else {
+      warIntroWatchAsked = true;
+    }
+  }
+
   /* The room link closed. */
   function warLeave() {
+    warIntroWatchAsked = false;
     if (warIntroFor !== 'watch') {
       warIntroStop();
     }
@@ -5423,7 +5460,7 @@ export async function boot({
   window.__warIntro = () => (warIntro ? { for: warIntroFor, ...warIntro.state() } : null);
   window.__warCutaway = () => warCutaway.state();
   window.__warCutawayTest = (cue, pip) => warCutaway.request(cue, performance.now(), null, pip);
-  window.__warIntroWatch = () => warIntroPlay('watch');
+  window.__warIntroWatch = () => warIntroWatch();
   window.__warDo = (op, arg) => {
     if (op === 'start') {
       roomWar.start(arg || WAR_MISSION);
@@ -5840,7 +5877,7 @@ export async function boot({
       return;
     }
     if (action === 'friends-war-intro') {
-      warIntroPlay('watch');
+      warIntroWatch();
       return;
     }
     if (action === 'friends-combat-5' || action === 'friends-combat-3') {

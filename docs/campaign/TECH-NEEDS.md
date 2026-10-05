@@ -358,6 +358,14 @@ pass more than 0.1 s or 2 m off.
   film headless with `SIM_GPU=1`) runs every film and reports frames per
   shot, the subtitle at each line's middle, and the attackers drawn in
   each passing shot.
+- `npm run film:world` (`scripts/film-world-check.js`, a local browser
+  check, `SIM_GPU=1`, not in CI) plays mission 1's film through the
+  real menu from the title's Swiss valley: Play from home, a reload in
+  the room, a joiner by link, and the host's Watch intro. Every sample
+  of every film must stand on the itaipu map, built, with each shot's
+  camera above the surface and near the dam. It caught the film flying
+  over Switzerland (2026-10-04): the title's world stayed up through the
+  war lobby, so the film's Itaipu metres drew the Swiss valley.
 
 ### T2.8 Inserts
 
