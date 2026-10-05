@@ -118,8 +118,10 @@ export function googleKeys({ url = GOOGLE_JWKS_URL, fetchFn = (...a) => fetch(..
 }
 
 /*
- * { sub } for a good token, or { error } saying what was wrong with it.
- * Only a failure to reach Google's keys throws.
+ * { sub, email } for a good token, or { error } saying what was wrong with
+ * it. `email` is the address lowercased, or null unless Google says it
+ * verified it: the waitlist (waitlist.js) is the only reader. Only a
+ * failure to reach Google's keys throws.
  */
 export async function verifyGoogleIdToken(token, { clientIds, key, nowS = Math.floor(Date.now() / 1000) }) {
   if (!Array.isArray(clientIds) || clientIds.length === 0) {
@@ -176,5 +178,6 @@ export async function verifyGoogleIdToken(token, { clientIds, key, nowS = Math.f
   if (typeof claims.sub !== 'string' || !SUB_RE.test(claims.sub)) {
     return { error: 'no subject' };
   }
-  return { sub: claims.sub };
+  const verified = claims.email_verified === true && typeof claims.email === 'string';
+  return { sub: claims.sub, email: verified ? claims.email.trim().toLowerCase() : null };
 }

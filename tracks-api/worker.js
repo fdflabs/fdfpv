@@ -33,6 +33,7 @@
  *               updatedUtc }
  *
  *   /api/account/*   optional Google sign-in, written down in accounts.js.
+ *   /api/waitlist, /api/admin/waitlist   the beta waitlist, in waitlist.js.
  *
  * EVERYTHING IS CHECKED HERE, because this is the boundary: the body size
  * before it is read into a string, the document through the simulator's own
@@ -77,7 +78,8 @@ import {
 import {
   CORS, json, nowUtc, readBody, refuse, spend,
 } from './http.js';
-import { accountRoute } from './accounts.js';
+import { accountRoute, waitlistRoute } from './accounts.js';
+import { waitlistAdmin } from './waitlist.js';
 
 const TRACK_ID_RE = /^trk-[0-9a-f]{8}$/;
 const MAP_RE = /^[a-z0-9]{1,24}$/;
@@ -365,6 +367,12 @@ async function route(request, env) {
   }
   if (path === '/api/account' || path.startsWith('/api/account/')) {
     return accountRoute(env, request, path);
+  }
+  if (path === '/api/waitlist' && method === 'POST') {
+    return waitlistRoute(env, request);
+  }
+  if (path === '/api/admin/waitlist' && ['GET', 'POST', 'DELETE'].includes(method)) {
+    return (await isAdmin(env, request)) ? waitlistAdmin(env, request) : refuse(401, 'Not an admin.');
   }
   const one = path.match(/^\/api\/tracks\/([^/]+)$/);
   const adminOne = path.match(/^\/api\/admin\/tracks\/([^/]+)$/);
