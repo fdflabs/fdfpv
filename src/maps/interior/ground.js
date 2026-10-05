@@ -210,7 +210,7 @@ vec3 inCrop(InField f, vec2 w, float fp) {
     /* Stubble: the harvester's swaths alternately catching the light,
      * more in some places than others. */
     vec3 straw = vec3(0.16, 0.125, 0.075);
-    float sheen = 0.04 + 0.08 * inFbm(w, 19.0);
+    float sheen = 0.015 + 0.055 * inFbm(w, 19.0);
     col = straw * (0.85 + 0.22 * moist) * (1.0 + sheen * inRows(s, 9.0, fp) + 0.03 * rows);
   } else if (h < 0.82) {
     /* Young soy in rows over the red earth, fuller where it is wetter. */
