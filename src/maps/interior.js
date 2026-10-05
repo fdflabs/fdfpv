@@ -57,6 +57,7 @@ import { makeCanopy } from '../share/interior/canopy.js';
 import { M1_CLOCK } from '../share/interior/clock.js';
 import { buildTerrain, TERRAIN_Q } from './interior/terrain.js';
 import { makeLook } from './interior/look.js';
+import { paintedLand } from './interior/ground.js';
 import { buildTrees } from './interior/trees.js';
 import { buildBuilt } from './interior/built.js';
 import { buildLife } from './interior/life.js';
@@ -110,7 +111,7 @@ async function buildInterior(shell, progress, q, hours) {
   const world = makeWorld({ ...bytes, edits: landEdit });
   const canopy = makeCanopy(world);
   const look = await makeLook({
-    renderer, camera, q, hours, land: world.land,
+    renderer, camera, q, hours, land: paintedLand(world),
   });
   const { scene } = look;
   progress(0.15, 'heightmaps');
