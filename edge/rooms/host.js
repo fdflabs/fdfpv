@@ -48,7 +48,9 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { RoomCore, PRIVATE_CAP, TICK_MS } from './core.js';
+import {
+  RoomCore, PRIVATE_CAP, TICK_MS, devAccountsOf,
+} from './core.js';
 import {
   CLOSE, EMPTY_CLOSE_MS, NAME_ADJECTIVES, NAME_ANIMALS, NAME_NUMBER_MAX, NAME_NUMBER_MIN, PUBLIC_CAP,
 } from '../../src/share/roomwire.js';
@@ -124,7 +126,7 @@ export class RoomHost {
     }
     /* env.TURN is node.js's TURN credential minter, when the VM has one;
      * env.DEV_MISSIONS is node.js's, for a check's own server. */
-    this.core = new RoomCore(meta, { turn: this.env.TURN || null, devMissions: this.env.DEV_MISSIONS === true });
+    this.core = new RoomCore(meta, { turn: this.env.TURN || null, devMissions: this.env.DEV_MISSIONS === true, devAccounts: devAccountsOf(this.env.DEV_ACCOUNTS) });
     /* Every key a { store } action wrote is the name of the core's part
      * that keeps it (core.race for 'race'), restored before the seats. A
      * key with no such part is a bug and throws here, not a race that
@@ -237,9 +239,9 @@ export class RoomHost {
     }
   }
 
-  /* callsign: see RoomCore.hello; only a platform that asked the accounts
-   * server passes one. */
-  async message(conn, message, callsign = null) {
+  /* callsign and account: see RoomCore.hello; only a platform that asked
+   * the accounts server passes them. */
+  async message(conn, message, callsign = null, account = null) {
     const core = await this.load();
     if (!core) {
       conn.close(CLOSE.nosuch, 'nosuch');
@@ -248,7 +250,7 @@ export class RoomHost {
     const data = typeof message === 'string' ? message : new Uint8Array(message);
     const attached = conn.deserializeAttachment() || {};
     const now = Date.now();
-    this.run(core.message(conn, data, now, attached.address || '', newToken, callsign));
+    this.run(core.message(conn, data, now, attached.address || '', newToken, callsign, account));
     /* A pose never changes the room's line, and a seat the pose rules
      * remove is reported by the tick that is running while poses come. */
     if (typeof data === 'string') {

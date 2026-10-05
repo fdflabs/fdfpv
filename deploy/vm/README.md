@@ -253,6 +253,50 @@ curl -sS -X POST -H 'content-type: application/json' -d '{"credential":"x"}' \
 
 answers 401 with `"reason":"not a token"` when it is, 503 when it is not.
 
+### The owner's missions in development (DEV_ACCOUNTS)
+
+The owner flies a mission before it is released (Act 1's in
+development, The Interior's Mission 1) on the live server, and nobody
+else may. `DEV_MISSIONS` would open them to everybody, so the VM never
+sets it. Instead the rooms unit reads `DEV_ACCOUNTS` from
+`/etc/fdfpv/dev-accounts.env` (optional; root, mode 600; never in the
+repository): comma separated account ids. A room whose host's seat is
+one of those accounts starts missions in `development` (never `soon`),
+for the war and the ops missions alike; every other room is as it was.
+The id is the accounts server's answer for the seat's session
+(edge/rooms/node.js helloAccount), never anything a client says, and an
+allowlisted pilot seated in somebody else's room opens nothing there
+(edge/rooms/core.js devHost; `npm run dev:accounts` proves it). With the
+list set, a private war room may also be made naming a mission in
+development (the room still starts it only for such a host); a public
+one may not.
+
+The owner's account id, by their callsign, read only (nothing else of
+the account is printed):
+
+```sh
+ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 "sudo node --disable-warning=ExperimentalWarning -e \"
+const { DatabaseSync } = require('node:sqlite');
+const db = new DatabaseSync('/var/lib/fdfpv-tracks/tracks.db', { readOnly: true });
+console.log(db.prepare('SELECT id, callsign FROM accounts WHERE callsign_key = ?').get(process.argv[1].toLowerCase()));
+\" OWNER_CALLSIGN"
+```
+
+Set it, then restart the rooms (a room in play is restored from its
+storage):
+
+```sh
+ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 \
+  'echo DEV_ACCOUNTS=<id> | sudo install -m 600 -o root /dev/stdin /etc/fdfpv/dev-accounts.env && sudo systemctl restart fdfpv-rooms'
+```
+
+To take it away, delete the file and restart `fdfpv-rooms`. The owner
+opens the page with `?missions=dev` so the campaign screens offer what is
+in development (the client's switch only; the room is the gate, and
+anybody else using it is refused `unreleased`). The accounts server must
+be from this change on (its `GET /api/account` answers the account's
+`id`), so deploy both units.
+
 ## Check it
 
 ```sh

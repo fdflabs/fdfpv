@@ -248,7 +248,11 @@ async function create(request, env, origin) {
   if (war ? !warFits(body.map, mission) : mission !== null) {
     return refuse(400, 'bad');
   }
-  if (war && mission !== null && !released(mission, env.DEV_MISSIONS === true)) {
+  /* A private room may name a mission in development: the room itself
+   * starts it only for a host in DEV_ACCOUNTS (core.js devHost), and this
+   * request has no account to read. A public room, and anything only
+   * planned, still needs the release. */
+  if (war && mission !== null && !released(mission, env.DEV_MISSIONS === true || (!open && Boolean(env.DEV_ACCOUNTS)))) {
     return refuse(403, 'unreleased');
   }
   if (open && env.PUBLIC_ROOMS !== 'on') {

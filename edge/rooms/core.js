@@ -234,6 +234,13 @@ function bump(counter, now, windowMs) {
   return counter.n;
 }
 
+/* DEV_ACCOUNTS, the rooms server's comma separated account ids
+ * (/etc/fdfpv/dev-accounts.env on the VM, never in the repository), as a
+ * set; anything not a positive integer is left out. */
+export function devAccountsOf(text) {
+  return new Set(String(text || '').split(',').map((x) => x.trim()).filter((x) => /^[1-9][0-9]{0,15}$/.test(x)).map(Number));
+}
+
 export class RoomCore {
   /*
    * meta: { code, cap, friendly, map, epoch, public, name, pick, mode,
@@ -264,6 +271,8 @@ export class RoomCore {
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
+    /* The accounts whose rooms start missions in development (devHost). */
+    this.devAccounts = options.devAccounts ?? new Set();
     this.war = new RoomWar(meta, { devMissions: options.devMissions === true }); /* Defend Itaipu, edge/rooms/war.js */
     this.ops = new RoomOps(meta, { devMissions: options.devMissions === true }); /* ops missions (The Interior), edge/rooms/ops.js */
     this.gameLobby = new RoomGameLobby(); /* a game room's lobby, edge/rooms/gamelobby.js */
@@ -335,6 +344,24 @@ export class RoomCore {
   open(conn, now) {
     this.pending.set(conn, { since: now, n: 0 });
     return [];
+  }
+
+  /*
+   * Whether this room's host is one of the server's DEV_ACCOUNTS: the
+   * owner flying missions still in development on the live server before
+   * they are released (src/game/campaign.js released's dev, 'development'
+   * only, never 'soon'). Only the host's own account counts, so an
+   * allowlisted pilot seated in somebody else's room opens nothing there.
+   * The account is the accounts server's answer for the seat's session
+   * (node.js helloAccount), never anything a client says.
+   */
+  devHost() {
+    if (!this.devAccounts.size) {
+      return false;
+    }
+    const seat = this.host();
+    const s = [...this.seats.values()].find((t) => t.seat === seat);
+    return Boolean(s && Number.isInteger(s.account) && this.devAccounts.has(s.account));
   }
 
   /* The host's seat: the one holding the hosting token, else, while the
@@ -620,7 +647,7 @@ export class RoomCore {
   attachmentOf(s) {
     return {
       seat: s.seat, token: s.token, name: s.name, profile: s.profile, joined: s.joined, address: s.address,
-      muted: s.muted || [], wreck: s.wreck ?? null, level: s.level || 0, callsign: s.callsign ?? null,
+      muted: s.muted || [], wreck: s.wreck ?? null, level: s.level || 0, callsign: s.callsign ?? null, account: s.account ?? null,
     };
   }
 
@@ -682,9 +709,11 @@ export class RoomCore {
    * or null: a guest, a session that did not check out, or a platform
    * with no accounts server. It is never read from the message itself, so
    * no hello can name itself one. It goes to every peer beside the picker
-   * name, which a build from before it shows instead.
+   * name, which a build from before it shows instead. account is that
+   * pilot's account id from the same lookup (null the same way): never
+   * sent to anybody, only read against the room's DEV_ACCOUNTS (devHost).
    */
-  hello(conn, msg, now, address, newToken, callsign = null) {
+  hello(conn, msg, now, address, newToken, callsign = null, account = null) {
     if (msg.proto !== PROTO) {
       return [{ close: conn, code: CLOSE.update, reason: 'update' }];
     }
@@ -756,6 +785,7 @@ export class RoomCore {
       token: wanted && token ? token : newToken(),
       name: msg.name.slice(),
       callsign,
+      account,
       profile,
       joined,
       /* Memory only, for the admin's who is on (who()): this socket's
@@ -828,7 +858,7 @@ export class RoomCore {
     return actions;
   }
 
-  message(conn, data, now, address = '', newToken = null, callsign = null) {
+  message(conn, data, now, address = '', newToken = null, callsign = null, account = null) {
     const s = this.seats.get(conn);
     if (s) {
       s.heardAt = now;
@@ -863,7 +893,7 @@ export class RoomCore {
       return [];
     }
     if (!s) {
-      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign) : [];
+      return msg.type === 'hello' ? this.hello(conn, msg, now, address, newToken, callsign, account) : [];
     }
     /* Counted on an allowance of its own (edge/rooms/voice.js). */
     if (msg.type === 'voice') {

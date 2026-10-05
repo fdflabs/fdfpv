@@ -164,12 +164,13 @@ const ACCOUNT_WAIT_MS = 2000;
 const SIGNIN = { close: CLOSE_SIGNIN, reason: 'signin' };
 const UNREACHABLE = { close: CLOSE_ACCOUNTS, reason: 'accounts' };
 
-/* { callsign } to seat, callsign null for a guest where nothing is
- * checked, or { close, reason } to refuse. text is the socket's first
+/* { callsign, account } to seat (account the accounts server's id for
+ * the pilot, which the room reads only against DEV_ACCOUNTS), both null
+ * for a guest where nothing is checked, or { close, reason } to refuse. text is the socket's first
  * message, null when that was binary. */
 export async function helloAccount(text, env, address) {
   if (!env.ACCOUNTS_ORIGIN) {
-    return { callsign: null };
+    return { callsign: null, account: null };
   }
   let msg;
   try {
@@ -203,7 +204,8 @@ export async function helloAccount(text, env, address) {
     }
     const body = await res.json();
     const callsign = normaliseName(body && body.callsign);
-    return callsign ? { callsign } : SIGNIN;
+    const account = body && Number.isInteger(body.id) && body.id > 0 ? body.id : null;
+    return callsign ? { callsign, account } : SIGNIN;
   } catch (e) {
     console.error('accounts unreachable; a join is refused until it answers:', e && e.message ? e.message : e);
     return UNREACHABLE;
@@ -466,7 +468,7 @@ class Room {
           }
           return;
         }
-        this.enqueue(() => this.host.message(conn, value, account.callsign));
+        this.enqueue(() => this.host.message(conn, value, account.callsign, account.account));
       });
     });
     ws.on('close', (code) => {
@@ -526,12 +528,15 @@ function lobbyObject(env) {
  * own entry point below never reads it. devMissions: start the campaign's
  * missions still in development too (src/game/campaign.js released), for
  * the checks that fly missions 2 to 4 and a developer's own server; the
- * entry point reads DEV_MISSIONS=on, which the VM never sets. revision: what GET /v2/version
+ * entry point reads DEV_MISSIONS=on, which the VM never sets. devAccounts:
+ * DEV_ACCOUNTS, comma separated account ids whose rooms (as host) start
+ * missions in development too, the owner's on the live server
+ * (deploy/vm/README.md; core.js devHost). revision: what GET /v2/version
  * answers, the deployed REVISION file's (node-http.js readRevision) unless
  * a check passes its own. */
 export function startRooms({
   db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '', turnSecret = '', turnUrls = '',
-  devMissions = false, revision = readRevision(new URL('../../REVISION', import.meta.url)),
+  devMissions = false, devAccounts = '', revision = readRevision(new URL('../../REVISION', import.meta.url)),
 }) {
   if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
     throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
@@ -539,7 +544,7 @@ export function startRooms({
   const store = new Store(db);
   const env = {
     PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap, ACCOUNTS_ORIGIN: accountsOrigin.replace(/\/+$/, ''),
-    TURN: turnMinter(turnSecret, turnUrls), REVISION: revision, DEV_MISSIONS: devMissions === true,
+    TURN: turnMinter(turnSecret, turnUrls), REVISION: revision, DEV_MISSIONS: devMissions === true, DEV_ACCOUNTS: devAccounts,
   };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
@@ -625,6 +630,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     turnSecret: process.env.TURN_SECRET || '',
     turnUrls: process.env.TURN_URLS || '',
     devMissions: process.env.DEV_MISSIONS === 'on',
+    devAccounts: process.env.DEV_ACCOUNTS || '',
   });
   console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}${running.env.TURN ? '' : ', no TURN relay: voice is peer to peer through STUN alone'}${running.env.DEV_MISSIONS ? ', DEV_MISSIONS: missions in development start too' : ''}`);
   process.on('SIGTERM', async () => {
