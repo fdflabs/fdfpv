@@ -237,7 +237,7 @@ const WING_MOUNTS = {
 /* The aircraft the title flies, whatever is seated: the owner's choice, and
  * a wing, so the title never shows a seaplane parked on grass. */
 const TITLE_CRAFT = 'sky1800';
-import { disposeSceneGraph } from './render/shell.js';
+import { disposeSceneGraph, shareInstancedDepth } from './render/shell.js';
 import { normaliseRates, ratesAreDefault, ratesDiff, ratesSummary, TOUCH_RATE_DEFAULTS } from '../configs/rates.js';
 import { clearPidsFor, PID_AXES, pidCliKey, pidsDiffFor, SLIDER_KEYS, SLIDERS } from '../configs/pids.js';
 import { cliMap, composeConfig, FC_DUMP_KEY, FC_DUMP_AIRFRAME_KEY, moduleDump, moduleGet, RATES_KEEP, ratesFromDump, tuneBody } from './fc/dump.js';
@@ -673,6 +673,7 @@ async function loadMap(shell, id, loading, mapOptions) {
   /* The builder has returned, so every phase it ran is over (the scene's
    * compile among them). */
   loading.closePhases();
+  shareInstancedDepth(map.scene);
   loading.finalSystem('world', 'loading');
   map.graphics = normalizeGraphics(options && options.quality);
   /* The map's water, as the plant is told it: src/game/water.js. */
@@ -1198,6 +1199,30 @@ export async function boot({
   })();
 
   let view = null;
+  /*
+   * THE FIRST CRASH USED TO LINK ITS SHADERS MID FLIGHT. The pilot's own
+   * aircraft is not drawn from the FPV camera, and the session's effects
+   * (debris, explosions, the wreck) join the map's scene on first use, so
+   * their programs were linked in the frame the crash first showed them:
+   * five to seven on Itaipu, the aircraft's own materials and the
+   * debris's, counted in renderer.info.programs. Compiling them against
+   * the map's lights while the map loads, or as the aircraft is swapped
+   * between runs, moves that cost out of the flight. The composer's target is bound while it runs because a program
+   * for the screen and one for a render target differ in their output
+   * colour space, and the scene is drawn into the composer.
+   */
+  function prewarm(roots) {
+    if (!view || !view.scene) {
+      return;
+    }
+    const r = shell.renderer;
+    const was = r.getRenderTarget();
+    r.setRenderTarget(view.post && view.post.composer ? view.post.composer.readBuffer : null);
+    for (const g of roots) {
+      r.compile(g, shell.camera, view.scene);
+    }
+    r.setRenderTarget(was);
+  }
   /*
    * RESIZE IS APPLIED ONCE A FRAME, NOT ONCE AN EVENT.
    *
@@ -8944,6 +8969,12 @@ export async function boot({
    */
   const smoke = createSmoke();
   shell.keepAcrossMaps(smoke.group);
+  /* The session's effects, compiled with each map (prewarm, above). */
+  const FX_ROOTS = [wreckRig.group, debris.group, warAttackers.group, warBooms.group, warBreakage.group, smoke.group];
+  /* Not the aircraft here: the boot one is replaced before anyone flies,
+   * and compiling it cost twelve GL_INVALID_VALUE glGetProgramiv warnings
+   * a page (scripts/shots.js), measured. */
+  prewarm(FX_ROOTS);
   let smokeOn = false;
   /* Whether the trail was emitting this frame, for the crash cam. */
   let smokeLive = false;
@@ -10985,6 +11016,7 @@ export async function boot({
   }
 
   function adoptLoadedView(keepPlace, stayMode, stayScreen) {
+    prewarm([...FX_ROOTS, shell.quad]);
     attractCam = makeAttractCamera(view);
     if (!keepPlace) {
       /* A map track's records are its own (seatMapCourse), not the world's. */
@@ -11566,6 +11598,7 @@ export async function boot({
       return;
     }
     shell.swapCraft(want);
+    prewarm([shell.quad]);
     drawnCraft = want;
     drawnCombat = combat;
   }

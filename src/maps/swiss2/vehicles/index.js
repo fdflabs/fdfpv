@@ -127,17 +127,20 @@ export function swissVehicles() {
       lod.addLevel(levels[0].level, 0);
       lod.addLevel(levels[1].level, built.lod);
       group.add(lod);
+      /* Every moving vehicle every frame: plain loops, so no callback or
+       * iterator is made per call. */
       const rolled = (dist) => {
-        built.wheels.forEach((w, i) => {
+        for (let i = 0; i < built.wheels.length; i += 1) {
+          const w = built.wheels[i];
           M.makeTranslation(w.x, w.r, w.z);
           M.multiply(M2.makeRotationZ(-dist / w.r));
           M.multiply(M2.makeScale(w.r, w.r, w.w));
-          for (const { inst } of levels) {
-            inst.setMatrixAt(i, M);
+          for (let k = 0; k < levels.length; k += 1) {
+            levels[k].inst.setMatrixAt(i, M);
           }
-        });
-        for (const { inst } of levels) {
-          inst.instanceMatrix.needsUpdate = true;
+        }
+        for (let k = 0; k < levels.length; k += 1) {
+          levels[k].inst.instanceMatrix.needsUpdate = true;
         }
       };
       rolled(0);
