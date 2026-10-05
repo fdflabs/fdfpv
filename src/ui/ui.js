@@ -2744,14 +2744,14 @@ function machineValue(s) {
  * Enter and a click open the picker (src/ui/carousel.js) through `open`,
  * which the screen adds because it needs the Ui.
  */
-function craftItem(s, swap) {
-  const af = airframeById(s.airframe);
+function craftItem(s, swap, shown = s.airframe) {
+  const af = airframeById(shown);
   return {
     ...choice(
       str('ui.aircraft'),
       str('ui.changing_it_loads_that_machine_s', { blurb: af.blurb, v3: swap ? ` ${str('carousel.in_place')}` : '' }),
       AIRFRAME_IDS,
-      s.airframe,
+      shown,
       (id) => airframeById(id).name,
       (id) => {
         if (swap) {
@@ -4762,7 +4762,10 @@ export class Ui {
         pickOnly: true,
       };
     return [
-      { ...craftItem(s, null), open: () => this.openCraftRow(false) },
+      /* In a war room the row names the aircraft the war will seat (the
+       * shell's craftShown), as the room's profile does: seating waits for
+       * the briefing, and until then settings.airframe is the last flown. */
+      { ...craftItem(s, null, this.craftShown ? this.craftShown(s) : s.airframe), open: () => this.openCraftRow(false) },
       worldRow,
     ];
   }

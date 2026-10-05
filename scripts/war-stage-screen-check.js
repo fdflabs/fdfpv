@@ -121,7 +121,7 @@ try {
     && a.shown.objectives[2].includes('3/3') && /^✗/.test(a.shown.objectives[4]), JSON.stringify(a.shown.objectives));
   row('a hold counts its seconds and draws its bar', /5\/20 s/.test(a.shown.objectives[3]) && Boolean(await page.evaluate('document.querySelector(".war-objectives [data-state=active] div div")')),
     a.shown.objectives[3]);
-  row('the next wave from the room\'s drawn time', a.shown.status === 'NEXT WAVE IN 0:13', a.shown.status);
+  row('the next wave from the room\'s drawn time', a.shown.status === 'NEXT CONTACTS IN 0:13', a.shown.status);
   row('the stage title as a lower third', Boolean(a.lower) && Number(a.lowerOp) > 0.5, `${a.lower} at ${a.lowerOp}`);
   await page.evaluate('(window.__stageHud.hud.update(window.__stageHud.v, 1, window.__stageHud.now + 3000, 14000, null), true)');
   const held = await page.evaluate('window.__stageHud.hud.shown().objectives[3]');
