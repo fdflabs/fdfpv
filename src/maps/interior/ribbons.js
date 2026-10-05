@@ -253,8 +253,8 @@ function waterMaterial(THREE) {
         /* Deep water brown with silt, the shallows toward each side
          * lighter where the bed shows through. */
         float shallow = smoothstep(0.55, 1.0, abs(t));
-        vec3 deep = vec3(0.11, 0.07, 0.038);
-        vec3 shoal = vec3(0.17, 0.12, 0.07);
+        vec3 deep = vec3(0.1, 0.07, 0.042);
+        vec3 shoal = vec3(0.15, 0.115, 0.075);
         float swirl = rbNoise(w * 0.03) * 0.6 + rbNoise(w * 0.11) * 0.4;
         vec3 col = mix(deep, shoal, shallow * 0.8) * (0.85 + 0.3 * swirl);
         /* Sand bars on the inside of a bend (bend's sign is the inside),
@@ -264,7 +264,7 @@ function waterMaterial(THREE) {
         float n = rbNoise(w * 0.012) * 0.65 + rbNoise(w * 0.05) * 0.35;
         float bar = smoothstep(1.0 - 0.85 * reach, 1.05 - 0.85 * reach, inside + (n - 0.5) * 0.6) * step(0.05, reach);
         rbBar = bar;
-        vec3 sand = mix(vec3(0.26, 0.19, 0.12), vec3(0.2, 0.15, 0.1), rbNoise(w * 0.3));
+        vec3 sand = mix(vec3(0.25, 0.21, 0.155), vec3(0.2, 0.17, 0.125), rbNoise(w * 0.3));
         diffuseColor.rgb = mix(col, sand, bar);
         /* The edge laps the bank under it. */
         diffuseColor.a = max(bar, 1.0 - smoothstep(0.75, 1.0, abs(t) + (rbNoise(w * 0.2) - 0.5) * 0.12)) * mix(0.93, 1.0, bar);
@@ -309,8 +309,8 @@ function bankMaterial(THREE) {
       float water = vRbStrip.z;
       float k = clamp((d - water) / max(outer - water, 1.0), 0.0, 1.0);
       float n = rbNoise(w * 0.08) * 0.6 + rbNoise(w * 0.4) * 0.4;
-      vec3 wet = vec3(0.12, 0.085, 0.055);
-      vec3 dry = vec3(0.2, 0.16, 0.11);
+      vec3 wet = vec3(0.1, 0.08, 0.058);
+      vec3 dry = vec3(0.19, 0.165, 0.125);
       diffuseColor.rgb = mix(wet, dry, smoothstep(0.0, 0.35, k)) * (0.85 + 0.3 * n);
       diffuseColor.a = 1.0 - smoothstep(0.35, 1.0, k + (n - 0.5) * 0.5);
     }`));

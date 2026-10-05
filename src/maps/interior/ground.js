@@ -189,8 +189,8 @@ InField inFarm(vec2 w) {
 }
 
 /* The red earth of the region's tracks and ploughed land. */
-const vec3 IN_EARTH = vec3(0.14, 0.07, 0.04);
-const vec3 IN_DUST = vec3(0.19, 0.115, 0.07);
+const vec3 IN_EARTH = vec3(0.13, 0.071, 0.043);
+const vec3 IN_DUST = vec3(0.17, 0.115, 0.075);
 
 /* Cropland: what the field is this week of the dry season's end, and the
  * rows across it. */
