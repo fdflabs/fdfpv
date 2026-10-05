@@ -24,7 +24,10 @@
  * lake's bed is NOT invisible to the thermal draw. The water's sheet is
  * translucent there too, and the bed's pass multiplies what lies under it,
  * so leaving the bed out moved the whole lake's temperature by up to 0.5
- * (50 degrees) in every lake view. See docs/PERF.md, P3b.
+ * (50 degrees) in every lake view. See docs/PERF.md, P3b. Since
+ * thermal-true the water is opaque in the thermal picture and the bed
+ * pass is left out of every thermal draw (thermalHide), so the same skip
+ * changes nothing and the check passes.
  *
  *     SIM_GPU=1 node scripts/perf-thermal-check.js [OUT_DIR] --skip=a,b
  *         [--views=lake-high,low-south] [--waves] [--frames=40] [--reps=3]
