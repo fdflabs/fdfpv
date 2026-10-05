@@ -383,8 +383,7 @@ export class AvionicsHud {
   }
 
   /* The tapes and the heading tape as boxes, CSS px, for the layout check. */
-  tapeRects() {
-    const L = this.layout();
+  tapeRects(L = this.layout()) {
     return {
       speed: { x: L.spdX - L.box * 1.4, y: L.cy - L.tapeH / 2 - L.font * 2, w: L.box * 2.6, h: L.tapeH + L.font * 3 },
       agl: { x: L.aglX - L.box * 1.2, y: L.cy - L.tapeH / 2 - L.font * 2, w: L.box * 2.6, h: L.tapeH + L.font * 3 },
@@ -1226,6 +1225,27 @@ export class AvionicsHud {
    * its time beside it; FULL draws the line to the cue from the reticle
    * too. Closure is one line of text right of the reticle.
    */
+  /*
+   * The lead cue's time, right of the cue, else left of it, else not at
+   * all: the cue's dot is kept between the tapes, but its words are wider
+   * than the dot and ran onto the AGL tape's on a phone.
+   */
+  leadLabel(L, text, x, y) {
+    const g = this.g;
+    const tapes = this.tapeRects(L);
+    const keepOut = [tapes.speed, tapes.agl, ...this.texts];
+    g.fillStyle = GREEN;
+    for (const [align, at] of [['left', x + 8], ['right', x - 8]]) {
+      g.textAlign = align;
+      const me = this.textRect(text, at, y);
+      if (!keepOut.some((r) => meets(r, me))) {
+        g.fillText(text, at, y);
+        this.texts.push(me);
+        return;
+      }
+    }
+  }
+
   prediction(L, camera, t) {
     const g = this.g;
     g.setLineDash([2, 4]);
@@ -1255,9 +1275,7 @@ export class AvionicsHud {
       g.beginPath();
       g.arc(this.proj.x, this.proj.y, 4, 0, Math.PI * 2);
       g.stroke();
-      g.fillStyle = GREEN;
-      g.textAlign = 'left';
-      this.say(str('avionics.hud.lead', { s: t.lead.tS.toFixed(1) }), this.proj.x + 8, this.proj.y);
+      this.leadLabel(L, str('avionics.hud.lead', { s: t.lead.tS.toFixed(1) }), this.proj.x, this.proj.y);
     }
     g.setLineDash([]);
     if (t.closureMs) {
