@@ -51,10 +51,13 @@ import { RIVER, STREAMS } from './hydro.js';
  * crowns are 5 to 11 m across. */
 export const TREE_CELL = 8;
 /* No crown top stands higher over its ground than this, metres. */
-export const MAX_TREE_H = 25;
+export const MAX_TREE_H = 27;
+/* No crown is wider than this, metres: places.js's CROWN_REACH, which its
+ * openings are bucketed by, holds it. */
+const MAX_CROWN_R = 8;
 /* A crown reaches at most this far from its square's middle: the jitter's
  * reach plus the widest crown. */
-const CROWN_REACH = TREE_CELL * 0.38 + 6.2;
+const CROWN_REACH = TREE_CELL * 0.38 + MAX_CROWN_R;
 /* Steps along a line's ground track, metres: under half a square, so no
  * square a crown could stand in is stepped over. */
 const STEP = 3;
@@ -232,13 +235,16 @@ export function makeCanopy(world) {
     let ry;
     if (cls === LAND.forest || cls === LAND.shrub) {
       kind = KIND.broadleaf;
+      /* Its stand, a noise 90 m a feature: some stands of tall wide
+       * crowns, some of close small ones, as species and age group. */
+      const stand = noise(x, z, 90, 12);
       const tall = cls === LAND.forest ? 11 + 9 * noise(x, z, 160, 7) + 3 * noise(x, z, 40, 8) : 6;
-      h = tall + 3 * (v - 0.5);
+      h = tall + 4 * (v - 0.5) + 3 * (stand - 0.5);
       /* Crowns wider than their squares and deep, overlapping into a
        * closed roof from a few metres up: a semi deciduous forest's
        * canopy and the layer under it, as one crown a square. */
       r = 3.6 + 2.4 * w;
-      ry = 0.42 * h;
+      ry = (0.36 + 0.12 * hash01(ci, cj, 12)) * h;
     } else if (cls === LAND.wetland || v < 0.3) {
       kind = KIND.palm;
       h = 8 + 6 * v;
@@ -353,7 +359,7 @@ export function makeCanopy(world) {
   }
 
   function inTrees(x, z) {
-    const reach = 6 + GAP_NEAR + TREE_CELL;
+    const reach = MAX_CROWN_R + GAP_NEAR + TREE_CELL;
     for (let cj = cellOf(z - reach); cj <= cellOf(z + reach); cj += 1) {
       for (let ci = cellOf(x - reach); ci <= cellOf(x + reach); ci += 1) {
         const t = treeAt(ci, cj);
