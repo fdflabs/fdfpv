@@ -864,7 +864,9 @@ export function buildCamp({
     const [sx, sz] = [mx + Math.sin(a) * 5, mz + Math.cos(a) * 5];
     guys.push(mx + Math.sin(a) * 0.16, mg + M.h - 2.2, mz + Math.cos(a) * 0.16, sx, ground(sx, sz) + 0.05, sz);
   }
-  const ropeMat = new THREE.LineBasicMaterial({ color: ROPE, transparent: true, opacity: 0.55 });
+  /* Ropes and wires a few millimetres thick are below the thermal
+   * camera's resolution at any range it flies at. */
+  const ropeMat = thermalHide(new THREE.LineBasicMaterial({ color: ROPE, transparent: true, opacity: 0.55 }));
   const guyGeo = new THREE.BufferGeometry();
   guyGeo.setAttribute('position', new THREE.Float32BufferAttribute(guys, 3));
   const guyLines = new THREE.LineSegments(guyGeo, ropeMat);

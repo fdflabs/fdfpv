@@ -47,9 +47,10 @@ import {
 /* How much of the skin's temperature over the air shows through, per
  * part (src/render/thermal.js, the body kind): clothes most of it, the
  * head and hands, bare skin and hair, nearly all; a hat, boots and a pack
- * less, warmed through from the head, the feet and the back under them;
- * a carried pole none. */
-const HEAT = 0.6;
+ * less, warmed through from the head, the feet and the back under them.
+ * HEAT puts a shirt at 29 to 30 C on a 19 C night, the 30 to 34 C above
+ * with the head and hands. */
+const HEAT = 0.7;
 const HEAD_HEAT = 0.85;
 /* Linear colours of the parts. Slot 1 (the shirt) is the instance's
  * colour, slot 2 the trousers', slot 3 the hat's or the hair's
@@ -128,8 +129,9 @@ const ACTION_POSE = {
 };
 export const POSE_NAMES = Object.keys(POSES);
 /* Two kits of every pose: a cap and nothing on the back, or a wide
- * brimmed hat and a pack. */
+ * brimmed hat and a pack, which half wear. */
 const KITS = ['cap', 'hat'];
+const HAT_SHARE = 0.5;
 
 /* One part: geometry g0 moved by m, one colour, one heat coupling, one
  * tint slot. Every part carries the same attributes so the body merges. */
@@ -162,26 +164,26 @@ function bodyGeometry(THREE, p, kit) {
   /* Legs: a thigh, a shin and a boot kept level with the ground. */
   for (const [side, leg] of [[-1, p.legA || [0, 0]], [1, p.legB || [0, 0]]]) {
     const [swing, bend, spread = 0.05] = leg;
-    const hip = T(side * 0.1, hips, 0).multiply(X(swing)).multiply(Z(side * spread));
-    parts.push(part(THREE, cyl(0.085, 0.065, 0.46), WHITE, HEAT * 0.8, LOWER, hip.clone().multiply(T(0, -0.23, 0))));
+    const hip = T(side * 0.11, hips, 0).multiply(X(swing)).multiply(Z(side * spread));
+    parts.push(part(THREE, cyl(0.1, 0.076, 0.46), WHITE, HEAT * 0.8, LOWER, hip.clone().multiply(T(0, -0.23, 0))));
     const knee = hip.clone().multiply(T(0, -0.45, 0)).multiply(X(-bend));
-    parts.push(part(THREE, cyl(0.062, 0.05, 0.44), WHITE, HEAT * 0.7, LOWER, knee.clone().multiply(T(0, -0.22, 0))));
+    parts.push(part(THREE, cyl(0.07, 0.058, 0.44), WHITE, HEAT * 0.7, LOWER, knee.clone().multiply(T(0, -0.22, 0))));
     const ankle = knee.clone().multiply(T(0, -0.44, 0)).multiply(X(bend - swing));
     parts.push(part(THREE, new THREE.BoxGeometry(0.1, 0.09, 0.25), BOOT, 0.4, 0, ankle.clone().multiply(T(0, -0.02, -0.05))));
   }
   /* The trunk, leaning about the hips: a pelvis, and a chest broader at
    * the shoulders, with the neck, the head and the arms on it. */
   const trunk = T(0, hips, 0).multiply(X(-lean));
-  parts.push(part(THREE, cyl(0.165, 0.155, 0.2, 8).scale(1, 1, 0.68), WHITE, HEAT * 0.8, LOWER, trunk.clone().multiply(T(0, 0.02, 0))));
-  parts.push(part(THREE, cyl(0.21, 0.17, 0.5, 8).scale(1, 1, 0.6), WHITE, HEAT, SHIRT, trunk.clone().multiply(T(0, 0.35, 0))));
+  parts.push(part(THREE, cyl(0.18, 0.17, 0.2, 8).scale(1, 1, 0.7), WHITE, HEAT * 0.8, LOWER, trunk.clone().multiply(T(0, 0.02, 0))));
+  parts.push(part(THREE, cyl(0.24, 0.19, 0.5, 8).scale(1, 1, 0.66), WHITE, HEAT, SHIRT, trunk.clone().multiply(T(0, 0.35, 0))));
   parts.push(part(THREE, cyl(0.05, 0.055, 0.1, 6), SKIN, HEAD_HEAT, 0, trunk.clone().multiply(T(0, 0.63, 0))));
   const head = trunk.clone().multiply(T(0, 0.66, 0)).multiply(X(p.head ?? 0)).multiply(T(0, 0.11, 0));
-  parts.push(part(THREE, new THREE.SphereGeometry(0.105, 8, 6).scale(0.9, 1.08, 1), SKIN, HEAD_HEAT, 0, head));
+  parts.push(part(THREE, new THREE.SphereGeometry(0.115, 8, 6).scale(0.9, 1.08, 1), SKIN, HEAD_HEAT, 0, head));
   if (kit === 'cap') {
-    parts.push(part(THREE, new THREE.SphereGeometry(0.11, 8, 3, 0, Math.PI * 2, 0, Math.PI / 2), WHITE, 0.65, HAT, head.clone().multiply(T(0, 0.015, 0.005))));
-    parts.push(part(THREE, new THREE.BoxGeometry(0.15, 0.014, 0.1), WHITE, 0.45, HAT, head.clone().multiply(T(0, 0.03, -0.12))));
+    parts.push(part(THREE, new THREE.SphereGeometry(0.117, 8, 3, 0, Math.PI * 2, 0, Math.PI / 2), WHITE, 0.8, HAT, head.clone().multiply(T(0, 0.015, 0.005))));
+    parts.push(part(THREE, new THREE.BoxGeometry(0.15, 0.014, 0.1), WHITE, 0.5, HAT, head.clone().multiply(T(0, 0.03, -0.12))));
   } else {
-    parts.push(part(THREE, cyl(0.095, 0.11, 0.1, 8), WHITE, 0.55, HAT, head.clone().multiply(T(0, 0.075, 0))));
+    parts.push(part(THREE, cyl(0.095, 0.11, 0.1, 8), WHITE, 0.75, HAT, head.clone().multiply(T(0, 0.075, 0))));
     parts.push(part(THREE, cyl(0.21, 0.21, 0.014, 10), WHITE, 0.4, HAT, head.clone().multiply(T(0, 0.03, 0))));
     parts.push(part(THREE, new THREE.BoxGeometry(0.3, 0.4, 0.16), PACK, 0.35, 0, trunk.clone().multiply(T(0, 0.34, 0.19))));
     parts.push(part(THREE, cyl(0.07, 0.07, 0.34, 6).rotateZ(Math.PI / 2), PACK, 0.25, 0, trunk.clone().multiply(T(0, 0.58, 0.2))));
@@ -189,19 +191,25 @@ function bodyGeometry(THREE, p, kit) {
   /* Arms: a sleeve to the elbow, a sleeve to the wrist and a hand. */
   for (const [side, arm] of [[-1, p.armA || [0, 0]], [1, p.armB || [0, 0]]]) {
     const [swing, bend, spread = 0.1] = arm;
-    const shoulder = trunk.clone().multiply(T(side * 0.215, 0.55, 0)).multiply(X(swing)).multiply(Z(side * spread));
-    parts.push(part(THREE, cyl(0.058, 0.05, 0.3), WHITE, HEAT * 0.9, SHIRT, shoulder.clone().multiply(T(0, -0.15, 0))));
+    const shoulder = trunk.clone().multiply(T(side * 0.25, 0.55, 0)).multiply(X(swing)).multiply(Z(side * spread));
+    parts.push(part(THREE, cyl(0.066, 0.056, 0.3), WHITE, HEAT * 0.9, SHIRT, shoulder.clone().multiply(T(0, -0.15, 0))));
     const elbow = shoulder.clone().multiply(T(0, -0.29, 0)).multiply(X(bend));
-    parts.push(part(THREE, cyl(0.048, 0.04, 0.26), WHITE, HEAT * 0.9, SHIRT, elbow.clone().multiply(T(0, -0.13, 0))));
+    parts.push(part(THREE, cyl(0.055, 0.046, 0.26), WHITE, HEAT * 0.9, SHIRT, elbow.clone().multiply(T(0, -0.13, 0))));
     parts.push(part(THREE, new THREE.BoxGeometry(0.06, 0.1, 0.04), SKIN, HEAD_HEAT, 0, elbow.clone().multiply(T(0, -0.31, 0))));
   }
-  /* The long object, a 2.6 m pole or pipe on the right shoulder, its
-   * front end a little up. */
-  if (p.long) {
-    const pole = trunk.clone().multiply(T(0.16, 0.6, -0.25)).multiply(X(Math.PI / 2 - 0.12));
-    parts.push(part(THREE, cyl(0.03, 0.03, 2.6, 6), POLE, 0.05, 0, pole));
-  }
   return mergeGeometries(parts);
+}
+
+/* The long object the carrying poses hold, a 2.6 m pole on the right
+ * shoulder, its front end a little up: wood, not a body, so it is drawn
+ * apart with its own thermal kind. Placed as the carry poses' trunk is. */
+function poleGeometry(THREE) {
+  const lean = POSES.carry0.lean;
+  const m = new THREE.Matrix4().makeTranslation(0, 0.93, 0)
+    .multiply(new THREE.Matrix4().makeRotationX(-lean))
+    .multiply(new THREE.Matrix4().makeTranslation(0.16, 0.6, -0.25))
+    .multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2 - 0.12));
+  return new THREE.CylinderGeometry(0.03, 0.03, 2.6, 6, 1).applyMatrix4(m);
 }
 
 /*
@@ -230,6 +238,14 @@ export function makeFigures(THREE, { cap = 256 } = {}) {
       group.add(m);
     }
   }
+  const poleMat = thermalKind(new THREE.MeshStandardMaterial({ color: new THREE.Color(...POLE), roughness: 0.9 }), 'vegetation');
+  const poles = new THREE.InstancedMesh(poleGeometry(THREE), poleMat, cap);
+  poles.count = 0;
+  poles.visible = false;
+  poles.frustumCulled = false;
+  poles.castShadow = true;
+  poles.name = 'interior-figure-pole';
+  group.add(poles);
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const up = new THREE.Vector3(0, 1, 0);
@@ -243,6 +259,7 @@ export function makeFigures(THREE, { cap = 256 } = {}) {
       for (const m of Object.values(meshes)) {
         m.count = 0;
       }
+      poles.count = 0;
       drawn = 0;
       list.forEach((p, k) => {
         const poses = ACTION_POSE[p.action] || ACTION_POSE.stand;
@@ -250,7 +267,7 @@ export function makeFigures(THREE, { cap = 256 } = {}) {
         const stride = Math.floor(ms / 450 + k * 0.37);
         const name = poses[((stride % poses.length) + poses.length) % poses.length];
         const seed = p.seed ?? k;
-        const m = meshes[`${name}:${KITS[Math.floor(hash01(seed, 7, 71) * KITS.length)]}`];
+        const m = meshes[`${name}:${hash01(seed, 7, 71) < HAT_SHARE ? 'hat' : 'cap'}`];
         if (m.count >= cap) {
           return;
         }
@@ -263,19 +280,26 @@ export function makeFigures(THREE, { cap = 256 } = {}) {
           LOWERS[Math.floor(hash01(seed, 11, 72) * LOWERS.length)], HATS[Math.floor(hash01(seed, 13, 73) * HATS.length)]);
         m.count += 1;
         drawn += 1;
+        if (POSES[name].long && poles.count < cap) {
+          poles.setMatrixAt(poles.count, m4);
+          poles.count += 1;
+        }
       });
       for (const m of Object.values(meshes)) {
         m.visible = m.count > 0;
         m.instanceMatrix.needsUpdate = true;
         slotTintsChanged(m);
       }
+      poles.visible = poles.count > 0;
+      poles.instanceMatrix.needsUpdate = true;
     },
     stats: () => ({ drawn }),
     dispose() {
-      for (const m of Object.values(meshes)) {
+      for (const m of [...Object.values(meshes), poles]) {
         m.geometry.dispose();
       }
       mat.dispose();
+      poleMat.dispose();
       group.removeFromParent();
     },
   };
