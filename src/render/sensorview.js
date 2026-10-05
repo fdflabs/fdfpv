@@ -361,9 +361,11 @@ function makeAgc(thermal) {
 }
 
 /*
- * The inset's way out of the GPU: two pixel pack buffers, each with a
- * fence, read back when the fence has passed. `draw` puts a finished
- * frame into the canvas.
+ * The inset's way out of the GPU when the copy below cannot take it: two
+ * pixel pack buffers, each with a fence, read back when the fence has
+ * passed. getBufferSubData is still a blocking round trip to Chrome's GPU
+ * process, queued behind the frame before (docs/PERF.md). `draw` puts a
+ * finished frame into the canvas.
  */
 function makeReadback(gl, w, h, draw) {
   const bytes = w * h * 4;
@@ -417,6 +419,50 @@ function makeReadback(gl, w, h, draw) {
   };
 }
 
+/*
+ * The inset's other way out, GPU to GPU: the drawing buffer's corner is
+ * set aside, the inset blitted into it, the 2D canvas draws that corner,
+ * and the corner goes back, so the frame on screen is unchanged. No pixel
+ * crosses to the main thread, so nothing waits on the GPU, and the inset
+ * is the frame's own rather than one or two behind. Only while the
+ * drawing buffer is at least the inset's size (a phone's may not be).
+ * `done` runs once the canvas holds the frame.
+ */
+function makeCopy(gl, w, h, ctx2d, done) {
+  const save = gl.createFramebuffer();
+  const rb = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, w, h);
+  gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, save);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  const blit = (read, draw, flip) => {
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, read);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, draw);
+    gl.blitFramebuffer(0, 0, w, h, 0, flip ? h : 0, w, flip ? 0 : h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+  };
+  return {
+    fits() {
+      return gl.drawingBufferWidth >= w && gl.drawingBufferHeight >= h;
+    },
+    /* `src` holds the inset bottom up, as GL draws; the canvas wants it
+     * top down, so the blit into the corner flips it. */
+    copy(src) {
+      blit(null, save, false);
+      blit(src, null, true);
+      ctx2d.drawImage(gl.canvas, 0, gl.drawingBufferHeight - h, w, h, 0, 0, w, h);
+      blit(save, null, false);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      done();
+    },
+    dispose() {
+      gl.deleteFramebuffer(save);
+      gl.deleteRenderbuffer(rb);
+    },
+  };
+}
+
 const IDENTITY3 = new THREE.Matrix3();
 
 /*
@@ -432,25 +478,31 @@ export function createSensorView(renderer, { onInset } = {}) {
   const agcT = makeAgc(true);
   const canvas = document.createElement('canvas');
   const ctx2d = canvas.getContext('2d');
-  const drawInset = (image) => {
-    ctx2d.putImageData(image, 0, 0);
+  const insetDrawn = () => {
     if (onInset) {
       onInset(ctx2d);
     }
   };
+  const drawInset = (image) => {
+    ctx2d.putImageData(image, 0, 0);
+    insetDrawn();
+  };
   let pipTarget = null;
   let readback = null;
+  let copy = null;
   /* The inset's target, readback and canvas at w by h. A readback still
    * in flight is dropped with its buffers: its frame was the old size. */
   function insetSize(w, h) {
     if (pipTarget) {
       pipTarget.dispose();
       readback.dispose();
+      copy.dispose();
     }
     pipTarget = target(w, h, { depth: false, float: false });
     canvas.width = w;
     canvas.height = h;
     readback = makeReadback(gl, w, h, drawInset);
+    copy = makeCopy(gl, w, h, ctx2d, insetDrawn);
   }
   insetSize(...INSET_SIZES.small);
   let radiance = null;
@@ -577,7 +629,7 @@ export function createSensorView(renderer, { onInset } = {}) {
     /*
      * One frame. `post` is the map's post chain ({ render, composer }),
      * `scene` and `camera` the frame's. Draws the main view to the screen
-     * and, when `pip` is given and a readback slot is free, the inset.
+     * and, when `pip` is given and a way out is free, the inset.
      */
     frame(scene, camera, post, main, pip, dtS) {
       frameNo += 1;
@@ -589,7 +641,8 @@ export function createSensorView(renderer, { onInset } = {}) {
       const aspect = size.x / Math.max(1, size.y);
       const plain = main.mode === 'eo' && main.zoom === 1 && !main.stab && main.auto && main.ev === 0 && !main.snow;
       const mainNeeds = NEEDS[main.mode];
-      const insetDue = Boolean(pip) && readback.free();
+      const viaCopy = copy.fits();
+      const insetDue = Boolean(pip) && (viaCopy || readback.free());
       const pipNeeds = insetDue ? NEEDS[pip.mode] : NEEDS_NOTHING;
 
       /* The composer, when the main view is a visible one: it is the
@@ -640,8 +693,13 @@ export function createSensorView(renderer, { onInset } = {}) {
         setView(v, pip, comp ? composed : radiance, thermal, camera, canvas.width / canvas.height);
         renderer.setRenderTarget(pipTarget);
         v.quad.render(renderer);
-        readback.read();
-        renderer.setRenderTarget(null);
+        if (viaCopy) {
+          renderer.setRenderTarget(null);
+          copy.copy(renderer.properties.get(pipTarget).__webglFramebuffer);
+        } else {
+          readback.read();
+          renderer.setRenderTarget(null);
+        }
         stats.inset = true;
         stats.insetsDrawn += 1;
       }
@@ -659,6 +717,7 @@ export function createSensorView(renderer, { onInset } = {}) {
       agcT.dispose();
       pipTarget.dispose();
       readback.dispose();
+      copy.dispose();
       if (radiance) {
         radiance.dispose();
       }
