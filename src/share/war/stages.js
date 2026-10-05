@@ -873,8 +873,14 @@ export function crossings(mission, plan) {
       const hi = Math.min(plan.tEnd, lo + CROSS_MS);
       const b = side(hi);
       if (a.left !== b.left && (a.on || b.on)) {
-        let l = lo;
-        let h = hi;
+        /* On whole milliseconds: a birth drawn in a window has a
+         * fractional t0, and halving between fractional ends by a floored
+         * middle can stop moving with the ends still more than 1 ms apart,
+         * which hung the room (5 October, First Light's stage 3 with two
+         * pilots). The ends themselves are never sampled, only the
+         * middles between them, which stay inside (lo, hi]. */
+        let l = Math.floor(lo);
+        let h = Math.ceil(hi);
         while (h - l > 1) {
           const mid = Math.floor((l + h) / 2);
           if (side(mid).left === a.left) {
