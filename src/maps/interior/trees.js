@@ -85,13 +85,15 @@ export const FAR_M = 14000;
 /* The mid balls hand a tree to the points at MID_HAND less up to
  * MID_BAND by its seed; the points hand it to the blocks at PTS_M less
  * up to PTS_BAND, metres from the camera. */
-const MID_HAND = MID_M - 200;
+/* How far a tree's crown can stand from its chunk's middle as distOf
+ * measures it, metres: the half diagonal (181) and, measured over the
+ * whole map, at most 50 m between a crown's middle and the chunk middle's
+ * ground plus 12, so at most 188 m, and a margin. */
+const CHUNK_SLOP = 210;
+const MID_HAND = MID_M - CHUNK_SLOP;
 const MID_BAND = 160;
 const PTS_M = 2600;
 const PTS_BAND = 320;
-/* How far a tree can stand from its chunk's middle as tierOf measures
- * it: the half diagonal and the ground's relief inside a chunk. */
-const CHUNK_SLOP = 200;
 const PTS_LO = MID_HAND - MID_BAND - CHUNK_SLOP;
 const PTS_HI = PTS_M + CHUNK_SLOP;
 const FAR_BLOCK = 16;
@@ -104,13 +106,14 @@ const BUILD_MS = 3;
 const NEAR_CAP = 24000;
 const MID_CAP = 90000;
 const PTS_CAP = 480000;
-/* The share of the standard material's specular a crown keeps. A
- * point's disc is all grazing normals at its rim, where the Fresnel sheen
- * of the bright sky is strongest: with all of it the points were frosted
- * and 0.03 brighter (sRGB) than the balls over the same forest (camp-
- * orbit-0 and -45, the band 700 to 900 m out, handed over at 600 m and at
- * 1000 m); with none the two matched to 0.01. A leaf's wax keeps a
- * little. */
+/* The share of the standard material's specular a crown keeps: the sky's
+ * Fresnel sheen at a crown's grazing rim frosted the far forest, and
+ * more on the points than the balls. Measured in one frame at the hand
+ * over (camp-orbit-90 and -135, rows 300 to 480, balls and points told
+ * apart by a render with each tinted), the points were 0.035 to 0.044
+ * brighter (sRGB, after the metered exposure) with all of it and 0.025
+ * to 0.038 with this, part of which is the points standing a little
+ * farther out in each band. A leaf's wax keeps a little. */
 const CROWN_SPEC = 0.3;
 
 /* Crown albedos, linear, in the order a stand walks them: dark green,
@@ -254,7 +257,9 @@ const CROWN_VERT = /* glsl */ `
   #if CROWN_MODE >= 2
     {
       float crd = distance(vCrW, cameraPosition);
-      vCrSeed = vec2(aShape.z, aShape.x / aShape.y);
+      /* A tree's point needs its ry for its ray, a block's its r over ry
+       * for its normal. */
+      vCrSeed = vec2(aShape.z, CROWN_MODE == 2 ? aShape.y : aShape.x / aShape.y);
       if (crd < uCrBand.x - uCrBand.y * aShape.z || crd >= uCrBand.z - uCrBand.w * aShape.z) {
         gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
         gl_PointSize = 0.0;
@@ -302,56 +307,58 @@ const CROWN_FRAG_PARS = /* glsl */ `
     float n = crN(x);
     return vec4(n, (vec3(crN(x + vec3(0.08, 0.0, 0.0)), crN(x + vec3(0.0, 0.08, 0.0)), crN(x + vec3(0.0, 0.0, 0.08))) - n) / 0.08);
   }
+  /* The camera's ray through p against the crown centred at c, radii
+   * (r, ry, r) less a few decimetres where its lobes go in: the normal
+   * (world) and the height on the unit crown where it comes in, or false
+   * where it misses. A ball straddles the true crown, so this trims its
+   * corners and lights it as the ellipsoid, and nothing is drawn outside
+   * the crown canopyBlocks tests; a tree's point is outlined and lit the
+   * same. The ray starts at p, a metre or so off the crown, not at the
+   * camera: from a kilometre away the quadratic's two terms are a
+   * thousand times its answer, and float rounding loses it. The nearer
+   * root, behind p when p is inside, is where the ray came in. */
+  bool crHit(vec3 p, vec3 c, vec2 rr, out vec3 nw, out float up) {
+    vec3 rad = vec3(rr.x, rr.y, rr.x);
+    vec3 u = (p - c) / rad;
+    rad -= 0.42 * crN(normalize(u + vec3(0.0, 1e-4, 0.0)) * 2.3 + c * 0.37);
+    vec3 o = (p - c) / rad;
+    vec3 e = normalize(p - cameraPosition) / rad;
+    float a = dot(e, e);
+    float b = dot(o, e);
+    float d = b * b - a * (dot(o, o) - 1.0);
+    if (d < 0.0) return false;
+    vec3 h = o + e * ((-b - sqrt(d)) / a);
+    nw = normalize(h / rad);
+    up = h.y;
+    return true;
+  }
 `;
-/* At the fragment's start: a point's outline and its normal (view
- * space) from where in the disc it is; a block's four domes. */
+/* At the fragment's start: where the pixel's ray meets the crown and
+ * the crown's normal there (a ball's or a tree's point), or a block's
+ * four domes. */
 const CROWN_FRAG_START = /* glsl */ `
   float crUp = vCrUp;
   float crShadeK = 1.0;
-  #if CROWN_MODE < 2
-    /* The ball straddles the true crown, its corners out past it: each
-     * pixel asks whether its ray meets the ellipsoid itself, a few
-     * decimetres smaller where its lobes go in, and takes that point's
-     * normal. So no outline is a polygon's and no face is flat, and what
-     * is drawn stays inside the crown canopyBlocks tests. */
+  #if CROWN_MODE < 3
     vec3 crNW;
-    {
-      vec3 crRad = vec3(vCrR.x, vCrR.y, vCrR.x);
-      vec3 crU = (vCrW - vCrC) / crRad;
-      crRad -= 0.42 * crN(normalize(crU) * 2.3 + vCrC * 0.37);
-      vec3 crO = (cameraPosition - vCrC) / crRad;
-      vec3 crE = normalize(vCrW - cameraPosition) / crRad;
-      float crA = dot(crE, crE);
-      float crB = dot(crO, crE);
-      float crCc = dot(crO, crO) - 1.0;
-      float crDisc = crB * crB - crA * crCc;
-      vec3 crP = crU;
-      if (crCc > 0.0) {
-        if (crDisc < 0.0) discard;
-        crP = crO + crE * ((-crB - sqrt(crDisc)) / crA);
-      }
-      crNW = normalize(crP / crRad);
-      crUp = crP.y;
-    }
-  #endif
-  #if CROWN_MODE >= 2
+    if (!crHit(CROWN_RAY_AT, CROWN_CENTRE, CROWN_RADII, crNW, crUp)) discard;
+    vec3 crNrm = normalize((viewMatrix * vec4(crNW, 0.0)).xyz);
+  #else
     vec2 crQ = (gl_PointCoord * 2.0 - 1.0) * vec2(1.0, -1.0) * vCrHalf.z / vCrHalf.xy;
     float crR2 = dot(crQ, crQ);
     if (crR2 > 1.0) discard;
     vec3 crNrm = vec3(crQ, sqrt(1.0 - crR2));
-    #if CROWN_MODE == 3
-      {
-        vec2 crO = vec2(0.42) + (vec2(vCrSeed.x, fract(vCrSeed.x * 7.3)) - 0.5) * 0.24;
-        vec2 crC = vec2(crQ.x < 0.0 ? -crO.x : crO.x, crQ.y < 0.0 ? -crO.y : crO.y);
-        vec2 crF = (crQ - crC) / 0.66;
-        float crF2 = dot(crF, crF);
-        if (crF2 < 1.0) {
-          crNrm = normalize(vec3(crF, sqrt(1.0 - crF2)) + crNrm * 0.6);
-        } else {
-          crShadeK = 0.55;
-        }
+    {
+      vec2 crO = vec2(0.42) + (vec2(vCrSeed.x, fract(vCrSeed.x * 7.3)) - 0.5) * 0.24;
+      vec2 crC = vec2(crQ.x < 0.0 ? -crO.x : crO.x, crQ.y < 0.0 ? -crO.y : crO.y);
+      vec2 crF = (crQ - crC) / 0.66;
+      float crF2 = dot(crF, crF);
+      if (crF2 < 1.0) {
+        crNrm = normalize(vec3(crF, sqrt(1.0 - crF2)) + crNrm * 0.6);
+      } else {
+        crShadeK = 0.55;
       }
-    #endif
+    }
     /* A sphere's normal made the ellipsoid's: up and down by r over ry,
      * so a tall crown's side faces the side and not the sky. */
     {
@@ -414,7 +421,17 @@ function crownMaterial(THREE, mode, uniforms) {
   const mat = new THREE.MeshStandardMaterial({
     color: 0xffffff, roughness: 0.92, metalness: 0, vertexColors: mode >= 2,
   });
-  mat.defines = { ...(mat.defines || {}), CROWN_MODE: mode, CROWN_SPEC: CROWN_SPEC.toFixed(2) };
+  /* The crown's ray, middle and radii: a ball's from its instance, a
+   * tree's point's from its sprite (the pixel's place on the camera
+   * facing square through the crown's middle). */
+  const ray = mode < 2 ? { CROWN_RAY_AT: 'vCrW', CROWN_CENTRE: 'vCrC', CROWN_RADII: 'vCrR' } : {
+    CROWN_RAY_AT: '(vCrW + (vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]) * (gl_PointCoord.x * 2.0 - 1.0) + vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]) * (1.0 - gl_PointCoord.y * 2.0)) * vCrHalf.z)',
+    CROWN_CENTRE: 'vCrW',
+    CROWN_RADII: 'vec2(vCrHalf.x, vCrSeed.y)',
+  };
+  mat.defines = {
+    ...(mat.defines || {}), CROWN_MODE: mode, CROWN_SPEC: CROWN_SPEC.toFixed(2), ...(mode < 3 ? ray : {}),
+  };
   const swap = (src, anchor, add, where) => {
     if (!src.includes(anchor)) {
       throw new Error(`interior trees: three's ${where} shader has no ${anchor} to patch`);
@@ -467,8 +484,9 @@ export function buildTrees({
   const ptsMat = crownMaterial(THREE, 2, {
     uCrBand: { value: new THREE.Vector4(MID_HAND, MID_BAND, PTS_M, PTS_BAND) }, uCrPx: viewPx,
   });
+  const blockBand = new THREE.Vector4(PTS_M, PTS_BAND, FAR_M, 0);
   const blockMat = crownMaterial(THREE, 3, {
-    uCrBand: { value: new THREE.Vector4(PTS_M, PTS_BAND, FAR_M, 0) }, uCrPx: viewPx,
+    uCrBand: { value: blockBand }, uCrPx: viewPx,
   });
   /* The balls are meshes, which the look's finishScene gives its one
    * sun from two cascades; the points are not, so they take it here, or
@@ -546,7 +564,13 @@ export function buildTrees({
     const shape = new Float32Array(list.length * 3);
     const cols = new Float32Array(list.length * 3);
     const seeds = new Float32Array(list.length);
+    /* What the balls' matrices need besides: the tint (its turn), the
+     * ground and whether it is a palm (its trunk). */
+    const extra = new Float32Array(list.length * 3);
     list.forEach((t, k) => {
+      extra[k * 3] = t.tint;
+      extra[k * 3 + 1] = t.ground;
+      extra[k * 3 + 2] = t.kind === KIND.palm ? 1 : 0;
       at[k * 3] = t.x;
       at[k * 3 + 1] = t.cy;
       at[k * 3 + 2] = t.z;
@@ -560,32 +584,40 @@ export function buildTrees({
       cols[k * 3 + 2] = c[2];
     });
     const ch = {
-      ci, cj, n: list.length, list, at, shape, cols, seeds, crowns: null, tier: -1, pts: false,
+      ci, cj, n: list.length, at, shape, cols, seeds, extra, crowns: null, tier: -1, pts: false,
     };
     chunks.set(chunkKey(ci, cj), ch);
     return ch;
   }
   function chunkMatrices(ch) {
-    const { list } = ch;
-    ch.crowns = new Float32Array(list.length * 16);
-    ch.crownsMid = new Float32Array(list.length * 16);
-    ch.trunks = new Float32Array(list.length * 16);
-    list.forEach((t, k) => {
-      q.setFromAxisAngle(yAxis, t.tint * 6.283);
-      pos.set(t.x, t.cy, t.z);
-      scl.set(t.r * nearFit, t.ry * nearFit, t.r * nearFit);
+    const {
+      n, at, shape, extra,
+    } = ch;
+    ch.crowns = new Float32Array(n * 16);
+    ch.crownsMid = new Float32Array(n * 16);
+    ch.trunks = new Float32Array(n * 16);
+    for (let k = 0; k < n; k += 1) {
+      const x = at[k * 3];
+      const cy = at[k * 3 + 1];
+      const z = at[k * 3 + 2];
+      const r = shape[k * 3];
+      const ry = shape[k * 3 + 1];
+      const ground = extra[k * 3 + 1];
+      q.setFromAxisAngle(yAxis, extra[k * 3] * 6.283);
+      pos.set(x, cy, z);
+      scl.set(r * nearFit, ry * nearFit, r * nearFit);
       m4.compose(pos, q, scl);
       m4.toArray(ch.crowns, k * 16);
-      scl.set(t.r * midFit, t.ry * midFit, t.r * midFit);
+      scl.set(r * midFit, ry * midFit, r * midFit);
       m4.compose(pos, q, scl);
       m4.toArray(ch.crownsMid, k * 16);
-      const base = t.cy - t.ry * 0.7;
-      pos.set(t.x, t.ground - 0.3, t.z);
-      const thick = t.kind === KIND.palm ? 1.4 : 1 + t.r * 0.25;
-      scl.set(thick, base - t.ground + 0.3, thick);
+      const base = cy - ry * 0.7;
+      pos.set(x, ground - 0.3, z);
+      const thick = extra[k * 3 + 2] ? 1.4 : 1 + r * 0.25;
+      scl.set(thick, base - ground + 0.3, thick);
       m4.compose(pos, q, scl);
       m4.toArray(ch.trunks, k * 16);
-    });
+    }
   }
 
   /* THE BLOCKS: a point a FAR_BLOCK square that is forest (or shrub)
@@ -781,6 +813,11 @@ export function buildTrees({
     }
     stats.chunks = chunks.size;
     stats.pending = pending;
+    /* While chunks are still being made (a jump of the camera), the
+     * blocks stand in from the balls' hand over, so the forest a point
+     * has not reached yet is there, coarse, and not missing. */
+    blockBand.x = pending ? MID_HAND : PTS_M;
+    blockBand.y = pending ? MID_BAND : PTS_BAND;
     stats.lastMs = performance.now() - t0;
   }
 
