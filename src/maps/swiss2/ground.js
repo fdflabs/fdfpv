@@ -43,6 +43,7 @@ import { LAYERS, SUN_U } from './assets.js';
 import { CLIFF_LOW, CLIFF_HIGH, LOW_HALF, LOW_GATE } from './rock/carve.js';
 import { apronAt, wallRise } from './terrain.js';
 import { noise2, smoothstep } from '../alps/noise.js';
+import { thermalKind } from '../../render/thermal.js';
 
 /* Per layer, in LAYERS order: metres a texture tile covers, a tint on
  * the photograph's own albedo (linear), the roughness, and how hard the
@@ -1149,7 +1150,9 @@ const GROUND_PARS = /* glsl */ `
     return f;
   }
 
-  struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; float backlit; float sheen; };
+  /* bare: how much of the ground is not grass (rock, scree, the shore's
+   * gravel, worn earth, snow), for the thermal picture's land cover. */
+  struct S2Ground { vec3 albedo; vec3 normal; float rough; float ao; float backlit; float sheen; float bare; };
 
   /*
    * The structure of a sheer limestone face (swiss2/terrain.js's walls)
@@ -1769,6 +1772,7 @@ const GROUND_PARS = /* glsl */ `
      * away from it the sheen is the pale cast a meadow does have, and
      * the floor's colour was matched to the photographs with it. */
     g.sheen = 1.0 - ${GRAZE_MASK.toFixed(2)} * grass * (1.0 - smoothstep(0.05, 0.5, dot(toEye, n))) * smoothstep(0.0, 0.75, into);
+    g.bare = 1.0 - grass;
     return g;
   }
 `;
@@ -1854,5 +1858,7 @@ export function groundMaterial({
   mat.customProgramCacheKey = () => (carved ? 's2-ground-carved' : 's2-ground');
   lit(mat);
   mat.userData.s2Ground = uniforms;
-  return mat;
+  /* In the thermal picture (src/render/thermal.js) the grass is a field
+   * and the rest bare soil and rock. */
+  return thermalKind(mat, 'ground', { defines: { THERMAL_COVER: 'vec4(0.0, 1.0 - s2g.bare, s2g.bare, 0.0)', THERMAL_WET: '0.0' } });
 }

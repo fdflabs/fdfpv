@@ -55,6 +55,7 @@
 
 import * as THREE from 'three';
 import { ALPHA_CUT } from './atlas.js';
+import { thermalKind } from '../../../render/thermal.js';
 
 /* One set of wind uniforms shared by every plant material, so a gust
  * moves the forest and the meadow together. uWindDir is the direction
@@ -225,7 +226,7 @@ export function plantMaterial(kind, { map, normalMap, band, wind, sway = 6e-5, f
     }
   };
   mat.customProgramCacheKey = () => `swiss2-plant-${kind}`;
-  return mat;
+  return thermalKind(mat, 'vegetation');
 }
 
 /* The shadow pass's material for a plant: the same wind, the same alpha
