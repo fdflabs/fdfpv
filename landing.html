@@ -146,6 +146,11 @@
       .fine a { color: var(--pdcs-blue); }
       .fine a:hover { color: var(--pdcs-blue-strong); }
 
+      /* Wider than the picture at 120 percent of the height is: fill the
+         width instead, or a 21:9 screen shows the page's ground beside it. */
+      @media (min-aspect-ratio: 32/15) {
+        body { background-size: auto, 100% auto; background-position: 0 0, center 72%; }
+      }
       @media (max-width: 720px) {
         .doors { grid-template-columns: 1fr; }
         .bar-note { display: none; }
