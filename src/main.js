@@ -16077,7 +16077,22 @@ export async function boot({
        * the wall clock advance together while flying, and this mapping
        * self corrects across the freezes where they do not.
        */
-      const wallToSim = blockEndSim - nowWall;
+      /*
+       * LOW LATENCY (Settings, Stick latency: Low). The mapping above puts
+       * the frame's own poll at the block's very end, and the RC slots of
+       * a block all fall before its end, so the newest reading always
+       * waited for the next frame's block, and one taken up to an RC frame
+       * before the frame started did too (scripts/perf-latency.js: at 60 fps
+       * a stick move waited the extra frame about two times in five, and
+       * reached a submitted frame 20 ms after it was made, on average; 13
+       * with this). Low lines the newest reading up with the block's last
+       * slot instead: every reading the frame holds is in the block it is
+       * drawn from. It is the same stream re-timed by about one RC frame,
+       * stamped on the same grid: sim_input still never sees a wall time,
+       * and a recording holds what reached it, so a replay is unchanged.
+       */
+      const lead = ui.settings.latencyMode === 'low' ? (rcLink.isPerfect() ? 1000 / RC_HZ : rcLink.periodMs) : 0;
+      const wallToSim = lead > 0 ? blockEndSim - lead - input.lastWall : blockEndSim - nowWall;
       /* Take every sample whose moment has arrived; hold the last one. This
        * is the receiver holding its last frame, so a lost packet needs no
        * separate handling: it is simply a frame that is never emitted. */

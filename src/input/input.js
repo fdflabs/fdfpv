@@ -2991,8 +2991,15 @@ export class InputManager {
   /* Called once per animation frame. Emits one timestamped sample when
    * anything changed, plus a heartbeat sample every 100 ms. */
   poll(nowWall) {
-    const dtMs = Math.min(nowWall - this.lastWall, 100);
-    this.lastWall = nowWall;
+    /* Never back in time. The frame polls with its requestAnimationFrame
+     * timestamp, the frame's start, which can be before the 2 ms timer's
+     * last performance.now() (startPolling): read raw, that made dtMs
+     * negative (the keyboard's spring and the mouse's ran backwards for a
+     * poll) and stamped a newer reading older than the one queued before
+     * it. A reading is stamped no earlier than the last one was taken. */
+    const t = Math.max(nowWall, this.lastWall);
+    const dtMs = Math.min(t - this.lastWall, 100);
+    this.lastWall = t;
 
     const gp = this.firstGamepad();
     this.notePadRoster();
@@ -3083,7 +3090,7 @@ export class InputManager {
     if (changed || this.heartbeatMs >= 100) {
       this.heartbeatMs = 0;
       this.channels = next;
-      this.queue.push({ wallT: nowWall, ...next });
+      this.queue.push({ wallT: t, ...next });
       this.samplesTaken += 1;
       /* The integrator is frozen while the craft sits landed, so nothing
        * drains then. Bound it: the newest samples are the ones worth keeping. */
