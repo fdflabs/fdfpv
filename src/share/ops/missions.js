@@ -20,10 +20,15 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-export const MISSIONS = Object.freeze({});
+import INTERIOR_1 from '../interior/missions/interior-1.js';
+/* A FIXTURE until track WORLD lands src/share/interior/canopy.js and
+ * routes.js: then `interior` is { canopyBlocks, poseOnRoute } from those. */
+import { WORLD as INTERIOR_FIXTURE } from './fixtures/interior-1.js';
+
+export const MISSIONS = Object.freeze({ 'interior-1': INTERIOR_1 });
 
 /* Each map's { canopyBlocks, poseOnRoute }. */
-const WORLDS = Object.freeze({});
+const WORLDS = Object.freeze({ interior: INTERIOR_FIXTURE });
 
 export function worldFor(map) {
   const w = WORLDS[map];

@@ -102,11 +102,13 @@ export function itemsOf(mission, spec) {
   return [spec].flat();
 }
 
-/* The captures of `ids` at or above `grade`, earliest first, one each. */
-function capturesOf(m, ids, grade) {
+/* The captures of `ids` at or above `grade` taken by room ms f, earliest
+ * first, one each: a still taken ahead of the frontier counts once the
+ * frontier reaches it. */
+function capturesOf(m, ids, grade, f) {
   const best = new Map();
   for (const c of m.captures) {
-    if (ids.includes(c.item) && (grade == null || rank(c.grade) >= rank(grade)) && !best.has(c.item)) {
+    if (c.t <= f && ids.includes(c.item) && (grade == null || rank(c.grade) >= rank(grade)) && !(best.get(c.item) <= c.t)) {
       best.set(c.item, c.t);
     }
   }
@@ -180,7 +182,7 @@ export function trigger(trig, ctx) {
   }
   if (trig.captured != null) {
     const ids = itemsOf(mission, trig.captured);
-    const ts = capturesOf(m, ids, trig.grade);
+    const ts = capturesOf(m, ids, trig.grade, f);
     const n = trig.n ?? ids.length;
     return ts.length >= n ? after(ts[n - 1]) : null;
   }
@@ -317,9 +319,10 @@ export function toldOf(cue, t, stage, dials) {
 /*
  * A cue's effects on the match at room ms t:
  *   spawn     [{ id, route, alt? }]: contacts onto the map
- *   move      [{ contacts, route, alt?, after? }]: contacts (an id or a
- *             group) onto another route `after` seconds from now
- *   classify  { contacts, to, label?, why? }: scripted evidence
+ *   move      [{ contacts, route, alt?, after? }]: contacts (an id, a
+ *             group or a list) onto another route `after` seconds from now
+ *   classify  { contacts, to, label?, why? }, or a list of them: scripted
+ *             evidence (contacts an id, a group, or a list of them)
  *   flag      a name (true), or { name, value }
  *   search    { id, at: [x, y] | contact, r }: a search area (at the
  *             contact's last known position)
@@ -340,7 +343,7 @@ export function applyCue(m, mission, cue, t) {
   }
   for (const mv of cue.move ?? []) {
     const at = t + Math.round(resolve(mv.after ?? 0, d) * 1000);
-    for (const c of membersOf(m.contacts, mv.contacts)) {
+    for (const c of [mv.contacts].flat().flatMap((sel) => membersOf(m.contacts, sel))) {
       if (at <= t) {
         move(c, resolve(mv.route, d), t, mv.alt === undefined ? undefined : resolve(mv.alt, d));
       } else {
@@ -348,9 +351,9 @@ export function applyCue(m, mission, cue, t) {
       }
     }
   }
-  if (cue.classify) {
-    for (const c of membersOf(m.contacts, cue.classify.contacts)) {
-      classify(c, cue.classify.to, t, mission.classes, cue.classify.why ?? null, cue.classify.label);
+  for (const k of [cue.classify ?? []].flat()) {
+    for (const c of [k.contacts].flat().flatMap((sel) => membersOf(m.contacts, sel))) {
+      classify(c, k.to, t, mission.classes, k.why ?? null, k.label);
     }
   }
   if (cue.flag) {
@@ -363,7 +366,7 @@ export function applyCue(m, mission, cue, t) {
   if (cue.search) {
     const s = cue.search;
     const c = s.contact ? membersOf(m.contacts, s.contact).find((x) => x.lkp) : null;
-    const at = s.at ?? (c ? [c.lkp[0], c.lkp[1]] : null);
+    const at = resolve(s.at, d) ?? (c ? [c.lkp[0], c.lkp[1]] : null);
     if (at) {
       m.search = [...m.search.filter((x) => x.id !== s.id), {
         id: s.id, at, r: s.r, contact: s.contact ?? null,
@@ -392,7 +395,7 @@ export function cardsView(ctx) {
     if (c != null) {
       const ids = itemsOf(mission, c);
       const n = o.done.n ?? ids.length;
-      out.progress = [Math.min(n, capturesOf(m, ids, o.done.grade).length), n];
+      out.progress = [Math.min(n, capturesOf(m, ids, o.done.grade, ctx.f).length), n];
     }
     return out;
   });

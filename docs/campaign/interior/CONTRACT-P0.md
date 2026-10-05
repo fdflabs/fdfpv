@@ -214,6 +214,12 @@ A cue is told when due (`at` s after the stage's entry, or after its
   core role's guide.
 - `{ seat: n }`: one seat (a boundary warning goes to the pilot crossing).
 
+Lines the room says without a stage cue, from the mission's `lines`: the
+boundary warnings (to the crossing seat), `take` (to a seat that took a
+free role), `downed` (to all, an aircraft lost while another flies), and
+a fail's line (a loss rule's own `radio`, else `lines.fail`). In an
+exit's beat (`after`) the stage's cues play on; only its exits wait.
+
 The room sends each seat only what it hears. Cue fields: `radio` (a line
 id, `int1-s4-lost`, or a list of them played in order through the radio's
 queue, a number in the list being a pause in seconds: the script's "after
@@ -231,8 +237,11 @@ room, for a `capture`:
 
 1. finds the seat's pose at `t` (no older than the frontier's last 2 s)
    and its `cam` in force at `t`; refused `pose` or `cam` without them;
-2. the item must be one the current stage or mission lists, not yet
-   captured at that grade or better; refused `item`;
+2. the item must be one the mission lists, not yet captured at that grade
+   or better; refused `item`. An item seen from one side only (a mark
+   under a roof: its `view`, a bearing band and a steepest depression) is
+   refused `angle` from outside the band, until its `open` trigger fires
+   (Mission 1: the tarp moved);
 3. measures from the room's own numbers: `size` (the item's size over its
    distance, over the frame's width), `off` (0 at the centre, 1 at the
    edge) and occlusion (`canopyBlocks`); refused `frame` outside the
@@ -311,7 +320,25 @@ once true stays true; a string flag keeps the incoming copy's value).
 war's consent screen (`consent: true` on the campaign's entry); the text
 is VIEW's to write.
 
-## 11. What is not here yet
+## 11. Mission 1's data
+
+`src/share/interior/missions/interior-1.js`: the five stages (the
+script's checkpoints `M1_CP_START` to `M1_CP_CAMP_FOUND`), the items
+(Alpha: bridge, road, sheds, burned; Bravo: colonia, crossing; the camp:
+shelters, motorcycles, antenna, personnel, access, lookout, solar,
+symbol), the points, the camp's site, the dials (conceal, mark, road,
+firstOut), the boundary, the loss rules, the three stars (symbol, camp,
+eyes) and the flags `M1_SYMBOL_CAPTURED` and
+`M1_CAMP_FULLY_DOCUMENTED`. Its header lists every route id it asks
+WORLD for. Card event keys are `card.primary_updated`,
+`card.classification_updated`, `card.intelligence_updated`,
+`card.search_area`, `card.last_known`, `card.archive_searching`;
+objective texts `ops.interior.m1.obj.*`, stage titles
+`ops.interior.m1.s1` to `s5`, the rule `ops.rule.no_engagement`, the
+tutorial prompts `ops.tut.*` (stage 1's `tutorial`, cleared by the
+screen), the group label `ops.label.new_column_unconfirmed`.
+
+## 12. What is not here yet
 
 Films (N9, N18, N24) beyond holding the briefing for `filmMs`; the
 camera ball (N14); designation and strikes (M3); platform holds (N15);

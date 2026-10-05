@@ -8,8 +8,10 @@
  * room knows the pose, which the screen could forge. Captures are the
  * squad's: one pilot's counts for everyone.
  *
- * Campaign agnostic: an ITEM is mission data, { id, at: [x, y, z] or a
- * contact's id in `contact`, size (metres across), minGrade?, set? }.
+ * Campaign agnostic: an ITEM is mission data, { id, at: [x, y, z] (or a
+ * dial's { dial, map } of them) or `contact` (a contact's id or group:
+ * the best framed of them), size (metres across), set?, view? (inBand),
+ * open? (a trigger after which the view no longer limits it) }.
  *
  * VIEW's scorer should call gradeOf with its own size and off, so the
  * screen and the room cut the grades at the same numbers.
@@ -74,6 +76,23 @@ export function judgeCapture(at, size, from, cam, world) {
     return { error: 'frame' };
   }
   return { grade, size: Math.round(s.size * 1000) / 1000, off: Math.round(s.off * 1000) / 1000 };
+}
+
+/*
+ * Whether a pilot at `from` is inside an item's viewing band (an item
+ * seen from one side only: a mark under a roof). view: { dir: [x, y] the
+ * unit horizontal direction from the item toward where it can be seen,
+ * cos: the band's half width as a cosine, tanDep: the steepest depression
+ * it is seen at, as a tangent }.
+ */
+export function inBand(view, at, from) {
+  const dx = from[0] - at[0];
+  const dy = from[1] - at[1];
+  const h = Math.sqrt(dx * dx + dy * dy);
+  if (!(h > 0)) {
+    return false;
+  }
+  return (dx * view.dir[0] + dy * view.dir[1]) / h >= view.cos && from[2] - at[2] <= view.tanDep * h;
 }
 
 /* The lower of two grades. */

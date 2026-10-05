@@ -79,8 +79,26 @@ function bandSpan(a, b, z0, z1) {
   return lo <= hi ? [lo, hi] : null;
 }
 
-function inGap(forest, x, y) {
-  return (forest.gaps ?? []).some((g) => (x - g.at[0]) ** 2 + (y - g.at[1]) ** 2 <= g.r * g.r);
+/* Gaps are looked up in cells of this many metres, so a forest with
+ * hundreds of them answers a sight line quickly. */
+const CELL_M = 50;
+const cellKey = (x, y) => `${Math.floor(x / CELL_M)},${Math.floor(y / CELL_M)}`;
+
+function bucket(gaps) {
+  const cells = new Map();
+  for (const g of gaps ?? []) {
+    for (let cx = Math.floor((g.at[0] - g.r) / CELL_M); cx <= Math.floor((g.at[0] + g.r) / CELL_M); cx += 1) {
+      for (let cy = Math.floor((g.at[1] - g.r) / CELL_M); cy <= Math.floor((g.at[1] + g.r) / CELL_M); cy += 1) {
+        const k = `${cx},${cy}`;
+        cells.set(k, [...(cells.get(k) ?? []), g]);
+      }
+    }
+  }
+  return cells;
+}
+
+function inGap(cells, x, y) {
+  return (cells.get(cellKey(x, y)) ?? []).some((g) => (x - g.at[0]) ** 2 + (y - g.at[1]) ** 2 <= g.r * g.r);
 }
 
 /* A route walked: its legs' lengths and when each starts, ms. */
@@ -112,6 +130,7 @@ function plan(route) {
 
 export function makeWorld({ forests = [], routes = {} }) {
   const plans = new Map(Object.entries(routes).map(([id, r]) => [id, plan(r)]));
+  const cells = new Map(forests.map((f) => [f, bucket(f.gaps)]));
 
   function canopyBlocks(from, to) {
     for (const f of forests) {
@@ -129,7 +148,7 @@ export function makeWorld({ forests = [], routes = {} }) {
       const n = Math.max(1, Math.ceil(len / STEP_M));
       for (let k = 0; k <= n; k += 1) {
         const u = lo + ((hi - lo) * k) / n;
-        if (!inGap(f, from[0] + u * (to[0] - from[0]), from[1] + u * (to[1] - from[1]))) {
+        if (!inGap(cells.get(f), from[0] + u * (to[0] - from[0]), from[1] + u * (to[1] - from[1]))) {
           return true;
         }
       }
