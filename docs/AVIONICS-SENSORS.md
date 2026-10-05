@@ -70,9 +70,14 @@ the screen, as before. A thermal main view never draws the composer.
 | --- | --- |
 | `eo` | The composer's picture; manual exposure in stops; digital zoom as a crop with the camera's sharpening (an unsharp mask that rings, adds nothing) |
 | `lowlight` | Raw light amplified toward a mid grey (up to 600x), shot noise growing with the gain on the sensor's own pixels, colour mostly gone to a white green phosphor, lamps blooming from the mipmaps, a tube's vignette |
-| `ir_wh`, `ir_bh` | Temperature through a gain window of mean minus 2 sigma to mean plus 3 (at least 6 C wide), NETD noise and a column pattern on the core's pixels; black hot inverted |
+| `ir_wh`, `ir_bh` | A FLIR Boson or Tau class core: the temperature through plateau histogram equalisation (128 bins from the mean less 3 sigma to the mean plus 4 or the frame's most if higher, at least 6 C wide, each bin clipped at 2.5 times its even share and raised to at least a fifth of it, the curve moving at the gain's pace), 80 % of the picture, and a linear window (mean less 2 sigma to mean plus 3) for the rest; or a manual span (`setThermalSpan(lo, hi)`). NETD 50 mK of temporal noise, a fixed column and pixel pattern, a quarter of the neighbouring pixels in each (the optics' MTF), and a mild halo round anything over 20 K hotter than its surroundings. White hot in its palette (`setThermalPalette`: `whitehot`, `ironbow`, `rainbow`); black hot inverted grey |
 | `fusion` | The visible picture, colour drained by half, with what is hot painted over it and its edges drawn: hot is over both the scene's mean plus 3 sigma and the air plus 25 C, so sunlit concrete in a frame of water is not a fire |
 | `contrast` | Acquisition: grey, its local mean (a mipmap about 40 source pixels across) taken out and the rest stretched |
+
+The palette and the span are the sensor view's own (`src/render/sensorview.js`
+exports `setThermalPalette`, `setThermalSpan` and `thermalLook`), not yet on
+a key: binding one is the SensorManager's and the shell's (src/avionics,
+src/main.js). No flat field correction freeze is drawn.
 
 Zoom crops every source the same way: at 4x a 640 core puts 160 of its
 pixels across the screen. Stabilisation is electronic: a smoothed camera
@@ -184,8 +189,10 @@ vegetation and vegetation than water by day, water is warmer than the land
 at night, the coldest of the sky is under the coldest of everything else,
 people read 28 to 38 C, the war's engine and an explosion and the camp's
 fire are hot, swiss2's lake does not change when its bed is hidden and its
-skin is one temperature from above, and every drawn ShaderMaterial on every
-map has a thermal output.
+skin is one temperature from above, every drawn ShaderMaterial on every
+map has a thermal output, and the white hot picture through the gain is
+neither flat nor clipped, ironbow and rainbow are in colour and a manual
+span draws a picture.
 
 ## 4. What a detector gets (`state.detect`, proposed for section 5.1)
 

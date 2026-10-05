@@ -37,12 +37,16 @@
  *   coverage  every drawn ShaderMaterial says what it is in the thermal
  *             picture, on every map, not Itaipu's alone (sensor:check's
  *             own test);
- *   display   printed, not judged: the white hot picture on screen,
- *             through the gain, its standard deviation and how much of it
- *             is clipped black or white.
+ *   display   the white hot picture on screen, through the gain, is not
+ *             flat (its standard deviation over DISPLAY_SD) and not
+ *             clipped (no more than CLIP of it black or white), and the
+ *             ironbow and rainbow pictures are in colour (mean chroma over
+ *             CHROMA), and a manual span over the frame's largest class
+ *             draws a picture (standard deviation over SPAN_SD).
  *
  * With --shots (the default) it writes OUT_DIR/<scene>-<view>-eo.png (the
- * map's own picture) and -ir_wh.png (the sensor full screen), and always
+ * map's own picture), -ir_wh.png (the sensor full screen) and
+ * -ironbow.png and -rainbow.png (the same in FLIR's palettes), and always
  * OUT_DIR/thermal-physics.json with every number. OUT_DIR must be outside
  * the repository. One headless browser at a time; needs the real GPU.
  *
@@ -86,6 +90,10 @@ const HOT_OVER_AIR = 40;
 const FIRE_C = 200;
 const WATER_SPREAD = 4;
 const MIN_PX = 200;
+const DISPLAY_SD = 0.1;
+const CLIP = 0.3;
+const CHROMA = 0.1;
+const SPAN_SD = 0.05;
 
 const opts = { scenes: 'itaipu-day,itaipu-night,swiss2-day,interior-day,interior-night', views: '', shots: '1' };
 const positional = [];
@@ -145,10 +153,10 @@ const ITAIPU_VIEWS = [
 ];
 const SCENES = [
   {
-    id: 'itaipu-day', url: '/index.html?map=itaipu', map: 'itaipu', views: ITAIPU_VIEWS, expect: ['day', 'sky', 'hot', 'coverage'],
+    id: 'itaipu-day', url: '/index.html?map=itaipu', map: 'itaipu', views: ITAIPU_VIEWS, expect: ['day', 'sky', 'hot', 'coverage', 'display'],
   },
   {
-    id: 'itaipu-night', url: '/index.html?map=itaipu&time=night', map: 'itaipu', views: ITAIPU_VIEWS, expect: ['night', 'sky', 'hot', 'coverage'],
+    id: 'itaipu-night', url: '/index.html?map=itaipu&time=night', map: 'itaipu', views: ITAIPU_VIEWS, expect: ['night', 'sky', 'hot', 'coverage', 'display'],
   },
   {
     id: 'swiss2-day',
@@ -162,7 +170,7 @@ const SCENES = [
       { id: 'vista-high', cam: [300, 260, 900, -120, 60, -400] },
       { id: 'sky-up', cam: [0, 40, 900, 0, 700, 0] },
     ],
-    expect: ['day', 'sky', 'lakebed', 'coverage'],
+    expect: ['day', 'sky', 'lakebed', 'coverage', 'display'],
   },
   {
     id: 'interior-day',
@@ -174,7 +182,7 @@ const SCENES = [
       { id: 'low-colonia', cam: pose(9.0, 5.9, 120, 9.35, 6.2) },
       { id: 'sky-up', cam: pose(9.0, 5.9, 120, 9.35, 6.2, 900) },
     ],
-    expect: ['day', 'sky', 'people', 'campfire', 'coverage'],
+    expect: ['day', 'sky', 'people', 'campfire', 'coverage', 'display'],
   },
   {
     id: 'interior-night',
@@ -186,7 +194,7 @@ const SCENES = [
       { id: 'low-colonia', cam: pose(9.0, 5.9, 120, 9.35, 6.2) },
       { id: 'sky-up', cam: pose(9.0, 5.9, 120, 9.35, 6.2, 900) },
     ],
-    expect: ['night', 'sky', 'people', 'campfire', 'coverage'],
+    expect: ['night', 'sky', 'people', 'campfire', 'coverage', 'display'],
   },
 ];
 const wantScenes = opts.scenes.split(',');
@@ -220,6 +228,7 @@ const INSTALL = /* js */ `(async (thermalW) => {
   const gl = renderer.getContext();
   if (!gl.getExtension('EXT_color_buffer_float')) { throw new Error('no EXT_color_buffer_float'); }
   const thermal = await import(new URL('/src/render/thermal.js', location.origin).href);
+  const look = await import(new URL('/src/render/sensorview.js', location.origin).href);
   const real = post.render;
   const chain = { render: real, composer: post.composer };
   const routed = () => s.render(chain);
@@ -308,7 +317,7 @@ const INSTALL = /* js */ `(async (thermalW) => {
     return { n, mean: sum / n, p5: at(0.05), p25: at(0.25), p50: at(0.5), p75: at(0.75), p95: at(0.95), min: vals[0], max: vals[n - 1] };
   };
   window.__tp = {
-    s, post, real, routed, att, booms, camera, gl, scene,
+    s, post, real, routed, att, booms, camera, gl, scene, look,
     labels,
     /* Temperatures by class, C, of one thermal draw; the raw sums too, so
      * a scene can pool its views. */
@@ -358,6 +367,7 @@ const INSTALL = /* js */ `(async (thermalW) => {
       let s2 = 0;
       let lo = 0;
       let hi = 0;
+      let chroma = 0;
       const n = w * h;
       for (let k = 0; k < px.length; k += 4) {
         const l = (0.2126 * px[k] + 0.7152 * px[k + 1] + 0.0722 * px[k + 2]) / 255;
@@ -365,9 +375,10 @@ const INSTALL = /* js */ `(async (thermalW) => {
         s2 += l * l;
         if (l <= 2 / 255) { lo += 1; }
         if (l >= 253 / 255) { hi += 1; }
+        chroma += (Math.max(px[k], px[k + 1], px[k + 2]) - Math.min(px[k], px[k + 1], px[k + 2])) / 255;
       }
       const mean = s1 / n;
-      return { mean, sd: Math.sqrt(Math.max(0, s2 / n - mean * mean)), clipLo: lo / n, clipHi: hi / n };
+      return { mean, sd: Math.sqrt(Math.max(0, s2 / n - mean * mean)), clipLo: lo / n, clipHi: hi / n, chroma: chroma / n };
     },
     /* Every drawn ShaderMaterial without a thermal output. */
     bare() {
@@ -469,12 +480,32 @@ for (const sc of SCENES.filter((x) => wantScenes.includes(x.id))) {
         await writeFile(join(outDir, `${tag}-ir_wh.png`), Buffer.from(data, 'base64'));
       }
       const disp = await page.evaluate('window.__tp.display()');
-      extra.display.push({ view: v.id, ...disp });
+      const chroma = {};
+      for (const pal of ['ironbow', 'rainbow']) {
+        await page.evaluate(`(window.__tp.look.setThermalPalette("${pal}"), "")`);
+        await page.sleep(300);
+        chroma[pal] = (await page.evaluate('window.__tp.display()')).chroma;
+        if (shots) {
+          const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+          await writeFile(join(outDir, `${tag}-${pal}.png`), Buffer.from(data, 'base64'));
+        }
+      }
+      await page.evaluate('(window.__tp.look.setThermalPalette("whitehot"), "")');
+      const iron = { chroma: chroma.ironbow };
+      extra.display.push({ view: v.id, ...disp, ironChroma: chroma.ironbow, rainChroma: chroma.rainbow });
       for (const b of await page.evaluate('window.__tp.bare()')) {
         extra.coverage.add(b);
       }
       const bedNames = v.bed ? ['swiss2-lake-bed', 'swiss2-lake-near-bed'] : [];
       const m = await page.evaluate(`window.__tp.measure(${JSON.stringify(bedNames)})`);
+      /* The manual span: a fixed linear window over the frame's largest
+       * class, its fifth to ninety fifth percentile, must draw a picture. */
+      const big = Object.values(m.classes).sort((a, b) => b.n - a.n)[0];
+      await page.evaluate(`(window.__tp.look.setThermalSpan(${big.p5 - 0.5}, ${big.p95 + 0.5}), "")`);
+      await page.sleep(200);
+      const spanDisp = await page.evaluate('window.__tp.display()');
+      await page.evaluate('(window.__tp.look.setThermalSpan(null), "")');
+      extra.display[extra.display.length - 1].spanSd = spanDisp.sd;
       if (m.bed) {
         extra.bed.push({ view: v.id, ...m.bed, water: m.classes.water || null });
       }
@@ -487,7 +518,7 @@ for (const sc of SCENES.filter((x) => wantScenes.includes(x.id))) {
       const line = Object.entries(m.classes).sort((a, b) => b[1].n - a[1].n)
         .map(([c, x]) => `${c} ${f1(x.mean)} [${f1(x.p5)}..${f1(x.p95)}] n${x.n}`).join('  ');
       console.log(`  ${v.id.padEnd(20)} ${line}`);
-      console.log(`  ${''.padEnd(20)} display sd ${disp.sd.toFixed(3)} clip ${(100 * disp.clipLo).toFixed(1)}%/${(100 * disp.clipHi).toFixed(1)}%`);
+      console.log(`  ${''.padEnd(20)} display sd ${disp.sd.toFixed(3)} clip ${(100 * disp.clipLo).toFixed(1)}%/${(100 * disp.clipHi).toFixed(1)}%, ironbow chroma ${iron.chroma.toFixed(3)}`);
       if (v.drone) {
         const boomAt = await page.evaluate(`JSON.stringify(window.__tp.drone(${v.drone}))`);
         await page.sleep(800);
@@ -500,6 +531,11 @@ for (const sc of SCENES.filter((x) => wantScenes.includes(x.id))) {
         if (shots) {
           const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
           await writeFile(join(outDir, `${tag}-fire-ir_wh.png`), Buffer.from(data, 'base64'));
+          await page.evaluate('(window.__tp.look.setThermalPalette("ironbow"), "")');
+          await page.sleep(300);
+          const ib = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
+          await writeFile(join(outDir, `${tag}-fire-ironbow.png`), Buffer.from(ib.data, 'base64'));
+          await page.evaluate('(window.__tp.look.setThermalPalette("whitehot"), "")');
           await page.evaluate('(window.__tp.post.render = window.__tp.real, "")');
           await page.sleep(300);
           const eo = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
@@ -572,6 +608,11 @@ for (const sc of SCENES.filter((x) => wantScenes.includes(x.id))) {
         if (b.view === 'lake-high') {
           check(`${sc.id} ${b.view} water is one skin`, spread < WATER_SPREAD, `water p5..p95 ${f1(b.water && b.water.p5)}..${f1(b.water && b.water.p95)} C, spread ${f1(spread)}`);
         }
+      }
+    } else if (e === 'display') {
+      for (const d of extra.display) {
+        check(`${sc.id} ${d.view} display`, d.sd > DISPLAY_SD && d.clipLo < CLIP && d.clipHi < CLIP && d.ironChroma > CHROMA && d.rainChroma > CHROMA && d.spanSd > SPAN_SD,
+          `white hot sd ${d.sd.toFixed(3)}, black ${(100 * d.clipLo).toFixed(1)}%, white ${(100 * d.clipHi).toFixed(1)}%; chroma ironbow ${d.ironChroma.toFixed(3)}, rainbow ${d.rainChroma.toFixed(3)}; manual span sd ${d.spanSd.toFixed(3)}`);
       }
     } else if (e === 'coverage') {
       const bare = [...extra.coverage];
