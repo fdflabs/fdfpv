@@ -129,6 +129,7 @@
     "contacts:selftest": "node scripts/contacts-selftest.js",
     "roles:deal": "node scripts/roles-deal.js",
     "interior:stages": "node scripts/interior-stages-selftest.js",
+    "camera:lock": "node scripts/camera-lock-check.js",
     "war:stagescreen": "node scripts/war-stage-screen-check.js",
     "films:time": "node scripts/films-time.js",
     "films:lint": "node scripts/films-lint.js",
