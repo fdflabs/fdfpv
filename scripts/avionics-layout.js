@@ -17,7 +17,8 @@
  *   - then in a live war, all of that again, and no panel meets the war
  *     HUD's box, its callouts or the markers' radar
  *
- * And the per airframe default and override, at 1280x720: the 5 inch
+ * And the per airframe default and override, at 1280x720: a non-combat
+ * aircraft (the Sky 1800)
  * flies with the FPV OSD; the 7 inch with Avionics, whose state goes to
  * DEGRADED when GNSS and VIO are both denied (and only then); I puts its
  * sensor full screen, J then makes it thermal and the HUD THERMAL, and I
@@ -65,7 +66,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { openPage } from '../tests/lib/page.js';
-import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
+import { SETTINGS_KEY, seatAirframe, AVX_PALETTES } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -107,10 +108,10 @@ function check(name, ok, detail = '') {
 const meets = (a, b) => a.x < b.x + b.w - 0.5 && b.x < a.x + a.w - 0.5 && a.y < b.y + b.h - 0.5 && b.y < a.y + a.h - 0.5;
 const box = (r) => `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.w)}x${Math.round(r.h)}`;
 
-function seed(airframe) {
+function seed(airframe, map = 'itaipu') {
   const s = seatAirframe({ airframe, rates: airframeById(airframe).rates }, airframe);
-  s.map = 'itaipu';
-  s.freestyleMap = 'itaipu';
+  s.map = map;
+  s.freestyleMap = map;
   s.graphics = 'low';
   s.flightMode = 'angle';
   s.fpsCap = 0;
@@ -426,7 +427,12 @@ async function ownerScene(width, height, rooms, touch = false) {
     await page.evaluate("window.__warDo('start', 'itaipu-1')");
     await page.until("window.__war().view.state === 'live'", 30000);
     const them = "window.__warAt(window.__rooms().roomNow).filter((a) => a.kind === 'strike')";
-    await page.until(`${them}.length >= 1`, 60000);
+    /* The strike's birth is drawn from the seed, scaled by the mission's
+     * pace: the stage's own draws say when, in room ms, so the wait is
+     * to that moment and not a guess at it. */
+    const born = await page.evaluate("window.__war().view.stage.draws.find((d) => d.kind === 'strike').t");
+    const left = born - (await page.evaluate('window.__rooms().roomNow'));
+    await page.until(`${them}.length >= 1`, Math.max(0, left) + 30000);
     const a = await page.evaluate(`${them}.map((x) => x.p)`);
     await page.sleep(1000);
     const b = await page.evaluate(`${them}.map((x) => x.p)`);
@@ -475,12 +481,12 @@ async function ownerScene(width, height, rooms, touch = false) {
 
 async function defaults() {
   console.log('1280x720, the default and the override');
-  let page = await openPage({ root, width: 1280, height: 720, seed: seed('interceptor') });
+  let page = await openPage({ root, width: 1280, height: 720, seed: seed('sky1800') });
   try {
     await fly(page);
     await page.until('window.__fpvOsd().on || window.__avionicsHud().on', 120000).catch(() => {});
     const got = JSON.parse(await page.evaluate(READ));
-    check('the 5 inch flies with the FPV OSD', got.osd && !got.avx.on, `FPV OSD ${got.osd}, avionics ${got.avx.on}`);
+    check('a non-combat aircraft (the Sky 1800) flies with the FPV OSD', got.osd && !got.avx.on, `FPV OSD ${got.osd}, avionics ${got.avx.on}`);
   } finally {
     await page.close();
   }
@@ -517,6 +523,30 @@ async function defaults() {
     await page.until('window.__avionicsHud().on', 120000).catch(() => {});
     const kept = JSON.parse(await page.evaluate('JSON.stringify({ size: window.__avionics.state().sensor.inset, px: [window.__sensors.pip.width, window.__sensors.pip.height] })'));
     check('the inset\'s size is kept across a reload', kept.size === 'medium' && kept.px.join('x') === '480x300', `${kept.size} ${kept.px.join('x')}`);
+    /* The thermal palette: the key steps white hot, ironbow, rainbow and
+     * round, names itself, and is kept across a reload. */
+    const paletteOf = async () => JSON.parse(await page.evaluate(`JSON.stringify({
+      palette: window.__avionics.state().sensor.palette,
+      kept: JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)})).avxPalette,
+    })`));
+    const walked = [(await paletteOf()).palette];
+    for (let k = 0; k < AVX_PALETTES.length; k += 1) {
+      await page.tap('Period');
+      await page.until(`window.__avionics.state().sensor.palette !== ${JSON.stringify(walked[walked.length - 1])}`, 10000);
+      walked.push((await paletteOf()).palette);
+    }
+    check('the . key cycles the palette through every one and round', walked.join() === [...AVX_PALETTES, AVX_PALETTES[0]].join(), walked.join(' > '));
+    await page.tap('Period');
+    await page.until("window.__avionics.state().sensor.palette === 'ironbow'", 10000);
+    got = await paletteOf();
+    check('the palette is written to the settings', got.kept === 'ironbow', `settings ${got.kept}`);
+    check('and the HUD names it', /ironbow/i.test(await page.evaluate('document.getElementById("ui").innerText')), 'notice text');
+    await page.cdp.send('Page.reload', {}, page.sessionId);
+    await page.sleep(1000);
+    await fly(page);
+    await page.until('window.__avionicsHud().on', 120000);
+    got = await paletteOf();
+    check('the palette is kept across a reload', got.palette === 'ironbow' && got.kept === 'ironbow', `sensor ${got.palette}, settings ${got.kept}`);
     /* What the menu's HUD style row writes for the seated airframe. */
     await page.evaluate(`(() => {
       const s = window.__ui.settings;
@@ -535,6 +565,35 @@ async function defaults() {
   }
 }
 
+/* The Interior's sun moves, and the sensor's day or night with it. */
+async function interiorClock() {
+  console.log('1280x720, the Interior\'s clock');
+  const page = await openPage({ root, width: 1280, height: 720, url: '/index.html?map=interior&hour=11', seed: seed('7inch', 'interior') });
+  try {
+    await fly(page);
+    await page.until('window.__avionicsHud().on', 120000);
+    await page.evaluate("window.__sensors.setMode('eo'); true");
+    const clockTo = async (hour, want) => {
+      await page.evaluate(`window.__mapScene().userData.interior.look.setLocalTime(${hour}); true`);
+      await page.until(`window.__avionics.state().sensor.timeOfDay === '${want}'`, 10000);
+      return JSON.parse(await page.evaluate('JSON.stringify(window.__sensors.state.detect)'));
+    };
+    const noon = await clockTo(11, 'day');
+    const night = await clockTo(23, 'night');
+    const dawn = await clockTo(11, 'day');
+    check('the Interior: the EO detector sees day light at noon and night light at 23:00',
+      noon.light > 0.9 && night.light < 0.2 && night.contrast !== noon.contrast && night.quality < noon.quality,
+      `light ${noon.light} to ${night.light}, contrast ${noon.contrast} to ${night.contrast}, quality ${noon.quality.toFixed(2)} to ${night.quality.toFixed(2)}`);
+    check('and back to day values when the sun is up again', dawn.light === noon.light && dawn.contrast === noon.contrast, `light ${dawn.light}, contrast ${dawn.contrast}`);
+  } finally {
+    await page.close();
+  }
+}
+
+const palettesInSource = /THERMAL_PALETTES = \[([^\]]*)\]/.exec(readFileSync(join(root, 'src/render/sensorview.js'), 'utf8'));
+check('the settings\' palettes are the sensor view\'s', palettesInSource !== null && palettesInSource[1].replace(/['\s]/g, '') === AVX_PALETTES.join(','),
+  `${AVX_PALETTES.join(',')} against ${palettesInSource && palettesInSource[1]}`);
+
 const avx = readFileSync(join(root, 'src/ui/avionicshud.js'), 'utf8');
 check('avionicshud.js keeps warmarkers.js\'s radar geometry',
   avx.includes(`const RADAR_PX = ${RADAR_PX};`) && avx.includes(`const RADAR_TOP_PX = ${RADAR_TOP_PX};`), `RADAR_PX ${RADAR_PX}, RADAR_TOP_PX ${RADAR_TOP_PX}`);
@@ -550,6 +609,7 @@ try {
       await layout(w, h, rooms);
     }
     await defaults();
+    await interiorClock();
     await phone();
   }
   await ownerScene(1280, 720, rooms);

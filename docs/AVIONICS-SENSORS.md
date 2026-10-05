@@ -74,10 +74,18 @@ the screen, as before. A thermal main view never draws the composer.
 | `fusion` | The visible picture, colour drained by half, with what is hot painted over it and its edges drawn: hot is over both the scene's mean plus 3 sigma and the air plus 25 C, so sunlit concrete in a frame of water is not a fire |
 | `contrast` | Acquisition: grey, its local mean (a mipmap about 40 source pixels across) taken out and the rest stretched |
 
-The palette and the span are the sensor view's own (`src/render/sensorview.js`
-exports `setThermalPalette` and `setThermalSpan`), not yet on
-a key: binding one is the SensorManager's and the shell's (src/avionics,
-src/main.js). No flat field correction freeze is drawn.
+The palette is the pilot's: `.` (period, beside J and K; every letter is
+taken in flight) steps white hot, ironbow, rainbow (`sensors.cyclePalette`,
+the setting `avxPalette`, the Settings row "Thermal palette"), and the
+notice names it. The span (`setThermalSpan` in `src/render/sensorview.js`)
+is exported but has no control: there is no gain control in the HUD to put
+it beside, and a gamepad or touch button for it would be the first of its
+kind, so it waits for one. J has no gamepad or touch button either, so
+neither has the palette. No flat field correction freeze is drawn.
+
+The SensorManager reads the map's time of day when the scene changes and
+again once a second, so a moving sun (the Interior's) moves
+`state.detect` from day to night values.
 
 Zoom crops every source the same way: at 4x a 640 core puts 160 of its
 pixels across the screen. Stabilisation is electronic: a smoothed camera
