@@ -2,13 +2,17 @@
  * dynres-check.js: dynamic resolution drops under GPU load, holds without
  * oscillating, and gives the pixels back when the load goes.
  *
- *   SIM_GPU=1 node scripts/dynres-check.js [heavyIterations]
+ *   SIM_GPU=1 node scripts/dynres-check.js [iterations] [fill|vertex] [heavySeconds]
  *
  * SIM_GPU=1 because on the software rasteriser dynamic resolution is off
  * by design (src/render/dynres.js). The load is a full screen quad dropped
  * into the live scene through the harness hooks, whose fragment shader
  * loops a fixed number of times: its cost is per pixel, which is exactly
- * the cost a resolution step buys back. Nothing in the product is changed
+ * the cost a resolution step buys back. `vertex` is the opposite load: a
+ * cloud of points whose vertex shader loops and which all land outside
+ * the view, so the cost is fixed and no resolution step can buy it back.
+ * That stands in for draw call cost or another program on the GPU, and
+ * there the scale must come back to 1 and stay. Nothing in the product is changed
  * to make the load. The scale trace is printed, a number per sample, so
  * the evidence is text and not a picture.
  *
@@ -35,6 +39,38 @@ import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const iterations = Number(process.argv[2]) || 400;
+const kind = process.argv[3] === 'vertex' ? 'vertex' : 'fill';
+const heavySeconds = Number(process.argv[4]) || 45;
+
+const VERTEX_LOAD = `(() => {
+  const T = window.__three;
+  const n = 400000;
+  const g = new T.BufferGeometry();
+  g.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 3), 3));
+  const mat = new T.ShaderMaterial({
+    uniforms: { uN: { value: 0 } },
+    vertexShader: \`
+      uniform int uN;
+      void main() {
+        float a = float(gl_VertexID) * 1e-5;
+        for (int i = 0; i < 4096; i++) {
+          if (i >= uN) { break; }
+          a += sin(a * 1.3 + float(i)) * 0.5;
+        }
+        gl_PointSize = 1.0;
+        gl_Position = vec4(3.0 + a * 1e-9, 3.0, 0.0, 1.0);
+      }
+    \`,
+    fragmentShader: 'void main() { gl_FragColor = vec4(0.0); }',
+    depthTest: false,
+    depthWrite: false,
+  });
+  const pts = new T.Points(g, mat);
+  pts.frustumCulled = false;
+  window.__mapScene().add(pts);
+  window.__load = mat.uniforms.uN;
+  return true;
+})()`;
 
 const LOAD = `(() => {
   const T = window.__three;
@@ -104,19 +140,20 @@ try {
   const d0 = JSON.parse(await page.evaluate('JSON.stringify(window.__dynres())'));
   console.log(`renderer: ${JSON.stringify(await page.evaluate('window.__gpu.raw'))}`);
   console.log(`timer query: ${d0.gpu ? 'EXT_disjoint_timer_query_webgl2' : 'absent, frame interval fallback'}; enabled ${d0.enabled}; budget ${d0.budgetMs.toFixed(2)} ms`);
-  await page.evaluate(LOAD);
+  console.log(`load: ${kind}, ${iterations} iterations, ${heavySeconds} s heavy`);
+  await page.evaluate(kind === 'vertex' ? VERTEX_LOAD : LOAD);
   await sample('idle', 6);
   await page.evaluate(`(window.__load.value = ${iterations}, true)`);
-  await sample('heavy', 45);
+  await sample('heavy', heavySeconds);
   await page.evaluate('(window.__load.value = 0, true)');
   await sample('light', 50);
 } finally {
   await page.close();
 }
 
-console.log('phase   t(s)  scale  pixelRatio  gpuMs  frameMs  fps');
+console.log('phase   t(s)  scale  pixelRatio  gpuMs  frameMs  fps  gaveUp  hold');
 for (const r of trace) {
-  console.log(`${r.phase.padEnd(6)} ${r.t.toFixed(2).padStart(6)}  ${r.scale.toFixed(3)}  ${r.pixelRatio.toFixed(3).padStart(10)}  ${r.gpuMs.toFixed(2).padStart(5)}  ${r.frameMs.toFixed(2).padStart(7)}  ${String(r.fps).padStart(3)}`);
+  console.log(`${r.phase.padEnd(6)} ${r.t.toFixed(2).padStart(6)}  ${r.scale.toFixed(3)}  ${r.pixelRatio.toFixed(3).padStart(10)}  ${r.gpuMs.toFixed(2).padStart(5)}  ${r.frameMs.toFixed(2).padStart(7)}  ${Math.round(r.fps).toString().padStart(3)}  ${String(r.gaveUp).padStart(6)}  ${String(r.hold).padStart(4)}`);
 }
 
 const heavy = trace.filter((r) => r.phase === 'heavy');
@@ -134,9 +171,14 @@ for (let i = 1; i < heavy.length; i += 1) {
   }
 }
 const minHeavy = Math.min(...heavy.map((r) => r.scale));
+const heavyTail = heavy.slice(-Math.floor(heavy.length / 3));
 check('enabled on a GPU', trace[0].enabled, `gpu timer ${trace[0].gpu}`);
 check('idle stays native', idle.every((r) => r.scale === 1), `min ${Math.min(...idle.map((r) => r.scale))}`);
-check('heavy load lowers the scale', minHeavy < 1, `min ${minHeavy}`);
 check('heavy load does not oscillate', reversals <= 1, `${reversals} direction reversals`);
+if (kind === 'fill') {
+  check('heavy load lowers the scale', minHeavy < 1, `min ${minHeavy}`);
+} else {
+  check('a cost resolution cannot buy back ends heavy at native', heavyTail.every((r) => r.scale === 1), `last third min ${Math.min(...heavyTail.map((r) => r.scale))}, gave up ${heavy[heavy.length - 1].gaveUp}`);
+}
 check('light load returns to native', light[light.length - 1].scale === 1, `final ${light[light.length - 1].scale}`);
 process.exit(failed ? 1 : 0);

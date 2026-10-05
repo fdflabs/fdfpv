@@ -16942,8 +16942,8 @@ export async function boot({
         const pr = pixelRatioFor(ui.settings.graphics, renderScaleOf(ui.settings), null, dynres.state.scale);
         if (Math.abs(pr - shell.pixelRatio) > 0.001) {
           resizeDirty = true;
-        } else {
-          dynres.refuse(before);
+        } else if (dynres.refuse(before)) {
+          resizeDirty = true;
         }
       }
     }

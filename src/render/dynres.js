@@ -18,6 +18,16 @@
  * own interval, because asking a 60 Hz panel for 90 fps would read as
  * permanently over budget and pin the floor.
  *
+ * A STEP MUST BUY ITS TIME BACK. GPU time only falls with pixels when the
+ * GPU is fill bound. When it is bound by vertices, draw calls or another
+ * program on the same GPU (the desktop, a second browser), a lower scale
+ * costs sharpness and buys nothing, and the timer, which counts the
+ * contention too, would hold the floor all session. So every drop is
+ * judged EVAL_FRAMES later against what the pixel cut predicts: if less
+ * than half the predicted saving showed up, or the floor is reached and
+ * the frame is still over, the scale goes straight back to 1 and holds
+ * there, the hold doubling each time it happens.
+ *
  * WHY IT DOES NOT OSCILLATE. A drop needs a sustained excess (an EMA over
  * budget for DROP_FRAMES frames in a row), a raise needs a long clean run
  * AND a prediction that the next step up still fits (time scales with
@@ -66,6 +76,11 @@ const SETTLE_FRAMES = 12;
  * first frames, and those frames are not what the scene costs. */
 const WARM_FRAMES = 120;
 const MAX_BACKOFF = 16;
+const EVAL_FRAMES = 60;
+/* The share of the predicted saving a step must deliver to be kept. */
+const EFFICACY = 0.5;
+const HOLD_FRAMES = 1800;
+const MAX_HOLD = HOLD_FRAMES * 8;
 const QUERIES = 8;
 
 export function normalizePerfMode(id) {
@@ -89,6 +104,12 @@ export function createDynRes() {
     lastRaise: -1,
     frames: 0,
     changes: 0,
+    evalN: 0,
+    preMs: 0,
+    preScale: 1,
+    hold: 0,
+    holdLen: HOLD_FRAMES,
+    gaveUp: 0,
   };
   let gl = null;
   let ext = null;
@@ -200,6 +221,24 @@ export function createDynRes() {
     s.gpuMs = s.gpuMs === 0 ? sample : s.gpuMs + (sample - s.gpuMs) * 0.1;
     const m = MODES[s.mode];
     const aim = ext ? budget * m.aim : budget;
+    if (s.evalN > 0) {
+      s.evalN -= 1;
+      if (s.evalN > 0) {
+        return false;
+      }
+      const r = s.scale / s.preScale;
+      const predicted = s.preMs * (1 - r * r);
+      if (s.preMs - s.gpuMs < predicted * EFFICACY) {
+        return giveUp();
+      }
+      if (s.scale <= m.floor + 1e-6 && s.gpuMs > aim) {
+        return giveUp();
+      }
+    }
+    if (s.hold > 0) {
+      s.hold -= 1;
+      return false;
+    }
     if (s.gpuMs > aim && shellMs < budget * 0.8) {
       s.over += 1;
       s.clean = 0;
@@ -211,7 +250,11 @@ export function createDynRes() {
       if (s.lastRaise >= 0 && s.frames - s.lastRaise < RAISE_FRAMES * s.backoff * 2) {
         s.backoff = Math.min(MAX_BACKOFF, s.backoff * 2);
       }
-      return change(Math.max(m.floor, s.scale - STEP));
+      s.preMs = s.gpuMs;
+      s.preScale = s.scale;
+      change(Math.max(m.floor, s.scale - STEP));
+      s.evalN = EVAL_FRAMES;
+      return true;
     }
     if (s.scale >= 1 || s.clean < RAISE_FRAMES * s.backoff) {
       return false;
@@ -227,6 +270,18 @@ export function createDynRes() {
     return change(up);
   }
 
+  /* Resolution is not what this frame is short of: native, and leave it. */
+  function giveUp() {
+    s.gaveUp += 1;
+    s.hold = s.holdLen;
+    s.holdLen = Math.min(MAX_HOLD, s.holdLen * 2);
+    s.evalN = 0;
+    if (s.scale >= 1) {
+      return false;
+    }
+    return change(1);
+  }
+
   function change(to) {
     s.scale = Math.round(to * 1000) / 1000;
     s.over = 0;
@@ -237,11 +292,17 @@ export function createDynRes() {
     return true;
   }
 
-  /* The caller found the ratio did not move (a floor in quality.js bound
-   * first). Take the step back so the scale names what is on screen. */
+  /*
+   * The caller found the ratio did not move: rubric F4's pixel floor in
+   * quality.js bound first. That is the floor, reached while still over
+   * budget, so it is the same give up. Returns true when the scale moved
+   * back to 1 and the ratio must be re-applied.
+   */
   function refuse(prev) {
     s.scale = prev;
     s.changes -= 1;
+    s.evalN = 0;
+    return giveUp();
   }
 
   function reset() {
@@ -252,6 +313,9 @@ export function createDynRes() {
     s.settle = WARM_FRAMES;
     s.backoff = 1;
     s.lastRaise = -1;
+    s.evalN = 0;
+    s.hold = 0;
+    s.holdLen = HOLD_FRAMES;
     lastDraw = -1;
   }
 
