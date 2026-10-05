@@ -65,3 +65,32 @@ Add a section per phase or mission (newest last) with:
 7. **For Itaipu:** the war's stage engine took the ops triggers through
    one hook, so Defend the Paraná can adopt cards, roles and guides by
    writing data and adding a hook kind, not by forking stages.js.
+
+### Track FILMS (2026-10-05)
+
+1. **What landed:** N10 (Vega, Ibarra, Rojas, Ferrer and three archive
+   voices, Mission 1's lines and films in en and es), N18 (the BOARD and
+   the operations room set), N9 (the opening, M1's intro and outro), N24
+   (prologue on the pilot's screen, intro as the briefing, outro from the
+   end), N22 (THE INTERIOR, THE COLUMN and three sound beds, generated).
+   How it plays: FILMS.md.
+2. **Measured:** the films' lengths are films:lint's (from the measured
+   voices); a BOARD frame draws in 6 ms at worst on an RTX 3060 Ti once its
+   stills are painted in the preload (painted on first sight, a still
+   cost 50 to 100 ms: a visible hitch); a 2048 px land picture paints in
+   about 80 ms; the voice build peaked at 12.4 GB of RAM and spends most
+   of a take in the CPU word timing.
+3. **Campaign agnostic:** the timeline (film.js), the player (warintro.js),
+   the BOARD drawer (filmboard.js) and the room set (filmroom.js) know
+   nothing of the Interior; its map layers, stills, places and beds are
+   data. The war's films lint byte for byte as before. The one campaign
+   name in shared code is the bed table in warradio.js, by name.
+4. **Roles at scale:** not touched; films are the same for every seat
+   except a late joiner, who starts where the room is.
+5. **Guides:** every line is one speaker's; the routing is ROOM's.
+6. **The owner's flight:** not yet. To listen for: the takes (none chosen
+   by ear), the generated beds (never heard by their maker), Ferrer's
+   Spanish voice (pf_dora, so she is told from Ibarra).
+7. **For Itaipu:** Chatterbox's alignment analyzer crashes on a text of
+   five tokens or fewer ("No.", "There."): build.py now spaces the stop off
+   such a line, so a one word radio call is safe for any campaign.
