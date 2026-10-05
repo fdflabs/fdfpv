@@ -101,7 +101,7 @@ try {
       stage: {
         id: 'probe', n: 1, at: 90000, title: 'war.mission.itaipu_2', text: 'war.mission.itaipu_3', music: null, ready: [],
         objectives: [
-          { id: 'a', text: 'war.mission.itaipu_1', kind: 'protect', state: 'active' },
+          { id: 'a', text: 'war.obj.protect_intakes', kind: 'protect', state: 'active' },
           { id: 'b', text: 'war.mission.itaipu_2', kind: 'kill', state: 'done', progress: [3, 3] },
           { id: 'c', text: 'war.mission.itaipu_4', kind: 'hold', state: 'active', ms: 20000, heldFrom: now - 5000, heldMs: 5000 },
           { id: 'd', text: 'war.mission.itaipu_3', kind: 'protect', state: 'failed' },

@@ -13,11 +13,13 @@
  * movie alike. The pilot's own screen flash is the same: a clip space quad
  * in the scene, not a DOM layer.
  *
- * THREE DRAW CALLS AT MOST, however many go off. Itaipu's views stand near
+ * FOUR DRAW CALLS AT MOST, however many go off. Itaipu's views stand near
  * 290 of their 300 calls (ITAIPU-PLAN section 13), so the whole effect is
  * two pools of camera facing quads, one InstancedBufferGeometry each: the
  * additive one (core, fireball, ring, embers, glow) and the blended one
- * (smoke), plus the screen flash while it shows. Each particle's shape
+ * (smoke), the smoke pool's quads once more for the flipbook's depth
+ * (DEPTH_FRAG: without it the air veiled a fireball by what was behind
+ * it), plus the screen flash while it shows. Each particle's shape
  * (a noisy puff, a soft glow, a ring, a frame of the flipbook) is picked
  * in the fragment shader. The pools are fixed; a full one takes the
  * oldest slot. Nothing is allocated per frame.
@@ -359,6 +361,39 @@ void main() {
 }
 `;
 
+/*
+ * THE FLIPBOOK'S DEPTH. The pools are transparent and write no depth, so
+ * the photographic chain's air (src/maps/swiss2/post.js aerial) veiled a
+ * fireball by whatever was behind it: under the horizon by the far water
+ * and land, a kilometre and more of haze, and over it by nothing, the sky
+ * being left alone. Where a fireball crossed the far horizon that drew a
+ * pale band across the fire. This pass draws no colour: it writes the
+ * flipbook quad's depth where the fire or the smoke is solid, so the air
+ * veils it at its own distance, above the horizon and below alike. Its
+ * soft rim, under DEPTH_COVER, keeps the background's depth.
+ */
+const DEPTH_COVER = 0.45;
+const DEPTH_FRAG = /* glsl */ `
+uniform sampler2D sheet;
+varying vec2 vUv;
+varying vec4 vColor;
+varying float vShape;
+varying float vSeed;
+vec3 cell(float f, vec2 uv) {
+  vec2 c = vec2(mod(f, simCols), floor(f / simCols));
+  return texture2D(sheet, (c + vec2(uv.x, 1.0 - uv.y)) / vec2(simCols, simRows)).rgb;
+}
+void main() {
+  if (vShape < 2.5) discard;
+  float ft = vSeed * (simFrames - 1.0);
+  float f0 = floor(ft);
+  vec3 t = mix(cell(f0, vUv), cell(min(f0 + 1.0, simFrames - 1.0), vUv), ft - f0);
+  float cover = max(t.b, t.r * t.r) * clamp(vColor.a, 0.0, 1.0);
+  if (cover < ${DEPTH_COVER.toFixed(2)}) discard;
+  gl_FragColor = vec4(0.0);
+}
+`;
+
 /* The sheet's layout, into both shaders. */
 const SIM_DEFS = /* glsl */ `
 const float simCols = ${SHEET.cols.toFixed(1)};
@@ -471,6 +506,26 @@ export function createExplosions({ renderer = null } = {}) {
   const hot = createPool(HOT, true, tex);
   const smoke = createPool(SMOKE, false, tex);
   group.add(smoke.mesh, hot.mesh);
+  /* The smoke pool's quads again, for their depth (DEPTH_FRAG): every
+   * flipbook has one quad there, as big as its fire's and in the same
+   * place. Drawn after both pools, so neither is held back by it. */
+  const depthMat = new THREE.ShaderMaterial({
+    vertexShader: `${SIM_DEFS}\n${VERT}`,
+    fragmentShader: `${SIM_DEFS}\n${DEPTH_FRAG}`,
+    uniforms: { sheet: sheetU },
+    transparent: true,
+    colorWrite: false,
+    depthWrite: true,
+    depthTest: true,
+    side: THREE.DoubleSide,
+  });
+  thermalShader(depthMat, 'float thT = 0.0;', 'explosion-depth');
+  const depthMesh = new THREE.Mesh(smoke.geo, depthMat);
+  depthMesh.frustumCulled = false;
+  depthMesh.renderOrder = 7;
+  depthMesh.visible = false;
+  depthMesh.name = 'explosion-depth';
+  group.add(depthMesh);
 
   /* The pilot's own screen flash: a quad in clip space, drawn last over
    * everything the camera sees, through the post chain. */
@@ -813,6 +868,7 @@ export function createExplosions({ renderer = null } = {}) {
     const dt = Math.min(0.1, Math.max(0, dtS));
     stats.hotLive = stepPool(hot, dt);
     stats.smokeLive = stepPool(smoke, dt);
+    depthMesh.visible = smoke.mesh.visible && sheet.ready;
     stats.updateMs = performance.now() - t0;
     if (flashMesh.visible) {
       flashAge += dt;
@@ -842,6 +898,7 @@ export function createExplosions({ renderer = null } = {}) {
       pool.geo.instanceCount = 0;
       pool.mesh.visible = false;
     }
+    depthMesh.visible = false;
     flashMesh.visible = false;
     stats.hotLive = 0;
     stats.smokeLive = 0;
@@ -853,6 +910,7 @@ export function createExplosions({ renderer = null } = {}) {
       pool.quad.dispose();
       pool.mat.dispose();
     }
+    depthMat.dispose();
     flashMesh.geometry.dispose();
     flashMat.dispose();
     tex.dispose();
@@ -872,7 +930,7 @@ export function createExplosions({ renderer = null } = {}) {
     stats: () => ({
       ...stats,
       flipbook: sheet.ready,
-      calls: (hot.mesh.visible ? 1 : 0) + (smoke.mesh.visible ? 1 : 0) + (flashMesh.visible ? 1 : 0),
+      calls: (hot.mesh.visible ? 1 : 0) + (smoke.mesh.visible ? 1 : 0) + (depthMesh.visible ? 1 : 0) + (flashMesh.visible ? 1 : 0),
       pool: HOT + SMOKE,
     }),
   };

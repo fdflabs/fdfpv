@@ -20,6 +20,10 @@
  *   far      the air one from about a kilometre downstream
  *   mine     the pilot's own warhead, 6 m in front of the lens as main.js
  *            draws it (WAR_MINE_AHEAD_M)
+ *   horizon  an intake sized one a kilometre up the reservoir, seen from
+ *            low over the water, so the far horizon crosses the fireball
+ *            (the air pass veiled what lies under the horizon and not the
+ *            sky over it, which drew a pale band across the fire)
  *
  * And the cost, in the air view: the frame's draw calls and triangles and
  * the GPU's time for it (as scripts/itaipu-views.js times a view) with no
@@ -83,6 +87,7 @@ const VIEWS = [
   { id: 'intake', camera: [...at(40, 25, -150), ...I], boom: I, size: 2.6 },
   { id: 'far', camera: [...at(-250, 110, 980), ...AIR], boom: AIR, size: 1.6 },
   { id: 'mine', camera: [...at(-30, 40, 120), ...AIR], ahead: 6, size: 1.6 },
+  { id: 'horizon', camera: [...at(0, 12, -300), ...at(0, 14, -1300)], boom: at(0, 14, -1300), size: 2.6 },
 ];
 
 const seed = [`try {

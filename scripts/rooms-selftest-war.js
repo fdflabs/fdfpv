@@ -353,17 +353,59 @@ export function warSection(check) {
     check(`a start with the intro is a briefing of INTRO_MS (${INTRO_MS / 1000} s) before the countdown, told to everybody`,
       e.r.war.on() && v.state === 'briefing' && v.briefAt === 500 && v.goAt === go && e.view(0).goAt === go, JSON.stringify(v));
     {
-      /* A mission at a time of day of its own: every screen rebuilds its
-       * world as the briefing begins, so the film starts after a lead. */
+      /* A mission at a time of day of its own: a screen not yet on that
+       * world rebuilds it, so the film starts after a lead unless every
+       * pilot here has said its world stands (op 'world'). */
       const morning = { ...plain, time: 'morning' };
       const t = warRoom({ mission: morning, start: false });
       t.fly(500);
+      t.say(0, { type: 'war', op: 'world', map: 'itaipu', time: 'morning' });
       t.say(0, {
         type: 'war', op: 'start', mission: 'test-1', intro: true,
       });
       const tv = t.view(1);
-      check(`a mission with a time of its own: a briefing at once, its film from WORLD_LEAD_MS (${WORLD_LEAD_MS / 1000} s) later, the go as much later`,
+      check(`a mission with a time of its own, a pilot whose world is not said: a briefing at once, its film from WORLD_LEAD_MS (${WORLD_LEAD_MS / 1000} s) later, the go as much later`,
         tv.state === 'briefing' && tv.briefAt === 500 + WORLD_LEAD_MS && tv.goAt === go + WORLD_LEAD_MS, JSON.stringify(tv));
+      const up = (said) => {
+        const u = warRoom({ mission: morning, start: false });
+        u.fly(500);
+        said.forEach((w, i) => w && u.say(i, { type: 'war', op: 'world', ...w }));
+        u.say(0, {
+          type: 'war', op: 'start', mission: 'test-1', intro: true,
+        });
+        return u;
+      };
+      const both = up([{ map: 'itaipu', time: 'morning' }, { map: 'itaipu', time: 'morning' }]);
+      check('every pilot\'s world said standing at the mission\'s map and time: the film starts at once, no lead',
+        both.view(1).briefAt === 500 && both.view(1).goAt === go, JSON.stringify(both.view(1)));
+      const day = up([{ map: 'itaipu', time: 'morning' }, { map: 'itaipu', time: 'day' }]);
+      check('a pilot whose world stands at another time keeps the lead', day.view(1).briefAt === 500 + WORLD_LEAD_MS, JSON.stringify(day.view(1)));
+      const other = up([{ map: 'itaipu', time: 'morning' }, { map: 'swiss2', time: 'morning' }]);
+      check('a pilot whose world is another map keeps the lead', other.view(1).briefAt === 500 + WORLD_LEAD_MS, JSON.stringify(other.view(1)));
+      const gone = warRoom({ mission: morning, start: false });
+      gone.fly(500);
+      gone.say(0, { type: 'war', op: 'world', map: 'itaipu', time: 'morning' });
+      gone.say(1, { type: 'war', op: 'world', map: 'itaipu', time: 'morning' });
+      gone.apply(gone.r.close(gone.socks[1], gone.clock));
+      gone.join(1);
+      gone.say(0, {
+        type: 'war', op: 'start', mission: 'test-1', intro: true,
+      });
+      check('a pilot that left and came back has said nothing since: the lead is held for it', gone.view(0).briefAt === 500 + WORLD_LEAD_MS, JSON.stringify(gone.view(0)));
+      const taken = warRoom({ mission: morning, start: false });
+      taken.fly(500);
+      taken.say(0, { type: 'war', op: 'world', map: 'itaipu', time: 'morning' });
+      taken.say(1, { type: 'war', op: 'world', map: 'itaipu', time: 'morning' });
+      taken.say(1, { type: 'war', op: 'world', map: null });
+      taken.say(0, {
+        type: 'war', op: 'start', mission: 'test-1', intro: true,
+      });
+      check('a pilot whose world was said and then taken down (map null) keeps the lead', taken.view(0).briefAt === 500 + WORLD_LEAD_MS, JSON.stringify(taken.view(0)));
+      const bad = warRoom({ mission: morning, start: false });
+      bad.say(1, { type: 'war', op: 'world', map: 7, time: 'morning' });
+      bad.say(1, { type: 'war', op: 'world', map: 'itaipu', time: 'x'.repeat(33) });
+      check('a world that is not two short strings is refused "world"',
+        bad.socks[1].got.filter((m) => m && m.type === 'war' && m.error === 'world').length === 2 && bad.r.war.worlds.size === 0);
       const d = warRoom({ mission: { ...plain, time: 'day' }, start: false });
       d.fly(500);
       d.say(0, {
