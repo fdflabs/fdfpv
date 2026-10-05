@@ -132,7 +132,7 @@ function plaster(u, v, x, y) {
   return grey(0.8 + 0.14 * m + 0.06 * grain);
 }
 
-/* The skins as three textures, { tile, tin, rust, plaster }, each a
+/* The skins as four textures, { tile, tin, rust, plaster }, each a
  * repeating, mipmapped DataTexture. The caller disposes them. */
 export function makeSkins(THREE) {
   const out = {};
