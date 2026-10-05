@@ -46,6 +46,10 @@ EnvironmentFile=-/etc/fdfpv/accounts.env
 # in. Written on the VM by hand (root, mode 600) and not in the repository,
 # which is public. Without it only ADMIN_SECRET opens the admin routes.
 EnvironmentFile=-/etc/fdfpv/admin.env
+# SMTP_USER and SMTP_PASS, the Gmail address and app password the invite
+# emails go out through (tracks-api/node.js smtpSender). Written on the VM
+# by hand (root, mode 600). Without it an invite is not emailed.
+EnvironmentFile=-/etc/fdfpv/mail.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
 # start; the journal does not need to hear it.
 ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 tracks-api/node.js

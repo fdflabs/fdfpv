@@ -10,6 +10,13 @@
  * waitlist have no email on file to approve, and an invited pilot is not
  * asked twice.
  *
+ * THE INVITE EMAIL. Inviting an address writes to it (invite.js), once:
+ * `mailed_utc` is when, and an address that has it is not written to
+ * again until its invite has been taken back and given again. The sender
+ * is env.SEND_MAIL, which tracks-api/node.js sets when the VM has mail
+ * set up; without it, or when it fails, the invite still stands and the
+ * answer says the email did not go, so the admin page can offer it again.
+ *
  * WHAT IS KEPT: the email address, when it asked and when it was approved.
  * It is the only place this server keeps an email, and it is not tied to
  * an account (migrations/0003_waitlist.sql).
@@ -18,11 +25,13 @@
  * it before calling here):
  *
  *   GET    /api/admin/waitlist   { waitlist: [{ email, requestedUtc,
- *                                approvedUtc }] }  waiting first, oldest
- *                                request first
+ *                                approvedUtc, mailedUtc }] }  waiting
+ *                                first, oldest request first
  *   POST   /api/admin/waitlist   { email, approved: true | false }
- *            approved: true invites the address, whether or not it asked;
- *            false puts it back to waiting. An account it already made
+ *            approved: true invites the address, whether or not it asked,
+ *            and emails it if it has not been: { mailed, mailError? }.
+ *            Sent again for an invited address, it is the email alone,
+ *            tried again. false puts it back to waiting. An account it already made
  *            stays: taking an invite back stops a first sign in, not a
  *            pilot who is in.
  *   DELETE /api/admin/waitlist   { email }  the row, gone
@@ -44,6 +53,7 @@
  */
 
 import { json, nowUtc, readBody, refuse } from './http.js';
+import { inviteMessage } from './invite.js';
 
 const SMALL_BODY = 8 * 1024;
 /* RFC 5321's longest address. The shape check is only against a typo in
@@ -82,13 +92,35 @@ export async function joinWaitlist(env, email) {
   return { approved: await invited(env, email) };
 }
 
+/* { mailed: true }, or { mailed: false, mailError } with the invite left
+ * standing. */
+async function mailInvite(env, email) {
+  const row = await env.DB.prepare('SELECT mailed_utc FROM waitlist WHERE email = ?').bind(email).first();
+  if (row.mailed_utc) {
+    return { mailed: true };
+  }
+  if (!env.SEND_MAIL) {
+    return { mailed: false, mailError: 'Email is not set up on this server.' };
+  }
+  try {
+    await env.SEND_MAIL({ to: email, ...inviteMessage(email) });
+  } catch (e) {
+    console.error('invite email:', e && e.message ? e.message : e);
+    return { mailed: false, mailError: String((e && e.message) || e) };
+  }
+  await env.DB.prepare('UPDATE waitlist SET mailed_utc = ? WHERE email = ?').bind(nowUtc(), email).run();
+  return { mailed: true };
+}
+
 export async function waitlistAdmin(env, request) {
   if (request.method === 'GET') {
     const { results } = await env.DB.prepare(
-      'SELECT email, requested_utc, approved_utc FROM waitlist ORDER BY approved_utc IS NOT NULL, requested_utc, email',
+      'SELECT email, requested_utc, approved_utc, mailed_utc FROM waitlist ORDER BY approved_utc IS NOT NULL, requested_utc, email',
     ).all();
     return json(200, {
-      waitlist: results.map((r) => ({ email: r.email, requestedUtc: r.requested_utc, approvedUtc: r.approved_utc })),
+      waitlist: results.map((r) => ({
+        email: r.email, requestedUtc: r.requested_utc, approvedUtc: r.approved_utc, mailedUtc: r.mailed_utc,
+      })),
     });
   }
   const read = await readBody(request, SMALL_BODY, 'That request is too big.');
@@ -106,9 +138,15 @@ export async function waitlistAdmin(env, request) {
   if (typeof read.body.approved !== 'boolean') {
     return refuse(400, 'Send { "email": "...", "approved": true } or false.');
   }
-  const approvedUtc = read.body.approved ? nowUtc() : null;
+  if (!read.body.approved) {
+    await env.DB.prepare(
+      'INSERT INTO waitlist (email) VALUES (?) ON CONFLICT (email) DO UPDATE SET approved_utc = NULL, mailed_utc = NULL',
+    ).bind(email).run();
+    return json(200, { email, approved: false });
+  }
+  /* The first approval's date is kept: asking again is the email's retry. */
   await env.DB.prepare(
-    'INSERT INTO waitlist (email, approved_utc) VALUES (?, ?) ON CONFLICT (email) DO UPDATE SET approved_utc = excluded.approved_utc',
-  ).bind(email, approvedUtc).run();
-  return json(200, { email, approved: read.body.approved });
+    'INSERT INTO waitlist (email, approved_utc) VALUES (?, ?) ON CONFLICT (email) DO UPDATE SET approved_utc = COALESCE(approved_utc, excluded.approved_utc)',
+  ).bind(email, nowUtc()).run();
+  return json(200, { email, approved: true, ...(await mailInvite(env, email)) });
 }

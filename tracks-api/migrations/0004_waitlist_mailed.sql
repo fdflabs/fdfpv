@@ -1,0 +1,21 @@
+-- When the invite email went to a waitlist address. See tracks-api/waitlist.js.
+--
+-- This file is part of WebFPVSimulator.
+--
+-- WebFPVSimulator is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or (at
+-- your option) any later version.
+--
+-- WebFPVSimulator is distributed in the hope that it will be useful, but
+-- WITHOUT ANY WARRANTY, without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+-- General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+
+-- Null until the invite email has been handed to the mail server for this
+-- address, and null again when its invite is taken back, so inviting it
+-- again writes to it again.
+ALTER TABLE waitlist ADD COLUMN mailed_utc TEXT;
