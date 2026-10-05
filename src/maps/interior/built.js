@@ -6,7 +6,8 @@
  *
  * DRAWN CHEAPLY. Everything of a material is one merged mesh, a handful
  * of draws for the whole corridor: the walls, the tin roofs, the
- * concrete, the roads, the water. The buildings are low and plain, as the
+ * concrete, the bridge's deck; the roads and the water are ribbons.js's,
+ * a mesh each. The buildings are low and plain, as the
  * region's are (TECH-NEEDS M1 assets: "fifteen to twenty low houses, a
  * school"), and seen mostly from hundreds of metres up.
  *
@@ -34,18 +35,13 @@
  * along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-  BRIDGES, BUILDINGS, CROSSINGS, ROADS,
-} from '../../share/interior/places.js';
-import { RIVER, STREAMS } from '../../share/interior/hydro.js';
-import { HALF } from '../../share/interior/frame.js';
+import { BRIDGES, BUILDINGS, CROSSINGS } from '../../share/interior/places.js';
 import {
   recordAt, gableTop, shedTop, flatTop, pyramidTop,
 } from '../alps/roofs.js';
-import { thermalKind } from '../../render/thermal.js';
+import { buildRoads, buildWater } from './ribbons.js';
 
 /* Linear colours. */
-const ROAD_COL = [0.15, 0.08, 0.042];
 const CONCRETE = [0.32, 0.31, 0.29];
 const TIN = { red: [0.22, 0.07, 0.04], grey: [0.3, 0.31, 0.31], rust: [0.2, 0.1, 0.05] };
 const srgb = (hex) => {
@@ -140,42 +136,6 @@ function solidBox(colliders, kind, cx, cz, dx, dz, w, d, y0, y1) {
   return colliders.addTurnedBox(kind, dx, dz, u - w / 2, u + w / 2, y0, y1, v - d / 2, v + d / 2);
 }
 
-/* A ribbon along a polyline (world [x, z]) conformed to `yAt`, every
- * `step` metres, `width` wide. */
-function ribbon(sink, points, width, yAt, colour, step = 8, skip = null) {
-  const pts = [];
-  for (let k = 0; k + 1 < points.length; k += 1) {
-    const [ax, az] = points[k];
-    const [bx, bz] = points[k + 1];
-    const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / step));
-    for (let t = 0; t < n; t += 1) {
-      pts.push([ax + ((bx - ax) * t) / n, az + ((bz - az) * t) / n]);
-    }
-  }
-  pts.push(points[points.length - 1]);
-  let prev = null;
-  for (let k = 0; k < pts.length; k += 1) {
-    const [x, z] = pts[k];
-    const [px, pz] = pts[Math.max(0, k - 1)];
-    const [nx, nz] = pts[Math.min(pts.length - 1, k + 1)];
-    let tx = nx - px;
-    let tz = nz - pz;
-    const l = Math.hypot(tx, tz) || 1;
-    tx /= l;
-    tz /= l;
-    const w = typeof width === 'function' ? width(k / (pts.length - 1)) : width;
-    const lx = x - tz * (w / 2);
-    const lz = z + tx * (w / 2);
-    const rx = x + tz * (w / 2);
-    const rz = z - tx * (w / 2);
-    const cur = [[lx, yAt(lx, lz, k / (pts.length - 1)), lz], [rx, yAt(rx, rz, k / (pts.length - 1)), rz]];
-    if (prev && !(skip && skip(x, z))) {
-      sink.quad(prev[0], cur[0], cur[1], prev[1], colour);
-    }
-    prev = cur;
-  }
-}
-
 /* Four slopes in roofs.js's convention (x across, z along, the plate at
  * y 0): a ridge along z at height r, the ends sloping down to the eaves
  * like the sides, so nothing under it is a wall above the plate. */
@@ -209,15 +169,11 @@ export async function buildBuilt({
   const wallMat = vc({});
   const roofMat = vc({ roughness: 0.55, metalness: 0.5 });
   const concreteMat = vc({ roughness: 0.85 });
-  const roadMat = vc({ roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-  /* A slow brown river: silt colours it and its surface is never still
-   * enough to be a mirror. */
-  const waterMat = thermalKind(vc({ roughness: 0.32, envMapIntensity: 0.6, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }), 'water');
+  const deckMat = vc({ roughness: 1, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const walls = makeSink();
   const tin = makeSink();
   const concrete = makeSink();
-  const roads = makeSink();
-  const water = makeSink();
+  const deck = makeSink();
   let solidCount = 0;
 
   /* THE BRIDGE: deck, two spans on a pier mid river and an abutment each
@@ -265,16 +221,14 @@ export async function buildBuilt({
   });
 
   /* THE ROADS, on the ground, not drawn across the bridge's deck. */
-  for (const r of ROADS) {
-    ribbon(roads, r.points, r.width, (x, z) => ground(x, z) + 0.08, ROAD_COL, 8, onDeck);
-  }
+  const roads = buildRoads({ THREE, ground, skip: onDeck });
   for (const b of BRIDGES) {
     const [dx, dz] = b.dir;
     const len = Math.hypot(b.to[0] - b.from[0], b.to[1] - b.from[1]);
     const cx = (b.from[0] + b.to[0]) / 2;
     const cz = (b.from[1] + b.to[1]) / 2;
     const c = corners(cx, cz, dx, dz, len, b.width - 0.6, b.deckY + 0.02);
-    roads.quad(c[3], c[2], c[1], c[0], [0.2, 0.19, 0.18]);
+    deck.quad(c[3], c[2], c[1], c[0], [0.2, 0.19, 0.18]);
   }
   for (const c of CROSSINGS) {
     const [dx, dz] = c.dir;
@@ -290,24 +244,8 @@ export async function buildBuilt({
     solidCount += 1;
   }
 
-  /* RIO SERENO, its water at its level, a little wider than its channel
-   * so it laps its banks, and its streams on their beds. */
-  const inSquare = RIVER.points.map(([x, z]) => Math.abs(x) < HALF && Math.abs(z) < HALF);
-  const first = inSquare.indexOf(true);
-  const lastIn = inSquare.lastIndexOf(true);
-  const rpts = RIVER.points.slice(first, lastIn + 1);
-  const rlev = RIVER.level.slice(first, lastIn + 1);
-  const rwid = RIVER.width.slice(first, lastIn + 1);
-  const at = (f) => Math.min(rpts.length - 1, Math.round(f * (rpts.length - 1)));
-  ribbon(water, rpts, (f) => rwid[at(f)] + 8, (x, z, f) => rlev[at(f)], [0.075, 0.052, 0.03], 10);
-  for (const s of STREAMS) {
-    const w = Math.min(7, 2.5 + s.km2 * 0.35);
-    ribbon(water, s.points, w, (x, z) => ground(x, z) + 0.15, [0.045, 0.04, 0.03], 10);
-  }
-  const rivers = [{
-    line: rpts.map(([x, z], k) => ({ x, y: rlev[k], z })),
-    width: Math.min(...rwid) + 4,
-  }];
+  /* RIO SERENO and its streams. */
+  const water = buildWater({ THREE, ground });
 
   /* THE BUILDINGS. */
   for (const b of BUILDINGS) {
@@ -418,27 +356,27 @@ export async function buildBuilt({
     meshOf(THREE, walls, wallMat, 'interior-walls'),
     meshOf(THREE, tin, roofMat, 'interior-roofs'),
     meshOf(THREE, concrete, concreteMat, 'interior-concrete'),
-    meshOf(THREE, roads, roadMat, 'interior-roads'),
-    meshOf(THREE, water, waterMat, 'interior-water'),
+    meshOf(THREE, deck, deckMat, 'interior-deck'),
   ];
   meshes[3].castShadow = false;
-  meshes[4].castShadow = false;
   for (const m of meshes) {
     group.add(m);
   }
-  const tris = meshes.reduce((n, m) => n + m.geometry.attributes.position.count / 3, 0);
+  const ribbons = [roads.mesh, ...water.meshes];
+  for (const m of ribbons) {
+    group.add(m);
+  }
+  const tris = meshes.reduce((n, m) => n + m.geometry.attributes.position.count / 3, 0) + roads.triangles + water.triangles;
   return {
     group,
-    rivers,
+    rivers: water.rivers,
     view() {},
     update() {},
-    stats: () => ({ meshes: meshes.length, triangles: tris, solids: solidCount, roofs: roofs.length }),
+    stats: () => ({ meshes: meshes.length + ribbons.length, triangles: tris, solids: solidCount, roofs: roofs.length }),
     dispose() {
-      for (const m of meshes) {
+      for (const m of [...meshes, ...ribbons]) {
         m.geometry.dispose();
-      }
-      for (const m of [wallMat, roofMat, concreteMat, roadMat, waterMat]) {
-        m.dispose();
+        m.material.dispose();
       }
       group.removeFromParent();
     },
