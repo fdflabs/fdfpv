@@ -422,6 +422,14 @@ export function createRoomWar(send) {
     seen(films) {
       send({ type: 'war', op: 'seen', films });
     },
+    /* Any pilot: the world its screen has built and standing (map null:
+     * none now), so the room starts a briefing's film with no lead for a
+     * rebuild nobody needs (edge/rooms/war.js worldsUp). */
+    world(map, time) {
+      send({
+        type: 'war', op: 'world', map, time,
+      });
+    },
     /* Any pilot: ready for what comes next (a stage's { ready }). */
     ready() {
       send({ type: 'war', op: 'ready' });
