@@ -503,3 +503,70 @@ unchanged (no file it draws with moved).
   (as zones.js already mirrors it) would cut it to a texture read, at
   the price of the field's pixel fade (it reads the distance).
 - The lake bed in thermal: the sensor owner's call (above).
+
+## P7, feel: from the stick to the picture
+
+2026-10-05. `SIM_GPU=1 npm run perf:latency -- OUT_DIR [--hz=90] [--late=1]`
+(scripts/perf-latency.js) hovers a seven inch at 5 m on the Swiss valley
+in angle mode and steps the yaw stick between two values from a timer at
+random moments, about every 300 ms, as a thumb would, never on a frame.
+For each step it finds, from outside the shell, the frame that handed the
+new value to sim_input, its RC slot, and the first frame whose plant state
+is a step past the slot (the first frame drawn with it), and times each
+against the step. It ends at the frame's submit: the GPU and the
+compositor come after, the same whichever way the plant is fed.
+Headless Chrome's beat is 60 Hz; `--hz=90` replaces it with a 90 Hz beat
+kept by timers (frames handed the beat's time, started when the page is
+free), a model of the main thread's side only.
+
+### Where the time went, on main
+
+60 Hz, the browser's beat, GPU 0 at 69 to 81 % (another agent's page):
+
+| step to (ms) | mean | p50 | p95 |
+| --- | --- | --- | --- |
+| the next frame's timestamp | 15.6 | 13.3 | 23.7 |
+| sim_input | 15.9 | 13.7 | 24.1 |
+| render start | 17.2 | 16.5 | 25.7 |
+| frame submitted | 20.0 | 18.5 | 28.2 |
+
+The frame that took the input always drew it (0 frames between), and
+render interpolation is 1 ms behind the newest state by construction,
+which is not worth a guess to take back. The cost was the frame that
+takes it. Waiting for the next frame should average half a frame,
+8.4 ms at 60 fps. It averaged 15.6, because a reading had to reach the
+shell some 7 ms before the frame started to get in: the frame maps its
+own start to the end of the block it steps, the RC slots (250 Hz) all
+fall before that end, and the 2 ms timer's readings are stamped when they
+are taken. So the newest reading, the frame's own poll, always waited for
+the next frame's block, and one taken in the last RC frame or so before
+the frame started did too. That was about two moves in five.
+
+### Low latency input (Settings, Stick latency: Low, under Radio link)
+
+main.js lines the frame's newest reading up with the last RC slot of the
+block it steps, instead of the block's end: every reading the frame holds
+is in the block it is drawn from. sim_input still gets slot timestamps on
+the same grid, and never a wall time; a reading moves by about one RC
+frame. A recording holds what reached sim_input, so replays, ghosts and
+the room's poses are what they were. Off by default.
+
+| | step to sim_input, mean / p95 | step to frame submitted, mean / p95 |
+| --- | --- | --- |
+| 60 Hz beat, Standard (main) | 15.9 / 24.1 | 20.0 / 28.2 |
+| 60 Hz beat, Low | 8.4 / 12.7 | 13.4 / 17.6 |
+| 90 Hz beat, Standard, run 1 / 2 | 9.4 / 18.1, 8.4 / 17.7 | 13.4 / 22.1, 12.6 / 22.2 |
+| 90 Hz beat, Low, run 1 / 2 | 3.7 / 8.4, 4.0 / 8.6 | 8.0 / 12.5, 7.8 / 11.6 |
+
+The 90 Hz rows were run A, B, A, B on one tree, with GPU 0 at 87 to 98 %
+(another agent's page): frames missed beats (mean interval 15 to 17 ms
+against 11.1), so read them as the difference, not the level. About
+5 ms sooner on average at 90 and 6.6 at 60, and the tail (p95) roughly
+halved at both.
+
+Also fixed in src/input/input.js: poll() is called by the 2 ms timer
+with performance.now() and by the frame with its timestamp, which is the
+frame's start and can be earlier. dtMs went negative for that poll (the
+keyboard's spring and the mouse's ran backwards for it) and the frame's
+reading was stamped older than the reading queued before it. Stamps are
+now never earlier than the last one.
