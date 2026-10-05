@@ -3554,7 +3554,7 @@ export default {
   "ops.campaign.state_development": "En desarrollo",
   "ops.campaign.state_soon": "Próximamente",
   "ops.campaign.no_map": "El mapa del Interior todavía no está en esta versión, así que una misión no puede empezar desde aquí.",
-  "ops.campaign.no_start": "Empezar una misión desde esta tarjeta llega con el mapa del Interior.",
+  "ops.campaign.no_room": "No se pudo crear una sala: {why}",
   "ops.interior.star.eyes": "OJOS ABIERTOS: cada elemento opcional",
   "ops.debrief.eyebrow": "INFORME",
   "ops.debrief.won": "MISIÓN CUMPLIDA",

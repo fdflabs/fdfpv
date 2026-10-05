@@ -184,7 +184,9 @@ try {
   await page.evaluate("(document.querySelector('.name-dialog .name-dialog-row button.on').click(), true)");
   await page.until(`${CARD} !== null && ${CARD}.note !== null`, 10000).catch(() => {});
   const after = await page.evaluate(CARD);
-  check('Continue: kept, and the page says where the start is (no room made from here yet)', await page.evaluate('window.__ui.settings.interiorConsent === true') && after && /comes with the Interior's map/.test(after.note || '') && (await page.evaluate("window.__rooms().phase")) === 'idle', JSON.stringify(after && after.note));
+  /* No rooms server on this page: the room cannot be made, and the page
+   * says so (interior:fly makes one against a real server). */
+  check('Continue: kept, and with no rooms server the page says no room could be made', await page.evaluate('window.__ui.settings.interiorConsent === true') && after && /No room could be made/.test(after.note || '') && (await page.evaluate("window.__rooms().phase")) === 'idle', JSON.stringify(after && after.note));
   await shot('interior-campaign-dev.png');
   await page.evaluate('(window.__opsCampaign.close(), true)');
 
