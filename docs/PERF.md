@@ -503,3 +503,40 @@ unchanged (no file it draws with moved).
   (as zones.js already mirrors it) would cut it to a texture read, at
   the price of the field's pixel fade (it reads the distance).
 - The lake bed in thermal: the sensor owner's call (above).
+
+## P7, feel: the frame readout
+
+2026-10-05. Settings, Screen, Frame readout (off by default), or F3
+anywhere: four lines low on the left (src/ui/perfoverlay.js), over the
+OSD's pack readout and under the freestyle combo, clear of the course
+chip, the flight buttons, the speed and the throttle.
+
+    60 fps   1% low 59
+    frame 16.7 ms   CPU 2.4   GPU 2.3
+    391 draw calls   1.64 M triangles
+    render scale 1.00   cap off
+
+fps and frame ms are over the last second of drawn frames (a frame the
+cap skips is not counted), the 1% low is this document's definition over
+the last 1024 drawn frames, CPU is the frame callback's own time
+(main.js blockMs) over the same second, GPU is dynamic resolution's timer
+query round the world's draw. In Quality, where dynres.js never acts, the
+readout asks for the timer itself (setWatch) and lets it go when hidden;
+`n/a` where the browser has no timer. Nothing per frame allocates; the
+text is rebuilt four times a second.
+
+`npm run perf:overlay` (scripts/perf-overlay-check.js) holds it to:
+off by default; F3 and the setting both show and hide it and the choice
+is stored; its fps within 10 % of fps worked out from the shell's own
+animation frame timestamps; its draw calls the renderer's; its scale and
+cap dynres's and the setting's; a GPU time in Quality on a GPU; no
+pointer events. Run with SIM_GPU=1 and with the software rasteriser,
+2026-10-05: all passed on both.
+
+The cap and the display: the cap draws a frame only once 1000 / cap less
+1 ms has passed since the last drawn one, so the drawn rate is the
+largest whole fraction of the display's rate at or under the cap. A 90
+cap on a 60 Hz display draws 60, on a 120 Hz display 60, on a 144 Hz
+display 72; a 120 cap on 144 Hz draws 72. That is on purpose ("a steady
+60 reads better than a heaving 90", the setting's own note), and the
+readout shows the cap beside the fps it gives, so a pilot can see it.

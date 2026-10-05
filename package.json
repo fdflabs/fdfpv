@@ -19,6 +19,7 @@
     "combat:gates": "node scripts/combat-gates.js",
     "combat:shell": "node scripts/combat-shell.js",
     "perf": "node scripts/perf-play.js",
+    "perf:overlay": "node scripts/perf-overlay-check.js",
     "lint:presets": "node scripts/preset-lint.js",
     "lint:catalog": "node scripts/fc-catalog-lint.js",
     "lint:shell": "node scripts/shell-check.js",
