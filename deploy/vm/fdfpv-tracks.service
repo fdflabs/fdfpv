@@ -38,6 +38,8 @@ Environment=HOST=127.0.0.1 PORT=8787 TRACKS_DB=/var/lib/fdfpv-tracks/tracks.db
 # reads. Without both a client id and ACCOUNTS_SECRET, the account routes
 # answer 503 and nothing else changes.
 Environment=GOOGLE_CLIENT_ID=684567545976-dqpf7tqf764rs0dp7l08it7usb33fo9m.apps.googleusercontent.com,533228474420-ij6t37upmahvcg96tava16ild8mdno4t.apps.googleusercontent.com
+# The beta is by invite (tracks-api/waitlist.js). Remove to open it.
+Environment=INVITE_ONLY=1
 EnvironmentFile=/etc/fdfpv/tracks.env
 EnvironmentFile=-/etc/fdfpv/accounts.env
 # node:sqlite is still marked experimental in Node 24 and says so on every

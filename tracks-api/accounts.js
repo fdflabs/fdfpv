@@ -15,9 +15,9 @@
  * WHAT IS KEPT, per account: Google's `sub` (its stable account id), the
  * callsign, the pilot key the account carries (below), the progress blob
  * (src/share/progressmerge.js) and the SHA-256 of each session token. No
- * email, name or picture: Google's token carries an email, and it is read
- * by nobody and stored nowhere, because nothing here needs to write to
- * the pilot.
+ * email, name or picture. Google's token carries an email, and an account
+ * never holds it: it is read only to look an invite up, and stored only
+ * when its owner asks for a place on the beta waitlist (waitlist.js).
  *
  * THE PILOT KEY. Names and lap times on the board, and the tracks on this
  * server, belong to a browser's pilot key (src/share/identity.js), and the
@@ -34,7 +34,9 @@
  *   POST   /api/account/google     { credential }  the GIS ID token
  *            { session, callsign, publicKey, identity }  identity is the
  *            carried key as identity.js exportText, or null when the
- *            account has none yet
+ *            account has none yet. While INVITE_ONLY is set, 403
+ *            { notInvited } for a Google account that has no account here
+ *            and whose email has no invite (waitlist.js)
  *   GET    /api/account            { callsign, publicKey }  what the rooms
  *                                  server asks, with the pilot's session
  *   DELETE /api/account            the account, its sessions and progress
@@ -53,8 +55,12 @@
  *            413 or 422 when its builds or loadouts are too many, too big
  *            or the wrong shape (progressmerge.js blobRefusal)
  *
- * Every route but the first takes `authorization: Bearer <session>`. All
- * of them answer 503 while GOOGLE_CLIENT_ID names no client id, or while
+ *   POST   /api/waitlist           { credential }  the GIS ID token of
+ *            whoever asks for a place in the beta: { approved }, true when
+ *            the address already has its invite
+ *
+ * Every route but the first and the last takes `authorization: Bearer
+ * <session>`. All of them answer 503 while GOOGLE_CLIENT_ID names no client id, or while
  * ACCOUNTS_SECRET is unset, which is the feature switched off.
  * GOOGLE_CLIENT_ID is a comma separated list (parseClientIds), so a client
  * id can move: during a transition both the new id the page signs in with
@@ -89,6 +95,7 @@ import es from '../src/strings/es.js';
 import { badWordIn } from './words.js';
 import { GOOGLE_JWKS_URL, googleKeys, verifyGoogleIdToken } from './google.js';
 import { json, nowUtc, readBody, refuse, spend } from './http.js';
+import { inviteOnly, invited, joinWaitlist } from './waitlist.js';
 import {
   ACCOUNT_WRITE_LIMIT, PROGRESS_MAX_CHARS, SESSIONS_PER_ACCOUNT, SESSION_DAYS, SIGNIN_LIMIT,
 } from './limits.js';
@@ -289,14 +296,17 @@ async function openIdentity(env, row) {
   return row.identity ? unseal(env, row.identity) : null;
 }
 
-async function signIn(env, request) {
+/* { verdict } for a request carrying a good GIS ID token in `credential`,
+ * or { error }, the refusal to answer with. Counted against the sign in
+ * limit either way. */
+async function checkCredential(env, request) {
   const limited = await spend(env, request, 'signin', SIGNIN_LIMIT, 'Too many sign ins from here. Try again in a few minutes.');
   if (limited) {
-    return limited;
+    return { error: limited };
   }
   const read = await readBody(request, SMALL_BODY, 'That sign in is too big.');
   if (read.error) {
-    return read.error;
+    return { error: read.error };
   }
   const credential = read.body && read.body.credential;
   let verdict;
@@ -304,10 +314,23 @@ async function signIn(env, request) {
     verdict = await verifyGoogleIdToken(credential, { clientIds: parseClientIds(env.GOOGLE_CLIENT_ID), key: keySource(env) });
   } catch (e) {
     console.error('google keys:', e && e.message ? e.message : e);
-    return refuse(503, 'Google could not be reached to check the sign in. Try again shortly.');
+    return { error: refuse(503, 'Google could not be reached to check the sign in. Try again shortly.') };
   }
   if (verdict.error) {
-    return refuse(401, 'That Google sign in could not be checked. Try again.', { reason: verdict.error });
+    return { error: refuse(401, 'That Google sign in could not be checked. Try again.', { reason: verdict.error }) };
+  }
+  return { verdict };
+}
+
+async function signIn(env, request) {
+  const { verdict, error } = await checkCredential(env, request);
+  if (error) {
+    return error;
+  }
+  /* An account that exists is in, invite or no invite: see waitlist.js. */
+  const known = await env.DB.prepare('SELECT id FROM accounts WHERE sub = ?').bind(verdict.sub).first();
+  if (!known && inviteOnly(env) && !(await invited(env, verdict.email))) {
+    return refuse(403, 'This Google account has no beta invite yet.', { notInvited: true });
   }
   const stamp = nowUtc();
   await env.DB.prepare('INSERT INTO accounts (sub, created_utc, updated_utc) VALUES (?, ?, ?) ON CONFLICT (sub) DO NOTHING')
@@ -447,6 +470,20 @@ async function deleteAccount(env, account) {
   await env.DB.prepare('DELETE FROM sessions WHERE account_id = ?').bind(account.id).run();
   await env.DB.prepare('DELETE FROM accounts WHERE id = ?').bind(account.id).run();
   return json(200, { deleted: true });
+}
+
+export async function waitlistRoute(env, request) {
+  if (!accountsOn(env)) {
+    return refuse(503, 'Sign in is not available on this server.');
+  }
+  const { verdict, error } = await checkCredential(env, request);
+  if (error) {
+    return error;
+  }
+  if (!verdict.email) {
+    return refuse(422, 'That Google account has no verified email address to invite.');
+  }
+  return json(200, await joinWaitlist(env, verdict.email));
 }
 
 export async function accountRoute(env, request, path) {

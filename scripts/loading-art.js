@@ -26,8 +26,8 @@
  *
  * REGENERATE, DO NOT EDIT:
  *
- *     SIM_GPU=1 node scripts/loading-art.js OUT_DIR
- *     python3 tools/loading-art/grade.py OUT_DIR assets/keyart
+ *     SIM_GPU=1 node scripts/loading-art.js OUT_DIR [SHOT,SHOT]
+ *     python3 tools/loading-art/grade.py OUT_DIR assets/keyart [SHOT,SHOT]
  *
  * OUT_DIR is outside the repository: the raw frames are working files.
  * About two minutes on this machine's GPU.
@@ -121,6 +121,30 @@ const SHOTS = [
       ahead: 7.2, right: 0.2, up: 1.0, yaw: 104, pitch: -12, bank: -32,
     },
   },
+  /*
+   * The landing page's (landing.html): the wide shot's ground, a moment
+   * into a kill. The fireball is right of the middle, against the dam, where
+   * the page has no words, a second with its shockwave still out beyond
+   * it and a third dying by the spillway, and the Striker that got
+   * through banks away on the left. A phone shows a crop of this one
+   * round the fireball; no portrait shot is made. `booms` are the war's own explosions
+   * (src/render/explosion.js), each placed as the Striker is and stopped
+   * at `age` seconds: `size` as play() takes it.
+   */
+  {
+    name: 'boom-wide',
+    w: 3840,
+    h: 2160,
+    camera: [200, 450, 300, -850, 260, -1150, 48],
+    striker: {
+      ahead: 11, right: -4.2, up: 0.6, yaw: 150, pitch: -14, bank: 24,
+    },
+    booms: [
+      { ahead: 300, right: 40, up: -45, size: 3, age: 0.55 },
+      { ahead: 600, right: 190, up: -60, size: 2.2, age: 0.25 },
+      { ahead: 520, right: -70, up: -70, size: 3, age: 1.1 },
+    ],
+  },
 ];
 
 /* Every rewrite, as [file, from, to]. `from` must appear exactly once. */
@@ -208,6 +232,37 @@ function placeStriker(camera, striker) {
   })()`;
 }
 
+/*
+ * The shot's explosions, through the war's own layer, each thrown at its
+ * age and stepped once so the pools are written. Nothing steps them
+ * after, so the frame that is photographed is that instant.
+ */
+function placeBooms(camera, booms) {
+  const [cx, cy, cz, lx, ly, lz] = camera;
+  return `(async () => {
+    const THREE = window.__three;
+    if (!window.__artBooms) {
+      const { createExplosions } = await import('/src/render/explosion.js');
+      window.__artBooms = createExplosions();
+      window.__mapScene().add(window.__artBooms.group);
+    }
+    const eye = new THREE.Vector3(${cx}, ${cy}, ${cz});
+    const fwd = new THREE.Vector3(${lx}, ${ly}, ${lz}).sub(eye).normalize();
+    const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+    const up = new THREE.Vector3().crossVectors(right, fwd);
+    window.__artBooms.clear();
+    for (const b of ${JSON.stringify(booms)}) {
+      const p = eye.clone().addScaledVector(fwd, b.ahead).addScaledVector(right, b.right).addScaledVector(up, b.up);
+      window.__artBooms.play([p.x, p.y, p.z], b.size, b.age);
+    }
+    window.__artBooms.update(1 / 600);
+    return 'booms';
+  })()`;
+}
+
+/* A third argument names the shots to render, comma separated; without
+ * it, all of them. */
+const only = process.argv[3] ? process.argv[3].split(',') : null;
 const outDir = resolve(process.argv[2] || '');
 if (!process.argv[2] || outDir === root || outDir.startsWith(`${root}/`)) {
   throw new Error('loading-art: name an output folder outside the repository');
@@ -246,7 +301,7 @@ try {
     throw new Error(`loading-art: the map was built at ${graphics}, not high`);
   }
   await page.evaluate('(document.getElementById("ui").style.display = "none", "")');
-  for (const shot of SHOTS) {
+  for (const shot of SHOTS.filter((s) => !only || only.includes(s.name))) {
     await page.cdp.send('Emulation.setDeviceMetricsOverride', {
       width: shot.w, height: shot.h, deviceScaleFactor: 1, mobile: false,
     }, page.sessionId);
@@ -265,6 +320,9 @@ try {
       await page.until('(() => { const t = window.__mapScene().userData.itaipu.terrain; return t.stats().queuedBuilds === 0 && !t.job; })()', 180000);
     }
     await page.sleep(3000);
+    await page.evaluate(placeBooms(shot.camera, shot.booms || []));
+    await page.evaluate('window.__cf = window.__boot().frames');
+    await page.until('window.__boot().frames > window.__cf + 2', 60000);
     const { data } = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
     await writeFile(join(outDir, `${shot.name}.png`), Buffer.from(data, 'base64'));
     console.log(`${shot.name} ${shot.w}x${shot.h} -> ${join(outDir, `${shot.name}.png`)}`);

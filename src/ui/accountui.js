@@ -179,6 +179,9 @@ function whyText(e) {
   if (!e || e.name === 'TimeoutError' || e.name === 'TypeError' || !e.status) {
     return str('account.unreachable');
   }
+  if (e.status === 403 && e.body && e.body.notInvited) {
+    return str('account.not_invited');
+  }
   if (e.status === 409 || (e.board && e.status === 403)) {
     return str(e.board ? 'account.callsign_taken_board' : 'account.callsign_taken');
   }
