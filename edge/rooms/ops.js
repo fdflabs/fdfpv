@@ -228,6 +228,14 @@ export class RoomOps {
         swaps: copy(m.roles.swaps),
       } : null,
       dials: { ...m.dials },
+      /* What a screen draws by: the mission's clock (the sun), the camp's
+       * marked shelter as the room judges it, the choices made (the tarp
+       * moved), and the items whose `open` has fired, so seen from any
+       * side now (a screen can tell an 'angle' refusal coming). */
+      clock: mission.clock ?? null,
+      camp: mission.camp ? { mark: resolve(mission.camp.mark, m.dials) } : null,
+      choices: Object.fromEntries(Object.entries(m.choices ?? {}).map(([k, c]) => [k, c.value])),
+      opened: (mission.items ?? []).filter((it) => it.open && m.stage && fired(it.open, this.ctx(core, m.f)) != null).map((it) => it.id),
       result: m.result,
       checkpoint: m.state === 'lost' && m.checkpoint ? { stage: m.checkpoint.id, n: m.checkpoint.idx, title: stagesOf(mission)[m.checkpoint.idx].title ?? null } : null,
       restarted: m.restarted ?? null,
