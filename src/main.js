@@ -3233,10 +3233,10 @@ export async function boot({
       deadline: secs(lobby.deadlineAt),
       pilots: seats.map((seat) => ({
         name: roomSeatName(seat),
-        /* This pilot's: in a war room the aircraft the war seats it in
-         * (warSeatCraft, from the lobby), which it flies from the go;
-         * the one still under it until then is whatever it flew before. */
-        aircraft: airframeById(seat === w.seat ? (game === 'war' ? ui.settings.airframe : runAirframe) : roomPeers.get(seat).profile.airframe).name,
+        /* This pilot's: in a war room the aircraft the war will seat it in
+         * at the briefing (warCraftOf), not whatever it flew before, which
+         * only the war's aircraft may be. */
+        aircraft: airframeById(seat === w.seat ? (game === 'war' ? warCraftOf(ui.settings) : runAirframe) : roomPeers.get(seat).profile.airframe).name,
         ready: Boolean(lobby.ready[seat]),
         host: seat === w.host,
         me: seat === w.seat,
@@ -3680,12 +3680,20 @@ export async function boot({
     return roomWar.view().state !== 'lobby' || lobbyGame() === 'war';
   }
   ui.craftLimit = () => (inWarRoom() ? WAR_AIRFRAMES : null);
+  /* The aircraft a war seats this pilot in: its own when it is the war's,
+   * else the war aircraft flown last, else the Striker. */
+  function warCraftOf(s) {
+    if (isWarAirframe(s.airframe)) {
+      return s.airframe;
+    }
+    return isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
+  }
   function warSeatCraft() {
     const s = ui.settings;
     if (isWarAirframe(s.airframe)) {
       return;
     }
-    const id = isWarAirframe(s.warAirframe) ? s.warAirframe : WAR_DEFAULT;
+    const id = warCraftOf(s);
     seatAirframe(s, id);
     /* Carrying the warhead the pilot's loadout equips (a combat
      * aircraft's payload is its warhead, campaign.js craftWarhead), so
@@ -3710,10 +3718,8 @@ export async function boot({
   let warCraftSaid = null;
   /* Said, and the war aircraft flown kept for the next war. */
   function warCraftFrame(v) {
-    /* From the war room's lobby, so the lobby's pilot list names the
-     * aircraft each will fly (it named a Turbo Timber the war would never
-     * fly, 5 October) and the pilot is seated in it well before the go. */
-    if (lobbyGame() === 'war' || v.state === 'briefing' || roomWar.on()) {
+    /* From the briefing, so the pilot is seated in it before the go. */
+    if (v.state === 'briefing' || roomWar.on()) {
       warSeatCraft();
     }
     if (warCraftSaid && !warIntro && (v.state === 'countdown' || v.state === 'live')) {
