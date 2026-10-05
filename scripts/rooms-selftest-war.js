@@ -568,6 +568,26 @@ export function warSection(check) {
   }
 
   {
+    /* A parked airframe, never launched (no airborne sample), that a strike
+     * flies into: the warhead goes off and takes the strike, and the
+     * airframe is spent, but the pilot is credited nothing for it. */
+    const m = testMission([
+      { at: 1, kind: 'strike', n: 1, route: 'r', target: 'a' },
+    ], { r: [[-1200, Y, 0], [-600, Y, 0]] });
+    const e = warRoom({ mission: m });
+    e.paths[0] = level(0, 400, 0);
+    e.paths[1] = hover([-900, Y, 0]);
+    e.flags[1] = () => 0;
+    e.fly(COUNTDOWN_MS + 1000 + (300 / KIND.strike.speed) * 1000 + 2000);
+    const v = e.view(1);
+    const parked = v.scores.find((r) => r.seat === 2);
+    check('a strike hits a parked, never launched airframe: its warhead goes off and takes the strike',
+      e.of(1, 'boom').length === 1 && e.of(1, 'dead').length === 1 && e.of(1, 'dead')[0].ids.join() === '1', JSON.stringify(e.of(1, 'dead')));
+    check('and its pilot has no kill, no megawatts saved and no airframe earned, but the airframe is spent',
+      (!parked || (parked.kills === 0 && parked.mw === 0)) && !v.earned[2] && v.spent[2] === 1, JSON.stringify({ parked, spent: v.spent, earned: v.earned }));
+  }
+
+  {
     /* The disarmed defender: after its blast it flies on, clean, through a
      * second strike, and nothing happens until it has shown a wreck. */
     const m = testMission([
@@ -1145,7 +1165,7 @@ export function warSection(check) {
       }
       const blank = [];
       const states = new Set();
-      /* NEXT WAVE IN's seconds, by the wave it counts to. */
+      /* NEXT CONTACTS IN's seconds, by the wave it counts to. */
       const clocks = new Map();
       let t = two.clock;
       while (t < 20 * 60 * 1000) {
@@ -1160,7 +1180,7 @@ export function warSection(check) {
         const next = waveStatus(v, c.mission(), t);
         if (!next || !next.text) {
           blank.push(`${t} ${v.state}/${v.roundState} wave ${v.wave}`);
-        } else if (/^NEXT WAVE IN /.test(next.text)) {
+        } else if (/^NEXT CONTACTS IN /.test(next.text)) {
           const key = `round ${v.round} wave ${v.wave}`;
           clocks.set(key, [...(clocks.get(key) ?? []), next.s]);
         }
@@ -1174,7 +1194,7 @@ export function warSection(check) {
        * reads); the Spillway's Loiterers, 15 to 30 s into its first
        * stage (paced 1.6 for one pilot), are a long one among them. */
       const runs = [...clocks.values()];
-      check(`${label}: NEXT WAVE IN counted down to each wave it named, stage 1's Loiterers among them`,
+      check(`${label}: NEXT CONTACTS IN counted down to each wave it named, stage 1's Loiterers among them`,
         (clocks.get('round 1 wave 1') ?? [0])[0] >= 24 && runs.every((x) => x.length >= 2 && (x[0] > x.at(-1) || x[0] <= 3) && x.every((y, i) => i === 0 || y <= x[i - 1])),
         [...clocks].map(([k, x]) => `${k}: ${x[0]}..${x.at(-1)}`).join(', '));
     }

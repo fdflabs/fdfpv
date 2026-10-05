@@ -33,8 +33,9 @@
  *             detonation, crash and lost link spends one of that pilot's,
  *             and every attacker its warhead kills earns it one more for
  *             the round (a swarm of N, N), so a pilot who keeps hitting
- *             keeps flying. A pilot who has spent them all spectates (and
- *             cannot go off) until the round ends. A round ends the
+ *             keeps flying (a blast on an airframe that never took off
+ *             is spent and scores nothing). A pilot who has spent them
+ *             all spectates (and cannot go off) until the round ends. A round ends the
  *             instant either every wave of it is born and no attacker of
  *             it is left but Scouts ('win' if the dam took nothing in it,
  *             'damaged' if it did), or no pilot here is still flying with
@@ -640,6 +641,15 @@ export class RoomWar {
     return (this.match.spent?.[seat] ?? 0) >= this.allowance(seat);
   }
 
+  /* When a seat's present airframe was put on the pad: its last loss
+   * this round, else the round's start. `launched` after it is a take-off
+   * on this airframe. */
+  sinceOf(rec) {
+    const m = this.match;
+    const start = m.roundAt ?? m.goAt;
+    return rec && rec.spentAt != null && rec.spentAt >= start ? rec.spentAt : start;
+  }
+
   /*
    * Whether a seat can still fly this round. Spent out, no. With more
    * than its last airframe left, yes. On its last: no once it has been
@@ -657,7 +667,7 @@ export class RoomWar {
     }
     const rec = this.seats.get(seat);
     const p = rec ? rec.track.s.at(-1) : null;
-    const since = rec && rec.spentAt != null && rec.spentAt >= (m.roundAt ?? m.goAt) ? rec.spentAt : (m.roundAt ?? m.goAt);
+    const since = this.sinceOf(rec);
     if (!p || roomNow - p.t > STALE_MS) {
       return roomNow - Math.max(since, p ? p.t : -Infinity) <= STALE_MS;
     }
@@ -1695,8 +1705,13 @@ export class RoomWar {
     const player = m.players[d.seat] ??= {
       kills: 0, assists: 0, mw: 0, token: d.token,
     };
-    player.kills += killed.length;
-    for (const a of killed) {
+    /* An airframe hit before it ever took off was no defence the pilot
+     * flew: its warhead still goes off and the airframe is lost, but the
+     * attackers it takes are no kill, no worth and no airframe earned. */
+    const flown = d.rec.launched > this.sinceOf(d.rec);
+    const credited = flown ? killed : [];
+    player.kills += credited.length;
+    for (const a of credited) {
       player.mw += a.target != null && a.kind !== 'decoy' ? worthOf(mission, m.stage, m, a.target) : 0;
     }
     for (const o of fly) {
@@ -1715,7 +1730,7 @@ export class RoomWar {
       this.spend(d.seat, tc);
     }
     m.earned ??= {};
-    m.earned[d.seat] = (m.earned[d.seat] ?? 0) + killed.length;
+    m.earned[d.seat] = (m.earned[d.seat] ?? 0) + credited.length;
     const ids = killed.map((a) => a.id);
     const scoutsWere = m.scouts ? m.scouts.killed : 0;
     m.lastGone = tc;
