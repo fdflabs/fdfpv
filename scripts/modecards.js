@@ -1,11 +1,11 @@
 /*
  * modecards.js: the pictures on the title's two room game cards, drawn by
  * the game, the way scripts/friendscard.js draws Fly with friends': pages
- * of the real shell in one room on the Swiss valley, against a running
- * rooms server, and one frame of one of them.
+ * of the real shell in one room on the Swiss valley, against a local
+ * rooms server, its own on a free port unless one is named, and one frame
+ * of one of them.
  *
- *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
- *   SIM_GPU=1 npm run gen:modecards -- http://127.0.0.1:8797 [combat|ace]
+ *   SIM_GPU=1 npm run gen:modecards -- [http://127.0.0.1:8797] [combat|ace]
  *
  * combat.jpg: a red Cub cutting a blue P-51's toilet paper. The P-51 is
  * held in the air with its paper hanging, the Cub is let go through the
@@ -45,10 +45,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rooms = process.argv[2] || 'http://127.0.0.1:8797';
-const only = process.argv[3] || null;
+/* The url is optional, so a lone argument may be the picture to draw. */
+const named = /^https?:/.test(process.argv[2] || '') ? process.argv[2] : '';
+const only = (named ? process.argv[3] : process.argv[2]) || null;
+const server = await roomsServer(named, 'modecards');
+const rooms = server.url;
 
 /* gatecards.js's size and quality. */
 const W = 900;
@@ -217,3 +221,4 @@ if (!only || only === 'combat') {
 if (!only || only === 'ace') {
   await ace();
 }
+await server.stop();

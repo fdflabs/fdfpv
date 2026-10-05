@@ -52,9 +52,11 @@ import { GhostRecorder } from '../src/game/ghost.js';
 import { encodeGhost } from '../src/share/ghostdata.js';
 import { createIdentity, memoryStorage } from '../src/share/identity.js';
 import { threePosToSim, threeDirToSim } from '../src/render/frame.js';
+import { freePort } from '../tests/lib/roomsserver.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const BOARD_PORT = 3197;
+/* A free port: a fixed one collided across sessions. */
+const BOARD_PORT = await freePort();
 
 let failed = 0;
 let passed = 0;
