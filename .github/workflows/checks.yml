@@ -78,8 +78,10 @@ jobs:
       # boundary, the ISR down. On the fixture world until track WORLD's.
       - run: npm run interior:stages
       # The camera ball holds a locked point through an orbit and its
-      # picture is the room's geometry.
+      # picture is the room's geometry; the screen's capture scorer gives
+      # the expected grades and its stills reach a real room.
       - run: npm run camera:lock
+      - run: npm run capture:score
       - run: npm run films:time -- --check
       - run: npm run films:lint
       - run: npm run war:grid
