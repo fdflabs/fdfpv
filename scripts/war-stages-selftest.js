@@ -54,7 +54,7 @@ import {
 } from '../edge/rooms/war.js';
 import { planAgent, poseAt } from '../src/share/war/routes.js';
 import {
-  beatOf, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
+  beatOf, crossings, drawSets, enter, failedAny, fired, gatesOf, note, objectives, objectivesView, roundsOf, slotKind, spilling, stagesOf, worthOf,
 } from '../src/share/war/stages.js';
 import { waveTarget } from '../src/share/war/missions/index.js';
 import { FREE_OPEN_M, openAt } from '../src/share/war/hoist.js';
@@ -1026,6 +1026,25 @@ console.log('the client: what a screen makes of it');
   check('and every cue, as the room sent them', cues.length === e.of(0, 'cue').flatMap((m) => m.cues).length && cues.some((c) => c.radio === 'wave-strike'));
   check('the next wave\'s clock is the room\'s drawn time, not the mission\'s typed one', status && status.s === Math.ceil((first.t0 - (GO + 1500)) / 1000), JSON.stringify(status));
   check('stage() is the view\'s stage', client.stage() && client.stage().id === stages[1]);
+}
+
+console.log('crossings: a birth drawn in a window, at a fractional room ms');
+{
+  /* First Light's stage 3 with two pilots drew its low group's birth at
+   * 529516.73 ms; the crossing's halving between fractional ends stopped
+   * moving and the room hung (5 October). Before the fix this section
+   * never returns. */
+  const mission = MISSIONS['itaipu-1'];
+  const a = {
+    id: 10, kind: 'decoy', route: 'east-shore-low', k: 0, n: 3, err: 0, target: 'intake-13', wave: 5, sector: 'NE',
+  };
+  const whole = crossings(mission, planAgent(mission, { ...a, t0: 529516 }));
+  const frac = crossings(mission, planAgent(mission, { ...a, t0: 529516.7305433344 }));
+  const lines = whole ? Object.keys(whole) : [];
+  check('a flight along the east shore crosses a mission line', lines.length > 0, JSON.stringify(whole));
+  check('the same flight born 0.73 ms later crosses the same lines, each within 2 ms later, on whole milliseconds',
+    Boolean(frac) && lines.every((l) => Number.isInteger(frac[l]) && frac[l] - whole[l] >= 0 && frac[l] - whole[l] <= 2),
+    `${JSON.stringify(whole)} then ${JSON.stringify(frac)}`);
 }
 
 console.log('legacy: the four missions against their record');
