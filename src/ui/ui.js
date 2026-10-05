@@ -1004,7 +1004,7 @@ export function loadSettings() {
   if (s.flightMode !== 'angle') {
     s.flightMode = 'acro';
   }
-  if (!['fpv', 'chase', 'los'].includes(s.wingView)) {
+  if (!['fpv', 'chase', 'los', 'ball'].includes(s.wingView)) {
     s.wingView = 'fpv';
   }
   s.stickMode = normaliseStickMode(s.stickMode);
