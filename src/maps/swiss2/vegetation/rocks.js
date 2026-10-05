@@ -49,6 +49,7 @@ import { FIELD, SNOW_LINE, LAKE_Y, valleyAxis } from '../../alps/terrain.js';
 import { ROAD_DX, ROAD_END } from './zones.js';
 import { assetUrl } from './atlas.js';
 import { DITHER_GLSL } from './plantmat.js';
+import { thermalKind } from '../../../render/thermal.js';
 
 const SHAPES = ['rock1', 'rock3', 'rock4', 'rock6'];
 /* The near level's room per shape. */
@@ -90,7 +91,7 @@ function bandedRockMaterial(maps, band) {
   };
   mat.customProgramCacheKey = () => 'swiss2-rock';
   mat.userData.band = uBand;
-  return mat;
+  return thermalKind(mat, 'rock');
 }
 
 /* How far inside the drawn rock its collider's surface may stand at the

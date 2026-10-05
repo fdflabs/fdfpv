@@ -45,13 +45,19 @@ function box(THREE, x, y, z, w, h, d, colour, heat) {
 const TYRE = [0.03, 0.03, 0.03];
 const METAL = [0.25, 0.25, 0.26];
 const PAINT = [1, 1, 1];
+/* Heat over the passive surface (src/render/thermal.js, the hot kind's
+ * attribute, 110 K a unit): an air cooled single's cylinder and its pipe
+ * run 60 to 120 K over the air, a pickup's bonnet over its engine 20 to
+ * 40 K. */
+const ENGINE_HEAT = 0.55;
+const HOOD_HEAT = 0.25;
 
 /* An old 125 cc motorcycle, 2 m long, facing -z, on the ground at y 0. */
 function motorcycle(THREE) {
   return mergeGeometries([
     box(THREE, 0, 0.32, -0.68, 0.1, 0.62, 0.62, TYRE, 0.005),
     box(THREE, 0, 0.32, 0.68, 0.12, 0.62, 0.62, TYRE, 0.005),
-    box(THREE, 0, 0.5, 0, 0.24, 0.3, 0.7, METAL, 0.18),
+    box(THREE, 0, 0.5, 0, 0.24, 0.3, 0.7, METAL, ENGINE_HEAT),
     box(THREE, 0, 0.78, -0.12, 0.28, 0.2, 0.5, PAINT, 0.03),
     box(THREE, 0, 0.78, 0.38, 0.26, 0.1, 0.6, [0.06, 0.05, 0.05], 0.02),
     box(THREE, 0, 0.95, -0.66, 0.7, 0.05, 0.05, METAL, 0.01),
@@ -70,7 +76,7 @@ function pickup(THREE) {
   parts.push(box(THREE, 0, 0.82, 0, 1.8, 0.62, 5.2, PAINT, 0.02));
   parts.push(box(THREE, 0, 1.42, -0.35, 1.7, 0.62, 2.3, PAINT, 0.02));
   parts.push(box(THREE, 0, 1.46, -0.36, 1.72, 0.44, 2.1, [0.05, 0.06, 0.07], 0.01));
-  parts.push(box(THREE, 0, 0.82, -2.1, 1.6, 0.5, 0.8, METAL, 0.2));
+  parts.push(box(THREE, 0, 0.82, -2.1, 1.6, 0.5, 0.8, METAL, HOOD_HEAT));
   return mergeGeometries(parts);
 }
 

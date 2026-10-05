@@ -54,6 +54,7 @@ import {
   LAKE_Y, STRIP_L, TREE_LINE, SNOW_LINE, forestDensity, treeLine, valleyAxis,
 } from '../../alps/terrain.js';
 import { ALPHA_CUT, GRASS_REGIONS } from './atlas.js';
+import { thermalKind } from '../../../render/thermal.js';
 import { LEAF_SPEC_GLSL } from './plantmat.js';
 import { MEADOW_GLSL, CRAFT_GLSL, craftUniforms } from '../ground.js';
 import {
@@ -512,6 +513,7 @@ export function buildGrass({
         #endif`);
   };
   mat.customProgramCacheKey = () => 'swiss2-grass';
+  thermalKind(mat, 'vegetation');
   const mesh = new THREE.Mesh(geo, mat);
   mesh.frustumCulled = false;
   mesh.receiveShadow = true;

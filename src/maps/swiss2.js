@@ -63,6 +63,7 @@
 import * as THREE from 'three';
 import { buildValley, valleyPhases } from './alps.js';
 import { qualityFor } from '../render/quality.js';
+import { thermalShader } from '../render/thermal.js';
 import { shareInstancedDepth } from '../render/shell.js';
 import { str } from '../strings/index.js';
 import { makeRng } from './alps/noise.js';
@@ -158,6 +159,8 @@ function skyBackdrop(back, sunDir) {
       }
     `,
   });
+  /* The clear sky's own temperature along the look (thermal.js thSky). */
+  thermalShader(mat, 'float thT = thSky(normalize(vDir).y);', 'swiss2-sky');
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), mat);
   sky.renderOrder = -1000;
   sky.frustumCulled = false;
@@ -255,6 +258,8 @@ function photoStyle() {
       });
 
       const scene = new THREE.Scene();
+      /* The thermal picture's air, water and sky (src/render/thermal.js CLIMATE). */
+      scene.userData.climate = 'alpine';
       scene.background = AIR.haze.clone();
       scene.add(skyBackdrop(sky.back, sunDir));
       const pmrem = new THREE.PMREMGenerator(renderer);
@@ -655,6 +660,9 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* The post chain that draws this scene, for the sensor checks, as
+       * Itaipu's and the Interior's (scripts/thermal-physics-check.js). */
+      map.scene.userData.post = post;
       /* The sailing boat is solid, so it moves on the step clock with the
        * valley's traffic (swiss2/props/lakeside.js). */
       const lake = style.stage.lakeside;

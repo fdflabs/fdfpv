@@ -35,6 +35,7 @@
  */
 
 import * as THREE from 'three';
+import { thermalKind } from '../../render/thermal.js';
 
 /* Metres one tile of each surface covers, read off the photographs'
  * own published sizes where they have one. */
@@ -324,14 +325,14 @@ export function makePhotoLook({ surfaces, marks, ground, heights }) {
    * room behind the pane is darker than the black the glass is drawn
    * as, which reads as a hole, and a pane seen from the street mostly
    * shows the sky and the eaves. */
-  const glass = () => new THREE.MeshPhysicalMaterial({
+  const glass = () => thermalKind(new THREE.MeshPhysicalMaterial({
     color: lin(0.02, 0.024, 0.028),
     roughness: 0.03,
     metalness: 0,
     ior: 1.5,
     specularIntensity: 1,
     envMapIntensity: 2.4,
-  });
+  }), 'glass');
 
   /*
    * The buildings, by group rather than by key (src/maps/swiss2/buildings/
@@ -594,7 +595,7 @@ export function makePhotoLook({ surfaces, marks, ground, heights }) {
       return glass();
     }
     if (b.group === 'water') {
-      return new THREE.MeshPhysicalMaterial({ color: lin(0.02, 0.04, 0.05), roughness: 0.06, metalness: 0 });
+      return thermalKind(new THREE.MeshPhysicalMaterial({ color: lin(0.02, 0.04, 0.05), roughness: 0.06, metalness: 0 }), 'water');
     }
     if (b.group === 'plain') {
       return plain(lin(...b.tint), b.rough ?? 1, b.metal ?? 0);
