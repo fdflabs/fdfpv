@@ -69,6 +69,7 @@ const CAL_LABELS = {
   confirm: 'Check',
 };
 import { MENU_TRACKS, trackById, musicIds } from '../render/tracks.js';
+import { PERF_MODES } from '../render/dynres.js';
 import { CUSTOM_TUNE, TUNES, tuneById, tunesFor } from '../../configs/registry.js';
 import { AIRFRAMES, AIRFRAME_IDS, airframeById, currentAirframeId, DEFAULT_AIRFRAME, floatVersionOf, isFloatVersion, landPlaneOf, retiredAirframe } from '../../configs/airframes.js';
 import { POWER, normalizePower, powerChoice } from '../../configs/power.js';
@@ -385,7 +386,9 @@ export const LAP_COUNTS = [1, 3, 5];
  * GPU, and a steady 30 or 60 reads better than a heaving 47. The input
  * poll and the physics never see either: the cap skips only the draw. */
 export const RENDER_SCALES = [100, 85, 70, 55];
-export const FPS_CAPS = [0, 90, 60, 30];
+/* 90 is the owner's frame target; 120 and 144 are the high refresh
+ * panels. 30 stays so a saved 30 is not reset by the normaliser below. */
+export const FPS_CAPS = [0, 144, 120, 90, 60, 30];
 /* What the FPV camera view draws over the picture: 'osd' is the flight
  * controller's on screen display (src/ui/fpvhud.js), 'game' the game's own
  * readout, 'avionics' the sensor and tracking display
@@ -806,6 +809,10 @@ const DEFAULTS = {
   avxLevel: 'standard',
   renderScale: 100,
   fpsCap: 0,
+  /* Dynamic resolution's policy (src/render/dynres.js): 'quality' never
+   * lowers it, 'balanced' may take it to 75 percent to hold the frame
+   * budget, 'performance' aims lower and may go to 50. */
+  perfMode: 'balanced',
   packVoltage: 4.2,
   /* Each plane's power system and pack or tank, by airframe id:
    * { option, pack }, configs/power.js. A plane with no entry flies its
@@ -1050,6 +1057,7 @@ export function loadSettings() {
     ['cameraFov', CAMERA_FOVS],
     ['renderScale', RENDER_SCALES],
     ['fpsCap', FPS_CAPS],
+    ['perfMode', PERF_MODES],
     ['hudStyle', HUD_STYLES],
     ['peerMarks', MARK_STYLES],
     ['avxInset', AVX_INSETS],
@@ -7025,6 +7033,14 @@ export class Ui {
           s.renderScale,
           (n) => (n >= 100 ? str('ui.native') : `${n}%`),
           (n) => { s.renderScale = n; },
+        ),
+        choice(
+          str('ui.performance_mode'),
+          str('ui.performance_mode_note'),
+          PERF_MODES,
+          s.perfMode,
+          (id) => str(`ui.perf_${id}`),
+          (id) => { s.perfMode = id; },
         ),
         choice(
           str('ui.frame_cap'),
