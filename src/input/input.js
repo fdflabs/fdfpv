@@ -106,9 +106,56 @@ export function standardPadMap(mode) {
   return map;
 }
 
+/*
+ * THE SAME RADIO IS TWO DIFFERENT JOYSTICKS, AND ONLY ONE OF THEM IS AETR.
+ *
+ * A transmitter on its USB cable is EdgeTX's joystick: channels one to four
+ * on axes 0 to 3, which is DEFAULT_MAP. The same transmitter over Bluetooth
+ * is ExpressLRS's joystick, a different HID device with a different report:
+ * it sends channels one and two as X and Y, three and four as Rx and Ry, and
+ * five and six as Z and Rz. A browser lays axes out by HID usage, so
+ * throttle lands on axis 3 and yaw on axis 4, with an aux switch on axis 2
+ * between them. Flown through AETR the throttle stick was yaw and the
+ * throttle was whatever the arm switch said, and the pilot who had just
+ * unplugged a cable that worked was told to calibrate.
+ *
+ * Measured on a Radiomaster Pocket, ExpressLRS BLE Joystick, Chrome on
+ * macOS, 2026-10-05: right, forward and up all positive. The device names
+ * itself, so this is recognition, not a guess, and it is trusted the way a
+ * standard gamepad's layout is. A pilot's own saved calibration still wins.
+ */
+const ELRS_BLUETOOTH = 'elrs-bluetooth';
+const ELRS_BLUETOOTH_ID = /^ExpressLRS Joystick/;
+const ELRS_BLUETOOTH_MAP = {
+  roll: { axis: 0, center: 0, full: 1 },
+  pitch: { axis: 1, center: 0, full: -1 },
+  yaw: { axis: 4, center: 0, full: 1 },
+  throttle: { axis: 3, low: -1, high: 1 },
+};
+
+/*
+ * Which built in map a pad gets, as a value that is falsy for the AETR
+ * guess and truthy for a layout the device vouches for: the stick mode for
+ * a standard gamepad, a name for a radio recognised by its id. mapKnown
+ * reads the truthiness and followDefaultMap reads the change.
+ */
+function defaultKindFor(gp, mode) {
+  if (!gp) {
+    return 0;
+  }
+  if (gp.mapping === 'standard') {
+    return mode;
+  }
+  return ELRS_BLUETOOTH_ID.test(gp.id || '') && gp.axes.length > 4 ? ELRS_BLUETOOTH : 0;
+}
+
 /* The built in map for whatever is plugged in. */
 function defaultMapFor(gp, mode) {
-  return gp && gp.mapping === 'standard' ? standardPadMap(mode) : DEFAULT_MAP;
+  const kind = defaultKindFor(gp, mode);
+  if (kind === ELRS_BLUETOOTH) {
+    return ELRS_BLUETOOTH_MAP;
+  }
+  return kind ? standardPadMap(mode) : DEFAULT_MAP;
 }
 
 export const CAL_STEPS = ['center', 'sweep', 'throttle', 'roll', 'pitch', 'yaw', 'confirm'];
@@ -1417,7 +1464,7 @@ export class InputManager {
     if (!gp || this.map.stored) {
       return;
     }
-    const mode = gp.mapping === 'standard' ? this.stickMode : 0;
+    const mode = defaultKindFor(gp, this.stickMode);
     if (mode === this.defaultMode) {
       return;
     }
@@ -2421,14 +2468,46 @@ export class InputManager {
   calSweep(c, axes, dtMs) {
     const need = Math.min(4, c.min.length);
     const travelled = travelCount(c.min, c.max, CAL.SWEEP_TRAVEL);
-    const settled = maxAbsDelta(axes, c.rest) < CAL.NEAR_REST;
-    if (travelled < need || !settled) {
+    const away = [];
+    for (let i = 0; i < axes.length; i += 1) {
+      if (Math.abs(axes[i] - c.rest[i]) >= CAL.NEAR_REST) {
+        away.push(i);
+      }
+    }
+    /*
+     * "THEN PUT THEM BACK" HAS NO ANSWER ON A STICK WITH NO SPRING.
+     *
+     * Back meant within NEAR_REST of the centre step's reading on every
+     * axis. A gimbal springs there by itself. A radio's throttle stays
+     * where the thumb leaves it, so a pilot whose throttle was not at the
+     * bottom for the centre step, and the centre step cannot know, had to
+     * find one unmarked place on an unsprung stick again by feel. The
+     * screen said "back to rest" and counted four of four for ever.
+     *
+     * So one axis may come to rest somewhere new, and only one, because
+     * a radio has one stick axis without a spring. It has to hold as still
+     * for as long as the centre step demanded, since this is the centre
+     * step being answered again for that axis, and where it stopped becomes
+     * its rest: the identify steps measure from rest, and measuring from a
+     * place the stick no longer is would read the parked throttle as a
+     * deflection before the pilot had moved.
+     */
+    const parkedAxis = away.length === 1 ? away[0] : -1;
+    const parkMoved = parkedAxis >= 0 && (!c.sweepPark || c.sweepPark.axis !== parkedAxis
+      || Math.abs(axes[parkedAxis] - c.sweepPark.value) > CAL.REST_NOISE);
+    if (parkMoved) {
+      c.sweepPark = { axis: parkedAxis, value: axes[parkedAxis] };
+    }
+    if (travelled < need || away.length > 1 || parkMoved) {
       c.holdMs = 0;
       return;
     }
     c.holdMs += dtMs;
-    if (c.holdMs < CAL.SWEEP_REST_MS) {
+    if (c.holdMs < (parkedAxis >= 0 ? CAL.REST_MS : CAL.SWEEP_REST_MS)) {
       return;
+    }
+    if (parkedAxis >= 0) {
+      c.rest[parkedAxis] = c.sweepPark.value;
     }
     c.step = 'throttle';
     c.phase = 'hold';
