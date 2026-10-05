@@ -379,9 +379,11 @@ export function fillCredits(host, { assetBase = 'assets/credits' } = {}) {
   const dam = section(str('credits.itaipu'), str('credits.itaipu_heading'));
   const damList = el('div', 'credit-rooms');
   /* And the war mode's music on that map, CC BY, whose licences ask for
-   * the same (assets/audio/war/CREDITS.md). */
+   * the same (assets/audio/war/CREDITS.md); and its explosions, CC0, which
+   * asks nothing, credited because JangaFX ask it as a favour
+   * (tools/explosions/README.md). */
   for (const key of ['credits.it_anadem', 'credits.it_glo30', 'credits.it_sentinel', 'credits.it_osm',
-    'credits.it_music_intro', 'credits.it_music_combat']) {
+    'credits.it_music_intro', 'credits.it_music_combat', 'credits.it_explosions']) {
     damList.append(el('p', 'credit-room', str(key)));
   }
   dam.append(damList);

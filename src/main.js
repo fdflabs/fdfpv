@@ -8869,7 +8869,7 @@ export async function boot({
    * the crash debris; into the map's scene from roomWarFrame. */
   const warAttackers = createAttackers({ debris, floorAt: (x, z) => groundAt(x, z) });
   shell.keepAcrossMaps(warAttackers.group);
-  const warBooms = createExplosions();
+  const warBooms = createExplosions({ renderer: shell.renderer });
   shell.keepAcrossMaps(warBooms.group);
   /* A stage's cutaways (src/render/warcutaway.js): a picture in picture
    * for a pilot in control, a cut for one who is not. */
