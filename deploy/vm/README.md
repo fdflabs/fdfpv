@@ -237,8 +237,10 @@ route answers 503 and the rest of the tracks server is as it was. The
 server fetches Google's keys from
 www.googleapis.com, so the VM needs outbound HTTPS (it has it; dnf uses
 it). The rooms unit asks the tracks server about a signed in pilot's
-session over loopback (`ACCOUNTS_ORIGIN` in `fdfpv-rooms.service`); if
-that fails the pilot is seated as a guest. The board takes a callsign
+session over loopback (`ACCOUNTS_ORIGIN` in `fdfpv-rooms.service`) and
+seats nobody without one: no session, or a build from before the sign in,
+is refused, and while the tracks server does not answer every join is
+refused with its own reason (edge/rooms/node.js helloAccount). The board takes a callsign
 claim and a key link on `/board/api/pilots` and `/board/api/pilots/link`,
 which need nothing configured.
 
