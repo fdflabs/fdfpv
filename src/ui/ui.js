@@ -3200,6 +3200,15 @@ const HUBS = [
   { id: 'hangar', label: 'hub.hangar', blurb: 'hub.hangar_blurb', art: 'assets/gate/hangar.jpg', category: null },
 ];
 
+/* What act() does for a visitor with no account: getting about the
+ * menus, the page's own upkeep, reporting a bug, the credits, and the
+ * board, which is another page and public. The account's own rows are let
+ * through by their prefix, and so are the steps inside the stick wizards,
+ * which nobody is in without having been let into one. */
+const OPEN_ACTIONS = new Set([
+  'title', 'paused', 'pause', 'resume', 'back', 'card-back', 'mode-gate', 'update-reload', 'noop', 'room-bar', 'reportbug', 'credits', 'leaderboard',
+]);
+
 /* The title's activity cards in a hub, in WAYS' order. */
 function hubWays(hubId) {
   const hub = HUBS.find((h) => h.id === hubId);
@@ -13106,6 +13115,15 @@ export class Ui {
   }
 
   act(action, picked = null, { keepWorld = false } = {}) {
+    /* Without an account the menus are for looking at (the owner,
+     * 2026-10-04: a visitor "can see the menus, but can't actually go
+     * into anything and see how they work"): home, a hub and its cards,
+     * and nothing behind a card or a row. The Hangar's cards used to open
+     * for anybody. What is asked for runs once the pilot has signed in. */
+    if (typeof action === 'string' && !OPEN_ACTIONS.has(action) && !/^(account|calibrate-|padpick-)/.test(action)
+      && needSignIn(() => this.act(action, picked, { keepWorld }))) {
+      return;
+    }
     if (action === 'update-reload') {
       window.location.reload();
       return;
