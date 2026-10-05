@@ -6,7 +6,19 @@ repository in `~/Desktop/fdfpv-loop/interior/source/`, because the
 repository is public and the mocks are art direction, not assets).
 
 Status: PLAN, owner's answers in (section 9, 2026-10-05). Queued after
-First Light is 100%.
+First Light is 100%. The full plan for all five missions is in this
+folder: OVERVIEW.md (one page), BIBLE.md, MISSIONS.md, INTROS.md,
+TECH-NEEDS.md (what the engine must grow, Phase 0 marked, and what this
+plan assumed that the code contradicts, its section 1), LESSONS.md.
+
+**The standard (owner, 2026-10-05):** The Interior is "our first real
+model that will set up the complexity standard". Roles, guides and any
+pilot count apply to The Interior only for now; afterwards what was
+learned is applied to Defend the Paraná and later work. So the role
+system, capture, the quiet HUD, the objective cards and guide routing
+are built as campaign agnostic modules, data per campaign, with no
+Interior only code (TECH-NEEDS section 0), and LESSONS.md records what
+each phase teaches. The Itaipu port itself is not planned here.
 
 ## 1. Sources and which one wins
 
@@ -67,8 +79,14 @@ anything not `available`).
 | Cattle, workers, a dog: ambient life | Alps fauna (decoration only) | `src/maps/alps/fauna.js` |
 
 Classification states (UNKNOWN, CIVILIAN, FRIENDLY, PERSON OF INTEREST,
-COLUMN-LINKED, NETWORK-LINKED, HOSTILE CONFIRMED) are a field on the
-existing tracks, not a second contact system.
+COLUMN-LINKED, NETWORK-LINKED, HOSTILE CONFIRMED) were planned here as a
+field on the existing tracks. Checked against the code they cannot be:
+`tracks.js` is each screen's own tracker of air objects, dropped after
+seconds. They live in a room owned contact registry instead (TECH-NEEDS
+F1, N13); the screen's tracker only draws the live box. The table above
+is likewise corrected in TECH-NEEDS section 1: the hot swap keeps one
+aircraft alive (F2), the sensor camera does not slew (F3), the fauna is
+decoration only (F7).
 
 ## 5. What is new, each with the check that proves it
 
@@ -96,7 +114,7 @@ war. The Interior has its own set, data driven like the war's:
 - **Recon quad:** the closest kept quad after the 5 inch and whoop removal; Phase 0 picks it from `7inch`, `10inch` and `interceptor` by flight feel under canopy (M2 onward).
 - **Strike:** Striker or the quad chosen above (M3 onward).
 - **Relay:** a fixed wing loiterer from the set above (M3 onward).
-- **Interceptor:** `interceptor` (M4 onward).
+- **Interceptor:** `interceptor` (an optional role from M3_07, as the script lists it; core from M4).
 
 ## 7. Progression
 
@@ -135,16 +153,42 @@ three factions, counter-surveillance and the cache; M5 adds the
 gathering, the scripted interference, the archive and the three endings,
 the final film and the stinger.
 
-Multiplayer: **co-op from the start** (owner, 2026-10-05). Every mission
-is a room on the shared session system, playable alone or by a squad:
-the platforms of a mission are seats (ISR, quad, strike, relay,
-interceptor), a solo pilot switches between all of them by hot swap, a
-squad splits them, and the room owns every contact, classification,
-capture and flag so all pilots see one picture. Each mission's own doc
-says which beats need every pilot (the M5 final order is the host's,
-with the squad's captures). Phase 0 builds the room side of N3 to N6
-(people, vehicles, captures, objectives are room state, deterministic
-on the room clock), not a solo version first.
+Multiplayer: **co-op from the start, any number of pilots, roles and
+guides** (owner, 2026-10-05: "infinitely multiplayer with different
+roles and guides ... it doesn't matter if I play one person or 6 people
+... randomized what roles you play ... choose which role you fly or ...
+change the role"). Designed in MISSIONS.md section 1.5, built as N16:
+
+- **Roles, not just platforms.** ISR, TRACKER, RECON, RELAY, STRIKE,
+  INTERCEPTOR, GROUND SUPPORT: each a job with a platform, a guide voice,
+  its own objective cards and its own radio. Each mission names its
+  **core** roles (must be held; one pilot may hold several) and its
+  **scaling** roles (repeat for every pilot past the core count, each
+  copy with real work: another search box, a second track, a second
+  relay, another interceptor; never an idle seat).
+- **Guides.** Vega's command calls and the story are heard by everyone;
+  Ibarra guides ISR, TRACKER and RECON, Ferrer RELAY and INTERCEPTOR,
+  Rojas GROUND SUPPORT and STRIKE; a role's guide lines and cards reach
+  only the pilots holding it. A solo pilot hears them all.
+- **Deal and change (lead decision, the owner may change it).** A
+  seeded random deal at the start, core roles first; any pilot may take
+  a free role at any time; a swap is a request both pilots accept; the
+  host may lock roles. Locked beats: films, M3_03's confirmation to its
+  outcome, a relay hold in progress, M5_11's final decision.
+- **One to many.** One pilot holds every core role, one active at a
+  time (from M2 the others wait on holds, N15: today's hot swap keeps
+  only one aircraft alive). More pilots scale coverage and air pressure,
+  never the authored contacts or the plot. Each mission states its
+  minimum (1) and useful maximum (5 to 8).
+- **The cap.** The rooms hold 8 pilots in a private room and 16 in a
+  public one today (`edge/rooms/core.js` PRIVATE_CAP, `roomwire.js`
+  PUBLIC_CAP). The mission logic has no upper bound; raising the cap is
+  a separate server and load question.
+- **The room owns the picture**: every contact, classification, capture,
+  role and flag, so all pilots see one picture. The M5 final order is
+  the host's, with the squad's captures. Phase 0 builds the room side of
+  N3 to N6, N13 and N16, not a solo version first; its check is a
+  headless run at 1, 2, 3, 6 and 8 pilots (`roles:deal`).
 
 ## 9. Questions for the owner (asked in chat, answers recorded here)
 
