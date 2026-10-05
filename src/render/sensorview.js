@@ -38,8 +38,11 @@
  *
  * GAIN. The low light and thermal pictures set their own gain from what
  * they see, as the cameras do: a 1x1 target per source keeps the mean
- * (and for thermal the spread) of an 8x8 grid of the source's mipmaps,
- * moved toward this frame's at the camera's pace.
+ * (and for thermal the spread, the most and the least) of an 8x8 grid of
+ * the source's mipmaps, moved toward this frame's at the camera's pace.
+ * The thermal picture's gain is a FLIR's on top of that: a histogram of
+ * the frame and the plateau equalised curve it gives (THE THERMAL CORE'S
+ * LOOK, below), with its palettes, noise and optics.
  *
  * THE INSET leaves the GPU through a pixel pack buffer and a fence, read a
  * frame or two later into a 2D canvas, so drawing it never waits on the
@@ -83,6 +86,67 @@ export const INSET_SIZES = {
 /* Seconds for the gain to move most of the way to a new scene. */
 const AGC_TAU = 0.6;
 
+/*
+ * THE THERMAL CORE'S LOOK, as a FLIR Boson or Tau class camera shows it.
+ *
+ * The gain is plateau histogram equalisation (FLIR's AGC): a histogram of
+ * the frame's temperatures in HIST_BINS bins over a robust range (from
+ * the mean less 3 sigma, or the least if higher, to the most or the mean
+ * plus 4 sigma if higher, at least MIN_SPAN_K wide, so a flat scene's
+ * noise is not stretched to full contrast), each bin clipped at PLATEAU times its even
+ * share so a sky or a lake that fills half the frame does not take half
+ * the grey levels, and raised to at least FLOOR of it so a range of
+ * temperatures with nothing in it still takes some grey levels (a
+ * camera's linear share), and the counts summed into the curve that maps
+ * a temperature to a grey. Without the floor and the range's headroom
+ * the warmest broad surface, Itaipu's reservoir at night, went nearly
+ * white and the war's engine over it stood out by a sixth of the range
+ * (scripts/sensor-check.js, night black hot: 0.160). The curve moves at the gain's pace. EQ_SHARE of
+ * the picture is that curve and the rest a plain linear window (mean less
+ * 2 sigma to mean plus 3), which keeps a hot thing's brightness telling
+ * how hot it is. A manual span (setThermalSpan) replaces both with a
+ * fixed linear window.
+ *
+ * The core: NETD about 50 mK (the temporal noise's standard deviation), a
+ * fixed pattern that stays put on the core's own pixels (columns and
+ * single pixels, what is left after the camera's flat field correction),
+ * the optics' MTF (a little of the neighbouring pixels in each), and a
+ * mild halo round anything far hotter than its surroundings, the lens's
+ * scatter. Its palettes are FLIR's: white hot, black hot (its own mode),
+ * ironbow and rainbow.
+ */
+const HIST_BINS = 128;
+const HIST_GRID = [48, 27];
+const PLATEAU = 2.5;
+const FLOOR = 0.2;
+const EQ_SHARE = 0.8;
+const MIN_SPAN_K = 6;
+export const THERMAL_PALETTES = ['whitehot', 'ironbow', 'rainbow'];
+const look = { palette: 0, span: null };
+
+/* The white hot mode's palette, a key of THERMAL_PALETTES. Black hot is a
+ * mode of its own (ir_bh) and stays grey. */
+export function setThermalPalette(name) {
+  const k = THERMAL_PALETTES.indexOf(name);
+  if (k < 0) {
+    throw new Error(`sensorview: no thermal palette ${name}`);
+  }
+  look.palette = k;
+}
+
+/* A manual span, degrees C, lo to hi: the thermal picture a fixed linear
+ * window, as a camera's manual gain. null hands the gain back to the AGC. */
+export function setThermalSpan(lo, hi) {
+  if (lo === null) {
+    look.span = null;
+    return;
+  }
+  if (!(Number.isFinite(lo) && Number.isFinite(hi) && hi - lo >= 0.5)) {
+    throw new Error(`sensorview: a thermal span needs lo < hi by half a degree, not ${lo}..${hi}`);
+  }
+  look.span = [lo, hi];
+}
+
 const MODE_ID = {
   eo: 0, ir_wh: 1, ir_bh: 2, lowlight: 3, fusion: 4, contrast: 5,
 };
@@ -117,6 +181,7 @@ const AGC_FRAG = /* glsl */ `
     float s1 = 0.0;
     float s2 = 0.0;
     float mx = -1e4;
+    float mn = 1e4;
     for (int j = 0; j < 8; j++) {
       for (int i = 0; i < 8; i++) {
         vec2 uv = (vec2(float(i), float(j)) + 0.5) / 8.0;
@@ -129,13 +194,77 @@ const AGC_FRAG = /* glsl */ `
         s1 += v;
         s2 += v * v;
         mx = max(mx, v);
+        mn = min(mn, v);
       }
     }
     float mean = s1 / 64.0;
     float sd = sqrt(max(s2 / 64.0 - mean * mean, 0.0));
-    vec4 now = vec4(mean, sd, mx, 1.0);
+    vec4 now = vec4(mean, sd, mx, mn);
     vec4 prev = texture2D(tPrev, vec2(0.5));
     gl_FragColor = mix(prev, now, uBlend);
+  }
+`;
+
+/* The range the thermal histogram spans, from the gain stage's mean,
+ * sigma, most and least. Its most and least are of an 8x8 grid of
+ * blocks a mipmap has averaged, so a small hot thing never reaches its
+ * most: the top of the range is at least 4 sigma over the mean, which
+ * leaves grey levels over the scene's warmest bulk for what is hotter. */
+const HIST_RANGE = /* glsl */ `
+  vec2 histRange(vec4 a) {
+    float lo = max(a.a, a.r - 3.0 * a.g);
+    float hi = max(a.b, a.r + 4.0 * a.g);
+    float mid = 0.5 * (lo + hi);
+    float half_ = max(0.5 * (hi - lo), ${(MIN_SPAN_K / 2).toFixed(1)});
+    return vec2(mid - half_, mid + half_);
+  }
+`;
+
+/* One bin of the histogram per fragment: the share of a grid of the
+ * source's samples that falls in it, the first bin taking all below the
+ * range and the last all above. */
+const HIST_FRAG = /* glsl */ `
+  uniform sampler2D tSrc;
+  uniform sampler2D tAgc;
+  uniform float uLod;
+  ${HIST_RANGE}
+  void main() {
+    vec2 r = histRange(texture2D(tAgc, vec2(0.5)));
+    float bin = floor(gl_FragCoord.x);
+    float w = (r.y - r.x) / ${HIST_BINS.toFixed(1)};
+    float lo = bin < 0.5 ? -1e9 : r.x + w * bin;
+    float hi = bin > ${(HIST_BINS - 1.5).toFixed(1)} ? 1e9 : r.x + w * (bin + 1.0);
+    float n = 0.0;
+    for (int j = 0; j < ${HIST_GRID[1]}; j++) {
+      for (int i = 0; i < ${HIST_GRID[0]}; i++) {
+        vec2 uv = (vec2(float(i), float(j)) + 0.5) / vec2(${HIST_GRID[0].toFixed(1)}, ${HIST_GRID[1].toFixed(1)});
+        float v = textureLod(tSrc, uv, uLod).r * ${T_SCALE.toFixed(1)};
+        n += step(lo, v) * step(v, hi - 1e-6);
+      }
+    }
+    gl_FragColor = vec4(n / ${(HIST_GRID[0] * HIST_GRID[1]).toFixed(1)}, 0.0, 0.0, 1.0);
+  }
+`;
+
+/* The curve: each bin clipped at the plateau and raised to the floor,
+ * summed up to this bin's top edge over the whole, moved toward the frame's at the gain's
+ * pace. */
+const CDF_FRAG = /* glsl */ `
+  uniform sampler2D tHist;
+  uniform sampler2D tPrev;
+  uniform float uBlend;
+  void main() {
+    float bin = floor(gl_FragCoord.x);
+    float cap = ${(PLATEAU / HIST_BINS).toFixed(6)};
+    float upTo = 0.0;
+    float all_ = 0.0;
+    for (int k = 0; k < ${HIST_BINS}; k++) {
+      float h = max(min(texelFetch(tHist, ivec2(k, 0), 0).r, cap), ${(FLOOR / HIST_BINS).toFixed(6)});
+      all_ += h;
+      upTo += float(k) <= bin ? h : 0.0;
+    }
+    float now = upTo / max(all_, 1e-6);
+    gl_FragColor = vec4(mix(texelFetch(tPrev, ivec2(int(bin), 0), 0).r, now, uBlend), 0.0, 0.0, 1.0);
   }
 `;
 
@@ -158,6 +287,44 @@ const VIEW_FRAG = /* glsl */ `
   uniform vec2 uThermalTexel;
   uniform float uSnow;
   uniform float uAirC;
+  uniform sampler2D tCdf;
+  uniform float uPalette;
+  uniform vec3 uSpan;
+  ${HIST_RANGE}
+
+  /* FLIR's palettes from a grey 0..1, as display values. */
+  vec3 ramp(float v, vec3 c[8]) {
+    float x = clamp(v, 0.0, 1.0) * 7.0;
+    int k = int(min(floor(x), 6.0));
+    return mix(c[k], c[k + 1], x - float(k));
+  }
+  vec3 palette(float v) {
+    if (uPalette < 0.5) {
+      return vec3(v);
+    }
+    if (uPalette < 1.5) {
+      /* Ironbow: black through indigo and magenta to orange and white. */
+      vec3 iron[8] = vec3[8](vec3(0.0, 0.0, 0.0), vec3(0.13, 0.0, 0.36), vec3(0.42, 0.0, 0.6), vec3(0.72, 0.05, 0.5),
+        vec3(0.9, 0.22, 0.2), vec3(0.98, 0.5, 0.02), vec3(1.0, 0.78, 0.12), vec3(1.0, 1.0, 0.86));
+      return ramp(v, iron);
+    }
+    /* Rainbow: blue through cyan, green and yellow to red and white. */
+    vec3 rain[8] = vec3[8](vec3(0.04, 0.0, 0.22), vec3(0.0, 0.1, 0.85), vec3(0.0, 0.62, 0.95), vec3(0.0, 0.8, 0.35),
+      vec3(0.7, 0.9, 0.0), vec3(1.0, 0.6, 0.0), vec3(1.0, 0.12, 0.0), vec3(1.0, 0.9, 0.9));
+    return ramp(v, rain);
+  }
+
+  /* The core's reading at a source place: the optics' spread over the
+   * neighbouring pixels and the halo of anything far hotter round it. */
+  float coreAt(vec2 suv) {
+    vec2 t = uThermalTexel;
+    float T = textureLod(tThermal, suv, 0.0).r;
+    float nb = 0.25 * (textureLod(tThermal, suv + vec2(t.x, 0.0), 0.0).r + textureLod(tThermal, suv - vec2(t.x, 0.0), 0.0).r
+      + textureLod(tThermal, suv + vec2(0.0, t.y), 0.0).r + textureLod(tThermal, suv - vec2(0.0, t.y), 0.0).r);
+    T = mix(T, nb, 0.25) * ${T_SCALE.toFixed(1)};
+    float around = textureLod(tThermal, suv, 3.0).r * ${T_SCALE.toFixed(1)};
+    return T + 0.05 * max(around - T - 20.0, 0.0);
+  }
 
   float hash(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -251,17 +418,26 @@ const VIEW_FRAG = /* glsl */ `
       vec2 q = vUv - 0.5;
       o *= 1.0 - 0.45 * smoothstep(0.18, 0.5, dot(q, q));
     #elif MODE == 1 || MODE == 2 || MODE == 4
-      /* The thermal core: the temperature, its noise (NETD) and its
-       * column pattern, then the gain's window, mean minus 2 sigma to
-       * mean plus 3, at least 6 C wide so a flat scene is not all
-       * noise. */
+      /* The thermal core (THE THERMAL CORE'S LOOK above): its reading,
+       * its noise (NETD, 0.12 of a triangular hash is 50 mK of standard
+       * deviation) and its fixed pattern, then the gain: the equalised
+       * curve over the robust range, a share of the linear window, mean
+       * minus 2 sigma to mean plus 3, at least 6 C wide; or the manual
+       * span. */
       vec4 agc = texture2D(tAgcT, vec2(0.5));
-      float T = textureLod(tThermal, suv, 0.0).r * ${T_SCALE.toFixed(1)};
-      float col = hash(vec2(floor(suv.x / uThermalTexel.x), 7.0)) - 0.5;
-      T += n * 0.12 + col * 0.1;
+      float T = coreAt(suv);
+      vec2 cell = floor(suv / uThermalTexel);
+      float col = hash(vec2(cell.x, 7.0)) - 0.5;
+      float fpn = hash(cell + 311.0) - 0.5;
+      T += n * 0.12 + col * 0.1 + fpn * 0.08;
       float lo = agc.r - 2.0 * agc.g;
-      float span = max(5.0 * agc.g, 6.0);
+      float span = max(5.0 * agc.g, ${MIN_SPAN_K.toFixed(1)});
       float v = clamp((T - lo) / span, 0.0, 1.0);
+      vec2 hr = histRange(agc);
+      float u = clamp((T - hr.x) / (hr.y - hr.x), 0.0, 1.0);
+      float eq = u * ${HIST_BINS.toFixed(1)} < 1.0 ? u * ${HIST_BINS.toFixed(1)} * texture2D(tCdf, vec2(0.5 / ${HIST_BINS.toFixed(1)}, 0.5)).r
+        : texture2D(tCdf, vec2(u - 0.5 / ${HIST_BINS.toFixed(1)}, 0.5)).r;
+      v = uSpan.z > 0.5 ? clamp((T - uSpan.x) / (uSpan.y - uSpan.x), 0.0, 1.0) : mix(v, eq, ${EQ_SHARE.toFixed(2)});
       #if MODE == 4
         /* Fusion: the visible picture, its colour drained a little, with
          * what is hot over it and the hot edges drawn. Hot is well over
@@ -278,11 +454,11 @@ const VIEW_FRAG = /* glsl */ `
         vec3 heat = mix(vec3(1.0, 0.45, 0.08), vec3(1.0, 0.95, 0.75), hot);
         o = mix(base, heat, max(hot * 0.85, edge * 0.9));
       #else
-        v = pow(v, 0.9);
         #if MODE == 2
-          v = 1.0 - v;
+          o = vec3(1.0 - v);
+        #else
+          o = palette(v);
         #endif
-        o = vec3(v);
       #endif
     #else
       /* Acquisition: grey, its local mean (the raw light's mipmap a
@@ -356,6 +532,66 @@ function makeAgc(thermal) {
     dispose() {
       ping.forEach((p) => p.dispose());
       mat.dispose();
+    },
+  };
+}
+
+/*
+ * The thermal gain's curve (THE THERMAL CORE'S LOOK): a HIST_BINS by 1
+ * histogram of the source, and the clipped cumulative curve over it,
+ * ping ponged so it moves at the gain's pace. run() after the gain stage
+ * has taken this frame's mean and range.
+ */
+function makeHist() {
+  const opts = {
+    type: THREE.HalfFloatType, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false,
+  };
+  const hist = new THREE.WebGLRenderTarget(HIST_BINS, 1, { ...opts, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+  const ping = [new THREE.WebGLRenderTarget(HIST_BINS, 1, opts), new THREE.WebGLRenderTarget(HIST_BINS, 1, opts)];
+  const histMat = new THREE.ShaderMaterial({
+    uniforms: { tSrc: { value: null }, tAgc: { value: null }, uLod: { value: 0 } },
+    vertexShader: VERT,
+    fragmentShader: HIST_FRAG,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const cdfMat = new THREE.ShaderMaterial({
+    uniforms: { tHist: { value: hist.texture }, tPrev: { value: null }, uBlend: { value: 1 } },
+    vertexShader: VERT,
+    fragmentShader: CDF_FRAG,
+    depthTest: false,
+    depthWrite: false,
+  });
+  const histQuad = new FullScreenQuad(histMat);
+  const cdfQuad = new FullScreenQuad(cdfMat);
+  let cur = 0;
+  let fresh = true;
+  return {
+    get texture() {
+      return ping[cur].texture;
+    },
+    run(renderer, src, agc, dtS) {
+      histMat.uniforms.tSrc.value = src.texture;
+      histMat.uniforms.tAgc.value = agc;
+      /* The mip whose texels are about the grid's cells. */
+      histMat.uniforms.uLod.value = Math.max(0, Math.log2(src.width / HIST_GRID[0]));
+      renderer.setRenderTarget(hist);
+      histQuad.render(renderer);
+      cdfMat.uniforms.tPrev.value = ping[cur].texture;
+      cdfMat.uniforms.uBlend.value = fresh ? 1 : 1 - Math.exp(-Math.max(dtS, 0) / AGC_TAU);
+      fresh = false;
+      cur = 1 - cur;
+      renderer.setRenderTarget(ping[cur]);
+      cdfQuad.render(renderer);
+    },
+    reset() {
+      fresh = true;
+    },
+    dispose() {
+      hist.dispose();
+      ping.forEach((p) => p.dispose());
+      histMat.dispose();
+      cdfMat.dispose();
     },
   };
 }
@@ -476,6 +712,7 @@ export function createSensorView(renderer, { onInset } = {}) {
   const views = new Map();
   const agcC = makeAgc(false);
   const agcT = makeAgc(true);
+  const histT = makeHist();
   const canvas = document.createElement('canvas');
   const ctx2d = canvas.getContext('2d');
   const insetDrawn = () => {
@@ -540,6 +777,9 @@ export function createSensorView(renderer, { onInset } = {}) {
           uThermalTexel: { value: new THREE.Vector2(1, 1) },
           uSnow: { value: 0 },
           uAirC: { value: 25 },
+          tCdf: { value: null },
+          uPalette: { value: 0 },
+          uSpan: { value: new THREE.Vector3() },
         },
         vertexShader: VERT,
         fragmentShader: VIEW_FRAG,
@@ -615,6 +855,13 @@ export function createSensorView(renderer, { onInset } = {}) {
     u.uThermalTexel.value.set(1 / (therm ? therm.width : 1), 1 / (therm ? therm.height : 1));
     u.tAgcC.value = agcC.texture;
     u.tAgcT.value = agcT.texture;
+    u.tCdf.value = histT.texture;
+    u.uPalette.value = look.palette;
+    if (look.span) {
+      u.uSpan.value.set(look.span[0], look.span[1], 1);
+    } else {
+      u.uSpan.value.z = 0;
+    }
   }
 
   return {
@@ -676,6 +923,7 @@ export function createSensorView(renderer, { onInset } = {}) {
         thermal = sized(thermal, THERMAL_W, aspect, { mip: true });
         drawScene(scene, camera, thermal, true);
         agcT.run(renderer, thermal, dtS);
+        histT.run(renderer, thermal, agcT.texture, dtS);
         stats.sources.push('thermal');
       }
 
@@ -707,6 +955,7 @@ export function createSensorView(renderer, { onInset } = {}) {
     reset() {
       agcC.reset();
       agcT.reset();
+      histT.reset();
     },
     dispose() {
       for (const v of views.values()) {
@@ -715,6 +964,7 @@ export function createSensorView(renderer, { onInset } = {}) {
       views.clear();
       agcC.dispose();
       agcT.dispose();
+      histT.dispose();
       pipTarget.dispose();
       readback.dispose();
       copy.dispose();

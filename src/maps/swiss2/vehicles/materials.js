@@ -33,6 +33,7 @@
  */
 
 import * as THREE from 'three';
+import { thermalKind } from '../../../render/thermal.js';
 
 const need = (src, chunk) => {
   if (!src.includes(chunk)) {
@@ -90,5 +91,7 @@ export function vehicleMaterials() {
       .replace('#include <premultiplied_alpha_fragment>', '');
   };
   glass.customProgramCacheKey = () => 's2-vehicle-glass';
+  /* Glass is opaque in the long wave band (src/render/thermal.js). */
+  thermalKind(glass, 'glass');
   return { body, glass };
 }

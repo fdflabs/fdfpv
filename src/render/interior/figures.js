@@ -10,10 +10,11 @@
  * Every frame each person is written into its pose's instanced mesh, so
  * all the people on screen are at most a dozen draws.
  *
- * THE HEAT. A person's clothes and skin stand some degrees over the
- * ground they walk on: a per vertex heat (src/render/thermal.js, the
- * 'hot' kind's attribute, 110 degrees a unit) of HEAT over the surface's
- * own sunlit temperature, more at the head.
+ * THE HEAT. A person is skin at 34 C seen through clothes: a per vertex
+ * coupling (src/render/thermal.js, the body kind's attribute) of how much
+ * of the skin's warmth over the air shows, HEAT through the clothes and
+ * more at the head, so a person reads 30 to 34 C by night and a little
+ * over by day with the sun on the cloth.
  *
  * This file is part of WebFPVSimulator.
  *
@@ -34,9 +35,11 @@
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { thermalKind } from '../thermal.js';
 
-/* Heat over the passive surface, 110 C a unit: 0.07 is about 8 C. */
-const HEAT = 0.07;
-const HEAD_HEAT = 0.1;
+/* How much of the skin's temperature over the air shows through, per
+ * part (src/render/thermal.js, the body kind): clothes most of it, the
+ * head and hands, bare skin and hair, nearly all; a slung rifle none. */
+const HEAT = 0.6;
+const HEAD_HEAT = 0.85;
 /* Linear colours of the parts: skin, and a pale shirt and darker
  * trousers the instance's colour tints. */
 const SKIN = [0.32, 0.2, 0.13];
@@ -125,7 +128,7 @@ function bodyGeometry(THREE, p) {
   /* The long object, slung under the right arm along the body. */
   if (p.long) {
     const sling = trunk.clone().multiply(M().makeTranslation(0.24, 0.3, 0.05)).multiply(M().makeRotationX(0.5));
-    parts.push(part(THREE, 0.05, 1.05, 0.06, DARK, 0.01, sling));
+    parts.push(part(THREE, 0.05, 1.05, 0.06, DARK, 0.05, sling));
   }
   return mergeGeometries(parts);
 }
@@ -140,7 +143,7 @@ function bodyGeometry(THREE, p) {
 export function makeFigures(THREE, { cap = 256 } = {}) {
   const group = new THREE.Group();
   group.name = 'interior-figures';
-  const mat = thermalKind(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 }), 'hot', { attr: true });
+  const mat = thermalKind(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 }), 'body', { attr: true });
   const meshes = {};
   for (const name of POSE_NAMES) {
     const m = new THREE.InstancedMesh(bodyGeometry(THREE, POSES[name]), mat, cap);

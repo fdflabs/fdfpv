@@ -58,6 +58,7 @@
 
 import * as THREE from 'three';
 import { WAVE_VERTEX_DECL, WAVE_VERTEX, WAVE_FRAGMENT_DECL } from '../../../render/lakewaves.js';
+import { thermalKind, thermalHide } from '../../../render/thermal.js';
 
 /* How far light seen at a point on the surface travels through the
  * water, per metre of depth, over what it travels looking straight down:
@@ -95,7 +96,9 @@ export function bedMaterial(options, absorb) {
   mat.blendDst = THREE.SrcColorFactor;
   mat.blendSrcAlpha = THREE.ZeroFactor;
   mat.blendDstAlpha = THREE.OneFactor;
-  return mat;
+  /* An optical pass: the long wave band never sees the bed, so the
+   * thermal draw leaves it out (src/render/thermal.js). */
+  return thermalHide(mat);
 }
 
 /*
@@ -483,5 +486,7 @@ export function waterMaterial({
         gl_FragColor = vec4((totalDiffuse * cover + wSpec) / max(wAlpha, 1e-3), wAlpha);`);
   };
   mat.customProgramCacheKey = () => `swiss2-water-${flow ? 'flow' : 'still'}-${planar ? 'planar' : 'env'}-${field ? 'waves' : 'calm'}-${patch ? 'patch' : 'sheet'}`;
-  return mat;
+  /* In the thermal picture (src/render/thermal.js) water is opaque: its
+   * skin's temperature and the sky it reflects, whatever its depth. */
+  return thermalKind(mat, 'water');
 }

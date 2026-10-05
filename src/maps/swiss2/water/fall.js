@@ -67,6 +67,7 @@ import * as THREE from 'three';
 import { makeRng, noise2, smoothstep } from '../../alps/noise.js';
 import { valleyAxis } from '../../alps/terrain.js';
 import { BAY } from '../terrain.js';
+import { thermalKind, thermalShader } from '../../../render/thermal.js';
 
 /*
  * The apron's surface: s across it from -1 to 1, t up it from the toe in
@@ -536,7 +537,9 @@ function fallMaterial(waves, time, wind, height, seed, envMap, mode) {
   };
   mat.customProgramCacheKey = () => 'swiss2-fall';
   mat.userData.fall = uniforms;
-  return mat;
+  /* In the thermal picture (src/render/thermal.js) the cascade's white
+   * water lies on the rock, opaque; the veil and its haze are spray. */
+  return thermalKind(mat, mode === FALL_MODE.cascade ? 'water' : 'spray');
 }
 
 /*
@@ -654,6 +657,8 @@ function mist({ waves, time, wind, centre, count, spread, rise, life, s0, s1, op
     depthWrite: false,
     fog: true,
   });
+  /* Spray is thin in the long wave band and at the water's temperature. */
+  thermalShader(mat, 'float thT = thEnv2.x - 0.01; float thA = 0.5;', 'swiss2-fall-mist');
   const mesh = new THREE.Mesh(geo, mat);
   mesh.frustumCulled = false;
   mesh.renderOrder = 2;
@@ -743,7 +748,7 @@ function wetRock(rock, envMap, uniforms) {
         roughnessFactor = mix(mix(roughnessFactor, mix(0.42, 0.8, tread), wet), 0.85, moss);`);
   };
   mat.customProgramCacheKey = () => 'swiss2-wet-rock';
-  return mat;
+  return thermalKind(mat, 'rock');
 }
 
 /* The film on the face: nothing but what the water does to the ground's
@@ -771,7 +776,7 @@ function wetFilm(envMap, uniforms) {
         roughnessFactor = mix(0.6, 0.2, runs);`);
   };
   mat.customProgramCacheKey = () => 'swiss2-wet-film';
-  return mat;
+  return thermalKind(mat, 'spray');
 }
 
 /*

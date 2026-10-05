@@ -240,7 +240,9 @@ export function buildCamp({
     solidBox(colliders, 'obstacle', x, z, 1, 0, 0.56, 0.56, g - 0.05, g + 0.9);
     count += 1;
   }
-  const fireMat = thermalKind(new THREE.MeshStandardMaterial({ color: 0x1a1410, emissive: 0x3a1a08, roughness: 1 }), 'hot');
+  /* The cooking fire's embers: the fire kind (src/render/thermal.js), far
+   * over anything else in the camp. */
+  const fireMat = thermalKind(new THREE.MeshStandardMaterial({ color: 0x1a1410, emissive: 0x3a1a08, roughness: 1 }), 'fire');
   {
     const [x, z] = CAMP_PROPS.fire.at;
     const disc = new THREE.Mesh(new THREE.CircleGeometry(0.7, 10).rotateX(-Math.PI / 2), fireMat);

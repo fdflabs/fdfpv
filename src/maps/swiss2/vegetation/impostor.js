@@ -34,6 +34,7 @@
 
 import * as THREE from 'three';
 import { DITHER_GLSL, LEAF_SPEC_GLSL, PLANT_TINT_GLSL } from './plantmat.js';
+import { thermalKind } from '../../../render/thermal.js';
 
 export const AZIMUTHS = 8;
 export const ELEVATIONS = [0, 40, 75].map((d) => (d * Math.PI) / 180);
@@ -354,7 +355,7 @@ export function impostorMaterial(baked, band, envMapIntensity = 0.85) {
         vec3 nonPerturbedNormal = normal;`);
   };
   mat.customProgramCacheKey = () => 'swiss2-impostor';
-  return mat;
+  return thermalKind(mat, 'vegetation');
 }
 
 /*

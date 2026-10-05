@@ -465,6 +465,15 @@ the sensor's owner, not a performance one. The grass and meadow stay in
 the thermal draw (the owner's eye, as P3 said); they got cheaper with the
 grass change above instead.
 
+Decided 2026-10-05 (thermal-true): water is opaque in the thermal picture
+and the bed pass is left out of the thermal draw (`thermalHide`,
+docs/AVIONICS-SENSORS.md section 3). perf-thermal-check with the same skip
+now passes in every view, 0 temperatures moved, since the bed is never in
+the thermal draw. perf-play, the sensor view's draw, avg / p10 ms: swiss-low
+2.19 / 1.56 before, 1.78 / 1.41 after; itaipu-war 0.59 / 0.27 before, 0.53 /
+0.27 after (GPU 0 at 71 % and 59 % in the two swiss-low runs, other agents'
+pages).
+
 ### Wing-cruise's long and short frames: not ours
 
 Of 3495 frames in a 30 s run, 1019 were over 11.1 ms, and 960 of those
@@ -502,6 +511,8 @@ unchanged (no file it draws with moved).
   drawn clump; computing it per clump on the CPU when the tile is built
   (as zones.js already mirrors it) would cut it to a texture read, at
   the price of the field's pixel fade (it reads the distance).
+- The lake bed in thermal: decided, opaque water, bed left out (above).
+
 - The lake bed in thermal: the sensor owner's call (above).
 
 ## P7, feel: the frame readout
