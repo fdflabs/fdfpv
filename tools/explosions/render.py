@@ -75,6 +75,8 @@ SIM_FPS = 30
 DENSITY = 0.25
 FLAMES = 6.0
 NAME = 'midair'
+# The seconds of the simulation whose fire places the explosion's point.
+ANCHOR_S = 1.0
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--vdb', required=True, help='the folder the EmberGen archives were extracted into')
@@ -212,7 +214,9 @@ n_cells = args.cols * args.rows
 picked = [first + round(k * (last - first) / (n_cells - 1)) for k in range(n_cells)]
 lo = [min(boxes[f][0][i] for f in full) for i in range(3)]
 hi = [max(boxes[f][1][i] for f in full) for i in range(3)]
-# The detonation point: the middle of the first frame that holds anything.
+# Where the simulation starts: the middle of the first frame that holds
+# anything. The point the game puts on the explosion's place is the fire's
+# middle over the first second, worked out once the frames are rendered.
 b0 = boxes[first]
 origin = [(b0[0][i] + b0[1][i]) / 2 for i in range(3)]
 
@@ -271,12 +275,12 @@ z0 = scout_cz + scout_side / 2 - (ys.max() + 1) * px
 side = max(x1 - x0, z1 - z0) / (1 - 2 * MARGIN)
 cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
 aim(cx, cz, side)
-# Where the detonation point falls in a cell, from its top left corner.
-origin_u = (origin[1] - cx) / side + 0.5
-origin_v = 0.5 - (origin[2] - cz) / side
+# Where the simulation starts in a cell, from its top left corner.
+start_u = (origin[1] - cx) / side + 0.5
+start_v = 0.5 - (origin[2] - cz) / side
 print(f'render.py: {NAME}: frames {first}..{last} of {frames[0]}..{frames[-1]}, '
       f'box x {lo[0]:.0f}..{hi[0]:.0f} y {lo[1]:.0f}..{hi[1]:.0f} z {lo[2]:.0f}..{hi[2]:.0f}, '
-      f'cell {side:.1f} units round ({cx:.1f}, {cz:.1f}), detonation at u {origin_u:.3f} v {origin_v:.3f}')
+      f'cell {side:.1f} units round ({cx:.1f}, {cz:.1f}), starting at u {start_u:.3f} v {start_v:.3f}')
 
 
 def lum(rgb):
@@ -304,6 +308,20 @@ for k, f in enumerate(todo):
 lit = fire[fire > 1e-3]
 fire_max = float(np.percentile(lit, 99.7)) if lit.size else 1.0
 shade_max = float(np.percentile(shade[opac > 0.02], 99.5)) if (opac > 0.02).any() else 1.0
+
+# The point explosion.js puts where the explosion went off: the fire's
+# middle, weighted by its light, over the first second of the simulation.
+# The fireball rises off its emitter fast, and anchored at the emitter the
+# pilot whose own warhead it is, 6 m from that point, would see the dim
+# stem under the fire instead of the fire.
+gy, gx = np.mgrid[0:args.cell, 0:args.cell]
+early = [k for k, f in enumerate(todo) if (f - first) / SIM_FPS <= ANCHOR_S]
+weight = sum(float(fire[k].sum()) for k in early)
+if weight > 0:
+    origin_u = sum(float((fire[k] * (gx + 0.5)).sum()) for k in early) / weight / args.cell
+    origin_v = sum(float((fire[k] * (gy + 0.5)).sum()) for k in early) / weight / args.cell
+else:
+    origin_u, origin_v = start_u, start_v
 
 rows = 1 if args.test is not None else args.rows
 cols = 1 if args.test is not None else args.cols

@@ -87,15 +87,16 @@ const SIM = 3;
 const SIM_MIRROR = 4;
 
 /* The sheet, as tools/explosions/render.py printed it: frames left to
- * right and top to bottom, and where in a cell the detonation point is,
- * from the cell's top left. */
+ * right and top to bottom, and the point of a cell that is put where the
+ * explosion went off (the fire's middle over its first second), from the
+ * cell's top left. */
 const SHEET = {
   url: new URL('../../assets/explosions/midair.webp', import.meta.url).href,
   cols: 8,
   rows: 8,
   frames: 64,
-  originU: 0.66,
-  originV: 0.855,
+  originU: 0.662,
+  originV: 0.656,
 };
 
 /* Fetched once for every layer made: until it has decoded, sheet.ready is
@@ -264,7 +265,7 @@ void main() {
   vec2 p = position.xy;
   vUv = p + 0.5;
   if (iMisc.y > 2.5) {
-    // The flipbook: the quad moved so the detonation point is on iPos,
+    // The flipbook: the quad moved so its anchor (simU, simV) is on iPos,
     // and turned about it; mirrored, the picture and the point both.
     float m = iMisc.y > 3.5 ? 1.0 : 0.0;
     vec2 o = vec2(simU - 0.5, 0.5 - simV);
@@ -322,10 +323,14 @@ void main() {
     if (additive > 0.5) {
       // The fire's light, stored as its square root, coloured by how
       // bright it is: a deep red at the edges, orange, the hottest white
-      // and over 1 for the bloom.
+      // and over 1 for the bloom. Over the first stretch of the sheet it
+      // is whiter and brighter, as the puffs' ramp starts white hot
+      // (FIRE_RAMP): a pilot 6 m from their own warhead is in the
+      // brightest of it, not in an orange haze.
       float k = t.r * t.r;
       a = k * sqrt(k);
-      rgb *= vec3(3.0, 0.2 + 2.4 * k, 1.8 * k * k);
+      float w = 1.0 - smoothstep(0.0, 0.4, vSeed);
+      rgb *= mix(vec3(3.0, 0.2 + 2.4 * k, 1.8 * k * k), vec3(3.2, 2.4, 1.1), w) * (1.0 + w);
     } else {
       // The smoke's opacity, and its shade under the sheet's sun.
       a = t.b;

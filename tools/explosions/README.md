@@ -41,9 +41,11 @@ frames, read once to frame the camera). `--test N` renders simulation
 frame N alone to `midair-test-N.webp` for a quick look; `--work DIR` keeps
 the per frame EXRs. ffmpeg writes the lossless WebP.
 
-The last line it prints is the sheet's constants (layout, span, where the
-detonation point falls in a cell); src/render/explosion.js keeps them in
-`SHEET`, so copy them across when the layout or the framing changes. A
+The last line it prints is the sheet's constants: its layout, and the
+point of a cell that the game puts where the explosion went off (the
+fire's middle over the simulation's first second, so a pilot 6 m from it
+is in the fire, not under it). src/render/explosion.js keeps them in
+`SHEET`; copy them across when the layout or the framing changes. A
 second render is the same picture to within Cycles' sampling noise, not
 byte for byte.
 
