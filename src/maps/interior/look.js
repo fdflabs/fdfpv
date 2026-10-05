@@ -53,6 +53,11 @@ const FAR_HALF = 700;
 const FAR_REACH = 2.5;
 const FAR_HALF_MAX = 2500;
 const FAR_NORMAL_BIAS = 0.6;
+/* The air's extinction as a share of Itaipu's morning's, and the
+ * horizon's colour, linear: a dry afternoon's pale, faintly warm white
+ * blue (the reference aerials' horizons, farm-forest-edge, river-broad). */
+const AIR_THIN = 0.2;
+const HAZE = new THREE.Color().setRGB(0.45, 0.47, 0.5, THREE.LinearSRGBColorSpace);
 
 /* The sun's colour and strength by the sine of its elevation: the morning
  * light of Itaipu's TIMES at 28 degrees and over, its golden hour's at 8,
@@ -145,8 +150,8 @@ function shape(l, half) {
  * The look at local hour `hours`: { scene, ground (the terrain's
  * material), mats (the kit, as Itaipu's ctx.mats), lit, sunDir,
  * setLocalTime(h), updateShadowFocus(target), setHeights(fn),
- * finish(), compose(shell, map), dispose() }. `land` is world.js's
- * decoded land cover.
+ * finish(), compose(shell, map), dispose() }. `land` is the land
+ * cover's cells with places.js's painting (ground.js paintedLand).
  */
 export async function makeLook({
   renderer, camera, q, hours, land,
@@ -178,18 +183,23 @@ export async function makeLook({
   const sunDir = new THREE.Vector3(...at.dir).normalize();
   const skyTime = sunDir.y > SKY_LOW ? 'morning' : 'golden';
   const light = sunLight(sunDir.y, { color: new THREE.Color(), irradiance: 0 });
-  /* Itaipu's air at that hour, thinned: its morning air is the humid
-   * morning's, thicker than a dry season's late afternoon, which is hazy
-   * (BIBLE.md 2.3) but must still show a survey camera the ground three
-   * kilometres off. */
+  /* Itaipu's air at that hour, thinned and warmed. Its morning air is
+   * the humid morning's, thicker than a dry season's late afternoon,
+   * which is hazy (BIBLE.md 2.3) but in the reference aerials still shows
+   * the fields' colour and the tracks five kilometres off, the haze a
+   * pale band on the horizon rather than a grey over the whole frame
+   * (round 0's survey views: AIR_THIN 0.55 washed them all). The sky's
+   * horizon is the same haze, set before the environment is baked from
+   * it, so the far ground fades into the sky behind it. */
   const base = airFor(skyTime);
-  const AIR = { ...base, beta: base.beta.clone().multiplyScalar(0.55) };
+  const AIR = { ...base, beta: base.beta.clone().multiplyScalar(AIR_THIN), haze: HAZE.clone() };
   const scene = new THREE.Scene();
   scene.userData.timeOfDay = 'day';
   /* The thermal picture's air, water and sky (src/render/thermal.js CLIMATE). */
   scene.userData.climate = 'interior';
   scene.background = AIR.haze.clone();
   const sky = skyBackdrop(sunDir, skyTime);
+  sky.material.uniforms.uHaze.value.copy(AIR.haze);
   const envTarget = skyEnvironment(renderer, sky, skyTime);
   scene.add(sky);
   scene.environment = envTarget.texture;
@@ -204,7 +214,9 @@ export async function makeLook({
   const lit = makeLit();
   const noise = own(noiseTexture(aniso));
   const landTex = own(landTexture(land));
-  const ground = groundMaterial({ land: landTex, arrays, noise });
+  const ground = groundMaterial({
+    land: landTex, arrays, noise, sunDir,
+  });
   const heights = { texture: { value: null }, grid: { value: new THREE.Vector3() } };
   const look = makePhotoLook({
     surfaces,
