@@ -472,6 +472,28 @@ async function deleteAccount(env, account) {
   return json(200, { deleted: true });
 }
 
+/*
+ * Whether `token` is a good GIS ID token for one of ADMIN_EMAILS (comma
+ * separated, the addresses of the people who run this server), which is
+ * how the admin page (admin.html) says who it is: the owner signs in with
+ * Google there and the token is the bearer. False when the list is unset,
+ * the token is not Google's for this site, its email is unverified or not
+ * on the list, or Google's keys cannot be fetched.
+ */
+export async function isAdminToken(env, token) {
+  const admins = String(env.ADMIN_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+  if (!admins.length) {
+    return false;
+  }
+  try {
+    const verdict = await verifyGoogleIdToken(token, { clientIds: parseClientIds(env.GOOGLE_CLIENT_ID), key: keySource(env) });
+    return Boolean(verdict.email) && admins.includes(verdict.email);
+  } catch (e) {
+    console.error('google keys:', e && e.message ? e.message : e);
+    return false;
+  }
+}
+
 export async function waitlistRoute(env, request) {
   if (!accountsOn(env)) {
     return refuse(503, 'Sign in is not available on this server.');

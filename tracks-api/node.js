@@ -35,19 +35,20 @@ import { openD1 } from './d1sqlite.js';
 import { listener, readRevision } from '../edge/node-http.js';
 
 /* googleClientId and accountsSecret switch sign-in on (accounts.js), and
- * inviteOnly keeps it to invited addresses (waitlist.js);
+ * inviteOnly keeps it to invited addresses (waitlist.js), and adminEmails
+ * names who the admin page lets in (accounts.js isAdminToken);
  * googleJwksUrl is for the selftest's stand in for Google alone.
  * revision: what GET /api/version answers, the deployed REVISION file's
  * (edge/node-http.js readRevision) unless the selftest passes its own. */
 export function startTracks({
   db, port, host = '127.0.0.1', adminSecret = '', googleClientId = '', accountsSecret = '', googleJwksUrl = '',
-  inviteOnly = false,
+  inviteOnly = false, adminEmails = '',
   revision = readRevision(new URL('../REVISION', import.meta.url)),
 }) {
   const opened = openD1(db);
   const env = {
     DB: opened.DB, ADMIN_SECRET: adminSecret, GOOGLE_CLIENT_ID: googleClientId, ACCOUNTS_SECRET: accountsSecret,
-    REVISION: revision, INVITE_ONLY: inviteOnly,
+    REVISION: revision, INVITE_ONLY: inviteOnly, ADMIN_EMAILS: adminEmails,
     ...(googleJwksUrl ? { GOOGLE_JWKS_URL: googleJwksUrl } : {}),
   };
   const server = http.createServer(listener(worker, env));
@@ -74,6 +75,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     accountsSecret: process.env.ACCOUNTS_SECRET || '',
     inviteOnly: Boolean(process.env.INVITE_ONLY),
+    adminEmails: process.env.ADMIN_EMAILS || '',
   });
   const signIn = parseClientIds(process.env.GOOGLE_CLIENT_ID).length > 0 && process.env.ACCOUNTS_SECRET;
   console.log(`fdfpv tracks on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: admin routes refuse everyone'}${signIn ? ', sign-in on' : ', no GOOGLE_CLIENT_ID or ACCOUNTS_SECRET: sign-in off'}`);

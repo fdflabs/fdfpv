@@ -27,13 +27,15 @@
  *            exactly the bytes that were sent.
  *   DELETE /api/tracks/{id}          { key, sig, ts }  the owner only.
  *   POST   /api/admin/tracks/{id}    { hidden: true | false }
- *   DELETE /api/admin/tracks/{id}    both with authorization: Bearer ADMIN_SECRET
+ *   DELETE /api/admin/tracks/{id}    both with authorization: Bearer ADMIN_SECRET,
+ *            or the Google ID token of one of ADMIN_EMAILS (isAdmin)
  *
  *   summary = { id, name, author, owner, map, gates, planes, createdUtc,
  *               updatedUtc }
  *
  *   /api/account/*   optional Google sign-in, written down in accounts.js.
  *   /api/waitlist, /api/admin/waitlist   the beta waitlist, in waitlist.js.
+ *   /api/admin/overview, /api/admin/accounts   the admin page's, in admin.js.
  *
  * EVERYTHING IS CHECKED HERE, because this is the boundary: the body size
  * before it is read into a string, the document through the simulator's own
@@ -78,8 +80,9 @@ import {
 import {
   CORS, json, nowUtc, readBody, refuse, spend,
 } from './http.js';
-import { accountRoute, waitlistRoute } from './accounts.js';
+import { accountRoute, isAdminToken, waitlistRoute } from './accounts.js';
 import { waitlistAdmin } from './waitlist.js';
+import { adminAccounts, adminOverview } from './admin.js';
 
 const TRACK_ID_RE = /^trk-[0-9a-f]{8}$/;
 const MAP_RE = /^[a-z0-9]{1,24}$/;
@@ -313,12 +316,19 @@ async function getTrack(env, id) {
   return json(200, { ...summaryOf(row), document: JSON.parse(row.document) });
 }
 
-/* Constant time over the digests, so the comparison says nothing about how
- * much of a guess was right. */
+/* The bearer is ADMIN_SECRET, sent by hand or by a script, or the Google
+ * ID token of one of ADMIN_EMAILS, which is what the admin page sends
+ * (accounts.js isAdminToken). The secret is compared in constant time over
+ * the digests, so the comparison says nothing about how much of a guess
+ * was right. */
 async function isAdmin(env, request) {
-  const secret = env.ADMIN_SECRET;
   const got = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!secret || !got) {
+  return Boolean(got) && ((await isSecret(env, got)) || isAdminToken(env, got));
+}
+
+async function isSecret(env, got) {
+  const secret = env.ADMIN_SECRET;
+  if (!secret) {
     return false;
   }
   const a = await sha256Base64(secret);
@@ -373,6 +383,12 @@ async function route(request, env) {
   }
   if (path === '/api/admin/waitlist' && ['GET', 'POST', 'DELETE'].includes(method)) {
     return (await isAdmin(env, request)) ? waitlistAdmin(env, request) : refuse(401, 'Not an admin.');
+  }
+  if ((path === '/api/admin/overview' || path === '/api/admin/accounts') && method === 'GET') {
+    if (!(await isAdmin(env, request))) {
+      return refuse(401, 'Not an admin.');
+    }
+    return path === '/api/admin/overview' ? adminOverview(env) : adminAccounts(env);
   }
   const one = path.match(/^\/api\/tracks\/([^/]+)$/);
   const adminOne = path.match(/^\/api\/admin\/tracks\/([^/]+)$/);

@@ -642,6 +642,37 @@ ip = '198.51.100.20';
   check('the admin removes an address', r.status === 200 && !gone.body.waitlist.some((w) => w.email === 'early@example.com'));
   r = await admin('DELETE', { email: 'early@example.com' });
   check('once', r.status === 404);
+  console.log('the admin page');
+  env.ADMIN_EMAILS = ' Owner@Example.com ,second@example.com';
+  r = await call('GET', '/api/admin/overview', undefined, await mail('owner@example.com', 'adm1'));
+  check('an admin\'s Google token opens the admin routes', r.status === 200, JSON.stringify(r.body));
+  r = await call('GET', '/api/admin/overview', undefined, await mail('new@example.com', 'w1'));
+  check('a member\'s does not', r.status === 401);
+  r = await call('GET', '/api/admin/overview', undefined, await idToken({ extra: { email: 'owner@example.com', email_verified: false } }));
+  check('nor the admin\'s address unverified', r.status === 401);
+  r = await call('GET', '/api/admin/overview', undefined, await idToken({ key: forger.privateKey, extra: { email: 'owner@example.com' } }));
+  check('nor forged', r.status === 401);
+  r = await call('GET', '/api/admin/overview', undefined, await idToken({ exp: nowS - 3600, extra: { email: 'owner@example.com' } }));
+  check('nor expired', r.status === 401);
+  r = await call('GET', '/api/admin/overview', undefined, await idToken({ aud: 'someone-else.apps.googleusercontent.com', extra: { email: 'owner@example.com' } }));
+  check('nor made for another site', r.status === 401);
+  env.ADMIN_EMAILS = '';
+  r = await call('GET', '/api/admin/overview', undefined, await mail('owner@example.com', 'adm1'));
+  check('and with no admins named, no token does', r.status === 401);
+  r = await call('GET', '/api/admin/overview');
+  check('the overview is the admin\'s alone', r.status === 401);
+  r = await call('GET', '/api/admin/accounts', undefined, 'wrong');
+  check('and so are the members', r.status === 401);
+  r = await call('GET', '/api/admin/overview', undefined, 'x');
+  check('the overview counts the accounts, the live sessions and the list',
+    r.status === 200 && r.body.accounts === 2 && r.body.sessions === 4 && r.body.waiting === 1 && r.body.invited === 0
+    && r.body.inviteOnly === true && r.body.callsigns === 0 && r.body.upS >= 0, JSON.stringify(r.body));
+  const w1 = (await call('POST', '/api/account/google', { credential: await mail('new@example.com', 'w1') })).body.session;
+  await call('PUT', '/api/account/callsign', { callsign: 'Listed' }, w1);
+  r = await call('GET', '/api/admin/accounts', undefined, 'x');
+  check('the members are callsigns and dates, newest first, and no email',
+    r.status === 200 && r.body.accounts.length === 2 && r.body.accounts.some((a) => a.callsign === 'Listed')
+    && r.body.accounts.every((a) => a.createdUtc && !('email' in a) && !('sub' in a)), JSON.stringify(r.body));
 }
 env = freshEnv();
 r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'open-1' }) });

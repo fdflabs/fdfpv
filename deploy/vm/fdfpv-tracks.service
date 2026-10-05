@@ -42,6 +42,10 @@ Environment=GOOGLE_CLIENT_ID=684567545976-dqpf7tqf764rs0dp7l08it7usb33fo9m.apps.
 Environment=INVITE_ONLY=1
 EnvironmentFile=/etc/fdfpv/tracks.env
 EnvironmentFile=-/etc/fdfpv/accounts.env
+# ADMIN_EMAILS=..., the Google accounts the admin page (admin.html) lets
+# in. Written on the VM by hand (root, mode 600) and not in the repository,
+# which is public. Without it only ADMIN_SECRET opens the admin routes.
+EnvironmentFile=-/etc/fdfpv/admin.env
 # node:sqlite is still marked experimental in Node 24 and says so on every
 # start; the journal does not need to hear it.
 ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning --max-old-space-size=192 tracks-api/node.js
