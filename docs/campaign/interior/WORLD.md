@@ -105,8 +105,27 @@ minutes into the mission), `localHour(clock, startedMs, roomMs)`,
 - `map.canopyAt(x, z)` the highest crown over a point.
 - `map.scene.userData.interior` = `{ terrain, look, world, canopy, trees,
   built, colliders }` for the checks.
-- Figures, vehicles and camp props (`src/render/interior/`) are the
-  second WORLD PR.
+- `map.setContacts(list, roomMs)` draws the room's contacts where the
+  shared routes put them: `[{ id, kind: 'person' | 'motorcycle' |
+  'pickup', route, ms (since the contact started the route), tint? }]`,
+  or `{ id, kind, pose }` with a scene frame pose. A finished route draws
+  nothing. A person pushing a motorcycle brings the motorcycle; a
+  motorcycle driving brings its rider. VIEW decides which contacts a
+  screen draws (the room's registry); the map only places them.
+- `map.setCamp({ mark, tarp, mast, parked })`: the marked shelter
+  (`'shelter-1'` to `'shelter-3'`, the room's dial s1 to s3), the side
+  tarp hiding its painted underside pulled back 0 to 1, the mast down 0
+  to 1 (its solid retired while it is down), how many of the camp's four
+  parked motorcycles are still there.
+- `?people=demo` puts every Mission 1 route's people out at once (the
+  checks' pictures; never in a mission).
+- People and vehicles are drawn by `src/render/interior/` (figures.js,
+  vehicles.js: a few boxes each, a dozen draws for everyone, warm in the
+  thermal picture through thermal.js's per vertex heat, about 8 C over
+  the surface for clothes and 11 C for heads); the camp by camp.js (the
+  mark: mark.js, BIBLE section 9, drawn at load); ambient cattle, the
+  machines and their crew and the family by ambient.js (wall clock
+  decoration, N21; the machines are solid).
 
 ## 5. Where the land moved MISSIONS.md 1.9's layout
 
