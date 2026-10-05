@@ -53,6 +53,8 @@ import { buildSpray } from '../../../render/spray.js';
 const BASE = new URL('../../../../assets/swiss2/water/', import.meta.url);
 
 const MIRROR_REACH = 2000;
+/* Metres over or under the still lake a swell can lift the sheet. */
+const SWELL_REACH = 4;
 /* How far the stream's milky plume reaches into the lake, in metres. */
 const INFLOW_REACH = 230;
 
@@ -221,6 +223,11 @@ export async function buildWater(ctx) {
   const frustum = new THREE.Frustum();
   const viewProj = new THREE.Matrix4();
   const lakeSphere = lake.geometry.boundingSphere;
+  /* Every surface that reads the mirror: the sheet, a swell's height
+   * either way of it. The near patch can reach past the sheet's box, so
+   * while it is drawn the mirror is drawn whole. */
+  lake.geometry.computeBoundingBox();
+  const mirrorBounds = lake.geometry.boundingBox.clone().expandByVector(new THREE.Vector3(0, SWELL_REACH, 0));
   /* Hidden while the mirror is drawn: the water itself, and whatever the
    * map lists as not worth reflecting (ctx.mirrorHide, the meadow). */
   const hide = [group, ...(ctx.mirrorHide || [])];
@@ -247,9 +254,10 @@ export async function buildWater(ctx) {
       const info = ctx.renderer.info.render;
       const calls = info.calls;
       const triangles = info.triangles;
-      mirror.render(ctx.renderer, ctx.scene, camera, hide);
+      stats.mirrorDrawn = mirror.render(ctx.renderer, ctx.scene, camera, hide, patch.visible ? null : mirrorBounds);
       stats.mirrorCalls = info.calls - calls;
       stats.mirrorTriangles = info.triangles - triangles;
+      stats.mirrorShare = mirror.share();
     }
   };
   /* The shell's bodies, in the map's frame: the lake's is the one whose
