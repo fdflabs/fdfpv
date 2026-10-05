@@ -10,7 +10,7 @@
  * and times every frame of it.
  *
  *     SIM_GPU=1 node scripts/perf-play.js [OUT_DIR] [--scenarios=itaipu-war,swiss-low,wing-cruise]
- *         [--seconds=30] [--preset=high] [--pace=free|raf]
+ *         [--seconds=30] [--preset=high] [--pace=free|raf] [--cap=90]
  *
  * Writes OUT_DIR/perf-play.json (every frame's numbers) and prints a table
  * per scenario. OUT_DIR defaults to a folder under the system temp dir; the
@@ -24,7 +24,9 @@
  * one is done, held back only by the GPU: a frame waits until the GPU has
  * finished the frame two before it (a fence), as a swap chain two deep
  * would. So the frame time is what this machine can do, not what the
- * display allows. --pace=raf keeps the browser's own beat.
+ * display allows. --pace=raf keeps the browser's own beat. --cap=N, free
+ * running, holds each frame back as the shell's own frame cap does, for
+ * the tail a pilot with the cap on sees.
  *
  * WHAT A FRAME IS SPLIT INTO, all measured from outside the shell, so the
  * shell carries no hook for this:
@@ -96,7 +98,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const BUDGET_MS = 1000 / 90;
 
 const opts = {
-  scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1,
+  scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -128,7 +130,7 @@ await mkdir(outDir, { recursive: true });
 const INSTRUMENT = /* js */ `(() => {
   const PP = globalThis.__PP = {
     gl: null, ext: null, renderer: null, inFrame: false, wasmMs: 0, renderMs: 0,
-    wDepth: 0, wT: 0, rDepth: 0, rT: 0, rec: null, free: false, pilot: null, errors: [],
+    wDepth: 0, wT: 0, rDepth: 0, rT: 0, rec: null, free: false, capMs: 0, pilot: null, errors: [],
   };
   const now = () => performance.now();
 
@@ -227,6 +229,12 @@ const INSTRUMENT = /* js */ `(() => {
   const tick = () => {
     scheduled = false;
     const gl = PP.gl;
+    /* --cap: no frame starts sooner after the last than the shell's own
+     * frame cap would draw it (main.js: 1000 / cap less 1 ms of slack). */
+    if (PP.free && PP.capMs && lastStart && now() - lastStart < PP.capMs) {
+      kick();
+      return;
+    }
     /* Free running, a frame waits for the GPU to finish the frame two
      * before it, or the command queue grows without bound. */
     if (PP.free && fences.length >= 2) {
@@ -325,12 +333,13 @@ const INSTRUMENT = /* js */ `(() => {
     return { gl: Boolean(PP.gl), timer: Boolean(PP.ext) };
   };
 
-  PP.record = async (seconds, free) => {
+  PP.record = async (seconds, free, cap) => {
     const heap0 = performance.memory ? performance.memory.usedJSHeapSize : null;
     longTasks.length = 0;
     PP.dist = 0;
     PP.rec = [];
     PP.free = free;
+    PP.capMs = cap > 0 ? 1000 / cap - 1.0 : 0;
     lastStart = 0;
     if (free) { scheduled = false; kick(); }
     await new Promise((done) => setTimeout(done, seconds * 1000));
@@ -642,7 +651,7 @@ const f = (x, d = 2) => (x == null ? 'n/a' : x.toFixed(d));
 
 function table(id, s) {
   const lines = [
-    `${id}: ${s.frames} frames in ${f(s.seconds, 1)} s, preset ${opts.preset}, pace ${opts.pace}`,
+    `${id}: ${s.frames} frames in ${f(s.seconds, 1)} s, preset ${opts.preset}, pace ${opts.pace}${opts.cap ? `, cap ${opts.cap}` : ''}`,
     `  frame ms   avg ${f(s.frameMs.avg)}  p50 ${f(s.frameMs.p50)}  p95 ${f(s.frameMs.p95)}  p99 ${f(s.frameMs.p99)}  max ${f(s.frameMs.max)}  1% low ${f(s.low1Fps, 1)} fps`,
     `  over       11.1 ms ${s.over.budget}  16.7 ms ${s.over.ms16}  33.3 ms ${s.over.ms33}   headroom vs 11.1: avg ${f(s.headroomMs.avg)}  p95 ${f(s.headroomMs.p95)}`,
     `  cpu ms     physics ${f(s.cpu.physics)}  scene ${f(s.cpu.scene)}  render ${f(s.cpu.render)}  other ${f(s.cpu.other)}  gpu wait ${f(s.cpu.gpuWait)}`,
@@ -694,7 +703,7 @@ async function runScenario(id) {
     await page.cdp.send('Profiler.enable', {}, page.sessionId);
     await page.cdp.send('Profiler.setSamplingInterval', { interval: 500 }, page.sessionId);
     await page.cdp.send('Profiler.start', {}, page.sessionId);
-    const raw = await page.evaluate(`window.__PP.record(${opts.seconds}, ${opts.pace === 'free'})`);
+    const raw = await page.evaluate(`window.__PP.record(${opts.seconds}, ${opts.pace === 'free'}, ${Number(opts.cap) || 0})`);
     const { profile } = await page.cdp.send('Profiler.stop', {}, page.sessionId);
     const loadAfter = gpuLoad();
     const s = summarise(raw);
