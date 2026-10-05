@@ -715,9 +715,9 @@ export async function buildBuilt({
       const tx = cx + 5;
       const tz = cz - 4.2;
       const gt = ground(tx, tz) - 0.2;
-      const kit = sink(tx, tz, 'kit');
-      boxInto(kit, tx, tz, 1, 0, 1.2, 1.2, gt - 0.3, gt + b.h + 4, [0.3, 0.31, 0.31]);
-      boxInto(kit, tx, tz, 1, 0, 2.0, 1.5, gt + b.h + 4, gt + b.h + 5.2, [0.36, 0.37, 0.37]);
+      const leg = sink(tx, tz, 'walls');
+      boxInto(leg, tx, tz, 1, 0, 1.2, 1.2, gt - 0.3, gt + b.h + 4, lift([0.3, 0.31, 0.31]));
+      boxInto(leg, tx, tz, 1, 0, 2.0, 1.5, gt + b.h + 4, gt + b.h + 5.2, lift([0.36, 0.37, 0.37]));
       box(tx, tz, 1, 0, 1.2, 1.2, gt - 0.3, gt + b.h + 4);
       box(tx, tz, 1, 0, 2.0, 1.5, gt + b.h + 4, gt + b.h + 5.2);
       continue;

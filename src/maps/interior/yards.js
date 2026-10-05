@@ -95,6 +95,19 @@ const LEAF = [[0.016, 0.045, 0.014], [0.022, 0.055, 0.016], [0.018, 0.04, 0.016]
 const FROND = [0.07, 0.1, 0.03];
 const TRUNK = [0.11, 0.09, 0.07];
 const LINE = [0.75, 0.75, 0.72];
+const GRASS = [[0.06, 0.095, 0.03], [0.07, 0.108, 0.034]];
+const WORN = [0.14, 0.075, 0.04];
+
+/* A quad lying on the ground, wound to face up whichever way its
+ * corners were given. */
+function upQuad(s, a, b, c, d, colour) {
+  const up = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]) > 0;
+  if (up) {
+    s.quad(a, b, c, d, colour);
+  } else {
+    s.quad(d, c, b, a, colour);
+  }
+}
 
 /* A thin level strip from a to b at heights y0..y1 (a wire, a line): a
  * single quad, the props material is double sided. */
@@ -373,11 +386,30 @@ export function dressYards({
         const p = (t, side) => {
           const x = ax + (bx - ax) * t + nx * side;
           const z = az + (bz - az) * t + nz * side;
-          return [x, ground(x, z) + 0.03, z];
+          return [x, ground(x, z) + 0.05, z];
         };
-        marks.quad(p(i / n, 1), p((i + 1) / n, 1), p((i + 1) / n, -1), p(i / n, -1), LINE);
+        upQuad(marks, p(i / n, 1), p((i + 1) / n, 1), p((i + 1) / n, -1), p(i / n, -1), LINE);
       }
     };
+    /* The grass, mown in stripes across the pitch, worn bare in each
+     * goal mouth: what reads of a pitch from a survey's range. */
+    const stripes = 12;
+    for (let i = 0; i < stripes; i += 1) {
+      const xa = x0 - 1.5 + ((x1 - x0 + 3) * i) / stripes;
+      const xb = x0 - 1.5 + ((x1 - x0 + 3) * (i + 1)) / stripes;
+      const colour = i % 2 ? GRASS[0] : GRASS[1];
+      for (let z = z0 - 1.5; z < z1 + 1.5 - 1e-6; z += 4) {
+        const za = z;
+        const zb = Math.min(z1 + 1.5, z + 4);
+        const at = (x, zz) => [x, ground(x, zz) + 0.03, zz];
+        upQuad(marks, at(xa, za), at(xb, za), at(xb, zb), at(xa, zb), colour);
+      }
+    }
+    for (const xe of [x0, x1]) {
+      const e = xe === x0 ? 1 : -1;
+      const at = (x, zz) => [x, ground(x, zz) + 0.04, zz];
+      upQuad(marks, at(xe, zm - 3.5), at(xe + e * 4, zm - 3.5), at(xe + e * 4, zm + 3.5), at(xe, zm + 3.5), WORN);
+    }
     line(x0, z0, x1, z0);
     line(x1, z0, x1, z1);
     line(x1, z1, x0, z1);
