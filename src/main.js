@@ -5611,7 +5611,7 @@ export async function boot({
   }
   /* A game on, or combat's card between rounds: its HUD is on screen. */
   function roomGameUp() {
-    return roomRunning() != null || roomCombat.round().state === 'over';
+    return roomRunning() != null || roomCombat.round().state === 'over' || roomOps.on();
   }
   let roomBarAt = 0;
   function roomBarFrame(wallMs) {
@@ -17581,8 +17581,11 @@ export async function boot({
      * the intro orbit or a menu. */
     const hudStyle = hudStyleFor(ui.settings, runAirframe);
     const fpvHudUp = fpvLensLive && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused');
-    fpvOsd.tick(hudStyle === 'osd' && fpvHudUp, ui.screen === 'paused', nowWall);
-    avionicsFrame(hudStyle === 'avionics' && fpvHudUp && avxFed, ui.screen === 'paused', nowWall, dt / 1000);
+    /* In an ops match the quiet HUD is the HUD, in every view: the OSD and
+     * the Avionics HUD stand down rather than draw over it. */
+    const opsMatchUp = roomOps.on() && mode === 'flight';
+    fpvOsd.tick(hudStyle === 'osd' && fpvHudUp && !opsMatchUp, ui.screen === 'paused', nowWall);
+    avionicsFrame(hudStyle === 'avionics' && fpvHudUp && avxFed && !opsMatchUp, ui.screen === 'paused', nowWall, dt / 1000);
     /* THE CAMERA BALL: its sensor, the room's camera and captures, its
      * HUD. Leaving the view gives the sensor back its settings. */
     if (ballWas && !ballOn) {
