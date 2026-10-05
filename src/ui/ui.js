@@ -816,6 +816,10 @@ const DEFAULTS = {
    * lowers it, 'balanced' may take it to 75 percent to hold the frame
    * budget, 'performance' aims lower and may go to 50. */
   perfMode: 'balanced',
+  /* The frame readout low on the left (src/ui/perfoverlay.js),
+   * F3. Not `readout`: that was the old corner's key, and a profile that
+   * had it on would have the new one on without asking. */
+  perfOverlay: false,
   packVoltage: 4.2,
   /* Each plane's power system and pack or tank, by airframe id:
    * { option, pack }, configs/power.js. A plane with no entry flies its
@@ -7108,6 +7112,7 @@ export class Ui {
           (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`),
           (n) => { s.fpsCap = n; },
         ),
+        toggle(str('ui.frame_readout'), str('ui.frame_readout_note'), s.perfOverlay, (v) => { s.perfOverlay = v; }),
         choice(
           str('ui.hud_style'),
           str('ui.hud_style_note'),

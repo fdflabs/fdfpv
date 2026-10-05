@@ -95,6 +95,11 @@ export function createDynRes() {
     budgetMs: 1000 / TARGET_HZ,
     gpu: false,
     gpuMs: 0,
+    /* The frame readout (src/ui/perfoverlay.js) asks for the timer even
+     * where resolution is not moved (Quality), and reads gpuSeen: an EMA
+     * of every sample, which a scale change does not zero as it does gpuMs. */
+    watch: false,
+    gpuSeen: 0,
     frameMs: 0,
     displayMs: 1000 / 60,
     over: 0,
@@ -148,8 +153,15 @@ export function createDynRes() {
     return false;
   }
 
+  function setWatch(on) {
+    s.watch = Boolean(on);
+    if (!s.watch) {
+      s.gpuSeen = 0;
+    }
+  }
+
   function beginGpu() {
-    if (!s.enabled || !ext || active || pool.length === 0) {
+    if (!(s.enabled || s.watch) || !ext || active || pool.length === 0) {
       return;
     }
     active = pool.pop();
@@ -181,6 +193,9 @@ export function createDynRes() {
         got = ns / 1e6;
       }
     }
+    if (got >= 0) {
+      s.gpuSeen = s.gpuSeen === 0 ? got : s.gpuSeen + (got - s.gpuSeen) * 0.1;
+    }
     return got;
   }
 
@@ -191,6 +206,9 @@ export function createDynRes() {
    */
   function observe(nowMs, shellMs) {
     if (!s.enabled) {
+      if (s.watch && ext) {
+        collectGpu();
+      }
       lastDraw = -1;
       return false;
     }
@@ -319,5 +337,5 @@ export function createDynRes() {
     lastDraw = -1;
   }
 
-  return { state: s, bind, setMode, beginGpu, endGpu, observe, refuse, reset };
+  return { state: s, bind, setMode, setWatch, beginGpu, endGpu, observe, refuse, reset };
 }

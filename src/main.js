@@ -53,6 +53,7 @@ import * as THREE from 'three';
 import { buildShell } from './render/shell.js';
 import { applyPixelRatio, normalizeGraphics, pixelRatioFor } from './render/quality.js';
 import { createDynRes } from './render/dynres.js';
+import { PerfOverlay } from './ui/perfoverlay.js';
 import { readGpuInfo } from './render/gpuinfo.js';
 import { makeAttractCamera } from './render/attract.js';
 import { measureBudget } from './render/budget.js';
@@ -1881,6 +1882,27 @@ export async function boot({
   const dynres = createDynRes();
   dynres.bind(shell.renderer.getContext(), gpuInfo.software);
   dynres.setMode(ui.settings.perfMode, Number(ui.settings.fpsCap) || 0, gpuInfo.software);
+  const perfOverlay = new PerfOverlay(uiRoot);
+  perfOverlay.setOn(ui.settings.perfOverlay);
+  dynres.setWatch(ui.settings.perfOverlay);
+  /* F3 is the readout's key, as it was before the readout went
+   * (src/ui/perfoverlay.js). Taken here and not in ui.handleKey because
+   * the browser's own F3 (find next) has to be refused on the event. */
+  window.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (e.code !== 'F3' || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable))) {
+      return;
+    }
+    e.preventDefault();
+    if (e.repeat) {
+      return;
+    }
+    ui.settings.perfOverlay = !ui.settings.perfOverlay;
+    ui.persistSettings();
+    perfOverlay.setOn(ui.settings.perfOverlay);
+    dynres.setWatch(ui.settings.perfOverlay);
+  });
+  window.__perfOverlay = () => ({ on: perfOverlay.on, ...perfOverlay.shown, text: perfOverlay.el.textContent });
   /*
    * A machine with no usable GPU hands WebGL to SwiftShader or llvmpipe and
    * keeps drawing, so nothing fails and nothing says why. It just runs at a
@@ -12737,6 +12759,8 @@ export async function boot({
     if (dynres.setMode(s.perfMode, Number(s.fpsCap) || 0, gpuInfo.software)) {
       resizeDirty = true;
     }
+    perfOverlay.setOn(s.perfOverlay);
+    dynres.setWatch(s.perfOverlay);
     const wantPr = pixelRatioFor(s.graphics, userScale, null, dynres.state.scale);
     const userChanged = !!(view && view.post && view.post.userScale != null
       && view.post.userScale !== userScale);
@@ -18120,6 +18144,11 @@ export async function boot({
      * scripts/device-check.js read the same figures out of a real browser,
      * which is where a performance number belongs: in a check that can
      * fail, not in a corner nobody reads while flying.
+     *
+     * A readout came back on 2026-10-05, asked for by the owner for the
+     * 90 fps work, on the opposite terms: off unless the pilot turns it on
+     * (Settings or F3), low on the left, out of the first screen's way
+     * (src/ui/perfoverlay.js, fed after the frame below).
      */
     window.__shellReady = true;
     window.__mode = mode;
@@ -18143,6 +18172,11 @@ export async function boot({
           resizeDirty = true;
         }
       }
+    }
+    if (drawThis) {
+      const ds = dynres.state;
+      perfOverlay.frame(nowWall, blockMs, ds.gpu && ds.gpuSeen > 0 ? ds.gpuSeen : -1,
+        renderStats.calls, renderStats.triangles, ds.scale, capHz);
     }
     if (frames > 2) {
       if (blockMs > worstBlockMs) {
