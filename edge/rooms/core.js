@@ -245,7 +245,8 @@ export class RoomCore {
    * (safety.js). A room stored before the browser has none of the last
    * five, and reads as private, unnamed and set up for nothing.
    * options.turn is the platform's TURN credential minter, or null
-   * (edge/rooms/voice.js).
+   * (edge/rooms/voice.js). options.devMissions starts the campaign's
+   * missions in development too (edge/rooms/war.js).
    */
   constructor(meta, options = {}) {
     this.meta = meta;
@@ -262,7 +263,7 @@ export class RoomCore {
     this.tag = new RoomTag(); /* Catch the Ace, edge/rooms/tag.js */
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
-    this.war = new RoomWar(meta); /* Defend Itaipu, edge/rooms/war.js */
+    this.war = new RoomWar(meta, { devMissions: options.devMissions === true }); /* Defend Itaipu, edge/rooms/war.js */
     this.gameLobby = new RoomGameLobby(); /* a game room's lobby, edge/rooms/gamelobby.js */
     this.voice = new RoomVoice(options.turn || null); /* voice chat's signalling, edge/rooms/voice.js */
     this.hosting = new Hosting();

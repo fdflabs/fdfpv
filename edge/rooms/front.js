@@ -76,6 +76,7 @@ import {
   LIST_EVERY_MS, PUBLIC_CAP, ROOM_SETUPS, codeFromBytes, normaliseCode, normaliseRoomName,
 } from '../../src/share/roomwire.js';
 import { MISSIONS } from '../../src/share/war/missions/index.js';
+import { released } from '../../src/game/campaign.js';
 import { badWordIn } from '../../tracks-api/words.js';
 import { sha256Base64 } from '../../src/share/identity.js';
 import { retiredMap } from '../../src/maps/retired.js';
@@ -204,7 +205,8 @@ async function makeRoom(env, code, room) {
 }
 
 /* Whether a war room may be made on `map` with `mission` (an id, or null
- * for the map's first): the map is some mission's, and so is the id. */
+ * for the map's first): the map is some mission's, and so is the id. A
+ * mission not yet released is the caller's to refuse, by its own word. */
 function warFits(map, mission) {
   const all = Object.values(MISSIONS);
   if (mission === null) {
@@ -245,6 +247,9 @@ async function create(request, env, origin) {
   const mission = body.mission ?? null;
   if (war ? !warFits(body.map, mission) : mission !== null) {
     return refuse(400, 'bad');
+  }
+  if (war && mission !== null && !released(mission, env.DEV_MISSIONS === true)) {
+    return refuse(403, 'unreleased');
   }
   if (open && env.PUBLIC_ROOMS !== 'on') {
     return refuse(403, 'closed');

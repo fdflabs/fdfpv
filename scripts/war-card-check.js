@@ -13,7 +13,7 @@
  * with three public rooms of 32 letter names listed above them, no name
  * cut, an upright phone's panel listing two.
  *
- * The way in: Defend the Paraná on home opens its campaign page, four
+ * The way in: Defend the Paraná on home opens its campaign page, Act 1's seven
  * missions; mission 1's Play with no consent stored is the consent
  * screen; Back leaves the pilot on that page with no room; Play again and
  * Continue:
@@ -332,8 +332,8 @@ try {
   check('a fresh profile has not consented', await page.evaluate('window.__ui.settings.warConsent !== true'));
   const firstPage = await playMission1(page);
   await page.until(`${DIALOG} !== null`, 10000).catch(() => {});
-  check('Defend the Paraná on home is its campaign page, four missions, and Play on mission 1 the consent screen',
-    firstPage && firstPage.page === 'missions' && firstPage.missions === 4 && (await page.evaluate(DIALOG)) === 'Defend the Paraná',
+  check('Defend the Paraná on home is its campaign page, Act 1\'s seven missions, and Play on mission 1 the consent screen',
+    firstPage && firstPage.page === 'missions' && firstPage.missions === 7 && (await page.evaluate(DIALOG)) === 'Defend the Paraná',
     JSON.stringify({ firstPage, dialog: await page.evaluate(DIALOG) }));
   await shot(page, 'consent');
   await answer(page, 'Back');

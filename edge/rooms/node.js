@@ -477,12 +477,15 @@ function lobbyObject(env) {
 
 /* roomCap: every new room's cap, for scripts/rooms-load.js alone; a seat
  * is a byte on the wire and the client colours sixteen, so the process's
- * own entry point below never reads it. revision: what GET /v2/version
+ * own entry point below never reads it. devMissions: start the campaign's
+ * missions still in development too (src/game/campaign.js released), for
+ * the checks that fly missions 2 to 4 and a developer's own server; the
+ * entry point reads DEV_MISSIONS=on, which the VM never sets. revision: what GET /v2/version
  * answers, the deployed REVISION file's (node-http.js readRevision) unless
  * a check passes its own. */
 export function startRooms({
   db, port, host = '127.0.0.1', publicRooms = 'on', adminSecret = '', roomCap = 0, accountsOrigin = '', turnSecret = '', turnUrls = '',
-  revision = readRevision(new URL('../../REVISION', import.meta.url)),
+  devMissions = false, revision = readRevision(new URL('../../REVISION', import.meta.url)),
 }) {
   if (!(Number.isInteger(roomCap) && roomCap >= 0 && roomCap <= 64)) {
     throw new Error(`roomCap ${roomCap}: 0 (the usual caps) to 64`);
@@ -490,7 +493,7 @@ export function startRooms({
   const store = new Store(db);
   const env = {
     PUBLIC_ROOMS: publicRooms, ADMIN_SECRET: adminSecret, ROOM_CAP: roomCap, ACCOUNTS_ORIGIN: accountsOrigin.replace(/\/+$/, ''),
-    TURN: turnMinter(turnSecret, turnUrls), REVISION: revision,
+    TURN: turnMinter(turnSecret, turnUrls), REVISION: revision, DEV_MISSIONS: devMissions === true,
   };
   env.ROOMS = new Namespace((name) => new Room(name, store, env));
   env.LOBBY = new Namespace(() => lobbyObject(env));
@@ -575,8 +578,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     accountsOrigin: process.env.ACCOUNTS_ORIGIN || '',
     turnSecret: process.env.TURN_SECRET || '',
     turnUrls: process.env.TURN_URLS || '',
+    devMissions: process.env.DEV_MISSIONS === 'on',
   });
-  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}${running.env.TURN ? '' : ', no TURN relay: voice is peer to peer through STUN alone'}`);
+  console.log(`fdfpv rooms on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: the admin route refuses everyone'}${running.env.TURN ? '' : ', no TURN relay: voice is peer to peer through STUN alone'}${running.env.DEV_MISSIONS ? ', DEV_MISSIONS: missions in development start too' : ''}`);
   process.on('SIGTERM', async () => {
     await running.stop();
     process.exit(0);

@@ -204,7 +204,9 @@ const sameEvent = (x, y) => Boolean(x && y) && JSON.stringify({ ...x, mine: 0 })
 
 const scratch = mkdtempSync(join(tmpdir(), 'fdfpv-war-'));
 const { startRooms } = await import('../edge/rooms/node.js');
-const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0 });
+/* devMissions: a --mission= in development is one only a check's own
+ * server starts (src/game/campaign.js released). */
+const server = await startRooms({ db: join(scratch, 'rooms.db'), port: 0, devMissions: true });
 const rooms = `http://127.0.0.1:${server.port}`;
 /* The room's own half, in this process: what it judged, for the details
  * of a failure. */

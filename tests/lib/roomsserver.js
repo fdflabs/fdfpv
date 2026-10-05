@@ -44,15 +44,19 @@ function freePort() {
   });
 }
 
-/* `named` is the url given on the command line, or empty for our own. */
-export async function roomsServer(named, label) {
+/* `named` is the url given on the command line, or empty for our own.
+ * devMissions: our own starts the campaign's missions in development too
+ * (edge/rooms/node.js DEV_MISSIONS); a named one is as it was started. */
+export async function roomsServer(named, label, { devMissions = false } = {}) {
   if (named) {
     return { url: named, stop: async () => {} };
   }
   const dir = await mkdtemp(join(tmpdir(), `${label}-rooms-`));
   const port = await freePort();
   const proc = spawn(process.execPath, [join(root, 'edge/rooms/node.js')], {
-    env: { ...process.env, ROOMS_DB: join(dir, 'rooms.db'), PORT: String(port), HOST: '127.0.0.1' },
+    env: {
+      ...process.env, ROOMS_DB: join(dir, 'rooms.db'), PORT: String(port), HOST: '127.0.0.1', DEV_MISSIONS: devMissions ? 'on' : '',
+    },
     stdio: ['ignore', 'ignore', 'inherit'],
   });
   let exited = null;
