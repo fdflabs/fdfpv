@@ -65,6 +65,11 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     stab: true,
     rec: { on: false, s: 0 },
     pipMode: 'ir_wh',
+    /* A mode the inset keeps whatever the main view's (the camera ball's
+     * IR inset under an EO picture), or null: the inset shows the main
+     * view's mode. With one set, the inset is drawn under a full screen
+     * sensor too. */
+    pipOverride: null,
     healthy: true,
     noise: 0,
     /* Additions to section 5.1, docs/AVIONICS-SENSORS.md sections 1 and 4.
@@ -265,7 +270,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
       lastT = tS;
       snow = video ? Math.min(1, Math.max(0, video.snow || 0)) : 0;
       state.healthy = !(video && video.lost);
-      state.pipMode = state.mode;
+      state.pipMode = state.pipOverride ?? state.mode;
       if (camera) {
         state.fovRad = (camera.fov * Math.PI) / 180 / (state.zoom * cropOf());
       }
@@ -299,7 +304,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
         v.stab = stab;
         v.crop = cropOf();
       }
-      pipView.mode = state.mode;
+      pipView.mode = state.pipMode;
       mainView.mode = state.mode;
       if (state.mainView === 'eo') {
         /* The pilot's picture: exactly the map's own, the composer to
@@ -309,7 +314,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
       pipView.snow = state.healthy ? snow : 1;
       /* Full screen, the inset would only repeat the main view: it is not
        * drawn, and the HUD hides its slot. */
-      view.frame(s, camera, post, mainView, state.mainView === 'sensor' ? null : pipView, dt);
+      view.frame(s, camera, post, mainView, state.mainView === 'sensor' && !state.pipOverride ? null : pipView, dt);
     },
     project,
     setMode(mode) {
@@ -348,6 +353,14 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     setExposure(ev) {
       state.exposure.auto = ev === null;
       state.exposure.ev = ev === null ? 0 : ev;
+    },
+    /* The inset's own mode, or null to follow the main view's. */
+    setPipMode(mode) {
+      if (mode !== null && !SENSOR_MODES.includes(mode)) {
+        throw new Error(`sensors: no mode ${mode}`);
+      }
+      state.pipOverride = mode;
+      state.pipMode = mode ?? state.mode;
     },
     setStab(on) {
       state.stab = Boolean(on);
