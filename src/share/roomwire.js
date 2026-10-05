@@ -1160,3 +1160,7 @@ export const VOICE_LINK_MAX = 0x7fffffff;
 export const RELAY_NONE = 0;
 export const RELAY_UDP = 1;
 export const RELAY_TCP = 2;
+
+/* Ops missions (The Interior first): no binary type (0xC0 to 0xCF held,
+ * unused) and the JSON type ops. edge/rooms/ops.js says what each op
+ * carries; the contract is docs/campaign/interior/CONTRACT-P0.md. */

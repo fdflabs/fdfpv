@@ -21,11 +21,12 @@
  */
 
 import {
-  ACT1, UPGRADES, applyResult, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
+  ACT1, INTERIOR, INTERIOR_CAMPAIGN, UPGRADES, applyResult, cardLabel, buy, campaignOwned, cannotBuy, cleanCampaign, createCampaignStore, credits,
   emptyCampaign, equip, expectedCredits, TWO_STAR_KILLS, gateOpen, loadoutOf, markSeen, mergeCampaign, released, seenFilm, spent, starsOf, totalStars, unlocked,
 } from '../src/game/campaign.js';
 import { loadoutDue, loadoutMessage, resultOf, startMessage } from '../src/share/campaignwar.js';
 import { MISSIONS } from '../src/share/war/missions/index.js';
+import { MISSIONS as OPS_MISSIONS } from '../src/share/ops/missions.js';
 import {
   SYNCED_SECTIONS, mergeBlobs, pickSynced, stampChanges,
 } from '../src/share/progressmerge.js';
@@ -176,6 +177,32 @@ check('the blob merges it by mergeCampaign, whatever the stamps', same(mergeBlob
 check('one side without it keeps the other\'s', same(mergeBlobs({ v: 1, data: {} }, two).data.campaign, cleanCampaign(phone))
   && !('campaign' in mergeBlobs({ v: 1, data: {} }, { v: 1, data: {} }).data));
 check('a change to it is stamped', stampChanges({ campaign: pc }, { campaign: phone }, 9).campaign === 9);
+
+console.log('The Interior (docs/campaign/interior/PLAN.md section 3, TECH-NEEDS.md N20)');
+check('its five missions, in order', INTERIOR.map((m) => m.id).join() === 'interior-1,interior-2,interior-3,interior-4,interior-5');
+check('Mission 1 is held in development: not started on the live server, started with dev', INTERIOR[0].release === 'development'
+  && !released('interior-1') && released('interior-1', true));
+check('2 to 5 are soon in the gate (no mission file) and never started, dev or not', INTERIOR.slice(1).every((m) => m.release === 'soon'
+  && !Object.hasOwn(OPS_MISSIONS, m.id) && !released(m.id) && !released(m.id, true)));
+check('Mission 1 has its mission file, as development means', Object.hasOwn(OPS_MISSIONS, 'interior-1'));
+check('the cards read Under development on 2 to 5 (the owner\'s words)', INTERIOR.slice(1).every((m) => cardLabel(m) === 'development')
+  && cardLabel(INTERIOR[0]) === 'development' && cardLabel(ACT1[4]) === 'soon');
+check('the campaign asks the war\'s consent first (armed conflict)', INTERIOR_CAMPAIGN.consent === true);
+{
+  const f = applyResult(fresh, 'interior-1', {
+    stars: 2, credits: 0, won: true, flags: { M1_SYMBOL_CAPTURED: true, 'bad flag': true, M1_X: 7 },
+  });
+  check('a result\'s flags are kept, junk dropped', same(f.flags, { M1_SYMBOL_CAPTURED: true }) && starsOf(f, 'interior-1') === 2, JSON.stringify(f.flags));
+  check('a flag once true stays true over a later result without it', applyResult(f, 'interior-1', { stars: 1, credits: 0, won: true, flags: {} }).flags.M1_SYMBOL_CAPTURED === true);
+  check('clean keeps flags of the script\'s shape only', same(cleanCampaign({ flags: { M5_FINAL_CHOICE: 'PRESERVE', M2_ALL_WATCHERS_FOUND: true, lower: true, M1_X: false } }).flags,
+    { M5_FINAL_CHOICE: 'PRESERVE', M2_ALL_WATCHERS_FOUND: true }));
+  const a = cleanCampaign({ flags: { M1_SYMBOL_CAPTURED: true, M5_FINAL_CHOICE: 'EXECUTE' } });
+  const b = cleanCampaign({ flags: { M1_CAMP_FULLY_DOCUMENTED: true, M5_FINAL_CHOICE: 'FOLLOW' } });
+  const ab = mergeCampaign(a, b);
+  check('merge: every flag either has, a word flag the incoming copy\'s', same(ab.flags, { M1_CAMP_FULLY_DOCUMENTED: true, M1_SYMBOL_CAPTURED: true, M5_FINAL_CHOICE: 'EXECUTE' }), JSON.stringify(ab.flags));
+  check('merge with flags is idempotent', same(mergeCampaign(ab, ab), ab));
+  check('the account blob carries the flags', same(mergeBlobs({ v: 1, data: { campaign: a } }, { v: 1, data: { campaign: b } }).data.campaign.flags, ab.flags));
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

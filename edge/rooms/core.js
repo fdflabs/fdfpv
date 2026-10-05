@@ -56,6 +56,7 @@ import { madeFor, minPlayersFor, modeById, modeOfRoom } from '../../src/share/mo
 import * as wrecks from './wrecks.js';
 import { RoomCombat } from './combat.js';
 import { RoomWar } from './war.js';
+import { RoomOps } from './ops.js';
 import { RoomGameLobby } from './gamelobby.js';
 import { RoomVoice, VOICE_PER_S } from './voice.js';
 
@@ -264,6 +265,7 @@ export class RoomCore {
     this.safety = new RoomSafety(this);
     this.combat = new RoomCombat(meta); /* combat, edge/rooms/combat.js */
     this.war = new RoomWar(meta, { devMissions: options.devMissions === true }); /* Defend Itaipu, edge/rooms/war.js */
+    this.ops = new RoomOps(meta, { devMissions: options.devMissions === true }); /* ops missions (The Interior), edge/rooms/ops.js */
     this.gameLobby = new RoomGameLobby(); /* a game room's lobby, edge/rooms/gamelobby.js */
     this.voice = new RoomVoice(options.turn || null); /* voice chat's signalling, edge/rooms/voice.js */
     this.hosting = new Hosting();
@@ -312,7 +314,7 @@ export class RoomCore {
   finished() {
     const m = this.war.match;
     const r = this.race.race;
-    return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.combat.round.state === 'over'
+    return Boolean(m && ['won', 'lost', 'ended'].includes(m.state)) || this.ops.finished() || this.combat.round.state === 'over'
       || Boolean(this.tag.match && this.tag.match.state === 'results') || Boolean(r && r.state === 'results');
   }
 
@@ -405,6 +407,8 @@ export class RoomCore {
       { id: 'tag', on: this.tag.on(), players: this.tag.players(this), min: minPlayersFor('tag', this.meta.mode), end: () => this.tag.abandon(this, now) },
       { id: 'combat', on: this.combat.on(), players: this.combat.players(), min: minPlayersFor('combat', this.meta.mode), end: () => this.combat.stop(this) },
       { id: 'war', on: this.war.on(), players: this.war.players(this), min: minPlayersFor('war', this.meta.mode), end: () => this.war.abandon(this, now) },
+      /* No mode registry entry yet: one pilot flies an ops mission alone. */
+      { id: 'ops', on: this.ops.on(), players: this.ops.players(this), min: 1, end: () => this.ops.abandon(this, now) },
     ];
   }
 
@@ -452,7 +456,7 @@ export class RoomCore {
    * counts down, and nothing else would move it on until one flies. */
   waiting() {
     return this.seats.size > 0 && (this.abandoned.size > 0 || this.hosting.awaySince != null || this.combat.waiting()
-      || this.war.on() || this.gameLobby.waiting(this) || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
+      || this.war.on() || this.ops.on() || this.gameLobby.waiting(this) || (this.gameLobby.game(this) !== null && (this.combat.on() || this.tag.on())));
   }
 
   wake() {
@@ -481,9 +485,11 @@ export class RoomCore {
     const start = (msg.type === 'tag' && msg.op === 'start') ? 'tag'
       : (msg.type === 'combat' && msg.op === 'start') ? 'combat'
         : (msg.type === 'war' && msg.op === 'start') ? 'war'
+          : (msg.type === 'ops' && msg.op === 'start') ? 'ops'
           : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
     const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
-      || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'));
+      || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'))
+      || (msg.type === 'ops' && (msg.op === 'end' || msg.op === 'lock'));
     if (!hostOnly) {
       return null;
     }
@@ -493,6 +499,11 @@ export class RoomCore {
      * handle a public room's trouble. */
     if (this.meta.public && msg.type === 'kick') {
       return refuse('public');
+    }
+    /* Ops missions run in private rooms only until they have a mode of
+     * their own (edge/rooms/ops.js). */
+    if (this.meta.public && start === 'ops') {
+      return refuse('private');
     }
     /* A public room runs the war only when it was made for it: those are
      * listed as the war's and a quick join never lands in one (lobby.js),
@@ -541,6 +552,9 @@ export class RoomCore {
         game: 'war', state: this.war.match.state === 'live' ? 'on' : 'countdown',
         wave: Math.min(this.war.match.wave + 1, mission.waves.length), waves: mission.waves.length,
       };
+    }
+    if (this.ops.on()) {
+      return { game: 'ops', state: this.ops.match.state === 'live' ? 'on' : 'countdown' };
     }
     /* A free flight room flying since its lobby's start. */
     if (modeOfRoom(this.meta.mode)?.openEnded && this.gameLobby.live) {
@@ -796,6 +810,7 @@ export class RoomCore {
         ...this.race.welcome(),
         ...this.tag.welcome(this),
         ...this.war.welcome(this),
+        ...this.ops.welcome(this),
         ...this.gameLobby.welcome(this),
       }),
     });
@@ -807,6 +822,7 @@ export class RoomCore {
     this.combat.seat(seat, profile.airframe);
     actions.push(...this.combat.join(this, conn));
     actions.push(...this.war.join(this, conn));
+    actions.push(...this.ops.join(this, conn, now));
     actions.push(...this.gameLobby.join(this, now));
     actions.push(...this.settle(now));
     return actions;
@@ -902,6 +918,9 @@ export class RoomCore {
     if (msg.type === 'war') {
       return [...first, ...this.war.message(this, conn, s, msg, now), ...this.wake()];
     }
+    if (msg.type === 'ops') {
+      return [...first, ...this.ops.message(this, conn, s, msg, now), ...this.wake()];
+    }
     const safe = this.safety.text(conn, s, msg, now);
     if (safe) {
       return safe;
@@ -968,6 +987,7 @@ export class RoomCore {
         this.referee.leave(seat);
         this.combat.leave(seat);
         this.war.leave(seat);
+        this.ops.leave(seat, this.roomMs(now));
         return [
           { close: conn, code: CLOSE.kicked, reason: 'kicked' },
           ...this.others(conn, JSON.stringify({ type: 'leave', seat, host: this.host() })),
@@ -1005,6 +1025,7 @@ export class RoomCore {
     /* After the referee: a crash from a hit it just decided is a mid air's. */
     hits.push(...this.combat.pose(this, s, now));
     hits.push(...this.war.pose(this, s, checked.bytes, now));
+    hits.push(...this.ops.pose(this, s, checked.bytes, now));
     if (this.ticking) {
       return hits;
     }
@@ -1025,7 +1046,7 @@ export class RoomCore {
   tick(now) {
     this.referee.tick(this.roomMs(now));
     this.tickNo += 1;
-    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.gameLobby.tick(this, now)];
+    const out = [...this.race.tick(this, now), ...this.tag.tick(this, now), ...this.combat.tick(this, now), ...this.war.tick(this, now), ...this.ops.tick(this, now), ...this.gameLobby.tick(this, now)];
     out.push(...this.settleHost(now), ...this.settleGames(now));
     const flying = [...this.seats.values()].filter((f) => f.pose);
     const at = new Map(flying.map((f) => [f, poseAt(f.pose)]));
@@ -1089,6 +1110,7 @@ export class RoomCore {
     this.referee.leave(s.seat);
     this.combat.leave(s.seat);
     this.war.leave(s.seat);
+    this.ops.leave(s.seat, this.roomMs(now));
     for (const [token, r] of this.recent) {
       if (r.until <= now) {
         this.recent.delete(token);
