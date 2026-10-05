@@ -77,6 +77,11 @@ jobs:
       # the end, a laggy run, a squad of five, the soft fail and its
       # checkpoint, the boundary, the ISR down.
       - run: npm run interior:stages
+      # The camera ball holds a locked point through an orbit and its
+      # picture is the room's geometry; the screen's capture scorer gives
+      # the expected grades and its stills reach a real room.
+      - run: npm run camera:lock
+      - run: npm run capture:score
       # The Interior's world in Node (track WORLD): every name invented and
       # no real coordinate, the canopy's line of sight, every route walked.
       # Their browser halves (--browser) stay local.

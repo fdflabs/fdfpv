@@ -85,11 +85,11 @@ export const CLASSES = ['unknown', 'civilian', 'friendly', 'poi', 'column-linked
 /* The marked shelter (a dial): where the mark is, and the side its
  * roof's underside can be seen from (MISSIONS.md M1 stage 5: one bearing
  * band, at a depression under 35 degrees: tan 35 = 0.700). */
-export const SHELTERS = {
-  s1: { at: P(SHELTER['shelter-1'].at, 1.5), dir: outward('shelter-1') },
-  s2: { at: P(SHELTER['shelter-2'].at, 1.5), dir: outward('shelter-2') },
-  s3: { at: P(SHELTER['shelter-3'].at, 1.5), dir: outward('shelter-3') },
-};
+/* The mark's dial to the map's shelter: the one table both the room's
+ * judging (SHELTERS) and the screen's painting (`camp` below) read. */
+export const MARKED = { s1: 'shelter-1', s2: 'shelter-2', s3: 'shelter-3' };
+export const SHELTERS = Object.fromEntries(Object.entries(MARKED)
+  .map(([k, id]) => [k, { at: P(SHELTER[id].at, 1.5), dir: outward(id) }]));
 
 const CAMP = ['camp-look', 'camp-tarp', 'camp-up', 'camp-mast', 'camp-moto-1', 'camp-moto-2', 'camp-1', 'camp-2'];
 /* The dispersal (MISSIONS.md M1, routes): two a direction. */
@@ -129,6 +129,17 @@ export default {
   /* The briefing: Mission 1's intro film, held for its length, preload
    * and all (src/share/interior/films, docs/campaign/interior/FILMS.md). */
   filmMs: briefingMs('interior-1'),
+  /* The hours of the day on the room clock (WORLD's clock.js): a screen
+   * moves the sun by it, the light rule below ends at its sunset. */
+  clock: M1_CLOCK,
+  /* The marked shelter as the map names it, by the mark's dial, so the
+   * screen paints the mark on the shelter the room judges (SHELTERS). */
+  camp: { mark: { dial: 'mark', map: MARKED } },
+  /* The items the debrief shows an analyst reconstruction for when nobody
+   * captured them (M1_10): the required survey, the camp, and the mark. */
+  debrief: {
+    required: ['bridge', 'road', 'sheds', 'colonia', 'crossing', 'shelters', 'motorcycles', 'antenna', 'personnel', 'access', 'symbol'],
+  },
   classes: CLASSES,
   roles: [
     {
@@ -140,7 +151,7 @@ export default {
   ],
   contacts: [
     {
-      id: 'moto-road', kind: 'vehicle', group: 'bravo-civil', faction: 'civilian',
+      id: 'moto-road', kind: 'vehicle', look: 'motorcycle', group: 'bravo-civil', faction: 'civilian',
     },
     {
       id: 'pair-a', kind: 'person', group: 'pair', faction: 'column', track: PAIR_TRACK,

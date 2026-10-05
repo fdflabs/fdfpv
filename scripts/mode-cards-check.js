@@ -98,7 +98,9 @@ async function shot(page, name) {
 const HUBS = 'Flight Club,Operations,Hangar';
 const NAMES = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!';
 /* Each hub's links, in order, as home draws them. */
-const LINKS = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!|Defend the Paraná|Aircraft,Customise,Calibrate sticks,How to fly';
+/* Operations: the war's campaign and The Interior beside it
+ * (docs/campaign/interior/TECH-NEEDS.md N20). */
+const LINKS = 'Track Day,Free Flight,Streamer Combat,Catch the Ace!|Defend the Paraná,The Interior|Aircraft,Customise,Calibrate sticks,How to fly';
 
 /* The gate's cards as laid out, and the window with its command bar. */
 const LAYOUT = `(() => ({
@@ -232,7 +234,7 @@ try {
     && await a.evaluate("document.querySelector('.screen-title .gate-cards').firstElementChild.classList.contains('gate-card-hub-club')"),
   home.cards.filter((x) => x.on).map((x) => x.name).join());
   check('each hub with its picture loaded and its mark drawn', home.cards.every((x) => x.loaded && x.mark));
-  check('each hub lists its activities as links: Track Day, Free Flight, Streamer Combat, Catch the Ace; the war; the Hangar\'s four',
+  check('each hub lists its activities as links: Track Day, Free Flight, Streamer Combat, Catch the Ace; the war and The Interior; the Hangar\'s four',
     home.cards.map((x) => x.links.join()).join('|') === LINKS, home.cards.map((x) => x.links.join()).join('|'));
   check('home shows the rooms panel (the owner, 2026-10-03), above the cards and clear of them and of the corner chips', panelLaidOut(home),
     `panel ${JSON.stringify(home.panel)} chips ${JSON.stringify(home.chips)} first card ${JSON.stringify(home.cards[0].box)}`);

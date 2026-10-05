@@ -191,21 +191,43 @@ try {
   await page.until('window.__shellReady === true', 300000);
   await page.until("window.__ui.onGate() && document.querySelectorAll('.screen-title .gate-card').length === 3", 60000).catch(() => {});
 
-  /* THE CARD: Operations is home's first hub, Defend the Paraná its link,
-   * and inside Operations its one card. */
+  /* THE CARD: Operations is home's second hub, Defend the Paraná its
+   * first link and The Interior (docs/campaign/interior/, N20) beside it,
+   * and inside Operations their two cards. */
   for (const [w, h] of [[390, 844], [360, 640], [1280, 720]]) {
     await resize(page, w, h);
     const v = await page.evaluate(LAYOUT);
-    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, the rooms panel above them, Operations second with Defend the Paraná its link`,
-      laidOut(v, 3, true) && v.cards[1].name === 'Operations' && v.cards[1].links.join() === 'Defend the Paraná',
+    check(`${w} by ${h}: home's three hubs inside the window, clear of the bar, the rooms panel above them, Operations second with Defend the Paraná and The Interior its links`,
+      laidOut(v, 3, true) && v.cards[1].name === 'Operations' && v.cards[1].links.join() === 'Defend the Paraná,The Interior',
       `${v.cards.map((x) => `${x.name} ${x.box} ${x.facts} ${x.links}`).join(' | ')} bar ${v.bar} scroll ${v.sw} panel ${v.panel}`);
     await shot(page, `gate-${w}x${h}`);
   }
   await click(page, '.gate-card-hub-ops .gate-card-name');
   await page.until("window.__ui.hub === 'ops'", 10000).catch(() => {});
   const ops = await page.evaluate(LAYOUT);
-  check('Operations holds Defend the Paraná, one card, inside the window', laidOut(ops, 1) && ops.cards[0].name === 'Defend the Paraná',
+  check('Operations holds Defend the Paraná and The Interior beside it, inside the window', laidOut(ops, 2) && ops.cards[0].name === 'Defend the Paraná' && ops.cards[1].name === 'The Interior',
     ops.cards.map((x) => `${x.name} ${x.box}`).join(' | '));
+  await shot(page, 'operations');
+
+  /* THE INTERIOR'S CARD: one click onto its page, five missions, Mission
+   * 1 held until release and 2 to 5 Under development (the owner's
+   * words), no consent asked and no room made by the card. */
+  await click(page, '.gate-card-interior .gate-card-name');
+  const INTERIOR_PAGE = `(() => {
+    const box = document.querySelector('.ops-campaign-box');
+    if (!box || document.querySelector('.name-dialog').hidden) { return null; }
+    return [...box.querySelectorAll('.campaign-mission')].map((m) => ({ id: m.dataset.mission, play: m.querySelector('.campaign-play').textContent, on: !m.querySelector('.campaign-play').disabled }));
+  })()`;
+  await page.until(`${INTERIOR_PAGE} !== null`, 10000).catch(() => {});
+  const interior = await page.evaluate(INTERIOR_PAGE);
+  const iUnasked = await page.evaluate("({ phase: window.__rooms().phase, consent: window.__ui.settings.interiorConsent === true })");
+  check('The Interior: its page lists interior-1 to interior-5, Mission 1 held until release, 2 to 5 Under development, none playable, no consent, no room',
+    interior && interior.map((m) => m.id).join() === 'interior-1,interior-2,interior-3,interior-4,interior-5'
+    && interior[0].play === 'Held until release' && interior.slice(1).every((m) => m.play === 'Under development') && interior.every((m) => !m.on)
+    && iUnasked.phase === 'idle' && !iUnasked.consent, JSON.stringify({ interior, iUnasked }));
+  await shot(page, 'interior');
+  await page.tap('Escape');
+  await page.until(`${INTERIOR_PAGE} === null`, 10000).catch(() => {});
   await page.tap('Escape');
   await page.until('window.__ui.hub === null', 10000).catch(() => {});
 

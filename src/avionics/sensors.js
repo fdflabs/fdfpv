@@ -33,6 +33,7 @@
 import * as THREE from 'three';
 import { setWeather, setMotorHeat } from '../render/thermal.js';
 import { createSensorView, INSET_SIZES } from '../render/sensorview.js';
+import { BAND, DETECTOR_PX } from './bands.js';
 
 export const SENSOR_MODES = ['eo', 'ir_wh', 'ir_bh', 'lowlight', 'fusion', 'contrast'];
 export const ZOOM_LEVELS = [1, 2, 4];
@@ -47,42 +48,6 @@ export function thermalMode(mode) {
 const STAB_TAU = 0.12;
 const STAB_CROP = 1.08;
 
-/*
- * WHAT A DETECTOR GETS FROM EACH MODE (docs/AVIONICS-SENSORS.md section 4).
- * native: the sensor's own pixels across the frame (a 1080p day camera, a
- * 1280 low light CMOS, a 640 thermal core). A detector looks at the
- * picture through a fixed 640 pixel input, so zoom brings more of the
- * native pixels onto a target until the crop has no more to give:
- * pxPerRad = min(native, 640 * zoom) / field.
- * contrast: how far a drone stands out of its background in that band, 0
- * to 1, by day and by night: an engine against a cold night is the
- * easiest thing a thermal camera ever sees, against sunlit concrete much
- * less so; a visible camera at night sees the lamps and little else.
- * light: whether the band needs light at all (thermal does not).
- * noise: the picture's own noise, by day and by night, before zoom and
- * snow add theirs.
- */
-const DETECTOR_PX = 640;
-const BAND = {
-  eo: {
-    tag: 'EO', native: 1920, contrast: [0.75, 0.12], light: true, noise: [0.04, 0.35],
-  },
-  contrast: {
-    tag: 'EO', native: 1920, contrast: [0.85, 0.15], light: true, noise: [0.08, 0.4],
-  },
-  lowlight: {
-    tag: 'EO', native: 1280, contrast: [0.6, 0.5], light: false, noise: [0.12, 0.3],
-  },
-  ir_wh: {
-    tag: 'IR', native: 640, contrast: [0.6, 0.95], light: false, noise: [0.08, 0.08],
-  },
-  ir_bh: {
-    tag: 'IR', native: 640, contrast: [0.6, 0.95], light: false, noise: [0.08, 0.08],
-  },
-  fusion: {
-    tag: 'IR', native: 1920, contrast: [0.8, 0.95], light: false, noise: [0.08, 0.1],
-  },
-};
 /* The visible light a camera has, day and night: by night the lamps and
  * the moon, about a twentieth of what a detector wants. */
 const LIGHT = { day: 1, night: 0.06 };
@@ -100,6 +65,11 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     stab: true,
     rec: { on: false, s: 0 },
     pipMode: 'ir_wh',
+    /* A mode the inset keeps whatever the main view's (the camera ball's
+     * IR inset under an EO picture), or null: the inset shows the main
+     * view's mode. With one set, the inset is drawn under a full screen
+     * sensor too. */
+    pipOverride: null,
     healthy: true,
     noise: 0,
     /* Additions to section 5.1, docs/AVIONICS-SENSORS.md sections 1 and 4.
@@ -300,7 +270,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
       lastT = tS;
       snow = video ? Math.min(1, Math.max(0, video.snow || 0)) : 0;
       state.healthy = !(video && video.lost);
-      state.pipMode = state.mode;
+      state.pipMode = state.pipOverride ?? state.mode;
       if (camera) {
         state.fovRad = (camera.fov * Math.PI) / 180 / (state.zoom * cropOf());
       }
@@ -334,7 +304,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
         v.stab = stab;
         v.crop = cropOf();
       }
-      pipView.mode = state.mode;
+      pipView.mode = state.pipMode;
       mainView.mode = state.mode;
       if (state.mainView === 'eo') {
         /* The pilot's picture: exactly the map's own, the composer to
@@ -344,7 +314,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
       pipView.snow = state.healthy ? snow : 1;
       /* Full screen, the inset would only repeat the main view: it is not
        * drawn, and the HUD hides its slot. */
-      view.frame(s, camera, post, mainView, state.mainView === 'sensor' ? null : pipView, dt);
+      view.frame(s, camera, post, mainView, state.mainView === 'sensor' && !state.pipOverride ? null : pipView, dt);
     },
     project,
     setMode(mode) {
@@ -383,6 +353,14 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     setExposure(ev) {
       state.exposure.auto = ev === null;
       state.exposure.ev = ev === null ? 0 : ev;
+    },
+    /* The inset's own mode, or null to follow the main view's. */
+    setPipMode(mode) {
+      if (mode !== null && !SENSOR_MODES.includes(mode)) {
+        throw new Error(`sensors: no mode ${mode}`);
+      }
+      state.pipOverride = mode;
+      state.pipMode = mode ?? state.mode;
     },
     setStab(on) {
       state.stab = Boolean(on);
