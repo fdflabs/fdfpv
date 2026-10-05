@@ -5,8 +5,8 @@ from the owner's three texts and five reference images (kept outside the
 repository in `~/Desktop/fdfpv-loop/interior/source/`, because the
 repository is public and the mocks are art direction, not assets).
 
-Status: PLAN, waiting on the owner's answers in section 9. Nothing is
-built until they are in.
+Status: PLAN, owner's answers in (section 9, 2026-10-05). Queued after
+First Light is 100%.
 
 ## 1. Sources and which one wins
 
@@ -21,12 +21,14 @@ Where the texts disagree, the mission script wins, then the cinematic
 treatment, then the campaign document. A conflict with a standing owner
 rule is not settled by any of them: it is in section 9.
 
-**Hard constraint on every agent brief:** no real country, place,
-person, group, symbol, incident or coordinates, anywhere: strings,
+**Hard constraint on every agent brief:** the land is recognisably
+northern Paraguay (owner, 2026-10-05), but no real town, person, armed
+group, symbol, incident or exact coordinates appears anywhere: strings,
 textures, HUD, file names. The region is "The Interior", the group is
 "The Column", the third party is "The Network". The mocks' real
 latitude and longitude, "AREA: CORDILLERA" and the serpent banner are
-not used. The symbol is an original mark designed for the game.
+not used. The symbol is an original mark designed for the game. Real
+landscape, invented places and people.
 
 ## 2. What the campaign is, in five lines
 
@@ -67,7 +69,7 @@ existing tracks, not a second contact system.
 
 | # | New part | Decision taken in this plan | Check (named before building) |
 | --- | --- | --- | --- |
-| N1 | **The Interior map**: farms, pasture, tree lines, drainage, a settlement, dense forest, clearings, dirt roads, one river, ~16 x 16 km | Real elevation data from a generic lowland area with **invented** roads, fields, settlements and forest, so the land is believable and nothing on it is a real place. Streamed tiles on the Itaipu and Yellowstone pipeline. Procedural only if no suitable data licence is found. | `interior:views` (budget 300 calls / 2.5 M tris like Itaipu), `interior:collide` sweep, photo loop rounds like swiss2 and Itaipu |
+| N1 | **The Interior map**: farms, pasture, tree lines, drainage, a settlement, dense forest, clearings, dirt roads, one river, ~16 x 16 km | Real elevation and land cover from a northern Paraguay area (open data with a licence that fits GPLv3, credited), with **invented** roads, settlements and buildings and no real place names, so the land reads as Paraguay and nothing on it is a real place. Streamed tiles on the Itaipu and Yellowstone pipeline. | `interior:views` (budget 300 calls / 2.5 M tris like Itaipu), `interior:collide` sweep, photo loop rounds like swiss2 and Itaipu |
 | N2 | **Canopy that hides people** | Forest built so a line of sight from the aircraft to a ground point is either open or blocked by crowns; thermal sees through gaps only. One function answers "visible from here?" | `canopy:los`: authored points under canopy, in gaps and in clearings, seen and not seen as expected from orbits |
 | N3 | **People on foot** | Low detail human figures, walking, standing, looking up, carrying a long object, sitting; authored routes (the script's "pre-authored concealment route"), never free roaming AI. Decimated at range, instanced. | `people:route`: each authored route walked on the sim clock, deterministic, same positions in Node and browser |
 | N4 | **Vehicles** | Motorcycles, pickups, a few trucks, on road splines and trails; the decoy swap (enter structure, several leave) as authored data | `vehicles:route` plus the decoy scenario run headless |
@@ -78,7 +80,7 @@ existing tracks, not a second contact system.
 | N9 | **Operations room films** | See section 9, question B. If people are allowed on screen: a small set of stylised, consistent character renders in a modest room, lip sync not attempted, the camera holds on monitors and maps as the treatment already favours. If not: the same films told on the room's monitors, maps and stills only, with the four voices. | `films:lint`, `films:time`, `film:world` |
 | N10 | **Four voices** | Vega, Ibarra, Rojas, Ferrer, generated like the war radio, en and es, licence checked against GPLv3 as before | `voice:check`, the ustedes check |
 | N11 | **Relay and interference** | Scripted story effects, owner rule of 4 Oct ("story moments only"): the relay is a placed volume the stage checks, the interference is a scripted picture effect. Dormant `signal.js` may be reused for presentation only. No RF model. | stage selftests |
-| N12 | **Strike, interceptor, enemy drones (M3 to M5)** | Depends on section 9, question A | per answer |
+| N12 | **Strike, interceptor, enemy drones (M3 to M5)** | Strike per section 9 A (abstract, confirmed only); interceptor and enemy drones reuse the war's air combat and markers in the Interior HUD's quieter style | `interior:strike` rows: refused before confirmation, consequence on a civilian, no aftermath drawn |
 
 ## 6. Aircraft for this campaign
 
@@ -87,7 +89,7 @@ war. The Interior has its own set, data driven like the war's:
 
 - **ISR:** Bramor C4EYE (M1 onward).
 - **Recon quad:** the closest kept quad after the 5 inch and whoop removal; Phase 0 picks it from `7inch`, `10inch` and `interceptor` by flight feel under canopy (M2 onward).
-- **Strike:** Striker or the quad chosen above, per question A (M3 onward).
+- **Strike:** Striker or the quad chosen above (M3 onward).
 - **Relay:** a fixed wing loiterer from the set above (M3 onward).
 - **Interceptor:** `interceptor` (M4 onward).
 
@@ -106,7 +108,7 @@ and the montage reads the flags.
 Each phase is its own PR or small set of PRs, checked, merged and live
 before the next starts.
 
-**Phase 0, foundations for Mission 1 only** (nothing for later missions):
+**Phase 0, foundations for Mission 1 only** (nothing for later missions), room side first:
 N1 map (first the M1 corridor: base, fields, settlement, forest edge,
 camp clearing), N2 canopy, N3 people (walk, stand, look up, carry), N4
 one motorcycle and one pickup, N5 capture, N6 objectives, N7 HUD, N8
@@ -126,32 +128,39 @@ three factions, counter-surveillance and the cache; M5 adds the
 gathering, the scripted interference, the archive and the three endings,
 the final film and the stinger.
 
-Multiplayer: solo first, inside the shared session system (Operations
-solo stays online, the lead's call of 3 Oct). A co-op split (one pilot on
-ISR, one on the quad) is a later extension, not part of any phase above.
+Multiplayer: **co-op from the start** (owner, 2026-10-05). Every mission
+is a room on the shared session system, playable alone or by a squad:
+the platforms of a mission are seats (ISR, quad, strike, relay,
+interceptor), a solo pilot switches between all of them by hot swap, a
+squad splits them, and the room owns every contact, classification,
+capture and flag so all pilots see one picture. Each mission's own doc
+says which beats need every pilot (the M5 final order is the host's,
+with the squad's captures). Phase 0 builds the room side of N3 to N6
+(people, vehicles, captures, objectives are room state, deterministic
+on the room clock), not a solo version first.
 
 ## 9. Questions for the owner (asked in chat, answers recorded here)
 
-A. **Strikes on people.** Standing rule: players never attack people and
-no person is shown harmed; the campaign has no strike operations. The
-Interior's M3 first engagement and M5 Execute strike people.
-Recommendation: strikes land on vehicles, equipment and drones only; the
-story is unchanged (the hostile's vehicle and radio, the archive vehicle).
+A. **Strikes on people.** ANSWERED: people, no aftermath. In The
+Interior only (Defend the Paraná keeps its rule), a strike may target a
+person, only once the room has them HOSTILE CONFIRMED or the script's
+authorization is given; presentation is abstract: sensor white out,
+"Threat stopped", no body, no gore, no slow motion, no kill banner (the
+script's own combat rules). A strike on a civilian or friendly is a
+mission consequence, never a reward. The campaign gets the war's consent
+screen, saying it shows armed conflict.
 
-B. **People on screen.** Act 1 shows no person ever. The Interior has
-named characters in a room and people on the ground seen from the air.
-Recommendation: people seen from the air, yes (the campaign is about
-watching them); the room films told on its monitors and maps with the
-four voices, faces kept off screen.
+B. **People on screen.** ANSWERED: people on the ground seen from the
+air, yes; the room films are told on its monitors, maps and stills with
+the four voices, faces kept off screen.
 
-C. **Country.** The texts say "no named country"; the game is the
-Paraguayan Drone Combat Simulator and the mocks carry real coordinates.
-Recommendation: the Interior stays unnamed, nothing real on screen, the
-mocks are art direction only.
+C. **Country.** ANSWERED: recognisably Paraguay (see section 1's hard
+constraint: real landscape, invented places, people and groups).
 
-D. **Solo or co-op.** Recommendation: solo first, co-op later.
+D. **Solo or co-op.** ANSWERED: co-op from the start (section 8).
 
-E. **Queue.** Interior after First Light, before The Spillway (section 3).
+E. **Queue.** Not restated with D; the lead keeps section 3's reading
+(after First Light, before The Spillway) until the owner says otherwise.
 
 ## 10. Not in scope
 
