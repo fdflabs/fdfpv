@@ -33,6 +33,23 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- THE FRONT DOOR. While the beta is by invite, a visitor with no
+         account in this browser is shown landing.html first: the waitlist,
+         and the way in for a pilot who has an invite. Its Enter button
+         sets webfpv.entered for the tab and comes back here with the same
+         query and hash, so a room link still opens its room. Before
+         anything else loads, so the game is not fetched to be thrown away.
+         Not on a developer's own machine, where every check drives this
+         page directly. Storage refused: the game, as before. -->
+    <script>
+      (function () {
+        try {
+          if (/^(localhost|127\.|\[::1\])/.test(location.hostname)) { return; }
+          if (localStorage.getItem('webfpv.account.v1') || sessionStorage.getItem('webfpv.entered')) { return; }
+          location.replace('landing.html' + location.search + location.hash);
+        } catch (e) { /* The game. */ }
+      })();
+    </script>
     <!-- viewport-fit is for flight on a phone: the thumb stick margins read
          the safe-area insets on notched screens.
 

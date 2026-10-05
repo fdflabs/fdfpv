@@ -589,6 +589,72 @@ check(`${ACCOUNT_WRITE_LIMIT} account writes pass and the next is refused`, code
 r = await call('GET', '/api/account', undefined, s);
 check('reads are not counted against it', r.status === 200);
 
+console.log('the beta waitlist');
+env = freshEnv({ INVITE_ONLY: '1' });
+ip = '198.51.100.20';
+{
+  const mail = (email, sub) => idToken({ sub, extra: { email } });
+  const admin = (method, body, secret = 'x') => call(method, '/api/admin/waitlist', body, secret);
+  r = await call('POST', '/api/account/google', { credential: await mail('new@example.com', 'w1') });
+  check('by invite only, a Google account nobody invited is refused', r.status === 403 && r.body.notInvited === true, JSON.stringify(r.body));
+  r = await call('GET', '/api/account', undefined, 'a'.repeat(64));
+  check('and holds no session', r.status === 401);
+  r = await call('POST', '/api/waitlist', { credential: await mail('New@Example.com', 'w1') });
+  check('it can ask for a place', r.status === 200 && r.body.approved === false, JSON.stringify(r.body));
+  r = await call('POST', '/api/waitlist', { credential: await mail('new@example.com', 'w1') });
+  check('asking twice is one place', r.status === 200 && r.body.approved === false);
+  r = await call('POST', '/api/account/google', { credential: await mail('new@example.com', 'w1') });
+  check('waiting is still not invited', r.status === 403);
+  r = await call('POST', '/api/waitlist', { credential: await idToken({ extra: { email: 'loose@example.com', email_verified: false } }) });
+  check('an address Google did not verify gets no place', r.status === 422);
+  r = await call('POST', '/api/waitlist', { credential: await idToken({ key: forger.privateKey }) });
+  check('nor does a forged token', r.status === 401);
+  r = await admin('GET', undefined, 'wrong');
+  check('the list is the admin\'s alone', r.status === 401);
+  r = await admin('GET');
+  check('the admin sees who waits, lowercased, once',
+    r.status === 200 && r.body.waitlist.length === 1 && r.body.waitlist[0].email === 'new@example.com'
+    && r.body.waitlist[0].requestedUtc && r.body.waitlist[0].approvedUtc === null, JSON.stringify(r.body));
+  r = await admin('POST', { email: 'new@example.com', approved: true }, 'wrong');
+  check('and nobody else approves', r.status === 401);
+  r = await admin('POST', { email: 'not an address', approved: true });
+  check('a typo is not an address', r.status === 400);
+  r = await admin('POST', { email: ' NEW@example.com ', approved: true });
+  check('the admin approves an address', r.status === 200 && r.body.approved === true);
+  r = await call('POST', '/api/account/google', { credential: await mail('other@example.com', 'w2') });
+  check('which lets nobody else in', r.status === 403);
+  r = await call('POST', '/api/account/google', { credential: await mail('new@example.com', 'w1') });
+  check('the invited account signs in', r.status === 200 && typeof r.body.session === 'string', JSON.stringify(r.body));
+  r = await call('POST', '/api/waitlist', { credential: await mail('new@example.com', 'w1') });
+  check('asking again keeps the invite', r.status === 200 && r.body.approved === true);
+  r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'w1', extra: { email: 'new@example.com', email_verified: false } }) });
+  check('an account that exists signs in whatever its token says of the email', r.status === 200);
+  r = await admin('POST', { email: 'new@example.com', approved: false });
+  r = await call('POST', '/api/account/google', { credential: await mail('new@example.com', 'w1') });
+  check('and after its invite is taken back', r.status === 200);
+  r = await admin('POST', { email: 'early@example.com', approved: true });
+  r = await call('POST', '/api/account/google', { credential: await mail('early@example.com', 'w3') });
+  check('an address invited before it asked signs in', r.status === 200);
+  r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'w4', extra: { email: 'early@example.com', email_verified: false } }) });
+  check('but not on an email Google did not verify', r.status === 403);
+  r = await admin('DELETE', { email: 'early@example.com' });
+  const gone = await admin('GET');
+  check('the admin removes an address', r.status === 200 && !gone.body.waitlist.some((w) => w.email === 'early@example.com'));
+  r = await admin('DELETE', { email: 'early@example.com' });
+  check('once', r.status === 404);
+}
+env = freshEnv();
+r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'open-1' }) });
+check('without INVITE_ONLY anybody signs in, as before', r.status === 200);
+{
+  const before = freshEnv({ INVITE_ONLY: '1' });
+  env = { ...before, INVITE_ONLY: '' };
+  await call('POST', '/api/account/google', { credential: await idToken({ sub: 'veteran' }) });
+  env = before;
+  r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'veteran' }) });
+  check('a pilot from before the waitlist keeps signing in once it is on', r.status === 200);
+}
+
 console.log('switched off');
 env = freshEnv({ GOOGLE_CLIENT_ID: '' });
 r = await call('POST', '/api/account/google', { credential: await idToken() });

@@ -1,0 +1,275 @@
+<!doctype html>
+<!--
+  landing.html: the beta's front door. Left, ask for a place on the
+  waitlist with a Google account (POST /api/waitlist, tracks-api/accounts.js).
+  Right, a pilot who has an invite goes to the simulator, where the sign in
+  checks it. index.html sends every visitor with no account here first.
+
+  This file is part of WebFPVSimulator.
+
+  WebFPVSimulator is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or (at
+  your option) any later version.
+
+  WebFPVSimulator is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY, without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with WebFPVSimulator. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Paraguayan Drone Combat Simulator: closed beta</title>
+    <meta name="description" content="The all-encompassing drone combat simulation, in your browser, flying real flight controller firmware. The beta is by invite: ask for a place." />
+    <link rel="icon" href="favicon.ico" />
+    <link rel="preload" href="assets/fonts/saira-lockup-800.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/saira-lockup-300.woff2" as="font" type="font/woff2" crossorigin />
+    <style>
+      @font-face {
+        font-family: "Saira Lockup"; font-weight: 800; font-style: normal; font-display: block;
+        src: url("assets/fonts/saira-lockup-800.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Saira Lockup"; font-weight: 300; font-style: normal; font-display: block;
+        src: url("assets/fonts/saira-lockup-300.woff2") format("woff2");
+      }
+      /* The simulator's own tokens (index.html :root), so the door and the
+         room behind it are one place. */
+      :root {
+        --pdcs-bg: #07090a;
+        --pdcs-line: rgba(220, 225, 225, 0.28);
+        --pdcs-line-soft: rgba(220, 225, 225, 0.08);
+        --pdcs-text: #d7dddd;
+        --pdcs-bright: #f1f4f4;
+        --pdcs-muted: #9aa3a7;
+        --pdcs-green: #6fcfa2;
+        --pdcs-blue: #6aa3c8;
+        --pdcs-blue-strong: #8cbcd8;
+        --pdcs-blue-dim: #3f6f8f;
+        --pdcs-fail: #ff8f8f;
+        --py-red: #d52b1e;
+        --py-white: #f4f4f0;
+        --py-blue: #0038a8;
+        --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+        --read: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: var(--pdcs-bg); color: var(--pdcs-text); font-family: var(--read); }
+      body {
+        min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
+        background:
+          linear-gradient(180deg, rgba(7, 9, 10, 0.72) 0%, rgba(7, 9, 10, 0.3) 30%, rgba(7, 9, 10, 0) 46%, rgba(7, 9, 10, 0) 62%, rgba(7, 9, 10, 0.9) 86%, var(--pdcs-bg) 100%),
+          url("assets/keyart/boom-wide.webp") 55% 100% / auto 120% no-repeat var(--pdcs-bg);
+      }
+      .bar {
+        display: flex; justify-content: space-between; align-items: center; gap: 16px;
+        padding: 14px clamp(16px, 4vw, 44px);
+        font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pdcs-text);
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+      }
+      .bar-brand { display: flex; align-items: center; gap: 10px; }
+      .tag { color: var(--pdcs-green); white-space: nowrap; }
+      .tag::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .tag::after { content: " ]"; color: var(--pdcs-blue-dim); }
+      .py-flag { width: 30px; height: 9px; display: flex; flex-direction: column; flex: none; border: 1px solid rgba(255, 255, 255, 0.18); }
+      .py-flag span { flex: 1; }
+      .py-flag span:nth-child(1) { background: var(--py-red); }
+      .py-flag span:nth-child(2) { background: var(--py-white); }
+      .py-flag span:nth-child(3) { background: var(--py-blue); }
+
+      main {
+        flex: 1; display: flex; flex-direction: column;
+        width: 100%; max-width: 1180px; margin: 0 auto; padding: clamp(8px, 3vh, 34px) clamp(16px, 4vw, 44px) clamp(20px, 4vh, 44px);
+      }
+      .lockup {
+        margin: 0; display: inline-flex; flex-direction: column; align-self: flex-start;
+        font-family: "Saira Lockup", var(--read); font-synthesis: none; line-height: 1;
+        font-size: clamp(38px, 6.6vw, 84px); text-transform: uppercase;
+      }
+      .lockup-over, .lockup-under {
+        display: flex; align-items: center; font-weight: 300; font-size: max(0.22em, 10px);
+        letter-spacing: 0.5em; color: var(--pdcs-text); text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+      }
+      .lockup-over { gap: 0.9em; }
+      .lockup-over .py-flag { width: 3.3em; height: 0.9em; }
+      .lockup-under { justify-content: center; gap: 1.2em; letter-spacing: 0.6em; }
+      .lockup-over::after, .lockup-under::before, .lockup-under::after { content: ""; height: 1px; background: var(--pdcs-line); }
+      .lockup-over::after { flex: 0 0 2.4em; }
+      .lockup-under::before, .lockup-under::after { flex: 0 0 1.9em; }
+      /* The metal: a silver ramp with a darker horizon across the middle. */
+      .lockup-name {
+        margin: 0.14em 0 0.12em; font-weight: 800; letter-spacing: 0.01em; white-space: nowrap;
+        background: linear-gradient(180deg, #ffffff 0%, #e4e8ea 38%, #8f989d 52%, #c9cfd2 60%, #f1f4f4 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0.05em 0.14em rgba(0, 0, 0, 0.6));
+      }
+      .pitch {
+        max-width: 34em; margin: clamp(12px, 2.2vh, 22px) 0 0;
+        font-size: clamp(15.5px, 1.5vw, 19px); line-height: 1.5; color: var(--pdcs-bright);
+        text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+      }
+
+      /* The middle of the page is the picture's: the name above it, the
+         doors under it. */
+      .doors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: auto; padding-top: 30vh; }
+      .door {
+        display: flex; flex-direction: column; gap: 10px; min-width: 0;
+        padding: clamp(16px, 2.4vw, 26px);
+        background: rgba(9, 12, 13, 0.8); backdrop-filter: blur(6px);
+        box-shadow: inset 0 0 0 1px var(--pdcs-line-soft), inset 0 2px 0 var(--door-accent);
+      }
+      .door-join { --door-accent: var(--pdcs-green); }
+      .door-enter { --door-accent: var(--pdcs-blue); }
+      .door-label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--door-accent); }
+      .door-label::before { content: "[ "; color: var(--pdcs-blue-dim); }
+      .door-label::after { content: " ]"; color: var(--pdcs-blue-dim); }
+      .door h2 { margin: 0; font-family: "Saira Lockup", var(--read); font-weight: 800; font-size: clamp(22px, 2.6vw, 32px); line-height: 1.05; text-transform: uppercase; color: var(--pdcs-bright); }
+      .door p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--pdcs-text); }
+      .door-act { margin-top: auto; padding-top: 8px; min-height: 52px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; }
+      .enter {
+        display: inline-flex; align-items: center; gap: 12px; height: 44px; padding: 0 22px;
+        font-family: var(--mono); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; text-decoration: none;
+        color: #07131b; background: var(--pdcs-blue); border-radius: 2px;
+      }
+      .enter:hover, .enter:focus-visible { background: var(--pdcs-blue-strong); }
+      .enter:focus-visible { outline: 1px solid var(--pdcs-bright); outline-offset: 3px; }
+      .enter::after { content: "\2192"; }
+      .status { flex: 1 1 14em; min-width: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.45; color: var(--pdcs-muted); }
+      .status[data-state="ok"] { color: var(--pdcs-green); }
+      .status[data-state="fail"] { color: var(--pdcs-fail); }
+      .fine { margin: 14px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--pdcs-muted); }
+      .fine a { color: var(--pdcs-blue); }
+      .fine a:hover { color: var(--pdcs-blue-strong); }
+
+      /* Wider than the picture at 120 percent of the height is: fill the
+         width instead, or a 21:9 screen shows the page's ground beside it. */
+      @media (min-aspect-ratio: 32/15) {
+        body { background-size: auto, 100% auto; background-position: 0 0, center 72%; }
+      }
+      @media (max-width: 720px) {
+        .doors { grid-template-columns: 1fr; }
+        .bar-note { display: none; }
+        body { background-position: 0 0, 64% top; background-size: auto, auto 72vh; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <div class="bar-brand">
+        <div class="py-flag" aria-hidden="true"><span></span><span></span><span></span></div>
+        <span>PDCS // Simulation Core</span>
+      </div>
+      <span class="tag" data-s="landing.bar_tag">Closed beta</span>
+    </header>
+    <main>
+      <h1 class="lockup" aria-label="Paraguayan Drone Combat Simulator">
+        <span class="lockup-over"><span class="py-flag" aria-hidden="true"><span></span><span></span><span></span></span>Paraguayan</span>
+        <span class="lockup-name">Drone Combat</span>
+        <span class="lockup-under">Simulator</span>
+      </h1>
+      <p class="pitch" data-s="landing.pitch">The all-encompassing drone combat simulation, in your browser. Build, fly, hunt and strike with real flight controller firmware, physics at a thousand steps a second, and real pilots on the other side.</p>
+      <div class="doors">
+        <section class="door door-join" aria-labelledby="join-title">
+          <span class="door-label" data-s="landing.join_label">Request access</span>
+          <h2 id="join-title" data-s="landing.join_title">Join the beta waitlist</h2>
+          <p data-s="landing.join_detail">Seats open in waves. Ask with your Google account, and that address is your invite when your wave is called.</p>
+          <div class="door-act">
+            <div id="join-button"></div>
+            <span id="join-status" class="status" role="status"></span>
+          </div>
+        </section>
+        <section class="door door-enter" aria-labelledby="enter-title">
+          <span class="door-label" data-s="landing.enter_label">Cleared pilots</span>
+          <h2 id="enter-title" data-s="landing.enter_title">Already have your invite?</h2>
+          <p data-s="landing.enter_detail">Go straight in and sign in with the Google account you were invited on.</p>
+          <div class="door-act">
+            <a id="enter" class="enter" href="./" data-s="landing.enter">Enter the simulator</a>
+          </div>
+        </section>
+      </div>
+      <p class="fine"><span data-s="landing.fine">Joining the waitlist stores your email address and nothing else from Google.</span> <a href="privacy.html" data-s="account.privacy">Privacy</a> · <a href="terms.html" data-s="account.terms">Terms</a></p>
+    </main>
+    <script type="module">
+      import { GOOGLE_CLIENT_ID } from './src/share/account.js';
+      import { tracksOrigin } from './src/share/cloud.js';
+      import { currentLocale, preferredLocale, str, useLocale } from './src/strings/index.js';
+
+      /* The page is written in English above, for a crawler and for the
+       * moment before this runs; every sentence is then taken from the
+       * game's string table in the browser's language. The name is the
+       * game's name and is not translated. */
+      await useLocale(preferredLocale());
+      document.title = str('landing.title');
+      for (const n of document.querySelectorAll('[data-s]')) {
+        n.textContent = str(n.dataset.s);
+      }
+      if (currentLocale() === 'es') {
+        for (const a of document.querySelectorAll('.fine a')) {
+          a.hash = 'es';
+        }
+      }
+
+      /* The way in: index.html sends a visitor with no account here unless
+       * this tab has been through this door, and what the visitor first
+       * asked for (a room link's query) goes back with them. */
+      const enter = document.getElementById('enter');
+      enter.href = `./${location.search}${location.hash}`;
+      enter.addEventListener('click', () => {
+        try {
+          sessionStorage.setItem('webfpv.entered', '1');
+        } catch (e) {
+          /* Storage refused: index.html lets such a browser in anyway. */
+        }
+      });
+
+      const status = document.getElementById('join-status');
+      function say(state, text) {
+        status.dataset.state = state;
+        status.textContent = text;
+      }
+
+      async function join(credential) {
+        say('', str('landing.filing'));
+        let res;
+        try {
+          res = await fetch(`${tracksOrigin()}/api/waitlist`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ credential }),
+            signal: AbortSignal.timeout(10000),
+          });
+        } catch (e) {
+          say('fail', str('account.unreachable'));
+          return;
+        }
+        if (!res.ok) {
+          say('fail', res.status === 429 ? str('account.too_many') : str('account.server_said', { status: res.status }));
+          return;
+        }
+        const got = await res.json();
+        say('ok', got.approved ? str('landing.already') : str('landing.listed'));
+      }
+
+      const gis = document.createElement('script');
+      gis.src = 'https://accounts.google.com/gsi/client';
+      gis.async = true;
+      gis.onload = () => {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (res) => res && res.credential && join(res.credential),
+          auto_select: false,
+        });
+        window.google.accounts.id.renderButton(document.getElementById('join-button'), {
+          type: 'standard', theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'rectangular', locale: currentLocale(),
+        });
+      };
+      gis.onerror = () => say('fail', str('landing.gis_failed'));
+      document.head.append(gis);
+    </script>
+  </body>
+</html>
