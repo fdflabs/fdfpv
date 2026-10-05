@@ -240,7 +240,7 @@ if (thEnv.x > 0.5 && !thDone) {
     thT = thReflect(thT, 1.0 - 0.85 * metalnessFactor, thN, thV, thView.xyz);
   #endif
   thT = thPath(thT, thDist);
-  gl_FragColor = vec4(thT, 1.0, 0.0, gl_FragColor.a);
+  gl_FragColor = vec4(thT, 1.0, float(THERMAL_KIND), gl_FragColor.a);
   #ifdef PREMULTIPLIED_ALPHA
     gl_FragColor.rgb *= gl_FragColor.a;
   #endif
@@ -311,6 +311,19 @@ export function thermalKind(material, kind, { attr = false } = {}) {
 }
 
 /*
+ * What drew each pixel of a thermal frame, in its blue channel over its
+ * green (both scaled alike by a premultiplied alpha), for the checks
+ * (scripts/thermal-physics-check.js): a built in material its KIND, a
+ * ShaderMaterial the label its name was given here, the clear sky
+ * LABEL.sky. Nothing in the picture reads either channel.
+ */
+export const LABEL = { sky: -1, shader0: 32 };
+const SHADER_LABEL = new Map();
+export function thermalLabels() {
+  return { kinds: { ...KIND }, shaders: Object.fromEntries(SHADER_LABEL), sky: LABEL.sky };
+}
+
+/*
  * A ShaderMaterial's thermal output. `glsl` runs at the end of its main,
  * in the scope of its varyings and locals and PARS's thSky, thPassive and
  * thEnv, and declares `float thT`, the temperature in T_SCALE units, and
@@ -320,10 +333,17 @@ export function thermalKind(material, kind, { attr = false } = {}) {
  * it is, for the check's list.
  */
 export function thermalShader(material, glsl, name) {
+  if (!SHADER_LABEL.has(name)) {
+    SHADER_LABEL.set(name, LABEL.shader0 + SHADER_LABEL.size);
+  }
   if (!/\bfloat thT\b/.test(glsl)) {
     throw new Error(`thermal: ${name}'s thermal output declares no thT`);
   }
   const alpha = /\bfloat thA\b/.test(glsl) ? 'thA' : '1.0';
+  /* An additive material adds its heat and leaves the label under it. */
+  const additive = material.blending === THREE.AdditiveBlending
+    || (material.blending === THREE.CustomBlending && material.blendDst === THREE.OneFactor);
+  const label = additive ? '0.0, 0.0' : `1.0, ${SHADER_LABEL.get(name).toFixed(1)}`;
   const fs = material.fragmentShader;
   const end = fs.lastIndexOf('}');
   if (end < 0 || fs.includes('TH_PARS')) {
@@ -332,7 +352,7 @@ export function thermalShader(material, glsl, name) {
   material.fragmentShader = `${PARS}\n${fs.slice(0, end)}
   if (thEnv.x > 0.5) {
     ${glsl}
-    gl_FragColor = vec4(thT, 1.0, 0.0, gl_FragColor.a * ${alpha});
+    gl_FragColor = vec4(thT, ${label}, gl_FragColor.a * ${alpha});
   }
 ${fs.slice(end)}`;
   material.uniforms.thEnv = { value: THERMAL.env };
@@ -373,7 +393,7 @@ export function renderThermal(renderer, scene, camera, target) {
   scene.fog = null;
   const prevAlpha = renderer.getClearAlpha();
   renderer.getClearColor(prevClear);
-  renderer.setClearColor(skyClear.setRGB(THERMAL.env[3], 1, 0, THREE.LinearSRGBColorSpace), 1);
+  renderer.setClearColor(skyClear.setRGB(THERMAL.env[3], 1, LABEL.sky, THREE.LinearSRGBColorSpace), 1);
   THERMAL.env[0] = 1;
   try {
     renderer.setRenderTarget(target);

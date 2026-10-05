@@ -325,6 +325,7 @@
     "water:page": "node scripts/water-page.js",
     "water:war": "node scripts/water-war.js",
     "sensor:check": "node scripts/sensor-check.js",
+    "thermal:physics": "node scripts/thermal-physics-check.js",
     "itaipu:yard": "node tools/itaipu/war-check.js",
     "check:dam": "node scripts/dam-check.js",
     "check:wires": "node scripts/wire-check.js",

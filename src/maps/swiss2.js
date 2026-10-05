@@ -655,6 +655,9 @@ function photoStyle() {
       post.setSize(d.w, d.h);
       const sceneDispose = map.dispose;
       map.post = post;
+      /* The post chain that draws this scene, for the sensor checks, as
+       * Itaipu's and the Interior's (scripts/thermal-physics-check.js). */
+      map.scene.userData.post = post;
       /* The sailing boat is solid, so it moves on the step clock with the
        * valley's traffic (swiss2/props/lakeside.js). */
       const lake = style.stage.lakeside;
