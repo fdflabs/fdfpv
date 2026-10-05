@@ -73,6 +73,8 @@ import {
 const W = worldFor('interior');
 /* The mission as the room flies it: its heights made absolute. */
 const M = grounded(MISSIONS['interior-1'], W);
+check('Mission 1 names the cut its briefing plays, so a host skip can wait for everyone to have seen it',
+  MISSIONS['interior-1'].film?.id === 'int1-intro' && Number.isInteger(MISSIONS['interior-1'].film?.version) && MISSIONS['interior-1'].filmMs > 0);
 const BASE = [...M.points['pista-cero'].at, M.z0];
 const HARD_S = M.contacts.find((x) => x.id === 'pair-a').track.hard;
 const ROOM = { world: W, map: 'interior', devMissions: true };
