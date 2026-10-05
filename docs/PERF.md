@@ -8,6 +8,9 @@ takes the numbers:
         [--seconds=30] [--repeat=2] [--preset=high] [--pace=free|raf] [--cap=90]
         [--mode=quality|balanced|performance] [--objects]
 
+`--scenarios=itaipu-stream` adds Itaipu flown flat out across its town
+(P6 below); it is not in the default list.
+
 `--mode=quality` holds the resolution at the preset's, so dynamic
 resolution cannot hide a cost between a before and an after; P3's
 numbers below are taken with it. `--objects` splits every draw by mesh,
@@ -675,3 +678,120 @@ within 1 cm of its path (8.5 cm on the tangent before, which fails it),
 a velocity reversal is carried at no more than 80 m/s^2, a crashed peer
 on its velocity alone, a stalled stream accelerated for 100 ms only.
 Three of the four fail on main's peer.js.
+
+## P6, hitches while the world streams
+
+2026-10-05, on main at 0bba764a. High, 1600 by 900, `--mode=quality`, GPU 0
+shared with the desktop and, during the A/B runs below, with another
+agent's headless page (nvidia-smi pmon: 37 to 46 % of GPU 0's SM; the
+utilisation column per run is in the tables).
+
+### The brief, checked
+
+- **Yellowstone is gone.** It was retired on 2026-10-01
+  (src/maps/retired.js, "kill yellowstone, its useless"): no loader, no
+  menu entry, no checks. Its "region builds hitch 90 to 440 ms" note
+  has nothing left to measure.
+- **Itaipu's streaming is already budgeted, and measures clean.** Its
+  terrain builds chunk meshes within `buildMs` a frame, sliced by rows
+  (src/maps/terrain/engine.js), its colliders refill a slice a frame
+  (src/maps/itaipu.js makeStreamer), and its elevation is 86 tiles (the
+  whole data folder is 22 MB). The new `itaipu-stream` scenario throws the 7 inch at 30 m/s over
+  the river below the dam and flies it 50 m up, flat out (27 m/s), north
+  east across Hernandarias. 120 s free running (3.2 km): 42 frames over
+  16.7 ms (0.25 %), 2 over 33.3, max 43 ms. Of those, the ones over 20 ms
+  were the GPU (a wait on the frame two back of 13 to 31 ms with the
+  frame's own GPU time 6 to 8 ms: the shared card) and the rest an
+  interval of about 16.7 ms with 3 ms of frame callback, the headless
+  page's beat. 120 s at raf, the main thread's runs over 16.7 ms: 8, none
+  of them streaming: a program linked in flight (below), two garbage
+  collections (24 and 18 ms) and four frames together at 55 s where
+  everything on the main thread ran slow at once (render, the water
+  test, sorting), which is the host, not a subsystem. The terrain and
+  colliders (`updateShadowFocus`) were 12 ms of the 420 ms in those runs.
+- **KTX2 does not pay here.** 60 s of the Itaipu flight uploaded 2.0 MB
+  of texture in all (3606 calls, 14 ms); the only upload over 1 ms was
+  two 512 by 512 surfaces from swiss2/assets.js loadSurface decoded and
+  uploaded in the frame they first showed (7.5 and 3.7 ms). That is a
+  first use cost, for the prewarm, not a format one. Compressed textures
+  would save GPU memory, which nothing measured here is short of.
+
+### What did hitch: the swiss2 meadow
+
+`--pace=raf`, the busy runs over 16.7 ms, swiss-low and wing-cruise on
+main: 14 to 20 and 4 to 7 per 30 s, two thirds of them in
+`updateWind` (src/maps/alps.js) under the meadow's tile builds
+(src/maps/swiss2/vegetation/grass.js buildTile, coverOff and the field
+model under it), 16 to 82 ms each. The near layer (16 m tiles out to
+40 m, 1444 samples a tile, 2.3 ms a tile measured) worked out every new
+tile in the frame it came into range, five or so at each tile crossing;
+the wing dipping under the layer's 40 m ceiling found every tile in
+reach missing at once (65 to 82 ms). The middle layer (32 m tiles,
+0.9 ms each) worked out four a frame.
+
+**Built: tiles are worked out ahead, in the background, and only a tile
+that can show is worked out in the frame that needs it.** A clump is
+folded to its root in the shader past its edge, which is never past the
+layer's radius, so a tile whose nearest point (padded by a spacing for
+the flat plants) is further than the radius cannot put a pixel on the
+screen. Every draw of the mesh is from the shell's camera (the sensor
+view draws it; the lake's mirror reflects it in a level plane, and skips
+the grass anyway). Such a tile is left out of the draw until it is
+there; one that can show is worked out at once, as before, so the
+picture never waits on the background. The background works out every
+tile to 32 m past the drawn ring, nearest first, a row at a time within
+1 ms a frame per layer, and keeps going up to 32 m over the ceiling. A
+tile is one generator over its rows with one rng, so its clumps are the
+same however many frames it took. At 90 fps 1 ms buys about 40 near
+tiles a second; 30 m/s needs about 20.
+
+Interleaved A (main), B (this), `--mode=quality`:
+
+| raf, 30 s | runs > 16.7 ms | of them > 33.3 | ms in them | tiles worked out in the frame that needed them |
+| --- | --- | --- | --- | --- |
+| swiss-low A | 20, 14, 16 | 3, 3, 3 | 607, 423, 461 | all |
+| swiss-low B | 1, 2 | 1, 2 | 38, 73 | 0 of 420, 0 of 426 |
+| wing-cruise A | 6, 7, 4 | 1, 1, 1 | 181, 225, 145 | all |
+| wing-cruise B | 1, 1 | 1, 1 | 70, 59 | 0 of 974, 0 of 974 |
+
+What is left in B is a program linked in flight (swiss-low, 18 and 22
+ms, below) and a garbage collection (wing-cruise, 34 ms).
+
+| free running, 30 s | avg ms | p99 | max | > 16.7 ms | > 33.3 ms |
+| --- | --- | --- | --- | --- | --- |
+| swiss-low A | 12.43, 11.12 | 18.1, 17.8 | 42.4, 29.5 | 46, 39 | 2, 0 |
+| swiss-low B | 11.26, 11.09 | 16.7, 15.0 | 63.1, 31.3 | 27, 16 | 1, 0 |
+| wing-cruise A | 7.59, 7.50 | 16.4, 15.3 | 61.8, 66.0 | 36, 21 | 2, 1 |
+| wing-cruise B | 7.56, 7.54 | 15.0, 14.9 | 22.7, 24.7 | 12, 13 | 0, 0 |
+
+The mean is unchanged (the same work, spread); the tail is what moved.
+B's 63 ms swiss-low frame is 0.7 s into its window, 45 ms of it outside
+the frame callback, with no tile built in it.
+
+**Identity: `scripts/perf-grass-check.js`.** Two page loads fly one
+replayed path stepped inside the page (low at 30 then 60 m/s, a turn on
+the spot, a climb over the ceiling and a dive back, a 400 m jump, a
+hold), the first with main's grass.js served in place of this tree's.
+Per step it hashes, by 32 m square, every instance record nearer the
+camera than the layer's radius. Pictures cannot be compared across two
+loads (the light, clouds and wind follow the session clock); the buffers
+are what the unchanged shader draws. Result over 1020 steps: the near
+layer equal in every step (19 809 838 clump-steps both), the middle
+layer equal at the end and a superset on the way (16 steps drew squares
+main had not reached yet: less pop in, not more); no buffer ever full.
+The check fails on a mutation that halves the radius (1199
+differences). `perf-ground-check.js --base=main` refuses until this
+merges, by its own design: grass.js's hunks here are not shader text.
+
+### What is next
+
+- **Programs linked in flight**: 18 to 49 ms, swiss-low at 8.5 s every
+  run, itaipu-war 31 ms at 5.3 s, itaipu-stream 10 ms. Each is a
+  STANDARD or LAMBERT program for a render target ("linear out"). The
+  maps' own `renderer.compile(scene, camera)` runs with no target bound,
+  so it builds each material's screen variant, which nothing draws; the
+  composer's variant is linked the first time a material is seen.
+  The next PR.
+- Garbage: 24 to 34 ms collections remain, 35 MB a second (P2's).
+- wing-cruise uploads 1.4 GB of buffer data in 30 s (bufferSubData,
+  35 ms in all): throughput, not a hitch; whose it is was not traced.

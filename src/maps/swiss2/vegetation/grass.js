@@ -285,8 +285,12 @@ function coverAt(x, z, heightAt, layout) {
 
 
 /* A tile's clumps. `wide` scales the clumps' width, for the middle
- * distance's layer, whose clumps stand for a patch of meadow each. */
-function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
+ * distance's layer, whose clumps stand for a patch of meadow each. A
+ * generator that yields after each row of its grid and returns the
+ * clumps, so a tile can be worked out over several frames: one rng
+ * drawn in the same order either way, so the clumps are the same
+ * however many frames it took. */
+function* buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
   const rng = makeRng((ti * 73856093) ^ (tj * 19349663) ^ 0x5bd1e995 ^ Math.round(tile * 7919));
   const out = [];
   const n = Math.floor(tile / spacing);
@@ -344,8 +348,18 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
         out.push(fx, heightAt(fx, fz) + 0.035, fz, rng() * Math.PI * 2, 1, size, FLAT0 + kind, 0.85 + 0.25 * rng());
       }
     }
+    yield;
   }
   return Float32Array.from(out);
+}
+
+function finish(job) {
+  for (;;) {
+    const r = job.next();
+    if (r.done) {
+      return r.value;
+    }
+  }
 }
 
 /*
@@ -356,14 +370,17 @@ function buildTile(ti, tj, heightAt, layout, tile, spacing, wide) {
  * square, `wide` the clumps' width against the near layer's, `cap` the
  * most clumps drawn at once, `cull` whether only the tiles in the
  * camera's view are drawn (the near layer draws round the camera, so a
- * turn needs no refill), `perFrame` how many new tiles may be worked out
- * in one frame, `ceiling` the height over the ground it is drawn up to.
- * Returns the mesh (added to group), update(camera) and dispose().
+ * turn needs no refill), `perFrame` how many new tiles that can show may
+ * be worked out in one frame, `ceiling` the height over the ground it is
+ * drawn up to, `ahead` how far past the drawn ring tiles are worked out
+ * before they are needed and `buildMs` the main thread time a frame
+ * gives that (see WORKED OUT AHEAD below). Returns the mesh (added to
+ * group), update(camera), stats and dispose().
  */
 export function buildGrass({
   heightAt, layout, atlas, wind, radius, spacing, cap, group, tint = [0.82, 0.95, 0.72],
   tile = 16, inner = [-2, -1], wide = 1, cull = false, perFrame = Infinity, ceiling = radius, name = 'swiss2-grass',
-  craft = craftUniforms(),
+  craft = craftUniforms(), ahead = tile * 2, buildMs = 1,
 }) {
   const base = clumpGeometry();
   const geo = new THREE.InstancedBufferGeometry();
@@ -521,9 +538,24 @@ export function buildGrass({
   mesh.name = name;
   group.add(mesh);
 
+  /* Tiles worked out, by tileId. A number, not a string: the ring ahead
+   * is looked up every frame. i and j stay inside +-32767 on a valley
+   * of a few kilometres. */
   const tiles = new Map();
+  const tileId = (ti, tj) => (ti + 32768) * 65536 + (tj + 32768);
   let lastKey = '';
-  const stats = { clumps: 0, tiles: 0, pending: 0 };
+  /* The draw holds what it should: false after a tile it draws was
+   * worked out in the background, or a tile it should draw could not be. */
+  let current = false;
+  const wantedIds = new Set();
+  /* The drawn ring's tiles left to the background because they could
+   * not show when it was filled, as ti, tj pairs: watched each frame in
+   * case the camera moved close enough for one to show before it was
+   * worked out. */
+  const waiting = [];
+  const stats = {
+    clumps: 0, tiles: 0, pending: 0, built: 0, forced: 0, buildMs: 0, maxFrameMs: 0,
+  };
   const frustum = new THREE.Frustum();
   const viewProj = new THREE.Matrix4();
   const box = new THREE.Box3();
@@ -540,16 +572,120 @@ export function buildGrass({
     }
     return box.set(pos.set(ti * tile, lo - 2, tj * tile), new THREE.Vector3((ti + 1) * tile, hi + 3, (tj + 1) * tile));
   };
+  /*
+   * WHICH TILES CAN SHOW. A clump is folded to its root in the shader
+   * once it is further than its edge from the camera, and no edge is
+   * past `radius`, so a tile whose nearest point is further than that
+   * draws no pixel. Clumps stand inside their tile and the flat plants
+   * up to half a spacing outside it, hence the pad. Every draw of this
+   * mesh is from the camera update() is handed (the sensor view draws
+   * the shell's camera, the lake's mirror reflects it in a level plane),
+   * so a tile that cannot show here cannot show in any of them.
+   */
+  const canShow = (ti, tj, px, pz) => {
+    const dx = Math.max(ti * tile - spacing - px, 0, px - (ti + 1) * tile - spacing);
+    const dz = Math.max(tj * tile - spacing - pz, 0, pz - (tj + 1) * tile - spacing);
+    return Math.hypot(dx, dz) < radius;
+  };
+  /*
+   * WORKED OUT AHEAD, IN THE BACKGROUND. Every tile out to `ahead`
+   * metres past the drawn ring is worked out a few rows at a time
+   * within `buildMs` of each frame, nearest first, so by the time a
+   * tile can show it is already there. A tile that can show and is not
+   * there yet (a respawn, a camera cut, flying faster than the
+   * background keeps up) is worked out in the frame that needs it, as
+   * it always was, so what is drawn never waits on the background.
+   * The candidates are listed again only when the camera crosses into
+   * another tile; `job` is the one tile in progress.
+   */
+  const reach = radius + tile * 0.75 + ahead;
+  let candidates = [];
+  let next = 0;
+  let candCi = NaN;
+  let candCj = NaN;
+  let job = null;
+  const listCandidates = (ci, cj, px, pz) => {
+    candCi = ci;
+    candCj = cj;
+    const span = Math.ceil(reach / tile) + 1;
+    const list = [];
+    for (let dj = -span; dj <= span; dj += 1) {
+      for (let di = -span; di <= span; di += 1) {
+        const d = Math.hypot((ci + di + 0.5) * tile - px, (cj + dj + 0.5) * tile - pz);
+        if (d <= reach) {
+          list.push([d, ci + di, cj + dj]);
+        }
+      }
+    }
+    list.sort((a, b) => a[0] - b[0]);
+    candidates = list;
+    next = 0;
+  };
+  const background = () => {
+    const t0 = performance.now();
+    while (performance.now() - t0 < buildMs) {
+      if (!job) {
+        while (next < candidates.length && tiles.has(tileId(candidates[next][1], candidates[next][2]))) {
+          next += 1;
+        }
+        if (next >= candidates.length) {
+          break;
+        }
+        const [, ti, tj] = candidates[next];
+        job = { id: tileId(ti, tj), rows: buildTile(ti, tj, heightAt, layout, tile, spacing, wide) };
+      }
+      const r = job.rows.next();
+      if (r.done) {
+        tiles.set(job.id, r.value);
+        stats.built += 1;
+        if (wantedIds.has(job.id)) {
+          current = false;
+        }
+        job = null;
+      }
+    }
+    const ms = performance.now() - t0;
+    stats.buildMs += ms;
+    stats.maxFrameMs = Math.max(stats.maxFrameMs, ms);
+  };
+  /* A tile the draw needs now: the one in progress finished, or a new
+   * one worked out whole. */
+  const buildNow = (ti, tj, id) => {
+    const t0 = performance.now();
+    let t;
+    if (job && job.id === id) {
+      t = finish(job.rows);
+      job = null;
+    } else {
+      t = finish(buildTile(ti, tj, heightAt, layout, tile, spacing, wide));
+    }
+    tiles.set(id, t);
+    stats.built += 1;
+    stats.forced += 1;
+    const ms = performance.now() - t0;
+    stats.buildMs += ms;
+    stats.maxFrameMs = Math.max(stats.maxFrameMs, ms);
+    return t;
+  };
   const update = (camera) => {
     camera.getWorldPosition(pos);
     const px = pos.x;
     const pz = pos.z;
     const ci = Math.floor(px / tile);
     const cj = Math.floor(pz / tile);
+    const above = pos.y - heightAt(px, pz);
+    /* Up to `ahead` over the ceiling the tiles round the camera are
+     * still worked out in the background: a wing cruising just over it
+     * dips under, and found every tile in reach to work out at once. */
+    if (above <= ceiling + ahead) {
+      if (ci !== candCi || cj !== candCj) {
+        listCandidates(ci, cj, px, pz);
+      }
+      background();
+    }
     /* Above the ceiling there is nothing to draw, or nothing worth it:
      * a clump seen from above is a star of cards, not a tuft. */
-    const ground = heightAt(px, pz);
-    if (pos.y - ground > ceiling) {
+    if (above > ceiling) {
       geo.instanceCount = 0;
       lastKey = '';
       return;
@@ -577,37 +713,58 @@ export function buildGrass({
       }
     }
     const key = `${ci},${cj}${cull ? `:${wanted.join(',')}` : ''}`;
-    if (key === lastKey && stats.pending === 0) {
+    for (let k = 0; current && k < waiting.length; k += 2) {
+      if (!tiles.has(tileId(waiting[k], waiting[k + 1])) && canShow(waiting[k], waiting[k + 1], px, pz)) {
+        current = false;
+      }
+    }
+    if (key === lastKey && current) {
       return;
     }
     lastKey = key;
     let n = 0;
     let built = 0;
     let pending = 0;
-    const keep = new Set();
+    let retry = false;
+    wantedIds.clear();
+    waiting.length = 0;
     for (let k = 0; k < wanted.length; k += 2) {
-      const tk = `${wanted[k]},${wanted[k + 1]}`;
-      keep.add(tk);
-      let t = tiles.get(tk);
+      const ti = wanted[k];
+      const tj = wanted[k + 1];
+      const id = tileId(ti, tj);
+      wantedIds.add(id);
+      let t = tiles.get(id);
       if (!t) {
-        /* Working a tile out is the costly part: a few a frame, so a
-         * fast pass over new ground fills in over a few frames instead
-         * of stalling one. */
-        if (built >= perFrame) {
+        /* One that cannot show is left to the background. One that can
+         * is worked out now, a few a frame where `perFrame` says so, so
+         * a fast pass over new ground fills in over a few frames
+         * instead of stalling one. */
+        if (!canShow(ti, tj, px, pz)) {
+          waiting.push(ti, tj);
           pending += 1;
           continue;
         }
-        t = buildTile(wanted[k], wanted[k + 1], heightAt, layout, tile, spacing, wide);
-        tiles.set(tk, t);
+        if (built >= perFrame) {
+          retry = true;
+          pending += 1;
+          continue;
+        }
+        t = buildNow(ti, tj, id);
         built += 1;
       }
       const room = Math.min(t.length, (cap - n) * STRIDE);
       data.set(t.subarray(0, room), n * STRIDE);
       n += room / STRIDE;
     }
+    current = !retry;
     /* Tiles well out of range are forgotten, so a long flight does not
-     * keep the whole valley's grass. */
-    if (tiles.size > Math.max(keep.size, 64) * 3) {
+     * keep the whole valley's grass. What is kept is what the draw and
+     * the ring ahead want. */
+    if (tiles.size > Math.max(wantedIds.size, candidates.length, 64) * 3) {
+      const keep = new Set(wantedIds);
+      for (const [, ti, tj] of candidates) {
+        keep.add(tileId(ti, tj));
+      }
       for (const k of tiles.keys()) {
         if (!keep.has(k)) {
           tiles.delete(k);
@@ -619,9 +776,12 @@ export function buildGrass({
     buf.addUpdateRange(0, n * STRIDE);
     buf.needsUpdate = true;
     stats.clumps = n;
-    stats.tiles = keep.size;
+    stats.tiles = wantedIds.size;
     stats.pending = pending;
   };
+  /* For scripts/perf-play.js and the checks, which find the layer by
+   * its mesh's name. */
+  mesh.userData.grassStats = stats;
   return {
     mesh,
     update,
