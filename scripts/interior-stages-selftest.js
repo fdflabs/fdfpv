@@ -18,6 +18,9 @@
  *              rising), the mark refused from the wrong side and taken
  *              once the tarp moves, the dispersal, home: won, two stars,
  *              its flag; no tracker line heard
+ *   orbit      a pilot circling the pair at 150 m, as a fixed wing must,
+ *              over each of the three concealment routes: no hard
+ *              threshold (Mission 1's is 60 s), no soft fail
  *   lag        the opening stages flown again with every message 300 ms
  *              late: every decision at the same room ms
  *   squad      five pilots: the seeded deal, the trackers' own lines, a
@@ -66,6 +69,7 @@ const W = worldFor('interior');
 /* The mission as the room flies it: its heights made absolute. */
 const M = grounded(MISSIONS['interior-1'], W);
 const BASE = [...M.points['pista-cero'].at, M.z0];
+const HARD_S = M.contacts.find((x) => x.id === 'pair-a').track.hard;
 const ROOM = { world: W, map: 'interior', devMissions: true };
 
 console.log('data');
@@ -279,12 +283,12 @@ function anomaly(e, c, i = 0, { wait = true } = {}) {
   return until(e, stageIs(e, 'M1_CP_CONTACT_FOUND'), 60000, 'stage 4');
 }
 
-/* Overhead the pair, camera on pair-a. Straight overhead: on WORLD's
- * routes the pair is hidden at most 36 to 38 s from there, under the hard
- * threshold's 45; from 150 m off to one side up to 56 s (measured on
- * canopyBlocks every 100 ms of each route), so a pilot off to the side
- * sets the hard threshold off without looking away. */
-function follow(e, c, i = 0) {
+/* Overhead the pair, camera on pair-a. Straight overhead the pair is
+ * hidden at most 36 to 38 s on WORLD's routes; from 150 m off to one side
+ * up to 56 s (measured on canopyBlocks every 100 ms of each route), under
+ * Mission 1's hard threshold of 60 s (the orbit run below holds it to
+ * that). `orbit` circles the pair at that radius instead. */
+function follow(e, c, i = 0, { orbit = 0 } = {}) {
   const site = M.sites[0];
   const where = (t) => {
     const k = contact(e, 'pair-a');
@@ -293,7 +297,11 @@ function follow(e, c, i = 0) {
       return null;
     }
     /* Overhead, but never inside the camp's standoff: "No low pass". */
-    let [x, y] = [p.x, p.y];
+    /* A fixed wing's circle about the pair: about 110 m is the Bramor's
+     * tightest at 25 m/s and 30 degrees of bank; once round a minute.
+     * (Math.cos and sin are the test pilot's, never the room's.) */
+    const a = (2 * Math.PI * t) / 60000;
+    let [x, y] = [p.x + orbit * Math.cos(a), p.y + orbit * Math.sin(a)];
     const d = Math.sqrt((x - site.at[0]) ** 2 + (y - site.at[1]) ** 2);
     if (d < site.r + 60) {
       x = site.at[0] + ((x - site.at[0]) * (site.r + 60)) / d;
@@ -408,10 +416,10 @@ const SOLO = {};
   check('the canopy\'s gaps were enough: no hard threshold on the way', contact(e, 'pair-a').hards === 0, `hards ${contact(e, 'pair-a').hards}`);
   e.fly(e.clock + 20000);
   const before = contact(e, 'pair-a');
-  lookAway(e, c, 50000);
+  lookAway(e, c, 65000);
   const moved = contact(e, 'pair-a');
-  const hardLine = resolve(M.stages[3].cues.find((x) => x.when?.lost && x.when.s === 45).radio, e.view(0).dials);
-  check('lost past 45 s: moved to its alternate, its line, a search area there', moved.route.includes('-alt-') && moved.hards === 1 && heard(e, 0, hardLine)
+  const hardLine = resolve(M.stages[3].cues.find((x) => x.when?.lost && x.when.s === HARD_S).radio, e.view(0).dials);
+  check(`lost past ${HARD_S} s: moved to its alternate, its line, a search area there`, moved.route.includes('-alt-') && moved.hards === 1 && heard(e, 0, hardLine)
     && e.view(0).search.some((s) => s.id === 'pair-alt'), `${before.route} -> ${moved.route} ${hardLine}`);
   until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 900000, 'stage 5');
   check('the pair at the camp\'s edge: stage 5', e.view(0).stage?.id === 'M1_CP_CAMP_FOUND');
@@ -455,6 +463,28 @@ console.log('lag: stages 1 to 3 again, every message 300 ms late');
   const log = (e) => JSON.stringify(e.r.ops.log.filter((x) => x.what !== 'capture'));
   check('the same captures at the same room ms', JSON.stringify(a.r.ops.match.captures.map(({ at: _a, ...x }) => x)) === JSON.stringify(b.r.ops.match.captures.map(({ at: _a, ...x }) => x)));
   check('every cue, exit and stage entry at the same room ms', log(a) === log(b) && a.view(0).stage.id === 'M1_CP_BRAVO_COMPLETE', `${log(a).slice(-300)} vs ${log(b).slice(-300)}`);
+}
+
+/* ------------------------------------------------------------- orbit */
+
+/* Seeds whose dial takes each concealment route: west, mid, east. */
+const ORBIT_SEEDS = [0.1, 0.05, 0.5];
+console.log('orbit: a correct pilot circling the pair at 150 m never trips the hard threshold');
+for (const seed of ORBIT_SEEDS) {
+  const e = opsRoom(M, { ...ROOM, n: 1, seed });
+  const c = pilot(e, 0, BASE);
+  e.fly(e.clock + 7000);
+  launch(e, c);
+  survey(e, c, 0, { teacher: false, moto: false });
+  until(e, stageIs(e, 'M1_CP_BRAVO_COMPLETE'), 30000, 'stage 3');
+  anomaly(e, c, 0, { wait: false });
+  follow(e, c, 0, { orbit: 150 });
+  until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 1800000, 'the camp after the orbit');
+  const route = e.r.ops.match.checkpoint?.contacts?.find((x) => x.id === 'pair-a')?.route ?? '';
+  const log = e.r.ops.log.filter((x) => x.what === 'cue' && x.stage === 'M1_CP_CONTACT_FOUND');
+  const hardLines = log.filter((x) => [x.radio].flat().some((r) => typeof r === 'string' && r.startsWith('int1-s4-hard'))).length;
+  check(`dial ${e.view(0).dials.conceal}: the whole route to the camp, no hard threshold, no soft fail`, e.view(0).stage?.id === 'M1_CP_CAMP_FOUND'
+    && e.view(0).state === 'live' && hardLines === 0 && route.startsWith('conceal-') && !route.includes('-alt-'), `${e.view(0).state} ${e.view(0).why} hard lines ${hardLines} ${route}`);
 }
 
 /* ------------------------------------------------------------- squad */
@@ -541,7 +571,7 @@ console.log('fails: three hard thresholds, then the checkpoint');
   const captures = e.view(0).captures.length;
   for (let k = 1; k <= 3 && e.view(0).state === 'live'; k += 1) {
     until(e, () => contact(e, 'pair-a').state === 'seen', 300000, `seen before loss ${k}`);
-    lookAway(e, c, 50000);
+    lookAway(e, c, 65000);
     e.fly(e.clock + 300);
   }
   const v = e.view(0);
@@ -554,7 +584,8 @@ console.log('fails: three hard thresholds, then the checkpoint');
   e.fly(e.clock + 7000);
   const r = e.view(0);
   check('restarted there: stage 4 again, the captures before it kept, the pair back on its route', r.stage?.id === 'M1_CP_CONTACT_FOUND' && r.restarted === 'M1_CP_CONTACT_FOUND'
-    && r.captures.length === captures && !contact(e, 'pair-a').route.includes('-alt-') && contact(e, 'pair-a').hards === 0);
+    && r.captures.length === captures && !contact(e, 'pair-a').route.includes('-alt-') && contact(e, 'pair-a').hards === 0,
+  `${r.stage?.id} ${r.restarted} ${r.captures.length}/${captures} ${JSON.stringify(contact(e, 'pair-a'))}`);
   check('the same dials as before', JSON.stringify(r.dials) === JSON.stringify(v.dials));
   follow(e, c);
   until(e, stageIs(e, 'M1_CP_CAMP_FOUND'), 1800000, 'stage 5 after the restart');

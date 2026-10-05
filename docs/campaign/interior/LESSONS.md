@@ -53,10 +53,12 @@ Add a section per phase or mission (newest last) with:
 6. **The owner's flight:** not yet.
    On WORLD's map (2026-10-05): the solo run takes 28 of the 32
    minutes to sunset. Under the real canopy a pilot straight over the
-   pair loses it for at most 36 to 38 s between gaps (the hard threshold
-   is 45); from 150 m off to one side, up to 56 s, so an orbiting fixed
-   wing can trip the hard threshold while doing everything right: a
-   threshold to check in the owner's flight. The dispersal routes' last
+   pair loses it for at most 36 to 38 s between gaps; from 150 m off to
+   one side, up to 56 s, so at the default 45 s an orbiting fixed wing
+   tripped the hard threshold while doing everything right. Lead
+   decision (reversible): Mission 1's hard threshold is 60 s, and
+   interior:stages orbits the pair at 150 m over all three routes with
+   no hard threshold. Still to check in the owner's flight. The dispersal routes' last
    glimpse comes up to 22 s before they end (WATCH_MS is 30 s). The
    lookout's deck sits inside its own tree's crown, hidden from every
    side; its capture item is the foot of its ladder.

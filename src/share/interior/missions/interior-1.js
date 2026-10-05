@@ -100,6 +100,13 @@ const FIRST_OUT_S = 20;
 
 const BUILDING = (id) => BUILDINGS.find((b) => b.id === id);
 
+/* The pair's loss thresholds (MISSIONS.md 1.7: 20 s and 45 s by default,
+ * tuned per mission). Hard is 60 s here, a lead decision of 2026-10-05:
+ * under WORLD's canopy an orbiting fixed wing about 150 m off the pair
+ * sees it through gaps up to 56 s apart, and a pilot flying correctly
+ * must never be moved to the alternate or soft failed for it. */
+const PAIR_TRACK = { soft: 20, hard: 60 };
+
 const ISR_TRACKER = { role: ['isr', 'tracker'] };
 const TRACKER = { role: ['tracker'] };
 const DISPERSAL = {
@@ -134,10 +141,10 @@ export default {
       id: 'moto-road', kind: 'vehicle', group: 'bravo-civil', faction: 'civilian',
     },
     {
-      id: 'pair-a', kind: 'person', group: 'pair', faction: 'column', track: { soft: 20, hard: 45 },
+      id: 'pair-a', kind: 'person', group: 'pair', faction: 'column', track: PAIR_TRACK,
     },
     {
-      id: 'pair-b', kind: 'person', group: 'pair', faction: 'column', track: { soft: 20, hard: 45 },
+      id: 'pair-b', kind: 'person', group: 'pair', faction: 'column', track: PAIR_TRACK,
     },
     ...CAMP.map((id) => ({
       id, kind: 'person', group: 'camp', faction: 'column',
@@ -337,7 +344,7 @@ export default {
           when: { reacquired: 'pair' }, repeat: true, radio: ['int1-s4-there', 1, 'int1-s4-goodeye'], unsearch: 'pair-lkp',
         },
         {
-          when: { lost: 'pair', s: 45 },
+          when: { lost: 'pair', s: PAIR_TRACK.hard },
           repeat: true,
           radio: { dial: 'conceal', map: { west: 'int1-s4-hard', mid: 'int1-s4-hard-b', east: 'int1-s4-hard' } },
           search: { id: 'pair-alt', at: { dial: 'conceal', map: { west: ALT_AT('west'), mid: ALT_AT('mid'), east: ALT_AT('east') } }, r: 200 },
