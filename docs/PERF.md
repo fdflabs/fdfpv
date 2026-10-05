@@ -512,3 +512,166 @@ unchanged (no file it draws with moved).
   (as zones.js already mirrors it) would cut it to a texture read, at
   the price of the field's pixel fade (it reads the distance).
 - The lake bed in thermal: decided, opaque water, bed left out (above).
+
+- The lake bed in thermal: the sensor owner's call (above).
+
+## P7, feel: the frame readout
+
+2026-10-05. Settings, Screen, Frame readout (off by default), or F3
+anywhere: four lines low on the left (src/ui/perfoverlay.js), over the
+OSD's pack readout and under the freestyle combo, clear of the course
+chip, the flight buttons, the speed and the throttle.
+
+    60 fps   1% low 59
+    frame 16.7 ms   CPU 2.4   GPU 2.3
+    391 draw calls   1.64 M triangles
+    render scale 1.00   cap off
+
+fps and frame ms are over the last second of drawn frames (a frame the
+cap skips is not counted), the 1% low is this document's definition over
+the last 1024 drawn frames, CPU is the frame callback's own time
+(main.js blockMs) over the same second, GPU is dynamic resolution's timer
+query round the world's draw. In Quality, where dynres.js never acts, the
+readout asks for the timer itself (setWatch) and lets it go when hidden;
+`n/a` where the browser has no timer. Nothing per frame allocates; the
+text is rebuilt four times a second.
+
+`npm run perf:overlay` (scripts/perf-overlay-check.js) holds it to:
+off by default; F3 and the setting both show and hide it and the choice
+is stored; its fps within 10 % of fps worked out from the shell's own
+animation frame timestamps; its draw calls the renderer's; its scale and
+cap dynres's and the setting's; a GPU time in Quality on a GPU; no
+pointer events. Run with SIM_GPU=1 and with the software rasteriser,
+2026-10-05: all passed on both.
+
+The cap and the display: the cap draws a frame only once 1000 / cap less
+1 ms has passed since the last drawn one, so the drawn rate is the
+largest whole fraction of the display's rate at or under the cap. A 90
+cap on a 60 Hz display draws 60, on a 120 Hz display 60, on a 144 Hz
+display 72; a 120 cap on 144 Hz draws 72. That is on purpose ("a steady
+60 reads better than a heaving 90", the setting's own note), and the
+readout shows the cap beside the fps it gives, so a pilot can see it.
+
+## P7, feel: from the stick to the picture
+
+2026-10-05. `SIM_GPU=1 npm run perf:latency -- OUT_DIR [--hz=90] [--late=1]`
+(scripts/perf-latency.js) hovers a seven inch at 5 m on the Swiss valley
+in angle mode and steps the yaw stick between two values from a timer at
+random moments, about every 300 ms, as a thumb would, never on a frame.
+For each step it finds, from outside the shell, the frame that handed the
+new value to sim_input, its RC slot, and the first frame whose plant state
+is a step past the slot (the first frame drawn with it), and times each
+against the step. It ends at the frame's submit: the GPU and the
+compositor come after, the same whichever way the plant is fed.
+Headless Chrome's beat is 60 Hz; `--hz=90` replaces it with a 90 Hz beat
+kept by timers (frames handed the beat's time, started when the page is
+free), a model of the main thread's side only.
+
+### Where the time went, on main
+
+60 Hz, the browser's beat, GPU 0 at 69 to 81 % (another agent's page):
+
+| step to (ms) | mean | p50 | p95 |
+| --- | --- | --- | --- |
+| the next frame's timestamp | 15.6 | 13.3 | 23.7 |
+| sim_input | 15.9 | 13.7 | 24.1 |
+| render start | 17.2 | 16.5 | 25.7 |
+| frame submitted | 20.0 | 18.5 | 28.2 |
+
+The frame that took the input always drew it (0 frames between), and
+render interpolation is 1 ms behind the newest state by construction,
+which is not worth a guess to take back. The cost was the frame that
+takes it. Waiting for the next frame should average half a frame,
+8.4 ms at 60 fps. It averaged 15.6, because a reading had to reach the
+shell some 7 ms before the frame started to get in: the frame maps its
+own start to the end of the block it steps, the RC slots (250 Hz) all
+fall before that end, and the 2 ms timer's readings are stamped when they
+are taken. So the newest reading, the frame's own poll, always waited for
+the next frame's block, and one taken in the last RC frame or so before
+the frame started did too. That was about two moves in five.
+
+### Low latency input (Settings, Stick latency: Low, under Radio link)
+
+main.js lines the frame's newest reading up with the last RC slot of the
+block it steps, instead of the block's end: every reading the frame holds
+is in the block it is drawn from. sim_input still gets slot timestamps on
+the same grid, and never a wall time; a reading moves by about one RC
+frame. A recording holds what reached sim_input, so replays, ghosts and
+the room's poses are what they were. Off by default.
+
+| | step to sim_input, mean / p95 | step to frame submitted, mean / p95 |
+| --- | --- | --- |
+| 60 Hz beat, Standard (main) | 15.9 / 24.1 | 20.0 / 28.2 |
+| 60 Hz beat, Low | 8.4 / 12.7 | 13.4 / 17.6 |
+| 90 Hz beat, Standard, run 1 / 2 | 9.4 / 18.1, 8.4 / 17.7 | 13.4 / 22.1, 12.6 / 22.2 |
+| 90 Hz beat, Low, run 1 / 2 | 3.7 / 8.4, 4.0 / 8.6 | 8.0 / 12.5, 7.8 / 11.6 |
+
+The 90 Hz rows were run A, B, A, B on one tree, with GPU 0 at 87 to 98 %
+(another agent's page): frames missed beats (mean interval 15 to 17 ms
+against 11.1), so read them as the difference, not the level. About
+5 ms sooner on average at 90 and 6.6 at 60, and the tail (p95) roughly
+halved at both.
+
+Also fixed in src/input/input.js: poll() is called by the 2 ms timer
+with performance.now() and by the frame with its timestamp, which is the
+frame's start and can be earlier. dtMs went negative for that poll (the
+keyboard's spring and the mouse's ran backwards for it) and the frame's
+reading was stamped older than the reading queued before it. Stamps are
+now never earlier than the last one.
+
+## P7, feel: the other pilots in a room
+
+2026-10-05. `SIM_GPU=1 npm run perf:peers -- OUT_DIR` (scripts/perf-peers.js)
+puts one headless page in a room on a rooms server it starts, sitting on
+its pad on the Swiss valley, and flies a second pilot from Node over the
+real wire (hello, clock pings, a POSE every 33 ms), each pose held 50 ms
+give or take 10 before it is sent, round a level circle of 15 m at
+20 m/s (a 2.7 g turn): 25 m in front (near, drawn in the present by
+src/game/peer.js) and 160 m away (far, drawn 150 ms in the past). Every
+drawn frame's peer position against the circle says what moment it
+shows and how far off the path it is. Browser beat 60 Hz, 15 s each,
+GPU 0 at 56 to 81 % (another agent's page on it).
+
+| | near: clock jitter | near: kick mean / p95 / max | near: off path mean / p95 | far: clock jitter | far: kick mean / p95 / max | far: off path |
+| --- | --- | --- | --- | --- | --- | --- |
+| main | 0.59 ms | 27.4 / 59.8 / 111.1 mm | 10.6 / 16.8 cm | 0.13 ms | 1.3 / 2.4 / 6.0 mm | 0.3 cm |
+| this | 0.20 ms | 1.4 / 5.7 / 23.5 mm | 0.1 / 0.5 cm | 0.01 ms | 2.3 / 2.5 / 2.7 mm | 0.2 cm |
+
+(Clock jitter: the frame to frame change in the moment drawn less the
+frame's own, standard deviation. Kick: the drawn path's second
+difference less the circle's, scaled to a 90 Hz frame.)
+
+Two changes:
+
+- **The present is carried on the acceleration too** (peer.js ACCEL).
+  On its velocity alone a turning near peer was drawn on the tangent and
+  pulled back by every sample, 30 times a second: 10 cm off its path and
+  jolted 2.7 cm a frame on average, up to 11. The velocities the poses carry are the
+  plant's own, so the newest two give the acceleration; it is bounded at
+  80 m/s^2, taken only from samples at most 100 ms apart and neither
+  crashed, and run for the first 100 ms of the extrapolation, so a bounce
+  or a stalled stream is carried much as before. The referee harness
+  (`npm run midair:harness -- --seeds=4`), what each pilot drew of the
+  other at the contact, 50 ms links: straight passes 0.00 m before and
+  after; the 6 g turn median 0.38 m to 0.04 m, worst 1.46 m to 0.50 m.
+  Every row of the harness still passes. Nothing here reaches the
+  referee, which places aircraft by their stamps (src/game/midair.js).
+- **Peers are drawn at the frame's moment** (main.js roomFrame): the
+  room clock at the frame's timestamp, as this pilot's own craft is drawn
+  and as its own poses are stamped, instead of the room clock read part
+  way through the frame. Far clock jitter 0.13 to 0.01 ms. Small on this
+  light frame; the part of the frame before that line is what varies, so
+  it grows with a heavy frame.
+
+The far peer's mean kick rose from 1.3 to 2.3 mm while its maximum fell
+from 6.0 to 2.7: that is the straight line drawn between two samples
+turning a corner at each sample, now met on a steady beat instead of
+smeared by the clock's jitter. 2.5 mm a frame at 160 m is under a pixel.
+A curve through the samples' velocities (Hermite) would take it out;
+not built, for that reason.
+
+New checks in `npm run rooms:selftest`: a turning near peer is drawn
+within 1 cm of its path (8.5 cm on the tangent before, which fails it),
+a velocity reversal is carried at no more than 80 m/s^2, a crashed peer
+on its velocity alone, a stalled stream accelerated for 100 ms only.
+Three of the four fail on main's peer.js.

@@ -389,6 +389,10 @@ export const RENDER_SCALES = [100, 85, 70, 55];
 /* 90 is the owner's frame target; 120 and 144 are the high refresh
  * panels. 30 stays so a saved 30 is not reset by the normaliser below. */
 export const FPS_CAPS = [0, 144, 120, 90, 60, 30];
+/* How the stick readings are timed onto the RC frames (main.js, LOW
+ * LATENCY): 'standard' by when they were read, 'low' the newest in the
+ * frame it was read in. */
+export const LATENCY_MODES = ['standard', 'low'];
 /* What the FPV camera view draws over the picture: 'osd' is the flight
  * controller's on screen display (src/ui/fpvhud.js), 'game' the game's own
  * readout, 'avionics' the sensor and tracking display
@@ -816,6 +820,11 @@ const DEFAULTS = {
    * lowers it, 'balanced' may take it to 75 percent to hold the frame
    * budget, 'performance' aims lower and may go to 50. */
   perfMode: 'balanced',
+  /* The frame readout low on the left (src/ui/perfoverlay.js),
+   * F3. Not `readout`: that was the old corner's key, and a profile that
+   * had it on would have the new one on without asking. */
+  perfOverlay: false,
+  latencyMode: 'standard',
   packVoltage: 4.2,
   /* Each plane's power system and pack or tank, by airframe id:
    * { option, pack }, configs/power.js. A plane with no entry flies its
@@ -1061,6 +1070,7 @@ export function loadSettings() {
     ['renderScale', RENDER_SCALES],
     ['fpsCap', FPS_CAPS],
     ['perfMode', PERF_MODES],
+    ['latencyMode', LATENCY_MODES],
     ['hudStyle', HUD_STYLES],
     ['peerMarks', MARK_STYLES],
     ['avxInset', AVX_INSETS],
@@ -7074,6 +7084,14 @@ export class Ui {
           (id) => LINK_PRESETS[id].label,
           (id) => { s.link = id; },
         ),
+        choice(
+          str('ui.stick_latency'),
+          str('ui.stick_latency_note'),
+          LATENCY_MODES,
+          s.latencyMode,
+          (id) => str(`ui.latency_${id}`),
+          (id) => { s.latencyMode = id; },
+        ),
         /* The other half of the split, signposted. When you cut a list in
          * two you owe the reader a line saying where the rest went. */
         {
@@ -7108,6 +7126,7 @@ export class Ui {
           (n) => (n === 0 ? str('ui.uncapped') : `${n} fps`),
           (n) => { s.fpsCap = n; },
         ),
+        toggle(str('ui.frame_readout'), str('ui.frame_readout_note'), s.perfOverlay, (v) => { s.perfOverlay = v; }),
         choice(
           str('ui.hud_style'),
           str('ui.hud_style_note'),
