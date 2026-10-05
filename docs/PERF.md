@@ -373,3 +373,133 @@ the mirror's remaining 0.47, the cascades 0.45.
 - perf-play now exits once its report is written: the war scenario's
   rooms server leaves its room's purge alarm on the event loop after
   stop() (edge/rooms/node.js), which held the process open.
+
+## P3b, the swiss2 ground and grass shaders, the sensor's draw, the wing's tail
+
+2026-10-05, on main at 4ecbaeab (#446 and #447 in). Same machine and
+mode as P3: `--mode=quality`, High, 1600 by 900, uncapped, GPU 0 shared
+with the desktop and other agents' pages (nvidia-smi pmon load noted per
+run below).
+
+### The previous numbers, checked
+
+perf-play swiss-low on main reproduced P3: GPU 11.04 ms a frame, floor
+8.93, scene 5.79, sensor view 2.42, clouds 0.89, mirror 0.51, cascades
+0.45 (run A1 below, GPU 0 at 5 % before it).
+
+`scripts/perf-ground-check.js --variant=stub-*` timed the ground alone
+with one part of the splat left out at a time (parked views, held
+clocks): on the valley floor the fields (s2Field and the meadow model
+under it) were 1.5 of 3.75 ms, the layer loop 0.7, the sheer faces'
+block 0.3 to 0.7 even where there is no face (its registers cost every
+pixel), the soft field edges 0.3, the turned second read 0.35, the
+relief 0.15 to 0.4.
+
+### What was built
+
+**The splat skips work whose weight is exactly nought** (ground.js).
+Much of it was noise worked out only to be multiplied by a weight that is
+nought over most of the valley: the airfield's eleven noises everywhere
+off the airfield, the stream's damp band, hedges on boundaries the hash
+gives none, the village greens, the walls' cliff bands and gullies on
+gentle ground, the wash line away from the water, far detail past the
+distance that fades it. Each is now behind a branch on its weight. The
+grass runs the same field model (MEADOW_GLSL) in its vertex shader, so it
+gains too.
+
+**The grass works out a clump's field only when the clump is drawn**
+(vegetation/grass.js). A clump grown to nothing past its edge, or a flat
+plant past twenty metres, is folded to its root whatever the field says.
+
+**Proof.** `scripts/perf-ground-check.js` draws the scene with this
+tree's ground and grass shaders and with main's, in one page, the clocks
+held, and compares the scene pass in 32 bit floats. Bit identity is not
+reachable once the code round a multiply and an add changes: the
+compiler contracts them into one rounding differently. Across all 19
+views (swiss2-views.js's 17 and two low over the valley) no pixel's light
+moved by 1/255 of itself; the largest move was 0.06 % (lake-edge), the
+grass change alone was bit for bit the same, and the waterfall view was
+bit for bit the same throughout. Three deliberate small mistakes fail
+it: the relief's last octave dropped a step early (fails 14 views), a
+layer skipped at a weight of 0.006 instead of 0.004 (all 19), a regrown
+field's grass cut a hair shorter (6 views, those with a regrown field's grass in them). 1/255 of a pixel's
+own light is less than the least step an 8 bit display shows at any
+exposure, and the photographic pass adds grain of 0.006 to every pixel
+every frame, ten times the largest move.
+
+**Measured.** Parked views, the two interleaved (ground check, GPU 0 at
+4 to 58 %): the scene pass 1.0 to 1.9 ms faster, the ground alone 0.5 to
+1.3, the grass alone 0.2 to 0.4. perf-play, three runs of each
+alternating, median of the runs:
+
+| Scenario | main: GPU avg / p10, scene, sensor | this: GPU avg / p10, scene, sensor | frame avg |
+| --- | --- | --- | --- |
+| swiss-low, quiet card (GPU 0 5 to 60 %, gnome-shell) | 11.12 / 9.62, 5.78, 2.42 | 9.46 / 8.12, 4.71, 1.95 | 13.69 to 11.68 |
+| wing-cruise, same runs | 7.80 / 6.81, 5.40 | 6.62 / 5.89, 4.26 | 8.94 to 7.66 |
+| swiss-low, busy card (another agent's page at 42 to 72 %) | 12.18 / 10.11, 6.02, 2.68 | 10.02 / 8.12, 4.70, 2.05 | 15.77 to 13.06 |
+
+The first pair of rows is ground.js alone; the last has the grass change
+too. The sensor view's thermal draw runs the same programs, so it gained
+0.5 ms without a line of its own changed.
+
+### What was tried and not kept
+
+- **A walk that stops at the first cut in s2Cuts** (the parcels): the
+  same answer on paper, but the hash it reads rounded differently once
+  the loop was not unrolled, and a field boundary moved in three views
+  (996 pixels over 1/255 in lake-high). Dropped; perf-ground-check's
+  `--edits` and `--variant=all-edits` found it hunk by hunk.
+
+### The sensor view's thermal draw: the lake bed is not invisible to it
+
+P3 proposed leaving the lake's bed out of the thermal draw as a surface
+the water covers. `scripts/perf-thermal-check.js
+--skip=swiss2-lake-bed,swiss2-lake-near-bed` says otherwise: the water's
+sheet is translucent in the thermal draw too (it writes its temperature
+at its own alpha), and the bed's pass multiplies what lies under it, so
+leaving the bed out moved the whole lake's temperature by up to 0.5 (50
+degrees) in every lake view, for 0.03 to 0.15 ms. Not built. Whether the
+lake should read as its bed at all in long wave infrared, where water is
+opaque within a fraction of a millimetre, is a thermal look question for
+the sensor's owner, not a performance one. The grass and meadow stay in
+the thermal draw (the owner's eye, as P3 said); they got cheaper with the
+grass change above instead.
+
+### Wing-cruise's long and short frames: not ours
+
+Of 3495 frames in a 30 s run, 1019 were over 11.1 ms, and 960 of those
+were followed by a frame under 5 ms. The long frames are all GPU wait
+(13.5 ms median of waiting for the frame two back; the shell's own frame
+callback is 2.3 ms in long and short frames alike), and each frame's own
+GPU time stays at 7 to 9 ms (p95 8.6). The long frames come on a beat:
+70 % of the gaps between them are within 2 ms of a multiple of 16.7 ms
+(17 to 18, 33 to 35, 43 to 45 ms), against 24 % by chance, and the
+first GPU segment of a long frame (the cloud shadow bake) reads 0.33 ms
+against 0.11. That is another client of the shared card on a 60 Hz beat
+(the desktop's compositor, with a remote desktop session capturing it,
+at 25 to 87 % in pmon) taking its time slice, and the two deep fence
+then waiting through it. It moves the uncapped p95 only: with the cap
+at 90 the same flight's p95 is 10.3 ms (P3's table).
+
+### Where the frame stands against 11.1 ms
+
+Swiss-low's GPU frame is now 9.5 ms on a quiet card (floor 8.1), under
+11.1 with room, where it was 11.1. The frame interval is 11.7 ms there
+because the card is shared; on a card of its own the GPU is the limit.
+What is left, by size: the scene pass 4.7 (the ground about 2.5 of it at
+these views, the grass 1.0), the sensor view 1.95 (its thermal draw is
+vertex bound by the grass, plus its full screen passes), clouds 0.9,
+the mirror 0.5, the cascades 0.45. Wing-cruise: GPU 6.6. Itaipu-war is
+unchanged (no file it draws with moved).
+
+### What is next
+
+- The sheer faces' block costs registers on every pixel of the valley
+  (0.3 to 0.7 ms with no face in view): splitting the walls' faces into
+  a program of their own would buy that, but needs the wall geometry
+  told apart from the floor's.
+- The grass's vertex cost is the field model run per vertex for every
+  drawn clump; computing it per clump on the CPU when the tile is built
+  (as zones.js already mirrors it) would cut it to a texture read, at
+  the price of the field's pixel fade (it reads the distance).
+- The lake bed in thermal: the sensor owner's call (above).
