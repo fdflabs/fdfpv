@@ -54,3 +54,38 @@ Add a section per phase or mission (newest last) with:
 7. **For Itaipu:** the war's stage engine took the ops triggers through
    one hook, so Defend the Paraná can adopt cards, roles and guides by
    writing data and adding a hook kind, not by forking stages.js.
+
+### Track VIEW (2026-10-05)
+
+1. **What landed:** N14 (the camera ball), N5's screen half (the capture
+   scorer and the stills), N7 (the quiet HUD), N16's screen (the role
+   board), N8 (the debrief over the squad's stills), N20's screen (The
+   Interior's card, its page and consent); the ops room client
+   (`src/share/roomops.js`). PRs #432, #434 and the debrief and card PR. Mission 1 cannot
+   start from the card until track WORLD's map is in the build.
+2. **Measured:** a locked ball holds its point to 1e-13 of the frame
+   through a weaving orbit, and the room's `sight()` and the screen's
+   three.js camera agree to 1.4e-13 over 8000 points (`camera:lock`):
+   building the picture on the room's own basis made the two one
+   geometry rather than two that agree within a tolerance. At 16x
+   optical a 2 m mark at the camp's standoff grades usable, at 8x poor
+   (ROOM's figure, the lead's call).
+3. **Campaign agnostic:** the ball, the scorer, the HUD, the board, the
+   debrief and the campaign page name no campaign; words are string keys
+   under the mission's campaign, roles and classes its ids. Two places
+   know a little more than they should: the tutorial prompts are cleared
+   by a table of screen actions keyed by the prompt's last word (launch,
+   climb, eo_thermal, map), and the debrief infers which items are
+   required from the primary objectives and the stars, because mission
+   data has neither a `debrief` block nor a per item map flag. Both are a
+   field of mission data away from being pure.
+4. **Roles at scale:** the board was checked against injected views (a
+   seat, a squadmate, a swap request), not yet against a live room of
+   several pages; nobody has flown it.
+5. **Guides:** a role's cards are filtered by the screen from the view
+   (`roles` on a card); radio lines have no text yet, so a pilot without
+   the voices hears nothing of another role's guide, by design.
+6. **The owner's flight:** not yet.
+7. **For Itaipu:** the war's HUD can take the quiet HUD's one rule
+   (`markOf`, a mark only for what the room has said) as a mode, and the
+   room's `sight()` is the right basis for any sensor a room judges.

@@ -45,6 +45,9 @@ const LOBBY = { state: 'lobby' };
 export function createRoomOps(send) {
   let seat = null;
   let room = null;
+  /* The host's seat as the welcome said; the shell's room link knows
+   * later changes. */
+  let host = null;
   let view = LOBBY;
   let events = [];
   let lastCamT = -Infinity;
@@ -94,6 +97,7 @@ export function createRoomOps(send) {
     onWelcome(w) {
       seat = w.seat;
       room = w.code ?? null;
+      host = w.host ?? null;
       view = w.ops || LOBBY;
       events = [];
       lastCamT = -Infinity;
@@ -119,11 +123,12 @@ export function createRoomOps(send) {
     room: () => room,
     /* The mission's data this build has, or null. */
     mission: () => (view.mission ? MISSIONS[view.mission] ?? null : null),
+    missionOf: (id) => MISSIONS[id] ?? null,
     on: () => ON.has(view.state),
     live: () => view.state === 'live',
     /* The match's identity: its room and number. */
     match: () => (view.id != null ? `${room}:${view.id}` : null),
-    host: (hostSeat) => hostSeat === seat,
+    hostSeat: () => host,
     takeEvents() {
       const out = events;
       events = [];
@@ -179,6 +184,7 @@ export function createRoomOps(send) {
     clear() {
       seat = null;
       room = null;
+      host = null;
       view = LOBBY;
       events = [];
       lastCamT = -Infinity;
