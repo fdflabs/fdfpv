@@ -19,9 +19,10 @@
  * briefing of a public Itaipu room made for mission 1, named for this
  * pilot, which Escape leaves for the campaign's page; Play again, and
  * Start now starts it with the loadout in the start
- * message. A mission end with no result, as main gives: nothing paid, a
- * quiet note. A mocked room result, since the room gives none yet: stars
- * and credits on the screen follow it. Play mission 2 from the lobby's
+ * message. The room's own result for the ended war taken first; then a
+ * mission end with no result, as a room from before results gives:
+ * nothing paid, a quiet note. A mocked room result, a won one the
+ * check can choose: stars and credits on the screen follow it. Play mission 2 from the lobby's
  * Campaign row: the lobby says mission 2 and Start now starts it, its
  * intro played.
  *
@@ -344,6 +345,12 @@ try {
   await page.evaluate("(() => { const s = window.__ui.settings; s.airframe = 'interceptor'; s.combat = {}; return true; })()");
   await page.evaluate("window.__warDo('end')");
   await page.until("window.__war().view.state === 'ended'", 10000).catch(() => {});
+  /* The room gives the ended war its own result now (lost, nothing paid),
+   * which the campaign's poll (POLL_MS, 250 ms) takes and says. Taken
+   * once before the mocks below, or a poll held up by a busy frame says
+   * it after them and its line replaces theirs. */
+  await page.until('window.__war().view.result != null', 10000).catch(() => {});
+  await page.sleep(1000);
   const before = await page.evaluate("JSON.stringify(window.__campaign.state())");
   await page.evaluate(`(() => {
     const code = window.__rooms().code;
@@ -359,7 +366,7 @@ try {
     && bare.credits === 'Credits: 100' && bare.last === 'Mission 1 over. Stars and credits are coming soon.', JSON.stringify(bare));
   await page.evaluate('window.__campaign.close()');
 
-  /* A MOCKED RESULT: the room computes none yet. First seen undecided,
+  /* A MOCKED RESULT, a win the check chooses. First seen undecided,
    * then decided, as a war this page watched. */
   await page.evaluate(`(() => {
     const code = window.__rooms().code;
