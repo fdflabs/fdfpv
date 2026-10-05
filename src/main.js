@@ -152,6 +152,7 @@ import { spilling } from './share/war/stages.js';
 import { createWarCutaway } from './render/warcutaway.js';
 import { startTrackSync } from './share/cloud.js';
 import { createAccountUi } from './ui/accountui.js';
+import { checkSession, needSignIn } from './share/account.js';
 
 /* The pilot's key for signing posted times and saved tracks, made on first
  * use and kept in this browser. See src/share/identity.js. */
@@ -2436,6 +2437,17 @@ export async function boot({
       if (st.phase !== 'open') {
         roomSlot = -1;
       }
+      /* The room would not seat this session: one that ended elsewhere is
+       * let go by asking the accounts server, and then the sign in is
+       * asked for, with this room to rejoin after it. */
+      if (st.phase === 'failed' && st.reason === 'signin' && st.code) {
+        const code = st.code;
+        checkSession().then((standing) => {
+          if (standing === false) {
+            needSignIn(() => roomLinkState.join(code));
+          }
+        });
+      }
       if (st.phase === 'idle' || st.phase === 'failed') {
         roomPeersClear();
         roomGone.clear();
@@ -2458,6 +2470,9 @@ export async function boot({
       roomBrowser.watch(roomBrowsing());
       ui.refreshFriends();
     },
+    /* No room is made or joined without an account (a link, a code, a
+     * reload's rejoin, the lobby's rows): src/share/account.js. */
+    gate: (resume) => needSignIn(resume),
   }, () => {
     /* What the room is told on every hello is what roomFrame compares
      * with. Starting that from nothing instead lost the first change: a
@@ -12502,6 +12517,9 @@ export async function boot({
    * on My tracks with syncWorld's own notice.
    */
   ui.onBuild = async ({ map, id, casual = false }) => {
+    if (needSignIn(() => ui.onBuild({ map, id, casual }))) {
+      return;
+    }
     const entry = mapById(map);
     const doc = id ? loadMapTrack(id) : null;
     if (entry.id !== map || !entry.build || (id && !doc)) {
@@ -12614,6 +12632,12 @@ export async function boot({
       applySettings(s);
     }
     if (accountUi.handle(action)) {
+      return;
+    }
+    /* No flight without an account (src/share/account.js): Fly, Play
+     * and Restart wait for the sign in, and then go. Resume is only ever
+     * a flight already under way. */
+    if ((action === 'fly' || action === 'play' || action === 'restart') && needSignIn(() => ui.onAction(action))) {
       return;
     }
     /*

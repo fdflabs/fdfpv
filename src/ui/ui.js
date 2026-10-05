@@ -150,7 +150,7 @@ import { boardFlightSeconds } from '../share/stats.js';
 import { createShotTray } from './bugshots.js';
 import { watchVersion } from './update.js';
 import { nameRules, readAccount, readPilotName, writePilotName } from '../share/pilot.js';
-import { GOOGLE_CLIENT_ID, accountsAvailable, signedIn } from '../share/account.js';
+import { accountsAvailable, mayPlay, needSignIn } from '../share/account.js';
 import { hasFlyableTrack, inspectCourse } from '../share/listing.js';
 import { activeCourseSummary } from '../share/summary.js';
 import {
@@ -4435,12 +4435,17 @@ export class Ui {
      * it sits in: the title has no bug chip to share the first slot with,
      * everywhere else does.
      *
-     * Hidden outright when GOOGLE_CLIENT_ID is empty, the same switch
-     * accountsAvailable() reads, so a build with sign in off never shows a
-     * button for it.
+     * Since the owner made an account the price of playing (2026-10-03),
+     * the chip is the signed in pilot's: the callsign's initial and the
+     * callsign, opening Pilot, where Sign out is. Until then the same slot
+     * holds the sign in panel (signinPanel, src/ui/accountui.js fills it):
+     * Google's own button and one line on why, never a wall over the page.
+     * Neither shows where there are no accounts (accountsAvailable).
      */
     this.signinChip = btn('bug-chip signin-chip', '');
-    this.signinChip.addEventListener('click', () => this.act(signedIn() ? 'pilot' : 'accountsignin'));
+    this.signinChip.addEventListener('click', () => this.act('pilot'));
+    this.signinPanel = el('div', 'signin-panel');
+    this.signinPanel.hidden = true;
 
     /* A newer deploy is out. Shown on menus and on Paused, never over a
      * flight: syncChips holds it until the pilot is off the sticks. */
@@ -4526,7 +4531,7 @@ export class Ui {
       s.style.display = 'none';
       r.append(s);
     }
-    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.musicDock, this.nameDialog);
+    r.append(this.announcer, this.banner, this.bugChip, this.pauseChip, this.swapChip, this.signinChip, this.signinPanel, this.musicDock, this.nameDialog);
     /* In the command bar, beside the primary: the screens are padded to
      * clear that bar, so nothing drawn there can cover a card, the rooms
      * panel or a row. Floating over the page, the update bar sat on the
@@ -5209,16 +5214,23 @@ export class Ui {
       this.swapChip.hidden = dialog || this.screen !== 'flight' || !this.onHotSwap;
     }
     /* The bug chip's mirror image: shown on the title and every menu,
-     * never over a flight, and only when the build has sign in at all. */
-    const signin = Boolean(this.signinChip) && Boolean(GOOGLE_CLIENT_ID) && !dialog && this.screen !== 'flight';
+     * never over a flight, and only where there are accounts. The signed
+     * in pilot's chip, or the sign in panel in its place. */
+    const corner = Boolean(this.signinChip) && accountsAvailable() && !dialog && this.screen !== 'flight';
+    const pilot = corner && mayPlay();
     if (this.signinChip) {
-      this.signinChip.hidden = !signin;
+      this.signinChip.hidden = !pilot;
       /* The title has no bug chip to share the first slot with; everywhere
        * else the bug chip has already taken it. */
-      this.signinChip.classList.toggle('first-slot', signin && !bug);
-      const account = signedIn() ? readAccount() : null;
-      Ui.text(this.signinChip, account ? (account.callsign || str('account.callsign_none')) : str('account.sign_in'));
-      this.signinChip.title = account ? str('account.callsign_note') : str('account.sign_in_note');
+      this.signinChip.classList.toggle('first-slot', pilot && !bug);
+      const callsign = pilot ? readAccount().callsign : '';
+      Ui.text(this.signinChip, callsign);
+      this.signinChip.dataset.initial = callsign ? [...callsign][0].toUpperCase() : '';
+      this.signinChip.title = str('account.callsign_note');
+    }
+    if (this.signinPanel) {
+      this.signinPanel.hidden = !corner || pilot;
+      this.signinPanel.classList.toggle('first-slot', corner && !pilot && !bug);
     }
     const roomBar = Boolean(this.roomBarView) && !dialog && this.screen !== 'flight';
     if (this.roomBar) {
@@ -5255,7 +5267,7 @@ export class Ui {
      * chip takes the title's first slot when it is up, so it counts here
      * too. */
     if (this.musicDock) {
-      this.musicDock.classList.toggle('under-chip', Boolean(bug || signin));
+      this.musicDock.classList.toggle('under-chip', Boolean(bug || corner));
     }
     this.syncMusicDock();
   }
@@ -14068,6 +14080,12 @@ export class Ui {
   pickForWay(action) {
     const way = WAYS.find((w) => w.action === action);
     if (!way) {
+      return;
+    }
+    /* Every card is a way into a flight or a room: none without an
+     * account (src/share/account.js needSignIn), and the card is pressed
+     * again once the pilot has signed in. */
+    if (needSignIn(() => this.pickForWay(action))) {
       return;
     }
     /* A room's aircraft is chosen in the room, once it is known who is
