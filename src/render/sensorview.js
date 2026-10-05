@@ -147,10 +147,6 @@ export function setThermalSpan(lo, hi) {
   look.span = [lo, hi];
 }
 
-export function thermalLook() {
-  return { palette: THERMAL_PALETTES[look.palette], span: look.span ? [...look.span] : null };
-}
-
 const MODE_ID = {
   eo: 0, ir_wh: 1, ir_bh: 2, lowlight: 3, fusion: 4, contrast: 5,
 };

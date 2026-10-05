@@ -75,7 +75,7 @@ the screen, as before. A thermal main view never draws the composer.
 | `contrast` | Acquisition: grey, its local mean (a mipmap about 40 source pixels across) taken out and the rest stretched |
 
 The palette and the span are the sensor view's own (`src/render/sensorview.js`
-exports `setThermalPalette`, `setThermalSpan` and `thermalLook`), not yet on
+exports `setThermalPalette` and `setThermalSpan`), not yet on
 a key: binding one is the SensorManager's and the shell's (src/avionics,
 src/main.js). No flat field correction freeze is drawn.
 
@@ -240,7 +240,9 @@ box; and each mode stays within section 13 at High (GPU under 12 ms, the
 least of 40 frames, and at most 300 draw calls). It writes the pictures,
 the inset's too, and sensor.json with every number.
 
-Measured 2026-10-01 at 1600x900 on the shared desk GPU (other agents'
+Measured before thermal-true (PRs #454 and #458 have the current
+numbers: a full screen ir_wh frame is now about 0.8 ms least and 100
+calls). Measured 2026-10-01 at 1600x900 on the shared desk GPU (other agents'
 browsers running, so medians are noisy; the least frame is the comparable
 number):
 
