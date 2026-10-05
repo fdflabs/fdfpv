@@ -137,6 +137,9 @@ import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics
 import { createCapture, createStillStore } from './avionics/capture.js';
 import { OpsHud } from './ui/opshud.js';
 import { RolesBoard } from './ui/rolesboard.js';
+import { Debrief } from './ui/debrief.js';
+import { createOpsCampaignScreen } from './ui/opscampaign.js';
+import { INTERIOR, INTERIOR_CAMPAIGN } from './game/campaign.js';
 import { SIZE as CONTACT_SIZE, centreOf } from './share/ops/contacts.js';
 import { DEATH as WAR_DEATH, createAttackers } from './render/attackers.js';
 import { SIZE_MAX as WAR_BOOM_MAX, createExplosions } from './render/explosion.js';
@@ -827,6 +830,28 @@ export async function boot({
     lock: (on) => roomOps.lock(on),
   }, (seat) => opsSeatName(seat));
   opsHud.mount(rolesBoard.opener);
+  /* The debrief over the squad's stills (src/ui/debrief.js), when the
+   * room ends a match. */
+  const debrief = new Debrief(uiRoot, {
+    close: () => {},
+    again: () => roomOps.start(roomOps.view().mission, { from: 'checkpoint' }),
+  }, (seat) => opsSeatName(seat));
+  function opsDebrief() {
+    const v = roomOps.view();
+    const mission = roomOps.mission();
+    const match = roomOps.match();
+    if (!mission || !match) {
+      return;
+    }
+    rolesBoard.close();
+    debrief.show({
+      key: match, view: v, mission, seat: roomOps.seat(), host: opsHost() === roomOps.seat(), stills: stills.of(match), next: interiorScreen.next(v.mission),
+    });
+    interiorScreen.record(match, v);
+  }
+  /* The room's host seat: the link's, which follows a host change, else
+   * the welcome's as the ops client heard it. */
+  const opsHost = () => roomLinkState.state().welcome?.host ?? roomOps.hostSeat();
   function opsSeatName(seat) {
     if (seat === roomOps.seat()) {
       return str('ops.roles.you');
@@ -1105,6 +1130,8 @@ export async function boot({
         if (e.title) {
           opsHud.stageEntered(opsSay(e.title));
         }
+      } else if (e.type === 'state' && (e.to === 'won' || e.to === 'lost')) {
+        opsDebrief();
       } else if (e.type === 'classified') {
         opsHud.cardEvent([str('card.classification_updated'), str('ops.hud.class_change', { from: opsClassWord(e.from), to: opsClassWord(e.to) })]);
       }
@@ -1320,6 +1347,22 @@ export async function boot({
       return groundHit(p, d.map((c) => c / n), ballHeightAt);
     },
     roles: () => rolesBoard.toggle(),
+    /* Checks only: a still of this seat's, as a capture would keep it. */
+    addStill: (item, grade, t) => new Promise((done) => {
+      const c = document.createElement('canvas');
+      c.width = 320;
+      c.height = 180;
+      const g = c.getContext('2d');
+      g.fillStyle = '#3d5a2a';
+      g.fillRect(0, 0, 320, 180);
+      g.fillStyle = '#c9b27a';
+      g.fillRect(140, 70, 40, 40);
+      c.toBlob((image) => {
+        done(stills.add({
+          match: roomOps.match(), item, grade, t, seat: roomOps.seat(), framing: null, pending: false, image,
+        }) && true);
+      }, 'image/jpeg', 0.85);
+    }),
     stills: () => stills.all().map((s) => ({
       match: s.match, item: s.item, grade: s.grade, t: s.t, pending: s.pending, image: Boolean(s.image),
     })),
@@ -6415,6 +6458,42 @@ export async function boot({
   });
   campaignRef = campaign;
   ui.onCampaignCard = () => campaign.open();
+  /*
+   * THE INTERIOR'S CARD (src/ui/opscampaign.js): its missions and their
+   * states, its consent at Play. The start itself waits for track WORLD's
+   * map: a mission whose map this build does not have says so on its page
+   * rather than making a room nobody can fly.
+   */
+  async function interiorConsented() {
+    if (ui.settings.interiorConsent) {
+      return true;
+    }
+    const go = await ui.askConfirm({
+      title: str('ops.campaign.interior.consent_title'),
+      detail: str('ops.campaign.interior.consent_detail'),
+      yes: str('ops.campaign.interior.consent_yes'),
+      no: str('ops.campaign.interior.consent_no'),
+    });
+    if (go) {
+      ui.settings.interiorConsent = true;
+      ui.persistSettings();
+    }
+    return go;
+  }
+  const interiorScreen = createOpsCampaignScreen({
+    ui,
+    campaign: INTERIOR_CAMPAIGN,
+    missions: INTERIOR,
+    devMissions: new URLSearchParams(window.location.search).get('missions') === 'dev',
+    consented: interiorConsented,
+    play: (m) => {
+      const mission = roomOps.missionOf(m.id);
+      const why = mission && MAPS.some((x) => x.id === mission.map) ? 'ops.campaign.no_start' : 'ops.campaign.no_map';
+      interiorScreen.open(str(why));
+    },
+  });
+  ui.onOpsCampaignCard = () => interiorScreen.open();
+  window.__opsCampaign = interiorScreen;
   ui.onTrackChosen = () => {
     if (lobbyGame() !== 'race' || !roomHost(roomLinkState.state().welcome)) {
       return false;
@@ -17414,7 +17493,7 @@ export async function boot({
     opsFrame(mode === 'flight' && (ui.screen === 'flight' || ui.screen === 'paused'));
     const opsHudUp = (ballHudUp || (roomOps.on() && mode === 'flight' && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused')));
     opsHud.tick(opsHudUp, ui.screen === 'paused', nowWall, opsHudUp ? opsHudSrc() : null);
-    rolesBoard.update(roomOps.on() ? roomOps.view() : null, roomOps.seat(), roomLinkState.state().welcome?.host ?? null, opsHudUp);
+    rolesBoard.update(roomOps.on() ? roomOps.view() : null, roomOps.seat(), opsHost(), opsHudUp);
     peerMarks.begin(shell.camera, ui.settings.peerMarks, avionicsHud.on ? avionicsHud : fpvOsd, mode === 'flight' && ui.screen === 'flight', dt / 1000, nowWall);
     for (const peer of roomPeers.values()) {
       if (peer.rig && peer.rig.group.visible) {

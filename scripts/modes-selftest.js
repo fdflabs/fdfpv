@@ -42,6 +42,7 @@ import { ROOM_MODES, ROOM_SETUPS } from '../src/share/roomwire.js';
 import { GOALS } from '../src/share/roomtag.js';
 import { MAPS } from '../src/maps/registry.js';
 import { WAYS } from '../src/ui/ui.js';
+import { INTERIOR_CAMPAIGN } from '../src/game/campaign.js';
 import { str } from '../src/strings/index.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -109,7 +110,14 @@ for (const m of MODES) {
     && way.art === m.card.art && JSON.stringify(way.facts) === JSON.stringify(m.card.facts.map((k) => str(k))) && (way.home ?? null) === m.card.home);
 }
 const cards = WAYS.filter((w) => w.gate !== false);
-check('every card on the title is an activity of the registry', cards.every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
+/* A campaign of ops missions is a card with no room mode yet
+ * (docs/campaign/interior/CONTRACT-P0.md section 12): it must be one of
+ * the campaigns src/game/campaign.js lists, in Operations, and nothing
+ * else may skip the registry. */
+const opsCards = cards.filter((w) => w.opsCampaign);
+check('every card on the title is an activity of the registry, or a campaign of ops missions', cards.filter((w) => !w.opsCampaign).every((w) => MODES.some((m) => m.card.way === w.id)), cards.map((w) => w.id).join(','));
+check('a campaign card is a campaign of src/game/campaign.js, in Operations, with no lobby', opsCards.length > 0 && opsCards.every((w) => w.opsCampaign === INTERIOR_CAMPAIGN.id && w.category === 'operations' && !Object.hasOwn(w, 'lobby')),
+  opsCards.map((w) => `${w.id}:${w.opsCampaign}:${w.category}`).join());
 
 console.log('modes: the wire');
 check('free flight is null on the wire', wireMode('free') === null && modeOfWire(null) === 'free' && modeOfWire(undefined) === 'free');

@@ -595,6 +595,9 @@ const DEFAULTS = {
    * mature content, so a host is told what it is once before starting it.
    */
   warConsent: false,
+  /* The Interior's consent (armed conflict, people seen from the air),
+   * asked once at a mission's Play (src/ui/opscampaign.js). */
+  interiorConsent: false,
   /*
    * The war aircraft (configs/airframes.js WAR_AIRFRAMES) this pilot flew
    * last in a war, which a war puts them back in when they come to it in
@@ -2966,6 +2969,18 @@ function crownSvg() {
 /* Defend Itaipu's mark: the plane symbol in a gunsight's ring, which is
  * what every defender is (a warhead flown onto an attacker). No flag and no
  * roundel: the mode names nobody (docs/WARFARE-PLAN.md). */
+/* A camera ball's reticle: the ring, its ticks, the lens in the middle. */
+function ballSvg() {
+  return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
+    + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
+    + '<circle cx="150" cy="150" r="118" fill="none" stroke="currentColor" stroke-width="8" stroke-opacity="0.9"/>'
+    + '<path d="M 150 10 V 58 M 150 242 V 290 M 10 150 H 58 M 242 150 H 290" stroke="currentColor"'
+    + ' stroke-width="10" stroke-opacity="0.9" stroke-linecap="round"/>'
+    + '<circle cx="150" cy="150" r="46" fill="none" stroke="currentColor" stroke-width="8" stroke-opacity="0.7"/>'
+    + '<circle cx="150" cy="150" r="14" fill="currentColor" fill-opacity="0.8"/>'
+    + '</svg>';
+}
+
 function reticleSvg() {
   return '<svg viewBox="0 0 300 300" role="img" aria-hidden="true"'
     + str('ui.preserveaspectratio_xmidymid_meet_class_craft_plan')
@@ -3182,6 +3197,26 @@ export const WAYS = [
     ...modeCard('war'),
     svg: reticleSvg(),
   },
+  {
+    /*
+     * THE INTERIOR, the second campaign (docs/campaign/interior/PLAN.md),
+     * beside Defend the Paraná in Operations. A campaign of ops missions,
+     * not a room mode: ops missions have no mode registry entry yet
+     * (CONTRACT-P0.md section 12, and the lead's call that they run in
+     * private rooms only in Phase 0), so its hub is its own `category`.
+     * The press opens its page (src/ui/opscampaign.js), which asks its
+     * consent only at a mission's Play.
+     */
+    id: 'interior',
+    opsCampaign: 'interior',
+    category: 'operations',
+    airframes: ['bramor2300'],
+    mode: 'freestyle',
+    label: str('ops.campaign.interior.card'),
+    svg: ballSvg(),
+    blurb: str('ops.campaign.interior.card_blurb'),
+    facts: [str('ops.campaign.interior.card_missions'), str('ops.campaign.interior.card_roles'), str('ops.campaign.interior.card_quiet')],
+  },
 ].map((w) => ({ ...w, action: `way-${w.id}` }));
 
 /* The cards the title draws, in its order. */
@@ -3222,7 +3257,7 @@ function hubWays(hubId) {
   const hub = HUBS.find((h) => h.id === hubId);
   return GATE_WAYS.filter((w) => {
     const m = MODES.find((x) => x.card.way === w.id);
-    return Boolean(hub && m && m.category === hub.category);
+    return Boolean(hub && (m ? m.category : w.category) === hub.category);
   });
 }
 
@@ -3230,7 +3265,8 @@ function hubWays(hubId) {
 function hubOfAction(action) {
   const way = WAYS.find((w) => w.action === action);
   const m = way ? MODES.find((x) => x.card.way === way.id) : null;
-  const hub = m ? HUBS.find((h) => h.category === m.category) : null;
+  const category = m ? m.category : way && way.category;
+  const hub = category ? HUBS.find((h) => h.category === category) : null;
   return hub ? hub.id : null;
 }
 
@@ -14160,6 +14196,10 @@ export class Ui {
      */
     if (way.campaign && this.onCampaignCard) {
       this.onCampaignCard();
+      return;
+    }
+    if (way.opsCampaign && this.onOpsCampaignCard) {
+      this.onOpsCampaignCard(way.opsCampaign);
       return;
     }
     if (this.onGameCard && this.friendsRow && this.friendsRow() && Object.hasOwn(way, 'lobby')) {
