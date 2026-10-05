@@ -69,10 +69,11 @@ every composer pass and the shadow map (GPU segments), and
   composer named `draw <src file>` after its caller
   (`draw maps/swiss2/water/lake` is the lake's mirror,
   `draw render/sensorview` the avionics sensor view's scene draws and
-  full screen passes; Itaipu's mirror is drawn from the scene's
-  onBeforeRender and shows as `draw maps/itaipu/look/sky`), and `other`
-  for the rest (P3 split these; the baseline below lumped them all into
-  `other`);
+  full screen passes, `draw maps/itaipu/look/sky` Itaipu's sky cube,
+  redrawn a band at a time). Itaipu's mirror is drawn from the scene's
+  onBeforeRender, inside the composer's scene pass, so it is counted in
+  `scene`. `other` is the rest (P3 split these; the baseline below
+  lumped them all into `other`);
 - **draw calls and triangles**: the renderer's own counts after the frame;
 - **long tasks**: PerformanceObserver `longtask`;
 - **GC**: the JS heap (`performance.memory`) falling between two frames.
@@ -289,8 +290,10 @@ floor 1.68, inside 11.1 already.
    left is the draw's vertices and calls, which a scissor does not cut.
    scripts/perf-mirror-check.js proves the picture bit identical in
    eight views. Itaipu's mirrors are left as they were: its frame is
-   6.4 ms, its mirror 0.68 ms a frame, and its water reads the mirror's
-   alpha (SMEAR), which needs its own proof before it is opted in.
+   5.4 to 6.4 ms, its mirror about 0.4 ms (scripts/itaipu-water-check.js:
+   reservoir 0.42, river 0.40, median), and its water reads the
+   mirror's alpha (SMEAR), which needs its own proof before it is opted
+   in.
 2. **Shadow cascade caching: not built.** Both cascades together cost
    0.46 to 0.72 ms a frame (0.36 floor) in every swiss2 scenario and
    0.16 in Itaipu. Caching the far one entirely would buy under 0.3 ms,
