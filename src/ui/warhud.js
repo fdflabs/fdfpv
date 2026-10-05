@@ -136,12 +136,17 @@ export function waveStatus(v, mission, roomNow) {
     return null;
   }
   if ((v.roundState ?? 'live') === 'result') {
-    return Number.isFinite(v.nextRoundAt) ? at('war.next_round', v.nextRoundAt) : unknown;
+    return Number.isFinite(v.nextRoundAt) ? at(v.stage ? 'war.next_stage' : 'war.next_round', v.nextRoundAt) : unknown;
   }
   if (v.stage !== undefined) {
     if (Number.isFinite(v.nextAt)) {
       const s = Math.ceil((v.nextAt - roomNow) / 1000);
       return s > 0 ? { text: str('war.next_wave', { t: clock(s) }), s } : { text: str('war.wave_inbound'), s: 0 };
+    }
+    /* A stage opens groups on events too (a kill, a crossing, after
+     * another group), so nothing due is not the last wave. */
+    if (v.stage) {
+      return { text: str(v.alive > 0 ? 'war.clear_contacts' : 'war.stage_clear'), s: null };
     }
     return { text: str(v.alive > 0 ? 'war.last_wave' : 'war.round_clear'), s: null };
   }
@@ -546,7 +551,7 @@ export function createWarHud(nameOf, restart = null) {
     if (countdown != null) {
       phase = str('war.countdown', { s: countdown });
     } else if (round) {
-      phase = str('war.round', { n: round.n, of: round.of ?? round.n });
+      phase = str(round.unit === 'stage' ? 'war.stage_of' : 'war.round', { n: round.n, of: round.of ?? round.n });
     }
     cell(phase, countdown != null ? AMBER : GREEN);
     cell(str('war.contacts', { n: v.alive ?? 0 }), v.alive > 0 ? AMBER : GREEN);
