@@ -53,6 +53,17 @@
  * on). The speed is in the numbers, for a person to read with the load on
  * the machine it ran on, which is printed with them.
  *
+ * THE GAPS ARE THE SERVER'S. A gap is read on the batch's own room clock,
+ * the server's at the send, not on the receiving pilot's wall clock, and
+ * the three tick bound leaves out a gap only where the sender sent its
+ * very next pose more than a tick late. One worker thread flies a whole
+ * room's pilots, so on a small runner it falls behind in combat: on CI
+ * it read gaps of 142 and 157 ms
+ * with the server's loop lag p99 under 4 ms and 5 to 8 percent of the
+ * entries still unread when the phase ended. That was the load generator
+ * late at both ends, sending and reading, and not the server. A server
+ * that stalls a tick or thins a near peer still shows, in both.
+ *
  * This file is part of WebFPVSimulator.
  *
  * WebFPVSimulator is free software: you can redistribute it and/or modify
@@ -199,6 +210,10 @@ function emptyPhaseStats() {
     entries: new Array(BANDS).fill(0),
     gaps: Array.from({ length: BANDS }, () => new Uint32Array(GAP_BINS + 1)),
     gapMax: new Array(BANDS).fill(0),
+    /* The gaps but those after a pose its sender sent late, and how many
+     * those were. */
+    held: Array.from({ length: BANDS }, () => new Uint32Array(GAP_BINS + 1)),
+    senderLate: new Array(BANDS).fill(0),
     raceOn: 0, combatOn: 0,
   };
 }
@@ -262,6 +277,8 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
         }
         s.batches += 1;
         const count = data[1];
+        /* The server's room clock at the send (roomwire.js encodeBatch). */
+        const roomMs = data.readUInt32LE(2);
         const flying = c.flying;
         for (let k = 0; k < count; k += 1) {
           const at = BATCH_HEAD + k * BATCH_ENTRY;
@@ -271,12 +288,25 @@ async function pilotsWorker({ origin, rooms, pilots, spread, local, seed, id }) 
           const pz = data.readFloatLE(at + 16);
           const band = flying ? bandOf(Math.hypot(px - flying[0], py - flying[1], pz - flying[2])) : 0;
           s.entries[Math.max(0, band)] += 1;
+          /* The pose's sequence and its own stamp, its sender's room clock
+           * (roomwire.js readBody: seq one byte into the body, t three). */
+          const seq = data.readUInt16LE(at + 1 + 1);
+          const t = data.readUInt32LE(at + 1 + 3);
           const prev = c.last.get(seat);
-          c.last.set(seat, wall);
-          if (band >= 0 && prev != null && wall - prev < 5000) {
-            const gap = wall - prev;
-            s.gaps[band][Math.min(GAP_BINS, Math.floor(gap / GAP_BIN_MS))] += 1;
+          c.last.set(seat, { roomMs, seq, t });
+          if (band >= 0 && prev && roomMs - prev.roomMs < 5000) {
+            const gap = roomMs - prev.roomMs;
+            const bin = Math.min(GAP_BINS, Math.floor(gap / GAP_BIN_MS));
+            s.gaps[band][bin] += 1;
             s.gapMax[band] = Math.max(s.gapMax[band], gap);
+            /* Left out only when the sender sent its very next pose late: a
+             * pose missing between the two is the server's (RECENT_POSES
+             * kept too few, or a near peer thinned), and is counted. */
+            if (seq === ((prev.seq + 1) & 0xffff) && t - prev.t > TICK_MS + GAP_BIN_MS) {
+              s.senderLate[band] += 1;
+            } else {
+              s.held[band][bin] += 1;
+            }
           }
         }
       } else if (type === TYPE_PARTS_RELAY && s) {
@@ -628,17 +658,17 @@ function mergeStats(list) {
     for (const [name, s] of Object.entries(one)) {
       const m = (out[name] ??= emptyPhaseStats());
       for (const [k, v] of Object.entries(s)) {
-        if (k === 'gaps') {
+        if (k === 'gaps' || k === 'held') {
           v.forEach((h, b) => h.forEach((x, i) => {
-            m.gaps[b][i] += x;
+            m[k][b][i] += x;
           }));
         } else if (k === 'gapMax') {
           v.forEach((x, b) => {
             m.gapMax[b] = Math.max(m.gapMax[b], x);
           });
-        } else if (k === 'entries') {
+        } else if (k === 'entries' || k === 'senderLate') {
           v.forEach((x, b) => {
-            m.entries[b] += x;
+            m[k][b] += x;
           });
         } else {
           m[k] += v;
@@ -748,6 +778,7 @@ async function oneRun(a, pilots, report) {
     const procCpu = procs.length > 1 ? (procs.at(-1).proc.cpuS - procs[0].proc.cpuS) / ((procs.at(-1).wall - procs[0].wall) / 1000) : NaN;
     const hs = win.filter((x) => x.h && x.h.now).map((x) => x.h);
     const bands = s.gaps.map(gapStats);
+    const held = s.held.map(gapStats);
     const sent = s.txPoses;
     const every = sent * (pilots - 1);
     const got = s.entries.reduce((x, y) => x + y, 0);
@@ -767,15 +798,17 @@ async function oneRun(a, pilots, report) {
       outMsgsPerS: hs.length ? mean(hs.map((h) => h.now.outMsgsPerS)) : s.rxMsgs / secs,
       inMsgsPerS: hs.length ? mean(hs.map((h) => h.now.inMsgsPerS)) : s.txMsgs / secs,
       rxBytesPerPilotS: s.rxBytes / secs / n,
-      bands: bands.map((b, i) => (b ? { m: INTEREST[i].m, hz: b.hz, p50Ms: b.p50Ms, p99Ms: b.p99Ms, maxMs: s.gapMax[i], n: b.n } : null)),
+      bands: bands.map((b, i) => (b ? {
+        m: INTEREST[i].m, hz: b.hz, p50Ms: b.p50Ms, p99Ms: b.p99Ms, maxMs: s.gapMax[i], n: b.n, heldP99Ms: held[i] ? held[i].p99Ms : null, senderLate: s.senderLate[i],
+      } : null)),
       entriesSaved: every ? 1 - got / every : 0,
       chats: s.chats, crashes: s.crashes, parts: s.parts, streamers: s.streamers, cuts: s.cuts, raceOn: s.raceOn, combatOn: s.combatOn,
       loadAvg: [load0, load1],
     };
     rows.push(row);
     const near = row.bands[0];
-    report.check(`${ph.name}, ${a.rooms}x${pilots}: near peers at the full rate`, near && near.hz > 26 && near.p99Ms <= 3 * TICK_MS + GAP_BIN_MS,
-      near ? `${f1(near.hz)} Hz, p99 gap ${near.p99Ms} ms` : 'no near peers');
+    report.check(`${ph.name}, ${a.rooms}x${pilots}: near peers at the full rate`, near && near.hz > 26 && near.heldP99Ms !== null && near.heldP99Ms <= 3 * TICK_MS + GAP_BIN_MS,
+      near ? `${f1(near.hz)} Hz, p99 gap ${near.heldP99Ms} ms on the server's clock, ${near.senderLate} of ${near.n} gaps left out for a late sender` : 'no near peers');
     for (let b = 1; b < BANDS; b += 1) {
       const band = row.bands[b];
       if (band && band.n > 20) {
@@ -829,7 +862,7 @@ async function main() {
   for (const r of all) {
     const b = r.bands;
     console.log(`${r.phase.padEnd(8)} ${String(r.rooms).padStart(5)} x ${String(r.pilots).padEnd(6)} ${(r.cpu * 100).toFixed(1).padStart(5)}%  ${f1(r.lagP99MeanMs).padStart(5)} (${f1(r.lagP99Ms)})  ${f1(r.rssMB).padStart(6)}  ${kb(r.outBytesPerS).padStart(8)}  ${f1(r.outMsgsPerS).padStart(9)}  ${kb(r.rxBytesPerPilotS).padStart(14)}  `
-      + `${b[0] ? `${f1(b[0].hz)}/${b[0].p99Ms}` : '-'}`.padStart(11) + `  ${b[1] ? f1(b[1].hz) : '-'}`.padStart(8) + `  ${b[2] ? f1(b[2].hz) : '-'}`.padStart(7)
+      + `${b[0] ? `${f1(b[0].hz)}/${b[0].heldP99Ms}` : '-'}`.padStart(11) + `  ${b[1] ? f1(b[1].hz) : '-'}`.padStart(8) + `  ${b[2] ? f1(b[2].hz) : '-'}`.padStart(7)
       + `  ${(r.entriesSaved * 100).toFixed(0).padStart(4)}%  ${r.loadAvg.map((x) => x.toFixed(0)).join('/')}`);
   }
   if (a.json) {

@@ -3,7 +3,7 @@
  * the real shell, against a local edge/rooms/node.js that this check
  * starts, restarts and stops itself (never the live VM).
  *
- *   SIM_GPU=1 node scripts/rooms-sight-three-page.js [port]
+ *   SIM_GPU=1 node scripts/rooms-sight-three-page.js [port]   (a free one if none)
  *
  * The owner's report (2026-09-29): "i see all 3 people, but one of the 3,
  * doesnt see me". Three pilots, the ways they come into a room:
@@ -55,8 +55,9 @@ import { airframeById } from '../configs/airframes.js';
 import en from '../src/strings/en.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-/* Not the default 8797, so a server a developer has running is left alone. */
-const PORT = Number(process.argv[2] || 18797);
+/* A free port unless one is named: a fixed one collided across sessions
+ * running this check at once. */
+const PORT = Number(process.argv[2] || 0);
 const ROOM_MAP = 'swiss2';
 
 let failed = 0;
@@ -93,7 +94,9 @@ const say = (key, vars) => (en[key] || key).replace(/\{(\w+)\}/g, (_, k) => vars
 const dir = await mkdtemp(join(tmpdir(), 'rooms-sight-'));
 const db = join(dir, 'rooms.db');
 let server = await startRooms({ db, port: PORT });
-const rooms = `http://127.0.0.1:${PORT}`;
+/* The restart below comes back on this same port, where the pages are. */
+const { port } = server;
+const rooms = `http://127.0.0.1:${port}`;
 console.log(`three pages in one room, rooms at ${rooms}`);
 const base = `/index.html?rooms=${encodeURIComponent(rooms)}`;
 const pages = {
@@ -210,7 +213,7 @@ try {
   /* The server restarts under them. */
   const before = Object.fromEntries(names.map((k) => [k, s[k].seat]));
   await server.stop();
-  server = await startRooms({ db, port: PORT });
+  server = await startRooms({ db, port });
   await settle(`window.__rooms().phase === 'open' && ${everyoneDrawn}`, 40000);
   s = await look();
   seats = bySeat(s);

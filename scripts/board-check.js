@@ -47,11 +47,14 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openPage } from '../tests/lib/page.js';
+import { freePort } from '../tests/lib/roomsserver.js';
 import { SETTINGS_KEY } from '../src/ui/ui.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const BOARD_REPO = join(dirname(root), 'fdfpv-leaderboard');
-const PORT = 3187;
+/* A free port: a fixed one collided across sessions, and the second
+ * board's failure to bind was silent, so its check drove the first's. */
+const PORT = await freePort();
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
 /* More than the five the room used to cap at, so "all of them" is a

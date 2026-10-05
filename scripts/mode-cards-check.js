@@ -1,11 +1,10 @@
 /*
  * mode-cards-check.js: the home's three hubs and Flight Club's four
  * cards, and the two room game cards driven through the real shell the way
- * a pilot drives them, against a running rooms server (never the live
- * one):
+ * a pilot drives them, against a local rooms server (never the live one):
  *
- *   ROOMS_DB=/tmp/rooms.db PORT=8797 node edge/rooms/node.js
- *   SIM_GPU=1 node scripts/mode-cards-check.js http://127.0.0.1:8797 [outdir]
+ *   SIM_GPU=1 npm run modes:card                       starts its own on a free port
+ *   SIM_GPU=1 npm run modes:card -- http://127.0.0.1:8797 [outdir]
  *
  * Page A, 1280 by 720: home is three hubs, Operations, Flight Club and
  * the Hangar (docs/redesign/PLAN.md 2.2), each with a picture, a plan and
@@ -68,9 +67,13 @@ import { fileURLToPath } from 'node:url';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openPage } from '../tests/lib/page.js';
 import { seatPilot } from '../tests/lib/roompilot.js';
+import { roomsServer } from '../tests/lib/roomsserver.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rooms = process.argv[2] || 'http://127.0.0.1:8797';
+/* With no url it ran against 8797 and, with nothing there, failed every
+ * row for a server it never said it needed. */
+const server = await roomsServer(process.argv[2], 'mode-cards');
+const rooms = server.url;
 const outDir = process.argv[3] || join(root, 'build', 'mode-cards');
 
 let failed = 0;
@@ -601,5 +604,6 @@ try {
 } finally {
   await g.close();
 }
+await server.stop();
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
