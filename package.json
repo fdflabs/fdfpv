@@ -139,6 +139,8 @@
     "films:time": "node scripts/films-time.js",
     "films:lint": "node scripts/films-lint.js",
     "film:world": "node scripts/film-world-check.js",
+    "film:world:interior": "node scripts/interior-films-check.js --world",
+    "board:render": "node scripts/interior-films-check.js --board",
     "war:boom": "node scripts/war-boom.js",
     "replay:world": "node scripts/replay-world.js",
     "replay:sound": "node scripts/replay-sound.js",
