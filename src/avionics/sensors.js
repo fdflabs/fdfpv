@@ -32,7 +32,9 @@
 
 import * as THREE from 'three';
 import { setWeather, setMotorHeat } from '../render/thermal.js';
-import { createSensorView, INSET_SIZES } from '../render/sensorview.js';
+import {
+  createSensorView, INSET_SIZES, THERMAL_PALETTES, setThermalPalette,
+} from '../render/sensorview.js';
 import { BAND, DETECTOR_PX } from './bands.js';
 
 export const SENSOR_MODES = ['eo', 'ir_wh', 'ir_bh', 'lowlight', 'fusion', 'contrast'];
@@ -52,6 +54,9 @@ const STAB_CROP = 1.08;
  * the moon, about a twentieth of what a detector wants. */
 const LIGHT = { day: 1, night: 0.06 };
 const ZOOM_NOISE = 0.06;
+/* How often the map's clock is read again, seconds: the sun moves over
+ * minutes, so once a second is cheap and never late. */
+const WEATHER_REREAD_S = 1;
 
 const RED = '#ff3b30';
 
@@ -79,6 +84,8 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     mainView: 'eo',
     /* The inset's size, a key of INSET_SIZES: the pilot's choice (U). */
     inset: 'small',
+    /* White hot's palette, a key of THERMAL_PALETTES: the pilot's choice. */
+    palette: THERMAL_PALETTES[0],
     timeOfDay: 'day',
     detect: {
       sensor: 'EO', pxPerRad: 0, light: 1, contrast: 0.75, quality: 0.7,
@@ -88,6 +95,7 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
   let snow = 0;
   let tracks = null;
   let weatherScene = null;
+  let weatherWallS = 0;
   const view = renderer ? createSensorView(renderer, { onInset: drawBoxes }) : null;
 
   /* The smoothed camera the stabilisation draws from, and the rotation
@@ -101,13 +109,24 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
   const dir = new THREE.Vector3();
 
   /* The map's time of day and its sun, into the thermal model, when the
-   * scene changes (maps swap scenes). */
+   * scene changes (maps swap scenes). Between changes the time of day is
+   * read again once a second: the Interior's sun moves, and its scene's
+   * userData.timeOfDay moves with it. */
   function weather() {
     const s = scene();
-    if (!s || s === weatherScene) {
+    if (!s) {
+      return;
+    }
+    const wallS = performance.now() / 1000;
+    if (s === weatherScene) {
+      if (wallS - weatherWallS >= WEATHER_REREAD_S) {
+        weatherWallS = wallS;
+        state.timeOfDay = s.userData.timeOfDay === 'night' ? 'night' : 'day';
+      }
       return;
     }
     weatherScene = s;
+    weatherWallS = wallS;
     state.timeOfDay = s.userData.timeOfDay === 'night' ? 'night' : 'day';
     let sun = 1;
     s.traverse((o) => {
@@ -377,6 +396,16 @@ export function createSensorManager({ renderer = null, scene = () => null, camer
     },
     cycleMode() {
       api.setMode(SENSOR_MODES[(SENSOR_MODES.indexOf(state.mode) + 1) % SENSOR_MODES.length]);
+    },
+    setPalette(name) {
+      if (!THERMAL_PALETTES.includes(name)) {
+        throw new Error(`sensors: no thermal palette ${name}`);
+      }
+      state.palette = name;
+      setThermalPalette(name);
+    },
+    cyclePalette() {
+      api.setPalette(THERMAL_PALETTES[(THERMAL_PALETTES.indexOf(state.palette) + 1) % THERMAL_PALETTES.length]);
     },
     cycleZoom() {
       api.setZoom(ZOOM_LEVELS[(ZOOM_LEVELS.indexOf(state.zoom) + 1) % ZOOM_LEVELS.length]);
