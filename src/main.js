@@ -1168,7 +1168,10 @@ export async function boot({
         /* Ended by the host too: the squad's captures so far are its
          * record. A win has its outro first (opsFilmFrame), and the
          * debrief when it is over. */
-        if (!(e.to === 'won' && opsFilmOf(v.mission, 'outro'))) {
+        const m = roomOps.mission();
+        /* No outro over another world (a page not on the mission's map):
+         * the debrief at once. */
+        if (!(e.to === 'won' && opsFilmOf(v.mission, 'outro') && m && opsWorldUp(m.map))) {
           opsDebrief();
         }
       } else if (e.type === 'classified') {
