@@ -88,8 +88,9 @@ export function hash01(i, j, salt) {
   return (h >>> 0) / 4294967296;
 }
 
-/* Value noise in [0, 1) on a lattice `cell` metres apart, smoothstepped. */
-function noise(x, z, cell, salt) {
+/* Value noise in [0, 1) on a lattice `cell` metres apart, smoothstepped.
+ * Exported for the drawing's stands of one tone (trees.js). */
+export function noise(x, z, cell, salt) {
   const fx = (x + HALF) / cell;
   const fz = (z + HALF) / cell;
   const i = Math.floor(fx);
