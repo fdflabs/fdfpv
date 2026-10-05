@@ -59,6 +59,7 @@ import { buildTerrain, TERRAIN_Q } from './interior/terrain.js';
 import { makeLook } from './interior/look.js';
 import { buildTrees } from './interior/trees.js';
 import { buildBuilt } from './interior/built.js';
+import { buildLife } from './interior/life.js';
 
 /* The phases buildMap names to the loading screen, in order. */
 export const PHASES = ['data', 'heightmaps', 'vegetation', 'town', 'shaders'];
@@ -138,7 +139,13 @@ async function buildInterior(shell, progress, q, hours) {
   const built = await buildBuilt({
     THREE, scene, world, colliders, roofs: roofRecords,
   });
+  const life = buildLife({
+    THREE, scene, world, colliders, roofs: roofRecords,
+  });
   colliders.build();
+  life.setCamp({ mark: 'shelter-1', tarp: 0, mast: 0 });
+  /* ?people=demo: every route's people at once, for the checks' views. */
+  const demo = new URLSearchParams(window.location.search).get('people') === 'demo';
   const roofs = makeRoofs(roofRecords);
   look.setHeights(ground, PLAY_HALF + 500, 30);
   camera.position.copy(spawnAt).add(new THREE.Vector3(0, 2, 0));
@@ -150,7 +157,7 @@ async function buildInterior(shell, progress, q, hours) {
   progress(1);
 
   scene.userData.interior = {
-    terrain, camera, look, world, canopy, trees, built, colliders,
+    terrain, camera, look, world, canopy, trees, built, colliders, life,
   };
   const height = (x, z, fromY) => roofs.height(x, z, fromY, terrain.height(x, z));
   return {
@@ -180,6 +187,9 @@ async function buildInterior(shell, progress, q, hours) {
     rivers: built.rivers,
     /* The canopy: the highest crown over (x, z), for the contact pass. */
     canopyAt: (x, z) => canopy.crownTopAt(x, z),
+    /* The room's contacts and the camp's state, drawn (life.js). */
+    setContacts: (list, roomMs) => life.setContacts(list, roomMs),
+    setCamp: (state) => life.setCamp(state),
     /* The room's clock moves the sun (look.js). */
     setLocalTime: (h) => trees.setSun(look.setLocalTime(h)),
     setNextGate() {},
@@ -197,17 +207,24 @@ async function buildInterior(shell, progress, q, hours) {
     updateWind() {},
     updateAnim(step) {
       built.update(step);
+      /* The physics' step count, a millisecond a step. */
+      life.update(step / 1000);
+      if (demo) {
+        life.demo(step);
+      }
     },
     stats: () => ({
       terrain: terrain.stats(),
       colliders: colliders.stats(),
       trees: trees.stats(),
       built: built.stats(),
+      life: life.stats(),
     }),
     dispose() {
       terrain.dispose();
       trees.dispose();
       built.dispose();
+      life.dispose();
       scene.userData.interior = null;
       shell.evictSessionRoots(scene);
       disposeSceneGraph(scene, SESSION_TEXTURES);

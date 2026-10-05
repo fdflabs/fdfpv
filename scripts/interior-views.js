@@ -112,6 +112,13 @@ const VIEWS = [
   { id: 'low-pista', cam: pose(2.82, 1.93, 1.8, 3.2, 2.05, 1.5) },
   { id: 'low-canada', cam: pose(9.25, 8.5, 40, 9.05, 8.9, 10) },
   { id: 'low-camp', cam: pose(8.6, 9.38, 60, 8.58, 9.455) },
+  /* The camera ball's 8x (TECH-NEEDS N14), 5.5 degrees: the camp's people
+   * from 600 m out at the standoff, the pair under the trees from 400 m,
+   * the colonia's street from 500 m. ?people=demo has every route's
+   * people out (src/maps/interior/life.js demo). */
+  { id: 'zoom-camp-600', cam: [campX + 420, world.groundAt(campX, campZ) + 430, campZ + 40, campX, world.groundAt(campX, campZ) + 1, campZ], fov: 5.5 },
+  { id: 'zoom-colonia-500', cam: pose(9.2, 5.75, 300, 9.35, 6.16), fov: 5.5 },
+  { id: 'zoom-motorcycle-400', cam: pose(8.4, 5.7, 260, 8.6, 6.1), fov: 8 },
 ];
 
 const opts = { views: '', hour: '' };
@@ -214,7 +221,7 @@ const seed = [`try {
   } catch (e) { /* Storage refused; the run would shoot the wrong preset, and the check below says so. */ }`];
 
 const page = await openPage({
-  root, width: 1600, height: 900, url: `/index.html?map=interior${opts.hour ? `&hour=${opts.hour}` : ''}`, seed,
+  root, width: 1600, height: 900, url: `/index.html?map=interior&people=demo${opts.hour ? `&hour=${opts.hour}` : ''}`, seed,
 });
 const stop = () => page.close().finally(() => process.exit(1));
 process.once('SIGTERM', stop);

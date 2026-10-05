@@ -45,7 +45,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
-import { BRIDGES, BUILDINGS } from '../src/share/interior/places.js';
+import { BRIDGES, BUILDINGS, CAMP_PROPS } from '../src/share/interior/places.js';
 import { RIVER } from '../src/share/interior/hydro.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -53,7 +53,7 @@ const TOL = 0.3;
 const NEAR = 1.0;
 /* The meshes that stand for solid things; roads, water and trees are
  * not (the trees are the canopy's, canopy:los). */
-const SOLID_MESHES = ['interior-walls', 'interior-roofs', 'interior-concrete', 'interior-camp-solid'];
+const SOLID_MESHES = ['interior-walls', 'interior-roofs', 'interior-concrete', 'interior-camp-solid', 'interior-camp-mast', 'interior-machines'];
 
 const failures = [];
 const fail = (m) => {
@@ -241,6 +241,22 @@ try {
       if (!(gap > 0.6)) {
         fail(`${b.id}: under span ${f === 0.25 ? 1 : 2} a craft meets a solid ${gap.toFixed(2)} m away`);
       }
+    }
+  }
+  /* THE MAST: solid standing, nothing solid where it stood once it is
+   * down, solid again when it stands. */
+  {
+    const [x, z] = CAMP_PROPS.mast.at;
+    const probe = `(() => { const u = window.__mapScene().userData.interior; const g = u.world.groundAt(${x}, ${z});
+      return u.colliders.gapAt(${x}, g + ${CAMP_PROPS.mast.h / 2}, ${z}, 2); })()`;
+    const up = await page.evaluate(probe);
+    await page.evaluate('(window.__map && window.__mapScene().userData.interior.life.setCamp({ mast: 1 }), "")');
+    const down = await page.evaluate(probe);
+    await page.evaluate('(window.__mapScene().userData.interior.life.setCamp({ mast: 0 }), "")');
+    const again = await page.evaluate(probe);
+    console.log(`mast: solid ${up.toFixed(2)} m away standing, ${Number.isFinite(down) ? down.toFixed(2) : 'nothing'} down, ${again.toFixed(2)} standing again`);
+    if (!(up < 0.05) || Number.isFinite(down) && down < 1 || !(again < 0.05)) {
+      fail('the mast\'s solid does not follow it down and up');
     }
   }
   const real = page.errors.filter((e) => !/net::ERR_|Failed to load resource/.test(e));
