@@ -1035,8 +1035,10 @@ export class RoomWar {
   }
 
   /* Whether this room may start mission `id`: one it knows, released. */
-  startable(id) {
-    return typeof id === 'string' && Object.hasOwn(this.missions, id) && released(id, this.devMissions);
+  /* core: the room, whose host may be one of DEV_ACCOUNTS (core.js
+   * devHost); without it, only the server's own devMissions. */
+  startable(id, core = null) {
+    return typeof id === 'string' && Object.hasOwn(this.missions, id) && released(id, this.devMissions || Boolean(core?.devHost()));
   }
 
   start(core, conn, msg, now) {
@@ -1051,7 +1053,7 @@ export class RoomWar {
     if (!mission) {
       return this.error(conn, 'mission');
     }
-    if (!this.startable(mission.id)) {
+    if (!this.startable(mission.id, core)) {
       return this.error(conn, 'unreleased');
     }
     if (mission.map !== core.meta.map) {

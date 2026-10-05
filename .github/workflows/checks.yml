@@ -77,6 +77,9 @@ jobs:
       # the end, a laggy run, a squad of five, the soft fail and its
       # checkpoint, the boundary, the ISR down.
       - run: npm run interior:stages
+      # The owner's allowlist (DEV_ACCOUNTS): only a host on it starts
+      # missions in development on a live server.
+      - run: npm run dev:accounts
       # The camera ball holds a locked point through an orbit and its
       # picture is the room's geometry; the screen's capture scorer gives
       # the expected grades and its stills reach a real room.

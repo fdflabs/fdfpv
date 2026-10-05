@@ -407,6 +407,7 @@ r = await call('PUT', '/api/account/callsign', { callsign: 'Ace' }, alice);
 check('a callsign is claimed', r.status === 200 && r.body.callsign === 'Ace');
 r = await call('GET', '/api/account', undefined, alice);
 check('and the account answers with it, for the rooms server', r.status === 200 && r.body.callsign === 'Ace');
+check('and its own id, for the rooms server\'s DEV_ACCOUNTS', Number.isInteger(r.body.id) && r.body.id > 0, JSON.stringify(r.body));
 
 r = await call('POST', '/api/account/google', { credential: await idToken({ sub: 'alice', aud: OLD_CLIENT_ID }) });
 check('the same sub through the old client id signs in too', r.status === 200, JSON.stringify(r.body));
