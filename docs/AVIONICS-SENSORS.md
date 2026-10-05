@@ -82,9 +82,17 @@ an 8x8 grid of the source's mipmaps) move toward each frame's at a 0.6 s
 time constant, so a fire blows the thermal picture's gain out and it comes
 back, as a real camera's does.
 
-**The inset** shows the sensor's mode. It leaves the GPU through a pixel pack buffer and a fence and is put into
-the canvas a frame or two later, so the main view never waits on it; a
-frame whose two readback slots are both in flight skips the inset.
+**The inset** shows the sensor's mode. It never crosses to the main
+thread: it is blitted into a corner of the drawing buffer (the corner set
+aside first and put back after), the inset's 2D canvas draws that corner
+GPU to GPU, and the track boxes go on top, all in the frame that drew it.
+A main thread readback (getBufferSubData, even behind a passed fence) is
+a blocking round trip to Chrome's GPU process that waits for the frame
+before it, 2.3 to 6.6 ms a frame (docs/PERF.md). Only when the drawing
+buffer is smaller than the inset (a phone on its side with the large
+inset) does it fall back to that readback, through a pixel pack buffer
+and a fence, a frame or two late; a frame whose two readback slots are
+both in flight then skips the inset.
 
 ## 3. Temperatures
 
