@@ -8,6 +8,9 @@
  *              checkpoints, every radio line is MISSIONS.md's and every
  *              M1 and shared line is used, every route, point, item, set,
  *              site, class and dial it names exists
+ *   briefing   a first viewing is never cut: the host's skip refused
+ *              'unwatched' until every pilot here has seen the film's cut,
+ *              then it starts everybody's countdown at once
  *   the gate   the live room refuses it ('unreleased'), a dev room starts
  *              it; another map and a public room refuse it
  *   solo       one pilot flies it to the end: launch, Alpha and Bravo
@@ -70,6 +73,8 @@ import {
 const W = worldFor('interior');
 /* The mission as the room flies it: its heights made absolute. */
 const M = grounded(MISSIONS['interior-1'], W);
+check('Mission 1 names the cut its briefing plays, so a host skip can wait for everyone to have seen it',
+  MISSIONS['interior-1'].film?.id === 'int1-intro' && Number.isInteger(MISSIONS['interior-1'].film?.version) && MISSIONS['interior-1'].filmMs > 0);
 const BASE = [...M.points['pista-cero'].at, M.z0];
 const HARD_S = M.contacts.find((x) => x.id === 'pair-a').track.hard;
 const ROOM = { world: W, map: 'interior', devMissions: true };
@@ -150,6 +155,43 @@ console.log('the gate');
   pub.r.meta.public = true;
   pub.say(0, { type: 'ops', op: 'start', mission: 'interior-1' });
   check('a public room refuses it (P0: private rooms only)', pub.socks[0].got.some((m) => m.type === 'refused' && m.why === 'private'));
+}
+
+console.log('the briefing: a first viewing never cut, the host\'s skip for everybody once all have seen it');
+{
+  /* Mission 1 with a briefing film (FILMS' intro lands it on the real
+   * mission; the rule is the room's, so a copy carries one here). */
+  const FILM = {
+    ...MISSIONS['interior-1'], id: 'interior-film-check', filmMs: 20000, film: { id: 'int1-intro', version: 2 },
+  };
+  const e = opsRoom(FILM, { ...ROOM, n: 2, start: false });
+  e.say(0, { type: 'ops', op: 'start', mission: FILM.id, intro: true });
+  const v = e.view(0);
+  check('started with intro: a briefing, its film in the view, nobody has seen it', v.state === 'briefing' && v.film.id === 'int1-intro' && v.film.version === 2 && v.seen.length === 0);
+  e.say(0, { type: 'ops', op: 'skipIntro' });
+  check('the host\'s skip before anyone has seen it: refused unwatched', e.errors(0).at(-1)?.error === 'unwatched' && e.view(0).state === 'briefing');
+  e.say(0, { type: 'ops', op: 'seen', films: { 'int1-intro': 2 } });
+  e.say(1, { type: 'ops', op: 'seen', films: { 'int1-intro': 1 } });
+  e.say(0, { type: 'ops', op: 'skipIntro' });
+  check('the host has seen it, the other pilot an older cut: still refused (a first viewing of this cut)', e.errors(0).at(-1)?.error === 'unwatched' && e.view(0).state === 'briefing'
+    && e.view(0).seen.join() === String(e.seatOf(0)));
+  e.say(1, { type: 'ops', op: 'seen', films: 'junk' });
+  check('a broken seen message is refused', e.errors(1).at(-1)?.error === 'seen');
+  e.say(1, { type: 'ops', op: 'seen', films: { 'int1-intro': 3 } });
+  e.say(1, { type: 'ops', op: 'skipIntro' });
+  check('a pilot who is not the host cannot skip', e.view(0).state === 'briefing' && e.socks[1].got.some((m) => m.type === 'refused' && m.why === 'host'));
+  e.fly(e.clock + 1000);
+  e.say(0, { type: 'ops', op: 'skipIntro' });
+  const w = e.view(0);
+  check('everybody has seen it: the host\'s skip starts the countdown for everybody, now', w.state === 'countdown' && w.goAt === e.clock + 6000 && e.view(1).state === 'countdown');
+  e.fly(w.goAt + 200);
+  check('and the mission goes live at that go, the briefing cut short', e.view(0).state === 'live' && e.view(0).stage?.id === 'M1_CP_START' && w.goAt < 20000 + 6000);
+  const f = opsRoom(FILM, { ...ROOM, n: 1, start: false });
+  f.say(0, { type: 'ops', op: 'start', mission: FILM.id, intro: true });
+  f.fly(f.clock + 20000 + 6000 + 200);
+  check('unskipped, the briefing runs its whole film, then the countdown, then live', f.view(0).state === 'live' && f.view(0).goAt === f.view(0).briefAt + 20000 + 6000);
+  f.say(0, { type: 'ops', op: 'skipIntro' });
+  check('a skip after the briefing moves nothing', f.view(0).state === 'live');
 }
 
 /* ---------------------------------------------------------- the pilot */

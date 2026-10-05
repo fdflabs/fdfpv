@@ -489,7 +489,7 @@ export class RoomCore {
           : (msg.type === 'track' || (msg.type === 'race' && msg.op === 'start')) ? 'race' : null;
     const hostOnly = start || msg.type === 'kick' || msg.type === 'handhost' || (msg.type === 'tag' && msg.op === 'end')
       || (msg.type === 'race' && msg.op === 'end') || (msg.type === 'combat' && msg.op === 'stop') || (msg.type === 'war' && (msg.op === 'end' || msg.op === 'skipIntro'))
-      || (msg.type === 'ops' && (msg.op === 'end' || msg.op === 'lock'));
+      || (msg.type === 'ops' && (msg.op === 'end' || msg.op === 'lock' || msg.op === 'skipIntro'));
     if (!hostOnly) {
       return null;
     }

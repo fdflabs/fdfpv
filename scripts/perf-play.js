@@ -11,6 +11,7 @@
  *
  *     SIM_GPU=1 node scripts/perf-play.js [OUT_DIR] [--scenarios=itaipu-war,swiss-low,wing-cruise]
  *         [--seconds=30] [--preset=high] [--pace=free|raf] [--cap=90]
+ *         [--mode=quality|balanced|performance] [--objects]
  *
  * Writes OUT_DIR/perf-play.json (every frame's numbers) and prints a table
  * per scenario. OUT_DIR defaults to a folder under the system temp dir; the
@@ -26,7 +27,10 @@
  * would. So the frame time is what this machine can do, not what the
  * display allows. --pace=raf keeps the browser's own beat. --cap=N, free
  * running, holds each frame back as the shell's own frame cap does, for
- * the tail a pilot with the cap on sees.
+ * the tail a pilot with the cap on sees. --mode seeds the performance
+ * mode; quality holds the resolution at the preset's, so a before and an
+ * after draw the same pixels and dynamic resolution cannot hide a cost.
+ * Left out, the settings' default (balanced) applies.
  *
  * WHAT A FRAME IS SPLIT INTO, all measured from outside the shell, so the
  * shell carries no hook for this:
@@ -52,11 +56,17 @@
  *
  * GPU time is WebGL's timer queries (EXT_disjoint_timer_query_webgl2), as
  * swiss2-perf.js takes them: one query open at a time, the frame a run of
- * segments, a segment per composer pass and per shadow map render, `other`
- * for the rest (the lake's mirror, prepasses, anything outside the
- * composer). The card the page draws on is shared with the desktop (see
- * docs/PERF.md), and a query counts the desktop's work too, so beside the
- * median this reports a floor: each segment's tenth percentile, summed.
+ * segments, a segment per composer pass and per shadow map render, a
+ * segment per renderer.render outside the composer named `draw <src file>`
+ * after the code that made it (the lake's mirror, the sensor view's scene
+ * draws), and `other` for the rest (full screen quads, uploads). The card
+ * the page draws on is shared with the desktop (see docs/PERF.md), and a
+ * query counts the desktop's work too, so beside the median this reports
+ * a floor: each segment's tenth percentile, summed. --objects also splits
+ * every draw by mesh (`scene:<top>/<mesh>`, `draw ...:<top>/<mesh>`) with
+ * the mesh's onBeforeRender and onAfterRender, as swiss2-perf.js does:
+ * a diagnostic, its hundreds of queries a frame cost time of their own,
+ * so its frame times are not comparable with a run without it.
  *
  * Long tasks come from a PerformanceObserver, garbage collection from the
  * JS heap (performance.memory) falling between two frames.
@@ -91,6 +101,7 @@ import { openPage } from '../tests/lib/page.js';
 import { startRooms } from '../edge/rooms/node.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
+import { PERF_MODES } from '../src/render/dynres.js';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -98,7 +109,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const BUDGET_MS = 1000 / 90;
 
 const opts = {
-  scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0,
+  scenarios: 'itaipu-war,swiss-low,wing-cruise', seconds: 30, preset: 'high', pace: 'free', repeat: 1, cap: 0, mode: '', objects: false,
 };
 const positional = [];
 for (const a of process.argv.slice(2)) {
@@ -114,6 +125,9 @@ for (const a of process.argv.slice(2)) {
 }
 if (process.env.SIM_GPU !== '1') {
   throw new Error('perf-play: run with SIM_GPU=1; a software rasteriser\'s timings say nothing about a GPU');
+}
+if (opts.mode && !PERF_MODES.includes(opts.mode)) {
+  throw new Error(`perf-play: --mode=${opts.mode}, want one of ${PERF_MODES.join(', ')}`);
 }
 if (!['free', 'raf'].includes(opts.pace)) {
   throw new Error(`perf-play: --pace=${opts.pace}, want free or raf`);
@@ -313,7 +327,28 @@ const INSTRUMENT = /* js */ `(() => {
       seen.add(r);
       PP.renderer = r;
       const rRender = r.render;
-      r.render = function (...a) { return PP.timedRender(() => rRender.apply(this, a)); };
+      /* A draw outside every composer pass (label still 'other') gets a
+       * segment of its own, named after the src/ file that made it, so
+       * the lake's mirror and the sensor view's scene draws are told
+       * apart. The name is taken from a stack once per render target. */
+      const named = new WeakMap();
+      const SCREEN = {};
+      const drawer = () => {
+        const key = r.getRenderTarget() || SCREEN;
+        let name = named.get(key);
+        if (name === undefined) {
+          const lines = String(new Error().stack).split('\\n');
+          const own = lines.find((l) => /\\/src\\//.test(l) && !/\\/vendor\\/|three/.test(l)) || '';
+          const m = own.match(/\\/src\\/([^:?]+)/);
+          name = m ? 'draw ' + m[1].replace(/\\.js$/, '') : 'draw other';
+          named.set(key, name);
+        }
+        return name;
+      };
+      r.render = function (...a) {
+        if (label !== 'other') { return PP.timedRender(() => rRender.apply(this, a)); }
+        return PP.within(drawer(), () => PP.timedRender(() => rRender.apply(this, a)));
+      };
       const sm = r.shadowMap;
       const smRender = sm.render;
       sm.render = function (...b) { return PP.within('shadow', () => smRender.apply(this, b)); };
@@ -325,12 +360,32 @@ const INSTRUMENT = /* js */ `(() => {
         if (seen.has(pass)) { continue; }
         seen.add(pass);
         const name = NAMES[pass.constructor.name] || pass.constructor.name;
+        if (name === 'scene' && !PP.scene) { PP.scene = pass.scene; }
         const orig = pass.render;
         pass.render = function (...b) { return PP.within(name, () => orig.apply(this, b)); };
       }
       return PP.timedRender(() => cRender.apply(this, a));
     };
     return { gl: Boolean(PP.gl), timer: Boolean(PP.ext) };
+  };
+
+  /* --objects: each mesh in the scene is its own segment inside
+   * whichever draw is drawing it. Meshes the map streams in after this
+   * count toward the draw round them. */
+  PP.tagObjects = () => {
+    let n = 0;
+    PP.scene.children.forEach((top) => {
+      top.traverse((m) => {
+        if (!m.isMesh && !m.isLine && !m.isPoints) { return; }
+        const name = (top === m ? '' : (top.name || top.type) + '/') + (m.name || m.type);
+        const before = m.onBeforeRender;
+        const after = m.onAfterRender;
+        m.onBeforeRender = function (...a) { before.apply(this, a); if (frameSegs !== null) { seg(label + ':' + name); } };
+        m.onAfterRender = function (...a) { after.apply(this, a); if (frameSegs !== null) { seg(label); } };
+        n += 1;
+      });
+    });
+    return n;
   };
 
   PP.record = async (seconds, free, cap) => {
@@ -428,7 +483,7 @@ function seated(airframe, map) {
   const s = seatAirframe({ airframe: 'interceptor', rates: airframeById('interceptor').rates }, airframe);
   return Object.assign(s, {
     map, freestyleMap: map, graphics: opts.preset, graphicsAuto: false, flightMode: 'angle',
-    fpsCap: 0, airframeAsked: true, warConsent: true,
+    fpsCap: 0, airframeAsked: true, warConsent: true, ...(opts.mode ? { perfMode: opts.mode } : {}),
   });
 }
 
@@ -656,7 +711,7 @@ function table(id, s) {
     `  over       11.1 ms ${s.over.budget}  16.7 ms ${s.over.ms16}  33.3 ms ${s.over.ms33}   headroom vs 11.1: avg ${f(s.headroomMs.avg)}  p95 ${f(s.headroomMs.p95)}`,
     `  cpu ms     physics ${f(s.cpu.physics)}  scene ${f(s.cpu.scene)}  render ${f(s.cpu.render)}  other ${f(s.cpu.other)}  gpu wait ${f(s.cpu.gpuWait)}`,
     `  gpu ms     avg ${f(s.gpuMs.avg)}  p50 ${f(s.gpuMs.p50)}  p95 ${f(s.gpuMs.p95)}  floor ${f(s.gpuMs.floor)}  (${s.gpuMs.frames} timed, ${s.gpuMs.disjoint} disjoint)`,
-    `  gpu parts  ${Object.entries(s.gpuParts).sort((a, b) => b[1].mean - a[1].mean).map(([k, v]) => `${k} ${f(v.mean)}/${f(v.p10)}`).join('  ')}`,
+    `  gpu parts  ${Object.entries(s.gpuParts).sort((a, b) => b[1].mean - a[1].mean).slice(0, opts.objects ? 40 : Infinity).map(([k, v]) => `${k} ${f(v.mean)}/${f(v.p10)}`).join(opts.objects ? '\n             ' : '  ')}`,
     `  draws      calls avg ${f(s.calls.avg, 0)} max ${s.calls.max}  tris avg ${f(s.trisM.avg)} M max ${f(s.trisM.max)} M`,
     `  main       long tasks ${s.longTasks.count} (${f(s.longTasks.totalMs, 0)} ms, max ${f(s.longTasks.maxMs, 0)})  gc ${s.gc.count} (${f(s.gc.mb, 0)} MB)  heap ${f(s.gc.heapMb, 0)} MB`,
     `  hotspots   ${s.hotspots.map((h, i) => `${i + 1}. ${h.what} ${f(h.ms)}`).join('  ')}`,
@@ -703,6 +758,10 @@ async function runScenario(id) {
     await page.cdp.send('Profiler.enable', {}, page.sessionId);
     await page.cdp.send('Profiler.setSamplingInterval', { interval: 500 }, page.sessionId);
     await page.cdp.send('Profiler.start', {}, page.sessionId);
+    if (opts.objects) {
+      const n = await page.evaluate('window.__PP.tagObjects()');
+      console.log(`  objects: ${n} meshes tagged`);
+    }
     const raw = await page.evaluate(`window.__PP.record(${opts.seconds}, ${opts.pace === 'free'}, ${Number(opts.cap) || 0})`);
     const { profile } = await page.cdp.send('Profiler.stop', {}, page.sessionId);
     const loadAfter = gpuLoad();
@@ -748,3 +807,7 @@ for (const id of String(opts.scenarios).split(',')) {
   }
 }
 console.log(`-> ${join(outDir, 'perf-play.json')}`);
+/* The war scenario's rooms server leaves its room's purge alarm
+ * (edge/rooms/node.js Room.schedule) on the event loop after stop(),
+ * which held this process open once the report was written. */
+process.exit(0);

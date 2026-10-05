@@ -64,6 +64,21 @@
 		}
 	}
 
+	# Preview videos for the owner (the page is the site's /vids/, served
+	# by GitHub Pages; the files are too big for the repository, so they
+	# live on this VM in /var/lib/fdfpv-vids, put there by hand, never by a
+	# deploy). Only .mp4 files, no directory listing.
+	handle_path /vids/* {
+		@mp4 path *.mp4
+		handle @mp4 {
+			root * /var/lib/fdfpv-vids
+			header Cache-Control "public, max-age=3600"
+			header Access-Control-Allow-Origin "https://paraguayandronecombatsimulator.com"
+			file_server
+		}
+		respond 404
+	}
+
 	handle /api/* {
 		reverse_proxy 127.0.0.1:8787 {
 			header_up CF-Connecting-IP {remote_host}
