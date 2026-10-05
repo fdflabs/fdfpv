@@ -3574,4 +3574,5 @@ export default {
   "ops.why.track": "The contacts were lost",
   "ops.why.end": "Ended by the host",
   "ops.why.landed": "Home",
+  "ops.debrief.ended": "MISSION ENDED BY THE HOST",
 };

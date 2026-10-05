@@ -888,6 +888,20 @@ export async function boot({
     map: () => opsHud.mapOpen,
   };
   const swapsTold = new Set();
+  /* The joiner's consent: being asked now, and the room last asked for. */
+  let opsJoinAsking = false;
+  let opsJoinAsked = null;
+  /* Each campaign that asks a consent: whether it is given, and asking. */
+  const OPS_CONSENT = {
+    [INTERIOR_CAMPAIGN.id]: { given: () => ui.settings.interiorConsent === true, ask: () => interiorConsented() },
+  };
+  /* The aircraft of the role this seat flies now, or null. */
+  function opsRoleCraft(v) {
+    const r = v.roles;
+    const key = r && r.active ? r.active[roomOps.seat()] : null;
+    const def = key && (r.defs || []).find((d) => d.id === String(key).split(':')[0]);
+    return def && def.platforms && def.platforms[0] ? def.platforms[0] : null;
+  }
   /* The start this page owes a room it made for a mission, until its
    * welcome; the match this page has put itself in the air for. */
   let opsPending = null;
@@ -1143,7 +1157,9 @@ export async function boot({
         if (e.title) {
           opsHud.stageEntered(opsSay(e.title));
         }
-      } else if (e.type === 'state' && (e.to === 'won' || e.to === 'lost')) {
+      } else if (e.type === 'state' && ['won', 'lost', 'ended'].includes(e.to)) {
+        /* Ended by the host too: the squad's captures so far are its
+         * record. */
         opsDebrief();
       } else if (e.type === 'classified') {
         opsHud.cardEvent([str('card.classification_updated'), str('ops.hud.class_change', { from: opsClassWord(e.from), to: opsClassWord(e.to) })]);
@@ -1154,8 +1170,42 @@ export async function boot({
       roomOps.start(opsPending.mission, { intro: true });
       opsPending = null;
     }
+    /*
+     * A PILOT WHO JOINED BY CODE OR LINK: a campaign that shows armed
+     * conflict asks its consent of every pilot entering a room playing
+     * it, as the war's does (roomWarJoinGate; FLOW-AUDIT rule 9 as
+     * amended), before they are seated in its match. No sends them out of
+     * the room to the title, never half in it. The host who made the room
+     * from the card has answered already.
+     */
+    const ask = v.campaign ? OPS_CONSENT[v.campaign] : null;
+    const consentDue = Boolean(ask) && !ask.given();
+    if (consentDue && !opsJoinAsking && opsJoinAsked !== roomOps.room()) {
+      const room = roomOps.room();
+      opsJoinAsking = true;
+      opsJoinAsked = room;
+      ask.ask().then((ok) => {
+        if (!ok && roomOps.room() === room) {
+          roomLeave();
+          ui.act('title');
+        }
+      }).finally(() => {
+        opsJoinAsking = false;
+      });
+    }
+    /* The aircraft of the role this seat flies (dealt at the start, or
+     * taken or swapped since): seated before it is flown, and again when
+     * the role changes to another aircraft. */
+    const craft = consentDue ? null : opsRoleCraft(v);
+    if (craft && ui.settings.airframe !== craft) {
+      seatAirframe(ui.settings, craft);
+      ui.persistSettings();
+      if (opsBegunFor === match && mode === 'flight') {
+        opsBegunFor = null;
+      }
+    }
     /* A match begun: into the air, as a war's begins (warBegin). */
-    if (match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
+    if (!consentDue && match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
       opsBegunFor = match;
       const w = roomLinkState.state().welcome;
       if (mode === 'flight' && w && roomTagWorldReady(w.map)) {

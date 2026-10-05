@@ -3578,4 +3578,5 @@ export default {
   "ops.why.track": "Se perdieron los contactos",
   "ops.why.end": "Terminada por el anfitrión",
   "ops.why.landed": "En casa",
+  "ops.debrief.ended": "MISIÓN TERMINADA POR EL ANFITRIÓN",
 };
