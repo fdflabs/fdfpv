@@ -538,7 +538,10 @@ export function createWarHud(nameOf, restart = null) {
       return str('war.won');
     }
     if (v.state === 'lost') {
-      return str('war.lost_output', { floor: mw(v.floor) });
+      /* "7 700 MW" kept on one line: mw()'s thin space is a break, and
+       * wrapped it read "UNDER 7" over "700 MW". The narrow no-break
+       * space looks the same. */
+      return str('war.lost_output', { floor: mw(v.floor).replace(/\u2009/g, '\u202f') }).replace(/(\d) MW/g, '$1\u00a0MW');
     }
     return str('war.ended');
   }
@@ -644,6 +647,8 @@ export function createWarHud(nameOf, restart = null) {
     }
     const over = v.state === 'won' || v.state === 'lost' || v.state === 'ended';
     banner.style.display = over ? 'block' : 'none';
+    /* The last hits' calls lay under the end banner, through its scrim. */
+    calls.style.display = over ? 'none' : 'flex';
     if (over) {
       banner.firstChild.nodeValue = endText(v);
       const fromStage = v.state === 'lost' && v.checkpoint;

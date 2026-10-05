@@ -2747,6 +2747,8 @@ export async function boot({
    * bit; the crash cam's replay draws what it recorded and none of this.
    */
   const WAR_MISSION = 'itaipu-1';
+  /* ms of a live war the take-off line stays up for (warTakeoffHintDone). */
+  const WAR_TAKEOFF_HINT_MS = 30000;
   /* The one map the war runs on (section 9). */
   const WAR_MAP = 'itaipu';
   const WAR_STATES = ['lobby', 'briefing', 'countdown', 'live', 'won', 'lost', 'ended'];
@@ -3761,6 +3763,22 @@ export async function boot({
     } else {
       roomCall('game', { restart: true });
     }
+  }
+
+  /* Whether a war has had enough of the take-off line: it is up through
+   * the countdown and the war's first WAR_TAKEOFF_HINT_MS, and never over
+   * a film or the end banner. A pilot who never took off had it drawn
+   * across the whole mission and over the loss. */
+  function warTakeoffHintDone() {
+    const v = roomWar.view();
+    if (v.state === 'lobby' || v.state === 'countdown') {
+      return false;
+    }
+    if (!roomWar.on()) {
+      return true;
+    }
+    const now = roomLinkState.roomNow();
+    return now == null || now - v.goAt > WAR_TAKEOFF_HINT_MS;
   }
 
   /* The war is over, or this pilot left it: the music stops, the dam is
@@ -16915,6 +16933,10 @@ export async function boot({
       /* The round's result card has the middle, and the next round puts
        * everybody back in the air, so no wreck's R prompt under it. */
       ui.setBanner('');
+    } else if (ui.screen === 'flight' && ['won', 'lost', 'ended'].includes(roomWar.view().state)) {
+      /* The war's end banner has the middle, and the room takes everybody
+       * back to its lobby: no wreck's R prompt or take-off line over it. */
+      ui.setBanner('');
     } else if (wreckDown(nowWall) && ui.screen === 'flight') {
       ui.setBanner(str('main.wrecked_r_resets'), 'edge');
     } else if (
@@ -16946,6 +16968,8 @@ export async function boot({
           ? str('main.launch_punch_throttle', { deg })
           : str('main.launch_centre_the_stick_then_punch', { deg }))
         : str('main.launch_control_pitch_forward_then_centre'));
+    } else if (!flownThisRun && warTakeoffHintDone()) {
+      ui.setBanner('');
     } else if (!flownThisRun) {
       /*
        * THE SECOND LINE IS A PROMISE ABOUT WHAT STARTS, and in freestyle it
