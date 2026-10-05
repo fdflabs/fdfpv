@@ -37,6 +37,9 @@ import { openD1 } from './d1sqlite.js';
 import { startTracks } from './node.js';
 import { NO_REVISION, readRevision } from '../edge/node-http.js';
 import { DOCUMENT_MAX_CHARS, WRITE_LIMIT } from './limits.js';
+import { Latency, cpuShares, getState, history, mask, openStore, readCpu, sizing, writeMinute } from './metrics.js';
+import { writeFixture } from './metrics-fixture.js';
+import { collect } from './collect.js';
 import { createIdentity, memoryStorage, trackDeleteMessage, trackMessage } from '../src/share/identity.js';
 import { mapTrackDocument } from '../tests/lib/maptrack.js';
 
@@ -295,6 +298,63 @@ try {
 }
 check('a D1 export opens with its migrations already counted', opened !== null);
 opened?.db.close();
+
+/* The admin page's Server section (metrics.js, collect.js). */
+console.log('\nserver metrics');
+env = freshEnv();
+r = await call('GET', '/api/admin/server', undefined, { authorization: 'Bearer selftest-admin-secret' });
+check('the Worker, with no VM behind it, has no server route', r.status === 404, `${r.status}`);
+check('a log line loses its addresses but keeps its clock', mask('from 84.12.127.189 port 22 at 07:43:17') === 'from 84.12.x.x port 22 at 07:43:17', mask('from 84.12.127.189 port 22 at 07:43:17'));
+check('and an IPv6 and an email', mask('2804:14c:5b:8000::1 a@b.com') === '2804:x:x *@b.com', mask('2804:14c:5b:8000::1 a@b.com'));
+const shares = cpuShares(readCpu('cpu 100 0 50 800 10 0 0 40'), readCpu('cpu 160 0 70 900 10 0 0 60'));
+check('CPU shares come from the deltas, steal its own', Math.abs(shares.user - 0.3) < 1e-9 && Math.abs(shares.steal - 0.1) < 1e-9 && Math.abs(shares.busy - 0.5) < 1e-9, JSON.stringify(shares));
+let latClock = 0;
+const lat = new Latency(() => latClock);
+for (let i = 1; i <= 100; i += 1) {
+  lat.record('tracks', i, i === 100 ? 500 : 200);
+}
+latClock = 61 * 60000;
+lat.record('tracks', 7, 200);
+const lr = lat.report(60);
+check('latency keeps an hour of minutes and counts errors', lr.tracks.count === 1 && lr.tracks.p95 === 7, JSON.stringify(lr));
+const lat2 = new Latency(() => 0);
+for (let i = 1; i <= 100; i += 1) {
+  lat2.record('tracks', i, i === 100 ? 500 : 200);
+}
+const l2 = lat2.report(1).tracks;
+check('and its quantiles are of the timings', l2.p50 === 51 && l2.p95 === 96 && l2.errors === 1, JSON.stringify(l2));
+const store = openStore(':memory:');
+for (let m = 0; m < 15; m += 1) {
+  writeMinute(store, 900 * 1000 + m * 60, { x: m });
+}
+const q = store.prepare('SELECT avg, max FROM samples WHERE res = 900 AND key = ?').get('x');
+check('a quarter hour is the mean and the peak of its minutes', q.avg === 7 && q.max === 14, JSON.stringify(q));
+writeMinute(store, 900 * 1000 + 49 * 3600, { x: 1 });
+check('minutes past 48 hours are dropped', store.prepare('SELECT COUNT(*) AS n FROM samples WHERE res = 60').get().n === 1);
+store.close();
+const fixture = join(scratch, 'metrics.db');
+const fixNow = 2000000000;
+writeFixture(fixture, { days: 10, nowS: fixNow });
+const fx = openStore(fixture, { readOnly: true });
+const sz = sizing(fx, fixNow);
+check('disk growth is fitted from the hours', sz.disk.growing && Math.abs(sz.disk.perWeek - 7 * 40 * 1024 ** 2) < 1024 ** 2, JSON.stringify(sz.disk));
+check('pilots per core is measured once there are minutes with pilots', sz.pilots.from === 'measured' && sz.pilots.atWall > 50 && sz.pilots.atWall < 120, JSON.stringify(sz.pilots));
+const h7 = history(fx, '7d', fixNow);
+check('a week is quarter hours, by column', h7.res === 900 && h7.ts.length > 600 && h7.avg['cpu.busy'].length === h7.ts.length && !h7.avg['size.postgres']);
+fx.close();
+server = await startTracks({ db: ':memory:', port: 0, adminSecret: 'selftest-admin-secret', metricsDb: fixture });
+base = `http://127.0.0.1:${server.port}`;
+r = await over('GET', '/api/admin/server');
+check('the server report needs the admin', r.status === 401);
+r = await over('GET', '/api/admin/server?range=1h', undefined, { authorization: 'Bearer selftest-admin-secret' });
+check('and gives it the host live, the latency and the store', r.status === 200 && r.body.host.mem.total > 0 && r.body.latency.m60.all.count >= 1 && r.body.snapshot && r.body.sizing && Array.isArray(r.body.logs), JSON.stringify(r.body).slice(0, 300));
+const collected = openStore(join(scratch, 'collected.db'));
+const sampleUrl = `http://127.0.0.1:${server.port}`;
+const v = await collect({ store: collected, secret: 'selftest-admin-secret', tracks: sampleUrl, rooms: 'http://127.0.0.1:9', board: 'http://127.0.0.1:9', paths: { scratch }, readJournal: () => ({ counts: { 'log.sshd': 2, 'log.err': 2 }, lines: [{ at: '', unit: 'sshd', level: 'err', text: 'x' }], cursor: 'c1', read: true }) });
+check('the collector writes a minute: CPU, memory, disk, the tracks latency, the journal', v['cpu.busy'] >= 0 && v['mem.total'] > 0 && v['disk.total'] > 0 && v['lat.count'] >= 1 && v['log.sshd'] === 2 && v['size.scratch'] > 0, JSON.stringify(v).slice(0, 300));
+check('and keeps its counters and cursor for the next', getState(collected, 'raw').cpu.total > 0 && getState(collected, 'journalCursor') === 'c1');
+collected.close();
+await server.stop();
 rmSync(scratch, { recursive: true, force: true });
 
 console.log(`\n${passed} passed, ${failed} failed`);

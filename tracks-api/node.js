@@ -34,12 +34,16 @@ import worker from './worker.js';
 import { parseClientIds } from './accounts.js';
 import { openD1 } from './d1sqlite.js';
 import { listener, readRevision } from '../edge/node-http.js';
+import { Latency, routeGroup, serverReport } from './metrics.js';
 
 /* googleClientId and accountsSecret switch sign-in on (accounts.js), and
  * inviteOnly keeps it to invited addresses (waitlist.js), and adminEmails
  * names who the admin page lets in (accounts.js isAdminToken); sendMail
  * sends the invite emails (waitlist.js), null for none;
  * googleJwksUrl is for the selftest's stand in for Google alone.
+ * metricsDb is the collector's store (tracks-api/collect.js), read only,
+ * and roomsOrigin and boardOrigin the loopback servers the admin page's
+ * Server section asks for their own numbers (metrics.js serverReport).
  * revision: what GET /api/version answers, the deployed REVISION file's
  * (edge/node-http.js readRevision) unless the selftest passes its own. */
 /*
@@ -63,7 +67,7 @@ export function smtpSender({ SMTP_USER: user, SMTP_PASS: pass, SMTP_HOST: host =
 
 export function startTracks({
   db, port, host = '127.0.0.1', adminSecret = '', googleClientId = '', accountsSecret = '', googleJwksUrl = '',
-  inviteOnly = false, adminEmails = '', sendMail = null,
+  inviteOnly = false, adminEmails = '', sendMail = null, metricsDb = '', roomsOrigin, boardOrigin,
   revision = readRevision(new URL('../REVISION', import.meta.url)),
 }) {
   const opened = openD1(db);
@@ -72,7 +76,21 @@ export function startTracks({
     REVISION: revision, INVITE_ONLY: inviteOnly, ADMIN_EMAILS: adminEmails, SEND_MAIL: sendMail,
     ...(googleJwksUrl ? { GOOGLE_JWKS_URL: googleJwksUrl } : {}),
   };
-  const server = http.createServer(listener(worker, env));
+  /* Every request timed to its answer's headers, by route group and in
+   * all, for the admin page's Server section (metrics.js). */
+  const latency = new Latency();
+  env.SERVER = serverReport({ metricsDb, latency, secret: adminSecret, revision, rooms: roomsOrigin, board: boardOrigin });
+  const timed = {
+    async fetch(request, e) {
+      const t = performance.now();
+      const res = await worker.fetch(request, e);
+      const ms = performance.now() - t;
+      latency.record(routeGroup(new URL(request.url).pathname), ms, res.status);
+      latency.record('all', ms, res.status);
+      return res;
+    },
+  };
+  const server = http.createServer(listener(timed, env));
   function stop() {
     return new Promise((resolve) => {
       server.close(() => {
@@ -98,6 +116,9 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     inviteOnly: Boolean(process.env.INVITE_ONLY),
     adminEmails: process.env.ADMIN_EMAILS || '',
     sendMail: smtpSender(process.env),
+    metricsDb: process.env.METRICS_DB || '',
+    roomsOrigin: process.env.ROOMS_ORIGIN,
+    boardOrigin: process.env.BOARD_ORIGIN,
   });
   const signIn = parseClientIds(process.env.GOOGLE_CLIENT_ID).length > 0 && process.env.ACCOUNTS_SECRET;
   console.log(`fdfpv tracks on ${process.env.HOST || '127.0.0.1'}:${running.port}${process.env.ADMIN_SECRET ? '' : ', no ADMIN_SECRET: admin routes refuse everyone'}${signIn ? ', sign-in on' : ', no GOOGLE_CLIENT_ID or ACCOUNTS_SECRET: sign-in off'}${process.env.SMTP_USER && process.env.SMTP_PASS ? ', invite email on' : ', no SMTP_USER or SMTP_PASS: invite email off'}`);

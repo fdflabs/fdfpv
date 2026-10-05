@@ -305,6 +305,39 @@ seconds; rooms already flying go on. `closings` and `refused` count how
 often. The numbers behind the thresholds are in docs/MULTIPLAYER-PLAN.md
 section 12, Phase 6 as built.
 
+## The admin page's Server section
+
+admin.html shows the VM: CPU (user, sys, iowait and steal), load, RAM,
+swap, disk and inodes, network, open HTTPS connections, every service's
+memory against its `MemoryMax` with its CPU, start time, restarts and
+revision, what holds the disk, request latency by route, the rooms
+server's own report, certificate expiry, Postgres connections, warnings
+and errors with addresses masked, charts of all of it over 1 h to 30 d,
+and a sizing card that says which wall comes first and when.
+
+Two halves, so the tracks server's sandbox stays as it was:
+
+- The tracks server reads the live counters every user may read (`/proc`,
+  `/sys/fs/cgroup`) and times its own requests, in memory
+  (`tracks-api/metrics.js`).
+- `fdfpv-metrics.timer` runs `tracks-api/collect.js` once a minute as
+  `fdfpv-metrics`, a user with the journal's group and a read only
+  capability (why, in `fdfpv-metrics.service`). It writes
+  `/var/lib/fdfpv-metrics/metrics.db`: minutes for 48 hours, quarter
+  hours for 90 days, hours for ever, about a dozen MB a year. The tracks
+  server opens it read only.
+
+Is it collecting:
+
+```sh
+ssh -i ~/.ssh/fdfpv-oracle opc@129.151.39.48 \
+  'systemctl list-timers fdfpv-metrics.timer; systemctl show -p MemoryPeak,CPUUsageNSec,Result fdfpv-metrics'
+```
+
+To look at the page without the VM: `node tracks-api/metrics-fixture.js
+/tmp/metrics.db 21` makes three weeks of made up history, and a local
+tracks server started with `METRICS_DB=/tmp/metrics.db` serves it.
+
 ## A load test on the VM (by hand, with the owner's say so)
 
 `scripts/rooms-load.js` against the VM measures the one core itself. It

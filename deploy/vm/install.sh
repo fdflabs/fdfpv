@@ -30,6 +30,8 @@ fi
 
 put "$HERE/fdfpv-rooms.service" /etc/systemd/system/fdfpv-rooms.service || true
 put "$HERE/fdfpv-tracks.service" /etc/systemd/system/fdfpv-tracks.service || true
+put "$HERE/fdfpv-metrics.service" /etc/systemd/system/fdfpv-metrics.service || true
+put "$HERE/fdfpv-metrics.timer" /etc/systemd/system/fdfpv-metrics.timer || true
 systemctl daemon-reload
 
 # Validated before anything restarts, so a bad Caddyfile stops the deploy
@@ -39,7 +41,10 @@ caddy validate --config "$HERE/Caddyfile" --adapter caddyfile >/dev/null
 systemctl enable -q fdfpv-rooms fdfpv-tracks
 systemctl restart fdfpv-rooms fdfpv-tracks
 apply_caddy
+# The admin page's history (tracks-api/collect.js); a oneshot a minute,
+# so nothing to restart: the next run is the new code.
+systemctl enable --now -q fdfpv-metrics.timer
 
-for unit in fdfpv-rooms fdfpv-tracks caddy; do
+for unit in fdfpv-rooms fdfpv-tracks fdfpv-metrics.timer caddy; do
   say "$unit $(systemctl is-active "$unit")"
 done

@@ -28,6 +28,11 @@ User=fdfpv-tracks
 Group=fdfpv-tracks
 WorkingDirectory=/opt/fdfpv
 Environment=HOST=127.0.0.1 PORT=8787 TRACKS_DB=/var/lib/fdfpv-tracks/tracks.db
+# The admin page's server history, written by fdfpv-metrics.service and
+# read here read only (tracks-api/metrics.js serverReport). This unit's
+# sandbox is unchanged for it: the store's directory is group fdfpv-tracks,
+# and the live counters it reads (/proc, the cgroups) every user may read.
+Environment=METRICS_DB=/var/lib/fdfpv-metrics/metrics.db
 # The optional Google sign-in (tracks-api/accounts.js). The client ids are
 # public, a comma separated list (tracks-api/accounts.js parseClientIds),
 # new id first: the one src/share/account.js signs in with, then the old

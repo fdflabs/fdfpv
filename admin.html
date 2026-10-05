@@ -1,6 +1,7 @@
 <!doctype html>
 <!--
-  admin.html: the owner's desk. Server status, the members and the beta
+  admin.html: the owner's desk. Server status, the VM's health, history,
+  logs and sizing (tracks-api/metrics.js), the members and the beta
   waitlist with its approvals, read from the tracks server's admin routes
   (tracks-api/admin.js, tracks-api/waitlist.js).
 
@@ -85,6 +86,39 @@
       .invited { color: var(--green); }
       .none { color: var(--muted); padding: 10px 0; }
       [hidden] { display: none !important; }
+      /* The Server section. Chart hues are the dataviz reference's dark
+       * categorical steps, checked against this page's panel (#0d1011) with
+       * its validator: user, sys, iowait, steal, in that order. */
+      .srv { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --grid: rgba(220, 225, 225, 0.09); }
+      .ranges { display: inline-flex; gap: 4px; margin-left: 10px; vertical-align: middle; }
+      .ranges button { padding: 3px 8px; font-size: 11px; }
+      .ranges button[aria-pressed="true"] { border-color: var(--blue); color: var(--blue-strong); }
+      .verdict { padding: 14px 16px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+      .verdict p { margin: 0 0 8px; }
+      .verdict p:last-child { margin-bottom: 0; }
+      .verdict b { color: var(--bright); font-weight: 500; }
+      .verdict .first { color: var(--bright); font-size: 16px; }
+      .note { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+      .charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+      .chart { position: relative; padding: 10px 12px 6px; background: var(--panel); box-shadow: inset 0 0 0 1px var(--line); }
+      .chart h3 { margin: 0 0 2px; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+      .chart .now { font-family: var(--mono); font-size: 13px; color: var(--bright); }
+      .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+      .chart svg text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+      .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 2px 0 4px; font-family: var(--mono); font-size: 11px; color: var(--text); }
+      .legend i { display: inline-block; width: 10px; height: 3px; margin-right: 5px; vertical-align: middle; border-radius: 1px; }
+      .tip {
+        position: absolute; pointer-events: none; z-index: 2; padding: 6px 8px; min-width: 9em;
+        background: #111617; box-shadow: inset 0 0 0 1px var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--text); white-space: nowrap;
+      }
+      .tip b { color: var(--bright); font-weight: 500; }
+      .bar { position: relative; width: 120px; height: 6px; background: var(--grid); display: inline-block; vertical-align: middle; margin-right: 8px; border-radius: 1px; }
+      .bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--blue); border-radius: 1px; }
+      .bar[data-state="warn"] i { background: var(--warn); }
+      .bar[data-state="down"] i { background: var(--fail); }
+      td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; }
+      td.log { white-space: normal; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; }
+      .err { color: var(--fail); }
     </style>
   </head>
   <body>
@@ -109,6 +143,36 @@
 
         <h2>Numbers</h2>
         <div id="numbers" class="tiles"></div>
+
+        <section id="server" class="srv">
+          <h2>Server <small id="srv-at"></small></h2>
+          <p id="srv-say" class="say" role="status"></p>
+          <div id="srv-verdict" class="verdict"></div>
+
+          <h2>Now</h2>
+          <div id="srv-now" class="tiles"></div>
+
+          <h2>Services <small>memory against each one's ceiling</small></h2>
+          <div class="scroll"><table id="srv-units"></table></div>
+
+          <h2>Disk <small id="srv-disk-total"></small></h2>
+          <div class="scroll"><table id="srv-disk"></table></div>
+
+          <h2>Latency <small>server side, by route, and this page's own round trip</small></h2>
+          <div class="scroll"><table id="srv-latency"></table></div>
+          <p id="srv-rtt" class="note"></p>
+
+          <h2>History
+            <span class="ranges" role="group" aria-label="Range">
+              <button type="button" data-range="1h">1h</button><button type="button" data-range="24h">24h</button><button type="button" data-range="7d">7d</button><button type="button" data-range="30d">30d</button>
+            </span>
+          </h2>
+          <div id="srv-charts" class="charts"></div>
+
+          <h2>Logs <small>warnings and errors, addresses masked</small></h2>
+          <div id="srv-logcounts" class="tiles"></div>
+          <div class="scroll"><table id="srv-logs"></table></div>
+        </section>
 
         <h2>Beta waitlist <small id="waitlist-count"></small></h2>
         <form id="invite-form">
@@ -305,6 +369,448 @@
         );
       }
 
+      /* ---- Server: the VM's health, history and sizing (tracks-api/metrics.js). ---- */
+      let range = '24h';
+      const SVG = 'http://www.w3.org/2000/svg';
+
+      function bytes(n) {
+        if (n == null || !Number.isFinite(n)) {
+          return 'n/a';
+        }
+        const u = ['B', 'kB', 'MB', 'GB', 'TB'];
+        let i = 0;
+        while (Math.abs(n) >= 1024 && i < u.length - 1) {
+          n /= 1024;
+          i += 1;
+        }
+        return `${n >= 100 || i === 0 ? Math.round(n) : n.toFixed(1)} ${u[i]}`;
+      }
+      const rate = (n) => (n == null ? 'n/a' : `${bytes(n)}/s`);
+      const pct = (f, d = 0) => (f == null || !Number.isFinite(f) ? 'n/a' : `${(f * 100).toFixed(d)}%`);
+      const ms = (n) => (n == null ? 'n/a' : `${n < 10 ? n.toFixed(1) : Math.round(n)} ms`);
+      const days = (n) => (n == null ? 'n/a' : n >= 730 ? `${(n / 365).toFixed(1)} years` : n >= 60 ? `${Math.round(n / 30)} months` : `${Math.round(n)} days`);
+
+      function bar(f, state) {
+        const b = el('span', 'bar');
+        const i = el('i');
+        i.style.width = `${Math.max(0, Math.min(1, f || 0)) * 100}%`;
+        b.append(i);
+        if (state) {
+          b.dataset.state = state;
+        }
+        return b;
+      }
+
+      /* The card that answers "what would I need": the first wall and when. */
+      function drawVerdict(r) {
+        const v = $('srv-verdict');
+        v.replaceChildren();
+        const s = r.sizing;
+        if (!s) {
+          v.append(el('p', null, r.error || 'No history yet.'));
+          return;
+        }
+        const lines = [];
+        const walls = [];
+        if (s.cpu) {
+          const p = s.pilots;
+          walls.push({ what: 'the CPU', pilots: p.atWall });
+          lines.push(['CPU', `p95 ${pct(s.cpu.p95)} of the one core, peak ${pct(s.cpu.peak)}, steal p95 ${pct(s.cpu.stealP95, 1)} (time the host gave to other VMs). `
+            + `Each pilot online costs about ${pct(p.perPilot, 2)} of the core (${p.from === 'measured' ? `measured over ${p.minutesFlown} minutes with pilots` : 'from the 2026-09-28 soak, until 60 minutes with pilots are recorded'}), `
+            + `so about ${p.atWall} pilots at once reach ${pct(s.cpu.wall)}, where the rooms server starts refusing new public rooms. Most at once so far: ${p.peak}.`]);
+        }
+        if (s.ram) {
+          lines.push(['RAM', `p95 ${bytes(s.ram.p95)} used of ${bytes(s.ram.total)} (${pct(s.ram.p95 / s.ram.total)}), peak ${bytes(s.ram.peak)}, swap peak ${bytes(s.ram.swapPeak)}. `
+            + `${bytes(s.ram.total * s.ram.wall - s.ram.peak)} of headroom to ${pct(s.ram.wall)} even at the peak.`]);
+        }
+        if (s.disk) {
+          const d = s.disk;
+          lines.push(['Disk', `${bytes(d.used)} of ${bytes(d.total)} used. `
+            + (d.perWeek == null ? 'Growth per week needs seven days of history; it is not known yet.'
+              : d.growing ? `Growing ${bytes(d.perWeek)} a week, so ${pct(d.wall)} full in about ${days(d.daysToWall)}.` : 'Not growing over the last month.')]);
+        }
+        const first = s.disk && s.disk.daysToWall != null && s.disk.daysToWall < 90
+          ? `Disk is the first wall: ${pct(s.disk.wall)} full in about ${days(s.disk.daysToWall)}. A bigger boot volume, not a bigger machine.`
+          : s.ram && s.ram.peak > s.ram.total * s.ram.wall
+            ? 'RAM is the first wall: the peak is already past 85%. More RAM before anything else.'
+            : s.cpu
+              ? `CPU is the first wall, at about ${s.pilots.atWall} pilots flying at once (${s.pilots.peak} so far). `
+                + (s.pilots.peak * 2 < s.pilots.atWall ? 'No upgrade is needed yet. When one is, it is a second core, not more RAM.' : 'The peak is within twice the wall: plan a second core.')
+              : 'Not enough history for a verdict yet.';
+        v.append(el('p', 'first', first));
+        for (const [k, t] of lines) {
+          const p = el('p');
+          p.append(el('b', null, `${k}. `), t);
+          v.append(p);
+        }
+        const span = s.samples.spanS / 86400;
+        v.append(el('p', 'note', `From ${span >= 1 ? `${span.toFixed(1)} days` : `${Math.round(s.samples.spanS / 3600)} hours`} of history. The walls: the core at ${pct(s.cpu ? s.cpu.wall : 0.8)}, RAM at 85% used, disk at 90% full.`));
+      }
+
+      function drawNow(r) {
+        const h = r.host;
+        const snap = r.snapshot || {};
+        const certs = Object.values(snap.certificates || {}).map((t) => (Date.parse(t) - Date.now()) / 86400000);
+        const soonest = certs.length ? Math.min(...certs) : null;
+        const rooms = r.rooms;
+        $('srv-now').replaceChildren(
+          tile('CPU busy', pct(h.cpu.busy), h.cpu.busy > 0.8 ? 'down' : h.cpu.busy > 0.5 ? 'warn' : ''),
+          tile('User / sys / iowait', `${pct(h.cpu.user)} ${pct(h.cpu.sys)} ${pct(h.cpu.iowait)}`),
+          tile('Steal', pct(h.cpu.steal, 1), h.cpu.steal > 0.1 ? 'warn' : ''),
+          tile('Load 1 / 5 / 15', `${h.load.l1} ${h.load.l5} ${h.load.l15}`),
+          tile('RAM used', `${bytes(h.mem.used)} / ${bytes(h.mem.total)}`, h.mem.used > h.mem.total * 0.85 ? 'warn' : ''),
+          tile('RAM available', bytes(h.mem.available)),
+          tile('Page cache', bytes(h.mem.cache)),
+          tile('Swap used', `${bytes(h.mem.swapUsed)} / ${bytes(h.mem.swapTotal)}`),
+          tile('Disk used', `${bytes(h.disk.used)} / ${bytes(h.disk.total)}`, h.disk.used > h.disk.total * 0.9 ? 'down' : h.disk.used > h.disk.total * 0.75 ? 'warn' : ''),
+          tile('Disk free', bytes(h.disk.free)),
+          tile('Inodes used', pct(h.disk.inodesUsed / h.disk.inodes, 1)),
+          tile('Network in', rate(h.rxPerS)),
+          tile('Network out', rate(h.txPerS)),
+          tile('Open HTTPS connections', h.conns),
+          tile('Pilots online', rooms ? rooms.pilots : 'n/a'),
+          tile('Rooms', rooms ? rooms.rooms : 'n/a'),
+          tile('Rooms valve', rooms ? (rooms.busy ? 'CLOSED' : 'open') : 'n/a', rooms && rooms.busy ? 'down' : ''),
+          tile('Rooms loop p99 (60 s)', rooms && rooms.s60 ? ms(rooms.s60.lagP99Ms) : 'n/a'),
+          tile('Rooms egress today', rooms ? bytes(rooms.day && rooms.day.outBytes) : 'n/a'),
+          tile('Postgres connections', snap.postgresConnections ?? 'n/a'),
+          tile('TLS cert expires in', soonest == null ? 'n/a' : `${soonest.toFixed(1)} days`, soonest != null && soonest < 2 ? 'down' : ''),
+          tile('Host up for', span(h.uptimeS)),
+        );
+      }
+
+      function drawUnits(r) {
+        const t = $('srv-units');
+        const units = (r.snapshot && r.snapshot.units) || {};
+        const rev = {
+          'fdfpv-tracks': r.versions.tracks && r.versions.tracks.commit,
+          'fdfpv-rooms': r.versions.rooms && r.versions.rooms.commit,
+          'fdfpv-board': r.versions.board && r.versions.board.commit,
+        };
+        t.replaceChildren(head(['Service', 'Memory / ceiling', '', 'Peak', 'CPU', 'Up since', 'Restarts', 'Revision']));
+        const known = new Set(Object.keys(units));
+        /* Ours first, then whatever else on the VM holds 10 MB or more. */
+        const list = [...r.host.services.filter((s) => known.has(s.unit)), ...r.host.services.filter((s) => !known.has(s.unit) && s.mem >= 10 * 1024 * 1024)];
+        for (const s of list) {
+          const u = units[s.unit];
+          const f = s.max ? s.mem / s.max : null;
+          const peakF = s.max && s.peak ? s.peak / s.max : null;
+          const cells = el('td');
+          cells.append(bar(f ?? 0, peakF > 0.8 ? 'down' : peakF > 0.6 ? 'warn' : ''));
+          t.append(row([
+            s.unit,
+            el('td', 'num', `${bytes(s.mem)} / ${s.max ? bytes(s.max) : 'no cap'}`),
+            cells,
+            el('td', 'num', s.peak ? `${bytes(s.peak)}${peakF ? ` (${pct(peakF)})` : ''}` : ''),
+            el('td', 'num', s.cpu == null ? '' : pct(s.cpu, 1)),
+            u && u.sinceUtc ? when(u.sinceUtc) : '',
+            el('td', u && u.restarts ? 'num err' : 'num', u ? String(u.restarts) : ''),
+            rev[s.unit] ? rev[s.unit].slice(0, 7) : '',
+          ]));
+        }
+      }
+
+      const SIZE_NAMES = {
+        postgres: 'Postgres (the board)', tracksDb: 'tracks.db', roomsDb: 'rooms.db', journal: 'Journal (logs)',
+        simCode: 'Simulator code (/opt/fdfpv)', boardCode: 'Board code', caddy: 'Caddy (certificates)', metrics: 'This history',
+      };
+
+      function drawDisk(r) {
+        const t = $('srv-disk');
+        const d = r.host.disk;
+        const sizes = (r.snapshot && r.snapshot.sizes) || {};
+        $('srv-disk-total').textContent = `${bytes(d.used)} used of ${bytes(d.total)}, ${bytes(d.free)} free`;
+        t.replaceChildren(head(['What', 'Size', '']));
+        const named = Object.entries(sizes).filter(([, n]) => n != null).sort((a, b) => b[1] - a[1]);
+        const rest = d.used - named.reduce((a, [, n]) => a + n, 0);
+        for (const [k, n] of [...named, ['rest', rest]]) {
+          const c = el('td');
+          c.append(bar(n / d.total));
+          t.append(row([k === 'rest' ? 'The OS and everything else' : SIZE_NAMES[k] || k, el('td', 'num', bytes(n)), c]));
+        }
+      }
+
+      function drawLatency(r) {
+        const t = $('srv-latency');
+        t.replaceChildren(head(['Route', 'Requests (1 h)', 'Errors', 'p50', 'p95', 'p99', 'p95 last 5 min']));
+        const m60 = r.latency.m60;
+        const m5 = r.latency.m5;
+        for (const g of Object.keys(m60).sort((a, b) => (a === 'all') - (b === 'all') || m60[b].count - m60[a].count)) {
+          const x = m60[g];
+          t.append(row([
+            g === 'all' ? 'All of /api' : `/api/${g}`,
+            el('td', 'num', String(x.count)),
+            el('td', x.errors ? 'num err' : 'num', x.errors ? `${x.errors} (${pct(x.errorRate, 1)})` : '0'),
+            el('td', 'num', ms(x.p50)), el('td', 'num', ms(x.p95)), el('td', 'num', ms(x.p99)),
+            el('td', 'num', m5[g] ? ms(m5[g].p95) : ''),
+          ]));
+        }
+        if (!Object.keys(m60).length) {
+          t.append(row([el('td', 'none', 'No requests in the last hour.')]));
+        }
+      }
+
+      /* This page's own round trip to each server through Caddy, three times,
+       * the middle one kept: what a pilot on this connection waits. */
+      async function roundTrips() {
+        const one = async (path) => {
+          const got = [];
+          for (let i = 0; i < 3; i += 1) {
+            const t = performance.now();
+            try {
+              const res = await fetch(`${API_ORIGIN}${path}`, { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+              await res.arrayBuffer();
+              got.push(performance.now() - t);
+            } catch (e) {
+              return null;
+            }
+          }
+          return got.sort((a, b) => a - b)[1];
+        };
+        const [api, v2, board] = await Promise.all([one('/api/health'), one('/v2/version'), one('/board/api/health')]);
+        $('srv-rtt').textContent = `From this browser through Caddy: tracks ${ms(api)}, rooms ${ms(v2)}, board ${ms(board)} (median of three). `
+          + 'A WebSocket ping is not measured: every room socket joins or makes a room.';
+      }
+
+      /* A small time chart: one y axis, lines or a stack, a crosshair with a
+       * tooltip. series: [{ label, color, values }]; fmt formats a value. */
+      function chart({ title, ts, res, series, fmt, stack = false, yMax = null, wall = null }) {
+        const box = el('div', 'chart');
+        const W = 400;
+        const H = 130;
+        const L = 46;
+        const R = 8;
+        const T = 8;
+        const B = 20;
+        const pw = W - L - R;
+        const ph = H - T - B;
+        const n = ts.length;
+        const last = series.map((s) => [...s.values].reverse().find((v) => v != null));
+        box.append(el('h3', null, title));
+        box.append(el('div', 'now', series.length === 1 ? `now ${fmt(last[0])}` : series.map((s, i) => `${s.label} ${fmt(last[i])}`).join('   ')));
+        if (series.length > 1) {
+          const lg = el('div', 'legend');
+          for (const s of series) {
+            const it = el('span');
+            const sw = el('i');
+            sw.style.background = s.color;
+            it.append(sw, s.label);
+            lg.append(it);
+          }
+          box.append(lg);
+        }
+        if (n < 2) {
+          box.append(el('p', 'none', 'Not enough history in this range yet.'));
+          return box;
+        }
+        const tops = stack
+          ? ts.map((_, i) => series.reduce((a, s) => a + (s.values[i] || 0), 0))
+          : series.flatMap((s) => s.values.filter((v) => v != null));
+        const top = yMax ?? Math.max(...tops, wall || 0, 1e-9) * 1.1;
+        const t0 = ts[0];
+        const t1 = ts[n - 1];
+        const x = (t) => L + ((t - t0) / Math.max(1, t1 - t0)) * pw;
+        const y = (v) => T + ph - (Math.min(v, top) / top) * ph;
+        const svg = document.createElementNS(SVG, 'svg');
+        svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label', `${title}, ${series.map((s, i) => `${s.label} now ${fmt(last[i])}`).join(', ')}`);
+        const add = (tag, attrs) => {
+          const node = document.createElementNS(SVG, tag);
+          for (const [k, v] of Object.entries(attrs)) {
+            node.setAttribute(k, v);
+          }
+          svg.append(node);
+          return node;
+        };
+        for (const f of [0, 0.5, 1]) {
+          add('line', { x1: L, x2: W - R, y1: y(top * f), y2: y(top * f), stroke: 'var(--grid)', 'stroke-width': 1 });
+          add('text', { x: L - 6, y: y(top * f) + 3, 'text-anchor': 'end' }).textContent = fmt(top * f);
+        }
+        if (wall != null && wall < top) {
+          add('line', { x1: L, x2: W - R, y1: y(wall), y2: y(wall), stroke: 'var(--fail)', 'stroke-width': 1, opacity: 0.6 });
+          add('text', { x: W - R, y: y(wall) - 4, 'text-anchor': 'end' }).textContent = `wall ${fmt(wall)}`;
+        }
+        const long = t1 - t0 > 2 * 86400;
+        for (let k = 0; k <= 3; k += 1) {
+          const t = t0 + ((t1 - t0) * k) / 3;
+          const d = new Date(t * 1000);
+          add('text', { x: x(t), y: H - 4, 'text-anchor': k === 0 ? 'start' : k === 3 ? 'end' : 'middle' }).textContent = long
+            ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+            : d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+        /* A gap in the samples (the collector stopped) breaks the line. */
+        const broken = (i) => i > 0 && ts[i] - ts[i - 1] > 2 * res;
+        const base = new Array(n).fill(0);
+        for (const s of series) {
+          let d = '';
+          let area = '';
+          let run = [];
+          const flush = () => {
+            if (run.length > 1 && stack) {
+              area += `M${run.map((i) => `${x(ts[i])},${y(base[i] + s.values[i])}`).join('L')}L${[...run].reverse().map((i) => `${x(ts[i])},${y(base[i])}`).join('L')}Z`;
+            }
+            if (run.length) {
+              d += `M${run.map((i) => `${x(ts[i]).toFixed(1)},${y((stack ? base[i] : 0) + s.values[i]).toFixed(1)}`).join('L')}`;
+            }
+            run = [];
+          };
+          for (let i = 0; i < n; i += 1) {
+            if (s.values[i] == null || broken(i)) {
+              flush();
+            }
+            if (s.values[i] != null) {
+              run.push(i);
+            }
+          }
+          flush();
+          if (stack) {
+            add('path', { d: area, fill: s.color, opacity: 0.55, stroke: 'none' });
+          }
+          add('path', { d, fill: 'none', stroke: s.color, 'stroke-width': stack ? 1.5 : 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' });
+          if (stack) {
+            for (let i = 0; i < n; i += 1) {
+              base[i] += s.values[i] || 0;
+            }
+          }
+        }
+        const cross = add('line', { y1: T, y2: T + ph, stroke: 'var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
+        const hit = add('rect', { x: L, y: T, width: pw, height: ph, fill: 'transparent' });
+        const tip = el('div', 'tip');
+        tip.hidden = true;
+        box.append(svg, tip);
+        const move = (ev) => {
+          const rect = svg.getBoundingClientRect();
+          const px = ((ev.clientX - rect.left) / rect.width) * W;
+          const t = t0 + ((px - L) / pw) * (t1 - t0);
+          let i = 0;
+          for (let k = 1; k < n; k += 1) {
+            if (Math.abs(ts[k] - t) < Math.abs(ts[i] - t)) {
+              i = k;
+            }
+          }
+          cross.setAttribute('x1', x(ts[i]));
+          cross.setAttribute('x2', x(ts[i]));
+          cross.setAttribute('visibility', 'visible');
+          tip.replaceChildren(el('div', null, new Date(ts[i] * 1000).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })));
+          for (const s of series) {
+            const line = el('div');
+            const peak = s.peaks && s.peaks[i] != null && s.peaks[i] !== s.values[i] ? `, peak ${fmt(s.peaks[i])}` : '';
+            line.append(`${s.label} `, el('b', null, fmt(s.values[i])), peak);
+            tip.append(line);
+          }
+          tip.hidden = false;
+          const bx = box.getBoundingClientRect();
+          const left = ev.clientX - bx.left + 12;
+          tip.style.left = `${Math.min(left, bx.width - tip.offsetWidth - 4)}px`;
+          tip.style.top = `${ev.clientY - bx.top + 12}px`;
+        };
+        hit.addEventListener('pointermove', move);
+        hit.addEventListener('pointerleave', () => {
+          tip.hidden = true;
+          cross.setAttribute('visibility', 'hidden');
+        });
+        return box;
+      }
+
+      function drawCharts(r) {
+        const box = $('srv-charts');
+        box.replaceChildren();
+        const h = r.history;
+        if (!h) {
+          box.append(el('p', 'none', r.error || 'No history yet.'));
+          return;
+        }
+        const a = (k) => h.avg[k] || new Array(h.ts.length).fill(null);
+        const p = (k) => h.max[k];
+        const one = (label, k, color = 'var(--c1)') => [{ label, color, values: a(k), peaks: p(k) }];
+        /* The history's own totals, so a chart matches its card. */
+        const memTotal = (r.sizing && r.sizing.ram && r.sizing.ram.total) || r.host.mem.total;
+        const diskTotal = (r.sizing && r.sizing.disk && r.sizing.disk.total) || r.host.disk.total;
+        const perMin = (v) => (v == null ? 'n/a' : `${v < 10 ? v.toFixed(1) : Math.round(v)}/min`);
+        const n0 = (v) => (v == null ? 'n/a' : String(Math.round(v * 10) / 10));
+        const common = { ts: h.ts, res: h.res };
+        box.append(
+          chart({ ...common, title: 'CPU, share of the one core', fmt: (v) => pct(v), stack: true, yMax: 1, wall: 0.8, series: [
+            { label: 'user', color: 'var(--c1)', values: a('cpu.user') },
+            { label: 'sys', color: 'var(--c2)', values: a('cpu.sys') },
+            { label: 'iowait', color: 'var(--c3)', values: a('cpu.iowait') },
+            { label: 'steal', color: 'var(--c4)', values: a('cpu.steal') },
+          ] }),
+          chart({ ...common, title: 'RAM used', fmt: bytes, yMax: memTotal, wall: memTotal * 0.85, series: one('used', 'mem.used') }),
+          chart({ ...common, title: 'Swap used', fmt: bytes, series: one('swap', 'swap.used') }),
+          chart({ ...common, title: 'Disk used', fmt: bytes, yMax: diskTotal, wall: diskTotal * 0.9, series: one('disk', 'disk.used') }),
+          chart({ ...common, title: 'Network', fmt: rate, series: [
+            { label: 'in', color: 'var(--c1)', values: a('net.rx'), peaks: p('net.rx') },
+            { label: 'out', color: 'var(--c2)', values: a('net.tx'), peaks: p('net.tx') },
+          ] }),
+          chart({ ...common, title: 'Pilots online', fmt: n0, series: one('pilots', 'pilots') }),
+          chart({ ...common, title: 'Tracks server p95 latency', fmt: ms, series: one('p95', 'lat.p95') }),
+          chart({ ...common, title: 'Rooms loop p99 delay', fmt: ms, wall: 20, series: one('p99', 'rooms.lagP99') }),
+          chart({ ...common, title: 'Warnings and errors', fmt: perMin, series: [
+            { label: 'warnings', color: 'var(--c4)', values: a('log.warn'), peaks: p('log.warn') },
+            { label: 'errors', color: 'var(--c2)', values: a('log.err'), peaks: p('log.err') },
+          ] }),
+        );
+      }
+
+      function drawLogs(r) {
+        const h = r.history;
+        const counts = $('srv-logcounts');
+        counts.replaceChildren();
+        if (h) {
+          /* Each row is a per minute rate over res seconds: back to a count. */
+          const groups = Object.keys(h.avg).filter((k) => k.startsWith('log.') && k !== 'log.warn' && k !== 'log.err');
+          for (const k of groups.sort()) {
+            const n = h.avg[k].reduce((acc, v) => acc + (v || 0) * (h.res / 60), 0);
+            counts.append(tile(`${k.slice(4)}, ${range}`, Math.round(n), n ? 'warn' : ''));
+          }
+        }
+        const t = $('srv-logs');
+        t.replaceChildren(head(['When', 'Service', 'Level', 'Line']));
+        for (const l of [...(r.logs || [])].reverse().slice(0, 40)) {
+          t.append(row([when(l.at), l.unit, el('td', l.level === 'err' ? 'err' : 'waiting', l.level), el('td', 'log', l.text)]));
+        }
+        if (!(r.logs || []).length) {
+          t.append(row([el('td', 'none', 'Nothing logged at warning or worse.')]));
+        }
+      }
+
+      async function loadServer() {
+        say($('srv-say'), '', 'Reading the server.');
+        for (const b of document.querySelectorAll('.ranges button')) {
+          b.setAttribute('aria-pressed', String(b.dataset.range === range));
+        }
+        let r;
+        try {
+          r = await admin('GET', `server?range=${range}`);
+        } catch (e) {
+          if (!expired(e)) {
+            say($('srv-say'), 'fail', e.status === 404 ? 'This tracks server has no Server section (it is not the VM).' : e.message);
+          }
+          return;
+        }
+        const snapAge = r.snapshot ? (Date.now() - Date.parse(r.snapshot.at)) / 1000 : null;
+        say($('srv-say'), r.error || snapAge > 180 ? 'fail' : '', r.error
+          || (snapAge > 180 ? `The collector last wrote ${span(snapAge)} ago: is fdfpv-metrics.timer running?` : ''));
+        $('srv-at').textContent = `read ${new Date(r.host.at).toLocaleTimeString()}`;
+        drawVerdict(r);
+        drawNow(r);
+        drawUnits(r);
+        drawDisk(r);
+        drawLatency(r);
+        drawCharts(r);
+        drawLogs(r);
+        roundTrips();
+      }
+
+      for (const b of document.querySelectorAll('.ranges button')) {
+        b.addEventListener('click', () => {
+          range = b.dataset.range;
+          loadServer();
+        });
+      }
+
       function lock(text = '') {
         key = '';
         $('desk').hidden = true;
@@ -324,6 +830,7 @@
         $('login').hidden = true;
         $('desk').hidden = false;
         $('top').hidden = false;
+        loadServer();
       }
 
       const gis = document.createElement('script');
@@ -361,7 +868,10 @@
         }
         return false;
       }
-      $('refresh').addEventListener('click', () => load().catch((e) => expired(e) || say($('waitlist-say'), 'fail', e.message)));
+      $('refresh').addEventListener('click', () => {
+        load().catch((e) => expired(e) || say($('waitlist-say'), 'fail', e.message));
+        loadServer();
+      });
       $('lock').addEventListener('click', () => {
         window.google?.accounts?.id.disableAutoSelect();
         lock();
