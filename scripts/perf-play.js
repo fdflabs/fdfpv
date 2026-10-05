@@ -807,3 +807,7 @@ for (const id of String(opts.scenarios).split(',')) {
   }
 }
 console.log(`-> ${join(outDir, 'perf-play.json')}`);
+/* The war scenario's rooms server leaves its room's purge alarm
+ * (edge/rooms/node.js Room.schedule) on the event loop after stop(),
+ * which held this process open once the report was written. */
+process.exit(0);
