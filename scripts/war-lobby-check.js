@@ -112,7 +112,7 @@ const LOBBY = `(() => {
 const SEED_A = `(() => {
   const s = JSON.parse(localStorage.getItem('webfpv.settings.v3') || '{}');
   localStorage.setItem('webfpv.settings.v3', JSON.stringify({
-    ...s, warConsent: true, campaign: { v: 1, earned: 0, missions: { 'itaipu-1': { stars: 1, won: true, credits: 100 } } },
+    ...s, airframe: 'timber1500', warConsent: true, campaign: { v: 1, earned: 0, missions: { 'itaipu-1': { stars: 1, won: true, credits: 100 } } },
   }));
 })();`;
 
@@ -182,6 +182,15 @@ try {
   })()`));
   check('in a war room the Aircraft picker offers only the war\'s aircraft: every tab', offered.all.join() === WAR_AIRFRAMES.join()
     && offered.quads.every((id) => WAR_AIRFRAMES.includes(id)) && offered.quads.length === 3, JSON.stringify(offered));
+  /* A last flew the Turbo Timber (seeded), and the war has not seated
+   * anybody yet: the row names the aircraft the war will, as the room's
+   * profile does, not the one last flown. */
+  const row = await a.evaluate(`(() => {
+    const it = window.__ui.items().find((x) => x.label === 'Aircraft');
+    return it ? { value: it.value, current: it.current, settings: window.__ui.settings.airframe } : null;
+  })()`);
+  check('in a war lobby the Aircraft row names the war\'s aircraft, not the one last flown', Boolean(row) && row.settings === 'timber1500'
+    && row.current === WAR_DEFAULT && /Striker/.test(row.value), JSON.stringify(row));
 
   /* B FINDS IT AND JOINS. */
   const rowAction = `friends-room-${code}`;

@@ -148,7 +148,7 @@ export function waveStatus(v, mission, roomNow) {
   if (v.stage !== undefined) {
     if (Number.isFinite(v.nextAt)) {
       const s = Math.ceil((v.nextAt - roomNow) / 1000);
-      return s > 0 ? { text: str('war.next_wave', { t: clock(s) }), s } : { text: str('war.wave_inbound'), s: 0 };
+      return s > 0 ? { text: str('war.next_contacts', { t: clock(s) }), s } : { text: str('war.contacts_inbound'), s: 0 };
     }
     /* A stage opens groups on events too (a kill, a crossing, after
      * another group), so nothing due is not the last wave. */
