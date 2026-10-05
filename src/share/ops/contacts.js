@@ -6,8 +6,9 @@
  * a screen draws each contact from its route and its record and never
  * decides anything about it.
  *
- * A mission's CONTACT is { id, kind, group?, size?, faction?, track? }:
+ * A mission's CONTACT is { id, kind, look?, group?, size?, faction?, track? }:
  *   kind     'person', 'vehicle', 'aircraft', 'site'
+ *   look     how the map draws it (lookOf)
  *   size     metres across, for whether it is big enough in a picture to
  *            be noticed (SIZE below by kind without one)
  *   faction  its hidden truth: read by the mission's data, never sent
@@ -70,11 +71,19 @@ export const SIZE = Object.freeze({
   person: 1.7, vehicle: 4.5, aircraft: 2, site: 10,
 });
 
+/* How a screen draws a contact: its data's `look` (the map's draw type,
+ * 'person', 'motorcycle', 'pickup'), a person by default, else nothing
+ * named: a screen draws no vehicle it cannot name. */
+export function lookOf(def) {
+  return def.look ?? (def.kind === 'person' ? 'person' : null);
+}
+
 /* A contact's record, new on the map at room ms t on `route`. */
 export function spawn(def, route, t, alt = null) {
   return {
     id: def.id,
     kind: def.kind,
+    look: lookOf(def),
     group: def.group ?? null,
     size: def.size ?? SIZE[def.kind] ?? 2,
     route,
@@ -250,6 +259,8 @@ export function contactsView(list) {
   return list.map((c) => ({
     id: c.id,
     kind: c.kind,
+    look: c.look ?? null,
+    size: c.size,
     group: c.group,
     route: c.route,
     t0: c.t0,

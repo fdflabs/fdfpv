@@ -74,7 +74,7 @@ answered `{ type: 'ops', error }` to the sender alone.
 | --- | --- | --- | --- |
 | `start` | host | `mission` (id), `intro` (bool), `from: 'checkpoint'` (optional) | starts it: a briefing of the mission's `filmMs` when `intro` and it has one, then the countdown (`COUNTDOWN_MS`), then the first stage; or again from the stage a lost match was lost in. Refused: `mission`, `unreleased` (campaign.js gate), `map`, `busy` (another game on), `private` (a public room: P0 runs only in private rooms), `checkpoint` |
 | `end` | host | | ends the match, `state: 'ended'` |
-| `cam` | any seat | `t` (room ms), `aim` [x,y,z] (ops frame: the ground point the camera's axis is on, its lock point when locked), `tanHalf` (> 0), `aspect` (width / height) | the seat's camera from `t` until its next report, at most `CAM_STALE_MS` = 1500 ms. Its direction at each grid ms is from the seat's pose then toward `aim`, so a locked camera stays exact between reports while the aircraft orbits. **Two a second** (`CAM_MIN_MS` = 400 ms; text messages share the room's allowance of 5 a second per seat). **Before the camera ball (N14) lands, send where the nose's axis meets the ground and the screen's own `tanHalf`.** Nothing is seen by a seat that sends no `cam` |
+| `cam` | any seat | `t` (room ms), `aim` [x,y,z] (ops frame: the ground point the camera's axis is on, its lock point when locked), `tanHalf` (> 0), `aspect` (width / height) | the seat's camera from `t` until its next report, at most `CAM_STALE_MS` = 1500 ms. `t` is the client's estimate of the room clock (`roomLinkState.roomNow()`); an axis that meets no ground (the sky, past the map) reports the point 20 km along it. Its direction at each grid ms is from the seat's pose then toward `aim`, so a locked camera stays exact between reports while the aircraft orbits. **Two a second** (`CAM_MIN_MS` = 400 ms; text messages share the room's allowance of 5 a second per seat). **Before the camera ball (N14) lands, send where the nose's axis meets the ground and the screen's own `tanHalf`.** Nothing is seen by a seat that sends no `cam` |
 | `capture` | any seat | `item` (id), `t` (room ms of the still), `grade` (`clean`, `usable`, `poor`), `framing` { `size` (fraction of frame width), `off` (0 centre to 1 edge), `blur` (0 to 1) } | judged (section 7): recorded, or refused `capture` with `why` |
 | `take` | any seat | `role` (a role id) | takes a free role: an unheld core role, or a new copy of a scaling role (section 5). Refused `locked`, `role` |
 | `active` | any seat | `key` (a role key it holds) | which of its roles it is flying now |
@@ -113,6 +113,10 @@ binary **0xC0 to 0xCF held, none used**, JSON type **`ops`**.
   boundary,     // { seat: 'warning' | 'final' }: seats outside the operational boundary
   roles,        // section 5
   dials,        // { name: value }: what the seed chose (MISSIONS.md 1.4)
+  clock,        // the mission's clock ({ startHour, sunsetHour, rate }, WORLD's clock.js) or null: the sun's hour is localHour(clock, goAt, roomMs)
+  camp,         // { mark }: the map's id of the shelter carrying the mark ('shelter-1' to '-3'), as the room judges it, or null
+  choices,      // { name: value }: the scripted choices made so far ({ tarp: 'moved', dispersal: 'started' })
+  opened,       // [item ids]: one-sided items whose `open` has fired, now seen from any side (no 'angle' refusal)
   result,       // null, or at the end { won, stars, starIds, flags, restarted }
   checkpoint,   // a lost match's stage to play again from: { stage, n, title }, or null
   restarted,    // the checkpoint stage id this match restarted from, or null (stars capped at 2)
@@ -138,12 +142,14 @@ stage's, only those already shown:
 
 ### 4.3 Contacts (N13)
 
-`[{ id, kind, group, route, t0, state, cls, label, lkp, seenAt, lostSince, by, hards }]`,
+`[{ id, kind, look, size, group, route, t0, state, cls, label, lkp, seenAt, lostSince, by, hards }]`,
 every contact the mission has put on the map so far:
 
 | Field | Meaning |
 | --- | --- |
 | `id`, `kind`, `group` | the mission's: `kind` is `person`, `vehicle`, `aircraft`, `site`; `group` a name several share (`pair`) or null |
+| `look` | how the map draws it (WORLD's `setContacts` kinds: `person`, `motorcycle`, `pickup`), or null: a screen draws no contact without one |
+| `size` | metres across: what the room judges sightings and captures by, and lifts its centre by (half, a metre at most) |
 | `route`, `t0` | where to draw it: `poseOnRoute(route, roomMs - t0)`. Changes at a hard threshold and at a scripted move; every screen draws every contact from this, discovered or not (people are seen from the air before the room knows them) |
 | `state` | `undiscovered` (never seen), `seen` (in some pilot's frame now), `lost` (seen before, in nobody's frame since `lostSince`), `vanished` (its route ended) |
 | `cls` | null until discovered, then the campaign's class id (below) |
@@ -344,6 +350,15 @@ objective texts `ops.interior.m1.obj.*`, stage titles
 `ops.interior.m1.s1` to `s5`, the rule `ops.rule.no_engagement`, the
 tutorial prompts `ops.tut.*` (stage 1's `tutorial`, cleared by the
 screen), the group label `ops.label.new_column_unconfirmed`.
+
+What the screen reads from the mission itself: `clock` (WORLD's
+`M1_CLOCK`), `camp.mark` (the mark's dial to the map's shelter, one table
+with the room's judging: `MARKED`), each contact's `look` (`moto-road` is
+a `motorcycle`) and `debrief.required` (the items the debrief gives an
+analyst reconstruction when nobody captured them: the Alpha and Bravo
+survey, the five camp items and the mark).
+
+The client is `src/share/roomops.js` (track VIEW), beside `roomwar.js`.
 
 ## 12. What is not here yet
 
