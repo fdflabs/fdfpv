@@ -3552,7 +3552,7 @@ export default {
   "ops.campaign.state_development": "Under development",
   "ops.campaign.state_soon": "Coming soon",
   "ops.campaign.no_map": "The Interior's map is not in this build yet, so a mission cannot start from here.",
-  "ops.campaign.no_start": "Starting a mission from this card comes with the Interior's map.",
+  "ops.campaign.no_room": "No room could be made for it: {why}",
   "ops.interior.star.eyes": "EYES OPEN: every optional item",
   "ops.debrief.eyebrow": "DEBRIEF",
   "ops.debrief.won": "MISSION COMPLETE",

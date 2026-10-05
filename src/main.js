@@ -133,6 +133,8 @@ import { createRoomWar } from './share/roomwar.js';
 import { createRoomOps } from './share/roomops.js';
 import { grounded } from './share/ops/missions.js';
 import { opsWorldOf } from './share/opsworlds.js';
+import { resolve as opsResolve } from './share/ops/stages.js';
+import { localHour } from './share/interior/clock.js';
 import { FAR_M, ballFor, createBall, groundHit, threeCameraOf } from './avionics/camball.js';
 import { createCapture, createStillStore } from './avionics/capture.js';
 import { OpsHud } from './ui/opshud.js';
@@ -886,6 +888,14 @@ export async function boot({
     map: () => opsHud.mapOpen,
   };
   const swapsTold = new Set();
+  /* The start this page owes a room it made for a mission, until its
+   * welcome; the match this page has put itself in the air for. */
+  let opsPending = null;
+  let opsBegunFor = null;
+  /* Whether the map draws the room's contacts now, and the mark it was
+   * last told. */
+  let opsDrawn = false;
+  let opsCampMark = null;
   let ball = null;
   let ballAirframe = null;
   /* Whether the ball is the screen's camera this frame, and was last. */
@@ -1136,6 +1146,22 @@ export async function boot({
         opsHud.cardEvent([str('card.classification_updated'), str('ops.hud.class_change', { from: opsClassWord(e.from), to: opsClassWord(e.to) })]);
       }
     }
+    /* The host's start, once its room's welcome is in. */
+    if (opsPending && roomOps.room() === opsPending.code && roomOps.seat() != null && v.state === 'lobby' && opsHost() === roomOps.seat()) {
+      roomOps.start(opsPending.mission, { intro: true });
+      opsPending = null;
+    }
+    /* A match begun: into the air, as a war's begins (warBegin). */
+    if (match && match !== opsBegunFor && ['briefing', 'countdown', 'live'].includes(v.state)) {
+      opsBegunFor = match;
+      const w = roomLinkState.state().welcome;
+      if (mode === 'flight' && w && roomTagWorldReady(w.map)) {
+        ui.onAction('restart');
+      } else {
+        roomCall('game', { restart: true });
+      }
+    }
+    opsDraw(roomOps.on() ? v : null, roomOps.on() ? roomOps.mission() : null, roomLinkState.roomNow());
     for (const x of (v.roles && v.roles.swaps) || []) {
       if (x.to === roomOps.seat() && !swapsTold.has(x.id)) {
         swapsTold.add(x.id);
@@ -1222,6 +1248,51 @@ export async function boot({
     stillCanvas.toBlob((blob) => {
       rec.image = blob;
     }, 'image/jpeg', 0.85);
+  }
+
+  /*
+   * The room's contacts drawn by the map (CONTRACT-P0.md 4.3: every screen
+   * draws every contact from its route, discovered or not; people are
+   * seen from the air before the room knows them), the mission's sun on
+   * the room's clock and the camp's mark where the room judges it. Each
+   * only as far as the mission's data says: a contact with no `look` the
+   * map can draw (a vehicle without one) is not drawn, a mission with no
+   * `clock` keeps the map's hour, one with no `camp` the map's own mark.
+   */
+  function opsDraw(v, mission, now) {
+    if (!view || typeof view.setContacts !== 'function') {
+      return;
+    }
+    if (!v || !mission || !Number.isFinite(now)) {
+      if (opsDrawn) {
+        view.setContacts([], 0);
+        opsDrawn = false;
+        opsCampMark = null;
+      }
+      return;
+    }
+    const defs = new Map((mission.contacts || []).map((c) => [c.id, c]));
+    const list = [];
+    for (const c of v.contacts || []) {
+      const look = (defs.get(c.id) || {}).look ?? (c.kind === 'person' ? 'person' : null);
+      if (look) {
+        list.push({
+          id: c.id, kind: look, route: c.route, ms: now - c.t0,
+        });
+      }
+    }
+    view.setContacts(list, now);
+    opsDrawn = true;
+    if (mission.clock && v.goAt != null && typeof view.setLocalTime === 'function') {
+      view.setLocalTime(localHour(mission.clock, v.goAt, now));
+    }
+    if (mission.camp && mission.camp.mark != null && typeof view.setCamp === 'function') {
+      const mark = opsResolve(mission.camp.mark, v.dials || {});
+      if (mark !== opsCampMark) {
+        opsCampMark = mark;
+        view.setCamp({ mark });
+      }
+    }
   }
 
   /* The craft's height over the ground under it, m. */
@@ -1334,6 +1405,11 @@ export async function boot({
     inject: (m) => roomOps.onMessage(m),
     useWorld: (w) => { opsWorldOverride = w; opsCaptureFor = null; },
     sent: () => opsSent.slice(),
+    /* Checks only: a capture of `item` proposed now, whatever is framed,
+     * for the room to judge on this page's real pose and camera. */
+    proposeCapture: (item) => roomOps.capture({
+      type: 'ops', op: 'capture', item, t: opsStillT(), grade: 'poor', framing: { size: 0.02, off: 0, blur: 0 },
+    }),
     project: (p) => opsProject(p),
     /* The ground under a picture position (NDC), ops frame, or null. */
     groundAtNdc: (x, y) => {
@@ -5535,7 +5611,7 @@ export async function boot({
   }
   /* A game on, or combat's card between rounds: its HUD is on screen. */
   function roomGameUp() {
-    return roomRunning() != null || roomCombat.round().state === 'over';
+    return roomRunning() != null || roomCombat.round().state === 'over' || roomOps.on();
   }
   let roomBarAt = 0;
   function roomBarFrame(wallMs) {
@@ -6488,11 +6564,38 @@ export async function boot({
     consented: interiorConsented,
     play: (m) => {
       const mission = roomOps.missionOf(m.id);
-      const why = mission && MAPS.some((x) => x.id === mission.map) ? 'ops.campaign.no_start' : 'ops.campaign.no_map';
-      interiorScreen.open(str(why));
+      if (!mission || !MAPS.some((x) => x.id === mission.map)) {
+        interiorScreen.open(str('ops.campaign.no_map'));
+        return;
+      }
+      opsEnter(m.id, mission).catch((e) => interiorScreen.open(str('ops.campaign.no_room', { why: e.message })));
     },
   });
   ui.onOpsCampaignCard = () => interiorScreen.open();
+  /*
+   * A MISSION'S ROOM: private (ops missions run in private rooms only in
+   * Phase 0, the lead's call), on the mission's map, the pilot in the
+   * first core role's aircraft, seated before the room is joined so every
+   * pose carries the room's map (the room drops a pose from another). The
+   * host's start goes when the welcome is in (opsFrame).
+   */
+  async function opsEnter(id, mission) {
+    const code = await roomLinkState.create(mission.map, false, { name: null, mode: null, public: false });
+    const role = (mission.roles || []).find((r) => r.core) || (mission.roles || [])[0];
+    const craft = role && role.platforms ? role.platforms[0] : null;
+    if (craft && ui.settings.airframe !== craft) {
+      seatAirframe(ui.settings, craft);
+      ui.persistSettings();
+    }
+    if (ui.settings.map !== mission.map) {
+      ui.seatMap(mission.map, { stay: true });
+    }
+    opsPending = { code, mission: id };
+    ui.roomGame = null;
+    ui.show('friends');
+    roomLinkState.join(code);
+    return code;
+  }
   window.__opsCampaign = interiorScreen;
   ui.onTrackChosen = () => {
     if (lobbyGame() !== 'race' || !roomHost(roomLinkState.state().welcome)) {
@@ -17478,8 +17581,11 @@ export async function boot({
      * the intro orbit or a menu. */
     const hudStyle = hudStyleFor(ui.settings, runAirframe);
     const fpvHudUp = fpvLensLive && !camOverride && (ui.screen === 'flight' || ui.screen === 'paused');
-    fpvOsd.tick(hudStyle === 'osd' && fpvHudUp, ui.screen === 'paused', nowWall);
-    avionicsFrame(hudStyle === 'avionics' && fpvHudUp && avxFed, ui.screen === 'paused', nowWall, dt / 1000);
+    /* In an ops match the quiet HUD is the HUD, in every view: the OSD and
+     * the Avionics HUD stand down rather than draw over it. */
+    const opsMatchUp = roomOps.on() && mode === 'flight';
+    fpvOsd.tick(hudStyle === 'osd' && fpvHudUp && !opsMatchUp, ui.screen === 'paused', nowWall);
+    avionicsFrame(hudStyle === 'avionics' && fpvHudUp && avxFed && !opsMatchUp, ui.screen === 'paused', nowWall, dt / 1000);
     /* THE CAMERA BALL: its sensor, the room's camera and captures, its
      * HUD. Leaving the view gives the sensor back its settings. */
     if (ballWas && !ballOn) {
