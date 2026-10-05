@@ -1150,6 +1150,9 @@ export async function boot({
         opsHud.tell(str('ops.capture.recorded', { item: str(`ops.${v.campaign}.item.${e.item}`), grade: str(`ops.grade.${e.grade}`) }), { grade: e.grade });
       } else if (e.type === 'error' && e.error === 'capture') {
         opsHud.tell(str(`ops.capture.why.${e.why ?? 'item'}`), { warn: true });
+      } else if (e.type === 'error' && e.error === 'unwatched') {
+        /* Said for a few seconds over the waiting line (opsFilmFrame). */
+        opsBriefRefusedUntil = performance.now() + 4000;
       } else if (e.type === 'error' && e.error === 'locked') {
         opsHud.tell(str('ops.roles.refused_locked'), { warn: true });
       } else if (e.type === 'cue') {
@@ -1403,7 +1406,10 @@ export async function boot({
       audio,
       ground: (x, z) => view.height(x, z, Infinity),
       seen: seenFilm(opsFilmStore.load(), id, film.version),
-      onSeen: () => opsFilmStore.save(markSeen(opsFilmStore.load(), id, film.version)),
+      onSeen: () => {
+        opsFilmStore.save(markSeen(opsFilmStore.load(), id, film.version));
+        opsSeenTell();
+      },
       ...opts,
     });
     warIntro = h;
@@ -1415,6 +1421,28 @@ export async function boot({
     return h;
   }
   const opsFilmOn = (id) => warIntro !== null && warIntroFor === `ops:${id}`;
+  /* The room told which films this pilot has watched to their end (the
+   * films in the synced campaign section, the war's store), once per
+   * welcome and on every change: the host's skip waits on everybody's. */
+  let opsSeenTold = null;
+  /* Until when the room's refusal of the host's skip is said. */
+  let opsBriefRefusedUntil = 0;
+  function opsSeenTell() {
+    const films = opsFilmStore.load().films;
+    const key = roomOps.room() != null && roomOps.seat() != null ? `${roomOps.room()}:${roomOps.seat()}:${JSON.stringify(films)}` : null;
+    if (key && key !== opsSeenTold) {
+      opsSeenTold = key;
+      roomOps.seen(films);
+    }
+  }
+  /* Whether every pilot here has seen the briefing's film at its version
+   * (the view's `seen`), and how many have not. */
+  function opsBriefingSeen(v) {
+    const here = Object.keys((v.roles && v.roles.held) || {}).map(Number);
+    const seen = new Set(v.seen || []);
+    const missing = here.filter((s) => !seen.has(s)).length;
+    return { all: here.length > 0 && missing === 0, missing };
+  }
 
   /* The card's press: the prologue first when this pilot has not seen
    * it, over the campaign's world, then the page. */
@@ -1439,6 +1467,20 @@ export async function boot({
   }
 
   function opsFilmFrame(v, match, consentDue) {
+    opsSeenTell();
+    /* The host's line over the briefing: holding ends it for everybody
+     * once everyone has seen this cut, else who it waits for. */
+    const briefingNow = v.state === 'briefing' && v.film && opsHost() === roomOps.seat();
+    if (briefingNow) {
+      const b = opsBriefingSeen(v);
+      opsHud.briefingNote(!b.all && performance.now() < opsBriefRefusedUntil
+        ? { text: str('ops.brief.refused'), wait: true }
+        : b.all
+        ? { text: str('ops.brief.skip_all'), wait: false }
+        : { text: plural('count.ops_brief_wait', b.missing), wait: true });
+    } else {
+      opsHud.briefingNote(null);
+    }
     /* The prologue, once its world stands. */
     if (opsPrologueDue && !warIntro) {
       const map = roomOps.missionOf(INTERIOR[0].id)?.map;
@@ -1459,6 +1501,15 @@ export async function boot({
       opsFilmPlay(intro, {
         clock: () => roomLinkState.roomNow() - briefAt,
         hold: true,
+        /* A host's hold ends the briefing for everybody when everybody
+         * has seen this cut (the room refuses it otherwise); anyone
+         * else's, or a host's while someone has not, waits on the orbit. */
+        onSkip: () => {
+          const now = roomOps.view();
+          if (opsHost() === roomOps.seat() && now.state === 'briefing' && opsBriefingSeen(now).all) {
+            roomOps.skipIntro();
+          }
+        },
         title: { key: mission.title, n: INTERIOR.findIndex((m) => m.id === v.mission) + 1 },
       });
     } else if (intro && opsFilmOn(intro) && !briefing) {
@@ -1599,6 +1650,9 @@ export async function boot({
     toggleLock: () => ballToggleLock(),
     /* Checks only: the campaign card's press (the prologue first). */
     openCampaign: () => opsCampaignOpen(),
+    /* Checks only: the host's skip sent as it is, and a start. */
+    skipIntro: () => roomOps.skipIntro(),
+    start: (mission) => roomOps.start(mission, { intro: true }),
     filmAsked: () => Object.fromEntries(opsFilmAsked),
     /* The aircraft this page flies now. */
     flown: () => runAirframe,

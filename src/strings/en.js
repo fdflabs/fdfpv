@@ -3593,4 +3593,9 @@ export default {
   "ops.touch.zoom_out": "ZOOM -",
   "ops.touch.lock": "LOCK",
   "ops.touch.capture": "CAPTURE",
+  "ops.brief.skip_all": "Everyone has seen the briefing: hold to end it for everyone",
+  "ops.brief.refused": "Not everyone has seen the briefing yet",
+  "count.ops_brief_wait.one": "Waiting: {n} pilot has not seen the briefing",
+  "count.ops_brief_wait.other": "Waiting: {n} pilots have not seen the briefing",
+  "rooms.refused_ops": "A mission is still running: end it first.",
 };

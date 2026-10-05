@@ -18,6 +18,12 @@
  *     the room's clock from endAt over the Interior, asking for the
  *     squad's stills (this pilot's own given, the rest null: the
  *     reconstruction), and the debrief opens when it is over
+ *   - SEEN AND THE HOST'S SKIP: the intro watched to its end is told the
+ *     room (`seen`); a second briefing with a pilot B who has not seen
+ *     the cut: the host's line waits on B and the room refuses the skip
+ *     ('unwatched'); once B has seen it the line offers the skip, and the
+ *     host's hold ends the briefing for both (the countdown) (B is a
+ *     second page in this one Chrome, scripts/lib/secondpage.js)
  *   - no page errors; pictures outside the repository
  *
  * The win is the room's view as a screen hears it, stood in for: a real
@@ -46,6 +52,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { openPage } from '../tests/lib/page.js';
+import { secondPage } from './lib/secondpage.js';
 import { SETTINGS_KEY, seatAirframe } from '../src/ui/ui.js';
 import { airframeById } from '../configs/airframes.js';
 
@@ -90,6 +97,9 @@ const rooms = `http://127.0.0.1:${server.port}`;
 console.log(`The Interior's films, rooms at ${rooms}`);
 const page = await openPage({
   root, width: 1280, height: 720, url: `/index.html?rooms=${encodeURIComponent(rooms)}&missions=dev`, seed,
+  /* A second pilot's page flies in this Chrome too: no tab of it may be
+   * throttled as a background one. */
+  args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'],
 });
 async function shot(name) {
   const r = await page.cdp.send('Page.captureScreenshot', { format: 'png' }, page.sessionId);
@@ -149,6 +159,58 @@ try {
   await shot('films-outro.png');
   await page.until('window.__debrief().open', 150000).catch(() => {});
   check('the debrief opens when the outro is over', await page.evaluate('window.__debrief().open') && !(await page.evaluate(FILM)));
+  await page.evaluate("(document.querySelector('.debrief button[data-act=\"continue\"]').click(), true)");
+
+  /* SEEN AND THE HOST'S SKIP. The room heard this pilot's intro seen. */
+  const filmV = await page.evaluate('window.__ops.view().film');
+  const mine = await page.evaluate("window.__ui.settings.campaign && window.__ui.settings.campaign.films");
+  const sent = await page.evaluate("window.__ops.sent().filter((m) => m.op === 'seen').slice(-1)[0] || null");
+  check('the intro watched to its end is kept and told the room (seen)', filmV && mine && mine[filmV.id] >= filmV.version && sent && sent.films[filmV.id] >= filmV.version, JSON.stringify({ filmV, mine, sent }));
+  /* A second briefing, with B, who has never seen the cut. The win above
+   * was this screen's view stood in: the room's match runs on, so the
+   * host ends it first (its debrief, closed). */
+  const code = await page.evaluate('window.__rooms().code');
+  await page.evaluate('(window.__ops.end(), true)');
+  await page.until("window.__ops.view().state === 'ended'", 15000).catch(() => {});
+  await page.sleep(800);
+  await page.evaluate("(() => { const b = document.querySelector('.debrief button[data-act=\"continue\"]'); if (b) { b.click(); } return true; })()");
+  await page.evaluate("(window.__ops.start('interior-1'), true)");
+  await page.until("window.__ops.view().state === 'briefing'", 30000).catch(() => {});
+  const B = await secondPage(page, outDir, {
+    url: `/index.html?rooms=${encodeURIComponent(rooms)}&missions=dev&room=${code}`,
+    seed: [seed[0].replace('interiorConsent":true', 'interiorConsent":true')],
+  });
+  await B.until('!!window.__shellReady', 300000);
+  await page.until('Object.keys(window.__ops.view().roles.held).length === 2', 120000).catch(() => {});
+  await page.sleep(1500);
+  const wait = await page.evaluate("({ note: window.__opsHud().briefing, seen: window.__ops.view().seen, state: window.__ops.view().state })");
+  check('the host\'s line waits on the pilot who has not seen the briefing', wait.state === 'briefing' && /Waiting: 1 pilot/.test(wait.note || ''), JSON.stringify(wait));
+  await page.evaluate('(window.__ops.skipIntro(), true)');
+  await page.sleep(800);
+  const refused = await page.evaluate("({ note: window.__opsHud().briefing, state: window.__ops.view().state })");
+  check('the host\'s skip is refused while a pilot has not seen it (unwatched): the briefing runs on', refused.state === 'briefing' && /Not everyone has seen/.test(refused.note || ''), JSON.stringify(refused));
+  /* B has seen the cut (its store says so, as after a viewing). */
+  await B.evaluate(`(() => {
+    const c = window.__ui.settings.campaign || { v: 1 };
+    window.__ui.settings.campaign = { ...c, films: { ...(c.films || {}), ${JSON.stringify(filmV.id)}: ${filmV.version} } };
+    window.__ui.persistSettings();
+    return true;
+  })()`);
+  await page.until(`window.__ops.view().seen.length === 2`, 30000).catch(() => {});
+  await page.sleep(600);
+  const ready = await page.evaluate("({ note: window.__opsHud().briefing, seen: window.__ops.view().seen })");
+  const bSaid = await B.evaluate("({ films: window.__ui.settings.campaign && window.__ui.settings.campaign.films, sent: window.__ops.sent().filter((m) => m.op === 'seen'), seat: window.__ops.seat() })");
+  check('once everyone has seen it, the host\'s line offers the skip', /hold to end it for everyone/.test(ready.note || ''), JSON.stringify({ ready, bSaid }));
+  /* The host holds any key on the film (SKIP_HOLD_MS, 2 s). */
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyDown', code: 'KeyQ', key: 'q', windowsVirtualKeyCode: 81 }, page.sessionId);
+  await page.sleep(2600);
+  await page.cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', code: 'KeyQ', key: 'q', windowsVirtualKeyCode: 81 }, page.sessionId);
+  await page.until("window.__ops.view().state !== 'briefing'", 15000).catch(() => {});
+  const ended = await page.evaluate("window.__ops.view().state");
+  const bState = await B.evaluate("window.__ops.view().state");
+  check('the host\'s hold ends the briefing for both: the countdown', ['countdown', 'live'].includes(ended) && ['countdown', 'live'].includes(bState), `${ended} / ${bState}`);
+  const bErrs = B.errors.filter((e) => !e.startsWith('network:'));
+  check('no page errors on B', bErrs.length === 0, bErrs.slice(0, 3).join(' | '));
   const errs = page.errors.filter((e) => !e.startsWith('network:'));
   check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
 } finally {
